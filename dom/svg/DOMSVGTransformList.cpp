@@ -258,7 +258,7 @@ DOMSVGTransformList::InsertItemBefore(SVGTransform& newItem,
   MaybeInsertNullInAnimValListAt(index);
 
   InternalList().InsertItem(index, domItem->ToSVGTransform());
-  mItems.InsertElementAt(index, domItem.get());
+  MOZ_ALWAYS_TRUE(mItems.InsertElementAt(index, domItem.get()));
 
   
   

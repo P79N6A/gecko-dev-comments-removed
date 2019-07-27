@@ -250,7 +250,7 @@ DOMSVGNumberList::InsertItemBefore(DOMSVGNumber& aItem,
   MaybeInsertNullInAnimValListAt(index);
 
   InternalList().InsertItem(index, domItem->ToSVGNumber());
-  mItems.InsertElementAt(index, domItem);
+  MOZ_ALWAYS_TRUE(mItems.InsertElementAt(index, domItem));
 
   
   

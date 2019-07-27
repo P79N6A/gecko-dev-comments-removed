@@ -342,7 +342,7 @@ SVGTransformListSMILType::AppendTransforms(const SVGTransformList& aList,
   for (uint32_t i = 0; i < aList.Length(); ++i) {
     
     
-    transforms.AppendElement(SVGTransformSMILData(aList[i]));
+    MOZ_ALWAYS_TRUE(transforms.AppendElement(SVGTransformSMILData(aList[i])));
   }
   return true;
 }

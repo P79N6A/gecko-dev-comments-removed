@@ -266,7 +266,7 @@ DOMSVGLengthList::InsertItemBefore(DOMSVGLength& newItem,
   MaybeInsertNullInAnimValListAt(index);
 
   InternalList().InsertItem(index, domItem->ToSVGLength());
-  mItems.InsertElementAt(index, domItem.get());
+  MOZ_ALWAYS_TRUE(mItems.InsertElementAt(index, domItem.get()));
 
   
   

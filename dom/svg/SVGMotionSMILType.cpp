@@ -441,8 +441,9 @@ SVGMotionSMILType::Interpolate(const nsSMILValue& aStartVal,
 
   
   
-  resultArr.AppendElement(MotionSegment(path, resultDist,
-                                        rotateType, rotateAngle));
+  MOZ_ALWAYS_TRUE(resultArr.AppendElement(MotionSegment(path, resultDist,
+                                                        rotateType,
+                                                        rotateAngle)));
   return NS_OK;
 }
 
@@ -484,7 +485,8 @@ SVGMotionSMILType::ConstructSMILValue(Path* aPath,
   MotionSegmentArray& arr = ExtractMotionSegmentArray(smilVal);
 
   
-  arr.AppendElement(MotionSegment(aPath, aDist, aRotateType, aRotateAngle));
+  MOZ_ALWAYS_TRUE(arr.AppendElement(MotionSegment(aPath, aDist,
+                                                  aRotateType, aRotateAngle)));
   return smilVal;
 }
 
