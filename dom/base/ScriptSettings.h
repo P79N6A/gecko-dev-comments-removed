@@ -16,6 +16,7 @@
 #include "mozilla/Maybe.h"
 
 #include "jsapi.h"
+#include "js/Debug.h"
 
 class nsPIDOMWindow;
 class nsGlobalWindow;
@@ -340,6 +341,30 @@ public:
 
 private:
   
+  class DocshellEntryMonitor : public JS::dbg::AutoEntryMonitor
+  {
+  public:
+    DocshellEntryMonitor(JSContext* aCx, const char* aReason);
+
+    void Entry(JSContext* aCx, JSFunction* aFunction) override
+    {
+      Entry(aCx, aFunction, nullptr);
+    }
+
+    void Entry(JSContext* aCx, JSScript* aScript) override
+    {
+      Entry(aCx, nullptr, aScript);
+    }
+
+    void Exit(JSContext* aCx) override;
+
+  private:
+    void Entry(JSContext* aCx, JSFunction* aFunction, JSScript* aScript);
+
+    const char* mReason;
+  };
+
+  
   
   
   
@@ -349,7 +374,7 @@ private:
   nsIPrincipal* MOZ_NON_OWNING_REF mWebIDLCallerPrincipal;
   friend nsIPrincipal* GetWebIDLCallerPrincipal();
 
-  nsCOMPtr<nsIDocShell> mDocShellForJSRunToCompletion;
+  Maybe<DocshellEntryMonitor> mDocShellEntryMonitor;
 
   bool mIsMainThread;
 };

@@ -21,12 +21,15 @@ class nsDocShell;
 class TimelineMarker
 {
 public:
+  enum TimelineStackRequest { STACK, NO_STACK };
+
   TimelineMarker(nsDocShell* aDocShell, const char* aName,
                  TracingMetadata aMetaData);
 
   TimelineMarker(nsDocShell* aDocShell, const char* aName,
                  TracingMetadata aMetaData,
-                 const nsAString& aCause);
+                 const nsAString& aCause,
+                 TimelineStackRequest aStackRequest = STACK);
 
   virtual ~TimelineMarker();
 
@@ -43,7 +46,9 @@ public:
   
   
   
-  virtual void AddDetails(mozilla::dom::ProfileTimelineMarker& aMarker) {}
+  virtual void AddDetails(JSContext* aCx,
+                          mozilla::dom::ProfileTimelineMarker& aMarker)
+  {}
 
   virtual void AddLayerRectangles(
       mozilla::dom::Sequence<mozilla::dom::ProfileTimelineLayerRect>&)
@@ -91,4 +96,4 @@ private:
   JS::PersistentRooted<JSObject*> mStackTrace;
 };
 
-#endif 
+#endif
