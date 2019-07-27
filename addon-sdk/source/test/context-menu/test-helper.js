@@ -28,6 +28,9 @@ const TEST_DOC_URL = module.uri.replace(/context-menu\/test-helper\.js$/, "test-
 
 
 function TestHelper(assert, done) {
+  
+  for (var prop in assert)
+    this[prop] = () => assert[prop].apply(assert, arguments);
   this.assert = assert;
   this.end = done;
   this.loaders = [];
@@ -56,11 +59,6 @@ TestHelper.prototype = {
 
   get tabBrowser() {
     return this.browserWindow.gBrowser;
-  },
-
-  
-  __noSuchMethod__: function (methodName, args) {
-    this.assert[methodName].apply(this.assert, args);
   },
 
   
