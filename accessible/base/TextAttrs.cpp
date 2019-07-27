@@ -18,6 +18,10 @@
 #include "mozilla/AppUnits.h"
 #include "mozilla/gfx/2D.h"
 
+#if defined(MOZ_WIDGET_GTK)
+#include "gfxPlatformGtk.h" 
+#endif
+
 using namespace mozilla;
 using namespace mozilla::a11y;
 
@@ -628,21 +632,30 @@ TextAttrsMgr::FontWeightTextAttr::
   if (font->IsSyntheticBold())
     return 700;
 
-#if defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_QT)
-  
-  
-  
-  return font->GetStyle()->weight;
-#else
+  bool useFontEntryWeight = true;
+
   
   
   
   
-  
-  
-  gfxFontEntry *fontEntry = font->GetFontEntry();
-  return fontEntry->Weight();
+#if defined(MOZ_WIDGET_QT)
+  useFontEntryWeight = false;
+#elif defined(MOZ_WIDGET_GTK)
+  useFontEntryWeight = gfxPlatformGtk::UseFcFontList();
 #endif
+
+  if (useFontEntryWeight) {
+    
+    
+    
+    
+    
+    
+    gfxFontEntry *fontEntry = font->GetFontEntry();
+    return fontEntry->Weight();
+  } else {
+    return font->GetStyle()->weight;
+  }
 }
 
 
