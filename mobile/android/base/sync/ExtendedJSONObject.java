@@ -50,7 +50,12 @@ public class ExtendedJSONObject {
 
 
   protected static Object parseRaw(Reader in) throws ParseException, IOException {
-    return getJSONParser().parse(in);
+    try {
+      return getJSONParser().parse(in);
+    } catch (Error e) {
+      
+      throw new ParseException(ParseException.ERROR_UNEXPECTED_EXCEPTION);
+    }
   }
 
   
@@ -63,7 +68,12 @@ public class ExtendedJSONObject {
 
 
   protected static Object parseRaw(String input) throws ParseException {
-    return getJSONParser().parse(input);
+    try {
+      return getJSONParser().parse(input);
+    } catch (Error e) {
+      
+      throw new ParseException(ParseException.ERROR_UNEXPECTED_EXCEPTION);
+    }
   }
 
   
