@@ -382,11 +382,18 @@ js::GetOwnPropertyDescriptor(JSContext *cx, HandleObject obj, HandleId id,
     if (pobj->isNative()) {
         desc.setAttributes(GetShapeAttributes(pobj, shape));
         if (desc.hasGetterOrSetterObject()) {
+            MOZ_ASSERT(desc.isShared());
             doGet = false;
             if (desc.hasGetterObject())
                 desc.setGetterObject(shape->getterObject());
             if (desc.hasSetterObject())
                 desc.setSetterObject(shape->setterObject());
+        } else {
+            
+            
+            
+            
+            desc.attributesRef() &= ~JSPROP_SHARED;
         }
     } else {
         if (!JSObject::getGenericAttributes(cx, pobj, id, &desc.attributesRef()))
