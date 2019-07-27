@@ -120,16 +120,6 @@ public class OverlayActionService extends Service {
                         break;
                     case TRANSIENT_FAILURE:
                         
-                        View.OnClickListener retryListener = new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                handleShare(intent);
-                            }
-                        };
-
-                        
-                        OverlayToastHelper.showFailureToast(getApplicationContext(), shareMethod.getFailureMessage(), retryListener);
-                        break;
                     case PERMANENT_FAILURE:
                         
                         OverlayToastHelper.showFailureToast(getApplicationContext(), shareMethod.getFailureMessage());
