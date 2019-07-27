@@ -692,6 +692,42 @@ struct IMENotification
 
   IMEMessage mMessage;
 
+  struct Point
+  {
+    int32_t mX;
+    int32_t mY;
+
+    void Set(const nsIntPoint& aPoint)
+    {
+      mX = aPoint.x;
+      mY = aPoint.y;
+    }
+    nsIntPoint AsIntPoint() const
+    {
+      return nsIntPoint(mX, mY);
+    }
+  };
+
+  struct Rect
+  {
+    int32_t mX;
+    int32_t mY;
+    int32_t mWidth;
+    int32_t mHeight;
+
+    void Set(const nsIntRect& aRect)
+    {
+      mX = aRect.x;
+      mY = aRect.y;
+      mWidth = aRect.width;
+      mHeight = aRect.height;
+    }
+    nsIntRect AsIntRect() const
+    {
+      return nsIntRect(mX, mY, mWidth, mHeight);
+    }
+  };
+
   
   struct SelectionChangeData
   {
@@ -810,6 +846,23 @@ struct IMENotification
     }
   };
 
+  struct MouseButtonEventData
+  {
+    
+    uint32_t mEventMessage;
+    
+    uint32_t mOffset;
+    
+    Point mCursorPos;
+    
+    Rect mCharRect;
+    
+    int16_t mButton;
+    int16_t mButtons;
+    
+    Modifiers mModifiers;
+  };
+
   union
   {
     
@@ -819,54 +872,7 @@ struct IMENotification
     TextChangeDataBase mTextChangeData;
 
     
-    struct
-    {
-      
-      uint32_t mEventMessage;
-      
-      uint32_t mOffset;
-      
-      struct
-      {
-        int32_t mX;
-        int32_t mY;
-
-        void Set(const nsIntPoint& aPoint)
-        {
-          mX = aPoint.x;
-          mY = aPoint.y;
-        }
-        nsIntPoint AsIntPoint() const
-        {
-          return nsIntPoint(mX, mY);
-        }
-      } mCursorPos;
-      
-      struct
-      {
-        int32_t mX;
-        int32_t mY;
-        int32_t mWidth;
-        int32_t mHeight;
-
-        void Set(const nsIntRect& aRect)
-        {
-          mX = aRect.x;
-          mY = aRect.y;
-          mWidth = aRect.width;
-          mHeight = aRect.height;
-        }
-        nsIntRect AsIntRect() const
-        {
-          return nsIntRect(mX, mY, mWidth, mHeight);
-        }
-      } mCharRect;
-      
-      int16_t mButton;
-      int16_t mButtons;
-      
-      Modifiers mModifiers;
-    } mMouseButtonEventData;
+    MouseButtonEventData mMouseButtonEventData;
   };
 
   bool IsCausedByComposition() const
