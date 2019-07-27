@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
@@ -318,13 +320,12 @@ WifiGeoPositionProvider.prototype = {
       }
     };
 
-    try {
-      Services.obs.addObserver(this, SETTINGS_CHANGED_TOPIC, false);
-      let settings = Cc["@mozilla.org/settingsService;1"].getService(Ci.nsISettingsService);
+    Services.obs.addObserver(this, SETTINGS_CHANGED_TOPIC, false);
+    let settingsService = Cc["@mozilla.org/settingsService;1"];
+    if (settingsService) {
+      let settings = settingsService.getService(Ci.nsISettingsService);
       settings.createLock().get(SETTINGS_WIFI_ENABLED, settingsCallback);
       settings.createLock().get(SETTINGS_DEBUG_ENABLED, settingsCallback);
-    } catch(ex) {
-      
     }
 
     if (gWifiScanningEnabled && Cc["@mozilla.org/wifi/monitor;1"]) {
@@ -509,7 +510,7 @@ WifiGeoPositionProvider.prototype = {
                           [POSITION_UNAVAILABLE]);
     }).bind(this);
     xhr.onload = (function() {
-      LOG("gls returned status: " + xhr.status + " --> " +  JSON.stringify(xhr.response));
+      LOG("server returned status: " + xhr.status + " --> " +  JSON.stringify(xhr.response));
       if ((xhr.channel instanceof Ci.nsIHttpChannel && xhr.status != 200) ||
           !xhr.response || !xhr.response.location) {
         this.notifyListener("notifyError",
