@@ -13,10 +13,9 @@
 #include "nsIThread.h"
 #include "nsTArray.h"
 #include "mozilla/Attributes.h"
+#include "SamplesWaitingForKey.h"
 
 namespace mozilla {
-
-typedef nsTArray<uint8_t> CencKeyId;
 
 
 
@@ -62,12 +61,8 @@ public:
     void CallOnMainThreadWhenCapsAvailable(nsIRunnable* aContinuation);
 
     
-    
-    
-    void CallWhenKeyUsable(const CencKeyId& aKey,
-                           nsIRunnable* aContinuation,
-                           nsIThread* aTarget = nullptr);
-
+    void NotifyWhenKeyIdUsable(const CencKeyId& aKey,
+                               SamplesWaitingForKey* aSamplesWaiting);
   private:
     
     CDMCaps& mData;
@@ -80,15 +75,12 @@ private:
 
   struct WaitForKeys {
     WaitForKeys(const CencKeyId& aKeyId,
-                nsIRunnable* aContinuation,
-                nsIThread* aTarget)
+                SamplesWaitingForKey* aListener)
       : mKeyId(aKeyId)
-      , mContinuation(aContinuation)
-      , mTarget(aTarget)
+      , mListener(aListener)
     {}
     CencKeyId mKeyId;
-    nsRefPtr<nsIRunnable> mContinuation;
-    nsCOMPtr<nsIThread> mTarget;
+    nsRefPtr<SamplesWaitingForKey> mListener;
   };
 
   Monitor mMonitor;

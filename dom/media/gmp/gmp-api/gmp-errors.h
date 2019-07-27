@@ -47,6 +47,7 @@ typedef enum {
   GMPCryptoErr = 10,
   GMPEndOfEnumeration = 11,
   GMPInvalidArgErr = 12,
+  GMPAbortedErr = 13,
   GMPLastErr 
 } GMPErr;
 
