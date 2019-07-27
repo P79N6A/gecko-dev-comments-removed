@@ -501,23 +501,26 @@ CryptoKey::PublicKeyToSpki(SECKEYPublicKey* aPubKey,
                            CryptoBuffer& aRetVal,
                            const nsNSSShutDownPreventionLock& )
 {
-  ScopedPLArenaPool arena;
   ScopedCERTSubjectPublicKeyInfo spki;
 
   
   if (aPubKey->keyType == dhKey) {
-    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    
+    
+    ScopedPLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
     if (!arena) {
+      return NS_ERROR_DOM_OPERATION_ERR;
+    }
+
+    spki = PORT_ArenaZNew(arena, CERTSubjectPublicKeyInfo);
+    if (!spki) {
       return NS_ERROR_DOM_OPERATION_ERR;
     }
 
     
     
     
-    spki = PORT_ArenaZNew(arena, CERTSubjectPublicKeyInfo);
-    if (!spki) {
-      return NS_ERROR_DOM_OPERATION_ERR;
-    }
+    spki->arena = arena.forget();
 
     nsresult rv = PublicDhKeyToSpki(aPubKey, spki, arena);
     NS_ENSURE_SUCCESS(rv, rv);
