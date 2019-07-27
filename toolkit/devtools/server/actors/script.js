@@ -2251,12 +2251,13 @@ function resolveURIToLocalPath(aURI) {
 
 
 function SourceActor({ source, thread, originalUrl, generatedSource,
-                       contentType }) {
+                       isInlineSource, contentType }) {
   this._threadActor = thread;
   this._originalUrl = originalUrl;
   this._source = source;
   this._generatedSource = generatedSource;
   this._contentType = contentType;
+  this._isInlineSource = isInlineSource;
 
   this.onSource = this.onSource.bind(this);
   this._invertSourceMap = this._invertSourceMap.bind(this);
@@ -2286,8 +2287,14 @@ SourceActor.prototype = {
   _addonPath: null,
 
   get isSourceMapped() {
-    return this._originalURL || this._generatedSource ||
-           this.threadActor.sources.isPrettyPrinted(this.url);
+    return !this.isInlineSource && (
+      this._originalURL || this._generatedSource ||
+        this.threadActor.sources.isPrettyPrinted(this.url)
+    );
+  },
+
+  get isInlineSource() {
+    return this._isInlineSource;
   },
 
   get threadActor() { return this._threadActor; },
@@ -2413,7 +2420,10 @@ SourceActor.prototype = {
         
         
         
-        let sourceFetched = fetch(this.url, { loadFromCache: !this.source });
+        
+        
+        
+        let sourceFetched = fetch(this.url, { loadFromCache: this.isInlineSource });
 
         
         return sourceFetched.then(result => {
