@@ -90,6 +90,10 @@ public:
 
   
   size_t        mContentProcessRunningCount;
+
+  
+  bool          mHadLocalInstance;
+
   nsCString     mName; 
   nsCString     mDescription; 
   nsTArray<nsCString> mMimeTypes; 
