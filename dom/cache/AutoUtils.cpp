@@ -293,7 +293,7 @@ MatchInPutList(InternalRequest* aRequest,
     aRequest->GetURL(url);
 
     
-    if (NS_ConvertUTF8toUTF16(url) != cachedRequest.url()) {
+    if (url != cachedRequest.url()) {
       continue;
     }
 

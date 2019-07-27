@@ -100,9 +100,19 @@ public:
   ToInternalHeaders(const nsTArray<HeadersEntry>& aHeadersEntryList,
                     HeadersGuardEnum aGuard = HeadersGuardEnum::None);
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   static void
-  ProcessURL(nsAString& aUrl, bool* aSchemeValidOut,
-             nsAString* aUrlWithoutQueryOut, ErrorResult& aRv);
+  ProcessURL(nsACString& aUrl, bool* aSchemeValidOut,
+             nsACString* aUrlWithoutQueryOut, ErrorResult& aRv);
 
 private:
   void
