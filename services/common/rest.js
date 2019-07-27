@@ -220,6 +220,23 @@ RESTRequest.prototype = {
 
 
 
+  patch: function patch(data, onComplete, onProgress) {
+    return this.dispatch("PATCH", data, onComplete, onProgress);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
   put: function put(data, onComplete, onProgress) {
     return this.dispatch("PUT", data, onComplete, onProgress);
   },
@@ -307,7 +324,7 @@ RESTRequest.prototype = {
     }
 
     
-    if (method == "PUT" || method == "POST") {
+    if (method == "PUT" || method == "POST" || method == "PATCH") {
       
       if (typeof data != "string") {
         data = JSON.stringify(data);
@@ -366,7 +383,7 @@ RESTRequest.prototype = {
                                      Cr.NS_ERROR_NET_TIMEOUT);
     if (!this.onComplete) {
       this._log.error("Unexpected error: onComplete not defined in " +
-                      "abortTimeout.")
+                      "abortTimeout.");
       return;
     }
     this.onComplete(error);
