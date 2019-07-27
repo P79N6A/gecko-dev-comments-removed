@@ -119,12 +119,11 @@ ServiceWorkerContainer::GetAll(ErrorResult& aRv)
 }
 
 already_AddRefed<Promise>
-ServiceWorkerContainer::Ready()
+ServiceWorkerContainer::GetReady(ErrorResult& aRv)
 {
   
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(mWindow);
-  nsRefPtr<Promise> promise = new Promise(global);
-  return promise.forget();
+  return Promise::Create(global, aRv);
 }
 
 

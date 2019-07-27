@@ -54,13 +54,16 @@ public:
   
   already_AddRefed<Promise> CreateSession(const nsAString& aInitDataType,
                                           const Uint8Array& aInitData,
-                                          SessionType aSessionType);
+                                          SessionType aSessionType,
+                                          ErrorResult& aRv);
 
   
-  already_AddRefed<Promise> LoadSession(const nsAString& aSessionId);
+  already_AddRefed<Promise> LoadSession(const nsAString& aSessionId,
+                                        ErrorResult& aRv);
 
   
-  already_AddRefed<Promise> SetServerCertificate(const Uint8Array& aServerCertificate);
+  already_AddRefed<Promise> SetServerCertificate(const Uint8Array& aServerCertificate,
+                                                 ErrorResult& aRv);
 
   
   static
@@ -87,7 +90,7 @@ public:
   CDMProxy* GetCDMProxy() { return mProxy; }
 
   
-  already_AddRefed<Promise> MakePromise();
+  already_AddRefed<Promise> MakePromise(ErrorResult& aRv);
   
   
   

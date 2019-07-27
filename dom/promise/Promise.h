@@ -72,7 +72,12 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(Promise)
 
-  Promise(nsIGlobalObject* aGlobal);
+  
+  
+  
+  
+  static already_AddRefed<Promise>
+  Create(nsIGlobalObject* aGlobal, ErrorResult& aRv);
 
   typedef void (Promise::*MaybeFunc)(JSContext* aCx,
                                      JS::Handle<JS::Value> aValue);
@@ -139,10 +144,10 @@ public:
 
   already_AddRefed<Promise>
   Then(JSContext* aCx, AnyCallback* aResolveCallback,
-       AnyCallback* aRejectCallback);
+       AnyCallback* aRejectCallback, ErrorResult& aRv);
 
   already_AddRefed<Promise>
-  Catch(JSContext* aCx, AnyCallback* aRejectCallback);
+  Catch(JSContext* aCx, AnyCallback* aRejectCallback, ErrorResult& aRv);
 
   static already_AddRefed<Promise>
   All(const GlobalObject& aGlobal,
@@ -155,6 +160,10 @@ public:
   void AppendNativeHandler(PromiseNativeHandler* aRunnable);
 
 private:
+  
+  
+  Promise(nsIGlobalObject* aGlobal);
+
   friend class PromiseDebugging;
 
   enum PromiseState {
@@ -219,18 +228,11 @@ private:
                       JS::Handle<JS::Value> aValue,
                       PromiseTaskSync aSync = AsyncTask);
 
-  
-  JSObject* GetOrCreateWrapper(JSContext* aCx);
-
   template <typename T>
   void MaybeSomething(T& aArgument, MaybeFunc aFunc) {
     ThreadsafeAutoJSContext cx;
-
-    JSObject* wrapper = GetOrCreateWrapper(cx);
-    if (!wrapper) {
-      HandleException(cx);
-      return;
-    }
+    JSObject* wrapper = GetWrapper();
+    MOZ_ASSERT(wrapper); 
 
     JSAutoCompartment ac(cx, wrapper);
     JS::Rooted<JS::Value> val(cx);
