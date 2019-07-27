@@ -270,9 +270,7 @@ let RLSidebar = {
 
 
   openURL(url, event) {
-    
     log.debug(`Opening page ${url}`);
-    return;
 
     let mainWindow = window.QueryInterface(Ci.nsIInterfaceRequestor)
                            .getInterface(Ci.nsIWebNavigation)
