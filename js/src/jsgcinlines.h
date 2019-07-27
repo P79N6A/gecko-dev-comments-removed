@@ -473,7 +473,7 @@ CheckAllocatorState(ThreadSafeContext *cx, AllocKind kind)
 
     
     if (!PossiblyFail()) {
-        js_ReportOutOfMemory(cx);
+        js_ReportOutOfMemory(cx->asJSContext());
         return false;
     }
 
