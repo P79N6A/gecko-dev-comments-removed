@@ -126,6 +126,36 @@ function sectionalizeObject(obj) {
   return map;
 }
 
+
+
+
+function getMainWindow() {
+  return window.QueryInterface(Ci.nsIInterfaceRequestor)
+               .getInterface(Ci.nsIWebNavigation)
+               .QueryInterface(Ci.nsIDocShellTreeItem)
+               .rootTreeItem
+               .QueryInterface(Ci.nsIInterfaceRequestor)
+               .getInterface(Ci.nsIDOMWindow);
+}
+
+
+
+
+
+
+
+
+
+
+function getMainWindowWithPreferencesPane() {
+  let mainWindow = getMainWindow();
+  if (mainWindow && "openAdvancedPreferences" in mainWindow) {
+    return mainWindow;
+  } else {
+    return null;
+  }
+}
+
 let Settings = {
   SETTINGS: [
     
@@ -148,6 +178,14 @@ let Settings = {
     for (let s of this.SETTINGS) {
       let setting = s;
       Preferences.observe(setting.pref, this.render, this);
+    }
+
+    let elements = document.getElementsByClassName("change-data-choices-link");
+    for (let el of elements) {
+      el.addEventListener("click", function() {
+        let mainWindow = getMainWindowWithPreferencesPane();
+        mainWindow.openAdvancedPreferences("dataChoicesTab");
+      }, false);
     }
   },
 
