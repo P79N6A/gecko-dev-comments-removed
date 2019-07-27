@@ -909,7 +909,7 @@ InitCTypeClass(JSContext* cx, HandleObject parent)
   MOZ_ASSERT(fnproto);
 
   
-  RootedObject prototype(cx, JS_NewObject(cx, &sCTypeProtoClass, fnproto, parent));
+  RootedObject prototype(cx, JS_NewObjectWithGivenProto(cx, &sCTypeProtoClass, fnproto, parent));
   if (!prototype)
     return nullptr;
 
@@ -1029,7 +1029,7 @@ InitTypeConstructor(JSContext* cx,
     return false;
 
   
-  typeProto.set(JS_NewObject(cx, &sCTypeProtoClass, CTypeProto, parent));
+  typeProto.set(JS_NewObjectWithGivenProto(cx, &sCTypeProtoClass, CTypeProto, parent));
   if (!typeProto)
     return false;
 
@@ -1056,7 +1056,7 @@ InitTypeConstructor(JSContext* cx,
   
   
   
-  dataProto.set(JS_NewObject(cx, &sCDataProtoClass, CDataProto, parent));
+  dataProto.set(JS_NewObjectWithGivenProto(cx, &sCDataProtoClass, CDataProto, parent));
   if (!dataProto)
     return false;
 
@@ -3301,7 +3301,7 @@ CType::Create(JSContext* cx,
   
   
   
-  RootedObject typeObj(cx, JS_NewObject(cx, &sCTypeClass, typeProto, parent));
+  RootedObject typeObj(cx, JS_NewObjectWithGivenProto(cx, &sCTypeClass, typeProto, parent));
   if (!typeObj)
     return nullptr;
 
@@ -3316,7 +3316,7 @@ CType::Create(JSContext* cx,
 
   if (dataProto) {
     
-    RootedObject prototype(cx, JS_NewObject(cx, &sCDataProtoClass, dataProto, parent));
+    RootedObject prototype(cx, JS_NewObjectWithGivenProto(cx, &sCDataProtoClass, dataProto, parent));
     if (!prototype)
       return nullptr;
 
@@ -4868,7 +4868,7 @@ StructType::DefineInternal(JSContext* cx, JSObject* typeObj_, JSObject* fieldsOb
   
   
   
-  RootedObject prototype(cx, JS_NewObject(cx, &sCDataProtoClass, dataProto, NullPtr()));
+  RootedObject prototype(cx, JS_NewObjectWithGivenProto(cx, &sCDataProtoClass, dataProto, NullPtr()));
   if (!prototype)
     return false;
 
@@ -6377,7 +6377,7 @@ CData::Create(JSContext* cx,
   RootedObject parent(cx, JS_GetParent(typeObj));
   MOZ_ASSERT(parent);
 
-  RootedObject dataObj(cx, JS_NewObject(cx, &sCDataClass, proto, parent));
+  RootedObject dataObj(cx, JS_NewObjectWithGivenProto(cx, &sCDataClass, proto, parent));
   if (!dataObj)
     return nullptr;
 
@@ -6958,7 +6958,8 @@ CDataFinalizer::Construct(JSContext* cx, unsigned argc, jsval *vp)
 
   
   if (args.length() == 0) { 
-    JSObject *objResult = JS_NewObject(cx, &sCDataFinalizerClass, objProto, NullPtr());
+    JSObject *objResult = JS_NewObjectWithGivenProto(cx, &sCDataFinalizerClass, objProto,
+                                                     NullPtr());
     args.rval().setObject(*objResult);
     return true;
   }
@@ -7057,7 +7058,7 @@ CDataFinalizer::Construct(JSContext* cx, unsigned argc, jsval *vp)
 
   
 
-  JSObject *objResult = JS_NewObject(cx, &sCDataFinalizerClass, objProto, NullPtr());
+  JSObject *objResult = JS_NewObjectWithGivenProto(cx, &sCDataFinalizerClass, objProto, NullPtr());
   if (!objResult) {
     return false;
   }
@@ -7357,7 +7358,7 @@ Int64Base::Construct(JSContext* cx,
 {
   const JSClass* clasp = isUnsigned ? &sUInt64Class : &sInt64Class;
   RootedObject parent(cx, JS_GetParent(proto));
-  RootedObject result(cx, JS_NewObject(cx, clasp, proto, parent));
+  RootedObject result(cx, JS_NewObjectWithGivenProto(cx, clasp, proto, parent));
   if (!result)
     return nullptr;
 
