@@ -1994,10 +1994,15 @@ nsNavHistoryQueryResultNode::GetUri(nsACString& aURI)
 NS_IMETHODIMP
 nsNavHistoryQueryResultNode::GetFolderItemId(int64_t* aItemId)
 {
-  *aItemId = mItemId;
+  *aItemId = -1;
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsNavHistoryQueryResultNode::GetTargetFolderGuid(nsACString& aGuid) {
+  aGuid = EmptyCString();
+  return NS_OK;
+}
 
 NS_IMETHODIMP
 nsNavHistoryQueryResultNode::GetQueries(uint32_t* queryCount,
@@ -2978,7 +2983,7 @@ nsNavHistoryFolderResultNode::nsNavHistoryFolderResultNode(
                                   nsNavHistoryResultNode::RESULT_TYPE_FOLDER,
                                   aOptions),
   mContentsValid(false),
-  mQueryItemId(-1),
+  mTargetFolderItemId(aFolderId),
   mIsRegisteredFolderObserver(false)
 {
   mItemId = aFolderId;
@@ -2987,7 +2992,7 @@ nsNavHistoryFolderResultNode::nsNavHistoryFolderResultNode(
 nsNavHistoryFolderResultNode::~nsNavHistoryFolderResultNode()
 {
   if (mIsRegisteredFolderObserver && mResult)
-    mResult->RemoveBookmarkFolderObserver(this, mItemId);
+    mResult->RemoveBookmarkFolderObserver(this, mTargetFolderItemId);
 }
 
 
@@ -3066,22 +3071,16 @@ nsNavHistoryFolderResultNode::GetHasChildren(bool* aHasChildren)
   return NS_OK;
 }
 
-
-
-
-
-
 NS_IMETHODIMP
-nsNavHistoryFolderResultNode::GetItemId(int64_t* aItemId)
+nsNavHistoryFolderResultNode::GetFolderItemId(int64_t* aItemId)
 {
-  *aItemId = mQueryItemId == -1 ? mItemId : mQueryItemId;
+  *aItemId = mTargetFolderItemId;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsNavHistoryFolderResultNode::GetFolderItemId(int64_t* aItemId)
-{
-  *aItemId = mItemId;
+nsNavHistoryFolderResultNode::GetTargetFolderGuid(nsACString& aGuid) {
+  aGuid = mTargetFolderGuid;
   return NS_OK;
 }
 
@@ -3129,7 +3128,7 @@ nsNavHistoryFolderResultNode::GetQueries(uint32_t* queryCount,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = query->SetFolders(&mItemId, 1);
+  rv = query->SetFolders(&mTargetFolderItemId, 1);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -3171,7 +3170,7 @@ nsNavHistoryFolderResultNode::FillChildren()
   NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
 
   
-  nsresult rv = bookmarks->QueryFolderChildren(mItemId, mOptions, &mChildren);
+  nsresult rv = bookmarks->QueryFolderChildren(mTargetFolderItemId, mOptions, &mChildren);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -3235,7 +3234,7 @@ void
 nsNavHistoryFolderResultNode::EnsureRegisteredAsFolderObserver()
 {
   if (!mIsRegisteredFolderObserver && mResult) {
-    mResult->AddBookmarkFolderObserver(this, mItemId);
+    mResult->AddBookmarkFolderObserver(this, mTargetFolderItemId);
     mIsRegisteredFolderObserver = true;
   }
 }
@@ -3260,7 +3259,7 @@ nsNavHistoryFolderResultNode::FillChildrenAsync()
   nsNavBookmarks* bmSvc = nsNavBookmarks::GetBookmarksService();
   NS_ENSURE_TRUE(bmSvc, NS_ERROR_OUT_OF_MEMORY);
   nsresult rv =
-    bmSvc->QueryFolderChildrenAsync(this, mItemId,
+    bmSvc->QueryFolderChildrenAsync(this, mTargetFolderItemId,
                                     getter_AddRefs(mAsyncPendingStmt));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -3358,7 +3357,7 @@ nsNavHistoryFolderResultNode::ClearChildren(bool unregister)
 
   bool needsUnregister = unregister && (mContentsValid || mAsyncPendingStmt);
   if (needsUnregister && mResult && mIsRegisteredFolderObserver) {
-    mResult->RemoveBookmarkFolderObserver(this, mItemId);
+    mResult->RemoveBookmarkFolderObserver(this, mTargetFolderItemId);
     mIsRegisteredFolderObserver = false;
   }
   mContentsValid = false;
@@ -3462,7 +3461,7 @@ nsNavHistoryFolderResultNode::FindChildById(int64_t aItemId,
   for (int32_t i = 0; i < mChildren.Count(); ++i) {
     if (mChildren[i]->mItemId == aItemId ||
         (mChildren[i]->IsFolder() &&
-         mChildren[i]->GetAsFolder()->mQueryItemId == aItemId)) {
+         mChildren[i]->GetAsFolder()->mTargetFolderItemId == aItemId)) {
       *aNodeIndex = i;
       return mChildren[i];
     }
@@ -3506,7 +3505,7 @@ nsNavHistoryFolderResultNode::OnItemAdded(int64_t aItemId,
                                           const nsACString& aGUID,
                                           const nsACString& aParentGUID)
 {
-  NS_ASSERTION(aParentFolder == mItemId, "Got wrong bookmark update");
+  MOZ_ASSERT(aParentFolder == mTargetFolderItemId, "Got wrong bookmark update");
 
   RESTART_AND_RETURN_IF_ASYNC_PENDING();
 
@@ -3613,11 +3612,13 @@ nsNavHistoryFolderResultNode::OnItemRemoved(int64_t aItemId,
 {
   
   
+  MOZ_ASSERT(mItemId == mTargetFolderItemId || aItemId != mItemId);
+
   
-  if (mItemId == aItemId)
+  if (mTargetFolderItemId == aItemId)
     return NS_OK;
 
-  NS_ASSERTION(aParentFolder == mItemId, "Got wrong bookmark update");
+  MOZ_ASSERT(aParentFolder == mTargetFolderItemId, "Got wrong bookmark update");
 
   RESTART_AND_RETURN_IF_ASYNC_PENDING();
 
@@ -3756,15 +3757,6 @@ nsNavHistoryFolderResultNode::OnItemChanged(int64_t aItemId,
                                             const nsACString& aGUID,
                                             const nsACString&aParentGUID)
 {
-  
-  if (mQueryItemId != -1) {
-    bool isTitleChange = aProperty.EqualsLiteral("title");
-    if ((mQueryItemId == aItemId && !isTitleChange) ||
-        (mQueryItemId != aItemId && isTitleChange)) {
-      return NS_OK;
-    }
-  }
-
   RESTART_AND_RETURN_IF_ASYNC_PENDING();
 
   return nsNavHistoryResultNode::OnItemChanged(aItemId, aProperty,
@@ -3864,7 +3856,7 @@ nsNavHistoryFolderResultNode::OnItemMoved(int64_t aItemId,
                                           const nsACString& aOldParentGUID,
                                           const nsACString& aNewParentGUID)
 {
-  NS_ASSERTION(aOldParent == mItemId || aNewParent == mItemId,
+  NS_ASSERTION(aOldParent == mTargetFolderItemId || aNewParent == mTargetFolderItemId,
                "Got a bookmark message that doesn't belong to us");
 
   RESTART_AND_RETURN_IF_ASYNC_PENDING();
@@ -3876,9 +3868,9 @@ nsNavHistoryFolderResultNode::OnItemMoved(int64_t aItemId,
   
   
   
-  if (node && aNewParent == mItemId && index == static_cast<uint32_t>(aNewIndex))
+  if (node && aNewParent == mTargetFolderItemId && index == static_cast<uint32_t>(aNewIndex))
     return NS_OK;
-  if (!node && aOldParent == mItemId)
+  if (!node && aOldParent == mTargetFolderItemId)
     return NS_OK;
 
   bool excludeItems = (mResult && mResult->mRootNode->mOptions->ExcludeItems()) ||
@@ -3922,11 +3914,11 @@ nsNavHistoryFolderResultNode::OnItemMoved(int64_t aItemId,
       rv = bookmarks->GetItemTitle(aItemId, itemTitle);
       NS_ENSURE_SUCCESS(rv, rv);
     }
-    if (aOldParent == mItemId) {
+    if (aOldParent == mTargetFolderItemId) {
       OnItemRemoved(aItemId, aOldParent, aOldIndex, aItemType, itemURI,
                     aGUID, aOldParentGUID);
     }
-    if (aNewParent == mItemId) {
+    if (aNewParent == mTargetFolderItemId) {
       OnItemAdded(aItemId, aNewParent, aNewIndex, aItemType, itemURI, itemTitle,
                   PR_Now(), 
                   aGUID, aNewParentGUID);

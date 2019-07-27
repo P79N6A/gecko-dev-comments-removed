@@ -3918,16 +3918,16 @@ nsNavHistory::RowToResult(mozIStorageValueArray* aRow,
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
-    nsRefPtr<nsNavHistoryResultNode> resultNode;
-    rv = QueryRowToResult(itemId, url, title, accessCount, time, favicon,
-                          getter_AddRefs(resultNode));
-    NS_ENSURE_SUCCESS(rv,rv);
-
+    nsAutoCString guid;
     if (itemId != -1) {
-      rv = aRow->GetUTF8String(nsNavBookmarks::kGetChildrenIndex_Guid,
-                               resultNode->mBookmarkGuid);
+      rv = aRow->GetUTF8String(nsNavBookmarks::kGetChildrenIndex_Guid, guid);
       NS_ENSURE_SUCCESS(rv, rv);
     }
+
+    nsRefPtr<nsNavHistoryResultNode> resultNode;
+    rv = QueryRowToResult(itemId, guid, url, title, accessCount, time, favicon,
+                          getter_AddRefs(resultNode));
+    NS_ENSURE_SUCCESS(rv, rv);
 
     if (itemId != -1 ||
         aOptions->ResultType() == nsNavHistoryQueryOptions::RESULTS_AS_TAG_QUERY) {
@@ -4003,12 +4003,17 @@ nsNavHistory::RowToResult(mozIStorageValueArray* aRow,
 
 
 nsresult
-nsNavHistory::QueryRowToResult(int64_t itemId, const nsACString& aURI,
+nsNavHistory::QueryRowToResult(int64_t itemId,
+                               const nsACString& aBookmarkGuid,
+                               const nsACString& aURI,
                                const nsACString& aTitle,
                                uint32_t aAccessCount, PRTime aTime,
                                const nsACString& aFavicon,
                                nsNavHistoryResultNode** aNode)
 {
+  MOZ_ASSERT((itemId != -1 && !aBookmarkGuid.IsEmpty()) ||
+             (itemId == -1 && aBookmarkGuid.IsEmpty()));
+
   nsCOMArray<nsNavHistoryQuery> queries;
   nsCOMPtr<nsNavHistoryQueryOptions> options;
   nsresult rv = QueryStringToQueryArray(aURI, &queries,
@@ -4019,18 +4024,23 @@ nsNavHistory::QueryRowToResult(int64_t itemId, const nsACString& aURI,
   
   if (NS_SUCCEEDED(rv)) {
     
-    int64_t folderId = GetSimpleBookmarksQueryFolder(queries, options);
-    if (folderId) {
+    int64_t targetFolderId = GetSimpleBookmarksQueryFolder(queries, options);
+    if (targetFolderId) {
       nsNavBookmarks *bookmarks = nsNavBookmarks::GetBookmarksService();
       NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
 
-      rv = bookmarks->ResultNodeForContainer(folderId, options,
+      rv = bookmarks->ResultNodeForContainer(targetFolderId, options,
                                              getter_AddRefs(resultNode));
       
       
       if (NS_SUCCEEDED(rv)) {
         
-        resultNode->GetAsFolder()->mQueryItemId = itemId;
+        
+        resultNode->GetAsFolder()->mTargetFolderItemId = targetFolderId;
+        resultNode->mItemId = itemId;
+        nsAutoCString targetFolderGuid(resultNode->GetAsFolder()->mBookmarkGuid);
+        resultNode->mBookmarkGuid = aBookmarkGuid;
+        resultNode->GetAsFolder()->mTargetFolderGuid = targetFolderGuid;
 
         
         

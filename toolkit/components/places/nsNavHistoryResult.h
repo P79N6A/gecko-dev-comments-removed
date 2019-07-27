@@ -203,7 +203,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsNavHistoryResult, NS_NAVHISTORYRESULT_IID)
 
 
 
-#define NS_IMPLEMENT_SIMPLE_RESULTNODE_NO_GETITEMMID \
+#define NS_IMPLEMENT_SIMPLE_RESULTNODE \
   NS_IMETHOD GetTitle(nsACString& aTitle) \
     { aTitle = mTitle; return NS_OK; } \
   NS_IMETHOD GetAccessCount(uint32_t* aAccessCount) \
@@ -217,10 +217,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsNavHistoryResult, NS_NAVHISTORYRESULT_IID)
   NS_IMETHOD GetDateAdded(PRTime* aDateAdded) \
     { *aDateAdded = mDateAdded; return NS_OK; } \
   NS_IMETHOD GetLastModified(PRTime* aLastModified) \
-    { *aLastModified = mLastModified; return NS_OK; }
-
-#define NS_IMPLEMENT_SIMPLE_RESULTNODE \
-  NS_IMPLEMENT_SIMPLE_RESULTNODE_NO_GETITEMMID \
+    { *aLastModified = mLastModified; return NS_OK; } \
   NS_IMETHOD GetItemId(int64_t* aId) \
     { *aId = mItemId; return NS_OK; }
 
@@ -233,8 +230,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsNavHistoryResult, NS_NAVHISTORYRESULT_IID)
 
 
 
-#define NS_FORWARD_COMMON_RESULTNODE_TO_BASE_NO_GETITEMMID \
-  NS_IMPLEMENT_SIMPLE_RESULTNODE_NO_GETITEMMID \
+#define NS_FORWARD_COMMON_RESULTNODE_TO_BASE \
+  NS_IMPLEMENT_SIMPLE_RESULTNODE \
   NS_IMETHOD GetIcon(nsACString& aIcon) \
     { return nsNavHistoryResultNode::GetIcon(aIcon); } \
   NS_IMETHOD GetParent(nsINavHistoryContainerResultNode** aParent) \
@@ -247,11 +244,6 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsNavHistoryResult, NS_NAVHISTORYRESULT_IID)
     { return nsNavHistoryResultNode::GetPageGuid(aPageGuid); } \
   NS_IMETHOD GetBookmarkGuid(nsACString& aBookmarkGuid) \
     { return nsNavHistoryResultNode::GetBookmarkGuid(aBookmarkGuid); }
-
-#define NS_FORWARD_COMMON_RESULTNODE_TO_BASE \
-  NS_FORWARD_COMMON_RESULTNODE_TO_BASE_NO_GETITEMMID \
-  NS_IMETHOD GetItemId(int64_t* aId) \
-    { *aId = mItemId; return NS_OK; }
 
 class nsNavHistoryResultNode : public nsINavHistoryResultNode
 {
@@ -711,9 +703,9 @@ public:
                                int64_t aFolderId);
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_FORWARD_COMMON_RESULTNODE_TO_BASE_NO_GETITEMMID
+  NS_FORWARD_COMMON_RESULTNODE_TO_BASE
   NS_IMETHOD GetType(uint32_t* type) {
-    if (mQueryItemId != -1) {
+    if (mTargetFolderItemId != mItemId) {
       *type = nsNavHistoryResultNode::RESULT_TYPE_FOLDER_SHORTCUT;
     } else {
       *type = nsNavHistoryResultNode::RESULT_TYPE_FOLDER;
@@ -723,7 +715,6 @@ public:
   NS_IMETHOD GetUri(nsACString& aURI);
   NS_FORWARD_CONTAINERNODE_EXCEPT_HASCHILDREN
   NS_IMETHOD GetHasChildren(bool* aHasChildren);
-  NS_IMETHOD GetItemId(int64_t *aItemId);
   NS_DECL_NSINAVHISTORYQUERYRESULTNODE
 
   virtual nsresult OpenContainer();
@@ -743,7 +734,10 @@ public:
 
   
   
-  int64_t mQueryItemId;
+  
+  
+  int64_t mTargetFolderItemId;
+  nsCString mTargetFolderGuid;
 
   nsresult FillChildren();
   void ClearChildren(bool aUnregister);
