@@ -53,7 +53,7 @@ enum EventClassID MOZ_ENUM_TYPE(EventClassIDType)
 
   
   eScrollPortEventClass,             
-  NS_SCROLLAREA_EVENT,               
+  eScrollAreaEventClass,             
   NS_FORM_EVENT,                     
   NS_FOCUS_EVENT,                    
   NS_CLIPBOARD_EVENT,                
