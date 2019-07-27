@@ -1265,14 +1265,14 @@ MPhi::foldsTernary()
     MTest *test = pred->lastIns()->toTest();
 
     
-    if (test->ifTrue()->dominates(block()->getPredecessor(0)) &&
+    if (test->ifTrue()->dominates(block()->getPredecessor(0)) ==
         test->ifTrue()->dominates(block()->getPredecessor(1)))
     {
         return nullptr;
     }
 
     
-    if (test->ifFalse()->dominates(block()->getPredecessor(0)) &&
+    if (test->ifFalse()->dominates(block()->getPredecessor(0)) ==
         test->ifFalse()->dominates(block()->getPredecessor(1)))
     {
         return nullptr;
