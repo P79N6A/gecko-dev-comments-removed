@@ -152,7 +152,10 @@ BufObject.prototype = {
 
 
   newParcel: function(type, options) {
-    if (DEBUG) this.context.debug("New outgoing parcel of type " + type);
+    if (DEBUG) {
+      this.context.debug("New outgoing parcel of type " + type +
+                         ", token " + this.mToken);
+    }
 
     
     this.outgoingIndex = this.PARCEL_SIZE_SIZE;
