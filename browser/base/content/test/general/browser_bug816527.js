@@ -72,7 +72,7 @@ function test() {
            "The test tab doesn't have the busy attribute");
 
         
-        aDestWindow.gURLBar.value = "moz-action:switchtab," + testURL;
+        aDestWindow.gURLBar.value = "moz-action:switchtab," + JSON.stringify({url: testURL});
         
         aDestWindow.gURLBar.focus();
 
