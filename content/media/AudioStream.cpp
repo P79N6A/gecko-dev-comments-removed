@@ -588,11 +588,6 @@ void AudioStream::PanOutputIfNeeded(bool aMicrophoneActive)
         if (cubeb_stream_set_panning(mCubebStream, 0.0) != CUBEB_OK) {
           NS_WARNING("Could not pan audio output to the center.");
         }
-        
-        
-        if (strcmp(device->input_name, "emic") == 0) {
-          Reset();
-        }
       }
       cubeb_stream_device_destroy(mCubebStream, device);
     }
@@ -600,10 +595,30 @@ void AudioStream::PanOutputIfNeeded(bool aMicrophoneActive)
 #endif
 }
 
-void AudioStream::DeviceChangedCallback() {
+void AudioStream::ResetStreamIfNeeded()
+{
+  cubeb_device * device;
+  
+  if (!mMicrophoneActive || mLatencyRequest != LowLatency) {
+    return;
+  }
+  if (cubeb_stream_get_current_device(mCubebStream, &device) == CUBEB_OK) {
+    
+    
+    if (strcmp(device->input_name, "emic") == 0) {
+      LOG(("Resetting audio output"));
+      Reset();
+    }
+    cubeb_stream_device_destroy(mCubebStream, device);
+  }
+}
+
+void AudioStream::DeviceChangedCallback()
+{
   MonitorAutoLock mon(mMonitor);
   PanOutputIfNeeded(mMicrophoneActive);
   mShouldDropFrames = true;
+  ResetStreamIfNeeded();
 }
 
 
@@ -1127,6 +1142,9 @@ AudioStream::GetTimeStretched(void* aBuffer, long aFrames, int64_t &aTimeMs)
 void
 AudioStream::Reset()
 {
+
+  MOZ_ASSERT(mLatencyRequest == LowLatency, "We should only be reseting low latency streams");
+
   mShouldDropFrames = true;
   mNeedsStart = true;
 
@@ -1160,21 +1178,13 @@ AudioStream::Reset()
   mBuffer.Reset();
   mBuffer.SetCapacity(bufferLimit);
 
-
-  if (mLatencyRequest == LowLatency) {
-    
-    
-    
-    
-    
-    RefPtr<AudioInitTask> init = new AudioInitTask(this, mLatencyRequest, params);
-    init->Dispatch();
-    return;
-  }
   
-  OpenCubeb(params, mLatencyRequest);
-
-  CheckForStart();
+  
+  
+  
+  
+  RefPtr<AudioInitTask> init = new AudioInitTask(this, mLatencyRequest, params);
+  init->Dispatch();
 }
 
 long

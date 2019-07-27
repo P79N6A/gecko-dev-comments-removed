@@ -240,6 +240,7 @@ public:
   
   void SetMicrophoneActive(bool aActive);
   void PanOutputIfNeeded(bool aMicrophoneActive);
+  void ResetStreamIfNeeded();
 
   
   void Drain();
