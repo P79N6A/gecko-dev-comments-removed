@@ -46,7 +46,7 @@ class TempFile(object):
 
 class TPSTestRunner(object):
 
-    default_env = {
+    extra_env = {
         'MOZ_CRASHREPORTER_DISABLE': '1',
         'GNOME_DISABLE_CRASH_DIALOG': '1',
         'XRE_NO_WINDOWS_CRASH_DIALOG': '1',
@@ -352,8 +352,10 @@ class TPSTestRunner(object):
             os.remove(self.logfile)
 
         
+        self.env = os.environ.copy()
+        self.env.update(self.extra_env)
+
         
-        self.env = self.default_env.copy()
         self.update_preferences()
 
         
