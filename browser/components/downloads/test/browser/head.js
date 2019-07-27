@@ -31,6 +31,76 @@ registerCleanupFunction(function () {
 
 
 
+function promiseOpenAndLoadWindow(aOptions)
+{
+  return new Promise((resolve, reject) => {
+    let win = OpenBrowserWindow(aOptions);
+    win.addEventListener("load", function onLoad() {
+      win.removeEventListener("load", onLoad);
+      resolve(win);
+    });
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function promiseTabLoadEvent(tab, url, eventType="load")
+{
+  let deferred = Promise.defer();
+  info("Wait tab event: " + eventType);
+
+  function handle(event) {
+    if (event.originalTarget != tab.linkedBrowser.contentDocument ||
+        event.target.location.href == "about:blank" ||
+        (url && event.target.location.href != url)) {
+      info("Skipping spurious '" + eventType + "'' event" +
+           " for " + event.target.location.href);
+      return;
+    }
+    
+    realCleanup = () => {};
+    tab.linkedBrowser.removeEventListener(eventType, handle, true);
+    info("Tab event received: " + eventType);
+    deferred.resolve(event);
+  }
+
+  
+  let realCleanup = () => tab.linkedBrowser.removeEventListener(eventType, handle, true);
+  registerCleanupFunction(() => realCleanup());
+
+  tab.linkedBrowser.addEventListener(eventType, handle, true, true);
+  if (url)
+    tab.linkedBrowser.loadURI(url);
+  return deferred.promise;
+}
+
+function promiseWindowClosed(win)
+{
+  let promise = new Promise((resolve, reject) => {
+    Services.obs.addObserver(function obs(subject, topic) {
+      if (subject == win) {
+        Services.obs.removeObserver(obs, topic);
+        resolve();
+      }
+    }, "domwindowclosed", false);
+  });
+  win.close();
+  return promise;
+}
+
+
 function promiseFocus()
 {
   let deferred = Promise.defer();
