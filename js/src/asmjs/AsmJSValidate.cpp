@@ -6129,9 +6129,9 @@ GenerateFFIInterpExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &e
     JS_ASSERT(masm.framePushed() == 0);
 
     
-    MIRType typeArray[] = { MIRType_Pointer,   
-                            MIRType_Int32,     
-                            MIRType_Pointer }; 
+    static const MIRType typeArray[] = { MIRType_Pointer,   
+                                         MIRType_Int32,     
+                                         MIRType_Pointer }; 
     MIRTypeVector invokeArgTypes(m.cx());
     invokeArgTypes.infallibleAppend(typeArray, ArrayLength(typeArray));
 

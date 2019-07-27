@@ -796,7 +796,7 @@ class ScriptedIndirectProxyHandler : public BaseProxyHandler
 
 
 
-static Class CallConstructHolder = {
+static const Class CallConstructHolder = {
     "CallConstructHolder",
     JSCLASS_HAS_RESERVED_SLOTS(2) | JSCLASS_IS_ANONYMOUS
 };
