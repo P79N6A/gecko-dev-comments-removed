@@ -833,7 +833,9 @@ loop.webapp = (function($, _, OT, mozL10n) {
 
 
     _endCall: function() {
-      this.setState({callStatus: "end"});
+      if (this.state.callStatus !== "failure") {
+        this.setState({callStatus: "end"});
+      }
     },
   });
 
