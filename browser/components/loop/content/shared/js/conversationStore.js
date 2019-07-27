@@ -233,17 +233,26 @@ loop.store = loop.store || {};
       ]);
 
       this.setStoreState({
+        apiKey: actionData.apiKey,
+        callerId: actionData.callerId,
+        callId: actionData.callId,
+        callState: CALL_STATES.GATHER,
+        callType: actionData.callType,
         contact: actionData.contact,
         outgoing: windowType === "outgoing",
-        windowId: actionData.windowId,
-        callType: actionData.callType,
-        callState: CALL_STATES.GATHER,
-        videoMuted: actionData.callType === CALL_TYPES.AUDIO_ONLY
+        progressURL: actionData.progressURL,
+        sessionId: actionData.sessionId,
+        sessionToken: actionData.sessionToken,
+        videoMuted: actionData.callType === CALL_TYPES.AUDIO_ONLY,
+        websocketToken: actionData.websocketToken,
+        windowId: actionData.windowId
       });
 
       if (this.getStoreState("outgoing")) {
         this._setupOutgoingCall();
-      } 
+      } else {
+        this._setupIncomingCall();
+      }
     },
 
     
@@ -294,13 +303,17 @@ loop.store = loop.store || {};
     
 
 
+
+
     cancelCall: function() {
-      var callState = this.getStoreState("callState");
-      if (this._websocket &&
-          (callState === CALL_STATES.CONNECTING ||
-           callState === CALL_STATES.ALERTING)) {
-         
-        this._websocket.cancel();
+      if (this.getStoreState("outgoing")) {
+        var callState = this.getStoreState("callState");
+        if (this._websocket &&
+            (callState === CALL_STATES.CONNECTING ||
+             callState === CALL_STATES.ALERTING)) {
+          
+          this._websocket.cancel();
+        }
       }
 
       this._endSession();
@@ -367,6 +380,15 @@ loop.store = loop.store || {};
 
     windowUnload: function() {
       this._endSession();
+    },
+
+    
+
+
+
+
+    _setupIncomingCall: function() {
+      this._connectWebSocket();
     },
 
     
@@ -470,25 +492,50 @@ loop.store = loop.store || {};
 
 
 
-    _handleWebSocketProgress: function(progressData) {
-      var action;
 
+
+
+
+
+
+
+
+
+
+    _handleWebSocketStateTerminated: function(progressData, previousState) {
+      if (this.getStoreState("outgoing") ||
+          (previousState !== WS_STATES.INIT &&
+           previousState !== WS_STATES.ALERTING)) {
+        
+        this.dispatcher.dispatch(new sharedActions.ConnectionFailure({
+          reason: progressData.reason
+        }));
+        return;
+      }
+
+      this.dispatcher.dispatch(new sharedActions.CancelCall());
+    },
+
+    
+
+
+
+
+
+
+    _handleWebSocketProgress: function(progressData, previousState) {
       switch(progressData.state) {
         case WS_STATES.TERMINATED: {
-          action = new sharedActions.ConnectionFailure({
-            reason: progressData.reason
-          });
+          this._handleWebSocketStateTerminated(progressData, previousState);
           break;
         }
         default: {
-          action = new sharedActions.ConnectionProgress({
+          this.dispatcher.dispatch(new sharedActions.ConnectionProgress({
             wsState: progressData.state
-          });
+          }));
           break;
         }
       }
-
-      this.dispatcher.dispatch(action);
     }
   });
 })();

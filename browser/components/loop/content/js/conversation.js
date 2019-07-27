@@ -34,13 +34,6 @@ loop.conversation = (function(mozL10n) {
     ],
 
     propTypes: {
-      
-      client: React.PropTypes.instanceOf(loop.Client).isRequired,
-      conversation: React.PropTypes.instanceOf(sharedModels.ConversationModel)
-                         .isRequired,
-      sdk: React.PropTypes.object.isRequired,
-
-      
       dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
       roomStore: React.PropTypes.instanceOf(loop.store.RoomStore)
     },
@@ -51,15 +44,8 @@ loop.conversation = (function(mozL10n) {
 
     render: function() {
       switch(this.state.windowType) {
-        case "incoming": {
-          return (React.createElement(IncomingConversationView, {
-            client: this.props.client, 
-            conversation: this.props.conversation, 
-            sdk: this.props.sdk, 
-            isDesktop: true, 
-            conversationAppStore: this.getStore()}
-          ));
-        }
+        
+        case "incoming":
         case "outgoing": {
           return (React.createElement(CallControllerView, {
             dispatcher: this.props.dispatcher}
@@ -157,13 +143,6 @@ loop.conversation = (function(mozL10n) {
     });
 
     
-    
-    var conversation = new sharedModels.ConversationModel({}, {
-      sdk: window.OT,
-      mozLoop: navigator.mozLoop
-    });
-
-    
     var locationHash = loop.shared.utils.locationData().hash;
     var windowId;
 
@@ -171,8 +150,6 @@ loop.conversation = (function(mozL10n) {
     if (hash) {
       windowId = hash[1];
     }
-
-    conversation.set({windowId: windowId});
 
     window.addEventListener("unload", function(event) {
       
@@ -185,10 +162,7 @@ loop.conversation = (function(mozL10n) {
 
     React.render(React.createElement(AppControllerView, {
       roomStore: roomStore, 
-      client: client, 
-      conversation: conversation, 
-      dispatcher: dispatcher, 
-      sdk: window.OT}
+      dispatcher: dispatcher}
     ), document.querySelector('#main'));
 
     dispatcher.dispatch(new sharedActions.GetWindowData({
