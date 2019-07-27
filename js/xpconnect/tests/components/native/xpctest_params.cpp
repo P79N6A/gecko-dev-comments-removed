@@ -346,3 +346,16 @@ NS_IMETHODIMP nsXPCTestParams::TestOutAString(nsAString & o)
     o.AssignLiteral("out");
     return NS_OK;
 }
+
+
+
+
+NS_IMETHODIMP nsXPCTestParams::TestStringArrayOptionalSize(const char * *a, uint32_t length, nsACString& out)
+{
+  out.Truncate();
+  for (uint32_t i = 0; i < length; ++i) {
+    out.Append(a[i]);
+  }
+
+  return NS_OK;
+}

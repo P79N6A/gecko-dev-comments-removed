@@ -189,6 +189,9 @@ function test_component(contractid) {
                                     [makeB(), makeB(), makeB()], 3, Ci['nsIXPCTestInterfaceB']);
 
   
+  do_check_eq(o.testStringArrayOptionalSize(["some", "string", "array"]), "somestringarray");
+
+  
   doTypedArrayMismatchTest("testShortArray", new Int16Array([-3, 7, 4]), 4,
                                              new Int16Array([1, -32, 6]), 3);
 
