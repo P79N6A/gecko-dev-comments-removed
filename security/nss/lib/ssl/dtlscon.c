@@ -53,6 +53,7 @@ static const ssl3CipherSuite nonDTLSSuites[] = {
 
 
 
+
 SSL3ProtocolVersion
 dtls_TLSVersionToDTLSVersion(SSL3ProtocolVersion tlsv)
 {
@@ -61,6 +62,9 @@ dtls_TLSVersionToDTLSVersion(SSL3ProtocolVersion tlsv)
     }
     if (tlsv == SSL_LIBRARY_VERSION_TLS_1_2) {
         return SSL_LIBRARY_VERSION_DTLS_1_2_WIRE;
+    }
+    if (tlsv == SSL_LIBRARY_VERSION_TLS_1_3) {
+        return SSL_LIBRARY_VERSION_DTLS_1_3_WIRE;
     }
 
     
@@ -84,6 +88,9 @@ dtls_DTLSVersionToTLSVersion(SSL3ProtocolVersion dtlsv)
     }
     if (dtlsv == SSL_LIBRARY_VERSION_DTLS_1_2_WIRE) {
         return SSL_LIBRARY_VERSION_TLS_1_2;
+    }
+    if (dtlsv == SSL_LIBRARY_VERSION_DTLS_1_3_WIRE) {
+        return SSL_LIBRARY_VERSION_TLS_1_3;
     }
 
     

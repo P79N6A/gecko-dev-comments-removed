@@ -327,6 +327,7 @@ typedef struct sslOptionsStr {
     unsigned int enableNPN              : 1;  
     unsigned int enableALPN             : 1;  
     unsigned int reuseServerECDHEKey    : 1;  
+    unsigned int enableFallbackSCSV     : 1;  
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,
@@ -1535,7 +1536,11 @@ extern PRInt32   ssl3_SendRecord(sslSocket *ss, DTLSEpoch epoch,
 
 
 
+#ifdef NSS_ENABLE_TLS_1_3
+#define SSL_LIBRARY_VERSION_MAX_SUPPORTED SSL_LIBRARY_VERSION_TLS_1_3
+#else
 #define SSL_LIBRARY_VERSION_MAX_SUPPORTED SSL_LIBRARY_VERSION_TLS_1_2
+#endif
 
 
 #define SSL3_ALL_VERSIONS_DISABLED(vrange) \
