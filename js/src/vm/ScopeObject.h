@@ -669,6 +669,12 @@ class ClonedBlockObject : public BlockObject
 
     
     void copyUnaliasedValues(AbstractFramePtr frame);
+
+    
+
+
+
+    static ClonedBlockObject *clone(ExclusiveContext *cx, Handle<ClonedBlockObject*> block);
 };
 
 

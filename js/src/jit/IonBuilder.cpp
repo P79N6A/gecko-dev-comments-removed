@@ -2005,6 +2005,17 @@ IonBuilder::inspectOpcode(JSOp op)
         
         break;
 
+#ifdef DEBUG
+      case JSOP_PUSHBLOCKSCOPE:
+      case JSOP_FRESHENBLOCKSCOPE:
+      case JSOP_POPBLOCKSCOPE:
+        
+        
+        
+        
+        
+        
+#endif
       default:
         break;
     }
@@ -3142,6 +3153,11 @@ IonBuilder::forLoop(JSOp op, jssrcnote *sn)
     jsbytecode *ifne = pc + GetSrcNoteOffset(sn, 2);
     jsbytecode *exitpc = GetNextPc(ifne);
 
+    
+    
+    
+    
+    
     
     
     
