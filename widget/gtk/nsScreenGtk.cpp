@@ -11,6 +11,7 @@
 #include <X11/Xatom.h>
 #endif
 #include <gtk/gtk.h>
+#include <dlfcn.h>
 
 static uint32_t sScreenId = 0;
 
@@ -85,11 +86,26 @@ nsScreenGtk :: GetColorDepth(int32_t *aColorDepth)
 void
 nsScreenGtk :: Init (GdkWindow *aRootWindow)
 {
+  gint width = gdk_screen_width();
+  gint height = gdk_screen_height();
+
+  
+  static auto sGdkScreenGetMonitorScaleFactorPtr = (gint (*)(GdkScreen*, gint))
+      dlsym(RTLD_DEFAULT, "gdk_screen_get_monitor_scale_factor");
+  if (sGdkScreenGetMonitorScaleFactorPtr) {
+      
+      
+      GdkScreen *screen = gdk_window_get_screen(aRootWindow);
+      gint scale = sGdkScreenGetMonitorScaleFactorPtr(screen, 0);
+      width *= scale;
+      height *= scale;
+  }
+
   
   
   
   
-  mAvailRect = mRect = nsIntRect(0, 0, gdk_screen_width(), gdk_screen_height());
+  mAvailRect = mRect = nsIntRect(0, 0, width, height);
 
 #ifdef MOZ_X11
   
