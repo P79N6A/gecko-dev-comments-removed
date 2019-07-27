@@ -290,7 +290,7 @@ nsMixedContentBlocker::AsyncOnChannelRedirect(nsIChannel* aOldChannel,
 
 
 
-nsresult
+NS_IMETHODIMP
 nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
                                   nsIURI* aContentLocation,
                                   nsIURI* aRequestingLocation,
@@ -319,7 +319,7 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
 
 
 
-NS_IMETHODIMP
+nsresult
 nsMixedContentBlocker::ShouldLoad(bool aHadInsecureImageRedirect,
                                   uint32_t aContentType,
                                   nsIURI* aContentLocation,
