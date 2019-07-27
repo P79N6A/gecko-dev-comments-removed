@@ -69,50 +69,6 @@ typedef uint8_t boolean;
 
 
 
-
-
-
-
-
-#ifndef NUL
-#define NUL '\0'
-#endif
-
-
-
-
-
-
-
-#if defined(_POSIX_C_SOURCE) && defined(__GNUC__)
-#define RESTRICT __restrict
-#else
-#define RESTRICT
-#endif
-
-
-
-
-
-
-#define CONST const
-
-
-
-
-
-
-#ifdef __STRICT_ANSI__
-#define INLINE
-#else
-#define INLINE __inline__
-#endif
-
-
-
-
-
-
 #ifndef __BEGIN_DECLS
 #ifdef __cplusplus
 #define __BEGIN_DECLS extern "C" {
@@ -132,7 +88,6 @@ typedef uint8_t boolean;
 
 
 
-
 #ifndef TRUE
 #define TRUE 1
 #endif
@@ -144,14 +99,6 @@ typedef uint8_t boolean;
 
 
 
-
-
-
-
-
-
-
-#define FIELDOFFSET(struct_name, field_name) (size_t)(&(((struct_name *)0)->field_name))
 
 
 #endif
