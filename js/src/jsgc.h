@@ -39,13 +39,6 @@ namespace js {
 
 unsigned GetCPUCount();
 
-enum HeapState {
-    Idle,             
-    Tracing,          
-    MajorCollecting,  
-    MinorCollecting   
-};
-
 enum ThreadType
 {
     MainThread,
