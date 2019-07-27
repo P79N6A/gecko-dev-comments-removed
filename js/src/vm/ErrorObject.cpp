@@ -17,7 +17,6 @@
 #include "vm/Shape-inl.h"
 
 using namespace js;
-using mozilla::PodZero;
 
  Shape *
 js::ErrorObject::assignInitialShape(ExclusiveContext *cx, Handle<ErrorObject*> obj)
@@ -116,7 +115,6 @@ js::ErrorObject::getOrCreateErrorReport(JSContext *cx)
     
     
     JSErrorReport report;
-    PodZero(&report);
 
     
     JSExnType type_ = type();

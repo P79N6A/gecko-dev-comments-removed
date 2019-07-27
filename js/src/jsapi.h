@@ -4675,10 +4675,19 @@ JS_ReportOutOfMemory(JSContext *cx);
 extern JS_PUBLIC_API(void)
 JS_ReportAllocationOverflow(JSContext *cx);
 
-struct JSErrorReport {
+class JSErrorReport
+{
+  public:
+    JSErrorReport()
+      : filename(nullptr), lineno(0), column(0), isMuted(false), linebuf(nullptr),
+        tokenptr(nullptr), uclinebuf(nullptr), uctokenptr(nullptr), flags(0), errorNumber(0),
+        ucmessage(nullptr), messageArgs(nullptr), exnType(0)
+    {}
+
     const char      *filename;      
-    bool            isMuted;        
     unsigned        lineno;         
+    unsigned        column;         
+    bool            isMuted;        
     const char      *linebuf;       
     const char      *tokenptr;      
     const char16_t  *uclinebuf;     
@@ -4688,7 +4697,6 @@ struct JSErrorReport {
     const char16_t  *ucmessage;     
     const char16_t  **messageArgs;  
     int16_t         exnType;        
-    unsigned        column;         
 };
 
 
