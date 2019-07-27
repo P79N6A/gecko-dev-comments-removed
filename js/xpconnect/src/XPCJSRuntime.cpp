@@ -1461,13 +1461,8 @@ XPCJSRuntime::InterruptCallback(JSContext* cx)
             win = WindowGlobalOrNull(proto);
         }
     }
-
-    if (!win) {
-        NS_WARNING("No active window");
+    if (!win)
         return true;
-    }
-
-    MOZ_ASSERT(!win->IsDying());
 
     if (win->GetIsPrerendered()) {
         
