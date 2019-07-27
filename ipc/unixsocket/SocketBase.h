@@ -109,15 +109,38 @@ public:
   }
 
 protected:
+  UnixSocketBuffer();
 
   
 
 
-  UnixSocketBuffer(const void* aData, size_t aSize);
+
+
+
+
+
+
+  void ResetBuffer(uint8_t* aData,
+                   size_t aOffset, size_t aSize, size_t aAvailableSpace)
+  {
+    MOZ_ASSERT(aData || !aAvailableSpace);
+    MOZ_ASSERT((aOffset + aSize) <= aAvailableSpace);
+
+    mOffset = aOffset;
+    mSize = aSize;
+    mAvailableSpace = aAvailableSpace;
+    mData = aData;
+  }
 
   
 
-  UnixSocketBuffer(size_t aAvailableSpace);
+
+
+
+  uint8_t* GetBuffer()
+  {
+    return mData;
+  }
 
   size_t GetLeadingSpace() const
   {
@@ -160,7 +183,7 @@ private:
   size_t mSize;
   size_t mOffset;
   size_t mAvailableSpace;
-  nsAutoArrayPtr<uint8_t> mData;
+  uint8_t* mData;
 };
 
 
@@ -190,17 +213,6 @@ public:
 
 
   virtual ssize_t Send(int aFd) = 0;
-
-protected:
-
-  
-
-
-  UnixSocketIOBuffer(const void* aData, size_t aSize);
-
-  
-
-  UnixSocketIOBuffer(size_t aAvailableSpace);
 };
 
 
@@ -213,12 +225,24 @@ public:
   
 
 
+
+
+
+
   UnixSocketRawData(const void* aData, size_t aSize);
 
   
 
 
+
+
+
   UnixSocketRawData(size_t aSize);
+
+  
+
+
+  ~UnixSocketRawData();
 
   
 
