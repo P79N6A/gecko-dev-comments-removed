@@ -85,10 +85,12 @@ const getColor = exports.getColor = (type, theme) => {
 
 
 const setTheme = exports.setTheme = (newTheme) => {
+  let oldTheme = getTheme();
+
   Services.prefs.setCharPref("devtools.theme", newTheme);
   gDevTools.emit("pref-changed", {
     pref: "devtools.theme",
     newValue: newTheme,
-    oldValue: getTheme()
+    oldValue: oldTheme
   });
 };
