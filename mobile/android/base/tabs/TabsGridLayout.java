@@ -79,18 +79,12 @@ class TabsGridLayout extends GridView
             }
         });
 
-        setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
-        setStretchMode(GridView.STRETCH_SPACING);
-        setGravity(Gravity.CENTER);
-        setNumColumns(GridView.AUTO_FIT);
-
         
         
         setClipToPadding(false);
 
         final Resources resources = getResources();
         mColumnWidth = resources.getDimensionPixelSize(R.dimen.new_tablet_tab_panel_column_width);
-        setColumnWidth(mColumnWidth);
 
         final int padding = resources.getDimensionPixelSize(R.dimen.new_tablet_tab_panel_grid_padding);
         final int paddingTop = resources.getDimensionPixelSize(R.dimen.new_tablet_tab_panel_grid_padding_top);
