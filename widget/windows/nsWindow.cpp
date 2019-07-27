@@ -2866,15 +2866,16 @@ FullscreenTransitionWindowProc(HWND hWnd, UINT uMsg,
   switch (uMsg) {
     case WM_FULLSCREEN_TRANSITION_BEFORE:
     case WM_FULLSCREEN_TRANSITION_AFTER: {
+      
+      nsCOMPtr<nsIRunnable> callback =
+        already_AddRefed<nsIRunnable>((nsIRunnable*)wParam);
       DWORD duration = (DWORD)lParam;
       DWORD flags = AW_BLEND;
       if (uMsg == WM_FULLSCREEN_TRANSITION_AFTER) {
         flags |= AW_HIDE;
       }
       ::AnimateWindow(hWnd, duration, flags);
-      
-      NS_DispatchToMainThread(
-        already_AddRefed<nsIRunnable>((nsIRunnable*)wParam));
+      NS_DispatchToMainThread(callback);
       break;
     }
     case WM_DESTROY:
@@ -3734,14 +3735,24 @@ void
 nsWindow::UpdateThemeGeometries(const nsTArray<ThemeGeometry>& aThemeGeometries)
 {
   nsIntRegion clearRegion;
-  for (size_t i = 0; i < aThemeGeometries.Length(); i++) {
-    if (aThemeGeometries[i].mType == nsNativeThemeWin::eThemeGeometryTypeWindowButtons &&
-        nsUXThemeData::CheckForCompositor())
-    {
-      nsIntRect bounds = aThemeGeometries[i].mRect;
-      clearRegion = nsIntRect(bounds.X(), bounds.Y(), bounds.Width(), bounds.Height() - 2.0);
-      clearRegion.Or(clearRegion, nsIntRect(bounds.X() + 1.0, bounds.YMost() - 2.0, bounds.Width() - 1.0, 1.0));
-      clearRegion.Or(clearRegion, nsIntRect(bounds.X() + 2.0, bounds.YMost() - 1.0, bounds.Width() - 3.0, 1.0));
+  if (!HasGlass() || !nsUXThemeData::CheckForCompositor()) {
+    return;
+  }
+  
+  if (IsWin10OrLater() && mCustomNonClient && mSizeMode == nsSizeMode_Normal) {
+    RECT rect;
+    ::GetWindowRect(mWnd, &rect);
+    clearRegion.Or(clearRegion, nsIntRect(0, 0, rect.right - rect.left, 1.0));
+  }
+  if (!IsWin10OrLater()) {
+    for (size_t i = 0; i < aThemeGeometries.Length(); i++) {
+      if (aThemeGeometries[i].mType == nsNativeThemeWin::eThemeGeometryTypeWindowButtons)
+      {
+        nsIntRect bounds = aThemeGeometries[i].mRect;
+        clearRegion.Or(clearRegion, nsIntRect(bounds.X(), bounds.Y(), bounds.Width(), bounds.Height() - 2.0));
+        clearRegion.Or(clearRegion, nsIntRect(bounds.X() + 1.0, bounds.YMost() - 2.0, bounds.Width() - 1.0, 1.0));
+        clearRegion.Or(clearRegion, nsIntRect(bounds.X() + 2.0, bounds.YMost() - 1.0, bounds.Width() - 3.0, 1.0));
+      }
     }
   }
 
@@ -4698,6 +4709,9 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
   LRESULT dwmHitResult;
   if (mCustomNonClient &&
       nsUXThemeData::CheckForCompositor() &&
+      
+
+      !(IsWin10OrLater() && HasGlass()) &&
       WinUtils::dwmDwmDefWindowProcPtr(mWnd, msg, wParam, lParam, &dwmHitResult)) {
     *aRetValue = dwmHitResult;
     return true;
