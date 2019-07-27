@@ -254,14 +254,14 @@ public:
   }
 
   
-  void ResetFinalWidth() {
-    mFinalWidth = nscoord_MIN; 
+  void ResetFinalISize() {
+    mFinalISize = nscoord_MIN; 
   }
-  void SetFinalWidth(nscoord aFinalWidth) {
-    mFinalWidth = aFinalWidth;
+  void SetFinalISize(nscoord aFinalISize) {
+    mFinalISize = aFinalISize;
   }
-  nscoord GetFinalWidth() {
-    return mFinalWidth;
+  nscoord GetFinalISize() {
+    return mFinalISize;
   }
 
   virtual bool IsFrameOfType(uint32_t aFlags) const override
@@ -288,7 +288,7 @@ protected:
   
   
   
-  nscoord mFinalWidth;
+  nscoord mFinalISize;
 
   
   
