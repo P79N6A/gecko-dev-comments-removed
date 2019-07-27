@@ -42,6 +42,8 @@ public:
     void SetKeyUnusable(const CencKeyId& aKeyId, const nsString& aSessionId);
 
     void DropKeysForSession(const nsAString& aSessionId);
+    void GetUsableKeysForSession(const nsAString& aSessionId,
+                                 nsTArray<CencKeyId>& aOutKeyIds);
 
     
     
