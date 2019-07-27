@@ -123,11 +123,13 @@ protected:
 
 
 
+
+
 class FlattenedChildIterator : public ExplicitChildIterator
 {
 public:
-  explicit FlattenedChildIterator(nsIContent* aParent)
-    : ExplicitChildIterator(aParent), mXBLInvolved(false)
+  explicit FlattenedChildIterator(nsIContent* aParent, bool aStartAtBeginning = true)
+    : ExplicitChildIterator(aParent, aStartAtBeginning), mXBLInvolved(false)
   {
     Init(false);
   }
@@ -145,10 +147,11 @@ protected:
 
 
 
-  FlattenedChildIterator(nsIContent* aParent, bool aIgnoreXBL)
-    : ExplicitChildIterator(aParent), mXBLInvolved(false)
+  FlattenedChildIterator(nsIContent* aParent, uint32_t aFlags, bool aStartAtBeginning = true)
+    : ExplicitChildIterator(aParent, aStartAtBeginning), mXBLInvolved(false)
   {
-    Init(aIgnoreXBL);
+    bool ignoreXBL = aFlags & nsIContent::eAllButXBL;
+    Init(ignoreXBL);
   }
 
   void Init(bool aIgnoreXBL);
@@ -164,11 +167,13 @@ protected:
 
 
 
+
+
 class AllChildrenIterator : private FlattenedChildIterator
 {
 public:
-  AllChildrenIterator(nsIContent* aNode, uint32_t aFlags) :
-    FlattenedChildIterator(aNode, (aFlags & nsIContent::eAllButXBL)),
+  AllChildrenIterator(nsIContent* aNode, uint32_t aFlags, bool aStartAtBeginning = true) :
+    FlattenedChildIterator(aNode, aFlags, aStartAtBeginning),
     mOriginalContent(aNode), mFlags(aFlags),
     mPhase(eNeedBeforeKid) {}
 
