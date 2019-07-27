@@ -15,14 +15,26 @@ function quoteString(string) {
   let hasDoubleQuotes = string.contains('"');
   let hasSingleQuotes = string.contains("'");
 
+  let quote = '"';
   if (hasDoubleQuotes && !hasSingleQuotes) {
-    
-    return "'" + string + "'";
+    quote = "'";
   }
 
   
   
-  return '"' + string.replace(/"/g, '\"') + '"';
+  
+  return quote +
+    string.replace(/[\\"]/g, match => {
+      switch (match) {
+      case '\\':
+        return '\\\\';
+      case '"':
+        if (quote == '"')
+          return '\\"';
+        return match;
+      }
+    }) +
+    quote;
 }
 
 
