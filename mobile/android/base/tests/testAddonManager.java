@@ -36,14 +36,14 @@ public class testAddonManager extends PixelTest  {
         contentEventExpecter.unregisterListener();
 
         
-        verifyPageTitle(StringHelper.ADDONS_LABEL, aboutAddonsURL);
+        verifyUrlBarTitle(aboutAddonsURL);
 
         
         mActions.sendSpecialKey(Actions.SpecialKey.BACK);
 
         
         loadAndPaint(aboutAddonsURL);
-        verifyPageTitle(StringHelper.ADDONS_LABEL, aboutAddonsURL);
+        verifyUrlBarTitle(aboutAddonsURL);
 
         
         tabEventExpecter = mActions.expectGeckoEvent("Tab:Added");
@@ -64,7 +64,7 @@ public class testAddonManager extends PixelTest  {
         verifyTabCount(2);
 
         
-        verifyPageTitle(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE, blankURL);
+        verifyUrlBarTitle(blankURL);
 
         
         selectMenuItem(StringHelper.ADDONS_LABEL);

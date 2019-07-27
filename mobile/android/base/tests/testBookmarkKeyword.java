@@ -16,11 +16,7 @@ public class testBookmarkKeyword extends AboutHomeTest {
         inputAndLoadUrl(keyword);
 
         
-        waitForText(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE);
-
-        
-        verifyPageTitle(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE,
-                StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
+        verifyUrlBarTitle(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
 
         
         mDatabaseHelper.deleteBookmark(url);

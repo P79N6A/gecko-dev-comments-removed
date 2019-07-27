@@ -51,8 +51,7 @@ public class testBookmarkFolders extends AboutHomeTest {
 
         
         loadBookmark(DESKTOP_BOOKMARK_URL);
-        waitForText(StringHelper.ROBOCOP_BLANK_PAGE_02_TITLE);
-        verifyPageTitle(StringHelper.ROBOCOP_BLANK_PAGE_02_TITLE, DESKTOP_BOOKMARK_URL);
+        verifyUrlBarTitle(DESKTOP_BOOKMARK_URL);
         openAboutHomeTab(AboutHomeTabs.BOOKMARKS);
 
         

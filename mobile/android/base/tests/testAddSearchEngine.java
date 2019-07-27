@@ -60,8 +60,7 @@ public class testAddSearchEngine extends AboutHomeTest {
 
         
         inputAndLoadUrl(searchEngineURL);
-        waitForText(StringHelper.ROBOCOP_SEARCH_TITLE);
-        verifyPageTitle(StringHelper.ROBOCOP_SEARCH_TITLE, searchEngineURL);
+        verifyUrlBarTitle(searchEngineURL);
 
         
         getInstrumentation().waitForIdleSync();

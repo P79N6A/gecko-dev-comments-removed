@@ -73,7 +73,7 @@ public class testReaderMode extends AboutHomeTest {
         contentPageShowExpecter.unregisterListener();
         paintExpecter.blockUntilClear(EVENT_CLEAR_DELAY_MS);
         paintExpecter.unregisterListener();
-        verifyPageTitle(StringHelper.ROBOCOP_TEXT_PAGE_TITLE, StringHelper.ROBOCOP_TEXT_PAGE_URL);
+        verifyUrlBarTitle(StringHelper.ROBOCOP_TEXT_PAGE_URL);
 
         
         height = mDriver.getGeckoTop() + mDriver.getGeckoHeight() - 10;
@@ -134,7 +134,7 @@ public class testReaderMode extends AboutHomeTest {
         mSolo.clickOnView(child);
         contentEventExpecter.blockForEvent();
         contentEventExpecter.unregisterListener();
-        verifyPageTitle(StringHelper.ROBOCOP_TEXT_PAGE_TITLE, StringHelper.ROBOCOP_TEXT_PAGE_URL);
+        verifyUrlBarTitle(StringHelper.ROBOCOP_TEXT_PAGE_URL);
 
         
         height = mDriver.getGeckoTop() + mDriver.getGeckoHeight() - 10;
@@ -142,7 +142,7 @@ public class testReaderMode extends AboutHomeTest {
         mAsserter.dumpLog("Long Clicking at width = " + String.valueOf(width) + " and height = " + String.valueOf(height));
         mSolo.clickOnScreen(width,height);
         mAsserter.ok(mSolo.waitForText("Page removed from your Reading List"), "Waiting for the page to removed from your Reading List", "The page is removed from your Reading List");
-        verifyPageTitle(StringHelper.ROBOCOP_TEXT_PAGE_TITLE, StringHelper.ROBOCOP_TEXT_PAGE_URL);
+        verifyUrlBarTitle(StringHelper.ROBOCOP_TEXT_PAGE_URL);
 
         
         openAboutHomeTab(AboutHomeTabs.READING_LIST);

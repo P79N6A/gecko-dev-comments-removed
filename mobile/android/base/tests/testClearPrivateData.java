@@ -30,7 +30,7 @@ public class testClearPrivateData extends PixelTest {
         String blank2 = getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_02_URL);
         String title = StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE;
         inputAndLoadUrl(blank1);
-        verifyPageTitle(title, blank1);
+        verifyUrlBarTitle(blank1);
         mDatabaseHelper.addOrUpdateMobileBookmark(StringHelper.ROBOCOP_BLANK_PAGE_02_TITLE, blank2);
 
         
@@ -86,7 +86,7 @@ public class testClearPrivateData extends PixelTest {
             mAsserter.ok(waitForText(StringHelper.PRIVACY_SECTION_LABEL), "waiting to perform one back", "one back");
         }
         mActions.sendSpecialKey(Actions.SpecialKey.BACK);
-        verifyPageTitle(title, url);
+        verifyUrlBarTitle(url);
     }
 
     

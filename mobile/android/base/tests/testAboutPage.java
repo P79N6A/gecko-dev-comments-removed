@@ -12,18 +12,6 @@ import android.app.Activity;
 
 
 public class testAboutPage extends PixelTest {
-    
-
-
-    private void ensureTitleMatches(final String titleRegex, final String urlRegex) {
-        final Activity activity = getActivity();
-        final Element urlBarTitle = mDriver.findElement(activity, R.id.url_bar_title);
-
-        
-        final String expectedTitle = NewTabletUI.isEnabled(activity) ? urlRegex : titleRegex;
-        mAsserter.isnot(urlBarTitle, null, "Got the URL bar title");
-        assertMatches(urlBarTitle.getText(), expectedTitle, "page title match");
-    }
 
     public void testAboutPage() {
         blockForGeckoReady();
@@ -32,14 +20,14 @@ public class testAboutPage extends PixelTest {
         String url = StringHelper.ABOUT_SCHEME;
         loadAndPaint(url);
 
-        ensureTitleMatches(StringHelper.ABOUT_LABEL, url);
+        verifyUrlBarTitle(url);
 
         
         url = getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
         inputAndLoadUrl(url);
 
         
-        verifyPageTitle(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE, url);
+        verifyUrlBarTitle(url);
 
         
         Actions.EventExpecter tabEventExpecter = mActions.expectGeckoEvent("Tab:Added");
@@ -55,6 +43,6 @@ public class testAboutPage extends PixelTest {
         contentEventExpecter.unregisterListener();
 
         
-        ensureTitleMatches(StringHelper.ABOUT_LABEL, StringHelper.ABOUT_SCHEME);
+        verifyUrlBarTitle(StringHelper.ABOUT_SCHEME);
     }
 }

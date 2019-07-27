@@ -740,11 +740,6 @@ pref("layers.enable-tiles", true);
 pref("browser.chrome.dynamictoolbar", true);
 
 
-
-
-pref("browser.chrome.titlebarMode", 0);
-
-
 pref("browser.urlbar.trimURLs", true);
 
 #ifdef MOZ_PKG_SPECIAL
