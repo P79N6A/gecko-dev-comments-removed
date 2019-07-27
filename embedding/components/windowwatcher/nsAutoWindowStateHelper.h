@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef __nsAutoWindowStateHelper_h
 #define __nsAutoWindowStateHelper_h
 

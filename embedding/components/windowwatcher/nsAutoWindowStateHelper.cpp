@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsAutoWindowStateHelper.h"
 
 #include "mozilla/dom/Event.h"

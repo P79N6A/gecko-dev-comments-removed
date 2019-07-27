@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsEmbedStream_h__
 #define nsEmbedStream_h__
 
