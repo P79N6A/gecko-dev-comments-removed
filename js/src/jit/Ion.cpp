@@ -2191,7 +2191,7 @@ GetOptimizationLevel(HandleScript script, jsbytecode *pc, ExecutionMode executio
 
 static MethodStatus
 Compile(JSContext *cx, HandleScript script, BaselineFrame *osrFrame, jsbytecode *osrPc,
-        bool constructing, ExecutionMode executionMode, bool forceRecompile = false)
+        bool constructing, ExecutionMode executionMode)
 {
     JS_ASSERT(jit::IsIonEnabled(cx));
     JS_ASSERT(jit::IsBaselineEnabled(cx));
@@ -2228,17 +2228,35 @@ Compile(JSContext *cx, HandleScript script, BaselineFrame *osrFrame, jsbytecode 
         if (!scriptIon->method())
             return Method_CantCompile;
 
+        MethodStatus failedState = Method_Compiled;
+
         
         
-        if (optimizationLevel <= scriptIon->optimizationLevel() && !forceRecompile)
-            return Method_Compiled;
+        if (osrPc && script->ionScript()->osrPc() != osrPc) {
+            uint32_t count = script->ionScript()->incrOsrPcMismatchCounter();
+            if (count <= js_JitOptions.osrPcMismatchesBeforeRecompile)
+                return Method_Skipped;
+
+            failedState = Method_Skipped;
+        }
+
+        
+        
+        if (optimizationLevel < scriptIon->optimizationLevel())
+            return failedState;
+
+        if (optimizationLevel == scriptIon->optimizationLevel() &&
+            (!osrPc || script->ionScript()->osrPc() == osrPc))
+        {
+            return failedState;
+        }
 
         
         if (scriptIon->isRecompiling())
-            return Method_Compiled;
+            return failedState;
 
         if (osrPc)
-            scriptIon->resetOsrPcMismatchCounter();
+            script->ionScript()->resetOsrPcMismatchCounter();
 
         recompile = true;
     }
@@ -2257,8 +2275,11 @@ Compile(JSContext *cx, HandleScript script, BaselineFrame *osrFrame, jsbytecode 
     }
 
     
-    if (HasIonScript(script, executionMode))
+    if (HasIonScript(script, executionMode)) {
+        if (osrPc && script->ionScript()->osrPc() != osrPc)
+            return Method_Skipped;
         return Method_Compiled;
+    }
     return Method_Skipped;
 }
 
@@ -2298,34 +2319,17 @@ jit::CanEnterAtBranch(JSContext *cx, JSScript *script, BaselineFrame *osrFrame, 
 
     
     
-    bool force = false;
-    if (script->hasIonScript() && pc != script->ionScript()->osrPc()) {
-        uint32_t count = script->ionScript()->incrOsrPcMismatchCounter();
-        if (count <= js_JitOptions.osrPcMismatchesBeforeRecompile)
-            return Method_Skipped;
-        force = true;
-    }
-
-    
-    
     
     
     
     RootedScript rscript(cx, script);
     MethodStatus status = Compile(cx, rscript, osrFrame, pc, osrFrame->isConstructing(),
-                                  SequentialExecution, force);
+                                  SequentialExecution);
     if (status != Method_Compiled) {
         if (status == Method_CantCompile)
             ForbidCompilation(cx, script);
         return status;
     }
-
-    
-    
-    
-    
-    if (pc != script->ionScript()->osrPc())
-        return Method_Skipped;
 
     return Method_Compiled;
 }
@@ -2427,14 +2431,14 @@ jit::CompileFunctionForBaseline(JSContext *cx, HandleScript script, BaselineFram
 
 MethodStatus
 jit::Recompile(JSContext *cx, HandleScript script, BaselineFrame *osrFrame, jsbytecode *osrPc,
-               bool constructing, bool force)
+               bool constructing)
 {
     JS_ASSERT(script->hasIonScript());
     if (script->ionScript()->isRecompiling())
         return Method_Compiled;
 
     MethodStatus status =
-        Compile(cx, script, osrFrame, osrPc, constructing, SequentialExecution, force);
+        Compile(cx, script, osrFrame, osrPc, constructing, SequentialExecution);
     if (status != Method_Compiled) {
         if (status == Method_CantCompile)
             ForbidCompilation(cx, script);
