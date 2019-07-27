@@ -6572,7 +6572,12 @@ nsCSSFrameConstructor::GetInsertionPrevSibling(InsertionPoint* aInsertion,
         
         
         nsIContent* child = aInsertion->mContainer;
-        InsertionPoint fakeInsertion(aInsertion->mParentFrame, child->GetParent());
+        nsIContent* parent = child->GetParent();
+        aInsertion->mParentFrame =
+          ::GetAdjustedParentFrame(aInsertion->mParentFrame,
+                                   aInsertion->mParentFrame->GetType(),
+                                   parent);
+        InsertionPoint fakeInsertion(aInsertion->mParentFrame, parent);
         nsIFrame* result = GetInsertionPrevSibling(&fakeInsertion, child, aIsAppend,
                                                    aIsRangeInsertSafe, nullptr, nullptr);
         MOZ_ASSERT(aInsertion->mParentFrame == fakeInsertion.mParentFrame);
@@ -8914,7 +8919,9 @@ nsCSSFrameConstructor::GetInsertionPoint(nsIContent* aContainer,
                            insertionElement);
 
   
-  if (insertionElement->IsHTMLElement(nsGkAtoms::fieldset)) {
+  
+  if (insertion.mParentFrame &&
+      insertion.mParentFrame->GetType() == nsGkAtoms::fieldSetFrame) {
     insertion.mMultiple = true;
   }
 
