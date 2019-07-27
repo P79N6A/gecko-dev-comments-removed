@@ -65,7 +65,14 @@ enum FrameType
     
     
     
-    JitFrame_Bailout
+    JitFrame_Bailout,
+
+    
+    
+    
+    
+    
+    JitFrame_LazyLink
 };
 
 enum ReadFrameArgsBehavior {
@@ -142,6 +149,9 @@ class JitFrameIterator
     bool checkInvalidation(IonScript** ionScript) const;
     bool checkInvalidation() const;
 
+    bool isExitFrame() const {
+        return type_ == JitFrame_Exit || type_ == JitFrame_LazyLink;
+    }
     bool isScripted() const {
         return type_ == JitFrame_BaselineJS || type_ == JitFrame_IonJS || type_ == JitFrame_Bailout;
     }
@@ -198,7 +208,7 @@ class JitFrameIterator
     
     
     size_t frameSize() const {
-        MOZ_ASSERT(type_ != JitFrame_Exit);
+        MOZ_ASSERT(!isExitFrame());
         return frameSize_;
     }
 
