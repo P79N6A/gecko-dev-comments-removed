@@ -1031,8 +1031,8 @@ PluginContent.prototype = {
       
       
       if (!doc.mozNoPluginCrashedNotification) {
-        this.global.sendAsyncMessage("PluginContent:ShowNPAPIPluginCrashedNotification",
-                                     { message, runID });
+        this.global.sendAsyncMessage("PluginContent:ShowPluginCrashedNotification",
+                                     { messageString: message, pluginID: runID });
         
         doc.defaultView.top.addEventListener("unload", event => {
           this.hideNotificationBar("plugin-crashed");
@@ -1057,17 +1057,11 @@ PluginContent.prototype = {
     }
   },
 
-  
-
-
-
   GMPCrashed: function(aEvent) {
     let target          = aEvent.target;
-    let submittedReport = aEvent.submittedCrashReport;
     let pluginName      = aEvent.pluginName;
-    let pluginDumpID    = aEvent.pluginDumpID;
-    let browserDumpID   = aEvent.browserDumpID;
     let gmpPlugin       = aEvent.gmpPlugin;
+    let pluginID        = aEvent.pluginID;
     let doc             = target.document;
 
     if (!gmpPlugin || !doc) {
@@ -1079,11 +1073,8 @@ PluginContent.prototype = {
       gNavigatorBundle.formatStringFromName("crashedpluginsMessage.title",
                                             [pluginName], 1);
 
-    this.global.sendAsyncMessage("PluginContent:ShowGMPCrashedNotification", {
-      messageString: messageString,
-      pluginDumpID: pluginDumpID,
-      browserDumpID: browserDumpID,
-    });
+    this.global.sendAsyncMessage("PluginContent:ShowPluginCrashedNotification",
+                                 { messageString, pluginID });
 
     
     doc.defaultView.top.addEventListener("unload", event => {

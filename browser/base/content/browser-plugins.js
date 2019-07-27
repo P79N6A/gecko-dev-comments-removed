@@ -13,8 +13,7 @@ var gPluginHandler = {
     "PluginContent:HideNotificationBar",
     "PluginContent:ShowInstallNotification",
     "PluginContent:InstallSinglePlugin",
-    "PluginContent:ShowNPAPIPluginCrashedNotification",
-    "PluginContent:ShowGMPCrashedNotification",
+    "PluginContent:ShowPluginCrashedNotification",
     "PluginContent:SubmitReport",
     "PluginContent:LinkClickCallback",
   ],
@@ -62,15 +61,9 @@ var gPluginHandler = {
       case "PluginContent:InstallSinglePlugin":
         this.installSinglePlugin(msg.data.pluginInfo);
         break;
-      case "PluginContent:ShowNPAPIPluginCrashedNotification":
-        this.showNPAPIPluginCrashedNotification(msg.target, msg.data.message,
-                                                msg.data.runID);
-        break;
-      case "PluginContent:ShowGMPCrashedNotification":
-        this.showGMPCrashedNotification(msg.target,
-                                        msg.data.messageString,
-                                        msg.data.pluginDumpID,
-                                        msg.data.browserDumpID);
+      case "PluginContent:ShowPluginCrashedNotification":
+        this.showPluginCrashedNotification(msg.target, msg.data.messageString,
+                                           msg.data.pluginID);
         break;
       case "PluginContent:SubmitReport":
         if (AppConstants.MOZ_CRASHREPORTER) {
@@ -498,37 +491,6 @@ var gPluginHandler = {
                              { pluginName, runID, state });
   },
 
-  showNPAPIPluginCrashedNotification: function (browser, messageString, runID) {
-    let crashReportCallback;
-
-    if (AppConstants.MOZ_CRASHREPORTER &&
-        PluginCrashReporter.hasCrashReport(runID)) {
-      crashReportCallback = () => {
-        PluginCrashReporter.submitCrashReport(runID);
-      };
-    }
-
-    this._showPluginCrashedNotification(browser, messageString, crashReportCallback);
-  },
-
-  
-
-
-
-
-  showGMPCrashedNotification: function (browser, messageString,
-                                        pluginDumpID, browserDumpID) {
-    let crashReportCallback;
-
-    if (AppConstants.MOZ_CRASHREPORTER && pluginDumpID) {
-      crashReportCallback = () => {
-        PluginCrashReporter.submitGMPCrashReport(pluginDumpID, browserDumpID);
-      };
-    }
-
-    this._showPluginCrashedNotification(browser, messageString, crashReportCallback);
-  },
-
   
 
 
@@ -541,20 +503,20 @@ var gPluginHandler = {
 
 
 
-  _showPluginCrashedNotification: function (browser, messageString, crashReportCallback) {
+
+  showPluginCrashedNotification: function (browser, messageString, pluginID) {
     
     let notificationBox = gBrowser.getNotificationBox(browser);
     let notification = notificationBox.getNotificationWithValue("plugin-crashed");
-    if (notification)
+    if (notification) {
       return;
+    }
 
     
     let priority = notificationBox.PRIORITY_WARNING_MEDIUM;
     let iconURL = "chrome://mozapps/skin/plugins/notifyPluginCrashed.png";
     let reloadLabel = gNavigatorBundle.getString("crashedpluginsMessage.reloadButton.label");
     let reloadKey   = gNavigatorBundle.getString("crashedpluginsMessage.reloadButton.accesskey");
-    let submitLabel = gNavigatorBundle.getString("crashedpluginsMessage.submitButton.label");
-    let submitKey   = gNavigatorBundle.getString("crashedpluginsMessage.submitButton.accesskey");
 
     let buttons = [{
       label: reloadLabel,
@@ -563,12 +525,17 @@ var gPluginHandler = {
       callback: function() { browser.reload(); },
     }];
 
-    if (AppConstants.MOZ_CRASHREPORTER && crashReportCallback) {
+    if (AppConstants.MOZ_CRASHREPORTER &&
+        PluginCrashReporter.hasCrashReport(pluginID)) {
+      let submitLabel = gNavigatorBundle.getString("crashedpluginsMessage.submitButton.label");
+      let submitKey   = gNavigatorBundle.getString("crashedpluginsMessage.submitButton.accesskey");
       let submitButton = {
         label: submitLabel,
         accessKey: submitKey,
         popup: null,
-        callback: crashReportCallback,
+        callback: () => {
+          PluginCrashReporter.submitCrashReport(pluginID);
+        },
       };
 
       buttons.push(submitButton);
@@ -585,11 +552,9 @@ var gPluginHandler = {
     let crashurl = formatURL("app.support.baseURL", true);
     crashurl += "plugin-crashed-notificationbar";
     link.href = crashurl;
-
     let description = notification.ownerDocument.getAnonymousElementByAttribute(notification, "anonid", "messageText");
     description.appendChild(link);
   },
 };
 
 gPluginHandler.init();
-
