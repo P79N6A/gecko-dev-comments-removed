@@ -419,6 +419,46 @@ private:
   nsTArray<UnixSocketRawData*> mOutgoingQ;
 };
 
+
+
+
+
+
+
+
+template <typename T>
+class SocketIOTask : public CancelableTask
+{
+public:
+  virtual ~SocketIOTask()
+  { }
+
+  T* GetIO() const
+  {
+    return mIO;
+  }
+
+  void Cancel() MOZ_OVERRIDE
+  {
+    mIO = nullptr;
+  }
+
+  bool IsCanceled() const
+  {
+    return !mIO;
+  }
+
+protected:
+  SocketIOTask(T* aIO)
+  : mIO(aIO)
+  {
+    MOZ_ASSERT(mIO);
+  }
+
+private:
+  T* mIO;
+};
+
 }
 }
 
