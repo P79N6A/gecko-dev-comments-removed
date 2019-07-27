@@ -2313,7 +2313,8 @@ nsFtpState::SaveNetworkStats(bool enforce)
     
     
     nsRefPtr<nsRunnable> event =
-        new SaveNetworkStatsEvent(appId, mActiveNetwork, mCountRecv, 0, false);
+        new SaveNetworkStatsEvent(appId, isInBrowser, mActiveNetwork,
+                                  mCountRecv, 0, false);
     NS_DispatchToMainThread(event);
 
     

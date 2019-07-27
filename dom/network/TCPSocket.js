@@ -374,8 +374,8 @@ TCPSocket.prototype = {
       LOG("Error: Ci.nsINetworkStatsServiceProxy service is not available.");
       return;
     }
-    nssProxy.saveAppStats(this._appId, this._activeNetwork, Date.now(),
-                          this._rxBytes, this._txBytes, false);
+    nssProxy.saveAppStats(this._appId, this._inBrowser, this._activeNetwork,
+                          Date.now(), this._rxBytes, this._txBytes, false);
 
     
     this._txBytes = this._rxBytes = 0;
