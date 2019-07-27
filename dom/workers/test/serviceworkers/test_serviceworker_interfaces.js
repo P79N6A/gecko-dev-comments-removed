@@ -147,8 +147,6 @@ var interfaceNamesInGlobalScope =
 
     "ImageData",
 
-    "MessageChannel",
-
     "MessageEvent",
 
     "MessagePort",

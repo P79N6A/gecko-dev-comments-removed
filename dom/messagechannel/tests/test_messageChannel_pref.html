@@ -28,15 +28,9 @@
 
   SimpleTest.waitForExplicitFinish();
 
-  SpecialPowers.pushPrefEnv({"set": [["dom.messageChannel.enabled", false]]},
-  function() {
-    runTest(false);
-    SpecialPowers.pushPrefEnv({"set": [["dom.messageChannel.enabled", true]]},
-    function() {
-      runTest(true);
-      SimpleTest.finish();
-    });
-  });
+  runTest(false);
+  SpecialPowers.pushPrefEnv({"set": [["dom.messageChannel.enabled", true]]},
+                            function() { runTest(true); SimpleTest.finish(); });
   </script>
 </body>
 </html>
