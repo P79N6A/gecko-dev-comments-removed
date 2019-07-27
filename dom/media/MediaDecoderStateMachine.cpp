@@ -224,7 +224,7 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mAudioCaptured(false),
   mPositionChangeQueued(false),
   mAudioCompleted(false, "MediaDecoderStateMachine::mAudioCompleted"),
-  mGotDurationFromMetaData(false),
+  mNotifyMetadataBeforeFirstFrame(false),
   mDispatchedEventToDecode(false),
   mQuickBuffering(false),
   mMinimizePreroll(false),
@@ -1447,11 +1447,10 @@ void MediaDecoderStateMachine::SetDuration(TimeUnit aDuration)
   MOZ_ASSERT(OnTaskQueue());
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
   MOZ_ASSERT(aDuration.ToMicroseconds() >= 0);
-  mDurationSet = true;
-
   if (mStartTime == -1) {
     SetStartTime(0);
   }
+  mDurationSet = true;
 
   if (aDuration.IsInfinite()) {
     mEndTime = -1;
@@ -2210,10 +2209,15 @@ MediaDecoderStateMachine::OnMetadataRead(MetadataHolder* aMetadata)
   }
 
   mDecoder->StartProgressUpdates();
-  mGotDurationFromMetaData = (GetDuration() != -1) || mDurationSet;
-  if (mGotDurationFromMetaData) {
-    
-    
+
+  
+  
+  
+  
+  
+  
+  mNotifyMetadataBeforeFirstFrame = mDurationSet || mReader->IsWaitingOnCDMResource();
+  if (mNotifyMetadataBeforeFirstFrame) {
     EnqueueLoadedMetadataEvent();
   }
 
@@ -2388,15 +2392,11 @@ MediaDecoderStateMachine::FinishDecodeFirstFrame()
 
   nsAutoPtr<MediaInfo> info(new MediaInfo());
   *info = mInfo;
-  if (!mGotDurationFromMetaData) {
-    
+  if (!mNotifyMetadataBeforeFirstFrame) {
     
     EnqueueLoadedMetadataEvent();
-    EnqueueFirstFrameLoadedEvent();
-  } else {
-    
-    EnqueueFirstFrameLoadedEvent();
   }
+  EnqueueFirstFrameLoadedEvent();
 
   if (mState == DECODER_STATE_DECODING_FIRSTFRAME) {
     StartDecoding();
@@ -3175,7 +3175,8 @@ void MediaDecoderStateMachine::SetStartTime(int64_t aStartTimeUsecs)
   mStartTime = 0;
   if (aStartTimeUsecs != 0) {
     mStartTime = aStartTimeUsecs;
-    if (mGotDurationFromMetaData && GetEndTime() != INT64_MAX) {
+    
+    if (mDurationSet && GetEndTime() != INT64_MAX) {
       NS_ASSERTION(mEndTime != -1,
                    "We should have mEndTime as supplied duration here");
       
