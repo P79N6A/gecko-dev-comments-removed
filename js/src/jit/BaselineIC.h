@@ -229,7 +229,9 @@ class ICEntry
         
         
         Kind_DebugPrologue,
-        Kind_DebugEpilogue
+        Kind_DebugEpilogue,
+
+        Kind_Invalid
     };
 
   private:
@@ -238,6 +240,7 @@ class ICEntry
 
     
     void setKind(Kind kind) {
+        MOZ_ASSERT(kind < Kind_Invalid);
         kind_ = kind;
         MOZ_ASSERT(this->kind() == kind);
     }

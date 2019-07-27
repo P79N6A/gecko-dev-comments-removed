@@ -73,7 +73,13 @@ class BaselineFrame
         
         
         
-        HAS_UNWOUND_SCOPE_OVERRIDE_PC = 1 << 11
+        HAS_UNWOUND_SCOPE_OVERRIDE_PC = 1 << 11,
+
+        
+        
+        
+        
+        DEBUGGER_HANDLING_EXCEPTION = 1 << 12
     };
 
   protected: 
@@ -280,9 +286,16 @@ class BaselineFrame
     void setIsDebuggee() {
         flags_ |= DEBUGGEE;
     }
-    void unsetIsDebuggee() {
-        MOZ_ASSERT(!script()->isDebuggee());
-        flags_ &= ~DEBUGGEE;
+    inline void unsetIsDebuggee();
+
+    bool isDebuggerHandlingException() const {
+        return flags_ & DEBUGGER_HANDLING_EXCEPTION;
+    }
+    void setIsDebuggerHandlingException() {
+        flags_ |= DEBUGGER_HANDLING_EXCEPTION;
+    }
+    void unsetIsDebuggerHandlingException() {
+        flags_ &= ~DEBUGGER_HANDLING_EXCEPTION;
     }
 
     JSScript *evalScript() const {

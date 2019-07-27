@@ -37,7 +37,17 @@ struct DebugModeOSREntry
         newStub(nullptr),
         recompInfo(nullptr),
         pcOffset(uint32_t(-1)),
-        frameKind(ICEntry::Kind_NonOp)
+        frameKind(ICEntry::Kind_Invalid)
+    { }
+
+    DebugModeOSREntry(JSScript *script, uint32_t pcOffset)
+      : script(script),
+        oldBaselineScript(script->baselineScript()),
+        oldStub(nullptr),
+        newStub(nullptr),
+        recompInfo(nullptr),
+        pcOffset(pcOffset),
+        frameKind(ICEntry::Kind_Invalid)
     { }
 
     DebugModeOSREntry(JSScript *script, const ICEntry &icEntry)
@@ -194,11 +204,23 @@ CollectJitStackScripts(JSContext *cx, const Debugger::ExecutionObservableSet &ob
                 if (!entries.append(DebugModeOSREntry(script, info)))
                     return false;
             } else {
-                
                 uint8_t *retAddr = iter.returnAddressToFp();
-                ICEntry &entry = script->baselineScript()->icEntryFromReturnAddress(retAddr);
-                if (!entries.append(DebugModeOSREntry(script, entry)))
-                    return false;
+                ICEntry *icEntry = script->baselineScript()->maybeICEntryFromReturnAddress(retAddr);
+                if (icEntry) {
+                    
+                    if (!entries.append(DebugModeOSREntry(script, *icEntry)))
+                        return false;
+                } else {
+                    
+                    
+                    
+                    
+                    
+                    MOZ_ASSERT(iter.baselineFrame()->isDebuggerHandlingException());
+                    jsbytecode *pc = script->baselineScript()->pcForReturnAddress(script, retAddr);
+                    if (!entries.append(DebugModeOSREntry(script, script->pcToOffset(pc))))
+                        return false;
+                }
             }
 
             if (entries.back().needsRecompileInfo()) {
@@ -297,6 +319,16 @@ SpewPatchBaselineFrame(uint8_t *oldReturnAddress, uint8_t *newReturnAddress,
 }
 
 static void
+SpewPatchBaselineFrameFromExceptionHandler(uint8_t *oldReturnAddress, uint8_t *newReturnAddress,
+                                           JSScript *script, jsbytecode *pc)
+{
+    JitSpew(JitSpew_BaselineDebugModeOSR,
+            "Patch return %p -> %p on BaselineJS frame (%s:%d) from exception handler at %s",
+            oldReturnAddress, newReturnAddress, script->filename(), script->lineno(),
+            js_CodeName[(JSOp)*pc]);
+}
+
+static void
 SpewPatchStubFrame(ICStub *oldStub, ICStub *newStub)
 {
     JitSpew(JitSpew_BaselineDebugModeOSR,
@@ -309,6 +341,7 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
                                 const ActivationIterator &activation,
                                 DebugModeOSREntryVector &entries, size_t *start)
 {
+    
     
     
     
@@ -386,6 +419,29 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
                 break;
             }
 
+            if (kind == ICEntry::Kind_Invalid) {
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                MOZ_ASSERT(iter.baselineFrame()->isDebuggerHandlingException());
+                uint8_t *retAddr = bl->nativeCodeForPC(script, pc);
+                SpewPatchBaselineFrameFromExceptionHandler(prev->returnAddress(), retAddr,
+                                                           script, pc);
+                DebugModeOSRVolatileJitFrameIterator::forwardLiveIterators(
+                    cx, prev->returnAddress(), retAddr);
+                prev->setReturnAddress(retAddr);
+                entryIndex++;
+                break;
+            }
+
             
             
             
@@ -431,10 +487,7 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
                 
                 
                 
-                
-                
-                
-                if (JSOp(*pc) != JSOP_THROW)
+                if (!iter.baselineFrame()->isDebuggerHandlingException())
                     pc += GetBytecodeLength(pc);
                 recompInfo->resumeAddr = bl->nativeCodeForPC(script, pc, &recompInfo->slotInfo);
                 popFrameReg = true;
