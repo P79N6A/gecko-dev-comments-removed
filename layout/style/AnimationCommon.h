@@ -360,8 +360,8 @@ public:
   }
 
   bool HasAnimationOfProperty(nsCSSProperty aProperty) const;
-  bool IsRunningAt(mozilla::TimeStamp aTime) const;
-  bool IsCurrentAt(mozilla::TimeStamp aTime) const;
+  bool IsRunning() const;
+  bool IsCurrent() const;
 
   
   
@@ -573,7 +573,7 @@ struct ElementAnimationCollection : public PRCList
 
   
   
-  bool HasCurrentAnimationsAt(mozilla::TimeStamp aTime);
+  bool HasCurrentAnimations();
 
   
   TimeStamp mStyleRuleRefreshTime;
