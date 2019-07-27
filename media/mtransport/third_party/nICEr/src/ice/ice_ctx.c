@@ -350,9 +350,9 @@ int nr_ice_ctx_create(char *label, UINT4 flags, nr_ice_ctx **ctxp)
     }
 
     
-    if(ctx->stun_server_ct>255){
-      r_log(LOG_ICE,LOG_WARNING,"ICE(%s): Too many STUN servers specified: max=255", ctx->label);
-      ctx->stun_server_ct=255;
+    if(ctx->stun_server_ct>31){
+      r_log(LOG_ICE,LOG_WARNING,"ICE(%s): Too many STUN servers specified: max=31", ctx->label);
+      ctx->stun_server_ct=31;
     }
 
     if(ctx->stun_server_ct>0){
@@ -378,9 +378,9 @@ int nr_ice_ctx_create(char *label, UINT4 flags, nr_ice_ctx **ctxp)
     ctx->local_addr_ct=0;
 
     
-    if((ctx->stun_server_ct+ctx->turn_server_ct)>255){
-      r_log(LOG_ICE,LOG_WARNING,"ICE(%s): Too many STUN/TURN servers specified: max=255", ctx->label);
-      ctx->turn_server_ct=255-ctx->stun_server_ct;
+    if((ctx->stun_server_ct+ctx->turn_server_ct)>31){
+      r_log(LOG_ICE,LOG_WARNING,"ICE(%s): Too many STUN/TURN servers specified: max=31", ctx->label);
+      ctx->turn_server_ct=31-ctx->stun_server_ct;
     }
 
 #ifdef USE_TURN
