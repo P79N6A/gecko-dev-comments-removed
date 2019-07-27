@@ -41,8 +41,6 @@ public:
   
   
   static bool Check();
-  
-  ~AndroidSurfaceTexture();
 
   AndroidNativeWindow* NativeWindow() {
     return mNativeWindow;
@@ -54,6 +52,8 @@ public:
   bool GetTransformMatrix(mozilla::gfx::Matrix4x4& aMatrix);
   int ID() { return mID; }
 
+  void SetDefaultSize(mozilla::gfx::IntSize size);
+
   
   
   void SetFrameAvailableCallback(nsIRunnable* aRunnable);
@@ -63,8 +63,10 @@ public:
   void NotifyFrameAvailable();
 
   GLuint Texture() { return mTexture; }
+  jobject JavaSurface() { return mSurface; }
 private:
   AndroidSurfaceTexture();
+  ~AndroidSurfaceTexture();
 
   bool Init(GLuint aTexture);
 
