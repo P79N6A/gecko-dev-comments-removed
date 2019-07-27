@@ -285,7 +285,7 @@ loop.webapp = (function($, _, OT, webL10n) {
         
         
         this._client.requestCallInfo(this._conversation.get("loopToken"), "audio-video",
-                                     (err, sessionData) => {
+                                     function(err, sessionData) {
           if (err) {
             switch (err.errno) {
               
@@ -302,7 +302,7 @@ loop.webapp = (function($, _, OT, webL10n) {
             return;
           }
           this._conversation.outgoing(sessionData);
-        });
+        }.bind(this));
       }
     },
 
