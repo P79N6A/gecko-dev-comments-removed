@@ -7,6 +7,7 @@
 #include "mozilla/SystemMemoryReporter.h"
 
 #include "mozilla/Attributes.h"
+#include "mozilla/LinuxUtils.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/TaggedAnonymousMemory.h"
@@ -349,37 +350,6 @@ private:
     return NS_OK;
   }
 
-  
-  
-  
-  
-  
-  
-  
-  void GetThreadName(pid_t aTid, nsACString& aName)
-  {
-    aName.Truncate();
-    if (aTid <= 0) {
-      return;
-    }
-    char buf[16]; 
-    nsPrintfCString path("/proc/%d/comm", aTid);
-    FILE* fp = fopen(path.get(), "r");
-    if (!fp) {
-      
-      return;
-    }
-    size_t len = fread(buf, 1, sizeof(buf), fp);
-    fclose(fp);
-    
-    while (len > 0 &&
-           (isspace(buf[len - 1]) || isdigit(buf[len - 1]) ||
-            buf[len - 1] == '#' || buf[len - 1] == '_')) {
-      --len;
-    }
-    aName.Assign(buf, len);
-  }
-
   nsresult ParseMappings(FILE* aFile,
                          const nsACString& aProcessName,
                          nsIHandleReportCallback* aHandleReport,
@@ -504,7 +474,7 @@ private:
       
       pid_t tid = atoi(absPath.get() + 7);
       nsAutoCString threadName, escapedThreadName;
-      GetThreadName(tid, threadName);
+      LinuxUtils::GetThreadName(tid, threadName);
       if (threadName.IsEmpty()) {
         threadName.AssignLiteral("<unknown>");
       }
@@ -1037,7 +1007,7 @@ private:
 
       
       nsAutoCString procName;
-      GetThreadName(atoi(pid), procName);
+      LinuxUtils::GetThreadName(atoi(pid), procName);
 
       if (procName.IsEmpty()) {
         procName.Append("pid=");
