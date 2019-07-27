@@ -64,7 +64,7 @@ public:
   AudioChannel MozAudioChannelType() const;
   void SetMozAudioChannelType(AudioChannel aValue, ErrorResult& aRv);
 
-  virtual void NotifyMainThreadStateChanged() override;
+  virtual void NotifyMainThreadStreamFinished() override;
   void FireOfflineCompletionEvent();
 
   
@@ -109,7 +109,6 @@ private:
   
   AudioChannel mAudioChannel;
   bool mIsOffline;
-  bool mHasFinished;
   bool mAudioChannelAgentPlaying;
 
   TimeStamp mStartedBlockingDueToBeingOnlyNode;

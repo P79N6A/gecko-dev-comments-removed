@@ -562,7 +562,6 @@ AudioBufferSourceNode::AudioBufferSourceNode(AudioContext* aContext)
   , mDetune(new AudioParam(this, SendDetuneToStream, 0.0f, "detune"))
   , mLoop(false)
   , mStartCalled(false)
-  , mStopped(false)
 {
   AudioBufferSourceNodeEngine* engine = new AudioBufferSourceNodeEngine(this, aContext->Destination());
   mStream = aContext->Graph()->CreateAudioNodeStream(engine, MediaStreamGraph::SOURCE_STREAM);
@@ -710,38 +709,35 @@ AudioBufferSourceNode::Stop(double aWhen, ErrorResult& aRv)
 }
 
 void
-AudioBufferSourceNode::NotifyMainThreadStateChanged()
+AudioBufferSourceNode::NotifyMainThreadStreamFinished()
 {
-  if (mStream->IsFinished()) {
-    class EndedEventDispatcher final : public nsRunnable
-    {
-    public:
-      explicit EndedEventDispatcher(AudioBufferSourceNode* aNode)
-        : mNode(aNode) {}
-      NS_IMETHODIMP Run() override
-      {
-        
-        if (!nsContentUtils::IsSafeToRunScript()) {
-          nsContentUtils::AddScriptRunner(this);
-          return NS_OK;
-        }
+  MOZ_ASSERT(mStream->IsFinished());
 
-        mNode->DispatchTrustedEvent(NS_LITERAL_STRING("ended"));
+  class EndedEventDispatcher final : public nsRunnable
+  {
+  public:
+    explicit EndedEventDispatcher(AudioBufferSourceNode* aNode)
+      : mNode(aNode) {}
+    NS_IMETHODIMP Run() override
+    {
+      
+      if (!nsContentUtils::IsSafeToRunScript()) {
+        nsContentUtils::AddScriptRunner(this);
         return NS_OK;
       }
-    private:
-      nsRefPtr<AudioBufferSourceNode> mNode;
-    };
-    if (!mStopped) {
-      
-      NS_DispatchToMainThread(new EndedEventDispatcher(this));
-      mStopped = true;
-    }
 
-    
-    
-    MarkInactive();
-  }
+      mNode->DispatchTrustedEvent(NS_LITERAL_STRING("ended"));
+      return NS_OK;
+    }
+  private:
+    nsRefPtr<AudioBufferSourceNode> mNode;
+  };
+
+  NS_DispatchToMainThread(new EndedEventDispatcher(this));
+
+  
+  
+  MarkInactive();
 }
 
 void

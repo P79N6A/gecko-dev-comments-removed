@@ -170,7 +170,7 @@ public:
   
 
 
-  void NotifyStreamStateChanged();
+  void NotifyStreamFinished();
 
   
   
