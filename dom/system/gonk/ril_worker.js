@@ -2930,6 +2930,7 @@ RilObject.prototype = {
 
 
 
+
   sendStkTerminalResponse: function(response) {
     if (response.hasConfirmed !== undefined) {
       this.stkHandleCallSetup(response);
@@ -2978,8 +2979,25 @@ RilObject.prototype = {
     
     GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_RESULT |
                                COMPREHENSIONTLV_FLAG_CR);
-    GsmPDUHelper.writeHexOctet(1);
-    GsmPDUHelper.writeHexOctet(response.resultCode);
+    if ("additionalInformation" in response) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      GsmPDUHelper.writeHexOctet(2);
+      GsmPDUHelper.writeHexOctet(response.resultCode);
+      GsmPDUHelper.writeHexOctet(response.additionalInformation);
+    } else {
+      GsmPDUHelper.writeHexOctet(1);
+      GsmPDUHelper.writeHexOctet(response.resultCode);
+    }
 
     
     if (response.itemIdentifier != null) {
