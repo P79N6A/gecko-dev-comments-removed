@@ -1223,7 +1223,7 @@ pref("security.sandbox.windows.log.stackTraceDepth", 0);
 
 
 
-pref("security.sandbox.macos.content.moreStrict", 1);
+pref("security.sandbox.macos.content.level", 1);
 #endif
 
 
