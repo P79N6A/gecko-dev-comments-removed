@@ -2074,19 +2074,8 @@ nsEditor::ForceCompositionEnd()
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  if (!mComposition) {
-    
-    
-    
-    
-    
-    
-    
-    
-    return IMEStateManager::NotifyIME(NOTIFY_IME_OF_CURSOR_POS_CHANGED, pc);
-  }
-
-  return IMEStateManager::NotifyIME(REQUEST_TO_COMMIT_COMPOSITION, pc);
+  return mComposition ?
+    IMEStateManager::NotifyIME(REQUEST_TO_COMMIT_COMPOSITION, pc) : NS_OK;
 }
 
 NS_IMETHODIMP

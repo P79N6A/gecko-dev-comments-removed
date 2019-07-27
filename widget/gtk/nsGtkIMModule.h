@@ -69,6 +69,9 @@ public:
     void OnDestroyWindow(nsWindow* aWindow);
     
     void OnFocusChangeInGecko(bool aFocus);
+    
+    
+    void OnSelectionChange(nsWindow* aCaller);
 
     
     
@@ -79,12 +82,11 @@ public:
                       bool aKeyDownEventWasSent = false);
 
     
-    nsresult CommitIMEComposition(nsWindow* aCaller);
+    nsresult EndIMEComposition(nsWindow* aCaller);
     void SetInputContext(nsWindow* aCaller,
                          const InputContext* aContext,
                          const InputContextAction* aAction);
     InputContext GetInputContext();
-    nsresult CancelIMEComposition(nsWindow* aCaller);
     void OnUpdateComposition();
 
     

@@ -859,14 +859,24 @@ nsPlaintextEditor::UpdateIMEComposition(nsIDOMEvent* aDOMTextEvent)
   nsresult rv = GetSelection(getter_AddRefs(selection));
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  
+  
+  
+  
+  
+  
+  MOZ_ASSERT(!mPlaceHolderBatch,
+    "UpdateIMEComposition() must be called without place holder batch");
+  TextComposition::TextEventHandlingMarker
+    textEventHandlingMarker(mComposition, widgetTextEvent);
+
   NotifyEditorObservers(eNotifyEditorObserversOfBefore);
 
   nsRefPtr<nsCaret> caretP = ps->GetCaret();
 
   {
-    TextComposition::TextEventHandlingMarker
-      textEventHandlingMarker(mComposition, widgetTextEvent);
-
     nsAutoPlaceHolderBatch batch(this, nsGkAtoms::IMETxnName);
 
     rv = InsertText(widgetTextEvent->theText);

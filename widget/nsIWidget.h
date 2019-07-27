@@ -503,10 +503,7 @@ typedef int8_t IMEMessageType;
 enum IMEMessage MOZ_ENUM_TYPE(IMEMessageType)
 {
   
-  
-  NOTIFY_IME_OF_CURSOR_POS_CHANGED,
-  
-  NOTIFY_IME_OF_FOCUS,
+  NOTIFY_IME_OF_FOCUS = 1,
   
   NOTIFY_IME_OF_BLUR,
   

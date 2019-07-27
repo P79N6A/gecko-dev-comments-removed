@@ -5939,26 +5939,12 @@ NS_IMETHODIMP
 nsWindow::NotifyIME(const IMENotification& aIMENotification)
 {
     if (MOZ_UNLIKELY(!mIMModule)) {
-        switch (aIMENotification.mMessage) {
-            case NOTIFY_IME_OF_CURSOR_POS_CHANGED:
-            case REQUEST_TO_COMMIT_COMPOSITION:
-            case REQUEST_TO_CANCEL_COMPOSITION:
-            case NOTIFY_IME_OF_FOCUS:
-            case NOTIFY_IME_OF_BLUR:
-              return NS_ERROR_NOT_AVAILABLE;
-            default:
-              break;
-        }
+        return NS_ERROR_NOT_AVAILABLE;
     }
     switch (aIMENotification.mMessage) {
-        
-        
-        
-        case NOTIFY_IME_OF_CURSOR_POS_CHANGED:
         case REQUEST_TO_COMMIT_COMPOSITION:
-            return mIMModule->CommitIMEComposition(this);
         case REQUEST_TO_CANCEL_COMPOSITION:
-            return mIMModule->CancelIMEComposition(this);
+            return mIMModule->EndIMEComposition(this);
         case NOTIFY_IME_OF_FOCUS:
             mIMModule->OnFocusChangeInGecko(true);
             return NS_OK;
@@ -5967,6 +5953,9 @@ nsWindow::NotifyIME(const IMENotification& aIMENotification)
             return NS_OK;
         case NOTIFY_IME_OF_COMPOSITION_UPDATE:
             mIMModule->OnUpdateComposition();
+            return NS_OK;
+        case NOTIFY_IME_OF_SELECTION_CHANGE:
+            mIMModule->OnSelectionChange(this);
             return NS_OK;
         default:
             return NS_ERROR_NOT_IMPLEMENTED;
@@ -5999,6 +5988,18 @@ nsWindow::GetInputContext()
       context.mNativeIMEContext = mIMModule;
   }
   return context;
+}
+
+nsIMEUpdatePreference
+nsWindow::GetIMEUpdatePreference()
+{
+    nsIMEUpdatePreference updatePreference(
+        nsIMEUpdatePreference::NOTIFY_SELECTION_CHANGE);
+    
+    
+    
+    updatePreference.DontNotifyChangesCausedByComposition();
+    return updatePreference;
 }
 
 NS_IMETHODIMP_(bool)
