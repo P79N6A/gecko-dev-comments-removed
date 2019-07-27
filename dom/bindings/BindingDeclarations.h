@@ -461,7 +461,7 @@ GetWrapperCache(const SmartPtr<T>& aObject)
   return GetWrapperCache(aObject.get());
 }
 
-struct ParentObject {
+struct MOZ_STACK_CLASS ParentObject {
   template<class T>
   ParentObject(T* aObject) :
     mObject(aObject),
@@ -482,7 +482,9 @@ struct ParentObject {
     mUseXBLScope(false)
   {}
 
-  nsISupports* const mObject;
+  
+  
+  nsISupports* const MOZ_NON_OWNING_REF mObject;
   nsWrapperCache* const mWrapperCache;
   bool mUseXBLScope;
 };
