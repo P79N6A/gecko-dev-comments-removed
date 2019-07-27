@@ -77,17 +77,6 @@ public:
   
   bool IsCurrentThreadIn() override;
 
-  bool InTailDispatch() override
-  {
-    MOZ_ASSERT(IsCurrentThreadIn());
-
-    
-    
-    
-    
-    return !mTailDispatcher;
-  }
-
 protected:
   virtual ~MediaTaskQueue();
 

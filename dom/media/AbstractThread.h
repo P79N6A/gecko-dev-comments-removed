@@ -63,9 +63,6 @@ public:
   virtual TaskDispatcher& TailDispatcher() = 0;
 
   
-  virtual bool InTailDispatch() = 0;
-
-  
   
   bool RequiresTailDispatch() const { return mRequireTailDispatch; }
 
