@@ -7663,13 +7663,8 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
         if (!ionTable->makeIonEntry(cx, code, nativeToBytecodeScriptListLength_,
                                     nativeToBytecodeScriptList_, entry))
         {
-            js_free(nativeToBytecodeScriptList_);
-            js_free(nativeToBytecodeMap_);
             return false;
         }
-
-        
-        js_free(nativeToBytecodeScriptList_);
 
         
         JitcodeGlobalTable *globalTable = cx->runtime()->jitRuntime()->getJitcodeGlobalTable();
