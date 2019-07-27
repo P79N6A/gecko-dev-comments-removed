@@ -1180,21 +1180,6 @@ public abstract class GeckoApp
             Telemetry.HistogramAdd("FENNEC_RESTORING_ACTIVITY", 1);
         }
 
-        
-        
-        
-        if (Build.VERSION.SDK_INT < 9) {
-            try {
-                Class<?> inputBindResultClass =
-                    Class.forName("com.android.internal.view.InputBindResult");
-                java.lang.reflect.Field creatorField =
-                    inputBindResultClass.getField("CREATOR");
-                Log.i(LOGTAG, "froyo startup fix: " + String.valueOf(creatorField.get(null)));
-            } catch (Exception e) {
-                Log.w(LOGTAG, "froyo startup fix failed", e);
-            }
-        }
-
         Bundle stateBundle = getIntent().getBundleExtra(EXTRA_STATE_BUNDLE);
         if (stateBundle != null) {
             
@@ -1721,10 +1706,6 @@ public abstract class GeckoApp
 
 
     private void enableStrictMode() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.GINGERBREAD) {
-            return;
-        }
-
         Log.d(LOGTAG, "Enabling Android StrictMode");
 
         StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder()
