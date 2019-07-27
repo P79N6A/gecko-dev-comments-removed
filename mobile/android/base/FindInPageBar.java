@@ -96,6 +96,11 @@ public class FindInPageBar extends LinearLayout implements TextWatcher, View.OnC
     }
 
     public void hide() {
+        if (!mInflated) {
+            
+            return;
+        }
+
         
         mFindText.setText("");
 

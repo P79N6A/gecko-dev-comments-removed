@@ -2778,6 +2778,9 @@ public class BrowserApp extends GeckoApp
         
         
         getActivity().getWindow().setBackgroundDrawableResource(android.R.color.white);
+
+        
+        mFindInPageBar.hide();
     }
 
     private void hideBrowserSearch() {
