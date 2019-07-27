@@ -53,6 +53,17 @@ BEGIN_BLUETOOTH_NAMESPACE
 
 #define IS_POINTING_DEVICE(cod)      ((GET_MINOR_DEVICE_CLASS(cod) & 0x20) >> 5)
 
+
+
+
+
+
+
+
+
+
+#define IS_INVALID_COD(cod)          (cod >> 24)
+
 class BluetoothProfileManagerBase;
 class BluetoothReplyRunnable;
 typedef void (*BluetoothProfileControllerCallback)();
