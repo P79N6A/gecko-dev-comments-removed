@@ -1569,9 +1569,6 @@ RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
   
   
   
-  
-  
-  
   ComputeAndProcessStyleChange(mPresContext->PresShell()->GetRootFrame(),
                                aExtraHint, aRestyleTracker, aRestyleHint);
   FlushOverflowChangedTracker();
