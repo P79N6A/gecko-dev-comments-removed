@@ -1186,6 +1186,10 @@ CacheCreator::FailLoaders(nsresult aRv)
 {
   AssertIsOnMainThread();
 
+  
+  
+  nsRefPtr<CacheCreator> kungfuDeathGrip = this;
+
   for (uint32_t i = 0, len = mLoaders.Length(); i < len; ++i) {
     mLoaders[i]->Fail(aRv);
   }
