@@ -379,7 +379,7 @@ abstract public class FxAccountAbstractSetupActivity extends FxAccountAbstractAc
     }
 
     
-    final String[] sortedEmails = emails.toArray(new String[0]);
+    final String[] sortedEmails = emails.toArray(new String[emails.size()]);
     Arrays.sort(sortedEmails);
 
     final ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_dropdown_item_1line, sortedEmails);
