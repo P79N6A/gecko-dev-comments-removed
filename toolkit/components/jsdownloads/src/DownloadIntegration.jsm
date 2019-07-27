@@ -321,6 +321,8 @@ this.DownloadIntegration = {
     return (aDownload.startTime > maxTime) ||
            aDownload.hasPartialData ||
            !aDownload.stopped;
+#elif defined(MOZ_WIDGET_ANDROID)
+    return true;
 #else
     return aDownload.hasPartialData || !aDownload.stopped;
 #endif
