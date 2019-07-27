@@ -8,7 +8,6 @@
 #define mozilla_dom_HTMLVideoElement_h
 
 #include "mozilla/Attributes.h"
-#include "nsIDOMHTMLVideoElement.h"
 #include "mozilla/dom/HTMLMediaElement.h"
 
 namespace mozilla {
@@ -17,41 +16,38 @@ namespace dom {
 class WakeLock;
 class VideoPlaybackQuality;
 
-class HTMLVideoElement MOZ_FINAL : public HTMLMediaElement,
-                                   public nsIDOMHTMLVideoElement
+class HTMLVideoElement MOZ_FINAL : public HTMLMediaElement
 {
 public:
-  HTMLVideoElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+  typedef mozilla::dom::NodeInfo NodeInfo;
+
+  HTMLVideoElement(already_AddRefed<NodeInfo>& aNodeInfo);
 
   NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLVideoElement, video)
 
-  
-  NS_DECL_ISUPPORTS_INHERITED
-
-  
   using HTMLMediaElement::GetPaused;
-  NS_FORWARD_NSIDOMHTMLMEDIAELEMENT(HTMLMediaElement::)
 
-  
-  NS_DECL_NSIDOMHTMLVIDEOELEMENT
+  NS_IMETHOD_(bool) IsVideo() MOZ_OVERRIDE {
+    return true;
+  }
 
   virtual bool ParseAttribute(int32_t aNamespaceID,
-                                nsIAtom* aAttribute,
-                                const nsAString& aValue,
-                                nsAttrValue& aResult);
+                              nsIAtom* aAttribute,
+                              const nsAString& aValue,
+                              nsAttrValue& aResult) MOZ_OVERRIDE;
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const MOZ_OVERRIDE;
 
   static void Init();
 
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const MOZ_OVERRIDE;
 
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
+  virtual nsresult Clone(NodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
 
   
   
   nsresult GetVideoSize(nsIntSize* size);
 
-  virtual nsresult SetAcceptHeader(nsIHttpChannel* aChannel);
+  virtual nsresult SetAcceptHeader(nsIHttpChannel* aChannel) MOZ_OVERRIDE;
 
   
 
@@ -85,7 +81,10 @@ public:
     return mMediaSize.height == -1 ? 0 : mMediaSize.height;
   }
 
-  
+  void GetPoster(nsAString& aValue)
+  {
+    GetURIAttr(nsGkAtoms::poster, nullptr, aValue);
+  }
   void SetPoster(const nsAString& aValue, ErrorResult& aRv)
   {
     SetHTMLAttr(nsGkAtoms::poster, aValue, aRv);
