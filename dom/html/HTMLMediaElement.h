@@ -408,6 +408,16 @@ public:
 
   double Duration() const;
 
+  bool HasAudio() const
+  {
+    return mMediaInfo.HasAudio();
+  }
+
+  bool HasVideo() const
+  {
+    return mMediaInfo.HasVideo();
+  }
+
   bool IsEncrypted() const
   {
     return mIsEncrypted;
@@ -1301,10 +1311,7 @@ protected:
   CORSMode mCORSMode;
 
   
-  bool mHasAudio;
-
-  
-  bool mHasVideo;
+  MediaInfo mMediaInfo;
 
   
   bool mIsEncrypted;
