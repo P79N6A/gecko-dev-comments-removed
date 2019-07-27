@@ -2182,21 +2182,6 @@ LIRGenerator::visitStringReplace(MStringReplace *ins)
 }
 
 bool
-LIRGenerator::visitSubstr(MSubstr *ins)
-{
-    
-    
-    
-    LSubstr *lir = new (alloc()) LSubstr(useRegister(ins->string()),
-                                         useRegister(ins->begin()),
-                                         useRegister(ins->length()),
-                                         temp(),
-                                         temp(),
-                                         tempFixed(CallTempReg1));
-    return define(lir, ins) && assignSafepoint(lir, ins);
-}
-
-bool
 LIRGenerator::visitLambda(MLambda *ins)
 {
     if (ins->info().singletonType || ins->info().useNewTypeForClone) {
