@@ -1836,9 +1836,9 @@ pref("ui.key.menuAccessKeyFocuses", true);
 
 pref("media.eme.enabled", true);
 pref("media.eme.apiVisible", true);
-pref("browser.eme.ui.enabled", true);
 
 #ifdef MOZ_ADOBE_EME
+pref("browser.eme.ui.enabled", true);
 pref("media.gmp-eme-adobe.enabled", true);
 #endif
 
@@ -1851,8 +1851,6 @@ pref("browser.translation.detectLanguage", false);
 pref("browser.translation.neverForLanguages", "");
 
 pref("browser.translation.ui.show", false);
-
-pref("browser.translation.engine", "bing");
 
 
 
