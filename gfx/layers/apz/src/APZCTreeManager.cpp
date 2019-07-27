@@ -214,7 +214,7 @@ ComputeTouchSensitiveRegion(GeckoContentController* aController,
     
     
     LayoutDeviceToParentLayerScale parentCumulativeResolution =
-          aMetrics.mCumulativeResolution
+          aMetrics.GetCumulativeResolution()
         / ParentLayerToLayerScale(aMetrics.mPresShellResolution);
     visible = visible.Intersect(touchSensitiveRegion
                                 * aMetrics.GetDevPixelsPerCSSPixel()
@@ -561,7 +561,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(TreeBuildingState& aState,
         
         
         LayoutDeviceToParentLayerScale parentCumulativeResolution =
-            aLayer.Metrics().mCumulativeResolution
+            aLayer.Metrics().GetCumulativeResolution()
             / ParentLayerToLayerScale(aLayer.Metrics().mPresShellResolution);
         subtreeEventRegions.AndWith(ParentLayerIntRect::ToUntyped(
             RoundedIn(touchSensitiveRegion

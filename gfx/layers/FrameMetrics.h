@@ -303,13 +303,17 @@ public:
   
   float mPresShellResolution;
 
-  
-  
-  
-  
-  LayoutDeviceToLayerScale mCumulativeResolution;
-
 public:
+  void SetCumulativeResolution(const LayoutDeviceToLayerScale& aCumulativeResolution)
+  {
+    mCumulativeResolution = aCumulativeResolution;
+  }
+
+  LayoutDeviceToLayerScale GetCumulativeResolution() const
+  {
+    return mCumulativeResolution;
+  }
+
   void SetDevPixelsPerCSSPixel(const CSSToLayoutDeviceScale& aDevPixelsPerCSSPixel)
   {
     mDevPixelsPerCSSPixel = aDevPixelsPerCSSPixel;
@@ -528,6 +532,12 @@ public:
   }
 
 private:
+  
+  
+  
+  
+  LayoutDeviceToLayerScale mCumulativeResolution;
+
   
   
 

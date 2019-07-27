@@ -636,7 +636,7 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
     
     
     
-    LayoutDeviceToLayerScale resolution = bottom.mCumulativeResolution;
+    LayoutDeviceToLayerScale resolution = bottom.GetCumulativeResolution();
     oldTransform.PreScale(resolution.scale, resolution.scale, 1);
 
     
@@ -871,7 +871,7 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
   
   
   
-  CSSToParentLayerScale userZoom(metrics.GetDevPixelsPerCSSPixel() * metrics.mCumulativeResolution * LayerToParentLayerScale(1));
+  CSSToParentLayerScale userZoom(metrics.GetDevPixelsPerCSSPixel() * metrics.GetCumulativeResolution() * LayerToParentLayerScale(1));
   ParentLayerPoint userScroll = metrics.GetScrollOffset() * userZoom;
   SyncViewportInfo(displayPort, geckoZoom, mLayersUpdated,
                    userScroll, userZoom, fixedLayerMargins,
