@@ -267,7 +267,7 @@ CreateVoidVariant()
 
 
 
-class DialogValueHolder : public nsISupports
+class DialogValueHolder final : public nsISupports
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS

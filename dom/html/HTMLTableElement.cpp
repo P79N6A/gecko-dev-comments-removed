@@ -23,8 +23,8 @@ namespace dom {
 
 
 
-class TableRowsCollection : public nsIHTMLCollection,
-                            public nsWrapperCache
+class TableRowsCollection final : public nsIHTMLCollection,
+                                  public nsWrapperCache
 {
 public:
   explicit TableRowsCollection(HTMLTableElement* aParent);

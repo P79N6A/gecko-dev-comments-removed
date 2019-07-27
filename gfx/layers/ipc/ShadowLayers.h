@@ -131,7 +131,7 @@ class Transaction;
 
 
 
-class ShadowLayerForwarder : public CompositableForwarder
+class ShadowLayerForwarder final : public CompositableForwarder
 {
   friend class ClientLayerManager;
 

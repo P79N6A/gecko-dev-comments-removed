@@ -139,7 +139,7 @@ struct nsPipeReadState
 
 
 
-class nsPipeInputStream
+class nsPipeInputStream final
   : public nsIAsyncInputStream
   , public nsISeekableStream
   , public nsISearchableInputStream

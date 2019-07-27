@@ -36,9 +36,9 @@ enum WyciwygChannelChildState {
 
 
 
-class WyciwygChannelChild : public PWyciwygChannelChild
-                          , public nsIWyciwygChannel
-                          , public PrivateBrowsingChannel<WyciwygChannelChild>
+class WyciwygChannelChild final : public PWyciwygChannelChild
+                                , public nsIWyciwygChannel
+                                , public PrivateBrowsingChannel<WyciwygChannelChild>
 {
 public:
   NS_DECL_ISUPPORTS

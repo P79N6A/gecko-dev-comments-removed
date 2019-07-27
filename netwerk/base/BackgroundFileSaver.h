@@ -338,8 +338,8 @@ private:
 
 
 
-class BackgroundFileSaverStreamListener : public BackgroundFileSaver
-                                        , public nsIStreamListener
+class BackgroundFileSaverStreamListener final : public BackgroundFileSaver
+                                              , public nsIStreamListener
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
