@@ -1032,7 +1032,13 @@ js::FutexRuntime::destroyInstance()
 bool
 js::FutexRuntime::isWaiting()
 {
-    return state_ == Waiting || state_ == WaitingInterrupted;
+    
+    
+    
+    
+    
+    
+    return state_ == Waiting || state_ == WaitingInterrupted || state_ == WaitingNotifiedForInterrupt;
 }
 
 bool
@@ -1102,7 +1108,7 @@ js::FutexRuntime::wait(JSContext* cx, double timeout_ms, AtomicsObject::FutexWai
             *result = AtomicsObject::FutexOK;
             goto finished;
 
-          case FutexRuntime::WokenForJSInterrupt:
+          case FutexRuntime::WaitingNotifiedForInterrupt:
             
             
             
@@ -1160,7 +1166,7 @@ js::FutexRuntime::wake(WakeReason reason)
     MOZ_ASSERT(lockHolder_ == PR_GetCurrentThread());
     MOZ_ASSERT(isWaiting());
 
-    if (state_ == WaitingInterrupted && reason == WakeExplicit) {
+    if ((state_ == WaitingInterrupted || state_ == WaitingNotifiedForInterrupt) && reason == WakeExplicit) {
         state_ = Woken;
         return;
     }
@@ -1169,7 +1175,9 @@ js::FutexRuntime::wake(WakeReason reason)
         state_ = Woken;
         break;
       case WakeForJSInterrupt:
-        state_ = WokenForJSInterrupt;
+        if (state_ == WaitingNotifiedForInterrupt)
+            return;
+        state_ = WaitingNotifiedForInterrupt;
         break;
       default:
         MOZ_CRASH();

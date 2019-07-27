@@ -105,11 +105,14 @@ public:
 
   private:
     enum FutexState {
-        Idle,                   
-        Waiting,                
-        WaitingInterrupted,     
-        Woken,                  
-        WokenForJSInterrupt     
+        Idle,                        
+        Waiting,                     
+        WaitingNotifiedForInterrupt, 
+                                     
+                                     
+        WaitingInterrupted,          
+                                     
+        Woken                        
     };
 
     
