@@ -565,6 +565,10 @@ nsProtocolProxyService::PrefsChanged(nsIPrefBranch *prefBranch,
         if (mProxyConfig == PROXYCONFIG_PAC) {
             prefBranch->GetCharPref(PROXY_PREF("autoconfig_url"),
                                     getter_Copies(tempString));
+            if (mPACMan && !mPACMan->IsPACURI(tempString)) {
+                LOG(("PAC Thread URI Changed - Reset Pac Thread"));
+                ResetPACThread();
+            }
         } else if (mProxyConfig == PROXYCONFIG_WPAD) {
             
             
