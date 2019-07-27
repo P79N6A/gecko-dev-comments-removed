@@ -52,6 +52,13 @@ public:
 
 #ifdef DEBUG
 
+  static size_t
+  SizeOfDeadlockDetector(MallocSizeOf aMallocSizeOf)
+  {
+    return sDeadlockDetector ?
+        sDeadlockDetector->SizeOfIncludingThis(aMallocSizeOf) : 0;
+  }
+
 private:
   
   struct DeadlockDetectorEntry;
@@ -77,6 +84,16 @@ private:
       , mAcquisitionContext(CallStack::kNone)
     {
       NS_ABORT_IF_FALSE(mName, "Name must be nonnull");
+    }
+
+    size_t
+    SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
+    {
+      
+      
+      
+      size_t n = aMallocSizeOf(this);
+      return n;
     }
 
     
