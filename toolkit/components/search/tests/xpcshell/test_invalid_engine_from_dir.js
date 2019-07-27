@@ -1,8 +1,6 @@
 
 
 
-const Ci = Components.interfaces;
-
 
 
 

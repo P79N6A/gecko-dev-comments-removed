@@ -7,9 +7,6 @@
 
 "use strict";
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-
 
 let gMetadata = {"[profile]/test-search-engine.xml":{"used":true}};
 

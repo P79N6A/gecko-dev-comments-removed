@@ -1,12 +1,17 @@
 
 
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/NetUtil.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/FileUtils.jsm");
-Components.utils.import("resource://gre/modules/Promise.jsm");
-Components.utils.import("resource://testing-common/AppInfo.jsm");
+const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
+
+Cu.import("resource://gre/modules/FileUtils.jsm");
+Cu.import("resource://gre/modules/osfile.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
+Cu.import("resource://gre/modules/Promise.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://testing-common/AppInfo.jsm");
+Cu.import("resource://testing-common/httpd.js");
 
 const BROWSER_SEARCH_PREF = "browser.search.";
 const NS_APP_SEARCH_DIR = "SrchPlugns";
@@ -40,6 +45,17 @@ function removeMetadata()
   if (file.exists()) {
     file.remove(false);
   }
+}
+
+function getSearchMetadata()
+{
+  
+  let metadata = gProfD.clone();
+  metadata.append("search-metadata.json");
+  do_check_true(metadata.exists());
+
+  do_print("Parsing metadata");
+  return readJSONFile(metadata);
 }
 
 function removeCacheFile()
@@ -138,3 +154,80 @@ function isSubObjectOf(expectedObj, actualObj) {
 
 Services.prefs.setBoolPref("browser.search.log", true);
 
+
+
+
+
+let gDataUrl;
+
+
+
+
+
+
+function useHttpServer() {
+  let httpServer = new HttpServer();
+  httpServer.start(-1);
+  httpServer.registerDirectory("/", do_get_cwd());
+  gDataUrl = "http://localhost:" + httpServer.identity.primaryPort + "/data/";
+  do_register_cleanup(() => httpServer.stop(() => {}));
+  return httpServer;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+let addTestEngines = Task.async(function* (aItems) {
+  if (!gDataUrl) {
+    do_throw("useHttpServer must be called before addTestEngines.");
+  }
+
+  let engines = [];
+
+  for (let item of aItems) {
+    do_print("Adding engine: " + item.name);
+    yield new Promise((resolve, reject) => {
+      Services.obs.addObserver(function obs(subject, topic, data) {
+        try {
+          let engine = subject.QueryInterface(Ci.nsISearchEngine);
+          do_print("Observed " + data + " for " + engine.name);
+          if (data != "engine-added" || engine.name != item.name) {
+            return;
+          }
+
+          Services.obs.removeObserver(obs, "browser-search-engine-modified");
+          engines.push(engine);
+          resolve();
+        } catch (ex) {
+          reject(ex);
+        }
+      }, "browser-search-engine-modified", false);
+
+      if (item.xmlFileName) {
+        Services.search.addEngine(gDataUrl + item.xmlFileName,
+                                  Ci.nsISearchEngine.DATA_XML, null, false);
+      } else if (item.srcFileName) {
+        Services.search.addEngine(gDataUrl + item.srcFileName,
+                                  Ci.nsISearchEngine.DATA_TEXT,
+                                  gDataUrl + item.iconFileName, false);
+      } else {
+        Services.search.addEngineWithDetails(item.name, ...item.details);
+      }
+    });
+  }
+
+  return engines;
+});
