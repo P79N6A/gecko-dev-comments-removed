@@ -69,7 +69,6 @@ user_pref("experiments.manifest.uri", "http://%(server)s/experiments-dummy/manif
 
 
 user_pref("extensions.enabledScopes", 5);
-user_pref("extensions.autoDisableScopes", 0);
 
 user_pref("extensions.getAddons.cache.enabled", false);
 

@@ -222,9 +222,6 @@ class RefTest(object):
     prefs['browser.newtabpage.directory.source'] = 'data:application/json,{"reftest":1}'
     prefs['browser.newtabpage.directory.ping'] = ''
     
-    prefs["extensions.enabledScopes"] = 5;
-    prefs["extensions.autoDisableScopes"] = 0;
-    
     prefs['xpinstall.signatures.required'] = False
 
     
