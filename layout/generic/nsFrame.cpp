@@ -2020,7 +2020,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
 
   DisplayListClipState::AutoSaveRestore clipState(aBuilder);
 
-  if (isTransformed || useBlendMode || usingSVGEffects || useStickyPosition) {
+  if (isTransformed || useOpacity || useBlendMode || usingSVGEffects || useStickyPosition) {
     
     
     
@@ -2136,11 +2136,6 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
 
 
   else if (useOpacity && !resultList.IsEmpty()) {
-    
-    
-    
-    DisplayListClipState::AutoSaveRestore opacityClipState(aBuilder);
-    opacityClipState.Clear();
     resultList.AppendNewToTop(
         new (aBuilder) nsDisplayOpacity(aBuilder, this, &resultList));
   }
