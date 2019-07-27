@@ -175,6 +175,13 @@ public class RemoteTabsExpandableListFragment extends RemoteTabsBaseFragment {
 
     @Override
     protected void updateUiFromClients(List<RemoteClient> clients, List<RemoteClient> hiddenClients) {
+        if (getView() == null) {
+            
+            
+            
+            return;
+        }
+
         
         
         
