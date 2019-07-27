@@ -107,13 +107,6 @@ public:
 
     bool      ProxyConnectFailed() { return mProxyConnectFailed; }
 
-    
-    
-    
-    
-    
-    void SetDontRouteViaWildCard(bool var) { mDontRouteViaWildCard = var; }
-    bool DontRouteViaWildCard() { return mDontRouteViaWildCard; }
     void EnableKeepAlive() { mCaps |= NS_HTTP_ALLOW_KEEPALIVE; }
     void MakeSticky() { mCaps |= NS_HTTP_STICKY_CONNECTION; }
 
@@ -282,7 +275,6 @@ private:
     bool                            mPreserveStream;
     bool                            mDispatchedAsBlocking;
     bool                            mResponseTimeoutEnabled;
-    bool                            mDontRouteViaWildCard;
     bool                            mForceRestart;
     bool                            mReuseOnRestart;
 
@@ -414,6 +406,21 @@ public:
     uint32_t ClassOfService() { return mClassOfService; }
 private:
     uint32_t mClassOfService;
+
+public:
+    
+    
+    
+    
+    
+    
+
+    void SetTunnelProvider(ASpdySession *provider) { mTunnelProvider = provider; }
+    ASpdySession *TunnelProvider() { return mTunnelProvider; }
+    nsIInterfaceRequestor *SecurityCallbacks() { return mCallbacks; }
+
+private:
+    nsRefPtr<ASpdySession> mTunnelProvider;
 };
 
 }} 

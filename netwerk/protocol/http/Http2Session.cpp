@@ -3272,6 +3272,24 @@ Http2Session::UnRegisterTunnel(Http2Stream *aTunnel)
 }
 
 void
+Http2Session::CreateTunnel(nsHttpTransaction *trans,
+                           nsHttpConnectionInfo *ci,
+                           nsIInterfaceRequestor *aCallbacks)
+{
+  LOG(("Http2Session::CreateTunnel %p %p make new tunnel\n", this, trans));
+  
+  
+  
+
+  nsRefPtr<SpdyConnectTransaction> connectTrans =
+    new SpdyConnectTransaction(ci, aCallbacks, trans->Caps(), trans, this);
+  AddStream(connectTrans, nsISupportsPriority::PRIORITY_NORMAL, false, nullptr);
+  Http2Stream *tunnel = mStreamTransactionHash.Get(connectTrans);
+  MOZ_ASSERT(tunnel);
+  RegisterTunnel(tunnel);
+}
+
+void
 Http2Session::DispatchOnTunnel(nsAHttpTransaction *aHttpTransaction,
                                nsIInterfaceRequestor *aCallbacks)
 {
@@ -3286,24 +3304,15 @@ Http2Session::DispatchOnTunnel(nsAHttpTransaction *aHttpTransaction,
 
   
   
-  trans->SetDontRouteViaWildCard(true);
+  trans->SetTunnelProvider(this);
   trans->EnableKeepAlive();
 
   if (FindTunnelCount(ci) < gHttpHandler->MaxConnectionsPerOrigin()) {
     LOG3(("Http2Session::DispatchOnTunnel %p create on new tunnel %s",
           this, ci->HashKey().get()));
-    
-    
-    
-    nsRefPtr<SpdyConnectTransaction> connectTrans =
-      new SpdyConnectTransaction(ci, aCallbacks,
-                                 trans->Caps(), trans, this);
-    AddStream(connectTrans, nsISupportsPriority::PRIORITY_NORMAL,
-              false, nullptr);
-    Http2Stream *tunnel = mStreamTransactionHash.Get(connectTrans);
-    MOZ_ASSERT(tunnel);
-    RegisterTunnel(tunnel);
+    CreateTunnel(trans, ci, aCallbacks);
   } else {
+    
     
     
     
@@ -3313,6 +3322,37 @@ Http2Session::DispatchOnTunnel(nsAHttpTransaction *aHttpTransaction,
   }
 }
 
+
+bool
+Http2Session::MaybeReTunnel(nsAHttpTransaction *aHttpTransaction)
+{
+  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
+  nsHttpTransaction *trans = aHttpTransaction->QueryHttpTransaction();
+  LOG(("Http2Session::MaybeReTunnel %p trans=%p\n", this, trans));
+  if (!trans || trans->TunnelProvider() != this) {
+    
+    return false;
+  }
+
+  if (mClosed || mShouldGoAway) {
+    LOG(("Http2Session::MaybeReTunnel %p %p session closed - requeue\n", this, trans));
+    trans->SetTunnelProvider(nullptr);
+    gHttpHandler->InitiateTransaction(trans, trans->Priority());
+    return true;
+  }
+
+  nsHttpConnectionInfo *ci = aHttpTransaction->ConnectionInfo();
+  LOG(("Http2Session:MaybeReTunnel %p %p count=%d limit %d\n",
+       this, trans, FindTunnelCount(ci), gHttpHandler->MaxConnectionsPerOrigin()));
+  if (FindTunnelCount(ci) >= gHttpHandler->MaxConnectionsPerOrigin()) {
+    
+    return false;
+  }
+
+  LOG(("Http2Session::MaybeReTunnel %p %p make new tunnel\n", this, trans));
+  CreateTunnel(trans, ci, trans->SecurityCallbacks());
+  return true;
+}
 
 nsresult
 Http2Session::BufferOutput(const char *buf,

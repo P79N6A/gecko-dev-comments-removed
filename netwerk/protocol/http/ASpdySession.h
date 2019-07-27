@@ -33,6 +33,15 @@ public:
 
   static ASpdySession *NewSpdySession(uint32_t version, nsISocketTransport *);
 
+  
+  
+  
+  
+  
+  
+  
+  virtual bool MaybeReTunnel(nsAHttpTransaction *) = 0;
+
   virtual void PrintDiagnostics (nsCString &log) = 0;
 
   bool ResponseTimeoutEnabled() const MOZ_OVERRIDE MOZ_FINAL {

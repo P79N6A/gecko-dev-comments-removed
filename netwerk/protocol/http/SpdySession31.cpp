@@ -2712,12 +2712,29 @@ SpdySession31::UnRegisterTunnel(SpdyStream31 *aTunnel)
 }
 
 void
+SpdySession31::CreateTunnel(nsHttpTransaction *trans,
+                            nsHttpConnectionInfo *ci,
+                            nsIInterfaceRequestor *aCallbacks)
+{
+  LOG(("SpdySession31::CreateTunnel %p %p make new tunnel\n", this, trans));
+  
+  
+  
+
+  nsRefPtr<SpdyConnectTransaction> connectTrans =
+    new SpdyConnectTransaction(ci, aCallbacks, trans->Caps(), trans, this);
+  AddStream(connectTrans, nsISupportsPriority::PRIORITY_NORMAL, false, nullptr);
+  SpdyStream31 *tunnel = mStreamTransactionHash.Get(connectTrans);
+  MOZ_ASSERT(tunnel);
+  RegisterTunnel(tunnel);
+}
+
+void
 SpdySession31::DispatchOnTunnel(nsAHttpTransaction *aHttpTransaction,
                                 nsIInterfaceRequestor *aCallbacks)
 {
   MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
   nsHttpTransaction *trans = aHttpTransaction->QueryHttpTransaction();
-  nsHttpConnectionInfo *ci = aHttpTransaction->ConnectionInfo();
   MOZ_ASSERT(trans);
 
   LOG3(("SpdySession31::DispatchOnTunnel %p trans=%p", this, trans));
@@ -2726,24 +2743,16 @@ SpdySession31::DispatchOnTunnel(nsAHttpTransaction *aHttpTransaction,
 
   
   
-  trans->SetDontRouteViaWildCard(true);
+  trans->SetTunnelProvider(this);
   trans->EnableKeepAlive();
 
+  nsHttpConnectionInfo *ci = aHttpTransaction->ConnectionInfo();
   if (FindTunnelCount(ci) < gHttpHandler->MaxConnectionsPerOrigin()) {
     LOG3(("SpdySession31::DispatchOnTunnel %p create on new tunnel %s",
           this, ci->HashKey().get()));
-    
-    
-    
-    nsRefPtr<SpdyConnectTransaction> connectTrans =
-      new SpdyConnectTransaction(ci, aCallbacks,
-                                 trans->Caps(), trans, this);
-    AddStream(connectTrans, nsISupportsPriority::PRIORITY_NORMAL,
-              false, nullptr);
-    SpdyStream31 *tunnel = mStreamTransactionHash.Get(connectTrans);
-    MOZ_ASSERT(tunnel);
-    RegisterTunnel(tunnel);
+    CreateTunnel(trans, ci, aCallbacks);
   } else {
+    
     
     
     
@@ -2751,6 +2760,38 @@ SpdySession31::DispatchOnTunnel(nsAHttpTransaction *aHttpTransaction,
           this, trans));
     gHttpHandler->InitiateTransaction(trans, trans->Priority());
   }
+}
+
+
+bool
+SpdySession31::MaybeReTunnel(nsAHttpTransaction *aHttpTransaction)
+{
+  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
+  nsHttpTransaction *trans = aHttpTransaction->QueryHttpTransaction();
+  LOG(("SpdySession31::MaybeReTunnel %p trans=%p\n", this, trans));
+  nsHttpConnectionInfo *ci = aHttpTransaction->ConnectionInfo();
+  if (!trans || trans->TunnelProvider() != this) {
+    
+    return false;
+  }
+
+  if (mClosed || mShouldGoAway) {
+    LOG(("SpdySession31::MaybeReTunnel %p %p session closed - requeue\n", this, trans));
+    trans->SetTunnelProvider(nullptr);
+    gHttpHandler->InitiateTransaction(trans, trans->Priority());
+    return true;
+  }
+
+  LOG(("SpdySession31::MaybeReTunnel %p %p count=%d limit %d\n",
+       this, trans, FindTunnelCount(ci), gHttpHandler->MaxConnectionsPerOrigin()));
+  if (FindTunnelCount(ci) >= gHttpHandler->MaxConnectionsPerOrigin()) {
+    
+    return false;
+  }
+
+  LOG(("SpdySession31::MaybeReTunnel %p %p make new tunnel\n", this, trans));
+  CreateTunnel(trans, ci, trans->SecurityCallbacks());
+  return true;
 }
 
 nsresult

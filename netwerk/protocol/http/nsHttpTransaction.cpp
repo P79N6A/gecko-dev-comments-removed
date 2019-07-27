@@ -123,7 +123,6 @@ nsHttpTransaction::nsHttpTransaction()
     , mPreserveStream(false)
     , mDispatchedAsBlocking(false)
     , mResponseTimeoutEnabled(true)
-    , mDontRouteViaWildCard(false)
     , mForceRestart(false)
     , mReuseOnRestart(false)
     , mReportedStart(false)
@@ -848,6 +847,7 @@ nsHttpTransaction::Close(nsresult reason)
     if (mConnection)
         connReused = mConnection->IsReused();
     mConnected = false;
+    mTunnelProvider = nullptr;
 
     
     
@@ -1123,7 +1123,7 @@ nsHttpTransaction::Restart()
     }
 
     LOG(("restarting transaction @%p\n", this));
-    SetDontRouteViaWildCard(false);
+    mTunnelProvider = nullptr;
 
     
     nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mRequestStream);
