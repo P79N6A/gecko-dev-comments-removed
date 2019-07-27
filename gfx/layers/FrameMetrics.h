@@ -681,6 +681,16 @@ private:
 
   
   bool mAllowVerticalScrollWithWheel;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
 };
 
 
