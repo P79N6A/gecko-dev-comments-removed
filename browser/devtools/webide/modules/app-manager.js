@@ -276,6 +276,13 @@ let AppManager = exports.AppManager = {
     
     if (JSON.stringify(this._selectedProject) !==
         JSON.stringify(value)) {
+
+      let cancelled = false;
+      this.update("before-project", { cancel: () => { cancelled = true; } });
+      if (cancelled)  {
+        return;
+      }
+
       this._selectedProject = value;
 
       
@@ -303,6 +310,10 @@ let AppManager = exports.AppManager = {
   removeSelectedProject: function() {
     let location = this.selectedProject.location;
     AppManager.selectedProject = null;
+    
+    if (AppManager.selectedProject != null) {
+      return;
+    }
     return AppProjects.remove(location);
   },
 
