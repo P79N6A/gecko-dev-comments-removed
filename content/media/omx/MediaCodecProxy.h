@@ -112,7 +112,7 @@ public:
   
   
   void requestActivityNotification(const sp<AMessage> &aNotify);
-
+  
   status_t Input(const uint8_t* aData, uint32_t aDataSize,
                  int64_t aTimestampUsecs, uint64_t flags);
   status_t Output(MediaBuffer** aBuffer, int64_t aTimeoutUs);
