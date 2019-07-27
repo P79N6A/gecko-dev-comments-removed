@@ -622,7 +622,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsNavHistoryContainerResultNode,
 
 
 class nsNavHistoryQueryResultNode : public nsNavHistoryContainerResultNode,
-                                    public nsINavHistoryQueryResultNode
+                                    public nsINavHistoryQueryResultNode,
+                                    public nsINavBookmarkObserver
 {
 public:
   nsNavHistoryQueryResultNode(const nsACString& aTitle,
@@ -705,6 +706,7 @@ protected:
 
 class nsNavHistoryFolderResultNode : public nsNavHistoryContainerResultNode,
                                      public nsINavHistoryQueryResultNode,
+                                     public nsINavBookmarkObserver,
                                      public mozilla::places::AsyncStatementCallback
 {
 public:
@@ -734,7 +736,6 @@ public:
   virtual nsresult OpenContainerAsync();
   NS_DECL_ASYNCSTATEMENTCALLBACK
 
-  
   
   
   NS_DECL_NSINAVBOOKMARKOBSERVER
