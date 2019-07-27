@@ -1458,17 +1458,23 @@ CompositorD3D11::HandleError(HRESULT hr, Severity aSeverity)
   if (SUCCEEDED(hr)) {
     return;
   }
-  
-  
-  
 
   if (aSeverity == Critical) {
     MOZ_CRASH("Unrecoverable D3D11 error");
   }
 
-  if (mDevice && hr == DXGI_ERROR_DEVICE_REMOVED) {
+  bool deviceRemoved = hr == DXGI_ERROR_DEVICE_REMOVED;
+
+  if (deviceRemoved && mDevice) {
     hr = mDevice->GetDeviceRemovedReason();
   }
+
+  
+  
+  gfxCriticalError(CriticalLog::DefaultOptions(!deviceRemoved))
+    << (deviceRemoved ? "[CompositorD3D11] device removed with error code: "
+                      : "[CompositorD3D11] error code: ")
+    << hexa(hr);
 
   
   if (hr == DXGI_ERROR_INVALID_CALL) {
