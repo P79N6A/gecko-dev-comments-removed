@@ -83,6 +83,7 @@ protected:
     , button(0)
     , buttons(0)
     , pressure(0)
+    , hitCluster(false)
     , inputSource(nsIDOMMouseEvent::MOZ_SOURCE_MOUSE)
  {
  }
@@ -127,6 +128,8 @@ public:
 
   
   float pressure;
+  
+  bool hitCluster;
 
   
   uint16_t inputSource;
@@ -143,6 +146,7 @@ public:
     button = aEvent.button;
     buttons = aEvent.buttons;
     pressure = aEvent.pressure;
+    hitCluster = aEvent.hitCluster;
     inputSource = aEvent.inputSource;
   }
 
