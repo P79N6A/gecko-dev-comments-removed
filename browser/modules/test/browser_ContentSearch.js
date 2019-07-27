@@ -171,6 +171,92 @@ add_task(function* badImage() {
   yield waitForTestMsg("CurrentState");
 });
 
+add_task(function* GetSuggestions_AddFormHistoryEntry_RemoveFormHistoryEntry() {
+  yield addTab();
+
+  
+  let vals = yield waitForNewEngine("contentSearchSuggestions.xml", 0);
+  let engine = vals[0];
+
+  let searchStr = "browser_ContentSearch.js-suggestions-";
+
+  
+  gMsgMan.sendAsyncMessage(TEST_MSG, {
+    type: "AddFormHistoryEntry",
+    data: searchStr + "form",
+  });
+  let deferred = Promise.defer();
+  Services.obs.addObserver(function onAdd(subj, topic, data) {
+    if (data == "formhistory-add") {
+      executeSoon(() => deferred.resolve());
+    }
+  }, "satchel-storage-changed", false);
+  yield deferred.promise;
+
+  
+  
+  gMsgMan.sendAsyncMessage(TEST_MSG, {
+    type: "GetSuggestions",
+    data: {
+      engineName: engine.name,
+      searchString: searchStr,
+      remoteTimeout: 5000,
+    },
+  });
+
+  
+  let msg = yield waitForTestMsg("Suggestions");
+  checkMsg(msg, {
+    type: "Suggestions",
+    data: {
+      engineName: engine.name,
+      searchString: searchStr,
+      formHistory: [searchStr + "form"],
+      remote: [searchStr + "foo", searchStr + "bar"],
+    },
+  });
+
+  
+  gMsgMan.sendAsyncMessage(TEST_MSG, {
+    type: "RemoveFormHistoryEntry",
+    data: searchStr + "form",
+  });
+  deferred = Promise.defer();
+  Services.obs.addObserver(function onRemove(subj, topic, data) {
+    if (data == "formhistory-remove") {
+      executeSoon(() => deferred.resolve());
+    }
+  }, "satchel-storage-changed", false);
+  yield deferred.promise;
+
+  
+  gMsgMan.sendAsyncMessage(TEST_MSG, {
+    type: "GetSuggestions",
+    data: {
+      engineName: engine.name,
+      searchString: searchStr,
+      remoteTimeout: 5000,
+    },
+  });
+
+  
+  msg = yield waitForTestMsg("Suggestions");
+  checkMsg(msg, {
+    type: "Suggestions",
+    data: {
+      engineName: engine.name,
+      searchString: searchStr,
+      formHistory: [],
+      remote: [searchStr + "foo", searchStr + "bar"],
+    },
+  });
+
+  
+  Services.search.removeEngine(engine);
+  yield waitForTestMsg("CurrentState");
+});
+
+
 function checkMsg(actualMsg, expectedMsgData) {
   SimpleTest.isDeeply(actualMsg.data, expectedMsgData, "Checking message");
 }
@@ -226,7 +312,7 @@ function addTab() {
   let tab = gBrowser.addTab();
   gBrowser.selectedTab = tab;
   tab.linkedBrowser.addEventListener("load", function load() {
-    tab.removeEventListener("load", load, true);
+    tab.linkedBrowser.removeEventListener("load", load, true);
     let url = getRootDirectory(gTestPath) + TEST_CONTENT_SCRIPT_BASENAME;
     gMsgMan = tab.linkedBrowser.messageManager;
     gMsgMan.sendAsyncMessage(CONTENT_SEARCH_MSG, {
