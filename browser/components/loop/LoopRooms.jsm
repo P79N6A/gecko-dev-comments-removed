@@ -469,6 +469,13 @@ let LoopRoomsInternal = {
 
 
   onNotification: function(version, channelID) {
+    
+    let channelIDs = MozLoopService.channelIDs;
+    if ((this.sessionType == LOOP_SESSION_TYPE.GUEST && channelID != channelIDs.roomsGuest) ||
+        (this.sessionType == LOOP_SESSION_TYPE.FXA   && channelID != channelIDs.roomsFxA)) {
+      return;
+    }
+
     gDirty = true;
     this.getAll(version, () => {});
   },
