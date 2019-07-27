@@ -318,9 +318,6 @@ nsresult PeerConnectionMedia::UpdateMediaPipelines(
       return rv;
     }
 
-    
-    
-    
     if (pair->mReceiving) {
       rv = factory.CreateMediaPipeline(*pair, *pair->mReceiving);
       if (NS_FAILED(rv)) {

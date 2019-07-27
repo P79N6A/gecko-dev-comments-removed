@@ -608,7 +608,7 @@ MediaPipelineFactory::CreateVideoConduit(const JsepTrackPair& aTrackPair,
   
   
   RefPtr<VideoSessionConduit> conduit = VideoSessionConduit::Create(
-      static_cast<VideoSessionConduit*>(peerConduit.get()));
+      static_cast<VideoSessionConduit*>(peerConduit.get()), receiving);
 
   if (!conduit) {
     MOZ_MTLOG(ML_ERROR, "Could not create video conduit");
