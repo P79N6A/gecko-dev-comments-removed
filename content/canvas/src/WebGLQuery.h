@@ -29,11 +29,6 @@ public:
 
     WebGLQuery(WebGLContext *context);
 
-    ~WebGLQuery() {
-        DeleteOnce();
-    };
-
-
     
     
 
@@ -67,6 +62,9 @@ public:
 
 
 private:
+    ~WebGLQuery() {
+        DeleteOnce();
+    };
 
     
     

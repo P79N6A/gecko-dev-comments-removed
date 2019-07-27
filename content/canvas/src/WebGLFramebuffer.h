@@ -30,10 +30,6 @@ class WebGLFramebuffer MOZ_FINAL
 public:
     WebGLFramebuffer(WebGLContext* context);
 
-    ~WebGLFramebuffer() {
-        DeleteOnce();
-    }
-
     struct Attachment
     {
         
@@ -181,6 +177,10 @@ public:
     void NotifyAttachableChanged() const;
 
 private:
+    ~WebGLFramebuffer() {
+        DeleteOnce();
+    }
+
     mutable GLenum mStatus;
 
     GLuint mGLName;

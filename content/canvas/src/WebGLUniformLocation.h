@@ -19,9 +19,6 @@ class WebGLUniformLocation MOZ_FINAL
 public:
     WebGLUniformLocation(WebGLContext *context, WebGLProgram *program, GLint location, const WebGLUniformInfo& info);
 
-    ~WebGLUniformLocation() {
-    }
-
     
     
     bool IsDeleted() const { return false; }
@@ -39,6 +36,9 @@ public:
     NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(WebGLUniformLocation)
 
 protected:
+    ~WebGLUniformLocation() {
+    }
+
     
     
     nsRefPtr<WebGLProgram> mProgram;
