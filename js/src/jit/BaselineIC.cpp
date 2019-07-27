@@ -9622,7 +9622,8 @@ DoSpreadCallFallback(JSContext *cx, BaselineFrame *frame, ICCall_Fallback *stub_
 }
 
 void
-ICCallStubCompiler::pushCallArguments(MacroAssembler &masm, GeneralRegisterSet regs, Register argcReg)
+ICCallStubCompiler::pushCallArguments(MacroAssembler &masm, GeneralRegisterSet regs,
+                                      Register argcReg, bool isJitCall)
 {
     MOZ_ASSERT(!regs.has(argcReg));
 
@@ -9638,6 +9639,11 @@ ICCallStubCompiler::pushCallArguments(MacroAssembler &masm, GeneralRegisterSet r
     
     
     masm.addPtr(Imm32(STUB_FRAME_SIZE), argPtr);
+
+    
+    
+    if (isJitCall)
+        masm.alignJitStackBasedOnNArgs(argcReg);
 
     
     Label loop, done;
@@ -9670,7 +9676,7 @@ ICCallStubCompiler::guardSpreadCall(MacroAssembler &masm, Register argcReg, Labe
 
 void
 ICCallStubCompiler::pushSpreadCallArguments(MacroAssembler &masm, GeneralRegisterSet regs,
-                                            Register argcReg)
+                                            Register argcReg, bool isJitCall)
 {
     
     Register startReg = regs.takeAny();
@@ -9681,6 +9687,11 @@ ICCallStubCompiler::pushSpreadCallArguments(MacroAssembler &masm, GeneralRegiste
     static_assert(sizeof(Value) == 8, "Value must be 8 bytes");
     masm.lshiftPtr(Imm32(3), endReg);
     masm.addPtr(startReg, endReg);
+
+    
+    
+    if (isJitCall)
+        masm.alignJitStackBasedOnNArgs(argcReg);
 
     
     Label copyDone;
@@ -9824,6 +9835,7 @@ ICCallStubCompiler::pushCallerArguments(MacroAssembler &masm, GeneralRegisterSet
     masm.loadPtr(Address(BaselineFrameReg, 0), startReg);
     masm.loadPtr(Address(startReg, BaselineFrame::offsetOfNumActualArgs()), endReg);
     masm.addPtr(Imm32(BaselineFrame::offsetOfArg(0)), startReg);
+    masm.alignJitStackBasedOnNArgs(endReg);
     masm.lshiftPtr(Imm32(ValueShift), endReg);
     masm.addPtr(startReg, endReg);
 
@@ -9850,6 +9862,7 @@ ICCallStubCompiler::pushArrayArguments(MacroAssembler &masm, Address arrayVal,
     masm.extractObject(arrayVal, startReg);
     masm.loadPtr(Address(startReg, NativeObject::offsetOfElements()), startReg);
     masm.load32(Address(startReg, ObjectElements::offsetOfInitializedLength()), endReg);
+    masm.alignJitStackBasedOnNArgs(endReg);
     masm.lshiftPtr(Imm32(ValueShift), endReg);
     masm.addPtr(startReg, endReg);
 
@@ -9914,7 +9927,7 @@ ICCall_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 
     regs.take(R0.scratchReg()); 
 
-    pushCallArguments(masm, regs, R0.scratchReg());
+    pushCallArguments(masm, regs, R0.scratchReg(),  false);
 
     masm.push(BaselineStackReg);
     masm.push(R0.scratchReg());
@@ -10144,9 +10157,9 @@ ICCallScriptedCompiler::generateStubCode(MacroAssembler &masm)
     
     
     if (isSpread_)
-        pushSpreadCallArguments(masm, regs, argcReg);
+        pushSpreadCallArguments(masm, regs, argcReg,  true);
     else
-        pushCallArguments(masm, regs, argcReg);
+        pushCallArguments(masm, regs, argcReg,  true);
 
     
     ValueOperand val = regs.takeAnyValue();
@@ -10187,27 +10200,40 @@ ICCallScriptedCompiler::generateStubCode(MacroAssembler &masm)
         Label skipThisReplace;
         masm.branchTestObject(Assembler::Equal, JSReturnOperand, &skipThisReplace);
 
-        Register scratchReg = JSReturnOperand.scratchReg();
+        
+        
+        
+        
+        
 
         
         
         
         
         
-        masm.loadPtr(Address(BaselineStackReg, 2*sizeof(size_t)), scratchReg);
+        
+        Address descriptorAddr(BaselineStackReg, 0);
+        masm.loadPtr(descriptorAddr, BaselineFrameReg);
+        masm.rshiftPtr(Imm32(FRAMESIZE_SHIFT), BaselineFrameReg);
+        masm.addPtr(Imm32((3 - 2) * sizeof(size_t)), BaselineFrameReg);
+        masm.addPtr(BaselineStackReg, BaselineFrameReg);
+
+        
+        Register argcReg = JSReturnOperand.scratchReg();
+        if (isSpread_) {
+            
+            masm.move32(Imm32(1), argcReg);
+        } else {
+            Address argcAddr(BaselineStackReg, 2 * sizeof(size_t));
+            masm.loadPtr(argcAddr, argcReg);
+        }
 
         
         
         
         
-        
-        if (isSpread_)
-            masm.add32(Imm32(1), scratchReg);
-        else
-            masm.lshiftPtr(Imm32(1), scratchReg);
-        BaseValueIndex reloadThisSlot(BaselineStackReg, scratchReg,
-                                      STUB_FRAME_SIZE + sizeof(Value) + 3 * sizeof(size_t));
-        masm.loadValue(reloadThisSlot, JSReturnOperand);
+        BaseValueIndex thisSlotAddr(BaselineFrameReg, argcReg, STUB_FRAME_SIZE);
+        masm.loadValue(thisSlotAddr, JSReturnOperand);
 #ifdef DEBUG
         masm.branchTestObject(Assembler::Equal, JSReturnOperand, &skipThisReplace);
         masm.assumeUnreachable("Return of constructing call should be an object.");
@@ -10407,9 +10433,9 @@ ICCall_Native::Compiler::generateStubCode(MacroAssembler &masm)
     
     
     if (isSpread_)
-        pushSpreadCallArguments(masm, regs, argcReg);
+        pushSpreadCallArguments(masm, regs, argcReg,  false);
     else
-        pushCallArguments(masm, regs, argcReg);
+        pushCallArguments(masm, regs, argcReg,  false);
 
     if (isConstructing_) {
         
@@ -10504,7 +10530,7 @@ ICCall_ClassHook::Compiler::generateStubCode(MacroAssembler &masm)
     enterStubFrame(masm, regs.getAny());
 
     regs.add(scratch);
-    pushCallArguments(masm, regs, argcReg);
+    pushCallArguments(masm, regs, argcReg,  false);
     regs.take(scratch);
 
     if (isConstructing_) {
@@ -10811,7 +10837,7 @@ ICCall_ScriptedFunCall::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     
-    pushCallArguments(masm, regs, argcReg);
+    pushCallArguments(masm, regs, argcReg,  true);
 
     
     masm.addPtr(Imm32(sizeof(Value)), StackPointer);

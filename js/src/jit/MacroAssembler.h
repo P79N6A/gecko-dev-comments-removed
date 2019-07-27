@@ -1252,6 +1252,11 @@ class MacroAssembler : public MacroAssemblerSpecific
         PopRegsInMask(liveRegs);
     }
 
+    
+    
+    
+    void alignJitStackBasedOnNArgs(Register nargs);
+
     void assertStackAlignment(uint32_t alignment, int32_t offset = 0) {
 #ifdef DEBUG
         Label ok, bad;

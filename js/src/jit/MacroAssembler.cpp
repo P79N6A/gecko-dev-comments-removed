@@ -2296,3 +2296,51 @@ MacroAssembler::profilerPreCallImpl(Register reg, Register reg2)
 
     appendProfilerCallSite(label);
 }
+
+void
+MacroAssembler::alignJitStackBasedOnNArgs(Register nargs)
+{
+    const uint32_t alignment = JitStackAlignment / sizeof(Value);
+    if (alignment == 1)
+        return;
+
+    
+    
+    
+    
+    
+    static_assert(sizeof(JitFrameLayout) % JitStackAlignment == 0,
+      "No need to consider the JitFrameLayout for aligning the stack");
+
+    
+    
+    MOZ_ASSERT(alignment == 2);
+
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    Label odd, end;
+    Label *maybeAssert = &end;
+#ifdef DEBUG
+    Label assert;
+    maybeAssert = &assert;
+#endif
+    branchTestPtr(Assembler::NonZero, nargs, Imm32(1), &odd);
+    branchTestPtr(Assembler::NonZero, StackPointer, Imm32(JitStackAlignment - 1), maybeAssert);
+    subPtr(Imm32(sizeof(Value)), StackPointer);
+#ifdef DEBUG
+    bind(&assert);
+#endif
+    assertStackAlignment(JitStackAlignment, sizeof(Value));
+    jump(&end);
+    bind(&odd);
+    andPtr(Imm32(~(JitStackAlignment - 1)), StackPointer);
+    bind(&end);
+}
