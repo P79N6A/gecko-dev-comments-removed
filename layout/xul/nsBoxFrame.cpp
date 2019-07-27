@@ -1310,25 +1310,11 @@ nsBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                              const nsDisplayListSet& aLists)
 {
   bool forceLayer = false;
-  uint32_t flags = 0;
-  mozilla::layers::FrameMetrics::ViewID scrollTargetId =
-    mozilla::layers::FrameMetrics::NULL_SCROLL_ID;
-  float scrollbarThumbRatio = 0.0f;
 
   if (GetContent()->IsXULElement()) {
     
     if (GetContent()->HasAttr(kNameSpaceID_None, nsGkAtoms::layer)) {
       forceLayer = true;
-    } else {
-      nsIFrame* parent = GetParentBox(this);
-      if (parent && parent->GetType() == nsGkAtoms::sliderFrame) {
-        aBuilder->GetScrollbarInfo(&scrollTargetId, &flags);
-        forceLayer = (scrollTargetId != layers::FrameMetrics::NULL_SCROLL_ID);
-        nsLayoutUtils::SetScrollbarThumbLayerization(this, forceLayer);
-
-        nsSliderFrame* slider = do_QueryFrame(parent);
-        scrollbarThumbRatio = slider->GetThumbRatio();
-      }
     }
     
     
@@ -1374,8 +1360,7 @@ nsBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
     
     aLists.Content()->AppendNewToTop(new (aBuilder)
-      nsDisplayOwnLayer(aBuilder, this, &masterList, flags, scrollTargetId,
-                        scrollbarThumbRatio));
+      nsDisplayOwnLayer(aBuilder, this, &masterList));
   }
 }
 

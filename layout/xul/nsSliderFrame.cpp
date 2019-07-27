@@ -322,6 +322,43 @@ nsSliderFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
 
     if (crect.width < thumbRect.width || crect.height < thumbRect.height)
       return;
+
+    
+    
+    
+    
+    
+    
+
+    uint32_t flags = 0;
+    mozilla::layers::FrameMetrics::ViewID scrollTargetId =
+      mozilla::layers::FrameMetrics::NULL_SCROLL_ID;
+    float scrollbarThumbRatio = 0.0f;
+    aBuilder->GetScrollbarInfo(&scrollTargetId, &flags);
+    bool thumbGetsLayer = (scrollTargetId != layers::FrameMetrics::NULL_SCROLL_ID);
+    nsLayoutUtils::SetScrollbarThumbLayerization(thumb, thumbGetsLayer);
+
+    if (thumbGetsLayer) {
+      nsDisplayListCollection tempLists;
+      nsBoxFrame::BuildDisplayListForChildren(aBuilder, aDirtyRect, tempLists);
+
+      
+      
+      nsDisplayList masterList;
+      masterList.AppendToTop(tempLists.BorderBackground());
+      masterList.AppendToTop(tempLists.BlockBorderBackgrounds());
+      masterList.AppendToTop(tempLists.Floats());
+      masterList.AppendToTop(tempLists.Content());
+      masterList.AppendToTop(tempLists.PositionedDescendants());
+      masterList.AppendToTop(tempLists.Outlines());
+
+      
+      aLists.Content()->AppendNewToTop(new (aBuilder)
+        nsDisplayOwnLayer(aBuilder, this, &masterList, flags, scrollTargetId,
+                          scrollbarThumbRatio));
+
+      return;
+    }
   }
   
   nsBoxFrame::BuildDisplayListForChildren(aBuilder, aDirtyRect, aLists);
