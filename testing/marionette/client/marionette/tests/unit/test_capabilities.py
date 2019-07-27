@@ -3,7 +3,7 @@
 
 
 from marionette_test import MarionetteTestCase
-from errors import SessionNotCreatedException
+from marionette_driver.errors import SessionNotCreatedException
 
 class TestCapabilities(MarionetteTestCase):
     def setUp(self):
