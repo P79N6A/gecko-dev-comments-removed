@@ -7641,7 +7641,7 @@ CheckSimdOperationCall(FunctionBuilder& f, ParseNode* call, const ModuleCompiler
       case AsmJSSimdOperation_store3:
         return CheckSimdStore(f, call, opType, 3, type);
 
-      case AsmJSSimdOperation_bitselect:
+      case AsmJSSimdOperation_selectBits:
         return CheckSimdSelect(f, call, opType,  false, type);
       case AsmJSSimdOperation_select:
         return CheckSimdSelect(f, call, opType,  true, type);
