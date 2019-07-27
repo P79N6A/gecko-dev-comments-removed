@@ -113,25 +113,13 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
         
         
         
-        if (isQuirks) {
+        if (isQuirks || stylePos->mBoxSizing == NS_STYLE_BOX_SIZING_CONTENT) {
             boxSizingToBorderEdge = offsets.hPadding + offsets.hBorder;
         }
         else {
-            switch (stylePos->mBoxSizing) {
-                case NS_STYLE_BOX_SIZING_CONTENT:
-                    boxSizingToBorderEdge = offsets.hPadding + offsets.hBorder;
-                    break;
-                case NS_STYLE_BOX_SIZING_PADDING:
-                    minCoord += offsets.hPadding;
-                    prefCoord += offsets.hPadding;
-                    boxSizingToBorderEdge = offsets.hBorder;
-                    break;
-                default:
-                    
-                    minCoord += offsets.hPadding + offsets.hBorder;
-                    prefCoord += offsets.hPadding + offsets.hBorder;
-                    break;
-            }
+            
+            minCoord += offsets.hPadding + offsets.hBorder;
+            prefCoord += offsets.hPadding + offsets.hBorder;
         }
     } else {
         minCoord = 0;
