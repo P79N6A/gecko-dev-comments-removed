@@ -32,6 +32,7 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputConnectionWrapper;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.TextView;
 
 
 
@@ -107,6 +108,14 @@ public class ToolbarEditText extends CustomEditText
         }
     }
 
+    @Override
+    public void setText(final CharSequence text, final TextView.BufferType type) {
+        super.setText(text, type);
+
+        
+        resetAutocompleteState();
+    }
+
     
 
 
@@ -136,7 +145,13 @@ public class ToolbarEditText extends CustomEditText
         };
 
         mAutoCompleteResult = "";
-        mAutoCompletePrefixLength = 0;
+
+        
+        
+        mAutoCompletePrefixLength = getText().length();
+
+        
+        setCursorVisible(true);
     }
 
     
