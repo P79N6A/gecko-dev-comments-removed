@@ -395,16 +395,6 @@ struct AssertionConditionType
 
 
 
-#if defined(NIGHTLY_BUILD)
-#  define MOZ_NIGHTLY_ASSERT(...) MOZ_RELEASE_ASSERT(__VA_ARGS__)
-#else
-#  define MOZ_NIGHTLY_ASSERT(...) MOZ_ASSERT(__VA_ARGS__)
-#endif
-
-
-
-
-
 
 
 
@@ -500,23 +490,14 @@ struct AssertionConditionType
 
 
 
-
 #define MOZ_ASSERT_UNREACHABLE(reason) \
-   MOZ_NIGHTLY_ASSERT(false, "MOZ_ASSERT_UNREACHABLE: " reason)
+   MOZ_ASSERT(false, "MOZ_ASSERT_UNREACHABLE: " reason)
 
 #define MOZ_MAKE_COMPILER_ASSUME_IS_UNREACHABLE(reason) \
    do { \
      MOZ_ASSERT_UNREACHABLE(reason); \
      MOZ_ASSUME_UNREACHABLE_MARKER(); \
    } while (0)
-
-
-
-
-
-
-#define MOZ_ASSUME_UNREACHABLE(reason) \
-   MOZ_MAKE_COMPILER_ASSUME_IS_UNREACHABLE(reason)
 
 
 
