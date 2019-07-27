@@ -8,7 +8,7 @@ function ErrorToString()
   
   var obj = this;
   if (!IsObject(obj))
-    ThrowError(JSMSG_INCOMPATIBLE_PROTO, "Error", "toString", "value");
+    ThrowTypeError(JSMSG_INCOMPATIBLE_PROTO, "Error", "toString", "value");
 
   
   var name = obj.name;
