@@ -8,26 +8,29 @@ function runTests() {
   let site = getCell(0).node.querySelector(".newtab-site");
   site.setAttribute("type", "sponsored");
 
-  let sponsoredPanel = getContentDocument().getElementById("sponsored-panel");
-  is(sponsoredPanel.state, "closed", "Sponsored panel must be closed");
-
-  function continueOnceOn(event) {
-    sponsoredPanel.addEventListener(event, function listener() {
-      sponsoredPanel.removeEventListener(event, listener);
-      executeSoon(TestRunner.next);
-    });
-  }
+  
+  let sponsoredButton = site.querySelector(".newtab-sponsored");
+  EventUtils.synthesizeMouseAtCenter(sponsoredButton, {}, getContentWindow());
+  let explain = site.querySelector(".sponsored-explain");
+  isnot(explain, null, "Sponsored explanation shown");
+  ok(explain.querySelector("input").classList.contains("newtab-control-block"), "sponsored tiles show blocked image");
+  ok(sponsoredButton.hasAttribute("active"), "Sponsored button has active attribute");
 
   
-  continueOnceOn("popupshown");
-  let sponsoredButton = site.querySelector(".newtab-control-sponsored");
-  yield EventUtils.synthesizeMouseAtCenter(sponsoredButton, {}, getContentWindow());
-  is(sponsoredPanel.state, "open", "Sponsored panel opens on click");
-  ok(sponsoredButton.hasAttribute("panelShown"), "Sponsored button has panelShown attribute");
+  EventUtils.synthesizeMouseAtCenter(sponsoredButton, {}, getContentWindow());
+  is(site.querySelector(".sponsored-explain"), null, "Sponsored explanation no longer shown");
+  ok(!sponsoredButton.hasAttribute("active"), "Sponsored button does not have active attribute");
 
   
-  continueOnceOn("popuphidden");
-  yield sponsoredPanel.hidePopup();
-  is(sponsoredPanel.state, "closed", "Sponsored panel correctly closed/hidden");
-  ok(!sponsoredButton.hasAttribute("panelShown"), "Sponsored button does not have panelShown attribute");
+  site.setAttribute("type", "enhanced");
+  EventUtils.synthesizeMouseAtCenter(sponsoredButton, {}, getContentWindow());
+  explain = site.querySelector(".sponsored-explain");
+  isnot(explain, null, "Sponsored explanation shown");
+  ok(explain.querySelector("input").classList.contains("newtab-customize"), "enhanced tiles show customize image");
+  ok(sponsoredButton.hasAttribute("active"), "Sponsored button has active attribute");
+
+  
+  EventUtils.synthesizeMouseAtCenter(sponsoredButton, {}, getContentWindow());
+  is(site.querySelector(".sponsored-explain"), null, "Sponsored explanation no longer shown");
+  ok(!sponsoredButton.hasAttribute("active"), "Sponsored button does not have active attribute");
 }

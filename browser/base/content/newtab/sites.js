@@ -120,8 +120,9 @@ Site.prototype = {
 
 
   _render: function Site_render() {
+    let enhanced = gAllPages.enhanced && DirectoryLinksProvider.getEnhancedLink(this.link);
     let url = this.url;
-    let title = this.title || url;
+    let title = enhanced && enhanced.title || this.title || url;
     let tooltip = (title == url ? title : title + "\n" + url);
 
     let link = this._querySelector(".newtab-link");
@@ -185,7 +186,7 @@ Site.prototype = {
     this._node.addEventListener("mouseover", this, false);
 
     
-    let sponsored = this._querySelector(".newtab-control-sponsored");
+    let sponsored = this._querySelector(".newtab-sponsored");
     sponsored.addEventListener("mouseover", () => {
       this.cell.node.setAttribute("ignorehover", "true");
     });
@@ -218,6 +219,30 @@ Site.prototype = {
                       .add(aIndex);
   },
 
+  _toggleSponsored: function() {
+    let button = this._querySelector(".newtab-sponsored");
+    if (button.hasAttribute("active")) {
+      let explain = this._querySelector(".sponsored-explain");
+      explain.parentNode.removeChild(explain);
+
+      button.removeAttribute("active");
+    }
+    else {
+      let explain = document.createElementNS(HTML_NAMESPACE, "div");
+      explain.className = "sponsored-explain";
+      this.node.appendChild(explain);
+
+      let link = '<a href="' + TILES_EXPLAIN_LINK + '">' +
+                 newTabString("learn.link") + "</a>";
+      let type = this.node.getAttribute("type");
+      let icon = '<input type="button" class="newtab-control newtab-' +
+                 (type == "sponsored" ? "control-block" : "customize") + '"/>';
+      explain.innerHTML = newTabString(type + ".explain", [icon, link]);
+
+      button.setAttribute("active", "true");
+    }
+  },
+
   
 
 
@@ -226,6 +251,8 @@ Site.prototype = {
     let pinned = this.isPinned();
     let tileIndex = this.cell.index;
     let {button, target} = aEvent;
+
+    
     if (target.classList.contains("newtab-link") ||
         target.parentElement.classList.contains("newtab-link")) {
       
@@ -235,14 +262,19 @@ Site.prototype = {
       }
     }
     
+    else if (target.parentElement.classList.contains("sponsored-explain")) {
+      action = "sponsored_link";
+    }
+    
     else if (button == 0) {
       aEvent.preventDefault();
       if (target.classList.contains("newtab-control-block")) {
         this.block();
         action = "block";
       }
-      else if (target.classList.contains("newtab-control-sponsored")) {
-        gPage.showSponsoredPanel(target);
+      else if (target.classList.contains("sponsored-explain") ||
+               target.classList.contains("newtab-sponsored")) {
+        this._toggleSponsored();
         action = "sponsored";
       }
       else if (pinned) {
