@@ -30,6 +30,7 @@ class DOMError;
 class PromiseCallback;
 class PromiseInit;
 class PromiseNativeHandler;
+class PromiseDebugging;
 
 class Promise;
 class PromiseReportRejectFeature : public workers::WorkerFeature
@@ -154,6 +155,8 @@ public:
   void AppendNativeHandler(PromiseNativeHandler* aRunnable);
 
 private:
+  friend class PromiseDebugging;
+
   enum PromiseState {
     Pending,
     Resolved,
@@ -284,4 +287,4 @@ private:
 } 
 } 
 
-#endif
+#endif 
