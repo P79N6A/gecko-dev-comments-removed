@@ -666,11 +666,9 @@ AudioContext::Shutdown()
 {
   mIsShutDown = true;
 
-  
-  
-  
   if (!mIsOffline) {
-    Mute();
+    ErrorResult dummy;
+    nsRefPtr<Promise> ignored = Close(dummy);
   }
 
   
