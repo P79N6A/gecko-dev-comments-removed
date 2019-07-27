@@ -68,13 +68,11 @@ gfxMacFont::gfxMacFont(MacOSFontEntry *aFontEntry, const gfxFontStyle *aFontStyl
         mStyle.allowSyntheticStyle;
 
     if (needsOblique) {
-        double skewfactor = (needsOblique ? Fix2X(kATSItalicQDSkew) : 0);
-
         cairo_matrix_t style;
         cairo_matrix_init(&style,
                           1,                
                           0,                
-                          -1 * skewfactor,   
+                          -1 * OBLIQUE_SKEW_FACTOR, 
                           1,                
                           0,                
                           0);               

@@ -15,9 +15,6 @@
 
 #include "harfbuzz/hb.h"
 
-
-#define OBLIQUE_SKEW_FACTOR 0.3
-
 using namespace mozilla;
 using namespace mozilla::gfx;
 
