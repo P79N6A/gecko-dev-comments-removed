@@ -2677,8 +2677,19 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
       || (mFloats == NS_STYLE_FLOAT_NONE) != (aOther.mFloats == NS_STYLE_FLOAT_NONE)
       || mOverflowX != aOther.mOverflowX
       || mOverflowY != aOther.mOverflowY
+      || mScrollBehavior != aOther.mScrollBehavior
       || mResize != aOther.mResize)
     NS_UpdateHint(hint, nsChangeHint_ReconstructFrame);
+
+  
+
+
+
+
+
+
+
+
 
   if ((mAppearance == NS_THEME_TEXTFIELD &&
        aOther.mAppearance != NS_THEME_TEXTFIELD) ||
@@ -2849,8 +2860,7 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
        mAnimationDirectionCount != aOther.mAnimationDirectionCount ||
        mAnimationFillModeCount != aOther.mAnimationFillModeCount ||
        mAnimationPlayStateCount != aOther.mAnimationPlayStateCount ||
-       mAnimationIterationCountCount != aOther.mAnimationIterationCountCount ||
-       mScrollBehavior != aOther.mScrollBehavior)) {
+       mAnimationIterationCountCount != aOther.mAnimationIterationCountCount)) {
     NS_UpdateHint(hint, nsChangeHint_NeutralChange);
   }
 
