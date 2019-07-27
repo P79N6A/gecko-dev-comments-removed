@@ -2344,32 +2344,27 @@ MovingTracer::Visit(JSTracer *jstrc, void **thingp, JSGCTraceKind kind)
 void
 GCRuntime::sweepZoneAfterCompacting(Zone *zone)
 {
+    MOZ_ASSERT(zone->isCollecting());
     FreeOp *fop = rt->defaultFreeOp();
-    if (zone->isCollecting()) {
-        zone->discardJitCode(fop);
-        zone->sweepAnalysis(fop, rt->gc.releaseObservedTypes && !zone->isPreservingCode());
-        zone->sweepBreakpoints(fop);
+    zone->discardJitCode(fop);
+    zone->sweepAnalysis(fop, rt->gc.releaseObservedTypes && !zone->isPreservingCode());
+    zone->sweepBreakpoints(fop);
 
-        for (CompartmentsInZoneIter c(zone); !c.done(); c.next()) {
-            c->sweepInnerViews();
-            c->sweepCrossCompartmentWrappers();
-            c->sweepBaseShapeTable();
-            c->sweepInitialShapeTable();
-            c->sweepTypeObjectTables();
-            c->sweepRegExps();
-            c->sweepCallsiteClones();
-            c->sweepSavedStacks();
-            c->sweepGlobalObject(fop);
-            c->sweepSelfHostingScriptSource();
-            c->sweepDebugScopes();
-            c->sweepJitCompartment(fop);
-            c->sweepWeakMaps();
-            c->sweepNativeIterators();
-        }
-    } else {
-        
-        for (CompartmentsInZoneIter c(zone); !c.done(); c.next())
-            c->sweepCrossCompartmentWrappers();
+    for (CompartmentsInZoneIter c(zone); !c.done(); c.next()) {
+        c->sweepInnerViews();
+        c->sweepCrossCompartmentWrappers();
+        c->sweepBaseShapeTable();
+        c->sweepInitialShapeTable();
+        c->sweepTypeObjectTables();
+        c->sweepRegExps();
+        c->sweepCallsiteClones();
+        c->sweepSavedStacks();
+        c->sweepGlobalObject(fop);
+        c->sweepSelfHostingScriptSource();
+        c->sweepDebugScopes();
+        c->sweepJitCompartment(fop);
+        c->sweepWeakMaps();
+        c->sweepNativeIterators();
     }
 }
 
@@ -2417,7 +2412,7 @@ GCRuntime::updatePointersToRelocatedCells()
 
     
     for (CompartmentsIter comp(rt, SkipAtoms); !comp.done(); comp.next())
-        comp->fixupCrossCompartmentWrappers(&trc);
+        comp->sweepCrossCompartmentWrappers();
 
     
     for (ContextIter i(rt); !i.done(); i.next()) {
@@ -2458,9 +2453,10 @@ GCRuntime::updatePointersToRelocatedCells()
     
     WatchpointMap::sweepAll(rt);
     Debugger::sweepAll(rt->defaultFreeOp());
-
-    for (ZonesIter zone(rt, SkipAtoms); !zone.done(); zone.next())
-        rt->gc.sweepZoneAfterCompacting(zone);
+    for (GCZonesIter zone(rt); !zone.done(); zone.next()) {
+        if (!rt->isAtomsZone(zone))
+            rt->gc.sweepZoneAfterCompacting(zone);
+    }
 
     
     rt->freeLifoAlloc.freeAll();

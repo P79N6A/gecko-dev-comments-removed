@@ -512,9 +512,7 @@ JSCompartment::markCrossCompartmentWrappers(JSTracer *trc)
 
 
 
-            Value referent = wrapper->private_();
-            MarkValueRoot(trc, &referent, "cross-compartment wrapper");
-            MOZ_ASSERT(referent == wrapper->private_());
+            MarkSlot(trc, wrapper->slotOfPrivate(), "cross-compartment wrapper");
         }
     }
 }
@@ -653,39 +651,6 @@ JSCompartment::sweepCrossCompartmentWrappers()
 }
 
 #ifdef JSGC_COMPACTING
-
-
-
-
-void
-JSCompartment::fixupCrossCompartmentWrappers(JSTracer *trc)
-{
-    for (WrapperMap::Enum e(crossCompartmentWrappers); !e.empty(); e.popFront()) {
-        Value val = e.front().value();
-        if (IsForwarded(val)) {
-            val = Forwarded(val);
-            e.front().value().set(val);
-        }
-
-        
-        
-        CrossCompartmentKey key = e.front().key();
-        if (key.debugger)
-            key.debugger = MaybeForwarded(key.debugger);
-        if (key.wrapped && IsForwarded(key.wrapped)) {
-            key.wrapped = Forwarded(key.wrapped);
-            e.rekeyFront(key, key);
-        }
-
-        if (!zone()->isCollecting() && val.isObject()) {
-            
-            JSObject *obj = &val.toObject();
-            const Class *clasp = obj->getClass();
-            if (clasp->trace)
-                clasp->trace(trc, obj);
-        }
-    }
-}
 
 void JSCompartment::fixupAfterMovingGC()
 {
