@@ -65,7 +65,7 @@ add_task(function* actualTest() {
   do_check_true(simpleMeasurements.bar > 1); 
   do_check_eq(undefined, simpleMeasurements.baz); 
 
-  yield TelemetrySession.shutdown();
+  yield TelemetrySession.shutdown(false);
 
   do_test_finished();
 });

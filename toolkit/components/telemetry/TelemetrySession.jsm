@@ -218,8 +218,10 @@ this.TelemetrySession = Object.freeze({
   
 
 
-  shutdown: function() {
-    return Impl.shutdown(true);
+
+
+  shutdown: function(aForceSavePending = true) {
+    return Impl.shutdown(aForceSavePending);
   },
   
 
@@ -1163,5 +1165,6 @@ let Impl = {
     if (Telemetry.canSend || testing) {
       return this.savePendingPings();
     }
+    return Promise.resolve();
   },
 };

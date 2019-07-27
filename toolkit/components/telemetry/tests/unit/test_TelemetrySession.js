@@ -1,0 +1,762 @@
+
+
+
+
+
+
+
+
+
+
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+const Cr = Components.results;
+
+Cu.import("resource://testing-common/httpd.js", this);
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/LightweightThemeManager.jsm", this);
+Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
+Cu.import("resource://gre/modules/TelemetryPing.jsm", this);
+Cu.import("resource://gre/modules/TelemetrySession.jsm", this);
+Cu.import("resource://gre/modules/TelemetryFile.jsm", this);
+Cu.import("resource://gre/modules/Task.jsm", this);
+Cu.import("resource://gre/modules/Promise.jsm", this);
+Cu.import("resource://gre/modules/Preferences.jsm");
+Cu.import("resource://gre/modules/osfile.jsm", this);
+
+const PING_FORMAT_VERSION = 2;
+const PING_TYPE = "main";
+
+const PLATFORM_VERSION = "1.9.2";
+const APP_VERSION = "1";
+const APP_ID = "xpcshell@tests.mozilla.org";
+const APP_NAME = "XPCShell";
+
+const IGNORE_HISTOGRAM = "test::ignore_me";
+const IGNORE_HISTOGRAM_TO_CLONE = "MEMORY_HEAP_ALLOCATED";
+const IGNORE_CLONED_HISTOGRAM = "test::ignore_me_also";
+const ADDON_NAME = "Telemetry test addon";
+const ADDON_HISTOGRAM = "addon-histogram";
+
+const SHUTDOWN_TIME = 10000;
+const FAILED_PROFILE_LOCK_ATTEMPTS = 2;
+
+
+const PR_WRONLY = 0x2;
+const PR_CREATE_FILE = 0x8;
+const PR_TRUNCATE = 0x20;
+const RW_OWNER = parseInt("0600", 8);
+
+const NUMBER_OF_THREADS_TO_LAUNCH = 30;
+let gNumberOfThreadsLaunched = 0;
+
+const PREF_BRANCH = "toolkit.telemetry.";
+const PREF_ENABLED = PREF_BRANCH + "enabled";
+const PREF_FHR_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
+const PREF_FHR_SERVICE_ENABLED = "datareporting.healthreport.service.enabled";
+
+const HAS_DATAREPORTINGSERVICE = "@mozilla.org/datareporting/service;1" in Cc;
+const SESSION_RECORDER_EXPECTED = HAS_DATAREPORTINGSERVICE &&
+                                  Preferences.get(PREF_FHR_SERVICE_ENABLED, true);
+
+const Telemetry = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry);
+
+let gHttpServer = new HttpServer();
+let gServerStarted = false;
+let gRequestIterator = null;
+let gDataReportingClientID = null;
+
+XPCOMUtils.defineLazyGetter(this, "gDatareportingService",
+  () => Cc["@mozilla.org/datareporting/service;1"]
+          .getService(Ci.nsISupports)
+          .wrappedJSObject);
+
+function sendPing() {
+  TelemetrySession.gatherStartup();
+  if (gServerStarted) {
+    TelemetryPing.setServer("http://localhost:" + gHttpServer.identity.primaryPort);
+    return TelemetrySession.testPing();
+  } else {
+    TelemetryPing.setServer("http://doesnotexist");
+    return TelemetrySession.testPing();
+  }
+}
+
+function wrapWithExceptionHandler(f) {
+  function wrapper(...args) {
+    try {
+      f(...args);
+    } catch (ex if typeof(ex) == 'object') {
+      dump("Caught exception: " + ex.message + "\n");
+      dump(ex.stack);
+      do_test_finished();
+    }
+  }
+  return wrapper;
+}
+
+function registerPingHandler(handler) {
+  gHttpServer.registerPrefixHandler("/submit/telemetry/",
+				   wrapWithExceptionHandler(handler));
+}
+
+function setupTestData() {
+  Telemetry.newHistogram(IGNORE_HISTOGRAM, "never", Telemetry.HISTOGRAM_BOOLEAN);
+  Telemetry.histogramFrom(IGNORE_CLONED_HISTOGRAM, IGNORE_HISTOGRAM_TO_CLONE);
+  Services.startup.interrupted = true;
+  Telemetry.registerAddonHistogram(ADDON_NAME, ADDON_HISTOGRAM,
+                                   Telemetry.HISTOGRAM_LINEAR,
+                                   1, 5, 6);
+  let h1 = Telemetry.getAddonHistogram(ADDON_NAME, ADDON_HISTOGRAM);
+  h1.add(1);
+  let h2 = Telemetry.getHistogramById("TELEMETRY_TEST_COUNT");
+  h2.add();
+
+  let k1 = Telemetry.getKeyedHistogramById("TELEMETRY_TEST_KEYED_COUNT");
+  k1.add("a");
+  k1.add("a");
+  k1.add("b");
+}
+
+function getSavedPingFile(basename) {
+  let tmpDir = Services.dirsvc.get("ProfD", Ci.nsIFile);
+  let pingFile = tmpDir.clone();
+  pingFile.append(basename);
+  if (pingFile.exists()) {
+    pingFile.remove(true);
+  }
+  do_register_cleanup(function () {
+    try {
+      pingFile.remove(true);
+    } catch (e) {
+    }
+  });
+  return pingFile;
+}
+
+function decodeRequestPayload(request) {
+  let s = request.bodyInputStream;
+  let payload = null;
+  let decoder = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON)
+
+  if (request.getHeader("content-encoding") == "gzip") {
+    let observer = {
+      buffer: "",
+      onStreamComplete: function(loader, context, status, length, result) {
+        this.buffer = String.fromCharCode.apply(this, result);
+      }
+    };
+
+    let scs = Cc["@mozilla.org/streamConverters;1"]
+              .getService(Ci.nsIStreamConverterService);
+    let listener = Cc["@mozilla.org/network/stream-loader;1"]
+                  .createInstance(Ci.nsIStreamLoader);
+    listener.init(observer);
+    let converter = scs.asyncConvertData("gzip", "uncompressed",
+                                         listener, null);
+    converter.onStartRequest(null, null);
+    converter.onDataAvailable(null, null, s, 0, s.available());
+    converter.onStopRequest(null, null, null);
+    let unicodeConverter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+                    .createInstance(Ci.nsIScriptableUnicodeConverter);
+    unicodeConverter.charset = "UTF-8";
+    let utf8string = unicodeConverter.ConvertToUnicode(observer.buffer);
+    utf8string += unicodeConverter.Finish();
+    payload = decoder.decode(utf8string);
+  } else {
+    payload = decoder.decodeFromStream(s, s.available());
+  }
+
+  return payload;
+}
+
+function checkPingFormat(aPing, aType, aHasClientId, aHasEnvironment) {
+  const MANDATORY_PING_FIELDS = [
+    "type", "id", "creationDate", "version", "application", "payload"
+  ];
+
+  const APPLICATION_TEST_DATA = {
+    buildId: "2007010101",
+    name: APP_NAME,
+    version: APP_VERSION,
+    vendor: "Mozilla",
+    platformVersion: PLATFORM_VERSION,
+    xpcomAbi: "noarch-spidermonkey",
+  };
+
+  
+  for (let f of MANDATORY_PING_FIELDS) {
+    Assert.ok(f in aPing, f + "must be available.");
+  }
+
+  Assert.equal(aPing.type, aType, "The ping must have the correct type.");
+  Assert.equal(aPing.version, PING_FORMAT_VERSION, "The ping must have the correct version.");
+
+  
+  for (let f in APPLICATION_TEST_DATA) {
+    Assert.equal(aPing.application[f], APPLICATION_TEST_DATA[f],
+                 f + " must have the correct value.");
+  }
+
+  
+  
+  Assert.ok("architecture" in aPing.application,
+            "The application section must have an architecture field.");
+  Assert.ok("channel" in aPing.application,
+            "The application section must have a channel field.");
+
+  
+  Assert.equal("clientId" in aPing, aHasClientId);
+  Assert.equal("environment" in aPing, aHasEnvironment);
+}
+
+function checkPayload(payload, reason, successfulPings) {
+  Assert.ok(payload.simpleMeasurements.uptime >= 0);
+  Assert.equal(payload.simpleMeasurements.startupInterrupted, 1);
+  Assert.equal(payload.simpleMeasurements.shutdownDuration, SHUTDOWN_TIME);
+  Assert.equal(payload.simpleMeasurements.savedPings, 1);
+  Assert.ok("maximalNumberOfConcurrentThreads" in payload.simpleMeasurements);
+  Assert.ok(payload.simpleMeasurements.maximalNumberOfConcurrentThreads >= gNumberOfThreadsLaunched);
+
+  let activeTicks = payload.simpleMeasurements.activeTicks;
+  Assert.ok(SESSION_RECORDER_EXPECTED ? activeTicks >= 0 : activeTicks == -1);
+
+  Assert.equal(payload.simpleMeasurements.failedProfileLockCount,
+              FAILED_PROFILE_LOCK_ATTEMPTS);
+  let profileDirectory = Services.dirsvc.get("ProfD", Ci.nsIFile);
+  let failedProfileLocksFile = profileDirectory.clone();
+  failedProfileLocksFile.append("Telemetry.FailedProfileLocks.txt");
+  Assert.ok(!failedProfileLocksFile.exists());
+
+
+  let isWindows = ("@mozilla.org/windows-registry-key;1" in Components.classes);
+  if (isWindows) {
+    Assert.ok(payload.simpleMeasurements.startupSessionRestoreReadBytes > 0);
+    Assert.ok(payload.simpleMeasurements.startupSessionRestoreWriteBytes > 0);
+  }
+
+  const TELEMETRY_PING = "TELEMETRY_PING";
+  const TELEMETRY_SUCCESS = "TELEMETRY_SUCCESS";
+  const TELEMETRY_TEST_FLAG = "TELEMETRY_TEST_FLAG";
+  const TELEMETRY_TEST_COUNT = "TELEMETRY_TEST_COUNT";
+  const TELEMETRY_TEST_KEYED_FLAG = "TELEMETRY_TEST_KEYED_FLAG";
+  const TELEMETRY_TEST_KEYED_COUNT = "TELEMETRY_TEST_KEYED_COUNT";
+  const READ_SAVED_PING_SUCCESS = "READ_SAVED_PING_SUCCESS";
+
+  Assert.ok(TELEMETRY_PING in payload.histograms);
+  Assert.ok(READ_SAVED_PING_SUCCESS in payload.histograms);
+  Assert.ok(TELEMETRY_TEST_FLAG in payload.histograms);
+  Assert.ok(TELEMETRY_TEST_COUNT in payload.histograms);
+
+  let rh = Telemetry.registeredHistograms(Ci.nsITelemetry.DATASET_RELEASE_CHANNEL_OPTIN, []);
+  for (let name of rh) {
+    if (/SQLITE/.test(name) && name in payload.histograms) {
+      let histogramName = ("STARTUP_" + name);
+      Assert.ok(histogramName in payload.histograms, histogramName + " must be available.");
+    }
+  }
+  Assert.ok(!(IGNORE_HISTOGRAM in payload.histograms));
+  Assert.ok(!(IGNORE_CLONED_HISTOGRAM in payload.histograms));
+
+  
+  const expected_flag = {
+    range: [1, 2],
+    bucket_count: 3,
+    histogram_type: 3,
+    values: {0:1, 1:0},
+    sum: 0,
+    sum_squares_lo: 0,
+    sum_squares_hi: 0
+  };
+  let flag = payload.histograms[TELEMETRY_TEST_FLAG];
+  Assert.equal(uneval(flag), uneval(expected_flag));
+
+  
+  const expected_count = {
+    range: [1, 2],
+    bucket_count: 3,
+    histogram_type: 4,
+    values: {0:1, 1:0},
+    sum: 1,
+    sum_squares_lo: 1,
+    sum_squares_hi: 0,
+  };
+  let count = payload.histograms[TELEMETRY_TEST_COUNT];
+  Assert.equal(uneval(count), uneval(expected_count));
+
+  
+  const expected_tc = {
+    range: [1, 2],
+    bucket_count: 3,
+    histogram_type: 2,
+    values: {0:2, 1:successfulPings, 2:0},
+    sum: successfulPings,
+    sum_squares_lo: successfulPings,
+    sum_squares_hi: 0
+  };
+  let tc = payload.histograms[TELEMETRY_SUCCESS];
+  Assert.equal(uneval(tc), uneval(expected_tc));
+
+  let h = payload.histograms[READ_SAVED_PING_SUCCESS];
+  Assert.equal(h.values[0], 1);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  Assert.ok('MEMORY_JS_GC_HEAP' in payload.histograms); 
+  Assert.ok('MEMORY_JS_COMPARTMENTS_SYSTEM' in payload.histograms); 
+
+  
+  Assert.ok("addonHistograms" in payload);
+  Assert.ok(ADDON_NAME in payload.addonHistograms);
+  Assert.ok(ADDON_HISTOGRAM in payload.addonHistograms[ADDON_NAME]);
+
+  Assert.ok(("mainThread" in payload.slowSQL) &&
+                ("otherThreads" in payload.slowSQL));
+
+  
+
+  Assert.ok("keyedHistograms" in payload);
+  let keyedHistograms = payload.keyedHistograms;
+  Assert.ok(TELEMETRY_TEST_KEYED_FLAG in keyedHistograms);
+  Assert.ok(TELEMETRY_TEST_KEYED_COUNT in keyedHistograms);
+
+  Assert.deepEqual({}, keyedHistograms[TELEMETRY_TEST_KEYED_FLAG]);
+
+  const expected_keyed_count = {
+    "a": {
+      range: [1, 2],
+      bucket_count: 3,
+      histogram_type: 4,
+      values: {0:2, 1:0},
+      sum: 2,
+      sum_squares_lo: 2,
+      sum_squares_hi: 0,
+    },
+    "b": {
+      range: [1, 2],
+      bucket_count: 3,
+      histogram_type: 4,
+      values: {0:1, 1:0},
+      sum: 1,
+      sum_squares_lo: 1,
+      sum_squares_hi: 0,
+    },
+  };
+  Assert.deepEqual(expected_keyed_count, keyedHistograms[TELEMETRY_TEST_KEYED_COUNT]);
+}
+
+function writeStringToFile(file, contents) {
+  let ostream = Cc["@mozilla.org/network/safe-file-output-stream;1"]
+                .createInstance(Ci.nsIFileOutputStream);
+  ostream.init(file, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
+	       RW_OWNER, ostream.DEFER_OPEN);
+  ostream.write(contents, contents.length);
+  ostream.QueryInterface(Ci.nsISafeOutputStream).finish();
+  ostream.close();
+}
+
+function write_fake_shutdown_file() {
+  let profileDirectory = Services.dirsvc.get("ProfD", Ci.nsIFile);
+  let file = profileDirectory.clone();
+  file.append("Telemetry.ShutdownTime.txt");
+  let contents = "" + SHUTDOWN_TIME;
+  writeStringToFile(file, contents);
+}
+
+function write_fake_failedprofilelocks_file() {
+  let profileDirectory = Services.dirsvc.get("ProfD", Ci.nsIFile);
+  let file = profileDirectory.clone();
+  file.append("Telemetry.FailedProfileLocks.txt");
+  let contents = "" + FAILED_PROFILE_LOCK_ATTEMPTS;
+  writeStringToFile(file, contents);
+}
+
+function run_test() {
+  do_test_pending();
+
+  
+  do_get_profile();
+  loadAddonManager(APP_ID, APP_NAME, APP_VERSION, PLATFORM_VERSION);
+
+  Services.prefs.setBoolPref(PREF_ENABLED, true);
+  Services.prefs.setBoolPref(PREF_FHR_UPLOAD_ENABLED, true);
+
+  
+  
+  if (HAS_DATAREPORTINGSERVICE) {
+    gDatareportingService.observe(null, "app-startup", null);
+    gDatareportingService.observe(null, "profile-after-change", null);
+  }
+
+  
+  write_fake_failedprofilelocks_file();
+
+  
+  write_fake_shutdown_file();
+
+  let currentMaxNumberOfThreads = Telemetry.maximalNumberOfConcurrentThreads;
+  do_check_true(currentMaxNumberOfThreads > 0);
+
+  
+  let threads = [];
+  try {
+    for (let i = 0; i < currentMaxNumberOfThreads + 10; ++i) {
+      threads.push(Services.tm.newThread(0));
+    }
+  } catch (ex) {
+    
+  }
+  gNumberOfThreadsLaunched = threads.length;
+
+  do_check_true(Telemetry.maximalNumberOfConcurrentThreads >= gNumberOfThreadsLaunched);
+
+  do_register_cleanup(function() {
+    threads.forEach(function(thread) {
+      thread.shutdown();
+    });
+  });
+
+  Telemetry.asyncFetchTelemetryData(wrapWithExceptionHandler(run_next_test));
+}
+
+add_task(function* asyncSetup() {
+  yield TelemetrySession.setup();
+  yield TelemetryPing.setup();
+
+  if (HAS_DATAREPORTINGSERVICE) {
+    
+    gDatareportingService.simulateNoSessionRecorder();
+  }
+
+  
+  do_check_eq(TelemetrySession.getPayload().simpleMeasurements.activeTicks, -1);
+
+  if (HAS_DATAREPORTINGSERVICE) {
+    
+    gDatareportingService.simulateRestoreSessionRecorder();
+
+    gDataReportingClientID = yield gDatareportingService.getClientID();
+
+    
+    
+    let promisePingSetup = TelemetryPing.reset();
+    do_check_eq(TelemetryPing.clientID, gDataReportingClientID);
+    yield promisePingSetup;
+  }
+});
+
+
+add_task(function* test_expiredHistogram() {
+  let histogram_id = "FOOBAR";
+  let dummy = Telemetry.newHistogram(histogram_id, "30", Telemetry.HISTOGRAM_EXPONENTIAL, 1, 2, 3);
+
+  dummy.add(1);
+
+  do_check_eq(TelemetrySession.getPayload()["histograms"][histogram_id], undefined);
+  do_check_eq(TelemetrySession.getPayload()["histograms"]["TELEMETRY_TEST_EXPIRED"], undefined);
+});
+
+
+add_task(function* test_runInvalidJSON() {
+  let pingFile = getSavedPingFile("invalid-histograms.dat");
+
+  writeStringToFile(pingFile, "this.is.invalid.JSON");
+  do_check_true(pingFile.exists());
+
+  yield TelemetryFile.testLoadHistograms(pingFile);
+  do_check_false(pingFile.exists());
+});
+
+
+
+add_task(function* test_noServerPing() {
+  yield sendPing();
+  
+  
+  yield sendPing();
+});
+
+
+add_task(function* test_simplePing() {
+  gHttpServer.start(-1);
+  gServerStarted = true;
+  gRequestIterator = Iterator(new Request());
+
+  yield sendPing();
+  let request = yield gRequestIterator.next();
+  let ping = decodeRequestPayload(request);
+
+  checkPingFormat(ping, PING_TYPE, true, true);
+});
+
+
+
+
+add_task(function* test_saveLoadPing() {
+  let histogramsFile = getSavedPingFile("saved-histograms.dat");
+
+  setupTestData();
+  yield TelemetrySession.testSaveHistograms(histogramsFile);
+  yield TelemetryFile.testLoadHistograms(histogramsFile);
+  yield sendPing();
+
+  
+  let request1 = yield gRequestIterator.next();
+  let request2 = yield gRequestIterator.next();
+
+  Assert.equal(request1.getHeader("content-type"), "application/json; charset=UTF-8",
+               "The request must have the correct content-type.");
+  Assert.equal(request2.getHeader("content-type"), "application/json; charset=UTF-8",
+               "The request must have the correct content-type.");
+
+  
+  let ping1 = decodeRequestPayload(request1);
+  let ping2 = decodeRequestPayload(request2);
+
+  checkPingFormat(ping1, PING_TYPE, true, true);
+  checkPingFormat(ping2, PING_TYPE, true, true);
+
+  
+  if (ping1.payload.info.reason === "test-ping") {
+    
+    
+    checkPayload(ping1.payload, "test-ping", 1);
+    checkPayload(ping2.payload, "saved-session", 1);
+  } else {
+    checkPayload(ping1.payload, "saved-session", 1);
+    checkPayload(ping2.payload, "test-ping", 1);
+  }
+});
+
+add_task(function* test_checkSubsession() {
+  const COUNT_ID = "TELEMETRY_TEST_COUNT";
+  const KEYED_ID = "TELEMETRY_TEST_KEYED_COUNT";
+  const count = Telemetry.getHistogramById(COUNT_ID);
+  const keyed = Telemetry.getKeyedHistogramById(KEYED_ID);
+  const registeredIds =
+    new Set(Telemetry.registeredHistograms(Ci.nsITelemetry.DATASET_RELEASE_CHANNEL_OPTIN, []));
+
+  const stableHistograms = new Set([
+    "TELEMETRY_TEST_FLAG",
+    "TELEMETRY_TEST_COUNT",
+    "TELEMETRY_TEST_RELEASE_OPTOUT",
+    "TELEMETRY_TEST_RELEASE_OPTIN",
+    "STARTUP_CRASH_DETECTED",
+  ]);
+
+  const stableKeyedHistograms = new Set([
+    "TELEMETRY_TEST_KEYED_FLAG",
+    "TELEMETRY_TEST_KEYED_COUNT",
+    "TELEMETRY_TEST_KEYED_RELEASE_OPTIN",
+    "TELEMETRY_TEST_KEYED_RELEASE_OPTOUT",
+  ]);
+
+  
+  
+  
+  
+  
+  checkHistograms = (classic, subsession) => {
+    for (let id of Object.keys(classic)) {
+      if (!registeredIds.has(id)) {
+        continue;
+      }
+
+      Assert.ok(id in subsession);
+      if (stableHistograms.has(id)) {
+        Assert.deepEqual(classic[id],
+                         subsession[id]);
+      } else {
+        Assert.equal(classic[id].histogram_type,
+                     subsession[id].histogram_type);
+      }
+    }
+  };
+
+  
+  checkKeyedHistograms = (classic, subsession) => {
+    for (let id of Object.keys(classic)) {
+      if (!registeredIds.has(id)) {
+        continue;
+      }
+
+      Assert.ok(id in subsession);
+      if (stableKeyedHistograms.has(id)) {
+        Assert.deepEqual(classic[id],
+                         subsession[id]);
+      }
+    }
+  };
+
+  
+  
+  count.clear();
+  keyed.clear();
+  let classic = TelemetrySession.getPayload();
+  let subsession = TelemetrySession.getPayload("environment-change");
+
+  Assert.equal(classic.info.reason, "gather-payload");
+  Assert.equal(subsession.info.reason, "environment-change");
+  Assert.ok(!(COUNT_ID in classic.histograms));
+  Assert.ok(!(COUNT_ID in subsession.histograms));
+  Assert.ok(KEYED_ID in classic.keyedHistograms);
+  Assert.ok(KEYED_ID in subsession.keyedHistograms);
+  Assert.deepEqual(classic.keyedHistograms[KEYED_ID], {});
+  Assert.deepEqual(subsession.keyedHistograms[KEYED_ID], {});
+
+  checkHistograms(classic.histograms, subsession.histograms);
+  checkKeyedHistograms(classic.keyedHistograms, subsession.keyedHistograms);
+
+  
+  count.add(1);
+  keyed.add("a", 1);
+  keyed.add("b", 1);
+  classic = TelemetrySession.getPayload();
+  subsession = TelemetrySession.getPayload("environment-change");
+
+  Assert.ok(COUNT_ID in classic.histograms);
+  Assert.ok(COUNT_ID in subsession.histograms);
+  Assert.ok(KEYED_ID in classic.keyedHistograms);
+  Assert.ok(KEYED_ID in subsession.keyedHistograms);
+  Assert.equal(classic.histograms[COUNT_ID].sum, 1);
+  Assert.equal(classic.keyedHistograms[KEYED_ID]["a"].sum, 1);
+  Assert.equal(classic.keyedHistograms[KEYED_ID]["b"].sum, 1);
+
+  checkHistograms(classic.histograms, subsession.histograms);
+  checkKeyedHistograms(classic.keyedHistograms, subsession.keyedHistograms);
+
+  
+  count.clear();
+  keyed.clear();
+  classic = TelemetrySession.getPayload();
+  subsession = TelemetrySession.getPayload("environment-change");
+
+  Assert.ok(!(COUNT_ID in classic.histograms));
+  Assert.ok(!(COUNT_ID in subsession.histograms));
+  Assert.ok(KEYED_ID in classic.keyedHistograms);
+  Assert.ok(KEYED_ID in subsession.keyedHistograms);
+  Assert.deepEqual(classic.keyedHistograms[KEYED_ID], {});
+
+  checkHistograms(classic.histograms, subsession.histograms);
+  checkKeyedHistograms(classic.keyedHistograms, subsession.keyedHistograms);
+
+  
+  count.add(1);
+  keyed.add("a", 1);
+  keyed.add("b", 1);
+  classic = TelemetrySession.getPayload();
+  subsession = TelemetrySession.getPayload("environment-change");
+
+  Assert.ok(COUNT_ID in classic.histograms);
+  Assert.ok(COUNT_ID in subsession.histograms);
+  Assert.ok(KEYED_ID in classic.keyedHistograms);
+  Assert.ok(KEYED_ID in subsession.keyedHistograms);
+  Assert.equal(classic.histograms[COUNT_ID].sum, 1);
+  Assert.equal(classic.keyedHistograms[KEYED_ID]["a"].sum, 1);
+  Assert.equal(classic.keyedHistograms[KEYED_ID]["b"].sum, 1);
+
+  checkHistograms(classic.histograms, subsession.histograms);
+  checkKeyedHistograms(classic.keyedHistograms, subsession.keyedHistograms);
+
+  
+  count.clear(true);
+  keyed.clear(true);
+  classic = TelemetrySession.getPayload();
+  subsession = TelemetrySession.getPayload("environment-change");
+
+  Assert.ok(COUNT_ID in classic.histograms);
+  Assert.ok(COUNT_ID in subsession.histograms);
+  Assert.equal(classic.histograms[COUNT_ID].sum, 1);
+  Assert.equal(subsession.histograms[COUNT_ID].sum, 0);
+
+  Assert.ok(KEYED_ID in classic.keyedHistograms);
+  Assert.ok(KEYED_ID in subsession.keyedHistograms);
+  Assert.equal(classic.keyedHistograms[KEYED_ID]["a"].sum, 1);
+  Assert.equal(classic.keyedHistograms[KEYED_ID]["b"].sum, 1);
+  Assert.deepEqual(subsession.keyedHistograms[KEYED_ID], {});
+
+  
+  count.add(1);
+  keyed.add("a", 1);
+  keyed.add("b", 1);
+  classic = TelemetrySession.getPayload();
+  subsession = TelemetrySession.getPayload("environment-change");
+
+  Assert.ok(COUNT_ID in classic.histograms);
+  Assert.ok(COUNT_ID in subsession.histograms);
+  Assert.equal(classic.histograms[COUNT_ID].sum, 2);
+  Assert.equal(subsession.histograms[COUNT_ID].sum, 1);
+
+  Assert.ok(KEYED_ID in classic.keyedHistograms);
+  Assert.ok(KEYED_ID in subsession.keyedHistograms);
+  Assert.equal(classic.keyedHistograms[KEYED_ID]["a"].sum, 2);
+  Assert.equal(classic.keyedHistograms[KEYED_ID]["b"].sum, 2);
+  Assert.equal(subsession.keyedHistograms[KEYED_ID]["a"].sum, 1);
+  Assert.equal(subsession.keyedHistograms[KEYED_ID]["b"].sum, 1);
+});
+
+
+add_task(function* test_runOldPingFile() {
+  let histogramsFile = getSavedPingFile("old-histograms.dat");
+
+  yield TelemetrySession.testSaveHistograms(histogramsFile);
+  do_check_true(histogramsFile.exists());
+  let mtime = histogramsFile.lastModifiedTime;
+  histogramsFile.lastModifiedTime = mtime - (14 * 24 * 60 * 60 * 1000 + 60000); 
+
+  yield TelemetryFile.testLoadHistograms(histogramsFile);
+  do_check_false(histogramsFile.exists());
+});
+
+add_task(function* test_savedSessionClientID() {
+  
+  
+  const dir = TelemetryFile.pingDirectoryPath;
+  yield OS.File.removeDir(dir, {ignoreAbsent: true});
+  yield OS.File.makeDir(dir);
+  yield TelemetrySession.shutdown();
+
+  yield TelemetryFile.loadSavedPings();
+  Assert.equal(TelemetryFile.pingsLoaded, 1);
+  let ping = TelemetryFile.popPendingPings().next();
+  Assert.equal(ping.value.clientId, gDataReportingClientID);
+});
+
+add_task(function* stopServer(){
+  gHttpServer.stop(do_test_finished);
+});
+
+
+function Request() {
+  let defers = [];
+  let current = 0;
+
+  function RequestIterator() {}
+
+  
+  RequestIterator.prototype.next = function() {
+    let deferred = defers[current++];
+    return deferred.promise;
+  }
+
+  this.__iterator__ = function(){
+    return new RequestIterator();
+  }
+
+  registerPingHandler((request, response) => {
+    let deferred = defers[defers.length - 1];
+    defers.push(Promise.defer());
+    deferred.resolve(request);
+  });
+
+  defers.push(Promise.defer());
+}
