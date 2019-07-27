@@ -441,7 +441,12 @@ SourceBuffer::Remove(double aStart, double aEnd, ErrorResult& aRv)
   }
   StartUpdating();
   
-  StopUpdating();
+
+  
+  
+  
+  nsCOMPtr<nsIRunnable> event = NS_NewRunnableMethod(this, &SourceBuffer::StopUpdating);
+  NS_DispatchToMainThread(event);
 }
 
 void
@@ -632,7 +637,12 @@ SourceBuffer::AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aR
     
     mMediaSource->NotifyEvicted(0.0, GetBufferedStart());
   }
-  StopUpdating();
+
+  
+  
+  
+  nsCOMPtr<nsIRunnable> event = NS_NewRunnableMethod(this, &SourceBuffer::StopUpdating);
+  NS_DispatchToMainThread(event);
 
   
   
