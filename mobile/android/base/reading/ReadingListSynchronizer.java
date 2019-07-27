@@ -176,6 +176,80 @@ public class ReadingListSynchronizer {
     }
   }
 
+  private static class DeletionUploadDelegate implements ReadingListDeleteDelegate {
+    private final ReadingListChangeAccumulator acc;
+    private final StageDelegate next;
+
+    DeletionUploadDelegate(ReadingListChangeAccumulator acc, StageDelegate next) {
+      this.acc = acc;
+      this.next = next;
+    }
+
+    @Override
+    public void onBatchDone() {
+      try {
+        acc.finish();
+      } catch (Exception e) {
+        next.fail(e);
+        return;
+      }
+
+      next.next();
+    }
+
+    @Override
+    public void onSuccess(ReadingListRecordResponse response,
+                          ReadingListRecord record) {
+      Logger.debug(LOG_TAG, "Tracking uploaded deletion " + record.getGUID());
+      acc.addDeletion(record.getGUID());
+    }
+
+    @Override
+    public void onPreconditionFailed(String guid, MozResponse response) {
+      
+    }
+
+    @Override
+    public void onRecordMissingOrDeleted(String guid, MozResponse response) {
+      
+      Logger.debug(LOG_TAG, "Tracking redundant deletion " + guid);
+      acc.addDeletion(guid);
+    }
+
+    @Override
+    public void onFailure(Exception e) {
+      
+    }
+
+    @Override
+    public void onFailure(MozResponse response) {
+      
+    }
+  }
+
+
+  private Queue<String> collectDeletedIDsFromCursor(Cursor cursor) {
+    try {
+      final Queue<String> toDelete = new LinkedList<>();
+
+      final int columnGUID = cursor.getColumnIndexOrThrow(ReadingListItems.GUID);
+
+      while (cursor.moveToNext()) {
+        final String guid = cursor.getString(columnGUID);
+        if (guid == null) {
+          
+          continue;
+        }
+
+        toDelete.add(guid);
+      }
+
+      return toDelete;
+    } finally {
+      cursor.close();
+    }
+  }
+
   private static class StatusUploadDelegate implements ReadingListRecordUploadDelegate {
     private final ReadingListChangeAccumulator acc;
 
@@ -462,6 +536,36 @@ public class ReadingListSynchronizer {
     }
   }
 
+  protected void uploadDeletions(final StageDelegate delegate) {
+    try {
+      final Cursor cursor = local.getDeletedItems();
+
+      if (cursor == null) {
+        delegate.fail(new RuntimeException("Unable to get unread item cursor."));
+        return;
+      }
+
+      final Queue<String> toDelete = collectDeletedIDsFromCursor(cursor);
+
+      
+      if (toDelete.isEmpty()) {
+        Logger.debug(LOG_TAG, "No new deletions to upload. Skipping.");
+        delegate.next();
+        return;
+      } else {
+        Logger.debug(LOG_TAG, "Deleting " + toDelete.size() + " records from the server.");
+      }
+
+      final ReadingListChangeAccumulator acc = this.local.getChangeAccumulator();
+      final DeletionUploadDelegate deleteDelegate = new DeletionUploadDelegate(acc, delegate);
+
+      
+      this.remote.delete(toDelete, executor, deleteDelegate);
+    } catch (Exception e) {
+      delegate.fail(e);
+    }
+  }
+
   
   
   protected void uploadUnreadChanges(final StageDelegate delegate) {
@@ -732,8 +836,23 @@ public class ReadingListSynchronizer {
       }
     };
 
+    
+    final StageDelegate onDeletionsUploaded = new NextDelegate(executor) {
+      @Override
+      public void doNext() {
+        syncDelegate.onDeletionsUploadComplete();
+        uploadUnreadChanges(onUnreadChangesUploaded);
+      }
+
+      @Override
+      public void doFail(Exception e) {
+        Logger.warn(LOG_TAG, "Uploading deletions failed.", e);
+        done.fail(e);
+      }
+    };
+
     try {
-      uploadUnreadChanges(onUnreadChangesUploaded);
+      uploadDeletions(onDeletionsUploaded);
     } catch (Exception ee) {
       done.fail(ee);
     }

@@ -12,6 +12,7 @@ public interface ReadingListSynchronizerDelegate {
 
   
   
+  void onDeletionsUploadComplete();
   void onStatusUploadComplete(Collection<String> uploaded, Collection<String> failed);
   void onNewItemUploadComplete(Collection<String> uploaded, Collection<String> failed);
   void onDownloadComplete();
