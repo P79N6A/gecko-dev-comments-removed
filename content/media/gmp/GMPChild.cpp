@@ -47,17 +47,18 @@ GMPChild::Init(const std::string& aPluginPath,
                MessageLoop* aIOLoop,
                IPC::Channel* aChannel)
 {
-#ifdef GMP_CRASHREPORTER_READY
+  if (!Open(aChannel, aParentProcessHandle, aIOLoop)) {
+    return false;
+  }
 
 #ifdef MOZ_CRASHREPORTER
   SendPCrashReporterConstructor(CrashReporter::CurrentThreadId());
 #endif
-#endif
 #if defined(XP_WIN)
   mozilla::SandboxTarget::Instance()->StartSandbox();
 #endif
-  return LoadPluginLibrary(aPluginPath) &&
-         Open(aChannel, aParentProcessHandle, aIOLoop);
+
+  return LoadPluginLibrary(aPluginPath);
 }
 
 bool
