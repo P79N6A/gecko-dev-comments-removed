@@ -749,25 +749,19 @@ AddInnerLazyFunctionsFromScript(JSScript* script, AutoObjectVector& lazyFunction
 }
 
 static bool
-CreateLazyScriptsForCompartment(JSContext* cx)
+AddLazyFunctionsForCompartment(JSContext* cx, AutoObjectVector& lazyFunctions, AllocKind kind)
 {
-    AutoObjectVector lazyFunctions(cx);
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    for (gc::ZoneCellIter i(cx->zone(), AllocKind::FUNCTION); !i.done(); i.next()) {
+    for (gc::ZoneCellIter i(cx->zone(), kind); !i.done(); i.next()) {
         JSFunction* fun = &i.get<JSObject>()->as<JSFunction>();
 
         
@@ -787,6 +781,22 @@ CreateLazyScriptsForCompartment(JSContext* cx)
             }
         }
     }
+
+    return true;
+}
+
+static bool
+CreateLazyScriptsForCompartment(JSContext* cx)
+{
+    AutoObjectVector lazyFunctions(cx);
+
+    if (!AddLazyFunctionsForCompartment(cx, lazyFunctions, AllocKind::FUNCTION))
+        return false;
+
+    
+    
+    if (!AddLazyFunctionsForCompartment(cx, lazyFunctions, AllocKind::FUNCTION_EXTENDED))
+        return false;
 
     
     
