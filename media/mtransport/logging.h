@@ -12,15 +12,12 @@
 #include <sstream>
 #include <prlog.h>
 
-#if defined(PR_LOGGING)
-
 #define ML_EMERG            1
 #define ML_ERROR            2
 #define ML_WARNING          3
 #define ML_NOTICE           4
 #define ML_INFO             5
 #define ML_DEBUG            6
-
 
 #define MOZ_MTLOG_MODULE(n) \
   static PRLogModuleInfo* getLogModule() {      \
@@ -35,11 +32,5 @@
     std::stringstream str;                                              \
     str << b;                                                           \
     PR_LOG(getLogModule(), level, ("%s", str.str().c_str())); } while(0)
-
-#else
-
-#define MOZ_MTLOG_MODULE(n)
-#define MOZ_MTLOG(level, b)
-#endif 
 
 #endif 
