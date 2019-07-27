@@ -102,6 +102,7 @@ private:
   
   
   mp4_demuxer::MP4Sample* PopSample(mp4_demuxer::TrackType aTrack);
+  mp4_demuxer::MP4Sample* PopSampleLocked(mp4_demuxer::TrackType aTrack);
 
   bool SkipVideoDemuxToNextKeyFrame(int64_t aTimeThreshold, uint32_t& parsed);
 
