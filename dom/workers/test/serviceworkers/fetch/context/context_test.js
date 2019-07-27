@@ -2,6 +2,7 @@ self.addEventListener("fetch", function(event) {
   if (event.request.url.indexOf("index.html") >= 0 ||
       event.request.url.indexOf("register.html") >= 0 ||
       event.request.url.indexOf("unregister.html") >= 0 ||
+      event.request.url.indexOf("ping.html") >= 0 ||
       event.request.url.indexOf("csp-violate.sjs") >= 0) {
     
     event.respondWith(fetch(event.request));
@@ -51,6 +52,8 @@ self.addEventListener("fetch", function(event) {
     }
   } else if (event.request.url.indexOf("newwindow") >= 0) {
     respondToServiceWorker(event, "newwindow");
+  } else if (event.request.url.indexOf("ping") >= 0) {
+    respondToServiceWorker(event, "ping");
   }
   
   try {
