@@ -171,9 +171,11 @@ class FakeVideoEncoder : public GMPVideoEncoder {
     GMPVideoEncodedFrame* f = static_cast<GMPVideoEncodedFrame*> (ftmp);
 
     
+    
+    
     EncodedFrame eframe;
     eframe.length_ = sizeof(eframe) - sizeof(uint32_t);
-    eframe.h264_compat_ = 'g';
+    eframe.h264_compat_ = 5; 
     eframe.magic_ = ENCODED_FRAME_MAGIC;
     eframe.width_ = inputImage->Width();
     eframe.height_ = inputImage->Height();
