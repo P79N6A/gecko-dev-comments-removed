@@ -3790,6 +3790,9 @@ pref("image.high_quality_downscaling.min_factor", 1000);
 pref("image.high_quality_upscaling.max_size", 20971520);
 
 
+pref("image.single-color-optimization.enabled", true);
+
+
 
 
 

@@ -421,8 +421,8 @@ nsresult imgFrame::Optimize()
 
   
 
-  
-  if (mImageSurface->Stride() == mSize.width * 4) {
+  if (gfxPrefs::ImageSingleColorOptimizationEnabled() &&
+      mImageSurface->Stride() == mSize.width * 4) {
     uint32_t *imgData = (uint32_t*) ((uint8_t *)mVBufPtr);
     uint32_t firstPixel = * (uint32_t*) imgData;
     uint32_t pixelCount = mSize.width * mSize.height + 1;

@@ -26,6 +26,10 @@
     branch.setBoolPref("image.high_quality_downscaling.enabled", false);
     
     
+    
+    branch.setBoolPref("image.single-color-optimization.enabled", false);
+    
+    
     branch.setBoolPref("security.fileuri.strict_origin_policy", false);
     
     branch.setBoolPref("browser.pagethumbnails.capturing_disabled", true);
