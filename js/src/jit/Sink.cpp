@@ -57,8 +57,11 @@ Sink(MIRGenerator *mir, MIRGraph &graph)
 
             
             
-            if (ins->isGuard() || ins->isRecoveredOnBailout() || !ins->canRecoverOnBailout())
+            if (ins->isGuard() || ins->isGuardRangeBailouts() ||
+                ins->isRecoveredOnBailout() || !ins->canRecoverOnBailout())
+            {
                 continue;
+            }
 
             
             

@@ -2801,6 +2801,10 @@ ComputeRequestedTruncateKind(MDefinition *candidate, bool *shouldClone)
     }
 
     
+    if (candidate->isGuard() || candidate->isGuardRangeBailouts())
+        kind = Min(kind, MDefinition::TruncateAfterBailouts);
+
+    
     
     
     bool needsConversion = !candidate->range() || !candidate->range()->isInt32();
@@ -3241,8 +3245,6 @@ RangeAnalysis::prepareForUCE(bool *shouldRemoveDeadCode)
 {
     *shouldRemoveDeadCode = false;
 
-    MDefinitionVector deadConditions(alloc());
-
     for (ReversePostorderIterator iter(graph_.rpoBegin()); iter != graph_.rpoEnd(); iter++) {
         MBasicBlock *block = *iter;
 
@@ -3266,11 +3268,8 @@ RangeAnalysis::prepareForUCE(bool *shouldRemoveDeadCode)
             constant = MConstant::New(alloc(), BooleanValue(true));
         }
 
-        if (DeadIfUnused(condition) && !condition->isInWorklist()) {
-            condition->setInWorklist();
-            if (!deadConditions.append(condition))
-                return false;
-        }
+        if (DeadIfUnused(condition))
+            condition->setGuardRangeBailoutsUnchecked();
 
         test->block()->insertBefore(test, constant);
 
@@ -3281,54 +3280,72 @@ RangeAnalysis::prepareForUCE(bool *shouldRemoveDeadCode)
         *shouldRemoveDeadCode = true;
     }
 
-    
-    
-    
-    
-    for (size_t i = 0; i < deadConditions.length(); i++) {
-        MDefinition *cond = deadConditions[i];
+    return tryRemovingGuards();
+}
 
-        
-        
-        if (cond->isGuard())
-            continue;
+bool RangeAnalysis::tryRemovingGuards() {
 
-        if (cond->range()) {
-            
-            Range typeFilteredRange(cond);
+    MDefinitionVector guards(alloc());
 
-            
-            
-            
-            
-            
-            
-            if (typeFilteredRange.update(cond->range())) {
-                cond->setGuard();
-                continue;
-            }
-        }
-
-        for (size_t op = 0, e = cond->numOperands(); op < e; op++) {
-            MDefinition *operand = cond->getOperand(op);
-            if (!DeadIfUnused(operand) || operand->isInWorklist())
+    for (ReversePostorderIterator block = graph_.rpoBegin(); block != graph_.rpoEnd(); block++) {
+        for (MInstructionReverseIterator iter = block->rbegin(); iter != block->rend(); iter++) {
+            if (!iter->isGuardRangeBailouts())
                 continue;
 
-            
-            
-            
-            if (!operand->range())
-                continue;
-
-            operand->setInWorklist();
-            if (!deadConditions.append(operand))
+            if (!guards.append(*iter))
                 return false;
         }
     }
 
-    while (!deadConditions.empty()) {
-        MDefinition *cond = deadConditions.popCopy();
-        cond->setNotInWorklist();
+    
+    
+    
+    
+    for (size_t i = 0; i < guards.length(); i++) {
+        MDefinition *guard = guards[i];
+
+#ifdef DEBUG
+        
+        
+        guard->setNotGuardRangeBailouts();
+        MOZ_ASSERT(DeadIfUnused(guard));
+        guard->setGuardRangeBailouts();
+#endif
+
+        if (!guard->range())
+            continue;
+
+        
+        Range typeFilteredRange(guard);
+
+        
+        
+        
+        
+        
+        
+        if (typeFilteredRange.update(guard->range()))
+            continue;
+
+        guard->setNotGuardRangeBailouts();
+
+        
+        for (size_t op = 0, e = guard->numOperands(); op < e; op++) {
+            MDefinition *operand = guard->getOperand(op);
+
+            
+            if (operand->isGuardRangeBailouts())
+                continue;
+
+            
+            
+            if (!DeadIfUnused(operand))
+                continue;
+
+            operand->setGuardRangeBailouts();
+            if (!guards.append(operand))
+                return false;
+        }
     }
 
     return true;
