@@ -7919,7 +7919,11 @@ nsFrame::DoGetParentStyleContext(nsIFrame** aProviderFrame) const
     if (MOZ_LIKELY(parentContent)) {
       nsIAtom* pseudo = StyleContext()->GetPseudo();
       if (!pseudo || !mContent->IsElement() ||
-          !nsCSSAnonBoxes::IsAnonBox(pseudo) ||
+          (!nsCSSAnonBoxes::IsAnonBox(pseudo) &&
+           
+           
+           
+           mContent->GetPrimaryFrame() == this) ||
           
 
           pseudo == nsCSSAnonBoxes::tableOuter) {
