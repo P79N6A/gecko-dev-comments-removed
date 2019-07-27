@@ -570,8 +570,7 @@ pref("apz.test.logging_enabled", false);
 pref("gfx.hidpi.enabled", 2);
 #endif
 
-#if !defined(MOZ_WIDGET_GONK) && !defined(MOZ_WIDGET_ANDROID)
-
+#if !defined(MOZ_WIDGET_ANDROID)
 
 pref("layout.scroll.root-frame-containers", false);
 #endif
@@ -4415,23 +4414,14 @@ pref("dom.mozPermissionSettings.enabled", false);
 pref("dom.w3c_touch_events.enabled", 2);
 #endif
 
-#ifdef NIGHTLY_BUILD
-#if defined(XP_WIN) || defined(XP_LINUX) || defined(XP_MACOSX)
 
-pref("dom.w3c_pointer_events.enabled", true);
-
-pref("layout.css.touch_action.enabled", true);
-#else
 pref("dom.w3c_pointer_events.enabled", false);
-pref("layout.css.touch_action.enabled", false);
-#endif
-#else
-pref("dom.w3c_pointer_events.enabled", false);
-pref("layout.css.touch_action.enabled", false);
-#endif
 
 
 pref("dom.imagecapture.enabled", false);
+
+
+pref("layout.css.touch_action.enabled", false);
 
 
 
