@@ -2476,6 +2476,18 @@ void AudioDeviceLinuxPulse::PaStreamReadCallbackHandler()
     
     
     
+    
+    
+    
+    if (_tempSampleDataSize && !_tempSampleData) {
+        LATE(pa_stream_drop)(_recStream);
+        _tempSampleDataSize = 0; 
+        return;
+    }
+
+    
+    
+    
     DisableReadCallback();
     _timeEventRec.Set();
 }
