@@ -695,6 +695,9 @@ ErrorReport::init(JSContext *cx, HandleValue exn)
     else
         str = ToString<CanGC>(cx, exn);
 
+    if (!str)
+        cx->clearPendingException();
+
     
     
     
