@@ -373,11 +373,7 @@ public:
   
 
 
-  inline bool UpdateChildren()
-  {
-    InvalidateChildren();
-    return EnsureChildren();
-  }
+  bool UpdateChildren();
 
   
 
@@ -948,7 +944,8 @@ protected:
     eNotNodeMapEntry = 1 << 3, 
     eHasNumericValue = 1 << 4, 
     eGroupInfoDirty = 1 << 5, 
-    eIgnoreDOMUIEvent = 1 << 6, 
+    eSubtreeMutating = 1 << 6, 
+    eIgnoreDOMUIEvent = 1 << 7, 
 
     eLastStateFlag = eIgnoreDOMUIEvent
   };
@@ -1064,7 +1061,7 @@ protected:
   int32_t mIndexInParent;
 
   static const uint8_t kChildrenFlagsBits = 2;
-  static const uint8_t kStateFlagsBits = 7;
+  static const uint8_t kStateFlagsBits = 8;
   static const uint8_t kContextFlagsBits = 1;
   static const uint8_t kTypeBits = 6;
   static const uint8_t kGenericTypesBits = 13;
@@ -1079,9 +1076,11 @@ protected:
   uint32_t mGenericTypes : kGenericTypesBits;
 
   void StaticAsserts() const;
+  void AssertInMutatingSubtree() const;
 
   friend class DocAccessible;
   friend class xpcAccessible;
+  friend class AutoTreeMutation;
 
   nsAutoPtr<mozilla::a11y::EmbeddedObjCollector> mEmbeddedObjCollector;
   int32_t mIndexOfEmbeddedChild;
@@ -1163,6 +1162,35 @@ private:
 
   uint32_t mKey;
   uint32_t mModifierMask;
+};
+
+
+
+
+
+
+
+class AutoTreeMutation
+{
+public:
+  AutoTreeMutation(Accessible* aRoot, bool aInvalidationRequired = true) :
+    mInvalidationRequired(aInvalidationRequired), mRoot(aRoot)
+  {
+    MOZ_ASSERT(!(mRoot->mStateFlags & Accessible::eSubtreeMutating));
+    mRoot->mStateFlags |= Accessible::eSubtreeMutating;
+  }
+  ~AutoTreeMutation()
+  {
+    if (mInvalidationRequired)
+      mRoot->InvalidateChildrenGroupInfo();
+
+    MOZ_ASSERT(mRoot->mStateFlags & Accessible::eSubtreeMutating);
+    mRoot->mStateFlags &= ~Accessible::eSubtreeMutating;
+  }
+
+  bool mInvalidationRequired;
+private:
+  Accessible* mRoot;
 };
 
 } 

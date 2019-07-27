@@ -483,7 +483,13 @@ DocAccessible::Shutdown()
 
   mDependentIDsHash.Clear();
   mNodeToAccessibleMap.Clear();
-  ClearCache(mAccessibleCache);
+
+  {
+    
+    
+    AutoTreeMutation mut(this, false);
+    ClearCache(mAccessibleCache);
+  }
 
   HyperTextAccessibleWrap::Shutdown();
 
@@ -1318,8 +1324,10 @@ DocAccessible::ProcessInvalidationList()
     }
 
     
-    if (accessible)
+    if (accessible) {
+      AutoTreeMutation mut(accessible);
       CacheChildrenInSubtree(accessible);
+    }
   }
 
   mInvalidationList.Clear();
@@ -1426,6 +1434,8 @@ DocAccessible::DoInitialUpdate()
   }
 
   
+  
+  AutoTreeMutation mut(this, false);
   CacheChildrenInSubtree(this);
 
   
@@ -1659,6 +1669,9 @@ DocAccessible::ProcessContentInserted(Accessible* aContainer,
       
       
       
+      
+      
+      AutoTreeMutation mut(aContainer);
       aContainer->InvalidateChildren();
       CacheChildrenInSubtree(aContainer);
     }
@@ -1691,6 +1704,7 @@ DocAccessible::UpdateTree(Accessible* aContainer, nsIContent* aChildNode,
 #endif
 
   nsRefPtr<AccReorderEvent> reorderEvent = new AccReorderEvent(aContainer);
+  AutoTreeMutation mut(aContainer);
 
   if (child) {
     updateFlags |= UpdateTreeInternal(child, aIsInsert, reorderEvent);
