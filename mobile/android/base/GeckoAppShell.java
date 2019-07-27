@@ -2483,7 +2483,16 @@ public class GeckoAppShell
             Looper.myLooper().quit();
         else
             msg.getTarget().dispatchMessage(msg);
-        msg.recycle();
+
+        try {
+            
+            
+            
+            
+            msg.recycle();
+        } catch (IllegalStateException e) {
+            
+        }
         return true;
     }
 
