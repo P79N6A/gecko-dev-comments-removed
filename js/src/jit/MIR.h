@@ -12635,6 +12635,10 @@ class MAsmJSLoadHeap
 
     bool congruentTo(const MDefinition *ins) const override;
     AliasSet getAliasSet() const override {
+        
+        
+        if (barrierBefore_|barrierAfter_)
+            return AliasSet::Store(AliasSet::AsmJSHeap);
         return AliasSet::Load(AliasSet::AsmJSHeap);
     }
     bool mightAlias(const MDefinition *def) const override;
