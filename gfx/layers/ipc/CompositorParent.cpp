@@ -662,7 +662,9 @@ CompositorParent::CompositorParent(nsIWidget* aWidget,
     sIndirectLayerTrees[mRootLayerTreeID].mParent = this;
   }
 
-  if (gfxPrefs::AsyncPanZoomEnabled() &&
+  
+  
+  if (gfxPrefs::AsyncPanZoomEnabledDoNotUseDirectly() &&
 #if !defined(MOZ_B2G) && !defined(MOZ_WIDGET_ANDROID)
       
       

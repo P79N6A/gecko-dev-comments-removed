@@ -2444,7 +2444,9 @@ DetectBadApzWheelInputPrefs()
 void
 gfxPlatform::GetApzSupportInfo(mozilla::widget::InfoObject& aObj)
 {
-  if (!gfxPrefs::AsyncPanZoomEnabled()) {
+  
+  
+  if (!gfxPrefs::AsyncPanZoomEnabledDoNotUseDirectly()) {
     return;
   }
 

@@ -11041,10 +11041,10 @@ nsIPresShell::RecomputeFontSizeInflationEnabled()
 
   
   if (!FontSizeInflationForceEnabled()) {
-    if (TabChild::GetFrom(this)) {
+    if (TabChild* tab = TabChild::GetFrom(this)) {
       
       
-      if (!gfxPrefs::AsyncPanZoomEnabled()) {
+      if (!tab->AsyncPanZoomEnabled()) {
         mFontSizeInflationEnabled = false;
         return;
       }

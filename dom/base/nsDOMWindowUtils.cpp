@@ -375,9 +375,12 @@ nsDOMWindowUtils::SetDisplayPortForElement(float aXPx, float aYPx,
                        new DisplayPortPropertyData(displayport, aPriority),
                        nsINode::DeleteProperty<DisplayPortPropertyData>);
 
-  if (nsLayoutUtils::UsesAsyncScrolling() && gfxPrefs::LayoutUseContainersForRootFrames()) {
+  if (gfxPrefs::LayoutUseContainersForRootFrames()) {
     nsIFrame* rootScrollFrame = presShell->GetRootScrollFrame();
-    if (rootScrollFrame && content == rootScrollFrame->GetContent()) {
+    if (rootScrollFrame &&
+        content == rootScrollFrame->GetContent() &&
+        nsLayoutUtils::UsesAsyncScrolling(rootScrollFrame))
+    {
       
       
       presShell->SetIgnoreViewportScrolling(true);
@@ -858,7 +861,7 @@ nsDOMWindowUtils::SendWheelEvent(float aX,
 
   widget->DispatchAPZAwareEvent(&wheelEvent);
 
-  if (gfxPrefs::AsyncPanZoomEnabled()) {
+  if (widget->AsyncPanZoomEnabled()) {
     
     
     return NS_OK;
