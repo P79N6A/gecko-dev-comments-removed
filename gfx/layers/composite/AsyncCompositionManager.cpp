@@ -138,7 +138,8 @@ GetBaseTransform2D(Layer* aLayer, Matrix* aTransform)
 
 static void
 TranslateShadowLayer2D(Layer* aLayer,
-                       const gfxPoint& aTranslation)
+                       const gfxPoint& aTranslation,
+                       bool aAdjustClipRect)
 {
   
   
@@ -173,7 +174,7 @@ TranslateShadowLayer2D(Layer* aLayer,
   layerComposite->SetShadowTransformSetByAnimation(false);
 
   const nsIntRect* clipRect = aLayer->GetClipRect();
-  if (clipRect) {
+  if (aAdjustClipRect && clipRect) {
     nsIntRect transformedClipRect(*clipRect);
     transformedClipRect.MoveBy(aTranslation.x, aTranslation.y);
     layerComposite->SetShadowClipRect(&transformedClipRect);
@@ -257,7 +258,7 @@ AsyncCompositionManager::AlignFixedAndStickyLayers(Layer* aLayer,
   
   
   
-  if (aLayer == aTransformedSubtreeRoot || !isFixedOrSticky) {
+  if (!isFixedOrSticky) {
     
     
     
@@ -350,7 +351,14 @@ AsyncCompositionManager::AlignFixedAndStickyLayers(Layer* aLayer,
   }
 
   
-  TranslateShadowLayer2D(aLayer, ThebesPoint(translation));
+  
+  
+  
+  
+  
+  
+  
+  TranslateShadowLayer2D(aLayer, ThebesPoint(translation), aLayer != aTransformedSubtreeRoot);
 }
 
 static void
