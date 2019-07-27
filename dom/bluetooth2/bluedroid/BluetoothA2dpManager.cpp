@@ -755,7 +755,7 @@ BluetoothA2dpManager::UpdateMetaData(const nsAString& aTitle,
     
     
     
-    for (int i = 0; i < BTRC_UID_SIZE; ++i) {
+    for (int i = 0; i < AVRCP_UID_SIZE; ++i) {
       param.mTrack[i] = (aMediaNumber >> (56 - 8 * i));
     }
     mTrackChangedNotifyType = AVRCP_NTF_CHANGED;
@@ -858,7 +858,7 @@ BluetoothA2dpManager::UpdateRegisterNotification(BluetoothAvrcpEvent aEvent,
       mTrackChangedNotifyType = AVRCP_NTF_INTERIM;
       
       
-      for (int index = 0; index < BTRC_UID_SIZE; ++index) {
+      for (int index = 0; index < AVRCP_UID_SIZE; ++index) {
         
         
         if (mSinkState == BluetoothA2dpManager::SinkState::SINK_PLAYING) {
