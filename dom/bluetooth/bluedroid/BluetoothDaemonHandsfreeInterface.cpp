@@ -17,6 +17,9 @@ BEGIN_BLUETOOTH_NAMESPACE
 BluetoothHandsfreeNotificationHandler*
   BluetoothDaemonHandsfreeModule::sNotificationHandler;
 
+nsString BluetoothDaemonHandsfreeModule::sConnectedDeviceAddress(
+  NS_ConvertUTF8toUTF16(BLUETOOTH_ADDRESS_NONE));
+
 void
 BluetoothDaemonHandsfreeModule::SetNotificationHandler(
   BluetoothHandsfreeNotificationHandler* aNotificationHandler)
@@ -409,6 +412,19 @@ BluetoothDaemonHandsfreeModule::PhoneStateChangeCmd(
   return NS_OK;
 }
 
+nsresult
+BluetoothDaemonHandsfreeModule::ConfigureWbsCmd(
+  const nsAString& aBdAddr,
+  BluetoothHandsfreeWbsConfig aConfig,
+  BluetoothHandsfreeResultHandler* aRes)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 
 
 
@@ -662,6 +678,12 @@ public:
     if (NS_FAILED(rv)) {
       return rv;
     }
+
+    if (aArg1 == HFP_CONNECTION_STATE_CONNECTED) {
+      sConnectedDeviceAddress = aArg2;
+    } else if (aArg1 == HFP_CONNECTION_STATE_DISCONNECTED) {
+      sConnectedDeviceAddress.AssignLiteral(BLUETOOTH_ADDRESS_NONE);
+    }
     WarnAboutTrailingData();
     return NS_OK;
   }
@@ -686,8 +708,7 @@ public:
   { }
 
   nsresult
-  operator () (BluetoothHandsfreeAudioState& aArg1,
-               nsString& aArg2) const
+  operator () (BluetoothHandsfreeAudioState& aArg1, nsString& aArg2) const
   {
     BluetoothDaemonPDU& pdu = GetPDU();
 
@@ -717,14 +738,65 @@ BluetoothDaemonHandsfreeModule::AudioStateNtf(
     AudioStateInitOp(aPDU));
 }
 
+
+class BluetoothDaemonHandsfreeModule::VoiceRecognitionInitOp MOZ_FINAL
+  : private PDUInitOp
+{
+public:
+  VoiceRecognitionInitOp(BluetoothDaemonPDU& aPDU)
+    : PDUInitOp(aPDU)
+  { }
+
+  nsresult
+  operator () (BluetoothHandsfreeVoiceRecognitionState& aArg1,
+               nsString& aArg2) const
+  {
+    BluetoothDaemonPDU& pdu = GetPDU();
+
+    
+    nsresult rv = UnpackPDU(pdu, aArg1);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
+    
+    
+    aArg2 = sConnectedDeviceAddress;
+    WarnAboutTrailingData();
+    return NS_OK;
+  }
+};
+
 void
 BluetoothDaemonHandsfreeModule::VoiceRecognitionNtf(
   const BluetoothDaemonPDUHeader& aHeader, BluetoothDaemonPDU& aPDU)
 {
   VoiceRecognitionNotification::Dispatch(
     &BluetoothHandsfreeNotificationHandler::VoiceRecognitionNotification,
-    UnpackPDUInitOp(aPDU));
+    VoiceRecognitionInitOp(aPDU));
 }
+
+
+class BluetoothDaemonHandsfreeModule::AnswerCallInitOp MOZ_FINAL
+  : private PDUInitOp
+{
+public:
+  AnswerCallInitOp(BluetoothDaemonPDU& aPDU)
+    : PDUInitOp(aPDU)
+  { }
+
+  nsresult
+  operator () (nsString& aArg1) const
+  {
+    BluetoothDaemonPDU& pdu = GetPDU();
+
+    
+    
+    aArg1 = sConnectedDeviceAddress;
+    WarnAboutTrailingData();
+    return NS_OK;
+  }
+};
 
 void
 BluetoothDaemonHandsfreeModule::AnswerCallNtf(
@@ -732,8 +804,30 @@ BluetoothDaemonHandsfreeModule::AnswerCallNtf(
 {
   AnswerCallNotification::Dispatch(
     &BluetoothHandsfreeNotificationHandler::AnswerCallNotification,
-    UnpackPDUInitOp(aPDU));
+    AnswerCallInitOp(aPDU));
 }
+
+
+class BluetoothDaemonHandsfreeModule::HangupCallInitOp MOZ_FINAL
+  : private PDUInitOp
+{
+public:
+  HangupCallInitOp(BluetoothDaemonPDU& aPDU)
+    : PDUInitOp(aPDU)
+  { }
+
+  nsresult
+  operator () (nsString& aArg1) const
+  {
+    BluetoothDaemonPDU& pdu = GetPDU();
+
+    
+    
+    aArg1 = sConnectedDeviceAddress;
+    WarnAboutTrailingData();
+    return NS_OK;
+  }
+};
 
 void
 BluetoothDaemonHandsfreeModule::HangupCallNtf(
@@ -741,7 +835,7 @@ BluetoothDaemonHandsfreeModule::HangupCallNtf(
 {
   HangupCallNotification::Dispatch(
     &BluetoothHandsfreeNotificationHandler::HangupCallNotification,
-    UnpackPDUInitOp(aPDU));
+    HangupCallInitOp(aPDU));
 }
 
 
@@ -754,7 +848,8 @@ public:
   { }
 
   nsresult
-  operator () (BluetoothHandsfreeVolumeType& aArg1, int& aArg2) const
+  operator () (BluetoothHandsfreeVolumeType& aArg1, int& aArg2,
+               nsString& aArg3) const
   {
     BluetoothDaemonPDU& pdu = GetPDU();
 
@@ -769,6 +864,10 @@ public:
     if (NS_FAILED(rv)) {
       return rv;
     }
+
+    
+    
+    aArg3 = sConnectedDeviceAddress;
     WarnAboutTrailingData();
     return NS_OK;
   }
@@ -793,13 +892,19 @@ public:
   { }
 
   nsresult
-  operator () (nsString& aArg1) const
+  operator () (nsString& aArg1, nsString& aArg2) const
   {
+    BluetoothDaemonPDU& pdu = GetPDU();
+
     
-    nsresult rv = UnpackPDU(GetPDU(), UnpackString0(aArg1));
+    nsresult rv = UnpackPDU(pdu, UnpackString0(aArg1));
     if (NS_FAILED(rv)) {
       return rv;
     }
+
+    
+    
+    aArg2 = sConnectedDeviceAddress;
     WarnAboutTrailingData();
     return NS_OK;
   }
@@ -814,14 +919,70 @@ BluetoothDaemonHandsfreeModule::DialCallNtf(
     DialCallInitOp(aPDU));
 }
 
+
+class BluetoothDaemonHandsfreeModule::DtmfInitOp MOZ_FINAL
+  : private PDUInitOp
+{
+public:
+  DtmfInitOp(BluetoothDaemonPDU& aPDU)
+    : PDUInitOp(aPDU)
+  { }
+
+  nsresult
+  operator () (char& aArg1, nsString& aArg2) const
+  {
+    BluetoothDaemonPDU& pdu = GetPDU();
+
+    
+    nsresult rv = UnpackPDU(pdu, aArg1);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
+    
+    
+    aArg2 = sConnectedDeviceAddress;
+    WarnAboutTrailingData();
+    return NS_OK;
+  }
+};
+
 void
 BluetoothDaemonHandsfreeModule::DtmfNtf(
   const BluetoothDaemonPDUHeader& aHeader, BluetoothDaemonPDU& aPDU)
 {
   DtmfNotification::Dispatch(
     &BluetoothHandsfreeNotificationHandler::DtmfNotification,
-    UnpackPDUInitOp(aPDU));
+    DtmfInitOp(aPDU));
 }
+
+
+class BluetoothDaemonHandsfreeModule::NRECInitOp MOZ_FINAL
+  : private PDUInitOp
+{
+public:
+  NRECInitOp(BluetoothDaemonPDU& aPDU)
+    : PDUInitOp(aPDU)
+  { }
+
+  nsresult
+  operator () (BluetoothHandsfreeNRECState& aArg1, nsString& aArg2) const
+  {
+    BluetoothDaemonPDU& pdu = GetPDU();
+
+    
+    nsresult rv = UnpackPDU(pdu, aArg1);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
+    
+    
+    aArg2 = sConnectedDeviceAddress;
+    WarnAboutTrailingData();
+    return NS_OK;
+  }
+};
 
 void
 BluetoothDaemonHandsfreeModule::NRECNtf(
@@ -829,8 +990,36 @@ BluetoothDaemonHandsfreeModule::NRECNtf(
 {
   NRECNotification::Dispatch(
     &BluetoothHandsfreeNotificationHandler::NRECNotification,
-    UnpackPDUInitOp(aPDU));
+    NRECInitOp(aPDU));
 }
+
+
+class BluetoothDaemonHandsfreeModule::CallHoldInitOp MOZ_FINAL
+  : private PDUInitOp
+{
+public:
+  CallHoldInitOp(BluetoothDaemonPDU& aPDU)
+    : PDUInitOp(aPDU)
+  { }
+
+  nsresult
+  operator () (BluetoothHandsfreeCallHoldType& aArg1, nsString& aArg2) const
+  {
+    BluetoothDaemonPDU& pdu = GetPDU();
+
+    
+    nsresult rv = UnpackPDU(pdu, aArg1);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
+    
+    
+    aArg2 = sConnectedDeviceAddress;
+    WarnAboutTrailingData();
+    return NS_OK;
+  }
+};
 
 void
 BluetoothDaemonHandsfreeModule::CallHoldNtf(
@@ -838,8 +1027,30 @@ BluetoothDaemonHandsfreeModule::CallHoldNtf(
 {
   CallHoldNotification::Dispatch(
     &BluetoothHandsfreeNotificationHandler::CallHoldNotification,
-    UnpackPDUInitOp(aPDU));
+    CallHoldInitOp(aPDU));
 }
+
+
+class BluetoothDaemonHandsfreeModule::CnumInitOp MOZ_FINAL
+  : private PDUInitOp
+{
+public:
+  CnumInitOp(BluetoothDaemonPDU& aPDU)
+    : PDUInitOp(aPDU)
+  { }
+
+  nsresult
+  operator () (nsString& aArg1) const
+  {
+    BluetoothDaemonPDU& pdu = GetPDU();
+
+    
+    
+    aArg1 = sConnectedDeviceAddress;
+    WarnAboutTrailingData();
+    return NS_OK;
+  }
+};
 
 void
 BluetoothDaemonHandsfreeModule::CnumNtf(
@@ -847,8 +1058,30 @@ BluetoothDaemonHandsfreeModule::CnumNtf(
 {
   CnumNotification::Dispatch(
     &BluetoothHandsfreeNotificationHandler::CnumNotification,
-    UnpackPDUInitOp(aPDU));
+    CnumInitOp(aPDU));
 }
+
+
+class BluetoothDaemonHandsfreeModule::CindInitOp MOZ_FINAL
+  : private PDUInitOp
+{
+public:
+  CindInitOp(BluetoothDaemonPDU& aPDU)
+    : PDUInitOp(aPDU)
+  { }
+
+  nsresult
+  operator () (nsString& aArg1) const
+  {
+    BluetoothDaemonPDU& pdu = GetPDU();
+
+    
+    
+    aArg1 = sConnectedDeviceAddress;
+    WarnAboutTrailingData();
+    return NS_OK;
+  }
+};
 
 void
 BluetoothDaemonHandsfreeModule::CindNtf(
@@ -856,8 +1089,30 @@ BluetoothDaemonHandsfreeModule::CindNtf(
 {
   CindNotification::Dispatch(
     &BluetoothHandsfreeNotificationHandler::CindNotification,
-    UnpackPDUInitOp(aPDU));
+    CindInitOp(aPDU));
 }
+
+
+class BluetoothDaemonHandsfreeModule::CopsInitOp MOZ_FINAL
+  : private PDUInitOp
+{
+public:
+  CopsInitOp(BluetoothDaemonPDU& aPDU)
+    : PDUInitOp(aPDU)
+  { }
+
+  nsresult
+  operator () (nsString& aArg1) const
+  {
+    BluetoothDaemonPDU& pdu = GetPDU();
+
+    
+    
+    aArg1 = sConnectedDeviceAddress;
+    WarnAboutTrailingData();
+    return NS_OK;
+  }
+};
 
 void
 BluetoothDaemonHandsfreeModule::CopsNtf(
@@ -865,8 +1120,30 @@ BluetoothDaemonHandsfreeModule::CopsNtf(
 {
   CopsNotification::Dispatch(
     &BluetoothHandsfreeNotificationHandler::CopsNotification,
-    UnpackPDUInitOp(aPDU));
+    CopsInitOp(aPDU));
 }
+
+
+class BluetoothDaemonHandsfreeModule::ClccInitOp MOZ_FINAL
+  : private PDUInitOp
+{
+public:
+  ClccInitOp(BluetoothDaemonPDU& aPDU)
+    : PDUInitOp(aPDU)
+  { }
+
+  nsresult
+  operator () (nsString& aArg1) const
+  {
+    BluetoothDaemonPDU& pdu = GetPDU();
+
+    
+    
+    aArg1 = sConnectedDeviceAddress;
+    WarnAboutTrailingData();
+    return NS_OK;
+  }
+};
 
 void
 BluetoothDaemonHandsfreeModule::ClccNtf(
@@ -874,7 +1151,7 @@ BluetoothDaemonHandsfreeModule::ClccNtf(
 {
   ClccNotification::Dispatch(
     &BluetoothHandsfreeNotificationHandler::ClccNotification,
-    UnpackPDUInitOp(aPDU));
+    ClccInitOp(aPDU));
 }
 
 
@@ -887,13 +1164,19 @@ public:
   { }
 
   nsresult
-  operator () (nsCString& aArg1) const
+  operator () (nsCString& aArg1, nsString& aArg2) const
   {
+    BluetoothDaemonPDU& pdu = GetPDU();
+
     
-    nsresult rv = UnpackPDU(GetPDU(), UnpackCString0(aArg1));
+    nsresult rv = UnpackPDU(pdu, UnpackCString0(aArg1));
     if (NS_FAILED(rv)) {
       return rv;
     }
+
+    
+    
+    aArg2 = sConnectedDeviceAddress;
     WarnAboutTrailingData();
     return NS_OK;
   }
@@ -908,13 +1191,35 @@ BluetoothDaemonHandsfreeModule::UnknownAtNtf(
     UnknownAtInitOp(aPDU));
 }
 
+
+class BluetoothDaemonHandsfreeModule::KeyPressedInitOp MOZ_FINAL
+  : private PDUInitOp
+{
+public:
+  KeyPressedInitOp(BluetoothDaemonPDU& aPDU)
+    : PDUInitOp(aPDU)
+  { }
+
+  nsresult
+  operator () (nsString& aArg1) const
+  {
+    BluetoothDaemonPDU& pdu = GetPDU();
+
+    
+    
+    aArg1 = sConnectedDeviceAddress;
+    WarnAboutTrailingData();
+    return NS_OK;
+  }
+};
+
 void
 BluetoothDaemonHandsfreeModule::KeyPressedNtf(
   const BluetoothDaemonPDUHeader& aHeader, BluetoothDaemonPDU& aPDU)
 {
   KeyPressedNotification::Dispatch(
     &BluetoothHandsfreeNotificationHandler::KeyPressedNotification,
-    UnpackPDUInitOp(aPDU));
+    KeyPressedInitOp(aPDU));
 }
 
 void
@@ -997,7 +1302,7 @@ private:
 void
 BluetoothDaemonHandsfreeInterface::Init(
   BluetoothHandsfreeNotificationHandler* aNotificationHandler,
-  BluetoothHandsfreeResultHandler* aRes)
+  int aMaxNumClients, BluetoothHandsfreeResultHandler* aRes)
 {
   
   
@@ -1110,7 +1415,7 @@ BluetoothDaemonHandsfreeInterface::DisconnectAudio(
 
 void
 BluetoothDaemonHandsfreeInterface::StartVoiceRecognition(
-  BluetoothHandsfreeResultHandler* aRes)
+  const nsAString& aBdAddr, BluetoothHandsfreeResultHandler* aRes)
 {
   MOZ_ASSERT(mModule);
 
@@ -1119,7 +1424,7 @@ BluetoothDaemonHandsfreeInterface::StartVoiceRecognition(
 
 void
 BluetoothDaemonHandsfreeInterface::StopVoiceRecognition(
-  BluetoothHandsfreeResultHandler* aRes)
+  const nsAString& aBdAddr, BluetoothHandsfreeResultHandler* aRes)
 {
   MOZ_ASSERT(mModule);
 
@@ -1130,7 +1435,7 @@ BluetoothDaemonHandsfreeInterface::StopVoiceRecognition(
 
 void
 BluetoothDaemonHandsfreeInterface::VolumeControl(
-  BluetoothHandsfreeVolumeType aType, int aVolume,
+  BluetoothHandsfreeVolumeType aType, int aVolume, const nsAString& aBdAddr,
   BluetoothHandsfreeResultHandler* aRes)
 {
   MOZ_ASSERT(mModule);
@@ -1156,7 +1461,8 @@ BluetoothDaemonHandsfreeInterface::DeviceStatusNotification(
 
 void
 BluetoothDaemonHandsfreeInterface::CopsResponse(
-  const char* aCops, BluetoothHandsfreeResultHandler* aRes)
+  const char* aCops, const nsAString& aBdAddr,
+  BluetoothHandsfreeResultHandler* aRes)
 {
   MOZ_ASSERT(mModule);
 
@@ -1168,7 +1474,7 @@ BluetoothDaemonHandsfreeInterface::CindResponse(
   int aSvc, int aNumActive, int aNumHeld,
   BluetoothHandsfreeCallState aCallSetupState,
   int aSignal, int aRoam, int aBattChg,
-  BluetoothHandsfreeResultHandler* aRes)
+  const nsAString& aBdAddr, BluetoothHandsfreeResultHandler* aRes)
 {
   MOZ_ASSERT(mModule);
 
@@ -1178,7 +1484,8 @@ BluetoothDaemonHandsfreeInterface::CindResponse(
 
 void
 BluetoothDaemonHandsfreeInterface::FormattedAtResponse(
-  const char* aRsp, BluetoothHandsfreeResultHandler* aRes)
+  const char* aRsp, const nsAString& aBdAddr,
+  BluetoothHandsfreeResultHandler* aRes)
 {
   MOZ_ASSERT(mModule);
 
@@ -1188,7 +1495,7 @@ BluetoothDaemonHandsfreeInterface::FormattedAtResponse(
 void
 BluetoothDaemonHandsfreeInterface::AtResponse(
   BluetoothHandsfreeAtResponse aResponseCode, int aErrorCode,
-  BluetoothHandsfreeResultHandler* aRes)
+  const nsAString& aBdAddr, BluetoothHandsfreeResultHandler* aRes)
 {
   MOZ_ASSERT(mModule);
 
@@ -1203,6 +1510,7 @@ BluetoothDaemonHandsfreeInterface::ClccResponse(
   BluetoothHandsfreeCallMptyType aMpty,
   const nsAString& aNumber,
   BluetoothHandsfreeCallAddressType aType,
+  const nsAString& aBdAddr,
   BluetoothHandsfreeResultHandler* aRes)
 {
   MOZ_ASSERT(mModule);
@@ -1225,6 +1533,18 @@ BluetoothDaemonHandsfreeInterface::PhoneStateChange(
 
   mModule->PhoneStateChangeCmd(aNumActive, aNumHeld, aCallSetupState, aNumber,
                                aType, aRes);
+}
+
+
+
+void
+BluetoothDaemonHandsfreeInterface::ConfigureWbs(
+  const nsAString& aBdAddr, BluetoothHandsfreeWbsConfig aConfig,
+  BluetoothHandsfreeResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  mModule->ConfigureWbsCmd(aBdAddr, aConfig, aRes);
 }
 
 void
