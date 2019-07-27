@@ -245,6 +245,7 @@ public:
   
   virtual nsresult Shutdown() = 0;
 
+  
   virtual bool IsHardwareAccelerated() const { return false; }
 
   
