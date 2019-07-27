@@ -335,8 +335,12 @@ nsAnnoProtocolHandler::NewFaviconChannel(nsIURI *aURI, nsIURI *aAnnotationURI,
   
   
   nsCOMPtr<nsIChannel> channel;
-  rv = NS_NewInputStreamChannel(getter_AddRefs(channel), aURI, inputStream,
-                                EmptyCString());
+  rv = NS_NewInputStreamChannel(getter_AddRefs(channel),
+                                aURI,
+                                inputStream,
+                                nsContentUtils::GetSystemPrincipal(),
+                                nsILoadInfo::SEC_NORMAL,
+                                nsIContentPolicy::TYPE_OTHER);
   NS_ENSURE_SUCCESS(rv, GetDefaultIcon(_channel));
 
   
