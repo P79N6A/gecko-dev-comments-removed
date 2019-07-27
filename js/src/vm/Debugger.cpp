@@ -498,7 +498,7 @@ Debugger::hasAnyLiveHooks() const
 }
 
 JSTrapStatus
-Debugger::slowPathOnEnterFrame(JSContext *cx, AbstractFramePtr frame, MutableHandleValue vp)
+Debugger::slowPathOnEnterFrame(JSContext *cx, AbstractFramePtr frame)
 {
     
     AutoValueVector triggered(cx);
@@ -510,22 +510,45 @@ Debugger::slowPathOnEnterFrame(JSContext *cx, AbstractFramePtr frame, MutableHan
             if (dbg->observesFrame(frame) && dbg->observesEnterFrame() &&
                 !triggered.append(ObjectValue(*dbg->toJSObject())))
             {
+                cx->clearPendingException();
                 return JSTRAP_ERROR;
             }
         }
     }
 
+    JSTrapStatus status = JSTRAP_CONTINUE;
+    RootedValue rval(cx);
     
     for (Value *p = triggered.begin(); p != triggered.end(); p++) {
         Debugger *dbg = Debugger::fromJSObject(&p->toObject());
         if (dbg->debuggees.has(global) && dbg->observesEnterFrame()) {
-            JSTrapStatus status = dbg->fireEnterFrame(cx, frame, vp);
+            status = dbg->fireEnterFrame(cx, frame, &rval);
             if (status != JSTRAP_CONTINUE)
-                return status;
+                break;
         }
     }
 
-    return JSTRAP_CONTINUE;
+    switch (status) {
+      case JSTRAP_CONTINUE:
+        break;
+
+      case JSTRAP_THROW:
+        cx->setPendingException(rval);
+        break;
+
+      case JSTRAP_ERROR:
+        cx->clearPendingException();
+        break;
+
+      case JSTRAP_RETURN:
+        frame.setReturnValue(rval);
+        break;
+
+      default:
+        MOZ_CRASH("bad Debugger::onEnterFrame JSTrapStatus value");
+    }
+
+    return status;
 }
 
 static void
@@ -642,6 +665,36 @@ Debugger::slowPathOnLeaveFrame(JSContext *cx, AbstractFramePtr frame, bool frame
       default:
         MOZ_CRASH("bad final trap status");
     }
+}
+
+JSTrapStatus
+Debugger::slowPathOnExceptionUnwind(JSContext *cx, AbstractFramePtr frame)
+{
+    RootedValue rval(cx);
+    JSTrapStatus status = dispatchHook(cx, &rval, OnExceptionUnwind);
+
+    switch (status) {
+      case JSTRAP_CONTINUE:
+        break;
+
+      case JSTRAP_THROW:
+        cx->setPendingException(rval);
+        break;
+
+      case JSTRAP_ERROR:
+        cx->clearPendingException();
+        break;
+
+      case JSTRAP_RETURN:
+        cx->clearPendingException();
+        frame.setReturnValue(rval);
+        break;
+
+      default:
+        MOZ_CRASH("Invalid trap status");
+    }
+
+    return status;
 }
 
 bool
