@@ -944,9 +944,6 @@ void HTMLMediaElement::LoadFromSourceChildren()
       ReportLoadError("MediaLoadUnsupportedTypeAttribute", params, ArrayLength(params));
       continue;
     }
-    
-    
-    
     nsAutoString media;
     HTMLSourceElement *childSrc = HTMLSourceElement::FromContent(child);
     MOZ_ASSERT(childSrc, "Expect child to be HTMLSourceElement");
