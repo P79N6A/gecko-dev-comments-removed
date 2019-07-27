@@ -18,7 +18,7 @@
   
   var PanelView = loop.panel.PanelView;
   
-  var IncomingCallView = loop.conversation.IncomingCallView;
+  var IncomingCallView = loop.conversationViews.IncomingCallView;
   var DesktopPendingConversationView = loop.conversationViews.PendingConversationView;
   var CallFailedView = loop.conversationViews.CallFailedView;
   var DesktopRoomConversationView = loop.roomViews.DesktopRoomConversationView;

@@ -295,7 +295,7 @@ loop.roomViews = (function(mozL10n) {
         case ROOM_STATES.FULL: {
           
           
-          return loop.conversation.GenericFailureView({
+          return loop.conversationViews.GenericFailureView({
             cancelCall: this.closeWindow}
           );
         }
