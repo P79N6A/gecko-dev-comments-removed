@@ -622,10 +622,10 @@ public:
     
 
 
-    virtual bool SupportsApzWheelInput() {
+    virtual bool SupportsApzWheelInput() const {
       return false;
     }
-    virtual bool SupportsApzTouchInput() {
+    virtual bool SupportsApzTouchInput() const {
       return false;
     }
 
