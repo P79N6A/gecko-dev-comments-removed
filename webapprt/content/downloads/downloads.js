@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 const { interfaces: Ci, utils: Cu, classes: Cc } = Components;
 
 const nsIDM = Ci.nsIDownloadManager;
@@ -354,29 +356,29 @@ DownloadItem.prototype = {
       case nsIDM.DOWNLOAD_BLOCKED_PARENTAL:
       case nsIDM.DOWNLOAD_BLOCKED_POLICY:
       case nsIDM.DOWNLOAD_DIRTY:
-        let (stateSize = {}) {
-          stateSize[nsIDM.DOWNLOAD_FINISHED] = () => {
-            
-            let sizeText = gStr.doneSizeUnknown;
-            if (this.maxBytes >= 0) {
-              let [size, unit] = DownloadUtils.convertByteUnits(this.maxBytes);
-              sizeText = gStr.doneSize.replace("#1", size);
-              sizeText = sizeText.replace("#2", unit);
-            }
-            return sizeText;
-          };
-          stateSize[nsIDM.DOWNLOAD_FAILED] = () => gStr.stateFailed;
-          stateSize[nsIDM.DOWNLOAD_CANCELED] = () => gStr.stateCanceled;
-          stateSize[nsIDM.DOWNLOAD_BLOCKED_PARENTAL] = () => gStr.stateBlocked;
-          stateSize[nsIDM.DOWNLOAD_BLOCKED_POLICY] = () => gStr.stateBlockedPolicy;
-          stateSize[nsIDM.DOWNLOAD_DIRTY] = () => gStr.stateDirty;
-
+        let stateSize = {};
+        stateSize[nsIDM.DOWNLOAD_FINISHED] = () => {
           
-          status = gStr.doneStatus.replace("#1", stateSize[this.state]());
-        }
+          let sizeText = gStr.doneSizeUnknown;
+          if (this.maxBytes >= 0) {
+            let [size, unit] = DownloadUtils.convertByteUnits(this.maxBytes);
+            sizeText = gStr.doneSize.replace("#1", size);
+            sizeText = sizeText.replace("#2", unit);
+          }
+          return sizeText;
+        };
+        stateSize[nsIDM.DOWNLOAD_FAILED] = () => gStr.stateFailed;
+        stateSize[nsIDM.DOWNLOAD_CANCELED] = () => gStr.stateCanceled;
+        stateSize[nsIDM.DOWNLOAD_BLOCKED_PARENTAL] = () => gStr.stateBlocked;
+        stateSize[nsIDM.DOWNLOAD_BLOCKED_POLICY] = () => gStr.stateBlockedPolicy;
+        stateSize[nsIDM.DOWNLOAD_DIRTY] = () => gStr.stateDirty;
+
+        
+        status = gStr.doneStatus.replace("#1", stateSize[this.state]());
 
         let [displayHost, fullHost] =
           DownloadUtils.getURIHost(this.referrer || this.uri);
+
         
         status = status.replace("#2", displayHost);
         
@@ -721,12 +723,11 @@ let gDownloadList = {
     }
 
     
-    let (empty = this.downloadView.cloneNode(false)) {
-      this.downloadView.parentNode.replaceChild(empty, this.downloadView);
-      this.downloadView = empty;
-    }
+    let empty = this.downloadView.cloneNode(false);
+    this.downloadView.parentNode.replaceChild(empty, this.downloadView);
+    this.downloadView = empty;
 
-    for each (let downloadItem in this.downloadItems) {
+    for (let downloadItem of this.downloadItems) {
       if (downloadItem.inProgress ||
           downloadItem.matchesSearch(this.searchTerms, this.searchAttributes)) {
         this.downloadView.appendChild(downloadItem.element);
@@ -772,7 +773,7 @@ let gDownloadList = {
     let button = document.getElementById("clearListButton");
 
     
-    for each (let downloadItem in this.downloadItems) {
+    for (let downloadItem of this.downloadItems) {
       if (!downloadItem.inProgress &&
           downloadItem.matchesSearch(this.searchTerms, this.searchAttributes)) {
         button.disabled = false;
@@ -876,7 +877,7 @@ let gDownloadList = {
       let items = Array.from(this.downloadView.selectedItems);
 
       
-      for each (let item in items) {
+      for (let item of items) {
         this.performCommand(aCmd, item);
       }
 
@@ -982,7 +983,7 @@ let gDownloadList = {
     let totalSize = 0;
     let totalTransferred = 0;
 
-    for each (let downloadItem in this.downloadItems) {
+    for (let downloadItem of this.downloadItems) {
       if (!downloadItem.inProgress) {
         continue;
       }
@@ -1109,15 +1110,14 @@ let gDownloadList = {
 
 function Startup() {
   
-  let (sb = document.getElementById("downloadStrings")) {
-    let strings = ["paused", "cannotPause", "doneStatus", "doneSize",
-                   "doneSizeUnknown", "stateFailed", "stateCanceled",
-                   "stateBlocked", "stateBlockedPolicy", "stateDirty",
-                   "downloadsTitleFiles", "downloadsTitlePercent",];
+  let sb = document.getElementById("downloadStrings");
+  let strings = ["paused", "cannotPause", "doneStatus", "doneSize",
+                 "doneSizeUnknown", "stateFailed", "stateCanceled",
+                 "stateBlocked", "stateBlockedPolicy", "stateDirty",
+                 "downloadsTitleFiles", "downloadsTitlePercent",];
 
-    for each (let name in strings) {
-      gStr[name] = sb.getString(name);
-    }
+  for (let name of strings) {
+    gStr[name] = sb.getString(name);
   }
 
   gDownloadList.init();
