@@ -195,13 +195,8 @@ void nsRubyBaseContainerFrame::AppendTextContainer(nsIFrame* aFrame)
   MOZ_ASSERT(rtcFrame, "Must provide a ruby text container.");
 
   nsTArray<nsRubyTextContainerFrame*>* containers = &mTextContainers;
-  if (!GetPrevContinuation() && !GetNextContinuation()) {
-    nsIFrame* onlyChild = rtcFrame->PrincipalChildList().OnlyChild();
-    if (onlyChild && onlyChild->IsPseudoFrame(rtcFrame->GetContent())) {
-      
-      
-      containers = &mSpanContainers;
-    }
+  if (rtcFrame->IsSpanContainer()) {
+    containers = &mSpanContainers;
   }
   containers->AppendElement(rtcFrame);
 }

@@ -62,6 +62,60 @@ nsRubyTextContainerFrame::IsFrameOfType(uint32_t aFlags) const
 }
 
  void
+nsRubyTextContainerFrame::SetInitialChildList(ChildListID aListID,
+                                              nsFrameList& aChildList)
+{
+  nsRubyTextContainerFrameSuper::SetInitialChildList(aListID, aChildList);
+  UpdateSpanFlag();
+}
+
+ void
+nsRubyTextContainerFrame::AppendFrames(ChildListID aListID,
+                                       nsFrameList& aFrameList)
+{
+  nsRubyTextContainerFrameSuper::AppendFrames(aListID, aFrameList);
+  UpdateSpanFlag();
+}
+
+ void
+nsRubyTextContainerFrame::InsertFrames(ChildListID aListID,
+                                       nsIFrame* aPrevFrame,
+                                       nsFrameList& aFrameList)
+{
+  nsRubyTextContainerFrameSuper::InsertFrames(aListID, aPrevFrame, aFrameList);
+  UpdateSpanFlag();
+}
+
+ void
+nsRubyTextContainerFrame::RemoveFrame(ChildListID aListID,
+                                      nsIFrame* aOldFrame)
+{
+  nsRubyTextContainerFrameSuper::RemoveFrame(aListID, aOldFrame);
+  UpdateSpanFlag();
+}
+
+void
+nsRubyTextContainerFrame::UpdateSpanFlag()
+{
+  bool isSpan = false;
+  
+  if (!GetPrevContinuation() && !GetNextContinuation()) {
+    nsIFrame* onlyChild = mFrames.OnlyChild();
+    if (onlyChild && onlyChild->IsPseudoFrame(GetContent())) {
+      
+      
+      isSpan = true;
+    }
+  }
+
+  if (isSpan) {
+    AddStateBits(NS_RUBY_TEXT_CONTAINER_IS_SPAN);
+  } else {
+    RemoveStateBits(NS_RUBY_TEXT_CONTAINER_IS_SPAN);
+  }
+}
+
+ void
 nsRubyTextContainerFrame::Reflow(nsPresContext* aPresContext,
                                  nsHTMLReflowMetrics& aDesiredSize,
                                  const nsHTMLReflowState& aReflowState,
