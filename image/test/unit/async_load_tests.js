@@ -110,20 +110,6 @@ function firstLoadDone(oldlistener, aRequest)
 
 
 
-function getChannelLoadImageStartCallback(streamlistener)
-{
-  return function channelLoadStart(imglistener, aRequest) {
-    
-    
-    
-    do_check_eq(streamlistener.requestStatus & STOP_REQUEST, 0);
-
-    checkClone(imglistener, aRequest);
-  }
-}
-
-
-
 function getChannelLoadImageStopCallback(streamlistener, next)
 {
   return function channelLoadStop(imglistener, aRequest) {
@@ -150,7 +136,7 @@ function checkSecondChannelLoad()
   var channellistener = new ChannelListener();
   channel.asyncOpen(channellistener, null);
 
-  var listener = new ImageListener(getChannelLoadImageStartCallback(channellistener),
+  var listener = new ImageListener(null,
                                    getChannelLoadImageStopCallback(channellistener,
                                                                    all_done_callback));
   var outer = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools)
@@ -179,7 +165,7 @@ function run_loadImageWithChannel_tests()
   var channellistener = new ChannelListener();
   channel.asyncOpen(channellistener, null);
 
-  var listener = new ImageListener(getChannelLoadImageStartCallback(channellistener),
+  var listener = new ImageListener(null,
                                    getChannelLoadImageStopCallback(channellistener,
                                                                    checkSecondChannelLoad));
   var outer = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools)

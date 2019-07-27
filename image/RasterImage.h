@@ -244,6 +244,7 @@ public:
                                        nsresult aStatus,
                                        bool aLastPart) override;
 
+  void NotifyForLoadEvent(Progress aProgress);
   void NotifyForDecodeOnlyOnDraw();
 
   
@@ -360,6 +361,9 @@ private:
   nsIntSize                  mSize;
   Orientation                mOrientation;
 
+  
+  Maybe<Progress>            mLoadProgress;
+
   nsCOMPtr<nsIProperties>   mProperties;
 
   
@@ -407,6 +411,7 @@ private:
   bool                       mHasSize:1;       
   bool                       mDecodeOnlyOnDraw:1; 
   bool                       mTransient:1;     
+  bool                       mSyncLoad:1;      
   bool                       mDiscardable:1;   
   bool                       mHasSourceData:1; 
   bool                       mHasBeenDecoded:1; 

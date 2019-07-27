@@ -266,9 +266,11 @@ RasterImage::RasterImage(ImageURL* aURI ) :
   mHasSize(false),
   mDecodeOnlyOnDraw(false),
   mTransient(false),
+  mSyncLoad(false),
   mDiscardable(false),
   mHasSourceData(false),
   mHasBeenDecoded(false),
+  mDownscaleDuringDecode(false),
   mPendingAnimation(false),
   mAnimationFinished(false),
   mWantFullDecode(false)
@@ -320,6 +322,7 @@ RasterImage::Init(const char* aMimeType,
   mWantFullDecode = !!(aFlags & INIT_FLAG_DECODE_IMMEDIATELY);
   mTransient = !!(aFlags & INIT_FLAG_TRANSIENT);
   mDownscaleDuringDecode = !!(aFlags & INIT_FLAG_DOWNSCALE_DURING_DECODE);
+  mSyncLoad = !!(aFlags & INIT_FLAG_SYNC_LOAD);
 
 #ifndef MOZ_ENABLE_SKIA
   
@@ -332,10 +335,19 @@ RasterImage::Init(const char* aMimeType,
     SurfaceCache::LockImage(ImageKey(this));
   }
 
-  
-  nsresult rv = Decode(Nothing(), DECODE_FLAGS_DEFAULT);
-  if (NS_FAILED(rv)) {
-    return NS_ERROR_FAILURE;
+  if (mSyncLoad) {
+    
+    
+    eDecoderType type = GetDecoderType(mSourceDataMimeType.get());
+    if (type == eDecoderType_unknown) {
+      return NS_ERROR_FAILURE;
+    }
+  } else {
+    
+    nsresult rv = Decode(Nothing(), DECODE_FLAGS_DEFAULT);
+    if (NS_FAILED(rv)) {
+      return NS_ERROR_FAILURE;
+    }
   }
 
   
@@ -1179,7 +1191,7 @@ RasterImage::OnImageDataComplete(nsIRequest*, nsISupports*, nsresult aStatus,
   
   mSourceBuffer->Complete(aStatus);
 
-  if (!mHasSize) {
+  if (mSyncLoad && !mHasSize) {
     
     
     
@@ -1198,12 +1210,28 @@ RasterImage::OnImageDataComplete(nsIRequest*, nsISupports*, nsresult aStatus,
     DoError();
   }
 
+  Progress loadProgress = LoadCompleteProgress(aLastPart, mError, finalStatus);
+
+  if (!mHasSize && !mError) {
+    
+    MOZ_ASSERT(!mSyncLoad, "Firing load asynchronously but mSyncLoad is set?");
+    NotifyProgress(FLAG_ONLOAD_BLOCKED);
+    mLoadProgress = Some(loadProgress);
+    return finalStatus;
+  }
+
+  NotifyForLoadEvent(loadProgress);
+
+  return finalStatus;
+}
+
+void
+RasterImage::NotifyForLoadEvent(Progress aProgress)
+{
   MOZ_ASSERT(mHasSize || mError, "Need to know size before firing load event");
   MOZ_ASSERT(!mHasSize ||
              (mProgressTracker->GetProgress() & FLAG_SIZE_AVAILABLE),
              "Should have notified that the size is available if we have it");
-
-  Progress loadProgress = LoadCompleteProgress(aLastPart, mError, finalStatus);
 
   if (mDecodeOnlyOnDraw) {
     
@@ -1211,15 +1239,18 @@ RasterImage::OnImageDataComplete(nsIRequest*, nsISupports*, nsresult aStatus,
     
     
     
-    loadProgress |= FLAG_DECODE_STARTED |
-                    FLAG_FRAME_COMPLETE |
-                    FLAG_DECODE_COMPLETE;
+    aProgress |= FLAG_DECODE_STARTED |
+                 FLAG_FRAME_COMPLETE |
+                 FLAG_DECODE_COMPLETE;
   }
 
   
-  NotifyProgress(loadProgress);
+  if (mError) {
+    aProgress |= FLAG_HAS_ERROR;
+  }
 
-  return finalStatus;
+  
+  NotifyProgress(aProgress);
 }
 
 void
@@ -2169,6 +2200,13 @@ RasterImage::FinalizeDecoder(Decoder* aDecoder)
       DoError();
     } else if (wasSize && !mHasSize) {
       DoError();
+    }
+
+    
+    if (mLoadProgress && wasSize) {
+      NotifyForLoadEvent(*mLoadProgress);
+      mLoadProgress = Nothing();
+      NotifyProgress(FLAG_ONLOAD_UNBLOCKED);
     }
   }
 
