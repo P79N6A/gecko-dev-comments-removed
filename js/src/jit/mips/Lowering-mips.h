@@ -22,8 +22,6 @@ class LIRGeneratorMIPS : public LIRGeneratorShared
   protected:
     
     
-    void useBox(LInstruction *lir, size_t n, MDefinition *mir,
-                LUse::Policy policy = LUse::REGISTER, bool useAtStart = false);
     void useBoxFixed(LInstruction *lir, size_t n, MDefinition *mir, Register reg1, Register reg2);
 
     

@@ -157,6 +157,10 @@ class LIRGeneratorShared : public MDefinitionVisitor
     inline void defineReuseInput(LInstructionHelper<1, Ops, Temps> *lir, MDefinition *mir, uint32_t operand);
 
     
+    inline void useBox(LInstruction *lir, size_t n, MDefinition *mir,
+                       LUse::Policy policy = LUse::REGISTER, bool useAtStart = false);
+
+    
     
     inline void redefine(MDefinition *ins, MDefinition *as);
 
