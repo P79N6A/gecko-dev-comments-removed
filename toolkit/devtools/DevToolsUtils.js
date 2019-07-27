@@ -657,32 +657,11 @@ exports.settleAll = values => {
 
 
 let testing = false;
-let savedSendAfterPaintToContentPref;
 Object.defineProperty(exports, "testing", {
   get: function() {
     return testing;
   },
   set: function(state) {
-    let oldState = testing;
     testing = state;
-
-    
-    
-    
-    
-    if (state !== oldState && Services && Services.prefs) {
-      if (state) {
-        savedSendAfterPaintToContentPref =
-          Services.prefs.getBoolPref("dom.send_after_paint_to_content");
-
-        
-        
-        
-        Services.prefs.setBoolPref("dom.send_after_paint_to_content", false);
-      } else {
-        Services.prefs.setBoolPref("dom.send_after_paint_to_content",
-                                   savedSendAfterPaintToContentPref);
-      }
-    }
   }
 });
