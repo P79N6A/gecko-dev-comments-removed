@@ -62,6 +62,11 @@ let gDataNotificationInfoBar = {
       accessKey: gNavigatorBundle.getString("dataReportingNotification.button.accessKey"),
       popup: null,
       callback: function () {
+        
+        
+        
+        
+        request.onUserAccept("info-bar-button-pressed");
         this._actionTaken = true;
         window.openAdvancedPreferences("dataChoicesTab");
       }.bind(this),
@@ -76,13 +81,15 @@ let gDataNotificationInfoBar = {
       buttons,
       function onEvent(event) {
         if (event == "removed") {
+          if (!this._actionTaken) {
+            request.onUserAccept("info-bar-dismissed");
+          }
+
           Services.obs.notifyObservers(null, "datareporting:notify-data-policy:close", null);
         }
       }.bind(this)
     );
-    
-    
-    
+
     
     request.onUserNotifyComplete();
   },
@@ -95,16 +102,18 @@ let gDataNotificationInfoBar = {
     }
   },
 
+  onNotifyDataPolicy: function (request) {
+    try {
+      this._displayDataPolicyInfoBar(request);
+    } catch (ex) {
+      request.onUserNotifyFailed(ex);
+    }
+  },
+
   observe: function(subject, topic, data) {
     switch (topic) {
       case "datareporting:notify-data-policy:request":
-        let request = subject.wrappedJSObject.object;
-        try {
-          this._displayDataPolicyInfoBar(request);
-        } catch (ex) {
-          request.onUserNotifyFailed(ex);
-          return;
-        }
+        this.onNotifyDataPolicy(subject.wrappedJSObject.object);
         break;
 
       case "datareporting:notify-data-policy:close":

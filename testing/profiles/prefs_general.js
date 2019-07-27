@@ -118,9 +118,7 @@ user_pref("dom.use_xbl_scopes_for_remote_xul", true);
 user_pref("network.activity.blipIntervalMilliseconds", 250);
 
 
-
-
-user_pref("datareporting.policy.dataSubmissionPolicyBypassNotification", true);
+user_pref("datareporting.policy.dataSubmissionPolicyBypassAcceptance", true);
 
 
 
