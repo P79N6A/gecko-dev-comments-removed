@@ -10,7 +10,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/FileUtils.h"
 #include "mozilla/ipc/ConnectionOrientedSocket.h"
-#include "mozilla/ipc/SocketBase.h"
+#include "mozilla/ipc/DataSocket.h"
 #include "nsError.h"
 #include "nsAutoPtr.h"
 
@@ -112,25 +112,29 @@ protected:
 
 
 
-class BluetoothDaemonConnection : public SocketBase
+class BluetoothDaemonConnection : public DataSocket
                                 , public ConnectionOrientedSocket
 {
 public:
   BluetoothDaemonConnection();
   virtual ~BluetoothDaemonConnection();
 
-  
-  
-
   nsresult ConnectSocket(BluetoothDaemonPDUConsumer* aConsumer);
-  void     CloseSocket();
-
-  nsresult Send(BluetoothDaemonPDU* aPDU);
 
   
   
 
   virtual ConnectionOrientedSocketIO* GetIO() override;
+
+  
+  
+
+  void SendSocketData(UnixSocketIOBuffer* aBuffer) override;
+
+  
+  
+
+  void CloseSocket() override;
 
 protected:
 
