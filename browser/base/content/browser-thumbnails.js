@@ -4,8 +4,6 @@
 
 #endif
 
-Cu.import("resource://gre/modules/NewTabUtils.jsm");
-
 
 
 
