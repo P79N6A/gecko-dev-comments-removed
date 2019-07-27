@@ -56,6 +56,13 @@ ViewSourceChrome.prototype = {
 
 
 
+  lastLineFound: null,
+
+  
+
+
+
+
 
   contextMenuData: {},
 
@@ -70,6 +77,8 @@ ViewSourceChrome.prototype = {
     "ViewSource:SourceUnloaded",
     "ViewSource:Close",
     "ViewSource:OpenURL",
+    "ViewSource:GoToLine:Success",
+    "ViewSource:GoToLine:Failed",
     "ViewSource:UpdateStatus",
     "ViewSource:ContextMenuOpening",
   ]),
@@ -121,17 +130,6 @@ ViewSourceChrome.prototype = {
     let data = message.data;
 
     switch(message.name) {
-      
-      case "ViewSource:PromptAndGoToLine":
-        this.promptAndGoToLine();
-        break;
-      case "ViewSource:GoToLine:Success":
-        this.onGoToLineSuccess(data.lineNumber);
-        break;
-      case "ViewSource:GoToLine:Failed":
-        this.onGoToLineFailed();
-        break;
-      
       case "ViewSource:SourceLoaded":
         this.onSourceLoaded();
         break;
@@ -143,6 +141,12 @@ ViewSourceChrome.prototype = {
         break;
       case "ViewSource:OpenURL":
         this.openURL(data.URL);
+        break;
+      case "ViewSource:GoToLine:Failed":
+        this.onGoToLineFailed();
+        break;
+      case "ViewSource:GoToLine:Success":
+        this.onGoToLineSuccess(data.lineNumber);
         break;
       case "ViewSource:UpdateStatus":
         this.updateStatus(data.label);
@@ -605,12 +609,67 @@ ViewSourceChrome.prototype = {
 
 
 
+  promptAndGoToLine() {
+    let input = { value: this.lastLineFound };
+
+    let ok = Services.prompt.prompt(
+        window,
+        gViewSourceBundle.getString("goToLineTitle"),
+        gViewSourceBundle.getString("goToLineText"),
+        input,
+        null,
+        {value:0});
+
+    if (!ok)
+      return;
+
+    let line = parseInt(input.value, 10);
+
+    if (!(line > 0)) {
+      Services.prompt.alert(window,
+                            gViewSourceBundle.getString("invalidInputTitle"),
+                            gViewSourceBundle.getString("invalidInputText"));
+      this.promptAndGoToLine();
+    } else {
+      this.goToLine(line);
+    }
+  },
+
+  
+
+
+
+
+
+  goToLine(lineNumber) {
+    this.sendAsyncMessage("ViewSource:GoToLine", { lineNumber });
+  },
+
+  
+
+
+
+
 
 
   onGoToLineSuccess(lineNumber) {
-    ViewSourceBrowser.prototype.onGoToLineSuccess.call(this, lineNumber);
+    
+    
+    this.lastLineFound = lineNumber;
     document.getElementById("statusbar-line-col").label =
       gViewSourceBundle.getFormattedString("statusBarLineCol", [lineNumber, 1]);
+  },
+
+  
+
+
+
+
+  onGoToLineFailed() {
+    Services.prompt.alert(window,
+                          gViewSourceBundle.getString("outOfRangeTitle"),
+                          gViewSourceBundle.getString("outOfRangeText"));
+    this.promptAndGoToLine();
   },
 
   
@@ -647,6 +706,7 @@ ViewSourceChrome.prototype = {
 
   toggleSyntaxHighlighting() {
     this.shouldHighlight = !this.shouldHighlight;
+    
     
     
     Services.prefs.setBoolPref("view_source.syntax_highlight",
