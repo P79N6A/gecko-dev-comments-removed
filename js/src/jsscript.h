@@ -370,9 +370,14 @@ class DebugScript
     uint32_t        stepMode;
 
     
+
+
+
     uint32_t        numSites;
 
     
+
+
 
 
 

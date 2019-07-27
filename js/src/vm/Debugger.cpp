@@ -241,6 +241,7 @@ class Debugger::FrameRange
     }
 };
 
+
 
 
 BreakpointSite::BreakpointSite(JSScript *script, jsbytecode *pc)
@@ -343,6 +344,7 @@ Breakpoint::nextInSite()
     return (link == &site->breakpoints) ? nullptr : fromSiteLinks(link);
 }
 
+
 
 
 Debugger::Debugger(JSContext *cx, NativeObject *dbg)
@@ -2968,6 +2970,9 @@ Debugger::addDebuggeeGlobal(JSContext *cx, Handle<GlobalObject*> global)
     }
 
     
+
+
+
 
 
 
@@ -5814,6 +5819,7 @@ static const JSFunctionSpec DebuggerFrame_methods[] = {
     JS_FS_END
 };
 
+
 
 
 static void
