@@ -2,10 +2,11 @@
 
 
 
+#include "mozilla/UniquePtr.h"
+
 #include "prerror.h"
 #include "prprf.h"
 
-#include "ScopedNSSTypes.h"
 #include "nsNSSCertHelper.h"
 #include "nsCOMPtr.h"
 #include "nsNSSCertificate.h"
@@ -813,7 +814,7 @@ ProcessRDN(CERTRDN* rdn, nsAString &finalString, nsINSSComponent *nssComponent)
     
     
     int escapedValueCapacity = decodeItem->len * 3 + 3;
-    ScopedDeleteArray<char> escapedValue(new char[escapedValueCapacity]);
+    UniquePtr<char[]> escapedValue = MakeUnique<char[]>(escapedValueCapacity);
 
     SECStatus status = CERT_RFC1485_EscapeAndQuote(
           escapedValue.get(),
@@ -825,7 +826,7 @@ ProcessRDN(CERTRDN* rdn, nsAString &finalString, nsINSSComponent *nssComponent)
       return NS_ERROR_FAILURE;
     }
 
-    avavalue = NS_ConvertUTF8toUTF16(escapedValue);
+    avavalue = NS_ConvertUTF8toUTF16(escapedValue.get());
     
     SECITEM_FreeItem(decodeItem, true);
     params[0] = type.get();
