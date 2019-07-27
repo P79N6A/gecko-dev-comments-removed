@@ -264,4 +264,26 @@ extern NS_METHOD
 NS_FillArray(FallibleTArray<char>& aDest, nsIInputStream* aInput,
              uint32_t aKeep, uint32_t* aNewBytes);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern nsresult
+NS_CloneInputStream(nsIInputStream* aSource, nsIInputStream** aCloneOut,
+                    nsIInputStream** aReplacementOut = nullptr);
+
 #endif 
