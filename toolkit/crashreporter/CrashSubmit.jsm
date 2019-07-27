@@ -45,9 +45,11 @@ function getL10nStrings() {
   if (!path.exists()) {
     
     path = path.parent;
+    path = path.parent;
+    path.append("MacOS");
     path.append("crashreporter.app");
     path.append("Contents");
-    path.append("MacOS");
+    path.append("Resources");
     path.append("crashreporter.ini");
     if (!path.exists()) {
       
