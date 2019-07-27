@@ -233,6 +233,16 @@ static const FeatureInfo sFeatureInfoArr[] = {
 
     },
     {
+        "gpu_shader4",
+        300, 
+        300, 
+        GLContext::Extension_None,
+        {
+            GLContext::EXT_gpu_shader4,
+            GLContext::Extensions_End
+        }
+    },
+    {
         "instanced_arrays",
         330, 
         300, 
@@ -258,14 +268,6 @@ static const FeatureInfo sFeatureInfoArr[] = {
 
 
 
-    },
-    {
-        "integer_vertex_attribs",
-        300, 
-        300, 
-        {
-            GLContext::Extensions_End
-        }
     },
     {
         "map_buffer_range",
@@ -496,15 +498,6 @@ static const FeatureInfo sFeatureInfoArr[] = {
     {
         "uniform_matrix_nonsquare",
         210, 
-        300, 
-        GLContext::Extension_None,
-        {
-            GLContext::Extensions_End
-        }
-    },
-    {
-        "uniform_uint",
-        300, 
         300, 
         GLContext::Extension_None,
         {
