@@ -3926,6 +3926,7 @@ MOZ_WEBSMS_BACKEND=
 MOZ_ANDROID_BEAM=
 MOZ_LOCALE_SWITCHER=
 MOZ_ANDROID_SEARCH_ACTIVITY=
+MOZ_ANDROID_MLS_STUMBLER=
 ACCESSIBILITY=1
 MOZ_TIME_MANAGER=
 MOZ_PAY=
@@ -4954,6 +4955,13 @@ dnl = Include Search Activity on Android
 dnl ========================================================
 if test -n "$MOZ_ANDROID_SEARCH_ACTIVITY"; then
     AC_DEFINE(MOZ_ANDROID_SEARCH_ACTIVITY)
+fi
+
+dnl ========================================================
+dnl = Include Mozilla Location Service Stumbler on Android
+dnl ========================================================
+if test -n "$MOZ_ANDROID_MLS_STUMBLER"; then
+    AC_DEFINE(MOZ_ANDROID_MLS_STUMBLER)
 fi
 
 dnl ========================================================
@@ -7230,17 +7238,6 @@ if test -n "$JSGC_GENERATIONAL"; then
 fi
 
 dnl ========================================================
-dnl = Use a smaller chunk size for GC chunks
-dnl ========================================================
-MOZ_ARG_ENABLE_BOOL(small-chunk-size,
-[  --enable-small-chunk-size  Allocate memory for JS GC things in smaller chunks],
-    JS_GC_SMALL_CHUNK_SIZE=1,
-    JS_GC_SMALL_CHUNK_SIZE= )
-if test -n "$JS_GC_SMALL_CHUNK_SIZE"; then
-    AC_DEFINE(JS_GC_SMALL_CHUNK_SIZE)
-fi
-
-dnl ========================================================
 dnl Zealous JavaScript GC
 dnl ========================================================
 MOZ_ARG_ENABLE_BOOL(gczeal,
@@ -8512,6 +8509,7 @@ AC_SUBST(MOZ_ANDROID_BEAM)
 AC_SUBST(MOZ_LOCALE_SWITCHER)
 AC_SUBST(MOZ_DISABLE_GECKOVIEW)
 AC_SUBST(MOZ_ANDROID_SEARCH_ACTIVITY)
+AC_SUBST(MOZ_ANDROID_MLS_STUMBLER)
 AC_SUBST(ENABLE_STRIP)
 AC_SUBST(PKG_SKIP_STRIP)
 AC_SUBST(STRIP_FLAGS)
@@ -9262,9 +9260,6 @@ if test -z "$JSGC_USE_EXACT_ROOTING" ; then
 fi
 if test -z "$JSGC_GENERATIONAL" ; then
     ac_configure_args="$ac_configure_args --disable-gcgenerational"
-fi
-if test -n "$JS_GC_SMALL_CHUNK_SIZE" ; then
-    ac_configure_args="$ac_configure_args --enable-small-chunk-size"
 fi
 if test -z "$MOZ_NATIVE_NSPR"; then
     ac_configure_args="$ac_configure_args --with-nspr-cflags='$NSPR_CFLAGS'"
