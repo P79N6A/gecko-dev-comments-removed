@@ -19,13 +19,13 @@ import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
 import org.mozilla.search.R;
-
 
 
 
@@ -92,6 +92,14 @@ public class SearchFragment extends Fragment implements AdapterView.OnItemClickL
                     return;
                 }
                 transitionToRunning();
+            }
+        });
+
+        final Button clearButton = (Button) mainView.findViewById(R.id.clear_button);
+        clearButton.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                searchBar.setText("");
             }
         });
 
