@@ -284,10 +284,6 @@ user_pref("browser.search.countryCode", "US");
 
 user_pref("media.eme.enabled", true);
 
-#if defined(XP_WIN)
-user_pref("media.decoder.heuristic.dormant.timeout", 0);
-#endif
-
 
 user_pref("browser.displayedE10SPrompt.1", 5);
 
