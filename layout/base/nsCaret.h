@@ -169,6 +169,10 @@ class nsCaret : public nsISelectionListener
 protected:
     static void   CaretBlinkCallback(nsITimer *aTimer, void *aClosure);
 
+    
+    
+    void          SchedulePaint();
+
     void          KillTimer();
     nsresult      PrimeTimer();
 
@@ -180,6 +184,8 @@ protected:
                                          CaretAssociationHint aFrameHint,
                                          uint8_t aBidiLevel,
                                          bool aInvalidate);
+
+    mozilla::dom::Selection* GetSelectionInternal();
 
     struct Metrics {
       nscoord mBidiIndicatorSize; 
@@ -219,8 +225,6 @@ protected:
     
     
     bool IsMenuPopupHidingCaret();
-
-protected:
 
     nsWeakPtr             mPresShell;
     nsWeakPtr             mDomSelectionWeak;
