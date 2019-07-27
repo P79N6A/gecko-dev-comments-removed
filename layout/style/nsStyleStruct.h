@@ -159,7 +159,6 @@ public:
   uint8_t mSize;   
                    
   bool mRepeating;
-  bool mLegacySyntax;
 
   nsStyleCoord mBgPosX; 
   nsStyleCoord mBgPosY; 
