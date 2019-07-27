@@ -26,6 +26,10 @@ StoreBuffer::SlotsEdge::mark(JSTracer *trc)
 {
     NativeObject *obj = object();
 
+    
+    if (!obj->isNative())
+        return;
+
     if (IsInsideNursery(obj))
         return;
 
