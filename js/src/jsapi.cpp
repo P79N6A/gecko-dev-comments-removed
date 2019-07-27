@@ -3312,6 +3312,16 @@ CreateNonSyntacticScopeChain(JSContext* cx, AutoObjectVector& scopeChain,
         staticScopeObj.set(StaticNonSyntacticScopeObjects::create(cx, nullptr));
         if (!staticScopeObj)
             return false;
+
+        
+        
+        
+        
+        
+        
+        
+        if (!dynamicScopeObj->setQualifiedVarObj(cx))
+            return false;
     }
 
     return true;
