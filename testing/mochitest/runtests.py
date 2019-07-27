@@ -1201,17 +1201,28 @@ class Mochitest(MochitestUtilsMixin):
     if options.gmp_path:
       return options.gmp_path
 
-    
-    gmp_path = os.path.join(options.xrePath, 'gmp-fake', '1.0')
-    if os.path.isdir(gmp_path):
-      return gmp_path
+    gmp_parentdirs = [
+      
+      options.xrePath,
+      
+      os.path.join(self.profile.profile, 'plugins'),
+    ]
 
-    
-    gmp_path = os.path.join(self.profile.profile, 'plugins', 'gmp-fake', '1.0')
-    if os.path.isdir(gmp_path):
-      return gmp_path
-    
-    raise EnvironmentError('Could not find gmp-fake')
+    gmp_subdirs = [
+      os.path.join('gmp-fake', '1.0'),
+      os.path.join('gmp-clearkey', '0.1'),
+    ]
+
+    gmp_paths = [os.path.join(parent, sub)
+      for parent in gmp_parentdirs
+      for sub in gmp_subdirs
+      if os.path.isdir(os.path.join(parent, sub))]
+
+    if not gmp_paths:
+      
+      raise EnvironmentError('Could not find test gmp plugins')
+
+    return os.pathsep.join(gmp_paths)
 
   def buildBrowserEnv(self, options, debugger=False, env=None):
     """build the environment variables for the specific test and operating system"""
