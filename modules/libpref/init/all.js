@@ -736,12 +736,20 @@ pref("toolkit.asyncshutdown.timeout.crash", 60000);
 pref("devtools.errorconsole.deprecation_warnings", true);
 
 
+#ifdef MOZ_DEV_EDITION
+pref("devtools.chrome.enabled", true);
+#else
 pref("devtools.chrome.enabled", false);
+#endif
 
 
 pref("devtools.debugger.log", false);
 
+#ifdef MOZ_DEV_EDITION
+pref("devtools.debugger.remote-enabled", true);
+#else
 pref("devtools.debugger.remote-enabled", false);
+#endif
 pref("devtools.debugger.remote-port", 6000);
 
 pref("devtools.debugger.force-local", true);
