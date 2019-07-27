@@ -29,6 +29,7 @@ extern "C" {
 
 
 
+
 int BrotliDecompressedSize(size_t encoded_size,
                            const uint8_t* encoded_buffer,
                            size_t* decoded_size);

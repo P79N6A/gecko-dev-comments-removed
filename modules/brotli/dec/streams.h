@@ -93,6 +93,10 @@ int BrotliStdoutOutputFunction(void* data, const uint8_t* buf, size_t count);
 BrotliOutput BrotliStdoutOutput();
 
 
+int BrotliFileInputFunction(void* data, uint8_t* buf, size_t count);
+BrotliInput BrotliFileInput(FILE* f);
+
+
 int BrotliFileOutputFunction(void* data, const uint8_t* buf, size_t count);
 BrotliOutput BrotliFileOutput(FILE* f);
 

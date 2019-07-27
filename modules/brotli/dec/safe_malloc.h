@@ -15,8 +15,8 @@
 
 
 
-#ifndef BROTLI_UTILS_UTILS_H_
-#define BROTLI_UTILS_UTILS_H_
+#ifndef BROTLI_DEC_SAFE_MALLOC_H_
+#define BROTLI_DEC_SAFE_MALLOC_H_
 
 #include <assert.h>
 
