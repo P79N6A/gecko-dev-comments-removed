@@ -137,7 +137,9 @@ class Simulator {
         kNumFPURegisters
     };
 
+    
     static Simulator *Create();
+
     static void Destroy(Simulator *simulator);
 
     
@@ -223,6 +225,8 @@ class Simulator {
         
         Unpredictable = 0xbadbeaf
     };
+
+    bool init();
 
     
     void format(SimInstruction* instr, const char* format);

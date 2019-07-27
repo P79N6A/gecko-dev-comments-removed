@@ -497,9 +497,9 @@ Simulator::Create()
     if (!sim)
         return nullptr;
 
-    if (!sim->icache_.init()) {
+    if (!sim->init()) {
         js_delete(sim);
-        return false;
+        return nullptr;
     }
 
     if (getenv("MIPS_SIM_ICACHE_CHECKS"))
@@ -1215,15 +1215,10 @@ Simulator::Simulator()
     
 
     
-    static const size_t stackSize = 2 * 1024 * 1024;
-    stack_ = static_cast<char*>(js_malloc(stackSize));
-    if (!stack_) {
-        MOZ_ReportAssertionFailure("[unhandlable oom] Simulator stack", __FILE__, __LINE__);
-        MOZ_CRASH();
-    }
     
-    
-    stackLimit_ = reinterpret_cast<uintptr_t>(stack_) + 1024 * 1024;
+
+    stack_ = nullptr;
+    stackLimit_ = 0;
     pc_modified_ = false;
     icount_ = 0;
     break_count_ = 0;
@@ -1243,10 +1238,6 @@ Simulator::Simulator()
 
     
     
-    
-    registers_[sp] = reinterpret_cast<int32_t>(stack_) + stackSize - 64;
-    
-    
     registers_[pc] = bad_ra;
     registers_[ra] = bad_ra;
 
@@ -1256,6 +1247,30 @@ Simulator::Simulator()
     lastDebuggerInput_ = nullptr;
 
     redirection_ = nullptr;
+}
+
+bool
+Simulator::init()
+{
+    if (!icache_.init())
+        return false;
+
+    
+    static const size_t stackSize = 2 * 1024 * 1024;
+    stack_ = static_cast<char*>(js_malloc(stackSize));
+    if (!stack_)
+        return false;
+
+    
+    
+    stackLimit_ = reinterpret_cast<uintptr_t>(stack_) + 1024 * 1024;
+
+    
+    
+    
+    registers_[sp] = reinterpret_cast<int32_t>(stack_) + stackSize - 64;
+
+    return true;
 }
 
 
