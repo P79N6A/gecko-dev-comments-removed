@@ -353,6 +353,7 @@ var BrowserApp = {
     Services.obs.addObserver(this, "webapps-runtime-install", false);
     Services.obs.addObserver(this, "webapps-runtime-install-package", false);
     Services.obs.addObserver(this, "webapps-ask-install", false);
+    Services.obs.addObserver(this, "webapps-ask-uninstall", false);
     Services.obs.addObserver(this, "webapps-launch", false);
     Services.obs.addObserver(this, "webapps-runtime-uninstall", false);
     Services.obs.addObserver(this, "Webapps:AutoInstall", false);
@@ -1705,6 +1706,10 @@ var BrowserApp = {
 
       case "webapps-ask-install":
         WebappManager.askInstall(JSON.parse(aData));
+        break;
+
+      case "webapps-ask-uninstall":
+        WebappManager.askUninstall(JSON.parse(aData));
         break;
 
       case "webapps-launch": {
@@ -6324,7 +6329,8 @@ var ViewportHandler = {
 
     scale = this.clamp(scale, kViewportMinScale, kViewportMaxScale);
     minScale = this.clamp(minScale, kViewportMinScale, kViewportMaxScale);
-    maxScale = this.clamp(maxScale, (isNaN(minScale) ? kViewportMinScale : minScale), kViewportMaxScale);
+    maxScale = this.clamp(maxScale, minScale, kViewportMaxScale);
+
     if (autoSize) {
       
       autoSize = (widthStr == "device-width" ||
@@ -8274,8 +8280,10 @@ var Tabs = {
     
     
     if (lruTab) {
-      if (Date.now() - lruTab.lastTouchedAt > expireTimeMs) {
+      let tabAgeMs = Date.now() - lruTab.lastTouchedAt;
+      if (tabAgeMs > expireTimeMs) {
         MemoryObserver.zombify(lruTab);
+        Telemetry.addData("FENNEC_TAB_EXPIRED", tabAgeMs / 1000);
         return true;
       }
     }
