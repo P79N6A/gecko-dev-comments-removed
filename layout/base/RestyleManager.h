@@ -109,6 +109,12 @@ public:
   }
 
   
+  
+  bool IsProcessingAnimationStyleChange() const {
+    return mIsProcessingAnimationStyleChange;
+  }
+
+  
 
 
 
@@ -449,6 +455,9 @@ private:
   
   
   bool mPostAnimationRestyles : 1;
+  
+  
+  bool mIsProcessingAnimationStyleChange : 1;
 
   uint32_t mHoverGeneration;
   nsChangeHint mRebuildAllExtraHint;
