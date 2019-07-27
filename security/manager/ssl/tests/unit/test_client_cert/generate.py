@@ -6,9 +6,6 @@
 
 
 
-
-
-
 import tempfile, os, sys, random
 
 libpath = os.path.abspath("../psm_common_py")
@@ -26,7 +23,11 @@ name = "client-cert"
 CertUtils.generate_pkcs12(db, dest_dir, cert, key, name)
 
 
-os.remove(dest_dir + "/" + name + ".der")
 
-print ("You now MUST modify ClientAuthServer.cpp to ensure the xpchell debug " +
-       "certificate there matches this newly generated one\n")
+print
+CertUtils.print_cert_info(cert)
+print ('You now MUST update the fingerprint in ClientAuthServer.cpp to match ' +
+       'the fingerprint printed above.')
+
+
+os.remove(dest_dir + "/" + name + ".der")
