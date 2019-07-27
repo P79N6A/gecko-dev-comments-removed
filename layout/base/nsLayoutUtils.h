@@ -812,6 +812,14 @@ public:
 
 
 
+
+
+  static gfxSize GetTransformToAncestorScaleExcludingAnimated(nsIFrame* aFrame);
+
+  
+
+
+
   static nsIFrame* FindNearestCommonAncestorFrame(nsIFrame* aFrame1,
                                                   nsIFrame* aFrame2);
 

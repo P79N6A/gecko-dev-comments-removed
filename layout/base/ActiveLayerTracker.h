@@ -72,6 +72,14 @@ public:
 
 
   static bool IsOffsetOrMarginStyleAnimated(nsIFrame* aFrame);
+
+  
+
+
+
+
+  static bool IsScaleSubjectToAnimation(nsIFrame* aFrame);
+
   
 
 
