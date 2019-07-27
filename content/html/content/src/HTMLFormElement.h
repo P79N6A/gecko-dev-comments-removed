@@ -633,6 +633,13 @@ protected:
 };
 
 } 
+
+template<>
+struct HasDangerousPublicDestructor<dom::HTMLFormElement>
+{
+  static const bool value = true;
+};
+
 } 
 
 #endif 

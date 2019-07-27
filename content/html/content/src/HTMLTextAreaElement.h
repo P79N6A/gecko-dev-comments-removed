@@ -275,6 +275,8 @@ public:
   }
 
 protected:
+  virtual ~HTMLTextAreaElement() {}
+
   
   using nsGenericHTMLFormElementWithState::IsSingleLineTextControl;
 

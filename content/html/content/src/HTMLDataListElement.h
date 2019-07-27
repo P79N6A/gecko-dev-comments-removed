@@ -19,7 +19,6 @@ public:
     : nsGenericHTMLElement(aNodeInfo)
   {
   }
-  virtual ~HTMLDataListElement();
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -43,6 +42,8 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLDataListElement,
                                            nsGenericHTMLElement)
 protected:
+  virtual ~HTMLDataListElement();
+
   virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 
   

@@ -18,6 +18,10 @@ namespace dom {
 
 
 
+HTMLTableSectionElement::~HTMLTableSectionElement()
+{
+}
+
 JSObject*
 HTMLTableSectionElement::WrapNode(JSContext *aCx)
 {

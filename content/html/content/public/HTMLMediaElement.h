@@ -90,7 +90,6 @@ public:
   }
 
   HTMLMediaElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
-  virtual ~HTMLMediaElement();
 
   
 
@@ -597,6 +596,8 @@ public:
   }
 
 protected:
+  virtual ~HTMLMediaElement();
+
   class MediaLoadListener;
   class StreamListener;
 
