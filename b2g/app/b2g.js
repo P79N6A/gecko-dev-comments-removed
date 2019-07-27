@@ -1005,6 +1005,10 @@ pref("network.proxy.browsing.app_origins", "app://system.gaiamobile.org");
 pref("media.webspeech.synth.enabled", true);
 
 
+pref("media.webspeech.recognition.enable", true);
+pref("media.webspeech.service.default", "pocketsphinx");
+
+
 pref("dom.mozDownloads.enabled", true);
 pref("dom.downloads.max_retention_days", 7);
 
