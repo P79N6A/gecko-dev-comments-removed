@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim: set sw=4 ts=8 et tw=80 : */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef mozilla_dom_ContentParent_h
 #define mozilla_dom_ContentParent_h
@@ -42,7 +42,7 @@ class OptionalURIParams;
 class PFileDescriptorSetParent;
 class URIParams;
 class TestShellParent;
-} // namespace ipc
+} 
 
 namespace jsipc {
 class JavaScriptShared;
@@ -52,7 +52,7 @@ class PJavaScriptParent;
 namespace layers {
 class PCompositorParent;
 class PSharedBufferManagerParent;
-} // namespace layers
+} 
 
 namespace dom {
 
@@ -88,47 +88,47 @@ public:
     }
 #endif
     virtual bool IsContentParent() MOZ_OVERRIDE { return true; }
-    /**
-     * Start up the content-process machinery.  This might include
-     * scheduling pre-launch tasks.
-     */
+    
+
+
+
     static void StartUp();
-    /** Shut down the content-process machinery. */
+    
     static void ShutDown();
-    /**
-     * Ensure that all subprocesses are terminated and their OS
-     * resources have been reaped.  This is synchronous and can be
-     * very expensive in general.  It also bypasses the normal
-     * shutdown process.
-     */
+    
+
+
+
+
+
     static void JoinAllSubprocesses();
 
     static bool PreallocatedProcessReady();
 
-    /**
-     * Get or create a content process for:
-     * 1. browser iframe
-     * 2. remote xul <browser>
-     * 3. normal iframe
-     */
+    
+
+
+
+
+
     static already_AddRefed<ContentParent>
     GetNewOrUsedBrowserProcess(bool aForBrowserElement = false,
                                hal::ProcessPriority aPriority =
                                hal::ProcessPriority::PROCESS_PRIORITY_FOREGROUND,
                                ContentParent* aOpener = nullptr);
 
-    /**
-     * Create a subprocess suitable for use as a preallocated app process.
-     */
+    
+
+
     static already_AddRefed<ContentParent> PreallocateAppProcess();
 
     static already_AddRefed<ContentParent> RunNuwaProcess();
 
-    /**
-     * Get or create a content process for the given TabContext.  aFrameElement
-     * should be the frame/iframe element with which this process will
-     * associated.
-     */
+    
+
+
+
+
     static TabParent*
     CreateBrowserOrApp(const TabContext& aContext,
                        Element* aFrameElement,
@@ -154,9 +154,9 @@ public:
     NS_DECL_NSIOBSERVER
     NS_DECL_NSIDOMGEOPOSITIONCALLBACK
 
-    /**
-     * MessageManagerCallback methods that we override.
-     */
+    
+
+
     virtual bool DoSendAsyncMessage(JSContext* aCx,
                                     const nsAString& aMessage,
                                     const mozilla::dom::StructuredCloneData& aData,
@@ -168,9 +168,9 @@ public:
     virtual bool CheckAppHasStatus(unsigned short aStatus) MOZ_OVERRIDE;
     virtual bool KillChild() MOZ_OVERRIDE;
 
-    /** Notify that a tab is beginning its destruction sequence. */
+    
     void NotifyTabDestroying(PBrowserParent* aTab);
-    /** Notify that a tab was destroyed during normal operation. */
+    
     void NotifyTabDestroyed(PBrowserParent* aTab,
                             bool aNotifiedDestroying);
 
@@ -210,11 +210,11 @@ public:
         return mSendDataStoreInfos;
     }
 
-    /**
-     * Kill our subprocess and make sure it dies.  Should only be used
-     * in emergency situations since it bypasses the normal shutdown
-     * process.
-     */
+    
+
+
+
+
     void KillHard();
 
     uint64_t ChildID() MOZ_OVERRIDE { return mChildID; }
@@ -222,12 +222,12 @@ public:
 
     bool IsPreallocated();
 
-    /**
-     * Get a user-friendly name for this ContentParent.  We make no guarantees
-     * about this name: It might not be unique, apps can spoof special names,
-     * etc.  So please don't use this name to make any decisions about the
-     * ContentParent based on the value returned here.
-     */
+    
+
+
+
+
+
     void FriendlyName(nsAString& aName, bool aAnonymize = false);
 
     virtual void OnChannelError() MOZ_OVERRIDE;
@@ -298,22 +298,22 @@ private:
     static void JoinProcessesIOThread(const nsTArray<ContentParent*>* aProcesses,
                                       Monitor* aMonitor, bool* aDone);
 
-    // Take the preallocated process and transform it into a "real" app process,
-    // for the specified manifest URL.  If there is no preallocated process (or
-    // if it's dead), create a new one and set aTookPreAllocated to false.
+    
+    
+    
     static already_AddRefed<ContentParent>
     GetNewOrPreallocatedAppProcess(mozIApplication* aApp,
                                    hal::ProcessPriority aInitialPriority,
                                    ContentParent* aOpener,
-                                   /*out*/ bool* aTookPreAllocated = nullptr);
+                                    bool* aTookPreAllocated = nullptr);
 
     static hal::ProcessPriority GetInitialProcessPriority(Element* aFrameElement);
 
     static ContentBridgeParent* CreateContentBridgeParent(const TabContext& aContext,
                                                           const hal::ProcessPriority& aPriority);
 
-    // Hide the raw constructor methods since we don't want client code
-    // using them.
+    
+    
     virtual PBrowserParent* SendPBrowserConstructor(
         PBrowserParent* actor,
         const IPCTabContext& context,
@@ -323,8 +323,8 @@ private:
         const bool& aIsForBrowser) MOZ_OVERRIDE;
     using PContentParent::SendPTestShellConstructor;
 
-    // No more than one of !!aApp, aIsForBrowser, and aIsForPreallocated may be
-    // true.
+    
+    
     ContentParent(mozIApplication* aApp,
                   ContentParent* aOpener,
                   bool aIsForBrowser,
@@ -339,10 +339,10 @@ private:
                   const nsTArray<ProtocolFdMapping>& aFds);
 #endif
 
-    // The common initialization for the constructors.
+    
     void InitializeMembers();
 
-    // The common initialization logic shared by all constuctors.
+    
     void InitInternal(ProcessPriority aPriority,
                       bool aSetupOffMainThreadCompositing,
                       bool aSendRegisteredChrome);
@@ -351,48 +351,48 @@ private:
 
     void Init();
 
-    // If the frame element indicates that the child process is "critical" and
-    // has a pending system message, this function acquires the CPU wake lock on
-    // behalf of the child.  We'll release the lock when the system message is
-    // handled or after a timeout, whichever comes first.
+    
+    
+    
+    
     void MaybeTakeCPUWakeLock(Element* aFrameElement);
 
-    // Set the child process's priority and then check whether the child is
-    // still alive.  Returns true if the process is still alive, and false
-    // otherwise.  If you pass a FOREGROUND* priority here, it's (hopefully)
-    // unlikely that the process will be killed after this point.
+    
+    
+    
+    
     bool SetPriorityAndCheckIsAlive(hal::ProcessPriority aPriority);
 
-    // Transform a pre-allocated app process into a "real" app
-    // process, for the specified manifest URL.
+    
+    
     void TransformPreallocatedIntoApp(ContentParent* aOpener,
                                       const nsAString& aAppManifestURL);
 
-    // Transform a pre-allocated app process into a browser process. If this
-    // returns false, the child process has died.
+    
+    
     void TransformPreallocatedIntoBrowser(ContentParent* aOpener);
 
-    /**
-     * Mark this ContentParent as dead for the purposes of Get*().
-     * This method is idempotent.
-     */
+    
+
+
+
     void MarkAsDead();
 
-    /**
-     * Exit the subprocess and vamoose.  After this call IsAlive()
-     * will return false and this ContentParent will not be returned
-     * by the Get*() funtions.  However, the shutdown sequence itself
-     * may be asynchronous.
-     *
-     * If aCloseWithError is true and this is the first call to
-     * ShutDownProcess, then we'll close our channel using CloseWithError()
-     * rather than vanilla Close().  CloseWithError() indicates to IPC that this
-     * is an abnormal shutdown (e.g. a crash).
-     */
+    
+
+
+
+
+
+
+
+
+
+
     void ShutDownProcess(bool aCloseWithError);
 
-    // Perform any steps necesssary to gracefully shtudown the message
-    // manager and null out mMessageManager.
+    
+    
     void ShutDownMessageManager();
 
     PCompositorParent*
@@ -413,8 +413,7 @@ private:
                                           bool* aIsForApp,
                                           bool* aIsForBrowser) MOZ_OVERRIDE;
     virtual bool RecvGetXPCOMProcessAttributes(bool* aIsOffline,
-                                               InfallibleTArray<nsString>* dictionaries,
-                                               ClipboardCapabilities* clipboardCaps)
+                                               InfallibleTArray<nsString>* dictionaries)
         MOZ_OVERRIDE;
 
     virtual bool DeallocPJavaScriptParent(mozilla::jsipc::PJavaScriptParent*) MOZ_OVERRIDE;
@@ -680,9 +679,9 @@ private:
                           int32_t* aSliceRefCnt,
                           bool* aResult) MOZ_OVERRIDE;
 
-    // If you add strong pointers to cycle collected objects here, be sure to
-    // release these objects in ShutDownProcess.  See the comment there for more
-    // details.
+    
+    
+    
 
     GeckoChildProcessHost* mSubprocess;
     ContentParent* mOpener;
@@ -692,26 +691,26 @@ private:
 
     nsString mAppManifestURL;
 
-    /**
-     * We cache mAppName instead of looking it up using mAppManifestURL when we
-     * need it because it turns out that getting an app from the apps service is
-     * expensive.
-     */
+    
+
+
+
+
     nsString mAppName;
 
-    // After we initiate shutdown, we also start a timer to ensure
-    // that even content processes that are 100% blocked (say from
-    // SIGSTOP), are still killed eventually.  This task enforces that
-    // timer.
+    
+    
+    
+    
     CancelableTask* mForceKillTask;
-    // How many tabs we're waiting to finish their destruction
-    // sequence.  Precisely, how many TabParents have called
-    // NotifyTabDestroying() but not called NotifyTabDestroyed().
+    
+    
+    
     int32_t mNumDestroyingTabs;
-    // True only while this is ready to be used to host remote tabs.
-    // This must not be used for new purposes after mIsAlive goes to
-    // false, but some previously scheduled IPC traffic may still pass
-    // through.
+    
+    
+    
+    
     bool mIsAlive;
 
     bool mSendPermissionUpdates;
@@ -719,8 +718,8 @@ private:
     bool mIsForBrowser;
     bool mIsNuwaProcess;
 
-    // These variables track whether we've called Close(), CloseWithError()
-    // and KillHard() on our channel.
+    
+    
     bool mCalledClose;
     bool mCalledCloseWithError;
     bool mCalledKillHard;
@@ -733,8 +732,8 @@ private:
     nsDataHashtable<nsUint64HashKey, nsRefPtr<ParentIdleListener> > mIdleListeners;
 
 #ifdef MOZ_X11
-    // Dup of child's X socket, used to scope its resources to this
-    // object instead of the child process's lifetime.
+    
+    
     ScopedClose mChildXSocketFdDup;
 #endif
 
@@ -744,8 +743,8 @@ private:
 #endif
 };
 
-} // namespace dom
-} // namespace mozilla
+} 
+} 
 
 class ParentIdleListener : public nsIObserver {
 public:
