@@ -3246,8 +3246,7 @@
                                         };
               let popup = browser.ownerDocument.getElementById("contentAreaContextMenu");
               let event = gContextMenuContentData.event;
-              let pos = browser.mapScreenCoordinatesFromContent(event.screenX, event.screenY);
-              popup.openPopupAtScreen(pos.x, pos.y, true);
+              popup.openPopupAtScreen(event.screenX, event.screenY, true);
               break;
             }
             case "DOMWebNotificationClicked": {
@@ -5523,6 +5522,8 @@
           if (this._selectedPanel != panel) {
             var event = document.createEvent("Events");
             event.initEvent("select", true, true);
+            event.fromTab = fromTab;
+            event.toTab = toTab;
             this.dispatchEvent(event);
 
             this._selectedIndex = val;

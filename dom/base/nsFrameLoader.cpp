@@ -884,8 +884,7 @@ nsFrameLoader::ShowRemoteFrame(const ScreenIntSize& size,
 
     
     if (!aFrame || !(aFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
-      nsIntPoint chromeDisp = aFrame->GetChromeDisplacement();
-      mRemoteBrowser->UpdateDimensions(dimensions, size, chromeDisp);
+      mRemoteBrowser->UpdateDimensions(dimensions, size);
     }
   }
 
@@ -1381,6 +1380,12 @@ nsFrameLoader::StartDestroy()
     if (mRemoteBrowser) {
       mRemoteBrowser->CacheFrameLoader(this);
     }
+  }
+
+  
+  
+  if (mRemoteBrowser) {
+    mRemoteBrowser->RemoveWindowListeners();
   }
 
   nsCOMPtr<nsIDocument> doc;
@@ -2058,8 +2063,7 @@ nsFrameLoader::UpdatePositionAndSize(nsSubDocumentFrame *aIFrame)
       ScreenIntSize size = aIFrame->GetSubdocumentSize();
       nsIntRect dimensions;
       NS_ENSURE_SUCCESS(GetWindowDimensions(dimensions), NS_ERROR_FAILURE);
-      nsIntPoint chromeDisp = aIFrame->GetChromeDisplacement();
-      mRemoteBrowser->UpdateDimensions(dimensions, size, chromeDisp);
+      mRemoteBrowser->UpdateDimensions(dimensions, size);
     }
     return NS_OK;
   }
