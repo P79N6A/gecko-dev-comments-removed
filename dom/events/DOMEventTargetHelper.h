@@ -12,6 +12,7 @@
 #include "nsPIDOMWindow.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIScriptContext.h"
+#include "nsIWeakReferenceUtils.h"
 #include "MainThreadUtils.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/EventListenerManager.h"
@@ -138,7 +139,10 @@ public:
   void BindToOwner(nsPIDOMWindow* aOwner);
   void BindToOwner(DOMEventTargetHelper* aOther);
   virtual void DisconnectFromOwner();                   
-  nsIGlobalObject* GetParentObject() const { return mParentObject; }
+  nsIGlobalObject* GetParentObject() const {
+    nsCOMPtr<nsIGlobalObject> parentObject = do_QueryReferent(mParentObject);
+    return parentObject;
+  }
   bool HasOrHasHadOwner() { return mHasOrHasHadOwnerWindow; }
 
   virtual void EventListenerAdded(nsIAtom* aType) MOZ_OVERRIDE;
@@ -164,10 +168,11 @@ protected:
   virtual void LastRelease() {}
 private:
   
-  nsIGlobalObject*           mParentObject;
+  nsWeakPtr                  mParentObject;
   
   
-  nsPIDOMWindow*             mOwnerWindow;
+  
+  nsPIDOMWindow* MOZ_NON_OWNING_REF mOwnerWindow;
   bool                       mHasOrHasHadOwnerWindow;
 };
 
