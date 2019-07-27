@@ -303,26 +303,48 @@ function edgeCanGC(edge)
     return indirectCallCannotGC(functionName, varName) ? null : "*" + varName;
 }
 
-function variableUsePrecedesGC(suppressed, variable, worklist)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function findGCBeforeVariableUse(suppressed, variable, worklist)
 {
+    
     
     
     
 
     while (worklist.length) {
         var entry = worklist.pop();
-        var body = entry.body, ppoint = entry.ppoint;
+        var { body, ppoint, gcInfo } = entry;
 
         if (body.seen) {
             if (ppoint in body.seen) {
                 var seenEntry = body.seen[ppoint];
-                if (!entry.gcInfo || seenEntry.gcInfo)
+                if (!gcInfo || seenEntry.gcInfo)
                     continue;
             }
         } else {
             body.seen = [];
         }
-        body.seen[ppoint] = {body:body, gcInfo:entry.gcInfo};
+        body.seen[ppoint] = {body: body, gcInfo: gcInfo};
 
         if (ppoint == body.Index[0]) {
             if (body.BlockId.Kind == "Loop") {
@@ -334,17 +356,17 @@ function variableUsePrecedesGC(suppressed, variable, worklist)
                             if (sameBlockId(xbody.BlockId, parent.BlockId)) {
                                 assert(!found);
                                 found = true;
-                                worklist.push({body:xbody, ppoint:parent.Index,
-                                               gcInfo:entry.gcInfo, why:entry});
+                                worklist.push({body: xbody, ppoint: parent.Index,
+                                               gcInfo: gcInfo, why: entry});
                             }
                         }
                         assert(found);
                     }
                 }
-            } else if (variable.Kind == "Arg" && entry.gcInfo) {
+            } else if (variable.Kind == "Arg" && gcInfo) {
                 
                 
-                return {gcInfo:entry.gcInfo, why:entry};
+                return {gcInfo: gcInfo, why: entry};
             }
         }
 
@@ -355,26 +377,40 @@ function variableUsePrecedesGC(suppressed, variable, worklist)
         for (var edge of predecessors[ppoint]) {
             var source = edge.Index[0];
 
-            if (edgeKillsVariable(edge, variable)) {
-                if (entry.gcInfo)
-                    return {gcInfo: entry.gcInfo, why: {body:body, ppoint:source, gcInfo:entry.gcInfo, why:entry } }
+            var edge_kills = edgeKillsVariable(edge, variable);
+            var edge_uses = edgeUsesVariable(edge, variable, body);
+
+            if (edge_kills || edge_uses) {
                 if (!body.minimumUse || source < body.minimumUse)
                     body.minimumUse = source;
+            }
+
+            if (edge_kills) {
+                
+                
+                
+                
+                
+                if (gcInfo)
+                    return {gcInfo: gcInfo, why: {body: body, ppoint: source, gcInfo: gcInfo, why: entry } }
+
+                
+                
+                
                 continue;
             }
 
-            var gcInfo = entry.gcInfo;
             if (!gcInfo && !(source in body.suppressed) && !suppressed) {
                 var gcName = edgeCanGC(edge, body);
                 if (gcName)
                     gcInfo = {name:gcName, body:body, ppoint:source};
             }
 
-            if (edgeUsesVariable(edge, variable, body)) {
+            if (edge_uses) {
+                
+                
                 if (gcInfo)
                     return {gcInfo:gcInfo, why:entry};
-                if (!body.minimumUse || source < body.minimumUse)
-                    body.minimumUse = source;
             }
 
             if (edge.Kind == "Loop") {
@@ -392,6 +428,8 @@ function variableUsePrecedesGC(suppressed, variable, worklist)
                 assert(found);
                 break;
             }
+
+            
             worklist.push({body:body, ppoint:source, gcInfo:gcInfo, why:entry});
         }
     }
@@ -414,14 +452,21 @@ function variableLiveAcrossGC(suppressed, variable)
             continue;
         for (var edge of body.PEdge) {
             var usePoint = edgeUsesVariable(edge, variable, body);
+            
+            
+            
+            
+            
+            
             if (usePoint && !edgeKillsVariable(edge, variable)) {
                 
                 var worklist = [{body:body, ppoint:usePoint, gcInfo:null, why:null}];
-                var call = variableUsePrecedesGC(suppressed, variable, worklist);
-                if (call) {
-                    call.afterGCUse = usePoint;
-                    return call;
-                }
+                var call = findGCBeforeVariableUse(suppressed, variable, worklist);
+                if (!call)
+                    continue;
+
+                call.afterGCUse = usePoint;
+                return call;
             }
         }
     }
