@@ -31,6 +31,17 @@ typedef enum JSGCMode {
     JSGC_MODE_INCREMENTAL = 2
 } JSGCMode;
 
+
+
+
+typedef enum JSGCInvocationKind {
+    
+    GC_NORMAL = 0,
+
+    
+    GC_SHRINK = 1
+} JSGCInvocationKind;
+
 namespace JS {
 
 #define GCREASONS(D)                            \
@@ -172,16 +183,12 @@ SkipZoneForGC(Zone *zone);
 
 
 
-extern JS_FRIEND_API(void)
-GCForReason(JSRuntime *rt, gcreason::Reason reason);
-
-
 
 
 
 
 extern JS_FRIEND_API(void)
-ShrinkingGC(JSRuntime *rt, gcreason::Reason reason);
+GCForReason(JSRuntime *rt, JSGCInvocationKind gckind, gcreason::Reason reason);
 
 
 
@@ -216,7 +223,8 @@ ShrinkingGC(JSRuntime *rt, gcreason::Reason reason);
 
 
 extern JS_FRIEND_API(void)
-StartIncrementalGC(JSRuntime *rt, gcreason::Reason reason, int64_t millis = 0);
+StartIncrementalGC(JSRuntime *rt, JSGCInvocationKind gckind, gcreason::Reason reason,
+                   int64_t millis = 0);
 
 
 
