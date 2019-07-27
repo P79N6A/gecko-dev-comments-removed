@@ -37,7 +37,6 @@ class WantsPopupControlCheck;
 
 namespace workers {
 class ExtendableEvent;
-class InstallEvent;
 } 
 
 
@@ -105,11 +104,6 @@ public:
   
   
   virtual workers::ExtendableEvent* AsExtendableEvent()
-  {
-    return nullptr;
-  }
-
-  virtual workers::InstallEvent* AsInstallEvent()
   {
     return nullptr;
   }

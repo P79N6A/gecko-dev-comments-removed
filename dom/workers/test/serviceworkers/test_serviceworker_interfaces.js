@@ -143,8 +143,6 @@ var interfaceNamesInGlobalScope =
 
     "ImageData",
 
-    "InstallEvent",
-
     "MessageEvent",
 
     "MessagePort",
