@@ -89,8 +89,6 @@
 
 
 
-
-
 #ifndef mozilla_JSONWriter_h
 #define mozilla_JSONWriter_h
 
@@ -421,19 +419,6 @@ public:
 
   
   void StringElement(const char* aStr) { StringProperty(nullptr, aStr); }
-
-  
-  
-  void PointerProperty(const char* aName, const void* aPtr)
-  {
-    char buf[32];
-    sprintf(buf, "0x%" PRIxPTR, uintptr_t(aPtr));
-    QuotedScalar(aName, buf);
-  }
-
-  
-  
-  void PointerElement(const void* aPtr) { PointerProperty(nullptr, aPtr); }
 
   
   void StartArrayProperty(const char* aName,
