@@ -1985,25 +1985,6 @@ ArenaLists::wipeDuringParallelExecution(JSRuntime *rt)
     }
 }
 
-#ifdef JSGC_COMPACTING
-
-static void
-ForwardCell(Cell *dest, Cell *src)
-{
-    
-    
-    MOZ_ASSERT(src->tenuredZone() == dest->tenuredZone());
-
-    
-    
-    MOZ_ASSERT(ObjectImpl::offsetOfShape() == 0);
-    uintptr_t *ptr = reinterpret_cast<uintptr_t *>(src);
-    ptr[0] = reinterpret_cast<uintptr_t>(dest); 
-    ptr[1] = ForwardedCellMagicValue; 
-}
-
-#endif
-
 void
 ArenaLists::finalizeNow(FreeOp *fop, AllocKind thingKind)
 {
