@@ -681,7 +681,7 @@ Event::GetEventPopupControlState(WidgetEvent* aEvent)
       }
     }
     break;
-  case NS_EDITOR_INPUT_EVENT :
+  case eEditorInputEventClass:
     
     
     
