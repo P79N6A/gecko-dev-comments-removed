@@ -185,7 +185,7 @@ let AboutProtocolParent = {
     let ppmm = Cc["@mozilla.org/parentprocessmessagemanager;1"]
                .getService(Ci.nsIMessageBroadcaster);
     ppmm.addMessageListener("Addons:AboutProtocol:GetURIFlags", this);
-    ppmm.addMessageListener("Addons:AboutProtocol:NewChannel", this);
+    ppmm.addMessageListener("Addons:AboutProtocol:OpenChannel", this);
     this._protocols = [];
   },
 
@@ -208,8 +208,8 @@ let AboutProtocolParent = {
     switch (msg.name) {
       case "Addons:AboutProtocol:GetURIFlags":
         return this.getURIFlags(msg);
-      case "Addons:AboutProtocol:NewChannel":
-        return this.newChannel(msg);
+      case "Addons:AboutProtocol:OpenChannel":
+        return this.openChannel(msg);
         break;
     }
   },
@@ -227,23 +227,18 @@ let AboutProtocolParent = {
 
   
   
-  
-  
-  
-  
-  
-  newChannel: function(msg) {
+  openChannel: function(msg) {
     let uri = BrowserUtils.makeURI(msg.data.uri);
     let contractID = msg.data.contractID;
     let module = Cc[contractID].getService(Ci.nsIAboutModule);
     try {
       let channel = module.newChannel(uri);
+      channel.notificationCallbacks = msg.objects.notificationCallbacks;
+      channel.loadGroup = {notificationCallbacks: msg.objects.loadGroupNotificationCallbacks};
       let stream = channel.open();
       let data = NetUtil.readInputStreamToString(stream, stream.available(), {});
       return {
         data: data,
-        uri: channel.URI.spec,
-        originalURI: channel.originalURI.spec,
         contentType: channel.contentType
       };
     } catch (e) {
