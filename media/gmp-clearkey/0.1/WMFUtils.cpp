@@ -73,9 +73,11 @@ EnsureLibs()
   static bool sInitDone = false;
   static bool sInitOk = false;
   if (!sInitDone) {
+    
+    
+    
     sInitOk = LinkMfplat() &&
-      !!GetModuleHandleA("msauddecmft.dll") &&
-      !!GetModuleHandleA("msmpeg2adec.dll") &&
+      (!!GetModuleHandleA("msauddecmft.dll") || !!GetModuleHandleA("msmpeg2adec.dll")) &&
       !!GetModuleHandleA("msmpeg2vdec.dll");
     sInitDone = true;
   }
