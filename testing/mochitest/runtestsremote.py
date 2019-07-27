@@ -242,9 +242,6 @@ class MochiRemote(Mochitest):
         self._automation.deleteANRs()
         self._automation.deleteTombstones()
         self.certdbNew = True
-        self.remoteNSPR = os.path.join(options.remoteTestRoot, "nspr")
-        self._dm.removeDir(self.remoteNSPR);
-        self._dm.mkDir(self.remoteNSPR);
 
         
         self.message_logger = message_logger or MessageLogger(logger=log)
@@ -256,7 +253,6 @@ class MochiRemote(Mochitest):
         else:
             log.warning("Unable to retrieve log file (%s) from remote device" % self.remoteLog)
         self._dm.removeDir(self.remoteProfile)
-        self._dm.getDirectory(self.remoteNSPR, os.environ["MOZ_UPLOAD_DIR"])
         Mochitest.cleanup(self, options)
 
     def findPath(self, paths, filename = None):
@@ -562,9 +558,6 @@ class MochiRemote(Mochitest):
 
     def buildBrowserEnv(self, options, debugger=False):
         browserEnv = Mochitest.buildBrowserEnv(self, options, debugger=debugger)
-        
-        self.nsprLogs = None
-        browserEnv["NSPR_LOG_FILE"] = os.path.join(self.remoteNSPR, self.nsprLogName)
         self.buildRobotiumConfig(options, browserEnv)
         return browserEnv
 
@@ -678,6 +671,7 @@ def main():
         options.extraPrefs.append('layout.css.devPixelsPerPx=1.0')
         options.extraPrefs.append('browser.chrome.dynamictoolbar=false')
         options.extraPrefs.append('browser.snippets.enabled=false')
+        options.extraPrefs.append('browser.casting.enabled=true')
 
         if (options.dm_trans == 'adb' and options.robocopApk):
             dm._checkCmd(["install", "-r", options.robocopApk])
@@ -712,7 +706,6 @@ def main():
             options.browserArgs = ["instrument", "-w", "-e", "deviceroot", deviceRoot, "-e", "class"]
             options.browserArgs.append("org.mozilla.gecko.tests.%s" % test['name'])
             options.browserArgs.append("org.mozilla.roboexample.test/org.mozilla.gecko.FennecInstrumentationTestRunner")
-            mochitest.nsprLogName = "nspr-%s.log" % test['name']
 
             
             if test['name'] == "testImportFromAndroid":
@@ -783,7 +776,6 @@ def main():
             if retVal == 0:
                 retVal = overallResult
     else:
-        mochitest.nsprLogName = "nspr.log"
         try:
             dm.recordLogcat()
             retVal = mochitest.runTests(options)
