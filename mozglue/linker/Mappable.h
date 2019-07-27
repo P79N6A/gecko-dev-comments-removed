@@ -10,7 +10,7 @@
 #include "Zip.h"
 #include "SeekableZStream.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/UniquePtr.h"
+#include "mozilla/Scoped.h"
 #include "zlib.h"
 
 
@@ -123,21 +123,24 @@ public:
 
   virtual Kind GetKind() const { return MAPPABLE_EXTRACT_FILE; };
 private:
-  MappableExtractFile(int fd, AutoUnlinkFile path)
-  : MappableFile(fd), path(Move(path)), pid(getpid()) { }
+  MappableExtractFile(int fd, char *path)
+  : MappableFile(fd), path(path), pid(getpid()) { }
 
   
 
 
 
-  struct UnlinkFile
+  struct AutoUnlinkFileTraits: public mozilla::ScopedDeleteArrayTraits<char>
   {
-    void operator()(char *value) {
+    static void release(char *value)
+    {
+      if (!value)
+        return;
       unlink(value);
-      delete [] value;
+      mozilla::ScopedDeleteArrayTraits<char>::release(value);
     }
   };
-  typedef mozilla::UniquePtr<char[], UnlinkFile> AutoUnlinkFile;
+  typedef mozilla::Scoped<AutoUnlinkFileTraits> AutoUnlinkFile;
 
   
   AutoUnlinkFile path;
@@ -177,7 +180,7 @@ private:
   mozilla::RefPtr<Zip> zip;
 
   
-  mozilla::UniquePtr<_MappableBuffer> buffer;
+  mozilla::ScopedDeletePtr<_MappableBuffer> buffer;
 
   
   z_stream zStream;
@@ -217,7 +220,7 @@ private:
   mozilla::RefPtr<Zip> zip;
 
   
-  mozilla::UniquePtr<_MappableBuffer> buffer;
+  mozilla::ScopedDeletePtr<_MappableBuffer> buffer;
 
   
   SeekableZStream zStream;
@@ -260,7 +263,7 @@ private:
 
   
 
-  mozilla::UniquePtr<unsigned char[]> chunkAvail;
+  mozilla::ScopedDeleteArray<unsigned char> chunkAvail;
 
   
   mozilla::Atomic<size_t> chunkAvailNum;
