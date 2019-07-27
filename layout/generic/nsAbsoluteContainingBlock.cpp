@@ -239,69 +239,70 @@ nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
   }
   const nsStylePadding* padding = f->StylePadding();
   const nsStyleMargin* margin = f->StyleMargin();
-  if (aCBWidthChanged) {
+  WritingMode wm = f->GetWritingMode();
+  if (wm.IsVertical() ? aCBHeightChanged : aCBWidthChanged) {
     
     
     
     
     
     
-    if (pos->WidthDependsOnContainer() ||
-        pos->MinWidthDependsOnContainer() ||
-        pos->MaxWidthDependsOnContainer() ||
-        !IsFixedPaddingSize(padding->mPadding.GetLeft()) ||
-        !IsFixedPaddingSize(padding->mPadding.GetRight())) {
+    if (pos->ISizeDependsOnContainer(wm) ||
+        pos->MinISizeDependsOnContainer(wm) ||
+        pos->MaxISizeDependsOnContainer(wm) ||
+        !IsFixedPaddingSize(padding->mPadding.GetIStart(wm)) ||
+        !IsFixedPaddingSize(padding->mPadding.GetIEnd(wm))) {
       return true;
     }
 
     
     
     
-    if (!IsFixedMarginSize(margin->mMargin.GetLeft()) ||
-        !IsFixedMarginSize(margin->mMargin.GetRight())) {
+    if (!IsFixedMarginSize(margin->mMargin.GetIStart(wm)) ||
+        !IsFixedMarginSize(margin->mMargin.GetIEnd(wm))) {
       return true;
     }
-    if (f->StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
+    if (!wm.IsBidiLTR()) {
       
       
       
       
       
       
-      if (!IsFixedOffset(pos->mOffset.GetLeft()) ||
-          pos->mOffset.GetRightUnit() != eStyleUnit_Auto) {
+      if (!IsFixedOffset(pos->mOffset.GetIStart(wm)) ||
+          pos->mOffset.GetIEndUnit(wm) != eStyleUnit_Auto) {
         return true;
       }
     } else {
-      if (!IsFixedOffset(pos->mOffset.GetLeft())) {
+      if (!IsFixedOffset(pos->mOffset.GetIStart(wm))) {
         return true;
       }
     }
   }
-  if (aCBHeightChanged) {
+  if (wm.IsVertical() ? aCBWidthChanged : aCBHeightChanged) {
     
     
     
     
     
     
-    if ((pos->HeightDependsOnContainer() &&
-         !(pos->mHeight.GetUnit() == eStyleUnit_Auto &&
-           pos->mOffset.GetBottomUnit() == eStyleUnit_Auto &&
-           pos->mOffset.GetTopUnit() != eStyleUnit_Auto)) ||
-        pos->MinHeightDependsOnContainer() ||
-        pos->MaxHeightDependsOnContainer() ||
-        !IsFixedPaddingSize(padding->mPadding.GetTop()) ||
-        !IsFixedPaddingSize(padding->mPadding.GetBottom())) { 
+    if ((pos->BSizeDependsOnContainer(wm) &&
+         !(pos->BSize(wm).GetUnit() == eStyleUnit_Auto &&
+           pos->mOffset.GetBEndUnit(wm) == eStyleUnit_Auto &&
+           pos->mOffset.GetBStartUnit(wm) != eStyleUnit_Auto)) ||
+        pos->MinBSizeDependsOnContainer(wm) ||
+        pos->MaxBSizeDependsOnContainer(wm) ||
+        !IsFixedPaddingSize(padding->mPadding.GetBStart(wm)) ||
+        !IsFixedPaddingSize(padding->mPadding.GetBEnd(wm))) {
       return true;
     }
       
     
-    if (!IsFixedMarginSize(margin->mMargin.GetTop()) ||
-        !IsFixedMarginSize(margin->mMargin.GetBottom())) {
+    if (!IsFixedMarginSize(margin->mMargin.GetBStart(wm)) ||
+        !IsFixedMarginSize(margin->mMargin.GetBEnd(wm))) {
       return true;
     }
-    if (!IsFixedOffset(pos->mOffset.GetTop())) {
+    if (!IsFixedOffset(pos->mOffset.GetBStart(wm))) {
       return true;
     }
   }
@@ -355,7 +356,7 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
                                                nsPresContext*           aPresContext,
                                                const nsHTMLReflowState& aReflowState,
                                                const nsRect&            aContainingBlock,
-                                               bool                     aConstrainHeight,
+                                               bool                     aConstrainBSize,
                                                nsIFrame*                aKidFrame,
                                                nsReflowStatus&          aStatus,
                                                nsOverflowAreas*         aOverflowAreas)
@@ -393,84 +394,105 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
       aReflowState.ComputedSizeWithPadding(wm).ISize(wm);
   }
 
-  nsHTMLReflowMetrics kidDesiredSize(aReflowState);
   nsHTMLReflowState kidReflowState(aPresContext, aReflowState, aKidFrame,
                                    LogicalSize(wm, availISize,
                                                NS_UNCONSTRAINEDSIZE),
                                    &logicalCBSize);
 
   
-  const nsMargin& border = aReflowState.mStyleBorder->GetComputedBorder();
-
-  bool constrainHeight = (aReflowState.AvailableHeight() != NS_UNCONSTRAINEDSIZE)
-    && aConstrainHeight
+  WritingMode outerWM = aReflowState.GetWritingMode();
+  const LogicalMargin border(outerWM,
+                             aReflowState.mStyleBorder->GetComputedBorder());
+  const LogicalMargin margin =
+    kidReflowState.ComputedLogicalMargin().ConvertTo(outerWM, wm);
+  bool constrainBSize = (aReflowState.AvailableBSize() != NS_UNCONSTRAINEDSIZE)
+    && aConstrainBSize
        
     && (aDelegatingFrame->GetType() != nsGkAtoms::inlineFrame)
        
-    && (aKidFrame->GetRect().y <= aReflowState.AvailableHeight());
+    && (aKidFrame->GetLogicalRect(aContainingBlock.width).BStart(wm) <=
+        aReflowState.AvailableBSize());
        
        
        
-  if (constrainHeight) {
-    kidReflowState.AvailableHeight() = aReflowState.AvailableHeight() - border.top
-                                     - kidReflowState.ComputedPhysicalMargin().top;
-    if (NS_AUTOOFFSET != kidReflowState.ComputedPhysicalOffsets().top)
-      kidReflowState.AvailableHeight() -= kidReflowState.ComputedPhysicalOffsets().top;
+  if (constrainBSize) {
+    kidReflowState.AvailableBSize() =
+      aReflowState.AvailableBSize() - border.ConvertTo(wm, outerWM).BStart(wm) -
+      kidReflowState.ComputedLogicalMargin().BStart(wm);
+    if (NS_AUTOOFFSET != kidReflowState.ComputedLogicalOffsets().BStart(wm)) {
+      kidReflowState.AvailableBSize() -=
+        kidReflowState.ComputedLogicalOffsets().BStart(wm);
+    }
   }
 
   
+  nsHTMLReflowMetrics kidDesiredSize(kidReflowState);
   aKidFrame->Reflow(aPresContext, kidDesiredSize, kidReflowState, aStatus);
 
-  
-  
-  if ((NS_AUTOOFFSET == kidReflowState.ComputedPhysicalOffsets().left) ||
-      (NS_AUTOOFFSET == kidReflowState.ComputedPhysicalOffsets().top)) {
+  const LogicalSize kidSize = kidDesiredSize.Size(wm).ConvertTo(outerWM, wm);
 
-    if (logicalCBSize.Width(wm) == -1) {
+  LogicalMargin offsets =
+    kidReflowState.ComputedLogicalOffsets().ConvertTo(outerWM, wm);
+
+  
+  
+  if ((NS_AUTOOFFSET == offsets.IStart(outerWM)) ||
+      (NS_AUTOOFFSET == offsets.BStart(outerWM))) {
+    if (-1 == logicalCBSize.ISize(wm)) {
       
       logicalCBSize =
         kidReflowState.ComputeContainingBlockRectangle(aPresContext,
                                                        &aReflowState);
     }
 
-    if (NS_AUTOOFFSET == kidReflowState.ComputedPhysicalOffsets().left) {
-      NS_ASSERTION(NS_AUTOOFFSET != kidReflowState.ComputedPhysicalOffsets().right,
-                   "Can't solve for both left and right");
-      kidReflowState.ComputedPhysicalOffsets().left = logicalCBSize.Width(wm) -
-                                             kidReflowState.ComputedPhysicalOffsets().right -
-                                             kidReflowState.ComputedPhysicalMargin().right -
-                                             kidDesiredSize.Width() -
-                                             kidReflowState.ComputedPhysicalMargin().left;
+    if (NS_AUTOOFFSET == offsets.IStart(outerWM)) {
+      NS_ASSERTION(NS_AUTOOFFSET != offsets.IEnd(outerWM),
+                   "Can't solve for both start and end");
+      offsets.IStart(outerWM) =
+        logicalCBSize.ConvertTo(outerWM, wm).ISize(outerWM) -
+        offsets.IEnd(outerWM) - margin.IStartEnd(outerWM) -
+        kidSize.ISize(outerWM);
     }
-    if (NS_AUTOOFFSET == kidReflowState.ComputedPhysicalOffsets().top) {
-      kidReflowState.ComputedPhysicalOffsets().top = logicalCBSize.Height(wm) -
-                                            kidReflowState.ComputedPhysicalOffsets().bottom -
-                                            kidReflowState.ComputedPhysicalMargin().bottom -
-                                            kidDesiredSize.Height() -
-                                            kidReflowState.ComputedPhysicalMargin().top;
+    if (NS_AUTOOFFSET == offsets.BStart(outerWM)) {
+      offsets.BStart(outerWM) =
+        logicalCBSize.ConvertTo(outerWM, wm).BSize(outerWM) -
+        offsets.BEnd(outerWM) - margin.BStartEnd(outerWM) -
+        kidSize.BSize(outerWM);
     }
+    kidReflowState.SetComputedLogicalOffsets(offsets.ConvertTo(wm, outerWM));
   }
 
   
-  nsRect  rect(border.left + kidReflowState.ComputedPhysicalOffsets().left + kidReflowState.ComputedPhysicalMargin().left,
-               border.top + kidReflowState.ComputedPhysicalOffsets().top + kidReflowState.ComputedPhysicalMargin().top,
-               kidDesiredSize.Width(), kidDesiredSize.Height());
+  LogicalRect rect(outerWM,
+                   border.IStart(outerWM) + offsets.IStart(outerWM) +
+                     margin.IStart(outerWM),
+                   border.BStart(outerWM) + offsets.BStart(outerWM) +
+                     margin.BStart(outerWM),
+                   kidSize.ISize(outerWM), kidSize.BSize(outerWM));
+  nsRect r =
+    rect.GetPhysicalRect(outerWM, logicalCBSize.Width(wm) +
+                                  border.LeftRight(outerWM));
+  
+  if (outerWM.IsVertical() && !outerWM.IsBidiLTR()) {
+    r.y = logicalCBSize.Height(wm) + border.TopBottom(outerWM) - r.YMost();
+  }
 
   
   
   
   if (aContainingBlock.TopLeft() != nsPoint(0, 0)) {
-    if (!(kidReflowState.mStylePosition->mOffset.GetLeftUnit() == eStyleUnit_Auto &&
-          kidReflowState.mStylePosition->mOffset.GetRightUnit() == eStyleUnit_Auto)) {
-      rect.x += aContainingBlock.x;
+    const nsStyleSides& offsets = kidReflowState.mStylePosition->mOffset;
+    if (!(offsets.GetLeftUnit() == eStyleUnit_Auto &&
+          offsets.GetRightUnit() == eStyleUnit_Auto)) {
+      r.x += aContainingBlock.x;
     }
-    if (!(kidReflowState.mStylePosition->mOffset.GetTopUnit() == eStyleUnit_Auto &&
-          kidReflowState.mStylePosition->mOffset.GetBottomUnit() == eStyleUnit_Auto)) {
-      rect.y += aContainingBlock.y;
+    if (!(offsets.GetTopUnit() == eStyleUnit_Auto &&
+          offsets.GetBottomUnit() == eStyleUnit_Auto)) {
+      r.y += aContainingBlock.y;
     }
   }
 
-  aKidFrame->SetRect(rect);
+  aKidFrame->SetRect(r);
 
   nsView* view = aKidFrame->GetView();
   if (view) {
@@ -482,7 +504,8 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
     nsContainerFrame::PositionChildViews(aKidFrame);
   }
 
-  aKidFrame->DidReflow(aPresContext, &kidReflowState, nsDidReflowStatus::FINISHED);
+  aKidFrame->DidReflow(aPresContext, &kidReflowState,
+                       nsDidReflowStatus::FINISHED);
 
 #ifdef DEBUG
   if (nsBlockFrame::gNoisyReflow) {
@@ -494,11 +517,11 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
       printf("%s ", NS_LossyConvertUTF16toASCII(name).get());
     }
     printf("%p rect=%d,%d,%d,%d\n", static_cast<void*>(aKidFrame),
-           rect.x, rect.y, rect.width, rect.height);
+           r.x, r.y, r.width, r.height);
   }
 #endif
 
   if (aOverflowAreas) {
-    aOverflowAreas->UnionWith(kidDesiredSize.mOverflowAreas + rect.TopLeft());
+    aOverflowAreas->UnionWith(kidDesiredSize.mOverflowAreas + r.TopLeft());
   }
 }
