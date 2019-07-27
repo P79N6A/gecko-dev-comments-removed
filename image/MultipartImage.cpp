@@ -42,7 +42,12 @@ public:
       mImage->GetFrame(imgIContainer::FRAME_CURRENT,
                        imgIContainer::FLAG_SYNC_DECODE);
 
-    FinishObserving();
+    
+    
+    
+    if (mImage) {
+      FinishObserving();
+    }
   }
 
   virtual void Notify(int32_t aType,
