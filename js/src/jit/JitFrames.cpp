@@ -389,10 +389,10 @@ HandleExceptionIon(JSContext *cx, const InlineFrameIterator &frame, ResumeFromEx
         
         
         bool shouldBail = Debugger::hasLiveHook(cx->global(), Debugger::OnExceptionUnwind);
+        RematerializedFrame *rematFrame = nullptr;
         if (!shouldBail) {
             JitActivation *act = cx->runtime()->activation()->asJit();
-            RematerializedFrame *rematFrame =
-                act->lookupRematerializedFrame(frame.frame().fp(), frame.frameNo());
+            rematFrame = act->lookupRematerializedFrame(frame.frame().fp(), frame.frameNo());
             shouldBail = rematFrame && rematFrame->isDebuggee();
         }
 
@@ -414,7 +414,19 @@ HandleExceptionIon(JSContext *cx, const InlineFrameIterator &frame, ResumeFromEx
             uint32_t retval = ExceptionHandlerBailout(cx, frame, rfe, propagateInfo, overrecursed);
             if (retval == BAILOUT_RETURN_OK)
                 return;
+
+            
+            
+            
+            
+            if (rematFrame)
+                Debugger::handleUnrecoverableIonBailoutError(cx, rematFrame);
         }
+
+#ifdef DEBUG
+        if (rematFrame)
+            Debugger::assertNotInFrameMaps(rematFrame);
+#endif
     }
 
     if (!script->hasTrynotes())

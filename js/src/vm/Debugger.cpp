@@ -668,26 +668,7 @@ Debugger::slowPathOnLeaveFrame(JSContext *cx, AbstractFramePtr frame, bool frame
 
 
 
-    for (FrameRange r(frame, global); !r.empty(); r.popFront()) {
-        RootedNativeObject frameobj(cx, r.frontFrame());
-        Debugger *dbg = r.frontDebugger();
-        MOZ_ASSERT(dbg == Debugger::fromChildJSObject(frameobj));
-
-        FreeOp *fop = cx->runtime()->defaultFreeOp();
-        DebuggerFrame_freeScriptFrameIterData(fop, frameobj);
-        DebuggerFrame_maybeDecrementFrameScriptStepModeCount(fop, frame, frameobj);
-
-        dbg->frames.remove(frame);
-    }
-
-    
-
-
-
-    if (frame.isEvalFrame()) {
-        RootedScript script(cx, frame.script());
-        script->clearBreakpointsIn(cx->runtime()->defaultFreeOp(), nullptr, nullptr);
-    }
+    removeFromFrameMapsAndClearBreakpointsIn(cx, frame);
 
     
     switch (status) {
@@ -4866,6 +4847,42 @@ Debugger::replaceFrameGuts(JSContext *cx, AbstractFramePtr from, AbstractFramePt
     return true;
 }
 
+ void
+Debugger::assertNotInFrameMaps(AbstractFramePtr frame)
+{
+#ifdef DEBUG
+    FrameRange r(frame);
+    MOZ_ASSERT(r.empty());
+#endif
+}
+
+ void
+Debugger::removeFromFrameMapsAndClearBreakpointsIn(JSContext *cx, AbstractFramePtr frame)
+{
+    Handle<GlobalObject *> global = cx->global();
+
+    for (FrameRange r(frame, global); !r.empty(); r.popFront()) {
+        RootedNativeObject frameobj(cx, r.frontFrame());
+        Debugger *dbg = r.frontDebugger();
+        MOZ_ASSERT(dbg == Debugger::fromChildJSObject(frameobj));
+
+        FreeOp *fop = cx->runtime()->defaultFreeOp();
+        DebuggerFrame_freeScriptFrameIterData(fop, frameobj);
+        DebuggerFrame_maybeDecrementFrameScriptStepModeCount(fop, frame, frameobj);
+
+        dbg->frames.remove(frame);
+    }
+
+    
+
+
+
+    if (frame.isEvalFrame()) {
+        RootedScript script(cx, frame.script());
+        script->clearBreakpointsIn(cx->runtime()->defaultFreeOp(), nullptr, nullptr);
+    }
+}
+
  bool
 Debugger::handleBaselineOsr(JSContext *cx, InterpreterFrame *from, jit::BaselineFrame *to)
 {
@@ -4889,6 +4906,15 @@ Debugger::handleIonBailout(JSContext *cx, jit::RematerializedFrame *from, jit::B
     while (iter.abstractFramePtr() != to)
         ++iter;
     return replaceFrameGuts(cx, from, to, iter);
+}
+
+ void
+Debugger::handleUnrecoverableIonBailoutError(JSContext *cx, jit::RematerializedFrame *frame)
+{
+    
+    
+    
+    removeFromFrameMapsAndClearBreakpointsIn(cx, frame);
 }
 
  void
