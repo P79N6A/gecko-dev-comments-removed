@@ -309,21 +309,42 @@ SavedFrame::construct(JSContext *cx, unsigned argc, Value *vp)
     return false;
 }
 
- SavedFrame *
-SavedFrame::checkThis(JSContext *cx, CallArgs &args, const char *fnName)
+
+
+
+static SavedFrame *
+GetFirstSubsumedFrame(JSContext *cx, SavedFrame *frame)
+{
+    JSSubsumesOp subsumes = cx->runtime()->securityCallbacks->subsumes;
+    if (!subsumes)
+        return frame;
+
+    JSPrincipals *principals = cx->compartment()->principals;
+    if (!principals)
+        return frame;
+
+    while (frame && !subsumes(principals, frame->getPrincipals()))
+        frame = frame->getParent();
+
+    return frame;
+}
+
+ bool
+SavedFrame::checkThis(JSContext *cx, CallArgs &args, const char *fnName,
+                      MutableHandleSavedFrame frame)
 {
     const Value &thisValue = args.thisv();
 
     if (!thisValue.isObject()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_NOT_NONNULL_OBJECT);
-        return nullptr;
+        return false;
     }
 
     JSObject &thisObject = thisValue.toObject();
     if (!thisObject.is<SavedFrame>()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
                              SavedFrame::class_.name, fnName, thisObject.getClass()->name);
-        return nullptr;
+        return false;
     }
 
     
@@ -332,10 +353,13 @@ SavedFrame::checkThis(JSContext *cx, CallArgs &args, const char *fnName)
     if (thisObject.as<SavedFrame>().getReservedSlot(JSSLOT_SOURCE).isNull()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
                              SavedFrame::class_.name, fnName, "prototype object");
-        return nullptr;
+        return false;
     }
 
-    return &thisObject.as<SavedFrame>();
+    
+    
+    frame.set(GetFirstSubsumedFrame(cx, &thisObject.as<SavedFrame>()));
+    return true;
 }
 
 
@@ -349,16 +373,21 @@ SavedFrame::checkThis(JSContext *cx, CallArgs &args, const char *fnName)
 
 
 
-#define THIS_SAVEDFRAME(cx, argc, vp, fnName, args, frame)         \
-    CallArgs args = CallArgsFromVp(argc, vp);                      \
-    RootedSavedFrame frame(cx, checkThis(cx, args, fnName));   \
-    if (!frame)                                                    \
-        return false
+
+#define THIS_SAVEDFRAME(cx, argc, vp, fnName, defaultVal, args, frame) \
+    CallArgs args = CallArgsFromVp(argc, vp);                          \
+    RootedSavedFrame frame(cx);                                        \
+    if (!checkThis(cx, args, fnName, &frame))                          \
+        return false;                                                  \
+    if (!frame) {                                                      \
+        args.rval().set(defaultVal);                                   \
+        return true;                                                   \
+    }
 
  bool
 SavedFrame::sourceProperty(JSContext *cx, unsigned argc, Value *vp)
 {
-    THIS_SAVEDFRAME(cx, argc, vp, "(get source)", args, frame);
+    THIS_SAVEDFRAME(cx, argc, vp, "(get source)", NullValue(), args, frame);
     args.rval().setString(frame->getSource());
     return true;
 }
@@ -366,7 +395,7 @@ SavedFrame::sourceProperty(JSContext *cx, unsigned argc, Value *vp)
  bool
 SavedFrame::lineProperty(JSContext *cx, unsigned argc, Value *vp)
 {
-    THIS_SAVEDFRAME(cx, argc, vp, "(get line)", args, frame);
+    THIS_SAVEDFRAME(cx, argc, vp, "(get line)", NullValue(), args, frame);
     uint32_t line = frame->getLine();
     args.rval().setNumber(line);
     return true;
@@ -375,7 +404,7 @@ SavedFrame::lineProperty(JSContext *cx, unsigned argc, Value *vp)
  bool
 SavedFrame::columnProperty(JSContext *cx, unsigned argc, Value *vp)
 {
-    THIS_SAVEDFRAME(cx, argc, vp, "(get column)", args, frame);
+    THIS_SAVEDFRAME(cx, argc, vp, "(get column)", NullValue(), args, frame);
     uint32_t column = frame->getColumn();
     args.rval().setNumber(column);
     return true;
@@ -384,7 +413,7 @@ SavedFrame::columnProperty(JSContext *cx, unsigned argc, Value *vp)
  bool
 SavedFrame::functionDisplayNameProperty(JSContext *cx, unsigned argc, Value *vp)
 {
-    THIS_SAVEDFRAME(cx, argc, vp, "(get functionDisplayName)", args, frame);
+    THIS_SAVEDFRAME(cx, argc, vp, "(get functionDisplayName)", NullValue(), args, frame);
     RootedAtom name(cx, frame->getFunctionDisplayName());
     if (name)
         args.rval().setString(name);
@@ -396,30 +425,21 @@ SavedFrame::functionDisplayNameProperty(JSContext *cx, unsigned argc, Value *vp)
  bool
 SavedFrame::parentProperty(JSContext *cx, unsigned argc, Value *vp)
 {
-    THIS_SAVEDFRAME(cx, argc, vp, "(get parent)", args, frame);
-    JSSubsumesOp subsumes = cx->runtime()->securityCallbacks->subsumes;
-    JSPrincipals *principals = cx->compartment()->principals;
-
-    do
-        frame = frame->getParent();
-    while (frame && principals && subsumes &&
-           !subsumes(principals, frame->getPrincipals()));
-
-    args.rval().setObjectOrNull(frame);
+    THIS_SAVEDFRAME(cx, argc, vp, "(get parent)", NullValue(), args, frame);
+    args.rval().setObjectOrNull(GetFirstSubsumedFrame(cx, frame->getParent()));
     return true;
 }
 
  bool
 SavedFrame::toStringMethod(JSContext *cx, unsigned argc, Value *vp)
 {
-    THIS_SAVEDFRAME(cx, argc, vp, "toString", args, frame);
+    THIS_SAVEDFRAME(cx, argc, vp, "toString", StringValue(cx->runtime()->emptyString), args, frame);
     StringBuffer sb(cx);
-    JSSubsumesOp subsumes = cx->runtime()->securityCallbacks->subsumes;
-    JSPrincipals *principals = cx->compartment()->principals;
+    DebugOnly<JSSubsumesOp> subsumes = cx->runtime()->securityCallbacks->subsumes;
+    DebugOnly<JSPrincipals *> principals = cx->compartment()->principals;
 
     do {
-        if (principals && subsumes && !subsumes(principals, frame->getPrincipals()))
-            continue;
+        MOZ_ASSERT_IF(principals && subsumes, (*subsumes)(principals, frame->getPrincipals()));
         if (frame->isSelfHosted())
             continue;
 
@@ -435,7 +455,7 @@ SavedFrame::toStringMethod(JSContext *cx, unsigned argc, Value *vp)
         {
             return false;
         }
-    } while ((frame = frame->getParent()));
+    } while ((frame = GetFirstSubsumedFrame(cx, frame->getParent())));
 
     JSString *str = sb.finishString();
     if (!str)
