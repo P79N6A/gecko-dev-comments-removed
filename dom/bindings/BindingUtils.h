@@ -2337,19 +2337,6 @@ XrayResolveOwnProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
 
 
 
-bool
-XrayResolveNativeProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
-                          JS::Handle<JSObject*> obj,
-                          JS::Handle<jsid> id, JS::MutableHandle<JSPropertyDescriptor> desc,
-                          bool& cacheOnHolder);
-
-
-
-
-
-
-
-
 
 bool
 XrayDefineProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
@@ -2463,23 +2450,6 @@ inline void
 MustInheritFromNonRefcountedDOMObject(NonRefcountedDOMObject*)
 {
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-bool
-NativeToString(JSContext* cx, JS::Handle<JSObject*> wrapper,
-               JS::Handle<JSObject*> obj,
-               JS::MutableHandle<JS::Value> v);
 
 HAS_MEMBER(JSBindingFinalized)
 
@@ -2995,12 +2965,6 @@ GlobalPropertiesAreOwn()
 void
 AssertReturnTypeMatchesJitinfo(const JSJitInfo* aJitinfo,
                                JS::Handle<JS::Value> aValue);
-
-extern void
-DEBUG_CheckXBLLookup(JSContext *cx, JSPropertyDescriptor *desc);
-#else
-#define DEBUG_CheckXBLLookup(a, b) {}
-
 #endif
 
 

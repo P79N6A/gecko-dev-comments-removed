@@ -157,15 +157,32 @@ struct NativePropertyHooks
   constructors::ID mConstructorID;
 
   
+  
   const NativePropertyHooks* mProtoHooks;
 };
 
 enum DOMObjectType {
   eInstance,
+  eGlobalInstance,
   eInterface,
   eInterfacePrototype,
+  eGlobalInterfacePrototype,
   eNamedPropertiesObject
 };
+
+inline
+bool
+IsInstance(DOMObjectType type)
+{
+  return type == eInstance || type == eGlobalInstance;
+}
+
+inline
+bool
+IsInterfacePrototype(DOMObjectType type)
+{
+  return type == eInterfacePrototype || type == eGlobalInterfacePrototype;
+}
 
 typedef JSObject* (*ParentGetter)(JSContext* aCx, JS::Handle<JSObject*> aObj);
 
@@ -229,6 +246,7 @@ struct DOMIfaceAndProtoJSClass
   
   const js::Class mBase;
 
+  
   
   DOMObjectType mType;
 

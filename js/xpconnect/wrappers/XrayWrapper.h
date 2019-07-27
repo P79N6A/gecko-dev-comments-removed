@@ -154,14 +154,26 @@ class DOMXrayTraits : public XrayTraits
 {
 public:
     enum {
-        HasPrototype = 0
+        HasPrototype = 1
     };
 
     static const XrayType Type = XrayForDOMObject;
 
     virtual bool resolveNativeProperty(JSContext *cx, JS::HandleObject wrapper,
                                        JS::HandleObject holder, JS::HandleId id,
-                                       JS::MutableHandle<JSPropertyDescriptor> desc) MOZ_OVERRIDE;
+                                       JS::MutableHandle<JSPropertyDescriptor> desc) MOZ_OVERRIDE
+    {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        return true;
+    }
     virtual bool resolveOwnProperty(JSContext *cx, const js::Wrapper &jsWrapper, JS::HandleObject wrapper,
                                     JS::HandleObject holder, JS::HandleId id,
                                     JS::MutableHandle<JSPropertyDescriptor> desc) MOZ_OVERRIDE;
@@ -176,6 +188,10 @@ public:
                      const JS::CallArgs &args, const js::Wrapper& baseInstance);
     static bool construct(JSContext *cx, JS::HandleObject wrapper,
                           const JS::CallArgs &args, const js::Wrapper& baseInstance);
+
+    static bool getPrototypeOf(JSContext *cx, JS::HandleObject wrapper,
+                               JS::HandleObject target,
+                               JS::MutableHandleObject protop);
 
     virtual void preserveWrapper(JSObject *target) MOZ_OVERRIDE;
 
