@@ -2413,7 +2413,7 @@ CodeGeneratorX86Shared::visitSimdBinaryCompIx4(LSimdBinaryCompIx4 *ins)
         
         
         masm.packedGreaterThanInt32x4(ToOperand(ins->lhs()), ScratchSimdReg);
-        masm.moveAlignedInt32x4(ScratchFloat32Reg, lhs);
+        masm.moveAlignedInt32x4(ScratchSimdReg, lhs);
         return true;
       case MSimdBinaryComp::notEqual:
       case MSimdBinaryComp::greaterThanOrEqual:
@@ -2446,11 +2446,10 @@ CodeGeneratorX86Shared::visitSimdBinaryCompFx4(LSimdBinaryCompFx4 *ins)
         masm.cmpps(rhs, lhs, 0x4);
         return true;
       case MSimdBinaryComp::greaterThanOrEqual:
-        masm.cmpps(rhs, lhs, 0x5);
-        return true;
       case MSimdBinaryComp::greaterThan:
-        masm.cmpps(rhs, lhs, 0x6);
-        return true;
+        
+        
+        MOZ_CRASH("lowering should have reversed this");
     }
     MOZ_CRASH("unexpected SIMD op");
 }
