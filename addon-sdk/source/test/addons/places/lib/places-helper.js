@@ -33,6 +33,13 @@ function invalidResolve (assert) {
 }
 exports.invalidResolve = invalidResolve;
 
+function invalidReject (assert) {
+  return function (e) {
+    assert.fail('Reject state should not be called: ' + e);
+  };
+}
+exports.invalidReject = invalidReject;
+
 
 function clearBookmarks (group) {
   group

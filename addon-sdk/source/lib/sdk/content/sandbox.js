@@ -10,7 +10,6 @@ module.metadata = {
 const { Class } = require('../core/heritage');
 const { EventTarget } = require('../event/target');
 const { on, off, emit } = require('../event/core');
-const { events } = require('./sandbox/events');
 const { requiresAddonGlobal } = require('./utils');
 const { delay: async } = require('../lang/functional');
 const { Ci, Cu, Cc } = require('chrome');
@@ -21,7 +20,8 @@ const { merge } = require('../util/object');
 const { getTabForContentWindow } = require('../tabs/utils');
 const { getInnerId } = require('../window/utils');
 const { PlainTextConsole } = require('../console/plain-text');
-const { data } = require('../self');const { isChildLoader } = require('../remote/core');
+const { data } = require('../self');
+const { isChildLoader } = require('../remote/core');
 
 const sandboxes = new WeakMap();
 
@@ -166,7 +166,6 @@ const WorkerSandbox = Class({
       get top() top,
       get parent() parent
     });
-
     
     
     
@@ -262,11 +261,6 @@ const WorkerSandbox = Class({
       win.console = con;
     };
 
-    emit(events, "content-script-before-inserted", {
-      window: window,
-      worker: worker
-    });
-
     
     
     
@@ -279,7 +273,6 @@ const WorkerSandbox = Class({
 
     if (contentScriptFile)
       importScripts.apply(null, [this].concat(contentScriptFile));
-
     if (contentScript) {
       evaluateIn(
         this,

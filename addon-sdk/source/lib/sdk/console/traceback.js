@@ -1,15 +1,18 @@
 
 
 
+
 "use strict";
 
 module.metadata = {
   "stability": "experimental"
 };
 
-const { Ci, components } = require("chrome");
+const { Cc, Ci, components } = require("chrome");
 const { parseStack, sourceURI } = require("toolkit/loader");
 const { readURISync } = require("../net/url");
+
+exports.sourceURI = sourceURI
 
 function safeGetFileLine(path, line) {
   try {

@@ -58,7 +58,7 @@ function walk (curr, fn) {
   return promised(fn)(curr).then(val => {
     return all(curr.children.map(child => walk(child, fn)));
   });
-}
+} 
 
 
 
@@ -177,9 +177,9 @@ function createQuery (type, query) {
   let qObj = {
     searchTerms: query.query
   };
-
+     
   urlQueryParser(qObj, query.url);
-
+  
   
   if (type === 0) {
     
@@ -194,7 +194,7 @@ function createQuery (type, query) {
   else if (type === 1) {
     qObj.tags = query.tags;
     qObj.folder = query.group && query.group.id;
-  }
+  } 
   
   else if (type === 2) {
 
