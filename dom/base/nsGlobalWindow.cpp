@@ -12447,6 +12447,11 @@ nsGlobalWindow::RunTimeoutHandler(nsTimeout* aTimeout,
 
   mRunningTimeout = last_running_timeout;
   timeout->mRunning = false;
+
+  
+  
+  Promise::PerformMicroTaskCheckpoint();
+
   return timeout->mCleared;
 }
 
@@ -12570,10 +12575,13 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
   
   
   
+  
+  
   last_expired_timeout = nullptr;
-  for (nsTimeout *timeout = mTimeouts.getFirst(); timeout; timeout = timeout->getNext()) {
-    if (((timeout == aTimeout) || (timeout->mWhen <= deadline)) &&
-        (timeout->mFiringDepth == 0)) {
+  for (nsTimeout *timeout = mTimeouts.getFirst();
+       timeout && timeout->mWhen <= deadline;
+       timeout = timeout->getNext()) {
+    if (timeout->mFiringDepth == 0) {
       
       
       timeout->mFiringDepth = firingDepth;
