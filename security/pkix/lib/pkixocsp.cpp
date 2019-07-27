@@ -407,39 +407,25 @@ BasicResponse(Reader& input, Context& context)
   }
 
   
-
   NonOwningDERArray certs;
   if (!input.AtEnd()) {
-    
-    
-    
-
-    
-    Reader wrapped;
-    rv = der::ExpectTagAndGetValueAtEnd(
-          input, der::CONTEXT_SPECIFIC | der::CONSTRUCTED | 0, wrapped);
+    rv = der::Nested(input, der::CONTEXT_SPECIFIC | der::CONSTRUCTED | 0,
+                     der::SEQUENCE, [&certs](Reader& certsDER) -> Result {
+      while (!certsDER.AtEnd()) {
+        Input cert;
+        Result rv = der::ExpectTagAndGetTLV(certsDER, der::SEQUENCE, cert);
+        if (rv != Success) {
+          return rv;
+        }
+        rv = certs.Append(cert);
+        if (rv != Success) {
+          return Result::ERROR_BAD_DER; 
+        }
+      }
+      return Success;
+    });
     if (rv != Success) {
       return rv;
-    }
-
-    
-    Reader certsSequence;
-    rv = der::ExpectTagAndGetValueAtEnd(wrapped, der::SEQUENCE, certsSequence);
-    if (rv != Success) {
-      return rv;
-    }
-
-    
-    while (!certsSequence.AtEnd()) {
-      Input cert;
-      rv = der::ExpectTagAndGetTLV(certsSequence, der::SEQUENCE, cert);
-      if (rv != Success) {
-        return rv;
-      }
-      rv = certs.Append(cert);
-      if (rv != Success) {
-        return rv;
-      }
     }
   }
 
