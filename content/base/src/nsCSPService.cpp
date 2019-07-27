@@ -236,31 +236,32 @@ CSPService::AsyncOnChannelRedirect(nsIChannel *oldChannel,
 {
   nsAsyncRedirectAutoCallback autoCallback(callback);
 
-  
-  nsCOMPtr<nsISupports> policyContainer;
-  nsCOMPtr<nsIPropertyBag2> props(do_QueryInterface(oldChannel));
-  if (!props)
-    return NS_OK;
-
-  props->GetPropertyAsInterface(NS_CHANNEL_PROP_CHANNEL_POLICY,
-                                NS_GET_IID(nsISupports),
-                                getter_AddRefs(policyContainer));
+  nsCOMPtr<nsILoadInfo> loadInfo;
+  nsresult rv = oldChannel->GetLoadInfo(getter_AddRefs(loadInfo));
 
   
-  nsCOMPtr<nsIChannelPolicy> channelPolicy(do_QueryInterface(policyContainer));
-  if (!channelPolicy)
+  if (!loadInfo) {
     return NS_OK;
+  }
 
-  nsCOMPtr<nsISupports> supports;
+  
+  
+  
+  
+
+  nsCOMPtr<nsINode> loadingNode = loadInfo->LoadingNode();
+  nsCOMPtr<nsIPrincipal> principal = loadingNode ?
+                                     loadingNode->NodePrincipal() :
+                                     loadInfo->LoadingPrincipal();
+  NS_ASSERTION(principal, "Can not evaluate CSP without a principal");
   nsCOMPtr<nsIContentSecurityPolicy> csp;
-  channelPolicy->GetContentSecurityPolicy(getter_AddRefs(supports));
-  csp = do_QueryInterface(supports);
-  uint32_t loadType;
-  channelPolicy->GetLoadType(&loadType);
+  rv = principal->GetCsp(getter_AddRefs(csp));
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
-  if (!csp)
+  if (!csp) {
     return NS_OK;
+  }
 
   
 
@@ -270,19 +271,21 @@ CSPService::AsyncOnChannelRedirect(nsIChannel *oldChannel,
 
 
 
-  
-  
   nsCOMPtr<nsIURI> newUri;
-  newChannel->GetURI(getter_AddRefs(newUri));
+  rv = newChannel->GetURI(getter_AddRefs(newUri));
+  NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<nsIURI> originalUri;
-  oldChannel->GetOriginalURI(getter_AddRefs(originalUri));
+  rv = oldChannel->GetOriginalURI(getter_AddRefs(originalUri));
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsContentPolicyType policyType = loadInfo->GetContentPolicyType();
+
   int16_t aDecision = nsIContentPolicy::ACCEPT;
-  csp->ShouldLoad(loadType,        
-                  newUri,          
-                  nullptr,          
-                  nullptr,          
-                  EmptyCString(),  
-                  originalUri,     
+  csp->ShouldLoad(policyType,     
+                  newUri,         
+                  nullptr,        
+                  nullptr,        
+                  EmptyCString(), 
+                  originalUri,    
                   &aDecision);
 
 #ifdef PR_LOGGING
@@ -302,36 +305,9 @@ CSPService::AsyncOnChannelRedirect(nsIChannel *oldChannel,
 #endif
 
   
-  if (aDecision != 1) {
+  if (!NS_CP_ACCEPTED(aDecision)) {
     autoCallback.DontCallback();
     return NS_BINDING_FAILED;
   }
-
-  
-  
-  nsresult rv;
-  nsCOMPtr<nsIWritablePropertyBag2> props2 = do_QueryInterface(newChannel);
-  if (props2) {
-    rv = props2->SetPropertyAsInterface(NS_CHANNEL_PROP_CHANNEL_POLICY,
-                                        channelPolicy);
-    if (NS_SUCCEEDED(rv)) {
-      return NS_OK;
-    }
-  }
-
-  
-  
-  nsAutoCString newUriSpec;
-  rv = newUri->GetSpec(newUriSpec);
-  NS_ConvertUTF8toUTF16 unicodeSpec(newUriSpec);
-  const char16_t *formatParams[] = { unicodeSpec.get() };
-  if (NS_SUCCEEDED(rv)) {
-    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                    NS_LITERAL_CSTRING("Redirect Error"), nullptr,
-                                    nsContentUtils::eDOM_PROPERTIES,
-                                    "InvalidRedirectChannelWarning",
-                                    formatParams, 1);
-  }
-
-  return NS_BINDING_FAILED;
+  return NS_OK;
 }
