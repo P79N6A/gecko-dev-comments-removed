@@ -29,8 +29,6 @@ public:
 
   nsGB18030ToUnicode() : nsBufferDecoderSupport(1)
   {
-    mExtensionDecoder = nullptr;
-    m4BytesDecoder = nullptr;
   }
 
 protected:
@@ -41,11 +39,7 @@ protected:
 
 protected:
   nsGBKConvUtil mUtil;
-  nsCOMPtr<nsIUnicodeDecoder> mExtensionDecoder;
-  nsCOMPtr<nsIUnicodeDecoder> m4BytesDecoder;
 
-  void CreateExtensionDecoder();
-  void Create4BytesDecoder();
   bool TryExtensionDecoder(const char* aSrc, char16_t* aDest);
   bool Try4BytesDecoder(const char* aSrc, char16_t* aDest);
   bool DecodeToSurrogate(const char* aSrc, char16_t* aDest);

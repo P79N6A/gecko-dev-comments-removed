@@ -201,39 +201,6 @@ NS_IMETHODIMP nsBufferDecoderSupport::GetMaxLength(const char* aSrc,
 
 
 
-nsTableDecoderSupport::nsTableDecoderSupport(uScanClassID aScanClass,
-                                             uShiftInTable* aShiftInTable,
-                                             uMappingTable* aMappingTable,
-                                             uint32_t aMaxLengthFactor)
-: nsBufferDecoderSupport(aMaxLengthFactor)
-{
-  mScanClass = aScanClass;
-  mShiftInTable = aShiftInTable;
-  mMappingTable = aMappingTable;
-}
-
-nsTableDecoderSupport::~nsTableDecoderSupport()
-{
-}
-
-
-
-
-NS_IMETHODIMP nsTableDecoderSupport::ConvertNoBuff(const char* aSrc,
-                                                   int32_t* aSrcLength,
-                                                   char16_t* aDest,
-                                                   int32_t* aDestLength)
-{
-  return nsUnicodeDecodeHelper::ConvertByTable(aSrc, aSrcLength,
-                                               aDest, aDestLength,
-                                               mScanClass,
-                                               mShiftInTable, mMappingTable,
-                                               mErrBehavior == kOnError_Signal);
-}
-
-
-
-
 nsMultiTableDecoderSupport::nsMultiTableDecoderSupport(
                             int32_t aTableCount,
                             const uRange* aRangeArray,

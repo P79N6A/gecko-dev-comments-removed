@@ -158,43 +158,6 @@ public:
 
 
 
-class nsTableDecoderSupport : public nsBufferDecoderSupport
-{
-public:
-
-  
-
-
-  nsTableDecoderSupport(uScanClassID aScanClass, uShiftInTable * aShiftInTable,
-      uMappingTable * aMappingTable, uint32_t aMaxLengthFactor);
-
-  
-
-
-  virtual ~nsTableDecoderSupport();
-
-protected:
-
-  uScanClassID              mScanClass;
-  uShiftInTable             * mShiftInTable;
-  uMappingTable             * mMappingTable;
-
-  
-  
-
-  NS_IMETHOD ConvertNoBuff(const char * aSrc, int32_t * aSrcLength, 
-      char16_t * aDest, int32_t * aDestLength);
-};
-
-
-
-
-
-
-
-
-
-
 class nsMultiTableDecoderSupport : public nsBufferDecoderSupport
 {
 public:
