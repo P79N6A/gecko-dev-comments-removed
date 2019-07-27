@@ -425,6 +425,9 @@ void
 OscillatorNode::SendFrequencyToStream(AudioNode* aNode)
 {
   OscillatorNode* This = static_cast<OscillatorNode*>(aNode);
+  if (!This->mStream) {
+    return;
+  }
   SendTimelineParameterToStream(This, OscillatorNodeEngine::FREQUENCY, *This->mFrequency);
 }
 
@@ -432,12 +435,18 @@ void
 OscillatorNode::SendDetuneToStream(AudioNode* aNode)
 {
   OscillatorNode* This = static_cast<OscillatorNode*>(aNode);
+  if (!This->mStream) {
+    return;
+  }
   SendTimelineParameterToStream(This, OscillatorNodeEngine::DETUNE, *This->mDetune);
 }
 
 void
 OscillatorNode::SendTypeToStream()
 {
+  if (!mStream) {
+    return;
+  }
   if (mType == OscillatorType::Custom) {
     
     SendPeriodicWaveToStream();
@@ -536,6 +545,9 @@ OscillatorNode::NotifyMainThreadStreamFinished()
   };
 
   NS_DispatchToMainThread(new EndedEventDispatcher(this));
+  
+  
+  DestroyMediaStream();
 
   
   
