@@ -58,30 +58,59 @@ public:
 
   GFX2D_API Rect TransformBounds(const Rect& rect) const;
 
-  
-  
-  Matrix &Scale(Float aX, Float aY)
+  static Matrix Translation(Float aX, Float aY)
   {
-    _11 *= aX;
-    _12 *= aX;
-    _21 *= aY;
-    _22 *= aY;
-
-    return *this;
+    return Matrix(1.0f, 0.0f, 0.0f, 1.0f, aX, aY);
   }
 
-  Matrix &Translate(Float aX, Float aY)
+  static Matrix Translation(Point aPoint)
+  {
+    return Translation(aPoint.x, aPoint.y);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  Matrix &PreTranslate(Float aX, Float aY)
   {
     _31 += _11 * aX + _21 * aY;
     _32 += _12 * aX + _22 * aY;
 
     return *this;
   }
-  
-  Matrix &Translate(const Point &aPoint)
+
+  Matrix &PreTranslate(const Point &aPoint)
   {
-    return Translate(aPoint.x, aPoint.y);
+    return PreTranslate(aPoint.x, aPoint.y);
   }
+
+  
+
+
+
+
+
+
+
+
+
+
 
   Matrix &PostTranslate(Float aX, Float aY)
   {
@@ -95,7 +124,30 @@ public:
     return PostTranslate(aPoint.x, aPoint.y);
   }
 
-  Matrix &Rotate(Float aAngle)
+  static Matrix Scaling(Float aScaleX, Float aScaleY)
+  {
+    return Matrix(aScaleX, 0.0f, 0.0f, aScaleY, 0.0f, 0.0f);
+  }
+  
+  
+
+
+  Matrix &PreScale(Float aX, Float aY)
+  {
+    _11 *= aX;
+    _12 *= aX;
+    _21 *= aY;
+    _22 *= aY;
+
+    return *this;
+  }
+  
+  GFX2D_API static Matrix Rotation(Float aAngle);
+
+  
+
+
+  Matrix &PreRotate(Float aAngle)
   {
     return *this = Matrix::Rotation(aAngle) * *this;
   }
@@ -131,23 +183,6 @@ public:
   Float Determinant() const
   {
     return _11 * _22 - _12 * _21;
-  }
-
-  static Matrix Translation(Float aX, Float aY)
-  {
-    return Matrix(1.0f, 0.0f, 0.0f, 1.0f, aX, aY);
-  }
-
-  static Matrix Translation(Point aPoint)
-  {
-    return Translation(aPoint.x, aPoint.y);
-  }
-
-  GFX2D_API static Matrix Rotation(Float aAngle);
-
-  static Matrix Scaling(Float aX, Float aY)
-  {
-    return Matrix(aX, 0.0f, 0.0f, aY, 0.0f, 0.0f);
   }
 
   Matrix operator*(const Matrix &aMatrix) const
