@@ -199,10 +199,12 @@ TransactionsHistory.__proto__ = {
   get undoPosition() this._undoPosition,
 
   
-  get topUndoEntry() this.undoPosition < this.length ?
-                     this[this.undoPosition] : null,
-  get topRedoEntry() this.undoPosition > 0 ?
-                     this[this.undoPosition - 1] : null,
+  get topUndoEntry() {
+    return this.undoPosition < this.length ? this[this.undoPosition] : null;
+  },
+  get topRedoEntry() {
+    return this.undoPosition > 0 ? this[this.undoPosition - 1] : null;
+  },
 
   
   
@@ -219,7 +221,9 @@ TransactionsHistory.__proto__ = {
 
   proxifyTransaction: function (aRawTransaction) {
     let proxy = Object.freeze({
-      transact() TransactionsManager.transact(this)
+      transact() {
+        return TransactionsManager.transact(this);
+      }
     });
     this.proxifiedToRaw.set(proxy, aRawTransaction);
     return proxy;
@@ -232,8 +236,9 @@ TransactionsHistory.__proto__ = {
 
 
 
-  isProxifiedTransactionObject:
-  function (aValue) this.proxifiedToRaw.has(aValue),
+  isProxifiedTransactionObject(aValue) {
+    return this.proxifiedToRaw.has(aValue);
+  },
 
   
 
@@ -242,7 +247,9 @@ TransactionsHistory.__proto__ = {
 
 
 
-  getRawTransaction(aProxy) this.proxifiedToRaw.get(aProxy),
+  getRawTransaction(aProxy) {
+    return this.proxifiedToRaw.get(aProxy);
+  },
 
   
 
@@ -340,7 +347,9 @@ let PlacesTransactions = {
 
 
 
-  undo() TransactionsManager.undo(),
+  undo() {
+    return TransactionsManager.undo();
+  },
 
   
 
@@ -351,7 +360,9 @@ let PlacesTransactions = {
 
 
 
-  redo() TransactionsManager.redo(),
+  redo() {
+    return TransactionsManager.redo();
+  },
 
   
 
@@ -367,13 +378,16 @@ let PlacesTransactions = {
 
 
 
-  clearTransactionsHistory(aUndoEntries = true, aRedoEntries = true)
-    TransactionsManager.clearTransactionsHistory(aUndoEntries, aRedoEntries),
+  clearTransactionsHistory(aUndoEntries = true, aRedoEntries = true) {
+    return TransactionsManager.clearTransactionsHistory(aUndoEntries, aRedoEntries);
+  },
 
   
 
 
-  get length() TransactionsHistory.length,
+  get length() {
+    return TransactionsHistory.length;
+  },
 
   
 
@@ -400,17 +414,23 @@ let PlacesTransactions = {
 
 
 
-  get undoPosition() TransactionsHistory.undoPosition,
+  get undoPosition() {
+    return TransactionsHistory.undoPosition;
+  },
 
   
 
 
-  get topUndoEntry() TransactionsHistory.topUndoEntry,
+  get topUndoEntry() {
+    return TransactionsHistory.topUndoEntry;
+  },
 
   
 
 
-  get topRedoEntry() TransactionsHistory.topRedoEntry
+  get topRedoEntry() {
+    return TransactionsHistory.topRedoEntry;
+  }
 };
 
 
@@ -461,7 +481,9 @@ Enqueuer.prototype = {
   
 
 
-  get promise() this._promise
+  get promise() {
+    return this._promise;
+  }
 };
 
 let TransactionsManager = {
