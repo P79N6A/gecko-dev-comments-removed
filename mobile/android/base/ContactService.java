@@ -1968,9 +1968,9 @@ public class ContactService implements GeckoEventListener {
         mEmailTypesMap.put("work", Email.TYPE_WORK);
     }
 
-    private int getWebsiteType(String webisteType) {
+    private int getWebsiteType(String websiteType) {
         initWebsiteTypesMap();
-        Integer type = mWebsiteTypesMap.get(webisteType.toLowerCase());
+        Integer type = mWebsiteTypesMap.get(websiteType.toLowerCase());
         return type != null ? type : Website.TYPE_CUSTOM;
     }
 

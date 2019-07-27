@@ -203,12 +203,6 @@ public class ActivityChooserModel extends DataSetObservable {
     
 
 
-    public static final String DEFAULT_HISTORY_FILE_NAME =
-        "activity_choser_model_history.xml";
-
-    
-
-
     public static final int DEFAULT_HISTORY_MAX_LENGTH = 50;
 
     
@@ -327,15 +321,9 @@ public class ActivityChooserModel extends DataSetObservable {
     
 
 
-    private OnChooseActivityListener mActivityChoserModelPolicy;
+    private OnChooseActivityListener mActivityChooserModelPolicy;
 
     
-
-
-
-
-
-
 
 
 
@@ -502,10 +490,10 @@ public class ActivityChooserModel extends DataSetObservable {
             Intent choiceIntent = new Intent(mIntent);
             choiceIntent.setComponent(chosenName);
 
-            if (mActivityChoserModelPolicy != null) {
+            if (mActivityChooserModelPolicy != null) {
                 
                 Intent choiceIntentCopy = new Intent(choiceIntent);
-                final boolean handled = mActivityChoserModelPolicy.onChooseActivity(this,
+                final boolean handled = mActivityChooserModelPolicy.onChooseActivity(this,
                         choiceIntentCopy);
                 if (handled) {
                     return null;
@@ -527,7 +515,7 @@ public class ActivityChooserModel extends DataSetObservable {
 
     public void setOnChooseActivityListener(OnChooseActivityListener listener) {
         synchronized (mInstanceLock) {
-            mActivityChoserModelPolicy = listener;
+            mActivityChooserModelPolicy = listener;
         }
     }
 

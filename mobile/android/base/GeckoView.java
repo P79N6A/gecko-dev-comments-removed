@@ -664,7 +664,7 @@ public class GeckoView extends LayerView
 
 
         public void onPageStop(GeckoView view, GeckoView.Browser browser, boolean success);
-    
+
         
 
 
@@ -672,7 +672,7 @@ public class GeckoView extends LayerView
 
 
         public void onPageShow(GeckoView view, GeckoView.Browser browser);
-    
+
         
 
 
@@ -681,7 +681,7 @@ public class GeckoView extends LayerView
 
 
         public void onReceivedTitle(GeckoView view, GeckoView.Browser browser, String title);
-    
+
         
 
 

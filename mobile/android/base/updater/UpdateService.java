@@ -224,6 +224,7 @@ public class UpdateService extends IntentService {
 
 
 
+
         boolean shouldStartDownload = hasFlag(flags, UpdateServiceHelper.FLAG_FORCE_DOWNLOAD) ||
             autoDownloadPolicy == UpdateServiceHelper.AUTODOWNLOAD_ENABLED ||
             (autoDownloadPolicy == UpdateServiceHelper.AUTODOWNLOAD_WIFI && !ConnectivityManagerCompat.isActiveNetworkMetered(mConnectivityManager));

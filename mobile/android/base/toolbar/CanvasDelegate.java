@@ -21,7 +21,7 @@ class CanvasDelegate {
 
     
     static interface DrawManager {
-        public void defaultDraw(Canvas cavas);
+        public void defaultDraw(Canvas canvas);
     }
 
     CanvasDelegate(DrawManager drawManager, Mode mode) {
