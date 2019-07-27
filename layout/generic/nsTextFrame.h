@@ -7,6 +7,7 @@
 #define nsTextFrame_h__
 
 #include "mozilla/Attributes.h"
+#include "mozilla/gfx/2D.h"
 #include "nsFrame.h"
 #include "nsSplittableFrame.h"
 #include "nsLineBox.h"
@@ -37,6 +38,9 @@ public:
 };
 
 class nsTextFrame : public nsTextFrameBase {
+  typedef mozilla::gfx::DrawTarget DrawTarget;
+  typedef mozilla::gfx::Rect Rect;
+
 public:
   NS_DECL_QUERYFRAME_TARGET(nsTextFrame)
   NS_DECL_FRAMEARENA_HELPERS
@@ -329,6 +333,14 @@ public:
 
 
 
+    virtual void NotifySelectionBackgroundNeedsFill(const Rect& aBackgroundRect,
+                                                    nscolor aColor,
+                                                    DrawTarget& aDrawTarget) { }
+
+    
+
+
+
     virtual void NotifyBeforeText(nscolor aColor) { }
 
     
@@ -336,18 +348,6 @@ public:
 
 
     virtual void NotifyAfterText() { }
-
-    
-
-
-
-    virtual void NotifyBeforeSelectionBackground(nscolor aColor) { }
-
-    
-
-
-
-    virtual void NotifySelectionBackgroundPathEmitted() { }
 
     
 
