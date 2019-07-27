@@ -81,9 +81,13 @@ loop.store.ActiveRoomStore = (function() {
         screenSharingState: SCREEN_SHARE_STATES.INACTIVE,
         receivingScreenShare: false,
         
+        roomContextUrls: null,
+        
         roomCryptoKey: null,
         
         roomInfoFailure: null,
+        
+        roomName: null,
         
         socialShareButtonAvailable: false,
         socialShareProviders: null
@@ -271,6 +275,7 @@ loop.store.ActiveRoomStore = (function() {
               .then(function(decryptedResult) {
           var realResult = JSON.parse(decryptedResult);
 
+          roomInfoData.urls = realResult.urls;
           roomInfoData.roomName = realResult.roomName;
 
           dispatcher.dispatch(roomInfoData);
@@ -320,6 +325,7 @@ loop.store.ActiveRoomStore = (function() {
 
     updateRoomInfo: function(actionData) {
       this.setStoreState({
+        roomContextUrls: actionData.urls,
         roomInfoFailure: actionData.roomInfoFailure,
         roomName: actionData.roomName,
         roomOwner: actionData.roomOwner,
