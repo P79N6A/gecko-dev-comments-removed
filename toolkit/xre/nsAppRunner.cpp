@@ -2335,6 +2335,21 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, n
     return ShowProfileManager(aProfileSvc, aNative);
   }
 
+#ifndef MOZ_DEV_EDITION
+  
+  
+  if (count == 1) {
+    nsCOMPtr<nsIToolkitProfile> deProfile;
+    
+    aProfileSvc->GetSelectedProfile(getter_AddRefs(deProfile));
+    nsAutoCString profileName;
+    deProfile->GetName(profileName);
+    if (profileName.EqualsLiteral("dev-edition-default")) {
+      count = 0;
+    }
+  }
+#endif
+
   if (!count) {
     gDoMigration = true;
     gDoProfileReset = false;
@@ -2345,6 +2360,7 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, n
                                              NS_LITERAL_CSTRING("default"),
                                              getter_AddRefs(profile));
     if (NS_SUCCEEDED(rv)) {
+      aProfileSvc->SetDefaultProfile(profile);
       aProfileSvc->Flush();
       rv = profile->Lock(nullptr, aResult);
       if (NS_SUCCEEDED(rv)) {
