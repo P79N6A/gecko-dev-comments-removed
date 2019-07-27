@@ -11,6 +11,8 @@
 #include "nsTPriorityQueue.h"
 #include "nsIRunnable.h"
 #include "nsIURI.h"
+#include "nsITimer.h"
+
 
 #define NS_ANDROIDHISTORY_CID \
     {0xCCAA4880, 0x44DD, 0x40A7, {0xA1, 0x3F, 0x61, 0x56, 0xFC, 0x88, 0x2C, 0x0B}}
@@ -21,12 +23,15 @@
 
 #define EMBED_URI_SIZE 128
 
-class nsAndroidHistory MOZ_FINAL : public mozilla::IHistory, public nsIRunnable
+class nsAndroidHistory MOZ_FINAL : public mozilla::IHistory,
+                                   public nsIRunnable,
+                                   public nsITimerCallback
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_IHISTORY
   NS_DECL_NSIRUNNABLE
+  NS_DECL_NSITIMERCALLBACK
 
   
 
@@ -44,9 +49,6 @@ private:
   
   bool mHistoryEnabled;
 
-  nsDataHashtable<nsStringHashKey, nsTArray<mozilla::dom::Link *> *> mListeners;
-  nsTPriorityQueue<nsString> mPendingURIs;
-
   void LoadPrefs();
   bool ShouldRecordHistory();
   nsresult CanAddURI(nsIURI* aURI, bool* canAdd);
@@ -54,9 +56,26 @@ private:
   
 
 
+  nsDataHashtable<nsStringHashKey, nsTArray<mozilla::dom::Link *> *> mListeners;
+  nsTPriorityQueue<nsString> mPendingLinkURIs;
 
-  typedef nsAutoTArray<nsCOMPtr<nsIURI>, RECENTLY_VISITED_URI_SIZE>
-          RecentlyVisitedArray;
+  
+
+
+
+
+  nsRefPtr<nsITimer> mTimer;
+  typedef nsAutoTArray<nsCOMPtr<nsIURI>, RECENTLY_VISITED_URI_SIZE> PendingVisitArray;
+  PendingVisitArray mPendingVisitURIs;
+
+  bool RemovePendingVisitURI(nsIURI* aURI);
+  void SaveVisitURI(nsIURI* aURI);
+
+  
+
+
+
+  typedef nsAutoTArray<nsCOMPtr<nsIURI>, RECENTLY_VISITED_URI_SIZE> RecentlyVisitedArray;
   RecentlyVisitedArray mRecentlyVisitedURIs;
   RecentlyVisitedArray::index_type mRecentlyVisitedURIsNextIndex;
 
