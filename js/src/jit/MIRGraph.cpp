@@ -713,12 +713,43 @@ AssertSafelyDiscardable(MDefinition *def)
 }
 
 void
-MBasicBlock::discard(MInstruction *ins)
+MBasicBlock::prepareForDiscard(MInstruction *ins, ReferencesType refType )
 {
-    AssertSafelyDiscardable(ins);
+    
+    
+    MOZ_ASSERT(ins->block() == this);
+
+    MResumePoint *rp = ins->resumePoint();
+    if (refType & RefType_DiscardResumePoint && rp) {
+        rp->discardUses();
+        
+        
+        MResumePointIterator iter = resumePointsBegin();
+        while (*iter != rp) {
+            
+            
+            MOZ_ASSERT(iter != resumePointsEnd());
+            iter++;
+        }
+        resumePoints_.removeAt(iter);
+    }
+
+    
+    
+    
+    MOZ_ASSERT_IF(refType & RefType_AssertNoUses, !ins->hasUses());
+
+    MOZ_ASSERT(refType & RefType_DiscardOperands);
     for (size_t i = 0, e = ins->numOperands(); i < e; i++)
         ins->discardOperand(i);
 
+    ins->setDiscarded();
+}
+
+void
+MBasicBlock::discard(MInstruction *ins)
+{
+    prepareForDiscard(ins);
     instructions_.remove(ins);
 }
 
@@ -737,20 +768,14 @@ MBasicBlock::discardIgnoreOperands(MInstruction *ins)
 MInstructionIterator
 MBasicBlock::discardAt(MInstructionIterator &iter)
 {
-    AssertSafelyDiscardable(*iter);
-    for (size_t i = 0, e = iter->numOperands(); i < e; i++)
-        iter->discardOperand(i);
-
+    prepareForDiscard(*iter);
     return instructions_.removeAt(iter);
 }
 
 MInstructionReverseIterator
 MBasicBlock::discardAt(MInstructionReverseIterator &iter)
 {
-    AssertSafelyDiscardable(*iter);
-    for (size_t i = 0, e = iter->numOperands(); i < e; i++)
-        iter->discardOperand(i);
-
+    prepareForDiscard(*iter);
     return instructions_.removeAt(iter);
 }
 
@@ -772,15 +797,17 @@ MBasicBlock::discardAllInstructions()
 {
     MInstructionIterator iter = begin();
     discardAllInstructionsStartingAt(iter);
-
 }
 
 void
 MBasicBlock::discardAllInstructionsStartingAt(MInstructionIterator &iter)
 {
     while (iter != end()) {
-        for (size_t i = 0, e = iter->numOperands(); i < e; i++)
-            iter->discardOperand(i);
+        
+        
+        
+        
+        prepareForDiscard(*iter, RefType_DiscardOperands);
         iter = instructions_.removeAt(iter);
     }
 }

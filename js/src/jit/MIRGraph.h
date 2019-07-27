@@ -61,6 +61,19 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     
     void setVariable(uint32_t slot);
 
+    enum ReferencesType {
+        RefType_AssertNoUses = 1 << 0,
+        RefType_DiscardOperands = 1 << 1,
+        RefType_DiscardResumePoint = 1 << 2,
+        RefType_Default = RefType_AssertNoUses | RefType_DiscardOperands | RefType_DiscardResumePoint
+    };
+
+    
+    
+    
+    
+    void prepareForDiscard(MInstruction *ins, ReferencesType refType = RefType_Default);
+
   public:
     
     

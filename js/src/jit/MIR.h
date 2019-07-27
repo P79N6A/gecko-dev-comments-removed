@@ -92,7 +92,14 @@ MIRType MIRTypeFromValue(const js::Value &vp)
 
 
                                                                          \
-    _(RecoveredOnBailout)
+    _(RecoveredOnBailout)                                                       \
+                                                                                \
+    
+
+
+
+                                                                         \
+    _(Discarded)
 
 class MDefinition;
 class MInstruction;
@@ -775,6 +782,11 @@ class MInstruction
     void setResumePoint(MResumePoint *resumePoint) {
         JS_ASSERT(!resumePoint_);
         resumePoint_ = resumePoint;
+    }
+    
+    void stealResumePoint(MInstruction *ins) {
+        resumePoint_ = ins->resumePoint_;
+        ins->resumePoint_ = nullptr;
     }
     MResumePoint *resumePoint() const {
         return resumePoint_;
