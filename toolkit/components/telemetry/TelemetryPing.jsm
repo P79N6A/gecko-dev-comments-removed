@@ -30,7 +30,7 @@ const PREF_LOG_DUMP = PREF_BRANCH_LOG + "dump";
 const PREF_CACHED_CLIENTID = PREF_BRANCH + "cachedClientID"
 const PREF_FHR_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
 
-const PING_FORMAT_VERSION = 2;
+const PING_FORMAT_VERSION = 4;
 
 
 const TELEMETRY_DELAY = 60000;
