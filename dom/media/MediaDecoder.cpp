@@ -10,7 +10,6 @@
 #include <limits>
 #include "nsIObserver.h"
 #include "nsTArray.h"
-#include "CubebUtils.h"
 #include "VideoUtils.h"
 #include "MediaDecoderStateMachine.h"
 #include "ImageContainer.h"
@@ -402,11 +401,6 @@ bool MediaDecoder::Init(MediaDecoderOwner* aOwner)
   mOwner = aOwner;
   mVideoFrameContainer = aOwner->GetVideoFrameContainer();
   MediaShutdownManager::Instance().Register(this);
-  
-  
-  if (!CubebUtils::GetCubebContext()) {
-    NS_WARNING("Audio backend initialization failed.");
-  }
   return true;
 }
 
