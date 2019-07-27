@@ -113,6 +113,10 @@ class CompactBufferWriter
       : enoughMemory_(true)
     { }
 
+    void setOOM() {
+        enoughMemory_ = false;
+    }
+
     
     
     void writeByte(uint32_t byte) {

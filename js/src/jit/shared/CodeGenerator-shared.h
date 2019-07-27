@@ -307,10 +307,9 @@ class CodeGeneratorShared : public LElementVisitor
 
   protected:
     
-    
-    bool encode(LRecoverInfo *recover);
-    bool encode(LSnapshot *snapshot);
-    bool encodeAllocation(LSnapshot *snapshot, MDefinition *def, uint32_t *startIndex);
+    void encode(LRecoverInfo *recover);
+    void encode(LSnapshot *snapshot);
+    void encodeAllocation(LSnapshot *snapshot, MDefinition *def, uint32_t *startIndex);
 
     
     
@@ -328,14 +327,13 @@ class CodeGeneratorShared : public LElementVisitor
 
     
     
-    bool markSafepoint(LInstruction *ins);
-    bool markSafepointAt(uint32_t offset, LInstruction *ins);
+    void markSafepoint(LInstruction *ins);
+    void markSafepointAt(uint32_t offset, LInstruction *ins);
 
     
     
     
-    
-    bool markOsiPoint(LOsiPoint *ins, uint32_t *returnPointOffset);
+    uint32_t markOsiPoint(LOsiPoint *ins);
 
     
     
@@ -345,8 +343,8 @@ class CodeGeneratorShared : public LElementVisitor
     void ensureOsiSpace();
 
     OutOfLineCode *oolTruncateDouble(FloatRegister src, Register dest, MInstruction *mir);
-    bool emitTruncateDouble(FloatRegister src, Register dest, MInstruction *mir);
-    bool emitTruncateFloat32(FloatRegister src, Register dest, MInstruction *mir);
+    void emitTruncateDouble(FloatRegister src, Register dest, MInstruction *mir);
+    void emitTruncateFloat32(FloatRegister src, Register dest, MInstruction *mir);
 
     void emitAsmJSCall(LAsmJSCall *ins);
 
@@ -455,14 +453,14 @@ class CodeGeneratorShared : public LElementVisitor
         masm.storeCallResultValue(t);
     }
 
-    bool callVM(const VMFunction &f, LInstruction *ins, const Register *dynStack = nullptr);
+    void callVM(const VMFunction &f, LInstruction *ins, const Register *dynStack = nullptr);
 
     template <class ArgSeq, class StoreOutputTo>
     inline OutOfLineCode *oolCallVM(const VMFunction &fun, LInstruction *ins, const ArgSeq &args,
                                     const StoreOutputTo &out);
 
-    bool callVM(const VMFunctionsModal &f, LInstruction *ins, const Register *dynStack = nullptr) {
-        return callVM(f[gen->info().executionMode()], ins, dynStack);
+    void callVM(const VMFunctionsModal &f, LInstruction *ins, const Register *dynStack = nullptr) {
+        callVM(f[gen->info().executionMode()], ins, dynStack);
     }
 
     template <class ArgSeq, class StoreOutputTo>
@@ -472,13 +470,13 @@ class CodeGeneratorShared : public LElementVisitor
         return oolCallVM(f[gen->info().executionMode()], ins, args, out);
     }
 
-    bool addCache(LInstruction *lir, size_t cacheIndex);
+    void addCache(LInstruction *lir, size_t cacheIndex);
     size_t addCacheLocations(const CacheLocationList &locs, size_t *numLocs);
     ReciprocalMulConstants computeDivisionConstants(int d);
 
   protected:
-    bool addOutOfLineCode(OutOfLineCode *code, const MInstruction *mir);
-    bool addOutOfLineCode(OutOfLineCode *code, const BytecodeSite *site);
+    void addOutOfLineCode(OutOfLineCode *code, const MInstruction *mir);
+    void addOutOfLineCode(OutOfLineCode *code, const BytecodeSite *site);
     bool hasOutOfLineCode() { return !outOfLineCode_.empty(); }
     bool generateOutOfLineCode();
 
@@ -503,29 +501,29 @@ class CodeGeneratorShared : public LElementVisitor
 
   public:
     template <class ArgSeq, class StoreOutputTo>
-    bool visitOutOfLineCallVM(OutOfLineCallVM<ArgSeq, StoreOutputTo> *ool);
+    void visitOutOfLineCallVM(OutOfLineCallVM<ArgSeq, StoreOutputTo> *ool);
 
-    bool visitOutOfLineTruncateSlow(OutOfLineTruncateSlow *ool);
+    void visitOutOfLineTruncateSlow(OutOfLineTruncateSlow *ool);
 
     bool omitOverRecursedCheck() const;
 
 #ifdef JS_TRACE_LOGGING
   protected:
-    bool emitTracelogScript(bool isStart);
-    bool emitTracelogTree(bool isStart, uint32_t textId);
+    void emitTracelogScript(bool isStart);
+    void emitTracelogTree(bool isStart, uint32_t textId);
 
   public:
-    bool emitTracelogScriptStart() {
-        return emitTracelogScript( true);
+    void emitTracelogScriptStart() {
+        emitTracelogScript( true);
     }
-    bool emitTracelogScriptStop() {
-        return emitTracelogScript( false);
+    void emitTracelogScriptStop() {
+        emitTracelogScript( false);
     }
-    bool emitTracelogStartEvent(uint32_t textId) {
-        return emitTracelogTree( true, textId);
+    void emitTracelogStartEvent(uint32_t textId) {
+        emitTracelogTree( true, textId);
     }
-    bool emitTracelogStopEvent(uint32_t textId) {
-        return emitTracelogTree( false, textId);
+    void emitTracelogStopEvent(uint32_t textId) {
+        emitTracelogTree( false, textId);
     }
 #endif
 };
@@ -544,7 +542,7 @@ class OutOfLineCode : public TempObject
         site_()
     { }
 
-    virtual bool generate(CodeGeneratorShared *codegen) = 0;
+    virtual void generate(CodeGeneratorShared *codegen) = 0;
 
     Label *entry() {
         return &entry_;
@@ -580,12 +578,12 @@ template <typename T>
 class OutOfLineCodeBase : public OutOfLineCode
 {
   public:
-    virtual bool generate(CodeGeneratorShared *codegen) {
-        return accept(static_cast<T *>(codegen));
+    virtual void generate(CodeGeneratorShared *codegen) {
+        accept(static_cast<T *>(codegen));
     }
 
   public:
-    virtual bool accept(T *codegen) = 0;
+    virtual void accept(T *codegen) = 0;
 };
 
 
@@ -752,8 +750,8 @@ class OutOfLineCallVM : public OutOfLineCodeBase<CodeGeneratorShared>
         out_(out)
     { }
 
-    bool accept(CodeGeneratorShared *codegen) {
-        return codegen->visitOutOfLineCallVM(this);
+    void accept(CodeGeneratorShared *codegen) {
+        codegen->visitOutOfLineCallVM(this);
     }
 
     LInstruction *lir() const { return lir_; }
@@ -771,25 +769,22 @@ CodeGeneratorShared::oolCallVM(const VMFunction &fun, LInstruction *lir, const A
     MOZ_ASSERT(lir->mirRaw()->isInstruction());
 
     OutOfLineCode *ool = new(alloc()) OutOfLineCallVM<ArgSeq, StoreOutputTo>(lir, fun, args, out);
-    if (!addOutOfLineCode(ool, lir->mirRaw()->toInstruction()))
-        return nullptr;
+    addOutOfLineCode(ool, lir->mirRaw()->toInstruction());
     return ool;
 }
 
 template <class ArgSeq, class StoreOutputTo>
-bool
+void
 CodeGeneratorShared::visitOutOfLineCallVM(OutOfLineCallVM<ArgSeq, StoreOutputTo> *ool)
 {
     LInstruction *lir = ool->lir();
 
     saveLive(lir);
     ool->args().generate(this);
-    if (!callVM(ool->function(), lir))
-        return false;
+    callVM(ool->function(), lir);
     ool->out().generate(this);
     restoreLiveIgnore(lir, ool->out().clobbered());
     masm.jump(ool->rejoin());
-    return true;
 }
 
 } 

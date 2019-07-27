@@ -146,7 +146,7 @@ MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
 
 
 
-bool
+void
 MacroAssemblerX86Shared::buildFakeExitFrame(Register scratch, uint32_t *offset)
 {
     mozilla::DebugOnly<uint32_t> initialDepth = framePushed();
@@ -162,7 +162,7 @@ MacroAssemblerX86Shared::buildFakeExitFrame(Register scratch, uint32_t *offset)
     *offset = currentOffset();
 
     MOZ_ASSERT(framePushed() == initialDepth + ExitFrameLayout::Size());
-    return addCodeLabel(cl);
+    addCodeLabel(cl);
 }
 
 void

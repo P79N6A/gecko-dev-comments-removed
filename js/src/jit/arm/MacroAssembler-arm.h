@@ -1284,7 +1284,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
 
     
     
-    bool buildFakeExitFrame(Register scratch, uint32_t *offset);
+    void buildFakeExitFrame(Register scratch, uint32_t *offset);
 
     void callWithExitFrame(Label *target);
     void callWithExitFrame(JitCode *target);

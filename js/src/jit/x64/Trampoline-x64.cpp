@@ -253,8 +253,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     if (type == EnterJitBaseline) {
         
         masm.bind(returnLabel.src());
-        if (!masm.addCodeLabel(returnLabel))
-            return nullptr;
+        masm.addCodeLabel(returnLabel);
     }
 
     
