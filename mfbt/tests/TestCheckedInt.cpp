@@ -423,6 +423,62 @@ void test()
   VERIFY_IS_FALSE(1 == someInvalid);
 
   
+  
+  {
+    CheckedInt<T> x = one;
+    x += two;
+    VERIFY(x == three);
+  }
+  {
+    CheckedInt<T> x = two;
+    x -= one;
+    VERIFY(x == one);
+  }
+  {
+    CheckedInt<T> x = one;
+    x *= two;
+    VERIFY(x == two);
+  }
+  {
+    CheckedInt<T> x = four;
+    x /= two;
+    VERIFY(x == two);
+  }
+  {
+    CheckedInt<T> x = three;
+    x %= two;
+    VERIFY(x == one);
+  }
+
+  
+  
+  {
+    CheckedInt<T> x = one;
+    x += someInvalid;
+    VERIFY_IS_INVALID(x);
+  }
+  {
+    CheckedInt<T> x = two;
+    x -= someInvalid;
+    VERIFY_IS_INVALID(x);
+  }
+  {
+    CheckedInt<T> x = one;
+    x *= someInvalid;
+    VERIFY_IS_INVALID(x);
+  }
+  {
+    CheckedInt<T> x = four;
+    x /= someInvalid;
+    VERIFY_IS_INVALID(x);
+  }
+  {
+    CheckedInt<T> x = three;
+    x %= someInvalid;
+    VERIFY_IS_INVALID(x);
+  }
+
+  
   {
     CheckedInt<uint8_t> foo = CheckedInt<uint16_t>(2).toChecked<uint8_t>();
     VERIFY_IS_VALID(foo);
