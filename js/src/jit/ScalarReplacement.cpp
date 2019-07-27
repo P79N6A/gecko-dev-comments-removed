@@ -299,7 +299,7 @@ ObjectMemoryView::mergeIntoSuccessorState(MBasicBlock *curr, MBasicBlock *succ,
         
         
         
-        if (succ->numPredecessors() <= 1) {
+        if (succ->numPredecessors() <= 1 || !state_->numSlots()) {
             *pSuccState = state_;
             return true;
         }
@@ -333,12 +333,19 @@ ObjectMemoryView::mergeIntoSuccessorState(MBasicBlock *curr, MBasicBlock *succ,
         *pSuccState = succState;
     }
 
-    if (succ->numPredecessors() > 1) {
+    if (succ->numPredecessors() > 1 && succState->numSlots()) {
         
         
-        size_t currIndex = succ->indexForPredecessor(curr);
+        size_t currIndex;
+        MOZ_ASSERT(!succ->phisEmpty());
+        if (curr->successorWithPhis()) {
+            MOZ_ASSERT(curr->successorWithPhis() == succ);
+            currIndex = curr->positionInPhiSuccessor();
+        } else {
+            currIndex = succ->indexForPredecessor(curr);
+            curr->setSuccessorWithPhis(succ, currIndex);
+        }
         MOZ_ASSERT(succ->getPredecessor(currIndex) == curr);
-        curr->setSuccessorWithPhis(succ, currIndex);
 
         
         
@@ -635,267 +642,309 @@ IsArrayEscaped(MInstruction *ins)
     return false;
 }
 
-struct ArrayTrait {
+
+
+
+
+
+
+class ArrayMemoryView : public MDefinitionVisitorDefaultNoop
+{
+  public:
     typedef MArrayState BlockState;
-    typedef Vector<BlockState *, 8, SystemAllocPolicy> GraphState;
+    static const char *phaseName;
+
+  private:
+    TempAllocator &alloc_;
+    MConstant *undefinedVal_;
+    MConstant *length_;
+    MInstruction *arr_;
+    MBasicBlock *startBlock_;
+    BlockState *state_;
+
+  public:
+    ArrayMemoryView(TempAllocator &alloc, MInstruction *arr);
+
+    MBasicBlock *startingBlock();
+    bool initStartingState(BlockState **pState);
+
+    void setEntryBlockState(BlockState *state);
+    bool mergeIntoSuccessorState(MBasicBlock *curr, MBasicBlock *succ, BlockState **pSuccState);
+
+#ifdef DEBUG
+    void assertSuccess();
+#else
+    void assertSuccess() {}
+#endif
+
+  private:
+    bool isArrayStateElements(MDefinition *elements);
+    void discardInstruction(MInstruction *ins, MDefinition *elements);
+
+  public:
+    bool visitResumePoint(MResumePoint *rp);
+    bool visitStoreElement(MStoreElement *ins);
+    bool visitLoadElement(MLoadElement *ins);
+    bool visitSetInitializedLength(MSetInitializedLength *ins);
+    bool visitInitializedLength(MInitializedLength *ins);
+    bool visitArrayLength(MArrayLength *ins);
 };
 
+const char *ArrayMemoryView::phaseName = "Scalar Replacement of Array";
 
-
-
-
-
-
-static bool
-ScalarReplacementOfArray(MIRGenerator *mir, MIRGraph &graph,
-                         ArrayTrait::GraphState &states,
-                         MInstruction *arr)
+ArrayMemoryView::ArrayMemoryView(TempAllocator &alloc, MInstruction *arr)
+  : alloc_(alloc),
+    undefinedVal_(nullptr),
+    length_(nullptr),
+    arr_(arr),
+    startBlock_(arr->block()),
+    state_(nullptr)
 {
-    typedef ArrayTrait::BlockState BlockState;
+}
+
+MBasicBlock *
+ArrayMemoryView::startingBlock()
+{
+    return startBlock_;
+}
+
+bool
+ArrayMemoryView::initStartingState(BlockState **pState)
+{
+    
+    undefinedVal_ = MConstant::New(alloc_, UndefinedValue());
+    MConstant *initLength = MConstant::New(alloc_, Int32Value(0));
+    arr_->block()->insertBefore(arr_, undefinedVal_);
+    arr_->block()->insertBefore(arr_, initLength);
 
     
-    
-    if (!states.appendN(nullptr, graph.numBlocks()))
-        return false;
+    BlockState *state = BlockState::New(alloc_, arr_, undefinedVal_, initLength);
+    startBlock_->insertAfter(arr_, state);
 
-    
-    MBasicBlock *arrBlock = arr->block();
-    MConstant *undefinedVal = MConstant::New(graph.alloc(), UndefinedValue());
-    MConstant *initLength = MConstant::New(graph.alloc(), Int32Value(0));
-    MConstant *length = nullptr;
-    arrBlock->insertBefore(arr, undefinedVal);
-    arrBlock->insertBefore(arr, initLength);
-    states[arrBlock->id()] = BlockState::New(graph.alloc(), arr, undefinedVal, initLength);
-
-    
-    for (ReversePostorderIterator block = graph.rpoBegin(arr->block()); block != graph.rpoEnd(); block++) {
-        if (mir->shouldCancel("Scalar Replacement of Array"))
-            return false;
-
-        BlockState *state = states[block->id()];
-        if (!state) {
-            MOZ_ASSERT(!arrBlock->dominates(*block));
-            continue;
-        }
-
-        
-        
-        if (*block == arrBlock)
-            arrBlock->insertAfter(arr, state);
-        else if (block->numPredecessors() > 1)
-            block->insertBefore(*block->begin(), state);
-        else
-            MOZ_ASSERT(state->block()->dominates(*block));
-
-        
-        ReplaceResumePointOperands(block->entryResumePoint(), arr, state);
-
-        for (MDefinitionIterator ins(*block); ins; ) {
-            switch (ins->op()) {
-              case MDefinition::Op_ArrayState: {
-                ins++;
-                continue;
-              }
-
-              case MDefinition::Op_LoadElement: {
-                MLoadElement *def = ins->toLoadElement();
-
-                
-                MDefinition *elements = def->elements();
-                if (!elements->isElements())
-                    break;
-                if (elements->toElements()->object() != arr)
-                    break;
-
-                
-                int32_t index;
-                MOZ_ALWAYS_TRUE(IndexOf(def, &index));
-                ins->replaceAllUsesWith(state->getElement(index));
-
-                
-                ins = block->discardDefAt(ins);
-                if (!elements->hasLiveDefUses())
-                    elements->block()->discard(elements->toInstruction());
-                continue;
-              }
-
-              case MDefinition::Op_StoreElement: {
-                MStoreElement *def = ins->toStoreElement();
-
-                
-                MDefinition *elements = def->elements();
-                if (!elements->isElements())
-                    break;
-                if (elements->toElements()->object() != arr)
-                    break;
-
-                
-                int32_t index;
-                MOZ_ALWAYS_TRUE(IndexOf(def, &index));
-                state = BlockState::Copy(graph.alloc(), state);
-                state->setElement(index, def->value());
-                block->insertBefore(ins->toInstruction(), state);
-
-                
-                ins = block->discardDefAt(ins);
-                if (!elements->hasLiveDefUses())
-                    elements->block()->discard(elements->toInstruction());
-                continue;
-              }
-
-              case MDefinition::Op_SetInitializedLength: {
-                MSetInitializedLength *def = ins->toSetInitializedLength();
-
-                
-                MDefinition *elements = def->elements();
-                if (!elements->isElements())
-                    break;
-                if (elements->toElements()->object() != arr)
-                    break;
-
-                
-                
-                
-                
-                
-                state = BlockState::Copy(graph.alloc(), state);
-                int32_t initLengthValue = def->index()->toConstant()->value().toInt32() + 1;
-                MConstant *initLength = MConstant::New(graph.alloc(), Int32Value(initLengthValue));
-                block->insertBefore(ins->toInstruction(), initLength);
-                block->insertBefore(ins->toInstruction(), state);
-                state->setInitializedLength(initLength);
-
-                
-                ins = block->discardDefAt(ins);
-                if (!elements->hasLiveDefUses())
-                    elements->block()->discard(elements->toInstruction());
-                continue;
-              }
-
-              case MDefinition::Op_InitializedLength: {
-                MInitializedLength *def = ins->toInitializedLength();
-
-                
-                MDefinition *elements = def->elements();
-                if (!elements->isElements())
-                    break;
-                if (elements->toElements()->object() != arr)
-                    break;
-
-                
-                ins->replaceAllUsesWith(state->initializedLength());
-
-                
-                ins = block->discardDefAt(ins);
-                if (!elements->hasLiveDefUses())
-                    elements->block()->discard(elements->toInstruction());
-                continue;
-              }
-
-              case MDefinition::Op_ArrayLength: {
-                MArrayLength *def = ins->toArrayLength();
-
-                
-                MDefinition *elements = def->elements();
-                if (!elements->isElements())
-                    break;
-                if (elements->toElements()->object() != arr)
-                    break;
-
-                
-                if (!length) {
-                    length = MConstant::New(graph.alloc(), Int32Value(state->numElements()));
-                    arrBlock->insertBefore(arr, length);
-                }
-                ins->replaceAllUsesWith(length);
-
-                
-                ins = block->discardDefAt(ins);
-                if (!elements->hasLiveDefUses())
-                    elements->block()->discard(elements->toInstruction());
-                continue;
-              }
-
-              default:
-                break;
-            }
-
-            
-            if (ins->isInstruction())
-                ReplaceResumePointOperands(ins->toInstruction()->resumePoint(), arr, state);
-
-            ins++;
-        }
-
-        
-        
-        for (size_t s = 0; s < block->numSuccessors(); s++) {
-            MBasicBlock *succ = block->getSuccessor(s);
-            BlockState *succState = states[succ->id()];
-
-            
-            
-            if (!succState) {
-                
-                
-                
-                
-                
-                
-                if (!arrBlock->dominates(succ))
-                    continue;
-
-                if (succ->numPredecessors() > 1) {
-                    succState = states[succ->id()] = BlockState::Copy(graph.alloc(), state);
-                    size_t numPreds = succ->numPredecessors();
-                    for (size_t index = 0; index < state->numElements(); index++) {
-                        MPhi *phi = MPhi::New(graph.alloc());
-                        if (!phi->reserveLength(numPreds))
-                            return false;
-
-                        
-                        
-                        for (size_t p = 0; p < numPreds; p++)
-                            phi->addInput(undefinedVal);
-
-                        
-                        succ->addPhi(phi);
-                        succState->setElement(index, phi);
-                    }
-                } else {
-                    succState = states[succ->id()] = state;
-                }
-            }
-
-            if (succ->numPredecessors() > 1) {
-                
-                
-                size_t currIndex = succ->indexForPredecessor(*block);
-                MOZ_ASSERT(succ->getPredecessor(currIndex) == *block);
-                block->setSuccessorWithPhis(succ, currIndex);
-
-                
-                
-                for (size_t index = 0; index < state->numElements(); index++) {
-                    MPhi *phi = succState->getElement(index)->toPhi();
-                    phi->replaceOperand(currIndex, state->getElement(index));
-                }
-            }
-        }
-    }
-
-    MOZ_ASSERT(!arr->hasLiveDefUses());
-    arr->setRecoveredOnBailout();
-    states.clear();
+    *pState = state;
     return true;
 }
 
+void
+ArrayMemoryView::setEntryBlockState(BlockState *state)
+{
+    state_ = state;
+}
+
+bool
+ArrayMemoryView::mergeIntoSuccessorState(MBasicBlock *curr, MBasicBlock *succ,
+                                          BlockState **pSuccState)
+{
+    BlockState *succState = *pSuccState;
+
+    
+    
+    if (!succState) {
+        
+        
+        
+        
+        
+        
+        if (!startBlock_->dominates(succ))
+            return true;
+
+        
+        
+        
+        
+        if (succ->numPredecessors() <= 1 || !state_->numElements()) {
+            *pSuccState = state_;
+            return true;
+        }
+
+        
+        
+        
+        
+        succState = BlockState::Copy(alloc_, state_);
+        size_t numPreds = succ->numPredecessors();
+        for (size_t index = 0; index < state_->numElements(); index++) {
+            MPhi *phi = MPhi::New(alloc_);
+            if (!phi->reserveLength(numPreds))
+                return false;
+
+            
+            
+            for (size_t p = 0; p < numPreds; p++)
+                phi->addInput(undefinedVal_);
+
+            
+            succ->addPhi(phi);
+            succState->setElement(index, phi);
+        }
+
+        
+        
+        
+        
+        succ->insertBefore(*succ->begin(), succState);
+        *pSuccState = succState;
+    }
+
+    if (succ->numPredecessors() > 1 && succState->numElements()) {
+        
+        
+        size_t currIndex;
+        MOZ_ASSERT(!succ->phisEmpty());
+        if (curr->successorWithPhis()) {
+            MOZ_ASSERT(curr->successorWithPhis() == succ);
+            currIndex = curr->positionInPhiSuccessor();
+        } else {
+            currIndex = succ->indexForPredecessor(curr);
+            curr->setSuccessorWithPhis(succ, currIndex);
+        }
+        MOZ_ASSERT(succ->getPredecessor(currIndex) == curr);
+
+        
+        
+        for (size_t index = 0; index < state_->numElements(); index++) {
+            MPhi *phi = succState->getElement(index)->toPhi();
+            phi->replaceOperand(currIndex, state_->getElement(index));
+        }
+    }
+
+    return true;
+}
+
+#ifdef DEBUG
+void
+ArrayMemoryView::assertSuccess()
+{
+    MOZ_ASSERT(!arr_->hasLiveDefUses());
+}
+#endif
+
+bool
+ArrayMemoryView::visitResumePoint(MResumePoint *rp)
+{
+    ReplaceResumePointOperands(rp, arr_, state_);
+    return true;
+}
+
+bool
+ArrayMemoryView::isArrayStateElements(MDefinition *elements)
+{
+    return elements->isElements() && elements->toElements()->object() == arr_;
+}
+
+void
+ArrayMemoryView::discardInstruction(MInstruction *ins, MDefinition *elements)
+{
+    MOZ_ASSERT(elements->isElements());
+    ins->block()->discard(ins);
+    if (!elements->hasLiveDefUses())
+        elements->block()->discard(elements->toInstruction());
+}
+
+bool
+ArrayMemoryView::visitStoreElement(MStoreElement *ins)
+{
+    
+    MDefinition *elements = ins->elements();
+    if (!isArrayStateElements(elements))
+        return true;
+
+    
+    int32_t index;
+    MOZ_ALWAYS_TRUE(IndexOf(ins, &index));
+    state_ = BlockState::Copy(alloc_, state_);
+    state_->setElement(index, ins->value());
+    ins->block()->insertBefore(ins, state_);
+
+    
+    discardInstruction(ins, elements);
+    return true;
+}
+
+bool
+ArrayMemoryView::visitLoadElement(MLoadElement *ins)
+{
+    
+    MDefinition *elements = ins->elements();
+    if (!isArrayStateElements(elements))
+        return true;
+
+    
+    int32_t index;
+    MOZ_ALWAYS_TRUE(IndexOf(ins, &index));
+    ins->replaceAllUsesWith(state_->getElement(index));
+
+    
+    discardInstruction(ins, elements);
+    return true;
+}
+
+bool
+ArrayMemoryView::visitSetInitializedLength(MSetInitializedLength *ins)
+{
+    
+    MDefinition *elements = ins->elements();
+    if (!isArrayStateElements(elements))
+        return true;
+
+    
+    
+    
+    
+    state_ = BlockState::Copy(alloc_, state_);
+    int32_t initLengthValue = ins->index()->toConstant()->value().toInt32() + 1;
+    MConstant *initLength = MConstant::New(alloc_, Int32Value(initLengthValue));
+    ins->block()->insertBefore(ins, initLength);
+    ins->block()->insertBefore(ins, state_);
+    state_->setInitializedLength(initLength);
+
+    
+    discardInstruction(ins, elements);
+    return true;
+}
+
+bool
+ArrayMemoryView::visitInitializedLength(MInitializedLength *ins)
+{
+    
+    MDefinition *elements = ins->elements();
+    if (!isArrayStateElements(elements))
+        return true;
+
+    
+    ins->replaceAllUsesWith(state_->initializedLength());
+
+    
+    discardInstruction(ins, elements);
+    return true;
+}
+
+bool
+ArrayMemoryView::visitArrayLength(MArrayLength *ins)
+{
+    
+    MDefinition *elements = ins->elements();
+    if (!isArrayStateElements(elements))
+        return true;
+
+    
+    if (!length_) {
+        length_ = MConstant::New(alloc_, Int32Value(state_->numElements()));
+        arr_->block()->insertBefore(arr_, length_);
+    }
+    ins->replaceAllUsesWith(length_);
+
+    
+    discardInstruction(ins, elements);
+    return true;
+}
 
 bool
 ScalarReplacement(MIRGenerator *mir, MIRGraph &graph)
 {
     EmulateStateOf<ObjectMemoryView> replaceObject(mir, graph);
-    ArrayTrait::GraphState arrayStates;
+    EmulateStateOf<ArrayMemoryView> replaceArray(mir, graph);
     bool addedPhi = false;
 
     for (ReversePostorderIterator block = graph.rpoBegin(); block != graph.rpoEnd(); block++) {
@@ -913,8 +962,10 @@ ScalarReplacement(MIRGenerator *mir, MIRGraph &graph)
             }
 
             if (ins->isNewArray() && !IsArrayEscaped(*ins)) {
-                if (!ScalarReplacementOfArray(mir, graph, arrayStates, *ins))
+                ArrayMemoryView view(graph.alloc(), *ins);
+                if (!replaceArray.run(view))
                     return false;
+                view.assertSuccess();
                 addedPhi = true;
                 continue;
             }
@@ -926,6 +977,7 @@ ScalarReplacement(MIRGenerator *mir, MIRGraph &graph)
         
         
         
+        AssertExtendedGraphCoherency(graph);
         if (!EliminatePhis(mir, graph, ConservativeObservability))
             return false;
     }
