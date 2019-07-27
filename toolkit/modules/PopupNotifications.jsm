@@ -644,6 +644,9 @@ PopupNotifications.prototype = {
       notificationsToShow.forEach(function (n) {
         this._fireCallback(n, NOTIFICATION_EVENT_SHOWN);
       }, this);
+      
+      
+      this.panel.dispatchEvent(new this.window.CustomEvent("Shown"));
     });
   },
 
