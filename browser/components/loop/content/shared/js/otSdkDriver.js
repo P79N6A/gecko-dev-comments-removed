@@ -27,7 +27,12 @@ loop.OTSdkDriver = (function() {
       this.dispatcher = options.dispatcher;
       this.sdk = options.sdk;
 
+      
+      
+      this.mozLoop = options.mozLoop;
+
       this.connections = {};
+      this.connectionStartTime = this.CONNECTION_START_TIME_UNINITIALIZED;
 
       this.dispatcher.register(this, [
         "setupStreamElements",
@@ -51,6 +56,9 @@ loop.OTSdkDriver = (function() {
   };
 
   OTSdkDriver.prototype = {
+    CONNECTION_START_TIME_UNINITIALIZED: -1,
+    CONNECTION_START_TIME_ALREADY_NOTED: -2,
+
     
 
 
@@ -228,12 +236,15 @@ loop.OTSdkDriver = (function() {
         delete this.publisher;
       }
 
+      this._noteConnectionLengthIfNeeded(this.connectionStartTime, performance.now());
+
       
       delete this._sessionConnected;
       delete this._publisherReady;
       delete this._publishedLocalStream;
       delete this._subscribedRemoteStream;
       this.connections = {};
+      this.connectionStartTime = this.CONNECTION_START_TIME_UNINITIALIZED;
     },
 
     
@@ -297,6 +308,7 @@ loop.OTSdkDriver = (function() {
       if (connection && (connection.id in this.connections)) {
         delete this.connections[connection.id];
       }
+      this._noteConnectionLengthIfNeeded(this.connectionStartTime, performance.now());
       this.dispatcher.dispatch(new sharedActions.RemotePeerDisconnected({
         peerHungup: event.reason === "clientDisconnected"
       }));
@@ -323,6 +335,8 @@ loop.OTSdkDriver = (function() {
           return;
       }
 
+      this._noteConnectionLengthIfNeeded(this.connectionStartTime,
+        performance.now());
       this.dispatcher.dispatch(new sharedActions.ConnectionFailure({
         reason: reason
       }));
@@ -394,6 +408,7 @@ loop.OTSdkDriver = (function() {
 
       this._subscribedRemoteStream = true;
       if (this._checkAllStreamsConnected()) {
+        this.connectionStartTime = performance.now();
         this.dispatcher.dispatch(new sharedActions.MediaConnected());
       }
     },
@@ -513,6 +528,7 @@ loop.OTSdkDriver = (function() {
         
         this._publishedLocalStream = true;
         if (this._checkAllStreamsConnected()) {
+          this.connectionStartTime = performance.now();
           this.dispatcher.dispatch(new sharedActions.MediaConnected());
         }
       }
@@ -544,6 +560,72 @@ loop.OTSdkDriver = (function() {
       this.dispatcher.dispatch(new sharedActions.ScreenSharingState({
         state: SCREEN_SHARE_STATES.INACTIVE
       }));
+    },
+
+    
+
+
+
+
+
+
+
+    _connectionLengthNotedCalls: 0,
+
+    
+
+
+
+
+
+
+
+    _noteConnectionLength: function(callLengthSeconds) {
+
+      var bucket = this.mozLoop.TWO_WAY_MEDIA_CONN_LENGTH.SHORTER_THAN_10S;
+
+      if (callLengthSeconds >= 10 && callLengthSeconds <= 30) {
+        bucket = this.mozLoop.TWO_WAY_MEDIA_CONN_LENGTH.BETWEEN_10S_AND_30S;
+      } else if (callLengthSeconds > 30 && callLengthSeconds <= 300) {
+        bucket = this.mozLoop.TWO_WAY_MEDIA_CONN_LENGTH.BETWEEN_30S_AND_5M;
+      } else if (callLengthSeconds > 300) {
+        bucket = this.mozLoop.TWO_WAY_MEDIA_CONN_LENGTH.MORE_THAN_5M;
+      }
+
+      this.mozLoop.telemetryAddKeyedValue("LOOP_TWO_WAY_MEDIA_CONN_LENGTH",
+        bucket);
+      this.connectionStartTime = this.CONNECTION_START_TIME_ALREADY_NOTED;
+
+      this._connectionLengthNotedCalls++;
+    },
+
+    
+
+
+
+
+
+
+
+
+
+    _noteConnectionLengthIfNeeded: function(startTime, endTime) {
+      if (!this.mozLoop) {
+        return;
+      }
+
+      if (startTime == this.CONNECTION_START_TIME_ALREADY_NOTED ||
+          startTime == this.CONNECTION_START_TIME_UNINITIALIZED ||
+          startTime > endTime) {
+        console.log("_noteConnectionLengthIfNeeded called with " +
+                    " invalid params, either the calls were never" +
+                    " connected or there is a bug; startTime:", startTime,
+                    "endTime:", endTime);
+        return;
+      }
+
+      var callLengthSeconds = (endTime - startTime) / 1000;
+      this._noteConnectionLength(callLengthSeconds);
     }
   };
 

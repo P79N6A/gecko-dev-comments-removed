@@ -103,6 +103,7 @@ class Test1BrowserCall(MarionetteTestCase):
         self.assertEqual(media_container.tag_name, "div", "expect a video container")
 
     def local_get_and_verify_room_url(self):
+        self.switch_to_chatbox()
         button = self.wait_for_element_displayed(By.CLASS_NAME, "btn-copy")
 
         button.click()
@@ -152,7 +153,8 @@ class Test1BrowserCall(MarionetteTestCase):
         self.switch_to_standalone()
         self.check_video(".media .screen .OT_subscriber .OT_widget-container")
 
-    def local_leave_room_and_verify_feedback(self):
+    def remote_leave_room_and_verify_feedback(self):
+        self.switch_to_standalone()
         button = self.marionette.find_element(By.CLASS_NAME, "btn-hangup")
 
         button.click()
@@ -161,6 +163,66 @@ class Test1BrowserCall(MarionetteTestCase):
         feedback_form = self.wait_for_element_displayed(By.CLASS_NAME, "faces")
         self.assertEqual(feedback_form.tag_name, "div", "expect feedback form")
 
+    def local_get_chatbox_window_expr(self, expr):
+        """
+        :expr: a sub-expression which must begin with a property of the
+        global content window (e.g. "location.path")
+
+        :return: the value of the given sub-expression as evaluated in the
+        chatbox content window
+        """
+        self.marionette.set_context("chrome")
+        self.marionette.switch_to_frame()
+
+        
+        
+        chatbox = self.wait_for_element_exists(By.TAG_NAME, 'chatbox')
+        script = '''
+            let chatBrowser = document.getAnonymousElementByAttribute(
+              arguments[0], 'class',
+              'chat-frame')
+
+            // note that using wrappedJSObject waives X-ray vision, which
+            // has security implications, but because we trust the code
+            // running in the chatbox, it should be reasonably safe
+            let chatGlobal = chatBrowser.contentWindow.wrappedJSObject;
+
+            return chatGlobal.''' + expr
+
+        return self.marionette.execute_script(script, [chatbox])
+
+    def local_get_media_start_time(self):
+        return self.local_get_chatbox_window_expr(
+            "loop.conversation._sdkDriver.connectionStartTime")
+
+    
+    def local_get_media_start_time_uninitialized(self):
+        return self.local_get_chatbox_window_expr(
+            "loop.conversation._sdkDriver.CONNECTION_START_TIME_UNINITIALIZED"
+        )
+
+    def local_check_media_start_time_uninitialized(self):
+        self.assertEqual(
+            self.local_get_media_start_time(),
+            self.local_get_media_start_time_uninitialized(),
+            "media start time should be uninitialized before "
+            "link clicker enters room")
+
+    def local_check_media_start_time_initialized(self):
+        self.assertNotEqual(
+            self.local_get_media_start_time(),
+            self.local_get_media_start_time_uninitialized(),
+            "media start time should be initialized after "
+            "media is bidirectionally connected")
+
+    def local_check_connection_length_noted(self):
+        noted_calls = self.local_get_chatbox_window_expr(
+            "loop.conversation._sdkDriver._connectionLengthNotedCalls")
+
+        self.assertGreater(noted_calls, 0,
+                           "OTSdkDriver._connectionLengthNotedCalls should be "
+                           "> 0")
+
     def test_1_browser_call(self):
         self.switch_to_panel()
 
@@ -168,6 +230,9 @@ class Test1BrowserCall(MarionetteTestCase):
 
         
         self.local_check_room_self_video()
+
+        
+        self.local_check_media_start_time_uninitialized()
 
         room_url = self.local_get_and_verify_room_url()
 
@@ -180,11 +245,21 @@ class Test1BrowserCall(MarionetteTestCase):
 
         
         
+        self.local_check_media_start_time_initialized()
+
+        
+        
         
         
 
         
-        self.local_leave_room_and_verify_feedback()
+        
+        
+        
+        
+        self.remote_leave_room_and_verify_feedback()
+
+        self.local_check_connection_length_noted()
 
     def tearDown(self):
         self.loop_test_servers.shutdown()

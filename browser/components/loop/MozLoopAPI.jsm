@@ -623,6 +623,13 @@ function injectLoopAPI(targetWindow) {
       }
     },
 
+    TWO_WAY_MEDIA_CONN_LENGTH: {
+      enumerable: true,
+      get: function() {
+        return Cu.cloneInto(TWO_WAY_MEDIA_CONN_LENGTH, targetWindow);
+      }
+    },
+
     fxAEnabled: {
       enumerable: true,
       get: function() {
@@ -740,11 +747,11 @@ function injectLoopAPI(targetWindow) {
 
 
 
-    telemetryAdd: {
+    telemetryAddKeyedValue: {
       enumerable: true,
       writable: true,
       value: function(histogramId, value) {
-        Services.telemetry.getHistogramById(histogramId).add(value);
+        Services.telemetry.getKeyedHistogramById(histogramId).add(value);
       }
     },
 

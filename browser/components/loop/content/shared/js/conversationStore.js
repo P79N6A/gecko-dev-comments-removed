@@ -228,7 +228,8 @@ loop.store = loop.store || {};
         "retryCall",
         "mediaConnected",
         "setMute",
-        "fetchRoomEmailLink"
+        "fetchRoomEmailLink",
+        "windowUnload"
       ]);
 
       this.setStoreState({
@@ -357,6 +358,15 @@ loop.store = loop.store || {};
         }
         this.setStoreState({"emailLink": createdRoomData.roomUrl});
       }.bind(this));
+    },
+
+    
+
+
+
+
+    windowUnload: function() {
+      this._endSession();
     },
 
     
