@@ -2252,7 +2252,7 @@ CodeGenerator::visitStoreSlotV(LStoreSlotV* lir)
 }
 
 static void
-GuardReceiver(MacroAssembler& masm, const ReceiverGuard::StackGuard& guard,
+GuardReceiver(MacroAssembler& masm, const ReceiverGuard& guard,
               Register obj, Register scratch, Label* miss, bool checkNullExpando)
 {
     if (guard.group) {
@@ -2280,7 +2280,7 @@ CodeGenerator::emitGetPropertyPolymorphic(LInstruction* ins, Register obj, Regis
     Label done;
 
     for (size_t i = 0; i < mir->numReceivers(); i++) {
-        ReceiverGuard::StackGuard receiver = mir->receiver(i);
+        ReceiverGuard receiver = mir->receiver(i);
 
         Label next;
         GuardReceiver(masm, receiver, obj, scratch, &next,  false);
@@ -2359,7 +2359,7 @@ CodeGenerator::emitSetPropertyPolymorphic(LInstruction* ins, Register obj, Regis
 
     Label done;
     for (size_t i = 0; i < mir->numReceivers(); i++) {
-        ReceiverGuard::StackGuard receiver = mir->receiver(i);
+        ReceiverGuard receiver = mir->receiver(i);
 
         Label next;
         GuardReceiver(masm, receiver, obj, scratch, &next,  false);
@@ -2531,7 +2531,7 @@ CodeGenerator::visitGuardReceiverPolymorphic(LGuardReceiverPolymorphic* lir)
     Label done;
 
     for (size_t i = 0; i < mir->numReceivers(); i++) {
-        const ReceiverGuard::StackGuard& receiver = mir->receiver(i);
+        const ReceiverGuard& receiver = mir->receiver(i);
 
         Label next;
         GuardReceiver(masm, receiver, obj, temp, &next,  true);
@@ -7123,16 +7123,51 @@ CodeGenerator::visitIteratorStart(LIteratorStart* lir)
                       Imm32(JSITER_ACTIVE|JSITER_UNREUSABLE), ool->entry());
 
     
-    masm.loadPtr(Address(niTemp, offsetof(NativeIterator, shapes_array)), temp2);
+    masm.loadPtr(Address(niTemp, offsetof(NativeIterator, guard_array)), temp2);
 
     
-    masm.loadObjShape(obj, temp1);
-    masm.branchPtr(Assembler::NotEqual, Address(temp2, 0), temp1, ool->entry());
+    
+    {
+        Address groupAddr(temp2, offsetof(ReceiverGuard, group));
+        Address shapeAddr(temp2, offsetof(ReceiverGuard, shape));
+        Label guardDone, shapeMismatch, noExpando;
+        masm.loadObjShape(obj, temp1);
+        masm.branchPtr(Assembler::NotEqual, shapeAddr, temp1, &shapeMismatch);
+
+        
+        
+        masm.branchPtr(Assembler::NotEqual,
+                       Address(obj, NativeObject::offsetOfElements()),
+                       ImmPtr(js::emptyObjectElements),
+                       ool->entry());
+        masm.jump(&guardDone);
+
+        masm.bind(&shapeMismatch);
+        masm.loadObjGroup(obj, temp1);
+        masm.branchPtr(Assembler::NotEqual, groupAddr, temp1, ool->entry());
+        masm.loadPtr(Address(obj, UnboxedPlainObject::offsetOfExpando()), temp1);
+        masm.branchTestPtr(Assembler::Zero, temp1, temp1, &noExpando);
+        masm.branchPtr(Assembler::NotEqual,
+                       Address(temp1, NativeObject::offsetOfElements()),
+                       ImmPtr(js::emptyObjectElements),
+                       ool->entry());
+        masm.loadObjShape(temp1, temp1);
+        masm.bind(&noExpando);
+        masm.branchPtr(Assembler::NotEqual, shapeAddr, temp1, ool->entry());
+        masm.bind(&guardDone);
+    }
 
     
+    
+    
+    Address prototypeShapeAddr(temp2, sizeof(ReceiverGuard) + offsetof(ReceiverGuard, shape));
     masm.loadObjProto(obj, temp1);
+    masm.branchPtr(Assembler::NotEqual,
+                   Address(temp1, NativeObject::offsetOfElements()),
+                   ImmPtr(js::emptyObjectElements),
+                   ool->entry());
     masm.loadObjShape(temp1, temp1);
-    masm.branchPtr(Assembler::NotEqual, Address(temp2, sizeof(Shape*)), temp1, ool->entry());
+    masm.branchPtr(Assembler::NotEqual, prototypeShapeAddr, temp1, ool->entry());
 
     
     
@@ -7140,13 +7175,6 @@ CodeGenerator::visitIteratorStart(LIteratorStart* lir)
     masm.loadObjProto(obj, temp1);
     masm.loadObjProto(temp1, temp1);
     masm.branchTestPtr(Assembler::NonZero, temp1, temp1, ool->entry());
-
-    
-    
-    masm.branchPtr(Assembler::NotEqual,
-                   Address(obj, NativeObject::offsetOfElements()),
-                   ImmPtr(js::emptyObjectElements),
-                   ool->entry());
 
     
     
