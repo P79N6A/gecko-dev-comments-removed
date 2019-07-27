@@ -474,7 +474,19 @@ let BlockedLinks = {
   
 
 
+  _observers: [],
+
+  
+
+
   _links: null,
+
+  
+
+
+  addObserver: function (aObserver) {
+    this._observers.push(aObserver);
+  },
 
   
 
@@ -491,6 +503,7 @@ let BlockedLinks = {
 
 
   block: function BlockedLinks_block(aLink) {
+    this._callObservers("onLinkBlocked", aLink);
     this.links[toHash(aLink.url)] = 1;
     this.save();
 
@@ -506,6 +519,7 @@ let BlockedLinks = {
     if (this.isBlocked(aLink)) {
       delete this.links[toHash(aLink.url)];
       this.save();
+      this._callObservers("onLinkUnblocked", aLink);
     }
   },
 
@@ -537,6 +551,18 @@ let BlockedLinks = {
 
   resetCache: function BlockedLinks_resetCache() {
     this._links = null;
+  },
+
+  _callObservers(methodName, ...args) {
+    for (let obs of this._observers) {
+      if (typeof(obs[methodName]) == "function") {
+        try {
+          obs[methodName](...args);
+        } catch (err) {
+          Cu.reportError(err);
+        }
+      }
+    }
   }
 };
 
@@ -721,6 +747,8 @@ let Links = {
 
 
 
+
+
   _providers: new Map(),
 
   
@@ -736,6 +764,18 @@ let Links = {
 
 
   _populateCallbacks: [],
+
+  
+
+
+  _observers: [],
+
+  
+
+
+  addObserver: function (aObserver) {
+    this._observers.push(aObserver);
+  },
 
   
 
@@ -861,11 +901,19 @@ let Links = {
   },
 
   _incrementSiteMap: function(map, link) {
+    if (NewTabUtils.blockedLinks.isBlocked(link)) {
+      
+      return;
+    }
     let site = NewTabUtils.extractSite(link.url);
     map.set(site, (map.get(site) || 0) + 1);
   },
 
   _decrementSiteMap: function(map, link) {
+    if (NewTabUtils.blockedLinks.isBlocked(link)) {
+      
+      return;
+    }
     let site = NewTabUtils.extractSite(link.url);
     let previousURLCount = map.get(site);
     if (previousURLCount === 1) {
@@ -873,6 +921,37 @@ let Links = {
     } else {
       map.set(site, previousURLCount - 1);
     }
+  },
+
+  
+
+
+
+
+
+
+
+
+  _adjustSiteMapAndNotify: function(aLink, increment=true) {
+    for (let [provider, cache] of this._providers) {
+      
+      if (cache.linkMap.get(aLink.url)) {
+        if (increment) {
+          this._incrementSiteMap(cache.siteMap, aLink);
+          continue;
+        }
+        this._decrementSiteMap(cache.siteMap, aLink);
+      }
+    }
+    this._callObservers("onLinkChanged", aLink);
+  },
+
+  onLinkBlocked: function(aLink) {
+    this._adjustSiteMapAndNotify(aLink, false);
+  },
+
+  onLinkUnblocked: function(aLink) {
+    this._adjustSiteMapAndNotify(aLink);
   },
 
   populateProviderCache: function(provider, callback) {
@@ -1095,6 +1174,18 @@ let Links = {
       this.resetCache();
   },
 
+  _callObservers(methodName, ...args) {
+    for (let obs of this._observers) {
+      if (typeof(obs[methodName]) == "function") {
+        try {
+          obs[methodName](this, ...args);
+        } catch (err) {
+          Cu.reportError(err);
+        }
+      }
+    }
+  },
+
   
 
 
@@ -1235,6 +1326,7 @@ this.NewTabUtils = {
     if (this.initWithoutProviders()) {
       PlacesProvider.init();
       Links.addProvider(PlacesProvider);
+      BlockedLinks.addObserver(Links);
     }
   },
 
