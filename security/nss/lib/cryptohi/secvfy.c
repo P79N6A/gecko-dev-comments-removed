@@ -12,6 +12,7 @@
 #include "secasn1.h"
 #include "secoid.h"
 #include "pk11func.h"
+#include "pkcs1sig.h"
 #include "secdig.h"
 #include "secerr.h"
 #include "keyi.h"
@@ -23,66 +24,98 @@
 
 
 
+
+
+
+
+
+
+
+
+
 static SECStatus
-DecryptSigBlock(SECOidTag *tagp, unsigned char *digest,
-		unsigned int *digestlen, unsigned int maxdigestlen,
-		SECKEYPublicKey *key, const SECItem *sig, char *wincx)
+recoverPKCS1DigestInfo(SECOidTag givenDigestAlg,
+                        SECOidTag* digestAlgOut,
+                        unsigned char** digestInfo,
+                        unsigned int* digestInfoLen,
+                       SECKEYPublicKey* key,
+                       const SECItem* sig, void* wincx)
 {
-    SGNDigestInfo *di   = NULL;
-    unsigned char *buf  = NULL;
-    SECStatus      rv;
-    SECOidTag      tag;
-    SECItem        it;
+    SGNDigestInfo* di = NULL;
+    SECItem it;
+    PRBool rv = SECSuccess;
 
-    if (key == NULL) goto loser;
+    PORT_Assert(digestAlgOut);
+    PORT_Assert(digestInfo);
+    PORT_Assert(digestInfoLen);
+    PORT_Assert(key);
+    PORT_Assert(key->keyType == rsaKey);
+    PORT_Assert(sig);
 
+    it.data = NULL;
     it.len  = SECKEY_PublicKeyStrength(key);
-    if (!it.len) goto loser;
-    it.data = buf = (unsigned char *)PORT_Alloc(it.len);
-    if (!buf) goto loser;
+    if (it.len != 0) {
+        it.data = (unsigned char *)PORT_Alloc(it.len);
+    }
+    if (it.len == 0 || it.data == NULL ) {
+        rv = SECFailure;
+    }
 
-    
-    rv = PK11_VerifyRecover(key, (SECItem *)sig, &it, wincx);
-    if (rv != SECSuccess) goto loser;
-
-    di = SGN_DecodeDigestInfo(&it);
-    if (di == NULL) goto sigloser;
-
-    
-
-
-
-    tag = SECOID_GetAlgorithmTag(&di->digestAlgorithm);
-    
-    if (tag == SEC_OID_UNKNOWN) {
-	goto sigloser;
+    if (rv == SECSuccess) {
+        
+        rv = PK11_VerifyRecover(key, sig, &it, wincx);
     }
     
-    if (di->digestAlgorithm.parameters.len > 2) {
-	goto sigloser;
+    if (rv == SECSuccess) {
+        if (givenDigestAlg != SEC_OID_UNKNOWN) {
+            
+
+
+
+
+            *digestInfoLen = it.len;
+            *digestInfo = (unsigned char*)it.data;
+            *digestAlgOut = givenDigestAlg;
+            return SECSuccess;
+        }
     }
-    if (di->digest.len > maxdigestlen) {
-	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
-	goto loser;
+
+    if (rv == SECSuccess) {
+        
+
+
+
+        di = SGN_DecodeDigestInfo(&it);
+        if (!di) {
+            rv = SECFailure;
+        }
     }
-    PORT_Memcpy(digest, di->digest.data, di->digest.len);
-    *tagp = tag;
-    *digestlen = di->digest.len;
-    goto done;
 
-  sigloser:
-    PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
+    if (rv == SECSuccess) {
+        *digestAlgOut = SECOID_GetAlgorithmTag(&di->digestAlgorithm);
+        if (*digestAlgOut == SEC_OID_UNKNOWN) {
+            rv = SECFailure;
+        }
+    }
 
-  loser:
-    rv = SECFailure;
+    if (di) {
+        SGN_DestroyDigestInfo(di);
+    }
 
-  done:
-    if (di   != NULL) SGN_DestroyDigestInfo(di);
-    if (buf  != NULL) PORT_Free(buf);
-    
+    if (rv == SECSuccess) {
+        *digestInfoLen = it.len;
+        *digestInfo = (unsigned char*)it.data;
+    } else {
+        if (it.data) {
+            PORT_Free(it.data);
+        }
+        *digestInfo = NULL;
+        *digestInfoLen = 0;
+        PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
+    }
+
     return rv;
 }
-
 
 struct VFYContextStr {
     SECOidTag hashAlg;  
@@ -100,13 +133,13 @@ struct VFYContextStr {
 	unsigned char buffer[1];
 
 	
-	unsigned char rsadigest[HASH_LENGTH_MAX];
-	
 	unsigned char dsasig[DSA_MAX_SIGNATURE_LEN];
 	
 	unsigned char ecdsasig[2 * MAX_ECKEY_LEN];
     } u;
-    unsigned int rsadigestlen;
+    unsigned int pkcs1RSADigestInfoLen;
+    
+    unsigned char *pkcs1RSADigestInfo;
     void * wincx;
     void *hashcx;
     const SECHashObject *hashobj;
@@ -116,6 +149,17 @@ struct VFYContextStr {
 
 
 };
+
+static SECStatus
+verifyPKCS1DigestInfo(const VFYContext* cx, const SECItem* digest)
+{
+  SECItem pkcs1DigestInfo;
+  pkcs1DigestInfo.data = cx->pkcs1RSADigestInfo;
+  pkcs1DigestInfo.len = cx->pkcs1RSADigestInfoLen;
+  return _SGN_VerifyPKCS1DigestInfo(
+           cx->hashAlg, digest, &pkcs1DigestInfo,
+           PR_TRUE );
+}
 
 
 
@@ -376,16 +420,16 @@ vfy_CreateContext(const SECKEYPublicKey *key, const SECItem *sig,
     cx->encAlg = encAlg;
     cx->hashAlg = hashAlg;
     cx->key = SECKEY_CopyPublicKey(key);
+    cx->pkcs1RSADigestInfo = NULL;
     rv = SECSuccess;
     if (sig) {
 	switch (type) {
 	case rsaKey:
-	    rv = DecryptSigBlock(&cx->hashAlg, cx->u.buffer, &cx->rsadigestlen,
-			HASH_LENGTH_MAX, cx->key, sig, (char*)wincx);
-	    if (cx->hashAlg != hashAlg && hashAlg != SEC_OID_UNKNOWN) {
-		PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
-		rv = SECFailure;	
-	    }
+	    rv = recoverPKCS1DigestInfo(hashAlg, &cx->hashAlg,
+					&cx->pkcs1RSADigestInfo,
+					&cx->pkcs1RSADigestInfoLen,
+					cx->key,
+					sig, wincx);
 	    break;
 	case dsaKey:
 	case ecKey:
@@ -469,6 +513,9 @@ VFY_DestroyContext(VFYContext *cx, PRBool freeit)
 	if (cx->key) {
 	    SECKEY_DestroyPublicKey(cx->key);
 	}
+    if (cx->pkcs1RSADigestInfo) {
+        PORT_Free(cx->pkcs1RSADigestInfo);
+    }
 	if (freeit) {
 	    PORT_ZFree(cx, sizeof(VFYContext));
 	}
@@ -548,21 +595,25 @@ VFY_EndWithSignature(VFYContext *cx, SECItem *sig)
 	}
 	break;
       case rsaKey:
+      {
+        SECItem digest;
+        digest.data = final;
+        digest.len = part;
 	if (sig) {
-	    SECOidTag hashid = SEC_OID_UNKNOWN;
-	    rv = DecryptSigBlock(&hashid, cx->u.buffer, &cx->rsadigestlen,
-		    HASH_LENGTH_MAX, cx->key, sig, (char*)cx->wincx);
-	    if ((rv != SECSuccess) || (hashid != cx->hashAlg)) {
-		PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
+	    SECOidTag hashid;
+	    PORT_Assert(cx->hashAlg != SEC_OID_UNKNOWN);
+	    rv = recoverPKCS1DigestInfo(cx->hashAlg, &hashid,
+					&cx->pkcs1RSADigestInfo,
+					&cx->pkcs1RSADigestInfoLen,
+					cx->key,
+					sig, cx->wincx);
+	    PORT_Assert(cx->hashAlg == hashid);
+	    if (rv != SECSuccess) {
 		return SECFailure;
 	    }
 	}
-	if ((part != cx->rsadigestlen) ||
-	    PORT_Memcmp(final, cx->u.buffer, part)) {
-	    PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
-	    return SECFailure;
-	}
-	break;
+	return verifyPKCS1DigestInfo(cx, &digest);
+      }
       default:
 	PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
 	return SECFailure; 
@@ -595,12 +646,7 @@ vfy_VerifyDigest(const SECItem *digest, const SECKEYPublicKey *key,
     if (cx != NULL) {
 	switch (key->keyType) {
 	case rsaKey:
-	    if ((digest->len != cx->rsadigestlen) ||
-		PORT_Memcmp(digest->data, cx->u.buffer, digest->len)) {
-		PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
-	    } else {
-		rv = SECSuccess;
-	    }
+	    rv = verifyPKCS1DigestInfo(cx, digest);
 	    break;
 	case dsaKey:
 	case ecKey:
