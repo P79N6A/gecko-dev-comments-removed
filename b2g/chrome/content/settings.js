@@ -123,11 +123,6 @@ SettingsListener.observe('language.current', 'en-US', function(value) {
       }
     });
   });
-
-  
-  SettingsListener.observe('ril.debugging.enabled', false, function(value) {
-    Services.prefs.setBoolPref('ril.debugging.enabled', value);
-  });
 })();
 
 
@@ -528,6 +523,7 @@ let settingsToObserve = {
   'layers.effect.grayscale': false,
   'layers.effect.contrast': "0.0",
   'privacy.donottrackheader.enabled': false,
+  'ril.debugging.enabled': false,
   'ril.radio.disabled': false,
   'ril.mms.requestReadReport.enabled': {
     prefName: 'dom.mms.requestReadReport',
