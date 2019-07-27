@@ -23,9 +23,27 @@ namespace media {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 template<typename ValueType>
 class Pledge
 {
+  
   
   class FunctorsBase
   {
@@ -37,6 +55,7 @@ class Pledge
   };
 
 public:
+  NS_INLINE_DECL_REFCOUNTING(Pledge);
   explicit Pledge() : mDone(false), mResult(NS_OK) {}
 
   template<typename OnSuccessType>
@@ -77,13 +96,12 @@ public:
     }
   }
 
-protected:
   void Resolve(const ValueType& aValue)
   {
     mValue = aValue;
     Resolve();
   }
-
+protected:
   void Resolve()
   {
     if (!mDone) {
@@ -108,6 +126,7 @@ protected:
 
   ValueType mValue;
 protected:
+  ~Pledge() {};
   bool mDone;
   nsresult mResult;
 private:
@@ -117,53 +136,38 @@ private:
 
 
 
-template<typename ValueType>
-class PledgeRunnable : public Pledge<ValueType>, public nsRunnable
-{
-public:
-  template<typename OnRunType>
-  static PledgeRunnable<ValueType>*
-  New(OnRunType aOnRun)
-  {
-    class P : public PledgeRunnable<ValueType>
-    {
-    public:
-      explicit P(OnRunType& aOnRun)
-      : mOriginThread(NS_GetCurrentThread())
-      , mOnRun(aOnRun)
-      , mHasRun(false) {}
-    private:
-      virtual ~P() {}
-      NS_IMETHODIMP
-      Run()
-      {
-        if (!mHasRun) {
-          P::mResult = mOnRun(P::mValue);
-          mHasRun = true;
-          return mOriginThread->Dispatch(this, NS_DISPATCH_NORMAL);
-        }
-        bool on;
-        MOZ_RELEASE_ASSERT(NS_SUCCEEDED(mOriginThread->IsOnCurrentThread(&on)));
-        MOZ_RELEASE_ASSERT(on);
 
-        if (NS_SUCCEEDED(P::mResult)) {
-          P::Resolve();
-        } else {
-          P::Reject(P::mResult);
-        }
-        return NS_OK;
-      }
-      nsCOMPtr<nsIThread> mOriginThread;
-      OnRunType mOnRun;
-      bool mHasRun;
-    };
 
-    return new P(aOnRun);
-  }
 
-protected:
-  virtual ~PledgeRunnable() {}
-};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -188,7 +192,105 @@ NewRunnableFrom(OnRunType aOnRun)
   return new LambdaRunnable<OnRunType>(aOnRun);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<class T>
+class CoatCheck
+{
+public:
+  typedef std::pair<uint32_t, nsRefPtr<T>> Element;
+
+  uint32_t Append(T& t)
+  {
+    uint32_t id = GetNextId();
+    mElements.AppendElement(Element(id, nsRefPtr<T>(&t)));
+    return id;
+  }
+
+  already_AddRefed<T> Remove(uint32_t aId)
+  {
+    for (auto& element : mElements) {
+      if (element.first == aId) {
+        nsRefPtr<T> ref;
+        ref.swap(element.second);
+        mElements.RemoveElement(element);
+        return ref.forget();
+      }
+    }
+    MOZ_ASSERT_UNREACHABLE("Received id with no matching parked object!");
+    return nullptr;
+  }
+
+private:
+  static uint32_t GetNextId()
+  {
+    static uint32_t counter = 0;
+    return ++counter;
+  };
+  nsAutoTArray<Element, 3> mElements;
+};
+
 }
 }
 
-#endif 
+#endif
