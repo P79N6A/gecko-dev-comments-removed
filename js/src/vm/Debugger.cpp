@@ -20,6 +20,7 @@
 #include "jit/BaselineJIT.h"
 #include "js/Debug.h"
 #include "js/GCAPI.h"
+#include "js/UbiNodeTraverse.h"
 #include "js/Vector.h"
 #include "vm/ArgumentsObject.h"
 #include "vm/DebuggerMemory.h"
@@ -2982,6 +2983,202 @@ Debugger::findScripts(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
+
+
+
+
+class MOZ_STACK_CLASS Debugger::ObjectQuery
+{
+  public:
+    
+    ObjectQuery(JSContext *cx, Debugger *dbg) :
+        cx(cx), dbg(dbg), className(cx)
+    {}
+
+    
+
+
+
+    bool parseQuery(HandleObject query) {
+        
+        RootedValue cls(cx);
+        if (!JSObject::getProperty(cx, query, query, cx->names().class_, &cls))
+            return false;
+        if (!cls.isUndefined()) {
+            if (!cls.isString()) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
+                                     "query object's 'class' property",
+                                     "neither undefined nor a string");
+                return false;
+            }
+            className = cls;
+        }
+        return true;
+    }
+
+    
+    void omittedQuery() {
+        className.setUndefined();
+    }
+
+    
+
+
+
+    bool findObjects(AutoObjectVector &objs) {
+        if (!prepareQuery())
+            return false;
+
+        {
+            
+
+
+
+            JS::AutoCheckCannotGC autoCannotGC;
+
+            Traversal traversal(cx, *this, autoCannotGC);
+            if (!traversal.init())
+                return false;
+
+            
+            for (GlobalObjectSet::Range r = dbg->debuggees.all(); !r.empty(); r.popFront()) {
+                if (!traversal.addStartVisited(JS::ubi::Node(static_cast<JSObject *>(r.front()))))
+                    return false;
+            }
+
+            
+
+
+
+            for (CompartmentsIter c(cx->runtime(), SkipAtoms); !c.done(); c.next()) {
+                JSCompartment *comp = c.get();
+                if (!comp)
+                    continue;
+                for (JSCompartment::WrapperEnum e(comp); !e.empty(); e.popFront()) {
+                    const CrossCompartmentKey &key = e.front().key();
+                    if (key.kind != CrossCompartmentKey::ObjectWrapper)
+                        continue;
+                    JSObject *obj = static_cast<JSObject *>(key.wrapped);
+                    if (!traversal.addStartVisited(JS::ubi::Node(obj)))
+                        return false;
+                }
+            }
+
+            if (!traversal.traverse())
+                return false;
+
+            
+
+
+
+            for (Traversal::NodeMap::Range r = traversal.visited.all(); !r.empty(); r.popFront()) {
+                JS::ubi::Node node = r.front().key();
+                if (!node.is<JSObject>())
+                    continue;
+
+                JSObject *obj = node.as<JSObject>();
+
+                if (!className.isUndefined()) {
+                    const char *objClassName = obj->getClass()->name;
+                    if (strcmp(objClassName, classNameCString.ptr()) != 0)
+                        continue;
+                }
+
+                if (!objs.append(obj))
+                    return false;
+            }
+
+            return true;
+        }
+    }
+
+    
+
+
+
+
+
+
+    class NodeData {};
+    typedef JS::ubi::BreadthFirst<ObjectQuery> Traversal;
+    bool operator() (Traversal &, JS::ubi::Node, const JS::ubi::Edge &, NodeData *, bool)
+    {
+        return true;
+    }
+
+  private:
+    
+    JSContext *cx;
+
+    
+    Debugger *dbg;
+
+    
+
+
+
+    RootedValue className;
+
+    
+    JSAutoByteString classNameCString;
+
+    
+
+
+
+    bool prepareQuery() {
+        if (className.isString()) {
+            if (!classNameCString.encodeLatin1(cx, className.toString()))
+                return false;
+        }
+
+        return true;
+    }
+};
+
+bool
+Debugger::findObjects(JSContext *cx, unsigned argc, Value *vp)
+{
+    THIS_DEBUGGER(cx, argc, vp, "findObjects", args, dbg);
+
+    ObjectQuery query(cx, dbg);
+
+    if (args.length() >= 1) {
+        RootedObject queryObject(cx, NonNullObject(cx, args[0]));
+        if (!queryObject || !query.parseQuery(queryObject))
+            return false;
+    } else {
+        query.omittedQuery();
+    }
+
+    
+
+
+
+
+    AutoObjectVector objects(cx);
+
+    if (!query.findObjects(objects))
+        return false;
+
+    size_t length = objects.length();
+    RootedArrayObject result(cx, NewDenseFullyAllocatedArray(cx, length));
+    if (!result)
+        return false;
+
+    result->ensureDenseInitializedLength(cx, 0, length);
+
+    for (size_t i = 0; i < length; i++) {
+        RootedValue debuggeeVal(cx, ObjectValue(*objects[i]));
+        if (!dbg->wrapDebuggeeValue(cx, &debuggeeVal))
+            return false;
+        result->setDenseElement(i, debuggeeVal);
+    }
+
+    args.rval().setObject(*result);
+    return true;
+}
+
 bool
 Debugger::findAllGlobals(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -3061,6 +3258,7 @@ const JSFunctionSpec Debugger::methods[] = {
     JS_FN("getNewestFrame", Debugger::getNewestFrame, 0, 0),
     JS_FN("clearAllBreakpoints", Debugger::clearAllBreakpoints, 0, 0),
     JS_FN("findScripts", Debugger::findScripts, 1, 0),
+    JS_FN("findObjects", Debugger::findObjects, 1, 0),
     JS_FN("findAllGlobals", Debugger::findAllGlobals, 0, 0),
     JS_FN("makeGlobalObjectReference", Debugger::makeGlobalObjectReference, 1, 0),
     JS_FS_END

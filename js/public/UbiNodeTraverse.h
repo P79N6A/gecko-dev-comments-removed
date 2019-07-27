@@ -97,6 +97,15 @@ struct BreadthFirst {
 
     
     
+    bool addStartVisited(Node node) {
+        typename NodeMap::AddPtr ptr = visited.lookupForAdd(node);
+        if (!ptr && !visited.add(ptr, node, typename Handler::NodeData()))
+            return false;
+        return addStart(node);
+    }
+
+    
+    
     bool wantNames;
 
     
