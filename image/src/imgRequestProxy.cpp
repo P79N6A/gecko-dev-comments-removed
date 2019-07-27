@@ -776,12 +776,6 @@ void imgRequestProxy::OnDecodeComplete()
     nsCOMPtr<imgINotificationObserver> kungFuDeathGrip(mListener);
     mListener->Notify(this, imgINotificationObserver::DECODE_COMPLETE, nullptr);
   }
-
-  if (GetOwner()) {
-    
-    
-    GetOwner()->UpdateCacheEntrySize();
-  }
 }
 
 void imgRequestProxy::OnDiscard()
@@ -792,10 +786,6 @@ void imgRequestProxy::OnDiscard()
     
     nsCOMPtr<imgINotificationObserver> kungFuDeathGrip(mListener);
     mListener->Notify(this, imgINotificationObserver::DISCARD, nullptr);
-  }
-  if (GetOwner()) {
-    
-    GetOwner()->UpdateCacheEntrySize();
   }
 }
 

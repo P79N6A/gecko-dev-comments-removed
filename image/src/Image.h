@@ -7,6 +7,7 @@
 #define MOZILLA_IMAGELIB_IMAGE_H_
 
 #include "mozilla/MemoryReporting.h"
+#include "gfx2DGlue.h"                
 #include "imgIContainer.h"
 #include "ProgressTracker.h"
 #include "ImageURL.h"
@@ -75,22 +76,14 @@ public:
 
 
 
-  virtual uint32_t SizeOfData() = 0;
+
+  virtual size_t SizeOfSourceWithComputedFallback(MallocSizeOf aMallocSizeOf) const = 0;
 
   
 
 
-  virtual size_t HeapSizeOfSourceWithComputedFallback(MallocSizeOf aMallocSizeOf) const = 0;
-  virtual size_t HeapSizeOfDecodedWithComputedFallback(MallocSizeOf aMallocSizeOf) const = 0;
-  virtual size_t NonHeapSizeOfDecoded() const = 0;
-  virtual size_t OutOfProcessSizeOfDecoded() const = 0;
-
-  
-
-
-
-
-  virtual size_t HeapSizeOfVectorImageDocument(nsACString* aDocURL = nullptr) const = 0;
+  virtual size_t SizeOfDecoded(gfxMemoryLocation aLocation,
+                               MallocSizeOf aMallocSizeOf) const = 0;
 
   virtual void IncrementAnimationConsumers() = 0;
   virtual void DecrementAnimationConsumers() = 0;
@@ -156,7 +149,6 @@ public:
     MOZ_ASSERT(!mProgressTracker);
     mProgressTracker = aProgressTracker;
   }
-  virtual uint32_t SizeOfData() MOZ_OVERRIDE;
 
   virtual void IncrementAnimationConsumers() MOZ_OVERRIDE;
   virtual void DecrementAnimationConsumers() MOZ_OVERRIDE;
