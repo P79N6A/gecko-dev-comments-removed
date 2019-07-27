@@ -22,15 +22,12 @@ function section(number, url)
 }
 
 let CompatWarning = {
-  warn: function(msg, addon, warning) {
-    if (addon) {
-      let histogram = Services.telemetry.getKeyedHistogramById("ADDON_SHIM_USAGE");
-      histogram.add(addon, warning ? warning.number : 0);
-    }
-
-    if (!Preferences.get("dom.ipc.shims.enabledWarnings", false))
-      return;
-
+  
+  
+  
+  
+  
+  delayedWarning: function(msg, addon, warning) {
     function isShimLayer(filename) {
       return filename.indexOf("CompatWarning.jsm") != -1 ||
         filename.indexOf("RemoteAddonsParent.jsm") != -1 ||
@@ -42,25 +39,47 @@ let CompatWarning = {
     while (stack && isShimLayer(stack.filename))
       stack = stack.caller;
 
-    let error = Cc['@mozilla.org/scripterror;1'].createInstance(Ci.nsIScriptError);
-    if (!error || !Services.console) {
-      
-      return;
-    }
+    let alreadyWarned = false;
 
-    let message = `Warning: ${msg}`;
-    if (warning)
-      message += `\nMore info at: ${url}`;
+    return function() {
+      if (alreadyWarned) {
+        return;
+      }
+      alreadyWarned = true;
 
-    error.init(
-                message,
-                stack ? stack.filename : "",
-                stack ? stack.sourceLine : "",
-                stack ? stack.lineNumber : 0,
-                0,
-                Ci.nsIScriptError.warningFlag,
-                "chrome javascript");
-    Services.console.logMessage(error);
+      if (addon) {
+        let histogram = Services.telemetry.getKeyedHistogramById("ADDON_SHIM_USAGE");
+        histogram.add(addon, warning ? warning.number : 0);
+      }
+
+      if (!Preferences.get("dom.ipc.shims.enabledWarnings", false))
+        return;
+
+      let error = Cc['@mozilla.org/scripterror;1'].createInstance(Ci.nsIScriptError);
+      if (!error || !Services.console) {
+        
+        return;
+      }
+
+      let message = `Warning: ${msg}`;
+      if (warning)
+        message += `\nMore info at: ${warning.url}`;
+
+      error.init(
+                  message,
+                  stack ? stack.filename : "",
+                  stack ? stack.sourceLine : "",
+                  stack ? stack.lineNumber : 0,
+                  0,
+                  Ci.nsIScriptError.warningFlag,
+                  "chrome javascript");
+      Services.console.logMessage(error);
+    };
+  },
+
+  warn: function(msg, addon, warning) {
+    let delayed = this.delayedWarning(msg, addon, warning);
+    delayed();
   },
 
   warnings: {
