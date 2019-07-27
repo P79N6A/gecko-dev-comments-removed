@@ -29,24 +29,21 @@
 
 namespace mozilla { namespace pkix { namespace der {
 
-namespace internal {
-
 
 Result
-ExpectTagAndGetLength(Reader& input, uint8_t expectedTag, uint16_t& length)
+ReadTagAndGetValue(Reader& input,  uint8_t& tag,  Input& value)
 {
-  assert((expectedTag & 0x1F) != 0x1F); 
-
-  uint8_t tag;
   Result rv;
+
   rv = input.Read(tag);
   if (rv != Success) {
     return rv;
   }
-
-  if (tag != expectedTag) {
-    return Result::ERROR_BAD_DER;
+  if ((tag & 0x1F) == 0x1F) {
+    return Result::ERROR_BAD_DER; 
   }
+
+  uint16_t length;
 
   
   
@@ -84,11 +81,8 @@ ExpectTagAndGetLength(Reader& input, uint8_t expectedTag, uint16_t& length)
     return Result::ERROR_BAD_DER;
   }
 
-  
-  return input.EnsureLength(length);
+  return input.Skip(length, value);
 }
-
-} 
 
 static Result
 OptionalNull(Reader& input)
