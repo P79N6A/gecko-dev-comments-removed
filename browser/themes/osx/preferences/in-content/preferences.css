@@ -58,6 +58,11 @@ filefield + button {
   border-bottom: none;
 }
 
+#advancedPrefs {
+  margin-right: 0; 
+  margin-left: 0;
+}
+
 
 
 

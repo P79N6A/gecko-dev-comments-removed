@@ -202,10 +202,6 @@ description > html|a {
   -moz-margin-start: 0;
 }
 
-#advancedPrefs {
-  padding-bottom: 0; 
-}
-
 #tabsElement {
   -moz-margin-end: 4px; 
 }
