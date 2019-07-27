@@ -109,6 +109,8 @@ typedef void* nsNativeWidget;
 #define NS_NATIVE_PLUGIN_OBJECT_PTR    104
 #endif
 
+#define NS_NATIVE_PLUGIN_ID            105
+
 #define NS_IWIDGET_IID \
 { 0xa7db3e01, 0xb8fe, 0x4122, \
   { 0xbe, 0xa6, 0x45, 0x6c, 0xdd, 0x85, 0x30, 0x64 } };

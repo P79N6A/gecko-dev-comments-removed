@@ -144,12 +144,6 @@ PluginWidgetParent::RecvCreate()
   drv = mWidget->Enable(true);
   NS_ASSERTION(NS_SUCCEEDED(drv), "widget call failure");
 
-  
-  
-  
-  
-  mWidget->RegisterPluginWindowForRemoteUpdates();
-
 #if defined(MOZ_WIDGET_GTK)
   
   mWrapper->window = mWidget->GetNativeData(NS_NATIVE_PLUGIN_PORT);
@@ -163,6 +157,12 @@ PluginWidgetParent::RecvCreate()
                kPluginWidgetParentProperty, this);
   NS_ASSERTION(winres, "SetPropW call failure");
 #endif
+
+  
+  
+  
+  
+  mWidget->RegisterPluginWindowForRemoteUpdates();
 
   return true;
 }

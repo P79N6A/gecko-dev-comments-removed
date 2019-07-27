@@ -433,6 +433,9 @@ private:
 #endif
 
     
+    void ResizePluginSocketWidget();
+
+    
     nsPluginNativeWindowGtk* mPluginNativeWindow;
 
     
