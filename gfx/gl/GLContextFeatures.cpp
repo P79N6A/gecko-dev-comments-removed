@@ -260,6 +260,14 @@ static const FeatureInfo sFeatureInfoArr[] = {
 
     },
     {
+        "integer_vertex_attribs",
+        300, 
+        300, 
+        {
+            GLContext::Extensions_End
+        }
+    },
+    {
         "map_buffer_range",
         300, 
         300, 
