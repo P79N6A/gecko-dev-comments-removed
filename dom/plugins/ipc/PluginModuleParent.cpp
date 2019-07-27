@@ -618,6 +618,7 @@ PluginModuleParent::PluginModuleParent(bool aIsChrome)
     , mIsFlashPlugin(false)
     , mIsStartingAsync(false)
     , mNPInitialized(false)
+    , mIsNPShutdownPending(false)
     , mAsyncNewRv(NS_ERROR_NOT_INITIALIZED)
 {
 #if defined(XP_WIN) || defined(XP_MACOSX) || defined(MOZ_WIDGET_GTK)
@@ -2275,6 +2276,13 @@ PluginModuleChromeParent::RecvNP_InitializeResult(const NPError& aError)
 void
 PluginModuleParent::InitAsyncSurrogates()
 {
+    if (MaybeRunDeferredShutdown()) {
+        
+        
+        mSurrogateInstances.Clear();
+        return;
+    }
+
     uint32_t len = mSurrogateInstances.Length();
     for (uint32_t i = 0; i < len; ++i) {
         NPError err;
@@ -2294,6 +2302,21 @@ PluginModuleParent::RemovePendingSurrogate(
     return mSurrogateInstances.RemoveElement(aSurrogate);
 }
 
+bool
+PluginModuleParent::MaybeRunDeferredShutdown()
+{
+    if (!mIsStartingAsync || !mIsNPShutdownPending) {
+        return false;
+    }
+    MOZ_ASSERT(!mShutdown);
+    NPError error;
+    if (!DoShutdown(&error)) {
+        return false;
+    }
+    mIsNPShutdownPending = false;
+    return true;
+}
+
 nsresult
 PluginModuleParent::NP_Shutdown(NPError* error)
 {
@@ -2304,6 +2327,24 @@ PluginModuleParent::NP_Shutdown(NPError* error)
         return NS_ERROR_FAILURE;
     }
 
+    
+
+    if (mIsStartingAsync && !mNPInitialized) {
+        mIsNPShutdownPending = true;
+        *error = NPERR_NO_ERROR;
+        return NS_OK;
+    }
+
+    if (!DoShutdown(error)) {
+        return NS_ERROR_FAILURE;
+    }
+
+    return NS_OK;
+}
+
+bool
+PluginModuleParent::DoShutdown(NPError* error)
+{
     bool ok = true;
     if (IsChrome()) {
         ok = CallNP_Shutdown(error);
@@ -2315,7 +2356,11 @@ PluginModuleParent::NP_Shutdown(NPError* error)
     
     Close();
 
-    return ok ? NS_OK : NS_ERROR_FAILURE;
+    mShutdown = ok;
+    if (!ok) {
+        *error = NPERR_GENERIC_ERROR;
+    }
+    return ok;
 }
 
 nsresult
