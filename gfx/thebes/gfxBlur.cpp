@@ -14,6 +14,7 @@
 #include "mozilla/UniquePtr.h"
 #include "nsExpirationTracker.h"
 #include "nsClassHashtable.h"
+#include "gfxUtils.h"
 
 using namespace mozilla;
 using namespace mozilla::gfx;
@@ -361,6 +362,168 @@ gfxAlphaBoxBlur::ShutdownBlurCache()
   gBlurCache = nullptr;
 }
 
+static IntSize
+ComputeMinimalSizeForShadowShape(RectCornerRadii* aCornerRadii,
+                                 gfxIntSize aBlurRadius,
+                                 IntMargin& aSlice)
+{
+  float cornerWidth = 0;
+  float cornerHeight = 0;
+  if (aCornerRadii) {
+    RectCornerRadii corners = *aCornerRadii;
+    for (size_t i = 0; i < 4; i++) {
+      cornerWidth = std::max(cornerWidth, corners[i].width);
+      cornerHeight = std::max(cornerHeight, corners[i].height);
+    }
+  }
+
+  aSlice = IntMargin(ceil(cornerHeight) + aBlurRadius.height,
+                     ceil(cornerWidth) + aBlurRadius.width,
+                     ceil(cornerHeight) + aBlurRadius.height,
+                     ceil(cornerWidth) + aBlurRadius.width);
+
+  
+  return IntSize(aSlice.LeftRight() + 1,
+                 aSlice.TopBottom() + 1);
+}
+
+
+static TemporaryRef<SourceSurface>
+CreateBlurMask(const IntSize& aRectSize,
+               RectCornerRadii* aCornerRadii,
+               gfxIntSize aBlurRadius,
+               IntMargin& aExtendDestBy,
+               IntMargin& aSliceBorder,
+               DrawTarget& aDestDrawTarget)
+{
+  IntMargin slice;
+  IntSize minimalSize =
+    ComputeMinimalSizeForShadowShape(aCornerRadii, aBlurRadius, slice);
+
+  
+  
+  
+  
+  
+  
+  if (aRectSize.width < minimalSize.width) {
+    minimalSize.width = aRectSize.width;
+    slice.left = 0;
+    slice.right = 0;
+  }
+  if (aRectSize.height < minimalSize.height) {
+    minimalSize.height = aRectSize.height;
+    slice.top = 0;
+    slice.bottom = 0;
+  }
+
+  MOZ_ASSERT(slice.LeftRight() <= minimalSize.width);
+  MOZ_ASSERT(slice.TopBottom() <= minimalSize.height);
+
+  IntRect minimalRect(IntPoint(), minimalSize);
+
+  gfxAlphaBoxBlur blur;
+  gfxContext* blurCtx = blur.Init(ThebesRect(Rect(minimalRect)), gfxIntSize(),
+                                  aBlurRadius, nullptr, nullptr);
+  if (!blurCtx) {
+    return nullptr;
+  }
+
+  DrawTarget* blurDT = blurCtx->GetDrawTarget();
+  ColorPattern black(Color(0.f, 0.f, 0.f, 1.f));
+
+  if (aCornerRadii) {
+    RefPtr<Path> roundedRect =
+      MakePathForRoundedRect(*blurDT, Rect(minimalRect), *aCornerRadii);
+    blurDT->Fill(roundedRect, black);
+  } else {
+    blurDT->FillRect(Rect(minimalRect), black);
+  }
+
+  IntPoint topLeft;
+  RefPtr<SourceSurface> result = blur.DoBlur(&aDestDrawTarget, &topLeft);
+
+  IntRect expandedMinimalRect(topLeft, result->GetSize());
+  aExtendDestBy = expandedMinimalRect - minimalRect;
+  aSliceBorder = slice + aExtendDestBy;
+
+  MOZ_ASSERT(aSliceBorder.LeftRight() <= expandedMinimalRect.width);
+  MOZ_ASSERT(aSliceBorder.TopBottom() <= expandedMinimalRect.height);
+
+  return result.forget();
+}
+
+static TemporaryRef<SourceSurface>
+CreateBoxShadow(DrawTarget& aDT, SourceSurface* aBlurMask, const gfxRGBA& aShadowColor)
+{
+  IntSize blurredSize = aBlurMask->GetSize();
+  gfxPlatform* platform = gfxPlatform::GetPlatform();
+  RefPtr<DrawTarget> boxShadowDT =
+    platform->CreateOffscreenContentDrawTarget(blurredSize, SurfaceFormat::B8G8R8A8);
+  MOZ_ASSERT(boxShadowDT->GetType() == aDT.GetType());
+
+  ColorPattern shadowColor(ToDeviceColor(aShadowColor));
+  boxShadowDT->MaskSurface(shadowColor, aBlurMask, Point(0, 0));
+  return boxShadowDT->Snapshot();
+}
+
+static Rect
+RectWithEdgesTRBL(Float aTop, Float aRight, Float aBottom, Float aLeft)
+{
+  return Rect(aLeft, aTop, aRight - aLeft, aBottom - aTop);
+}
+
+static void
+RepeatOrStretchSurface(DrawTarget& aDT, SourceSurface* aSurface,
+                       const Rect& aDest, const Rect& aSrc, Rect& aSkipRect)
+{
+  if (aSkipRect.Contains(aDest)) {
+    return;
+  }
+
+  if ((!aDT.GetTransform().IsRectilinear() &&
+      aDT.GetBackendType() != BackendType::CAIRO) ||
+      (aDT.GetBackendType() == BackendType::DIRECT2D)) {
+    
+    
+    
+    
+    
+    
+    
+    aDT.DrawSurface(aSurface, aDest, aSrc);
+    return;
+  }
+
+  SurfacePattern pattern(aSurface, ExtendMode::REPEAT,
+                         Matrix::Translation(aDest.TopLeft() - aSrc.TopLeft()),
+                         Filter::GOOD, RoundedToInt(aSrc));
+  aDT.FillRect(aDest, pattern);
+}
+
+static void
+DrawCorner(DrawTarget& aDT, SourceSurface* aSurface,
+           const Rect& aDest, const Rect& aSrc, Rect& aSkipRect)
+{
+  if (aSkipRect.Contains(aDest)) {
+    return;
+  }
+
+  aDT.DrawSurface(aSurface, aDest, aSrc);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
  void
 gfxAlphaBoxBlur::BlurRectangle(gfxContext *aDestinationCtx,
                                const gfxRect& aRect,
@@ -370,43 +533,123 @@ gfxAlphaBoxBlur::BlurRectangle(gfxContext *aDestinationCtx,
                                const gfxRect& aDirtyRect,
                                const gfxRect& aSkipRect)
 {
-  DrawTarget& aDrawTarget = *aDestinationCtx->GetDrawTarget();
-
+  DrawTarget& destDrawTarget = *aDestinationCtx->GetDrawTarget();
   IntSize blurRadius = CalculateBlurRadius(aBlurStdDev);
 
-  IntPoint topLeft;
-  RefPtr<SourceSurface> surface = GetCachedBlur(&aDrawTarget, aRect, blurRadius, aSkipRect, aDirtyRect, &topLeft);
-  if (!surface) {
-    
-    gfxAlphaBoxBlur blur;
-    gfxContext* blurCtx = blur.Init(aRect, IntSize(), blurRadius, &aDirtyRect, &aSkipRect);
-    if (!blurCtx) {
-      return;
-    }
-    DrawTarget* blurDT = blurCtx->GetDrawTarget();
-
-    Rect shadowGfxRect = ToRect(aRect);
-    shadowGfxRect.Round();
-
-    ColorPattern black(Color(0.f, 0.f, 0.f, 1.f)); 
-    if (aCornerRadii) {
-      RefPtr<Path> roundedRect = MakePathForRoundedRect(*blurDT,
-                                                        shadowGfxRect,
-                                                        *aCornerRadii);
-      blurDT->Fill(roundedRect, black);
-    } else {
-      blurDT->FillRect(shadowGfxRect, black);
-    }
-
-    surface = blur.DoBlur(&aDrawTarget, &topLeft);
-    if (!surface) {
-      return;
-    }
-    CacheBlur(&aDrawTarget, aRect, blurRadius, aSkipRect, surface, topLeft, aDirtyRect);
+  IntRect rect = RoundedToInt(ToRect(aRect));
+  IntMargin extendDestBy;
+  IntMargin slice;
+  RefPtr<SourceSurface> blurMask =
+    CreateBlurMask(rect.Size(), aCornerRadii, blurRadius, extendDestBy, slice,
+                   destDrawTarget);
+  if (!blurMask) {
+    return;
   }
 
-  aDestinationCtx->SetColor(aShadowColor);
-  Rect dirtyRect(aDirtyRect.x, aDirtyRect.y, aDirtyRect.width, aDirtyRect.height);
-  DrawBlur(aDestinationCtx, surface, topLeft, &dirtyRect);
+  RefPtr<SourceSurface> boxShadow = CreateBoxShadow(destDrawTarget, blurMask, aShadowColor);
+
+  destDrawTarget.PushClipRect(ToRect(aDirtyRect));
+
+  
+  
+
+  Rect srcOuter(Point(), Size(boxShadow->GetSize()));
+  Rect srcInner = srcOuter;
+  srcInner.Deflate(Margin(slice));
+
+  rect.Inflate(extendDestBy);
+  Rect dstOuter(rect);
+  Rect dstInner(rect);
+  dstInner.Deflate(Margin(slice));
+
+  Rect skipRect = ToRect(aSkipRect);
+
+  if (srcInner.IsEqualInterior(srcOuter)) {
+    MOZ_ASSERT(dstInner.IsEqualInterior(dstOuter));
+    
+    destDrawTarget.DrawSurface(boxShadow, dstInner, srcInner);
+  } else {
+    
+    DrawCorner(destDrawTarget, boxShadow,
+               RectWithEdgesTRBL(dstOuter.Y(), dstInner.X(),
+                                 dstInner.Y(), dstOuter.X()),
+               RectWithEdgesTRBL(srcOuter.Y(), srcInner.X(),
+                                 srcInner.Y(), srcOuter.X()),
+               skipRect);
+
+    DrawCorner(destDrawTarget, boxShadow,
+               RectWithEdgesTRBL(dstOuter.Y(), dstOuter.XMost(),
+                                 dstInner.Y(), dstInner.XMost()),
+               RectWithEdgesTRBL(srcOuter.Y(), srcOuter.XMost(),
+                                 srcInner.Y(), srcInner.XMost()),
+               skipRect);
+
+    DrawCorner(destDrawTarget, boxShadow,
+               RectWithEdgesTRBL(dstInner.YMost(), dstInner.X(),
+                                 dstOuter.YMost(), dstOuter.X()),
+               RectWithEdgesTRBL(srcInner.YMost(), srcInner.X(),
+                                 srcOuter.YMost(), srcOuter.X()),
+               skipRect);
+
+    DrawCorner(destDrawTarget, boxShadow,
+               RectWithEdgesTRBL(dstInner.YMost(), dstOuter.XMost(),
+                                 dstOuter.YMost(), dstInner.XMost()),
+               RectWithEdgesTRBL(srcInner.YMost(), srcOuter.XMost(),
+                                 srcOuter.YMost(), srcInner.XMost()),
+               skipRect);
+
+    
+    RepeatOrStretchSurface(destDrawTarget, boxShadow,
+                           RectWithEdgesTRBL(dstOuter.Y(), dstInner.XMost(),
+                                             dstInner.Y(), dstInner.X()),
+                           RectWithEdgesTRBL(srcOuter.Y(), srcInner.XMost(),
+                                             srcInner.Y(), srcInner.X()),
+                           skipRect);
+    RepeatOrStretchSurface(destDrawTarget, boxShadow,
+                           RectWithEdgesTRBL(dstInner.Y(), dstInner.X(),
+                                             dstInner.YMost(), dstOuter.X()),
+                           RectWithEdgesTRBL(srcInner.Y(), srcInner.X(),
+                                             srcInner.YMost(), srcOuter.X()),
+                           skipRect);
+    RepeatOrStretchSurface(destDrawTarget, boxShadow,
+                           RectWithEdgesTRBL(dstInner.Y(), dstOuter.XMost(),
+                                             dstInner.YMost(), dstInner.XMost()),
+                           RectWithEdgesTRBL(srcInner.Y(), srcOuter.XMost(),
+                                             srcInner.YMost(), srcInner.XMost()),
+                           skipRect);
+    RepeatOrStretchSurface(destDrawTarget, boxShadow,
+                           RectWithEdgesTRBL(dstInner.YMost(), dstInner.XMost(),
+                                             dstOuter.YMost(), dstInner.X()),
+                           RectWithEdgesTRBL(srcInner.YMost(), srcInner.XMost(),
+                                             srcOuter.YMost(), srcInner.X()),
+                           skipRect);
+
+    
+    RepeatOrStretchSurface(destDrawTarget, boxShadow,
+                           RectWithEdgesTRBL(dstInner.Y(), dstInner.XMost(),
+                                             dstInner.YMost(), dstInner.X()),
+                           RectWithEdgesTRBL(srcInner.Y(), srcInner.XMost(),
+                                             srcInner.YMost(), srcInner.X()),
+                           skipRect);
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  destDrawTarget.PopClip();
 }
 
