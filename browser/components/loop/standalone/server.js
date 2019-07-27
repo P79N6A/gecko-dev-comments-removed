@@ -83,6 +83,8 @@ app.use("/test", express.static(__dirname + "/../test"));
 
 
 function serveIndex(req, res) {
+  "use strict";
+
   return res.sendfile(__dirname + "/content/index.html");
 }
 

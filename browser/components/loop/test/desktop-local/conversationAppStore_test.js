@@ -2,6 +2,7 @@
 
 
 describe("loop.store.ConversationAppStore", function () {
+  "use strict";
 
   var expect = chai.expect;
   var sharedActions = loop.shared.actions;

@@ -12,105 +12,9 @@
 
 window.queuedFrames = [];
 
+(function() {
+  "use strict";
 
-
-
-
-
-
-
-
-
-
-
-window.Frame = React.createClass({
-  propTypes: {
-    children: React.PropTypes.oneOfType([
-      React.PropTypes.element,
-      React.PropTypes.arrayOf(React.PropTypes.element)
-    ]).isRequired,
-    className: React.PropTypes.string,
-    
-
-
-
-
-    cssClass: React.PropTypes.string,
-    head: React.PropTypes.node,
-    height: React.PropTypes.number,
-    onContentsRendered: React.PropTypes.func,
-    style: React.PropTypes.object,
-    width: React.PropTypes.number
-  },
-  render: function() {
-    return React.createElement("iframe", {
-      style: this.props.style,
-      head: this.props.head,
-      width: this.props.width,
-      height: this.props.height,
-      className: this.props.className
-    });
-  },
-  componentDidMount: function() {
-    this.renderFrameContents();
-  },
-  renderFrameContents: function() {
-    function isStyleSheet(node) {
-      return node.tagName.toLowerCase() === "link" &&
-        node.getAttribute("rel") === "stylesheet";
-    }
-
-    var childDoc = this.getDOMNode().contentDocument;
-    if (childDoc && childDoc.readyState === "complete") {
-      
-      window.queuedFrames.splice(window.queuedFrames.indexOf(this), 1);
-
-      var iframeHead = childDoc.querySelector("head");
-      var parentHeadChildren = document.querySelector("head").children;
-
-      [].forEach.call(parentHeadChildren, function(parentHeadNode) {
-
-        
-        if (isStyleSheet(parentHeadNode)) {
-          
-          
-          
-          
-          
-          
-          if (parentHeadNode.hasAttribute("class") &&
-              parentHeadNode.getAttribute("class") !== this.props.cssClass) {
-            return;
-          }
-        }
-
-        iframeHead.appendChild(parentHeadNode.cloneNode(true));
-      }.bind(this));
-
-      var contents = React.createElement("div",
-        undefined,
-        this.props.head,
-        this.props.children
-      );
-
-      React.render(contents, childDoc.body, this.fireOnContentsRendered);
-
-      
-      
-      
-      if (document.location.search === "?rtl=1") {
-        childDoc.documentElement.setAttribute("lang", "ar");
-        childDoc.documentElement.setAttribute("dir", "rtl");
-      }
-    } else {
-      
-      
-      if (window.queuedFrames.indexOf(this) === -1) {
-        window.queuedFrames.push(this);
-      }
-      setTimeout(this.renderFrameContents, 0);
-    }
-  },
   
 
 
@@ -122,49 +26,149 @@ window.Frame = React.createClass({
 
 
 
+  window.Frame = React.createClass({
+    propTypes: {
+      children: React.PropTypes.oneOfType([
+        React.PropTypes.element,
+        React.PropTypes.arrayOf(React.PropTypes.element)
+      ]).isRequired,
+      className: React.PropTypes.string,
+      
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-  fireOnContentsRendered: function() {
-    if (!this.props.onContentsRendered) {
-      return;
-    }
-
-    var contentWindow;
-    try {
-      contentWindow = this.getDOMNode().contentWindow;
-      if (!contentWindow) {
-        throw new Error("no content window returned");
+      cssClass: React.PropTypes.string,
+      head: React.PropTypes.node,
+      height: React.PropTypes.number,
+      onContentsRendered: React.PropTypes.func,
+      style: React.PropTypes.object,
+      width: React.PropTypes.number
+    },
+    render: function() {
+      return React.createElement("iframe", {
+        style: this.props.style,
+        head: this.props.head,
+        width: this.props.width,
+        height: this.props.height,
+        className: this.props.className
+      });
+    },
+    componentDidMount: function() {
+      this.renderFrameContents();
+    },
+    renderFrameContents: function() {
+      function isStyleSheet(node) {
+        return node.tagName.toLowerCase() === "link" &&
+          node.getAttribute("rel") === "stylesheet";
       }
 
-    } catch (ex) {
-      console.error("exception getting content window", ex);
-    }
+      var childDoc = this.getDOMNode().contentDocument;
+      if (childDoc && childDoc.readyState === "complete") {
+        
+        window.queuedFrames.splice(window.queuedFrames.indexOf(this), 1);
 
+        var iframeHead = childDoc.querySelector("head");
+        var parentHeadChildren = document.querySelector("head").children;
+
+        [].forEach.call(parentHeadChildren, function(parentHeadNode) {
+
+          
+          if (isStyleSheet(parentHeadNode)) {
+            
+            
+            
+            
+            
+            
+            if (parentHeadNode.hasAttribute("class") &&
+                parentHeadNode.getAttribute("class") !== this.props.cssClass) {
+              return;
+            }
+          }
+
+          iframeHead.appendChild(parentHeadNode.cloneNode(true));
+        }.bind(this));
+
+        var contents = React.createElement("div",
+          undefined,
+          this.props.head,
+          this.props.children
+        );
+
+        React.render(contents, childDoc.body, this.fireOnContentsRendered);
+
+        
+        
+        
+        if (document.location.search === "?rtl=1") {
+          childDoc.documentElement.setAttribute("lang", "ar");
+          childDoc.documentElement.setAttribute("dir", "rtl");
+        }
+      } else {
+        
+        
+        if (window.queuedFrames.indexOf(this) === -1) {
+          window.queuedFrames.push(this);
+        }
+        setTimeout(this.renderFrameContents, 0);
+      }
+    },
     
-    
-    
-    setTimeout(this.props.onContentsRendered.bind(undefined, contentWindow),
-               3000);
-  },
-  componentDidUpdate: function() {
-    this.renderFrameContents();
-  },
-  componentWillUnmount: function() {
-    React.unmountComponentAtNode(React.findDOMNode(this).contentDocument.body);
-  }
-});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    fireOnContentsRendered: function() {
+      if (!this.props.onContentsRendered) {
+        return;
+      }
+
+      var contentWindow;
+      try {
+        contentWindow = this.getDOMNode().contentWindow;
+        if (!contentWindow) {
+          throw new Error("no content window returned");
+        }
+
+      } catch (ex) {
+        console.error("exception getting content window", ex);
+      }
+
+      
+      
+      
+      setTimeout(this.props.onContentsRendered.bind(undefined, contentWindow),
+                 3000);
+    },
+    componentDidUpdate: function() {
+      this.renderFrameContents();
+    },
+    componentWillUnmount: function() {
+      React.unmountComponentAtNode(React.findDOMNode(this).contentDocument.body);
+    }
+  });
+})();

@@ -10,6 +10,8 @@ loop.store = loop.store || {};
 
 
 loop.store.ConversationAppStore = (function() {
+  "use strict";
+
   
 
 

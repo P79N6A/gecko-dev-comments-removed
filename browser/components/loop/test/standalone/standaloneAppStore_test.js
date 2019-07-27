@@ -2,6 +2,8 @@
 
 
 describe("loop.store.StandaloneAppStore", function () {
+  "use strict";
+
   var expect = chai.expect;
   var sharedActions = loop.shared.actions;
   var sharedUtils = loop.shared.utils;
