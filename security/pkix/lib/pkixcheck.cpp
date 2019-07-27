@@ -404,56 +404,49 @@ CheckBasicConstraints(EndEntityOrCA endEntityOrCA,
   return Success;
 }
 
-Result
-BackCert::GetConstrainedNames( const CERTGeneralName** result)
-{
-  if (!constrainedNames) {
-    if (!GetArena()) {
-      return FatalError;
-    }
-
-    constrainedNames =
-      CERT_GetConstrainedCertificateNames(GetNSSCert(), arena.get(),
-                                          includeCN == IncludeCN::Yes);
-    if (!constrainedNames) {
-      return MapSECStatus(SECFailure);
-    }
-  }
-
-  *result = constrainedNames;
-  return Success;
-}
-
 
 Result
-CheckNameConstraints(BackCert& cert)
+CheckNameConstraints(const BackCert& cert)
 {
   if (!cert.encodedNameConstraints) {
     return Success;
   }
 
-  PLArenaPool* arena = cert.GetArena();
+  ScopedPLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
   if (!arena) {
-    return FatalError;
+    return MapSECStatus(SECFailure);
   }
 
   
   const CERTNameConstraints* constraints =
-    CERT_DecodeNameConstraintsExtension(arena, cert.encodedNameConstraints);
+    CERT_DecodeNameConstraintsExtension(arena.get(), cert.encodedNameConstraints);
   if (!constraints) {
     return MapSECStatus(SECFailure);
   }
 
-  for (BackCert* prev = cert.childCert; prev; prev = prev->childCert) {
-    const CERTGeneralName* names = nullptr;
-    Result rv = prev->GetConstrainedNames(&names);
-    if (rv != Success) {
-      return rv;
+  for (const BackCert* child = cert.childCert; child;
+       child = child->childCert) {
+    ScopedCERTCertificate
+      nssCert(CERT_NewTempCertificate(CERT_GetDefaultCertDB(),
+                                      const_cast<SECItem*>(&child->GetDER()),
+                                      nullptr, false, true));
+    if (!nssCert) {
+      return MapSECStatus(SECFailure);
     }
-    PORT_Assert(names);
+
+    bool includeCN = child->includeCN == BackCert::IncludeCN::Yes;
+    
+    const CERTGeneralName*
+      names(CERT_GetConstrainedCertificateNames(nssCert.get(), arena.get(),
+                                                includeCN));
+    if (!names) {
+      return MapSECStatus(SECFailure);
+    }
+
     CERTGeneralName* currentName = const_cast<CERTGeneralName*>(names);
     do {
-      if (CERT_CheckNameSpace(arena, constraints, currentName) != SECSuccess) {
+      if (CERT_CheckNameSpace(arena.get(), constraints, currentName)
+            != SECSuccess) {
         
         
         
