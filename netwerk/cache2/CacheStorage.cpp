@@ -69,6 +69,11 @@ NS_IMETHODIMP CacheStorage::AsyncOpenURI(nsIURI *aURI,
   if (LookupAppCache()) {
     rv = ChooseApplicationCache(noRefURI, getter_AddRefs(appCache));
     NS_ENSURE_SUCCESS(rv, rv);
+
+    if (appCache) {
+      
+      aFlags &= ~nsICacheStorage::OPEN_TRUNCATE;
+    }
   }
 
   if (appCache) {
