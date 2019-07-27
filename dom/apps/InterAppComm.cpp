@@ -13,11 +13,11 @@ using namespace mozilla::dom;
 
  bool
 InterAppComm::EnabledForScope(JSContext* ,
-			      JS::Handle<JSObject*> )
+                              JS::Handle<JSObject*> )
 {
   
   if (!Preferences::GetBool("dom.inter-app-communication-api.enabled", false)) {
-  	return false;
+    return false;
   }
 
   
