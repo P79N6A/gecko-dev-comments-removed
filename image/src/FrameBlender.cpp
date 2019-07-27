@@ -258,8 +258,10 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
     } else {
       if ((prevFrameRect.x >= nextFrameRect.x) &&
           (prevFrameRect.y >= nextFrameRect.y) &&
-          (prevFrameRect.x + prevFrameRect.width <= nextFrameRect.x + nextFrameRect.width) &&
-          (prevFrameRect.y + prevFrameRect.height <= nextFrameRect.y + nextFrameRect.height)) {
+          (prevFrameRect.x + prevFrameRect.width <=
+              nextFrameRect.x + nextFrameRect.width) &&
+          (prevFrameRect.y + prevFrameRect.height <=
+              nextFrameRect.y + nextFrameRect.height)) {
         
         
         doDisposal = false;
@@ -299,8 +301,10 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
                          mAnim->compositingFrame->GetRect());
 
           
-          if (nextFrameDisposalMethod != FrameBlender::kDisposeRestorePrevious)
+          if (nextFrameDisposalMethod !=
+              FrameBlender::kDisposeRestorePrevious) {
             mAnim->compositingPrevFrame.reset();
+          }
         } else {
           ClearFrame(mAnim->compositingFrame->GetRawData(),
                      mAnim->compositingFrame->GetRect());
@@ -308,6 +312,7 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
         break;
 
       default:
+        
         
         
         
@@ -400,15 +405,17 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
 void
 FrameBlender::ClearFrame(uint8_t* aFrameData, const nsIntRect& aFrameRect)
 {
-  if (!aFrameData)
+  if (!aFrameData) {
     return;
+  }
 
   memset(aFrameData, 0, aFrameRect.width * aFrameRect.height * 4);
 }
 
 
 void
-FrameBlender::ClearFrame(uint8_t* aFrameData, const nsIntRect& aFrameRect, const nsIntRect& aRectToClear)
+FrameBlender::ClearFrame(uint8_t* aFrameData, const nsIntRect& aFrameRect,
+                         const nsIntRect& aRectToClear)
 {
   if (!aFrameData || aFrameRect.width <= 0 || aFrameRect.height <= 0 ||
       aRectToClear.width <= 0 || aRectToClear.height <= 0) {
@@ -422,7 +429,8 @@ FrameBlender::ClearFrame(uint8_t* aFrameData, const nsIntRect& aFrameRect, const
 
   uint32_t bytesPerRow = aFrameRect.width * 4;
   for (int row = toClear.y; row < toClear.y + toClear.height; ++row) {
-    memset(aFrameData + toClear.x * 4 + row * bytesPerRow, 0, toClear.width * 4);
+    memset(aFrameData + toClear.x * 4 + row * bytesPerRow, 0,
+           toClear.width * 4);
   }
 }
 
@@ -430,8 +438,8 @@ FrameBlender::ClearFrame(uint8_t* aFrameData, const nsIntRect& aFrameRect, const
 
 
 bool
-FrameBlender::CopyFrameImage(const uint8_t *aDataSrc, const nsIntRect& aRectSrc,
-                             uint8_t *aDataDest, const nsIntRect& aRectDest)
+FrameBlender::CopyFrameImage(const uint8_t* aDataSrc, const nsIntRect& aRectSrc,
+                             uint8_t* aDataDest, const nsIntRect& aRectDest)
 {
   uint32_t dataLengthSrc = aRectSrc.width * aRectSrc.height * 4;
   uint32_t dataLengthDest = aRectDest.width * aRectDest.height * 4;
@@ -446,9 +454,9 @@ FrameBlender::CopyFrameImage(const uint8_t *aDataSrc, const nsIntRect& aRectSrc,
 }
 
 nsresult
-FrameBlender::DrawFrameTo(const uint8_t *aSrcData, const nsIntRect& aSrcRect,
+FrameBlender::DrawFrameTo(const uint8_t* aSrcData, const nsIntRect& aSrcRect,
                           uint32_t aSrcPaletteLength, bool aSrcHasAlpha,
-                          uint8_t *aDstPixels, const nsIntRect& aDstRect,
+                          uint8_t* aDstPixels, const nsIntRect& aDstRect,
                           FrameBlender::FrameBlendMethod aBlendMethod)
 {
   NS_ENSURE_ARG_POINTER(aSrcData);
@@ -480,9 +488,9 @@ FrameBlender::DrawFrameTo(const uint8_t *aSrcData, const nsIntRect& aSrcRect,
                  "FrameBlender::DrawFrameTo: source must be smaller than dest");
 
     
-    const uint8_t *srcPixels = aSrcData + aSrcPaletteLength;
-    uint32_t *dstPixels = reinterpret_cast<uint32_t*>(aDstPixels);
-    const uint32_t *colormap = reinterpret_cast<const uint32_t*>(aSrcData);
+    const uint8_t* srcPixels = aSrcData + aSrcPaletteLength;
+    uint32_t* dstPixels = reinterpret_cast<uint32_t*>(aDstPixels);
+    const uint32_t* colormap = reinterpret_cast<const uint32_t*>(aSrcData);
 
     
     dstPixels += aSrcRect.x + (aSrcRect.y * aDstRect.width);
@@ -499,8 +507,9 @@ FrameBlender::DrawFrameTo(const uint8_t *aSrcData, const nsIntRect& aSrcRect,
       for (int32_t r = height; r > 0; --r) {
         for (int32_t c = 0; c < width; c++) {
           const uint32_t color = colormap[srcPixels[c]];
-          if (color)
+          if (color) {
             dstPixels[c] = color;
+          }
         }
         
         srcPixels += aSrcRect.width;
@@ -508,18 +517,22 @@ FrameBlender::DrawFrameTo(const uint8_t *aSrcData, const nsIntRect& aSrcRect,
       }
     }
   } else {
-    pixman_image_t* src = pixman_image_create_bits(aSrcHasAlpha ? PIXMAN_a8r8g8b8 : PIXMAN_x8r8g8b8,
-                                                   aSrcRect.width,
-                                                   aSrcRect.height,
-                                                   reinterpret_cast<uint32_t*>(const_cast<uint8_t*>(aSrcData)),
-                                                   aSrcRect.width * 4);
-    pixman_image_t* dst = pixman_image_create_bits(PIXMAN_a8r8g8b8,
-                                                   aDstRect.width,
-                                                   aDstRect.height,
-                                                   reinterpret_cast<uint32_t*>(aDstPixels),
-                                                   aDstRect.width * 4);
+    pixman_image_t* src =
+      pixman_image_create_bits(
+          aSrcHasAlpha ? PIXMAN_a8r8g8b8 : PIXMAN_x8r8g8b8,
+          aSrcRect.width, aSrcRect.height,
+          reinterpret_cast<uint32_t*>(const_cast<uint8_t*>(aSrcData)),
+          aSrcRect.width * 4);
+    pixman_image_t* dst =
+      pixman_image_create_bits(PIXMAN_a8r8g8b8,
+                               aDstRect.width,
+                               aDstRect.height,
+                               reinterpret_cast<uint32_t*>(aDstPixels),
+                               aDstRect.width * 4);
 
-    pixman_image_composite32(aBlendMethod == FrameBlender::kBlendSource ? PIXMAN_OP_SRC : PIXMAN_OP_OVER,
+    auto op = aBlendMethod == FrameBlender::kBlendSource ? PIXMAN_OP_SRC
+                                                         : PIXMAN_OP_OVER;
+    pixman_image_composite32(op,
                              src,
                              nullptr,
                              dst,
