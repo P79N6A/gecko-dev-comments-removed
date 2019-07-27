@@ -738,7 +738,7 @@ nsCSSRendering::PaintBorderWithStyleBorder(nsPresContext* aPresContext,
   ctx->Restore();
 #endif
 
-  nsCSSBorderRenderer br(ctx,
+  nsCSSBorderRenderer br(ctx->GetDrawTarget(),
                          joinedBorderAreaPx,
                          borderStyles,
                          borderWidths,
@@ -873,9 +873,7 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
   
   gfxContext *ctx = aRenderingContext.ThebesContext();
 
-  ctx->Save();
-
-  nsCSSBorderRenderer br(ctx,
+  nsCSSBorderRenderer br(ctx->GetDrawTarget(),
                          oRect,
                          outlineStyles,
                          outlineWidths,
@@ -884,8 +882,6 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
                          nullptr,
                          bgColor);
   br.DrawBorders();
-
-  ctx->Restore();
 
   PrintAsStringNewline();
 }
@@ -919,15 +915,13 @@ nsCSSRendering::PaintFocus(nsPresContext* aPresContext,
 
   gfxContext *ctx = aRenderingContext.ThebesContext();
 
-  ctx->Save();
-
   
   
   
   
   
   
-  nsCSSBorderRenderer br(ctx,
+  nsCSSBorderRenderer br(ctx->GetDrawTarget(),
                          focusRect,
                          focusStyles,
                          focusWidths,
@@ -936,8 +930,6 @@ nsCSSRendering::PaintFocus(nsPresContext* aPresContext,
                          nullptr,
                          NS_RGB(255, 0, 0));
   br.DrawBorders();
-
-  ctx->Restore();
 
   PrintAsStringNewline();
 }
