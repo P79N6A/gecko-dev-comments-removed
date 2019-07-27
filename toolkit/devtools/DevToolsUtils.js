@@ -6,7 +6,7 @@
 
 
 
-var { Ci, Cu } = require("chrome");
+var { Ci, Cu, Cc, components } = require("chrome");
 var Services = require("Services");
 var promise = require("promise");
 var { setTimeout } = require("Timer");
@@ -407,3 +407,146 @@ exports.defineLazyModuleGetter = function defineLazyModuleGetter(aObject, aName,
     return temp[aSymbol || aName];
   });
 };
+
+exports.defineLazyGetter(this, "NetUtil", () => {
+  return Cu.import("resource://gre/modules/NetUtil.jsm", {}).NetUtil;
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exports.fetch = function fetch(aURL, aOptions={ loadFromCache: true }) {
+  let deferred = promise.defer();
+  let scheme;
+  let url = aURL.split(" -> ").pop();
+  let charset;
+  let contentType;
+
+  try {
+    scheme = Services.io.extractScheme(url);
+  } catch (e) {
+    
+    
+    
+    url = "file://" + url;
+    scheme = Services.io.extractScheme(url);
+  }
+
+  dump('scheme: ' + scheme);
+
+  switch (scheme) {
+    case "file":
+    case "chrome":
+    case "resource":
+      try {
+        NetUtil.asyncFetch(url, function onFetch(aStream, aStatus, aRequest) {
+          if (!components.isSuccessCode(aStatus)) {
+            deferred.reject(new Error("Request failed with status code = "
+                                      + aStatus
+                                      + " after NetUtil.asyncFetch for url = "
+                                      + url));
+            return;
+          }
+
+          let source = NetUtil.readInputStreamToString(aStream, aStream.available());
+          contentType = aRequest.contentType;
+          deferred.resolve(source);
+          aStream.close();
+        });
+      } catch (ex) {
+        deferred.reject(ex);
+      }
+      break;
+
+    default:
+    let channel;
+      try {
+        channel = Services.io.newChannel(url, null, null);
+      } catch (e if e.name == "NS_ERROR_UNKNOWN_PROTOCOL") {
+        
+        
+        url = "file:///" + url;
+        channel = Services.io.newChannel(url, null, null);
+      }
+      let chunks = [];
+      let streamListener = {
+        onStartRequest: function(aRequest, aContext, aStatusCode) {
+          if (!components.isSuccessCode(aStatusCode)) {
+            deferred.reject(new Error("Request failed with status code = "
+                                      + aStatusCode
+                                      + " in onStartRequest handler for url = "
+                                      + url));
+          }
+        },
+        onDataAvailable: function(aRequest, aContext, aStream, aOffset, aCount) {
+          chunks.push(NetUtil.readInputStreamToString(aStream, aCount));
+        },
+        onStopRequest: function(aRequest, aContext, aStatusCode) {
+          if (!components.isSuccessCode(aStatusCode)) {
+            deferred.reject(new Error("Request failed with status code = "
+                                      + aStatusCode
+                                      + " in onStopRequest handler for url = "
+                                      + url));
+            return;
+          }
+
+          charset = channel.contentCharset;
+          contentType = channel.contentType;
+          deferred.resolve(chunks.join(""));
+        }
+      };
+
+      channel.loadFlags = aOptions.loadFromCache
+        ? channel.LOAD_FROM_CACHE
+        : channel.LOAD_BYPASS_CACHE;
+      try {
+        channel.asyncOpen(streamListener, null);
+      } catch(e) {
+        deferred.reject(new Error("Request failed for '"
+                                  + url
+                                  + "': "
+                                  + e.message));
+      }
+      break;
+  }
+
+  return deferred.promise.then(source => {
+    return {
+      content: convertToUnicode(source, charset),
+      contentType: contentType
+    };
+  });
+}
+
+
+
+
+
+
+
+
+
+function convertToUnicode(aString, aCharset=null) {
+  
+  let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+    .createInstance(Ci.nsIScriptableUnicodeConverter);
+  try {
+    converter.charset = aCharset || "UTF-8";
+    return converter.ConvertToUnicode(aString);
+  } catch(e) {
+    return aString;
+  }
+}

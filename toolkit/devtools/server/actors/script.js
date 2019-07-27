@@ -11,7 +11,7 @@ const { Cc, Ci, Cu, components, ChromeWorker } = require("chrome");
 const { ActorPool, getOffsetColumn } = require("devtools/server/actors/common");
 const { DebuggerServer } = require("devtools/server/main");
 const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
-const { dbg_assert, dumpn, update } = DevToolsUtils;
+const { dbg_assert, dumpn, update, fetch } = DevToolsUtils;
 const { SourceMapConsumer, SourceMapGenerator } = require("source-map");
 const promise = require("promise");
 const PromiseDebugging = require("PromiseDebugging");
@@ -21,10 +21,6 @@ const mapURIToAddonID = require("./utils/map-uri-to-addon-id");
 
 const { defer, resolve, reject, all } = require("devtools/toolkit/deprecated-sync-thenables");
 const { CssLogic } = require("devtools/styleinspector/css-logic");
-
-DevToolsUtils.defineLazyGetter(this, "NetUtil", () => {
-  return Cu.import("resource://gre/modules/NetUtil.jsm", {}).NetUtil;
-});
 
 let TYPED_ARRAY_CLASSES = ["Uint8Array", "Uint8ClampedArray", "Uint16Array",
       "Uint32Array", "Int8Array", "Int16Array", "Int32Array", "Float32Array",
@@ -5370,139 +5366,6 @@ function getFrameLocation(aFrame) {
 
 function isNotNull(aThing) {
   return aThing !== null;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-function fetch(aURL, aOptions={ loadFromCache: true }) {
-  let deferred = defer();
-  let scheme;
-  let url = aURL.split(" -> ").pop();
-  let charset;
-  let contentType;
-
-  try {
-    scheme = Services.io.extractScheme(url);
-  } catch (e) {
-    
-    
-    
-    url = "file://" + url;
-    scheme = Services.io.extractScheme(url);
-  }
-
-  switch (scheme) {
-    case "file":
-    case "chrome":
-    case "resource":
-      try {
-        NetUtil.asyncFetch(url, function onFetch(aStream, aStatus, aRequest) {
-          if (!components.isSuccessCode(aStatus)) {
-            deferred.reject(new Error("Request failed with status code = "
-                                      + aStatus
-                                      + " after NetUtil.asyncFetch for url = "
-                                      + url));
-            return;
-          }
-
-          let source = NetUtil.readInputStreamToString(aStream, aStream.available());
-          contentType = aRequest.contentType;
-          deferred.resolve(source);
-          aStream.close();
-        });
-      } catch (ex) {
-        deferred.reject(ex);
-      }
-      break;
-
-    default:
-      let channel;
-      try {
-        channel = Services.io.newChannel(url, null, null);
-      } catch (e if e.name == "NS_ERROR_UNKNOWN_PROTOCOL") {
-        
-        
-        url = "file:///" + url;
-        channel = Services.io.newChannel(url, null, null);
-      }
-      let chunks = [];
-      let streamListener = {
-        onStartRequest: function(aRequest, aContext, aStatusCode) {
-          if (!components.isSuccessCode(aStatusCode)) {
-            deferred.reject(new Error("Request failed with status code = "
-                                      + aStatusCode
-                                      + " in onStartRequest handler for url = "
-                                      + url));
-          }
-        },
-        onDataAvailable: function(aRequest, aContext, aStream, aOffset, aCount) {
-          chunks.push(NetUtil.readInputStreamToString(aStream, aCount));
-        },
-        onStopRequest: function(aRequest, aContext, aStatusCode) {
-          if (!components.isSuccessCode(aStatusCode)) {
-            deferred.reject(new Error("Request failed with status code = "
-                                      + aStatusCode
-                                      + " in onStopRequest handler for url = "
-                                      + url));
-            return;
-          }
-
-          charset = channel.contentCharset;
-          contentType = channel.contentType;
-          deferred.resolve(chunks.join(""));
-        }
-      };
-
-      channel.loadFlags = aOptions.loadFromCache
-        ? channel.LOAD_FROM_CACHE
-        : channel.LOAD_BYPASS_CACHE;
-      try {
-        channel.asyncOpen(streamListener, null);
-      } catch(e) {
-        deferred.reject(new Error("Request failed for '"
-                                  + url
-                                  + "': "
-                                  + e.message));
-      }
-      break;
-  }
-
-  return deferred.promise.then(source => {
-    return {
-      content: convertToUnicode(source, charset),
-      contentType: contentType
-    };
-  });
-}
-
-
-
-
-
-
-
-
-
-function convertToUnicode(aString, aCharset=null) {
-  
-  let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-    .createInstance(Ci.nsIScriptableUnicodeConverter);
-  try {
-    converter.charset = aCharset || "UTF-8";
-    return converter.ConvertToUnicode(aString);
-  } catch(e) {
-    return aString;
-  }
 }
 
 
