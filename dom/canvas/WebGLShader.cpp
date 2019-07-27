@@ -92,6 +92,11 @@ TranslateWithoutValidation(const nsACString& sourceNS, bool isWebGL2,
 
     switch (glesslVersion) {
     case 100:
+        if (!versionStrLen) {
+            
+
+            reversionedSource.insert(versionStrStart, "#version 100\n");
+        }
         break;
     case 300:
         reversionedSource.insert(versionStrStart, "#version 330\n");
