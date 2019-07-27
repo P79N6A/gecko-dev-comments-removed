@@ -92,7 +92,8 @@ class gfxUserFontData {
 public:
     gfxUserFontData()
         : mSrcIndex(0), mFormat(0), mMetaOrigLen(0),
-          mCRC32(0), mLength(0), mPrivate(false), mIsBuffer(false)
+          mCRC32(0), mLength(0), mCompression(kUnknownCompression),
+          mPrivate(false), mIsBuffer(false)
     { }
     virtual ~gfxUserFontData() { }
 
@@ -106,8 +107,15 @@ public:
     uint32_t          mMetaOrigLen; 
     uint32_t          mCRC32;     
     uint32_t          mLength;    
+    uint8_t           mCompression; 
     bool              mPrivate;   
     bool              mIsBuffer;  
+
+    enum {
+        kUnknownCompression = 0,
+        kZlibCompression = 1,
+        kBrotliCompression = 2
+    };
 };
 
 
@@ -603,7 +611,8 @@ protected:
                            bool               aPrivate,
                            const nsAString&   aOriginalName,
                            FallibleTArray<uint8_t>* aMetadata,
-                           uint32_t           aMetaOrigLen);
+                           uint32_t           aMetaOrigLen,
+                           uint8_t            aCompression);
 
     
     UserFontLoadState        mUserFontLoadState;
