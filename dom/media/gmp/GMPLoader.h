@@ -10,18 +10,24 @@
 #include <stdint.h>
 #include "gmp-entrypoints.h"
 
+#if defined(XP_MACOSX)
+#include "mozilla/Sandbox.h"
+#endif
+
 namespace mozilla {
 namespace gmp {
 
 class SandboxStarter {
 public:
   virtual ~SandboxStarter() {}
-  virtual void Start(const char* aLibPath) = 0;
-};
-
+  virtual bool Start(const char* aLibPath) = 0;
 #if defined(XP_MACOSX)
-#define SANDBOX_NOT_STATICALLY_LINKED_INTO_PLUGIN_CONTAINER 1
+  
+  
+  
+  virtual void SetSandboxInfo(MacSandboxInfo* aSandboxInfo) = 0;
 #endif
+};
 
 
 
@@ -59,10 +65,11 @@ public:
   
   virtual void Shutdown() = 0;
 
-#ifdef SANDBOX_NOT_STATICALLY_LINKED_INTO_PLUGIN_CONTAINER
+#if defined(XP_MACOSX)
   
   
-  virtual void SetStartSandboxStarter(SandboxStarter* aStarter) = 0;
+  
+  virtual void SetSandboxInfo(MacSandboxInfo* aSandboxInfo) = 0;
 #endif
 };
 

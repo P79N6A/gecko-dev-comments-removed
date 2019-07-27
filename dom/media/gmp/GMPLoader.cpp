@@ -80,10 +80,8 @@ public:
 
   virtual void Shutdown() override;
 
-#ifdef SANDBOX_NOT_STATICALLY_LINKED_INTO_PLUGIN_CONTAINER
-  virtual void SetStartSandboxStarter(SandboxStarter* aStarter) override {
-    mSandboxStarter = aStarter;
-  }
+#if defined(XP_MACOSX)
+  virtual void SetSandboxInfo(MacSandboxInfo* aSandboxInfo) override;
 #endif
 
 private:
@@ -220,8 +218,8 @@ GMPLoaderImpl::Load(const char* aLibPath,
   
   
   
-  if (mSandboxStarter) {
-    mSandboxStarter->Start(aLibPath);
+  if (mSandboxStarter && !mSandboxStarter->Start(aLibPath)) {
+    return false;
   }
 
   
@@ -277,6 +275,15 @@ GMPLoaderImpl::Shutdown()
   }
 }
 
+#if defined(XP_MACOSX)
+void
+GMPLoaderImpl::SetSandboxInfo(MacSandboxInfo* aSandboxInfo)
+{
+  if (mSandboxStarter) {
+    mSandboxStarter->SetSandboxInfo(aSandboxInfo);
+  }
+}
+#endif
 } 
 } 
 
