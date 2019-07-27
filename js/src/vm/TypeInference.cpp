@@ -3152,19 +3152,6 @@ PreliminaryObjectArray::registerNewObject(JSObject *res)
     MOZ_CRASH("There should be room for registering the new object");
 }
 
-void
-PreliminaryObjectArray::unregisterNewObject(JSObject *res)
-{
-    for (size_t i = 0; i < COUNT; i++) {
-        if (objects[i] == res) {
-            objects[i] = nullptr;
-            return;
-        }
-    }
-
-    MOZ_CRASH("The object should be one of the preliminary objects");
-}
-
 bool
 PreliminaryObjectArray::full() const
 {
@@ -3240,13 +3227,6 @@ TypeNewScript::registerNewObject(PlainObject *res)
     preliminaryObjects->registerNewObject(res);
 }
 
-void
-TypeNewScript::unregisterNewObject(PlainObject *res)
-{
-    MOZ_ASSERT(!analyzed());
-    preliminaryObjects->unregisterNewObject(res);
-}
-
 
 static bool
 OnlyHasDataProperties(Shape *shape)
@@ -3294,15 +3274,13 @@ ChangeObjectFixedSlotCount(JSContext *cx, PlainObject *obj, gc::AllocKind allocK
 {
     MOZ_ASSERT(OnlyHasDataProperties(obj->lastProperty()));
 
-    
-    RootedShape oldShape(cx, obj->lastProperty());
-    RootedObjectGroup group(cx, obj->group());
-    RootedObject parent(cx, obj->getParent());
-    JSObject *clone = NewReshapedObject(cx, group, parent, allocKind, oldShape);
-    if (!clone)
+    Shape *newShape = ReshapeForParentAndAllocKind(cx, obj->lastProperty(),
+                                                   obj->getTaggedProto(), obj->getParent(),
+                                                   allocKind);
+    if (!newShape)
         return false;
 
-    obj->setLastPropertyShrinkFixedSlots(clone->lastProperty());
+    obj->setLastPropertyShrinkFixedSlots(newShape);
     return true;
 }
 
@@ -3494,6 +3472,11 @@ TypeNewScript::maybeAnalyze(JSContext *cx, ObjectGroup *group, bool *regenerate,
         
         
         
+        ObjectGroup *plainGroup = ObjectGroup::defaultNewGroup(cx, &PlainObject::class_,
+                                                               group->proto());
+        if (!plainGroup)
+            CrashAtUnhandlableOOM("TypeNewScript::maybeAnalyze");
+        templateObject_->setGroup(plainGroup);
         templateObject_ = nullptr;
 
         return true;

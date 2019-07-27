@@ -643,11 +643,6 @@ NewObjectWithGroup(JSContext *cx, HandleObjectGroup group, HandleObject parent,
     return NewObjectWithGroup<T>(cx, group, parent, allocKind, newKind);
 }
 
-JSObject *
-NewReshapedObject(JSContext *cx, HandleObjectGroup group, HandleObject parent,
-                  gc::AllocKind allocKind, HandleShape shape,
-                  NewObjectKind newKind = GenericObject);
-
 
 
 
