@@ -10086,16 +10086,14 @@ IonBuilder::getPropTryInnerize(bool *emitted, MDefinition *obj, PropertyName *na
     
     
     
-    
-    
-    
-    
-    
 
     if (!getPropTryConstant(emitted, inner, name, types) || *emitted)
         return *emitted;
 
     if (!getStaticName(&script()->global(), name, emitted) || *emitted)
+        return *emitted;
+
+    if (!getPropTryCommonGetter(emitted, inner, name, types) || *emitted)
         return *emitted;
 
     
