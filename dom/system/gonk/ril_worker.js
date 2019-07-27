@@ -944,13 +944,14 @@ RilObject.prototype = {
 
 
 
+
+
   setCallWaiting: function(options) {
     let Buf = this.context.Buf;
     Buf.newParcel(REQUEST_SET_CALL_WAITING, options);
     Buf.writeInt32(2);
     Buf.writeInt32(options.enabled ? 1 : 0);
-    Buf.writeInt32(options.serviceClass !== undefined ?
-                    options.serviceClass : ICC_SERVICE_CLASS_VOICE);
+    Buf.writeInt32(options.serviceClass);
     Buf.sendParcel();
   },
 
@@ -4937,9 +4938,9 @@ RilObject.prototype[REQUEST_QUERY_CALL_WAITING] =
   }
 
   let Buf = this.context.Buf;
-  options.length = Buf.readInt32();
-  options.enabled = ((Buf.readInt32() == 1) &&
-                     ((Buf.readInt32() & ICC_SERVICE_CLASS_VOICE) == 0x01));
+  let results = Buf.readInt32List();
+  let enabled = (results[0] === 1);
+  options.serviceClass = enabled ? results[1] : ICC_SERVICE_CLASS_NONE;
   this.sendChromeMessage(options);
 };
 

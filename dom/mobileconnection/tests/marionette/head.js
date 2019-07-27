@@ -650,6 +650,37 @@ function selectNetworkAutomaticallyAndWait() {
 
 
 
+ function setCallWaitingOption(aEnabled) {
+  let request = mobileConnection.setCallWaitingOption(aEnabled);
+  return request.then(null, () => { throw request.error });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+ function getCallWaitingOption() {
+  let request = mobileConnection.getCallWaitingOption();
+  return request.then(() => request.result, () => { throw request.error });
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
