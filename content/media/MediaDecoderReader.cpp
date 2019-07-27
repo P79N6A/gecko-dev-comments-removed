@@ -248,6 +248,17 @@ MediaDecoderReader::RequestAudioData()
          !AudioQueue().IsFinished()) {
     if (!DecodeAudioData()) {
       AudioQueue().Finish();
+      break;
+    }
+    
+    
+    
+    
+    if (AudioQueue().GetSize() == 0 && mTaskQueue) {
+      RefPtr<nsIRunnable> task(NS_NewRunnableMethod(
+          this, &MediaDecoderReader::RequestAudioData));
+      mTaskQueue->Dispatch(task.forget());
+      return;
     }
   }
   if (AudioQueue().GetSize() > 0) {
