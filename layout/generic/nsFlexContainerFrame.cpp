@@ -419,6 +419,22 @@ public:
   
   
 
+  void UpdateMainMinSize(nscoord aNewMinSize)
+  {
+    MOZ_ASSERT(mMainMinSize == 0 ||
+               mFrame->IsThemed(mFrame->StyleDisplay()),
+               "Should only update main min-size for min-height:auto, "
+               "which would initially be resolved as 0 (unless we have an "
+               "additional themed-widget-imposed minimum size)");
+
+    if (aNewMinSize > mMainMinSize) {
+      mMainMinSize = aNewMinSize;
+      
+      mMainMaxSize = std::max(mMainMaxSize, aNewMinSize);
+      mMainSize = std::max(mMainSize, aNewMinSize);
+    }
+  }
+
   
   
   
@@ -534,10 +550,13 @@ protected:
   const nsMargin mBorderPadding;
   nsMargin mMargin; 
 
+  
+  
+  
   nscoord mFlexBaseSize;
+  nscoord mMainMinSize;
+  nscoord mMainMaxSize;
 
-  const nscoord mMainMinSize;
-  const nscoord mMainMaxSize;
   const nscoord mCrossMinSize;
   const nscoord mCrossMaxSize;
 
@@ -1030,7 +1049,17 @@ nsFlexContainerFrame::
     return;
   }
 
-  if (NS_AUTOHEIGHT != aFlexItem.GetFlexBaseSize()) {
+  
+  
+  bool isMainSizeAuto = (NS_AUTOHEIGHT == aFlexItem.GetFlexBaseSize());
+
+  
+  
+  bool isMainMinSizeAuto =
+    (eStyleUnit_Auto ==
+     aFlexItem.Frame()->StylePosition()->mMinHeight.GetUnit());
+
+  if (!isMainSizeAuto && !isMainMinSizeAuto) {
     
     
     
@@ -1038,7 +1067,6 @@ nsFlexContainerFrame::
     return;
   }
 
-  
   
   
   
@@ -1082,7 +1110,9 @@ nsFlexContainerFrame::
   
   
   
-  if (!aFlexItem.IsFrozen()) {  
+  
+  if (!aFlexItem.IsFrozen() ||  
+      !isMainSizeAuto) { 
     childRSForMeasuringHeight.mFlags.mVResize = true;
   }
 
@@ -1107,7 +1137,13 @@ nsFlexContainerFrame::
     childRSForMeasuringHeight.ComputedPhysicalBorderPadding().TopBottom();
   childDesiredHeight = std::max(0, childDesiredHeight);
 
-  aFlexItem.SetFlexBaseSizeAndMainSize(childDesiredHeight);
+  if (isMainSizeAuto) {
+    aFlexItem.SetFlexBaseSizeAndMainSize(childDesiredHeight);
+  }
+  if (isMainMinSizeAuto) {
+    aFlexItem.UpdateMainMinSize(childDesiredHeight);
+  }
+
   aFlexItem.SetHadMeasuringReflow();
 }
 
