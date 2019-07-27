@@ -213,11 +213,9 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mEndTime(-1),
   mDurationSet(false),
   mPlayState(mTaskQueue, MediaDecoder::PLAY_STATE_LOADING,
-             "MediaDecoderStateMachine::mPlayState (Mirror)",
-             aDecoder->CanonicalPlayState()),
+             "MediaDecoderStateMachine::mPlayState (Mirror)"),
   mNextPlayState(mTaskQueue, MediaDecoder::PLAY_STATE_PAUSED,
-                 "MediaDecoderStateMachine::mNextPlayState (Mirror)",
-                 aDecoder->CanonicalNextPlayState()),
+                 "MediaDecoderStateMachine::mNextPlayState (Mirror)"),
   mNextFrameStatus(mTaskQueue, MediaDecoderOwner::NEXT_FRAME_UNINITIALIZED,
                    "MediaDecoderStateMachine::mNextFrameStatus (Canonical)"),
   mFragmentEndTime(-1),
@@ -260,8 +258,8 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
 
   
-  mWatchManager.Watch(mState, &MediaDecoderStateMachine::UpdateNextFrameStatus);
-  mWatchManager.Watch(mAudioCompleted, &MediaDecoderStateMachine::UpdateNextFrameStatus);
+  nsCOMPtr<nsIRunnable> r = NS_NewRunnableMethod(this, &MediaDecoderStateMachine::InitializationTask);
+  mTaskQueue->Dispatch(r.forget());
 
   static bool sPrefCacheInit = false;
   if (!sPrefCacheInit) {
@@ -299,6 +297,20 @@ MediaDecoderStateMachine::~MediaDecoderStateMachine()
 #ifdef XP_WIN
   timeEndPeriod(1);
 #endif
+}
+
+void
+MediaDecoderStateMachine::InitializationTask()
+{
+  MOZ_ASSERT(OnTaskQueue());
+
+  
+  mPlayState.Connect(mDecoder->CanonicalPlayState());
+  mNextPlayState.Connect(mDecoder->CanonicalNextPlayState());
+
+  
+  mWatchManager.Watch(mState, &MediaDecoderStateMachine::UpdateNextFrameStatus);
+  mWatchManager.Watch(mAudioCompleted, &MediaDecoderStateMachine::UpdateNextFrameStatus);
 }
 
 bool MediaDecoderStateMachine::HasFutureAudio() {

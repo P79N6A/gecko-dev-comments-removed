@@ -163,6 +163,11 @@ public:
   void SetDormant(bool aDormant);
 
 private:
+  
+  
+  
+  void InitializationTask();
+
   void Shutdown();
 public:
 
