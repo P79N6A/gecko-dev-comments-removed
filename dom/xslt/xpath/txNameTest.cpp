@@ -35,7 +35,7 @@ bool txNameTest::matches(const txXPathNode& aNode, txIMatchContext* aContext)
     }
 
     
-    if (mLocalName == nsGkAtoms::_asterix && !mPrefix)
+    if (mLocalName == nsGkAtoms::_asterisk && !mPrefix)
         return true;
 
     
@@ -46,7 +46,7 @@ bool txNameTest::matches(const txXPathNode& aNode, txIMatchContext* aContext)
         return false;
 
     
-    if (mLocalName == nsGkAtoms::_asterix)
+    if (mLocalName == nsGkAtoms::_asterisk)
         return true;
 
     
@@ -58,7 +58,7 @@ bool txNameTest::matches(const txXPathNode& aNode, txIMatchContext* aContext)
 
 double txNameTest::getDefaultPriority()
 {
-    if (mLocalName == nsGkAtoms::_asterix) {
+    if (mLocalName == nsGkAtoms::_asterisk) {
         if (!mPrefix)
             return -0.5;
         return -0.25;

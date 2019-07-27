@@ -156,7 +156,7 @@ txXSLTNumber::getValueList(Expr* aValueExpr, txPattern* aCountPattern,
             {
                 
                 
-                nodeTest = new txNameTest(0, nsGkAtoms::_asterix, 0,
+                nodeTest = new txNameTest(0, nsGkAtoms::_asterisk, 0,
                                           nodeType);
                 break;
             }
