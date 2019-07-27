@@ -45,7 +45,6 @@
 
 #include "jsapi.h"
 #include "jswrapper.h"
-#include "js/SliceBudget.h"
 #include "nsIArray.h"
 #include "nsIObjectInputStream.h"
 #include "nsIObjectOutputStream.h"
@@ -1693,24 +1692,24 @@ nsJSContext::RunCycleCollectorSlice()
 
   
   
-  js::SliceBudget budget;
+  int64_t sliceBudget = -1;
 
   if (sIncrementalCC) {
     if (gCCStats.mBeginTime.IsNull()) {
       
-      budget = js::SliceBudget(js::TimeBudget(kICCSliceBudget));
+      sliceBudget = kICCSliceBudget;
     } else {
       TimeStamp now = TimeStamp::Now();
 
       
       if (TimeBetween(gCCStats.mBeginTime, now) < kMaxICCDuration) {
         float sliceMultiplier = std::max(TimeBetween(gCCStats.mEndSliceTime, now) / (float)kICCIntersliceDelay, 1.0f);
-        budget = js::SliceBudget(js::TimeBudget(kICCSliceBudget * sliceMultiplier));
+        sliceBudget = kICCSliceBudget * sliceMultiplier;
       }
     }
   }
 
-  nsCycleCollector_collectSlice(budget);
+  nsCycleCollector_collectSlice(sliceBudget);
 
   gCCStats.FinishCycleCollectionSlice();
 }
@@ -1727,10 +1726,7 @@ nsJSContext::RunCycleCollectorWorkSlice(int64_t aWorkBudget)
     js::ProfileEntry::Category::CC);
 
   gCCStats.PrepareForCycleCollectionSlice();
-
-  js::SliceBudget budget = js::SliceBudget(js::WorkBudget(aWorkBudget));
-  nsCycleCollector_collectSlice(budget);
-
+  nsCycleCollector_collectSliceWork(aWorkBudget);
   gCCStats.FinishCycleCollectionSlice();
 }
 
