@@ -466,6 +466,8 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
                               const std::string& aPassword,
                               const std::vector<std::string>& aCandidateList);
   void GatherIfReady();
+  void FlushIceCtxOperationQueueIfReady();
+  void PerformOrEnqueueIceCtxOperation(const nsRefPtr<nsIRunnable>& runnable);
   void EnsureIceGathering_s();
   void StartIceChecks_s(bool aIsControlling,
                         bool aIsIceLite,
@@ -497,6 +499,9 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   void EndOfLocalCandidates_m(const std::string& aDefaultAddr,
                               uint16_t aDefaultPort,
                               uint16_t aMLine);
+  bool IsIceCtxReady() const {
+    return mProxyResolveCompleted;
+  }
 
 
   
@@ -540,7 +545,10 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   nsCOMPtr<nsIEventTarget> mSTSThread;
 
   
-  bool mTransportsUpdated;
+  
+  
+  
+  std::vector<nsRefPtr<nsIRunnable>> mQueuedIceCtxOperations;
 
   
   nsCOMPtr<nsICancelable> mProxyRequest;
