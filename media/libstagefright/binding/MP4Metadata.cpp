@@ -275,4 +275,17 @@ MP4Metadata::HasCompleteMetadata(Stream* aSource)
   return parser->HasMetadata();
 }
 
+ mozilla::MediaByteRange
+MP4Metadata::MetadataRange(Stream* aSource)
+{
+  
+  mozilla::Monitor monitor("MP4Metadata::HasCompleteMetadata");
+  mozilla::MonitorAutoLock mon(monitor);
+  auto parser = mozilla::MakeUnique<MoofParser>(aSource, 0, false, &monitor);
+  if (parser->HasMetadata()) {
+    return parser->mInitRange;
+  }
+  return mozilla::MediaByteRange();
+}
+
 } 
