@@ -215,30 +215,87 @@ ApzcTap(AsyncPanZoomController* apzc, int aX, int aY, int& aTime,
   return ApzcUp(apzc, aX, aY, aTime);
 }
 
+static void
+ApzcPan(AsyncPanZoomController* aApzc,
+        TestAPZCTreeManager* aTreeManager,
+        int& aTime,
+        int aTouchStartY,
+        int aTouchEndY,
+        bool aKeepFingerDown = false,
+        nsTArray<uint32_t>* aAllowedTouchBehaviors = nullptr,
+        nsEventStatus (*aOutEventStatuses)[4] = nullptr)
+{
+  const int TIME_BETWEEN_TOUCH_EVENT = 100;
+  const int OVERCOME_TOUCH_TOLERANCE = 100;
+
+  
+  
+  
+  aTreeManager->BuildOverscrollHandoffChain(aApzc);
+
+  
+  nsEventStatus status = ApzcDown(aApzc, 10, aTouchStartY + OVERCOME_TOUCH_TOLERANCE, aTime);
+  if (aOutEventStatuses) {
+    (*aOutEventStatuses)[0] = status;
+  }
+
+  aTime += TIME_BETWEEN_TOUCH_EVENT;
+
+  
+  if (gfxPrefs::TouchActionEnabled() && aAllowedTouchBehaviors) {
+    aApzc->SetAllowedTouchBehavior(*aAllowedTouchBehaviors);
+  }
+
+  MultiTouchInput mti = MultiTouchInput(MultiTouchInput::MULTITOUCH_MOVE, aTime, TimeStamp(), 0);
+  mti.mTouches.AppendElement(SingleTouchData(0, ScreenIntPoint(10, aTouchStartY), ScreenSize(0, 0), 0, 0));
+  status = aApzc->ReceiveInputEvent(mti);
+  if (aOutEventStatuses) {
+    (*aOutEventStatuses)[1] = status;
+  }
+
+  aTime += TIME_BETWEEN_TOUCH_EVENT;
+
+  mti = MultiTouchInput(MultiTouchInput::MULTITOUCH_MOVE, aTime, TimeStamp(), 0);
+  mti.mTouches.AppendElement(SingleTouchData(0, ScreenIntPoint(10, aTouchEndY), ScreenSize(0, 0), 0, 0));
+  status = aApzc->ReceiveInputEvent(mti);
+  if (aOutEventStatuses) {
+    (*aOutEventStatuses)[2] = status;
+  }
+
+  aTime += TIME_BETWEEN_TOUCH_EVENT;
+
+  if (!aKeepFingerDown) {
+    status = ApzcUp(aApzc, 10, aTouchEndY, aTime);
+  } else {
+    status = -1;
+  }
+  if (aOutEventStatuses) {
+    (*aOutEventStatuses)[3] = status;
+  }
+
+  aTime += TIME_BETWEEN_TOUCH_EVENT;
+
+  
+  
+  aTreeManager->ClearOverscrollHandoffChain();
+}
+
 
 
 
 
 static void
-ApzcPan(AsyncPanZoomController* apzc,
-        TestAPZCTreeManager* aTreeManager,
-        int& aTime,
-        int aTouchStartY,
-        int aTouchEndY,
-        bool expectIgnoredPan = false,
-        bool hasTouchListeners = false,
-        nsTArray<uint32_t>* aAllowedTouchBehaviors = nullptr,
-        bool aKeepFingerDown = false)
+ApzcPanAndCheckStatus(AsyncPanZoomController* aApzc,
+                      TestAPZCTreeManager* aTreeManager,
+                      int& aTime,
+                      int aTouchStartY,
+                      int aTouchEndY,
+                      bool expectIgnoredPan,
+                      bool hasTouchListeners,
+                      nsTArray<uint32_t>* aAllowedTouchBehaviors)
 {
-  const int TIME_BETWEEN_TOUCH_EVENT = 100;
-  const int OVERCOME_TOUCH_TOLERANCE = 100;
-  MultiTouchInput mti;
-  nsEventStatus status;
-
-  
-  
-  
-  aTreeManager->BuildOverscrollHandoffChain(apzc);
+  nsEventStatus statuses[4]; 
+  ApzcPan(aApzc, aTreeManager, aTime, aTouchStartY, aTouchEndY, false, aAllowedTouchBehaviors, &statuses);
 
   nsEventStatus touchStartStatus;
   if (hasTouchListeners) {
@@ -249,17 +306,7 @@ ApzcPan(AsyncPanZoomController* apzc,
     
     touchStartStatus = nsEventStatus_eConsumeNoDefault;
   }
-
-  
-  status = ApzcDown(apzc, 10, aTouchStartY + OVERCOME_TOUCH_TOLERANCE, aTime);
-  aTime += TIME_BETWEEN_TOUCH_EVENT;
-  EXPECT_EQ(touchStartStatus, status);
-  
-
-  
-  if (gfxPrefs::TouchActionEnabled() && aAllowedTouchBehaviors) {
-    apzc->SetAllowedTouchBehavior(*aAllowedTouchBehaviors);
-  }
+  EXPECT_EQ(touchStartStatus, statuses[0]);
 
   nsEventStatus touchMoveStatus;
   if (expectIgnoredPan) {
@@ -270,31 +317,12 @@ ApzcPan(AsyncPanZoomController* apzc,
     
     touchMoveStatus = nsEventStatus_eConsumeNoDefault;
   }
-
-  mti = MultiTouchInput(MultiTouchInput::MULTITOUCH_MOVE, aTime, TimeStamp(), 0);
-  aTime += TIME_BETWEEN_TOUCH_EVENT;
-  mti.mTouches.AppendElement(SingleTouchData(0, ScreenIntPoint(10, aTouchStartY), ScreenSize(0, 0), 0, 0));
-  status = apzc->ReceiveInputEvent(mti);
-  EXPECT_EQ(touchMoveStatus, status);
-
-  mti = MultiTouchInput(MultiTouchInput::MULTITOUCH_MOVE, aTime, TimeStamp(), 0);
-  aTime += TIME_BETWEEN_TOUCH_EVENT;
-  mti.mTouches.AppendElement(SingleTouchData(0, ScreenIntPoint(10, aTouchEndY), ScreenSize(0, 0), 0, 0));
-  status = apzc->ReceiveInputEvent(mti);
-  EXPECT_EQ(touchMoveStatus, status);
-
-  if (!aKeepFingerDown) {
-    status = ApzcUp(apzc, 10, aTouchEndY, aTime);
-  }
-  aTime += TIME_BETWEEN_TOUCH_EVENT;
-
-  
-  
-  aTreeManager->ClearOverscrollHandoffChain();
+  EXPECT_EQ(touchMoveStatus, statuses[1]);
+  EXPECT_EQ(touchMoveStatus, statuses[2]);
 }
 
-static
-void DoPanTest(bool aShouldTriggerScroll, uint32_t aBehavior)
+static void
+DoPanTest(bool aShouldTriggerScroll, uint32_t aBehavior)
 {
   TimeStamp testStartTime = TimeStamp::Now();
   AsyncPanZoomController::SetFrameTime(testStartTime);
@@ -324,7 +352,7 @@ void DoPanTest(bool aShouldTriggerScroll, uint32_t aBehavior)
   allowedTouchBehaviors.AppendElement(aBehavior);
 
   
-  ApzcPan(apzc, tm, time, touchStart, touchEnd, !aShouldTriggerScroll, false, &allowedTouchBehaviors);
+  ApzcPanAndCheckStatus(apzc, tm, time, touchStart, touchEnd, !aShouldTriggerScroll, false, &allowedTouchBehaviors);
   apzc->SampleContentTransformForFrame(testStartTime, &viewTransformOut, pointOut);
 
   if (aShouldTriggerScroll) {
@@ -336,7 +364,7 @@ void DoPanTest(bool aShouldTriggerScroll, uint32_t aBehavior)
   }
 
   
-  ApzcPan(apzc, tm, time, touchEnd, touchStart, !aShouldTriggerScroll, false, &allowedTouchBehaviors);
+  ApzcPanAndCheckStatus(apzc, tm, time, touchEnd, touchStart, !aShouldTriggerScroll, false, &allowedTouchBehaviors);
   apzc->SampleContentTransformForFrame(testStartTime, &viewTransformOut, pointOut);
 
   EXPECT_EQ(ScreenPoint(), pointOut);
@@ -755,7 +783,7 @@ TEST_F(AsyncPanZoomControllerTester, PanWithPreventDefault) {
   
   nsTArray<uint32_t> allowedTouchBehaviors;
   allowedTouchBehaviors.AppendElement(mozilla::layers::AllowedTouchBehavior::VERTICAL_PAN);
-  ApzcPan(apzc, tm, time, touchStart, touchEnd, true, true, &allowedTouchBehaviors);
+  ApzcPanAndCheckStatus(apzc, tm, time, touchStart, touchEnd, true, true, &allowedTouchBehaviors);
 
   
   
@@ -968,7 +996,6 @@ TEST_F(AsyncPanZoomControllerTester, OverScrollPanningAbort) {
   int touchStart = 500;
   int touchEnd = 10;
   ApzcPan(apzc, tm, time, touchStart, touchEnd,
-          false, false, nullptr,   
           true);                   
   EXPECT_TRUE(apzc->IsOverscrolled());
 
