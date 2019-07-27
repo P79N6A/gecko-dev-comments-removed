@@ -170,7 +170,13 @@ loop.StandaloneMozLoop = (function(mozL10n) {
         action: "leave",
         sessionToken: sessionToken
       }, null, callback);
-    }
+    },
+
+    
+    
+    on: function() {},
+    once: function() {},
+    off: function() {}
   };
 
   var StandaloneMozLoop = function(options) {

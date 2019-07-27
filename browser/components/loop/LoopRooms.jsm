@@ -382,6 +382,34 @@ let LoopRoomsInternal = {
 
 
 
+
+
+
+  rename: function(roomToken, newRoomName, callback) {
+    let room = this.rooms.get(roomToken);
+    let url = "/rooms/" + encodeURIComponent(roomToken);
+
+    let origRoom = this.rooms.get(roomToken);
+    let patchData = {
+      roomName: newRoomName,
+      
+      maxSize: origRoom.maxSize,
+      roomOwner: origRoom.roomOwner
+    };
+    MozLoopService.hawkRequest(this.sessionType, url, "PATCH", patchData)
+      .then(response => {
+        let data = JSON.parse(response.body);
+        extend(room, data);
+        callback(null, room);
+      }, error => callback(error)).catch(error => callback(error));
+  },
+
+  
+
+
+
+
+
   onNotification: function(version, channelID) {
     gDirty = true;
     this.getAll(version, () => {});
@@ -441,6 +469,10 @@ this.LoopRooms = {
 
   leave: function(roomToken, sessionToken, callback) {
     return LoopRoomsInternal.leave(roomToken, sessionToken, callback);
+  },
+
+  rename: function(roomToken, newRoomName, callback) {
+    return LoopRoomsInternal.rename(roomToken, newRoomName, callback);
   },
 
   promise: function(method, ...params) {

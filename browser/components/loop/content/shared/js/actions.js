@@ -246,6 +246,15 @@ loop.shared.actions = (function() {
 
 
 
+    RenameRoom: Action.define("renameRoom", {
+      roomToken: String,
+      newRoomName: String
+    }),
+
+    
+
+
+
     CopyRoomUrl: Action.define("copyRoomUrl", {
       roomUrl: String
     }),
@@ -271,10 +280,22 @@ loop.shared.actions = (function() {
 
 
 
-    UpdateRoomInfo: Action.define("updateRoomInfo", {
+    SetupRoomInfo: Action.define("setupRoomInfo", {
       roomName: String,
       roomOwner: String,
       roomToken: String,
+      roomUrl: String
+    }),
+
+    
+
+
+
+
+
+    UpdateRoomInfo: Action.define("updateRoomInfo", {
+      roomName: String,
+      roomOwner: String,
       roomUrl: String
     }),
 
