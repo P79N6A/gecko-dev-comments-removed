@@ -329,8 +329,6 @@ private:
     PluginScriptableObjectChild* actor;
   };
 
-  static PLDHashOperator CollectForInstance(NPObjectData* d, void* userArg);
-
   
 
 
