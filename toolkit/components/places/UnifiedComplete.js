@@ -743,8 +743,8 @@ Search.prototype = {
     for (let [query, params] of queries) {
       let hasResult = yield conn.executeCached(query, params, this._onResultRow.bind(this));
 
-      if (this.pending && params.query_type == QUERYTYPE_AUTOFILL_URL &&
-          !hasResult) {
+      if (this.pending && this._enableActions && !hasResult &&
+          params.query_type == QUERYTYPE_AUTOFILL_URL) {
         
         
         yield this._matchHeuristicFallback();
