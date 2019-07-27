@@ -100,7 +100,7 @@ var testData = [
   
   {isInQuery: false, isVisit:true, isDetails: true, title: "moz",
    uri: "http://somefoo.com/justwrong.htm", lastVisit: jan11_800},
-  
+
   
   {isInQuery: false, isVisit:true, isDetails: true, title: "changeme",
    uri: "http://foo.com/changeme1.htm", lastVisit: jan12_1730},
@@ -163,14 +163,14 @@ add_task(function test_abstime_annotation_domain()
   var addItem = [{isInQuery: true, isVisit: true, isDetails: true, title: "moz",
                  uri: "http://www.foo.com/i-am-added.html", lastVisit: jan11_800}];
   yield task_populateDB(addItem);
-  LOG("Adding item foo.com/i-am-added.html");
+  do_print("Adding item foo.com/i-am-added.html");
   do_check_eq(isInResult(addItem, root), true);
 
   
   var change1 = [{isDetails: true, uri: "http://foo.com/changeme1",
                   lastVisit: jan12_1730, title: "moz moz mozzie"}];
   yield task_populateDB(change1);
-  LOG("LiveUpdate by changing title");
+  do_print("LiveUpdate by changing title");
   do_check_eq(isInResult(change1, root), true);
 
   
@@ -189,7 +189,7 @@ add_task(function test_abstime_annotation_domain()
   var change3 = [{isDetails: true, uri: "http://foo.com/changeme3.htm",
                   title: "moz", lastVisit: jan15_2045}];
   yield task_populateDB(change3);
-  LOG("LiveUpdate by adding visit within timerange");
+  do_print("LiveUpdate by adding visit within timerange");
   do_check_eq(isInResult(change3, root), true);
 
   
@@ -203,7 +203,7 @@ add_task(function test_abstime_annotation_domain()
   
   var change5 = [{isDetails: true, uri: "http://foo.com/end.html", title: "deleted"}];
   yield task_populateDB(change5);
-  LOG("LiveUpdate by deleting item by changing title");
+  do_print("LiveUpdate by deleting item by changing title");
   do_check_eq(isInResult(change5, root), false);
 
   root.containerOpen = false;

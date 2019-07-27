@@ -29,7 +29,7 @@ tests.push({
 
     
     this._folderTitle = "test folder";
-    this._folderId = 
+    this._folderId =
       PlacesUtils.bookmarks.createFolder(PlacesUtils.placesRootId,
                                          this._folderTitle,
                                          PlacesUtils.bookmarks.DEFAULT_INDEX);
@@ -58,7 +58,7 @@ tests.push({
                                          "excluded",
                                          PlacesUtils.bookmarks.DEFAULT_INDEX);
     do_check_eq(rootNode.childCount, 6);
-    this.excludeItemsFromRestore.push(excludedFolderId); 
+    this.excludeItemsFromRestore.push(excludedFolderId);
 
     
     PlacesUtils.bookmarks.insertBookmark(excludedFolderId, this._testURI,
@@ -96,7 +96,7 @@ tests.push({
     for (var i = 0; i < rootNode.childCount; i++) {
       var node = rootNode.getChild(i);
 
-      LOG("validating " + node.title);
+      do_print("validating " + node.title);
       if (node.itemId != PlacesUtils.tagsFolderId) {
         if (node.title == this._folderTitle) {
           
