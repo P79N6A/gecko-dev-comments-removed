@@ -596,6 +596,8 @@ MP4Reader::Output(TrackType aTrack, MediaData* aSample)
   
   MonitorAutoLock mon(data.mMonitor);
   if (data.mIsFlushing) {
+    delete aSample;
+    LOG("MP4Reader produced output while flushing, discarding.");
     mon.NotifyAll();
     return;
   }
