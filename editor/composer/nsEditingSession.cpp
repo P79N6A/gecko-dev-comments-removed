@@ -25,7 +25,6 @@
 #include "nsIDOMDocument.h"             
 #include "nsIDOMHTMLDocument.h"         
 #include "nsIDOMWindow.h"               
-#include "nsIDOMWindowUtils.h"          
 #include "nsIDocShell.h"                
 #include "nsIDocument.h"                
 #include "nsIDocumentStateListener.h"
@@ -33,6 +32,7 @@
 #include "nsIHTMLDocument.h"            
 #include "nsIInterfaceRequestorUtils.h"  
 #include "nsIPlaintextEditor.h"         
+#include "nsIPresShell.h"               
 #include "nsIRefreshURI.h"              
 #include "nsIRequest.h"                 
 #include "nsISelection.h"               
@@ -45,6 +45,7 @@
 #include "nsLiteralString.h"            
 #include "nsPICommandUpdater.h"         
 #include "nsPIDOMWindow.h"              
+#include "nsPresContext.h"              
 #include "nsReadableUtils.h"            
 #include "nsStringFwd.h"                
 
@@ -396,12 +397,13 @@ nsEditingSession::SetupEditorOnWindow(nsIDOMWindow *aWindow)
 
   if (!mInteractive) {
     
-    nsCOMPtr<nsIDOMWindowUtils> utils(do_GetInterface(aWindow));
-    NS_ENSURE_TRUE(utils, NS_ERROR_FAILURE);
+    nsCOMPtr<nsIPresShell> presShell = docShell->GetPresShell();
+    NS_ENSURE_TRUE(presShell, NS_ERROR_FAILURE);
+    nsPresContext* presContext = presShell->GetPresContext();
+    NS_ENSURE_TRUE(presContext, NS_ERROR_FAILURE);
 
-    rv = utils->GetImageAnimationMode(&mImageAnimationMode);
-    NS_ENSURE_SUCCESS(rv, rv);
-    utils->SetImageAnimationMode(imgIContainer::kDontAnimMode);
+    mImageAnimationMode = presContext->ImageAnimationMode();
+    presContext->SetImageAnimationMode(imgIContainer::kDontAnimMode);
   }
 
   
@@ -1303,9 +1305,14 @@ nsEditingSession::RestoreAnimationMode(nsIDOMWindow *aWindow)
 {
   if (!mInteractive)
   {
-    nsCOMPtr<nsIDOMWindowUtils> utils(do_GetInterface(aWindow));
-    if (utils)
-      utils->SetImageAnimationMode(mImageAnimationMode);
+    nsCOMPtr<nsIDocShell> docShell = GetDocShellFromWindow(aWindow);
+    NS_ENSURE_TRUE(docShell, );
+    nsCOMPtr<nsIPresShell> presShell = docShell->GetPresShell();
+    NS_ENSURE_TRUE(presShell, );
+    nsPresContext* presContext = presShell->GetPresContext();
+    NS_ENSURE_TRUE(presContext, );
+
+    presContext->SetImageAnimationMode(mImageAnimationMode);
   }
 }
 
@@ -1390,12 +1397,13 @@ nsEditingSession::ReattachToWindow(nsIDOMWindow* aWindow)
   if (!mInteractive)
   {
     
-    nsCOMPtr<nsIDOMWindowUtils> utils(do_GetInterface(aWindow));
-    NS_ENSURE_TRUE(utils, NS_ERROR_FAILURE);
+    nsCOMPtr<nsIPresShell> presShell = docShell->GetPresShell();
+    NS_ENSURE_TRUE(presShell, NS_ERROR_FAILURE);
+    nsPresContext* presContext = presShell->GetPresContext();
+    NS_ENSURE_TRUE(presContext, NS_ERROR_FAILURE);
 
-    rv = utils->GetImageAnimationMode(&mImageAnimationMode);
-    NS_ENSURE_SUCCESS(rv, rv);
-    utils->SetImageAnimationMode(imgIContainer::kDontAnimMode);
+    mImageAnimationMode = presContext->ImageAnimationMode();
+    presContext->SetImageAnimationMode(imgIContainer::kDontAnimMode);
   }
 
   
