@@ -140,13 +140,8 @@ this.ForgetAboutSite = {
     enumerator = pm.enumerator;
     while (enumerator.hasMoreElements()) {
       let perm = enumerator.getNext().QueryInterface(Ci.nsIPermission);
-      try {
-        if (hasRootDomain(perm.principal.URI.host, aDomain)) {
-          pm.removePermission(perm);
-        }
-      } catch (e) {
-        
-      }
+      if (hasRootDomain(perm.host, aDomain))
+        pm.removePermission(perm);
     }
 
     

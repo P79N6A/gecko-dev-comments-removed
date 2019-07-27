@@ -17,9 +17,6 @@ Cu.import("resource://gre/modules/ForgetAboutSite.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
                                   "resource://gre/modules/PluralForm.jsm");
 
-let gSecMan = Cc["@mozilla.org/scriptsecuritymanager;1"].
-              getService(Ci.nsIScriptSecurityManager);
-
 let gFaviconService = Cc["@mozilla.org/browser/favicon-service;1"].
                       getService(Ci.nsIFaviconService);
 
@@ -29,7 +26,7 @@ let gPlacesDatabase = Cc["@mozilla.org/browser/nav-history-service;1"].
                       clone(true);
 
 let gSitesStmt = gPlacesDatabase.createAsyncStatement(
-                  "SELECT url " +
+                  "SELECT get_unreversed_host(rev_host) AS host " +
                   "FROM moz_places " +
                   "WHERE rev_host > '.' " +
                   "AND visit_count > 0 " +
@@ -51,9 +48,12 @@ let TEST_EXACT_PERM_TYPES = ["geo", "camera", "microphone"];
 
 
 
-function Site(principal) {
-  this.principal = principal;
+function Site(host) {
+  this.host = host;
   this.listitem = null;
+
+  this.httpURI = NetUtil.newURI("http://" + this.host);
+  this.httpsURI = NetUtil.newURI("https://" + this.host);
 }
 
 Site.prototype = {
@@ -76,9 +76,15 @@ Site.prototype = {
     }
 
     
-    gFaviconService.getFaviconURLForPage(this.principal.URI, function (aURI) {
+    gFaviconService.getFaviconURLForPage(this.httpsURI, function (aURI) {
       if (aURI) {
         invokeCallback(aURI);
+      } else {
+        gFaviconService.getFaviconURLForPage(this.httpURI, function (aURI) {
+          if (aURI) {
+            invokeCallback(aURI);
+          }
+        });
       }
     }.bind(this));
   },
@@ -90,9 +96,7 @@ Site.prototype = {
 
 
   getVisitCount: function Site_getVisitCount(aCallback) {
-    
-    
-    let rev_host = this.principal.URI.host.split("").reverse().join("") + ".";
+    let rev_host = this.host.split("").reverse().join("") + ".";
     gVisitStmt.params.rev_host = rev_host;
     gVisitStmt.executeAsync({
       handleResult: function(aResults) {
@@ -135,9 +139,9 @@ Site.prototype = {
 
     let permissionValue;
     if (TEST_EXACT_PERM_TYPES.indexOf(aType) == -1) {
-      permissionValue = Services.perms.testPermissionFromPrincipal(this.principal, aType);
+      permissionValue = Services.perms.testPermission(this.httpURI, aType);
     } else {
-      permissionValue = Services.perms.testExactPermissionFromPrincipal(this.principal, aType);
+      permissionValue = Services.perms.testExactPermission(this.httpURI, aType);
     }
     aResultObj.value = permissionValue;
 
@@ -162,7 +166,9 @@ Site.prototype = {
       return;
     }
 
-    Services.perms.addFromPrincipal(this.principal, aType, aPerm);
+    
+    
+    Services.perms.add(this.httpURI, aType, aPerm);
   },
 
   
@@ -173,7 +179,7 @@ Site.prototype = {
 
 
   clearPermission: function Site_clearPermission(aType) {
-    Services.perms.removeFromPrincipal(this.principal, aType);
+    Services.perms.remove(this.httpURI, aType);
   },
 
   
@@ -183,14 +189,13 @@ Site.prototype = {
 
 
   get cookies() {
-    let host = this.principal.URI.host;
     let cookies = [];
-    let enumerator = Services.cookies.getCookiesFromHost(host);
+    let enumerator = Services.cookies.getCookiesFromHost(this.host);
     while (enumerator.hasMoreElements()) {
       let cookie = enumerator.getNext().QueryInterface(Ci.nsICookie2);
       
       
-      if (cookie.rawHost == host) {
+      if (cookie.rawHost == this.host) {
         cookies.push(cookie);
       }
     }
@@ -212,27 +217,27 @@ Site.prototype = {
 
 
   get logins() {
-    let logins = Services.logins.findLogins({}, this.principal.originNoSuffix, "", "");
-    return logins;
+    let httpLogins = Services.logins.findLogins({}, this.httpURI.prePath, "", "");
+    let httpsLogins = Services.logins.findLogins({}, this.httpsURI.prePath, "", "");
+    return httpLogins.concat(httpsLogins);
   },
 
   get loginSavingEnabled() {
-    return Services.logins.getLoginSavingEnabled(this.principal.originNoSuffix);
+    
+    return Services.logins.getLoginSavingEnabled(this.httpURI.prePath) &&
+           Services.logins.getLoginSavingEnabled(this.httpsURI.prePath);
   },
 
   set loginSavingEnabled(isEnabled) {
-    Services.logins.setLoginSavingEnabled(this.principal.originNoSuffix, isEnabled);
+    Services.logins.setLoginSavingEnabled(this.httpURI.prePath, isEnabled);
+    Services.logins.setLoginSavingEnabled(this.httpsURI.prePath, isEnabled);
   },
 
   
 
 
   forgetSite: function Site_forgetSite() {
-    
-    
-    
-    
-    ForgetAboutSite.removeDataFromDomain(this.principal.URI.host);
+    ForgetAboutSite.removeDataFromDomain(this.host);
   }
 }
 
@@ -507,11 +512,8 @@ let AboutPermissions = {
         AboutPermissions.startSitesListBatch();
         let row;
         while (row = aResults.getNextRow()) {
-          let spec = row.getResultByName("url");
-          let uri = NetUtil.newURI(spec);
-          let principal = gSecMan.getNoAppCodebasePrincipal(uri);
-
-          AboutPermissions.addPrincipal(principal);
+          let host = row.getResultByName("host");
+          AboutPermissions.addHost(host);
         }
         AboutPermissions.endSitesListBatch();
       },
@@ -560,8 +562,7 @@ let AboutPermissions = {
       try {
         
         let uri = NetUtil.newURI(aLogin.hostname);
-        let principal = gSecMan.getNoAppCodebasePrincipal(uri);
-        this.addPrincipal(principal);
+        this.addHost(uri.host);
       } catch (e) {
         
       }
@@ -576,8 +577,7 @@ let AboutPermissions = {
       try {
         
         let uri = NetUtil.newURI(aHostname);
-        let principal = gSecMan.getNoAppCodebasePrincipal(uri);
-        this.addPrincipal(principal);
+        this.addHost(uri.host);
       } catch (e) {
         
       }
@@ -592,7 +592,7 @@ let AboutPermissions = {
       let permission = enumerator.getNext().QueryInterface(Ci.nsIPermission);
       
       if (this._supportedPermissions.indexOf(permission.type) != -1) {
-        this.addPrincipal(permission.principal);
+        this.addHost(permission.host);
       }
       itemCnt++;
     }
@@ -606,12 +606,12 @@ let AboutPermissions = {
 
 
 
-  addPrincipal: function(aPrincipal) {
-    if (aPrincipal.origin in this._sites) {
+  addHost: function(aHost) {
+    if (aHost in this._sites) {
       return;
     }
-    let site = new Site(aPrincipal);
-    this._sites[aPrincipal.origin] = site;
+    let site = new Site(aHost);
+    this._sites[aHost] = site;
     this.addToSitesList(site);
   },
 
@@ -624,7 +624,7 @@ let AboutPermissions = {
   addToSitesList: function(aSite) {
     let item = document.createElement("richlistitem");
     item.setAttribute("class", "site");
-    item.setAttribute("value", aSite.principal.origin);
+    item.setAttribute("value", aSite.host);
 
     aSite.getFavicon(function(aURL) {
       item.setAttribute("favicon", aURL);
@@ -633,7 +633,7 @@ let AboutPermissions = {
 
     
     let filterValue = document.getElementById("sites-filter").value.toLowerCase();
-    item.collapsed = aSite.principal.origin.toLowerCase().indexOf(filterValue) == -1;
+    item.collapsed = aSite.host.toLowerCase().indexOf(filterValue) == -1;
 
     (this._listFragment || this.sitesList).appendChild(item);
   },
@@ -686,16 +686,16 @@ let AboutPermissions = {
 
 
   deleteFromSitesList: function(aHost) {
-    for (let origin in this._sites) {
-      let site = this._sites[origin];
-      if (site.principal.URI.host.hasRootDomain(aHost)) {
+    for (let host in this._sites) {
+      let site = this._sites[host];
+      if (site.host.hasRootDomain(aHost)) {
         if (site == this._selectedSite) {
           
           this.sitesList.selectedItem = document.getElementById("all-sites-item");
         }
 
         this.sitesList.removeChild(site.listitem);
-        delete this._sites[site.principal.origin];
+        delete this._sites[site.host];
       }
     }
   },
@@ -711,9 +711,9 @@ let AboutPermissions = {
       return;
     }
 
-    let origin = event.target.value;
-    let site = this._selectedSite = this._sites[origin];
-    document.getElementById("site-label").value = origin;
+    let host = event.target.value;
+    let site = this._selectedSite = this._sites[host];
+    document.getElementById("site-label").value = host;
     document.getElementById("header-deck").selectedPanel =
       document.getElementById("site-header");
 
@@ -768,9 +768,9 @@ let AboutPermissions = {
       
       permissionValue = PermissionDefaults[aType];
       if (aType == "cookie")
-	      
-	      
-	      document.getElementById("cookie-9").hidden = true;
+	
+	
+	document.getElementById("cookie-9").hidden = true;
     } else {
       if (aType == "cookie")
         document.getElementById("cookie-9").hidden = false;
@@ -825,18 +825,18 @@ let AboutPermissions = {
 
 
   managePasswords: function() {
-    let selectedOrigin = "";
+    let selectedHost = "";
     if (this._selectedSite) {
-      selectedOrigin = this._selectedSite.principal.URI.prePath;
+      selectedHost = this._selectedSite.host;
     }
 
     let win = Services.wm.getMostRecentWindow("Toolkit:PasswordManager");
     if (win) {
-      win.setFilter(selectedOrigin);
+      win.setFilter(selectedHost);
       win.focus();
     } else {
       window.openDialog("chrome://passwordmgr/content/passwordManager.xul",
-                        "Toolkit:PasswordManager", "", {filterString : selectedOrigin});
+                        "Toolkit:PasswordManager", "", {filterString : selectedHost});
     }
   },
 
@@ -877,11 +877,9 @@ let AboutPermissions = {
 
 
   manageCookies: function() {
-    
-    
     let selectedHost = "";
     if (this._selectedSite) {
-      selectedHost = this._selectedSite.principal.URI.host;
+      selectedHost = this._selectedSite.host;
     }
 
     let win = Services.wm.getMostRecentWindow("Browser:Cookies");

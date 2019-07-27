@@ -2,10 +2,8 @@
 
 
 
-const TEST_ORIGIN = NetUtil.newURI("http://example.org");
-const TEST_ORIGIN_HTTPS = NetUtil.newURI("https://example.org");
-const TEST_ORIGIN_2 = NetUtil.newURI("http://example.com");
-const TEST_ORIGIN_3 = NetUtil.newURI("https://example2.com:8080");
+const TEST_ORIGIN = "example.org";
+const TEST_ORIGIN_2 = "example.com";
 const TEST_PERMISSION = "test-permission";
 Components.utils.import("resource://gre/modules/Promise.jsm");
 
@@ -37,10 +35,8 @@ add_task(function* do_test() {
 
   conv.writeString("# this is a comment\n");
   conv.writeString("\n"); 
-  conv.writeString("host\t" + TEST_PERMISSION + "\t1\t" + TEST_ORIGIN.host + "\n");
-  conv.writeString("host\t" + TEST_PERMISSION + "\t1\t" + TEST_ORIGIN_2.host + "\n");
-  conv.writeString("origin\t" + TEST_PERMISSION + "\t1\t" + TEST_ORIGIN_3.spec + "\n");
-  conv.writeString("origin\t" + TEST_PERMISSION + "\t1\t" + TEST_ORIGIN.spec + "^appId=1000&inBrowser=1\n");
+  conv.writeString("host\t" + TEST_PERMISSION + "\t1\t" + TEST_ORIGIN + "\n");
+  conv.writeString("host\t" + TEST_PERMISSION + "\t1\t" + TEST_ORIGIN_2 + "\n");
   ostream.close();
 
   
@@ -51,30 +47,14 @@ add_task(function* do_test() {
            getService(Ci.nsIPermissionManager);
 
   
-  let principal = Services.scriptSecurityManager.getNoAppCodebasePrincipal(TEST_ORIGIN);
-  let principalHttps = Services.scriptSecurityManager.getNoAppCodebasePrincipal(TEST_ORIGIN_HTTPS);
-  let principal2 = Services.scriptSecurityManager.getNoAppCodebasePrincipal(TEST_ORIGIN_2);
-  let principal3 = Services.scriptSecurityManager.getNoAppCodebasePrincipal(TEST_ORIGIN_3);
-  let principal4 = Services.scriptSecurityManager.getAppCodebasePrincipal(TEST_ORIGIN, 1000, true);
-  let principal5 = Services.scriptSecurityManager.getAppCodebasePrincipal(TEST_ORIGIN_3, 1000, true);
+  let permURI = NetUtil.newURI("http://" + TEST_ORIGIN);
+  let principal = Services.scriptSecurityManager.getNoAppCodebasePrincipal(permURI);
 
   do_check_eq(Ci.nsIPermissionManager.ALLOW_ACTION,
               pm.testPermissionFromPrincipal(principal, TEST_PERMISSION));
-  do_check_eq(Ci.nsIPermissionManager.ALLOW_ACTION,
-              pm.testPermissionFromPrincipal(principalHttps, TEST_PERMISSION));
-  do_check_eq(Ci.nsIPermissionManager.ALLOW_ACTION,
-              pm.testPermissionFromPrincipal(principal3, TEST_PERMISSION));
-  do_check_eq(Ci.nsIPermissionManager.ALLOW_ACTION,
-              pm.testPermissionFromPrincipal(principal4, TEST_PERMISSION));
 
   
-  do_check_eq(Ci.nsIPermissionManager.UNKNOWN_ACTION,
-              pm.testPermissionFromPrincipal(principal5, TEST_PERMISSION));
-
-  
-  do_check_eq(Ci.nsIPermissionManager.ALLOW_ACTION, findCapabilityViaEnum(TEST_ORIGIN));
-  do_check_eq(Ci.nsIPermissionManager.ALLOW_ACTION, findCapabilityViaEnum(TEST_ORIGIN_3));
-
+  do_check_eq(Ci.nsIPermissionManager.ALLOW_ACTION, findCapabilityViaEnum());
   
   yield checkCapabilityViaDB(null);
 
@@ -83,10 +63,6 @@ add_task(function* do_test() {
 
   do_check_eq(Ci.nsIPermissionManager.ALLOW_ACTION,
               pm.testPermissionFromPrincipal(principal, TEST_PERMISSION));
-  do_check_eq(Ci.nsIPermissionManager.ALLOW_ACTION,
-              pm.testPermissionFromPrincipal(principal3, TEST_PERMISSION));
-  do_check_eq(Ci.nsIPermissionManager.ALLOW_ACTION,
-              pm.testPermissionFromPrincipal(principal4, TEST_PERMISSION));
 
   
   
@@ -129,6 +105,9 @@ add_task(function* do_test() {
   
   pm.removeAll(); 
 
+  let permURI2 = NetUtil.newURI("http://" + TEST_ORIGIN_2);
+  let principal2 = Services.scriptSecurityManager.getNoAppCodebasePrincipal(permURI2);
+
   
   do_check_eq(Ci.nsIPermissionManager.ALLOW_ACTION,
               pm.testPermissionFromPrincipal(principal, TEST_PERMISSION));
@@ -170,12 +149,12 @@ add_task(function* do_test() {
 
 
 
-function findCapabilityViaEnum(origin = TEST_ORIGIN, type = TEST_PERMISSION) {
+function findCapabilityViaEnum(host = TEST_ORIGIN, type = TEST_PERMISSION) {
   let result = undefined;
   let e = Services.perms.enumerator;
   while (e.hasMoreElements()) {
     let perm = e.getNext().QueryInterface(Ci.nsIPermission);
-    if (perm.matchesURI(origin, true) &&
+    if (perm.host == host &&
         perm.type == type) {
       if (result !== undefined) {
         
@@ -192,12 +171,12 @@ function findCapabilityViaEnum(origin = TEST_ORIGIN, type = TEST_PERMISSION) {
 
 
 
-function checkCapabilityViaDB(expected, origin = TEST_ORIGIN, type = TEST_PERMISSION) {
+function checkCapabilityViaDB(expected, host = TEST_ORIGIN, type = TEST_PERMISSION) {
   let deferred = Promise.defer();
   let count = 0;
   let max = 20;
   let do_check = () => {
-    let got = findCapabilityViaDB(origin, type);
+    let got = findCapabilityViaDB(host, type);
     if (got == expected) {
       
       do_check_eq(got, expected, "The database has the expected value");
@@ -221,10 +200,7 @@ function checkCapabilityViaDB(expected, origin = TEST_ORIGIN, type = TEST_PERMIS
 
 
 
-function findCapabilityViaDB(origin = TEST_ORIGIN, type = TEST_PERMISSION) {
-  let principal = Services.scriptSecurityManager.getNoAppCodebasePrincipal(origin);
-  let originStr = principal.origin;
-
+function findCapabilityViaDB(host = TEST_ORIGIN, type = TEST_PERMISSION) {
   let file = Services.dirsvc.get("ProfD", Ci.nsIFile);
   file.append("permissions.sqlite");
 
@@ -234,8 +210,8 @@ function findCapabilityViaDB(origin = TEST_ORIGIN, type = TEST_PERMISSION) {
   let connection = storage.openDatabase(file);
 
   let query = connection.createStatement(
-      "SELECT permission FROM moz_hosts WHERE origin = :origin AND type = :type");
-  query.bindByName("origin", originStr);
+      "SELECT permission FROM moz_hosts WHERE host = :host AND type = :type");
+  query.bindByName("host", host);
   query.bindByName("type", type);
 
   if (!query.executeStep()) {

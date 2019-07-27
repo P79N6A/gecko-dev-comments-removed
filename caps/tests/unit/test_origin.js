@@ -68,33 +68,33 @@ function run_test() {
   
   var exampleOrg_app = ssm.createCodebasePrincipal(makeURI('http://example.org'), {appId: 42});
   var nullPrin_app = ssm.createNullPrincipal({appId: 42});
-  checkOriginAttributes(exampleOrg_app, {appId: 42}, '^appId=42');
-  checkOriginAttributes(nullPrin_app, {appId: 42}, '^appId=42');
-  do_check_eq(exampleOrg_app.origin, 'http://example.org^appId=42');
+  checkOriginAttributes(exampleOrg_app, {appId: 42}, '!appId=42');
+  checkOriginAttributes(nullPrin_app, {appId: 42}, '!appId=42');
+  do_check_eq(exampleOrg_app.origin, 'http://example.org!appId=42');
 
   
   var exampleOrg_browser = ssm.createCodebasePrincipal(makeURI('http://example.org'), {inBrowser: true});
   var nullPrin_browser = ssm.createNullPrincipal({inBrowser: true});
-  checkOriginAttributes(exampleOrg_browser, {inBrowser: true}, '^inBrowser=1');
-  checkOriginAttributes(nullPrin_browser, {inBrowser: true}, '^inBrowser=1');
-  do_check_eq(exampleOrg_browser.origin, 'http://example.org^inBrowser=1');
+  checkOriginAttributes(exampleOrg_browser, {inBrowser: true}, '!inBrowser=1');
+  checkOriginAttributes(nullPrin_browser, {inBrowser: true}, '!inBrowser=1');
+  do_check_eq(exampleOrg_browser.origin, 'http://example.org!inBrowser=1');
 
   
   var exampleOrg_appBrowser = ssm.createCodebasePrincipal(makeURI('http://example.org'), {inBrowser: true, appId: 42});
   var nullPrin_appBrowser = ssm.createNullPrincipal({inBrowser: true, appId: 42});
-  checkOriginAttributes(exampleOrg_appBrowser, {appId: 42, inBrowser: true}, '^appId=42&inBrowser=1');
-  checkOriginAttributes(nullPrin_appBrowser, {appId: 42, inBrowser: true}, '^appId=42&inBrowser=1');
-  do_check_eq(exampleOrg_appBrowser.origin, 'http://example.org^appId=42&inBrowser=1');
+  checkOriginAttributes(exampleOrg_appBrowser, {appId: 42, inBrowser: true}, '!appId=42&inBrowser=1');
+  checkOriginAttributes(nullPrin_appBrowser, {appId: 42, inBrowser: true}, '!appId=42&inBrowser=1');
+  do_check_eq(exampleOrg_appBrowser.origin, 'http://example.org!appId=42&inBrowser=1');
 
   
   var exampleCom_appBrowser = ssm.createCodebasePrincipal(makeURI('https://www.example.com:123'), {appId: 42, inBrowser: true});
-  checkOriginAttributes(exampleCom_appBrowser, {appId: 42, inBrowser: true}, '^appId=42&inBrowser=1');
-  do_check_eq(exampleCom_appBrowser.origin, 'https://www.example.com:123^appId=42&inBrowser=1');
+  checkOriginAttributes(exampleCom_appBrowser, {appId: 42, inBrowser: true}, '!appId=42&inBrowser=1');
+  do_check_eq(exampleCom_appBrowser.origin, 'https://www.example.com:123!appId=42&inBrowser=1');
 
   
   var exampleOrg_addon = ssm.createCodebasePrincipal(makeURI('http://example.org'), {addonId: 'dummy'});
-  checkOriginAttributes(exampleOrg_addon, { addonId: "dummy" }, '^addonId=dummy');
-  do_check_eq(exampleOrg_addon.origin, 'http://example.org^addonId=dummy');
+  checkOriginAttributes(exampleOrg_addon, { addonId: "dummy" }, '!addonId=dummy');
+  do_check_eq(exampleOrg_addon.origin, 'http://example.org!addonId=dummy');
 
   
   checkCrossOrigin(exampleOrg_app, exampleOrg);

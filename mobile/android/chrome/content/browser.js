@@ -1751,11 +1751,11 @@ var BrowserApp = {
               docShell.mixedContentChannel = null;
             }
           } else if (data.contentType === "tracking") {
-            
-            
-            
-            let normalizedUrl = Services.io.newURI("https://" + browser.currentURI.hostPort, null, null);
             if (data.allowContent) {
+              
+              
+              
+              let normalizedUrl = Services.io.newURI("https://" + browser.currentURI.hostPort, null, null);
               
               
               
@@ -1765,7 +1765,7 @@ var BrowserApp = {
               
               
               
-              Services.perms.remove(normalizedUrl, "trackingprotection");
+              Services.perms.remove(browser.currentURI, "trackingprotection");
               Telemetry.addData("TRACKING_PROTECTION_EVENTS", 2);
             }
           }

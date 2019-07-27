@@ -217,16 +217,7 @@ SpecialPowersObserver.prototype = new SpecialPowersObserverAPI();
       switch (aTopic) {
         case "perm-changed":
           var permission = aSubject.QueryInterface(Ci.nsIPermission);
-
-          
-          
-          
-          
-          
-          msg.permission = {
-            principal: { appId: permission.principal.appId },
-            type: permission.type
-          };
+          msg.permission = { appId: permission.appId, type: permission.type };
         default:
           this._self._sendAsyncMessage("specialpowers-" + aTopic, msg);
       }

@@ -121,7 +121,7 @@ function run_test() {
 
   
   
-  do_check_eq(connection.schemaVersion, 5);
+  do_check_eq(connection.schemaVersion, 4);
 
   let select = connection.createStatement("SELECT modificationTime FROM moz_hosts")
   let numMigrated = 0;
