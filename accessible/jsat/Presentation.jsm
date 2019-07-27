@@ -321,16 +321,18 @@ AndroidPresenter.prototype.actionInvoked =
     let state = Utils.getState(aObject);
 
     
-    if (state.contains(States.CHECKABLE)) {
-      return null;
+    
+    let text = '';
+    if (!state.contains(States.CHECKABLE)) {
+      text = Utils.localize(UtteranceGenerator.genForAction(aObject,
+        aActionName));
     }
 
     return {
       type: this.type,
       details: [{
         eventType: this.ANDROID_VIEW_CLICKED,
-        text: Utils.localize(UtteranceGenerator.genForAction(aObject,
-          aActionName)),
+        text: text,
         checked: state.contains(States.CHECKED)
       }]
     };
