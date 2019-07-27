@@ -3560,43 +3560,35 @@ class MOZ_STACK_CLASS Debugger::ObjectQuery
         if (!prepareQuery())
             return false;
 
+        
+        
+        JS::AutoObjectVector debuggees(cx);
+        for (GlobalObjectSet::Range r = dbg->allDebuggees(); !r.empty(); r.popFront()) {
+            if (!debuggees.append(r.front()))
+                return false;
+        }
+
         {
             
 
 
 
-            JS::AutoCheckCannotGC autoCannotGC;
+            Maybe<JS::AutoCheckCannotGC> maybeNoGC;
+            RootedObject dbgObj(cx, dbg->object);
+            JS::ubi::RootList rootList(cx, maybeNoGC);
+            if (!rootList.init(cx, dbgObj))
+                return false;
 
-            Traversal traversal(cx, *this, autoCannotGC);
+            Traversal traversal(cx, *this, maybeNoGC.ref());
             if (!traversal.init())
                 return false;
+            traversal.wantNames = false;
 
-            
-            for (GlobalObjectSet::Range r = dbg->debuggees.all(); !r.empty(); r.popFront()) {
-                if (!traversal.addStartVisited(JS::ubi::Node(static_cast<JSObject *>(r.front()))))
-                    return false;
-            }
-
-            
-
-
-
-            for (CompartmentsIter c(cx->runtime(), SkipAtoms); !c.done(); c.next()) {
-                JSCompartment *comp = c.get();
-                if (!comp)
-                    continue;
-                for (JSCompartment::WrapperEnum e(comp); !e.empty(); e.popFront()) {
-                    const CrossCompartmentKey &key = e.front().key();
-                    if (key.kind != CrossCompartmentKey::ObjectWrapper)
-                        continue;
-                    JSObject *obj = static_cast<JSObject *>(key.wrapped);
-                    if (!traversal.addStartVisited(JS::ubi::Node(obj)))
-                        return false;
-                }
-            }
-
-            if (!traversal.traverse())
+            if (!traversal.addStart(JS::ubi::Node(&rootList)) ||
+                !traversal.traverse())
+            {
                 return false;
+            }
 
             
 
@@ -3604,8 +3596,9 @@ class MOZ_STACK_CLASS Debugger::ObjectQuery
 
             for (Traversal::NodeMap::Range r = traversal.visited.all(); !r.empty(); r.popFront()) {
                 JS::ubi::Node node = r.front().key();
-                if (!node.is<JSObject>() || !dbg->isDebuggee(node.compartment()))
+                if (!node.is<JSObject>())
                     continue;
+                MOZ_ASSERT(dbg->isDebuggee(node.compartment()));
 
                 JSObject *obj = node.as<JSObject>();
 
@@ -3626,14 +3619,16 @@ class MOZ_STACK_CLASS Debugger::ObjectQuery
     
 
 
-
-
-
-
     class NodeData {};
     typedef JS::ubi::BreadthFirst<ObjectQuery> Traversal;
-    bool operator() (Traversal &, JS::ubi::Node, const JS::ubi::Edge &, NodeData *, bool)
+    bool operator() (Traversal &traversal, JS::ubi::Node origin, const JS::ubi::Edge &edge,
+                     NodeData *, bool first)
     {
+        
+        JSCompartment *comp = edge.referent.compartment();
+        if (first && comp && !dbg->isDebuggee(edge.referent.compartment()))
+            traversal.abandonReferent();
+
         return true;
     }
 
