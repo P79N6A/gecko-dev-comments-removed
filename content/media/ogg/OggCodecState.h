@@ -382,10 +382,35 @@ private:
 
 #define SKELETON_VERSION(major, minor) (((major)<<16)|(minor))
 
+enum EMsgHeaderType {
+  eContentType,
+  eRole,
+  eName,
+  eLanguage,
+  eTitle,
+  eDisplayHint,
+  eAltitude,
+  eTrackOrder,
+  eTrackDependencies
+};
+
+typedef struct {
+  const char* mPatternToRecognize;
+  EMsgHeaderType mMsgHeaderType;
+} FieldPatternType;
+
+
+typedef struct {
+  nsClassHashtable<nsUint32HashKey, nsCString> mValuesStore;
+} MessageField;
+
 class SkeletonState : public OggCodecState {
 public:
   explicit SkeletonState(ogg_page* aBosPage);
   ~SkeletonState();
+
+  nsClassHashtable<nsUint32HashKey, MessageField> mMsgFieldStore;
+
   CodecType GetType() { return TYPE_SKELETON; }
   bool DecodeHeader(ogg_packet* aPacket);
   int64_t Time(int64_t granulepos) { return -1; }
@@ -454,6 +479,8 @@ private:
 
   
   bool DecodeIndex(ogg_packet* aPacket);
+  
+  bool DecodeFisbone(ogg_packet* aPacket);
 
   
   

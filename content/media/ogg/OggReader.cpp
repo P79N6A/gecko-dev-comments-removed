@@ -86,6 +86,51 @@ PageSync(MediaResource* aResource,
 
 static const int PAGE_STEP = 8192;
 
+
+
+
+
+static const nsString GetKind(const nsCString& aRole)
+{
+  if (aRole.Find("audio/main") != -1 || aRole.Find("video/main") != -1) {
+    return NS_LITERAL_STRING("main");
+  } else if (aRole.Find("audio/alternate") != -1 ||
+             aRole.Find("video/alternate") != -1) {
+    return NS_LITERAL_STRING("alternative");
+  } else if (aRole.Find("audio/audiodesc") != -1) {
+    return NS_LITERAL_STRING("descriptions");
+  } else if (aRole.Find("audio/described") != -1) {
+    return NS_LITERAL_STRING("main-desc");
+  } else if (aRole.Find("audio/dub") != -1) {
+    return NS_LITERAL_STRING("translation");
+  } else if (aRole.Find("audio/commentary") != -1) {
+    return NS_LITERAL_STRING("commentary");
+  } else if (aRole.Find("video/sign") != -1) {
+    return NS_LITERAL_STRING("sign");
+  } else if (aRole.Find("video/captioned") != -1) {
+    return NS_LITERAL_STRING("captions");
+  } else if (aRole.Find("video/subtitled") != -1) {
+    return NS_LITERAL_STRING("subtitles");
+  }
+  return EmptyString();
+}
+
+static void InitTrack(MessageField* aMsgInfo, TrackInfo* aInfo, bool aEnable)
+{
+  MOZ_ASSERT(aMsgInfo);
+  MOZ_ASSERT(aInfo);
+
+  nsCString* sName = aMsgInfo->mValuesStore.Get(eName);
+  nsCString* sRole = aMsgInfo->mValuesStore.Get(eRole);
+  nsCString* sTitle = aMsgInfo->mValuesStore.Get(eTitle);
+  nsCString* sLanguage = aMsgInfo->mValuesStore.Get(eLanguage);
+  aInfo->Init(sName? NS_ConvertUTF8toUTF16(*sName):EmptyString(),
+              sRole? GetKind(*sRole):EmptyString(),
+              sTitle? NS_ConvertUTF8toUTF16(*sTitle):EmptyString(),
+              sLanguage? NS_ConvertUTF8toUTF16(*sLanguage):EmptyString(),
+              aEnable);
+}
+
 OggReader::OggReader(AbstractMediaDecoder* aDecoder)
   : MediaDecoderReader(aDecoder),
     mMonitor("OggReader"),
@@ -165,6 +210,7 @@ bool OggReader::ReadHeaders(OggCodecState* aState)
 
 void OggReader::BuildSerialList(nsTArray<uint32_t>& aTracks)
 {
+  
   if (HasVideo()) {
     aTracks.AppendElement(mTheoraState->mSerial);
   }
@@ -174,6 +220,159 @@ void OggReader::BuildSerialList(nsTArray<uint32_t>& aTracks)
 #ifdef MOZ_OPUS
     } else if (mOpusState) {
       aTracks.AppendElement(mOpusState->mSerial);
+#endif
+    }
+  }
+}
+
+void OggReader::SetupTargetTheora(TheoraState* aTheoraState)
+{
+  if (mTheoraState) {
+    mTheoraState->Reset();
+  }
+  nsIntRect picture = nsIntRect(aTheoraState->mInfo.pic_x,
+                                aTheoraState->mInfo.pic_y,
+                                aTheoraState->mInfo.pic_width,
+                                aTheoraState->mInfo.pic_height);
+
+  nsIntSize displaySize = nsIntSize(aTheoraState->mInfo.pic_width,
+                                    aTheoraState->mInfo.pic_height);
+
+  
+  
+  ScaleDisplayByAspectRatio(displaySize, aTheoraState->mPixelAspectRatio);
+
+  nsIntSize frameSize(aTheoraState->mInfo.frame_width,
+                      aTheoraState->mInfo.frame_height);
+  if (IsValidVideoRegion(frameSize, picture, displaySize)) {
+    
+    mPicture = picture;
+
+    VideoFrameContainer* container = mDecoder->GetVideoFrameContainer();
+    if (container) {
+      container->SetCurrentFrame(gfxIntSize(displaySize.width, displaySize.height),
+                                 nullptr,
+                                 TimeStamp::Now());
+    }
+
+    
+    memcpy(&mTheoraInfo, &aTheoraState->mInfo, sizeof(mTheoraInfo));
+
+    mTheoraState = aTheoraState;
+    mTheoraSerial = aTheoraState->mSerial;
+  }
+}
+
+void OggReader::SetupTargetVorbis(VorbisState* aVorbisState)
+{
+  if (mVorbisState) {
+    mVorbisState->Reset();
+  }
+  
+  memcpy(&mVorbisInfo, &aVorbisState->mInfo, sizeof(mVorbisInfo));
+  mVorbisInfo.codec_setup = nullptr;
+  mVorbisState = aVorbisState;
+  mVorbisSerial = aVorbisState->mSerial;
+}
+
+void OggReader::SetupTargetOpus(OpusState* aOpusState)
+{
+  if (mOpusState) {
+    mOpusState->Reset();
+  }
+  mOpusState = aOpusState;
+  mOpusSerial = aOpusState->mSerial;
+  mOpusPreSkip = aOpusState->mPreSkip;
+}
+
+void OggReader::SetupTargetSkeleton(SkeletonState* aSkeletonState)
+{
+  
+  
+  if (aSkeletonState) {
+    if (!HasAudio() && !HasVideo()) {
+      
+      
+      aSkeletonState->Deactivate();
+    } else if (ReadHeaders(aSkeletonState) && aSkeletonState->HasIndex()) {
+      
+      
+      nsAutoTArray<uint32_t, 2> tracks;
+      BuildSerialList(tracks);
+      int64_t duration = 0;
+      if (NS_SUCCEEDED(aSkeletonState->GetDuration(tracks, duration))) {
+        ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+        mDecoder->SetMediaDuration(duration);
+        LOG(PR_LOG_DEBUG, ("Got duration from Skeleton index %lld", duration));
+      }
+    }
+  }
+}
+
+void OggReader::SetupMediaTracksInfo(const nsTArray<uint32_t>& aSerials)
+{
+  
+  
+  
+  
+  
+  for (size_t i = 0; i < aSerials.Length(); i++) {
+    uint32_t serial = aSerials[i];
+    OggCodecState* codecState = mCodecStore.Get(serial);
+
+    MessageField* msgInfo = nullptr;
+    if (mSkeletonState && mSkeletonState->mMsgFieldStore.Contains(serial)) {
+      mSkeletonState->mMsgFieldStore.Get(serial, &msgInfo);
+    }
+
+    if (codecState->GetType() == OggCodecState::TYPE_THEORA) {
+      TheoraState* theoraState = static_cast<TheoraState*>(codecState);
+      if (!(mTheoraState && mTheoraState->mSerial == theoraState->mSerial)) {
+        continue;
+      }
+
+      if (msgInfo) {
+        InitTrack(msgInfo, &mInfo.mVideo.mTrackInfo, mTheoraState == theoraState);
+      }
+
+      nsIntRect picture = nsIntRect(theoraState->mInfo.pic_x,
+                                    theoraState->mInfo.pic_y,
+                                    theoraState->mInfo.pic_width,
+                                    theoraState->mInfo.pic_height);
+      nsIntSize displaySize = nsIntSize(theoraState->mInfo.pic_width,
+                                        theoraState->mInfo.pic_height);
+      nsIntSize frameSize(theoraState->mInfo.frame_width,
+                          theoraState->mInfo.frame_height);
+      ScaleDisplayByAspectRatio(displaySize, theoraState->mPixelAspectRatio);
+      mInfo.mVideo.mDisplay = displaySize;
+      mInfo.mVideo.mHasVideo = IsValidVideoRegion(frameSize, picture, displaySize)? true:false;
+    } else if (codecState->GetType() == OggCodecState::TYPE_VORBIS) {
+      VorbisState* vorbisState = static_cast<VorbisState*>(codecState);
+      if (!(mVorbisState && mVorbisState->mSerial == vorbisState->mSerial)) {
+        continue;
+      }
+
+      if (msgInfo) {
+        InitTrack(msgInfo, &mInfo.mAudio.mTrackInfo, mVorbisState == vorbisState);
+      }
+
+      mInfo.mAudio.mHasAudio = true;
+      mInfo.mAudio.mRate = vorbisState->mInfo.rate;
+      mInfo.mAudio.mChannels = vorbisState->mInfo.channels;
+#ifdef MOZ_OPUS
+    } else if (codecState->GetType() == OggCodecState::TYPE_OPUS) {
+      OpusState* opusState = static_cast<OpusState*>(codecState);
+      if (!(mOpusState && mOpusState->mSerial == opusState->mSerial)) {
+        continue;
+      }
+
+      if (msgInfo) {
+        InitTrack(msgInfo, &mInfo.mAudio.mTrackInfo, mOpusState == opusState);
+      }
+
+      mInfo.mAudio.mHasAudio = true;
+      mInfo.mAudio.mRate = opusState->mRate;
+      mInfo.mAudio.mChannels = opusState->mChannels;
 #endif
     }
   }
@@ -193,6 +392,7 @@ nsresult OggReader::ReadMetadata(MediaInfo* aInfo,
 
   ogg_page page;
   nsAutoTArray<OggCodecState*,4> bitstreams;
+  nsTArray<uint32_t> serials;
   bool readAllBOS = false;
   while (!readAllBOS) {
     if (!ReadOggPage(&page)) {
@@ -215,41 +415,7 @@ nsresult OggReader::ReadMetadata(MediaInfo* aInfo,
       codecState = OggCodecState::Create(&page);
       mCodecStore.Add(serial, codecState);
       bitstreams.AppendElement(codecState);
-      if (codecState &&
-          codecState->GetType() == OggCodecState::TYPE_VORBIS &&
-          !mVorbisState)
-      {
-        
-        
-        mVorbisState = static_cast<VorbisState*>(codecState);
-      }
-      if (codecState &&
-          codecState->GetType() == OggCodecState::TYPE_THEORA &&
-          !mTheoraState)
-      {
-        
-        
-        mTheoraState = static_cast<TheoraState*>(codecState);
-      }
-#ifdef MOZ_OPUS
-      if (codecState &&
-          codecState->GetType() == OggCodecState::TYPE_OPUS &&
-          !mOpusState)
-      {
-        if (mOpusEnabled) {
-          mOpusState = static_cast<OpusState*>(codecState);
-        } else {
-          NS_WARNING("Opus decoding disabled."
-                     " See media.opus.enabled in about:config");
-        }
-      }
-#endif 
-      if (codecState &&
-          codecState->GetType() == OggCodecState::TYPE_SKELETON &&
-          !mSkeletonState)
-      {
-        mSkeletonState = static_cast<SkeletonState*>(codecState);
-      }
+      serials.AppendElement(serial);
     }
 
     codecState = mCodecStore.Get(serial);
@@ -263,94 +429,54 @@ nsresult OggReader::ReadMetadata(MediaInfo* aInfo,
   
   
   
-
   
-  for (uint32_t i = 0; i < bitstreams.Length(); i++) {
+  
+  
+  for (uint32_t i = 0; i < bitstreams.Length(); ++i) {
     OggCodecState* s = bitstreams[i];
-    if (s != mVorbisState &&
+    if (s) {
+      if (s->GetType() == OggCodecState::TYPE_THEORA && ReadHeaders(s)) {
+        if (!mTheoraState) {
+          TheoraState* theoraState = static_cast<TheoraState*>(s);
+          SetupTargetTheora(theoraState);
+        } else {
+          s->Deactivate();
+        }
+      } else if (s->GetType() == OggCodecState::TYPE_VORBIS && ReadHeaders(s)) {
+        if (!mVorbisState) {
+          VorbisState* vorbisState = static_cast<VorbisState*>(s);
+          SetupTargetVorbis(vorbisState);
+          *aTags = vorbisState->GetTags();
+        } else {
+          s->Deactivate();
+        }
 #ifdef MOZ_OPUS
-        s != mOpusState &&
-#endif 
-        s != mTheoraState && s != mSkeletonState) {
-      s->Deactivate();
-    }
-  }
-
-  if (mTheoraState && ReadHeaders(mTheoraState)) {
-    nsIntRect picture = nsIntRect(mTheoraState->mInfo.pic_x,
-                                  mTheoraState->mInfo.pic_y,
-                                  mTheoraState->mInfo.pic_width,
-                                  mTheoraState->mInfo.pic_height);
-
-    nsIntSize displaySize = nsIntSize(mTheoraState->mInfo.pic_width,
-                                      mTheoraState->mInfo.pic_height);
-
-    
-    
-    ScaleDisplayByAspectRatio(displaySize, mTheoraState->mPixelAspectRatio);
-
-    nsIntSize frameSize(mTheoraState->mInfo.frame_width,
-                        mTheoraState->mInfo.frame_height);
-    if (IsValidVideoRegion(frameSize, picture, displaySize)) {
-      
-      mInfo.mVideo.mHasVideo = true;
-      mInfo.mVideo.mDisplay = displaySize;
-      mPicture = picture;
-
-      VideoFrameContainer* container = mDecoder->GetVideoFrameContainer();
-      if (container) {
-        container->SetCurrentFrame(gfxIntSize(displaySize.width, displaySize.height),
-                                   nullptr,
-                                   TimeStamp::Now());
-      }
-
-      
-      memcpy(&mTheoraInfo, &mTheoraState->mInfo, sizeof(mTheoraInfo));
-      mTheoraSerial = mTheoraState->mSerial;
-    }
-  }
-
-  if (mVorbisState && ReadHeaders(mVorbisState)) {
-    mInfo.mAudio.mHasAudio = true;
-    mInfo.mAudio.mRate = mVorbisState->mInfo.rate;
-    mInfo.mAudio.mChannels = mVorbisState->mInfo.channels;
-    
-    memcpy(&mVorbisInfo, &mVorbisState->mInfo, sizeof(mVorbisInfo));
-    mVorbisInfo.codec_setup = nullptr;
-    mVorbisSerial = mVorbisState->mSerial;
-    *aTags = mVorbisState->GetTags();
-  } else {
-    memset(&mVorbisInfo, 0, sizeof(mVorbisInfo));
-  }
-#ifdef MOZ_OPUS
-  if (mOpusState && ReadHeaders(mOpusState)) {
-    mInfo.mAudio.mHasAudio = true;
-    mInfo.mAudio.mRate = mOpusState->mRate;
-    mInfo.mAudio.mChannels = mOpusState->mChannels;
-    mOpusSerial = mOpusState->mSerial;
-    mOpusPreSkip = mOpusState->mPreSkip;
-
-    *aTags = mOpusState->GetTags();
-  }
+      } else if (s->GetType() == OggCodecState::TYPE_OPUS && ReadHeaders(s)) {
+        if (mOpusEnabled) {
+          if (!mOpusState) {
+            OpusState* opusState = static_cast<OpusState*>(s);
+            SetupTargetOpus(opusState);
+            *aTags = opusState->GetTags();
+          } else {
+            s->Deactivate();
+          }
+        } else {
+          NS_WARNING("Opus decoding disabled."
+                     " See media.opus.enabled in about:config");
+        }
 #endif
-  if (mSkeletonState) {
-    if (!HasAudio() && !HasVideo()) {
-      
-      
-      mSkeletonState->Deactivate();
-    } else if (ReadHeaders(mSkeletonState) && mSkeletonState->HasIndex()) {
-      
-      
-      nsAutoTArray<uint32_t, 2> tracks;
-      BuildSerialList(tracks);
-      int64_t duration = 0;
-      if (NS_SUCCEEDED(mSkeletonState->GetDuration(tracks, duration))) {
-        ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-        mDecoder->SetMediaDuration(duration);
-        LOG(PR_LOG_DEBUG, ("Got duration from Skeleton index %lld", duration));
+      } else if (s->GetType() == OggCodecState::TYPE_SKELETON && !mSkeletonState) {
+        mSkeletonState = static_cast<SkeletonState*>(s);
+      } else {
+        
+        s->Deactivate();
       }
+
     }
   }
+
+  SetupTargetSkeleton(mSkeletonState);
+  SetupMediaTracksInfo(serials);
 
   if (HasAudio() || HasVideo()) {
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
@@ -673,42 +799,55 @@ bool OggReader::ReadOggChain()
     return false;
   }
 
-  nsAutoPtr<MediaInfo> info(new MediaInfo());
+  MessageField* msgInfo = nullptr;
+  if (mSkeletonState && mSkeletonState->mMsgFieldStore.Contains(serial)) {
+    mSkeletonState->mMsgFieldStore.Get(serial, &msgInfo);
+  }
+
   if ((newVorbisState && ReadHeaders(newVorbisState)) &&
       (mVorbisState->mInfo.rate == newVorbisState->mInfo.rate) &&
       (mVorbisState->mInfo.channels == newVorbisState->mInfo.channels)) {
-    mVorbisState->Reset();
-    mVorbisState = newVorbisState;
-    mVorbisSerial = mVorbisState->mSerial;
+
+    SetupTargetVorbis(newVorbisState);
     LOG(PR_LOG_DEBUG, ("New vorbis ogg link, serial=%d\n", mVorbisSerial));
+
+    if (msgInfo) {
+      InitTrack(msgInfo, &mInfo.mAudio.mTrackInfo, true);
+    }
+    mInfo.mAudio.mRate = newVorbisState->mInfo.rate;
+    mInfo.mAudio.mChannels = newVorbisState->mInfo.channels;
+
     chained = true;
-    info->mAudio.mRate = mVorbisState->mInfo.rate;
-    info->mAudio.mChannels = mVorbisState->mInfo.channels;
-    tags = mVorbisState->GetTags();
+    tags = newVorbisState->GetTags();
   }
 
 #ifdef MOZ_OPUS
   if ((newOpusState && ReadHeaders(newOpusState)) &&
       (mOpusState->mRate == newOpusState->mRate) &&
       (mOpusState->mChannels == newOpusState->mChannels)) {
-    mOpusState->Reset();
-    mOpusState = newOpusState;
-    mOpusSerial = mOpusState->mSerial;
+
+    SetupTargetOpus(newOpusState);
+
+    if (msgInfo) {
+      InitTrack(msgInfo, &mInfo.mAudio.mTrackInfo, true);
+    }
+    mInfo.mAudio.mRate = newOpusState->mRate;
+    mInfo.mAudio.mChannels = newOpusState->mChannels;
+
     chained = true;
-    info->mAudio.mRate = mOpusState->mRate;
-    info->mAudio.mChannels = mOpusState->mChannels;
-    tags = mOpusState->GetTags();
+    tags = newOpusState->GetTags();
   }
 #endif
 
   if (chained) {
     SetChained(true);
     {
-      info->mAudio.mHasAudio = HasAudio();
-      info->mVideo.mHasVideo = HasVideo();
-      int rate = info->mAudio.mRate;
+      mInfo.mAudio.mHasAudio = HasAudio();
+      mInfo.mVideo.mHasVideo = HasVideo();
+      nsAutoPtr<MediaInfo> info(new MediaInfo());
+      *info = mInfo;
       ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-      mDecoder->QueueMetadata((mDecodedAudioFrames * USECS_PER_S) / rate,
+      mDecoder->QueueMetadata((mDecodedAudioFrames * USECS_PER_S) / mInfo.mAudio.mRate,
                               info.forget(), tags);
     }
     return true;
@@ -1024,7 +1163,6 @@ int64_t OggReader::RangeEndTime(int64_t aStartOffset,
         endTime = -1;
         break;
       }
-
       continue;
     }
 
@@ -1054,7 +1192,6 @@ int64_t OggReader::RangeEndTime(int64_t aStartOffset,
 
     OggCodecState* codecState = nullptr;
     codecState = mCodecStore.Get(serial);
-
     if (!codecState) {
       
       
@@ -1143,7 +1280,9 @@ OggReader::SelectSeekRange(const nsTArray<SeekRange>& ranges,
 
 OggReader::IndexedSeekResult OggReader::RollbackIndexedSeek(int64_t aOffset)
 {
-  mSkeletonState->Deactivate();
+  if (mSkeletonState) {
+    mSkeletonState->Deactivate();
+  }
   MediaResource* resource = mDecoder->GetResource();
   NS_ENSURE_TRUE(resource != nullptr, SEEK_FATAL_ERROR);
   nsresult res = resource->Seek(nsISeekableStream::NS_SEEK_SET, aOffset);

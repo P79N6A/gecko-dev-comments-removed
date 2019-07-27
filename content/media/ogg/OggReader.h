@@ -268,6 +268,13 @@ private:
   
   void BuildSerialList(nsTArray<uint32_t>& aTracks);
 
+  
+  void SetupTargetTheora(TheoraState* aTheoraState);
+  void SetupTargetVorbis(VorbisState* aVorbisState);
+  void SetupTargetOpus(OpusState* aOpusState);
+  void SetupTargetSkeleton(SkeletonState* aSkeletonState);
+  void SetupMediaTracksInfo(const nsTArray<uint32_t>& aSerials);
+
   OggCodecStore mCodecStore;
 
   
