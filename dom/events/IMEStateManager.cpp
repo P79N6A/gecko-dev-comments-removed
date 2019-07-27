@@ -1084,6 +1084,16 @@ IMEStateManager::GetRootEditableNode(nsPresContext* aPresContext,
     nsINode* root = nullptr;
     nsINode* node = aContent;
     while (node && IsEditable(node)) {
+      
+      
+      
+      
+      
+      
+      if (node->IsContent() &&
+          node->AsContent()->HasIndependentSelection()) {
+        return node;
+      }
       root = node;
       node = node->GetParentNode();
     }
