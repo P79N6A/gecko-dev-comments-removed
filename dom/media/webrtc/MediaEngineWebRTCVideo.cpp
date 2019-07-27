@@ -164,8 +164,8 @@ MediaEngineWebRTCVideoSource::NumCapabilities()
   }
 
   switch (mMediaSource) {
-#ifdef XP_MACOSX
     case dom::MediaSourceEnum::Camera:
+#ifdef XP_MACOSX
       
       
       
