@@ -15,7 +15,6 @@
 #include "nsDataHashtable.h"
 #include "nsHashKeys.h"
 #include "nsTArray.h"
-#include "nsTHashtable.h"
 
 class nsCycleCollectionNoteRootCallback;
 class nsIException;
@@ -292,18 +291,6 @@ public:
   
   static CycleCollectedJSRuntime* Get();
 
-  
-  void AddZoneWaitingForGC(JS::Zone* aZone)
-  {
-    mZonesWaitingForGC.PutEntry(aZone);
-  }
-
-  
-  
-  
-  
-  void PrepareWaitingZonesForGC();
-
 private:
   JSGCThingParticipant mGCThingCycleCollectorGlobal;
 
@@ -326,8 +313,6 @@ private:
 
   OOMState mOutOfMemoryState;
   OOMState mLargeAllocationFailureState;
-
-  nsTHashtable<nsPtrHashKey<JS::Zone>> mZonesWaitingForGC;
 };
 
 MOZ_FINISH_NESTED_ENUM_CLASS(CycleCollectedJSRuntime::OOMState)
