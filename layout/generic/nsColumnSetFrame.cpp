@@ -390,8 +390,11 @@ nsColumnSetFrame::GetMinISize(nsRenderingContext *aRenderingContext)
                  "column-count and column-width can't both be auto");
     
     
+    
     colISize = iSize;
     iSize *= colStyle->mColumnCount;
+    nscoord colGap = GetColumnGap(this, colStyle);
+    iSize += colGap * (colStyle->mColumnCount - 1);
     
     
     iSize = std::max(iSize, colISize);
