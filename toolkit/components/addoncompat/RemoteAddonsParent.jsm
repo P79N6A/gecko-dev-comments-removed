@@ -329,8 +329,13 @@ let ObserverParent = {
 ObserverParent.init();
 
 
-let TOPIC_WHITELIST = ["content-document-global-created",
-                       "document-element-inserted",];
+let TOPIC_WHITELIST = [
+  "content-document-global-created",
+  "document-element-inserted",
+  "dom-window-destroyed",
+  "inner-window-destroyed",
+  "outer-window-destroyed",
+];
 
 
 
