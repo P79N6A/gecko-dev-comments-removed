@@ -207,8 +207,8 @@ class Range : public TempObject {
         
         
         
-        JS_ASSERT_IF(!hasInt32LowerBound_, lower_ == JSVAL_INT_MIN);
-        JS_ASSERT_IF(!hasInt32UpperBound_, upper_ == JSVAL_INT_MAX);
+        MOZ_ASSERT_IF(!hasInt32LowerBound_, lower_ == JSVAL_INT_MIN);
+        MOZ_ASSERT_IF(!hasInt32UpperBound_, upper_ == JSVAL_INT_MAX);
 
         
         MOZ_ASSERT(max_exponent_ <= MaxFiniteExponent ||
@@ -223,8 +223,8 @@ class Range : public TempObject {
         
         
         
-        JS_ASSERT_IF(!hasInt32LowerBound_ || !hasInt32UpperBound_,
-                     max_exponent_ + canHaveFractionalPart_ >= MaxInt32Exponent);
+        MOZ_ASSERT_IF(!hasInt32LowerBound_ || !hasInt32UpperBound_,
+                      max_exponent_ + canHaveFractionalPart_ >= MaxInt32Exponent);
         MOZ_ASSERT(max_exponent_ + canHaveFractionalPart_ >=
                    mozilla::FloorLog2(mozilla::Abs(upper_)));
         MOZ_ASSERT(max_exponent_ + canHaveFractionalPart_ >=

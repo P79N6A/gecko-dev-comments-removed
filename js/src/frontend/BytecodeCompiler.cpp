@@ -232,13 +232,13 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
 
 
 
-    JS_ASSERT_IF(evalCaller, options.compileAndGo);
-    JS_ASSERT_IF(evalCaller, options.forEval);
-    JS_ASSERT_IF(staticLevel != 0, evalCaller);
+    MOZ_ASSERT_IF(evalCaller, options.compileAndGo);
+    MOZ_ASSERT_IF(evalCaller, options.forEval);
+    MOZ_ASSERT_IF(staticLevel != 0, evalCaller);
 
     if (!CheckLength(cx, srcBuf))
         return nullptr;
-    JS_ASSERT_IF(staticLevel != 0, !options.sourceIsLazy);
+    MOZ_ASSERT_IF(staticLevel != 0, !options.sourceIsLazy);
 
     RootedScriptSource sourceObject(cx, CreateScriptSourceObject(cx, options));
     if (!sourceObject)
@@ -286,8 +286,8 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
     
     JSObject *globalScope =
         scopeChain && scopeChain == &scopeChain->global() ? (JSObject*) scopeChain : nullptr;
-    JS_ASSERT_IF(globalScope, globalScope->isNative());
-    JS_ASSERT_IF(globalScope, JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(globalScope->getClass()));
+    MOZ_ASSERT_IF(globalScope, globalScope->isNative());
+    MOZ_ASSERT_IF(globalScope, JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(globalScope->getClass()));
 
     BytecodeEmitter::EmitterMode emitterMode =
         options.selfHostingMode ? BytecodeEmitter::SelfHosting : BytecodeEmitter::Normal;
@@ -604,8 +604,8 @@ CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, const ReadOnlyComp
                 return false;
 
             
-            JS_ASSERT_IF(directives.strict(), newDirectives.strict());
-            JS_ASSERT_IF(directives.asmJS(), newDirectives.asmJS());
+            MOZ_ASSERT_IF(directives.strict(), newDirectives.strict());
+            MOZ_ASSERT_IF(directives.asmJS(), newDirectives.asmJS());
             directives = newDirectives;
         }
 

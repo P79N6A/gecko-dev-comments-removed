@@ -2067,7 +2067,7 @@ IonBuilder::finishLoop(CFGState &state, MBasicBlock *successor)
 
     MOZ_ASSERT(loopDepth_);
     loopDepth_--;
-    JS_ASSERT_IF(successor, successor->loopDepth() == loopDepth_);
+    MOZ_ASSERT_IF(successor, successor->loopDepth() == loopDepth_);
 
     
     
@@ -2749,8 +2749,8 @@ IonBuilder::assertValidLoopHeadOp(jsbytecode *pc)
     
     
     CFGState &state = cfgStack_.back();
-    JS_ASSERT_IF((JSOp)*(state.loop.entry->pc()) == JSOP_GOTO,
-        GetNextPc(state.loop.entry->pc()) == pc);
+    MOZ_ASSERT_IF((JSOp)*(state.loop.entry->pc()) == JSOP_GOTO,
+         GetNextPc(state.loop.entry->pc()) == pc);
 
     
     jssrcnote *sn = info().getNote(gsn, pc);
@@ -3626,7 +3626,7 @@ IonBuilder::processCondSwitchCase(CFGState &state)
         
         
         
-        JS_ASSERT_IF(!caseIsNew, caseIsDefault);
+        MOZ_ASSERT_IF(!caseIsNew, caseIsDefault);
         if (!caseIsNew && !caseBlock->addPredecessorPopN(alloc(), current, 1))
             return ControlStatus_Error;
     } else {
@@ -3678,13 +3678,13 @@ IonBuilder::processCondSwitchBody(CFGState &state)
 
     MOZ_ASSERT(currentIdx <= bodies.length());
     if (currentIdx == bodies.length()) {
-        JS_ASSERT_IF(current, pc == state.condswitch.exitpc);
+        MOZ_ASSERT_IF(current, pc == state.condswitch.exitpc);
         return processSwitchEnd(state.condswitch.breaks, state.condswitch.exitpc);
     }
 
     
     MBasicBlock *nextBody = bodies[currentIdx++];
-    JS_ASSERT_IF(current, pc == nextBody->pc());
+    MOZ_ASSERT_IF(current, pc == nextBody->pc());
 
     
     graph().moveBlockToEnd(nextBody);
@@ -4721,8 +4721,8 @@ IonBuilder::inlineTypeObjectFallback(CallInfo &callInfo, MBasicBlock *dispatchBl
 
     
     
-    JS_ASSERT_IF(callInfo.fun()->isGetPropertyCache(), !cache->hasUses());
-    JS_ASSERT_IF(callInfo.fun()->isTypeBarrier(), cache->hasOneUse());
+    MOZ_ASSERT_IF(callInfo.fun()->isGetPropertyCache(), !cache->hasUses());
+    MOZ_ASSERT_IF(callInfo.fun()->isTypeBarrier(), cache->hasOneUse());
 
     
     
@@ -4812,8 +4812,8 @@ IonBuilder::inlineCalls(CallInfo &callInfo, ObjectVector &targets,
     
     MOZ_ASSERT(IsIonInlinablePC(pc));
     MOZ_ASSERT(choiceSet.length() == targets.length());
-    JS_ASSERT_IF(!maybeCache, targets.length() >= 2);
-    JS_ASSERT_IF(maybeCache, targets.length() >= 1);
+    MOZ_ASSERT_IF(!maybeCache, targets.length() >= 2);
+    MOZ_ASSERT_IF(maybeCache, targets.length() >= 1);
 
     MBasicBlock *dispatchBlock = current;
     callInfo.setImplicitlyUsedUnchecked();
@@ -5435,7 +5435,7 @@ IonBuilder::jsop_call(uint32_t argc, bool constructing)
         if (!getPolyCallTargets(calleeTypes, constructing, originals, 4, &gotLambda))
             return false;
     }
-    JS_ASSERT_IF(gotLambda, originals.length() <= 1);
+    MOZ_ASSERT_IF(gotLambda, originals.length() <= 1);
 
     
     
@@ -5603,7 +5603,7 @@ IonBuilder::makeCallHelper(JSFunction *target, CallInfo &callInfo, bool cloneAtC
     
     
     for (int i = targetArgs; i > (int)callInfo.argc(); i--) {
-        JS_ASSERT_IF(target, !target->isNative());
+        MOZ_ASSERT_IF(target, !target->isNative());
         MConstant *undef = constant(UndefinedValue());
         call->addArg(i, undef);
     }
@@ -5670,8 +5670,8 @@ IonBuilder::makeCall(JSFunction *target, CallInfo &callInfo, bool cloneAtCallsit
 {
     
     
-    JS_ASSERT_IF(callInfo.constructing() && target,
-                 target->isInterpretedConstructor() || target->isNativeConstructor());
+    MOZ_ASSERT_IF(callInfo.constructing() && target,
+                  target->isInterpretedConstructor() || target->isNativeConstructor());
 
     MCall *call = makeCallHelper(target, callInfo, cloneAtCallsite);
     if (!call)
@@ -5851,8 +5851,8 @@ IonBuilder::jsop_newarray_copyonwrite()
     
     
     
-    JS_ASSERT_IF(info().executionMode() != ArgumentsUsageAnalysis,
-                 templateObject->type()->hasAnyFlags(types::OBJECT_FLAG_COPY_ON_WRITE));
+    MOZ_ASSERT_IF(info().executionMode() != ArgumentsUsageAnalysis,
+                  templateObject->type()->hasAnyFlags(types::OBJECT_FLAG_COPY_ON_WRITE));
 
     MNewArrayCopyOnWrite *ins =
         MNewArrayCopyOnWrite::New(alloc(), constraints(), templateObject,
@@ -6272,7 +6272,7 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopEntry)
     for (uint32_t i = info().startArgSlot(); i < osrBlock->stackDepth(); i++) {
         MDefinition *existing = current->getSlot(i);
         MDefinition *def = osrBlock->getSlot(i);
-        JS_ASSERT_IF(!needsArgsObj || !info().isSlotAliasedAtOsr(i), def->type() == MIRType_Value);
+        MOZ_ASSERT_IF(!needsArgsObj || !info().isSlotAliasedAtOsr(i), def->type() == MIRType_Value);
 
         
         
@@ -7360,7 +7360,7 @@ IonBuilder::pushDerivedTypedObject(bool *emitted,
     types::TemporaryTypeSet *objTypes = obj->resultTypeSet();
     const Class *expectedClass = objTypes ? objTypes->getKnownClass() : nullptr;
     const TypedProto *expectedProto = derivedPrediction.getKnownPrototype();
-    JS_ASSERT_IF(expectedClass, IsTypedObjectClass(expectedClass));
+    MOZ_ASSERT_IF(expectedClass, IsTypedObjectClass(expectedClass));
 
     
     

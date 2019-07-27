@@ -136,10 +136,10 @@ struct UsePosition : public TempObject,
         
         
         
-        JS_ASSERT_IF(!use->isFixedRegister(),
-                     pos.subpos() == (use->usedAtStart()
-                                      ? CodePosition::INPUT
-                                      : CodePosition::OUTPUT));
+        MOZ_ASSERT_IF(!use->isFixedRegister(),
+                      pos.subpos() == (use->usedAtStart()
+                                       ? CodePosition::INPUT
+                                       : CodePosition::OUTPUT));
     }
 };
 
@@ -652,7 +652,7 @@ class LiveRangeAllocator : protected RegisterAllocator
                 if (interval->numRanges() == 0)
                     continue;
 
-                JS_ASSERT_IF(prev, prev->end() <= interval->start());
+                MOZ_ASSERT_IF(prev, prev->end() <= interval->start());
                 interval->validateRanges();
 
                 prev = interval;

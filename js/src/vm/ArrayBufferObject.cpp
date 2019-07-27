@@ -581,7 +581,7 @@ ArrayBufferObject *
 ArrayBufferObject::create(JSContext *cx, uint32_t nbytes, BufferContents contents,
                           NewObjectKind newKind )
 {
-    JS_ASSERT_IF(contents.kind() & MAPPED_BUFFER, contents);
+    MOZ_ASSERT_IF(contents.kind() & MAPPED_BUFFER, contents);
 
     
     

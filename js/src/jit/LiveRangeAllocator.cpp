@@ -775,12 +775,12 @@ LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
                     LUse *use = inputAlloc->toUse();
 
                     
-                    JS_ASSERT_IF(forLSRA, inputOf(*ins) > outputOf(block->firstId()));
+                    MOZ_ASSERT_IF(forLSRA, inputOf(*ins) > outputOf(block->firstId()));
 
                     
                     
-                    JS_ASSERT_IF(ins->isCall() && !inputAlloc.isSnapshotInput(),
-                                 use->isFixedRegister() || use->usedAtStart());
+                    MOZ_ASSERT_IF(ins->isCall() && !inputAlloc.isSnapshotInput(),
+                                  use->isFixedRegister() || use->usedAtStart());
 
 #ifdef DEBUG
                     
@@ -804,12 +804,12 @@ LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
                     MOZ_ASSERT(!(hasUseRegister && hasUseRegisterAtStart));
 
                     
-                    JS_ASSERT_IF(forLSRA && hasUnaliasedDouble() && hasFloat32Def
-                                 && vregs[use].type() == LDefinition::DOUBLE,
-                                 !use->usedAtStart());
-                    JS_ASSERT_IF(forLSRA && hasMultiAlias() && hasDoubleDef
-                                 && vregs[use].type() == LDefinition::FLOAT32,
-                                 !use->usedAtStart());
+                    MOZ_ASSERT_IF(forLSRA && hasUnaliasedDouble() && hasFloat32Def
+                                  && vregs[use].type() == LDefinition::DOUBLE,
+                                  !use->usedAtStart());
+                    MOZ_ASSERT_IF(forLSRA && hasMultiAlias() && hasDoubleDef
+                                  && vregs[use].type() == LDefinition::FLOAT32,
+                                  !use->usedAtStart());
 #endif
 
                     
@@ -937,7 +937,7 @@ LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
             loopDone->clear();
         }
 
-        JS_ASSERT_IF(!mblock->numPredecessors(), live->empty());
+        MOZ_ASSERT_IF(!mblock->numPredecessors(), live->empty());
     }
 
     validateVirtualRegisters();
@@ -998,7 +998,7 @@ LiveInterval::validateRanges()
         Range *range = &ranges_[i];
 
         MOZ_ASSERT(range->from < range->to);
-        JS_ASSERT_IF(prev, prev->to <= range->from);
+        MOZ_ASSERT_IF(prev, prev->to <= range->from);
         prev = range;
     }
 }

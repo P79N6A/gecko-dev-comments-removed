@@ -521,8 +521,8 @@ js::RemapWrapper(JSContext *cx, JSObject *wobjArg, JSObject *newTargetArg)
     
     
     
-    JS_ASSERT_IF(origTarget != newTarget,
-                 !wcompartment->lookupWrapper(ObjectValue(*newTarget)));
+    MOZ_ASSERT_IF(origTarget != newTarget,
+                  !wcompartment->lookupWrapper(ObjectValue(*newTarget)));
 
     
     

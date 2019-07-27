@@ -31,8 +31,8 @@ InlineScriptTree *
 InlineScriptTree::New(TempAllocator *allocator, InlineScriptTree *callerTree,
                       jsbytecode *callerPc, JSScript *script)
 {
-    JS_ASSERT_IF(!callerTree, !callerPc);
-    JS_ASSERT_IF(callerTree, callerTree->script()->containsPC(callerPc));
+    MOZ_ASSERT_IF(!callerTree, !callerPc);
+    MOZ_ASSERT_IF(callerTree, callerTree->script()->containsPC(callerPc));
 
     
     void *treeMem = allocator->allocate(sizeof(InlineScriptTree));

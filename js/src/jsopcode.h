@@ -349,10 +349,10 @@ public:
     void advanceTo(ptrdiff_t relpc) {
         
         
-        JS_ASSERT_IF(offset > 0, relpc > offset);
+        MOZ_ASSERT_IF(offset > 0, relpc > offset);
 
         
-        JS_ASSERT_IF(offset > 0, SN_IS_TERMINATOR(sn) || SN_DELTA(sn) > 0);
+        MOZ_ASSERT_IF(offset > 0, SN_IS_TERMINATOR(sn) || SN_DELTA(sn) > 0);
 
         
         lineHeader = (offset == 0);

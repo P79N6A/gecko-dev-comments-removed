@@ -1690,7 +1690,7 @@ class Assembler : public AssemblerShared
         int len = high - low + 1;
         
         
-        JS_ASSERT_IF(len > 16, dtmUpdate == WriteBack);
+        MOZ_ASSERT_IF(len > 16, dtmUpdate == WriteBack);
 
         int adjustLow = dtmLoadStore == IsStore ? 0 : 1;
         int adjustHigh = dtmLoadStore == IsStore ? -1 : 0;

@@ -1014,7 +1014,7 @@ bool
 js::ValueToIterator(JSContext *cx, unsigned flags, MutableHandleValue vp)
 {
     
-    JS_ASSERT_IF(flags & JSITER_KEYVALUE, flags & JSITER_FOREACH);
+    MOZ_ASSERT_IF(flags & JSITER_KEYVALUE, flags & JSITER_FOREACH);
 
     RootedObject obj(cx);
     if (vp.isObject()) {

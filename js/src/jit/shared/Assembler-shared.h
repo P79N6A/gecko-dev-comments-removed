@@ -206,7 +206,7 @@ struct ImmGCPtr
     explicit ImmGCPtr(const gc::Cell *ptr) : value(ptr)
     {
         MOZ_ASSERT(!IsPoisonedPtr(ptr));
-        JS_ASSERT_IF(ptr, ptr->isTenured());
+        MOZ_ASSERT_IF(ptr, ptr->isTenured());
 
         
         MOZ_ASSERT(!IsCompilingAsmJS());

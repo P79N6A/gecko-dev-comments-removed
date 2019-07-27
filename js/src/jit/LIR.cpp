@@ -50,7 +50,7 @@ bool
 LIRGraph::noteNeedsSafepoint(LInstruction *ins)
 {
     
-    JS_ASSERT_IF(!safepoints_.empty(), safepoints_.back()->id() < ins->id());
+    MOZ_ASSERT_IF(!safepoints_.empty(), safepoints_.back()->id() < ins->id());
     if (!ins->isCall() && !nonCallSafepoints_.append(ins))
         return false;
     return safepoints_.append(ins);

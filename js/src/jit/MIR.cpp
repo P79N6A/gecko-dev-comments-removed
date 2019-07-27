@@ -979,8 +979,8 @@ MCallDOMNative::computeMovable()
     
     const JSJitInfo *jitInfo = getJitInfo();
 
-    JS_ASSERT_IF(jitInfo->isMovable,
-                 jitInfo->aliasSet() != JSJitInfo::AliasEverything);
+    MOZ_ASSERT_IF(jitInfo->isMovable,
+                  jitInfo->aliasSet() != JSJitInfo::AliasEverything);
 
     if (jitInfo->isMovable && !isEffectful())
         setMovable();
@@ -4148,7 +4148,7 @@ TryAddTypeBarrierForWrite(TempAllocator &alloc, types::CompilerConstraintList *c
         if (!(*pvalue)->mightBeType(propertyType)) {
             
             
-            JS_ASSERT_IF((*pvalue)->type() != MIRType_Value, (*pvalue)->type() != propertyType);
+            MOZ_ASSERT_IF((*pvalue)->type() != MIRType_Value, (*pvalue)->type() != propertyType);
             return false;
         }
         MInstruction *ins = MUnbox::New(alloc, *pvalue, propertyType, MUnbox::Fallible);

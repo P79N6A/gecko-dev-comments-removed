@@ -501,7 +501,7 @@ ForkJoinOperation::apply()
     
     
 
-    JS_ASSERT_IF(!IsBaselineEnabled(cx_), !IsIonEnabled(cx_));
+    MOZ_ASSERT_IF(!IsBaselineEnabled(cx_), !IsIonEnabled(cx_));
     if (!IsBaselineEnabled(cx_) || !IsIonEnabled(cx_))
         return sequentialExecution(true);
 

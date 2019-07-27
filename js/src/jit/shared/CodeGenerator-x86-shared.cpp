@@ -420,8 +420,8 @@ CodeGeneratorX86Shared::bailout(const T &binder, LSnapshot *snapshot)
     
     
     
-    JS_ASSERT_IF(frameClass_ != FrameSizeClass::None() && deoptTable_,
-                 frameClass_.frameSize() == masm.framePushed());
+    MOZ_ASSERT_IF(frameClass_ != FrameSizeClass::None() && deoptTable_,
+                  frameClass_.frameSize() == masm.framePushed());
 
 #ifdef JS_CODEGEN_X86
     
@@ -760,7 +760,7 @@ CodeGeneratorX86Shared::visitOutOfLineUndoALUOperation(OutOfLineUndoALUOperation
     LAllocation *rhs = ins->getOperand(1);
 
     MOZ_ASSERT(reg == ToRegister(lhs));
-    JS_ASSERT_IF(rhs->isGeneralReg(), reg != ToRegister(rhs));
+    MOZ_ASSERT_IF(rhs->isGeneralReg(), reg != ToRegister(rhs));
 
     
     
@@ -807,7 +807,7 @@ CodeGeneratorX86Shared::visitMulI(LMulI *ins)
     const LAllocation *lhs = ins->lhs();
     const LAllocation *rhs = ins->rhs();
     MMul *mul = ins->mir();
-    JS_ASSERT_IF(mul->mode() == MMul::Integer, !mul->canBeNegativeZero() && !mul->canOverflow());
+    MOZ_ASSERT_IF(mul->mode() == MMul::Integer, !mul->canBeNegativeZero() && !mul->canOverflow());
 
     if (rhs->isConstant()) {
         
@@ -901,9 +901,9 @@ CodeGeneratorX86Shared::visitUDivOrMod(LUDivOrMod *ins)
     Register rhs = ToRegister(ins->rhs());
     Register output = ToRegister(ins->output());
 
-    JS_ASSERT_IF(lhs != rhs, rhs != eax);
+    MOZ_ASSERT_IF(lhs != rhs, rhs != eax);
     MOZ_ASSERT(rhs != edx);
-    JS_ASSERT_IF(output == eax, ToRegister(ins->remainder()) == edx);
+    MOZ_ASSERT_IF(output == eax, ToRegister(ins->remainder()) == edx);
 
     ReturnZero *ool = nullptr;
 
@@ -960,7 +960,7 @@ CodeGeneratorX86Shared::visitMulNegativeZeroCheck(MulNegativeZeroCheck *ool)
     Register result = ToRegister(ins->output());
     Operand lhsCopy = ToOperand(ins->lhsCopy());
     Operand rhs = ToOperand(ins->rhs());
-    JS_ASSERT_IF(lhsCopy.kind() == Operand::REG, lhsCopy.reg() != result.code());
+    MOZ_ASSERT_IF(lhsCopy.kind() == Operand::REG, lhsCopy.reg() != result.code());
 
     
     masm.movl(lhsCopy, result);
@@ -1119,7 +1119,7 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
 
     MDiv *mir = ins->mir();
 
-    JS_ASSERT_IF(lhs != rhs, rhs != eax);
+    MOZ_ASSERT_IF(lhs != rhs, rhs != eax);
     MOZ_ASSERT(rhs != edx);
     MOZ_ASSERT(remainder == edx);
     MOZ_ASSERT(output == eax);
@@ -1292,7 +1292,7 @@ CodeGeneratorX86Shared::visitModI(LModI *ins)
     Register rhs = ToRegister(ins->rhs());
 
     
-    JS_ASSERT_IF(lhs != rhs, rhs != eax);
+    MOZ_ASSERT_IF(lhs != rhs, rhs != eax);
     MOZ_ASSERT(rhs != edx);
     MOZ_ASSERT(remainder == edx);
     MOZ_ASSERT(ToRegister(ins->getTemp(0)) == eax);

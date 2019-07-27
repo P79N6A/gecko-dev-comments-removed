@@ -567,9 +567,9 @@ js::XDRInterpretedFunction(XDRState<mode> *xdr, HandleObject enclosingScope, Han
         
         
         
-        JS_ASSERT_IF(fun->hasSingletonType() &&
-                     !((lazy && lazy->hasBeenCloned()) || (script && script->hasBeenCloned())),
-                     fun->environment() == nullptr);
+        MOZ_ASSERT_IF(fun->hasSingletonType() &&
+                      !((lazy && lazy->hasBeenCloned()) || (script && script->hasBeenCloned())),
+                      fun->environment() == nullptr);
     }
 
     if (!xdr->codeUint32(&firstword))
@@ -955,7 +955,7 @@ js::FindBody(JSContext *cx, HandleFunction fun, HandleLinearString src, size_t *
     if (tt == TOK_ERROR)
         return false;
     bool braced = tt == TOK_LC;
-    JS_ASSERT_IF(fun->isExprClosure(), !braced);
+    MOZ_ASSERT_IF(fun->isExprClosure(), !braced);
     *bodyStart = ts.currentToken().pos.begin;
     if (braced)
         *bodyStart += 1;
@@ -1037,10 +1037,10 @@ js::FunctionToString(JSContext *cx, HandleFunction fun, bool bodyOnly, bool lamb
 
         
         
-        JS_ASSERT_IF(funCon, !fun->isArrow());
-        JS_ASSERT_IF(funCon, !exprBody);
-        JS_ASSERT_IF(!funCon && !fun->isArrow(),
-                     src->length() > 0 && src->latin1OrTwoByteChar(0) == '(');
+        MOZ_ASSERT_IF(funCon, !fun->isArrow());
+        MOZ_ASSERT_IF(funCon, !exprBody);
+        MOZ_ASSERT_IF(!funCon && !fun->isArrow(),
+                      src->length() > 0 && src->latin1OrTwoByteChar(0) == '(');
 
         
         
@@ -1949,7 +1949,7 @@ js::NewFunctionWithProto(ExclusiveContext *cx, HandleObject funobjArg, Native na
     if (funobj) {
         MOZ_ASSERT(funobj->is<JSFunction>());
         MOZ_ASSERT(funobj->getParent() == parent);
-        JS_ASSERT_IF(native, funobj->hasSingletonType());
+        MOZ_ASSERT_IF(native, funobj->hasSingletonType());
     } else {
         
         
