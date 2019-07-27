@@ -229,106 +229,12 @@ loop.standaloneRoomViews = (function(mozL10n) {
     }
   });
 
-  var StandaloneRoomContextItem = React.createClass({displayName: "StandaloneRoomContextItem",
-    propTypes: {
-      dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
-      receivingScreenShare: React.PropTypes.bool,
-      roomContextUrl: React.PropTypes.object
-    },
-
-    recordClick: function() {
-      this.props.dispatcher.dispatch(new sharedActions.RecordClick({
-        linkInfo: "Shared URL"
-      }));
-    },
-
-    render: function() {
-      if (!this.props.roomContextUrl ||
-          !this.props.roomContextUrl.location) {
-        return null;
-      }
-
-      var locationInfo = sharedUtils.formatURL(this.props.roomContextUrl.location);
-      if (!locationInfo) {
-        return null;
-      }
-
-      var cx = React.addons.classSet;
-
-      var classes = cx({
-        "standalone-context-url": true,
-        "screen-share-active": this.props.receivingScreenShare
-      });
-
-      return (
-        React.createElement("div", {className: classes}, 
-          React.createElement("img", {src: this.props.roomContextUrl.thumbnail || "shared/img/icons-16x16.svg#globe"}), 
-          React.createElement("div", {className: "standalone-context-url-description-wrapper"}, 
-            this.props.roomContextUrl.description, 
-            React.createElement("br", null), React.createElement("a", {href: locationInfo.location, 
-                     onClick: this.recordClick, 
-                     target: "_blank", 
-                     title: locationInfo.location}, locationInfo.hostname)
-          )
-        )
-      );
-    }
-  });
-
-  var StandaloneRoomContextView = React.createClass({displayName: "StandaloneRoomContextView",
-    propTypes: {
-      dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
-      receivingScreenShare: React.PropTypes.bool.isRequired,
-      roomContextUrls: React.PropTypes.array,
-      roomName: React.PropTypes.string,
-      roomInfoFailure: React.PropTypes.string
-    },
-
-    getInitialState: function() {
-      return {
-        failureLogged: false
-      };
-    },
-
-    _logFailure: function(message) {
-      if (!this.state.failureLogged) {
-        console.error(mozL10n.get(message));
-        this.state.failureLogged = true;
-      }
-    },
-
-    render: function() {
-      
-      
-      if (this.props.roomInfoFailure === ROOM_INFO_FAILURES.WEB_CRYPTO_UNSUPPORTED) {
-        this._logFailure("room_information_failure_unsupported_browser");
-        return null;
-      } else if (this.props.roomInfoFailure) {
-        this._logFailure("room_information_failure_not_available");
-        return null;
-      }
-
-      
-      var roomContextUrl = (this.props.roomContextUrls &&
-                            this.props.roomContextUrls.length > 0) ?
-                            this.props.roomContextUrls[0] : null;
-      return (
-        React.createElement("div", {className: "standalone-room-info"}, 
-          React.createElement("h2", {className: "room-name"}, this.props.roomName), 
-          React.createElement(StandaloneRoomContextItem, {
-            dispatcher: this.props.dispatcher, 
-            receivingScreenShare: this.props.receivingScreenShare, 
-            roomContextUrl: roomContextUrl})
-        )
-      );
-    }
-  });
-
   var StandaloneRoomView = React.createClass({displayName: "StandaloneRoomView",
     mixins: [
       Backbone.Events,
       sharedMixins.MediaSetupMixin,
-      sharedMixins.RoomsAudioMixin
+      sharedMixins.RoomsAudioMixin,
+      loop.store.StoreMixin("activeRoomStore")
     ],
 
     propTypes: {
@@ -352,30 +258,9 @@ loop.standaloneRoomViews = (function(mozL10n) {
       });
     },
 
-    componentWillMount: function() {
-      this.listenTo(this.props.activeRoomStore, "change",
-                    this._onActiveRoomStateChanged);
-    },
-
-    
-
-
-
-
-
-    _onActiveRoomStateChanged: function() {
-      var state = this.props.activeRoomStore.getStoreState();
-      this.updateVideoDimensions(state.localVideoDimensions, state.remoteVideoDimensions);
-      this.setState(state);
-    },
-
     componentDidMount: function() {
       
       document.body.classList.add("is-standalone-room");
-    },
-
-    componentWillUnmount: function() {
-      this.stopListening(this.props.activeRoomStore);
     },
 
     
@@ -391,32 +276,6 @@ loop.standaloneRoomViews = (function(mozL10n) {
         this.props.dispatcher.dispatch(new sharedActions.SetupStreamElements({
           publisherConfig: this.getDefaultPublisherConfig({publishVideo: true})
         }));
-      }
-
-      if (this.state.roomState !== ROOM_STATES.JOINED &&
-          nextState.roomState === ROOM_STATES.JOINED) {
-        
-        
-        
-        this.updateVideoContainer();
-      }
-
-      if (nextState.roomState === ROOM_STATES.INIT ||
-          nextState.roomState === ROOM_STATES.GATHER ||
-          nextState.roomState === ROOM_STATES.READY) {
-        this.resetDimensionsCache();
-      }
-
-      
-      if (this.state.receivingScreenShare && !nextState.receivingScreenShare) {
-        
-        var node = this._getElement(".remote");
-        node.removeAttribute("style");
-      }
-
-      if (this.state.receivingScreenShare != nextState.receivingScreenShare ||
-          this.state.remoteVideoEnabled != nextState.remoteVideoEnabled) {
-        this.updateVideoContainer();
       }
     },
 
@@ -434,162 +293,11 @@ loop.standaloneRoomViews = (function(mozL10n) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-    _matchMedia: function(queryString) {
-      if ("matchMedia" in this.state) {
-        return this.state.matchMedia(queryString);
-      } else if ("matchMedia" in window) {
-        return window.matchMedia(queryString);
-      }
-      return null;
-    },
-
-    
-
-
-
-
-
     publishStream: function(type, enabled) {
       this.props.dispatcher.dispatch(new sharedActions.SetMute({
         type: type,
         enabled: enabled
       }));
-    },
-
-    
-
-
-
-
-
-
-
-    updateLocalCameraPosition: function(ratio) {
-      
-      var LOCAL_STREAM_SIZE = 0.25;
-      
-      var LOCAL_STREAM_OVERLAP = 0.25;
-      
-      var SDK_MIN_SIZE = 48;
-
-      var node = this._getElement(".local");
-      var targetWidth;
-
-      node.style.right = "auto";
-      if (this._matchMedia("screen and (max-width:640px)").matches) {
-        
-        targetWidth = 180;
-        node.style.width = (targetWidth * ratio.width) + "px";
-        node.style.height = (targetWidth * ratio.height) + "px";
-        node.style.left = "auto";
-      } else {
-        
-        
-
-        
-        
-        var remoteVideoDimensions;
-        var isScreenShare = this.state.receivingScreenShare;
-        var videoDisplayed = isScreenShare ?
-          this.state.screenShareVideoObject || this.props.screenSharePosterUrl :
-          this.state.remoteSrcVideoObject || this.props.remotePosterUrl;
-
-        if ((isScreenShare || this.shouldRenderRemoteVideo()) && videoDisplayed) {
-          remoteVideoDimensions = this.getRemoteVideoDimensions(
-            isScreenShare ? "screen" : "camera");
-        } else {
-          var remoteElement = this.getDOMNode().querySelector(".remote.focus-stream");
-          if (!remoteElement) {
-            return;
-          }
-          remoteVideoDimensions = {
-            streamWidth: remoteElement.offsetWidth,
-            offsetX: remoteElement.offsetLeft
-          };
-        }
-
-        targetWidth = remoteVideoDimensions.streamWidth * LOCAL_STREAM_SIZE;
-
-        var realWidth = targetWidth * ratio.width;
-        var realHeight = targetWidth * ratio.height;
-
-        
-        if (realWidth < SDK_MIN_SIZE) {
-          realWidth = SDK_MIN_SIZE;
-          realHeight = realWidth / ratio.width * ratio.height;
-        }
-        if (realHeight < SDK_MIN_SIZE) {
-          realHeight = SDK_MIN_SIZE;
-          realWidth = realHeight / ratio.height * ratio.width;
-        }
-
-        var offsetX = (remoteVideoDimensions.streamWidth + remoteVideoDimensions.offsetX);
-        
-        
-        
-        
-        node.style.left = (offsetX - (realWidth * LOCAL_STREAM_OVERLAP)) + "px";
-        node.style.width = realWidth + "px";
-        node.style.height = realHeight + "px";
-      }
-    },
-
-    
-
-
-
-
-
-
-
-
-    updateRemoteCameraPosition: function(ratio) {
-      
-      if (!this.state.receivingScreenShare) {
-        return;
-      }
-      
-      
-      if (this._matchMedia("screen and (max-width:640px)").matches) {
-        return;
-      }
-
-      
-      var LOCAL_REMOTE_SEPARATION = 10;
-
-      var node = this._getElement(".remote");
-      var localNode = this._getElement(".local");
-
-      
-      node.style.width = localNode.offsetWidth + "px";
-
-      
-      var height = ((localNode.offsetWidth / ratio.width) * ratio.height);
-      node.style.height = height + "px";
-
-      node.style.right = "auto";
-      node.style.bottom = "auto";
-
-      
-      
-
-      
-      
-      node.style.top = (localNode.offsetTop - height - LOCAL_REMOTE_SEPARATION) + "px";
-
-      
-      node.style.left = localNode.offsetLeft + "px";
     },
 
     
@@ -684,12 +392,6 @@ loop.standaloneRoomViews = (function(mozL10n) {
                                   roomUsed: this.state.used}), 
           React.createElement("div", {className: "video-layout-wrapper"}, 
             React.createElement("div", {className: "conversation room-conversation"}, 
-              React.createElement(StandaloneRoomContextView, {
-                dispatcher: this.props.dispatcher, 
-                receivingScreenShare: this.state.receivingScreenShare, 
-                roomContextUrls: this.state.roomContextUrls, 
-                roomName: this.state.roomName, 
-                roomInfoFailure: this.state.roomInfoFailure}), 
               React.createElement("div", {className: "media nested"}, 
                 React.createElement("span", {className: "self-view-hidden-message"}, 
                   mozL10n.get("self_view_hidden_message")
@@ -737,7 +439,6 @@ loop.standaloneRoomViews = (function(mozL10n) {
   });
 
   return {
-    StandaloneRoomContextView: StandaloneRoomContextView,
     StandaloneRoomFooter: StandaloneRoomFooter,
     StandaloneRoomHeader: StandaloneRoomHeader,
     StandaloneRoomView: StandaloneRoomView

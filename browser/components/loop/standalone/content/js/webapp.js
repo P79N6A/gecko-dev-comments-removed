@@ -1094,6 +1094,7 @@ loop.webapp = (function($, _, OT, mozL10n) {
     });
 
     loop.store.StoreMixin.register({
+      activeRoomStore: activeRoomStore,
       feedbackStore: feedbackStore,
       
       
