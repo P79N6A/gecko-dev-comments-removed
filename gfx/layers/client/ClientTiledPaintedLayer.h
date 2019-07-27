@@ -104,6 +104,11 @@ private:
   
 
 
+  bool IsScrollingOnCompositor(const FrameMetrics& aParentMetrics);
+
+  
+
+
 
   bool RenderHighPrecision(nsIntRegion& aInvalidRegion,
                            const nsIntRegion& aVisibleRegion,
