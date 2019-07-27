@@ -16,7 +16,7 @@ struct AppleUtils {
   
   static nsresult GetProperty(AudioFileStreamID aAudioFileStream,
                               AudioFileStreamPropertyID aPropertyID,
-                              void *aData);
+                              void* aData);
 
   
   static void SetCFDict(CFMutableDictionaryRef dict,
