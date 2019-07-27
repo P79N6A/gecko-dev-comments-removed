@@ -1284,6 +1284,8 @@ public:
   uint64_t GetAnimationGeneration() { return mAnimationGeneration; }
   void SetAnimationGeneration(uint64_t aCount) { mAnimationGeneration = aCount; }
 
+  bool HasTransformAnimation() const;
+
   
 
 

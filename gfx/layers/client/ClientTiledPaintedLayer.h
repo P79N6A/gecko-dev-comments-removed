@@ -81,7 +81,8 @@ public:
 
 
   void GetAncestorLayers(LayerMetricsWrapper* aOutScrollAncestor,
-                         LayerMetricsWrapper* aOutDisplayPortAncestor);
+                         LayerMetricsWrapper* aOutDisplayPortAncestor,
+                         bool* aOutHasTransformAnimation);
 
 private:
   ClientLayerManager* ClientManager()
