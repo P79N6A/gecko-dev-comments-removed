@@ -10,7 +10,7 @@ import java.util.EnumSet;
 import java.util.List;
 
 import org.mozilla.gecko.db.BrowserContract.ExpirePriority;
-import org.mozilla.gecko.db.SuggestedSites;
+import org.mozilla.gecko.db.BrowserContract.History;
 import org.mozilla.gecko.distribution.Distribution;
 import org.mozilla.gecko.favicons.decoders.LoadFaviconResult;
 import org.mozilla.gecko.mozglue.RobocopTarget;
@@ -21,9 +21,8 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.ContentObserver;
 import android.database.Cursor;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.Color;
-
+import android.graphics.drawable.BitmapDrawable;
 
 
 
@@ -36,16 +35,6 @@ import android.graphics.Color;
 
 
 public class BrowserDB {
-    public static interface URLColumns {
-        public static String URL = "url";
-        public static String TITLE = "title";
-        public static String FAVICON = "favicon";
-        public static String THUMBNAIL = "thumbnail";
-        public static String DATE_LAST_VISITED = "date-last-visited";
-        public static String VISITS = "visits";
-        public static String KEYWORD = "keyword";
-    }
-
     public static enum FilterFlags {
         EXCLUDE_PINNED_SITES
     }
@@ -87,7 +76,7 @@ public class BrowserDB {
     private static void appendUrlsFromCursor(List<String> urls, Cursor c) {
         c.moveToPosition(-1);
         while (c.moveToNext()) {
-            String url = c.getString(c.getColumnIndex(URLColumns.URL));
+            String url = c.getString(c.getColumnIndex(History.URL));
 
             
             
