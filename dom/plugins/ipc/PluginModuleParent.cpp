@@ -916,6 +916,8 @@ PluginModuleChromeParent::ActorDestroy(ActorDestroyReason why)
 #ifdef MOZ_CRASHREPORTER
         ProcessFirstMinidump();
 #endif
+        Telemetry::Accumulate(Telemetry::SUBPROCESS_ABNORMAL_ABORT,
+                              NS_LITERAL_CSTRING("plugin"), 1);
     }
 
     
