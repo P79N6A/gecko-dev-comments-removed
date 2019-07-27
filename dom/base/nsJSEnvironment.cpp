@@ -557,46 +557,38 @@ NS_ScriptErrorReporter(JSContext *cx,
     }
   }
 
-  
-  nsIScriptContext *context = nsJSUtils::GetDynamicScriptContext(cx);
-
   JS::Rooted<JS::Value> exception(cx);
   ::JS_GetPendingException(cx, &exception);
 
   
-  
   ::JS_ClearPendingException(cx);
 
-  if (context) {
-    nsIScriptGlobalObject *globalObject = context->GetGlobalObject();
+  MOZ_ASSERT(cx == nsContentUtils::GetCurrentJSContext());
+  nsCOMPtr<nsIGlobalObject> globalObject = GetEntryGlobal();
+  if (globalObject) {
 
-    if (globalObject) {
-
-      nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(globalObject);
-      if (win) {
-        win = win->GetCurrentInnerWindow();
-      }
-      nsCOMPtr<nsIScriptObjectPrincipal> scriptPrincipal =
-        do_QueryInterface(globalObject);
-      NS_ASSERTION(scriptPrincipal, "Global objects must implement "
-                   "nsIScriptObjectPrincipal");
-      nsContentUtils::AddScriptRunner(
-        new ScriptErrorEvent(JS_GetRuntime(cx),
-                             report,
-                             message,
-                             nsJSPrincipals::get(report->originPrincipals),
-                             scriptPrincipal->GetPrincipal(),
-                             win,
-                             exception,
-                             
+    nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(globalObject);
+    MOZ_ASSERT_IF(win, win->IsInnerWindow());
+    nsCOMPtr<nsIScriptObjectPrincipal> scriptPrincipal =
+      do_QueryInterface(globalObject);
+    NS_ASSERTION(scriptPrincipal, "Global objects must implement "
+                 "nsIScriptObjectPrincipal");
+    nsContentUtils::AddScriptRunner(
+      new ScriptErrorEvent(JS_GetRuntime(cx),
+                           report,
+                           message,
+                           nsJSPrincipals::get(report->originPrincipals),
+                           scriptPrincipal->GetPrincipal(),
+                           win,
+                           exception,
+                           
 
 
 
 
 
 
-                             report->errorNumber != JSMSG_OUT_OF_MEMORY));
-    }
+                           report->errorNumber != JSMSG_OUT_OF_MEMORY));
   }
 
   if (nsContentUtils::DOMWindowDumpEnabled()) {
