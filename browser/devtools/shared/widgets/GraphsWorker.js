@@ -22,9 +22,10 @@ self.onmessage = e => {
 
 
 
+
 function plotTimestampsGraph(id, args) {
   let plottedData = plotTimestamps(args.timestamps, args.interval);
-  let plottedMinMaxSum = getMinMaxSum(plottedData);
+  let plottedMinMaxSum = getMinMaxAvg(plottedData, args.timestamps, args.duration);
 
   let response = { id, plottedData, plottedMinMaxSum };
   self.postMessage(response);
@@ -35,19 +36,23 @@ function plotTimestampsGraph(id, args) {
 
 
 
-function getMinMaxSum(source) {
+
+
+function getMinMaxAvg(source, timestamps, duration) {
   let totalTicks = source.length;
+  let totalFrames = timestamps.length;
   let maxValue = Number.MIN_SAFE_INTEGER;
   let minValue = Number.MAX_SAFE_INTEGER;
-  let avgValue = 0;
-  let sumValues = 0;
+  
+  
+  
+  
+  let avgValue = totalFrames / (duration / 1000);
 
   for (let { value } of source) {
     maxValue = Math.max(value, maxValue);
     minValue = Math.min(value, minValue);
-    sumValues += value;
   }
-  avgValue = sumValues / totalTicks;
 
   return { minValue, maxValue, avgValue };
 }

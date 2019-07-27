@@ -1303,13 +1303,14 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
 
 
-  setDataFromTimestamps: Task.async(function*(timestamps, interval) {
+
+
+  setDataFromTimestamps: Task.async(function*(timestamps, interval, duration) {
     let {
       plottedData,
       plottedMinMaxSum
     } = yield CanvasGraphUtils._performTaskInWorker("plotTimestampsGraph", {
-      timestamps: timestamps,
-      interval: interval
+      timestamps, interval, duration
     });
 
     this._tempMinMaxSum = plottedMinMaxSum;
