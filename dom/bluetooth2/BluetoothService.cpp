@@ -55,6 +55,13 @@
 
 
 #include "BluetoothServiceBluedroid.h"
+#elif defined(MOZ_B2G_BT_DAEMON)
+
+
+
+
+
+#include "BluetoothServiceBluedroid.h"
 #endif
 #elif defined(MOZ_BLUETOOTH_DBUS)
 
@@ -227,6 +234,8 @@ BluetoothService::Create()
 #if defined(MOZ_B2G_BT_BLUEZ)
   return new BluetoothDBusService();
 #elif defined(MOZ_B2G_BT_BLUEDROID)
+  return new BluetoothServiceBluedroid();
+#elif defined(MOZ_B2G_BT_DAEMON)
   return new BluetoothServiceBluedroid();
 #endif
 #elif defined(MOZ_BLUETOOTH_DBUS)
