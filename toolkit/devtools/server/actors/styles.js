@@ -675,8 +675,8 @@ var PageStyleActor = protocol.ActorClass({
     
 
     let clientRect = node.rawNode.getBoundingClientRect();
-    layout.width = Math.round(clientRect.width);
-    layout.height = Math.round(clientRect.height);
+    layout.width = Math.ceil(clientRect.width);
+    layout.height = Math.ceil(clientRect.height);
 
     
     let style = CssLogic.getComputedStyle(node.rawNode);
