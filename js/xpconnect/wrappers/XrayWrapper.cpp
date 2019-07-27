@@ -1002,6 +1002,27 @@ XrayTraits::cloneExpandoChain(JSContext *cx, HandleObject dst, HandleObject src)
     MOZ_ASSERT(getExpandoChain(dst) == nullptr);
 
     RootedObject oldHead(cx, getExpandoChain(src));
+
+#ifdef DEBUG
+    
+    
+    
+    
+    
+    
+    if (oldHead) {
+        nsISupports *dstId = mozilla::dom::UnwrapDOMObjectToISupports(dst);
+        if (!dstId) {
+            nsISupports *srcId = mozilla::dom::UnwrapDOMObjectToISupports(src);
+            if (srcId) {
+              nsWrapperCache* cache = nullptr;
+              CallQueryInterface(srcId, &cache);
+              MOZ_ASSERT_IF(cache, cache->PreservingWrapper());
+            }
+        }
+    }
+#endif
+
     while (oldHead) {
         RootedObject exclusive(cx, JS_GetReservedSlot(oldHead,
                                                       JSSLOT_EXPANDO_EXCLUSIVE_GLOBAL)
