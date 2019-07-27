@@ -136,6 +136,8 @@ let gSyncUI = {
   },
 
   _loginFailed: function () {
+    this.log.debug("_loginFailed has sync state=${sync}, readinglist state=${rl}",
+                   { sync: Weave.Status.login, rl: ReadingListScheduler.state});
     return Weave.Status.login == Weave.LOGIN_FAILED_LOGIN_REJECTED ||
            ReadingListScheduler.state == ReadingListScheduler.STATE_ERROR_AUTHENTICATION;
   },
@@ -235,7 +237,13 @@ let gSyncUI = {
       return;
     }
     
-    if (Weave.Status.login == Weave.LOGIN_FAILED_NOT_READY) {
+    
+    
+    
+    
+    if (Weave.Status.login == Weave.LOGIN_FAILED_NOT_READY ||
+        Weave.Status.login == Weave.LOGIN_FAILED_NETWORK_ERROR ||
+        Weave.Status.login == Weave.LOGIN_FAILED_SERVER_ERROR) {
       this.updateUI();
       return;
     }

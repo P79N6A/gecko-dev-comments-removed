@@ -108,6 +108,59 @@ add_task(function* testSyncLoginError() {
   Assert.equal(Notifications.notifications.length, 0, "no notifications left");
 });
 
+add_task(function* testSyncLoginNetworkError() {
+  Assert.equal(Notifications.notifications.length, 0, "start with no notifications");
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+  
+  
+  
+
+  let sawNotificationAdded = false;
+  let obs = (subject, topic, data) => {
+    sawNotificationAdded = true;
+  }
+  Services.obs.addObserver(obs, "weave:notification:added", false);
+  try {
+    
+    Weave.Status.sync = Weave.LOGIN_FAILED;
+    Weave.Status.login = Weave.LOGIN_FAILED_LOGIN_REJECTED;
+    Services.obs.notifyObservers(null, "weave:ui:login:error", null);
+    Assert.ok(sawNotificationAdded);
+
+    
+    let promiseNotificationRemoved = promiseObserver("weave:notification:removed");
+    Services.obs.notifyObservers(null, "readinglist:sync:start", null);
+    Services.obs.notifyObservers(null, "readinglist:sync:finish", null);
+    yield promiseNotificationRemoved;
+
+    
+    sawNotificationAdded = false;
+    Weave.Status.sync = Weave.LOGIN_FAILED;
+    Weave.Status.login = Weave.LOGIN_FAILED_NETWORK_ERROR;
+    Services.obs.notifyObservers(null, "weave:ui:login:error", null);
+    Assert.ok(!sawNotificationAdded);
+
+    
+    Weave.Status.sync = Weave.LOGIN_FAILED;
+    Weave.Status.login = Weave.LOGIN_FAILED_SERVER_ERROR;
+    Services.obs.notifyObservers(null, "weave:ui:login:error", null);
+    Assert.ok(!sawNotificationAdded);
+    
+  } finally {
+    Services.obs.removeObserver(obs, "weave:notification:added");
+  }
+});
+
 add_task(function* testRLLoginError() {
   let promiseNotificationAdded = promiseObserver("weave:notification:added");
   Assert.equal(Notifications.notifications.length, 0, "start with no notifications");
