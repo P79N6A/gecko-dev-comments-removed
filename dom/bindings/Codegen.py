@@ -12300,7 +12300,7 @@ class CGResolveSystemBinding(CGAbstractMethod):
         jsidInits = CGList(
             (CGIfWrapper(
                 CGGeneric("return false;\n"),
-                '!InternJSString(aCx, %s, "%s")' %
+                '!AtomizeAndPinJSString(aCx, %s, "%s")' %
                 (descNameToId(desc.name), desc.interface.identifier.name))
              for desc in descriptors),
             "\n")
@@ -15156,7 +15156,7 @@ class GlobalGenRoots():
         def memberToAtomCacheMember(binaryNameFor, m):
             binaryMemberName = binaryNameFor(m.identifier.name)
             return ClassMember(CGDictionary.makeIdName(binaryMemberName),
-                               "InternedStringId", visibility="public")
+                               "PinnedStringId", visibility="public")
         def buildAtomCacheStructure(idlobj, binaryNameFor, members):
             classMembers = [memberToAtomCacheMember(binaryNameFor, m)
                             for m in members]

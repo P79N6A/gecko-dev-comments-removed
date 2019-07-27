@@ -2945,7 +2945,7 @@ JS::OrdinaryToPrimitive(JSContext* cx, HandleObject obj, JSType hint, MutableHan
     
     RootedString str(cx);
     if (hint == JSTYPE_STRING) {
-        str = JS_InternString(cx, clasp->name);
+        str = JS_AtomizeAndPinString(cx, clasp->name);
         if (!str)
             return false;
     } else {

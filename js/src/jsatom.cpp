@@ -143,7 +143,7 @@ JSRuntime::initializeAtoms(JSContext* cx)
 
     ImmutablePropertyNamePtr* names = reinterpret_cast<ImmutablePropertyNamePtr*>(commonNames);
     for (size_t i = 0; i < ArrayLength(cachedNames); i++, names++) {
-        JSAtom* atom = Atomize(cx, cachedNames[i].str, cachedNames[i].length, InternAtom);
+        JSAtom* atom = Atomize(cx, cachedNames[i].str, cachedNames[i].length, PinAtom);
         if (!atom)
             return false;
         names->init(atom->asPropertyName());
@@ -197,11 +197,11 @@ js::MarkAtoms(JSTracer* trc)
     JSRuntime* rt = trc->runtime();
     for (AtomSet::Enum e(rt->atoms()); !e.empty(); e.popFront()) {
         const AtomStateEntry& entry = e.front();
-        if (!entry.isTagged())
+        if (!entry.isPinned())
             continue;
 
         JSAtom* atom = entry.asPtr();
-        bool tagged = entry.isTagged();
+        bool tagged = entry.isPinned();
         TraceRoot(trc, &atom, "interned_atom");
         if (entry.asPtr() != atom)
             e.rekeyFront(AtomHasher::Lookup(atom), AtomStateEntry(atom, tagged));
@@ -257,7 +257,7 @@ JSRuntime::sweepAtoms()
         bool isDying = IsAboutToBeFinalizedUnbarriered(&atom);
 
         
-        MOZ_ASSERT_IF(hasContexts() && entry.isTagged(), !isDying);
+        MOZ_ASSERT_IF(hasContexts() && entry.isPinned(), !isDying);
 
         if (isDying)
             e.removeFront();
@@ -289,7 +289,7 @@ JSRuntime::transformToPermanentAtoms(JSContext* cx)
 }
 
 bool
-AtomIsInterned(JSContext* cx, JSAtom* atom)
+AtomIsPinned(JSContext* cx, JSAtom* atom)
 {
     
     if (StaticStrings::isStatic(atom))
@@ -309,14 +309,14 @@ AtomIsInterned(JSContext* cx, JSAtom* atom)
     if (!p)
         return false;
 
-    return p->isTagged();
+    return p->isPinned();
 }
 
 
 template <typename CharT>
 MOZ_ALWAYS_INLINE
 static JSAtom*
-AtomizeAndCopyChars(ExclusiveContext* cx, const CharT* tbchars, size_t length, InternBehavior ib)
+AtomizeAndCopyChars(ExclusiveContext* cx, const CharT* tbchars, size_t length, PinningBehavior pin)
 {
     if (JSAtom* s = cx->staticStrings().lookup(tbchars, length))
          return s;
@@ -340,7 +340,7 @@ AtomizeAndCopyChars(ExclusiveContext* cx, const CharT* tbchars, size_t length, I
     AtomSet::AddPtr p = atoms.lookupForAdd(lookup);
     if (p) {
         JSAtom* atom = p->asPtr();
-        p->setTagged(bool(ib));
+        p->setPinned(bool(pin));
         return atom;
     }
 
@@ -360,7 +360,7 @@ AtomizeAndCopyChars(ExclusiveContext* cx, const CharT* tbchars, size_t length, I
     
     
     
-    if (!atoms.add(p, AtomStateEntry(atom, bool(ib)))) {
+    if (!atoms.add(p, AtomStateEntry(atom, bool(pin)))) {
         ReportOutOfMemory(cx); 
         return nullptr;
     }
@@ -369,19 +369,19 @@ AtomizeAndCopyChars(ExclusiveContext* cx, const CharT* tbchars, size_t length, I
 }
 
 template JSAtom*
-AtomizeAndCopyChars(ExclusiveContext* cx, const char16_t* tbchars, size_t length, InternBehavior ib);
+AtomizeAndCopyChars(ExclusiveContext* cx, const char16_t* tbchars, size_t length, PinningBehavior pin);
 
 template JSAtom*
-AtomizeAndCopyChars(ExclusiveContext* cx, const Latin1Char* tbchars, size_t length, InternBehavior ib);
+AtomizeAndCopyChars(ExclusiveContext* cx, const Latin1Char* tbchars, size_t length, PinningBehavior pin);
 
 JSAtom*
 js::AtomizeString(ExclusiveContext* cx, JSString* str,
-                  js::InternBehavior ib )
+                  js::PinningBehavior pin )
 {
     if (str->isAtom()) {
         JSAtom& atom = str->asAtom();
         
-        if (ib != InternAtom || js::StaticStrings::isStatic(&atom))
+        if (pin != PinAtom || js::StaticStrings::isStatic(&atom))
             return &atom;
 
         AtomHasher::Lookup lookup(&atom);
@@ -397,8 +397,8 @@ js::AtomizeString(ExclusiveContext* cx, JSString* str,
         p = cx->atoms().lookup(lookup);
         MOZ_ASSERT(p); 
         MOZ_ASSERT(p->asPtr() == &atom);
-        MOZ_ASSERT(ib == InternAtom);
-        p->setTagged(bool(ib));
+        MOZ_ASSERT(pin == PinAtom);
+        p->setPinned(bool(pin));
         return &atom;
     }
 
@@ -408,12 +408,12 @@ js::AtomizeString(ExclusiveContext* cx, JSString* str,
 
     JS::AutoCheckCannotGC nogc;
     return linear->hasLatin1Chars()
-           ? AtomizeAndCopyChars(cx, linear->latin1Chars(nogc), linear->length(), ib)
-           : AtomizeAndCopyChars(cx, linear->twoByteChars(nogc), linear->length(), ib);
+           ? AtomizeAndCopyChars(cx, linear->latin1Chars(nogc), linear->length(), pin)
+           : AtomizeAndCopyChars(cx, linear->twoByteChars(nogc), linear->length(), pin);
 }
 
 JSAtom*
-js::Atomize(ExclusiveContext* cx, const char* bytes, size_t length, InternBehavior ib)
+js::Atomize(ExclusiveContext* cx, const char* bytes, size_t length, PinningBehavior pin)
 {
     CHECK_REQUEST(cx);
 
@@ -421,26 +421,26 @@ js::Atomize(ExclusiveContext* cx, const char* bytes, size_t length, InternBehavi
         return nullptr;
 
     const Latin1Char* chars = reinterpret_cast<const Latin1Char*>(bytes);
-    return AtomizeAndCopyChars(cx, chars, length, ib);
+    return AtomizeAndCopyChars(cx, chars, length, pin);
 }
 
 template <typename CharT>
 JSAtom*
-js::AtomizeChars(ExclusiveContext* cx, const CharT* chars, size_t length, InternBehavior ib)
+js::AtomizeChars(ExclusiveContext* cx, const CharT* chars, size_t length, PinningBehavior pin)
 {
     CHECK_REQUEST(cx);
 
     if (!JSString::validateLength(cx, length))
         return nullptr;
 
-    return AtomizeAndCopyChars(cx, chars, length, ib);
+    return AtomizeAndCopyChars(cx, chars, length, pin);
 }
 
 template JSAtom*
-js::AtomizeChars(ExclusiveContext* cx, const Latin1Char* chars, size_t length, InternBehavior ib);
+js::AtomizeChars(ExclusiveContext* cx, const Latin1Char* chars, size_t length, PinningBehavior pin);
 
 template JSAtom*
-js::AtomizeChars(ExclusiveContext* cx, const char16_t* chars, size_t length, InternBehavior ib);
+js::AtomizeChars(ExclusiveContext* cx, const char16_t* chars, size_t length, PinningBehavior pin);
 
 bool
 js::IndexToIdSlow(ExclusiveContext* cx, uint32_t index, MutableHandleId idp)

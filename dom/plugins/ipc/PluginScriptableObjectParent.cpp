@@ -39,7 +39,7 @@ class MOZ_STACK_CLASS StackIdentifier
 {
 public:
   explicit StackIdentifier(const PluginIdentifier& aIdentifier,
-                           bool aIntern = false);
+                           bool aAtomizeAndPin = false);
 
   bool Failed() const { return mFailed; }
   NPIdentifier ToNPIdentifier() const { return mIdentifier; }
@@ -51,7 +51,7 @@ private:
   JS::RootedId mId;
 };
 
-StackIdentifier::StackIdentifier(const PluginIdentifier& aIdentifier, bool aIntern)
+StackIdentifier::StackIdentifier(const PluginIdentifier& aIdentifier, bool aAtomizeAndPin)
 : mFailed(false),
   mId(mCx)
 {
@@ -64,8 +64,8 @@ StackIdentifier::StackIdentifier(const PluginIdentifier& aIdentifier, bool aInte
       mFailed = true;
       return;
     }
-    if (aIntern) {
-      str = JS_InternJSString(mCx, str);
+    if (aAtomizeAndPin) {
+      str = JS_AtomizeAndPinJSString(mCx, str);
       if (!str) {
         NS_ERROR("Id can't be allocated");
         mFailed = true;

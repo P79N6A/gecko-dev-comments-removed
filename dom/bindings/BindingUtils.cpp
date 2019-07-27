@@ -558,7 +558,7 @@ CreateInterfaceObject(JSContext* cx, JS::Handle<JSObject*> global,
     
     
     
-    JS::Rooted<JSString*> nameStr(cx, JS_InternString(cx, name));
+    JS::Rooted<JSString*> nameStr(cx, JS_AtomizeAndPinString(cx, name));
     if (!nameStr) {
       return nullptr;
     }
