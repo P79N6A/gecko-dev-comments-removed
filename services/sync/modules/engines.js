@@ -703,6 +703,9 @@ SyncEngine.prototype = {
   version: 1,
 
   
+  _defaultSort: undefined,
+
+  
   
   
   
@@ -927,6 +930,10 @@ SyncEngine.prototype = {
 
     if (!newitems) {
       newitems = this._itemSource();
+    }
+
+    if (this._defaultSort) {
+      newitems.sort = this._defaultSort;
     }
 
     if (isMobile) {
