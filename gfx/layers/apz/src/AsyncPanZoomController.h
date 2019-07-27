@@ -149,6 +149,15 @@ public:
   
   
 
+  
+
+
+
+
+
+
+  bool AdvanceAnimations(const TimeStamp& aSampleTime);
+
   bool UpdateAnimation(const TimeStamp& aSampleTime,
                        Vector<Task*>* aOutDeferredTasks);
 
@@ -164,15 +173,9 @@ public:
 
 
 
-
-
-
-
-
-  bool SampleContentTransformForFrame(const TimeStamp& aSampleTime,
-                                      ViewTransform* aOutTransform,
+  void SampleContentTransformForFrame(ViewTransform* aOutTransform,
                                       ScreenPoint& aScrollOffset,
-                                      ViewTransform* aOutOverscrollTransform = nullptr);
+                                      ViewTransform* aOutOverscrollTransform);
 
   
 
