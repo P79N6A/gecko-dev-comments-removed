@@ -24,6 +24,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
 
 
 
+
 this.EXPORTED_SYMBOLS =
   ["AppsUtils", "ManifestHelper", "isAbsoluteURI", "mozIApplication"];
 
@@ -114,6 +115,84 @@ this.AppsUtils = {
     let obj = {};
     _setAppProperties(obj, aApp);
     return obj;
+  },
+
+  
+  createLoadContext: function createLoadContext(aAppId, aIsBrowser) {
+    return {
+       associatedWindow: null,
+       topWindow : null,
+       appId: aAppId,
+       isInBrowserElement: aIsBrowser,
+       usePrivateBrowsing: false,
+       isContent: false,
+
+       isAppOfType: function(appType) {
+         throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+       },
+
+       QueryInterface: XPCOMUtils.generateQI([Ci.nsILoadContext,
+                                              Ci.nsIInterfaceRequestor,
+                                              Ci.nsISupports]),
+       getInterface: function(iid) {
+         if (iid.equals(Ci.nsILoadContext))
+           return this;
+         throw Cr.NS_ERROR_NO_INTERFACE;
+       }
+     }
+  },
+
+  
+  
+  getFile: function(aRequestChannel, aId, aFileName) {
+    let deferred = Promise.defer();
+
+    
+    let file = FileUtils.getFile("TmpD", ["webapps", aId, aFileName], true);
+
+    
+    let outputStream = Cc["@mozilla.org/network/file-output-stream;1"]
+                         .createInstance(Ci.nsIFileOutputStream);
+    
+    outputStream.init(file, 0x02 | 0x08 | 0x20, parseInt("0664", 8), 0);
+    let bufferedOutputStream =
+      Cc['@mozilla.org/network/buffered-output-stream;1']
+        .createInstance(Ci.nsIBufferedOutputStream);
+    bufferedOutputStream.init(outputStream, 1024);
+
+    
+    let listener = Cc["@mozilla.org/network/simple-stream-listener;1"]
+                     .createInstance(Ci.nsISimpleStreamListener);
+
+    listener.init(bufferedOutputStream, {
+      onStartRequest: function(aRequest, aContext) {
+        
+      },
+
+      onStopRequest: function(aRequest, aContext, aStatusCode) {
+        bufferedOutputStream.close();
+        outputStream.close();
+
+        if (!Components.isSuccessCode(aStatusCode)) {
+          deferred.reject({ msg: "NETWORK_ERROR", downloadAvailable: true});
+          return;
+        }
+
+        
+        
+        let responseStatus = aRequestChannel.responseStatus;
+        if (responseStatus >= 400 && responseStatus <= 599) {
+          
+          deferred.reject({ msg: "NETWORK_ERROR", downloadAvailable: false});
+          return;
+        }
+
+        deferred.resolve(file);
+      }
+    });
+    aRequestChannel.asyncOpen(listener, null);
+
+    return deferred.promise;
   },
 
   getAppByManifestURL: function getAppByManifestURL(aApps, aManifestURL) {
