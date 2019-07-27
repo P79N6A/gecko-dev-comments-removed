@@ -98,6 +98,9 @@ class TransportLayerDtls : public TransportLayer {
   void PacketReceived(TransportLayer* layer, const unsigned char *data,
                       size_t len);
 
+  
+  PRFileDesc* internal_fd() { CheckThread(); return ssl_fd_.rwget(); }
+
   TRANSPORT_LAYER_ID("dtls")
 
   private:
