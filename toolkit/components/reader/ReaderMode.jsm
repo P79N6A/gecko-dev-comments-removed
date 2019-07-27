@@ -131,6 +131,10 @@ this.ReaderMode = {
         }
 
         let doc = xhr.responseXML;
+        if (!doc) {
+          reject("Reader mode XHR didn't return a document");
+          return;
+        }
 
         
         let meta = doc.querySelector("meta[http-equiv=refresh]");
