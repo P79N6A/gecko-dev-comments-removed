@@ -138,11 +138,23 @@ GetStrokeDashData(SVGContentUtils::AutoStrokeOptions* aStrokeOptions,
     totalLengthOfGaps += origTotalLengthOfDashes;
   }
 
-  if (totalLengthOfDashes <= 0 || totalLengthOfGaps <= 0) {
-    if (totalLengthOfGaps > 0 && totalLengthOfDashes <= 0) {
-      return eNoStroke;
-    }
+  
+  
+  
+  
+  
+  
+  if (totalLengthOfDashes <= 0 && totalLengthOfGaps <= 0) {
+    return eNoStroke;
+  }
+  if (totalLengthOfGaps <= 0) {
     return eContinuousStroke;
+  }
+  
+  
+  if (totalLengthOfDashes <= 0 &&
+      aStyleSVG->mStrokeLinecap == NS_STYLE_STROKE_LINECAP_BUTT) {
+    return eNoStroke;
   }
 
   if (aContextPaint && aStyleSVG->mStrokeDashoffsetFromObject) {
