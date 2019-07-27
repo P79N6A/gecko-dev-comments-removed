@@ -824,6 +824,9 @@ private:
 };
 
 
+StatisticsRecorder gStatisticsRecorder;
+
+
 struct TelemetryHistogram {
   uint32_t min;
   uint32_t max;
