@@ -87,7 +87,7 @@ CompositorOGL::CompositorOGL(nsIWidget *aWidget, int aSurfaceWidth,
   , mUseExternalSurfaceSize(aUseExternalSurfaceSize)
   , mFrameInProgress(false)
   , mDestroyed(false)
-  , mHeight(0)
+  , mViewportSize(0, 0)
   , mCurrentProgram(nullptr)
 {
   MOZ_COUNT_CTOR(CompositorOGL);
@@ -441,7 +441,7 @@ CompositorOGL::PrepareViewport(const gfx::IntSize& aSize)
   
   mGLContext->fViewport(0, 0, aSize.width, aSize.height);
 
-  mHeight = aSize.height;
+  mViewportSize = aSize;
 
   
   
@@ -575,7 +575,7 @@ void
 CompositorOGL::ClearRect(const gfx::Rect& aRect)
 {
   
-  GLint y = mHeight - (aRect.y + aRect.height);
+  GLint y = mViewportSize.height - (aRect.y + aRect.height);
 
   ScopedGLState scopedScissorTestState(mGLContext, LOCAL_GL_SCISSOR_TEST, true);
   ScopedScissorRect autoScissorRect(mGLContext, aRect.x, y, aRect.width, aRect.height);
@@ -770,7 +770,8 @@ ShaderConfigOGL
 CompositorOGL::GetShaderConfigFor(Effect *aEffect,
                                   MaskType aMask,
                                   gfx::CompositionOp aOp,
-                                  bool aColorMatrix) const
+                                  bool aColorMatrix,
+                                  bool aDEAAEnabled) const
 {
   ShaderConfigOGL config;
 
@@ -821,6 +822,7 @@ CompositorOGL::GetShaderConfigFor(Effect *aEffect,
   config.SetColorMatrix(aColorMatrix);
   config.SetMask2D(aMask == MaskType::Mask2d);
   config.SetMask3D(aMask == MaskType::Mask3d);
+  config.SetDEAA(aDEAAEnabled);
   return config;
 }
 
@@ -902,12 +904,41 @@ static bool SetBlendMode(GLContext* aGL, gfx::CompositionOp aBlendMode, bool aIs
   return true;
 }
 
+gfx::Point3D
+CompositorOGL::GetLineCoefficients(const gfx::Point3D& aPoint1,
+                                   const gfx::Point3D& aPoint2)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+
+  gfx::Point3D coeffecients;
+  coeffecients.x = aPoint1.y - aPoint2.y;
+  coeffecients.y = aPoint2.x - aPoint1.x;
+  coeffecients.z = aPoint1.x * aPoint2.y - aPoint2.x * aPoint1.y;
+
+  coeffecients *= 1.0f / sqrtf(coeffecients.x * coeffecients.x +
+                               coeffecients.y * coeffecients.y);
+
+  
+  
+  coeffecients.z += 0.5f;
+
+  return coeffecients;
+}
+
 void
 CompositorOGL::DrawQuad(const Rect& aRect,
                         const Rect& aClipRect,
                         const EffectChain &aEffectChain,
                         Float aOpacity,
-                        const gfx::Matrix4x4 &aTransform)
+                        const gfx::Matrix4x4& aTransform,
+                        const gfx::Rect& aVisibleRect)
 {
   PROFILER_LABEL("CompositorOGL", "DrawQuad",
     js::ProfileEntry::Category::GRAPHICS);
@@ -1000,8 +1031,15 @@ CompositorOGL::DrawQuad(const Rect& aRect,
     blendMode = blendEffect->mBlendMode;
   }
 
+  
+  
+  bool bEnableAA = gfxPrefs::LayersDEAAEnabled() &&
+                   !aTransform.Is2DIntegerTranslation();
+
   bool colorMatrix = aEffectChain.mSecondaryEffects[EffectTypes::COLOR_MATRIX];
-  ShaderConfigOGL config = GetShaderConfigFor(aEffectChain.mPrimaryEffect, maskType, blendMode, colorMatrix);
+  ShaderConfigOGL config = GetShaderConfigFor(aEffectChain.mPrimaryEffect,
+                                              maskType, blendMode, colorMatrix,
+                                              bEnableAA);
   config.SetOpacity(aOpacity != 1.f);
   ShaderProgramOGL *program = GetShaderProgramFor(config);
   ActivateProgram(program);
@@ -1026,6 +1064,74 @@ CompositorOGL::DrawQuad(const Rect& aRect,
     TextureSourceOGL* source = texturedEffect->mTexture->AsSourceOGL();
     
     program->SetTexCoordMultiplier(source->GetSize().width, source->GetSize().height);
+  }
+
+  
+  
+  
+  if (bEnableAA) {
+    
+    
+    Point4D quadVerts[4];
+    quadVerts[0] = Point4D(aVisibleRect.x, aVisibleRect.y, 0.0, 1.0);
+    quadVerts[1] = Point4D(aVisibleRect.x + aVisibleRect.width, aVisibleRect.y, 0.0, 1.0);
+    quadVerts[2] = Point4D(aVisibleRect.x + aVisibleRect.width, aVisibleRect.y + aVisibleRect.height, 0.0, 1.0);
+    quadVerts[3] = Point4D(aVisibleRect.x, aVisibleRect.y + aVisibleRect.height, 0.0, 1.0);
+    for (int i = 0; i < 4; i++) {
+      quadVerts[i] = aTransform * quadVerts[i];
+      quadVerts[i] -= Point4D(offset.x, offset.y, 0.0f, 0.0f) * quadVerts[i].w;
+      quadVerts[i] /= quadVerts[i].w;
+      quadVerts[i] = mProjMatrix * quadVerts[i];
+      quadVerts[i].x = (quadVerts[i].x * 0.5f + 0.5f) * mViewportSize.width;
+      quadVerts[i].y = (quadVerts[i].y * 0.5f + 0.5f) * mViewportSize.height;
+    }
+
+    
+    
+    Point3D coefficients[4];
+    
+    
+    float winding = (quadVerts[1].x - quadVerts[0].x) * (quadVerts[1].y + quadVerts[0].y) +
+                    (quadVerts[2].x - quadVerts[1].x) * (quadVerts[2].y + quadVerts[1].y) +
+                    (quadVerts[0].x - quadVerts[2].x) * (quadVerts[0].y + quadVerts[2].y);
+
+    if (winding >= 0) {
+      
+      coefficients[0] = GetLineCoefficients(
+        Point3D(quadVerts[3].x, quadVerts[3].y, 0.0f),
+        Point3D(quadVerts[2].x, quadVerts[2].y, 0.0f));
+      coefficients[1] = GetLineCoefficients(
+        Point3D(quadVerts[2].x, quadVerts[2].y, 0.0f),
+        Point3D(quadVerts[1].x, quadVerts[1].y, 0.0f));
+      coefficients[2] = GetLineCoefficients(
+        Point3D(quadVerts[1].x, quadVerts[1].y, 0.0f),
+        Point3D(quadVerts[0].x, quadVerts[0].y, 0.0f));
+      coefficients[3] = GetLineCoefficients(
+        Point3D(quadVerts[0].x, quadVerts[0].y, 0.0f),
+        Point3D(quadVerts[3].x, quadVerts[3].y, 0.0f));
+    } else {
+      
+      coefficients[0] = GetLineCoefficients(
+        Point3D(quadVerts[2].x, quadVerts[2].y, 0.0f),
+        Point3D(quadVerts[3].x, quadVerts[3].y, 0.0f));
+      coefficients[1] = GetLineCoefficients(
+        Point3D(quadVerts[1].x, quadVerts[1].y, 0.0f),
+        Point3D(quadVerts[2].x, quadVerts[2].y, 0.0f));
+      coefficients[2] = GetLineCoefficients(
+        Point3D(quadVerts[0].x, quadVerts[0].y, 0.0f),
+        Point3D(quadVerts[1].x, quadVerts[1].y, 0.0f));
+      coefficients[3] = GetLineCoefficients(
+        Point3D(quadVerts[3].x, quadVerts[3].y, 0.0f),
+        Point3D(quadVerts[0].x, quadVerts[0].y, 0.0f));
+    }
+
+    
+    Matrix4x4 transformInverted = aTransform;
+    transformInverted.Invert();
+    program->SetLayerTransformInverse(transformInverted);
+    program->SetDEAAEdges(coefficients);
+    program->SetVisibleCenter(aVisibleRect.Center());
+    program->SetViewportSize(mViewportSize);
   }
 
   bool didSetBlendMode = false;
@@ -1126,9 +1232,7 @@ CompositorOGL::DrawQuad(const Rect& aRect,
       program->SetTextureUnit(0);
 
       if (maskType != MaskType::MaskNone) {
-        sourceMask->BindTexture(LOCAL_GL_TEXTURE1, gfx::Filter::LINEAR);
-        program->SetMaskTextureUnit(1);
-        program->SetMaskLayerTransform(maskQuadTransform);
+        BindMaskForProgram(program, sourceMask, LOCAL_GL_TEXTURE1, maskQuadTransform);
       }
 
       if (config.mFeatures & ENABLE_TEXTURE_RECT) {
