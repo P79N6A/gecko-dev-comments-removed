@@ -69,6 +69,12 @@ NewObjectCache::newObjectFromHit(JSContext *cx, EntryIndex entryIndex, js::gc::I
 
     
     
+    
+    
+    
+    
+    
+    
     mozilla::DebugOnly<JSObject *> obj2 =
         js::gc::AllocateObjectForCacheHit<CanGC>(cx, entry->kind, heap, group->clasp());
     MOZ_ASSERT(!obj2);
