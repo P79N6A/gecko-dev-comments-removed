@@ -336,6 +336,9 @@ private:
   std::string mDefaultRemoteStreamId;
   std::map<size_t, std::string> mDefaultRemoteTrackIdsByLevel;
   std::string mCNAME;
+  
+  
+  std::set<uint32_t> mSsrcs;
   UniquePtr<Sdp> mGeneratedLocalDescription; 
   UniquePtr<Sdp> mCurrentLocalDescription;
   UniquePtr<Sdp> mCurrentRemoteDescription;
