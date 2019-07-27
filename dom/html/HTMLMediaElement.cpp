@@ -573,7 +573,7 @@ HTMLMediaElement::Ended()
   }
 
   if (mDecoder) {
-    return mDecoder->IsEndedOrShutdown();
+    return mDecoder->IsEnded();
   }
 
   return false;
@@ -2199,7 +2199,7 @@ HTMLMediaElement::Play(ErrorResult& aRv)
   
   
   if (mDecoder) {
-    if (mDecoder->IsEndedOrShutdown()) {
+    if (mDecoder->IsEnded()) {
       SetCurrentTime(0);
     }
     if (!mPausedForInactiveDocumentOrChannel) {
@@ -3177,7 +3177,7 @@ void HTMLMediaElement::PlaybackEnded()
   
   AddRemoveSelfReference();
 
-  NS_ASSERTION(!mDecoder || mDecoder->IsEndedOrShutdown(),
+  NS_ASSERTION(!mDecoder || mDecoder->IsEnded(),
                "Decoder fired ended, but not in ended state");
 
   
@@ -3414,7 +3414,7 @@ void HTMLMediaElement::UpdateReadyStateForData(MediaDecoderOwner::NextFrameStatu
     return;
   }
 
-  if (mDownloadSuspendedByCache && mDecoder && !mDecoder->IsEndedOrShutdown()) {
+  if (mDownloadSuspendedByCache && mDecoder && !mDecoder->IsEnded()) {
     
     
     
@@ -3697,7 +3697,7 @@ bool HTMLMediaElement::IsPlaybackEnded() const
   
   
   return mReadyState >= nsIDOMHTMLMediaElement::HAVE_METADATA &&
-    mDecoder ? mDecoder->IsEndedOrShutdown() : false;
+    mDecoder ? mDecoder->IsEnded() : false;
 }
 
 already_AddRefed<nsIPrincipal> HTMLMediaElement::GetCurrentPrincipal()
@@ -3771,7 +3771,7 @@ void HTMLMediaElement::SuspendOrResumeElement(bool aPauseElement, bool aSuspendE
 #endif
       if (mDecoder) {
         mDecoder->Resume(false);
-        if (!mPaused && !mDecoder->IsEndedOrShutdown()) {
+        if (!mPaused && !mDecoder->IsEnded()) {
           mDecoder->Play();
         }
       } else if (mSrcStream) {
@@ -3832,7 +3832,7 @@ void HTMLMediaElement::AddRemoveSelfReference()
   bool needSelfReference = !mShuttingDown &&
     ownerDoc->IsActive() &&
     (mDelayingLoadEvent ||
-     (!mPaused && mDecoder && !mDecoder->IsEndedOrShutdown()) ||
+     (!mPaused && mDecoder && !mDecoder->IsEnded()) ||
      (!mPaused && mSrcStream && !mSrcStream->IsFinished()) ||
      (mDecoder && mDecoder->IsSeeking()) ||
      CanActivateAutoplay() ||

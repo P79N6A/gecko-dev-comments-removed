@@ -235,22 +235,16 @@ struct SeekTarget {
   SeekTarget()
     : mTime(-1.0)
     , mType(SeekTarget::Invalid)
-    , mEventVisibility(MediaDecoderEventVisibility::Observable)
   {
   }
-  SeekTarget(int64_t aTimeUsecs,
-             Type aType,
-             MediaDecoderEventVisibility aEventVisibility =
-               MediaDecoderEventVisibility::Observable)
+  SeekTarget(int64_t aTimeUsecs, Type aType)
     : mTime(aTimeUsecs)
     , mType(aType)
-    , mEventVisibility(aEventVisibility)
   {
   }
   SeekTarget(const SeekTarget& aOther)
     : mTime(aOther.mTime)
     , mType(aOther.mType)
-    , mEventVisibility(aOther.mEventVisibility)
   {
   }
   bool IsValid() const {
@@ -266,7 +260,6 @@ struct SeekTarget {
   
   
   Type mType;
-  MediaDecoderEventVisibility mEventVisibility;
 };
 
 class MediaDecoder : public nsIObserver,
@@ -585,8 +578,7 @@ public:
 
   
   
-  
-  virtual bool IsEndedOrShutdown() const;
+  virtual bool IsEnded() const;
 
   
   
@@ -774,12 +766,12 @@ public:
   
   virtual void MetadataLoaded(nsAutoPtr<MediaInfo> aInfo,
                               nsAutoPtr<MetadataTags> aTags,
-                              MediaDecoderEventVisibility aEventVisibility) MOZ_OVERRIDE;
+                              bool aRestoredFromDormant) MOZ_OVERRIDE;
 
   
   
   virtual void FirstFrameLoaded(nsAutoPtr<MediaInfo> aInfo,
-                                MediaDecoderEventVisibility aEventVisibility) MOZ_OVERRIDE;
+                                bool aRestoredFromDormant) MOZ_OVERRIDE;
 
   
   
@@ -803,20 +795,20 @@ public:
 
   
   
-  void SeekingStopped(MediaDecoderEventVisibility aEventVisibility = MediaDecoderEventVisibility::Observable);
+  void SeekingStopped();
 
   
   
-  void SeekingStoppedAtEnd(MediaDecoderEventVisibility aEventVisibility = MediaDecoderEventVisibility::Observable);
+  void SeekingStoppedAtEnd();
 
   
   
-  void SeekingStarted(MediaDecoderEventVisibility aEventVisibility = MediaDecoderEventVisibility::Observable);
+  void SeekingStarted();
 
   
   
   
-  virtual void PlaybackPositionChanged(MediaDecoderEventVisibility aEventVisibility = MediaDecoderEventVisibility::Observable);
+  virtual void PlaybackPositionChanged();
 
   
   
@@ -1037,9 +1029,6 @@ protected:
   void CancelDormantTimer();
 
   
-  bool IsEnded() const;
-
-  
 
 
 
@@ -1156,8 +1145,6 @@ protected:
   
   void UnpinForSeek();
 
-  const char* PlayStateStr();
-
   
   
   
@@ -1206,12 +1193,6 @@ protected:
 
   
   bool mIsDormant;
-
-  
-  
-  
-  
-  bool mWasEndedWhenEnteredDormant;
 
   
   const bool mIsHeuristicDormantSupported;
