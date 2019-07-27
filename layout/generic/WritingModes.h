@@ -766,9 +766,18 @@ public:
 
   LogicalSize ConvertTo(WritingMode aToMode, WritingMode aFromMode) const
   {
+#ifdef DEBUG
+    
+    
     CHECK_WRITING_MODE(aFromMode);
     return aToMode == aFromMode ?
       *this : LogicalSize(aToMode, GetPhysicalSize(aFromMode));
+#else
+    
+    
+    return (aToMode == aFromMode || !aToMode.IsOrthogonalTo(aFromMode))
+             ? *this : LogicalSize(aToMode, BSize(), ISize());
+#endif
   }
 
   
