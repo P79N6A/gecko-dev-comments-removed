@@ -30,6 +30,9 @@ private:
     bool HasBeenClassified(nsIChannel *aChannel);
     
     nsresult ShouldEnableTrackingProtection(nsIChannel *aChannel, bool *result);
+    
+    
+    nsresult SetBlockedTrackingContent(nsIChannel *channel);
 };
 
 #endif
