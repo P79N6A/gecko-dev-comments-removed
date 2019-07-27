@@ -3470,14 +3470,6 @@ RilObject.prototype = {
       return;
     }
 
-    let ICCRecordHelper = this.context.ICCRecordHelper;
-    
-    if (iccStatus.cardState === CARD_STATE_PRESENT &&
-        (this.cardState === GECKO_CARDSTATE_UNINITIALIZED ||
-         this.cardState === GECKO_CARDSTATE_UNDETECTED)) {
-      ICCRecordHelper.readICCID();
-    }
-
     if (RILQUIRKS_SUBSCRIPTION_CONTROL) {
       
       
@@ -3536,6 +3528,14 @@ RilObject.prototype = {
     } else {
       
       newCardState = GECKO_CARDSTATE_UNKNOWN;
+    }
+
+    let ICCRecordHelper = this.context.ICCRecordHelper;
+    
+    if (iccStatus.cardState === CARD_STATE_PRESENT &&
+        (this.cardState === GECKO_CARDSTATE_UNINITIALIZED ||
+         this.cardState === GECKO_CARDSTATE_UNDETECTED)) {
+      ICCRecordHelper.readICCID();
     }
 
     if (this.cardState == newCardState) {
@@ -12705,6 +12705,7 @@ ICCIOHelperObject.prototype = {
       case CARD_APPTYPE_ISIM:
       
       case CARD_APPTYPE_SIM:
+      default:
         options.p2 = 0x00;
         options.p3 = GET_RESPONSE_EF_SIZE_BYTES;
         break;
