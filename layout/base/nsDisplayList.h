@@ -679,7 +679,26 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+  void AddWindowExcludeGlassRegion(const nsRegion& bounds) {
+    mWindowExcludeGlassRegion.Or(mWindowExcludeGlassRegion, bounds);
+  }
+  const nsRegion& GetWindowExcludeGlassRegion() {
+    return mWindowExcludeGlassRegion;
+  }
   
+
+
   void AddWindowOpaqueRegion(const nsRegion& bounds) {
     mWindowOpaqueRegion.Or(mWindowOpaqueRegion, bounds);
   }
@@ -783,6 +802,7 @@ private:
   mutable mozilla::DebugOnly<bool> mWillChangeBudgetCalculated;
   
   nsRect                         mDirtyRect;
+  nsRegion                       mWindowExcludeGlassRegion;
   nsRegion                       mWindowOpaqueRegion;
   nsRegion                       mWindowDraggingRegion;
   
