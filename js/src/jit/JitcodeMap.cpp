@@ -1187,7 +1187,7 @@ struct JitcodeMapBufferWriteSpewer
         startPos = writer->length();
     }
 #else 
-    JitcodeMapBufferWriteSpewer(CompactBufferWriter& w) {}
+    explicit JitcodeMapBufferWriteSpewer(CompactBufferWriter& w) {}
     void spewAndAdvance(const char* name) {}
 #endif 
 };
