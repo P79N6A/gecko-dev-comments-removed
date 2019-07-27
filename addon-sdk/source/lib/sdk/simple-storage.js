@@ -8,16 +8,13 @@ module.metadata = {
   "stability": "stable"
 };
 
-const { Cc, Ci, Cu } = require("chrome");
+const { Cc, Ci } = require("chrome");
 const file = require("./io/file");
 const prefs = require("./preferences/service");
 const jpSelf = require("./self");
 const timer = require("./timers");
 const unload = require("./system/unload");
 const { emit, on, off } = require("./event/core");
-const { defer } = require('./core/promise');
-
-const { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
 
 const WRITE_PERIOD_PREF = "extensions.addon-sdk.simple-storage.writePeriod";
 const WRITE_PERIOD_DEFAULT = 300000; 
@@ -38,57 +35,6 @@ Object.defineProperties(exports, {
   }
 });
 
-function getHash(data) {
-  let { promise, resolve } = defer();
-
-  let crypto = Cc["@mozilla.org/security/hash;1"].createInstance(Ci.nsICryptoHash);
-  crypto.init(crypto.MD5);
-
-  let listener = {
-    onStartRequest: function() { },
-
-    onDataAvailable: function(request, context, inputStream, offset, count) {
-      crypto.updateFromStream(inputStream, count);
-    },
-
-    onStopRequest: function(request, context, status) {
-      resolve(crypto.finish(false));
-    }
-  };
-
-  let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
-                  createInstance(Ci.nsIScriptableUnicodeConverter);
-  converter.charset = "UTF-8";
-  let stream = converter.convertToInputStream(data);
-  let pump = Cc["@mozilla.org/network/input-stream-pump;1"].
-             createInstance(Ci.nsIInputStreamPump);
-  pump.init(stream, -1, -1, 0, 0, true);
-  pump.asyncRead(listener, null);
-
-  return promise;
-}
-
-function writeData(filename, data) {
-  let { promise, resolve, reject } = defer();
-
-  let stream = file.open(filename, "w");
-  try {
-    stream.writeAsync(data, err => {
-      if (err)
-        reject(err);
-      else
-        resolve();
-    });
-  }
-  catch (err) {
-    
-    stream.close();
-    reject(err);
-  }
-
-  return promise;
-}
-
 
 
 function JsonStore(options) {
@@ -97,9 +43,11 @@ function JsonStore(options) {
   this.writePeriod = options.writePeriod;
   this.onOverQuota = options.onOverQuota;
   this.onWrite = options.onWrite;
-  this.hash = null;
+
   unload.ensure(this);
-  this.startTimer();
+
+  this.writeTimer = timer.setInterval(this.write.bind(this),
+                                      this.writePeriod);
 }
 
 JsonStore.prototype = {
@@ -133,18 +81,11 @@ JsonStore.prototype = {
            undefined;
   },
 
-  startTimer: function JsonStore_startTimer() {
-    timer.setTimeout(() => {
-      this.write().then(this.startTimer.bind(this));
-    }, this.writePeriod);
-  },
-
   
   purge: function JsonStore_purge() {
     try {
       
       file.remove(this.filename);
-      this.hash = null;
       let parentPath = this.filename;
       do {
         parentPath = file.dirname(parentPath);
@@ -164,25 +105,31 @@ JsonStore.prototype = {
       
       
       this.root = JSON.parse(str);
-      let self = this;
-      getHash(str).then(hash => this.hash = hash);
     }
     catch (err) {
       this.root = {};
-      this.hash = null;
     }
   },
 
   
   
+  write: function JsonStore_write() {
+    if (this.quotaUsage > 1)
+      this.onOverQuota(this);
+    else
+      this._write();
+  },
+
+  
+  
   unload: function JsonStore_unload(reason) {
-    timer.clearTimeout(this.writeTimer);
+    timer.clearInterval(this.writeTimer);
     this.writeTimer = null;
 
     if (reason === "uninstall")
       this.purge();
     else
-      this.write();
+      this._write();
   },
 
   
@@ -201,40 +148,32 @@ JsonStore.prototype = {
   
   
   
-  write: Task.async(function JsonStore_write() {
+  _write: function JsonStore__write() {
     
     
     if (!this.isRootInited || (this._isEmpty && !file.exists(this.filename)))
       return;
 
-    let data = JSON.stringify(this.root);
-
     
     
-    if ((this.quota > 0) && (data.length > this.quota)) {
-      this.onOverQuota(this);
-      return;
-    }
-
-    
-    let hash = yield getHash(data);
-
-    if (hash == this.hash)
+    if (this.quotaUsage > 1)
       return;
 
     
+    let stream = file.open(this.filename, "w");
     try {
-      yield writeData(this.filename, data);
-
-      this.hash = hash;
-      if (this.onWrite)
-        this.onWrite(this);
+      stream.writeAsync(JSON.stringify(this.root), function writeAsync(err) {
+        if (err)
+          console.error("Error writing simple storage file: " + this.filename);
+        else if (this.onWrite)
+          this.onWrite(this);
+      }.bind(this));
     }
     catch (err) {
-      console.error("Error writing simple storage file: " + this.filename);
-      console.error(err);
+      
+      stream.close();
     }
-  })
+  }
 };
 
 
