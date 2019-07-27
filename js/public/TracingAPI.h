@@ -134,11 +134,6 @@ class JS_PUBLIC_API(CallbackTracer) : public JSTracer
     {}
 
     
-    void setTraceCallback(JSTraceCallback traceCallback) {
-        callback = traceCallback;
-    }
-
-    
     bool hasCallback(JSTraceCallback maybeCallback) const {
         return maybeCallback == callback;
     }
