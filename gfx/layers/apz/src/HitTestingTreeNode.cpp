@@ -198,15 +198,6 @@ HitTestingTreeNode::HitTest(const ParentLayerPoint& aPoint) const
   }
 
   
-  
-  
-  
-  
-  if (!gfxPrefs::LayoutEventRegionsEnabled() && GetApzc()) {
-    return HitTestResult::HitLayer;
-  }
-
-  
   Maybe<LayerPoint> pointInLayerPixels = Untransform(aPoint);
   if (!pointInLayerPixels) {
     return HitTestResult::HitNothing;

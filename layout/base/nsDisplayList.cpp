@@ -4808,12 +4808,9 @@ nsDisplayScrollInfoLayer::BuildLayer(nsDisplayListBuilder* aBuilder,
   
   
   
-  
-  
-  if (gfxPrefs::LayoutEventRegionsEnabled() && !mHoisted) {
-    return nullptr;
-  }
-  return nsDisplayScrollLayer::BuildLayer(aBuilder, aManager, aContainerParameters);
+  return mHoisted
+    ? nsDisplayScrollLayer::BuildLayer(aBuilder, aManager, aContainerParameters)
+    : nullptr;
 }
 
 LayerState
@@ -4822,10 +4819,9 @@ nsDisplayScrollInfoLayer::GetLayerState(nsDisplayListBuilder* aBuilder,
                                         const ContainerLayerParameters& aParameters)
 {
   
-  if (gfxPrefs::LayoutEventRegionsEnabled() && !mHoisted) {
-    return LAYER_NONE;
-  }
-  return LAYER_ACTIVE_EMPTY;
+  return mHoisted
+    ? LAYER_ACTIVE_EMPTY
+    : LAYER_NONE;
 }
 
 bool
