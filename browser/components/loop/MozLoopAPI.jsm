@@ -9,6 +9,7 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/loop/MozLoopService.jsm");
+Cu.import("resource:///modules/loop/LoopContacts.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "hookWindowCloseForPanelClose",
                                         "resource://gre/modules/MozSocialAPI.jsm");
@@ -30,10 +31,67 @@ this.EXPORTED_SYMBOLS = ["injectLoopAPI"];
 
 
 
+const cloneErrorObject = function(error, targetWindow) {
+  let obj = new targetWindow.Error();
+  for (let prop of Object.getOwnPropertyNames(error)) {
+    obj[prop] = String(error[prop]);
+  }
+  return obj;
+};
+
+
+
+
+
+
+
+
+const injectObjectAPI = function(api, targetWindow) {
+  let injectedAPI = {};
+  
+  
+  Object.keys(api).forEach(func => {
+    injectedAPI[func] = function(...params) {
+      let callback = params.pop();
+      api[func](...params, function(...results) {
+        results = results.map(result => {
+          if (result && typeof result == "object") {
+            
+            if (result.constructor.name == "Error") {
+              return cloneErrorObject(result.message)
+            }
+            return Cu.cloneInto(result, targetWindow);
+          }
+          return result;
+        });
+        callback(...results);
+      });
+    };
+  });
+
+  let contentObj = Cu.cloneInto(injectedAPI, targetWindow, {cloneFunctions: true});
+  
+  
+  
+  try {
+    Object.seal(Cu.waiveXrays(contentObj));
+  } catch (ex) {}
+  return contentObj;
+};
+
+
+
+
+
+
+
+
+
 function injectLoopAPI(targetWindow) {
   let ringer;
   let ringerStopper;
   let appVersionInfo;
+  let contactsAPI;
 
   let api = {
     
@@ -58,6 +116,21 @@ function injectLoopAPI(targetWindow) {
       enumerable: true,
       get: function() {
         return MozLoopService.locale;
+      }
+    },
+
+    
+
+
+
+
+    contacts: {
+      enumerable: true,
+      get: function() {
+        if (contactsAPI) {
+          return contactsAPI;
+        }
+        return contactsAPI = injectObjectAPI(LoopContacts, targetWindow);
       }
     },
 
