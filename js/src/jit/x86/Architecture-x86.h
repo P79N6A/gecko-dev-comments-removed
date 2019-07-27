@@ -67,46 +67,46 @@ class Registers {
     static const uint32_t TotalPhys = 8;
     static const uint32_t Allocatable = 7;
 
-    static const uint32_t AllMask = (1 << Total) - 1;
+    static const SetType AllMask = (1 << Total) - 1;
 
-    static const uint32_t ArgRegMask = 0;
+    static const SetType ArgRegMask = 0;
 
-    static const uint32_t VolatileMask =
+    static const SetType VolatileMask =
         (1 << X86Encoding::rax) |
         (1 << X86Encoding::rcx) |
         (1 << X86Encoding::rdx);
 
-    static const uint32_t NonVolatileMask =
+    static const SetType NonVolatileMask =
         (1 << X86Encoding::rbx) |
         (1 << X86Encoding::rsi) |
         (1 << X86Encoding::rdi) |
         (1 << X86Encoding::rbp);
 
-    static const uint32_t WrapperMask =
+    static const SetType WrapperMask =
         VolatileMask |
         (1 << X86Encoding::rbx);
 
-    static const uint32_t SingleByteRegs =
+    static const SetType SingleByteRegs =
         (1 << X86Encoding::rax) |
         (1 << X86Encoding::rcx) |
         (1 << X86Encoding::rdx) |
         (1 << X86Encoding::rbx);
 
-    static const uint32_t NonAllocatableMask =
+    static const SetType NonAllocatableMask =
         (1 << X86Encoding::rsp);
 
-    static const uint32_t AllocatableMask = AllMask & ~NonAllocatableMask;
+    static const SetType AllocatableMask = AllMask & ~NonAllocatableMask;
 
     
-    static const uint32_t TempMask = VolatileMask & ~NonAllocatableMask;
+    static const SetType TempMask = VolatileMask & ~NonAllocatableMask;
 
     
-    static const uint32_t JSCallMask =
+    static const SetType JSCallMask =
         (1 << X86Encoding::rcx) |
         (1 << X86Encoding::rdx);
 
     
-    static const uint32_t CallMask =
+    static const SetType CallMask =
         (1 << X86Encoding::rax);
 };
 
@@ -135,17 +135,17 @@ class FloatRegisters {
     static const uint32_t TotalPhys = 8;
     static const uint32_t Allocatable = 7;
 
-    static const uint32_t AllMask = (1 << Total) - 1;
-    static const uint32_t AllDoubleMask = AllMask;
-    static const uint32_t VolatileMask = AllMask;
-    static const uint32_t NonVolatileMask = 0;
+    static const SetType AllMask = (1 << Total) - 1;
+    static const SetType AllDoubleMask = AllMask;
+    static const SetType VolatileMask = AllMask;
+    static const SetType NonVolatileMask = 0;
 
-    static const uint32_t WrapperMask = VolatileMask;
+    static const SetType WrapperMask = VolatileMask;
 
-    static const uint32_t NonAllocatableMask =
+    static const SetType NonAllocatableMask =
         (1 << X86Encoding::xmm7);     
 
-    static const uint32_t AllocatableMask = AllMask & ~NonAllocatableMask;
+    static const SetType AllocatableMask = AllMask & ~NonAllocatableMask;
 };
 
 template <typename T>

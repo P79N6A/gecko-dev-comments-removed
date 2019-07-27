@@ -135,10 +135,11 @@ class Registers
     static const uint32_t Total = 32;
     static const uint32_t Allocatable = 14;
 
-    static const uint32_t AllMask = 0xffffffff;
-    static const uint32_t ArgRegMask = (1 << a0) | (1 << a1) | (1 << a2) | (1 << a3);
+    typedef uint32_t SetType;
+    static const SetType AllMask = 0xffffffff;
+    static const SetType ArgRegMask = (1 << a0) | (1 << a1) | (1 << a2) | (1 << a3);
 
-    static const uint32_t VolatileMask =
+    static const SetType VolatileMask =
         (1 << Registers::v0) |
         (1 << Registers::v1) |
         (1 << Registers::a0) |
@@ -156,7 +157,7 @@ class Registers
 
     
     
-    static const uint32_t NonVolatileMask =
+    static const SetType NonVolatileMask =
         (1 << Registers::s0) |
         (1 << Registers::s1) |
         (1 << Registers::s2) |
@@ -167,12 +168,12 @@ class Registers
         (1 << Registers::s7) |
         (1 << Registers::ra);
 
-    static const uint32_t WrapperMask =
+    static const SetType WrapperMask =
         VolatileMask |         
         (1 << Registers::t0) | 
         (1 << Registers::t1);  
 
-    static const uint32_t NonAllocatableMask =
+    static const SetType NonAllocatableMask =
         (1 << Registers::zero) |
         (1 << Registers::at) | 
         (1 << Registers::t8) | 
@@ -185,21 +186,20 @@ class Registers
         (1 << Registers::ra);
 
     
-    static const uint32_t TempMask = VolatileMask & ~NonAllocatableMask;
+    static const SetType TempMask = VolatileMask & ~NonAllocatableMask;
 
     
-    static const uint32_t JSCallMask =
+    static const SetType JSCallMask =
         (1 << Registers::a2) |
         (1 << Registers::a3);
 
     
-    static const uint32_t CallMask =
+    static const SetType CallMask =
         (1 << Registers::v0) |
         (1 << Registers::v1);  
 
-    static const uint32_t AllocatableMask = AllMask & ~NonAllocatableMask;
+    static const SetType AllocatableMask = AllMask & ~NonAllocatableMask;
 
-    typedef uint32_t SetType;
     static uint32_t SetSize(SetType x) {
         static_assert(sizeof(SetType) == 4, "SetType must be 32 bits");
         return mozilla::CountPopulation32(x);
@@ -290,10 +290,12 @@ class FloatRegisters
     static const uint32_t Allocatable = 42;
     
     static const uint32_t TotalPhys = 16;
-    static const uint64_t AllDoubleMask = 0x55555555ULL << 32;
-    static const uint64_t AllMask = AllDoubleMask | ((1ULL << 32) - 1);
 
-    static const uint64_t NonVolatileDoubleMask =
+    typedef uint64_t SetType;
+    static const SetType AllDoubleMask = 0x55555555ULL << 32;
+    static const SetType AllMask = AllDoubleMask | ((1ULL << 32) - 1);
+
+    static const SetType NonVolatileDoubleMask =
         ((1ULL << FloatRegisters::f20) |
          (1ULL << FloatRegisters::f22) |
          (1ULL << FloatRegisters::f24) |
@@ -302,7 +304,7 @@ class FloatRegisters
          (1ULL << FloatRegisters::f30)) << 32;
 
     
-    static const uint64_t NonVolatileMask =
+    static const SetType NonVolatileMask =
         NonVolatileDoubleMask |
         (1ULL << FloatRegisters::f20) |
         (1ULL << FloatRegisters::f21) |
@@ -317,16 +319,16 @@ class FloatRegisters
         (1ULL << FloatRegisters::f30) |
         (1ULL << FloatRegisters::f31);
 
-    static const uint64_t VolatileMask = AllMask & ~NonVolatileMask;
-    static const uint64_t VolatileDoubleMask = AllDoubleMask & ~NonVolatileDoubleMask;
+    static const SetType VolatileMask = AllMask & ~NonVolatileMask;
+    static const SetType VolatileDoubleMask = AllDoubleMask & ~NonVolatileDoubleMask;
 
-    static const uint64_t WrapperMask = VolatileMask;
+    static const SetType WrapperMask = VolatileMask;
 
-    static const uint64_t NonAllocatableDoubleMask =
+    static const SetType NonAllocatableDoubleMask =
         ((1ULL << FloatRegisters::f16) |
          (1ULL << FloatRegisters::f18)) << 32;
     
-    static const uint64_t NonAllocatableMask =
+    static const SetType NonAllocatableMask =
         NonAllocatableDoubleMask |
         (1ULL << FloatRegisters::f16) |
         (1ULL << FloatRegisters::f17) |
@@ -334,11 +336,9 @@ class FloatRegisters
         (1ULL << FloatRegisters::f19);
 
     
-    static const uint64_t TempMask = VolatileMask & ~NonAllocatableMask;
+    static const SetType TempMask = VolatileMask & ~NonAllocatableMask;
 
-    static const uint64_t AllocatableMask = AllMask & ~NonAllocatableMask;
-
-    typedef uint64_t SetType;
+    static const SetType AllocatableMask = AllMask & ~NonAllocatableMask;
 };
 
 template <typename T>
