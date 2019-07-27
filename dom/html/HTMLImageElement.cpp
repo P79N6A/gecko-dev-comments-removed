@@ -17,8 +17,6 @@
 #include "nsIURL.h"
 #include "nsIIOService.h"
 #include "nsIServiceManager.h"
-#include "nsIAppShell.h"
-#include "nsWidgetsCID.h"
 #include "nsNetUtil.h"
 #include "nsContentUtils.h"
 #include "nsContainerFrame.h"
@@ -52,8 +50,6 @@
 
 #include "mozilla/Preferences.h"
 static const char *kPrefSrcsetEnabled = "dom.image.srcset.enabled";
-
-static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Image)
 
@@ -882,15 +878,11 @@ HTMLImageElement::QueueImageLoadTask()
     return;
   }
 
+  nsCOMPtr<nsIRunnable> task = new ImageLoadTask(this);
   
   
-  mPendingImageLoadTask = new ImageLoadTask(this);
-  nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
-  if (appShell) {
-    appShell->RunInStableState(mPendingImageLoadTask);
-  } else {
-    MOZ_ASSERT(false, "expect appshell for HTMLImageElement");
-  }
+  mPendingImageLoadTask = task;
+  nsContentUtils::RunInStableState(task.forget());
 }
 
 bool
