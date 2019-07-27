@@ -416,19 +416,11 @@ NewNativeObjectWithClassProto(ExclusiveContext *cx, const js::Class *clasp, JSOb
 
 
 
-
 static MOZ_ALWAYS_INLINE bool
-CallResolveOp(JSContext *cx, HandleNativeObject obj, HandleId id, MutableHandleObject objp,
-              MutableHandleShape propp, bool *recursedp)
+CallResolveOp(JSContext *cx, HandleNativeObject obj, HandleId id, MutableHandleShape propp,
+              bool *recursedp)
 {
     
-
-
-
-
-
-
-
     AutoResolving resolving(cx, obj, id);
     if (resolving.alreadyStarted()) {
         
@@ -444,18 +436,14 @@ CallResolveOp(JSContext *cx, HandleNativeObject obj, HandleId id, MutableHandleO
     if (!resolved)
         return true;
 
-    objp.set(obj);
-
     if (JSID_IS_INT(id) && obj->containsDenseElement(JSID_TO_INT(id))) {
         MarkDenseOrTypedArrayElementFound<CanGC>(propp);
         return true;
     }
 
-    if (Shape *shape = obj->lookup(cx, id))
-        propp.set(shape);
-    else
-        objp.set(nullptr);
+    MOZ_ASSERT(!IsAnyTypedArray(obj));
 
+    propp.set(obj->lookup(cx, id));
     return true;
 }
 
@@ -464,13 +452,11 @@ static MOZ_ALWAYS_INLINE bool
 LookupOwnPropertyInline(ExclusiveContext *cx,
                         typename MaybeRooted<NativeObject*, allowGC>::HandleType obj,
                         typename MaybeRooted<jsid, allowGC>::HandleType id,
-                        typename MaybeRooted<JSObject*, allowGC>::MutableHandleType objp,
                         typename MaybeRooted<Shape*, allowGC>::MutableHandleType propp,
                         bool *donep)
 {
     
     if (JSID_IS_INT(id) && obj->containsDenseElement(JSID_TO_INT(id))) {
-        objp.set(obj);
         MarkDenseOrTypedArrayElementFound<allowGC>(propp);
         *donep = true;
         return true;
@@ -483,10 +469,8 @@ LookupOwnPropertyInline(ExclusiveContext *cx,
         uint64_t index;
         if (IsTypedArrayIndex(id, &index)) {
             if (index < AnyTypedArrayLength(obj)) {
-                objp.set(obj);
                 MarkDenseOrTypedArrayElementFound<allowGC>(propp);
             } else {
-                objp.set(nullptr);
                 propp.set(nullptr);
             }
             *donep = true;
@@ -496,7 +480,6 @@ LookupOwnPropertyInline(ExclusiveContext *cx,
 
     
     if (Shape *shape = obj->lookup(cx, id)) {
-        objp.set(obj);
         propp.set(shape);
         *donep = true;
         return true;
@@ -512,7 +495,6 @@ LookupOwnPropertyInline(ExclusiveContext *cx,
         if (!CallResolveOp(cx->asJSContext(),
                            MaybeRooted<NativeObject*, allowGC>::toHandle(obj),
                            MaybeRooted<jsid, allowGC>::toHandle(id),
-                           MaybeRooted<JSObject*, allowGC>::toMutableHandle(objp),
                            MaybeRooted<Shape*, allowGC>::toMutableHandle(propp),
                            &recursed))
         {
@@ -520,7 +502,6 @@ LookupOwnPropertyInline(ExclusiveContext *cx,
         }
 
         if (recursed) {
-            objp.set(nullptr);
             propp.set(nullptr);
             *donep = true;
             return true;
@@ -532,6 +513,7 @@ LookupOwnPropertyInline(ExclusiveContext *cx,
         }
     }
 
+    propp.set(nullptr);
     *donep = false;
     return true;
 }
@@ -584,10 +566,15 @@ LookupPropertyInline(ExclusiveContext *cx,
 
     while (true) {
         bool done;
-        if (!LookupOwnPropertyInline<allowGC>(cx, current, id, objp, propp, &done))
+        if (!LookupOwnPropertyInline<allowGC>(cx, current, id, propp, &done))
             return false;
-        if (done)
+        if (done) {
+            if (propp)
+                objp.set(current);
+            else
+                objp.set(nullptr);
             return true;
+        }
 
         typename MaybeRooted<JSObject*, allowGC>::RootType proto(cx, current->getProto());
 
