@@ -5303,3 +5303,32 @@ function setBreakpointAtEntryPoints(actor, entryPoints) {
     }
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+exports.unwrapDebuggerObjectGlobal = wrappedGlobal => {
+  try {
+    
+    
+    
+    
+    
+    
+    
+    let global = wrappedGlobal.unsafeDereference();
+    Object.getPrototypeOf(global) + "";
+    return global;
+  }
+  catch (e) {
+    return undefined;
+  }
+};
