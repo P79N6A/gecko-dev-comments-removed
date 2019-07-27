@@ -408,7 +408,10 @@ Readability.prototype = {
     let pageCacheHtml = page.innerHTML;
 
     
-    this._articleDir = doc.documentElement.getAttribute("dir");
+    this._articleDir = page.getAttribute("dir");
+    if (!this._articleDir) {
+      this._articleDir = doc.documentElement.getAttribute("dir");
+    }
 
     while (true) {
       let stripUnlikelyCandidates = this._flagIsActive(this.FLAG_STRIP_UNLIKELYS);
@@ -904,20 +907,35 @@ Readability.prototype = {
       return;
 
     
-    if (typeof e.removeAttribute === 'function' && e.className !== 'readability-styled')
-      e.removeAttribute('style');
+    if (typeof e.removeAttribute === 'function' && e.className !== 'readability-styled') {
+      this._stripNonDirectionStyles(e);
+    }
 
     
     while (cur !== null) {
       if (cur.nodeType === 1) {
         
-        if (cur.className !== "readability-styled")
-          cur.removeAttribute("style");
-
+        if (cur.className !== "readability-styled") {
+          this._stripNonDirectionStyles(e);
+        }
         this._cleanStyles(cur);
       }
 
       cur = cur.nextSibling;
+    }
+  },
+
+  
+
+
+
+
+
+  _stripNonDirectionStyles: function(e) {
+    let dir = e.style.direction;
+    e.removeAttribute("style");
+    if (dir) {
+      e.style.direction = dir;
     }
   },
 
