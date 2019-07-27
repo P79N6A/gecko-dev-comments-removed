@@ -294,6 +294,9 @@ class FunctionBox : public ObjectBox, public SharedContext
 
     
     
+    
+    
+    
     bool useAsmOrInsideUseAsm() const {
         return useAsm || insideUseAsm;
     }
