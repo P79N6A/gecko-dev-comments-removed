@@ -1166,7 +1166,7 @@ IdlInterface.prototype.test_self = function()
             assert_false("set" in desc, this.name + ".length has setter");
             assert_false(desc.writable, this.name + ".length is writable");
             assert_false(desc.enumerable, this.name + ".length is enumerable");
-            assert_false(desc.configurable, this.name + ".length is configurable");
+            assert_true(desc.configurable, this.name + ".length is not configurable");
 
             var constructors = this.extAttrs
                 .filter(function(attr) { return attr.name == "Constructor"; });
