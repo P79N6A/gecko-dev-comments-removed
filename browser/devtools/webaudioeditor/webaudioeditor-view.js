@@ -17,9 +17,10 @@ const INSPECTOR_WIDTH = 300;
 
 
 
-
-const WIDTH = 1000;
-const HEIGHT = 400;
+const GRAPH_DEFAULTS = {
+  translate: [20, 20],
+  scale: 1
+};
 
 
 const ARROW_HEIGHT = 5;
@@ -84,15 +85,39 @@ let WebAudioGraphView = {
 
 
   resetUI: function () {
-    this.resetGraph();
+    this.clearGraph();
+    this.resetGraphPosition();
   },
 
   
 
 
 
-  resetGraph: function () {
+  clearGraph: function () {
     $("#graph-target").innerHTML = "";
+  },
+
+  
+
+
+  resetGraphPosition: function () {
+    if (this._zoomBinding) {
+      let { translate, scale } = GRAPH_DEFAULTS;
+      
+      
+      this._zoomBinding.scale(scale);
+      this._zoomBinding.translate(translate);
+      d3.select("#graph-target")
+        .attr("transform", "translate(" + translate + ") scale(" + scale + ")");
+    }
+  },
+
+  getCurrentScale: function () {
+    return this._zoomBinding ? this._zoomBinding.scale() : null;
+  },
+
+  getCurrentTranslation: function () {
+    return this._zoomBinding ? this._zoomBinding.translate() : null;
   },
 
   
@@ -124,7 +149,7 @@ let WebAudioGraphView = {
 
   draw: function () {
     
-    this.resetGraph();
+    this.clearGraph();
 
     let graph = new dagreD3.Digraph();
     let edges = [];
@@ -220,6 +245,10 @@ let WebAudioGraphView = {
           .attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
       });
       d3.select("svg").call(this._zoomBinding);
+
+      
+      
+      this.resetGraphPosition();
     }
   },
 
