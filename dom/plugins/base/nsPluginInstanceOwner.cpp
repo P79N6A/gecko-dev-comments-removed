@@ -580,8 +580,9 @@ NS_IMETHODIMP nsPluginInstanceOwner::ShowStatus(const char16_t *aStatusMsg)
 
 NS_IMETHODIMP nsPluginInstanceOwner::GetDocument(nsIDocument* *aDocument)
 {
-  if (!aDocument)
+  if (!aDocument || !mContent) {
     return NS_ERROR_NULL_POINTER;
+  }
 
   
   
