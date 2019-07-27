@@ -337,7 +337,7 @@ Error(JSContext* cx, unsigned argc, Value* vp)
     }
 
     
-    NonBuiltinFrameIter iter(cx);
+    NonBuiltinFrameIter iter(cx, cx->compartment()->principals());
 
     
     RootedString fileName(cx);
@@ -867,7 +867,7 @@ ErrorReport::populateUncaughtExceptionReportVA(JSContext* cx, va_list ap)
     
     
     
-    NonBuiltinFrameIter iter(cx);
+    NonBuiltinFrameIter iter(cx, cx->compartment()->principals());
     if (!iter.done()) {
         ownedReport.filename = iter.scriptFilename();
         ownedReport.lineno = iter.computeLine(&ownedReport.column);

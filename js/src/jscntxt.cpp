@@ -255,7 +255,7 @@ PopulateReportBlame(JSContext* cx, JSErrorReport* report)
 
 
 
-    NonBuiltinFrameIter iter(cx);
+    NonBuiltinFrameIter iter(cx, cx->compartment()->principals());
     if (iter.done())
         return;
 
