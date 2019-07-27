@@ -107,31 +107,30 @@ TaggingService.prototype = {
 
 
 
-  _convertInputMixedTagsArray(aTags, trim=false) {
-    
-    return aTags.filter(tag => tag !== undefined)
-                .map(idOrName => {
-      let tag = {};
-      if (typeof(idOrName) == "number" && this._tagFolders[idOrName]) {
+  _convertInputMixedTagsArray: function TS__convertInputMixedTagsArray(aTags, trim=false)
+  {
+    return aTags.map(function (val)
+    {
+      let tag = { _self: this };
+      if (typeof(val) == "number" && this._tagFolders[val]) {
         
-        tag.id = idOrName;
+        tag.id = val;
         
         
-        tag.__defineGetter__("name", () => this._tagFolders[tag.id]);
+        tag.__defineGetter__("name", function () this._self._tagFolders[this.id]);
       }
-      else if (typeof(idOrName) == "string" && idOrName.length > 0 &&
-               idOrName.length <= Ci.nsITaggingService.MAX_TAG_LENGTH) {
+      else if (typeof(val) == "string" && val.length > 0 && val.length <= Ci.nsITaggingService.MAX_TAG_LENGTH) {
         
-        tag.name = trim ? idOrName.trim() : idOrName;
+        tag.name = trim ? val.trim() : val;
         
         
-        tag.__defineGetter__("id", () => this._getItemIdForTag(tag.name));
+        tag.__defineGetter__("id", function () this._self._getItemIdForTag(this.name));
       }
       else {
         throw Cr.NS_ERROR_INVALID_ARG;
       }
       return tag;
-    });
+    }, this);
   },
 
   
@@ -144,37 +143,35 @@ TaggingService.prototype = {
     
     let tags = this._convertInputMixedTagsArray(aTags, true);
 
-    let taggingFunction = () => {
-      for (let tag of tags) {
-        if (tag.id == -1) {
-          
-          this._createTag(tag.name);
-        }
+    let taggingService = this;
+    PlacesUtils.bookmarks.runInBatchMode({
+      runBatched: function (aUserData)
+      {
+        tags.forEach(function (tag)
+        {
+          if (tag.id == -1) {
+            
+            this._createTag(tag.name);
+          }
 
-        if (this._getItemIdForTaggedURI(aURI, tag.name) == -1) {
-          
-          
-          PlacesUtils.bookmarks.insertBookmark(
-            tag.id, aURI, PlacesUtils.bookmarks.DEFAULT_INDEX, null
-          );
-        }
+          if (this._getItemIdForTaggedURI(aURI, tag.name) == -1) {
+            
+            
+            PlacesUtils.bookmarks.insertBookmark(
+              tag.id, aURI, PlacesUtils.bookmarks.DEFAULT_INDEX, null
+            );
+          }
 
-        
-        
-        
-        if (PlacesUtils.bookmarks.getItemTitle(tag.id) != tag.name) {
           
-          PlacesUtils.bookmarks.setItemTitle(tag.id, tag.name);
-        }
+          
+          
+          if (PlacesUtils.bookmarks.getItemTitle(tag.id) != tag.name) {
+            
+            PlacesUtils.bookmarks.setItemTitle(tag.id, tag.name);
+          }
+        }, taggingService);
       }
-    };
-
-    
-    if (tags.length < 3) {
-      taggingFunction();
-    } else {
-      PlacesUtils.bookmarks.runInBatchMode(taggingFunction, null);
-    }
+    }, null);
   },
 
   
@@ -228,25 +225,23 @@ TaggingService.prototype = {
                          "https://bugzilla.mozilla.org/show_bug.cgi?id=967196");
     }
 
-    let untaggingFunction = () => {
-      for (let tag of tags) {
-        if (tag.id != -1) {
-          
-          let itemId = this._getItemIdForTaggedURI(aURI, tag.name);
-          if (itemId != -1) {
+    let taggingService = this;
+    PlacesUtils.bookmarks.runInBatchMode({
+      runBatched: function (aUserData)
+      {
+        tags.forEach(function (tag)
+        {
+          if (tag.id != -1) {
             
-            PlacesUtils.bookmarks.removeItem(itemId);
+            let itemId = this._getItemIdForTaggedURI(aURI, tag.name);
+            if (itemId != -1) {
+              
+              PlacesUtils.bookmarks.removeItem(itemId);
+            }
           }
-        }
+        }, taggingService);
       }
-    };
-
-    
-    if (tags.length < 3) {
-      untaggingFunction();
-    } else {
-      PlacesUtils.bookmarks.runInBatchMode(untaggingFunction, null);
-    }
+    }, null);
   },
 
   
