@@ -13,6 +13,7 @@
 #include "jsprf.h"
 
 #include "mozilla/Vector.h"
+#include "mozilla/Snprintf.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -287,8 +288,6 @@ static bool cvt_ll(SprintfState* ss, int64_t num, int width, int prec, int radix
 
 
 
-
-
 static bool cvt_f(SprintfState* ss, double d, const char* fmt0, const char* fmt1)
 {
     char fin[20];
@@ -313,12 +312,7 @@ static bool cvt_f(SprintfState* ss, double d, const char* fmt0, const char* fmt1
         }
     }
 #endif
-    sprintf(fout, fin, d);
-
-    
-    
-    
-    MOZ_ASSERT(strlen(fout) < sizeof(fout));
+    snprintf_literal(fout, fin, d);
 
     return (*ss->stuff)(ss, fout, strlen(fout));
 }
