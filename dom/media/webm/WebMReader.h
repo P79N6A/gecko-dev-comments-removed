@@ -24,37 +24,7 @@ static const unsigned NS_PER_USEC = 1000;
 static const double NS_PER_S = 1e9;
 
 class WebMBufferedState;
-
-
-class WebMPacketQueue {
- public:
-  int32_t GetSize() {
-    return mQueue.size();
-  }
-
-  void Push(already_AddRefed<NesteggPacketHolder> aItem) {
-    mQueue.push_back(Move(aItem));
-  }
-
-  void PushFront(already_AddRefed<NesteggPacketHolder> aItem) {
-    mQueue.push_front(Move(aItem));
-  }
-
-  already_AddRefed<NesteggPacketHolder> PopFront() {
-    nsRefPtr<NesteggPacketHolder> result = mQueue.front().forget();
-    mQueue.pop_front();
-    return result.forget();
-  }
-
-  void Reset() {
-    while (!mQueue.empty()) {
-      mQueue.pop_front();
-    }
-  }
-
-private:
-  std::deque<nsRefPtr<NesteggPacketHolder>> mQueue;
-};
+class WebMPacketQueue;
 
 class WebMReader;
 
@@ -135,10 +105,10 @@ public:
   
   
   
-  already_AddRefed<NesteggPacketHolder> NextPacket(TrackType aTrackType);
+  nsRefPtr<NesteggPacketHolder> NextPacket(TrackType aTrackType);
 
   
-  virtual void PushVideoPacket(already_AddRefed<NesteggPacketHolder> aItem);
+  virtual void PushVideoPacket(NesteggPacketHolder* aItem);
 
   int GetVideoCodec();
   nsIntRect GetPicture();
@@ -181,7 +151,7 @@ private:
 
   
   
-  already_AddRefed<NesteggPacketHolder> DemuxPacket();
+  nsRefPtr<NesteggPacketHolder> DemuxPacket();
 
   
   
