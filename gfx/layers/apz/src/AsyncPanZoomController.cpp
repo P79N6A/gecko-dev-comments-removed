@@ -2216,13 +2216,8 @@ void AsyncPanZoomController::GetOverscrollTransform(ViewTransform* aTransform) c
   float scale = 1 - (kZEffect * spaceProp);
 
   
-  
-  translation.x /= scale;
-  translation.y /= scale;
-
-  
   aTransform->mScale.scale *= scale;
-  aTransform->mTranslation += translation * mFrameMetrics.LayersPixelsPerCSSPixel();
+  aTransform->mTranslation += translation * mFrameMetrics.GetZoom();
 }
 
 bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSampleTime,
@@ -2249,16 +2244,6 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
     
     if (aOutOverscrollTransform && IsOverscrolled()) {
       GetOverscrollTransform(aOutOverscrollTransform);
-
-      
-      
-      
-      
-      
-      
-      
-      aOutOverscrollTransform->mTranslation.x *= aOutTransform->mScale.scale;
-      aOutOverscrollTransform->mTranslation.y *= aOutTransform->mScale.scale;
     }
 
     LogRendertraceRect(GetGuid(), "viewport", "red",
@@ -2336,13 +2321,13 @@ ViewTransform AsyncPanZoomController::GetCurrentAsyncTransform() {
     }
   }
 
-  LayerPoint translation = (currentScrollOffset - lastPaintScrollOffset)
-                         * mLastContentPaintMetrics.LayersPixelsPerCSSPixel();
+  ParentLayerToScreenScale scale = mFrameMetrics.GetZoom()
+        / mLastContentPaintMetrics.mDevPixelsPerCSSPixel
+        / mFrameMetrics.GetParentResolution();
+  ScreenPoint translation = (currentScrollOffset - lastPaintScrollOffset)
+                          * mFrameMetrics.GetZoom();
 
-  return ViewTransform(-translation,
-                       mFrameMetrics.GetZoom()
-                     / mLastContentPaintMetrics.mDevPixelsPerCSSPixel
-                     / mFrameMetrics.GetParentResolution());
+  return ViewTransform(scale, -translation);
 }
 
 Matrix4x4 AsyncPanZoomController::GetNontransientAsyncTransform() {
@@ -2906,16 +2891,16 @@ void AsyncPanZoomController::ShareCompositorFrameMetrics() {
 
 ParentLayerPoint AsyncPanZoomController::ToParentLayerCoords(const ScreenPoint& aPoint)
 {
-  return TransformTo<ParentLayerPixel>(GetNontransientAsyncTransform() * GetCSSTransform(), aPoint);
+  
+  
+  return ParentLayerPoint(aPoint.x, aPoint.y);
 }
 
 void AsyncPanZoomController::UpdateTransformScale()
 {
-  Matrix4x4 nontransientTransforms = GetNontransientAsyncTransform() * GetCSSTransform();
-  if (!FuzzyEqualsMultiplicative(nontransientTransforms._11, nontransientTransforms._22)) {
-    NS_WARNING("The x- and y-scales of the nontransient transforms should be equal");
-  }
-  mFrameMetrics.mTransformScale.scale = nontransientTransforms._11;
+  
+  
+  mFrameMetrics.mTransformScale.scale = 1;
 }
 
 }

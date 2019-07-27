@@ -148,12 +148,12 @@ ComputeViewTransform(const FrameMetrics& aContentMetrics, const FrameMetrics& aC
   
   
 
-  LayerPoint translation = (aCompositorMetrics.GetScrollOffset() - aContentMetrics.GetScrollOffset())
-                         * aContentMetrics.LayersPixelsPerCSSPixel();
-  return ViewTransform(-translation,
-                       aCompositorMetrics.GetZoom()
+  ParentLayerToScreenScale scale = aCompositorMetrics.GetZoom()
                      / aContentMetrics.mDevPixelsPerCSSPixel
-                     / aCompositorMetrics.GetParentResolution());
+                     / aCompositorMetrics.GetParentResolution();
+  ScreenPoint translation = (aCompositorMetrics.GetScrollOffset() - aContentMetrics.GetScrollOffset())
+                         * aCompositorMetrics.GetZoom();
+  return ViewTransform(scale, -translation);
 }
 
 bool
@@ -1338,22 +1338,15 @@ GetCompositorSideCompositionBounds(Layer* aScrollAncestor,
     1.f);
   nonTransientAPZUntransform.Invert();
 
-  Matrix4x4 layerTransform = aScrollAncestor->GetTransform();
-  Matrix4x4 layerUntransform = layerTransform;
-  layerUntransform.Invert();
-
   
   
   
-  Matrix4x4 transform = aTransformToCompBounds * layerUntransform * nonTransientAPZUntransform;
-
   
-  
-  transform = transform * Matrix4x4(aAPZTransform);
-
-  
-  transform = transform * layerTransform;
+  Matrix4x4 transform = aTransformToCompBounds
+                      * nonTransientAPZUntransform
+                      * Matrix4x4(aAPZTransform);
   transform.Invert();
+
   return TransformTo<LayerPixel>(transform,
             aScrollAncestor->GetFrameMetrics().mCompositionBounds);
 }

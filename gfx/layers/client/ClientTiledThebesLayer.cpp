@@ -68,12 +68,11 @@ GetTransformToAncestorsParentLayer(Layer* aStart, Layer* aAncestor)
   gfx::Matrix4x4 transform;
   Layer* ancestorParent = aAncestor->GetParent();
   for (Layer* iter = aStart; iter != ancestorParent; iter = iter->GetParent()) {
+    transform = transform * iter->GetTransform();
     
     
     const FrameMetrics& metrics = iter->GetFrameMetrics();
     transform = transform * gfx::Matrix4x4().Scale(metrics.mResolution.scale, metrics.mResolution.scale, 1.f);
-
-    transform = transform * iter->GetTransform();
   }
   return transform;
 }

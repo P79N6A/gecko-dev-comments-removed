@@ -28,17 +28,17 @@ class AutoResolveRefLayers;
 
 
 struct ViewTransform {
-  ViewTransform(LayerPoint aTranslation = LayerPoint(),
-                ParentLayerToScreenScale aScale = ParentLayerToScreenScale())
-    : mTranslation(aTranslation)
-    , mScale(aScale)
+  ViewTransform(ParentLayerToScreenScale aScale = ParentLayerToScreenScale(),
+                ScreenPoint aTranslation = ScreenPoint())
+    : mScale(aScale)
+    , mTranslation(aTranslation)
   {}
 
   operator gfx::Matrix4x4() const
   {
     return
-      gfx::Matrix4x4().Translate(mTranslation.x, mTranslation.y, 0) *
-      gfx::Matrix4x4().Scale(mScale.scale, mScale.scale, 1);
+      gfx::Matrix4x4().Scale(mScale.scale, mScale.scale, 1)
+                      .PostTranslate(mTranslation.x, mTranslation.y, 0);
   }
 
   
@@ -55,8 +55,8 @@ struct ViewTransform {
     return !(*this == rhs);
   }
 
-  LayerPoint mTranslation;
   ParentLayerToScreenScale mScale;
+  ScreenPoint mTranslation;
 };
 
 

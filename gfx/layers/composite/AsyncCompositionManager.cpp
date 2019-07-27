@@ -523,7 +523,7 @@ AdjustAndCombineWithCSSTransform(const Matrix4x4& asyncTransform, Layer* aLayer)
   }
 
   
-  result = result * aLayer->GetTransform();
+  result = aLayer->GetTransform() * result;
   return result;
 }
 
@@ -827,23 +827,20 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
   
   
   
-  LayerToScreenScale zoomAdjust = userZoom / geckoZoom;
-
-  LayerPoint geckoScroll(0, 0);
+  ScreenPoint geckoScroll(0, 0);
   if (metrics.IsScrollable()) {
-    geckoScroll = metrics.GetScrollOffset() * geckoZoom;
+    geckoScroll = metrics.GetScrollOffset() * userZoom;
   }
+  ParentLayerToScreenScale scale = userZoom
+                                  / metrics.mDevPixelsPerCSSPixel
+                                  / metrics.GetParentResolution();
+  ScreenPoint translation = userScroll - geckoScroll;
+  Matrix4x4 treeTransform = ViewTransform(scale, -translation);
 
-  LayerPoint translation = (userScroll / zoomAdjust) - geckoScroll;
-  Matrix4x4 treeTransform = ViewTransform(-translation,
-                                            userZoom
-                                          / metrics.mDevPixelsPerCSSPixel
-                                          / metrics.GetParentResolution());
-
   
   
   
-  Matrix4x4 computedTransform = treeTransform * oldTransform;
+  Matrix4x4 computedTransform = oldTransform * treeTransform;
   if (ContainerLayer* container = aLayer->AsContainerLayer()) {
     computedTransform.Scale(1.0f/container->GetPreXScale(),
                             1.0f/container->GetPreYScale(),
