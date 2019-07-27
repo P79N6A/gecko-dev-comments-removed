@@ -382,10 +382,7 @@ int nestegg_sniff(unsigned char const * buffer, size_t length);
 
 
 
-
-
-
-int nestegg_set_halloc_func(void * (* realloc_func)(void *, size_t));
+void nestegg_set_halloc_func(void * (* realloc_func)(void *, size_t));
 
 #if defined(__cplusplus)
 }
