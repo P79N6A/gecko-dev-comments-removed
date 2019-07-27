@@ -6,7 +6,7 @@
 
 const { Cc, Ci, Cu } = require("chrome");
 let protocol = require("devtools/server/protocol");
-let { method, RetVal } = protocol;
+let { method, RetVal, Arg } = protocol;
 const { reportException } = require("devtools/toolkit/DevToolsUtils");
 
 
@@ -74,7 +74,6 @@ let MemoryActor = protocol.ActorClass({
 
   attach: method(expectState("detached", function() {
     this.dbg.addDebuggees();
-    this.dbg.enabled = true;
     this.state = "attached";
   }), {
     request: {},
@@ -97,6 +96,116 @@ let MemoryActor = protocol.ActorClass({
       type: "detached"
     }
   }),
+
+  
+
+
+
+
+
+  recordAllocations: method(expectState("attached", function(shouldRecord) {
+    this.dbg.memory.trackingAllocationSites = shouldRecord;
+  }), {
+    request: {
+      shouldRecord: Arg(0, "boolean")
+    },
+    response: {}
+  }),
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getAllocations: method(expectState("attached", function() {
+    const packet = {
+      frames: [],
+      allocations: []
+    };
+
+    const framesToIndices = new Map();
+
+    for (let stack of this.dbg.memory.flushAllocationsLog()) {
+      packet.allocations.push(this._insertStackInAllocationsPacket(stack,
+                                                                   packet,
+                                                                   framesToIndices));
+    }
+
+    return packet;
+  }), {
+    request: {},
+    response: RetVal("json")
+  }),
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _insertStackInAllocationsPacket: function(frame, packet, framesToIndices) {
+    if (framesToIndices.has(frame)) {
+      return framesToIndices.get(frame);
+    }
+
+    let frameForm = {
+      line: frame.line,
+      column: frame.column,
+      source: frame.source,
+      functionDisplayName: frame.functionDisplayName
+    };
+
+    if (frame.parent) {
+      frameForm.parent = this._insertStackInAllocationsPacket(frame.parent,
+                                                              packet,
+                                                              framesToIndices);
+    }
+
+    let idx = packet.frames.length;
+    packet.frames.push(frameForm);
+    return idx;
+  },
 
   
 
