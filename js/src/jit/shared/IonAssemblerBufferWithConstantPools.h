@@ -115,8 +115,7 @@ typedef Vector<BufferOffset, 512, OldJitAllocPolicy> LoadOffsets;
 
 typedef int32_t PoolAllocUnit;
 
-struct Pool
-  : public OldJitAllocPolicy
+struct Pool : public OldJitAllocPolicy
 {
   private:
     
@@ -155,15 +154,20 @@ struct Pool
     LoadOffsets loadOffsets;
 
     explicit Pool(size_t maxOffset, unsigned bias, LifoAlloc& lifoAlloc)
-        : maxOffset_(maxOffset), bias_(bias), numEntries_(0), buffSize(8),
-          poolData_(lifoAlloc.newArrayUninitialized<PoolAllocUnit>(buffSize)),
-          limitingUser(), limitingUsee(INT_MIN), loadOffsets()
-    {
-    }
+      : maxOffset_(maxOffset),
+        bias_(bias),
+        numEntries_(0),
+        buffSize(8),
+        poolData_(lifoAlloc.newArrayUninitialized<PoolAllocUnit>(buffSize)),
+        limitingUser(),
+        limitingUsee(INT_MIN),
+        loadOffsets()
+    { }
+
     static const unsigned Garbage = 0xa5a5a5a5;
-    Pool() : maxOffset_(Garbage), bias_(Garbage)
-    {
-    }
+    Pool()
+      : maxOffset_(Garbage), bias_(Garbage)
+    { }
 
     PoolAllocUnit* poolData() const {
         return poolData_;
@@ -241,47 +245,58 @@ struct Pool
         limitingUsee = -1;
         return true;
     }
-
 };
 
 
 template <size_t SliceSize, size_t InstSize>
-struct BufferSliceTail : public BufferSlice<SliceSize> {
+struct BufferSliceTail : public BufferSlice<SliceSize>
+{
   private:
     
     
     mozilla::Array<uint8_t, (SliceSize / InstSize) / 8> isBranch_;
+
   public:
     Pool* pool;
+
     
     
     
     
     bool isNatural : 1;
-    BufferSliceTail* getNext() const {
-        return (BufferSliceTail*)this->next_;
-    }
-    explicit BufferSliceTail() : pool(nullptr), isNatural(true) {
+
+  public:
+    explicit BufferSliceTail()
+      : pool(nullptr), isNatural(true)
+    {
         static_assert(SliceSize % (8 * InstSize) == 0, "SliceSize must be a multple of 8 * InstSize.");
         mozilla::PodArrayZero(isBranch_);
     }
+
+  public:
+    bool isBranch(unsigned idx) const {
+        MOZ_ASSERT(idx < this->bytelength_ / InstSize);
+        return (isBranch_[idx >> 3] >> (idx & 0x7)) & 1;
+    }
+
+    bool isNextBranch() const {
+        size_t size = this->bytelength_;
+        MOZ_ASSERT(size < SliceSize);
+        return isBranch(size / InstSize);
+    }
+
     void markNextAsBranch() {
         
         
         
-        MOZ_ASSERT(this->nodeSize_ % InstSize == 0);
-        MOZ_ASSERT(this->nodeSize_ < SliceSize);
-        size_t idx = this->nodeSize_ / InstSize;
+        MOZ_ASSERT(this->bytelength_ % InstSize == 0);
+        MOZ_ASSERT(this->bytelength_ < SliceSize);
+        size_t idx = this->bytelength_ / InstSize;
         isBranch_[idx >> 3] |= 1 << (idx & 0x7);
     }
-    bool isBranch(unsigned idx) const {
-        MOZ_ASSERT(idx < this->nodeSize_ / InstSize);
-        return (isBranch_[idx >> 3] >> (idx & 0x7)) & 1;
-    }
-    bool isNextBranch() const {
-        size_t size = this->nodeSize_;
-        MOZ_ASSERT(size < SliceSize);
-        return isBranch(size / InstSize);
+
+    BufferSliceTail* getNext() const {
+        return (BufferSliceTail*)this->next_;
     }
 };
 
@@ -289,20 +304,28 @@ struct BufferSliceTail : public BufferSlice<SliceSize> {
 
 
 template <size_t SliceSize, size_t InstSize, class Inst, class Asm>
-struct AssemblerBufferWithConstantPools : public AssemblerBuffer<SliceSize, Inst> {
+struct AssemblerBufferWithConstantPools : public AssemblerBuffer<SliceSize, Inst>
+{
   private:
     
     
     
     size_t poolEntryCount;
+
   public:
-    class PoolEntry {
+    class PoolEntry
+    {
         size_t index_;
+
       public:
-        explicit PoolEntry(size_t index) : index_(index) {
-        }
-        PoolEntry() : index_(-1) {
-        }
+        explicit PoolEntry(size_t index)
+          : index_(index)
+        { }
+
+        PoolEntry()
+          : index_(-1)
+        { }
+
         size_t index() const {
             return index_;
         }
@@ -384,13 +407,11 @@ struct AssemblerBufferWithConstantPools : public AssemblerBuffer<SliceSize, Inst
     bool inhibitNops_;
 
   public:
-
     
     
     int id;
 
   private:
-    
     
     BufferSlice* getHead() const {
         return (BufferSlice*)this->head;
@@ -413,15 +434,27 @@ struct AssemblerBufferWithConstantPools : public AssemblerBuffer<SliceSize, Inst
                                      size_t instBufferAlign, size_t poolMaxOffset,
                                      unsigned pcBias, uint32_t alignFillInst, uint32_t nopFillInst,
                                      unsigned nopFill = 0)
-        : poolEntryCount(0), guardSize_(guardSize), headerSize_(headerSize),
-          poolMaxOffset_(poolMaxOffset), pcBias_(pcBias),
-          instBufferAlign_(instBufferAlign),
-          numDumps_(0), poolInfoSize_(8), poolInfo_(nullptr),
-          canNotPlacePool_(false), alignFillInst_(alignFillInst),
-          nopFillInst_(nopFillInst), nopFill_(nopFill), inhibitNops_(false),
-          id(-1)
-    {
-    }
+      : poolEntryCount(0),
+        guardSize_(guardSize),
+        headerSize_(headerSize),
+        poolMaxOffset_(poolMaxOffset),
+        pcBias_(pcBias),
+        pool_(),
+        instBufferAlign_(instBufferAlign),
+        numDumps_(0),
+        poolInfoSize_(8),
+        poolInfo_(nullptr),
+        canNotPlacePool_(false),
+#ifdef DEBUG
+        canNotPlacePoolStartOffset_(0),
+        canNotPlacePoolMaxInst_(0),
+#endif
+        alignFillInst_(alignFillInst),
+        nopFillInst_(nopFillInst),
+        nopFill_(nopFill),
+        inhibitNops_(false),
+        id(-1)
+    { }
 
     
     
@@ -526,7 +559,8 @@ struct AssemblerBufferWithConstantPools : public AssemblerBuffer<SliceSize, Inst
   public:
     BufferOffset allocEntry(size_t numInst, unsigned numPoolEntries,
                             uint8_t* inst, uint8_t* data, PoolEntry* pe = nullptr,
-                            bool markAsBranch = false) {
+                            bool markAsBranch = false)
+    {
         
         
         MOZ_ASSERT_IF(numPoolEntries, !canNotPlacePool_);
@@ -569,7 +603,7 @@ struct AssemblerBufferWithConstantPools : public AssemblerBuffer<SliceSize, Inst
             *pe = retPE;
         if (markAsBranch)
             markNextAsBranch();
-        return this->putBlob(numInst * InstSize, inst);
+        return this->putBytes(numInst * InstSize, inst);
     }
 
     BufferOffset putInt(uint32_t value, bool markAsBranch = false) {
@@ -614,7 +648,7 @@ struct AssemblerBufferWithConstantPools : public AssemblerBuffer<SliceSize, Inst
         BufferOffset branch = this->nextOffset();
         
         markNextAsBranch();
-        this->putBlob(guardSize_ * InstSize, nullptr);
+        this->putBytes(guardSize_ * InstSize, nullptr);
         BufferOffset afterPool = this->nextOffset();
         Asm::WritePoolGuard(branch, this->getInst(branch), afterPool);
 
@@ -751,9 +785,7 @@ struct AssemblerBufferWithConstantPools : public AssemblerBuffer<SliceSize, Inst
         return poolInfo_[cur - 1].finalPos - poolInfo_[cur - 1].offset;
     }
 
-    void align(unsigned alignment)
-    {
-        
+    void align(unsigned alignment) {
         MOZ_ASSERT(IsPowerOfTwo(alignment));
 
         
@@ -819,7 +851,7 @@ struct AssemblerBufferWithConstantPools : public AssemblerBuffer<SliceSize, Inst
         size_t curInstOffset = 0;
         for (BufferSlice* cur = getHead(); cur != nullptr; cur = cur->getNext()) {
             uint32_t* src = (uint32_t*)&cur->instructions;
-            unsigned numInsts = cur->size() / InstSize;
+            unsigned numInsts = cur->length() / InstSize;
             for (unsigned idx = 0; idx < numInsts; idx++, curInstOffset += InstSize) {
                 
                 if (cur->isBranch(idx)) {
@@ -865,4 +897,5 @@ struct AssemblerBufferWithConstantPools : public AssemblerBuffer<SliceSize, Inst
 
 } 
 } 
+
 #endif 
