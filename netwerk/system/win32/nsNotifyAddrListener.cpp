@@ -12,11 +12,6 @@
 #include <ole2.h>
 #include <netcon.h>
 #include <objbase.h>
-#include <winsock2.h>
-#include <ws2ipdef.h>
-#include <tcpmib.h>
-#include <iphlpapi.h>
-#include <netioapi.h>
 #include <iprtrmib.h>
 #include "plstr.h"
 #include "nsThreadUtils.h"
@@ -27,37 +22,12 @@
 #include "nsAutoPtr.h"
 #include "mozilla/Services.h"
 #include "nsCRT.h"
-#include "mozilla/Preferences.h"
 
 #include <iptypes.h>
 #include <iphlpapi.h>
 
-using namespace mozilla;
-
 static HMODULE sNetshell;
 static decltype(NcFreeNetconProperties)* sNcFreeNetconProperties;
-
-static HMODULE sIphlpapi;
-static decltype(NotifyIpInterfaceChange)* sNotifyIpInterfaceChange;
-static decltype(CancelMibChangeNotify2)* sCancelMibChangeNotify2;
-
-#define NETWORK_NOTIFY_CHANGED_PREF "network.notify.changed"
-
-static void InitIphlpapi(void)
-{
-    if (!sIphlpapi) {
-        sIphlpapi = LoadLibraryW(L"Iphlpapi.dll");
-        if (sIphlpapi) {
-            sNotifyIpInterfaceChange = (decltype(NotifyIpInterfaceChange)*)
-                GetProcAddress(sIphlpapi, "NotifyIpInterfaceChange");
-            sCancelMibChangeNotify2 = (decltype(CancelMibChangeNotify2)*)
-                GetProcAddress(sIphlpapi, "CancelMibChangeNotify2");
-        } else {
-            NS_WARNING("Failed to load Iphlpapi.dll - cannot detect network"
-                       " changes!");
-        }
-    }
-}
 
 static void InitNetshellLibrary(void)
 {
@@ -77,12 +47,6 @@ static void FreeDynamicLibraries(void)
         FreeLibrary(sNetshell);
         sNetshell = nullptr;
     }
-    if (sIphlpapi) {
-        sNotifyIpInterfaceChange = nullptr;
-        sCancelMibChangeNotify2 = nullptr;
-        FreeLibrary(sIphlpapi);
-        sIphlpapi = nullptr;
-    }
 }
 
 NS_IMPL_ISUPPORTS(nsNotifyAddrListener,
@@ -95,9 +59,7 @@ nsNotifyAddrListener::nsNotifyAddrListener()
     , mStatusKnown(false)
     , mCheckAttempted(false)
     , mShutdownEvent(nullptr)
-    , mAllowChangedEvent(true)
 {
-    InitIphlpapi();
 }
 
 nsNotifyAddrListener::~nsNotifyAddrListener()
@@ -135,62 +97,36 @@ nsNotifyAddrListener::GetLinkType(uint32_t *aLinkType)
   return NS_OK;
 }
 
-
-static void WINAPI OnInterfaceChange(PVOID callerContext,
-                                     PMIB_IPINTERFACE_ROW row,
-                                     MIB_NOTIFICATION_TYPE notificationType)
-{
-    nsNotifyAddrListener *notify = static_cast<nsNotifyAddrListener*>(callerContext);
-    notify->CheckLinkStatus();
-}
-
 NS_IMETHODIMP
 nsNotifyAddrListener::Run()
 {
     PR_SetCurrentThreadName("Link Monitor");
-    if (!sNotifyIpInterfaceChange || !sCancelMibChangeNotify2) {
-        
-        
-        HANDLE ev = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-        NS_ENSURE_TRUE(ev, NS_ERROR_OUT_OF_MEMORY);
 
-        HANDLE handles[2] = { ev, mShutdownEvent };
-        OVERLAPPED overlapped = { 0 };
-        bool shuttingDown = false;
+    HANDLE ev = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+    NS_ENSURE_TRUE(ev, NS_ERROR_OUT_OF_MEMORY);
 
-        overlapped.hEvent = ev;
-        while (!shuttingDown) {
-            HANDLE h;
-            DWORD ret = NotifyAddrChange(&h, &overlapped);
+    HANDLE handles[2] = { ev, mShutdownEvent };
+    OVERLAPPED overlapped = { 0 };
+    bool shuttingDown = false;
 
-            if (ret == ERROR_IO_PENDING) {
-                ret = WaitForMultipleObjects(2, handles, FALSE, INFINITE);
-                if (ret == WAIT_OBJECT_0) {
-                    CheckLinkStatus();
-                } else {
-                    shuttingDown = true;
-                }
+    overlapped.hEvent = ev;
+    while (!shuttingDown) {
+        HANDLE h;
+        DWORD ret = NotifyAddrChange(&h, &overlapped);
+
+        if (ret == ERROR_IO_PENDING) {
+            ret = WaitForMultipleObjects(2, handles, FALSE, INFINITE);
+            if (ret == WAIT_OBJECT_0) {
+                CheckLinkStatus();
             } else {
                 shuttingDown = true;
             }
+        } else {
+            shuttingDown = true;
         }
-        CloseHandle(ev);
-    } else {
-        
-        HANDLE interfacechange;
-        
-        DWORD ret = sNotifyIpInterfaceChange(
-            AF_UNSPEC, 
-            (PIPINTERFACE_CHANGE_CALLBACK)OnInterfaceChange,
-            this,  
-            false, 
-            &interfacechange);
-
-        if (ret == NO_ERROR) {
-            ret = WaitForSingleObject(mShutdownEvent, INFINITE);
-        }
-        sCancelMibChangeNotify2(interfacechange);
     }
+    CloseHandle(ev);
+
     return NS_OK;
 }
 
@@ -216,9 +152,6 @@ nsNotifyAddrListener::Init(void)
     nsresult rv = observerService->AddObserver(this, "xpcom-shutdown-threads",
                                                false);
     NS_ENSURE_SUCCESS(rv, rv);
-
-    Preferences::AddBoolVarCache(&mAllowChangedEvent,
-                                 NETWORK_NOTIFY_CHANGED_PREF, true);
 
     mShutdownEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
     NS_ENSURE_TRUE(mShutdownEvent, NS_ERROR_OUT_OF_MEMORY);
@@ -260,7 +193,7 @@ nsNotifyAddrListener::Shutdown(void)
 
 
 nsresult
-nsNotifyAddrListener::SendEvent(const char *aEventID)
+nsNotifyAddrListener::SendEventToUI(const char *aEventID)
 {
     if (!aEventID)
         return NS_ERROR_NULL_POINTER;
@@ -284,12 +217,8 @@ nsNotifyAddrListener::ChangeEvent::Run()
     return NS_OK;
 }
 
-
-
-
-
 bool
-nsNotifyAddrListener::CheckICSGateway(PIP_ADAPTER_ADDRESSES aAdapter)
+nsNotifyAddrListener::CheckIsGateway(PIP_ADAPTER_ADDRESSES aAdapter)
 {
     if (!aAdapter->FirstUnicastAddress)
         return false;
@@ -391,70 +320,38 @@ nsNotifyAddrListener::CheckAdaptersAddresses(void)
 {
     ULONG len = 16384;
 
-    PIP_ADAPTER_ADDRESSES adapterList = (PIP_ADAPTER_ADDRESSES) moz_xmalloc(len);
+    PIP_ADAPTER_ADDRESSES addresses = (PIP_ADAPTER_ADDRESSES) malloc(len);
+    if (!addresses)
+        return ERROR_OUTOFMEMORY;
 
-    ULONG flags = GAA_FLAG_SKIP_DNS_SERVER|GAA_FLAG_SKIP_MULTICAST|
-        GAA_FLAG_SKIP_ANYCAST;
-
-    DWORD ret = GetAdaptersAddresses(AF_UNSPEC, flags, nullptr, adapterList, &len);
+    DWORD ret = GetAdaptersAddresses(AF_UNSPEC, 0, nullptr, addresses, &len);
     if (ret == ERROR_BUFFER_OVERFLOW) {
-        free(adapterList);
-        adapterList = static_cast<PIP_ADAPTER_ADDRESSES> (moz_xmalloc(len));
-
-        ret = GetAdaptersAddresses(AF_UNSPEC, flags, nullptr, adapterList, &len);
+        free(addresses);
+        addresses = (PIP_ADAPTER_ADDRESSES) malloc(len);
+        if (!addresses)
+            return ERROR_BUFFER_OVERFLOW;
+        ret = GetAdaptersAddresses(AF_UNSPEC, 0, nullptr, addresses, &len);
     }
 
     if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED))) {
-        free(adapterList);
+        free(addresses);
         return ERROR_NOT_SUPPORTED;
     }
 
-    
-    
-    
-    
-    
-    
-    ULONG sum = 0;
-
     if (ret == ERROR_SUCCESS) {
+        PIP_ADAPTER_ADDRESSES ptr;
         bool linkUp = false;
 
-        for (PIP_ADAPTER_ADDRESSES adapter = adapterList; adapter;
-             adapter = adapter->Next) {
-            if (adapter->OperStatus != IfOperStatusUp ||
-                !adapter->FirstUnicastAddress ||
-                adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK ||
-                CheckICSGateway(adapter) ) {
-                continue;
-            }
-
-            
-            for (int i = 0; adapter->AdapterName[i]; ++i) {
-                sum <<= 2;
-                sum += adapter->AdapterName[i];
-            }
-
-            
-            for (PIP_ADAPTER_UNICAST_ADDRESS pip = adapter->FirstUnicastAddress;
-                 pip; pip = pip->Next) {
-                SOCKET_ADDRESS *sockAddr = &pip->Address;
-                for (int i = 0; i < sockAddr->iSockaddrLength; ++i) {
-                    sum += (reinterpret_cast<unsigned char *>
-                            (sockAddr->lpSockaddr))[i];
-                }
-            }
-            linkUp = true;
+        for (ptr = addresses; !linkUp && ptr; ptr = ptr->Next) {
+            if (ptr->OperStatus == IfOperStatusUp &&
+                    ptr->IfType != IF_TYPE_SOFTWARE_LOOPBACK &&
+                    !CheckIsGateway(ptr))
+                linkUp = true;
         }
         mLinkUp = linkUp;
         mStatusKnown = true;
     }
-    free(adapterList);
-
-    if (mLinkUp) {
-        
-        mIPInterfaceChecksum = sum;
-    }
+    free(addresses);
 
     CoUninitialize();
 
@@ -471,10 +368,7 @@ nsNotifyAddrListener::CheckLinkStatus(void)
 {
     DWORD ret;
     const char *event;
-    bool prevLinkUp = mLinkUp;
-    ULONG prevCsum = mIPInterfaceChecksum;
 
-    
     
     
     
@@ -482,36 +376,16 @@ nsNotifyAddrListener::CheckLinkStatus(void)
         NS_WARNING("CheckLinkStatus called on main thread! No check "
                    "performed. Assuming link is up, status is unknown.");
         mLinkUp = true;
-
-        if (!mStatusKnown) {
-            event = NS_NETWORK_LINK_DATA_UNKNOWN;
-        } else if (!prevLinkUp) {
-            event = NS_NETWORK_LINK_DATA_UP;
-        } else {
-            
-            event = nullptr;
-        }
-
-        if (event) {
-            SendEvent(event);
-        }
     } else {
         ret = CheckAdaptersAddresses();
         if (ret != ERROR_SUCCESS) {
             mLinkUp = true;
         }
-
-        if (mLinkUp && (prevCsum != mIPInterfaceChecksum)) {
-            
-            
-            if (mAllowChangedEvent) {
-                SendEvent(NS_NETWORK_LINK_DATA_CHANGED);
-            }
-        }
-        if (prevLinkUp != mLinkUp) {
-            
-            SendEvent(mLinkUp ?
-                      NS_NETWORK_LINK_DATA_UP : NS_NETWORK_LINK_DATA_DOWN);
-        }
     }
+
+    if (mStatusKnown)
+        event = mLinkUp ? NS_NETWORK_LINK_DATA_UP : NS_NETWORK_LINK_DATA_DOWN;
+    else
+        event = NS_NETWORK_LINK_DATA_UNKNOWN;
+    SendEventToUI(event);
 }

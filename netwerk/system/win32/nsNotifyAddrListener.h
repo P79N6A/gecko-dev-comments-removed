@@ -30,7 +30,6 @@ public:
     nsNotifyAddrListener();
 
     nsresult Init(void);
-    void CheckLinkStatus(void);
 
 protected:
     class ChangeEvent : public nsRunnable {
@@ -49,25 +48,16 @@ protected:
     bool mCheckAttempted;
 
     nsresult Shutdown(void);
-    nsresult SendEvent(const char *aEventID);
+    nsresult SendEventToUI(const char *aEventID);
 
     DWORD CheckAdaptersAddresses(void);
-
-    
-    bool  CheckICSGateway(PIP_ADAPTER_ADDRESSES aAdapter);
+    bool  CheckIsGateway(PIP_ADAPTER_ADDRESSES aAdapter);
     bool  CheckICSStatus(PWCHAR aAdapterName);
+    void  CheckLinkStatus(void);
 
     nsCOMPtr<nsIThread> mThread;
 
     HANDLE        mShutdownEvent;
-
-private:
-    
-    
-    ULONG mIPInterfaceChecksum;
-
-    
-    bool mAllowChangedEvent;
 };
 
 #endif 
