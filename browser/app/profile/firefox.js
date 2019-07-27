@@ -1633,6 +1633,9 @@ pref("browser.newtab.preload", true);
 pref("browser.newtabpage.introShown", false);
 
 
+pref("browser.newtabpage.updateIntroShown", false);
+
+
 pref("browser.newtabpage.enabled", true);
 
 
@@ -1906,6 +1909,11 @@ pref("readinglist.server", "https://readinglist.services.mozilla.com/v1");
 pref("browser.reader.detectedFirstArticle", false);
 
 pref("reader.parse-node-limit", 0);
+
+
+#ifdef NIGHTLY_BUILD
+pref("dom.serviceWorkers.enabled", true);
+#endif
 
 pref("browser.pocket.enabled", true);
 pref("browser.pocket.api", "api.getpocket.com");
