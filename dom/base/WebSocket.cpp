@@ -432,12 +432,40 @@ private:
   WebSocketImpl* mImpl;
 };
 
+class CloseConnectionRunnable final : public nsRunnable
+{
+public:
+  CloseConnectionRunnable(WebSocketImpl* aImpl,
+                          uint16_t aReasonCode,
+                          const nsACString& aReasonString)
+    : mImpl(aImpl)
+    , mReasonCode(aReasonCode)
+    , mReasonString(aReasonString)
+  {}
+
+  NS_IMETHOD Run() override
+  {
+    return mImpl->CloseConnection(mReasonCode, mReasonString);
+  }
+
+private:
+  nsRefPtr<WebSocketImpl> mImpl;
+  uint16_t mReasonCode;
+  const nsCString mReasonString;
+};
+
 } 
 
 nsresult
 WebSocketImpl::CloseConnection(uint16_t aReasonCode,
                                const nsACString& aReasonString)
 {
+  if (!IsTargetThread()) {
+    nsRefPtr<nsRunnable> runnable =
+      new CloseConnectionRunnable(this, aReasonCode, aReasonString);
+    return Dispatch(runnable, NS_DISPATCH_NORMAL);
+  }
+
   AssertIsOnTargetThread();
 
   if (mDisconnectingOrDisconnected) {
@@ -470,7 +498,6 @@ WebSocketImpl::CloseConnection(uint16_t aReasonCode,
     return NS_DispatchToMainThread(runnable);
   }
 
-  
   
   MOZ_ASSERT(readyState == WebSocket::CONNECTING,
              "Should only get here for early websocket cancel/error");
@@ -622,10 +649,12 @@ WebSocketImpl::DisconnectInternal()
     mWeakLoadGroup = nullptr;
   }
 
-  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-  if (os) {
-    os->RemoveObserver(this, DOM_WINDOW_DESTROYED_TOPIC);
-    os->RemoveObserver(this, DOM_WINDOW_FROZEN_TOPIC);
+  if (!mWorkerPrivate) {
+    nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+    if (os) {
+      os->RemoveObserver(this, DOM_WINDOW_DESTROYED_TOPIC);
+      os->RemoveObserver(this, DOM_WINDOW_FROZEN_TOPIC);
+    }
   }
 }
 
