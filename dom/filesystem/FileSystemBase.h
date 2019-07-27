@@ -85,9 +85,9 @@ public:
   }
 
   bool
-  IsTesting() const
+  RequiresPermissionChecks() const
   {
-    return mIsTesting;
+    return mRequiresPermissionChecks;
   }
 protected:
   virtual ~FileSystemBase();
@@ -100,7 +100,7 @@ protected:
   
   nsCString mPermission;
 
-  bool mIsTesting;
+  bool mRequiresPermissionChecks;
 };
 
 } 
