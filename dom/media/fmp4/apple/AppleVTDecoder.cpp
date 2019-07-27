@@ -211,7 +211,7 @@ AppleVTDecoder::SubmitFrame(mp4_demuxer::MP4Sample* aSample)
   
   AutoCFRelease<CMBlockBufferRef> block = nullptr;
   AutoCFRelease<CMSampleBufferRef> sample = nullptr;
-  VTDecodeInfoFlags flags;
+  VTDecodeInfoFlags infoFlags;
   OSStatus rv;
 
   
@@ -237,12 +237,15 @@ AppleVTDecoder::SubmitFrame(mp4_demuxer::MP4Sample* aSample)
     NS_ERROR("Couldn't create CMSampleBuffer");
     return NS_ERROR_FAILURE;
   }
+
+  VTDecodeFrameFlags decodeFlags =
+    kVTDecodeFrame_EnableAsynchronousDecompression;
   rv = VTDecompressionSessionDecodeFrame(mSession,
                                          sample,
-                                         0,
+                                         decodeFlags,
                                          CreateAppleFrameRef(aSample),
-                                         &flags);
-  if (rv != noErr && !(flags & kVTDecodeInfo_FrameDropped)) {
+                                         &infoFlags);
+  if (rv != noErr && !(infoFlags & kVTDecodeInfo_FrameDropped)) {
     NS_WARNING("Couldn't pass frame to decoder");
     return NS_ERROR_FAILURE;
   }
