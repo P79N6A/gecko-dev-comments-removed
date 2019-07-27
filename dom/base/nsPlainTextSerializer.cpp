@@ -91,6 +91,8 @@ nsPlainTextSerializer::nsPlainTextSerializer()
   mPreFormatted = false;
   mStartedOutput = false;
 
+  mPreformattedBlockBoundary = false;
+
   
   
   
@@ -166,6 +168,8 @@ nsPlainTextSerializer::Init(uint32_t aFlags, uint32_t aWrapColumn,
 
   mLineBreakDue = false;
   mFloatingLines = -1;
+
+  mPreformattedBlockBoundary = false;
 
   if (mFlags & nsIDocumentEncoder::OutputFormatted) {
     
@@ -435,6 +439,16 @@ nsPlainTextSerializer::DoOpenContainer(nsIAtom* aTag)
     
     mIgnoredChildNodeLevel++;
     return NS_OK;
+  }
+
+  if (mFlags & nsIDocumentEncoder::OutputForPlainTextClipboardCopy) {
+    if (mPreformattedBlockBoundary && DoOutput()) {
+      
+      if (mFloatingLines < 0)
+        mFloatingLines = 0;
+      mLineBreakDue = true;
+    }
+    mPreformattedBlockBoundary = false;
   }
 
   if (mFlags & nsIDocumentEncoder::OutputRaw) {
@@ -767,6 +781,14 @@ nsPlainTextSerializer::DoCloseContainer(nsIAtom* aTag)
     return NS_OK;
   }
 
+  if (mFlags & nsIDocumentEncoder::OutputForPlainTextClipboardCopy) {
+    if (DoOutput() && IsInPre() && IsElementBlock(mElement)) {
+      
+      
+      mPreformattedBlockBoundary = true;
+    }
+  }
+
   if (mFlags & nsIDocumentEncoder::OutputRaw) {
     
     
@@ -1036,6 +1058,8 @@ nsPlainTextSerializer::DoAddText(bool aIsLineBreak, const nsAString& aText)
 nsresult
 nsPlainTextSerializer::DoAddLeaf(nsIAtom* aTag)
 {
+  mPreformattedBlockBoundary = false;
+
   
   if (!DoOutput()) {
     return NS_OK;

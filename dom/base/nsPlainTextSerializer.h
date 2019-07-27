@@ -170,7 +170,9 @@ private:
   
   
   
-  bool             mLineBreakDue; 
+  bool             mLineBreakDue;
+
+  bool             mPreformattedBlockBoundary;
 
   nsString         mURL;
   int32_t          mHeaderStrategy;    

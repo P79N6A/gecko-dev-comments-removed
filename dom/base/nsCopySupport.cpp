@@ -97,7 +97,8 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
 
   
   uint32_t flags = aFlags | nsIDocumentEncoder::OutputPreformatted
-                          | nsIDocumentEncoder::OutputRaw;
+                          | nsIDocumentEncoder::OutputRaw
+                          | nsIDocumentEncoder::OutputForPlainTextClipboardCopy;
 
   nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(aDoc);
   NS_ASSERTION(domDoc, "Need a document");
