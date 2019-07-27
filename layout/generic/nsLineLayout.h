@@ -304,6 +304,11 @@ public:
     return mLastOptionalBreakFrame != nullptr;
   }
   
+  gfxBreakPriority LastOptionalBreakPriority() const
+  {
+    return mLastOptionalBreakPriority;
+  }
+  
   
 
 

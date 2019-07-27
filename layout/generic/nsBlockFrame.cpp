@@ -3825,14 +3825,10 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
   }
   if (needsBackup) {
     
-    int32_t offset;
-    gfxBreakPriority breakPriority;
-    nsIFrame* breakFrame =
-      aLineLayout.GetLastOptionalBreakPosition(&offset, &breakPriority);
     
     
     
-    if (breakFrame) {
+    if (aLineLayout.HasOptionalBreakPosition()) {
       
       lineReflowStatus = LINE_REFLOW_REDO_NO_PULL;
     }
