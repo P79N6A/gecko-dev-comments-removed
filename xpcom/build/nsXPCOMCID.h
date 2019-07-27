@@ -90,6 +90,8 @@
 
 #define NS_MESSAGE_LOOP_CONTRACTID "@mozilla.org/message-loop;1"
 
+#define NS_COMPARTMENT_INFO_CONTRACTID "@mozilla.org/compartment-info;1"
+
 
 
 

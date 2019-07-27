@@ -1042,6 +1042,19 @@ JS_GetEmptyStringValue(JSContext *cx);
 extern JS_PUBLIC_API(JSString *)
 JS_GetEmptyString(JSRuntime *rt);
 
+struct CompartmentTimeStats {
+    char compartmentName[1024];
+    JSAddonId *addonId;
+    JSCompartment *compartment;
+    uint64_t time;  
+    uint64_t cpowTime; 
+};
+
+typedef js::Vector<CompartmentTimeStats, 0, js::SystemAllocPolicy> CompartmentStatsVector;
+
+extern JS_PUBLIC_API(bool)
+JS_GetCompartmentStats(JSRuntime *rt, CompartmentStatsVector &stats);
+
 
 
 
