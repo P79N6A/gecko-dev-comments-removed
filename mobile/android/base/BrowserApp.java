@@ -2101,6 +2101,9 @@ public class BrowserApp extends GeckoApp
                 mDoorHangerPopup.disable();
             }
             mTabsPanel.show(panel);
+
+            
+            mFindInPageBar.hide();
         }
     }
 
