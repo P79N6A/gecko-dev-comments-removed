@@ -1013,9 +1013,14 @@ File.removeEmptyDir = function removeEmptyDir(path, options) {
 
 
 
-File.remove = function remove(path) {
+
+
+
+
+
+File.remove = function remove(path, options) {
   return Scheduler.post("remove",
-    [Type.path.toMsg(path)]);
+    [Type.path.toMsg(path), options], path);
 };
 
 
