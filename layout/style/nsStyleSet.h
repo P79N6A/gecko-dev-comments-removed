@@ -209,40 +209,35 @@ class nsStyleSet
 
   
   
-  bool AppendFontFaceRules(nsPresContext* aPresContext,
-                             nsTArray<nsFontFaceRuleContainer>& aArray);
+  bool AppendFontFaceRules(nsTArray<nsFontFaceRuleContainer>& aArray);
 
   
-  nsCSSKeyframesRule* KeyframesRuleForName(nsPresContext* aPresContext,
-                                           const nsString& aName);
+  nsCSSKeyframesRule* KeyframesRuleForName(const nsString& aName);
 
   
-  nsCSSCounterStyleRule* CounterStyleRuleForName(nsPresContext* aPresContext,
-                                                 const nsAString& aName);
+  nsCSSCounterStyleRule* CounterStyleRuleForName(const nsAString& aName);
 
   
   already_AddRefed<gfxFontFeatureValueSet> GetFontFeatureValuesLookup();
 
   
   
-  bool AppendFontFeatureValuesRules(nsPresContext* aPresContext,
+  bool AppendFontFeatureValuesRules(
                               nsTArray<nsCSSFontFeatureValuesRule*>& aArray);
 
   
   
-  bool AppendPageRules(nsPresContext* aPresContext,
-                       nsTArray<nsCSSPageRule*>& aArray);
+  bool AppendPageRules(nsTArray<nsCSSPageRule*>& aArray);
 
   
   
-  void BeginShutdown(nsPresContext* aPresContext);
+  void BeginShutdown();
 
   
-  void Shutdown(nsPresContext* aPresContext);
+  void Shutdown();
 
   
-  void NotifyStyleContextDestroyed(nsPresContext* aPresContext,
-                                   nsStyleContext* aStyleContext);
+  void NotifyStyleContextDestroyed(nsStyleContext* aStyleContext);
 
   
   
@@ -256,23 +251,19 @@ class nsStyleSet
                        mozilla::dom::Element* aElement);
 
   
-  bool HasDocumentStateDependentStyle(nsPresContext* aPresContext,
-                                      nsIContent*    aContent,
+  bool HasDocumentStateDependentStyle(nsIContent*    aContent,
                                       mozilla::EventStates aStateMask);
 
   
-  nsRestyleHint HasStateDependentStyle(nsPresContext* aPresContext,
-                                       mozilla::dom::Element* aElement,
+  nsRestyleHint HasStateDependentStyle(mozilla::dom::Element* aElement,
                                        mozilla::EventStates aStateMask);
-  nsRestyleHint HasStateDependentStyle(nsPresContext* aPresContext,
-                                       mozilla::dom::Element* aElement,
+  nsRestyleHint HasStateDependentStyle(mozilla::dom::Element* aElement,
                                        nsCSSPseudoElements::Type aPseudoType,
                                        mozilla::dom::Element* aPseudoElement,
                                        mozilla::EventStates aStateMask);
 
   
-  nsRestyleHint HasAttributeDependentStyle(nsPresContext* aPresContext,
-                                           mozilla::dom::Element* aElement,
+  nsRestyleHint HasAttributeDependentStyle(mozilla::dom::Element* aElement,
                                            nsIAtom*       aAttribute,
                                            int32_t        aModType,
                                            bool           aAttrHasChanged);
@@ -282,7 +273,7 @@ class nsStyleSet
 
 
 
-  bool MediumFeaturesChanged(nsPresContext* aPresContext);
+  bool MediumFeaturesChanged();
 
   
   
