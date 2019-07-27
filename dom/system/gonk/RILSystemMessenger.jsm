@@ -14,12 +14,6 @@ XPCOMUtils.defineLazyGetter(this, "RIL", function () {
   return obj;
 });
 
-XPCOMUtils.defineLazyGetter(this, "gStkCmdFactory", function() {
-  let stk = {};
-  Cu.import("resource://gre/modules/StkProactiveCmdFactory.jsm", stk);
-  return stk.StkProactiveCmdFactory;
-});
-
 
 
 
@@ -35,6 +29,18 @@ RILSystemMessenger.prototype = {
 
 
   broadcastMessage: function(aType, aMessage) {
+    
+  },
+
+  
+
+
+
+
+
+
+
+  createCommandMessage: function(aStkProactiveCmd) {
     
   },
 
@@ -322,7 +328,7 @@ RILSystemMessenger.prototype = {
   notifyStkProactiveCommand: function(aIccId, aCommand) {
     this.broadcastMessage("icc-stkcommand", {
       iccId: aIccId,
-      command: gStkCmdFactory.createCommandMessage(aCommand)
+      command: this.createCommandMessage(aCommand)
     });
   }
 };

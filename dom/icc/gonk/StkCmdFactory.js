@@ -11,6 +11,9 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 let RIL = {};
 Cu.import("resource://gre/modules/ril_consts.js", RIL);
 
+const GONK_STKCMDFACTORY_CONTRACTID = "@mozilla.org/icc/stkcmdfactory;1";
+const GONK_STKCMDFACTORY_CID = Components.ID("{7a663440-e336-11e4-8fd5-c3140a7ff307}");
+
 
 
 
@@ -998,10 +1001,20 @@ QueriedIFs[RIL.STK_CMD_RECEIVE_DATA] = Ci.nsIStkTextMessageCmd;
 
 
 
-this.StkProactiveCmdFactory = {
+function StkProactiveCmdFactory() {
+}
+StkProactiveCmdFactory.prototype = {
+  classID: GONK_STKCMDFACTORY_CID,
+
+  classInfo: XPCOMUtils.generateCI({classID: GONK_STKCMDFACTORY_CID,
+                                    contractID: GONK_STKCMDFACTORY_CONTRACTID,
+                                    classDescription: "StkProactiveCmdFactory",
+                                    interfaces: [Ci.nsIStkCmdFactory],
+                                    flags: Ci.nsIClassInfo.SINGLETON}),
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIStkCmdFactory]),
+
   
-
-
 
 
   createCommand: function(aCommandDetails) {
@@ -1013,10 +1026,6 @@ this.StkProactiveCmdFactory = {
 
     return new cmdType(aCommandDetails);
   },
-
-  
-
-
 
   createCommandMessage: function(aStkProactiveCmd) {
     let cmd = null;
@@ -1039,6 +1048,4 @@ this.StkProactiveCmdFactory = {
   },
 };
 
-this.EXPORTED_SYMBOLS = [
-  'StkProactiveCmdFactory'
-];
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([StkProactiveCmdFactory]);
