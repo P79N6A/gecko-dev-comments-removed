@@ -745,13 +745,18 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                         "END AS " + Combined.DISPLAY + "," +
                         qualifyColumn(TABLE_HISTORY, History.DATE_LAST_VISITED) + " AS " + Combined.DATE_LAST_VISITED + "," +
                         qualifyColumn(TABLE_HISTORY, History.FAVICON_ID) + " AS " + Combined.FAVICON_ID +
+
+                    
                     " FROM " + TABLE_HISTORY + " LEFT OUTER JOIN " + TABLE_BOOKMARKS +
                     " ON " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " = " + qualifyColumn(TABLE_HISTORY, History.URL) +
                     " WHERE " +
-                        qualifyColumn(TABLE_HISTORY, History.URL) + " IS NOT NULL AND " +
                         qualifyColumn(TABLE_HISTORY, History.IS_DELETED) + " = 0 AND " +
                         "(" +
+                            
                             qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE) + " IS NULL OR " +
+
+                            
+                            
                             qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE) + " = " + Bookmarks.TYPE_BOOKMARK +
                         ")"
         );
@@ -1416,6 +1421,14 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
     private void upgradeDatabaseFrom18to19(SQLiteDatabase db) {
         
         createV19CombinedView(db);
+
+        
+        db.execSQL("DELETE FROM " + TABLE_HISTORY + " WHERE " + History.URL + " IS NULL");
+
+        
+        db.execSQL("UPDATE " + TABLE_BOOKMARKS + " SET " +
+                   Bookmarks.TYPE + " = " + Bookmarks.TYPE_BOOKMARK +
+                   " WHERE " + Bookmarks.TYPE + " IS NULL");
     }
 
     private void createV19CombinedView(SQLiteDatabase db) {
