@@ -19,7 +19,6 @@
 
 #include "primaryCert.h"
 #include "secondaryCert.h"
-#include "xpcshellCert.h"
 
 #define UPDATER_NO_STRING_GLUE_STL
 #include "nsVersionComparator.cpp"
@@ -72,19 +71,9 @@ ArchiveReader::VerifySignature()
     return ARCHIVE_NOT_OPEN;
   }
 
-  
-  
-  int rv = OK;
-#ifdef XP_WIN
-  if (DoesFallbackKeyExist()) {
-    rv = VerifyLoadedCert(mArchive, xpcshellCertData);
-  } else
-#endif
-  {
-    rv = VerifyLoadedCert(mArchive, primaryCertData);
-    if (rv != OK) {
-      rv = VerifyLoadedCert(mArchive, secondaryCertData);
-    }
+  int rv = VerifyLoadedCert(mArchive, primaryCertData);
+  if (rv != OK) {
+    rv = VerifyLoadedCert(mArchive, secondaryCertData);
   }
   return rv;
 }
