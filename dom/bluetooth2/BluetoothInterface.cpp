@@ -79,6 +79,41 @@ BluetoothAvrcpInterface::~BluetoothAvrcpInterface()
 
 
 
+
+
+
+
+BluetoothGattClientNotificationHandler::~BluetoothGattClientNotificationHandler()
+{ }
+
+BluetoothGattServerNotificationHandler::~BluetoothGattServerNotificationHandler()
+{ }
+
+BluetoothGattNotificationHandler::~BluetoothGattNotificationHandler()
+{ }
+
+
+
+
+BluetoothGattClientInterface::BluetoothGattClientInterface()
+{ }
+
+BluetoothGattClientInterface::~BluetoothGattClientInterface()
+{ }
+
+BluetoothGattInterface::BluetoothGattInterface()
+{ }
+
+BluetoothGattInterface::~BluetoothGattInterface()
+{ }
+
+
+
+
+
+
+
+
 BluetoothNotificationHandler::~BluetoothNotificationHandler()
 { }
 
