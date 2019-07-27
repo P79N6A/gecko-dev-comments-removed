@@ -1550,7 +1550,10 @@ CompositorParent::DeallocateLayerTreeId(uint64_t aId)
   
   
   
-  MOZ_ASSERT(CompositorLoop());
+  if (!CompositorLoop()) {
+    gfxCriticalError() << "Attempting to post to a invalid Compositor Loop";
+    return;
+  }
   CompositorLoop()->PostTask(FROM_HERE,
                              NewRunnableFunction(&EraseLayerState, aId));
 }
