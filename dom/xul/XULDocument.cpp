@@ -944,8 +944,6 @@ XULDocument::AttributeChanged(nsIDocument* aDocument,
         AddElementToRefMap(aElement);
     }
 
-    nsresult rv;
-
     
     if (mBroadcasterMap &&
         CanBroadcast(aNameSpaceID, aAttribute)) {
@@ -1012,8 +1010,10 @@ XULDocument::AttributeChanged(nsIDocument* aDocument,
     if (!persist.IsEmpty()) {
         
         if (persist.Find(nsDependentAtomString(aAttribute)) >= 0) {
-            rv = Persist(aElement, kNameSpaceID_None, aAttribute);
-            if (NS_FAILED(rv)) return;
+            nsContentUtils::AddScriptRunner(NS_NewRunnableMethodWithArgs
+              <nsIContent*, int32_t, nsIAtom*>
+              (this, &XULDocument::DoPersist, aElement, kNameSpaceID_None,
+               aAttribute));
         }
     }
 }
