@@ -2297,7 +2297,19 @@ nsHttpConnectionMgr::OnMsgCancelTransaction(int32_t reason, void *param)
                 nsHttpTransaction *temp = trans;
                 NS_RELEASE(temp); 
             }
+
+            
+            for (uint32_t index = 0;
+                 index < ent->mHalfOpens.Length();
+                 ++index) {
+                nsHalfOpenSocket *half = ent->mHalfOpens[index];
+                if (trans == half->Transaction()) {
+                    ent->RemoveHalfOpen(half);
+                    half->Abandon();
+                }
+            }
         }
+
         trans->Close(closeCode);
 
         
