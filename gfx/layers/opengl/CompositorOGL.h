@@ -32,9 +32,6 @@
 #include "nsThreadUtils.h"              
 #include "nsXULAppAPI.h"                
 #include "nscore.h"                     
-#ifdef MOZ_WIDGET_GONK
-#include <ui/GraphicBuffer.h>
-#endif
 #include "gfxVR.h"
 
 class nsIWidget;

@@ -20,6 +20,7 @@
 #include "Composer2D.h"
 #include "Layers.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/layers/FenceUtils.h"  
 
 #include <vector>
 #include <list>
@@ -124,10 +125,8 @@ private:
     
     
     std::list<RectVector>   mVisibleRegions;
-#if ANDROID_VERSION >= 17
-    android::sp<android::Fence> mPrevRetireFence;
-    android::sp<android::Fence> mPrevDisplayFence;
-#endif
+    layers::FenceHandle mPrevRetireFence;
+    layers::FenceHandle mPrevDisplayFence;
     nsTArray<layers::LayerComposite*> mHwcLayerMap;
     bool                    mPrepared;
     bool                    mHasHWVsync;
