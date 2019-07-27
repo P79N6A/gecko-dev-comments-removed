@@ -87,6 +87,11 @@ const char* const XPCJSRuntime::mStrings[] = {
     "name",                 
     "undefined",            
     "",                     
+    "fileName",             
+    "lineNumber",           
+    "columnNumber",         
+    "stack",                
+    "message"               
 };
 
 
