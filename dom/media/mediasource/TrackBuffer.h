@@ -76,6 +76,8 @@ public:
   
   bool IsReady();
 
+  bool IsWaitingOnCDMResource();
+
   
   
   bool ContainsTime(int64_t aTime, int64_t aTolerance);
@@ -187,10 +189,6 @@ private:
 
   
   
-  nsTArray<nsRefPtr<SourceBufferDecoder>> mWaitingDecoders;
-
-  
-  
   nsRefPtr<SourceBufferDecoder> mCurrentDecoder;
 
   nsRefPtr<MediaSourceDecoder> mParentDecoder;
@@ -205,6 +203,9 @@ private:
   
   int64_t mLastTimestampOffset;
   int64_t mAdjustedTimestamp;
+
+  
+  bool mIsWaitingOnCDM;
 
   
   

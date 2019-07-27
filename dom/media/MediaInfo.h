@@ -10,6 +10,7 @@
 #include "nsRect.h"
 #include "ImageTypes.h"
 #include "nsString.h"
+#include "nsTArray.h"
 #include "StreamBuffer.h" 
 
 namespace mozilla {
@@ -102,10 +103,22 @@ public:
   TrackInfo mTrackInfo;
 };
 
+class EncryptionInfo {
+public:
+  EncryptionInfo() : mIsEncrypted(false) {}
+
+  
+  nsString mType;
+
+  
+  nsTArray<uint8_t> mInitData;
+
+  
+  bool mIsEncrypted;
+};
+
 class MediaInfo {
 public:
-  MediaInfo() : mIsEncrypted(false) {}
-
   bool HasVideo() const
   {
     return mVideo.mHasVideo;
@@ -116,16 +129,21 @@ public:
     return mAudio.mHasAudio;
   }
 
+  bool IsEncrypted() const
+  {
+    return mCrypto.mIsEncrypted;
+  }
+
   bool HasValidMedia() const
   {
     return HasVideo() || HasAudio();
   }
 
-  bool mIsEncrypted;
-
   
   VideoInfo mVideo;
   AudioInfo mAudio;
+
+  EncryptionInfo mCrypto;
 };
 
 } 
