@@ -2,19 +2,29 @@ package org.mozilla.gecko.tests;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.util.jar.JarInputStream;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.mozilla.gecko.Actions;
+import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.db.BrowserContract;
 import org.mozilla.gecko.distribution.Distribution;
+import org.mozilla.gecko.distribution.ReferrerDescriptor;
+import org.mozilla.gecko.mozglue.RobocopTarget;
 import org.mozilla.gecko.util.ThreadUtils;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.util.Log;
 
 
 
@@ -28,6 +38,38 @@ import android.content.SharedPreferences;
 
 
 public class testDistribution extends ContentProviderTest {
+    private static final String CLASS_REFERRER_RECEIVER = "org.mozilla.gecko.distribution.ReferrerReceiver";
+    private static final String ACTION_INSTALL_REFERRER = "com.android.vending.INSTALL_REFERRER";
+    private static final int WAIT_TIMEOUT_MSEC = 10000;
+    public static final String LOGTAG = "GeckoTestDistribution";
+
+    public static class TestableDistribution extends Distribution {
+        @Override
+        protected JarInputStream fetchDistribution(URI uri,
+                HttpURLConnection connection) throws IOException {
+            Log.i(LOGTAG, "Not downloading: this is a test.");
+            return null;
+        }
+
+        public TestableDistribution(Context context) {
+            super(context);
+        }
+
+        public void go() {
+            doInit();
+        }
+
+        @RobocopTarget
+        public static void clearReferrerDescriptorForTesting() {
+            referrer = null;
+        }
+
+        @RobocopTarget
+        public static ReferrerDescriptor getReferrerDescriptorForTesting() {
+            return referrer;
+        }
+    }
+
     private static final String MOCK_PACKAGE = "mock-package.zip";
     private static final int PREF_REQUEST_ID = 0x7357;
 
@@ -65,7 +107,7 @@ public class testDistribution extends ContentProviderTest {
         mAsserter.dumpLog("Background task completed. Proceeding.");
     }
 
-    public void testDistribution() {
+    public void testDistribution() throws Exception {
         mActivity = getActivity();
 
         String mockPackagePath = getMockPackagePath();
@@ -87,6 +129,90 @@ public class testDistribution extends ContentProviderTest {
         setTestLocale("es-MX");
         initDistribution(mockPackagePath);
         checkLocalizedPreferences("es-MX");
+
+        
+        setTestLocale("en-US");
+        clearDistributionPref();
+        doTestValidReferrerIntent();
+
+        clearDistributionPref();
+        doTestInvalidReferrerIntent();
+    }
+
+    public void doTestValidReferrerIntent() throws Exception {
+        
+        
+        
+        
+        
+        final String ref = "utm_source=mozilla&utm_medium=testmedium&utm_term=testterm&utm_content=testcontent&utm_campaign=distribution";
+        final Intent intent = new Intent(ACTION_INSTALL_REFERRER);
+        intent.setClassName(AppConstants.ANDROID_PACKAGE_NAME, CLASS_REFERRER_RECEIVER);
+        intent.putExtra("referrer", ref);
+        mActivity.sendBroadcast(intent);
+
+        
+        final TestableDistribution distribution = new TestableDistribution(mActivity);
+
+        final Object wait = new Object();
+        distribution.addOnDistributionReadyCallback(new Runnable() {
+            @Override
+            public void run() {
+                mAsserter.ok(!distribution.exists(), "Not processed.", "No download because we're offline.");
+                ReferrerDescriptor referrerValue = TestableDistribution.getReferrerDescriptorForTesting();
+                mAsserter.dumpLog("Referrer was " + referrerValue);
+                mAsserter.is(referrerValue.content, "testcontent", "Referrer content");
+                mAsserter.is(referrerValue.medium, "testmedium", "Referrer medium");
+                mAsserter.is(referrerValue.campaign, "distribution", "Referrer campaign");
+                synchronized (wait) {
+                    wait.notifyAll();
+                }
+            }
+        });
+
+        distribution.go();
+        synchronized (wait) {
+            wait.wait(WAIT_TIMEOUT_MSEC);
+        }
+    }
+
+    
+
+
+
+
+    public void doTestInvalidReferrerIntent() throws Exception {
+        
+        
+        
+        
+        
+        final String ref = "utm_source=mozilla&utm_medium=testmedium&utm_term=testterm&utm_content=testcontent&utm_campaign=testname";
+        final Intent intent = new Intent(ACTION_INSTALL_REFERRER);
+        intent.setClassName(AppConstants.ANDROID_PACKAGE_NAME, CLASS_REFERRER_RECEIVER);
+        intent.putExtra("referrer", ref);
+        mActivity.sendBroadcast(intent);
+
+        
+        final TestableDistribution distribution = new TestableDistribution(mActivity);
+
+        final Object wait = new Object();
+        distribution.addOnDistributionReadyCallback(new Runnable() {
+            @Override
+            public void run() {
+                mAsserter.ok(!distribution.exists(), "Not processed.", "No download because campaign was wrong.");
+                ReferrerDescriptor referrerValue = TestableDistribution.getReferrerDescriptorForTesting();
+                mAsserter.is(referrerValue, null, "No referrer.");
+                synchronized (wait) {
+                    wait.notifyAll();
+                }
+            }
+        });
+
+        distribution.go();
+        synchronized (wait) {
+            wait.wait(WAIT_TIMEOUT_MSEC);
+        }
     }
 
     
@@ -289,11 +415,15 @@ public class testDistribution extends ContentProviderTest {
     }
 
     
+
+
+
     private void clearDistributionPref() {
         mAsserter.dumpLog("Clearing distribution pref.");
         SharedPreferences settings = mActivity.getSharedPreferences("GeckoApp", Activity.MODE_PRIVATE);
         String keyName = mActivity.getPackageName() + ".distribution_state";
         settings.edit().remove(keyName).commit();
+        TestableDistribution.clearReferrerDescriptorForTesting();
     }
 
     @Override

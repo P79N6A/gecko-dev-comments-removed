@@ -54,7 +54,8 @@ import android.util.Log;
 
 
 
-public final class Distribution {
+@RobocopTarget
+public class Distribution {
     private static final String LOGTAG = "GeckoDistribution";
 
     private static final int STATE_UNKNOWN = 0;
@@ -109,7 +110,10 @@ public final class Distribution {
 
 
 
-    private static volatile ReferrerDescriptor referrer;
+
+
+    @RobocopTarget
+    protected static volatile ReferrerDescriptor referrer;
 
     private static Distribution instance;
 
@@ -134,6 +138,7 @@ public final class Distribution {
         return instance;
     }
 
+    @RobocopTarget
     public static class DistributionDescriptor {
         public final boolean valid;
         public final String id;
@@ -204,6 +209,7 @@ public final class Distribution {
 
 
 
+    @RobocopTarget
     public static void init(final Context context) {
         Distribution.init(Distribution.getInstance(context));
     }
@@ -326,7 +332,10 @@ public final class Distribution {
 
 
 
-    private boolean doInit() {
+
+
+    @RobocopTarget
+    protected boolean doInit() {
         ThreadUtils.assertNotOnUiThread();
 
         
@@ -451,7 +460,11 @@ public final class Distribution {
 
 
 
-    private JarInputStream fetchDistribution(URI uri, HttpURLConnection connection) throws IOException {
+
+
+    @SuppressWarnings("static-method")
+    @RobocopTarget
+    protected JarInputStream fetchDistribution(URI uri, HttpURLConnection connection) throws IOException {
         final int status = connection.getResponseCode();
 
         Log.d(LOGTAG, "Distribution fetch: " + status);
