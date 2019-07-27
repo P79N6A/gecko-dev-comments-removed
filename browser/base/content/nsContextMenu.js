@@ -1180,7 +1180,7 @@ nsContextMenu.prototype = {
 
   
   
-  saveHelper: function(linkURL, linkText, dialogTitle, bypassCache, doc,
+  saveHelper: function(linkURL, linkText, dialogTitle, bypassCache, doc, docURI,
                        linkDownload) {
     
     const NS_ERROR_SAVE_LINK_AS_TIMEOUT = 0x805d0020;
@@ -1236,8 +1236,8 @@ nsContextMenu.prototype = {
         if (aStatusCode == NS_ERROR_SAVE_LINK_AS_TIMEOUT) {
           
           
-          saveURL(linkURL, linkText, dialogTitle, bypassCache, false,
-                  BrowserUtils.makeURIFromCPOW(doc.documentURIObject), doc);
+          saveURL(linkURL, linkText, dialogTitle, bypassCache, false, docURI,
+                  doc);
         }
         if (this.extListener)
           this.extListener.onStopRequest(aRequest, aContext, aStatusCode);
@@ -1306,7 +1306,7 @@ nsContextMenu.prototype = {
     channel.loadFlags |= flags;
 
     if (channel instanceof Ci.nsIHttpChannel) {
-      channel.referrer = BrowserUtils.makeURIFromCPOW(doc.documentURIObject);
+      channel.referrer = docURI;
       if (channel instanceof Ci.nsIHttpChannelInternal)
         channel.forceAllowThirdPartyCookie = true;
     }
@@ -1326,6 +1326,7 @@ nsContextMenu.prototype = {
   saveLink: function() {
     urlSecurityCheck(this.linkURL, this.principal);
     this.saveHelper(this.linkURL, this.linkText, null, true, this.ownerDoc,
+                    gContextMenuContentData.documentURIObject,
                     this.linkDownload);
   },
 
@@ -1338,23 +1339,22 @@ nsContextMenu.prototype = {
   
   saveMedia: function() {
     var doc =  this.target.ownerDocument;
+    let referrerURI = gContextMenuContentData.documentURIObject;
     if (this.onCanvas) {
       
       saveImageURL(this.target.toDataURL(), "canvas.png", "SaveImageTitle",
-                   true, false, gContextMenuContentData.documentURIObject,
-                   doc);
+                   true, false, referrerURI, doc);
     }
     else if (this.onImage) {
       urlSecurityCheck(this.mediaURL, this.principal);
-      let uri = gContextMenuContentData.documentURIObject;
       saveImageURL(this.mediaURL, null, "SaveImageTitle", false,
-                   false, uri, doc, gContextMenuContentData.contentType,
+                   false, referrerURI, doc, gContextMenuContentData.contentType,
                    gContextMenuContentData.contentDisposition);
     }
     else if (this.onVideo || this.onAudio) {
       urlSecurityCheck(this.mediaURL, this.principal);
       var dialogTitle = this.onVideo ? "SaveVideoTitle" : "SaveAudioTitle";
-      this.saveHelper(this.mediaURL, null, dialogTitle, false, doc, "");
+      this.saveHelper(this.mediaURL, null, dialogTitle, false, doc, referrerURI, "");
     }
   },
 
