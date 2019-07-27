@@ -4156,7 +4156,13 @@ pref("layers.acceleration.force-enabled", false);
 pref("layers.acceleration.draw-fps", false);
 
 
+#if !defined(MOZ_WIDGET_GONK) && !defined(MOZ_WIDGET_ANDROID)
+
+pref("layers.deaa.enabled", true);
+#else
+
 pref("layers.deaa.enabled", false);
+#endif
 
 pref("layers.dump", false);
 #ifdef MOZ_DUMP_PAINTING
