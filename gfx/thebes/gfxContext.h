@@ -505,6 +505,7 @@ public:
 
     void Clip(const Rect& rect);
     void Clip(const gfxRect& rect); 
+    void Clip(Path* aPath);
 
     
 
