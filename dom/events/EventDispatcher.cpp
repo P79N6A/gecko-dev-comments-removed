@@ -401,10 +401,6 @@ EventDispatcher::Dispatch(nsISupports* aTarget,
                  NS_ERROR_DOM_INVALID_STATE_ERR);
   NS_ASSERTION(!aTargets || !aEvent->message, "Wrong parameters!");
 
-#ifdef NIGHTLY_BUILD
-  MOZ_RELEASE_ASSERT(!mozilla::ipc::ProcessingUrgentMessages());
-#endif
-
   
   
   
