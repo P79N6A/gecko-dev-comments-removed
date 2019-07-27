@@ -77,7 +77,7 @@ add_task(function* test_arrows() {
   let oneOffs = getOneOffs();
   ok(oneOffs.length >= 4, "we have at least 4 one-off buttons displayed")
 
-  ok(!textbox.getSelectedOneOff(), "no one-off button should be selected");
+  ok(!textbox.selectedButton, "no one-off button should be selected");
 
   
   for (let i = 0; i < kValues.length; ++i) {
@@ -97,27 +97,27 @@ add_task(function* test_arrows() {
 
   
   for (let i = 0; i < oneOffs.length; ++i) {
-    is(textbox.getSelectedOneOff(), oneOffs[i],
+    is(textbox.selectedButton, oneOffs[i],
        "the one-off button #" + (i + 1) + " should be selected");
     EventUtils.synthesizeKey("VK_DOWN", {});
   }
 
   
   is(searchPopup.selectedIndex, -1, "no suggestion should be selected");
-  ok(!textbox.getSelectedOneOff(), "no one-off button should be selected");
+  ok(!textbox.selectedButton, "no one-off button should be selected");
 
   info("now test the up arrow key");
   
   for (let i = oneOffs.length; i; --i) {
     EventUtils.synthesizeKey("VK_UP", {});
-    is(textbox.getSelectedOneOff(), oneOffs[i - 1],
+    is(textbox.selectedButton, oneOffs[i - 1],
        "the one-off button #" + i + " should be selected");
   }
 
   
   
   EventUtils.synthesizeKey("VK_UP", {});
-  ok(!textbox.getSelectedOneOff(), "no one-off button should be selected");
+  ok(!textbox.selectedButton, "no one-off button should be selected");
 
   for (let i = kValues.length - 1; i >= 0; --i) {
     is(searchPopup.selectedIndex, i,
@@ -137,13 +137,13 @@ add_task(function* test_tab() {
      "the search bar should be focused"); 
 
   let oneOffs = getOneOffs();
-  ok(!textbox.getSelectedOneOff(), "no one-off button should be selected");
+  ok(!textbox.selectedButton, "no one-off button should be selected");
 
   
   
   for (let i = 0; i < oneOffs.length; ++i) {
     EventUtils.synthesizeKey("VK_TAB", {});
-    is(textbox.getSelectedOneOff(), oneOffs[i],
+    is(textbox.selectedButton, oneOffs[i],
        "the one-off button #" + (i + 1) + " should be selected");
   }
   is(searchPopup.selectedIndex, -1, "no suggestion should be selected");
@@ -168,14 +168,14 @@ add_task(function* test_shift_tab() {
   yield promise;
 
   let oneOffs = getOneOffs();
-  ok(!textbox.getSelectedOneOff(), "no one-off button should be selected");
+  ok(!textbox.selectedButton, "no one-off button should be selected");
 
   
   EventUtils.synthesizeKey("VK_UP", {});
 
   
   for (let i = oneOffs.length - 1; i >= 0; --i) {
-    is(textbox.getSelectedOneOff(), oneOffs[i],
+    is(textbox.selectedButton, oneOffs[i],
        "the one-off button #" + (i + 1) + " should be selected");
     if (i)
       EventUtils.synthesizeKey("VK_TAB", {shiftKey: true});
@@ -211,7 +211,7 @@ add_task(function* test_alt_down() {
   yield promise;
 
   
-  ok(!textbox.getSelectedOneOff(), "no one-off button should be selected");
+  ok(!textbox.selectedButton, "no one-off button should be selected");
   is(searchPopup.selectedIndex, -1, "no suggestion should be selected");
   is(textbox.value, kUserValue, "the textfield value should be unmodified");
 
@@ -220,18 +220,18 @@ add_task(function* test_alt_down() {
   let oneOffs = getOneOffs();
   for (let i = 0; i < oneOffs.length; ++i) {
     EventUtils.synthesizeKey("VK_DOWN", {altKey: true});
-    is(textbox.getSelectedOneOff(), oneOffs[i],
+    is(textbox.selectedButton, oneOffs[i],
        "the one-off button #" + (i + 1) + " should be selected");
     is(searchPopup.selectedIndex, -1, "no suggestion should be selected");
   }
 
   
   EventUtils.synthesizeKey("VK_DOWN", {altKey: true});
-  ok(!textbox.getSelectedOneOff(), "no one-off button should be selected");
+  ok(!textbox.selectedButton, "no one-off button should be selected");
 
   
   EventUtils.synthesizeKey("VK_DOWN", {altKey: true});
-  is(textbox.getSelectedOneOff(), oneOffs[0],
+  is(textbox.selectedButton, oneOffs[0],
      "the first one-off button should be selected");
 });
 
@@ -247,7 +247,7 @@ add_task(function* test_alt_up() {
   yield promise;
 
   
-  ok(!textbox.getSelectedOneOff(), "no one-off button should be selected");
+  ok(!textbox.selectedButton, "no one-off button should be selected");
   is(searchPopup.selectedIndex, -1, "no suggestion should be selected");
   is(textbox.value, kUserValue, "the textfield value should be unmodified");
 
@@ -256,28 +256,28 @@ add_task(function* test_alt_up() {
   let oneOffs = getOneOffs();
   for (let i = oneOffs.length - 1; i >= 0; --i) {
     EventUtils.synthesizeKey("VK_UP", {altKey: true});
-    is(textbox.getSelectedOneOff(), oneOffs[i],
+    is(textbox.selectedButton, oneOffs[i],
        "the one-off button #" + (i + 1) + " should be selected");
     is(searchPopup.selectedIndex, -1, "no suggestion should be selected");
   }
 
   
   EventUtils.synthesizeKey("VK_UP", {altKey: true});
-  ok(!textbox.getSelectedOneOff(), "no one-off button should be selected");
+  ok(!textbox.selectedButton, "no one-off button should be selected");
 
   
   EventUtils.synthesizeKey("VK_UP", {altKey: true});
-  is(textbox.getSelectedOneOff(), oneOffs[oneOffs.length - 1],
+  is(textbox.selectedButton, oneOffs[oneOffs.length - 1],
      "the last one-off button should be selected");
 
   
   EventUtils.synthesizeKey("VK_DOWN", {});
-  ok(!textbox.getSelectedOneOff(), "no one-off should be selected anymore");
+  ok(!textbox.selectedButton, "no one-off should be selected anymore");
 });
 
 add_task(function* test_tab_and_arrows() {
   
-  ok(!textbox.getSelectedOneOff(), "no one-off button should be selected");
+  ok(!textbox.selectedButton, "no one-off button should be selected");
   is(searchPopup.selectedIndex, -1, "no suggestion should be selected");
   is(textbox.value, kUserValue, "the textfield value should be unmodified");
 
@@ -285,27 +285,27 @@ add_task(function* test_tab_and_arrows() {
   EventUtils.synthesizeKey("VK_DOWN", {});
   is(searchPopup.selectedIndex, 0, "first suggestion should be selected");
   is(textbox.value, kValues[0], "the textfield value should have changed");
-  ok(!textbox.getSelectedOneOff(), "no one-off button should be selected");
+  ok(!textbox.selectedButton, "no one-off button should be selected");
 
   
   
   let oneOffs = getOneOffs();
   EventUtils.synthesizeKey("VK_TAB", {});
-  is(textbox.getSelectedOneOff(), oneOffs[0],
+  is(textbox.selectedButton, oneOffs[0],
      "the first one-off button should be selected");
   is(searchPopup.selectedIndex, 0, "first suggestion should still be selected");
 
   
   
   EventUtils.synthesizeKey("VK_DOWN", {});
-  is(textbox.getSelectedOneOff(), oneOffs[0],
+  is(textbox.selectedButton, oneOffs[0],
      "the first one-off button should still be selected");
   is(searchPopup.selectedIndex, 1, "second suggestion should be selected");
 
   
   
   EventUtils.synthesizeKey("VK_UP", {});
-  is(textbox.getSelectedOneOff(), oneOffs[0],
+  is(textbox.selectedButton, oneOffs[0],
      "the first one-off button should still be selected");
   is(searchPopup.selectedIndex, 0, "second suggestion should be selected again");
 
@@ -316,12 +316,12 @@ add_task(function* test_tab_and_arrows() {
   is(searchPopup.selectedIndex, -1, "no suggestion should be selected");
   is(textbox.value, kUserValue,
      "the textfield value should be back to user typed value");
-  is(textbox.getSelectedOneOff(), oneOffs[0],
+  is(textbox.selectedButton, oneOffs[0],
      "the first one-off button should still be selected");
 
   
   EventUtils.synthesizeKey("VK_DOWN", {});
-  is(textbox.getSelectedOneOff(), oneOffs[1],
+  is(textbox.selectedButton, oneOffs[1],
      "the second one-off button should be selected");
   is(searchPopup.selectedIndex, -1, "there should still be no selected suggestion");
 
