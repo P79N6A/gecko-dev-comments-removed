@@ -1906,6 +1906,11 @@ InvalidateOldStyle(const nsSubstring& aKey,
         static_cast<CustomCounterStyle*>(aStyle.get());
       if (style->GetRule() != newRule) {
         toBeRemoved = true;
+        
+        
+        
+        
+        style->ResetDependentData();
       } else if (style->GetRuleGeneration() != newRule->GetGeneration()) {
         toBeUpdated = true;
         style->ResetCachedData();
