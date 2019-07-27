@@ -3579,6 +3579,7 @@ XULDocument::ExecuteScript(nsXULPrototypeScript *aScript)
     
     
     AutoEntryScript aes(mScriptGlobalObject);
+    aes.TakeOwnershipOfErrorReporting();
     JSContext* cx = aes.cx();
     JS::Rooted<JSObject*> baseGlobal(cx, JS::CurrentGlobalOrNull(cx));
     NS_ENSURE_TRUE(nsContentUtils::GetSecurityManager()->ScriptAllowed(baseGlobal), NS_OK);
@@ -3593,9 +3594,8 @@ XULDocument::ExecuteScript(nsXULPrototypeScript *aScript)
 
     
     
-    if (!JS::CloneAndExecuteScript(cx, global, scriptObject)) {
-        nsJSUtils::ReportPendingException(cx);
-    }
+    
+    JS::CloneAndExecuteScript(cx, global, scriptObject);
 
     return NS_OK;
 }
