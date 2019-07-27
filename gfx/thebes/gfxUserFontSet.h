@@ -651,7 +651,9 @@ protected:
     nsRefPtr<gfxFontEntry>   mPlatformFontEntry;
     nsTArray<gfxFontFaceSrc> mSrcList;
     uint32_t                 mSrcIndex; 
-    nsFontFaceLoader*        mLoader; 
+    
+    
+    nsFontFaceLoader* MOZ_NON_OWNING_REF mLoader; 
     gfxUserFontSet*          mFontSet; 
     nsCOMPtr<nsIPrincipal>   mPrincipal;
 };
