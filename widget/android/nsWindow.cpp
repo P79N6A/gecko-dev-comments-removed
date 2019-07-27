@@ -297,8 +297,11 @@ nsWindow::ConfigureChildren(const nsTArray<nsIWidget::Configuration>& config)
 void
 nsWindow::RedrawAll()
 {
-    if (mFocus && mFocus->mWidgetListener) {
-        mFocus->mWidgetListener->RequestRepaint();
+    if (mFocus) {
+        mFocus->RedrawAll();
+    }
+    if (mWidgetListener) {
+        mWidgetListener->RequestRepaint();
     }
 }
 
@@ -658,7 +661,7 @@ nsWindow::WidgetToScreenOffset()
 
 NS_IMETHODIMP
 nsWindow::DispatchEvent(WidgetGUIEvent* aEvent,
-                        nsEventStatus &aStatus)
+                        nsEventStatus& aStatus)
 {
     aStatus = DispatchEvent(aEvent);
     return NS_OK;
@@ -667,6 +670,20 @@ nsWindow::DispatchEvent(WidgetGUIEvent* aEvent,
 nsEventStatus
 nsWindow::DispatchEvent(WidgetGUIEvent* aEvent)
 {
+    if (this == TopWindow() && mFocus) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        return mFocus->DispatchEvent(aEvent);
+    }
+
+    aEvent->widget = this;
     if (mWidgetListener) {
         return mWidgetListener->HandleEvent(aEvent, mUseAttachedEvents);
     }
@@ -823,27 +840,9 @@ nsWindow::OnGlobalAndroidEvent(AndroidGeckoEvent *ae)
         case AndroidGeckoEvent::APZ_INPUT_EVENT:
         case AndroidGeckoEvent::MOTION_EVENT: {
             win->UserActivity();
-            if (!gTopLevelWindows.IsEmpty()) {
-                nsIntPoint pt(0,0);
-                const nsTArray<nsIntPoint>& points = ae->Points();
-                if (points.Length() > 0) {
-                    pt = points[0];
-                }
-                pt.x = clamped(pt.x, 0, std::max(gAndroidBounds.width - 1, 0));
-                pt.y = clamped(pt.y, 0, std::max(gAndroidBounds.height - 1, 0));
-                nsWindow *target = win->FindWindowForPoint(pt);
-#if 0
-                ALOG("MOTION_EVENT %f,%f -> %p (visible: %d children: %d)", pt.x, pt.y, (void*)target,
-                     target ? target->mIsVisible : 0,
-                     target ? target->mChildren.Length() : 0);
-
-                DumpWindows();
-#endif
-                if (target) {
-                    bool preventDefaultActions = target->OnMultitouchEvent(ae);
-                    if (!preventDefaultActions && ae->Count() < 2)
-                        target->OnMouseEvent(ae);
-                }
+            bool preventDefaultActions = win->OnMultitouchEvent(ae);
+            if (!preventDefaultActions && ae->Count() < 2) {
+                win->OnMouseEvent(ae);
             }
             break;
         }
@@ -856,64 +855,35 @@ nsWindow::OnGlobalAndroidEvent(AndroidGeckoEvent *ae)
             nsCOMPtr<nsIObserverService> obsServ = mozilla::services::GetObserverService();
             obsServ->NotifyObservers(nullptr, "before-build-contextmenu", nullptr);
 
-            nsIntPoint pt;
-            const nsTArray<nsIntPoint>& points = ae->Points();
-            if (points.Length() > 0) {
-                pt = nsIntPoint(points[0].x, points[0].y);
-            }
-
             
-            pt.x = clamped(pt.x, 0, std::max(gAndroidBounds.width - 1, 0));
-            pt.y = clamped(pt.y, 0, std::max(gAndroidBounds.height - 1, 0));
-            nsWindow *target = win->FindWindowForPoint(pt);
-            if (target) {
+            if (!win->OnContextmenuEvent(ae)) {
                 
-                if (!target->OnContextmenuEvent(ae)) {
-                    
-                    
-                    target->OnLongTapEvent(ae);
-                }
+                
+                win->OnLongTapEvent(ae);
             }
             break;
         }
 
         case AndroidGeckoEvent::NATIVE_GESTURE_EVENT: {
-            nsIntPoint pt(0,0);
-            const nsTArray<nsIntPoint>& points = ae->Points();
-            if (points.Length() > 0) {
-                pt = points[0];
-            }
-            pt.x = clamped(pt.x, 0, std::max(gAndroidBounds.width - 1, 0));
-            pt.y = clamped(pt.y, 0, std::max(gAndroidBounds.height - 1, 0));
-            nsWindow *target = win->FindWindowForPoint(pt);
-
-            target->OnNativeGestureEvent(ae);
+            win->OnNativeGestureEvent(ae);
             break;
         }
 
         case AndroidGeckoEvent::KEY_EVENT:
             win->UserActivity();
-            if (win->mFocus)
-                win->mFocus->OnKeyEvent(ae);
+            win->OnKeyEvent(ae);
             break;
 
         case AndroidGeckoEvent::IME_EVENT:
             win->UserActivity();
-            if (win->mFocus) {
-                win->mFocus->OnIMEEvent(ae);
-            } else {
-                NS_WARNING("Sending unexpected IME event to top window");
-                win->OnIMEEvent(ae);
-            }
+            win->OnIMEEvent(ae);
             break;
 
         case AndroidGeckoEvent::IME_KEY_EVENT:
             
             
             
-            if (win->mFocus) {
-                win->mFocus->mIMEKeyEvents.AppendElement(*ae);
-            }
+            win->mIMEKeyEvents.AppendElement(*ae);
             break;
 
         case AndroidGeckoEvent::COMPOSITOR_PAUSE:
@@ -1008,7 +978,6 @@ nsWindow::OnMouseEvent(AndroidGeckoEvent *ae)
         return;
     }
 
-    
     DispatchEvent(&event);
 }
 
@@ -1153,45 +1122,39 @@ bool nsWindow::OnMultitouchEvent(AndroidGeckoEvent *ae)
 void
 nsWindow::OnNativeGestureEvent(AndroidGeckoEvent *ae)
 {
-  LayoutDeviceIntPoint pt(ae->Points()[0].x,
-                          ae->Points()[0].y);
-  double delta = ae->X();
-  int msg = 0;
+    LayoutDeviceIntPoint pt(ae->Points()[0].x,
+                            ae->Points()[0].y);
+    double delta = ae->X();
+    int msg = 0;
 
-  switch (ae->Action()) {
-      case AndroidMotionEvent::ACTION_MAGNIFY_START:
-          msg = NS_SIMPLE_GESTURE_MAGNIFY_START;
-          mStartDist = delta;
-          mLastDist = delta;
-          break;
-      case AndroidMotionEvent::ACTION_MAGNIFY:
-          msg = NS_SIMPLE_GESTURE_MAGNIFY_UPDATE;
-          delta -= mLastDist;
-          mLastDist += delta;
-          break;
-      case AndroidMotionEvent::ACTION_MAGNIFY_END:
-          msg = NS_SIMPLE_GESTURE_MAGNIFY;
-          delta -= mStartDist;
-          break;
-      default:
-          return;
-  }
+    switch (ae->Action()) {
+        case AndroidMotionEvent::ACTION_MAGNIFY_START:
+            msg = NS_SIMPLE_GESTURE_MAGNIFY_START;
+            mStartDist = delta;
+            mLastDist = delta;
+            break;
+        case AndroidMotionEvent::ACTION_MAGNIFY:
+            msg = NS_SIMPLE_GESTURE_MAGNIFY_UPDATE;
+            delta -= mLastDist;
+            mLastDist += delta;
+            break;
+        case AndroidMotionEvent::ACTION_MAGNIFY_END:
+            msg = NS_SIMPLE_GESTURE_MAGNIFY;
+            delta -= mStartDist;
+            break;
+        default:
+            return;
+    }
 
-  nsRefPtr<nsWindow> kungFuDeathGrip(this);
-  DispatchGestureEvent(msg, 0, delta, pt, ae->Time());
-}
+    nsRefPtr<nsWindow> kungFuDeathGrip(this);
 
-void
-nsWindow::DispatchGestureEvent(uint32_t msg, uint32_t direction, double delta,
-                               const LayoutDeviceIntPoint &refPoint, uint64_t time)
-{
     WidgetSimpleGestureEvent event(true, msg, this);
 
-    event.direction = direction;
+    event.direction = 0;
     event.delta = delta;
     event.modifiers = 0;
-    event.time = time;
-    event.refPoint = refPoint;
+    event.time = ae->Time();
+    event.refPoint = pt;
 
     DispatchEvent(&event);
 }
@@ -1708,7 +1671,17 @@ public:
 nsRefPtr<mozilla::TextComposition>
 nsWindow::GetIMEComposition()
 {
-    return mozilla::IMEStateManager::GetTextCompositionFor(this);
+    
+    
+    
+    
+    
+    MOZ_ASSERT(this == TopWindow());
+    nsWindow* win = this;
+    if (mFocus) {
+        win = mFocus;
+    }
+    return mozilla::IMEStateManager::GetTextCompositionFor(win);
 }
 
 
@@ -2043,23 +2016,6 @@ nsWindow::OnIMEEvent(AndroidGeckoEvent *ae)
     }
 }
 
-nsWindow *
-nsWindow::FindWindowForPoint(const nsIntPoint& pt)
-{
-    if (!mBounds.Contains(pt))
-        return nullptr;
-
-    
-    nsIntPoint childPoint(pt.x - mBounds.x, pt.y - mBounds.y);
-
-    for (uint32_t i = 0; i < mChildren.Length(); ++i) {
-        if (mChildren[i]->mBounds.Contains(childPoint))
-            return mChildren[i]->FindWindowForPoint(childPoint);
-    }
-
-    return this;
-}
-
 void
 nsWindow::UserActivity()
 {
@@ -2075,6 +2031,14 @@ nsWindow::UserActivity()
 nsresult
 nsWindow::NotifyIMEInternal(const IMENotification& aIMENotification)
 {
+    
+    
+    
+    nsWindow* top = TopWindow();
+    if (top && top != this) {
+        return top->NotifyIMEInternal(aIMENotification);
+    }
+
     switch (aIMENotification.mMessage) {
         case REQUEST_TO_COMMIT_COMPOSITION:
             
@@ -2140,12 +2104,12 @@ nsWindow::SetInputContext(const InputContext& aContext,
                           const InputContextAction& aAction)
 {
     nsWindow *top = TopWindow();
-    if (top && top->mFocus && this != top->mFocus) {
+    if (top && this != top) {
         
         
         
         
-        top->mFocus->SetInputContext(aContext, aAction);
+        top->SetInputContext(aContext, aAction);
         return;
     }
 
@@ -2195,10 +2159,10 @@ NS_IMETHODIMP_(InputContext)
 nsWindow::GetInputContext()
 {
     nsWindow *top = TopWindow();
-    if (top && top->mFocus && this != top->mFocus) {
+    if (top && this != top) {
         
         
-        return top->mFocus->GetInputContext();
+        return top->GetInputContext();
     }
     InputContext context = mInputContext;
     context.mIMEState.mOpen = IMEState::OPEN_STATE_NOT_SUPPORTED;
