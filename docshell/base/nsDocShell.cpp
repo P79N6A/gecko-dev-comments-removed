@@ -1323,7 +1323,11 @@ nsDocShell::LoadURI(nsIURI * aURI,
     
     
     
-    if (IsPrintingOrPP()) {
+    
+    
+    
+    
+    if (!IsNavigationAllowed(true, false)) {
       return NS_OK; 
     }
     nsCOMPtr<nsIURI> referrer;
@@ -4279,9 +4283,11 @@ nsDocShell::IsPrintingOrPP(bool aDisplayErrorDialog)
 }
 
 bool
-nsDocShell::IsNavigationAllowed(bool aDisplayPrintErrorDialog)
+nsDocShell::IsNavigationAllowed(bool aDisplayPrintErrorDialog,
+                                bool aCheckIfUnloadFired)
 {
-  bool isAllowed = !IsPrintingOrPP(aDisplayPrintErrorDialog) && !mFiredUnloadEvent;
+  bool isAllowed = !IsPrintingOrPP(aDisplayPrintErrorDialog) &&
+                   (!aCheckIfUnloadFired || !mFiredUnloadEvent);
   if (!isAllowed) {
     return false;
   }
