@@ -7719,15 +7719,17 @@ Parser<ParseHandler>::arrayInitializer()
     TokenKind tt;
     if (!tokenStream.getToken(&tt, TokenStream::Operand))
         return null();
+
+    
+    if (tt == TOK_FOR)
+        return arrayComprehension(begin);
+
     if (tt == TOK_RB) {
         
 
 
 
         handler.setListFlag(literal, PNX_NONCONST);
-    } else if (tt == TOK_FOR) {
-        
-        return arrayComprehension(begin);
     } else {
         tokenStream.ungetToken();
 
