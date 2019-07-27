@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" class="reftest-wait">
+<meta charset="utf-8">
+<title>When a PaintedLayer is split up into two, the lower items should stay in their layer and the higher items should get a new one.</title>
+
+
+
+<style>
+
+.content {
+  box-sizing: border-box;
+  width: 200px;
+  height: 200px;
+  border: 1px solid black;
+}
+
+.fixed {
+  position: fixed;
+  top: 20px;
+  left: 140px;
+}
+
+.onTopOfFixed {
+  position: absolute;
+  top: 120px;
+  left: 260px;
+}
+
+.reftest-no-paint {
+  border-color: lime;
+}
+
+.onTopOfFixed.reftest-no-paint {
+  left: 20px;
+}
+
+body {
+  margin: 0;
+  padding: 20px;
+  height: 3000px;
+}
+
+</style>
+
+<div class="fixed content">
+  
+
+
+
+</div>
+
+<div class="onTopOfFixed reftest-no-paint content">
+  
+
+
+
+</div>
+
+<div class="fixed content" id="aboutToBecomeVisible" style="visibility: hidden">
+  
+
+
+
+</div>
+
+<div class="onTopOfFixed content">
+  
+
+
+
+
+</div>
+
+<script>
+
+function doTest() {
+  document.querySelector("#aboutToBecomeVisible").style.visibility = "visible";
+  document.documentElement.removeAttribute("class");
+}
+document.addEventListener("MozReftestInvalidate", doTest, false);
+
+</script>
