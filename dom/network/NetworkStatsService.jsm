@@ -18,6 +18,7 @@ this.EXPORTED_SYMBOLS = ["NetworkStatsService"];
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/NetworkStatsDB.jsm");
+Cu.import("resource://gre/modules/Timer.jsm");
 
 const NET_NETWORKSTATSSERVICE_CONTRACTID = "@mozilla.org/network/netstatsservice;1";
 const NET_NETWORKSTATSSERVICE_CID = Components.ID("{18725604-e9ac-488a-8aa0-2471e7f6c0a4}");
@@ -619,6 +620,8 @@ this.NetworkStatsService = {
     
     
     
+    let self = this;
+
     if (aResult != undefined) {
       let item = this.updateQueue.shift();
       for (let callback of item.callbacks) {
@@ -644,15 +647,21 @@ this.NetworkStatsService = {
     }
 
     
-    switch (this.updateQueue[0].queueType) {
+    setTimeout(function () {
+                 self.run(self.updateQueue[0]);
+               }, 0);
+  },
+
+  run: function run(item) {
+    switch (item.queueType) {
       case QUEUE_TYPE_UPDATE_STATS:
-        this.update(this.updateQueue[0].netId, this.processQueue.bind(this));
+        this.update(item.netId, this.processQueue.bind(this));
         break;
       case QUEUE_TYPE_UPDATE_CACHE:
         this.updateCache(this.processQueue.bind(this));
         break;
       case QUEUE_TYPE_WRITE_CACHE:
-        this.writeCache(this.updateQueue[0].stats, this.processQueue.bind(this));
+        this.writeCache(item.stats, this.processQueue.bind(this));
         break;
     }
   },

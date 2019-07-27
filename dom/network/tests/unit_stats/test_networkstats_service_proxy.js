@@ -192,6 +192,38 @@ add_test(function test_saveStatsWithMaxCachedTraffic() {
   });
 });
 
+add_test(function test_saveAppStats() {
+  var cachedStats = NetworkStatsService.cachedStats;
+  var timestamp = NetworkStatsService.cachedStatsDate.getTime();
+
+  
+  
+  
+  var wifi = {type: Ci.nsINetworkInterface.NETWORK_TYPE_WIFI, id: "0"};
+  var mobile = {type: Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE, id: "1234"};
+
+  
+  var mobileNetId = NetworkStatsService.getNetworkId(mobile.id, mobile.type);
+
+  do_check_eq(Object.keys(cachedStats).length, 0);
+
+  nssProxy.saveAppStats(1, wifi, timestamp, 10, 20, false, { notify:
+                        function (success, message) {
+    do_check_eq(success, true);
+    var iterations = 10;
+    var counter = 0;
+    var callback = function (success, message) {
+      if (counter == iterations - 1)
+        run_next_test();
+      counter++;
+    };
+
+    for (var i = 0; i < iterations; i++) {
+      nssProxy.saveAppStats(1, mobile, timestamp, 10, 20, false, callback);
+    }
+  }});
+});
+
 function run_test() {
   do_get_profile();
 
