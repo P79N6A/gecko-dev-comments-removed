@@ -10,23 +10,109 @@
 
 
 
+#ifdef XP_UNIX
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+
+extern unsigned int _gdb_sleep_duration;
+#endif
+
+
+
+
+
+
+
+
+
+void
+TestCrashyOperation(void (*aCrashyOperation)())
+{
+#if defined(XP_UNIX) && defined(DEBUG) && !defined(MOZ_ASAN)
+  
+  
+  unsigned int old_gdb_sleep_duration = _gdb_sleep_duration;
+  _gdb_sleep_duration = 0;
+
+  int pid = fork();
+  ASSERT_NE(pid, -1);
+
+  if (pid == 0) {
+    
+    aCrashyOperation();
+    fprintf(stderr, "TestCrashyOperation: didn't crash?!\n");
+    ASSERT_TRUE(false);   
+  }
+
+  
+  int status;
+  ASSERT_NE(waitpid(pid, &status, 0), -1);
+
+  
+  ASSERT_TRUE(WIFEXITED(status) || WTERMSIG(status));
+  if (WIFEXITED(status)) {
+    
+    
+    int signum = WEXITSTATUS(status);
+    if (signum != SIGSEGV && signum != SIGBUS) {
+      fprintf(stderr, "TestCrashyOperation 'exited' failure: %d\n", signum);
+      ASSERT_TRUE(false);
+    }
+  } else if (WIFSIGNALED(status)) {
+    
+    
+    int signum = WTERMSIG(status);
+    if (signum != SIGSEGV && signum != SIGBUS) {
+      fprintf(stderr, "TestCrashyOperation 'signaled' failure: %d\n", signum);
+      ASSERT_TRUE(false);
+    }
+  }
+
+  _gdb_sleep_duration = old_gdb_sleep_duration;
+#endif
+}
+
+void
+InitCapacityOk_InitialLengthTooBig()
+{
+  PLDHashTable t(PL_DHashGetStubOps(), sizeof(PLDHashEntryStub),
+                 PL_DHASH_MAX_INITIAL_LENGTH + 1);
+}
+
+void
+InitCapacityOk_InitialEntryStoreTooBig()
+{
+  
+  
+  
+  PLDHashTable t(PL_DHashGetStubOps(), (uint32_t)1 << 23, (uint32_t)1 << 8);
+}
+
 TEST(PLDHashTableTest, InitCapacityOk)
 {
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  PLDHashTable t(PL_DHashGetStubOps(), sizeof(PLDHashEntryStub),
+  PLDHashTable t1(PL_DHashGetStubOps(), sizeof(PLDHashEntryStub),
                  PL_DHASH_MAX_INITIAL_LENGTH);
+
+  
+  
+  PLDHashTable t2(PL_DHashGetStubOps(), (uint32_t)1 << 23, (uint32_t)1 << 7);
+
+  
+  TestCrashyOperation(InitCapacityOk_InitialLengthTooBig);
+
+  
+  
+  TestCrashyOperation(InitCapacityOk_InitialEntryStoreTooBig);
+
+  
+  
+  
+  
 }
 
 TEST(PLDHashTableTest, LazyStorage)
@@ -141,7 +227,7 @@ TEST(PLDHashTableTest, Clear)
   ASSERT_EQ(t1.EntryCount(), 0u);
 }
 
-TEST(PLDHashTableIterator, Iterator)
+TEST(PLDHashTableTest, Iterator)
 {
   PLDHashTable t(&trivialOps, sizeof(PLDHashEntryStub));
 
