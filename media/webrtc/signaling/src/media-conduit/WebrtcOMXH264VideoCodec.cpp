@@ -749,19 +749,23 @@ private:
   void SendEncodedDataToCallback(webrtc::EncodedImage& aEncodedImage,
                                  bool aPrependParamSets)
   {
-    
-    webrtc::EncodedImage nalu(aEncodedImage);
-
     if (aPrependParamSets) {
+      webrtc::EncodedImage prepend(aEncodedImage);
       
       MOZ_ASSERT(mParamSets.Length() > sizeof(kNALStartCode)); 
-      nalu._length = mParamSets.Length();
-      nalu._buffer = mParamSets.Elements();
+      prepend._length = mParamSets.Length();
+      prepend._buffer = mParamSets.Elements();
       
       CODEC_LOGD("Prepending SPS/PPS: %d bytes, timestamp %u, captureTimeMs %" PRIu64,
-                 nalu._length, nalu._timeStamp, nalu.capture_time_ms_);
-      SendEncodedDataToCallback(nalu, false);
+                 prepend._length, prepend._timeStamp, prepend.capture_time_ms_);
+      SendEncodedDataToCallback(prepend, false);
     }
+
+    struct nal_entry {
+      uint32_t offset;
+      uint32_t size;
+    };
+    nsAutoTArray<nal_entry, 1> nals;
 
     
     const uint8_t* data = aEncodedImage._buffer;
@@ -769,9 +773,23 @@ private:
     const uint8_t* nalStart = nullptr;
     size_t nalSize = 0;
     while (getNextNALUnit(&data, &size, &nalStart, &nalSize, true) == OK) {
-      nalu._buffer = const_cast<uint8_t*>(nalStart);
-      nalu._length = nalSize;
-      mCallback->Encoded(nalu, nullptr, nullptr);
+      
+      nal_entry nal = {((uint32_t) (nalStart - aEncodedImage._buffer)), (uint32_t) nalSize};
+      nals.AppendElement(nal);
+    }
+
+    size_t num_nals = nals.Length();
+    if (num_nals > 0) {
+      webrtc::RTPFragmentationHeader fragmentation;
+      fragmentation.VerifyAndAllocateFragmentationHeader(num_nals);
+      for (size_t i = 0; i < num_nals; i++) {
+        fragmentation.fragmentationOffset[i] = nals[i].offset;
+        fragmentation.fragmentationLength[i] = nals[i].size;
+      }
+      webrtc::EncodedImage unit(aEncodedImage);
+      unit._completeFrame = true;
+
+      mCallback->Encoded(unit, nullptr, &fragmentation);
     }
   }
 
