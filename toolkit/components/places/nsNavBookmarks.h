@@ -61,24 +61,6 @@ namespace places {
   typedef void (nsNavBookmarks::*ItemVisitMethod)(const ItemVisitData&);
   typedef void (nsNavBookmarks::*ItemChangeMethod)(const ItemChangeData&);
 
-  class BookmarkKeyClass : public nsTrimInt64HashKey
-  {
-    public:
-    explicit BookmarkKeyClass(const int64_t* aItemId)
-    : nsTrimInt64HashKey(aItemId)
-    , creationTime(PR_Now())
-    {
-    }
-    BookmarkKeyClass(const BookmarkKeyClass& aOther)
-    : nsTrimInt64HashKey(aOther)
-    , creationTime(PR_Now())
-    {
-      NS_NOTREACHED("Do not call me!");
-    }
-    BookmarkData bookmark;
-    PRTime creationTime;
-  };
-
   enum BookmarkDate {
     DATE_ADDED = 0
   , LAST_MODIFIED
@@ -124,7 +106,6 @@ public:
   }
 
   typedef mozilla::places::BookmarkData BookmarkData;
-  typedef mozilla::places::BookmarkKeyClass BookmarkKeyClass;
   typedef mozilla::places::ItemVisitData ItemVisitData;
   typedef mozilla::places::ItemChangeData ItemChangeData;
   typedef mozilla::places::BookmarkStatementId BookmarkStatementId;
@@ -455,18 +436,6 @@ private:
 
 
   nsresult UpdateKeywordsHashForRemovedBookmark(int64_t aItemId);
-
-  
-
-
-
-  nsTHashtable<BookmarkKeyClass> mRecentBookmarksCache;
-
-  
-
-
-
-  nsTHashtable<nsTrimInt64HashKey> mUncachableBookmarks;
 };
 
 #endif 
