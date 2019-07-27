@@ -99,8 +99,8 @@ protected:
   bool mPrivateBrowsing;
 };
 
-}
-}
+} 
+} 
 
 #endif
 

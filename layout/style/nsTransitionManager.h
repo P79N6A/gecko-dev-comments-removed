@@ -22,7 +22,7 @@ class nsCSSPropertySet;
 
 namespace mozilla {
 struct StyleTransition;
-}
+} 
 
 
 

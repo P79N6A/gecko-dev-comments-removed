@@ -14,7 +14,7 @@ namespace mozilla {
 namespace ipc {
 class PBackgroundParent;
 class PrincipalInfo;
-}
+} 
 
 namespace dom {
 namespace cache {

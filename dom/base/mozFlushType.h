@@ -41,5 +41,6 @@ struct ChangesToFlush {
   bool mFlushAnimations;
 };
 
-}
+} 
+
 #endif 

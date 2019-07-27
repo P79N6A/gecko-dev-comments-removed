@@ -27,7 +27,7 @@ namespace mozilla {
 
 namespace dom {
 class Selection;
-}
+} 
 
 class AccessibleCaret;
 

@@ -34,5 +34,5 @@ ShadowLayerChild::ActorDestroy(ActorDestroyReason why)
   }
 }
 
-}  
-}  
+} 
+} 

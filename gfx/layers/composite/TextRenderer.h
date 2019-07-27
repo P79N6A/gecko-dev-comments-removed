@@ -44,7 +44,7 @@ private:
   gfx::DataSourceSurface::MappedSurface mMap;
 };
 
-}
-}
+} 
+} 
 
 #endif

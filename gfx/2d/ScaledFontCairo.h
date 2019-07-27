@@ -50,7 +50,7 @@ private:
   bool mAutoHinting;
 };
 
-}
-}
+} 
+} 
 
 #endif 

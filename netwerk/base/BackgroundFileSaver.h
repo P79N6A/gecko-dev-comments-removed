@@ -413,6 +413,7 @@ private:
   
   DigestOutputStream(const DigestOutputStream& d);
 };
+
 } 
 } 
 

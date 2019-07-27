@@ -18,8 +18,8 @@ class nsCycleCollectionTraversalCallback;
 namespace mozilla {
 namespace dom {
 class Animation;
-}
-}
+} 
+} 
 
 class nsNodeUtils
 {

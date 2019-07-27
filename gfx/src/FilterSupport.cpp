@@ -252,7 +252,7 @@ namespace FilterWrappers {
     return nullptr;
   }
 
-}
+} 
 
 
 
@@ -2076,7 +2076,7 @@ namespace {
     const Map& map;
     bool matches;
   };
-}
+} 
 
 static PLDHashOperator
 CheckAttributeEquality(const uint32_t& aAttributeName,
@@ -2111,7 +2111,7 @@ namespace {
     AttributeMap::AttributeHandleCallback handler;
     void* userData;
   };
-}
+} 
 
 static PLDHashOperator
 PassAttributeToHandleCallback(const uint32_t& aAttributeName,
@@ -2196,5 +2196,5 @@ AttributeMap::Set(AttributeName aName, const float* aValues, int32_t aLength)
   mMap.Put(aName, new Attribute(aValues, aLength));
 }
 
-}
-}
+} 
+} 

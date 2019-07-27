@@ -12,7 +12,7 @@ namespace mozilla {
 
 namespace layout {
 class VsyncParent;
-}
+} 
 
 namespace ipc {
 

@@ -15,6 +15,6 @@ namespace CommandLineServiceMac {
   
   
   bool AddURLToCurrentCommandLine(const char* aURL);
-}
+} 
 
 #endif 

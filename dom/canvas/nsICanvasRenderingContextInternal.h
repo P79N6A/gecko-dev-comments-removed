@@ -26,11 +26,11 @@ namespace mozilla {
 namespace layers {
 class CanvasLayer;
 class LayerManager;
-}
+} 
 namespace gfx {
 class SourceSurface;
-}
-}
+} 
+} 
 
 class nsICanvasRenderingContextInternal :
   public nsISupports,

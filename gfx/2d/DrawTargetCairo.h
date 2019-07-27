@@ -218,7 +218,7 @@ private:
   static cairo_surface_t *mDummySurface;
 };
 
-}
-}
+} 
+} 
 
 #endif 

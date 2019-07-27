@@ -138,8 +138,8 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(CacheStorageService)
 namespace mozilla {
 namespace net {
   NS_GENERIC_FACTORY_CONSTRUCTOR(CaptivePortalService)
-}
-}
+} 
+} 
 
 
 
@@ -255,8 +255,8 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsHttpChannelAuthProvider)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsHttpActivityDistributor)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsHttpBasicAuth)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsHttpDigestAuth)
-}
-}
+} 
+} 
 #endif 
 
 #include "mozilla/net/Dashboard.h"
@@ -265,8 +265,8 @@ namespace mozilla {
 namespace net {
   NS_GENERIC_FACTORY_CONSTRUCTOR(Dashboard)
   NS_GENERIC_FACTORY_CONSTRUCTOR(PackagedAppService)
-}
-}
+} 
+} 
 #include "AppProtocolHandler.h"
 
 #ifdef NECKO_PROTOCOL_res

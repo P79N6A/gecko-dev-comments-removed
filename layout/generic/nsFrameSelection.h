@@ -167,8 +167,8 @@ struct nsPrevNextBidiLevels
 namespace mozilla {
 namespace dom {
 class Selection;
-}
-}
+} 
+} 
 class nsIScrollableFrame;
 
 

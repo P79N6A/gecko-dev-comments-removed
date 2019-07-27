@@ -84,5 +84,6 @@ private:
   int mChannels;
 };
 
-}
+} 
+
 #endif

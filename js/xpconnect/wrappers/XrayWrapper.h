@@ -48,7 +48,7 @@ GetNativePropertiesObject(JSContext* cx, JSObject* wrapper);
 bool
 HasNativeProperty(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
                   bool* hasProp);
-}
+} 
 
 enum XrayType {
     XrayForDOMObject,
@@ -563,6 +563,6 @@ extern const SandboxCallableProxyHandler sandboxCallableProxyHandler;
 
 class AutoSetWrapperNotShadowing;
 
-}
+} 
 
 #endif

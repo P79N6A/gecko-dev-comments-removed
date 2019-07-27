@@ -29,7 +29,7 @@ struct AsmJSParallelTask;
 struct ParseTask;
 namespace jit {
   class IonBuilder;
-}
+} 
 
 
 class GlobalHelperThreadState

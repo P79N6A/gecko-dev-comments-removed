@@ -13,7 +13,7 @@
 namespace mozilla {
 namespace layers {
 class ISurfaceAllocator;
-}
+} 
 
 namespace gl {
 
@@ -90,6 +90,7 @@ enum class AttachmentType : uint8_t {
 };
 
 } 
+
 } 
 
 #endif

@@ -14,7 +14,7 @@ namespace mozilla {
 
 namespace layers {
 class ImageContainer;
-}
+} 
 
 
 
@@ -280,7 +280,7 @@ protected:
 };
 
 
-}
+} 
 
 
 #endif

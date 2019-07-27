@@ -29,8 +29,8 @@ class nsFrame;
 namespace mozilla {
 namespace dom {
 class HTMLInputElement;
-}
-}
+} 
+} 
 
 
 

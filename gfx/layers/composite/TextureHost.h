@@ -33,7 +33,7 @@
 namespace mozilla {
 namespace ipc {
 class Shmem;
-}
+} 
 
 namespace layers {
 
@@ -745,7 +745,7 @@ CreateBackendIndependentTextureHost(const SurfaceDescriptor& aDesc,
                                     ISurfaceAllocator* aDeallocator,
                                     TextureFlags aFlags);
 
-}
-}
+} 
+} 
 
 #endif

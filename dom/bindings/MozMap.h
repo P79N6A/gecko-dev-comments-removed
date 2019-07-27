@@ -42,6 +42,7 @@ public:
 
   DataType mData;
 };
+
 } 
 
 template<typename DataType>

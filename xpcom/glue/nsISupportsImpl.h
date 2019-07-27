@@ -73,7 +73,7 @@
       : IsDestructibleFallbackImpl::Selector<T>::type
     {
     };
-  }
+  } 
 #  define MOZ_IS_DESTRUCTIBLE(X) (mozilla::IsDestructibleFallback<X>::value)
 #endif
 
@@ -368,7 +368,7 @@ private:
   
   Atomic<nsrefcnt> mValue;
 };
-}
+} 
 #endif
 
 

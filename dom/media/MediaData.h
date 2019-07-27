@@ -20,7 +20,7 @@ namespace mozilla {
 namespace layers {
 class Image;
 class ImageContainer;
-}
+} 
 
 class MediaByteBuffer;
 class SharedTrackInfo;
@@ -144,7 +144,7 @@ protected:
 namespace layers {
 class TextureClient;
 class PlanarYCbCrImage;
-}
+} 
 
 class VideoInfo;
 

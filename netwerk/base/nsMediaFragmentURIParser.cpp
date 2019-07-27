@@ -406,4 +406,5 @@ void nsMediaFragmentURIParser::Parse(nsACString& aRef)
   }
 }
 
-}} 
+} 
+} 

@@ -28,7 +28,7 @@ template <class, class> class HashMapEntry;
 namespace detail {
     template <class T> class HashTableEntry;
     template <class T, class HashPolicy, class AllocPolicy> class HashTable;
-}
+} 
 
 
 
@@ -1696,7 +1696,7 @@ class HashTable : private AllocPolicy
 #undef METER
 };
 
-}  
-}  
+} 
+} 
 
 #endif  

@@ -1661,7 +1661,7 @@ DispatchExtendableEventOnWorkerScope(JSContext* aCx,
   MOZ_ASSERT(waitUntilPromise);
   return waitUntilPromise.forget();
 }
-}; 
+} 
 
 
 

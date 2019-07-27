@@ -25,6 +25,7 @@ private:
     bool  mUseNative;
 };
 
-}} 
+} 
+} 
 
 #endif 

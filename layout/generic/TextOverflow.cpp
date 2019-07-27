@@ -814,5 +814,5 @@ TextOverflow::Marker::SetupString(nsIFrame* aFrame)
   mInitialized = true;
 }
 
-}  
-}  
+} 
+} 

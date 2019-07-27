@@ -21,8 +21,8 @@ class nsSMILValue;
 namespace mozilla {
 namespace dom {
 class SVGAnimationElement;
-}
-}
+} 
+} 
 
 typedef uint8_t nsSVGEnumValue;
 

@@ -631,7 +631,7 @@ imgRequest::SetCacheValidation(imgCacheEntry* aCacheEntry, nsIRequest* aRequest)
   }
 }
 
-namespace { 
+namespace {
 
 already_AddRefed<nsIApplicationCache>
 GetApplicationCache(nsIRequest* aRequest)

@@ -31,7 +31,7 @@
 namespace mozilla {
 namespace gfx {
 class DrawTarget;
-}
+} 
 
 namespace layers {
 
@@ -404,7 +404,7 @@ public:
   }
 };
 
-}
-}
+} 
+} 
 
 #endif

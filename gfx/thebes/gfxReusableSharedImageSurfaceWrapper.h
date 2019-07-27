@@ -13,11 +13,11 @@ class gfxSharedImageSurface;
 namespace mozilla {
 namespace ipc {
 class Shmem;
-}
+} 
 namespace layers {
 class ISurfaceAllocator;
-}
-}
+} 
+} 
 
 
 

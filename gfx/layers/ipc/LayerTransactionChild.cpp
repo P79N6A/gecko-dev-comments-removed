@@ -138,5 +138,5 @@ LayerTransactionChild::DeallocPTextureChild(PTextureChild* actor)
   return TextureClient::DestroyIPDLActor(actor);
 }
 
-}  
-}  
+} 
+} 

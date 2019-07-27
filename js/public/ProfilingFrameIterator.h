@@ -24,8 +24,8 @@ namespace js {
         class JitActivation;
         class JitProfilingFrameIterator;
         class JitcodeGlobalEntry;
-    }
-}
+    } 
+} 
 
 namespace JS {
 

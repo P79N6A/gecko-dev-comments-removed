@@ -17,7 +17,7 @@ class OriginAttributes;
 
 namespace ipc {
 class PrincipalInfo;
-}
+} 
 
 namespace dom {
 

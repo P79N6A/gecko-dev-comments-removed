@@ -127,7 +127,7 @@ AsTaggedProto(HandleObject obj)
 
 namespace gc {
 void MergeCompartments(JSCompartment* source, JSCompartment* target);
-}
+} 
 
 
 

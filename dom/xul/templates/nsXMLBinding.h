@@ -17,8 +17,8 @@ class nsXMLBindingValues;
 namespace mozilla {
 namespace dom {
 class XPathResult;
-}
-}
+} 
+} 
 
 
 

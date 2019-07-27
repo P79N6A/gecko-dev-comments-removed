@@ -22,6 +22,6 @@ struct FontRange
   gfxFloat mFontSize; 
 };
 
-}
+} 
 
 #endif 

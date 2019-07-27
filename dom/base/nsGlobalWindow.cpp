@@ -566,8 +566,8 @@ namespace mozilla {
 namespace dom {
 extern uint64_t
 NextWindowID();
-}
-}
+} 
+} 
 
 nsPIDOMWindow::nsPIDOMWindow(nsPIDOMWindow *aOuterWindow)
 : mFrameElement(nullptr), mDocShell(nullptr), mModalStateDepth(0),

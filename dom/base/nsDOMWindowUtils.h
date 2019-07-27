@@ -24,8 +24,8 @@ struct nsPoint;
 namespace mozilla {
   namespace layers {
     class LayerTransactionChild;
-  }
-}
+  } 
+} 
 
 class nsTranslationNodeList final : public nsITranslationNodeList
 {

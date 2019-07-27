@@ -9,6 +9,6 @@ namespace mozilla {
 
 enum EWordMovementType { eStartWord, eEndWord, eDefaultBehavior };
 
-}
+} 
 
 #endif

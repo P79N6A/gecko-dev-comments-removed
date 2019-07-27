@@ -64,7 +64,7 @@
 
 namespace js {
 void DestroyTraceLoggerGraphState();
-}
+} 
 
 class TraceLoggerGraphState
 {

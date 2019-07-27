@@ -19,8 +19,8 @@
 namespace mozilla {
 namespace psm {
 class SharedSSLState;
-}
-}
+} 
+} 
 
 class nsIObserver;
 

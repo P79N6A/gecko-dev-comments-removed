@@ -130,7 +130,7 @@ private:
   std::vector<DrawEventRecorderPrivate*> mStoredRecorders;
 };
 
-}
-}
+} 
+} 
 
 #endif 

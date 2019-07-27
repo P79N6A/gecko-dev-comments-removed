@@ -425,6 +425,7 @@ private:
   nsDataHashtable<nsCStringHashKey, uint32_t> mTunnelHash;
 };
 
-}} 
+} 
+} 
 
 #endif 

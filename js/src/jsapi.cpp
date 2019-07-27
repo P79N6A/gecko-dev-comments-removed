@@ -363,7 +363,7 @@ AssertHeapIsIdle(JSContext* cx)
     AssertHeapIsIdle(cx->runtime());
 }
 
-}
+} 
 
 static void
 AssertHeapIsIdleOrIterating(JSRuntime* rt)

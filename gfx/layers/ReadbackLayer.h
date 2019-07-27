@@ -27,7 +27,7 @@ class ReadbackProcessor;
 
 namespace layerscope {
 class LayersPacket;
-}
+} 
 
 
 
@@ -199,6 +199,7 @@ protected:
   gfxRGBA      mBackgroundColor;
 };
 
-}
-}
+} 
+} 
+
 #endif 

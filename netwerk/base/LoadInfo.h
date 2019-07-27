@@ -19,14 +19,14 @@ namespace mozilla {
 
 namespace net {
 class LoadInfoArgs;
-}
+} 
 
 namespace ipc {
 
 nsresult
 LoadInfoArgsToLoadInfo(const mozilla::net::LoadInfoArgs& aLoadInfoArgs,
                        nsILoadInfo** outLoadInfo);
-}
+} 
 
 
 

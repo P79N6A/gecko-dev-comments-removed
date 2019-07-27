@@ -1000,5 +1000,6 @@ WorkerListener::UpdateFound()
     }
   }
 }
+
 } 
 } 

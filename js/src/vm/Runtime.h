@@ -100,7 +100,7 @@ typedef vixl::Simulator Simulator;
 #elif defined(JS_SIMULATOR)
 class Simulator;
 #endif
-}
+} 
 
 
 
@@ -409,7 +409,7 @@ class FreeOp : public JSFreeOp
 
 namespace JS {
 struct RuntimeSizes;
-}
+} 
 
 
 struct JSAtomState

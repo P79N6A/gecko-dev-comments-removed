@@ -190,6 +190,7 @@ ObsoleteCurrentTraceInfos()
     (*sTraceInfos)[i]->mObsolete = true;
   }
 }
+
 } 
 
 nsCString*

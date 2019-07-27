@@ -61,7 +61,7 @@ protected:
   Float mSize;
 };
 
-}
-}
+} 
+} 
 
 #endif 

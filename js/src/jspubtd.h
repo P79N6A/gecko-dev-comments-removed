@@ -132,8 +132,8 @@ class AutoTraceSession;
 class StoreBuffer;
 void MarkPersistentRootedChains(JSTracer*);
 void FinishPersistentRootedChains(JSRuntime*);
-}
-}
+} 
+} 
 
 namespace JS {
 

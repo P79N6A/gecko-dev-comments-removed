@@ -314,6 +314,7 @@ protected:
     virtual ~WebSocketSSLChannel() {}
 };
 
-}} 
+} 
+} 
 
 #endif 

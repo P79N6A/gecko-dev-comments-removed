@@ -36,8 +36,8 @@ namespace mozilla {
 class RefreshDriverTimer;
 namespace layout {
 class VsyncChild;
-}
-}
+} 
+} 
 
 
 

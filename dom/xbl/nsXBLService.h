@@ -26,8 +26,8 @@ class nsIPrincipal;
 namespace mozilla {
 namespace dom {
 class EventTarget;
-}
-}
+} 
+} 
 
 class nsXBLService final : public nsSupportsWeakReference
 {

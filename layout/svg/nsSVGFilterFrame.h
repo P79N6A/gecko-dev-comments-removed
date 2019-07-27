@@ -24,8 +24,8 @@ struct nsRect;
 namespace mozilla {
 namespace dom {
 class SVGFilterElement;
-}
-}
+} 
+} 
 
 typedef nsSVGContainerFrame nsSVGFilterFrameBase;
 

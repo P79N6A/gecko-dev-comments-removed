@@ -107,6 +107,6 @@ public:
   static mozilla::StaticRefPtr<mozilla::PeerConnectionCtxShutdown> gPeerConnectionCtxShutdown;
 };
 
-}  
+} 
 
 #endif

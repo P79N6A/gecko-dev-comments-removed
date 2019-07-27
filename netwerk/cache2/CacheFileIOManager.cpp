@@ -3883,7 +3883,7 @@ CacheFileIOManager::UpdateSmartCacheSize(int64_t aFreeSpace)
 
 
 
-namespace { 
+namespace {
 
 
 

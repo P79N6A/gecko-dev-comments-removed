@@ -2865,9 +2865,9 @@ namespace mozilla {
 namespace dom {
 namespace danger {
 class AutoCxPusher;
-}
-}
-}
+} 
+} 
+} 
 
 class XPCJSContextStack
 {

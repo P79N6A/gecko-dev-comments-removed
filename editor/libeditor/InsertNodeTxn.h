@@ -52,7 +52,7 @@ protected:
   nsEditor& mEditor;
 };
 
-}
-}
+} 
+} 
 
 #endif

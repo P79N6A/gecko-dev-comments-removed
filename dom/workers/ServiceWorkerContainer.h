@@ -19,7 +19,7 @@ struct RegistrationOptions;
 
 namespace workers {
 class ServiceWorker;
-}
+} 
 
 
 class ServiceWorkerContainer final : public DOMEventTargetHelper

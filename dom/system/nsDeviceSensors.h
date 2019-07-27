@@ -22,8 +22,8 @@ class nsIDOMWindow;
 namespace mozilla {
 namespace dom {
 class EventTarget;
-}
-}
+} 
+} 
 
 class nsDeviceSensors : public nsIDeviceSensors, public mozilla::hal::ISensorObserver
 {

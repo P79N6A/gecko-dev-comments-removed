@@ -21,8 +21,8 @@ class nsIEditor;
 namespace mozilla {
 namespace dom {
 class Element;
-}
-}
+} 
+} 
 
 class nsTextControlFrame final : public nsContainerFrame,
                                  public nsIAnonymousContentCreator,

@@ -530,8 +530,8 @@ DeallocPMediaParent(media::PMediaParent *aActor)
   return true;
 }
 
-}
-}
+} 
+} 
 
 
 template class mozilla::media::Parent<mozilla::media::NonE10s>;

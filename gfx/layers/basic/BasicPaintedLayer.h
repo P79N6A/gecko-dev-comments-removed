@@ -126,7 +126,7 @@ protected:
   RefPtr<ContentClientBasic> mContentClient;
 };
 
-}
-}
+} 
+} 
 
 #endif

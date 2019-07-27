@@ -31,8 +31,8 @@ private:
   int32_t mStatus;
 };
 
-}   
-}   
+} 
+} 
 
 #endif  
 

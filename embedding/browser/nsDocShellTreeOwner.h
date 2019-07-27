@@ -34,8 +34,8 @@
 namespace mozilla {
 namespace dom {
 class EventTarget;
-}
-}
+} 
+} 
 
 class nsWebBrowser;
 class ChromeTooltipListener;

@@ -20,8 +20,8 @@
 namespace mozilla {
 namespace dom {
 class Blob;
-}
-}
+} 
+} 
 
 BEGIN_WORKERS_NAMESPACE
 

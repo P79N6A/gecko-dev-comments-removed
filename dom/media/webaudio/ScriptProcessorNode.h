@@ -105,8 +105,8 @@ private:
   const uint32_t mNumberOfOutputChannels;
 };
 
-}
-}
+} 
+} 
 
 #endif
 

@@ -547,6 +547,6 @@ private:
   nsRefPtr<MediaStreamGraphImpl> mShutdownGrip;
 };
 
-}
+} 
 
 #endif 

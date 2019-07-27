@@ -26,7 +26,7 @@ enum PathResolutionMode {
 JSString*
 ResolvePath(JSContext* cx, JS::HandleString filenameStr, PathResolutionMode resolveMode);
 
-}
-}
+} 
+} 
 
 #endif 

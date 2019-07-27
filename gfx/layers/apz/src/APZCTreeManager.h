@@ -529,7 +529,7 @@ private:
   static float sDPI;
 };
 
-}
-}
+} 
+} 
 
 #endif 

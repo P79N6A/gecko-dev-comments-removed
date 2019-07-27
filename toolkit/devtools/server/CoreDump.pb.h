@@ -634,8 +634,8 @@ namespace google {
 namespace protobuf {
 
 
-}  
-}  
+} 
+} 
 #endif  
 
 

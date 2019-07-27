@@ -13,7 +13,7 @@
 
 namespace IPC {
 class URI;
-}
+} 
 
 namespace mozilla {
 

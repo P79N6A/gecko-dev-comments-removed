@@ -996,8 +996,8 @@ ImportantRule::List(FILE* out, int32_t aIndent) const
 namespace mozilla {
 namespace css {
 class DOMCSSStyleRule;
-}
-}
+} 
+} 
 
 class DOMCSSDeclarationImpl : public nsDOMCSSDeclaration
 {

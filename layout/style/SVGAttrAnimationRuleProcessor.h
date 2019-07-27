@@ -20,7 +20,7 @@ namespace mozilla {
 
 namespace dom {
 class Element;
-}
+} 
 
 class SVGAttrAnimationRuleProcessor final : public nsIStyleRuleProcessor
 {

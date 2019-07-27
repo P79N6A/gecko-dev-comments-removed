@@ -36,11 +36,11 @@ namespace mozilla {
 namespace dom {
 class AudioContext;
 class Element;
-}
+} 
 namespace gfx {
 class VRHMDInfo;
-}
-}
+} 
+} 
 
 
 

@@ -133,6 +133,7 @@ private:
   nsRefPtrHashtable<nsCStringHashKey, AltSvcMapping> mHash;
 };
 
-}} 
+} 
+} 
 
 #endif 

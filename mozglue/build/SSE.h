@@ -200,7 +200,7 @@ namespace mozilla {
     extern bool MFBT_DATA sse4_2_enabled;
 #endif
 #endif
-  }
+  } 
 
 #if defined(MOZILLA_PRESUME_MMX)
 #define MOZILLA_MAY_SUPPORT_MMX 1
@@ -286,6 +286,6 @@ namespace mozilla {
   inline bool supports_sse4_2() { return false; }
 #endif
 
-}
+} 
 
 #endif 

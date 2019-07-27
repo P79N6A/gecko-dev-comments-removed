@@ -135,6 +135,7 @@ struct ParamTraits<mozilla::dom::bluetooth::BluetoothGattCharAttribute>
     return true;
   }
 };
+
 } 
 
 #endif 

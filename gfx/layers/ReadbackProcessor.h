@@ -75,6 +75,7 @@ protected:
   nsTArray<Update> mAllUpdates;
 };
 
-}
-}
+} 
+} 
+
 #endif 

@@ -93,5 +93,5 @@ MacIOSurfaceTextureHostBasic::GetSize() const {
                       mSurface->GetDevicePixelHeight());
 }
 
-}
-}
+} 
+} 

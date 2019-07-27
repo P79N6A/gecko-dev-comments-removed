@@ -43,22 +43,22 @@ class nsIDOMWindowUtils;
 namespace mozilla {
 namespace layout {
 class RenderFrameChild;
-}
+} 
 
 namespace layers {
 class APZEventState;
 class ImageCompositeNotification;
 struct SetTargetAPZCCallback;
 struct SetAllowedTouchBehaviorCallback;
-}
+} 
 
 namespace widget {
 struct AutoCacheNativeKeyCommands;
-}
+} 
 
 namespace plugins {
 class PluginWidgetChild;
-}
+} 
 
 namespace dom {
 
@@ -667,7 +667,7 @@ private:
     DISALLOW_EVIL_CONSTRUCTORS(TabChild);
 };
 
-}
-}
+} 
+} 
 
 #endif 

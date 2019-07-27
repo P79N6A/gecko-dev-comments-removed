@@ -21,11 +21,11 @@ namespace mozilla {
 
 namespace ipc {
 class Shmem;
-}
+} 
 
 namespace layout {
 class RenderFrameParent;
-}
+} 
 
 namespace layers {
 

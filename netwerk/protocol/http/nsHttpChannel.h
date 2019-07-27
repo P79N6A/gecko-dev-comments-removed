@@ -511,6 +511,7 @@ private:
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsHttpChannel, NS_HTTPCHANNEL_IID)
-} } 
+} 
+} 
 
 #endif 

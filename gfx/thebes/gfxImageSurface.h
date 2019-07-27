@@ -20,8 +20,8 @@ namespace mozilla {
 namespace gfx {
 class DataSourceSurface;
 class SourceSurface;
-}
-}
+} 
+} 
 
 
 

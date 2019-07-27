@@ -15,7 +15,7 @@ namespace mozilla {
 namespace net {
 namespace CacheFileUtils {
 
-namespace { 
+namespace {
 
 
 

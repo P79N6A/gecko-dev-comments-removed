@@ -18,8 +18,8 @@
 namespace mozilla {
 namespace dom {
 class IMETextTxn;
-}
-}
+} 
+} 
 
 
 

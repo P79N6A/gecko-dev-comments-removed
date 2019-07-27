@@ -680,7 +680,7 @@ struct GLContextSymbols
     PFNGLGETSTRINGIPROC fGetStringi;
 };
 
-}
-}
+} 
+} 
 
 #endif 

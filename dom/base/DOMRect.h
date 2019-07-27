@@ -210,8 +210,7 @@ protected:
   nsCOMPtr<nsISupports> mParent;
 };
 
-}
-
-}
+} 
+} 
 
 #endif 

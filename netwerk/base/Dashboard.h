@@ -99,5 +99,7 @@ private:
     nsCOMPtr<nsIDNSService> mDnsService;
 };
 
-} } 
+} 
+} 
+
 #endif 

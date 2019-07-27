@@ -22,7 +22,7 @@ class CDMCallbackProxy;
 
 namespace dom {
 class MediaKeySession;
-}
+} 
 
 struct DecryptResult {
   DecryptResult(GMPErr aStatus, MediaRawData* aSample)

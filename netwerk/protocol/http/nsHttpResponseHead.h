@@ -14,7 +14,7 @@
 
 namespace IPC {
     template <typename> struct ParamTraits;
-}
+} 
 
 namespace mozilla { namespace net {
 
@@ -158,6 +158,8 @@ private:
 
     friend struct IPC::ParamTraits<nsHttpResponseHead>;
 };
-}} 
+
+} 
+} 
 
 #endif 

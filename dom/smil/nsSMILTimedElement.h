@@ -28,8 +28,8 @@ class nsIAtom;
 namespace mozilla {
 namespace dom {
 class SVGAnimationElement;
-}
-}
+} 
+} 
 
 
 

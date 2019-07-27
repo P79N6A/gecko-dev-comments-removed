@@ -24,7 +24,7 @@ class nsSystemPrincipal;
 
 namespace mozilla {
 class OriginAttributes;
-}
+} 
 
 
 

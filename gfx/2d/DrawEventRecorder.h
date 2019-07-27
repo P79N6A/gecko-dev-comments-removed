@@ -75,7 +75,7 @@ private:
   std::ofstream mOutputFile;
 };
 
-}
-}
+} 
+} 
 
 #endif 

@@ -30,8 +30,8 @@ class nsSVGOrientType;
 class SVGAngle;
 class SVGAnimatedAngle;
 class SVGAnimationElement;
-}
-}
+} 
+} 
 
 class nsSVGAngle
 {

@@ -357,8 +357,9 @@ struct PersistentRootedMarker
             TraceRoot(trc, r->address(), name);
     }
 };
-}
-}
+
+} 
+} 
 
 void
 js::gc::MarkPersistentRootedChains(JSTracer* trc)

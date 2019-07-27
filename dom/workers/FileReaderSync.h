@@ -18,8 +18,8 @@ namespace dom {
 class Blob;
 class GlobalObject;
 template<typename> class Optional;
-}
-}
+} 
+} 
 
 BEGIN_WORKERS_NAMESPACE
 

@@ -18,7 +18,7 @@ namespace mozilla {
 
 namespace dom {
 class HTMLMediaElement;
-}
+} 
 
 
 
@@ -99,6 +99,6 @@ protected:
   bool mImageSizeChanged;
 };
 
-}
+} 
 
 #endif 

@@ -112,8 +112,8 @@ WriteStatusApplied(LPCWSTR updateDirPath);
 namespace mozilla {
 namespace startup {
 extern GeckoProcessType sChildProcessType;
-}
-}
+} 
+} 
 
 
 

@@ -289,7 +289,7 @@ DOMStorageDBParent::ReleaseIPDLReference()
   Release();
 }
 
-namespace { 
+namespace {
 
 class SendInitialChildDataRunnable : public nsRunnable
 {
@@ -411,7 +411,7 @@ DOMStorageDBParent::RecvAsyncGetUsage(const nsCString& aScope)
   return true;
 }
 
-namespace { 
+namespace {
 
 
 
@@ -604,7 +604,7 @@ DOMStorageDBParent::Observe(const char* aTopic,
   return NS_OK;
 }
 
-namespace { 
+namespace {
 
 
 class LoadRunnable : public nsRunnable
@@ -708,7 +708,7 @@ DOMStorageDBParent::CacheParentBridge::LoadWait()
 
 
 
-namespace { 
+namespace {
 
 class UsageRunnable : public nsRunnable
 {

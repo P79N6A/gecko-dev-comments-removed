@@ -29,7 +29,7 @@
 namespace mozilla {
 namespace dom {
 
-namespace { 
+namespace {
 
 int32_t gQuotaLimit = DEFAULT_QUOTA_LIMIT;
 
@@ -121,7 +121,7 @@ DOMStorageManager::~DOMStorageManager()
   }
 }
 
-namespace { 
+namespace {
 
 nsresult
 CreateScopeKey(nsIPrincipal* aPrincipal,
@@ -472,7 +472,7 @@ DOMStorageManager::GetLocalStorageForPrincipal(nsIPrincipal* aPrincipal,
   return CreateStorage(nullptr, aPrincipal, aDocumentURI, aPrivate, aRetval);
 }
 
-namespace { 
+namespace {
 
 class ClearCacheEnumeratorData
 {

@@ -108,7 +108,7 @@ namespace
       return EventDispatcher::Dispatch(mTarget, context, &event);
     }
   };
-}
+} 
 
 
 
@@ -492,7 +492,7 @@ namespace
   private:
     const nsSMILTimeValueSpec* mCreator;
   };
-}
+} 
 
 void
 nsSMILTimedElement::RemoveInstanceTimesForCreator(
@@ -776,7 +776,7 @@ namespace
                "Dynamic instance time should be unlinked from its creator");
     return !aInstanceTime->IsDynamic() && !aInstanceTime->ShouldPreserve();
   }
-}
+} 
 
 void
 nsSMILTimedElement::Rewind()
@@ -818,7 +818,7 @@ namespace
   {
     return true;
   }
-}
+} 
 
 bool
 nsSMILTimedElement::SetIsDisabled(bool aIsDisabled)
@@ -843,7 +843,7 @@ namespace
   {
     return !aInstanceTime->FromDOM() && !aInstanceTime->ShouldPreserve();
   }
-}
+} 
 
 bool
 nsSMILTimedElement::SetAttr(nsIAtom* aAttribute, const nsAString& aValue,
@@ -1349,7 +1349,7 @@ namespace
   private:
     nsSMILTimedElement::RemovalTestFunction mFunction;
   };
-}
+} 
 
 void
 nsSMILTimedElement::ClearSpecs(TimeValueSpecList& aSpecs,
@@ -1435,7 +1435,7 @@ namespace
   private:
     const nsSMILInstanceTime* mCurrentIntervalBegin;
   };
-}
+} 
 
 void
 nsSMILTimedElement::Reset()
@@ -1648,7 +1648,7 @@ namespace
     uint32_t mThreshold;
     nsTArray<const nsSMILInstanceTime *>& mTimesToKeep;
   };
-}
+} 
 
 void
 nsSMILTimedElement::FilterInstanceTimes(InstanceTimeList& aList)

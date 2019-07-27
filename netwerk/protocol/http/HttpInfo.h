@@ -19,6 +19,7 @@ public:
     static void GetHttpConnectionData(nsTArray<HttpRetParams> *);
 };
 
-} } 
+} 
+} 
 
 #endif 

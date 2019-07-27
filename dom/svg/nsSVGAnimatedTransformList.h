@@ -21,7 +21,7 @@ namespace mozilla {
 namespace dom {
 class SVGAnimationElement;
 class SVGTransform;
-}
+} 
 
 
 

@@ -113,8 +113,8 @@ private:
   bool mExtraCurrentTimeUpdatedSinceLastStableState;
 };
 
-}
-}
+} 
+} 
 
 #endif
 

@@ -26,8 +26,8 @@ class gfxTextContextPaint;
 namespace mozilla {
 namespace dom {
 class Element;
-}
-}
+} 
+} 
 
 
 

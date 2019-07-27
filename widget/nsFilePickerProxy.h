@@ -21,8 +21,8 @@ class nsPIDOMWindow;
 namespace mozilla {
 namespace dom {
 class File;
-}
-}
+} 
+} 
 
 
 

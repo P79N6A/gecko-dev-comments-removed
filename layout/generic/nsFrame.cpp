@@ -109,8 +109,8 @@ using namespace mozilla::layout;
 namespace mozilla {
 namespace gfx {
 class VRHMDInfo;
-}
-}
+} 
+} 
 
 
 struct nsBoxLayoutMetrics

@@ -114,6 +114,6 @@ private:
     Mutex                        mResolveLock;
 };
 
-}
+} 
 
 #endif

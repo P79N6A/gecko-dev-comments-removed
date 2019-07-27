@@ -16,8 +16,8 @@ class nsAString;
 namespace mozilla {
 namespace dom {
 class SVGAnimationElement;
-}
-}
+} 
+} 
 
 
 

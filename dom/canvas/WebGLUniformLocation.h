@@ -22,7 +22,7 @@ class WebGLProgram;
 
 namespace webgl {
 struct LinkedProgramInfo;
-}
+} 
 
 class WebGLUniformLocation final
     : public nsWrapperCache

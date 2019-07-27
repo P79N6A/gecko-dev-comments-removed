@@ -124,14 +124,14 @@ void OnShowCursor(bool show);
 void OnPushCursor(const NSCursorInfo& cursorInfo);
 void OnPopCursor();
 
-}
+} 
 
 namespace child {
 
 void SetUpCocoaInterposing();
 
-}
+} 
 
-}
+} 
 
 #endif

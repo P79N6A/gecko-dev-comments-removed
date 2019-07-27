@@ -50,8 +50,8 @@ class SensorAccuracy;
 
 typedef Observer<SensorAccuracy> ISensorAccuracyObserver;
 
-}
-}
+} 
+} 
 
 #include "ipc/IPCMessageUtils.h"
 

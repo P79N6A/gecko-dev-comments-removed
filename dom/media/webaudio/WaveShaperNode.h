@@ -69,7 +69,7 @@ private:
   OverSampleType mType;
 };
 
-}
-}
+} 
+} 
 
 #endif

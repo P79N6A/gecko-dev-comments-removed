@@ -60,7 +60,7 @@ protected:
   nsCOMPtr<nsINode> mParent;
 };
 
-}
-}
+} 
+} 
 
 #endif

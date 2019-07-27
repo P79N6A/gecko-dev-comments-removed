@@ -23,12 +23,12 @@ class MessageLoop;
 
 namespace base {
 class Thread;
-}
+} 
 
 namespace mozilla {
 namespace ipc {
 class Shmem;
-}
+} 
 
 namespace layers {
 

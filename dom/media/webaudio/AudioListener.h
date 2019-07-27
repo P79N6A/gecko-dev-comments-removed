@@ -127,8 +127,8 @@ private:
   nsTArray<WeakPtr<PannerNode> > mPanners;
 };
 
-}
-}
+} 
+} 
 
 #endif
 

@@ -57,7 +57,7 @@ protected:
   nsString mMessage;
 };
 
-}
-}
+} 
+} 
 
 #endif 

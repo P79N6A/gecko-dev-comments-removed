@@ -616,8 +616,8 @@ RenderFrameParent::TakeFocusForClick()
                         nsIFocusManager::FLAG_NOSCROLL);
 }
 
-}  
-}  
+} 
+} 
 
 nsDisplayRemote::nsDisplayRemote(nsDisplayListBuilder* aBuilder,
                                  nsSubDocumentFrame* aFrame,

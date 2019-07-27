@@ -36,7 +36,7 @@ namespace ipc {
 
 class SharedMemoryBasic;
 
-}
+} 
 
 namespace layers {
 
@@ -1117,7 +1117,7 @@ private:
   bool mAsyncTransformAppliedToContent;
 };
 
-}
-}
+} 
+} 
 
 #endif

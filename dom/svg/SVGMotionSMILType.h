@@ -19,7 +19,7 @@ namespace mozilla {
 
 namespace gfx {
 class Matrix;
-}
+} 
 
 
 

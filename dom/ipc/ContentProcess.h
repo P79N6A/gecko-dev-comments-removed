@@ -42,7 +42,7 @@ private:
     DISALLOW_EVIL_CONSTRUCTORS(ContentProcess);
 };
 
-}  
-}  
+} 
+} 
 
 #endif  

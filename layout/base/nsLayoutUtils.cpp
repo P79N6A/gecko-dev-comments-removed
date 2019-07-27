@@ -8067,8 +8067,8 @@ MaybeSetupTransactionIdAllocator(layers::LayerManager* aManager, nsView* aView)
   }
 }
 
-}
-}
+} 
+} 
 
  bool
 nsLayoutUtils::IsOutlineStyleAutoEnabled()

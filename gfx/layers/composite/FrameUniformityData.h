@@ -68,6 +68,6 @@ struct ParamTraits<mozilla::layers::FrameUniformityData>
   }
 };
 
-}
+} 
 
 #endif 

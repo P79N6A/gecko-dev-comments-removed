@@ -490,6 +490,7 @@ struct ParamTraits<mozilla::dom::RTCMediaStreamTrackStats>
     return true;
   }
 };
+
 } 
 
 #endif  

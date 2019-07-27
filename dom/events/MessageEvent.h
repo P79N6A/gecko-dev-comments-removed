@@ -25,7 +25,7 @@ namespace workers {
 
 class ServiceWorkerClient;
 
-}
+} 
 
 
 

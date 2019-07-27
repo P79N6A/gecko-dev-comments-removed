@@ -27,7 +27,7 @@ namespace gfx {
 
 struct UnknownUnits {};
 
-}  
+} 
 
 template<> struct IsPixel<gfx::UnknownUnits> : TrueType {};
 
@@ -218,7 +218,7 @@ IntSizeTyped<units> RoundedToInt(const SizeTyped<units>& aSize) {
                              int32_t(floorf(aSize.height + 0.5f)));
 }
 
-}
-}
+} 
+} 
 
 #endif 

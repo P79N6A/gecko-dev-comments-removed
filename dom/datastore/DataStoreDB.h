@@ -23,7 +23,7 @@ class IDBDatabase;
 class IDBFactory;
 class IDBOpenDBRequest;
 class IDBTransaction;
-}
+} 
 
 class DataStoreDBCallback;
 

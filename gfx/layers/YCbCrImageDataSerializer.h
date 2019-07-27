@@ -16,7 +16,7 @@
 namespace mozilla {
 namespace gfx {
 class DataSourceSurface;
-}
+} 
 
 namespace layers {
 

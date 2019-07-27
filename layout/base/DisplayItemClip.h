@@ -19,8 +19,8 @@ namespace mozilla {
 namespace gfx {
 class DrawTarget;
 class Path;
-}
-}
+} 
+} 
 
 namespace mozilla {
 
@@ -186,6 +186,6 @@ private:
   bool mHaveClipRect;
 };
 
-}
+} 
 
 #endif 

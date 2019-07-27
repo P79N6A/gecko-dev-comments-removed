@@ -26,12 +26,12 @@ namespace JS {
 template <typename T>
 class AutoVectorRooter;
 typedef AutoVectorRooter<Value> AutoValueVector;
-}
+} 
 
 namespace mozilla {
 template <class> class Maybe;
 struct CycleCollectorResults;
-}
+} 
 
 
 

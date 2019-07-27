@@ -17,7 +17,7 @@ namespace mozilla {
 
 namespace media {
 class MediaSystemResourceManagerParent;
-}
+} 
 
 
 

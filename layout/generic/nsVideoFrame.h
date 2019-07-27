@@ -19,8 +19,8 @@ namespace mozilla {
 namespace layers {
 class Layer;
 class LayerManager;
-}
-}
+} 
+} 
 
 class nsAString;
 class nsPresContext;

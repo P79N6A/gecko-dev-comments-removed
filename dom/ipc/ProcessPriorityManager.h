@@ -12,7 +12,7 @@
 namespace mozilla {
 namespace dom {
 class ContentParent;
-}
+} 
 
 
 

@@ -65,7 +65,7 @@ protected:
   mutable nsRefPtr<QuadBounds> mBounds; 
 };
 
-}
-}
+} 
+} 
 
 #endif 

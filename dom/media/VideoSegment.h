@@ -20,7 +20,7 @@ namespace mozilla {
 
 namespace layers {
 class Image;
-}
+} 
 
 class VideoFrame {
 public:
@@ -154,6 +154,6 @@ public:
   }
 };
 
-}
+} 
 
 #endif 

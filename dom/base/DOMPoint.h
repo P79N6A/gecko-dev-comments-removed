@@ -73,7 +73,7 @@ public:
   void SetW(double aW) { mW = aW; }
 };
 
-}
-}
+} 
+} 
 
 #endif 

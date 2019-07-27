@@ -244,5 +244,5 @@ ProbeManager::StopSession()
   return NS_OK;
 }
 
-}  
-}  
+} 
+} 

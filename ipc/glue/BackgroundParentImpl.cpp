@@ -292,7 +292,7 @@ private:
   nsCString mFilter;
 };
 
-}
+} 
 
 auto
 BackgroundParentImpl::AllocPUDPSocketParent(const OptionalPrincipalInfo& ,

@@ -18,8 +18,8 @@ namespace mozilla {
 namespace dom {
 class ContentParent;
 class MemoryReport;
-}
-}
+} 
+} 
 
 class nsITimer;
 

@@ -163,6 +163,6 @@ private:
   VolatileBufferPtr(VolatileBufferPtr const& vbufptr) = delete;
 };
 
-}; 
+} 
 
 #endif 

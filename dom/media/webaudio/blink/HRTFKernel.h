@@ -115,4 +115,5 @@ inline nsReturnRef<HRTFKernel> HRTFKernel::create(nsAutoPtr<FFTBlock> fftFrame, 
 }
 
 } 
+
 #endif 

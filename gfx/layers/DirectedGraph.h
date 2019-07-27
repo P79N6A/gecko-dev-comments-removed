@@ -110,7 +110,7 @@ private:
   nsTArray<Edge> mEdges;
 };
 
-}
-}
+} 
+} 
 
 #endif 

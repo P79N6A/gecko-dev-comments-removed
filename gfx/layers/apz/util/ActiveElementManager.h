@@ -15,7 +15,7 @@ namespace mozilla {
 namespace dom {
 class Element;
 class EventTarget;
-}
+} 
 
 namespace layers {
 
@@ -97,7 +97,7 @@ private:
   void CancelTask();
 };
 
-}
-}
+} 
+} 
 
 #endif 

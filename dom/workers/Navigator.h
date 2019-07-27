@@ -19,8 +19,8 @@
 namespace mozilla {
 namespace dom {
 class Promise;
-}
-}
+} 
+} 
 
 BEGIN_WORKERS_NAMESPACE
 

@@ -23,8 +23,8 @@ class nsCSSExpandedDataBlock;
 namespace mozilla {
 namespace css {
 class Declaration;
-}
-}
+} 
+} 
 
 
 

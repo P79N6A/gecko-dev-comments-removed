@@ -17,7 +17,7 @@
 
 namespace tracked_objects {
 class Location;
-}
+} 
 
 namespace mozilla {
 namespace layers {
@@ -109,7 +109,7 @@ private:
   RollingMean<TimeDuration, TimeDuration> mMean;
 };
 
-}
-}
+} 
+} 
 
 #endif 

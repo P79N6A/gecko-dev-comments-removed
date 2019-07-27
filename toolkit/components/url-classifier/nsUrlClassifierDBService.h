@@ -45,8 +45,8 @@ namespace safebrowsing {
 class Classifier;
 class ProtocolParser;
 class TableUpdate;
-}
-}
+} 
+} 
 
 
 

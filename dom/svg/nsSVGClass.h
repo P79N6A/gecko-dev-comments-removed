@@ -19,8 +19,8 @@ class nsSVGElement;
 namespace mozilla {
 namespace dom {
 class SVGAnimatedString;
-}
-}
+} 
+} 
 
 class nsSVGClass
 {

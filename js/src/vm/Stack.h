@@ -25,8 +25,8 @@ struct JSCompartment;
 namespace JS {
 namespace dbg {
 class AutoEntryMonitor;
-}
-}
+} 
+} 
 
 namespace js {
 
@@ -82,7 +82,7 @@ enum MaybeCheckLexical { CheckLexical = true, DontCheckLexical = false };
 namespace jit {
     class BaselineFrame;
     class RematerializedFrame;
-}
+} 
 
 
 
@@ -1095,7 +1095,7 @@ class AsmJSActivation;
 
 namespace jit {
     class JitActivation;
-};
+} 
 
 class Activation
 {

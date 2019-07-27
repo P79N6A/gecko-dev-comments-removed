@@ -57,7 +57,7 @@ static_assert(FileDescriptorSet::MAX_DESCRIPTORS_PER_MESSAGE == 250,
               "MAX_DESCRIPTORS_PER_MESSAGE mismatch!");
 #endif
 
-}
+} 
 
 
 
@@ -2209,4 +2209,5 @@ HttpChannelChild::ForceIntercepted()
   return NS_OK;
 }
 
-}} 
+} 
+} 

@@ -366,7 +366,7 @@ nsIEnum2(nsISupports* aKey, uint32_t& aData, void* userArg) {
   return PL_DHASH_NEXT;
 }
 
-}
+} 
 
 using namespace TestHashtables;
 

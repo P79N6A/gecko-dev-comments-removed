@@ -33,8 +33,8 @@ class Document;
 class DocumentFragment;
 class GlobalObject;
 
-}
-}
+} 
+} 
 
 
 #define TRANSFORMIIX_XSLT_PROCESSOR_CID   \

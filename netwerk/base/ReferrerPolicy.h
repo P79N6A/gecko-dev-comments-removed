@@ -74,6 +74,7 @@ IsValidReferrerPolicy(const nsAString& content)
       || content.LowerCaseEqualsLiteral("unsafe-url");
 }
 
-} } 
+} 
+} 
 
 #endif

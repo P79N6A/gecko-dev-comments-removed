@@ -48,7 +48,7 @@ class MOZ_STACK_CLASS SourceBufferHolder;
 class HandleValueArray;
 
 class ObjectOpResult;
-}
+} 
 
 
 namespace js {

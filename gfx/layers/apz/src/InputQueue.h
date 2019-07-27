@@ -154,7 +154,7 @@ private:
   nsTArray<UniquePtr<CancelableBlockState>> mInputBlockQueue;
 };
 
-}
-}
+} 
+} 
 
 #endif 

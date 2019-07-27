@@ -29,6 +29,7 @@ protected:
   nsHttpAuthCache *mPrivateAuthCache;
 };
 
-}} 
+} 
+} 
 
 #endif 

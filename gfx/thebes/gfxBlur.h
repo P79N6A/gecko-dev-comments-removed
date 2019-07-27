@@ -23,8 +23,8 @@ namespace mozilla {
     struct RectCornerRadii;
     class SourceSurface;
     class DrawTarget;
-  }
-}
+  } 
+} 
 
 
 

@@ -12,7 +12,7 @@
 
 namespace mozilla {
 class CryptoSample;
-}
+} 
 
 class GMPDecryptorProxyCallback : public GMPCallbackBase {
 public:

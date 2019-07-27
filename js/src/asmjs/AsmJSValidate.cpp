@@ -989,6 +989,7 @@ class Signature
 
 } 
 
+
 static
 bool operator==(const Signature& lhs, const Signature& rhs)
 {
@@ -7291,7 +7292,7 @@ CheckSimdCast(FunctionBuilder& f, ParseNode* call, AsmJSSimdType fromType, AsmJS
     return true;
 }
 
-}
+} 
 
 template<class T>
 inline bool

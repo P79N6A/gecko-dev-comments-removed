@@ -180,7 +180,7 @@ private:
   bool mHasDirtyRect;
 };
 
-}
-}
+} 
+} 
 
 #endif 

@@ -57,6 +57,7 @@ struct HttpRetParams
     bool      ssl;
 };
 
-} }
+} 
+} 
 
 #endif 

@@ -31,7 +31,7 @@ static uint32_t const CHECK_MULTITHREADED = nsICacheStorage::CHECK_MULTITHREADED
 namespace mozilla {
 namespace net {
 
-namespace { 
+namespace {
 
 
 
@@ -490,7 +490,7 @@ NS_IMETHODIMP _OldCacheEntryWrapper::HasWriteAccess(bool aWriteAllowed_unused, b
   return NS_OK;
 }
 
-namespace { 
+namespace {
 
 class MetaDataVisitorWrapper : public nsICacheMetaDataVisitor
 {
@@ -521,7 +521,7 @@ NS_IMETHODIMP _OldCacheEntryWrapper::VisitMetaData(nsICacheEntryMetaDataVisitor*
   return mOldDesc->VisitMetaData(w);
 }
 
-namespace { 
+namespace {
 
 nsresult
 GetCacheSessionNameForStoragePolicy(

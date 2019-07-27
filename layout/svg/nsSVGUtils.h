@@ -56,7 +56,7 @@ class UserSpaceMetrics;
 namespace gfx {
 class DrawTarget;
 class GeneralPattern;
-}
+} 
 } 
 
 

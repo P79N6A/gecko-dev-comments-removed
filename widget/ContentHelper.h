@@ -33,7 +33,7 @@ public:
   static TouchBehaviorFlags GetAllowedTouchBehavior(nsIWidget* aWidget, const LayoutDeviceIntPoint& aPoint);
 };
 
-}
-}
+} 
+} 
 
 #endif 

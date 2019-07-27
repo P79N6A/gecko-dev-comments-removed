@@ -28,8 +28,8 @@ class nsSVGFilterPaintCallback;
 namespace mozilla {
 namespace dom {
 class UserSpaceMetrics;
-}
-}
+} 
+} 
 
 
 

@@ -16,7 +16,7 @@ class SourceMediaStream;
 
 namespace layers {
 class Image;
-}
+} 
 
 namespace dom {
 class CanvasCaptureMediaStream;

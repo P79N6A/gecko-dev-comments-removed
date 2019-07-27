@@ -48,12 +48,12 @@ class VideoTrack;
 class AudioTrackList;
 class VideoTrackList;
 class MediaTrackListListener;
-}
+} 
 
 namespace layers {
 class ImageContainer;
 class OverlayImage;
-}
+} 
 
 class MediaStreamDirectListener;
 
@@ -418,6 +418,6 @@ private:
 #endif
 };
 
-}
+} 
 
 #endif 

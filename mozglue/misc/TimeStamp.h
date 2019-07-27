@@ -16,7 +16,7 @@
 
 namespace IPC {
 template<typename T> struct ParamTraits;
-}
+} 
 
 #ifdef XP_WIN
 
@@ -571,6 +571,6 @@ private:
   TimeStampValue mValue;
 };
 
-}
+} 
 
 #endif 

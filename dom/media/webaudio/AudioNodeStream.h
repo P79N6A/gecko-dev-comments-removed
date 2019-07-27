@@ -16,7 +16,7 @@ namespace dom {
 struct ThreeDPoint;
 class AudioParamTimeline;
 class AudioContext;
-}
+} 
 
 class ThreadSharedFloatArrayBufferList;
 class AudioNodeEngine;
@@ -189,6 +189,6 @@ protected:
   bool mPassThrough;
 };
 
-}
+} 
 
 #endif 

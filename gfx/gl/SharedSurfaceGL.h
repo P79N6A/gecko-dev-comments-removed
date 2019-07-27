@@ -19,11 +19,11 @@
 namespace mozilla {
     namespace gl {
         class GLContext;
-    }
+    } 
     namespace gfx {
         class DataSourceSurface;
-    }
-}
+    } 
+} 
 
 namespace mozilla {
 namespace gl {
@@ -94,6 +94,7 @@ public:
 };
 
 } 
+
 } 
 
 #endif 

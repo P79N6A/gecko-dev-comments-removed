@@ -23,8 +23,8 @@ struct FontFaceDescriptors;
 class FontFaceSet;
 class Promise;
 class StringOrArrayBufferOrArrayBufferView;
-}
-}
+} 
+} 
 
 namespace mozilla {
 namespace dom {

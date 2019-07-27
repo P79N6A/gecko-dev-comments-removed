@@ -40,14 +40,14 @@ class GeckoContentController;
 class APZEventState;
 struct ScrollableLayerGuid;
 struct SetAllowedTouchBehaviorCallback;
-}
+} 
 
 class CompositorVsyncDispatcher;
-}
+} 
 
 namespace base {
 class Thread;
-}
+} 
 
 
 

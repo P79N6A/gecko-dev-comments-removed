@@ -137,7 +137,7 @@ private:
   nsRefPtr<nsUrlClassifierPrefixSet> mPrefixSet;
 };
 
-}
-}
+} 
+} 
 
 #endif

@@ -122,6 +122,7 @@ public:
   
   bool mShouldNotifyNewOrigin = true;
 };
+
 } 
 } 
 

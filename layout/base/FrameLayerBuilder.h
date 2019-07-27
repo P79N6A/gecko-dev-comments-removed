@@ -28,11 +28,11 @@ class ContainerLayer;
 class LayerManager;
 class BasicLayerManager;
 class PaintedLayer;
-}
+} 
 
 namespace gfx {
 class Matrix4x4;
-}
+} 
 
 class FrameLayerBuilder;
 class LayerManagerData;
@@ -743,6 +743,6 @@ protected:
   uint32_t                            mMaxContainerLayerGeneration;
 };
 
-}
+} 
 
 #endif 

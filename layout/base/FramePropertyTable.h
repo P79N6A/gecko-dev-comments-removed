@@ -245,6 +245,6 @@ private:
   nsIFrame* mFrame;
 };
 
-}
+} 
 
 #endif 

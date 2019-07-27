@@ -75,7 +75,7 @@ NS_GFX_(void) ScaleYCbCrToRGB32(const uint8* yplane,
                                 Rotate view_rotate,
                                 ScaleFilter filter);
 
-}  
-}  
+} 
+} 
  
 #endif  

@@ -26,6 +26,6 @@ struct IsNullPointer : FalseType {};
 template<>
 struct IsNullPointer<decltype(nullptr)> : TrueType {};
 
-}
+} 
 
 #endif 

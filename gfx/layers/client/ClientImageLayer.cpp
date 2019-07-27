@@ -171,5 +171,5 @@ ClientLayerManager::CreateImageLayer()
   return layer.forget();
 }
 
-}
-}
+} 
+} 

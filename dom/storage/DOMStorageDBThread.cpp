@@ -170,7 +170,7 @@ DOMStorageDBThread::ShouldPreloadScope(const nsACString& aScope)
   return mScopesHavingData.Contains(aScope);
 }
 
-namespace { 
+namespace {
 
 PLDHashOperator
 GetScopesHavingDataEnum(nsCStringHashKey* aKey, void* aArg)
@@ -391,7 +391,7 @@ DOMStorageDBThread::ThreadObserver::AfterProcessNextEvent(nsIThreadInternal *thr
 extern void
 ReverseString(const nsCSubstring& aSource, nsCSubstring& aResult);
 
-namespace { 
+namespace {
 
 class nsReverseStringSQLFunction final : public mozIStorageFunction
 {
@@ -1075,7 +1075,7 @@ DOMStorageDBThread::PendingOperations::HasTasks()
   return !!mUpdates.Count() || !!mClears.Count();
 }
 
-namespace { 
+namespace {
 
 PLDHashOperator
 ForgetUpdatesForScope(const nsACString& aMapping,
@@ -1184,7 +1184,7 @@ DOMStorageDBThread::PendingOperations::Add(DOMStorageDBThread::DBOperation* aOpe
   }
 }
 
-namespace { 
+namespace {
 
 PLDHashOperator
 CollectTasks(const nsACString& aMapping, nsAutoPtr<DOMStorageDBThread::DBOperation>& aOperation, void* aArg)
@@ -1267,7 +1267,7 @@ DOMStorageDBThread::PendingOperations::Finalize(nsresult aRv)
   return true;
 }
 
-namespace { 
+namespace {
 
 class FindPendingOperationForScopeData
 {
@@ -1330,7 +1330,7 @@ DOMStorageDBThread::PendingOperations::IsScopeClearPending(const nsACString& aSc
   return false;
 }
 
-namespace { 
+namespace {
 
 PLDHashOperator
 FindPendingUpdateForScope(const nsACString& aMapping,

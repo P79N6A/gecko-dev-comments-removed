@@ -42,7 +42,7 @@ void AppendMemoryStorageID(nsAutoCString &key)
   key.Append('M');
 }
 
-}
+} 
 
 
 
@@ -168,7 +168,7 @@ void CacheStorageService::ShutdownBackground()
 
 
 
-namespace { 
+namespace {
 
 
 
@@ -539,7 +539,7 @@ void CacheStorageService::DropPrivateBrowsingEntries()
     DoomStorageEntries(keys[i], nullptr, true, nullptr);
 }
 
-namespace { 
+namespace {
 
 class CleaupCacheDirectoriesRunnable : public nsRunnable
 {
@@ -837,7 +837,7 @@ NS_IMETHODIMP CacheStorageService::GetIoTarget(nsIEventTarget** aEventTarget)
 
 
 
-namespace { 
+namespace {
 
 class FrecencyComparator
 {
@@ -1082,7 +1082,7 @@ void CacheStorageService::ForceEntryValidFor(nsACString &aCacheEntryKey,
   mForcedValidEntries.Put(aCacheEntryKey, validUntil);
 }
 
-namespace { 
+namespace {
 
 PLDHashOperator PruneForcedValidEntries(
   const nsACString& aKey, TimeStamp& aTimeStamp, void* aClosure)
@@ -1487,7 +1487,7 @@ CacheStorageService::CheckStorageEntry(CacheStorage const* aStorage,
   return NS_OK;
 }
 
-namespace { 
+namespace {
 
 class CacheEntryDoomByKeyCallback : public CacheFileIOListener
                                   , public nsIRunnable
@@ -1856,7 +1856,7 @@ CacheStorageService::GetCacheEntryInfo(CacheEntry* aEntry,
 
 
 
-namespace { 
+namespace {
 
 bool TelemetryEntryKey(CacheEntry const* entry, nsAutoCString& key)
 {
@@ -1988,7 +1988,7 @@ CacheStorageService::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) con
   return mallocSizeOf(this) + SizeOfExcludingThis(mallocSizeOf);
 }
 
-namespace { 
+namespace {
 
 class ReportStorageMemoryData
 {

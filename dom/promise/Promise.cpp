@@ -39,7 +39,7 @@ namespace dom {
 namespace {
 
 Atomic<uintptr_t> gIDGenerator(0);
-}
+} 
 
 using namespace workers;
 
@@ -167,7 +167,7 @@ GetPromise(JSContext* aCx, JS::Handle<JSObject*> aFunc)
   UNWRAP_OBJECT(Promise, &promiseVal.toObject(), promise);
   return promise;
 }
-};
+} 
 
 
 

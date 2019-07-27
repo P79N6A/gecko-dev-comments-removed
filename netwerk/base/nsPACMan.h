@@ -242,7 +242,7 @@ private:
 namespace mozilla {
 namespace net {
 PRLogModuleInfo* GetProxyLog();
-}
-}
+} 
+} 
 
 #endif  

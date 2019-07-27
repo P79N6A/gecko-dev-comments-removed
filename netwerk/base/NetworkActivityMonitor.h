@@ -40,6 +40,7 @@ private:
   PRIntervalTime                  mLastNotificationTime[2];
 };
 
-}} 
+} 
+} 
 
 #endif

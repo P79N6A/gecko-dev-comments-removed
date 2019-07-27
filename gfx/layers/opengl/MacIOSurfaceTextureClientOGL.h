@@ -54,7 +54,7 @@ protected:
   bool mIsLocked;
 };
 
-}
-}
+} 
+} 
 
 #endif 

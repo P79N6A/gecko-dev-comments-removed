@@ -15,7 +15,7 @@ typedef nsSVGPathGeometryElement nsSVGPolyElementBase;
 
 namespace mozilla {
 class DOMSVGPointList;
-}
+} 
 
 class nsSVGPolyElement : public nsSVGPolyElementBase
 {

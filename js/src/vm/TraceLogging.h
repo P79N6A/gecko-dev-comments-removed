@@ -23,14 +23,14 @@ struct JSRuntime;
 
 namespace JS {
     class ReadOnlyCompileOptions;
-}
+} 
 
 namespace js {
 class PerThreadData;
 
 namespace jit {
     class CompileRuntime;
-}
+} 
 
 
 
@@ -521,6 +521,6 @@ class AutoTraceLog
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-}  
+} 
 
 #endif 

@@ -38,7 +38,7 @@
 
 namespace mozilla {
 struct AudioChunk;
-}
+} 
 
 namespace WebCore {
 

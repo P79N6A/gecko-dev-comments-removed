@@ -56,7 +56,8 @@ GetAllSpeechSynthActors(InfallibleTArray<mozilla::dom::SpeechSynthesisParent*>& 
     }
   }
 }
-}
+
+} 
 
 namespace mozilla {
 namespace dom {

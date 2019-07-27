@@ -82,6 +82,7 @@ private:
   nsRefPtr<SharedDecoderManager> mManager;
   MediaDataDecoderCallback* mCallback;
 };
-}
+
+} 
 
 #endif

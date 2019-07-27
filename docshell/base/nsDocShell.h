@@ -60,8 +60,8 @@
 namespace mozilla {
 namespace dom {
 class EventTarget;
-}
-}
+} 
+} 
 
 class nsDocShell;
 class nsDOMNavigationTiming;

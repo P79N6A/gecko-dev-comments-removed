@@ -69,6 +69,7 @@ private:
   RefPtr<gfx::DrawTarget> mDrawTarget;
 };
 
-}
-}
+} 
+} 
+
 #endif

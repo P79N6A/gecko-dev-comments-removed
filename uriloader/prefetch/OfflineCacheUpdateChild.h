@@ -88,7 +88,7 @@ private:
     uint64_t mByteProgress;
 };
 
-}
-}
+} 
+} 
 
 #endif

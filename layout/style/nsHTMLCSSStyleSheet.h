@@ -22,8 +22,8 @@ struct MiscContainer;
 namespace mozilla {
 namespace dom {
 class Element;
-}
-}
+} 
+} 
 
 class nsHTMLCSSStyleSheet final : public nsIStyleRuleProcessor
 {

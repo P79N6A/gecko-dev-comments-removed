@@ -12,7 +12,7 @@
 
 namespace mozilla {
 class CSSVariableResolver;
-}
+} 
 struct nsRuleData;
 
 namespace mozilla {

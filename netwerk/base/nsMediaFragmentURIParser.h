@@ -107,6 +107,7 @@ private:
   Maybe<int>       mSampleSize;
 };
 
-}} 
+} 
+} 
 
 #endif

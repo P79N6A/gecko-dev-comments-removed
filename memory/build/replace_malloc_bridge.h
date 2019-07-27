@@ -104,7 +104,7 @@ MOZ_END_EXTERN_C
 namespace mozilla {
 namespace dmd {
 struct DMDFuncs;
-}
+} 
 
 
 

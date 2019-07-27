@@ -101,6 +101,6 @@ struct ExposedPropertiesOnly : public Policy {
     }
 };
 
-}
+} 
 
 #endif 

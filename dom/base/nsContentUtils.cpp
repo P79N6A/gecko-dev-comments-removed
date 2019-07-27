@@ -2026,9 +2026,9 @@ namespace dom {
 namespace workers {
 extern bool IsCurrentThreadRunningChromeWorker();
 extern JSContext* GetCurrentThreadJSContext();
-}
-}
-}
+} 
+} 
+} 
 
 bool
 nsContentUtils::ThreadsafeIsCallerChrome()

@@ -100,8 +100,8 @@ private:
   bool mStartCalled;
 };
 
-}
-}
+} 
+} 
 
 #endif
 

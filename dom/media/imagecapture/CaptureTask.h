@@ -15,7 +15,7 @@ namespace mozilla {
 namespace dom {
 class Blob;
 class ImageCapture;
-}
+} 
 
 
 

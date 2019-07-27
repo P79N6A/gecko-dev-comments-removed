@@ -23,8 +23,8 @@ namespace mozilla {
 namespace dom {
 template <class T> class OwningNonNull;
 class Selection;
-}
-}
+} 
+} 
 
 
 

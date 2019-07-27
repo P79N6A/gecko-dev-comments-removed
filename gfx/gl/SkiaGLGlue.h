@@ -41,8 +41,8 @@ private:
   mozilla::gfx::RefPtrSkia<GrContext> mGrContext;
 };
 
-}
-}
+} 
+} 
 
 #else
 

@@ -96,5 +96,5 @@ AxisPhysicsMSDModel::IsFinished()
     && fabs(GetVelocity()) <= kFinishVelocity;
 }
 
-}
-}
+} 
+} 

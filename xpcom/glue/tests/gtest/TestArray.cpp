@@ -91,7 +91,7 @@ void FillArray(nsISupportsArray* aArray, int32_t aCount)
   }
 }
 
-}
+} 
 
 using namespace TestArray;
 

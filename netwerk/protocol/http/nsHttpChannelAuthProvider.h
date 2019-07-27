@@ -162,6 +162,7 @@ private:
     static uint32_t                   sAuthAllowPref;
 };
 
-}} 
+} 
+} 
 
 #endif 

@@ -16,7 +16,7 @@ namespace mozilla {
 
 namespace gfx {
 class DataSourceSurface;
-}
+} 
 
 namespace gl {
 
@@ -82,7 +82,7 @@ UploadSurfaceToTexture(GLContext* gl,
 bool CanUploadSubTextures(GLContext* gl);
 bool CanUploadNonPowerOfTwo(GLContext* gl);
 
-}
-}
+} 
+} 
 
 #endif

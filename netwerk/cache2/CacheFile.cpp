@@ -1983,7 +1983,7 @@ CacheFile::InitIndexEntry()
 
 
 
-namespace { 
+namespace {
 
 size_t
 CollectChunkSize(uint32_t const & aIdx,

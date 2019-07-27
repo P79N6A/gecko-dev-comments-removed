@@ -15,7 +15,7 @@ namespace mozilla {
 
 namespace workers {
 class WorkerPrivate;
-}
+} 
 
 namespace dom {
 namespace cache {

@@ -15,6 +15,7 @@ class Layer;
 
 void SortLayersBy3DZOrder(nsTArray<Layer*>& aLayers);
 
-}
-}
+} 
+} 
+
 #endif 

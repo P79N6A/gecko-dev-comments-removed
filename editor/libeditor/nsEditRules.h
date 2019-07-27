@@ -16,8 +16,8 @@ class nsPlaintextEditor;
 namespace mozilla {
 namespace dom {
 class Selection;
-}
-}
+} 
+} 
 
 
 

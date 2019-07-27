@@ -18,8 +18,8 @@ namespace mozilla {
 namespace dom {
 class Blob;
 struct objectURLOptions;
-}
-}
+} 
+} 
 
 BEGIN_WORKERS_NAMESPACE
 

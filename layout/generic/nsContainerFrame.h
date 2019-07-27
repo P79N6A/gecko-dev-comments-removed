@@ -26,7 +26,7 @@
 class nsOverflowContinuationTracker;
 namespace mozilla {
 class FramePropertyTable;
-}
+} 
 
 
 

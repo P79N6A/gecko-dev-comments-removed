@@ -36,11 +36,11 @@ class nsIntRegion;
 namespace mozilla {
 namespace gfx {
 class DataSourceSurface;
-}
+} 
 
 namespace gl {
 class AndroidSurfaceTexture;
-}
+} 
 
 namespace layers {
 

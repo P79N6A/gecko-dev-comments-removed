@@ -26,7 +26,7 @@ namespace dom {
 DOMStorageDBBridge* DOMStorageCache::sDatabase = nullptr;
 bool DOMStorageCache::sDatabaseDown = false;
 
-namespace { 
+namespace {
 
 const uint32_t kDefaultSet = 0;
 const uint32_t kPrivateSet = 1;
@@ -151,7 +151,7 @@ DOMStorageCache::Persist(const DOMStorage* aStorage) const
          !aStorage->IsPrivate();
 }
 
-namespace { 
+namespace {
 
 PLDHashOperator
 CloneSetData(const nsAString& aKey, const nsString aValue, void* aArg)
@@ -237,7 +237,7 @@ DOMStorageCache::Preload()
   sDatabase->AsyncPreload(this);
 }
 
-namespace { 
+namespace {
 
 
 
@@ -294,7 +294,7 @@ DOMStorageCache::KeepAlive()
   mKeepAliveTimer.swap(timer);
 }
 
-namespace { 
+namespace {
 
 
 
@@ -363,7 +363,7 @@ DOMStorageCache::GetLength(const DOMStorage* aStorage, uint32_t* aRetval)
   return NS_OK;
 }
 
-namespace { 
+namespace {
 
 class IndexFinderData
 {
@@ -412,7 +412,7 @@ DOMStorageCache::GetKey(const DOMStorage* aStorage, uint32_t aIndex, nsAString& 
   return NS_OK;
 }
 
-namespace { 
+namespace {
 
 static PLDHashOperator
 KeysArrayBuilder(const nsAString& aKey, const nsString aValue, void* aArg)
@@ -700,7 +700,7 @@ DOMStorageUsage::DOMStorageUsage(const nsACString& aScope)
   mUsage[kDefaultSet] = mUsage[kPrivateSet] = mUsage[kSessionSet] = 0LL;
 }
 
-namespace { 
+namespace {
 
 class LoadUsageRunnable : public nsRunnable
 {

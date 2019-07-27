@@ -22,13 +22,13 @@ enum Rights {
   RightsRead = 1 << 0,
   RightsWrite = 1 << 1
 };
-}
+} 
 
 namespace mozilla {
 
 namespace ipc {
 class SharedMemory;
-}
+} 
 
 namespace ipc {
 

@@ -14,12 +14,12 @@
 
 namespace base {
   class Histogram;
-}
+} 
 
 namespace mozilla {
 namespace HangMonitor {
   class HangAnnotations;
-}
+} 
 namespace Telemetry {
 
 #include "TelemetryHistogramEnums.h"
@@ -269,4 +269,5 @@ void WriteFailedProfileLock(nsIFile* aProfileDir);
 
 } 
 } 
+
 #endif 

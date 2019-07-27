@@ -78,6 +78,7 @@ protected:
 
 NS_DEFINE_STATIC_IID_ACCESSOR(NullHttpTransaction, NS_NULLHTTPTRANSACTION_IID)
 
-}} 
+} 
+} 
 
 #endif 

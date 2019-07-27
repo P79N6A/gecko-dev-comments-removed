@@ -1865,7 +1865,7 @@ private:
     int32_t mState;
 };
 
-}
+} 
 
 NS_IMETHODIMP
 nsIOService::SetAppOffline(uint32_t aAppId, int32_t aState)

@@ -54,4 +54,4 @@ TEST(TArray, assign)
   ASSERT_EQ(DummyArray(), array2);
 }
 
-}
+} 

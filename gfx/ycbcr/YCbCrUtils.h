@@ -24,7 +24,7 @@ ConvertYCbCrToRGB(const layers::PlanarYCbCrData& aData,
                   unsigned char* aDestBuffer,
                   int32_t aStride);
 
-}
-}
+} 
+} 
 
 #endif 

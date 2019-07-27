@@ -247,8 +247,8 @@ private:
   nsTArray<AudioBufferSourceNode*> mSources;
 };
 
-}
-}
+} 
+} 
 
 #endif
 

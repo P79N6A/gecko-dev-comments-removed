@@ -29,11 +29,11 @@ class nsITimer;
 namespace mozilla {
 namespace dom {
 class Selection;
-}
+} 
 namespace gfx {
 class DrawTarget;
-}
-}
+} 
+} 
 
 
 class nsCaret final : public nsISelectionListener

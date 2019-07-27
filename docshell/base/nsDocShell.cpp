@@ -8420,7 +8420,8 @@ private:
     mRestorePresentationEvent;
   nsRefPtr<nsDocShell::RestorePresentationEvent> mEvent;
 };
-}
+
+} 
 
 nsresult
 nsDocShell::RestoreFromHistory()

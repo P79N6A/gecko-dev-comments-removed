@@ -492,7 +492,7 @@ js::SetPreserveWrapperCallback(JSRuntime* rt, PreserveWrapperCallback callback)
 namespace js {
 
 extern size_t sSetProtoCalled;
-}
+} 
 
 JS_FRIEND_API(size_t)
 JS_SetProtoCalled(JSContext*)

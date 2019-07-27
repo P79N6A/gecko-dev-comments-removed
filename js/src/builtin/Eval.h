@@ -37,5 +37,6 @@ DirectEvalStringFromIon(JSContext* cx,
 extern bool
 IsAnyBuiltinEval(JSFunction* fun);
 
-}  
+} 
+
 #endif 

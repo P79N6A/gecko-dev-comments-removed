@@ -69,7 +69,7 @@ inline void renderTraceEventEnd(const char *aColor)
 
 #endif 
 
-}
-}
+} 
+} 
 
 #endif 

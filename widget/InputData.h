@@ -21,11 +21,11 @@ namespace mozilla {
 
 namespace dom {
 class Touch;
-}
+} 
 
 namespace gfx {
 class Matrix4x4;
-}
+} 
 
 enum InputType
 {
@@ -527,6 +527,6 @@ public:
   ParentLayerPoint mLocalOrigin;
 };
 
-}
+} 
 
 #endif

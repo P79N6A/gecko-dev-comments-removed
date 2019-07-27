@@ -20,8 +20,8 @@ class WidgetEvent;
 class WidgetGUIEvent;
 namespace dom {
 class HTMLInputElement;
-}
-}
+} 
+} 
 
 
 

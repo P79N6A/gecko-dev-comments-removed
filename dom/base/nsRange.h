@@ -28,8 +28,8 @@ namespace dom {
 class DocumentFragment;
 class DOMRect;
 class DOMRectList;
-}
-}
+} 
+} 
 
 class nsRange final : public nsIDOMRange,
                       public nsStubMutationObserver,

@@ -22,8 +22,8 @@ class nsSMILValue;
 namespace mozilla {
 namespace dom {
 class SVGAnimationElement;
-}
-}
+} 
+} 
 
 struct nsSVGViewBoxRect
 {

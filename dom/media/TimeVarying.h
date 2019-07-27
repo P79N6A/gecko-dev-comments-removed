@@ -232,6 +232,6 @@ private:
   T mCurrent;
 };
 
-}
+} 
 
 #endif 

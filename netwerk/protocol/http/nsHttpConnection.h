@@ -349,6 +349,7 @@ private:
     nsCOMPtr<nsITimer>              mTCPKeepaliveTransitionTimer;
 };
 
-}} 
+} 
+} 
 
 #endif

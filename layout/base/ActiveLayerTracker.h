@@ -101,6 +101,6 @@ public:
   static bool IsContentActive(nsIFrame* aFrame);
 };
 
-}
+} 
 
 #endif 

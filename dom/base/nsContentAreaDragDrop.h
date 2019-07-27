@@ -23,8 +23,8 @@ class nsIFile;
 namespace mozilla {
 namespace dom {
 class DataTransfer;
-}
-}
+} 
+} 
 
 
 

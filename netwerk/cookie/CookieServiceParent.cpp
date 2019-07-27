@@ -146,6 +146,6 @@ CookieServiceParent::CloneProtocol(Channel* aChannel,
   return actor.forget();
 }
 
-}
-}
+} 
+} 
 

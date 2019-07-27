@@ -15,7 +15,8 @@
 
 namespace mozilla { namespace dom {
 class TabChild;
-}}
+} 
+} 
 
 #if defined(DEBUG)
 # define NECKO_ERRORS_ARE_FATAL_DEFAULT true
@@ -103,7 +104,7 @@ IsNeckoChild()
 namespace NeckoCommonInternal {
   extern bool gSecurityDisabled;
   extern bool gRegisteredBool;
-}
+} 
 
 
 inline bool

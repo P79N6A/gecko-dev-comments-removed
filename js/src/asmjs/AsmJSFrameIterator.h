@@ -123,7 +123,7 @@ namespace AsmJSExit
         MOZ_ASSERT(ExtractReasonKind(reason) == Reason_Builtin);
         return BuiltinKind(uint16_t(reason >> 16));
     }
-}
+} 
 
 
 

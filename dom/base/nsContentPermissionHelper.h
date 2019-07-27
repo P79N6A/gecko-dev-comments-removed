@@ -30,7 +30,7 @@ class nsContentPermissionRequestProxy;
 
 namespace IPC {
 class Principal;
-}
+} 
 
 class VisibilityChangeListener final : public nsIDOMEventListener
 {

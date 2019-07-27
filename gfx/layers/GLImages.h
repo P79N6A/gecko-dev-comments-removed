@@ -16,7 +16,7 @@
 namespace mozilla {
 namespace gl {
 class AndroidSurfaceTexture;
-}
+} 
 namespace layers {
 
 class GLImage : public Image {

@@ -576,7 +576,7 @@ private:
   ClientTiledLayerBuffer mLowPrecisionTiledBuffer;
 };
 
-}
-}
+} 
+} 
 
 #endif

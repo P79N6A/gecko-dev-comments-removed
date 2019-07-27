@@ -17,8 +17,8 @@
 namespace mozilla {
 namespace gfx {
 class DrawTarget;
-}
-}
+} 
+} 
 
 class gfxContext;
 class gfxPattern;

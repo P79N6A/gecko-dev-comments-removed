@@ -161,7 +161,7 @@ protected:
   virtual ~GeckoContentController() {}
 };
 
-}
-}
+} 
+} 
 
 #endif 

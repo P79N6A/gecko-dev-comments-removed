@@ -93,6 +93,7 @@ void DTraceExitJSFun(JSContext* cx, JSFunction* fun, JSScript* script);
 
 } 
 
+
 #ifdef INCLUDE_MOZILLA_DTRACE
 static const char* ObjectClassname(JSObject* obj) {
     if (!obj)

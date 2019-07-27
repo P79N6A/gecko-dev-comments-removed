@@ -246,6 +246,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsAHttpConnection, NS_AHTTPCONNECTION_IID)
             (fwdObject)->SetSecurityCallbacks(aCallbacks);  \
     }
 
-}} 
+} 
+} 
 
 #endif 

@@ -12,8 +12,8 @@ namespace mozilla {
 
   namespace layers {
     class GraphicBufferLocked;
-  }
-}
+  } 
+} 
 
 
 

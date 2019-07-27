@@ -64,7 +64,7 @@ private:
   cairo_surface_t* mImageSurface;
 };
 
-}
-}
+} 
+} 
 
 #endif 

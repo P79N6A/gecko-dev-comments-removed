@@ -15,7 +15,7 @@ namespace mozilla {
 
 namespace dom {
 class SVGSVGElement;
-}
+} 
 
 
 

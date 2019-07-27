@@ -52,8 +52,8 @@ public:
   virtual mozilla::TimeStamp GetTransactionStart() = 0;
 };
 
-}
-}
+} 
+} 
 
 
 #endif 

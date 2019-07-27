@@ -21,8 +21,8 @@ namespace dom {
 class Element;
 class EventTarget;
 struct IgnoreModifierState;
-}
-}
+} 
+} 
 
 class nsXBLWindowKeyHandler : public nsIDOMEventListener
 {

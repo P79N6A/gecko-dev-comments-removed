@@ -74,7 +74,7 @@ private:
     nsCOMPtr<nsIURI> mDocumentURI;
 };
 
-}
-}
+} 
+} 
 
 #endif

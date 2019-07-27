@@ -28,8 +28,8 @@ namespace dom {
 class SVGAnimatedLength;
 class SVGAnimationElement;
 class SVGSVGElement;
-}
-}
+} 
+} 
 
 namespace mozilla {
 namespace dom {
@@ -81,8 +81,8 @@ private:
   nsIFrame* mFrame;
 };
 
-}
-}
+} 
+} 
 
 class nsSVGLength2
 {

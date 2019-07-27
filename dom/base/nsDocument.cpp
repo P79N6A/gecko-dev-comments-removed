@@ -591,6 +591,7 @@ struct PositionComparator
     return 1;
   }
 };
+
 } 
 
 bool
@@ -9635,7 +9636,7 @@ struct SuppressArgs
   uint32_t mIncrease;
 };
 
-}
+} 
 
 static bool
 SuppressEventHandlingInDocument(nsIDocument* aDocument, void* aData)
@@ -9912,7 +9913,7 @@ public:
 };
 NS_IMPL_ISUPPORTS(StubCSSLoaderObserver, nsICSSLoaderObserver)
 
-}
+} 
 
 void
 nsDocument::PreloadStyle(nsIURI* uri, const nsAString& charset,
@@ -9969,7 +9970,7 @@ struct UnsuppressArgs
   nsTArray<nsCOMPtr<nsIDocument>> mDocs;
 };
 
-}
+} 
 
 static bool
 GetAndUnsuppressSubDocuments(nsIDocument* aDocument,

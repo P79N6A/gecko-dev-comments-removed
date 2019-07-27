@@ -22,8 +22,8 @@ class nsString;
 namespace mozilla {
 namespace dom {
 class Element;
-}  
-}  
+} 
+} 
 
 class nsHTMLEditor;
 

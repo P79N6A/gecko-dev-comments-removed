@@ -24,11 +24,11 @@ class nsIPresShell;
 namespace mozilla {
 namespace layers {
 struct PlanarYCbCrData;
-}
+} 
 namespace image {
 class ImageRegion;
-}
-}
+} 
+} 
 
 class gfxUtils {
 public:

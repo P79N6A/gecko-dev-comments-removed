@@ -311,7 +311,7 @@ private:
   cairo_matrix_t mSaveMatrix;
 };
 
-}
-}
+} 
+} 
 
 #endif 

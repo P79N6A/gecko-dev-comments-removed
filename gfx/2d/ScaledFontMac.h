@@ -47,7 +47,7 @@ public:
   static CTFontDrawGlyphsFuncT* CTFontDrawGlyphsPtr;
 };
 
-}
-}
+} 
+} 
 
 #endif 

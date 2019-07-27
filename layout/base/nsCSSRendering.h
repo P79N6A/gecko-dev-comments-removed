@@ -26,11 +26,11 @@ namespace mozilla {
 
 namespace gfx {
 class DrawTarget;
-}
+} 
 
 namespace layers {
 class ImageContainer;
-}
+} 
 
 
 
@@ -98,7 +98,7 @@ struct CSSSizeOrRatio
   bool mHasHeight;
 };
 
-}
+} 
 
 
 

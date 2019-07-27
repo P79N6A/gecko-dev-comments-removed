@@ -13,7 +13,7 @@ namespace mozilla {
 
 namespace ipc {
 class BackgroundChildImpl;
-}
+} 
 
 namespace dom {
 

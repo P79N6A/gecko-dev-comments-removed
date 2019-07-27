@@ -117,7 +117,7 @@ public:
 
 namespace detail {
 extern MFBT_DATA const char gTwoCharEscapes[256];
-}
+} 
 
 class JSONWriter
 {

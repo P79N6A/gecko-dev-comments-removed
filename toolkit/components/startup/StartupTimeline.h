@@ -93,7 +93,7 @@ private:
   static NS_EXTERNAL_VIS_(const char *) sStartupTimelineDesc[MAX_EVENT_ID];
 };
 
-}
+} 
 
 #endif
 

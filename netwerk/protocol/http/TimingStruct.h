@@ -26,6 +26,7 @@ struct ResourceTimingStruct : TimingStruct {
   TimeStamp redirectEnd;
 };
 
-}} 
+} 
+} 
 
 #endif

@@ -212,8 +212,8 @@ private:
   bool mMayContainInvalidPremultipliedData;
 };
 
-}
-}
+} 
+} 
 
 #endif
 

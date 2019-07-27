@@ -29,7 +29,7 @@
 
 namespace WebCore {
   class PeriodicWave;
-};
+} 
 
 class nsPIDOMWindow;
 
@@ -379,8 +379,8 @@ private:
 
 static const dom::AudioContext::AudioContextId NO_AUDIO_CONTEXT = 0;
 
-}
-}
+} 
+} 
 
 #endif
 

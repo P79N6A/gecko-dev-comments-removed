@@ -29,6 +29,7 @@ public:
   StreamingProtocolControllerService() {};
   static already_AddRefed<StreamingProtocolControllerService> GetInstance();
 };
+
 } 
 } 
 

@@ -162,5 +162,5 @@ CanvasLayerComposite::PrintInfo(std::stringstream& aStream, const char* aPrefix)
   }
 }
 
-}
-}
+} 
+} 

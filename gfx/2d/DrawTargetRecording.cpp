@@ -588,5 +588,5 @@ DrawTargetRecording::EnsureStored(const Path *aPath)
   }
 }
 
-}
-}
+} 
+} 

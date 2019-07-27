@@ -13,7 +13,7 @@
 
 namespace mozilla {
 class FileLocation;
-}
+} 
 
 class nsNativeModuleLoader final
 {

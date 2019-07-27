@@ -87,6 +87,7 @@ private:
   Atomic<int> mEntry;
   nsCString mContentType;
 };
-}
+
+} 
 
 #endif

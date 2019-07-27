@@ -15,7 +15,7 @@ class MediaSystemResourceManager;
 
 namespace ipc {
 class BackgroundChildImpl;
-}
+} 
 
 namespace media {
 

@@ -145,13 +145,13 @@ namespace ubi {
 class Edge;
 class EdgeRange;
 
-}
-}
+} 
+} 
 
 namespace mozilla {
 template<>
 class DefaultDelete<JS::ubi::EdgeRange> : public JS::DeletePolicy<JS::ubi::EdgeRange> { };
-}
+} 
 
 namespace JS {
 namespace ubi {

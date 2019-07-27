@@ -217,7 +217,7 @@ public:
   ScopedSetPtr(T*& p, T* val) : mPtr(p) { mPtr = val; }
   ~ScopedSetPtr() { mPtr = nullptr; }
 };
-}
+} 
 
 void
 ThreadStackHelper::GetStack(Stack& aStack)

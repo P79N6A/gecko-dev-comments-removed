@@ -15,7 +15,7 @@ namespace mozilla {
 
 namespace dom {
 class Blob;
-}
+} 
 
 enum {
   kVideoTrack = 1,
@@ -256,6 +256,6 @@ protected:
 
 };
 
-}
+} 
 
 #endif 

@@ -117,6 +117,6 @@ private:
     wp<CodecResourceListener> mListener;
 };
 
-}  
+} 
 
 #endif

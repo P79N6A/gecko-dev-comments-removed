@@ -198,7 +198,7 @@ protected:
                                       PVOID aBuffer);  
 };
 
-}  
-}  
+} 
+} 
 
 #endif 

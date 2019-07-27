@@ -27,6 +27,6 @@ FindFrameTargetedByInputEvent(WidgetGUIEvent* aEvent,
                               const nsPoint& aPointRelativeToRootFrame,
                               uint32_t aFlags = 0);
 
-}
+} 
 
 #endif 

@@ -358,6 +358,6 @@ PathCG::GetStrokedBounds(const StrokeOptions &aStrokeOptions,
 }
 
 
-}
+} 
 
-}
+} 

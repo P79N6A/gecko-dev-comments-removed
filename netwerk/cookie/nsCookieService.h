@@ -47,8 +47,8 @@ struct nsListIter;
 namespace mozilla {
 namespace net {
 class CookieServiceParent;
-}
-}
+} 
+} 
 
 
 class nsCookieKey : public PLDHashEntryHdr

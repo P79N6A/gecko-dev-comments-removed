@@ -164,7 +164,7 @@ public:
     static void NotifyFlushComplete();
 };
 
-}
-}
+} 
+} 
 
 #endif 

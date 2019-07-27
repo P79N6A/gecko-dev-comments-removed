@@ -35,7 +35,7 @@ template <class T> class MediaQueue;
 
 namespace layers {
 class Image;
-}
+} 
 
 
 

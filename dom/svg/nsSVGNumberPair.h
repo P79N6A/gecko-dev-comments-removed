@@ -23,8 +23,8 @@ class nsSMILValue;
 namespace mozilla {
 namespace dom {
 class SVGAnimationElement;
-}
-}
+} 
+} 
 
 class nsSVGNumberPair
 {

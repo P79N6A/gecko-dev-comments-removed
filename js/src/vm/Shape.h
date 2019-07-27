@@ -1394,7 +1394,7 @@ namespace JS {
 namespace ubi {
 template<> struct Concrete<js::Shape> : TracerConcreteWithCompartment<js::Shape> { };
 template<> struct Concrete<js::BaseShape> : TracerConcreteWithCompartment<js::BaseShape> { };
-}
-}
+} 
+} 
 
 #endif 

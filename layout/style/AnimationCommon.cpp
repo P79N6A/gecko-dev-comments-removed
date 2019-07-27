@@ -972,4 +972,4 @@ AnimationCollection::HasCurrentAnimationsForProperties(
   return false;
 }
 
-}
+} 

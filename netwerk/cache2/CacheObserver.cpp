@@ -391,7 +391,7 @@ void CacheObserver::ParentDirOverride(nsIFile** aDir)
   sSelf->mCacheParentDirectoryOverride->Clone(aDir);
 }
 
-namespace { 
+namespace {
 
 class CacheStorageEvictHelper
 {

@@ -13,7 +13,7 @@ class nsIDOMNode;
 
 namespace mozilla {
 class EventStateManager;
-}
+} 
 
 class inLayoutUtils
 {

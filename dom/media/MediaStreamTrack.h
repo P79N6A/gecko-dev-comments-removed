@@ -67,7 +67,7 @@ protected:
   bool mEnabled;
 };
 
-}
-}
+} 
+} 
 
 #endif 

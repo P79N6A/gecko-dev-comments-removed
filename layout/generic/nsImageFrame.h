@@ -38,8 +38,8 @@ namespace layers {
   class ImageContainer;
   class ImageLayer;
   class LayerManager;
-}
-}
+} 
+} 
 
 class nsImageListener : public imgINotificationObserver
 {

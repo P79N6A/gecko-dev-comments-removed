@@ -12,11 +12,11 @@ namespace mozilla {
 
 namespace dom {
   class BlobImpl;
-}
+} 
 
 namespace layers {
   class Image;
-}
+} 
 
 class CameraControlListener
 {

@@ -26,6 +26,7 @@ private:
 	virtual ~nsHttpBasicAuth();
 };
 
-}} 
+} 
+} 
 
 #endif 

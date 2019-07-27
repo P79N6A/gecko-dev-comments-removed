@@ -89,8 +89,8 @@ private:
   nsRefPtr<AudioParam> mRelease;
 };
 
-}
-}
+} 
+} 
 
 #endif
 

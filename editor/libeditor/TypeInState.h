@@ -19,8 +19,8 @@ class nsIDOMNode;
 namespace mozilla {
 namespace dom {
 class Selection;
-}
-}
+} 
+} 
 
 struct PropItem
 {

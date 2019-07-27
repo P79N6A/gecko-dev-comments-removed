@@ -970,4 +970,5 @@ NeckoParent::OfflineNotification(nsISupports *aSubject)
   return NS_OK;
 }
 
-}} 
+} 
+} 

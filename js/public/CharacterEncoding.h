@@ -14,7 +14,7 @@
 
 namespace js {
 class ExclusiveContext;
-}
+} 
 
 class JSFlatString;
 

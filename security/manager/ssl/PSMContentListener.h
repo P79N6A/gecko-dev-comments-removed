@@ -21,8 +21,8 @@ namespace net {
 
 class PChannelDiverterParent;
 
-}
-}
+} 
+} 
 
 namespace mozilla { namespace psm {
 

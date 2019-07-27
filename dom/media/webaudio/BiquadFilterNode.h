@@ -81,8 +81,8 @@ private:
   nsRefPtr<AudioParam> mGain;
 };
 
-}
-}
+} 
+} 
 
 #endif
 

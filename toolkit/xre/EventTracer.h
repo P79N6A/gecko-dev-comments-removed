@@ -18,6 +18,6 @@ bool InitEventTracing(bool aLog);
 
 void ShutdownEventTracing();
 
-}  
+} 
 
 #endif 

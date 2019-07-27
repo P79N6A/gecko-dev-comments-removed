@@ -24,7 +24,7 @@ private:
   ~Module();
 };
 
-}
-}
+} 
+} 
 
 #endif

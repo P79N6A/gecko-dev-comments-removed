@@ -53,8 +53,8 @@ class TextTrack;
 class TimeRanges;
 class WakeLock;
 class MediaTrack;
-}
-}
+} 
+} 
 
 class nsITimer;
 class nsRange;

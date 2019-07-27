@@ -28,7 +28,7 @@ namespace mozilla {
 
 namespace dom {
 class Selection;
-}
+} 
 
 
 
@@ -273,6 +273,7 @@ private:
   
   uint32_t mActionBarViewID;
 };
+
 } 
 
 #endif

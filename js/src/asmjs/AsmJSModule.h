@@ -1631,6 +1631,6 @@ class AsmJSModuleObject : public NativeObject
     static const Class class_;
 };
 
-}  
+} 
 
 #endif 

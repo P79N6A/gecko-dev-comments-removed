@@ -131,7 +131,7 @@ protected:
                                                            gfx::IntSize& pbsize);
 };
 
-}
-}
+} 
+} 
 
 #endif 

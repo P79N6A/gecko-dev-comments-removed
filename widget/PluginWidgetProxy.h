@@ -18,7 +18,7 @@
 namespace mozilla {
 namespace plugins {
 class PluginWidgetChild;
-}
+} 
 namespace widget {
 
 class PluginWidgetProxy final : public PuppetWidget
@@ -69,6 +69,7 @@ private:
   uintptr_t mCachedPluginPort;
 };
 
-}  
-}  
+} 
+} 
+
 #endif

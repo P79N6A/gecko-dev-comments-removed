@@ -17,7 +17,7 @@ namespace mozilla {
 
 namespace ipc {
 class BackgroundParentImpl;
-}
+} 
 
 namespace layout {
 

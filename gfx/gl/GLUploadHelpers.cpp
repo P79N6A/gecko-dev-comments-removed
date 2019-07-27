@@ -582,5 +582,5 @@ CanUploadNonPowerOfTwo(GLContext* gl)
            gl->Renderer() != GLRenderer::Adreno205;
 }
 
-}
-}
+} 
+} 

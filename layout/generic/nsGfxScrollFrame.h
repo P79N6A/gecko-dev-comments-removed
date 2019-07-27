@@ -34,11 +34,11 @@ struct ScrollReflowState;
 namespace mozilla {
 namespace layers {
 class Layer;
-}
+} 
 namespace layout {
 class ScrollbarActivity;
-}
-}
+} 
+} 
 
 namespace mozilla {
 
@@ -559,7 +559,7 @@ protected:
   static int32_t sVertScrollFraction;
 };
 
-}
+} 
 
 
 

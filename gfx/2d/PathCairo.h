@@ -88,7 +88,7 @@ private:
   Point mCurrentPoint;
 };
 
-}
-}
+} 
+} 
 
 #endif 

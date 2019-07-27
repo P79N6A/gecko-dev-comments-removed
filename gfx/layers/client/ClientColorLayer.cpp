@@ -76,5 +76,5 @@ ClientLayerManager::CreateColorLayer()
   return layer.forget();
 }
 
-}
-}
+} 
+} 

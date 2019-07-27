@@ -17,7 +17,7 @@
 
 namespace js {
     struct PerformanceGroup;
-}
+} 
 
 struct JSPrincipals {
     

@@ -13,8 +13,8 @@
 namespace mozilla {
 namespace css {
 class ErrorReporter;
-}
-}
+} 
+} 
 
 
 

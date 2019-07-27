@@ -21,7 +21,7 @@ class ImageContainer;
 
 namespace layerscope {
 class LayersPacket;
-}
+} 
 
 
 
@@ -102,7 +102,7 @@ protected:
   gfx::Matrix4x4 mEffectiveTransformForBuffer;
 };
 
-}
-}
+} 
+} 
 
 #endif 

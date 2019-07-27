@@ -87,6 +87,6 @@ protected:
   nsSMILKeySpline mTimingFunctionY;
 };
 
-}
+} 
 
 #endif 

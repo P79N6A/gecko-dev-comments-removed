@@ -49,8 +49,8 @@ class nsIWidget;
 namespace mozilla {
 namespace gfx {
 class SourceSurface;
-}
-}
+} 
+} 
 
 
 class nsAutoRetainCocoaObject {

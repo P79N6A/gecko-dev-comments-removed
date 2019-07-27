@@ -60,8 +60,8 @@ protected:
   bool mThirdPartySession;
 };
 
-}
-}
+} 
+} 
 
 #endif 
 

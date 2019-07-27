@@ -27,10 +27,10 @@ class NativeObject;
 class ObjectGroup;
 namespace gc {
 struct ArenaHeader;
-}
+} 
 namespace jit {
 class JitCode;
-}
+} 
 
 static const size_t NON_INCREMENTAL_MARK_STACK_BASE_CAPACITY = 4096;
 static const size_t INCREMENTAL_MARK_STACK_BASE_CAPACITY = 32768;

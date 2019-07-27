@@ -259,6 +259,6 @@ protected:
   DebugOnly<bool> mExtraClipUsed;
 };
 
-}
+} 
 
 #endif 

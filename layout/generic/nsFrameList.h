@@ -45,8 +45,8 @@ namespace layout {
       
       kNoReflowPrincipalList        = 0x4000
   };
-}
-}
+} 
+} 
 
 
 
@@ -559,9 +559,10 @@ union AlignedFrameListBytes {
   char bytes[sizeof(nsFrameList)];
 };
 extern const AlignedFrameListBytes gEmptyFrameListBytes;
-}
-}
-}
+} 
+
+} 
+} 
 
  inline const nsFrameList&
 nsFrameList::EmptyList()

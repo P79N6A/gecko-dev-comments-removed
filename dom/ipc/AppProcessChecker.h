@@ -17,11 +17,11 @@ namespace dom {
 class TabContext;
 class PBrowserParent;
 class PContentParent;
-}
+} 
 
 namespace hal_sandbox {
 class PHalParent;
-}
+} 
 
 enum AssertAppProcessType {
   ASSERT_APP_PROCESS_PERMISSION,

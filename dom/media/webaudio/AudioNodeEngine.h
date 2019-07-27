@@ -17,7 +17,7 @@ namespace dom {
 struct ThreeDPoint;
 class AudioParamTimeline;
 class DelayNodeEngine;
-}
+} 
 
 class AudioNodeStream;
 
@@ -402,6 +402,6 @@ private:
   const uint16_t mOutputCount;
 };
 
-}
+} 
 
 #endif 

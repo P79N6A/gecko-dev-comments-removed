@@ -19,7 +19,7 @@ class nsPresContext;
 struct nsRect;
 namespace mozilla {
 class RuleNodeCacheConditions;
-}
+} 
 
 
 

@@ -93,12 +93,12 @@ class EventStates;
 
 namespace layers {
 class Layer;
-}
+} 
 
 namespace gfx {
 class Matrix;
-}
-}
+} 
+} 
 
 
 
@@ -364,7 +364,8 @@ struct IntrinsicSize {
     return !(*this == rhs);
   }
 };
-}
+
+} 
 
 
 template<typename T>

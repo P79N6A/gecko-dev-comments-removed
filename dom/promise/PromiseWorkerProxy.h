@@ -22,7 +22,7 @@ class Promise;
 
 namespace workers {
 class WorkerPrivate;
-}
+} 
 
 
 

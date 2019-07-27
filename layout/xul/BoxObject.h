@@ -85,7 +85,7 @@ protected:
   nsIContent* mContent; 
 };
 
-}
-}
+} 
+} 
 
 #endif

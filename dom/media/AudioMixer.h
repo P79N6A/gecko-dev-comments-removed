@@ -145,6 +145,7 @@ private:
   
   nsTArray<AudioDataValue> mMixedAudio;
 };
-}
+
+} 
 
 #endif 

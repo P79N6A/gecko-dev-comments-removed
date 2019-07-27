@@ -546,7 +546,7 @@ private:
   bool operator!=(const Sub& aRect) const { return false; }
 };
 
-}
-}
+} 
+} 
 
 #endif 

@@ -73,7 +73,7 @@ private:
   nsRefPtr<DOMMediaStream> mInputStream;
 };
 
-}
-}
+} 
+} 
 
 #endif

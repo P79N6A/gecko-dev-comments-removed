@@ -160,6 +160,6 @@ private:
   uint32_t mPosition;
 };
 
-}
+} 
 
 #endif 

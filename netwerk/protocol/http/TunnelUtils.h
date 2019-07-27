@@ -239,6 +239,7 @@ private:
   nsRefPtr<nsHttpTransaction>    mDrivingTransaction;
 };
 
-}} 
+} 
+} 
 
 #endif 

@@ -99,7 +99,8 @@ protected:
     return static_cast<BasicLayerManager*>(mManager);
   }
 };
-}
-}
+
+} 
+} 
 
 #endif

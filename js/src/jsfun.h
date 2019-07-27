@@ -19,7 +19,7 @@ namespace js {
 class FunctionExtended;
 
 typedef JSNative           Native;
-}
+} 
 
 struct JSAtomState;
 

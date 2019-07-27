@@ -472,9 +472,9 @@ GetJSContext(NPP npp)
   return scx->GetNativeContext();
 }
 
-}
-}
-}
+} 
+} 
+} 
 
 static NPP
 LookupNPP(NPObject *npobj);

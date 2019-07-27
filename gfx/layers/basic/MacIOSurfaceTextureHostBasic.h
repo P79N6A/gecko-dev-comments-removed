@@ -87,7 +87,7 @@ protected:
   RefPtr<MacIOSurface> mSurface;
 };
 
-}
-}
+} 
+} 
 
 #endif 

@@ -13,7 +13,7 @@ class VideoFrameContainer;
 
 namespace dom {
 class HTMLMediaElement;
-}
+} 
 
 class MediaDecoderOwner
 {
@@ -139,7 +139,7 @@ public:
 #endif 
 };
 
-}
+} 
 
 #endif
 

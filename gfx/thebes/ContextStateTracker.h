@@ -14,7 +14,7 @@
 namespace mozilla {
 namespace gl {
 class GLContext;
-}
+} 
 
 
 
@@ -78,6 +78,7 @@ private:
   void Flush(GLContext* aGL);
 };
 
-}
+} 
+
 #endif
 

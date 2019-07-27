@@ -102,7 +102,7 @@ DataAtOffset(DataSourceSurface* aSurface,
 bool
 SurfaceContainsPoint(SourceSurface* aSurface, const IntPoint& aPoint);
 
-}
-}
+} 
+} 
 
 #endif 

@@ -71,7 +71,7 @@ void DecomposeIntoNoRepeatTriangles(const gfx::IntRect& aTexCoordRect,
                                     RectTriangles& aRects,
                                     bool aFlipY = false);
 
-}
-}
+} 
+} 
 
 #endif 

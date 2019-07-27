@@ -120,7 +120,7 @@ struct BasePoint4D {
   bool HasPositiveWCoord() { return w > 0; }
 };
 
-}
-}
+} 
+} 
 
 #endif 

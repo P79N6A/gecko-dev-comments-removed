@@ -41,7 +41,7 @@ public:
     void EmptyGarbage();
 };
 
-}
-}
+} 
+} 
 
 #endif 

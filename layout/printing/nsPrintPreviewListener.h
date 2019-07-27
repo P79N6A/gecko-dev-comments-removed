@@ -16,8 +16,8 @@
 namespace mozilla {
 namespace dom {
 class EventTarget;
-}
-}
+} 
+} 
 
 
 

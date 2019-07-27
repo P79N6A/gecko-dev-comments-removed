@@ -145,7 +145,7 @@ private:
   SourceSurfaceSkia* mSnapshot;
 };
 
-}
-}
+} 
+} 
 
 #endif 

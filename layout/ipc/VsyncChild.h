@@ -16,7 +16,7 @@ class VsyncObserver;
 
 namespace ipc {
 class BackgroundChildImpl;
-}
+} 
 
 namespace layout {
 

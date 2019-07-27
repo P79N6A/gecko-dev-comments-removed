@@ -40,8 +40,8 @@ class nsIScrollableFrame;
 namespace mozilla {
 namespace gfx {
 class DrawTarget;
-}
-}
+} 
+} 
 
 class nsComboboxControlFrame final : public nsBlockFrame,
                                      public nsIFormControlFrame,

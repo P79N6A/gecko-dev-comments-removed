@@ -27,13 +27,13 @@ class nsIURI;
 
 namespace JS {
   class SourceBufferHolder;
-}
+} 
 
 namespace mozilla {
 namespace dom {
 class AutoJSAPI;
-}
-}
+} 
+} 
 
 
 

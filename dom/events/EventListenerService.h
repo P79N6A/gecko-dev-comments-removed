@@ -22,7 +22,7 @@ class nsIMutableArray;
 namespace mozilla {
 namespace dom {
 class EventTarget;
-};
+} 
 
 template<typename T>
 class Maybe;

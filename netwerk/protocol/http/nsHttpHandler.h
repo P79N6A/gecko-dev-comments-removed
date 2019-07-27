@@ -604,6 +604,7 @@ public:
     nsresult Init();
 };
 
-}} 
+} 
+} 
 
 #endif 

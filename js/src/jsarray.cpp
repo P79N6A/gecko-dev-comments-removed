@@ -1638,6 +1638,7 @@ enum ComparatorMatchResult {
 
 
 
+
 static ComparatorMatchResult
 MatchNumericComparator(JSContext* cx, const Value& v)
 {

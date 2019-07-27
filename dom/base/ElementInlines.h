@@ -25,7 +25,7 @@ Element::UnregisterActivityObserver()
   OwnerDoc()->UnregisterActivityObserver(this);
 }
 
-}
-}
+} 
+} 
 
 #endif 

@@ -65,8 +65,8 @@ NS_GFX_(bool) IsScaleYCbCrToRGB565Fast(int source_x0,
                                        ScaleFilter filter);
 #endif 
 
-}  
+} 
 
-}  
+} 
 
 #endif 

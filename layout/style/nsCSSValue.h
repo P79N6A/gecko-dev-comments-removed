@@ -236,8 +236,8 @@ private:
     }
 };
 
-}
-}
+} 
+} 
 
 enum nsCSSUnit {
   eCSSUnit_Null         = 0,      

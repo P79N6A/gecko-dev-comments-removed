@@ -252,7 +252,7 @@ extern "C" MFBT_API bool IsSignalHandlingBroken();
 
 namespace mozilla {
 int (*RunGTest)() = 0;
-}
+} 
 
 using namespace mozilla;
 using mozilla::unused;
@@ -3579,7 +3579,7 @@ static void PR_CALLBACK AnnotateSystemManufacturer_ThreadStart(void*)
 
 namespace mozilla {
   ShutdownChecksMode gShutdownChecks = SCM_NOTHING;
-}
+} 
 
 static void SetShutdownChecks() {
   

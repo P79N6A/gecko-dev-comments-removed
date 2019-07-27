@@ -32,8 +32,8 @@ class nsTreeImageListener;
 namespace mozilla {
 namespace layout {
 class ScrollbarActivity;
-}
-}
+} 
+} 
 
 
 struct nsTreeImageCacheEntry

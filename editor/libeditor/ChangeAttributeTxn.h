@@ -63,7 +63,7 @@ private:
   nsString mUndoValue;
 };
 
-}
-}
+} 
+} 
 
 #endif

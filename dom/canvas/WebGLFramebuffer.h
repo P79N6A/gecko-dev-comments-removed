@@ -18,7 +18,7 @@ class WebGLTexture;
 
 namespace gl {
     class GLContext;
-}
+} 
 
 class WebGLFramebuffer final
     : public nsWrapperCache

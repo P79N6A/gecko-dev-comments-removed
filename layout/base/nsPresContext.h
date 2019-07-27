@@ -70,8 +70,8 @@ class CounterStyleManager;
 namespace layers {
 class ContainerLayer;
 class LayerManager;
-}
-}
+} 
+} 
 
 
 enum nsPresContext_CachedBoolPrefType {

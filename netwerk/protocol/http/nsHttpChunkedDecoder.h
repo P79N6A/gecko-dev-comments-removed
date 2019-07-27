@@ -50,6 +50,7 @@ private:
     bool               mWaitEOF;
 };
 
-}} 
+} 
+} 
 
 #endif

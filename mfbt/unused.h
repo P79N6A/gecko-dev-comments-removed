@@ -27,6 +27,6 @@ operator<<(const unused_t& , const T& )
 {
 }
 
-}
+} 
 
 #endif 

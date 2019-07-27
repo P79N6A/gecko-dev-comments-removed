@@ -565,7 +565,7 @@ namespace {
   const uint32_t NOT_VISITED = UINT32_MAX;
   
   const uint32_t IN_MUTED_CYCLE = 1;
-}
+} 
 
 void
 MediaStreamGraphImpl::UpdateStreamOrder()
@@ -1671,7 +1671,7 @@ public:
   NS_DECL_NSIOBSERVER
 };
 
-}
+} 
 
 void
 MediaStreamGraphImpl::RunInStableState(bool aSourceIsMSG)
@@ -3535,4 +3535,4 @@ ProcessedMediaStream::AddInput(MediaInputPort* aPort)
   GraphImpl()->SetStreamOrderDirty();
 }
 
-}
+} 

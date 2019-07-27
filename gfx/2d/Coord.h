@@ -136,7 +136,7 @@ struct CoordTyped :
   }
 };
 
-}
-}
+} 
+} 
 
 #endif 

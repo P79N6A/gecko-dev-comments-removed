@@ -1014,7 +1014,7 @@ namespace {
 
     return max;
   }
-}
+} 
 
 nsRect nsRegion::GetLargestRectangle (const nsRect& aContainingRect) const {
   nsRect bestRect;

@@ -680,6 +680,7 @@ private:
   nsCOMPtr<nsIThread> mIOThread;
   nsCOMPtr<nsIFile> mDBFile;
 };
+
 } 
 
 void

@@ -172,7 +172,7 @@ class MOZ_STACK_CLASS AutoEventEnqueuer
   nsRefPtr<ChannelEventQueue> mEventQueue;
 };
 
-}
-}
+} 
+} 
 
 #endif

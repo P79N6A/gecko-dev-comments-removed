@@ -180,6 +180,6 @@ private:
   const nsString mFilename;
 };
 
-}; 
+} 
 
 #endif 

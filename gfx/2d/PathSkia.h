@@ -86,7 +86,7 @@ private:
   FillRule mFillRule;
 };
 
-}
-}
+} 
+} 
 
 #endif 

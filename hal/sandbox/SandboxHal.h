@@ -17,7 +17,7 @@ PHalChild* CreateHalChild();
 
 PHalParent* CreateHalParent();
 
-}
-}
+} 
+} 
 
 #endif  

@@ -35,8 +35,8 @@ class nsIURI;
 namespace mozilla {
 namespace dom {
 class Element;
-}
-}
+} 
+} 
 
 
 

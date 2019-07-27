@@ -207,7 +207,7 @@ public:
   IntRect mRect;
 };
 
-}
-}
+} 
+} 
 
 #endif

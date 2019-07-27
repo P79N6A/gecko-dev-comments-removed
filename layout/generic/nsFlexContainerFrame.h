@@ -15,7 +15,7 @@
 namespace mozilla {
 template <class T> class LinkedList;
 class LogicalPoint;
-}
+} 
 
 nsContainerFrame* NS_NewFlexContainerFrame(nsIPresShell* aPresShell,
                                            nsStyleContext* aContext);

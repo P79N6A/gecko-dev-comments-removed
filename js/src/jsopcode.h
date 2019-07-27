@@ -922,6 +922,6 @@ DumpIonScriptCounts(js::Sprinter* sp, jit::IonScriptCounts* ionCounts);
 
 void
 DumpCompartmentPCCounts(JSContext* cx);
-}
+} 
 
 #endif

@@ -535,5 +535,5 @@ FlattenBezier(const BezierControlPoints &aControlPoints,
   }
 }
 
-}
-}
+} 
+} 

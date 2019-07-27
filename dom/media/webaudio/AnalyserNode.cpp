@@ -346,6 +346,6 @@ AnalyserNode::AppendChunk(const AudioChunk& aChunk)
   }
 }
 
-}
-}
+} 
+} 
 

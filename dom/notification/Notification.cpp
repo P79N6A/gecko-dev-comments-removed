@@ -1663,6 +1663,7 @@ Notification::UnregisterFeature()
                                 mFeature.get());
   mFeature = nullptr;
 }
+
 } 
 } 
 

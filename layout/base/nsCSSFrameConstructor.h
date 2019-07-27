@@ -45,8 +45,8 @@ namespace dom {
 
 class FlattenedChildIterator;
 
-}
-}
+} 
+} 
 
 class nsCSSFrameConstructor : public nsFrameManager
 {

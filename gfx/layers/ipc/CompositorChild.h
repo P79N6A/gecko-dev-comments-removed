@@ -24,7 +24,7 @@ namespace mozilla {
 
 namespace dom {
   class TabChild;
-}
+} 
 
 namespace layers {
 

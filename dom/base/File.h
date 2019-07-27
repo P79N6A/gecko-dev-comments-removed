@@ -42,7 +42,7 @@ namespace dom {
 
 namespace indexedDB {
 class FileInfo;
-};
+} 
 
 struct BlobPropertyBag;
 struct ChromeFilePropertyBag;

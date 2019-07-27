@@ -83,6 +83,6 @@ class WatchpointMap {
     Map map;
 };
 
-}
+} 
 
 #endif 

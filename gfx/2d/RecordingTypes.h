@@ -35,7 +35,7 @@ void ReadElement(std::istream &aStream, T &aElement)
   ElementStreamFormat<T>::Read(aStream, aElement);
 }
 
-}
-}
+} 
+} 
 
 #endif 

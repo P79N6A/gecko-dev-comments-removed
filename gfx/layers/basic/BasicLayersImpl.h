@@ -20,7 +20,7 @@
 namespace mozilla {
 namespace gfx {
 class DrawTarget;
-}
+} 
 
 namespace layers {
 
@@ -143,7 +143,7 @@ ToData(Layer* aLayer);
 gfx::CompositionOp
 GetEffectiveOperator(Layer* aLayer);
 
-}
-}
+} 
+} 
 
 #endif

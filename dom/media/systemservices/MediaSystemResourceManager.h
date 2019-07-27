@@ -20,7 +20,7 @@ namespace mozilla {
 
 namespace media {
 class MediaSystemResourceManagerChild;
-}
+} 
 
 class MediaSystemResourceClient;
 class MediaSystemResourceReservationListener;

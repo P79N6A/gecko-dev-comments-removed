@@ -299,4 +299,5 @@ WriteTArray(nsIOutputStream* aStream, nsTArray_Impl<T, Alloc>& aArray)
 
 } 
 } 
+
 #endif 

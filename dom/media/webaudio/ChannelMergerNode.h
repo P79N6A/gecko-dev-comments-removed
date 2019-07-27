@@ -43,8 +43,8 @@ private:
   const uint16_t mInputCount;
 };
 
-}
-}
+} 
+} 
 
 #endif
 

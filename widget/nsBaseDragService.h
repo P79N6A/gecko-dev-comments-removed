@@ -30,8 +30,8 @@ class nsIImageLoadingContent;
 namespace mozilla {
 namespace gfx {
 class SourceSurface;
-}
-}
+} 
+} 
 
 
 

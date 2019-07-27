@@ -195,7 +195,7 @@ protected:
   bool mCompositorMightResample;
 };
 
-}
-}
+} 
+} 
 
 #endif

@@ -941,6 +941,7 @@ DoGetOrCreateDOMReflector(JSContext* cx, T* value,
 
   return JS_WrapValue(cx, rval);
 }
+
 } 
 
 

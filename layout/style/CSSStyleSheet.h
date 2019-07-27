@@ -44,10 +44,10 @@ namespace css {
 class Rule;
 class GroupRule;
 class ImportRule;
-}
+} 
 namespace dom {
 class CSSRuleList;
-}
+} 
 
 
 

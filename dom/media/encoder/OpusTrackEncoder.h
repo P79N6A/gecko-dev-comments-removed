@@ -82,5 +82,6 @@ private:
   nsTArray<AudioDataValue> mResampledLeftover;
 };
 
-}
+} 
+
 #endif

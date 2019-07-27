@@ -100,15 +100,15 @@ class Element;
 class ImageData;
 struct WebGLContextAttributes;
 template<typename> struct Nullable;
-}
+} 
 
 namespace gfx {
 class SourceSurface;
-}
+} 
 
 namespace webgl {
 struct LinkedProgramInfo;
-}
+} 
 
 WebGLTexelFormat GetWebGLTexelFormat(TexInternalFormat format);
 

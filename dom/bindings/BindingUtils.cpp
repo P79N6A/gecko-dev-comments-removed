@@ -2911,5 +2911,6 @@ ForEachHandler(JSContext* aCx, unsigned aArgc, JS::Value* aVp)
   
   return JS::Call(aCx, args.thisv(), callbackFn, newArgs, &rval);
 }
+
 } 
 } 

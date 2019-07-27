@@ -32,8 +32,8 @@ struct JSRuntime;
 namespace JS {
 namespace shadow {
 struct Runtime;
-}
-}
+} 
+} 
 
 namespace js {
 

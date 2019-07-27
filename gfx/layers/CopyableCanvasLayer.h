@@ -24,7 +24,7 @@ namespace mozilla {
 
 namespace gl {
 class SharedSurface;
-}
+} 
 
 namespace layers {
 
@@ -68,7 +68,7 @@ protected:
   void DiscardTempSurface();
 };
 
-}
-}
+} 
+} 
 
 #endif

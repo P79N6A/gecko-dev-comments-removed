@@ -199,8 +199,8 @@ private:
   nsRefPtr<MediaInputPort> mNodeStreamPort;
 };
 
-}
-}
+} 
+} 
 
 #endif
 

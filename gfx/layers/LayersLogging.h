@@ -22,7 +22,7 @@ namespace mozilla {
 namespace gfx {
 class Matrix4x4;
 template <class units> struct RectTyped;
-}
+} 
 
 namespace layers {
 

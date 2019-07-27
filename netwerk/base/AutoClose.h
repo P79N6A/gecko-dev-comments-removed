@@ -70,6 +70,7 @@ private:
   nsCOMPtr<T> mPtr;
 };
 
-} } 
+} 
+} 
 
 #endif 

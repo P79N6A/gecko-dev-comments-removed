@@ -132,6 +132,7 @@ class GamepadService : public nsIObserver
   nsCOMPtr<nsITimer> mTimer;
 };
 
-}  
-}  
+} 
+} 
+
 #endif 

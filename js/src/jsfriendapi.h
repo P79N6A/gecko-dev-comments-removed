@@ -2531,8 +2531,8 @@ JSID_FROM_BITS(size_t bits)
 namespace js {
 namespace detail {
 bool IdMatchesAtom(jsid id, JSAtom* atom);
-}
-}
+} 
+} 
 
 
 

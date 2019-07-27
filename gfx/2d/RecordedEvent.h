@@ -1073,7 +1073,7 @@ private:
   MOZ_IMPLICIT RecordedFilterNodeSetInput(std::istream &aStream);
 };
 
-}
-}
+} 
+} 
 
 #endif

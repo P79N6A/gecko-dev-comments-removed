@@ -113,6 +113,7 @@ private:
     bool              mHTTPS;
 };
 
-}} 
+} 
+} 
 
 #endif 

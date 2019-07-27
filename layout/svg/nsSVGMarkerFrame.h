@@ -21,8 +21,8 @@ class nsSVGPathGeometryFrame;
 namespace mozilla {
 namespace dom {
 class SVGSVGElement;
-}
-}
+} 
+} 
 
 struct nsSVGMark;
 

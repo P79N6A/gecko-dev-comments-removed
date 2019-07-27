@@ -1251,5 +1251,5 @@ PuppetScreenManager::GetSystemDefaultScale(float *aDefaultScale)
   return NS_OK;
 }
 
-}  
-}  
+} 
+} 

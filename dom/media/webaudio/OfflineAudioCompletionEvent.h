@@ -46,8 +46,8 @@ private:
   nsRefPtr<AudioBuffer> mRenderedBuffer;
 };
 
-}
-}
+} 
+} 
 
 #endif
 

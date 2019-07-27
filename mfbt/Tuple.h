@@ -161,7 +161,7 @@ private:
   HeadT mHead;  
 };
 
-}  
+} 
 
 
 
@@ -242,7 +242,7 @@ auto TupleGetHelper(const TupleImpl<Index, Elements...>& aTuple)
   return TupleImpl<Index, Elements...>::Head(aTuple);
 }
 
-}  
+} 
 
 
 

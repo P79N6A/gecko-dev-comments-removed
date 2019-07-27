@@ -173,7 +173,7 @@ class JSLinearString;
 
 namespace JS {
 class Symbol;
-}
+} 
 
 namespace js {
 
@@ -202,7 +202,7 @@ class ObjectGroup;
 
 namespace jit {
 class JitCode;
-}
+} 
 
 #ifdef DEBUG
 
@@ -645,7 +645,7 @@ class BaseShape;
 class UnownedBaseShape;
 namespace jit {
 class JitCode;
-}
+} 
 
 typedef PreBarriered<JSObject*> PreBarrieredObject;
 typedef PreBarriered<JSScript*> PreBarrieredScript;

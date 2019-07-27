@@ -19,8 +19,8 @@ namespace mozilla {
 namespace dom {
 class Selection;
 class Text;
-}
-}
+} 
+} 
 
 
 
@@ -215,8 +215,9 @@ class MOZ_STACK_CLASS AutoReplaceContainerSelNotify
       mRU.DidReplaceContainer(mOriginalElement, mNewElement);
     }
 };
-}
-}
+
+} 
+} 
 
 
 

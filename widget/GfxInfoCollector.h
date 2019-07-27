@@ -88,7 +88,7 @@ class GfxInfoCollector : public GfxInfoCollectorBase
 
 };
 
-}
-}
+} 
+} 
 
 #endif

@@ -1936,7 +1936,7 @@ struct DelayedDeleteContentParentTask : public nsRunnable
     nsRefPtr<ContentParent> mObj;
 };
 
-}
+} 
 
 void
 ContentParent::ActorDestroy(ActorDestroyReason why)

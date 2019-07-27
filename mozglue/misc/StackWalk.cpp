@@ -930,7 +930,7 @@ FramePointerStackWalk(MozWalkStackCallback aCallback, uint32_t aSkipFrames,
   return numFrames != 0;
 }
 
-}
+} 
 
 #define X86_OR_PPC (defined(__i386) || defined(PPC) || defined(__ppc__))
 #if X86_OR_PPC && (MOZ_STACKWALK_SUPPORTS_MACOSX || MOZ_STACKWALK_SUPPORTS_LINUX) 

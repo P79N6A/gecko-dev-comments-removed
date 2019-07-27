@@ -19,8 +19,8 @@ struct nsStyleFilter;
 namespace mozilla {
 namespace dom {
 class SVGFilterElement;
-}
-}
+} 
+} 
 
 
 

@@ -1610,7 +1610,7 @@ CacheIndex::WriteIndexToDisk()
   mSkipEntries = 0;
 }
 
-namespace { 
+namespace {
 
 struct WriteRecordsHelper
 {
@@ -3196,7 +3196,7 @@ CacheIndex::ReleaseBuffer()
   mRWBufPos = 0;
 }
 
-namespace { 
+namespace {
 
 class FrecencyComparator
 {
@@ -3634,7 +3634,7 @@ CacheIndex::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf)
   return mallocSizeOf(gInstance) + SizeOfExcludingThis(mallocSizeOf);
 }
 
-namespace { 
+namespace {
 
 class HashComparator
 {

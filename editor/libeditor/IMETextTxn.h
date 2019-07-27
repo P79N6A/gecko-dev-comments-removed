@@ -87,7 +87,7 @@ private:
 
 NS_DEFINE_STATIC_IID_ACCESSOR(IMETextTxn, NS_IMETEXTTXN_IID)
 
-}
-}
+} 
+} 
 
 #endif

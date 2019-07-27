@@ -152,7 +152,7 @@ private:
   bool Check3gppPermission();
 };
 
-}
-}
+} 
+} 
 
 #endif

@@ -102,7 +102,7 @@ struct BasePoint {
 
 };
 
-}
-}
+} 
+} 
 
 #endif 

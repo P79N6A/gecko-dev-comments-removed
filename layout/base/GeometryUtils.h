@@ -28,7 +28,7 @@ class DOMPoint;
 struct DOMPointInit;
 class OwningTextOrElementOrDocument;
 class TextOrElementOrDocument;
-}
+} 
 
 typedef dom::TextOrElementOrDocument GeometryNode;
 typedef dom::OwningTextOrElementOrDocument OwningGeometryNode;
@@ -60,6 +60,6 @@ ConvertPointFromNode(nsINode* aTo, const dom::DOMPointInit& aPoint,
                      const dom::ConvertCoordinateOptions& aOptions,
                      ErrorResult& aRv);
 
-}
+} 
 
 #endif 

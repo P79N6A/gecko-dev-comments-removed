@@ -39,7 +39,7 @@ namespace mozilla {
 
 namespace gfx {
 class Matrix4x4;
-}
+} 
 
 namespace layers {
 
@@ -462,7 +462,7 @@ private:
   CompositorOGLVRObjects mVR;
 };
 
-}
-}
+} 
+} 
 
 #endif 

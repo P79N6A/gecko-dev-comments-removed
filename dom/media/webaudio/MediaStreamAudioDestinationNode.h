@@ -50,7 +50,7 @@ private:
   nsRefPtr<MediaInputPort> mPort;
 };
 
-}
-}
+} 
+} 
 
 #endif

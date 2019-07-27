@@ -104,7 +104,7 @@ struct BaseCoord {
   }
 };
 
-}
-}
+} 
+} 
 
 #endif 

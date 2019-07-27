@@ -30,8 +30,8 @@ class nsITransferable;
 namespace mozilla {
 namespace dom {
 class Selection;
-}
-}
+} 
+} 
 
 
 

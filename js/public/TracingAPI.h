@@ -339,7 +339,7 @@ JS_TraceRuntime(JSTracer* trc);
 
 namespace JS {
 typedef js::HashSet<Zone*, js::DefaultHasher<Zone*>, js::SystemAllocPolicy> ZoneSet;
-}
+} 
 
 
 

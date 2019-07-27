@@ -36,6 +36,6 @@ private:
   nsIntRect mRect;
 };
 
-}
+} 
 
 #endif 

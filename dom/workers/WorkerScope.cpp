@@ -594,7 +594,7 @@ public:
   }
 };
 
-}
+} 
 
 already_AddRefed<Promise>
 ServiceWorkerGlobalScope::SkipWaiting(ErrorResult& aRv)

@@ -42,8 +42,8 @@ class nsIApplicationCache;
 namespace mozilla {
 namespace css {
 class Loader;
-}
-}
+} 
+} 
 
 #ifdef DEBUG
 

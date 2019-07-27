@@ -89,6 +89,7 @@ class nsHttpDigestAuth final : public nsIHttpAuthenticator
     char                           mHashBuf[DIGEST_LENGTH];
 };
 
-}} 
+} 
+} 
 
 #endif 

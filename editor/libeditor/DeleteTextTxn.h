@@ -70,7 +70,7 @@ protected:
   nsRangeUpdater* mRangeUpdater;
 };
 
-}
-}
+} 
+} 
 
 #endif

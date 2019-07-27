@@ -676,4 +676,3 @@ RefLayerComposite::CleanupResources()
 
 } 
 } 
-

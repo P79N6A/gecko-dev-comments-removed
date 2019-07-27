@@ -424,7 +424,7 @@ CreateShadowFor(ClientLayer* aLayer,
                   &ShadowLayerForwarder::Created ## _type ## Layer)
 
 
-}
-}
+} 
+} 
 
 #endif

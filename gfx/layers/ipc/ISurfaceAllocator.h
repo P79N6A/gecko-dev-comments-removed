@@ -33,10 +33,10 @@
 namespace mozilla {
 namespace ipc {
 class Shmem;
-}
+} 
 namespace gfx {
 class DataSourceSurface;
-}
+} 
 
 namespace layers {
 

@@ -47,7 +47,7 @@ enum ThreadType
 
 namespace gcstats {
 struct Statistics;
-}
+} 
 
 class Nursery;
 

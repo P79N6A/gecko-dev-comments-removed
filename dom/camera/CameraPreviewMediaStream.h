@@ -73,6 +73,6 @@ protected:
   nsRefPtr<FakeMediaStreamGraph> mFakeMediaStreamGraph;
 };
 
-}
+} 
 
 #endif 

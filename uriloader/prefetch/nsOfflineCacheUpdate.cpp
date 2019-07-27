@@ -78,7 +78,7 @@ private:
     char **mValues;
 };
 
-namespace { 
+namespace {
 
 nsresult
 DropReferenceFromURL(nsIURI * aURI)

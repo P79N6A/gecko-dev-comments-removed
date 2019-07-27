@@ -41,7 +41,7 @@ struct ParamTraits<mozilla::OriginAttributes>
 namespace mozilla {
 namespace net {
 class LoadInfoArgs;
-}
+} 
 
 namespace ipc {
 

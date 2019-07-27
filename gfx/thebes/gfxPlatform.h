@@ -42,7 +42,7 @@ class SRGBOverrideObserver;
 namespace mozilla {
 namespace gl {
 class SkiaGLGlue;
-}
+} 
 namespace gfx {
 class DrawTarget;
 class SourceSurface;
@@ -56,8 +56,9 @@ BackendTypeBit(BackendType b)
 {
   return 1 << uint8_t(b);
 }
-}
-}
+
+} 
+} 
 
 #define MOZ_PERFORMANCE_WARNING(module, ...) \
   do { \

@@ -46,16 +46,17 @@ enum {
 
     
 };
-}
+
+} 
 
 namespace mozilla {
 namespace dom {
 class ContentParent;
-}
+} 
 
 namespace net {
 class NeckoParent;
-}
+} 
 
 namespace ipc {
 

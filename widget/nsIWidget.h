@@ -44,10 +44,10 @@ class CompositorVsyncDispatcher;
 class WritingMode;
 namespace dom {
 class TabChild;
-}
+} 
 namespace plugins {
 class PluginWidgetChild;
-}
+} 
 namespace layers {
 class Composer2D;
 class Compositor;
@@ -56,15 +56,15 @@ class LayerManager;
 class LayerManagerComposite;
 class PLayerTransactionChild;
 struct ScrollableLayerGuid;
-}
+} 
 namespace gfx {
 class DrawTarget;
 class SourceSurface;
-}
+} 
 namespace widget {
 class TextEventDispatcher;
-}
-}
+} 
+} 
 
 
 

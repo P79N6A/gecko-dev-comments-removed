@@ -72,6 +72,6 @@ private:
   SharedBuffer() {}
 };
 
-}
+} 
 
 #endif 

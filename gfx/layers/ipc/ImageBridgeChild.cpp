@@ -44,7 +44,7 @@
 namespace mozilla {
 namespace ipc {
 class Shmem;
-}
+} 
 
 namespace layers {
 

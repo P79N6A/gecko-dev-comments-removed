@@ -54,7 +54,7 @@ private:
   AutoMoz2DMaskData& operator=(const AutoMoz2DMaskData&) = delete;
 };
 
-}
-}
+} 
+} 
 
 #endif 

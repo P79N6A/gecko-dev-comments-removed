@@ -30,7 +30,7 @@ struct objectURLOptions;
 
 namespace workers {
 class URLProxy;
-}
+} 
 
 class URL final : public URLSearchParamsObserver
                 , public nsWrapperCache
@@ -168,7 +168,7 @@ private:
 
 bool IsChromeURI(nsIURI* aURI);
 
-}
-}
+} 
+} 
 
 #endif 

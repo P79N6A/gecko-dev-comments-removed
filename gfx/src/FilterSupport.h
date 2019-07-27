@@ -470,7 +470,7 @@ public:
                                 const nsTArray<nsIntRegion>& aInputExtents);
 };
 
-}
-}
+} 
+} 
 
 #endif

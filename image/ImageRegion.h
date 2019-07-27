@@ -152,7 +152,7 @@ private:
   bool    mIsRestricted;
 };
 
-}  
-}  
+} 
+} 
 
 #endif 

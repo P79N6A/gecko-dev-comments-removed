@@ -69,6 +69,6 @@ protected:
   nsTArray<TrackID> mUsedTracks;
 };
 
-}
+} 
 
 #endif 

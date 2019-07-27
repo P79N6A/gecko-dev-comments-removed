@@ -80,8 +80,8 @@ struct RectCornerRadii;
 } 
 namespace layers {
 class Layer;
-}
-}
+} 
+} 
 
 namespace mozilla {
 
@@ -2825,8 +2825,8 @@ void StrokeLineWithSnapping(const nsPoint& aP1, const nsPoint& aP2,
 
     void MaybeSetupTransactionIdAllocator(layers::LayerManager* aManager, nsView* aView);
 
-  }
-}
+  } 
+} 
 
 class nsSetAttrRunnable : public nsRunnable
 {

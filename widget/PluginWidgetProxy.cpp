@@ -177,5 +177,5 @@ PluginWidgetProxy::SetFocus(bool aRaise)
   return NS_OK;
 }
 
-}  
-}  
+} 
+} 

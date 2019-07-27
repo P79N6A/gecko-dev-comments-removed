@@ -21,7 +21,7 @@ protected:
     GfxInfoWebGL() { }
 };
 
-}
-}
+} 
+} 
 
 #endif

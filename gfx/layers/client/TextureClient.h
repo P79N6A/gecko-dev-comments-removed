@@ -717,6 +717,7 @@ protected:
   RefPtr<T> mData;
 };
 
-}
-}
+} 
+} 
+
 #endif

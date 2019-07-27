@@ -17,7 +17,7 @@ namespace mozilla {
 
 namespace dom {
 class TabParent;
-}
+} 
 
 namespace plugins {
 

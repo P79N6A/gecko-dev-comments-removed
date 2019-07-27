@@ -100,6 +100,6 @@ namespace mozilla {
 nsCString GetFrameState(nsIFrame* aFrame);
 void PrintFrameState(nsIFrame* aFrame);
 #endif
-}
+} 
 
 #endif  

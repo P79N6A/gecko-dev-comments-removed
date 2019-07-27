@@ -14,8 +14,8 @@
 namespace mozilla {
 namespace gfx {
 class DrawTarget;
-}
-}
+} 
+} 
 
 class MOZ_STACK_CLASS nsRenderingContext final
 {

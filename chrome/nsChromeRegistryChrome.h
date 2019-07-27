@@ -15,8 +15,8 @@
 namespace mozilla {
 namespace dom {
 class PContentParent;
-}
-}
+} 
+} 
 
 class nsIPrefBranch;
 struct ChromePackage;

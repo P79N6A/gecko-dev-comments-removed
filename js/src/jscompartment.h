@@ -22,11 +22,11 @@ namespace js {
 
 namespace jit {
 class JitCompartment;
-}
+} 
 
 namespace gc {
 template<class Node> class ComponentFinder;
-}
+} 
 
 struct NativeIterator;
 
@@ -216,7 +216,7 @@ class DebugScopes;
 class ObjectWeakMap;
 class WatchpointMap;
 class WeakMapBase;
-}
+} 
 
 struct JSCompartment
 {

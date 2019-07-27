@@ -22,7 +22,7 @@ class nsIntRegion;
 namespace mozilla {
 namespace gfx {
 class Matrix4x4;
-}
+} 
 
 using namespace gfx;
 

@@ -465,4 +465,4 @@ static unsigned char *DIGITS[] = {
       *ptr = sLumaMax;
    }
 
-}  
+} 

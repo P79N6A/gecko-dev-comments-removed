@@ -42,6 +42,6 @@ private:
   ScopedDeletePtr<ElemType> const mArrayData;
 };
 
-}
+} 
 
 #endif 

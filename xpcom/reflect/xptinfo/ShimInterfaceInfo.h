@@ -20,8 +20,8 @@
 namespace mozilla {
 namespace dom {
 struct NativePropertyHooks;
-}
-}
+} 
+} 
 
 class ShimInterfaceInfo final : public nsIInterfaceInfo
 {

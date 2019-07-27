@@ -70,7 +70,7 @@ private:
   IntSize mSize;
 };
 
-}
-}
+} 
+} 
 
 #endif 

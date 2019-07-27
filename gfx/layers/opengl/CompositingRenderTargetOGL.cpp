@@ -115,5 +115,5 @@ CompositingRenderTargetOGL::InitializeImpl()
 
 }
 
-}
-}
+} 
+} 

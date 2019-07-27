@@ -51,8 +51,8 @@ protected:
   nsRefPtr<nsCookieService> mCookieService;
 };
 
-}
-}
+} 
+} 
 
 #endif 
 

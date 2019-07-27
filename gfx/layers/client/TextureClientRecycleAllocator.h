@@ -46,6 +46,7 @@ private:
   RefPtr<TextureClientRecycleAllocatorImp> mAllocator;
 };
 
-}
-}
+} 
+} 
+
 #endif 

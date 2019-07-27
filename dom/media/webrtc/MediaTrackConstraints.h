@@ -106,6 +106,6 @@ protected:
                             const nsString& aDeviceId);
 };
 
-}
+} 
 
 #endif 

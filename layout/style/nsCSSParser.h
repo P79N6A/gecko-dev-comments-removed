@@ -34,8 +34,8 @@ class Rule;
 class Declaration;
 class Loader;
 class StyleRule;
-}
-}
+} 
+} 
 
 
 

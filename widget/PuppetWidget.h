@@ -29,7 +29,7 @@ namespace mozilla {
 
 namespace dom {
 class TabChild;
-}
+} 
 
 namespace widget {
 
@@ -404,7 +404,7 @@ protected:
     nsCOMPtr<nsIScreen> mOneScreen;
 };
 
-}  
-}  
+} 
+} 
 
 #endif  

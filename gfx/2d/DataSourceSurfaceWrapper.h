@@ -33,7 +33,7 @@ private:
   RefPtr<DataSourceSurface> mSurface;
 };
 
-}
-}
+} 
+} 
 
 #endif 

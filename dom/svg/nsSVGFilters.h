@@ -236,7 +236,7 @@ public:
     ComputeLightAttributes(nsSVGFilterInstance* aInstance) = 0;
 };
 
-}
-}
+} 
+} 
 
 #endif

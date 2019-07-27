@@ -16,7 +16,7 @@ class OriginAttributes;
 
 namespace ipc {
 class BackgroundChildImpl;
-}
+} 
 
 namespace dom {
 namespace workers {

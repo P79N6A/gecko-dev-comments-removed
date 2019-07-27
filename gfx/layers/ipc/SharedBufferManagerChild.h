@@ -14,7 +14,7 @@
 
 namespace base {
 class Thread;
-}
+} 
 
 namespace mozilla {
 #ifdef MOZ_HAVE_SURFACEDESCRIPTORGRALLOC

@@ -21,8 +21,8 @@ struct nsBorderColors;
 namespace mozilla {
 namespace gfx {
 class GradientStops;
-}
-}
+} 
+} 
 
 
 #undef DEBUG_NEW_BORDERS
@@ -277,6 +277,6 @@ static inline void PrintAsStringNewline(const char *s = nullptr) {}
 static inline void PrintAsFormatString(const char *fmt, ...) {}
 #endif
 
-}
+} 
 
 #endif 

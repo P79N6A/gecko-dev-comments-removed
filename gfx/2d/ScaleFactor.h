@@ -79,7 +79,7 @@ struct ScaleFactor {
   }
 };
 
-}
-}
+} 
+} 
 
 #endif 

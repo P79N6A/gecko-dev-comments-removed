@@ -76,5 +76,5 @@ ChannelEventQueue::RetargetDeliveryTo(nsIEventTarget* aTargetThread)
   return NS_OK;
 }
 
-}
-}
+} 
+} 

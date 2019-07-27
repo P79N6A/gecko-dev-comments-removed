@@ -106,7 +106,7 @@ private:
   bool mRedoAttributeWasSet;
 };
 
-}
-}
+} 
+} 
 
 #endif

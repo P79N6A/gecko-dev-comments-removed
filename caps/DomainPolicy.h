@@ -15,7 +15,7 @@ namespace mozilla {
 
 namespace ipc {
 class URIParams;
-};
+} 
 
 enum DomainSetChangeType{
     ACTIVATE_POLICY,

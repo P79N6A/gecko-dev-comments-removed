@@ -299,6 +299,5 @@ IMFYCbCrImage::GetTextureClient(CompositableClient* aClient)
   return mTextureClient;
 }
 
-
 } 
 } 

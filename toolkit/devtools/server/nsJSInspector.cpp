@@ -123,8 +123,8 @@ nsJSInspector::GetLastNestRequestor(JS::MutableHandle<JS::Value> out)
   return NS_OK;
 }
 
-}
-}
+} 
+} 
 
 NS_DEFINE_NAMED_CID(JSINSPECTOR_CID);
 

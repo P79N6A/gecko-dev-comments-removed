@@ -255,6 +255,7 @@ private:
     nsRefPtr<AppDataClearObserver> mObserver;
 };
 
-}} 
+} 
+} 
 
 #endif 

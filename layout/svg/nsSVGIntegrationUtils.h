@@ -23,11 +23,11 @@ struct nsRect;
 namespace mozilla {
 namespace gfx {
 class DrawTarget;
-}
+} 
 namespace layers {
 class LayerManager;
-}
-}
+} 
+} 
 
 struct nsPoint;
 struct nsSize;

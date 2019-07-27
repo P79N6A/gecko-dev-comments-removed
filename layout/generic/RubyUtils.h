@@ -151,6 +151,6 @@ private:
   bool mAtIntraLevelWhitespace;
 };
 
-}
+} 
 
 #endif 

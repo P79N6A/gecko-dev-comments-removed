@@ -60,7 +60,7 @@ public:
     virtual bool SwapBuffers() override;
 };
 
-}
-}
+} 
+} 
 
 #endif 

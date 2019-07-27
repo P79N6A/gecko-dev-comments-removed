@@ -55,6 +55,6 @@ private:
   nsRefPtr<CDMProxy> mProxy;
 };
 
-}
+} 
 
 #endif 

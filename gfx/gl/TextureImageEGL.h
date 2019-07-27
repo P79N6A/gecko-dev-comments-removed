@@ -92,7 +92,7 @@ TileGenFuncEGL(GLContext *gl,
                TextureImage::Flags aFlags,
                TextureImage::ImageFormat aImageFormat);
 
-}
-}
+} 
+} 
 
 #endif 

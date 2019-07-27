@@ -445,5 +445,6 @@ void CompositorBench(Compositor* aCompositor, const gfx::Rect& aScreenRect)
 
 } 
 } 
+
 #endif
 

@@ -131,6 +131,6 @@ class UncheckedByteArraySink : public Sink {
 };
 
 
-}
+} 
 
 #endif  

@@ -15,8 +15,8 @@
 namespace mozilla {
 namespace dom {
 class DOMRect;
-}
-}
+} 
+} 
 
 
 

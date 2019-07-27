@@ -728,6 +728,7 @@ private:
     nsCString mLogData;
 };
 
-}} 
+} 
+} 
 
 #endif 

@@ -17,7 +17,7 @@ namespace mozilla {
 
 namespace detail {
 extern MFBT_DATA Atomic<uint32_t> gChaosModeCounter;
-}
+} 
 
 
 

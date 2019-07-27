@@ -33,7 +33,7 @@ operator<<(basic_ostream<T, char_traits<T> >& os, nsresult rv)
   return os;
 }
 
-}
+} 
 
 template <class T, class U>
 void is(const T& a, const U& b, const char* msg)

@@ -44,8 +44,8 @@ namespace dom {
 class Geolocation;
 typedef CallbackObjectHolder<PositionCallback, nsIDOMGeoPositionCallback> GeoPositionCallback;
 typedef CallbackObjectHolder<PositionErrorCallback, nsIDOMGeoPositionErrorCallback> GeoPositionErrorCallback;
-}
-}
+} 
+} 
 
 struct CachedPositionAndAccuracy {
   nsCOMPtr<nsIDOMGeoPosition> position;
@@ -249,13 +249,14 @@ private:
   nsRefPtr<Geolocation> mParent;
 };
 
-}
+} 
 
 inline nsISupports*
 ToSupports(dom::Geolocation* aGeolocation)
 {
   return ToSupports(static_cast<nsIDOMGeoGeolocation*>(aGeolocation));
 }
-}
+
+} 
 
 #endif 

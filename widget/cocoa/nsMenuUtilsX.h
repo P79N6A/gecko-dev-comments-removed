@@ -26,6 +26,6 @@ namespace nsMenuUtilsX
   NSMenuItem*   GetStandardEditMenuItem(); 
   bool          NodeIsHiddenOrCollapsed(nsIContent* inContent);
   int           CalculateNativeInsertionPoint(nsMenuObjectX* aParent, nsMenuObjectX* aChild);
-}
+} 
 
 #endif 

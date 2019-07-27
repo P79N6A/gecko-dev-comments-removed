@@ -41,12 +41,12 @@ class ContentParent;
 class PBrowserParent;
 class TabParent;
 struct StructuredCloneData;
-}
+} 
 
 namespace layout {
 class RenderFrameParent;
-}
-}
+} 
+} 
 
 #if defined(MOZ_WIDGET_GTK)
 typedef struct _GtkWidget GtkWidget;

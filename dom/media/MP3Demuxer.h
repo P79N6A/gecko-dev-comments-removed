@@ -409,7 +409,7 @@ private:
   UniquePtr<AudioInfo> mInfo;
 };
 
-}  
-}  
+} 
+} 
 
 #endif

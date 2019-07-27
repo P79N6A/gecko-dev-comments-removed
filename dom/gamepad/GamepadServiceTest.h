@@ -33,8 +33,8 @@ private:
   virtual ~GamepadServiceTest();
 };
 
-}  
-}  
+} 
+} 
 
 #define NS_GAMEPAD_TEST_CID \
 { 0xfb1fcb57, 0xebab, 0x4cf4, \

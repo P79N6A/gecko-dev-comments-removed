@@ -180,6 +180,6 @@ struct ParamTraits<mozilla::net::ResourceTimingStruct>
   }
 };
 
-}
+} 
 
 #endif

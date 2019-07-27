@@ -33,7 +33,7 @@ class nsCString;
 
 namespace base {
   class Histogram;
-}
+} 
 
 namespace mozilla {
 namespace Telemetry {

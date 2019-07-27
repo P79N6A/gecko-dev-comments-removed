@@ -23,12 +23,12 @@ class nsPIDOMWindow;
 namespace mozilla {
 namespace css {
 class FontFamilyListRefCnt;
-}
+} 
 namespace dom {
 class FontFace;
 class Promise;
-}
-}
+} 
+} 
 
 namespace mozilla {
 namespace dom {

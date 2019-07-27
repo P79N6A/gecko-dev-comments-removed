@@ -33,7 +33,7 @@ class nsPluginInstanceOwner;
 namespace mozilla {
 namespace layers {
 class ImageContainer;
-}
+} 
 namespace plugins {
 
 class PBrowserStreamParent;

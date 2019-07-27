@@ -33,7 +33,7 @@ private:
   JS::Heap<JS::Value> mLastRequestor;
 };
 
-}
-}
+} 
+} 
 
 #endif

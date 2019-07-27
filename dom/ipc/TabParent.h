@@ -40,25 +40,25 @@ namespace mozilla {
 
 namespace jsipc {
 class CpowHolder;
-}
+} 
 
 namespace layers {
 struct FrameMetrics;
 struct TextureFactoryIdentifier;
-}
+} 
 
 namespace layout {
 class RenderFrameParent;
-}
+} 
 
 namespace widget {
 struct IMENotification;
-}
+} 
 
 namespace gfx {
 class SourceSurface;
 class DataSourceSurface;
-}
+} 
 
 namespace dom {
 

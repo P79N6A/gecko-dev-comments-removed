@@ -23,7 +23,7 @@
 
 namespace js {
 class Debugger;
-}
+} 
 
 namespace JS {
 

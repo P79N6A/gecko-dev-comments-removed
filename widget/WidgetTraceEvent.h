@@ -22,6 +22,6 @@ bool FireAndWaitForTracerEvent();
 
 void SignalTracerThread();
 
-}
+} 
 
 #endif  

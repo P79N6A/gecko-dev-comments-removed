@@ -44,7 +44,7 @@ class nsIURI;
 namespace mozilla {
 namespace ipc {
 class PrincipalInfo;
-}
+} 
 
 namespace dom {
 
@@ -55,8 +55,9 @@ enum WorkerType
   WorkerTypeShared,
   WorkerTypeService
 };
-}
-}
+
+} 
+} 
 
 BEGIN_WORKERS_NAMESPACE
 

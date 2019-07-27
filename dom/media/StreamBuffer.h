@@ -332,7 +332,7 @@ private:
 #endif
 };
 
-}
+} 
 
 #endif 
 

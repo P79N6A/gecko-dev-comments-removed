@@ -20,8 +20,8 @@ class nsSMILTimeValueSpecParams;
 namespace mozilla {
 namespace dom {
 class SVGAnimationElement;
-}
-}
+} 
+} 
 
 
 

@@ -807,7 +807,7 @@ RInstruction::toResumePoint() const
     return static_cast<const RResumePoint*>(this);
 }
 
-}
-}
+} 
+} 
 
 #endif 
