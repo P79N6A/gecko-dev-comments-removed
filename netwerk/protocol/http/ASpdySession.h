@@ -55,7 +55,7 @@ public:
   
   bool SoftStreamError(nsresult code)
   {
-    if (NS_SUCCEEDED(code)) {
+    if (NS_SUCCEEDED(code) || code == NS_BASE_STREAM_WOULD_BLOCK) {
       return false;
     }
 
