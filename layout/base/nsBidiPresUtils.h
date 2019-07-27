@@ -159,11 +159,11 @@ public:
 
 
 
-  static void ReorderFrames(nsIFrame*            aFirstFrameOnLine,
-                            int32_t              aNumFramesOnLine,
+  static void ReorderFrames(nsIFrame* aFirstFrameOnLine,
+                            int32_t aNumFramesOnLine,
                             mozilla::WritingMode aLineWM,
-                            const nsSize&        aContainerSize,
-                            nscoord              aStart);
+                            nscoord aContainerISize,
+                            nscoord aStart);
 
   
 
@@ -426,12 +426,12 @@ private:
 
 
 
-  static void RepositionFrame(nsIFrame*              aFrame,
-                              bool                   aIsEvenLevel,
-                              nscoord&               aStart,
-                              nsContinuationStates*  aContinuationStates,
-                              mozilla::WritingMode   aContainerWM,
-                              const nsSize&          aContainerSize);
+  static void RepositionFrame(nsIFrame* aFrame,
+                              bool aIsEvenLevel,
+                              nscoord& aStart,
+                              const nsContinuationStates* aContinuationStates,
+                              mozilla::WritingMode aContainerWM,
+                              nscoord aContainerISize);
 
   
 
@@ -468,11 +468,11 @@ private:
 
 
 
-   static void IsFirstOrLast(nsIFrame*              aFrame,
-                             nsContinuationStates*  aContinuationStates,
-                             bool                   aSpanInLineOrder ,
-                             bool&                  aIsFirst ,
-                             bool&                  aIsLast );
+   static void IsFirstOrLast(nsIFrame* aFrame,
+                             const nsContinuationStates* aContinuationStates,
+                             bool aSpanInLineOrder ,
+                             bool& aIsFirst ,
+                             bool& aIsLast );
 
   
 
@@ -484,7 +484,7 @@ private:
   static void RepositionInlineFrames(BidiLineData* aBld,
                                      nsIFrame* aFirstChild,
                                      mozilla::WritingMode aLineWM,
-                                     const nsSize& aContainerSize,
+                                     nscoord aContainerISize,
                                      nscoord aStart);
   
   
