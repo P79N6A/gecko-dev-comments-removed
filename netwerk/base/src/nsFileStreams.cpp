@@ -869,6 +869,13 @@ NS_IMETHODIMP
 nsAtomicFileOutputStream::Init(nsIFile* file, int32_t ioFlags, int32_t perm,
                              int32_t behaviorFlags)
 {
+    
+    
+    
+    
+    if ((ioFlags & PR_APPEND) && !(ioFlags & PR_TRUNCATE)) {
+        return NS_ERROR_INVALID_ARG;
+    }
     return nsFileOutputStream::Init(file, ioFlags, perm, behaviorFlags);
 }
 
