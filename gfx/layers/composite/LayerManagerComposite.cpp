@@ -19,7 +19,7 @@
 #include "LayerScope.h"                 
 #include "protobuf/LayerScopePacket.pb.h" 
 #include "PaintedLayerComposite.h"      
-#include "TiledLayerBuffer.h"           
+#include "TiledContentHost.h"
 #include "Units.h"                      
 #include "UnitTransforms.h"             
 #include "gfx2DGlue.h"                  
@@ -1016,10 +1016,10 @@ LayerManagerComposite::ComputeRenderIntegrityInternal(Layer* aLayer,
     SubtractTransformedRegion(aScreenRegion, incompleteRegion, transformToScreen);
 
     
-    TiledLayerComposer* composer = nullptr;
+    TiledContentHost* composer = nullptr;
     LayerComposite* shadow = aLayer->AsLayerComposite();
     if (shadow) {
-      composer = shadow->GetTiledLayerComposer();
+      composer = shadow->GetCompositableHost()->AsTiledContentHost();
       if (composer) {
         incompleteRegion.Sub(incompleteRegion, composer->GetValidLowPrecisionRegion());
         if (!incompleteRegion.IsEmpty()) {
@@ -1338,7 +1338,8 @@ LayerManagerComposite::AsyncPanZoomEnabled() const
 
 nsIntRegion
 LayerComposite::GetFullyRenderedRegion() {
-  if (TiledLayerComposer* tiled = GetTiledLayerComposer()) {
+  if (TiledContentHost* tiled = GetCompositableHost() ? GetCompositableHost()->AsTiledContentHost()
+                                                        : nullptr) {
     nsIntRegion shadowVisibleRegion = GetShadowVisibleRegion();
     
     

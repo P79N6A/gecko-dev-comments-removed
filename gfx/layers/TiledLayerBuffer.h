@@ -83,35 +83,6 @@ static inline int floor_div(int a, int b)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 typedef gfx::IntSizeTyped<TileUnit> TileIntSize;
 typedef gfx::IntPointTyped<TileUnit> TileIntPoint;
 
@@ -196,19 +167,6 @@ public:
   const nsIntRegion& GetPaintedRegion() const { return mPaintedRegion; }
   void ClearPaintedRegion() { mPaintedRegion.SetEmpty(); }
 
-  void ResetPaintedAndValidState() {
-    mPaintedRegion.SetEmpty();
-    mValidRegion.SetEmpty();
-    mTiles.mSize.width = 0;
-    mTiles.mSize.height = 0;
-    for (size_t i = 0; i < mRetainedTiles.Length(); i++) {
-      if (!mRetainedTiles[i].IsPlaceholderTile()) {
-        AsDerived().ReleaseTile(mRetainedTiles[i]);
-      }
-    }
-    mRetainedTiles.Clear();
-  }
-
   
   
   
@@ -217,17 +175,9 @@ public:
   float GetResolution() const { return mResolution; }
   bool IsLowPrecision() const { return mResolution < 1; }
 
-  typedef Tile* Iterator;
-  Iterator TilesBegin() { return mRetainedTiles.Elements(); }
-  Iterator TilesEnd() { return mRetainedTiles.Elements() + mRetainedTiles.Length(); }
-
   void Dump(std::stringstream& aStream, const char* aPrefix, bool aDumpHtml);
 
 protected:
-
-  
-  
-  Tile mPlaceHolderTile;
 
   nsIntRegion     mValidRegion;
   nsIntRegion     mPaintedRegion;
@@ -244,41 +194,6 @@ protected:
   TilesPlacement  mTiles;
   float           mResolution;
   gfx::IntSize    mTileSize;
-
-private:
-  const Derived& AsDerived() const { return *static_cast<const Derived*>(this); }
-  Derived& AsDerived() { return *static_cast<Derived*>(this); }
-};
-
-class ClientTiledLayerBuffer;
-class SurfaceDescriptorTiles;
-class ISurfaceAllocator;
-
-
-
-class TiledLayerComposer
-{
-public:
-  
-
-
-
-
-
-
-
-
-
-  virtual bool UseTiledLayerBuffer(ISurfaceAllocator* aAllocator,
-                                   const SurfaceDescriptorTiles& aTiledDescriptor) = 0;
-
-  
-
-
-
-  virtual const nsIntRegion& GetValidLowPrecisionRegion() const = 0;
-
-  virtual const nsIntRegion& GetValidRegion() const = 0;
 };
 
 template<typename Derived, typename Tile> void
