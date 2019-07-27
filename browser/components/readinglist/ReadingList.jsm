@@ -34,7 +34,9 @@ let log = Log.repository.getLogger("readinglist.api");
 
 
 
-const ITEM_BASIC_PROPERTY_NAMES = `
+
+
+const ITEM_RECORD_PROPERTIES = `
   guid
   lastModified
   url
@@ -109,14 +111,14 @@ const ITEM_BASIC_PROPERTY_NAMES = `
 
 function ReadingListImpl(store) {
   this._store = store;
-  this._itemsByURL = new Map();
+  this._itemsByNormalizedURL = new Map();
   this._iterators = new Set();
   this._listeners = new Set();
 }
 
 ReadingListImpl.prototype = {
 
-  ItemBasicPropertyNames: ITEM_BASIC_PROPERTY_NAMES,
+  ItemRecordProperties: ITEM_RECORD_PROPERTIES,
 
   
 
@@ -137,20 +139,20 @@ ReadingListImpl.prototype = {
 
 
 
-  containsURL: Task.async(function* (url) {
+  hasItemForURL: Task.async(function* (url) {
     url = normalizeURI(url).spec;
 
     
     
 
     
-    if (this._itemsByURL.has(url)) {
+    if (this._itemsByNormalizedURL.has(url)) {
       return true;
     }
 
     
     
-    for (let itemWeakRef of this._itemsByURL.values()) {
+    for (let itemWeakRef of this._itemsByNormalizedURL.values()) {
       let item = itemWeakRef.get();
       if (item && item.resolvedURL == url) {
         return true;
@@ -177,10 +179,10 @@ ReadingListImpl.prototype = {
 
   forEachItem: Task.async(function* (callback, ...optsList) {
     let promiseChain = Promise.resolve();
-    yield this._store.forEachItem(obj => {
+    yield this._store.forEachItem(record => {
       promiseChain = promiseChain.then(() => {
         return new Promise((resolve, reject) => {
-          let promise = callback(this._itemFromObject(obj));
+          let promise = callback(this._itemFromRecord(record));
           if (promise instanceof Promise) {
             return promise.then(resolve, reject);
           }
@@ -221,17 +223,15 @@ ReadingListImpl.prototype = {
 
 
 
-  addItem: Task.async(function* (obj) {
-    obj = stripNonItemProperties(obj);
-    normalizeReadingListProperties(obj);
-
-    obj.addedOn = Date.now();
-    if (Services.prefs.prefHasUserValue("services.sync.client.name"))
-      obj.addedBy = Services.prefs.getCharPref("services.sync.client.name");
-
-    yield this._store.addItem(obj);
+  addItem: Task.async(function* (record) {
+    record = normalizeRecord(record);
+    record.addedOn = Date.now();
+    if (Services.prefs.prefHasUserValue("services.sync.client.name")) {
+      record.addedBy = Services.prefs.getCharPref("services.sync.client.name");
+    }
+    yield this._store.addItem(record);
     this._invalidateIterators();
-    let item = this._itemFromObject(obj);
+    let item = this._itemFromRecord(record);
     this._callListeners("onItemAdded", item);
     let mm = Cc["@mozilla.org/globalmessagemanager;1"].getService(Ci.nsIMessageListenerManager);
     mm.broadcastAsyncMessage("Reader:Added", item);
@@ -254,7 +254,7 @@ ReadingListImpl.prototype = {
 
   updateItem: Task.async(function* (item) {
     this._ensureItemBelongsToList(item);
-    yield this._store.updateItem(item._properties);
+    yield this._store.updateItem(item._record);
     this._invalidateIterators();
     this._callListeners("onItemUpdated", item);
   }),
@@ -273,7 +273,7 @@ ReadingListImpl.prototype = {
     this._ensureItemBelongsToList(item);
     yield this._store.deleteItemByURL(item.url);
     item.list = null;
-    this._itemsByURL.delete(item.url);
+    this._itemsByNormalizedURL.delete(item.url);
     this._invalidateIterators();
     let mm = Cc["@mozilla.org/globalmessagemanager;1"].getService(Ci.nsIMessageListenerManager);
     mm.broadcastAsyncMessage("Reader:Removed", item);
@@ -286,13 +286,23 @@ ReadingListImpl.prototype = {
 
 
 
-  getItemForURL: Task.async(function* (uri) {
-    let url = normalizeURI(uri).spec;
-    let [item] = yield this.iterator({url: url}, {resolvedURL: url}).items(1);
-    return item;
+  item: Task.async(function* (...optsList) {
+    return (yield this.iterator(...optsList).items(1))[0] || null;
   }),
 
-   
+  
+
+
+
+
+
+
+  itemForURL: Task.async(function* (uri) {
+    let url = normalizeURI(uri).spec;
+    return (yield this.item({ url: url }, { resolvedURL: url }));
+  }),
+
+  
 
 
 
@@ -302,7 +312,7 @@ ReadingListImpl.prototype = {
 
   addItemFromBrowser: Task.async(function* (browser, url) {
     let metadata = yield getMetadataFromBrowser(browser);
-    let itemData = {
+    let record = {
       url: url,
       title: metadata.title,
       resolvedURL: metadata.url,
@@ -313,8 +323,7 @@ ReadingListImpl.prototype = {
       itemData.preview = metadata.previews[0];
     }
 
-    let item = yield ReadingList.addItem(itemData);
-    return item;
+    return (yield this.addItem(record));
   }),
 
   
@@ -345,13 +354,13 @@ ReadingListImpl.prototype = {
 
   destroy: Task.async(function* () {
     yield this._store.destroy();
-    for (let itemWeakRef of this._itemsByURL.values()) {
+    for (let itemWeakRef of this._itemsByNormalizedURL.values()) {
       let item = itemWeakRef.get();
       if (item) {
         item.list = null;
       }
     }
-    this._itemsByURL.clear();
+    this._itemsByNormalizedURL.clear();
   }),
 
   
@@ -359,7 +368,7 @@ ReadingListImpl.prototype = {
 
   
   
-  _itemsByURL: null,
+  _itemsByNormalizedURL: null,
 
   
   
@@ -375,16 +384,16 @@ ReadingListImpl.prototype = {
 
 
 
-  _itemFromObject(obj) {
-    let itemWeakRef = this._itemsByURL.get(obj.url);
+  _itemFromRecord(record) {
+    let itemWeakRef = this._itemsByNormalizedURL.get(record.url);
     let item = itemWeakRef ? itemWeakRef.get() : null;
     if (item) {
-      item.setProperties(obj, false);
+      item._record = record;
     }
     else {
-      item = new ReadingListItem(obj);
+      item = new ReadingListItem(record);
       item.list = this;
-      this._itemsByURL.set(obj.url, Cu.getWeakReference(item));
+      this._itemsByNormalizedURL.set(record.url, Cu.getWeakReference(item));
     }
     return item;
   },
@@ -431,18 +440,6 @@ ReadingListImpl.prototype = {
 };
 
 
-
-
-function normalizeReadingListProperties(obj) {
-  if (obj.url) {
-    obj.url = normalizeURI(obj.url).spec;
-  }
-  if (obj.resolvedURL) {
-    obj.resolvedURL = normalizeURI(obj.resolvedURL).spec;
-  }
-}
-
-
 let _unserializable = () => {}; 
 
 
@@ -453,8 +450,9 @@ let _unserializable = () => {};
 
 
 
-function ReadingListItem(props={}) {
-  this._properties = {};
+
+function ReadingListItem(record={}) {
+  this._record = record;
 
   
   
@@ -466,11 +464,13 @@ function ReadingListItem(props={}) {
   
   
   this._unserializable = _unserializable;
-
-  this.setProperties(props, false);
 }
 
 ReadingListItem.prototype = {
+
+  
+  
+  
 
   
 
@@ -489,23 +489,7 @@ ReadingListItem.prototype = {
 
 
   get guid() {
-    return this._properties.guid || undefined;
-  },
-  set guid(val) {
-    this._properties.guid = val;
-  },
-
-  
-
-
-
-  get lastModified() {
-    return this._properties.lastModified ?
-           new Date(this._properties.lastModified) :
-           undefined;
-  },
-  set lastModified(val) {
-    this._properties.lastModified = val.valueOf();
+    return this._record.guid || undefined;
   },
 
   
@@ -513,10 +497,7 @@ ReadingListItem.prototype = {
 
 
   get url() {
-    return this._properties.url;
-  },
-  set url(val) {
-    this._properties.url = normalizeURI(val).spec;
+    return this._record.url;
   },
 
   
@@ -524,24 +505,12 @@ ReadingListItem.prototype = {
 
 
   get uri() {
-    return this._properties.url ?
-           Services.io.newURI(this._properties.url, "", null) :
-           undefined;
-  },
-  set uri(val) {
-    this.url = normalizeURI(val).spec;
-  },
-
-  
-
-
-
-  get domain() {
-    try {
-      return this.uri.host;
+    if (!this._uri) {
+      this._uri = this._record.url ?
+                  Services.io.newURI(this._record.url, "", null) :
+                  undefined;
     }
-    catch (err) {}
-    return this.url;
+    return this._uri;
   },
 
   
@@ -549,23 +518,24 @@ ReadingListItem.prototype = {
 
 
   get resolvedURL() {
-    return this._properties.resolvedURL;
+    return this._record.resolvedURL;
   },
   set resolvedURL(val) {
-    this._properties.resolvedURL = normalizeURI(val).spec;
+    this._updateRecord({ resolvedURL: val });
   },
 
   
 
 
 
+
   get resolvedURI() {
-    return this._properties.resolvedURL ?
-           Services.io.newURI(this._properties.resolvedURL, "", null) :
+    return this._record.resolvedURL ?
+           Services.io.newURI(this._record.resolvedURL, "", null) :
            undefined;
   },
   set resolvedURI(val) {
-    this.resolvedURL = val.spec;
+    this._updateRecord({ resolvedURL: val });
   },
 
   
@@ -573,10 +543,10 @@ ReadingListItem.prototype = {
 
 
   get title() {
-    return this._properties.title;
+    return this._record.title;
   },
   set title(val) {
-    this._properties.title = val;
+    this._updateRecord({ title: val });
   },
 
   
@@ -584,10 +554,10 @@ ReadingListItem.prototype = {
 
 
   get resolvedTitle() {
-    return this._properties.resolvedTitle;
+    return this._record.resolvedTitle;
   },
   set resolvedTitle(val) {
-    this._properties.resolvedTitle = val;
+    this._updateRecord({ resolvedTitle: val });
   },
 
   
@@ -595,10 +565,10 @@ ReadingListItem.prototype = {
 
 
   get excerpt() {
-    return this._properties.excerpt;
+    return this._record.excerpt;
   },
   set excerpt(val) {
-    this._properties.excerpt = val;
+    this._updateRecord({ excerpt: val });
   },
 
   
@@ -606,10 +576,10 @@ ReadingListItem.prototype = {
 
 
   get status() {
-    return this._properties.status;
+    return this._record.status;
   },
   set status(val) {
-    this._properties.status = val;
+    this._updateRecord({ status: val });
   },
 
   
@@ -617,10 +587,10 @@ ReadingListItem.prototype = {
 
 
   get favorite() {
-    return !!this._properties.favorite;
+    return !!this._record.favorite;
   },
   set favorite(val) {
-    this._properties.favorite = !!val;
+    this._updateRecord({ favorite: !!val });
   },
 
   
@@ -628,10 +598,10 @@ ReadingListItem.prototype = {
 
 
   get isArticle() {
-    return !!this._properties.isArticle;
+    return !!this._record.isArticle;
   },
   set isArticle(val) {
-    this._properties.isArticle = !!val;
+    this._updateRecord({ isArticle: !!val });
   },
 
   
@@ -639,10 +609,10 @@ ReadingListItem.prototype = {
 
 
   get wordCount() {
-    return this._properties.wordCount;
+    return this._record.wordCount;
   },
   set wordCount(val) {
-    this._properties.wordCount = val;
+    this._updateRecord({ wordCount: val });
   },
 
   
@@ -650,10 +620,10 @@ ReadingListItem.prototype = {
 
 
   get unread() {
-    return !!this._properties.unread;
+    return !!this._record.unread;
   },
   set unread(val) {
-    this._properties.unread = !!val;
+    this._updateRecord({ unread: !!val });
   },
 
   
@@ -661,12 +631,12 @@ ReadingListItem.prototype = {
 
 
   get addedOn() {
-    return this._properties.addedOn ?
-           new Date(this._properties.addedOn) :
+    return this._record.addedOn ?
+           new Date(this._record.addedOn) :
            undefined;
   },
   set addedOn(val) {
-    this._properties.addedOn = val.valueOf();
+    this._updateRecord({ addedOn: val.valueOf() });
   },
 
   
@@ -674,12 +644,12 @@ ReadingListItem.prototype = {
 
 
   get storedOn() {
-    return this._properties.storedOn ?
-           new Date(this._properties.storedOn) :
+    return this._record.storedOn ?
+           new Date(this._record.storedOn) :
            undefined;
   },
   set storedOn(val) {
-    this._properties.storedOn = val.valueOf();
+    this._updateRecord({ storedOn: val.valueOf() });
   },
 
   
@@ -687,10 +657,10 @@ ReadingListItem.prototype = {
 
 
   get markedReadBy() {
-    return this._properties.markedReadBy;
+    return this._record.markedReadBy;
   },
   set markedReadBy(val) {
-    this._properties.markedReadBy = val;
+    this._updateRecord({ markedReadBy: val });
   },
 
   
@@ -698,12 +668,12 @@ ReadingListItem.prototype = {
 
 
   get markedReadOn() {
-    return this._properties.markedReadOn ?
-           new Date(this._properties.markedReadOn) :
+    return this._record.markedReadOn ?
+           new Date(this._record.markedReadOn) :
            undefined;
   },
   set markedReadOn(val) {
-    this._properties.markedReadOn = val.valueOf();
+    this._updateRecord({ markedReadOn: val.valueOf() });
   },
 
   
@@ -711,10 +681,10 @@ ReadingListItem.prototype = {
 
 
   get readPosition() {
-    return this._properties.readPosition;
+    return this._record.readPosition;
   },
   set readPosition(val) {
-    this._properties.readPosition = val;
+    this._updateRecord({ readPosition: val });
   },
 
   
@@ -722,27 +692,8 @@ ReadingListItem.prototype = {
 
 
    get preview() {
-     return this._properties.preview;
+     return this._record.preview;
    },
-
-  
-
-
-
-
-
-
-
-  setProperties: Task.async(function* (props, update=true) {
-    for (let name in props) {
-      this._properties[name] = props[name];
-    }
-    
-    normalizeReadingListProperties(this._properties);
-    if (update) {
-      yield this.list.updateItem(this);
-    }
-  }),
 
   
 
@@ -756,7 +707,38 @@ ReadingListItem.prototype = {
   }),
 
   toJSON() {
-    return this._properties;
+    return this._record;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  get _record() {
+    return this.__record;
+  },
+  set _record(val) {
+    this.__record = normalizeRecord(val);
+  },
+
+  
+
+
+
+
+
+  _updateRecord(partialRecord) {
+    let record = this._record;
+    for (let prop in partialRecord) {
+      record[prop] = partialRecord[prop];
+    }
+    this._record = record;
   },
 
   _ensureBelongsToList() {
@@ -866,6 +848,32 @@ ReadingListItemIterator.prototype = {
 
 
 
+
+
+function normalizeRecord(nonNormalizedRecord) {
+  for (let prop in nonNormalizedRecord) {
+    if (!ITEM_RECORD_PROPERTIES.includes(prop)) {
+      throw new Error("Unrecognized item property: " + prop);
+    }
+  }
+
+  let record = clone(nonNormalizedRecord);
+  if (record.url) {
+    record.url = normalizeURI(record.url).spec;
+  }
+  if (record.resolvedURL) {
+    record.resolvedURL = normalizeURI(record.resolvedURL).spec;
+  }
+  return record;
+}
+
+
+
+
+
+
+
+
 function normalizeURI(uri) {
   if (typeof uri == "string") {
     uri = Services.io.newURI(uri, "", null);
@@ -876,16 +884,6 @@ function normalizeURI(uri) {
   } catch (ex) {} 
   return uri;
 };
-
-function stripNonItemProperties(item) {
-  let obj = {};
-  for (let name of ITEM_BASIC_PROPERTY_NAMES) {
-    if (name in item) {
-      obj[name] = item[name];
-    }
-  }
-  return obj;
-}
 
 function hash(str) {
   let hasher = Cc["@mozilla.org/security/hash;1"].

@@ -60,7 +60,7 @@ let ReaderParent = {
         break;
       }
       case "Reader:ListStatusRequest":
-        ReadingList.containsURL(message.data.url).then(inList => {
+        ReadingList.hasItemForURL(message.data.url).then(inList => {
           let mm = message.target.messageManager
           
           if (mm) {
@@ -72,7 +72,7 @@ let ReaderParent = {
 
       case "Reader:RemoveFromList":
         
-        ReadingList.getItemForURL(message.data.url).then(item => {
+        ReadingList.itemForURL(message.data.url).then(item => {
           ReadingList.deleteItem(item)
         });
         break;

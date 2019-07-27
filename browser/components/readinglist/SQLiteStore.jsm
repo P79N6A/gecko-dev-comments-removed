@@ -62,7 +62,7 @@ this.SQLiteStore.prototype = {
 
   forEachItem: Task.async(function* (callback, ...optsList) {
     let [sql, args] = sqlFromOptions(optsList);
-    let colNames = ReadingList.ItemBasicPropertyNames;
+    let colNames = ReadingList.ItemRecordProperties;
     let conn = yield this._connectionPromise;
     yield conn.executeCached(`
       SELECT ${colNames} FROM items ${sql};
@@ -226,7 +226,7 @@ this.SQLiteStore.prototype = {
 
 function itemFromRow(row) {
   let item = {};
-  for (let name of ReadingList.ItemBasicPropertyNames) {
+  for (let name of ReadingList.ItemRecordProperties) {
     item[name] = row.getResultByName(name);
   }
   return item;
