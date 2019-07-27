@@ -680,6 +680,9 @@ public:
 
   bool OnDecodeTaskQueue() const override;
 
+  MediaDecoderStateMachine* GetStateMachine() { return mDecoderStateMachine; }
+  void SetStateMachine(MediaDecoderStateMachine* aStateMachine);
+
   
   
   ReentrantMonitor& GetReentrantMonitor() override;
@@ -1110,16 +1113,18 @@ protected:
 
 
   
+  nsRefPtr<MediaResource> mResource;
+
+private:
+  
+  
+  
   
   
   
   
   nsRefPtr<MediaDecoderStateMachine> mDecoderStateMachine;
 
-  
-  nsRefPtr<MediaResource> mResource;
-
-private:
   
   
   
