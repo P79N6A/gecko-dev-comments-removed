@@ -413,23 +413,8 @@ struct AssertionConditionType
 
 
 
-#if defined(__clang__)
+#if defined(__clang__) || defined(__GNUC__)
 #  define MOZ_ASSUME_UNREACHABLE_MARKER() __builtin_unreachable()
-#elif defined(__GNUC__)
-   
-
-
-
-
-#  if MOZ_GCC_VERSION_AT_LEAST(4, 5, 0)
-#    define MOZ_ASSUME_UNREACHABLE_MARKER() __builtin_unreachable()
-#  else
-#    ifdef __cplusplus
-#      define MOZ_ASSUME_UNREACHABLE_MARKER() ::abort()
-#    else
-#      define MOZ_ASSUME_UNREACHABLE_MARKER() abort()
-#    endif
-#  endif
 #elif defined(_MSC_VER)
 #  define MOZ_ASSUME_UNREACHABLE_MARKER() __assume(0)
 #else

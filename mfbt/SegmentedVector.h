@@ -85,12 +85,7 @@ class SegmentedVector : private AllocPolicy
     template<typename U>
     void Append(U&& aU)
     {
-      
-      
-      
-#if !(defined(__GNUC__) && (__GNUC__ == 4) && (__GNUC_MINOR__ == 4))
       MOZ_ASSERT(mLength < SegmentCapacity);
-#endif
       
       mLength++;
       T* elem = &(*this)[mLength - 1];
