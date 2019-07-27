@@ -1567,13 +1567,6 @@ RestyleManager::StartRebuildAllStyleData(RestyleTracker& aRestyleTracker)
 }
 
 void
-RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker)
-{
-  BeginProcessingRestyles(aRestyleTracker);
-  EndProcessingRestyles();
-}
-
-void
 RestyleManager::FinishRebuildAllStyleData()
 {
   MOZ_ASSERT(mInRebuildAllStyleData, "bad caller");

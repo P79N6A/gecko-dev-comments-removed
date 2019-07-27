@@ -328,10 +328,6 @@ public:
                            nsRestyleHint aRestyleHint);
 
   
-  
-  void DoRebuildAllStyleData(RestyleTracker& aRestyleTracker);
-
-  
   void PostRestyleEvent(Element* aElement,
                         nsRestyleHint aRestyleHint,
                         nsChangeHint aMinChangeHint)
