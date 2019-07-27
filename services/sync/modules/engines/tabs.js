@@ -45,6 +45,8 @@ TabEngine.prototype = {
   _trackerObj: TabTracker,
   _recordObj: TabSetRecord,
 
+  syncPriority: 3,
+
   getChangedIDs: function getChangedIDs() {
     
     let changedIDs = {};

@@ -483,7 +483,9 @@ EngineManager.prototype = {
 
 
   getEnabled: function () {
-    return this.getAll().filter(function(engine) engine.enabled);
+    return this.getAll()
+               .filter((engine) => engine.enabled)
+               .sort((a, b) => a.syncPriority - b.syncPriority);
   },
 
   get enabledEngineNames() {
@@ -699,6 +701,13 @@ SyncEngine.prototype = {
   __proto__: Engine.prototype,
   _recordObj: CryptoWrapper,
   version: 1,
+
+  
+  
+  
+  
+  
+  syncPriority: 0,
 
   
   

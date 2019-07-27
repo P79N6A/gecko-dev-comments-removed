@@ -41,6 +41,8 @@ PrefsEngine.prototype = {
   _recordObj: PrefRec,
   version: 2,
 
+  syncPriority: 1,
+
   getChangedIDs: function getChangedIDs() {
     
     let changedIDs = {};
