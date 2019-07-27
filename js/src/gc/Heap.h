@@ -835,13 +835,6 @@ struct Chunk
     void decommitAllArenas(JSRuntime *rt);
 
     
-    static inline void release(JSRuntime *rt, Chunk *chunk);
-    static inline void releaseList(JSRuntime *rt, Chunk *chunkListHead);
-
-    
-    inline void prepareToBeFreed(JSRuntime *rt);
-
-    
 
 
 

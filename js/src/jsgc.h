@@ -73,35 +73,6 @@ enum State {
     INVALID
 };
 
-class ChunkPool {
-    Chunk   *emptyChunkListHead;
-    size_t  emptyCount;
-
-  public:
-    ChunkPool()
-      : emptyChunkListHead(nullptr),
-        emptyCount(0) { }
-
-    size_t getEmptyCount() const {
-        return emptyCount;
-    }
-
-    
-    inline Chunk *get(JSRuntime *rt);
-
-    
-    inline void put(Chunk *chunk);
-
-    
-
-
-
-    Chunk *expire(JSRuntime *rt, bool releaseAll);
-
-    
-    void expireAndFree(JSRuntime *rt, bool releaseAll);
-};
-
 static inline JSGCTraceKind
 MapAllocToTraceKind(AllocKind kind)
 {
