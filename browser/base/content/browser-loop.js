@@ -490,7 +490,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
 
       let wasVisible = false;
       
-      if (event.detail.previousTabfromTab) {
+      if (event.detail.previousTab) {
         wasVisible = this._hideBrowserSharingInfoBar(false, event.detail.previousTab.linkedBrowser);
       }
 
