@@ -43,6 +43,44 @@ using namespace mozilla::gfx;
 
 #include "DeprecatedPremultiplyTables.h"
 
+extern "C" {
+
+
+
+
+
+
+
+
+
+NS_EXPORT
+void mozilla_dump_image(void* bytes, int width, int height, int bytepp,
+                        int strideBytes)
+{
+    if (0 == strideBytes) {
+        strideBytes = width * bytepp;
+    }
+    SurfaceFormat format;
+    
+    switch (bytepp) {
+    case 2:
+        format = SurfaceFormat::R5G6B5;
+        break;
+    case 4:
+    default:
+        format = SurfaceFormat::R8G8B8A8;
+        break;
+    }
+
+    RefPtr<DataSourceSurface> surf =
+        Factory::CreateWrappingDataSourceSurface((uint8_t*)bytes, strideBytes,
+                                                 gfx::IntSize(width, height),
+                                                 format);
+    gfxUtils::DumpAsDataURI(surf);
+}
+
+}
+
 static const uint8_t PremultiplyValue(uint8_t a, uint8_t v) {
     return gfxUtils::sPremultiplyTable[a*256+v];
 }
