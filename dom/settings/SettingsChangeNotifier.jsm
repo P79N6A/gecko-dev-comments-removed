@@ -37,6 +37,9 @@ this.SettingsChangeNotifier = {
 
     Services.obs.addObserver(this, kXpcomShutdownObserverTopic, false);
     Services.obs.addObserver(this, kMozSettingsChangedObserverTopic, false);
+
+    
+    ppmm.broadcastAsyncMessage("Settings:Notifier:Init:OK");
   },
 
   observe: function(aSubject, aTopic, aData) {
