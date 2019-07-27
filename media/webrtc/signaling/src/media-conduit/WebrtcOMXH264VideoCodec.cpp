@@ -26,11 +26,7 @@ using namespace android;
 #include "runnable_utils.h"
 
 
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 21
-#include "GonkBufferQueueProducer.h"
-#endif
 #include "GonkNativeWindow.h"
-#include "GrallocImages.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Mutex.h"
 #include "nsThreadUtils.h"
@@ -320,30 +316,16 @@ public:
     mHeight = aHeight;
 
     sp<Surface> surface = nullptr;
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 21
-    sp<IGraphicBufferProducer> producer;
-    sp<IGonkGraphicBufferConsumer> consumer;
-    GonkBufferQueue::createBufferQueue(&producer, &consumer);
-    mNativeWindow = new GonkNativeWindow(consumer);
-#else
     mNativeWindow = new GonkNativeWindow();
-#endif
     if (mNativeWindow.get()) {
       
       mNativeWindow->setNewFrameCallback(this);
       
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 21
-      static_cast<GonkBufferQueueProducer*>(producer.get())->setSynchronousMode(false);
-      
-      consumer->setMaxAcquiredBufferCount(WEBRTC_OMX_H264_MIN_DECODE_BUFFERS);
-      surface = new Surface(producer);
-#else
       sp<GonkBufferQueue> bq = mNativeWindow->getBufferQueue();
       bq->setSynchronousMode(false);
       
       bq->setMaxAcquiredBufferCount(WEBRTC_OMX_H264_MIN_DECODE_BUFFERS);
       surface = new Surface(bq);
-#endif
     }
     status_t result = mCodec->configure(config, surface, nullptr, 0);
     if (result == OK) {
