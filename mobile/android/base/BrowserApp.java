@@ -3396,6 +3396,7 @@ public class BrowserApp extends GeckoApp
 
         final boolean isViewAction = Intent.ACTION_VIEW.equals(action);
         final boolean isBookmarkAction = GeckoApp.ACTION_HOMESCREEN_SHORTCUT.equals(action);
+        final boolean isTabQueueAction = TabQueueHelper.LOAD_URLS_ACTION.equals(action);
 
         if (mInitialized && (isViewAction || isBookmarkAction)) {
             
@@ -3422,6 +3423,17 @@ public class BrowserApp extends GeckoApp
         
         if (GuestSession.NOTIFICATION_INTENT.equals(action)) {
             GuestSession.handleIntent(this, intent);
+        }
+
+        
+        if(AppConstants.NIGHTLY_BUILD  && AppConstants.MOZ_ANDROID_TAB_QUEUE && mInitialized && isTabQueueAction) {
+            int queuedTabCount = TabQueueHelper.getTabQueueLength(this);
+            TabQueueHelper.openQueuedUrls(this, mProfile, TabQueueHelper.FILE_NAME);
+
+            
+            if (queuedTabCount > 1) {
+                showNormalTabs();
+            }
         }
 
         if (!mInitialized || !Intent.ACTION_MAIN.equals(action)) {
