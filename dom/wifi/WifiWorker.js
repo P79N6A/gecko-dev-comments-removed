@@ -1842,6 +1842,9 @@ function WifiWorker() {
   
   
   netToDOM = function(net) {
+    if (!net) {
+      return null;
+    }
     var ssid = dequote(net.ssid);
     var security = (net.key_mgmt === "NONE" && net.wep_key0) ? ["WEP"] :
                    (net.key_mgmt && net.key_mgmt !== "NONE") ? [net.key_mgmt.split(" ")[0]] :
@@ -2026,7 +2029,7 @@ function WifiWorker() {
         WifiManager.disableNetwork(netId, function() {});
       }
     });
-    self._fireEvent("onconnectingfailed", {network: self.currentNetwork});
+    self._fireEvent("onconnectingfailed", {network: netToDOM(self.currentNetwork)});
   }
 
   WifiManager.onstatechange = function() {
@@ -2069,7 +2072,10 @@ function WifiWorker() {
         }
 
         self.currentNetwork.netId = this.id;
-        WifiManager.getNetworkConfiguration(self.currentNetwork, function (){});
+        WifiManager.getNetworkConfiguration(self.currentNetwork, function (){
+          
+          self._fireEvent("onconnecting", { network: netToDOM(self.currentNetwork) });
+        });
         break;
       case "COMPLETED":
         
@@ -2082,27 +2088,32 @@ function WifiWorker() {
           self._needToEnableNetworks = false;
         }
 
+        var _oncompleted = function() {
+          
+          let netConnect = WifiManager.getHttpProxyNetwork(self.currentNetwork);
+          if (netConnect)
+            WifiManager.setHttpProxy(netConnect);
+
+          
+          WifiManager.authenticationFailuresCount = 0;
+          WifiManager.loopDetectionCount = 0;
+          self._startConnectionInfoTimer();
+          self._fireEvent("onassociate", { network: netToDOM(self.currentNetwork) });
+        };
+
         
         
         if (this.fromStatus || !self.currentNetwork) {
           
           
           
-          self.currentNetwork = { ssid: quote(WifiManager.connectionInfo.ssid),
+          self.currentNetwork = { bssid: WifiManager.connectionInfo.bssid,
+                                  ssid: quote(WifiManager.connectionInfo.ssid),
                                   netId: WifiManager.connectionInfo.id };
-          WifiManager.getNetworkConfiguration(self.currentNetwork, function(){});
+          WifiManager.getNetworkConfiguration(self.currentNetwork, _oncompleted);
+        } else {
+          _oncompleted();
         }
-
-        
-        let netConnect = WifiManager.getHttpProxyNetwork(self.currentNetwork);
-        if (netConnect)
-          WifiManager.setHttpProxy(netConnect);
-
-        
-        WifiManager.authenticationFailuresCount = 0;
-        WifiManager.loopDetectionCount = 0;
-        self._startConnectionInfoTimer();
-        self._fireEvent("onassociate", { network: netToDOM(self.currentNetwork) });
         break;
       case "CONNECTED":
         
@@ -2121,7 +2132,7 @@ function WifiWorker() {
           return;
         }
 
-        self._fireEvent("ondisconnect", {});
+        self._fireEvent("ondisconnect", {network: netToDOM(self.currentNetwork)});
 
         
         
