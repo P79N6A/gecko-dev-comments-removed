@@ -1545,4 +1545,10 @@ function setMediaTestsPrefs(callback, extraPrefs) {
   SpecialPowers.pushPrefEnv({"set": prefs}, callback);
 }
 
+
+function isSlowPlatform() {
+  return SpecialPowers.Services.appinfo.name == "B2G" ||
+         navigator.userAgent.indexOf("Mobile") != -1 && androidVersion == 10;
+}
+
 SimpleTest.requestFlakyTimeout("untriaged");
