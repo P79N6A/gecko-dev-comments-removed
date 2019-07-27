@@ -112,3 +112,46 @@ function promiseDeletedOAuthParams(baseURL) {
 
   return deferred.promise;
 }
+
+
+
+
+function promiseOAuthGetRegistration(baseURL) {
+  let deferred = Promise.defer();
+  let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].
+              createInstance(Ci.nsIXMLHttpRequest);
+  xhr.open("GET", baseURL + "/get_registration", true);
+  xhr.responseType = "json";
+  xhr.addEventListener("load", () => deferred.resolve(xhr));
+  xhr.addEventListener("error", deferred.reject);
+  xhr.send();
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+let mockPushHandler = {
+  
+  
+  registrationResult: null,
+  pushUrl: undefined,
+
+  
+
+
+  initialize: function(registerCallback, notificationCallback) {
+    registerCallback(this.registrationResult, this.pushUrl);
+    this._notificationCallback = notificationCallback;
+  },
+
+  
+
+
+  notify: function(version) {
+    this._notificationCallback(version);
+  }
+};
