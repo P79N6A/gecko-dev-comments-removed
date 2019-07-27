@@ -246,11 +246,23 @@ nsAnimationManager::MaybeUpdateCascadeResults(AnimationCollection* aCollection)
     if (anim->IsInEffect() != anim->mInEffectForCascadeResults) {
       
       mozilla::dom::Element* element = aCollection->GetElementToRestyle();
+      bool updatedCascadeResults = false;
       if (element) {
         nsIFrame* frame = element->GetPrimaryFrame();
         if (frame) {
           UpdateCascadeResults(frame->StyleContext(), aCollection);
+          updatedCascadeResults = true;
         }
+      }
+
+      if (!updatedCascadeResults) {
+        
+        
+        
+        
+        
+        
+        anim->mInEffectForCascadeResults = anim->IsInEffect();
       }
 
       
