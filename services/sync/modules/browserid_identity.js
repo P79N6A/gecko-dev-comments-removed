@@ -185,7 +185,7 @@ this.BrowserIDManager.prototype = {
     
     this.whenReadyToAuthenticate = Promise.defer();
     this.whenReadyToAuthenticate.promise.then(null, (err) => {
-      this._log.error("Could not authenticate: " + err);
+      this._log.error("Could not authenticate", err);
     });
 
     
@@ -244,11 +244,11 @@ this.BrowserIDManager.prototype = {
         this._shouldHaveSyncKeyBundle = true; 
         this.whenReadyToAuthenticate.reject(err);
         
-        this._log.error("Background fetch for key bundle failed: " + err);
+        this._log.error("Background fetch for key bundle failed", err);
       });
       
     }).then(null, err => {
-      this._log.error("Processing logged in account: " + err);
+      this._log.error("Processing logged in account", err);
     });
   },
 
@@ -531,14 +531,13 @@ this.BrowserIDManager.prototype = {
       return null;
     }
 
-    log.info("Fetching assertion and token from: " + tokenServerURI);
-
     let maybeFetchKeys = () => {
       
       
       if (userData.kA && userData.kB) {
         return;
       }
+      log.info("Fetching new keys");
       return this._fxaService.getKeys().then(
         newUserData => {
           userData = newUserData;
@@ -565,7 +564,7 @@ this.BrowserIDManager.prototype = {
     }
 
     let getAssertion = () => {
-      log.debug("Getting an assertion");
+      log.info("Getting an assertion from", tokenServerURI);
       let audience = Services.io.newURI(tokenServerURI, null, null).prePath;
       return fxa.getAssertion(audience);
     };
@@ -602,12 +601,12 @@ this.BrowserIDManager.prototype = {
         
         
         if (err instanceof AuthenticationError) {
-          this._log.error("Authentication error in _fetchTokenForUser: " + err);
+          this._log.error("Authentication error in _fetchTokenForUser", err);
           
           this._authFailureReason = LOGIN_FAILED_LOGIN_REJECTED;
         } else {
-          this._log.error("Non-authentication error in _fetchTokenForUser: "
-                          + (err.message || err));
+          this._log.error("Non-authentication error in _fetchTokenForUser", err);
+          
           
           this._authFailureReason = LOGIN_FAILED_NETWORK_ERROR;
         }
@@ -657,7 +656,7 @@ this.BrowserIDManager.prototype = {
     try {
       cb.wait();
     } catch (ex) {
-      this._log.error("Failed to fetch a token for authentication: " + ex);
+      this._log.error("Failed to fetch a token for authentication", ex);
       return null;
     }
     if (!this._token) {
@@ -742,6 +741,7 @@ BrowserIDClusterManager.prototype = {
       cb(null, clusterURL);
     }).then(
       null, err => {
+      log.info("Failed to fetch the cluster URL", err);
       
       
       
