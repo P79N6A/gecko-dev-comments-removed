@@ -327,11 +327,12 @@ nsCSPHostSrc::permits(nsIURI* aUri, const nsAString& aNonce) const
 
   
   if (mHost.First() == '*') {
-    
     NS_ASSERTION(mHost[1] == '.', "Second character needs to be '.' whenever host starts with '*'");
 
+    
+    
     nsString wildCardHost = mHost;
-    wildCardHost = Substring(wildCardHost, 2, wildCardHost.Length() - 2);
+    wildCardHost = Substring(wildCardHost, 1, wildCardHost.Length() - 1);
     if (!StringEndsWith(NS_ConvertUTF8toUTF16(uriHost), wildCardHost)) {
       return false;
     }
