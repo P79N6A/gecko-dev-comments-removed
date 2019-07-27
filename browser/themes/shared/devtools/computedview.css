@@ -124,11 +124,6 @@ body {
   border-bottom-width: 1px;
 }
 
-
-.rule-text {
-  direction: ltr;
-}
-
 .matched {
   text-decoration: line-through;
 }

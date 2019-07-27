@@ -18,7 +18,6 @@ const overlays = require("devtools/styleinspector/style-inspector-overlays");
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/devtools/Templater.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
                                   "resource://gre/modules/PluralForm.jsm");
@@ -218,37 +217,6 @@ CssHtmlTree.l10n = function CssHtmlTree_l10n(aName)
   } catch (ex) {
     Services.console.logStringMessage("Error reading '" + aName + "'");
     throw new Error("l10n error with " + aName);
-  }
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-CssHtmlTree.processTemplate = function CssHtmlTree_processTemplate(aTemplate,
-                                  aDestination, aData, aPreserveDestination)
-{
-  if (!aPreserveDestination) {
-    aDestination.innerHTML = "";
-  }
-
-  
-  
-  let duplicated = aTemplate.cloneNode(true);
-
-  
-  
-  template(duplicated, aData, { allowEval: true });
-  while (duplicated.firstChild) {
-    aDestination.appendChild(duplicated.firstChild);
   }
 };
 
