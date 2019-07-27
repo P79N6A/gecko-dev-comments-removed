@@ -781,6 +781,12 @@ public:
                             NS_LITERAL_STRING("ATOK "));
   }
 
+  bool IsFreeChangJieActive() const
+  {
+    
+    return mActiveTIPKeyboardDescription.EqualsLiteral("Free CangJie IME 10");
+  }
+
 public: 
   STDMETHODIMP OnActivated(REFCLSID clsid, REFGUID guidProfile,
                            BOOL fActivated);
@@ -1181,9 +1187,6 @@ bool nsTextStore::sDoNotReturnNoLayoutErrorToEasyChangjei = false;
 bool nsTextStore::sDoNotReturnNoLayoutErrorToGoogleJaInputAtFirstChar = false;
 bool nsTextStore::sDoNotReturnNoLayoutErrorToGoogleJaInputAtCaret = false;
 
-
-#define TIP_NAME_FREE_CHANG_JIE_2010 \
-  (NS_LITERAL_STRING("Free CangJie IME 10"))
 #define TIP_NAME_EASY_CHANGJEI \
   (NS_LITERAL_STRING( \
      "\x4E2D\x6587 (\x7E41\x9AD4) - \x6613\x9821\x8F38\x5165\x6CD5"))
@@ -3231,8 +3234,7 @@ nsTextStore::GetTextExt(TsViewCookie vcView,
     
     
     else if ((sDoNotReturnNoLayoutErrorToFreeChangJie &&
-              activeTIPKeyboardDescription.Equals(
-                                             TIP_NAME_FREE_CHANG_JIE_2010)) ||
+              kSink->IsFreeChangJieActive()) ||
              (sDoNotReturnNoLayoutErrorToEasyChangjei &&
               activeTIPKeyboardDescription.Equals(TIP_NAME_EASY_CHANGJEI))) {
       acpEnd = mComposition.mStart;
