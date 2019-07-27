@@ -36,9 +36,11 @@ function nativeHorizontalWheelEventMsg() {
 
 
 
+
 function synthesizeNativeWheel(aElement, aX, aY, aDeltaX, aDeltaY, aObserver) {
-  aX += window.mozInnerScreenX;
-  aY += window.mozInnerScreenY;
+  var targetWindow = aElement.ownerDocument.defaultView;
+  aX += targetWindow.mozInnerScreenX;
+  aY += targetWindow.mozInnerScreenY;
   if (aDeltaX && aDeltaY) {
     throw "Simultaneous wheeling of horizontal and vertical is not supported on all platforms.";
   }
@@ -65,9 +67,11 @@ function synthesizeNativeWheelAndWaitForObserver(aElement, aX, aY, aDeltaX, aDel
 
 
 
+
 function synthesizeNativeWheelAndWaitForWheelEvent(aElement, aX, aY, aDeltaX, aDeltaY, aCallback) {
-  window.addEventListener("wheel", function wheelWaiter(e) {
-    window.removeEventListener("wheel", wheelWaiter);
+  var targetWindow = aElement.ownerDocument.defaultView;
+  targetWindow.addEventListener("wheel", function wheelWaiter(e) {
+    targetWindow.removeEventListener("wheel", wheelWaiter);
     setTimeout(aCallback, 0);
   });
   return synthesizeNativeWheel(aElement, aX, aY, aDeltaX, aDeltaY);
@@ -76,10 +80,13 @@ function synthesizeNativeWheelAndWaitForWheelEvent(aElement, aX, aY, aDeltaX, aD
 
 
 
+
+
 function synthesizeNativeWheelAndWaitForScrollEvent(aElement, aX, aY, aDeltaX, aDeltaY, aCallback) {
+  var targetWindow = aElement.ownerDocument.defaultView;
   var useCapture = true;  
-  window.addEventListener("scroll", function scrollWaiter(e) {
-    window.removeEventListener("scroll", scrollWaiter, useCapture);
+  targetWindow.addEventListener("scroll", function scrollWaiter(e) {
+    targetWindow.removeEventListener("scroll", scrollWaiter, useCapture);
     setTimeout(aCallback, 0);
   }, useCapture);
   return synthesizeNativeWheel(aElement, aX, aY, aDeltaX, aDeltaY);
