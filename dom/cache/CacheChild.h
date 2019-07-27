@@ -40,18 +40,20 @@ public:
 
   void
   ExecuteOp(nsIGlobalObject* aGlobal, Promise* aPromise,
-            const CacheOpArgs& aArgs);
+            nsISupports* aParent, const CacheOpArgs& aArgs);
 
   CachePushStreamChild*
   CreatePushStream(nsIAsyncInputStream* aStream);
 
   
+  void StartDestroyFromListener();
 
+private:
   
+
   
   virtual void StartDestroy() override;
 
-private:
   
   virtual void
   ActorDestroy(ActorDestroyReason aReason) override;
@@ -77,6 +79,7 @@ private:
   
   Cache* MOZ_NON_OWNING_REF mListener;
   uint32_t mNumChildActors;
+  bool mDelayedDestroy;
 
   NS_DECL_OWNINGTHREAD
 };

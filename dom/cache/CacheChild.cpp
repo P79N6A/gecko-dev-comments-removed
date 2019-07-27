@@ -33,6 +33,7 @@ DeallocPCacheChild(PCacheChild* aActor)
 CacheChild::CacheChild()
   : mListener(nullptr)
   , mNumChildActors(0)
+  , mDelayedDestroy(false)
 {
   MOZ_COUNT_CTOR(cache::CacheChild);
 }
@@ -64,11 +65,11 @@ CacheChild::ClearListener()
 
 void
 CacheChild::ExecuteOp(nsIGlobalObject* aGlobal, Promise* aPromise,
-                      const CacheOpArgs& aArgs)
+                      nsISupports* aParent, const CacheOpArgs& aArgs)
 {
   mNumChildActors += 1;
   MOZ_ALWAYS_TRUE(SendPCacheOpConstructor(
-    new CacheOpChild(GetFeature(), aGlobal, aPromise), aArgs));
+    new CacheOpChild(GetFeature(), aGlobal, aParent, aPromise), aArgs));
 }
 
 CachePushStreamChild*
@@ -82,8 +83,32 @@ CacheChild::CreatePushStream(nsIAsyncInputStream* aStream)
 }
 
 void
+CacheChild::StartDestroyFromListener()
+{
+  NS_ASSERT_OWNINGTHREAD(CacheChild);
+
+  
+  
+  
+  MOZ_ASSERT(!mNumChildActors);
+
+  StartDestroy();
+}
+
+void
 CacheChild::StartDestroy()
 {
+  NS_ASSERT_OWNINGTHREAD(CacheChild);
+
+  
+  
+  
+  
+  if (mNumChildActors) {
+    mDelayedDestroy = true;
+    return;
+  }
+
   nsRefPtr<Cache> listener = mListener;
 
   
@@ -97,14 +122,6 @@ CacheChild::StartDestroy()
 
   
   MOZ_ASSERT(!mListener);
-
-  
-  
-  
-  
-  if (mNumChildActors) {
-    return;
-  }
 
   
   unused << SendTeardown();
@@ -158,8 +175,8 @@ void
 CacheChild::NoteDeletedActor()
 {
   mNumChildActors -= 1;
-  if (!mNumChildActors && !mListener) {
-    unused << SendTeardown();
+  if (!mNumChildActors && mDelayedDestroy) {
+    StartDestroy();
   }
 }
 

@@ -413,7 +413,7 @@ CacheStorage::~CacheStorage()
 {
   NS_ASSERT_OWNINGTHREAD(CacheStorage);
   if (mActor) {
-    mActor->StartDestroy();
+    mActor->StartDestroyFromListener();
     
     
     MOZ_ASSERT(!mActor);
@@ -438,7 +438,7 @@ CacheStorage::MaybeRunPendingRequests()
       entry->mPromise->MaybeReject(rv);
       continue;
     }
-    mActor->ExecuteOp(mGlobal, entry->mPromise, args.SendAsOpArgs());
+    mActor->ExecuteOp(mGlobal, entry->mPromise, this, args.SendAsOpArgs());
   }
   mPendingRequests.Clear();
 }

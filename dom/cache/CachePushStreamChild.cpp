@@ -119,7 +119,8 @@ void
 CachePushStreamChild::StartDestroy()
 {
   
-  OnEnd(NS_ERROR_ABORT);
+  
+  
 }
 
 void

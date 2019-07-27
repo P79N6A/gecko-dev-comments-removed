@@ -25,6 +25,7 @@ DeallocPCacheStorageChild(PCacheStorageChild* aActor)
 CacheStorageChild::CacheStorageChild(CacheStorage* aListener, Feature* aFeature)
   : mListener(aListener)
   , mNumChildActors(0)
+  , mDelayedDestroy(false)
 {
   MOZ_COUNT_CTOR(cache::CacheStorageChild);
   MOZ_ASSERT(mListener);
@@ -49,17 +50,39 @@ CacheStorageChild::ClearListener()
 
 void
 CacheStorageChild::ExecuteOp(nsIGlobalObject* aGlobal, Promise* aPromise,
-                             const CacheOpArgs& aArgs)
+                             nsISupports* aParent, const CacheOpArgs& aArgs)
 {
   mNumChildActors += 1;
   unused << SendPCacheOpConstructor(
-    new CacheOpChild(GetFeature(), aGlobal, aPromise), aArgs);
+    new CacheOpChild(GetFeature(), aGlobal, aParent, aPromise), aArgs);
+}
+
+void
+CacheStorageChild::StartDestroyFromListener()
+{
+  NS_ASSERT_OWNINGTHREAD(CacheStorageChild);
+
+  
+  
+  
+  MOZ_ASSERT(!mNumChildActors);
+
+  StartDestroy();
 }
 
 void
 CacheStorageChild::StartDestroy()
 {
   NS_ASSERT_OWNINGTHREAD(CacheStorageChild);
+
+  
+  
+  
+  
+  if (mNumChildActors) {
+    mDelayedDestroy = true;
+    return;
+  }
 
   nsRefPtr<CacheStorage> listener = mListener;
 
@@ -74,14 +97,6 @@ CacheStorageChild::StartDestroy()
 
   
   MOZ_ASSERT(!mListener);
-
-  
-  
-  
-  
-  if (mNumChildActors) {
-    return;
-  }
 
   
   unused << SendTeardown();
@@ -121,8 +136,8 @@ CacheStorageChild::NoteDeletedActor()
 {
   MOZ_ASSERT(mNumChildActors);
   mNumChildActors -= 1;
-  if (!mNumChildActors && !mListener) {
-    unused << SendTeardown();
+  if (!mNumChildActors && mDelayedDestroy) {
+    StartDestroy();
   }
 }
 

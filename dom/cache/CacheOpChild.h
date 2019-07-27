@@ -31,7 +31,8 @@ class CacheOpChild final : public PCacheOpChild
 private:
   
   
-  CacheOpChild(Feature* aFeature, nsIGlobalObject* aGlobal, Promise* aPromise);
+  CacheOpChild(Feature* aFeature, nsIGlobalObject* aGlobal,
+               nsISupports* aParent, Promise* aPromise);
   ~CacheOpChild();
 
   
@@ -68,6 +69,9 @@ private:
   HandleRequestList(const nsTArray<CacheRequest>& aRequestList);
 
   nsCOMPtr<nsIGlobalObject> mGlobal;
+  
+  
+  nsCOMPtr<nsISupports> mParent;
   nsRefPtr<Promise> mPromise;
 
   NS_DECL_OWNINGTHREAD
