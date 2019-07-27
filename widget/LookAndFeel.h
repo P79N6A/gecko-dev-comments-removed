@@ -15,12 +15,6 @@
 
 struct gfxFontStyle;
 
-struct LookAndFeelInt
-{
-  int32_t id;
-  int32_t value;
-};
-
 namespace mozilla {
 
 class LookAndFeel
@@ -589,13 +583,6 @@ public:
 
 
   static void Refresh();
-
-  
-
-
-
-  static nsTArray<LookAndFeelInt> GetIntCache();
-  static void SetIntCache(const nsTArray<LookAndFeelInt>& aLookAndFeelIntCache);
 };
 
 } 
