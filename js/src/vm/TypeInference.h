@@ -116,6 +116,13 @@ enum : uint32_t {
     OBJECT_FLAG_FROM_ALLOCATION_SITE  = 0x1,
 
     
+    OBJECT_FLAG_SINGLETON             = 0x2,
+
+    
+
+
+
+    OBJECT_FLAG_LAZY_SINGLETON        = 0x4,
 
     
     OBJECT_FLAG_PROPERTY_COUNT_MASK   = 0xfff8,

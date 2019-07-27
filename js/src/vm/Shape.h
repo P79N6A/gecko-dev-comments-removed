@@ -320,10 +320,6 @@ class Shape;
 class UnownedBaseShape;
 struct StackBaseShape;
 
-namespace gc {
-void MergeCompartments(JSCompartment *source, JSCompartment *target);
-}
-
 
 
 class ShapeGetterSetterRef : public gc::BufferableRef

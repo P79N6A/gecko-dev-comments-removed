@@ -231,13 +231,17 @@ Shape::fixupDictionaryShapeAfterMovingGC()
     
     
     
-    if (IsInsideNursery(reinterpret_cast<Cell *>(listp))) {
+    Cell *cell = reinterpret_cast<Cell *>(uintptr_t(listp) & ~CellMask);
+
+    
+    
+    
+    if (IsInsideNursery(cell)) {
         listp = nullptr;
         return;
     }
 
-    MOZ_ASSERT(!IsInsideNursery(reinterpret_cast<Cell *>(listp)));
-    AllocKind kind = TenuredCell::fromPointer(listp)->getAllocKind();
+    AllocKind kind = TenuredCell::fromPointer(cell)->getAllocKind();
     MOZ_ASSERT(kind == FINALIZE_SHAPE ||
                kind == FINALIZE_ACCESSOR_SHAPE ||
                kind <= FINALIZE_OBJECT_LAST);
