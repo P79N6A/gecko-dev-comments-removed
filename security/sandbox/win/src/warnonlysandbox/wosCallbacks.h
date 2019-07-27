@@ -17,15 +17,10 @@
 #include "mozilla/Preferences.h"
 #include "nsContentUtils.h"
 
-
-
-#if !defined(MOZ_OPTIMIZE) || defined(MOZ_PROFILING) || defined(DEBUG)
-#define MOZ_STACKWALKING
+#ifdef MOZ_STACKWALKING
 #include "nsStackWalk.h"
 #endif
-#endif
 
-#ifdef TARGET_SANDBOX_EXPORTS
 #define TARGET_SANDBOX_EXPORT __declspec(dllexport)
 #else
 #define TARGET_SANDBOX_EXPORT __declspec(dllimport)

@@ -1186,9 +1186,7 @@ pref("browser.tabs.remote.autostart", false);
 
 pref("browser.tabs.remote.sandbox", "off");
 
-
-
-#if !defined(MOZ_OPTIMIZE) || defined(MOZ_PROFILING) || defined(DEBUG)
+#if defined(MOZ_STACKWALKING)
 
 
 
@@ -1374,7 +1372,6 @@ pref("devtools.debugger.ui.variables-searchbox-visible", false);
 
 
 pref("devtools.profiler.enabled", true);
-pref("devtools.timeline.enabled", false);
 
 
 pref("devtools.profiler.ui.show-platform-data", false);

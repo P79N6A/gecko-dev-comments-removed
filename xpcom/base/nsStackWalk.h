@@ -60,6 +60,9 @@ typedef void
 
 
 
+
+
+
 XPCOM_API(nsresult)
 NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
              uint32_t aMaxFrames, void* aClosure, uintptr_t aThread,
