@@ -389,6 +389,16 @@ GetObjectAllocKindForCopy(const Nursery &nursery, JSObject *obj)
         return GetBackgroundAllocKind(TypedArrayObject::AllocKindForLazyBuffer(nbytes));
     }
 
+    
+    
+    if (obj->is<InlineOpaqueTypedObject>()) {
+        
+        
+        
+        TypeDescr *descr = &obj->as<InlineOpaqueTypedObject>().typeDescr();
+        return InlineOpaqueTypedObject::allocKindForTypeDescriptor(descr);
+    }
+
     AllocKind kind = GetGCObjectFixedSlotsKind(obj->numFixedSlots());
     JS_ASSERT(!IsBackgroundFinalized(kind));
     JS_ASSERT(CanBeFinalizedInBackground(kind, obj->getClass()));

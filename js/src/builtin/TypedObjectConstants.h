@@ -105,10 +105,6 @@
 #define JS_TYPEDARR_SLOTS                3 // Number of slots for typed arrays
 
 
-#define JS_TYPEDOBJ_SLOT_DATA            3
-#define JS_TYPEDOBJ_SLOTS                3 // Number of slots for typed objs
-
-
 
 
 

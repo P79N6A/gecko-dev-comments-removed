@@ -90,20 +90,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 namespace js {
 
 
@@ -538,9 +524,6 @@ class TypedObjectModuleObject : public JSObject {
 };
 
 
-
-
-
 class TypedObject : public ArrayBufferViewObject
 {
   private:
@@ -561,8 +544,6 @@ class TypedObject : public ArrayBufferViewObject
                                     MutableHandleValue vp);
 
   protected:
-    static void obj_trace(JSTracer *trace, JSObject *object);
-
     static bool obj_lookupGeneric(JSContext *cx, HandleObject obj,
                                   HandleId id, MutableHandleObject objp,
                                   MutableHandleShape propp);
@@ -616,76 +597,6 @@ class TypedObject : public ArrayBufferViewObject
                               MutableHandleValue statep, MutableHandleId idp);
 
   public:
-    static size_t offsetOfOwnerSlot();
-
-    
-    
-    
-    
-    
-    
-    static size_t offsetOfDataSlot();
-
-    
-    static size_t offsetOfByteOffsetSlot();
-
-    
-    static TypedObject *createUnattachedWithClass(JSContext *cx,
-                                                 const Class *clasp,
-                                                 HandleTypeDescr type,
-                                                 int32_t length);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    static TypedObject *createUnattached(JSContext *cx, HandleTypeDescr type,
-                                        int32_t length);
-
-    
-    
-    
-    static TypedObject *createDerived(JSContext *cx,
-                                      HandleSizedTypeDescr type,
-                                      Handle<TypedObject*> typedContents,
-                                      int32_t offset);
-
-    
-    
-    
-    static TypedObject *createZeroed(JSContext *cx,
-                                     HandleTypeDescr typeObj,
-                                     int32_t length);
-
-    
-    
-    
-    static bool constructSized(JSContext *cx, unsigned argc, Value *vp);
-
-    
-    static bool constructUnsized(JSContext *cx, unsigned argc, Value *vp);
-
-    
-    void attach(JSContext *cx, ArrayBufferObject &buffer, int32_t offset);
-
-    
-    void attach(JSContext *cx, TypedObject &typedObj, int32_t offset);
-
-    
-    void neuter(void *newData);
-
-    int32_t offset() const {
-        return getReservedSlot(JS_BUFVIEW_SLOT_BYTEOFFSET).toInt32();
-    }
-
-    ArrayBufferObject &owner() const {
-        return getReservedSlot(JS_BUFVIEW_SLOT_OWNER).toObject().as<ArrayBufferObject>();
-    }
-
     TypedProto &typedProto() const {
         return getProto()->as<TypedProto>();
     }
@@ -702,13 +613,11 @@ class TypedObject : public ArrayBufferViewObject
         return maybeForwardedTypedProto().maybeForwardedTypeDescr();
     }
 
-    uint8_t *typedMem() const {
-        return (uint8_t*) getPrivate();
-    }
-
-    int32_t length() const {
-        return getReservedSlot(JS_BUFVIEW_SLOT_LENGTH).toInt32();
-    }
+    int32_t offset() const;
+    int32_t length() const;
+    uint8_t *typedMem() const;
+    bool isAttached() const;
+    bool maybeForwardedIsAttached() const;
 
     int32_t size() const {
         switch (typeDescr().kind()) {
@@ -736,23 +645,128 @@ class TypedObject : public ArrayBufferViewObject
         JS_ASSERT(offset <= (size_t) size());
         return typedMem() + offset;
     }
+
+    
+    
+    
+    static TypedObject *createZeroed(JSContext *cx, HandleTypeDescr typeObj, int32_t length);
+
+    
+    
+    static bool constructSized(JSContext *cx, unsigned argc, Value *vp);
+
+    
+    static bool constructUnsized(JSContext *cx, unsigned argc, Value *vp);
+
+    
+    static bool GetBuffer(JSContext *cx, unsigned argc, Value *vp);
+    static bool GetByteOffset(JSContext *cx, unsigned argc, Value *vp);
 };
 
 typedef Handle<TypedObject*> HandleTypedObject;
 
-class TransparentTypedObject : public TypedObject
+class OwnedTypedObject : public TypedObject
+{
+  public:
+    static const size_t DATA_SLOT = 3;
+
+    static size_t offsetOfOwnerSlot();
+
+    
+    
+    
+    
+    
+    
+    static size_t offsetOfDataSlot();
+
+    
+    static size_t offsetOfByteOffsetSlot();
+
+    JSObject &owner() const {
+        return getReservedSlot(JS_BUFVIEW_SLOT_OWNER).toObject();
+    }
+
+    uint8_t *outOfLineTypedMem() const {
+        return static_cast<uint8_t *>(getPrivate(DATA_SLOT));
+    }
+
+    
+    static OwnedTypedObject *createUnattachedWithClass(JSContext *cx,
+                                                       const Class *clasp,
+                                                       HandleTypeDescr type,
+                                                       int32_t length);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    static OwnedTypedObject *createUnattached(JSContext *cx, HandleTypeDescr type,
+                                              int32_t length);
+
+    
+    
+    
+    static OwnedTypedObject *createDerived(JSContext *cx,
+                                           HandleSizedTypeDescr type,
+                                           Handle<TypedObject*> typedContents,
+                                           int32_t offset);
+
+    
+    void attach(JSContext *cx, ArrayBufferObject &buffer, int32_t offset);
+
+    
+    void attach(JSContext *cx, TypedObject &typedObj, int32_t offset);
+
+    
+    void neuter(void *newData);
+
+    static void obj_trace(JSTracer *trace, JSObject *object);
+};
+
+
+class TransparentTypedObject : public OwnedTypedObject
 {
   public:
     static const Class class_;
 };
 
-typedef Handle<TransparentTypedObject*> HandleTransparentTypedObject;
 
-class OpaqueTypedObject : public TypedObject
+
+class OwnedOpaqueTypedObject : public OwnedTypedObject
 {
   public:
     static const Class class_;
-    static const JSFunctionSpec handleStaticMethods[];
+};
+
+
+class InlineOpaqueTypedObject : public TypedObject
+{
+  public:
+    static const Class class_;
+
+    static const size_t MaximumSize = JSObject::MAX_FIXED_SLOTS * sizeof(Value);
+
+    static gc::AllocKind allocKindForTypeDescriptor(TypeDescr *descr) {
+        size_t nbytes = descr->as<SizedTypeDescr>().size();
+        JS_ASSERT(nbytes <= MaximumSize);
+
+        size_t dataSlots = AlignBytes(nbytes, sizeof(Value) / sizeof(Value));
+        JS_ASSERT(nbytes <= dataSlots * sizeof(Value));
+        return gc::GetGCObjectKind(dataSlots);
+    }
+
+    uint8_t *inlineTypedMem() const;
+
+    static void obj_trace(JSTracer *trace, JSObject *object);
+
+    static size_t offsetOfDataStart();
+
+    static InlineOpaqueTypedObject *create(JSContext *cx, HandleTypeDescr descr);
 };
 
 
@@ -968,7 +982,8 @@ inline bool
 IsTypedObjectClass(const Class *class_)
 {
     return class_ == &TransparentTypedObject::class_ ||
-           class_ == &OpaqueTypedObject::class_;
+           class_ == &OwnedOpaqueTypedObject::class_ ||
+           class_ == &InlineOpaqueTypedObject::class_;
 }
 
 inline bool
@@ -1040,18 +1055,12 @@ JSObject::is<js::TypedObject>() const
     return IsTypedObjectClass(getClass());
 }
 
-template<>
+template <>
 inline bool
-JSObject::is<js::SizedArrayTypeDescr>() const
+JSObject::is<js::OwnedTypedObject>() const
 {
-    return getClass() == &js::SizedArrayTypeDescr::class_;
-}
-
-template<>
-inline bool
-JSObject::is<js::UnsizedArrayTypeDescr>() const
-{
-    return getClass() == &js::UnsizedArrayTypeDescr::class_;
+    return getClass() == &js::TransparentTypedObject::class_ ||
+           getClass() == &js::OwnedOpaqueTypedObject::class_;
 }
 
 inline void

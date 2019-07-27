@@ -873,7 +873,7 @@ class ObjectImpl : public gc::Cell
 
 
 
-    inline void *fixedData(size_t nslots) const;
+    inline uint8_t *fixedData(size_t nslots) const;
 
     
     static ThingRootKind rootKind() { return THING_ROOT_OBJECT; }

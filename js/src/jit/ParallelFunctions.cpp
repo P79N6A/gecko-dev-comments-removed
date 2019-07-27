@@ -102,8 +102,9 @@ jit::ParallelWriteGuard(ForkJoinContext *cx, JSObject *object)
             return true;
 
         
-        ArrayBufferObject &owner = typedObj.owner();
-        return cx->isThreadLocal(&owner);
+        if (typedObj.is<OwnedTypedObject>())
+            return cx->isThreadLocal(&typedObj.as<OwnedTypedObject>().owner());
+        return cx->isThreadLocal(&typedObj);
     }
 
     
