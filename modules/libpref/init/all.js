@@ -2824,6 +2824,13 @@ pref("intl.tsf.support_imm", true);
 
 
 pref("intl.tsf.hack.atok.create_native_caret", true);
+
+
+
+
+pref("intl.tsf.hack.free_chang_jie.do_not_return_no_layout_error", true);
+
+pref("intl.tsf.hack.easy_changjei.do_not_return_no_layout_error", true);
 #endif
 
 
