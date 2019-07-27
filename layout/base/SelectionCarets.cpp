@@ -64,6 +64,13 @@ static const int32_t kMoveStartTolerancePx = 5;
 
 static const int32_t kScrollEndTimerDelay = 300;
 
+
+
+
+
+
+static bool kSupportNonEditableFields = false;
+
 NS_IMPL_ISUPPORTS(SelectionCarets,
                   nsIReflowObserver,
                   nsISelectionListener,
@@ -96,6 +103,8 @@ SelectionCarets::SelectionCarets(nsIPresShell* aPresShell)
   if (!addedPref) {
     Preferences::AddIntVarCache(&sSelectionCaretsInflateSize,
                                 "selectioncaret.inflatesize.threshold");
+    Preferences::AddBoolVarCache(&kSupportNonEditableFields,
+                                 "selectioncaret.noneditable");
     addedPref = true;
   }
 }
@@ -450,11 +459,6 @@ SelectionCarets::UpdateSelectionCarets()
 
   
   nsRefPtr<nsFrameSelection> fs = GetFrameSelection();
-  if (!fs) {
-    SetVisibility(false);
-    return;
-  }
-
   int32_t startOffset;
   nsIFrame* startFrame = FindFirstNodeWithFrame(mPresShell->GetDocument(),
                                                 firstRange, fs, false, startOffset);
@@ -465,6 +469,14 @@ SelectionCarets::UpdateSelectionCarets()
 
   if (!startFrame || !endFrame) {
     SetVisibility(false);
+    return;
+  }
+
+  
+  
+  if (!kSupportNonEditableFields &&
+      (!startFrame->GetContent()->IsEditable() ||
+       !endFrame->GetContent()->IsEditable())) {
     return;
   }
 
@@ -546,6 +558,12 @@ SelectionCarets::SelectWord()
     return NS_OK;
   }
 
+  
+  
+  if (!kSupportNonEditableFields && !ptFrame->GetContent()->IsEditable()) {
+    return NS_OK;
+  }
+
   nsPoint ptInFrame = mDownPoint;
   nsLayoutUtils::TransformPoint(rootFrame, ptFrame, ptInFrame);
 
@@ -585,9 +603,7 @@ SelectionCarets::SelectWord()
 
   
   nsRefPtr<nsFrameSelection> fs = GetFrameSelection();
-  if (fs) {
-    fs->MaintainSelection();
-  }
+  fs->MaintainSelection();
   return rs;
 }
 
@@ -677,9 +693,6 @@ SelectionCarets::DragSelection(const nsPoint &movePoint)
   }
 
   nsRefPtr<nsFrameSelection> fs = GetFrameSelection();
-  if (!fs) {
-    return nsEventStatus_eConsumeNoDefault;
-  }
 
   nsresult result;
   nsIFrame *newFrame = nullptr;
@@ -704,10 +717,6 @@ SelectionCarets::DragSelection(const nsPoint &movePoint)
   }
 
   nsRefPtr<dom::Selection> selection = GetSelection();
-  if (!selection) {
-    return nsEventStatus_eConsumeNoDefault;
-  }
-
   int32_t rangeCount = selection->GetRangeCount();
   if (rangeCount <= 0) {
     return nsEventStatus_eConsumeNoDefault;
@@ -758,19 +767,12 @@ SelectionCarets::GetCaretYCenterPosition()
   }
 
   nsRefPtr<dom::Selection> selection = GetSelection();
-  if (!selection) {
-    return 0;
-  }
-
   int32_t rangeCount = selection->GetRangeCount();
   if (rangeCount <= 0) {
     return 0;
   }
 
   nsRefPtr<nsFrameSelection> fs = GetFrameSelection();
-  if (!fs) {
-    return 0;
-  }
 
   MOZ_ASSERT(mDragMode != NONE);
   nsCOMPtr<nsIContent> node;
@@ -803,18 +805,14 @@ void
 SelectionCarets::SetSelectionDragState(bool aState)
 {
   nsRefPtr<nsFrameSelection> fs = GetFrameSelection();
-  if (fs) {
-    fs->SetDragState(aState);
-  }
+  fs->SetDragState(aState);
 }
 
 void
 SelectionCarets::SetSelectionDirection(bool aForward)
 {
   nsRefPtr<dom::Selection> selection = GetSelection();
-  if (selection) {
-    selection->SetDirection(aForward ? eDirNext : eDirPrevious);
-  }
+  selection->SetDirection(aForward ? eDirNext : eDirPrevious);
 }
 
 static void

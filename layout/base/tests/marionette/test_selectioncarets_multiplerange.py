@@ -1,26 +1,25 @@
 # -*- coding: utf-8 -*-
-
-
-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from by import By
 from marionette import Actions
 from marionette_test import MarionetteTestCase
 from selection import SelectionManager
-from gestures import long_press_without_contextmenu
 
 
 class SelectionCaretsMultipleRangeTest(MarionetteTestCase):
-    _long_press_time = 1        
+    _long_press_time = 1        # 1 second
 
     def setUp(self):
-        
+        # Code to execute before a tests are run.
         MarionetteTestCase.setUp(self)
         self.actions = Actions(self.marionette)
 
     def openTestHtml(self, enabled=True):
-        
-        
+        # Open html for testing and enable selectioncaret and
+        # non-editable support
         self.marionette.execute_script(
             'SpecialPowers.setBoolPref("selectioncaret.enabled", %s);' %
             ('true' if enabled else 'false'))
@@ -37,6 +36,10 @@ class SelectionCaretsMultipleRangeTest(MarionetteTestCase):
         self._sel6 = self.marionette.find_element(By.ID, 'sel6')
         self._nonsel1 = self.marionette.find_element(By.ID, 'nonsel1')
 
+    def _long_press_without_contextmenu(self, el, x, y):
+        return self.actions.press(el, x, y).move_by_offset(0, 0).\
+            wait(self._long_press_time).release()
+
     def _long_press_to_select_word(self, el, wordOrdinal):
         sel = SelectionManager(el)
         original_content = sel.content
@@ -44,21 +47,21 @@ class SelectionCaretsMultipleRangeTest(MarionetteTestCase):
         self.assertTrue(wordOrdinal < len(words),
             'Expect at least %d words in the content.' % wordOrdinal)
 
-        
+        # Calc offset
         offset = 0
         for i in range(wordOrdinal):
             offset += (len(words[i]) + 1)
 
-        
+        # Move caret inside the word.
         el.tap()
         sel.move_caret_to_front()
         sel.move_caret_by_offset(offset)
         x, y = sel.caret_location()
 
-        
-        
-        
-        long_press_without_contextmenu(self.marionette, el, self._long_press_time, x, y)
+        # Long press the caret position. Selection carets should appear, and the
+        # word will be selected. On Windows, those spaces after the word
+        # will also be selected.
+        self._long_press_without_contextmenu(el, x, y).perform()
 
     def _to_unix_line_ending(self, s):
         """Changes all Windows/Mac line endings in s to UNIX line endings."""
@@ -71,7 +74,7 @@ class SelectionCaretsMultipleRangeTest(MarionetteTestCase):
 
         self.openTestHtml(enabled=True)
         halfY = self._nonsel1.size['height'] / 2
-        long_press_without_contextmenu(self.marionette, self._nonsel1, self._long_press_time, 0, halfY)
+        self._long_press_without_contextmenu(self._nonsel1, 0, halfY).perform()
         sel = SelectionManager(self._nonsel1)
         range_count = sel.range_count()
         self.assertEqual(range_count, 0)
@@ -82,7 +85,7 @@ class SelectionCaretsMultipleRangeTest(MarionetteTestCase):
         end selection caret should appear in last range's position.'''
         self.openTestHtml(enabled=True)
 
-        
+        # Select target element and get target caret location
         self._long_press_to_select_word(self._sel4, 3)
         sel = SelectionManager(self._body)
         (_, _), (end_caret_x, end_caret_y) = sel.selection_carets_location()
@@ -90,10 +93,10 @@ class SelectionCaretsMultipleRangeTest(MarionetteTestCase):
         self._long_press_to_select_word(self._sel6, 0)
         (_, _), (end_caret2_x, end_caret2_y) = sel.selection_carets_location()
 
-        
+        # Select start element
         self._long_press_to_select_word(self._sel3, 3)
 
-        
+        # Drag end caret to target location
         (caret1_x, caret1_y), (caret2_x, caret2_y) = sel.selection_carets_location()
         self.actions.flick(self._body, caret2_x, caret2_y, end_caret_x, end_caret_y, 1).perform()
         self.assertEqual(self._to_unix_line_ending(sel.selected_content.strip()),
