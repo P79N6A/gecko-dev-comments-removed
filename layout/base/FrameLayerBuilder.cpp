@@ -4485,7 +4485,9 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
     if (aContainerFrame->GetContent() &&
         nsLayoutUtils::HasAnimationsForCompositor(
           aContainerFrame->GetContent(), eCSSProperty_transform)) {
-      scale = nsLayoutUtils::ComputeSuitableScaleForAnimation(aContainerFrame->GetContent());
+      scale = nsLayoutUtils::ComputeSuitableScaleForAnimation(
+                aContainerFrame->GetContent(), aVisibleRect.Size(),
+                aContainerFrame->PresContext()->GetVisibleArea().Size());
     } else {
       
       scale = RoundToFloatPrecision(ThebesMatrix(transform2d).ScaleFactors(true));

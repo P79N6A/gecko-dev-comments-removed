@@ -2154,7 +2154,11 @@ public:
 
 
 
-  static gfxSize ComputeSuitableScaleForAnimation(nsIContent* aContent);
+
+
+  static gfxSize ComputeSuitableScaleForAnimation(nsIContent* aContent,
+                                                  const nsSize& aVisibleSize,
+                                                  const nsSize& aDisplaySize);
 
   
 

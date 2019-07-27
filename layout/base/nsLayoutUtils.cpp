@@ -481,18 +481,16 @@ GetScaleForValue(const StyleAnimationValue& aValue, nsIFrame* aFrame)
 }
 
 static float
-GetSuitableScale(float aMaxScale, float aMinScale)
+GetSuitableScale(float aMaxScale, float aMinScale,
+                 nscoord aVisibleDimension, nscoord aDisplayDimension)
 {
+  float displayVisibleRatio = float(aDisplayDimension) /
+                              float(aVisibleDimension);
   
   
-  if (aMinScale >= 1.0f) {
-    return aMinScale;
-  }
-  else if (aMaxScale <= 1.0f) {
-    return aMaxScale;
-  }
-
-  return 1.0f;
+  
+  
+  return std::max(std::min(aMaxScale, displayVisibleRatio), aMinScale);
 }
 
 static void
@@ -531,7 +529,9 @@ GetMinAndMaxScaleForAnimationProperty(nsIContent* aContent,
 }
 
 gfxSize
-nsLayoutUtils::ComputeSuitableScaleForAnimation(nsIContent* aContent)
+nsLayoutUtils::ComputeSuitableScaleForAnimation(nsIContent* aContent,
+                                                const nsSize& aVisibleSize,
+                                                const nsSize& aDisplaySize)
 {
   gfxSize maxScale(std::numeric_limits<gfxFloat>::min(),
                    std::numeric_limits<gfxFloat>::min());
@@ -556,11 +556,13 @@ nsLayoutUtils::ComputeSuitableScaleForAnimation(nsIContent* aContent)
 
   if (maxScale.width == std::numeric_limits<gfxFloat>::min()) {
     
-    maxScale = minScale = gfxSize(1.0, 1.0);
+    return gfxSize(1.0, 1.0);
   }
 
-  return gfxSize(GetSuitableScale(maxScale.width, minScale.width),
-                 GetSuitableScale(maxScale.height, minScale.height));
+  return gfxSize(GetSuitableScale(maxScale.width, minScale.width,
+                                  aVisibleSize.width, aDisplaySize.width),
+                 GetSuitableScale(maxScale.height, minScale.height,
+                                  aVisibleSize.height, aDisplaySize.height));
 }
 
 bool
