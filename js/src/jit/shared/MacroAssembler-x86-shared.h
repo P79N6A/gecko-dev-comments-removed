@@ -965,13 +965,13 @@ class MacroAssemblerX86Shared : public Assembler
     void packedSubInt32(const Operand &src, FloatRegister dest) {
         vpsubd(src, dest, dest);
     }
-    void packedReciprocalFloat32x4(const Operand &src, FloatRegister dest) {
+    void packedRcpApproximationFloat32x4(const Operand &src, FloatRegister dest) {
         
         
         
         vrcpps(src, dest);
     }
-    void packedReciprocalSqrtFloat32x4(const Operand &src, FloatRegister dest) {
+    void packedRcpSqrtApproximationFloat32x4(const Operand &src, FloatRegister dest) {
         
         vrsqrtps(src, dest);
     }

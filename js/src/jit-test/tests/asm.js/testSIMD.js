@@ -561,11 +561,11 @@ function assertNear(a, b) {
     if (Math.abs(a - b) > 1e-3)
         throw 'More than 1e-3 between ' + a + ' and ' + b;
 }
-var CheckRecp = CheckUnaryF4('reciprocal', function(x) { return 1 / x; }, assertNear);
+var CheckRecp = CheckUnaryF4('reciprocalApproximation', function(x) { return 1 / x; }, assertNear);
 CheckRecp([1, 42.42, 0.63, 13.37]);
 CheckRecp([NaN, -Infinity, Infinity, 0]);
 
-var CheckRecp = CheckUnaryF4('reciprocalSqrt', function(x) { return 1 / Math.sqrt(x); }, assertNear);
+var CheckRecp = CheckUnaryF4('reciprocalSqrtApproximation', function(x) { return 1 / Math.sqrt(x); }, assertNear);
 CheckRecp([1, 42.42, 0.63, 13.37]);
 CheckRecp([NaN, -Infinity, Infinity, 0]);
 
