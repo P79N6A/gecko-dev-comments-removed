@@ -16,6 +16,7 @@
 #include "LookAndFeel.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/PatternHelpers.h"
+#include "mozilla/Likely.h"
 #include "nsAlgorithm.h"
 #include "nsBlockFrame.h"
 #include "nsCaret.h"
@@ -4376,23 +4377,28 @@ ShouldStartRunAtIndex(const nsTArray<CharPosition>& aPositions,
   return false;
 }
 
-uint32_t
-SVGTextFrame::ResolvePositions(nsIContent* aContent,
-                               uint32_t aIndex,
-                               bool aInTextPath,
-                               bool& aForceStartOfChunk,
-                               nsTArray<gfxPoint>& aDeltas)
+bool
+SVGTextFrame::ResolvePositionsForNode(nsIContent* aContent,
+                                      uint32_t& aIndex,
+                                      bool aInTextPath,
+                                      bool& aForceStartOfChunk,
+                                      nsTArray<gfxPoint>& aDeltas)
 {
   if (aContent->IsNodeOfType(nsINode::eTEXT)) {
     
     uint32_t length = static_cast<nsTextNode*>(aContent)->TextLength();
     if (length) {
+      uint32_t end = aIndex + length;
+      if (MOZ_UNLIKELY(end > mPositions.Length())) {
+        MOZ_ASSERT_UNREACHABLE("length of mPositions does not match characters "
+                               "found by iterating content");
+        return false;
+      }
       if (aForceStartOfChunk) {
         
         mPositions[aIndex].mStartOfChunk = true;
         aForceStartOfChunk = false;
       }
-      uint32_t end = aIndex + length;
       while (aIndex < end) {
         
         
@@ -4405,18 +4411,23 @@ SVGTextFrame::ResolvePositions(nsIContent* aContent,
         aIndex++;
       }
     }
-    return aIndex;
+    return true;
   }
 
   
   if (!IsTextContentElement(aContent)) {
-    return aIndex;
+    return true;
   }
 
   if (aContent->IsSVGElement(nsGkAtoms::textPath)) {
     
     
     if (HasTextContent(aContent)) {
+      if (MOZ_UNLIKELY(aIndex >= mPositions.Length())) {
+        MOZ_ASSERT_UNREACHABLE("length of mPositions does not match characters "
+                               "found by iterating content");
+        return false;
+      }
       mPositions[aIndex].mPosition = gfxPoint();
       mPositions[aIndex].mStartOfChunk = true;
     }
@@ -4436,8 +4447,14 @@ SVGTextFrame::ResolvePositions(nsIContent* aContent,
       rotate = &animatedRotate->GetAnimValue();
     }
 
-    uint32_t count = GetTextContentLength(aContent);
     bool percentages = false;
+    uint32_t count = GetTextContentLength(aContent);
+
+    if (MOZ_UNLIKELY(aIndex + count > mPositions.Length())) {
+      MOZ_ASSERT_UNREACHABLE("length of mPositions does not match characters "
+                             "found by iterating content");
+      return false;
+    }
 
     
     
@@ -4516,8 +4533,11 @@ SVGTextFrame::ResolvePositions(nsIContent* aContent,
   for (nsIContent* child = aContent->GetFirstChild();
        child;
        child = child->GetNextSibling()) {
-    aIndex = ResolvePositions(child, aIndex, inTextPath, aForceStartOfChunk,
-                              aDeltas);
+    bool ok = ResolvePositionsForNode(child, aIndex, inTextPath,
+                                      aForceStartOfChunk, aDeltas);
+    if (!ok) {
+      return false;
+    }
   }
 
   if (aContent->IsSVGElement(nsGkAtoms::textPath)) {
@@ -4525,7 +4545,7 @@ SVGTextFrame::ResolvePositions(nsIContent* aContent,
     aForceStartOfChunk = true;
   }
 
-  return aIndex;
+  return true;
 }
 
 bool
@@ -4561,8 +4581,10 @@ SVGTextFrame::ResolvePositions(nsTArray<gfxPoint>& aDeltas,
 
   
   bool forceStartOfChunk = false;
-  return ResolvePositions(mContent, 0, aRunPerGlyph,
-                          forceStartOfChunk, aDeltas) != 0;
+  index = 0;
+  bool ok = ResolvePositionsForNode(mContent, index, aRunPerGlyph,
+                                    forceStartOfChunk, aDeltas);
+  return ok && index > 0;
 }
 
 void
@@ -5015,6 +5037,7 @@ SVGTextFrame::DoGlyphPositioning()
   
   nsTArray<gfxPoint> deltas;
   if (!ResolvePositions(deltas, adjustingTextLength)) {
+    
     
     
     

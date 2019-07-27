@@ -522,11 +522,18 @@ private:
 
 
 
-  uint32_t ResolvePositions(nsIContent* aContent, uint32_t aIndex,
-                            bool aInTextPath, bool& aForceStartOfChunk,
-                            nsTArray<gfxPoint>& aDeltas);
+
+
+
+  bool ResolvePositionsForNode(nsIContent* aContent, uint32_t& aIndex,
+                               bool aInTextPath, bool& aForceStartOfChunk,
+                               nsTArray<gfxPoint>& aDeltas);
 
   
+
+
+
+
 
 
 
