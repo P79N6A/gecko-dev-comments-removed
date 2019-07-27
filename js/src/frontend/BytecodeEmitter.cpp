@@ -1010,6 +1010,10 @@ EmitAtomOp(ExclusiveContext *cx, JSAtom *atom, JSOp op, BytecodeEmitter *bce)
 {
     MOZ_ASSERT(JOF_OPTYPE(op) == JOF_ATOM);
 
+    
+    
+    MOZ_ASSERT_IF(op == JSOP_NAME || op == JSOP_GETGNAME, atom != cx->names().dotGenerator);
+
     if (op == JSOP_GETPROP && atom == cx->names().length) {
         
         op = JSOP_LENGTH;
