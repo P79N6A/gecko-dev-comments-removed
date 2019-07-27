@@ -66,6 +66,11 @@ struct MaiAtkObject
   
 
 
+  AtkHyperlink* GetAtkHyperlink();
+
+  
+
+
   void Shutdown();
 };
 
