@@ -2605,44 +2605,22 @@ SourceActor.prototype = {
     return DevToolsUtils.yieldingEach(mappings._array, m => {
       let mapping = {
         generated: {
-          line: m.generatedLine,
-          column: m.generatedColumn
+          line: m.originalLine,
+          column: m.originalColumn
         }
       };
       if (m.source) {
         mapping.source = m.source;
         mapping.original = {
-          line: m.originalLine,
-          column: m.originalColumn
+          line: m.generatedLine,
+          column: m.generatedColumn
         };
         mapping.name = m.name;
       }
       generator.addMapping(mapping);
     }).then(() => {
       generator.setSourceContent(this.url, code);
-      const consumer = SourceMapConsumer.fromSourceMap(generator);
-
-      
-      
-      
-
-      const getOrigPos = consumer.originalPositionFor.bind(consumer);
-      const getGenPos = consumer.generatedPositionFor.bind(consumer);
-
-      consumer.originalPositionFor = ({ line, column }) => {
-        const location = getGenPos({
-          line: line,
-          column: column,
-          source: this.url
-        });
-        location.source = this.url;
-        return location;
-      };
-
-      consumer.generatedPositionFor = ({ line, column }) => getOrigPos({
-        line: line,
-        column: column
-      });
+      let consumer = SourceMapConsumer.fromSourceMap(generator);
 
       return {
         code: code,
@@ -2896,40 +2874,63 @@ SourceActor.prototype = {
           return originalLocation;
         }
       } else {
-        if (originalColumn === undefined) {
-          let loop = (actualLocation) => {
-            let {
-              originalLine: actualLine,
-              originalColumn: actualColumn
-            } = actualLocation;
+        let slideByColumn = (actualColumn) => {
+          return this.sources.getAllGeneratedLocations(new OriginalLocation(
+            this,
+            originalLine,
+            actualColumn
+          )).then((generatedLocations) => {
+            
+            
+            
+            
+            
+            if (generatedLocations.length === 0) {
+              return slideByLine(originalLine + 1);
+            }
 
-            return this.threadActor.sources.getAllGeneratedLocations(actualLocation)
-                                           .then((generatedLocations) => {
-              
-              
-              
-              
-              
-              if (generatedLocations.length === 0) {
-                return originalLocation;
-              }
+            
+            
+            
+            if (this._setBreakpointAtAllGeneratedLocations(actor, generatedLocations)) {
+              return this.threadActor.sources.getOriginalLocation(generatedLocations[0]);
+            }
 
-              
-              
-              
-              if (this._setBreakpointAtAllGeneratedLocations(actor, generatedLocations)) {
-                return this.threadActor.sources.getOriginalLocation(generatedLocations[0]);
-              }
+            
+            return slideByColumn(actualColumn + 1);
+          });
+        };
 
-              
-              return loop(new OriginalLocation(this, actualLine + 1));
-            });
-          };
+        let slideByLine = (actualLine) => {
+          return this.sources.getAllGeneratedLocations(new OriginalLocation(
+            this,
+            actualLine
+          )).then((generatedLocations) => {
+            
+            
+            
+            
+            
+            if (generatedLocations.length === 0) {
+              return originalLocation;
+            }
 
-          return loop(new OriginalLocation(this, originalLine + 1));
+            
+            
+            
+            if (this._setBreakpointAtAllGeneratedLocations(actor, generatedLocations)) {
+              return this.threadActor.sources.getOriginalLocation(generatedLocations[0]);
+            }
+
+            
+            return slideByLine(actualLine + 1);
+          });
+        };
+
+        if (originalColumn !== undefined) {
+          return slideByColumn(originalColumn + 1);
         } else {
-          
-          return originalLocation;
+          return slideByLine(originalLine + 1);
         }
       }
     }).then((actualLocation) => {
@@ -3040,8 +3041,6 @@ SourceActor.prototype = {
           return lineNumber === generatedLine;
         });
         for (let { columnNumber: column, offset } of columnToOffsetMap) {
-          
-          
           if (column >= generatedColumn && column <= generatedLastColumn) {
             entryPoints.push({ script, offsets: [offset] });
           }
