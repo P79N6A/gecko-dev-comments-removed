@@ -17,7 +17,6 @@
 #include "nsIEventTarget.h"
 #include "nsIObserver.h"
 
-class nsIThread;
 class nsIThreadPool;
 
 namespace mozilla {
@@ -77,15 +76,6 @@ public:
 
 
 
-  already_AddRefed<nsIEventTarget> GetIOEventTarget();
-
-  
-
-
-
-
-
-
   already_AddRefed<nsIRunnable> CreateDecodeWorker(Decoder* aDecoder);
 
 private:
@@ -102,9 +92,10 @@ private:
   static StaticRefPtr<DecodePool> sSingleton;
 
   
-  Mutex                     mMutex;
+  
+  
+  Mutex                     mThreadPoolMutex;
   nsCOMPtr<nsIThreadPool>   mThreadPool;
-  nsCOMPtr<nsIThread>       mIOThread;
 };
 
 } 
