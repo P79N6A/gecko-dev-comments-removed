@@ -214,9 +214,7 @@ nsILineBreaker *nsContentUtils::sLineBreaker;
 nsIWordBreaker *nsContentUtils::sWordBreaker;
 nsIBidiKeyboard *nsContentUtils::sBidiKeyboard = nullptr;
 uint32_t nsContentUtils::sScriptBlockerCount = 0;
-#ifdef DEBUG
 uint32_t nsContentUtils::sDOMNodeRemovedSuppressCount = 0;
-#endif
 uint32_t nsContentUtils::sMicroTaskLevel = 0;
 nsTArray< nsCOMPtr<nsIRunnable> >* nsContentUtils::sBlockedScriptRunners = nullptr;
 uint32_t nsContentUtils::sRunnersCountAtFirstBlocker = 0;
@@ -3893,26 +3891,23 @@ nsContentUtils::MaybeFireNodeRemoved(nsINode* aChild, nsINode* aParent,
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  NS_ASSERTION((aChild->IsNodeOfType(nsINode::eCONTENT) &&
-               static_cast<nsIContent*>(aChild)->
-                 IsInNativeAnonymousSubtree()) ||
-               IsSafeToRunScript() ||
-               sDOMNodeRemovedSuppressCount,
-               "Want to fire DOMNodeRemoved event, but it's not safe");
-
-  
-  
-  
-  
   if (!IsSafeToRunScript()) {
-    WarnScriptWasIgnored(aOwnerDoc);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!(aChild->IsContent() && aChild->AsContent()->IsInNativeAnonymousSubtree()) &&
+        !sDOMNodeRemovedSuppressCount) {
+      NS_ERROR("Want to fire DOMNodeRemoved event, but it's not safe");
+      WarnScriptWasIgnored(aOwnerDoc);
+    }
     return;
   }
 
