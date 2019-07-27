@@ -24,12 +24,14 @@ public:
 
   DNSRequestParent();
 
-  void DoAsyncResolve(const nsACString  &hostname, uint32_t flags);
+  void DoAsyncResolve(const nsACString  &hostname, uint32_t flags,
+                      const nsACString  &networkInterface);
 
   
   
   bool RecvCancelDNSRequest(const nsCString& hostName,
                             const uint32_t& flags,
+                            const nsCString& networkInterface,
                             const nsresult& reason) MOZ_OVERRIDE;
   bool Recv__delete__() MOZ_OVERRIDE;
 

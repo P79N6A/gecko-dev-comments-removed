@@ -254,7 +254,8 @@ NeckoChild::DeallocPUDPSocketChild(PUDPSocketChild* child)
 
 PDNSRequestChild*
 NeckoChild::AllocPDNSRequestChild(const nsCString& aHost,
-                                  const uint32_t& aFlags)
+                                  const uint32_t& aFlags,
+                                  const nsCString& aNetworkInterface)
 {
   
   
