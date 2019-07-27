@@ -54,7 +54,7 @@ public class ExtendedJSONObject {
       return getJSONParser().parse(in);
     } catch (Error e) {
       
-      throw new ParseException(ParseException.ERROR_UNEXPECTED_EXCEPTION);
+      throw new ParseException(ParseException.ERROR_UNEXPECTED_EXCEPTION, e);
     }
   }
 
@@ -72,7 +72,7 @@ public class ExtendedJSONObject {
       return getJSONParser().parse(input);
     } catch (Error e) {
       
-      throw new ParseException(ParseException.ERROR_UNEXPECTED_EXCEPTION);
+      throw new ParseException(ParseException.ERROR_UNEXPECTED_EXCEPTION, e);
     }
   }
 
@@ -314,6 +314,7 @@ public class ExtendedJSONObject {
     return this.object.toJSONString();
   }
 
+  @Override
   public String toString() {
     return this.object.toString();
   }
