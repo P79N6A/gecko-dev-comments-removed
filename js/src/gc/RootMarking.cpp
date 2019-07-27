@@ -418,10 +418,17 @@ js::gc::GCRuntime::markRuntime(JSTracer* trc,
     if (traceOrMark == MarkRuntime) {
         gcstats::AutoPhase ap(stats, gcstats::PHASE_MARK_CCWS);
 
+        
+
+
+
+
+
         for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next()) {
             if (!c->zone()->isCollecting())
                 c->markCrossCompartmentWrappers(trc);
         }
+
         Debugger::markIncomingCrossCompartmentEdges(trc);
     }
 
