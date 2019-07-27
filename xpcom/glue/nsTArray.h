@@ -1448,10 +1448,10 @@ public:
   }
 
   
-  template<class Item>
+  template<class Item, typename ActualAlloc = Alloc>
   elem_type* AppendElement(Item&& aItem)
   {
-    if (!Alloc::Successful(this->template EnsureCapacity<Alloc>(
+    if (!ActualAlloc::Successful(this->template EnsureCapacity<ActualAlloc>(
           Length() + 1, sizeof(elem_type)))) {
       return nullptr;
     }
@@ -1459,6 +1459,14 @@ public:
     elem_traits::Construct(elem, mozilla::Forward<Item>(aItem));
     this->IncrementLength(1);
     return elem;
+  }
+
+  template<class Item>
+  
+  elem_type* AppendElement(Item&& aItem,
+                           const mozilla::fallible_t&)
+  {
+    return AppendElement<Item, FallibleAlloc>(mozilla::Forward<Item>(aItem));
   }
 
   
@@ -1489,7 +1497,18 @@ public:
   
   
   
-  elem_type* AppendElement() { return AppendElements(1); }
+  template<typename ActualAlloc = Alloc>
+  elem_type* AppendElement()
+  {
+    return AppendElements<ActualAlloc>(1);
+  }
+
+  template<class Item>
+  
+  elem_type* AppendElement(const mozilla::fallible_t&)
+  {
+    return AppendElement<FallibleAlloc>();
+  }
 
   
   
