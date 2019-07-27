@@ -322,7 +322,7 @@ inline Type GetValueType(const Value &val);
 
 
 
-inline Type GetMaybeOptimizedOutValueType(const Value &val);
+inline Type GetMaybeUntrackedValueType(const Value &val);
 
 
 

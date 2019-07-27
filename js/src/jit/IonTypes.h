@@ -352,18 +352,19 @@ enum MIRType
     MIRType_String,
     MIRType_Symbol,
     MIRType_Object,
-    MIRType_MagicOptimizedArguments, 
-    MIRType_MagicOptimizedOut,       
-    MIRType_MagicHole,               
-    MIRType_MagicIsConstructing,     
+    MIRType_MagicOptimizedArguments,   
+    MIRType_MagicOptimizedOut,         
+    MIRType_MagicHole,                 
+    MIRType_MagicIsConstructing,       
+    MIRType_MagicUninitializedLexical, 
     MIRType_Value,
-    MIRType_None,                    
-    MIRType_Slots,                   
-    MIRType_Elements,                
-    MIRType_Pointer,                 
-    MIRType_Shape,                   
-    MIRType_TypeObject,              
-    MIRType_ForkJoinContext,         
+    MIRType_None,                      
+    MIRType_Slots,                     
+    MIRType_Elements,                  
+    MIRType_Pointer,                   
+    MIRType_Shape,                     
+    MIRType_TypeObject,                
+    MIRType_ForkJoinContext,           
     MIRType_Last = MIRType_ForkJoinContext,
     MIRType_Float32x4 = MIRType_Float32 | (2 << VECTOR_SCALE_SHIFT),
     MIRType_Int32x4   = MIRType_Int32   | (2 << VECTOR_SCALE_SHIFT),
@@ -435,6 +436,7 @@ ValueTypeFromMIRType(MIRType type)
     case MIRType_MagicOptimizedOut:
     case MIRType_MagicHole:
     case MIRType_MagicIsConstructing:
+    case MIRType_MagicUninitializedLexical:
       return JSVAL_TYPE_MAGIC;
     default:
       JS_ASSERT(type == MIRType_Object);
@@ -478,6 +480,8 @@ StringFromMIRType(MIRType type)
       return "MagicHole";
     case MIRType_MagicIsConstructing:
       return "MagicIsConstructing";
+    case MIRType_MagicUninitializedLexical:
+      return "MagicUninitializedLexical";
     case MIRType_Value:
       return "Value";
     case MIRType_None:
