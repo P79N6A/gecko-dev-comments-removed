@@ -49,21 +49,13 @@ var pktUI = (function() {
 
 	
 	var inited = false;
-	var _currentPanelDidShow;
-    var _currentPanelDidHide;
+	var currentPanelDidShow, currentPanelDidHide;
 	var _isHidden = false;
+	
 	var _notificationTimeout;
-    
-    
-    
-    
-    var _panelId = 0;
-
-    var prefBranch = Services.prefs.getBranch("browser.pocket.settings.");
-
-    var savePanelWidth = 350;
-    var savePanelHeights = {collapsed: 153, expanded: 272};
-
+	
+	var prefBranch = Services.prefs.getBranch("browser.pocket.settings.");
+	
 	
 
 
@@ -170,15 +162,15 @@ var pktUI = (function() {
     }
     
     function pocketPanelDidShow(event) {
-    	if (_currentPanelDidShow) {
-    		_currentPanelDidShow(event);
+    	if (currentPanelDidShow) {
+    		currentPanelDidShow(event);
         }
     	
     }
     
     function pocketPanelDidHide(event) {
-    	if (_currentPanelDidHide) {
-    		_currentPanelDidHide(event);
+    	if (currentPanelDidHide) {
+    		currentPanelDidHide(event);
         }
         
         
@@ -307,7 +299,7 @@ var pktUI = (function() {
                     startheight = 436;
                 }
             }
-           var panelId = showPanel("chrome://browser/content/pocket/panels/signup.html?pockethost=" + Services.prefs.getCharPref("browser.pocket.site") + "&fxasignedin=" + fxasignedin + "&variant=" + pktApi.getSignupAB(), {
+           showPanel("chrome://browser/content/pocket/panels/signup.html?pockethost=" + Services.prefs.getCharPref("browser.pocket.site") + "&fxasignedin=" + fxasignedin + "&variant=" + pktApi.getSignupAB(), {
                onShow: function() {
                 },
                onHide: panelDidHide,
@@ -329,28 +321,13 @@ var pktUI = (function() {
 
         var isValidURL = (typeof url !== 'undefined' && (url.startsWith("http") || url.startsWith('https')));
 
-        var panelId = showPanel("chrome://browser/content/pocket/panels/saved.html?pockethost=" + Services.prefs.getCharPref("browser.pocket.site") + "&premiumStatus=" + (pktApi.isPremiumUser() ? '1' : '0'), {
+        showPanel("chrome://browser/content/pocket/panels/saved.html?pockethost=" + Services.prefs.getCharPref("browser.pocket.site") + "&premiumStatus=" + (pktApi.isPremiumUser() ? '1' : '0'), {
     		onShow: function() {
-                var saveLinkMessageId = 'saveLink';
-
                 
                 if (!isValidURL) {
-                    
-                    var error = {
-                        message: 'Only links can be saved',
-                        localizedKey: "onlylinkssaved"
-                    };
-                    pktUIMessaging.sendErrorMessageToPanel(panelId, saveLinkMessageId, error);
+                    var error = new Error('Only links can be saved');
+                    sendErrorMessage('saveLink', error);
                     return;
-                }
-
-                
-                if (!navigator.onLine) {
-                    
-                    var error = {
-                        message: 'You must be connected to the Internet in order to save to Pocket. Please connect to the Internet and try again.'
-                    };
-                    pktUIMessaging.sendErrorMessageToPanel(panelId, saveLinkMessageId, error);                    return;
                 }
 
                 
@@ -361,7 +338,7 @@ var pktUI = (function() {
                             status: "success",
                             item: item
                         };
-                        pktUIMessaging.sendMessageToPanel(panelId, saveLinkMessageId, successResponse);
+                        sendMessage('saveLink', successResponse);
                     },
                     error: function(error, request) {
                         
@@ -371,12 +348,7 @@ var pktUI = (function() {
                         }
 
                         
-                        
-                        var errorMessage = error.message || "There was an error when trying to save to Pocket.";
-                        var panelError = { message: errorMessage}
-
-                         
-                        pktUIMessaging.sendErrorMessageToPanel(panelId, saveLinkMessageId, panelError);
+                        sendErrorMessage('saveLink', error);
                     }
                 }
 
@@ -389,8 +361,8 @@ var pktUI = (function() {
 				pktApi.addLink(url, options);
 			},
 			onHide: panelDidHide,
-            width: savePanelWidth,
-            height: pktApi.isPremiumUser() && isValidURL ? savePanelHeights.expanded : savePanelHeights.collapsed
+            width: 350,
+            height: 267
     	});
     }
 
@@ -398,9 +370,6 @@ var pktUI = (function() {
 
 
     function showPanel(url, options) {
-        
-        _panelId += 1;
-        url += ("&panelId=" + _panelId);
 
         
         
@@ -420,15 +389,13 @@ var pktUI = (function() {
 
     	
     	
-    	_currentPanelDidShow = options.onShow;
-    	_currentPanelDidHide = options.onHide;
+    	currentPanelDidShow = options.onShow;
+    	currentPanelDidHide = options.onHide;
 
         resizePanel({
             width: options.width,
             height: options.height
         });
-
-        return _panelId;
     }
 
     
@@ -455,131 +422,167 @@ var pktUI = (function() {
     }
 
     
+    
+
+    
+
+
+    function addMessageListener(messageId, callback) {
+
+		document.addEventListener('PKT_'+messageId, function(e) { 
+            
+			if (e.target.tagName !== 'PKTMESSAGEFROMPANELELEMENT') {
+				return;
+            }
+
+            
+			callback(JSON.parse(e.target.getAttribute("payload"))[0]);
+
+			
+			e.target.parentNode.removeChild(e.target);
+
+		}, false, true);
+
+    }
+
+    
+
+
+    function removeMessageListener(messageId, callback) {
+    	document.removeMessageListener('PKT_'+messageId, callback);
+    }
+
+    
+
+
+    function sendMessage(messageId, payload) {
+
+    	var doc = getPanelFrame().contentWindow.document;
+
+		var AnswerEvt = doc.createElement("PKTMessage");
+	    AnswerEvt.setAttribute("payload", JSON.stringify([payload]));
+
+	    doc.documentElement.appendChild(AnswerEvt);
+
+	    var event = doc.createEvent("HTMLEvents");
+	    event.initEvent('PKT_'+messageId, true, false);
+	    AnswerEvt.dispatchEvent(event);
+    }
+
+    
+
+
+    function sendErrorMessage(messageId, error) {
+		var errorResponse = {status: "error", error: error.message};
+		sendMessage(messageId, errorResponse);
+	}
+
+    
 
 
     function registerEventMessages() {
+
+    	
     	var iframe = getPanelFrame();
 
     	
-        var didInitAttributeKey = 'did_init';
-        var didInitMessageListener = iframe.getAttribute(didInitAttributeKey);
-        if (typeof didInitMessageListener !== "undefined" && didInitMessageListener == 1) {
-            return;
+    	if (iframe.getAttribute('did_init') == 1) {
+    		return;
         }
 
-    	iframe.setAttribute(didInitAttributeKey, 1);
+    	iframe.setAttribute('did_init', 1);
 
 		
 		
 		
 		
-		var _showMessageId = "show";
-        pktUIMessaging.addMessageListener(_showMessageId, function(panelId, data) {
+		addMessageListener("show", function(payload) {
 			
-			pktUIMessaging.sendMessageToPanel(panelId, _showMessageId);
+			sendMessage('show');
 		});
 
         
-        var _openTabWithUrlMessageId = "openTabWithUrl";
-        pktUIMessaging.addMessageListener(_openTabWithUrlMessageId, function(panelId, data) {
-
-            
+        addMessageListener("openTabWithUrl", function(payload) {
             var activate = true;
-            if (typeof data.activate !== "undefined") {
-                activate = data.activate;
+            if (typeof payload.activate !== "undefined") {
+                activate = payload.activate;
             }
-
-            var url = data.url;
-            openTabWithUrl(url, activate);
-            pktUIMessaging.sendResponseMessageToPanel(panelId, _openTabWithUrlMessageId, url);
+            openTabWithUrl(payload.url, activate);
+            sendMessage("openTabWithUrlResponse", payload.url);
         });
 
 		
-		var _closeMessageId = "close";
-       pktUIMessaging.addMessageListener(_closeMessageId, function(panelId, data) {
+		addMessageListener("close", function(payload) {
 			getPanel().hidePopup();
 		});
 
 		
-		var _getCurrentURLMessageId = "getCurrentURL";
-       pktUIMessaging.addMessageListener(_getCurrentURLMessageId, function(panelId, data) {
-            pktUIMessaging.sendResponseMessageToPanel(panelId, _getCurrentURLMessageId, getCurrentUrl());
-		});
-
-        var _resizePanelMessageId = "resizePanel";
-        pktUIMessaging.addMessageListener(_resizePanelMessageId, function(panelId, data) {
-           resizePanel(data);
-        });
-
-		
-       pktUIMessaging.addMessageListener("listenerReady", function(panelId, data) {
-
-       });
-
-       pktUIMessaging.addMessageListener("collapseSavePanel", function(panelId, data) {
-           if (!pktApi.isPremiumUser())
-               resizePanel({width:savePanelWidth, height:savePanelHeights.collapsed});
-		});
-
-		pktUIMessaging.addMessageListener("expandSavePanel", function(panelId, data) {
-           resizePanel({width:savePanelWidth, height:savePanelHeights.expanded});
+		addMessageListener("getCurrentURL", function(payload) {
+			sendMessage('getCurrentURLResponse', getCurrentUrl());
 		});
 
 		
-		var _getTagsMessageId = "getTags";
-        pktUIMessaging.addMessageListener(_getTagsMessageId, function(panelId, data) {
+		addMessageListener("listenerReady", function(payload) {
+		});
+
+		addMessageListener("resizePanel", function(payload) {
+			resizePanel(payload);
+		});
+
+		
+		addMessageListener("getTags", function(payload) {
 			pktApi.getTags(function(tags, usedTags) {
-                pktUIMessaging.sendResponseMessageToPanel(panelId, _getTagsMessageId, {
-                    tags: tags,
-                    usedTags: usedTags
-                });
+				sendMessage('getTagsResponse', {tags, usedTags});
 			});
 		});
 
 		
-		var _getSuggestedTagsMessageId = "getSuggestedTags";
-       pktUIMessaging.addMessageListener(_getSuggestedTagsMessageId, function(panelId, data) {
-           pktApi.getSuggestedTagsForURL(data.url, {
+		addMessageListener("getSuggestedTags", function(payload) {
+			var responseMessageId = "getSuggestedTagsResponse";
+
+			pktApi.getSuggestedTagsForURL(payload.url, {
 				success: function(data, response) {
 					var suggestedTags = data.suggested_tags;
 					var successResponse = {
 						status: "success",
 						value: {
-							suggestedTags : suggestedTags
+							"suggestedTags" : suggestedTags
 						}
 					}
-					pktUIMessaging.sendResponseMessageToPanel(panelId, _getSuggestedTagsMessageId, successResponse);
+					sendMessage(responseMessageId, successResponse);
 				},
 				error: function(error, response) {
-					pktUIMessaging.sendErrorResponseMessageToPanel(panelId, _getSuggestedTagsMessageId, error);
+					sendErrorMessage(responseMessageId, error);
 				}
 			})
 		});
 
 		
-		var _addTagsMessageId = "addTags";
-       pktUIMessaging.addMessageListener(_addTagsMessageId, function(panelId, data) {
-           pktApi.addTagsToURL(data.url, data.tags, {
+		addMessageListener("addTags", function(payload) {
+			var responseMessageId = "addTagsResponse";
+
+			pktApi.addTagsToURL(payload.url, payload.tags, {
 				success: function(data, response) {
-				    var successResponse = {status: "success"};
-                    pktUIMessaging.sendResponseMessageToPanel(panelId, _addTagsMessageId, successResponse);
+				  var successResponse = {status: "success"};
+				  sendMessage(responseMessageId, successResponse);
 				},
 				error: function(error, response) {
-				  pktUIMessaging.sendErrorResponseMessageToPanel(panelId, _addTagsMessageId, error);
+				  sendErrorMessage(responseMessageId, error);
 				}
 			});
 		});
 
 		
-		var _deleteItemMessageId = "deleteItem";
-       pktUIMessaging.addMessageListener(_deleteItemMessageId, function(panelId, data) {
-           pktApi.deleteItem(data.itemId, {
+		addMessageListener("deleteItem", function(payload) {
+			var responseMessageId = "deleteItemResponse";
+
+			pktApi.deleteItem(payload.itemId, {
 				success: function(data, response) {
-				    var successResponse = {status: "success"};
-                    pktUIMessaging.sendResponseMessageToPanel(panelId, _deleteItemMessageId, successResponse);
+				  var successResponse = {status: "success"};
+				  sendMessage(responseMessageId, successResponse);
 				},
 				error: function(error, response) {
-					pktUIMessaging.sendErrorResponseMessageToPanel(panelId, _deleteItemMessageId, error);
+					sendErrorMessage(responseMessageId, error);
 				}
 			})
 		});
@@ -744,150 +747,4 @@ var pktUI = (function() {
     	
 		isHidden
     };
-}());
-
-
-
-var pktUIMessaging = (function() {
-
-    
-
-
-    function prefixedMessageId(messageId) {
-        return 'PKT_' + messageId;
-    }
-
-    
-
-
-    function addMessageListener(messageId, callback) {
-        document.addEventListener(prefixedMessageId(messageId), function(e) { 
-            
-            if (e.target.tagName !== 'PKTMESSAGEFROMPANELELEMENT') {
-                return;
-            }
-
-            
-            var payload = JSON.parse(e.target.getAttribute("payload"))[0];
-            var panelId = payload.panelId;
-            var data = payload.data;
-            callback(panelId, data);
-
-            
-            e.target.parentNode.removeChild(e.target);
-
-        }, false, true);
-    }
-
-    
-
-
-    function removeMessageListener(messageId, callback) {
-        document.removeEventListener(prefixedMessageId(messageId), callback);
-    }
-
-
-    
-
-
-    function sendMessageToPanel(panelId, messageId, payload) {
-
-        if (!isPanelIdValid(panelId)) { return; };
-
-        var panelFrame = document.getElementById('pocket-panel-iframe');
-        if (!isPocketPanelFrameValid(panelFrame)) { return; }
-
-        var doc = panelFrame.contentWindow.document;
-        var documentElement = doc.documentElement;
-
-        
-        var panelMessageId = prefixedMessageId(panelId + '_' + messageId);
-
-        var AnswerEvt = doc.createElement("PKTMessage");
-        AnswerEvt.setAttribute("payload", JSON.stringify([payload]));
-        documentElement.appendChild(AnswerEvt);
-
-        var event = doc.createEvent("HTMLEvents");
-        event.initEvent(panelMessageId, true, false);
-        AnswerEvt.dispatchEvent(event);
-    }
-
-    function sendResponseMessageToPanel(panelId, messageId, payload) {
-        var responseMessageId = messageId + "Response";
-        sendMessageToPanel(panelId, responseMessageId, payload);
-    }
-
-    
-
-
-
-    function sendErrorMessageToPanel(panelId, messageId, error) {
-        var errorResponse = {status: "error", error: error};
-        sendMessageToPanel(panelId, messageId, errorResponse);
-    }
-
-    function sendErrorResponseMessageToPanel(panelId, messageId, error) {
-        var errorResponse = {status: "error", error: error};
-        sendResponseMessageToPanel(panelId, messageId, errorResponse);
-    }
-
-    
-
-
-
-    function isPanelIdValid(panelId) {
-        
-        
-        
-        
-        
-        
-        if (panelId === 0) {
-            console.warn("Tried to send message to panel with id 0.")
-            return false;
-        }
-
-        return true
-    }
-
-    function isPocketPanelFrameValid(panelFrame) {
-        
-        
-        if (typeof panelFrame === "undefined") {
-            console.warn("Pocket panel frame is undefined");
-            return false;
-        }
-
-        var contentWindow = panelFrame.contentWindow;
-        if (typeof contentWindow == "undefined") {
-            console.warn("Pocket panel frame content window is undefined");
-            return false;
-        }
-
-        var doc = contentWindow.document;
-        if (typeof doc === "undefined") {
-            console.warn("Pocket panel frame content window document is undefined");
-            return false;
-        }
-
-        var documentElement = doc.documentElement;
-        if (typeof documentElement === "undefined") {
-            console.warn("Pocket panel frame content window document document element is undefined");
-            return false;
-        }
-
-        return true;
-    }
-
-    
-
-
-    return {
-        addMessageListener: addMessageListener,
-        removeMessageListener: removeMessageListener,
-        sendMessageToPanel: sendMessageToPanel,
-        sendResponseMessageToPanel: sendResponseMessageToPanel,
-        sendErrorMessageToPanel: sendErrorMessageToPanel,
-        sendErrorResponseMessageToPanel: sendErrorResponseMessageToPanel
-    }
 }());
