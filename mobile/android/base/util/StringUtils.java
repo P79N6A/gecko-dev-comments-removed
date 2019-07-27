@@ -160,4 +160,25 @@ public class StringUtils {
         return !("about".equals(scheme) || "chrome".equals(scheme) ||
                 "file".equals(scheme) || "resource".equals(scheme));
     }
+
+    
+
+
+
+
+
+
+
+
+    public static String decodeUserEnteredUrl(String url) {
+        Uri uri = Uri.parse(url);
+        if ("user-entered".equals(uri.getScheme())) {
+            return uri.getSchemeSpecificPart();
+        }
+        return url;
+    }
+
+    public static String encodeUserEnteredUrl(String url) {
+        return Uri.fromParts("user-entered", url, null).toString();
+    }
 }

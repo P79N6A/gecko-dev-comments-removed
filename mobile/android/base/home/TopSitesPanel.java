@@ -356,7 +356,8 @@ public class TopSitesPanel extends HomeFragment {
 
         if (itemId == R.id.top_sites_edit) {
             
-            mEditPinnedSiteListener.onEditPinnedSite(info.position, decodeUserEnteredUrl(info.url));
+            mEditPinnedSiteListener.onEditPinnedSite(info.position,
+                                                     StringUtils.decodeUserEnteredUrl(info.url));
 
             Telemetry.sendUIEvent(TelemetryContract.Event.EDIT);
             return true;
@@ -376,10 +377,6 @@ public class TopSitesPanel extends HomeFragment {
         
         
         ThreadUtils.reduceGeckoPriority(PRIORITY_RESET_TIMEOUT);
-    }
-
-    static String encodeUserEnteredUrl(String url) {
-        return Uri.fromParts("user-entered", url, null).toString();
     }
 
     

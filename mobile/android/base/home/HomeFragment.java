@@ -196,7 +196,7 @@ abstract class HomeFragment extends Fragment {
 
             
             
-            final Tab newTab = Tabs.getInstance().loadUrl(decodeUserEnteredUrl(url), flags);
+            final Tab newTab = Tabs.getInstance().loadUrl(StringUtils.decodeUserEnteredUrl(url), flags);
             final int newTabId = newTab.getId(); 
 
             final String message = isPrivate ?
@@ -275,22 +275,6 @@ abstract class HomeFragment extends Fragment {
         return mCanLoadHint;
     }
 
-    
-
-
-
-
-
-
-
-
-    public static String decodeUserEnteredUrl(String url) {
-        Uri uri = Uri.parse(url);
-        if ("user-entered".equals(uri.getScheme())) {
-            return uri.getSchemeSpecificPart();
-        }
-        return url;
-    }
 
     protected abstract void load();
 

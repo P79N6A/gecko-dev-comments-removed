@@ -14,6 +14,7 @@ import org.mozilla.gecko.ThumbnailHelper;
 import org.mozilla.gecko.db.BrowserContract.TopSites;
 import org.mozilla.gecko.db.TopSitesCursorWrapper;
 import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
+import org.mozilla.gecko.util.StringUtils;
 
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -106,7 +107,7 @@ public class TopSitesGridView extends GridView {
                 TopSitesGridItemView item = (TopSitesGridItemView) view;
 
                 
-                String url = HomeFragment.decodeUserEnteredUrl(item.getUrl());
+                String url = StringUtils.decodeUserEnteredUrl(item.getUrl());
                 int type = item.getType();
 
                 
