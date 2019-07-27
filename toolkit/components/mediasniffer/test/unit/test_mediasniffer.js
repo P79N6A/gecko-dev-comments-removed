@@ -22,13 +22,13 @@ const tests = [
   
   { contentType: "",
     expectedContentType: "application/ogg",
-    flags: Ci.nsIChannel.LOAD_TREAT_APPLICATION_OCTET_STREAM_AS_UNKNOWN },
+    flags: Ci.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS | Ci.nsIChannel.LOAD_MEDIA_SNIFFER_OVERRIDES_CONTENT_TYPE },
   { contentType: "application/octet-stream",
     expectedContentType: "application/ogg",
-    flags: Ci.nsIChannel.LOAD_TREAT_APPLICATION_OCTET_STREAM_AS_UNKNOWN },
+    flags: Ci.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS | Ci.nsIChannel.LOAD_MEDIA_SNIFFER_OVERRIDES_CONTENT_TYPE },
   { contentType: "application/something",
-    expectedContentType: "application/something",
-    flags: Ci.nsIChannel.LOAD_TREAT_APPLICATION_OCTET_STREAM_AS_UNKNOWN },
+    expectedContentType: "application/ogg",
+    flags: Ci.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS | Ci.nsIChannel.LOAD_MEDIA_SNIFFER_OVERRIDES_CONTENT_TYPE },
   
   
   { contentType: "application/octet-stream",
@@ -36,6 +36,9 @@ const tests = [
     flags: Ci.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS },
   { contentType: "",
     expectedContentType: "application/ogg",
+    flags: Ci.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS },
+  { contentType: "application/something",
+    expectedContentType: "application/something",
     flags: Ci.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS },
 ];
 
