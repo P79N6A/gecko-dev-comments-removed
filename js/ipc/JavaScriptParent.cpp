@@ -64,8 +64,12 @@ JavaScriptParent::trace(JSTracer *trc)
 }
 
 JSObject *
-JavaScriptParent::defaultScope()
+JavaScriptParent::scopeForTargetObjects()
 {
+    
+    
+    
+    
     return xpc::UnprivilegedJunkScope();
 }
 

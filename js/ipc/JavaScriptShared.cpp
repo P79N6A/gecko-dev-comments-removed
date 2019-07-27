@@ -381,27 +381,7 @@ JavaScriptShared::findObjectById(JSContext *cx, uint32_t objId)
     
     
     
-    RootedObject global(cx, GetGlobalForObjectCrossCompartment(obj));
-    nsCOMPtr<nsIGlobalObject> nativeGlobal = xpc::GetNativeForGlobal(global);
-    nsCOMPtr<nsIDOMWindow> window = do_QueryInterface(nativeGlobal);
-    if (window) {
-        dom::TabChild *tabChild = dom::TabChild::GetFrom(window);
-        if (tabChild) {
-            nsCOMPtr<nsIContentFrameMessageManager> mm;
-            tabChild->GetMessageManager(getter_AddRefs(mm));
-            nsCOMPtr<nsIGlobalObject> tabChildNativeGlobal = do_QueryInterface(mm);
-            RootedObject tabChildGlobal(cx, tabChildNativeGlobal->GetGlobalJSObject());
-            JSAutoCompartment ac(cx, tabChildGlobal);
-            if (!JS_WrapObject(cx, &obj))
-                return nullptr;
-            return obj;
-        }
-    }
-
-    
-    
-    
-    JSAutoCompartment ac(cx, defaultScope());
+    JSAutoCompartment ac(cx, scopeForTargetObjects());
     if (!JS_WrapObject(cx, &obj))
         return nullptr;
     return obj;

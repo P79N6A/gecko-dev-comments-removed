@@ -67,7 +67,9 @@ JavaScriptChild::finalize()
 }
 
 JSObject *
-JavaScriptChild::defaultScope()
+JavaScriptChild::scopeForTargetObjects()
 {
+    
+    
     return xpc::PrivilegedJunkScope();
 }
