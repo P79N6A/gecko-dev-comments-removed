@@ -251,9 +251,7 @@ MediaSource::RemoveSourceBuffer(SourceBuffer& aSourceBuffer, ErrorResult& aRv)
   if (sourceBuffer->Updating()) {
     
     
-    
-    
-    
+    sourceBuffer->Abort();
   }
   
   
