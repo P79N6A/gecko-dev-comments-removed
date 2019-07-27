@@ -659,6 +659,7 @@ class LNode
 
     
     
+    
     virtual size_t numTemps() const = 0;
     virtual LDefinition *getTemp(size_t index) = 0;
     virtual void setTemp(size_t index, const LDefinition &a) = 0;
