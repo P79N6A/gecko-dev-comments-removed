@@ -65,6 +65,42 @@ MozNDEFRecord::DropData()
 }
 
 
+
+
+
+
+
+bool
+MozNDEFRecord::ValidateTNF(const MozNDEFRecordOptions& aOptions,
+                           ErrorResult& aRv)
+{
+  
+  
+  
+
+  
+  
+  if ((aOptions.mTnf == TNF::Empty) &&
+      (aOptions.mType.WasPassed() || aOptions.mId.WasPassed() ||
+       aOptions.mPayload.WasPassed())) {
+    NS_WARNING("tnf is empty but type/id/payload is not null.");
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return false;
+  }
+
+  
+  
+  if ((aOptions.mTnf == TNF::Unknown || aOptions.mTnf == TNF::Unchanged) &&
+      aOptions.mType.WasPassed()) {
+    NS_WARNING("tnf is unknown/unchanged but type  is not null.");
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return false;
+  }
+
+  return true;
+}
+
+
 already_AddRefed<MozNDEFRecord>
 MozNDEFRecord::Constructor(const GlobalObject& aGlobal,
                            const MozNDEFRecordOptions& aOptions,
@@ -73,6 +109,10 @@ MozNDEFRecord::Constructor(const GlobalObject& aGlobal,
   nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(aGlobal.GetAsSupports());
   if (!win) {
     aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
+
+  if (!ValidateTNF(aOptions, aRv)) {
     return nullptr;
   }
 
