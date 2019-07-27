@@ -4,8 +4,8 @@
 
 
 
-#ifndef TimelineMarker_h__
-#define TimelineMarker_h__
+#ifndef TimelineMarker_h_
+#define TimelineMarker_h_
 
 #include "nsString.h"
 #include "GeckoProfiler.h"
