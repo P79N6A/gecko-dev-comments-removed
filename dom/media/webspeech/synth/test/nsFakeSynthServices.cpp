@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "nsISupports.h"
 #include "nsFakeSynthServices.h"
@@ -56,7 +56,7 @@ static const VoiceDetails sIndirectVoices[] = {
   {"urn:moz-tts:fake-indirect:teresa", "Teresa Cornelys", "it-IT-noend", false, eSuppressEnd},
 };
 
-// FakeSynthCallback
+
 class FakeSynthCallback : public nsISpeechTaskCallback
 {
 public:
@@ -107,7 +107,7 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(FakeSynthCallback)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(FakeSynthCallback)
 
-// FakeDirectAudioSynth
+
 
 class FakeDirectAudioSynth : public nsISpeechService
 {
@@ -142,8 +142,8 @@ FakeDirectAudioSynth::Speak(const nsAString& aText, const nsAString& aUri,
       nsRefPtr<FakeSynthCallback> cb = new FakeSynthCallback(nullptr);
       mTask->Setup(cb, CHANNELS, SAMPLERATE, 2);
 
-      // Just an arbitrary multiplier. Pretend that each character is
-      // synthesized to 40 frames.
+      
+      
       uint32_t frames_length = 40 * mText.Length();
       nsAutoArrayPtr<int16_t> frames(new int16_t[frames_length]());
       mTask->SendAudioNative(frames, frames_length);
@@ -170,7 +170,7 @@ FakeDirectAudioSynth::GetServiceType(SpeechServiceType* aServiceType)
   return NS_OK;
 }
 
-// FakeDirectAudioSynth
+
 
 class FakeIndirectAudioSynth : public nsISpeechService
 {
@@ -261,7 +261,7 @@ FakeIndirectAudioSynth::GetServiceType(SpeechServiceType* aServiceType)
   return NS_OK;
 }
 
-// nsFakeSynthService
+
 
 NS_INTERFACE_MAP_BEGIN(nsFakeSynthServices)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
@@ -304,14 +304,16 @@ nsFakeSynthServices::Init()
   AddVoices(mIndirectService, sIndirectVoices, ArrayLength(sIndirectVoices));
 }
 
-// nsIObserver
+
 
 NS_IMETHODIMP
 nsFakeSynthServices::Observe(nsISupports* aSubject, const char* aTopic,
                              const char16_t* aData)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  NS_ENSURE_TRUE(!strcmp(aTopic, "profile-after-change"), NS_ERROR_UNEXPECTED);
+  if(NS_WARN_IF(!(!strcmp(aTopic, "profile-after-change")))) {
+    return NS_ERROR_UNEXPECTED;
+  }
 
   if (Preferences::GetBool("media.webspeech.synth.test")) {
     Init();
@@ -320,7 +322,7 @@ nsFakeSynthServices::Observe(nsISupports* aSubject, const char* aTopic,
   return NS_OK;
 }
 
-// static methods
+
 
 nsFakeSynthServices*
 nsFakeSynthServices::GetInstance()
@@ -355,5 +357,5 @@ nsFakeSynthServices::Shutdown()
   sSingleton = nullptr;
 }
 
-} // namespace dom
-} // namespace mozilla
+} 
+} 
