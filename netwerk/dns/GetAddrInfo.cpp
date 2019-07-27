@@ -41,7 +41,7 @@ static PRLogModuleInfo *gGetAddrInfoLog = PR_NewLogModule("GetAddrInfo");
 #undef UNICODE
 #include <ws2tcpip.h>
 #undef GetAddrInfo
-#include <Windns.h>
+#include <windns.h>
 #endif
 
 namespace mozilla {
