@@ -569,6 +569,11 @@ class TypedArrayMethods
 
     
     
+    
+    
+    
+    
+    
     static bool
     copyWithin(JSContext *cx, CallArgs args)
     {

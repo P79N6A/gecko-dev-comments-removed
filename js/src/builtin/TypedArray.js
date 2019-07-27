@@ -3,6 +3,77 @@
 
 
 
+function TypedArrayCopyWithin(target, start, end = undefined) {
+    
+    if (!IsObject(this) || !IsTypedArray(this)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, this, target, start, end,
+                            "TypedArrayCopyWithin");
+    }
+
+    
+
+    
+    var obj = this;
+
+    
+    var len = TypedArrayLength(obj);
+
+    assert(0 <= len && len <= 0x7FFFFFFF,
+           "assumed by some of the math below, see also the other assertions");
+
+    
+    var relativeTarget = ToInteger(target);
+
+    var to = relativeTarget < 0 ? std_Math_max(len + relativeTarget, 0)
+                                : std_Math_min(relativeTarget, len);
+
+    
+    var relativeStart = ToInteger(start);
+
+    var from = relativeStart < 0 ? std_Math_max(len + relativeStart, 0)
+                                 : std_Math_min(relativeStart, len);
+
+    
+    var relativeEnd = end === undefined ? len
+                                        : ToInteger(end);
+
+    var final = relativeEnd < 0 ? std_Math_max(len + relativeEnd, 0)
+                                : std_Math_min(relativeEnd, len);
+
+    
+    var count = std_Math_min(final - from, len - to);
+
+    assert(0 <= to && to <= 0x7FFFFFFF,
+           "typed array |to| index assumed int32_t");
+    assert(0 <= from && from <= 0x7FFFFFFF,
+           "typed array |from| index assumed int32_t");
+
+    
+    
+    
+    
+    
+    
+    assert(-0x7FFFFFFF - 1 <= count && count <= 0x7FFFFFFF,
+           "typed array element count assumed int32_t");
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (count > 0)
+        MoveTypedArrayElements(obj, to | 0, from | 0, count | 0);
+
+    
+    return obj;
+}
+
+
 function TypedArrayEntries() {
     
     var O = this;
