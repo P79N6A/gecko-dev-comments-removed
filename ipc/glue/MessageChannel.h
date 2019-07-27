@@ -405,6 +405,7 @@ class MessageChannel : HasResultCodes
     
     void SynchronouslyClose();
 
+    bool WasTransactionCanceled(int transaction, int prio);
     bool ShouldDeferMessage(const Message& aMsg);
     void OnMessageReceivedFromLink(const Message& aMsg);
     void OnChannelErrorFromLink();

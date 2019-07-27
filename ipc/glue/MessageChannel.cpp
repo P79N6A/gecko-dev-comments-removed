@@ -791,6 +791,46 @@ MessageChannel::ProcessPendingRequests()
 }
 
 bool
+MessageChannel::WasTransactionCanceled(int transaction, int prio)
+{
+    if (transaction == mCurrentTransaction) {
+        return false;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    IPC_ASSERT(prio != IPC::Message::PRIORITY_NORMAL,
+               "Intentional crash: We canceled a CPOW that was racing with a sync message.");
+
+    return true;
+}
+
+bool
 MessageChannel::Send(Message* aMsg, Message* aReply)
 {
     
@@ -869,8 +909,7 @@ MessageChannel::Send(Message* aMsg, Message* aReply)
     msg->set_transaction_id(transaction);
 
     ProcessPendingRequests();
-    if (mCurrentTransaction != transaction) {
-        
+    if (WasTransactionCanceled(transaction, prio)) {
         return false;
     }
 
@@ -878,8 +917,7 @@ MessageChannel::Send(Message* aMsg, Message* aReply)
 
     while (true) {
         ProcessPendingRequests();
-        if (mCurrentTransaction != transaction) {
-            
+        if (WasTransactionCanceled(transaction, prio)) {
             return false;
         }
 
@@ -902,8 +940,7 @@ MessageChannel::Send(Message* aMsg, Message* aReply)
             return false;
         }
 
-        if (mCurrentTransaction != transaction) {
-            
+        if (WasTransactionCanceled(transaction, prio)) {
             return false;
         }
 
