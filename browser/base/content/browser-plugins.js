@@ -139,11 +139,6 @@ var gPluginHandler = {
       
       this.options.primaryPlugin = null;
     }
-    else if (event == "removed") {
-      
-      
-      this.browser.messageManager.sendAsyncMessage("BrowserPlugins:NotificationRemoved");
-    }
   },
 
   
