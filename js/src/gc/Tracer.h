@@ -201,6 +201,9 @@ class GCMarker : public JSTracer
 
     bool drainMarkStack(SliceBudget &budget);
 
+    
+    bool bufferingGrayRootsFailed;
+
     void resetBufferedGrayRoots();
 
     static void GrayCallback(JSTracer *trc, void **thing, JSGCTraceKind kind);

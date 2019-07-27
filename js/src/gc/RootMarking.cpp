@@ -563,13 +563,10 @@ js::gc::GCRuntime::bufferGrayRoots()
         MOZ_ASSERT(zone->gcGrayRoots.empty());
 
     
-    
-    grayBufferState = GrayBufferState::Okay;
-
-    
     MOZ_ASSERT(!IsMarkingGray(&marker));
     MOZ_ASSERT(IsMarkingTracer(&marker));
     MOZ_ASSERT(!marker.callback);
+    MOZ_ASSERT(!marker.bufferingGrayRootsFailed);
     marker.callback = GCMarker::GrayCallback;
     MOZ_ASSERT(IsMarkingGray(&marker));
 
@@ -577,13 +574,14 @@ js::gc::GCRuntime::bufferGrayRoots()
         (*op)(&marker, grayRootTracer.data);
 
     
+    grayBufferState = marker.bufferingGrayRootsFailed
+                      ? GrayBufferState::Failed
+                      : GrayBufferState::Okay;
+
+    
     MOZ_ASSERT(IsMarkingGray(&marker));
+    marker.bufferingGrayRootsFailed = false;
     marker.callback = nullptr;
     MOZ_ASSERT(!IsMarkingGray(&marker));
     MOZ_ASSERT(IsMarkingTracer(&marker));
-
-    
-    
-    MOZ_ASSERT(grayBufferState == GrayBufferState::Okay ||
-               grayBufferState == GrayBufferState::Failed);
 }
