@@ -74,34 +74,32 @@ namespace mozilla {
 template<typename E>
 class CastableTypedEnumResult
 {
-  private:
-    const E mValue;
+private:
+  const E mValue;
 
-  public:
-    explicit MOZ_CONSTEXPR CastableTypedEnumResult(E value)
-      : mValue(value)
-    {}
+public:
+  explicit MOZ_CONSTEXPR CastableTypedEnumResult(E aValue)
+    : mValue(aValue)
+  {}
 
-    MOZ_CONSTEXPR operator E() const { return mValue; }
+  MOZ_CONSTEXPR operator E() const { return mValue; }
 
-    template<typename DestinationType>
-    MOZ_EXPLICIT_CONVERSION MOZ_CONSTEXPR
-    operator DestinationType() const {
-      return DestinationType(mValue);
-    }
+  template<typename DestinationType>
+  MOZ_EXPLICIT_CONVERSION MOZ_CONSTEXPR
+  operator DestinationType() const { return DestinationType(mValue); }
 
-    MOZ_CONSTEXPR bool operator !() const { return !bool(mValue); }
+  MOZ_CONSTEXPR bool operator !() const { return !bool(mValue); }
 
 #ifndef MOZ_HAVE_CXX11_STRONG_ENUMS
-    
-    
-    
-    
-    
-    
-    
-    
-    MOZ_CONSTEXPR E get() const { return mValue; }
+  
+  
+  
+  
+  
+  
+  
+  
+  MOZ_CONSTEXPR E get() const { return mValue; }
 #endif
 };
 

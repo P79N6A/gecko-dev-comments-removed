@@ -78,7 +78,7 @@ template <> inline void RefCounted<LibHandle, AtomicRefCount>::Release() const;
 
 template <> inline RefCounted<LibHandle, AtomicRefCount>::~RefCounted()
 {
-  MOZ_ASSERT(refCnt == 0x7fffdead);
+  MOZ_ASSERT(mRefCnt == 0x7fffdead);
 }
 
 } 
@@ -230,16 +230,16 @@ namespace detail {
 
 template <> inline void RefCounted<LibHandle, AtomicRefCount>::Release() const {
 #ifdef DEBUG
-  if (refCnt > 0x7fff0000)
-    MOZ_ASSERT(refCnt > 0x7fffdead);
+  if (mRefCnt > 0x7fff0000)
+    MOZ_ASSERT(mRefCnt > 0x7fffdead);
 #endif
-  MOZ_ASSERT(refCnt > 0);
-  if (refCnt > 0) {
-    if (0 == --refCnt) {
+  MOZ_ASSERT(mRefCnt > 0);
+  if (mRefCnt > 0) {
+    if (0 == --mRefCnt) {
 #ifdef DEBUG
-      refCnt = 0x7fffdead;
+      mRefCnt = 0x7fffdead;
 #else
-      refCnt = 1;
+      mRefCnt = 1;
 #endif
       delete static_cast<const LibHandle*>(this);
     }

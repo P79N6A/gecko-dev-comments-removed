@@ -2,6 +2,8 @@
 
 
 
+
+
 #include "mozilla/Assertions.h"
 #include "mozilla/Endian.h"
 #include "mozilla/SHA1.h"
@@ -12,14 +14,14 @@ using mozilla::NativeEndian;
 using mozilla::SHA1Sum;
 
 static inline uint32_t
-SHA_ROTL(uint32_t t, uint32_t n)
+SHA_ROTL(uint32_t aT, uint32_t aN)
 {
-  MOZ_ASSERT(n < 32);
-  return (t << n) | (t >> (32 - n));
+  MOZ_ASSERT(aN < 32);
+  return (aT << aN) | (aT >> (32 - aN));
 }
 
 static void
-shaCompress(volatile unsigned* X, const uint32_t* datain);
+shaCompress(volatile unsigned* aX, const uint32_t* aBuf);
 
 #define SHA_F1(X, Y, Z) ((((Y) ^ (Z)) & (X)) ^ (Z))
 #define SHA_F2(X, Y, Z) ((X) ^ (Y) ^ (Z))
@@ -29,14 +31,14 @@ shaCompress(volatile unsigned* X, const uint32_t* datain);
 #define SHA_MIX(n, a, b, c)    XW(n) = SHA_ROTL(XW(a) ^ XW(b) ^ XW(c) ^XW(n), 1)
 
 SHA1Sum::SHA1Sum()
-  : size(0), mDone(false)
+  : mSize(0), mDone(false)
 {
   
-  H[0] = 0x67452301L;
-  H[1] = 0xefcdab89L;
-  H[2] = 0x98badcfeL;
-  H[3] = 0x10325476L;
-  H[4] = 0xc3d2e1f0L;
+  mH[0] = 0x67452301L;
+  mH[1] = 0xefcdab89L;
+  mH[2] = 0x98badcfeL;
+  mH[3] = 0x10325476L;
+  mH[4] = 0xc3d2e1f0L;
 }
 
 
@@ -79,42 +81,46 @@ SHA1Sum::SHA1Sum()
 
 
 void
-SHA1Sum::update(const void* dataIn, uint32_t len)
+SHA1Sum::update(const void* aData, uint32_t aLen)
 {
   MOZ_ASSERT(!mDone, "SHA1Sum can only be used to compute a single hash.");
 
-  const uint8_t* data = static_cast<const uint8_t*>(dataIn);
+  const uint8_t* data = static_cast<const uint8_t*>(aData);
 
-  if (len == 0)
+  if (aLen == 0) {
     return;
+  }
 
   
-  unsigned int lenB = static_cast<unsigned int>(size) & 63U;
+  unsigned int lenB = static_cast<unsigned int>(mSize) & 63U;
 
-  size += len;
+  mSize += aLen;
 
   
   unsigned int togo;
   if (lenB > 0) {
     togo = 64U - lenB;
-    if (len < togo)
-      togo = len;
-    memcpy(u.b + lenB, data, togo);
-    len -= togo;
+    if (aLen < togo) {
+      togo = aLen;
+    }
+    memcpy(mU.mB + lenB, data, togo);
+    aLen -= togo;
     data += togo;
     lenB = (lenB + togo) & 63U;
-    if (!lenB)
-      shaCompress(&H[H2X], u.w);
+    if (!lenB) {
+      shaCompress(&mH[H2X], mU.mW);
+    }
   }
 
-  while (len >= 64U) {
-    len -= 64U;
-    shaCompress(&H[H2X], reinterpret_cast<const uint32_t*>(data));
+  while (aLen >= 64U) {
+    aLen -= 64U;
+    shaCompress(&mH[H2X], reinterpret_cast<const uint32_t*>(data));
     data += 64U;
   }
 
-  if (len > 0)
-    memcpy(u.b, data, len);
+  if (aLen > 0) {
+    memcpy(mU.mB, data, aLen);
+  }
 }
 
 
@@ -122,12 +128,12 @@ SHA1Sum::update(const void* dataIn, uint32_t len)
 
 
 void
-SHA1Sum::finish(SHA1Sum::Hash& hashOut)
+SHA1Sum::finish(SHA1Sum::Hash& aHashOut)
 {
   MOZ_ASSERT(!mDone, "SHA1Sum can only be used to compute a single hash.");
 
-  uint64_t size2 = size;
-  uint32_t lenB = uint32_t(size2) & 63;
+  uint64_t size = mSize;
+  uint32_t lenB = uint32_t(size) & 63;
 
   static const uint8_t bulk_pad[64] =
     { 0x80,0,0,0,0,0,0,0,0,0,
@@ -136,21 +142,21 @@ SHA1Sum::finish(SHA1Sum::Hash& hashOut)
 
   
   update(bulk_pad, (((55 + 64) - lenB) & 63) + 1);
-  MOZ_ASSERT((uint32_t(size) & 63) == 56);
+  MOZ_ASSERT((uint32_t(mSize) & 63) == 56);
 
   
-  size2 <<= 3;
-  u.w[14] = NativeEndian::swapToBigEndian(uint32_t(size2 >> 32));
-  u.w[15] = NativeEndian::swapToBigEndian(uint32_t(size2));
-  shaCompress(&H[H2X], u.w);
+  size <<= 3;
+  mU.mW[14] = NativeEndian::swapToBigEndian(uint32_t(size >> 32));
+  mU.mW[15] = NativeEndian::swapToBigEndian(uint32_t(size));
+  shaCompress(&mH[H2X], mU.mW);
 
   
-  u.w[0] = NativeEndian::swapToBigEndian(H[0]);
-  u.w[1] = NativeEndian::swapToBigEndian(H[1]);
-  u.w[2] = NativeEndian::swapToBigEndian(H[2]);
-  u.w[3] = NativeEndian::swapToBigEndian(H[3]);
-  u.w[4] = NativeEndian::swapToBigEndian(H[4]);
-  memcpy(hashOut, u.w, 20);
+  mU.mW[0] = NativeEndian::swapToBigEndian(mH[0]);
+  mU.mW[1] = NativeEndian::swapToBigEndian(mH[1]);
+  mU.mW[2] = NativeEndian::swapToBigEndian(mH[2]);
+  mU.mW[3] = NativeEndian::swapToBigEndian(mH[3]);
+  mU.mW[4] = NativeEndian::swapToBigEndian(mH[4]);
+  memcpy(aHashOut, mU.mW, 20);
   mDone = true;
 }
 
@@ -202,12 +208,12 @@ SHA1Sum::finish(SHA1Sum::Hash& hashOut)
 
 
 static void
-shaCompress(volatile unsigned *X, const uint32_t *inbuf)
+shaCompress(volatile unsigned* aX, const uint32_t* aBuf)
 {
   unsigned A, B, C, D, E;
 
-#define XH(n) X[n - H2X]
-#define XW(n) X[n - W2X]
+#define XH(n) aX[n - H2X]
+#define XW(n) aX[n - W2X]
 
 #define K0 0x5a827999L
 #define K1 0x6ed9eba1L
@@ -223,7 +229,7 @@ shaCompress(volatile unsigned *X, const uint32_t *inbuf)
 #define SHA_RND4(a, b, c, d, e, n) \
   a = SHA_ROTL(b ,5) + SHA_F4(c, d, e) + a + XW(n) + K3; c = SHA_ROTL(c, 30)
 
-#define LOAD(n) XW(n) = NativeEndian::swapToBigEndian(inbuf[n])
+#define LOAD(n) XW(n) = NativeEndian::swapToBigEndian(aBuf[n])
 
   A = XH(0);
   B = XH(1);

@@ -79,7 +79,6 @@
 
 
 
-
 #if defined(MOZ_HAVE_CXX11_STRONG_ENUMS)
   
 
@@ -148,28 +147,28 @@
 #  define MOZ_BEGIN_NESTED_ENUM_CLASS_HELPER1(Name) \
      class Name \
      { \
-       public: \
-         enum Enum \
-         {
+     public: \
+       enum Enum \
+       {
    
 #  define MOZ_BEGIN_NESTED_ENUM_CLASS_HELPER2(Name, type) \
      class Name \
      { \
-       public: \
-         enum Enum MOZ_ENUM_TYPE(type) \
-         {
+     public: \
+       enum Enum MOZ_ENUM_TYPE(type) \
+       {
 #  define MOZ_END_NESTED_ENUM_CLASS(Name) \
-         }; \
-         Name() {} \
-         MOZ_CONSTEXPR Name(Enum aEnum) : mEnum(aEnum) {} \
-         template<typename Other> \
-         explicit MOZ_CONSTEXPR Name(Other num) : mEnum((Enum)num) {} \
-         MOZ_CONSTEXPR operator Enum() const { return mEnum; } \
-         explicit MOZ_CONSTEXPR Name(const mozilla::CastableTypedEnumResult<Name>& aOther) \
-           : mEnum(aOther.get()) \
-         {} \
-       private: \
-         Enum mEnum; \
+       }; \
+       Name() {} \
+       MOZ_CONSTEXPR Name(Enum aEnum) : mEnum(aEnum) {} \
+       template<typename Other> \
+       explicit MOZ_CONSTEXPR Name(Other num) : mEnum((Enum)num) {} \
+       MOZ_CONSTEXPR operator Enum() const { return mEnum; } \
+       explicit MOZ_CONSTEXPR Name(const mozilla::CastableTypedEnumResult<Name>& aOther) \
+         : mEnum(aOther.get()) \
+       {} \
+     private: \
+       Enum mEnum; \
      };
 #  define MOZ_FINISH_NESTED_ENUM_CLASS(Name) \
      inline int operator+(const int&, const Name::Enum&) MOZ_DELETE; \

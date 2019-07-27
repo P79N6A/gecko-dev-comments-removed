@@ -82,7 +82,8 @@ struct UnsignedStdintTypeForSize
 template<typename IntegerType>
 struct PositionOfSignBit
 {
-  static_assert(IsIntegral<IntegerType>::value, "PositionOfSignBit is only for integral types");
+  static_assert(IsIntegral<IntegerType>::value,
+                "PositionOfSignBit is only for integral types");
   
   static const size_t value = 8 * sizeof(IntegerType) - 1;
 };
@@ -96,7 +97,8 @@ template<typename IntegerType>
 struct MinValue
 {
 private:
-  static_assert(IsIntegral<IntegerType>::value, "MinValue is only for integral types");
+  static_assert(IsIntegral<IntegerType>::value,
+                "MinValue is only for integral types");
 
   typedef typename MakeUnsigned<IntegerType>::Type UnsignedIntegerType;
   static const size_t PosOfSignBit = PositionOfSignBit<IntegerType>::value;
@@ -122,7 +124,8 @@ public:
 template<typename IntegerType>
 struct MaxValue
 {
-  static_assert(IsIntegral<IntegerType>::value, "MaxValue is only for integral types");
+  static_assert(IsIntegral<IntegerType>::value,
+                "MaxValue is only for integral types");
 
   
   

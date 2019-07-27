@@ -30,6 +30,7 @@ namespace mozilla {
 
 
 
+
 template <typename Container, typename T>
 bool
 BinarySearch(const Container& aContainer, size_t aBegin, size_t aEnd,

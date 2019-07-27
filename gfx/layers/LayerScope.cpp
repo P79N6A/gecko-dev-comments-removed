@@ -243,9 +243,9 @@ private:
         SHA1Sum sha1;
         nsCString combined(wsKey + guid);
         sha1.update(combined.get(), combined.Length());
-        uint8_t digest[SHA1Sum::HashSize]; 
+        uint8_t digest[SHA1Sum::kHashSize]; 
         sha1.finish(digest);
-        nsCString newString(reinterpret_cast<char*>(digest), SHA1Sum::HashSize);
+        nsCString newString(reinterpret_cast<char*>(digest), SHA1Sum::kHashSize);
         Base64Encode(newString, res);
 
         nsCString response("HTTP/1.1 101 Switching Protocols\r\n");

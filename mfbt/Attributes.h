@@ -162,6 +162,7 @@
 
 
 
+
 #ifdef MOZ_HAVE_EXPLICIT_CONVERSION
 #  define MOZ_EXPLICIT_CONVERSION explicit
 #else
@@ -199,6 +200,7 @@
 #else
 #  define MOZ_NORETURN
 #endif
+
 
 
 
