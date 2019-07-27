@@ -410,6 +410,18 @@ loop.conversation = (function(OT, mozL10n) {
     
     mozL10n.initialize(navigator.mozLoop);
 
+    
+    
+    OT.overrideGuidStorage({
+      get: function(callback) {
+        callback(null, navigator.mozLoop.getLoopCharPref("ot.guid"));
+      },
+      set: function(guid, callback) {
+        navigator.mozLoop.setLoopCharPref("ot.guid", guid);
+        callback(null);
+      }
+    });
+
     document.title = mozL10n.get("incoming_call_title2");
 
     document.body.classList.add(loop.shared.utils.getTargetPlatform());
