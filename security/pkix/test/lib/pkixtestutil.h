@@ -67,6 +67,7 @@ public:
 };
 
 bool InputEqualsByteString(Input input, const ByteString& bs);
+ByteString InputToByteString(Input input);
 
 
 static const uint8_t tlv_id_kp_OCSPSigning[] = {
