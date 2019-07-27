@@ -590,7 +590,7 @@ public:
     
     
 
-    rv = swm->Unregister(mWorkerPrivate->GetPrincipal(), this, mScope);
+    rv = swm->Unregister(this, mScope);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       UnregisterFailed();
       return NS_OK;
