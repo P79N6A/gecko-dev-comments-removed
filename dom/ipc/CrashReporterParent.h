@@ -63,6 +63,20 @@ public:
 
 
 
+  template<class Toplevel>
+  bool
+  GenerateMinidumpAndPair(Toplevel* aTopLevel, nsIFile* aMinidump,
+                          const nsACString& aPairName);
+
+  
+
+
+
+
+
+
+
+
 
 
   bool
@@ -158,8 +172,10 @@ public:
 #endif
   nsCString mAppNotes;
   nsString mChildDumpID;
+  
   NativeThreadId mMainThread;
   time_t mStartTime;
+  
   uint32_t mProcessType;
   bool mInitialized;
 };
@@ -179,10 +195,39 @@ CrashReporterParent::GeneratePairedMinidump(Toplevel* t)
   }
 #endif
   nsCOMPtr<nsIFile> childDump;
-  if (CrashReporter::CreatePairedMinidumps(child,
-                                           mMainThread,
-                                           getter_AddRefs(childDump)) &&
+  if (CrashReporter::CreateMinidumpsAndPair(child,
+                                            mMainThread,
+                                            NS_LITERAL_CSTRING("browser"),
+                                            nullptr, 
+                                            getter_AddRefs(childDump)) &&
       CrashReporter::GetIDFromMinidump(childDump, mChildDumpID)) {
+    return true;
+  }
+  return false;
+}
+
+template<class Toplevel>
+inline bool
+CrashReporterParent::GenerateMinidumpAndPair(Toplevel* aTopLevel,
+                                             nsIFile* aMinidumpToPair,
+                                             const nsACString& aPairName)
+{
+  mozilla::ipc::ScopedProcessHandle childHandle;
+#ifdef XP_MACOSX
+  childHandle = aTopLevel->Process()->GetChildTask();
+#else
+  if (!base::OpenPrivilegedProcessHandle(aTopLevel->OtherPid(), &childHandle.rwget())) {
+    NS_WARNING("Failed to open child process handle.");
+    return false;
+  }
+#endif
+  nsCOMPtr<nsIFile> targetDump;
+  if (CrashReporter::CreateMinidumpsAndPair(childHandle,
+                                            mMainThread, 
+                                            aPairName,
+                                            aMinidumpToPair,
+                                            getter_AddRefs(targetDump)) &&
+      CrashReporter::GetIDFromMinidump(targetDump, mChildDumpID)) {
     return true;
   }
   return false;
@@ -220,9 +265,11 @@ CrashReporterParent::GenerateCompleteMinidump(Toplevel* t)
   }
 #endif
   nsCOMPtr<nsIFile> childDump;
-  if (CrashReporter::CreatePairedMinidumps(child,
-                                           mMainThread,
-                                           getter_AddRefs(childDump)) &&
+  if (CrashReporter::CreateMinidumpsAndPair(child,
+                                            mMainThread,
+                                            NS_LITERAL_CSTRING("browser"),
+                                            nullptr, 
+                                            getter_AddRefs(childDump)) &&
       CrashReporter::GetIDFromMinidump(childDump, mChildDumpID)) {
     GenerateChildData(nullptr);
     FinalizeChildData();
