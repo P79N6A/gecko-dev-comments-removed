@@ -62,8 +62,8 @@ enum UIStateChangeType
 };
 
 #define NS_PIDOMWINDOW_IID \
-{ 0x0df7578f, 0x31d4, 0x4391, \
-  { 0x98, 0xd4, 0xf3, 0x7d, 0x51, 0x8e, 0xa4, 0x37 } }
+{ 0x2aebbbd7, 0x154b, 0x4341, \
+  { 0x8d, 0x02, 0x7f, 0x70, 0xf8, 0x3e, 0xf7, 0xa1 } }
 
 class nsPIDOMWindow : public nsIDOMWindowInternal
 {
@@ -461,6 +461,14 @@ public:
     }
   }
 
+  enum FullscreenReason
+  {
+    
+    eForFullscreenMode,
+    
+    eForFullscreenAPI
+  };
+
   
 
 
@@ -470,10 +478,9 @@ public:
 
 
 
-
-
-  virtual nsresult SetFullScreenInternal(bool aIsFullscreen, bool aFullscreenMode,
-                                         mozilla::gfx::VRHMDInfo *aHMD = nullptr) = 0;
+  virtual nsresult SetFullscreenInternal(
+    FullscreenReason aReason, bool aIsFullscreen,
+    mozilla::gfx::VRHMDInfo *aHMD = nullptr) = 0;
 
   
 
