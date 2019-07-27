@@ -17,7 +17,8 @@ function goUpdateGlobalEditMenuItems()
 
   goUpdateCommand("cmd_undo");
   goUpdateCommand("cmd_redo");
-  
+  goUpdateCommand("cmd_cut");
+  goUpdateCommand("cmd_copy");
   goUpdateCommand("cmd_paste");
   goUpdateCommand("cmd_selectAll");
   goUpdateCommand("cmd_delete");

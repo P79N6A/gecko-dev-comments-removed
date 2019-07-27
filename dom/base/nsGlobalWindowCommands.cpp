@@ -486,14 +486,23 @@ nsClipboardCommand::IsCommandEnabled(const char* aCommandName, nsISupports *aCon
   *outCmdEnabled = false;
 
   if (strcmp(aCommandName, "cmd_copy") &&
-      strcmp(aCommandName, "cmd_copyAndCollapseToEnd"))
+      strcmp(aCommandName, "cmd_copyAndCollapseToEnd") &&
+      strcmp(aCommandName, "cmd_cut"))
     return NS_OK;
 
   nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aContext);
   NS_ENSURE_TRUE(window, NS_ERROR_FAILURE);
 
   nsCOMPtr<nsIDocument> doc = window->GetExtantDoc();
-  *outCmdEnabled = nsCopySupport::CanCopy(doc);
+  if (doc->IsHTMLOrXHTML()) {
+    
+    *outCmdEnabled = true;
+  } else {
+    
+    if (strcmp(aCommandName, "cmd_cut")) {
+      *outCmdEnabled = nsCopySupport::CanCopy(doc);
+    }
+  }
   return NS_OK;
 }
 
