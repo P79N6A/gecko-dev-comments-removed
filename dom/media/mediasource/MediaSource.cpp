@@ -467,10 +467,7 @@ MediaSource::DurationChange(double aNewDuration, ErrorResult& aRv)
   double oldDuration = mDuration;
   mDuration = aNewDuration;
   if (aNewDuration < oldDuration) {
-    mSourceBuffers->Remove(aNewDuration, oldDuration, aRv);
-    if (aRv.Failed()) {
-      return;
-    }
+    mSourceBuffers->RangeRemoval(aNewDuration, oldDuration);
   }
   
   
