@@ -64,6 +64,10 @@
 #include "nsThreadUtils.h"
 #include "mozilla/unused.h"
 
+#ifdef MOZ_NUWA_PROCESS
+#include "ipc/Nuwa.h"
+#endif
+
 using namespace mozilla;
 using namespace mozilla::widget;
 using namespace mozilla::ipc;
@@ -781,26 +785,12 @@ static int32_t sHighPrecisionTimerRequests = 0;
 static nsITimer *sDisableHighPrecisionTimersTimer = nullptr;
 #endif
 
-static RefreshDriverTimer*
-CreateVsyncRefreshTimer()
+static void
+CreateContentVsyncRefreshTimer(void*)
 {
-  
-  
-  gfxPrefs::GetSingleton();
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(!XRE_IsParentProcess());
 
-  if (!gfxPrefs::VsyncAlignedRefreshDriver()) {
-    return nullptr;
-  }
-
-  if (XRE_IsParentProcess()) {
-    
-    gfxPlatform::GetPlatform();
-    
-    
-    return new VsyncRefreshDriverTimer();
-  }
-
-  
   
   
   
@@ -813,14 +803,48 @@ CreateVsyncRefreshTimer()
     
     
     VsyncChildCreateCallback::CreateVsyncActor(backgroundChild);
-    return sRegularRateTimer;
+    return;
   }
   
   nsRefPtr<nsIIPCBackgroundChildCreateCallback> callback = new VsyncChildCreateCallback();
   if (NS_WARN_IF(!BackgroundChild::GetOrCreateForCurrentThread(callback))) {
     MOZ_CRASH("PVsync actor create failed!");
   }
-  return nullptr;
+}
+
+static void
+CreateVsyncRefreshTimer()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+  
+  gfxPrefs::GetSingleton();
+
+  if (!gfxPrefs::VsyncAlignedRefreshDriver()) {
+    return;
+  }
+
+  if (XRE_IsParentProcess()) {
+    
+    gfxPlatform::GetPlatform();
+    
+    
+    sRegularRateTimer = new VsyncRefreshDriverTimer();
+    return;
+  }
+
+#ifdef MOZ_NUWA_PROCESS
+  
+  
+  
+  if (IsNuwaProcess()) {
+    NuwaAddFinalConstructor(&CreateContentVsyncRefreshTimer, nullptr);
+    return;
+  }
+#endif
+  
+  CreateContentVsyncRefreshTimer(nullptr);
 }
 
 static uint32_t
@@ -937,7 +961,7 @@ nsRefreshDriver::ChooseTimer() const
     double rate = GetRegularTimerInterval(&isDefault);
 
     
-    sRegularRateTimer = CreateVsyncRefreshTimer();
+    CreateVsyncRefreshTimer();
 
 #ifdef XP_WIN
     if (!sRegularRateTimer && PreciseRefreshDriverTimerWindowsDwmVsync::IsSupported()) {
