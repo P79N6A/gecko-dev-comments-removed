@@ -319,7 +319,7 @@ function run_test() {
   do_test_pending();
   spoofGfxAdapter();
   do_get_profile();
-  createAppInfo(APP_ID, APP_NAME, APP_VERSION, PLATFORM_VERSION);
+  loadAddonManager(APP_ID, APP_NAME, APP_VERSION, PLATFORM_VERSION);
   spoofPartnerInfo();
   
   Preferences.set("extensions.hotfix.lastVersion", APP_HOTFIX_VERSION);

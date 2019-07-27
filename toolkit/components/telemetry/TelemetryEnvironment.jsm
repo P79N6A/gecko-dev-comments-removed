@@ -10,6 +10,7 @@ this.EXPORTED_SYMBOLS = [
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
+Cu.import("resource://gre/modules/AddonManager.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
@@ -19,6 +20,10 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "ctypes",
                                   "resource://gre/modules/ctypes.jsm");
+#ifndef MOZ_WIDGET_GONK
+XPCOMUtils.defineLazyModuleGetter(this, "LightweightThemeManager",
+                                  "resource://gre/modules/LightweightThemeManager.jsm");
+#endif
 XPCOMUtils.defineLazyModuleGetter(this, "ProfileTimesAccessor",
                                   "resource://gre/modules/services/healthreport/profile.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
@@ -75,6 +80,17 @@ function getSystemLocale() {
   } catch (e) {
     return null;
   }
+}
+
+
+
+
+
+
+
+function promiseGetAddonsByTypes(aTypes) {
+  return new Promise((resolve) =>
+                     AddonManager.getAddonsByTypes(aTypes, (addons) => resolve(addons)));
 }
 
 
@@ -633,6 +649,181 @@ this.TelemetryEnvironment = {
 
 
 
+  _getActiveAddons: Task.async(function* () {
+    
+    let allAddons = yield promiseGetAddonsByTypes(["extension", "service"]);
+
+    let activeAddons = {};
+    for (let addon of allAddons) {
+      
+      if (!addon.isActive) {
+        continue;
+      }
+
+      activeAddons[addon.id] = {
+        blocklisted: (addon.blocklistState !== Ci.nsIBlocklistService.STATE_NOT_BLOCKED),
+        description: addon.description,
+        name: addon.name,
+        userDisabled: addon.userDisabled,
+        appDisabled: addon.appDisabled,
+        version: addon.version,
+        scope: addon.scope,
+        type: addon.type,
+        foreignInstall: addon.foreignInstall,
+        hasBinaryComponents: addon.hasBinaryComponents,
+        installDay: truncateToDays(addon.installDate.getTime()),
+        updateDay: truncateToDays(addon.updateDate.getTime()),
+      };
+    }
+
+    return activeAddons;
+  }),
+
+  
+
+
+
+  _getActiveTheme: Task.async(function* () {
+    
+    let themes = yield promiseGetAddonsByTypes(["theme"]);
+
+    let activeTheme = {};
+    
+    let theme = themes.find(theme => theme.isActive);
+    if (theme) {
+      activeTheme = {
+        id: theme.id,
+        blocklisted: (theme.blocklistState !== Ci.nsIBlocklistService.STATE_NOT_BLOCKED),
+        description: theme.description,
+        name: theme.name,
+        userDisabled: theme.userDisabled,
+        appDisabled: theme.appDisabled,
+        version: theme.version,
+        scope: theme.scope,
+        foreignInstall: theme.foreignInstall,
+        hasBinaryComponents: theme.hasBinaryComponents,
+        installDay: truncateToDays(theme.installDate.getTime()),
+        updateDay: truncateToDays(theme.updateDate.getTime()),
+      };
+    }
+
+    return activeTheme;
+  }),
+
+  
+
+
+
+  _getActivePlugins: function () {
+    let pluginTags =
+      Cc["@mozilla.org/plugin/host;1"].getService(Ci.nsIPluginHost).getPluginTags({});
+
+    let activePlugins = [];
+    for (let tag of pluginTags) {
+      
+      if (tag.disabled) {
+        continue;
+      }
+
+      
+      let updateDate = new Date(Math.max(0, tag.lastModifiedTime));
+
+      activePlugins.push({
+        name: tag.name,
+        version: tag.version,
+        description: tag.description,
+        blocklisted: tag.blocklisted,
+        disabled: tag.disabled,
+        clicktoplay: tag.clicktoplay,
+        mimeTypes: tag.getMimeTypes({}),
+        updateDay: truncateToDays(updateDate.getTime()),
+      });
+    }
+
+    return activePlugins;
+  },
+
+  
+
+
+
+  _getActiveGMPlugins: Task.async(function* () {
+    
+    let allPlugins = yield promiseGetAddonsByTypes(["plugin"]);
+
+    let activeGMPlugins = {};
+    for (let plugin of allPlugins) {
+      
+      if (!plugin.isGMPlugin) {
+        continue;
+      }
+
+      activeGMPlugins[plugin.id] = {
+        version: plugin.version,
+        userDisabled: plugin.userDisabled,
+        applyBackgroundUpdates: plugin.applyBackgroundUpdates,
+      };
+    }
+
+    return activeGMPlugins;
+  }),
+
+  
+
+
+
+  _getActiveExperiment: function () {
+    let experimentInfo = {};
+    try {
+      let scope = {};
+      Cu.import("resource:///modules/experiments/Experiments.jsm", scope);
+      let experiments = scope.Experiments.instance()
+      let activeExperiment = experiments.getActiveExperimentID();
+      if (activeExperiment) {
+        experimentInfo.id = activeExperiment;
+        experimentInfo.branch = experiments.getActiveExperimentBranch();
+      }
+    } catch(e) {
+      
+      return experimentInfo;
+    }
+
+    return experimentInfo;
+  },
+
+  
+
+
+
+  _getAddons: Task.async(function* () {
+    let activeAddons = yield this._getActiveAddons();
+    let activeTheme = yield this._getActiveTheme();
+    let activeGMPlugins = yield this._getActiveGMPlugins();
+
+    let personaId = null;
+#ifndef MOZ_WIDGET_GONK
+    let theme = LightweightThemeManager.currentTheme;
+    if (theme) {
+      personaId = theme.id;
+    }
+#endif
+
+    let addonData = {
+      activeAddons: activeAddons,
+      theme: activeTheme,
+      activePlugins: this._getActivePlugins(),
+      activeGMPlugins: activeGMPlugins,
+      activeExperiment: this._getActiveExperiment(),
+      persona: personaId,
+    };
+
+    return addonData;
+  }),
+
+  
+
+
+
   getEnvironmentData: function() {
     if (this._shutdown) {
       this._log.error("getEnvironmentData - Already shut down");
@@ -660,6 +851,7 @@ this.TelemetryEnvironment = {
       "profile": () => this._getProfile(),
       "partner": () => this._getPartner(),
       "system": () => this._getSystem(),
+      "addons": () => this._getAddons(),
     };
 
     let data = {};
