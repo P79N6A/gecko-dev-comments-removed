@@ -4,8 +4,8 @@
 
 
 
-#include "CDMCaps.h"
-#include "EMELog.h"
+#include "mozilla/CDMCaps.h"
+#include "mozilla/EMEUtils.h"
 #include "nsThreadUtils.h"
 #include "SamplesWaitingForKey.h"
 

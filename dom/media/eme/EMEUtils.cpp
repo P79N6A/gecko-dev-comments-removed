@@ -4,7 +4,7 @@
 
 
 
-#include "EMELog.h"
+#include "mozilla/EMEUtils.h"
 
 namespace mozilla {
 
