@@ -13,6 +13,7 @@ let { RootActor } = require("devtools/server/actors/root");
 let { DebuggerServer } = require("devtools/server/main");
 let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 let { dbg_assert } = DevToolsUtils;
+let { TabSources, isHiddenSource } = require("./utils/TabSources");
 let makeDebugger = require("./utils/make-debugger");
 let mapURIToAddonID = require("./utils/map-uri-to-addon-id");
 
@@ -598,6 +599,7 @@ function TabActor(aConnection)
   
   this._extraActors = {};
   this._exited = false;
+  this._sources = null;
 
   
   this._styleSheetActors = new Map();
@@ -765,6 +767,14 @@ TabActor.prototype = {
     
     
     return null;
+  },
+
+  get sources() {
+    if (!this._sources) {
+      dbg_assert(this.threadActor, "threadActor should exist when creating sources.");
+      this._sources = new TabSources(this.threadActor);
+    }
+    return this._sources;
   },
 
   
@@ -1118,6 +1128,7 @@ TabActor.prototype = {
     this._contextPool = null;
     this.threadActor.exit();
     this.threadActor = null;
+    this._sources = null;
   },
 
   
@@ -1403,6 +1414,7 @@ TabActor.prototype = {
     
     let threadActor = this.threadActor;
     if (isTopLevel) {
+      this.sources.reset({ sourceMaps: true });
       threadActor.clearDebuggees();
       if (threadActor.dbg) {
         threadActor.dbg.enabled = true;
@@ -1851,6 +1863,15 @@ BrowserAddonActor.prototype = {
     return this._global;
   },
 
+  get sources() {
+    if (!this._sources) {
+      dbg_assert(this.threadActor, "threadActor should exist when creating sources.");
+      this._sources = new TabSources(this._threadActor, this._allowSource);
+    }
+    return this._sources;
+  },
+
+
   form: function BAA_form() {
     dbg_assert(this.actorID, "addon should have an actorID.");
     if (!this._consoleActor) {
@@ -1931,6 +1952,7 @@ BrowserAddonActor.prototype = {
     this._contextPool.removeActor(this._threadActor);
 
     this._threadActor = null;
+    this._sources = null;
 
     return { type: "detached" };
   },
@@ -2002,6 +2024,20 @@ BrowserAddonActor.prototype = {
     }
 
     return false;
+  },
+
+  
+
+
+
+
+  _allowSource: function(aSource) {
+    
+    if (aSource.url === "resource://gre/modules/addons/XPIProvider.jsm") {
+      return false;
+    }
+
+    return true;
   },
 
   
