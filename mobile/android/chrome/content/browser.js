@@ -198,12 +198,6 @@ const kDefaultCSSViewportHeight = 480;
 
 const kViewportRemeasureThrottle = 500;
 
-const kDoNotTrackPrefState = Object.freeze({
-  NO_PREF: "0",
-  DISALLOW_TRACKING: "1",
-  ALLOW_TRACKING: "2",
-});
-
 let Log = Cu.import("resource://gre/modules/AndroidLog.jsm", {}).AndroidLog;
 
 
@@ -839,6 +833,20 @@ var BrowserApp = {
     }
 
     
+    if (Services.prefs.prefHasUserValue("privacy.donottrackheader.value")) {
+      
+      
+      
+      if (Services.prefs.getBoolPref("privacy.donottrackheader.enabled") &&
+          (Services.prefs.getIntPref("privacy.donottrackheader.value") != 1)) {
+        Services.prefs.clearUserPref("privacy.donottrackheader.enabled");
+      }
+
+      
+      Services.prefs.clearUserPref("privacy.donottrackheader.value");
+    }
+
+    
     if (this._startupStatus === "upgrade" &&
         !Services.prefs.prefHasUserValue("searchActivity.default.migrated")) {
       Services.prefs.setBoolPref("searchActivity.default.migrated", true);
@@ -1283,21 +1291,6 @@ var BrowserApp = {
           pref.value = MasterPassword.enabled;
           prefs.push(pref);
           continue;
-        
-        case "privacy.donottrackheader":
-          pref.type = "string";
-
-          let enableDNT = Services.prefs.getBoolPref("privacy.donottrackheader.enabled");
-          if (!enableDNT) {
-            pref.value = kDoNotTrackPrefState.NO_PREF;
-          } else {
-            let dntState = Services.prefs.getIntPref("privacy.donottrackheader.value");
-            pref.value = (dntState === 0) ? kDoNotTrackPrefState.ALLOW_TRACKING :
-                                            kDoNotTrackPrefState.DISALLOW_TRACKING;
-          }
-
-          prefs.push(pref);
-          continue;
 #ifdef MOZ_CRASHREPORTER
         
         case "datareporting.crashreporter.submitEnabled":
@@ -1377,27 +1370,6 @@ var BrowserApp = {
           MasterPassword.removePassword(json.value);
         else
           MasterPassword.setPassword(json.value);
-        return;
-
-      
-      case "privacy.donottrackheader":
-        switch (json.value) {
-          
-          case kDoNotTrackPrefState.NO_PREF:
-            Services.prefs.setBoolPref("privacy.donottrackheader.enabled", false);
-            Services.prefs.clearUserPref("privacy.donottrackheader.value");
-            break;
-          
-          case kDoNotTrackPrefState.ALLOW_TRACKING:
-            Services.prefs.setBoolPref("privacy.donottrackheader.enabled", true);
-            Services.prefs.setIntPref("privacy.donottrackheader.value", 0);
-            break;
-          
-          case kDoNotTrackPrefState.DISALLOW_TRACKING:
-            Services.prefs.setBoolPref("privacy.donottrackheader.enabled", true);
-            Services.prefs.setIntPref("privacy.donottrackheader.value", 1);
-            break;
-        }
         return;
 
       
