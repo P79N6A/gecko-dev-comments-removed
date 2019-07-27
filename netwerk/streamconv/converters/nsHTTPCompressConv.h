@@ -43,12 +43,11 @@ public:
     
     NS_DECL_THREADSAFE_ISUPPORTS
 
-	NS_DECL_NSIREQUESTOBSERVER
+    NS_DECL_NSIREQUESTOBSERVER
     NS_DECL_NSISTREAMLISTENER
 
     
     NS_DECL_NSISTREAMCONVERTER
-
 
     nsHTTPCompressConv ();
 
@@ -56,15 +55,15 @@ private:
 
     virtual ~nsHTTPCompressConv ();
 
-    nsIStreamListener   *mListener; 
-	CompressMode        mMode;
+    nsCOMPtr<nsIStreamListener> mListener; 
+    CompressMode        mMode;
 
     unsigned char *mOutBuffer;
     unsigned char *mInpBuffer;
 
     uint32_t	mOutBufferLen;
     uint32_t	mInpBufferLen;
-	
+
     nsCOMPtr<nsISupports>   mAsyncConvContext;
     nsCOMPtr<nsIStringInputStream>  mStream;
 
