@@ -977,13 +977,6 @@ GfxInfo::GetGfxDriverInfo()
       DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions );
 
     
-    APPEND_TO_DRIVER_BLOCKLIST( DRIVER_OS_ALL,
-      (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorIntel),
-      (GfxDeviceFamily*) GfxDriverInfo::GetDeviceFamily(IntelGMAX4500HD),
-      nsIGfxInfo::FEATURE_DIRECT3D_11_LAYERS, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
-      DRIVER_EQUAL, V(8,15,10,1749), "8.15.10.1749");
-
-    
 
 
 
