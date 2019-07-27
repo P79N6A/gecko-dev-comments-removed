@@ -885,7 +885,7 @@ nsContainerFrame::DoInlineIntrinsicISize(nsRenderingContext *aRenderingContext,
 
 
 LogicalSize
-nsContainerFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
+nsContainerFrame::ComputeAutoSize(nsRenderingContext* aRenderingContext,
                                   WritingMode aWM,
                                   const LogicalSize& aCBSize,
                                   nscoord aAvailableISize,
@@ -907,6 +907,33 @@ nsContainerFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
     }
   } else {
     result.ISize(aWM) = availBased;
+  }
+
+  if (IsTableCaption()) {
+    
+    
+    AutoMaybeDisableFontInflation an(this);
+
+    
+    uint8_t captionSide = StyleTableBorder()->mCaptionSide;
+    if (captionSide == NS_STYLE_CAPTION_SIDE_LEFT ||
+        captionSide == NS_STYLE_CAPTION_SIDE_RIGHT) {
+      result.ISize(aWM) = GetMinISize(aRenderingContext);
+    } else if (captionSide == NS_STYLE_CAPTION_SIDE_TOP ||
+               captionSide == NS_STYLE_CAPTION_SIDE_BOTTOM) {
+      
+      
+      
+      
+      
+      nscoord min = GetMinISize(aRenderingContext);
+      if (min > aCBSize.ISize(aWM)) {
+        min = aCBSize.ISize(aWM);
+      }
+      if (min > result.ISize(aWM)) {
+        result.ISize(aWM) = min;
+      }
+    }
   }
   return result;
 }
