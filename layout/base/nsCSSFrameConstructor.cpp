@@ -9404,7 +9404,9 @@ nsCSSFrameConstructor::CreateNeededPseudos(nsFrameConstructorState& aState,
           int nextDisplay = -1;
           int prevDisplay = -1;
 
-          if (!endIter.AtStart() && IsRubyParentType(ourParentType)) {
+          if (!endIter.AtStart() &&
+              (IsRubyParentType(ourParentType) ||
+               IsRubyParentType(groupingParentType))) {
             FCItemIterator prevItemIter(endIter);
             prevItemIter.Prev();
             prevDisplay =
@@ -9413,9 +9415,22 @@ nsCSSFrameConstructor::CreateNeededPseudos(nsFrameConstructorState& aState,
 
           
           
-          if (!spaceEndIter.IsDone() && IsRubyParentType(ourParentType)) {
+          if (!spaceEndIter.IsDone() &&
+              (IsRubyParentType(ourParentType) ||
+               IsRubyParentType(groupingParentType))) {
             nextDisplay =
               spaceEndIter.item().mStyleContext->StyleDisplay()->mDisplay;
+          }
+
+          if (ourParentType == eTypeRubyBaseContainer &&
+              prevDisplay == -1 && nextDisplay == -1) {
+            if (aParentFrame->StyleContext()->GetPseudo()) {
+              
+              
+              
+              endIter = spaceEndIter;
+              break;
+            }
           }
 
           
@@ -9438,6 +9453,7 @@ nsCSSFrameConstructor::CreateNeededPseudos(nsFrameConstructorState& aState,
             prevDisplay == -1 && isRubyLeadingTrailingParentType;
           bool isRubyTrailing =
             nextDisplay == -1 && isRubyLeadingTrailingParentType;
+          
           
           
           bool isRubyInterLevel =
@@ -9475,10 +9491,25 @@ nsCSSFrameConstructor::CreateNeededPseudos(nsFrameConstructorState& aState,
         
         
         
+        
+        
+        
+        
         prevParentType = endIter.item().DesiredParentType();
         if (prevParentType == ourParentType) {
-          
-          break;
+          if (endIter == spaceEndIter ||
+              
+              !IsRubyParentType(groupingParentType) ||
+              spaceEndIter.IsDone()) {
+            
+            break;
+          }
+          ParentType nextParentType = spaceEndIter.item().DesiredParentType();
+          if (nextParentType == ourParentType ||
+              !IsRubyParentType(nextParentType)) {
+            
+            break;
+          }
         }
 
         if (ourParentType == eTypeTable &&
@@ -9490,10 +9521,28 @@ nsCSSFrameConstructor::CreateNeededPseudos(nsFrameConstructorState& aState,
         }
 
         
-        if (ourParentType == eTypeRuby &&
-            (prevParentType == eTypeRubyTextContainer) !=
-            (groupingParentType == eTypeRubyTextContainer)) {
-          break;
+        
+        
+        if (ourParentType == eTypeRuby) {
+          if ((prevParentType == eTypeRubyBaseContainer &&
+               groupingParentType == eTypeRubyTextContainer) ||
+              (prevParentType == eTypeRubyTextContainer &&
+               groupingParentType == eTypeRubyBaseContainer)) {
+            
+            
+            break;
+          } else if (groupingParentType == eTypeBlock &&
+                     endIter != spaceEndIter) {
+            
+            
+            endIter = spaceEndIter;
+            break;
+          }
+          
+          
+          
+          MOZ_ASSERT(groupingParentType == prevParentType ||
+                     prevParentType == eTypeBlock);
         }
 
         
@@ -9543,6 +9592,10 @@ nsCSSFrameConstructor::CreateNeededPseudos(nsFrameConstructorState& aState,
         if (groupingParentType == eTypeRubyTextContainer) {
           wrapperType = eTypeRubyTextContainer;
         } else {
+          NS_ASSERTION(groupingParentType == eTypeRubyBaseContainer ||
+                       groupingParentType == eTypeBlock,
+                       "It should be either a ruby base container, "
+                       "or an inter-segment whitespace");
           wrapperType = eTypeRubyBaseContainer;
         } 
         break;
