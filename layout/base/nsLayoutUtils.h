@@ -845,6 +845,13 @@ public:
 
 
 
+  static bool IsRectVisibleInScrollFrames(nsIFrame* aFrame,
+                                          const nsRect& aRect);
+
+  
+
+
+
 
 
   static bool GetLayerTransformForFrame(nsIFrame* aFrame,

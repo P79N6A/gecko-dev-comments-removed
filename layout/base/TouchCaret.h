@@ -121,13 +121,6 @@ private:
 
 
 
-  static bool IsRectVisibleInScrollFrames(nsIFrame* aFrame,
-                                          const nsRect& aRect);
-
-  
-
-
-
   nsPoint ClampPositionToScrollFrame(const nsPoint& aPosition);
 
   
