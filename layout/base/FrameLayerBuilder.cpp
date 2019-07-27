@@ -4705,9 +4705,23 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
           aContainerFrame->GetContent(), eCSSProperty_transform)) {
       
       
+      
+      nsPresContext* presContext = aContainerFrame->PresContext();
+      nsIWidget* widget = aContainerFrame->GetNearestWidget();
+      nsSize displaySize;
+      if (widget) {
+        IntSize widgetSize = widget->GetClientSize();
+        int32_t p2a = presContext->AppUnitsPerDevPixel();
+        displaySize.width = NSIntPixelsToAppUnits(widgetSize.width, p2a);
+        displaySize.height = NSIntPixelsToAppUnits(widgetSize.height, p2a);
+      } else {
+        displaySize = presContext->GetVisibleArea().Size();
+      }
+      
+      
       scale = nsLayoutUtils::ComputeSuitableScaleForAnimation(
                 aContainerFrame->GetContent(), aVisibleRect.Size(),
-                aContainerFrame->PresContext()->GetVisibleArea().Size());
+                displaySize);
       
       scale.width *= aIncomingScale.mXScale;
       scale.height *= aIncomingScale.mYScale;
