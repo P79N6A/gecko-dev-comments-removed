@@ -183,7 +183,7 @@ SocialUI = {
   
   
   
-  _activationEventHandler: function SocialUI_activationHandler(e, aBypassUserEnable=false) {
+  _activationEventHandler: function SocialUI_activationHandler(e, options={}) {
     let targetDoc;
     let node;
     if (e.target instanceof HTMLDocument) {
@@ -197,7 +197,9 @@ SocialUI = {
     if (!(targetDoc instanceof HTMLDocument))
       return;
 
-    if (!aBypassUserEnable && targetDoc.defaultView != content)
+    
+    
+    if (!options.bypassContentCheck && targetDoc.defaultView != content)
       return;
 
     
@@ -233,11 +235,25 @@ SocialUI = {
         if (provider.sidebarURL) {
           SocialSidebar.show(provider.origin);
         }
+        if (provider.shareURL) {
+          
+          
+          SocialShare._createFrame();
+          SocialShare.iframe.setAttribute('src', 'data:text/plain;charset=utf8,');
+          SocialShare.iframe.setAttribute('origin', provider.origin);
+          
+          SocialShare.populateProviderMenu();
+          if (SocialShare.panel.state == "open") {
+            SocialShare.sharePage(provider.origin);
+          }
+        }
         if (provider.postActivationURL) {
-          openUILinkIn(provider.postActivationURL, "tab");
+          
+          
+          gBrowser.loadOneTab(provider.postActivationURL, {inBackground: SocialShare.panel.state == "open"});
         }
       });
-    }, aBypassUserEnable);
+    }, options);
   },
 
   showLearnMore: function() {
@@ -290,10 +306,10 @@ SocialUI = {
   
   
   updateState: function() {
+    SocialShare.update();
     if (!SocialUI.enabled)
       return;
     SocialMarks.update();
-    SocialShare.update();
   }
 }
 
@@ -434,6 +450,12 @@ SocialFlyout = {
 }
 
 SocialShare = {
+  get _dynamicResizer() {
+    delete this._dynamicResizer;
+    this._dynamicResizer = new DynamicResizeWatcher();
+    return this._dynamicResizer;
+  },
+
   
   
   get anchor() {
@@ -452,15 +474,27 @@ SocialShare = {
       return this.panel.lastChild;
   },
 
+  get activationPanelEnabled () {
+    
+    return Services.prefs.getBoolPref("social.share.activationPanelEnabled");
+  },
+
+  _activationHandler: function(event) {
+    if (!SocialShare.activationPanelEnabled)
+      return;
+    SocialUI._activationEventHandler(event, { bypassContentCheck: true, bypassInstallPanel: true });
+  },
+
   uninit: function () {
     if (this.iframe) {
+      this.iframe.removeEventListener("ActivateSocialFeature", this._activationHandler, true, true);
       this.iframe.remove();
     }
   },
 
   _createFrame: function() {
     let panel = this.panel;
-    if (!SocialUI.enabled || this.iframe)
+    if (this.iframe)
       return;
     this.panel.hidden = false;
     
@@ -472,6 +506,7 @@ SocialShare = {
     iframe.setAttribute("disableglobalhistory", "true");
     iframe.setAttribute("flex", "1");
     panel.appendChild(iframe);
+    this.iframe.addEventListener("ActivateSocialFeature", this._activationHandler, true, true);
     this.populateProviderMenu();
   },
 
@@ -483,8 +518,16 @@ SocialShare = {
     }
     
     
+    
+    if (this.activationPanelEnabled)
+      return provider;
+
+    
+    
     if (!provider)
       provider = SocialSidebar.provider;
+    
+    
     
     if (!provider || !provider.shareURL) {
       let providers = [p for (p of Social.providers) if (p.shareURL)];
@@ -500,14 +543,9 @@ SocialShare = {
     let hbox = document.getElementById("social-share-provider-buttons");
     
     
-    while (hbox.firstChild) {
+    let addButton = document.getElementById("add-share-provider");
+    while (hbox.firstChild != addButton) {
       hbox.removeChild(hbox.firstChild);
-    }
-    
-    
-    if (!SocialUI.enabled || providers.length < 2) {
-      this.panel.firstChild.hidden = true;
-      return;
     }
     let selectedProvider = this.getSelectedProvider();
     for (let provider of providers) {
@@ -518,17 +556,16 @@ SocialShare = {
       button.setAttribute("image", provider.iconURL);
       button.setAttribute("tooltiptext", provider.name);
       button.setAttribute("origin", provider.origin);
-      button.setAttribute("oncommand", "SocialShare.sharePage(this.getAttribute('origin')); this.checked=true;");
+      button.setAttribute("oncommand", "SocialShare.sharePage(this.getAttribute('origin'));");
       if (provider == selectedProvider) {
         this.defaultButton = button;
       }
-      hbox.appendChild(button);
+      hbox.insertBefore(button, addButton);
     }
     if (!this.defaultButton) {
-      this.defaultButton = hbox.firstChild
+      this.defaultButton = this.activationPanelEnabled ? addButton : hbox.firstChild;
     }
     this.defaultButton.setAttribute("checked", "true");
-    this.panel.firstChild.hidden = false;
   },
 
   get shareButton() {
@@ -560,8 +597,8 @@ SocialShare = {
     let shareButton = widget.forWindow(window).node;
     
     
-    shareButton.hidden = !SocialUI.enabled || (widget.areaType &&
-                         [p for (p of Social.providers) if (p.shareURL)].length == 0);
+    shareButton.hidden = !this.activationPanelEnabled && (!SocialUI.enabled || (widget.areaType &&
+                         [p for (p of Social.providers) if (p.shareURL)].length == 0));
     let disabled = !widget.areaType || shareButton.hidden || !this.canSharePage(gBrowser.currentURI);
 
     
@@ -577,6 +614,9 @@ SocialShare = {
       cmd.removeAttribute("disabled");
       shareButton.removeAttribute("disabled");
     }
+
+    
+    document.getElementById("add-share-provider").hidden = !this.activationPanelEnabled;
   },
 
   _onclick: function() {
@@ -608,10 +648,15 @@ SocialShare = {
     if (!iframe)
       return;
 
-    iframe.removeAttribute("src");
-    iframe.webNavigation.loadURI("about:socialerror?mode=compactInfo&origin=" +
-                                 encodeURIComponent(iframe.getAttribute("origin")),
-                                 null, null, null, null);
+    let url;
+    let origin = iframe.getAttribute("origin");
+    if (!origin && this.activationPanelEnabled) {
+      
+      url = "about:socialerror?mode=tryAgainOnly&directory=1&url=" + encodeURIComponent(iframe.getAttribute("src"));
+    } else {
+      url = "about:socialerror?mode=compactInfo&origin=" + encodeURIComponent(origin);
+    }
+    iframe.webNavigation.loadURI(url, null, null, null, null);
     sizeSocialPanelToContent(this.panel, iframe);
   },
 
@@ -621,13 +666,6 @@ SocialShare = {
     
     this._createFrame();
     let iframe = this.iframe;
-    let provider;
-    if (providerOrigin)
-      provider = Social._getProviderFromOrigin(providerOrigin);
-    else
-      provider = this.getSelectedProvider();
-    if (!provider || !provider.shareURL)
-      return;
 
     
     
@@ -659,20 +697,25 @@ SocialShare = {
     }
     this.currentShare = pageData;
 
+    let provider;
+    if (providerOrigin)
+      provider = Social._getProviderFromOrigin(providerOrigin);
+    else
+      provider = this.getSelectedProvider();
+    if (!provider || !provider.shareURL) {
+      this.showDirectory();
+      return;
+    }
+    
+    let hbox = document.getElementById("social-share-provider-buttons");
+    let btn = hbox.querySelector("[origin='" + provider.origin + "']");
+    btn.checked = true;
+
     let shareEndpoint = OpenGraphBuilder.generateEndpointURL(provider.shareURL, pageData);
 
     let size = provider.getPageSize("share");
     if (size) {
-      if (this._dynamicResizer) {
-        this._dynamicResizer.stop();
-        this._dynamicResizer = null;
-      }
-      let {width, height} = size;
-      width += this.panel.boxObject.width - iframe.boxObject.width;
-      height += this.panel.boxObject.height - iframe.boxObject.height;
-      this.panel.sizeTo(width, height);
-    } else {
-      this._dynamicResizer = new DynamicResizeWatcher();
+      this._dynamicResizer.stop();
     }
 
     
@@ -684,7 +727,7 @@ SocialShare = {
       reload = shareEndpoint != iframe.contentDocument.location.spec;
     }
     if (!reload) {
-      if (this._dynamicResizer)
+      if (!size)
         this._dynamicResizer.start(this.panel, iframe);
       iframe.docShell.isActive = true;
       iframe.docShell.isAppTab = true;
@@ -702,7 +745,13 @@ SocialShare = {
         
         iframe.contentWindow.opener = iframe.contentWindow;
         setTimeout(function() {
-          if (SocialShare._dynamicResizer) { 
+          if (size) {
+            let panel = SocialShare.panel;
+            let {width, height} = size;
+            width += panel.boxObject.width - iframe.boxObject.width;
+            height += panel.boxObject.height - iframe.boxObject.height;
+            panel.sizeTo(width, height);
+          } else {
             SocialShare._dynamicResizer.start(iframe.parentNode, iframe);
           }
         }, 0);
@@ -723,10 +772,32 @@ SocialShare = {
     let uri = Services.io.newURI(shareEndpoint, null, null);
     iframe.setAttribute("origin", provider.origin);
     iframe.setAttribute("src", shareEndpoint);
+    this._openPanel();
+  },
 
+  showDirectory: function() {
+    let url = Services.prefs.getCharPref("social.shareDirectory");
+    this._createFrame();
+    let iframe = this.iframe;
+    iframe.removeAttribute("origin");
+    iframe.setAttribute("src", url);
+    iframe.addEventListener("load", function panelBrowserOnload(e) {
+      iframe.removeEventListener("load", panelBrowserOnload, true);
+      SocialShare._dynamicResizer.start(iframe.parentNode, iframe);
+
+      iframe.addEventListener("unload", function panelBrowserOnload(e) {
+        iframe.removeEventListener("unload", panelBrowserOnload, true);
+        SocialShare._dynamicResizer.stop();
+      }, true);
+
+    }, true);
+    this._openPanel();
+  },
+
+  _openPanel: function() {
     let anchor = document.getAnonymousElementByAttribute(this.anchor, "class", "toolbarbutton-icon");
     this.panel.openPopup(anchor, "bottomcenter topright", 0, 0, false, false);
-    Social.setErrorListener(iframe, this.setErrorMessage.bind(this));
+    Social.setErrorListener(this.iframe, this.setErrorMessage.bind(this));
     Services.telemetry.getHistogramById("SOCIAL_TOOLBAR_BUTTONS").add(0);
   }
 };
