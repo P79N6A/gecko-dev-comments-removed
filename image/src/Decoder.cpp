@@ -20,6 +20,7 @@ Decoder::Decoder(RasterImage &aImage)
   , mProgress(NoProgress)
   , mImageData(nullptr)
   , mColormap(nullptr)
+  , mChunkCount(0)
   , mDecodeFlags(0)
   , mBytesDecoded(0)
   , mDecodeDone(false)
@@ -101,6 +102,10 @@ Decoder::Write(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy)
              "Not allowed to make more decoder calls after error!");
 
   
+  TimeStamp start = TimeStamp::Now();
+  mChunkCount++;
+
+  
   mBytesDecoded += aCount;
 
   
@@ -125,6 +130,9 @@ Decoder::Write(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy)
       WriteInternal(nullptr, 0, aStrategy);
     }
   }
+
+  
+  mDecodeTime += (TimeStamp::Now() - start);
 }
 
 void

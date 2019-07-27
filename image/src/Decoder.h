@@ -112,6 +112,12 @@ public:
   size_t BytesDecoded() const { return mBytesDecoded; }
 
   
+  TimeDuration DecodeTime() const { return mDecodeTime; }
+
+  
+  uint32_t ChunkCount() const { return mChunkCount; }
+
+  
   
   uint32_t GetFrameCount() { return mFrameCount; }
 
@@ -247,6 +253,10 @@ protected:
   uint32_t mImageDataLength;
   uint32_t* mColormap;       
   uint32_t mColormapSize;
+
+  
+  TimeDuration mDecodeTime;
+  uint32_t mChunkCount;
 
   uint32_t mDecodeFlags;
   size_t mBytesDecoded;
