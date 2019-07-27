@@ -2968,8 +2968,7 @@ xpc_JSObjectIsID(JSContext *cx, JSObject* obj);
 
 
 extern bool
-xpc_DumpJSStack(JSContext* cx, bool showArgs, bool showLocals,
-                bool showThisProps);
+xpc_DumpJSStack(bool showArgs, bool showLocals, bool showThisProps);
 
 
 
