@@ -1131,3 +1131,7 @@ pref("dom.requestSync.enabled", true);
 
 
 pref("gfx.touch.resample", true);
+
+
+
+pref("dom.serviceWorkers.enabled", false);
