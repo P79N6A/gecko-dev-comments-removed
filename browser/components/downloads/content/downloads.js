@@ -539,7 +539,7 @@ const DownloadsPanel = {
       
       
       for (let viewItem of DownloadsView._visibleViewItems.values()) {
-        viewItem.verifyTargetExists();
+        viewItem.download.refresh().catch(Cu.reportError);
       }
 
       DownloadsCommon.log("Opening downloads panel popup.");
@@ -991,7 +991,6 @@ function DownloadsViewItem(download, aElement) {
   this.element.classList.add("download-state");
 
   this._updateState();
-  this.verifyTargetExists();
 }
 
 DownloadsViewItem.prototype = {
@@ -1006,40 +1005,10 @@ DownloadsViewItem.prototype = {
     this.element.setAttribute("image", this.image);
     this.element.setAttribute("state",
                               DownloadsCommon.stateOfDownload(this.download));
-
-    if (this.download.succeeded) {
-      
-      
-      
-      
-      this.element.setAttribute("exists", "true");
-    }
   },
 
   onChanged() {
     this._updateProgress();
-  },
-
-  
-
-
-
-
-
-
-  verifyTargetExists() {
-    
-    if (!this.download.succeeded) {
-      return;
-    }
-
-    OS.File.exists(this.download.target.path).then(aExists => {
-      if (aExists) {
-        this.element.setAttribute("exists", "true");
-      } else {
-        this.element.removeAttribute("exists");
-      }
-    }).catch(Cu.reportError);
   },
 };
 

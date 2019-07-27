@@ -28,8 +28,14 @@ const DOWNLOAD_VIEW_SUPPORTED_COMMANDS =
 
 function HistoryDownload(aPlacesNode) {
   
-  this.source = { url: aPlacesNode.uri };
-  this.target = { path: undefined, size: undefined };
+  this.source = {
+    url: aPlacesNode.uri,
+  };
+  this.target = {
+    path: undefined,
+    exists: false,
+    size: undefined,
+  };
 
   
   
@@ -63,6 +69,10 @@ HistoryDownload.prototype = {
       this.canceled = metaData.state == nsIDM.DOWNLOAD_CANCELED ||
                       metaData.state == nsIDM.DOWNLOAD_PAUSED;
       this.endTime = metaData.endTime;
+
+      
+      
+      this.target.exists = true;
       this.target.size = metaData.fileSize;
     } catch (ex) {
       
@@ -78,13 +88,11 @@ HistoryDownload.prototype = {
       this.succeeded = !this.target.path;
       this.error = this.target.path ? { message: "Unstarted download." } : null;
       this.canceled = false;
-      this.target.size = -1;
-    }
 
-    
-    
-    this.totalBytes = this.target.size;
-    this.currentBytes = this.target.size;
+      
+      this.exists = false;
+      this.target.size = undefined;
+    }
   },
 
   
@@ -123,6 +131,20 @@ HistoryDownload.prototype = {
 
     return Promise.resolve();
   },
+
+  
+
+
+
+  refresh: Task.async(function* () {
+    try {
+      this.target.size = (yield OS.File.stat(this.target.path)).size;
+      this.target.exists = true;
+    } catch (ex) {
+      
+      this.target.exists = false;
+    }
+  }),
 };
 
 
@@ -269,19 +291,7 @@ HistoryDownloadElementShell.prototype = {
     switch (aCommand) {
       case "downloadsCmd_open":
         
-        
-        
-        if (this._sessionDownload && !this.download.succeeded) {
-          return false;
-        }
-
-        if (this._targetFileChecked) {
-          return this._targetFileExists;
-        }
-
-        
-        
-        return this.download.succeeded;
+        return this.download.target.exists;
       case "downloadsCmd_show":
         
         if (this._sessionDownload && this.download.target.partFilePath) {
@@ -291,13 +301,8 @@ HistoryDownloadElementShell.prototype = {
           }
         }
 
-        if (this._targetFileChecked) {
-          return this._targetFileExists;
-        }
-
         
-        
-        return this.download.succeeded;
+        return this.download.target.exists;
       case "downloadsCmd_pauseResume":
         return this.download.hasPartialData && !this.download.error;
       case "downloadsCmd_retry":
@@ -434,7 +439,7 @@ HistoryDownloadElementShell.prototype = {
 
   _checkTargetFileOnSelect: Task.async(function* () {
     try {
-      this._targetFileExists = yield OS.File.exists(this.download.target.path);
+      yield this.download.refresh();
     } finally {
       
       this._targetFileChecked = true;
@@ -444,6 +449,10 @@ HistoryDownloadElementShell.prototype = {
     if (this.element.selected) {
       goUpdateDownloadCommands();
     }
+
+    
+    
+    this._updateProgress();
   }),
 };
 

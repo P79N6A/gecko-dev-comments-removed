@@ -124,6 +124,15 @@ DownloadElementShell.prototype = {
 
 
   _updateProgress() {
+    if (this.download.succeeded) {
+      
+      if (this.download.target.exists) {
+        this.element.setAttribute("exists", "true");
+      } else {
+        this.element.removeAttribute("exists");
+      }
+    }
+
     
     if (this.download.hasProgress) {
       this.element.setAttribute("progressmode", "normal");
@@ -164,26 +173,26 @@ DownloadElementShell.prototype = {
     let tip = "";
 
     if (!this.download.stopped) {
-      let maxBytes = DownloadsCommon.maxBytesOfDownload(this.download);
+      let total = this.download.hasProgress ? this.download.totalBytes : -1;
       
       
       
       [text] = DownloadUtils.getDownloadStatusNoRate(
                                           this.download.currentBytes,
-                                          maxBytes,
+                                          total,
                                           this.download.speed,
                                           this.lastEstimatedSecondsLeft);
       let newEstimatedSecondsLeft;
       [tip, newEstimatedSecondsLeft] = DownloadUtils.getDownloadStatus(
                                           this.download.currentBytes,
-                                          maxBytes,
+                                          total,
                                           this.download.speed,
                                           this.lastEstimatedSecondsLeft);
       this.lastEstimatedSecondsLeft = newEstimatedSecondsLeft;
     } else if (this.download.canceled && this.download.hasPartialData) {
-      let maxBytes = DownloadsCommon.maxBytesOfDownload(this.download);
+      let total = this.download.hasProgress ? this.download.totalBytes : -1;
       let transfer = DownloadUtils.getTransferTotal(this.download.currentBytes,
-                                                    maxBytes);
+                                                    total);
 
       
       
@@ -196,11 +205,12 @@ DownloadElementShell.prototype = {
 
       if (this.download.succeeded) {
         
-        let maxBytes = DownloadsCommon.maxBytesOfDownload(this.download);
-        if (maxBytes >= 0) {
-          let [size, unit] = DownloadUtils.convertByteUnits(maxBytes);
+        if (this.download.target.size !== undefined) {
+          let [size, unit] = DownloadUtils.convertByteUnits(
+                                                  this.download.target.size);
           stateLabel = s.sizeWithUnits(size, unit);
         } else {
+          
           stateLabel = s.sizeUnknown;
         }
       } else if (this.download.canceled) {
