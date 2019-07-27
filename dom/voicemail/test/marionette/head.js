@@ -5,8 +5,8 @@
 
 const {Cc: Cc, Ci: Ci, Cr: Cr, Cu: Cu} = SpecialPowers;
 
-let RIL = {};
-Cu.import("resource://gre/modules/ril_consts.js", RIL);
+let RIL = SpecialPowers.wrap(SpecialPowers.createBlankObject());
+SpecialPowers.Cu.import("resource://gre/modules/ril_consts.js", RIL);
 
 
 Promise.defer = function() { return new Deferred(); }
