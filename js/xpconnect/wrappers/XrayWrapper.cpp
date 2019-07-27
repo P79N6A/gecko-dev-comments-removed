@@ -304,8 +304,26 @@ bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(JSContext* cx,
         
         XrayType xrayType = GetXrayType(propObj);
         if (xrayType == NotXray || xrayType == XrayForOpaqueObject) {
-            JSAutoCompartment ac(cx, wrapper);
-            return ReportWrapperDenial(cx, id, WrapperDenialForXray, "value not Xrayable");
+            if (IdentifyStandardInstance(propObj) == JSProto_ArrayBuffer) {
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+            } else {
+                JSAutoCompartment ac(cx, wrapper);
+                return ReportWrapperDenial(cx, id, WrapperDenialForXray, "value not Xrayable");
+            }
         }
 
         
