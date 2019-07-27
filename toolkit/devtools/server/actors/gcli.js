@@ -244,7 +244,7 @@ const GcliActor = ActorClass({
     this._system = createSystem({ location: "server" });
     this._system.commands.onCommandsChange.add(this._commandsChanged);
 
-    const gcliInit = require("devtools/commandline/commands-index");
+    const gcliInit = require("gcli/commands/index");
     gcliInit.addAllItemsByModule(this._system);
 
     
