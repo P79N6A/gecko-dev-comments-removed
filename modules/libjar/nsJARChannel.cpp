@@ -917,6 +917,8 @@ nsJARChannel::OverrideWithSynthesizedResponse(nsIInputStream* aSynthesizedInput)
       return;
     }
 
+    FinishAsyncOpen();
+
     rv = mSynthesizedResponsePump->AsyncRead(this, nullptr);
     NS_ENSURE_SUCCESS_VOID(rv);
 }
@@ -952,6 +954,14 @@ nsJARChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *ctx)
       nsRefPtr<InterceptedJARChannel> intercepted =
         new InterceptedJARChannel(this, controller, isNavigation);
       intercepted->NotifyController();
+
+      
+      
+      nsresult rv = mJarURI->GetJAREntry(mJarEntry);
+      if (NS_FAILED(rv)) {
+          return rv;
+      }
+
       return NS_OK;
     }
 
@@ -1007,11 +1017,18 @@ nsJARChannel::ContinueAsyncOpen()
     }
 
 
+    FinishAsyncOpen();
+
+    return NS_OK;
+}
+
+void
+nsJARChannel::FinishAsyncOpen()
+{
     if (mLoadGroup)
         mLoadGroup->AddRequest(this, nullptr);
 
     mOpened = true;
-    return NS_OK;
 }
 
 

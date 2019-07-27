@@ -82,7 +82,10 @@ private:
     
     
     bool ShouldIntercept();
+
     nsresult ContinueAsyncOpen();
+    void FinishAsyncOpen();
+
     
     
     void ResetInterception();
