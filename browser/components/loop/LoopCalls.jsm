@@ -11,11 +11,16 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 this.EXPORTED_SYMBOLS = ["LoopCalls"];
 
+const EMAIL_OR_PHONE_RE = /^(:?\S+@\S+|\+\d+)$/;
+
 XPCOMUtils.defineLazyModuleGetter(this, "MozLoopService",
                                   "resource:///modules/loop/MozLoopService.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "LOOP_SESSION_TYPE",
                                   "resource:///modules/loop/MozLoopService.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "LoopContacts",
+                                  "resource:///modules/loop/LoopContacts.jsm");
 
  
 
@@ -269,7 +274,35 @@ let LoopCallsInternal = {
 
 
   _startCall: function(callData) {
-    this.conversationInProgress.id = MozLoopService.openChatWindow(callData);
+    const openChat = () => {
+      this.conversationInProgress.id = MozLoopService.openChatWindow(callData);
+    };
+
+    if (callData.type == "incoming" && ("callerId" in callData) &&
+        EMAIL_OR_PHONE_RE.test(callData.callerId)) {
+      LoopContacts.search({
+        q: callData.callerId,
+        field: callData.callerId.contains("@") ? "email" : "tel"
+      }, (err, contacts) => {
+        if (err) {
+          
+          openChat();
+          return;
+        }
+
+        for (let contact of contacts) {
+          if (contact.blocked) {
+            
+            this._returnBusy(callData);
+            return;
+          }
+        }
+
+        openChat();
+      })
+    } else {
+      openChat();
+    }
   },
 
   
