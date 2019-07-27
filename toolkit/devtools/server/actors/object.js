@@ -651,8 +651,6 @@ ObjectActor.prototype.requestTypes = {
 
 
 
-
-
 function PropertyIteratorActor(objectActor, options){
   this.objectActor = objectActor;
 
@@ -710,20 +708,7 @@ function PropertyIteratorActor(objectActor, options){
     let { query } = options;
     query = query.toLowerCase();
     names = names.filter(name => {
-      
-      if (name.toLowerCase().includes(query)) {
-        return true;
-      }
-      
-      let desc;
-      try {
-        desc = this.obj.getOwnPropertyDescriptor(name);
-      } catch(e) {}
-      if (desc && desc.value &&
-          String(desc.value).includes(query)) {
-        return true;
-      }
-      return false;
+      return name.toLowerCase().includes(query);
     });
   }
 
