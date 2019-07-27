@@ -567,8 +567,27 @@ public:
                                                                    Direction aDirection);
 
   enum {
+    
+
+
+
     SCROLLABLE_SAME_DOC = 0x01,
-    SCROLLABLE_INCLUDE_HIDDEN = 0x02
+    
+
+
+
+    SCROLLABLE_INCLUDE_HIDDEN = 0x02,
+    
+
+
+
+
+    SCROLLABLE_ONLY_ASYNC_SCROLLABLE = 0x04,
+    
+
+
+
+    SCROLLABLE_ALWAYS_MATCH_ROOT = 0x08,
   };
   
 
