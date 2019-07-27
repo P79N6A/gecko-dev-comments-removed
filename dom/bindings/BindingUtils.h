@@ -855,19 +855,25 @@ MaybeWrapValue(JSContext* cx, JS::MutableHandle<JS::Value> rval)
   return MaybeWrapObjectValue(cx, rval);
 }
 
-
-
-
-
-
-
-
-
+namespace binding_detail {
+enum GetOrCreateReflectorWrapBehavior {
+  eWrapIntoContextCompartment,
+  eDontWrapIntoContextCompartment
+};
 
 template <class T>
+struct TypeNeedsOuterization
+{
+  
+  
+  static const bool value =
+    IsBaseOf<nsGlobalWindow, T>::value || IsSame<EventTarget, T>::value;
+};
+
+template <class T, GetOrCreateReflectorWrapBehavior wrapBehavior>
 MOZ_ALWAYS_INLINE bool
-GetOrCreateDOMReflector(JSContext* cx, T* value,
-                        JS::MutableHandle<JS::Value> rval)
+DoGetOrCreateDOMReflector(JSContext* cx, T* value,
+                          JS::MutableHandle<JS::Value> rval)
 {
   MOZ_ASSERT(value);
   JSObject* obj = value->GetWrapperPreserveColor();
@@ -911,13 +917,52 @@ GetOrCreateDOMReflector(JSContext* cx, T* value,
   bool sameCompartment =
     js::GetObjectCompartment(obj) == js::GetContextCompartment(cx);
   if (sameCompartment && couldBeDOMBinding) {
-    
-    
-    return IsBaseOf<nsGlobalWindow, T>::value || IsSame<EventTarget, T>::value ?
-           TryToOuterize(cx, rval) : true;
+    return TypeNeedsOuterization<T>::value ? TryToOuterize(cx, rval) : true;
+  }
+
+  if (wrapBehavior == eDontWrapIntoContextCompartment) {
+    if (TypeNeedsOuterization<T>::value) {
+      JSAutoCompartment ac(cx, obj);
+      return TryToOuterize(cx, rval);
+    }
+
+    return true;
   }
 
   return JS_WrapValue(cx, rval);
+}
+} 
+
+
+
+
+
+
+
+
+
+
+template <class T>
+MOZ_ALWAYS_INLINE bool
+GetOrCreateDOMReflector(JSContext* cx, T* value,
+                        JS::MutableHandle<JS::Value> rval)
+{
+  using namespace binding_detail;
+  return DoGetOrCreateDOMReflector<T, eWrapIntoContextCompartment>(cx, value,
+                                                                   rval);
+}
+
+
+
+template <class T>
+MOZ_ALWAYS_INLINE bool
+GetOrCreateDOMReflectorNoWrap(JSContext* cx, T* value,
+                              JS::MutableHandle<JS::Value> rval)
+{
+  using namespace binding_detail;
+  return DoGetOrCreateDOMReflector<T, eDontWrapIntoContextCompartment>(cx,
+                                                                       value,
+                                                                       rval);
 }
 
 
@@ -1623,6 +1668,37 @@ GetOrCreateDOMReflector(JSContext* cx, JS::Handle<JSObject*> scope, T& value,
                         JS::MutableHandle<JS::Value> rval)
 {
   return GetOrCreateDOMReflector(cx, value, rval);
+}
+
+
+
+template <class T, bool isSmartPtr=HasgetMember<T>::Value>
+struct GetOrCreateDOMReflectorNoWrapHelper
+{
+  static inline bool GetOrCreate(JSContext* cx, const T& value,
+                                 JS::MutableHandle<JS::Value> rval)
+  {
+    return GetOrCreateDOMReflectorNoWrap(cx, value.get(), rval);
+  }
+};
+
+template <class T>
+struct GetOrCreateDOMReflectorNoWrapHelper<T, false>
+{
+  static inline bool GetOrCreate(JSContext* cx, T& value,
+                                 JS::MutableHandle<JS::Value> rval)
+  {
+    return GetOrCreateDOMReflectorNoWrap(cx, &value, rval);
+  }
+};
+
+template<class T>
+inline bool
+GetOrCreateDOMReflectorNoWrap(JSContext* cx, T& value,
+                              JS::MutableHandle<JS::Value> rval)
+{
+  return
+    GetOrCreateDOMReflectorNoWrapHelper<T>::GetOrCreate(cx, value, rval);
 }
 
 template <class T>
