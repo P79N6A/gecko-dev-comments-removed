@@ -4785,9 +4785,12 @@ nsImageRenderer::Draw(nsPresContext*       aPresContext,
         NS_WARNING("Could not create drawable for element");
         return;
       }
-      nsLayoutUtils::DrawPixelSnapped(&aRenderingContext, aPresContext,
-                                      drawable, graphicsFilter,
-                                      aDest, aFill, aDest.TopLeft(), aDirtyRect);
+
+      nsCOMPtr<imgIContainer> image(ImageOps::CreateFromDrawable(drawable));
+      nsLayoutUtils::DrawImage(&aRenderingContext, aPresContext, image,
+                               graphicsFilter, aDest, aFill,
+                               aDest.TopLeft(), aDirtyRect, 
+                               ConvertImageRendererToDrawFlags(mFlags));
       return;
     }
     case eStyleImageType_Null:
@@ -4952,14 +4955,34 @@ nsImageRenderer::DrawBorderImageComponent(nsPresContext*       aPresContext,
     return;
   }
 
-  if (mType == eStyleImageType_Image) {
+  if (mType == eStyleImageType_Image || mType == eStyleImageType_Element) {
     nsCOMPtr<imgIContainer> subImage;
-    if ((subImage = mImage->GetSubImage(aIndex)) == nullptr) {
-      subImage = ImageOps::Clip(mImageContainer, nsIntRect(aSrc.x,
-                                                           aSrc.y,
-                                                           aSrc.width,
-                                                           aSrc.height));
-      mImage->SetSubImage(aIndex, subImage);
+
+    
+    nsIntRect srcRect(aSrc.x, aSrc.y, aSrc.width, aSrc.height);
+    if (mType == eStyleImageType_Image) {
+      if ((subImage = mImage->GetSubImage(aIndex)) == nullptr) {
+        subImage = ImageOps::Clip(mImageContainer, srcRect);
+        mImage->SetSubImage(aIndex, subImage);
+      }
+    } else {
+      
+      
+      
+      
+      
+      
+      
+
+      nsRefPtr<gfxDrawable> drawable = DrawableForElement(nsRect(nsPoint(), mSize),
+                                                          aRenderingContext);
+      if (!drawable) {
+        NS_WARNING("Could not create drawable for element");
+        return;
+      }
+
+      nsCOMPtr<imgIContainer> image(ImageOps::CreateFromDrawable(drawable));
+      subImage = ImageOps::Clip(image, srcRect);
     }
 
     GraphicsFilter graphicsFilter =
@@ -4989,74 +5012,6 @@ nsImageRenderer::DrawBorderImageComponent(nsPresContext*       aPresContext,
   nsRect destTile = RequiresScaling(aFill, aHFill, aVFill, aUnitSize)
                   ? ComputeTile(aFill, aHFill, aVFill, aUnitSize)
                   : aFill;
-
-  if (mType == eStyleImageType_Element) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    
-    nsPresContext* presContext = mForFrame->PresContext();
-    gfxRect srcRect = gfxRect(presContext->CSSPixelsToDevPixels(aSrc.x),
-                              presContext->CSSPixelsToDevPixels(aSrc.y),
-                              presContext->CSSPixelsToDevPixels(aSrc.width),
-                              presContext->CSSPixelsToDevPixels(aSrc.height));
-    RefPtr<DrawTarget> srcSlice = gfxPlatform::GetPlatform()->
-      CreateOffscreenContentDrawTarget(IntSize(srcRect.width, srcRect.height),
-                             SurfaceFormat::B8G8R8A8);
-    if (!srcSlice) {
-      NS_ERROR("Could not create DrawTarget for element");
-      return;
-    }
-    nsRefPtr<gfxContext> ctx = new gfxContext(srcSlice);
-
-    
-    nsRefPtr<gfxDrawable> drawable = DrawableForElement(nsRect(nsPoint(), mSize),
-                                                        aRenderingContext);
-    if (!drawable) {
-      NS_WARNING("Could not create drawable for element");
-      return;
-    }
-
-    
-    GraphicsFilter graphicsFilter =
-      nsLayoutUtils::GetGraphicsFilterForFrame(mForFrame);
-    gfxMatrix transform;
-    transform.Translate(gfxPoint(srcRect.x, srcRect.y));
-    bool success = drawable->Draw(ctx,
-                                  gfxRect(0, 0, srcRect.width, srcRect.height),
-                                  false,
-                                  graphicsFilter,
-                                  transform);
-    if (!success) {
-      NS_WARNING("Could not copy element image");
-      return;
-    }
-
-    
-    ctx = nullptr;
-
-    
-    nsRefPtr<gfxSurfaceDrawable> srcSliceDrawable =
-      new gfxSurfaceDrawable(srcSlice,
-                             gfxIntSize(srcRect.width, srcRect.height));
-    nsPoint anchor(nsPresContext::CSSPixelsToAppUnits(aSrc.x),
-                   nsPresContext::CSSPixelsToAppUnits(aSrc.y));
-    nsLayoutUtils::DrawPixelSnapped(&aRenderingContext, aPresContext,
-                                    srcSliceDrawable,
-                                    graphicsFilter, destTile, aFill,
-                                    anchor, aDirtyRect);
-
-    return;
-  }
 
   Draw(aPresContext, aRenderingContext, aDirtyRect, aFill, destTile, aSrc);
 }
