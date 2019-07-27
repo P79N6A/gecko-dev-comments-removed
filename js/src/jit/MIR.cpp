@@ -2931,10 +2931,10 @@ MUrsh::NewAsmJS(TempAllocator &alloc, MDefinition *left, MDefinition *right)
 }
 
 MResumePoint *
-MResumePoint::New(TempAllocator &alloc, MBasicBlock *block, jsbytecode *pc, MResumePoint *parent,
+MResumePoint::New(TempAllocator &alloc, MBasicBlock *block, jsbytecode *pc,
                   Mode mode)
 {
-    MResumePoint *resume = new(alloc) MResumePoint(block, pc, parent, mode);
+    MResumePoint *resume = new(alloc) MResumePoint(block, pc, mode);
     if (!resume->init(alloc))
         return nullptr;
     resume->inherit(block);
@@ -2945,7 +2945,7 @@ MResumePoint *
 MResumePoint::New(TempAllocator &alloc, MBasicBlock *block, MResumePoint *model,
                   const MDefinitionVector &operands)
 {
-    MResumePoint *resume = new(alloc) MResumePoint(block, model->pc(), model->caller(), model->mode());
+    MResumePoint *resume = new(alloc) MResumePoint(block, model->pc(), model->mode());
 
     
     
@@ -2964,7 +2964,7 @@ MResumePoint *
 MResumePoint::Copy(TempAllocator &alloc, MResumePoint *src)
 {
     MResumePoint *resume = new(alloc) MResumePoint(src->block(), src->pc(),
-                                                   src->caller(), src->mode());
+                                                   src->mode());
     
     
     if (!resume->operands_.init(alloc, src->numAllocatedOperands()))
@@ -2976,11 +2976,9 @@ MResumePoint::Copy(TempAllocator &alloc, MResumePoint *src)
     return resume;
 }
 
-MResumePoint::MResumePoint(MBasicBlock *block, jsbytecode *pc, MResumePoint *caller,
-                           Mode mode)
+MResumePoint::MResumePoint(MBasicBlock *block, jsbytecode *pc, Mode mode)
   : MNode(block),
     pc_(pc),
-    caller_(caller),
     instruction_(nullptr),
     mode_(mode)
 {
@@ -2991,6 +2989,12 @@ bool
 MResumePoint::init(TempAllocator &alloc)
 {
     return operands_.init(alloc, block()->stackDepth());
+}
+
+MResumePoint*
+MResumePoint::caller() const
+{
+    return block_->callerResumePoint();
 }
 
 void
