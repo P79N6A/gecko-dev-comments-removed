@@ -4464,6 +4464,7 @@ class MGuardObject
         setGuard();
         setMovable();
         setResultType(MIRType_Object);
+        setResultTypeSet(ins->resultTypeSet());
     }
 
   public:
@@ -4510,6 +4511,7 @@ class MPolyInlineGuard
     {
         setGuard();
         setResultType(MIRType_Object);
+        setResultTypeSet(ins->resultTypeSet());
     }
 
   public:
@@ -10366,6 +10368,7 @@ class MGuardShape
         setGuard();
         setMovable();
         setResultType(MIRType_Object);
+        setResultTypeSet(obj->resultTypeSet());
 
         
         
@@ -10419,6 +10422,7 @@ class MGuardReceiverPolymorphic
         setGuard();
         setMovable();
         setResultType(MIRType_Object);
+        setResultTypeSet(obj->resultTypeSet());
     }
 
   public:
