@@ -26,6 +26,15 @@ function setPermissions() {
   perms.add(uri, "allowXULXBL", Ci.nsIPermissionManager.ALLOW_ACTION);
 }
 
+let cm = Cc["@mozilla.org/categorymanager;1"]
+           .getService(Components.interfaces.nsICategoryManager);
+
+
+if (cm) {
+  cm.deleteCategoryEntry("update-timer", "WebappsUpdateTimer", false);
+  cm.deleteCategoryEntry("update-timer", "nsUpdateService", false);
+}
+
 
 let wm = Cc["@mozilla.org/appshell/window-mediator;1"]
             .getService(Ci.nsIWindowMediator);
