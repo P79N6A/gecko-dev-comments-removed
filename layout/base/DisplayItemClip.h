@@ -32,6 +32,7 @@ namespace mozilla {
 
 
 class DisplayItemClip {
+  typedef mozilla::gfx::Color Color;
   typedef mozilla::gfx::DrawTarget DrawTarget;
   typedef mozilla::gfx::Path Path;
 
@@ -85,8 +86,11 @@ public:
                                uint32_t aBegin, uint32_t aEnd) const;
 
   
-  void DrawRoundedRectsTo(gfxContext* aContext, int32_t A2D,
-                          uint32_t aBegin, uint32_t aEnd) const;
+  void FillIntersectionOfRoundedRectClips(gfxContext* aContext,
+                                          const Color& aColor,
+                                          int32_t aAppUnitsPerDevPixel,
+                                          uint32_t aBegin,
+                                          uint32_t aEnd) const;
   
   mozilla::TemporaryRef<Path> MakeRoundedRectPath(DrawTarget& aDrawTarget,
                                                   int32_t A2D,

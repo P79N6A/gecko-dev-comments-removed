@@ -467,6 +467,8 @@ public:
     void Clip(const gfxRect& rect); 
     void Clip(Path* aPath);
 
+    void PopClip();
+
     
 
 

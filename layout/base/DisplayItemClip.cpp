@@ -6,6 +6,8 @@
 #include "DisplayItemClip.h"
 
 #include "gfxContext.h"
+#include "gfxUtils.h"
+#include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/PathHelpers.h"
 #include "nsPresContext.h"
 #include "nsCSSRendering.h"
@@ -118,24 +120,34 @@ DisplayItemClip::ApplyRoundedRectClipsTo(gfxContext* aContext,
 }
 
 void
-DisplayItemClip::DrawRoundedRectsTo(gfxContext* aContext,
-                                    int32_t A2D,
-                                    uint32_t aBegin, uint32_t aEnd) const
+DisplayItemClip::FillIntersectionOfRoundedRectClips(gfxContext* aContext,
+                                                    const Color& aColor,
+                                                    int32_t aAppUnitsPerDevPixel,
+                                                    uint32_t aBegin,
+                                                    uint32_t aEnd) const
 {
   DrawTarget& aDrawTarget = *aContext->GetDrawTarget();
 
   aEnd = std::min<uint32_t>(aEnd, mRoundedClipRects.Length());
 
-  if (aEnd - aBegin == 0)
+  if (aBegin >= aEnd) {
     return;
+  }
 
   
+  ApplyRoundedRectClipsTo(aContext, aAppUnitsPerDevPixel, aBegin, aEnd - 1);
+
   
-  ApplyRoundedRectClipsTo(aContext, A2D, aBegin, aEnd - 1);
-  RefPtr<Path> roundedRect =
-    MakeRoundedRectPath(aDrawTarget, A2D, mRoundedClipRects[aEnd - 1]);
-  aContext->SetPath(roundedRect);
-  aContext->Fill();
+  RefPtr<Path> roundedRect = MakeRoundedRectPath(aDrawTarget,
+                                                 aAppUnitsPerDevPixel,
+                                                 mRoundedClipRects[aEnd - 1]);
+  ColorPattern color(ToDeviceColor(aColor));
+  aDrawTarget.Fill(roundedRect, color);
+
+  
+  for (uint32_t i = aBegin; i < aEnd - 1; ++i) {
+    aContext->PopClip();
+  }
 }
 
 TemporaryRef<Path>
