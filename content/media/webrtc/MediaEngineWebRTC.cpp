@@ -268,7 +268,6 @@ MediaEngineWebRTC::EnumerateVideoDevices(MediaSourceType aMediaSource,
     NS_ConvertUTF8toUTF16 uuid(uniqueId);
     if (mVideoSources.Get(uuid, getter_AddRefs(vSource))) {
       
-      vSource->Refresh(i);
       aVSources->AppendElement(vSource.get());
     } else {
       vSource = new MediaEngineWebRTCVideoSource(videoEngine, i, aMediaSource);

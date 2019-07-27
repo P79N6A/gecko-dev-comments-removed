@@ -700,24 +700,6 @@ MediaEngineWebRTCVideoSource::Shutdown()
   mInitDone = false;
 }
 
-void MediaEngineWebRTCVideoSource::Refresh(int aIndex) {
-  mCaptureIndex = aIndex;
-#ifdef MOZ_B2G_CAMERA
-  
-#else
-  
-  const uint32_t KMaxDeviceNameLength = 128;
-  char deviceName[KMaxDeviceNameLength];
-  if (mViECapture->GetCaptureDevice(mCaptureIndex,
-                                    deviceName, KMaxDeviceNameLength,
-                                    nullptr, 0)) {
-    return;
-  }
-
-  CopyUTF8toUTF16(deviceName, mDeviceName);
-#endif
-}
-
 #ifdef MOZ_B2G_CAMERA
 
 
