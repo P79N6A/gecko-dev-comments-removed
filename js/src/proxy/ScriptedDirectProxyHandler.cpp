@@ -751,7 +751,8 @@ ScriptedDirectProxyHandler::delete_(JSContext *cx, HandleObject proxy, HandleId 
 
 
 bool
-ScriptedDirectProxyHandler::getEnumerablePropertyKeys(JSContext *cx, HandleObject proxy, AutoIdVector &props) const
+ScriptedDirectProxyHandler::enumerate(JSContext *cx, HandleObject proxy,
+                                      MutableHandleObject objp) const
 {
     
     RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
@@ -763,6 +764,7 @@ ScriptedDirectProxyHandler::getEnumerablePropertyKeys(JSContext *cx, HandleObjec
     }
 
     
+    
     RootedObject target(cx, proxy->as<ProxyObject>().target());
 
     
@@ -772,7 +774,7 @@ ScriptedDirectProxyHandler::getEnumerablePropertyKeys(JSContext *cx, HandleObjec
 
     
     if (trap.isUndefined())
-        return DirectProxyHandler::getEnumerablePropertyKeys(cx, proxy, props);
+        return DirectProxyHandler::enumerate(cx, proxy, objp);
 
     
     Value argv[] = {
@@ -794,9 +796,35 @@ ScriptedDirectProxyHandler::getEnumerablePropertyKeys(JSContext *cx, HandleObjec
     }
 
     
-    
-    
-    return ArrayToIdVector(cx, proxy, target, trapResult, props, 0, cx->names().enumerate);
+    objp.set(&trapResult.toObject());
+    return true;
+}
+
+
+bool
+ScriptedDirectProxyHandler::getEnumerablePropertyKeys(JSContext *cx, HandleObject proxy, AutoIdVector &props) const
+{
+    RootedObject iterator(cx);
+    if (!enumerate(cx, proxy, &iterator))
+        return false;
+
+    do {
+        RootedValue rval(cx);
+        if (!IteratorMore(cx, iterator, &rval))
+            return false;
+
+        if (rval.isMagic(JS_NO_ITER_VALUE))
+            break;
+
+        RootedId id(cx);
+        if (!ValueToId<CanGC>(cx, rval, &id))
+            return false;
+
+        if (!props.append(id))
+            return false;
+    } while (true);
+
+    return true;
 }
 
 
@@ -1008,13 +1036,6 @@ ScriptedDirectProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject 
     return true;
 }
 
-bool
-ScriptedDirectProxyHandler::iterate(JSContext *cx, HandleObject proxy, unsigned flags,
-                                    MutableHandleObject objp) const
-{
-    
-    return DirectProxyHandler::iterate(cx, proxy, flags, objp);
-}
 
 
 bool

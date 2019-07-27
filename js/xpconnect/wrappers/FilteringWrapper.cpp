@@ -124,15 +124,15 @@ FilteringWrapper<Base, Policy>::getEnumerablePropertyKeys(JSContext *cx,
 
 template <typename Base, typename Policy>
 bool
-FilteringWrapper<Base, Policy>::iterate(JSContext *cx, HandleObject wrapper,
-                                        unsigned flags, MutableHandleObject objp) const
+FilteringWrapper<Base, Policy>::enumerate(JSContext *cx, HandleObject wrapper,
+                                          MutableHandleObject objp) const
 {
     assertEnteredPolicy(cx, wrapper, JSID_VOID, BaseProxyHandler::ENUMERATE);
     
     
     
     
-    return js::BaseProxyHandler::iterate(cx, wrapper, flags, objp);
+    return js::BaseProxyHandler::enumerate(cx, wrapper, objp);
 }
 
 template <typename Base, typename Policy>

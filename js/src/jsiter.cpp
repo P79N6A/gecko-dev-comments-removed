@@ -669,6 +669,16 @@ js::GetIterator(JSContext *cx, HandleObject obj, unsigned flags, MutableHandleOb
         return true;
     }
 
+    
+    
+    
+    
+    
+    if (flags == 0 || flags == JSITER_ENUMERATE) {
+        if (obj->is<ProxyObject>())
+            return Proxy::enumerate(cx, obj, objp);
+    }
+
     Vector<Shape *, 8> shapes(cx);
     uint32_t key = 0;
     if (flags == JSITER_ENUMERATE) {
@@ -747,9 +757,6 @@ js::GetIterator(JSContext *cx, HandleObject obj, unsigned flags, MutableHandleOb
     }
 
   miss:
-    if (obj->is<ProxyObject>())
-        return Proxy::iterate(cx, obj, flags, objp);
-
     if (!GetCustomIterator(cx, obj, flags, objp))
         return false;
     if (objp)
@@ -1280,6 +1287,7 @@ js::IteratorMore(JSContext *cx, HandleObject iterobj, MutableHandleValue rval)
     
     if (!JSObject::getProperty(cx, iterobj, iterobj, cx->names().next, rval))
         return false;
+    
     if (!Invoke(cx, ObjectValue(*iterobj), rval, 0, nullptr, rval)) {
         
         if (!cx->isExceptionPending())
@@ -1295,7 +1303,39 @@ js::IteratorMore(JSContext *cx, HandleObject iterobj, MutableHandleValue rval)
         return true;
     }
 
-    return true;
+    if (!rval.isObject()) {
+        
+        return true;
+    }
+
+    
+    
+    RootedObject result(cx, &rval.toObject());
+    bool found = false;
+    if (!JSObject::hasProperty(cx, result, cx->names().done, &found))
+        return false;
+    if (!found)
+        return true;
+    if (!JSObject::hasProperty(cx, result, cx->names().value, &found))
+        return false;
+    if (!found)
+        return true;
+
+    
+
+    
+    
+    if (!JSObject::getProperty(cx, result, result, cx->names().done, rval))
+        return false;
+
+    bool done = ToBoolean(rval);
+    if (done) {
+         rval.setMagic(JS_NO_ITER_VALUE);
+         return true;
+     }
+
+    
+    return JSObject::getProperty(cx, result, result, cx->names().value, rval);
 }
 
 static bool

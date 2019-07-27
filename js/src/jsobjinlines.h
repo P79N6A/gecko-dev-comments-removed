@@ -362,8 +362,7 @@ JSObject::setInitialElementsMaybeNonNative(js::HeapSlot *elements)
 }
 
  inline bool
-JSObject::hasProperty(JSContext *cx, js::HandleObject obj,
-                      js::HandleId id, bool *foundp)
+JSObject::hasProperty(JSContext *cx, js::HandleObject obj, js::HandleId id, bool *foundp)
 {
     JS::RootedObject pobj(cx);
     js::RootedShape prop(cx);
@@ -373,6 +372,13 @@ JSObject::hasProperty(JSContext *cx, js::HandleObject obj,
     }
     *foundp = !!prop;
     return true;
+}
+
+ inline bool
+JSObject::hasProperty(JSContext *cx, js::HandleObject obj, js::PropertyName *name, bool *foundp)
+{
+    JS::RootedId id(cx, js::NameToId(name));
+    return hasProperty(cx, obj, id, foundp);
 }
 
  inline bool
