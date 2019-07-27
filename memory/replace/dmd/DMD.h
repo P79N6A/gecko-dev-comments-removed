@@ -29,7 +29,7 @@ struct Sizes
   size_t mStackTracesUnused;
   size_t mStackTraceTable;
   size_t mLiveBlockTable;
-  size_t mDeadBlockList;
+  size_t mDeadBlockTable;
 
   Sizes() { Clear(); }
   void Clear() { memset(this, 0, sizeof(Sizes)); }
@@ -133,6 +133,15 @@ ClearReports()
     funcs->ClearReports();
   }
 }
+
+
+
+
+
+
+
+
+
 
 
 
