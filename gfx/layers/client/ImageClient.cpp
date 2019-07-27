@@ -148,10 +148,6 @@ ImageClientSingle::UpdateImage(ImageContainer* aContainer, uint32_t aContentFlag
   }
   mLastUpdateGenerationCounter = generationCounter;
 
-  if (images.IsEmpty()) {
-    return false;
-  }
-
   Image* image = images[0].mImage;
   
   
