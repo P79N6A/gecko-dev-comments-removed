@@ -8,8 +8,13 @@
 #ifndef mozilla_WidgetUtils_h
 #define mozilla_WidgetUtils_h
 
-#include "nsRect.h"
+#include "mozilla/EventForwards.h"
 #include "mozilla/gfx/Matrix.h"
+#include "nsCOMPtr.h"
+#include "nsIDOMWindow.h"
+#include "nsIWidget.h"
+#include "nsPIDOMWindow.h"
+#include "nsRect.h"
 
 namespace mozilla {
 
@@ -33,6 +38,54 @@ nsIntRect RotateRect(nsIntRect aRect,
                      const nsIntRect& aBounds,
                      ScreenRotation aRotation);
 
+namespace widget {
+
+class WidgetUtils
+{
+public:
+
+  
+
+
+
+  static already_AddRefed<nsIWidget> DOMWindowToWidget(nsIDOMWindow *aDOMWindow);
+
+  
+
+
+  static uint32_t ComputeKeyCodeFromChar(uint32_t aCharCode);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static void GetLatinCharCodeForKeyCode(uint32_t aKeyCode,
+                                         bool aIsCapsLock,
+                                         uint32_t* aUnshiftedCharCode,
+                                         uint32_t* aShiftedCharCode);
+
+  
+
+
+
+
+
+  static KeyNameIndex GetDeadKeyNameIndex(char16_t aChar);
+};
+
+} 
 } 
 
 #endif 
