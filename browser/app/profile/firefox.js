@@ -1168,6 +1168,12 @@ pref("toolbar.customization.usesheet", false);
 
 pref("dom.ipc.plugins.flash.disable-protected-mode", true);
 
+
+pref("browser.flash-protected-mode-flip.enable", true);
+
+
+pref("browser.flash-protected-mode-flip.done", false);
+
 #ifdef XP_MACOSX
 
 pref("dom.ipc.plugins.enabled.i386", true);
