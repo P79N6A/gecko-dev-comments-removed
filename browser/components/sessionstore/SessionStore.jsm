@@ -11,10 +11,6 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
 
-const STATE_STOPPED = 0;
-const STATE_RUNNING = 1;
-const STATE_QUITTING = -1;
-
 const TAB_STATE_NEEDS_RESTORE = 1;
 const TAB_STATE_RESTORING = 2;
 
@@ -31,8 +27,7 @@ const MAX_CONCURRENT_TAB_RESTORES = 3;
 
 const OBSERVING = [
   "browser-window-before-show", "domwindowclosed",
-  "quit-application-requested", "quit-application-granted",
-  "browser-lastwindow-close-granted",
+  "quit-application-requested", "browser-lastwindow-close-granted",
   "quit-application", "browser:purge-session-history",
   "browser:purge-domain-data",
   "gather-telemetry",
@@ -112,6 +107,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "GlobalState",
   "resource:///modules/sessionstore/GlobalState.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PrivacyFilter",
   "resource:///modules/sessionstore/PrivacyFilter.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "RunState",
+  "resource:///modules/sessionstore/RunState.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ScratchpadManager",
   "resource:///modules/devtools/scratchpad-manager.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionSaver",
@@ -287,9 +284,6 @@ let SessionStoreInternal = {
     Ci.nsIObserver,
     Ci.nsISupportsWeakReference
   ]),
-
-  
-  _loadState: STATE_STOPPED,
 
   _globalState: new GlobalState(),
 
@@ -472,7 +466,7 @@ let SessionStoreInternal = {
 
     
     
-    if (this._loadState != STATE_QUITTING &&
+    if (!RunState.isQuitting &&
         this._prefBranch.getBoolPref("sessionstore.resume_session_once"))
       this._prefBranch.setBoolPref("sessionstore.resume_session_once", false);
 
@@ -530,9 +524,6 @@ let SessionStoreInternal = {
         break;
       case "quit-application-requested":
         this.onQuitApplicationRequested();
-        break;
-      case "quit-application-granted":
-        this.onQuitApplicationGranted();
         break;
       case "browser-lastwindow-close-granted":
         this.onLastWindowCloseGranted();
@@ -739,7 +730,7 @@ let SessionStoreInternal = {
       return;
 
     
-    if (this._loadState == STATE_QUITTING)
+    if (RunState.isQuitting)
       return;
 
     
@@ -764,8 +755,8 @@ let SessionStoreInternal = {
       this._windows[aWindow.__SSi].isPopup = true;
 
     
-    if (this._loadState == STATE_STOPPED) {
-      this._loadState = STATE_RUNNING;
+    if (RunState.isStopped) {
+      RunState.setRunning();
       SessionSaver.updateLastSaveTime();
 
       
@@ -1008,7 +999,7 @@ let SessionStoreInternal = {
     let winData = this._windows[aWindow.__SSi];
 
     
-    if (this._loadState == STATE_RUNNING) {
+    if (RunState.isRunning) {
       
       TabState.flushWindow(aWindow);
 
@@ -1103,14 +1094,6 @@ let SessionStoreInternal = {
   
 
 
-  onQuitApplicationGranted: function ssi_onQuitApplicationGranted() {
-    
-    this._loadState = STATE_QUITTING;
-  },
-
-  
-
-
   onLastWindowCloseGranted: function ssi_onLastWindowCloseGranted() {
     
     
@@ -1141,7 +1124,6 @@ let SessionStoreInternal = {
       LastSession.clear();
     }
 
-    this._loadState = STATE_QUITTING; 
     this._uninit();
   },
 
@@ -1153,7 +1135,7 @@ let SessionStoreInternal = {
     
     
     
-    if (this._loadState == STATE_QUITTING)
+    if (RunState.isQuitting)
       return;
     LastSession.clear();
     let openWindows = {};
@@ -1179,7 +1161,7 @@ let SessionStoreInternal = {
     var win = this._getMostRecentBrowserWindow();
     if (win) {
       win.setTimeout(() => SessionSaver.run(), 0);
-    } else if (this._loadState == STATE_RUNNING) {
+    } else if (RunState.isRunning) {
       SessionSaver.run();
     }
 
@@ -1237,7 +1219,7 @@ let SessionStoreInternal = {
       }
     }
 
-    if (this._loadState == STATE_RUNNING) {
+    if (RunState.isRunning) {
       SessionSaver.run();
     }
 
@@ -1368,7 +1350,7 @@ let SessionStoreInternal = {
 
 
   onTabSelect: function ssi_onTabSelect(aWindow) {
-    if (this._loadState == STATE_RUNNING) {
+    if (RunState.isRunning) {
       this._windows[aWindow.__SSi].selected = aWindow.gBrowser.tabContainer.selectedIndex;
 
       let tab = aWindow.gBrowser.selectedTab;
@@ -2033,7 +2015,7 @@ let SessionStoreInternal = {
     var activeWindow = this._getMostRecentBrowserWindow();
 
     TelemetryStopwatch.start("FX_SESSION_RESTORE_COLLECT_ALL_WINDOWS_DATA_MS");
-    if (this._loadState == STATE_RUNNING) {
+    if (RunState.isRunning) {
       
       this._forEachBrowserWindow(function(aWindow) {
         if (!this._isWindowLoaded(aWindow)) 
@@ -2090,7 +2072,7 @@ let SessionStoreInternal = {
     
     
     if (nonPopupCount == 0 && lastClosedWindowsCopy.length > 0 &&
-        this._loadState == STATE_QUITTING) {
+        RunState.isQuitting) {
       
       
       do {
@@ -2155,7 +2137,7 @@ let SessionStoreInternal = {
     if (!this._isWindowLoaded(aWindow))
       return this._statesToRestore[aWindow.__SS_restoreID];
 
-    if (this._loadState == STATE_RUNNING) {
+    if (RunState.isRunning) {
       this._collectWindowData(aWindow);
     }
 
@@ -2637,7 +2619,7 @@ let SessionStoreInternal = {
 
   restoreNextTab: function ssi_restoreNextTab() {
     
-    if (this._loadState == STATE_QUITTING)
+    if (RunState.isQuitting)
       return;
 
     
