@@ -2214,6 +2214,18 @@ BytecodeEmitter::checkSideEffects(ParseNode* pn, bool* answer)
         *answer = true;
         return true;
 
+      case PNK_FUNCTION:
+        MOZ_ASSERT(pn->isArity(PN_CODE));
+        
+
+
+
+
+
+
+        *answer = false;
+        return true;
+
       
       case PNK_GENEXP:
         MOZ_ASSERT(pn->isArity(PN_LIST));
@@ -2268,7 +2280,6 @@ BytecodeEmitter::checkSideEffects(ParseNode* pn, bool* answer)
       case PNK_IMPORT_SPEC_LIST:
       case PNK_LABEL:
       case PNK_LEXICALSCOPE:
-      case PNK_FUNCTION:
       case PNK_EXPORT_SPEC:
       case PNK_IMPORT_SPEC:
       case PNK_CALLSITEOBJ:
