@@ -154,6 +154,8 @@ private:
     
     
     nsDataHashtable<nsUint32HashKey, int32_t> mAppsOfflineStatus;
+
+    static bool                          sTelemetryEnabled;
 public:
     
     static uint32_t   gDefaultSegmentSize;
