@@ -180,33 +180,6 @@ private:
   ConnectionStatus mConnectionStatus;
 };
 
-class ShutdownSocketTask MOZ_FINAL : public SocketIOTask<DroidSocketImpl>
-{
-public:
-  ShutdownSocketTask(DroidSocketImpl* aImpl)
-  : SocketIOTask<DroidSocketImpl>(aImpl)
-  { }
-
-  void Run() MOZ_OVERRIDE
-  {
-    MOZ_ASSERT(!NS_IsMainThread());
-
-    DroidSocketImpl* impl = GetIO();
-
-    
-    
-    
-    
-    
-    impl->ShutdownOnIOThread();
-
-    nsRefPtr<nsRunnable> r =
-      new SocketIODeleteInstanceRunnable<DroidSocketImpl>(impl);
-    nsresult rv = NS_DispatchToMainThread(r);
-    NS_ENSURE_SUCCESS_VOID(rv);
-  }
-};
-
 class SocketConnectTask MOZ_FINAL : public SocketIOTask<DroidSocketImpl>
 {
 public:
@@ -522,8 +495,9 @@ BluetoothSocket::CloseDroidSocket()
   
   
   mImpl->ShutdownOnMainThread();
-  XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
-                                   new ShutdownSocketTask(mImpl));
+  XRE_GetIOMessageLoop()->PostTask(
+    FROM_HERE, new SocketIOShutdownTask<DroidSocketImpl>(mImpl));
+
   mImpl = nullptr;
 
   NotifyDisconnect();
