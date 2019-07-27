@@ -172,6 +172,13 @@ FinishObjectClassInit(JSContext *cx, JS::HandleObject ctor, JS::HandleObject pro
 
 
 
+    if (!JS_DefineFunctions(cx, ctor, object_static_selfhosted_methods))
+        return false;
+
+    
+
+
+
 
 
 
