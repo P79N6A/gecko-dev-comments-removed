@@ -26,7 +26,12 @@ class WebSocketChannelParent;
 
 
 
-class LoadInfo final : public nsILoadInfo
+
+
+
+
+
+class MOZ_EXPORT LoadInfo final : public nsILoadInfo
 {
 public:
   NS_DECL_ISUPPORTS
