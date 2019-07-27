@@ -21,11 +21,6 @@
 
 using namespace mozilla;
 
-
-
-
-#define XLIB_IMAGE_SIDE_SIZE_LIMIT 0x7fff
-
 gfxXlibSurface::gfxXlibSurface(Display *dpy, Drawable drawable, Visual *visual)
     : mPixmapTaken(false), mDisplay(dpy), mDrawable(drawable)
 #if defined(GL_PROVIDER_GLX)

@@ -17,6 +17,12 @@
 
 #include "nsSize.h"
 
+
+
+
+#define XLIB_IMAGE_SIDE_SIZE_LIMIT 0x7fff
+
+
 class gfxXlibSurface final : public gfxASurface {
 public:
     
