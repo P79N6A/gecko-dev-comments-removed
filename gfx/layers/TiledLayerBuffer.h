@@ -17,7 +17,6 @@
 #include "nsRect.h"                     
 #include "nsRegion.h"                   
 #include "nsTArray.h"                   
-#include "prlog.h"                      
 
 #if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
 #include <ui/Fence.h>
@@ -28,22 +27,21 @@ namespace layers {
 
 
 
+#define ENABLE_TILING_LOG 0
 
-
-#ifdef PR_LOGGING
-#  define TILING_PRLOG(_args) PR_LOG(gTilingLog, PR_LOG_DEBUG, _args)
-#  define TILING_PRLOG_OBJ(_args, obj) \
+#if ENABLE_TILING_LOG
+#  define TILING_LOG(_args) printf_stderr _args ;
+#  define TILING_LOG_OBJ(_args, obj) \
     { \
     std::stringstream ss; \
     AppendToString(ss, obj); \
     nsAutoCString tmpstr; \
     tmpstr = ss.str().c_str(); \
-    PR_LOG(gTilingLog, PR_LOG_DEBUG, _args); \
+    printf_stderr _args ; \
     }
-   extern PRLogModuleInfo* gTilingLog;
 #else
-#  define TILING_PRLOG(_args)
-#  define TILING_PRLOG_OBJ(_args, obj)
+#  define TILING_LOG(_args)
+#  define TILING_LOG_OBJ(_args, obj)
 #endif
 
 
