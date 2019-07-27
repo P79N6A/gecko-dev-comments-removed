@@ -2,6 +2,8 @@
 
 
 
+from __future__ import absolute_import
+
 import posixpath
 import os
 import re

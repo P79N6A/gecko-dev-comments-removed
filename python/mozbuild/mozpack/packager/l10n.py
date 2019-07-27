@@ -2,6 +2,8 @@
 
 
 
+from __future__ import absolute_import
+
 '''
 Replace localized parts of a packaged directory with data from a langpack
 directory.
