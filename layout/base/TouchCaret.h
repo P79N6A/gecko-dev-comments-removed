@@ -26,6 +26,9 @@ namespace mozilla {
 
 class TouchCaret MOZ_FINAL : public nsISelectionListener
 {
+private:
+  ~TouchCaret();
+
 public:
   explicit TouchCaret(nsIPresShell* aPresShell);
 
@@ -45,9 +48,18 @@ public:
 
   nsEventStatus HandleEvent(WidgetEvent* aEvent);
 
-  void SyncVisibilityWithCaret();
+  
 
-  void UpdatePositionIfNeeded();
+
+
+  void UpdateTouchCaret(bool aVisible);
+
+  
+
+
+
+
+  void SetVisibility(bool aVisible);
 
   
 
@@ -60,19 +72,6 @@ public:
 private:
   
   TouchCaret() MOZ_DELETE;
-
-  ~TouchCaret();
-
-  bool IsDisplayable();
-
-  void UpdatePosition();
-
-  
-
-
-
-
-  void SetVisibility(bool aVisible);
 
   
 
@@ -227,6 +226,7 @@ private:
     return sTouchCaretExpirationTime;
   }
 
+protected:
   nsWeakPtr mPresShell;
 
   
