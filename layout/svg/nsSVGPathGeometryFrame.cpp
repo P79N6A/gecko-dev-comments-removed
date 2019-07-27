@@ -7,6 +7,7 @@
 #include "nsSVGPathGeometryFrame.h"
 
 
+#include "gfx2DGlue.h"
 #include "gfxContext.h"
 #include "gfxPlatform.h"
 #include "gfxSVGGlyphs.h"
@@ -20,6 +21,7 @@
 #include "nsSVGUtils.h"
 #include "mozilla/ArrayUtils.h"
 #include "SVGAnimatedTransformList.h"
+#include "SVGContentUtils.h"
 #include "SVGGraphicsElement.h"
 
 using namespace mozilla;
@@ -234,48 +236,77 @@ nsSVGPathGeometryFrame::PaintSVG(nsRenderingContext *aContext,
 nsIFrame*
 nsSVGPathGeometryFrame::GetFrameForPoint(const nsPoint &aPoint)
 {
-  gfxMatrix canvasTM = GetCanvasTM(FOR_HIT_TESTING);
-  if (canvasTM.IsSingular()) {
+  gfxMatrix hitTestingTM = GetCanvasTM(FOR_HIT_TESTING);
+  if (hitTestingTM.IsSingular()) {
     return nullptr;
   }
-  uint16_t fillRule, hitTestFlags;
+  FillRule fillRule;
+  uint16_t hitTestFlags;
   if (GetStateBits() & NS_STATE_SVG_CLIPPATH_CHILD) {
     hitTestFlags = SVG_HIT_TEST_FILL;
-    fillRule = StyleSVG()->mClipRule;
+    fillRule = StyleSVG()->mClipRule == NS_STYLE_FILL_RULE_NONZERO
+                 ? FillRule::FILL_WINDING : FillRule::FILL_EVEN_ODD;
   } else {
     hitTestFlags = GetHitTestFlags();
     nsPoint point =
-      nsSVGUtils::TransformOuterSVGPointToChildFrame(aPoint, canvasTM, PresContext());
+      nsSVGUtils::TransformOuterSVGPointToChildFrame(aPoint, hitTestingTM, PresContext());
     if (!hitTestFlags || ((hitTestFlags & SVG_HIT_TEST_CHECK_MRECT) &&
-                          !mRect.Contains(point)))
+                          !mRect.Contains(point))) {
       return nullptr;
-    fillRule = StyleSVG()->mFillRule;
+    }
+    fillRule = StyleSVG()->mFillRule == NS_STYLE_FILL_RULE_NONZERO
+                 ? FillRule::FILL_WINDING : FillRule::FILL_EVEN_ODD;
   }
 
   bool isHit = false;
 
-  nsRefPtr<gfxContext> tmpCtx =
-    new gfxContext(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
+  nsSVGPathGeometryElement* content =
+    static_cast<nsSVGPathGeometryElement*>(mContent);
 
-  GeneratePath(tmpCtx, ToMatrix(canvasTM));
-  gfxPoint userSpacePoint =
-    tmpCtx->DeviceToUser(gfxPoint(aPoint.x, aPoint.y) / PresContext()->AppUnitsPerCSSPixel());
+  
+  
+  
+  RefPtr<DrawTarget> drawTarget =
+    gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
+  RefPtr<PathBuilder> builder =
+    drawTarget->CreatePathBuilder(fillRule);
+  RefPtr<Path> path = content->BuildPath(builder);
+  if (!path) {
+    return nullptr; 
+  }
 
-  if (fillRule == NS_STYLE_FILL_RULE_EVENODD)
-    tmpCtx->SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
-  else
-    tmpCtx->SetFillRule(gfxContext::FILL_RULE_WINDING);
+  if (!hitTestingTM.IsIdentity()) {
+    
+    
+    RefPtr<PathBuilder> builder =
+      path->TransformedCopyToBuilder(ToMatrix(hitTestingTM), fillRule);
+    path = builder->Finish();
+  }
 
-  if (hitTestFlags & SVG_HIT_TEST_FILL)
-    isHit = tmpCtx->PointInFill(userSpacePoint);
+  int32_t appUnitsPerCSSPx = PresContext()->AppUnitsPerCSSPixel();
+  Point userSpacePoint = Point(Float(aPoint.x) / appUnitsPerCSSPx,
+                               Float(aPoint.y) / appUnitsPerCSSPx);
+
+  if (hitTestFlags & SVG_HIT_TEST_FILL) {
+    isHit = path->ContainsPoint(userSpacePoint, Matrix());
+  }
   if (!isHit && (hitTestFlags & SVG_HIT_TEST_STROKE)) {
-    nsSVGUtils::SetupCairoStrokeGeometry(this, tmpCtx);
-    
-    
-    
-    userSpacePoint =
-      nsSVGUtils::GetStrokeTransform(this).Invert().Transform(userSpacePoint);
-    isHit = tmpCtx->PointInStroke(userSpacePoint);
+    SVGContentUtils::AutoStrokeOptions stroke;
+    SVGContentUtils::GetStrokeOptions(&stroke, content, StyleContext(), nullptr);
+    Matrix nonScalingStrokeMatrix =
+      ToMatrix(nsSVGUtils::GetStrokeTransform(this));
+    if (!nonScalingStrokeMatrix.IsIdentity()) {
+      
+      
+      
+      
+      nonScalingStrokeMatrix.Invert();
+      userSpacePoint = ToMatrix(hitTestingTM) * nonScalingStrokeMatrix * userSpacePoint;
+      RefPtr<PathBuilder> builder =
+        path->TransformedCopyToBuilder(nonScalingStrokeMatrix, fillRule);
+      path = builder->Finish();
+    }
+    isHit = path->StrokeContainsPoint(stroke, userSpacePoint, Matrix());
   }
 
   if (isHit && nsSVGUtils::HitTestClip(this, aPoint))

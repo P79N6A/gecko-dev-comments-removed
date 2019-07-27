@@ -77,14 +77,6 @@ public:
 
 
   FillRule GetFillRule();
-
-  
-
-
-
-
-
-  Float GetStrokeWidth();
 };
 
 #endif

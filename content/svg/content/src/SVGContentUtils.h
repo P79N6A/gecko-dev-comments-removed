@@ -10,12 +10,15 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+#include "mozilla/fallible.h"
+#include "mozilla/gfx/2D.h" 
 #include "mozilla/gfx/Matrix.h"
 #include "mozilla/RangedPtr.h"
 #include "nsError.h"
 #include "nsStringFwd.h"
 #include "gfx2DGlue.h"
 
+class gfxTextContextPaint;
 class nsIContent;
 class nsIDocument;
 class nsIFrame;
@@ -58,6 +61,8 @@ IsSVGWhitespace(char16_t aChar)
 class SVGContentUtils
 {
 public:
+  typedef mozilla::gfx::Float Float;
+  typedef mozilla::gfx::StrokeOptions StrokeOptions;
   typedef mozilla::SVGAnimatedPreserveAspectRatio SVGAnimatedPreserveAspectRatio;
   typedef mozilla::SVGPreserveAspectRatio SVGPreserveAspectRatio;
 
@@ -75,6 +80,64 @@ public:
 
 
   static void ActivateByHyperlink(nsIContent *aContent);
+
+  
+
+
+
+
+
+
+
+
+  struct AutoStrokeOptions : public StrokeOptions {
+    AutoStrokeOptions()
+    {
+      MOZ_ASSERT(mDashLength == 0, "InitDashPattern() depends on this");
+    }
+    ~AutoStrokeOptions() {
+      if (mDashPattern && mDashPattern != mSmallArray) {
+        delete [] mDashPattern;
+      }
+    }
+    
+
+
+
+
+
+    Float* InitDashPattern(size_t aDashCount) {
+      if (aDashCount <= MOZ_ARRAY_LENGTH(mSmallArray)) {
+        mDashPattern = mSmallArray;
+        return mSmallArray;
+      }
+      static const mozilla::fallible_t fallible = mozilla::fallible_t();
+      Float* nonConstArray = new (fallible) Float[aDashCount];
+      mDashPattern = nonConstArray;
+      return nonConstArray;
+    }
+  private:
+    
+    Float mSmallArray[16];
+  };
+
+  static void GetStrokeOptions(AutoStrokeOptions* aStrokeOptions,
+                               nsSVGElement* aElement,
+                               nsStyleContext* aStyleContext,
+                               gfxTextContextPaint *aContextPaint);
+
+  
+
+
+
+
+
+
+
+
+  static Float GetStrokeWidth(nsSVGElement* aElement,
+                              nsStyleContext* aStyleContext,
+                              gfxTextContextPaint *aContextPaint);
 
   
 
