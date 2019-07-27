@@ -178,17 +178,6 @@ PushUnaryNodeChild(ParseNode *node, NodeStack *stack)
     return PushResult::Recyclable;
 }
 
-static PushResult
-PushBinaryNodeChildren(ParseNode *node, NodeStack *stack)
-{
-    MOZ_ASSERT(node->isArity(PN_BINARY));
-
-    stack->push(node->pn_left);
-    stack->push(node->pn_right);
-
-    return PushResult::Recyclable;
-}
-
 
 
 
@@ -279,8 +268,12 @@ PushNodeChildren(ParseNode *pn, NodeStack *stack)
       case PNK_WHILE:
       case PNK_SWITCH:
       case PNK_LETBLOCK:
-      case PNK_FOR:
-        return PushBinaryNodeChildren(pn, stack);
+      case PNK_FOR: {
+        MOZ_ASSERT(pn->isArity(PN_BINARY));
+        stack->push(pn->pn_left);
+        stack->push(pn->pn_right);
+        return PushResult::Recyclable;
+      }
 
       
       
