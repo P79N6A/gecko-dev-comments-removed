@@ -1810,16 +1810,15 @@ ThrowingConstructor(JSContext* cx, unsigned argc, JS::Value* vp);
 bool
 ThrowConstructorWithoutNew(JSContext* cx, const char* name);
 
-
-
 bool
 GetPropertyOnPrototype(JSContext* cx, JS::Handle<JSObject*> proxy,
                        JS::Handle<jsid> id, bool* found,
-                       JS::Value* vp);
+                       JS::MutableHandle<JS::Value> vp);
+
 
 bool
 HasPropertyOnPrototype(JSContext* cx, JS::Handle<JSObject*> proxy,
-                       JS::Handle<jsid> id);
+                       JS::Handle<jsid> id, bool* has);
 
 
 
