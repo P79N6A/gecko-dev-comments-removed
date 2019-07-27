@@ -509,7 +509,7 @@ FunctionBox::FunctionBox(ExclusiveContext *cx, ObjectBox* traceListHead, JSFunct
     inWith(false),                  
     inGenexpLambda(false),
     hasDestructuringArgs(false),
-    useAsm(directives.asmJS()),
+    useAsm(false),
     insideUseAsm(outerpc && outerpc->useAsmOrInsideUseAsm()),
     usesArguments(false),
     usesApply(false),
@@ -2424,7 +2424,8 @@ Parser<FullParseHandler>::asmJS(Node list)
     
     
     
-    if (pc->useAsmOrInsideUseAsm())
+    
+    if (!pc->newDirectives || pc->newDirectives->asmJS())
         return true;
 
     
