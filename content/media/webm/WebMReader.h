@@ -134,9 +134,11 @@ public:
 
   virtual nsresult ReadMetadata(MediaInfo* aInfo,
                                 MetadataTags** aTags);
-  virtual nsresult Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime, int64_t aCurrentTime);
+  virtual nsresult Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime,
+                        int64_t aCurrentTime);
   virtual nsresult GetBuffered(dom::TimeRanges* aBuffered, int64_t aStartTime);
-  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset);
+  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength,
+                                 int64_t aOffset);
   virtual int64_t GetEvictionOffset(double aTime);
 
   virtual bool IsMediaSeekable() MOZ_OVERRIDE;
@@ -170,10 +172,12 @@ protected:
   
   bool DecodeAudioPacket(nestegg_packet* aPacket, int64_t aOffset);
   bool DecodeVorbis(const unsigned char* aData, size_t aLength,
-                    int64_t aOffset, uint64_t aTstampUsecs, int32_t* aTotalFrames);
+                    int64_t aOffset, uint64_t aTstampUsecs,
+                    int32_t* aTotalFrames);
 #ifdef MOZ_OPUS
   bool DecodeOpus(const unsigned char* aData, size_t aLength,
-                  int64_t aOffset, uint64_t aTstampUsecs, nestegg_packet* aPacket);
+                  int64_t aOffset, uint64_t aTstampUsecs,
+                  nestegg_packet* aPacket);
 #endif
 
   
