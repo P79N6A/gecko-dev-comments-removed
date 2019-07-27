@@ -136,6 +136,18 @@ public:
                            nsStyleContext *aOldStyleContext,
                            nsRefPtr<nsStyleContext>* aNewStyleContext );
 
+  
+
+
+
+
+
+
+
+  void PruneCompletedTransitions(mozilla::dom::Element* aElement,
+                                 nsCSSPseudoElements::Type aPseudoType,
+                                 nsStyleContext* aNewStyleContext);
+
   void UpdateCascadeResultsWithTransitions(AnimationCollection* aTransitions);
   void UpdateCascadeResultsWithAnimations(AnimationCollection* aAnimations);
   void UpdateCascadeResultsWithAnimationsToBeDestroyed(

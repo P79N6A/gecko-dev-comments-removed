@@ -281,6 +281,8 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
   
   
   
+  
+  
   if (collection) {
     bool checkProperties =
       disp->mTransitions[0].GetProperty() != eCSSPropertyExtra_all_properties;
@@ -606,6 +608,59 @@ nsTransitionManager::ConsiderStartingTransition(
 
   *aStartedAny = true;
   aWhichStarted->AddProperty(aProperty);
+}
+
+void
+nsTransitionManager::PruneCompletedTransitions(mozilla::dom::Element* aElement,
+                                               nsCSSPseudoElements::Type
+                                                 aPseudoType,
+                                               nsStyleContext* aNewStyleContext)
+{
+  AnimationCollection* collection = GetAnimations(aElement, aPseudoType, false);
+  if (!collection) {
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  AnimationPtrArray& animations = collection->mAnimations;
+  size_t i = animations.Length();
+  MOZ_ASSERT(i != 0, "empty transitions list?");
+  do {
+    --i;
+    Animation* anim = animations[i];
+    dom::KeyframeEffectReadonly* effect = anim->GetEffect();
+
+    if (!effect->IsFinishedTransition()) {
+      continue;
+    }
+
+    MOZ_ASSERT(effect && effect->Properties().Length() == 1,
+               "Should have one animation property for a transition");
+    MOZ_ASSERT(effect && effect->Properties()[0].mSegments.Length() == 1,
+               "Animation property should have one segment for a transition");
+    const AnimationProperty& prop = effect->Properties()[0];
+    const AnimationPropertySegment& segment = prop.mSegments[0];
+
+    
+    
+    StyleAnimationValue currentValue;
+    if (!ExtractComputedValueForTransition(prop.mProperty, aNewStyleContext,
+                                           currentValue) ||
+        currentValue != segment.mToValue) {
+      animations.RemoveElementAt(i);
+    }
+  } while (i != 0);
+
+  if (collection->mAnimations.IsEmpty()) {
+    collection->Destroy();
+    
+    collection = nullptr;
+  }
 }
 
 void
