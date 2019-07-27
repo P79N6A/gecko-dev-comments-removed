@@ -200,11 +200,6 @@ Sanitizer.prototype = {
         }
 
         
-        let mediaMgr = Components.classes["@mozilla.org/mediaManagerService;1"]
-                                 .getService(Ci.nsIMediaManagerService);
-        mediaMgr.sanitizeDeviceIds(this.range && this.range[0]);
-
-        
         const phInterface = Ci.nsIPluginHost;
         const FLAG_CLEAR_ALL = phInterface.FLAG_CLEAR_ALL;
         let ph = Cc["@mozilla.org/plugin/host;1"].getService(phInterface);

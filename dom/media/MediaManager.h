@@ -300,6 +300,29 @@ typedef enum {
 class MediaManager;
 class GetUserMediaTask;
 
+
+
+
+
+
+class ErrorCallbackRunnable : public nsRunnable
+{
+public:
+  ErrorCallbackRunnable(
+    nsCOMPtr<nsIDOMGetUserMediaSuccessCallback>& aOnSuccess,
+    nsCOMPtr<nsIDOMGetUserMediaErrorCallback>& aOnFailure,
+    MediaMgrError& aError, uint64_t aWindowID);
+  NS_IMETHOD Run();
+private:
+  ~ErrorCallbackRunnable();
+
+  nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> mOnSuccess;
+  nsCOMPtr<nsIDOMGetUserMediaErrorCallback> mOnFailure;
+  nsRefPtr<MediaMgrError> mError;
+  uint64_t mWindowID;
+  nsRefPtr<MediaManager> mManager; 
+};
+
 class ReleaseMediaOperationResource : public nsRunnable
 {
 public:
@@ -346,7 +369,20 @@ public:
   }
 
   void
-  ReturnCallbackError(nsresult rv, const char* errorLog);
+  ReturnCallbackError(nsresult rv, const char* errorLog)
+  {
+    MM_LOG(("%s , rv=%d", errorLog, rv));
+    NS_DispatchToMainThread(new ReleaseMediaOperationResource(mStream.forget(),
+          mOnTracksAvailableCallback.forget()));
+    nsString log;
+
+    log.AssignASCII(errorLog);
+    nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> onSuccess;
+    nsRefPtr<MediaMgrError> error = new MediaMgrError(
+        NS_LITERAL_STRING("InternalError"), log);
+    NS_DispatchToMainThread(new ErrorCallbackRunnable(onSuccess, mOnFailure,
+        *error, mWindowID));
+  }
 
   void
   Run()
@@ -467,7 +503,6 @@ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIMEDIADEVICE
 
-  void SetId(const nsAString& aID);
 protected:
   virtual ~MediaDevice() {}
   explicit MediaDevice(MediaEngineSource* aSource);
@@ -521,9 +556,6 @@ public:
   static MediaManager* Get();
   static MediaManager* GetIfExists();
   static MessageLoop* GetMessageLoop();
-#ifdef DEBUG
-  static bool IsInMediaThread();
-#endif
 
   static bool Exists()
   {
@@ -563,21 +595,12 @@ public:
     const dom::MediaStreamConstraints& aConstraints,
     nsIGetUserMediaDevicesSuccessCallback* onSuccess,
     nsIDOMGetUserMediaErrorCallback* onError,
-    uint64_t aInnerWindowID = 0,
-    bool aPrivileged = true);
-
-  nsresult EnumerateDevices(nsPIDOMWindow* aWindow,
-                            nsIGetUserMediaDevicesSuccessCallback* aOnSuccess,
-                            nsIDOMGetUserMediaErrorCallback* aOnFailure);
-
-  nsresult EnumerateDevices(nsPIDOMWindow* aWindow, dom::Promise& aPromise);
+    uint64_t aInnerWindowID = 0);
   void OnNavigation(uint64_t aWindowID);
-  bool IsWindowActivelyCapturing(uint64_t aWindowId);
 
   MediaEnginePrefs mPrefs;
 
 private:
-  StreamListeners* AddWindowID(uint64_t aWindowId);
   WindowTable *GetActiveWindows() {
     NS_ASSERTION(NS_IsMainThread(), "Only access windowlist on main thread");
     return &mActiveWindows;
@@ -605,7 +628,6 @@ private:
   WindowTable mActiveWindows;
   nsClassHashtable<nsStringHashKey, GetUserMediaTask> mActiveCallbacks;
   nsClassHashtable<nsUint64HashKey, nsTArray<nsString>> mCallIds;
-
   
   nsAutoPtr<base::Thread> mMediaThread;
 
@@ -622,4 +644,4 @@ private:
 
 } 
 
-#endif
+#endif 
