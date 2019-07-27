@@ -520,6 +520,11 @@ private:
     
     nsTArray<FrameScriptInfo> mDelayedFrameScripts;
 
+    
+    
+    
+    bool mNeedLayerTreeReadyNotification;
+
 private:
     
     
