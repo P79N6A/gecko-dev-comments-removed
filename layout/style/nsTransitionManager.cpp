@@ -28,6 +28,7 @@
 #include "nsStyleChangeList.h"
 #include "nsStyleSet.h"
 #include "RestyleManager.h"
+#include "nsDOMMutationObserver.h"
 
 using mozilla::TimeStamp;
 using mozilla::TimeDuration;
@@ -217,6 +218,8 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
   } else {
     afterChangeStyle = newStyleContext;
   }
+
+  nsAutoAnimationMutationBatch mb(aElement);
 
   
   
@@ -675,6 +678,8 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
       AnimationPlayerCollection* collection =
         static_cast<AnimationPlayerCollection*>(next);
       next = PR_NEXT_LINK(next);
+
+      nsAutoAnimationMutationBatch mb(collection->mElement);
 
       collection->Tick();
       bool canThrottleTick = aFlags == Can_Throttle &&
