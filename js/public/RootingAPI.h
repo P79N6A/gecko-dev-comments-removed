@@ -1095,41 +1095,46 @@ MutableHandle<T>::MutableHandle(PersistentRooted<T> *root)
 
 
 
+
+
 template<typename T>
-class PersistentRooted : private mozilla::LinkedListElement<PersistentRooted<T> > {
+class PersistentRooted : private mozilla::LinkedListElement<PersistentRooted<T>> {
+    typedef mozilla::LinkedListElement<PersistentRooted<T>> Base;
+
     friend class mozilla::LinkedList<PersistentRooted>;
     friend class mozilla::LinkedListElement<PersistentRooted>;
 
     friend struct js::gc::PersistentRootedMarker<T>;
 
+    friend void js::gc::FinishPersistentRootedChains(JSRuntime *rt);
+
     void registerWithRuntime(JSRuntime *rt) {
+        MOZ_ASSERT(!initialized());
         JS::shadow::Runtime *srt = JS::shadow::Runtime::asShadowRuntime(rt);
         srt->getPersistentRootedList<T>().insertBack(this);
     }
 
   public:
-    explicit PersistentRooted(JSContext *cx) : ptr(js::GCMethods<T>::initial())
-    {
-        registerWithRuntime(js::GetRuntime(cx));
+    PersistentRooted() : ptr(js::GCMethods<T>::initial()) {}
+
+    explicit PersistentRooted(JSContext *cx) {
+        init(cx);
     }
 
-    PersistentRooted(JSContext *cx, T initial) : ptr(initial)
-    {
-        registerWithRuntime(js::GetRuntime(cx));
+    PersistentRooted(JSContext *cx, T initial) {
+        init(cx, initial);
     }
 
-    explicit PersistentRooted(JSRuntime *rt) : ptr(js::GCMethods<T>::initial())
-    {
-        registerWithRuntime(rt);
+    explicit PersistentRooted(JSRuntime *rt) {
+        init(rt);
     }
 
-    PersistentRooted(JSRuntime *rt, T initial) : ptr(initial)
-    {
-        registerWithRuntime(rt);
+    PersistentRooted(JSRuntime *rt, T initial) {
+        init(rt, initial);
     }
 
     PersistentRooted(const PersistentRooted &rhs)
-      : mozilla::LinkedListElement<PersistentRooted<T> >(),
+      : mozilla::LinkedListElement<PersistentRooted<T>>(),
         ptr(rhs.ptr)
     {
         
@@ -1141,6 +1146,37 @@ class PersistentRooted : private mozilla::LinkedListElement<PersistentRooted<T> 
 
 
         const_cast<PersistentRooted &>(rhs).setNext(this);
+    }
+
+    bool initialized() {
+        return Base::isInList();
+    }
+
+    void init(JSContext *cx) {
+        init(cx, js::GCMethods<T>::initial());
+    }
+
+    void init(JSContext *cx, T initial)
+    {
+        ptr = initial;
+        registerWithRuntime(js::GetRuntime(cx));
+    }
+
+    void init(JSRuntime *rt) {
+        init(rt, js::GCMethods<T>::initial());
+    }
+
+    void init(JSRuntime *rt, T initial)
+    {
+        ptr = initial;
+        registerWithRuntime(rt);
+    }
+
+    void reset() {
+        if (initialized()) {
+            set(js::GCMethods<T>::initial());
+            Base::remove();
+        }
     }
 
     
@@ -1155,17 +1191,17 @@ class PersistentRooted : private mozilla::LinkedListElement<PersistentRooted<T> 
     const T &get() const { return ptr; }
 
     T &operator=(T value) {
-        MOZ_ASSERT(!js::GCMethods<T>::poisoned(value));
-        ptr = value;
+        set(value);
         return ptr;
     }
 
-    T &operator=(const PersistentRooted &value) {
-        ptr = value;
+    T &operator=(const PersistentRooted &other) {
+        set(other.ptr);
         return ptr;
     }
 
     void set(T value) {
+        MOZ_ASSERT(initialized());
         MOZ_ASSERT(!js::GCMethods<T>::poisoned(value));
         ptr = value;
     }

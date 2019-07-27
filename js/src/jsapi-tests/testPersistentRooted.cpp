@@ -38,8 +38,15 @@ const JSClass BarkWhenTracedClass::class_ = {
 
 struct Kennel {
     PersistentRootedObject obj;
+    Kennel() { }
     explicit Kennel(JSContext *cx) : obj(cx) { }
     Kennel(JSContext *cx, const HandleObject &woof) : obj(cx, woof) { }
+    void init(JSContext *cx, const HandleObject &woof) {
+        obj.init(cx, woof);
+    }
+    void clear() {
+        obj = nullptr;
+    }
 };
 
 
@@ -178,3 +185,35 @@ BEGIN_TEST(test_PersistentRootedAssign)
     return true;
 }
 END_TEST(test_PersistentRootedAssign)
+
+static PersistentRootedObject gGlobalRoot;
+
+
+BEGIN_TEST(test_GlobalPersistentRooted)
+{
+    BarkWhenTracedClass::reset();
+
+    CHECK(!gGlobalRoot.initialized());
+
+    {
+        RootedObject barker(cx, JS_NewObject(cx, &BarkWhenTracedClass::class_, JS::NullPtr(), JS::NullPtr()));
+        CHECK(barker);
+
+        gGlobalRoot.init(cx, barker);
+    }
+
+    CHECK(gGlobalRoot.initialized());
+
+    
+    CHECK(GCFinalizesNBarkers(cx, 0));
+
+    gGlobalRoot.reset();
+    CHECK(!gGlobalRoot.initialized());
+
+    
+    JS_GC(JS_GetRuntime(cx));
+    CHECK(BarkWhenTracedClass::finalizeCount == 1);
+
+    return true;
+}
+END_TEST(test_GlobalPersistentRooted)
