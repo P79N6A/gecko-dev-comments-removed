@@ -19,39 +19,54 @@ namespace mozilla {
 namespace dom {
 namespace cache {
 
-nsresult
-BodyCreateDir(nsIFile* aBaseDir);
 
+class FileUtils final
+{
+public:
+  enum BodyFileType
+  {
+    BODY_FILE_FINAL,
+    BODY_FILE_TMP
+  };
 
+  static nsresult BodyCreateDir(nsIFile* aBaseDir);
+  
+  
+  
+  static nsresult BodyDeleteDir(nsIFile* aBaseDir);
+  static nsresult BodyGetCacheDir(nsIFile* aBaseDir, const nsID& aId,
+                                  nsIFile** aCacheDirOut);
 
+  static nsresult
+  BodyStartWriteStream(const QuotaInfo& aQuotaInfo, nsIFile* aBaseDir,
+                       nsIInputStream* aSource, void* aClosure,
+                       nsAsyncCopyCallbackFun aCallback, nsID* aIdOut,
+                       nsISupports** aCopyContextOut);
 
-nsresult
-BodyDeleteDir(nsIFile* aBaseDir);
+  static void
+  BodyCancelWrite(nsIFile* aBaseDir, nsISupports* aCopyContext);
 
-nsresult
-BodyGetCacheDir(nsIFile* aBaseDir, const nsID& aId, nsIFile** aCacheDirOut);
+  static nsresult
+  BodyFinalizeWrite(nsIFile* aBaseDir, const nsID& aId);
 
-nsresult
-BodyStartWriteStream(const QuotaInfo& aQuotaInfo, nsIFile* aBaseDir,
-                     nsIInputStream* aSource, void* aClosure,
-                     nsAsyncCopyCallbackFun aCallback, nsID* aIdOut,
-                     nsISupports** aCopyContextOut);
+  static nsresult
+  BodyOpen(const QuotaInfo& aQuotaInfo, nsIFile* aBaseDir, const nsID& aId,
+           nsIInputStream** aStreamOut);
 
-void
-BodyCancelWrite(nsIFile* aBaseDir, nsISupports* aCopyContext);
+  static nsresult
+  BodyDeleteFiles(nsIFile* aBaseDir, const nsTArray<nsID>& aIdList);
 
-nsresult
-BodyFinalizeWrite(nsIFile* aBaseDir, const nsID& aId);
+private:
+  static nsresult
+  BodyIdToFile(nsIFile* aBaseDir, const nsID& aId, BodyFileType aType,
+               nsIFile** aBodyFileOut);
 
-nsresult
-BodyOpen(const QuotaInfo& aQuotaInfo, nsIFile* aBaseDir, const nsID& aId,
-         nsIInputStream** aStreamOut);
-
-nsresult
-BodyDeleteFiles(nsIFile* aBaseDir, const nsTArray<nsID>& aIdList);
+  FileUtils() = delete;
+  ~FileUtils() = delete;
+};
 
 } 
 } 
 } 
 
-#endif 
+#endif
