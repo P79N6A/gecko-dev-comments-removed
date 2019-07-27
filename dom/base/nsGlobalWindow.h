@@ -1096,6 +1096,7 @@ protected:
   
   void InnerSetNewDocument(JSContext* aCx, nsIDocument* aDocument);
 
+  
   nsresult DefineArgumentsProperty(nsIArray *aArguments);
 
   
