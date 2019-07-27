@@ -6,15 +6,6 @@ const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
 let { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
 
-
-
-let gEnableLogging = Services.prefs.getBoolPref("devtools.debugger.log");
-Services.prefs.setBoolPref("devtools.debugger.log", false);
-
-
-
-let gToolEnabled = Services.prefs.getBoolPref("devtools.performance_dev.enabled");
-
 let { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
 let { Promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
 let { gDevTools } = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
@@ -35,6 +26,23 @@ waitForExplicitFinish();
 
 gDevTools.testing = true;
 
+let DEFAULT_PREFS = [
+  "devtools.debugger.log",
+  "devtools.performance.ui.invert-call-tree",
+  
+  "devtools.performance_dev.enabled"
+].reduce((prefs, pref) => {
+  prefs[pref] = Services.prefs.getBoolPref(pref);
+  return prefs;
+}, {});
+
+
+
+Services.prefs.setBoolPref("devtools.performance_dev.enabled", true);
+
+
+Services.prefs.setBoolPref("devtools.debugger.log", false);
+
 
 
 
@@ -50,8 +58,10 @@ registerCleanupFunction(() => {
   gDevTools.testing = false;
   info("finish() was called, cleaning up...");
 
-  Services.prefs.setBoolPref("devtools.debugger.log", gEnableLogging);
-  Services.prefs.setBoolPref("devtools.performance_dev.enabled", gToolEnabled);
+  
+  Object.keys(DEFAULT_PREFS).forEach(pref => {
+    Services.prefs.setBoolPref(pref, DEFAULT_PREFS[pref]);
+  });
 
   
   nsIProfilerModule.StopProfiler();
@@ -168,7 +178,6 @@ function initPerformance(aUrl, selectedTool="performance") {
 
     yield target.makeRemote();
 
-    Services.prefs.setBoolPref("devtools.performance_dev.enabled", true);
     let toolbox = yield gDevTools.showToolbox(target, selectedTool);
     let panel = toolbox.getCurrentPanel();
     return { target, panel, toolbox };

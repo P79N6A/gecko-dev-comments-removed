@@ -1435,6 +1435,9 @@ pref("devtools.profiler.ui.show-platform-data", false);
 pref("devtools.profiler.ui.show-idle-blocks", true);
 
 
+pref("devtools.performance.ui.invert-call-tree", true);
+
+
 pref("devtools.cache.disabled", false);
 
 
