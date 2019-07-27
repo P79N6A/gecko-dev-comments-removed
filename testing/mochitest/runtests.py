@@ -1624,7 +1624,6 @@ class Mochitest(MochitestUtilsMixin):
     """
     self.setTestRoot(options)
     manifest = self.getTestManifest(options)
-
     if manifest:
       
       
@@ -1645,13 +1644,20 @@ class Mochitest(MochitestUtilsMixin):
           
           tests = manifest.active_tests(disabled=disabled, options=None, **info)
           for test in tests:
-              if 'disabled' in test:
-                  del test['disabled']
+            if 'disabled' in test:
+              del test['disabled']
+
       else:
-          tests = manifest.active_tests(disabled=disabled, options=options, **info)
+        tests = manifest.active_tests(disabled=disabled, options=options, **info)
+        if len(tests) == 0:
+          tests = manifest.active_tests(disabled=True, options=options, **info)
+
     paths = []
 
     for test in tests:
+      if len(tests) == 1 and 'disabled' in test:
+        del test['disabled']
+
       pathAbs = os.path.abspath(test['path'])
       assert pathAbs.startswith(self.testRootAbs)
       tp = pathAbs[len(self.testRootAbs):].replace('\\', '/').strip('/')
