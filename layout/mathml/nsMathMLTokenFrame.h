@@ -23,7 +23,7 @@ public:
   TransmitAutomaticData() MOZ_OVERRIDE {
     
     
-    if (mContent->Tag() == nsGkAtoms::mtext_) {
+    if (mContent->IsMathMLElement(nsGkAtoms::mtext_)) {
       mPresentationData.flags |= NS_MATHML_SPACE_LIKE;
     }
     return NS_OK;

@@ -291,8 +291,7 @@ nsMathMLmactionFrame::MouseOver()
     if (!content) return;
 
     
-    if (content->GetNameSpaceID() == kNameSpaceID_MathML &&
-        content->Tag() == nsGkAtoms::mtext_) {
+    if (content->IsMathMLElement(nsGkAtoms::mtext_)) {
       
       content = content->GetFirstChild();
       if (!content) return;
