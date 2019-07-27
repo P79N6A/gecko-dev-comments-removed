@@ -9,6 +9,7 @@ Cu.import("resource://gre/modules/FxAccounts.jsm");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
 Cu.import("resource://gre/modules/FxAccountsManager.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
+Cu.import("resource://testing-common/MockRegistrar.jsm");
 
 
 
@@ -23,19 +24,7 @@ let certExpired = false;
 let principal = {origin: 'app://settings.gaiamobile.org', appId: 27}
 
 
-const kFxAccountsUIGlueUUID = "{8f6d5d87-41ed-4bb5-aa28-625de57564c5}";
-const kFxAccountsUIGlueContractID =
-  "@mozilla.org/fxaccounts/fxaccounts-ui-glue;1";
-
-
-const kFxAccountsUIGlueFactory =
-  Cm.getClassObject(Cc[kFxAccountsUIGlueContractID], Ci.nsIFactory);
-
-let fakeFxAccountsUIGlueFactory = {
-  createInstance: function(aOuter, aIid) {
-    return FxAccountsUIGlue.QueryInterface(aIid);
-  }
-};
+let fakeFxAccountsUIGlueCID;
 
 
 let FxAccountsUIGlue = {
@@ -91,11 +80,9 @@ let FxAccountsUIGlue = {
 };
 
 (function registerFakeFxAccountsUIGlue() {
-  Cm.QueryInterface(Ci.nsIComponentRegistrar)
-    .registerFactory(Components.ID(kFxAccountsUIGlueUUID),
-                     "FxAccountsUIGlue",
-                     kFxAccountsUIGlueContractID,
-                     fakeFxAccountsUIGlueFactory);
+  fakeFxAccountsUIGlueCID =
+    MockRegistrar.register("@mozilla.org/fxaccounts/fxaccounts-ui-glue;1",
+                           FxAccountsUIGlue);
 })();
 
 
@@ -246,16 +233,7 @@ FxAccountsManager._getFxAccountsClient = function() {
 
 do_register_cleanup(function() {
   
-  Cm.QueryInterface(Ci.nsIComponentRegistrar)
-    .unregisterFactory(Components.ID(kFxAccountsUIGlueUUID),
-                       fakeFxAccountsUIGlueFactory);
-
-  
-  Cm.QueryInterface(Ci.nsIComponentRegistrar)
-    .registerFactory(Components.ID(kFxAccountsUIGlueUUID),
-                     "FxAccountsUIGlue",
-                     kFxAccountsUIGlueContractID,
-                     kFxAccountsUIGlueFactory);
+  MockRegistrar.unregister(fakeFxAccountsUIGlueCID);
 
   
   FxAccountsManager._fxAccounts = kFxAccounts;
