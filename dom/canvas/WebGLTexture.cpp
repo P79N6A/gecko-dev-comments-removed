@@ -33,6 +33,8 @@ WebGLTexture::WebGLTexture(WebGLContext *context)
     , mMaxLevelWithCustomImages(0)
     , mHaveGeneratedMipmap(false)
     , mImmutable(false)
+    , mBaseMipmapLevel(0)
+    , mMaxMipmapLevel(1000)
     , mFakeBlackStatus(WebGLTextureFakeBlackStatus::IncompleteTexture)
 {
     mContext->MakeContextCurrent();
@@ -62,22 +64,8 @@ WebGLTexture::MemoryUsage() const {
         return 0;
     size_t result = 0;
     for(size_t face = 0; face < mFacesCount; face++) {
-        if (mHaveGeneratedMipmap) {
-            size_t level0MemoryUsage = ImageInfoAtFace(face, 0).MemoryUsage();
-            
-            
-            
-            
-            
-            size_t allLevelsMemoryUsage =
-                mTarget == LOCAL_GL_TEXTURE_3D
-                ? level0MemoryUsage * 8 / 7
-                : level0MemoryUsage * 4 / 3;
-            result += allLevelsMemoryUsage;
-        } else {
-            for(size_t level = 0; level <= mMaxLevelWithCustomImages; level++)
-                result += ImageInfoAtFace(face, level).MemoryUsage();
-        }
+      for(size_t level = 0; level <= mMaxLevelWithCustomImages; level++)
+        result += ImageInfoAtFace(face, level).MemoryUsage();
     }
     return result;
 }
@@ -88,15 +76,24 @@ WebGLTexture::DoesMipmapHaveAllLevelsConsistentlyDefined(TexImageTarget texImage
     if (mHaveGeneratedMipmap)
         return true;
 
+    if (GetMaxMipmapLevel() < GetBaseMipmapLevel())
+        return false;
+
     
-    ImageInfo expected = ImageInfoAt(texImageTarget, 0);
+    ImageInfo expected = ImageInfoAt(texImageTarget, GetBaseMipmapLevel());
 
     
     
-    for (size_t level = 0; level <= mMaxLevelWithCustomImages; ++level) {
+    for (size_t level = GetBaseMipmapLevel(); level <= GetMaxMipmapLevel(); ++level) {
         const ImageInfo& actual = ImageInfoAt(texImageTarget, level);
         if (actual != expected)
             return false;
+
+        
+        
+        if (level == mMaxMipmapLevel)
+            return true;
+
         expected.mWidth = std::max(1, expected.mWidth / 2);
         expected.mHeight = std::max(1, expected.mHeight / 2);
         expected.mDepth = std::max(1, expected.mDepth / 2);
@@ -185,7 +182,7 @@ WebGLTexture::SetCustomMipmap() {
 
         
         
-        ImageInfo imageInfo = ImageInfoAtFace(0, 0);
+        ImageInfo imageInfo = ImageInfoAtFace(0, GetBaseMipmapLevel());
         NS_ASSERTION(mContext->IsWebGL2() || imageInfo.IsPowerOfTwo(),
                      "this texture is NPOT, so how could GenerateMipmap() ever accept it?");
 
@@ -198,7 +195,7 @@ WebGLTexture::SetCustomMipmap() {
 
         EnsureMaxLevelWithCustomImagesAtLeast(maxLevel);
 
-        for (size_t level = 1; level <= maxLevel; ++level) {
+        for (size_t level = GetBaseMipmapLevel() + 1; level <= GetMaxMipmapLevel(); ++level) {
             imageInfo.mWidth = std::max(imageInfo.mWidth / 2, 1);
             imageInfo.mHeight = std::max(imageInfo.mHeight / 2, 1);
             imageInfo.mDepth = std::max(imageInfo.mDepth / 2, 1);
@@ -223,7 +220,7 @@ WebGLTexture::IsMipmapComplete() const {
     MOZ_ASSERT(mTarget == LOCAL_GL_TEXTURE_2D ||
                mTarget == LOCAL_GL_TEXTURE_3D);
 
-    if (!ImageInfoAtFace(0, 0).IsPositive())
+    if (!ImageInfoAtFace(0, GetBaseMipmapLevel()).IsPositive())
         return false;
     if (mHaveGeneratedMipmap)
         return true;
@@ -262,7 +259,7 @@ WebGLTexture::ResolvedFakeBlackStatus() {
     
 
     for (size_t face = 0; face < mFacesCount; ++face) {
-        if (ImageInfoAtFace(face, 0).mImageDataStatus == WebGLImageDataStatus::NoImageData) {
+        if (ImageInfoAtFace(face, GetBaseMipmapLevel()).mImageDataStatus == WebGLImageDataStatus::NoImageData) {
             
             
             mFakeBlackStatus = WebGLTextureFakeBlackStatus::IncompleteTexture;
