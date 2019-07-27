@@ -13,8 +13,8 @@
   if (!window.OT) window.OT = {};
 
   OT.properties = {
-    version: 'v2.2.6',         
-    build: 'd326ad1',    
+    version: 'v2.2.7.2',         
+    build: '9425efe',    
 
     
     debug: 'false',
@@ -86,6 +86,9 @@
   var previousOTHelpers = window.OTHelpers;
 
   window.OTHelpers = OTHelpers;
+
+  
+  window.___othelpers = true;
 
   OTHelpers.keys = Object.keys || function(object) {
     var keys = [], hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -1033,6 +1036,199 @@ OTHelpers.setLogLevel(OTHelpers.ERROR);
 
 
 
+
+(function(window, OTHelpers, undefined) {
+
+    
+    
+    
+    
+    
+    OTHelpers.on = function(element, eventName,  handler) {
+        if (element.addEventListener) {
+            element.addEventListener(eventName, handler, false);
+        } else if (element.attachEvent) {
+            element.attachEvent("on" + eventName, handler);
+        } else {
+            var oldHandler = element["on"+eventName];
+            element["on"+eventName] = function() {
+              handler.apply(this, arguments);
+              if (oldHandler) oldHandler.apply(this, arguments);
+            };
+        }
+        return element;
+    };
+
+    
+    OTHelpers.off = function(element, eventName, handler) {
+        if (element.removeEventListener) {
+            element.removeEventListener (eventName, handler,false);
+        }
+        else if (element.detachEvent) {
+            element.detachEvent("on" + eventName, handler);
+        }
+    };
+
+})(window, window.OTHelpers);
+
+
+
+
+
+
+(function(window, OTHelpers, undefined) {
+
+  var _domReady = typeof document === 'undefined' ||
+                  document.readyState === 'complete' ||
+                 (document.readyState === 'interactive' && document.body),
+
+      _loadCallbacks = [],
+      _unloadCallbacks = [],
+      _domUnloaded = false,
+
+      onDomReady = function() {
+        _domReady = true;
+
+        
+        
+        OTHelpers.on(window, 'unload', onDomUnload);
+
+        OTHelpers.forEach(_loadCallbacks, function(listener) {
+          listener[0].call(listener[1]);
+        });
+
+        _loadCallbacks = [];
+      },
+
+      onDomUnload = function() {
+        _domUnloaded = true;
+
+        OTHelpers.forEach(_unloadCallbacks, function(listener) {
+          listener[0].call(listener[1]);
+        });
+
+        _unloadCallbacks = [];
+      };
+
+
+  OTHelpers.onDOMLoad = function(cb, context) {
+    if (OTHelpers.isReady()) {
+      cb.call(context);
+      return;
+    }
+
+    _loadCallbacks.push([cb, context]);
+  };
+
+  OTHelpers.onDOMUnload = function(cb, context) {
+    if (this.isDOMUnloaded()) {
+      cb.call(context);
+      return;
+    }
+
+    _unloadCallbacks.push([cb, context]);
+  };
+
+  OTHelpers.isReady = function() {
+    return !_domUnloaded && _domReady;
+  };
+
+  OTHelpers.isDOMUnloaded = function() {
+    return _domUnloaded;
+  };
+
+
+  if (_domReady) {
+    onDomReady();
+  } else if(typeof document !== 'undefined') {
+    if (document.addEventListener) {
+      document.addEventListener('DOMContentLoaded', onDomReady, false);
+    } else if (document.attachEvent) {
+      
+      document.attachEvent('onreadystatechange', function() {
+        if (document.readyState === 'complete') onDomReady();
+      });
+    }
+  }
+
+})(window, window.OTHelpers);
+
+
+
+
+
+(function(window, OTHelpers, undefined) {
+
+  var capabilities = {};
+
+  
+  
+  
+  
+  
+  
+  
+  
+  OTHelpers.registerCapability = function(name, callback) {
+    var _name = name.toLowerCase();
+
+    if (capabilities.hasOwnProperty(_name)) {
+      OTHelpers.error('Attempted to register', name, 'capability more than once');
+      return;
+    }
+
+    if (!OTHelpers.isFunction(callback)) {
+      OTHelpers.error('Attempted to register', name,
+                              'capability with a callback that isn\' a function');
+      return;
+    }
+
+    memoriseCapabilityTest(_name, callback);
+  };
+
+  
+  
+  
+  
+  
+  OTHelpers.hasCapabilities = function() {
+    var capNames = Array.prototype.slice.call(arguments),
+        name;
+
+    for (var i=0; i<capNames.length; ++i) {
+      name = capNames[i].toLowerCase();
+
+      if (!capabilities.hasOwnProperty(name)) {
+        OTHelpers.error('hasCapabilities was called with an unknown capability: ' + name);
+        return false;
+      }
+      else if (capabilities[name]() === false) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+
+  
+  
+  var memoriseCapabilityTest = function memoriseCapabilityTest(name, callback) {
+    capabilities[name] = function() {
+      var result = callback();
+      capabilities[name] = function() {
+        return result;
+      };
+
+      return result;
+    };
+  };
+
+})(window, window.OTHelpers);
+
+
+
+
 (function(window, OTHelpers, undefined) {
 
 OTHelpers.castToBoolean = function(value, defaultValue) {
@@ -1050,32 +1246,97 @@ OTHelpers.roundFloat = function(value, places) {
 
 
 
+
 (function(window, OTHelpers, undefined) {
 
-  var timeouts = [],
-      messageName = 'OTHelpers.' + OTHelpers.uuid.v4() + '.zero-timeout';
+  var _callAsync;
 
-  var handleMessage = function(event) {
-    if (event.data === messageName) {
-      if(OTHelpers.isFunction(event.stopPropagation)) {
-        event.stopPropagation();
-      }
-      event.cancelBubble = true;
-      if (timeouts.length > 0) {
-        var args = timeouts.shift(),
-            fn = args.shift();
-
-        fn.apply(null, args);
-      }
+  
+  
+  
+  
+  
+  var supportsPostMessage = (function () {
+    if (window.postMessage) {
+      
+      
+      
+      var postMessageIsAsynchronous = true;
+      var oldOnMessage = window.onmessage;
+      window.onmessage = function() {
+          postMessageIsAsynchronous = false;
+      };
+      window.postMessage("", "*");
+      window.onmessage = oldOnMessage;
+      return postMessageIsAsynchronous;
     }
-  };
+  })();
 
-  if(window.addEventListener) {
-    window.addEventListener('message', handleMessage, true);
-  } else if(window.attachEvent) {
-    window.attachEvent('onmessage', handleMessage);
+  if (supportsPostMessage) {
+    var timeouts = [],
+        messageName = 'OTHelpers.' + OTHelpers.uuid.v4() + '.zero-timeout';
+
+    var removeMessageHandler = function() {
+      timeouts = [];
+
+      if(window.removeEventListener) {
+        window.removeEventListener('message', handleMessage);
+      } else if(window.detachEvent) {
+        window.detachEvent('onmessage', handleMessage);
+      }
+    };
+
+    var handleMessage = function(event) {
+      if (event.source === window &&
+          event.data === messageName) {
+
+        if(OTHelpers.isFunction(event.stopPropagation)) {
+          event.stopPropagation();
+        }
+        event.cancelBubble = true;
+
+        if (!window.___othelpers) {
+          removeMessageHandler();
+          return;
+        }
+
+        if (timeouts.length > 0) {
+          var args = timeouts.shift(),
+              fn = args.shift();
+
+          fn.apply(null, args);
+        }
+      }
+    };
+
+    
+    
+    
+    OTHelpers.on(window, 'unload', removeMessageHandler);
+
+    if(window.addEventListener) {
+      window.addEventListener('message', handleMessage, true);
+    } else if(window.attachEvent) {
+      window.attachEvent('onmessage', handleMessage);
+    }
+
+    _callAsync = function () {
+      timeouts.push(Array.prototype.slice.call(arguments));
+      window.postMessage(messageName, '*');
+    };
+  }
+  else {
+    _callAsync = function () {
+      var args = Array.prototype.slice.call(arguments),
+          fn = args.shift();
+
+      setTimeout(function() {
+        fn.apply(null, args);
+      }, 0);
+    };
   }
 
+
   
   
   
@@ -1088,10 +1349,10 @@ OTHelpers.roundFloat = function(value, places) {
   
   
   
-  OTHelpers.callAsync = function () {
-    timeouts.push(Array.prototype.slice.call(arguments));
-    window.postMessage(messageName, '*');
-  };
+  
+  
+  
+  OTHelpers.callAsync = _callAsync;
 
 
   
@@ -1244,6 +1505,10 @@ OTHelpers.roundFloat = function(value, places) {
       OTHelpers.forEach(eventNames, function(name) {
         if (!_events[name]) _events[name] = [];
         _events[name].push(listener);
+        var addedListener = name + ':added';
+        if (_events[addedListener]) {
+          executeListeners(addedListener, [_events[name].length]);
+        }
       });
     }, self);
 
@@ -1257,6 +1522,10 @@ OTHelpers.roundFloat = function(value, places) {
         if (_events[name]) {
           _events[name] = OTHelpers.filter(_events[name], filterHandlerAndContext);
           if (_events[name].length === 0) delete _events[name];
+          var removedListener = name + ':removed';
+          if (_events[ removedListener]) {
+            executeListeners(removedListener, [_events[name] ? _events[name].length : 0]);
+          }
         }
       }, self));
 
@@ -1663,8 +1932,6 @@ OTHelpers.roundFloat = function(value, places) {
 
 
 
-
-
     return self;
   };
 
@@ -1803,35 +2070,6 @@ OTHelpers.createButton = function(innerHTML, attributes, events) {
 
 
 
-
-
-OTHelpers.on = function(element, eventName,  handler) {
-    if (element.addEventListener) {
-        element.addEventListener(eventName, handler, false);
-    } else if (element.attachEvent) {
-        element.attachEvent("on" + eventName, handler);
-    } else {
-        var oldHandler = element["on"+eventName];
-        element["on"+eventName] = function() {
-          handler.apply(this, arguments);
-          if (oldHandler) oldHandler.apply(this, arguments);
-        };
-    }
-    return element;
-};
-
-
-OTHelpers.off = function(element, eventName, handler) {
-    if (element.removeEventListener) {
-        element.removeEventListener (eventName, handler,false);
-    }
-    else if (element.detachEvent) {
-        element.detachEvent("on" + eventName, handler);
-    }
-};
-
-
-
 OTHelpers.isDisplayNone = function(element) {
     if ( (element.offsetWidth === 0 || element.offsetHeight === 0) && OTHelpers.css(element, 'display') === 'none') return true;
     if (element.parentNode && element.parentNode.style) return OTHelpers.isDisplayNone(element.parentNode);
@@ -1905,7 +2143,7 @@ OTHelpers.observeStyleChanges = function(element, stylesToObserve, onChange) {
 
             OTHelpers.forEach(stylesToObserve, function(style) {
                 if(isHidden && (style == 'width' || style == 'height')) return;
-                
+
                 var newValue = getStyle(style);
 
                 if (newValue !== oldStyles[style]) {
@@ -2472,6 +2710,24 @@ OTHelpers.centerElement = function(element, width, height) {
 
 (function(window, OTHelpers, undefined) {
 
+  OTHelpers.requestAnimationFrame =
+    OTHelpers.bind(
+        window.requestAnimationFrame ||
+        window.mozRequestAnimationFrame ||
+        window.webkitRequestAnimationFrame ||
+        window.msRequestAnimationFrame ||
+        setTimeout, window);
+
+})(window, window.OTHelpers);
+
+
+
+
+
+
+
+(function(window, OTHelpers, undefined) {
+
   function formatPostData(data) { 
     
     if (typeof(data) === 'string') return data;
@@ -2585,7 +2841,7 @@ OTHelpers.centerElement = function(element, width, height) {
     
     
     if(callback) {
-      request.addEventListener('load', function(event) {
+      OTHelpers.on(request, 'load', function(event) {
         var status = event.target.status;
 
         
@@ -2595,9 +2851,9 @@ OTHelpers.centerElement = function(element, width, height) {
         } else {
           callback(event);
         }
-      }, false);
+      });
 
-      request.addEventListener('error', callback, false);
+      OTHelpers.on(request, 'error', callback);
     }
 
     request.open(options.method, url, true);
@@ -2631,9 +2887,148 @@ OTHelpers.centerElement = function(element, width, height) {
   };
 
 })(window, window.OTHelpers);
-!(function() {
+!(function(window) {
 
-  OT.Dialogs = {};
+  
+
+  if (!window.OT) window.OT = {};
+
+  
+  OT.$ = OTHelpers.noConflict();
+
+  
+  OT.$.eventing(OT);
+
+  
+
+  OT.$.defineGetters = function(self, getters, enumerable) {
+    var propsDefinition = {};
+
+    if (enumerable === void 0) enumerable = false;
+
+    for (var key in getters) {
+      if(!getters.hasOwnProperty(key)) {
+        continue;
+      }
+      propsDefinition[key] = {
+        get: getters[key],
+        enumerable: enumerable
+      };
+    }
+
+    Object.defineProperties(self, propsDefinition);
+  };
+
+  
+
+  
+  OT.Modal = OT.$.Modal;
+
+  
+  OT.$.useLogHelpers(OT);
+
+  var _debugHeaderLogged = false,
+      _setLogLevel = OT.setLogLevel;
+
+  
+  OT.setLogLevel = function(level) {
+    
+    OT.$.setLogLevel(level);
+    var retVal = _setLogLevel.call(OT, level);
+    if (OT.shouldLog(OT.DEBUG) && !_debugHeaderLogged) {
+      OT.debug('OpenTok JavaScript library ' + OT.properties.version);
+      OT.debug('Release notes: ' + OT.properties.websiteURL +
+        '/opentok/webrtc/docs/js/release-notes.html');
+      OT.debug('Known issues: ' + OT.properties.websiteURL +
+        '/opentok/webrtc/docs/js/release-notes.html#knownIssues');
+      _debugHeaderLogged = true;
+    }
+    OT.debug('OT.setLogLevel(' + retVal + ')');
+    return retVal;
+  };
+
+  OT.setLogLevel(OT.properties.debug ? OT.DEBUG : OT.ERROR);
+
+  OT.$.userAgent = function() {
+    var userAgent = navigator.userAgent;
+    if (TBPlugin.isInstalled()) userAgent += '; TBPlugin ' + TBPlugin.version();
+    return userAgent;
+  };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+})(window);
+!(function() {
 
   var addCss = function(document, url, callback) {
     var head = document.head || document.getElementsByTagName('head')[0];
@@ -2665,16 +3060,45 @@ OTHelpers.centerElement = function(element, width, height) {
     });
 
   };
-  
+
   var templateElement = function(classes, children, tagName) {
     var el = OT.$.createElement(tagName || 'div', { 'class': classes }, children, this);
     el.on = OT.$.bind(OT.$.on, OT.$, el);
+    el.off = OT.$.bind(OT.$.off, OT.$, el);
     return el;
   };
 
-  OT.Dialogs.AllowDeny = {};
-  OT.Dialogs.AllowDeny.Chrome = {};
-  OT.Dialogs.AllowDeny.Firefox = {};
+  var checkBoxElement = function (classes, nameAndId, onChange) {
+    var checkbox = templateElement.call(this, '', null, 'input').on('change', onChange);
+
+    if (OT.$.browser() === 'ie' && OT.$.browserVersion() <= 8) {
+      
+      checkbox.on('click', function() {
+        console.log('CLICK');
+        checkbox.blur();
+        checkbox.focus();
+      });
+    }
+
+    checkbox.setAttribute('name', nameAndId);
+    checkbox.setAttribute('id', nameAndId);
+    checkbox.setAttribute('type', 'checkbox');
+
+    return checkbox;
+  };
+
+  var linkElement = function(children, href, classes) {
+    var link = templateElement.call(this, classes || '', children, 'a');
+    link.setAttribute('href', href);
+    return link;
+  };
+
+  OT.Dialogs = {};
+
+  OT.Dialogs.AllowDeny = {
+    Chrome: {},
+    Firefox: {}
+  };
 
   OT.Dialogs.AllowDeny.Chrome.initialPrompt = function() {
     var modal = new OT.$.Modal(function(window, document) {
@@ -2827,7 +3251,6 @@ OTHelpers.centerElement = function(element, width, height) {
     return modal;
   };
 
-
   OT.Dialogs.AllowDeny.Firefox.denied = function() {
     var modal = new OT.$.Modal(function(window, document) {
 
@@ -2858,145 +3281,243 @@ OTHelpers.centerElement = function(element, width, height) {
       });
 
     });
+
     return modal;
   };
 
-})();
-!(function(window) {
+  OT.Dialogs.Plugin = {};
 
-  
+  OT.Dialogs.Plugin.promptToInstall = function() {
+    var modal = new OT.$.Modal(function(window, document) {
 
-  if (!window.OT) window.OT = {};
+      var el = OT.$.bind(templateElement, document),
+          btn = OT.$.bind(templateElement, document,
+                    'OT_dialog-button OT_dialog-button-large OT_dialog-button-disabled'),
+          downloadButton = btn('Download OpenTok'),
+          refreshButton = btn('Refresh page'),
+          acceptEULA,
+          checkbox,
+          close,
+          root;
 
-  
-  OT.$ = OTHelpers.noConflict();
-
-  
-  OT.$.eventing(OT);
-
-  
-
-  OT.$.defineGetters = function(self, getters, enumerable) {
-    var propsDefinition = {};
-
-    if (enumerable === void 0) enumerable = false;
-
-    for (var key in getters) {
-      if(!getters.hasOwnProperty(key)) {
-        continue;
+      function onDownload() {
+        modal.trigger('download');
       }
-      propsDefinition[key] = {
-        get: getters[key],
-        enumerable: enumerable
-      };
-    }
 
-    Object.defineProperties(self, propsDefinition);
+      function onRefresh() {
+        modal.trigger('refresh');
+      }
+
+      function onToggleEULA() {
+        if (checkbox.checked) {
+          enableButtons();
+        }
+        else {
+          disableButtons();
+        }
+      }
+
+      function enableButtons() {
+        OT.$.removeClass(downloadButton, 'OT_dialog-button-disabled');
+        downloadButton.on('click', onDownload);
+
+        OT.$.removeClass(refreshButton, 'OT_dialog-button-disabled');
+        refreshButton.on('click', onRefresh);
+      }
+
+      function disableButtons() {
+        OT.$.addClass(downloadButton, 'OT_dialog-button-disabled');
+        downloadButton.off('click', onDownload);
+
+        OT.$.addClass(refreshButton, 'OT_dialog-button-disabled');
+        refreshButton.off('click', onRefresh);
+      }
+
+
+      close = el('OT_closeButton', '&times;')
+        .on('click', function() {
+          modal.close();
+        });
+
+      acceptEULA = linkElement.call(document,
+                                    'End-user license agreement',
+                                    'http://tokbox.com/support/ie-eula');
+
+      checkbox = checkBoxElement.call(document, null, 'acceptEULA', onToggleEULA);
+
+      root = el('OT_root OT_dialog OT_dialog-plugin-prompt', [
+        close,
+        el('OT_dialog-messages', [
+          el('OT_dialog-messages-main', 'This app requires real-time communication'),
+          el('OT_dialog-messages-minor', 'These 2 simple steps will ' +
+            'enable real-time communications in Internet Explorer:')
+        ]),
+        el('OT_dialog-button-pair', [
+          el('OT_dialog-button-with-title', [
+            el('OT_dialog-button-title', [
+              el('', 'Step 1', 'strong'),
+              checkbox,
+              (function() {
+                var x = el('', 'Accept', 'label');
+                x.setAttribute('for', checkbox.id);
+                x.style.margin = '0 5px';
+                return x;
+              })(),
+              acceptEULA
+            ]),
+            downloadButton
+          ]),
+          el('OT_dialog-button-pair-seperator', ''),
+          el('OT_dialog-button-with-title', [
+            el('OT_dialog-button-title', [
+              el('', 'Step 2', 'strong'),
+              'Reload this page after installation'
+            ]),
+            refreshButton
+          ])
+        ])
+      ]);
+
+      addDialogCSS(document, [], function() {
+        document.body.appendChild(root);
+      });
+
+    });
+    return modal;
   };
 
-  
+  OT.Dialogs.Plugin.promptToReinstall = function() {
+    var modal = new OT.$.Modal(function(window, document) {
 
-  
-  OT.Modal = OT.$.Modal;
+      var el = templateElement.bind(document),
+          close,
+          okayButton,
+          root;
 
-  
-  OT.$.useLogHelpers(OT);
+      close = el('OT_closeButton', '&times;');
+      okayButton = el('OT_dialog-button', 'Okay');
 
-  var _debugHeaderLogged = false,
-      _setLogLevel = OT.setLogLevel;
+      OT.$.on(okayButton, 'click', function() {
+        modal.trigger('okay');
+      });
 
-  
-  OT.setLogLevel = function(level) {
-    
-    OT.$.setLogLevel(level);
-    var retVal = _setLogLevel.call(OT, level);
-    if (OT.shouldLog(OT.DEBUG) && !_debugHeaderLogged) {
-      OT.debug('OpenTok JavaScript library ' + OT.properties.version);
-      OT.debug('Release notes: ' + OT.properties.websiteURL +
-        '/opentok/webrtc/docs/js/release-notes.html');
-      OT.debug('Known issues: ' + OT.properties.websiteURL +
-        '/opentok/webrtc/docs/js/release-notes.html#knownIssues');
-      _debugHeaderLogged = true;
-    }
-    OT.debug('OT.setLogLevel(' + retVal + ')');
-    return retVal;
+      OT.$.on(close, 'click', function() {
+        modal.close();
+      });
+
+      root = el('OT_ROOT OT_dialog OT_dialog-plugin-reinstall', [
+        close,
+        el('OT_dialog-messages', [
+          el('OT_dialog-messages-main', 'Reinstall Opentok Plugin'),
+          el('OT_dialog-messages-minor', 'Uh oh! Try reinstalling the OpenTok plugin again to ' +
+            'enable real-time video communication for Internet Explorer.')
+        ]),
+        el('OT_dialog-single-button', okayButton)
+      ]);
+
+      addDialogCSS(document, [], function() {
+        document.body.appendChild(root);
+      });
+
+    });
+
+    return modal;
   };
 
-  OT.setLogLevel(OT.properties.debug ? OT.DEBUG : OT.ERROR);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-})(window);
+  OT.Dialogs.Plugin.updateInProgress = function() {
+
+    var progressBar,
+        progressText,
+        progressValue = 0;
+
+    var modal = new OT.$.Modal(function(window, document) {
+
+      var el = templateElement.bind(document),
+          root;
+
+      progressText = el('OT_dialog-plugin-upgrade-percentage', '0%', 'strong');
+
+      progressBar = el('OT_dialog-progress-bar-fill');
+
+      root = el('OT_ROOT OT_dialog OT_dialog-plugin-upgrading', [
+        el('OT_dialog-messages', [
+          el('OT_dialog-messages-main', [
+            'One moment please... ',
+            progressText
+          ]),
+          el('OT_dialog-progress-bar', progressBar),
+          el('OT_dialog-messages-minor', 'Please wait while the OpenTok plugin is updated')
+        ])
+      ]);
+
+      addDialogCSS(document, [], function() {
+        document.body.appendChild(root);
+        if(progressValue != null) {
+          modal.setUpdateProgress(progressValue);
+        }
+      });
+    });
+
+    modal.setUpdateProgress = function(newProgress) {
+      if(progressBar && progressText) {
+        if(newProgress > 99) {
+          OT.$.css(progressBar, 'width', '');
+          progressText.innerHTML = '100%';
+        } else if(newProgress < 1) {
+          OT.$.css(progressBar, 'width', '0%');
+          progressText.innerHTML = '0%';
+        } else {
+          OT.$.css(progressBar, 'width', newProgress + '%');
+          progressText.innerHTML = newProgress + '%';
+        }
+      } else {
+        progressValue = newProgress;
+      }
+    };
+
+    return modal;
+  };
+
+  OT.Dialogs.Plugin.updateComplete = function(error) {
+    var modal = new OT.$.Modal(function(window, document) {
+      var el = templateElement.bind(document),
+          reloadButton,
+          root;
+
+      reloadButton = el('OT_dialog-button', 'Reload').on('click', function() {
+        modal.trigger('reload');
+      });
+
+      var msgs;
+
+      if(error) {
+        msgs = ['Update Failed.', error + '' || 'NO ERROR'];
+      } else {
+        msgs = ['Update Complete.',
+          'The OpenTok plugin has been succesfully updated. ' +
+          'Please reload your browser.'];
+      }
+
+      root = el('OT_root OT_dialog OT_dialog-plugin-upgraded', [
+        el('OT_dialog-messages', [
+          el('OT_dialog-messages-main', msgs[0]),
+          el('OT_dialog-messages-minor', msgs[1])
+        ]),
+        el('OT_dialog-single-button', reloadButton)
+      ]);
+
+      addDialogCSS(document, [], function() {
+        document.body.appendChild(root);
+      });
+
+    });
+
+    return modal;
+
+  };
+
+
+})();
 !(function(window) {
 
   
@@ -3007,6 +3528,11 @@ OTHelpers.centerElement = function(element, width, height) {
       'properties file.');
   }
 
+  OT.useSSL = function () {
+    return OT.properties.supportSSL && (window.location.protocol.indexOf('https') >= 0 ||
+          window.location.protocol.indexOf('chrome-extension') >= 0);
+  };
+
   
   OT.properties = function(properties) {
     var props = OT.$.clone(properties);
@@ -3014,27 +3540,28 @@ OTHelpers.centerElement = function(element, width, height) {
     props.debug = properties.debug === 'true' || properties.debug === true;
     props.supportSSL = properties.supportSSL === 'true' || properties.supportSSL === true;
 
-    if (props.supportSSL && (window.location.protocol.indexOf('https') >= 0 ||
-      window.location.protocol.indexOf('chrome-extension') >= 0)) {
-      props.assetURL = props.cdnURLSSL + '/webrtc/' + props.version;
-    } else {
-      props.assetURL = props.cdnURL + '/webrtc/' + props.version;
-    }
-
-    props.configURL = props.assetURL + '/js/dynamic_config.min.js';
-    props.cssURL = props.assetURL + '/css/ot.min.css';
-    
     if (window.OTProperties) {
       
       if (window.OTProperties.cdnURL) props.cdnURL = window.OTProperties.cdnURL;
+      if (window.OTProperties.cdnURLSSL) props.cdnURLSSL = window.OTProperties.cdnURLSSL;
       if (window.OTProperties.configURL) props.configURL = window.OTProperties.configURL;
       if (window.OTProperties.assetURL) props.assetURL = window.OTProperties.assetURL;
       if (window.OTProperties.cssURL) props.cssURL = window.OTProperties.cssURL;
     }
 
+    if (!props.assetURL) {
+      if (OT.useSSL()) {
+        props.assetURL = props.cdnURLSSL + '/webrtc/' + props.version;
+      } else {
+        props.assetURL = props.cdnURL + '/webrtc/' + props.version;
+      }
+    }
+
+    if (!props.configURL) props.configURL = props.assetURL + '/js/dynamic_config.min.js';
+    if (!props.cssURL) props.cssURL = props.assetURL + '/css/ot.min.css';
+
     return props;
   }(OT.properties);
-
 })(window);
 !(function() {
 
@@ -3112,7 +3639,7 @@ OTHelpers.centerElement = function(element, width, height) {
           _script = document.createElement( 'script' );
           _script.async = 'async';
           _script.src = configUrl;
-          _script.onload = _script.onreadystatechange = _onLoad.bind(this);
+          _script.onload = _script.onreadystatechange = OT.$.bind(_onLoad, this);
           _head.appendChild(_script);
         },1);
 
@@ -3172,6 +3699,1561 @@ OTHelpers.centerElement = function(element, width, height) {
   })();
 
 })(window);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(function(scope) {
+
+
+
+if (scope.TBPlugin !== void 0) return;
+
+
+if (scope.OT === void 0) return;
+
+
+var env = OT.$.browserVersion(),
+    isSupported = env.browser === 'IE' && env.version >= 8,
+    pluginReady = false;
+
+var TBPlugin = {
+  isSupported: function () { return isSupported; },
+  isReady: function() { return pluginReady; }
+};
+
+
+scope.TBPlugin = TBPlugin;
+
+
+if (!TBPlugin.isSupported()) {
+  TBPlugin.isInstalled = function isInstalled () { return false; };
+  return;
+}
+
+
+
+
+
+
+
+var shim = function shim () {
+  if (!Function.prototype.bind) {
+    Function.prototype.bind = function (oThis) {
+      if (typeof this !== 'function') {
+        
+        throw new TypeError('Function.prototype.bind - what is trying to be bound is not callable');
+      }
+
+      var aArgs = Array.prototype.slice.call(arguments, 1),
+          fToBind = this,
+          FNOP = function () {},
+          fBound = function () {
+            return fToBind.apply(this instanceof FNOP && oThis ?
+                          this : oThis, aArgs.concat(Array.prototype.slice.call(arguments)));
+          };
+
+      FNOP.prototype = this.prototype;
+      fBound.prototype = new FNOP();
+
+      return fBound;
+    };
+  }
+
+  if(!Array.isArray) {
+    Array.isArray = function (vArg) {
+      return Object.prototype.toString.call(vArg) === '[object Array]';
+    };
+  }
+
+  if (!Array.prototype.indexOf) {
+    Array.prototype.indexOf = function (searchElement, fromIndex) {
+      var i,
+          pivot = (fromIndex) ? fromIndex : 0,
+          length;
+
+      if (!this) {
+        throw new TypeError();
+      }
+
+      length = this.length;
+
+      if (length === 0 || pivot >= length) {
+        return -1;
+      }
+
+      if (pivot < 0) {
+        pivot = length - Math.abs(pivot);
+      }
+
+      for (i = pivot; i < length; i++) {
+        if (this[i] === searchElement) {
+          return i;
+        }
+      }
+      return -1;
+    };
+  }
+
+  if (!Array.prototype.map)
+  {
+    Array.prototype.map = function(fun )
+    {
+      'use strict';
+
+      if (this === void 0 || this === null)
+        throw new TypeError();
+
+      var t = Object(this);
+      var len = t.length >>> 0;
+      if (typeof fun !== 'function') {
+        throw new TypeError();
+      }
+
+      var res = new Array(len);
+      var thisArg = arguments.length >= 2 ? arguments[1] : void 0;
+      for (var i = 0; i < len; i++)
+      {
+        
+        
+        
+        
+        
+        if (i in t)
+          res[i] = fun.call(thisArg, t[i], i, t);
+      }
+
+      return res;
+    };
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+var objectTimeouts = {},
+    mediaCaptureObject,
+    plugins = {};
+
+var curryCallAsync = function curryCallAsync (fn) {
+  return function() {
+    var args = Array.prototype.slice.call(arguments);
+    args.unshift(fn);
+    OT.$.callAsync.apply(OT.$, args);
+  };
+};
+
+var generatePluginUuid = function generatePluginUuid () {
+  return OT.$.uuid().replace(/\-+/g, '');
+};
+
+
+var clearObjectLoadTimeout = function clearObjectLoadTimeout (callbackId) {
+  if (!callbackId) return;
+
+  if (objectTimeouts[callbackId]) {
+    clearTimeout(objectTimeouts[callbackId]);
+    delete objectTimeouts[callbackId];
+  }
+
+  if (scope[callbackId]) {
+    try {
+      delete scope[callbackId];
+    } catch (err) {
+      scope[callbackId] = void 0;
+    }
+  }
+};
+
+var removeObjectFromDom = function removeObjectFromDom (object) {
+  clearObjectLoadTimeout(object.getAttribute('tb_callbackId'));
+
+  if (mediaCaptureObject && mediaCaptureObject.id === object.id) {
+    mediaCaptureObject = null;
+  }
+  else if (plugins.hasOwnProperty(object.id)) {
+    delete plugins[object.id];
+  }
+
+  object.parentNode.removeChild(object);
+};
+
+
+
+var removeAllObjects = function removeAllObjects () {
+  if (mediaCaptureObject) mediaCaptureObject.destroy();
+
+  for (var id in plugins) {
+    if (plugins.hasOwnProperty(id)) {
+      plugins[id].destroy();
+    }
+  }
+};
+
+
+var PluginObject = function PluginObject (plugin) {
+  var _plugin = plugin,
+      _liveObjects = [];
+
+  this._ = _plugin;
+
+  this.addRef = function(ref) {
+    _liveObjects.push(ref);
+    return this;
+  };
+
+  this.removeRef = function(ref) {
+    if (_liveObjects.length === 0) return;
+
+    var index = _liveObjects.indexOf(ref);
+    if (index !== -1) {
+      _liveObjects.splice(index, 1);
+    }
+
+    if (_liveObjects.length === 0) {
+      this.destroy();
+    }
+
+    return this;
+  };
+
+  this.isValid = function() {
+    return _plugin.valid;
+  };
+
+  if (_plugin.attachEvent) {
+    this.on = function (name, callback) {
+      _plugin.attachEvent('on'+name, callback);
+      return this;
+    };
+  } else {
+    this.on = function (name, callback) {
+      _plugin.addEventListener(name, callback, false);
+      return this;
+    };
+  }
+
+  
+  
+  if (window.detachEvent) {
+    this.off = function (name, callback) {
+      _plugin.detachEvent('on'+name, callback);
+      return this;
+    };
+  }
+  else {
+    this.off = function (name, callback) {
+      _plugin.removeEventListener(name, callback);
+      return this;
+    };
+  }
+
+  this.once = function (name, callback) {
+    var fn = OT.$.bind(function () {
+      this.off(name, fn);
+      return callback.apply(null, arguments);
+    }, this);
+
+    this.on(name, fn);
+    return this;
+  };
+
+  this.onReady = function(readyCallback) {
+    
+    if (_plugin.initialise) {
+      this.on('ready', OT.$.bind(curryCallAsync(readyCallback), this));
+      _plugin.initialise();
+    }
+    else {
+      readyCallback.call(null);
+    }
+  };
+
+  this.destroy = function() {
+    while (_liveObjects.length) {
+      _liveObjects.shift().destroy();
+    }
+
+    removeObjectFromDom(_plugin);
+    _plugin = null;
+  };
+
+  this.setStream = function(stream, completion) {
+    if (completion) {
+      if (stream.hasVideo()) {
+        this.once('renderingStarted', completion);
+      }
+      else {
+        
+        
+        completion();
+      }
+    }
+    _plugin.setStream(stream);
+  };
+};
+
+
+var injectObject = function injectObject (mimeType, isVisible, params, completion) {
+  var callbackId = 'TBPlugin_loaded_' + generatePluginUuid();
+  params.onload = callbackId;
+  params.userAgent = window.navigator.userAgent.toLowerCase();
+
+  scope[callbackId] = function() {
+    clearObjectLoadTimeout(callbackId);
+
+    o.setAttribute('id', 'tb_plugin_' + o.uuid);
+    o.removeAttribute('tb_callbackId');
+
+    pluginRefCounted.uuid = o.uuid;
+    pluginRefCounted.id = o.id;
+
+    pluginRefCounted.onReady(function(err) {
+      if (err) {
+        OT.error('Error while starting up plugin ' + o.uuid + ': ' + err);
+        return;
+      }
+
+      debug('Plugin ' + o.id + ' is loaded');
+
+      if (completion && OT.$.isFunction(completion)) {
+        completion.call(TBPlugin, null, pluginRefCounted);
+      }
+    });
+  };
+
+  var tmpContainer = document.createElement('div'),
+      objBits = [],
+      extraAttributes = ['width="0" height="0"'],
+      pluginRefCounted,
+      o;
+
+  if (isVisible !== true) {
+    extraAttributes.push('visibility="hidden"');
+  }
+
+  objBits.push('<object type="' + mimeType + '" ' + extraAttributes.join(' ') + '>');
+
+  for (var name in params) {
+    if (params.hasOwnProperty(name)) {
+      objBits.push('<param name="' + name + '" value="' + params[name] + '" />');
+    }
+  }
+
+  objBits.push('</object>');
+  tmpContainer.innerHTML = objBits.join('');
+
+  _document.body.appendChild(tmpContainer);
+
+  function firstElementChild(element) {
+    if(element.firstElementChild) {
+      return element.firstElementChild;
+    }
+    for(var i = 0, len = element.childNodes.length; i < len; ++i) {
+      if(element.childNodes[i].nodeType === 1) {
+        return element.childNodes[i];
+      }
+    }
+    return null;
+  }
+
+  o = firstElementChild(tmpContainer);
+  o.setAttribute('tb_callbackId', callbackId);
+
+  pluginRefCounted = new PluginObject(o);
+
+  _document.body.appendChild(o);
+  _document.body.removeChild(tmpContainer);
+
+  objectTimeouts[callbackId] = setTimeout(function() {
+    clearObjectLoadTimeout(callbackId);
+
+    completion.call(TBPlugin, 'The object with the mimeType of ' +
+                                mimeType + ' timed out while loading.');
+
+    _document.body.removeChild(o);
+  }, 3000);
+
+  return pluginRefCounted;
+};
+
+
+
+
+
+
+
+
+var createMediaCaptureController = function createMediaCaptureController (completion) {
+  if (mediaCaptureObject) {
+    throw new Error('TBPlugin.createMediaCaptureController called multiple times!');
+  }
+
+  mediaCaptureObject = injectObject(pluginInfo.mimeType, false, {windowless: false}, completion);
+
+  mediaCaptureObject.selectSources = function() {
+    return this._.selectSources.apply(this._, arguments);
+  };
+
+  return mediaCaptureObject;
+};
+
+
+
+
+
+var createPeerController = function createPeerController (completion) {
+  var o = injectObject(pluginInfo.mimeType, true, {windowless: true}, function(err, plugin) {
+    if (err) {
+      completion.call(TBPlugin, err);
+      return;
+    }
+
+    plugins[plugin.id] = plugin;
+    completion.call(TBPlugin, null, plugin);
+  });
+
+  return o;
+};
+
+
+
+
+
+
+
+
+
+
+
+var AutoUpdater;
+
+(function() {
+
+  var autoUpdaterController,
+      updaterMimeType,        
+      installedVersion = -1;  
+
+
+  var versionGreaterThan = function versionGreaterThan (version1,version2) {
+    if (version1 === version2) return false;
+
+    var v1 = version1.split('.'),
+        v2 = version2.split('.');
+
+    v1 = parseFloat(parseInt(v1.shift(), 10) + '.' +
+                      v1.map(function(vcomp) { return parseInt(vcomp, 10); }).join(''));
+
+    v2 = parseFloat(parseInt(v2.shift(), 10) + '.' +
+                      v2.map(function(vcomp) { return parseInt(vcomp, 10); }).join(''));
+
+
+    return v1 > v2;
+  };
+
+
+  
+  
+  var findMimeTypeAndVersion = function findMimeTypeAndVersion () {
+
+    if (updaterMimeType !== void 0) {
+      return updaterMimeType;
+    }
+
+    var activeXControlId = 'TokBox.otiePluginInstaller',
+        unversionedMimeType = 'application/x-otieplugininstaller',
+        plugin = navigator.plugins[activeXControlId];
+
+    installedVersion = -1;
+
+
+    if (plugin) {
+      
+      
+      
+      
+      var numMimeTypes = plugin.length,
+          extractVersion = new RegExp(unversionedMimeType.replace('-', '\\-') +
+                                                            ',version=([0-9]+)', 'i'),
+          mimeType,
+          bits;
+
+      for (var i=0; i<numMimeTypes; ++i) {
+        mimeType = plugin[i];
+
+        
+        
+        if (mimeType && mimeType.enabledPlugin &&
+            (mimeType.enabledPlugin.name === plugin.name) &&
+            mimeType.type.indexOf(unversionedMimeType) !== -1) {
+
+          bits = extractVersion.exec(mimeType.type);
+
+          if (bits !== null && versionGreaterThan(bits[1], installedVersion)) {
+            installedVersion = bits[1];
+          }
+        }
+      }
+    }
+    else {
+      
+      
+      
+      
+      try {
+        plugin = new ActiveXObject(activeXControlId);
+        installedVersion = plugin.getMasterVersion();
+      } catch(e) {
+      }
+    }
+
+    updaterMimeType = installedVersion !== -1 ?
+                              unversionedMimeType + ',version=' + installedVersion :
+                              null;
+  };
+
+  var getInstallerMimeType = function getInstallerMimeType () {
+    if (updaterMimeType === void 0) {
+      findMimeTypeAndVersion();
+    }
+
+    return updaterMimeType;
+  };
+
+  var getInstalledVersion = function getInstalledVersion () {
+    if (installedVersion === void 0) {
+      findMimeTypeAndVersion();
+    }
+
+    return installedVersion;
+  };
+
+  
+  
+  
+  var hasBrokenUpdater = function () {
+    var _broken = !versionGreaterThan(getInstalledVersion(), '0.4.0.4');
+
+    hasBrokenUpdater = function() { return _broken; };
+    return _broken;
+  };
+
+
+  AutoUpdater = function (plugin) {
+
+    
+    
+    this.isOutOfDate = function () {
+      return versionGreaterThan(pluginInfo.version, getInstalledVersion());
+    };
+
+    this.autoUpdate = function () {
+      var modal = OT.Dialogs.Plugin.updateInProgress(),
+          analytics = new OT.Analytics(),
+        payload = {
+          ieVersion: OT.$.browserVersion().version,
+          pluginOldVersion: TBPlugin.installedVersion(),
+          pluginNewVersion: TBPlugin.version()
+        };
+
+      var success = curryCallAsync(function() {
+            analytics.logEvent({
+              action: 'OTPluginAutoUpdate',
+              variation: 'Success',
+              partnerId: OT.APIKEY,
+              payload: JSON.stringify(payload)
+            });
+
+            plugin.destroy();
+
+            modal.close();
+            OT.Dialogs.Plugin.updateComplete().on({
+              reload: function() {
+                window.location.reload();
+              }
+            });
+          }),
+
+          error = curryCallAsync(function(errorCode, errorMessage, systemErrorCode) {
+            payload.errorCode = errorCode;
+            payload.systemErrorCode = systemErrorCode;
+
+            analytics.logEvent({
+              action: 'OTPluginAutoUpdate',
+              variation: 'Failure',
+              partnerId: OT.APIKEY,
+              payload: JSON.stringify(payload)
+            });
+
+            plugin.destroy();
+
+            modal.close();
+            var updateMessage = errorMessage + ' (' + errorCode +
+                                      '). Please restart your browser and try again.';
+
+            modal = OT.Dialogs.Plugin.updateComplete(updateMessage).on({
+              'reload': function() {
+                modal.close();
+              }
+            });
+
+            OT.error('autoUpdate failed: ' + errorMessage + ' (' + errorCode +
+                                      '). Please restart your browser and try again.');
+            
+          }),
+
+          progress = curryCallAsync(function(progress) {
+            modal.setUpdateProgress(progress.toFixed());
+            
+          });
+
+      plugin._.updatePlugin(TBPlugin.pathToInstaller(), success, error, progress);
+    };
+
+    this.destroy = function() {
+      plugin.destroy();
+    };
+  };
+
+  AutoUpdater.get = function (completion) {
+    if (autoUpdaterController) {
+      completion.call(null, void 0, autoUpdaterController);
+      return;
+    }
+
+    if (!this.isinstalled()) {
+      completion.call(null, 'Plugin was not installed');
+      return;
+    }
+
+    injectObject(getInstallerMimeType(), false, {windowless: false}, function(err, plugin) {
+      if (plugin) autoUpdaterController = new AutoUpdater(plugin);
+      completion.call(null, err, autoUpdaterController);
+    });
+  };
+
+  AutoUpdater.isinstalled = function () {
+    return getInstallerMimeType() !== null && !hasBrokenUpdater();
+  };
+
+  AutoUpdater.installedVersion = function () {
+    return getInstalledVersion();
+  };
+
+})();
+
+
+
+
+
+
+
+
+
+
+var VideoContainer = function VideoContainer (plugin, stream) {
+  this.domElement = plugin._;
+  this.parentElement = plugin._.parentNode;
+
+  plugin.addRef(this);
+
+  this.appendTo = function (parentDomElement) {
+    if (parentDomElement && plugin._.parentNode !== parentDomElement) {
+      debug('VideoContainer appendTo', parentDomElement);
+      parentDomElement.appendChild(plugin._);
+      this.parentElement = parentDomElement;
+    }
+  };
+
+  this.show = function (completion) {
+    debug('VideoContainer show');
+    plugin._.removeAttribute('width');
+    plugin._.removeAttribute('height');
+    plugin.setStream(stream, completion);
+    OT.$.show(plugin._);
+  };
+
+  this.setWidth = function (width) {
+    debug('VideoContainer setWidth to ' + width);
+    plugin._.setAttribute('width', width);
+  };
+
+  this.setHeight = function (height) {
+    debug('VideoContainer setHeight to ' + height);
+    plugin._.setAttribute('height', height);
+  };
+
+  this.setVolume = function (value) {
+    
+    debug('VideoContainer setVolume not implemented: called with ' + value);
+  };
+
+  this.getVolume = function () {
+    
+    debug('VideoContainer getVolume not implemented');
+    return 0.5;
+  };
+
+  this.getImgData = function () {
+    return plugin._.getImgData('image/png');
+  };
+
+  this.getVideoWidth = function () {
+    return plugin._.videoWidth;
+  };
+
+  this.getVideoHeight = function () {
+    return plugin._.videoHeight;
+  };
+
+  this.destroy = function () {
+    plugin._.setStream(null);
+    plugin.removeRef(this);
+  };
+};
+
+
+
+
+
+
+
+
+
+
+
+var MediaStreamTrack = function MediaStreamTrack (mediaStreamId, options, plugin) {
+  this.id = options.id;
+  this.kind = options.kind;
+  this.label = options.label;
+  this.enabled = OT.$.castToBoolean(options.enabled);
+  this.streamId = mediaStreamId;
+
+  this.setEnabled = function (enabled) {
+    this.enabled = OT.$.castToBoolean(enabled);
+
+    if (this.enabled) {
+      plugin._.enableMediaStreamTrack(mediaStreamId, this.id);
+    }
+    else {
+      plugin._.disableMediaStreamTrack(mediaStreamId, this.id);
+    }
+  };
+};
+
+var MediaStream = function MediaStream (options, plugin) {
+  var audioTracks = [],
+      videoTracks = [];
+
+  this.id = options.id;
+  plugin.addRef(this);
+
+  
+  
+  
+
+  if (options.videoTracks) {
+    options.videoTracks.map(function(track) {
+      videoTracks.push( new MediaStreamTrack(options.id, track, plugin) );
+    });
+  }
+
+  if (options.audioTracks) {
+    options.audioTracks.map(function(track) {
+      audioTracks.push( new MediaStreamTrack(options.id, track, plugin) );
+    });
+  }
+
+  var hasTracksOfType = function (type) {
+    var tracks = type === 'video' ? videoTracks : audioTracks;
+
+    return OT.$.some(tracks, function(track) {
+      return track.enabled;
+    });
+  };
+
+  this.getVideoTracks = function () { return videoTracks; };
+  this.getAudioTracks = function () { return audioTracks; };
+
+  this.getTrackById = function (id) {
+    videoTracks.concat(audioTracks).forEach(function(track) {
+      if (track.id === id) return track;
+    });
+
+    return null;
+  };
+
+  this.hasVideo = function () {
+    return hasTracksOfType('video');
+  };
+
+  this.hasAudio = function () {
+    return hasTracksOfType('audio');
+  };
+
+  this.addTrack = function () {
+    
+  };
+
+  this.removeTrack = function () {
+    
+  };
+
+  this.stop = function() {
+    plugin._.stopMediaStream(this.id);
+    plugin.removeRef(this);
+  };
+
+  this.destroy = function() {
+    this.stop();
+  };
+
+  
+  this._ = {
+    plugin: plugin,
+
+    
+    render: OT.$.bind(function() {
+      return new VideoContainer(plugin, this);
+    }, this)
+  };
+};
+
+
+MediaStream.fromJson = function (json, plugin) {
+  if (!json) return null;
+  return new MediaStream( JSON.parse(json), plugin );
+};
+
+
+
+
+
+
+
+var PluginRumorSocket = function(plugin, server) {
+  var connected = false,
+      rumorID;
+
+  try {
+    rumorID = plugin._.RumorInit(server, '');
+  }
+  catch(e) {
+    OT.error('Error creating the Rumor Socket: ', e.message);
+  }
+
+  if(!rumorID) {
+    throw new Error('Could not initialise plugin rumor connection');
+  }
+
+  var socket = {
+    open: function() {
+      connected = true;
+      plugin._.RumorOpen(rumorID);
+    },
+
+    close: function(code, reason) {
+      if (!connected) return;
+      connected = false;
+
+      plugin._.RumorClose(rumorID, code, reason);
+      plugin.removeRef(this);
+    },
+
+    destroy: function() {
+      this.close();
+    },
+
+    send: function(msg) {
+      plugin._.RumorSend(rumorID, msg.type, msg.toAddress,
+        JSON.parse(JSON.stringify(msg.headers)), msg.data);
+    },
+
+    onOpen: function(callback) {
+      plugin._.SetOnRumorOpen(rumorID, callback);
+    },
+
+    onClose: function(callback) {
+      plugin._.SetOnRumorClose(rumorID, callback);
+    },
+
+    onError: function(callback) {
+      plugin._.SetOnRumorError(rumorID, callback);
+    },
+
+    onMessage: function(callback) {
+      plugin._.SetOnRumorMessage(rumorID, callback);
+    }
+  };
+
+  plugin.addRef(socket);
+  return socket;
+
+};
+
+
+
+
+
+
+
+
+
+
+
+var MediaConstraints = function(userConstraints) {
+  var constraints = OT.$.clone(userConstraints);
+
+  this.hasVideo = constraints.video !== void 0 && constraints.video !== false;
+  this.hasAudio = constraints.audio !== void 0 && constraints.audio !== false;
+
+  if (constraints.video === true) constraints.video = {};
+  if (constraints.audio === true)  constraints.audio = {};
+
+  if (this.hasVideo && !constraints.video.mandatory) {
+    constraints.video.mandatory = {};
+  }
+
+  if (this.hasAudio && !constraints.audio.mandatory) {
+    constraints.audio.mandatory = {};
+  }
+
+  this.screenSharing = this.hasVideo &&
+                ( constraints.video.mandatory.chromeMediaSource === 'screen' ||
+                  constraints.video.mandatory.chromeMediaSource === 'window' );
+
+  this.audio = constraints.audio;
+  this.video = constraints.video;
+
+  this.setVideoSource = function(sourceId) {
+    if (sourceId !== void 0) constraints.video.mandatory.sourceId =  sourceId;
+    else delete constraints.video;
+  };
+
+  this.setAudioSource = function(sourceId) {
+    if (sourceId !== void 0) constraints.audio.mandatory.sourceId =  sourceId;
+    else delete constraints.audio;
+  };
+
+  this.toHash = function() {
+    return constraints;
+  };
+};
+
+
+
+
+
+
+
+
+
+var RTCStatsReport = function (reports) {
+  this.forEach = function (callback, context) {
+    for (var id in reports) {
+      callback.call(context, reports[id]);
+    }
+  };
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var PeerConnection = function PeerConnection (iceServers, options, plugin) {
+  var id = OT.$.uuid(),
+      hasLocalDescription = false,
+      hasRemoteDescription = false,
+      candidates = [];
+
+  plugin.addRef(this);
+
+  var onAddIceCandidate = function onAddIceCandidate () {},
+
+      onAddIceCandidateFailed = function onAddIceCandidateFailed (err) {
+        OT.error('Failed to process candidate');
+        OT.error(err);
+      },
+
+      processPendingCandidates = function processPendingCandidates () {
+        for (var i=0; i<candidates.length; ++i) {
+          plugin._.addIceCandidate(id, candidates[i], onAddIceCandidate, onAddIceCandidateFailed);
+        }
+      },
+
+      callAsync = function callAsync () {
+        var args = Array.prototype.slice.call(arguments),
+            fn = args.shift();
+
+        setTimeout(function() {
+          return fn.apply(null, args);
+        }, 0);
+      }
+
+
+
+
+
+
+
+;
+
+  this.createOffer = function (success, error, constraints) {
+    OT.debug('createOffer', constraints);
+    plugin._.createOffer(id, function(type, sdp) {
+      success(new TBPlugin.RTCSessionDescription({
+        type: type,
+        sdp: sdp
+      }));
+    }, error, constraints || {});
+  };
+
+  this.createAnswer = function (success, error, constraints) {
+    OT.debug('createAnswer', constraints);
+    plugin._.createAnswer(id, function(type, sdp) {
+      success(new TBPlugin.RTCSessionDescription({
+        type: type,
+        sdp: sdp
+      }));
+    }, error, constraints || {});
+  };
+
+  this.setLocalDescription = function (description, success, error) {
+    OT.debug('setLocalDescription');
+
+    plugin._.setLocalDescription(id, description, function() {
+      hasLocalDescription = true;
+
+      if (hasRemoteDescription) processPendingCandidates();
+
+      if (success) success.call(null);
+    }, error);
+  };
+
+  this.setRemoteDescription = function (description, success, error) {
+    OT.debug('setRemoteDescription');
+
+    plugin._.setRemoteDescription(id, description, function() {
+      hasRemoteDescription = true;
+
+      if (hasLocalDescription) processPendingCandidates();
+      if (success) success.call(null);
+    }, error);
+  };
+
+  this.addIceCandidate = function (candidate) {
+    OT.debug('addIceCandidate');
+
+    if (hasLocalDescription && hasRemoteDescription) {
+      plugin._.addIceCandidate(id, candidate, onAddIceCandidate, onAddIceCandidateFailed);
+    }
+    else {
+      candidates.push(candidate);
+    }
+  };
+
+  this.addStream = function (stream) {
+    var constraints = {};
+    plugin._.addStream(id, stream, constraints);
+  };
+
+  this.removeStream = function (stream) {
+    plugin._.removeStream(id, stream);
+  };
+
+  this.getRemoteStreams = function () {
+    return plugin._.getRemoteStreams(id).map(function(stream) {
+      return MediaStream.fromJson(stream, plugin);
+    });
+  };
+
+  this.getLocalStreams = function () {
+    return plugin._.getLocalStreams(id).map(function(stream) {
+      return MediaStream.fromJson(stream, plugin);
+    });
+  };
+
+  this.getStreamById = function (streamId) {
+    return MediaStream.fromJson(plugin._.getStreamById(id, streamId), plugin);
+  };
+
+  this.getStats = function (mediaStreamTrack, success, error) {
+    plugin._.getStats(id, mediaStreamTrack || null, function(statsReportJson) {
+      var report = new RTCStatsReport(JSON.parse(statsReportJson));
+      callAsync(success, report);
+    }, error);
+  };
+
+  this.close = function () {
+    plugin._.destroyPeerConnection(id);
+    plugin.removeRef(this);
+  };
+
+  this.destroy = function () {
+    this.close();
+  };
+
+  
+  
+  
+  
+  this.onaddstream = null;
+  this.onremovestream = null;
+  this.onicecandidate = null;
+  this.onsignalingstatechange = null;
+  this.oniceconnectionstatechange = null;
+
+  
+  OT.$.forEach(iceServers.iceServers, function(iceServer) {
+    if (!iceServer.username) iceServer.username = '';
+    if (!iceServer.credential) iceServer.credential = '';
+  });
+
+  if (!plugin._.initPeerConnection(id, iceServers, options)) {
+    OT.error('Failed to initialise PeerConnection');
+    
+    return;
+  }
+
+  plugin._.on(id, {
+    addStream: function(streamJson) {
+      setTimeout(function() {
+        if (this.onaddstream && OT.$.isFunction(this.onaddstream)) {
+          var stream = MediaStream.fromJson(streamJson, plugin);
+          callAsync(this.onaddstream, {stream: stream});
+        }
+      }.bind(this), 3000);
+    }.bind(this),
+
+    removeStream: function(streamJson) {
+      if (this.onremovestream && OT.$.isFunction(this.onremovestream)) {
+        var stream = MediaStream.fromJson(streamJson, plugin);
+        callAsync(this.onremovestream, {stream: stream});
+      }
+    }.bind(this),
+
+    iceCandidate: function(candidateSdp, sdpMid, sdpMLineIndex) {
+      if (this.onicecandidate && OT.$.isFunction(this.onicecandidate)) {
+
+        var candidate = new TBPlugin.RTCIceCandidate({
+          candidate: candidateSdp,
+          sdpMid: sdpMid,
+          sdpMLineIndex: sdpMLineIndex
+        });
+
+        callAsync(this.onicecandidate, {candidate: candidate});
+      }
+    }.bind(this),
+
+    signalingStateChange: function(state) {
+      if (this.onsignalingstatechange && OT.$.isFunction(this.onsignalingstatechange)) {
+        callAsync(this.onsignalingstatechange, state);
+      }
+    }.bind(this),
+
+    iceConnectionChange: function(state) {
+      if (this.oniceconnectionstatechange && OT.$.isFunction(this.oniceconnectionstatechange)) {
+        callAsync(this.oniceconnectionstatechange, state);
+      }
+    }.bind(this)
+  });
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+var pluginInfo = {
+    mimeType: 'application/x-opentokie,version=0.4.0.7',
+    activeXName: 'TokBox.OpenTokIE.0.4.0.7',
+    version: '0.4.0.7'
+  },
+  _document = scope.document,
+  readyCallbacks = [];
+
+var debug = function (message, object) {
+  if (object) {
+    scope.OT.info('TB Plugin - ' + message + ' => ', object);
+  }
+  else {
+    scope.OT.info('TB Plugin - ' + message);
+  }
+};
+
+
+
+
+var isDomReady = function isDomReady () {
+      return (_document.readyState === 'complete' ||
+             (_document.readyState === 'interactive' && _document.body));
+    },
+
+    onDomReady = function onDomReady () {
+      var callCompletionHandlers = function(err) {
+        var callback;
+
+        while ( (callback = readyCallbacks.pop()) && OT.$.isFunction(callback) ) {
+          callback.call(TBPlugin, err);
+        }
+      };
+
+      AutoUpdater.get(function(err, updater) {
+        if (err) {
+          OT.error('Error while loading the AutoUpdater: ' + err);
+          callCompletionHandlers('Error while loading the AutoUpdater: ' + err);
+          return;
+        }
+
+        
+        
+        if (updater.isOutOfDate()) {
+          updater.autoUpdate();
+          return;
+        }
+
+        
+        createMediaCaptureController(function(err) {
+          if (!err && (mediaCaptureObject && !mediaCaptureObject.isValid())) {
+            err = 'The TB Plugin failed to load properly';
+          }
+
+          pluginReady = true;
+          callCompletionHandlers(err);
+
+          OT.onUnload(destroy);
+        });
+      });
+    },
+
+    waitForDomReady = function waitForDomReady () {
+      if (isDomReady()) {
+        onDomReady();
+      }
+      else if (_document.addEventListener) {
+        _document.addEventListener('DOMContentLoaded', onDomReady, false);
+      } else if (_document.attachEvent) {
+        _document.attachEvent('onreadystatechange', function() {
+          if (_document.readyState === 'complete') onDomReady();
+        });
+      }
+    },
+
+    
+    
+    destroy = function destroy () {
+      removeAllObjects();
+    };
+
+
+
+
+TBPlugin.isInstalled = function isInstalled () {
+  if (!this.isSupported()) return false;
+  return AutoUpdater.isinstalled();
+};
+
+TBPlugin.version = function version () {
+  return pluginInfo.version;
+};
+
+TBPlugin.installedVersion = function installedVersion () {
+  return AutoUpdater.installedVersion();
+};
+
+
+
+TBPlugin.pathToInstaller = function pathToInstaller () {
+  return 'https://s3.amazonaws.com/otplugin.tokbox.com/v' +
+                    pluginInfo.version + '/otiePluginMain.msi';
+};
+
+
+
+
+
+
+TBPlugin.ready = function ready (callback) {
+  if (TBPlugin.isReady()) {
+    var err;
+
+    if (!mediaCaptureObject || !mediaCaptureObject.isValid()) {
+      err = 'The TB Plugin failed to load properly';
+    }
+
+    callback.call(TBPlugin, err);
+  }
+  else {
+    readyCallbacks.push(callback);
+  }
+};
+
+
+var _getUserMedia = function _getUserMedia(mediaConstraints, success, error) {
+  createPeerController(function(err, plugin) {
+    if (err) {
+      error.call(TBPlugin, err);
+      return;
+    }
+
+    plugin._.getUserMedia(mediaConstraints.toHash(), function(streamJson) {
+      success.call(TBPlugin, MediaStream.fromJson(streamJson, plugin));
+    }, error);
+  });
+};
+
+
+
+
+TBPlugin.getUserMedia = function getUserMedia (userConstraints, success, error) {
+  var constraints = new MediaConstraints(userConstraints);
+
+  if (constraints.screenSharing) {
+    _getUserMedia(constraints, success, error);
+  }
+  else {
+    var sources = [];
+    if (constraints.hasVideo) sources.push('video');
+    if (constraints.hasAudio) sources.push('audio');
+
+    mediaCaptureObject.selectSources(sources, function(captureDevices) {
+      for (var key in captureDevices) {
+        if (captureDevices.hasOwnProperty(key)) {
+          OT.debug(key + ' Capture Device: ' + captureDevices[key]);
+        }
+      }
+
+      
+      constraints.setVideoSource(captureDevices.video);
+      constraints.setAudioSource(captureDevices.audio);
+
+      _getUserMedia(constraints, success, error);
+    }, error);
+  }
+};
+
+TBPlugin.initRumorSocket = function(messagingURL, completion) {
+  TBPlugin.ready(function(error) {
+    if(error) {
+      completion(error);
+    } else {
+      completion(null, new PluginRumorSocket(mediaCaptureObject, messagingURL));
+    }
+  });
+};
+
+
+
+
+
+TBPlugin.initPeerConnection = function initPeerConnection (iceServers,
+                                                           options,
+                                                           localStream,
+                                                           completion) {
+
+  var gotPeerObject = function(err, plugin) {
+    if (err) {
+      completion.call(TBPlugin, err);
+      return;
+    }
+
+    debug('Got PeerConnection for ' + plugin.id);
+    var peerConnection = new PeerConnection(iceServers, options, plugin);
+
+    completion.call(TBPlugin, null, peerConnection);
+  };
+
+  
+  
+  
+  
+  
+  
+  if (localStream && localStream._.plugin) {
+    gotPeerObject(null, localStream._.plugin);
+  }
+  else {
+    createPeerController(gotPeerObject);
+  }
+};
+
+
+TBPlugin.RTCSessionDescription = function RTCSessionDescription (options) {
+  this.type = options.type;
+  this.sdp = options.sdp;
+};
+
+
+TBPlugin.RTCIceCandidate = function RTCIceCandidate (options) {
+  this.sdpMid = options.sdpMid;
+  this.sdpMLineIndex = parseInt(options.sdpMLineIndex, 10);
+  this.candidate = options.candidate;
+};
+
+
+
+TBPlugin.debug = debug;
+
+shim();
+
+waitForDomReady();
+
+
+
+})(this);
+
+
 !(function() {
 
 
@@ -3186,6 +5268,21 @@ OTHelpers.centerElement = function(element, width, height) {
   
   
   function fixAspectRatio(element, width, height, desiredAspectRatio, rotated) {
+
+    if (TBPlugin.isInstalled()) {
+      
+      
+
+      OT.$.css(element, {
+        width: '100%',
+        height: '100%',
+        left: 0,
+        top: 0
+      });
+
+      return;
+    }
+
     if (!width) width = parseInt(OT.$.width(element.parentNode), 10);
     else width = parseInt(width, 10);
 
@@ -3364,48 +5461,50 @@ OTHelpers.centerElement = function(element, width, height) {
     oldContainerStyles.width = container.offsetWidth;
     oldContainerStyles.height = container.offsetHeight;
 
-    
-    dimensionsObserver = OT.$.observeStyleChanges(container, ['width', 'height'],
-      function(changeSet) {
-      var width = changeSet.width ? changeSet.width[1] : container.offsetWidth,
-          height = changeSet.height ? changeSet.height[1] : container.offsetHeight;
-      fixMini(container, width, height);
-      fixAspectRatio(videoContainer, width, height, videoElement ?
-        videoElement.aspectRatio : null);
-    });
-
-
-    
-    
-    videoObserver = OT.$.observeNodeOrChildNodeRemoval(container, function(removedNodes) {
-      if (!videoElement) return;
-
+    if (!TBPlugin.isInstalled()) {
       
-      
-      var videoRemoved = removedNodes.some(function(node) {
-        return node === videoContainer || node.nodeName === 'VIDEO';
+      dimensionsObserver = OT.$.observeStyleChanges(container, ['width', 'height'],
+        function(changeSet) {
+        var width = changeSet.width ? changeSet.width[1] : container.offsetWidth,
+            height = changeSet.height ? changeSet.height[1] : container.offsetHeight;
+        fixMini(container, width, height);
+        fixAspectRatio(videoContainer, width, height, videoElement ?
+          videoElement.aspectRatio() : null);
       });
 
-      if (videoRemoved) {
-        videoElement.destroy();
-        videoElement = null;
-      }
 
-      if (videoContainer) {
-        OT.$.removeElement(videoContainer);
-        videoContainer = null;
-      }
+      
+      
+      videoObserver = OT.$.observeNodeOrChildNodeRemoval(container, function(removedNodes) {
+        if (!videoElement) return;
 
-      if (dimensionsObserver) {
-        dimensionsObserver.disconnect();
-        dimensionsObserver = null;
-      }
+        
+        
+        var videoRemoved = OT.$.some(removedNodes, function(node) {
+          return node === videoContainer || node.nodeName === 'VIDEO';
+        });
 
-      if (videoObserver) {
-        videoObserver.disconnect();
-        videoObserver = null;
-      }
-    });
+        if (videoRemoved) {
+          videoElement.destroy();
+          videoElement = null;
+        }
+
+        if (videoContainer) {
+          OT.$.removeElement(videoContainer);
+          videoContainer = null;
+        }
+
+        if (dimensionsObserver) {
+          dimensionsObserver.disconnect();
+          dimensionsObserver = null;
+        }
+
+        if (videoObserver) {
+          videoObserver.disconnect();
+          videoObserver = null;
+        }
+      });
+    }
 
     this.destroy = function() {
       if (dimensionsObserver) {
@@ -3429,14 +5528,71 @@ OTHelpers.centerElement = function(element, width, height) {
       }
     };
 
-    Object.defineProperties(this, {
 
+
+    this.bindVideo = function(webRTCStream, options, completion) {
+      
+      
+      if (videoElement) {
+        videoElement.destroy();
+        videoElement = null;
+      }
+
+      var onError = options && options.error ? options.error : void 0;
+      delete options.error;
+
+      var video = new OT.VideoElement({ attributes: options }, onError);
+
+      
+      if (options.audioVolume) video.setAudioVolume(options.audioVolume);
+
+      
+      video.audioChannelType('telephony');
+
+      video.appendTo(videoContainer).bindToStream(webRTCStream, function(err) {
+        if (err) {
+          video.destroy();
+          completion(err);
+          return;
+        }
+
+        videoElement = video;
+
+        videoElement.on({
+          orientationChanged: function(){
+            fixAspectRatio(videoContainer, container.offsetWidth, container.offsetHeight,
+              videoElement.aspectRatio(), videoElement.isRotated());
+          }
+        });
+
+        var fix = function() {
+          fixAspectRatio(videoContainer, container.offsetWidth, container.offsetHeight,
+            videoElement ? videoElement.aspectRatio() : null,
+            videoElement ? videoElement.isRotated() : null);
+        };
+
+        if(isNaN(videoElement.aspectRatio())) {
+          videoElement.on('streamBound', fix);
+        } else {
+          fix();
+        }
+
+        completion(null, video);
+      });
+
+      return video;
+    };
+
+    this.video = function() { return videoElement; };
+
+
+    OT.$.defineProperties(this, {
       showPoster: {
         get: function() {
           return !OT.$.isDisplayNone(posterContainer);
         },
-        set: function(shown) {
-          if(shown) {
+        set: function(newValue) {
+          if(newValue) {
             OT.$.show(posterContainer);
           } else {
             OT.$.hide(posterContainer);
@@ -3466,46 +5622,14 @@ OTHelpers.centerElement = function(element, width, height) {
         }
       },
 
-      video: {
-        get: function() { return videoElement; },
-        set: function(video) {
-          
-          
-          if (videoElement) videoElement.destroy();
-
-          video.appendTo(videoContainer);
-          videoElement = video;
-
-          videoElement.on({
-            orientationChanged: function(){
-              fixAspectRatio(videoContainer, container.offsetWidth, container.offsetHeight,
-                videoElement.aspectRatio, videoElement.isRotated);
-            }
-          });
-
-          if (videoElement) {
-            var fix = function() {
-              fixAspectRatio(videoContainer, container.offsetWidth, container.offsetHeight,
-                videoElement ? videoElement.aspectRatio : null,
-                videoElement ? videoElement.isRotated : null);
-            };
-            if(isNaN(videoElement.aspectRatio)) {
-              videoElement.on('streamBound', fix);
-            } else {
-              fix();
-            }
-          }
-        }
-      },
-
-      domElement: {
-        get: function() { return container; }
-      },
 
       domId: {
         get: function() { return container.getAttribute('id'); }
       }
+
     });
+
+    this.domElement = container;
 
     this.addError = function(errorMsg, helpMsg, classNames) {
       container.innerHTML = '<p>' + errorMsg +
@@ -3534,14 +5658,18 @@ OTHelpers.centerElement = function(element, width, height) {
   
   nativeGetUserMedia = (function() {
     if (navigator.getUserMedia) {
-      return navigator.getUserMedia.bind(navigator);
+      return OT.$.bind(navigator.getUserMedia, navigator);
     } else if (navigator.mozGetUserMedia) {
-      return navigator.mozGetUserMedia.bind(navigator);
+      return OT.$.bind(navigator.mozGetUserMedia, navigator);
     } else if (navigator.webkitGetUserMedia) {
-      return navigator.webkitGetUserMedia.bind(navigator);
+      return OT.$.bind(navigator.webkitGetUserMedia, navigator);
+    } else if (TBPlugin.isInstalled()) {
+      return OT.$.bind(TBPlugin.getUserMedia, TBPlugin);
     }
   })();
 
+  var NativeRTCPeerConnection = (window.webkitRTCPeerConnection ||
+                                 window.mozRTCPeerConnection);
 
   if (navigator.webkitGetUserMedia) {
     
@@ -3601,6 +5729,17 @@ OTHelpers.centerElement = function(element, width, height) {
     
     
     
+  }
+
+  
+  
+  
+  if (typeof window.MediaStreamTrack !== 'undefined') {
+    if (!window.MediaStreamTrack.prototype.setEnabled) {
+      window.MediaStreamTrack.prototype.setEnabled = function (enabled) {
+        this.enabled = OT.$.castToBoolean(enabled);
+      };
+    }
   }
 
 
@@ -3723,6 +5862,8 @@ OTHelpers.centerElement = function(element, width, height) {
           _supportsWebRTC = false;
         }
       }
+    } else if (TBPlugin.isInstalled()) {
+      _supportsWebRTC = true;
     }
 
     OT.$.supportsWebRTC = function() {
@@ -3753,10 +5894,12 @@ OTHelpers.centerElement = function(element, width, height) {
   
   
   
+  
   OT.$.supportsBundle = function() {
-    return OT.$.supportsWebRTC() && OT.$.browser() === 'Chrome';
+    return OT.$.supportsWebRTC() && (OT.$.browser() === 'Chrome' || TBPlugin.isInstalled());
   };
 
+  
   
   
   
@@ -3765,13 +5908,13 @@ OTHelpers.centerElement = function(element, width, height) {
   
   
   OT.$.supportsRtcpMux = function() {
-    return OT.$.supportsWebRTC() && OT.$.browser() === 'Chrome';
+    return OT.$.supportsWebRTC() && (OT.$.browser() === 'Chrome' || TBPlugin.isInstalled());
   };
 
   OT.$.shouldAskForDevices = function(callback) {
     var memoiseReply = function(audio, video) {
       OT.$.shouldAskForDevices = function(callback) {
-        setTimeout(callback.bind(null, { video: video, audio: audio }));
+        setTimeout(OT.$.bind(callback, null, { video: video, audio: audio }));
       };
       OT.$.shouldAskForDevices(callback);
     };
@@ -3821,6 +5964,35 @@ OTHelpers.centerElement = function(element, width, height) {
   
   
   
+
+  var chromeToW3CDeviceKinds = {
+    audio: 'audioInput',
+    video: 'videoInput'
+  };
+
+  
+  OT.$.canGetMediaDevices = function() {
+    return typeof MediaStreamTrack === 'function' && OT.$.isFunction(MediaStreamTrack.getSources);
+  };
+
+  OT.$.getMediaDevices = function(callback) {
+    if(OT.$.canGetMediaDevices()) {
+      MediaStreamTrack.getSources(function(sources) {
+        var filteredSources = OT.$.filter(sources, function(source) {
+          return chromeToW3CDeviceKinds[source.kind] != null;
+        });
+        callback(void 0, OT.$.map(filteredSources, function(source) {
+          return {
+            deviceId: source.id,
+            label: source.label,
+            kind: chromeToW3CDeviceKinds[source.kind]
+          };
+        }));
+      });
+    } else {
+      callback(new Error('This browser does not support getMediaDevices APIs'));
+    }
+  };
 
   OT.$.getUserMedia = function(constraints, success, failure, accessDialogOpened,
     accessDialogClosed, accessDenied, customGetUserMedia) {
@@ -3908,19 +6080,31 @@ OTHelpers.centerElement = function(element, width, height) {
       triggerOpenedTimer = setTimeout(triggerOpened, 500);
     }
   };
-  
-  OT.$.createPeerConnection = function (config, options) {
-    var NativeRTCPeerConnection = (window.webkitRTCPeerConnection || window.mozRTCPeerConnection);
-    return new NativeRTCPeerConnection(config, options);
+
+  OT.$.createPeerConnection = function (config, options, publishersWebRtcStream, completion) {
+    if (TBPlugin.isInstalled()) {
+      TBPlugin.initPeerConnection(config, options,
+                                  publishersWebRtcStream, completion);
+    }
+    else {
+      var pc;
+
+      try {
+        pc = new NativeRTCPeerConnection(config, options);
+      } catch(e) {
+        completion(e.message);
+        return;
+      }
+
+      completion(null, pc);
+    }
   };
 
+
 })(window);
-!(function(window) {
+(function(window) {
 
-  var _videoErrorCodes = {},
-      VideoOrientationTransforms;
-
-  VideoOrientationTransforms = {
+  var VideoOrientationTransforms = {
     0: 'rotate(0deg)',
     270: 'rotate(90deg)',
     90: 'rotate(-90deg)',
@@ -3934,178 +6118,412 @@ OTHelpers.centerElement = function(element, width, height) {
     ROTATED_UPSIDE_DOWN: 180
   };
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  OT.VideoElement = function(options) {
-    var _stream,
-        _domElement,
-        _parentElement,
-        _streamBound = false,
-        _videoElementMovedWarning = false,
-        _options,
-        _onVideoError,
-        _onStreamBound,
-        _onStreamBoundError,
-        _playVideoOnPause;
+  var DefaultAudioVolume = 50;
 
-    _options = OT.$.defaults(options || {}, {
-      fallbackText: 'Sorry, Web RTC is not available in your browser'
-    });
+  var DEGREE_TO_RADIANS = Math.PI * 2 / 360;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  OT.VideoElement = function( options) {
+    var _options = OT.$.defaults( options && !OT.$.isFunction(options) ? options : {}, {
+        fallbackText: 'Sorry, Web RTC is not available in your browser'
+      }),
+
+      errorHandler = OT.$.isFunction(arguments[arguments.length-1]) ?
+                                    arguments[arguments.length-1] : void 0,
+
+      orientationHandler = OT.$.bind(function(orientation) {
+        this.trigger('orientationChanged', orientation);
+      }, this),
+
+      _videoElement = TBPlugin.isInstalled() ?
+                            new PluginVideoElement(_options, errorHandler, orientationHandler) :
+                            new NativeDOMVideoElement(_options, errorHandler, orientationHandler),
+      _streamBound = false,
+      _stream,
+      _preInitialisedVolue;
 
     OT.$.eventing(this);
 
     
-    _onVideoError = function(event) {
-      var reason = 'There was an unexpected problem with the Video Stream: ' +
-        videoElementErrorCodeToStr(event.target.error.code);
-      this.trigger('error', null, reason, this, 'VideoElement');
-    }.bind(this);
+    OT.$.defineProperties(this, {
 
-    _onStreamBound = function() {
-      _streamBound = true;
-      _domElement.addEventListener('error', _onVideoError, false);
-      this.trigger('streamBound', this);
-    }.bind(this);
-
-    _onStreamBoundError = function(reason) {
-      this.trigger('loadError', OT.ExceptionCodes.P2P_CONNECTION_FAILED, reason, this,
-        'VideoElement');
-    }.bind(this);
-
-    
-    
-    
-    _playVideoOnPause = function() {
-      if(!_videoElementMovedWarning) {
-        OT.warn('Video element paused, auto-resuming. If you intended to do this, use ' +
-          'publishVideo(false) or subscribeToVideo(false) instead.');
-        _videoElementMovedWarning = true;
-      }
-      _domElement.play();
-    };
-
-
-    _domElement = createVideoElement(_options.fallbackText, _options.attributes);
-
-    _domElement.addEventListener('pause', _playVideoOnPause);
-
-    
-    Object.defineProperties(this, {
-      stream: {
-        get: function() {return _stream; }
-      },
       domElement: {
-        get: function() {return _domElement; }
-      },
-      parentElement: {
-        get: function() {return _parentElement; }
-      },
-      isBoundToStream: {
-        get: function() { return _streamBound; }
-      },
-      poster: {
         get: function() {
-          return _domElement.getAttribute('poster');
+          return _videoElement.domElement();
+        }
+      },
+
+      videoWidth: {
+        get: function() {
+          return _videoElement['video' + (this.isRotated() ? 'Height' : 'Width')]();
+        }
+      },
+
+      videoHeight: {
+        get: function() {
+          return _videoElement['video' + (this.isRotated() ? 'Width' : 'Height')]();
+        }
+      },
+
+      aspectRatio: {
+        get: function() {
+          return (this.videoWidth() + 0.0) / this.videoHeight();
+        }
+      },
+
+      isRotated: {
+        get: function() {
+          return _videoElement.isRotated();
+        }
+      },
+
+      orientation: {
+        get: function() {
+          return _videoElement.orientation();
         },
-        set: function(src) {
-          _domElement.setAttribute('poster', src);
+        set: function(orientation) {
+          _videoElement.orientation(orientation);
+        }
+      },
+
+      audioChannelType: {
+        get: function() {
+          return _videoElement.audioChannelType();
+        },
+        set: function(type) {
+          _videoElement.audioChannelType(type);
         }
       }
     });
 
-
     
 
-    
+    this.imgData = function() {
+      return _videoElement.imgData();
+    };
+
     this.appendTo = function(parentDomElement) {
-      _parentElement = parentDomElement;
-      _parentElement.appendChild(_domElement);
+      _videoElement.appendTo(parentDomElement);
+      return this;
+    };
+
+    this.bindToStream = function(webRtcStream, completion) {
+      _streamBound = false;
+      _stream = webRtcStream;
+
+      _videoElement.bindToStream(webRtcStream, OT.$.bind(function(err) {
+        if (err) {
+          completion(err);
+          return;
+        }
+
+        _streamBound = true;
+
+        if (_preInitialisedVolue) {
+          this.setAudioVolume(_preInitialisedVolue);
+          _preInitialisedVolue = null;
+        }
+
+        completion(null);
+      }, this));
 
       return this;
     };
 
-    
-    this.bindToStream = function(webRtcStream) {
-      _streamBound = false;
-      _stream = webRtcStream;
+    this.unbindStream = function() {
+      if (!_stream) return this;
 
-      bindStreamToVideoElement(_domElement, _stream, _onStreamBound, _onStreamBoundError);
+      _stream = null;
+      _videoElement.unbindStream();
+      return this;
+    };
+
+    this.setAudioVolume = function (value) {
+      if (_streamBound) _videoElement.setAudioVolume( OT.$.roundFloat(value / 100, 2) );
+      else _preInitialisedVolue = value;
+
+      return this;
+    };
+
+    this.getAudioVolume = function () {
+      if (_streamBound) return parseInt(_videoElement.getAudioVolume() * 100, 10);
+      else return _preInitialisedVolue || 50;
+    };
+
+
+    this.whenTimeIncrements = function (callback, context) {
+      _videoElement.whenTimeIncrements(callback, context);
+      return this;
+    };
+
+    this.destroy = function () {
+      
+      this.off();
+
+      _videoElement.destroy();
+      return void 0;
+    };
+  };
+
+  var PluginVideoElement = function PluginVideoElement (options,
+                                                        errorHandler,
+                                                        orientationChangedHandler) {
+    var _videoProxy,
+        _parentDomElement;
+
+    canBeOrientatedMixin(this,
+                          function() { return _videoProxy.domElement; },
+                          orientationChangedHandler);
+
+    
+
+    this.domElement = function() {
+      return _videoProxy ? _videoProxy.domElement : void 0;
+    };
+
+    this.videoWidth = function() {
+      return _videoProxy ? _videoProxy.getVideoWidth() : void 0;
+    };
+
+    this.videoHeight = function() {
+      return _videoProxy ? _videoProxy.getVideoHeight() : void 0;
+    };
+
+    this.imgData = function() {
+      return _videoProxy ? _videoProxy.getImgData() : null;
+    };
+
+    
+    this.appendTo = function(parentDomElement) {
+      _parentDomElement = parentDomElement;
+      return this;
+    };
+
+    
+    this.bindToStream = function(webRtcStream, completion) {
+      if (!_parentDomElement) {
+        completion('The VideoElement must attached to a DOM node before a stream can be bound');
+        return;
+      }
+
+      _videoProxy = webRtcStream._.render();
+      _videoProxy.appendTo(_parentDomElement);
+      _videoProxy.show(completion);
 
       return this;
     };
 
     
     this.unbindStream = function() {
-      if (!_stream) return this;
+      
 
-      if (_domElement) {
-        if (!navigator.mozGetUserMedia) {
-          
-          
-          window.URL.revokeObjectURL(_domElement.src);
-        } else {
-          _domElement.mozSrcObject = null;
-        }
+      if (_videoProxy) {
+        _videoProxy.destroy();
+        _parentDomElement = null;
+        _videoProxy = null;
       }
-
-      _stream = null;
 
       return this;
     };
 
     this.setAudioVolume = function(value) {
-      if (_domElement) _domElement.volume = OT.$.roundFloat(value / 100, 2);
+      if (_videoProxy) _videoProxy.setVolume(value);
     };
 
     this.getAudioVolume = function() {
       
-      if (_domElement) return parseInt(_domElement.volume * 100, 10);
-      return 50;
+      if (_videoProxy) return _videoProxy.getVolume();
+      return DefaultAudioVolume;
+    };
+
+    
+    
+    this.audioChannelType = function() {
+      return 'unknown';
+    };
+
+    this.whenTimeIncrements = function(callback, context) {
+      
+      OT.$.callAsync(OT.$.bind(callback, context));
+    };
+
+    this.destroy = function() {
+      this.unbindStream();
+
+      return void 0;
+    };
+  };
+
+
+  var NativeDOMVideoElement = function NativeDOMVideoElement (options,
+                                                              errorHandler,
+                                                              orientationChangedHandler) {
+    var _domElement,
+        _videoElementMovedWarning = false;
+
+
+    
+    var _onVideoError = OT.$.bind(function(event) {
+          var reason = 'There was an unexpected problem with the Video Stream: ' +
+                        videoElementErrorCodeToStr(event.target.error.code);
+
+          errorHandler.call(null, null, reason, this, 'VideoElement');
+        }, this),
+
+        
+        
+        
+        _playVideoOnPause = function() {
+          if(!_videoElementMovedWarning) {
+            OT.warn('Video element paused, auto-resuming. If you intended to do this, ' +
+                      'use publishVideo(false) or subscribeToVideo(false) instead.');
+
+            _videoElementMovedWarning = true;
+          }
+
+          _domElement.play();
+        };
+
+
+    _domElement = createNativeVideoElement(options.fallbackText, options.attributes);
+
+    _domElement.addEventListener('pause', _playVideoOnPause);
+
+    canBeOrientatedMixin(this, function() { return _domElement; }, orientationChangedHandler);
+
+    
+
+    this.domElement = function() {
+      return _domElement;
+    };
+
+    this.videoWidth = function() {
+      return _domElement.videoWidth;
+    };
+
+    this.videoHeight = function() {
+      return _domElement.videoHeight;
+    };
+
+    this.imgData = function() {
+      var canvas = OT.$.createElement('canvas', {
+        width: _domElement.videoWidth,
+        height: _domElement.videoHeight,
+        style: { display: 'none' }
+      });
+
+      document.body.appendChild(canvas);
+      try {
+        canvas.getContext('2d').drawImage(_domElement, 0, 0, canvas.width, canvas.height);
+      } catch(err) {
+        OT.warn('Cannot get image data yet');
+        return null;
+      }
+      var imgData = canvas.toDataURL('image/png');
+
+      OT.$.removeElement(canvas);
+
+      return OT.$.trim(imgData.replace('data:image/png;base64,', ''));
+    };
+
+    
+    this.appendTo = function(parentDomElement) {
+      parentDomElement.appendChild(_domElement);
+      return this;
+    };
+
+    
+    this.bindToStream = function(webRtcStream, completion) {
+      bindStreamToNativeVideoElement(_domElement, webRtcStream, function(err) {
+        if (err) {
+          completion(err);
+          return;
+        }
+
+        _domElement.addEventListener('error', _onVideoError, false);
+        completion(null);
+      });
+
+      return this;
+    };
+
+
+    
+    this.unbindStream = function() {
+      if (_domElement) {
+        if (!navigator.mozGetUserMedia) {
+          
+          
+          window.URL.revokeObjectURL(_domElement.src);
+        }
+        else {
+          _domElement.mozSrcObject = null;
+        }
+      }
+
+      return this;
+    };
+
+    this.setAudioVolume = function(value) {
+      if (_domElement) _domElement.volume = value;
+    };
+
+    this.getAudioVolume = function() {
+      
+      if (_domElement) return _domElement.volume;
+      return DefaultAudioVolume;
+    };
+
+    
+    
+    
+    this.audioChannelType = function(type) {
+      if (type !== void 0) {
+        _domElement.mozAudioChannelType = type;
+      }
+
+      if ('mozAudioChannelType' in _domElement) {
+        return _domElement.mozAudioChannelType;
+      } else {
+        return 'unknown';
+      }
     };
 
     this.whenTimeIncrements = function(callback, context) {
       if(_domElement) {
         var lastTime, handler;
-        handler = function() {
+        handler = OT.$.bind(function() {
           if(!lastTime || lastTime >= _domElement.currentTime) {
             lastTime = _domElement.currentTime;
           } else {
             _domElement.removeEventListener('timeupdate', handler, false);
             callback.call(context, this);
           }
-        }.bind(this);
+        }, this);
         _domElement.addEventListener('timeupdate', handler, false);
       }
     };
 
     this.destroy = function() {
-      
-      this.off();
-
       this.unbindStream();
 
       if (_domElement) {
@@ -4117,98 +6535,94 @@ OTHelpers.centerElement = function(element, width, height) {
         _domElement = null;
       }
 
-      _parentElement = null;
-
-      return undefined;
+      return void 0;
     };
   };
 
+
+
   
   
-  if (OT.$.canDefineProperty) {
-    
-    Object.defineProperties(OT.VideoElement.prototype, {
-      imgData: {
-        get: function() {
-          var canvas,
-              imgData;
+  
+  
+  
+  
+  
+  var canBeOrientatedMixin = function canBeOrientatedMixin (self,
+                                                            getDomElementCallback,
+                                                            orientationChangedHandler,
+                                                            initialOrientation) {
+    var _orientation = initialOrientation;
 
-          canvas = OT.$.createElement('canvas', {
-            width: this.domElement.videoWidth,
-            height: this.domElement.videoHeight,
-            style: {
-              display: 'none'
-            }
-          });
-
-          document.body.appendChild(canvas);
-
-          try {
-            canvas.getContext('2d').drawImage(this.domElement, 0, 0, canvas.width, canvas.height);
-          } catch(err) {
-            OT.warn('Cannot get image data yet');
-            return null;
-          }
-
-          imgData = canvas.toDataURL('image/png');
-
-          OT.$.removeElement(canvas);
-
-          return imgData.replace('data:image/png;base64,', '').trim();
-        }
-      },
-
-      videoWidth: {
-        get: function() {
-          return this.domElement['video' + (this.isRotated ? 'Height' : 'Width')];
-        }
-      },
-
-      videoHeight: {
-        get: function() {
-          return this.domElement['video' + (this.isRotated ? 'Width' : 'Height')];
-        }
-      },
-
-      aspectRatio: {
-        get: function() {
-          return (this.videoWidth + 0.0) / this.videoHeight;
-        }
-      },
-
+    OT.$.defineProperties(self, {
       isRotated: {
         get: function() {
-          return this._orientation && (
-            this._orientation.videoOrientation === 270 ||
-            this._orientation.videoOrientation === 90
-          );
+          return this.orientation() &&
+                    (this.orientation().videoOrientation === 270 ||
+                     this.orientation().videoOrientation === 90);
         }
       },
 
       orientation: {
-        get: function() { return this._orientation; },
+        get: function() { return _orientation; },
         set: function(orientation) {
-          var transform = VideoOrientationTransforms[orientation.videoOrientation] ||
-              VideoOrientationTransforms.ROTATED_NORMAL;
+          _orientation = orientation;
 
-          this._orientation = orientation;
+          var transform = VideoOrientationTransforms[orientation.videoOrientation] ||
+                          VideoOrientationTransforms.ROTATED_NORMAL;
 
           switch(OT.$.browser()) {
             case 'Chrome':
             case 'Safari':
-              this.domElement.style.webkitTransform = transform;
+              getDomElementCallback().style.webkitTransform = transform;
               break;
 
             case 'IE':
-              this.domElement.style.msTransform = transform;
+              if (OT.$.browserVersion().version >= 9) {
+                getDomElementCallback().style.msTransform = transform;
+              }
+              else {
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                var radians = orientation.videoOrientation * DEGREE_TO_RADIANS,
+                    element = getDomElementCallback(),
+                    costheta = Math.cos(radians),
+                    sintheta = Math.sin(radians);
+
+                
+                
+                
+                
+
+                element.style.filter = 'progid:DXImageTransform.Microsoft.Matrix(' +
+                                          'M11='+costheta+',' +
+                                          'M12='+(-sintheta)+',' +
+                                          'M21='+sintheta+',' +
+                                          'M22='+costheta+',SizingMethod=\'auto expand\')';
+              }
+
+
               break;
 
             default:
               
-              this.domElement.style.transform = transform;
+              getDomElementCallback().style.transform = transform;
           }
 
-          this.trigger('orientationChanged');
+          orientationChangedHandler(_orientation);
+
         }
       },
 
@@ -4230,11 +6644,9 @@ OTHelpers.centerElement = function(element, width, height) {
         }
       }
     });
-  }
+  };
 
-
-
-  function createVideoElement(fallbackText, attributes) {
+  function createNativeVideoElement(fallbackText, attributes) {
     var videoElement = document.createElement('video');
     videoElement.setAttribute('autoplay', '');
     videoElement.innerHTML = fallbackText;
@@ -4258,6 +6670,8 @@ OTHelpers.centerElement = function(element, width, height) {
 
 
   
+  var _videoErrorCodes = {};
+
   
   
   if (window.MediaError) {
@@ -4277,7 +6691,7 @@ OTHelpers.centerElement = function(element, width, height) {
     return _videoErrorCodes[parseInt(errorCode, 10)] || 'An unknown error occurred.';
   }
 
-  function bindStreamToVideoElement(videoElement, webRTCStream, onStreamBound, onStreamBoundError) {
+  function bindStreamToNativeVideoElement(videoElement, webRtcStream, completion) {
     var cleanup,
         onLoad,
         onError,
@@ -4285,24 +6699,28 @@ OTHelpers.centerElement = function(element, width, height) {
         timeout;
 
     
-    if (navigator.mozGetUserMedia || (
-      webRTCStream.getVideoTracks().length > 0 && webRTCStream.getVideoTracks()[0].enabled)) {
+    
+    var browser = OT.$.browserVersion(),
+        needsDisabledAudioProtection = browser.browser === 'Chrome' && browser.version < 36;
+
+    if (navigator.mozGetUserMedia || !(needsDisabledAudioProtection &&
+        (webRtcStream.getVideoTracks().length > 0 && webRtcStream.getVideoTracks()[0].enabled))) {
 
       cleanup = function cleanup () {
         clearTimeout(timeout);
         videoElement.removeEventListener('loadedmetadata', onLoad, false);
         videoElement.removeEventListener('error', onError, false);
-        webRTCStream.onended = null;
+        webRtcStream.onended = null;
       };
 
       onLoad = function onLoad () {
         cleanup();
-        onStreamBound();
+        completion(null);
       };
 
       onError = function onError (event) {
         cleanup();
-        onStreamBoundError('There was an unexpected problem with the Video Stream: ' +
+        completion('There was an unexpected problem with the Video Stream: ' +
           videoElementErrorCodeToStr(event.target.error.code));
       };
 
@@ -4310,36 +6728,37 @@ OTHelpers.centerElement = function(element, width, height) {
         
         
         cleanup();
-        onStreamBoundError('Stream ended while trying to bind it to a video element.');
+        completion('Stream ended while trying to bind it to a video element.');
       };
 
       
-      timeout = setTimeout(function() {
+      timeout = setTimeout(OT.$.bind(function() {
         if (videoElement.currentTime === 0) {
-          onStreamBoundError('The video stream failed to connect. Please notify the site ' +
+          cleanup();
+          completion('The video stream failed to connect. Please notify the site ' +
             'owner if this continues to happen.');
         } else {
           
           OT.warn('Never got the loadedmetadata event but currentTime > 0');
-          onStreamBound();
+          onLoad(null);
         }
-      }.bind(this), 30000);
+      }, this), 30000);
 
 
       videoElement.addEventListener('loadedmetadata', onLoad, false);
       videoElement.addEventListener('error', onError, false);
-      webRTCStream.onended = onStoppedLoading;
+      webRtcStream.onended = onStoppedLoading;
     } else {
-      onStreamBound();
+      OT.$.callAsync(completion, null);
     }
 
     
     if (videoElement.srcObject !== void 0) {
-      videoElement.srcObject = webRTCStream;
+      videoElement.srcObject = webRtcStream;
     } else if (videoElement.mozSrcObject !== void 0) {
-      videoElement.mozSrcObject = webRTCStream;
+      videoElement.mozSrcObject = webRtcStream;
     } else {
-      videoElement.src = window.URL.createObjectURL(webRTCStream);
+      videoElement.src = window.URL.createObjectURL(webRtcStream);
     }
 
     videoElement.play();
@@ -4363,9 +6782,12 @@ OTHelpers.centerElement = function(element, width, height) {
         
         camelCasedKeys,
 
+        browser = OT.$.browserVersion(),
+
         send = function(data, isQos, callback) {
-          OT.$.post(isQos ? endPointQos : endPoint, {
+          OT.$.post((isQos ? endPointQos : endPoint) + '?_=' + OT.$.uuid.v4(), {
             body: data,
+            xdomainrequest: (browser.browser === 'IE' & browser.version < 10),
             headers: {
               'Content-Type': 'application/x-www-form-urlencoded'
             }
@@ -4389,6 +6811,7 @@ OTHelpers.centerElement = function(element, width, height) {
               send(curr.data, curr.isQos, function(err) {
                 if(err) {
                   OT.debug('Failed to send ClientEvent, moving on to the next item.');
+                  
                 } else {
                   curr.onComplete();
                 }
@@ -4479,7 +6902,7 @@ OTHelpers.centerElement = function(element, width, height) {
 
       payload = this.escapePayload(OT.$.extend(details || {}, {
         message: payload,
-        userAgent: navigator.userAgent
+        userAgent: OT.$.userAgent()
       }));
 
 
@@ -4884,18 +7307,39 @@ OTHelpers.centerElement = function(element, width, height) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   OT.initPublisher = function(targetElement, properties, completionHandler) {
     OT.debug('OT.initPublisher('+targetElement+')');
 
-    if(targetElement != null && !(
-      (typeof targetElement === 'object' && targetElement.nodeType === Node.ELEMENT_NODE) ||
+    
+    
+    if(targetElement != null && !(OT.$.isElementNode(targetElement) ||
       (typeof targetElement === 'string' && document.getElementById(targetElement))) &&
       typeof targetElement !== 'function') {
       targetElement = properties;
       properties = completionHandler;
       completionHandler = arguments[3];
     }
-    
+
     if(typeof targetElement === 'function') {
       completionHandler = targetElement;
       properties = undefined;
@@ -4940,6 +7384,48 @@ OTHelpers.centerElement = function(element, width, height) {
     return publisher;
   };
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  OT.getDevices = function(callback) {
+    OT.$.getMediaDevices(callback);
+  };
 
 
 
@@ -4952,8 +7438,11 @@ OTHelpers.centerElement = function(element, width, height) {
   OT.checkSystemRequirements = function() {
     OT.debug('OT.checkSystemRequirements()');
 
-    var systemRequirementsMet = OT.$.supportsWebSockets() && OT.$.supportsWebRTC() ?
-      this.HAS_REQUIREMENTS : this.NOT_HAS_REQUIREMENTS;
+    
+    var systemRequirementsMet = (OT.$.supportsWebSockets() && OT.$.supportsWebRTC());
+
+    systemRequirementsMet = systemRequirementsMet ?
+                                      this.HAS_REQUIREMENTS : this.NOT_HAS_REQUIREMENTS;
 
     OT.checkSystemRequirements = function() {
       OT.debug('OT.checkSystemRequirements()');
@@ -5006,12 +7495,14 @@ OTHelpers.centerElement = function(element, width, height) {
         d.frameBorder = '0';
         d.scrolling = 'no';
         d.setAttribute('scrolling', 'no');
+
         var browser = OT.$.browserVersion(),
             isSupportedButOld = OT.properties.minimumVersion[browser.browser.toLowerCase()];
         d.src = OT.properties.assetURL + '/html/upgrade.html#' +
                           encodeURIComponent(isSupportedButOld ? 'true' : 'false') + ',' +
                           encodeURIComponent(JSON.stringify(OT.properties.minimumVersion)) + '|' +
                           encodeURIComponent(document.location.href);
+
         return d;
       })());
 
@@ -5297,19 +7788,27 @@ OTHelpers.centerElement = function(element, width, height) {
 
     OT.$.eventing(this, true);
 
-    var onModelUpdate = function onModelUpdate (event) {
+    var modelProperty = function(model, property) {
+      if(OT.$.isFunction(model[property])) {
+        return model[property]();
+      } else {
+        return model[property];
+      }
+    };
+
+    var onModelUpdate = OT.$.bind(function onModelUpdate (event) {
           this.trigger('update', event);
           this.trigger('update:'+event.target.id, event);
-        }.bind(this),
+        }, this),
 
-        onModelDestroy = function onModelDestroyed (event) {
+        onModelDestroy = OT.$.bind(function onModelDestroyed (event) {
           this.remove(event.target, event.reason);
-        }.bind(this);
+        }, this);
 
 
     this.reset = function() {
       
-      _models.forEach(function(model) {
+      OT.$.forEach(_models, function(model) {
         model.off('updated', onModelUpdate, this);
         model.off('destroyed', onModelDestroy, this);
       }, this);
@@ -5318,10 +7817,10 @@ OTHelpers.centerElement = function(element, width, height) {
       _byId = {};
     };
 
-    this.destroy = function() {
-      _models.forEach(function(model) {
+    this.destroy = function(reason) {
+      OT.$.forEach(_models, function(model) {
         if(model && typeof model.destroy === 'function') {
-          model.destroy(void 0, true);
+          model.destroy(reason, true);
         }
       });
 
@@ -5352,14 +7851,14 @@ OTHelpers.centerElement = function(element, width, height) {
     
     
     this.where = function(attrsOrFilterFn, context) {
-      if (OT.$.isFunction(attrsOrFilterFn)) return _models.filter(attrsOrFilterFn, context);
+      if (OT.$.isFunction(attrsOrFilterFn)) return OT.$.filter(_models, attrsOrFilterFn, context);
 
-      return _models.filter(function(model) {
+      return OT.$.filter(_models, function(model) {
         for (var key in attrsOrFilterFn) {
           if(!attrsOrFilterFn.hasOwnProperty(key)) {
             continue;
           }
-          if (model[key] !== attrsOrFilterFn[key]) return false;
+          if (modelProperty(model, key) !== attrsOrFilterFn[key]) return false;
         }
 
         return true;
@@ -5380,14 +7879,14 @@ OTHelpers.centerElement = function(element, width, height) {
             if(!attrsOrFilterFn.hasOwnProperty(key)) {
               continue;
             }
-            if (model[key] !== attrsOrFilterFn[key]) return false;
+            if (modelProperty(model, key) !== attrsOrFilterFn[key]) return false;
           }
 
           return true;
         };
       }
 
-      filterFn = filterFn.bind(context);
+      filterFn = OT.$.bind(filterFn, context);
 
       for (var i=0; i<_models.length; ++i) {
         if (filterFn(_models[i]) === true) return _models[i];
@@ -5397,7 +7896,7 @@ OTHelpers.centerElement = function(element, width, height) {
     };
 
     this.add = function(model) {
-      var id = model[_idField];
+      var id = modelProperty(model, _idField);
 
       if (this.has(id)) {
         OT.warn('Model ' + id + ' is already in the collection', _models);
@@ -5416,7 +7915,7 @@ OTHelpers.centerElement = function(element, width, height) {
     };
 
     this.remove = function(model, reason) {
-      var id = model[_idField];
+      var id = modelProperty(model, _idField);
 
       _models.splice(_byId[id], 1);
 
@@ -5439,15 +7938,15 @@ OTHelpers.centerElement = function(element, width, height) {
     
     this._triggerAddEvents = function() {
       var models = this.where.apply(this, arguments);
-      models.forEach(function(model) {
+      OT.$.forEach(models, function(model) {
         this.trigger('add', model);
-        this.trigger('add:' + model[_idField], model);
+        this.trigger('add:' + modelProperty(model, _idField), model);
       }, this);
     };
 
-    OT.$.defineGetters(this, {
-      length: function() { return _models.length; }
-    });
+    this.length = function() {
+      return _models.length;
+    };
   };
 
 }(this));
@@ -5570,7 +8069,8 @@ OTHelpers.centerElement = function(element, width, height) {
     MICGAINCHANGED : 'microphoneGainChanged',
 
     
-    ENV_LOADED: 'envLoaded'
+    ENV_LOADED: 'envLoaded',
+    ENV_UNLOADED: 'envUnloaded'
   };
 
   OT.ExceptionCodes = {
@@ -5886,7 +8386,7 @@ OTHelpers.centerElement = function(element, width, height) {
     } else {
       this.connections = [connection];
     }
-    
+
     this.connection = connection;
     this.reason = reason;
   };
@@ -6069,7 +8569,6 @@ OTHelpers.centerElement = function(element, width, height) {
   var sessionConnectedConnectionsDeprecationWarningShown = false;
   var sessionConnectedStreamsDeprecationWarningShown = false;
   var sessionConnectedArchivesDeprecationWarningShown = false;
-  var sessionConnectedGroupsDeprecationWarningShown = false;
 
   OT.SessionConnectEvent = function (type) {
     OT.Event.call(this, type, false);
@@ -6104,24 +8603,12 @@ OTHelpers.centerElement = function(element, width, height) {
             }
             return [];
           }
-        },
-        groups: {
-          get: function() {
-            if(!sessionConnectedGroupsDeprecationWarningShown) {
-              OT.error('OT.SessionConnectedEvent no longer includes groups. There is no ' +
-                'equivelant in OpenTok v2.2');
-              sessionConnectedGroupsDeprecationWarningShown = true;
-            }
-            return [];
-          }
         }
       });
     } else {
       this.connections = [];
       this.streams = [];
       this.archives = [];
-      
-      this.groups = [];
     }
   };
 
@@ -6317,6 +8804,11 @@ OTHelpers.centerElement = function(element, width, height) {
 
 (function(global) {
   'use strict';
+
+  var browser = OT.$.browserVersion();
+  if(browser.browser === 'IE' && browser.version < 10) {
+    return; 
+  }
 
   if ( (global.TextEncoder !== void 0) && (global.TextDecoder !== void 0))  {
     
@@ -8813,14 +11305,9 @@ OTHelpers.centerElement = function(element, width, height) {
   };
 
 }(this));
-!(function() {
+!(function(OT) {
 
-  
-  var BUFFER_DRAIN_INTERVAL = 100,
-      
-      BUFFER_DRAIN_MAX_RETRIES = 10,
-
-      WEB_SOCKET_KEEP_ALIVE_INTERVAL = 9000,
+  var WEB_SOCKET_KEEP_ALIVE_INTERVAL = 9000,
 
       
       
@@ -8869,9 +11356,9 @@ OTHelpers.centerElement = function(element, width, height) {
 
   
   
-  OT.Rumor.Socket = function(messagingServer, notifyDisconnectAddress, NativeSocket) {
+  OT.Rumor.Socket = function(messagingURL, notifyDisconnectAddress, NativeSocket) {
+
     var states = ['disconnected',  'error', 'connected', 'connecting', 'disconnecting'],
-        server = messagingServer,
         webSocket,
         id,
         onOpen,
@@ -8879,7 +11366,6 @@ OTHelpers.centerElement = function(element, width, height) {
         onClose,
         onMessage,
         connectCallback,
-        bufferDrainTimeout,           
         connectTimeout,
         lastMessageTimestamp,         
         keepAliveTimer;               
@@ -8912,7 +11398,7 @@ OTHelpers.centerElement = function(element, width, height) {
           }
         },
 
-        error = function error (errorMessage) {
+        error = OT.$.bind(function error (errorMessage) {
           OT.error('Rumor.Socket: ' + errorMessage);
 
           var socketError = new OT.Rumor.SocketError(null, errorMessage || 'Unknown Socket Error');
@@ -8927,39 +11413,7 @@ OTHelpers.centerElement = function(element, width, height) {
           }
 
           if (onError) onError(socketError);
-        }.bind(this),
-
-        
-        close = function close() {
-          setState('disconnecting');
-
-          if (bufferDrainTimeout) {
-            clearTimeout(bufferDrainTimeout);
-            bufferDrainTimeout = null;
-          }
-
-          webSocket.close();
-        },
-
-        
-        
-        
-        disconnectWhenSendBufferIsDrained =
-          function disconnectWhenSendBufferIsDrained (bufferDrainRetries) {
-          if (!webSocket) return;
-
-          if (bufferDrainRetries === void 0) bufferDrainRetries = 0;
-          if (bufferDrainTimeout) clearTimeout(bufferDrainTimeout);
-
-          if (webSocket.bufferedAmount > 0 &&
-            (bufferDrainRetries + 1) <= BUFFER_DRAIN_MAX_RETRIES) {
-            bufferDrainTimeout = setTimeout(disconnectWhenSendBufferIsDrained,
-              BUFFER_DRAIN_INTERVAL, bufferDrainRetries+1);
-          }
-          else {
-            close();
-          }
-        },
+        }, this),
 
         hasLostConnectivity = function hasLostConnectivity () {
           if (!lastMessageTimestamp) return false;
@@ -8967,21 +11421,28 @@ OTHelpers.centerElement = function(element, width, height) {
           return (OT.$.now() - lastMessageTimestamp) >= WEB_SOCKET_CONNECTIVITY_TIMEOUT;
         },
 
-        sendKeepAlive = function sendKeepAlive () {
+        sendKeepAlive = OT.$.bind(function sendKeepAlive () {
           if (!this.is('connected')) return;
 
           if ( hasLostConnectivity() ) {
             webSocketDisconnected({code: 4001});
           }
           else  {
-            webSocket.send(OT.Rumor.Message.Ping().serialize());
+            webSocket.send(OT.Rumor.Message.Ping());
             keepAliveTimer = setTimeout(sendKeepAlive.bind(this), WEB_SOCKET_KEEP_ALIVE_INTERVAL);
           }
-        }.bind(this);
+        }, this),
+
+        
+        
+        
+        isDOMUnloaded = function isDOMUnloaded () {
+          return !window.OT;
+        };
 
 
     
-    var webSocketConnected = function webSocketConnected () {
+    var webSocketConnected = OT.$.bind(function webSocketConnected () {
           if (connectTimeout) clearTimeout(connectTimeout);
           if (this.isNot('connecting')) {
             OT.debug('webSocketConnected reached in state other than connecting');
@@ -8992,7 +11453,7 @@ OTHelpers.centerElement = function(element, width, height) {
           
           
           
-          webSocket.send(OT.Rumor.Message.Connect(id, notifyDisconnectAddress).serialize());
+          webSocket.send(OT.Rumor.Message.Connect(id, notifyDisconnectAddress));
 
           setState('connected');
           if (connectCallback) {
@@ -9006,7 +11467,7 @@ OTHelpers.centerElement = function(element, width, height) {
             lastMessageTimestamp = OT.$.now();
             sendKeepAlive();
           }, WEB_SOCKET_KEEP_ALIVE_INTERVAL);
-        }.bind(this),
+        }, this),
 
         webSocketConnectTimedOut = function webSocketConnectTimedOut () {
           var webSocketWas = webSocket;
@@ -9031,9 +11492,17 @@ OTHelpers.centerElement = function(element, width, height) {
           
           
 
-        webSocketDisconnected = function webSocketDisconnected (closeEvent) {
+        webSocketDisconnected = OT.$.bind(function webSocketDisconnected (closeEvent) {
           if (connectTimeout) clearTimeout(connectTimeout);
           if (keepAliveTimer) clearTimeout(keepAliveTimer);
+
+          if (isDOMUnloaded()) {
+            
+            
+            
+            
+            return;
+          }
 
           if (closeEvent.code !== 1000 && closeEvent.code !== 1001) {
             var reason = closeEvent.reason || closeEvent.message;
@@ -9045,15 +11514,12 @@ OTHelpers.centerElement = function(element, width, height) {
           }
 
           if (this.isNot('error')) setState('disconnected');
-        }.bind(this),
+        }, this),
 
-        webSocketReceivedMessage = function webSocketReceivedMessage (message) {
+        webSocketReceivedMessage = function webSocketReceivedMessage (msg) {
           lastMessageTimestamp = OT.$.now();
 
           if (onMessage) {
-
-            var msg = OT.Rumor.Message.deserialize(message.data);
-
             if (msg.type !== OT.Rumor.MessageType.PONG) {
               onMessage(msg);
             }
@@ -9064,15 +11530,15 @@ OTHelpers.centerElement = function(element, width, height) {
     
 
     this.publish = function (topics, message, headers) {
-      webSocket.send(OT.Rumor.Message.Publish(topics, message, headers).serialize());
+      webSocket.send(OT.Rumor.Message.Publish(topics, message, headers));
     };
 
     this.subscribe = function(topics) {
-      webSocket.send(OT.Rumor.Message.Subscribe(topics).serialize());
+      webSocket.send(OT.Rumor.Message.Subscribe(topics));
     };
 
     this.unsubscribe = function(topics) {
-      webSocket.send(OT.Rumor.Message.Unsubscribe(topics).serialize());
+      webSocket.send(OT.Rumor.Message.Unsubscribe(topics));
     };
 
     this.connect = function (connectionId, complete) {
@@ -9085,17 +11551,23 @@ OTHelpers.centerElement = function(element, width, height) {
       id = connectionId;
       connectCallback = complete;
 
+      setState('connecting');
+
+      var TheWebSocket = NativeSocket || window.WebSocket;
+
+      var events = {
+        onOpen:    webSocketConnected,
+        onClose:   webSocketDisconnected,
+        onError:   webSocketError,
+        onMessage: webSocketReceivedMessage
+      };
+
       try {
-        setState('connecting');
-
-        var TheWebSocket = NativeSocket || WebSocket;
-        webSocket = new TheWebSocket(server);
-        webSocket.binaryType = 'arraybuffer';
-
-        webSocket.onopen = webSocketConnected;
-        webSocket.onclose = webSocketDisconnected;
-        webSocket.onerror = webSocketError;
-        webSocket.onmessage = webSocketReceivedMessage;
+        if(typeof TheWebSocket !== 'undefined') {
+          webSocket = new OT.Rumor.NativeSocket(TheWebSocket, messagingURL, events);
+        } else {
+          webSocket = new OT.Rumor.PluginSocket(messagingURL, events);
+        }
 
         connectTimeout = setTimeout(webSocketConnectTimedOut, OT.Rumor.Socket.CONNECT_TIMEOUT);
       }
@@ -9107,7 +11579,7 @@ OTHelpers.centerElement = function(element, width, height) {
       }
     };
 
-    this.disconnect = function() {
+    this.disconnect = function(drainSocketBuffer) {
       if (connectTimeout) clearTimeout(connectTimeout);
       if (keepAliveTimer) clearTimeout(keepAliveTimer);
 
@@ -9116,23 +11588,23 @@ OTHelpers.centerElement = function(element, width, height) {
         return;
       }
 
-      if (webSocket.readyState === 3) {
+      if (webSocket.isClosed()) {
         if (this.isNot('error')) setState('disconnected');
       }
       else {
         if (this.is('connected')) {
           
-          webSocket.send(OT.Rumor.Message.Disconnect().serialize());
+          webSocket.send(OT.Rumor.Message.Disconnect());
         }
 
         
-        disconnectWhenSendBufferIsDrained();
+        webSocket.close(drainSocketBuffer);
       }
     };
 
 
 
-    Object.defineProperties(this, {
+    OT.$.defineProperties(this, {
       id: {
         get: function() { return id; }
       },
@@ -9177,6 +11649,144 @@ OTHelpers.centerElement = function(element, width, height) {
 
   
   OT.Rumor.Socket.CONNECT_TIMEOUT = 15000;
+
+}(window.OT, this));
+!(function() {
+
+  var BUFFER_DRAIN_INTERVAL = 100,
+      
+      BUFFER_DRAIN_MAX_RETRIES = 10;
+
+  OT.Rumor.NativeSocket = function(TheWebSocket, messagingURL, events) {
+
+    var webSocket,
+        disconnectWhenSendBufferIsDrained,
+        bufferDrainTimeout,           
+        close;
+
+    webSocket = new TheWebSocket(messagingURL);
+    webSocket.binaryType = 'arraybuffer';
+
+    webSocket.onopen = events.onOpen;
+    webSocket.onclose = events.onClose;
+    webSocket.onerror = events.onError;
+
+    webSocket.onmessage = function(message) {
+      if (!OT) {
+        
+        
+        return;
+      }
+
+      var msg = OT.Rumor.Message.deserialize(message.data);
+      events.onMessage(msg);
+    };
+
+    
+    
+    
+    disconnectWhenSendBufferIsDrained =
+      function disconnectWhenSendBufferIsDrained (bufferDrainRetries) {
+      if (!webSocket) return;
+
+      if (bufferDrainRetries === void 0) bufferDrainRetries = 0;
+      if (bufferDrainTimeout) clearTimeout(bufferDrainTimeout);
+
+      if (webSocket.bufferedAmount > 0 &&
+        (bufferDrainRetries + 1) <= BUFFER_DRAIN_MAX_RETRIES) {
+        bufferDrainTimeout = setTimeout(disconnectWhenSendBufferIsDrained,
+          BUFFER_DRAIN_INTERVAL, bufferDrainRetries+1);
+
+      } else {
+        close();
+      }
+    };
+
+    close = function close() {
+      webSocket.close();
+    };
+
+    this.close = function(drainBuffer) {
+      if (drainBuffer) {
+        disconnectWhenSendBufferIsDrained();
+      } else {
+        close();
+      }
+    };
+
+    this.send = function(msg) {
+      webSocket.send(msg.serialize());
+    };
+
+    this.isClosed = function() {
+      return webSocket.readyState === 3;
+    };
+
+  };
+
+
+}(this));
+!(function() {
+
+  OT.Rumor.PluginSocket = function(messagingURL, events) {
+
+    var webSocket,
+        state = 'initializing';
+
+    TBPlugin.initRumorSocket(messagingURL, OT.$.bind(function(err, rumorSocket) {
+      if(err) {
+        state = 'closed';
+        events.onClose({ code: 4999 });
+      } else if(state === 'initializing') {
+        webSocket = rumorSocket;
+
+        webSocket.onOpen(function() {
+          state = 'open';
+          events.onOpen();
+        });
+        webSocket.onClose(function(error) {
+          state = 'closed'; 
+          events.onClose({ code: error });
+          webSocket.finalize();
+        });
+        webSocket.onError(function(error) {
+          state = 'closed'; 
+          events.onError(error);
+          
+          events.onClose({ code: error });
+        });
+
+        webSocket.onMessage(function(type, addresses, headers, payload) {
+          var msg = new OT.Rumor.Message(type, addresses, headers, payload);
+          events.onMessage(msg);
+        });
+
+        webSocket.open();
+      } else {
+        this.close();
+      }
+    }, this));
+
+    this.close = function() {
+      if(state === 'initializing' || state === 'closed') {
+        state = 'closed';
+        return;
+      }
+
+      webSocket.close(1000, '');
+    };
+
+    this.send = function(msg) {
+      if(state === 'open') {
+        webSocket.send(msg);
+      }
+    };
+
+    this.isClosed = function() {
+      return state === 'closed';
+    };
+
+  };
 
 }(this));
 !(function() {
@@ -9382,19 +11992,19 @@ OTHelpers.centerElement = function(element, width, height) {
   };
 
   OT.Rumor.Message.Disconnect = function () {
-    return new OT.Rumor.Message(OT.Rumor.MessageType.DISCONNECT, [], [], '');
+    return new OT.Rumor.Message(OT.Rumor.MessageType.DISCONNECT, [], {}, '');
   };
 
   OT.Rumor.Message.Subscribe = function(topics) {
-    return new OT.Rumor.Message(OT.Rumor.MessageType.SUBSCRIBE, topics, [], '');
+    return new OT.Rumor.Message(OT.Rumor.MessageType.SUBSCRIBE, topics, {}, '');
   };
 
   OT.Rumor.Message.Unsubscribe = function(topics) {
-    return new OT.Rumor.Message(OT.Rumor.MessageType.UNSUBSCRIBE, topics, [], '');
+    return new OT.Rumor.Message(OT.Rumor.MessageType.UNSUBSCRIBE, topics, {}, '');
   };
 
   OT.Rumor.Message.Publish = function(topics, message, headers) {
-    return new OT.Rumor.Message(OT.Rumor.MessageType.MESSAGE, topics, headers||[], message);
+    return new OT.Rumor.Message(OT.Rumor.MessageType.MESSAGE, topics, headers||{}, message || '');
   };
 
   
@@ -9402,7 +12012,7 @@ OTHelpers.centerElement = function(element, width, height) {
   
   
   OT.Rumor.Message.Ping = function() {
-    return new OT.Rumor.Message(OT.Rumor.MessageType.PING, [], [], '');
+    return new OT.Rumor.Message(OT.Rumor.MessageType.PING, [], {}, '');
   };
 
 }(this));
@@ -9584,7 +12194,7 @@ OTHelpers.centerElement = function(element, width, height) {
       method: 'create',
       uri: '/v2/partner/' + apiKey + '/session/' + sessionId + '/connection/' + connectionId,
       content: {
-        userAgent: navigator.userAgent
+        userAgent: OT.$.userAgent()
       }
     });
   };
@@ -9643,13 +12253,13 @@ OTHelpers.centerElement = function(element, width, height) {
       if (frameRate) channel.frameRate = frameRate;
       channels.push(channel);
     }
-    
+
     var messageContent = {
       id: streamId,
       name: name,
       channel: channels
     };
-    
+
     if (minBitrate) messageContent.minBitrate = minBitrate;
     if (maxBitrate) messageContent.maxBitrate = maxBitrate;
 
@@ -9975,7 +12585,7 @@ OTHelpers.centerElement = function(element, width, height) {
     
     var setState = OT.$.statable(this, _states, 'disconnected'),
 
-        onConnectComplete = function onConnectComplete (error) {
+        onConnectComplete = function onConnectComplete(error) {
           if (error) {
             setState('error');
           }
@@ -9986,7 +12596,7 @@ OTHelpers.centerElement = function(element, width, height) {
           _completion.apply(null, arguments);
         },
 
-        onClose = function onClose (err) {
+        onClose = OT.$.bind(function onClose (err) {
           var reason = this.is('disconnecting') ? 'clientDisconnected' : 'networkDisconnected';
 
           if(err && err.code === 4001) {
@@ -9996,8 +12606,7 @@ OTHelpers.centerElement = function(element, width, height) {
           setState('disconnected');
 
           _dispatcher.onClose(reason);
-
-        }.bind(this),
+        }, this),
 
         onError = function onError () {};
         
@@ -10021,10 +12630,10 @@ OTHelpers.centerElement = function(element, width, height) {
           rumorChannel = '/v2/partner/' + OT.APIKEY + '/session/' + _sessionId;
 
       _rumor = new OT.Rumor.Socket(messagingSocketUrl, symphonyUrl);
-      _rumor.onClose = onClose;
-      _rumor.onMessage = _dispatcher.dispatch.bind(_dispatcher);
+      _rumor.onClose(onClose);
+      _rumor.onMessage(OT.$.bind(_dispatcher.dispatch, _dispatcher));
 
-      _rumor.connect(connectionId, function(error) {
+      _rumor.connect(connectionId, OT.$.bind(function(error) {
         if (error) {
           error.message = 'WebSocketConnection:' + error.code + ':' + error.message;
           onConnectComplete(error);
@@ -10032,7 +12641,7 @@ OTHelpers.centerElement = function(element, width, height) {
         }
 
         
-        _rumor.onError = onError;
+        _rumor.onError(onError);
 
         OT.debug('Raptor Socket connected. Subscribing to ' +
           rumorChannel + ' on ' + messagingSocketUrl);
@@ -10040,8 +12649,9 @@ OTHelpers.centerElement = function(element, width, height) {
         _rumor.subscribe([rumorChannel]);
 
         
-        var connectMessage = OT.Raptor.Message.connections.create(OT.APIKEY, _sessionId, _rumor.id);
-        this.publish(connectMessage, {'X-TB-TOKEN-AUTH': _token}, function(error) {
+        var connectMessage = OT.Raptor.Message.connections.create(OT.APIKEY,
+          _sessionId, _rumor.id());
+        this.publish(connectMessage, {'X-TB-TOKEN-AUTH': _token}, OT.$.bind(function(error) {
           if (error) {
             error.message = 'ConnectToSession:' + error.code +
                 ':Received error response to connection create message.';
@@ -10051,21 +12661,22 @@ OTHelpers.centerElement = function(element, width, height) {
 
           this.publish( OT.Raptor.Message.sessions.get(OT.APIKEY, _sessionId),
             function (error) {
-            if (error) error.message = 'GetSessionState:' + error.code +
-                      ':Received error response to session read';
+            if (error) {
+              error.message = 'GetSessionState:' + error.code +
+                ':Received error response to session read';
+            }
             onConnectComplete.apply(null, arguments);
           });
-        }.bind(this));
-
-      }.bind(this));
+        }, this));
+      }, this));
     };
 
 
-    this.disconnect = function () {
+    this.disconnect = function (drainSocketBuffer) {
       if (this.is('disconnected')) return;
 
       setState('disconnecting');
-      _rumor.disconnect();
+      _rumor.disconnect(drainSocketBuffer);
     };
 
     
@@ -10106,7 +12717,7 @@ OTHelpers.centerElement = function(element, width, height) {
       _rumor.publish([symphonyUrl], message, OT.$.extend(_headers, {
         'Content-Type': 'application/x-raptor+v2',
         'TRANSACTION-ID': transactionId,
-        'X-TB-FROM-ADDRESS': _rumor.id
+        'X-TB-FROM-ADDRESS': _rumor.id()
       }));
 
       return transactionId;
@@ -10145,7 +12756,7 @@ OTHelpers.centerElement = function(element, width, height) {
 
     this.subscriberCreate = function(streamId, subscriberId, channelsToSubscribeTo, completion) {
       this.publish( OT.Raptor.Message.subscribers.create(OT.APIKEY, _sessionId,
-        streamId, subscriberId, _rumor.id, channelsToSubscribeTo), completion );
+        streamId, subscriberId, _rumor.id(), channelsToSubscribeTo), completion );
     };
 
     this.subscriberDestroy = function(streamId, subscriberId) {
@@ -10205,7 +12816,7 @@ OTHelpers.centerElement = function(element, width, height) {
     };
 
     this.signal = function(options, completion) {
-      var signal = new OT.Signal(_sessionId, _rumor.id, options || {});
+      var signal = new OT.Signal(_sessionId, _rumor.id(), options || {});
 
       if (!signal.valid) {
         if (completion && OT.$.isFunction(completion)) {
@@ -10223,17 +12834,9 @@ OTHelpers.centerElement = function(element, width, height) {
       });
     };
 
-    OT.$.defineGetters(this, {
-      id: function() {
-        return _rumor && _rumor.id;
-      },
-      sessionId: function() {
-        return _sessionId;
-      },
-      dispatcher: function() {
-        return _dispatcher;
-      }
-    });
+    this.id = function() {
+      return _rumor && _rumor.id();
+    };
 
     if(dispatcher == null) {
       dispatcher = new OT.Raptor.Dispatcher();
@@ -10360,7 +12963,6 @@ OTHelpers.centerElement = function(element, width, height) {
   OT.Raptor.Dispatcher.prototype.dispatchSession = function (message) {
     switch (message.method) {
       case 'read':
-
         this.emit('session#read', message.content, message.transactionId);
         break;
 
@@ -10473,7 +13075,6 @@ OTHelpers.centerElement = function(element, width, height) {
   };
 
   OT.Raptor.Dispatcher.prototype.dispatchSubscriber = function (message) {
-
     switch (message.method) {
       case 'created':
         this.emit('subscriber#created', message.params.stream, message.fromAddress,
@@ -10537,10 +13138,12 @@ OTHelpers.centerElement = function(element, width, height) {
       return new OT.StreamChannel(channel);
     });
 
+    var connectionId = dict.connectionId ? dict.connectionId : dict.connection.id;
+
     return  new OT.Stream(  dict.id,
                             dict.name,
                             dict.creationTime,
-                            session.connections.get(dict.connection.id),
+                            session.connections.get(connectionId),
                             session,
                             channel );
   }
@@ -10581,9 +13184,9 @@ OTHelpers.centerElement = function(element, width, height) {
         return;
       }
 
-      if (connection.destroyedReason) {
+      if (connection.destroyedReason()) {
         OT.debug('OT.Raptor.Socket: Socket was closed but the connection had already ' +
-          'been destroyed. Reason: ' + connection.destroyedReason);
+          'been destroyed. Reason: ' + connection.destroyedReason());
         return;
       }
 
@@ -10600,17 +13203,17 @@ OTHelpers.centerElement = function(element, width, height) {
       state.connections = [];
       state.archives = [];
 
-      content.connection.forEach(function(connectionParams) {
+      OT.$.forEach(content.connection, function(connectionParams) {
         connection = OT.Connection.fromHash(connectionParams);
         state.connections.push(connection);
         session.connections.add(connection);
       });
 
-      content.stream.forEach(function(streamParams) {
+      OT.$.forEach(content.stream, function(streamParams) {
         state.streams.push( parseAndAddStreamToSession(streamParams, session) );
       });
-      
-      (content.archive || content.archives).forEach(function(archiveParams) {
+
+      OT.$.forEach(content.archive || content.archives, function(archiveParams) {
         state.archives.push( parseAndAddArchiveToSession(archiveParams, session) );
       });
 
@@ -10635,7 +13238,7 @@ OTHelpers.centerElement = function(element, width, height) {
       stream = parseAndAddStreamToSession(stream, session);
 
       if (stream.publisher) {
-        stream.publisher.stream = stream;
+        stream.publisher.setStream(stream);
       }
 
       dispatcher.triggerCallback(transactionId, null, stream);
@@ -10714,7 +13317,6 @@ OTHelpers.centerElement = function(element, width, height) {
         case 'pranswer':
         case 'generateoffer':
         case 'unsubscribe':
-          console.warn('generateoffer maybe?');
           actors = OT.publishers.where({streamId: streamId});
           break;
 
@@ -10743,7 +13345,7 @@ OTHelpers.centerElement = function(element, width, height) {
       if(!fromConnection && fromAddress.match(/^symphony\./)) {
         fromConnection = OT.Connection.fromHash({
           id: fromAddress,
-          creationTime: Date.now()
+          creationTime: Math.floor(OT.$.now())
         });
 
         actors[0].session.connections.add(fromConnection);
@@ -10753,17 +13355,17 @@ OTHelpers.centerElement = function(element, width, height) {
         return;
       }
 
-      actors.forEach(function(actor) {
+      OT.$.forEach(actors, function(actor) {
         actor.processMessage(method, fromConnection, message);
       });
     };
 
-    dispatcher.on('jsep#offer', jsepHandler.bind(null, 'offer'));
-    dispatcher.on('jsep#answer', jsepHandler.bind(null, 'answer'));
-    dispatcher.on('jsep#pranswer', jsepHandler.bind(null, 'pranswer'));
-    dispatcher.on('jsep#generateoffer', jsepHandler.bind(null, 'generateoffer'));
-    dispatcher.on('jsep#unsubscribe', jsepHandler.bind(null, 'unsubscribe'));
-    dispatcher.on('jsep#candidate', jsepHandler.bind(null, 'candidate'));
+    dispatcher.on('jsep#offer', OT.$.bind(jsepHandler, null, 'offer'));
+    dispatcher.on('jsep#answer', OT.$.bind(jsepHandler, null, 'answer'));
+    dispatcher.on('jsep#pranswer', OT.$.bind(jsepHandler, null, 'pranswer'));
+    dispatcher.on('jsep#generateoffer', OT.$.bind(jsepHandler, null, 'generateoffer'));
+    dispatcher.on('jsep#unsubscribe', OT.$.bind(jsepHandler, null, 'unsubscribe'));
+    dispatcher.on('jsep#candidate', OT.$.bind(jsepHandler, null, 'candidate'));
 
     dispatcher.on('subscriberChannel#updated', function(streamId, channelId, content) {
 
@@ -10856,7 +13458,7 @@ OTHelpers.centerElement = function(element, width, height) {
   };
 
 })(window);
-!(function(window) {
+!(function() {
 
   
   
@@ -10867,10 +13469,15 @@ OTHelpers.centerElement = function(element, width, height) {
   
   function EnvironmentLoader() {
     var _configReady = false,
-        _domReady = false,
+
+        
+        
+        _pluginSupported = TBPlugin.isSupported(),
+        _pluginLoadAttemptComplete = _pluginSupported ? TBPlugin.isReady() : true,
 
         isReady = function() {
-          return _domReady && _configReady;
+          return !OT.$.isDOMUnloaded() && OT.$.isReady() &&
+                      _configReady && _pluginLoadAttemptComplete;
         },
 
         onLoaded = function() {
@@ -10879,19 +13486,41 @@ OTHelpers.centerElement = function(element, width, height) {
           }
         },
 
-        onDomReady = function() {
-          _domReady = true;
 
-          
-          
-          OT.$.on(window, 'unload', function() {
-            OT.publishers.destroy();
-            OT.subscribers.destroy();
-            OT.sessions.destroy();
-          });
+        onDomReady = function() {
+          OT.$.onDOMUnload(onDomUnload);
 
           
           OT.Config.load(OT.properties.configURL);
+
+          onLoaded();
+        },
+
+        onDomUnload = function() {
+          
+          
+          
+          
+          
+          
+          
+          
+
+          OT.publishers.destroy();
+          OT.subscribers.destroy();
+          OT.sessions.destroy('unloaded');
+
+          OT.dispatchEvent(new OT.EnvLoadedEvent(OT.Event.names.ENV_UNLOADED));
+        },
+
+        onPluginReady = function(err) {
+          
+          
+          _pluginLoadAttemptComplete = true;
+
+          if (err) {
+            OT.debug('TB Plugin failed to load or was not installed');
+          }
 
           onLoaded();
         },
@@ -10908,45 +13537,54 @@ OTHelpers.centerElement = function(element, width, height) {
           configLoaded();
         };
 
+
     OT.Config.on('dynamicConfigChanged', configLoaded);
     OT.Config.on('dynamicConfigLoadFailed', configLoadFailed);
-    if (document.readyState === 'complete' ||
-      (document.readyState === 'interactive' && document.body)) {
-      onDomReady();
-    } else {
-      if (document.addEventListener) {
-        document.addEventListener('DOMContentLoaded', onDomReady, false);
-      } else if (document.attachEvent) {
-        
-        document.attachEvent('onreadystatechange', function() {
-          if (document.readyState === 'complete') onDomReady();
-        });
-      }
-    }
 
-    this.onLoad = function(cb) {
+    OT.$.onDOMLoad(onDomReady);
+
+    
+    
+    if (_pluginSupported) TBPlugin.ready(onPluginReady);
+
+    this.onLoad = function(cb, context) {
       if (isReady()) {
-        cb();
+        cb.call(context);
         return;
       }
 
-      OT.on(OT.Event.names.ENV_LOADED, cb);
+      OT.on(OT.Event.names.ENV_LOADED, cb, context);
+    };
+
+    this.onUnload = function(cb, context) {
+      if (this.isUnloaded()) {
+        cb.call(context);
+        return;
+      }
+
+      OT.on(OT.Event.names.ENV_UNLOADED, cb, context);
+    };
+
+    this.isUnloaded = function() {
+      return OT.$.isDOMUnloaded();
     };
   }
 
   var EnvLoader = new EnvironmentLoader();
 
   OT.onLoad = function(cb, context) {
-    if (!context) {
-      EnvLoader.onLoad(cb);
-    } else {
-      EnvLoader.onLoad(
-        cb.bind(context)
-      );
-    }
+    EnvLoader.onLoad(cb, context);
   };
 
-})(window);
+  OT.onUnload = function(cb, context) {
+    EnvLoader.onUnload(cb, context);
+  };
+
+  OT.isUnloaded = function() {
+    return EnvLoader.isUnloaded();
+  };
+
+})();
 !(function() {
 
   
@@ -11235,7 +13873,7 @@ OTHelpers.centerElement = function(element, width, height) {
         sessionId: session.sessionId
       };
 
-      if (session.connected) context.connectionId = session.connection.connectionId;
+      if (session.isConnected()) context.connectionId = session.connection.connectionId;
       if (!options.target) options.target = session;
 
     } else if (options.sessionId) {
@@ -11348,7 +13986,7 @@ OTHelpers.centerElement = function(element, width, height) {
 
     OT.$.eventing(this);
 
-    this.destroy = function(reason, quiet) {
+    this.destroy = OT.$.bind(function(reason, quiet) {
       destroyedReason = reason || 'clientDisconnected';
 
       if (quiet !== true) {
@@ -11361,19 +13999,16 @@ OTHelpers.centerElement = function(element, width, height) {
           )
         );
       }
-    }.bind(this);
+    }, this);
 
-    Object.defineProperties(this, {
-      destroyed: {
-        get: function() { return destroyedReason !== void 0; },
-        enumerable: true
-      },
+    this.destroyed = function() {
+      return destroyedReason !== void 0;
+    };
 
-      destroyedReason: {
-        get: function() { return destroyedReason; },
-        enumerable: true
-      }
-    });
+    this.destroyedReason = function() {
+      return destroyedReason;
+    };
+
   };
 
   OT.Connection.fromHash = function(hash) {
@@ -11450,7 +14085,7 @@ OTHelpers.centerElement = function(element, width, height) {
         this.trigger('update', this, key, oldValue, this[key]);
       }
 
-      if (Object.keys(videoDimensions).length) {
+      if (OT.$.keys(videoDimensions).length) {
         
         
         this.trigger('update', this, 'videoDimensions', oldVideoDimensions, videoDimensions);
@@ -11535,11 +14170,10 @@ OTHelpers.centerElement = function(element, width, height) {
     this.connection = connection;
     this.channel = channel;
     this.publisher = OT.publishers.find({streamId: this.id});
-    this.publisherId = this.publisher ? this.publisher.id : null;
 
     OT.$.eventing(this);
 
-    var onChannelUpdate = function(channel, key, oldValue, newValue) {
+    var onChannelUpdate = OT.$.bind(function(channel, key, oldValue, newValue) {
       var _key = key;
 
       switch(_key) {
@@ -11562,22 +14196,22 @@ OTHelpers.centerElement = function(element, width, height) {
       }
 
       this.dispatchEvent( new OT.StreamUpdatedEvent(this, _key, oldValue, newValue) );
-    }.bind(this);
+    }, this);
 
-    var associatedWidget = function() {
+    var associatedWidget = OT.$.bind(function() {
       if(this.publisher) {
         return this.publisher;
       } else {
         return OT.subscribers.find(function(subscriber) {
-          return subscriber.streamId === this.id &&
+          return subscriber.stream.id === this.id &&
             subscriber.session.id === session.id;
         });
       }
-    }.bind(this);
+    }, this);
 
     
     this.getChannelsOfType = function (type) {
-      return this.channel.filter(function(channel) {
+      return OT.$.filter(this.channel, function(channel) {
         return channel.type === type;
       });
     };
@@ -11611,6 +14245,7 @@ OTHelpers.centerElement = function(element, width, height) {
       this.videoDimensions.orientation = videoChannel.orientation;
 
       videoChannel.on('update', onChannelUpdate);
+      this.frameRate = videoChannel.frameRate;
     }
 
     if (audioChannel) {
@@ -11633,11 +14268,11 @@ OTHelpers.centerElement = function(element, width, height) {
       });
     };
 
-    var updateChannelsOfType = function(channelType, attributes) {
+    var updateChannelsOfType = OT.$.bind(function(channelType, attributes) {
       var setChannelActiveState;
       if (!this.publisher) {
         var subscriber = OT.subscribers.find(function(subscriber) {
-          return subscriber.streamId === this.id &&
+          return subscriber.stream.id === this.id &&
             subscriber.session.id === session.id;
         }, this);
 
@@ -11650,11 +14285,16 @@ OTHelpers.centerElement = function(element, width, height) {
         };
       }
 
-      this.getChannelsOfType(channelType).forEach(setChannelActiveState.bind(this));
-    }.bind(this);
+      OT.$.forEach(this.getChannelsOfType(channelType), OT.$.bind(setChannelActiveState, this));
+    }, this);
 
+    this.destroyed = false;
+    this.destroyedReason = void 0;
+ 
     this.destroy = function(reason, quiet) {
       destroyedReason = reason || 'clientDisconnected';
+      this.destroyed = true;
+      this.destroyedReason = destroyedReason;
 
       if (quiet !== true) {
         this.dispatchEvent(
@@ -11667,24 +14307,7 @@ OTHelpers.centerElement = function(element, width, height) {
         );
       }
     };
-
-    Object.defineProperties(this, {
-      destroyed: {
-        get: function() { return destroyedReason !== void 0; },
-        enumerable: true
-      },
-
-      destroyedReason: {
-        get: function() { return destroyedReason; },
-        enumerable: true
-      },
-
-      frameRate: {
-        get: function() { return this.getChannelsOfType('video')[0].frameRate; },
-        enumerable: true
-      }
-    });
-
+    
     
 
     
@@ -11696,8 +14319,8 @@ OTHelpers.centerElement = function(element, width, height) {
     
     
     this._ = {};
-    this._.updateProperty = function (key, value) {
-      if (validPropertyNames.indexOf(key) === -1) {
+    this._.updateProperty = OT.$.bind(function(key, value) {
+      if (OT.$.arrayIndexOf(validPropertyNames, key) === -1) {
         OT.warn('Unknown stream property "' + key + '" was modified to "' + value + '".');
         return;
       }
@@ -11721,51 +14344,49 @@ OTHelpers.centerElement = function(element, width, height) {
 
       var event = new OT.StreamUpdatedEvent(this, key, oldValue, newValue);
       this.dispatchEvent(event);
-    }.bind(this);
+    }, this);
 
     
-    this._.update = function (attributes) {
+    this._.update = OT.$.bind(function(attributes) {
       for (var key in attributes) {
         if(!attributes.hasOwnProperty(key)) {
           continue;
         }
         this._.updateProperty(key, attributes[key]);
       }
-    }.bind(this);
+    }, this);
 
-    this._.updateChannel = function (channelId, attributes) {
+    this._.updateChannel = OT.$.bind(function(channelId, attributes) {
       this.getChannel(channelId).update(attributes);
-    }.bind(this);
+    }, this);
   };
 
 })(window);
 !(function() {
-  
+
 
   OT.Archive = function(id, name, status) {
-    
     this.id = id;
     this.name = name;
     this.status = status;
-    
+
     this._ = {};
 
     OT.$.eventing(this);
+
     
-    
-    this._.update = function (attributes) {
+    this._.update = OT.$.bind(function (attributes) {
       for (var key in attributes) {
         if(!attributes.hasOwnProperty(key)) {
           continue;
         }
         var oldValue = this[key];
         this[key] = attributes[key];
-        
+
         var event = new OT.ArchiveUpdatedEvent(this, key, oldValue, this[key]);
         this.dispatchEvent(event);
-        
       }
-    }.bind(this);
+    }, this);
 
     this.destroy = function() {};
 
@@ -11775,9 +14396,19 @@ OTHelpers.centerElement = function(element, width, height) {
 !(function(window) {
 
   
-  var NativeRTCSessionDescription = (window.mozRTCSessionDescription ||
-    window.RTCSessionDescription);
-  var NativeRTCIceCandidate = (window.mozRTCIceCandidate || window.RTCIceCandidate);
+  var NativeRTCSessionDescription,
+      NativeRTCIceCandidate;
+
+  if (!TBPlugin.isInstalled()) {
+    
+    NativeRTCSessionDescription = (window.mozRTCSessionDescription ||
+                                   window.RTCSessionDescription);
+    NativeRTCIceCandidate = (window.mozRTCIceCandidate || window.RTCIceCandidate);
+  }
+  else {
+    NativeRTCSessionDescription = TBPlugin.RTCSessionDescription;
+    NativeRTCIceCandidate = TBPlugin.RTCIceCandidate;
+  }
 
   
   var iceCandidateForwarder = function(messageDelegate) {
@@ -11810,12 +14441,9 @@ OTHelpers.centerElement = function(element, width, height) {
     var _pendingIceCandidates = [],
         _peerConnection = null;
 
-
-    Object.defineProperty(this, 'peerConnection', {
-      set: function(peerConnection) {
-        _peerConnection = peerConnection;
-      }
-    });
+    this.setPeerConnection = function(peerConnection) {
+      _peerConnection = peerConnection;
+    };
 
     this.process = function(message) {
       var iceCandidate = new NativeRTCIceCandidate(message.content);
@@ -11851,7 +14479,7 @@ OTHelpers.centerElement = function(element, width, height) {
     
     
     
-    sdpLines = sdp.split('\r\n').filter(function(line, index) {
+    sdpLines = OT.$.filter(sdp.split('\r\n'), function(line, index) {
       if (line.indexOf('m=audio') !== -1) audioMediaLineIndex = index;
 
       match = line.match(matcher);
@@ -12023,13 +14651,13 @@ OTHelpers.centerElement = function(element, width, height) {
 
   OT.PeerConnection = function(config) {
     var _peerConnection,
+        _peerConnectionCompletionHandlers = [],
         _iceProcessor = new IceCandidateProcessor(),
         _offer,
         _answer,
         _state = 'new',
-        _messageDelegates = [],
-        _gettingStats,
-        _createTime = OT.$.now();
+        _messageDelegates = [];
+
 
     OT.$.eventing(this);
 
@@ -12039,7 +14667,7 @@ OTHelpers.centerElement = function(element, width, height) {
     if (!config.iceServers) config.iceServers = [];
 
     
-    var delegateMessage = function(type, messagePayload) {
+    var delegateMessage = OT.$.bind(function(type, messagePayload) {
           if (_messageDelegates.length) {
             
             
@@ -12048,69 +14676,124 @@ OTHelpers.centerElement = function(element, width, height) {
             
             _messageDelegates[0](type, messagePayload);
           }
-        }.bind(this),
+        }, this),
 
-        setupPeerConnection = function() {
-          if (!_peerConnection) {
-            try {
-              OT.debug('Creating peer connection config "' + JSON.stringify(config) + '".');
-              if (!config.iceServers || config.iceServers.length === 0) {
-                
-                OT.error('No ice servers present');
-              }
-              _peerConnection = OT.$.createPeerConnection(config, {
-                optional: [
-                  { DtlsSrtpKeyAgreement: true }
-                ]
-              });
-            } catch(e) {
-              triggerError('Failed to create PeerConnection, exception: ' +
-                  e.message, 'NewPeerConnection');
-              return null;
-            }
-
-            _peerConnection.onicecandidate = iceCandidateForwarder(delegateMessage);
-            _peerConnection.onaddstream = onRemoteStreamAdded.bind(this);
-            _peerConnection.onremovestream = onRemoteStreamRemoved.bind(this);
-
-            if (_peerConnection.onsignalingstatechange !== undefined) {
-              _peerConnection.onsignalingstatechange = routeStateChanged.bind(this);
-            } else if (_peerConnection.onstatechange !== undefined) {
-              _peerConnection.onstatechange = routeStateChanged.bind(this);
-            }
-            
-            if (_peerConnection.oniceconnectionstatechange !== undefined) {
-              var failedStateTimer;
-              _peerConnection.oniceconnectionstatechange = function (event) {
-                if (event.target.iceConnectionState === 'failed') {
-                  if (failedStateTimer) {
-                    clearTimeout(failedStateTimer);
-                  }
-                  
-                  
-                  
-                  setTimeout(function () {
-                    if (event.target.iceConnectionState === 'failed') {
-                      triggerError('The stream was unable to connect due to a network error.' +
-                       ' Make sure your connection isn\'t blocked by a firewall.', 'ICEWorkflow');
-                    }
-                  }, 5000);
-                }
-              };
-            }
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        createPeerConnection = OT.$.bind(function (completion, localWebRtcStream) {
+          if (_peerConnection) {
+            completion.call(null, null, _peerConnection);
+            return;
           }
 
-          return _peerConnection;
-        }.bind(this),
+          _peerConnectionCompletionHandlers.push(completion);
+
+          if (_peerConnectionCompletionHandlers.length > 1) {
+            
+            
+            return;
+          }
+
+          var pcConstraints = {
+            optional: [
+              {DtlsSrtpKeyAgreement: true}
+            ]
+          };
+
+          OT.debug('Creating peer connection config "' + JSON.stringify(config) + '".');
+
+          if (!config.iceServers || config.iceServers.length === 0) {
+            
+            OT.error('No ice servers present');
+          }
+
+          OT.$.createPeerConnection(config, pcConstraints, localWebRtcStream,
+                                    OT.$.bind(attachEventsToPeerConnection, this));
+        }, this),
+
+        
+        
+        
+        
+        
+        
+        attachEventsToPeerConnection = OT.$.bind(function(err, pc) {
+          if (err) {
+            triggerError('Failed to create PeerConnection, exception: ' +
+                err.toString(), 'NewPeerConnection');
+
+            _peerConnectionCompletionHandlers = [];
+            return;
+          }
+
+          OT.debug('OT attachEventsToPeerConnection');
+          _peerConnection = pc;
+
+          _peerConnection.onicecandidate = iceCandidateForwarder(delegateMessage);
+          _peerConnection.onaddstream = OT.$.bind(onRemoteStreamAdded, this);
+          _peerConnection.onremovestream = OT.$.bind(onRemoteStreamRemoved, this);
+
+          if (_peerConnection.onsignalingstatechange !== undefined) {
+            _peerConnection.onsignalingstatechange = OT.$.bind(routeStateChanged, this);
+          } else if (_peerConnection.onstatechange !== undefined) {
+            _peerConnection.onstatechange = OT.$.bind(routeStateChanged, this);
+          }
+
+          if (_peerConnection.oniceconnectionstatechange !== undefined) {
+            var failedStateTimer;
+            _peerConnection.oniceconnectionstatechange = function (event) {
+              if (event.target.iceConnectionState === 'failed') {
+                if (failedStateTimer) {
+                  clearTimeout(failedStateTimer);
+                }
+                
+                
+                
+                setTimeout(function () {
+                  if (event.target.iceConnectionState === 'failed') {
+                    triggerError('The stream was unable to connect due to a network error.' +
+                     ' Make sure your connection isn\'t blocked by a firewall.', 'ICEWorkflow');
+                  }
+                }, 5000);
+              }
+            };
+          }
+
+          triggerPeerConnectionCompletion(null);
+        }, this),
+
+        triggerPeerConnectionCompletion = function () {
+          while (_peerConnectionCompletionHandlers.length) {
+            _peerConnectionCompletionHandlers.shift().call(null);
+          }
+        },
 
         
         
         
         tearDownPeerConnection = function() {
           
-          if (_iceProcessor) _iceProcessor.peerConnection = null;
+          if (_iceProcessor) _iceProcessor.setPeerConnection(null);
+
+          qos.stopCollecting();
 
           if (_peerConnection !== null) {
+            if (_peerConnection.destroy) {
+              
+              
+              _peerConnection.destroy();
+            }
+
             _peerConnection = null;
             this.trigger('close');
           }
@@ -12132,7 +14815,6 @@ OTHelpers.centerElement = function(element, width, height) {
             newState = event.target.readyState;
           }
 
-          OT.debug('PeerConnection.stateChange: ' + newState);
           if (newState && newState.toLowerCase() !== _state) {
             _state = newState.toLowerCase();
             OT.debug('PeerConnection.stateChange: ' + _state);
@@ -12144,6 +14826,10 @@ OTHelpers.centerElement = function(element, width, height) {
             }
           }
         },
+
+        qosCallback = OT.$.bind(function(parsedStats) {
+          this.trigger('qos', parsedStats);
+        }, this),
 
         getRemoteStreams = function() {
           var streams;
@@ -12181,15 +14867,18 @@ OTHelpers.centerElement = function(element, width, height) {
           delegateMessage(messageType, sdp);
         },
 
+
         
         processOffer = function(message) {
           var offer = new NativeRTCSessionDescription({type: 'offer', sdp: message.content.sdp}),
 
               
               relayAnswer = function(answer) {
-                _iceProcessor.peerConnection = _peerConnection;
+                _iceProcessor.setPeerConnection(_peerConnection);
                 _iceProcessor.processPending();
                 relaySDP(OT.Raptor.Actions.ANSWER, answer);
+
+                qos.startCollecting(_peerConnection);
               },
 
               reportError = function(message, errorReason, prefix) {
@@ -12197,14 +14886,14 @@ OTHelpers.centerElement = function(element, width, height) {
                   errorReason, prefix);
               };
 
-          setupPeerConnection();
-
-          offerProcessor(
-            _peerConnection,
-            offer,
-            relayAnswer,
-            reportError
-          );
+          createPeerConnection(function() {
+            offerProcessor(
+              _peerConnection,
+              offer,
+              relayAnswer,
+              reportError
+            );
+          });
         },
 
         processAnswer = function(message) {
@@ -12223,40 +14912,50 @@ OTHelpers.centerElement = function(element, width, height) {
                   'SetRemoteDescription');
               });
 
-          _iceProcessor.peerConnection = _peerConnection;
+          _iceProcessor.setPeerConnection(_peerConnection);
           _iceProcessor.processPending();
+
+          qos.startCollecting(_peerConnection);
         },
 
         processSubscribe = function() {
           OT.debug('PeerConnection.processSubscribe: Sending offer to subscriber.');
 
-          setupPeerConnection();
-
-          suscribeProcessor(
-            _peerConnection,
-
+          if (!_peerConnection) {
             
-            function(offer) {
-              _offer = offer;
-              relaySDP(OT.Raptor.Actions.OFFER, _offer);
-            },
-
             
-            function(message, errorReason, prefix) {
-              triggerError('PeerConnection.suscribeProcessor ' + message + ': ' +
-                errorReason, prefix);
-            }
-          );
+            
+            throw new Error('PeerConnection broke!');
+          }
+
+          createPeerConnection(function() {
+            suscribeProcessor(
+              _peerConnection,
+
+              
+              function(offer) {
+                _offer = offer;
+                relaySDP(OT.Raptor.Actions.OFFER, _offer);
+              },
+
+              
+              function(message, errorReason, prefix) {
+                triggerError('PeerConnection.suscribeProcessor ' + message + ': ' +
+                  errorReason, prefix);
+              }
+            );
+          });
         },
 
-        triggerError = function(errorReason, prefix) {
+        triggerError = OT.$.bind(function(errorReason, prefix) {
           OT.error(errorReason);
           this.trigger('error', errorReason, prefix);
-        }.bind(this);
+        }, this);
 
     this.addLocalStream = function(webRTCStream) {
-      setupPeerConnection();
-      _peerConnection.addStream(webRTCStream);
+      createPeerConnection(function() {
+        _peerConnection.addStream(webRTCStream);
+      }, webRTCStream);
     };
 
     this.disconnect = function() {
@@ -12278,6 +14977,7 @@ OTHelpers.centerElement = function(element, width, height) {
     this.processMessage = function(type, message) {
       OT.debug('PeerConnection.processMessage: Received ' +
         type + ' from ' + message.fromAddress);
+
       OT.debug(message);
 
       switch(type) {
@@ -12305,7 +15005,7 @@ OTHelpers.centerElement = function(element, width, height) {
 
       return this;
     };
-    
+
     this.setIceServers = function (iceServers) {
       if (iceServers) {
         config.iceServers = iceServers;
@@ -12317,7 +15017,7 @@ OTHelpers.centerElement = function(element, width, height) {
     };
 
     this.unregisterMessageDelegate = function(delegateFn) {
-      var index = _messageDelegates.indexOf(delegateFn);
+      var index = OT.$.arrayIndexOf(_messageDelegates, delegateFn);
 
       if ( index !== -1 ) {
         _messageDelegates.splice(index, 1);
@@ -12325,193 +15025,360 @@ OTHelpers.centerElement = function(element, width, height) {
       return _messageDelegates.length;
     };
 
-    
-
-
-
-
-
-
-
-
-
-
-
-    this.getStats = function(prevStats, callback) {
-      var parsedStats = {},
-          now,
-          timeDifference,
-          parseAvgVideoBitrate,
-          parseAvgAudioBitrate,
-          parseFrameRate,
-          parseStatsReports,
-          parseStats,
-          needsNewGetStats;
-
-      
-      if (_gettingStats === true) {
-        OT.warn('PeerConnection.getStats: Already getting the stats!');
-        return;
-      }
-
-      
-      _gettingStats = true;
-
-      
-      now = OT.$.now();
-      timeDifference = (now - prevStats.timeStamp) / 1000; 
-
-      
-      prevStats.timeStamp = now;
-
-      
-      parseAvgVideoBitrate = function(result) {
-        var lastBytesSent = prevStats.videoBytesTransferred || 0;
-
-        if (result.bytesSent || result.bytesReceived) {
-          prevStats.videoBytesTransferred = result.bytesSent || result.bytesReceived;
-          return Math.round((prevStats.videoBytesTransferred - lastBytesSent) * 8 / timeDifference);
-
-        } else if (result.stat('googFrameHeightSent')) {
-          prevStats.videoBytesTransferred = result.stat('bytesSent');
-          return Math.round((prevStats.videoBytesTransferred - lastBytesSent) * 8 / timeDifference);
-
-        } else if (result.stat('googFrameHeightReceived')) {
-          prevStats.videoBytesTransferred = result.stat('bytesReceived');
-          return Math.round((prevStats.videoBytesTransferred - lastBytesSent) * 8 / timeDifference);
-
-        } else {
-          return NaN;
-        }
-
-      };
-
-        
-      parseAvgAudioBitrate = function(result) {
-        var lastBytesSent = prevStats.audioBytesTransferred || 0;
-
-        if (result.bytesSent || result.bytesReceived) {
-          prevStats.audioBytesTransferred = result.bytesSent || result.bytesReceived;
-          return Math.round((prevStats.audioBytesTransferred - lastBytesSent) * 8 / timeDifference);
-
-        } else if (result.stat('audioInputLevel')) {
-          prevStats.audioBytesTransferred = result.stat('bytesSent');
-          return Math.round((prevStats.audioBytesTransferred - lastBytesSent) * 8 / timeDifference);
-
-        } else if (result.stat('audioOutputLevel')) {
-          prevStats.audioBytesTransferred = result.stat('bytesReceived');
-          return Math.round((prevStats.audioBytesTransferred - lastBytesSent) * 8 / timeDifference);
-
-        } else {
-          return NaN;
-        }
-
-      };
-        
-      parseFrameRate = function(result) {
-        if (result.stat('googFrameRateSent')) {
-          return result.stat('googFrameRateSent');
-        } else if (result.stat('googFrameRateReceived')) {
-          return result.stat('googFrameRateReceived');
-        }
-        return null;
-      };
-
-      parseStatsReports = function(stats) {
-        if (stats.result) {
-          var resultList = stats.result();
-          for (var resultIndex = 0; resultIndex < resultList.length; resultIndex++) {
-            var result = resultList[resultIndex];
-            if (result.stat) {
-
-              if(result.stat('googActiveConnection') === 'true') {
-                parsedStats.localCandidateType = result.stat('googLocalCandidateType');
-                parsedStats.remoteCandidateType = result.stat('googRemoteCandidateType');
-                parsedStats.transportType = result.stat('googTransportType');
-              }
-
-              var avgVideoBitrate = parseAvgVideoBitrate(result);
-              if (!isNaN(avgVideoBitrate)) {
-                parsedStats.avgVideoBitrate = avgVideoBitrate;
-              }
-
-              var avgAudioBitrate = parseAvgAudioBitrate(result);
-              if (!isNaN(avgAudioBitrate)) {
-                parsedStats.avgAudioBitrate = avgAudioBitrate;
-              }
-              var frameRate = parseFrameRate(result);
-              if (frameRate != null) {
-                parsedStats.frameRate = frameRate;
-              }
-            }
-          }
-        }
-
-        _gettingStats = false;
-        callback(parsedStats);
-      };
-      parsedStats.duration = Math.round(now - _createTime);
-
-      parseStats = function(stats) {
-        for (var key in stats) {
-          if (stats.hasOwnProperty(key) &&
-            (stats[key].type === 'outboundrtp' || stats[key].type === 'inboundrtp')) {
-            var res = stats[key];
-            
-            if (res.id.indexOf('video') !== -1) {
-
-              var avgVideoBitrate = parseAvgVideoBitrate(res);
-              if(!isNaN(avgVideoBitrate)) {
-                parsedStats.avgVideoBitrate = avgVideoBitrate;
-              }
-
-            } else if (res.id.indexOf('audio') !== -1) {
-
-              var avgAudioBitrate = parseAvgAudioBitrate(res);
-              if(!isNaN(avgAudioBitrate)) {
-                parsedStats.avgAudioBitrate = avgAudioBitrate;
-              }
-
-            }
-          }
-        }
-
-        _gettingStats = false;
-        callback(parsedStats);
-      };
-
-      needsNewGetStats = function() {
-        var firefoxVersion = window.navigator.userAgent.toLowerCase()
-        .match(/Firefox\/([0-9\.]+)/i);
-        var needs = (firefoxVersion !== null && parseFloat(firefoxVersion[1], 10) >= 27.0);
-        needsNewGetStats = function() { return needs; };
-        return needs;
-      };
-
-      if (_peerConnection && _peerConnection.getStats) {
-        if(needsNewGetStats()) {
-          _peerConnection.getStats(null, parseStats, function(err) {
-            OT.warn('Error collecting stats', err);
-            _gettingStats = false;
-          });
-        } else {
-          _peerConnection.getStats(parseStatsReports);
-        }
-      } else {
-        
-        _gettingStats = false;
-        callback(parsedStats);
-      }
+    this.remoteStreams = function() {
+      return _peerConnection ? getRemoteStreams() : [];
     };
 
-    Object.defineProperty(this, 'remoteStreams', {
-      get: function() {
-        return _peerConnection ? getRemoteStreams() : [];
-      }
-    });
+    var qos = new OT.PeerConnection.QOS(qosCallback);
   };
 
 })(window);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+!(function() {
+
+  
+  
+  
+  
+  var parseStatsOldAPI = function parseStatsOldAPI (peerConnection,
+                                                    prevStats,
+                                                    currentStats,
+                                                    completion) {
+
+    
+    var parseAvgVideoBitrate = function (result) {
+          if (result.stat('googFrameHeightSent')) {
+            currentStats.videoBytesTransferred = result.stat('bytesSent');
+          } else if (result.stat('googFrameHeightReceived')) {
+            currentStats.videoBytesTransferred = result.stat('bytesReceived');
+          } else {
+            return NaN;
+          }
+
+          var transferDelta = currentStats.videoBytesTransferred -
+                                        (prevStats.videoBytesTransferred || 0);
+
+          return Math.round(transferDelta * 8 / currentStats.deltaSecs);
+        },
+
+        
+        parseAvgAudioBitrate = function (result) {
+          if (result.stat('audioInputLevel')) {
+            currentStats.audioBytesTransferred = result.stat('bytesSent');
+          } else if (result.stat('audioOutputLevel')) {
+            currentStats.audioBytesTransferred = result.stat('bytesReceived');
+          } else {
+            return NaN;
+          }
+
+          var transferDelta = currentStats.audioBytesTransferred -
+                                        (prevStats.audioBytesTransferred || 0);
+          return Math.round(transferDelta * 8 / currentStats.deltaSecs);
+        },
+
+        parseFrameRate = function (result) {
+          if (result.stat('googFrameRateSent')) {
+            return result.stat('googFrameRateSent');
+          } else if (result.stat('googFrameRateReceived')) {
+            return result.stat('googFrameRateReceived');
+          }
+          return null;
+        },
+
+        parseStatsReports = function (stats) {
+          if (stats.result) {
+            var resultList = stats.result();
+            for (var resultIndex = 0; resultIndex < resultList.length; resultIndex++) {
+              var result = resultList[resultIndex];
+
+              if (result.stat) {
+
+                if(result.stat('googActiveConnection') === 'true') {
+                  currentStats.localCandidateType = result.stat('googLocalCandidateType');
+                  currentStats.remoteCandidateType = result.stat('googRemoteCandidateType');
+                  currentStats.transportType = result.stat('googTransportType');
+                }
+
+                var avgVideoBitrate = parseAvgVideoBitrate(result);
+                if (!isNaN(avgVideoBitrate)) {
+                  currentStats.avgVideoBitrate = avgVideoBitrate;
+                }
+
+                var avgAudioBitrate = parseAvgAudioBitrate(result);
+                if (!isNaN(avgAudioBitrate)) {
+                  currentStats.avgAudioBitrate = avgAudioBitrate;
+                }
+
+                var frameRate = parseFrameRate(result);
+                if (frameRate != null) {
+                  currentStats.frameRate = frameRate;
+                }
+              }
+            }
+          }
+
+          completion(null, currentStats);
+        };
+
+    peerConnection.getStats(parseStatsReports);
+  };
+
+  
+  
+  
+  
+  var parseStatsOTPlugin = function parseStatsOTPlugin (peerConnection,
+                                                    prevStats,
+                                                    currentStats,
+                                                    completion) {
+
+    var onStatsError = function onStatsError (error) {
+          completion(error);
+        },
+
+        
+        
+        
+        
+        
+        parseAudioStats = function (statsReport) {
+          var lastBytesSent = prevStats.audioBytesTransferred || 0,
+              transferDelta;
+
+          if (statsReport.audioInputLevel) {
+            currentStats.audioBytesTransferred = statsReport.bytesSent;
+          }
+          else if (statsReport.audioOutputLevel) {
+            currentStats.audioBytesTransferred = statsReport.bytesReceived;
+          }
+
+          if (currentStats.audioBytesTransferred) {
+            transferDelta = currentStats.audioBytesTransferred - lastBytesSent;
+            currentStats.avgAudioBitrate = Math.round(transferDelta * 8 / currentStats.deltaSecs);
+          }
+        },
+
+        
+        
+        
+        
+        
+        
+        parseVideoStats = function (statsReport) {
+
+          var lastBytesSent = prevStats.videoBytesTransferred || 0,
+              transferDelta;
+
+          if (statsReport.googFrameHeightSent) {
+            currentStats.videoBytesTransferred = statsReport.bytesSent;
+          }
+          else if (statsReport.googFrameHeightReceived) {
+            currentStats.videoBytesTransferred = statsReport.bytesReceived;
+          }
+
+          if (currentStats.videoBytesTransferred) {
+            transferDelta = currentStats.videoBytesTransferred - lastBytesSent;
+            currentStats.avgVideoBitrate = Math.round(transferDelta * 8 / currentStats.deltaSecs);
+          }
+
+          if (statsReport.googFrameRateSent) {
+            currentStats.frameRate = statsReport.googFrameRateSent;
+          } else if (statsReport.googFrameRateReceived) {
+            currentStats.frameRate = statsReport.googFrameRateReceived;
+          }
+        },
+
+        isStatsForVideoTrack = function(statsReport) {
+          return statsReport.googFrameHeightSent !== void 0 ||
+                  statsReport.googFrameHeightReceived !== void 0 ||
+                  currentStats.videoBytesTransferred !== void 0 ||
+                  statsReport.googFrameRateSent !== void 0;
+        },
+
+        isStatsForIceCandidate = function(statsReport) {
+          return statsReport.googActiveConnection === 'true';
+        };
+
+    peerConnection.getStats(null, function(statsReports) {
+      statsReports.forEach(function(statsReport) {
+        if (isStatsForIceCandidate(statsReport)) {
+          currentStats.localCandidateType = statsReport.googLocalCandidateType;
+          currentStats.remoteCandidateType = statsReport.googRemoteCandidateType;
+          currentStats.transportType = statsReport.googTransportType;
+        }
+        else if (isStatsForVideoTrack(statsReport)) {
+          parseVideoStats(statsReport);
+        }
+        else {
+          parseAudioStats(statsReport);
+        }
+      });
+
+      completion(null, currentStats);
+    }, onStatsError);
+  };
+
+
+  
+  
+  
+  var parseStatsNewAPI = function parseStatsNewAPI (peerConnection,
+                                                    prevStats,
+                                                    currentStats,
+                                                    completion) {
+
+    var onStatsError = function onStatsError (error) {
+          completion(error);
+        },
+
+        parseAvgVideoBitrate = function parseAvgVideoBitrate (result) {
+          if (result.bytesSent || result.bytesReceived) {
+            currentStats.videoBytesTransferred = result.bytesSent || result.bytesReceived;
+          }
+          else {
+            return NaN;
+          }
+
+          var transferDelta = currentStats.videoBytesTransferred -
+                                        (prevStats.videoBytesTransferred || 0);
+
+          return Math.round(transferDelta * 8 / currentStats.deltaSecs);
+        },
+
+        parseAvgAudioBitrate = function parseAvgAudioBitrate (result) {
+          if (result.bytesSent || result.bytesReceived) {
+            currentStats.audioBytesTransferred = result.bytesSent || result.bytesReceived;
+          } else {
+            return NaN;
+          }
+
+          var transferDelta = currentStats.audioBytesTransferred -
+                                        (prevStats.audioBytesTransferred || 0);
+          return Math.round(transferDelta * 8 / currentStats.deltaSecs);
+        };
+
+
+    peerConnection.getStats(null, function(stats) {
+
+      for (var key in stats) {
+        if (stats.hasOwnProperty(key) &&
+          (stats[key].type === 'outboundrtp' || stats[key].type === 'inboundrtp')) {
+
+          var res = stats[key];
+
+          
+          if (res.id.indexOf('video') !== -1) {
+            var avgVideoBitrate = parseAvgVideoBitrate(res);
+            if(!isNaN(avgVideoBitrate)) {
+              currentStats.avgVideoBitrate = avgVideoBitrate;
+            }
+
+          } else if (res.id.indexOf('audio') !== -1) {
+            var avgAudioBitrate = parseAvgAudioBitrate(res);
+            if(!isNaN(avgAudioBitrate)) {
+              currentStats.avgAudioBitrate = avgAudioBitrate;
+            }
+
+          }
+        }
+      }
+
+      completion(null, currentStats);
+    }, onStatsError);
+  };
+
+
+  var parseQOS = function (peerConnection, prevStats, currentStats, completion) {
+    var firefoxVersion = window.navigator.userAgent
+                              .toLowerCase().match(/Firefox\/([0-9\.]+)/i);
+
+    if (TBPlugin.isInstalled()) {
+      parseQOS = parseStatsOTPlugin;
+      return parseStatsOTPlugin(peerConnection, prevStats, currentStats, completion);
+    }
+    else if (firefoxVersion !== null && parseFloat(firefoxVersion[1], 10) >= 27.0) {
+      parseQOS = parseStatsNewAPI;
+      return parseStatsNewAPI(peerConnection, prevStats, currentStats, completion);
+    }
+    else {
+      parseQOS = parseStatsOldAPI;
+      return parseStatsOldAPI(peerConnection, prevStats, currentStats, completion);
+    }
+  };
+
+  OT.PeerConnection.QOS = function (qosCallback) {
+    var _creationTime = OT.$.now(),
+        _peerConnection;
+
+    var calculateQOS = OT.$.bind(function calculateQOS (prevStats) {
+      if (!_peerConnection) {
+        
+        
+        return;
+      }
+
+      var now = OT.$.now();
+
+      var currentStats = {
+        timeStamp: now,
+        duration: Math.round(now - _creationTime),
+        deltaSecs: (now - prevStats.timeStamp) / 1000
+      };
+
+      var onParsedStats = function (err, parsedStats) {
+        if (err) {
+          OT.error('Failed to Parse QOS Stats: ' + JSON.stringify(err));
+          return;
+        }
+
+        qosCallback(parsedStats, prevStats);
+
+        
+        setTimeout(OT.$.bind(calculateQOS, null, parsedStats), OT.PeerConnection.QOS.INTERVAL);
+      };
+
+      parseQOS(_peerConnection, prevStats, currentStats, onParsedStats);
+    }, this);
+
+
+    this.startCollecting = function (peerConnection) {
+      if (!peerConnection || !peerConnection.getStats) {
+        
+        
+        return;
+      }
+
+      _peerConnection = peerConnection;
+
+      calculateQOS({
+        timeStamp: OT.$.now()
+      });
+    };
+
+    this.stopCollecting = function () {
+      _peerConnection = null;
+    };
+  };
+
+  
+  OT.PeerConnection.QOS.INTERVAL = 30000;
+})();
 !(function() {
 
   var _peerConnections = {};
@@ -12575,7 +15442,8 @@ OTHelpers.centerElement = function(element, width, height) {
         _subscriberId = session._.subscriberMap[remoteConnection.id + '_' + streamId],
         _onPeerClosed,
         _onPeerError,
-        _relayMessageToPeer;
+        _relayMessageToPeer,
+        _onQOS;
 
     
     _onPeerClosed = function() {
@@ -12589,7 +15457,7 @@ OTHelpers.centerElement = function(element, width, height) {
       this.destroy();
     };
 
-    _relayMessageToPeer = function(type, payload) {
+    _relayMessageToPeer = OT.$.bind(function(type, payload) {
       if (!_hasRelayCandidates){
         var extractCandidates = type === OT.Raptor.Actions.CANDIDATE ||
                                 type === OT.Raptor.Actions.OFFER ||
@@ -12633,7 +15501,11 @@ OTHelpers.centerElement = function(element, width, height) {
             session._.jsepCandidate(streamId, payload);
           }
       }
-    }.bind(this);
+    }, this);
+
+    _onQOS = OT.$.bind(function _onQOS (parsedStats, prevStats) {
+      this.trigger('qos', remoteConnection, parsedStats, prevStats);
+    }, this);
 
     OT.$.eventing(this);
 
@@ -12641,19 +15513,15 @@ OTHelpers.centerElement = function(element, width, height) {
     this.destroy = function() {
       
       if (_peerConnection) {
+        _peerConnection.off();
         OT.PeerConnections.remove(remoteConnection, streamId);
       }
 
-      _peerConnection.off();
       _peerConnection = null;
     };
 
     this.processMessage = function(type, message) {
       _peerConnection.processMessage(type, message);
-    };
-
-    this.getStats = function(prevStats, callback) {
-      _peerConnection.getStats(prevStats, callback);
     };
 
     
@@ -12664,19 +15532,21 @@ OTHelpers.centerElement = function(element, width, height) {
 
       _peerConnection.on({
         close: _onPeerClosed,
-        error: _onPeerError
+        error: _onPeerError,
+        qos: _onQOS
       }, this);
 
       _peerConnection.registerMessageDelegate(_relayMessageToPeer);
       _peerConnection.addLocalStream(webRTCStream);
 
-      Object.defineProperty(this, 'remoteConnection', {
-        value: remoteConnection
-      });
+      this.remoteConnection = function() {
+        return remoteConnection;
+      };
 
-      Object.defineProperty(this, 'hasRelayCandidates', {
-        get: function() { return _hasRelayCandidates; }
-      });
+      this.hasRelayCandidates = function() {
+        return _hasRelayCandidates;
+      };
+
     };
   };
 
@@ -12710,13 +15580,15 @@ OTHelpers.centerElement = function(element, width, height) {
   OT.SubscriberPeerConnection = function(remoteConnection, session, stream,
     subscriber, properties) {
     var _peerConnection,
+        _destroyed = false,
         _hasRelayCandidates = false,
         _onPeerClosed,
         _onRemoteStreamAdded,
         _onRemoteStreamRemoved,
         _onPeerError,
         _relayMessageToPeer,
-        _setEnabledOnStreamTracksCurry;
+        _setEnabledOnStreamTracksCurry,
+        _onQOS;
 
     
     _onPeerClosed = function() {
@@ -12737,7 +15609,7 @@ OTHelpers.centerElement = function(element, width, height) {
       this.trigger('error', null, errorReason, this, prefix);
     };
 
-    _relayMessageToPeer = function(type, payload) {
+    _relayMessageToPeer = OT.$.bind(function(type, payload) {
       if (!_hasRelayCandidates){
         var extractCandidates = type === OT.Raptor.Actions.CANDIDATE ||
                                 type === OT.Raptor.Actions.OFFER ||
@@ -12766,14 +15638,14 @@ OTHelpers.centerElement = function(element, width, height) {
           session._.jsepCandidateP2p(stream.id, subscriber.widgetId, payload);
           break;
       }
-    }.bind(this);
+    }, this);
 
     
     _setEnabledOnStreamTracksCurry = function(isVideo) {
       var method = 'get' + (isVideo ? 'Video' : 'Audio') + 'Tracks';
 
       return function(enabled) {
-        var remoteStreams = _peerConnection.remoteStreams,
+        var remoteStreams = _peerConnection.remoteStreams(),
             tracks,
             stream;
 
@@ -12796,26 +15668,32 @@ OTHelpers.centerElement = function(element, width, height) {
       };
     };
 
+    _onQOS = OT.$.bind(function _onQOS (parsedStats, prevStats) {
+      this.trigger('qos', parsedStats, prevStats);
+    }, this);
 
     OT.$.eventing(this);
 
     
     this.destroy = function() {
+      if (_destroyed) return;
+      _destroyed = true;
+
       if (_peerConnection) {
         var numDelegates = _peerConnection.unregisterMessageDelegate(_relayMessageToPeer);
-        
+
         
         if (numDelegates === 0) {
           
-          if (session && session.connected && stream && !stream.destroyed) {
+          if (session && session.isConnected() && stream && !stream.destroyed) {
               
             session._.subscriberDestroy(stream, subscriber);
           }
-          
+
           
           this.subscribeToAudio(false);
         }
-        OT.PeerConnections.remove(remoteConnection, stream.streamId);
+        OT.PeerConnections.remove(remoteConnection, stream.id);
       }
       _peerConnection = null;
       this.off();
@@ -12825,16 +15703,13 @@ OTHelpers.centerElement = function(element, width, height) {
       _peerConnection.processMessage(type, message);
     };
 
-    this.getStats = function(prevStats, callback) {
-      _peerConnection.getStats(prevStats, callback);
-    };
 
     this.subscribeToAudio = _setEnabledOnStreamTracksCurry(false);
     this.subscribeToVideo = _setEnabledOnStreamTracksCurry(true);
 
-    Object.defineProperty(this, 'hasRelayCandidates', {
-      get: function() { return _hasRelayCandidates; }
-    });
+    this.hasRelayCandidates = function() {
+      return _hasRelayCandidates;
+    };
 
     
     this.init = function() {
@@ -12844,14 +15719,15 @@ OTHelpers.centerElement = function(element, width, height) {
         close: _onPeerClosed,
         streamAdded: _onRemoteStreamAdded,
         streamRemoved: _onRemoteStreamRemoved,
-        error: _onPeerError
+        error: _onPeerError,
+        qos: _onQOS
       }, this);
 
       var numDelegates = _peerConnection.registerMessageDelegate(_relayMessageToPeer);
 
         
-      if (_peerConnection.remoteStreams.length > 0) {
-        _peerConnection.remoteStreams.forEach(_onRemoteStreamAdded, this);
+      if (_peerConnection.remoteStreams().length > 0) {
+        OT.$.forEach(_peerConnection.remoteStreams(), _onRemoteStreamAdded, this);
       } else if (numDelegates === 1) {
         
         
@@ -12862,13 +15738,13 @@ OTHelpers.centerElement = function(element, width, height) {
           var audio = stream.getChannelsOfType('audio'),
               video = stream.getChannelsOfType('video');
 
-          channelsToSubscribeTo = audio.map(function(channel) {
+          channelsToSubscribeTo = OT.$.map(audio, function(channel) {
             return {
               id: channel.id,
               type: channel.type,
               active: properties.subscribeToAudio
             };
-          }).concat(video.map(function(channel) {
+          }).concat(OT.$.map(video, function(channel) {
             return {
               id: channel.id,
               type: channel.type,
@@ -12880,12 +15756,12 @@ OTHelpers.centerElement = function(element, width, height) {
         }
 
         session._.subscriberCreate(stream, subscriber, channelsToSubscribeTo,
-          function(err, message) {
+          OT.$.bind(function(err, message) {
             if (err) {
               this.trigger('error', null, err.message, this, 'Subscribe');
             }
             _peerConnection.setIceServers(OT.Raptor.parseIceServers(message));
-          }.bind(this));
+          }, this));
       }
     };
   };
@@ -12905,9 +15781,7 @@ OTHelpers.centerElement = function(element, width, height) {
 
           _widgets[name] = widget;
 
-          Object.defineProperty(this, name, {
-            get: function() { return _widgets[name]; }
-          });
+          this[name] = widget;
         };
 
     if (!properties.parent) {
@@ -13072,17 +15946,7 @@ OTHelpers.centerElement = function(element, width, height) {
   
   OT.Chrome.BackingBar = function(options) {
     var _nameMode = options.nameMode,
-        _muteMode = options.muteMode,
-        _domElement;
-
-    
-    
-    Object.defineProperty(this, 'domElement', {
-      get: function() { return _domElement; },
-      set: function(domElement) {
-        _domElement = domElement;
-      }
-    });
+        _muteMode = options.muteMode;
 
     function getDisplayMode() {
       if(_nameMode === 'on' || _muteMode === 'on') {
@@ -13135,41 +15999,29 @@ OTHelpers.centerElement = function(element, width, height) {
   
   OT.Chrome.NamePanel = function(options) {
     var _name = options.name,
-        _bugMode = options.bugMode,
-        _domElement;
+        _bugMode = options.bugMode;
 
-    if (!_name || _name.trim().length === '') {
+    if (!_name || OT.$.trim(_name).length === '') {
       _name = null;
 
       
       options.mode = 'off';
     }
 
-    
-    
-    Object.defineProperty(this, 'domElement', {
-      get: function() { return _domElement; },
-      set: function(domElement) {
-        _domElement = domElement;
-      }
+    this.setName = OT.$.bind(function(name) {
+      if (!_name) this.setDisplayMode('auto');
+      _name = name;
+      this.domElement.innerHTML = _name;
     });
 
-    Object.defineProperty(this, 'name', {
-      set: function(name) {
-        if (!_name) this.setDisplayMode('auto');
-        _name = name;
-        _domElement.innerHTML = _name;
-      }.bind(this)
-    });
-
-    this.setBugMode = function(bugMode) {
+    this.setBugMode = OT.$.bind(function(bugMode) {
       _bugMode = bugMode;
       if(bugMode === 'off') {
-        OT.$.addClass(_domElement, 'OT_name-no-bug');
+        OT.$.addClass(this.domElement, 'OT_name-no-bug');
       } else {
-        OT.$.removeClass(_domElement, 'OT_name-no-bug');
+        OT.$.removeClass(this.domElement, 'OT_name-no-bug');
       }
-    };
+    }, this);
 
     
     OT.Chrome.Behaviour.Widget(this, {
@@ -13179,9 +16031,9 @@ OTHelpers.centerElement = function(element, width, height) {
       htmlAttributes: {
         className: 'OT_name OT_edge-bar-item'
       },
-      onCreate: function() {
+      onCreate: OT.$.bind(function() {
         this.setBugMode(_bugMode);
-      }.bind(this)
+      }, this)
     });
 
   };
@@ -13192,38 +16044,28 @@ OTHelpers.centerElement = function(element, width, height) {
   OT.Chrome.MuteButton = function(options) {
     var _onClickCb,
         _muted = options.muted || false,
-        _domElement,
         updateClasses,
         attachEvents,
         detachEvents,
         onClick;
 
-    
-    
-    Object.defineProperty(this, 'domElement', {
-      get: function() { return _domElement; },
-      set: function(domElement) {
-        _domElement = domElement;
-      }
-    });
-
-    updateClasses = function() {
+    updateClasses = OT.$.bind(function() {
       if (_muted) {
-        OT.$.addClass(_domElement, 'OT_active');
+        OT.$.addClass(this.domElement, 'OT_active');
       } else {
-        OT.$.removeClass(_domElement, 'OT_active ');
+        OT.$.removeClass(this.domElement, 'OT_active ');
       }
-    };
+    }, this);
 
     
     attachEvents = function(elem) {
-      _onClickCb = onClick.bind(this);
-      elem.addEventListener('click', _onClickCb, false);
+      _onClickCb = OT.$.bind(onClick, this);
+      OT.$.on(elem, 'click', _onClickCb);
     };
 
     detachEvents = function(elem) {
       _onClickCb = null;
-      elem.removeEventListener('click', _onClickCb, false);
+      OT.$.off(elem, 'click', _onClickCb);
     };
 
     onClick = function() {
@@ -13240,11 +16082,13 @@ OTHelpers.centerElement = function(element, width, height) {
       return false;
     };
 
-    Object.defineProperty(this, 'muted', {
-      get: function() { return _muted; },
-      set: function(muted) {
-        _muted = muted;
-        updateClasses();
+    OT.$.defineProperties(this, {
+      muted: {
+        get: function() { return _muted; },
+        set: function(muted) {
+          _muted = muted;
+          updateClasses();
+        }
       }
     });
 
@@ -13257,8 +16101,8 @@ OTHelpers.centerElement = function(element, width, height) {
       htmlAttributes: {
         className: classNames
       },
-      onCreate: attachEvents.bind(this),
-      onDestroy: detachEvents.bind(this)
+      onCreate: OT.$.bind(attachEvents, this),
+      onDestroy: OT.$.bind(detachEvents, this)
     });
   };
 
@@ -13267,16 +16111,6 @@ OTHelpers.centerElement = function(element, width, height) {
 !(function() {
 
   OT.Chrome.OpenTokButton = function(options) {
-
-    
-    
-    var _domElement;
-    Object.defineProperty(this, 'domElement', {
-      get: function() { return _domElement; },
-      set: function(domElement) {
-        _domElement = domElement;
-      }
-    });
 
     
     OT.Chrome.Behaviour.Widget(this, {
@@ -13314,26 +16148,17 @@ OTHelpers.centerElement = function(element, width, height) {
         _lightBox,
         _light,
         _text,
-        _domElement,
+        _textNode,
         renderStageDelayedAction,
         renderText,
         renderStage;
 
-    
-    
-    Object.defineProperty(this, 'domElement', {
-      get: function() { return _domElement; },
-      set: function(domElement) {
-        _domElement = domElement;
-      }
-    });
-
     renderText = function(text) {
-      _text.innerText = text;
+      _textNode.nodeValue = text;
       _lightBox.setAttribute('title', text);
     };
 
-    renderStage = function() {
+    renderStage = OT.$.bind(function() {
       if(renderStageDelayedAction) {
         clearTimeout(renderStageDelayedAction);
         renderStageDelayedAction = null;
@@ -13345,8 +16170,8 @@ OTHelpers.centerElement = function(element, width, height) {
         OT.$.removeClass(_light, 'OT_active');
       }
 
-      OT.$.removeClass(_domElement, 'OT_archiving-' + (!_archiving ? 'on' : 'off'));
-      OT.$.addClass(_domElement, 'OT_archiving-' + (_archiving ? 'on' : 'off'));
+      OT.$.removeClass(this.domElement, 'OT_archiving-' + (!_archiving ? 'on' : 'off'));
+      OT.$.addClass(this.domElement, 'OT_archiving-' + (_archiving ? 'on' : 'off'));
       if(options.show && _archiving) {
         renderText(_archivingStarted);
         OT.$.addClass(_text, 'OT_mode-on');
@@ -13355,26 +16180,26 @@ OTHelpers.centerElement = function(element, width, height) {
         renderStageDelayedAction = setTimeout(function() {
           OT.$.addClass(_text, 'OT_mode-auto');
           OT.$.removeClass(_text, 'OT_mode-on');
-        }.bind(this), 5000);
+        }, 5000);
       } else if(options.show && !_initialState) {
         OT.$.addClass(_text, 'OT_mode-on');
         OT.$.removeClass(_text, 'OT_mode-auto');
         this.setDisplayMode('on');
         renderText(_archivingEnded);
-        renderStageDelayedAction = setTimeout(function() {
+        renderStageDelayedAction = setTimeout(OT.$.bind(function() {
           this.setDisplayMode('off');
-        }.bind(this), 5000);
+        }, this), 5000);
       } else {
         this.setDisplayMode('off');
       }
-    }.bind(this);
+    }, this);
 
     
     OT.Chrome.Behaviour.Widget(this, {
       mode: _archiving && options.show && 'on' || 'off',
       nodeName: 'h1',
       htmlAttributes: {className: 'OT_archiving OT_edge-bar-item OT_edge-bottom'},
-      onCreate: function() {
+      onCreate: OT.$.bind(function() {
         _lightBox = OT.$.createElement('div', {
           className: 'OT_archiving-light-box'
         }, '');
@@ -13385,26 +16210,28 @@ OTHelpers.centerElement = function(element, width, height) {
         _text = OT.$.createElement('div', {
           className: 'OT_archiving-status OT_mode-on OT_edge-bar-item OT_edge-bottom'
         }, '');
-        _domElement.appendChild(_lightBox);
-        _domElement.appendChild(_text);
+        _textNode = document.createTextNode('');
+        _text.appendChild(_textNode);
+        this.domElement.appendChild(_lightBox);
+        this.domElement.appendChild(_text);
         renderStage();
-      }
+      }, this)
     });
 
-    this.setShowArchiveStatus = function(show) {
+    this.setShowArchiveStatus = OT.$.bind(function(show) {
       options.show = show;
-      if(_domElement) {
+      if(this.domElement) {
         renderStage.call(this);
       }
-    };
+    }, this);
 
-    this.setArchiving = function(status) {
+    this.setArchiving = OT.$.bind(function(status) {
       _archiving = status;
       _initialState = false;
-      if(_domElement) {
+      if(this.domElement) {
         renderStage.call(this);
       }
-    };
+    }, this);
 
   };
 
@@ -13651,8 +16478,8 @@ OTHelpers.centerElement = function(element, width, height) {
     
     isValidStyle = function(key, value) {
       return key === 'backgroundImageURI' ||
-        (   _validStyleValues.hasOwnProperty(key) &&
-        _validStyleValues[key].indexOf(value) !== -1 );
+        (_validStyleValues.hasOwnProperty(key) &&
+          OT.$.arrayIndexOf(_validStyleValues[key], value) !== -1 );
     };
 
     castValue = function(value) {
@@ -13674,7 +16501,8 @@ OTHelpers.centerElement = function(element, width, height) {
         if(!style.hasOwnProperty(key)) {
           continue;
         }
-        if (_COMPONENT_STYLES.indexOf(key) < 0) {
+        if (OT.$.arrayIndexOf(_COMPONENT_STYLES, key) < 0) {
+
           
           delete style[key];
         }
@@ -13753,48 +16581,42 @@ OTHelpers.centerElement = function(element, width, height) {
 
 
   OT.Microphone = function(webRTCStream, muted) {
-    var _muted,
-        _gain = 50;
+    var _muted;
 
+    OT.$.defineProperties(this, {
+      muted: {
+        get: function() {
+          return _muted;
+        },
+        set: function(muted) {
+          if (_muted === muted) return;
 
-    Object.defineProperty(this, 'muted', {
-      get: function() { return _muted; },
-      set: function(muted) {
-        if (_muted === muted) return;
+          _muted = muted;
 
-        _muted = muted;
+          var audioTracks = webRTCStream.getAudioTracks();
 
-        var audioTracks = webRTCStream.getAudioTracks();
-
-        for (var i=0, num=audioTracks.length; i<num; ++i) {
-          audioTracks[i].enabled = !_muted;
+          for (var i=0, num=audioTracks.length; i<num; ++i) {
+            audioTracks[i].setEnabled(!_muted);
+          }
         }
-      }
-    });
-
-    Object.defineProperty(this, 'gain', {
-      get: function() { return _gain; },
-      set: function(gain) {
-        OT.warn('OT.Microphone.gain IS NOT YET IMPLEMENTED');
-        _gain = gain;
       }
     });
 
     
     if (muted !== undefined) {
-      this.muted = muted === true;
+      this.muted(muted === true);
 
     } else if (webRTCStream.getAudioTracks().length) {
-      this.muted = !webRTCStream.getAudioTracks()[0].enabled;
+      this.muted(!webRTCStream.getAudioTracks()[0].enabled);
 
     } else {
-      this.muted = false;
+      this.muted(false);
     }
 
   };
 
 })(window);
-!(function() {
+!(function(window, OT) {
 
   
   
@@ -13814,16 +16636,19 @@ OTHelpers.centerElement = function(element, width, height) {
         validTransitions = OT.$.clone(transitions);
 
     var isValidState = function (state) {
-      return validStates.indexOf(state) !== -1;
+      return OT.$.arrayIndexOf(validStates, state) !== -1;
     };
 
     var isValidTransition = function(fromState, toState) {
-      return validTransitions[fromState] && validTransitions[fromState].indexOf(toState) !== -1;
+      return validTransitions[fromState] &&
+        OT.$.arrayIndexOf(validTransitions[fromState], toState) !== -1;
     };
 
     return function(stateChangeFailed) {
       var currentState = initialState,
           previousState = null;
+
+      this.current = currentState;
 
       function signalChangeFailed(message, newState) {
         stateChangeFailed({
@@ -13855,25 +16680,19 @@ OTHelpers.centerElement = function(element, width, height) {
 
       this.set = function(newState) {
         if (!handleInvalidStateChanges(newState)) return;
-
         previousState = currentState;
-        currentState = newState;
+        this.current = currentState = newState;
       };
-
-      Object.defineProperties(this, {
-        current: {
-          get: function() { return currentState; }
-        },
-
-        subscribing: {
-          get: function() { return currentState === 'Subscribing'; }
-        }
-      });
+      
     };
   };
 
-})(window);
+})(window, window.OT);
 !(function() {
+
+
+
+
 
 
 
@@ -13933,26 +16752,41 @@ OTHelpers.centerElement = function(element, width, height) {
       initialState = 'NotSubscribing';
 
   validStates = [
-    'NotSubscribing', 'Init', 'ConnectingToPeer', 'BindingRemoteStream', 'Subscribing', 'Failed'
+    'NotSubscribing', 'Init', 'ConnectingToPeer',
+    'BindingRemoteStream', 'Subscribing', 'Failed',
+    'Destroyed'
   ];
 
   validTransitions = {
-    NotSubscribing: ['NotSubscribing', 'Init'],
-    Init: ['NotSubscribing', 'ConnectingToPeer', 'BindingRemoteStream'],
-    ConnectingToPeer: ['NotSubscribing', 'BindingRemoteStream', 'Failed'],
-    BindingRemoteStream: ['NotSubscribing', 'Subscribing', 'Failed'],
-    Subscribing: ['NotSubscribing', 'Failed'],
-    Failed: []
+    NotSubscribing: ['NotSubscribing', 'Init', 'Destroyed'],
+    Init: ['NotSubscribing', 'ConnectingToPeer', 'BindingRemoteStream', 'Destroyed'],
+    ConnectingToPeer: ['NotSubscribing', 'BindingRemoteStream', 'Failed', 'Destroyed'],
+    BindingRemoteStream: ['NotSubscribing', 'Subscribing', 'Failed', 'Destroyed'],
+    Subscribing: ['NotSubscribing', 'Failed', 'Destroyed'],
+    Failed: ['Destroyed'],
+    Destroyed: []
   };
 
   OT.SubscribingState = OT.generateSimpleStateMachine(initialState, validStates, validTransitions);
 
-  Object.defineProperty(OT.SubscribingState.prototype, 'attemptingToSubscribe', {
-    get: function() {
-      return [ 'Init', 'ConnectingToPeer', 'BindingRemoteStream' ]
-        .indexOf(this.current) !== -1;
-    }
-  });
+  OT.SubscribingState.prototype.isDestroyed = function() {
+    return this.current === 'Destroyed';
+  };
+
+  OT.SubscribingState.prototype.isFailed = function() {
+    return this.current === 'Failed';
+  };
+
+  OT.SubscribingState.prototype.isSubscribing = function() {
+    return this.current === 'Subscribing';
+  };
+
+  OT.SubscribingState.prototype.isAttemptingToSubscribe = function() {
+    return OT.$.arrayIndexOf(
+      [ 'Init', 'ConnectingToPeer', 'BindingRemoteStream' ],
+      this.current
+    ) !== -1;
+  };
 
 })(window);
 !(function() {
@@ -14010,38 +16844,44 @@ OTHelpers.centerElement = function(element, width, height) {
 
 
 
+
+
+
+
   var validStates = [
       'NotPublishing', 'GetUserMedia', 'BindingMedia', 'MediaBound',
-      'PublishingToSession', 'Publishing', 'Failed'
+      'PublishingToSession', 'Publishing', 'Failed',
+      'Destroyed'
     ],
 
     validTransitions = {
-      NotPublishing: ['NotPublishing', 'GetUserMedia'],
-      GetUserMedia: ['BindingMedia', 'Failed', 'NotPublishing'],
-      BindingMedia: ['MediaBound', 'Failed', 'NotPublishing'],
-      MediaBound: ['NotPublishing', 'PublishingToSession', 'Failed'],
-      PublishingToSession: ['NotPublishing', 'Publishing', 'Failed'],
-      Publishing: ['NotPublishing', 'MediaBound', 'Failed'],
-      Failed: []
+      NotPublishing: ['NotPublishing', 'GetUserMedia', 'Destroyed'],
+      GetUserMedia: ['BindingMedia', 'Failed', 'NotPublishing', 'Destroyed'],
+      BindingMedia: ['MediaBound', 'Failed', 'NotPublishing', 'Destroyed'],
+      MediaBound: ['NotPublishing', 'PublishingToSession', 'Failed', 'Destroyed'],
+      PublishingToSession: ['NotPublishing', 'Publishing', 'Failed', 'Destroyed'],
+      Publishing: ['NotPublishing', 'MediaBound', 'Failed', 'Destroyed'],
+      Failed: ['Destroyed'],
+      Destroyed: []
     },
 
     initialState = 'NotPublishing';
 
   OT.PublishingState = OT.generateSimpleStateMachine(initialState, validStates, validTransitions);
 
-  Object.defineProperties(OT.PublishingState.prototype, {
-    attemptingToPublish: {
-      get: function() {
-        return [ 'GetUserMedia', 'BindingMedia', 'MediaBound', 'PublishingToSession' ]
-          .indexOf(this.current) !== -1;
-      }
-    },
+  OT.PublishingState.prototype.isDestroyed = function() {
+    return this.current === 'Destroyed';
+  };
 
-    publishing: {
-      get: function() { return this.current === 'Publishing'; }
-    }
-  });
+  OT.PublishingState.prototype.isAttemptingToPublish = function() {
+    return OT.$.arrayIndexOf(
+      [ 'GetUserMedia', 'BindingMedia', 'MediaBound', 'PublishingToSession' ],
+      this.current) !== -1;
+  };
 
+  OT.PublishingState.prototype.isPublishing = function() {
+    return this.current === 'Publishing';
+  };
 
 })(window);
 !(function() {
@@ -14123,7 +16963,6 @@ OTHelpers.centerElement = function(element, width, height) {
         _analytics = new OT.Analytics(),
         _validResolutions,
         _validFrameRates = [ 1, 7, 15, 30 ],
-        _qosIntervals = {},
         _prevStats,
         _state,
         _iceServers;
@@ -14158,7 +16997,7 @@ OTHelpers.centerElement = function(element, width, height) {
             payload: payload,
             'session_id': _session ? _session.sessionId : null,
             'connection_id': _session &&
-              _session.connected ? _session.connection.connectionId : null,
+              _session.isConnected() ? _session.connection.connectionId : null,
             'partner_id': _session ? _session.apiKey : OT.APIKEY,
             streamId: _stream ? _stream.id : null,
             'widget_id': _guid,
@@ -14166,12 +17005,13 @@ OTHelpers.centerElement = function(element, width, height) {
           });
         },
 
-        recordQOS = function(connectionId) {
+        recordQOS = OT.$.bind(function(connection, parsedStats) {
           var QoSBlob = {
             'widget_type': 'Publisher',
             'stream_type': 'WebRTC',
             sessionId: _session ? _session.sessionId : null,
-            connectionId: _session && _session.connected ? _session.connection.connectionId : null,
+            connectionId: _session && _session.isConnected() ?
+              _session.connection.connectionId : null,
             partnerId: _session ? _session.apiKey : OT.APIKEY,
             streamId: _stream ? _stream.id : null,
             width: _container ? OT.$.width(_container.domElement)  : undefined,
@@ -14181,20 +17021,12 @@ OTHelpers.centerElement = function(element, width, height) {
             'media_server_name': _session ? _session.sessionInfo.messagingServer : null,
             p2pFlag: _session ? _session.sessionInfo.p2pEnabled : false,
             duration: _publishStartTime ? new Date().getTime() - _publishStartTime.getTime() : 0,
-            'remote_connection_id': connectionId
+            'remote_connection_id': connection.id
           };
 
-          
-          _peerConnections[connectionId].getStats(_prevStats, function(stats) {
-            var statIndex;
-            if (stats) {
-              for (statIndex in stats) {
-                QoSBlob[statIndex] = stats[statIndex];
-              }
-            }
-            _analytics.logQOS(QoSBlob);
-          });
-        },
+          _analytics.logQOS( OT.$.extend(QoSBlob, parsedStats) );
+          this.trigger('qos', parsedStats);
+        }, this),
 
         
 
@@ -14204,12 +17036,19 @@ OTHelpers.centerElement = function(element, width, height) {
         },
 
         onLoaded = function() {
+          if (_state.isDestroyed()) {
+            
+            return;
+          }
+
           OT.debug('OT.Publisher.onLoaded');
 
           _state.set('MediaBound');
+
           
           
-          _container.loading = this.session ? !_stream : false;
+          _container.loading(this.session ? !_stream : false);
+
           _loaded = true;
 
           _createChrome.call(this);
@@ -14245,22 +17084,27 @@ OTHelpers.centerElement = function(element, width, height) {
           this.publishVideo(_publishProperties.publishVideo &&
             _webRTCStream.getVideoTracks().length > 0);
 
+          this.accessAllowed = true;
           this.dispatchEvent(
             new OT.Event(OT.Event.names.ACCESS_ALLOWED, false)
           );
 
-          _targetElement = new OT.VideoElement({
-            attributes: {muted:true}
-          });
+          var videoContainerOptions = {
+            muted: true,
+            error: OT.$.bind(onVideoError, this)
+          };
 
-          _targetElement.on({
-            streamBound: onLoaded,
-            loadError: onLoadFailure,
-            error: onVideoError
-          }, this)
-            .bindToStream(_webRTCStream);
+          _targetElement = _container.bindVideo(_webRTCStream,
+                                            videoContainerOptions,
+                                            OT.$.bind(function(err) {
+            if (err) {
+              onLoadFailure.call(this, err);
+              return;
+            }
 
-          _container.video = _targetElement;
+            onLoaded.call(this);
+          }, this));
+
         },
 
         onStreamAvailableError = function(error) {
@@ -14389,7 +17233,7 @@ OTHelpers.centerElement = function(element, width, height) {
 
           _state.set('Failed');
 
-          if (_state.attemptingToPublish) {
+          if (_state.isAttemptingToPublish()) {
             this.trigger('publishComplete', new OT.Error(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
                 message));
           } else {
@@ -14406,15 +17250,15 @@ OTHelpers.centerElement = function(element, width, height) {
         onPeerDisconnected = function(peerConnection) {
           OT.debug('OT.Subscriber has been disconnected from the Publisher\'s PeerConnection');
 
-          this.cleanupSubscriber(peerConnection.remoteConnection.id);
+          this.cleanupSubscriber(peerConnection.remoteConnection().id);
         },
 
         onPeerConnectionFailure = function(code, reason, peerConnection, prefix) {
           logAnalyticsEvent('publish', 'Failure', 'reason|hasRelayCandidates',
             (prefix ? prefix : '') + [':Publisher PeerConnection with connection ' +
               (peerConnection && peerConnection.remoteConnection &&
-              peerConnection.remoteConnection.id)  + ' failed: ' +
-              reason, peerConnection.hasRelayCandidates
+              peerConnection.remoteConnection().id)  + ' failed: ' +
+              reason, peerConnection.hasRelayCandidates()
           ].join('|'));
 
           OT.handleJsException('Publisher PeerConnection Error: ' + reason,
@@ -14427,10 +17271,8 @@ OTHelpers.centerElement = function(element, width, height) {
           
           
           
-          clearInterval(_qosIntervals[peerConnection.remoteConnection.id]);
-          delete _qosIntervals[peerConnection.remoteConnection.id];
 
-          delete _peerConnections[peerConnection.remoteConnection.id];
+          delete _peerConnections[peerConnection.remoteConnection().id];
         },
 
         
@@ -14438,20 +17280,20 @@ OTHelpers.centerElement = function(element, width, height) {
         
         
         
-        assignStream = function(stream) {
-          _stream = stream;
+        assignStream = OT.$.bind(function(stream) {
+          this.stream = _stream = stream;
           _stream.on('destroyed', this.disconnect, this);
 
           _state.set('Publishing');
-          _container.loading = !_loaded;
+          _container.loading(!_loaded);
           _publishStartTime = new Date();
 
           this.trigger('publishComplete', null, this);
-      
+
           this.dispatchEvent(new OT.StreamEvent('streamCreated', stream, null, false));
-          
+
           logAnalyticsEvent('publish', 'Success', 'streamType:streamId', 'WebRTC:' + _streamId);
-        }.bind(this),
+        }, this),
 
         
         cleanupLocalStream = function() {
@@ -14473,7 +17315,7 @@ OTHelpers.centerElement = function(element, width, height) {
 
             
             remoteConnection.on('destroyed',
-              this.cleanupSubscriber.bind(this, remoteConnection.id));
+              OT.$.bind(this.cleanupSubscriber, this, remoteConnection.id));
 
             peerConnection = _peerConnections[remoteConnection.id] = new OT.PublisherPeerConnection(
               remoteConnection,
@@ -14486,16 +17328,12 @@ OTHelpers.centerElement = function(element, width, height) {
               connected: function() {
                 logAnalyticsEvent('createPeerConnection', 'Success', 'pcc|hasRelayCandidates', [
                   parseInt(OT.$.now() - startConnectingTime, 10),
-                  peerConnection.hasRelayCandidates
+                  peerConnection.hasRelayCandidates()
                 ].join('|'));
-
-                
-                _qosIntervals[remoteConnection.id] = setInterval(function() {
-                  recordQOS(remoteConnection.id);
-                }, 30000);
               },
               disconnected: onPeerDisconnected,
-              error: onPeerConnectionFailure
+              error: onPeerConnectionFailure,
+              qos: recordQOS
             }, this);
 
             peerConnection.init(_iceServers);
@@ -14582,12 +17420,12 @@ OTHelpers.centerElement = function(element, width, height) {
             })
 
           }).on({
-            muted: this.publishAudio.bind(this, false),
-            unmuted: this.publishAudio.bind(this, true)
+            muted: OT.$.bind(this.publishAudio, this, false),
+            unmuted: OT.$.bind(this.publishAudio, this, true)
           });
         },
 
-        reset = function() {
+        reset = OT.$.bind(function() {
           if (_chrome) {
             _chrome.destroy();
             _chrome = null;
@@ -14609,29 +17447,23 @@ OTHelpers.centerElement = function(element, width, height) {
             _container = null;
           }
 
-          if (this.session) {
-            this._.unpublishFromSession(this.session, 'reset');
+          if (_session) {
+            this._.unpublishFromSession(_session, 'reset');
           }
 
-          
-          for (var connId in _qosIntervals) {
-            clearInterval(_qosIntervals[connId]);
-            delete _qosIntervals[connId];
-          }
-
-          _domId = null;
-          _stream = null;
+          this.id = _domId = null;
+          this.stream = _stream = null;
           _loaded = false;
 
-          _session = null;
-          
-          _state.set('NotPublishing');
-        }.bind(this);
+          this.session = _session = null;
+
+          if (!_state.isDestroyed()) _state.set('NotPublishing');
+        }, this);
 
     this.publish = function(targetElement, properties) {
       OT.debug('OT.Publisher: publish');
 
-      if ( _state.attemptingToPublish || _state.publishing ) reset();
+      if ( _state.isAttemptingToPublish() || _state.isPublishing() ) reset();
       _state.set('GetUserMedia');
 
       _publishProperties = OT.$.defaults(properties || {}, {
@@ -14642,48 +17474,115 @@ OTHelpers.centerElement = function(element, width, height) {
 
       if (!_publishProperties.constraints) {
         _publishProperties.constraints = OT.$.clone(defaultConstraints);
-        if (_publishProperties.resolution) {
-          if (_publishProperties.resolution !== void 0 &&
-            !_validResolutions.hasOwnProperty(_publishProperties.resolution)) {
-            OT.warn('Invalid resolution passed to the Publisher. Got: ' +
-              _publishProperties.resolution + ' expecting one of "' +
-              Object.keys(_validResolutions).join('","') + '"');
-          } else {
-            _publishProperties.videoDimensions = _validResolutions[_publishProperties.resolution];
-            _publishProperties.constraints.video = {
-              mandatory: {},
-              optional: [
-                {minWidth: _publishProperties.videoDimensions.width},
-                {maxWidth: _publishProperties.videoDimensions.width},
-                {minHeight: _publishProperties.videoDimensions.height},
-                {maxHeight: _publishProperties.videoDimensions.height}
-              ]
-            };
+
+        if(_publishProperties.audioSource === null || _publishProperties.audioSource === false) {
+          _publishProperties.constraints.audio = false;
+          _publishProperties.publishAudio = false;
+        } else {
+          if(typeof _publishProperties.audioSource === 'object') {
+            if(_publishProperties.audioSource.deviceId != null) {
+              _publishProperties.audioSource = _publishProperties.audioSource.deviceId;
+            } else {
+              OT.warn('Invalid audioSource passed to Publisher. Expected either a device ID');
+            }
+          }
+
+          if (_publishProperties.audioSource) {
+            if (typeof _publishProperties.constraints.audio !== 'object') {
+              _publishProperties.constraints.audio = {};
+            }
+            if (!_publishProperties.constraints.audio.mandatory) {
+              _publishProperties.constraints.audio.mandatory = {};
+            }
+            if (!_publishProperties.constraints.audio.optional) {
+              _publishProperties.constraints.audio.optional = [];
+            }
+            _publishProperties.constraints.audio.mandatory.sourceId =
+              _publishProperties.audioSource;
           }
         }
-    
-        if (_publishProperties.frameRate !== void 0 &&
-          _validFrameRates.indexOf(_publishProperties.frameRate) === -1) {
-          OT.warn('Invalid frameRate passed to the publisher got: ' +
-            _publishProperties.frameRate + ' expecting one of ' + _validFrameRates.join(','));
-          delete _publishProperties.frameRate;
-        } else if (_publishProperties.frameRate) {
-          if (!_publishProperties.constraints.video.optional) {
+
+        if(_publishProperties.videoSource === null || _publishProperties.videoSource === false) {
+          _publishProperties.constraints.video = false;
+          _publishProperties.publishVideo = false;
+        } else {
+
+          if(typeof _publishProperties.videoSource === 'object') {
+            if(_publishProperties.videoSource.deviceId != null) {
+              _publishProperties.videoSource = _publishProperties.videoSource.deviceId;
+            } else {
+              OT.warn('Invalid videoSource passed to Publisher. Expected either a device ID');
+            }
+          }
+
+          if (_publishProperties.videoSource) {
             if (typeof _publishProperties.constraints.video !== 'object') {
               _publishProperties.constraints.video = {};
             }
-            _publishProperties.constraints.video.optional = [];
+            if (!_publishProperties.constraints.video.mandatory) {
+              _publishProperties.constraints.video.mandatory = {};
+            }
+            if (!_publishProperties.constraints.video.optional) {
+              _publishProperties.constraints.video.optional = [];
+            }
+            _publishProperties.constraints.video.mandatory.sourceId =
+              _publishProperties.videoSource;
           }
-          _publishProperties.constraints.video.optional.push({
-            minFrameRate: _publishProperties.frameRate
-          });
-          _publishProperties.constraints.video.optional.push({
-            maxFrameRate: _publishProperties.frameRate
-          });
+
+          if (_publishProperties.resolution) {
+            if (_publishProperties.resolution !== void 0 &&
+              !_validResolutions.hasOwnProperty(_publishProperties.resolution)) {
+              OT.warn('Invalid resolution passed to the Publisher. Got: ' +
+                _publishProperties.resolution + ' expecting one of "' +
+                OT.$.keys(_validResolutions).join('","') + '"');
+            } else {
+              _publishProperties.videoDimensions = _validResolutions[_publishProperties.resolution];
+              if (typeof _publishProperties.constraints.video !== 'object') {
+                _publishProperties.constraints.video = {};
+              }
+              if (!_publishProperties.constraints.video.mandatory) {
+                _publishProperties.constraints.video.mandatory = {};
+              }
+              if (!_publishProperties.constraints.video.optional) {
+                _publishProperties.constraints.video.optional = [];
+              }
+              _publishProperties.constraints.video.optional =
+                _publishProperties.constraints.video.optional.concat([
+                  {minWidth: _publishProperties.videoDimensions.width},
+                  {maxWidth: _publishProperties.videoDimensions.width},
+                  {minHeight: _publishProperties.videoDimensions.height},
+                  {maxHeight: _publishProperties.videoDimensions.height}
+                ]);
+            }
+          }
+      
+          if (_publishProperties.frameRate !== void 0 &&
+            OT.$.arrayIndexOf(_validFrameRates, _publishProperties.frameRate) === -1) {
+            OT.warn('Invalid frameRate passed to the publisher got: ' +
+              _publishProperties.frameRate + ' expecting one of ' + _validFrameRates.join(','));
+            delete _publishProperties.frameRate;
+          } else if (_publishProperties.frameRate) {
+            if (typeof _publishProperties.constraints.video !== 'object') {
+              _publishProperties.constraints.video = {};
+            }
+            if (!_publishProperties.constraints.video.mandatory) {
+              _publishProperties.constraints.video.mandatory = {};
+            }
+            if (!_publishProperties.constraints.video.optional) {
+              _publishProperties.constraints.video.optional = [];
+            }
+            _publishProperties.constraints.video.optional =
+              _publishProperties.constraints.video.optional.concat([
+                { minFrameRate: _publishProperties.frameRate },
+                { maxFrameRate: _publishProperties.frameRate }
+              ]);
+          }
         }
+
       } else {
         OT.warn('You have passed your own constraints not using ours');
       }
+
 
       if (_publishProperties.style) {
         this.setStyle(_publishProperties.style, null, true);
@@ -14699,9 +17598,10 @@ OTHelpers.centerElement = function(element, width, height) {
       
       OT.onLoad(function() {
         _container = new OT.WidgetView(targetElement, _publishProperties);
-        _domId = _container.domId;
+        this.id = _domId = _container.domId();
+        this.element = _container.domElement;
 
-        OT.$.shouldAskForDevices(function(devices) {
+        OT.$.shouldAskForDevices(OT.$.bind(function(devices) {
           if(!devices.video) {
             OT.warn('Setting video constraint to false, there are no video sources');
             _publishProperties.constraints.video = false;
@@ -14712,13 +17612,14 @@ OTHelpers.centerElement = function(element, width, height) {
           }
           OT.$.getUserMedia(
             _publishProperties.constraints,
-            onStreamAvailable.bind(this),
-            onStreamAvailableError.bind(this),
-            onAccessDialogOpened.bind(this),
-            onAccessDialogClosed.bind(this),
-            onAccessDenied.bind(this)
+            OT.$.bind(onStreamAvailable, this),
+            OT.$.bind(onStreamAvailableError, this),
+            OT.$.bind(onAccessDialogOpened, this),
+            OT.$.bind(onAccessDialogClosed, this),
+            OT.$.bind(onAccessDenied, this)
           );
-        }.bind(this));
+        }, this));
+
       }, this);
 
       return this;
@@ -14742,11 +17643,11 @@ OTHelpers.centerElement = function(element, width, height) {
       _publishProperties.publishAudio = value;
 
       if (_microphone) {
-        _microphone.muted = !value;
+        _microphone.muted(!value);
       }
-      
+
       if (_chrome) {
-        _chrome.muteButton.muted = !value;
+        _chrome.muteButton.muted(!value);
       }
 
       if (_session && _stream) {
@@ -14785,23 +17686,17 @@ OTHelpers.centerElement = function(element, width, height) {
       if (_webRTCStream) {
         var videoTracks = _webRTCStream.getVideoTracks();
         for (var i=0, num=videoTracks.length; i<num; ++i) {
-          videoTracks[i].enabled = value;
+          videoTracks[i].setEnabled(value);
         }
       }
 
       if(_container) {
-        _container.showPoster = !value;
+        _container.showPoster(!value);
       }
 
       return this;
     };
 
-    this.recordQOS = function() {
-      
-      for (var connId in _peerConnections) {
-        recordQOS(connId);
-      }
-    };
 
     
 
@@ -14814,6 +17709,9 @@ OTHelpers.centerElement = function(element, width, height) {
 
 
     this.destroy = function( reason, quiet) {
+      if (_state.isDestroyed()) return;
+      _state.set('Destroyed');
+
       reset();
 
       if (quiet !== true) {
@@ -14823,7 +17721,7 @@ OTHelpers.centerElement = function(element, width, height) {
             this,
             reason
           ),
-          this.off.bind(this)
+          OT.$.bind(this.off,this)
         );
       }
 
@@ -14843,9 +17741,6 @@ OTHelpers.centerElement = function(element, width, height) {
 
     this.cleanupSubscriber = function(fromConnectionId) {
       var pc = _peerConnections[fromConnectionId];
-
-      clearInterval(_qosIntervals[fromConnectionId]);
-      delete _qosIntervals[fromConnectionId];
 
       if (pc) {
         pc.destroy();
@@ -14900,15 +17795,15 @@ OTHelpers.centerElement = function(element, width, height) {
         return null;
       }
 
-      return _targetElement.imgData;
+      return _targetElement.imgData();
     };
 
 
     
     this._ = {
-      publishToSession: function(session) {
+      publishToSession: OT.$.bind(function(session) {
         
-        this.session = session;
+        this.session = _session = session;
 
         var createStream = function() {
 
@@ -14917,38 +17812,37 @@ OTHelpers.centerElement = function(element, width, height) {
 
           
           
-          if (!this.session) return;
+          if (!_session) return;
 
           _state.set('PublishingToSession');
 
-          var onStreamRegistered = function(err, streamId, message) {
+          var onStreamRegistered = OT.$.bind(function(err, streamId, message) {
             if (err) {
               
               
               logAnalyticsEvent('publish', 'Failure', 'reason',
                 'Publish:' + OT.ExceptionCodes.UNABLE_TO_PUBLISH + ':' + err.message);
-              if (_state.attemptingToPublish) {
+              if (_state.isAttemptingToPublish()) {
                 this.trigger('publishComplete', new OT.Error(OT.ExceptionCodes.UNABLE_TO_PUBLISH,
                   err.message));
               }
               return;
             }
 
-            _streamId = streamId;
-            
+            this.streamId = _streamId = streamId;
             _iceServers = OT.Raptor.parseIceServers(message);
-          }.bind(this);
-              
+          }, this);
+
           
           
           if (_publishProperties.videoDimensions) {
             streamWidth = Math.min(_publishProperties.videoDimensions.width,
-              _targetElement.videoWidth || 640);
+              _targetElement.videoWidth() || 640);
             streamHeight = Math.min(_publishProperties.videoDimensions.height,
-              _targetElement.videoHeight || 480);
+              _targetElement.videoHeight() || 480);
           } else {
-            streamWidth = _targetElement.videoWidth || 640;
-            streamHeight = _targetElement.videoHeight || 480;
+            streamWidth = _targetElement.videoWidth() || 640;
+            streamHeight = _targetElement.videoHeight() || 480;
           }
 
           session._.streamCreate(
@@ -14969,53 +17863,59 @@ OTHelpers.centerElement = function(element, width, height) {
         logAnalyticsEvent('publish', 'Attempt', 'streamType', 'WebRTC');
 
         return this;
-      }.bind(this),
+      }, this),
 
-      unpublishFromSession: function(session, reason) {
-        if (!this.session || session.id !== this.session.id) {
-          OT.warn('The publisher ' + this.guid + ' is trying to unpublish from a session ' +
-            session.id + ' it is not attached to (' +
-            (this.session && this.session.id || 'no this.session') + ')');
+      unpublishFromSession: OT.$.bind(function(session, reason) {
+        if (!_session || session.id !== _session.id) {
+          OT.warn('The publisher ' + _guid + ' is trying to unpublish from a session ' +
+            session.id + ' it is not attached to (it is attached to ' +
+            (_session && _session.id || 'no session') + ')');
           return this;
         }
 
-        if (session.connected && this.stream) {
+        if (session.isConnected() && this.stream) {
           session._.streamDestroy(this.stream.id);
         }
 
         
         
         this.disconnect();
-        this.session = null;
+        this.session = _session = null;
 
         
-        _state.set('MediaBound');
+        if (!_state.isDestroyed()) _state.set('MediaBound');
 
         logAnalyticsEvent('unpublish', 'Success', 'sessionId', session.id);
 
         this._.streamDestroyed(reason);
 
         return this;
-      }.bind(this),
-      
-      streamDestroyed: function(reason) {
-        if(['reset'].indexOf(reason) < 0) {
+      }, this),
+
+      streamDestroyed: OT.$.bind(function(reason) {
+        if(OT.$.arrayIndexOf(['reset'], reason) < 0) {
           var event = new OT.StreamEvent('streamDestroyed', _stream, reason, true);
-          var defaultAction = function() {
+          var defaultAction = OT.$.bind(function() {
             if(!event.isDefaultPrevented()) {
               this.destroy();
             }
-          }.bind(this);
+          }, this);
           this.dispatchEvent(event, defaultAction);
         }
-      }.bind(this),
+      }, this),
 
-      archivingStatus: function(status) {
+
+      archivingStatus: OT.$.bind(function(status) {
         if(_chrome) {
           _chrome.archive.setArchiving(status);
         }
+
         return status;
-      }.bind(this)
+      }, this),
+
+      webRtcStream: function() {
+        return _webRTCStream;
+      }
     };
 
     this.detectDevices = function() {
@@ -15049,79 +17949,38 @@ OTHelpers.centerElement = function(element, width, height) {
     };
 
 
-    Object.defineProperties(this, {
-      id: {
-        get: function() { return _domId; },
-        enumerable: true
-      },
-        
-      element: {
-        get: function() { return _container.domElement; },
-        enumerable: true
-      },
+    
 
-      guid: {
-        get: function() { return _guid; },
-        enumerable: true
-      },
+    this.guid = function() {
+      return _guid;
+    };
 
-      stream: {
-        get: function() { return _stream; },
-        set: function(stream) {
-          assignStream(stream);
-        },
-        enumerable: true
-      },
+    this.videoElement = function() {
+      return _targetElement.domElement();
+    };
 
-      streamId: {
-        get: function() { return _streamId; },
-        enumerable: true
-      },
+    this.setStream = assignStream;
 
-      targetElement: {
-        get: function() { return _targetElement.domElement; }
-      },
+    this.isWebRTC = true;
 
-      domId: {
-        get: function() { return _domId; }
-      },
+    this.isLoading = function() {
+      return _container && _container.loading();
+    };
 
-      session: {
-        get: function() { return _session; },
-        set: function(session) {
-          _session = session;
-        },
-        enumerable: true
-      },
+    this.videoWidth = function() {
+      return _targetElement.videoWidth();
+    };
 
-      isWebRTC: {
-        get: function() { return true; }
-      },
+    this.videoHeight = function() {
+      return _targetElement.videoHeight();
+    };
 
-      loading: {
-        get: function(){
-          return _container && _container.loading;
-        }
-      },
-        
-      videoWidth: {
-        get: function() { return _targetElement.videoWidth; },
-        enumerable: true
-      },
-        
-      videoHeight: {
-        get: function() { return _targetElement.videoHeight; },
-        enumerable: true
-      }
-    });
-
-    Object.defineProperty(this._, 'webRtcStream', {
-      get: function() { return _webRTCStream; }
-    });
+    
 
     this.on('styleValueChanged', updateChromeForStyleChange, this);
     _state = new OT.PublishingState(stateChangeFailed);
 
+    this.accessAllowed = false;
 
 	
 
@@ -15206,7 +18065,7 @@ OTHelpers.centerElement = function(element, width, height) {
   OT.Publisher.nextId = OT.$.uuid;
 
 })(window);
-!(function(window) {
+!(function() {
 
 
 
@@ -15233,7 +18092,6 @@ OTHelpers.centerElement = function(element, width, height) {
         _session = options.session,
         _subscribeStartTime,
         _startConnectingTime,
-        _qosInterval,
         _properties = OT.$.clone(options),
         _analytics = new OT.Analytics(),
         _audioVolume = 50,
@@ -15241,6 +18099,10 @@ OTHelpers.centerElement = function(element, width, height) {
         _subscribeAudioFalseWorkaround, 
         _prevStats,
         _lastSubscribeToVideoReason;
+
+    this.id = _domId;
+    this.widgetId = _widgetId;
+    this.session = _session;
 
     _prevStats = {
       timeStamp: OT.$.now()
@@ -15274,15 +18136,16 @@ OTHelpers.centerElement = function(element, width, height) {
             payload: payload,
             stream_id: _stream ? _stream.id : null,
             session_id: _session ? _session.sessionId : null,
-            connection_id: _session && _session.connected ? _session.connection.connectionId : null,
-            partner_id: _session && _session.connected ? _session.sessionInfo.partnerId : null,
+            connection_id: _session && _session.isConnected() ?
+              _session.connection.connectionId : null,
+            partner_id: _session && _session.isConnected() ? _session.sessionInfo.partnerId : null,
             widget_id: _widgetId,
             widget_type: 'Subscriber'
           });
         },
 
-        recordQOS = function() {
-          if(_state.subscribing && _session && _session.connected) {
+        recordQOS = OT.$.bind(function(parsedStats) {
+          if(_state.isSubscribing() && _session && _session.isConnected()) {
             
             var QoSBlob = {
               widget_type: 'Subscriber',
@@ -15301,18 +18164,11 @@ OTHelpers.centerElement = function(element, width, height) {
               remote_connection_id: _stream.connection.connectionId
             };
 
-            
-            _peerConnection.getStats(_prevStats, function(stats) {
-              var statIndex;
-              if (stats) {
-                for (statIndex in stats) {
-                  QoSBlob[statIndex] = stats[statIndex];
-                }
-              }
-              _analytics.logQOS(QoSBlob);
-            });
+            _analytics.logQOS( OT.$.extend(QoSBlob, parsedStats) );
+            this.trigger('qos', parsedStats);
           }
-        },
+        }, this),
+
 
         stateChangeFailed = function(changeFailed) {
           OT.error('Subscriber State Change Failed: ', changeFailed.message);
@@ -15320,7 +18176,7 @@ OTHelpers.centerElement = function(element, width, height) {
         },
 
         onLoaded = function() {
-          if (_state.subscribing || !_streamContainer) return;
+          if (_state.isSubscribing() || !_streamContainer) return;
 
           OT.debug('OT.Subscriber.onLoaded');
 
@@ -15329,17 +18185,15 @@ OTHelpers.centerElement = function(element, width, height) {
 
           logAnalyticsEvent('createPeerConnection', 'Success', 'pcc|hasRelayCandidates', [
             parseInt(_subscribeStartTime - _startConnectingTime, 10),
-            _peerConnection && _peerConnection.hasRelayCandidates
+            _peerConnection && _peerConnection.hasRelayCandidates()
           ].join('|'));
-
-          _qosInterval = setInterval(recordQOS, 30000);
 
           if(_subscribeAudioFalseWorkaround) {
             _subscribeAudioFalseWorkaround = null;
             this.subscribeToVideo(false);
           }
 
-          _container.loading = false;
+          _container.loading(false);
 
           _createChrome.call(this);
 
@@ -15352,12 +18206,12 @@ OTHelpers.centerElement = function(element, width, height) {
         onDisconnected = function() {
           OT.debug('OT.Subscriber has been disconnected from the Publisher\'s PeerConnection');
 
-          if (_state.attemptingToSubscribe) {
+          if (_state.isAttemptingToSubscribe()) {
             
             _state.set('Failed');
             this.trigger('subscribeComplete', new OT.Error(null, 'ClientDisconnected'));
 
-          } else if (_state.subscribing) {
+          } else if (_state.isSubscribing()) {
             _state.set('Failed');
 
             
@@ -15368,18 +18222,18 @@ OTHelpers.centerElement = function(element, width, height) {
         },
 
         onPeerConnectionFailure = function(code, reason, peerConnection, prefix) {
-          if (_state.attemptingToSubscribe) {
+          if (_state.isAttemptingToSubscribe()) {
             
             
             logAnalyticsEvent('createPeerConnection', 'Failure', 'reason|hasRelayCandidates', [
               'Subscriber PeerConnection Error: ' + reason,
-              _peerConnection && _peerConnection.hasRelayCandidates
+              _peerConnection && _peerConnection.hasRelayCandidates()
             ].join('|'));
 
             _state.set('Failed');
             this.trigger('subscribeComplete', new OT.Error(null, reason));
 
-          } else if (_state.subscribing) {
+          } else if (_state.isSubscribing()) {
             
             _state.set('Failed');
             this.trigger('error', reason);
@@ -15411,28 +18265,47 @@ OTHelpers.centerElement = function(element, width, height) {
           this.subscribeToVideo(_properties.subscribeToVideo);
           _subscribeAudioFalseWorkaround = preserver;
 
-          var streamElement = new OT.VideoElement();
-          
-          streamElement.audioChannelType = 'telephony';
-
-          
-          streamElement.setAudioVolume(_audioVolume);
-          streamElement.on({
-            streamBound: onLoaded,
-            loadError: onPeerConnectionFailure,
-            error: onPeerConnectionFailure
-          }, this);
-
-          streamElement.bindToStream(webOTStream);
-          _container.video = streamElement;
-
-          _streamContainer = streamElement;
-
-          _streamContainer.orientation = {
-            width: _stream.videoDimensions.width,
-            height: _stream.videoDimensions.height,
-            videoOrientation: _stream.videoDimensions.orientation
+          var videoContainerOptions = {
+            error: OT.$.bind(onPeerConnectionFailure, this),
+            audioVolume: _audioVolume
           };
+
+          
+          
+          
+          var browser = OT.$.browserVersion(),
+              tracks,
+              reenableVideoTrack = false;
+          if (!_stream.hasVideo && browser.browser === 'Chrome' && browser.version >= 35) {
+            tracks = webOTStream.getVideoTracks();
+            if(tracks.length > 0) {
+              tracks[0].enabled = false;
+              reenableVideoTrack = tracks[0];
+            }
+          }
+
+          _streamContainer = _container.bindVideo(webOTStream,
+                                              videoContainerOptions,
+                                              OT.$.bind(function(err) {
+            if (err) {
+              onPeerConnectionFailure.call(this, null, err.message || err, _peerConnection,
+                'VideoElement');
+              return;
+            }
+
+            
+            if (reenableVideoTrack != null && _properties.subscribeToVideo) {
+              reenableVideoTrack.enabled = true;
+            }
+
+            _streamContainer.orientation({
+              width: _stream.videoDimensions.width,
+              height: _stream.videoDimensions.height,
+              videoOrientation: _stream.videoDimensions.orientation
+            });
+
+            onLoaded.call(this, null);
+          }, this));
 
           logAnalyticsEvent('createPeerConnection', 'StreamAdded', '', '');
           this.trigger('streamAdded', this);
@@ -15458,16 +18331,16 @@ OTHelpers.centerElement = function(element, width, height) {
 
           switch(event.changedProperty) {
             case 'videoDimensions':
-              _streamContainer.orientation = {
+              _streamContainer.orientation({
                 width: event.newValue.width,
                 height: event.newValue.height,
                 videoOrientation: event.newValue.orientation
-              };
+              });
               break;
 
             case 'hasVideo':
               if(_container) {
-                _container.showPoster = !(_stream.hasVideo && _properties.subscribeToVideo);
+                _container.showPoster(!(_stream.hasVideo && _properties.subscribeToVideo));
               }
               break;
 
@@ -15569,15 +18442,10 @@ OTHelpers.centerElement = function(element, width, height) {
         };
 
 
-    this.recordQOS = function() {
-      recordQOS();
-    };
-
-
     this.subscribe = function(stream) {
       OT.debug('OT.Subscriber: subscribe to ' + stream.id);
 
-      if (_state.subscribing) {
+      if (_state.isSubscribing()) {
         
         OT.error('OT.Subscriber.Subscribe: Cannot subscribe, already subscribing.');
         return false;
@@ -15597,7 +18465,8 @@ OTHelpers.centerElement = function(element, width, height) {
         return false;
       }
 
-      _stream = stream;
+      this.stream = _stream = stream;
+      this.streamId = _stream.id;
       _stream.on({
         updated: streamUpdated,
         destroyed: streamDestroyed
@@ -15618,7 +18487,8 @@ OTHelpers.centerElement = function(element, width, height) {
       _properties.subscribeToVideo = OT.$.castToBoolean(_properties.subscribeToVideo, true);
 
       _container = new OT.WidgetView(targetElement, _properties);
-      _domId = _container.domId;
+      this.id = _domId = _container.domId();
+      this.element = _container.domElement;
 
       if(!_properties.subscribeToVideo && OT.$.browser() === 'Chrome') {
         _subscribeAudioFalseWorkaround = true;
@@ -15639,7 +18509,8 @@ OTHelpers.centerElement = function(element, width, height) {
           disconnected: onDisconnected,
           error: onPeerConnectionFailure,
           remoteStreamAdded: onRemoteStreamAdded,
-          remoteStreamRemoved: onRemoteStreamRemoved
+          remoteStreamRemoved: onRemoteStreamRemoved,
+          qos: recordQOS
         }, this);
 
         
@@ -15648,13 +18519,13 @@ OTHelpers.centerElement = function(element, width, height) {
         logAnalyticsEvent('createPeerConnection', 'Attempt', '', '');
 
         var publisher = _session.getPublisherForStream(_stream);
-        if(!(publisher && publisher._.webRtcStream)) {
+        if(!(publisher && publisher._.webRtcStream())) {
           this.trigger('subscribeComplete', new OT.Error(null, 'InvalidStreamID'));
           return this;
         }
 
         
-        onRemoteStreamAdded.call(this, _session.getPublisherForStream(_stream)._.webRtcStream);
+        onRemoteStreamAdded.call(this, publisher._.webRtcStream());
       }
 
       logAnalyticsEvent('subscribe', 'Attempt', 'streamId', _stream.id);
@@ -15663,17 +18534,17 @@ OTHelpers.centerElement = function(element, width, height) {
     };
 
     this.destroy = function(reason, quiet) {
+      if (_state.isDestroyed()) return;
 
       if(reason === 'streamDestroyed') {
-        if (_state.attemptingToSubscribe) {
+        if (_state.isAttemptingToSubscribe()) {
           
           
           this.trigger('subscribeComplete', new OT.Error(null, 'InvalidStreamID'));
         }
       }
 
-      clearInterval(_qosInterval);
-      _qosInterval = null;
+      _state.set('Destroyed');
 
       this.disconnect();
 
@@ -15685,16 +18556,18 @@ OTHelpers.centerElement = function(element, width, height) {
       if (_container) {
         _container.destroy();
         _container = null;
+        this.element = null;
       }
 
       if (_stream && !_stream.destroyed) {
         logAnalyticsEvent('unsubscribe', null, 'streamId', _stream.id);
       }
 
-      _domId = null;
-      _stream = null;
+      this.id = _domId = null;
+      this.stream = _stream = null;
+      this.streamId = null;
 
-      _session = null;
+      this.session =_session = null;
       _properties = null;
 
       if (quiet !== true) {
@@ -15704,7 +18577,7 @@ OTHelpers.centerElement = function(element, width, height) {
             this,
             reason
           ),
-          this.off.bind(this)
+          OT.$.bind(this.off, this)
         );
       }
 
@@ -15712,7 +18585,11 @@ OTHelpers.centerElement = function(element, width, height) {
     };
 
     this.disconnect = function() {
-      _state.set('NotSubscribing');
+      if (!_state.isDestroyed() && !_state.isFailed()) {
+        
+        
+        _state.set('NotSubscribing');
+      }
 
       if (_streamContainer) {
         _streamContainer.destroy();
@@ -15777,13 +18654,13 @@ OTHelpers.centerElement = function(element, width, height) {
 
 
     this.getImgData = function() {
-      if (!this.subscribing) {
+      if (!this.isSubscribing()) {
         OT.error('OT.Subscriber.getImgData: Cannot getImgData before the Subscriber ' +
           'is subscribing.');
         return null;
       }
 
-      return _streamContainer.imgData;
+      return _streamContainer.imgData();
     };
 
     
@@ -15887,12 +18764,12 @@ OTHelpers.centerElement = function(element, width, height) {
     };
 
     var muteAudio = function(_mute) {
-      _chrome.muteButton.muted = _mute;
+      _chrome.muteButton.muted(_mute);
 
       if(_mute === _properties.mute) {
         return;
       }
-      if (window.navigator.userAgent.toLowerCase().indexOf('chrome') >= 0) {
+      if(OT.$.browser() === 'Chrome' || TBPlugin.isInstalled()) {
         _properties.subscribeMute = _properties.muted = _mute;
         this.subscribeToAudio(_properties.subscribeToAudio);
       } else {
@@ -15945,11 +18822,11 @@ OTHelpers.centerElement = function(element, width, height) {
       var value = OT.$.castToBoolean(pValue, true);
 
       if(_container) {
-        _container.showPoster = !(value && _stream.hasVideo);
-        if(value && _container.video) {
-          _container.loading = value;
-          _container.video.whenTimeIncrements(function(){
-            _container.loading = false;
+        _container.showPoster(!(value && _stream.hasVideo));
+        if(value && _container.video()) {
+          _container.loading(value);
+          _container.video().whenTimeIncrements(function(){
+            _container.loading(false);
           }, this);
         }
       }
@@ -15969,67 +18846,27 @@ OTHelpers.centerElement = function(element, width, height) {
       return this;
     };
 
-    Object.defineProperties(this, {
-      id: {
-        get: function() { return _domId; },
-        enumerable: true
-      },
-        
-      element: {
-        get: function() { return _container.domElement; },
-        enumerable: true
-      },
+    this.isSubscribing = function() {
+      return _state.isSubscribing();
+    };
 
-      widgetId: {
-        get: function() { return _widgetId; }
-      },
+    this.isWebRTC = true;
 
-      stream: {
-        get: function() { return _stream; },
-        enumerable: true
-      },
+    this.isLoading = function() {
+      return _container && _container.loading();
+    };
 
-      streamId: {
-        get: function() {
-          if (!_stream) return null;
-          return _stream.id;
-        },
-        enumerable: true
-      },
+    this.videoWidth = function() {
+      return _streamContainer.videoWidth();
+    };
 
-      targetElement: {
-        get: function() { return _streamContainer ? _streamContainer.domElement : null; }
-      },
-
-      subscribing: {
-        get: function() { return _state.subscribing; },
-        enumerable: true
-      },
-
-      isWebRTC: {
-        get: function() { return true; }
-      },
-
-      loading: {
-        get: function(){ return _container && _container.loading; }
-      },
-
-      session: {
-        get: function() { return _session; }
-      },
-
-      videoWidth: {
-        get: function() { return _streamContainer.videoWidth; },
-        enumerable: true
-      },
-
-      videoHeight: {
-        get: function() { return _streamContainer.videoHeight; },
-        enumerable: true
-      }
-    });
+    this.videoHeight = function() {
+      return _streamContainer.videoHeight();
+    };
 
     
+
+
 
 
 
@@ -16109,7 +18946,9 @@ OTHelpers.centerElement = function(element, width, height) {
 
 
 
+
 	
+
 
 
 
@@ -16177,7 +19016,11 @@ OTHelpers.centerElement = function(element, width, height) {
   OT.SessionInfo.get = function(session, onSuccess, onFailure) {
     var sessionInfoURL = OT.properties.apiURLSSL + '/session/' + session.id + '?extended=true',
 
+        browser = OT.$.browserVersion(),
+
         startTime = OT.$.now(),
+
+        options,
 
         validateRawSessionInfo = function(sessionInfo) {
           session.logEvent('Instrumentation', null, 'gsi', OT.$.now() - startTime);
@@ -16189,17 +19032,28 @@ OTHelpers.centerElement = function(element, width, height) {
           }
         };
 
+
+    if(browser.browser === 'IE' && browser.version < 10) {
+      sessionInfoURL = sessionInfoURL + '&format=json&token=' + encodeURIComponent(session.token) +
+                                        '&version=1&cache=' + OT.$.uuid();
+      options = {
+        xdomainrequest: true
+      };
+    }
+    else {
+      options = {
+        headers: {
+          'X-TB-TOKEN-AUTH': session.token,
+          'X-TB-VERSION': 1
+        }
+      };
+    }
+
     session.logEvent('getSessionInfo', 'Attempt', 'api_url', OT.properties.apiURLSSL);
 
-    OT.$.getJSON(sessionInfoURL, {
-      headers: {
-        'X-TB-TOKEN-AUTH': session.token,
-        'X-TB-VERSION': 1
-      }
-    }, function(error, sessionInfo) {
+    OT.$.getJSON(sessionInfoURL, options, function(error, sessionInfo) {
       if(error) {
         var responseText = sessionInfo;
-        console.log('getJSON said error:', error);
         onGetErrorCallback(session, onFailure,
           new OT.Error(error.target && error.target.status || error.code, error.message ||
             'Could not connect to the OpenTok API Server.'), responseText);
@@ -16218,8 +19072,9 @@ OTHelpers.centerElement = function(element, width, height) {
   
   
   parseErrorFromJSONDocument = function(jsonDocument) {
-    if(Array.isArray(jsonDocument)) {
-      var errors = jsonDocument.filter(function(node) {
+    if(OT.$.isArray(jsonDocument)) {
+
+      var errors = OT.$.filter(jsonDocument, function(node) {
         return node.error != null;
       });
 
@@ -16253,7 +19108,8 @@ OTHelpers.centerElement = function(element, width, height) {
 
   onGetErrorCallback = function(session, onFailure, error, responseText) {
     session.logEvent('Connect', 'Failure', 'errorMessage',
-      'GetSessionInfo:' + error.code + ':' + error.message + ':' + responseText);
+      'GetSessionInfo:' + (error.code || 'No code') + ':' + error.message + ':' +
+        (responseText || 'Empty responseText from API server'));
 
     onFailure(error, session);
   };
@@ -16290,10 +19146,10 @@ OTHelpers.centerElement = function(element, width, height) {
 
 
 	OT.Capabilities = function(permissions) {
-	    this.publish = permissions.indexOf('publish') !== -1 ? 1 : 0;
-	    this.subscribe = permissions.indexOf('subscribe') !== -1 ? 1 : 0;
-	    this.forceUnpublish = permissions.indexOf('forceunpublish') !== -1 ? 1 : 0;
-	    this.forceDisconnect = permissions.indexOf('forcedisconnect') !== -1 ? 1 : 0;
+	    this.publish = OT.$.arrayIndexOf(permissions, 'publish') !== -1 ? 1 : 0;
+	    this.subscribe = OT.$.arrayIndexOf(permissions, 'subscribe') !== -1 ? 1 : 0;
+	    this.forceUnpublish = OT.$.arrayIndexOf(permissions, 'forceunpublish') !== -1 ? 1 : 0;
+	    this.forceDisconnect = OT.$.arrayIndexOf(permissions, 'forcedisconnect') !== -1 ? 1 : 0;
 	    this.supportsWebRTC = OT.$.supportsWebRTC() ? 1 : 0;
 
       this.permittedTo = function(action) {
@@ -16330,6 +19186,8 @@ OTHelpers.centerElement = function(element, width, height) {
 
 
   OT.Session = function(apiKey, sessionId) {
+    OT.$.eventing(this);
+
     
     
     if (!OT.checkSystemRequirements()) {
@@ -16341,6 +19199,8 @@ OTHelpers.centerElement = function(element, width, height) {
       sessionId = apiKey;
       apiKey = null;
     }
+
+    this.id = this.sessionId = sessionId;
 
     var _initialConnection = true,
         _apiKey = apiKey,
@@ -16371,11 +19231,12 @@ OTHelpers.centerElement = function(element, width, height) {
         dispatchError;
 
 
-    OT.$.eventing(this);
+
     var setState = OT.$.statable(this, [
       'disconnected', 'connecting', 'connected', 'disconnecting'
     ], 'disconnected');
 
+    this.connection = null;
     this.connections = new OT.Collection();
     this.streams = new OT.Collection();
     this.archives = new OT.Collection();
@@ -16414,12 +19275,12 @@ OTHelpers.centerElement = function(element, width, height) {
       reset.call(this);
       disconnectComponents.call(this, reason);
 
-      var defaultAction = function() {
+      var defaultAction = OT.$.bind(function() {
         
         destroyPublishers.call(this, publicEvent.reason);
         
         if (!publicEvent.isDefaultPrevented()) destroySubscribers.call(this, publicEvent.reason);
-      }.bind(this);
+      }, this);
 
       this.dispatchEvent(publicEvent, defaultAction);
     };
@@ -16441,7 +19302,7 @@ OTHelpers.centerElement = function(element, width, height) {
       
       
       
-      if (connection.id === _socket.id) return;
+      if (connection.id === _socket.id()) return;
 
       this.dispatchEvent(
         new OT.ConnectionEvent(
@@ -16487,18 +19348,18 @@ OTHelpers.centerElement = function(element, width, height) {
       
       
       if(stream.connection.id === this.connection.id) {
-        OT.publishers.where({ streamId: stream.id }).forEach(function(publisher) {
+        OT.$.forEach(OT.publishers.where({ streamId: stream.id }), OT.$.bind(function(publisher) {
           publisher._.unpublishFromSession(this, reason);
-        }.bind(this));
+        }, this));
         return;
       }
 
       var event = new OT.StreamEvent('streamDestroyed', stream, reason, true);
 
-      var defaultAction = function() {
+      var defaultAction = OT.$.bind(function() {
         if (!event.isDefaultPrevented()) {
           
-          OT.subscribers.where({streamId: stream.id}).forEach(function(subscriber) {
+          OT.$.forEach(OT.subscribers.where({streamId: stream.id}), function(subscriber) {
             if (subscriber.session.id === this.id) {
               if(subscriber.stream) {
                 subscriber.destroy('streamDestroyed');
@@ -16508,7 +19369,7 @@ OTHelpers.centerElement = function(element, width, height) {
         } else {
           
         }
-      }.bind(this);
+      }, this);
 
       this.dispatchEvent(event, defaultAction);
     };
@@ -16535,32 +19396,33 @@ OTHelpers.centerElement = function(element, width, height) {
 
     
     reset = function() {
-      _token = null;
+      this.token = _token = null;
       setState('disconnected');
-
+      this.connection = null;
+      this.capabilities = new OT.Capabilities([]);
       this.connections.destroy();
       this.streams.destroy();
       this.archives.destroy();
     };
 
     disconnectComponents = function(reason) {
-      OT.publishers.where({session: this}).forEach(function(publisher) {
+      OT.$.forEach(OT.publishers.where({session: this}), function(publisher) {
         publisher.disconnect(reason);
       });
 
-      OT.subscribers.where({session: this}).forEach(function(subscriber) {
+      OT.$.forEach(OT.subscribers.where({session: this}), function(subscriber) {
         subscriber.disconnect();
       });
     };
 
     destroyPublishers = function(reason) {
-      OT.publishers.where({session: this}).forEach(function(publisher) {
+      OT.$.forEach(OT.publishers.where({session: this}), function(publisher) {
         publisher._.streamDestroyed(reason);
       });
     };
 
     destroySubscribers = function(reason) {
-      OT.subscribers.where({session: this}).forEach(function(subscriber) {
+      OT.$.forEach(OT.subscribers.where({session: this}), function(subscriber) {
         subscriber.destroy(reason);
       });
     };
@@ -16568,21 +19430,20 @@ OTHelpers.centerElement = function(element, width, height) {
     connectMessenger = function() {
       OT.debug('OT.Session: connecting to Raptor');
 
-      var socketUrl = OT.properties.messagingProtocol + '://' + this.sessionInfo.messagingServer +
-            ':' + OT.properties.messagingPort + '/rumorwebsocketsv2',
-          symphonyUrl = OT.properties.symphonyAddresss || 'symphony.' +
-            this.sessionInfo.messagingServer;
+      var socketUrl = this.sessionInfo.messagingURL,
+          symphonyUrl = OT.properties.symphonyAddresss || this.sessionInfo.symphonyAddress;
 
       _socket = new OT.Raptor.Socket(_widgetId, socketUrl, symphonyUrl,
         OT.SessionDispatcher(this));
 
       var analyticsPayload = [
-        socketUrl, navigator.userAgent, OT.properties.version,
+        socketUrl, OT.$.userAgent(), OT.properties.version,
         window.externalHost ? 'yes' : 'no'
       ];
 
-      _socket.connect(_token, this.sessionInfo, function(error, sessionState) {
+      _socket.connect(_token, this.sessionInfo, OT.$.bind(function(error, sessionState) {
         if (error) {
+          _socket = void 0;
           analyticsPayload.splice(0,0,error.message);
           this.logEvent('Connect', 'Failure',
             'reason|webSocketServerUrl|userAgent|sdkVersion|chromeFrame',
@@ -16594,11 +19455,16 @@ OTHelpers.centerElement = function(element, width, height) {
 
         OT.debug('OT.Session: Received session state from Raptor', sessionState);
 
+        this.connection = this.connections.get(_socket.id());
+        if(this.connection) {
+          this.capabilities = this.connection.permissions;
+        }
+
         setState('connected');
 
         this.logEvent('Connect', 'Success',
           'webSocketServerUrl|userAgent|sdkVersion|chromeFrame',
-          analyticsPayload.map(function(e) {
+          OT.$.map(analyticsPayload, function(e) {
             return e.replace('|', '\\|');
           }).join('|'), {connectionId: this.connection.id});
 
@@ -16625,34 +19491,39 @@ OTHelpers.centerElement = function(element, width, height) {
         }, this);
 
         this.dispatchEvent(
-          new OT.SessionConnectEvent(OT.Event.names.SESSION_CONNECTED), function() {
+          new OT.SessionConnectEvent(OT.Event.names.SESSION_CONNECTED), OT.$.bind(function() {
             this.connections._triggerAddEvents(); 
             this.streams._triggerAddEvents(); 
             this.archives._triggerAddEvents();
-          }.bind(this)
+          }, this)
         );
 
-      }.bind(this));
+      }, this));
     };
 
     getSessionInfo = function() {
       if (this.is('connecting')) {
         OT.SessionInfo.get(
           this,
-          onSessionInfoResponse.bind(this),
-          function(error) {
+          OT.$.bind(onSessionInfoResponse, this),
+          OT.$.bind(function(error) {
             sessionConnectFailed.call(this, error.message +
               (error.code ? ' (' + error.code + ')' : ''), error.code);
-          }.bind(this)
+          }, this)
         );
       }
     };
 
     onSessionInfoResponse = function(sessionInfo) {
       if (this.is('connecting')) {
+        var overrides = OT.properties.sessionInfoOverrides;
         this.sessionInfo = sessionInfo;
+        if (overrides != null && typeof overrides === 'object') {
+          this.sessionInfo = OT.$.defaults(overrides, this.sessionInfo);
+          console.log('is', this.sessionInfo);
+        }
         if (this.sessionInfo.partnerId && this.sessionInfo.partnerId !== _apiKey) {
-          _apiKey = this.sessionInfo.partnerId;
+          this.apiKey = _apiKey = this.sessionInfo.partnerId;
 
           var reason = 'Authentication Error: The API key does not match the token or session.';
 
@@ -16667,13 +19538,13 @@ OTHelpers.centerElement = function(element, width, height) {
     };
 
     
-    permittedTo = function(action) {
+    permittedTo = OT.$.bind(function(action) {
       return this.capabilities.permittedTo(action);
-    }.bind(this);
+    }, this);
 
-    dispatchError = function(code, message, completionHandler) {
+    dispatchError = OT.$.bind(function(code, message, completionHandler) {
       OT.dispatchError(code, message, completionHandler, this);
-    }.bind(this);
+    }, this);
 
     this.logEvent = function(action, variation, payloadType, payload, options) {
       
@@ -16798,18 +19669,6 @@ OTHelpers.centerElement = function(element, width, height) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
     this.connect = function(token) {
 
       if(apiKey == null && arguments.length > 1 &&
@@ -16829,7 +19688,7 @@ OTHelpers.centerElement = function(element, width, height) {
 
       reset.call(this);
       setState('connecting');
-      _token = !OT.$.isFunction(token) && token;
+      this.token = _token = !OT.$.isFunction(token) && token;
 
       
       if (_initialConnection) {
@@ -16839,25 +19698,33 @@ OTHelpers.centerElement = function(element, width, height) {
       }
 
       if (completionHandler && OT.$.isFunction(completionHandler)) {
-        this.once('sessionConnected', completionHandler.bind(null, null));
+        this.once('sessionConnected', OT.$.bind(completionHandler, null, null));
         this.once('sessionConnectFailed', completionHandler);
       }
 
       if(_apiKey == null || OT.$.isFunction(_apiKey)) {
-        setTimeout(sessionConnectFailed.bind(this,
+        setTimeout(OT.$.bind(
+          sessionConnectFailed,
+          this,
           'API Key is undefined. You must pass an API Key to initSession.',
-          OT.ExceptionCodes.AUTHENTICATION_ERROR));
-        return this;
-      }
-      
-      if (!_sessionId) {
-        setTimeout(sessionConnectFailed.bind(this,
-            'SessionID is undefined. You must pass a sessionID to initSession.',
-          OT.ExceptionCodes.INVALID_SESSION_ID));
+          OT.ExceptionCodes.AUTHENTICATION_ERROR
+        ));
+
         return this;
       }
 
-      _apiKey = _apiKey.toString();
+      if (!_sessionId) {
+        setTimeout(OT.$.bind(
+          sessionConnectFailed,
+          this,
+          'SessionID is undefined. You must pass a sessionID to initSession.',
+          OT.ExceptionCodes.INVALID_SESSION_ID
+        ));
+
+        return this;
+      }
+
+      this.apiKey = _apiKey = _apiKey.toString();
 
       
       if (OT.APIKEY.length === 0) {
@@ -16865,7 +19732,7 @@ OTHelpers.centerElement = function(element, width, height) {
       }
 
       var analyticsPayload = [
-        navigator.userAgent, OT.properties.version,
+        OT.$.userAgent(), OT.properties.version,
         window.externalHost ? 'yes' : 'no'
       ];
       this.logEvent( 'Connect', 'Attempt',
@@ -16935,21 +19802,27 @@ OTHelpers.centerElement = function(element, width, height) {
 
 
 
-    this.disconnect = function() {
+    var disconnect = OT.$.bind(function disconnect(drainSocketBuffer) {
       if (_socket && _socket.isNot('disconnected')) {
-        setState('disconnecting');
-        _socket.disconnect();
+        if (_socket.isNot('disconnecting')) {
+          setState('disconnecting');
+          _socket.disconnect(drainSocketBuffer);
+        }
       }
       else {
         reset.call(this);
       }
+    }, this);
+
+    this.disconnect = function(drainSocketBuffer) {
+      disconnect(drainSocketBuffer !== void 0 ? drainSocketBuffer : true);
     };
 
-    this.destroy = function() {
+    this.destroy = function(reason) {
       this.streams.destroy();
       this.connections.destroy();
       this.archives.destroy();
-      this.disconnect();
+      disconnect(reason !== 'unloaded');
     };
 
  
@@ -17110,7 +19983,7 @@ OTHelpers.centerElement = function(element, width, height) {
       }
 
       
-      if (!publisher || typeof(publisher)==='string' || publisher.nodeType === Node.ELEMENT_NODE) {
+      if (!publisher || typeof(publisher)==='string' || OT.$.isElementNode(publisher)) {
         
         publisher = OT.initPublisher(publisher, properties);
 
@@ -17120,10 +19993,10 @@ OTHelpers.centerElement = function(element, width, height) {
         if ('session' in publisher && publisher.session && 'sessionId' in publisher.session) {
           
           if( publisher.session.sessionId === this.sessionId){
-            OT.warn('Cannot publish ' + publisher.guid + ' again to ' +
+            OT.warn('Cannot publish ' + publisher.guid() + ' again to ' +
               this.sessionId + '. Please call session.unpublish(publisher) first.');
           } else {
-            OT.warn('Cannot publish ' + publisher.guid + ' publisher already attached to ' +
+            OT.warn('Cannot publish ' + publisher.guid() + ' publisher already attached to ' +
               publisher.session.sessionId+ '. Please call session.unpublish(publisher) first.');
           }
         }
@@ -17577,36 +20450,35 @@ OTHelpers.centerElement = function(element, width, height) {
       return OT.publishers.where({streamId: streamId})[0];
     };
 
-
     
     this._ = {
       jsepCandidateP2p: function(streamId, subscriberId, candidate) {
         return _socket.jsepCandidateP2p(streamId, subscriberId, candidate);
-      }.bind(this),
+      },
 
       jsepCandidate: function(streamId, candidate) {
         return _socket.jsepCandidate(streamId, candidate);
-      }.bind(this),
+      },
 
       jsepOffer: function(streamId, offerSdp) {
         return _socket.jsepOffer(streamId, offerSdp);
-      }.bind(this),
+      },
 
       jsepOfferP2p: function(streamId, subscriberId, offerSdp) {
         return _socket.jsepOfferP2p(streamId, subscriberId, offerSdp);
-      }.bind(this),
+      },
 
       jsepAnswer: function(streamId, answerSdp) {
         return _socket.jsepAnswer(streamId, answerSdp);
-      }.bind(this),
+      },
 
       jsepAnswerP2p: function(streamId, subscriberId, answerSdp) {
         return _socket.jsepAnswerP2p(streamId, subscriberId, answerSdp);
-      }.bind(this),
+      },
 
       
       
-      dispatchSignal: function(fromConnection, type, data) {
+      dispatchSignal: OT.$.bind(function(fromConnection, type, data) {
         var event = new OT.SignalEvent(type, data, fromConnection);
         event.target = this;
 
@@ -17616,40 +20488,51 @@ OTHelpers.centerElement = function(element, width, height) {
 
         
         if (type) this.dispatchEvent(event);
-      }.bind(this),
+      }, this),
 
       subscriberCreate: function(stream, subscriber, channelsToSubscribeTo, completion) {
         return _socket.subscriberCreate(stream.id, subscriber.widgetId,
           channelsToSubscribeTo, completion);
-      }.bind(this),
+      },
 
       subscriberDestroy: function(stream, subscriber) {
         return _socket.subscriberDestroy(stream.id, subscriber.widgetId);
-      }.bind(this),
+      },
 
       subscriberUpdate: function(stream, subscriber, attributes) {
         return _socket.subscriberUpdate(stream.id, subscriber.widgetId, attributes);
-      }.bind(this),
+      },
 
       subscriberChannelUpdate: function(stream, subscriber, channel, attributes) {
         return _socket.subscriberChannelUpdate(stream.id, subscriber.widgetId, channel.id,
           attributes);
-      }.bind(this),
+      },
 
-      streamCreate: function(name, orientation, encodedWidth, encodedHeight, hasAudio, hasVideo,
-        frameRate, completion) {
-        _socket.streamCreate(name, orientation, encodedWidth, encodedHeight, hasAudio, hasVideo,
-          frameRate, OT.Config.get('bitrates', 'min', OT.APIKEY),
-          OT.Config.get('bitrates', 'max', OT.APIKEY), completion);
-      }.bind(this),
+      streamCreate: OT.$.bind(function(name, orientation, encodedWidth, encodedHeight,
+                                                hasAudio, hasVideo,
+                                                frameRate, completion) {
+
+        _socket.streamCreate(
+          name,
+          orientation,
+          encodedWidth,
+          encodedHeight,
+          hasAudio,
+          hasVideo,
+          frameRate,
+          OT.Config.get('bitrates', 'min', OT.APIKEY),
+          OT.Config.get('bitrates', 'max', OT.APIKEY),
+          completion
+        );
+      }, this),
 
       streamDestroy: function(streamId) {
         _socket.streamDestroy(streamId);
-      }.bind(this),
+      },
 
       streamChannelUpdate: function(stream, channel, attributes) {
         _socket.streamChannelUpdate(stream.id, channel.id, attributes);
-      }.bind(this)
+      }
     };
 
 
@@ -17999,21 +20882,11 @@ OTHelpers.centerElement = function(element, width, height) {
       OT.warn('Fixme: Have not implemented session.getStateManager');
     };
 
-    OT.$.defineGetters(this, {
-      apiKey: function() { return _apiKey; },
-      token: function() { return _token; },
-      connected: function() { return this.is('connected'); },
-      connection: function() {
-        return _socket && _socket.id ? this.connections.get(_socket.id) : null;
-      },
-      sessionId: function() { return _sessionId; },
-      id: function() { return _sessionId; },
-      capabilities: function() {
-        var connection =  this.connection;
-        return connection ? connection.permissions : new OT.Capabilities([]);
-      }.bind(this)
-    }, true);
+    this.isConnected = function() {
+      return this.is('connected');
+    };
 
+    this.capabilities = new OT.Capabilities([]);
 
   
 
@@ -18204,6 +21077,251 @@ OTHelpers.centerElement = function(element, width, height) {
   };
 
 })(window);
+(function() {
+  
+  var txt = function(text) {
+    return document.createTextNode(text);
+  };
+
+  var el = function(attr, children, tagName) {
+    var el = OT.$.createElement(tagName || 'div', attr, children);
+    el.on = OT.$.bind(OT.$.on, OT.$, el);
+    return el;
+  };
+
+  function DevicePickerController(opts) {
+    var destroyExistingPublisher,
+        publisher,
+        devicesById;
+
+    this.change = function() {
+      destroyExistingPublisher();
+
+      var settings;
+
+      this.pickedDevice = devicesById[opts.selectTag.value];
+
+      if(!this.pickedDevice) {
+        console.log('No device for', opts.mode, opts.selectTag.value);
+        return;
+      }
+
+      settings = {
+        insertMode: 'append',
+        name: this.pickedDevice.label,
+        audioSource: null,
+        videoSource: null,
+        width: 220,
+        height: 165
+      };
+
+      settings[opts.mode] = this.pickedDevice.deviceId;
+
+      console.log('initPublisher', opts.previewTag, settings);
+      var pub = OT.initPublisher(opts.previewTag, settings);
+
+      pub.on({
+        accessDialogOpened: function(event) {
+          event.preventDefault();
+        },
+        accessDialogClosed: function() {
+        },
+        accessAllowed: function() {
+        },
+        accessDenied: function(event) {
+          event.preventDefault();
+        }
+      });
+
+      publisher = pub;
+    }.bind(this);
+
+    this.cleanup = destroyExistingPublisher = function() {
+      if(publisher) {
+        publisher.destroy();
+        publisher = void 0;
+      }
+    };
+
+    var disableSelector = function (opt, str) {
+      opt.innerHTML = '';
+      opt.appendChild(el({}, txt(str), 'option'));
+      opt.setAttribute('disabled', '');
+    };
+
+    var addDevice = function (device) {
+      devicesById[device.deviceId] = device;
+      return el({ value: device.deviceId }, txt(device.label), 'option');
+    };
+
+    this.setDeviceList = function (devices) {
+      opts.selectTag.innerHTML = '';
+      devicesById = {};
+      if(devices.length > 0) {
+        devices.map(addDevice).map(opts.selectTag.appendChild.bind(opts.selectTag));
+        opts.selectTag.removeAttribute('disabled');
+      } else {
+        disableSelector(opts.selectTag, 'No devices');
+      }
+      this.change();
+    }.bind(this);
+
+    this.setLoading = function() {
+      disableSelector(opts.selectTag, 'Loading...');
+    };
+
+    OT.$.on(opts.selectTag, 'change', this.change);
+  }
+
+  OT.HardwareSetup = function(targetElement, options, callback) {
+
+    var camera,
+        microphone,
+        setupDOM,
+        setState;
+
+    setState = OT.$.statable(this, ['getDevices', 'chooseDevices', 'destroyed'], 'getDevices');
+
+    this.audioSource = function() {
+      return microphone && microphone.pickedDevice;
+    };
+
+    this.videoSource = function() {
+      return camera && camera.pickedDevice;
+    };
+
+    this.destroy = function() {
+      if(this.is('destroyed')) {
+        return;
+      }
+      if(camera) {
+        camera.cleanup();
+      }
+      if(microphone) {
+        microphone.cleanup();
+      }
+      if(this.is('chooseDevices')) {
+        targetElement.parentNode.removeChild(targetElement);
+      }
+      setState('destroyed');
+    }.bind(this);
+
+    if(targetElement == null) {
+      callback(new Error('You must provide a targetElement'));
+      return;
+    }
+
+    if(!OT.$.canGetMediaDevices()) {
+      callback(new Error('This browser does not support getMediaDevices APIs'));
+      return;
+    }
+
+    var camSelector,
+        camPreview,
+        micSelector,
+        micPreview,
+        container;
+
+    camSelector = el({ style: 'width: 100%' }, '', 'select');
+    camPreview = el({
+      style: 'background-color: #000; margin-left: 100px; width: 220px; height: 165px;'
+    }, ''),
+    micSelector = el({ style: 'width: 100%' }, '', 'select'),
+    micPreview = el({
+      style: 'background-color: #000; margin-left: 100px; width: 220px; height: 165px;'
+    }, '');
+
+    container = el({
+      id: 'OT_' + OT.$.uuid(),
+      style: 'border: 1px solid #000; padding: 10px; width: 320px;'
+    }, [
+      el({ style: 'padding: 0 0 10px; overflow: auto; text-align: right; ' }, [
+        el({ style: 'float: left; width: 90px; padding-right: 10px; line-height: 160%;' },
+          'Camera'),
+        el({ style: 'margin-left: 100px; ' }, camSelector),
+        camPreview
+      ]),
+      el({ style: 'overflow: auto; text-align: right;' }, [
+        el({ style: 'float: left; width: 90px; padding-right: 10px; line-height: 160%;' },
+          'Microphone'),
+        el({ style: 'margin-left: 100px; ' }, micSelector),
+        micPreview
+      ])
+    ]);
+
+    camera = new DevicePickerController({
+      selectTag: camSelector,
+      previewTag: camPreview,
+      mode: 'videoSource'
+    });
+
+    microphone = new DevicePickerController({
+      selectTag: micSelector,
+      previewTag: micPreview,
+      mode: 'audioSource'
+    });
+
+    camera.setLoading();
+    microphone.setLoading();
+
+    OT.getDevices(function(error, devices) {
+      if (error) {
+        callback(error);
+        return;
+      }
+
+      if(this.is('destroyed')) {
+        return; 
+      }
+
+      setupDOM();
+
+      camera.setDeviceList(devices.filter(function(device) {
+        return device.kind === 'videoinput';
+      }));
+
+      microphone.setDeviceList(devices.filter(function(device) {
+        return device.kind === 'audioinput';
+      }));
+
+      setState('chooseDevices');
+
+    }.bind(this));
+
+    setupDOM = function() {
+      var insertMode = options.insertMode;
+      if(!(insertMode == null || insertMode === 'replace')) {
+        if(insertMode === 'append') {
+          targetElement.appendChild(container);
+          targetElement = container;
+        } else if(insertMode === 'before') {
+          targetElement.parentNode.insertBefore(container, targetElement);
+          targetElement = container;
+        } else if(insertMode === 'after') {
+          targetElement.parentNode.insertBefore(container, targetElement.nextSibling);
+          targetElement = container;
+        }
+      } else {
+        OT.$.emptyElement(targetElement);
+        if(targetElement.getAttribute('id') == null) {
+          targetElement.setAttribute('id', container.getAttribute('id'));
+        }
+        for(var key in container.style) {
+          targetElement.style[key] = container.style[key];
+        }
+        while(container.childNodes.length > 0) {
+          targetElement.appendChild(container.firstChild);
+        }
+      }
+    };
+
+  };
+
+  OT.initHardwareSetup = function(targetElement, options, callback) {
+    return new OT.HardwareSetup(targetElement, options, callback);
+  };
+
+})();
 !(function() {
   var style = document.createElement('link');
   style.type = 'text/css';
