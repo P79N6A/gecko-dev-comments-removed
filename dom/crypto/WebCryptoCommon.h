@@ -50,6 +50,11 @@
 #define WEBCRYPTO_KEY_USAGE_UNWRAPKEY   "unwrapKey"
 
 
+#define WEBCRYPTO_NAMED_CURVE_P256  "P-256"
+#define WEBCRYPTO_NAMED_CURVE_P384  "P-384"
+#define WEBCRYPTO_NAMED_CURVE_P521  "P-521"
+
+
 #define JWK_TYPE_SYMMETRIC          "oct"
 #define JWK_TYPE_RSA                "RSA"
 #define JWK_TYPE_EC                 "EC"
@@ -182,6 +187,88 @@ MapAlgorithmNameToMechanism(const nsString& aName)
   }
 
   return mechanism;
+}
+
+inline bool
+NormalizeNamedCurveValue(const nsString& aNamedCurve, nsString& aDest)
+{
+  if (aNamedCurve.EqualsIgnoreCase(WEBCRYPTO_NAMED_CURVE_P256)) {
+    aDest.AssignLiteral(WEBCRYPTO_NAMED_CURVE_P256);
+  } else if (aNamedCurve.EqualsIgnoreCase(WEBCRYPTO_NAMED_CURVE_P384)) {
+    aDest.AssignLiteral(WEBCRYPTO_NAMED_CURVE_P384);
+  } else if (aNamedCurve.EqualsIgnoreCase(WEBCRYPTO_NAMED_CURVE_P521)) {
+    aDest.AssignLiteral(WEBCRYPTO_NAMED_CURVE_P521);
+  } else {
+    return false;
+  }
+
+  return true;
+}
+
+inline bool
+CheckEncodedECParameters(const SECItem* aEcParams)
+{
+  
+  if (aEcParams->len < 2) {
+    return false;
+  }
+
+  
+  if (aEcParams->data[0] != SEC_ASN1_OBJECT_ID) {
+    return false;
+  }
+
+  
+  if (aEcParams->data[1] >= 128) {
+    return false;
+  }
+
+  
+  if (aEcParams->len != (unsigned)aEcParams->data[1] + 2) {
+    return false;
+  }
+
+  return true;
+}
+
+inline SECItem*
+CreateECParamsForCurve(const nsString& aNamedCurve, PLArenaPool* aArena)
+{
+  SECOidTag curveOIDTag;
+
+  if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_P256)) {
+    curveOIDTag = SEC_OID_SECG_EC_SECP256R1;
+  } else if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_P384)) {
+    curveOIDTag = SEC_OID_SECG_EC_SECP384R1;
+  } else if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_P521)) {
+    curveOIDTag = SEC_OID_SECG_EC_SECP521R1;
+  } else {
+    return nullptr;
+  }
+
+  
+  SECOidData* oidData = SECOID_FindOIDByTag(curveOIDTag);
+  if (!oidData) {
+    return nullptr;
+  }
+
+  
+  SECItem* params = ::SECITEM_AllocItem(aArena, nullptr, 2 + oidData->oid.len);
+  if (!params) {
+    return nullptr;
+  }
+
+  
+  params->data[0] = SEC_ASN1_OBJECT_ID;
+  params->data[1] = oidData->oid.len;
+  memcpy(params->data + 2, oidData->oid.data, oidData->oid.len);
+
+  
+  if (!CheckEncodedECParameters(params)) {
+    return nullptr;
+  }
+
+  return params;
 }
 
 } 
