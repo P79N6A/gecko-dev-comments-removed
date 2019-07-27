@@ -338,12 +338,6 @@ public:
 
 
 
-  void ClearAllImagesExceptFront();
-
-  
-
-
-
 
 
   void ClearCurrentImage();

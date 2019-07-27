@@ -529,11 +529,6 @@ MediaOmxReader::Seek(int64_t aTarget, int64_t aEndTime)
   EnsureActive();
   nsRefPtr<SeekPromise> p = mSeekPromise.Ensure(__func__);
 
-  VideoFrameContainer* container = mDecoder->GetVideoFrameContainer();
-  if (container && container->GetImageContainer()) {
-    container->GetImageContainer()->ClearAllImagesExceptFront();
-  }
-
   if (mHasAudio && mHasVideo) {
     
     

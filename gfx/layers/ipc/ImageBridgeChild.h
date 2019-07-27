@@ -219,7 +219,7 @@ public:
   
 
 
-  static void FlushAllImages(ImageClient* aClient, ImageContainer* aContainer, bool aExceptFront);
+  static void FlushAllImages(ImageClient* aClient, ImageContainer* aContainer);
 
   
 
