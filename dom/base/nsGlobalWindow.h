@@ -1628,6 +1628,9 @@ protected:
   nsRefPtr<mozilla::dom::SpeechSynthesis> mSpeechSynthesis;
 #endif
 
+  
+  uint32_t mCanSkipCCGeneration;
+
   friend class nsDOMScriptableHelper;
   friend class nsDOMWindowUtils;
   friend class PostMessageEvent;
