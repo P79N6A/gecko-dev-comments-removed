@@ -96,7 +96,7 @@ TextureClientPool::GetTextureClient()
 #endif
     TCP_LOG("TexturePool %p giving %p from pool; size %u outstanding %u\n",
         this, textureClient.get(), mTextureClients.size(), mOutstandingClients);
-    return textureClient;
+    return textureClient.forget();
   }
 
   
@@ -122,7 +122,7 @@ TextureClientPool::GetTextureClient()
 #endif
   TCP_LOG("TexturePool %p giving new %p; size %u outstanding %u\n",
       this, textureClient.get(), mTextureClients.size(), mOutstandingClients);
-  return textureClient;
+  return textureClient.forget();
 }
 
 void

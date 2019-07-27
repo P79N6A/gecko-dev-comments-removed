@@ -69,7 +69,7 @@ public:
     
     
     RefPtr<nsIRunnable> r(new OutputEvent(aSample, mCallback, mCreator));
-    mTaskQueue->Dispatch(r);
+    mTaskQueue->Dispatch(r.forget());
     return NS_OK;
   }
 

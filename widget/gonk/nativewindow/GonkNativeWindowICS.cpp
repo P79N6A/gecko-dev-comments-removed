@@ -15,6 +15,7 @@
 
 
 
+
 #include "base/basictypes.h"
 #include "mozilla/layers/GrallocTextureClient.h"
 #include "mozilla/layers/ImageBridgeChild.h"
@@ -409,7 +410,8 @@ GonkNativeWindow::getTextureClientFromBuffer(ANativeWindowBuffer* buffer)
     return nullptr;
   }
 
-  return mSlots[buf].mTextureClient;
+  RefPtr<TextureClient> client(mSlots[buf].mTextureClient);
+  return client.forget();
 }
 
 status_t GonkNativeWindow::queueBuffer(int buf, int64_t timestamp,
@@ -487,7 +489,8 @@ GonkNativeWindow::getCurrentBuffer() {
   mDequeueCondition.signal();
 
   mSlots[buf].mTextureClient->SetRecycleCallback(GonkNativeWindow::RecycleCallback, this);
-  return mSlots[buf].mTextureClient;
+  RefPtr<TextureClient> client(mSlots[buf].mTextureClient);
+  return client.forget();
 }
 
 

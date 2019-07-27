@@ -15,6 +15,7 @@
 
 
 
+
 #define LOG_TAG "GonkBufferQueue"
 #define ATRACE_TAG ATRACE_TAG_GRAPHICS
 #define LOG_NDEBUG 0
@@ -136,7 +137,8 @@ GonkBufferQueue::getTextureClientFromBuffer(ANativeWindowBuffer* buffer)
 
     for (int i = 0; i < NUM_BUFFER_SLOTS; i++) {
         if (mSlots[i].mGraphicBuffer != NULL && mSlots[i].mGraphicBuffer->handle == buffer->handle) {
-            return mSlots[i].mTextureClient;
+            RefPtr<TextureClient> client(mSlots[i].mTextureClient);
+            return client.forget();
         }
     }
     ST_LOGE("getSlotFromBufferLocked: unknown buffer: %p", buffer->handle);

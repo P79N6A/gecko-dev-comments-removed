@@ -551,7 +551,7 @@ TrackBuffer::QueueInitializeDecoder(SourceBufferDecoder* aDecoder)
                                                       &TrackBuffer::InitializeDecoder,
                                                       aDecoder);
   
-  aDecoder->GetReader()->GetTaskQueue()->Dispatch(task);
+  aDecoder->GetReader()->GetTaskQueue()->Dispatch(task.forget());
   return true;
 }
 
@@ -1041,7 +1041,7 @@ TrackBuffer::RemoveDecoder(SourceBufferDecoder* aDecoder)
     mInitializedDecoders.RemoveElement(aDecoder);
     mDecoders.RemoveElement(aDecoder);
   }
-  aDecoder->GetReader()->GetTaskQueue()->Dispatch(task);
+  aDecoder->GetReader()->GetTaskQueue()->Dispatch(task.forget());
 }
 
 bool

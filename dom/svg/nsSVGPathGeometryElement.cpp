@@ -89,7 +89,8 @@ nsSVGPathGeometryElement::GetOrBuildPath(const DrawTarget& aDrawTarget,
   
   if (cacheable && mCachedPath) {
     if (aDrawTarget.GetBackendType() == mCachedPath->GetBackendType()) {
-      return mCachedPath;
+      RefPtr<Path> path(mCachedPath);
+      return path.forget();
     }
   }
   RefPtr<PathBuilder> builder = aDrawTarget.CreatePathBuilder(aFillRule);

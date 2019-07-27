@@ -277,7 +277,7 @@ MediaDecoderReader::RequestVideoData(bool aSkipToNextKeyframe,
       
       
       RefPtr<nsIRunnable> task(new ReRequestVideoWithSkipTask(this, aTimeThreshold));
-      mTaskQueue->Dispatch(task);
+      mTaskQueue->Dispatch(task.forget());
       return p;
     }
   }
@@ -313,7 +313,7 @@ MediaDecoderReader::RequestAudioData()
     
     if (AudioQueue().GetSize() == 0 && mTaskQueue) {
       RefPtr<nsIRunnable> task(new ReRequestAudioTask(this));
-      mTaskQueue->Dispatch(task);
+      mTaskQueue->Dispatch(task.forget());
       return p;
     }
   }

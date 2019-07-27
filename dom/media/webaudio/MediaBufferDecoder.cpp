@@ -507,7 +507,12 @@ AsyncDecodeWebAudio(const char* aContentType, uint8_t* aBuffer,
                            WebAudioDecodeJob::UnknownError);
     NS_DispatchToMainThread(event);
   } else {
-    task->Reader()->GetTaskQueue()->Dispatch(task);
+    
+    
+    
+    
+    MediaTaskQueue* taskQueue = task->Reader()->GetTaskQueue();
+    taskQueue->Dispatch(task.forget());
   }
 }
 
