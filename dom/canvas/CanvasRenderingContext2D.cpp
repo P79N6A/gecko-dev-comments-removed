@@ -86,6 +86,7 @@
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/UniquePtr.h"
 #include "mozilla/unused.h"
 #include "nsCCUncollectableMarker.h"
 #include "nsWrapperCacheInlines.h"
@@ -292,6 +293,92 @@ public:
 
 
 
+class AdjustedTargetForShadow
+{
+public:
+  typedef CanvasRenderingContext2D::ContextState ContextState;
+
+  AdjustedTargetForShadow(CanvasRenderingContext2D *ctx,
+                          DrawTarget *aFinalTarget,
+                          const mgfx::Rect& aBounds,
+                          mgfx::CompositionOp aCompositionOp)
+    : mCtx(nullptr)
+    , mCompositionOp(aCompositionOp)
+  {
+    mCtx = ctx;
+    mFinalTarget = aFinalTarget;
+
+    const ContextState &state = mCtx->CurrentState();
+
+    mSigma = state.ShadowBlurSigma();
+
+    mgfx::Rect bounds = aBounds;
+
+    int32_t blurRadius = state.ShadowBlurRadius();
+
+    
+    
+    
+    bounds.Inflate(blurRadius);
+
+    bounds.RoundOut();
+    bounds.ToIntRect(&mTempRect);
+
+    mTarget =
+      mFinalTarget->CreateShadowDrawTarget(mTempRect.Size(),
+                                           SurfaceFormat::B8G8R8A8, mSigma);
+
+    if (!mTarget) {
+      
+      
+      mTarget = mFinalTarget;
+      mCtx = nullptr;
+      mFinalTarget = nullptr;
+    } else {
+      mTarget->SetTransform(
+        mFinalTarget->GetTransform().PostTranslate(-mTempRect.TopLeft()));
+    }
+  }
+
+  ~AdjustedTargetForShadow()
+  {
+    if (!mCtx) {
+      return;
+    }
+
+    RefPtr<SourceSurface> snapshot = mTarget->Snapshot();
+
+    mFinalTarget->DrawSurfaceWithShadow(snapshot, mTempRect.TopLeft(),
+                                        Color::FromABGR(mCtx->CurrentState().shadowColor),
+                                        mCtx->CurrentState().shadowOffset, mSigma,
+                                        mCompositionOp);
+  }
+
+  DrawTarget* DT()
+  {
+    return mTarget;
+  }
+
+  mgfx::IntPoint OffsetToFinalDT()
+  {
+    return mTempRect.TopLeft();
+  }
+
+private:
+  RefPtr<DrawTarget> mTarget;
+  RefPtr<DrawTarget> mFinalTarget;
+  CanvasRenderingContext2D *mCtx;
+  Float mSigma;
+  mgfx::IntRect mTempRect;
+  mgfx::CompositionOp mCompositionOp;
+};
+
+
+
+
+
+
+
 
 
 
@@ -303,77 +390,32 @@ public:
   typedef CanvasRenderingContext2D::ContextState ContextState;
 
   explicit AdjustedTarget(CanvasRenderingContext2D* ctx,
-                 mgfx::Rect *aBounds = nullptr)
-    : mCtx(nullptr)
+                          const mgfx::Rect *aBounds = nullptr)
   {
-    if (!ctx->NeedToDrawShadow()) {
-      mTarget = ctx->mTarget;
-      return;
-    }
-    mCtx = ctx;
+    mTarget = ctx->mTarget;
 
-    const ContextState &state = mCtx->CurrentState();
-
-    mSigma = state.shadowBlur / 2.0f;
-
-    if (mSigma > SIGMA_MAX) {
-      mSigma = SIGMA_MAX;
-    }
-
-    Matrix transform = mCtx->mTarget->GetTransform();
-
-    mTempRect = mgfx::Rect(0, 0, ctx->mWidth, ctx->mHeight);
-
-    static const gfxFloat GAUSSIAN_SCALE_FACTOR = (3 * sqrt(2 * M_PI) / 4) * 1.5;
-    int32_t blurRadius = (int32_t) floor(mSigma * GAUSSIAN_SCALE_FACTOR + 0.5);
+    
 
     
     
-    mTempRect.Inflate(Margin(blurRadius + std::max<Float>(state.shadowOffset.y, 0),
-                             blurRadius + std::max<Float>(-state.shadowOffset.x, 0),
-                             blurRadius + std::max<Float>(-state.shadowOffset.y, 0),
-                             blurRadius + std::max<Float>(state.shadowOffset.x, 0)));
+    
+    
+    mgfx::Rect r(0, 0, ctx->mWidth, ctx->mHeight);
+    mgfx::Rect maxSourceNeededBoundsForShadow =
+      MaxSourceNeededBoundsForShadow(r, ctx);
 
+    mgfx::Rect bounds = maxSourceNeededBoundsForShadow;
     if (aBounds) {
-      
-      
-      
-      aBounds->Inflate(Margin(blurRadius, blurRadius,
-                              blurRadius, blurRadius));
-      mTempRect = mTempRect.Intersect(*aBounds);
+      bounds = bounds.Intersect(*aBounds);
     }
 
-    mTempRect.ScaleRoundOut(1.0f);
+    mozilla::gfx::CompositionOp op = ctx->CurrentState().op;
 
-    transform._31 -= mTempRect.x;
-    transform._32 -= mTempRect.y;
-
-    mTarget =
-      mCtx->mTarget->CreateShadowDrawTarget(IntSize(int32_t(mTempRect.width), int32_t(mTempRect.height)),
-                                            SurfaceFormat::B8G8R8A8, mSigma);
-
-    if (!mTarget) {
-      
-      
-      mTarget = ctx->mTarget;
-      mCtx = nullptr;
-    } else {
-      mTarget->SetTransform(transform);
+    if (ctx->NeedToDrawShadow()) {
+      mShadowTarget = MakeUnique<AdjustedTargetForShadow>(
+        ctx, mTarget, bounds, op);
+      mTarget = mShadowTarget->DT();
     }
-  }
-
-  ~AdjustedTarget()
-  {
-    if (!mCtx) {
-      return;
-    }
-
-    RefPtr<SourceSurface> snapshot = mTarget->Snapshot();
-
-    mCtx->mTarget->DrawSurfaceWithShadow(snapshot, mTempRect.TopLeft(),
-                                         Color::FromABGR(mCtx->CurrentState().shadowColor),
-                                         mCtx->CurrentState().shadowOffset, mSigma,
-                                         mCtx->CurrentState().op);
   }
 
   operator DrawTarget*()
@@ -387,10 +429,25 @@ public:
   }
 
 private:
+
+  mgfx::Rect
+  MaxSourceNeededBoundsForShadow(const mgfx::Rect& aDestBounds, CanvasRenderingContext2D *ctx)
+  {
+    if (!ctx->NeedToDrawShadow()) {
+      return aDestBounds;
+    }
+
+    const ContextState &state = ctx->CurrentState();
+    mgfx::Rect sourceBounds = aDestBounds - state.shadowOffset;
+    sourceBounds.Inflate(state.ShadowBlurRadius());
+
+    
+    
+    return sourceBounds.Union(aDestBounds);
+  }
+
   RefPtr<DrawTarget> mTarget;
-  CanvasRenderingContext2D *mCtx;
-  Float mSigma;
-  mgfx::Rect mTempRect;
+  UniquePtr<AdjustedTargetForShadow> mShadowTarget;
 };
 
 void
