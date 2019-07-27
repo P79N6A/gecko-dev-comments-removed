@@ -14,7 +14,6 @@ var FindHelper = {
     switch(aTopic) {
       case "FindInPage:Opened": {
         this._findOpened();
-        this._init();
         break;
       }
 
@@ -115,6 +114,8 @@ var FindHelper = {
   },
 
   findAgain: function(searchString, findBackwards, matchCase) {
+    
+    
     
     if (!this._finder) {
       this.doFind(searchString, matchCase);
