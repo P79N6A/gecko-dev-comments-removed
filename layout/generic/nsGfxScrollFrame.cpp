@@ -1824,7 +1824,8 @@ ScrollFrameHelper::ScrollFrameHelper(nsContainerFrame* aOuter,
   , mOuter(aOuter)
   , mAsyncScroll(nullptr)
   , mAsyncSmoothMSDScroll(nullptr)
-  , mOriginOfLastScroll(nsGkAtoms::other)
+  , mLastScrollOrigin(nsGkAtoms::other)
+  , mLastSmoothScrollOrigin(nullptr)
   , mScrollGeneration(++sScrollGenerationCounter)
   , mDestination(0, 0)
   , mScrollPosAtLastPaint(0, 0)
@@ -2051,6 +2052,19 @@ ScrollFrameHelper::ScrollToWithOrigin(nsPoint aScrollPosition,
             currentVelocity = mAsyncScroll->VelocityAt(now);
           }
           mAsyncScroll = nullptr;
+        }
+
+        if (gfxPrefs::AsyncPanZoomEnabled()) {
+          
+          
+          
+          mLastSmoothScrollOrigin = aOrigin;
+          mScrollGeneration = ++sScrollGenerationCounter;
+
+          
+          
+          mOuter->SchedulePaint();
+          return;
         }
 
         mAsyncSmoothMSDScroll =
@@ -2404,7 +2418,8 @@ ScrollFrameHelper::ScrollToImpl(nsPoint aPt, const nsRect& aRange, nsIAtom* aOri
   nsPoint oldScrollFramePos = mScrolledFrame->GetPosition();
   
   mScrolledFrame->SetPosition(mScrollPort.TopLeft() - pt);
-  mOriginOfLastScroll = aOrigin;
+  mLastScrollOrigin = aOrigin;
+  mLastSmoothScrollOrigin = nullptr;
   mScrollGeneration = ++sScrollGenerationCounter;
 
   

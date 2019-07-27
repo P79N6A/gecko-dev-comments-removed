@@ -42,6 +42,8 @@
 #include "mozilla/layers/APZCTreeManager.h"  
 #include "mozilla/layers/AsyncCompositionManager.h"  
 #include "mozilla/layers/Axis.h"        
+#include "mozilla/layers/AxisPhysicsModel.h" 
+#include "mozilla/layers/AxisPhysicsMSDModel.h" 
 #include "mozilla/layers/LayerTransactionParent.h" 
 #include "mozilla/layers/PCompositorParent.h" 
 #include "mozilla/layers/TaskThrottler.h"  
@@ -133,6 +135,11 @@ typedef mozilla::layers::AllowedTouchBehavior AllowedTouchBehavior;
 typedef GeckoContentController::APZStateChange APZStateChange;
 typedef mozilla::gfx::Point Point;
 typedef mozilla::gfx::Matrix4x4 Matrix4x4;
+
+
+
+
+
 
 
 
@@ -555,6 +562,8 @@ public:
                                                 &AsyncPanZoomController::HandleFlingOverscroll,
                                                 velocity,
                                                 mOverscrollHandoffChain));
+
+        return false;
       }
     }
 
@@ -661,6 +670,119 @@ public:
   }
 private:
   AsyncPanZoomController& mApzc;
+};
+
+class SmoothScrollAnimation : public AsyncPanZoomAnimation {
+public:
+  SmoothScrollAnimation(AsyncPanZoomController& aApzc,
+                        const nsPoint &aInitialPosition,
+                        const nsPoint &aInitialVelocity,
+                        const nsPoint& aDestination, double aSpringConstant,
+                        double aDampingRatio)
+   : AsyncPanZoomAnimation(TimeDuration::FromMilliseconds(
+                           gfxPrefs::APZSmoothScrollRepaintInterval()))
+   , mApzc(aApzc)
+   , mXAxisModel(aInitialPosition.x, aDestination.x, aInitialVelocity.x,
+                 aSpringConstant, aDampingRatio)
+   , mYAxisModel(aInitialPosition.y, aDestination.y, aInitialVelocity.y,
+                 aSpringConstant, aDampingRatio)
+  {
+  }
+
+  
+
+
+
+
+
+  bool Sample(FrameMetrics& aFrameMetrics, const TimeDuration& aDelta) {
+
+    if (aDelta.ToMilliseconds() <= 0) {
+      return true;
+    }
+
+    if (mXAxisModel.IsFinished() && mYAxisModel.IsFinished()) {
+      return false;
+    }
+
+    mXAxisModel.Simulate(aDelta);
+    mYAxisModel.Simulate(aDelta);
+
+    CSSPoint position = CSSPoint::FromAppUnits(nsPoint(mXAxisModel.GetPosition(),
+                                                       mYAxisModel.GetPosition()));
+    CSSPoint css_velocity = CSSPoint::FromAppUnits(nsPoint(mXAxisModel.GetVelocity(),
+                                                           mYAxisModel.GetVelocity()));
+
+    
+    ScreenPoint velocity = ScreenPoint(css_velocity.x, css_velocity.y) / 1000.0f;
+
+    
+    
+    if (mXAxisModel.IsFinished()) {
+      mApzc.mX.SetVelocity(0);
+    } else {
+      mApzc.mX.SetVelocity(velocity.x);
+    }
+    if (mYAxisModel.IsFinished()) {
+      mApzc.mY.SetVelocity(0);
+    } else {
+      mApzc.mY.SetVelocity(velocity.y);
+    }
+
+    
+    
+    float displacement_x = position.x - mApzc.mX.GetOrigin();
+    float displacement_y = position.y - mApzc.mY.GetOrigin();
+
+    CSSPoint overscroll;
+    CSSPoint adjustedOffset;
+    mApzc.mX.AdjustDisplacement(displacement_x, adjustedOffset.x, overscroll.x);
+    mApzc.mY.AdjustDisplacement(displacement_y, adjustedOffset.y, overscroll.y);
+
+    aFrameMetrics.ScrollBy(adjustedOffset);
+
+    
+    
+    
+    
+    if (!IsZero(overscroll)) {
+
+      
+      
+
+      
+      
+      
+      if (FuzzyEqualsAdditive(overscroll.x, 0.0f, COORDINATE_EPSILON)) {
+        velocity.x = 0;
+      } else if (FuzzyEqualsAdditive(overscroll.y, 0.0f, COORDINATE_EPSILON)) {
+        velocity.y = 0;
+      }
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      mDeferredTasks.append(NewRunnableMethod(&mApzc,
+                                              &AsyncPanZoomController::HandleSmoothScrollOverscroll,
+                                              velocity));
+
+      return false;
+    }
+
+    return true;
+  }
+private:
+  AsyncPanZoomController& mApzc;
+  AxisPhysicsMSDModel mXAxisModel, mYAxisModel;
 };
 
 void
@@ -1019,6 +1141,7 @@ nsEventStatus AsyncPanZoomController::OnTouchStart(const MultiTouchInput& aEvent
   switch (mState) {
     case FLING:
     case ANIMATING_ZOOM:
+    case SMOOTH_SCROLL:
       CurrentTouchBlock()->GetOverscrollHandoffChain()->CancelAnimations();
       
     case NOTHING: {
@@ -1053,6 +1176,7 @@ nsEventStatus AsyncPanZoomController::OnTouchMove(const MultiTouchInput& aEvent)
   APZC_LOG("%p got a touch-move in state %d\n", this, mState);
   switch (mState) {
     case FLING:
+    case SMOOTH_SCROLL:
     case NOTHING:
     case ANIMATING_ZOOM:
       
@@ -1127,6 +1251,7 @@ nsEventStatus AsyncPanZoomController::OnTouchEnd(const MultiTouchInput& aEvent) 
     NS_WARNING("Received impossible touch end in OnTouchEnd.");
     
   case ANIMATING_ZOOM:
+  case SMOOTH_SCROLL:
   case NOTHING:
     
     
@@ -1375,6 +1500,11 @@ nsEventStatus AsyncPanZoomController::OnPanCancelled(const PanGestureInput& aEve
 nsEventStatus AsyncPanZoomController::OnPanBegin(const PanGestureInput& aEvent) {
   APZC_LOG("%p got a pan-begin in state %d\n", this, mState);
 
+  if (mState == SMOOTH_SCROLL) {
+    
+    CancelAnimation();
+  }
+
   mPanGestureState = MakeUnique<InputBlockState>(BuildOverscrollHandoffChain());
 
   mX.StartTouch(aEvent.mPanStartPoint.x, aEvent.mTime);
@@ -1396,6 +1526,20 @@ nsEventStatus AsyncPanZoomController::OnPanBegin(const PanGestureInput& aEvent) 
 
 nsEventStatus AsyncPanZoomController::OnPan(const PanGestureInput& aEvent, bool aFingersOnTouchpad) {
   APZC_LOG("%p got a pan-pan in state %d\n", this, mState);
+
+  if (mState == SMOOTH_SCROLL) {
+    if (aEvent.mType == PanGestureInput::PANGESTURE_MOMENTUMPAN) {
+      
+      
+      
+      
+      
+      return nsEventStatus_eConsumeNoDefault;
+    } else {
+      
+      CancelAnimation();
+    }
+  }
 
   
   
@@ -1429,6 +1573,11 @@ nsEventStatus AsyncPanZoomController::OnPanEnd(const PanGestureInput& aEvent) {
 
 nsEventStatus AsyncPanZoomController::OnPanMomentumStart(const PanGestureInput& aEvent) {
   APZC_LOG("%p got a pan-momentumstart in state %d\n", this, mState);
+
+  if (mState == SMOOTH_SCROLL) {
+    
+    CancelAnimation();
+  }
 
   mPanGestureState = MakeUnique<InputBlockState>(BuildOverscrollHandoffChain());
 
@@ -1844,6 +1993,28 @@ void AsyncPanZoomController::HandleFlingOverscroll(const ScreenPoint& aVelocity,
                   true );
     }
   }
+}
+
+void AsyncPanZoomController::HandleSmoothScrollOverscroll(const ScreenPoint& aVelocity) {
+  
+  
+  HandleFlingOverscroll(aVelocity, BuildOverscrollHandoffChain());
+}
+
+void AsyncPanZoomController::StartSmoothScroll() {
+  SetState(SMOOTH_SCROLL);
+  nsPoint initialPosition = CSSPoint::ToAppUnits(mFrameMetrics.GetScrollOffset());
+  
+  
+  nsPoint initialVelocity = CSSPoint::ToAppUnits(CSSPoint(mX.GetVelocity(),
+                                                          mY.GetVelocity())) * 1000.0f;
+  nsPoint destination = CSSPoint::ToAppUnits(mFrameMetrics.GetSmoothScrollOffset());
+
+  StartAnimation(new SmoothScrollAnimation(*this,
+                                           initialPosition, initialVelocity,
+                                           destination,
+                                           gfxPrefs::ScrollBehaviorSpringConstant(),
+                                           gfxPrefs::ScrollBehaviorDampingRatio()));
 }
 
 void AsyncPanZoomController::StartSnapBack() {
@@ -2434,6 +2605,9 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
       needContentRepaint = true;
     }
   } else {
+    bool smoothScrollRequested = aLayerMetrics.GetDoSmoothScroll()
+         && (aLayerMetrics.GetScrollGeneration() != mFrameMetrics.GetScrollGeneration());
+
     
     
     
@@ -2477,6 +2651,23 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
       
       
       mLastDispatchedPaintMetrics = aLayerMetrics;
+    }
+
+    if (smoothScrollRequested) {
+      
+      
+      
+
+      APZC_LOG("%p smooth scrolling from %s to %s\n", this,
+        Stringify(mFrameMetrics.GetScrollOffset()).c_str(),
+        Stringify(aLayerMetrics.GetSmoothScrollOffset()).c_str());
+
+      mFrameMetrics.CopySmoothScrollInfoFrom(aLayerMetrics);
+      CancelAnimation();
+      mLastDispatchedPaintMetrics = aLayerMetrics;
+      StartSmoothScroll();
+
+      scrollOffsetUpdated = true; 
     }
   }
 

@@ -333,7 +333,23 @@ public:
 
 
 
-  virtual nsIAtom* OriginOfLastScroll() = 0;
+
+  virtual nsIAtom* LastScrollOrigin() = 0;
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual nsIAtom* LastSmoothScrollOrigin() = 0;
   
 
 
@@ -343,8 +359,13 @@ public:
 
 
 
+  virtual nsPoint LastScrollDestination() = 0;
+  
 
-  virtual void ResetOriginIfScrollAtGeneration(uint32_t aGeneration) = 0;
+
+
+
+  virtual void ResetScrollInfoIfGeneration(uint32_t aGeneration) = 0;
   
 
 

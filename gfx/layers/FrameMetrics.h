@@ -90,6 +90,8 @@ public:
     , mZoom(1)
     , mUpdateScrollOffset(false)
     , mScrollGeneration(0)
+    , mDoSmoothScroll(false)
+    , mSmoothScrollOffset(0, 0)
     , mRootCompositionSize(0, 0)
     , mDisplayPortMargins(0, 0, 0, 0)
     , mUseDisplayPortMargins(false)
@@ -121,9 +123,11 @@ public:
            mScrollId == aOther.mScrollId &&
            mScrollParentId == aOther.mScrollParentId &&
            mScrollOffset == aOther.mScrollOffset &&
+           mSmoothScrollOffset == aOther.mSmoothScrollOffset &&
            mHasScrollgrab == aOther.mHasScrollgrab &&
            mUpdateScrollOffset == aOther.mUpdateScrollOffset &&
-           mBackgroundColor == aOther.mBackgroundColor;
+           mBackgroundColor == aOther.mBackgroundColor &&
+           mDoSmoothScroll == aOther.mDoSmoothScroll;
   }
   bool operator!=(const FrameMetrics& aOther) const
   {
@@ -239,6 +243,13 @@ public:
   {
     mScrollOffset = aOther.mScrollOffset;
     mScrollGeneration = aOther.mScrollGeneration;
+  }
+
+  void CopySmoothScrollInfoFrom(const FrameMetrics& aOther)
+  {
+    mSmoothScrollOffset = aOther.mSmoothScrollOffset;
+    mScrollGeneration = aOther.mScrollGeneration;
+    mDoSmoothScroll = aOther.mDoSmoothScroll;
   }
 
   
@@ -382,6 +393,16 @@ public:
     return mScrollOffset;
   }
 
+  void SetSmoothScrollOffset(const CSSPoint& aSmoothScrollDestination)
+  {
+    mSmoothScrollOffset = aSmoothScrollDestination;
+  }
+
+  const CSSPoint& GetSmoothScrollOffset() const
+  {
+    return mSmoothScrollOffset;
+  }
+
   void SetZoom(const CSSToScreenScale& aZoom)
   {
     mZoom = aZoom;
@@ -398,9 +419,20 @@ public:
     mScrollGeneration = aScrollGeneration;
   }
 
+  void SetSmoothScrollOffsetUpdated(int32_t aScrollGeneration)
+  {
+    mDoSmoothScroll = true;
+    mScrollGeneration = aScrollGeneration;
+  }
+
   bool GetScrollOffsetUpdated() const
   {
     return mUpdateScrollOffset;
+  }
+
+  bool GetDoSmoothScroll() const
+  {
+    return mDoSmoothScroll;
   }
 
   uint32_t GetScrollGeneration() const
@@ -542,6 +574,11 @@ private:
   bool mUpdateScrollOffset;
   
   uint32_t mScrollGeneration;
+
+  
+  
+  bool mDoSmoothScroll;
+  CSSPoint mSmoothScrollOffset;
 
   
   CSSSize mRootCompositionSize;

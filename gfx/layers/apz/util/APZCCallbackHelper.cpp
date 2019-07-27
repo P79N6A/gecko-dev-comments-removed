@@ -86,8 +86,10 @@ ScrollFrameTo(nsIScrollableFrame* aFrame, const CSSPoint& aPoint, bool& aSuccess
   
   
   
-  if (!aFrame->IsProcessingAsyncScroll() &&
-     (!aFrame->OriginOfLastScroll() || aFrame->OriginOfLastScroll() == nsGkAtoms::apz)) {
+  bool scrollInProgress = aFrame->IsProcessingAsyncScroll()
+      || (aFrame->LastScrollOrigin() && aFrame->LastScrollOrigin() != nsGkAtoms::apz)
+      || aFrame->LastSmoothScrollOrigin();
+  if (!scrollInProgress) {
     aFrame->ScrollToCSSPixelsApproximate(targetScrollPosition, nsGkAtoms::apz);
     geckoScrollPosition = CSSPoint::FromAppUnits(aFrame->GetScrollPosition());
     aSuccessOut = true;
@@ -287,7 +289,7 @@ public:
 
         nsIScrollableFrame* sf = nsLayoutUtils::FindScrollableFrameFor(mScrollId);
         if (sf) {
-            sf->ResetOriginIfScrollAtGeneration(mScrollGeneration);
+            sf->ResetScrollInfoIfGeneration(mScrollGeneration);
         }
 
         return NS_OK;
