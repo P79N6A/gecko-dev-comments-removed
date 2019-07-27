@@ -201,8 +201,6 @@ public:
   
   nsPluginTag* TagForPlugin(nsNPAPIPlugin* aPlugin);
 
-  nsPluginTag* PluginWithId(uint32_t aId);
-
   nsresult GetPlugin(const char *aMimeType, nsNPAPIPlugin** aPlugin);
   nsresult GetPluginForContentProcess(uint32_t aPluginId, nsNPAPIPlugin** aPlugin);
   void NotifyContentModuleDestroyed(uint32_t aPluginId);
@@ -278,6 +276,7 @@ private:
     
   
   nsPluginTag* FirstPluginWithPath(const nsCString& path);
+  nsPluginTag* PluginWithId(uint32_t aId);
 
   nsresult EnsurePrivateDirServiceProvider();
 
