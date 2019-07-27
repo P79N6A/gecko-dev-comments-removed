@@ -1708,6 +1708,13 @@ class nsIWidget : public nsISupports {
 
 
 
+
+    virtual nsEventStatus DispatchInputEvent(mozilla::WidgetInputEvent* aEvent) = 0;
+
+    
+
+
+
     NS_IMETHOD EnableDragDrop(bool aEnable) = 0;
    
     

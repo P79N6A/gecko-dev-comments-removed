@@ -233,7 +233,7 @@ public:
 
   
   
-  nsEventStatus DispatchInputEvent(mozilla::WidgetInputEvent* aEvent);
+  nsEventStatus DispatchInputEvent(mozilla::WidgetInputEvent* aEvent) override;
 
   
   nsEventStatus DispatchAPZAwareEvent(mozilla::WidgetInputEvent* aEvent) override;
