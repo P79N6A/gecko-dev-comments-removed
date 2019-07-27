@@ -68,18 +68,6 @@ this.ReaderMode = {
 
 
 
-  isProbablyReaderable: function(doc) {
-    let uri = Services.io.newURI(doc.documentURI, null, null);
-    return this._shouldCheckUri(uri);
-  },
-
-  
-
-
-
-
-
-
 
   parseDocument: Task.async(function* (doc) {
     let uri = Services.io.newURI(doc.documentURI, null, null);
