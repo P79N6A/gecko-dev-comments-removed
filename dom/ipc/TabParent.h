@@ -508,11 +508,10 @@ private:
     
     
     void ApzAwareEventRoutingToChild(ScrollableLayerGuid* aOutTargetGuid,
-                                     uint64_t* aOutInputBlockId);
-    
+                                     uint64_t* aOutInputBlockId,
+                                     nsEventStatus* aOutApzResponse);
     
     bool mMarkedDestroying;
-    
     
     bool mIsDestroyed;
     
