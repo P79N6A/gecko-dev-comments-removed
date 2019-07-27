@@ -674,7 +674,7 @@ class ClonedBlockObject : public BlockObject
 
 
 
-    static ClonedBlockObject* clone(ExclusiveContext* cx, Handle<ClonedBlockObject*> block);
+    static ClonedBlockObject* clone(JSContext* cx, Handle<ClonedBlockObject*> block);
 };
 
 
