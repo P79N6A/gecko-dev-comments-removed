@@ -712,8 +712,8 @@ nsNSSComponent::FillTLSVersionRange(SSLVersionRange& rangeOut,
 {
   rangeOut = defaults;
   
-  SSLVersionRange range;
-  if (SSL_VersionRangeGetSupported(ssl_variant_stream, &range)
+  SSLVersionRange supported;
+  if (SSL_VersionRangeGetSupported(ssl_variant_stream, &supported)
         != SECSuccess) {
     return;
   }
@@ -723,7 +723,8 @@ nsNSSComponent::FillTLSVersionRange(SSLVersionRange& rangeOut,
   maxFromPrefs += SSL_LIBRARY_VERSION_3_0;
   
   if (minFromPrefs > maxFromPrefs ||
-      minFromPrefs < range.min || maxFromPrefs > range.max) {
+      minFromPrefs < supported.min || maxFromPrefs > supported.max ||
+      minFromPrefs < SSL_LIBRARY_VERSION_TLS_1_0) {
     return;
   }
 

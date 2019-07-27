@@ -1174,20 +1174,9 @@ retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
 
   
   
-  
-  
 
   
   
-  
-  
-  
-  
-  
-  if (err == PR_CONNECT_RESET_ERROR &&
-      range.max <= SSL_LIBRARY_VERSION_TLS_1_0) {
-    return false;
-  }
   if ((err == PR_CONNECT_RESET_ERROR || err == PR_END_OF_FILE_ERROR)
       && socketInfo->GetForSTARTTLS()) {
     return false;
@@ -1212,10 +1201,6 @@ retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
     case SSL_LIBRARY_VERSION_TLS_1_0:
       pre = Telemetry::SSL_TLS10_INTOLERANCE_REASON_PRE;
       post = Telemetry::SSL_TLS10_INTOLERANCE_REASON_POST;
-      break;
-    case SSL_LIBRARY_VERSION_3_0:
-      pre = Telemetry::SSL_SSL30_INTOLERANCE_REASON_PRE;
-      post = Telemetry::SSL_SSL30_INTOLERANCE_REASON_POST;
       break;
     default:
       MOZ_CRASH("impossible TLS version");
