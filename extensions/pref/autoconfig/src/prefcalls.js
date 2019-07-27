@@ -1,7 +1,7 @@
-/* -*- tab-width: 4; indent-tabs-mode: nil; js-indent-level: 4 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 const nsILDAPURL = Components.interfaces.nsILDAPURL;
 const LDAPURLContractID = "@mozilla.org/network/ldap-url;1";
@@ -9,9 +9,6 @@ const nsILDAPSyncQuery = Components.interfaces.nsILDAPSyncQuery;
 const LDAPSyncQueryContractID = "@mozilla.org/ldapsyncquery;1";
 const nsIPrefService = Components.interfaces.nsIPrefService;
 const PrefServiceContractID = "@mozilla.org/preferences-service;1";
-
-// set on a platform specific basis in platform.js
-platform = { value: "" };
 
 var gVersion;
 
@@ -145,10 +142,10 @@ function getLDAPAttributes(host, base, filter, attribs) {
 
         var ldapquery = Components.classes[LDAPSyncQueryContractID]
                                   .createInstance(nsILDAPSyncQuery);
-        // default to LDAP v3
+        
         if (!gVersion)
           gVersion = Components.interfaces.nsILDAPConnection.VERSION3
- 	// user supplied method
+ 	
         processLDAPValues(ldapquery.getQueryResults(url, gVersion));
     }
     catch(e) {
