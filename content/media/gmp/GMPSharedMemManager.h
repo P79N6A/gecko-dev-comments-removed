@@ -12,7 +12,9 @@
 namespace mozilla {
 namespace gmp {
 
-class GMPSharedMemManager
+class GMPSharedMemManager;
+
+class GMPSharedMem
 {
 public:
   typedef enum {
@@ -28,24 +30,50 @@ public:
   
   static const uint32_t kGMPBufLimit = 20;
 
-  GMPSharedMemManager();
-  virtual ~GMPSharedMemManager();
-
-  virtual bool MgrAllocShmem(GMPMemoryClasses aClass, size_t aSize,
-                             ipc::Shmem::SharedMemory::SharedMemoryType aType,
-                             ipc::Shmem* aMem);
-  virtual bool MgrDeallocShmem(GMPMemoryClasses aClass, ipc::Shmem& aMem);
-
-  
-  virtual uint32_t NumInUse(GMPMemoryClasses aClass);
+  GMPSharedMem()
+  {
+    for (size_t i = 0; i < sizeof(mGmpAllocated)/sizeof(mGmpAllocated[0]); i++) {
+      mGmpAllocated[i] = 0;
+    }
+  }
+  virtual ~GMPSharedMem() {}
 
   
   virtual void CheckThread() = 0;
+
+protected:
+  friend class GMPSharedMemManager;
+
+  nsTArray<ipc::Shmem> mGmpFreelist[GMPSharedMem::kGMPNumTypes];
+  uint32_t mGmpAllocated[GMPSharedMem::kGMPNumTypes];
+};
+
+class GMPSharedMemManager
+{
+public:
+  GMPSharedMemManager(GMPSharedMem *aData) : mData(aData) {}
+  virtual ~GMPSharedMemManager() {}
+
+  virtual bool MgrAllocShmem(GMPSharedMem::GMPMemoryClasses aClass, size_t aSize,
+                             ipc::Shmem::SharedMemory::SharedMemoryType aType,
+                             ipc::Shmem* aMem);
+  virtual bool MgrDeallocShmem(GMPSharedMem::GMPMemoryClasses aClass, ipc::Shmem& aMem);
+
+  
+  virtual uint32_t NumInUse(GMPSharedMem::GMPMemoryClasses aClass);
 
   
   
   virtual bool Alloc(size_t aSize, ipc::Shmem::SharedMemory::SharedMemoryType aType, ipc::Shmem* aMem) = 0;
   virtual void Dealloc(ipc::Shmem& aMem) = 0;
+
+private:
+  nsTArray<ipc::Shmem>& GetGmpFreelist(GMPSharedMem::GMPMemoryClasses aTypes)
+  {
+    return mData->mGmpFreelist[aTypes];
+  }
+
+  GMPSharedMem *mData;
 };
 
 } 

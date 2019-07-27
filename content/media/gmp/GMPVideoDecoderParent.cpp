@@ -50,7 +50,8 @@ namespace gmp {
 
 
 GMPVideoDecoderParent::GMPVideoDecoderParent(GMPParent* aPlugin)
-  : mIsOpen(false)
+  : GMPSharedMemManager(aPlugin)
+  , mIsOpen(false)
   , mPlugin(aPlugin)
   , mCallback(nullptr)
   , mVideoHost(MOZ_THIS_IN_INITIALIZER_LIST())
@@ -132,8 +133,8 @@ GMPVideoDecoderParent::Decode(GMPVideoEncodedFrame* aInputFrame,
   
   
   
-  if (NumInUse(kGMPFrameData) > 3*GMPSharedMemManager::kGMPBufLimit ||
-      NumInUse(kGMPEncodedData) > GMPSharedMemManager::kGMPBufLimit) {
+  if ((NumInUse(GMPSharedMem::kGMPFrameData) > 3*GMPSharedMem::kGMPBufLimit) ||
+      (NumInUse(GMPSharedMem::kGMPEncodedData) > GMPSharedMem::kGMPBufLimit)) {
     return NS_ERROR_FAILURE;
   }
 
@@ -226,12 +227,6 @@ GMPVideoDecoderParent::ActorDestroy(ActorDestroyReason aWhy)
     mPlugin = nullptr;
   }
   mVideoHost.ActorDestroyed();
-}
-
-void
-GMPVideoDecoderParent::CheckThread()
-{
-  MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
 }
 
 bool
@@ -331,7 +326,7 @@ bool
 GMPVideoDecoderParent::RecvParentShmemForPool(Shmem& aEncodedBuffer)
 {
   if (aEncodedBuffer.IsWritable()) {
-    mVideoHost.SharedMemMgr()->MgrDeallocShmem(GMPSharedMemManager::kGMPEncodedData,
+    mVideoHost.SharedMemMgr()->MgrDeallocShmem(GMPSharedMem::kGMPEncodedData,
                                                aEncodedBuffer);
   }
   return true;
@@ -343,7 +338,7 @@ GMPVideoDecoderParent::AnswerNeedShmem(const uint32_t& aFrameBufferSize,
 {
   ipc::Shmem mem;
 
-  if (!mVideoHost.SharedMemMgr()->MgrAllocShmem(GMPSharedMemManager::kGMPFrameData,
+  if (!mVideoHost.SharedMemMgr()->MgrAllocShmem(GMPSharedMem::kGMPFrameData,
                                                 aFrameBufferSize,
                                                 ipc::SharedMemory::TYPE_BASIC, &mem))
   {
