@@ -617,7 +617,7 @@ JitCompartment::mark(JSTracer *trc, JSCompartment *compartment)
             
             if (!script->hasParallelIonScript() ||
                 !script->parallelIonScript()->isParallelEntryScript() ||
-                trc->runtime()->gc.shouldCleanUpEverything)
+                trc->runtime()->gc.shouldCleanUpEverything())
             {
                 e.removeFront();
                 continue;

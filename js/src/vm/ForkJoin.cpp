@@ -1724,7 +1724,7 @@ ForkJoinShared::setAbortFlagDueToInterrupt(ForkJoinContext &cx)
     
     
     
-    JS_ASSERT(!cx_->runtime()->gc.isNeeded);
+    JS_ASSERT(!cx_->runtime()->gc.isGcNeeded());
 
     if (!abort_) {
         cx.bailoutRecord->joinCause(ParallelBailoutInterrupt);

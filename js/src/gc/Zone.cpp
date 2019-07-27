@@ -223,7 +223,7 @@ Zone::gcNumber()
 {
     
     
-    return usedByExclusiveThread ? 0 : runtimeFromMainThread()->gc.number;
+    return usedByExclusiveThread ? 0 : runtimeFromMainThread()->gc.gcNumber();
 }
 
 #ifdef JS_ION

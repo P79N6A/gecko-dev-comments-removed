@@ -209,6 +209,10 @@ class GCMarker : public JSTracer
 
     size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
+#ifdef DEBUG
+    bool shouldCheckCompartments() { return strictCompartmentChecking; }
+#endif
+
     
     MarkStack stack;
 
@@ -291,6 +295,12 @@ class GCMarker : public JSTracer
 
     
     mozilla::DebugOnly<bool> started;
+
+    
+
+
+
+    mozilla::DebugOnly<bool> strictCompartmentChecking;
 };
 
 void
