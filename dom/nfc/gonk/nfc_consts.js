@@ -47,4 +47,7 @@ this.PEER_EVENT_FOUND = 0x05;
 this.RF_EVENT_STATE_CHANGE = 0x06;
 
 
+this.SYSTEM_APP_ID = -1;
+
+
 this.EXPORTED_SYMBOLS = Object.keys(this);
