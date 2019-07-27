@@ -501,15 +501,16 @@ CryptoKey::PublicKeyToSpki(SECKEYPublicKey* aPubKey,
                            CryptoBuffer& aRetVal,
                            const nsNSSShutDownPreventionLock& )
 {
+  ScopedPLArenaPool arena;
   ScopedCERTSubjectPublicKeyInfo spki;
-
-  ScopedPLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
-  if (!arena) {
-    return NS_ERROR_DOM_OPERATION_ERR;
-  }
 
   
   if (aPubKey->keyType == dhKey) {
+    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    if (!arena) {
+      return NS_ERROR_DOM_OPERATION_ERR;
+    }
+
     
     
     
@@ -541,16 +542,17 @@ CryptoKey::PublicKeyToSpki(SECKEYPublicKey* aPubKey,
       MOZ_ASSERT(false);
     }
 
-    SECStatus rv = SECITEM_CopyItem(arena, &spki->algorithm.algorithm, oidData);
+    SECStatus rv = SECITEM_CopyItem(spki->arena, &spki->algorithm.algorithm,
+                                    oidData);
     if (rv != SECSuccess) {
       return NS_ERROR_DOM_OPERATION_ERR;
     }
   }
 
   const SEC_ASN1Template* tpl = SEC_ASN1_GET(CERT_SubjectPublicKeyInfoTemplate);
-  SECItem* spkiItem(SEC_ASN1EncodeItem(arena, nullptr, spki, tpl));
+  ScopedSECItem spkiItem(SEC_ASN1EncodeItem(nullptr, nullptr, spki, tpl));
 
-  aRetVal.Assign(spkiItem);
+  aRetVal.Assign(spkiItem.get());
   return NS_OK;
 }
 
