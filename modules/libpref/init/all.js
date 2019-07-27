@@ -2003,7 +2003,7 @@ pref("layout.css.masking.enabled", true);
 pref("layout.css.mix-blend-mode.enabled", true);
 
 
-pref("layout.css.filters.enabled", false);
+pref("layout.css.filters.enabled", true);
 
 
 pref("layout.css.clip-path-shapes.enabled", false);
