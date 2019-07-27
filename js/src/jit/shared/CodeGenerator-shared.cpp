@@ -76,18 +76,23 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator *gen, LIRGraph *graph, Mac
         JS_ASSERT(graph->argumentSlotCount() == 0);
         frameDepth_ += gen->maxAsmJSStackArgBytes();
 
-        
-        
         if (gen->usesSimd()) {
-            frameInitialAdjustment_ = ComputeByteAlignment(sizeof(AsmJSFrame), AsmJSStackAlignment);
+            
+            
+            frameInitialAdjustment_ = ComputeByteAlignment(sizeof(AsmJSFrame),
+                                                           AsmJSStackAlignment);
             frameDepth_ += frameInitialAdjustment_;
+            
+            
+            frameDepth_ += ComputeByteAlignment(sizeof(AsmJSFrame) + frameDepth_,
+                                                AsmJSStackAlignment);
+        } else if (gen->performsCall()) {
+            
+            
+            
+            frameDepth_ += ComputeByteAlignment(sizeof(AsmJSFrame) + frameDepth_,
+                                                AsmJSStackAlignment);
         }
-
-        
-        
-        
-        if (gen->performsCall())
-            frameDepth_ += ComputeByteAlignment(sizeof(AsmJSFrame) + frameDepth_, AsmJSStackAlignment);
 
         
         
