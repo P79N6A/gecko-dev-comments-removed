@@ -353,6 +353,10 @@ struct ClassExtension
 
 
 
+
+
+
+
     JSObjectMovedOp objectMovedOp;
 };
 

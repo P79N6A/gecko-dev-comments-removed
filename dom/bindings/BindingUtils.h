@@ -174,6 +174,24 @@ UnwrapDOMObject(JSObject* obj)
   return static_cast<T*>(val.toPrivate());
 }
 
+template <class T>
+inline T*
+UnwrapPossiblyNotInitializedDOMObject(JSObject* obj)
+{
+  
+  
+  
+
+  MOZ_ASSERT(IsDOMClass(js::GetObjectClass(obj)),
+             "Don't pass non-DOM objects to this function");
+
+  JS::Value val = js::GetReservedOrProxyPrivateSlot(obj, DOM_OBJECT_SLOT);
+  if (val.isUndefined()) {
+    return nullptr;
+  }
+  return static_cast<T*>(val.toPrivate());
+}
+
 inline const DOMJSClass*
 GetDOMClass(const js::Class* clasp)
 {
