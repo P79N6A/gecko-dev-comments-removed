@@ -74,7 +74,7 @@ public:
   HRESULT Flush();
 
   
-  HRESULT SendMFTMessage(MFT_MESSAGE_TYPE aMsg, UINT32 aData);
+  HRESULT SendMFTMessage(MFT_MESSAGE_TYPE aMsg, ULONG_PTR aData);
 
 private:
 
