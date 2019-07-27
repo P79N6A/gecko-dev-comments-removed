@@ -980,9 +980,11 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
   ParentLayerPoint translation = userScroll - geckoScroll;
   Matrix4x4 treeTransform = ViewTransform(asyncZoom, -translation);
 
-  SetShadowTransform(aLayer, oldTransform * treeTransform);
-  NS_ASSERTION(!aLayer->AsLayerComposite()->GetShadowTransformSetByAnimation(),
-               "overwriting animated transform!");
+  
+  
+  
+  
+  SetShadowTransform(aLayer, aLayer->GetLocalTransform() * treeTransform);
 
   
   
