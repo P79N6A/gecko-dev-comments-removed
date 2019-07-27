@@ -108,6 +108,8 @@ let ViewSourceChrome = {
     removeEventListener("MozSwipeGesture", this, true);
     gContextMenu.removeEventListener("popupshowing", this);
     gContextMenu.removeEventListener("popuphidden", this);
+    Services.els.removeSystemEventListener(gBrowser, "dragover", this, true);
+    Services.els.removeSystemEventListener(gBrowser, "drop", this, true);
   },
 
   
@@ -171,6 +173,12 @@ let ViewSourceChrome = {
         break;
       case "popuphidden":
         this.onContextMenuHidden(event);
+        break;
+      case "dragover":
+        this.onDragOver(event);
+        break;
+      case "drop":
+        this.onDrop(event);
         break;
     }
   },
@@ -258,6 +266,9 @@ let ViewSourceChrome = {
 
     gContextMenu.addEventListener("popupshowing", this);
     gContextMenu.addEventListener("popuphidden", this);
+
+    Services.els.addSystemEventListener(gBrowser, "dragover", this, true);
+    Services.els.addSystemEventListener(gBrowser, "drop", this, true);
 
     if (!this.historyEnabled) {
       
@@ -499,6 +510,51 @@ let ViewSourceChrome = {
     this.contextMenuData = {
       isOpen: false,
     };
+  },
+
+  
+
+
+  onDragOver(event) {
+    
+    
+    
+    let types = event.dataTransfer.types;
+    if (types.contains("text/x-moz-text-internal") && !types.contains("text/plain")) {
+        event.dataTransfer.dropEffect = "none";
+        event.stopPropagation();
+        event.preventDefault();
+    }
+
+    let linkHandler = Cc["@mozilla.org/content/dropped-link-handler;1"]
+                        .getService(Ci.nsIDroppedLinkHandler);
+
+    if (linkHandler.canDropLink(event, false)) {
+      event.preventDefault();
+    }
+  },
+
+  
+
+
+  onDrop(event) {
+    if (event.defaultPrevented)
+      return;
+
+    let name = { };
+    let linkHandler = Cc["@mozilla.org/content/dropped-link-handler;1"]
+                        .getService(Ci.nsIDroppedLinkHandler);
+    let uri;
+    try {
+      
+      uri = linkHandler.dropLink(event, name, true);
+    } catch (e) {
+      return;
+    }
+
+    if (uri) {
+      this.loadURL(uri);
+    }
   },
 
   
