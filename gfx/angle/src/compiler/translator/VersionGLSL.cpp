@@ -36,8 +36,7 @@ static const int GLSL_VERSION_120 = 120;
 
 
 TVersionGLSL::TVersionGLSL(ShShaderType type)
-    : mShaderType(type),
-      mVersion(GLSL_VERSION_110)
+    : mVersion(GLSL_VERSION_110)
 {
 }
 

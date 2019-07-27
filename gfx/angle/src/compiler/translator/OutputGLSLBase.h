@@ -7,7 +7,7 @@
 #ifndef CROSSCOMPILERGLSL_OUTPUTGLSLBASE_H_
 #define CROSSCOMPILERGLSL_OUTPUTGLSLBASE_H_
 
-#include <vector>
+#include <set>
 
 #include "compiler/translator/intermediate.h"
 #include "compiler/translator/LoopInfo.h"
@@ -56,8 +56,6 @@ class TOutputGLSLBase : public TIntermTraverser
   private:
     bool structDeclared(const TStructure *structure) const;
     void declareStruct(const TStructure *structure);
-    void pushDeclaredStructsScope();
-    void popDeclaredStructsScope();
 
     void writeBuiltInFunctionTriplet(Visit visit, const char *preStr, bool useEmulatedFunction);
 
@@ -65,13 +63,7 @@ class TOutputGLSLBase : public TIntermTraverser
     bool mDeclaringVariables;
 
     
-    
-    
-    typedef std::vector<TStructure *> ScopedDeclaredStructs;
-    
-    
-    typedef std::vector<ScopedDeclaredStructs> DeclaredStructs;
-    DeclaredStructs mDeclaredStructs;
+    std::set<int> mDeclaredStructs;
 
     
     TLoopStack mLoopUnrollStack;
