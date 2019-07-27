@@ -125,8 +125,9 @@ public:
   NS_IMETHOD SetTitle(const nsAString& aTitle) MOZ_OVERRIDE
   { return NS_ERROR_UNEXPECTED; }
   
+  
   virtual nsIntPoint WidgetToScreenOffset() MOZ_OVERRIDE
-  { return GetWindowPosition() + GetChromeDimensions(); }  
+  { return nsIntPoint(0, 0); }
 
   void InitEvent(WidgetGUIEvent& aEvent, nsIntPoint* aPoint = nullptr);
 
