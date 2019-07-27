@@ -1026,21 +1026,6 @@ public:
     virtual void AddRect(const nsRect& aRect);
   };
 
-  
-
-
-
-
-  struct FirstAndLastRectCollector : public RectCallback {
-    nsRect mFirstRect;
-    nsRect mLastRect;
-    bool mSeenFirstRect;
-
-    FirstAndLastRectCollector();
-
-    virtual void AddRect(const nsRect& aRect);
-  };
-
   static nsIFrame* GetContainingBlockForClientRect(nsIFrame* aFrame);
 
   enum {

@@ -377,19 +377,6 @@ IsRightToLeft(nsIFrame* aFrame)
     aFrame->StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
 }
 
-
-
-
-
-static void
-ReduceRectToVerticalEdge(nsRect& aRect, bool aToRightEdge)
-{
-  if (aToRightEdge) {
-    aRect.x = aRect.XMost() - AppUnitsPerCSSPixel();
-  }
-  aRect.width = AppUnitsPerCSSPixel();
-}
-
 static nsIFrame*
 FindFirstNodeWithFrame(nsIDocument* aDocument,
                        nsRange* aRange,
@@ -472,16 +459,6 @@ SelectionCarets::UpdateSelectionCarets()
   nsRefPtr<nsRange> firstRange = selection->GetRangeAt(0);
   nsRefPtr<nsRange> lastRange = selection->GetRangeAt(rangeCount - 1);
 
-  nsLayoutUtils::FirstAndLastRectCollector collectorStart;
-  nsRange::CollectClientRects(&collectorStart, firstRange,
-                              firstRange->GetStartParent(), firstRange->StartOffset(),
-                              firstRange->GetEndParent(), firstRange->EndOffset(), true, true);
-
-  nsLayoutUtils::FirstAndLastRectCollector collectorEnd;
-  nsRange::CollectClientRects(&collectorEnd, lastRange,
-                              lastRange->GetStartParent(), lastRange->StartOffset(),
-                              lastRange->GetEndParent(), lastRange->EndOffset(), true, true);
-
   nsIFrame* canvasFrame = mPresShell->GetCanvasFrame();
   nsIFrame* rootFrame = mPresShell->GetRootFrame();
 
@@ -522,17 +499,29 @@ SelectionCarets::UpdateSelectionCarets()
   bool startFrameIsRTL = IsRightToLeft(startFrame);
   bool endFrameIsRTL = IsRightToLeft(endFrame);
 
-  
-  
-  ReduceRectToVerticalEdge(collectorStart.mFirstRect, startFrameIsRTL);
+  mPresShell->FlushPendingNotifications(Flush_Layout);
+  nsRect firstRectInRootFrame =
+    nsCaret::GetGeometryForFrame(startFrame, startOffset, nullptr);
+  nsRect lastRectInRootFrame =
+    nsCaret::GetGeometryForFrame(endFrame, endOffset, nullptr);
 
   
   
-  ReduceRectToVerticalEdge(collectorEnd.mLastRect, !endFrameIsRTL);
+  firstRectInRootFrame = firstRectInRootFrame.ForceInside(startFrame->GetRectRelativeToSelf());
+  lastRectInRootFrame = lastRectInRootFrame.ForceInside(endFrame->GetRectRelativeToSelf());
+  nsRect firstRectInCanvasFrame = firstRectInRootFrame;
+  nsRect lastRectInCanvasFrame =lastRectInRootFrame;
+  nsLayoutUtils::TransformRect(startFrame, rootFrame, firstRectInRootFrame);
+  nsLayoutUtils::TransformRect(endFrame, rootFrame, lastRectInRootFrame);
+  nsLayoutUtils::TransformRect(startFrame, canvasFrame, firstRectInCanvasFrame);
+  nsLayoutUtils::TransformRect(endFrame, canvasFrame, lastRectInCanvasFrame);
+
+  firstRectInRootFrame.Inflate(AppUnitsPerCSSPixel(), 0);
+  lastRectInRootFrame.Inflate(AppUnitsPerCSSPixel(), 0);
 
   nsAutoTArray<nsIFrame*, 16> hitFramesInFirstRect;
   nsLayoutUtils::GetFramesForArea(rootFrame,
-    collectorStart.mFirstRect,
+    firstRectInRootFrame,
     hitFramesInFirstRect,
     nsLayoutUtils::IGNORE_PAINT_SUPPRESSION |
       nsLayoutUtils::IGNORE_CROSS_DOC |
@@ -540,7 +529,7 @@ SelectionCarets::UpdateSelectionCarets()
 
   nsAutoTArray<nsIFrame*, 16> hitFramesInLastRect;
   nsLayoutUtils::GetFramesForArea(rootFrame,
-    collectorEnd.mLastRect,
+    lastRectInRootFrame,
     hitFramesInLastRect,
     nsLayoutUtils::IGNORE_PAINT_SUPPRESSION |
       nsLayoutUtils::IGNORE_CROSS_DOC |
@@ -549,11 +538,8 @@ SelectionCarets::UpdateSelectionCarets()
   SetStartFrameVisibility(hitFramesInFirstRect.Contains(startFrame));
   SetEndFrameVisibility(hitFramesInLastRect.Contains(endFrame));
 
-  nsLayoutUtils::TransformRect(rootFrame, canvasFrame, collectorStart.mFirstRect);
-  nsLayoutUtils::TransformRect(rootFrame, canvasFrame, collectorEnd.mLastRect);
-
-  SetStartFramePos(collectorStart.mFirstRect.BottomLeft());
-  SetEndFramePos(collectorEnd.mLastRect.BottomRight());
+  SetStartFramePos(firstRectInCanvasFrame.BottomLeft());
+  SetEndFramePos(lastRectInCanvasFrame.BottomRight());
   SetVisibility(true);
 
   
