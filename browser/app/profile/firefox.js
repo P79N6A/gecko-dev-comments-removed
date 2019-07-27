@@ -1653,4 +1653,4 @@ pref("experiments.manifest.certs.1.issuerName", "CN=Cybertrust Public SureServer
 pref("experiments.supported", true);
 
 
-pref("media.gmp-gmpopenh264.provider.enabled", true);
+pref("media.openh264.providerEnabled", true);

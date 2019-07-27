@@ -14,7 +14,7 @@ const DOWNLOAD_CHUNK_BYTES_SIZE = 300000;
 const DOWNLOAD_INTERVAL  = 0;
 
 const DEFAULT_SECONDS_BETWEEN_CHECKS = 60 * 60 * 24;
-const OPEN_H264_ID = "gmp-gmpopenh264";
+const OPEN_H264_ID = "openh264-plugin@cisco.com";
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -875,12 +875,10 @@ GMPDownloader.prototype = {
         
         let now = Math.round(Date.now() / 1000);
         GMPPrefs.set(GMPPrefs.KEY_ADDON_LAST_UPDATE, now, gmpAddon.id);
-        
-        
-        GMPPrefs.set(GMPPrefs.KEY_ADDON_VERSION, gmpAddon.version,
-                     gmpAddon.id);
         GMPPrefs.set(GMPPrefs.KEY_ADDON_PATH,
                      installToDirPath.path, gmpAddon.id);
+        GMPPrefs.set(GMPPrefs.KEY_ADDON_VERSION, gmpAddon.version,
+                     gmpAddon.id);
         this._deferred.resolve(extractedPaths);
       }, err => {
         this._deferred.reject(err);
