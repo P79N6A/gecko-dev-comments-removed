@@ -658,7 +658,7 @@ jit::RecompileOnStackBaselineScriptsForDebugMode(JSContext *cx, JSCompartment *c
 #ifdef JSGC_GENERATIONAL
     
     if (!entries.empty())
-        cx->runtime()->gc.evictNursery();
+        MinorGC(cx->runtime(), JS::gcreason::EVICT_NURSERY);
 #endif
 
     

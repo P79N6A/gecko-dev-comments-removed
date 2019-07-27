@@ -87,7 +87,7 @@ BEGIN_TEST(testWeakMap_keyDelegates)
 
 
     CHECK(newCCW(map, delegate));
-    rt->gc.gcDebugSlice(true, 1000000);
+    GCDebugSlice(rt, true, 1000000);
 #ifdef DEBUG
     CHECK(map->zone()->lastZoneGroupIndex() < delegate->zone()->lastZoneGroupIndex());
 #endif
@@ -100,7 +100,7 @@ BEGIN_TEST(testWeakMap_keyDelegates)
     
     key = nullptr;
     CHECK(newCCW(map, delegate));
-    rt->gc.gcDebugSlice(true, 100000);
+    GCDebugSlice(rt, true, 100000);
     CHECK(checkSize(map, 1));
 
     
