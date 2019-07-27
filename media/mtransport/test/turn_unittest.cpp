@@ -60,6 +60,8 @@
 #include "gtest/gtest.h"
 #include "gtest_utils.h"
 
+#define USE_TURN
+
 
 extern "C" {
 #include "nr_api.h"
@@ -211,6 +213,7 @@ class TurnClient : public ::testing::Test {
   void Deallocate_s() {
     ASSERT_TRUE(turn_ctx_);
 
+    std::cerr << "De-Allocating..." << std::endl;
     int r = nr_turn_client_deallocate(turn_ctx_);
     ASSERT_EQ(0, r);
   }
@@ -219,6 +222,36 @@ class TurnClient : public ::testing::Test {
     RUN_ON_THREAD(test_utils->sts_target(),
                   WrapRunnable(this, &TurnClient::Deallocate_s),
                   NS_DISPATCH_SYNC);
+  }
+
+  void RequestPermission_s(const std::string& target) {
+    nr_transport_addr addr;
+    int r;
+
+    
+    ASSERT_EQ(0, target.compare(0, 4, "IP4:"));
+
+    size_t offset = target.rfind(':');
+    ASSERT_NE(std::string::npos, offset);
+
+    std::string host = target.substr(4, offset - 4);
+    std::string port = target.substr(offset + 1);
+
+    r = nr_ip4_str_port_to_transport_addr(host.c_str(),
+                                          atoi(port.c_str()),
+                                          IPPROTO_UDP,
+                                          &addr);
+    ASSERT_EQ(0, r);
+
+    r = nr_turn_client_ensure_perm(turn_ctx_, &addr);
+    ASSERT_EQ(0, r);
+  }
+
+  void RequestPermission(const std::string& target) {
+    RUN_ON_THREAD(test_utils->sts_target(),
+                  WrapRunnable(this, &TurnClient::RequestPermission_s, target),
+                  NS_DISPATCH_SYNC);
+
   }
 
   void Readable(NR_SOCKET s, int how, void *arg) {
@@ -278,7 +311,7 @@ class TurnClient : public ::testing::Test {
     }
   }
 
-  void SendTo_s(const std::string& target, bool expect_success) {
+  void SendTo_s(const std::string& target, int expect_return) {
     nr_transport_addr addr;
     int r;
 
@@ -286,7 +319,7 @@ class TurnClient : public ::testing::Test {
     ASSERT_EQ(0, target.compare(0, 4, "IP4:"));
 
     size_t offset = target.rfind(':');
-    ASSERT_NE(offset, std::string::npos);
+    ASSERT_NE(std::string::npos, offset);
 
     std::string host = target.substr(4, offset - 4);
     std::string port = target.substr(offset + 1);
@@ -302,18 +335,20 @@ class TurnClient : public ::testing::Test {
       test[i] = i & 0xff;
     }
 
+    std::cerr << "Sending test message to " << target << " ..." << std::endl;
+
     r = nr_turn_client_send_indication(turn_ctx_,
                                             test, sizeof(test), 0,
                                             &addr);
-    if (expect_success) {
-      ASSERT_EQ(0, r);
+    if (expect_return >= 0) {
+      ASSERT_EQ(expect_return, r);
     }
   }
 
-  void SendTo(const std::string& target, bool expect_success=true) {
+  void SendTo(const std::string& target, int expect_return=0) {
     RUN_ON_THREAD(test_utils->sts_target(),
                   WrapRunnable(this, &TurnClient::SendTo_s, target,
-                               expect_success),
+                               expect_return),
                   NS_DISPATCH_SYNC);
   }
 
@@ -373,13 +408,36 @@ TEST_F(TurnClient, SendToSelfTcp) {
   ASSERT_TRUE_WAIT(received() == 200, 1000);
 }
 
+TEST_F(TurnClient, PermissionDenied) {
+  Allocate();
+  RequestPermission(relay_addr_);
+  PR_Sleep(1000);
+
+  
+  nr_turn_permission *perm;
+  perm = STAILQ_FIRST(&turn_ctx_->permissions);
+  ASSERT_TRUE(perm);
+  while (perm) {
+    perm->stun->last_error_code = 403;
+    std::cerr << "Set 403's on permission" << std::endl;
+    perm = STAILQ_NEXT(perm, entry);
+  }
+
+  SendTo(relay_addr_, R_NOT_PERMITTED);
+  ASSERT_TRUE(received() == 0);
+
+  
+  
+  
+}
+
 TEST_F(TurnClient, DeallocateReceiveFailure) {
   Allocate();
   SendTo(relay_addr_);
   ASSERT_TRUE_WAIT(received() == 100, 5000);
   Deallocate();
   turn_ctx_->state = NR_TURN_CLIENT_STATE_ALLOCATED;
-  SendTo(relay_addr_, true);
+  SendTo(relay_addr_);
   PR_Sleep(1000);
   ASSERT_TRUE(received() == 100);
 }
@@ -395,7 +453,7 @@ TEST_F(TurnClient, DeallocateReceiveFailureTcp) {
 
 
 
-  SendTo(relay_addr_, false);
+  SendTo(relay_addr_, -1);
   PR_Sleep(1000);
   ASSERT_TRUE(received() == 100);
 }
