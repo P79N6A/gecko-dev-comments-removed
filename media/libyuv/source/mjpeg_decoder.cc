@@ -63,6 +63,9 @@ MJpegDecoder::MJpegDecoder()
   decompress_struct_->err = jpeg_std_error(&error_mgr_->base);
   
   error_mgr_->base.error_exit = &ErrorHandler;
+#ifndef DEBUG_MJPEG
+  error_mgr_->base.output_message = &OutputHandler;
+#endif
 #endif
   decompress_struct_->client_data = NULL;
   source_mgr_->init_source = &init_source;
@@ -443,7 +446,13 @@ void MJpegDecoder::ErrorHandler(j_common_ptr cinfo) {
   
   longjmp(mgr->setjmp_buffer, 1);
 }
+
+#ifndef DEBUG_MJPEG
+void MJpegDecoder::OutputHandler(j_common_ptr cinfo) {
+  
+}
 #endif
+#endif 
 
 void MJpegDecoder::AllocOutputBuffers(int num_outbufs) {
   if (num_outbufs != num_outbufs_) {
