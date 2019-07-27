@@ -137,6 +137,12 @@ WebConsoleClient.prototype = {
 
   evaluateJSAsync: function(aString, aOnResponse, aOptions = {})
   {
+    
+    if (!this.traits.evaluateJSAsync) {
+      this.evaluateJS(aString, aOnResponse, aOptions);
+      return;
+    }
+
     let packet = {
       to: this._actor,
       type: "evaluateJSAsync",
