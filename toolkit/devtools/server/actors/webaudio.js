@@ -363,7 +363,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     let { caller, args, window, name } = functionCall.details;
     let source = caller;
     let dest = args[0];
-    let isAudioParam = dest instanceof window.AudioParam;
+    let isAudioParam = dest ? getConstructorName(dest) === "AudioParam" : false;
 
     
     if (name === "connect" && isAudioParam) {
@@ -433,8 +433,9 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     },
     "connect-param": {
       type: "connectParam",
-      source: Arg(0, "audionode"),
-      param: Arg(1, "string")
+      source: Option(0, "audionode"),
+      dest: Option(0, "audionode"),
+      param: Option(0, "string")
     },
     "change-param": {
       type: "changeParam",
@@ -461,10 +462,28 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     
     node = new XPCNativeWrapper(node);
 
+    this._instrumentParams(node);
+
     let actor = new AudioNodeActor(this.conn, node);
     this.manage(actor);
     this._nativeToActorID.set(node.id, actor.actorID);
     return actor;
+  },
+
+  
+
+
+
+
+  _instrumentParams: function (node) {
+    let type = getConstructorName(node);
+    Object.keys(NODE_PROPERTIES[type])
+      .filter(isAudioParam.bind(null, node))
+      .forEach(paramName => {
+        let param = node[paramName];
+        param._parentID = node.id;
+        param._paramName = paramName;
+      });
   },
 
   
@@ -506,9 +525,14 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   
 
 
-
-  _onConnectParam: function (source, dest) {
-    
+  _onConnectParam: function (source, param) {
+    let sourceActor = this._getActorByNativeID(source.id);
+    let destActor = this._getActorByNativeID(param._parentID);
+    emit(this, "connect-param", {
+      source: sourceActor,
+      dest: destActor,
+      param: param._paramName
+    });
   },
 
   
