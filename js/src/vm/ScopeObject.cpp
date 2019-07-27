@@ -1259,7 +1259,7 @@ class DebugScopeProxy : public BaseProxyHandler
 
 
     bool handleUnaliasedAccess(JSContext* cx, Handle<DebugScopeObject*> debugScope,
-                               Handle<ScopeObject*> scope, jsid id, Action action,
+                               Handle<ScopeObject*> scope, HandleId id, Action action,
                                MutableHandleValue vp, AccessResult* accessResult) const
     {
         MOZ_ASSERT(&debugScope->scope() == scope);
