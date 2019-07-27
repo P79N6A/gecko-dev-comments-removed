@@ -50,6 +50,8 @@ public:
 
 
 
+
+
   virtual bool GetDirection() = 0;
 
   

@@ -286,6 +286,30 @@ public:
 
   static nsBidiLevel GetFrameBaseLevel(nsIFrame* aFrame);
 
+  
+
+
+
+
+
+  static nsBidiDirection ParagraphDirection(nsIFrame* aFrame) {
+    return DIRECTION_FROM_LEVEL(GetFrameBaseLevel(aFrame));
+  }
+
+  
+
+
+
+
+
+  static nsBidiDirection FrameDirection(nsIFrame* aFrame) {
+    return DIRECTION_FROM_LEVEL(GetFrameEmbeddingLevel(aFrame));
+  }
+
+  static bool IsFrameInParagraphDirection(nsIFrame* aFrame) {
+    return ParagraphDirection(aFrame) == FrameDirection(aFrame);
+  }
+
   enum Mode { MODE_DRAW, MODE_MEASURE };
 
   
