@@ -2117,7 +2117,6 @@ CanRelocateArena(ArenaHeader *arena)
 
 
 
-    JSRuntime *rt = arena->zone->runtimeFromMainThread();
     return arena->getAllocKind() <= FINALIZE_OBJECT_LAST && !ArenaContainsGlobal(arena);
 }
 
@@ -2343,38 +2342,35 @@ MovingTracer::Visit(JSTracer *jstrc, void **thingp, JSGCTraceKind kind)
 }
 
 void
-MovingTracer::Sweep(JSTracer *jstrc)
+GCRuntime::sweepZoneAfterCompacting(Zone *zone)
 {
-    JSRuntime *rt = jstrc->runtime();
     FreeOp *fop = rt->defaultFreeOp();
+    if (zone->isCollecting()) {
+        zone->discardJitCode(fop);
+        zone->sweepAnalysis(fop, rt->gc.releaseObservedTypes && !zone->isPreservingCode());
+        zone->sweepBreakpoints(fop);
 
-    WatchpointMap::sweepAll(rt);
-
-    Debugger::sweepAll(fop);
-
-    for (ZonesIter zone(rt, SkipAtoms); !zone.done(); zone.next()) {
-        if (zone->isCollecting()) {
-            bool oom = false;
-            zone->sweep(fop, false, &oom);
-            MOZ_ASSERT(!oom);
-
-            for (CompartmentsInZoneIter c(zone); !c.done(); c.next()) {
-                c->sweep(fop, false);
-            }
-        } else {
-            
-            for (CompartmentsInZoneIter c(zone); !c.done(); c.next())
-                c->sweepCrossCompartmentWrappers();
+        for (CompartmentsInZoneIter c(zone); !c.done(); c.next()) {
+            c->sweepInnerViews();
+            c->sweepCrossCompartmentWrappers();
+            c->sweepBaseShapeTable();
+            c->sweepInitialShapeTable();
+            c->sweepTypeObjectTables();
+            c->sweepRegExps();
+            c->sweepCallsiteClones();
+            c->sweepSavedStacks();
+            c->sweepGlobalObject(fop);
+            c->sweepSelfHostingScriptSource();
+            c->sweepDebugScopes();
+            c->sweepJitCompartment(fop);
+            c->sweepWeakMaps();
+            c->sweepNativeIterators();
         }
+    } else {
+        
+        for (CompartmentsInZoneIter c(zone); !c.done(); c.next())
+            c->sweepCrossCompartmentWrappers();
     }
-
-    
-    rt->freeLifoAlloc.freeAll();
-
-    
-    
-    rt->newObjectCache.purge();
-    rt->nativeIterCache.purge();
 }
 
 
@@ -2459,7 +2455,20 @@ GCRuntime::updatePointersToRelocatedCells()
     if (JSTraceDataOp op = grayRootTracer.op)
         (*op)(&trc, grayRootTracer.data);
 
-    MovingTracer::Sweep(&trc);
+    
+    WatchpointMap::sweepAll(rt);
+    Debugger::sweepAll(rt->defaultFreeOp());
+
+    for (ZonesIter zone(rt, SkipAtoms); !zone.done(); zone.next())
+        rt->gc.sweepZoneAfterCompacting(zone);
+
+    
+    rt->freeLifoAlloc.freeAll();
+
+    
+    
+    rt->newObjectCache.purge();
+    rt->nativeIterCache.purge();
 
     
     callWeakPointerCallbacks();
