@@ -101,7 +101,13 @@ MediaOmxCommonDecoder::PauseStateMachine()
   if (!mDecoderStateMachine) {
     return;
   }
-  mDecoderStateMachine->SetDormant(true);
+  
+  RefPtr<nsRunnable> event =
+    NS_NewRunnableMethodWithArg<bool>(
+      mDecoderStateMachine,
+      &MediaDecoderStateMachine::SetDormant,
+      true);
+  mDecoderStateMachine->TaskQueue()->Dispatch(event);
 }
 
 void
@@ -124,7 +130,13 @@ MediaOmxCommonDecoder::ResumeStateMachine()
 
   mNextState = mPlayState;
   ChangeState(PLAY_STATE_LOADING);
-  mDecoderStateMachine->SetDormant(false);
+  
+  RefPtr<nsRunnable> event =
+    NS_NewRunnableMethodWithArg<bool>(
+      mDecoderStateMachine,
+      &MediaDecoderStateMachine::SetDormant,
+      false);
+  mDecoderStateMachine->TaskQueue()->Dispatch(event);
 }
 
 void
