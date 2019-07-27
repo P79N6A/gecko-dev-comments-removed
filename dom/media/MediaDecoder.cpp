@@ -20,7 +20,6 @@
 #include "mozilla/StaticPtr.h"
 #include "nsIMemoryReporter.h"
 #include "nsComponentManagerUtils.h"
-#include "nsITimer.h"
 #include <algorithm>
 #include "MediaShutdownManager.h"
 #include "AudioChannelService.h"
@@ -38,12 +37,6 @@ using namespace mozilla::layers;
 using namespace mozilla::dom;
 
 namespace mozilla {
-
-
-static const uint32_t PROGRESS_MS = 350;
-
-
-static const uint32_t STALL_MS = 3000;
 
 
 
@@ -502,9 +495,6 @@ void MediaDecoder::Shutdown()
 
   ChangeState(PLAY_STATE_SHUTDOWN);
 
-  if (mProgressTimer) {
-    StopProgress();
-  }
   mOwner = nullptr;
 
   MediaShutdownManager::Instance().Unregister(this);
@@ -990,7 +980,9 @@ void MediaDecoder::NotifyBytesDownloaded()
     ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
     UpdatePlaybackRate();
   }
-  Progress(false);
+  if (mOwner) {
+    mOwner->DownloadProgressed();
+  }
 }
 
 void MediaDecoder::NotifyDownloadEnded(nsresult aStatus)
@@ -1542,73 +1534,6 @@ void MediaDecoder::BreakCycles() {
 MediaDecoderOwner* MediaDecoder::GetMediaOwner() const
 {
   return mOwner;
-}
-
-static void ProgressCallback(nsITimer* aTimer, void* aClosure)
-{
-  MediaDecoder* decoder = static_cast<MediaDecoder*>(aClosure);
-  decoder->Progress(true);
-}
-
-void MediaDecoder::Progress(bool aTimer)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  if (!mOwner)
-    return;
-
-  TimeStamp now = TimeStamp::NowLoRes();
-
-  if (!aTimer) {
-    mDataTime = now;
-  }
-
-  
-  
-  
-  if (!mDataTime.IsNull() &&
-      (mProgressTime.IsNull() ||
-       (now - mProgressTime >= TimeDuration::FromMilliseconds(PROGRESS_MS) &&
-        mDataTime > mProgressTime))) {
-    mOwner->DownloadProgressed();
-    
-    
-    
-    
-    mProgressTime = now - TimeDuration::Resolution();
-    if (mDataTime > mProgressTime) {
-      mDataTime = mProgressTime;
-    }
-  }
-
-  if (!mDataTime.IsNull() &&
-      now - mDataTime >= TimeDuration::FromMilliseconds(STALL_MS)) {
-    mOwner->DownloadStalled();
-    
-    mDataTime = TimeStamp();
-  }
-}
-
-nsresult MediaDecoder::StartProgress()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  NS_ASSERTION(!mProgressTimer, "Already started progress timer.");
-
-  mProgressTimer = do_CreateInstance("@mozilla.org/timer;1");
-  return mProgressTimer->InitWithFuncCallback(ProgressCallback,
-                                              this,
-                                              PROGRESS_MS,
-                                              nsITimer::TYPE_REPEATING_SLACK);
-}
-
-nsresult MediaDecoder::StopProgress()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  NS_ASSERTION(mProgressTimer, "Already stopped progress timer.");
-
-  nsresult rv = mProgressTimer->Cancel();
-  mProgressTimer = nullptr;
-
-  return rv;
 }
 
 void MediaDecoder::FireTimeUpdate()

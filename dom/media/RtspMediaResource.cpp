@@ -738,12 +738,12 @@ RtspMediaResource::OnConnected(uint8_t aTrackIdx,
       mDecoder->SetMediaSeekable(seekable);
     }
   }
-  
-  
-  mDecoder->Progress(false);
-
   MediaDecoderOwner* owner = mDecoder->GetMediaOwner();
   NS_ENSURE_TRUE(owner, NS_ERROR_FAILURE);
+  
+  
+  owner->DownloadProgressed();
+
   dom::HTMLMediaElement* element = owner->GetMediaElement();
   NS_ENSURE_TRUE(element, NS_ERROR_FAILURE);
 

@@ -20,9 +20,6 @@ class MediaDecoderOwner
 public:
   
   virtual void DownloadProgressed() = 0;
-  
-  
-  virtual void DownloadStalled() = 0;
 
   
   virtual nsresult DispatchEvent(const nsAString& aName) = 0;

@@ -369,7 +369,7 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
 
   
   
-  mDecoder->Progress(false);
+  owner->DownloadProgressed();
 
   return NS_OK;
 }

@@ -209,10 +209,6 @@ public:
 
   
   
-  virtual void DownloadStalled() MOZ_FINAL MOZ_OVERRIDE;
-
-  
-  
   virtual void NotifySuspendedByCache(bool aIsSuspended) MOZ_FINAL MOZ_OVERRIDE;
 
   
@@ -883,6 +879,23 @@ protected:
   
 
 
+
+
+
+  void CheckProgress(bool aHaveNewProgress);
+  static void ProgressTimerCallback(nsITimer* aTimer, void* aClosure);
+  
+
+
+  nsresult StartProgress();
+  
+
+
+  nsresult StopProgress();
+
+  
+
+
   void DispatchAsyncSourceError(nsIContent* aSourceElement);
 
   
@@ -1070,6 +1083,17 @@ protected:
 
   
   
+  TimeStamp mProgressTime;
+
+  
+  
+  
+  
+  
+  TimeStamp mDataTime;
+
+  
+  
   double mLastCurrentTime;
 
   
@@ -1102,6 +1126,9 @@ protected:
 
   
   nsRefPtr<TimeRanges> mPlayed;
+
+  
+  nsCOMPtr<nsITimer> mProgressTimer;
 
 #ifdef MOZ_EME
   

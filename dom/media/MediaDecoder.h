@@ -192,7 +192,6 @@
 #include "mozilla/dom/AudioChannelBinding.h"
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/ReentrantMonitor.h"
-#include "mozilla/TimeStamp.h"
 #include "MediaStreamGraph.h"
 #include "AbstractMediaDecoder.h"
 #include "necko-config.h"
@@ -202,7 +201,6 @@
 
 class nsIStreamListener;
 class nsIPrincipal;
-class nsITimer;
 
 namespace mozilla {
 namespace dom {
@@ -696,18 +694,6 @@ public:
   }
 
   
-  nsresult StartProgress();
-
-  
-  nsresult StopProgress();
-
-  
-  
-  
-  
-  void Progress(bool aTimer);
-
-  
   
   void FireTimeUpdate();
 
@@ -1188,9 +1174,6 @@ protected:
   void UnpinForSeek();
 
   
-  nsCOMPtr<nsITimer> mProgressTimer;
-
-  
   
   
   MediaDecoderOwner* mOwner;
@@ -1199,17 +1182,6 @@ protected:
   FrameStatistics mFrameStats;
 
   nsRefPtr<VideoFrameContainer> mVideoFrameContainer;
-
-  
-  
-  TimeStamp mProgressTime;
-
-  
-  
-  
-  
-  
-  TimeStamp mDataTime;
 
   
   
