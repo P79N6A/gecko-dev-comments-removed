@@ -22,7 +22,7 @@ registerCleanupFunction(() => {
 
   
   if (!document.getElementById("sidebar-box").hidden) {
-    SidebarUI.hide();
+    toggleSidebar("", false);
   }
 });
 

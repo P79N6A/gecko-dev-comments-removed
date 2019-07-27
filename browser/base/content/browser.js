@@ -12,9 +12,6 @@ Cu.import("resource://gre/modules/NotificationDB.jsm");
 Cu.import("resource:///modules/RecentWindow.jsm");
 Cu.import("resource://gre/modules/WindowsPrefSync.jsm");
 
-
-XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
-                                  "resource://gre/modules/Deprecated.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "BrowserUITelemetry",
                                   "resource:///modules/BrowserUITelemetry.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "E10SUtils",
@@ -226,7 +223,6 @@ let gInitialPages = [
 #include browser-places.js
 #include browser-plugins.js
 #include browser-safebrowsing.js
-#include browser-sidebar.js
 #include browser-social.js
 #include browser-tabview.js
 #include browser-thumbnails.js
@@ -903,6 +899,8 @@ var gBrowserInit = {
   delayedStartupFinished: false,
 
   onLoad: function() {
+    var mustLoadSidebar = false;
+
     gBrowser.addEventListener("DOMUpdatePageReport", gPopupBlockerObserver, false);
 
     Services.obs.addObserver(gPluginHandler.pluginCrashed, "plugin-crashed", false);
@@ -954,7 +952,61 @@ var gBrowserInit = {
     
     gHistorySwipeAnimation.init();
 
-    SidebarUI.init();
+    if (window.opener && !window.opener.closed &&
+        window.opener.document.documentURIObject.schemeIs("chrome") &&
+        PrivateBrowsingUtils.isWindowPrivate(window) == PrivateBrowsingUtils.isWindowPrivate(window.opener)) {
+      let openerSidebarBox = window.opener.document.getElementById("sidebar-box");
+      
+      
+      
+      if (openerSidebarBox && !openerSidebarBox.hidden) {
+        let sidebarCmd = openerSidebarBox.getAttribute("sidebarcommand");
+        let sidebarCmdElem = document.getElementById(sidebarCmd);
+
+        
+        if (sidebarCmdElem) {
+          let sidebarBox = document.getElementById("sidebar-box");
+          let sidebarTitle = document.getElementById("sidebar-title");
+
+          sidebarTitle.setAttribute(
+            "value", window.opener.document.getElementById("sidebar-title").getAttribute("value"));
+          sidebarBox.setAttribute("width", openerSidebarBox.boxObject.width);
+
+          sidebarBox.setAttribute("sidebarcommand", sidebarCmd);
+          
+          
+          
+          sidebarBox.setAttribute(
+            "src", window.opener.document.getElementById("sidebar").getAttribute("src"));
+          mustLoadSidebar = true;
+
+          sidebarBox.hidden = false;
+          document.getElementById("sidebar-splitter").hidden = false;
+          sidebarCmdElem.setAttribute("checked", "true");
+        }
+      }
+    }
+    else {
+      let box = document.getElementById("sidebar-box");
+      if (box.hasAttribute("sidebarcommand")) {
+        let commandID = box.getAttribute("sidebarcommand");
+        if (commandID) {
+          let command = document.getElementById(commandID);
+          if (command) {
+            mustLoadSidebar = true;
+            box.hidden = false;
+            document.getElementById("sidebar-splitter").hidden = false;
+            command.setAttribute("checked", "true");
+          }
+          else {
+            
+            
+            
+            box.removeAttribute("sidebarcommand");
+          }
+        }
+      }
+    }
 
     
     
@@ -1043,7 +1095,7 @@ var gBrowserInit = {
     ToolbarIconColor.init();
 
     
-    this._boundDelayedStartup = this._delayedStartup.bind(this);
+    this._boundDelayedStartup = this._delayedStartup.bind(this, mustLoadSidebar);
     window.addEventListener("MozAfterPaint", this._boundDelayedStartup);
 
     this._loadHandled = true;
@@ -1054,7 +1106,7 @@ var gBrowserInit = {
     this._boundDelayedStartup = null;
   },
 
-  _delayedStartup: function() {
+  _delayedStartup: function(mustLoadSidebar) {
     let tmp = {};
     Cu.import("resource://gre/modules/TelemetryTimestamps.jsm", tmp);
     let TelemetryTimestamps = tmp.TelemetryTimestamps;
@@ -1217,7 +1269,11 @@ var gBrowserInit = {
 
     Services.telemetry.getHistogramById("E10S_WINDOW").add(gMultiProcessBrowser);
 
-    SidebarUI.startDelayedLoad();
+    if (mustLoadSidebar) {
+      let sidebar = document.getElementById("sidebar");
+      let sidebarBox = document.getElementById("sidebar-box");
+      sidebar.setAttribute("src", sidebarBox.getAttribute("src"));
+    }
 
     UpdateUrlbarSearchSplitterState();
 
@@ -1479,7 +1535,14 @@ var gBrowserInit = {
 
     gMenuButtonUpdateBadge.uninit();
 
-    SidebarUI.uninit();
+    var enumerator = Services.wm.getEnumerator(null);
+    enumerator.getNext();
+    if (!enumerator.hasMoreElements()) {
+      document.persist("sidebar-box", "sidebarcommand");
+      document.persist("sidebar-box", "width");
+      document.persist("sidebar-box", "src");
+      document.persist("sidebar-title", "value");
+    }
 
     
     
@@ -1706,7 +1769,7 @@ function HandleAppCommandEvent(evt) {
     BrowserSearch.webSearch();
     break;
   case "Bookmarks":
-    SidebarUI.toggle("viewBookmarksSidebar");
+    toggleSidebar('viewBookmarksSidebar');
     break;
   case "Home":
     BrowserHome();
@@ -3076,19 +3139,23 @@ var PrintPreviewListener = {
     else
       this._showChrome();
 
+    if (this._chromeState.sidebarOpen)
+      toggleSidebar(this._sidebarCommand);
+
     TabsInTitlebar.allowedBy("print-preview", !gInPrintPreviewMode);
   },
   _hideChrome: function () {
     this._chromeState = {};
 
-    this._chromeState.sidebarOpen = SidebarUI.isOpen;
-    this._sidebarCommand = SidebarUI.currentID;
-    SidebarUI.hide();
+    var sidebar = document.getElementById("sidebar-box");
+    this._chromeState.sidebarOpen = !sidebar.hidden;
+    this._sidebarCommand = sidebar.getAttribute("sidebarcommand");
 
     var notificationBox = gBrowser.getNotificationBox();
     this._chromeState.notificationsOpen = !notificationBox.notificationsHidden;
     notificationBox.notificationsHidden = true;
 
+    document.getElementById("sidebar").setAttribute("src", "about:blank");
     gBrowser.updateWindowResizers();
 
     this._chromeState.findOpen = gFindBarInitialized && !gFindBar.hidden;
@@ -3118,9 +3185,6 @@ var PrintPreviewListener = {
 
     if (this._chromeState.syncNotificationsOpen)
       document.getElementById("sync-notifications").notificationsHidden = false;
-
-    if (this._chromeState.sidebarOpen)
-      SidebarUI.show(this._sidebarCommand);
   }
 }
 
@@ -5150,6 +5214,121 @@ function displaySecurityInfo()
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function toggleSidebar(commandID, forceOpen) {
+
+  var sidebarBox = document.getElementById("sidebar-box");
+  if (!commandID)
+    commandID = sidebarBox.getAttribute("sidebarcommand");
+
+  var sidebarBroadcaster = document.getElementById(commandID);
+  var sidebar = document.getElementById("sidebar"); 
+  var sidebarTitle = document.getElementById("sidebar-title");
+  var sidebarSplitter = document.getElementById("sidebar-splitter");
+
+  if (sidebarBroadcaster.getAttribute("checked") == "true") {
+    if (!forceOpen) {
+      
+      
+      
+      
+      
+      sidebar.setAttribute("src", "about:blank");
+      sidebar.docShell.createAboutBlankContentViewer(null);
+
+      sidebarBroadcaster.removeAttribute("checked");
+      sidebarBox.setAttribute("sidebarcommand", "");
+      sidebarTitle.value = "";
+      sidebarBox.hidden = true;
+      sidebarSplitter.hidden = true;
+      gBrowser.selectedBrowser.focus();
+    } else {
+      fireSidebarFocusedEvent();
+    }
+    return;
+  }
+
+  
+
+  
+  var broadcasters = document.getElementsByAttribute("group", "sidebar");
+  for (let broadcaster of broadcasters) {
+    
+    
+    if (broadcaster.localName != "broadcaster")
+      continue;
+
+    if (broadcaster != sidebarBroadcaster)
+      broadcaster.removeAttribute("checked");
+    else
+      sidebarBroadcaster.setAttribute("checked", "true");
+  }
+
+  sidebarBox.hidden = false;
+  sidebarSplitter.hidden = false;
+
+  var url = sidebarBroadcaster.getAttribute("sidebarurl");
+  var title = sidebarBroadcaster.getAttribute("sidebartitle");
+  if (!title)
+    title = sidebarBroadcaster.getAttribute("label");
+  sidebar.setAttribute("src", url); 
+  sidebarBox.setAttribute("sidebarcommand", sidebarBroadcaster.id);
+  sidebarTitle.value = title;
+
+  
+  
+  
+  
+  
+  sidebarBox.setAttribute("src", url);
+
+  if (sidebar.contentDocument.location.href != url)
+    sidebar.addEventListener("load", sidebarOnLoad, true);
+  else 
+    fireSidebarFocusedEvent();
+}
+
+function sidebarOnLoad(event) {
+  var sidebar = document.getElementById("sidebar");
+  sidebar.removeEventListener("load", sidebarOnLoad, true);
+  
+  
+  
+  setTimeout(fireSidebarFocusedEvent, 0);
+}
+
+
+
+
+
+
+
+function fireSidebarFocusedEvent() {
+  var sidebar = document.getElementById("sidebar");
+  var event = document.createEvent("Events");
+  event.initEvent("SidebarFocused", true, false);
+  sidebar.contentWindow.dispatchEvent(event);
+}
+
+
 var gHomeButton = {
   prefDomain: "browser.startup.homepage",
   observe: function (aSubject, aTopic, aPrefName)
@@ -5295,37 +5474,38 @@ function getBrowserSelection(aCharLen) {
 }
 
 var gWebPanelURI;
-function openWebPanel(title, uri) {
-  
-  SidebarUI.show("viewWebPanelsSidebar");
-
-  
-  SidebarUI.title = title;
-
-  
-  if (SidebarUI.browser.docShell && SidebarUI.browser.contentDocument &&
-      SidebarUI.browser.contentDocument.getElementById("web-panels-browser")) {
-    SidebarUI.browser.contentWindow.loadWebPanel(uri);
-    if (gWebPanelURI) {
-      gWebPanelURI = "";
-      SidebarUI.browser.removeEventListener("load", asyncOpenWebPanel, true);
-    }
-  } else {
+function openWebPanel(aTitle, aURI)
+{
     
-    if (!gWebPanelURI) {
-      SidebarUI.browser.addEventListener("load", asyncOpenWebPanel, true);
+    toggleSidebar('viewWebPanelsSidebar', true);
+
+    
+    document.getElementById("sidebar-title").value = aTitle;
+
+    
+    var sidebar = document.getElementById("sidebar");
+    if (sidebar.docShell && sidebar.contentDocument && sidebar.contentDocument.getElementById('web-panels-browser')) {
+        sidebar.contentWindow.loadWebPanel(aURI);
+        if (gWebPanelURI) {
+            gWebPanelURI = "";
+            sidebar.removeEventListener("load", asyncOpenWebPanel, true);
+        }
     }
-    gWebPanelURI = uri;
-  }
+    else {
+        
+        if (!gWebPanelURI)
+            sidebar.addEventListener("load", asyncOpenWebPanel, true);
+        gWebPanelURI = aURI;
+    }
 }
 
-function asyncOpenWebPanel(event) {
-  if (gWebPanelURI && SidebarUI.browser.contentDocument &&
-      SidebarUI.browser.contentDocument.getElementById("web-panels-browser")) {
-    SidebarUI.browser.contentWindow.loadWebPanel(gWebPanelURI);
-  }
-  gWebPanelURI = "";
-  SidebarUI.browser.removeEventListener("load", asyncOpenWebPanel, true);
+function asyncOpenWebPanel(event)
+{
+    var sidebar = document.getElementById("sidebar");
+    if (gWebPanelURI && sidebar.contentDocument && sidebar.contentDocument.getElementById('web-panels-browser'))
+        sidebar.contentWindow.loadWebPanel(gWebPanelURI);
+    gWebPanelURI = "";
+    sidebar.removeEventListener("load", asyncOpenWebPanel, true);
 }
 
 
