@@ -4659,22 +4659,28 @@ GCRuntime::beginSweepingZoneGroup()
 
     {
         gcstats::AutoPhase ap(stats, gcstats::PHASE_SWEEP_COMPARTMENTS);
+        gcstats::AutoPhase apdc(stats, gcstats::PHASE_SWEEP_DISCARD_CODE);
 
         for (GCZoneGroupIter zone(rt); !zone.done(); zone.next()) {
-            gcstats::AutoPhase ap(stats, gcstats::PHASE_SWEEP_DISCARD_CODE);
             zone->discardJitCode(&fop);
         }
+    }
+
+    {
+        gcstats::AutoPhase ap(stats, gcstats::PHASE_SWEEP_COMPARTMENTS);
+        gcstats::AutoSCC scc(stats, zoneGroupIndex);
+        gcstats::AutoPhase apst(stats, gcstats::PHASE_SWEEP_TABLES);
 
         for (GCCompartmentGroupIter c(rt); !c.done(); c.next()) {
-            gcstats::AutoSCC scc(stats, zoneGroupIndex);
-            gcstats::AutoPhase ap(stats, gcstats::PHASE_SWEEP_TABLES);
-
             c->sweep(&fop, releaseObservedTypes && !c->zone()->isPreservingCode());
         }
+    }
+
+    {
+        gcstats::AutoPhase ap(stats, gcstats::PHASE_SWEEP_COMPARTMENTS);
+        gcstats::AutoSCC scc(stats, zoneGroupIndex);
 
         for (GCZoneGroupIter zone(rt); !zone.done(); zone.next()) {
-            gcstats::AutoSCC scc(stats, zoneGroupIndex);
-
             
             
             
