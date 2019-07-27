@@ -209,7 +209,8 @@ protected:
     bool GetEventPoint(mozilla::WidgetGUIEvent* aEvent, nsPoint& aPoint);
     
     
-    bool GetEventPoint(mozilla::WidgetGUIEvent* aEvent, nsIntPoint& aPoint);
+    bool GetEventPoint(mozilla::WidgetGUIEvent* aEvent,
+                       mozilla::LayoutDeviceIntPoint& aPoint);
 
 protected:
     void RegUnregAccessKey(bool aDoReg);

@@ -114,10 +114,11 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         }
 
         
-        nsIntPoint refPoint;
+        LayoutDeviceIntPoint refPoint;
         if (!GetEventPoint(aEvent, refPoint))
           return NS_OK;
-        mMouseDownPoint = refPoint + aEvent->widget->WidgetToScreenOffset();
+        mMouseDownPoint = refPoint +
+          LayoutDeviceIntPoint::FromUntyped(aEvent->widget->WidgetToScreenOffset());
 
         
         mTrackingMouseMove = true;
@@ -162,11 +163,12 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
 
       
       
-      nsIntPoint refPoint;
+      LayoutDeviceIntPoint refPoint;
       if (!GetEventPoint(aEvent, refPoint))
         return NS_OK;
-      nsIntPoint screenPoint(refPoint + aEvent->widget->WidgetToScreenOffset());
-      nsIntPoint mouseMove(screenPoint - mMouseDownPoint);
+      LayoutDeviceIntPoint screenPoint = refPoint +
+        LayoutDeviceIntPoint::FromUntyped(aEvent->widget->WidgetToScreenOffset());
+      LayoutDeviceIntPoint mouseMove(screenPoint - mMouseDownPoint);
 
       
       

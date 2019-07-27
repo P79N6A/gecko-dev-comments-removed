@@ -366,7 +366,9 @@ public:
   
   
   
-  void CanAdjustEdges(int8_t aHorizontalSide, int8_t aVerticalSide, nsIntPoint& aChange);
+  void CanAdjustEdges(int8_t aHorizontalSide,
+                      int8_t aVerticalSide,
+                      mozilla::LayoutDeviceIntPoint& aChange);
 
   
   bool IsAnchored() const { return mScreenXPos == -1 && mScreenYPos == -1; }
