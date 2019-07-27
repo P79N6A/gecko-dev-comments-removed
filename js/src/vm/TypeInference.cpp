@@ -3709,7 +3709,7 @@ ConstraintTypeSet::sweep(Zone *zone, AutoClearTypeInferenceStateOnOOM &oom)
                     objectCount = 0;
                     break;
                 }
-            } else if (key->isGroup() && key->group()->unknownProperties()) {
+            } else if (key->isGroup() && key->group()->unknownPropertiesDontCheckGeneration()) {
                 
                 
                 
@@ -3727,7 +3727,7 @@ ConstraintTypeSet::sweep(Zone *zone, AutoClearTypeInferenceStateOnOOM &oom)
         } else {
             
             
-            if (key->isGroup() && key->group()->unknownProperties())
+            if (key->isGroup() && key->group()->unknownPropertiesDontCheckGeneration())
                 flags |= TYPE_FLAG_ANYOBJECT;
             objectSet = nullptr;
             setBaseObjectCount(0);
