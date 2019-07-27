@@ -4655,6 +4655,10 @@ pref("reader.parse-on-load.enabled", true);
 
 
 
+pref("reader.parse-node-limit", 3000);
+
+
+
 pref("reader.parse-on-load.force-enabled", false);
 
 
