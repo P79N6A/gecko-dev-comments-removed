@@ -129,9 +129,6 @@ public class BrowserSearch extends HomeFragment
     private AutocompleteHandler mAutocompleteHandler;
 
     
-    private OnUrlOpenListener mUrlOpenListener;
-
-    
     private OnSearchListener mSearchListener;
 
     
@@ -170,13 +167,6 @@ public class BrowserSearch extends HomeFragment
         super.onAttach(activity);
 
         try {
-            mUrlOpenListener = (OnUrlOpenListener) activity;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(activity.toString()
-                    + " must implement BrowserSearch.OnUrlOpenListener");
-        }
-
-        try {
             mSearchListener = (OnSearchListener) activity;
         } catch (ClassCastException e) {
             throw new ClassCastException(activity.toString()
@@ -196,7 +186,6 @@ public class BrowserSearch extends HomeFragment
         super.onDetach();
 
         mAutocompleteHandler = null;
-        mUrlOpenListener = null;
         mSearchListener = null;
         mEditSuggestionListener = null;
     }
