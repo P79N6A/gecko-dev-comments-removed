@@ -12,10 +12,9 @@ const WAIT_TIME = 1000;
 function* spawnTest() {
   let { panel } = yield initPerformance(SIMPLE_URL);
   let { gFront: front, gTarget: target } = panel.panelWin;
-  let connection = getPerformanceActorsConnection(target);
 
   
-  connection._profiler.traits.filterable = false;
+  front._profiler.traits.filterable = false;
 
   
   

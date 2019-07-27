@@ -24,17 +24,10 @@ loader.lazyImporter(this, "gDevTools",
   "resource:///modules/devtools/gDevTools.jsm");
 
 
-const CONNECTION_PIPE_EVENTS = [
-  "timeline-data", "profiler-already-active", "profiler-activated",
-  "recording-starting", "recording-started", "recording-stopping", "recording-stopped",
-  "profiler-status"
-];
 
 
 
-
-
-let SharedPerformanceActors = new WeakMap();
+let PerformanceFronts = new WeakMap();
 
 
 
@@ -45,12 +38,12 @@ let SharedPerformanceActors = new WeakMap();
 
 
 
-SharedPerformanceActors.forTarget = function(target) {
+PerformanceFronts.forTarget = function(target) {
   if (this.has(target)) {
     return this.get(target);
   }
 
-  let instance = new PerformanceActorsConnection(target);
+  let instance = new PerformanceFront(target);
   this.set(target, instance);
   return instance;
 };
@@ -65,7 +58,7 @@ SharedPerformanceActors.forTarget = function(target) {
 
 
 
-function PerformanceActorsConnection(target) {
+function PerformanceFront (target) {
   EventEmitter.decorate(this);
 
   this._target = target;
@@ -74,17 +67,17 @@ function PerformanceActorsConnection(target) {
   this._sitesPullTimeout = 0;
   this._recordings = [];
 
-  this._pipeToConnection = this._pipeToConnection.bind(this);
+  this._pipeToFront = this._pipeToFront.bind(this);
   this._onTimelineData = this._onTimelineData.bind(this);
   this._onConsoleProfileStart = this._onConsoleProfileStart.bind(this);
   this._onConsoleProfileEnd = this._onConsoleProfileEnd.bind(this);
   this._onProfilerStatus = this._onProfilerStatus.bind(this);
   this._onProfilerUnexpectedlyStopped = this._onProfilerUnexpectedlyStopped.bind(this);
 
-  Services.obs.notifyObservers(null, "performance-actors-connection-created", null);
+  Services.obs.notifyObservers(null, "performance-tools-connection-created", null);
 }
 
-PerformanceActorsConnection.prototype = {
+PerformanceFront.prototype = {
 
   
   _memorySupported: true,
@@ -117,7 +110,7 @@ PerformanceActorsConnection.prototype = {
     yield this._registerListeners();
 
     this._connecting.resolve();
-    Services.obs.notifyObservers(null, "performance-actors-connection-opened", null);
+    Services.obs.notifyObservers(null, "performance-tools-connection-opened", null);
   }),
 
   
@@ -172,8 +165,8 @@ PerformanceActorsConnection.prototype = {
     this._profiler.on("console-profile-start", this._onConsoleProfileStart);
     this._profiler.on("console-profile-end", this._onConsoleProfileEnd);
     this._profiler.on("profiler-stopped", this._onProfilerUnexpectedlyStopped);
-    this._profiler.on("profiler-already-active", this._pipeToConnection);
-    this._profiler.on("profiler-activated", this._pipeToConnection);
+    this._profiler.on("profiler-already-active", this._pipeToFront);
+    this._profiler.on("profiler-activated", this._pipeToFront);
     this._profiler.on("profiler-status", this._onProfilerStatus);
   },
 
@@ -186,8 +179,8 @@ PerformanceActorsConnection.prototype = {
     this._profiler.off("console-profile-start", this._onConsoleProfileStart);
     this._profiler.off("console-profile-end", this._onConsoleProfileEnd);
     this._profiler.off("profiler-stopped", this._onProfilerUnexpectedlyStopped);
-    this._profiler.off("profiler-already-active", this._pipeToConnection);
-    this._profiler.off("profiler-activated", this._pipeToConnection);
+    this._profiler.off("profiler-already-active", this._pipeToFront);
+    this._profiler.off("profiler-activated", this._pipeToFront);
     this._profiler.off("profiler-status", this._onProfilerStatus);
   },
 
@@ -418,78 +411,6 @@ PerformanceActorsConnection.prototype = {
 
 
 
-
-  isRecording: function () {
-    return this._recordings.some(recording => recording.isRecording());
-  },
-
-  
-
-
-
-  _pipeToConnection: function (eventName, ...args) {
-    this.emit(eventName, ...args);
-  },
-
-  toString: () => "[object PerformanceActorsConnection]"
-};
-
-
-
-
-
-
-
-
-function PerformanceFront(connection) {
-  EventEmitter.decorate(this);
-
-  this._connection = connection;
-
-  
-  this._memorySupported = connection._memorySupported;
-  this._timelineSupported = connection._timelineSupported;
-
-  
-  
-  CONNECTION_PIPE_EVENTS.forEach(eventName => this._connection.on(eventName, () => this.emit.apply(this, arguments)));
-}
-
-PerformanceFront.prototype = {
-
-  
-
-
-
-
-
-
-
-
-
-
-  startRecording: function (options) {
-    return this._connection.startRecording(options);
-  },
-
-  
-
-
-
-
-
-
-
-
-  stopRecording: function (model) {
-    return this._connection.stopRecording(model);
-  },
-
-  
-
-
-
-
   getActorSupport: function () {
     return {
       memory: this._memorySupported,
@@ -502,18 +423,28 @@ PerformanceFront.prototype = {
 
 
 
+
   isRecording: function () {
-    return this._connection.isRecording();
+    return this._recordings.some(recording => recording.isRecording());
   },
 
   
+
+
+
+  _pipeToFront: function (eventName, ...args) {
+    this.emit(eventName, ...args);
+  },
+
+  
+
 
 
   _request: function (actorName, method, ...args) {
     if (!gDevTools.testing) {
       throw new Error("PerformanceFront._request may only be used in tests.");
     }
-    let actor = this._connection[`_${actorName}`];
+    let actor = this[`_${actorName}`];
     return actor[method].apply(actor, args);
   },
 

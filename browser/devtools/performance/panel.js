@@ -38,12 +38,18 @@ PerformancePanel.prototype = {
 
     
     
-    this._connection = this.panelWin.gToolbox.getPerformanceActorsConnection();
     
     
-    yield this._connection.open();
+    let front = yield this.panelWin.gToolbox.initPerformance();
 
-    this.panelWin.gFront = new PerformanceFront(this._connection);
+    
+    
+    
+    if (!front) {
+      Cu.reportError("No PerformanceFront found in toolbox.");
+    }
+
+    this.panelWin.gFront = front;
     this.panelWin.gFront.on("recording-started", this._onRecordingStartOrStop);
     this.panelWin.gFront.on("recording-stopped", this._onRecordingStartOrStop);
 

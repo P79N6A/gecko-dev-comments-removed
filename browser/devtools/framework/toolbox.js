@@ -55,7 +55,7 @@ loader.lazyGetter(this, "toolboxStrings", () => {
 loader.lazyGetter(this, "Selection", () => require("devtools/framework/selection").Selection);
 loader.lazyGetter(this, "InspectorFront", () => require("devtools/server/actors/inspector").InspectorFront);
 loader.lazyRequireGetter(this, "DevToolsUtils", "devtools/toolkit/DevToolsUtils");
-loader.lazyRequireGetter(this, "getPerformanceActorsConnection", "devtools/performance/front", true);
+loader.lazyRequireGetter(this, "getPerformanceFront", "devtools/performance/front", true);
 
 XPCOMUtils.defineLazyGetter(this, "screenManager", () => {
   return Cc["@mozilla.org/gfx/screenmanager;1"].getService(Ci.nsIScreenManager);
@@ -291,6 +291,14 @@ Toolbox.prototype = {
 
 
 
+  get performance() {
+    return this._performance;
+  },
+
+  
+
+
+
   get inspector() {
     return this._inspector;
   },
@@ -399,8 +407,7 @@ Toolbox.prototype = {
 
       
       
-      
-      let profilerReady = this._connectProfiler();
+      let profilerReady = this.initPerformance();
 
       
       
@@ -1889,7 +1896,7 @@ Toolbox.prototype = {
     }));
 
     
-    outstanding.push(this._disconnectProfiler());
+    outstanding.push(this.destroyPerformance());
 
     
     let win = this.frame.ownerGlobal;
@@ -1982,27 +1989,28 @@ Toolbox.prototype = {
      "cmd_copy", "cmd_paste", "cmd_selectAll"].forEach(window.goUpdateCommand);
   },
 
-  getPerformanceActorsConnection: function() {
-    if (!this._performanceConnection) {
-      this._performanceConnection = getPerformanceActorsConnection(this.target);
-    }
-    return this._performanceConnection;
-  },
-
   
 
 
 
-  _connectProfiler: Task.async(function*() {
+  initPerformance: Task.async(function*() {
     
     
     if (!this.target.hasActor("profiler")) {
       return;
     }
 
-    yield this.getPerformanceActorsConnection().open();
+    if (this.performance) {
+      yield this.performance.open();
+      return this.performance;
+    }
+
+    this._performance = getPerformanceFront(this.target);
+    yield this.performance.open();
     
     this.emit("profiler-connected");
+
+    return this.performance;
   }),
 
   
@@ -2010,12 +2018,12 @@ Toolbox.prototype = {
 
 
 
-  _disconnectProfiler: Task.async(function*() {
-    if (!this._performanceConnection) {
+  destroyPerformance: Task.async(function*() {
+    if (!this.performance) {
       return;
     }
-    yield this._performanceConnection.destroy();
-    this._performanceConnection = null;
+    yield this.performance.destroy();
+    this._performance = null;
   }),
 
   
