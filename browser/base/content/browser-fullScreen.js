@@ -171,9 +171,7 @@ var FullScreen = {
     
     
     
-    if (!this.useLionFullScreen) {
-      window.addEventListener("activate", this);
-    }
+    window.addEventListener("activate", this);
 
     
     
@@ -195,8 +193,7 @@ var FullScreen = {
     gBrowser.tabContainer.removeEventListener("TabOpen", this.exitDomFullScreen);
     gBrowser.tabContainer.removeEventListener("TabClose", this.exitDomFullScreen);
     gBrowser.tabContainer.removeEventListener("TabSelect", this.exitDomFullScreen);
-    if (!this.useLionFullScreen)
-      window.removeEventListener("activate", this);
+    window.removeEventListener("activate", this);
 
     document.documentElement.removeAttribute("inDOMFullscreen");
     this.showNavToolbox();
