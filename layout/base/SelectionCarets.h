@@ -227,7 +227,8 @@ private:
   DragMode mDragMode;
 
   
-  bool mAPZenabled;
+  bool mAsyncPanZoomEnabled;
+
   bool mEndCaretVisible;
   bool mStartCaretVisible;
   bool mVisible;
