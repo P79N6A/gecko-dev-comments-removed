@@ -163,14 +163,12 @@ GMPLoaderImpl::Load(const char* aLibPath,
     nodeId = std::string(aOriginSalt, aOriginSalt + aOriginSaltLen);
   }
 
-#if defined(MOZ_GMP_SANDBOX)
   
   
   
   if (mSandboxStarter) {
     mSandboxStarter->Start(aLibPath);
   }
-#endif
 
   
   PRLibSpec libSpec;
