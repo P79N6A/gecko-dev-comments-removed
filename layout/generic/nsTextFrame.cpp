@@ -4773,10 +4773,11 @@ nsTextFrame::GetTextDecorations(
   
   
   
-  nscoord frameTopOffset = mAscent,
+  nscoord frameBStartOffset = mAscent,
           baselineOffset = 0;
 
   bool nearestBlockFound = false;
+  bool vertical = GetWritingMode().IsVertical();
 
   for (nsIFrame* f = this, *fChild = nullptr;
        f;
@@ -4819,18 +4820,20 @@ nsTextFrame::GetTextDecorations(
         const nscoord lineBaselineOffset = LazyGetLineBaselineOffset(fChild,
                                                                      fBlock);
 
-        baselineOffset =
-          frameTopOffset - fChild->GetNormalPosition().y - lineBaselineOffset;
+        baselineOffset = frameBStartOffset - lineBaselineOffset -
+          (vertical ? fChild->GetNormalPosition().x
+                    : fChild->GetNormalPosition().y);
       }
     }
     else if (!nearestBlockFound) {
       
       
-      baselineOffset = frameTopOffset - f->GetLogicalBaseline(WritingMode());
+      baselineOffset = frameBStartOffset - f->GetLogicalBaseline(WritingMode());
     }
 
     nearestBlockFound = nearestBlockFound || firstBlock;
-    frameTopOffset += f->GetNormalPosition().y;
+    frameBStartOffset +=
+      vertical ? f->GetNormalPosition().x : f->GetNormalPosition().y;
 
     const uint8_t style = styleText->GetDecorationStyle();
     if (textDecorations) {
@@ -6157,13 +6160,28 @@ nsTextFrame::DrawTextRunAndDecorations(
 
     
     nscoord x = NSToCoordRound(aFramePt.x);
-    nscoord width = vertical ? GetRect().height : GetRect().width;
-    aClipEdges.Intersect(&x, &width);
+    nscoord y = NSToCoordRound(aFramePt.y);
 
-    gfxPoint decPt(x / app, 0);
+    
+    
+    nscoord width = vertical ? GetRect().height : GetRect().width;
+
+    
+    if (!vertical) {
+      aClipEdges.Intersect(&x, &width);
+    }
+
+    
+    
+    gfxPoint decPt(x / app, y / app);
+    gfxFloat& bCoord = vertical ? decPt.x : decPt.y;
+
+    
     gfxSize decSize(width / app, 0);
     const gfxFloat ascent = gfxFloat(mAscent) / app;
-    const gfxFloat frameTop = aFramePt.y;
+
+    
+    const gfxFloat frameBStart = vertical ? aFramePt.x : aFramePt.y;
 
     gfxRect dirtyRect(aDirtyRect.x / app, aDirtyRect.y / app,
                       aDirtyRect.Width() / app, aDirtyRect.Height() / app);
@@ -6185,7 +6203,7 @@ nsTextFrame::DrawTextRunAndDecorations(
                             vertical);
 
       decSize.height = metrics.underlineSize;
-      decPt.y = (frameTop - dec.mBaselineOffset) / app;
+      bCoord = (frameBStart - dec.mBaselineOffset) / app;
 
       PaintDecorationLine(this, aCtx, dirtyRect, dec.mColor,
         aDecorationOverrideColor, decPt, 0.0, decSize, ascent,
@@ -6206,7 +6224,7 @@ nsTextFrame::DrawTextRunAndDecorations(
                             vertical);
 
       decSize.height = metrics.underlineSize;
-      decPt.y = (frameTop - dec.mBaselineOffset) / app;
+      bCoord = (frameBStart - dec.mBaselineOffset) / app;
 
       PaintDecorationLine(this, aCtx, dirtyRect, dec.mColor,
         aDecorationOverrideColor, decPt, 0.0, decSize, ascent,
@@ -6233,7 +6251,7 @@ nsTextFrame::DrawTextRunAndDecorations(
                             vertical);
 
       decSize.height = metrics.strikeoutSize;
-      decPt.y = (frameTop - dec.mBaselineOffset) / app;
+      bCoord = (frameBStart - dec.mBaselineOffset) / app;
 
       PaintDecorationLine(this, aCtx, dirtyRect, dec.mColor,
         aDecorationOverrideColor, decPt, 0.0, decSize, ascent,
