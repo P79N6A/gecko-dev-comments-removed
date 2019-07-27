@@ -314,6 +314,11 @@ function listNonGCTypes() {
 
 function listNonGCPointers() {
     return [
+        
+        
+        
+        'NPIdentifier',
+        'XPCNativeMember',
     ];
 }
 
