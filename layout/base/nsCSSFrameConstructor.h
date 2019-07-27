@@ -1768,10 +1768,11 @@ private:
 
 
 
-  static void SetAsUndisplayedContent(FrameConstructionItemList& aList,
-                                      nsIContent* aContent,
-                                      nsStyleContext* aStyleContext,
-                                      bool aIsGeneratedContent);
+  void SetAsUndisplayedContent(nsFrameConstructorState& aState,
+                               FrameConstructionItemList& aList,
+                               nsIContent* aContent,
+                               nsStyleContext* aStyleContext,
+                               bool aIsGeneratedContent);
   
   void ConstructAnonymousContentForCanvas(nsFrameConstructorState& aState,
                                           nsIFrame* aFrame,
