@@ -474,7 +474,21 @@ function injectLoopAPI(targetWindow) {
                         "body=" + encodeURIComponent(body);
         extProtocolSvc.loadURI(CommonUtils.makeURI(mailtoURL));
       }
-    }
+    },
+
+    
+
+
+
+
+
+    telemetryAdd: {
+      enumerable: true,
+      writable: true,
+      value: function(histogramId, value) {
+        Services.telemetry.getHistogramById(histogramId).add(value);
+      }
+    },
   };
 
   function onStatusChanged(aSubject, aTopic, aData) {

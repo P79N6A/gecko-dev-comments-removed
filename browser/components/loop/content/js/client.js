@@ -111,6 +111,7 @@ loop.Client = (function($) {
       this.mozLoop.hawkRequest("/call-url/", "POST", {callerId: nickname},
                                function (error, responseText) {
         if (error) {
+          this._telemetryAdd("LOOP_CLIENT_CALL_URL_REQUESTS_SUCCESS", false);
           this._failureHandler(cb, error);
           return;
         }
@@ -118,8 +119,14 @@ loop.Client = (function($) {
         try {
           var urlData = JSON.parse(responseText);
 
-          cb(null, this._validate(urlData, expectedCallUrlProperties));
+          
+          
+          var returnData = this._validate(urlData, expectedCallUrlProperties);
+
+          this._telemetryAdd("LOOP_CLIENT_CALL_URL_REQUESTS_SUCCESS", true);
+          cb(null, returnData);
         } catch (err) {
+          this._telemetryAdd("LOOP_CLIENT_CALL_URL_REQUESTS_SUCCESS", false);
           console.log("Error requesting call info", err);
           cb(err);
         }
@@ -186,6 +193,20 @@ loop.Client = (function($) {
 
         this._requestCallUrlInternal(nickname, cb);
       }.bind(this));
+    },
+
+    
+
+
+
+
+
+    _telemetryAdd: function(histogramId, value) {
+      try {
+        this.mozLoop.telemetryAdd(histogramId, value);
+      } catch (err) {
+        console.error("Error recording telemetry", err);
+      }
     },
   };
 
