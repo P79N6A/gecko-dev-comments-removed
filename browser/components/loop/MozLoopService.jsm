@@ -456,6 +456,20 @@ let MozLoopServiceInternal = {
                                           2 * 32, true);
     }
 
+    if (payloadObj) {
+      
+      
+      let newPayloadObj = {};
+      for (let property of Object.getOwnPropertyNames(payloadObj)) {
+        if (typeof payloadObj[property] == "string") {
+          newPayloadObj[property] = CommonUtils.encodeUTF8(payloadObj[property]);
+        } else {
+          newPayloadObj[property] = payloadObj[property];
+        }
+      };
+      payloadObj = newPayloadObj;
+    }
+
     return gHawkClient.request(path, method, credentials, payloadObj).then((result) => {
       this.clearError("network");
       return result;
