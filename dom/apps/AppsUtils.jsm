@@ -535,23 +535,28 @@ this.AppsUtils = {
     
     aNewManifest.name = aApp.name;
 
+    let defaultShortName =
+      new ManifestHelper(aOldManifest, aApp.origin, aApp.manifestURL).short_name;
+    aNewManifest.short_name = defaultShortName;
+
     
-    if ('locales' in aNewManifest) {
-      let defaultName =
-        new ManifestHelper(aOldManifest, aApp.origin, aApp.manifestURL).name;
+    if ("locales" in aNewManifest) {
       for (let locale in aNewManifest.locales) {
-        let entry = aNewManifest.locales[locale];
-        if (!entry.name) {
-          continue;
+        let newLocaleEntry = aNewManifest.locales[locale];
+
+        let oldLocaleEntry = aOldManifest && "locales" in aOldManifest &&
+            locale in aOldManifest.locales && aOldManifest.locales[locale];
+
+        if (newLocaleEntry.name) {
+          
+          
+          newLocaleEntry.name =
+            (oldLocaleEntry && oldLocaleEntry.name) || aApp.name;
         }
-        
-        
-        let localizedName = defaultName;
-        if (aOldManifest && 'locales' in aOldManifest &&
-            locale in aOldManifest.locales) {
-          localizedName = aOldManifest.locales[locale].name;
+        if (newLocaleEntry.short_name) {
+          newLocaleEntry.short_name =
+            (oldLocaleEntry && oldLocaleEntry.short_name) || defaultShortName;
         }
-        entry.name = localizedName;
       }
     }
   },
@@ -822,6 +827,10 @@ ManifestHelper.prototype = {
 
   get name() {
     return this._localeProp("name");
+  },
+
+  get short_name() {
+    return this._localeProp("short_name");
   },
 
   get description() {
