@@ -1290,7 +1290,9 @@ GCRuntime::finish()
 
 
 
+
     helperState.finish();
+    allocTask.cancel(GCParallelTask::CancelAndWait);
 
 #ifdef JS_GC_ZEAL
     
@@ -2960,7 +2962,8 @@ GCRuntime::refillFreeListFromMainThread(JSContext *cx, AllocKind thingKind)
         
         
         
-        rt->gc.waitBackgroundSweepEnd();
+        
+        rt->gc.waitBackgroundSweepOrAllocEnd();
 
         thing = arenas->allocateFromArena(zone, thingKind, maybeStartBGAlloc);
         if (MOZ_LIKELY(thing))
