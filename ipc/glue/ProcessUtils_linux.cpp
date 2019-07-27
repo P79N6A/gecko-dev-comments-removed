@@ -112,7 +112,7 @@ static void ProcLoaderClientDeinit();
 
 
 
-static const int kReservedFileDescriptors = 5;
+static const size_t kReservedFileDescriptors = 5;
 static const int kBeginReserveFileDescriptor = STDERR_FILENO + 1;
 
 class ProcLoaderParent : public PProcLoaderParent

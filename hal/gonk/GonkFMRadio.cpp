@@ -608,7 +608,7 @@ readRDSDataThread(void* data)
 
       
       
-      if (block_bitmap != ((1 << blocknum) - 1)) {
+      if (block_bitmap != ((1u << blocknum) - 1u)) {
         block_bitmap |= 1 << V4L2_RDS_BLOCK_INVALID;
         continue;
       }
