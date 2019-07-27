@@ -181,16 +181,15 @@ public:
 
 
 
-  void RunThread();
-  
-
-
-
   bool OneIteration(nsTArray<MessageBlock>& aMessageQueue);
   
 
 
 
+  nsTArray<MessageBlock>& MessageQueue() {
+    CurrentDriver()->GetThreadMonitor().AssertCurrentThreadOwns();
+    return mMessageQueue;
+  }
   void DoIteration(nsTArray<MessageBlock>& aMessageQueue);
 
   
@@ -418,12 +417,6 @@ public:
   
 
   
-
-
-
-  nsCOMPtr<nsIThread> mThread;
-
-  
   
   
 
@@ -439,25 +432,6 @@ public:
 
 
   uint32_t mFirstCycleBreaker;
-  
-
-
-
-  GraphTime mCurrentTime;
-  
-
-
-
-
-  GraphTime mStateComputedTime;
-  
-
-
-  TimeStamp mInitialTimeStamp;
-  
-
-
-  TimeStamp mCurrentTimeStamp;
   
 
 
