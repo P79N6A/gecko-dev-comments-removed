@@ -29,6 +29,7 @@ MockPlugin.prototype = {
 
 const PLUGINS = [
   new MockPlugin('test_with_infoURL', '5', Ci.nsIPluginTag.STATE_ENABLED),
+  new MockPlugin('test_with_altInfoURL', '5', Ci.nsIPluginTag.STATE_ENABLED),
   new MockPlugin('test_no_infoURL', '5', Ci.nsIPluginTag.STATE_ENABLED)
 ];
 
@@ -55,7 +56,18 @@ add_task(function* test_infoURL() {
   let testInfoURL = 'http://test.url.com/';
 
   Assert.strictEqual(Services.blocklist.getPluginInfoURL(PLUGINS[0]),
-    testInfoURL, 'Plugin info urls should match');
+    testInfoURL, 'Should be the provided url when an infoURL tag is available');
+});
+
+
+
+
+
+add_task(function* test_altInfoURL() {
+  let altTestInfoURL = 'http://alt.test.url.com/';
+
+  Assert.strictEqual(Services.blocklist.getPluginInfoURL(PLUGINS[1]),
+    altTestInfoURL, 'Should be the alternative infoURL');
 });
 
 
@@ -63,6 +75,6 @@ add_task(function* test_infoURL() {
 
 
 add_task(function* test_infoURL_missing() {
-  Assert.strictEqual(Services.blocklist.getPluginInfoURL(PLUGINS[1]), null,
+  Assert.strictEqual(Services.blocklist.getPluginInfoURL(PLUGINS[2]), null,
     'Should be null when no infoURL tag is available.');
 });
