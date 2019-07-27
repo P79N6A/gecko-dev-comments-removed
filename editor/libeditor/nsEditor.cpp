@@ -247,8 +247,14 @@ nsEditor::Init(nsIDOMDocument *aDoc, nsIContent *aRoot,
   mUpdateCount=0;
 
   
-  mIMETextNode = nullptr;
-  mIMETextOffset = 0;
+  
+  
+  
+  
+  if (mIMETextNode && !mIMETextNode->IsInComposedDoc()) {
+    mIMETextNode = nullptr;
+  }
+
   
   selCon->SetCaretReadOnly(false);
   selCon->SetDisplaySelection(nsISelectionController::SELECTION_ON);
@@ -4705,6 +4711,26 @@ nsEditor::InitializeSelection(nsIDOMEventTarget* aFocusEventTarget)
     selection->GetRangeCount(&rangeCount);
     if (rangeCount == 0) {
       BeginningOfDocument();
+    }
+  }
+
+  
+  
+  
+  if (mComposition && !mIMETextNode && mIMETextLength) {
+    
+    
+    nsRange* firstRange = selection->GetRangeAt(0);
+    NS_ENSURE_TRUE(firstRange, NS_ERROR_FAILURE);
+    nsCOMPtr<nsINode> parentNode = firstRange->GetStartParent();
+    Text* textNode = parentNode->GetAsText();
+    MOZ_ASSERT(textNode,
+               "There must be text node if mIMETextLength is larger than 0");
+    if (textNode) {
+      MOZ_ASSERT(textNode->Length() >= mIMETextOffset + mIMETextLength,
+                 "The text node must be different from the old mIMETextNode");
+      IMETextTxn::SetIMESelection(*this, textNode, mIMETextOffset,
+                                  mIMETextLength, mComposition->GetRanges());
     }
   }
 
