@@ -39,6 +39,7 @@ ClassCanHaveFixedData(const Class *clasp)
     
     
     
+    
     return clasp == &ArrayBufferObject::class_ || IsTypedArrayClass(clasp);
 }
 

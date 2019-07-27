@@ -31,6 +31,14 @@ namespace js {
 
 
 
+
+
+
+
+
+
+
+
 class SharedArrayRawBuffer
 {
   private:
@@ -65,41 +73,80 @@ class SharedArrayRawBuffer
 
 
 
-class SharedArrayBufferObject : public ArrayBufferObject
+
+
+
+
+
+
+
+
+
+
+
+
+
+class SharedArrayBufferObject : public ArrayBufferObjectMaybeShared
 {
     static bool byteLengthGetterImpl(JSContext *cx, CallArgs args);
 
   public:
+    
+    
+    static const uint8_t RAWBUF_SLOT = 0;
+
+    static const uint8_t RESERVED_SLOTS = 1;
+
     static const Class class_;
     static const Class protoClass;
+    static const JSFunctionSpec jsfuncs[];
+    static const JSFunctionSpec jsstaticfuncs[];
 
-    
-    static const uint8_t RAWBUF_SLOT = ArrayBufferObject::RESERVED_SLOTS;
+    static bool byteLengthGetter(JSContext *cx, unsigned argc, Value *vp);
 
-    static const uint8_t RESERVED_SLOTS = ArrayBufferObject::RESERVED_SLOTS + 1;
+    static bool fun_isView(JSContext *cx, unsigned argc, Value *vp);
 
     static bool class_constructor(JSContext *cx, unsigned argc, Value *vp);
 
     
-    static JSObject *New(JSContext *cx, uint32_t length);
+    static SharedArrayBufferObject *New(JSContext *cx, uint32_t length);
 
     
-    static JSObject *New(JSContext *cx, SharedArrayRawBuffer *buffer);
-
-    static bool byteLengthGetter(JSContext *cx, unsigned argc, Value *vp);
+    static SharedArrayBufferObject *New(JSContext *cx, SharedArrayRawBuffer *buffer);
 
     static void Finalize(FreeOp *fop, JSObject *obj);
 
-    void acceptRawBuffer(SharedArrayRawBuffer *buffer);
-    void dropRawBuffer();
+    static void addSizeOfExcludingThis(JSObject *obj, mozilla::MallocSizeOf mallocSizeOf,
+                                       JS::ClassInfo *info);
 
     SharedArrayRawBuffer *rawBufferObject() const;
-    uint8_t *dataPointer() const;
-    uint32_t byteLength() const;
+
+    
+    
+    void *globalID() const {
+        
+        
+        
+        return dataPointer();
+    }
+
+    uint32_t byteLength() const {
+        return rawBufferObject()->byteLength();
+    }
+
+    uint8_t *dataPointer() const {
+        return rawBufferObject()->dataPointer();
+    }
+
+private:
+    void acceptRawBuffer(SharedArrayRawBuffer *buffer);
+    void dropRawBuffer();
 };
 
-bool
-IsSharedArrayBuffer(HandleValue v);
+bool IsSharedArrayBuffer(HandleValue v);
+bool IsSharedArrayBuffer(HandleObject o);
+
+SharedArrayBufferObject &AsSharedArrayBuffer(HandleObject o);
 
 } 
 

@@ -36,8 +36,46 @@ class ArrayBufferViewObject;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 typedef Vector<ArrayBufferObject *, 0, SystemAllocPolicy> ArrayBufferVector;
 
+class ArrayBufferObjectMaybeShared;
+
+uint32_t AnyArrayBufferByteLength(const ArrayBufferObjectMaybeShared *buf);
+uint8_t *AnyArrayBufferDataPointer(const ArrayBufferObjectMaybeShared *buf);
+ArrayBufferObjectMaybeShared &AsAnyArrayBuffer(HandleValue val);
+
+class ArrayBufferObjectMaybeShared : public JSObject
+{
+  public:
+    uint32_t byteLength() {
+        return AnyArrayBufferByteLength(this);
+    }
+
+    uint8_t *dataPointer() {
+        return AnyArrayBufferDataPointer(this);
+    }
+};
 
 
 
@@ -47,7 +85,11 @@ typedef Vector<ArrayBufferObject *, 0, SystemAllocPolicy> ArrayBufferVector;
 
 
 
-class ArrayBufferObject : public JSObject
+
+
+
+
+class ArrayBufferObject : public ArrayBufferObjectMaybeShared
 {
     static bool byteLengthGetterImpl(JSContext *cx, CallArgs args);
     static bool fun_slice_impl(JSContext *cx, CallArgs args);
@@ -67,9 +109,8 @@ class ArrayBufferObject : public JSObject
     enum BufferKind {
         PLAIN_BUFFER        =   0, 
         ASMJS_BUFFER        = 0x1,
-        SHARED_BUFFER       = 0x2,
-        MAPPED_BUFFER       = 0x4,
-        KIND_MASK           = ASMJS_BUFFER | SHARED_BUFFER | MAPPED_BUFFER
+        MAPPED_BUFFER       = 0x2,
+        KIND_MASK           = ASMJS_BUFFER | MAPPED_BUFFER
     };
 
   protected:
@@ -223,7 +264,6 @@ class ArrayBufferObject : public JSObject
 
     BufferKind bufferKind() const { return BufferKind(flags() & BUFFER_KIND_MASK); }
     bool isAsmJSArrayBuffer() const { return flags() & ASMJS_BUFFER; }
-    bool isSharedArrayBuffer() const { return flags() & SHARED_BUFFER; }
     bool isMappedArrayBuffer() const { return flags() & MAPPED_BUFFER; }
     bool isNeutered() const { return flags() & NEUTERED_BUFFER; }
 
@@ -269,7 +309,6 @@ class ArrayBufferObject : public JSObject
     }
 
     void setIsAsmJSArrayBuffer() { setFlags(flags() | ASMJS_BUFFER); }
-    void setIsSharedArrayBuffer() { setFlags(flags() | SHARED_BUFFER); }
     void setIsMappedArrayBuffer() { setFlags(flags() | MAPPED_BUFFER); }
     void setIsNeutered() { setFlags(flags() | NEUTERED_BUFFER); }
 
@@ -351,7 +390,6 @@ InitArrayBufferViewDataPointer(ArrayBufferViewObject *obj, ArrayBufferObject *bu
 
     PostBarrierTypedArrayObject(obj);
 }
-
 
 
 

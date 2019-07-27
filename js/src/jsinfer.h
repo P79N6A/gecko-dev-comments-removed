@@ -763,6 +763,9 @@ class TemporaryTypeSet : public TypeSet
     Scalar::Type getTypedArrayType();
 
     
+    Scalar::Type getSharedTypedArrayType();
+
+    
     bool isDOMClass();
 
     
