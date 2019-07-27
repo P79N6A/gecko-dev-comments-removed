@@ -1671,13 +1671,13 @@ protected:
 
   
   
-  nsIDocument*              mDocument;      
-  nsPresContext*            mPresContext;   
+  nsCOMPtr<nsIDocument>     mDocument;
+  nsRefPtr<nsPresContext>   mPresContext;
   nsStyleSet*               mStyleSet;      
   nsCSSFrameConstructor*    mFrameConstructor; 
   nsViewManager*           mViewManager;   
   nsPresArena               mFrameArena;
-  nsFrameSelection*         mSelection;
+  nsRefPtr<nsFrameSelection> mSelection;
   
   
   nsFrameManagerBase*       mFrameManager;
