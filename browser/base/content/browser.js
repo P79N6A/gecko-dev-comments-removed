@@ -3123,12 +3123,8 @@ const BrowserSearch = {
 
 
 
-
-
-
-
-  recordSearchInHealthReport: function (engine, source, selection) {
-    BrowserUITelemetry.countSearchEvent(source, null, selection);
+  recordSearchInHealthReport: function (engine, source) {
+    BrowserUITelemetry.countSearchEvent(source);
 #ifdef MOZ_SERVICES_HEALTHREPORT
     let reporter = Cc["@mozilla.org/datareporting/service;1"]
                      .getService()

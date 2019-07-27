@@ -191,7 +191,7 @@ let AboutHome = {
 
           let engine = Services.search.currentEngine;
 #ifdef MOZ_SERVICES_HEALTHREPORT
-          window.BrowserSearch.recordSearchInHealthReport(engine, "abouthome", data.selection);
+          window.BrowserSearch.recordSearchInHealthReport(engine, "abouthome");
 #endif
           
           let submission = engine.getSubmission(data.searchTerms, null, "homepage");
