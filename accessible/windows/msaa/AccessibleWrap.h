@@ -14,6 +14,7 @@
 #include "ia2AccessibleComponent.h"
 #include "ia2AccessibleHyperlink.h"
 #include "ia2AccessibleValue.h"
+#include "mozilla/a11y/ProxyAccessible.h"
 
 #ifdef __GNUC__
 
@@ -209,6 +210,11 @@ protected:
   };
 };
 
+static inline AccessibleWrap*
+WrapperFor(ProxyAccessible* aProxy)
+{
+  return reinterpret_cast<AccessibleWrap*>(aProxy->GetWrapper());
+}
 } 
 } 
 
