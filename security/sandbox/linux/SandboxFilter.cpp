@@ -396,6 +396,14 @@ void SandboxFilterImplGMP::Build() {
 
 #ifdef MOZ_ASAN
   Allow(SYSCALL(sigaltstack));
+  
+  Deny(ENOTTY, SYSCALL_WITH_ARG(ioctl, 0, STDERR_FILENO));
+  
+  
+  Deny(ENOENT, SYSCALL(readlink));
+  
+  
+  Deny(ENOENT, SYSCALL_LARGEFILE(stat, stat64));
 #endif
 
   Allow(SYSCALL(mprotect));
