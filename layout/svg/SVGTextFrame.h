@@ -592,8 +592,7 @@ private:
 
 
 
-  bool ShouldRenderAsPath(nsRenderingContext* aContext, nsTextFrame* aFrame,
-                          bool& aShouldPaintSVGGlyphs);
+  bool ShouldRenderAsPath(nsTextFrame* aFrame, bool& aShouldPaintSVGGlyphs);
 
   
   nsIFrame* GetTextPathPathFrame(nsIFrame* aTextPathFrame);

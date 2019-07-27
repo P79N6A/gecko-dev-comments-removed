@@ -821,8 +821,6 @@ nsSVGPathGeometryFrame::PaintMarkers(gfxContext& aContext,
 
       uint32_t num = marks.Length();
       if (num) {
-        nsRenderingContext rendCtx(&aContext);
-
         
         nsSVGMarkerFrame* markerFrames[] = {
           properties.GetMarkerStartFrame(),
@@ -835,7 +833,7 @@ nsSVGPathGeometryFrame::PaintMarkers(gfxContext& aContext,
           nsSVGMark& mark = marks[i];
           nsSVGMarkerFrame* frame = markerFrames[mark.type];
           if (frame) {
-            frame->PaintMark(&rendCtx, aTransform, this, &mark, strokeWidth);
+            frame->PaintMark(aContext, aTransform, this, &mark, strokeWidth);
           }
         }
       }
