@@ -13266,7 +13266,12 @@ nsGlobalWindow::AddSizeOfIncludingThis(nsWindowSizes* aWindowSizes) const
         elm->ListenerCount();
     }
     if (mDoc) {
-      mDoc->DocAddSizeOfIncludingThis(aWindowSizes);
+      
+      
+      
+      if (!mDoc->GetInnerWindow() || mDoc->GetInnerWindow() == this) {
+        mDoc->DocAddSizeOfIncludingThis(aWindowSizes);
+      }
     }
   }
 
