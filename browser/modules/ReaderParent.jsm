@@ -178,12 +178,6 @@ let ReaderParent = {
     }
 
     
-    article = yield ReaderMode.getArticleFromCache(url);
-    if (article) {
-      return article;
-    }
-
-    
     
     return yield ReaderMode.downloadAndParseDocument(url);
   }),
