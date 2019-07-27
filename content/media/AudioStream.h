@@ -362,9 +362,6 @@ private:
   CircularByteBuffer mBuffer;
 
   
-  double mVolume;
-
-  
   
   nsAutoRef<cubeb_stream> mCubebStream;
 

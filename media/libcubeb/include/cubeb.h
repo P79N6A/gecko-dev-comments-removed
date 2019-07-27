@@ -261,6 +261,30 @@ int cubeb_stream_get_position(cubeb_stream * stream, uint64_t * position);
 
 int cubeb_stream_get_latency(cubeb_stream * stream, uint32_t * latency);
 
+
+
+
+
+
+
+
+
+int cubeb_stream_set_volume(cubeb_stream * stream, float volume);
+
+
+
+
+
+
+
+
+
+
+
+
+
+int cubeb_stream_set_panning(cubeb_stream * stream, float panning);
+
 #if defined(__cplusplus)
 }
 #endif
