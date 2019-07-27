@@ -12,6 +12,7 @@
 
 #include "jsfun.h"
 #include "jsscript.h"
+#include "jsutil.h"
 
 #include "asmjs/AsmJSFrameIterator.h"
 #include "jit/JitFrameIterator.h"
@@ -737,6 +738,23 @@ class InterpreterFrame
 
     CallReceiver callReceiver() const {
         return CallReceiverFromArgv(argv());
+    }
+
+    
+
+
+
+
+
+
+    Value newTarget() const {
+        
+        MOZ_ASSERT(isNonEvalFunctionFrame());
+        if (isConstructing()) {
+            unsigned pushedArgs = Max(numFormalArgs(), numActualArgs());
+            return argv()[pushedArgs];
+        }
+        return UndefinedValue();
     }
 
     

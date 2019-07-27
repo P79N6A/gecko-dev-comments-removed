@@ -1514,8 +1514,15 @@
 
  \
     macro(JSOP_INITHIDDENPROP, 147,"inithiddenprop", NULL, 5,  2,  1,  JOF_ATOM|JOF_PROP|JOF_SET|JOF_DETECTING) \
-     \
-    macro(JSOP_UNUSED148,     148,"unused148", NULL,      1,  0,  0,  JOF_BYTE) \
+    
+
+
+
+
+
+
+ \
+    macro(JSOP_NEWTARGET,  148, "newtarget", NULL,      1,  0,  1,  JOF_BYTE) \
     \
     
 
