@@ -228,7 +228,12 @@ HTMLTrackElement::LoadResource()
     return;
   }
 
-  CreateTextTrack();
+  
+  
+  
+  if (!mTrack) {
+    CreateTextTrack();
+  }
 
   
   
