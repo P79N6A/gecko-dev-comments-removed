@@ -1333,7 +1333,13 @@ let Impl = {
       payloadObj.slowSQL = Telemetry.slowSQL;
       payloadObj.fileIOReports = Telemetry.fileIOReports;
       payloadObj.lateWrites = Telemetry.lateWrites;
-      payloadObj.addonHistograms = this.getAddonHistograms();
+
+      
+      let addonHistograms = this.getAddonHistograms();
+      if (Object.keys(addonHistograms).length > 0) {
+        payloadObj.addonHistograms = addonHistograms;
+      }
+
       payloadObj.addonDetails = AddonManagerPrivate.getTelemetryDetails();
       payloadObj.UIMeasurements = UITelemetry.getUIMeasurements();
 
