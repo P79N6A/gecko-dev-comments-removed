@@ -985,6 +985,9 @@ public:
   void *GetUserData(UserDataKey *key) {
     return mUserData.Get(key);
   }
+  void *RemoveUserData(UserDataKey *key) {
+    return mUserData.Remove(key);
+  }
 
   
 
