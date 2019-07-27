@@ -1072,13 +1072,19 @@ struct JSRuntime : public JS::shadow::Runtime,
     js::AsmJSMachExceptionHandler asmJSMachExceptionHandler;
 #endif
 
-    
-    
   private:
+    
+    
     bool signalHandlersInstalled_;
+    
+    
+    bool canUseSignalHandlers_;
   public:
     bool signalHandlersInstalled() const {
         return signalHandlersInstalled_;
+    }
+    bool canUseSignalHandlers() const {
+        return canUseSignalHandlers_;
     }
 
   private:

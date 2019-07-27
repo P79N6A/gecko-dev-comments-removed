@@ -2214,7 +2214,7 @@ bool
 LIRGenerator::visitInterruptCheck(MInterruptCheck *ins)
 {
     
-    if (GetIonContext()->runtime->signalHandlersInstalled()) {
+    if (GetIonContext()->runtime->canUseSignalHandlers()) {
         LInterruptCheckImplicit *lir = new(alloc()) LInterruptCheckImplicit();
         return add(lir, ins) && assignSafepoint(lir, ins);
     }
