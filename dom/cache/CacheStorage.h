@@ -8,7 +8,6 @@
 #define mozilla_dom_cache_CacheStorage_h
 
 #include "mozilla/dom/CacheBinding.h"
-#include "mozilla/dom/PromiseNativeHandler.h"
 #include "mozilla/dom/cache/Types.h"
 #include "mozilla/dom/cache/TypeUtils.h"
 #include "nsAutoPtr.h"
@@ -46,7 +45,6 @@ class PCacheResponseOrVoid;
 class CacheStorage final : public nsIIPCBackgroundChildCreateCallback
                          , public nsWrapperCache
                          , public TypeUtils
-                         , public PromiseNativeHandler
 {
   typedef mozilla::ipc::PBackgroundChild PBackgroundChild;
 
@@ -82,16 +80,6 @@ public:
   void DestroyInternal(CacheStorageChild* aActor);
 
   
-  void RecvMatchResponse(RequestId aRequestId, nsresult aRv,
-                         const PCacheResponseOrVoid& aResponse);
-  void RecvHasResponse(RequestId aRequestId, nsresult aRv, bool aSuccess);
-  void RecvOpenResponse(RequestId aRequestId, nsresult aRv,
-                        CacheChild* aActor);
-  void RecvDeleteResponse(RequestId aRequestId, nsresult aRv, bool aSuccess);
-  void RecvKeysResponse(RequestId aRequestId, nsresult aRv,
-                        const nsTArray<nsString>& aKeys);
-
-  
   virtual nsIGlobalObject* GetGlobalObject() const override;
 #ifdef DEBUG
   virtual void AssertOwningThread() const override;
@@ -100,60 +88,24 @@ public:
   virtual CachePushStreamChild*
   CreatePushStream(nsIAsyncInputStream* aStream) override;
 
-  
-  virtual void
-  ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) override;
-
-  virtual void
-  RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) override;
-
 private:
   CacheStorage(Namespace aNamespace, nsIGlobalObject* aGlobal,
                const mozilla::ipc::PrincipalInfo& aPrincipalInfo, Feature* aFeature);
   ~CacheStorage();
 
-  
-  void DisconnectFromActor();
-
   void MaybeRunPendingRequests();
 
-  RequestId AddRequestPromise(Promise* aPromise, ErrorResult& aRv);
-  already_AddRefed<Promise> RemoveRequestPromise(RequestId aRequestId);
-
-  
-  
   const Namespace mNamespace;
   nsCOMPtr<nsIGlobalObject> mGlobal;
   UniquePtr<mozilla::ipc::PrincipalInfo> mPrincipalInfo;
   nsRefPtr<Feature> mFeature;
+
+  
   CacheStorageChild* mActor;
-  nsTArray<nsRefPtr<Promise>> mRequestPromises;
 
-  enum Op
-  {
-    OP_MATCH,
-    OP_HAS,
-    OP_OPEN,
-    OP_DELETE,
-    OP_KEYS
-  };
+  struct Entry;
+  nsTArray<nsAutoPtr<Entry>> mPendingRequests;
 
-  struct Entry
-  {
-    RequestId mRequestId;
-    Op mOp;
-    
-    
-    
-    nsRefPtr<InternalRequest> mRequest;
-    CacheQueryOptions mOptions;
-    
-    
-    
-    nsString mKey;
-  };
-
-  nsTArray<Entry> mPendingRequests;
   bool mFailedActor;
 
 public:
