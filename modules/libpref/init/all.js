@@ -165,7 +165,11 @@ pref("dom.undo_manager.enabled", false);
 
 
 
+#ifdef NIGHTLY_BUILD
+pref("dom.compartment_per_addon", true);
+#else
 pref("dom.compartment_per_addon", false);
+#endif
 
 
 
