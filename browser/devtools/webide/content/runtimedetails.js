@@ -125,7 +125,7 @@ function CheckLockState() {
       }, e => console.error(e));
     } catch(e) {
       
-      devtoolsCheckResult.textContent = sYes;
+      devtoolsCheckResult.textContent = sNo;
       flipCertPerfAction.removeAttribute("hidden");
     }
 
