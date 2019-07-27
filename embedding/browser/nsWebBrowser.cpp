@@ -64,7 +64,7 @@ static NS_DEFINE_CID(kChildCID, NS_CHILD_CID);
 
 
 
-nsWebBrowser::nsWebBrowser() : mDocShellTreeOwner(nullptr), 
+nsWebBrowser::nsWebBrowser() : mDocShellTreeOwner(nullptr),
    mInitInfo(nullptr),
    mContentType(typeContentWrapper),
    mActivating(false),
@@ -190,7 +190,7 @@ NS_IMETHODIMP nsWebBrowser::GetInterface(const nsIID& aIID, void** aSink)
 
 
 NS_IMETHODIMP nsWebBrowser::AddWebBrowserListener(nsIWeakReference *aListener, const nsIID& aIID)
-{           
+{
     NS_ENSURE_ARG_POINTER(aListener);
 
     nsresult rv = NS_OK;
@@ -222,7 +222,7 @@ NS_IMETHODIMP nsWebBrowser::AddWebBrowserListener(nsIWeakReference *aListener, c
         if (!supports) return NS_ERROR_INVALID_ARG;
         rv = BindListener(supports, aIID);
     }
-    
+
     return rv;
 }
 
@@ -238,7 +238,7 @@ NS_IMETHODIMP nsWebBrowser::BindListener(nsISupports *aListener, const nsIID& aI
         NS_ENSURE_STATE(mWebProgress);
         rv = mWebProgress->AddProgressListener(listener, nsIWebProgress::NOTIFY_ALL);
     }
-    else if (aIID.Equals(NS_GET_IID(nsISHistoryListener))) {      
+    else if (aIID.Equals(NS_GET_IID(nsISHistoryListener))) {
       nsCOMPtr<nsISHistory> shistory(do_GetInterface(mDocShell, &rv));
       if (NS_FAILED(rv)) return rv;
       nsCOMPtr<nsISHistoryListener> listener(do_QueryInterface(aListener, &rv));
@@ -269,7 +269,7 @@ NS_IMETHODIMP nsWebBrowser::RemoveWebBrowserListener(nsIWeakReference *aListener
                 mListenerArray->RemoveElementAt(count);
                 break;
             }
-            count--; 
+            count--;
         }
 
         
@@ -287,7 +287,7 @@ NS_IMETHODIMP nsWebBrowser::RemoveWebBrowserListener(nsIWeakReference *aListener
         if (!supports) return NS_ERROR_INVALID_ARG;
         rv = UnBindListener(supports, aIID);
     }
-    
+
     return rv;
 }
 
@@ -316,7 +316,7 @@ NS_IMETHODIMP nsWebBrowser::UnBindListener(nsISupports *aListener, const nsIID& 
 NS_IMETHODIMP nsWebBrowser::EnableGlobalHistory(bool aEnable)
 {
     NS_ENSURE_STATE(mDocShell);
-    
+
     return mDocShell->SetUseGlobalHistory(aEnable);
 }
 
@@ -395,7 +395,7 @@ NS_IMETHODIMP nsWebBrowser::SetIsActive(bool aIsActive)
 
 NS_IMETHODIMP nsWebBrowser::GetName(nsAString& aName)
 {
-   if(mDocShell)  
+   if(mDocShell)
       mDocShell->GetName(aName);
    else
       aName = mInitInfo->name;
@@ -493,21 +493,21 @@ NS_IMETHODIMP nsWebBrowser::GetSameTypeRootTreeItem(nsIDocShellTreeItem** aRootT
    while(parent)
       {
       *aRootTreeItem = parent;
-      NS_ENSURE_SUCCESS((*aRootTreeItem)->GetSameTypeParent(getter_AddRefs(parent)), 
+      NS_ENSURE_SUCCESS((*aRootTreeItem)->GetSameTypeParent(getter_AddRefs(parent)),
          NS_ERROR_FAILURE);
       }
    NS_ADDREF(*aRootTreeItem);
    return NS_OK;
 }
 
-NS_IMETHODIMP nsWebBrowser::FindItemWithName(const char16_t *aName, 
+NS_IMETHODIMP nsWebBrowser::FindItemWithName(const char16_t *aName,
    nsISupports* aRequestor, nsIDocShellTreeItem* aOriginalRequestor,
    nsIDocShellTreeItem **_retval)
 {
    NS_ENSURE_STATE(mDocShell);
    NS_ASSERTION(mDocShellTreeOwner, "This should always be set when in this situation");
 
-   return mDocShell->FindItemWithName(aName, 
+   return mDocShell->FindItemWithName(aName,
       static_cast<nsIDocShellTreeOwner*>(mDocShellTreeOwner),
       aOriginalRequestor, _retval);
 }
@@ -525,7 +525,7 @@ nsWebBrowser::GetWindow()
 }
 
 NS_IMETHODIMP nsWebBrowser::GetTreeOwner(nsIDocShellTreeOwner** aTreeOwner)
-{  
+{
     NS_ENSURE_ARG_POINTER(aTreeOwner);
     *aTreeOwner = nullptr;
     if(mDocShellTreeOwner)
@@ -728,7 +728,7 @@ NS_IMETHODIMP nsWebBrowser::GetDocument(nsIDOMDocument** aDocument)
 NS_IMETHODIMP nsWebBrowser::SetProperty(uint32_t aId, uint32_t aValue)
 {
     nsresult rv = NS_OK;
-    
+
     switch (aId)
     {
     case nsIWebBrowserSetup::SETUP_ALLOW_PLUGINS:
@@ -811,7 +811,7 @@ NS_IMETHODIMP nsWebBrowser::SetProperty(uint32_t aId, uint32_t aValue)
         break;
     default:
         rv = NS_ERROR_INVALID_ARG;
-  
+
     }
     return rv;
 }
@@ -944,7 +944,7 @@ NS_IMETHODIMP nsWebBrowser::GetProgressListener(nsIWebProgressListener * *aProgr
     NS_IF_ADDREF(*aProgressListener);
     return NS_OK;
 }
-  
+
 NS_IMETHODIMP nsWebBrowser::SetProgressListener(nsIWebProgressListener * aProgressListener)
 {
     mProgressListener = aProgressListener;
@@ -1131,7 +1131,7 @@ NS_IMETHODIMP nsWebBrowser::Cancel(nsresult aReason)
 
 
 NS_IMETHODIMP nsWebBrowser::InitWindow(nativeWindow aParentNativeWindow,
-   nsIWidget* aParentWidget, int32_t aX, int32_t aY, int32_t aCX, int32_t aCY)   
+   nsIWidget* aParentWidget, int32_t aX, int32_t aY, int32_t aCX, int32_t aCY)
 {
    NS_ENSURE_ARG(aParentNativeWindow || aParentWidget);
    NS_ENSURE_STATE(!mDocShell || mInitInfo);
@@ -1169,7 +1169,7 @@ NS_IMETHODIMP nsWebBrowser::Create()
 
       widgetInit.mWindowType = eWindowType_child;
       nsIntRect bounds(mInitInfo->x, mInitInfo->y, mInitInfo->cx, mInitInfo->cy);
-      
+
       mInternalWidget->SetWidgetListener(this);
       mInternalWidget->Create(nullptr, mParentNativeWindow, bounds, nullptr, &widgetInit);
       }
@@ -1229,7 +1229,7 @@ NS_IMETHODIMP nsWebBrowser::Create()
        mDocShell->SetItemType(nsIDocShellTreeItem::typeContent);
    }
    mDocShell->SetTreeOwner(mDocShellTreeOwner);
-   
+
    
    
    
@@ -1269,7 +1269,7 @@ NS_IMETHODIMP nsWebBrowser::Create()
    delete mInitInfo;
    mInitInfo = nullptr;
 
-   return NS_OK; 
+   return NS_OK;
 }
 
 NS_IMETHODIMP nsWebBrowser::Destroy()
@@ -1343,14 +1343,14 @@ NS_IMETHODIMP nsWebBrowser::SetPositionAndSize(int32_t aX, int32_t aY,
             NS_ERROR_FAILURE);
          }
       
-      NS_ENSURE_SUCCESS(mDocShellAsWin->SetPositionAndSize(doc_x, doc_y, aCX, aCY, 
+      NS_ENSURE_SUCCESS(mDocShellAsWin->SetPositionAndSize(doc_x, doc_y, aCX, aCY,
          aRepaint), NS_ERROR_FAILURE);
       }
 
    return NS_OK;
 }
 
-NS_IMETHODIMP nsWebBrowser::GetPositionAndSize(int32_t* aX, int32_t* aY, 
+NS_IMETHODIMP nsWebBrowser::GetPositionAndSize(int32_t* aX, int32_t* aY,
    int32_t* aCX, int32_t* aCY)
 {
    if(!mDocShell)
@@ -1420,7 +1420,7 @@ NS_IMETHODIMP nsWebBrowser::SetParentWidget(nsIWidget* aParentWidget)
 NS_IMETHODIMP nsWebBrowser::GetParentNativeWindow(nativeWindow* aParentNativeWindow)
 {
    NS_ENSURE_ARG_POINTER(aParentNativeWindow);
-   
+
    *aParentNativeWindow = mParentNativeWindow;
 
    return NS_OK;
@@ -1586,7 +1586,7 @@ NS_IMETHODIMP nsWebBrowser::SetDocShell(nsIDocShell* aDocShell)
      if(aDocShell)
      {
          NS_ENSURE_TRUE(!mDocShell, NS_ERROR_FAILURE);
- 
+
          nsCOMPtr<nsIInterfaceRequestor> req(do_QueryInterface(aDocShell));
          nsCOMPtr<nsIBaseWindow> baseWin(do_QueryInterface(aDocShell));
          nsCOMPtr<nsIWebNavigation> nav(do_QueryInterface(aDocShell));
@@ -1595,7 +1595,7 @@ NS_IMETHODIMP nsWebBrowser::SetDocShell(nsIDocShell* aDocShell)
          nsCOMPtr<nsIWebProgress> progress(do_GetInterface(aDocShell));
          NS_ENSURE_TRUE(req && baseWin && nav && scrollable && textScroll && progress,
              NS_ERROR_FAILURE);
- 
+
          mDocShell = aDocShell;
          mDocShellAsReq = req;
          mDocShellAsWin = baseWin;
@@ -1630,7 +1630,7 @@ NS_IMETHODIMP nsWebBrowser::SetDocShell(nsIDocShell* aDocShell)
          mWebProgress = nullptr;
      }
 
-     return NS_OK; 
+     return NS_OK;
 }
 
 NS_IMETHODIMP nsWebBrowser::EnsureDocShellTreeOwner()
@@ -1643,7 +1643,7 @@ NS_IMETHODIMP nsWebBrowser::EnsureDocShellTreeOwner()
 
    NS_ADDREF(mDocShellTreeOwner);
    mDocShellTreeOwner->WebBrowser(this);
-   
+
    return NS_OK;
 }
 
@@ -1716,14 +1716,14 @@ NS_IMETHODIMP nsWebBrowser::GetPrimaryContentWindow(nsIDOMWindow** aDOMWindow)
   nsCOMPtr<nsIDocShell> docShell;
   docShell = do_QueryInterface(item);
   NS_ENSURE_TRUE(docShell, NS_ERROR_FAILURE);
-  
+
   nsCOMPtr<nsIDOMWindow> domWindow = docShell->GetWindow();
   NS_ENSURE_TRUE(domWindow, NS_ERROR_FAILURE);
 
   *aDOMWindow = domWindow;
   NS_ADDREF(*aDOMWindow);
   return NS_OK;
-  
+
 }
 
 
