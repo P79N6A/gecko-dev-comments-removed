@@ -50,6 +50,7 @@ class PluginWidgetChild;
 }
 namespace layers {
 class Composer2D;
+class Compositor;
 class CompositorChild;
 class LayerManager;
 class LayerManagerComposite;
@@ -1855,6 +1856,16 @@ class nsIWidget : public nsISupports {
     virtual void EndRemoteDrawingInRegion(mozilla::gfx::DrawTarget* aDrawTarget, nsIntRegion& aInvalidRegion) {
       EndRemoteDrawing();
     }
+
+    
+
+
+
+
+
+
+
+    virtual bool InitCompositor(mozilla::layers::Compositor*) { return true; }
 
     
 
