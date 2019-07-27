@@ -4173,9 +4173,6 @@ JSObject::getParent() const
     if (Shape *shape = maybeShape())
         return shape->getObjectParent();
 
-    
-    
-    
     MOZ_ASSERT(is<UnboxedPlainObject>());
-    return compartment()->unsafeUnbarrieredMaybeGlobal();
+    return &global();
 }
