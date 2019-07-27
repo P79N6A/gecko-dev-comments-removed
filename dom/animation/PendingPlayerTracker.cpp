@@ -71,7 +71,8 @@ StartPlayerAtTime(nsRefPtrHashKey<dom::AnimationPlayer>* aKey,
 }
 
 void
-PendingPlayerTracker::StartPendingPlayersOnNextTick(const TimeStamp& aReadyTime)
+PendingPlayerTracker::TriggerPendingPlayersOnNextTick(const TimeStamp&
+                                                        aReadyTime)
 {
   mPlayPendingSet.EnumerateEntries(StartPlayerAtTime,
                                    const_cast<TimeStamp*>(&aReadyTime));
@@ -85,7 +86,7 @@ StartPlayerNow(nsRefPtrHashKey<dom::AnimationPlayer>* aKey, void*)
 }
 
 void
-PendingPlayerTracker::StartPendingPlayersNow()
+PendingPlayerTracker::TriggerPendingPlayersNow()
 {
   mPlayPendingSet.EnumerateEntries(StartPlayerNow, nullptr);
   mPlayPendingSet.Clear();
