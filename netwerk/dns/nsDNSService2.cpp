@@ -603,11 +603,6 @@ nsDNSService::Init()
 
     nsDNSPrefetch::Initialize(this);
 
-    
-    
-    if (gIOService->IsOffline() && !gIOService->IsComingOnline())
-        return NS_OK;
-
     nsCOMPtr<nsIIDNService> idn = do_GetService(NS_IDNSERVICE_CONTRACTID);
 
     nsCOMPtr<nsIObserverService> obs = services::GetObserverService();

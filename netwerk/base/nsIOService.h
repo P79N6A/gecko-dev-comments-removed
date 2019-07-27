@@ -77,10 +77,6 @@ public:
     bool IsOffline() { return mOffline; }
     bool IsLinkUp();
 
-    bool IsComingOnline() const {
-      return mOffline && mSettingOffline && !mSetOfflineValue;
-    }
-
     
     void SetAppOfflineInternal(uint32_t appId, int32_t status);
 
