@@ -927,16 +927,34 @@ nsCSPPolicy::directiveExists(enum CSPDirective aDir) const
   return false;
 }
 
+
+
+
+
+
+
 void
 nsCSPPolicy::getDirectiveStringForContentType(nsContentPolicyType aContentType,
                                               nsAString& outDirective) const
 {
+  nsCSPDirective* defaultDir = nullptr;
   for (uint32_t i = 0; i < mDirectives.Length(); i++) {
     if (mDirectives[i]->restrictsContentType(aContentType)) {
       mDirectives[i]->toString(outDirective);
       return;
     }
+    if (mDirectives[i]->isDefaultDirective()) {
+      defaultDir = mDirectives[i];
+    }
   }
+  
+  
+  if (defaultDir) {
+    defaultDir->toString(outDirective);
+    return;
+  }
+  NS_ASSERTION(false, "Can not query directive string for contentType!");
+  outDirective.AppendASCII("couldNotQueryViolatedDirective");
 }
 
 void

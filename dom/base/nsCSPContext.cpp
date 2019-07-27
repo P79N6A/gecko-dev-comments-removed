@@ -815,6 +815,7 @@ class CSPReportSenderRunnable MOZ_FINAL : public nsRunnable
       , mInnerWindowID(aInnerWindowID)
       , mCSPContext(aCSPContext)
     {
+      NS_ASSERTION(!aViolatedDirective.IsEmpty(), "Can not send reports without a violated directive");
       
       
       
