@@ -1359,6 +1359,13 @@ void MediaDecoderStateMachine::SetAudioCaptured(bool aCaptured)
     
     
     ScheduleStateMachine();
+
+    if (HasAudio()) {
+      
+      
+      
+      ResyncAudioClock();
+    }
   }
   mAudioCaptured = aCaptured;
 }
@@ -2931,16 +2938,15 @@ int64_t MediaDecoderStateMachine::GetClock() const
   int64_t clock_time = -1;
   if (!IsPlaying()) {
     clock_time = mPlayDuration + mStartTime;
-  } else if (mDecoder->GetDecodedStream()) {
-    clock_time = GetCurrentTimeViaMediaStreamSync();
   } else {
-    if (HasAudio() && !mAudioCompleted && !mAudioCaptured) {
+    if (mDecoder->GetDecodedStream()) {
+      clock_time = GetCurrentTimeViaMediaStreamSync();
+    } else if (HasAudio() && !mAudioCompleted && !mAudioCaptured) {
       clock_time = GetAudioClock();
     } else {
       
       clock_time = GetVideoStreamPosition();
     }
-    
     
     NS_ASSERTION(GetMediaTime() <= clock_time || mPlaybackRate <= 0,
       "Clock should go forwards if the playback rate is > 0.");
