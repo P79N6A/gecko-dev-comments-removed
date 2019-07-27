@@ -57,7 +57,7 @@ GetOpaqueRect(Layer* aLayer)
 {
   nsIntRect result;
   gfx::Matrix matrix;
-  bool is2D = aLayer->GetBaseTransform().Is2D(&matrix);
+  bool is2D = aLayer->AsLayerComposite()->GetShadowTransform().Is2D(&matrix);
 
   
   if (!is2D || aLayer->GetMaskLayer() ||
