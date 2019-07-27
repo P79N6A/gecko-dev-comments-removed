@@ -668,7 +668,10 @@ NS_InitXPCOM2(nsIServiceManager** aResult,
 
 #ifdef MOZ_WEBM
   
-  nestegg_set_halloc_func(NesteggReporter::CountingRealloc);
+  
+  
+  
+  nestegg_set_halloc_func(NesteggReporter::CountingFreeingRealloc);
 #endif
 
   
