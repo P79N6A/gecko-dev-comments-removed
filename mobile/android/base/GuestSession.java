@@ -1,18 +1,81 @@
+
+
+
+
 package org.mozilla.gecko;
 
 import android.app.NotificationManager;
+import android.app.KeyguardManager;
 import android.app.PendingIntent;
-import android.content.Intent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.net.Uri;
+import android.util.Log;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.ListView;
 import android.support.v4.app.NotificationCompat;
+
+import org.mozilla.gecko.prompts.Prompt;
+import org.mozilla.gecko.util.EventCallback;
+import org.mozilla.gecko.util.NativeEventListener;
+import org.mozilla.gecko.util.NativeJSObject;
+import org.mozilla.gecko.util.ThreadUtils;
+
+import java.io.File;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 
 public class GuestSession {
     public static final String NOTIFICATION_INTENT = "org.mozilla.gecko.GUEST_SESSION_INPROGRESS";
+    private static final String LOGTAG = "GeckoGuestSession";
 
+    
+    static boolean isSecureKeyguardLocked(Context context) {
+        final KeyguardManager manager = (KeyguardManager) context.getSystemService(Context.KEYGUARD_SERVICE);
+
+        
+        if (AppConstants.Versions.preJB || manager == null) {
+            return false;
+        }
+
+        return manager.isKeyguardLocked() && manager.isKeyguardSecure();
+    }
+
+    
+
+
+
+
+    public static boolean shouldUse(final Context context, final String args) {
+        
+        if (args != null && args.contains(BrowserApp.GUEST_BROWSING_ARG)) {
+            return true;
+        }
+
+        
+        final boolean keyguard = isSecureKeyguardLocked(context);
+        if (keyguard) {
+            return true;
+        }
+
+        
+        final GeckoProfile profile = GeckoProfile.getGuestProfile(context);
+        if (profile == null) {
+            return false;
+        }
+
+        return profile.locked();
+    }
+
+    public static void configureWindow(Window window) {
+        
+        window.addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
+        window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
+    }
     private static PendingIntent getNotificationIntent(Context context) {
         Intent intent = new Intent(NOTIFICATION_INTENT);
         intent.setClass(context, BrowserApp.class);
