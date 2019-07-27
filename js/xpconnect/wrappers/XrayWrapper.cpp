@@ -612,8 +612,10 @@ bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(JSContext *cx,
         return true;
 
     
-    if (desc.hasGetterOrSetter())
+    if (desc.hasGetterOrSetter()) {
+        JSAutoCompartment ac(cx, wrapper);
         return SilentFailure(cx, id, "Property has accessor");
+    }
 
     
     if (desc.value().isObject()) {
@@ -621,17 +623,23 @@ bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(JSContext *cx,
         JSAutoCompartment ac(cx, propObj);
 
         
-        if (!AccessCheck::subsumes(target, propObj))
+        if (!AccessCheck::subsumes(target, propObj)) {
+            JSAutoCompartment ac(cx, wrapper);
             return SilentFailure(cx, id, "Value not same-origin with target");
+        }
 
         
         XrayType xrayType = GetXrayType(propObj);
-        if (xrayType == NotXray || xrayType == XrayForOpaqueObject)
+        if (xrayType == NotXray || xrayType == XrayForOpaqueObject) {
+            JSAutoCompartment ac(cx, wrapper);
             return SilentFailure(cx, id, "Value not Xrayable");
+        }
 
         
-        if (JS_ObjectIsCallable(cx, propObj))
+        if (JS_ObjectIsCallable(cx, propObj)) {
+            JSAutoCompartment ac(cx, wrapper);
             return SilentFailure(cx, id, "Value is callable");
+        }
     }
 
     
