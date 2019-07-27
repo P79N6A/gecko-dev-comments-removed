@@ -272,11 +272,13 @@ class SurfacePattern : public Pattern
 public:
   
   SurfacePattern(SourceSurface *aSourceSurface, ExtendMode aExtendMode,
-                 const Matrix &aMatrix = Matrix(), Filter aFilter = Filter::GOOD)
+                 const Matrix &aMatrix = Matrix(), Filter aFilter = Filter::GOOD,
+                 const IntRect &aSamplingRect = IntRect())
     : mSurface(aSourceSurface)
     , mExtendMode(aExtendMode)
     , mFilter(aFilter)
     , mMatrix(aMatrix)
+    , mSamplingRect(aSamplingRect)
   {}
 
   virtual PatternType GetType() const { return PatternType::SURFACE; }
@@ -286,6 +288,9 @@ public:
 
   Filter mFilter;                 
   Matrix mMatrix;                 
+
+  IntRect mSamplingRect;          
+
 };
 
 class StoredPattern;
