@@ -72,6 +72,13 @@ const EVENTS = {
   
   
   
+  CONSOLE_RECORDING_STARTED: "Performance:ConsoleRecordingStarted",
+  CONSOLE_RECORDING_WILL_STOP: "Performance:ConsoleRecordingWillStop",
+  CONSOLE_RECORDING_STOPPED: "Performance:ConsoleRecordingStopped",
+
+  
+  
+  
   UI_STATE_CHANGED: "Performance:UI:StateChanged",
 
   
@@ -103,8 +110,6 @@ const EVENTS = {
   RECORDING_IMPORTED: "Performance:RecordingImported",
   RECORDING_EXPORTED: "Performance:RecordingExported",
 
-  
-  TIMELINE_DATA: "Performance:TimelineData",
 
   
   
@@ -188,10 +193,12 @@ let PerformanceController = {
     this.importRecording = this.importRecording.bind(this);
     this.exportRecording = this.exportRecording.bind(this);
     this.clearRecordings = this.clearRecordings.bind(this);
-    this._onTimelineData = this._onTimelineData.bind(this);
     this._onRecordingSelectFromView = this._onRecordingSelectFromView.bind(this);
     this._onPrefChanged = this._onPrefChanged.bind(this);
     this._onThemeChanged = this._onThemeChanged.bind(this);
+    this._onConsoleProfileStart = this._onConsoleProfileStart.bind(this);
+    this._onConsoleProfileEnd = this._onConsoleProfileEnd.bind(this);
+    this._onConsoleProfileEnding = this._onConsoleProfileEnding.bind(this);
 
     
     
@@ -205,6 +212,9 @@ let PerformanceController = {
     this._nonBooleanPrefs.registerObserver();
     this._nonBooleanPrefs.on("pref-changed", this._onPrefChanged);
 
+    gFront.on("console-profile-start", this._onConsoleProfileStart);
+    gFront.on("console-profile-ending", this._onConsoleProfileEnding);
+    gFront.on("console-profile-end", this._onConsoleProfileEnd);
     ToolbarView.on(EVENTS.PREF_CHANGED, this._onPrefChanged);
     PerformanceView.on(EVENTS.UI_START_RECORDING, this.startRecording);
     PerformanceView.on(EVENTS.UI_STOP_RECORDING, this.stopRecording);
@@ -214,11 +224,6 @@ let PerformanceController = {
     RecordingsView.on(EVENTS.RECORDING_SELECTED, this._onRecordingSelectFromView);
 
     gDevTools.on("pref-changed", this._onThemeChanged);
-    gFront.on("markers", this._onTimelineData); 
-    gFront.on("frames", this._onTimelineData); 
-    gFront.on("memory", this._onTimelineData); 
-    gFront.on("ticks", this._onTimelineData); 
-    gFront.on("allocations", this._onTimelineData); 
   }),
 
   
@@ -228,6 +233,9 @@ let PerformanceController = {
     this._nonBooleanPrefs.unregisterObserver();
     this._nonBooleanPrefs.off("pref-changed", this._onPrefChanged);
 
+    gFront.off("console-profile-start", this._onConsoleProfileStart);
+    gFront.off("console-profile-ending", this._onConsoleProfileEnding);
+    gFront.off("console-profile-end", this._onConsoleProfileEnd);
     ToolbarView.off(EVENTS.PREF_CHANGED, this._onPrefChanged);
     PerformanceView.off(EVENTS.UI_START_RECORDING, this.startRecording);
     PerformanceView.off(EVENTS.UI_STOP_RECORDING, this.stopRecording);
@@ -237,11 +245,6 @@ let PerformanceController = {
     RecordingsView.off(EVENTS.RECORDING_SELECTED, this._onRecordingSelectFromView);
 
     gDevTools.off("pref-changed", this._onThemeChanged);
-    gFront.off("markers", this._onTimelineData);
-    gFront.off("frames", this._onTimelineData);
-    gFront.off("memory", this._onTimelineData);
-    gFront.off("ticks", this._onTimelineData);
-    gFront.off("allocations", this._onTimelineData);
   },
 
   
@@ -285,19 +288,20 @@ let PerformanceController = {
 
 
   startRecording: Task.async(function *() {
-    let recording = this._createRecording({
+    let options = {
       withMemory: this.getOption("enable-memory"),
       withTicks: this.getOption("enable-framerate"),
       withAllocations: this.getOption("enable-memory"),
       allocationsSampleProbability: this.getPref("memory-sample-probability"),
       allocationsMaxLogLength: this.getPref("memory-max-log-length")
-    });
+    };
 
-    this.emit(EVENTS.RECORDING_WILL_START, recording);
-    yield recording.startRecording();
+    this.emit(EVENTS.RECORDING_WILL_START);
+
+    let recording = yield gFront.startRecording(options);
+    this._recordings.push(recording);
+
     this.emit(EVENTS.RECORDING_STARTED, recording);
-
-    this.setCurrentRecording(recording);
   }),
 
   
@@ -305,10 +309,10 @@ let PerformanceController = {
 
 
   stopRecording: Task.async(function *() {
-    let recording = this.getLatestRecording();
+    let recording = this.getLatestManualRecording();
 
     this.emit(EVENTS.RECORDING_WILL_STOP, recording);
-    yield recording.stopRecording();
+    yield gFront.stopRecording(recording);
     this.emit(EVENTS.RECORDING_STOPPED, recording);
   }),
 
@@ -331,7 +335,7 @@ let PerformanceController = {
 
 
   clearRecordings: Task.async(function* () {
-    let latest = this.getLatestRecording();
+    let latest = this.getLatestManualRecording();
 
     if (latest && latest.isRecording()) {
       yield this.stopRecording();
@@ -350,7 +354,8 @@ let PerformanceController = {
 
 
   importRecording: Task.async(function*(_, file) {
-    let recording = this._createRecording();
+    let recording = new RecordingModel();
+    this._recordings.push(recording);
     yield recording.importRecording(file);
 
     this.emit(EVENTS.RECORDING_IMPORTED, recording);
@@ -359,22 +364,6 @@ let PerformanceController = {
   
 
 
-
-
-
-
-
-
-  _createRecording: function (options={}) {
-    let recording = new RecordingModel(Heritage.extend(options, {
-      front: gFront,
-      performance: window.performance
-    }));
-    this._recordings.push(recording);
-    return recording;
-  },
-
-  
 
 
 
@@ -397,9 +386,12 @@ let PerformanceController = {
 
 
 
-  getLatestRecording: function () {
+  getLatestManualRecording: function () {
     for (let i = this._recordings.length - 1; i >= 0; i--) {
-      return this._recordings[i];
+      let model = this._recordings[i];
+      if (!model.isConsole() && !model.isImported()) {
+        return this._recordings[i];
+      }
     }
     return null;
   },
@@ -412,14 +404,6 @@ let PerformanceController = {
     let blueprint = TIMELINE_BLUEPRINT;
     let hiddenMarkers = this.getPref("hidden-markers");
     return RecordingUtils.getFilteredBlueprint({ blueprint, hiddenMarkers });
-  },
-
-  
-
-
-  _onTimelineData: function (...data) {
-    this._recordings.forEach(e => e.addTimelineData.apply(e, data));
-    this.emit(EVENTS.TIMELINE_DATA, ...data);
   },
 
   
@@ -449,6 +433,37 @@ let PerformanceController = {
     }
 
     this.emit(EVENTS.THEME_CHANGED, data.newValue);
+  },
+
+  
+
+
+  _onConsoleProfileStart: function (_, recording) {
+    this._recordings.push(recording);
+    this.emit(EVENTS.CONSOLE_RECORDING_STARTED, recording);
+  },
+
+  
+
+
+
+  _onConsoleProfileEnding: function (_, recording) {
+    this.emit(EVENTS.CONSOLE_RECORDING_WILL_STOP, recording);
+  },
+
+  
+
+
+
+  _onConsoleProfileEnd: function (_, recording) {
+    this.emit(EVENTS.CONSOLE_RECORDING_STOPPED, recording);
+  },
+
+  
+
+
+  getRecordings: function () {
+    return this._recordings;
   },
 
   toString: () => "[object PerformanceController]"

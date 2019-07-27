@@ -1,5 +1,5 @@
-/* Any copyright is dedicated to the Public Domain.
-   http://creativecommons.org/publicdomain/zero/1.0/ */
+
+
 "use strict";
 
 const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
@@ -36,7 +36,7 @@ const INVERT_FLAME_PREF = "devtools.performance.ui.invert-flame-graph";
 const FLATTEN_PREF = "devtools.performance.ui.flatten-tree-recursion";
 const JIT_PREF = "devtools.performance.ui.show-jit-optimizations";
 
-// All tests are asynchronous.
+
 waitForExplicitFinish();
 
 gDevTools.testing = true;
@@ -55,18 +55,18 @@ let DEFAULT_PREFS = [
   return prefs;
 }, {});
 
-// Enable the new performance panel for all tests.
+
 Services.prefs.setBoolPref("devtools.performance.enabled", true);
-// Enable logging for all the tests. Both the debugger server and frontend will
-// be affected by this pref.
+
+
 Services.prefs.setBoolPref("devtools.debugger.log", false);
 
-/**
- * Call manually in tests that use frame script utils after initializing
- * the tool. Must be called after initializing so we can detect
- * whether or not `content` is a CPOW or not. Call after init but before navigating
- * to different pages.
- */
+
+
+
+
+
+
 function loadFrameScripts () {
   mm = gBrowser.selectedBrowser.messageManager;
   mm.loadFrameScript(FRAME_SCRIPT_UTILS_URL, false);
@@ -76,12 +76,12 @@ registerCleanupFunction(() => {
   gDevTools.testing = false;
   info("finish() was called, cleaning up...");
 
-  // Rollback any pref changes
+  
   Object.keys(DEFAULT_PREFS).forEach(pref => {
     Services.prefs.setBoolPref(pref, DEFAULT_PREFS[pref]);
   });
 
-  // Make sure the profiler module is stopped when the test finishes.
+  
   nsIProfilerModule.StopProfiler();
 
   Cu.forceGC();
@@ -136,7 +136,7 @@ function once(aTarget, aEventName, aUseCapture = false, spread = false) {
   let deferred = Promise.defer();
 
   for (let [add, remove] of [
-    ["on", "off"], // Use event emitter before DOM events for consistency
+    ["on", "off"], 
     ["addEventListener", "removeEventListener"],
     ["addListener", "removeListener"]
   ]) {
@@ -152,10 +152,10 @@ function once(aTarget, aEventName, aUseCapture = false, spread = false) {
   return deferred.promise;
 }
 
-/**
- * Like `once`, except returns an array so we can
- * access all arguments fired by the event.
- */
+
+
+
+
 function onceSpread(aTarget, aEventName, aUseCapture) {
   return once(aTarget, aEventName, aUseCapture, true);
 }
@@ -178,14 +178,12 @@ function initBackend(aUrl, targetOps={}) {
 
     yield target.makeRemote();
 
-    // Attach addition options to `target`. This is used to force mock fronts
-    // to smokescreen test different servers where memory or timeline actors
-    // may not exist. Possible options that will actually work:
-    // TEST_MOCK_MEMORY_ACTOR = true
-    // TEST_MOCK_TIMELINE_ACTOR = true
+    
+    
+    
+    
+    
     merge(target, targetOps);
-
-    yield gDevTools.showToolbox(target, "performance");
 
     let connection = getPerformanceActorsConnection(target);
     yield connection.open();
@@ -204,17 +202,62 @@ function initPerformance(aUrl, selectedTool="performance", targetOps={}) {
 
     yield target.makeRemote();
 
-    // Attach addition options to `target`. This is used to force mock fronts
-    // to smokescreen test different servers where memory or timeline actors
-    // may not exist. Possible options that will actually work:
-    // TEST_MOCK_MEMORY_ACTOR = true
-    // TEST_MOCK_TIMELINE_ACTOR = true
+    
+    
+    
+    
+    
     merge(target, targetOps);
 
     let toolbox = yield gDevTools.showToolbox(target, selectedTool);
     let panel = toolbox.getCurrentPanel();
     return { target, panel, toolbox };
   });
+}
+
+
+
+
+
+function initConsole(aUrl) {
+  return Task.spawn(function*() {
+    let { target, toolbox, panel } = yield initPerformance(aUrl, "webconsole");
+    let { hud } = panel;
+    return {
+      target, toolbox, panel, console: {
+        profile: (s) => consoleExecute(hud, "profile", s),
+        profileEnd: (s) => consoleExecute(hud, "profileEnd", s)
+      }
+    };
+  });
+}
+
+function consoleExecute (console, method, val) {
+  let { ui, jsterm } = console;
+  let { promise, resolve } = Promise.defer();
+  let message = `console.${method}("${val}")`;
+
+  ui.on("new-messages", handler);
+  jsterm.execute(message);
+
+  let { console: c } = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
+  function handler (event, messages) {
+    for (let msg of messages) {
+      if (msg.response._message === message) {
+        ui.off("new-messages", handler);
+        resolve();
+        return;
+      }
+    }
+  }
+  return promise;
+}
+
+function waitForProfilerConnection() {
+  let { promise, resolve } = Promise.defer();
+  Services.obs.addObserver(resolve, "performance-actors-connection-opened", false);
+  return promise.then(() =>
+    Services.obs.removeObserver(resolve, "performance-actors-connection-opened"));
 }
 
 function* teardown(panel) {
@@ -239,19 +282,27 @@ function consoleMethod (...args) {
   if (!mm) {
     throw new Error("`loadFrameScripts()` must be called before using frame scripts.");
   }
+  
+  
+  
+  
+  
+  if (args[1] == null) {
+    args[1] = "";
+  }
   mm.sendAsyncMessage("devtools:test:console", args);
 }
 
-function* consoleProfile(connection, label) {
-  let notified = connection.once("profile");
+function* consoleProfile(win, label) {
+  let profileStart = once(win.PerformanceController, win.EVENTS.CONSOLE_RECORDING_STARTED);
   consoleMethod("profile", label);
-  yield notified;
+  yield profileStart;
 }
 
-function* consoleProfileEnd(connection) {
-  let notified = connection.once("profileEnd");
-  consoleMethod("profileEnd");
-  yield notified;
+function* consoleProfileEnd(win, label) {
+  let ended = once(win.PerformanceController, win.EVENTS.CONSOLE_RECORDING_STOPPED);
+  consoleMethod("profileEnd", label);
+  yield ended;
 }
 
 function command (button) {
@@ -382,14 +433,14 @@ function waitForWidgetsRendered(panel) {
   ]);
 }
 
-/**
- * Waits until a predicate returns true.
- *
- * @param function predicate
- *        Invoked once in a while until it returns true.
- * @param number interval [optional]
- *        How often the predicate is invoked, in milliseconds.
- */
+
+
+
+
+
+
+
+
 function waitUntil(predicate, interval = 10) {
   if (predicate()) {
     return Promise.resolve(true);
@@ -401,7 +452,7 @@ function waitUntil(predicate, interval = 10) {
   return deferred.promise;
 }
 
-// EventUtils just doesn't work!
+
 
 function dragStart(graph, x, y = 1) {
   x /= window.devicePixelRatio;
@@ -427,9 +478,9 @@ function getSourceActor(aSources, aURL) {
   return item && item.value;
 }
 
-/**
- * Fires a key event, like "VK_UP", "VK_DOWN", etc.
- */
+
+
+
 function fireKey (e) {
   EventUtils.synthesizeKey(e, {});
 }

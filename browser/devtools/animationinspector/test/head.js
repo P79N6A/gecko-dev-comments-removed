@@ -124,23 +124,47 @@ let selectNode = Task.async(function*(data, inspector, reason="test") {
 
 
 
+
+
+
+let waitForAnimationInspectorReady = Task.async(function*(inspector) {
+  let win = inspector.sidebar.getWindowForTab("animationinspector");
+  let updated = inspector.once("inspector-updated");
+
+  
+  
+  
+  
+  let tabReady = win.document.readyState === "complete" ?
+                 promise.resolve() :
+                 inspector.sidebar.once("animationinspector-ready");
+
+  return promise.all([updated, tabReady]);
+});
+
+
+
+
+
+
 let openAnimationInspector = Task.async(function*() {
   let target = TargetFactory.forTab(gBrowser.selectedTab);
 
   info("Opening the toolbox with the inspector selected");
   let toolbox = yield gDevTools.showToolbox(target, "inspector");
-  yield waitForToolboxFrameFocus(toolbox);
 
   info("Switching to the animationinspector");
   let inspector = toolbox.getPanel("inspector");
-  let initPromises = [
-    inspector.once("inspector-updated"),
-    inspector.sidebar.once("animationinspector-ready")
-  ];
+
+  let panelReady = waitForAnimationInspectorReady(inspector);
+
+  info("Waiting for toolbox focus");
+  yield waitForToolboxFrameFocus(toolbox);
+
   inspector.sidebar.select("animationinspector");
 
   info("Waiting for the inspector and sidebar to be ready");
-  yield promise.all(initPromises);
+  yield panelReady;
 
   let win = inspector.sidebar.getWindowForTab("animationinspector");
   let {AnimationsController, AnimationsPanel} = win;

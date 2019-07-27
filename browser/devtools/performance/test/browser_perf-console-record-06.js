@@ -1,0 +1,56 @@
+
+
+
+
+
+
+
+function spawnTest () {
+  loadFrameScripts();
+  let { target, toolbox, panel } = yield initPerformance(SIMPLE_URL);
+  let { $, EVENTS, gFront, PerformanceController, OverviewView, RecordingsView, WaterfallView } = panel.panelWin;
+
+  yield consoleProfile(panel.panelWin, "rust");
+
+  let recordings = PerformanceController.getRecordings();
+  is(recordings.length, 1, "a recording found in the performance panel.");
+  is(RecordingsView.selectedItem.attachment, recordings[0],
+    "The first console recording should be selected.");
+
+  yield consoleProfile(panel.panelWin, "golang");
+
+  recordings = PerformanceController.getRecordings();
+  is(recordings.length, 2, "two recordings found in the performance panel.");
+  is(RecordingsView.selectedItem.attachment, recordings[0],
+    "The first console recording should still be selected.");
+
+  
+  yield once(OverviewView, EVENTS.OVERVIEW_RENDERED);
+  yield once(OverviewView, EVENTS.OVERVIEW_RENDERED);
+  yield once(OverviewView, EVENTS.OVERVIEW_RENDERED);
+
+  let detailsRendered = once(WaterfallView, EVENTS.WATERFALL_RENDERED);
+  yield consoleProfileEnd(panel.panelWin, "rust");
+  yield detailsRendered;
+
+  recordings = PerformanceController.getRecordings();
+  is(recordings.length, 2, "two recordings found in the performance panel.");
+  is(RecordingsView.selectedItem.attachment, recordings[0],
+    "The first console recording should still be selected.");
+  is(RecordingsView.selectedItem.attachment.isRecording(), false,
+    "The first console recording should no longer be recording.");
+
+  detailsRendered = once(WaterfallView, EVENTS.WATERFALL_RENDERED);
+  yield consoleProfileEnd(panel.panelWin, "golang");
+  yield detailsRendered;
+
+  recordings = PerformanceController.getRecordings();
+  is(recordings.length, 2, "two recordings found in the performance panel.");
+  is(RecordingsView.selectedItem.attachment, recordings[0],
+    "The first console recording should still be selected.");
+  is(recordings[1].isRecording(), false,
+    "The second console recording should no longer be recording.");
+
+  yield teardown(panel);
+  finish();
+}
