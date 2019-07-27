@@ -312,6 +312,17 @@ body {
   margin: 0 .5em;
 }
 
+.animation-title .meta-data .compositor-icon {
+    display: none;
+    background-image: url("animation-fast-track.svg");
+    background-repeat: no-repeat;
+    padding-left: 12px;
+    
+
+    z-index: 1;
+    position: relative;
+}
+
 
 
 .timeline {

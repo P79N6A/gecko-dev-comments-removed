@@ -83,6 +83,16 @@ PlayerMetaDataHeader.prototype = {
     });
 
     
+    this.compositorIcon = createNode({
+      parent: metaData,
+      nodeType: "span",
+      attributes: {
+        "class": "compositor-icon",
+        "title": L10N.getStr("player.runningOnCompositorTooltip")
+      }
+    });
+
+    
     this.durationLabel = createNode({
       parent: metaData,
       nodeType: "span",
@@ -137,6 +147,7 @@ PlayerMetaDataHeader.prototype = {
     this.durationLabel = this.durationValue = null;
     this.delayLabel = this.delayValue = null;
     this.iterationLabel = this.iterationValue = null;
+    this.compositorIcon = null;
   },
 
   render: function(state) {
@@ -186,6 +197,16 @@ PlayerMetaDataHeader.prototype = {
         
         this.iterationLabel.style.display = "none";
         this.iterationValue.style.display = "none";
+      }
+    }
+
+    
+    if (state.isRunningOnCompositor !== this.state.isRunningOnCompositor) {
+      if (state.isRunningOnCompositor) {
+        this.compositorIcon.style.display = "inline";
+      } else {
+        
+        this.compositorIcon.style.display = "none";
       }
     }
 
