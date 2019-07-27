@@ -14,7 +14,6 @@ static nsIAtom **gUnicodeRangeToLangGroupAtomTable[] =
 {
   &nsGkAtoms::x_cyrillic,
   &nsGkAtoms::el_,
-  &nsGkAtoms::tr,
   &nsGkAtoms::he,
   &nsGkAtoms::ar,
   &nsGkAtoms::th,
