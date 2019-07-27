@@ -319,7 +319,7 @@ struct JSCompartment
     enum {
         DebugMode = 1 << 0,
         DebugObservesAllExecution = 1 << 1,
-        DebugNeedDelazification = 1 << 2
+        DebugNeedsDelazification = 1 << 2
     };
 
     
@@ -470,17 +470,19 @@ struct JSCompartment
         debugModeBits &= ~DebugObservesAllExecution;
     }
 
-    
-
-
-
-    void scheduleDelazificationForDebugMode() { debugModeBits |= DebugNeedDelazification; }
+    bool needsDelazificationForDebugger() const { return debugModeBits & DebugNeedsDelazification; }
 
     
 
 
 
-    bool ensureDelazifyScriptsForDebugMode(JSContext *cx);
+    void scheduleDelazificationForDebugger() { debugModeBits |= DebugNeedsDelazification; }
+
+    
+
+
+
+    bool ensureDelazifyScriptsForDebugger(JSContext *cx);
 
     void clearBreakpointsIn(js::FreeOp *fop, js::Debugger *dbg, JS::HandleObject handler);
 

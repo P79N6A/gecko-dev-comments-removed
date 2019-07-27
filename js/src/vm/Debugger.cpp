@@ -3341,7 +3341,7 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery
             
             
             AutoCompartment ac(cx, comp);
-            if (!comp->ensureDelazifyScriptsForDebugMode(cx))
+            if (!comp->ensureDelazifyScriptsForDebugger(cx))
                 return false;
         }
         return compartments.put(comp);
