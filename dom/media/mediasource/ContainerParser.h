@@ -35,9 +35,7 @@ public:
   
   
   
-  bool TimestampsFuzzyEqual(int64_t aLhs, int64_t aRhs);
-
-  virtual int64_t GetRoundingError();
+  virtual bool TimestampsFuzzyEqual(int64_t aLhs, int64_t aRhs);
 
   const nsTArray<uint8_t>& InitData();
 
