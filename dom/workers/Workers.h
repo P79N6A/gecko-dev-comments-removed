@@ -227,6 +227,7 @@ struct WorkerLoadInfo
     already_AddRefed<nsITabChild> GetAnyLiveTabChild();
 
     nsCOMPtr<nsILoadContext> mLoadContext;
+    nsCOMPtr<nsIInterfaceRequestor> mOuterRequestor;
 
     
     
