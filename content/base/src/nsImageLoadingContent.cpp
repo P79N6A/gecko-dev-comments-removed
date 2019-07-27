@@ -259,15 +259,24 @@ nsImageLoadingContent::OnStopRequest(imgIRequest* aRequest,
   if (shell && shell->IsVisible() &&
       (!shell->DidInitialize() || shell->IsPaintingSuppressed())) {
 
-    
-    
-    
-    
     nsIFrame* f = GetOurPrimaryFrame();
-    if (!mFrameCreateCalled || !f || (f->GetStateBits() & NS_FRAME_FIRST_REFLOW) ||
-        mVisibleCount > 0 || shell->AssumeAllImagesVisible()) {
-      if (NS_SUCCEEDED(mCurrentRequest->StartDecoding())) {
-        startedDecoding = true;
+    
+    
+    
+    
+    
+    
+    
+    if (f) {
+      
+      
+      
+      
+      if (!mFrameCreateCalled || (f->GetStateBits() & NS_FRAME_FIRST_REFLOW) ||
+          mVisibleCount > 0 || shell->AssumeAllImagesVisible()) {
+        if (NS_SUCCEEDED(mCurrentRequest->StartDecoding())) {
+          startedDecoding = true;
+        }
       }
     }
   }
