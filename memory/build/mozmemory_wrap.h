@@ -109,9 +109,6 @@
 
 
 
-
-
-
 #ifndef MOZ_MEMORY
 #  error Should only include mozmemory_wrap.h when MOZ_MEMORY is set.
 #endif
@@ -155,13 +152,6 @@
 #    ifdef XP_WIN
 #      define mozmem_dup_impl(a)      wrap_ ## a
 #    endif
-#  endif
-
-#  if defined(MOZ_WIDGET_ANDROID)
-#    ifndef mozmem_malloc_impl
-#      define mozmem_malloc_impl(a)   __wrap_ ## a
-#    endif
-#    define mozmem_dup_impl(a)      __wrap_ ## a
 #  endif
 
 
