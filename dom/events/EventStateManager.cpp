@@ -482,8 +482,31 @@ EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
   mCurrentTargetContent = nullptr;
 
   
+  if (NS_EVENT_NEEDS_FRAME(aEvent)) {
+    NS_ASSERTION(mCurrentTarget, "mCurrentTarget is null.  this should not happen.  see bug #13007");
+    if (!mCurrentTarget) return NS_ERROR_NULL_POINTER;
+  }
+#ifdef DEBUG
+  if (aEvent->HasDragEventMessage() && sIsPointerLocked) {
+    NS_ASSERTION(sIsPointerLocked,
+      "sIsPointerLocked is true. Drag events should be suppressed when the pointer is locked.");
+  }
+#endif
+  
   
   WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent();
+  if (aEvent->mFlags.mIsTrusted &&
+      ((mouseEvent && mouseEvent->IsReal()) ||
+       aEvent->mClass == eWheelEventClass) &&
+      !sIsPointerLocked) {
+    sLastScreenPoint =
+      UIEvent::CalculateScreenPoint(aPresContext, aEvent);
+    sLastClientPoint =
+      UIEvent::CalculateClientPoint(aPresContext, aEvent, nullptr);
+  }
+
+  
+  
   if (aEvent->mFlags.mIsTrusted &&
       ((mouseEvent && mouseEvent->IsReal() &&
         mouseEvent->message != NS_MOUSE_ENTER &&
@@ -501,37 +524,9 @@ EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     ++gMouseOrKeyboardEventCounter;
   }
 
-  WheelTransaction::OnEvent(aEvent);
-
-  
-  if (NS_EVENT_NEEDS_FRAME(aEvent)) {
-    NS_ASSERTION(mCurrentTarget,
-                 "mCurrentTarget is null.  this should not happen. "
-                 "see bug #13007");
-    if (!mCurrentTarget) {
-      return NS_ERROR_NULL_POINTER;
-    }
-  }
-#ifdef DEBUG
-  if (aEvent->HasDragEventMessage() && sIsPointerLocked) {
-    NS_ASSERTION(sIsPointerLocked,
-      "sIsPointerLocked is true. Drag events should be suppressed when "
-      "the pointer is locked.");
-  }
-#endif
-  
-  
-  if (aEvent->mFlags.mIsTrusted &&
-      ((mouseEvent && mouseEvent->IsReal()) ||
-       aEvent->mClass == eWheelEventClass) &&
-      !sIsPointerLocked) {
-    sLastScreenPoint =
-      UIEvent::CalculateScreenPoint(aPresContext, aEvent);
-    sLastClientPoint =
-      UIEvent::CalculateClientPoint(aPresContext, aEvent, nullptr);
-  }
-
   *aStatus = nsEventStatus_eIgnore;
+
+  WheelTransaction::OnEvent(aEvent);
 
   switch (aEvent->message) {
   case NS_CONTEXTMENU:
