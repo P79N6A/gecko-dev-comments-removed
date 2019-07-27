@@ -691,7 +691,7 @@ let SessionStoreInternal = {
         break;
       case "SessionStore:restoreHistoryComplete":
         
-        let tabData = browser.__SS_data;
+        let tabData = TabState.collect(tab);
 
         
         
@@ -713,6 +713,7 @@ let SessionStoreInternal = {
         
         if ("image" in tabData) {
           win.gBrowser.setIcon(tab, tabData.image);
+          TabStateCache.update(browser, {image: null});
         }
 
         let event = win.document.createEvent("Events");
@@ -729,11 +730,16 @@ let SessionStoreInternal = {
           
           
           
-          let tabData = browser.__SS_data;
+          let tabData = TabState.collect(tab);
           if (tabData.userTypedValue && !tabData.userTypedClear) {
             browser.userTypedValue = tabData.userTypedValue;
             win.URLBarSetURI();
           }
+
+          
+          TabStateCache.update(browser, {
+            userTypedValue: null, userTypedClear: null
+          });
         }
         break;
       case "SessionStore:restoreTabContentComplete":
@@ -742,8 +748,6 @@ let SessionStoreInternal = {
         if (gDebuggingEnabled) {
           Services.obs.notifyObservers(browser, NOTIFY_TAB_RESTORED, null);
         }
-
-        delete browser.__SS_data;
 
         SessionStoreInternal._resetLocalTabRestoringState(tab);
         SessionStoreInternal.restoreNextTab();
@@ -1410,7 +1414,6 @@ let SessionStoreInternal = {
 
   onTabRemove: function ssi_onTabRemove(aWindow, aTab, aNoNotification) {
     let browser = aTab.linkedBrowser;
-    delete browser.__SS_data;
     browser.removeEventListener("SwapDocShells", this);
     browser.removeEventListener("oop-browser-crashed", this);
 
@@ -1948,15 +1951,7 @@ let SessionStoreInternal = {
   },
 
   getTabValue: function ssi_getTabValue(aTab, aKey) {
-    let data = {};
-    if (aTab.__SS_extdata) {
-      data = aTab.__SS_extdata;
-    }
-    else if (aTab.linkedBrowser.__SS_data && aTab.linkedBrowser.__SS_data.extData) {
-      
-      data = aTab.linkedBrowser.__SS_data.extData;
-    }
-    return data[aKey] || "";
+    return (aTab.__SS_extdata || {})[aKey] || "";
   },
 
   setTabValue: function ssi_setTabValue(aTab, aKey, aStringValue) {
@@ -1966,36 +1961,17 @@ let SessionStoreInternal = {
 
     
     
-    let saveTo;
-    if (aTab.__SS_extdata) {
-      saveTo = aTab.__SS_extdata;
-    }
-    else if (aTab.linkedBrowser.__SS_data && aTab.linkedBrowser.__SS_data.extData) {
-      saveTo = aTab.linkedBrowser.__SS_data.extData;
-    }
-    else {
+    if (!aTab.__SS_extdata) {
       aTab.__SS_extdata = {};
-      saveTo = aTab.__SS_extdata;
     }
 
-    saveTo[aKey] = aStringValue;
+    aTab.__SS_extdata[aKey] = aStringValue;
     this.saveStateDelayed(aTab.ownerDocument.defaultView);
   },
 
   deleteTabValue: function ssi_deleteTabValue(aTab, aKey) {
-    
-    
-    
-    let deleteFrom;
-    if (aTab.__SS_extdata) {
-      deleteFrom = aTab.__SS_extdata;
-    }
-    else if (aTab.linkedBrowser.__SS_data && aTab.linkedBrowser.__SS_data.extData) {
-      deleteFrom = aTab.linkedBrowser.__SS_data.extData;
-    }
-
-    if (deleteFrom && aKey in deleteFrom) {
-      delete deleteFrom[aKey];
+    if (aTab.__SS_extdata && aKey in aTab.__SS_extdata) {
+      delete aTab.__SS_extdata[aKey];
       this.saveStateDelayed(aTab.ownerDocument.defaultView);
     }
   },
@@ -2819,7 +2795,6 @@ let SessionStoreInternal = {
 
     
     
-    browser.__SS_data = tabData;
     browser.__SS_restoreState = TAB_STATE_NEEDS_RESTORE;
     browser.setAttribute("pending", "true");
     tab.setAttribute("pending", "true");
@@ -2831,7 +2806,14 @@ let SessionStoreInternal = {
       storage: tabData.storage || null,
       formdata: tabData.formdata || null,
       disallow: tabData.disallow || null,
-      pageStyle: tabData.pageStyle || null
+      pageStyle: tabData.pageStyle || null,
+
+      
+      
+      
+      image: tabData.image || "",
+      userTypedValue: tabData.userTypedValue || "",
+      userTypedClear: tabData.userTypedClear || 0
     });
 
     browser.messageManager.sendAsyncMessage("SessionStore:restoreHistory",

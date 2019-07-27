@@ -165,43 +165,6 @@ let TabStateInternal = {
     let tabData = {entries: [], lastAccessed: tab.lastAccessed };
     let browser = tab.linkedBrowser;
 
-    if (!browser || !browser.currentURI) {
-      
-      return tabData;
-    }
-    if (browser.__SS_data) {
-      
-      
-      
-      tabData = Utils.shallowCopy(browser.__SS_data);
-      if (tab.pinned)
-        tabData.pinned = true;
-      else
-        delete tabData.pinned;
-      tabData.hidden = tab.hidden;
-
-      
-      if (tab.__SS_extdata)
-        tabData.extData = tab.__SS_extdata;
-      
-      
-      if (tabData.extData && !Object.keys(tabData.extData).length)
-        delete tabData.extData;
-      return tabData;
-    }
-
-    
-    
-    
-    
-    if (browser.userTypedValue) {
-      tabData.userTypedValue = browser.userTypedValue;
-      tabData.userTypedClear = browser.userTypedClear;
-    } else {
-      delete tabData.userTypedValue;
-      delete tabData.userTypedClear;
-    }
-
     if (tab.pinned)
       tabData.pinned = true;
     else
@@ -211,18 +174,33 @@ let TabStateInternal = {
     
     tabData.attributes = TabAttributes.get(tab);
 
-    
-    let tabbrowser = tab.ownerDocument.defaultView.gBrowser;
-    tabData.image = tabbrowser.getIcon(tab);
-
     if (tab.__SS_extdata)
       tabData.extData = tab.__SS_extdata;
     else if (tabData.extData)
       delete tabData.extData;
 
     
-    
     this.copyFromCache(tab, tabData, options);
+
+    
+    
+    
+    
+
+    
+    if (!("image" in tabData)) {
+      let tabbrowser = tab.ownerDocument.defaultView.gBrowser;
+      tabData.image = tabbrowser.getIcon(tab);
+    }
+
+    
+    
+    
+    
+    if (!("userTypedValue" in tabData) && browser.userTypedValue) {
+      tabData.userTypedValue = browser.userTypedValue;
+      tabData.userTypedClear = browser.userTypedClear;
+    }
 
     return tabData;
   },
