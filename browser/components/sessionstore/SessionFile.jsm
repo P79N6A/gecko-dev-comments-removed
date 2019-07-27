@@ -234,6 +234,12 @@ let SessionFileInternal = {
         }
       }
     }
+
+    
+    let allCorrupt = !noFilesFound && !result;
+    Telemetry.getHistogramById("FX_SESSION_RESTORE_ALL_FILES_CORRUPT").
+      add(allCorrupt);
+
     if (!result) {
       
       result = {
