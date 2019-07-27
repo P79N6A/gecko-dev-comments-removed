@@ -2456,16 +2456,12 @@ void MediaDecoderStateMachine::DecodeSeek()
   int64_t seekTime = mCurrentSeekTarget.mTime;
   mDecoder->StopProgressUpdates();
 
-  bool currentTimeChanged = false;
   mCurrentTimeBeforeSeek = GetMediaTime();
-  if (mCurrentTimeBeforeSeek != seekTime) {
-    currentTimeChanged = true;
-    
-    
-    
-    StopPlayback();
-    UpdatePlaybackPositionInternal(seekTime);
-  }
+  
+  
+  
+  StopPlayback();
+  UpdatePlaybackPositionInternal(seekTime);
 
   
   
@@ -2486,41 +2482,30 @@ void MediaDecoderStateMachine::DecodeSeek()
 
   mDecodeToSeekTarget = false;
 
-  if (!currentTimeChanged) {
-    DECODER_LOG("Seek !currentTimeChanged...");
-    mDropAudioUntilNextDiscontinuity = false;
-    mDropVideoUntilNextDiscontinuity = false;
-    nsCOMPtr<nsIRunnable> task = NS_NewRunnableMethod(this, &MediaDecoderStateMachine::SeekCompleted);
-    nsresult rv = GetStateMachineThread()->Dispatch(task, NS_DISPATCH_NORMAL);
-    if (NS_FAILED(rv)) {
-      DecodeError();
-    }
-  } else {
-    
-    
-    
-    StopAudioThread();
-    ResetPlayback();
+  
+  
+  
+  StopAudioThread();
+  ResetPlayback();
 
-    nsresult res;
-    {
-      ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
-      
-      
-      res = mReader->ResetDecode();
-      if (NS_SUCCEEDED(res)) {
-        mReader->Seek(seekTime, GetEndTime())
-               ->Then(DecodeTaskQueue(), __func__, this,
-                      &MediaDecoderStateMachine::OnSeekCompleted,
-                      &MediaDecoderStateMachine::OnSeekFailed);
-      }
+  nsresult res;
+  {
+    ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
+    
+    
+    res = mReader->ResetDecode();
+    if (NS_SUCCEEDED(res)) {
+      mReader->Seek(seekTime, GetEndTime())
+             ->Then(DecodeTaskQueue(), __func__, this,
+                    &MediaDecoderStateMachine::OnSeekCompleted,
+                    &MediaDecoderStateMachine::OnSeekFailed);
     }
-    if (NS_FAILED(res)) {
-      DecodeError();
-      return;
-    }
-    mWaitingForDecoderSeek = true;
   }
+  if (NS_FAILED(res)) {
+    DecodeError();
+    return;
+  }
+  mWaitingForDecoderSeek = true;
 }
 
 void
