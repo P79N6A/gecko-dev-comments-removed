@@ -718,15 +718,37 @@ protected:
   
   void SetPlayStartTime(const TimeStamp& aTimeStamp);
 
+private:
   
   void OnAudioEndTimeUpdate(int64_t aAudioEndTime);
+public:
+  void DispatchOnAudioEndTimeUpdate(int64_t aAudioEndTime)
+  {
+    RefPtr<nsRunnable> r =
+      NS_NewRunnableMethodWithArg<int64_t>(this, &MediaDecoderStateMachine::OnAudioEndTimeUpdate, aAudioEndTime);
+    TaskQueue()->Dispatch(r.forget());
+  }
 
+private:
   
   void OnPlaybackOffsetUpdate(int64_t aPlaybackOffset);
+public:
+  void DispatchOnPlaybackOffsetUpdate(int64_t aPlaybackOffset)
+  {
+    RefPtr<nsRunnable> r =
+      NS_NewRunnableMethodWithArg<int64_t>(this, &MediaDecoderStateMachine::DispatchOnPlaybackOffsetUpdate, aPlaybackOffset);
+    TaskQueue()->Dispatch(r.forget());
+  }
 
+private:
   
   
   void OnAudioSinkComplete();
+public:
+  void DispatchOnAudioSinkComplete()
+  {
+    TaskQueue()->Dispatch(NS_NewRunnableMethod(this, &MediaDecoderStateMachine::OnAudioSinkComplete));
+  }
 
   
   void OnAudioSinkError();
