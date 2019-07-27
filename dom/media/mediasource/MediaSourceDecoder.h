@@ -80,6 +80,11 @@ public:
   bool IsActiveReader(MediaDecoderReader* aReader);
 
 private:
+  void DoSetMediaSourceDuration(double aDuration);
+  void ScheduleDurationChange(double aOldDuration,
+                              double aNewDuration,
+                              MSRangeRemovalAction aAction);
+
   
   
   
