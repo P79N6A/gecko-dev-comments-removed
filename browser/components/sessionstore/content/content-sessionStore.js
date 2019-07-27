@@ -29,6 +29,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "SessionHistory",
 XPCOMUtils.defineLazyModuleGetter(this, "SessionStorage",
   "resource:///modules/sessionstore/SessionStorage.jsm");
 
+XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
+                                   "@mozilla.org/childprocessmessagemanager;1",
+                                   "nsISyncMessageSender");
+
 Cu.import("resource:///modules/sessionstore/FrameTree.jsm", this);
 let gFrameTree = new FrameTree(this);
 
@@ -711,7 +715,35 @@ ScrollPositionListener.init();
 DocShellCapabilitiesListener.init();
 PrivacyListener.init();
 
+function handleRevivedTab() {
+  if (content.document.documentURI.startsWith("about:tabcrashed")) {
+    if (Services.appinfo.processType != Services.appinfo.PROCESS_TYPE_DEFAULT) {
+      
+      throw new Error("We seem to be navigating away from about:tabcrashed in " +
+                      "a non-remote browser. This should really never happen.");
+    }
+
+    
+    
+    
+    
+    let browser = docShell.chromeEventHandler;
+    cpmm.sendSyncMessage("SessionStore:RemoteTabRevived", null, {browser: browser});
+  }
+}
+
+
+
+addEventListener("pagehide", handleRevivedTab);
+
 addEventListener("unload", () => {
+  
+  
+  
+  
+  
+  handleRevivedTab();
+
   
   PageStyleListener.uninit();
   SessionStorageListener.uninit();
