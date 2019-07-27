@@ -64,11 +64,7 @@ class nsTWeakRef
 {
 public:
   ~nsTWeakRef()
-  {
-    if (mRef) {
-      mRef->Release();
-    }
-  }
+  {}
 
   
 
@@ -86,20 +82,13 @@ public:
 
 
   explicit nsTWeakRef(const nsTWeakRef<Type>& aOther) : mRef(aOther.mRef)
-  {
-    if (mRef) {
-      mRef->AddRef();
-    }
-  }
+  {}
 
   
 
 
   nsTWeakRef<Type>& operator=(Type* aObj)
   {
-    if (mRef) {
-      mRef->Release();
-    }
     if (aObj) {
       mRef = new Inner(aObj);
     } else {
@@ -113,13 +102,7 @@ public:
 
   nsTWeakRef<Type>& operator=(const nsTWeakRef<Type>& aOther)
   {
-    if (mRef) {
-      mRef->Release();
-    }
     mRef = aOther.mRef;
-    if (mRef) {
-      mRef->AddRef();
-    }
     return *this;
   }
 
@@ -140,7 +123,6 @@ public:
     if (mRef) {
       obj = mRef->mObj;
       mRef->mObj = nullptr;
-      mRef->Release();
       mRef = nullptr;
     } else {
       obj = nullptr;
@@ -188,7 +170,7 @@ private:
     }
   };
 
-  Inner* mRef;
+  nsRefPtr<Inner> mRef;
 };
 
 #endif  
