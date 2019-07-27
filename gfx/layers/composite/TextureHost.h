@@ -473,7 +473,7 @@ public:
 
   PTextureParent* GetIPDLActor();
 
-  FenceHandle GetAndResetReleaseFenceHandle();
+  virtual FenceHandle GetAndResetReleaseFenceHandle();
 
   
 
