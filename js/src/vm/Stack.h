@@ -211,7 +211,6 @@ class AbstractFramePtr
 
     inline bool copyRawFrameSlots(AutoValueVector *vec) const;
 
-    inline Value &unaliasedVar(uint32_t i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING);
     inline Value &unaliasedLocal(uint32_t i);
     inline Value &unaliasedFormal(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING);
     inline Value &unaliasedActual(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING);
@@ -511,7 +510,6 @@ class InterpreterFrame
 
 
 
-    inline Value &unaliasedVar(uint32_t i, MaybeCheckAliasing = CHECK_ALIASING);
     inline Value &unaliasedLocal(uint32_t i);
 
     bool hasArgs() const { return isNonEvalFunctionFrame(); }
