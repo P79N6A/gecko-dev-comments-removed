@@ -5,13 +5,6 @@
 
 
 
-
-thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Error: Connection closed");
-
-
-
-
-
 function spawnTest() {
   Services.prefs.setBoolPref("devtools.command-button-frames.enabled", true);
 

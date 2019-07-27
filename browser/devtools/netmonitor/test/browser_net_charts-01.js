@@ -5,13 +5,6 @@
 
 
 
-
-thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: aValue.content is undefined");
-
-
-
-
-
 function test() {
   initNetMonitor(SIMPLE_URL).then(([aTab, aDebuggee, aMonitor]) => {
     info("Starting test... ");

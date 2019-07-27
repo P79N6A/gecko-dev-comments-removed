@@ -5,13 +5,6 @@
 
 
 
-
-
-
-thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Protocol error (unknownError): TypeError: this.conn.getActor(...) is null");
-
-
-
 const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-console-output-03.html";
 
 let inputTests = [

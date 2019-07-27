@@ -1,13 +1,6 @@
 
 
 
-
-
-
-
-
-thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Error: Shader Editor is still waiting for a WebGL context to be created.");
-
 function performChecks(target) {
   return Task.spawn(function() {
     let toolIds = gDevTools.getToolDefinitionArray()

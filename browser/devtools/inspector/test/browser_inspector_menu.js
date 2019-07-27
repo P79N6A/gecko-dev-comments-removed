@@ -7,13 +7,6 @@
 
 
 
-
-thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: jsterm.focusInput is not a function");
-
-
-
-
-
 const TEST_URL = TEST_URL_ROOT + "doc_inspector_menu.html";
 const MENU_SENSITIVITY_TEST_DATA = [
   {

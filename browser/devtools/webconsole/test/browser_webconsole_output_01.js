@@ -5,13 +5,6 @@
 
 
 
-
-
-
-thisTestLeaksUncaughtRejectionsAndShouldBeFixed("null");
-
-
-
 const TEST_URI = "data:text/html;charset=utf8,test for console output - 01";
 
 let {DebuggerServer} = Cu.import("resource://gre/modules/devtools/dbg-server.jsm", {});

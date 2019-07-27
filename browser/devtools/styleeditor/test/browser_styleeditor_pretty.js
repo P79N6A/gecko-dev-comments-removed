@@ -2,13 +2,6 @@
 
 
 
-
-
-
-
-
-thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Error: Unknown sheet source");
-
 const TESTCASE_URI = TEST_BASE + "minified.html";
 
 let gUI;
