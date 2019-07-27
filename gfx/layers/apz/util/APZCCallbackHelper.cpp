@@ -106,121 +106,115 @@ ScrollFrameTo(nsIScrollableFrame* aFrame, const CSSPoint& aPoint, bool& aSuccess
   return geckoScrollPosition;
 }
 
+
+
+
+
+
+
+
+
+static void
+ScrollFrame(nsIContent* aContent,
+            FrameMetrics& aMetrics)
+{
+  
+  nsIScrollableFrame* sf = nsLayoutUtils::FindScrollableFrameFor(aMetrics.GetScrollId());
+  bool scrollUpdated = false;
+  CSSPoint actualScrollOffset = ScrollFrameTo(sf, aMetrics.GetScrollOffset(), scrollUpdated);
+
+  if (scrollUpdated) {
+    
+    
+    AdjustDisplayPortForScrollDelta(aMetrics, actualScrollOffset);
+  } else {
+    
+    
+    
+    
+    
+    
+    RecenterDisplayPort(aMetrics);
+  }
+
+  aMetrics.SetScrollOffset(actualScrollOffset);
+}
+
+static void
+SetDisplayPortMargins(nsIDOMWindowUtils* aUtils,
+                      nsIContent* aContent,
+                      FrameMetrics& aMetrics)
+{
+  if (!aContent) {
+    return;
+  }
+  nsCOMPtr<nsIDOMElement> element = do_QueryInterface(aContent);
+  if (!element) {
+    return;
+  }
+
+  ScreenMargin margins = aMetrics.GetDisplayPortMargins();
+  aUtils->SetDisplayPortMarginsForElement(margins.left,
+                                          margins.top,
+                                          margins.right,
+                                          margins.bottom,
+                                          element, 0);
+  CSSRect baseCSS = aMetrics.CalculateCompositedRectInCssPixels();
+  nsRect base(0, 0,
+              baseCSS.width * nsPresContext::AppUnitsPerCSSPixel(),
+              baseCSS.height * nsPresContext::AppUnitsPerCSSPixel());
+  nsLayoutUtils::SetDisplayPortBaseIfNotSet(aContent, base);
+}
+
 void
 APZCCallbackHelper::UpdateRootFrame(nsIDOMWindowUtils* aUtils,
                                     FrameMetrics& aMetrics)
 {
-    
-    MOZ_ASSERT(aUtils);
-    MOZ_ASSERT(aMetrics.GetUseDisplayPortMargins());
-    if (aMetrics.GetScrollId() == FrameMetrics::NULL_SCROLL_ID) {
-        return;
-    }
+  
+  MOZ_ASSERT(aUtils);
+  MOZ_ASSERT(aMetrics.GetUseDisplayPortMargins());
+  if (aMetrics.GetScrollId() == FrameMetrics::NULL_SCROLL_ID) {
+    return;
+  }
 
-    
-    
-    
-    
-    
-    
-    
-    CSSSize scrollPort = aMetrics.CalculateCompositedSizeInCssPixels();
-    aUtils->SetScrollPositionClampingScrollPortSize(scrollPort.width, scrollPort.height);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  CSSSize scrollPort = aMetrics.CalculateCompositedSizeInCssPixels();
+  aUtils->SetScrollPositionClampingScrollPortSize(scrollPort.width, scrollPort.height);
 
-    
-    nsIScrollableFrame* sf = nsLayoutUtils::FindScrollableFrameFor(aMetrics.GetScrollId());
-    bool scrollUpdated = false;
-    CSSPoint actualScrollOffset = ScrollFrameTo(sf, aMetrics.GetScrollOffset(), scrollUpdated);
+  nsIContent* content = nsLayoutUtils::FindContentFor(aMetrics.GetScrollId());
+  ScrollFrame(content, aMetrics);
 
-    if (scrollUpdated) {
-        
-        
-        AdjustDisplayPortForScrollDelta(aMetrics, actualScrollOffset);
-    } else {
-        
-        
-        
-        
-        
-        
-        RecenterDisplayPort(aMetrics);
-    }
+  
+  
+  float presShellResolution = aMetrics.GetPresShellResolution()
+                            * aMetrics.GetAsyncZoom().scale;
+  aUtils->SetResolutionAndScaleTo(presShellResolution, presShellResolution);
 
-    aMetrics.SetScrollOffset(actualScrollOffset);
-
-    
-    
-    float presShellResolution = aMetrics.GetPresShellResolution()
-                              * aMetrics.GetAsyncZoom().scale;
-    aUtils->SetResolutionAndScaleTo(presShellResolution, presShellResolution);
-
-    
-    nsCOMPtr<nsIContent> content = nsLayoutUtils::FindContentFor(aMetrics.GetScrollId());
-    if (!content) {
-        return;
-    }
-    nsCOMPtr<nsIDOMElement> element = do_QueryInterface(content);
-    if (!element) {
-        return;
-    }
-
-    ScreenMargin margins = aMetrics.GetDisplayPortMargins();
-    aUtils->SetDisplayPortMarginsForElement(margins.left,
-                                            margins.top,
-                                            margins.right,
-                                            margins.bottom,
-                                            element, 0);
-    CSSRect baseCSS = aMetrics.CalculateCompositedRectInCssPixels();
-    nsRect base(0, 0,
-                baseCSS.width * nsPresContext::AppUnitsPerCSSPixel(),
-                baseCSS.height * nsPresContext::AppUnitsPerCSSPixel());
-    nsLayoutUtils::SetDisplayPortBaseIfNotSet(content, base);
+  SetDisplayPortMargins(aUtils, content, aMetrics);
 }
 
 void
 APZCCallbackHelper::UpdateSubFrame(nsIContent* aContent,
                                    FrameMetrics& aMetrics)
 {
-    
-    MOZ_ASSERT(aContent);
-    MOZ_ASSERT(aMetrics.GetUseDisplayPortMargins());
-    if (aMetrics.GetScrollId() == FrameMetrics::NULL_SCROLL_ID) {
-        return;
-    }
+  
+  MOZ_ASSERT(aContent);
+  MOZ_ASSERT(aMetrics.GetUseDisplayPortMargins());
 
-    nsCOMPtr<nsIDOMWindowUtils> utils = GetDOMWindowUtils(aContent);
-    if (!utils) {
-        return;
-    }
-
-    
-    
-
-    nsIScrollableFrame* sf = nsLayoutUtils::FindScrollableFrameFor(aMetrics.GetScrollId());
-    bool scrollUpdated = false;
-    CSSPoint actualScrollOffset = ScrollFrameTo(sf, aMetrics.GetScrollOffset(), scrollUpdated);
-
-    nsCOMPtr<nsIDOMElement> element = do_QueryInterface(aContent);
-    if (element) {
-        if (scrollUpdated) {
-            AdjustDisplayPortForScrollDelta(aMetrics, actualScrollOffset);
-        } else {
-            RecenterDisplayPort(aMetrics);
-        }
-        ScreenMargin margins = aMetrics.GetDisplayPortMargins();
-        utils->SetDisplayPortMarginsForElement(margins.left,
-                                               margins.top,
-                                               margins.right,
-                                               margins.bottom,
-                                               element, 0);
-        CSSRect baseCSS = aMetrics.CalculateCompositedRectInCssPixels();
-        nsRect base(0, 0,
-                    baseCSS.width * nsPresContext::AppUnitsPerCSSPixel(),
-                    baseCSS.height * nsPresContext::AppUnitsPerCSSPixel());
-        nsLayoutUtils::SetDisplayPortBaseIfNotSet(aContent, base);
-    }
-
-    aMetrics.SetScrollOffset(actualScrollOffset);
+  
+  
+  ScrollFrame(aContent, aMetrics);
+  if (nsCOMPtr<nsIDOMWindowUtils> utils = GetDOMWindowUtils(aContent)) {
+    SetDisplayPortMargins(utils, aContent, aMetrics);
+  }
 }
 
 already_AddRefed<nsIDOMWindowUtils>
