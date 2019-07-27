@@ -345,7 +345,14 @@ public:
     ~Holder()
     {
       MOZ_DIAGNOSTIC_ASSERT(mMirror, "Should have initialized me");
-      mMirror->DisconnectIfConnected();
+      if (mMirror->OwnerThread()->IsCurrentThreadIn()) {
+        mMirror->DisconnectIfConnected();
+      } else {
+        
+        
+        
+        MOZ_DIAGNOSTIC_ASSERT(!mMirror->IsConnected());
+      }
     }
 
     
