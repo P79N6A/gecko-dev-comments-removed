@@ -117,6 +117,9 @@ add_task(function*() {
   yield scanForChange("penguins", "updated");
 
   
+  yield scanForNoChange("penguins", "removed");
+
+  
   
   gTestTransports = {};
 
@@ -133,6 +136,20 @@ function scanForChange(service, changeType) {
     discovery.off(service + "-device-" + changeType, onChange);
     clearTimeout(timer);
     deferred.resolve();
+  });
+  discovery.scan();
+  return deferred.promise;
+}
+
+function scanForNoChange(service, changeType) {
+  let deferred = promise.defer();
+  let timer = setTimeout(() => {
+    deferred.resolve();
+  }, discovery.replyTimeout + 500);
+  discovery.on(service + "-device-" + changeType, function onChange() {
+    discovery.off(service + "-device-" + changeType, onChange);
+    clearTimeout(timer);
+    deferred.reject(new Error("Unexpected change occurred"));
   });
   discovery.scan();
   return deferred.promise;

@@ -330,6 +330,9 @@ Discovery.prototype = {
     let remoteHost = update.from;
 
     
+    this._expectingReplies.from.delete(remoteDevice);
+
+    
     for (let service in this.remoteServices) {
       let devicesWithService = this.remoteServices[service];
       let hadServiceForDevice = !!devicesWithService[remoteDevice];
