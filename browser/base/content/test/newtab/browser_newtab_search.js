@@ -187,6 +187,8 @@ function runTests() {
   ok(table.hidden, "Search suggestion table hidden");
 
   
+  CustomizableUI.removeWidgetFromArea("search-container");
+  
   let btn = getContentDocument().getElementById("newtab-customize-button");
   yield promiseClick(btn).then(TestRunner.next);
 
@@ -195,6 +197,13 @@ function runTests() {
   EventUtils.synthesizeKey("k", { accelKey: true });
   yield promiseSearchEvents(["FocusInput"]).then(TestRunner.next);
   is(input, getContentDocument().activeElement, "Search input should be focused");
+  
+  CustomizableUI.reset();
+
+  
+  let searchBar = gWindow.document.getElementById("searchbar");
+  EventUtils.synthesizeKey("k", { accelKey: true });
+  is(searchBar.textbox.inputField, gWindow.document.activeElement, "Toolbar's search bar should be focused");
 
   
   Services.search.currentEngine = oldCurrentEngine;
