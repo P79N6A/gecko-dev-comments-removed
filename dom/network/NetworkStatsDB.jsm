@@ -11,14 +11,24 @@ function debug(s) { dump("-*- NetworkStatsDB: " + s + "\n"); }
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/IndexedDBHelper.jsm");
 Cu.importGlobalProperties(["indexedDB"]);
 
+XPCOMUtils.defineLazyServiceGetter(this, "appsService",
+                                   "@mozilla.org/AppsService;1",
+                                   "nsIAppsService");
+
 const DB_NAME = "net_stats";
-const DB_VERSION = 8;
-const DEPRECATED_STORE_NAME = "net_stats";
-const STATS_STORE_NAME = "net_stats_store";
+const DB_VERSION = 9;
+const DEPRECATED_STATS_STORE_NAME =
+  [
+    "net_stats_v2",    
+    "net_stats",       
+    "net_stats_store", 
+  ];
+const STATS_STORE_NAME = "net_stats_store_v3"; 
 const ALARMS_STORE_NAME = "net_alarm";
 
 
@@ -75,7 +85,8 @@ NetworkStatsDB.prototype = {
         if (DEBUG) debug("Upgrade 0 to 1: Create object stores and indexes.");
 
         
-        objectStore = db.createObjectStore(DEPRECATED_STORE_NAME, { keyPath: ["connectionType", "timestamp"] });
+        objectStore = db.createObjectStore(DEPRECATED_STATS_STORE_NAME[1],
+                                           { keyPath: ["connectionType", "timestamp"] });
         objectStore.createIndex("connectionType", "connectionType", { unique: false });
         objectStore.createIndex("timestamp", "timestamp", { unique: false });
         objectStore.createIndex("rxBytes", "rxBytes", { unique: false });
@@ -106,13 +117,17 @@ NetworkStatsDB.prototype = {
         
         
         let stores = db.objectStoreNames;
-        if(stores.contains("net_stats_v2")) {
-          db.deleteObjectStore("net_stats_v2");
+        let deprecatedName = DEPRECATED_STATS_STORE_NAME[0];
+        let storeName = DEPRECATED_STATS_STORE_NAME[1];
+        if(stores.contains(deprecatedName)) {
+          
+          db.deleteObjectStore(deprecatedName);
         } else {
-          db.deleteObjectStore(DEPRECATED_STORE_NAME);
+          
+          db.deleteObjectStore(storeName);
         }
 
-        objectStore = db.createObjectStore(DEPRECATED_STORE_NAME, { keyPath: ["appId", "network", "timestamp"] });
+        objectStore = db.createObjectStore(storeName, { keyPath: ["appId", "network", "timestamp"] });
         objectStore.createIndex("appId", "appId", { unique: false });
         objectStore.createIndex("network", "network", { unique: false });
         objectStore.createIndex("networkType", "networkType", { unique: false });
@@ -129,7 +144,7 @@ NetworkStatsDB.prototype = {
         if (DEBUG) debug("Upgrade 3 to 4: Delete redundant indexes.");
 
         
-        objectStore = aTransaction.objectStore(DEPRECATED_STORE_NAME);
+        objectStore = aTransaction.objectStore(DEPRECATED_STATS_STORE_NAME[1]);
         if (objectStore.indexNames.contains("appId")) {
           objectStore.deleteIndex("appId");
         }
@@ -160,7 +175,7 @@ NetworkStatsDB.prototype = {
 
         
         
-        objectStore = aTransaction.objectStore(DEPRECATED_STORE_NAME);
+        objectStore = aTransaction.objectStore(DEPRECATED_STATS_STORE_NAME[1]);
 
         
         
@@ -228,16 +243,17 @@ NetworkStatsDB.prototype = {
         
         
         let newObjectStore;
-        newObjectStore = db.createObjectStore(STATS_STORE_NAME,
+        let deprecatedName = DEPRECATED_STATS_STORE_NAME[1];
+        newObjectStore = db.createObjectStore(DEPRECATED_STATS_STORE_NAME[2],
                          { keyPath: ["appId", "serviceType", "network", "timestamp"] });
         newObjectStore.createIndex("network", "network", { unique: false });
 
         
-        objectStore = aTransaction.objectStore(DEPRECATED_STORE_NAME);
+        objectStore = aTransaction.objectStore(deprecatedName);
         objectStore.openCursor().onsuccess = function(event) {
           let cursor = event.target.result;
           if (!cursor) {
-            db.deleteObjectStore(DEPRECATED_STORE_NAME);
+            db.deleteObjectStore(deprecatedName);
             
             upgradeNextVersion();
             return;
@@ -287,7 +303,7 @@ NetworkStatsDB.prototype = {
           
           
           
-          let statsStore = aTransaction.objectStore(STATS_STORE_NAME);
+          let statsStore = aTransaction.objectStore(DEPRECATED_STATS_STORE_NAME[2]);
           let networks = [];
 
           
@@ -376,9 +392,54 @@ NetworkStatsDB.prototype = {
         if (DEBUG) debug("Upgrade 7 to 8: Create index serviceType.");
 
         
-        let statsStore = aTransaction.objectStore(STATS_STORE_NAME);
+        let statsStore = aTransaction.objectStore(DEPRECATED_STATS_STORE_NAME[2]);
         statsStore.createIndex("serviceType", "serviceType", { unique: false });
+
+        upgradeNextVersion();
       },
+
+      function upgrade8to9() {
+        if (DEBUG) debug("Upgrade 8 to 9: Add keyPath isInBrowser to " +
+                         "network stats object store");
+
+        
+        
+        
+        
+        
+        let newObjectStore;
+        let deprecatedName = DEPRECATED_STATS_STORE_NAME[2];
+        newObjectStore = db.createObjectStore(STATS_STORE_NAME,
+                         { keyPath: ["appId", "isInBrowser", "serviceType",
+                                     "network", "timestamp"] });
+        newObjectStore.createIndex("network", "network", { unique: false });
+        newObjectStore.createIndex("serviceType", "serviceType", { unique: false });
+
+        
+        objectStore = aTransaction.objectStore(deprecatedName);
+        objectStore.openCursor().onsuccess = function (event) {
+          let cursor = event.target.result;
+          if (!cursor) {
+            db.deleteObjectStore(deprecatedName);
+            
+            return;
+          }
+          let newStats = cursor.value;
+          
+          
+          
+          
+          
+          let manifestURL = appsService.getManifestURLByLocalId(newStats.appId);
+          if (manifestURL && manifestURL.search(/app:\/\/system\./) === 0) {
+            newStats.isInBrowser = 1;
+          } else {
+            newStats.isInBrowser = 0;
+          }
+          newObjectStore.put(newStats);
+          cursor.continue();
+        };
+      }
     ];
 
     let index = aOldVersion;
@@ -412,6 +473,7 @@ NetworkStatsDB.prototype = {
 
   importData: function importData(aStats) {
     let stats = { appId:         aStats.appId,
+                  isInBrowser:   aStats.isInBrowser ? 1 : 0,
                   serviceType:   aStats.serviceType,
                   network:       [aStats.networkId, aStats.networkType],
                   timestamp:     aStats.timestamp,
@@ -427,6 +489,7 @@ NetworkStatsDB.prototype = {
 
   exportData: function exportData(aStats) {
     let stats = { appId:        aStats.appId,
+                  isInBrowser:  aStats.isInBrowser ? true : false,
                   serviceType:  aStats.serviceType,
                   networkId:    aStats.network[0],
                   networkType:  aStats.network[1],
@@ -452,16 +515,17 @@ NetworkStatsDB.prototype = {
     let timestamp = this.normalizeDate(aStats.date);
 
     let stats = { appId:         aStats.appId,
+                  isInBrowser:   aStats.isInBrowser,
                   serviceType:   aStats.serviceType,
                   networkId:     aStats.networkId,
                   networkType:   aStats.networkType,
                   timestamp:     timestamp,
-                  rxBytes:       (isAccumulative) ? 0 : aStats.rxBytes,
-                  txBytes:       (isAccumulative) ? 0 : aStats.txBytes,
-                  rxSystemBytes: (isAccumulative) ? aStats.rxBytes : 0,
-                  txSystemBytes: (isAccumulative) ? aStats.txBytes : 0,
-                  rxTotalBytes:  (isAccumulative) ? aStats.rxBytes : 0,
-                  txTotalBytes:  (isAccumulative) ? aStats.txBytes : 0 };
+                  rxBytes:       isAccumulative ? 0 : aStats.rxBytes,
+                  txBytes:       isAccumulative ? 0 : aStats.txBytes,
+                  rxSystemBytes: isAccumulative ? aStats.rxBytes : 0,
+                  txSystemBytes: isAccumulative ? aStats.txBytes : 0,
+                  rxTotalBytes:  isAccumulative ? aStats.rxBytes : 0,
+                  txTotalBytes:  isAccumulative ? aStats.txBytes : 0 };
 
     stats = this.importData(stats);
 
@@ -471,8 +535,10 @@ NetworkStatsDB.prototype = {
         debug("New stats: " + JSON.stringify(stats));
       }
 
-      let lowerFilter = [stats.appId, stats.serviceType, stats.network, 0];
-      let upperFilter = [stats.appId, stats.serviceType, stats.network, ""];
+      let lowerFilter = [stats.appId, stats.isInBrowser, stats.serviceType,
+                         stats.network, 0];
+      let upperFilter = [stats.appId, stats.isInBrowser, stats.serviceType,
+                         stats.network, ""];
       let range = IDBKeyRange.bound(lowerFilter, upperFilter, false, false);
 
       let request = aStore.openCursor(range, 'prev');
@@ -500,8 +566,8 @@ NetworkStatsDB.prototype = {
         }
 
         
-        this._removeOldStats(aTxn, aStore, stats.appId, stats.serviceType,
-                             stats.network, stats.timestamp);
+        this._removeOldStats(aTxn, aStore, stats.appId, stats.isInBrowser,
+                             stats.serviceType, stats.network, stats.timestamp);
 
         
         this._processSamplesDiff(aTxn, aStore, cursor, stats, isAccumulative);
@@ -584,6 +650,7 @@ NetworkStatsDB.prototype = {
       for (let i = diff - 2; i >= 0; i--) {
         let time = aNewSample.timestamp - SAMPLE_RATE * (i + 1);
         let sample = { appId:         aNewSample.appId,
+                       isInBrowser:   aNewSample.isInBrowser,
                        serviceType:   aNewSample.serviceType,
                        network:       aNewSample.network,
                        timestamp:     time,
@@ -638,12 +705,12 @@ NetworkStatsDB.prototype = {
     }
   },
 
-  _removeOldStats: function _removeOldStats(aTxn, aStore, aAppId, aServiceType,
-                                            aNetwork, aDate) {
+  _removeOldStats: function _removeOldStats(aTxn, aStore, aAppId, aIsInBrowser,
+                                            aServiceType, aNetwork, aDate) {
     
     let filterDate = aDate - (SAMPLE_RATE * VALUES_MAX_LENGTH - 1);
-    let lowerFilter = [aAppId, aServiceType, aNetwork, 0];
-    let upperFilter = [aAppId, aServiceType, aNetwork, filterDate];
+    let lowerFilter = [aAppId, aIsInBrowser, aServiceType, aNetwork, 0];
+    let upperFilter = [aAppId, aIsInBrowser, aServiceType, aNetwork, filterDate];
     let range = IDBKeyRange.bound(lowerFilter, upperFilter, false, false);
     let lastSample = null;
     let self = this;
@@ -702,6 +769,7 @@ NetworkStatsDB.prototype = {
           timestamp = self.normalizeDate(timestamp);
           sample.timestamp = timestamp;
           sample.appId = 0;
+          sample.isInBrowser = 0;
           sample.serviceType = "";
           sample.rxBytes = 0;
           sample.txBytes = 0;
@@ -754,12 +822,12 @@ NetworkStatsDB.prototype = {
   _getCurrentStats: function _getCurrentStats(aNetwork, aResultCb) {
     this.dbNewTxn(STATS_STORE_NAME, "readonly", function(txn, store) {
       let request = null;
-      let upperFilter = [0, "", aNetwork, Date.now()];
+      let upperFilter = [0, 1, "", aNetwork, Date.now()];
       let range = IDBKeyRange.upperBound(upperFilter, false);
-      request = store.openCursor(range, "prev");
-
       let result = { rxBytes:      0, txBytes:      0,
                      rxTotalBytes: 0, txTotalBytes: 0 };
+
+      request = store.openCursor(range, "prev");
 
       request.onsuccess = function onsuccess(event) {
         let cursor = event.target.result;
@@ -778,11 +846,8 @@ NetworkStatsDB.prototype = {
     this.dbNewTxn(STATS_STORE_NAME, "readonly", function(txn, store) {
       let request = null;
       let start = this.normalizeDate(aDate);
-      let lowerFilter = [0, "", aNetwork, start];
-      let upperFilter = [0, "", aNetwork, Date.now()];
-
+      let upperFilter = [0, 1, "", aNetwork, Date.now()];
       let range = IDBKeyRange.upperBound(upperFilter, false);
-
       let result = { rxBytes:      0, txBytes:      0,
                      rxTotalBytes: 0, txTotalBytes: 0 };
 
@@ -818,24 +883,32 @@ NetworkStatsDB.prototype = {
     }.bind(this), aResultCb);
   },
 
-  find: function find(aResultCb, aAppId, aServiceType, aNetwork,
-                      aStart, aEnd, aAppManifestURL) {
+  find: function find(aResultCb, aAppId, aBrowsingTrafficOnly, aServiceType,
+                      aNetwork, aStart, aEnd, aAppManifestURL) {
     let offset = (new Date()).getTimezoneOffset() * 60 * 1000;
     let start = this.normalizeDate(aStart);
     let end = this.normalizeDate(aEnd);
 
     if (DEBUG) {
-      debug("Find samples for appId: " + aAppId + " serviceType: " +
-            aServiceType + " network: " + JSON.stringify(aNetwork) + " from " +
-            start + " until " + end);
+      debug("Find samples for appId: " + aAppId +
+            " browsingTrafficOnly: " + aBrowsingTrafficOnly +
+            " serviceType: " + aServiceType +
+            " network: " + JSON.stringify(aNetwork) + " from " + start +
+            " until " + end);
       debug("Start time: " + new Date(start));
       debug("End time: " + new Date(end));
     }
 
+    
+    
+    
+    
+    
+    
     this.dbNewTxn(STATS_STORE_NAME, "readonly", function(aTxn, aStore) {
       let network = [aNetwork.id, aNetwork.type];
-      let lowerFilter = [aAppId, aServiceType, network, start];
-      let upperFilter = [aAppId, aServiceType, network, end];
+      let lowerFilter = [aAppId, 1, aServiceType, network, start];
+      let upperFilter = [aAppId, 1, aServiceType, network, end];
       let range = IDBKeyRange.bound(lowerFilter, upperFilter, false, false);
 
       let data = [];
@@ -843,6 +916,12 @@ NetworkStatsDB.prototype = {
       if (!aTxn.result) {
         aTxn.result = {};
       }
+      aTxn.result.appManifestURL = aAppManifestURL;
+      aTxn.result.browsingTrafficOnly = aBrowsingTrafficOnly;
+      aTxn.result.serviceType = aServiceType;
+      aTxn.result.network = aNetwork;
+      aTxn.result.start = aStart;
+      aTxn.result.end = aEnd;
 
       let request = aStore.openCursor(range).onsuccess = function(event) {
         var cursor = event.target.result;
@@ -854,17 +933,43 @@ NetworkStatsDB.prototype = {
           return;
         }
 
-        
-        
-        this.fillResultSamples(start + offset, end + offset, data);
+        if (aBrowsingTrafficOnly) {
+          this.fillResultSamples(start + offset, end + offset, data);
+          aTxn.result.data = data;
+          return;
+        }
 
-        aTxn.result.appManifestURL = aAppManifestURL;
-        aTxn.result.serviceType = aServiceType;
-        aTxn.result.network = aNetwork;
-        aTxn.result.start = aStart;
-        aTxn.result.end = aEnd;
-        aTxn.result.data = data;
-      }.bind(this);
+        
+        
+        lowerFilter = [aAppId, 0, aServiceType, network, start];
+        upperFilter = [aAppId, 0, aServiceType, network, end];
+        range = IDBKeyRange.bound(lowerFilter, upperFilter, false, false);
+        request = aStore.openCursor(range).onsuccess = function(event) {
+          cursor = event.target.result;
+          if (cursor) {
+            var date = new Date(cursor.value.timestamp + offset);
+            var foundData = data.find(function (element, index, array) {
+              if (element.date.getTime() !== date.getTime()) {
+                return false;
+              }
+              return element;
+            }, date);
+
+            if (foundData) {
+              foundData.rxBytes += cursor.value.rxBytes;
+              foundData.txBytes += cursor.value.txBytes;
+            } else {
+              data.push({ rxBytes: cursor.value.rxBytes,
+                          txBytes: cursor.value.txBytes,
+                          date: new Date(cursor.value.timestamp + offset) });
+            }
+            cursor.continue();
+            return;
+          }
+          this.fillResultSamples(start + offset, end + offset, data);
+          aTxn.result.data = data;
+        }.bind(this);  
+      }.bind(this);  
     }.bind(this), aResultCb);
   },
 
