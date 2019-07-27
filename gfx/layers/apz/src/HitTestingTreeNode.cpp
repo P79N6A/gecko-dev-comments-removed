@@ -6,9 +6,12 @@
 
 #include "HitTestingTreeNode.h"
 
-#include "AsyncPanZoomController.h"
-#include "LayersLogging.h"
-#include "nsPrintfCString.h"
+#include "AsyncPanZoomController.h"                     
+#include "LayersLogging.h"                              
+#include "mozilla/gfx/Point.h"                          
+#include "mozilla/layers/AsyncCompositionManager.h"     
+#include "nsPrintfCString.h"                            
+#include "UnitTransforms.h"                             
 
 namespace mozilla {
 namespace layers {
@@ -116,13 +119,62 @@ HitTestingTreeNode::IsPrimaryHolder() const
 }
 
 void
+HitTestingTreeNode::SetHitTestData(const EventRegions& aRegions,
+                                   const gfx::Matrix4x4& aTransform,
+                                   const nsIntRegion& aClipRegion)
+{
+  mEventRegions = aRegions;
+  mTransform = aTransform;
+  mClipRegion = aClipRegion;
+}
+
+HitTestResult
+HitTestingTreeNode::HitTest(const ParentLayerPoint& aPoint) const
+{
+  
+  
+  
+  if (!gfxPrefs::LayoutEventRegionsEnabled()) {
+    MOZ_ASSERT(mEventRegions == EventRegions());
+    MOZ_ASSERT(mTransform == gfx::Matrix4x4());
+    return mClipRegion.Contains(aPoint.x, aPoint.y)
+        ? HitTestResult::ApzcHitRegion
+        : HitTestResult::NoApzcHit;
+  }
+
+  
+  if (!mClipRegion.Contains(aPoint.x, aPoint.y)) {
+    return HitTestResult::NoApzcHit;
+  }
+
+  
+  gfx::Matrix4x4 localTransform = mTransform * gfx::Matrix4x4(mApzc->GetCurrentAsyncTransform());
+  gfx::Point4D pointInLayerPixels = localTransform.Inverse().ProjectPoint(aPoint.ToUnknownPoint());
+  if (!pointInLayerPixels.HasPositiveWCoord()) {
+    return HitTestResult::NoApzcHit;
+  }
+  LayerIntPoint point = RoundedToInt(ViewAs<LayerPixel>(pointInLayerPixels.As2DPoint()));
+
+  
+  if (!mEventRegions.mHitRegion.Contains(point.x, point.y)) {
+    return HitTestResult::NoApzcHit;
+  }
+  if (mEventRegions.mDispatchToContentHitRegion.Contains(point.x, point.y)) {
+    return HitTestResult::ApzcContentRegion;
+  }
+  return HitTestResult::ApzcHitRegion;
+}
+
+void
 HitTestingTreeNode::Dump(const char* aPrefix) const
 {
   if (mPrevSibling) {
     mPrevSibling->Dump(aPrefix);
   }
-  printf_stderr("%sHitTestingTreeNode (%p) APZC (%p) guid (%s)\n",
-    aPrefix, this, mApzc.get(), Stringify(mApzc->GetGuid()).c_str());
+  printf_stderr("%sHitTestingTreeNode (%p) APZC (%p) g=(%s) r=(%s) t=(%s) c=(%s)\n",
+    aPrefix, this, mApzc.get(), Stringify(mApzc->GetGuid()).c_str(),
+    Stringify(mEventRegions).c_str(), Stringify(mTransform).c_str(),
+    Stringify(mClipRegion).c_str());
   if (mLastChild) {
     mLastChild->Dump(nsPrintfCString("%s  ", aPrefix).get());
   }

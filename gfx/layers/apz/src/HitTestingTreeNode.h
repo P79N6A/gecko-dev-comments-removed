@@ -7,8 +7,11 @@
 #ifndef mozilla_layers_HitTestingTreeNode_h
 #define mozilla_layers_HitTestingTreeNode_h
 
-#include "FrameMetrics.h"
-#include "nsRefPtr.h"
+#include "APZUtils.h"                       
+#include "FrameMetrics.h"                   
+#include "mozilla/gfx/Matrix.h"             
+#include "mozilla/layers/LayersTypes.h"     
+#include "nsRefPtr.h"                       
 
 namespace mozilla {
 namespace layers {
@@ -68,6 +71,12 @@ public:
   bool IsPrimaryHolder() const;
 
   
+  void SetHitTestData(const EventRegions& aRegions,
+                      const gfx::Matrix4x4& aTransform,
+                      const nsIntRegion& aClipRegion);
+  HitTestResult HitTest(const ParentLayerPoint& aPoint) const;
+
+  
   void Dump(const char* aPrefix = "") const;
 
 private:
@@ -77,6 +86,32 @@ private:
 
   nsRefPtr<AsyncPanZoomController> mApzc;
   bool mIsPrimaryApzcHolder;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  EventRegions mEventRegions;
+
+  
+
+
+
+  gfx::Matrix4x4 mTransform;
+
+  
+
+
+
+  nsIntRegion mClipRegion;
 };
 
 }

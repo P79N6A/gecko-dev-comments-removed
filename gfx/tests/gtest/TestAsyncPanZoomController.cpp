@@ -1688,6 +1688,7 @@ protected:
     metrics.SetScrollableRect(aScrollableRect);
     metrics.SetScrollOffset(CSSPoint(0, 0));
     aLayer->SetFrameMetrics(metrics);
+    aLayer->SetClipRect(&layerBound);
     if (!aScrollableRect.IsEqualEdges(CSSRect(-1, -1, -1, -1))) {
       
       
@@ -1696,7 +1697,6 @@ protected:
       nsIntRect scrollRect = LayerIntRect::ToUntyped(RoundedToInt(aScrollableRect * metrics.LayersPixelsPerCSSPixel()));
       er.mHitRegion = nsIntRegion(nsIntRect(layerBound.TopLeft(), scrollRect.Size()));
       aLayer->SetEventRegions(er);
-      aLayer->SetClipRect(&layerBound);
     }
   }
 
@@ -2444,7 +2444,12 @@ protected:
 
   void CreateEventRegionsLayerTree1() {
     const char* layerTreeSyntax = "c(tt)";
-    root = CreateLayerTree(layerTreeSyntax, nullptr, nullptr, lm, layers);
+    nsIntRegion layerVisibleRegions[] = {
+      nsIntRegion(nsIntRect(0, 0, 200, 200)),     
+      nsIntRegion(nsIntRect(0, 0, 100, 200)),     
+      nsIntRegion(nsIntRect(0, 100, 200, 100)),   
+    };
+    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, nullptr, lm, layers);
     SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID);
     SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID + 1);
     SetScrollableFrameMetrics(layers[2], FrameMetrics::START_SCROLL_ID + 2);
@@ -2472,7 +2477,11 @@ protected:
 
   void CreateEventRegionsLayerTree2() {
     const char* layerTreeSyntax = "c(t)";
-    root = CreateLayerTree(layerTreeSyntax, nullptr, nullptr, lm, layers);
+    nsIntRegion layerVisibleRegions[] = {
+      nsIntRegion(nsIntRect(0, 0, 100, 500)),
+      nsIntRegion(nsIntRect(0, 150, 100, 100)),
+    };
+    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, nullptr, lm, layers);
     SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID);
 
     

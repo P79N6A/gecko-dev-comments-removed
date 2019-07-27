@@ -970,27 +970,12 @@ private:
 
 
 public:
-  void SetLayerHitTestData(const EventRegions& aRegions, const Matrix4x4& aTransformToLayer) {
-    mEventRegions = aRegions;
+  void SetAncestorTransform(const Matrix4x4& aTransformToLayer) {
     mAncestorTransform = aTransformToLayer;
-  }
-
-  void AddHitTestRegions(const EventRegions& aRegions) {
-    mEventRegions.OrWith(aRegions);
   }
 
   Matrix4x4 GetAncestorTransform() const {
     return mAncestorTransform;
-  }
-
-  bool HitRegionContains(const ParentLayerPoint& aPoint) const {
-    ParentLayerIntPoint point = RoundedToInt(aPoint);
-    return mEventRegions.mHitRegion.Contains(point.x, point.y);
-  }
-
-  bool DispatchToContentRegionContains(const ParentLayerPoint& aPoint) const {
-    ParentLayerIntPoint point = RoundedToInt(aPoint);
-    return mEventRegions.mDispatchToContentHitRegion.Contains(point.x, point.y);
   }
 
   bool IsOverscrolled() const {
@@ -998,11 +983,6 @@ public:
   }
 
 private:
-  
-
-
-
-  EventRegions mEventRegions;
   
 
   Matrix4x4 mAncestorTransform;
