@@ -2,6 +2,11 @@
 
 
 
+body {
+  
+  overflow: visible;
+}
+
 .showcase {
   width: 100%;
   margin: 0 auto;
