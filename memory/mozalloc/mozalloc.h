@@ -175,7 +175,13 @@ MFBT_API void* moz_xvalloc(size_t size)
 
 #define MOZALLOC_THROW_BAD_ALLOC MOZALLOC_THROW_BAD_ALLOC_IF_HAS_EXCEPTIONS
 
-MOZALLOC_EXPORT_NEW MOZALLOC_INLINE
+MOZALLOC_EXPORT_NEW
+#if defined(__GNUC__) && !defined(__clang__) && defined(__SANITIZE_ADDRESS__)
+
+__attribute__((gnu_inline)) inline
+#else
+MOZALLOC_INLINE
+#endif
 void* operator new(size_t size) MOZALLOC_THROW_BAD_ALLOC
 {
     return moz_xmalloc(size);
@@ -321,4 +327,4 @@ public:
 #undef free_impl
 #endif
 
-#endif
+#endif 
