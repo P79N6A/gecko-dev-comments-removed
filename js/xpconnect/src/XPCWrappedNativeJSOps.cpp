@@ -12,6 +12,7 @@
 #include "mozilla/Preferences.h"
 #include "nsIAddonInterposition.h"
 #include "AddonWrapper.h"
+#include "js/Class.h"
 
 using namespace mozilla;
 using namespace JS;
@@ -649,7 +650,7 @@ XPC_WN_NoHelper_Resolve(JSContext *cx, HandleObject obj, HandleId id, bool *reso
 const XPCWrappedNativeJSClass XPC_WN_NoHelper_JSClass = {
   { 
     "XPCWrappedNative_NoHelper",    
-    WRAPPER_SLOTS |
+    WRAPPER_FLAGS |
     JSCLASS_PRIVATE_IS_NSISUPPORTS, 
 
     
@@ -1009,7 +1010,7 @@ XPCNativeScriptableShared::PopulateJSClass()
 {
     MOZ_ASSERT(mJSClass.base.name, "bad state!");
 
-    mJSClass.base.flags = WRAPPER_SLOTS |
+    mJSClass.base.flags = WRAPPER_FLAGS |
                           JSCLASS_PRIVATE_IS_NSISUPPORTS;
 
     if (mFlags.IsGlobalObject())
@@ -1305,7 +1306,7 @@ XPC_WN_ModsAllowed_Proto_Resolve(JSContext *cx, HandleObject obj, HandleId id, b
 
 const js::Class XPC_WN_ModsAllowed_WithCall_Proto_JSClass = {
     "XPC_WN_ModsAllowed_WithCall_Proto_JSClass", 
-    WRAPPER_SLOTS, 
+    WRAPPER_FLAGS, 
 
     
     nullptr,                        
@@ -1330,7 +1331,7 @@ const js::Class XPC_WN_ModsAllowed_WithCall_Proto_JSClass = {
 
 const js::Class XPC_WN_ModsAllowed_NoCall_Proto_JSClass = {
     "XPC_WN_ModsAllowed_NoCall_Proto_JSClass", 
-    WRAPPER_SLOTS,                  
+    WRAPPER_FLAGS,                  
 
     
     nullptr,                        
@@ -1415,7 +1416,7 @@ XPC_WN_NoMods_Proto_Resolve(JSContext *cx, HandleObject obj, HandleId id, bool *
 
 const js::Class XPC_WN_NoMods_WithCall_Proto_JSClass = {
     "XPC_WN_NoMods_WithCall_Proto_JSClass",    
-    WRAPPER_SLOTS,                             
+    WRAPPER_FLAGS,                             
 
     
     XPC_WN_OnlyIWrite_Proto_AddPropertyStub,   
@@ -1440,7 +1441,7 @@ const js::Class XPC_WN_NoMods_WithCall_Proto_JSClass = {
 
 const js::Class XPC_WN_NoMods_NoCall_Proto_JSClass = {
     "XPC_WN_NoMods_NoCall_Proto_JSClass",      
-    WRAPPER_SLOTS,                             
+    WRAPPER_FLAGS,                             
 
     
     XPC_WN_OnlyIWrite_Proto_AddPropertyStub,   
@@ -1528,10 +1529,16 @@ XPC_WN_TearOff_ObjectMoved(JSObject *obj, const JSObject *old)
     p->JSObjectMoved(obj, old);
 }
 
+
+
+static_assert(((WRAPPER_FLAGS >> JSCLASS_RESERVED_SLOTS_SHIFT) &
+               JSCLASS_RESERVED_SLOTS_MASK) == 0,
+              "WRAPPER_FLAGS should not include any reserved slots");
+
 const js::Class XPC_WN_Tearoff_JSClass = {
     "WrappedNative_TearOff",                   
-    WRAPPER_SLOTS,                             
-
+    WRAPPER_FLAGS |
+    JSCLASS_HAS_RESERVED_SLOTS(XPC_WN_TEAROFF_RESERVED_SLOTS), 
     XPC_WN_OnlyIWrite_AddPropertyStub,         
     XPC_WN_CantDeletePropertyStub,             
     nullptr,                                   
