@@ -600,7 +600,7 @@ js::XDRScript(XDRState<mode>* xdr, HandleObject enclosingScope, HandleScript enc
         HasSingleton,
         TreatAsRunOnce,
         HasLazyScript,
-        HasPollutedGlobalScope,
+        HasNonSyntacticScope,
     };
 
     uint32_t length, lineno, column, nslots, staticLevel;
@@ -732,8 +732,8 @@ js::XDRScript(XDRState<mode>* xdr, HandleObject enclosingScope, HandleScript enc
             scriptBits |= (1 << TreatAsRunOnce);
         if (script->isRelazifiable())
             scriptBits |= (1 << HasLazyScript);
-        if (script->hasPollutedGlobalScope())
-            scriptBits |= (1 << HasPollutedGlobalScope);
+        if (script->hasNonSyntacticScope())
+            scriptBits |= (1 << HasNonSyntacticScope);
     }
 
     if (!xdr->codeUint32(&prologueLength))
@@ -849,8 +849,8 @@ js::XDRScript(XDRState<mode>* xdr, HandleObject enclosingScope, HandleScript enc
             script->hasSingletons_ = true;
         if (scriptBits & (1 << TreatAsRunOnce))
             script->treatAsRunOnce_ = true;
-        if (scriptBits & (1 << HasPollutedGlobalScope))
-            script->hasPollutedGlobalScope_ = true;
+        if (scriptBits & (1 << HasNonSyntacticScope))
+            script->hasNonSyntacticScope_ = true;
 
         if (scriptBits & (1 << IsLegacyGenerator)) {
             MOZ_ASSERT(!(scriptBits & (1 << IsStarGenerator)));
@@ -2429,7 +2429,7 @@ JSScript::Create(ExclusiveContext* cx, HandleObject enclosingScope, bool savedCa
     script->savedCallerFun_ = savedCallerFun;
     script->initCompartment(cx);
 
-    script->hasPollutedGlobalScope_ = options.hasPollutedGlobalScope;
+    script->hasNonSyntacticScope_ = options.hasPollutedGlobalScope;
     script->selfHosted_ = options.selfHostingMode;
     script->noScriptRval_ = options.noScriptRval;
     script->treatAsRunOnce_ = options.isRunOnce;
@@ -3220,8 +3220,8 @@ js::CloneScript(JSContext* cx, HandleObject enclosingScope, HandleFunction fun, 
 
 
 
-    MOZ_ASSERT_IF(dst->hasPollutedGlobalScope(), !dst->maybeLazyScript());
-    MOZ_ASSERT_IF(dst->hasPollutedGlobalScope(), !dst->isRelazifiable());
+    MOZ_ASSERT_IF(dst->hasNonSyntacticScope(), !dst->maybeLazyScript());
+    MOZ_ASSERT_IF(dst->hasNonSyntacticScope(), !dst->isRelazifiable());
     return dst;
 }
 
