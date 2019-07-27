@@ -156,6 +156,10 @@ protected:
     
     nsresult CloneInternal(RefHandlingEnum aRefHandlingMode,
                            nsIURI** aClone);
+    
+    
+    nsresult CopyMembers(nsStandardURL * source, RefHandlingEnum mode,
+                         bool copyCached = false);
 
     
     
