@@ -13,6 +13,8 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 
+Cu.importGlobalProperties(["URL"]);
+
 XPCOMUtils.defineLazyModuleGetter(this, "LightweightThemeManager",
   "resource://gre/modules/LightweightThemeManager.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ResetProfile",
@@ -387,6 +389,29 @@ this.UITour = {
         this.pageIDSourceBrowsers.set(browser, data.pageID);
         this.setTelemetryBucket(data.pageID);
 
+        break;
+      }
+
+      case "showHeartbeat": {
+        
+        if (typeof data.message !== "string" || data.message === "") {
+          log.error("showHeartbeat: Invalid message specified.");
+          break;
+        }
+
+        if (typeof data.thankyouMessage !== "string" || data.thankyouMessage === "") {
+          log.error("showHeartbeat: Invalid thank you message specified.");
+          break;
+        }
+
+        if (typeof data.flowId !== "string" || data.flowId === "") {
+          log.error("showHeartbeat: Invalid flowId specified.");
+          break;
+        }
+
+        
+        this.showHeartbeat(window, messageManager, data.message, data.thankyouMessage, data.flowId,
+                           data.engagementURL);
         break;
       }
 
@@ -957,6 +982,137 @@ this.UITour = {
 
   resetTheme: function() {
     LightweightThemeManager.resetPreview();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  showHeartbeat: function(aChromeWindow, aMessageManager, aMessage, aThankyouMessage, aFlowId,
+                          aEngagementURL = null) {
+    let nb = aChromeWindow.document.getElementById("high-priority-global-notificationbox");
+
+    
+    let notice = nb.appendNotification(aMessage, "heartbeat-" + aFlowId,
+      "chrome://branding/content/icon64.png", nb.PRIORITY_INFO_HIGH, null, function() {
+        
+        
+        this.notify("Heartbeat:NotificationClosed", { flowId: aFlowId, timestamp: Date.now() });
+    }.bind(this));
+
+    
+    let messageImage =
+      aChromeWindow.document.getAnonymousElementByAttribute(notice, "anonid", "messageImage");
+    let messageText =
+      aChromeWindow.document.getAnonymousElementByAttribute(notice, "anonid", "messageText");
+
+    
+    let frag = aChromeWindow.document.createDocumentFragment();
+
+    
+    const numStars = 5;
+    let ratingContainer = aChromeWindow.document.createElement("hbox");
+    ratingContainer.id = "star-rating-container";
+
+    for (let i = 0; i < numStars; i++) {
+      
+      let ratingElement = aChromeWindow.document.createElement("toolbarbutton");
+
+      
+      let starIndex = numStars - i;
+      ratingElement.className = "plain star-x";
+      ratingElement.id = "star" + starIndex;
+      ratingElement.setAttribute("data-score", starIndex);
+
+      
+      ratingElement.addEventListener("click", function (evt) {
+        let rating = Number(evt.target.getAttribute("data-score"), 10);
+
+        
+        this.notify("Heartbeat:Voted", { flowId: aFlowId, score: rating, timestamp: Date.now() });
+
+        
+        notice.image = "chrome://browser/skin/heartbeat-icon.svg";
+        notice.label = aThankyouMessage;
+        messageImage.classList.remove("pulse-onshow");
+        messageImage.classList.add("pulse-twice");
+
+        
+        
+        while (notice.firstChild) {
+          notice.removeChild(notice.firstChild);
+        }
+
+        
+        let engagementURL = null;
+        try {
+          engagementURL = new URL(aEngagementURL);
+        } catch (error) {
+          log.error("showHeartbeat: Invalid URL specified.");
+        }
+
+        
+        if (engagementURL) {
+          
+          engagementURL.searchParams.append("type", "stars");
+          engagementURL.searchParams.append("score", rating);
+          engagementURL.searchParams.append("flowid", aFlowId);
+
+          
+          aChromeWindow.gBrowser.selectedTab =
+            aChromeWindow.gBrowser.addTab(engagementURL.toString(), {
+              owner: aChromeWindow.gBrowser.selectedTab,
+              relatedToCurrent: true
+            });
+        }
+
+        
+        aChromeWindow.setTimeout(() => {
+          nb.removeNotification(notice);
+        }, 3000);
+      }.bind(this));
+
+      
+      ratingContainer.appendChild(ratingElement);
+    }
+
+    frag.appendChild(ratingContainer);
+
+    
+    let rightSpacer = aChromeWindow.document.createElement("spacer");
+    rightSpacer.flex = 20;
+    frag.appendChild(rightSpacer);
+
+    let leftSpacer = messageText.nextSibling;
+    leftSpacer.flex = 0;
+
+    
+    notice.appendChild(frag);
+    notice.classList.add("heartbeat");
+    messageImage.classList.add("heartbeat", "pulse-onshow");
+    messageText.classList.add("heartbeat");
+
+    
+    this.notify("Heartbeat:NotificationOffered", { flowId: aFlowId, timestamp: Date.now() });
   },
 
   
