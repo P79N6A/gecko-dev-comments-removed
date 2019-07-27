@@ -37,10 +37,10 @@ public:
 
   virtual nsresult Init(MediaDecoderReader* aCloneDonor) MOZ_OVERRIDE;
 
-  virtual void RequestVideoData(bool aSkipToNextKeyframe,
-                                int64_t aTimeThreshold) MOZ_OVERRIDE;
+  virtual nsRefPtr<VideoDataPromise>
+  RequestVideoData(bool aSkipToNextKeyframe, int64_t aTimeThreshold) MOZ_OVERRIDE;
 
-  virtual void RequestAudioData() MOZ_OVERRIDE;
+  virtual nsRefPtr<AudioDataPromise> RequestAudioData() MOZ_OVERRIDE;
 
   virtual bool HasAudio() MOZ_OVERRIDE;
   virtual bool HasVideo() MOZ_OVERRIDE;
@@ -75,7 +75,6 @@ public:
 
 private:
 
-  void ReturnEOS(TrackType aTrack);
   void ReturnOutput(MediaData* aData, TrackType aTrack);
 
   
@@ -146,9 +145,11 @@ private:
   };
 
   struct DecoderData {
-    DecoderData(const char* aMonitorName,
+    DecoderData(MediaData::Type aType,
                 uint32_t aDecodeAhead)
-      : mMonitor(aMonitorName)
+      : mType(aType)
+      , mMonitor(aType == MediaData::AUDIO_DATA ? "MP4 audio decoder data"
+                                                : "MP4 video decoder data")
       , mNumSamplesInput(0)
       , mNumSamplesOutput(0)
       , mDecodeAhead(aDecodeAhead)
@@ -156,7 +157,6 @@ private:
       , mInputExhausted(false)
       , mError(false)
       , mIsFlushing(false)
-      , mOutputRequested(false)
       , mUpdateScheduled(false)
       , mDemuxEOS(false)
       , mDrainComplete(false)
@@ -174,6 +174,13 @@ private:
     
     
     nsTArray<nsRefPtr<MediaData> > mOutput;
+    
+    MediaData::Type mType;
+
+    
+    virtual bool HasPromise() = 0;
+    virtual void RejectPromise(MediaDecoderReader::NotDecodedReason aReason,
+                               const char* aMethodName) = 0;
 
     
     
@@ -186,14 +193,33 @@ private:
     bool mInputExhausted;
     bool mError;
     bool mIsFlushing;
-    bool mOutputRequested;
     bool mUpdateScheduled;
     bool mDemuxEOS;
     bool mDrainComplete;
     bool mDiscontinuity;
   };
-  DecoderData mAudio;
-  DecoderData mVideo;
+
+  template<typename PromiseType>
+  struct DecoderDataWithPromise : public DecoderData {
+    DecoderDataWithPromise(MediaData::Type aType, uint32_t aDecodeAhead) :
+      DecoderData(aType, aDecodeAhead)
+    {
+      mPromise.SetMonitor(&mMonitor);
+    }
+
+    MediaPromiseHolder<PromiseType> mPromise;
+
+    bool HasPromise() MOZ_OVERRIDE { return !mPromise.IsEmpty(); }
+    void RejectPromise(MediaDecoderReader::NotDecodedReason aReason,
+                       const char* aMethodName) MOZ_OVERRIDE
+    {
+      mPromise.Reject(aReason, aMethodName);
+    }
+  };
+
+  DecoderDataWithPromise<AudioDataPromise> mAudio;
+  DecoderDataWithPromise<VideoDataPromise> mVideo;
+
   
   
   nsAutoPtr<mp4_demuxer::MP4Sample> mQueuedVideoSample;
