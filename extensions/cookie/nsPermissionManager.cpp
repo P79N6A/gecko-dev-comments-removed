@@ -340,91 +340,94 @@ UpgradeHostToOriginAndInsert(const nsACString& aHost, const nsAFlatCString& aTyp
   
   
   
+  bool foundHistory = false;
+
   nsCOMPtr<nsINavHistoryService> histSrv = do_GetService(NS_NAVHISTORYSERVICE_CONTRACTID);
 
-  nsCOMPtr<nsINavHistoryQuery> histQuery;
-  rv = histSrv->GetNewQuery(getter_AddRefs(histQuery));
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (histSrv) {
+    nsCOMPtr<nsINavHistoryQuery> histQuery;
+    rv = histSrv->GetNewQuery(getter_AddRefs(histQuery));
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  rv = histQuery->SetDomain(aHost);
-  NS_ENSURE_SUCCESS(rv, rv);
+    
+    rv = histQuery->SetDomain(aHost);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = histQuery->SetDomainIsHost(false);
-  NS_ENSURE_SUCCESS(rv, rv);
+    rv = histQuery->SetDomainIsHost(false);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsINavHistoryQueryOptions> histQueryOpts;
-  rv = histSrv->GetNewQueryOptions(getter_AddRefs(histQueryOpts));
-  NS_ENSURE_SUCCESS(rv, rv);
+    nsCOMPtr<nsINavHistoryQueryOptions> histQueryOpts;
+    rv = histSrv->GetNewQueryOptions(getter_AddRefs(histQueryOpts));
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  rv = histQueryOpts->SetResultType(nsINavHistoryQueryOptions::RESULTS_AS_URI);
-  NS_ENSURE_SUCCESS(rv, rv);
+    
+    rv = histQueryOpts->SetResultType(nsINavHistoryQueryOptions::RESULTS_AS_URI);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-  rv = histQueryOpts->SetQueryType(nsINavHistoryQueryOptions::QUERY_TYPE_HISTORY);
-  NS_ENSURE_SUCCESS(rv, rv);
+    
+    
+    rv = histQueryOpts->SetQueryType(nsINavHistoryQueryOptions::QUERY_TYPE_HISTORY);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  rv = histQueryOpts->SetIncludeHidden(true);
-  NS_ENSURE_SUCCESS(rv, rv);
+    
+    rv = histQueryOpts->SetIncludeHidden(true);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsINavHistoryResult> histResult;
-  rv = histSrv->ExecuteQuery(histQuery, histQueryOpts, getter_AddRefs(histResult));
-  NS_ENSURE_SUCCESS(rv, rv);
+    nsCOMPtr<nsINavHistoryResult> histResult;
+    rv = histSrv->ExecuteQuery(histQuery, histQueryOpts, getter_AddRefs(histResult));
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsINavHistoryContainerResultNode> histResultContainer;
-  rv = histResult->GetRoot(getter_AddRefs(histResultContainer));
-  NS_ENSURE_SUCCESS(rv, rv);
+    nsCOMPtr<nsINavHistoryContainerResultNode> histResultContainer;
+    rv = histResult->GetRoot(getter_AddRefs(histResultContainer));
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = histResultContainer->SetContainerOpen(true);
-  NS_ENSURE_SUCCESS(rv, rv);
+    rv = histResultContainer->SetContainerOpen(true);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  uint32_t childCount = 0;
-  rv = histResultContainer->GetChildCount(&childCount);
-  NS_ENSURE_SUCCESS(rv, rv);
+    uint32_t childCount = 0;
+    rv = histResultContainer->GetChildCount(&childCount);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  bool foundHistory = false;
-  for (uint32_t i = 0; i < childCount; i++) {
-    nsCOMPtr<nsINavHistoryResultNode> child;
-    histResultContainer->GetChild(i, getter_AddRefs(child));
-    if (NS_FAILED(rv)) continue;
+    for (uint32_t i = 0; i < childCount; i++) {
+      nsCOMPtr<nsINavHistoryResultNode> child;
+      histResultContainer->GetChild(i, getter_AddRefs(child));
+      if (NS_FAILED(rv)) continue;
 
-    uint32_t type;
-    rv = child->GetType(&type);
-    if (NS_FAILED(rv) || type != nsINavHistoryResultNode::RESULT_TYPE_URI) {
-      NS_WARNING("Unexpected non-RESULT_TYPE_URI node in "
-                 "UpgradeHostToOriginAndInsert()");
-      continue;
+      uint32_t type;
+      rv = child->GetType(&type);
+      if (NS_FAILED(rv) || type != nsINavHistoryResultNode::RESULT_TYPE_URI) {
+        NS_WARNING("Unexpected non-RESULT_TYPE_URI node in "
+                   "UpgradeHostToOriginAndInsert()");
+        continue;
+      }
+
+      nsAutoCString uriSpec;
+      rv = child->GetUri(uriSpec);
+      if (NS_FAILED(rv)) continue;
+
+      nsCOMPtr<nsIURI> uri;
+      rv = NS_NewURI(getter_AddRefs(uri), uriSpec);
+      if (NS_FAILED(rv)) continue;
+
+      
+      rv = uri->SetHost(aHost);
+      if (NS_FAILED(rv)) continue;
+
+      
+      nsCOMPtr<nsIPrincipal> principal;
+      rv = GetPrincipal(uri, aAppId, aIsInBrowserElement, getter_AddRefs(principal));
+      if (NS_FAILED(rv)) continue;
+
+      
+      foundHistory = true;
+      rv = aHelper->Insert(principal, aType, aPermission,
+                           aExpireType, aExpireTime, aModificationTime);
+      NS_WARN_IF(NS_FAILED(rv));
     }
 
-    nsAutoCString uriSpec;
-    rv = child->GetUri(uriSpec);
-    if (NS_FAILED(rv)) continue;
-
-    nsCOMPtr<nsIURI> uri;
-    rv = NS_NewURI(getter_AddRefs(uri), uriSpec);
-    if (NS_FAILED(rv)) continue;
-
-    
-    rv = uri->SetHost(aHost);
-    if (NS_FAILED(rv)) continue;
-
-    
-    nsCOMPtr<nsIPrincipal> principal;
-    rv = GetPrincipal(uri, aAppId, aIsInBrowserElement, getter_AddRefs(principal));
-    if (NS_FAILED(rv)) continue;
-
-    
-    foundHistory = true;
-    rv = aHelper->Insert(principal, aType, aPermission,
-                         aExpireType, aExpireTime, aModificationTime);
-    NS_WARN_IF(NS_FAILED(rv));
+    rv = histResultContainer->SetContainerOpen(false);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
-
-  rv = histResultContainer->SetContainerOpen(false);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
