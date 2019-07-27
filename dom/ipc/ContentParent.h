@@ -433,7 +433,6 @@ private:
                   ContentParent* aOpener,
                   bool aIsForBrowser,
                   bool aIsForPreallocated,
-                  hal::ProcessPriority aInitialPriority = hal::PROCESS_PRIORITY_FOREGROUND,
                   bool aIsNuwaProcess = false);
 
 #ifdef MOZ_NUWA_PROCESS
@@ -445,6 +444,10 @@ private:
 
     
     void InitializeMembers();
+
+    
+    
+    bool LaunchSubprocess(hal::ProcessPriority aInitialPriority = hal::PROCESS_PRIORITY_FOREGROUND);
 
     
     void InitInternal(ProcessPriority aPriority,
