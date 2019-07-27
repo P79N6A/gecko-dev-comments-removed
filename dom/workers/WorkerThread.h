@@ -52,7 +52,7 @@ class WorkerThread MOZ_FINAL
   nsRefPtr<Observer> mObserver;
 
   
-  bool mOtherThreadDispatchingViaEventTarget;
+  uint32_t mOtherThreadsDispatchingViaEventTarget;
 
   
   DebugOnly<bool> mAcceptingNonWorkerRunnables;
