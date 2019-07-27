@@ -1275,6 +1275,9 @@ pref("network.http.referer.XOriginPolicy", 0);
 pref("network.http.sendSecureXSiteReferrer", true);
 
 
+pref("network.http.enablePerElementReferrer", false);
+
+
 pref("network.http.redirection-limit", 20);
 
 

@@ -670,6 +670,9 @@ ValidateSecurityInfo(imgRequest* request, bool forcePrincipalCheck,
                      nsISupports* aCX, ReferrerPolicy referrerPolicy)
 {
   
+  
+  
+  
   if (referrerPolicy != request->GetReferrerPolicy()) {
     return false;
   }
