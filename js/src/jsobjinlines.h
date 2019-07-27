@@ -850,6 +850,7 @@ NewObjectMetadata(ExclusiveContext *cxArg, JSObject **pmetadata)
 {
     
     
+    
     MOZ_ASSERT(!*pmetadata);
     if (JSContext *cx = cxArg->maybeJSContext()) {
         if (MOZ_UNLIKELY((size_t)cx->compartment()->hasObjectMetadataCallback()) &&

@@ -7,6 +7,7 @@
 #include "jit/JitFrames-inl.h"
 
 #include "jsfun.h"
+#include "jsinfer.h"
 #include "jsobj.h"
 #include "jsscript.h"
 
@@ -33,6 +34,7 @@
 #include "vm/Interpreter.h"
 #include "vm/TraceLogging.h"
 
+#include "jsinferinlines.h"
 #include "jsscriptinlines.h"
 #include "gc/Nursery-inl.h"
 #include "jit/JitFrameIterator-inl.h"
@@ -2119,6 +2121,10 @@ SnapshotIterator::computeInstructionResults(JSContext *cx, RInstructionResults *
             MOZ_ASSERT(results->isInitialized());
             return true;
         }
+
+        
+        
+        types::AutoEnterAnalysis enter(cx);
 
         
         SnapshotIterator s(*this);
