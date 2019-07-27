@@ -334,65 +334,15 @@ var FullScreen = {
 
     this.warningBox.setAttribute("hidden", true);
     this.warningBox.removeAttribute("fade-warning-out");
-    this.warningBox.removeAttribute("obscure-browser");
     this.warningBox = null;
-  },
-
-  setFullscreenAllowed: function(isApproved) {
-    
-    
-    
-    let rememberCheckbox = document.getElementById("full-screen-remember-decision");
-    let uri = BrowserUtils.makeURI(this.fullscreenOrigin);
-    if (!rememberCheckbox.hidden) {
-      if (rememberCheckbox.checked)
-        Services.perms.add(uri,
-                           "fullscreen",
-                           isApproved ? Services.perms.ALLOW_ACTION : Services.perms.DENY_ACTION,
-                           Services.perms.EXPIRE_NEVER);
-      else if (isApproved) {
-        
-        
-        
-        
-        
-        Services.perms.add(uri,
-                           "fullscreen",
-                           Services.perms.ALLOW_ACTION,
-                           Services.perms.EXPIRE_SESSION);
-        var onFullscreenchange = function onFullscreenchange(event) {
-          if (event.target == document && document.mozFullScreenElement == null) {
-            
-            Services.perms.remove(uri, "fullscreen");
-            document.removeEventListener("mozfullscreenchange", onFullscreenchange);
-          }
-        }
-        document.addEventListener("mozfullscreenchange", onFullscreenchange);
-      }
-    }
-    if (this.warningBox)
-      this.warningBox.setAttribute("fade-warning-out", "true");
-    
-    
-    
-    if (isApproved) {
-      gBrowser.selectedBrowser
-              .messageManager
-              .sendAsyncMessage("DOMFullscreen:Approved");
-    } else {
-      document.mozCancelFullScreen();
-    }
   },
 
   warningBox: null,
   warningFadeOutTimeout: null,
 
   
-  
-  
   showWarning: function(aOrigin) {
-    if (!document.mozFullScreen ||
-        !gPrefService.getBoolPref("full-screen-api.approval-required"))
+    if (!document.mozFullScreen)
       return;
 
     
@@ -403,8 +353,6 @@ var FullScreen = {
       host = uri.host;
     } catch (e) { }
     let hostLabel = document.getElementById("full-screen-domain-text");
-    let rememberCheckbox = document.getElementById("full-screen-remember-decision");
-    let isApproved = false;
     if (host) {
       
       
@@ -415,17 +363,8 @@ var FullScreen = {
 
       hostLabel.textContent = bundle.formatStringFromName("fullscreen.entered", [displayHost], 1);
       hostLabel.removeAttribute("hidden");
-
-      rememberCheckbox.label = bundle.formatStringFromName("fullscreen.rememberDecision", [displayHost], 1);
-      rememberCheckbox.checked = false;
-      rememberCheckbox.removeAttribute("hidden");
-
-      
-      
-      isApproved = Services.perms.testPermission(uri, "fullscreen") == Services.perms.ALLOW_ACTION;
     } else {
       hostLabel.setAttribute("hidden", "true");
-      rememberCheckbox.setAttribute("hidden", "true");
     }
 
     
@@ -444,31 +383,11 @@ var FullScreen = {
     }
 
     
-    
-    
-    
-    
-    
-    let authUI = document.getElementById("full-screen-approval-pane");
-    if (isApproved) {
-      authUI.setAttribute("hidden", "true");
-      this.warningBox.removeAttribute("obscure-browser");
-    } else {
-      
-      this.warningBox.setAttribute("obscure-browser", "true");
-      authUI.removeAttribute("hidden");
-    }
-
-    
-    
-    if (isApproved)
-      this.warningFadeOutTimeout =
-        setTimeout(
-          function() {
-            if (this.warningBox)
-              this.warningBox.setAttribute("fade-warning-out", "true");
-          }.bind(this),
-          3000);
+    this.warningFadeOutTimeout = setTimeout(() => {
+      if (this.warningBox) {
+        this.warningBox.setAttribute("fade-warning-out", "true");
+      }
+    }, 3000);
   },
 
   showNavToolbox: function(trackMouse = true) {

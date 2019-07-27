@@ -655,6 +655,7 @@ window[chromehidden~="toolbar"] toolbar:not(#nav-bar):not(#TabsToolbar):not(#pri
   width: 100%;
   height: 100%;
   z-index: 2147483647 !important;
+  pointer-events: none;
 }
 
 #full-screen-warning-container[fade-warning-out] {
@@ -663,22 +664,13 @@ window[chromehidden~="toolbar"] toolbar:not(#nav-bar):not(#TabsToolbar):not(#pri
   opacity: 0.0;
 }
 
-
-
-
-
-#full-screen-warning-container:not([obscure-browser]) {
-  pointer-events: none;
-}
-
 #full-screen-warning-message {
   
 
   max-width: 800px;
 }
 
-#full-screen-domain-text,
-#full-screen-remember-decision > .checkbox-label-box > .checkbox-label {
+#full-screen-domain-text {
   word-wrap: break-word;
   
   min-width: 1px;
