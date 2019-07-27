@@ -74,13 +74,10 @@ private:
   TimeDuration mMinResampleTime;
 
   
-  TimeDuration mTouchTimeDiff;
-
-  
-  TimeStamp mLastTouchTime;
-
-  
   TimeDuration mDelayedVsyncThreshold;
+
+  
+  TimeDuration mOldTouchThreshold;
 };
 
 } 
