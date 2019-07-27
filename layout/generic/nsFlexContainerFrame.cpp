@@ -263,6 +263,7 @@ public:
   FlexItem(nsHTMLReflowState& aFlexItemReflowState,
            float aFlexGrow, float aFlexShrink, nscoord aMainBaseSize,
            nscoord aMainMinSize, nscoord aMainMaxSize,
+           nscoord aTentativeCrossSize,
            nscoord aCrossMinSize, nscoord aCrossMaxSize,
            const FlexboxAxisTracker& aAxisTracker);
 
@@ -986,7 +987,12 @@ nsFlexContainerFrame::GenerateFlexItemForChild(
 
   
   
-
+  
+  
+  
+  nscoord tentativeCrossSize = GET_CROSS_COMPONENT(aAxisTracker,
+                                                   childRS.ComputedWidth(),
+                                                   childRS.ComputedHeight());
   nscoord crossMinSize = GET_CROSS_COMPONENT(aAxisTracker,
                                              childRS.ComputedMinWidth(),
                                              childRS.ComputedMinHeight());
@@ -1028,7 +1034,7 @@ nsFlexContainerFrame::GenerateFlexItemForChild(
       
       
       flexBaseSize = mainMinSize = mainMaxSize = widgetMainMinSize;
-      crossMinSize = crossMaxSize = widgetCrossMinSize;
+      tentativeCrossSize = crossMinSize = crossMaxSize = widgetCrossMinSize;
       isFixedSizeWidget = true;
     } else {
       
@@ -1036,6 +1042,9 @@ nsFlexContainerFrame::GenerateFlexItemForChild(
       mainMinSize = std::max(mainMinSize, widgetMainMinSize);
       mainMaxSize = std::max(mainMaxSize, widgetMainMinSize);
 
+      if (tentativeCrossSize != NS_INTRINSICSIZE) {
+        tentativeCrossSize = std::max(tentativeCrossSize, widgetCrossMinSize);
+      }
       crossMinSize = std::max(crossMinSize, widgetCrossMinSize);
       crossMaxSize = std::max(crossMaxSize, widgetCrossMinSize);
     }
@@ -1045,6 +1054,7 @@ nsFlexContainerFrame::GenerateFlexItemForChild(
   FlexItem* item = new FlexItem(childRS,
                                 flexGrow, flexShrink, flexBaseSize,
                                 mainMinSize, mainMaxSize,
+                                tentativeCrossSize,
                                 crossMinSize, crossMaxSize,
                                 aAxisTracker);
 
@@ -1424,6 +1434,7 @@ nsFlexContainerFrame::
 FlexItem::FlexItem(nsHTMLReflowState& aFlexItemReflowState,
                    float aFlexGrow, float aFlexShrink, nscoord aFlexBaseSize,
                    nscoord aMainMinSize,  nscoord aMainMaxSize,
+                   nscoord aTentativeCrossSize,
                    nscoord aCrossMinSize, nscoord aCrossMaxSize,
                    const FlexboxAxisTracker& aAxisTracker)
   : mFrame(aFlexItemReflowState.frame),
@@ -1436,7 +1447,7 @@ FlexItem::FlexItem(nsHTMLReflowState& aFlexItemReflowState,
     mCrossMinSize(aCrossMinSize),
     mCrossMaxSize(aCrossMaxSize),
     mMainPosn(0),
-    mCrossSize(0),
+    mCrossSize(aTentativeCrossSize),
     mCrossPosn(0),
     mAscent(0),
     mShareOfWeightSoFar(0.0f),
@@ -3249,17 +3260,17 @@ nsFlexContainerFrame::SizeItemInCrossAxis(
   nsHTMLReflowState& aChildReflowState,
   FlexItem& aItem)
 {
-  
-  
-  
-  
-  
-  
-  
   if (IsAxisHorizontal(aAxisTracker.GetCrossAxis())) {
-    MOZ_ASSERT(aItem.GetAlignSelf() != NS_STYLE_ALIGN_ITEMS_BASELINE,
-               "In vert flex container, we depend on FlexItem constructor to "
-               "convert 'align-self: baseline' to 'align-self: flex-start'");
+    
+    
+    
+    
+    
+    
+    MOZ_ASSERT_UNREACHABLE("Caller should use tentative cross size instead "
+                           "of calling SizeItemInCrossAxis");
+    
+    
     aItem.SetCrossSize(aChildReflowState.ComputedWidth());
     return;
   }
@@ -3501,7 +3512,23 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
     for (FlexItem* item = line->GetFirstItem(); item; item = item->getNext()) {
       
       
-      if (!item->IsStretched() && !item->IsStrut()) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (!item->IsStretched() && 
+          !item->IsStrut() &&     
+          !IsAxisHorizontal(aAxisTracker.GetCrossAxis())) { 
         WritingMode wm = item->Frame()->GetWritingMode();
         LogicalSize availSize = aReflowState.ComputedSize(wm);
         availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
@@ -3511,6 +3538,10 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
         if (IsAxisHorizontal(aAxisTracker.GetMainAxis())) {
           childReflowState.SetComputedWidth(item->GetMainSize());
         } else {
+          
+          
+          
+          
           childReflowState.SetComputedHeight(item->GetMainSize());
         }
         
