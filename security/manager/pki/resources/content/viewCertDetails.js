@@ -3,7 +3,6 @@
 
 
 const nsIX509Cert = Components.interfaces.nsIX509Cert;
-const nsIX509Cert3 = Components.interfaces.nsIX509Cert3;
 const nsX509CertDB = "@mozilla.org/security/x509certdb;1";
 const nsIX509CertDB = Components.interfaces.nsIX509CertDB;
 const nsPK11TokenDB = "@mozilla.org/security/pk11tokendb;1";
@@ -94,14 +93,9 @@ function setWindowName()
   AddCertChain("treesetDump", chain, "dump_");
   DisplayGeneralDataFromCert(cert);
   BuildPrettyPrint(cert);
-  
-  if (cert instanceof nsIX509Cert3)
-  {
-    cert.requestUsagesArrayAsync(new listener());
-  }
+  cert.requestUsagesArrayAsync(new listener());
 }
 
- 
 function addChildrenToTree(parentTree,label,value,addTwistie)
 {
   var treeChild1 = document.createElement("treechildren");
@@ -249,7 +243,7 @@ function DisplayGeneralDataFromCert(cert)
   addAttributeFromCert('validitystart', cert.validity.notBeforeLocalDay);
   
   addAttributeFromCert('validityend', cert.validity.notAfterLocalDay);
-  
+
   
   var issuerCommonname, issuerOrg, issuerOrgUnit;
   issuerCommonname = cert.issuerCommonName;
@@ -287,7 +281,7 @@ function getCurrentCert()
       && document.getElementById('prettyprint_tab').selected) {
     
 
-    realIndex = tree.currentIndex;    
+    realIndex = tree.currentIndex;
   } else {
     
 

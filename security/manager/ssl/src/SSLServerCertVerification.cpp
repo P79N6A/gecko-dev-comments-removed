@@ -689,7 +689,6 @@ BlockServerCertChangeForSpdy(nsNSSSocketInfo* infoObject,
   
   
   nsCOMPtr<nsIX509Cert> cert;
-  nsCOMPtr<nsIX509Cert2> cert2;
 
   RefPtr<nsSSLStatus> status(infoObject->SSLStatus());
   if (!status) {
@@ -700,10 +699,9 @@ BlockServerCertChangeForSpdy(nsNSSSocketInfo* infoObject,
   }
 
   status->GetServerCert(getter_AddRefs(cert));
-  cert2 = do_QueryInterface(cert);
-  if (!cert2) {
+  if (!cert) {
     NS_NOTREACHED("every nsSSLStatus must have a cert"
-                  "that implements nsIX509Cert2");
+                  "that implements nsIX509Cert");
     PR_SetError(SEC_ERROR_LIBRARY_FAILURE, 0);
     return SECFailure;
   }
@@ -715,9 +713,9 @@ BlockServerCertChangeForSpdy(nsNSSSocketInfo* infoObject,
                "GetNegotiatedNPN() failed during renegotiation");
 
   if (NS_SUCCEEDED(rv) && !StringBeginsWith(negotiatedNPN,
-                                            NS_LITERAL_CSTRING("spdy/")))
+                                            NS_LITERAL_CSTRING("spdy/"))) {
     return SECSuccess;
-
+  }
   
   if (NS_FAILED(rv)) {
     PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
@@ -726,11 +724,12 @@ BlockServerCertChangeForSpdy(nsNSSSocketInfo* infoObject,
   }
 
   
-  ScopedCERTCertificate c(cert2->GetCert());
+  ScopedCERTCertificate c(cert->GetCert());
   NS_ASSERTION(c, "very bad and hopefully impossible state");
   bool sameCert = CERT_CompareCerts(c, serverCert);
-  if (sameCert)
+  if (sameCert) {
     return SECSuccess;
+  }
 
   
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
