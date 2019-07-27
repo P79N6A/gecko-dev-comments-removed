@@ -1367,9 +1367,6 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
                     nsPrintfCString("unexpected replacement bits 0x%lX",
                                     uint32_t(aReplacements)).get());
 
-  bool skipAnimationRules = false;
-  bool postAnimationRestyles = false;
-
   
   
   if (aReplacements & eRestyle_ChangeAnimationPhase) {
@@ -1377,10 +1374,6 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
                      eRestyle_CSSAnimations |
                      eRestyle_SVGAttrAnimations |
                      eRestyle_StyleAttribute;
-
-    RestyleManager* restyleManager = PresContext()->RestyleManager();
-    skipAnimationRules = restyleManager->SkipAnimationRules();
-    postAnimationRestyles = restyleManager->PostAnimationRestyles();
   }
 
   
@@ -1421,53 +1414,23 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
     if (doReplace) {
       switch (level->mLevelReplacementHint) {
         case eRestyle_CSSAnimations: {
-          
-          
-          
-          nsPresContext* presContext = PresContext();
-          nsAnimationManager* animationManager =
-            presContext->AnimationManager();
-          AnimationPlayerCollection* collection =
-            animationManager->GetAnimationPlayers(aElement, aPseudoType, false);
-
-          if (collection) {
-            if (skipAnimationRules) {
-              if (postAnimationRestyles) {
-                collection->PostRestyleForAnimation(presContext);
-              }
-            } else {
-              animationManager->UpdateStyleAndEvents(
-                collection, PresContext()->RefreshDriver()->MostRecentRefresh(),
-                EnsureStyleRule_IsNotThrottled);
-              if (collection->mStyleRule) {
-                ruleWalker.ForwardOnPossiblyCSSRule(collection->mStyleRule);
-              }
+          if (aPseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement ||
+              aPseudoType == nsCSSPseudoElements::ePseudo_before ||
+              aPseudoType == nsCSSPseudoElements::ePseudo_after) {
+            nsIStyleRule* rule = PresContext()->AnimationManager()->
+              GetAnimationRule(aElement, aPseudoType);
+            if (rule) {
+              ruleWalker.ForwardOnPossiblyCSSRule(rule);
             }
           }
           break;
         }
         case eRestyle_CSSTransitions: {
-          
-          
-          
-          nsPresContext* presContext = PresContext();
-          AnimationPlayerCollection* collection =
-            presContext->TransitionManager()->GetElementTransitions(
-              aElement, aPseudoType, false);
-
-          if (collection) {
-            if (skipAnimationRules) {
-              if (postAnimationRestyles) {
-                collection->PostRestyleForAnimation(presContext);
-              }
-            } else {
-              collection->EnsureStyleRuleFor(
-                presContext->RefreshDriver()->MostRecentRefresh(),
-                EnsureStyleRule_IsNotThrottled);
-              if (collection->mStyleRule) {
-                ruleWalker.ForwardOnPossiblyCSSRule(collection->mStyleRule);
-              }
-            }
+          if (aPseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement ||
+              aPseudoType == nsCSSPseudoElements::ePseudo_before ||
+              aPseudoType == nsCSSPseudoElements::ePseudo_after) {
+            PresContext()->TransitionManager()->
+              WalkTransitionRule(aElement, aPseudoType, &ruleWalker);
           }
           break;
         }
