@@ -302,15 +302,6 @@ ContainerRender(ContainerT* aContainer,
     SurfaceInitMode mode = INIT_MODE_CLEAR;
     gfx::IntRect surfaceRect = gfx::IntRect(visibleRect.x, visibleRect.y,
                                             visibleRect.width, visibleRect.height);
-    
-    
-    
-    
-    
-    
-    int32_t maxTextureSize = compositor->GetMaxTextureSize();
-    surfaceRect.width = std::min(maxTextureSize, surfaceRect.width);
-    surfaceRect.height = std::min(maxTextureSize, surfaceRect.height);
     if (aContainer->GetEffectiveVisibleRegion().GetNumRects() == 1 &&
         (aContainer->GetContentFlags() & Layer::CONTENT_OPAQUE))
     {
