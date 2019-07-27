@@ -172,6 +172,10 @@ InternalScheduler.prototype = {
 
   
   _canSync(ignoreBlockingErrors = false) {
+    if (!prefs.get("enabled")) {
+      this.log.info("canSync=false - syncing is disabled");
+      return false;
+    }
     if (Services.io.offline) {
       this.log.info("canSync=false - we are offline");
       return false;

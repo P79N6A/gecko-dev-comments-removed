@@ -238,6 +238,11 @@ let gSyncPane = {
     
     if (service.fxAccountsEnabled) {
       
+      
+      if (Services.prefs.getBoolPref("browser.readinglist.enabled")) {
+        document.getElementById("readinglist-engine").removeAttribute("hidden");
+      }
+      
       this.page = PAGE_PLEASE_WAIT;
       fxAccounts.getSignedInUser().then(data => {
         if (!data) {
@@ -370,6 +375,19 @@ let gSyncPane = {
     }
     document.getElementById("sync-migration").hidden = false;
     document.getElementById("sync-migration-deck").selectedIndex = selIndex;
+  },
+
+  
+  onPreferenceChanged: function() {
+    let prefElts = document.querySelectorAll("#syncEnginePrefs > preference");
+    let syncEnabled = false;
+    for (let elt of prefElts) {
+      if (elt.name.startsWith("services.sync.") && elt.value) {
+        syncEnabled = true;
+        break;
+      }
+    }
+    Services.prefs.setBoolPref("services.sync.enabled", syncEnabled);
   },
 
   startOver: function (showDialog) {

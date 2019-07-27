@@ -55,6 +55,26 @@ let gSyncPane = {
 
   init: function () {
     
+    
+    
+    let prefObserver = () => {
+      
+      let prefElts = document.querySelectorAll("#syncEnginePrefs > preference");
+      let syncEnabled = false;
+      for (let elt of prefElts) {
+        if (elt.name.startsWith("services.sync.") && elt.value) {
+          syncEnabled = true;
+          break;
+        }
+      }
+      Services.prefs.setBoolPref("services.sync.enabled", syncEnabled);
+    }
+    Services.prefs.addObserver("services.sync.engine.", prefObserver, false);
+    window.addEventListener("unload", () => {
+      Services.prefs.removeObserver("services.sync.engine.", prefObserver);
+    }, false);
+
+    
     let xps = Components.classes["@mozilla.org/weave/service;1"]
                                 .getService(Components.interfaces.nsISupports)
                                 .wrappedJSObject;
@@ -136,6 +156,11 @@ let gSyncPane = {
     
     
     if (service.fxAccountsEnabled) {
+      
+      
+      if (Services.prefs.getBoolPref("browser.readinglist.enabled")) {
+        document.getElementById("readinglist-engine").removeAttribute("hidden");
+      }
       
       this.page = PAGE_PLEASE_WAIT;
       fxAccounts.getSignedInUser().then(data => {

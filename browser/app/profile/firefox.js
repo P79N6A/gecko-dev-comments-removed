@@ -1881,3 +1881,5 @@ pref("reader.parse-on-load.enabled", false);
 
 
 pref("browser.readinglist.enabled", false);
+
+pref("readinglist.scheduler.enabled", true);
