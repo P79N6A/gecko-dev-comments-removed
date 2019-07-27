@@ -13,7 +13,7 @@
 #include "mozilla/TypedEnumBits.h"
 
 #ifdef MOZ_WIDGET_GONK
-#include <ui/GraphicBuffer.h>
+#include <utils/RefBase.h>
 #endif
 #include <stdio.h>            
 #include "mozilla/Logging.h"            
@@ -28,7 +28,7 @@
 #define INVALID_OVERLAY -1
 
 namespace android {
-class GraphicBuffer;
+class MOZ_EXPORT GraphicBuffer;
 }
 
 namespace mozilla {
@@ -85,28 +85,19 @@ MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(LayerRenderStateFlags)
 
 
 struct LayerRenderState {
-  LayerRenderState()
-#ifdef MOZ_WIDGET_GONK
-    : mFlags(LayerRenderStateFlags::LAYER_RENDER_STATE_DEFAULT)
-    , mHasOwnOffset(false)
-    , mSurface(nullptr)
-    , mOverlayId(INVALID_OVERLAY)
-    , mTexture(nullptr)
-#endif
-  {}
+  
+  
+  
+  
+  LayerRenderState();
+  LayerRenderState(const LayerRenderState& aOther);
+  ~LayerRenderState();
 
 #ifdef MOZ_WIDGET_GONK
   LayerRenderState(android::GraphicBuffer* aSurface,
                    const gfx::IntSize& aSize,
                    LayerRenderStateFlags aFlags,
-                   TextureHost* aTexture)
-    : mFlags(aFlags)
-    , mHasOwnOffset(false)
-    , mSurface(aSurface)
-    , mOverlayId(INVALID_OVERLAY)
-    , mSize(aSize)
-    , mTexture(aTexture)
-  {}
+                   TextureHost* aTexture);
 
   bool OriginBottomLeft() const
   { return bool(mFlags & LayerRenderStateFlags::ORIGIN_BOTTOM_LEFT); }
@@ -133,6 +124,8 @@ struct LayerRenderState {
   bool mHasOwnOffset;
   
   nsIntPoint mOffset;
+  
+  
 #ifdef MOZ_WIDGET_GONK
   
   android::sp<android::GraphicBuffer> mSurface;
