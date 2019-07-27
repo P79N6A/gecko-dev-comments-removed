@@ -166,8 +166,7 @@ private:
     nsresult SetString(const nsAString& aString);
     nsresult AppendClause(uint32_t aLength, uint32_t aAttribute);
     nsresult SetCaret(uint32_t aOffset, uint32_t aLength);
-    nsresult Flush(const TextEventDispatcher* aDispatcher,
-                   nsEventStatus& aStatus);
+    nsresult Flush(TextEventDispatcher* aDispatcher, nsEventStatus& aStatus);
     void Clear();
 
   private:
@@ -189,6 +188,22 @@ private:
 
 
   void InitEvent(WidgetCompositionEvent& aEvent) const;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsresult StartCompositionAutomaticallyIfNecessary(nsEventStatus& aStatus);
 };
 
 } 

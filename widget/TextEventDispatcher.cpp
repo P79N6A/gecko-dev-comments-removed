@@ -106,6 +106,41 @@ TextEventDispatcher::StartComposition(nsEventStatus& aStatus)
 }
 
 nsresult
+TextEventDispatcher::StartCompositionAutomaticallyIfNecessary(
+                       nsEventStatus& aStatus)
+{
+  if (IsComposing()) {
+    return NS_OK;
+  }
+
+  nsresult rv = StartComposition(aStatus);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  
+  
+  if (!IsComposing()) {
+    aStatus = nsEventStatus_eConsumeNoDefault;
+    return NS_OK;
+  }
+
+  
+  
+  
+  rv = GetState();
+  if (NS_FAILED(rv)) {
+    MOZ_ASSERT(rv != NS_ERROR_NOT_INITIALIZED,
+               "aDispatcher must still be initialized in this case");
+    aStatus = nsEventStatus_eConsumeNoDefault;
+    return NS_OK; 
+  }
+
+  aStatus = nsEventStatus_eIgnore;
+  return NS_OK;
+}
+
+nsresult
 TextEventDispatcher::CommitComposition(nsEventStatus& aStatus,
                                        const nsAString* aCommitString)
 {
@@ -116,11 +151,19 @@ TextEventDispatcher::CommitComposition(nsEventStatus& aStatus,
     return rv;
   }
 
+  nsCOMPtr<nsIWidget> widget(mWidget);
+  rv = StartCompositionAutomaticallyIfNecessary(aStatus);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+  if (aStatus == nsEventStatus_eConsumeNoDefault) {
+    return NS_OK;
+  }
+
   
   mIsComposing = false;
   mInitialized = false;
 
-  nsCOMPtr<nsIWidget> widget(mWidget);
   uint32_t message = aCommitString ? NS_COMPOSITION_COMMIT :
                                      NS_COMPOSITION_COMMIT_AS_IS;
   WidgetCompositionEvent compositionCommitEvent(true, message, widget);
@@ -228,9 +271,8 @@ TextEventDispatcher::PendingComposition::SetCaret(uint32_t aOffset,
 }
 
 nsresult
-TextEventDispatcher::PendingComposition::Flush(
-                       const TextEventDispatcher* aDispatcher,
-                       nsEventStatus& aStatus)
+TextEventDispatcher::PendingComposition::Flush(TextEventDispatcher* aDispatcher,
+                                               nsEventStatus& aStatus)
 {
   aStatus = nsEventStatus_eIgnore;
 
@@ -270,6 +312,14 @@ TextEventDispatcher::PendingComposition::Flush(
   
   
   Clear();
+
+  rv = aDispatcher->StartCompositionAutomaticallyIfNecessary(aStatus);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+  if (aStatus == nsEventStatus_eConsumeNoDefault) {
+    return NS_OK;
+  }
   rv = widget->DispatchEvent(&compChangeEvent, aStatus);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
