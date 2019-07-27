@@ -50,6 +50,7 @@ nsresult UnsetExceptionHandler();
 void SetUserAppDataDirectory(nsIFile* aDir);
 void SetProfileDirectory(nsIFile* aDir);
 void UpdateCrashEventsDir();
+void SetMemoryReportFile(nsIFile* aFile);
 
 
 
