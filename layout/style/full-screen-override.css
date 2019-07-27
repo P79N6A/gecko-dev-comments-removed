@@ -16,9 +16,11 @@
 
 
   mask: initial !important;
-  clip: initial !important;
+  clip-path: initial !important;
   filter: initial !important;
+  clip: initial !important;
   transform: initial !important;
+  
   will-change: initial !important;
 }
 
