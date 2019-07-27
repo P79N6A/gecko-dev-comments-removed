@@ -1576,8 +1576,9 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   }
 
   
+  Matrix transform;
   gfxPoint p = r.TopLeft() + aContainerParameters.mOffset;
-  Matrix transform = Matrix::Translation(p.x, p.y);
+  transform.Translate(p.x, p.y);
 
   layer->SetBaseTransform(Matrix4x4::From2D(transform));
   return layer.forget();
