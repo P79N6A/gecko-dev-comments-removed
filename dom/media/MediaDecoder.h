@@ -519,7 +519,8 @@ public:
 
 
 
-  void RecreateDecodedStream(int64_t aStartTimeUSecs);
+  void RecreateDecodedStream(int64_t aStartTimeUSecs,
+                             MediaStreamGraph* aGraph = nullptr);
   
 
 
