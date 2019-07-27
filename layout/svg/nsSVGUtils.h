@@ -514,12 +514,10 @@ public:
                                 const nsStyleSVGPaint& aPaint,
                                 float aOpacity);
 
-  
-
-
-
-  static bool SetupCairoFillPaint(nsIFrame* aFrame, gfxContext* aContext,
-                                  gfxTextContextPaint *aContextPaint = nullptr);
+  static already_AddRefed<gfxPattern>
+  MakeFillPatternFor(nsIFrame *aFrame,
+                     gfxContext* aContext,
+                     gfxTextContextPaint *aContextPaint = nullptr);
 
   
 
@@ -569,6 +567,11 @@ public:
 
 
   static uint16_t GetGeometryHitTestFlags(nsIFrame* aFrame);
+
+  static gfxContext::FillRule ThebesFillRule(uint8_t aFillRule) {
+    return aFillRule == NS_STYLE_FILL_RULE_EVENODD ?
+             gfxContext::FILL_RULE_EVEN_ODD : gfxContext::FILL_RULE_WINDING;
+  }
 
   
 
