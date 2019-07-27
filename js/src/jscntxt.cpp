@@ -465,8 +465,9 @@ checkReportFlags(JSContext *cx, unsigned *flags)
 
 
 
-        JSScript *script = cx->currentScript();
-        if (script && script->strict())
+        jsbytecode *pc;
+        JSScript *script = cx->currentScript(&pc);
+        if (script && IsCheckStrictOp(JSOp(*pc)))
             *flags &= ~JSREPORT_WARNING;
         else if (cx->compartment()->options().extraWarnings(cx))
             *flags |= JSREPORT_WARNING;
