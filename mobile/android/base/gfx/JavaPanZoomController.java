@@ -127,6 +127,8 @@ class JavaPanZoomController
     private boolean mDefaultPrevented;
     
     private boolean isLongpressEnabled;
+    
+    private boolean mIgnoreLongPress;
 
     
     private Overscroll mOverscroll;
@@ -393,11 +395,22 @@ class JavaPanZoomController
     public void startingNewEventBlock(MotionEvent event, boolean waitingForTouchListeners) {
         checkMainThread();
         mSubscroller.cancel();
-        if (waitingForTouchListeners && (event.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_DOWN) {
-            
-            
-            
-            setState(PanZoomState.WAITING_LISTENERS);
+        mIgnoreLongPress = false;
+        if (waitingForTouchListeners) {
+            if ((event.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_DOWN) {
+                
+                
+                
+                setState(PanZoomState.WAITING_LISTENERS);
+            } else if ((event.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_POINTER_DOWN) {
+                
+                
+                
+                
+                
+                
+                mIgnoreLongPress = true;
+            }
         }
     }
 
@@ -1357,7 +1370,7 @@ class JavaPanZoomController
 
     @Override
     public void onLongPress(MotionEvent motionEvent) {
-        if (!isLongpressEnabled) {
+        if (!isLongpressEnabled || mIgnoreLongPress) {
             return;
         }
 
