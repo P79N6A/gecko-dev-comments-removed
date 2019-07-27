@@ -285,9 +285,7 @@ let togglePlayPauseButton = Task.async(function*(widget) {
   yield onClicked;
 
   
-  yield waitForStateCondition(widget.player, state => {
-    return state.playState === nextState;
-  }, "after clicking the toggle button");
+  yield waitForPlayState(widget.player, nextState);
 });
 
 
@@ -320,6 +318,19 @@ let waitForStateCondition = Task.async(function*(player, conditionCheck, desc=""
 
 
 
+
+
+
+
+function waitForPlayState(player, playState) {
+  return waitForStateCondition(player, state => {
+    return state.playState === playState;
+  }, "Waiting for animation to be " + playState);
+}
+
+
+
+
 let getAnimationPlayerState = Task.async(function*(selector, animationIndex=0) {
   let playState = yield executeInContent("Test:GetAnimationPlayerState",
                                          {selector, animationIndex});
@@ -336,9 +347,7 @@ let getAnimationPlayerState = Task.async(function*(selector, animationIndex=0) {
 let checkPausedAt = Task.async(function*(widget, time) {
   info("Wait for the next auto-refresh");
 
-  yield waitForStateCondition(widget.player, state => {
-    return state.playState === "paused";
-  }, "waiting for the player to pause");
+  yield waitForPlayState(widget.player, "paused");
 
   ok(widget.el.classList.contains("paused"), "The widget is in paused mode");
   is(widget.player.state.currentTime, time,
