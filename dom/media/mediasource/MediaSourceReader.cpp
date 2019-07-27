@@ -508,7 +508,6 @@ MediaSourceReader::SwitchAudioSource(int64_t* aTarget)
     return SOURCE_EXISTING;
   }
   mAudioSourceDecoder = newDecoder;
-  GetAudioReader()->ResetDecode();
   if (usedFuzz) {
     
     
@@ -555,7 +554,6 @@ MediaSourceReader::SwitchVideoSource(int64_t* aTarget)
     return SOURCE_EXISTING;
   }
   mVideoSourceDecoder = newDecoder;
-  GetVideoReader()->ResetDecode();
   if (usedFuzz) {
     
     
@@ -812,7 +810,6 @@ MediaSourceReader::OnVideoSeekFailed(nsresult aResult)
 void
 MediaSourceReader::DoAudioSeek()
 {
-  GetAudioReader()->ResetDecode();
   if (SwitchAudioSource(&mPendingSeekTime) == SOURCE_NONE) {
     
     
@@ -862,6 +859,11 @@ MediaSourceReader::AttemptSeek()
     mWaitingForSeekData = false;
   }
 
+  ResetDecode();
+  for (uint32_t i = 0; i < mTrackBuffers.Length(); ++i) {
+    mTrackBuffers[i]->ResetDecode();
+  }
+
   
   mLastAudioTime = mPendingSeekTime;
   mLastVideoTime = mPendingSeekTime;
@@ -878,7 +880,6 @@ MediaSourceReader::AttemptSeek()
 void
 MediaSourceReader::DoVideoSeek()
 {
-  GetVideoReader()->ResetDecode();
   if (SwitchVideoSource(&mPendingSeekTime) == SOURCE_NONE) {
     
     

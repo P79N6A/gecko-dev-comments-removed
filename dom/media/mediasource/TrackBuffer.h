@@ -82,6 +82,9 @@ public:
   void BreakCycles();
 
   
+  void ResetDecode();
+
+  
   
   
   void ResetParserState();
