@@ -111,6 +111,9 @@ enum BailoutKind
     Bailout_InitialState,
 
     
+    Bailout_Debugger,
+
+    
 
 
     
@@ -201,6 +204,8 @@ BailoutKindString(BailoutKind kind)
         return "Bailout_GuardThreadExclusive";
       case Bailout_InitialState:
         return "Bailout_InitialState";
+      case Bailout_Debugger:
+        return "Bailout_Debugger";
 
       
       case Bailout_OverflowInvalidate:

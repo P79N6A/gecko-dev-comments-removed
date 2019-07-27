@@ -262,7 +262,8 @@ namespace jit {
     _(MemoryBarrier)                                                        \
     _(UnknownValue)                                                         \
     _(LexicalCheck)                                                         \
-    _(ThrowUninitializedLexical)
+    _(ThrowUninitializedLexical)                                            \
+    _(Debugger)
 
 
 #define FORWARD_DECLARE(op) class M##op;

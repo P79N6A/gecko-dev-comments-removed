@@ -397,6 +397,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     static const JSPropertySpec properties[];
     static const JSFunctionSpec methods[];
 
+    static bool getNewestAbstractFramePtr(JSContext *cx);
     static bool updateExecutionObservabilityOfFrames(JSContext *cx, const ExecutionObservableSet &obs,
                                                      IsObserving observing);
     static bool updateExecutionObservabilityOfScripts(JSContext *cx, const ExecutionObservableSet &obs,
@@ -423,6 +424,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
     static JSTrapStatus slowPathOnEnterFrame(JSContext *cx, AbstractFramePtr frame);
     static bool slowPathOnLeaveFrame(JSContext *cx, AbstractFramePtr frame, bool ok);
+    static JSTrapStatus slowPathOnDebuggerStatement(JSContext *cx, AbstractFramePtr frame);
     static JSTrapStatus slowPathOnExceptionUnwind(JSContext *cx, AbstractFramePtr frame);
     static void slowPathOnNewScript(JSContext *cx, HandleScript script,
                                     GlobalObject *compileAndGoGlobal);
@@ -525,7 +527,32 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
+
+
+
+
+    
+
+
+
+
     static inline JSTrapStatus onEnterFrame(JSContext *cx, AbstractFramePtr frame);
+
+    
+
+
+
+
+
+
+
+    static inline JSTrapStatus onDebuggerStatement(JSContext *cx, AbstractFramePtr frame);
+
+    
+
+
+
+    static inline JSTrapStatus onExceptionUnwind(JSContext *cx, AbstractFramePtr frame);
 
     
 
@@ -543,26 +570,6 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
     static inline bool onLeaveFrame(JSContext *cx, AbstractFramePtr frame, bool ok);
 
-    static inline JSTrapStatus onDebuggerStatement(JSContext *cx, AbstractFramePtr frame,
-                                                   MutableHandleValue vp);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    static inline JSTrapStatus onExceptionUnwind(JSContext *cx, AbstractFramePtr frame);
     static inline void onNewScript(JSContext *cx, HandleScript script, GlobalObject *compileAndGoGlobal);
     static inline void onNewGlobalObject(JSContext *cx, Handle<GlobalObject *> global);
     static inline bool onLogAllocationSite(JSContext *cx, HandleSavedFrame frame, int64_t when);

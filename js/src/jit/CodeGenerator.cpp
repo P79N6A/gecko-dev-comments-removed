@@ -10175,5 +10175,23 @@ CodeGenerator::visitThrowUninitializedLexical(LThrowUninitializedLexical *ins)
     return callVM(ThrowUninitializedLexicalInfo, ins);
 }
 
+bool
+CodeGenerator::visitDebugger(LDebugger *ins)
+{
+    Register cx = ToRegister(ins->getTemp(0));
+    Register temp = ToRegister(ins->getTemp(1));
+
+    
+    
+    masm.loadJSContext(cx);
+    masm.setupUnalignedABICall(1, temp);
+    masm.passABIArg(cx);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, IsCompartmentDebuggee));
+
+    Label bail;
+    masm.branchIfTrueBool(ReturnReg, &bail);
+    return bailoutFrom(&bail, ins->snapshot());
+}
+
 } 
 } 
