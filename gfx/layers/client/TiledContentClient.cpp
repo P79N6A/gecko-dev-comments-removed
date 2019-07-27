@@ -1201,7 +1201,8 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
     }
 
     
-    aTile.mInvalidBack.SubOut(offsetScaledDirtyRegion);
+    aTile.mInvalidBack.Sub(nsIntRect(0, 0, GetTileSize().width, GetTileSize().height),
+                           offsetScaledDirtyRegion);
 
     aTile.Flip();
 
@@ -1266,7 +1267,8 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
   }
 
   
-  aTile.mInvalidBack.SubOut(offsetScaledDirtyRegion);
+  aTile.mInvalidBack.Sub(nsIntRect(0, 0, GetTileSize().width, GetTileSize().height),
+                         offsetScaledDirtyRegion);
 
 #ifdef GFX_TILEDLAYER_DEBUG_OVERLAY
   DrawDebugOverlay(drawTarget, aTileOrigin.x * mResolution,
