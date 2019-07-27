@@ -6,10 +6,14 @@
 #ifndef MOZILLA_GFX_NUMERICTOOLS_H_
 #define MOZILLA_GFX_NUMERICTOOLS_H_
 
+namespace mozilla {
 
 
 
-static int32_t
+
+
+
+inline int32_t
 RoundDownToMultiple(int32_t x, int32_t aMultiplier)
 {
   
@@ -24,7 +28,7 @@ RoundDownToMultiple(int32_t x, int32_t aMultiplier)
 
 
 
-static int32_t
+inline int32_t
 RoundUpToMultiple(int32_t x, int32_t aMultiplier)
 {
   int mod = x % aMultiplier;
@@ -33,5 +37,7 @@ RoundUpToMultiple(int32_t x, int32_t aMultiplier)
   }
   return x - mod;
 }
+
+} 
 
 #endif 

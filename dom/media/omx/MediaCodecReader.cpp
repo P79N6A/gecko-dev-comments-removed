@@ -1645,7 +1645,7 @@ MediaCodecReader::UpdateVideoInfo()
   }
 
   
-  gfx::IntRect relative_picture_rect = gfx::ToIntRect(picture_rect);
+  gfx::IntRect relative_picture_rect = picture_rect;
   if (mVideoTrack.mWidth != mVideoTrack.mFrameSize.width ||
       mVideoTrack.mHeight != mVideoTrack.mFrameSize.height) {
     

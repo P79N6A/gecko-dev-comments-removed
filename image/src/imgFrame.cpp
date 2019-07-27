@@ -695,7 +695,7 @@ imgFrame::ImageUpdatedInternal(const nsIntRect& aUpdateRect)
 
   
   
-  nsIntRect boundsRect(gfx::ToIntPoint(mOffset), gfx::IntSize(mSize.width, mSize.height));
+  nsIntRect boundsRect(mOffset, mSize);
   mDecoded.IntersectRect(mDecoded, boundsRect);
 
   
@@ -728,7 +728,7 @@ imgFrame::Finish(Opacity aFrameOpacity ,
 nsIntRect
 imgFrame::GetRect() const
 {
-  return gfx::IntRect(gfx::ToIntPoint(mOffset), gfx::IntSize(mSize.width, mSize.height));
+  return gfx::IntRect(mOffset, mSize);
 }
 
 int32_t

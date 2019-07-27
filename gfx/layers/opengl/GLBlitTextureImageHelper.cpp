@@ -62,7 +62,7 @@ GLBlitTextureImageHelper::BlitTextureImage(TextureImage *aSrc, const gfx::IntRec
     do {
         
         gfx::IntRect dstSubRect;
-        gfx::IntRect dstTextureRect = ThebesIntRect(aDst->GetTileRect());
+        gfx::IntRect dstTextureRect = aDst->GetTileRect();
         dstSubRect.IntersectRect(aDstRect, dstTextureRect);
 
         
@@ -84,7 +84,7 @@ GLBlitTextureImageHelper::BlitTextureImage(TextureImage *aSrc, const gfx::IntRec
         do {
             
             gfx::IntRect srcSubRect;
-            gfx::IntRect srcTextureRect = ThebesIntRect(aSrc->GetTileRect());
+            gfx::IntRect srcTextureRect = aSrc->GetTileRect();
             srcSubRect.IntersectRect(aSrcRect, srcTextureRect);
 
             
