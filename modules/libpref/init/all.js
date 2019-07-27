@@ -454,9 +454,9 @@ pref("media.mediasource.mp4.enabled", true);
 pref("media.mediasource.webm.enabled", false);
 
 
-pref("media.mediasource.format-reader.mp4", false);
+pref("media.mediasource.format-reader.mp4", true);
 
-pref("media.format-reader.mp4", false);
+pref("media.format-reader.mp4", true);
 
 #ifdef MOZ_WEBSPEECH
 pref("media.webspeech.recognition.enable", false);
