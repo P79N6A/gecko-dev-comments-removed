@@ -16,6 +16,10 @@
 #include "nsSetDllDirectory.h"
 #endif
 
+#ifndef XRE_DONT_SUPPORT_XPSP2
+#include "WindowsCrtPatch.h"
+#endif
+
 #ifdef __MINGW32__
 
 
@@ -76,6 +80,10 @@ FreeAllocStrings(int argc, char **argv)
 
 int wmain(int argc, WCHAR **argv)
 {
+#ifndef XRE_DONT_SUPPORT_XPSP2
+  WindowsCrtPatch::Init();
+#endif
+
 #ifndef XRE_DONT_PROTECT_DLL_LOAD
   mozilla::SanitizeEnvironmentVariables();
   SetDllDirectoryW(L"");
