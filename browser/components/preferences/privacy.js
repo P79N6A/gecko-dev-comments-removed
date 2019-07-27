@@ -17,6 +17,24 @@ var gPrivacyPane = {
 
   _shouldPromptForRestart: true,
 
+#ifdef NIGHTLY_BUILD
+  
+
+
+
+  _initTrackingProtection: function () {
+    if (!Services.prefs.getBoolPref("privacy.trackingprotection.ui.enabled")) {
+      return;
+    }
+
+    let link = document.getElementById("trackingProtectionLearnMore");
+    let url = Services.urlFormatter.formatURLPref("app.support.baseURL") + "tracking-protection";
+    link.setAttribute("href", url);
+
+    document.getElementById("trackingprotectionbox").hidden = false;
+  },
+#endif
+
   
 
 
@@ -28,6 +46,9 @@ var gPrivacyPane = {
     this.updateHistoryModePane();
     this.updatePrivacyMicroControls();
     this.initAutoStartPrivateBrowsingReverter();
+#ifdef NIGHTLY_BUILD
+    this._initTrackingProtection();
+#endif
   },
 
   
