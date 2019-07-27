@@ -215,6 +215,78 @@ js::atomics_fence(JSContext* cx, unsigned argc, Value* vp)
     return atomics_fence_impl(cx, args.rval());
 }
 
+static int32_t
+do_cmpxchg(Scalar::Type viewType, int32_t oldCandidate, int32_t newCandidate, void* viewData,
+           uint32_t offset, bool* badArrayType)
+{
+    
+    
+
+#if defined(CXX11_ATOMICS)
+# define CAS(T, addr, oldval, newval)                                    \
+    do {                                                                \
+        std::atomic_compare_exchange_strong(reinterpret_cast<std::atomic<T>*>(addr), &oldval, newval); \
+    } while(0)
+#elif defined(GNU_ATOMICS)
+# define CAS(T, addr, oldval, newval)                                    \
+    do {                                                                \
+        oldval = __sync_val_compare_and_swap(addr, (oldval), (newval)); \
+    } while(0)
+#else
+# define CAS(a, b, c, newval)  (void)newval
+#endif
+
+    switch (viewType) {
+      case Scalar::Int8: {
+          int8_t oldval = (int8_t)oldCandidate;
+          int8_t newval = (int8_t)newCandidate;
+          CAS(int8_t, (int8_t*)viewData + offset, oldval, newval);
+          return oldval;
+      }
+      case Scalar::Uint8: {
+          uint8_t oldval = (uint8_t)oldCandidate;
+          uint8_t newval = (uint8_t)newCandidate;
+          CAS(uint8_t, (uint8_t*)viewData + offset, oldval, newval);
+          return oldval;
+      }
+      case Scalar::Uint8Clamped: {
+          uint8_t oldval = ClampIntForUint8Array(oldCandidate);
+          uint8_t newval = ClampIntForUint8Array(newCandidate);
+          CAS(uint8_t, (uint8_t*)viewData + offset, oldval, newval);
+          return oldval;
+      }
+      case Scalar::Int16: {
+          int16_t oldval = (int16_t)oldCandidate;
+          int16_t newval = (int16_t)newCandidate;
+          CAS(int16_t, (int16_t*)viewData + offset, oldval, newval);
+          return oldval;
+      }
+      case Scalar::Uint16: {
+          uint16_t oldval = (uint16_t)oldCandidate;
+          uint16_t newval = (uint16_t)newCandidate;
+          CAS(uint16_t, (uint16_t*)viewData + offset, oldval, newval);
+          return oldval;
+      }
+      case Scalar::Int32: {
+          int32_t oldval = oldCandidate;
+          int32_t newval = newCandidate;
+          CAS(int32_t, (int32_t*)viewData + offset, oldval, newval);
+          return oldval;
+      }
+      case Scalar::Uint32: {
+          uint32_t oldval = (uint32_t)oldCandidate;
+          uint32_t newval = (uint32_t)newCandidate;
+          CAS(uint32_t, (uint32_t*)viewData + offset, oldval, newval);
+          return (int32_t)oldval;
+      }
+      default:
+        *badArrayType = true;
+        return 0;
+    }
+
+    
+}
+
 bool
 js::atomics_compareExchange(JSContext* cx, unsigned argc, Value* vp)
 {
@@ -242,78 +314,17 @@ js::atomics_compareExchange(JSContext* cx, unsigned argc, Value* vp)
     if (!inRange)
         return atomics_fence_impl(cx, r);
 
-    
-    
+    bool badType = false;
+    int32_t result = do_cmpxchg(view->type(), oldCandidate, newCandidate, view->viewData(), offset, &badType);
 
-#if defined(CXX11_ATOMICS)
-# define CAS(T, addr, oldval, newval)                                    \
-    do {                                                                \
-        std::atomic_compare_exchange_strong(reinterpret_cast<std::atomic<T>*>(addr), &oldval, newval); \
-    } while(0)
-#elif defined(GNU_ATOMICS)
-# define CAS(T, addr, oldval, newval)                                    \
-    do {                                                                \
-        oldval = __sync_val_compare_and_swap(addr, (oldval), (newval)); \
-    } while(0)
-#else
-# define CAS(a, b, c, newval)  (void)newval
-#endif
-
-    switch (view->type()) {
-      case Scalar::Int8: {
-          int8_t oldval = (int8_t)oldCandidate;
-          int8_t newval = (int8_t)newCandidate;
-          CAS(int8_t, (int8_t*)view->viewData() + offset, oldval, newval);
-          r.setInt32(oldval);
-          return true;
-      }
-      case Scalar::Uint8: {
-          uint8_t oldval = (uint8_t)oldCandidate;
-          uint8_t newval = (uint8_t)newCandidate;
-          CAS(uint8_t, (uint8_t*)view->viewData() + offset, oldval, newval);
-          r.setInt32(oldval);
-          return true;
-      }
-      case Scalar::Uint8Clamped: {
-          uint8_t oldval = ClampIntForUint8Array(oldCandidate);
-          uint8_t newval = ClampIntForUint8Array(newCandidate);
-          CAS(uint8_t, (uint8_t*)view->viewData() + offset, oldval, newval);
-          r.setInt32(oldval);
-          return true;
-      }
-      case Scalar::Int16: {
-          int16_t oldval = (int16_t)oldCandidate;
-          int16_t newval = (int16_t)newCandidate;
-          CAS(int16_t, (int16_t*)view->viewData() + offset, oldval, newval);
-          r.setInt32(oldval);
-          return true;
-      }
-      case Scalar::Uint16: {
-          uint16_t oldval = (uint16_t)oldCandidate;
-          uint16_t newval = (uint16_t)newCandidate;
-          CAS(uint16_t, (uint16_t*)view->viewData() + offset, oldval, newval);
-          r.setInt32(oldval);
-          return true;
-      }
-      case Scalar::Int32: {
-          int32_t oldval = oldCandidate;
-          int32_t newval = newCandidate;
-          CAS(int32_t, (int32_t*)view->viewData() + offset, oldval, newval);
-          r.setInt32(oldval);
-          return true;
-      }
-      case Scalar::Uint32: {
-          uint32_t oldval = (uint32_t)oldCandidate;
-          uint32_t newval = (uint32_t)newCandidate;
-          CAS(uint32_t, (uint32_t*)view->viewData() + offset, oldval, newval);
-          r.setNumber((double)oldval);
-          return true;
-      }
-      default:
+    if (badType)
         return ReportBadArrayType(cx);
-    }
 
-    
+    if (view->type() == Scalar::Uint32)
+        r.setNumber((double)(uint32_t)result);
+    else
+        r.setInt32(result);
+    return true;
 }
 
 bool
@@ -687,6 +698,152 @@ js::atomics_xor(JSContext* cx, unsigned argc, Value* vp)
 #undef CAST_ATOMIC
 #undef DO_NOTHING
 #undef ZERO
+
+
+
+
+
+
+
+
+
+
+
+static void
+GetCurrentAsmJSHeap(void** heap, size_t* length)
+{
+    JSRuntime* rt = js::TlsPerThreadData.get()->runtimeFromMainThread();
+    AsmJSModule& mod = rt->asmJSActivationStack()->module();
+    *heap = mod.heapDatum();
+    *length = mod.heapLength();
+}
+
+int32_t
+js::atomics_add_asm_callout(int32_t vt, int32_t offset, int32_t value)
+{
+    void* heap;
+    size_t heapLength;
+    GetCurrentAsmJSHeap(&heap, &heapLength);
+    if ((size_t)offset >= heapLength) return 0;
+    switch (Scalar::Type(vt)) {
+      case Scalar::Int8:
+        return do_add::operate((int8_t*)heap + offset, value);
+      case Scalar::Uint8:
+        return do_add::operate((uint8_t*)heap + offset, value);
+      case Scalar::Int16:
+        return do_add::operate((int16_t*)heap + (offset >> 1), value);
+      case Scalar::Uint16:
+        return do_add::operate((uint16_t*)heap + (offset >> 1), value);
+      default:
+        MOZ_CRASH("Invalid size");
+    }
+}
+
+int32_t
+js::atomics_sub_asm_callout(int32_t vt, int32_t offset, int32_t value)
+{
+    void* heap;
+    size_t heapLength;
+    GetCurrentAsmJSHeap(&heap, &heapLength);
+    if ((size_t)offset >= heapLength) return 0;
+    switch (Scalar::Type(vt)) {
+      case Scalar::Int8:
+        return do_sub::operate((int8_t*)heap + offset, value);
+      case Scalar::Uint8:
+        return do_sub::operate((uint8_t*)heap + offset, value);
+      case Scalar::Int16:
+        return do_sub::operate((int16_t*)heap + (offset >> 1), value);
+      case Scalar::Uint16:
+        return do_sub::operate((uint16_t*)heap + (offset >> 1), value);
+      default:
+        MOZ_CRASH("Invalid size");
+    }
+}
+
+int32_t
+js::atomics_and_asm_callout(int32_t vt, int32_t offset, int32_t value)
+{
+    void* heap;
+    size_t heapLength;
+    GetCurrentAsmJSHeap(&heap, &heapLength);
+    if ((size_t)offset >= heapLength) return 0;
+    switch (Scalar::Type(vt)) {
+      case Scalar::Int8:
+        return do_and::operate((int8_t*)heap + offset, value);
+      case Scalar::Uint8:
+        return do_and::operate((uint8_t*)heap + offset, value);
+      case Scalar::Int16:
+        return do_and::operate((int16_t*)heap + (offset >> 1), value);
+      case Scalar::Uint16:
+        return do_and::operate((uint16_t*)heap + (offset >> 1), value);
+      default:
+        MOZ_CRASH("Invalid size");
+    }
+}
+
+int32_t
+js::atomics_or_asm_callout(int32_t vt, int32_t offset, int32_t value)
+{
+    void* heap;
+    size_t heapLength;
+    GetCurrentAsmJSHeap(&heap, &heapLength);
+    if ((size_t)offset >= heapLength) return 0;
+    switch (Scalar::Type(vt)) {
+      case Scalar::Int8:
+        return do_or::operate((int8_t*)heap + offset, value);
+      case Scalar::Uint8:
+        return do_or::operate((uint8_t*)heap + offset, value);
+      case Scalar::Int16:
+        return do_or::operate((int16_t*)heap + (offset >> 1), value);
+      case Scalar::Uint16:
+        return do_or::operate((uint16_t*)heap + (offset >> 1), value);
+      default:
+        MOZ_CRASH("Invalid size");
+    }
+}
+
+int32_t
+js::atomics_xor_asm_callout(int32_t vt, int32_t offset, int32_t value)
+{
+    void* heap;
+    size_t heapLength;
+    GetCurrentAsmJSHeap(&heap, &heapLength);
+    if ((size_t)offset >= heapLength) return 0;
+    switch (Scalar::Type(vt)) {
+      case Scalar::Int8:
+        return do_xor::operate((int8_t*)heap + offset, value);
+      case Scalar::Uint8:
+        return do_xor::operate((uint8_t*)heap + offset, value);
+      case Scalar::Int16:
+        return do_xor::operate((int16_t*)heap + (offset >> 1), value);
+      case Scalar::Uint16:
+        return do_xor::operate((uint16_t*)heap + (offset >> 1), value);
+      default:
+        MOZ_CRASH("Invalid size");
+    }
+}
+
+int32_t
+js::atomics_cmpxchg_asm_callout(int32_t vt, int32_t offset, int32_t oldval, int32_t newval)
+{
+    void* heap;
+    size_t heapLength;
+    GetCurrentAsmJSHeap(&heap, &heapLength);
+    if ((size_t)offset >= heapLength) return 0;
+    bool badType = false;
+    switch (Scalar::Type(vt)) {
+      case Scalar::Int8:
+        return do_cmpxchg(Scalar::Int8, oldval, newval, heap, offset, &badType);
+      case Scalar::Uint8:
+        return do_cmpxchg(Scalar::Uint8, oldval, newval, heap, offset, &badType);
+      case Scalar::Int16:
+        return do_cmpxchg(Scalar::Int16, oldval, newval, heap, offset>>1, &badType);
+      case Scalar::Uint16:
+        return do_cmpxchg(Scalar::Uint16, oldval, newval, heap, offset>>1, &badType);
+      default:
+        MOZ_CRASH("Invalid size");
+    }
+}
 
 namespace js {
 

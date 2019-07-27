@@ -25,6 +25,8 @@
     _(UDiv)                     \
     _(UMod)                     \
     _(SoftUDivOrMod)            \
-    _(AsmJSLoadFuncPtr)
+    _(AsmJSLoadFuncPtr)         \
+    _(AsmJSCompareExchangeCallout) \
+    _(AsmJSAtomicBinopCallout)
 
 #endif 
