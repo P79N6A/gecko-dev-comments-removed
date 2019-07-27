@@ -12,6 +12,21 @@
 #include "mozilla/dom/SubtleCryptoBinding.h"
 #include "mozilla/dom/ToJSValue.h"
 
+
+
+
+const SEC_ASN1Template SECKEY_DHPublicKeyTemplate[] = {
+    { SEC_ASN1_INTEGER, offsetof(SECKEYPublicKey,u.dh.publicValue), },
+    { 0, }
+};
+const SEC_ASN1Template SECKEY_DHParamKeyTemplate[] = {
+    { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(SECKEYPublicKey) },
+    { SEC_ASN1_INTEGER, offsetof(SECKEYPublicKey,u.dh.prime), },
+    { SEC_ASN1_INTEGER, offsetof(SECKEYPublicKey,u.dh.base), },
+    { SEC_ASN1_SKIP_REST },
+    { 0, }
+};
+
 namespace mozilla {
 namespace dom {
 
@@ -384,12 +399,25 @@ CryptoKey::PublicKeyFromSpki(CryptoBuffer& aKeyData,
     return nullptr;
   }
 
+  bool isECDHAlgorithm = SECITEM_ItemsAreEqual(&SEC_OID_DATA_EC_DH,
+                                               &spki->algorithm.algorithm);
+  bool isDHAlgorithm = SECITEM_ItemsAreEqual(&SEC_OID_DATA_DH_KEY_AGREEMENT,
+                                             &spki->algorithm.algorithm);
+
   
   
   
-  if (SECITEM_ItemsAreEqual(&SEC_OID_DATA_EC_DH, &spki->algorithm.algorithm)) {
-    
-    SECOidData* oidData = SECOID_FindOIDByTag(SEC_OID_ANSIX962_EC_PUBLIC_KEY);
+  if (isECDHAlgorithm || isDHAlgorithm) {
+    SECOidTag oid = SEC_OID_UNKNOWN;
+    if (isECDHAlgorithm) {
+      oid = SEC_OID_ANSIX962_EC_PUBLIC_KEY;
+    } else if (isDHAlgorithm) {
+      oid = SEC_OID_X942_DIFFIE_HELMAN_KEY;
+    } else {
+      MOZ_ASSERT(false);
+    }
+
+    SECOidData* oidData = SECOID_FindOIDByTag(oid);
     if (!oidData) {
       return nullptr;
     }
@@ -423,21 +451,88 @@ CryptoKey::PrivateKeyToPkcs8(SECKEYPrivateKey* aPrivKey,
 }
 
 nsresult
-CryptoKey::PublicKeyToSpki(SECKEYPublicKey* aPubKey,
-                     CryptoBuffer& aRetVal,
-                     const nsNSSShutDownPreventionLock& )
+PublicDhKeyToSpki(SECKEYPublicKey* aPubKey,
+                  CERTSubjectPublicKeyInfo* aSpki,
+                  PLArenaPool* aArena)
 {
-  ScopedCERTSubjectPublicKeyInfo spki(SECKEY_CreateSubjectPublicKeyInfo(aPubKey));
-  if (!spki) {
+  SECItem* params = ::SECITEM_AllocItem(aArena, nullptr, 0);
+  if (!params) {
+    return NS_ERROR_DOM_OPERATION_ERR;
+  }
+
+  SECItem* rvItem = SEC_ASN1EncodeItem(aArena, params, aPubKey,
+                                       SECKEY_DHParamKeyTemplate);
+  if (!rvItem) {
+    return NS_ERROR_DOM_OPERATION_ERR;
+  }
+
+  SECStatus rv = SECOID_SetAlgorithmID(aArena, &aSpki->algorithm,
+                                       SEC_OID_X942_DIFFIE_HELMAN_KEY, params);
+  if (rv != SECSuccess) {
+    return NS_ERROR_DOM_OPERATION_ERR;
+  }
+
+  rvItem = SEC_ASN1EncodeItem(aArena, &aSpki->subjectPublicKey, aPubKey,
+                              SECKEY_DHPublicKeyTemplate);
+  if (!rvItem) {
     return NS_ERROR_DOM_OPERATION_ERR;
   }
 
   
   
+  aSpki->subjectPublicKey.len <<= 3;
+
+  return NS_OK;
+}
+
+nsresult
+CryptoKey::PublicKeyToSpki(SECKEYPublicKey* aPubKey,
+                           CryptoBuffer& aRetVal,
+                           const nsNSSShutDownPreventionLock& )
+{
+  ScopedPLArenaPool arena;
+  ScopedCERTSubjectPublicKeyInfo spki;
+
   
-  if (aPubKey->keyType == ecKey) {
+  if (aPubKey->keyType == dhKey) {
+    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    if (!arena) {
+      return NS_ERROR_DOM_OPERATION_ERR;
+    }
+
+    
+    
+    
+    spki = PORT_ArenaZNew(arena, CERTSubjectPublicKeyInfo);
+    if (!spki) {
+      return NS_ERROR_DOM_OPERATION_ERR;
+    }
+
+    nsresult rv = PublicDhKeyToSpki(aPubKey, spki, arena);
+    NS_ENSURE_SUCCESS(rv, rv);
+  } else {
+    spki = SECKEY_CreateSubjectPublicKeyInfo(aPubKey);
+    if (!spki) {
+      return NS_ERROR_DOM_OPERATION_ERR;
+    }
+  }
+
+  
+  
+  
+  
+  if (aPubKey->keyType == ecKey || aPubKey->keyType == dhKey) {
+    const SECItem* oidData = nullptr;
+    if (aPubKey->keyType == ecKey) {
+      oidData = &SEC_OID_DATA_EC_DH;
+    } else if (aPubKey->keyType == dhKey) {
+      oidData = &SEC_OID_DATA_DH_KEY_AGREEMENT;
+    } else {
+      MOZ_ASSERT(false);
+    }
+
     SECStatus rv = SECITEM_CopyItem(spki->arena, &spki->algorithm.algorithm,
-                                    &SEC_OID_DATA_EC_DH);
+                                    oidData);
     if (rv != SECSuccess) {
       return NS_ERROR_DOM_OPERATION_ERR;
     }
