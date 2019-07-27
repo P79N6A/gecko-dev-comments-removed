@@ -43,7 +43,12 @@ types.addDictType("AllocationsRecordingOptions", {
   
   
   
-  probability: "number"
+  probability: "number",
+
+  
+  
+  
+  maxLogLength: "number"
 });
 
 
@@ -164,6 +169,9 @@ let MemoryActor = protocol.ActorClass({
     this.dbg.memory.allocationSamplingProbability = options.probability != null
       ? options.probability
       : 1.0;
+    if (options.maxLogLength != null) {
+      this.dbg.memory.maxAllocationsLogLength = options.maxLogLength;
+    }
     this.dbg.memory.trackingAllocationSites = true;
 
     return Date.now();
