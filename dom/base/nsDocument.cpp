@@ -11826,13 +11826,6 @@ nsDocument::ApplyFullscreen(const FullscreenRequest& aRequest)
   
   
   
-  for (uint32_t i = 0; i < changed.Length(); ++i) {
-    DispatchFullScreenChange(changed[changed.Length() - i - 1]);
-  }
-
-  
-  
-  
   
   
   if (!mIsApprovedForFullscreen) {
@@ -11841,6 +11834,8 @@ nsDocument::ApplyFullscreen(const FullscreenRequest& aRequest)
       NodePrincipal()->GetAppStatus() >= nsIPrincipal::APP_STATUS_INSTALLED ||
       nsContentUtils::IsSitePermAllow(NodePrincipal(), "fullscreen");
   }
+
+  FullscreenRoots::Add(this);
 
   
   
@@ -11871,7 +11866,12 @@ nsDocument::ApplyFullscreen(const FullscreenRequest& aRequest)
     asyncDispatcher->PostDOMEvent();
   }
 
-  FullscreenRoots::Add(this);
+  
+  
+  
+  for (uint32_t i = 0; i < changed.Length(); ++i) {
+    DispatchFullScreenChange(changed[changed.Length() - i - 1]);
+  }
 }
 
 NS_IMETHODIMP
