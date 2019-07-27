@@ -254,9 +254,12 @@ class HashMap
     }
 
     
-    void rekeyAs(const Lookup &old_lookup, const Lookup &new_lookup, const Key &new_key) {
-        if (Ptr p = lookup(old_lookup))
+    bool rekeyAs(const Lookup &old_lookup, const Lookup &new_lookup, const Key &new_key) {
+        if (Ptr p = lookup(old_lookup)) {
             impl.rekeyAndMaybeRehash(p, new_lookup, new_key);
+            return true;
+        }
+        return false;
     }
 
     
@@ -472,9 +475,12 @@ class HashSet
     }
 
     
-    void rekeyAs(const Lookup &old_lookup, const Lookup &new_lookup, const T &new_value) {
-        if (Ptr p = lookup(old_lookup))
+    bool rekeyAs(const Lookup &old_lookup, const Lookup &new_lookup, const T &new_value) {
+        if (Ptr p = lookup(old_lookup)) {
             impl.rekeyAndMaybeRehash(p, new_lookup, new_value);
+            return true;
+        }
+        return false;
     }
 
     
