@@ -669,7 +669,7 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
         
         uint8_t matchType;
         nsRefPtr<gfxFont> mathFont = fontGroup->
-          FindFontForChar(ch2, 0, HB_SCRIPT_COMMON, nullptr, &matchType);
+          FindFontForChar(ch2, 0, 0, HB_SCRIPT_COMMON, nullptr, &matchType);
         if (mathFont) {
           
           

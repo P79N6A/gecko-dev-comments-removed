@@ -449,7 +449,7 @@ public:
 
     
     
-    virtual void GetCommonFallbackFonts(const uint32_t ,
+    virtual void GetCommonFallbackFonts(uint32_t , uint32_t ,
                                         int32_t ,
                                         nsTArray<const char*>& )
     {
