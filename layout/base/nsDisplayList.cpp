@@ -3125,14 +3125,9 @@ nsDisplayLayerEventRegions::AddFrame(nsDisplayListBuilder* aBuilder,
   }
   if (!aFrame->GetParent()) {
     MOZ_ASSERT(aFrame->GetType() == nsGkAtoms::viewportFrame);
-    nsSubDocumentFrame* subdoc = static_cast<nsSubDocumentFrame*>(
-        nsLayoutUtils::GetCrossDocParentFrame(aFrame));
-    if (subdoc && subdoc->PassPointerEventsToChildren()) {
-      
-      
-      
-      return;
-    }
+    
+    
+    return;
   }
   uint8_t pointerEvents = aFrame->StyleVisibility()->GetEffectivePointerEvents(aFrame);
   if (pointerEvents == NS_STYLE_POINTER_EVENTS_NONE) {
