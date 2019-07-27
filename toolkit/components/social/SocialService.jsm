@@ -151,17 +151,7 @@ XPCOMUtils.defineLazyGetter(SocialServiceInternal, "providers", function () {
 });
 
 function getOriginActivationType(origin) {
-  
-  try {
-    var prefname = SocialServiceInternal.getManifestPrefname(origin);
-  } catch(e) {
-    
-    let originUri = Services.io.newURI(origin, null, null);
-    if (originUri.scheme == "moz-safe-about") {
-      return "internal";
-    }
-    throw e;
-  }
+  let prefname = SocialServiceInternal.getManifestPrefname(origin);
   if (Services.prefs.getDefaultBranch("social.manifest.").getPrefType(prefname) == Services.prefs.PREF_STRING)
     return 'builtin';
 
@@ -514,7 +504,7 @@ this.SocialService = {
     let featureURLs = ['workerURL', 'sidebarURL', 'shareURL', 'statusURL', 'markURL'];
     let resolveURLs = featureURLs.concat(['postActivationURL']);
 
-    if (type == 'directory' || type == 'internal') {
+    if (type == 'directory') {
       
       if (!data['origin']) {
         Cu.reportError("SocialService.manifestFromData directory service provided manifest without origin.");
@@ -579,7 +569,7 @@ this.SocialService = {
     let productName = brandBundle.GetStringFromName("brandShortName");
 
     let message = browserBundle.formatStringFromName("service.install.description",
-                                                     [aAddonInstaller.addon.manifest.name, productName], 2);
+                                                     [requestingURI.host, productName], 2);
 
     let action = {
       label: browserBundle.GetStringFromName("service.install.ok.label"),
@@ -598,7 +588,7 @@ this.SocialService = {
                                       action, [], options);
   },
 
-  installProvider: function(aDOMDocument, data, installCallback, aBypassUserEnable=false) {
+  installProvider: function(aDOMDocument, data, installCallback) {
     let manifest;
     let installOrigin = aDOMDocument.nodePrincipal.origin;
 
@@ -613,10 +603,6 @@ this.SocialService = {
       if (addon && addon.blocklistState == Ci.nsIBlocklistService.STATE_BLOCKED)
         throw new Error("installProvider: provider with origin [" +
                         installOrigin + "] is blocklisted");
-      
-      
-      
-      installOrigin = manifest.origin;
     }
 
     let id = getAddonIDFromOrigin(installOrigin);
@@ -626,7 +612,7 @@ this.SocialService = {
         aAddon.userDisabled = false;
       }
       schedule(function () {
-        this._installProvider(aDOMDocument, manifest, aBypassUserEnable, aManifest => {
+        this._installProvider(aDOMDocument, manifest, aManifest => {
           this._notifyProviderListeners("provider-installed", aManifest.origin);
           installCallback(aManifest);
         });
@@ -634,7 +620,7 @@ this.SocialService = {
     }.bind(this));
   },
 
-  _installProvider: function(aDOMDocument, manifest, aBypassUserEnable, installCallback) {
+  _installProvider: function(aDOMDocument, manifest, installCallback) {
     let sourceURI = aDOMDocument.location.href;
     let installOrigin = aDOMDocument.nodePrincipal.origin;
 
@@ -667,17 +653,7 @@ this.SocialService = {
           if (manifest.builtin)
             delete manifest.builtin;
         }
-      case "internal":
-        
-        aBypassUserEnable = installType == "internal" && manifest.oneclick;
       case "directory":
-        
-        
-        if (aBypassUserEnable) {
-          installer = new AddonInstaller(sourceURI, manifest, installCallback);
-          installer.install();
-          return;
-        }
         
       case "whitelist":
         

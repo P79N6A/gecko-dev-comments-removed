@@ -180,10 +180,7 @@ SocialUI = {
 
   
   
-  
-  
-  
-  _activationEventHandler: function SocialUI_activationHandler(e, aBypassUserEnable=false) {
+  _activationEventHandler: function SocialUI_activationHandler(e) {
     let targetDoc;
     let node;
     if (e.target instanceof HTMLDocument) {
@@ -197,7 +194,8 @@ SocialUI = {
     if (!(targetDoc instanceof HTMLDocument))
       return;
 
-    if (!aBypassUserEnable && targetDoc.defaultView != content)
+    
+    if (targetDoc.defaultView != content)
       return;
 
     
@@ -237,7 +235,7 @@ SocialUI = {
           openUILinkIn(provider.postActivationURL, "tab");
         }
       });
-    }, aBypassUserEnable);
+    });
   },
 
   showLearnMore: function() {
