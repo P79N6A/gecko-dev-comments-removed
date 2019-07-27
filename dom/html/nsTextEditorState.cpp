@@ -930,6 +930,12 @@ nsTextInputListener::HandleEvent(nsIDOMEvent* aEvent)
 NS_IMETHODIMP
 nsTextInputListener::EditAction()
 {
+  if (!mFrame) {
+    
+    
+    return NS_OK;
+  }
+
   nsWeakFrame weakFrame = mFrame;
 
   nsITextControlFrame* frameBase = do_QueryFrame(mFrame);
