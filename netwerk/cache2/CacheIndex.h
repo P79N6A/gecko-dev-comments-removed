@@ -641,7 +641,7 @@ public:
   
   
   
-  static nsresult GetEntryForEviction(SHA1Sum::Hash *aHash, uint32_t *aCnt);
+  static nsresult GetEntryForEviction(bool aIgnoreEmptyEntries, SHA1Sum::Hash *aHash, uint32_t *aCnt);
 
   
   
