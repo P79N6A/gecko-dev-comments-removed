@@ -103,7 +103,9 @@ let gBrowserThumbnails = {
   },
 
   _capture: function Thumbnails_capture(aBrowser) {
-    if (this._shouldCapture(aBrowser))
+    
+    if (this._topSiteURLs.indexOf(aBrowser.currentURI.spec) >= 0 &&
+        this._shouldCapture(aBrowser))
       PageThumbs.captureAndStoreIfStale(aBrowser);
   },
 
@@ -121,13 +123,10 @@ let gBrowserThumbnails = {
     this._timeouts.set(aBrowser, timeout);
   },
 
+  
   _shouldCapture: function Thumbnails_shouldCapture(aBrowser) {
     
     if (aBrowser != gBrowser.selectedBrowser)
-      return false;
-
-    
-    if (this._topSiteURLs.indexOf(aBrowser.currentURI.spec) < 0)
       return false;
 
     
