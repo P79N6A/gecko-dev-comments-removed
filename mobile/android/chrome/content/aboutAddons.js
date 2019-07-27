@@ -348,6 +348,10 @@ var Addons = {
             let event = document.createEvent("Events");
             event.initEvent("AddonOptionsLoad", true, false);
             window.dispatchEvent(event);
+          } else {
+            
+            
+            detailItem.setAttribute("optionsURL", "");
           }
 
           
