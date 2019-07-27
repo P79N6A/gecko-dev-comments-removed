@@ -8770,7 +8770,7 @@ IonBuilder::jsop_not()
 
 bool
 IonBuilder::objectsHaveCommonPrototype(types::TemporaryTypeSet *types, PropertyName *name,
-                                       bool isGetter, JSObject *foundProto)
+                                       bool isGetter, JSObject *foundProto, bool *guardGlobal)
 {
     
     
@@ -8780,6 +8780,7 @@ IonBuilder::objectsHaveCommonPrototype(types::TemporaryTypeSet *types, PropertyN
     
     if (!types || types->unknownObject())
         return false;
+    *guardGlobal = false;
 
     for (unsigned i = 0; i < types->getObjectCount(); i++) {
         if (types->getSingleObject(i) == foundProto)
@@ -8794,8 +8795,14 @@ IonBuilder::objectsHaveCommonPrototype(types::TemporaryTypeSet *types, PropertyN
                 return false;
 
             const Class *clasp = type->clasp();
-            if (!ClassHasEffectlessLookup(clasp, name) || ClassHasResolveHook(compartment, clasp, name))
+            if (!ClassHasEffectlessLookup(clasp, name))
                 return false;
+            JSObject *singleton = type->singleton();
+            if (ClassHasResolveHook(compartment, clasp, name)) {
+                if (!singleton || !singleton->is<GlobalObject>())
+                    return false;
+                *guardGlobal = true;
+            }
 
             
             
@@ -8813,9 +8820,11 @@ IonBuilder::objectsHaveCommonPrototype(types::TemporaryTypeSet *types, PropertyN
                 if (!types->empty() || types->nonDataProperty())
                     return false;
             }
-            if (JSObject *obj = type->singleton()) {
-                if (types::CanHaveEmptyPropertyTypesForOwnProperty(obj))
-                    return false;
+            if (singleton) {
+                if (types::CanHaveEmptyPropertyTypesForOwnProperty(singleton)) {
+                    MOZ_ASSERT(singleton->is<GlobalObject>());
+                    *guardGlobal = true;
+                }
             }
 
             if (!type->hasTenuredProto())
@@ -8837,7 +8846,8 @@ IonBuilder::objectsHaveCommonPrototype(types::TemporaryTypeSet *types, PropertyN
 
 void
 IonBuilder::freezePropertiesForCommonPrototype(types::TemporaryTypeSet *types, PropertyName *name,
-                                               JSObject *foundProto)
+                                               JSObject *foundProto,
+                                               bool allowEmptyTypesforGlobal)
 {
     for (unsigned i = 0; i < types->getObjectCount(); i++) {
         
@@ -8851,7 +8861,7 @@ IonBuilder::freezePropertiesForCommonPrototype(types::TemporaryTypeSet *types, P
 
         while (true) {
             types::HeapTypeSetKey property = type->property(NameToId(name));
-            JS_ALWAYS_TRUE(!property.isOwnProperty(constraints()));
+            JS_ALWAYS_TRUE(!property.isOwnProperty(constraints(), allowEmptyTypesforGlobal));
 
             
             
@@ -8865,21 +8875,34 @@ IonBuilder::freezePropertiesForCommonPrototype(types::TemporaryTypeSet *types, P
 
 inline MDefinition *
 IonBuilder::testCommonGetterSetter(types::TemporaryTypeSet *types, PropertyName *name,
-                                   bool isGetter, JSObject *foundProto, Shape *lastProperty)
+                                   bool isGetter, JSObject *foundProto, Shape *lastProperty,
+                                   Shape *globalShape)
 {
+    bool guardGlobal;
+
     
-    if (!objectsHaveCommonPrototype(types, name, isGetter, foundProto))
+    if (!objectsHaveCommonPrototype(types, name, isGetter, foundProto, &guardGlobal) ||
+        (guardGlobal && !globalShape))
+    {
         return nullptr;
+    }
 
     
     
     
-    freezePropertiesForCommonPrototype(types, name, foundProto);
+    freezePropertiesForCommonPrototype(types, name, foundProto, guardGlobal);
 
     
     
     
     
+    
+    if (guardGlobal) {
+        JSObject *obj = &script()->global();
+        MDefinition *globalObj = constant(ObjectValue(*obj));
+        addShapeGuard(globalObj, globalShape, Bailout_ShapeGuard);
+    }
+
     MInstruction *wrapper = constant(ObjectValue(*foundProto));
     return addShapeGuard(wrapper, lastProperty, Bailout_ShapeGuard);
 }
@@ -9407,13 +9430,14 @@ IonBuilder::getPropTryCommonGetter(bool *emitted, MDefinition *obj, PropertyName
 
     Shape *lastProperty = nullptr;
     JSFunction *commonGetter = nullptr;
-    JSObject *foundProto = inspector->commonGetPropFunction(pc, &lastProperty, &commonGetter);
+    Shape *globalShape = nullptr;
+    JSObject *foundProto = inspector->commonGetPropFunction(pc, &lastProperty, &commonGetter, &globalShape);
     if (!foundProto)
         return true;
 
     types::TemporaryTypeSet *objTypes = obj->resultTypeSet();
     MDefinition *guard = testCommonGetterSetter(objTypes, name,  true,
-                                                foundProto, lastProperty);
+                                                foundProto, lastProperty, globalShape);
     if (!guard)
         return true;
 
