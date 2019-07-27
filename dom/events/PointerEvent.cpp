@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * Portions Copyright 2013 Microsoft Open Technologies, Inc. */
+
+
+
+
+
+
 
 #include "mozilla/dom/PointerEvent.h"
 #include "mozilla/MouseEvents.h"
@@ -18,8 +18,8 @@ PointerEvent::PointerEvent(EventTarget* aOwner,
   : MouseEvent(aOwner, aPresContext,
                aEvent ? aEvent : new WidgetPointerEvent(false, 0, nullptr))
 {
-  NS_ASSERTION(mEvent->mClass == NS_POINTER_EVENT,
-               "event type mismatch NS_POINTER_EVENT");
+  NS_ASSERTION(mEvent->mClass == ePointerEventClass,
+               "event type mismatch ePointerEventClass");
 
   WidgetMouseEvent* mouseEvent = mEvent->AsMouseEvent();
   if (aEvent) {
@@ -48,7 +48,7 @@ ConvertStringToPointerType(const nsAString& aPointerTypeArg)
   return nsIDOMMouseEvent::MOZ_SOURCE_UNKNOWN;
 }
 
-// static
+
 already_AddRefed<PointerEvent>
 PointerEvent::Constructor(EventTarget* aOwner,
                           const nsAString& aType,
@@ -79,7 +79,7 @@ PointerEvent::Constructor(EventTarget* aOwner,
   return e.forget();
 }
 
-// static
+
 already_AddRefed<PointerEvent>
 PointerEvent::Constructor(const GlobalObject& aGlobal,
                           const nsAString& aType,
@@ -151,8 +151,8 @@ PointerEvent::IsPrimary()
   return mEvent->AsPointerEvent()->isPrimary;
 }
 
-} // namespace dom
-} // namespace mozilla
+} 
+} 
 
 using namespace mozilla;
 using namespace mozilla::dom;

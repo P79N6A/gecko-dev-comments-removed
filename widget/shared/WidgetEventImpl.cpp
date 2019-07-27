@@ -217,7 +217,7 @@ WidgetEvent::IsAllowedToDispatchDOMEvent() const
 {
   switch (mClass) {
     case eMouseEventClass:
-    case NS_POINTER_EVENT:
+    case ePointerEventClass:
       
       
       

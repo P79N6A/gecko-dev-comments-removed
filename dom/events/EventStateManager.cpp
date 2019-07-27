@@ -3787,7 +3787,7 @@ EventStateManager::NotifyMouseOut(WidgetMouseEvent* aMouseEvent,
   
   
   
-  bool isPointer = aMouseEvent->mClass == NS_POINTER_EVENT;
+  bool isPointer = aMouseEvent->mClass == ePointerEventClass;
   if (!aMovingInto && !isPointer) {
     
     SetContentState(nullptr, NS_EVENT_STATE_HOVER);
@@ -3850,7 +3850,7 @@ EventStateManager::NotifyMouseOver(WidgetMouseEvent* aMouseEvent,
   
   nsCOMPtr<nsIContent> lastOverElement = wrapper->mLastOverElement;
 
-  bool isPointer = aMouseEvent->mClass == NS_POINTER_EVENT;
+  bool isPointer = aMouseEvent->mClass == ePointerEventClass;
   
   Maybe<EnterLeaveDispatcher> enterDispatcher;
   if (dispatch) {

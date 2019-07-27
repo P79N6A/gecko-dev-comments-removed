@@ -44,7 +44,7 @@ enum EventClassID MOZ_ENUM_TYPE(EventClassIDType)
   eDragEventClass,                   
   eMouseScrollEventClass,            
   eWheelEventClass,                  
-  NS_POINTER_EVENT,                  
+  ePointerEventClass,                
 
   
   NS_GESTURENOTIFY_EVENT,            
