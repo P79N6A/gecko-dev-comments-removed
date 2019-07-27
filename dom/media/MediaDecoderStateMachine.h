@@ -407,7 +407,8 @@ public:
   }
 
   
-  void ResetDecode();
+  
+  void Reset();
 
 private:
   void AcquireMonitorAndInvokeDecodeError();
@@ -510,14 +511,6 @@ protected:
 
   
   void UpdateReadyState();
-
-  
-  void ResetPlayback();
-
-  
-  
-  
-  void FlushDecoding();
 
   
   

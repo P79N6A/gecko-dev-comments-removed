@@ -1499,8 +1499,8 @@ void MediaDecoderStateMachine::SetDormant(bool aDormant)
     if (IsPlaying()) {
       StopPlayback();
     }
-    StopAudioThread();
-    FlushDecoding();
+
+    Reset();
 
     
     
@@ -1623,38 +1623,6 @@ void MediaDecoderStateMachine::PlayInternal()
   }
 
   ScheduleStateMachine();
-}
-
-void MediaDecoderStateMachine::ResetPlayback()
-{
-  MOZ_ASSERT(OnStateMachineThread());
-
-  
-  
-  
-  
-  AssertCurrentThreadInMonitor();
-  MOZ_ASSERT(mState == DECODER_STATE_SEEKING ||
-             mState == DECODER_STATE_SHUTDOWN ||
-             mState == DECODER_STATE_DORMANT ||
-             mState == DECODER_STATE_DECODING_NONE);
-
-  
-  
-  
-  MOZ_ASSERT(!mAudioSink);
-
-  mVideoFrameEndTime = -1;
-  mDecodedVideoEndTime = -1;
-  mAudioStartTime = -1;
-  mAudioEndTime = -1;
-  mDecodedAudioEndTime = -1;
-  mAudioCompleted = false;
-  AudioQueue().Reset();
-  VideoQueue().Reset();
-  mFirstVideoFrameAfterSeek = nullptr;
-  mDropAudioUntilNextDiscontinuity = true;
-  mDropVideoUntilNextDiscontinuity = true;
 }
 
 void MediaDecoderStateMachine::NotifyDataArrived(const char* aBuffer,
@@ -1898,13 +1866,7 @@ MediaDecoderStateMachine::InitiateSeek()
   NS_DispatchToMainThread(startEvent, NS_DISPATCH_NORMAL);
 
   
-  
-  
-  StopAudioThread();
-  ResetPlayback();
-
-  
-  ResetDecode();
+  Reset();
 
   
   mSeekRequest.Begin(ProxyMediaCall(DecodeTaskQueue(), mReader.get(), __func__,
@@ -2612,8 +2574,7 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
         StopPlayback();
       }
 
-      StopAudioThread();
-      FlushDecoding();
+      Reset();
 
       
       
@@ -2785,27 +2746,38 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
 }
 
 void
-MediaDecoderStateMachine::FlushDecoding()
+MediaDecoderStateMachine::Reset()
 {
   MOZ_ASSERT(OnStateMachineThread());
   AssertCurrentThreadInMonitor();
+  DECODER_LOG("MediaDecoderStateMachine::Reset");
 
   
   
   
-  ResetDecode();
+  
+  MOZ_ASSERT(mState == DECODER_STATE_SEEKING ||
+             mState == DECODER_STATE_SHUTDOWN ||
+             mState == DECODER_STATE_DORMANT ||
+             mState == DECODER_STATE_DECODING_NONE);
 
   
   
   
-  ResetPlayback();
-}
+  StopAudioThread();
 
-void
-MediaDecoderStateMachine::ResetDecode()
-{
-  MOZ_ASSERT(OnStateMachineThread());
-  AssertCurrentThreadInMonitor();
+  mVideoFrameEndTime = -1;
+  mDecodedVideoEndTime = -1;
+  mAudioStartTime = -1;
+  mAudioEndTime = -1;
+  mDecodedAudioEndTime = -1;
+  mAudioCompleted = false;
+  AudioQueue().Reset();
+  VideoQueue().Reset();
+  mFirstVideoFrameAfterSeek = nullptr;
+  mDropAudioUntilNextDiscontinuity = true;
+  mDropVideoUntilNextDiscontinuity = true;
+  mDecodeToSeekTarget = false;
 
   mMetadataRequest.DisconnectIfExists();
   mAudioDataRequest.DisconnectIfExists();
@@ -2813,8 +2785,6 @@ MediaDecoderStateMachine::ResetDecode()
   mVideoDataRequest.DisconnectIfExists();
   mVideoWaitRequest.DisconnectIfExists();
   mSeekRequest.DisconnectIfExists();
-
-  mDecodeToSeekTarget = false;
 
   RefPtr<nsRunnable> resetTask =
     NS_NewRunnableMethod(mReader, &MediaDecoderReader::ResetDecode);
