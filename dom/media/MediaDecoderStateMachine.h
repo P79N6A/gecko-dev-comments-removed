@@ -204,7 +204,7 @@ public:
   
   
   
-  void SetDuration(int64_t aDuration);
+  void SetDuration(media::TimeUnit aDuration);
 
   
   
