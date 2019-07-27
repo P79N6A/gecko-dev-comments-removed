@@ -335,7 +335,7 @@ MediaSource::Enabled(JSContext* cx, JSObject* aGlobal)
   }
 
   
-  bool restrict = Preferences::GetBool("media.mediasource.youtubeonly", false);
+  bool restrict = Preferences::GetBool("media.mediasource.whitelist", false);
   if (!restrict) {
     return true;
   }
