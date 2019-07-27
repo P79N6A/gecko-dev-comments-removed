@@ -146,6 +146,10 @@ public:
   
   bool IsActiveReader(MediaDecoderReader* aReader);
 
+  
+  
+  void GetMozDebugReaderData(nsAString& aString);
+
 private:
   
   
