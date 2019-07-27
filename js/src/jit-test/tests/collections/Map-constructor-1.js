@@ -10,8 +10,7 @@ m = new Map(null);
 assertEq(m.size, 0);
 
 
-options("werror");
-assertEq(evaluate("Map()", {catchTermination: true}), "terminated");
+assertWarning(() => Map(), "None");
 
 
 

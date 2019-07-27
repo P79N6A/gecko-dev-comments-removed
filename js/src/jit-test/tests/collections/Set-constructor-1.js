@@ -10,8 +10,7 @@ s = new Set(null);
 assertEq(s.size, 0);
 
 
-options("werror");
-assertEq(evaluate("Set()", {catchTermination: true}), "terminated");
+assertWarning(() => Set(), "None");
 
 
 
