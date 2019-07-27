@@ -248,7 +248,13 @@ protected:
 
 
     
-    
+
+
+
+
+
+
+
     GtkIMContext* GetContext();
 
     
@@ -272,10 +278,22 @@ protected:
                               nsAString& aCompositionString);
 
     
-    already_AddRefed<mozilla::TextRangeArray> CreateTextRangeArray();
+
+
+
+
+    already_AddRefed<mozilla::TextRangeArray>
+        CreateTextRangeArray(GtkIMContext* aContext);
 
     
-    void SetCursorPosition(uint32_t aTargetOffset);
+
+
+
+
+
+
+
+    void SetCursorPosition(GtkIMContext* aContext, uint32_t aTargetOffset);
 
     
     uint32_t GetSelectionOffset(nsWindow* aWindow);
@@ -284,7 +302,16 @@ protected:
     nsresult GetCurrentParagraph(nsAString& aText, uint32_t& aCursorPos);
 
     
-    nsresult DeleteText(const int32_t aOffset, const uint32_t aNChars);
+
+
+
+
+
+
+
+    nsresult DeleteText(GtkIMContext* aContext,
+                        int32_t aOffset,
+                        uint32_t aNChars);
 
     
     void InitEvent(mozilla::WidgetGUIEvent& aEvent);
@@ -308,7 +335,8 @@ protected:
 
 
 
-    bool DispatchCompositionStart();
+
+    bool DispatchCompositionStart(GtkIMContext* aContext);
 
     
 
@@ -317,7 +345,9 @@ protected:
 
 
 
-    bool DispatchCompositionChangeEvent(const nsAString& aCompositionString);
+
+    bool DispatchCompositionChangeEvent(GtkIMContext* aContext,
+                                        const nsAString& aCompositionString);
 
     
 
@@ -328,7 +358,9 @@ protected:
 
 
 
-    bool DispatchCompositionEventsForCommit(const nsAString& aCommitString);
+
+    bool DispatchCompositionEventsForCommit(GtkIMContext* aContext,
+                                            const nsAString& aCommitString);
 };
 
 #endif 
