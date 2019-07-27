@@ -195,6 +195,10 @@ class TraceLoggerThread
     bool enable(JSContext *cx);
     bool disable();
 
+  private:
+    bool fail(JSContext *cx, const char *error);
+
+  public:
     
     
     
