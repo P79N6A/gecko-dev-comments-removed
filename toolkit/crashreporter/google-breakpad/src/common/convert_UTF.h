@@ -87,6 +87,22 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 typedef unsigned long	UTF32;	
 typedef unsigned short	UTF16;	
 typedef unsigned char	UTF8;	
