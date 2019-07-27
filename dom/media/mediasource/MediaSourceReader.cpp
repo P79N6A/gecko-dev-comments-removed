@@ -689,6 +689,10 @@ MediaSourceReader::Seek(int64_t aTime, int64_t aIgnored )
   mVideoPromise.RejectIfExists(CANCELED, __func__);
 
   
+  mAudioWaitPromise.RejectIfExists(WaitForDataRejectValue(MediaData::AUDIO_DATA, WaitForDataRejectValue::CANCELED), __func__);
+  mVideoWaitPromise.RejectIfExists(WaitForDataRejectValue(MediaData::VIDEO_DATA, WaitForDataRejectValue::CANCELED), __func__);
+
+  
   
   mAudioSeekRequest.DisconnectIfExists();
   mVideoSeekRequest.DisconnectIfExists();
