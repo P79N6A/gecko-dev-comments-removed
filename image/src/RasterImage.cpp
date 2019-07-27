@@ -1448,12 +1448,16 @@ RasterImage::Decode(DecodeStrategy aStrategy,
     return NS_ERROR_FAILURE;
   }
 
-  
-  
   if (!aDoSizeDecode) {
+    
     NotifyProgress(decoder->TakeProgress(),
                    decoder->TakeInvalidRect(),
                    decoder->GetDecodeFlags());
+
+    
+    
+    
+    LockImage();
   }
 
   if (mHasSourceData) {
@@ -1908,6 +1912,11 @@ RasterImage::FinalizeDecoder(Decoder* aDecoder)
     } else if (wasSize && !mHasSize) {
       DoError();
     }
+  }
+
+  if (!wasSize) {
+    
+    UnlockImage();
   }
 
   
