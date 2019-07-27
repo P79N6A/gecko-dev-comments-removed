@@ -1019,8 +1019,22 @@ TabActor.prototype = {
     if (webProgress.DOMWindow == this._originalWindow) {
       
       
-      
-      this.exit();
+      let rootDocShells = this.docShells
+                              .filter(d => {
+                                return d != this.docShell &&
+                                       this._isRootDocShell(d);
+                              });
+      if (rootDocShells.length > 0) {
+        let newRoot = rootDocShells[0];
+        this._originalWindow = newRoot.DOMWindow;
+        this._changeTopLevelDocument(this._originalWindow);
+      } else {
+        
+        
+        
+        
+        this.exit();
+      }
       return;
     }
 
