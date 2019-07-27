@@ -14,6 +14,7 @@
 #include "nsContentPolicyUtils.h"
 #include "nsIObjectLoadingContent.h"
 #include "mozilla/ArrayUtils.h"
+#include "nsContentUtils.h"
 
 
 
@@ -150,6 +151,9 @@ nsContentBlocker::ShouldLoad(uint32_t          aContentType,
                              nsIPrincipal     *aRequestPrincipal,
                              int16_t          *aDecision)
 {
+  MOZ_ASSERT(aContentType == nsContentUtils::InternalContentPolicyTypeToExternal(aContentType),
+             "We should only see external content policy types here.");
+
   *aDecision = nsIContentPolicy::ACCEPT;
   nsresult rv;
 
@@ -201,6 +205,9 @@ nsContentBlocker::ShouldProcess(uint32_t          aContentType,
                                 nsIPrincipal     *aRequestPrincipal,
                                 int16_t          *aDecision)
 {
+  MOZ_ASSERT(aContentType == nsContentUtils::InternalContentPolicyTypeToExternal(aContentType),
+             "We should only see external content policy types here.");
+
   
   
   
