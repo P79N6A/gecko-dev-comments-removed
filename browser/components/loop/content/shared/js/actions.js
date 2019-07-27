@@ -33,6 +33,13 @@ loop.shared.actions = (function() {
     
 
 
+
+    FetchEmailLink: Action.define("fetchEmailLink", {
+    }),
+
+    
+
+
     GatherCallData: Action.define("gatherCallData", {
       
       callId: [String, null],

@@ -126,7 +126,8 @@ loop.store.ConversationStore = (function() {
         "cancelCall",
         "retryCall",
         "mediaConnected",
-        "setMute"
+        "setMute",
+        "fetchEmailLink"
       ]);
     },
 
@@ -301,6 +302,23 @@ loop.store.ConversationStore = (function() {
     setMute: function(actionData) {
       var muteType = actionData.type + "Muted";
       this.set(muteType, !actionData.enabled);
+    },
+
+    
+
+
+
+    fetchEmailLink: function() {
+      
+      
+      this.client.requestCallUrl("", function(err, callUrlData) {
+        if (err) {
+          
+          console.error(err);
+          return;
+        }
+        this.set("emailLink", callUrlData.callUrl);
+      }.bind(this));
     },
 
     

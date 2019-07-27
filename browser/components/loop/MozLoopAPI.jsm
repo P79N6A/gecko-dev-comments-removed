@@ -604,12 +604,15 @@ function injectLoopAPI(targetWindow) {
 
 
 
+
     composeEmail: {
       enumerable: true,
       writable: true,
-      value: function(subject, body) {
-        let mailtoURL = "mailto:?subject=" + encodeURIComponent(subject) + "&" +
-                        "body=" + encodeURIComponent(body);
+      value: function(subject, body, recipient) {
+        recipient = recipient || "";
+        let mailtoURL = "mailto:" + encodeURIComponent(recipient) +
+                        "?subject=" + encodeURIComponent(subject) +
+                        "&body=" + encodeURIComponent(body);
         extProtocolSvc.loadURI(CommonUtils.makeURI(mailtoURL));
       }
     },
