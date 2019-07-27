@@ -138,7 +138,7 @@ BufferRecycleBin::GetBuffer(uint32_t aSize)
   return result;
 }
 
-ImageContainer::ImageContainer(int flag)
+ImageContainer::ImageContainer(ImageContainer::Mode flag)
 : mReentrantMonitor("ImageContainer.mReentrantMonitor"),
   mPaintCount(0),
   mPreviousImagePainted(false),
@@ -147,11 +147,24 @@ ImageContainer::ImageContainer(int flag)
   mCompositionNotifySink(nullptr),
   mImageClient(nullptr)
 {
-  if (flag == ENABLE_ASYNC && ImageBridgeChild::IsCreated()) {
+  if (ImageBridgeChild::IsCreated()) {
     
     
-    mImageClient = ImageBridgeChild::GetSingleton()->CreateImageClient(CompositableType::IMAGE).take();
-    MOZ_ASSERT(mImageClient);
+    switch(flag) {
+      case SYNCHRONOUS:
+        break;
+      case ASYNCHRONOUS:
+        mImageClient = ImageBridgeChild::GetSingleton()->CreateImageClient(CompositableType::IMAGE).take();
+        MOZ_ASSERT(mImageClient);
+        break;
+      case ASYNCHRONOUS_OVERLAY:
+        mImageClient = ImageBridgeChild::GetSingleton()->CreateImageClient(CompositableType::IMAGE_OVERLAY).take();
+        MOZ_ASSERT(mImageClient);
+        break;
+      default:
+        MOZ_ASSERT(false, "This flag is invalid.");
+        break;
+    }
   }
 }
 

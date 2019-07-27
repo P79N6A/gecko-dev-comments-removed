@@ -46,6 +46,7 @@
 #include "mozilla/Logging.h"                      
 #include "nsIWidget.h"                  
 #include "gfxVR.h"
+#include "ImageContainer.h"
 
 class gfxContext;
 
@@ -81,7 +82,6 @@ class PaintedLayer;
 class ContainerLayer;
 class ImageLayer;
 class ColorLayer;
-class ImageContainer;
 class CanvasLayer;
 class ReadbackLayer;
 class ReadbackProcessor;
@@ -437,17 +437,10 @@ public:
 
 
 
-  static already_AddRefed<ImageContainer> CreateImageContainer();
-
-  
 
 
-
-
-
-
-
-  static already_AddRefed<ImageContainer> CreateAsynchronousImageContainer();
+  static already_AddRefed<ImageContainer> CreateImageContainer(ImageContainer::Mode flag
+                                                                = ImageContainer::SYNCHRONOUS);
 
   
 
