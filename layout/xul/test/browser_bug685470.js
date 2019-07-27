@@ -17,9 +17,9 @@ add_task(function* () {
   document.addEventListener("popupshown", onPopupShown, true);
 
   
-  BrowserTestUtils.synthesizeMouseAtCenter("#p1", { type: "mousemove" },
+  yield BrowserTestUtils.synthesizeMouseAtCenter("#p1", { type: "mousemove" },
                                            gBrowser.selectedBrowser);
-  BrowserTestUtils.synthesizeMouseAtCenter("#p1", { }, gBrowser.selectedBrowser);
+  yield BrowserTestUtils.synthesizeMouseAtCenter("#p1", { }, gBrowser.selectedBrowser);
 
   yield new Promise(resolve => {
     setTimeout(function() {
