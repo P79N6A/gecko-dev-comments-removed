@@ -1648,15 +1648,13 @@ public:
       , hPctPadding(0.0f), hPctMargin(0.0f)
     {}
   };
-  virtual IntrinsicISizeOffsetData
-    IntrinsicISizeOffsets(nsRenderingContext* aRenderingContext) = 0;
+  virtual IntrinsicISizeOffsetData IntrinsicISizeOffsets() = 0;
 
   
 
 
 
-  IntrinsicISizeOffsetData
-    IntrinsicBSizeOffsets(nsRenderingContext* aRenderingContext);
+  IntrinsicISizeOffsetData IntrinsicBSizeOffsets();
 
   virtual mozilla::IntrinsicSize GetIntrinsicSize() = 0;
 

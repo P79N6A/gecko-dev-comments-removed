@@ -319,8 +319,7 @@ public:
   
   virtual nscoord GetMinISize(nsRenderingContext *aRenderingContext) override;
   virtual nscoord GetPrefISize(nsRenderingContext *aRenderingContext) override;
-  virtual IntrinsicISizeOffsetData
-    IntrinsicISizeOffsets(nsRenderingContext* aRenderingContext) override;
+  virtual IntrinsicISizeOffsetData IntrinsicISizeOffsets() override;
 
   virtual mozilla::LogicalSize
   ComputeSize(nsRenderingContext *aRenderingContext,

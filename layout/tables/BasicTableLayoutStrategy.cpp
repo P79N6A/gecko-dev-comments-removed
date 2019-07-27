@@ -104,7 +104,7 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
         
 
         
-        nsIFrame::IntrinsicISizeOffsetData offsets = aFrame->IntrinsicISizeOffsets(aRenderingContext);
+        nsIFrame::IntrinsicISizeOffsetData offsets = aFrame->IntrinsicISizeOffsets();
 
         
         

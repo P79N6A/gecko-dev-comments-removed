@@ -248,7 +248,7 @@ FixedTableLayoutStrategy::ComputeColumnISizes(const nsHTMLReflowState& aReflowSt
                 } else if (styleWidth->GetUnit() == eStyleUnit_Percent) {
                     
                     nsIFrame::IntrinsicISizeOffsetData offsets =
-                        cellFrame->IntrinsicISizeOffsets(aReflowState.rendContext);
+                        cellFrame->IntrinsicISizeOffsets();
                     float pct = styleWidth->GetPercentValue();
                     colWidth = NSToCoordFloor(pct * float(tableWidth));
 
