@@ -430,7 +430,7 @@ PerformanceActorsConnection.prototype = {
   stopRecording: Task.async(function*(model) {
     
     
-    if (!this._recordings.includes(model)) {
+    if (this._recordings.indexOf(model) === -1) {
       return;
     }
 
