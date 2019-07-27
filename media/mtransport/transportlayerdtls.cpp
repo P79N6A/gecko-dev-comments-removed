@@ -1045,15 +1045,12 @@ SECStatus TransportLayerDtls::AuthCertificateHook(PRFileDesc *fd,
           RefPtr<VerificationDigest> digest = digests_[i];
           rv = CheckDigest(digest, peer_cert);
 
-          if (rv != SECSuccess)
-            break;
-        }
-
-        if (rv == SECSuccess) {
           
-          cert_ok_ = true;
-          peer_cert = peer_cert.forget();
-          return SECSuccess;
+          if (rv == SECSuccess) {
+            cert_ok_ = true;
+            peer_cert = peer_cert.forget();
+            return SECSuccess;
+          }
         }
       }
       break;
