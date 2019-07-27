@@ -126,12 +126,9 @@ public:
                         const std::string& aId)
      : SourceStreamInfo(aMediaStream, aParent, aId) {}
 
-  
-  
-  
-  nsresult ReplaceTrack(const std::string& oldTrackId,
-                        DOMMediaStream* aNewStream,
-                        const std::string& aNewTrack);
+  nsresult TakePipelineFrom(RefPtr<LocalSourceStreamInfo>& info,
+                            const std::string& oldTrackId,
+                            const std::string& newTrackId);
 
 #ifdef MOZILLA_INTERNAL_API
   void UpdateSinkIdentity_m(nsIPrincipal* aPrincipal,
@@ -139,6 +136,10 @@ public:
 #endif
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(LocalSourceStreamInfo)
+
+private:
+  TemporaryRef<MediaPipeline> ForgetPipelineByTrackId_m(
+      const std::string& trackId);
 };
 
 class RemoteSourceStreamInfo : public SourceStreamInfo {
@@ -289,6 +290,12 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
 
   
   nsresult AddRemoteStream(nsRefPtr<RemoteSourceStreamInfo> aInfo);
+
+  nsresult ReplaceTrack(const std::string& oldStreamId,
+                        const std::string& oldTrackId,
+                        DOMMediaStream* aNewStream,
+                        const std::string& newStreamId,
+                        const std::string& aNewTrack);
 
 #ifdef MOZILLA_INTERNAL_API
   

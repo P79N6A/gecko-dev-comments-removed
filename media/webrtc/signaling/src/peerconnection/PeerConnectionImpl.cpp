@@ -2086,8 +2086,7 @@ PeerConnectionImpl::RemoveTrack(MediaStreamTrack& aTrack) {
 
 NS_IMETHODIMP
 PeerConnectionImpl::ReplaceTrack(MediaStreamTrack& aThisTrack,
-                                 MediaStreamTrack& aWithTrack,
-                                 DOMMediaStream& aStream) {
+                                 MediaStreamTrack& aWithTrack) {
   PC_AUTO_ENTER_API_CALL(true);
 
   JSErrorResult jrv;
@@ -2099,52 +2098,33 @@ PeerConnectionImpl::ReplaceTrack(MediaStreamTrack& aThisTrack,
   std::string origTrackId = PeerConnectionImpl::GetTrackId(aThisTrack);
   std::string newTrackId = PeerConnectionImpl::GetTrackId(aWithTrack);
 
-  
-  
-  
-  
-  
-  
-  
+  std::string origStreamId =
+    PeerConnectionImpl::GetStreamId(*aThisTrack.GetStream());
+  std::string newStreamId =
+    PeerConnectionImpl::GetStreamId(*aWithTrack.GetStream());
 
-  if (!aStream.HasTrack(aThisTrack)) {
-    CSFLogError(logTag, "Track to replace (%s) is not in stream",
-                        origTrackId.c_str());
-    pco->OnReplaceTrackError(kInvalidMediastreamTrack,
-                             ObString("Track to replace is not in stream"),
-                             jrv);
-    return NS_OK;
-  }
+  nsresult rv = mJsepSession->ReplaceTrack(origStreamId,
+                                           origTrackId,
+                                           newStreamId,
+                                           newTrackId);
 
-  
-  
-  
-  
-
-  
-  
-  
-  
-  
-
-  std::string streamId = PeerConnectionImpl::GetStreamId(aStream);
-  nsRefPtr<LocalSourceStreamInfo> info = media()->GetLocalStreamById(streamId);
-
-  if (!info || !info->HasTrack(origTrackId)) {
-    CSFLogError(logTag, "Track to replace (%s) was never added",
-                        origTrackId.c_str());
-    pco->OnReplaceTrackError(kInvalidMediastreamTrack,
-                             ObString("Track to replace was never added"),
-                             jrv);
-    return NS_OK;
-  }
-
-  nsresult rv =
-    info->ReplaceTrack(origTrackId, aWithTrack.GetStream(), newTrackId);
   if (NS_FAILED(rv)) {
-    CSFLogError(logTag, "Failed to replace track (%s)",
-                        origTrackId.c_str());
-    pco->OnReplaceTrackError(kInternalError,
+    pco->OnReplaceTrackError(kInvalidMediastreamTrack,
+                             ObString(mJsepSession->GetLastError().c_str()),
+                             jrv);
+    return NS_OK;
+  }
+
+  rv = media()->ReplaceTrack(origStreamId,
+                             origTrackId,
+                             aWithTrack.GetStream(),
+                             newStreamId,
+                             newTrackId);
+
+  if (NS_FAILED(rv)) {
+    CSFLogError(logTag, "Unexpected error in ReplaceTrack: %d",
+                        static_cast<int>(rv));
+    pco->OnReplaceTrackError(kInvalidMediastreamTrack,
                              ObString("Failed to replace track"),
                              jrv);
     return NS_OK;
