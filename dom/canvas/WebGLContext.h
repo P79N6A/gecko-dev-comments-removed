@@ -242,7 +242,11 @@ public:
 
 
 
-    static const char *EnumName(GLenum glenum);
+
+    
+    static const char* EnumName(GLenum glenum);
+    
+    static void EnumName(GLenum glenum, nsACString* out_name);
 
     bool IsCompressedTextureFormat(GLenum format);
     bool IsTextureFormatCompressed(TexInternalFormat format);
