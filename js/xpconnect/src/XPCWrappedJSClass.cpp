@@ -710,6 +710,56 @@ nsXPCWrappedJSClass::CleanupPointerTypeObject(const nsXPTType& type,
     }
 }
 
+void
+nsXPCWrappedJSClass::CleanupOutparams(JSContext* cx, uint16_t methodIndex,
+                                      const nsXPTMethodInfo* info, nsXPTCMiniVariant* nativeParams,
+                                      bool inOutOnly, uint8_t n) const
+{
+    
+    for (uint8_t i = 0; i < n; i++) {
+        const nsXPTParamInfo& param = info->params[i];
+        if (!param.IsOut())
+            continue;
+
+        const nsXPTType& type = param.GetType();
+        if (!type.deprecated_IsPointer())
+            continue;
+        void* p;
+        if (!(p = nativeParams[i].val.p))
+            continue;
+
+        
+        
+        
+        if (!inOutOnly || param.IsIn()) {
+            if (type.IsArray()) {
+                void** pp;
+                if (nullptr != (pp = *((void***)p))) {
+
+                    
+                    uint32_t array_count;
+                    nsXPTType datum_type;
+
+                    if (NS_SUCCEEDED(mInfo->GetTypeForParam(methodIndex, &param,
+                                                            1, &datum_type)) &&
+                        datum_type.deprecated_IsPointer() &&
+                        GetArraySizeFromParam(cx, info, param, methodIndex,
+                                              i, nativeParams, &array_count) &&
+                        array_count) {
+
+                        CleanupPointerArray(datum_type, array_count, pp);
+                    }
+
+                    
+                    free(pp);
+                }
+            } else
+                CleanupPointerTypeObject(type, (void**)p);
+        }
+        *((void**)p) = nullptr;
+    }
+}
+
 nsresult
 nsXPCWrappedJSClass::CheckForException(XPCCallContext & ccx,
                                        const char * aPropertyName,
@@ -1148,45 +1198,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
 
 pre_call_clean_up:
     
-    for (i = 0; i < paramCount; i++) {
-        const nsXPTParamInfo& param = info->params[i];
-        if (!param.IsOut())
-            continue;
-
-        const nsXPTType& type = param.GetType();
-        if (!type.deprecated_IsPointer())
-            continue;
-        void* p;
-        if (!(p = nativeParams[i].val.p))
-            continue;
-
-        if (param.IsIn()) {
-            if (type.IsArray()) {
-                void** pp;
-                if (nullptr != (pp = *((void***)p))) {
-
-                    
-                    uint32_t array_count;
-                    nsXPTType datum_type;
-
-                    if (NS_SUCCEEDED(mInfo->GetTypeForParam(methodIndex, &param,
-                                                            1, &datum_type)) &&
-                        datum_type.deprecated_IsPointer() &&
-                        GetArraySizeFromParam(cx, info, param, methodIndex,
-                                              i, nativeParams, &array_count) &&
-                        array_count) {
-
-                        CleanupPointerArray(datum_type, array_count, pp);
-                    }
-
-                    
-                    free(pp);
-                }
-            } else
-                CleanupPointerTypeObject(type, (void**)p);
-        }
-        *((void**)p) = nullptr;
-    }
+    CleanupOutparams(cx, methodIndex, info, nativeParams,  true, paramCount);
 
     
     nsCOMPtr<nsIXPCWrappedJSClass> kungFuDeathGrip(this);
@@ -1380,40 +1392,7 @@ pre_call_clean_up:
     if (i != paramCount) {
         
         
-
-        for (uint8_t k = 0; k < i; k++) {
-            const nsXPTParamInfo& param = info->params[k];
-            if (!param.IsOut())
-                continue;
-            const nsXPTType& type = param.GetType();
-            if (!type.deprecated_IsPointer())
-                continue;
-            void* p;
-            if (!(p = nativeParams[k].val.p))
-                continue;
-
-            if (type.IsArray()) {
-                void** pp;
-                if (nullptr != (pp = *((void***)p))) {
-                    
-                    uint32_t array_count;
-                    nsXPTType datum_type;
-
-                    if (NS_SUCCEEDED(mInfo->GetTypeForParam(methodIndex, &param,
-                                                            1, &datum_type)) &&
-                        datum_type.deprecated_IsPointer() &&
-                        GetArraySizeFromParam(cx, info, param, methodIndex,
-                                              k, nativeParams, &array_count) &&
-                        array_count) {
-
-                        CleanupPointerArray(datum_type, array_count, pp);
-                    }
-                    free(pp);
-                }
-            } else
-                CleanupPointerTypeObject(type, (void**)p);
-            *((void**)p) = nullptr;
-        }
+        CleanupOutparams(cx, methodIndex, info, nativeParams,  false, i);
     } else {
         
         retval = xpcc->GetPendingResult();
