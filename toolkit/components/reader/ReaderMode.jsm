@@ -133,8 +133,8 @@ this.ReaderMode = {
 
 
 
-  getArticleFromCache: Task.async(function* (uri) {
-    let path = this._toHashedPath(uri.specIgnoringRef);
+  getArticleFromCache: Task.async(function* (url) {
+    let path = this._toHashedPath(url);
     try {
       let array = yield OS.File.read(path);
       return JSON.parse(new TextDecoder().decode(array));
@@ -166,8 +166,8 @@ this.ReaderMode = {
 
 
 
-  removeArticleFromCache: Task.async(function* (uri) {
-    let path = this._toHashedPath(uri.specIgnoringRef);
+  removeArticleFromCache: Task.async(function* (url) {
+    let path = this._toHashedPath(url);
     yield OS.File.remove(path);
   }),
 
@@ -219,8 +219,9 @@ this.ReaderMode = {
         }
 
         
-        
-        article.url = uri.specIgnoringRef;
+        article.url = article.uri.spec;
+        delete article.uri;
+
         let flags = Ci.nsIDocumentEncoder.OutputSelectionOnly | Ci.nsIDocumentEncoder.OutputAbsoluteLinks;
         article.title = Cc["@mozilla.org/parserutils;1"].getService(Ci.nsIParserUtils)
                                                         .convertToPlainText(article.title, flags, 0);

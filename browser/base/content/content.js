@@ -520,8 +520,8 @@ let AboutReaderListener = {
 
           
           
-          let currentURL = Services.io.newURI(content.document.documentURI, null, null).specIgnoringRef;
-          if (article.url !== currentURL) {
+          let url = Services.io.newURI(content.document.documentURI, null, null).spec;
+          if (article.url !== url) {
             return;
           }
 

@@ -178,8 +178,7 @@ let ReaderParent = {
     }
 
     
-    let uri = Services.io.newURI(url, null, null);
-    article = yield ReaderMode.getArticleFromCache(uri);
+    article = yield ReaderMode.getArticleFromCache(url);
     if (article) {
       return article;
     }
