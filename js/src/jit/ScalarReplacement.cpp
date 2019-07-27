@@ -146,8 +146,8 @@ IsObjectEscaped(MInstruction *ins)
         MNode *consumer = (*i)->consumer();
         if (!consumer->isDefinition()) {
             
-            if (!consumer->toResumePoint()->isRecoverableOperand(*i)) {
-                JitSpewDef(JitSpew_Escape, "Observable object cannot be recovered\n", ins);
+            if (consumer->toResumePoint()->isObservableOperand(*i)) {
+                JitSpewDef(JitSpew_Escape, "Object is observable\n", ins);
                 return true;
             }
             continue;
@@ -525,8 +525,8 @@ IsArrayEscaped(MInstruction *ins)
         MNode *consumer = (*i)->consumer();
         if (!consumer->isDefinition()) {
             
-            if (!consumer->toResumePoint()->isRecoverableOperand(*i)) {
-                JitSpewDef(JitSpew_Escape, "Observable array cannot be recovered\n", ins);
+            if (consumer->toResumePoint()->isObservableOperand(*i)) {
+                JitSpewDef(JitSpew_Escape, "Array is observable\n", ins);
                 return true;
             }
             continue;
