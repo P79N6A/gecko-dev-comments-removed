@@ -4028,8 +4028,16 @@ ObjectGroup::maybeSweep(AutoClearTypeInferenceStateOnOOM *oom)
     Maybe<AutoClearTypeInferenceStateOnOOM> fallbackOOM;
     EnsureHasAutoClearTypeInferenceStateOnOOM(oom, zone(), fallbackOOM);
 
-    if (maybeUnboxedLayout() && unboxedLayout().newScript())
-        unboxedLayout().newScript()->sweep();
+    if (maybeUnboxedLayout()) {
+        
+        
+        ObjectGroup *group = this;
+        if (IsObjectGroupAboutToBeFinalized(&group))
+            unboxedLayout().detachFromCompartment();
+
+        if (unboxedLayout().newScript())
+            unboxedLayout().newScript()->sweep();
+    }
 
     if (maybePreliminaryObjects())
         maybePreliminaryObjects()->sweep();
