@@ -372,6 +372,14 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
         isize = spanISize;
       }
     }
+    
+    
+    
+    if (aReflowState.mLineLayout->NotifyOptionalBreakPosition(
+          this, INT32_MAX, startEdge + isize <= aReflowState.AvailableISize(),
+          gfxBreakPriority::eNormalBreak)) {
+      aStatus = NS_INLINE_LINE_BREAK_AFTER(aStatus);
+    }
   }
 
   DebugOnly<nscoord> lineSpanSize = aReflowState.mLineLayout->EndSpan(this);
@@ -462,14 +470,6 @@ nsRubyBaseContainerFrame::ReflowPairs(nsPresContext* aPresContext,
   }
   if (!e.AtEnd() || (GetNextInFlow() && !isComplete)) {
     NS_FRAME_SET_INCOMPLETE(aStatus);
-  } else {
-    
-    
-    
-    if (lineLayout->NotifyOptionalBreakPosition(
-          this, INT32_MAX, true, gfxBreakPriority::eNormalBreak)) {
-      reflowStatus = NS_INLINE_LINE_BREAK_AFTER(reflowStatus);
-    }
   }
 
   if (NS_INLINE_IS_BREAK_BEFORE(reflowStatus)) {
