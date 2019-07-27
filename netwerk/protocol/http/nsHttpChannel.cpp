@@ -4872,6 +4872,12 @@ nsHttpChannel::BeginConnect()
         Telemetry::Accumulate(Telemetry::HTTP_TRANSACTION_USE_ALTSVC, false);
     }
 
+    
+    
+    if (!mNetworkInterfaceId.IsEmpty()) {
+        mConnectionInfo->SetNetworkInterfaceId(mNetworkInterfaceId);
+    }
+
     mAuthProvider =
         do_CreateInstance("@mozilla.org/network/http-channel-auth-provider;1",
                           &rv);

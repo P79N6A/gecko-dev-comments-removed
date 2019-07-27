@@ -55,11 +55,18 @@ private:
         PR_LOG(gHttpLog, 4, ("Destroying nsHttpConnectionInfo @%x\n", this));
     }
 
+    void BuildHashKey();
+
 public:
     const nsAFlatCString &HashKey() const { return mHashKey; }
 
     const nsCString &GetAuthenticationHost() const { return mAuthenticationHost; }
     int32_t GetAuthenticationPort() const { return mAuthenticationPort; }
+
+    
+    
+    
+    void SetNetworkInterfaceId(const nsACString& aNetworkInterfaceId);
 
     
     nsHttpConnectionInfo* Clone() const;
@@ -100,6 +107,8 @@ public:
                                        { mHashKey.SetCharAt(aNoSpdy ? 'X' : '.', 5); }
     bool          GetNoSpdy() const    { return mHashKey.CharAt(5) == 'X'; }
 
+    const nsCString &GetNetworkInterfaceId() const { return mNetworkInterfaceId; }
+
     const nsCString &GetHost() { return mHost; }
     const nsCString &GetNPNToken() { return mNPNToken; }
     const nsCString &GetUsername() { return mUsername; }
@@ -136,6 +145,7 @@ private:
 
     nsCString              mHashKey;
     nsCString              mHost;
+    nsCString              mNetworkInterfaceId;
     int32_t                mPort;
     nsCString              mUsername;
     nsCString              mAuthenticationHost;
