@@ -93,16 +93,16 @@ AccessCheck::getPrincipal(JSCompartment *compartment)
 
 
 static bool
-IsPermitted(const char *name, JSFlatString *prop, bool set)
+IsPermitted(CrossOriginObjectType type, JSFlatString *prop, bool set)
 {
     size_t propLength = JS_GetStringLength(JS_FORGET_STRING_FLATNESS(prop));
     if (!propLength)
         return false;
 
     char16_t propChar0 = JS_GetFlatStringCharAt(prop, 0);
-    if (name[0] == 'L' && !strcmp(name, "Location"))
+    if (type == CrossOriginLocation)
         return dom::LocationBinding::IsPermitted(prop, propChar0, set);
-    if (name[0] == 'W' && !strcmp(name, "Window"))
+    if (type == CrossOriginWindow)
         return dom::WindowBinding::IsPermitted(prop, propChar0, set);
 
     return false;
@@ -141,10 +141,19 @@ IsFrameId(JSContext *cx, JSObject *objArg, jsid idArg)
     return domwin != nullptr;
 }
 
-static bool
-IsWindow(const char *name)
+CrossOriginObjectType
+IdentifyCrossOriginObject(JSObject *obj)
 {
-    return name[0] == 'W' && !strcmp(name, "Window");
+    obj = js::UncheckedUnwrap(obj,  false);
+    const js::Class *clasp = js::GetObjectClass(obj);
+    MOZ_ASSERT(!XrayUtils::IsXPCWNHolderClass(Jsvalify(clasp)), "shouldn't have a holder here");
+
+    if (clasp->name[0] == 'L' && !strcmp(clasp->name, "Location"))
+        return CrossOriginLocation;
+    if (clasp->name[0] == 'W' && !strcmp(clasp->name, "Window"))
+        return CrossOriginWindow;
+
+    return CrossOriginOpaque;
 }
 
 bool
@@ -166,16 +175,9 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, HandleObject wrapper, H
 
     RootedObject obj(cx, Wrapper::wrappedObject(wrapper));
 
-    const char *name;
-    const js::Class *clasp = js::GetObjectClass(obj);
-    MOZ_ASSERT(!XrayUtils::IsXPCWNHolderClass(Jsvalify(clasp)), "shouldn't have a holder here");
-    if (clasp->ext.innerObject)
-        name = "Window";
-    else
-        name = clasp->name;
-
+    CrossOriginObjectType type = IdentifyCrossOriginObject(obj);
     if (JSID_IS_STRING(id)) {
-        if (IsPermitted(name, JSID_TO_FLAT_STRING(id), act == Wrapper::SET))
+        if (IsPermitted(type, JSID_TO_FLAT_STRING(id), act == Wrapper::SET))
             return true;
     }
 
@@ -184,7 +186,7 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, HandleObject wrapper, H
 
     
     
-    if (IsWindow(name)) {
+    if (type == CrossOriginWindow) {
         if (JSID_IS_STRING(id)) {
             bool wouldShadow = false;
             if (!XrayUtils::HasNativeProperty(cx, wrapper, id, &wouldShadow) ||
