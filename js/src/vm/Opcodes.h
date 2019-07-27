@@ -1568,7 +1568,7 @@
 
 
  \
-    macro(JSOP_INITIALYIELD,  202,"initialyield", NULL,   1,  1,  1,  JOF_BYTE) \
+    macro(JSOP_INITIALYIELD,  202,"initialyield", NULL,   4,  1,  1,  JOF_UINT24) \
     
 
 
@@ -1577,7 +1577,7 @@
 
 
  \
-    macro(JSOP_YIELD,         203,"yield",       NULL,    1,  2,  1,  JOF_BYTE) \
+    macro(JSOP_YIELD,         203,"yield",       NULL,    4,  2,  1,  JOF_UINT24) \
     
 
 
