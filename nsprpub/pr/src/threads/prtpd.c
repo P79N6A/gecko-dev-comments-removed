@@ -134,6 +134,7 @@ PR_IMPLEMENT(PRStatus) PR_NewThreadPrivateIndex(
 
 
 
+
 PR_IMPLEMENT(PRStatus) PR_SetThreadPrivate(PRUintn index, void *priv)
 {
     PRThread *self = PR_GetCurrentThread();
@@ -142,8 +143,7 @@ PR_IMPLEMENT(PRStatus) PR_SetThreadPrivate(PRUintn index, void *priv)
 
 
 
-
-    if ((index >= _PR_TPD_LIMIT) || (index >= _pr_tpd_highwater))
+    if (index >= _PR_TPD_LIMIT)
     {
         PR_SetError(PR_TPD_RANGE_ERROR, 0);
         return PR_FAILURE;
@@ -151,6 +151,10 @@ PR_IMPLEMENT(PRStatus) PR_SetThreadPrivate(PRUintn index, void *priv)
 
     PR_ASSERT(((NULL == self->privateData) && (0 == self->tpdLength))
         || ((NULL != self->privateData) && (0 != self->tpdLength)));
+
+    
+
+
 
     if ((NULL == self->privateData) || (self->tpdLength <= index))
     {
