@@ -56,7 +56,7 @@ class nsCaret : public nsISelectionListener
 
 
 
-    virtual nsresult GetCaretVisible(bool *outMakeVisible);
+    nsresult GetCaretVisible(bool *outMakeVisible);
     
 
 
@@ -96,9 +96,9 @@ class nsCaret : public nsISelectionListener
 
 
 
-    virtual nsIFrame* GetGeometry(nsISelection* aSelection,
-                                  nsRect* aRect,
-                                  nscoord* aBidiIndicatorSize = nullptr);
+    nsIFrame* GetGeometry(nsISelection* aSelection,
+                          nsRect* aRect,
+                          nscoord* aBidiIndicatorSize = nullptr);
     
 
 
