@@ -380,11 +380,6 @@ PeerConnectionTest.prototype.createOffer = function(peer) {
   });
 };
 
-PeerConnectionTest.prototype.setIdentityProvider =
-function(peer, provider, protocol, identity) {
-  peer.setIdentityProvider(provider, protocol, identity);
-};
-
 
 
 
@@ -851,7 +846,7 @@ PeerConnectionWrapper.prototype = {
   },
 
   setIdentityProvider: function(provider, protocol, identity) {
-      this._pc.setIdentityProvider(provider, protocol, identity);
+    this._pc.setIdentityProvider(provider, protocol, identity);
   },
 
   
