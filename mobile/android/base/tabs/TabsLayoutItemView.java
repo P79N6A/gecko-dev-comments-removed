@@ -101,19 +101,15 @@ public class TabsLayoutItemView extends LinearLayout
             public boolean onPreDraw() {
                 getViewTreeObserver().removeOnPreDrawListener(this);
 
-                final Rect hitRect = new Rect();
-                mCloseButton.getHitRect(hitRect);
-
                 
                 
                 final int targetHitArea = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 40, getResources().getDisplayMetrics());;
-                final View parent = ((View) mCloseButton.getParent());
 
-
+                final Rect hitRect = new Rect();
                 hitRect.top = 0;
                 hitRect.right = getWidth();
                 hitRect.left = getWidth() - targetHitArea;
-                hitRect.bottom = parent.getHeight();
+                hitRect.bottom = targetHitArea;
 
                 setTouchDelegate(new TouchDelegate(hitRect, mCloseButton));
 
