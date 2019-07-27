@@ -4,8 +4,8 @@
 
 
 
-#ifndef nsIconChannel_h___
-#define nsIconChannel_h___
+#ifndef mozilla_image_encoders_icon_mac_nsIconChannel_h
+#define mozilla_image_encoders_icon_mac_nsIconChannel_h
 
 #include "mozilla/Attributes.h"
 

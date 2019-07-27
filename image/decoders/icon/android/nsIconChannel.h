@@ -3,8 +3,8 @@
 
 
 
-#ifndef nsIconChannel_h_
-#define nsIconChannel_h_
+#ifndef mozilla_image_decoders_icon_android_nsIconChannel_h
+#define mozilla_image_decoders_icon_android_nsIconChannel_h
 
 #include "mozilla/Attributes.h"
 
@@ -43,4 +43,4 @@ class nsIconChannel final : public nsIChannel {
     nsCOMPtr<nsIChannel> mRealChannel;
 };
 
-#endif
+#endif 

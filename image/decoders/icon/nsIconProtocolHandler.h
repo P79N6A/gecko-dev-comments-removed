@@ -3,8 +3,8 @@
 
 
 
-#ifndef nsIconProtocolHandler_h___
-#define nsIconProtocolHandler_h___
+#ifndef mozilla_image_decoders_icon_nsIconProtocolHandler_h
+#define mozilla_image_decoders_icon_nsIconProtocolHandler_h
 
 #include "nsWeakReference.h"
 #include "nsIProtocolHandler.h"

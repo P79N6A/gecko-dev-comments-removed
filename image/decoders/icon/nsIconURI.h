@@ -4,8 +4,8 @@
 
 
 
-#ifndef nsMozIconURI_h__
-#define nsMozIconURI_h__
+#ifndef mozilla_image_decoders_icon_nsIconURI_h
+#define mozilla_image_decoders_icon_nsIconURI_h
 
 #include "nsIIconURI.h"
 #include "nsCOMPtr.h"
