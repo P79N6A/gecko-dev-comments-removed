@@ -46,6 +46,7 @@
 #include "mozilla/EventStates.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/Preferences.h"
 
 #ifdef LoadImage
 
@@ -931,14 +932,26 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
   }
 
   
+  mozilla::net::ReferrerPolicy referrerPolicy = aDocument->GetReferrerPolicy();
+  bool referrerAttributeEnabled = Preferences::GetBool("network.http.enablePerElementReferrer", false);
+  
+  nsresult rv;
+  if (referrerAttributeEnabled) {
+    mozilla::net::ReferrerPolicy imgReferrerPolicy = GetImageReferrerPolicy();
+    
+    if (imgReferrerPolicy != mozilla::net::RP_Unset) {
+      referrerPolicy = imgReferrerPolicy;
+    }
+  }
+
+  
   nsRefPtr<imgRequestProxy>& req = PrepareNextRequest(aImageLoadType);
   nsCOMPtr<nsIContent> content =
       do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
-  nsresult rv;
   rv = nsContentUtils::LoadImage(aNewURI, aDocument,
                                  aDocument->NodePrincipal(),
                                  aDocument->GetDocumentURI(),
-                                 aDocument->GetReferrerPolicy(),
+                                 referrerPolicy,
                                  this, loadFlags,
                                  content->LocalName(),
                                  getter_AddRefs(req),
@@ -1566,3 +1579,11 @@ nsImageLoadingContent::ImageObserver::~ImageObserver()
   MOZ_COUNT_DTOR(ImageObserver);
   NS_CONTENT_DELETE_LIST_MEMBER(ImageObserver, this, mNext);
 }
+
+
+
+mozilla::net::ReferrerPolicy
+nsImageLoadingContent::GetImageReferrerPolicy()
+{
+  return mozilla::net::RP_Unset;
+};

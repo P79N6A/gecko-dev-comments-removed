@@ -24,6 +24,7 @@
 #include "nsAutoPtr.h"
 #include "nsIContentPolicy.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/net/ReferrerPolicy.h"
 
 class nsIURI;
 class nsIDocument;
@@ -197,6 +198,8 @@ protected:
 
 
   virtual mozilla::CORSMode GetCORSMode();
+
+  virtual mozilla::net::ReferrerPolicy GetImageReferrerPolicy();
 
   
   void BindToTree(nsIDocument* aDocument, nsIContent* aParent,
