@@ -135,7 +135,7 @@ nsMeterFrame::ReflowBarFrame(nsIFrame*                aBarFrame,
                              const nsHTMLReflowState& aReflowState,
                              nsReflowStatus&          aStatus)
 {
-  bool vertical = StyleDisplay()->mOrient == NS_STYLE_ORIENT_VERTICAL;
+  bool vertical = ResolvedOrientationIsVertical();
   WritingMode wm = aBarFrame->GetWritingMode();
   LogicalSize availSize = aReflowState.ComputedSize(wm);
   availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
@@ -158,7 +158,7 @@ nsMeterFrame::ReflowBarFrame(nsIFrame*                aBarFrame,
 
   size = NSToCoordRound(size * position);
 
-  if (!vertical && StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
+  if (!vertical && (wm.IsVertical() ? wm.IsVerticalRL() : !wm.IsBidiLTR())) {
     xoffset += aReflowState.ComputedWidth() - size;
   }
 
@@ -230,7 +230,7 @@ nsMeterFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
   LogicalSize autoSize(wm);
   autoSize.BSize(wm) = autoSize.ISize(wm) = fontMet->Font().size; 
 
-  if (StyleDisplay()->mOrient == NS_STYLE_ORIENT_VERTICAL) {
+  if (ResolvedOrientationIsVertical()) {
     autoSize.Height(wm) *= 5; 
   } else {
     autoSize.Width(wm) *= 5; 
@@ -246,14 +246,14 @@ nsMeterFrame::GetMinISize(nsRenderingContext *aRenderingContext)
   NS_ENSURE_SUCCESS(
       nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fontMet)), 0);
 
-  nscoord minWidth = fontMet->Font().size; 
+  nscoord minISize = fontMet->Font().size; 
 
-  if (StyleDisplay()->mOrient == NS_STYLE_ORIENT_HORIZONTAL) {
+  if (ResolvedOrientationIsVertical() == GetWritingMode().IsVertical()) {
     
-    minWidth *= 5; 
+    minISize *= 5; 
   }
 
-  return minWidth;
+  return minISize;
 }
 
 nscoord

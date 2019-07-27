@@ -613,6 +613,12 @@ protected:
 
   
 
+  
+  
+  bool ResolvedOrientationIsVertical();
+
+  
+
   nsFrameList mFrames;
 };
 
