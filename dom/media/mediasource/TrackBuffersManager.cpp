@@ -475,6 +475,7 @@ TrackBuffersManager::CodedFrameRemoval(TimeInterval aInterval)
   }
   TimeUnit duration{TimeUnit::FromSeconds(mMediaSourceDuration.Ref().ref())};
 
+#if DEBUG
   MSE_DEBUG("duration:%.2f", duration.ToSeconds());
   if (HasVideo()) {
     MSE_DEBUG("before video ranges=%s",
@@ -484,6 +485,7 @@ TrackBuffersManager::CodedFrameRemoval(TimeInterval aInterval)
     MSE_DEBUG("before audio ranges=%s",
               DumpTimeRanges(mAudioTracks.mBufferedRanges).get());
   }
+#endif
 
   
   TimeUnit start = aInterval.mStart;
@@ -510,96 +512,12 @@ TrackBuffersManager::CodedFrameRemoval(TimeInterval aInterval)
       }
     }
 
-    bool removeCurrentCodedFrameGroup = false;
-
     
     
-    TimeInterval removedInterval;
-    Maybe<uint32_t> firstRemovedIndex;
-    TrackBuffer& data = track->mBuffers.LastElement();
-    for (uint32_t i = 0; i < data.Length();) {
-      const auto& frame = data[i];
-      if (frame->mTime >= start.ToMicroseconds() &&
-          frame->mTime < removeEndTimestamp.ToMicroseconds()) {
-        if (firstRemovedIndex.isNothing()) {
-          removedInterval =
-            TimeInterval(TimeUnit::FromMicroseconds(frame->mTime),
-                         TimeUnit::FromMicroseconds(frame->mTime + frame->mDuration));
-          firstRemovedIndex = Some(i);
-        } else {
-          removedInterval = removedInterval.Span(
-            TimeInterval(TimeUnit::FromMicroseconds(frame->mTime),
-                         TimeUnit::FromMicroseconds(frame->mTime + frame->mDuration)));
-        }
-        track->mSizeBuffer -= sizeof(*frame) + frame->mSize;
-        data.RemoveElementAt(i);
-        removeCurrentCodedFrameGroup |=
-          track->mNextInsertionIndex.isSome() &&
-          track->mNextInsertionIndex.ref() == i;
-        if (!removeCurrentCodedFrameGroup &&
-            track->mNextInsertionIndex.isSome() &&
-            track->mNextInsertionIndex.ref() > i) {
-          track->mNextInsertionIndex.ref()--;
-        }
-
-        if (track->mNextGetSampleIndex.isSome()) {
-          if (track->mNextGetSampleIndex.ref() == i) {
-            MSE_DEBUG("Next sample to be played got evicted");
-            track->mNextGetSampleIndex.reset();
-          } else if (track->mNextGetSampleIndex.ref() > i) {
-            track->mNextGetSampleIndex.ref()--;
-          }
-        }
-      } else {
-        i++;
-      }
-    }
     
     
-    if (firstRemovedIndex.isSome()) {
-      uint32_t start = firstRemovedIndex.ref();
-      uint32_t end = start;
-      for (;end < data.Length(); end++) {
-        MediaRawData* sample = data[end].get();
-        if (sample->mKeyframe) {
-          break;
-        }
-        removedInterval = removedInterval.Span(
-          TimeInterval(TimeUnit::FromMicroseconds(sample->mTime),
-                       TimeUnit::FromMicroseconds(sample->GetEndTime())));
-        track->mSizeBuffer -= sizeof(*sample) + sample->mSize;
-      }
-      data.RemoveElementsAt(start, end - start);
-
-      removeCurrentCodedFrameGroup |=
-        track->mNextInsertionIndex.isSome() &&
-        track->mNextInsertionIndex.ref() >= start &&
-        track->mNextInsertionIndex.ref() < end;
-      if (!removeCurrentCodedFrameGroup &&
-          track->mNextInsertionIndex.isSome() &&
-          track->mNextInsertionIndex.ref() >= end) {
-        track->mNextInsertionIndex.ref() -= end - start;
-      }
-
-      if (track->mNextGetSampleIndex.isSome()) {
-        if (track->mNextGetSampleIndex.ref() >= start &&
-            track->mNextGetSampleIndex.ref() < end) {
-          MSE_DEBUG("Next sample to be played got evicted");
-          track->mNextGetSampleIndex.reset();
-        } else if (track->mNextGetSampleIndex.ref() >= end) {
-          track->mNextGetSampleIndex.ref() -= end - start;
-        }
-      }
-
-      MSE_DEBUG("Removing undecodable frames from:%u (frames:%d) ([%f, %f))",
-                start, end - start,
-                removedInterval.mStart.ToSeconds(), removedInterval.mEnd.ToSeconds());
-      track->mBufferedRanges -= removedInterval;
-      dataRemoved = true;
-      if (removeCurrentCodedFrameGroup) {
-        track->ResetAppendState();
-      }
-    }
+    TimeIntervals removedInterval{TimeInterval(start, removeEndTimestamp)};
+    RemoveFrames(removedInterval, *track, 0);
 
     
     
@@ -609,20 +527,7 @@ TrackBuffersManager::CodedFrameRemoval(TimeInterval aInterval)
     
   }
 
-  {
-    MonitorAutoLock mon(mMonitor);
-    mVideoBufferedRanges = mVideoTracks.mBufferedRanges;
-    mAudioBufferedRanges = mAudioTracks.mBufferedRanges;
-  }
-
-  if (HasVideo()) {
-    MSE_DEBUG("after video ranges=%s",
-              DumpTimeRanges(mVideoTracks.mBufferedRanges).get());
-  }
-  if (HasAudio()) {
-    MSE_DEBUG("after audio ranges=%s",
-              DumpTimeRanges(mAudioTracks.mBufferedRanges).get());
-  }
+  UpdateBufferedRanges();
 
   
   mSizeSourceBuffer = mVideoTracks.mSizeBuffer + mAudioTracks.mSizeBuffer;
@@ -637,6 +542,28 @@ TrackBuffersManager::CodedFrameRemoval(TimeInterval aInterval)
   mMediaSourceDemuxer->NotifyTimeRangesChanged();
 
   return dataRemoved;
+}
+
+void
+TrackBuffersManager::UpdateBufferedRanges()
+{
+  MonitorAutoLock mon(mMonitor);
+
+  mVideoBufferedRanges = mVideoTracks.mBufferedRanges;
+  mAudioBufferedRanges = mAudioTracks.mBufferedRanges;
+
+#if DEBUG
+  if (HasVideo()) {
+    MSE_DEBUG("after video ranges=%s",
+              DumpTimeRanges(mVideoTracks.mBufferedRanges).get());
+  }
+  if (HasAudio()) {
+    MSE_DEBUG("after audio ranges=%s",
+              DumpTimeRanges(mAudioTracks.mBufferedRanges).get());
+  }
+#endif
+
+  mOfficialGroupEndTimestamp = mGroupEndTimestamp;
 }
 
 nsRefPtr<TrackBuffersManager::AppendPromise>
@@ -668,6 +595,10 @@ TrackBuffersManager::AppendIncomingBuffers()
     mLastTimestampOffset = mTimestampOffset;
   }
   mIncomingBuffers.Clear();
+
+  mAppendWindow =
+    TimeInterval(TimeUnit::FromSeconds(mParent->AppendWindowStart()),
+                 TimeUnit::FromSeconds(mParent->AppendWindowEnd()));
 }
 
 void
@@ -1175,15 +1106,10 @@ TrackBuffersManager::CompleteCodedFrameProcessing()
   MSE_DEBUG("mAbort:%d", static_cast<bool>(mAbort));
 
   
-
-  for (auto& sample : mVideoTracks.mQueuedSamples) {
-    while (true) {
-      if (!ProcessFrame(sample, mVideoTracks)) {
-        break;
-      }
-    }
-  }
+  
+  ProcessFrames(mVideoTracks.mQueuedSamples, mVideoTracks);
   mVideoTracks.mQueuedSamples.Clear();
+
 #if defined(DEBUG)
   if (HasVideo()) {
     const auto& track = mVideoTracks.mBuffers.LastElement();
@@ -1195,14 +1121,9 @@ TrackBuffersManager::CompleteCodedFrameProcessing()
   }
 #endif
 
-  for (auto& sample : mAudioTracks.mQueuedSamples) {
-    while (true) {
-      if (!ProcessFrame(sample, mAudioTracks)) {
-        break;
-      }
-    }
-  }
+  ProcessFrames(mAudioTracks.mQueuedSamples, mAudioTracks);
   mAudioTracks.mQueuedSamples.Clear();
+
 #if defined(DEBUG)
   if (HasAudio()) {
     const auto& track = mAudioTracks.mBuffers.LastElement();
@@ -1214,23 +1135,7 @@ TrackBuffersManager::CompleteCodedFrameProcessing()
   }
 #endif
 
-  {
-    MonitorAutoLock mon(mMonitor);
-
-    
-    mVideoBufferedRanges = mVideoTracks.mBufferedRanges;
-    mAudioBufferedRanges = mAudioTracks.mBufferedRanges;
-    if (HasAudio()) {
-      MSE_DEBUG("audio new buffered range = %s",
-                DumpTimeRanges(mAudioBufferedRanges).get());
-    }
-    if (HasVideo()) {
-      MSE_DEBUG("video new buffered range = %s",
-                DumpTimeRanges(mVideoBufferedRanges).get());
-    }
-
-    mOfficialGroupEndTimestamp = mGroupEndTimestamp;
-  }
+  UpdateBufferedRanges();
 
   
   mSizeSourceBuffer = mVideoTracks.mSizeBuffer + mAudioTracks.mSizeBuffer;
@@ -1288,22 +1193,9 @@ TrackBuffersManager::ResolveProcessing(bool aResolveValue, const char* aName)
   mProcessingPromise.ResolveIfExists(aResolveValue, __func__);
 }
 
-bool
-TrackBuffersManager::ProcessFrame(MediaRawData* aSample,
-                                  TrackData& aTrackData)
+void
+TrackBuffersManager::CheckSequenceDiscontinuity()
 {
-  TimeUnit presentationTimestamp;
-  TimeUnit decodeTimestamp;
-
-  if (!mParent->mGenerateTimestamp) {
-    presentationTimestamp = TimeUnit::FromMicroseconds(aSample->mTime);
-    decodeTimestamp = TimeUnit::FromMicroseconds(aSample->mTimecode);
-  }
-
-  
-  TimeUnit frameDuration{TimeUnit::FromMicroseconds(aSample->mDuration)};
-
-  
   if (mParent->mAppendMode == SourceBufferAppendMode::Sequence &&
       mGroupStartTimestamp.isSome()) {
     mTimestampOffset = mGroupStartTimestamp.ref();
@@ -1312,284 +1204,385 @@ TrackBuffersManager::ProcessFrame(MediaRawData* aSample,
     mAudioTracks.mNeedRandomAccessPoint = true;
     mGroupStartTimestamp.reset();
   }
+}
 
-  
-  if (mTimestampOffset != TimeUnit::FromSeconds(0)) {
-    presentationTimestamp += mTimestampOffset;
-    decodeTimestamp += mTimestampOffset;
+void
+TrackBuffersManager::ProcessFrames(TrackBuffer& aSamples, TrackData& aTrackData)
+{
+  if (!aSamples.Length()) {
+    return;
   }
 
-  MSE_DEBUGV("Processing %s frame(pts:%lld end:%lld, dts:%lld, duration:%lld, "
-             "kf:%d)",
-             aTrackData.mInfo->mMimeType.get(),
-             presentationTimestamp.ToMicroseconds(),
-             (presentationTimestamp + frameDuration).ToMicroseconds(),
-             decodeTimestamp.ToMicroseconds(),
-             frameDuration.ToMicroseconds(),
-             aSample->mKeyframe);
+  
+  CheckSequenceDiscontinuity();
 
   
   auto& trackBuffer = aTrackData;
 
   
   
-  
-
-  
-
-  
-  
-  
-  
-  
-  if ((trackBuffer.mLastDecodeTimestamp.isSome() &&
-       decodeTimestamp < trackBuffer.mLastDecodeTimestamp.ref()) ||
-      (trackBuffer.mLastDecodeTimestamp.isSome() &&
-       decodeTimestamp - trackBuffer.mLastDecodeTimestamp.ref() > 2*trackBuffer.mLongestFrameDuration.ref())) {
-
-    
-    if (mParent->mAppendMode == SourceBufferAppendMode::Segments) {
-      
-      mGroupEndTimestamp = presentationTimestamp;
-    }
-    
-    if (mParent->mAppendMode == SourceBufferAppendMode::Sequence) {
-      
-      mGroupStartTimestamp = Some(mGroupEndTimestamp);
-    }
-    for (auto& track : GetTracksList()) {
-      
-      
-      
-      
-      track->ResetAppendState();
-    }
-
-    MSE_DEBUG("Discontinuity detected. Restarting process");
-    
-    return true;
-  }
-
-  
-  TimeUnit frameEndTimestamp = presentationTimestamp + frameDuration;
-
-  
-  
-
-  
-  
   TimeInterval targetWindow{
-    TimeInterval(TimeUnit::FromSeconds(mParent->mAppendWindowStart),
-                 TimeUnit::FromSeconds(mParent->mAppendWindowEnd),
-                 trackBuffer.mLongestFrameDuration.valueOr(frameDuration))};
-  TimeInterval frameInterval{presentationTimestamp, frameEndTimestamp};
+    TimeInterval(mAppendWindow.mStart, mAppendWindow.mEnd,
+                 trackBuffer.mLongestFrameDuration.refOr(TimeUnit::FromMicroseconds(aSamples[0]->mDuration)))};
 
-  if (!targetWindow.Contains(frameInterval)) {
-    trackBuffer.mNeedRandomAccessPoint = true;
-    return false;
-  }
-
-  
-  if (trackBuffer.mNeedRandomAccessPoint) {
-    
-    if (!aSample->mKeyframe) {
-      return false;
-    }
-    
-    trackBuffer.mNeedRandomAccessPoint = false;
-  }
+  TimeIntervals samplesRange;
+  uint32_t sizeNewSamples = 0;
+  TrackBuffer samples; 
+                       
 
   
   
   
+  bool needDiscontinuityCheck = true;
 
-  
-  
-  
+  for (auto& sample : aSamples) {
+    MSE_DEBUGV("Processing %s frame(pts:%lld end:%lld, dts:%lld, duration:%lld, "
+               "kf:%d)",
+               aTrackData.mInfo->mMimeType.get(),
+               sample->mTime,
+               sample->GetEndTime(),
+               sample->mTimecode,
+               sample->mDuration,
+               sample->mKeyframe);
 
-  
-  
-  
-  
-  
-
-  
-  
-  
-  Maybe<uint32_t> firstRemovedIndex;
-  TimeInterval removedInterval;
-  TrackBuffer& data = trackBuffer.mBuffers.LastElement();
-  bool removeCodedFrames =
-    trackBuffer.mHighestEndTimestamp.isSome()
-      ? trackBuffer.mHighestEndTimestamp.ref() <= presentationTimestamp
-      : true;
-  if (removeCodedFrames) {
-    TimeUnit lowerBound =
-      trackBuffer.mHighestEndTimestamp.valueOr(presentationTimestamp);
-    if (trackBuffer.mBufferedRanges.ContainsStrict(lowerBound)) {
-      for (uint32_t i = 0; i < data.Length();) {
-        MediaRawData* sample = data[i].get();
-        if (sample->mTime >= lowerBound.ToMicroseconds() &&
-            sample->mTime < frameEndTimestamp.ToMicroseconds()) {
-          if (firstRemovedIndex.isNothing()) {
-            removedInterval =
-              TimeInterval(TimeUnit::FromMicroseconds(sample->mTime),
-                           TimeUnit::FromMicroseconds(sample->GetEndTime()));
-            firstRemovedIndex = Some(i);
-          } else {
-            removedInterval = removedInterval.Span(
-              TimeInterval(TimeUnit::FromMicroseconds(sample->mTime),
-                           TimeUnit::FromMicroseconds(sample->GetEndTime())));
-          }
-          trackBuffer.mSizeBuffer -= sizeof(*sample) + sample->mSize;
-          MSE_DEBUGV("Overlapping frame:%u ([%f, %f))",
-                    i,
-                    TimeUnit::FromMicroseconds(sample->mTime).ToSeconds(),
-                    TimeUnit::FromMicroseconds(sample->GetEndTime()).ToSeconds());
-          data.RemoveElementAt(i);
-
-          if (trackBuffer.mNextGetSampleIndex.isSome()) {
-            if (trackBuffer.mNextGetSampleIndex.ref() == i) {
-              MSE_DEBUG("Next sample to be played got evicted");
-              trackBuffer.mNextGetSampleIndex.reset();
-            } else if (trackBuffer.mNextGetSampleIndex.ref() > i) {
-              trackBuffer.mNextGetSampleIndex.ref()--;
-            }
-          }
-        } else {
-          i++;
-        }
-      }
-    }
     
     
-    if (firstRemovedIndex.isSome()) {
-      uint32_t start = firstRemovedIndex.ref();
-      uint32_t end = start;
-      for (;end < data.Length(); end++) {
-        MediaRawData* sample = data[end].get();
-        if (sample->mKeyframe) {
-          break;
-        }
-        removedInterval = removedInterval.Span(
-          TimeInterval(TimeUnit::FromMicroseconds(sample->mTime),
-                       TimeUnit::FromMicroseconds(sample->GetEndTime())));
-        trackBuffer.mSizeBuffer -= sizeof(*sample) + sample->mSize;
-      }
-      data.RemoveElementsAt(start, end - start);
 
-      MSE_DEBUG("Removing undecodable frames from:%u (frames:%u) ([%f, %f))",
-                start, end - start,
-                removedInterval.mStart.ToSeconds(), removedInterval.mEnd.ToSeconds());
-
-      if (trackBuffer.mNextGetSampleIndex.isSome()) {
-        if (trackBuffer.mNextGetSampleIndex.ref() >= start &&
-            trackBuffer.mNextGetSampleIndex.ref() < end) {
-          MSE_DEBUG("Next sample to be played got evicted");
-          trackBuffer.mNextGetSampleIndex.reset();
-        } else if (trackBuffer.mNextGetSampleIndex.ref() >= end) {
-          trackBuffer.mNextGetSampleIndex.ref() -= end - start;
-        }
-      }
-
+    
+    if (trackBuffer.mNeedRandomAccessPoint) {
       
-      trackBuffer.mBufferedRanges -= removedInterval;
-      MOZ_ASSERT(trackBuffer.mNextInsertionIndex.isNothing() ||
-                 trackBuffer.mNextInsertionIndex.ref() <= start);
-    }
-  }
-
-  
-  aSample->mTime = presentationTimestamp.ToMicroseconds();
-  aSample->mTimecode = decodeTimestamp.ToMicroseconds();
-  aSample->mTrackInfo = trackBuffer.mLastInfo;
-
-  if (data.IsEmpty()) {
-    data.AppendElement(aSample);
-    MOZ_ASSERT(aSample->mKeyframe);
-    trackBuffer.mNextInsertionIndex = Some(data.Length());
-  } else if (trackBuffer.mNextInsertionIndex.isSome()) {
-    data.InsertElementAt(trackBuffer.mNextInsertionIndex.ref(), aSample);
-    MOZ_ASSERT(trackBuffer.mNextInsertionIndex.ref() == 0 ||
-               data[trackBuffer.mNextInsertionIndex.ref()]->mTrackInfo->GetID() == data[trackBuffer.mNextInsertionIndex.ref()-1]->mTrackInfo->GetID() ||
-               data[trackBuffer.mNextInsertionIndex.ref()]->mKeyframe);
-    trackBuffer.mNextInsertionIndex.ref()++;
-  } else if (presentationTimestamp < trackBuffer.mBufferedRanges.GetStart()) {
-    data.InsertElementAt(0, aSample);
-    MOZ_ASSERT(aSample->mKeyframe);
-    trackBuffer.mNextInsertionIndex = Some(size_t(1));
-  } else {
-    
-    TimeInterval target;
-    for (const auto& interval : trackBuffer.mBufferedRanges) {
-      if (presentationTimestamp < interval.mStart) {
-        target = interval;
-        break;
+      if (!sample->mKeyframe) {
+        continue;
       }
+      
+      trackBuffer.mNeedRandomAccessPoint = false;
     }
-    if (target.IsEmpty()) {
+
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+
+    TimeInterval sampleInterval =
+      mParent->mGenerateTimestamps
+        ? TimeInterval(mTimestampOffset,
+                       mTimestampOffset + TimeUnit::FromMicroseconds(sample->mDuration))
+        : TimeInterval(TimeUnit::FromMicroseconds(sample->mTime) + mTimestampOffset,
+                       TimeUnit::FromMicroseconds(sample->GetEndTime()) + mTimestampOffset);
+    TimeUnit decodeTimestamp =
+      mParent->mGenerateTimestamps
+        ? mTimestampOffset
+        : TimeUnit::FromMicroseconds(sample->mTimecode) + mTimestampOffset;
+
+    
+    
+    
+
+    if (needDiscontinuityCheck && trackBuffer.mLastDecodeTimestamp.isSome() &&
+        (decodeTimestamp < trackBuffer.mLastDecodeTimestamp.ref() ||
+         decodeTimestamp - trackBuffer.mLastDecodeTimestamp.ref() > 2*trackBuffer.mLongestFrameDuration.ref())) {
+      MSE_DEBUG("Discontinuity detected.");
+      
+      if (mParent->mAppendMode == SourceBufferAppendMode::Segments) {
+        
+        mGroupEndTimestamp = sampleInterval.mStart;
+      }
+      
+      if (mParent->mAppendMode == SourceBufferAppendMode::Sequence) {
+        
+        mGroupStartTimestamp = Some(mGroupEndTimestamp);
+      }
+      for (auto& track : GetTracksList()) {
+        
+        
+        
+        
+        track->ResetAppendState();
+      }
       
       
-      data.AppendElement(aSample);
-      MOZ_ASSERT(data.Length() <= 2 ||
-                 data[data.Length()-1]->mTrackInfo->GetID() == data[data.Length()-2]->mTrackInfo->GetID() ||
-                 data[data.Length()-1]->mKeyframe);
-      trackBuffer.mNextInsertionIndex = Some(data.Length());
-    }
-    for (uint32_t i = 0; i < data.Length(); i++) {
-      const nsRefPtr<MediaRawData>& sample = data[i];
-      TimeInterval sampleInterval{
-        TimeUnit::FromMicroseconds(sample->mTime),
-        TimeUnit::FromMicroseconds(sample->GetEndTime())};
-      if (target.Intersects(sampleInterval)) {
-        data.InsertElementAt(i, aSample);
-        MOZ_ASSERT(i != 0 &&
-                   (data[i]->mTrackInfo->GetID() == data[i-1]->mTrackInfo->GetID() ||
-                    data[i]->mKeyframe));
-        trackBuffer.mNextInsertionIndex = Some(size_t(i) + 1);
-        break;
+      
+      
+      CheckSequenceDiscontinuity();
+
+      if (!sample->mKeyframe) {
+        continue;
       }
+      if (mParent->mAppendMode == SourceBufferAppendMode::Sequence) {
+        
+        
+        sampleInterval =
+          mParent->mGenerateTimestamps
+            ? TimeInterval(mTimestampOffset,
+                           mTimestampOffset + TimeUnit::FromMicroseconds(sample->mDuration))
+            : TimeInterval(TimeUnit::FromMicroseconds(sample->mTime) + mTimestampOffset,
+                           TimeUnit::FromMicroseconds(sample->GetEndTime()) + mTimestampOffset);
+        decodeTimestamp =
+          mParent->mGenerateTimestamps
+            ? mTimestampOffset
+            : TimeUnit::FromMicroseconds(sample->mTimecode) + mTimestampOffset;
+      }
+      trackBuffer.mNeedRandomAccessPoint = false;
+      needDiscontinuityCheck = false;
     }
-    MOZ_ASSERT(aSample->mKeyframe);
-  }
-  trackBuffer.mSizeBuffer += sizeof(*aSample) + aSample->mSize;
 
-  
-  trackBuffer.mLastDecodeTimestamp = Some(decodeTimestamp);
-  
-  trackBuffer.mLastFrameDuration =
-    Some(TimeUnit::FromMicroseconds(aSample->mDuration));
+    
+    
 
-  if (trackBuffer.mLongestFrameDuration.isNothing()) {
-    trackBuffer.mLongestFrameDuration = trackBuffer.mLastFrameDuration;
-  } else {
+    
+    
+    if (!targetWindow.Contains(sampleInterval)) {
+      if (samples.Length()) {
+        
+        
+        InsertFrames(samples, samplesRange, trackBuffer);
+        samples.Clear();
+        samplesRange = TimeIntervals();
+        trackBuffer.mSizeBuffer += sizeNewSamples;
+        sizeNewSamples = 0;
+      }
+      trackBuffer.mNeedRandomAccessPoint = true;
+      needDiscontinuityCheck = true;
+      continue;
+    }
+
+    samplesRange += sampleInterval;
+    sizeNewSamples += sizeof(*sample) + sample->mSize;
+    sample->mTime = sampleInterval.mStart.ToMicroseconds();
+    sample->mTimecode = decodeTimestamp.ToMicroseconds();
+    sample->mTrackInfo = trackBuffer.mLastInfo;
+    samples.AppendElement(sample);
+
+    
+
+    
+    trackBuffer.mLastDecodeTimestamp =
+      Some(TimeUnit::FromMicroseconds(sample->mTimecode));
+    
+    trackBuffer.mLastFrameDuration =
+      Some(TimeUnit::FromMicroseconds(sample->mDuration));
+
     trackBuffer.mLongestFrameDuration =
-      Some(std::max(trackBuffer.mLongestFrameDuration.ref(),
-               trackBuffer.mLastFrameDuration.ref()));
+      Some(trackBuffer.mLongestFrameDuration.isNothing()
+           ? trackBuffer.mLastFrameDuration.ref()
+           : std::max(trackBuffer.mLastFrameDuration.ref(),
+                      trackBuffer.mLongestFrameDuration.ref()));
+
+    
+    if (trackBuffer.mHighestEndTimestamp.isNothing() ||
+        sampleInterval.mEnd > trackBuffer.mHighestEndTimestamp.ref()) {
+      trackBuffer.mHighestEndTimestamp = Some(sampleInterval.mEnd);
+    }
+    
+    if (sampleInterval.mEnd > mGroupEndTimestamp) {
+      mGroupEndTimestamp = sampleInterval.mEnd;
+    }
+    
+    if (mParent->mGenerateTimestamps) {
+      mTimestampOffset = sampleInterval.mEnd;
+    }
+  }
+
+  if (samples.Length()) {
+    InsertFrames(samples, samplesRange, trackBuffer);
+    trackBuffer.mSizeBuffer += sizeNewSamples;
+  }
+}
+
+void
+TrackBuffersManager::CheckNextInsertionIndex(TrackData& aTrackData,
+                                             const TimeUnit& aSampleTime)
+{
+  if (aTrackData.mNextInsertionIndex.isSome()) {
+    return;
+  }
+
+  TrackBuffer& data = aTrackData.mBuffers.LastElement();
+
+  if (data.IsEmpty() || aSampleTime < aTrackData.mBufferedRanges.GetStart()) {
+    aTrackData.mNextInsertionIndex = Some(size_t(0));
+    return;
   }
 
   
-  if (trackBuffer.mHighestEndTimestamp.isNothing() ||
-      frameEndTimestamp > trackBuffer.mHighestEndTimestamp.ref()) {
-    trackBuffer.mHighestEndTimestamp = Some(frameEndTimestamp);
+  TimeInterval target;
+  for (const auto& interval : aTrackData.mBufferedRanges) {
+    if (aSampleTime < interval.mStart) {
+      target = interval;
+      break;
+    }
   }
+  if (target.IsEmpty()) {
+    
+    aTrackData.mNextInsertionIndex = Some(data.Length());
+    return;
+  }
+  for (uint32_t i = 0; i < data.Length(); i++) {
+    const nsRefPtr<MediaRawData>& sample = data[i];
+    TimeInterval sampleInterval{
+      TimeUnit::FromMicroseconds(sample->mTime),
+      TimeUnit::FromMicroseconds(sample->GetEndTime())};
+    if (target.Intersects(sampleInterval)) {
+      aTrackData.mNextInsertionIndex = Some(size_t(i));
+      return;
+    }
+  }
+  MOZ_CRASH("Insertion Index Not Found");
+}
+
+void
+TrackBuffersManager::InsertFrames(TrackBuffer& aSamples,
+                                  const TimeIntervals& aIntervals,
+                                  TrackData& aTrackData)
+{
   
-  if (frameEndTimestamp > mGroupEndTimestamp) {
-    mGroupEndTimestamp = frameEndTimestamp;
-  }
+  auto& trackBuffer = aTrackData;
+
+  MSE_DEBUGV("Processing %d %s frames(start:%lld end:%lld)",
+             aSamples.Length(),
+             aTrackData.mInfo->mMimeType.get(),
+             aIntervals.GetStart().ToMicroseconds(),
+             aIntervals.GetEnd().ToMicroseconds());
+
   
-  if (mParent->mGenerateTimestamp) {
-    mTimestampOffset = frameEndTimestamp;
-  }
+  
+  
+
+  
+  
+  
 
   
   
   
   
-  trackBuffer.mBufferedRanges +=
-    TimeInterval(presentationTimestamp, frameEndTimestamp,
-                 TimeUnit::FromMicroseconds(aSample->mDuration / 2));
-  return false;
+  
+
+  
+  
+  
+
+  
+  
+
+  TimeIntervals intersection = trackBuffer.mBufferedRanges;
+  intersection.Intersection(aIntervals);
+
+  if (intersection.Length()) {
+    RemoveFrames(aIntervals, trackBuffer, trackBuffer.mNextInsertionIndex.refOr(0));
+  }
+
+  
+  CheckNextInsertionIndex(aTrackData,
+                          TimeUnit::FromMicroseconds(aSamples[0]->mTime));
+
+  TrackBuffer& data = trackBuffer.mBuffers.LastElement();
+  data.InsertElementsAt(trackBuffer.mNextInsertionIndex.ref(), aSamples);
+  trackBuffer.mNextInsertionIndex.ref() += aSamples.Length();
+
+  
+  
+  
+  
+  TimeIntervals range(aIntervals);
+  range.SetFuzz(trackBuffer.mLongestFrameDuration.ref() / 2);
+  trackBuffer.mBufferedRanges += range;
+}
+
+void
+TrackBuffersManager::RemoveFrames(const TimeIntervals& aIntervals,
+                                  TrackData& aTrackData,
+                                  uint32_t aStartIndex)
+{
+  TrackBuffer& data = aTrackData.mBuffers.LastElement();
+  Maybe<uint32_t> firstRemovedIndex;
+  uint32_t lastRemovedIndex;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  for (uint32_t i = aStartIndex; i < data.Length(); i++) {
+    MediaRawData* sample = data[i].get();
+    TimeInterval sampleInterval =
+      TimeInterval(TimeUnit::FromMicroseconds(sample->mTime),
+                   TimeUnit::FromMicroseconds(sample->GetEndTime()));
+    if (aIntervals.Contains(sampleInterval)) {
+      if (firstRemovedIndex.isNothing()) {
+        firstRemovedIndex = Some(i);
+      }
+      lastRemovedIndex = i;
+    }
+  }
+
+  if (firstRemovedIndex.isNothing()) {
+    return;
+  }
+
+  
+  
+  for (uint32_t i = lastRemovedIndex + 1; i < data.Length(); i++) {
+    MediaRawData* sample = data[i].get();
+    if (sample->mKeyframe) {
+      break;
+    }
+    lastRemovedIndex = i;
+  }
+
+  TimeIntervals removedIntervals;
+  for (uint32_t i = firstRemovedIndex.ref(); i <= lastRemovedIndex; i++) {
+    MediaRawData* sample = data[i].get();
+    TimeInterval sampleInterval =
+      TimeInterval(TimeUnit::FromMicroseconds(sample->mTime),
+                   TimeUnit::FromMicroseconds(sample->GetEndTime()));
+    removedIntervals += sampleInterval;
+    aTrackData.mSizeBuffer -= sizeof(*sample) + sample->mSize;
+  }
+
+  MSE_DEBUG("Removing frames from:%u (frames:%u) ([%f, %f))",
+            firstRemovedIndex.ref(),
+            lastRemovedIndex - firstRemovedIndex.ref() + 1,
+            removedIntervals.GetStart().ToSeconds(),
+            removedIntervals.GetEnd().ToSeconds());
+
+  if (aTrackData.mNextGetSampleIndex.isSome()) {
+    if (aTrackData.mNextGetSampleIndex.ref() >= firstRemovedIndex.ref() &&
+        aTrackData.mNextGetSampleIndex.ref() <= lastRemovedIndex) {
+      MSE_DEBUG("Next sample to be played got evicted");
+      aTrackData.mNextGetSampleIndex.reset();
+    } else if (aTrackData.mNextGetSampleIndex.ref() > lastRemovedIndex) {
+      aTrackData.mNextGetSampleIndex.ref() -=
+        lastRemovedIndex - firstRemovedIndex.ref() + 1;
+    }
+  }
+
+  if (aTrackData.mNextInsertionIndex.isSome()) {
+    if (aTrackData.mNextInsertionIndex.ref() > firstRemovedIndex.ref() &&
+        aTrackData.mNextInsertionIndex.ref() <= lastRemovedIndex + 1) {
+      aTrackData.ResetAppendState();
+    } else if (aTrackData.mNextInsertionIndex.ref() > lastRemovedIndex + 1) {
+      aTrackData.mNextInsertionIndex.ref() -=
+        lastRemovedIndex - firstRemovedIndex.ref() + 1;
+    }
+  }
+
+  
+  aTrackData.mBufferedRanges -= removedIntervals;
+
+  data.RemoveElementsAt(firstRemovedIndex.ref(),
+                        lastRemovedIndex - firstRemovedIndex.ref() + 1);
 }
 
 void
