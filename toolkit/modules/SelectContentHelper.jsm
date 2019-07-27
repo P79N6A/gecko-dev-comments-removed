@@ -112,6 +112,7 @@ function buildOptionListForChildren(node) {
         
         
         textDirection: win.getComputedStyle(child).getPropertyValue("direction"),
+        tooltip: child.title,
         
         
         
