@@ -988,10 +988,6 @@ pref("network.allow-experiments", true);
 
 
 
-pref("network.notify.changed", true);
-
-
-
 pref("network.tickle-wifi.enabled", false);
 pref("network.tickle-wifi.duration", 400);
 pref("network.tickle-wifi.delay", 16);
@@ -1165,11 +1161,6 @@ pref("network.http.connection-retry-timeout", 250);
 
 
 pref("network.http.connection-timeout", 90);
-
-
-
-
-pref("network.http.network-changed.timeout", 5);
 
 
 

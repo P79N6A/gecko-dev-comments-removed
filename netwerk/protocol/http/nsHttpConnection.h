@@ -200,20 +200,6 @@ public:
     void    SetupSecondaryTLS();
     void    SetInSpdyTunnel(bool arg);
 
-    
-    bool    PeerHasPrivateIP();
-    
-    
-    
-    void CheckForTraffic(bool check);
-
-    
-    
-    bool NoTraffic() {
-        return mTrafficStamp &&
-            (mTrafficCount == (mTotalBytesWritten + mTotalBytesRead));
-    }
-
 private:
     
     enum TCPKeepaliveConfig {
@@ -305,10 +291,6 @@ private:
     bool                            mExperienced;
     bool                            mInSpdyTunnel;
     bool                            mForcePlainText;
-
-    
-    int64_t                         mTrafficCount;
-    bool                            mTrafficStamp; 
 
     
     

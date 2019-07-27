@@ -40,7 +40,6 @@
 #include "MainThreadUtils.h"
 #include "nsThreadUtils.h"
 #include "mozilla/net/NeckoCommon.h"
-#include "nsIWidget.h"
 
 #ifdef MOZ_WIDGET_GONK
 #include "nsINetworkManager.h"
@@ -63,7 +62,6 @@ using mozilla::net::IsNeckoChild;
 
 #define NECKO_BUFFER_CACHE_COUNT_PREF "network.buffer.cache.count"
 #define NECKO_BUFFER_CACHE_SIZE_PREF  "network.buffer.cache.size"
-#define NETWORK_NOTIFY_CHANGED_PREF   "network.notify.changed"
 
 #define MAX_RECURSION_COUNT 50
 
@@ -162,7 +160,6 @@ nsIOService::nsIOService()
     , mNetworkLinkServiceInitialized(false)
     , mChannelEventSinks(NS_CHANNEL_EVENT_SINK_CATEGORY)
     , mAutoDialEnabled(false)
-    , mNetworkNotifyChanged(true)
     , mPreviousWifiState(-1)
 {
 }
@@ -203,7 +200,6 @@ nsIOService::Init()
         prefBranch->AddObserver(MANAGE_OFFLINE_STATUS_PREF, this, true);
         prefBranch->AddObserver(NECKO_BUFFER_CACHE_COUNT_PREF, this, true);
         prefBranch->AddObserver(NECKO_BUFFER_CACHE_SIZE_PREF, this, true);
-        prefBranch->AddObserver(NETWORK_NOTIFY_CHANGED_PREF, this, true);
         PrefsChanged(prefBranch);
     }
     
@@ -217,7 +213,6 @@ nsIOService::Init()
         observerService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, true);
         observerService->AddObserver(this, NS_NETWORK_LINK_TOPIC, true);
         observerService->AddObserver(this, kNetworkActiveChanged, true);
-        observerService->AddObserver(this, NS_WIDGET_WAKE_OBSERVER_TOPIC, true);
     }
     else
         NS_WARNING("failed to get observer service");
@@ -284,9 +279,10 @@ nsIOService::InitializeNetworkLinkService()
         
         mManageOfflineStatus = false;
     }
+   
 
     if (mManageOfflineStatus)
-        OnNetworkLinkEvent(NS_NETWORK_LINK_DATA_UNKNOWN);
+        TrackNetworkLinkStatusForOffline();
     else
         SetOffline(false);
     
@@ -869,14 +865,6 @@ nsIOService::PrefsChanged(nsIPrefBranch *prefs, const char *pref)
                 gDefaultSegmentSize = size;
         NS_WARN_IF_FALSE( (!(size & (size - 1))) , "network segment size is not a power of 2!");
     }
-
-    if (!pref || strcmp(pref, NETWORK_NOTIFY_CHANGED_PREF) == 0) {
-        bool allow;
-        nsresult rv = prefs->GetBoolPref(NETWORK_NOTIFY_CHANGED_PREF, &allow);
-        if (NS_SUCCEEDED(rv)) {
-            mNetworkNotifyChanged = allow;
-        }
-    }
 }
 
 void
@@ -993,20 +981,23 @@ nsIOService::Observe(nsISupports *subject,
         nsCOMPtr<nsIPrefBranch> prefBranch = do_QueryInterface(subject);
         if (prefBranch)
             PrefsChanged(prefBranch, NS_ConvertUTF16toUTF8(data).get());
-    } else if (!strcmp(topic, kProfileChangeNetTeardownTopic)) {
+    }
+    else if (!strcmp(topic, kProfileChangeNetTeardownTopic)) {
         if (!mOffline) {
             mOfflineForProfileChange = true;
             SetOffline(true);
         }
-    } else if (!strcmp(topic, kProfileChangeNetRestoreTopic)) {
+    }
+    else if (!strcmp(topic, kProfileChangeNetRestoreTopic)) {
         if (mOfflineForProfileChange) {
             mOfflineForProfileChange = false;
             if (!mManageOfflineStatus ||
-                NS_FAILED(OnNetworkLinkEvent(NS_NETWORK_LINK_DATA_UNKNOWN))) {
+                NS_FAILED(TrackNetworkLinkStatusForOffline())) {
                 SetOffline(false);
             }
         } 
-    } else if (!strcmp(topic, kProfileDoChange)) { 
+    } 
+    else if (!strcmp(topic, kProfileDoChange)) { 
         if (data && NS_LITERAL_STRING("startup").Equals(data)) {
             
             InitializeNetworkLinkService();
@@ -1018,7 +1009,8 @@ nsIOService::Observe(nsISupports *subject,
             GetPrefBranch(getter_AddRefs(prefBranch));
             PrefsChanged(prefBranch, MANAGE_OFFLINE_STATUS_PREF);
         }
-    } else if (!strcmp(topic, NS_XPCOM_SHUTDOWN_OBSERVER_ID)) {
+    }
+    else if (!strcmp(topic, NS_XPCOM_SHUTDOWN_OBSERVER_ID)) {
         
         
         
@@ -1028,11 +1020,13 @@ nsIOService::Observe(nsISupports *subject,
 
         
         mProxyService = nullptr;
-    } else if (!strcmp(topic, NS_NETWORK_LINK_TOPIC)) {
-        if (!mOfflineForProfileChange) {
-            OnNetworkLinkEvent(NS_ConvertUTF16toUTF8(data).get());
+    }
+    else if (!strcmp(topic, NS_NETWORK_LINK_TOPIC)) {
+        if (!mOfflineForProfileChange && mManageOfflineStatus) {
+            TrackNetworkLinkStatusForOffline();
         }
-    } else if (!strcmp(topic, kNetworkActiveChanged)) {
+    }
+    else if (!strcmp(topic, kNetworkActiveChanged)) {
 #ifdef MOZ_WIDGET_GONK
         if (IsNeckoChild()) {
           return NS_OK;
@@ -1061,19 +1055,6 @@ nsIOService::Observe(nsISupports *subject,
 
         mPreviousWifiState = newWifiState;
 #endif
-    } else if (!strcmp(topic, NS_WIDGET_WAKE_OBSERVER_TOPIC)) {
-        
-        nsCOMPtr<nsIObserverService> observerService =
-            mozilla::services::GetObserverService();
-
-        NS_ASSERTION(observerService, "The observer service should not be null");
-
-        if (observerService && mNetworkNotifyChanged) {
-            (void)observerService->
-                NotifyObservers(nullptr,
-                                NS_NETWORK_LINK_TOPIC,
-                                MOZ_UTF16(NS_NETWORK_LINK_DATA_CHANGED));
-        }
     }
 
     return NS_OK;
@@ -1173,8 +1154,7 @@ nsIOService::NewSimpleNestedURI(nsIURI* aURI, nsIURI** aResult)
 }
 
 NS_IMETHODIMP
-nsIOService::SetManageOfflineStatus(bool aManage)
-{
+nsIOService::SetManageOfflineStatus(bool aManage) {
     nsresult rv = NS_OK;
 
     
@@ -1191,7 +1171,7 @@ nsIOService::SetManageOfflineStatus(bool aManage)
     InitializeNetworkLinkService();
 
     if (mManageOfflineStatus && !wasManaged) {
-        rv = OnNetworkLinkEvent(NS_NETWORK_LINK_DATA_UNKNOWN);
+        rv = TrackNetworkLinkStatusForOffline();
         if (NS_FAILED(rv))
             mManageOfflineStatus = false;
     }
@@ -1204,57 +1184,41 @@ nsIOService::GetManageOfflineStatus(bool* aManage) {
     return NS_OK;
 }
 
-
 nsresult
-nsIOService::OnNetworkLinkEvent(const char *data)
+nsIOService::TrackNetworkLinkStatusForOffline()
 {
+    NS_ASSERTION(mManageOfflineStatus,
+                 "Don't call this unless we're managing the offline status");
     if (!mNetworkLinkService)
         return NS_ERROR_FAILURE;
 
     if (mShutdown)
         return NS_ERROR_NOT_AVAILABLE;
-
-    if (mManageOfflineStatus)
-        return NS_OK;
-
-    if (!strcmp(data, NS_NETWORK_LINK_DATA_DOWN)) {
+  
+    
+    if (mSocketTransportService) {
+        bool autodialEnabled = false;
+        mSocketTransportService->GetAutodialEnabled(&autodialEnabled);
         
-        if (mSocketTransportService) {
-            bool autodialEnabled = false;
-            mSocketTransportService->GetAutodialEnabled(&autodialEnabled);
-            
-            
-            
-            if (autodialEnabled) {
+        
+        
+        if (autodialEnabled) {
 #if defined(XP_WIN)
-                
-                
-                
-                if (nsNativeConnectionHelper::IsAutodialEnabled()) {
-                    return SetOffline(false);
-                }
-#else
+            
+            
+            
+            
+            if(nsNativeConnectionHelper::IsAutodialEnabled()) 
                 return SetOffline(false);
+#else
+            return SetOffline(false);
 #endif
-            }
         }
     }
 
     bool isUp;
-    if (!strcmp(data, NS_NETWORK_LINK_DATA_DOWN)) {
-        isUp = false;
-    } else if (!strcmp(data, NS_NETWORK_LINK_DATA_UP)) {
-        isUp = true;
-    } else if (!strcmp(data, NS_NETWORK_LINK_DATA_CHANGED)) {
-        
-        return NS_OK;
-    } else if (!strcmp(data, NS_NETWORK_LINK_DATA_UNKNOWN)) {
-        nsresult rv = mNetworkLinkService->GetIsLinkUp(&isUp);
-        NS_ENSURE_SUCCESS(rv, rv);
-    } else {
-        NS_WARNING("Unhandled network event!");
-        return NS_OK;
-    }
+    nsresult rv = mNetworkLinkService->GetIsLinkUp(&isUp);
+    NS_ENSURE_SUCCESS(rv, rv);
     return SetOffline(!isUp);
 }
 
