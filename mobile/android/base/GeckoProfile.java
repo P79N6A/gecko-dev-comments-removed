@@ -215,9 +215,7 @@ public final class GeckoProfile {
             
             
             
-            if (!GuestSession.isSecureKeyguardLocked(context)) {
-                profile.lock();
-            }
+            profile.lock();
 
             
 

@@ -303,10 +303,6 @@ OnSharedPreferenceChangeListener
         
         RestrictedProfiles.initWithProfile(GeckoProfile.get(this));
 
-        if (GeckoProfile.get(this).inGuestMode()) {
-            GuestSession.configureWindow(getWindow());
-        }
-
         
         checkLocale();
 

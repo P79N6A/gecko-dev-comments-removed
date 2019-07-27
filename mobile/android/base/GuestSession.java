@@ -20,18 +20,6 @@ public class GuestSession {
     private static final String LOGTAG = "GeckoGuestSession";
 
     
-    static boolean isSecureKeyguardLocked(Context context) {
-        final KeyguardManager manager = (KeyguardManager) context.getSystemService(Context.KEYGUARD_SERVICE);
-
-        
-        if (AppConstants.Versions.preJB || manager == null) {
-            return false;
-        }
-
-        return manager.isKeyguardLocked() && manager.isKeyguardSecure();
-    }
-
-    
 
 
 
@@ -43,28 +31,12 @@ public class GuestSession {
         }
 
         
-        final boolean keyguard = isSecureKeyguardLocked(context);
-        if (keyguard) {
-            return true;
-        }
-
-        
         final GeckoProfile profile = GeckoProfile.getGuestProfile(context);
         if (profile == null) {
             return false;
         }
 
         return profile.locked();
-    }
-
-    public static void configureWindow(Window window) {
-        
-        window.addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD | WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
-    }
-
-    public static void unconfigureWindow(Window window) {
-        
-        window.clearFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD | WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
     }
 
     private static PendingIntent getNotificationIntent(Context context) {
