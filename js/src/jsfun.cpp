@@ -2105,7 +2105,7 @@ js::CloneFunctionObjectUseSameScript(JSCompartment* compartment, HandleFunction 
     
     
     return !fun->isInterpreted() ||
-           (fun->hasScript() && fun->nonLazyScript()->hasNonSyntacticScope());
+           (fun->hasScript() && fun->nonLazyScript()->hasPollutedGlobalScope());
 }
 
 JSFunction*

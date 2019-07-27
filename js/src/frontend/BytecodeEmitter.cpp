@@ -1589,7 +1589,7 @@ BytecodeEmitter::tryConvertFreeName(ParseNode* pn)
 
     
     
-    if (script->hasNonSyntacticScope())
+    if (script->hasPollutedGlobalScope())
         return false;
 
     
