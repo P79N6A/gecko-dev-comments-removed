@@ -65,9 +65,7 @@ function test_ca_distrust(ee_cert, cert_to_modify_trust, isRootCA) {
                         certificateUsageObjectSigner);
   checkCertErrorGeneric(certdb, ee_cert, SEC_ERROR_CA_CERT_INVALID,
                         certificateUsageVerifyCA);
-  checkCertErrorGeneric(certdb, ee_cert,
-                        !isRootCA ? SEC_ERROR_UNTRUSTED_ISSUER
-                                  : SEC_ERROR_INADEQUATE_CERT_TYPE,
+  checkCertErrorGeneric(certdb, ee_cert, SEC_ERROR_UNTRUSTED_ISSUER,
                         certificateUsageStatusResponder);
 
   
@@ -96,7 +94,9 @@ function test_ca_distrust(ee_cert, cert_to_modify_trust, isRootCA) {
                         certificateUsageObjectSigner);
   checkCertErrorGeneric(certdb, ee_cert, SEC_ERROR_CA_CERT_INVALID,
                         certificateUsageVerifyCA);
-  checkCertErrorGeneric(certdb, ee_cert, SEC_ERROR_INADEQUATE_CERT_TYPE,
+  checkCertErrorGeneric(certdb, ee_cert,
+                        isRootCA ? SEC_ERROR_UNKNOWN_ISSUER
+                                 : SEC_ERROR_INADEQUATE_CERT_TYPE,
                         certificateUsageStatusResponder);
 
 
@@ -118,9 +118,7 @@ function test_ca_distrust(ee_cert, cert_to_modify_trust, isRootCA) {
                         certificateUsageObjectSigner);
   checkCertErrorGeneric(certdb, ee_cert, SEC_ERROR_CA_CERT_INVALID,
                         certificateUsageVerifyCA);
-  checkCertErrorGeneric(certdb, ee_cert,
-                        isRootCA ? SEC_ERROR_INADEQUATE_CERT_TYPE
-                                 : SEC_ERROR_UNTRUSTED_ISSUER,
+  checkCertErrorGeneric(certdb, ee_cert, SEC_ERROR_UNTRUSTED_ISSUER,
                         certificateUsageStatusResponder);
 
   
