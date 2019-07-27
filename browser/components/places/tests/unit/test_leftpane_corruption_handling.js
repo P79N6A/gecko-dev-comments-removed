@@ -8,9 +8,16 @@
 
 
 
-function run_test() {
+
+let gLeftPaneFolderIdGetter;
+let gAllBookmarksFolderIdGetter;
+
+let gReferenceHierarchy;
+let gLeftPaneFolderId;
+
+add_task(function* () {
   
-  remove_all_bookmarks();
+  yield PlacesUtils.bookmarks.eraseEverything();
 
   
   Assert.ok(!!PlacesUIUtils);
@@ -21,17 +28,8 @@ function run_test() {
   gAllBookmarksFolderIdGetter = Object.getOwnPropertyDescriptor(PlacesUIUtils, "allBookmarksFolderId");
   Assert.equal(typeof(gAllBookmarksFolderIdGetter.get), "function");
 
-  run_next_test();
-}
-
-do_register_cleanup(remove_all_bookmarks);
-
-
-let gLeftPaneFolderIdGetter;
-let gAllBookmarksFolderIdGetter;
-
-let gReferenceHierarchy;
-let gLeftPaneFolderId;
+  do_register_cleanup(() => PlacesUtils.bookmarks.eraseEverything());
+});
 
 add_task(function* () {
   

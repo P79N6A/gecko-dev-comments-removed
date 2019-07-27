@@ -127,7 +127,7 @@ add_task(function() {
   test.validate(false);
 
   
-  remove_all_bookmarks();
+  yield PlacesUtils.bookmarks.eraseEverything();
   
   PlacesUtils.bookmarks.removeItem(test._excludeRootId);
   

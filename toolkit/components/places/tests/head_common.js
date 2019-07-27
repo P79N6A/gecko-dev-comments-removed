@@ -333,20 +333,6 @@ function visits_in_database(aURI)
 
 
 
-function remove_all_bookmarks() {
-  let PU = PlacesUtils;
-  
-  PU.bookmarks.removeFolderChildren(PU.bookmarks.bookmarksMenuFolder);
-  PU.bookmarks.removeFolderChildren(PU.bookmarks.toolbarFolder);
-  PU.bookmarks.removeFolderChildren(PU.bookmarks.unfiledBookmarksFolder);
-  
-  check_no_bookmarks();
-}
-
-
-
-
-
 function check_no_bookmarks() {
   let query = PlacesUtils.history.getNewQuery();
   let folders = [

@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 Cu.import("resource://gre/modules/BookmarkJSONUtils.jsm");
 
@@ -11,7 +11,7 @@ function run_test() {
 const LOAD_IN_SIDEBAR_ANNO = "bookmarkProperties/loadInSidebar";
 const DESCRIPTION_ANNO = "bookmarkProperties/description";
 
-
+// An object representing the contents of bookmarks.json.
 let test_bookmarks = {
   menu: [
     { title: "Mozilla Firefox",
@@ -40,12 +40,12 @@ let test_bookmarks = {
     { title: "test",
       description: "folder test comment",
       dateAdded: 1177541020000000,
-      
+      //lastModified: 1177541050000000,
       children: [
         { title: "test post keyword",
           description: "item description",
           dateAdded: 1177375336000000,
-          
+          //lastModified: 1177375423000000,
           keyword: "test",
           sidebar: true,
           postData: "hidden1%3Dbar&text1%3D%25s",
@@ -71,7 +71,7 @@ let test_bookmarks = {
   ]
 };
 
-
+// Exported bookmarks file pointer.
 let bookmarksExportedFile;
 
 add_task(function test_import_bookmarks() {
@@ -90,14 +90,14 @@ add_task(function test_export_bookmarks() {
 });
 
 add_task(function test_import_exported_bookmarks() {
-  remove_all_bookmarks();
+  yield PlacesUtils.bookmarks.eraseEverything();
   yield BookmarkJSONUtils.importFromFile(bookmarksExportedFile, true);
   yield PlacesTestUtils.promiseAsyncUpdates();
   yield testImportedBookmarks();
 });
 
 add_task(function test_import_ontop() {
-  remove_all_bookmarks();
+  yield PlacesUtils.bookmarks.eraseEverything();
   yield BookmarkJSONUtils.importFromFile(bookmarksExportedFile, true);
   yield PlacesTestUtils.promiseAsyncUpdates();
   yield BookmarkJSONUtils.exportToFile(bookmarksExportedFile);
@@ -108,7 +108,7 @@ add_task(function test_import_ontop() {
 });
 
 add_task(function test_clean() {
-  remove_all_bookmarks();
+  yield PlacesUtils.bookmarks.eraseEverything();
 });
 
 function testImportedBookmarks() {
