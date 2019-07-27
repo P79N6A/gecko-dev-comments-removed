@@ -33,6 +33,7 @@ class   nsIContent;
 class   ViewWrapper;
 class   nsIWidgetListener;
 class   nsIntRegion;
+class   nsIScreen;
 
 namespace mozilla {
 namespace dom {
@@ -1407,7 +1408,10 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD MakeFullScreen(bool aFullScreen) = 0;
+
+
+
+    NS_IMETHOD MakeFullScreen(bool aFullScreen, nsIScreen* aTargetScreen = nullptr) = 0;
 
     
 

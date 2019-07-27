@@ -2851,7 +2851,7 @@ NS_METHOD nsWindow::Invalidate(const nsIntRect & aRect)
 }
 
 NS_IMETHODIMP
-nsWindow::MakeFullScreen(bool aFullScreen)
+nsWindow::MakeFullScreen(bool aFullScreen, nsIScreen* aTargetScreen)
 {
   
   nsCOMPtr<nsIWinTaskbar> taskbarInfo =
@@ -2881,7 +2881,7 @@ nsWindow::MakeFullScreen(bool aFullScreen)
   
   
   
-  nsresult rv = nsBaseWidget::MakeFullScreen(aFullScreen);
+  nsresult rv = nsBaseWidget::MakeFullScreen(aFullScreen, aTargetScreen);
 
   if (visible) {
     Show(true);
