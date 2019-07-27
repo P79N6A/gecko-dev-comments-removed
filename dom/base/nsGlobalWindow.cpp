@@ -2676,6 +2676,12 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
   if (!aState) {
     if (reUseInnerWindow) {
+
+      
+      
+      newInnerWindow->mLocalStorage = nullptr;
+      newInnerWindow->mSessionStorage = nullptr;
+
       if (newInnerWindow->mDoc != aDocument) {
         newInnerWindow->mDoc = aDocument;
 
@@ -9286,29 +9292,6 @@ public:
   nsString                             mAction;
 };
 
-static bool
-CheckReason(int16_t aReason, SelectionChangeReason aReasonType)
-{
-  switch (aReasonType) {
-    case SelectionChangeReason::Drag:
-      return aReason & nsISelectionListener::DRAG_REASON;
-    case SelectionChangeReason::Mousedown:
-      return aReason & nsISelectionListener::MOUSEDOWN_REASON;
-    case SelectionChangeReason::Mouseup:
-      return aReason & nsISelectionListener::MOUSEUP_REASON;
-    case SelectionChangeReason::Keypress:
-      return aReason & nsISelectionListener::KEYPRESS_REASON;
-    case SelectionChangeReason::Selectall:
-      return aReason & nsISelectionListener::SELECTALL_REASON;
-    case SelectionChangeReason::Collapsetostart:
-      return aReason & nsISelectionListener::COLLAPSETOSTART_REASON;
-    case SelectionChangeReason::Collapsetoend:
-      return aReason & nsISelectionListener::COLLAPSETOEND_REASON;
-    default:
-      return false;
-  }
-}
-
 NS_IMETHODIMP
 nsGlobalWindow::UpdateCommands(const nsAString& anAction, nsISelection* aSel, int16_t aReason)
 {
@@ -9341,16 +9324,7 @@ nsGlobalWindow::UpdateCommands(const nsAString& anAction, nsISelection* aSel, in
         nsRefPtr<nsRange> nsrange = static_cast<nsRange*>(range.get());
         init.mBoundingClientRect = nsrange->GetBoundingClientRect(true, false);
         range->ToString(init.mSelectedText);
-
-        for (uint32_t reasonType = 0;
-             reasonType < static_cast<uint32_t>(SelectionChangeReason::EndGuard_);
-             ++reasonType) {
-          SelectionChangeReason strongReasonType =
-            static_cast<SelectionChangeReason>(reasonType);
-          if (CheckReason(aReason, strongReasonType)) {
-            init.mReasons.AppendElement(strongReasonType);
-          }
-        }
+        init.mReason = aReason;
       }
 
       nsRefPtr<SelectionChangeEvent> event =
@@ -11460,11 +11434,15 @@ nsGlobalWindow::Observe(nsISupports* aSubject, const char* aTopic,
 
     
     
+    ErrorResult error;
     nsRefPtr<StorageEvent> newEvent =
       CloneStorageEvent(fireMozStorageChanged ?
                           NS_LITERAL_STRING("MozStorageChanged") :
                           NS_LITERAL_STRING("storage"),
-                        event);
+                        event, error);
+    if (error.Failed()) {
+      return error.ErrorCode();
+    }
 
     newEvent->SetTrusted(true);
 
@@ -11560,7 +11538,8 @@ nsGlobalWindow::Observe(nsISupports* aSubject, const char* aTopic,
 
 already_AddRefed<StorageEvent>
 nsGlobalWindow::CloneStorageEvent(const nsAString& aType,
-                                  const nsRefPtr<StorageEvent>& aEvent)
+                                  const nsRefPtr<StorageEvent>& aEvent,
+                                  ErrorResult& aRv)
 {
   MOZ_ASSERT(IsInnerWindow());
 
@@ -11572,7 +11551,26 @@ nsGlobalWindow::CloneStorageEvent(const nsAString& aType,
   aEvent->GetOldValue(dict.mOldValue);
   aEvent->GetNewValue(dict.mNewValue);
   aEvent->GetUrl(dict.mUrl);
-  dict.mStorageArea = aEvent->GetStorageArea();
+
+  nsRefPtr<DOMStorage> storageArea = aEvent->GetStorageArea();
+  MOZ_ASSERT(storageArea);
+
+  nsRefPtr<DOMStorage> storage;
+  if (storageArea->GetType() == DOMStorage::LocalStorage) {
+    storage = GetLocalStorage(aRv);
+  } else {
+    MOZ_ASSERT(storageArea->GetType() == DOMStorage::SessionStorage);
+    storage = GetSessionStorage(aRv);
+  }
+
+  if (aRv.Failed() || !storage) {
+    return nullptr;
+  }
+
+  MOZ_ASSERT(storage);
+  MOZ_ASSERT(storage->IsForkOf(storageArea));
+
+  dict.mStorageArea = storage;
 
   nsRefPtr<StorageEvent> event = StorageEvent::Constructor(this, aType, dict);
   return event.forget();
