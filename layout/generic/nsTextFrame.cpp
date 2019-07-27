@@ -1311,10 +1311,8 @@ BuildTextRuns(gfxContext* aContext, nsTextFrame* aForFrame,
     
     scanner.SetAtStartOfLine();
     scanner.SetCommonAncestorWithLastFrame(nullptr);
-    nsIFrame* child = textRunContainer->GetFirstPrincipalChild();
-    while (child) {
+    for (nsIFrame* child : textRunContainer->PrincipalChildList()) {
       scanner.ScanFrame(child);
-      child = child->GetNextSibling();
     }
     
     scanner.SetAtStartOfLine();

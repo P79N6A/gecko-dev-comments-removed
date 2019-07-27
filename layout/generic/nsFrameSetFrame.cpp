@@ -674,8 +674,7 @@ void nsHTMLFramesetFrame::GetSizeOfChild(nsIFrame* aChild,
   
   
   int i = 0;
-  for (nsIFrame* child = mFrames.FirstChild(); child;
-       child = child->GetNextSibling()) {
+  for (nsIFrame* child : mFrames) {
     if (aChild == child) {
       nsIntPoint ignore;
       GetSizeOfChildAt(i, aWM, aSize, ignore);

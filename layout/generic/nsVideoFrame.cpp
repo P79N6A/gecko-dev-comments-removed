@@ -264,9 +264,7 @@ nsVideoFrame::Reflow(nsPresContext*           aPresContext,
 
   
   
-  for (nsIFrame *child = mFrames.FirstChild();
-       child;
-       child = child->GetNextSibling()) {
+  for (nsIFrame* child : mFrames) {
     if (child->GetContent() == mPosterImage) {
       
       nsImageFrame* imageFrame = static_cast<nsImageFrame*>(child);
@@ -438,9 +436,7 @@ nsVideoFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  for (nsIFrame *child = mFrames.FirstChild();
-       child;
-       child = child->GetNextSibling()) {
+  for (nsIFrame* child : mFrames) {
     if (child->GetContent() != mPosterImage || shouldDisplayPoster) {
       child->BuildDisplayListForStackingContext(aBuilder,
                                                 aDirtyRect - child->GetOffsetTo(this),
