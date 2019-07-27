@@ -160,7 +160,7 @@ private:
   
   
   enum SwitchSourceResult {
-    SOURCE_ERROR = -1,
+    SOURCE_NONE = -1,
     SOURCE_EXISTING = 0,
     SOURCE_NEW = 1,
   };
