@@ -48,7 +48,7 @@ this.LoginHelper = {
         aHostname.indexOf("\r") != -1 ||
         aHostname.indexOf("\n") != -1 ||
         aHostname.indexOf("\0") != -1) {
-      throw "Invalid hostname";
+      throw new Error("Invalid hostname");
     }
   },
 
@@ -73,7 +73,7 @@ this.LoginHelper = {
     
     
     if (badCharacterPresent(aLogin, "\0")) {
-      throw "login values can't contain nulls";
+      throw new Error("login values can't contain nulls");
     }
 
     
@@ -82,26 +82,26 @@ this.LoginHelper = {
     
     if (aLogin.username.indexOf("\0") != -1 ||
         aLogin.password.indexOf("\0") != -1) {
-      throw "login values can't contain nulls";
+      throw new Error("login values can't contain nulls");
     }
 
     
     if (badCharacterPresent(aLogin, "\r") ||
         badCharacterPresent(aLogin, "\n")) {
-      throw "login values can't contain newlines";
+      throw new Error("login values can't contain newlines");
     }
 
     
     if (aLogin.usernameField == "." ||
         aLogin.formSubmitURL == ".") {
-      throw "login values can't be periods";
+      throw new Error("login values can't be periods");
     }
 
     
     
     
     if (aLogin.hostname.indexOf(" (") != -1) {
-      throw "bad parens in hostname";
+      throw new Error("bad parens in hostname");
     }
   },
 
@@ -189,40 +189,40 @@ this.LoginHelper = {
 
           
           default:
-            throw "Unexpected propertybag item: " + prop.name;
+            throw new Error("Unexpected propertybag item: " + prop.name);
         }
       }
     } else {
-      throw "newLoginData needs an expected interface!";
+      throw new Error("newLoginData needs an expected interface!");
     }
 
     
     if (newLogin.hostname == null || newLogin.hostname.length == 0) {
-      throw "Can't add a login with a null or empty hostname.";
+      throw new Error("Can't add a login with a null or empty hostname.");
     }
 
     
     if (newLogin.username == null) {
-      throw "Can't add a login with a null username.";
+      throw new Error("Can't add a login with a null username.");
     }
 
     if (newLogin.password == null || newLogin.password.length == 0) {
-      throw "Can't add a login with a null or empty password.";
+      throw new Error("Can't add a login with a null or empty password.");
     }
 
     if (newLogin.formSubmitURL || newLogin.formSubmitURL == "") {
       
       if (newLogin.httpRealm != null) {
-        throw "Can't add a login with both a httpRealm and formSubmitURL.";
+        throw new Error("Can't add a login with both a httpRealm and formSubmitURL.");
       }
     } else if (newLogin.httpRealm) {
       
       if (newLogin.formSubmitURL != null) {
-        throw "Can't add a login with both a httpRealm and formSubmitURL.";
+        throw new Error("Can't add a login with both a httpRealm and formSubmitURL.");
       }
     } else {
       
-      throw "Can't add a login without a httpRealm or formSubmitURL.";
+      throw new Error(Can't add a login without a httpRealm or formSubmitURL.");
     }
 
     
