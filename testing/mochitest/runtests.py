@@ -1542,6 +1542,11 @@ class Mochitest(MochitestUtilsMixin):
         if not options.enableCPOWWarnings:
             browserEnv["DISABLE_UNSAFE_CPOW_WARNINGS"] = "1"
 
+        
+        
+        if mozinfo.info.get('toolkit') == 'gtk3':
+            browserEnv["GDK_CORE_DEVICE_EVENTS"] = "1"
+
         return browserEnv
 
     def cleanup(self, options):
