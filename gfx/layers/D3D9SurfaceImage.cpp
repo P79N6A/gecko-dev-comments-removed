@@ -107,7 +107,7 @@ D3D9SurfaceImage::SetData(const Data& aData)
   
   
   
-  const nsIntRect& region = aData.mRegion;
+  const gfx::IntRect& region = aData.mRegion;
   RefPtr<IDirect3DTexture9> texture;
   HANDLE shareHandle = nullptr;
   hr = device->CreateTexture(region.width,
