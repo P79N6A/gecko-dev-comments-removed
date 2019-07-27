@@ -42,7 +42,7 @@ function check_telemetry() {
   do_check_eq(histogram.counts[10], 5); 
   do_check_eq(histogram.counts[11], 2); 
   do_check_eq(histogram.counts[12], 1); 
-  do_check_eq(histogram.counts[13], 1); 
+  do_check_eq(histogram.counts[13], 0); 
   do_check_eq(histogram.counts[14], 2); 
   do_check_eq(histogram.counts[15], 1); 
   do_check_eq(histogram.counts[16], 2); 
@@ -54,7 +54,7 @@ function check_telemetry() {
   do_check_eq(keySizeHistogram.counts[0], 0);
   do_check_eq(keySizeHistogram.counts[1], 0); 
   do_check_eq(keySizeHistogram.counts[2], 4); 
-  do_check_eq(keySizeHistogram.counts[3], 49); 
+  do_check_eq(keySizeHistogram.counts[3], 48); 
 
   run_next_test();
 }
@@ -179,9 +179,10 @@ function add_simple_tests() {
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
                          SEC_ERROR_CA_CERT_INVALID);
 
-  add_cert_override_test("inadequate-key-size-ee.example.com",
-                         Ci.nsICertOverrideService.ERROR_UNTRUSTED,
-                         MOZILLA_PKIX_ERROR_INADEQUATE_KEY_SIZE);
+  
+  
+  add_non_overridable_test("inadequate-key-size-ee.example.com",
+                           SSL_ERROR_WEAK_SERVER_CERT_KEY);
 }
 
 function add_combo_tests() {
