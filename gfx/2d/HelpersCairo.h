@@ -260,11 +260,18 @@ SetCairoStrokeOptions(cairo_t* aCtx, const StrokeOptions& aStrokeOptions)
   if (aStrokeOptions.mDashPattern) {
     
     std::vector<double> dashes(aStrokeOptions.mDashLength);
+    bool nonZero = false;
     for (size_t i = 0; i < aStrokeOptions.mDashLength; ++i) {
+      if (aStrokeOptions.mDashPattern[i] != 0) {
+        nonZero = true;
+      }
       dashes[i] = aStrokeOptions.mDashPattern[i];
     }
-    cairo_set_dash(aCtx, &dashes[0], aStrokeOptions.mDashLength,
-                   aStrokeOptions.mDashOffset);
+    
+    if (nonZero) {
+      cairo_set_dash(aCtx, &dashes[0], aStrokeOptions.mDashLength,
+                     aStrokeOptions.mDashOffset);
+    }
   }
 
   cairo_set_line_join(aCtx, GfxLineJoinToCairoLineJoin(aStrokeOptions.mLineJoin));
