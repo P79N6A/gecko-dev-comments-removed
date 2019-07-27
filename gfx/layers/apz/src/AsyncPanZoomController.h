@@ -1043,25 +1043,6 @@ public:
   
 
 
-
-
-  static void SetThreadAssertionsEnabled(bool aEnabled);
-  static bool GetThreadAssertionsEnabled();
-  
-
-
-
-
-  static void AssertOnControllerThread();
-  
-
-
-
-
-  static void AssertOnCompositorThread();
-  
-
-
   void SetTestAsyncScrollOffset(const CSSPoint& aPoint)
   {
     mTestAsyncScrollOffset = aPoint;

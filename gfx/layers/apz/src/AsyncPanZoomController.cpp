@@ -42,6 +42,7 @@
 #include "mozilla/gfx/Rect.h"           
 #include "mozilla/gfx/ScaleFactor.h"    
 #include "mozilla/layers/APZCTreeManager.h"  
+#include "mozilla/layers/APZThreadUtils.h"  
 #include "mozilla/layers/AsyncCompositionManager.h"  
 #include "mozilla/layers/AxisPhysicsModel.h" 
 #include "mozilla/layers/AxisPhysicsMSDModel.h" 
@@ -433,8 +434,6 @@ static inline void LogRendertraceRect(const ScrollableLayerGuid& aGuid, const ch
 }
 
 static TimeStamp sFrameTime;
-static bool sThreadAssertionsEnabled = true;
-static PRThread* sControllerThread;
 
 
 static uint32_t sAsyncPanZoomControllerCount = 0;
@@ -824,42 +823,6 @@ AsyncPanZoomController::SetFrameTime(const TimeStamp& aTime) {
   sFrameTime = aTime;
 }
 
-void
-AsyncPanZoomController::SetThreadAssertionsEnabled(bool aEnabled) {
-  sThreadAssertionsEnabled = aEnabled;
-}
-
-bool
-AsyncPanZoomController::GetThreadAssertionsEnabled() {
-  return sThreadAssertionsEnabled;
-}
-
-void
-AsyncPanZoomController::AssertOnControllerThread() {
-  if (!GetThreadAssertionsEnabled()) {
-    return;
-  }
-
-  static bool sControllerThreadDetermined = false;
-  if (!sControllerThreadDetermined) {
-    
-    
-    
-    
-    sControllerThread = PR_GetCurrentThread();
-    sControllerThreadDetermined = true;
-  }
-  MOZ_ASSERT(sControllerThread == PR_GetCurrentThread());
-}
-
-void
-AsyncPanZoomController::AssertOnCompositorThread()
-{
-  if (GetThreadAssertionsEnabled()) {
-    Compositor::AssertOnCompositorThread();
-  }
-}
-
  void
 AsyncPanZoomController::InitializeGlobalState()
 {
@@ -924,7 +887,7 @@ AsyncPanZoomController::~AsyncPanZoomController()
 PCompositorParent*
 AsyncPanZoomController::GetSharedFrameMetricsCompositor()
 {
-  AssertOnCompositorThread();
+  APZThreadUtils::AssertOnCompositorThread();
 
   if (mSharingFrameMetricsAcrossProcesses) {
     const CompositorParent::LayerTreeState* state = CompositorParent::GetIndirectShadowTree(mLayersId);
@@ -956,7 +919,7 @@ AsyncPanZoomController::GetInputQueue() const {
 void
 AsyncPanZoomController::Destroy()
 {
-  AssertOnCompositorThread();
+  APZThreadUtils::AssertOnCompositorThread();
 
   CancelAnimation();
 
@@ -1031,7 +994,7 @@ AsyncPanZoomController::ArePointerEventsConsumable(TouchBlockState* aBlock, uint
 
 nsEventStatus AsyncPanZoomController::HandleInputEvent(const InputData& aEvent,
                                                        const Matrix4x4& aTransformToApzc) {
-  AssertOnControllerThread();
+  APZThreadUtils::AssertOnControllerThread();
 
   nsEventStatus rv = nsEventStatus_eIgnore;
 
@@ -1103,7 +1066,7 @@ nsEventStatus AsyncPanZoomController::HandleInputEvent(const InputData& aEvent,
 
 nsEventStatus AsyncPanZoomController::HandleGestureEvent(const InputData& aEvent)
 {
-  AssertOnControllerThread();
+  APZThreadUtils::AssertOnControllerThread();
 
   nsEventStatus rv = nsEventStatus_eIgnore;
 
@@ -2466,7 +2429,7 @@ AsyncPanZoomController::FireAsyncScrollOnTimeout()
 bool AsyncPanZoomController::UpdateAnimation(const TimeStamp& aSampleTime,
                                              Vector<Task*>* aOutDeferredTasks)
 {
-  AssertOnCompositorThread();
+  APZThreadUtils::AssertOnCompositorThread();
 
   
   
@@ -2544,7 +2507,7 @@ Matrix4x4 AsyncPanZoomController::GetOverscrollTransform() const {
 
 bool AsyncPanZoomController::AdvanceAnimations(const TimeStamp& aSampleTime)
 {
-  AssertOnCompositorThread();
+  APZThreadUtils::AssertOnCompositorThread();
 
   
   
@@ -2691,7 +2654,7 @@ bool AsyncPanZoomController::IsCurrentlyCheckerboarding() const {
 }
 
 void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetrics, bool aIsFirstPaint) {
-  AssertOnCompositorThread();
+  APZThreadUtils::AssertOnCompositorThread();
 
   ReentrantMonitorAutoEnter lock(mMonitor);
   bool isDefault = mFrameMetrics.IsDefault();
@@ -3067,7 +3030,7 @@ AsyncPanZoomController::GetZoomConstraints() const
 
 
 void AsyncPanZoomController::PostDelayedTask(Task* aTask, int aDelayMs) {
-  AssertOnControllerThread();
+  APZThreadUtils::AssertOnControllerThread();
   nsRefPtr<GeckoContentController> controller = GetGeckoContentController();
   if (controller) {
     controller->PostDelayedTask(aTask, aDelayMs);

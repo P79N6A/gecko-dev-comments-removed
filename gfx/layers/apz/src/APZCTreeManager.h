@@ -170,11 +170,14 @@ public:
 
 
 
+
   nsEventStatus ReceiveInputEvent(InputData& aEvent,
                                   ScrollableLayerGuid* aOutTargetGuid,
                                   uint64_t* aOutInputBlockId);
 
   
+
+
 
 
 
@@ -210,6 +213,7 @@ public:
                   const CSSRect& aRect);
 
   
+
 
 
 
@@ -294,6 +298,7 @@ public:
                                nsTArray<TouchBehaviorFlags>& aOutValues);
 
   
+
 
 
 

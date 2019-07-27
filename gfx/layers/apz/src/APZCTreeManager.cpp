@@ -12,6 +12,7 @@
 #include "Layers.h"                     
 #include "mozilla/dom/Touch.h"          
 #include "mozilla/gfx/Point.h"          
+#include "mozilla/layers/APZThreadUtils.h"  
 #include "mozilla/layers/AsyncCompositionManager.h" 
 #include "mozilla/layers/CompositorParent.h" 
 #include "mozilla/layers/LayerMetricsWrapper.h"
@@ -159,9 +160,7 @@ APZCTreeManager::UpdateHitTestingTree(CompositorParent* aCompositor,
                                       uint64_t aOriginatingLayersId,
                                       uint32_t aPaintSequenceNumber)
 {
-  if (AsyncPanZoomController::GetThreadAssertionsEnabled()) {
-    Compositor::AssertOnCompositorThread();
-  }
+  APZThreadUtils::AssertOnCompositorThread();
 
   MonitorAutoLock lock(mTreeLock);
 
@@ -556,6 +555,8 @@ APZCTreeManager::ReceiveInputEvent(InputData& aEvent,
                                    ScrollableLayerGuid* aOutTargetGuid,
                                    uint64_t* aOutInputBlockId)
 {
+  APZThreadUtils::AssertOnControllerThread();
+
   
   
   if (aOutInputBlockId) {
@@ -865,8 +866,10 @@ APZCTreeManager::ReceiveInputEvent(WidgetInputEvent& aEvent,
   
   
   
+  
 
   MOZ_ASSERT(NS_IsMainThread());
+  APZThreadUtils::AssertOnControllerThread();
 
   
   
@@ -920,6 +923,8 @@ APZCTreeManager::ZoomToRect(const ScrollableLayerGuid& aGuid,
 void
 APZCTreeManager::ContentReceivedInputBlock(uint64_t aInputBlockId, bool aPreventDefault)
 {
+  APZThreadUtils::AssertOnControllerThread();
+
   mInputQueue->ContentReceivedInputBlock(aInputBlockId, aPreventDefault);
 }
 
@@ -927,6 +932,8 @@ void
 APZCTreeManager::SetTargetAPZC(uint64_t aInputBlockId,
                                const nsTArray<ScrollableLayerGuid>& aTargets)
 {
+  APZThreadUtils::AssertOnControllerThread();
+
   nsRefPtr<AsyncPanZoomController> target = nullptr;
   if (aTargets.Length() > 0) {
     target = GetTargetAPZC(aTargets[0]);
@@ -941,6 +948,8 @@ APZCTreeManager::SetTargetAPZC(uint64_t aInputBlockId,
 void
 APZCTreeManager::SetTargetAPZC(uint64_t aInputBlockId, const ScrollableLayerGuid& aTarget)
 {
+  APZThreadUtils::AssertOnControllerThread();
+
   nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(aTarget);
   mInputQueue->SetConfirmedTargetApzc(aInputBlockId, apzc);
 }

@@ -9,6 +9,7 @@
 #include "AsyncPanZoomController.h"                     
 #include "LayersLogging.h"                              
 #include "mozilla/gfx/Point.h"                          
+#include "mozilla/layers/APZThreadUtils.h"              
 #include "mozilla/layers/AsyncCompositionManager.h"     
 #include "nsPrintfCString.h"                            
 #include "UnitTransforms.h"                             
@@ -43,7 +44,7 @@ HitTestingTreeNode::~HitTestingTreeNode()
 void
 HitTestingTreeNode::Destroy()
 {
-  AsyncPanZoomController::AssertOnCompositorThread();
+  APZThreadUtils::AssertOnCompositorThread();
 
   mPrevSibling = nullptr;
   mLastChild = nullptr;
