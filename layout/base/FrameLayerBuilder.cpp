@@ -25,6 +25,7 @@
 #include "gfx2DGlue.h"
 #include "mozilla/LookAndFeel.h"
 #include "nsDocShell.h"
+#include "nsImageFrame.h"
 
 #include "GeckoProfiler.h"
 #include "mozilla/gfx/Tools.h"
@@ -2335,22 +2336,11 @@ ThebesLayerData::Accumulate(ContainerState* aState,
     aItem->DisableComponentAlpha();
   }
 
-  
-
-
-  if (mVisibleRegion.IsEmpty() &&
-      aItem->SupportsOptimizingToImage()) {
-    mImage = static_cast<nsDisplayImageContainer*>(aItem);
-    FLB_LOG_THEBES_DECISION(this, "  Tracking image\n");
-  } else if (mImage) {
-    FLB_LOG_THEBES_DECISION(this, "  No longer tracking image\n");
-    mImage = nullptr;
-  }
   bool clipMatches = mItemClip == aClip;
   mItemClip = aClip;
 
   if (!mIsSolidColorInVisibleRegion && mOpaqueRegion.Contains(aDrawRect) &&
-      mVisibleRegion.Contains(aVisibleRect)) {
+      mVisibleRegion.Contains(aVisibleRect) && !mImage) {
     
     
     
@@ -2361,6 +2351,19 @@ ThebesLayerData::Accumulate(ContainerState* aState,
     
     NS_ASSERTION(mDrawRegion.Contains(aDrawRect), "Draw region not covered");
     return;
+  }
+
+  
+
+
+  if (nsIntRegion(aVisibleRect).Contains(mVisibleRegion) &&
+      aClippedOpaqueRegion.Contains(mVisibleRegion) &&
+      aItem->SupportsOptimizingToImage()) {
+    mImage = static_cast<nsDisplayImageContainer*>(aItem);
+    FLB_LOG_THEBES_DECISION(this, "  Tracking image: nsDisplayImageContainer covers the layer\n");
+  } else if (mImage) {
+    FLB_LOG_THEBES_DECISION(this, "  No longer tracking image\n");
+    mImage = nullptr;
   }
 
   nscolor uniformColor;
