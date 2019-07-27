@@ -43,7 +43,7 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(IMEContentObserver)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(IMEContentObserver)
   nsAutoScriptBlocker scriptBlocker;
 
-  tmp->NotifyIMEOfBlur(true);
+  tmp->NotifyIMEOfBlur();
   tmp->UnregisterObservers();
 
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mWidget)
@@ -170,12 +170,6 @@ IMEContentObserver::Init(nsIWidget* aWidget,
   NS_ENSURE_TRUE_VOID(mRootContent);
 
   if (firstInitialization) {
-    if (IMEStateManager::IsTestingIME()) {
-      nsIDocument* doc = aPresContext->Document();
-      (new AsyncEventDispatcher(doc, NS_LITERAL_STRING("MozIMEFocusIn"),
-                                false, false))->RunDOMEventWhenSafe();
-    }
-
     aWidget->NotifyIME(IMENotification(NOTIFY_IME_OF_FOCUS));
 
     
@@ -220,7 +214,7 @@ IMEContentObserver::ObserveEditableNode()
 }
 
 void
-IMEContentObserver::NotifyIMEOfBlur(bool aPostEvent)
+IMEContentObserver::NotifyIMEOfBlur()
 {
   
   
@@ -228,19 +222,6 @@ IMEContentObserver::NotifyIMEOfBlur(bool aPostEvent)
     return;
   }
 
-  if (IMEStateManager::IsTestingIME() && mEditableNode) {
-    nsIDocument* doc = mEditableNode->OwnerDoc();
-    if (doc) {
-      nsRefPtr<AsyncEventDispatcher> dispatcher =
-        new AsyncEventDispatcher(doc, NS_LITERAL_STRING("MozIMEFocusOut"),
-                                 false, false);
-      if (aPostEvent) {
-        dispatcher->PostDOMEvent();
-      } else {
-        dispatcher->RunDOMEventWhenSafe();
-      }
-    }
-  }
   
   if (mWidget) {
     mWidget->NotifyIME(IMENotification(NOTIFY_IME_OF_BLUR));
@@ -282,7 +263,7 @@ IMEContentObserver::Destroy()
 {
   
 
-  NotifyIMEOfBlur(false);
+  NotifyIMEOfBlur();
   UnregisterObservers();
 
   mEditor = nullptr;
