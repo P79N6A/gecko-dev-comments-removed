@@ -32,8 +32,7 @@ namespace dom {
 class File;
 class DOMStringList;
 struct IDBObjectStoreParameters;
-template <class> class Optional;
-class StringOrStringSequence;
+template <typename> class Sequence;
 
 namespace indexedDB {
 
@@ -214,17 +213,15 @@ public:
   void
   DeleteObjectStore(const nsAString& name, ErrorResult& aRv);
 
-  
   already_AddRefed<IDBTransaction>
-  Transaction(const StringOrStringSequence& aStoreNames,
+  Transaction(const nsAString& aStoreName,
               IDBTransactionMode aMode,
               ErrorResult& aRv);
 
-  
-  nsresult
-  Transaction(const StringOrStringSequence& aStoreNames,
+  already_AddRefed<IDBTransaction>
+  Transaction(const Sequence<nsString>& aStoreNames,
               IDBTransactionMode aMode,
-              IDBTransaction** aTransaction);
+              ErrorResult& aRv);
 
   StorageType
   Storage() const;
