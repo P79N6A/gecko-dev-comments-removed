@@ -7,7 +7,9 @@
 #include <vector>
 #include <dlfcn.h>
 #include <signal.h>
+#include <string.h>
 #include "CustomElf.h"
+#include "BaseElf.h"
 #include "Mappable.h"
 #include "Logging.h"
 
@@ -279,43 +281,10 @@ CustomElf::~CustomElf()
   ElfLoader::Singleton.Forget(this);
 }
 
-namespace {
-
-
-
-
-unsigned long
-ElfHash(const char *symbol)
-{
-  const unsigned char *sym = reinterpret_cast<const unsigned char *>(symbol);
-  unsigned long h = 0, g;
-  while (*sym) {
-    h = (h << 4) + *sym++;
-    if ((g = h & 0xf0000000))
-      h ^= g >> 24;
-    h &= ~g;
-  }
-  return h;
-}
-
-} 
-
 void *
 CustomElf::GetSymbolPtr(const char *symbol) const
 {
-  return GetSymbolPtr(symbol, ElfHash(symbol));
-}
-
-void *
-CustomElf::GetSymbolPtr(const char *symbol, unsigned long hash) const
-{
-  const Sym *sym = GetSymbol(symbol, hash);
-  void *ptr = nullptr;
-  if (sym && sym->st_shndx != SHN_UNDEF)
-    ptr = GetPtr(sym->st_value);
-  DEBUG_LOG("CustomElf::GetSymbolPtr(%p [\"%s\"], \"%s\") = %p",
-            reinterpret_cast<const void *>(this), GetPath(), symbol, ptr);
-  return ptr;
+  return BaseElf::GetSymbolPtr(symbol, Hash(symbol));
 }
 
 void *
@@ -372,55 +341,34 @@ CustomElf::GetSymbolPtrInDeps(const char *symbol) const
   }
 
   void *sym;
-  
 
-
-
-#ifdef __GLIBC__
-  sym = dlsym(RTLD_DEFAULT, symbol);
-  DEBUG_LOG("dlsym(RTLD_DEFAULT, \"%s\") = %p", symbol, sym);
-  if (sym)
-    return sym;
-#endif
+  unsigned long hash = Hash(symbol);
 
   
+  if (ElfLoader::Singleton.self_elf) {
+    
 
-
-
-
-
-  unsigned long hash = ElfHash(symbol);
-  for (std::vector<RefPtr<LibHandle> >::const_iterator it = dependencies.begin();
-       it < dependencies.end(); ++it) {
-    if (!(*it)->IsSystemElf()) {
-      sym = reinterpret_cast<CustomElf *>((*it).get())->GetSymbolPtr(symbol, hash);
-#ifndef __GLIBC__
-    } else {
-      sym = (*it)->GetSymbolPtr(symbol);
-#endif
-    }
+    sym = ElfLoader::Singleton.self_elf->GetSymbolPtr(symbol, hash);
     if (sym)
       return sym;
   }
-  return nullptr;
-}
 
-const Sym *
-CustomElf::GetSymbol(const char *symbol, unsigned long hash) const
-{
   
 
 
 
 
 
-
-
-  size_t bucket = hash % buckets.numElements();
-  for (size_t y = buckets[bucket]; y != STN_UNDEF; y = chains[y]) {
-    if (strcmp(symbol, strtab.GetStringAt(symtab[y].st_name)))
-      continue;
-    return &symtab[y];
+  for (std::vector<RefPtr<LibHandle> >::const_iterator it = dependencies.begin();
+       it < dependencies.end(); ++it) {
+    if (!(*it)->IsSystemElf()) {
+      sym = static_cast<BaseElf *>(
+        static_cast<CustomElf *>((*it).get()))->GetSymbolPtr(symbol, hash);
+    } else {
+      sym = (*it)->GetSymbolPtr(symbol);
+    }
+    if (sym)
+      return sym;
   }
   return nullptr;
 }

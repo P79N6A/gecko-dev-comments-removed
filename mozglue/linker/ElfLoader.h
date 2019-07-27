@@ -9,6 +9,7 @@
 #include <dlfcn.h>
 #include <signal.h>
 #include "mozilla/RefPtr.h"
+#include "mozilla/UniquePtr.h"
 #include "Zip.h"
 #include "Elfxx.h"
 #include "Mappable.h"
@@ -62,6 +63,9 @@ MFBT_API bool
 IsSignalHandlingBroken();
 
 }
+
+
+class BaseElf;
 
 
 
@@ -440,6 +444,13 @@ private:
   ~ElfLoader();
 
   
+  void Init();
+
+  
+
+  mozilla::UniquePtr<BaseElf> self_elf;
+
+  
   typedef std::vector<LibHandle *> LibHandleList;
   LibHandleList handles;
 
@@ -558,11 +569,19 @@ private:
   };
 
   
+  struct AuxVector {
+    Elf::Addr type;
+    Elf::Addr value;
+  };
+
+  
 
   class DebuggerHelper
   {
   public:
     DebuggerHelper();
+
+    void Init(AuxVector *auvx);
 
     operator bool()
     {

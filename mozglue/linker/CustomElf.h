@@ -6,6 +6,7 @@
 #define CustomElf_h
 
 #include "ElfLoader.h"
+#include "BaseElf.h"
 #include "Logging.h"
 #include "Elfxx.h"
 
@@ -13,7 +14,7 @@
 
 
 
-class CustomElf: public LibHandle, private ElfLoader::link_map
+class CustomElf: public BaseElf, private ElfLoader::link_map
 {
   friend class ElfLoader;
   friend class SEGVHandler;
@@ -58,18 +59,6 @@ private:
 
 
 
-  const Elf::Sym *GetSymbol(const char *symbol, unsigned long hash) const;
-
-  
-
-
-
-  void *GetSymbolPtr(const char *symbol, unsigned long hash) const;
-
-  
-
-
-
 
   void *GetSymbolPtrInDeps(const char *symbol) const;
 
@@ -77,31 +66,13 @@ private:
 
 
   CustomElf(Mappable *mappable, const char *path)
-  : LibHandle(path)
+  : BaseElf(path)
   , mappable(mappable)
   , init(0)
   , fini(0)
   , initialized(false)
   , has_text_relocs(false)
   { }
-
-  
-
-
-
-  void *GetPtr(const Elf::Addr offset) const
-  {
-    return base + offset;
-  }
-
-  
-
-
-  template <typename T>
-  const T *GetPtr(const Elf::Addr offset) const
-  {
-    return reinterpret_cast<const T *>(base + offset);
-  }
 
   
 
@@ -166,19 +137,6 @@ private:
 
   
   mozilla::RefPtr<Mappable> mappable;
-
-  
-  MappedPtr base;
-
-  
-  Elf::Strtab strtab;
-
-  
-  UnsizedArray<Elf::Sym> symtab;
-
-  
-  Array<Elf::Word> buckets;
-  UnsizedArray<Elf::Word> chains;
 
   
   std::vector<mozilla::RefPtr<LibHandle> > dependencies;
