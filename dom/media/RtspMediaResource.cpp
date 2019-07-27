@@ -688,14 +688,14 @@ RtspMediaResource::OnConnected(uint8_t aTrackIdx,
     NS_DispatchToMainThread(event);
     return NS_ERROR_FAILURE;
   }
-  uint64_t duration = 0;
+  uint64_t durationUs = 0;
   for (int i = 0; i < tracks; ++i) {
     nsCString rtspTrackId("RtspTrack");
     rtspTrackId.AppendInt(i);
     nsCOMPtr<nsIStreamingProtocolMetaData> trackMeta;
     mMediaStreamController->GetTrackMetaData(i, getter_AddRefs(trackMeta));
     MOZ_ASSERT(trackMeta);
-    trackMeta->GetDuration(&duration);
+    trackMeta->GetDuration(&durationUs);
 
     
     
@@ -717,11 +717,11 @@ RtspMediaResource::OnConnected(uint8_t aTrackIdx,
   }
 
   
-  if (duration) {
+  if (durationUs) {
     
     mRealTime = false;
     mDecoder->SetInfinite(false);
-    mDecoder->SetDuration(duration);
+    mDecoder->SetDuration((double)(durationUs) / USECS_PER_S);
   } else {
     
     
