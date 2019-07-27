@@ -10605,14 +10605,18 @@ class MGetDOMProperty
     }
 
     bool congruentTo(const MDefinition *ins) const {
-        if (!isDomMovable())
-            return false;
-
         if (!ins->isGetDOMProperty())
             return false;
 
+        return congruentTo(ins->toGetDOMProperty());
+    }
+
+    bool congruentTo(const MGetDOMProperty *ins) const {
+        if (!isDomMovable())
+            return false;
+
         
-        if (!(info() == ins->toGetDOMProperty()->info()))
+        if (!(info() == ins->info()))
             return false;
 
         return congruentIfOperandsEqual(ins);
@@ -10636,6 +10640,7 @@ class MGetDOMProperty
 class MGetDOMMember : public MGetDOMProperty
 {
     
+    
     explicit MGetDOMMember(const JSJitInfo *jitinfo)
         : MGetDOMProperty(jitinfo)
     {
@@ -10655,6 +10660,13 @@ class MGetDOMMember : public MGetDOMProperty
 
     bool possiblyCalls() const {
         return false;
+    }
+
+    bool congruentTo(const MDefinition *ins) const {
+        if (!ins->isGetDOMMember())
+            return false;
+
+        return MGetDOMProperty::congruentTo(ins->toGetDOMMember());
     }
 };
 
