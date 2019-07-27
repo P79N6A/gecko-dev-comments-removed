@@ -1537,34 +1537,36 @@ nsRefreshDriver::RunFrameRequestCallbacks(int64_t aNowEpoch, TimeStamp aNowTime)
   
   mFrameRequestCallbackDocs.Clear();
 
-  profiler_tracing("Paint", "Scripts", TRACING_INTERVAL_START);
-  int64_t eventTime = aNowEpoch / PR_USEC_PER_MSEC;
-  for (uint32_t i = 0; i < frameRequestCallbacks.Length(); ++i) {
-    const DocumentFrameCallbacks& docCallbacks = frameRequestCallbacks[i];
-    
-    
-    nsPIDOMWindow* innerWindow = docCallbacks.mDocument->GetInnerWindow();
-    DOMHighResTimeStamp timeStamp = 0;
-    if (innerWindow && innerWindow->IsInnerWindow()) {
-      nsPerformance* perf = innerWindow->GetPerformance();
-      if (perf) {
-        timeStamp = perf->GetDOMTiming()->TimeStampToDOMHighRes(aNowTime);
-      }
+  if (!frameRequestCallbacks.IsEmpty()) {
+    profiler_tracing("Paint", "Scripts", TRACING_INTERVAL_START);
+    int64_t eventTime = aNowEpoch / PR_USEC_PER_MSEC;
+    for (uint32_t i = 0; i < frameRequestCallbacks.Length(); ++i) {
+      const DocumentFrameCallbacks& docCallbacks = frameRequestCallbacks[i];
       
-    }
-    for (uint32_t j = 0; j < docCallbacks.mCallbacks.Length(); ++j) {
-      const nsIDocument::FrameRequestCallbackHolder& holder =
-        docCallbacks.mCallbacks[j];
-      nsAutoMicroTask mt;
-      if (holder.HasWebIDLCallback()) {
-        ErrorResult ignored;
-        holder.GetWebIDLCallback()->Call(timeStamp, ignored);
-      } else {
-        holder.GetXPCOMCallback()->Sample(eventTime);
+      
+      nsPIDOMWindow* innerWindow = docCallbacks.mDocument->GetInnerWindow();
+      DOMHighResTimeStamp timeStamp = 0;
+      if (innerWindow && innerWindow->IsInnerWindow()) {
+        nsPerformance* perf = innerWindow->GetPerformance();
+        if (perf) {
+          timeStamp = perf->GetDOMTiming()->TimeStampToDOMHighRes(aNowTime);
+        }
+        
+      }
+      for (uint32_t j = 0; j < docCallbacks.mCallbacks.Length(); ++j) {
+        const nsIDocument::FrameRequestCallbackHolder& holder =
+          docCallbacks.mCallbacks[j];
+        nsAutoMicroTask mt;
+        if (holder.HasWebIDLCallback()) {
+          ErrorResult ignored;
+          holder.GetWebIDLCallback()->Call(timeStamp, ignored);
+        } else {
+          holder.GetXPCOMCallback()->Sample(eventTime);
+        }
       }
     }
+    profiler_tracing("Paint", "Scripts", TRACING_INTERVAL_END);
   }
-  profiler_tracing("Paint", "Scripts", TRACING_INTERVAL_END);
 }
 
 void
