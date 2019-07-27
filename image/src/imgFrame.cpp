@@ -530,6 +530,13 @@ bool imgFrame::Draw(gfxContext* aContext, const ImageRegion& aRegion,
   bool doTile = !imageRect.Contains(aRegion.Rect()) &&
                 !(aImageFlags & imgIContainer::FLAG_CLAMP);
   ImageRegion region(aRegion);
+  
+  
+  
+  
+  
+  
+  gfxContextMatrixAutoSaveRestore autoSR(aContext);
   SurfaceWithFormat surfaceResult =
     SurfaceForDrawing(doPadding, doPartialDecode, doTile, aContext,
                       aPadding, imageRect, region, surf);
