@@ -188,7 +188,6 @@ RecordingModel.prototype = {
 
 
 
-
   getConfiguration: function () {
     return this._configuration;
   },

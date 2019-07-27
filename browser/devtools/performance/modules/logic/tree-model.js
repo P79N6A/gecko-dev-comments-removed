@@ -469,7 +469,7 @@ FrameNode.prototype = {
 
 
   hasOptimizations: function () {
-    return !!this._optimizations;
+    return !this.isMetaCategory && !!this._optimizations;
   },
 
   

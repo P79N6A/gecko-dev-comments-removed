@@ -15,7 +15,7 @@ const PROPNAME_MAX_LENGTH = 4;
 
 
 
-let JITOptimizationsView = {
+let OptimizationsListView = {
 
   _currentFrame: null,
 
@@ -24,7 +24,6 @@ let JITOptimizationsView = {
 
   initialize: function () {
     this.reset = this.reset.bind(this);
-    this._onFocusFrame = this._onFocusFrame.bind(this);
 
     this.el = $("#jit-optimizations-view");
     this.$headerName = $("#jit-optimizations-header .header-function-name");
@@ -38,9 +37,6 @@ let JITOptimizationsView = {
 
     
     this.reset();
-
-    PerformanceController.on(EVENTS.RECORDING_SELECTED, this.reset);
-    JsCallTreeView.on("focus", this._onFocusFrame);
   },
 
   
@@ -49,8 +45,6 @@ let JITOptimizationsView = {
   destroy: function () {
     this.tree = null;
     this.$headerName = this.$headerFile = this.$headerLine = this.el = null;
-    PerformanceController.off(EVENTS.RECORDING_SELECTED, this.reset);
-    JsCallTreeView.off("focus", this._onFocusFrame);
   },
 
   
@@ -93,32 +87,12 @@ let JITOptimizationsView = {
     this.tree.clear();
   },
 
-  show: function () {
-    this.el.hidden = false;
-  },
-
-  hide: function () {
-    this.el.hidden = true;
-  },
-
-  
-
-
-  isEnabled: function () {
-    let recording = PerformanceController.getCurrentRecording();
-    return !!(recording && recording.getConfiguration().withJITOptimizations);
-  },
-
   
 
 
 
 
   render: function () {
-    if (!this.isEnabled()) {
-      return;
-    }
-
     let frameNode = this.getCurrentFrame();
 
     if (!frameNode) {
@@ -385,31 +359,8 @@ let JITOptimizationsView = {
         url.indexOf("file://") === 0);
   },
 
-  
-
-
-
-  _onFocusFrame: function (_, view) {
-    if (!view.frame) {
-      return;
-    }
-
-    
-    
-    
-    let shouldRender = this.getCurrentFrame() !== view.frame;
-
-    
-    
-    this.setCurrentFrame(view.frame);
-
-    if (shouldRender) {
-      this.render();
-    }
-  },
-
-  toString: () => "[object JITOptimizationsView]"
+  toString: () => "[object OptimizationsListView]"
 
 };
 
-EventEmitter.decorate(JITOptimizationsView);
+EventEmitter.decorate(OptimizationsListView);
