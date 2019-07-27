@@ -478,6 +478,15 @@ public:
     mScreenRotation = aRotation;
   }
 
+  
+  
+  
+  
+  
+  
+  
+  RenderTargetRect ClipRectInLayersCoordinates(Layer* aLayer, RenderTargetIntRect aClip) const;
+
 protected:
   void DrawDiagnosticsInternal(DiagnosticFlags aFlags,
                                const gfx::Rect& aVisibleRect,
