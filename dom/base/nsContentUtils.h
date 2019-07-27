@@ -155,7 +155,9 @@ enum EventNameType {
 
 struct EventNameMapping
 {
-  nsIAtom* mAtom;
+  
+  
+  nsIAtom* MOZ_OWNING_REF mAtom;
   uint32_t mId;
   int32_t  mType;
   mozilla::EventClassID mEventClassID;
