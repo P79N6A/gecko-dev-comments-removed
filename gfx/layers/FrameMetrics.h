@@ -40,10 +40,10 @@ public:
 
   FrameMetrics()
     : mCompositionBounds(0, 0, 0, 0)
-    , mDisplayPort(0, 0, 0, 0)
     , mCriticalDisplayPort(0, 0, 0, 0)
     , mScrollableRect(0, 0, 0, 0)
     , mPresShellResolution(1)
+    , mDisplayPort(0, 0, 0, 0)
     , mCumulativeResolution(1)
     , mDevPixelsPerCSSPixel(1)
     , mMayHaveTouchListeners(false)
@@ -262,19 +262,6 @@ public:
   
   
   
-  
-  
-  
-  
-  
-  CSSRect mDisplayPort;
-
-  
-  
-  
-  
-  
-  
   CSSRect mCriticalDisplayPort;
 
   
@@ -304,6 +291,16 @@ public:
   float mPresShellResolution;
 
 public:
+  void SetDisplayPort(const CSSRect& aDisplayPort)
+  {
+    mDisplayPort = aDisplayPort;
+  }
+
+  CSSRect GetDisplayPort() const
+  {
+    return mDisplayPort;
+  }
+
   void SetCumulativeResolution(const LayoutDeviceToLayerScale& aCumulativeResolution)
   {
     mCumulativeResolution = aCumulativeResolution;
@@ -532,6 +529,19 @@ public:
   }
 
 private:
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  CSSRect mDisplayPort;
+
   
   
   

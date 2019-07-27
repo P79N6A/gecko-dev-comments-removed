@@ -605,7 +605,7 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
     const FrameMetrics& metrics = aLayer->GetFrameMetrics(i);
     CSSToLayerScale paintScale = metrics.LayersPixelsPerCSSPixel();
     CSSRect displayPort(metrics.mCriticalDisplayPort.IsEmpty() ?
-                        metrics.mDisplayPort : metrics.mCriticalDisplayPort);
+                        metrics.GetDisplayPort() : metrics.mCriticalDisplayPort);
     ScreenPoint offset(0, 0);
     
     
@@ -860,7 +860,7 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
   
   LayerIntRect displayPort = RoundedToInt(
     (metrics.mCriticalDisplayPort.IsEmpty()
-      ? metrics.mDisplayPort
+      ? metrics.GetDisplayPort()
       : metrics.mCriticalDisplayPort
     ) * geckoZoom);
   displayPort += scrollOffsetLayerPixels;

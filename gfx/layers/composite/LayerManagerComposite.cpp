@@ -935,13 +935,13 @@ LayerManagerComposite::ComputeRenderIntegrity()
     }
 
     
-    if (!metrics.mDisplayPort.IsEmpty()) {
+    if (!metrics.GetDisplayPort().IsEmpty()) {
       if (hasLowPrecision) {
         lowPrecisionMultiplier =
-          GetDisplayportCoverage(metrics.mDisplayPort, transform, screenRect);
+          GetDisplayportCoverage(metrics.GetDisplayPort(), transform, screenRect);
       } else {
         lowPrecisionMultiplier = highPrecisionMultiplier =
-          GetDisplayportCoverage(metrics.mDisplayPort, transform, screenRect);
+          GetDisplayportCoverage(metrics.GetDisplayPort(), transform, screenRect);
       }
     }
   }
