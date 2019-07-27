@@ -2112,6 +2112,10 @@ GK_ATOM(x_telu, "x-telu")
 GK_ATOM(x_tibt, "x-tibt")
 
 
+GK_ATOM(ko_xxx, "ko-xxx")
+GK_ATOM(x_symbol, "x-symbol")
+
+
 GK_ATOM(az, "az")
 GK_ATOM(ba, "ba")
 GK_ATOM(crh, "crh")
