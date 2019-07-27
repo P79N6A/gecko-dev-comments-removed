@@ -577,7 +577,12 @@ static CVReturn VsyncCallback(CVDisplayLinkRef aDisplayLink,
   mozilla::TimeStamp previousVsync = display->mPreviousTimestamp;
   display->mPreviousTimestamp = nextVsync;
   mozilla::TimeStamp now = TimeStamp::Now();
-  MOZ_ASSERT(nextVsync > previousVsync);
+  if (nextVsync <= previousVsync) {
+    TimeDuration next = nextVsync - now;
+    TimeDuration prev = now - previousVsync;
+    printf_stderr("Next from now: %f, prev from now: %f\n", next.ToMilliseconds(), prev.ToMilliseconds());
+    MOZ_ASSERT(false, "Next vsync less than previous vsync\n");
+  }
 
   
   
