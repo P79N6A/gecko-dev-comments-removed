@@ -13,10 +13,20 @@
 MOZ_BEGIN_EXTERN_C
 
 
+
+
+
+
+void MozillaRegisterDebugHandle(intptr_t aHandle);
+
+
 void MozillaRegisterDebugFD(int aFd);
 
 
 void MozillaRegisterDebugFILE(FILE* aFile);
+
+
+void MozillaUnRegisterDebugHandle(intptr_t aHandle);
 
 
 void MozillaUnRegisterDebugFD(int aFd);

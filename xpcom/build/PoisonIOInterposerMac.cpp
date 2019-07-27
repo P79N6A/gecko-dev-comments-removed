@@ -32,6 +32,10 @@
 #include <dlfcn.h>
 #include <fcntl.h>
 
+#ifdef MOZ_REPLACE_MALLOC
+#include "replace_malloc_bridge.h"
+#endif
+
 namespace {
 
 using namespace mozilla;
@@ -341,6 +345,14 @@ InitPoisonIOInterposer()
   
   MozillaRegisterDebugFD(1);
   MozillaRegisterDebugFD(2);
+
+#ifdef MOZ_REPLACE_MALLOC
+  
+  
+  
+  static DebugFdRegistry registry;
+  ReplaceMalloc::InitDebugFd(registry);
+#endif
 
   for (int i = 0; i < NumFunctions; ++i) {
     FuncData* d = Functions[i];
