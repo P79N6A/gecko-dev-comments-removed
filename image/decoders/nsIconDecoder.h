@@ -4,8 +4,8 @@
 
 
 
-#ifndef nsIconDecoder_h
-#define nsIconDecoder_h
+#ifndef mozilla_image_decoders_nsIconDecoder_h
+#define mozilla_image_decoders_nsIconDecoder_h
 
 #include "Decoder.h"
 

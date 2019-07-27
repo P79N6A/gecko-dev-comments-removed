@@ -4,8 +4,8 @@
 
 
 
-#ifndef nsPNGDecoder_h
-#define nsPNGDecoder_h
+#ifndef mozilla_image_decoders_nsPNGDecoder_h
+#define mozilla_image_decoders_nsPNGDecoder_h
 
 #include "Decoder.h"
 

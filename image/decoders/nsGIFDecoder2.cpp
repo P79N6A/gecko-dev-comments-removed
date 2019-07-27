@@ -541,7 +541,9 @@ ConvertColormap(uint32_t* aColormap, uint32_t aColors)
   
 
   
-  if (!aColors) return;
+  if (!aColors) {
+    return;
+  }
   uint32_t c = aColors;
 
   
@@ -657,8 +659,9 @@ nsGIFDecoder2::WriteInternal(const char* aBuffer, uint32_t aCount)
       mGIFStruct.datum = mGIFStruct.bits = 0;
 
       
-      for (int i = 0; i < clear_code; i++)
+      for (int i = 0; i < clear_code; i++) {
         mGIFStruct.suffix[i] = i;
+      }
 
       mGIFStruct.stackp = mGIFStruct.stack;
 
@@ -702,7 +705,7 @@ nsGIFDecoder2::WriteInternal(const char* aBuffer, uint32_t aCount)
       
       
 
-      if (q[4] & 0x80) { 
+      if (q[4] & 0x80) {
         
         const uint32_t size = (3 << mGIFStruct.global_colormap_depth);
         if (len < size) {
@@ -857,10 +860,11 @@ nsGIFDecoder2::WriteInternal(const char* aBuffer, uint32_t aCount)
       
       if (mGIFStruct.bytes_to_consume == 11 &&
           (!strncmp((char*)q, "NETSCAPE2.0", 11) ||
-           !strncmp((char*)q, "ANIMEXTS1.0", 11)))
+           !strncmp((char*)q, "ANIMEXTS1.0", 11))) {
         GETN(1, gif_netscape_extension_block);
-      else
+      } else {
         GETN(1, gif_consume_block);
+      }
       break;
 
     

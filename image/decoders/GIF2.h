@@ -3,8 +3,8 @@
 
 
 
-#ifndef GIF2_H
-#define GIF2_H
+#ifndef mozilla_image_decoders_GIF2_H
+#define mozilla_image_decoders_GIF2_H
 
 #define MAX_LZW_BITS          12
 #define MAX_BITS            4097 // 2^MAX_LZW_BITS+1

@@ -4,8 +4,8 @@
 
 
 
-#ifndef nsICODecoder_h
-#define nsICODecoder_h
+#ifndef mozilla_image_decoders_nsICODecoder_h
+#define mozilla_image_decoders_nsICODecoder_h
 
 #include "nsAutoPtr.h"
 #include "Decoder.h"
@@ -56,19 +56,19 @@ private:
   
   void SetHotSpotIfCursor();
   
-  bool FillBitmapFileHeaderBuffer(int8_t *bfh);
+  bool FillBitmapFileHeaderBuffer(int8_t* bfh);
   
   
   
   
-  bool FixBitmapHeight(int8_t *bih);
+  bool FixBitmapHeight(int8_t* bih);
   
   
-  bool FixBitmapWidth(int8_t *bih);
+  bool FixBitmapWidth(int8_t* bih);
   
-  int32_t ExtractBIHSizeFromBitmap(int8_t *bih);
+  int32_t ExtractBIHSizeFromBitmap(int8_t* bih);
   
-  int32_t ExtractBPPFromBitmap(int8_t *bih);
+  int32_t ExtractBPPFromBitmap(int8_t* bih);
   
   uint32_t CalcAlphaRowSize();
   

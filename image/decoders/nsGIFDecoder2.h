@@ -4,8 +4,8 @@
 
 
 
-#ifndef nsGIFDecoder2_h
-#define nsGIFDecoder2_h
+#ifndef mozilla_image_decoders_nsGIFDecoder2_h
+#define mozilla_image_decoders_nsGIFDecoder2_h
 
 #include "Decoder.h"
 

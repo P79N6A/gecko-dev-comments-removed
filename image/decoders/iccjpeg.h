@@ -20,8 +20,8 @@
 
 
 
-#ifndef ICCJPEG_H
-#define ICCJPEG_H
+#ifndef mozilla_image_decoders_iccjpeg_h
+#define mozilla_image_decoders_iccjpeg_h
 
 #include <stdio.h>  
 #include "jpeglib.h"

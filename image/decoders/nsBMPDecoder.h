@@ -4,8 +4,8 @@
 
 
 
-#ifndef nsBMPDecoder_h
-#define nsBMPDecoder_h
+#ifndef mozilla_image_decoders_nsBMPDecoder_h
+#define mozilla_image_decoders_nsBMPDecoder_h
 
 #include "BMPFileHeaders.h"
 #include "Decoder.h"
@@ -114,14 +114,15 @@ private:
 
 
 
-static inline void SetPixel(uint32_t*& aDecoded, uint8_t aRed, uint8_t aGreen,
-                            uint8_t aBlue, uint8_t aAlpha = 0xFF)
+static inline void
+SetPixel(uint32_t*& aDecoded, uint8_t aRed, uint8_t aGreen,
+         uint8_t aBlue, uint8_t aAlpha = 0xFF)
 {
     *aDecoded++ = gfxPackedPixel(aAlpha, aRed, aGreen, aBlue);
 }
 
-static inline void SetPixel(uint32_t*& aDecoded, uint8_t idx, colorTable*
-                            aColors)
+static inline void
+SetPixel(uint32_t*& aDecoded, uint8_t idx, colorTable* aColors)
 {
     SetPixel(aDecoded, aColors[idx].red, aColors[idx].green, aColors[idx].blue);
 }
@@ -131,8 +132,9 @@ static inline void SetPixel(uint32_t*& aDecoded, uint8_t idx, colorTable*
 
 
 
-inline void Set4BitPixel(uint32_t*& aDecoded, uint8_t aData,
-                         uint32_t& aCount, colorTable* aColors)
+inline void
+Set4BitPixel(uint32_t*& aDecoded, uint8_t aData, uint32_t& aCount,
+             colorTable* aColors)
 {
     uint8_t idx = aData >> 4;
     SetPixel(aDecoded, idx, aColors);

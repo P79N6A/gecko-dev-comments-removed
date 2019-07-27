@@ -4,8 +4,8 @@
 
 
 
-#ifndef nsJPEGDecoder_h
-#define nsJPEGDecoder_h
+#ifndef mozilla_image_decoders_nsJPEGDecoder_h
+#define mozilla_image_decoders_nsJPEGDecoder_h
 
 #include "RasterImage.h"
 

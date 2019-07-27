@@ -3,8 +3,8 @@
 
 
 
-#ifndef MOZILLA_IMAGELIB_EXIF_H
-#define MOZILLA_IMAGELIB_EXIF_H
+#ifndef mozilla_image_decoders_EXIF_h
+#define mozilla_image_decoders_EXIF_h
 
 #include <stdint.h>
 #include "nsDebug.h"
