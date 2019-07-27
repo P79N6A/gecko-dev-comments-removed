@@ -35,14 +35,6 @@ namespace mozilla {
 class RestyleTracker;
 struct AnimationPlayerCollection;
 
-
-enum class GetCompositorAnimationOptions {
-  
-  
-  NotifyActiveLayerTracker = 1 << 0
-};
-MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(GetCompositorAnimationOptions)
-
 namespace css {
 
 bool IsGeometricProperty(nsCSSProperty aProperty);
@@ -173,8 +165,7 @@ protected:
   static AnimationPlayerCollection*
   GetAnimationsForCompositor(nsIContent* aContent,
                              nsIAtom* aElementProperty,
-                             nsCSSProperty aProperty,
-                             GetCompositorAnimationOptions aFlags);
+                             nsCSSProperty aProperty);
 
   PRCList mElementCollections;
   nsPresContext *mPresContext; 
