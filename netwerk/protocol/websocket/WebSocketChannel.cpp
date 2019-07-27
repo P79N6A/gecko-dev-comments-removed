@@ -3656,3 +3656,5 @@ WebSocketChannel::SaveNetworkStats(bool enforce)
 
 } 
 } 
+
+#undef CLOSE_GOING_AWAY
