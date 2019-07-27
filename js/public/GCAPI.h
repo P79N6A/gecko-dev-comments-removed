@@ -141,13 +141,13 @@ enum Reason {
 
 
 
-extern JS_FRIEND_API(void)
+extern JS_PUBLIC_API(void)
 PrepareZoneForGC(Zone *zone);
 
 
 
 
-extern JS_FRIEND_API(void)
+extern JS_PUBLIC_API(void)
 PrepareForFullGC(JSRuntime *rt);
 
 
@@ -155,21 +155,21 @@ PrepareForFullGC(JSRuntime *rt);
 
 
 
-extern JS_FRIEND_API(void)
+extern JS_PUBLIC_API(void)
 PrepareForIncrementalGC(JSRuntime *rt);
 
 
 
 
 
-extern JS_FRIEND_API(bool)
+extern JS_PUBLIC_API(bool)
 IsGCScheduled(JSRuntime *rt);
 
 
 
 
 
-extern JS_FRIEND_API(void)
+extern JS_PUBLIC_API(void)
 SkipZoneForGC(Zone *zone);
 
 
@@ -187,7 +187,7 @@ SkipZoneForGC(Zone *zone);
 
 
 
-extern JS_FRIEND_API(void)
+extern JS_PUBLIC_API(void)
 GCForReason(JSRuntime *rt, JSGCInvocationKind gckind, gcreason::Reason reason);
 
 
@@ -222,7 +222,7 @@ GCForReason(JSRuntime *rt, JSGCInvocationKind gckind, gcreason::Reason reason);
 
 
 
-extern JS_FRIEND_API(void)
+extern JS_PUBLIC_API(void)
 StartIncrementalGC(JSRuntime *rt, JSGCInvocationKind gckind, gcreason::Reason reason,
                    int64_t millis = 0);
 
@@ -234,7 +234,7 @@ StartIncrementalGC(JSRuntime *rt, JSGCInvocationKind gckind, gcreason::Reason re
 
 
 
-extern JS_FRIEND_API(void)
+extern JS_PUBLIC_API(void)
 IncrementalGCSlice(JSRuntime *rt, gcreason::Reason reason, int64_t millis = 0);
 
 
@@ -243,7 +243,7 @@ IncrementalGCSlice(JSRuntime *rt, gcreason::Reason reason, int64_t millis = 0);
 
 
 
-extern JS_FRIEND_API(void)
+extern JS_PUBLIC_API(void)
 FinishIncrementalGC(JSRuntime *rt, gcreason::Reason reason);
 
 enum GCProgress {
@@ -263,7 +263,7 @@ enum GCProgress {
     GC_CYCLE_END
 };
 
-struct JS_FRIEND_API(GCDescription) {
+struct JS_PUBLIC_API(GCDescription) {
     bool isCompartment_;
 
     explicit GCDescription(bool isCompartment)
@@ -281,7 +281,7 @@ typedef void
 
 
 
-extern JS_FRIEND_API(GCSliceCallback)
+extern JS_PUBLIC_API(GCSliceCallback)
 SetGCSliceCallback(JSRuntime *rt, GCSliceCallback callback);
 
 
@@ -290,7 +290,7 @@ SetGCSliceCallback(JSRuntime *rt, GCSliceCallback callback);
 
 
 
-extern JS_FRIEND_API(void)
+extern JS_PUBLIC_API(void)
 DisableIncrementalGC(JSRuntime *rt);
 
 
@@ -301,7 +301,7 @@ DisableIncrementalGC(JSRuntime *rt);
 
 
 
-extern JS_FRIEND_API(bool)
+extern JS_PUBLIC_API(bool)
 IsIncrementalGCEnabled(JSRuntime *rt);
 
 
@@ -310,20 +310,20 @@ IsIncrementalGCEnabled(JSRuntime *rt);
 
 
 
-extern JS_FRIEND_API(void)
+extern JS_PUBLIC_API(void)
 DisableCompactingGC(JSRuntime *rt);
 
 
 
 
-extern JS_FRIEND_API(bool)
+extern JS_PUBLIC_API(bool)
 IsCompactingGCEnabled(JSRuntime *rt);
 
 
 
 
 
-JS_FRIEND_API(bool)
+extern JS_PUBLIC_API(bool)
 IsIncrementalGCInProgress(JSRuntime *rt);
 
 
@@ -331,29 +331,29 @@ IsIncrementalGCInProgress(JSRuntime *rt);
 
 
 
-extern JS_FRIEND_API(bool)
+extern JS_PUBLIC_API(bool)
 IsIncrementalBarrierNeeded(JSRuntime *rt);
 
-extern JS_FRIEND_API(bool)
+extern JS_PUBLIC_API(bool)
 IsIncrementalBarrierNeeded(JSContext *cx);
 
 
 
 
 
-extern JS_FRIEND_API(void)
+extern JS_PUBLIC_API(void)
 IncrementalReferenceBarrier(GCCellPtr thing);
 
-extern JS_FRIEND_API(void)
+extern JS_PUBLIC_API(void)
 IncrementalValueBarrier(const Value &v);
 
-extern JS_FRIEND_API(void)
+extern JS_PUBLIC_API(void)
 IncrementalObjectBarrier(JSObject *obj);
 
 
 
 
-extern JS_FRIEND_API(bool)
+extern JS_PUBLIC_API(bool)
 WasIncrementalGC(JSRuntime *rt);
 
 
@@ -365,7 +365,7 @@ WasIncrementalGC(JSRuntime *rt);
 
 
 
-class JS_FRIEND_API(AutoDisableGenerationalGC)
+class JS_PUBLIC_API(AutoDisableGenerationalGC)
 {
     js::gc::GCRuntime *gc;
 #ifdef JS_GC_ZEAL
@@ -381,7 +381,7 @@ class JS_FRIEND_API(AutoDisableGenerationalGC)
 
 
 
-extern JS_FRIEND_API(bool)
+extern JS_PUBLIC_API(bool)
 IsGenerationalGCEnabled(JSRuntime *rt);
 
 
@@ -389,7 +389,7 @@ IsGenerationalGCEnabled(JSRuntime *rt);
 
 
 
-extern JS_FRIEND_API(size_t)
+extern JS_PUBLIC_API(size_t)
 GetGCNumber();
 
 
@@ -397,7 +397,7 @@ GetGCNumber();
 
 
 
-extern JS_FRIEND_API(void)
+extern JS_PUBLIC_API(void)
 ShrinkGCBuffers(JSRuntime *rt);
 
 
