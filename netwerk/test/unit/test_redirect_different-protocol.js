@@ -44,13 +44,7 @@ function redirectHandler(metadata, response)
 
 function finish_test(request, buffer)
 {
-  if (inChildProcess()) {
-    
-    do_check_eq(buffer, response301Body);
-  } else {
-    do_check_eq(buffer, redirectTargetBody);
-  }
-
+  do_check_eq(buffer, redirectTargetBody);
   httpServer.stop(do_test_finished);
 }
 
