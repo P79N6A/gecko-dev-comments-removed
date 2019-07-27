@@ -3745,68 +3745,58 @@ nsEditor::SplitNodeDeep(nsIDOMNode *aNode,
 
 
 
-nsresult
-nsEditor::JoinNodeDeep(nsIDOMNode *aLeftNode, 
-                       nsIDOMNode *aRightNode,
-                       nsCOMPtr<nsIDOMNode> *aOutJoinNode, 
-                       int32_t *outOffset)
+
+::DOMPoint
+nsEditor::JoinNodeDeep(nsIContent& aLeftNode, nsIContent& aRightNode)
 {
-  NS_ENSURE_TRUE(aLeftNode && aRightNode && aOutJoinNode && outOffset, NS_ERROR_NULL_POINTER);
+  
+  
+  
 
-  
-  
-  
-  
-  nsCOMPtr<nsIDOMNode> leftNodeToJoin = do_QueryInterface(aLeftNode);
-  nsCOMPtr<nsIDOMNode> rightNodeToJoin = do_QueryInterface(aRightNode);
-  nsCOMPtr<nsIDOMNode> parentNode,tmp;
-  nsresult res = NS_OK;
-  
-  rightNodeToJoin->GetParentNode(getter_AddRefs(parentNode));
-  
+  nsCOMPtr<nsIContent> leftNodeToJoin = &aLeftNode;
+  nsCOMPtr<nsIContent> rightNodeToJoin = &aRightNode;
+  nsCOMPtr<nsINode> parentNode = aRightNode.GetParentNode();
+
+  ::DOMPoint ret;
+
   while (leftNodeToJoin && rightNodeToJoin && parentNode &&
-          NodesSameType(leftNodeToJoin, rightNodeToJoin))
-  {
-    
-    uint32_t length;
-    res = GetLengthOfDOMNode(leftNodeToJoin, length);
-    NS_ENSURE_SUCCESS(res, res);
-    
-    *aOutJoinNode = rightNodeToJoin;
-    *outOffset = length;
-    
-    
-    res = JoinNodes(leftNodeToJoin, rightNodeToJoin, parentNode);
-    NS_ENSURE_SUCCESS(res, res);
-    
-    if (IsTextNode(parentNode)) 
-      return NS_OK;
+         AreNodesSameType(leftNodeToJoin, rightNodeToJoin)) {
+    uint32_t length = leftNodeToJoin->Length();
 
-    else
-    {
-      
-      parentNode = rightNodeToJoin;
-      leftNodeToJoin = GetChildAt(parentNode, length-1);
-      rightNodeToJoin = GetChildAt(parentNode, length);
+    ret.node = rightNodeToJoin;
+    ret.offset = length;
 
-      
-      while (leftNodeToJoin && !IsEditable(leftNodeToJoin))
-      {
-        leftNodeToJoin->GetPreviousSibling(getter_AddRefs(tmp));
-        leftNodeToJoin = tmp;
-      }
-      if (!leftNodeToJoin) break;
     
-      while (rightNodeToJoin && !IsEditable(rightNodeToJoin))
-      {
-        rightNodeToJoin->GetNextSibling(getter_AddRefs(tmp));
-        rightNodeToJoin = tmp;
-      }
-      if (!rightNodeToJoin) break;
+    nsresult res = JoinNodes(*leftNodeToJoin, *rightNodeToJoin);
+    NS_ENSURE_SUCCESS(res, ::DOMPoint());
+
+    if (parentNode->GetAsText()) {
+      
+      return ret;
+    }
+
+    
+    parentNode = rightNodeToJoin;
+    leftNodeToJoin = parentNode->GetChildAt(length - 1);
+    rightNodeToJoin = parentNode->GetChildAt(length);
+
+    
+    while (leftNodeToJoin && !IsEditable(leftNodeToJoin)) {
+      leftNodeToJoin = leftNodeToJoin->GetPreviousSibling();
+    }
+    if (!leftNodeToJoin) {
+      return ret;
+    }
+
+    while (rightNodeToJoin && !IsEditable(rightNodeToJoin)) {
+      rightNodeToJoin = rightNodeToJoin->GetNextSibling();
+    }
+    if (!rightNodeToJoin) {
+      return ret;
     }
   }
-  
-  return res;
+
+  return ret;
 }
 
 void

@@ -2422,6 +2422,9 @@ nsHTMLEditRules::WillDeleteSelection(Selection* aSelection,
             && (!mHTMLEditor || mHTMLEditor->NodesSameType(leftParent, rightParent))  )
         {
           NS_ENSURE_STATE(mHTMLEditor);
+          nsCOMPtr<nsIContent> leftParent_ = do_QueryInterface(leftParent);
+          nsCOMPtr<nsIContent> rightParent_ = do_QueryInterface(rightParent);
+          NS_ENSURE_STATE(leftParent_ && rightParent_);
           if (nsHTMLEditUtils::IsParagraph(leftParent))
           {
             
@@ -2430,10 +2433,10 @@ nsHTMLEditRules::WillDeleteSelection(Selection* aSelection,
             NS_ENSURE_SUCCESS(res, res);
             
             NS_ENSURE_STATE(mHTMLEditor);
-            res = mHTMLEditor->JoinNodeDeep(leftParent,rightParent,address_of(selNode),&selOffset);
-            NS_ENSURE_SUCCESS(res, res);
+            ::DOMPoint pt = mHTMLEditor->JoinNodeDeep(*leftParent_, *rightParent_);
+            NS_ENSURE_STATE(pt.node);
             
-            res = aSelection->Collapse(selNode,selOffset);
+            res = aSelection->Collapse(pt.node, pt.offset);
             return res;
           }
           if (nsHTMLEditUtils::IsListItem(leftParent)
@@ -2445,10 +2448,10 @@ nsHTMLEditRules::WillDeleteSelection(Selection* aSelection,
             NS_ENSURE_SUCCESS(res, res);
             
             NS_ENSURE_STATE(mHTMLEditor);
-            res = mHTMLEditor->JoinNodeDeep(leftParent,rightParent,address_of(selNode),&selOffset);
-            NS_ENSURE_SUCCESS(res, res);
+            ::DOMPoint pt = mHTMLEditor->JoinNodeDeep(*leftParent_, *rightParent_);
+            NS_ENSURE_STATE(pt.node);
             
-            res = aSelection->Collapse(selNode,selOffset);
+            res = aSelection->Collapse(pt.node, pt.offset);
             return res;
           }
         }
