@@ -303,8 +303,7 @@ const BG_NOTIFY_TESTS = [
 
 function testShowNotification()
 {
-  let gTestBrowser = gBrowser.selectedBrowser;
-  let notifyBox = gBrowser.getNotificationBox(gTestBrowser);
+  let notifyBox = document.getElementById("high-priority-global-notificationbox");
 
   
   
