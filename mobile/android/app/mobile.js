@@ -594,7 +594,7 @@ pref("media.mediasource.enabled", true);
 
 
 pref("image.downscale-during-decode.enabled", true);
-pref("image.decode-only-on-draw.enabled", true);
+pref("image.decode-only-on-draw.enabled", false);
 
 #ifdef NIGHTLY_BUILD
 

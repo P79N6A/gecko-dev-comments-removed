@@ -276,6 +276,10 @@ pref("media.wakelock_timeout", 2000);
 
 pref("media.play-stand-alone", true);
 
+
+
+pref("media.block-play-until-visible", false);
+
 pref("media.hardware-video-decoding.enabled", true);
 
 pref("media.decoder.heuristic.dormant.enabled", true);
@@ -896,6 +900,9 @@ pref("nglayout.debug.paint_flashing_chrome", false);
 
 
 pref("nglayout.debug.widget_update_flashing", false);
+
+
+pref("nglayout.debug.invalidation", false);
 
 
 
@@ -4015,7 +4022,7 @@ pref("image.cache.timeweight", 500);
 
 
 
-pref("image.decode-only-on-draw.enabled", true);
+pref("image.decode-only-on-draw.enabled", false);
 
 
 
