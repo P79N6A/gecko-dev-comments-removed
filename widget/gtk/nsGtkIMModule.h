@@ -27,35 +27,12 @@ protected:
     typedef mozilla::widget::InputContextAction InputContextAction;
 
 public:
-    nsrefcnt AddRef()
-    {
-        NS_PRECONDITION(int32_t(mRefCnt) >= 0, "mRefCnt is negative");
-        ++mRefCnt;
-        NS_LOG_ADDREF(this, mRefCnt, "nsGtkIMModule", sizeof(*this));
-        return mRefCnt;
-    }
-    nsrefcnt Release()
-    {
-        NS_PRECONDITION(mRefCnt != 0, "mRefCnt is alrady zero");
-        --mRefCnt;
-        NS_LOG_RELEASE(this, mRefCnt, "nsGtkIMModule");
-        if (mRefCnt == 0) {
-            mRefCnt = 1; 
-            delete this;
-            return 0;
-        }
-        return mRefCnt;
-    }
-
-protected:
-    nsAutoRefCnt mRefCnt;
-
-public:
     
     
     
     explicit nsGtkIMModule(nsWindow* aOwnerWindow);
-    ~nsGtkIMModule();
+
+    NS_INLINE_DECL_REFCOUNTING(nsGtkIMModule)
 
     
     
@@ -90,6 +67,8 @@ public:
     void OnUpdateComposition();
 
 protected:
+    ~nsGtkIMModule();
+
     
     
     
