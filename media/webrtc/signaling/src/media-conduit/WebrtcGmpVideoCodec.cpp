@@ -198,12 +198,14 @@ WebrtcGmpVideoEncoder::InitEncode_g(const webrtc::VideoCodec* aCodecSettings,
   codec.mMinBitrate = aCodecSettings->minBitrate;
   codec.mMaxBitrate = aCodecSettings->maxBitrate;
   codec.mMaxFramerate = aCodecSettings->maxFramerate;
+  if (aCodecSettings->codecSpecific.H264.packetizationMode == 1) {
+    aMaxPayloadSize = 4*1024*1024; 
+  }
 
   
   nsTArray<uint8_t> codecSpecific;
 
-  
-  GMPErr err = mGMP->InitEncode(codec, codecSpecific, this, 1, 1024*1024 );
+  GMPErr err = mGMP->InitEncode(codec, codecSpecific, this, 1, aMaxPayloadSize);
   if (err != GMPNoErr) {
     return WEBRTC_VIDEO_CODEC_ERROR;
   }
