@@ -31,7 +31,7 @@ class ResizerSelectionListener : public nsISelectionListener
 {
 public:
 
-  ResizerSelectionListener(nsIHTMLEditor * aEditor);
+  explicit ResizerSelectionListener(nsIHTMLEditor * aEditor);
   void Reset();
 
   
@@ -52,7 +52,7 @@ protected:
 class ResizerMouseMotionListener : public nsIDOMEventListener
 {
 public:
-  ResizerMouseMotionListener(nsIHTMLEditor * aEditor);
+  explicit ResizerMouseMotionListener(nsIHTMLEditor * aEditor);
 
 
   NS_DECL_ISUPPORTS
@@ -73,7 +73,7 @@ public:
 class DocumentResizeEventListener: public nsIDOMEventListener
 {
 public:
-  DocumentResizeEventListener(nsIHTMLEditor * aEditor);
+  explicit DocumentResizeEventListener(nsIHTMLEditor * aEditor);
 
   
   NS_DECL_ISUPPORTS

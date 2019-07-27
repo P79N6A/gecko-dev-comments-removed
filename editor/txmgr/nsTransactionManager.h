@@ -42,7 +42,7 @@ public:
 
   
 
-  nsTransactionManager(int32_t aMaxTransactionCount=-1);
+  explicit nsTransactionManager(int32_t aMaxTransactionCount=-1);
 
   
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
