@@ -144,6 +144,10 @@ public class MainActivity extends FragmentActivity implements AcceptsSearchQuery
                 ((PostSearchFragment) getSupportFragmentManager().findFragmentById(R.id.postsearch))
                         .startSearch(query);
             }
+        } else {
+            
+            
+            setEditState(EditState.EDITING);
         }
     }
 
@@ -179,6 +183,7 @@ public class MainActivity extends FragmentActivity implements AcceptsSearchQuery
 
         
         editText.setText("");
+        setEditState(EditState.EDITING);
     }
 
     @Override
