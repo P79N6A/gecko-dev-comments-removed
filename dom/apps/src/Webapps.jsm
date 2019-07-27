@@ -629,6 +629,10 @@ this.DOMApplicationRegistry = {
       yield this.loadCurrentRegistry();
 
       if (runUpdate) {
+
+        
+        Services.obs.notifyObservers(null, "webapps-before-update-merge", null);        
+
 #ifdef MOZ_WIDGET_GONK
         yield this.installSystemApps();
 #endif
