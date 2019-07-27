@@ -143,11 +143,7 @@ public:
   virtual void            SetShowsFullScreenButton(bool aShow) override {}
   virtual void            SetWindowAnimationType(WindowAnimationType aType) override {}
   NS_IMETHOD              HideWindowChrome(bool aShouldHide) override;
-  virtual bool PrepareForFullscreenTransition(nsISupports** aData) override { return false; }
-  virtual void PerformFullscreenTransition(FullscreenTransitionStage aStage,
-                                           uint16_t aDuration,
-                                           nsISupports* aData,
-                                           nsIRunnable* aCallback) override;
+  virtual void            PrepareForDOMFullscreenTransition() override {}
   NS_IMETHOD              MakeFullScreen(bool aFullScreen, nsIScreen* aScreen = nullptr) override;
   virtual LayerManager*   GetLayerManager(PLayerTransactionChild* aShadowManager = nullptr,
                                           LayersBackend aBackendHint = mozilla::layers::LayersBackend::LAYERS_NONE,
@@ -282,13 +278,6 @@ public:
   {
     return aClientSize;
   }
-
-  
-  
-  nsIntRect GetScaledScreenBounds();
-
-  
-  already_AddRefed<nsIScreen> GetWidgetScreen();
 
   
   bool IsPopupWithTitleBar() const
