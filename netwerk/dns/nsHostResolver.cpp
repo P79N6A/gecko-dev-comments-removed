@@ -289,6 +289,7 @@ nsHostRecord::nsHostRecord(const nsHostKey *key)
     , mGetTtl(false)
 #endif
     , mBlacklistedCount(0)
+    , mResolveAgain(false)
 {
     host = ((char *) this) + sizeof(nsHostRecord);
     memcpy((char *) host, key->host, strlen(key->host) + 1);
@@ -469,6 +470,21 @@ nsHostRecord::GetPriority(uint16_t aFlags)
 
 
 
+bool
+nsHostRecord::RemoveOrRefresh()
+{
+  
+  
+  
+    if (resolving && !onQueue) {
+        mResolveAgain = true;
+        return false;
+    }
+    return true; 
+}
+
+
+
 struct nsHostDBEnt : PLDHashEntryHdr
 {
     nsHostRecord *rec;
@@ -578,6 +594,21 @@ HostDB_RemoveEntry(PLDHashTable *table,
                    void *arg)
 {
     return PL_DHASH_REMOVE;
+}
+
+static PLDHashOperator
+HostDB_PruneEntry(PLDHashTable *table,
+                  PLDHashEntryHdr *hdr,
+                  uint32_t number,
+                  void *arg)
+{
+    nsHostDBEnt* ent = static_cast<nsHostDBEnt *>(hdr);
+
+    
+    if (ent->rec->RemoveOrRefresh()) {
+        return PL_DHASH_REMOVE;
+    }
+    return PL_DHASH_NEXT;
 }
 
 
@@ -746,6 +777,41 @@ nsHostResolver::ClearPendingQueue(PRCList *aPendingQ)
     }
 }
 
+
+
+
+
+
+
+
+
+
+
+void
+nsHostResolver::FlushCache()
+{
+    PRCList evictionQ;
+    PR_INIT_CLIST(&evictionQ);
+
+    {
+        MutexAutoLock lock(mLock);
+        MoveCList(mEvictionQ, evictionQ);
+        mEvictionQSize = 0;
+
+        
+        PL_DHashTableEnumerate(&mDB, HostDB_PruneEntry, nullptr);
+    }
+
+    if (!PR_CLIST_IS_EMPTY(&evictionQ)) {
+        PRCList *node = evictionQ.next;
+        while (node != &evictionQ) {
+            nsHostRecord *rec = static_cast<nsHostRecord *>(node);
+            node = node->next;
+            NS_RELEASE(rec);
+        }
+    }
+}
+
 void
 nsHostResolver::Shutdown()
 {
@@ -772,7 +838,7 @@ nsHostResolver::Shutdown()
 
     {
         MutexAutoLock lock(mLock);
-        
+
         mShutdown = true;
 
         MoveCList(mHighQ, pendingQHigh);
@@ -781,14 +847,14 @@ nsHostResolver::Shutdown()
         MoveCList(mEvictionQ, evictionQ);
         mEvictionQSize = 0;
         mPendingCount = 0;
-        
+
         if (mNumIdleThreads)
             mIdleThreadCV.NotifyAll();
-        
+
         
         PL_DHashTableEnumerate(&mDB, HostDB_RemoveEntry, nullptr);
     }
-    
+
     ClearPendingQueue(&pendingQHigh);
     ClearPendingQueue(&pendingQMed);
     ClearPendingQueue(&pendingQLow);
@@ -1331,7 +1397,12 @@ nsHostResolver::PrepareRecordExpiration(nsHostRecord* rec) const
          rec->host, lifetime, grace, sDnsVariant));
 }
 
-void
+
+
+
+
+
+nsHostResolver::LookupStatus
 nsHostResolver::OnLookupComplete(nsHostRecord* rec, nsresult status, AddrInfo* result)
 {
     
@@ -1340,6 +1411,11 @@ nsHostResolver::OnLookupComplete(nsHostRecord* rec, nsresult status, AddrInfo* r
     PR_INIT_CLIST(&cbs);
     {
         MutexAutoLock lock(mLock);
+
+        if (rec->mResolveAgain && (status != NS_ERROR_ABORT)) {
+            rec->mResolveAgain = false;
+            return LOOKUP_RESOLVEAGAIN;
+        }
 
         
         MoveCList(rec->callbacks, cbs);
@@ -1419,6 +1495,8 @@ nsHostResolver::OnLookupComplete(nsHostRecord* rec, nsresult status, AddrInfo* r
 #endif
 
     NS_RELEASE(rec);
+
+    return LOOKUP_OK;
 }
 
 void
@@ -1502,9 +1580,10 @@ nsHostResolver::ThreadFunc(void *arg)
     nsResState rs;
 #endif
     nsHostResolver *resolver = (nsHostResolver *)arg;
-    nsHostRecord *rec;
+    nsHostRecord *rec  = nullptr;
     AddrInfo *ai = nullptr;
-    while (resolver->GetHostToLookup(&rec)) {
+
+    while (rec || resolver->GetHostToLookup(&rec)) {
         LOG(("DNS lookup thread - Calling getaddrinfo for host [%s].\n",
              rec->host));
 
@@ -1548,7 +1627,13 @@ nsHostResolver::ThreadFunc(void *arg)
         
         LOG(("DNS lookup thread - lookup completed for host [%s]: %s.\n",
              rec->host, ai ? "success" : "failure: unknown host"));
-        resolver->OnLookupComplete(rec, status, ai);
+        if (LOOKUP_RESOLVEAGAIN == resolver->OnLookupComplete(rec, status, ai)) {
+            
+            LOG(("DNS lookup thread - Re-resolving host [%s].\n",
+                 rec->host));
+        } else {
+            rec = nullptr;
+        }
     }
     NS_RELEASE(resolver);
     LOG(("DNS lookup thread - queue empty, thread finished.\n"));
