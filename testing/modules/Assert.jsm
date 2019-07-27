@@ -274,7 +274,7 @@ proto.deepEqual = function deepEqual(actual, expected, message) {
 
 
 proto.notDeepEqual = function notDeepEqual(actual, expected, message) {
-  this.report(_deepEqual(actual, expected), actual, expected, message, "notDeepEqual");
+  this.report(ObjectUtils.deepEqual(actual, expected), actual, expected, message, "notDeepEqual");
 };
 
 
