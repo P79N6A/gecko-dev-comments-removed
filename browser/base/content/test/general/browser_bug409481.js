@@ -4,7 +4,7 @@ function test() {
   
   
   document.getElementById("sidebar").addEventListener("load", delayedOpenUrl, true);
-  SidebarUI.show("viewWebPanelsSidebar");
+  toggleSidebar("viewWebPanelsSidebar", true);
 }
 
 function delayedOpenUrl() {
@@ -75,7 +75,7 @@ function contextMenuClosed()
   var sidebar = document.getElementById("sidebar");
   sidebar.contentDocument.removeEventListener("popuphidden", contextMenuClosed, false);
 
-  SidebarUI.hide();
+  toggleSidebar("viewWebPanelsSidebar");
 
   ok(document.getElementById("sidebar-box").hidden, "Sidebar successfully hidden");
 

@@ -16,9 +16,7 @@ add_task(function* test() {
   }
 
   let sidebar = yield promiseLoadedSidebar("viewBookmarksSidebar");
-  registerCleanupFunction(() => {
-    SidebarUI.hide();
-  });
+  registerCleanupFunction(toggleSidebar);
 
   
   let tree = sidebar.contentDocument.getElementById("bookmarks-view");
@@ -61,6 +59,6 @@ function promiseLoadedSidebar(cmd) {
       resolve(sidebar);
     }, true);
 
-    SidebarUI.show(cmd);
+    toggleSidebar(cmd, true);
   });
 }
