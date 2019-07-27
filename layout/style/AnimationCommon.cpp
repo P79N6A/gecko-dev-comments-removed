@@ -429,7 +429,13 @@ ElementAnimation::StartTime() const
 double
 ElementAnimation::CurrentTime() const
 {
-  TimeStamp now = mTimeline->GetCurrentTimeStamp();
+  
+  
+  
+  
+  Nullable<TimeDuration> currentTime =
+    GetLocalTimeAt(mTimeline->GetCurrentTimeStamp());
+
   
   
   
@@ -441,11 +447,11 @@ ElementAnimation::CurrentTime() const
   
   
   
-  if (now.IsNull()) {
+  if (currentTime.IsNull()) {
     return 0.0;
   }
 
-  return GetLocalTimeAt(now).ToMilliseconds();
+  return currentTime.Value().ToMilliseconds();
 }
 
 bool
@@ -843,7 +849,7 @@ ElementAnimationCollection::EnsureStyleRuleFor(TimeStamp aRefreshTime,
 
       
       
-      TimeDuration localTime = anim->GetLocalTimeAt(aRefreshTime);
+      Nullable<TimeDuration> localTime = anim->GetLocalTimeAt(aRefreshTime);
       ComputedTiming computedTiming =
         ElementAnimation::GetComputedTimingAt(localTime, anim->mTiming);
 
@@ -887,7 +893,7 @@ ElementAnimationCollection::EnsureStyleRuleFor(TimeStamp aRefreshTime,
 
       
       
-      TimeDuration localTime = anim->GetLocalTimeAt(aRefreshTime);
+      Nullable<TimeDuration> localTime = anim->GetLocalTimeAt(aRefreshTime);
       ComputedTiming computedTiming =
         ElementAnimation::GetComputedTimingAt(localTime, anim->mTiming);
 

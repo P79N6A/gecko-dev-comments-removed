@@ -365,10 +365,17 @@ public:
 
   
   
-  mozilla::TimeDuration GetLocalTimeAt(mozilla::TimeStamp aTime) const {
-    MOZ_ASSERT(!IsPaused() || aTime >= mPauseStart,
-               "if paused, aTime must be at least mPauseStart");
-    return (IsPaused() ? mPauseStart : aTime) - mStartTime;
+  
+  Nullable<mozilla::TimeDuration>
+  GetLocalTimeAt(mozilla::TimeStamp aTime) const {
+    MOZ_ASSERT(aTime.IsNull() || !IsPaused() || aTime >= mPauseStart,
+               "if paused, any non-null value of aTime must be at least"
+               " mPauseStart");
+    Nullable<mozilla::TimeDuration> result; 
+    if (!aTime.IsNull()) {
+      result.SetValue((IsPaused() ? mPauseStart : aTime) - mStartTime);
+    }
+    return result;
   }
 
   
@@ -392,15 +399,6 @@ public:
   static ComputedTiming
   GetComputedTimingAt(const Nullable<mozilla::TimeDuration>& aLocalTime,
                       const AnimationTiming& aTiming);
-
-  
-  
-  static ComputedTiming
-  GetComputedTimingAt(mozilla::TimeDuration aLocalTime,
-                      const AnimationTiming& aTiming) {
-    return GetComputedTimingAt(Nullable<mozilla::TimeDuration>(aLocalTime),
-                               aTiming);
-  }
 
   
   static mozilla::TimeDuration ActiveDuration(const AnimationTiming& aTiming);
