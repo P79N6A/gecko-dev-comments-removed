@@ -125,10 +125,10 @@ private:
     }
 
     
-    RefPtr<MediaDataDecoder> mDecoder;
+    nsRefPtr<MediaDataDecoder> mDecoder;
     
     
-    RefPtr<MediaTaskQueue> mTaskQueue;
+    nsRefPtr<MediaTaskQueue> mTaskQueue;
     
     nsAutoPtr<DecoderCallback> mCallback;
     
