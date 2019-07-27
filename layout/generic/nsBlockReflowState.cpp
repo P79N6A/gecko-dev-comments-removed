@@ -55,7 +55,18 @@ nsBlockReflowState::nsBlockReflowState(const nsHTMLReflowState& aReflowState,
   mBorderPadding.ApplySkipSides(logicalSkipSides);
 
   
-  mContainerWidth = aReflowState.ComputedWidth() + mBorderPadding.LeftRight(wm);
+  
+  
+  
+  
+  
+  
+  mContainerWidth = aReflowState.ComputedWidth();
+  if (mContainerWidth == NS_UNCONSTRAINEDSIZE) {
+    mContainerWidth = 0;
+  }
+
+  mContainerWidth += mBorderPadding.LeftRight(wm);
 
   if ((aBStartMarginRoot && !logicalSkipSides.BStart()) ||
       0 != mBorderPadding.BStart(wm)) {

@@ -587,9 +587,13 @@ public:
   nsIFrame* mFirstChild;
 
   mozilla::WritingMode mWritingMode;
+
+  
   nscoord mContainerWidth;
+
  private:
   mozilla::LogicalRect mBounds;
+
  public:
   const mozilla::LogicalRect& GetBounds() { return mBounds; }
   nsRect GetPhysicalBounds() const

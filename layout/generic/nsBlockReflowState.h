@@ -203,6 +203,8 @@ public:
     mozilla::WritingMode wm = mReflowState.GetWritingMode();
     return mContentArea.Size(wm).ConvertTo(aWM, wm);
   }
+
+  
   nscoord mContainerWidth;
 
   

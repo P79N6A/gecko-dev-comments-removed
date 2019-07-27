@@ -537,6 +537,7 @@ protected:
   
   nscoord mTrimmableISize;
 
+  
   nscoord mContainerWidth;
 
   bool mFirstLetterStyleOK      : 1;
