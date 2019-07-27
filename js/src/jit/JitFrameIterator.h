@@ -516,18 +516,6 @@ class SnapshotIterator
 
     void traceAllocation(JSTracer *trc);
 
-    void readCommonFrameSlots(Value *scopeChain, Value *rval, MaybeReadFallback &fallback) {
-        if (scopeChain)
-            *scopeChain = maybeRead(fallback);
-        else
-            skip();
-
-        if (rval)
-            *rval = read();
-        else
-            skip();
-    }
-
     template <class Op>
     void readFunctionFrameArgs(Op &op, ArgumentsObject **argsObj, Value *thisv,
                                unsigned start, unsigned end, JSScript *script,
@@ -661,11 +649,20 @@ class InlineFrameIterator
         SnapshotIterator s(si_);
 
         
-        Value scopeChainValue;
-        s.readCommonFrameSlots(&scopeChainValue, rval, fallback);
+        if (scopeChain) {
+            MOZ_ASSERT(!fallback.canRecoverResults());
+            JS::AutoSuppressGCAnalysis nogc; 
+            Value scopeChainValue = s.maybeRead(fallback);
+            *scopeChain = computeScopeChain(scopeChainValue, fallback, hasCallObj);
+        } else {
+            s.skip();
+        }
 
-        if (scopeChain)
-            *scopeChain = computeScopeChain(scopeChainValue, hasCallObj, fallback);
+        
+        if (rval)
+            *rval = s.read();
+        else
+            s.skip();
 
         
         if (isFunctionFrame()) {
@@ -703,7 +700,8 @@ class InlineFrameIterator
 
                     
                     MaybeReadFallback unusedFallback;
-                    parent_s.readCommonFrameSlots(nullptr, nullptr, unusedFallback);
+                    parent_s.skip(); 
+                    parent_s.skip(); 
                     parent_s.readFunctionFrameArgs(argOp, nullptr, nullptr,
                                                    nformal, nactual, it.script(),
                                                    fallback);
