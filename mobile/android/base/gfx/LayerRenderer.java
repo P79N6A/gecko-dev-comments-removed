@@ -600,6 +600,7 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
 
         public void maybeRequestZoomedViewRender(RenderContext context){
             
+            
             if (mZoomedViewListeners.size() == 0) {
                 return;
             }
