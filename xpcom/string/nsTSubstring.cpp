@@ -4,6 +4,7 @@
 
 
 
+#include "mozilla/CheckedInt.h"
 #include "mozilla/double-conversion.h"
 #include "mozilla/MemoryReporting.h"
 
@@ -158,6 +159,31 @@ nsTSubstring_CharT::Finalize()
 {
   ::ReleaseData(mData, mFlags);
   
+}
+
+bool
+nsTSubstring_CharT::ReplacePrep(index_type aCutStart,
+                                size_type aCutLength,
+                                size_type aNewLength)
+{
+  aCutLength = XPCOM_MIN(aCutLength, mLength - aCutStart);
+
+  mozilla::CheckedInt<size_type> newTotalLen = mLength;
+  newTotalLen += aNewLength;
+  newTotalLen -= aCutLength;
+  if (!newTotalLen.isValid()) {
+    return false;
+  }
+
+  if (aCutStart == mLength && Capacity() > newTotalLen.value()) {
+    mFlags &= ~F_VOIDED;
+    mData[newTotalLen.value()] = char_type(0);
+    mLength = newTotalLen.value();
+    return true;
+  }
+
+  return ReplacePrepInternal(aCutStart, aCutLength, aNewLength,
+                             newTotalLen.value());
 }
 
 bool
