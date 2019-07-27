@@ -21,6 +21,9 @@ const OptionsView = function (options={}) {
   let { document } = this.window;
   this.$ = document.querySelector.bind(document);
   this.$$ = document.querySelectorAll.bind(document);
+  
+  
+  this.button = this.$(`[popup=${this.menupopup.getAttribute("id")}]`);
 
   this.prefObserver = new PrefObserver(this.branchName);
 
@@ -126,6 +129,7 @@ OptionsView.prototype = {
 
 
   _onPopupShown: function () {
+    this.button.setAttribute("open", true);
     this.emit(OPTIONS_SHOWN_EVENT);
   },
 
@@ -134,6 +138,7 @@ OptionsView.prototype = {
 
 
   _onPopupHidden: function () {
+    this.button.removeAttribute("open");
     this.emit(OPTIONS_HIDDEN_EVENT);
   }
 };
