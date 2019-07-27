@@ -11,6 +11,7 @@ import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.db.LocalBrowserDB;
 import org.mozilla.gecko.home.HomePanelsManager;
 import org.mozilla.gecko.lwt.LightweightTheme;
+import org.mozilla.gecko.mdns.MulticastDNSManager;
 import org.mozilla.gecko.util.Clipboard;
 import org.mozilla.gecko.util.HardwareUtils;
 import org.mozilla.gecko.util.ThreadUtils;
@@ -131,6 +132,8 @@ public class GeckoApplication extends Application
 
         
         NotificationHelper.getInstance(context).init();
+
+        MulticastDNSManager.getInstance(context).init();
 
         
         
