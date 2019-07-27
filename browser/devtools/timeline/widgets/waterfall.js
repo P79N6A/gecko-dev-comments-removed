@@ -75,7 +75,7 @@ function Waterfall(parent, container, blueprint) {
 
   
   this._l10n = L10N;
-  this._blueprint = blueprint
+  this._blueprint = blueprint;
   this._setNamedTimeout = setNamedTimeout;
   this._clearNamedTimeout = clearNamedTimeout;
 
