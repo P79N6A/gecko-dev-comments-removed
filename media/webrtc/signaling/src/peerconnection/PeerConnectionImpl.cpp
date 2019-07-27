@@ -389,7 +389,7 @@ PeerConnectionImpl::PeerConnectionImpl(const GlobalObject* aGlobal)
   , mHaveDataStream(false)
   , mAddCandidateErrorCount(0)
   , mTrickle(true) 
-  , mShouldSuppressNegotiationNeeded(true)
+  , mShouldSuppressNegotiationNeeded(false)
 {
 #ifdef MOZILLA_INTERNAL_API
   MOZ_ASSERT(NS_IsMainThread());
