@@ -349,6 +349,7 @@ gfxMemorySharedReadLock::gfxMemorySharedReadLock()
 
 gfxMemorySharedReadLock::~gfxMemorySharedReadLock()
 {
+  MOZ_ASSERT(mReadCount == 0);
   MOZ_COUNT_DTOR(gfxMemorySharedReadLock);
 }
 
@@ -760,6 +761,11 @@ TileClient::GetBackBuffer(const nsIntRegion& aDirtyRegion,
     mBackBuffer.Set(this, pool->GetTextureClient());
     if (aMode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
       mBackBufferOnWhite = pool->GetTextureClient();
+    }
+
+    if (mBackLock) {
+      
+      mBackLock->ReadUnlock();
     }
     
     if (mManager->AsShadowForwarder()->IsSameProcess()) {
