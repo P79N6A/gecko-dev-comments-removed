@@ -461,7 +461,7 @@ FontFaceSet::InsertRule(nsCSSFontFaceRule* aRule, uint8_t aSheetType,
         }
       }
 
-      mUserFontSet->AddFontFace(fontfamily, ruleRec.mUserFontEntry);
+      mUserFontSet->AddUserFontEntry(fontfamily, ruleRec.mUserFontEntry);
       mRules.AppendElement(ruleRec);
       aOldRules.RemoveElementAt(i);
       
@@ -476,7 +476,7 @@ FontFaceSet::InsertRule(nsCSSFontFaceRule* aRule, uint8_t aSheetType,
   
   FontFaceRuleRecord ruleRec;
   ruleRec.mUserFontEntry =
-    FindOrCreateFontFaceFromRule(fontfamily, aRule, aSheetType);
+    FindOrCreateUserFontEntryFromRule(fontfamily, aRule, aSheetType);
 
   if (!ruleRec.mUserFontEntry) {
     return;
@@ -489,7 +489,8 @@ FontFaceSet::InsertRule(nsCSSFontFaceRule* aRule, uint8_t aSheetType,
   
   
   
-  mUserFontSet->AddFontFace(fontfamily, ruleRec.mUserFontEntry);
+  
+  mUserFontSet->AddUserFontEntry(fontfamily, ruleRec.mUserFontEntry);
 
   mRules.AppendElement(ruleRec);
 
@@ -498,9 +499,9 @@ FontFaceSet::InsertRule(nsCSSFontFaceRule* aRule, uint8_t aSheetType,
 }
 
 already_AddRefed<gfxUserFontEntry>
-FontFaceSet::FindOrCreateFontFaceFromRule(const nsAString& aFamilyName,
-                                          nsCSSFontFaceRule* aRule,
-                                          uint8_t aSheetType)
+FontFaceSet::FindOrCreateUserFontEntryFromRule(const nsAString& aFamilyName,
+                                               nsCSSFontFaceRule* aRule,
+                                               uint8_t aSheetType)
 {
   nsCSSValue val;
   uint32_t unit;
@@ -660,10 +661,11 @@ FontFaceSet::FindOrCreateFontFaceFromRule(const nsAString& aFamilyName,
   }
 
   nsRefPtr<gfxUserFontEntry> entry =
-    mUserFontSet->FindOrCreateFontFace(aFamilyName, srcArray, weight, stretch,
-                                       italicStyle, featureSettings,
-                                       languageOverride,
-                                       nullptr );
+    mUserFontSet->FindOrCreateUserFontEntry(aFamilyName, srcArray, weight,
+                                            stretch, italicStyle,
+                                            featureSettings,
+                                            languageOverride,
+                                            nullptr );
   return entry.forget();
 }
 
@@ -1060,7 +1062,7 @@ FontFaceSet::UserFontSet::DoRebuildUserFontSet()
 }
 
  already_AddRefed<gfxUserFontEntry>
-FontFaceSet::UserFontSet::CreateFontFace(
+FontFaceSet::UserFontSet::CreateUserFontEntry(
                                const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
                                uint32_t aWeight,
                                int32_t aStretch,

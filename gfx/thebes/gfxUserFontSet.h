@@ -154,7 +154,7 @@ public:
     
     
     
-    virtual already_AddRefed<gfxUserFontEntry> CreateFontFace(
+    virtual already_AddRefed<gfxUserFontEntry> CreateUserFontEntry(
                               const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
                               uint32_t aWeight,
                               int32_t aStretch,
@@ -165,7 +165,7 @@ public:
 
     
     
-    already_AddRefed<gfxUserFontEntry> FindOrCreateFontFace(
+    already_AddRefed<gfxUserFontEntry> FindOrCreateUserFontEntry(
                                const nsAString& aFamilyName,
                                const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
                                uint32_t aWeight,
@@ -176,8 +176,8 @@ public:
                                gfxSparseBitSet* aUnicodeRanges);
 
     
-    void AddFontFace(const nsAString& aFamilyName,
-                     gfxUserFontEntry* aUserFontEntry);
+    void AddUserFontEntry(const nsAString& aFamilyName,
+                          gfxUserFontEntry* aUserFontEntry);
 
     
     bool HasFamily(const nsAString& aFamilyName) const
