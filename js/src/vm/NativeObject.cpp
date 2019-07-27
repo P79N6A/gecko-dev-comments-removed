@@ -1447,14 +1447,7 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
         if (frozen && desc.hasWritable() && desc.writable() && !skipRedefineChecks)
             return result.fail(JSMSG_CANT_REDEFINE_PROP);
 
-        if (!desc.hasWritable())
-            desc.setWritable(IsWritable(shapeAttrs));
-
-        if (!desc.hasValue()) {
-            
-            
-
-            
+        if (frozen || !desc.hasValue()) {
             if (IsImplicitDenseOrTypedArrayElement(shape)) {
                 MOZ_ASSERT(!IsAnyTypedArray(obj));
                 if (!NativeObject::sparsifyDenseElement(cx, obj, JSID_TO_INT(id)))
@@ -1462,15 +1455,36 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
                 shape = obj->lookup(cx, id);
             }
 
-            
-            
-            desc.setGetter(shape->getter());
-            desc.setSetter(shape->setter());
-            if (shape->hasSlot())
-                desc.value().set(obj->getSlot(shape->slot()));
+            RootedValue currentValue(cx);
+            if (!GetExistingPropertyValue(cx, obj, id, shape, &currentValue))
+                return false;
+
+            if (!desc.hasValue()) {
+                
+                
+                
+                desc.setGetter(shape->getter());
+                desc.setSetter(shape->setter());
+
+                
+                desc.setValue(currentValue);
+            } else {
+                
+                bool same;
+                if (!cx->shouldBeJSContext())
+                    return false;
+                if (!SameValue(cx->asJSContext(), desc.value(), currentValue, &same))
+                    return false;
+                if (!same && !skipRedefineChecks)
+                    return result.fail(JSMSG_CANT_REDEFINE_PROP);
+            }
         }
+
+        if (!desc.hasWritable())
+            desc.setWritable(IsWritable(shapeAttrs));
     } else {
         
+        MOZ_ASSERT(shape->isAccessorDescriptor());
         MOZ_ASSERT(desc.isAccessorDescriptor());
 
         
