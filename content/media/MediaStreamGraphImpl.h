@@ -16,13 +16,12 @@
 #include "Latency.h"
 #include "mozilla/WeakPtr.h"
 #include "GraphDriver.h"
+#include "AudioMixer.h"
 
 namespace mozilla {
 
 template <typename T>
 class LinkedList;
-
-class AudioMixer;
 
 
 
@@ -116,7 +115,8 @@ struct MessageBlock {
 
 
 class MediaStreamGraphImpl : public MediaStreamGraph,
-                             public nsIMemoryReporter {
+                             public nsIMemoryReporter,
+                             public MixerCallbackReceiver {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIMEMORYREPORTER
@@ -350,13 +350,21 @@ public:
 
 
 
-  void CreateOrDestroyAudioStreams(GraphTime aAudioOutputStartTime,
-                                   MediaStream* aStream);
+  void CreateOrDestroyAudioStreams(GraphTime aAudioOutputStartTime, MediaStream* aStream);
   
 
 
 
   TrackTicks PlayAudio(MediaStream* aStream, GraphTime aFrom, GraphTime aTo);
+
+  
+
+
+  virtual void MixerCallback(AudioDataValue* aMixedBuffer,
+                             AudioSampleFormat aFormat,
+                             uint32_t aChannels,
+                             uint32_t aFrames,
+                             uint32_t aSampleRate) MOZ_OVERRIDE;
   
 
 
@@ -412,6 +420,8 @@ public:
 
   TrackRate AudioSampleRate() const { return mSampleRate; }
   TrackRate GraphRate() const { return mSampleRate; }
+  
+  uint32_t AudioChannelCount() { return 2; }
 
   double MediaTimeToSeconds(GraphTime aTime)
   {
@@ -600,10 +610,11 @@ public:
 
 
   nsRefPtr<AsyncLatencyLogger> mLatencyLog;
+  AudioMixer mMixer;
   
 
 
-  nsAutoPtr<AudioMixer> mMixer;
+  nsRefPtr<AudioStream> mMixedAudioStream;
 
 private:
   virtual ~MediaStreamGraphImpl();
