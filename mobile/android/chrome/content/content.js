@@ -63,7 +63,7 @@ let AboutReaderListener = {
 
         
         this._savedArticle = null;
-        sendAsyncMessage("Reader:UpdateIsArticle", { isArticle: false });
+        sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: false });
 
         ReaderMode.parseDocument(content.document).then(article => {
           
@@ -76,7 +76,7 @@ let AboutReaderListener = {
           }
 
           this._savedArticle = article;
-          sendAsyncMessage("Reader:UpdateIsArticle", { isArticle: true });
+          sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: true });
 
         }).catch(e => Cu.reportError("Error parsing document: " + e));
         break;

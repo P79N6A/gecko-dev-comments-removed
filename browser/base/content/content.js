@@ -462,6 +462,7 @@ let AboutReaderListener = {
   init: function() {
     addEventListener("AboutReaderContentLoaded", this, false, true);
     addEventListener("pageshow", this, false);
+    addEventListener("pagehide", this, false);
     addMessageListener("Reader:SavedArticleGet", this);
   },
 
@@ -489,18 +490,22 @@ let AboutReaderListener = {
         }
 
         if (content.document.body) {
+          
+          sendAsyncMessage("Reader:UpdateReaderButton");
           new AboutReader(global, content);
         }
+        break;
+
+      case "pagehide":
+        
+        this._savedArticle = null;
+        sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: false });
         break;
 
       case "pageshow":
         if (!ReaderMode.isEnabledForParseOnLoad || this.isAboutReader) {
           return;
         }
-
-        
-        this._savedArticle = null;
-        sendAsyncMessage("Reader:UpdateIsArticle", { isArticle: false });
 
         ReaderMode.parseDocument(content.document).then(article => {
           
@@ -513,7 +518,7 @@ let AboutReaderListener = {
           }
 
           this._savedArticle = article;
-          sendAsyncMessage("Reader:UpdateIsArticle", { isArticle: true });
+          sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: true });
 
         }).catch(e => Cu.reportError("Error parsing document: " + e));
         break;
