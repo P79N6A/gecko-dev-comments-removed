@@ -2355,8 +2355,13 @@ nsHTMLReflowState::CalculateBlockSideMargins(nsIAtom* aFrameType)
   WritingMode cbWM =
     mCBReflowState ? mCBReflowState->GetWritingMode(): GetWritingMode();
 
-  nscoord computedISizeCBWM = ComputedSize(cbWM).ISize(cbWM);
   nscoord availISizeCBWM = AvailableSize(cbWM).ISize(cbWM);
+  nscoord computedISizeCBWM = ComputedSize(cbWM).ISize(cbWM);
+  if (computedISizeCBWM == NS_UNCONSTRAINEDSIZE) {
+    
+    
+    computedISizeCBWM = availISizeCBWM;
+  }
 
   NS_WARN_IF_FALSE(NS_UNCONSTRAINEDSIZE != computedISizeCBWM &&
                    NS_UNCONSTRAINEDSIZE != availISizeCBWM,
