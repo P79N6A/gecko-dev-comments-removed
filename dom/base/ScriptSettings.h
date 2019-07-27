@@ -20,6 +20,7 @@
 class nsPIDOMWindow;
 class nsGlobalWindow;
 class nsIScriptContext;
+class nsIDocument;
 
 namespace mozilla {
 namespace dom {
@@ -102,6 +103,10 @@ void DestroyScriptSettings();
 
 
 nsIGlobalObject* GetEntryGlobal();
+
+
+
+nsIDocument* GetEntryDocument();
 
 
 

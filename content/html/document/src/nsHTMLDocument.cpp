@@ -1432,7 +1432,7 @@ nsHTMLDocument::Open(JSContext* cx,
   
   
   
-  nsCOMPtr<nsIDocument> callerDoc = nsContentUtils::GetDocumentFromContext();
+  nsCOMPtr<nsIDocument> callerDoc = GetEntryDocument();
   if (!callerDoc) {
     
     

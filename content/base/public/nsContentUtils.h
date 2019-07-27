@@ -414,28 +414,7 @@ public:
 
 
 
-
-
-
-
-
-
-  
-
-
-
-
-
   static nsIDocument* GetDocumentFromCaller();
-
-  
-
-
-
-
-
-
-  static nsIDocument* GetDocumentFromContext();
 
   
   
