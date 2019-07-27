@@ -8,7 +8,7 @@
 
 
 loader.lazyRequireGetter(this, "TIMELINE_BLUEPRINT",
-  "devtools/performance/global", true);
+  "devtools/performance/markers", true);
 
 
 

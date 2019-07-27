@@ -8,12 +8,19 @@
 
 
 
+const { Ci } = require("chrome");
+
 loader.lazyRequireGetter(this, "L10N",
   "devtools/performance/global", true);
-loader.lazyRequireGetter(this, "TIMELINE_BLUEPRINT",
+loader.lazyRequireGetter(this, "PREFS",
   "devtools/performance/global", true);
+loader.lazyRequireGetter(this, "TIMELINE_BLUEPRINT",
+  "devtools/performance/markers", true);
 loader.lazyRequireGetter(this, "WebConsoleUtils",
   "devtools/toolkit/webconsole/utils");
+
+
+const GECKO_SYMBOL = "(Gecko)";
 
 
 
@@ -270,7 +277,152 @@ const DOM = {
   }
 };
 
+
+
+
+
+
+const CollapseFunctions = {
+  identical: function (parent, curr, peek) {
+    
+    
+    if (parent && parent.name == curr.name) {
+      return { toParent: parent.name };
+    }
+    
+    
+    let next = peek(1);
+    if (next && curr.name == next.name) {
+      return { toParent: curr.name };
+    }
+  },
+
+  adjacent: function (parent, curr, peek) {
+    let next = peek(1);
+    if (next && (next.start < curr.end || next.start - curr.end <= 10 )) {
+      return CollapseFunctions.identical(parent, curr, peek);
+    }
+  },
+
+  DOMtoDOMJS: function (parent, curr, peek) {
+    
+    
+    let next = peek(1);
+    if (next && next.name == "Javascript") {
+      return {
+        forceNew: true,
+        toParent: "meta::DOMEvent+JS",
+        withData: {
+          type: curr.type,
+          eventPhase: curr.eventPhase
+        },
+      };
+    }
+  },
+
+  JStoDOMJS: function (parent, curr, peek) {
+    
+    
+    
+    if (parent && parent.name == "meta::DOMEvent+JS") {
+      return {
+        forceEnd: true,
+        toParent: "meta::DOMEvent+JS",
+        withData: {
+          stack: curr.stack,
+          endStack: curr.endStack
+        },
+      };
+    }
+  },
+};
+
+
+
+
+
+const JS_MARKER_MAP = {
+  "<script> element":          "Script Tag",
+  "setInterval handler":       "setInterval",
+  "setTimeout handler":        "setTimeout",
+  "FrameRequestCallback":      "requestAnimationFrame",
+  "promise callback":          "Promise Callback",
+  "promise initializer":       "Promise Init",
+  "Worker runnable":           "Worker",
+  "javascript: URI":           "JavaScript URI",
+  
+  
+  "EventHandlerNonNull":       "Event Handler",
+  "EventListener.handleEvent": "Event Handler",
+};
+
+
+
+
+const Formatters = {
+  GCLabel: function (marker={}) {
+    let label = L10N.getStr("timeline.label.garbageCollection");
+    
+    
+    if ("nonincrementalReason" in marker) {
+      label = `${label} (Non-incremental)`;
+    }
+    return label;
+  },
+
+  JSLabel: function (marker={}) {
+    let generic = L10N.getStr("timeline.label.javascript2");
+    if ("causeName" in marker) {
+      return JS_MARKER_MAP[marker.causeName] || generic;
+    }
+    return generic;
+  },
+
+  DOMJSLabel: function (marker={}) {
+    return `Event (${marker.type})`;
+  },
+
+  
+
+
+
+
+
+  JSFields: function (marker) {
+    if ("causeName" in marker && !JS_MARKER_MAP[marker.causeName]) {
+      return { Reason: PREFS["show-platform-data"] ? marker.causeName : GECKO_SYMBOL };
+    }
+  },
+
+  DOMEventFields: function (marker) {
+    let fields = Object.create(null);
+    if ("type" in marker) {
+      fields[L10N.getStr("timeline.markerDetail.DOMEventType")] = marker.type;
+    }
+    if ("eventPhase" in marker) {
+      let phase;
+      if (marker.eventPhase === Ci.nsIDOMEvent.AT_TARGET) {
+        phase = L10N.getStr("timeline.markerDetail.DOMEventTargetPhase");
+      } else if (marker.eventPhase === Ci.nsIDOMEvent.CAPTURING_PHASE) {
+        phase = L10N.getStr("timeline.markerDetail.DOMEventCapturingPhase");
+      } else if (marker.eventPhase === Ci.nsIDOMEvent.BUBBLING_PHASE) {
+        phase = L10N.getStr("timeline.markerDetail.DOMEventBubblingPhase");
+      }
+      fields[L10N.getStr("timeline.markerDetail.DOMEventPhase")] = phase;
+    }
+    return fields;
+  },
+
+  StylesFields: function (marker) {
+    if ("restyleHint" in marker) {
+      return { "Restyle Hint": marker.restyleHint.replace(/eRestyle_/g, "") };
+    }
+  },
+};
+
 exports.getMarkerLabel = getMarkerLabel;
 exports.getMarkerClassName = getMarkerClassName;
 exports.getMarkerFields = getMarkerFields;
 exports.DOM = DOM;
+exports.CollapseFunctions = CollapseFunctions;
+exports.Formatters = Formatters;
