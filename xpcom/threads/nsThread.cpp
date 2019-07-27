@@ -29,6 +29,7 @@
 #include "mozilla/Services.h"
 #include "nsXPCOMPrivate.h"
 #include "mozilla/ChaosMode.h"
+#include "mozilla/ipc/BackgroundChild.h"
 
 #ifdef MOZ_CRASHREPORTER
 #include "nsServiceManagerUtils.h"
@@ -323,6 +324,8 @@ SetupCurrentThreadForChaosMode()
  void
 nsThread::ThreadFunc(void* aArg)
 {
+  using mozilla::ipc::BackgroundChild;
+
   nsThread* self = static_cast<nsThread*>(aArg);  
   self->mThread = PR_GetCurrentThread();
   SetupCurrentThreadForChaosMode();
@@ -348,6 +351,8 @@ nsThread::ThreadFunc(void* aArg)
 
     
     loop->Run();
+
+    BackgroundChild::CloseForCurrentThread();
 
     
     

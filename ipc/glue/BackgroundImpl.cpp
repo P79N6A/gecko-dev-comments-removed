@@ -338,6 +338,7 @@ class ChildImpl MOZ_FINAL : public BackgroundChildImpl
   struct ThreadLocalInfo
   {
     explicit ThreadLocalInfo(nsIIPCBackgroundChildCreateCallback* aCallback)
+      : mClosed(false)
     {
       mCallbacks.AppendElement(aCallback);
     }
@@ -345,6 +346,7 @@ class ChildImpl MOZ_FINAL : public BackgroundChildImpl
     nsRefPtr<ChildImpl> mActor;
     nsTArray<nsCOMPtr<nsIIPCBackgroundChildCreateCallback>> mCallbacks;
     nsAutoPtr<BackgroundChildImpl::ThreadLocal> mConsumerThreadLocal;
+    DebugOnly<bool> mClosed;
   };
 
   
@@ -431,6 +433,8 @@ private:
     auto threadLocalInfo = static_cast<ThreadLocalInfo*>(aThreadLocal);
 
     if (threadLocalInfo) {
+      MOZ_ASSERT(threadLocalInfo->mClosed);
+
       if (threadLocalInfo->mActor) {
         threadLocalInfo->mActor->Close();
         threadLocalInfo->mActor->AssertActorDestroyed();
@@ -1640,6 +1644,14 @@ ChildImpl::Shutdown()
 
   MOZ_ASSERT(sThreadLocalIndex != kBadThreadLocalIndex);
 
+  auto threadLocalInfo =
+    static_cast<ThreadLocalInfo*>(PR_GetThreadPrivate(sThreadLocalIndex));
+
+  if (threadLocalInfo) {
+    MOZ_ASSERT(!threadLocalInfo->mClosed);
+    threadLocalInfo->mClosed = true;
+  }
+
   DebugOnly<PRStatus> status = PR_SetThreadPrivate(sThreadLocalIndex, nullptr);
   MOZ_ASSERT(status == PR_SUCCESS);
 }
@@ -1766,14 +1778,12 @@ ChildImpl::CloseForCurrentThread()
   auto threadLocalInfo =
     static_cast<ThreadLocalInfo*>(PR_GetThreadPrivate(sThreadLocalIndex));
 
-  
-  
-  
-  
-  
   if (!threadLocalInfo) {
-    MOZ_CRASH("Attempting to close a non-existent PBackground actor!");
+    return;
   }
+
+  MOZ_ASSERT(!threadLocalInfo->mClosed);
+  threadLocalInfo->mClosed = true;
 
   if (threadLocalInfo->mActor) {
     threadLocalInfo->mActor->FlushPendingInterruptQueue();
