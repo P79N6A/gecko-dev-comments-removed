@@ -152,5 +152,5 @@ let tests = [
 SpecialPowers.pushPermissions(
   [
     {'type': 'nfc-manager', 'allow': true, context: document},
-    {'type': 'nfc-write', 'allow': true, context: document}
+    {'type': 'nfc-share', 'allow': true, context: document}
   ], runTests);
