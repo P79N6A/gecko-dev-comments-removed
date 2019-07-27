@@ -70,6 +70,62 @@ NS_ProxyRelease(nsIEventTarget* aTarget, nsISupports* aDoomed,
 
 
 
+template<class T>
+inline NS_HIDDEN_(nsresult)
+NS_ReleaseOnMainThread(nsCOMPtr<T>& aDoomed,
+                       bool aAlwaysProxy = false)
+{
+  T* raw = nullptr;
+  aDoomed.swap(raw);
+  return NS_ReleaseOnMainThread(raw, aAlwaysProxy);
+}
+
+
+
+
+
+
+template<class T>
+inline NS_HIDDEN_(nsresult)
+NS_ReleaseOnMainThread(nsRefPtr<T>& aDoomed,
+                       bool aAlwaysProxy = false)
+{
+  T* raw = nullptr;
+  aDoomed.swap(raw);
+  return NS_ReleaseOnMainThread(raw, aAlwaysProxy);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+nsresult
+NS_ReleaseOnMainThread(nsISupports* aDoomed,
+                       bool aAlwaysProxy = false)
+{
+  
+  
+  
+  nsCOMPtr<nsIThread> mainThread;
+  if (!NS_IsMainThread() || aAlwaysProxy) {
+    NS_GetMainThread(getter_AddRefs(mainThread));
+  }
+
+  return NS_ProxyRelease(mainThread, aDoomed, aAlwaysProxy);
+}
+
+
+
+
+
+
 
 
 
