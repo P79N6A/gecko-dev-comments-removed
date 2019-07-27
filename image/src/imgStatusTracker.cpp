@@ -439,7 +439,7 @@ imgStatusTracker::Difference(imgStatusTracker* aOther) const
 {
   MOZ_ASSERT(aOther, "aOther cannot be null");
   ImageStatusDiff diff;
-  diff.diffState = ~mState & aOther->mState & ~FLAG_REQUEST_STARTED;
+  diff.diffState = ~mState & aOther->mState;
 
   
   
@@ -463,11 +463,8 @@ ImageStatusDiff
 imgStatusTracker::DecodeStateAsDifference() const
 {
   ImageStatusDiff diff;
+  
   diff.diffState = mState & ~FLAG_REQUEST_STARTED;
-
-  
-  
-
   return diff;
 }
 
@@ -475,12 +472,7 @@ void
 imgStatusTracker::ApplyDifference(const ImageStatusDiff& aDiff)
 {
   LOG_SCOPE(GetImgLog(), "imgStatusTracker::ApplyDifference");
-
-  
-  uint32_t loadState = mState & FLAG_REQUEST_STARTED;
-
-  
-  mState |= aDiff.diffState | loadState;
+  mState |= aDiff.diffState;
 }
 
 void
@@ -775,6 +767,7 @@ imgStatusTracker::SendFrameChanged(imgRequestProxy* aProxy,
 void
 imgStatusTracker::RecordStartRequest()
 {
+  
   
   
   mState &= ~FLAG_REQUEST_STARTED;
