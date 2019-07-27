@@ -456,6 +456,17 @@ SetCurrentProcessSandbox(UniquePtr<sandbox::bpf_dsl::Policy> aPolicy)
 void
 SandboxEarlyInit(GeckoProcessType aType, bool aIsNuwa)
 {
+  
+  
+  
+  
+  
+  
+  
+  if (aIsNuwa) {
+    return;
+  }
+
   MOZ_RELEASE_ASSERT(IsSingleThreaded());
 
   
