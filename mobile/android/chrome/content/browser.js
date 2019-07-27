@@ -1380,6 +1380,7 @@ var BrowserApp = {
       
       switch (prefName) {
         
+        case "browser.chrome.titlebarMode":
         case "network.cookie.cookieBehavior":
         case "font.size.inflation.minTwips":
         case "home.sync.updateMode":
@@ -1430,6 +1431,7 @@ var BrowserApp = {
       
       
       
+      case "browser.chrome.titlebarMode":
       case "network.cookie.cookieBehavior":
       case "font.size.inflation.minTwips":
       case "home.sync.updateMode":
