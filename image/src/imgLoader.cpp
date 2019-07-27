@@ -930,8 +930,7 @@ nsresult imgLoader::CreateNewProxyForRequest(imgRequest *aRequest, nsILoadGroup 
 
 
 
-  imgRequestProxy *proxyRequest = new imgRequestProxy();
-  NS_ADDREF(proxyRequest);
+  nsRefPtr<imgRequestProxy> proxyRequest = new imgRequestProxy();
 
   
 
@@ -943,14 +942,11 @@ nsresult imgLoader::CreateNewProxyForRequest(imgRequest *aRequest, nsILoadGroup 
 
   
   nsresult rv = proxyRequest->Init(aRequest, aLoadGroup, uri, aObserver);
-  if (NS_FAILED(rv)) {
-    NS_RELEASE(proxyRequest);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
 
-  
-  *_retval = proxyRequest;
-
+  proxyRequest.forget(_retval);
   return NS_OK;
 }
 
@@ -1239,8 +1235,8 @@ NS_IMETHODIMP imgLoader::FindEntryProperties(nsIURI *uri, nsIProperties **_retva
 
     nsRefPtr<imgRequest> request = entry->GetRequest();
     if (request) {
-      *_retval = request->Properties();
-      NS_ADDREF(*_retval);
+      nsCOMPtr<nsIProperties> properties = request->Properties();
+      properties.forget(_retval);
     }
   }
 
@@ -1535,26 +1531,25 @@ bool imgLoader::ValidateRequestWithNewChannel(imgRequest *request,
 
     request->mValidator = hvc;
 
-    imgRequestProxy* proxy = static_cast<imgRequestProxy*>
-                               (static_cast<imgIRequest*>(req.get()));
+    
+    
+    
+    
+    req->SetNotificationsDeferred(true);
 
     
-    
-    
-    
-    proxy->SetNotificationsDeferred(true);
-
-    
-    hvc->AddProxy(proxy);
+    hvc->AddProxy(req);
 
     mozilla::net::PredictorLearn(aURI, aInitialDocumentURI,
         nsINetworkPredictor::LEARN_LOAD_SUBRESOURCE, aLoadGroup);
 
     rv = newChannel->AsyncOpen(listener, nullptr);
-    if (NS_SUCCEEDED(rv))
-      NS_ADDREF(*aProxyRequest = req.get());
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return false;
+    }
 
-    return NS_SUCCEEDED(rv);
+    req.forget(aProxyRequest);
+    return true;
   }
 }
 
@@ -2279,13 +2274,10 @@ nsresult imgLoader::LoadImageWithChannel(nsIChannel *channel, imgINotificationOb
     request->Init(originalURI, uri, channel, channel, entry,
                   aCX, nullptr, imgIRequest::CORS_NONE, RP_Default);
 
-    ProxyListener *pl = new ProxyListener(static_cast<nsIStreamListener *>(request.get()));
-    NS_ADDREF(pl);
+    nsRefPtr<ProxyListener> pl =
+      new ProxyListener(static_cast<nsIStreamListener*>(request.get()));
+    pl.forget(listener);
 
-    *listener = static_cast<nsIStreamListener*>(pl);
-    NS_ADDREF(*listener);
-
-    NS_RELEASE(pl);
 
     
     PutIntoCache(originalURI, entry);
