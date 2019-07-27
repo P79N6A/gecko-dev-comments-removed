@@ -55,10 +55,6 @@ public:
   Unregister(ErrorResult& aRv);
 
   
-
-  nsIURI*
-  GetDocumentURI() const;
-
   void
   InvalidateWorkerReference(WhichServiceWorker aWhichOnes);
 
