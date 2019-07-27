@@ -3626,6 +3626,7 @@ public:
         , skipWriteToGlobalPrototype(false)
         , universalXPConnectEnabled(false)
         , forcePermissiveCOWs(false)
+        , CPOWTime(0)
         , skipCOWCallableChecks(false)
         , scriptability(c)
         , scope(nullptr)
@@ -3678,6 +3679,9 @@ public:
     
     
     bool forcePermissiveCOWs;
+
+    
+    PRIntervalTime               CPOWTime;
 
     
     
