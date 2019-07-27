@@ -10,6 +10,8 @@ function test() {
 
   let source = "let x + 42;";
   let parser = new Parser();
+  
+  parser.logExceptions = false;
   let parsed = parser.get(source);
 
   ok(parsed,
