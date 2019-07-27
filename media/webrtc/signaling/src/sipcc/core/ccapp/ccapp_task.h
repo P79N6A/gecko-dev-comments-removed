@@ -2,6 +2,8 @@
 
 
 
+#ifndef __CCAPP_TASK_H__
+#define __CCAPP_TASK_H__
 #include "sll_lite.h"
 
 
@@ -18,3 +20,5 @@ typedef struct {
 extern void addCcappListener(appListener* listener, int type);
 appListener *getCcappListener(int type);
 cpr_status_e ccappTaskSendMsg (uint32_t cmd, void *msg, uint16_t len, uint32_t usrInfo);
+
+#endif
