@@ -2088,6 +2088,14 @@ TabParent::RecvNotifyIMEPositionChange(const ContentCache& aContentCache)
 }
 
 bool
+TabParent::RecvOnEventNeedingAckReceived()
+{
+  
+  
+  return true;
+}
+
+bool
 TabParent::RecvRequestFocus(const bool& aCanRaise)
 {
   nsCOMPtr<nsIFocusManager> fm = nsFocusManager::GetFocusManager();
