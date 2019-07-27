@@ -120,7 +120,7 @@ let AddonWatcher = {
 
       let limits = {
         
-        totalCPOWTime: Math.round(Preferences.get("browser.addon-watch.limits.totalCPOWTime", 1000) * this._interval / 15000),
+        totalCPOWTime: Math.round(Preferences.get("browser.addon-watch.limits.totalCPOWTime", 1000000) * this._interval / 15000),
         
         
         longestDuration: Math.round(Math.log2(Preferences.get("browser.addon-watch.limits.longestDuration", 7))),
