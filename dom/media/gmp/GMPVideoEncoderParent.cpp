@@ -52,7 +52,8 @@ GMPVideoEncoderParent::GMPVideoEncoderParent(GMPContentParent *aPlugin)
   mActorDestroyed(false),
   mPlugin(aPlugin),
   mCallback(nullptr),
-  mVideoHost(this)
+  mVideoHost(this),
+  mPluginId(aPlugin->GetPluginId())
 {
   MOZ_ASSERT(mPlugin);
 
@@ -209,12 +210,6 @@ GMPVideoEncoderParent::SetPeriodicKeyFrames(bool aEnable)
 
   
   return GMPNoErr;
-}
-
-const uint32_t
-GMPVideoEncoderParent::ParentID()
-{
-  return mPlugin ? mPlugin->GetPluginId() : 0;
 }
 
 
