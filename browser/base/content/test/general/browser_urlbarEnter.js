@@ -25,10 +25,15 @@ add_task(function* () {
 add_task(function* () {
   info("Alt+Return keypress");
   let tab = gBrowser.selectedTab = gBrowser.addTab(START_VALUE);
+  
+  
+  yield BrowserTestUtils.browserLoaded(tab.linkedBrowser);
 
   gURLBar.focus();
   EventUtils.synthesizeKey("VK_RETURN", {altKey: true});
-  yield BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
+
+  
+  yield BrowserTestUtils.waitForEvent(gBrowser.tabContainer, "TabOpen");
 
   
   is(gURLBar.textValue, TEST_VALUE, "Urlbar should preserve the value on return keypress");
