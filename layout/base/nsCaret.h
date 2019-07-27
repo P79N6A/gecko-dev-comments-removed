@@ -66,15 +66,6 @@ class nsCaret : public nsISelectionListener
 
 
 
-    bool GetCaretReadOnly()
-    {
-      return mReadOnly;
-    }
-
-    
-
-
-
 
 
 
