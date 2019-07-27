@@ -361,15 +361,9 @@ nsPrintEngine::GetSeqFrameAndCountPagesInternal(nsPrintObject*  aPO,
   }
 
   
-  aCount = 0;
-  nsIFrame* pageFrame = aSeqFrame->GetFirstPrincipalChild();
-  while (pageFrame != nullptr) {
-    aCount++;
-    pageFrame = pageFrame->GetNextSibling();
-  }
+  aCount = aSeqFrame->PrincipalChildList()->GetLength();
 
   return NS_OK;
-
 }
 
 
