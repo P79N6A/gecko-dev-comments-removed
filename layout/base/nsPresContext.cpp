@@ -68,11 +68,6 @@
 #include "gfxTextRun.h"
 #include "nsFontFaceUtils.h"
 
-#if defined(MOZ_WIDGET_GTK)
-#include "gfxPlatformGtk.h" 
-#endif
-
-
 
 #include "imgIContainer.h"
 #include "nsIImageLoadingContent.h"
@@ -2175,10 +2170,8 @@ nsPresContext::UserFontSetUpdated(gfxUserFontEntry* aUpdatedFont)
     return;
 
   bool usePlatformFontList = true;
-#if defined(MOZ_WIDGET_GTK)
-    usePlatformFontList = gfxPlatformGtk::UseFcFontList();
-#elif defined(MOZ_WIDGET_QT)
-    usePlatformFontList = false;
+#if defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_QT)
+  usePlatformFontList = false;
 #endif
 
   

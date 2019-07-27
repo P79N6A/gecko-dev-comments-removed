@@ -1057,9 +1057,6 @@ protected:
                                           
 
     
-    bool                    mSkipUpdateUserFonts;
-
-    
 
 
 
