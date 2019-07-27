@@ -97,8 +97,6 @@ private:
 
   bool EnsureDecodersSetup();
 
-  bool CheckIfDecoderSetup();
-
   
   
   void Update(TrackType aTrack);

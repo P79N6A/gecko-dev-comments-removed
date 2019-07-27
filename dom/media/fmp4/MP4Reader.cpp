@@ -434,6 +434,8 @@ MP4Reader::ReadMetadata(MediaInfo* aInfo,
   } else if (mPlatform && !IsWaitingMediaResources()) {
     *aInfo = mInfo;
     *aTags = nullptr;
+    NS_ENSURE_TRUE(EnsureDecodersSetup(), NS_ERROR_FAILURE);
+    return NS_OK;
   }
 
   if (HasAudio()) {
@@ -492,67 +494,49 @@ MP4Reader::ReadMetadata(MediaInfo* aInfo,
   return NS_OK;
 }
 
-bool MP4Reader::CheckIfDecoderSetup()
-{
-  if (!mDemuxerInitialized) {
-    return false;
-  }
-
-  if (HasAudio() && !mAudio.mDecoder) {
-    return false;
-  }
-
-  if (HasVideo() && !mVideo.mDecoder) {
-    return false;
-  }
-
-  return true;
-}
-
 bool
 MP4Reader::EnsureDecodersSetup()
 {
-  if (CheckIfDecoderSetup()) {
-    return true;
-  }
+  MOZ_ASSERT(mDemuxerInitialized);
 
-  if (mIsEncrypted) {
+  if (!mPlatform) {
+    if (mIsEncrypted) {
 #ifdef MOZ_EME
-    
-    
-    
-    
-    
-    
-    nsRefPtr<CDMProxy> proxy;
-    if (IsWaitingMediaResources()) {
-      return true;
-    }
-    MOZ_ASSERT(!IsWaitingMediaResources());
+      
+      
+      
+      
+      
+      
+      nsRefPtr<CDMProxy> proxy;
+      if (IsWaitingMediaResources()) {
+        return true;
+      }
+      MOZ_ASSERT(!IsWaitingMediaResources());
 
-    {
-      ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-      proxy = mDecoder->GetCDMProxy();
-    }
-    MOZ_ASSERT(proxy);
+      {
+        ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+        proxy = mDecoder->GetCDMProxy();
+      }
+      MOZ_ASSERT(proxy);
 
-    mPlatform = PlatformDecoderModule::CreateCDMWrapper(proxy,
-                                                        HasAudio(),
-                                                        HasVideo());
-    NS_ENSURE_TRUE(mPlatform, false);
+      mPlatform = PlatformDecoderModule::CreateCDMWrapper(proxy,
+                                                          HasAudio(),
+                                                          HasVideo());
+      NS_ENSURE_TRUE(mPlatform, false);
 #else
-    
-    return false;
+      
+      return false;
 #endif
-  } else {
-    
-    if (!mPlatform) {
+    } else {
       mPlatform = PlatformDecoderModule::Create();
       NS_ENSURE_TRUE(mPlatform, false);
     }
   }
 
-  if (HasAudio()) {
+  MOZ_ASSERT(mPlatform);
+
+  if (HasAudio() && !mAudio.mDecoder) {
     NS_ENSURE_TRUE(IsSupportedAudioMimeType(mDemuxer->AudioConfig().mMimeType),
                    false);
 
@@ -565,7 +549,7 @@ MP4Reader::EnsureDecodersSetup()
     NS_ENSURE_SUCCESS(rv, false);
   }
 
-  if (HasVideo()) {
+  if (HasVideo() && !mVideo.mDecoder) {
     NS_ENSURE_TRUE(IsSupportedVideoMimeType(mDemuxer->VideoConfig().mMimeType),
                    false);
 
