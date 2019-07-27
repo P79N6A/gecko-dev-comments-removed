@@ -172,10 +172,25 @@ bool ImageBridgeParent::RecvWillStop()
   return true;
 }
 
+static void
+ReleaseImageBridgeParent(ImageBridgeParent* aImageBridgeParent)
+{
+  aImageBridgeParent->Release();
+}
+
 bool ImageBridgeParent::RecvStop()
 {
   
   
+
+  
+  
+  
+  
+  AddRef();
+  MessageLoop::current()->PostTask(
+    FROM_HERE,
+    NewRunnableFunction(&ReleaseImageBridgeParent, this));
   return true;
 }
 
