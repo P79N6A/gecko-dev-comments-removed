@@ -66,29 +66,47 @@ static const uint8_t tlv_id_kp_serverAuth[] = {
   0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x01
 };
 
-
-const uint8_t alg_sha256WithRSAEncryption[] = {
-  0x30, 0x0b, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0b
+enum class TestDigestAlgorithmID
+{
+  MD2,
+  MD5,
+  SHA1,
+  SHA224,
+  SHA256,
+  SHA384,
+  SHA512,
 };
 
-const ByteString sha256WithRSAEncryption(alg_sha256WithRSAEncryption,
-  MOZILLA_PKIX_ARRAY_LENGTH(alg_sha256WithRSAEncryption));
-
-
-const uint8_t alg_md5WithRSAEncryption[] = {
-  0x30, 0x0b, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x04
+struct TestPublicKeyAlgorithm
+{
+  explicit TestPublicKeyAlgorithm(const ByteString& algorithmIdentifier)
+    : algorithmIdentifier(algorithmIdentifier) { }
+  bool operator==(const TestPublicKeyAlgorithm& other) const
+  {
+    return algorithmIdentifier == other.algorithmIdentifier;
+  }
+  ByteString algorithmIdentifier;
 };
 
-const ByteString md5WithRSAEncryption(alg_md5WithRSAEncryption,
-  MOZILLA_PKIX_ARRAY_LENGTH(alg_md5WithRSAEncryption));
+TestPublicKeyAlgorithm RSA_PKCS1();
 
+struct TestSignatureAlgorithm
+{
+  TestSignatureAlgorithm(const TestPublicKeyAlgorithm& publicKeyAlg,
+                         TestDigestAlgorithmID digestAlg,
+                         const ByteString& algorithmIdentifier,
+                         bool accepted);
 
-const uint8_t alg_md2WithRSAEncryption[] = {
-  0x30, 0x0b, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x02
+  TestPublicKeyAlgorithm publicKeyAlg;
+  TestDigestAlgorithmID digestAlg;
+  ByteString algorithmIdentifier;
+  bool accepted;
 };
 
-const ByteString md2WithRSAEncryption(alg_md2WithRSAEncryption,
-  MOZILLA_PKIX_ARRAY_LENGTH(alg_md2WithRSAEncryption));
+TestSignatureAlgorithm md2WithRSAEncryption();
+TestSignatureAlgorithm md5WithRSAEncryption();
+TestSignatureAlgorithm sha1WithRSAEncryption();
+TestSignatureAlgorithm sha256WithRSAEncryption();
 
 
 mozilla::pkix::Time YMDHMS(uint16_t year, uint16_t month, uint16_t day,
@@ -258,7 +276,7 @@ public:
   const ByteString subjectPublicKey;
 
   virtual Result SignData(const ByteString& tbs,
-                          const ByteString& signatureAlgorithm,
+                          const TestSignatureAlgorithm& signatureAlgorithm,
                            ByteString& signature) const = 0;
 
   virtual TestKeyPair* Clone() const = 0;
@@ -312,7 +330,8 @@ enum Version { v1 = 0, v2 = 1, v3 = 2 };
 
 
 
-ByteString CreateEncodedCertificate(long version, const ByteString& signature,
+ByteString CreateEncodedCertificate(long version,
+                                    const TestSignatureAlgorithm& signature,
                                     const ByteString& serialNumber,
                                     const ByteString& issuerNameDER,
                                     time_t notBefore, time_t notAfter,
@@ -320,7 +339,7 @@ ByteString CreateEncodedCertificate(long version, const ByteString& signature,
                                     const TestKeyPair& subjectKeyPair,
                                      const ByteString* extensions,
                                     const TestKeyPair& issuerKeyPair,
-                                    const ByteString& signatureAlgorithm);
+                                    const TestSignatureAlgorithm& signatureAlgorithm);
 
 ByteString CreateEncodedSerialNumber(long value);
 
@@ -380,7 +399,7 @@ public:
                                
                                
   ScopedTestKeyPair signerKeyPair;
-  ByteString signatureAlgorithm; 
+  TestSignatureAlgorithm signatureAlgorithm;
   bool badSignature; 
   const ByteString* certs; 
 
