@@ -186,7 +186,7 @@ public final class GeckoProfile {
         if (success) {
             
             GeckoSharedPrefs.forProfileName(context, profileName)
-                            .edit().clear().commit();
+                            .edit().clear().apply();
         }
 
         return success;
@@ -270,7 +270,7 @@ public final class GeckoProfile {
         if (success) {
             
             GeckoSharedPrefs.forProfileName(context, GUEST_PROFILE)
-                            .edit().clear().commit();
+                            .edit().clear().apply();
         }
     }
 
