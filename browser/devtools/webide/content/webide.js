@@ -94,8 +94,6 @@ let UI = {
     Services.prefs.setBoolPref("devtools.webide.autoinstallADBHelper", false);
     Services.prefs.setBoolPref("devtools.webide.autoinstallFxdtAdapters", false);
 
-    this.lastConnectedRuntime = Services.prefs.getCharPref("devtools.webide.lastConnectedRuntime");
-
     if (Services.prefs.getBoolPref("devtools.webide.widget.autoinstall") &&
         !Services.prefs.getBoolPref("devtools.webide.widget.enabled")) {
       Services.prefs.setBoolPref("devtools.webide.widget.enabled", true);
@@ -393,6 +391,14 @@ let UI = {
     }
   },
 
+  get lastConnectedRuntime() {
+    return Services.prefs.getCharPref("devtools.webide.lastConnectedRuntime");
+  },
+
+  set lastConnectedRuntime(runtime) {
+    Services.prefs.setCharPref("devtools.webide.lastConnectedRuntime", runtime);
+  },
+
   autoConnectRuntime: function () {
     
     
@@ -415,6 +421,8 @@ let UI = {
         
         
         if (runtime.id == id) {
+          
+          this.lastConnectedRuntime = "";
           this.connectToRuntime(runtime);
         }
       }
@@ -446,8 +454,6 @@ let UI = {
     } else {
       this.lastConnectedRuntime = "";
     }
-    Services.prefs.setCharPref("devtools.webide.lastConnectedRuntime",
-                               this.lastConnectedRuntime);
   },
 
   _actionsToLog: new Set(),
