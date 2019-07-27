@@ -130,6 +130,15 @@ protected:
     
     mozilla::RefPtr<mozilla::gfx::DrawTarget> mFramebufferTarget;
     ANativeWindowBuffer* mFramebuffer;
+    
+    
+    
+    
+    
+    
+    
+    
+    mozilla::RefPtr<mozilla::gfx::DrawTarget> mBackBuffer;
 
     void BringToTop();
 
