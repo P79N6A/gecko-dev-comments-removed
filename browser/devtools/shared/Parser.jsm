@@ -218,7 +218,7 @@ SyntaxTreesPool.prototype = {
         
         
         
-        DevToolsUtils.reportException("Syntax tree visitor for " + aUrl, e);
+        DevToolsUtils.reportException("Syntax tree visitor for " + this._url, e);
       }
     }
     this._cache.set(requestId, results);
