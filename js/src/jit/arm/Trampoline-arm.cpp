@@ -152,9 +152,23 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 
     
     
-    aasm->as_sub(r4, sp, O2RegImmShift(r1, LSL, 3)); 
     
-    aasm->as_sub(sp, r4, Imm8(16)); 
+    
+    
+    
+    
+    
+    
+    
+    
+    aasm->as_sub(r4, sp, O2RegImmShift(r1, LSL, 3));    
+    masm.ma_and(Imm32(~(JitStackAlignment - 1)), r4, r4);
+    
+    static_assert(sizeof(JitFrameLayout) % JitStackAlignment == 0,
+      "No need to consider the JitFrameLayout for aligning the stack");
+    
+    aasm->as_sub(sp, r4, Imm8(sizeof(JitFrameLayout)));
+
     
     
     aasm->as_mov(r5, O2Reg(r1), SetCond);
@@ -311,6 +325,10 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
         MOZ_ASSERT(R1.scratchReg() != r0);
         masm.loadPtr(Address(r11, offsetof(EnterJITStack, scopeChain)), R1.scratchReg());
     }
+
+    
+    
+    masm.assertStackAlignment(JitStackAlignment);
 
     
     masm.ma_callJitNoPush(r0);
