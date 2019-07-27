@@ -37,19 +37,21 @@ XPCOMUtils.defineLazyServiceGetter(this, "console",
 
 
 
-let debug = Services.prefs.getBoolPref("dom.mozApps.debug")
-  ? (aMsg) => {
-      dump("-*-*- UserCustomizations (" +
+function debug(aMsg) {
+  if (!UserCustomizations._debug) {
+    return;
+  }
+  dump("-*-*- UserCustomizations (" +
            (UserCustomizations._inParent ? "parent" : "child") +
            "): " + aMsg + "\n");
-    }
-  : (aMsg) => {};
+}
 
 function log(aStr) {
   console.logStringMessage(aStr);
 }
 
 this.UserCustomizations = {
+  _debug: false,
   _items: [],
   _loaded : {},   
   _windows: null, 
