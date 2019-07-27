@@ -45,7 +45,7 @@ class RenderFrameChild;
 }
 
 namespace layers {
-class ActiveElementManager;
+class APZEventState;
 struct SetTargetAPZCCallback;
 }
 
@@ -252,7 +252,7 @@ class TabChild MOZ_FINAL : public TabChildBase,
     typedef mozilla::dom::ClonedMessageData ClonedMessageData;
     typedef mozilla::layout::RenderFrameChild RenderFrameChild;
     typedef mozilla::layout::ScrollingBehavior ScrollingBehavior;
-    typedef mozilla::layers::ActiveElementManager ActiveElementManager;
+    typedef mozilla::layers::APZEventState APZEventState;
     typedef mozilla::layers::SetTargetAPZCCallback SetTargetAPZCCallback;
 
 public:
@@ -440,17 +440,6 @@ public:
     
 
 
-    bool DispatchMouseEvent(const nsString&       aType,
-                            const CSSPoint&       aPoint,
-                            const int32_t&        aButton,
-                            const int32_t&        aClickCount,
-                            const int32_t&        aModifiers,
-                            const bool&           aIgnoreRootScrollFrame,
-                            const unsigned short& aInputSourceArg);
-
-    
-
-
 
 
     void MakeVisible();
@@ -542,7 +531,6 @@ private:
 
     nsresult Init();
 
-    class DelayedFireSingleTapEvent;
     class DelayedFireContextMenuEvent;
 
     
@@ -596,9 +584,6 @@ private:
 
     bool HasValidInnerSize();
 
-    void SendPendingTouchPreventedResponse(bool aPreventDefault,
-                                           const ScrollableLayerGuid& aGuid);
-
     
     float GetPresShellResolution() const;
 
@@ -637,15 +622,9 @@ private:
     bool mTriedBrowserInit;
     ScreenOrientation mOrientation;
     bool mUpdateHitRegion;
-    bool mPendingTouchPreventedResponse;
-    ScrollableLayerGuid mPendingTouchPreventedGuid;
-    uint64_t mPendingTouchPreventedBlockId;
-
-    bool mTouchEndCancelled;
-    bool mEndTouchIsClick;
 
     bool mIgnoreKeyPressEvent;
-    nsRefPtr<ActiveElementManager> mActiveElementManager;
+    nsRefPtr<APZEventState> mAPZEventState;
     nsRefPtr<SetTargetAPZCCallback> mSetTargetAPZCCallback;
     bool mHasValidInnerSize;
     bool mDestroyed;

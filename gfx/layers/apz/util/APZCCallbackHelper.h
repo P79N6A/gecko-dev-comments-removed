@@ -127,6 +127,17 @@ public:
 
     
 
+    static bool DispatchMouseEvent(const nsCOMPtr<nsIDOMWindowUtils>& aUtils,
+                                   const nsString& aType,
+                                   const CSSPoint& aPoint,
+                                   int32_t aButton,
+                                   int32_t aClickCount,
+                                   int32_t aModifiers,
+                                   bool aIgnoreRootScrollFrame,
+                                   unsigned short aInputSourceArg);
+
+    
+
     static void FireSingleTapEvent(const LayoutDevicePoint& aPoint,
                                    nsIWidget* aWidget);
 
