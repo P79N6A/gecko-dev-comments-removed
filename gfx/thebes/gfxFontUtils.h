@@ -81,10 +81,8 @@ public:
         return ((block->mBits[(aIndex>>3) & (BLOCK_SIZE - 1)]) & (1 << (aIndex & 0x7))) != 0;
     }
 
-#if PR_LOGGING
     
     void Dump(const char* aPrefix, eGfxLog aWhichLog) const;
-#endif
 
     bool TestRange(uint32_t aStart, uint32_t aEnd) {
         uint32_t startBlock, endBlock, blockLen;
