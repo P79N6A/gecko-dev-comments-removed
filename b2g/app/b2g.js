@@ -1081,6 +1081,3 @@ pref("dom.mozSettings.SettingsService.verbose.enabled", false);
 
 
 pref("dom.mozSettings.allowForceReadOnly", false);
-
-
-pref("dom.requestSync.enabled", true);
