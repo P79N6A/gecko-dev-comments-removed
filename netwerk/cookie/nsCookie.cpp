@@ -80,9 +80,9 @@ nsCookie::Create(const nsACString &aName,
 {
   
   
-  nsUTF8ConverterService converter;
+  nsRefPtr<nsUTF8ConverterService> converter = new nsUTF8ConverterService();
   nsAutoCString aUTF8Value;
-  converter.ConvertStringToUTF8(aValue, "UTF-8", false, true, 1, aUTF8Value);
+  converter->ConvertStringToUTF8(aValue, "UTF-8", false, true, 1, aUTF8Value);
 
   
   const uint32_t stringLength = aName.Length() + aUTF8Value.Length() +
