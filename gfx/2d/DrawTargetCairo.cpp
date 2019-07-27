@@ -37,6 +37,9 @@
 
 #include <algorithm>
 
+
+#define CAIRO_COORD_MAX (Float(0x7fffff))
+
 namespace mozilla {
 
 MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedCairoSurface, cairo_surface_t, cairo_surface_destroy);
@@ -90,6 +93,64 @@ private:
   cairo_t* mCtx;
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static bool
+ConditionRect(Rect& r) {
+  
+  
+  if (r.X() > CAIRO_COORD_MAX || r.Y() > CAIRO_COORD_MAX)
+    return false;
+
+  if (r.X() < 0.f) {
+    r.width += r.X();
+    if (r.width < 0.f)
+      return false;
+    r.x = 0.f;
+  }
+
+  if (r.XMost() > CAIRO_COORD_MAX) {
+    r.width = CAIRO_COORD_MAX - r.X();
+  }
+
+  if (r.Y() < 0.f) {
+    r.height += r.Y();
+    if (r.Height() < 0.f)
+      return false;
+
+    r.y = 0.f;
+  }
+
+  if (r.YMost() > CAIRO_COORD_MAX) {
+    r.height = CAIRO_COORD_MAX - r.Y();
+  }
+  return true;
+}
 
 } 
 
@@ -856,16 +917,50 @@ DrawTargetCairo::FillRect(const Rect &aRect,
 {
   AutoPrepareForDrawing prep(this, mContext);
 
+  bool restoreTransform = false;
+  Matrix mat;
+  Rect r = aRect;
+
+  
+  if (r.width > CAIRO_COORD_MAX ||
+      r.height > CAIRO_COORD_MAX ||
+      r.x < -CAIRO_COORD_MAX ||
+      r.x > CAIRO_COORD_MAX ||
+      r.y < -CAIRO_COORD_MAX ||
+      r.y > CAIRO_COORD_MAX)
+  {
+    if (!mat.IsRectilinear()) {
+      gfxWarning() << "DrawTargetCairo::FillRect() misdrawing huge Rect "
+                      "with non-rectilinear transform";
+    }
+
+    mat = GetTransform();
+    r = mat.TransformBounds(r);
+
+    if (!ConditionRect(r)) {
+      gfxWarning() << "Ignoring DrawTargetCairo::FillRect() call with "
+                      "out-of-bounds Rect";
+      return;
+    }
+
+    restoreTransform = true;
+    SetTransform(Matrix());
+  }
+
   cairo_new_path(mContext);
-  cairo_rectangle(mContext, aRect.x, aRect.y, aRect.Width(), aRect.Height());
+  cairo_rectangle(mContext, r.x, r.y, r.Width(), r.Height());
 
   bool pathBoundsClip = false;
 
-  if (aRect.Contains(GetUserSpaceClip())) {
+  if (r.Contains(GetUserSpaceClip())) {
     pathBoundsClip = true;
   }
 
   DrawPattern(aPattern, StrokeOptions(), aOptions, DRAW_FILL, pathBoundsClip);
+
+  if (restoreTransform) {
+    SetTransform(mat);
+  }
 }
 
 void
