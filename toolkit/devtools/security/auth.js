@@ -44,6 +44,11 @@ let AuthenticationResult = exports.AuthenticationResult = createEnum({
   
 
 
+  PENDING: null,
+
+  
+
+
   ALLOW: null,
 
   
@@ -141,12 +146,16 @@ Prompt.Server.prototype = {
 
 
 
-  authenticate(session) {
+
+  authenticate({ client, server }) {
     if (!Services.prefs.getBoolPref("devtools.debugger.prompt-connection")) {
       return AuthenticationResult.ALLOW;
     }
-    session.authentication = this.mode;
-    return this.allowConnection(session);
+    return this.allowConnection({
+      authentication: this.mode,
+      client,
+      server
+    });
   },
 
   
@@ -278,9 +287,26 @@ OOBCert.Server.prototype = {
 
 
 
-  authenticate(session) {
-    session.authentication = this.mode;
-    return this.allowConnection(session);
+
+  authenticate({ client, server, transport }) {
+    
+    
+    
+    
+    
+    
+    transport.send({
+      authResult: AuthenticationResult.PENDING
+    });
+
+    
+    
+    
+    return this.allowConnection({
+      authentication: this.mode,
+      client,
+      server
+    });
   },
 
   
