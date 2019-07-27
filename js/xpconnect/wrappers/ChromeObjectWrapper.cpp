@@ -7,9 +7,11 @@
 #include "ChromeObjectWrapper.h"
 #include "WrapperFactory.h"
 #include "AccessCheck.h"
+#include "JavaScriptParent.h"
 #include "xpcprivate.h"
 #include "jsapi.h"
 #include "jswrapper.h"
+#include "nsXULAppAPI.h"
 
 using namespace JS;
 
@@ -115,6 +117,16 @@ CheckPassToChrome(JSContext *cx, HandleObject wrapper, HandleValue v)
     
     if (!js::IsWrapper(obj))
         return true;
+
+    
+    
+    
+    if (mozilla::jsipc::IsWrappedCPOW(obj) &&
+        js::GetObjectCompartment(wrapper) == js::GetObjectCompartment(xpc::UnprivilegedJunkScope()) &&
+        XRE_GetProcessType() == GeckoProcessType_Default)
+    {
+        return true;
+    }
 
     
     
