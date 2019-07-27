@@ -257,13 +257,13 @@ struct BytecodeEmitter
 
 
 
-ptrdiff_t
+bool
 Emit1(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp op);
 
 
 
 
-ptrdiff_t
+bool
 Emit2(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp op, jsbytecode op1);
 
 

@@ -430,7 +430,7 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
 
 
 
-    if (Emit1(cx, &bce, JSOP_RETRVAL) < 0)
+    if (!Emit1(cx, &bce, JSOP_RETRVAL))
         return nullptr;
 
     
