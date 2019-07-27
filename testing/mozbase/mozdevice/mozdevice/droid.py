@@ -156,7 +156,13 @@ class DroidADB(DeviceManagerADB, DroidMixin):
 
     def getTopActivity(self):
         package = None
-        data = self.shellCheckOutput(["dumpsys", "window", "windows"])
+        data = None
+        try:
+            data = self.shellCheckOutput(["dumpsys", "window", "windows"])
+        except:
+            
+            
+            return ""
         
         
         
