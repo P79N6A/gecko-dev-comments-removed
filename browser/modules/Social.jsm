@@ -400,7 +400,7 @@ SocialErrorListener.prototype = {
 };
 
 
-function sizeSocialPanelToContent(panel, iframe) {
+function sizeSocialPanelToContent(panel, iframe, requestedSize) {
   let doc = iframe.contentDocument;
   if (!doc || !doc.body) {
     return;
@@ -408,14 +408,15 @@ function sizeSocialPanelToContent(panel, iframe) {
   
   
   let body = doc.body;
+  let docEl = doc.documentElement;
   let bodyId = body.getAttribute("contentid");
   if (bodyId) {
     body = doc.getElementById(bodyId) || doc.body;
   }
   
   let cs = doc.defaultView.getComputedStyle(body);
-  let width = PANEL_MIN_WIDTH;
-  let height = PANEL_MIN_HEIGHT;
+  let width = Math.max(PANEL_MIN_WIDTH, docEl.offsetWidth);
+  let height = Math.max(PANEL_MIN_HEIGHT, docEl.offsetHeight);
   
   
   if (cs) {
@@ -426,6 +427,21 @@ function sizeSocialPanelToContent(panel, iframe) {
   }
 
   
+  
+  
+  if (docEl.scrollHeight > iframe.boxObject.height)
+    height = docEl.scrollHeight;
+
+  
+  if (requestedSize) {
+    if (requestedSize.height)
+      height = Math.max(height, requestedSize.height);
+    if (requestedSize.width)
+      width = Math.max(width, requestedSize.width);
+  }
+
+  
+  
   if (iframe.boxObject.width && iframe.boxObject.height) {
     
     width += panel.boxObject.width - iframe.boxObject.width;
@@ -433,11 +449,10 @@ function sizeSocialPanelToContent(panel, iframe) {
   }
 
   
-  
-  
-  if (Math.abs(panel.boxObject.width - width) > 2 || Math.abs(panel.boxObject.height - height) > 2) {
-    panel.sizeTo(width, height);
-  }
+  if (Math.abs(panel.boxObject.width - width) >= 2)
+    panel.style.width = width + "px";
+  if (Math.abs(panel.boxObject.height - height) >= 2)
+    panel.style.height = height + "px";
 }
 
 function DynamicResizeWatcher() {
@@ -445,18 +460,18 @@ function DynamicResizeWatcher() {
 }
 
 DynamicResizeWatcher.prototype = {
-  start: function DynamicResizeWatcher_start(panel, iframe) {
+  start: function DynamicResizeWatcher_start(panel, iframe, requestedSize) {
     this.stop(); 
     let doc = iframe.contentDocument;
-    this._mutationObserver = new iframe.contentWindow.MutationObserver(function(mutations) {
-      sizeSocialPanelToContent(panel, iframe);
+    this._mutationObserver = new iframe.contentWindow.MutationObserver((mutations) => {
+      sizeSocialPanelToContent(panel, iframe, requestedSize);
     });
     
     let config = {attributes: true, characterData: true, childList: true, subtree: true};
     this._mutationObserver.observe(doc, config);
     
     
-    sizeSocialPanelToContent(panel, iframe);
+    sizeSocialPanelToContent(panel, iframe, requestedSize);
   },
   stop: function DynamicResizeWatcher_stop() {
     if (this._mutationObserver) {
