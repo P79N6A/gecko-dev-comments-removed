@@ -2448,7 +2448,9 @@ void AsyncPanZoomController::FlushRepaintForNewInputBlock() {
 
 bool AsyncPanZoomController::SnapBackIfOverscrolled() {
   ReentrantMonitorAutoEnter lock(mMonitor);
-  if (IsOverscrolled()) {
+  
+  
+  if (IsOverscrolled() && mState != OVERSCROLL_ANIMATION) {
     APZC_LOG("%p is overscrolled, starting snap-back\n", this);
     StartOverscrollAnimation(ParentLayerPoint(0, 0));
     return true;
