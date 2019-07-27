@@ -15,7 +15,7 @@ public class HashSetStoreTracker implements StoreTracker {
   
   
   
-  private HashSet<String> guids;
+  private final HashSet<String> guids;
 
   public HashSetStoreTracker() {
     guids = new HashSet<String>();

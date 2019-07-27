@@ -36,18 +36,18 @@ class TabsListLayout extends TwoWayView
                                 Tabs.OnTabsChangedListener {
     private static final String LOGTAG = "Gecko" + TabsListLayout.class.getSimpleName();
 
-    private Context mContext;
+    private final Context mContext;
     private TabsPanel mTabsPanel;
 
     final private boolean mIsPrivate;
 
-    private TabsLayoutAdapter mTabsAdapter;
+    private final TabsLayoutAdapter mTabsAdapter;
 
-    private List<View> mPendingClosedTabs;
+    private final List<View> mPendingClosedTabs;
     private int mCloseAnimationCount;
     private int mCloseAllAnimationCount;
 
-    private TabSwipeGestureListener mSwipeListener;
+    private final TabSwipeGestureListener mSwipeListener;
 
     
     private static final int ANIMATION_DURATION = 250;
@@ -87,7 +87,7 @@ class TabsListLayout extends TwoWayView
     }
 
     private class TabsListLayoutAdapter extends TabsLayoutAdapter {
-        private Button.OnClickListener mCloseOnClickListener;
+        private final Button.OnClickListener mCloseOnClickListener;
         public TabsListLayoutAdapter (Context context) {
             super(context);
 
@@ -409,10 +409,10 @@ class TabsListLayout extends TwoWayView
         
         private static final float MIN_VELOCITY = 750;
 
-        private int mSwipeThreshold;
-        private int mMinFlingVelocity;
+        private final int mSwipeThreshold;
+        private final int mMinFlingVelocity;
 
-        private int mMaxFlingVelocity;
+        private final int mMaxFlingVelocity;
         private VelocityTracker mVelocityTracker;
 
         private int mListWidth = 1;

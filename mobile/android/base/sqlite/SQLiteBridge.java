@@ -26,7 +26,7 @@ public class SQLiteBridge {
     private static final String LOGTAG = "SQLiteBridge";
 
     
-    private String mDb;
+    private final String mDb;
 
     
     protected volatile long mDbPointer;

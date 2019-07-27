@@ -88,13 +88,13 @@ public class GeckoMenu extends ListView
     protected static final int NO_ID = 0;
 
     
-    private List<GeckoMenuItem> mItems;
+    private final List<GeckoMenuItem> mItems;
 
     
-    private Map<GeckoMenuItem, View> mPrimaryActionItems;
+    private final Map<GeckoMenuItem, View> mPrimaryActionItems;
 
     
-    private Map<GeckoMenuItem, View> mSecondaryActionItems;
+    private final Map<GeckoMenuItem, View> mSecondaryActionItems;
 
     
     private Callback mCallback;
@@ -109,7 +109,7 @@ public class GeckoMenu extends ListView
     private final ActionItemBarPresenter mSecondaryActionItemBar;
 
     
-    private MenuItemsAdapter mAdapter;
+    private final MenuItemsAdapter mAdapter;
 
     
     boolean mShowIcons;
@@ -686,7 +686,7 @@ public class GeckoMenu extends ListView
         private static final int VIEW_TYPE_DEFAULT = 0;
         private static final int VIEW_TYPE_ACTION_MODE = 1;
 
-        private List<GeckoMenuItem> mItems;
+        private final List<GeckoMenuItem> mItems;
 
         public MenuItemsAdapter() {
             mItems = new ArrayList<GeckoMenuItem>();

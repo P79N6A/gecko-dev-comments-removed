@@ -104,7 +104,7 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
 
     
     
-    private LinkedList<FolderInfo> mParentStack;
+    private final LinkedList<FolderInfo> mParentStack;
 
     
     private OnRefreshFolderListener mListener;

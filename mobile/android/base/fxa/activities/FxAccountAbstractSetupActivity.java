@@ -74,7 +74,7 @@ abstract public class FxAccountAbstractSetupActivity extends FxAccountAbstractAc
 
   
   
-  private static boolean ALWAYS_SHOW_CUSTOM_SERVER_LAYOUT = false;
+  private static final boolean ALWAYS_SHOW_CUSTOM_SERVER_LAYOUT = false;
 
   protected int minimumPasswordLength = 8;
 

@@ -53,7 +53,7 @@ public abstract class PreferenceFragment extends Fragment implements PreferenceM
   
   
   
-  private Handler mHandler = new Handler() {
+  private final Handler mHandler = new Handler() {
     @Override
     public void handleMessage(Message msg) {
       switch (msg.what) {
@@ -299,7 +299,7 @@ public abstract class PreferenceFragment extends Fragment implements PreferenceM
     mHandler.post(mRequestFocus);
   }
 
-  private OnKeyListener mListOnKeyListener = new OnKeyListener() {
+  private final OnKeyListener mListOnKeyListener = new OnKeyListener() {
 
     @Override
     public boolean onKey(View v, int keyCode, KeyEvent event) {

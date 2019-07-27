@@ -41,9 +41,9 @@ class JavaPanZoomController
 {
     private static final String LOGTAG = "GeckoPanZoomController";
 
-    private static String MESSAGE_ZOOM_RECT = "Browser:ZoomToRect";
-    private static String MESSAGE_ZOOM_PAGE = "Browser:ZoomToPageWidth";
-    private static String MESSAGE_TOUCH_LISTENER = "Tab:HasTouchListener";
+    private static final String MESSAGE_ZOOM_RECT = "Browser:ZoomToRect";
+    private static final String MESSAGE_ZOOM_PAGE = "Browser:ZoomToPageWidth";
+    private static final String MESSAGE_TOUCH_LISTENER = "Tab:HasTouchListener";
 
     
     private static final float STOPPED_THRESHOLD = 4.0f;
@@ -902,8 +902,8 @@ class JavaPanZoomController
 
 
 
-        private ImmutableViewportMetrics mBounceStartMetrics;
-        private ImmutableViewportMetrics mBounceEndMetrics;
+        private final ImmutableViewportMetrics mBounceStartMetrics;
+        private final ImmutableViewportMetrics mBounceEndMetrics;
         
         private long mBounceDuration;
 

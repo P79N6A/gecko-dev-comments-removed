@@ -18,9 +18,9 @@ class ActionModeCompat implements GeckoPopupMenu.OnMenuItemClickListener,
                                   View.OnClickListener {
     private final String LOGTAG = "GeckoActionModeCompat";
 
-    private Callback mCallback;
-    private ActionModeCompatView mView;
-    private Presenter mPresenter;
+    private final Callback mCallback;
+    private final ActionModeCompatView mView;
+    private final Presenter mPresenter;
 
     
 

@@ -45,10 +45,10 @@ public class FaviconView extends ImageView {
     private static float sStrokeWidth;
 
     
-    private static Paint sStrokePaint;
+    private static final Paint sStrokePaint;
 
     
-    private static Paint sBackgroundPaint;
+    private static final Paint sBackgroundPaint;
 
     
     private final RectF mStrokeRect;

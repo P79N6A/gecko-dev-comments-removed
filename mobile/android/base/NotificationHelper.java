@@ -64,7 +64,7 @@ public final class NotificationHelper implements GeckoEventListener {
     private static final String CLEARED_EVENT = "notification-cleared";
     private static final String CLOSED_EVENT = "notification-closed";
 
-    private Context mContext;
+    private final Context mContext;
 
     
     

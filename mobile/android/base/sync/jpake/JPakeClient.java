@@ -38,57 +38,57 @@ import ch.boye.httpclientandroidlib.entity.StringEntity;
 
 public class JPakeClient {
 
-  private static String       LOG_TAG                 = "JPakeClient";
+  private static final String LOG_TAG = "JPakeClient";
 
   
-  public final static int     REQUEST_TIMEOUT         = 60 * 1000;       
-  public final static int     KEYEXCHANGE_VERSION     = 3;
-  public final static String  JPAKE_VERIFY_VALUE      = "0123456789ABCDEF";
+  public static final int REQUEST_TIMEOUT = 60 * 1000;       
+  public static final int KEYEXCHANGE_VERSION = 3;
+  public static final String JPAKE_VERIFY_VALUE = "0123456789ABCDEF";
 
-  private final static String JPAKE_SIGNERID_SENDER   = "sender";
-  private final static String JPAKE_SIGNERID_RECEIVER = "receiver";
-  private final static int    JPAKE_LENGTH_SECRET     = 8;
-  private final static int    JPAKE_LENGTH_CLIENTID   = 256;
+  private static final String JPAKE_SIGNERID_SENDER = "sender";
+  private static final String JPAKE_SIGNERID_RECEIVER = "receiver";
+  private static final int JPAKE_LENGTH_SECRET = 8;
+  private static final int JPAKE_LENGTH_CLIENTID = 256;
 
-  private final static int    MAX_TRIES               = 10;
-  private final static int    MAX_TRIES_FIRST_MSG     = 300;
-  private final static int    MAX_TRIES_LAST_MSG      = 300;
-
-  
-  public String              clientId;
-  public String              secret;
-
-  public String              myEtag;
-  public String              mySignerId;
-  public String              theirEtag;
-  public String              theirSignerId;
-  public String              jpakeServer;
+  private static final int MAX_TRIES = 10;
+  private static final int MAX_TRIES_FIRST_MSG = 300;
+  private static final int MAX_TRIES_LAST_MSG = 300;
 
   
-  public boolean             paired                  = false;
-  public boolean             finished                = false;
+  public String clientId;
+  public String secret;
+
+  public String myEtag;
+  public String mySignerId;
+  public String theirEtag;
+  public String theirSignerId;
+  public String jpakeServer;
 
   
-  public int                 jpakePollInterval;
-  public int                 jpakeMaxTries;
-  public String              channel;
-  public volatile String     channelUrl;
+  public boolean paired;
+  public boolean finished;
 
   
-  public KeyBundle           myKeyBundle;
-  public JSONObject          jCreds;
-
-  public ExtendedJSONObject  jOutgoing;
-  public ExtendedJSONObject  jIncoming;
-
-  public JPakeParty          jParty;
-  public JPakeNumGenerator   numGen;
-
-  public int                 pollTries = 0;
+  public int jpakePollInterval;
+  public int jpakeMaxTries;
+  public String channel;
+  public volatile String channelUrl;
 
   
-  private SetupSyncActivity controllerActivity;
-  private Queue<JPakeStage>  stages;
+  public KeyBundle myKeyBundle;
+  public JSONObject jCreds;
+
+  public ExtendedJSONObject jOutgoing;
+  public ExtendedJSONObject jIncoming;
+
+  public JPakeParty jParty;
+  public JPakeNumGenerator numGen;
+
+  public int pollTries;
+
+  
+  private final SetupSyncActivity controllerActivity;
+  private Queue<JPakeStage> stages;
 
   public JPakeClient(SetupSyncActivity activity) {
     controllerActivity = activity;

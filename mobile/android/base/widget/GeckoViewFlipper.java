@@ -18,7 +18,7 @@ import android.widget.ViewFlipper;
 
 
 public class GeckoViewFlipper extends ViewFlipper {
-    private Rect mRect = new Rect();
+    private final Rect mRect = new Rect();
 
     public GeckoViewFlipper(Context context) {
         super(context);

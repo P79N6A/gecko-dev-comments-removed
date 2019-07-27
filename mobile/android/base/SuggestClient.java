@@ -46,7 +46,7 @@ public class SuggestClient {
     private final int mMaxResults;
 
     
-    private boolean mCheckNetwork;
+    private final boolean mCheckNetwork;
 
     
     private String mPrevQuery;

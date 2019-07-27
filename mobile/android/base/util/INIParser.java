@@ -16,7 +16,7 @@ import java.util.Hashtable;
 
 public final class INIParser extends INISection {
     
-    private File mFile;
+    private final File mFile;
 
     
     private Hashtable<String, INISection> mSections;

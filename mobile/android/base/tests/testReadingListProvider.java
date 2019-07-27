@@ -51,7 +51,7 @@ public class testReadingListProvider extends ContentProviderTest {
 
 
 
-    private static Callable<ContentProvider> sProviderFactory = new Callable<ContentProvider>() {
+    private static final Callable<ContentProvider> sProviderFactory = new Callable<ContentProvider>() {
         @Override
         public ContentProvider call() {
             return new ReadingListProvider();

@@ -55,7 +55,7 @@ public class SendTabList extends ListView {
     
     private SendTabTargetSelectedListener listener;
 
-    private State currentState = LOADING;
+    private final State currentState = LOADING;
 
     
 

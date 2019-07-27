@@ -31,7 +31,7 @@ public class DoorHangerPopup extends ArrowPopup
 
     
     
-    private HashSet<DoorHanger> mDoorHangers;
+    private final HashSet<DoorHanger> mDoorHangers;
 
     
     private boolean mDisabled;

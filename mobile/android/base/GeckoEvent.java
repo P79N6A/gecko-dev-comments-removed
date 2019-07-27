@@ -43,7 +43,7 @@ public class GeckoEvent {
     private static final int EVENT_FACTORY_SIZE = 5;
 
     
-    private static SparseArray<ArrayBlockingQueue<GeckoEvent>> mEvents = new SparseArray<ArrayBlockingQueue<GeckoEvent>>();
+    private static final SparseArray<ArrayBlockingQueue<GeckoEvent>> mEvents = new SparseArray<ArrayBlockingQueue<GeckoEvent>>();
 
     public static GeckoEvent get(NativeGeckoEvent type) {
         synchronized (mEvents) {

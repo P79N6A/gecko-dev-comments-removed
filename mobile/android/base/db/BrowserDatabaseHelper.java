@@ -1565,8 +1565,8 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
 
     
     
-    private static boolean logDebug   = Log.isLoggable(LOGTAG, Log.DEBUG);
-    private static boolean logVerbose = Log.isLoggable(LOGTAG, Log.VERBOSE);
+    private static final boolean logDebug   = Log.isLoggable(LOGTAG, Log.DEBUG);
+    private static final boolean logVerbose = Log.isLoggable(LOGTAG, Log.VERBOSE);
     protected static void trace(String message) {
         if (logVerbose) {
             Log.v(LOGTAG, message);

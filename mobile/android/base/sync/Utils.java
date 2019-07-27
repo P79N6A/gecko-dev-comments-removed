@@ -40,7 +40,7 @@ public class Utils {
 
   private static final String LOG_TAG = "Utils";
 
-  private static SecureRandom sharedSecureRandom = new SecureRandom();
+  private static final SecureRandom sharedSecureRandom = new SecureRandom();
 
   
   public static final int SHARED_PREFERENCES_MODE = 0;

@@ -54,7 +54,7 @@ class TextSelection extends Layer implements GeckoEventListener {
 
     
     
-    private Timer mActionModeTimer = new Timer("actionMode");
+    private final Timer mActionModeTimer = new Timer("actionMode");
     private class ActionModeTimerTask extends TimerTask {
         @Override
         public void run() {

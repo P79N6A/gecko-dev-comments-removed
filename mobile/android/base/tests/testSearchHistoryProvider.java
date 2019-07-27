@@ -83,7 +83,7 @@ public class testSearchHistoryProvider extends ContentProviderTest {
 
 
 
-    private static Callable<ContentProvider> sProviderFactory =
+    private static final Callable<ContentProvider> sProviderFactory =
             new Callable<ContentProvider>() {
                 @Override
                 public ContentProvider call() {

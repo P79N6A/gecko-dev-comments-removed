@@ -909,7 +909,7 @@ public class HealthReportDatabaseStorage implements HealthReportStorage {
 
 
 
-  private HashMap<String, Field> fields = new HashMap<String, Field>();
+  private final HashMap<String, Field> fields = new HashMap<String, Field>();
   private boolean fieldsCacheUpdated = false;
 
   private void invalidateFieldsCache() {

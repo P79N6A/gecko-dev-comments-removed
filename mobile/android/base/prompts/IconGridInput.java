@@ -40,7 +40,7 @@ public class IconGridInput extends PromptInput implements OnItemClickListener {
     private static int mMaxColumns = -1;  
     private static int mIconSize = -1;    
     private int mSelected;                
-    private JSONArray mArray;
+    private final JSONArray mArray;
 
     public IconGridInput(JSONObject obj) {
         super(obj);

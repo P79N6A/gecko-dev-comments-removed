@@ -12,7 +12,7 @@ import java.util.ArrayList;
 
 public class TextureReaper {
     private static TextureReaper sSharedInstance;
-    private ArrayList<Integer> mDeadTextureIDs;
+    private final ArrayList<Integer> mDeadTextureIDs;
 
     private TextureReaper() { mDeadTextureIDs = new ArrayList<Integer>(); }
 

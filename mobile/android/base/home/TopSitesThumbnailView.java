@@ -32,7 +32,7 @@ public class TopSitesThumbnailView extends ImageView {
     private final float mStrokeWidth = getResources().getDisplayMetrics().density * 2;
 
     
-    private static Paint sBorderPaint;
+    private static final Paint sBorderPaint;
 
     
     static {

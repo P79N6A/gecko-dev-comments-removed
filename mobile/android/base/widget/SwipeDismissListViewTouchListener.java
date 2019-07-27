@@ -76,14 +76,14 @@ import org.mozilla.gecko.R;
 
 public class SwipeDismissListViewTouchListener implements View.OnTouchListener {
     
-    private int mSlop;
-    private int mMinFlingVelocity;
-    private int mMaxFlingVelocity;
-    private long mAnimationTime;
+    private final int mSlop;
+    private final int mMinFlingVelocity;
+    private final int mMaxFlingVelocity;
+    private final long mAnimationTime;
 
     
-    private ListView mListView;
-    private OnDismissCallback mCallback;
+    private final ListView mListView;
+    private final OnDismissCallback mCallback;
     private int mViewWidth = 1; 
 
     
