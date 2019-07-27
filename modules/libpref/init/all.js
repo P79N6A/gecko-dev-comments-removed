@@ -148,9 +148,6 @@ pref("dom.enable_resource_timing", true);
 pref("dom.enable_user_timing", true);
 
 
-pref("dom.performance.enable_user_timing_logging", false);
-
-
 pref("dom.gamepad.enabled", true);
 #ifdef RELEASE_BUILD
 pref("dom.gamepad.non_standard_events.enabled", false);
