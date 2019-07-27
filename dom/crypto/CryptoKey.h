@@ -171,6 +171,14 @@ public:
                                  JsonWebKey& aRetVal,
                                  const nsNSSShutDownPreventionLock& );
 
+  static SECKEYPublicKey* PublicDhKeyFromRaw(CryptoBuffer& aKeyData,
+                                             const CryptoBuffer& aPrime,
+                                             const CryptoBuffer& aGenerator,
+                                             const nsNSSShutDownPreventionLock& );
+  static nsresult PublicDhKeyToRaw(SECKEYPublicKey* aPubKey,
+                                   CryptoBuffer& aRetVal,
+                                   const nsNSSShutDownPreventionLock& );
+
   static bool PublicKeyValid(SECKEYPublicKey* aPubKey);
 
   
