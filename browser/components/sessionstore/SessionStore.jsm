@@ -3096,15 +3096,6 @@ let SessionStoreInternal = {
 
 
 
-  _getURIFromString: function ssi_getURIFromString(aString) {
-    return Services.io.newURI(aString, null, null);
-  },
-
-  
-
-
-
-
   _needsRestorePage: function ssi_needsRestorePage(aState, aRecentCrashes) {
     const SIX_HOURS_IN_MS = 6 * 60 * 60 * 1000;
 
