@@ -1976,11 +1976,11 @@ ThreadActor.prototype = {
     
     
     
-    this.scripts.addScript(aScript);
-    this.scripts.addScripts(aScript.getChildScripts());
+    this.scripts.addScripts(this.dbg.findScripts({ source: aScript.source }));
 
     this._addScript(aScript);
 
+    
     
     
     
