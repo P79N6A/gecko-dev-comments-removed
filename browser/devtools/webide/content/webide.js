@@ -925,10 +925,8 @@ let UI = {
           
           
           
-          if (this.toolboxIframe && this.toolboxIframe.uid == json.uid) {
-            this.toolboxPromise = null;
-            this._closeToolboxUI();
-          }
+          this.toolboxPromise = null;
+          this._closeToolboxUI();
           break;
       }
     } catch(e) { console.error(e); }
@@ -966,13 +964,9 @@ let UI = {
     let iframe = document.createElement("iframe");
     iframe.id = "toolbox";
 
-    
-    
-    iframe.uid = new Date().getTime();
-
     document.querySelector("notificationbox").insertBefore(iframe, splitter.nextSibling);
     let host = devtools.Toolbox.HostType.CUSTOM;
-    let options = { customIframe: iframe, zoom: false, uid: iframe.uid };
+    let options = { customIframe: iframe, zoom: false };
     this.toolboxIframe = iframe;
 
     let height = Services.prefs.getIntPref("devtools.toolbox.footer.height");
