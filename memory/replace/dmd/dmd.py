@@ -23,6 +23,8 @@ outputVersion = 1
 
 
 
+
+
 allocatorFns = [
     'replace_malloc',
     'replace_calloc',
@@ -48,6 +50,10 @@ allocatorFns = [
     'pod_malloc',
     'pod_calloc',
     'pod_realloc',
+    
+    
+    
+    '???',
 ]
 
 class Record(object):

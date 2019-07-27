@@ -4,6 +4,8 @@
 
 
 
+"use strict";
+
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components
 
 Cu.import("resource://gre/modules/FileUtils.jsm");
@@ -25,15 +27,11 @@ if (!gDmdScriptFile.exists()) {
   gDmdScriptFile.append("dmd.py");
 }
 
-function test(aJsonFile, aKind, aOptions, aN) {
+function test(aJsonFile, aPrefix, aOptions) {
   
   
-  let expectedFile =
-    FileUtils.getFile("CurWorkD",
-                      ["full-" + aKind + "-expected" + aN + ".txt"]);
-  let actualFile =
-    FileUtils.getFile("CurWorkD",
-                      ["full-" + aKind + "-actual"   + aN + ".txt"]);
+  let expectedFile = FileUtils.getFile("CurWorkD", [aPrefix + "-expected.txt"]);
+  let actualFile   = FileUtils.getFile("CurWorkD", [aPrefix + "-actual.txt"]);
 
   
 
@@ -64,12 +62,14 @@ function test(aJsonFile, aKind, aOptions, aN) {
   args = ["-u", expectedFile.path, actualFile.path];
   diffProcess.run(true, args, args.length);
   let success = diffProcess.exitValue == 0;
-  ok(success, aKind + " " + aN);
+  ok(success, aPrefix);
 
   actualFile.remove(true);
 }
 
 function run_test() {
+  let jsonFile;
+
   
   
   
@@ -78,10 +78,44 @@ function run_test() {
   
   
   
-  for (let i = 1; i <= 4; i++) {
-      let jsonFile = FileUtils.getFile("CurWorkD", ["full" + i + ".json"]);
-      test(jsonFile, "heap", ["--ignore-reports"], i);
-      test(jsonFile, "reports", [], i);
+  let fullTestNames = ["empty", "unsampled1", "unsampled2", "sampled"];
+  for (let i = 0; i < fullTestNames.length; i++) {
+      let name = fullTestNames[i];
+      jsonFile = FileUtils.getFile("CurWorkD", ["full-" + name + ".json"]);
+      test(jsonFile, "full-heap-" + name, ["--ignore-reports"])
+      test(jsonFile, "full-reports-" + name, [])
       jsonFile.remove(true);
   }
+
+  
+  
+  
+  
+
+  
+  
+  
+  jsonFile = FileUtils.getFile("CurWorkD", ["script-max-frames.json"]);
+  test(jsonFile, "script-max-frames-8", ["-r", "--max-frames=8"]);
+  test(jsonFile, "script-max-frames-3", ["-r", "--max-frames=3",
+                                         "--no-fix-stacks"]);
+  test(jsonFile, "script-max-frames-1", ["-r", "--max-frames=1"]);
+
+  
+  
+  jsonFile = FileUtils.getFile("CurWorkD", ["script-sort-by.json"]);
+  test(jsonFile, "script-sort-by-usable", ["-r", "--sort-by=usable"]);
+  test(jsonFile, "script-sort-by-req",    ["-r", "--sort-by=req",
+                                           "--no-fix-stacks"]);
+  test(jsonFile, "script-sort-by-slop",   ["-r", "--sort-by=slop"]);
+
+  
+  
+  jsonFile = FileUtils.getFile("CurWorkD", ["script-ignore-alloc-fns.json"]);
+  test(jsonFile, "script-ignore-alloc-fns", ["-r", "--ignore-alloc-fns"]);
+
+  
+  
+  jsonFile = FileUtils.getFile("CurWorkD", ["script-show-all-block-sizes.json"]);
+  test(jsonFile, "script-show-all-block-sizes", ["-r", "--show-all-block-sizes"]);
 }

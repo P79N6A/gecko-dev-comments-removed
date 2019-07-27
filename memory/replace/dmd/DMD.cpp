@@ -1447,10 +1447,10 @@ Init(const malloc_table_t* aMallocTable)
     
     
     
-    auto f1 = MakeUnique<FpWriteFunc>(OpenOutputFile("full1.json"));
-    auto f2 = MakeUnique<FpWriteFunc>(OpenOutputFile("full2.json"));
-    auto f3 = MakeUnique<FpWriteFunc>(OpenOutputFile("full3.json"));
-    auto f4 = MakeUnique<FpWriteFunc>(OpenOutputFile("full4.json"));
+    auto f1 = MakeUnique<FpWriteFunc>(OpenOutputFile("full-empty.json"));
+    auto f2 = MakeUnique<FpWriteFunc>(OpenOutputFile("full-unsampled1.json"));
+    auto f3 = MakeUnique<FpWriteFunc>(OpenOutputFile("full-unsampled2.json"));
+    auto f4 = MakeUnique<FpWriteFunc>(OpenOutputFile("full-sampled.json"));
     gIsDMDRunning = true;
 
     StatusMsg("running test mode...\n");
