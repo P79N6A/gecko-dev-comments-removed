@@ -219,7 +219,7 @@ LIRGeneratorX86::visitAsmJSLoadHeap(MAsmJSLoadHeap *ins)
     MOZ_ASSERT(ptr->type() == MIRType_Int32);
 
     
-    if (ptr->isConstant() && ins->skipBoundsCheck()) {
+    if (ptr->isConstant() && !ins->needsBoundsCheck()) {
         int32_t ptrValue = ptr->toConstant()->value().toInt32();
         
         MOZ_ASSERT(ptrValue >= 0);
@@ -238,7 +238,7 @@ LIRGeneratorX86::visitAsmJSStoreHeap(MAsmJSStoreHeap *ins)
     LAsmJSStoreHeap *lir;
     MOZ_ASSERT(ptr->type() == MIRType_Int32);
 
-    if (ptr->isConstant() && ins->skipBoundsCheck()) {
+    if (ptr->isConstant() && !ins->needsBoundsCheck()) {
         int32_t ptrValue = ptr->toConstant()->value().toInt32();
         MOZ_ASSERT(ptrValue >= 0);
         LAllocation ptrAlloc = LAllocation(ptr->toConstant()->vp());

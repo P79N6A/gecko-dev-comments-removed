@@ -133,23 +133,17 @@ LIRGeneratorX64::visitAsmJSLoadHeap(MAsmJSLoadHeap *ins)
 {
     MDefinition *ptr = ins->ptr();
     MOZ_ASSERT(ptr->type() == MIRType_Int32);
-    LAllocation ptrAlloc;
 
-    bool useConstant = false;
-    if (ptr->isConstant()) {
-        int32_t ptrValue = ptr->toConstant()->value().toInt32();
-        if (ins->skipBoundsCheck() && ptrValue >= 0) {
-            
-            
-            
-            useConstant = true;
-        }
-        
-    }
+    
+    
+    
+    
+    
+    LAllocation ptrAlloc = ins->needsBoundsCheck()
+                           ? useRegisterAtStart(ptr)
+                           : useRegisterOrNonNegativeConstantAtStart(ptr);
 
-    ptrAlloc = (useConstant) ? LAllocation(ptr->toConstant()->vp()) : useRegisterAtStart(ptr);
-    LAsmJSLoadHeap *lir = new(alloc()) LAsmJSLoadHeap(ptrAlloc);
-    return define(lir, ins);
+    return define(new(alloc()) LAsmJSLoadHeap(ptrAlloc), ins);
 }
 
 bool
@@ -157,12 +151,17 @@ LIRGeneratorX64::visitAsmJSStoreHeap(MAsmJSStoreHeap *ins)
 {
     MDefinition *ptr = ins->ptr();
     MOZ_ASSERT(ptr->type() == MIRType_Int32);
-    LAsmJSStoreHeap *lir;
 
     
     
     
-    LAllocation ptrAlloc = useRegisterOrNonNegativeConstantAtStart(ptr);
+    
+    
+    LAllocation ptrAlloc = ins->needsBoundsCheck()
+                           ? useRegisterAtStart(ptr)
+                           : useRegisterOrNonNegativeConstantAtStart(ptr);
+
+    LAsmJSStoreHeap *lir;
     switch (ins->viewType()) {
       case Scalar::Int8:
       case Scalar::Uint8:
