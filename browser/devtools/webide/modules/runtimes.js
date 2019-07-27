@@ -453,6 +453,10 @@ WiFiRuntime.prototype = {
     }
     connection.advertisement = service;
     connection.authenticator.sendOOB = this.sendOOB;
+    
+    
+    
+    connection.timeoutDelay = 0;
     connection.connect();
     return promise.resolve();
   },

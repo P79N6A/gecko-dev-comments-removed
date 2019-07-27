@@ -17,6 +17,10 @@ Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
 DevToolsUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
 
+const REMOTE_TIMEOUT = "devtools.debugger.remote-timeout";
+
+
+
 
 
 
@@ -233,8 +237,11 @@ Connection.prototype = {
     return settings;
   },
 
+  timeoutDelay: Services.prefs.getIntPref(REMOTE_TIMEOUT),
+
   resetOptions() {
     this.keepConnecting = false;
+    this.timeoutDelay = Services.prefs.getIntPref(REMOTE_TIMEOUT);
     this.encryption = false;
     this.authentication = null;
     this.advertisement = null;
@@ -268,8 +275,9 @@ Connection.prototype = {
       }
       this._setStatus(Connection.Status.CONNECTING);
 
-      let delay = Services.prefs.getIntPref("devtools.debugger.remote-timeout");
-      this._timeoutID = setTimeout(this._onTimeout, delay);
+      if (this.timeoutDelay > 0) {
+        this._timeoutID = setTimeout(this._onTimeout, this.timeoutDelay);
+      }
       this._clientConnect();
     } else {
       let msg = "Can't connect. Client is not fully disconnected";
