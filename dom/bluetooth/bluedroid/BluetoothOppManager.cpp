@@ -531,6 +531,7 @@ BluetoothOppManager::AfterOppDisconnected()
   mLastCommand = 0;
   mPutPacketReceivedLength = 0;
   mDsFile = nullptr;
+  mDummyDsFile = nullptr;
 
   
   
@@ -558,6 +559,34 @@ BluetoothOppManager::AfterOppDisconnected()
 }
 
 void
+BluetoothOppManager::RecoverFileName()
+{
+  
+  
+  
+  
+  
+  if (mDsFile && mDsFile->mFile) {
+    nsString path;
+    path.AssignLiteral(TARGET_SUBDIR);
+    path.Append(mFileName);
+
+    mDsFile->SetPath(path);
+    mDsFile->mFile->RenameTo(nullptr, mFileName);
+  }
+}
+
+void
+BluetoothOppManager::DeleteDummyFile()
+{
+  
+  if (mDummyDsFile && mDummyDsFile->mFile) {
+    mDummyDsFile->mFile->Remove(false);
+    mDummyDsFile = nullptr;
+  }
+}
+
+void
 BluetoothOppManager::DeleteReceivedFile()
 {
   if (mOutputStream) {
@@ -569,6 +598,8 @@ BluetoothOppManager::DeleteReceivedFile()
     mDsFile->mFile->Remove(false);
     mDsFile = nullptr;
   }
+
+  DeleteDummyFile();
 }
 
 bool
@@ -576,25 +607,39 @@ BluetoothOppManager::CreateFile()
 {
   MOZ_ASSERT(mPutPacketReceivedLength == mPacketLength);
 
+  
+  
+  
+  
   nsString path;
   path.AssignLiteral(TARGET_SUBDIR);
   path.Append(mFileName);
 
-  mDsFile = DeviceStorageFile::CreateUnique(
-              path, nsIFile::NORMAL_FILE_TYPE, 0644);
-  NS_ENSURE_TRUE(mDsFile, false);
-
-  nsCOMPtr<nsIFile> f;
-  mDsFile->mFile->Clone(getter_AddRefs(f));
+  
+  
+  
+  mDummyDsFile =
+    DeviceStorageFile::CreateUnique(path, nsIFile::NORMAL_FILE_TYPE, 0644);
+  NS_ENSURE_TRUE(mDummyDsFile, false);
 
   
+  
+  
+  mDummyDsFile->mFile->GetLeafName(mFileName);
 
+  BT_LOGR("mFileName: %s", NS_ConvertUTF16toUTF8(mFileName).get());
 
+  
+  path.Truncate();
+  path.AssignLiteral(TARGET_SUBDIR);
+  path.Append(mFileName);
+  path.AppendLiteral(".part");
 
+  mDsFile =
+    DeviceStorageFile::CreateUnique(path, nsIFile::NORMAL_FILE_TYPE, 0644);
+  NS_ENSURE_TRUE(mDsFile, false);
 
-  f->GetLeafName(mFileName);
-
-  NS_NewLocalFileOutputStream(getter_AddRefs(mOutputStream), f);
+  NS_NewLocalFileOutputStream(getter_AddRefs(mOutputStream), mDsFile->mFile);
   NS_ENSURE_TRUE(mOutputStream, false);
 
   return true;
@@ -911,6 +956,10 @@ BluetoothOppManager::ServerDataHandler(UnixSocketRawData* aMessage)
     
     if (mPutFinalFlag) {
       mSuccessFlag = true;
+
+      DeleteDummyFile();
+      RecoverFileName();
+
       FileTransferComplete();
       NotifyAboutFileChange();
     }
