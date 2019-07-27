@@ -37,12 +37,17 @@ namespace OT {
 
 
 
+
 #define HB_OT_TAG_hhea HB_TAG('h','h','e','a')
+#define HB_OT_TAG_vhea HB_TAG('v','h','e','a')
 
 
-struct hhea
+struct _hea
 {
-  static const hb_tag_t tableTag	= HB_OT_TAG_hhea;
+  static const hb_tag_t tableTag = HB_TAG('_','h','e','a');
+
+  static const hb_tag_t hheaTag	= HB_OT_TAG_hhea;
+  static const hb_tag_t vheaTag	= HB_OT_TAG_vhea;
 
   inline bool sanitize (hb_sanitize_context_t *c) {
     TRACE_SANITIZE (this);
@@ -52,26 +57,19 @@ struct hhea
   public:
   FixedVersion	version;		
   FWORD		ascender;		
-
-
-
   FWORD		descender;		
-
-
-
   FWORD		lineGap;		
+  UFWORD	advanceMax;		
+
+  FWORD		minLeadingBearing;	
+
+  FWORD		minTrailingBearing;	
 
 
+  FWORD		maxExtent;		
 
-  UFWORD	advanceWidthMax;	
-
-  FWORD		minLeftSideBearing;	
-
-  FWORD		minRightSideBearing;	
-
-
-  FWORD		xMaxExtent;		
   SHORT		caretSlopeRise;		
+
 
   SHORT		caretSlopeRun;		
   SHORT		caretOffset;		
@@ -84,10 +82,17 @@ struct hhea
   SHORT		reserved3;		
   SHORT		reserved4;		
   SHORT		metricDataFormat;	
-  USHORT	numberOfHMetrics;	
+  USHORT	numberOfLongMetrics;	
 
   public:
   DEFINE_SIZE_STATIC (36);
+};
+
+struct hhea : _hea {
+  static const hb_tag_t tableTag	= HB_OT_TAG_hhea;
+};
+struct vhea : _hea {
+  static const hb_tag_t tableTag	= HB_OT_TAG_vhea;
 };
 
 

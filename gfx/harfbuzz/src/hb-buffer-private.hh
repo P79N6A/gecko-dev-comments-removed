@@ -48,15 +48,13 @@ struct hb_buffer_t {
   ASSERT_POD ();
 
   
-
   hb_unicode_funcs_t *unicode; 
-  hb_segment_properties_t props; 
   hb_buffer_flags_t flags; 
   hb_codepoint_t replacement; 
 
   
-
   hb_buffer_content_type_t content_type;
+  hb_segment_properties_t props; 
 
   bool in_error; 
   bool have_output; 
@@ -182,6 +180,9 @@ struct hb_buffer_t {
 
   inline bool ensure (unsigned int size)
   { return likely (!size || size < allocated) ? true : enlarge (size); }
+
+  inline bool ensure_inplace (unsigned int size)
+  { return likely (!size || size < allocated); }
 
   HB_INTERNAL bool make_room_for (unsigned int num_in, unsigned int num_out);
   HB_INTERNAL bool shift_forward (unsigned int count);

@@ -197,6 +197,8 @@ struct TTCHeader
 
 struct OpenTypeFontFile
 {
+  static const hb_tag_t tableTag	= HB_TAG ('_','_','_','_'); 
+
   static const hb_tag_t CFFTag		= HB_TAG ('O','T','T','O'); 
   static const hb_tag_t TrueTypeTag	= HB_TAG ( 0 , 1 , 0 , 0 ); 
   static const hb_tag_t TTCTag		= HB_TAG ('t','t','c','f'); 
