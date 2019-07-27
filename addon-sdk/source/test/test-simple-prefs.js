@@ -17,7 +17,7 @@ const file = require("sdk/io/file");
 const { install, uninstall } = require("sdk/addon/installer");
 const { open } = require('sdk/preferences/utils');
 const { toFilename } = require('sdk/url');
-const { AddonManager } = Cu.import('resource://gre/modules/AddonManager.jsm', {});
+const { getAddonByID } = require('sdk/addon/manager');
 const { ZipWriter } = require('./zip/utils');
 const { getTabForId } = require('sdk/tabs/utils');
 const { preferencesBranch, id } = require('sdk/self');
@@ -44,7 +44,7 @@ exports.testIterations = function(assert) {
 
   delete sp["test"];
   delete sp["test.test"];
-  let prefAry = [];
+  prefAry = [];
   for (var name in sp ) {
     prefAry.push(name);
   }
@@ -247,7 +247,7 @@ exports.testPrefJSONStringification = function(assert) {
       "JSON stringification should work.");
 };
 
-exports.testUnloadOfDynamicPrefGeneration = function(assert, done) {
+exports.testUnloadOfDynamicPrefGeneration = function*(assert) {
   let loader = Loader(module);
   let branch = prefsrv.getDefaultBranch('extensions.' + preferencesBranch);
 
@@ -259,92 +259,74 @@ exports.testUnloadOfDynamicPrefGeneration = function(assert, done) {
   
   let zip = new ZipWriter(xpi_path);
   assert.pass("start creating the xpi");
-  zip.addFile("", toFilename(fixtures.url("bootstrap-addon/"))).
-  then(zip.close()).
-  then(_ => install(xpi_path)).
-  
-  then(id => {
-    let { promise, resolve } = defer();
-    AddonManager.getAddonByID(id, resolve);
-    return promise;
-  }).
-  
-  then(addon => {
-    assert.pass('installed');
+  zip.addFile("", toFilename(fixtures.url("bootstrap-addon/")));
+  yield zip.close();
 
-    assert.pass('addon id: ' + addon.id);
-    addon.userDisabled = false;
-    assert.ok(!addon.userDisabled, 'the add-on is enabled');
-    assert.ok(addon.isActive, 'the add-on is enabled');
+  
+  let id = yield install(xpi_path);
 
-    
-    return enable({
-      id: addon.id,
-      preferences: [{
-        "name": "test",
-        "description": "test",
-        "title": "Test",
-        "type": "string",
-        "value": "default"
-      }, {
-        "name": "test-int",
-        "description": "test",
-        "type": "integer",
-        "value": 5,
-        "title": "How Many?"
-      }]
-    });
-  }).
-  then(args => {
-    assert.pass('enabled');
-    return args;
-  }).
   
-  then(open).
-  then(args => {
-    assert.pass('opened');
-    return args;
-  }).
-  
-  then(args => {
-    let results = args.document.querySelectorAll("*[data-jetpack-id=\"" +args.id + "\"]");
-    assert.ok(results.length > 0, "the prefs were setup");
-    return args;
-  }).
-  
-  then(args => {
-    loader.unload();
-    assert.pass('unload');
-    return args;
-  }).
-  
-  then(({ tabId, id, document }) => {
-    let { promise, resolve } = defer();
-    let tab = Tab({ tab: getTabForId(tabId) });
+  let addon = yield getAddonByID(id);
 
-    tab.close(_ => resolve({ id: id }));
+  assert.pass('installed');
 
-    return promise;
-  }).
-  
-  then(open).
-  
-  then(({ id, tabId, document }) => {
-    let { promise, resolve } = defer();
-    let tab = Tab({ tab: getTabForId(tabId) });
+  assert.pass('addon id: ' + addon.id);
+  addon.userDisabled = false;
+  assert.ok(!addon.userDisabled, 'the add-on is enabled');
+  assert.ok(addon.isActive, 'the add-on is enabled');
 
-    let results = document.querySelectorAll("*[data-jetpack-id=\"" + id + "\"]");
-    assert.equal(0, results.length, "the prefs were not setup after unload");
-
-    tab.close(_ => resolve({ id: id }));
-
-    return promise;
-  }).
   
-  then(({ id }) => uninstall(id)).
+  yield enable({
+    id: addon.id,
+    preferences: [{
+      "name": "test",
+      "description": "test",
+      "title": "Test",
+      "type": "string",
+      "value": "default"
+    }, {
+      "name": "test-int",
+      "description": "test",
+      "type": "integer",
+      "value": 5,
+      "title": "How Many?"
+    }]
+  });
+
+  assert.pass('enabled');
+
   
-  then(_ => branch.deleteBranch('')).
-  then(done, assert.fail);
+  let { tabId, document } = yield open(addon);
+
+  assert.pass('opened');
+  
+  let results = document.querySelectorAll("*[data-jetpack-id=\"" + id + "\"]");
+  assert.ok(results.length > 0, "the prefs were setup");
+
+  
+  loader.unload();
+  assert.pass('unload');
+
+  
+  let { promise, resolve } = defer();
+  Tab({ tab: getTabForId(tabId) }).close(resolve);
+  yield promise;
+
+  
+  ({ tabId, document }) = yield open(addon);
+
+  
+  ({ promise, resolve }) = defer();
+  results = document.querySelectorAll("*[data-jetpack-id=\"" + id + "\"]");
+  assert.equal(0, results.length, "the prefs were not setup after unload");
+  Tab({ tab: getTabForId(tabId) }).close(resolve);
+  yield promise;
+
+  
+  yield uninstall(id);
+
+  
+  branch.deleteBranch('');
 }
 
 require("sdk/test").run(exports);

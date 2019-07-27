@@ -82,15 +82,6 @@ const WorkerSandbox = Class({
 
 
 
-  hasListenerFor: function hasListenerFor(name) {
-    return modelFor(this).hasListenerFor(name);
-  },
-
-  
-
-
-
-
   initialize: function WorkerSandbox(worker, window) {
     let model = {};
     sandboxes.set(this, model);
@@ -192,8 +183,7 @@ const WorkerSandbox = Class({
 
     
     
-    
-    merge(model, result);
+    model.emitToContent = result;
 
     let console = new PlainTextConsole(null, getInnerId(window));
 

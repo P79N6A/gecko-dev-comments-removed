@@ -85,7 +85,7 @@ DEFAULT_FIREFOX_PREFS = {
     
     'browser.safebrowsing.provider.0.gethashURL' : 'http://localhost/safebrowsing-dummy/gethash',
     'browser.safebrowsing.provider.0.updateURL' : 'http://localhost/safebrowsing-dummy/update',
-    }
+}
 
 
 
@@ -139,4 +139,9 @@ DEFAULT_THUNDERBIRD_PREFS = {
     'mail.smtpservers' :  "smtp1",
     'mail.startup.enabledMailCheckOnce' :  True,
     'mailnews.start_page_override.mstone' :  "ignore",
-    }
+}
+
+DEFAULT_TEST_PREFS = {
+    'general.useragent.locale': "en-US",
+    'intl.locale.matchOS': "en-US"
+}

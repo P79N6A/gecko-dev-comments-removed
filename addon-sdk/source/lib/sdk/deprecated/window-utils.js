@@ -16,7 +16,7 @@ const { getInnerId, getOuterId, windows, isDocumentLoaded, isBrowser,
         getMostRecentBrowserWindow, getMostRecentWindow } = require('../window/utils');
 const errors = require('../deprecated/errors');
 const { deprecateFunction } = require('../util/deprecate');
-const { ignoreWindow, isGlobalPBSupported } = require('sdk/private-browsing/utils');
+const { ignoreWindow } = require('sdk/private-browsing/utils');
 const { isPrivateBrowsingSupported } = require('../self');
 
 const windowWatcher = Cc['@mozilla.org/embedcomp/window-watcher;1'].
@@ -25,7 +25,7 @@ const appShellService = Cc['@mozilla.org/appshell/appShellService;1'].
                         getService(Ci.nsIAppShellService);
 
 
-function getWindows() windows(null, { includePrivate: isPrivateBrowsingSupported || isGlobalPBSupported });
+function getWindows() windows(null, { includePrivate: isPrivateBrowsingSupported });
 
 
 

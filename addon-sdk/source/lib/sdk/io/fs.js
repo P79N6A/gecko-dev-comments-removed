@@ -647,26 +647,26 @@ exports.close = close;
 
 
 
-function openSync(path, flags, mode) {
-  let [ fd, flags_, mode_, file ] =
-      [ { path: path }, Flags(flags), Mode(mode), nsILocalFile(path) ];
+function openSync(aPath, aFlag, aMode) {
+  let [ fd, flags, mode, file ] =
+      [ { path: aPath }, Flags(aFlag), Mode(aMode), nsILocalFile(aPath) ];
 
   nsIFile(fd, file);
 
   
   
-  if (!file.exists() && !isWritable(flags_))
-    throw FSError("open", "ENOENT", 34, path);
+  if (!file.exists() && !isWritable(flags))
+    throw FSError("open", "ENOENT", 34, aPath);
 
   
-  if (isReadable(flags_)) {
-    let input = FileInputStream(file, flags_, mode_, DEFER_OPEN);
+  if (isReadable(flags)) {
+    let input = FileInputStream(file, flags, mode, DEFER_OPEN);
     nsIFileInputStream(fd, input);
   }
 
   
-  if (isWritable(flags_)) {
-    let output = FileOutputStream(file, flags_, mode_, DEFER_OPEN);
+  if (isWritable(flags)) {
+    let output = FileOutputStream(file, flags, mode, DEFER_OPEN);
     nsIFileOutputStream(fd, output);
   }
 
@@ -822,7 +822,8 @@ function readFile(path, encoding, callback) {
       readStream.destroy();
       callback(null, buffer);
     });
-  } catch (error) {
+  }
+  catch (error) {
     setTimeout(callback, 0, error);
   }
 };

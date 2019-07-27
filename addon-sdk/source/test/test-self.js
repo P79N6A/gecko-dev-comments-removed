@@ -3,13 +3,10 @@
 
 "use strict";
 
-const { Cc, Ci, Cu, Cm, components } = require("chrome");
 const xulApp = require("sdk/system/xul-app");
 const self = require("sdk/self");
 const { Loader, main, unload } = require("toolkit/loader");
 const loaderOptions = require("@loader/options");
-
-const { AddonManager } = Cu.import("resource://gre/modules/AddonManager.jsm", {});
 
 exports.testSelf = function(assert) {
   

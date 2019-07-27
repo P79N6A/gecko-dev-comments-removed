@@ -229,6 +229,10 @@ function startup(data, reasonCode) {
       resultFile: options.resultFile,
       
       staticArgs: options.staticArgs,
+
+      
+      noQuit: options.no_quit,
+
       
       preferencesBranch: options.preferencesBranch,
 

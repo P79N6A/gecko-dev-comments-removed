@@ -50,6 +50,7 @@ const OVERFLOW_THRESH_PREF =
 
 
 const OVERFLOW_MENU_LABEL = "Add-ons";
+const OVERFLOW_MENU_ACCESSKEY = "A";
 
 
 const OVERFLOW_MENU_CLASS = "addon-content-menu-overflow-menu";
@@ -313,6 +314,17 @@ let labelledItemRules =  mix(baseItemRules, {
     ok: function (v) !!v,
     msg: "The item must have a non-empty string label."
   },
+  accesskey: {
+    map: stringOrNull,
+    is: ["string", "undefined", "null"],
+    ok: (v) => {
+      if (!v) {
+        return true;
+      }
+      return typeof v == "string" && v.length === 1;
+    },
+    msg: "The item must have a single character accesskey, or no accesskey."
+  },
   image: {
     map: stringOrNull,
     is: ["string", "undefined", "null"],
@@ -353,17 +365,14 @@ let ContextWorker = Class({
   implements: [ Worker ],
 
   
-  anyContextListeners: function anyContextListeners() {
-    return this.getSandbox().hasListenerFor("context");
-  },
-
-  
   
   
   
   getMatchedContext: function getCurrentContexts(popupNode) {
     let results = this.getSandbox().emitSync("context", popupNode);
-    return results.reduce(function(val, result) val || result, null);
+    if (!results.length)
+      return true;
+    return results.reduce((val, result) => val || result);
   },
 
   
@@ -389,7 +398,7 @@ function hasMatchingContext(contexts, popupNode) {
 
 function getCurrentWorkerContext(item, popupNode) {
   let worker = getItemWorkerForWindow(item, popupNode.ownerDocument.defaultView);
-  if (!worker || !worker.anyContextListeners())
+  if (!worker)
     return true;
   return worker.getMatchedContext(popupNode);
 }
@@ -399,7 +408,7 @@ function getCurrentWorkerContext(item, popupNode) {
 function isItemVisible(item, popupNode, defaultVisibility) {
   if (!item.context.length) {
     let worker = getItemWorkerForWindow(item, popupNode.ownerDocument.defaultView);
-    if (!worker || !worker.anyContextListeners())
+    if (!worker)
       return defaultVisibility;
   }
 
@@ -445,7 +454,7 @@ function getItemWorkerForWindow(item, window) {
 
 
 
-function itemClicked(item, clickedItem, popupNode) {
+function itemActivated(item, clickedItem, popupNode) {
   let worker = getItemWorkerForWindow(item, popupNode.ownerDocument.defaultView);
 
   if (worker) {
@@ -456,7 +465,7 @@ function itemClicked(item, clickedItem, popupNode) {
   }
 
   if (item.parentMenu)
-    itemClicked(item.parentMenu, clickedItem, popupNode);
+    itemActivated(item.parentMenu, clickedItem, popupNode);
 }
 
 
@@ -529,6 +538,16 @@ let LabelledItem = Class({
 
   set label(val) {
     internal(this).options.label = val;
+
+    MenuManager.updateItem(this);
+  },
+
+  get accesskey() {
+    return internal(this).options.accesskey;
+  },
+
+  set accesskey(val) {
+    internal(this).options.accesskey = val;
 
     MenuManager.updateItem(this);
   },
@@ -874,6 +893,8 @@ let MenuWrapper = Class({
     xulNode.setAttribute("class", ITEM_CLASS);
     if (item instanceof LabelledItem) {
       xulNode.setAttribute("label", item.label);
+      if (item.accesskey)
+        xulNode.setAttribute("accesskey", item.accesskey);
       if (item.image) {
         xulNode.setAttribute("image", item.image);
         if (item instanceof Menu)
@@ -890,7 +911,7 @@ let MenuWrapper = Class({
         if (event.target !== xulNode)
           return;
 
-        itemClicked(item, item, self.contextMenu.triggerNode);
+        itemActivated(item, item, self.contextMenu.triggerNode);
       }, false);
     }
 
@@ -915,6 +936,7 @@ let MenuWrapper = Class({
 
     
     xulNode.setAttribute("label", item.label);
+    xulNode.setAttribute("accesskey", item.accesskey || "");
 
     if (item.image) {
       xulNode.setAttribute("image", item.image);
@@ -1050,6 +1072,7 @@ let MenuWrapper = Class({
             let overflowMenu = this.window.document.createElement("menu");
             overflowMenu.setAttribute("class", OVERFLOW_MENU_CLASS);
             overflowMenu.setAttribute("label", OVERFLOW_MENU_LABEL);
+            overflowMenu.setAttribute("accesskey", OVERFLOW_MENU_ACCESSKEY);
             this.contextMenu.insertBefore(overflowMenu, this.separator.nextSibling);
 
             overflowPopup = this.window.document.createElement("menupopup");

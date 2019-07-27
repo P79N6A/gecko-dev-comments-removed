@@ -1,7 +1,6 @@
 
 
 
-
 'use strict';
 
 module.metadata = {
@@ -12,6 +11,7 @@ const { Cc, Ci, CC } = require('chrome');
 const options = require('@loader/options');
 const file = require('./io/file');
 const runtime = require("./system/runtime");
+const { when: unload } = require("./system/unload");
 
 const appStartup = Cc['@mozilla.org/toolkit/app-startup;1'].
                    getService(Ci.nsIAppStartup);
@@ -61,8 +61,9 @@ exports.exit = function exit(code) {
     return;
   }
 
-  
-  if ('resultFile' in options && options.resultFile) {
+  let resultsFile = 'resultFile' in options && options.resultFile;
+  function unloader() {
+    
     let mode = PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE;
     let stream = openFile(options.resultFile, mode);
     let status = code ? 'FAIL' : 'OK';
@@ -74,6 +75,16 @@ exports.exit = function exit(code) {
   if (code == 0) {
     forcedExit = true;
   }
+
+  
+  if (options.noQuit) {
+    if (resultsFile) {
+      unload(unloader);
+    }
+    return;
+  }
+
+  unloader();
   appStartup.quit(code ? E_ATTEMPT : E_FORCE);
 };
 
@@ -109,7 +120,7 @@ exports.pathFor = function pathFor(id) {
 
 exports.platform = runtime.OS.toLowerCase();
 
-const [, architecture, compiler] = runtime.XPCOMABI ? 
+const [, architecture, compiler] = runtime.XPCOMABI ?
                                    runtime.XPCOMABI.match(/^([^-]*)-(.*)$/) :
                                    [, null, null];
 

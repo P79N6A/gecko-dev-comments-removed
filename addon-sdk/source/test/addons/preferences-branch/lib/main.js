@@ -1,17 +1,15 @@
 
 
 
-
 'use strict';
 
 const { id, preferencesBranch } = require('sdk/self');
 const simple = require('sdk/simple-prefs');
 const service = require('sdk/preferences/service');
-const { AddonManager } = require('chrome').Cu.import('resource://gre/modules/AddonManager.jsm');
+const { getAddonByID } = require('sdk/addon/manager');
 
 exports.testPreferencesBranch = function(assert) {
   assert.equal(preferencesBranch, 'human-readable', 'preferencesBranch is human-readable');
-
   assert.equal(simple.prefs.test42, true, 'test42 is true');
 
   simple.prefs.test43 = 'movie';
@@ -20,16 +18,11 @@ exports.testPreferencesBranch = function(assert) {
 }
 
 
-exports.testSelfID = function(assert, done) {
-
+exports.testSelfID = function*(assert) {
   assert.equal(typeof(id), 'string', 'self.id is a string');
   assert.ok(id.length > 0, 'self.id not empty');
-
-  AddonManager.getAddonByID(id, function(addon) {
-    assert.ok(addon, 'found addon with self.id');
-    done();
-  });
-
+  let addon = yield getAddonByID(id);
+  assert.ok(addon, 'found addon with self.id');
 }
 
 require('sdk/test/runner').runTestsFromModule(module);

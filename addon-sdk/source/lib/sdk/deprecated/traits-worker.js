@@ -89,15 +89,6 @@ const WorkerSandbox = EventEmitter.compose({
   
 
 
-
-
-  hasListenerFor: function hasListenerFor(name) {
-    return this._hasListenerFor(name);
-  },
-
-  
-
-
   _onContentEvent: function onContentEvent(args) {
     
     let self = this;
@@ -223,8 +214,7 @@ const WorkerSandbox = EventEmitter.compose({
     };
     let onEvent = this._onContentEvent.bind(this);
     let result = Cu.waiveXrays(ContentWorker).inject(content, chromeAPI, onEvent, options);
-    this._emitToContent = result.emitToContent;
-    this._hasListenerFor = result.hasListenerFor;
+    this._emitToContent = result;
 
     
     let self = this;
