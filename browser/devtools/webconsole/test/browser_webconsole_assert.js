@@ -5,7 +5,10 @@
 
 
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-console-assert.html";
+"use strict";
+
+const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/" +
+                 "test/test-console-assert.html";
 
 let test = asyncTest(function* () {
   yield loadTab(TEST_URI);
@@ -46,6 +49,7 @@ function consoleOpened(hud) {
     }],
   }).then(() => {
     let nodes = hud.outputNode.querySelectorAll(".message");
-    is(nodes.length, 6, "only six messages are displayed, no output from the true assert");
+    is(nodes.length, 6,
+       "only six messages are displayed, no output from the true assert");
   });
 }

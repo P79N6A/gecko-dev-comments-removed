@@ -6,12 +6,9 @@
 
 
 
-
 "use strict";
 
 let test = asyncTest(function* () {
-  let wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-                   .getService(Components.interfaces.nsIWindowMediator);
   let currWindow, hud, mainWindow;
 
   mainWindow = Services.wm.getMostRecentWindow(null);

@@ -10,7 +10,8 @@
 
 "use strict";
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-repeated-messages.html";
+const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/" +
+                 "test/test-repeated-messages.html";
 const PREF = "devtools.webconsole.persistlog";
 
 let test = asyncTest(function* () {
@@ -34,6 +35,7 @@ let test = asyncTest(function* () {
 });
 
 function consoleOpened(hud) {
+  
   
   info("waiting for 2 css warnings");
 
@@ -90,7 +92,7 @@ function testCSSRepeatsAfterReload(hud) {
         repeats: 1,
       },
     ],
-  })
+  });
 }
 
 function testConsoleRepeats(hud) {

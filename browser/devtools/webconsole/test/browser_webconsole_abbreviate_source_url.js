@@ -4,6 +4,8 @@
 
 
 
+"use strict";
+
 function test() {
   testAbbreviation("http://example.com/x.js", "x.js");
   testAbbreviation("http://example.com/foo/bar/baz/boo.js", "boo.js");

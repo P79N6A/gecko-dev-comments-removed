@@ -5,6 +5,8 @@
 
 
 
+"use strict";
+
 const TEST_URI = "data:text/html;charset=utf8,test for bug 773466";
 
 let test = asyncTest(function* () {
@@ -29,7 +31,7 @@ let test = asyncTest(function* () {
       name: "console.dir output",
       consoleDir: "[object Object]",
     }],
-  })
+  });
 
   content.console.log("fooBug773466b");
 

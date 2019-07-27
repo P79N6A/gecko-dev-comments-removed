@@ -2,6 +2,7 @@
 
 
 
+
 "use strict";
 
 
@@ -115,6 +116,8 @@ function test() {
     let variableScope = yield deferred.promise;
     ok(variableScope, "Variables view opened");
 
+    
+    
     
     
     let keyIterator = variableScope._store.keys();

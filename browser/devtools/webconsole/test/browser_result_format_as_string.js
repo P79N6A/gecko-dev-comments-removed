@@ -4,7 +4,8 @@
 
 
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-result-format-as-string.html";
+const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/" +
+                 "test/test-result-format-as-string.html";
 
 let test = asyncTest(function* () {
   yield loadTab(TEST_URI);

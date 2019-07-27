@@ -7,7 +7,10 @@
 
 
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-error.html";
+"use strict";
+
+const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/" +
+                 "test/test-error.html";
 
 function test() {
   Task.spawn(function*() {

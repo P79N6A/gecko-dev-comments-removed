@@ -6,12 +6,14 @@
 
 
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-autocomplete-in-stackframe.html";
+"use strict";
+
+const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/" +
+                 "test/test-autocomplete-in-stackframe.html";
 
 let testDriver, gStackframes;
 
-function test()
-{
+function test() {
   requestLongerTimeout(2);
   loadTab(TEST_URI).then(() => {
     openConsole().then((hud) => {
@@ -192,6 +194,7 @@ function* testCompletion(hud) {
      }), "autocomplete results do contain prop11");
 
   
+  
   input.value = "foo2Obj.prop1.prop11.";
   input.setSelectionRange(21, 21);
   jsterm.complete(jsterm.COMPLETE_HINT_ONLY, testNext);
@@ -216,8 +219,7 @@ function* testCompletion(hud) {
   yield undefined;
 }
 
-function debuggerOpened(aResult)
-{
+function debuggerOpened(aResult) {
   let debuggerWin = aResult.panelWin;
   let debuggerController = debuggerWin.DebuggerController;
   let thread = debuggerController.activeThread;
@@ -230,8 +232,7 @@ function debuggerOpened(aResult)
   });
 }
 
-function onFramesAdded()
-{
+function onFramesAdded() {
   info("onFramesAdded, openConsole() now");
   executeSoon(() => openConsole().then(testNext));
 }
