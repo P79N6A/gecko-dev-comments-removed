@@ -360,7 +360,6 @@ Gesture.prototype = {
 
 
   clearTimer: function Gesture_clearTimer() {
-    Logger.gesture('clearTimeout', this.type);
     clearTimeout(this._timer);
     delete this._timer;
   },
@@ -371,11 +370,9 @@ Gesture.prototype = {
 
 
   startTimer: function Gesture_startTimer(aTimeStamp) {
-    Logger.gesture('startTimer', this.type);
     this.clearTimer();
     let delay = this._getDelay(aTimeStamp);
     let handler = () => {
-      Logger.gesture('timer handler');
       delete this._timer;
       if (!this._inProgress) {
         this._deferred.reject();
@@ -681,11 +678,8 @@ DoubleTapHoldEnd.prototype.type = 'doubletapholdend';
 
 
 
-
-
-function TapGesture(aTimeStamp, aPoints, aLastEvent, aRejectToOnWait, aTravelTo, aRejectToOnPointerDown) {
-  this._rejectToOnWait = aRejectToOnWait;
-  this._rejectToOnPointerDown = aRejectToOnPointerDown;
+function TapGesture(aTimeStamp, aPoints, aLastEvent, aRejectTo, aTravelTo) {
+  this._rejectToOnWait = aRejectTo;
   
   TravelGesture.call(this, aTimeStamp, aPoints, aLastEvent, aTravelTo,
     TAP_MAX_RADIUS);
@@ -699,31 +693,6 @@ TapGesture.prototype._getDelay = function TapGesture__getDelay() {
   return GestureSettings.dwellThreshold;
 };
 
-TapGesture.prototype.pointerup = function TapGesture_pointerup(aPoints) {
-    if (this._rejectToOnPointerDown) {
-      let complete = this._update(aPoints, 'pointerup', false, true);
-      if (complete) {
-        this.clearTimer();
-        this._pointerUpTimer = setTimeout(() => {
-          delete this._pointerUpTimer;
-          this._deferred.resolve();
-        }, GestureSettings.maxConsecutiveGestureDelay);
-      }
-    } else {
-      TravelGesture.prototype.pointerup.call(this, aPoints);
-    }
-};
-
-TapGesture.prototype.pointerdown = function TapGesture_pointerdown(aPoints, aTimeStamp) {
-  TravelGesture.prototype.pointerdown.call(this, aPoints, aTimeStamp);
-  if (this._pointerUpTimer) {
-    clearTimeout(this._pointerUpTimer);
-    delete this._pointerUpTimer;
-    this._deferred.reject(this._rejectToOnPointerDown);
-  }
-};
-
-
 
 
 
@@ -733,11 +702,12 @@ TapGesture.prototype.pointerdown = function TapGesture_pointerdown(aPoints, aTim
 
 function Tap(aTimeStamp, aPoints, aLastEvent) {
   
-  TapGesture.call(this, aTimeStamp, aPoints, aLastEvent, Dwell, Swipe, DoubleTap);
+  TapGesture.call(this, aTimeStamp, aPoints, aLastEvent, Dwell, Swipe);
 }
 
 Tap.prototype = Object.create(TapGesture.prototype);
 Tap.prototype.type = 'tap';
+Tap.prototype.resolveTo = DoubleTap;
 
 
 
@@ -749,11 +719,12 @@ Tap.prototype.type = 'tap';
 function AndroidTap(aTimeStamp, aPoints, aLastEvent) {
   
   
-  TapGesture.call(this, aTimeStamp, aPoints, aLastEvent, TapHold, Swipe, TripleTap);
+  TapGesture.call(this, aTimeStamp, aPoints, aLastEvent, TapHold, Swipe);
 }
 AndroidTap.prototype = Object.create(TapGesture.prototype);
 
 AndroidTap.prototype.type = 'doubletap';
+AndroidTap.prototype.resolveTo = TripleTap;
 
 
 
@@ -796,12 +767,12 @@ AndroidTap.prototype.pointerup = function AndroidTap_pointerup(aPoints) {
 
 
 function DoubleTap(aTimeStamp, aPoints, aLastEvent) {
-  this._inProgress = true;
-  TapGesture.call(this, aTimeStamp, aPoints, aLastEvent, TapHold, null, TripleTap);
+  TapGesture.call(this, aTimeStamp, aPoints, aLastEvent, TapHold);
 }
 
 DoubleTap.prototype = Object.create(TapGesture.prototype);
 DoubleTap.prototype.type = 'doubletap';
+DoubleTap.prototype.resolveTo = TripleTap;
 
 
 
@@ -811,7 +782,6 @@ DoubleTap.prototype.type = 'doubletap';
 
 
 function TripleTap(aTimeStamp, aPoints, aLastEvent) {
-  this._inProgress = true;
   TapGesture.call(this, aTimeStamp, aPoints, aLastEvent, DoubleTapHold);
 }
 
