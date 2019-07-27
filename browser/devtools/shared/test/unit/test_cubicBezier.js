@@ -7,6 +7,9 @@
 
 
 
+const Cu = Components.utils;
+let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+let require = devtools.require;
 let {CubicBezier} = require("devtools/shared/widgets/CubicBezierWidget");
 
 function run_test() {
