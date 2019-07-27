@@ -11,6 +11,7 @@
 #include "AudioBufferUtils.h"
 #include "AudioMixer.h"
 #include "AudioSegment.h"
+#include "SelfRef.h"
 #include "mozilla/Atomics.h"
 
 struct cubeb_stream;
@@ -391,6 +392,14 @@ public:
     return this;
   }
 
+  bool IsSwitchingDevice() {
+#ifdef XP_MACOSX
+    return mSelfReference;
+#else
+    return false;
+#endif
+  }
+
   
 
 
@@ -472,6 +481,18 @@ private:
 
 
   bool mMicrophoneActive;
+
+#ifdef XP_MACOSX
+  
+
+  bool OSXDeviceSwitchingWorkaround();
+  
+
+  SelfReference<AudioCallbackDriver> mSelfReference;
+  
+
+  uint32_t mCallbackReceivedWhileSwitching;
+#endif
 };
 
 class AsyncCubebTask : public nsRunnable

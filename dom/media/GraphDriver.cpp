@@ -80,7 +80,18 @@ void GraphDriver::SetGraphTime(GraphDriver* aPreviousDriver,
 
 void GraphDriver::SwitchAtNextIteration(GraphDriver* aNextDriver)
 {
-
+  
+  
+  
+  
+  
+  
+  if (aNextDriver->AsAudioCallbackDriver() &&
+      mPreviousDriver &&
+      mPreviousDriver->AsAudioCallbackDriver()->IsSwitchingDevice() &&
+      mPreviousDriver != aNextDriver) {
+    return;
+  }
   LIFECYCLE_LOG("Switching to new driver: %p (%s)",
       aNextDriver, aNextDriver->AsAudioCallbackDriver() ?
       "AudioCallbackDriver" : "SystemClockDriver");
@@ -189,10 +200,14 @@ public:
                     mDriver->GraphImpl());
       MOZ_ASSERT(!mDriver->AsAudioCallbackDriver());
       
-      nsRefPtr<AsyncCubebTask> releaseEvent =
-        new AsyncCubebTask(mDriver->mPreviousDriver->AsAudioCallbackDriver(), AsyncCubebTask::SHUTDOWN);
-      mDriver->mPreviousDriver = nullptr;
-      releaseEvent->Dispatch();
+      
+      
+      if (!mDriver->mPreviousDriver->AsAudioCallbackDriver()->IsSwitchingDevice()) {
+        nsRefPtr<AsyncCubebTask> releaseEvent =
+          new AsyncCubebTask(mDriver->mPreviousDriver->AsAudioCallbackDriver(), AsyncCubebTask::SHUTDOWN);
+        mDriver->mPreviousDriver = nullptr;
+        releaseEvent->Dispatch();
+      }
     } else {
       MonitorAutoLock mon(mDriver->mGraphImpl->GetMonitor());
       MOZ_ASSERT(mDriver->mGraphImpl->MessagesQueued(), "Don't start a graph without messages queued.");
@@ -536,6 +551,9 @@ AudioCallbackDriver::AudioCallbackDriver(MediaStreamGraphImpl* aGraphImpl, dom::
   , mAudioChannel(aChannel)
   , mInCallback(false)
   , mPauseRequested(false)
+#ifdef XP_MACOSX
+  , mCallbackReceivedWhileSwitching(0)
+#endif
 {
   STREAM_LOG(PR_LOG_DEBUG, ("AudioCallbackDriver ctor for graph %p", aGraphImpl));
 }
@@ -768,6 +786,38 @@ AudioCallbackDriver::AutoInCallback::~AutoInCallback() {
   mDriver->mInCallback = false;
 }
 
+#ifdef XP_MACOSX
+bool
+AudioCallbackDriver::OSXDeviceSwitchingWorkaround()
+{
+  MonitorAutoLock mon(GraphImpl()->GetMonitor());
+  if (mSelfReference) {
+    
+    
+    
+    
+    if (mCallbackReceivedWhileSwitching++ >= 10) {
+      
+      
+      
+      
+      
+      
+      if (GraphImpl()->CurrentDriver() == this) {
+        mSelfReference.Drop(this);
+        mNextDriver = nullptr;
+      } else {
+        GraphImpl()->CurrentDriver()->SwitchAtNextIteration(this);
+      }
+
+    }
+    return true;
+  }
+
+  return false;
+}
+#endif 
+
 long
 AudioCallbackDriver::DataCallback(AudioDataValue* aBuffer, long aFrames)
 {
@@ -777,6 +827,13 @@ AudioCallbackDriver::DataCallback(AudioDataValue* aBuffer, long aFrames)
     PodZero(aBuffer, aFrames * mGraphImpl->AudioChannelCount());
     return aFrames;
   }
+
+#ifdef XP_MACOSX
+  if (OSXDeviceSwitchingWorkaround()) {
+    PodZero(aBuffer, aFrames * mGraphImpl->AudioChannelCount());
+    return aFrames;
+  }
+#endif
 
 #ifdef DEBUG
   
@@ -958,6 +1015,31 @@ void
 AudioCallbackDriver::DeviceChangedCallback() {
   MonitorAutoLock mon(mGraphImpl->GetMonitor());
   PanOutputIfNeeded(mMicrophoneActive);
+  
+  
+  
+  
+  
+  
+#ifdef XP_MACOSX
+  
+  
+  
+  if (!GraphImpl()->Running()) {
+    return;
+  }
+
+  if (mSelfReference) {
+    return;
+  }
+  mSelfReference.Take(this);
+  mCallbackReceivedWhileSwitching = 0;
+  mNextDriver = new SystemClockDriver(GraphImpl());
+  mNextDriver->SetGraphTime(this, mIterationStart, mIterationEnd,
+                            mStateComputedTime, mNextStateComputedTime);
+  mGraphImpl->SetCurrentDriver(mNextDriver);
+  mNextDriver->Start();
+#endif
 }
 
 void
