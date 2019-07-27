@@ -38,27 +38,7 @@ NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 NS_IMPL_ADDREF_INHERITED(BluetoothAdapter, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(BluetoothAdapter, DOMEventTargetHelper)
 
-
-
-
-
-class BluetoothDeviceComparator
-{
-public:
-  bool Equals(const BluetoothDevice* aDeviceA,
-              const BluetoothDevice* aDeviceB) const
-  {
-    nsString addressA;
-    nsString addressB;
-
-    aDeviceA->GetAddress(addressA);
-    aDeviceB->GetAddress(addressB);
-
-    return addressA.Equals(addressB);
-  }
-};
-
-class StartDiscoveryTask : public BluetoothReplyRunnable
+class StartDiscoveryTask MOZ_FINAL : public BluetoothReplyRunnable
 {
 public:
   StartDiscoveryTask(BluetoothAdapter* aAdapter, Promise* aPromise)
@@ -209,10 +189,10 @@ static int kCreatePairedDeviceTimeout = 50000;
 BluetoothAdapter::BluetoothAdapter(nsPIDOMWindow* aWindow,
                                    const BluetoothValue& aValue)
   : DOMEventTargetHelper(aWindow)
-  , mDiscoveryHandleInUse(nullptr)
   , mState(BluetoothAdapterState::Disabled)
   , mDiscoverable(false)
   , mDiscovering(false)
+  , mDiscoveryHandleInUse(nullptr)
 {
   MOZ_ASSERT(aWindow);
   MOZ_ASSERT(IsDOMBinding());
@@ -304,7 +284,7 @@ BluetoothAdapter::SetPropertyByValue(const BluetoothNamedValue& aValue)
         BluetoothDevice::Create(GetOwner(), BluetoothValue(props));
 
       
-      if (!mDevices.Contains(pairedDevice, BluetoothDeviceComparator())) {
+      if (!mDevices.Contains(pairedDevice)) {
         mDevices.AppendElement(pairedDevice);
       }
     }
@@ -816,10 +796,7 @@ BluetoothAdapter::HandleDeviceFound(const BluetoothValue& aValue)
   nsRefPtr<BluetoothDevice> discoveredDevice =
     BluetoothDevice::Create(GetOwner(), aValue);
 
-  size_t index = mDevices.IndexOf(discoveredDevice,
-                                  0, 
-                                  BluetoothDeviceComparator());
-
+  size_t index = mDevices.IndexOf(discoveredDevice);
   if (index == mDevices.NoIndex) {
     
     mDevices.AppendElement(discoveredDevice);
@@ -857,10 +834,7 @@ BluetoothAdapter::HandlePairingRequest(const BluetoothValue& aValue)
     BluetoothDevice::Create(GetOwner(), props);
 
   
-  size_t index = mDevices.IndexOf(device,
-                                  0, 
-                                  BluetoothDeviceComparator());
-
+  size_t index = mDevices.IndexOf(device);
   if (index == mDevices.NoIndex) {
     BT_WARNING("Cannot find the remote device with address %s",
                NS_ConvertUTF16toUTF8(deviceAddress).get());
@@ -909,14 +883,11 @@ BluetoothAdapter::HandleDevicePaired(const BluetoothValue& aValue)
   nsRefPtr<BluetoothDevice> pairedDevice =
     BluetoothDevice::Create(GetOwner(), aValue);
 
-  size_t index = mDevices.IndexOf(pairedDevice,
-                                  0, 
-                                  BluetoothDeviceComparator());
-
-  if (index != mDevices.NoIndex) {
-    pairedDevice = mDevices[index];
-  } else {
+  size_t index = mDevices.IndexOf(pairedDevice);
+  if (index == mDevices.NoIndex) {
     mDevices.AppendElement(pairedDevice);
+  } else {
+    pairedDevice = mDevices[index];
   }
 
   
@@ -939,16 +910,14 @@ BluetoothAdapter::HandleDeviceUnpaired(const BluetoothValue& aValue)
   nsRefPtr<BluetoothDevice> unpairedDevice =
     BluetoothDevice::Create(GetOwner(), aValue);
 
-  size_t index = mDevices.IndexOf(unpairedDevice,
-                                  0, 
-                                  BluetoothDeviceComparator());
+  size_t index = mDevices.IndexOf(unpairedDevice);
 
   nsString deviceAddress;
-  if (index != mDevices.NoIndex) {
+  if (index == mDevices.NoIndex) {
+    unpairedDevice->GetAddress(deviceAddress);
+  } else {
     mDevices[index]->GetAddress(deviceAddress);
     mDevices.RemoveElementAt(index);
-  } else {
-    unpairedDevice->GetAddress(deviceAddress);
   }
 
   
