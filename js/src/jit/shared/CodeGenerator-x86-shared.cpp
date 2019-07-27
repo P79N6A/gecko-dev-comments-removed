@@ -2794,19 +2794,27 @@ CodeGeneratorX86Shared::visitSimdBinaryArithFx4(LSimdBinaryArithFx4 *ins)
       case MSimdBinaryArith::Div:
         masm.packedDivFloat32(rhs, lhs);
         return true;
-      case MSimdBinaryArith::Max:
-        
-        
-        
-        
-        
-        
+      case MSimdBinaryArith::Max: {
+        masm.movaps(lhs, ScratchSimdReg);
+        masm.cmpps(rhs, ScratchSimdReg, 0x3);
+
+        FloatRegister tmp = ToFloatRegister(ins->temp());
+        masm.movaps(rhs, tmp);
+        masm.maxps(Operand(lhs), tmp);
         masm.maxps(rhs, lhs);
+
+        masm.andps(tmp, lhs);
+        masm.orps(ScratchSimdReg, lhs); 
         return true;
-      case MSimdBinaryArith::Min:
-        
+      }
+      case MSimdBinaryArith::Min: {
+        FloatRegister rhsCopy = ScratchSimdReg;
+        masm.movaps(rhs, rhsCopy);
+        masm.minps(Operand(lhs), rhsCopy);
         masm.minps(rhs, lhs);
+        masm.orps(rhsCopy, lhs); 
         return true;
+      }
     }
     MOZ_CRASH("unexpected SIMD op");
 }
