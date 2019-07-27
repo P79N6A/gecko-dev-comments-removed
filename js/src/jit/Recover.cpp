@@ -1087,7 +1087,7 @@ RNewDerivedTypedObject::recover(JSContext *cx, SnapshotIterator &iter) const
     
     types::AutoEnterAnalysis enter(cx);
 
-    JSObject *obj = OwnedTypedObject::createDerived(cx, descr, owner, offset);
+    JSObject *obj = OutlineTypedObject::createDerived(cx, descr, owner, offset);
     if (!obj)
         return false;
 

@@ -665,7 +665,7 @@ class TypedObject : public ArrayBufferViewObject
 
 typedef Handle<TypedObject*> HandleTypedObject;
 
-class OwnedTypedObject : public TypedObject
+class OutlineTypedObject : public TypedObject
 {
   public:
     static const size_t DATA_SLOT = 3;
@@ -692,10 +692,10 @@ class OwnedTypedObject : public TypedObject
     }
 
     
-    static OwnedTypedObject *createUnattachedWithClass(JSContext *cx,
-                                                       const Class *clasp,
-                                                       HandleTypeDescr type,
-                                                       int32_t length);
+    static OutlineTypedObject *createUnattachedWithClass(JSContext *cx,
+                                                         const Class *clasp,
+                                                         HandleTypeDescr type,
+                                                         int32_t length);
 
     
     
@@ -705,16 +705,16 @@ class OwnedTypedObject : public TypedObject
     
     
     
-    static OwnedTypedObject *createUnattached(JSContext *cx, HandleTypeDescr type,
-                                              int32_t length);
+    static OutlineTypedObject *createUnattached(JSContext *cx, HandleTypeDescr type,
+                                                int32_t length);
 
     
     
     
-    static OwnedTypedObject *createDerived(JSContext *cx,
-                                           HandleSizedTypeDescr type,
-                                           Handle<TypedObject*> typedContents,
-                                           int32_t offset);
+    static OutlineTypedObject *createDerived(JSContext *cx,
+                                             HandleSizedTypeDescr type,
+                                             Handle<TypedObject*> typedContents,
+                                             int32_t offset);
 
     
     void attach(JSContext *cx, ArrayBufferObject &buffer, int32_t offset);
@@ -729,7 +729,7 @@ class OwnedTypedObject : public TypedObject
 };
 
 
-class TransparentTypedObject : public OwnedTypedObject
+class TransparentTypedObject : public OutlineTypedObject
 {
   public:
     static const Class class_;
@@ -737,7 +737,7 @@ class TransparentTypedObject : public OwnedTypedObject
 
 
 
-class OwnedOpaqueTypedObject : public OwnedTypedObject
+class OutlineOpaqueTypedObject : public OutlineTypedObject
 {
   public:
     static const Class class_;
@@ -982,7 +982,7 @@ inline bool
 IsTypedObjectClass(const Class *class_)
 {
     return class_ == &TransparentTypedObject::class_ ||
-           class_ == &OwnedOpaqueTypedObject::class_ ||
+           class_ == &OutlineOpaqueTypedObject::class_ ||
            class_ == &InlineOpaqueTypedObject::class_;
 }
 
@@ -1057,10 +1057,10 @@ JSObject::is<js::TypedObject>() const
 
 template <>
 inline bool
-JSObject::is<js::OwnedTypedObject>() const
+JSObject::is<js::OutlineTypedObject>() const
 {
     return getClass() == &js::TransparentTypedObject::class_ ||
-           getClass() == &js::OwnedOpaqueTypedObject::class_;
+           getClass() == &js::OutlineOpaqueTypedObject::class_;
 }
 
 inline void
