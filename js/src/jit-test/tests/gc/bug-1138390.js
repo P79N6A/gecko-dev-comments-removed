@@ -17,12 +17,12 @@ var g = newGlobal();
 
 
 if ("gcstate" in this)
-   assertEq("mark", gcstate());
+   assertEq(gcstate(), "mark");
 g.offThreadCompileScript('23;', {});
 
 
 assertEq(23, g.runOffThreadScript());
 if ("gcstate" in this)
-   assertEq("none", gcstate());
+   assertEq(gcstate(), "none");
 
 print("done");
