@@ -2,8 +2,6 @@
 
 
 "use strict";
-const Cu = Components.utils;
-const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 
 Object.defineProperty(this, "NetworkHelper", {
   get: function() {
