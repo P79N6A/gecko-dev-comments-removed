@@ -633,34 +633,20 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
     appliedTransform = true;
   }
 
-  if (aLayer->AsContainerLayer() && aLayer->GetScrollbarDirection() != Layer::NONE) {
-    ApplyAsyncTransformToScrollbar(aLayer->AsContainerLayer());
+  if (aLayer->GetScrollbarDirection() != Layer::NONE) {
+    ApplyAsyncTransformToScrollbar(aLayer);
   }
   return appliedTransform;
 }
 
 static bool
-LayerHasNonContainerDescendants(ContainerLayer* aContainer)
+LayerIsScrollbarTarget(const LayerMetricsWrapper& aTarget, Layer* aScrollbar)
 {
-  for (Layer* child = aContainer->GetFirstChild();
-       child; child = child->GetNextSibling()) {
-    ContainerLayer* container = child->AsContainerLayer();
-    if (!container || LayerHasNonContainerDescendants(container)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-static bool
-LayerIsScrollbarTarget(Layer* aTarget, ContainerLayer* aScrollbar)
-{
-  AsyncPanZoomController* apzc = aTarget->GetAsyncPanZoomController();
+  AsyncPanZoomController* apzc = aTarget.GetApzc();
   if (!apzc) {
     return false;
   }
-  const FrameMetrics& metrics = aTarget->GetFrameMetrics();
+  const FrameMetrics& metrics = aTarget.Metrics();
   if (metrics.GetScrollId() != aScrollbar->GetScrollbarTargetContainerId()) {
     return false;
   }
@@ -668,21 +654,21 @@ LayerIsScrollbarTarget(Layer* aTarget, ContainerLayer* aScrollbar)
 }
 
 static void
-ApplyAsyncTransformToScrollbarForContent(ContainerLayer* aScrollbar,
-                                         Layer* aContent, bool aScrollbarIsChild)
+ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
+                                         const LayerMetricsWrapper& aContent,
+                                         bool aScrollbarIsDescendant)
 {
   
   
   
   
   
-  if (aContent->AsContainerLayer() &&
-      !LayerHasNonContainerDescendants(aContent->AsContainerLayer())) {
+  if (aContent.IsScrollInfoLayer()) {
     return;
   }
 
-  const FrameMetrics& metrics = aContent->GetFrameMetrics();
-  AsyncPanZoomController* apzc = aContent->GetAsyncPanZoomController();
+  const FrameMetrics& metrics = aContent.Metrics();
+  AsyncPanZoomController* apzc = aContent.GetApzc();
 
   Matrix4x4 asyncTransform = apzc->GetCurrentAsyncTransform();
   Matrix4x4 nontransientTransform = apzc->GetNontransientAsyncTransform();
@@ -717,7 +703,7 @@ ApplyAsyncTransformToScrollbarForContent(ContainerLayer* aScrollbar,
 
   Matrix4x4 transform = scrollbarTransform * aScrollbar->GetTransform();
 
-  if (aScrollbarIsChild) {
+  if (aScrollbarIsDescendant) {
     
     
     
@@ -730,47 +716,50 @@ ApplyAsyncTransformToScrollbarForContent(ContainerLayer* aScrollbar,
   
   
   
-  transform.Scale(1.0f/aScrollbar->GetPreXScale(),
-                  1.0f/aScrollbar->GetPreYScale(),
-                  1);
+  if (ContainerLayer* container = aScrollbar->AsContainerLayer()) {
+    transform.Scale(1.0f/container->GetPreXScale(),
+                    1.0f/container->GetPreYScale(),
+                    1);
+  }
   transform = transform * Matrix4x4().Scale(1.0f/aScrollbar->GetPostXScale(),
                                             1.0f/aScrollbar->GetPostYScale(),
                                             1);
   aScrollbar->AsLayerComposite()->SetShadowTransform(transform);
 }
 
-static Layer*
-FindScrolledLayerForScrollbar(ContainerLayer* aLayer, bool* aOutIsAncestor)
+static LayerMetricsWrapper
+FindScrolledLayerForScrollbar(Layer* aScrollbar, bool* aOutIsAncestor)
 {
   
   
   
 
   
-  for (Layer* ancestor = aLayer; ancestor; ancestor = ancestor->GetParent()) {
-    for (Layer* scrollTarget = ancestor;
+  LayerMetricsWrapper scrollbar(aScrollbar, LayerMetricsWrapper::StartAt::BOTTOM);
+  for (LayerMetricsWrapper ancestor = scrollbar; ancestor; ancestor = ancestor.GetParent()) {
+    for (LayerMetricsWrapper scrollTarget = ancestor;
          scrollTarget;
-         scrollTarget = scrollTarget->GetPrevSibling()) {
-      if (scrollTarget != aLayer &&
-          LayerIsScrollbarTarget(scrollTarget, aLayer)) {
+         scrollTarget = scrollTarget.GetPrevSibling()) {
+      if (scrollTarget != scrollbar &&
+          LayerIsScrollbarTarget(scrollTarget, aScrollbar)) {
         *aOutIsAncestor = (scrollTarget == ancestor);
         return scrollTarget;
       }
     }
-    for (Layer* scrollTarget = ancestor->GetNextSibling();
+    for (LayerMetricsWrapper scrollTarget = ancestor.GetNextSibling();
          scrollTarget;
-         scrollTarget = scrollTarget->GetNextSibling()) {
-      if (LayerIsScrollbarTarget(scrollTarget, aLayer)) {
+         scrollTarget = scrollTarget.GetNextSibling()) {
+      if (LayerIsScrollbarTarget(scrollTarget, aScrollbar)) {
         *aOutIsAncestor = false;
         return scrollTarget;
       }
     }
   }
-  return nullptr;
+  return LayerMetricsWrapper();
 }
 
 void
-AsyncCompositionManager::ApplyAsyncTransformToScrollbar(ContainerLayer* aLayer)
+AsyncCompositionManager::ApplyAsyncTransformToScrollbar(Layer* aLayer)
 {
   
   
@@ -780,7 +769,7 @@ AsyncCompositionManager::ApplyAsyncTransformToScrollbar(ContainerLayer* aLayer)
   
   
   bool isAncestor = false;
-  Layer* scrollTarget = FindScrolledLayerForScrollbar(aLayer, &isAncestor);
+  const LayerMetricsWrapper& scrollTarget = FindScrolledLayerForScrollbar(aLayer, &isAncestor);
   if (scrollTarget) {
     ApplyAsyncTransformToScrollbarForContent(aLayer, scrollTarget, isAncestor);
   }

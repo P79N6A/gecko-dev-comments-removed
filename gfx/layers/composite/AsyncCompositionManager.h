@@ -130,7 +130,7 @@ private:
 
 
 
-  void ApplyAsyncTransformToScrollbar(ContainerLayer* aLayer);
+  void ApplyAsyncTransformToScrollbar(Layer* aLayer);
 
   void SetFirstPaintViewport(const LayerIntPoint& aOffset,
                              const CSSToLayerScale& aZoom,
