@@ -2,13 +2,11 @@
 
 
 
-(function () { 
-
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.importGlobalProperties(['Blob']);
 
-Cu.import("resource://gre/modules/PageThumbs.jsm");
+Cu.import("resource://gre/modules/PageThumbUtils.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
@@ -49,7 +47,7 @@ const backgroundPageThumbsContent = {
     
     
     
-    if (subj == content.document) {
+    if (content && subj == content.document) {
       content.
         QueryInterface(Ci.nsIInterfaceRequestor).
         getInterface(Ci.nsIDOMWindowUtils).
@@ -129,9 +127,19 @@ const backgroundPageThumbsContent = {
     capture.finalURL = this._webNav.currentURI.spec;
     capture.pageLoadTime = new Date() - capture.pageLoadStartDate;
 
-    let canvas = PageThumbs.createCanvas(content);
     let canvasDrawDate = new Date();
-    PageThumbs._captureToCanvas(content, canvas);
+
+    let canvas = PageThumbUtils.createCanvas(content);
+    let [sw, sh, scale] = PageThumbUtils.determineCropSize(content, canvas);
+
+    let ctx = canvas.getContext("2d");
+    ctx.save();
+    ctx.scale(scale, scale);
+    ctx.drawWindow(content, 0, 0, sw, sh,
+                   PageThumbUtils.THUMBNAIL_BG_COLOR,
+                   ctx.DRAWWINDOW_DO_NOT_FLUSH);
+    ctx.restore();
+
     capture.canvasDrawTime = new Date() - canvasDrawDate;
 
     canvas.toBlob(blob => {
@@ -184,5 +192,3 @@ const backgroundPageThumbsContent = {
 };
 
 backgroundPageThumbsContent.init();
-
-})();
