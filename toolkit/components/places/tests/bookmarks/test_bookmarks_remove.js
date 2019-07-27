@@ -90,13 +90,14 @@ add_task(function* remove_bookmark_orphans() {
                                                  type: PlacesUtils.bookmarks.TYPE_BOOKMARK,
                                                  url: "http://example.com/",
                                                  title: "a bookmark",
-                                                 keyword: "test"});
+                                                 keyword: "tEsT"});
   checkBookmarkObject(bm1);
   PlacesUtils.annotations.setItemAnnotation((yield PlacesUtils.promiseItemId(bm1.guid)),
                                             "testanno", "testvalue", 0, 0);
 
   let bm2 = yield PlacesUtils.bookmarks.remove(bm1.guid);
   checkBookmarkObject(bm2);
+  
   Assert.equal(bm2.keyword, "test");
 
   

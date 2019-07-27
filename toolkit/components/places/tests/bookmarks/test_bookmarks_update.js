@@ -248,12 +248,14 @@ add_task(function* update_keyword() {
   let lastModified = bm.lastModified;
 
   bm = yield PlacesUtils.bookmarks.update({ guid: bm.guid,
-                                            keyword: "kw2" });
+                                            keyword: "KW2" });
   checkBookmarkObject(bm);
   Assert.ok(bm.lastModified >= lastModified);
+  
   Assert.equal(bm.keyword, "kw2");
 
   bm = yield PlacesUtils.bookmarks.fetch(bm.guid);
+  
   Assert.equal(bm.keyword, "kw2");
   lastModified = bm.lastModified;
 

@@ -329,6 +329,7 @@ add_task(function* fetch_bykeyword() {
   Assert.equal(bm2.url.href, "http://bykeyword1.com/");
   Assert.equal(bm2.keyword, "bykeyword");
 
+  
   let bm3 = yield PlacesUtils.bookmarks.insert({ parentGuid: PlacesUtils.bookmarks.unfiledGuid,
                                                  type: PlacesUtils.bookmarks.TYPE_BOOKMARK,
                                                  url: "http://bykeyword2.com/",
@@ -352,6 +353,16 @@ add_task(function* fetch_bykeyword() {
   Assert.equal(gAccumulator.results.length, 2);
   gAccumulator.results.forEach(checkBookmarkObject);
   Assert.deepEqual(gAccumulator.results[0], bm5);
+
+  
+  let bm6 = yield PlacesUtils.bookmarks.fetch({ keyword: "ByKeYwOrD" },
+                                              gAccumulator.callback);
+  checkBookmarkObject(bm6);
+  
+  Assert.equal(bm1.guid, bm6.guid);
+  Assert.equal(gAccumulator.results.length, 2);
+  gAccumulator.results.forEach(checkBookmarkObject);
+  Assert.deepEqual(gAccumulator.results[0], bm6);
 });
 
 function run_test() {
