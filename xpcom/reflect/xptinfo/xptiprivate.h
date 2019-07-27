@@ -304,7 +304,9 @@ private:
 
     xptiInterfaceEntry*     mParent;      
 
-    xptiInterfaceInfo*      mInfo;        
+    xptiInterfaceInfo* MOZ_UNSAFE_REF("The safety of this pointer is ensured "
+                                      "by the semantics of xptiWorkingSet.")
+                            mInfo;        
     xptiInfoFlags           mFlags;
     char                    mName[1];     
 };
@@ -347,8 +349,7 @@ public:
 public:
     explicit xptiInterfaceInfo(xptiInterfaceEntry* entry);
 
-    void Invalidate() 
-        {NS_IF_RELEASE(mParent); mEntry = nullptr;}
+    void Invalidate();
 
 private:
 
@@ -372,7 +373,7 @@ private:
 
 private:
     xptiInterfaceEntry* mEntry;
-    xptiInterfaceInfo*  mParent;
+    nsRefPtr<xptiInterfaceInfo> mParent;
 };
 
 
