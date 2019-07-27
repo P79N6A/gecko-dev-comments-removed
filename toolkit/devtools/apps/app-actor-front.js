@@ -51,7 +51,7 @@ function addDirToZip(writer, dir, basePath) {
 
 
 
-function getResultTest(code) {
+function getResultText(code) {
   let regexp =
     /^\[Exception... "(.*)"  nsresult: "0x[0-9a-fA-F]* \((.*)\)"  location: ".*"  data: .*\]$/;
   let ex = Cc["@mozilla.org/js/xpc/Exception;1"].
