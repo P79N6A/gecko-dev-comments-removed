@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #ifndef nsResourceSet_h__
 #define nsResourceSet_h__
 
@@ -57,10 +57,10 @@ public:
             ++mCurrent;
             return result; }
 
-         nsIRDFResource* operator*() const {
+        /*const*/ nsIRDFResource* operator*() const {
             return *mCurrent; }
 
-         nsIRDFResource* operator->() const {
+        /*const*/ nsIRDFResource* operator->() const {
             return *mCurrent; }
 
         bool operator==(const ConstIterator& aConstIterator) const {
@@ -70,7 +70,7 @@ public:
             return mCurrent != aConstIterator.mCurrent; }
 
     protected:
-        explicit ConstIterator(nsIRDFResource** aProperty) : mCurrent(aProperty) {}
+        ConstIterator(nsIRDFResource** aProperty) : mCurrent(aProperty) {}
         friend class nsResourceSet;
     };
 
@@ -78,5 +78,5 @@ public:
     ConstIterator Last() const { return ConstIterator(mResources + mCount); }
 };
 
-#endif 
+#endif // nsResourceSet_h__
 

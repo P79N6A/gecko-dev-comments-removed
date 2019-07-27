@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_HTMLTrackElement_h
 #define mozilla_dom_HTMLTrackElement_h
@@ -27,14 +27,14 @@ class WebVTTListener;
 class HTMLTrackElement MOZ_FINAL : public nsGenericHTMLElement
 {
 public:
-  explicit HTMLTrackElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+  HTMLTrackElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLTrackElement,
                                            nsGenericHTMLElement)
 
-  
+  // HTMLTrackElement WebIDL
   void GetKind(DOMString& aKind) const;
   void SetKind(const nsAString& aKind, ErrorResult& aError)
   {
@@ -92,7 +92,7 @@ public:
 
   virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult) const MOZ_OVERRIDE;
 
-  
+  // For Track, ItemValue reflects the src attribute
   virtual void GetItemValueText(nsAString& aText) MOZ_OVERRIDE
   {
     DOMString value;
@@ -105,21 +105,21 @@ public:
     SetSrc(aText, rv);
   }
 
-  
+  // Override ParseAttribute() to convert kind strings to enum values.
   virtual bool ParseAttribute(int32_t aNamespaceID,
                               nsIAtom* aAttribute,
                               const nsAString& aValue,
                               nsAttrValue& aResult) MOZ_OVERRIDE;
 
-  
-  
+  // Override BindToTree() so that we can trigger a load when we become
+  // the child of a media element.
   virtual nsresult BindToTree(nsIDocument* aDocument,
                               nsIContent* aParent,
                               nsIContent* aBindingParent,
                               bool aCompileEventHandlers) MOZ_OVERRIDE;
   virtual void UnbindFromTree(bool aDeep, bool aNullParent) MOZ_OVERRIDE;
 
-  
+  // Check enabling preference.
   static bool IsWebVTTEnabled();
 
   void DispatchTrackRunnable(const nsString& aEventName);
@@ -133,8 +133,8 @@ protected:
   virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
   void OnChannelRedirect(nsIChannel* aChannel, nsIChannel* aNewChannel,
                          uint32_t aFlags);
-  
-  
+  // Open a new channel to the HTMLTrackElement's src attribute and call
+  // mListener's LoadResource().
   void LoadResource();
 
   friend class TextTrackCue;
@@ -148,7 +148,7 @@ protected:
   void CreateTextTrack();
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
-#endif 
+#endif // mozilla_dom_HTMLTrackElement_h

@@ -37,7 +37,7 @@ public:
   NS_DECL_NSITIMERCALLBACK
   NS_DECL_NSIOBSERVER
 
-  explicit Console(nsPIDOMWindow* aWindow);
+  Console(nsPIDOMWindow* aWindow);
 
   
   nsISupports* GetParentObject() const

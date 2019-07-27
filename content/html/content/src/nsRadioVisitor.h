@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef _nsRadioVisitor_h__
 #define _nsRadioVisitor_h__
@@ -11,10 +11,10 @@
 
 class nsIFormControl;
 
-
-
-
-
+/**
+ * nsRadioVisitor is the base class implementing nsIRadioVisitor and inherited
+ * by all radio visitors.
+ */
 class nsRadioVisitor : public nsIRadioVisitor
 {
 protected:
@@ -28,18 +28,18 @@ public:
   virtual bool Visit(nsIFormControl* aRadio) MOZ_OVERRIDE = 0;
 };
 
+/**
+ * The following declarations are radio visitors inheriting from nsRadioVisitor.
+ */
 
-
-
-
-
-
-
-
+/**
+ * nsRadioSetCheckedChangedVisitor is calling SetCheckedChanged with the given
+ * parameter to all radio elements in the group.
+ */
 class nsRadioSetCheckedChangedVisitor : public nsRadioVisitor
 {
 public:
-  explicit nsRadioSetCheckedChangedVisitor(bool aCheckedChanged)
+  nsRadioSetCheckedChangedVisitor(bool aCheckedChanged)
     : mCheckedChanged(aCheckedChanged)
     { }
 
@@ -49,11 +49,11 @@ protected:
   bool mCheckedChanged;
 };
 
-
-
-
-
-
+/**
+ * nsRadioGetCheckedChangedVisitor is getting the current checked changed value.
+ * Getting it from one radio element is the group is enough given that all
+ * elements should have the same value.
+ */
 class nsRadioGetCheckedChangedVisitor : public nsRadioVisitor
 {
 public:
@@ -70,11 +70,11 @@ protected:
   nsIFormControl* mExcludeElement;
 };
 
-
-
-
-
-
+/**
+ * nsRadioSetValueMissingState is calling SetValueMissingState with the given
+ * parameter to all radio elements in the group.
+ * It is also calling ContentStatesChanged if needed.
+ */
 class nsRadioSetValueMissingState : public nsRadioVisitor
 {
 public:
@@ -93,5 +93,5 @@ protected:
   bool mNotify;
 };
 
-#endif 
+#endif // _nsRadioVisitor_h__
 

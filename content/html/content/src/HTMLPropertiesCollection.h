@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set tw=80 expandtab softtabstop=2 ts=2 sw=2: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef HTMLPropertiesCollection_h_
 #define HTMLPropertiesCollection_h_
@@ -34,7 +34,7 @@ class Element;
 class PropertyStringList : public DOMStringList
 {
 public:
-  explicit PropertyStringList(HTMLPropertiesCollection* aCollection);
+  PropertyStringList(HTMLPropertiesCollection* aCollection);
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(PropertyStringList, DOMStringList)
 
@@ -55,9 +55,9 @@ class HTMLPropertiesCollection : public nsIHTMLCollection,
   friend class PropertyNodeList;
   friend class PropertyStringList;
 public:
-  explicit HTMLPropertiesCollection(nsGenericHTMLElement* aRoot);
+  HTMLPropertiesCollection(nsGenericHTMLElement* aRoot);
 
-  
+  // nsWrapperCache
   using nsWrapperCache::GetWrapperPreserveColor;
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 protected:
@@ -77,9 +77,9 @@ public:
   virtual Element*
   GetFirstNamedElement(const nsAString& aName, bool& aFound) MOZ_OVERRIDE
   {
-    
-    
-    
+    // HTMLPropertiesCollection.namedItem and the named getter call the
+    // NamedItem that returns a PropertyNodeList, calling
+    // HTMLCollection.namedItem doesn't make sense so this returns null.
     aFound = false;
     return nullptr;
   }
@@ -114,13 +114,13 @@ public:
                                                          nsIHTMLCollection)
 
 protected:
-  
+  // Make sure this collection is up to date, in case the DOM has been mutated.
   void EnsureFresh();
 
-  
+  // Crawl the properties of mRoot, following any itemRefs it may have
   void CrawlProperties();
 
-  
+  // Crawl startNode and its descendants, looking for items
   void CrawlSubtree(Element* startNode);
 
   bool IsSupportedNamedProperty(const nsAString& aName)
@@ -129,22 +129,22 @@ protected:
     return mNames->ContainsInternal(aName);
   }
 
-  
+  // the items that make up this collection
   nsTArray<nsRefPtr<nsGenericHTMLElement> > mProperties;
 
-  
+  // the itemprop attribute of the properties
   nsRefPtr<PropertyStringList> mNames;
 
-  
+  // The cached PropertyNodeLists that are NamedItems of this collection
   nsRefPtrHashtable<nsStringHashKey, PropertyNodeList> mNamedItemEntries;
 
-  
+  // The element this collection is rooted at
   nsRefPtr<nsGenericHTMLElement> mRoot;
 
-  
+  // The document mRoot is in, if any
   nsCOMPtr<nsIDocument> mDoc;
 
-  
+  // True if there have been DOM modifications since the last EnsureFresh call.
   bool mIsDirty;
 };
 
@@ -175,7 +175,7 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
 
-  
+  // nsINodeList interface
   virtual int32_t IndexOf(nsIContent* aContent) MOZ_OVERRIDE;
   virtual nsINode* GetParentObject() MOZ_OVERRIDE;
 
@@ -194,28 +194,28 @@ public:
 protected:
   virtual ~PropertyNodeList();
 
-  
+  // Make sure this list is up to date, in case the DOM has been mutated.
   void EnsureFresh();
 
-  
+  // the the name that this list corresponds to
   nsString mName;
 
-  
+  // the document mParent is in, if any
   nsCOMPtr<nsIDocument> mDoc;
 
-  
+  // the collection that this list is a named item of
   nsRefPtr<HTMLPropertiesCollection> mCollection;
 
-  
+  // the node this list is rooted at
   nsCOMPtr<nsINode> mParent;
 
-  
+  // the properties that make up this list
   nsTArray<nsRefPtr<nsGenericHTMLElement> > mElements;
 
-  
+  // True if there have been DOM modifications since the last EnsureFresh call. 
   bool mIsDirty;
 };
 
-} 
-} 
-#endif 
+} // namespace dom
+} // namespace mozilla
+#endif // HTMLPropertiesCollection_h_

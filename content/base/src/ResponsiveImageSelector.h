@@ -23,7 +23,7 @@ class ResponsiveImageSelector : public nsISupports
   friend class ResponsiveImageCandidate;
 public:
   NS_DECL_ISUPPORTS
-  explicit ResponsiveImageSelector(nsIContent* aContent);
+  ResponsiveImageSelector(nsIContent *aContent);
 
   
   

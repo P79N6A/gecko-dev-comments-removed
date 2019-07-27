@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #ifndef mozilla_dom_HTMLTableCellElement_h
 #define mozilla_dom_HTMLTableCellElement_h
 
@@ -20,16 +20,16 @@ class HTMLTableCellElement MOZ_FINAL : public nsGenericHTMLElement,
                                        public nsIDOMHTMLTableCellElement
 {
 public:
-  explicit HTMLTableCellElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+  HTMLTableCellElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
     : nsGenericHTMLElement(aNodeInfo)
   {
     SetHasWeirdParserInsertionMode();
   }
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
-  
+  // nsIDOMHTMLTableCellElement
   NS_DECL_NSIDOMHTMLTABLECELLELEMENT
 
   uint32_t ColSpan() const
@@ -48,7 +48,7 @@ public:
   {
     SetHTMLIntAttr(nsGkAtoms::rowspan, aRowSpan, aError);
   }
-  
+  //already_AddRefed<nsDOMSettableTokenList> Headers() const;
   void GetHeaders(nsString& aHeaders)
   {
     GetHTMLAttr(nsGkAtoms::headers, aHeaders);
@@ -169,7 +169,7 @@ private:
                                     nsRuleData* aData);
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
-#endif 
+#endif /* mozilla_dom_HTMLTableCellElement_h */

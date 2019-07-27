@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_HTMLPreElement_h
 #define mozilla_dom_HTMLPreElement_h
@@ -18,15 +18,15 @@ class HTMLPreElement MOZ_FINAL : public nsGenericHTMLElement,
                                  public nsIDOMHTMLPreElement
 {
 public:
-  explicit HTMLPreElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+  HTMLPreElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
     : nsGenericHTMLElement(aNodeInfo)
   {
   }
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
-  
+  // nsIDOMHTMLPreElement
   NS_IMETHOD GetWidth(int32_t* aWidth) MOZ_OVERRIDE;
   NS_IMETHOD SetWidth(int32_t aWidth) MOZ_OVERRIDE;
 
@@ -39,7 +39,7 @@ public:
 
   virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
 
-  
+  // WebIDL API
   int32_t Width() const
   {
     return GetIntAttr(nsGkAtoms::width, 0);
@@ -59,7 +59,7 @@ private:
                                     nsRuleData* aData);
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
-#endif 
+#endif // mozilla_dom_HTMLPreElement_h

@@ -14,7 +14,7 @@ class nsHtml5OwningUTF16Buffer : public nsHtml5UTF16Buffer
     
 
 
-    explicit nsHtml5OwningUTF16Buffer(char16_t* aBuffer);
+    nsHtml5OwningUTF16Buffer(char16_t* aBuffer);
 
   public:
 
@@ -22,7 +22,7 @@ class nsHtml5OwningUTF16Buffer : public nsHtml5UTF16Buffer
 
 
 
-    explicit nsHtml5OwningUTF16Buffer(void* aKey);
+    nsHtml5OwningUTF16Buffer(void* aKey);
 
 protected:
     

@@ -1,13 +1,13 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #ifndef mozilla_dom_HTMLTableSectionElement_h
 #define mozilla_dom_HTMLTableSectionElement_h
 
 #include "mozilla/Attributes.h"
 #include "nsGenericHTMLElement.h"
-#include "nsContentList.h" 
+#include "nsContentList.h" // For ctor.
 
 namespace mozilla {
 namespace dom {
@@ -15,13 +15,13 @@ namespace dom {
 class HTMLTableSectionElement MOZ_FINAL : public nsGenericHTMLElement
 {
 public:
-  explicit HTMLTableSectionElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+  HTMLTableSectionElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
     : nsGenericHTMLElement(aNodeInfo)
   {
     SetHasWeirdParserInsertionMode();
   }
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
   nsIHTMLCollection* Rows();
@@ -85,7 +85,7 @@ private:
                                     nsRuleData* aData);
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
-#endif 
+#endif /* mozilla_dom_HTMLTableSectionElement_h */

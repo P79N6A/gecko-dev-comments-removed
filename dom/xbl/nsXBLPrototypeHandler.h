@@ -60,10 +60,10 @@ public:
                         uint32_t aLineNumber);
 
   
-  explicit nsXBLPrototypeHandler(nsIContent* aKeyElement);
+  nsXBLPrototypeHandler(nsIContent* aKeyElement);
 
   
-  explicit nsXBLPrototypeHandler(nsXBLPrototypeBinding* aBinding);
+  nsXBLPrototypeHandler(nsXBLPrototypeBinding* aBinding);
 
   ~nsXBLPrototypeHandler();
 

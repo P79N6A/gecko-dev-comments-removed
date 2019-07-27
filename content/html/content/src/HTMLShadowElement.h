@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_HTMLShadowElement_h__
 #define mozilla_dom_HTMLShadowElement_h__
@@ -15,11 +15,11 @@ class HTMLShadowElement MOZ_FINAL : public nsGenericHTMLElement,
                                     public nsStubMutationObserver
 {
 public:
-  explicit HTMLShadowElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+  HTMLShadowElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
 
   NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLShadowElement, shadow)
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
@@ -40,32 +40,32 @@ public:
 
   bool IsInsertionPoint() { return mIsInsertionPoint; }
 
-  
-
-
-
+  /**
+   * Sets the ShadowRoot that will be rendered in place of
+   * this shadow insertion point.
+   */
   void SetProjectedShadow(ShadowRoot* aProjectedShadow);
 
-  
-
-
-
+  /**
+   * Distributes a single explicit child of the projected ShadowRoot
+   * to relevant insertion points.
+   */
   void DistributeSingleNode(nsIContent* aContent);
 
-  
-
-
-
+  /**
+   * Removes a single explicit child of the projected ShadowRoot
+   * from relevant insertion points.
+   */
   void RemoveDistributedNode(nsIContent* aContent);
 
-  
-
-
-
-
+  /**
+   * Distributes all the explicit children of the projected ShadowRoot
+   * to the shadow insertion point in the younger ShadowRoot and
+   * the content insertion point of the parent node's ShadowRoot.
+   */
   void DistributeAllNodes();
 
-  
+  // WebIDL methods.
   ShadowRoot* GetOlderShadowRoot() { return mProjectedShadow; }
 
 protected:
@@ -73,14 +73,14 @@ protected:
 
   virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 
-  
+  // The ShadowRoot that will be rendered in place of this shadow insertion point.
   nsRefPtr<ShadowRoot> mProjectedShadow;
 
   bool mIsInsertionPoint;
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
-#endif 
+#endif // mozilla_dom_HTMLShadowElement_h__
 

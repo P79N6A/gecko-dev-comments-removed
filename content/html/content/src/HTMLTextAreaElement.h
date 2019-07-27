@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set sw=2 ts=2 et tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_HTMLTextAreaElement_h
 #define mozilla_dom_HTMLTextAreaElement_h
@@ -45,25 +45,25 @@ class HTMLTextAreaElement MOZ_FINAL : public nsGenericHTMLFormElementWithState,
 public:
   using nsIConstraintValidation::GetValidationMessage;
 
-  explicit HTMLTextAreaElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
-                               FromParser aFromParser = NOT_FROM_PARSER);
+  HTMLTextAreaElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
+                      FromParser aFromParser = NOT_FROM_PARSER);
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
   virtual int32_t TabIndexDefault() MOZ_OVERRIDE;
 
-  
+  // nsIDOMHTMLTextAreaElement
   NS_DECL_NSIDOMHTMLTEXTAREAELEMENT
 
-  
+  // nsIDOMNSEditableElement
   NS_IMETHOD GetEditor(nsIEditor** aEditor) MOZ_OVERRIDE
   {
     return nsGenericHTMLElement::GetEditor(aEditor);
   }
   NS_IMETHOD SetUserInput(const nsAString& aInput) MOZ_OVERRIDE;
 
-  
+  // nsIFormControl
   NS_IMETHOD_(uint32_t) GetType() const MOZ_OVERRIDE { return NS_FORM_TEXTAREA; }
   NS_IMETHOD Reset() MOZ_OVERRIDE;
   NS_IMETHOD SubmitNamesValues(nsFormSubmission* aFormSubmission) MOZ_OVERRIDE;
@@ -75,7 +75,7 @@ public:
 
   virtual EventStates IntrinsicState() const MOZ_OVERRIDE;
 
-  
+  // nsITextControlElemet
   NS_IMETHOD SetValueChanged(bool aValueChanged) MOZ_OVERRIDE;
   NS_IMETHOD_(bool) IsSingleLineTextControl() const MOZ_OVERRIDE;
   NS_IMETHOD_(bool) IsTextArea() const MOZ_OVERRIDE;
@@ -102,7 +102,7 @@ public:
   NS_IMETHOD_(void) OnValueChanged(bool aNotify) MOZ_OVERRIDE;
   NS_IMETHOD_(bool) HasCachedSelection() MOZ_OVERRIDE;
 
-  
+  // nsIContent
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                nsIContent* aBindingParent,
                                bool aCompileEventHandlers) MOZ_OVERRIDE;
@@ -130,14 +130,14 @@ public:
 
   nsresult CopyInnerTo(Element* aDest);
 
-  
-
-
+  /**
+   * Called when an attribute is about to be changed
+   */
   virtual nsresult BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                                  const nsAttrValueOrString* aValue,
                                  bool aNotify) MOZ_OVERRIDE;
 
-  
+  // nsIMutationObserver
   NS_DECL_NSIMUTATIONOBSERVER_CHARACTERDATACHANGED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
@@ -146,7 +146,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLTextAreaElement,
                                            nsGenericHTMLFormElementWithState)
 
-  
+  // nsIConstraintValidation
   bool     IsTooLong();
   bool     IsValueMissing() const;
   void     UpdateTooLongValidityState();
@@ -155,7 +155,7 @@ public:
   nsresult GetValidationMessage(nsAString& aValidationMessage,
                                 ValidityStateType aType) MOZ_OVERRIDE;
 
-  
+  // Web IDL binding methods
   bool Autofocus()
   {
     return GetBoolAttr(nsGkAtoms::autofocus);
@@ -184,7 +184,7 @@ public:
   {
     SetHTMLBoolAttr(nsGkAtoms::disabled, aDisabled, aError);
   }
-  
+  // nsGenericHTMLFormElementWithState::GetForm is fine
   using nsGenericHTMLFormElementWithState::GetForm;
   int32_t MaxLength()
   {
@@ -198,12 +198,12 @@ public:
       SetHTMLIntAttr(nsGkAtoms::maxlength, aMaxLength, aError);
     }
   }
-  
+  // XPCOM GetName is fine
   void SetName(const nsAString& aName, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::name, aName, aError);
   }
-  
+  // XPCOM GetPlaceholder is fine
   void SetPlaceholder(const nsAString& aPlaceholder, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::placeholder, aPlaceholder, aError);
@@ -244,23 +244,23 @@ public:
       SetUnsignedIntAttr(nsGkAtoms::rows, aRows, aError);
     }
   }
-  
+  // XPCOM GetWrap is fine
   void SetWrap(const nsAString& aWrap, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::wrap, aWrap, aError);
   }
-  
-  
+  // XPCOM GetType is fine
+  // XPCOM GetDefaultValue is fine
   void SetDefaultValue(const nsAString& aDefaultValue, ErrorResult& aError);
-  
+  // XPCOM GetValue/SetValue are fine
   uint32_t GetTextLength();
-  
-  
-  
-  
+  // nsIConstraintValidation::WillValidate is fine.
+  // nsIConstraintValidation::Validity() is fine.
+  // nsIConstraintValidation::GetValidationMessage() is fine.
+  // nsIConstraintValidation::CheckValidity() is fine.
   using nsIConstraintValidation::CheckValidity;
-  
-  
+  // nsIConstraintValidation::SetCustomValidity() is fine.
+  // XPCOM Select is fine
   uint32_t GetSelectionStart(ErrorResult& aError);
   void SetSelectionStart(uint32_t aSelectionStart, ErrorResult& aError);
   uint32_t GetSelectionEnd(ErrorResult& aError);
@@ -277,72 +277,72 @@ public:
 protected:
   virtual ~HTMLTextAreaElement() {}
 
-  
+  // get rid of the compiler warning
   using nsGenericHTMLFormElementWithState::IsSingleLineTextControl;
 
   virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 
   nsCOMPtr<nsIControllers> mControllers;
-  
+  /** Whether or not the value has changed since its default value was given. */
   bool                     mValueChanged;
-  
+  /** Whether or not we are already handling select event. */
   bool                     mHandlingSelect;
-  
-
+  /** Whether or not we are done adding children (always true if not
+      created by a parser */
   bool                     mDoneAddingChildren;
-  
+  /** Whether state restoration should be inhibited in DoneAddingChildren. */
   bool                     mInhibitStateRestoration;
-  
+  /** Whether our disabled state has changed from the default **/
   bool                     mDisabledChanged;
-  
+  /** Whether we should make :-moz-ui-invalid apply on the element. **/
   bool                     mCanShowInvalidUI;
-  
+  /** Whether we should make :-moz-ui-valid apply on the element. **/
   bool                     mCanShowValidUI;
   
   void FireChangeEventIfNeeded();
   
   nsString mFocusedValue;
 
-  
+  /** The state of the text editor (selection controller and the editor) **/
   nsTextEditorState mState;
 
   NS_IMETHOD SelectAll(nsPresContext* aPresContext);
-  
-
-
-
-
-
-
+  /**
+   * Get the value, whether it is from the content or the frame.
+   * @param aValue the value [out]
+   * @param aIgnoreWrap whether to ignore the wrap attribute when getting the
+   *        value.  If this is true, linebreaks will not be inserted even if
+   *        wrap=hard.
+   */
   void GetValueInternal(nsAString& aValue, bool aIgnoreWrap) const;
 
   nsresult SetValueInternal(const nsAString& aValue,
                             bool aUserInput);
   nsresult GetSelectionRange(int32_t* aSelectionStart, int32_t* aSelectionEnd);
 
-  
-
-
-
-
+  /**
+   * Common method to call from the various mutation observer methods.
+   * aContent is a content node that's either the one that changed or its
+   * parent; we should only respond to the change if aContent is non-anonymous.
+   */
   void ContentChanged(nsIContent* aContent);
 
   virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsIAtom *aName,
                                 const nsAttrValue* aValue, bool aNotify) MOZ_OVERRIDE;
 
-  
-
-
-
-
-
+  /**
+   * Return if an element should have a specific validity UI
+   * (with :-moz-ui-invalid and :-moz-ui-valid pseudo-classes).
+   *
+   * @return Whether the element should have a validity UI.
+   */
   bool ShouldShowValidityUI() const {
-    
-
-
-
-
-
+    /**
+     * Always show the validity UI if the form has already tried to be submitted
+     * but was invalid.
+     *
+     * Otherwise, show the validity UI if the element's value has been changed.
+     */
 
     if (mForm && mForm->HasEverTriedInvalidSubmit()) {
       return true;
@@ -351,16 +351,16 @@ protected:
     return mValueChanged;
   }
 
-  
-
-
+  /**
+   * Get the mutable state of the element.
+   */
   bool IsMutable() const;
 
-  
-
-
-
-
+  /**
+   * Returns whether the current value is the empty string.
+   *
+   * @return whether the current value is the empty string.
+   */
   bool IsValueEmpty() const;
 
 private:
@@ -368,8 +368,8 @@ private:
                                     nsRuleData* aData);
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
 #endif
 

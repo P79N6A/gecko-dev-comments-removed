@@ -36,7 +36,7 @@ public:
   
 
 
-  explicit Link(Element* aElement);
+  Link(Element* aElement);
   virtual void SetLinkState(nsLinkState aState);
 
   

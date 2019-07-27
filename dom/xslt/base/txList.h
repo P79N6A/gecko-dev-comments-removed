@@ -88,7 +88,7 @@ public:
 
 
 
-    explicit txListIterator(txList* list);
+    txListIterator(txList* list);
 
     
 

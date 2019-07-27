@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #ifndef mozilla_dom_HTMLTableElement_h
 #define mozilla_dom_HTMLTableElement_h
 
@@ -22,11 +22,11 @@ class HTMLTableElement MOZ_FINAL : public nsGenericHTMLElement,
                                    public nsIDOMHTMLTableElement
 {
 public:
-  explicit HTMLTableElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+  HTMLTableElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
 
   NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLTableElement, table)
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
   HTMLTableCaptionElement* GetCaption() const
@@ -183,15 +183,15 @@ public:
                               bool aCompileEventHandlers) MOZ_OVERRIDE;
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true) MOZ_OVERRIDE;
-  
-
-
+  /**
+   * Called when an attribute is about to be changed
+   */
   virtual nsresult BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                                  const nsAttrValueOrString* aValue,
                                  bool aNotify) MOZ_OVERRIDE;
-  
-
-
+  /**
+   * Called when an attribute has just been changed
+   */
   virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                                 const nsAttrValue* aValue, bool aNotify) MOZ_OVERRIDE;
 
@@ -217,8 +217,8 @@ protected:
 
   nsRefPtr<nsContentList> mTBodies;
   nsRefPtr<TableRowsCollection> mRows;
-  
-  
+  // Sentinel value of TABLE_ATTRS_DIRTY indicates that this is dirty and needs
+  // to be recalculated.
   nsMappedAttributes *mTableInheritedAttributes;
   void BuildInheritedAttributes();
   void ReleaseInheritedAttributes();
@@ -228,7 +228,7 @@ private:
                                     nsRuleData* aData);
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
-#endif 
+#endif /* mozilla_dom_HTMLTableElement_h */

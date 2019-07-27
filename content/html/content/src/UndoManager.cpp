@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/UndoManager.h"
 #include "mozilla/dom/DOMTransactionBinding.h"
@@ -24,62 +24,62 @@
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/Preferences.h"
 
-
+// Includes for mutation observer.
 #include "nsIDOMHTMLElement.h"
 #include "nsStubMutationObserver.h"
 #include "nsAutoPtr.h"
 #include "nsTransactionManager.h"
 
-
+// Includes for attribute changed transaction.
 #include "nsITransaction.h"
 #include "nsIContent.h"
 #include "nsIDOMMutationEvent.h"
 #include "mozilla/dom/Element.h"
 
-
+// Includes for text content changed.
 #include "nsTextFragment.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
 
+/////////////////////////////////////////////////
+// UndoTxn
+/////////////////////////////////////////////////
 
-
-
-
-
-
-
-
+/**
+ * A base class to implement methods that behave the same for all
+ * UndoManager transactions.
+ */
 class UndoTxn : public nsITransaction {
   NS_DECL_NSITRANSACTION
 protected:
   virtual ~UndoTxn() {}
 };
 
-
+/* void doTransaction (); */
 NS_IMETHODIMP
 UndoTxn::DoTransaction()
 {
-  
-  
+  // Do not do anything the first time we apply this transaction,
+  // changes should already have been applied.
   return NS_OK;
 }
 
-
+/* void doTransaction (); */
 NS_IMETHODIMP
 UndoTxn::RedoTransaction()
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-
+/* void doTransaction (); */
 NS_IMETHODIMP
 UndoTxn::UndoTransaction()
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-
+/* readonly attribute boolean isTransient; */
 NS_IMETHODIMP
 UndoTxn::GetIsTransient(bool* aIsTransient)
 {
@@ -87,7 +87,7 @@ UndoTxn::GetIsTransient(bool* aIsTransient)
   return NS_OK;
 }
 
-
+/* boolean merge (in nsITransaction aTransaction); */
 NS_IMETHODIMP
 UndoTxn::Merge(nsITransaction* aTransaction, bool* aResult)
 {
@@ -95,13 +95,13 @@ UndoTxn::Merge(nsITransaction* aTransaction, bool* aResult)
   return NS_OK;
 }
 
+/////////////////////////////////////////////////
+// UndoAttrChanged
+/////////////////////////////////////////////////
 
-
-
-
-
-
-
+/**
+ * Transaction to handle an attribute change to a nsIContent.
+ */
 class UndoAttrChanged : public UndoTxn {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(UndoAttrChanged)
@@ -195,9 +195,9 @@ UndoAttrChanged::RedoTransaction()
   return NS_ERROR_UNEXPECTED;
 }
 
-
-
-
+/////////////////////////////////////////////////
+// UndoTextChanged
+/////////////////////////////////////////////////
 
 struct UndoCharacterChangedData {
   bool mAppend;
@@ -210,9 +210,9 @@ struct UndoCharacterChangedData {
       mReplaceLength(aChange->mReplaceLength) {}
 };
 
-
-
-
+/**
+ * Transaction to handle a text change to a nsIContent.
+ */
 class UndoTextChanged : public UndoTxn {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(UndoTextChanged)
@@ -260,15 +260,15 @@ UndoTextChanged::RedoTransaction()
   }
 
   if (mChange.mAppend) {
-    
-    
+    // Text length should match the change start unless there was a
+    // mutation exterior to the UndoManager in which case we do nothing.
     if (text.Length() == mChange.mChangeStart) {
       mContent->AppendText(mRedoValue.get(), mRedoValue.Length(), true);
     }
   } else {
     int32_t numReplaced = mChange.mChangeEnd - mChange.mChangeStart;
-    
-    
+    // The length of the text should be at least as long as the replacement
+    // offset + replaced length, otherwise there was an external mutation.
     if (mChange.mChangeStart + numReplaced <= text.Length()) {
       text.Replace(mChange.mChangeStart, numReplaced, mRedoValue);
       mContent->SetText(text, true);
@@ -291,14 +291,14 @@ UndoTextChanged::UndoTransaction()
   }
 
   if (mChange.mAppend) {
-    
-    
+    // The text should at least as long as the redo value in the case
+    // of an append, otherwise there was an external mutation.
     if (mRedoValue.Length() <= text.Length()) {
       text.Truncate(text.Length() - mRedoValue.Length());
     }
   } else {
-    
-    
+    // The length of the text should be at least as long as the replacement
+    // offset + replacement length, otherwise there was an external mutation.
     if (mChange.mChangeStart + mChange.mReplaceLength <= text.Length()) {
       text.Replace(mChange.mChangeStart, mChange.mReplaceLength, mUndoValue);
     }
@@ -313,27 +313,27 @@ UndoTextChanged::SaveRedoState()
 {
   const nsTextFragment* text = mContent->GetText();
   mRedoValue.Truncate();
-  
-  
+  // The length of the text should be at least as long as the replacement
+  // offset + replacement length, otherwise there was an external mutation.
   if (mChange.mChangeStart + mChange.mReplaceLength <= text->GetLength()) {
     text->AppendTo(mRedoValue, mChange.mChangeStart, mChange.mReplaceLength);
   }
 }
 
+/////////////////////////////////////////////////
+// UndoContentAppend
+/////////////////////////////////////////////////
 
-
-
-
-
-
-
+/**
+ * Transaction to handle appending content to a nsIContent.
+ */
 class UndoContentAppend : public UndoTxn {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(UndoContentAppend)
   nsresult Init(int32_t aFirstIndex);
   NS_IMETHOD RedoTransaction();
   NS_IMETHOD UndoTransaction();
-  explicit UndoContentAppend(nsIContent* aContent);
+  UndoContentAppend(nsIContent* aContent);
 protected:
   ~UndoContentAppend() {}
   nsCOMPtr<nsIContent> mContent;
@@ -391,13 +391,13 @@ UndoContentAppend::UndoTransaction()
   return NS_OK;
 }
 
+/////////////////////////////////////////////////
+// UndoContentInsert
+/////////////////////////////////////////////////
 
-
-
-
-
-
-
+/**
+ * Transaction to handle inserting content into a nsIContent.
+ */
 class UndoContentInsert : public UndoTxn {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(UndoContentInsert)
@@ -437,12 +437,12 @@ UndoContentInsert::RedoTransaction()
     return NS_ERROR_UNEXPECTED;
   }
 
-  
+  // Check if node already has parent.
   if (mChild->GetParentNode()) {
     return NS_OK;
   }
 
-  
+  // Check to see if next sibling has same parent.
   if (mNextNode && mNextNode->GetParentNode() != mContent) {
     return NS_OK;
   }
@@ -459,17 +459,17 @@ UndoContentInsert::UndoTransaction()
     return NS_ERROR_UNEXPECTED;
   }
 
-  
+  // Check if the parent is the same.
   if (mChild->GetParentNode() != mContent) {
     return NS_OK;
   }
 
-  
+  // Check of the parent of the next node is the same.
   if (mNextNode && mNextNode->GetParentNode() != mContent) {
     return NS_OK;
   }
 
-  
+  // Check that the next node has not changed.
   if (mChild->GetNextSibling() != mNextNode) {
     return NS_OK;
   }
@@ -479,13 +479,13 @@ UndoContentInsert::UndoTransaction()
   return NS_OK;
 }
 
+/////////////////////////////////////////////////
+// UndoContentRemove
+/////////////////////////////////////////////////
 
-
-
-
-
-
-
+/**
+ * Transaction to handle removing content from an nsIContent.
+ */
 class UndoContentRemove : public UndoTxn {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(UndoContentRemove)
@@ -531,12 +531,12 @@ UndoContentRemove::UndoTransaction()
     return NS_ERROR_UNEXPECTED;
   }
 
-  
+  // Check if child has a parent.
   if (mChild->GetParentNode()) {
     return NS_OK;
   }
 
-  
+  // Make sure next sibling is still under same parent.
   if (mNextNode && mNextNode->GetParentNode() != mContent) {
     return NS_OK;
   }
@@ -553,17 +553,17 @@ UndoContentRemove::RedoTransaction()
     return NS_ERROR_UNEXPECTED;
   }
 
-  
+  // Check that the parent has not changed.
   if (mChild->GetParentNode() != mContent) {
     return NS_OK;
   }
 
-  
+  // Check that the next node still has the same parent.
   if (mNextNode && mNextNode->GetParentNode() != mContent) {
     return NS_OK;
   }
 
-  
+  // Check that the next sibling has not changed.
   if (mChild->GetNextSibling() != mNextNode) {
     return NS_OK;
   }
@@ -573,16 +573,16 @@ UndoContentRemove::RedoTransaction()
   return NS_OK;
 }
 
+/////////////////////////////////////////////////
+// UndoMutationObserver
+/////////////////////////////////////////////////
 
-
-
-
-
-
-
-
-
-
+/**
+ * Watches for DOM mutations in a particular element and its
+ * descendants to create transactions that undo and redo
+ * the mutations. Each UndoMutationObserver corresponds
+ * to an undo scope.
+ */
 class UndoMutationObserver : public nsStubMutationObserver {
 public:
   NS_DECL_ISUPPORTS
@@ -594,14 +594,14 @@ public:
   explicit UndoMutationObserver(nsITransactionManager* aTxnManager);
 
 protected:
-  
-
-
-
+  /**
+   * Checks if |aContent| is within the undo scope of this
+   * UndoMutationObserver.
+   */
   bool IsManagerForMutation(nsIContent* aContent);
   virtual ~UndoMutationObserver() {}
-  nsITransactionManager* mTxnManager; 
-                                      
+  nsITransactionManager* mTxnManager; // [RawPtr] UndoManager holds strong
+                                      // reference.
 };
 
 NS_IMPL_ISUPPORTS(UndoMutationObserver, nsIMutationObserver)
@@ -612,7 +612,7 @@ UndoMutationObserver::IsManagerForMutation(nsIContent* aContent)
   nsCOMPtr<nsINode> currentNode = aContent;
   nsRefPtr<UndoManager> undoManager;
 
-  
+  // Get the UndoManager of nearest ancestor with an UndoManager.
   while (currentNode && !undoManager) {
     nsCOMPtr<Element> htmlElem = do_QueryInterface(currentNode);
     if (htmlElem) {
@@ -623,18 +623,18 @@ UndoMutationObserver::IsManagerForMutation(nsIContent* aContent)
   }
 
   if (!undoManager) {
-    
-    
+    // Check against document UndoManager if we were unable to find an
+    // UndoManager in an ancestor element.
     nsIDocument* doc = aContent->OwnerDoc();
     NS_ENSURE_TRUE(doc, false);
     undoManager = doc->GetUndoManager();
-    
-    
+    // The document will not have an undoManager if the
+    // documentElement is removed.
     NS_ENSURE_TRUE(undoManager, false);
   }
 
-  
-  
+  // Check if the nsITransactionManager is the same for both the
+  // mutation observer and the nsIContent.
   return undoManager->GetTransactionManager() == mTxnManager;
 }
 
@@ -721,19 +721,19 @@ UndoMutationObserver::ContentRemoved(nsIDocument *aDocument,
   mTxnManager->DoTransaction(txn);
 }
 
+/////////////////////////////////////////////////
+// FunctionCallTxn
+/////////////////////////////////////////////////
 
-
-
-
-
-
-
-
+/**
+ * A transaction that calls members on the transaction
+ * object.
+ */
 class FunctionCallTxn : public UndoTxn {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(FunctionCallTxn)
 
-  
+  // Flags
   static const uint32_t CALL_ON_REDO = 1;
   static const uint32_t CALL_ON_UNDO = 2;
 
@@ -742,10 +742,10 @@ class FunctionCallTxn : public UndoTxn {
   FunctionCallTxn(DOMTransaction* aTransaction, uint32_t aFlags);
 protected:
   ~FunctionCallTxn() {}
-  
-
-
-
+  /**
+   * Call a function member on the transaction object with the
+   * specified function name.
+   */
   nsRefPtr<DOMTransaction> mTransaction;
   uint32_t mFlags;
 };
@@ -776,8 +776,8 @@ FunctionCallTxn::RedoTransaction()
   if (!rv.Failed() && redo) {
     redo->Call(mTransaction.get(), rv);
   }
-  
-  
+  // We ignore rv because we want to avoid the rollback behavior of the
+  // nsITransactionManager.
 
   return NS_OK;
 }
@@ -794,15 +794,15 @@ FunctionCallTxn::UndoTransaction()
   if (!rv.Failed() && undo) {
     undo->Call(mTransaction.get(), rv);
   }
-  
-  
+  // We ignore rv because we want to avoid the rollback behavior of the
+  // nsITransactionManager.
 
   return NS_OK;
 }
 
-
-
-
+/////////////////////////////////////////////////
+// TxnScopeGuard
+/////////////////////////////////////////////////
 namespace mozilla {
 namespace dom {
 
@@ -822,12 +822,12 @@ protected:
   UndoManager* mUndoManager;
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
-
-
-
+/////////////////////////////////////////////////
+// UndoManager
+/////////////////////////////////////////////////
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(UndoManager, mTxnManager, mHostNode)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(UndoManager)
@@ -858,7 +858,7 @@ UndoManager::Transact(JSContext* aCx, DOMTransaction& aTransaction,
 
   TxnScopeGuard guard(this);
 
-  
+  // First try executing an automatic transaction.
 
   nsRefPtr<DOMTransactionCallback> executeAutomatic =
     aTransaction.GetExecuteAutomatic(aRv);
@@ -899,13 +899,13 @@ UndoManager::AutomaticTransact(DOMTransaction* aTransaction,
   nsCOMPtr<nsIMutationObserver> mutationObserver =
     new UndoMutationObserver(mTxnManager);
 
-  
-  
+  // Transaction to call the "undo" method after the automatic transaction
+  // has been undone.
   nsRefPtr<FunctionCallTxn> undoTxn = new FunctionCallTxn(aTransaction,
       FunctionCallTxn::CALL_ON_UNDO);
 
-  
-  
+  // Transaction to call the "redo" method after the automatic transaction
+  // has been redone.
   nsRefPtr<FunctionCallTxn> redoTxn = new FunctionCallTxn(aTransaction,
       FunctionCallTxn::CALL_ON_REDO);
 
@@ -1005,18 +1005,18 @@ UndoManager::ItemInternal(uint32_t aIndex,
   nsCOMPtr<nsITransactionList> txnList;
   int32_t listIndex = aIndex;
   if (aIndex < (uint32_t) numRedo) {
-    
+    // Index is an redo.
     mTxnManager->GetRedoList(getter_AddRefs(txnList));
   } else {
-    
+    // Index is a undo.
     mTxnManager->GetUndoList(getter_AddRefs(txnList));
-    
-    
+    // We need to adjust the index because the undo list indices will
+    // be in the reverse order.
     listIndex = numRedo + numUndo - aIndex - 1;
   }
 
-  
-  
+  // Obtain data from transaction list and convert to list of
+  // DOMTransaction*.
   nsISupports** listData;
   uint32_t listDataLength;
   rv = txnList->GetData(listIndex, &listDataLength, &listData);
@@ -1054,7 +1054,7 @@ UndoManager::Item(uint32_t aIndex,
   MOZ_ASSERT(numUndo >= 0, "Number of undo items should not be negative");
 
   if (aIndex >= (uint32_t) numRedo + numUndo) {
-    
+    // If the index is out of bounds, then return null.
     aItems.SetNull();
     return;
   }
@@ -1089,7 +1089,7 @@ UndoManager::Undo(JSContext* aCx, ErrorResult& aRv)
     return;
   }
 
-  
+  // Stop if there are no transactions left to undo.
   if (position >= length) {
     return;
   }
@@ -1121,7 +1121,7 @@ UndoManager::Redo(JSContext* aCx, ErrorResult& aRv)
     return;
   }
 
-  
+  // Stop if there are no transactions left to redo.
   if (position <= 0) {
     return;
   }

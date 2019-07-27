@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_HTMLSharedElement_h
 #define mozilla_dom_HTMLSharedElement_h
@@ -29,7 +29,7 @@ class HTMLSharedElement MOZ_FINAL : public nsGenericHTMLElement,
                                     public nsIDOMHTMLHtmlElement
 {
 public:
-  explicit HTMLSharedElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+  HTMLSharedElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
     : nsGenericHTMLElement(aNodeInfo)
   {
     if (mNodeInfo->Equals(nsGkAtoms::head) ||
@@ -38,22 +38,22 @@ public:
     }
   }
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
-  
+  // nsIDOMHTMLBaseElement
   NS_DECL_NSIDOMHTMLBASEELEMENT
 
-  
+  // nsIDOMHTMLQuoteElement
   NS_DECL_NSIDOMHTMLQUOTEELEMENT
 
-  
+  // nsIDOMHTMLHeadElement
   NS_DECL_NSIDOMHTMLHEADELEMENT
 
-  
+  // nsIDOMHTMLHtmlElement
   NS_DECL_NSIDOMHTMLHTMLELEMENT
 
-  
+  // nsIContent
   virtual bool ParseAttribute(int32_t aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
@@ -82,8 +82,8 @@ public:
 
   virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
 
-  
-  
+  // WebIDL API
+  // HTMLParamElement
   void GetName(DOMString& aValue)
   {
     MOZ_ASSERT(mNodeInfo->Equals(nsGkAtoms::param));
@@ -125,7 +125,7 @@ public:
     SetHTMLAttr(nsGkAtoms::valuetype, aValue, aResult);
   }
 
-  
+  // HTMLBaseElement
   void GetTarget(DOMString& aValue)
   {
     MOZ_ASSERT(mNodeInfo->Equals(nsGkAtoms::base));
@@ -136,14 +136,14 @@ public:
     MOZ_ASSERT(mNodeInfo->Equals(nsGkAtoms::base));
     SetHTMLAttr(nsGkAtoms::target, aValue, aResult);
   }
-  
+  // The XPCOM GetHref is fine for us
   void SetHref(const nsAString& aValue, ErrorResult& aResult)
   {
     MOZ_ASSERT(mNodeInfo->Equals(nsGkAtoms::base));
     SetHTMLAttr(nsGkAtoms::href, aValue, aResult);
   }
 
-  
+  // HTMLDirectoryElement
   bool Compact() const
   {
     MOZ_ASSERT(mNodeInfo->Equals(nsGkAtoms::dir));
@@ -155,8 +155,8 @@ public:
     SetHTMLBoolAttr(nsGkAtoms::compact, aCompact, aResult);
   }
 
-  
-  
+  // HTMLQuoteElement
+  // The XPCOM GetCite works fine for us
   void SetCite(const nsAString& aValue, ErrorResult& aResult)
   {
     MOZ_ASSERT(mNodeInfo->Equals(nsGkAtoms::q) ||
@@ -164,7 +164,7 @@ public:
     SetHTMLAttr(nsGkAtoms::cite, aValue, aResult);
   }
 
-  
+  // HTMLHtmlElement
   void GetVersion(DOMString& aValue)
   {
     MOZ_ASSERT(mNodeInfo->Equals(nsGkAtoms::html));
@@ -182,7 +182,7 @@ protected:
   virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 };
 
-} 
-} 
+} // namespace mozilla
+} // namespace dom
 
-#endif 
+#endif // mozilla_dom_HTMLSharedElement_h

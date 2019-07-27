@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_HTMLLIElement_h
 #define mozilla_dom_HTMLLIElement_h
@@ -18,15 +18,15 @@ class HTMLLIElement MOZ_FINAL : public nsGenericHTMLElement,
                                 public nsIDOMHTMLLIElement
 {
 public:
-  explicit HTMLLIElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+  HTMLLIElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
     : nsGenericHTMLElement(aNodeInfo)
   {
   }
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
-  
+  // nsIDOMHTMLLIElement
   NS_DECL_NSIDOMHTMLLIELEMENT
 
   virtual bool ParseAttribute(int32_t aNamespaceID,
@@ -37,7 +37,7 @@ public:
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const MOZ_OVERRIDE;
   virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
 
-  
+  // WebIDL API
   void GetType(nsString& aType)
   {
     GetHTMLAttr(nsGkAtoms::type, aType);
@@ -65,7 +65,7 @@ private:
                                     nsRuleData* aData);
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
-#endif 
+#endif // mozilla_dom_HTMLLIElement_h

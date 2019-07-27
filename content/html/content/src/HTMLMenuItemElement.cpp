@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/HTMLMenuItemElement.h"
 
@@ -17,7 +17,7 @@ NS_IMPL_NS_NEW_HTML_ELEMENT_CHECK_PARSER(MenuItem)
 namespace mozilla {
 namespace dom {
 
-
+// First bits are needed for the menuitem type.
 #define NS_CHECKED_IS_TOGGLED (1 << 2)
 #define NS_ORIGINAL_CHECKED_VALUE (1 << 3)
 #define NS_MENUITEM_TYPE(bits) ((bits) & ~( \
@@ -40,26 +40,26 @@ static const nsAttrValue::EnumTable kMenuItemTypeTable[] = {
 static const nsAttrValue::EnumTable* kMenuItemDefaultType =
   &kMenuItemTypeTable[0];
 
-
+// A base class inherited by all radio visitors.
 class Visitor
 {
 public:
   Visitor() { }
   virtual ~Visitor() { }
 
-  
-
-
-
-
+  /**
+   * Visit a node in the tree. This is meant to be called on all radios in a
+   * group, sequentially. If the method returns false then the iteration is
+   * stopped.
+   */
   virtual bool Visit(HTMLMenuItemElement* aMenuItem) = 0;
 };
 
-
+// Find the selected radio, see GetSelectedRadio().
 class GetCheckedVisitor : public Visitor
 {
 public:
-  explicit GetCheckedVisitor(HTMLMenuItemElement** aResult)
+  GetCheckedVisitor(HTMLMenuItemElement** aResult)
     : mResult(aResult)
     { }
   virtual bool Visit(HTMLMenuItemElement* aMenuItem)
@@ -74,11 +74,11 @@ protected:
   HTMLMenuItemElement** mResult;
 };
 
-
+// Deselect all radios except the one passed to the constructor.
 class ClearCheckedVisitor : public Visitor
 {
 public:
-  explicit ClearCheckedVisitor(HTMLMenuItemElement* aExcludeMenuItem)
+  ClearCheckedVisitor(HTMLMenuItemElement* aExcludeMenuItem)
     : mExcludeMenuItem(aExcludeMenuItem)
     { }
   virtual bool Visit(HTMLMenuItemElement* aMenuItem)
@@ -92,8 +92,8 @@ protected:
   HTMLMenuItemElement* mExcludeMenuItem;
 };
 
-
-
+// Get current value of the checked dirty flag. The same value is stored on all
+// radios in the group, so we need to check only the first one.
 class GetCheckedDirtyVisitor : public Visitor
 {
 public:
@@ -115,7 +115,7 @@ protected:
   HTMLMenuItemElement* mExcludeMenuItem;
 };
 
-
+// Set checked dirty to true on all radios in the group.
 class SetCheckedDirtyVisitor : public Visitor
 {
 public:
@@ -128,8 +128,8 @@ public:
   }
 };
 
-
-
+// A helper visitor that is used to combine two operations (visitors) to avoid
+// iterating over radios twice.
 class CombinedVisitor : public Visitor
 {
 public:
@@ -175,7 +175,7 @@ HTMLMenuItemElement::~HTMLMenuItemElement()
 NS_IMPL_ISUPPORTS_INHERITED(HTMLMenuItemElement, nsGenericHTMLElement,
                             nsIDOMHTMLMenuItemElement)
 
-
+//NS_IMPL_ELEMENT_CLONE(HTMLMenuItemElement)
 nsresult
 HTMLMenuItemElement::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const
 {
@@ -189,8 +189,8 @@ HTMLMenuItemElement::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult)
       case CMD_TYPE_CHECKBOX:
       case CMD_TYPE_RADIO:
         if (mCheckedDirty) {
-          
-          
+          // We no longer have our original checked state.  Set our
+          // checked state on the clone.
           it->mCheckedDirty = true;
           it->mChecked = mChecked;
         }
@@ -206,12 +206,12 @@ HTMLMenuItemElement::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult)
 
 NS_IMPL_ENUM_ATTR_DEFAULT_VALUE(HTMLMenuItemElement, Type, type,
                                 kMenuItemDefaultType->tag)
-
+// GetText returns a whitespace compressed .textContent value.
 NS_IMPL_STRING_ATTR_WITH_FALLBACK(HTMLMenuItemElement, Label, label, GetText)
 NS_IMPL_URI_ATTR(HTMLMenuItemElement, Icon, icon)
 NS_IMPL_BOOL_ATTR(HTMLMenuItemElement, Disabled, disabled)
 NS_IMPL_BOOL_ATTR(HTMLMenuItemElement, DefaultChecked, checked)
-
+//NS_IMPL_BOOL_ATTR(HTMLMenuItemElement, Checked, checked)
 NS_IMPL_STRING_ATTR(HTMLMenuItemElement, Radiogroup, radiogroup)
 
 NS_IMETHODIMP
@@ -278,7 +278,7 @@ HTMLMenuItemElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
       aVisitor.mItemFlags |= NS_ORIGINAL_CHECKED_VALUE;
     }
 
-    
+    // We must cache type because mType may change during JS event.
     aVisitor.mItemFlags |= mType;
   }
 
@@ -288,7 +288,7 @@ HTMLMenuItemElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
 nsresult
 HTMLMenuItemElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
 {
-  
+  // Check to see if the event was cancelled.
   if (aVisitor.mEvent->message == NS_MOUSE_CLICK &&
       aVisitor.mItemFlags & NS_CHECKED_IS_TOGGLED &&
       aVisitor.mEventStatus == nsEventStatus_eConsumeNoDefault) {
@@ -392,8 +392,8 @@ HTMLMenuItemElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
       }
     }
 
-    
-    
+    // Checked must be set no matter what type of menuitem it is, since
+    // GetChecked() must reflect the new value
     if (aName == nsGkAtoms::checked &&
         !mCheckedDirty) {
       if (mParserCreating) {
@@ -490,7 +490,7 @@ HTMLMenuItemElement::WrapNode(JSContext* aCx)
   return HTMLMenuItemElementBinding::Wrap(aCx, this);
 }
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
 #undef NS_ORIGINAL_CHECKED_VALUE

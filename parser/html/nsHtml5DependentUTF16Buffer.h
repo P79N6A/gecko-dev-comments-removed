@@ -15,7 +15,7 @@ class MOZ_STACK_CLASS nsHtml5DependentUTF16Buffer : public nsHtml5UTF16Buffer
 
 
 
-    explicit nsHtml5DependentUTF16Buffer(const nsAString& aToWrap);
+    nsHtml5DependentUTF16Buffer(const nsAString& aToWrap);
 
     ~nsHtml5DependentUTF16Buffer();
 

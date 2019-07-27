@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #ifndef mozilla_dom_HTMLSelectElement_h
 #define mozilla_dom_HTMLSelectElement_h
 
@@ -42,9 +42,9 @@ class HTMLSelectElement;
   {0x9d, 0x8e, 0xf6, 0x0e, 0xe4, 0x66, 0xdb, 0xf3} \
 }
 
-
-
-
+/**
+ * The restore state used by select
+ */
 class SelectState : public nsISupports
 {
 public:
@@ -56,7 +56,7 @@ public:
 
   void PutOption(int32_t aIndex, const nsAString& aValue)
   {
-    
+    // If the option is empty, store the index.  If not, store the value.
     if (aValue.IsEmpty()) {
       mIndices.Put(aIndex);
     } else {
@@ -83,14 +83,14 @@ NS_DEFINE_STATIC_IID_ACCESSOR(SelectState, NS_SELECT_STATE_IID)
 class MOZ_STACK_CLASS SafeOptionListMutation
 {
 public:
-  
-
-
-
-
-
-
-
+  /**
+   * @param aSelect The select element which option list is being mutated.
+   *                Can be null.
+   * @param aParent The content object which is being mutated.
+   * @param aKid    If not null, a new child element is being inserted to
+   *                aParent. Otherwise a child element will be removed.
+   * @param aIndex  The index of the content object in the parent.
+   */
   SafeOptionListMutation(nsIContent* aSelect, nsIContent* aParent,
                          nsIContent* aKid, uint32_t aIndex, bool aNotify);
   ~SafeOptionListMutation();
@@ -98,36 +98,36 @@ public:
 private:
   static void* operator new(size_t) CPP_THROW_NEW { return 0; }
   static void operator delete(void*, size_t) {}
-  
+  /** The select element which option list is being mutated. */
   nsRefPtr<HTMLSelectElement> mSelect;
-  
+  /** true if the current mutation is the first one in the stack. */
   bool                       mTopLevelMutation;
-  
+  /** true if it is known that the option list must be recreated. */
   bool                       mNeedsRebuild;
-  
+  /** Option list must be recreated if more than one mutation is detected. */
   nsMutationGuard            mGuard;
 };
 
 
-
-
-
+/**
+ * Implementation of &lt;select&gt;
+ */
 class HTMLSelectElement MOZ_FINAL : public nsGenericHTMLFormElementWithState,
                                     public nsIDOMHTMLSelectElement,
                                     public nsIConstraintValidation
 {
 public:
-  
-
-
-
-
-
-
-
-
-
-
+  /**
+   *  IS_SELECTED   whether to set the option(s) to true or false
+   *
+   *  CLEAR_ALL     whether to clear all other options (for example, if you
+   *                are normal-clicking on the current option)
+   *
+   *  SET_DISABLED  whether it is permissible to set disabled options
+   *                (for JavaScript)
+   *
+   *  NOTIFY        whether to notify frames and such
+   */
   enum OptionType {
     IS_SELECTED   = 1 << 0,
     CLEAR_ALL     = 1 << 1,
@@ -137,20 +137,20 @@ public:
 
   using nsIConstraintValidation::GetValidationMessage;
 
-  explicit HTMLSelectElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
-                             FromParser aFromParser = NOT_FROM_PARSER);
+  HTMLSelectElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
+                    FromParser aFromParser = NOT_FROM_PARSER);
 
   NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLSelectElement, select)
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
   virtual int32_t TabIndexDefault() MOZ_OVERRIDE;
 
-  
+  // nsIDOMHTMLSelectElement
   NS_DECL_NSIDOMHTMLSELECTELEMENT
 
-  
+  // WebIdl HTMLSelectElement
   bool Autofocus() const
   {
     return GetBoolAttr(nsGkAtoms::autofocus);
@@ -184,7 +184,7 @@ public:
   {
     SetHTMLBoolAttr(nsGkAtoms::multiple, aVal, aRv);
   }
-  
+  // Uses XPCOM GetName.
   void SetName(const nsAString& aName, ErrorResult& aRv)
   {
     SetHTMLAttr(nsGkAtoms::name, aName, aRv);
@@ -206,7 +206,7 @@ public:
     SetUnsignedIntAttr(nsGkAtoms::size, aSize, aRv);
   }
 
-  
+  // Uses XPCOM GetType.
 
   HTMLOptionsCollection* Options() const
   {
@@ -232,7 +232,7 @@ public:
   void Add(const HTMLOptionElementOrHTMLOptGroupElement& aElement,
            const Nullable<HTMLElementOrLong>& aBefore,
            ErrorResult& aRv);
-  
+  // Uses XPCOM Remove.
   void IndexedSetter(uint32_t aIndex, HTMLOptionElement* aOption,
                      ErrorResult& aRv)
   {
@@ -253,22 +253,22 @@ public:
     aRv = SetSelectedIndexInternal(aIdx, true);
   }
   void GetValue(DOMString& aValue);
-  
+  // Uses XPCOM SetValue.
 
-  
-  
-  
-  
+  // nsIConstraintValidation::WillValidate is fine.
+  // nsIConstraintValidation::Validity() is fine.
+  // nsIConstraintValidation::GetValidationMessage() is fine.
+  // nsIConstraintValidation::CheckValidity() is fine.
   using nsIConstraintValidation::CheckValidity;
-  
+  // nsIConstraintValidation::SetCustomValidity() is fine.
 
   using nsINode::Remove;
 
 
-  
+  // nsINode
   virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 
-  
+  // nsIContent
   virtual nsresult PreHandleEvent(EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
   virtual nsresult PostHandleEvent(
                      EventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
@@ -278,7 +278,7 @@ public:
                                  bool aNotify) MOZ_OVERRIDE;
   virtual void RemoveChildAt(uint32_t aIndex, bool aNotify) MOZ_OVERRIDE;
 
-  
+  // Overriden nsIFormControl methods
   NS_IMETHOD_(uint32_t) GetType() const MOZ_OVERRIDE { return NS_FORM_SELECT; }
   NS_IMETHOD Reset() MOZ_OVERRIDE;
   NS_IMETHOD SubmitNamesValues(nsFormSubmission* aFormSubmission) MOZ_OVERRIDE;
@@ -290,76 +290,76 @@ public:
 
   EventStates IntrinsicState() const MOZ_OVERRIDE;
 
-  
-
-
-
-
-
-
-
-
-
+  /**
+   * To be called when stuff is added under a child of the select--but *before*
+   * they are actually added.
+   *
+   * @param aOptions the content that was added (usually just an option, but
+   *        could be an optgroup node with many child options)
+   * @param aParent the parent the options were added to (could be an optgroup)
+   * @param aContentIndex the index where the options are being added within the
+   *        parent (if the parent is an optgroup, the index within the optgroup)
+   */
   NS_IMETHOD WillAddOptions(nsIContent* aOptions,
                             nsIContent* aParent,
                             int32_t aContentIndex,
                             bool aNotify);
 
-  
-
-
-
-
-
-
-
+  /**
+   * To be called when stuff is removed under a child of the select--but
+   * *before* they are actually removed.
+   *
+   * @param aParent the parent the option(s) are being removed from
+   * @param aContentIndex the index of the option(s) within the parent (if the
+   *        parent is an optgroup, the index within the optgroup)
+   */
   NS_IMETHOD WillRemoveOptions(nsIContent* aParent,
                                int32_t aContentIndex,
                                bool aNotify);
 
-  
-
-
-
-
-
+  /**
+   * Checks whether an option is disabled (even if it's part of an optgroup)
+   *
+   * @param aIndex the index of the option to check
+   * @return whether the option is disabled
+   */
   NS_IMETHOD IsOptionDisabled(int32_t aIndex,
                               bool* aIsDisabled);
   bool IsOptionDisabled(HTMLOptionElement* aOption);
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Sets multiple options (or just sets startIndex if select is single)
+   * and handles notifications and cleanup and everything under the sun.
+   * When this method exits, the select will be in a consistent state.  i.e.
+   * if you set the last option to false, it will select an option anyway.
+   *
+   * @param aStartIndex the first index to set
+   * @param aEndIndex the last index to set (set same as first index for one
+   *        option)
+   * @param aOptionsMask determines whether to set, clear all or disable
+   *        options and whether frames are to be notified of such.
+   * @return whether any options were actually changed
+   */
   bool SetOptionsSelectedByIndex(int32_t aStartIndex,
                                  int32_t aEndIndex,
                                  uint32_t aOptionsMask);
 
-  
-
-
-
-
-
-
-
+  /**
+   * Finds the index of a given option element
+   *
+   * @param aOption the option to get the index of
+   * @param aStartIndex the index to start looking at
+   * @param aForward TRUE to look forward, FALSE to look backward
+   * @return the option index
+   */
   NS_IMETHOD GetOptionIndex(nsIDOMHTMLOptionElement* aOption,
                             int32_t aStartIndex,
                             bool aForward,
                             int32_t* aIndex);
 
-  
-
-
+  /**
+   * Called when an attribute is about to be changed
+   */
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                nsIContent* aBindingParent,
                                bool aCompileEventHandlers) MOZ_OVERRIDE;
@@ -396,28 +396,28 @@ public:
     return mOptions;
   }
 
-  
+  // nsIConstraintValidation
   nsresult GetValidationMessage(nsAString& aValidationMessage,
                                 ValidityStateType aType) MOZ_OVERRIDE;
 
   void UpdateValueMissingValidityState();
-  
-
-
+  /**
+   * Insert aElement before the node given by aBefore
+   */
   void Add(nsGenericHTMLElement& aElement, nsGenericHTMLElement* aBefore,
            ErrorResult& aError);
   void Add(nsGenericHTMLElement& aElement, int32_t aIndex, ErrorResult& aError)
   {
-    
-    
+    // If item index is out of range, insert to last.
+    // (since beforeElement becomes null, it is inserted to last)
     nsIContent* beforeContent = mOptions->GetElementAt(aIndex);
     return Add(aElement, nsGenericHTMLElement::FromContentOrNull(beforeContent),
                aError);
   }
 
-  
-
-
+  /**
+   * Is this a combobox?
+   */
   bool IsCombobox() const
   {
     return !Multiple() && Size() <= 1;
@@ -428,152 +428,152 @@ protected:
 
   friend class SafeOptionListMutation;
 
-  
-  
-
-
-
-
+  // Helper Methods
+  /**
+   * Check whether the option specified by the index is selected
+   * @param aIndex the index
+   * @return whether the option at the index is selected
+   */
   bool IsOptionSelectedByIndex(int32_t aIndex);
-  
-
-
-
-
+  /**
+   * Starting with (and including) aStartIndex, find the first selected index
+   * and set mSelectedIndex to it.
+   * @param aStartIndex the index to start with
+   */
   void FindSelectedIndex(int32_t aStartIndex, bool aNotify);
-  
-
-
-
+  /**
+   * Select some option if possible (generally the first non-disabled option).
+   * @return true if something was selected, false otherwise
+   */
   bool SelectSomething(bool aNotify);
-  
-
-
-
-
+  /**
+   * Call SelectSomething(), but only if nothing is selected
+   * @see SelectSomething()
+   * @return true if something was selected, false otherwise
+   */
   bool CheckSelectSomething(bool aNotify);
-  
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Called to trigger notifications of frames and fixing selected index
+   *
+   * @param aSelectFrame the frame for this content (could be null)
+   * @param aIndex the index that was selected or deselected
+   * @param aSelected whether the index was selected or deselected
+   * @param aChangeOptionState if false, don't do anything to the
+   *                           HTMLOptionElement at aIndex.  If true, change
+   *                           its selected state to aSelected.
+   * @param aNotify whether to notify the style system and such
+   */
   void OnOptionSelected(nsISelectControlFrame* aSelectFrame,
                         int32_t aIndex,
                         bool aSelected,
                         bool aChangeOptionState,
                         bool aNotify);
-  
-
-
-
+  /**
+   * Restore state to a particular state string (representing the options)
+   * @param aNewSelected the state string to restore to
+   */
   void RestoreStateTo(SelectState* aNewSelected);
 
-  
-  
-
-
-
-
-
+  // Adding options
+  /**
+   * Insert option(s) into the options[] array and perform notifications
+   * @param aOptions the option or optgroup being added
+   * @param aListIndex the index to start adding options into the list at
+   * @param aDepth the depth of aOptions (1=direct child of select ...)
+   */
   void InsertOptionsIntoList(nsIContent* aOptions,
                              int32_t aListIndex,
                              int32_t aDepth,
                              bool aNotify);
-  
-
-
-
-
-
+  /**
+   * Remove option(s) from the options[] array
+   * @param aOptions the option or optgroup being added
+   * @param aListIndex the index to start removing options from the list at
+   * @param aDepth the depth of aOptions (1=direct child of select ...)
+   */
   nsresult RemoveOptionsFromList(nsIContent* aOptions,
                                  int32_t aListIndex,
                                  int32_t aDepth,
                                  bool aNotify);
-  
-
-
-
-
-
+  /**
+   * Insert option(s) into the options[] array (called by InsertOptionsIntoList)
+   * @param aOptions the option or optgroup being added
+   * @param aInsertIndex the index to start adding options into the list at
+   * @param aDepth the depth of aOptions (1=direct child of select ...)
+   */
   void InsertOptionsIntoListRecurse(nsIContent* aOptions,
                                     int32_t* aInsertIndex,
                                     int32_t aDepth);
-  
-
-
-
-
-
-
+  /**
+   * Remove option(s) from the options[] array (called by RemoveOptionsFromList)
+   * @param aOptions the option or optgroup being added
+   * @param aListIndex the index to start removing options from the list at
+   * @param aNumRemoved the number removed so far [OUT]
+   * @param aDepth the depth of aOptions (1=direct child of select ...)
+   */
   nsresult RemoveOptionsFromListRecurse(nsIContent* aOptions,
                                         int32_t aRemoveIndex,
                                         int32_t* aNumRemoved,
                                         int32_t aDepth);
 
-  
+  // nsIConstraintValidation
   void UpdateBarredFromConstraintValidation();
   bool IsValueMissing();
 
-  
-
-
-
-
+  /**
+   * Find out how deep this content is from the select (1=direct child)
+   * @param aContent the content to check
+   * @return the depth
+   */
   int32_t GetContentDepth(nsIContent* aContent);
-  
-
-
-
-
-
+  /**
+   * Get the index of the first option at, under or following the content in
+   * the select, or length of options[] if none are found
+   * @param aOptions the content
+   * @return the index of the first option
+   */
   int32_t GetOptionIndexAt(nsIContent* aOptions);
-  
-
-
-
-
-
-
+  /**
+   * Get the next option following the content in question (not at or under)
+   * (this could include siblings of the current content or siblings of the
+   * parent or children of siblings of the parent).
+   * @param aOptions the content
+   * @return the index of the next option after the content
+   */
   int32_t GetOptionIndexAfter(nsIContent* aOptions);
-  
-
-
-
-
+  /**
+   * Get the first option index at or under the content in question.
+   * @param aOptions the content
+   * @return the index of the first option at or under the content
+   */
   int32_t GetFirstOptionIndex(nsIContent* aOptions);
-  
-
-
-
-
-
-
-
+  /**
+   * Get the first option index under the content in question, within the
+   * range specified.
+   * @param aOptions the content
+   * @param aStartIndex the first child to look at
+   * @param aEndIndex the child *after* the last child to look at
+   * @return the index of the first option at or under the content
+   */
   int32_t GetFirstChildOptionIndex(nsIContent* aOptions,
                                    int32_t aStartIndex,
                                    int32_t aEndIndex);
 
-  
-
-
-
+  /**
+   * Get the frame as an nsISelectControlFrame (MAY RETURN nullptr)
+   * @return the select frame, or null
+   */
   nsISelectControlFrame* GetSelectFrame();
 
-  
-
-
-
+  /**
+   * Helper method for dispatching ContentReset notifications to list
+   * and combo box frames.
+   */
   void DispatchContentReset();
 
-  
-
-
+  /**
+   * Rebuilds the options array from scratch as a fallback in error cases.
+   */
   void RebuildOptionsArray(bool aNotify);
 
 #ifdef DEBUG
@@ -584,25 +584,25 @@ protected:
 
   void SetSelectionChanged(bool aValue, bool aNotify);
 
-  
-
-
-
+  /**
+   * Marks the selectedOptions list as dirty, so that it'll populate itself
+   * again.
+   */
   void UpdateSelectedOptions();
 
-  
-
-
-
-
-
+  /**
+   * Return whether an element should have a validity UI.
+   * (with :-moz-ui-invalid and :-moz-ui-valid pseudo-classes).
+   *
+   * @return Whether the element should have a validity UI.
+   */
   bool ShouldShowValidityUI() const {
-    
-
-
-
-
-
+    /**
+     * Always show the validity UI if the form has already tried to be submitted
+     * but was invalid.
+     *
+     * Otherwise, show the validity UI if the selection has been changed.
+     */
     if (mForm && mForm->HasEverTriedInvalidSubmit()) {
       return true;
     }
@@ -610,56 +610,56 @@ protected:
     return mSelectionHasChanged;
   }
 
-  
+  /** The options[] array */
   nsRefPtr<HTMLOptionsCollection> mOptions;
   nsContentUtils::AutocompleteAttrState mAutocompleteAttrState;
-  
+  /** false if the parser is in the middle of adding children. */
   bool            mIsDoneAddingChildren;
-  
+  /** true if our disabled state has changed from the default **/
   bool            mDisabledChanged;
-  
-
-
+  /** true if child nodes are being added or removed.
+   *  Used by SafeOptionListMutation.
+   */
   bool            mMutating;
-  
-
-
+  /**
+   * True if DoneAddingChildren will get called but shouldn't restore state.
+   */
   bool            mInhibitStateRestoration;
-  
-
-
+  /**
+   * True if the selection has changed since the element's creation.
+   */
   bool            mSelectionHasChanged;
-  
-
-
+  /**
+   * True if the default selected option has been set.
+   */
   bool            mDefaultSelectionSet;
-  
-
-
+  /**
+   * True if :-moz-ui-invalid can be shown.
+   */
   bool            mCanShowInvalidUI;
-  
-
-
+  /**
+   * True if :-moz-ui-valid can be shown.
+   */
   bool            mCanShowValidUI;
 
-  
+  /** The number of non-options as children of the select */
   uint32_t  mNonOptionChildren;
-  
+  /** The number of optgroups anywhere under the select */
   uint32_t  mOptGroupCount;
-  
-
-
-
+  /**
+   * The current selected index for selectedIndex (will be the first selected
+   * index if multiple are selected)
+   */
   int32_t   mSelectedIndex;
-  
-
-
-
+  /**
+   * The temporary restore state in case we try to restore before parser is
+   * done adding options
+   */
   nsCOMPtr<SelectState> mRestoreState;
 
-  
-
-
+  /**
+   * The live list of selected options.
+  */
   nsRefPtr<nsContentList> mSelectedOptions;
 
 private:
@@ -667,7 +667,7 @@ private:
                                     nsRuleData* aData);
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
-#endif
+#endif // mozilla_dom_HTMLSelectElement_h

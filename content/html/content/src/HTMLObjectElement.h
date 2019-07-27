@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+// vim:set et sw=2 sts=2 cin:
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_HTMLObjectElement_h
 #define mozilla_dom_HTMLObjectElement_h
@@ -22,15 +22,15 @@ class HTMLObjectElement MOZ_FINAL : public nsGenericHTMLFormElement
                                   , public nsIConstraintValidation
 {
 public:
-  explicit HTMLObjectElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
-                             FromParser aFromParser = NOT_FROM_PARSER);
+  HTMLObjectElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
+                    FromParser aFromParser = NOT_FROM_PARSER);
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
   virtual int32_t TabIndexDefault() MOZ_OVERRIDE;
 
-  
+  // nsIDOMHTMLObjectElement
   NS_DECL_NSIDOMHTMLOBJECTELEMENT
 
   virtual nsresult BindToTree(nsIDocument *aDocument, nsIContent *aParent,
@@ -47,7 +47,7 @@ public:
   virtual bool IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, int32_t *aTabIndex) MOZ_OVERRIDE;
   virtual IMEState GetDesiredIMEState() MOZ_OVERRIDE;
 
-  
+  // Overriden nsIFormControl methods
   NS_IMETHOD_(uint32_t) GetType() const MOZ_OVERRIDE
   {
     return NS_FORM_OBJECT;
@@ -70,7 +70,7 @@ public:
   virtual EventStates IntrinsicState() const MOZ_OVERRIDE;
   virtual void DestroyContent() MOZ_OVERRIDE;
 
-  
+  // nsObjectLoadingContent
   virtual uint32_t GetCapabilities() const MOZ_OVERRIDE;
 
   virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
@@ -82,8 +82,8 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLObjectElement,
                                            nsGenericHTMLFormElement)
 
-  
-  
+  // Web IDL binding methods
+  // XPCOM GetData is ok; note that it's a URI attribute with a weird base URI
   void SetData(const nsAString& aValue, ErrorResult& aRv)
   {
     SetHTMLAttr(nsGkAtoms::data, aValue, aRv);
@@ -157,7 +157,7 @@ public:
   {
     SetHTMLAttr(nsGkAtoms::archive, aValue, aRv);
   }
-  
+  // XPCOM GetCode is ok; note that it's a URI attribute with a weird base URI
   void SetCode(const nsAString& aValue, ErrorResult& aRv)
   {
     SetHTMLAttr(nsGkAtoms::code, aValue, aRv);
@@ -194,7 +194,7 @@ public:
   {
     SetUnsignedIntAttr(nsGkAtoms::vspace, aValue, aRv);
   }
-  
+  // XPCOM GetCodebase is ok; note that it's a URI attribute
   void SetCodeBase(const nsAString& aValue, ErrorResult& aRv)
   {
     SetHTMLAttr(nsGkAtoms::codebase, aValue, aRv);
@@ -221,15 +221,15 @@ public:
   }
 
 private:
-  
-
-
+  /**
+   * Calls LoadObject with the correct arguments to start the plugin load.
+   */
   void StartObjectLoad(bool aNotify);
 
-  
-
-
-
+  /**
+   * Returns if the element is currently focusable regardless of it's tabindex
+   * value. This is used to know the default tabindex value.
+   */
   bool IsFocusableForTabIndex();
   
   virtual void GetItemValueText(nsAString& text) MOZ_OVERRIDE;
@@ -245,7 +245,7 @@ private:
   bool mIsDoneAddingChildren;
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
-#endif 
+#endif // mozilla_dom_HTMLObjectElement_h

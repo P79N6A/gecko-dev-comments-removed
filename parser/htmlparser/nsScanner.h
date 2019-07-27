@@ -43,7 +43,7 @@ class nsScanner {
       
 
 
-      explicit nsScanner(const nsAString& anHTMLString);
+      nsScanner(const nsAString& anHTMLString);
 
       
 

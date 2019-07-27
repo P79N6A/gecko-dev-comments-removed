@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_HTMLOptGroupElement_h
 #define mozilla_dom_HTMLOptGroupElement_h
@@ -18,22 +18,22 @@ class HTMLOptGroupElement MOZ_FINAL : public nsGenericHTMLElement,
                                       public nsIDOMHTMLOptGroupElement
 {
 public:
-  explicit HTMLOptGroupElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+  HTMLOptGroupElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
 
   NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLOptGroupElement, optgroup)
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
-  
+  // nsIDOMHTMLOptGroupElement
   NS_DECL_NSIDOMHTMLOPTGROUPELEMENT
 
-  
+  // nsINode
   virtual nsresult InsertChildAt(nsIContent* aKid, uint32_t aIndex,
                                  bool aNotify) MOZ_OVERRIDE;
   virtual void RemoveChildAt(uint32_t aIndex, bool aNotify) MOZ_OVERRIDE;
 
-  
+  // nsIContent
   virtual nsresult PreHandleEvent(EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
 
   virtual EventStates IntrinsicState() const MOZ_OVERRIDE;
@@ -58,7 +58,7 @@ public:
      SetHTMLBoolAttr(nsGkAtoms::disabled, aValue, aError);
   }
 
-  
+  // The XPCOM GetLabel is OK for us
   void SetLabel(const nsAString& aLabel, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::label, aLabel, aError);
@@ -71,14 +71,14 @@ protected:
 
 protected:
 
-  
-
-
-
+  /**
+   * Get the select content element that contains this option
+   * @param aSelectElement the select element [OUT]
+   */
   nsIContent* GetSelect();
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
-#endif 
+#endif /* mozilla_dom_HTMLOptGroupElement_h */

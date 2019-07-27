@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_HTMLOutputElement_h
 #define mozilla_dom_HTMLOutputElement_h
@@ -21,13 +21,13 @@ class HTMLOutputElement MOZ_FINAL : public nsGenericHTMLFormElement,
 public:
   using nsIConstraintValidation::GetValidationMessage;
 
-  explicit HTMLOutputElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
-                             FromParser aFromParser = NOT_FROM_PARSER);
+  HTMLOutputElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
+                    FromParser aFromParser = NOT_FROM_PARSER);
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
-  
+  // nsIFormControl
   NS_IMETHOD_(uint32_t) GetType() const { return NS_FORM_OUTPUT; }
   NS_IMETHOD Reset() MOZ_OVERRIDE;
   NS_IMETHOD SubmitNamesValues(nsFormSubmission* aFormSubmission) MOZ_OVERRIDE;
@@ -47,11 +47,11 @@ public:
                                nsIContent* aBindingParent,
                                bool aCompileEventHandlers) MOZ_OVERRIDE;
 
-  
-  
+  // This function is called when a callback function from nsIMutationObserver
+  // has to be used to update the defaultValue attribute.
   void DescendantsChanged();
 
-  
+  // nsIMutationObserver
   NS_DECL_NSIMUTATIONOBSERVER_CHARACTERDATACHANGED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
@@ -62,9 +62,9 @@ public:
 
   virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 
-  
+  // WebIDL
   nsDOMSettableTokenList* HtmlFor();
-  
+  // nsGenericHTMLFormElement::GetForm is fine.
   void GetName(nsAString& aName)
   {
     GetHTMLAttr(nsGkAtoms::name, aName);
@@ -90,10 +90,10 @@ public:
   void GetValue(nsAString& aValue);
   void SetValue(const nsAString& aValue, ErrorResult& aRv);
 
-  
-  
-  
-  
+  // nsIConstraintValidation::WillValidate is fine.
+  // nsIConstraintValidation::Validity() is fine.
+  // nsIConstraintValidation::GetValidationMessage() is fine.
+  // nsIConstraintValidation::CheckValidity() is fine.
   void SetCustomValidity(const nsAString& aError);
 
 protected:
@@ -110,7 +110,7 @@ protected:
   nsRefPtr<nsDOMSettableTokenList>  mTokenList;
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
-#endif 
+#endif // mozilla_dom_HTMLOutputElement_h

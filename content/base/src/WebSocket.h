@@ -139,7 +139,7 @@ public:
             ErrorResult& aRv);
 
 private: 
-  explicit WebSocket(nsPIDOMWindow* aOwnerWindow);
+  WebSocket(nsPIDOMWindow* aOwnerWindow);
   virtual ~WebSocket();
 
 protected:

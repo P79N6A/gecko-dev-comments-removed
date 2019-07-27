@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+// vim:set et sw=2 sts=2 cin:
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_HTMLSharedObjectElement_h
 #define mozilla_dom_HTMLSharedObjectElement_h
@@ -24,21 +24,21 @@ class HTMLSharedObjectElement MOZ_FINAL : public nsGenericHTMLElement
                                         , public nsIDOMHTMLEmbedElement
 {
 public:
-  explicit HTMLSharedObjectElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
-                                   mozilla::dom::FromParser aFromParser = mozilla::dom::NOT_FROM_PARSER);
+  HTMLSharedObjectElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
+                          mozilla::dom::FromParser aFromParser = mozilla::dom::NOT_FROM_PARSER);
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
   virtual int32_t TabIndexDefault() MOZ_OVERRIDE;
 
-  
+  // nsIDOMHTMLAppletElement
   NS_DECL_NSIDOMHTMLAPPLETELEMENT
 
-  
-  
+  // Can't use macro for nsIDOMHTMLEmbedElement because it has conflicts with
+  // NS_DECL_NSIDOMHTMLAPPLETELEMENT.
 
-  
+  // nsIDOMHTMLEmbedElement
   NS_IMETHOD GetSrc(nsAString &aSrc) MOZ_OVERRIDE;
   NS_IMETHOD SetSrc(const nsAString &aSrc) MOZ_OVERRIDE;
   NS_IMETHOD GetType(nsAString &aType) MOZ_OVERRIDE;
@@ -68,7 +68,7 @@ public:
   virtual EventStates IntrinsicState() const MOZ_OVERRIDE;
   virtual void DestroyContent() MOZ_OVERRIDE;
 
-  
+  // nsObjectLoadingContent
   virtual uint32_t GetCapabilities() const MOZ_OVERRIDE;
 
   virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
@@ -80,7 +80,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(HTMLSharedObjectElement,
                                                      nsGenericHTMLElement)
 
-  
+  // WebIDL API for <applet>
   void GetAlign(DOMString& aValue)
   {
     GetHTMLAttr(nsGkAtoms::align, aValue);
@@ -113,7 +113,7 @@ public:
   {
     SetHTMLAttr(nsGkAtoms::code, aValue, aRv);
   }
-  
+  // XPCOM GetCodebase is ok; note that it's a URI attribute
   void SetCodeBase(const nsAString& aValue, ErrorResult& aRv)
   {
     SetHTMLAttr(nsGkAtoms::codebase, aValue, aRv);
@@ -142,7 +142,7 @@ public:
   {
     SetHTMLAttr(nsGkAtoms::name, aValue, aRv);
   }
-  
+  // XPCOM GetObject is ok; note that it's a URI attribute with a weird base URI
   void SetObject(const nsAString& aValue, ErrorResult& aRv)
   {
     SetHTMLAttr(nsGkAtoms::object, aValue, aRv);
@@ -164,8 +164,8 @@ public:
     SetHTMLAttr(nsGkAtoms::width, aValue, aRv);
   }
 
-  
-  
+  // WebIDL <embed> api
+  // XPCOM GetSrc is ok; note that it's a URI attribute
   void SetSrc(const nsAString& aValue, ErrorResult& aRv)
   {
     SetHTMLAttr(nsGkAtoms::src, aValue, aRv);
@@ -178,10 +178,10 @@ public:
   {
     SetHTMLAttr(nsGkAtoms::type, aValue, aRv);
   }
-  
-  
-  
-  
+  // width covered by <applet>
+  // height covered by <applet>
+  // align covered by <applet>
+  // name covered by <applet>
   nsIDocument* GetSVGDocument()
   {
     return GetContentDocument();
@@ -190,9 +190,9 @@ public:
 private:
   virtual ~HTMLSharedObjectElement();
 
-  
-
-
+  /**
+   * Calls LoadObject with the correct arguments to start the plugin load.
+   */
   void StartObjectLoad(bool aNotify);
 
   nsIAtom *URIAttrName() const
@@ -202,8 +202,8 @@ private:
            nsGkAtoms::src;
   }
 
-  
-  
+  // mIsDoneAddingChildren is only really used for <applet>.  This boolean is
+  // always true for <embed>, per the documentation in nsIContent.h.
   bool mIsDoneAddingChildren;
 
   virtual void GetItemValueText(nsAString& text) MOZ_OVERRIDE;
@@ -215,7 +215,7 @@ private:
                                     nsRuleData* aData);
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
-#endif 
+#endif // mozilla_dom_HTMLSharedObjectElement_h
