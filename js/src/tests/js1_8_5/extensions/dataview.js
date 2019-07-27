@@ -1648,11 +1648,9 @@ function test() {
 
     
     
-    
     var alien_constructor = alien.DataView;
     var local_buffer = (new Int8Array(3)).buffer;
-    var foreign_exchange_student_1 = alien_constructor(local_buffer);
-    var foreign_exchange_student_2 = new alien_constructor(local_buffer);
+    var foreign_exchange_student = new alien_constructor(local_buffer);
 
     
     var ab = new ArrayBuffer(4);
