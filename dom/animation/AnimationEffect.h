@@ -30,6 +30,11 @@ public:
   Animation* GetParentObject() const { return mAnimation; }
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
+  
+  void GetName(nsString& aRetVal) const {
+    aRetVal = mAnimation->Name();
+  }
+
 private:
   ~AnimationEffect() { }
 
