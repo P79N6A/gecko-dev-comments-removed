@@ -193,10 +193,16 @@ SystemMessageManager.prototype = {
       return false;
     }
 
-    return cpmm.sendSyncMessage("SystemMessageManager:HasPendingMessages",
-                                { type: aType,
-                                  pageURL: this._pageURL,
-                                  manifestURL: this._manifestURL })[0];
+
+    
+
+
+
+
+    let cache = Cc["@mozilla.org/system-message-cache;1"]
+                  .getService(Ci.nsISystemMessageCache);
+
+    return cache.hasPendingMessage(aType, this._pageURL, this._manifestURL);
   },
 
   mozIsHandlingMessage: function() {
