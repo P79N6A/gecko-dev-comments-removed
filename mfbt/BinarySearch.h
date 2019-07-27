@@ -31,32 +31,60 @@ namespace mozilla {
 
 
 
-template <typename Container, typename T>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename Container, typename Comparator>
 bool
-BinarySearch(const Container& aContainer, size_t aBegin, size_t aEnd,
-             T aTarget, size_t* aMatchOrInsertionPoint)
+BinarySearchIf(const Container& aContainer, size_t aBegin, size_t aEnd,
+               const Comparator& aCompare, size_t* aMatchOrInsertionPoint)
 {
   MOZ_ASSERT(aBegin <= aEnd);
 
   size_t low = aBegin;
   size_t high = aEnd;
-  while (low != high) {
+  while (high != low) {
     size_t middle = low + (high - low) / 2;
 
     
     
-    const auto& middleValue = aContainer[middle];
+    const int result = aCompare(aContainer[middle]);
 
-    MOZ_ASSERT(aContainer[low] <= aContainer[middle]);
-    MOZ_ASSERT(aContainer[middle] <= aContainer[high - 1]);
-    MOZ_ASSERT(aContainer[low] <= aContainer[high - 1]);
-
-    if (aTarget == middleValue) {
+    if (result == 0) {
       *aMatchOrInsertionPoint = middle;
       return true;
     }
 
-    if (aTarget < middleValue) {
+    if (result < 0) {
       high = middle;
     } else {
       low = middle + 1;
@@ -65,6 +93,45 @@ BinarySearch(const Container& aContainer, size_t aBegin, size_t aEnd,
 
   *aMatchOrInsertionPoint = low;
   return false;
+}
+
+namespace detail {
+
+template<class T>
+class BinarySearchDefaultComparator
+{
+public:
+  BinarySearchDefaultComparator(const T& aTarget)
+    : mTarget(aTarget)
+  {}
+
+  template <class U>
+  int operator()(const U& val) const {
+    if (mTarget == val) {
+      return 0;
+    }
+
+    if (mTarget < val) {
+      return -1;
+    }
+
+    return 1;
+  }
+
+private:
+  const T& mTarget;
+};
+
+} 
+
+template <typename Container, typename T>
+bool
+BinarySearch(const Container& aContainer, size_t aBegin, size_t aEnd,
+             T aTarget, size_t* aMatchOrInsertionPoint)
+{
+  return BinarySearchIf(aContainer, aBegin, aEnd,
+                        detail::BinarySearchDefaultComparator<T>(aTarget),
+                        aMatchOrInsertionPoint);
 }
 
 } 
