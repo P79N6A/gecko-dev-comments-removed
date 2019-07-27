@@ -65,6 +65,7 @@ public:
   virtual double GetDownloadRate(bool* aIsReliable) MOZ_OVERRIDE { UNIMPLEMENTED(); *aIsReliable = false; return 0; }
   virtual int64_t GetLength() MOZ_OVERRIDE { return mInputBuffer.GetLength(); }
   virtual int64_t GetNextCachedData(int64_t aOffset) MOZ_OVERRIDE {
+    ReentrantMonitorAutoEnter mon(mMonitor);
     MOZ_ASSERT(aOffset >= 0);
     if (uint64_t(aOffset) < mInputBuffer.GetOffset()) {
       return mInputBuffer.GetOffset();
@@ -83,6 +84,7 @@ public:
 
   virtual nsresult GetCachedRanges(nsTArray<MediaByteRange>& aRanges) MOZ_OVERRIDE
   {
+    ReentrantMonitorAutoEnter mon(mMonitor);
     if (mInputBuffer.GetLength()) {
       aRanges.AppendElement(MediaByteRange(mInputBuffer.GetOffset(),
                                            mInputBuffer.GetLength()));
@@ -115,10 +117,16 @@ public:
   void Ended();
   
   
-  bool EvictData(uint32_t aThreshold);
+  uint32_t EvictData(uint32_t aThreshold);
 
   
   void EvictBefore(uint64_t aOffset);
+
+  
+  int64_t GetSize() {
+    ReentrantMonitorAutoEnter mon(mMonitor);
+    return mInputBuffer.GetLength() - mInputBuffer.GetOffset();
+  }
 
 #if defined(DEBUG)
   void Dump(const char* aPath) {

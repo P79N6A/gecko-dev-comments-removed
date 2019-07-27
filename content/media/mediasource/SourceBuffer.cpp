@@ -659,6 +659,7 @@ SourceBuffer::AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aR
   
   
   
+  
   const uint32_t evict_threshold = 75 * (1 << 20);
   bool evicted = mTrackBuffer->EvictData(evict_threshold);
   if (evicted) {
