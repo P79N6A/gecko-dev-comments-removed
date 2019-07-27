@@ -14,12 +14,10 @@ config = {
                 "--http-port=%(http_port)s", "--ssl-port=%(ssl_port)s",
                 "--certificate-path=%(certs_path)s", "--symbols-path=%(symbols_path)s",
                 "--quiet", "--log-raw=%(raw_log_file)s",
-                
-                
-                
+                "--total-chunks=16",
+                "--run-only-tests=android23.json",
             ],
         },
-        
         "mochitest-gl": {
             "run_filename": "runtestsremote.py",
             "testsdir": "mochitest",
@@ -34,7 +32,6 @@ config = {
                 "--test-manifest=gl.json",
             ],
         },
-        
         "robocop": {
             "run_filename": "runtestsremote.py",
             "testsdir": "mochitest",
@@ -61,12 +58,10 @@ config = {
                 "--devicePort=%(device_port)s", "--http-port=%(http_port)s",
                 "--ssl-port=%(ssl_port)s", "--httpd-path", "%(modules_dir)s",
                 "--symbols-path=%(symbols_path)s",
-                
-                
-                
+                "--total-chunks=16",
+                "tests/layout/reftests/reftest.list",
             ],
         },
-        
         "crashtest": {
             "run_filename": "remotereftest.py",
             "testsdir": "reftest",
@@ -81,7 +76,6 @@ config = {
                 "tests/testing/crashtest/crashtests.list",
             ],
         },
-        
         "jsreftest": {
             "run_filename": "remotereftest.py",
             "testsdir": "reftest",
@@ -106,8 +100,7 @@ config = {
                 "--symbols-path=%(symbols_path)s",
                 "--manifest=tests/xpcshell.ini",
                 "--log-raw=%(raw_log_file)s",
-                
-                
+                "--total-chunks=3",
             ],
         },
     }, 
