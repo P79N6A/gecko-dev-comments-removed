@@ -22,7 +22,6 @@ var testData = [
     uri: "http://bookmarked.com/",
     parentFolder: PlacesUtils.toolbarFolderId,
     index: PlacesUtils.bookmarks.DEFAULT_INDEX,
-    title: "",
     isInQuery: true },
 
   
@@ -30,7 +29,6 @@ var testData = [
     uri: "http://bookmarked-elsewhere.com/",
     parentFolder: PlacesUtils.bookmarksMenuFolderId,
     index: PlacesUtils.bookmarks.DEFAULT_INDEX,
-    title: "",
     isInQuery: false },
 
   
@@ -86,7 +84,6 @@ add_task(function test_onlyBookmarked()
       uri: "http://bookmarked2.com/",
       parentFolder: PlacesUtils.toolbarFolderId,
       index: PlacesUtils.bookmarks.DEFAULT_INDEX,
-      title: "",
       isInQuery: true },
 
     
@@ -94,7 +91,6 @@ add_task(function test_onlyBookmarked()
       uri: "http://bookmarked-elsewhere2.com/",
       parentFolder: PlacesUtils.bookmarksMenuFolderId,
       index: PlacesUtils.bookmarks.DEFAULT_INDEX,
-      title: "",
       isInQuery: false }
   ];
   
