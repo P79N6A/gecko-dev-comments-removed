@@ -863,10 +863,14 @@ class MacroAssembler : public MacroAssemblerSpecific
     void linkExitFrame();
 
   public:
+    void PushStubCode() {
+        exitCodePatch_ = PushWithPatch(ImmWord(-1));
+    }
+
     void enterExitFrame(const VMFunction *f = nullptr) {
         linkExitFrame();
         
-        exitCodePatch_ = PushWithPatch(ImmWord(-1));
+        PushStubCode();
         
         Push(ImmPtr(f));
     }
@@ -879,8 +883,8 @@ class MacroAssembler : public MacroAssemblerSpecific
         Push(ImmPtr(nullptr));
     }
 
-    void leaveExitFrame() {
-        freeStack(ExitFooterFrame::Size());
+    void leaveExitFrame(size_t extraFrame = 0) {
+        freeStack(ExitFooterFrame::Size() + extraFrame);
     }
 
     bool hasEnteredExitFrame() const {
@@ -1394,4 +1398,4 @@ StackDecrementForCall(uint32_t alignment, size_t bytesAlreadyPushed, size_t byte
 } 
 } 
 
-#endif 
+#endif

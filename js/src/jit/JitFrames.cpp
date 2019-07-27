@@ -988,16 +988,14 @@ ReadAllocation(const JitFrameIterator &frame, const LAllocation *a)
 #endif
 
 static void
-MarkThisAndArguments(JSTracer *trc, const JitFrameIterator &frame)
+MarkThisAndArguments(JSTracer *trc, JitFrameLayout *layout)
 {
     
     
     
     
 
-    JitFrameLayout *layout = frame.jsFrame();
-
-    size_t nargs = frame.numActualArgs();
+    size_t nargs = layout->numActualArgs();
     size_t nformals = 0;
     if (CalleeTokenIsFunction(layout->calleeToken())) {
         JSFunction *fun = CalleeTokenToFunction(layout->calleeToken());
@@ -1012,6 +1010,13 @@ MarkThisAndArguments(JSTracer *trc, const JitFrameIterator &frame)
     
     for (size_t i = nformals + 1; i < nargs + 1; i++)
         gc::MarkValueRoot(trc, &argv[i], "ion-argv");
+}
+
+static void
+MarkThisAndArguments(JSTracer *trc, const JitFrameIterator &frame)
+{
+    JitFrameLayout *layout = frame.jsFrame();
+    MarkThisAndArguments(trc, layout);
 }
 
 #ifdef JS_NUNBOX32
@@ -1349,6 +1354,16 @@ MarkJitExitFrame(JSTracer *trc, const JitFrameIterator &frame)
         } else {
             gc::MarkValueRoot(trc, dom->vp(), "ion-dom-args");
         }
+        return;
+    }
+
+    if (frame.isExitFrameLayout<LazyLinkExitFrameLayout>()) {
+        LazyLinkExitFrameLayout *ll = frame.exitFrame()->as<LazyLinkExitFrameLayout>();
+        JitFrameLayout *layout = ll->jsFrame();
+
+        gc::MarkJitCodeRoot(trc, ll->stubCode(), "lazy-link-code");
+        layout->replaceCalleeToken(MarkCalleeToken(trc, layout->calleeToken()));
+        MarkThisAndArguments(trc, layout);
         return;
     }
 

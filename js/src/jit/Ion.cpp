@@ -444,15 +444,12 @@ jit::LazyLinkTopActivation(JSContext *cx)
 
     
     JitFrameIterator it(iter);
-    MOZ_ASSERT(it.type() == JitFrame_Exit);
+    LazyLinkExitFrameLayout *ll = it.exitFrame()->as<LazyLinkExitFrameLayout>();
+    JSScript *calleeScript = ScriptFromCalleeToken(ll->jsFrame()->calleeToken());
 
     
-    ++it;
-    MOZ_ASSERT(it.type() == JitFrame_IonJS);
-
-    
-    IonBuilder *builder = it.script()->ionScript()->pendingBuilder();
-    it.script()->setPendingIonBuilder(cx, nullptr);
+    IonBuilder *builder = calleeScript->ionScript()->pendingBuilder();
+    calleeScript->setPendingIonBuilder(cx, nullptr);
 
     AutoEnterAnalysis enterTypes(cx);
     RootedScript script(cx, builder->script());

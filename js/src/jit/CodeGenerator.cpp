@@ -6143,32 +6143,37 @@ JitRuntime::generateLazyLinkStub(JSContext *cx)
 {
     MacroAssembler masm(cx);
 #ifdef JS_USE_LINK_REGISTER
-    masm.push(lr);
+    masm.pushReturnAddress();
 #endif
 
-    Label call;
     GeneralRegisterSet regs = GeneralRegisterSet::Volatile();
     Register temp0 = regs.takeAny();
 
-    masm.callWithExitFrame(&call);
+    
+    
+    
+    Address descriptor(StackPointer, CommonFrameLayout::offsetOfDescriptor());
+    size_t convertToExitFrame = JitFrameLayout::Size() - ExitFrameLayout::Size();
+    masm.addPtr(Imm32(convertToExitFrame << FRAMESIZE_SHIFT), descriptor);
+
+    masm.enterFakeExitFrame(LazyLinkExitFrameLayout::Token());
+    masm.PushStubCode();
+
+    masm.setupUnalignedABICall(1, temp0);
+    masm.loadJSContext(temp0);
+    masm.passABIArg(temp0);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, LazyLinkTopActivation));
+
+    masm.leaveExitFrame( sizeof(JitCode*));
+
+    masm.addPtr(Imm32(- (convertToExitFrame << FRAMESIZE_SHIFT)), descriptor);
+
 #ifdef JS_USE_LINK_REGISTER
     
     
     masm.pop(lr);
 #endif
     masm.jump(ReturnReg);
-
-    masm.bind(&call);
-#ifdef JS_USE_LINK_REGISTER
-        masm.push(lr);
-#endif
-    masm.enterExitFrame();
-    masm.setupUnalignedABICall(1, temp0);
-    masm.loadJSContext(temp0);
-    masm.passABIArg(temp0);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, LazyLinkTopActivation));
-    masm.leaveExitFrame();
-    masm.retn(Imm32(sizeof(ExitFrameLayout)));
 
     Linker linker(masm);
     AutoFlushICache afc("LazyLinkStub");
