@@ -228,22 +228,6 @@ public:
 
   
   
-  
-  void Play()
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-    RefPtr<nsRunnable> r = NS_NewRunnableMethod(this, &MediaDecoderStateMachine::PlayInternal);
-    TaskQueue()->Dispatch(r);
-  }
-
-private:
-  
-  
-  void PlayInternal();
-public:
-
-  
-  
   nsRefPtr<MediaDecoder::SeekPromise> Seek(SeekTarget aTarget);
 
   
@@ -592,6 +576,9 @@ protected:
   
   
   nsresult StartAudioThread();
+
+  
+  void PlayStateChanged();
 
   
   

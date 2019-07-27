@@ -318,7 +318,7 @@ MediaDecoderStateMachine::InitializationTask()
   mWatchManager.Watch(mVolume, &MediaDecoderStateMachine::VolumeChanged);
   mWatchManager.Watch(mLogicalPlaybackRate, &MediaDecoderStateMachine::LogicalPlaybackRateChanged);
   mWatchManager.Watch(mPreservesPitch, &MediaDecoderStateMachine::PreservesPitchChanged);
-
+  mWatchManager.Watch(mPlayState, &MediaDecoderStateMachine::PlayStateChanged);
 }
 
 bool MediaDecoderStateMachine::HasFutureAudio() {
@@ -1627,10 +1627,17 @@ void MediaDecoderStateMachine::NotifyWaitingForResourcesStatusChanged()
   }
 }
 
-void MediaDecoderStateMachine::PlayInternal()
+void MediaDecoderStateMachine::PlayStateChanged()
 {
   MOZ_ASSERT(OnTaskQueue());
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+
+  
+  
+  
+  if (mPlayState != MediaDecoder::PLAY_STATE_PLAYING) {
+    return;
+  }
 
   
   

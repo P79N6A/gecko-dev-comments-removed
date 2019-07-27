@@ -770,10 +770,6 @@ public:
 
   
   
-  virtual void ApplyStateToStateMachine(PlayState aState);
-
-  
-  
   void OnReadMetadataCompleted() override { }
 
   
