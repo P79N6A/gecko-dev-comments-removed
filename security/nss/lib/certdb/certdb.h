@@ -75,6 +75,21 @@ SECStatus SEC_DeletePermCertificate(CERTCertificate *cert);
 PRBool
 SEC_CrlIsNewer(CERTCrl *inNew, CERTCrl *old);
 
+
+
+
+
+
+
+SECStatus
+SEC_GetCrlTimes(CERTCrl *crl, PRTime *notBefore, PRTime *notAfter);
+
+
+
+
+
+
+
 SECCertTimeValidity
 SEC_CheckCrlTimes(CERTCrl *crl, PRTime t);
 

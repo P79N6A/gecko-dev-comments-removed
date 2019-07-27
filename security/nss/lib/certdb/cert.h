@@ -935,11 +935,6 @@ extern SECStatus CERT_FindCertExtensionByOID
 
 
 
-extern char *CERT_FindCertURLExtension (CERTCertificate *cert, SECOidTag tag);
-
-
-
-
 extern CERTAuthKeyID * CERT_FindAuthKeyIDExten (PLArenaPool *arena,CERTCertificate *cert);
 
 
