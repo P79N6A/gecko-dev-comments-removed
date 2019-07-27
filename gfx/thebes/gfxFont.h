@@ -312,7 +312,7 @@ public:
 
     
     
-    virtual void NotifyExpired(gfxFont *aFont);
+    virtual void NotifyExpired(gfxFont *aFont) MOZ_OVERRIDE;
 
     
     
@@ -1197,7 +1197,7 @@ public:
         moz_free(p);
     }
 
-    CompressedGlyph *GetCharacterGlyphs() {
+    virtual CompressedGlyph *GetCharacterGlyphs() MOZ_OVERRIDE {
         return &mCharGlyphsStorage[0];
     }
 
