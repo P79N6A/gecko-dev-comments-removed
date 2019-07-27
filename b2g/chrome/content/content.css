@@ -30,17 +30,12 @@ html xul|scrollbar {
   pointer-events: none;
 }
 
+
+
 xul|scrollbar[orient="vertical"] {
-  -moz-margin-start: -8px;
+  margin-left: -8px;
   min-width: 8px;
   max-width: 8px;
-}
-
-
-
-[dir="rtl"] xul|scrollbar[root="true"][orient="vertical"] {
-  -moz-margin-start: unset;
-  margin-right: -8px;
 }
 
 xul|scrollbar[orient="vertical"] xul|thumb {
