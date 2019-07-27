@@ -28,6 +28,20 @@ assertThrowsValue(() => i.throw(4), 4);
 assertIteratorDone(i);
 
 
+function *h2() {
+    try {
+	yield 1;
+	yield 2;
+    } finally {
+	throw 6;
+    }
+}
+var i = h2();
+assertIteratorNext(i, 1);
+assertThrowsValue(() => i.return(4), 6);
+assertIteratorDone(i);
+
+
 function l1() {
     yield 1;
     yield 2;

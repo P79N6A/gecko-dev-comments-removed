@@ -26,6 +26,9 @@ assertIteratorResult(it.next.call(g.it4), 5, false)
 assertThrowsValue(() => it.throw.call(g.it4, 8), 8);
 
 
+assertIteratorResult(it.return.call(g.it4, 8), 8, true);
+
+
 try {
     it.next.call([]);
     assertEq(0, 1);
