@@ -266,14 +266,7 @@ public:
   }
 
   media::TimeIntervals GetBuffered() {
-    
-    
-    
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-    if (mStartTime < 0) {
-      return media::TimeIntervals();
-    }
-
     return mReader->GetBuffered();
   }
 
