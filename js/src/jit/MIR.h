@@ -10534,24 +10534,25 @@ class MGetDOMProperty
     bool init(TempAllocator &alloc, MDefinition *obj, MDefinition *guard,
               MDefinition *globalGuard) {
         MOZ_ASSERT(obj);
-        MOZ_ASSERT(guard);
         
-        size_t operandCount;
+        
+        size_t operandCount = 1;
+        if (guard)
+            ++operandCount;
         if (globalGuard)
-            operandCount = 3;
-        else
-            operandCount = 2;
-
+            ++operandCount;
         if (!MVariadicInstruction::init(alloc, operandCount))
             return false;
         initOperand(0, obj);
 
+        size_t operandIndex = 1;
         
-        initOperand(1, guard);
+        if (guard)
+            initOperand(operandIndex++, guard);
 
         
         if (globalGuard)
-            initOperand(2, globalGuard);
+            initOperand(operandIndex, globalGuard);
 
         return true;
     }
