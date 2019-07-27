@@ -16,9 +16,11 @@
 #include "xpcprivate.h"
 #include "XPCMaps.h"
 #include "mozilla/dom/BindingUtils.h"
+#include "JavaScriptParent.h"
 #include "jsfriendapi.h"
 #include "mozilla/Likely.h"
 #include "nsContentUtils.h"
+#include "nsXULAppAPI.h"
 
 using namespace JS;
 using namespace js;
@@ -424,8 +426,11 @@ WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj,
 
     
     
+    
     else if (originIsChrome && !targetIsChrome &&
-             IdentifyStandardInstance(obj) == JSProto_Function)
+             (IdentifyStandardInstance(obj) == JSProto_Function ||
+              (jsipc::IsCPOW(obj) && JS::IsCallable(obj) &&
+               XRE_GetProcessType() == GeckoProcessType_Content)))
     {
         wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper, OpaqueWithCall>::singleton;
     }
