@@ -25,7 +25,6 @@
 #include "nssgtest.h"
 #include "nss.h"
 #include "pkixtestutil.h"
-#include "prinit.h"
 
 using namespace std;
 using namespace testing;
@@ -38,11 +37,6 @@ NSSTest::SetUpTestCase()
   if (NSS_NoDB_Init(nullptr) != SECSuccess) {
     abort();
   }
-
-  now = Now();
-  pr_now = PR_Now();
-  pr_oneDayBeforeNow = pr_now - ONE_DAY;
-  pr_oneDayAfterNow = pr_now + ONE_DAY;
 }
 
 NSSTest::NSSTest()
@@ -53,9 +47,10 @@ NSSTest::NSSTest()
   }
 }
 
- mozilla::pkix::Time NSSTest::now(Now());
- PRTime NSSTest::pr_now;
- PRTime NSSTest::pr_oneDayBeforeNow;
- PRTime NSSTest::pr_oneDayAfterNow;
+
+
+const std::time_t now(time(nullptr));
+const std::time_t oneDayBeforeNow(time(nullptr) - Time::ONE_DAY_IN_SECONDS);
+const std::time_t oneDayAfterNow(time(nullptr) + Time::ONE_DAY_IN_SECONDS);
 
 } } } 

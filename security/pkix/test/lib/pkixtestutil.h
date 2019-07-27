@@ -25,6 +25,7 @@
 #ifndef mozilla_pkix_test__pkixtestutils_h
 #define mozilla_pkix_test__pkixtestutils_h
 
+#include <ctime>
 #include <stdint.h>
 
 #include "cert.h"
@@ -79,8 +80,6 @@ typedef mozilla::pkix::ScopedPtr<SECKEYPublicKey, SECKEY_DestroyPublicKey>
 typedef mozilla::pkix::ScopedPtr<SECKEYPrivateKey, SECKEY_DestroyPrivateKey>
   ScopedSECKEYPrivateKey;
 
-extern const PRTime ONE_DAY;
-
 
 mozilla::pkix::Time YMDHMS(int16_t year, int16_t month, int16_t day,
                            int16_t hour, int16_t minutes, int16_t seconds);
@@ -126,7 +125,7 @@ SECItem* CreateEncodedCertificate(PLArenaPool* arena, long version,
                                   SECOidTag signature,
                                   const SECItem* serialNumber,
                                   const SECItem* issuerNameDER,
-                                  PRTime notBefore, PRTime notAfter,
+                                  std::time_t notBefore, std::time_t notAfter,
                                   const SECItem* subjectNameDER,
                       SECItem const* const* extensions,
                       SECKEYPrivateKey* issuerPrivateKey,
@@ -166,7 +165,7 @@ public:
 class OCSPResponseContext
 {
 public:
-  OCSPResponseContext(PLArenaPool* arena, const CertID& certID, PRTime time);
+  OCSPResponseContext(PLArenaPool* arena, const CertID& certID, std::time_t time);
 
   PLArenaPool* arena;
   const CertID& certID;
@@ -202,7 +201,7 @@ public:
                                 
                                 
 
-  PRTime producedAt;
+  std::time_t producedAt;
 
   OCSPResponseExtension* extensions;
   bool includeEmptyExtensions; 
@@ -221,9 +220,9 @@ public:
     unknown = 2,
   };
   uint8_t certStatus; 
-  PRTime revocationTime; 
-  PRTime thisUpdate;
-  PRTime nextUpdate;
+  std::time_t revocationTime; 
+  std::time_t thisUpdate;
+  std::time_t nextUpdate;
   bool includeNextUpdate;
 };
 
