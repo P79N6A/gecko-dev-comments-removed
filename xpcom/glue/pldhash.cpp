@@ -356,9 +356,14 @@ PL_DHashTableFinish(PLDHashTable* aTable)
   aTable->Finish();
 }
 
+
+
+
+
+
+template <PLDHashTable::SearchReason Reason>
 PLDHashEntryHdr* PL_DHASH_FASTCALL
-PLDHashTable::SearchTable(const void* aKey, PLDHashNumber aKeyHash,
-                          bool aIsAdd)
+PLDHashTable::SearchTable(const void* aKey, PLDHashNumber aKeyHash)
 {
   METER(mStats.mSearches++);
   NS_ASSERTION(!(aKeyHash & COLLISION_FLAG),
@@ -371,7 +376,7 @@ PLDHashTable::SearchTable(const void* aKey, PLDHashNumber aKeyHash,
   
   if (EntryIsFree(entry)) {
     METER(mStats.mMisses++);
-    return entry;
+    return (Reason == ForAdd) ? entry : nullptr;
   }
 
   
@@ -388,15 +393,18 @@ PLDHashTable::SearchTable(const void* aKey, PLDHashNumber aKeyHash,
   uint32_t sizeMask = (1u << sizeLog2) - 1;
 
   
+
+
+
   PLDHashEntryHdr* firstRemoved = nullptr;
 
   for (;;) {
-    if (MOZ_UNLIKELY(ENTRY_IS_REMOVED(entry))) {
-      if (!firstRemoved) {
-        firstRemoved = entry;
-      }
-    } else {
-      if (aIsAdd) {
+    if (Reason == ForAdd) {
+      if (MOZ_UNLIKELY(ENTRY_IS_REMOVED(entry))) {
+        if (!firstRemoved) {
+          firstRemoved = entry;
+        }
+      } else {
         entry->mKeyHash |= COLLISION_FLAG;
       }
     }
@@ -408,7 +416,8 @@ PLDHashTable::SearchTable(const void* aKey, PLDHashNumber aKeyHash,
     entry = ADDRESS_ENTRY(this, hash1);
     if (EntryIsFree(entry)) {
       METER(mStats.mMisses++);
-      return (firstRemoved && aIsAdd) ? firstRemoved : entry;
+      return (Reason == ForAdd) ? (firstRemoved ? firstRemoved : entry)
+                                : nullptr;
     }
 
     if (MATCH_ENTRY_KEYHASH(entry, aKeyHash) &&
@@ -553,11 +562,11 @@ PLDHashTable::Search(const void* aKey)
   METER(mStats.mSearches++);
 
   PLDHashNumber keyHash = ComputeKeyHash(aKey);
-  PLDHashEntryHdr* entry = SearchTable(aKey, keyHash,  false);
+  PLDHashEntryHdr* entry = SearchTable<ForSearchOrRemove>(aKey, keyHash);
 
   DECREMENT_RECURSION_LEVEL(this);
 
-  return !EntryIsFree(entry) ? entry : nullptr;
+  return entry;
 }
 
 MOZ_ALWAYS_INLINE PLDHashEntryHdr*
@@ -604,7 +613,7 @@ PLDHashTable::Add(const void* aKey)
 
 
   keyHash = ComputeKeyHash(aKey);
-  entry = SearchTable(aKey, keyHash,  true);
+  entry = SearchTable<ForAdd>(aKey, keyHash);
   if (!ENTRY_IS_LIVE(entry)) {
     
     METER(mStats.mAddMisses++);
@@ -638,8 +647,8 @@ PLDHashTable::Remove(const void* aKey)
   INCREMENT_RECURSION_LEVEL(this);
 
   PLDHashNumber keyHash = ComputeKeyHash(aKey);
-  PLDHashEntryHdr* entry = SearchTable(aKey, keyHash,  false);
-  if (ENTRY_IS_LIVE(entry)) {
+  PLDHashEntryHdr* entry = SearchTable<ForSearchOrRemove>(aKey, keyHash);
+  if (entry) {
     
     METER(mStats.mRemoveHits++);
     PL_DHashTableRawRemove(this, entry);
