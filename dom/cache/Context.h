@@ -152,6 +152,11 @@ public:
     return mQuotaInfo;
   }
 
+  
+  
+  
+  void NoteOrphanedData();
+
 private:
   class Data;
   class QuotaInitRunnable;
@@ -192,6 +197,7 @@ private:
   nsCOMPtr<nsIThread> mTarget;
   nsRefPtr<Data> mData;
   State mState;
+  bool mOrphanedData;
   QuotaInfo mQuotaInfo;
   nsRefPtr<QuotaInitRunnable> mInitRunnable;
   nsTArray<PendingAction> mPendingActions;

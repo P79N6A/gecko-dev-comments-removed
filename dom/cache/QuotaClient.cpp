@@ -172,7 +172,8 @@ public:
       
       if (leafName.EqualsLiteral("caches.sqlite-journal") ||
           leafName.EqualsLiteral("caches.sqlite-shm") ||
-          leafName.Find(NS_LITERAL_CSTRING("caches.sqlite-mj"), false, 0, 0) == 0) {
+          leafName.Find(NS_LITERAL_CSTRING("caches.sqlite-mj"), false, 0, 0) == 0 ||
+          leafName.EqualsLiteral("context_open.marker")) {
         continue;
       }
 

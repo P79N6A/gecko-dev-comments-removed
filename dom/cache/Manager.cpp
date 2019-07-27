@@ -1326,8 +1326,9 @@ public:
         
         nsRefPtr<Context> context = mManager->mContext;
 
-        
-        if (!context->IsCanceled()) {
+        if (context->IsCanceled()) {
+          context->NoteOrphanedData();
+        } else {
           context->CancelForCacheId(mCacheId);
           nsRefPtr<Action> action =
             new DeleteOrphanedCacheAction(mManager, mCacheId);
@@ -1483,6 +1484,23 @@ Manager::RemoveContext(Context* aContext)
   
   MOZ_ASSERT(mState == Closing);
 
+  
+  
+  
+  for (uint32_t i = 0; i < mCacheIdRefs.Length(); ++i) {
+    if (mCacheIdRefs[i].mOrphaned) {
+      aContext->NoteOrphanedData();
+      break;
+    }
+  }
+
+  for (uint32_t i = 0; i < mBodyIdRefs.Length(); ++i) {
+    if (mBodyIdRefs[i].mOrphaned) {
+      aContext->NoteOrphanedData();
+      break;
+    }
+  }
+
   mContext = nullptr;
 
   
@@ -1534,13 +1552,18 @@ Manager::ReleaseCacheId(CacheId aCacheId)
       if (mCacheIdRefs[i].mCount == 0) {
         bool orphaned = mCacheIdRefs[i].mOrphaned;
         mCacheIdRefs.RemoveElementAt(i);
-        
         nsRefPtr<Context> context = mContext;
-        if (orphaned && context && !context->IsCanceled()) {
-          context->CancelForCacheId(aCacheId);
-          nsRefPtr<Action> action = new DeleteOrphanedCacheAction(this,
-                                                                  aCacheId);
-          context->Dispatch(action);
+        
+        
+        if (orphaned && context) {
+          if (context->IsCanceled()) {
+            context->NoteOrphanedData();
+          } else {
+            context->CancelForCacheId(aCacheId);
+            nsRefPtr<Action> action = new DeleteOrphanedCacheAction(this,
+                                                                    aCacheId);
+            context->Dispatch(action);
+          }
         }
       }
       MaybeAllowContextToClose();
@@ -1578,11 +1601,16 @@ Manager::ReleaseBodyId(const nsID& aBodyId)
       if (mBodyIdRefs[i].mCount < 1) {
         bool orphaned = mBodyIdRefs[i].mOrphaned;
         mBodyIdRefs.RemoveElementAt(i);
-        
         nsRefPtr<Context> context = mContext;
-        if (orphaned && context && !context->IsCanceled()) {
-          nsRefPtr<Action> action = new DeleteOrphanedBodyAction(aBodyId);
-          context->Dispatch(action);
+        
+        
+        if (orphaned && context) {
+          if (context->IsCanceled()) {
+            context->NoteOrphanedData();
+          } else {
+            nsRefPtr<Action> action = new DeleteOrphanedBodyAction(aBodyId);
+            context->Dispatch(action);
+          }
         }
       }
       MaybeAllowContextToClose();

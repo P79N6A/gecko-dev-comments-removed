@@ -319,6 +319,60 @@ BodyIdToFile(nsIFile* aBaseDir, const nsID& aId, BodyFileType aType,
 
 } 
 
+nsresult
+CreateMarkerFile(const QuotaInfo& aQuotaInfo)
+{
+  nsCOMPtr<nsIFile> marker;
+  nsresult rv = aQuotaInfo.mDir->Clone(getter_AddRefs(marker));
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  rv = marker->Append(NS_LITERAL_STRING("cache"));
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  rv = marker->Append(NS_LITERAL_STRING("context_open.marker"));
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  rv = marker->Create(nsIFile::NORMAL_FILE_TYPE, 0644);
+  if (rv == NS_ERROR_FILE_ALREADY_EXISTS) {
+    rv = NS_OK;
+  }
+
+  
+  
+  
+  
+  
+
+  return rv;
+}
+
+nsresult
+DeleteMarkerFile(const QuotaInfo& aQuotaInfo)
+{
+  nsCOMPtr<nsIFile> marker;
+  nsresult rv = aQuotaInfo.mDir->Clone(getter_AddRefs(marker));
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  rv = marker->Append(NS_LITERAL_STRING("cache"));
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  rv = marker->Append(NS_LITERAL_STRING("context_open.marker"));
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  rv = marker->Remove( false);
+  if (rv == NS_ERROR_FILE_NOT_FOUND ||
+      rv == NS_ERROR_FILE_TARGET_DOES_NOT_EXIST) {
+    rv = NS_OK;
+  }
+
+  
+  
+  
+  
+
+  return NS_OK;
+}
+
 } 
 } 
 } 
