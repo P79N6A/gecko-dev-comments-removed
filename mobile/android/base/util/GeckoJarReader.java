@@ -110,6 +110,7 @@ public final class GeckoJarReader {
             
             
             
+            Log.e(LOGTAG, "Exception getting input stream from jar URL: " + url, ex);
             return null;
         }
     }
