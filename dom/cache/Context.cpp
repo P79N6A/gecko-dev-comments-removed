@@ -112,14 +112,18 @@ public:
 private:
   ~Data()
   {
-    if (mConnection) {
-      NS_ProxyRelease(mTarget, mConnection);
-    }
+    
+    
+    
+    
+    MOZ_ASSERT(mTarget == NS_GetCurrentThread());
   }
 
   nsCOMPtr<nsIThread> mTarget;
   nsCOMPtr<mozIStorageConnection> mConnection;
 
+  
+  
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Context::Data)
 };
 
@@ -420,6 +424,8 @@ Context::QuotaInitRunnable::Run()
       
       mInitAction->RunOnTarget(resolver, mQuotaInfo, mData);
       MOZ_ASSERT(resolver->Resolved());
+
+      mData = nullptr;
 
       break;
     }
@@ -915,6 +921,7 @@ Context::~Context()
 {
   NS_ASSERT_OWNINGTHREAD(Context);
   MOZ_ASSERT(mManager);
+  MOZ_ASSERT(!mData);
 
   if (mThreadsafeHandle) {
     mThreadsafeHandle->ContextDestroyed(this);
