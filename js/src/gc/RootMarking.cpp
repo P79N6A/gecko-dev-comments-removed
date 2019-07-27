@@ -540,11 +540,6 @@ AutoGCRooter::trace(JSTracer *trc)
         return;
       }
 
-      case IONALLOC: {
-        static_cast<js::jit::AutoTempAllocatorRooter *>(this)->trace(trc);
-        return;
-      }
-
       case WRAPPER: {
         
 

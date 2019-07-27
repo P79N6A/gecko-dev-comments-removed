@@ -302,15 +302,14 @@ class JS_PUBLIC_API(AutoGCRooter)
         NAMEVECTOR =  -17, 
         HASHABLEVALUE=-18, 
         IONMASM =     -19, 
-        IONALLOC =    -20, 
-        WRAPVECTOR =  -21, 
-        WRAPPER =     -22, 
-        OBJOBJHASHMAP=-23, 
-        OBJU32HASHMAP=-24, 
-        OBJHASHSET =  -25, 
-        JSONPARSER =  -26, 
-        CUSTOM =      -27, 
-        FUNVECTOR =   -28  
+        WRAPVECTOR =  -20, 
+        WRAPPER =     -21, 
+        OBJOBJHASHMAP=-22, 
+        OBJU32HASHMAP=-23, 
+        OBJHASHSET =  -24, 
+        JSONPARSER =  -25, 
+        CUSTOM =      -26, 
+        FUNVECTOR =   -27  
     };
 
   private:
