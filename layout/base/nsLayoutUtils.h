@@ -1613,6 +1613,10 @@ public:
                                          const nsRect& aImageSourceArea,
                                          const nsRect& aDestArea);
 
+  static nsRect GetWholeImageDestination(const nsSize& aWholeImageSize,
+                                         const nsRect& aImageSourceArea,
+                                         const nsRect& aDestArea);
+
   
 
 
