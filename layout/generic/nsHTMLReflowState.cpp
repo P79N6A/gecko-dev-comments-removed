@@ -669,9 +669,9 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
   
   
   if (!IsBResize() && mCBReflowState &&
-      (IS_TABLE_CELL(mCBReflowState->frame->GetType()) ||
+      (IS_TABLE_CELL(mCBReflowState->frame->GetType()) || 
        mCBReflowState->mFlags.mHeightDependsOnAncestorCell) &&
-      !mCBReflowState->mFlags.mSpecialBSizeReflow &&
+      !mCBReflowState->mFlags.mSpecialBSizeReflow && 
       dependsOnCBBSize) {
     SetBResize(true);
     mFlags.mHeightDependsOnAncestorCell = true;
@@ -694,11 +694,11 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
       if (!rs) {
         break;
       }
-
+        
       if (rs->frame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_BSIZE)
         break; 
       rs->frame->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE);
-
+      
       
       
       if (rs == mCBReflowState) {
@@ -716,7 +716,7 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
     
     
     
-
+    
   }
   if (frame->GetStateBits() & NS_FRAME_IS_DIRTY) {
     
@@ -1741,10 +1741,15 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
 
     if (marginBStartIsAuto) {
       if (marginBEndIsAuto) {
-        
-        
-        margin.BStart(cbwm) = availMarginSpace / 2;
-        margin.BEnd(cbwm) = availMarginSpace - margin.BStart(cbwm);
+        if (availMarginSpace < 0) {
+          
+          margin.BEnd(cbwm) = availMarginSpace;
+        } else {
+          
+          
+          margin.BStart(cbwm) = availMarginSpace / 2;
+          margin.BEnd(cbwm) = availMarginSpace - margin.BStart(cbwm);
+        }
       } else {
         
         margin.BStart(cbwm) = availMarginSpace;
@@ -1778,13 +1783,13 @@ GetBlockMarginBorderPadding(const nsHTMLReflowState* aReflowState)
 
   
   nsMargin margin = aReflowState->ComputedPhysicalMargin();
-  if (NS_AUTOMARGIN == margin.top)
+  if (NS_AUTOMARGIN == margin.top) 
     margin.top = 0;
-  if (NS_AUTOMARGIN == margin.bottom)
+  if (NS_AUTOMARGIN == margin.bottom) 
     margin.bottom = 0;
 
   result += margin.top + margin.bottom;
-  result += aReflowState->ComputedPhysicalBorderPadding().top +
+  result += aReflowState->ComputedPhysicalBorderPadding().top + 
             aReflowState->ComputedPhysicalBorderPadding().bottom;
 
   return result;
@@ -1806,12 +1811,12 @@ CalcQuirkContainingBlockHeight(const nsHTMLReflowState* aCBReflowState)
 {
   const nsHTMLReflowState* firstAncestorRS = nullptr; 
   const nsHTMLReflowState* secondAncestorRS = nullptr; 
-
   
   
   
-  nscoord result = NS_AUTOHEIGHT;
-
+  
+  nscoord result = NS_AUTOHEIGHT; 
+                             
   const nsHTMLReflowState* rs = aCBReflowState;
   for (; rs; rs = rs->parentReflowState) {
     nsIAtom* frameType = rs->frame->GetType();
@@ -1844,7 +1849,7 @@ CalcQuirkContainingBlockHeight(const nsHTMLReflowState* aCBReflowState)
     else if (nsGkAtoms::pageContentFrame == frameType) {
       nsIFrame* prevInFlow = rs->frame->GetPrevInFlow();
       
-      if (prevInFlow)
+      if (prevInFlow) 
         break;
     }
     else {
@@ -1860,7 +1865,7 @@ CalcQuirkContainingBlockHeight(const nsHTMLReflowState* aCBReflowState)
 
     
     
-    if ((nsGkAtoms::canvasFrame == frameType) ||
+    if ((nsGkAtoms::canvasFrame == frameType) || 
         (nsGkAtoms::pageContentFrame == frameType)) {
 
       result -= GetBlockMarginBorderPadding(firstAncestorRS);
@@ -1883,7 +1888,7 @@ CalcQuirkContainingBlockHeight(const nsHTMLReflowState* aCBReflowState)
         }
       }
 #endif
-
+      
     }
     
     else if (nsGkAtoms::blockFrame == frameType &&
@@ -2554,7 +2559,7 @@ nsHTMLReflowState::CalculateBlockSideMargins(nsIAtom* aFrameType)
   SetComputedLogicalMargin(margin.ConvertTo(mWritingMode, cbWM));
 }
 
-#define NORMAL_LINE_HEIGHT_FACTOR 1.2f    // in term of emHeight
+#define NORMAL_LINE_HEIGHT_FACTOR 1.2f    // in term of emHeight 
 
 
 
@@ -2615,7 +2620,7 @@ ComputeLineHeight(nsStyleContext* aStyleContext,
   NS_ASSERTION(lhCoord.GetUnit() == eStyleUnit_Normal ||
                lhCoord.GetUnit() == eStyleUnit_Enumerated,
                "bad line-height unit");
-
+  
   if (lhCoord.GetUnit() == eStyleUnit_Enumerated) {
     NS_ASSERTION(lhCoord.GetIntValue() == NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT,
                  "bad line-height value");
