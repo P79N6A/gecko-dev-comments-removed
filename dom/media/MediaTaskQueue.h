@@ -41,11 +41,11 @@ public:
 
   explicit MediaTaskQueue(TemporaryRef<SharedThreadPool> aPool, bool aRequireTailDispatch = false);
 
-  nsresult Dispatch(TemporaryRef<nsIRunnable> aRunnable)
+  void Dispatch(TemporaryRef<nsIRunnable> aRunnable,
+                DispatchFailureHandling aFailureHandling = AssertDispatchSuccess)
   {
-    MonitorAutoLock mon(mQueueMonitor);
     nsCOMPtr<nsIRunnable> r = dont_AddRef(aRunnable.take());
-    return DispatchLocked(r.forget(), AbortIfFlushing);
+    return Dispatch(r.forget(), aFailureHandling);
   }
 
   
@@ -91,7 +91,7 @@ public:
 
   
   
-  nsresult SyncDispatch(TemporaryRef<nsIRunnable> aRunnable);
+  void SyncDispatch(TemporaryRef<nsIRunnable> aRunnable);
 
   
   
