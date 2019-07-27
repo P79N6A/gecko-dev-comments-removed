@@ -7,6 +7,7 @@
 #define __editor_h__
 
 #include "mozilla/Assertions.h"         
+#include "mozilla/dom/OwningNonNull.h"  
 #include "mozilla/dom/Text.h"
 #include "nsAutoPtr.h"                  
 #include "nsCOMArray.h"                 
@@ -830,7 +831,8 @@ protected:
   nsRefPtr<mozilla::TextComposition> mComposition;
 
   
-  nsCOMArray<nsIEditActionListener> mActionListeners;  
+  
+  nsTArray<mozilla::dom::OwningNonNull<nsIEditActionListener>> mActionListeners;
   nsCOMArray<nsIEditorObserver> mEditorObservers;  
   nsCOMArray<nsIDocumentStateListener> mDocStateListeners;
 
