@@ -79,6 +79,15 @@ var gAdvancedPane = {
                      gAdvancedPane.showCertificates);
     setEventListener("viewSecurityDevicesButton", "command",
                      gAdvancedPane.showSecurityDevices);
+
+#ifdef MOZ_WIDGET_GTK
+    
+    
+    let tabsElement = document.getElementById("tabsElement");
+    tabsElement.addEventListener("DOMMouseScroll", event => {
+      event.stopPropagation();
+    }, true);
+#endif
   },
 
   
