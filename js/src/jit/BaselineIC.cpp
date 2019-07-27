@@ -10836,19 +10836,23 @@ ICCall_Fallback::Compiler::generateStubCode(MacroAssembler& masm)
     leaveStubFrame(masm, true);
 
     
-    
-    if (isConstructing_) {
-        MOZ_ASSERT(JSReturnOperand == R0);
-        Label skipThisReplace;
+    regs = availableGeneralRegs(2);
+    Register scratch = regs.takeAny();
 
-        masm.branchTestObject(Assembler::Equal, JSReturnOperand, &skipThisReplace);
-        masm.moveValue(R1, R0);
+    
+    
+    MOZ_ASSERT(JSReturnOperand == R0);
+    Label skipThisReplace;
+    masm.load16ZeroExtend(Address(BaselineStubReg, ICStub::offsetOfExtra()), scratch);
+    masm.branchTest32(Assembler::Zero, scratch, Imm32(ICCall_Fallback::CONSTRUCTING_FLAG),
+                      &skipThisReplace);
+    masm.branchTestObject(Assembler::Equal, JSReturnOperand, &skipThisReplace);
+    masm.moveValue(R1, R0);
 #ifdef DEBUG
-        masm.branchTestObject(Assembler::Equal, JSReturnOperand, &skipThisReplace);
-        masm.assumeUnreachable("Failed to return object in constructing call.");
+    masm.branchTestObject(Assembler::Equal, JSReturnOperand, &skipThisReplace);
+    masm.assumeUnreachable("Failed to return object in constructing call.");
 #endif
-        masm.bind(&skipThisReplace);
-    }
+    masm.bind(&skipThisReplace);
 
     
     
@@ -10869,8 +10873,7 @@ ICCall_Fallback::Compiler::postGenerateStubCode(MacroAssembler& masm, Handle<Jit
 
     CodeOffsetLabel offset(returnOffset_);
     offset.fixup(&masm);
-    cx->compartment()->jitCompartment()->initBaselineCallReturnAddr(code->raw() + offset.offset(),
-                                                                    isConstructing_);
+    cx->compartment()->jitCompartment()->initBaselineCallReturnAddr(code->raw() + offset.offset());
     return true;
 }
 
