@@ -1049,7 +1049,7 @@ WrapNewBindingNonWrapperCachedObject(JSContext* cx,
   
   
   rval.set(JS::ObjectValue(*obj));
-  return JS_WrapValue(cx, rval);
+  return MaybeWrapObjectValue(cx, rval);
 }
 
 
@@ -1097,7 +1097,7 @@ WrapNewBindingNonWrapperCachedObject(JSContext* cx,
   
   
   rval.set(JS::ObjectValue(*obj));
-  return JS_WrapValue(cx, rval);
+  return MaybeWrapObjectValue(cx, rval);
 }
 
 
