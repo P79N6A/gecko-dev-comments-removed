@@ -525,6 +525,34 @@ bool WebGLContext::ValidateGLSLString(const nsAString& string, const char *info)
 
 
 bool
+WebGLContext::ValidateFramebufferAttachment(GLenum attachment, const char* funcName)
+{
+    if (attachment == LOCAL_GL_DEPTH_ATTACHMENT ||
+        attachment == LOCAL_GL_STENCIL_ATTACHMENT ||
+        attachment == LOCAL_GL_DEPTH_STENCIL_ATTACHMENT)
+    {
+        return true;
+    }
+
+    GLenum colorAttachCount = 1;
+    if (IsExtensionEnabled(WebGLExtensionID::WEBGL_draw_buffers))
+        colorAttachCount = mGLMaxColorAttachments;
+
+    if (attachment >= LOCAL_GL_COLOR_ATTACHMENT0 &&
+        attachment < GLenum(LOCAL_GL_COLOR_ATTACHMENT0 + colorAttachCount))
+    {
+        return true;
+    }
+
+    ErrorInvalidEnum("%s: attachment: invalid enum value 0x%x.", funcName, attachment);
+    return false;
+}
+
+
+
+
+
+bool
 WebGLContext::ValidateTexImageFormat(GLenum format, WebGLTexImageFunc func)
 {
     
