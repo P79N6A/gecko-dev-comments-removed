@@ -33,54 +33,7 @@ class ServiceWorkerRegistration;
 namespace workers {
 
 class ServiceWorker;
-
-
-
-
-
-
-
-class ServiceWorkerInfo MOZ_FINAL
-{
-  nsCString mScriptSpec;
-  ServiceWorkerState mState;
-
-  ~ServiceWorkerInfo()
-  { }
-
-public:
-  NS_INLINE_DECL_REFCOUNTING(ServiceWorkerInfo)
-
-  const nsCString&
-  GetScriptSpec() const
-  {
-    return mScriptSpec;
-  }
-
-  explicit ServiceWorkerInfo(const nsACString& aScriptSpec)
-    : mScriptSpec(aScriptSpec)
-    , mState(ServiceWorkerState::EndGuard_)
-  { }
-
-  void
-  UpdateState(ServiceWorkerState aState)
-  {
-#ifdef DEBUG
-    
-    
-    if (aState != ServiceWorkerState::Redundant) {
-      MOZ_ASSERT_IF(mState == ServiceWorkerState::EndGuard_, aState == ServiceWorkerState::Installing);
-      MOZ_ASSERT_IF(mState == ServiceWorkerState::Installing, aState == ServiceWorkerState::Installed);
-      MOZ_ASSERT_IF(mState == ServiceWorkerState::Installed, aState == ServiceWorkerState::Activating);
-      MOZ_ASSERT_IF(mState == ServiceWorkerState::Activating, aState == ServiceWorkerState::Activated);
-    }
-    
-    MOZ_ASSERT_IF(mState == ServiceWorkerState::Activated, aState == ServiceWorkerState::Redundant);
-#endif
-    mState = aState;
-    
-  }
-};
+class ServiceWorkerInfo;
 
 class ServiceWorkerJobQueue;
 
@@ -225,6 +178,70 @@ public:
 
   void
   FinishActivate(bool aSuccess);
+
+  void
+  QueueStateChangeEvent(ServiceWorkerInfo* aInfo,
+                        ServiceWorkerState aState) const;
+};
+
+
+
+
+
+
+
+class ServiceWorkerInfo MOZ_FINAL
+{
+private:
+  const ServiceWorkerRegistrationInfo* mRegistration;
+  nsCString mScriptSpec;
+  ServiceWorkerState mState;
+
+  ~ServiceWorkerInfo()
+  { }
+
+public:
+  NS_INLINE_DECL_REFCOUNTING(ServiceWorkerInfo)
+
+  const nsCString&
+  ScriptSpec() const
+  {
+    return mScriptSpec;
+  }
+
+  explicit ServiceWorkerInfo(ServiceWorkerRegistrationInfo* aReg,
+                             const nsACString& aScriptSpec)
+    : mRegistration(aReg)
+    , mScriptSpec(aScriptSpec)
+    , mState(ServiceWorkerState::EndGuard_)
+  {
+    MOZ_ASSERT(mRegistration);
+  }
+
+  ServiceWorkerState
+  State() const
+  {
+    return mState;
+  }
+
+  void
+  UpdateState(ServiceWorkerState aState)
+  {
+#ifdef DEBUG
+    
+    
+    if (aState != ServiceWorkerState::Redundant) {
+      MOZ_ASSERT_IF(mState == ServiceWorkerState::EndGuard_, aState == ServiceWorkerState::Installing);
+      MOZ_ASSERT_IF(mState == ServiceWorkerState::Installing, aState == ServiceWorkerState::Installed);
+      MOZ_ASSERT_IF(mState == ServiceWorkerState::Installed, aState == ServiceWorkerState::Activating);
+      MOZ_ASSERT_IF(mState == ServiceWorkerState::Activating, aState == ServiceWorkerState::Activated);
+    }
+    
+    MOZ_ASSERT_IF(mState == ServiceWorkerState::Activated, aState == ServiceWorkerState::Redundant);
+#endif
+    mState = aState;
+    mRegistration->QueueStateChangeEvent(this, mState);
+  }
 };
 
 #define NS_SERVICEWORKERMANAGER_IMPL_IID                 \
