@@ -225,10 +225,11 @@ LayoutHelpers.prototype = {
 
 
 
+
   scrollIntoViewIfNeeded: function(elem, centered) {
     
     
-    centered = centered === undefined? true: !!centered;
+    centered = centered === undefined ? true: !!centered;
 
     let win = elem.ownerDocument.defaultView;
     let clientRect = elem.getBoundingClientRect();
@@ -240,14 +241,10 @@ LayoutHelpers.prototype = {
 
     let topToBottom = clientRect.bottom;
     let bottomToTop = clientRect.top - win.innerHeight;
-    let leftToRight = clientRect.right;
-    let rightToLeft = clientRect.left - win.innerWidth;
-    let xAllowed = true;  
     let yAllowed = true;  
 
     
     
-
     if ((topToBottom > 0 || !centered) && topToBottom <= elem.offsetHeight) {
       win.scrollBy(0, topToBottom - elem.offsetHeight);
       yAllowed = false;
@@ -257,41 +254,14 @@ LayoutHelpers.prototype = {
       yAllowed = false;
     }
 
-    if ((leftToRight > 0 || !centered) && leftToRight <= elem.offsetWidth) {
-      if (xAllowed) {
-        win.scrollBy(leftToRight - elem.offsetWidth, 0);
-        xAllowed = false;
-      }
-    } else
-    if ((rightToLeft < 0 || !centered) && rightToLeft >= -elem.offsetWidth) {
-      if (xAllowed) {
-        win.scrollBy(rightToLeft + elem.offsetWidth, 0);
-        xAllowed = false;
-      }
-    }
-
     
     
-
     if (centered) {
-
       if (yAllowed && (topToBottom <= 0 || bottomToTop >= 0)) {
         win.scroll(win.scrollX,
                    win.scrollY + clientRect.top
                    - (win.innerHeight - elem.offsetHeight) / 2);
       }
-
-      if (xAllowed && (leftToRight <= 0 || rightToLeft <= 0)) {
-        win.scroll(win.scrollX + clientRect.left
-                   - (win.innerWidth - elem.offsetWidth) / 2,
-                   win.scrollY);
-      }
-    }
-
-    if (!this.isTopLevelWindow(win)) {
-      
-      let frameElement = this.getFrameElement(win);
-      this.scrollIntoViewIfNeeded(frameElement, centered);
     }
   },
 
