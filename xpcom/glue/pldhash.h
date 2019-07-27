@@ -194,7 +194,7 @@ private:
 
 
 
-  uint16_t            mRecursionLevel;
+  mutable uint16_t    mRecursionLevel;
   uint32_t            mEntrySize;     
   uint32_t            mEntryCount;    
   uint32_t            mRemovedCount;  
@@ -271,6 +271,27 @@ public:
 #ifdef PL_DHASHMETER
   void DumpMeter(PLDHashEnumerator aDump, FILE* aFp);
 #endif
+
+  
+
+
+
+
+  class Iterator {
+  public:
+    Iterator(const PLDHashTable* aTable);
+    Iterator(const Iterator& aIterator);
+    ~Iterator();
+    bool HasMoreEntries() const;
+    PLDHashEntryHdr* NextEntry();
+
+  private:
+    const PLDHashTable* mTable;       
+    char* mEntryAddr;                 
+    uint32_t mEntryOffset;            
+  };
+
+  Iterator Iterate() const { return Iterator(this); }
 
 private:
   PLDHashEntryHdr* PL_DHASH_FASTCALL

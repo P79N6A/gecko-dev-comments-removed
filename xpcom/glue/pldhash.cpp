@@ -697,6 +697,8 @@ PLDHashTable::Enumerate(PLDHashEnumerator aEtor, void* aArg)
 {
   INCREMENT_RECURSION_LEVEL(this);
 
+  
+  
   char* entryAddr = mEntryStore;
   uint32_t capacity = Capacity();
   uint32_t tableSize = capacity * mEntrySize;
@@ -833,6 +835,97 @@ PL_DHashTableSizeOfIncludingThis(
 {
   return aTable->SizeOfIncludingThis(aSizeOfEntryExcludingThis,
                                      aMallocSizeOf, aArg);
+}
+
+PLDHashTable::Iterator::Iterator(const PLDHashTable* aTable)
+: mTable(aTable),
+  mEntryAddr(mTable->mEntryStore),
+  mEntryOffset(0)
+{
+  
+  
+  INCREMENT_RECURSION_LEVEL(mTable);
+
+  
+  
+  
+  
+  uint32_t capacity = mTable->Capacity();
+  uint32_t tableSize = capacity * mTable->EntrySize();
+  char* entryLimit = mEntryAddr + tableSize;
+
+  if (ChaosMode::isActive()) {
+    
+    
+    
+    mEntryAddr += ChaosMode::randomUint32LessThan(capacity) * mTable->mEntrySize;
+    if (mEntryAddr >= entryLimit) {
+      mEntryAddr -= tableSize;
+    }
+  }
+}
+
+PLDHashTable::Iterator::Iterator(const Iterator& aIterator)
+: mTable(aIterator.mTable),
+  mEntryAddr(aIterator.mEntryAddr),
+  mEntryOffset(aIterator.mEntryOffset)
+{
+  
+  
+  INCREMENT_RECURSION_LEVEL(mTable);
+}
+
+PLDHashTable::Iterator::~Iterator()
+{
+  DECREMENT_RECURSION_LEVEL(mTable);
+}
+
+bool PLDHashTable::Iterator::HasMoreEntries() const
+{
+  
+  
+  
+  
+  return mEntryOffset < mTable->EntryCount();
+}
+
+PLDHashEntryHdr* PLDHashTable::Iterator::NextEntry()
+{
+  MOZ_ASSERT(HasMoreEntries());
+
+  
+  
+  
+  
+  uint32_t capacity = mTable->Capacity();
+  uint32_t tableSize = capacity * mTable->mEntrySize;
+  char* entryLimit = mEntryAddr + tableSize;
+
+  
+  
+  
+  
+  
+  
+  for (uint32_t e = 0; e < capacity; ++e) {
+    PLDHashEntryHdr* entry = (PLDHashEntryHdr*)mEntryAddr;
+
+    
+    
+    mEntryAddr += mTable->mEntrySize;
+    if (mEntryAddr >= entryLimit) {
+      mEntryAddr -= tableSize;
+    }
+    if (ENTRY_IS_LIVE(entry)) {
+      ++mEntryOffset;
+      return entry;
+    }
+  }
+
+  
+  
+  
+  MOZ_CRASH("Flagrant misuse of hashtable iterators not caught by checks.");
 }
 
 #ifdef DEBUG
