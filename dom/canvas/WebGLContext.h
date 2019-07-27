@@ -1073,7 +1073,7 @@ protected:
 
     
     
-    GLenum BaseTexFormat(GLenum internalFormat) const;
+    TexFormat BaseTexFormat(TexInternalFormat internalFormat) const;
 
     bool CreateOffscreenGL(bool forceEnabled);
     bool InitAndValidateGL();
