@@ -1360,7 +1360,7 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
   TILING_LOG("TILING %p: Progressive update stale region %s\n", mPaintedLayer, Stringify(staleRegion).c_str());
 
   LayerMetricsWrapper scrollAncestor;
-  mPaintedLayer->GetAncestorLayers(&scrollAncestor, nullptr, nullptr);
+  mPaintedLayer->GetAncestorLayers(&scrollAncestor, nullptr);
 
   
   

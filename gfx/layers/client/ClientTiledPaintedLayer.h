@@ -81,8 +81,7 @@ public:
 
 
   void GetAncestorLayers(LayerMetricsWrapper* aOutScrollAncestor,
-                         LayerMetricsWrapper* aOutDisplayPortAncestor,
-                         bool* aOutHasTransformAnimation);
+                         LayerMetricsWrapper* aOutDisplayPortAncestor);
 
 private:
   ClientLayerManager* ClientManager()
@@ -95,6 +94,12 @@ private:
 
 
   void BeginPaint();
+
+  
+
+
+
+  bool UseFastPath();
 
   
 
