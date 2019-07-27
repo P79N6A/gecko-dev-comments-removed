@@ -193,6 +193,28 @@ private:
   nsRefPtr<BluetoothProfileResultHandler> mRes;
 };
 
+class OnErrorProfileResultHandlerRunnable MOZ_FINAL : public nsRunnable
+{
+public:
+  OnErrorProfileResultHandlerRunnable(BluetoothProfileResultHandler* aRes,
+                                      nsresult aRv)
+  : mRes(aRes)
+  , mRv(aRv)
+  {
+    MOZ_ASSERT(mRes);
+  }
+
+  NS_IMETHOD Run() MOZ_OVERRIDE
+  {
+    mRes->OnError(mRv);
+    return NS_OK;
+  }
+
+private:
+  nsRefPtr<BluetoothProfileResultHandler> mRes;
+  nsresult mRv;
+};
+
 
 
 
@@ -204,10 +226,28 @@ void
 BluetoothA2dpManager::InitA2dpInterface(BluetoothProfileResultHandler* aRes)
 {
   BluetoothInterface* btInf = BluetoothInterface::GetInstance();
-  NS_ENSURE_TRUE_VOID(btInf);
+  if (NS_WARN_IF(!btInf)) {
+    
+    
+    nsRefPtr<nsRunnable> r =
+      new OnErrorProfileResultHandlerRunnable(aRes, NS_ERROR_FAILURE);
+    if (NS_FAILED(NS_DispatchToMainThread(r))) {
+      BT_LOGR("Failed to dispatch HFP OnError runnable");
+    }
+    return;
+  }
 
   sBtA2dpInterface = btInf->GetBluetoothA2dpInterface();
-  NS_ENSURE_TRUE_VOID(sBtA2dpInterface);
+  if (NS_WARN_IF(!sBtA2dpInterface)) {
+    
+    
+    nsRefPtr<nsRunnable> r =
+      new OnErrorProfileResultHandlerRunnable(aRes, NS_ERROR_FAILURE);
+    if (NS_FAILED(NS_DispatchToMainThread(r))) {
+      BT_LOGR("Failed to dispatch HFP OnError runnable");
+    }
+    return;
+  }
 
   BluetoothA2dpManager* a2dpManager = BluetoothA2dpManager::Get();
   sBtA2dpInterface->Init(a2dpManager, new InitA2dpResultHandler(aRes));
@@ -341,6 +381,11 @@ public:
     sBtA2dpInterface = nullptr;
     if (sBtAvrcpInterface) {
       sBtAvrcpInterface->Cleanup(new CleanupAvrcpResultHandler(mRes));
+    } else if (mRes) {
+      
+
+
+      mRes->Deinit();
     }
   }
 
@@ -360,6 +405,11 @@ public:
     sBtA2dpInterface = nullptr;
     if (sBtAvrcpInterface) {
       sBtAvrcpInterface->Cleanup(new CleanupAvrcpResultHandler(mRes));
+    } else if (mRes) {
+      
+
+
+      mRes->Deinit();
     }
 
     return NS_OK;

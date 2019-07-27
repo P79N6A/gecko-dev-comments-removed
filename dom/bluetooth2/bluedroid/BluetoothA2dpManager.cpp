@@ -197,6 +197,28 @@ private:
   nsRefPtr<BluetoothProfileResultHandler> mRes;
 };
 
+class OnErrorProfileResultHandlerRunnable MOZ_FINAL : public nsRunnable
+{
+public:
+  OnErrorProfileResultHandlerRunnable(BluetoothProfileResultHandler* aRes,
+                                      nsresult aRv)
+  : mRes(aRes)
+  , mRv(aRv)
+  {
+    MOZ_ASSERT(mRes);
+  }
+
+  NS_IMETHOD Run() MOZ_OVERRIDE
+  {
+    mRes->OnError(mRv);
+    return NS_OK;
+  }
+
+private:
+  nsRefPtr<BluetoothProfileResultHandler> mRes;
+  nsresult mRv;
+};
+
 
 
 
@@ -208,19 +230,25 @@ void
 BluetoothA2dpManager::InitA2dpInterface(BluetoothProfileResultHandler* aRes)
 {
   BluetoothInterface* btInf = BluetoothInterface::GetInstance();
-  if (!btInf) {
-    BT_LOGR("Error: Bluetooth interface not available");
-    if (aRes) {
-      aRes->OnError(NS_ERROR_FAILURE);
+  if (NS_WARN_IF(!btInf)) {
+    
+    
+    nsRefPtr<nsRunnable> r =
+      new OnErrorProfileResultHandlerRunnable(aRes, NS_ERROR_FAILURE);
+    if (NS_FAILED(NS_DispatchToMainThread(r))) {
+      BT_LOGR("Failed to dispatch HFP OnError runnable");
     }
     return;
   }
 
   sBtA2dpInterface = btInf->GetBluetoothA2dpInterface();
-  if (!sBtA2dpInterface) {
-    BT_LOGR("Error: Bluetooth A2DP interface not available");
-    if (aRes) {
-      aRes->OnError(NS_ERROR_FAILURE);
+  if (NS_WARN_IF(!sBtA2dpInterface)) {
+    
+    
+    nsRefPtr<nsRunnable> r =
+      new OnErrorProfileResultHandlerRunnable(aRes, NS_ERROR_FAILURE);
+    if (NS_FAILED(NS_DispatchToMainThread(r))) {
+      BT_LOGR("Failed to dispatch HFP OnError runnable");
     }
     return;
   }
@@ -357,6 +385,11 @@ public:
     sBtA2dpInterface = nullptr;
     if (sBtAvrcpInterface) {
       sBtAvrcpInterface->Cleanup(new CleanupAvrcpResultHandler(mRes));
+    } else if (mRes) {
+      
+
+
+      mRes->Deinit();
     }
   }
 
@@ -376,6 +409,11 @@ public:
     sBtA2dpInterface = nullptr;
     if (sBtAvrcpInterface) {
       sBtAvrcpInterface->Cleanup(new CleanupAvrcpResultHandler(mRes));
+    } else if (mRes) {
+      
+
+
+      mRes->Deinit();
     }
 
     return NS_OK;
