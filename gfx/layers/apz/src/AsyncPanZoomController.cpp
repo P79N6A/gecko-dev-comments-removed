@@ -16,6 +16,7 @@
 #include "GestureEventListener.h"       
 #include "InputData.h"                  
 #include "InputBlockState.h"            
+#include "InputQueue.h"                 
 #include "OverscrollHandoffState.h"     
 #include "TaskThrottler.h"              
 #include "Units.h"                      
@@ -885,7 +886,7 @@ AsyncPanZoomController::AsyncPanZoomController(uint64_t aLayersId,
      mAsyncScrollTimeoutTask(nullptr),
      mState(NOTHING),
      mNotificationBlockers(0),
-     mTouchBlockBalance(0),
+     mInputQueue(new InputQueue()),
      mTreeManager(aTreeManager),
      mAPZCId(sAsyncPanZoomControllerCount++),
      mSharedLock(nullptr),
@@ -926,6 +927,13 @@ AsyncPanZoomController::GetGestureEventListener() const {
   return listener.forget();
 }
 
+nsRefPtr<InputQueue>
+AsyncPanZoomController::GetInputQueue() const {
+  MonitorAutoLock lock(mRefPtrMonitor);
+  MOZ_ASSERT(mInputQueue);
+  return mInputQueue;
+}
+
 void
 AsyncPanZoomController::Destroy()
 {
@@ -933,12 +941,11 @@ AsyncPanZoomController::Destroy()
 
   CancelAnimation();
 
-  mTouchBlockQueue.Clear();
-
   { 
     MonitorAutoLock lock(mRefPtrMonitor);
     mGeckoContentController = nullptr;
     mGestureEventListener = nullptr;
+    mInputQueue = nullptr;  
   }
   mPrevSibling = nullptr;
   mLastChild = nullptr;
@@ -1007,76 +1014,7 @@ AsyncPanZoomController::ArePointerEventsConsumable(TouchBlockState* aBlock, uint
 }
 
 nsEventStatus AsyncPanZoomController::ReceiveInputEvent(const InputData& aEvent) {
-  AssertOnControllerThread();
-
-  if (aEvent.mInputType != MULTITOUCH_INPUT) {
-    HandleInputEvent(aEvent);
-    
-    
-    return nsEventStatus_eConsumeDoDefault;
-  }
-
-  TouchBlockState* block = nullptr;
-  if (aEvent.AsMultiTouchInput().mType == MultiTouchInput::MULTITOUCH_START) {
-    block = StartNewTouchBlock(false);
-    APZC_LOG("%p started new touch block %p\n", this, block);
-
-    
-    
-    
-    
-    
-    
-    if (block == CurrentTouchBlock()) {
-      if (block->GetOverscrollHandoffChain()->HasFastMovingApzc()) {
-        
-        
-        block->DisallowSingleTap();
-      }
-      block->GetOverscrollHandoffChain()->CancelAnimations();
-    }
-
-    if (NeedToWaitForContent()) {
-      
-      
-      ScheduleContentResponseTimeout();
-    } else {
-      
-      
-      
-      APZC_LOG("%p not waiting for content response on block %p\n", this, block);
-      mTouchBlockBalance++;
-      block->TimeoutContentResponse();
-    }
-  } else if (mTouchBlockQueue.IsEmpty()) {
-    NS_WARNING("Received a non-start touch event while no touch blocks active!");
-  } else {
-    
-    block = mTouchBlockQueue.LastElement().get();
-    APZC_LOG("%p received new event in block %p\n", this, block);
-  }
-
-  if (!block) {
-    return nsEventStatus_eIgnore;
-  }
-
-  nsEventStatus result = ArePointerEventsConsumable(block, aEvent.AsMultiTouchInput().mTouches.Length())
-      ? nsEventStatus_eConsumeDoDefault
-      : nsEventStatus_eIgnore;
-
-  if (block == CurrentTouchBlock() && block->IsReadyForHandling()) {
-    APZC_LOG("%p's current touch block is ready with preventdefault %d\n",
-        this, block->IsDefaultPrevented());
-    if (block->IsDefaultPrevented()) {
-      return result;
-    }
-    HandleInputEvent(aEvent);
-    return result;
-  }
-
-  
-  block->AddEvent(aEvent.AsMultiTouchInput());
-  return result;
+  return GetInputQueue()->ReceiveInputEvent(this, aEvent);
 }
 
 nsEventStatus AsyncPanZoomController::HandleInputEvent(const InputData& aEvent) {
@@ -1534,7 +1472,7 @@ nsEventStatus AsyncPanZoomController::OnPanBegin(const PanGestureInput& aEvent) 
     CancelAnimation();
   }
 
-  mPanGestureState = MakeUnique<InputBlockState>(BuildOverscrollHandoffChain());
+  mPanGestureState = MakeUnique<InputBlockState>(this);
 
   mX.StartTouch(aEvent.mPanStartPoint.x, aEvent.mTime);
   mY.StartTouch(aEvent.mPanStartPoint.y, aEvent.mTime);
@@ -1613,7 +1551,7 @@ nsEventStatus AsyncPanZoomController::OnPanMomentumStart(const PanGestureInput& 
     CancelAnimation();
   }
 
-  mPanGestureState = MakeUnique<InputBlockState>(BuildOverscrollHandoffChain());
+  mPanGestureState = MakeUnique<InputBlockState>(this);
 
   return nsEventStatus_eConsumeNoDefault;
 }
@@ -1641,8 +1579,7 @@ nsEventStatus AsyncPanZoomController::OnLongPress(const TapGestureInput& aEvent)
     int32_t modifiers = WidgetModifiersToDOMModifiers(aEvent.modifiers);
     CSSPoint geckoScreenPoint;
     if (ConvertToGecko(aEvent.mPoint, &geckoScreenPoint)) {
-      StartNewTouchBlock(true);
-      ScheduleContentResponseTimeout();
+      GetInputQueue()->InjectNewTouchBlock(this);
       controller->HandleLongTap(geckoScreenPoint, modifiers, GetGuid());
       return nsEventStatus_eConsumeNoDefault;
     }
@@ -2918,120 +2855,25 @@ void AsyncPanZoomController::ZoomToRect(CSSRect aRect) {
 }
 
 void
-AsyncPanZoomController::ScheduleContentResponseTimeout() {
-  APZC_LOG("%p scheduling content response timeout\n", this);
-  PostDelayedTask(
-    NewRunnableMethod(this, &AsyncPanZoomController::ContentResponseTimeout),
-    gfxPrefs::APZContentResponseTimeout());
-}
-
-void
-AsyncPanZoomController::ContentResponseTimeout() {
-  AssertOnControllerThread();
-
-  mTouchBlockBalance++;
-  APZC_LOG("%p got a content response timeout; balance %d\n", this, mTouchBlockBalance);
-  if (mTouchBlockBalance > 0) {
-    
-    
-    bool found = false;
-    for (size_t i = 0; i < mTouchBlockQueue.Length(); i++) {
-      if (mTouchBlockQueue[i]->TimeoutContentResponse()) {
-        found = true;
-        break;
-      }
-    }
-    if (found) {
-      ProcessPendingInputBlocks();
-    } else {
-      NS_WARNING("APZC received more ContentResponseTimeout calls than it has unprocessed touch blocks\n");
-    }
-  }
-}
-
-void
 AsyncPanZoomController::ContentReceivedTouch(bool aPreventDefault) {
-  AssertOnControllerThread();
-
-  mTouchBlockBalance--;
-  APZC_LOG("%p got a content response; balance %d\n", this, mTouchBlockBalance);
-  if (mTouchBlockBalance < 0) {
-    
-    
-    bool found = false;
-    for (size_t i = 0; i < mTouchBlockQueue.Length(); i++) {
-      if (mTouchBlockQueue[i]->SetContentResponse(aPreventDefault)) {
-        found = true;
-        break;
-      }
-    }
-    if (found) {
-      ProcessPendingInputBlocks();
-    } else {
-      NS_WARNING("APZC received more ContentReceivedTouch calls than it has unprocessed touch blocks\n");
-    }
-  }
+  GetInputQueue()->ContentReceivedTouch(aPreventDefault);
 }
 
 void
 AsyncPanZoomController::SetAllowedTouchBehavior(const nsTArray<TouchBehaviorFlags>& aBehaviors) {
-  AssertOnControllerThread();
-
-  bool found = false;
-  for (size_t i = 0; i < mTouchBlockQueue.Length(); i++) {
-    if (mTouchBlockQueue[i]->SetAllowedTouchBehaviors(aBehaviors)) {
-      found = true;
-      break;
-    }
-  }
-  if (found) {
-    ProcessPendingInputBlocks();
-  } else {
-    NS_WARNING("APZC received more SetAllowedTouchBehavior calls than it has unprocessed touch blocks\n");
-  }
-}
-
-void
-AsyncPanZoomController::ProcessPendingInputBlocks() {
-  AssertOnControllerThread();
-
-  while (true) {
-    TouchBlockState* curBlock = CurrentTouchBlock();
-    if (!curBlock->IsReadyForHandling()) {
-      break;
-    }
-
-    APZC_LOG("%p processing input block %p; preventDefault %d\n",
-        this, curBlock, curBlock->IsDefaultPrevented());
-    if (curBlock->IsDefaultPrevented()) {
-      curBlock->DropEvents();
-      ResetInputState();
-    } else {
-      while (curBlock->HasEvents()) {
-        HandleInputEvent(curBlock->RemoveFirstEvent());
-      }
-    }
-    MOZ_ASSERT(!curBlock->HasEvents());
-
-    if (mTouchBlockQueue.Length() == 1) {
-      
-      
-      
-      
-      break;
-    }
-
-    
-    
-    APZC_LOG("%p discarding depleted touch block %p\n", this, curBlock);
-    mTouchBlockQueue.RemoveElementAt(0);
-  }
+  GetInputQueue()->SetAllowedTouchBehavior(aBehaviors);
 }
 
 bool
 AsyncPanZoomController::NeedToWaitForContent() const
 {
   return (mFrameMetrics.GetMayHaveTouchListeners() || mFrameMetrics.GetMayHaveTouchCaret());
+}
+
+TouchBlockState*
+AsyncPanZoomController::CurrentTouchBlock()
+{
+  return GetInputQueue()->CurrentTouchBlock();
 }
 
 void
@@ -3046,43 +2888,10 @@ AsyncPanZoomController::ResetInputState()
   }
 }
 
-TouchBlockState*
-AsyncPanZoomController::StartNewTouchBlock(bool aCopyAllowedTouchBehaviorFromCurrent)
-{
-  TouchBlockState* newBlock = new TouchBlockState(BuildOverscrollHandoffChain());
-  if (gfxPrefs::TouchActionEnabled() && aCopyAllowedTouchBehaviorFromCurrent) {
-    newBlock->CopyAllowedTouchBehaviorsFrom(*CurrentTouchBlock());
-  }
-
-  
-  
-  while (!mTouchBlockQueue.IsEmpty()) {
-    if (mTouchBlockQueue[0]->IsReadyForHandling() && !mTouchBlockQueue[0]->HasEvents()) {
-      APZC_LOG("%p discarding depleted touch block %p\n", this, mTouchBlockQueue[0].get());
-      mTouchBlockQueue.RemoveElementAt(0);
-    } else {
-      break;
-    }
-  }
-
-  
-  mTouchBlockQueue.AppendElement(newBlock);
-  return newBlock;
-}
-
-TouchBlockState*
-AsyncPanZoomController::CurrentTouchBlock()
-{
-  AssertOnControllerThread();
-
-  MOZ_ASSERT(!mTouchBlockQueue.IsEmpty());
-  return mTouchBlockQueue[0].get();
-}
-
 bool
 AsyncPanZoomController::HasReadyTouchBlock()
 {
-  return !mTouchBlockQueue.IsEmpty() && mTouchBlockQueue[0]->IsReadyForHandling();
+  return GetInputQueue()->HasReadyTouchBlock();
 }
 
 AsyncPanZoomController::TouchBehaviorFlags

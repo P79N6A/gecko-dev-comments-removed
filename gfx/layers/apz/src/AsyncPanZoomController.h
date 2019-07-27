@@ -19,6 +19,7 @@
 #include "mozilla/Atomics.h"
 #include "InputData.h"
 #include "Axis.h"
+#include "InputQueue.h"
 #include "TaskThrottler.h"
 #include "mozilla/gfx/Matrix.h"
 #include "nsRegion.h"
@@ -583,15 +584,6 @@ protected:
 
   void FireAsyncScrollOnTimeout();
 
-private:
-  
-
-
-
-
-
-  bool ArePointerEventsConsumable(TouchBlockState* aBlock, uint32_t aTouchPoints);
-
   
 
 
@@ -638,6 +630,7 @@ private:
   
   already_AddRefed<GeckoContentController> GetGeckoContentController() const;
   already_AddRefed<GestureEventListener> GetGestureEventListener() const;
+  nsRefPtr<InputQueue> GetInputQueue() const;
 
   
   bool mSharingFrameMetricsAcrossProcesses;
@@ -783,17 +776,9 @@ public:
   
 
 
-
-
-
-
   void ContentReceivedTouch(bool aPreventDefault);
 
   
-
-
-
-
 
 
   void SetAllowedTouchBehavior(const nsTArray<TouchBehaviorFlags>& aBehaviors);
@@ -804,74 +789,29 @@ public:
 
   void FlushRepaintForNewInputBlock();
 
-private:
-  void ScheduleContentResponseTimeout();
-  void ContentResponseTimeout();
   
 
 
 
-  void ProcessPendingInputBlocks();
-  TouchBlockState* StartNewTouchBlock(bool aCopyAllowedTouchBehaviorFromCurrent);
-  TouchBlockState* CurrentTouchBlock();
-  bool HasReadyTouchBlock();
+
+
+  bool ArePointerEventsConsumable(TouchBlockState* aBlock, uint32_t aTouchPoints);
+
+  
+
+
+
   bool NeedToWaitForContent() const;
+
+  
+
+
   void ResetInputState();
 
 private:
-  
-  
-  nsTArray<UniquePtr<TouchBlockState>> mTouchBlockQueue;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  int32_t mTouchBlockBalance;
+  nsRefPtr<InputQueue> mInputQueue;
+  TouchBlockState* CurrentTouchBlock();
+  bool HasReadyTouchBlock();
 
 
   
@@ -1030,6 +970,27 @@ public:
 
   bool SnapBackIfOverscrolled();
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsRefPtr<const OverscrollHandoffChain> BuildOverscrollHandoffChain();
+
 private:
   
 
@@ -1056,26 +1017,6 @@ private:
 
   bool OverscrollBy(const ScreenPoint& aOverscroll);
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  nsRefPtr<const OverscrollHandoffChain> BuildOverscrollHandoffChain();
 
   
 
