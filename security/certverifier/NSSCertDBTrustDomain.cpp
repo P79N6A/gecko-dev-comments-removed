@@ -493,7 +493,12 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
 
   
   
-  const SECItem* response = nullptr;
+  const SECItem* response;
+  bool attemptedRequest;
+  
+  
+  
+  PRErrorCode error = 0;
   if (cachedResponseErrorCode == 0 ||
       cachedResponseErrorCode == SEC_ERROR_OCSP_UNKNOWN_CERT ||
       cachedResponseErrorCode == SEC_ERROR_OCSP_OLD_RESPONSE) {
@@ -506,16 +511,28 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
     response = DoOCSPRequest(arena.get(), url, request,
                              OCSPFetchingTypeToTimeoutTime(mOCSPFetching),
                              mOCSPGetConfig == CertVerifier::ocsp_get_enabled);
+    if (!response) {
+      error = PR_GetError();
+    }
+    attemptedRequest = true;
+  } else {
+    error = cachedResponseErrorCode;
+    response = nullptr;
+    attemptedRequest = false;
   }
 
+  
+  
   if (!response) {
-    PRErrorCode error = PR_GetError();
-    if (error == 0) {
-      error = cachedResponseErrorCode;
-    }
-    PRTime timeout = time + ServerFailureDelay;
-    if (mOCSPCache.Put(certID, error, time, timeout) != SECSuccess) {
-      return SECFailure;
+    MOZ_ASSERT(error != 0);
+    
+    
+    if (attemptedRequest) {
+      PRTime timeout = time + ServerFailureDelay;
+      SECStatus rv = mOCSPCache.Put(certID, error, time, timeout);
+      if (rv != SECSuccess) {
+        return SECFailure;
+      }
     }
     PR_SetError(error, 0);
     if (mOCSPFetching != FetchOCSPForDVSoftFail) {
@@ -560,7 +577,7 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
     return rv;
   }
 
-  PRErrorCode error = PR_GetError();
+  error = PR_GetError();
   if (error == SEC_ERROR_OCSP_UNKNOWN_CERT ||
       error == SEC_ERROR_REVOKED_CERTIFICATE) {
     return rv;
