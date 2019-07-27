@@ -1274,6 +1274,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     }
 
     bool                jitSupportsFloatingPoint;
+    bool                jitSupportsSimd;
 
     
     
