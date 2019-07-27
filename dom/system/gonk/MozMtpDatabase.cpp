@@ -171,9 +171,29 @@ void
 MozMtpDatabase::RemoveEntry(MtpObjectHandle aHandle)
 {
   MutexAutoLock lock(mMutex);
+  if (!IsValidHandle(aHandle)) {
+    return;
+  }
 
-  if (aHandle > 0 && aHandle < mDb.Length()) {
-    mDb[aHandle] = nullptr;
+  RefPtr<DbEntry> removedEntry = mDb[aHandle];
+  mDb[aHandle] = nullptr;
+  MTP_DBG("0x%08x removed", aHandle);
+  
+  if (removedEntry->mObjectFormat != MTP_FORMAT_ASSOCIATION) {
+    return;
+  }
+
+  
+  
+  
+  ProtectedDbArray::size_type numEntries = mDb.Length();
+  ProtectedDbArray::index_type entryIndex;
+  for (entryIndex = aHandle+1; entryIndex < numEntries; entryIndex++) {
+    RefPtr<DbEntry> entry = mDb[entryIndex];
+    if (entry && IsValidHandle(entry->mParent) && !mDb[entry->mParent]) {
+      mDb[entryIndex] = nullptr;
+      MTP_DBG("0x%08x removed", aHandle);
+    }
   }
 }
 
