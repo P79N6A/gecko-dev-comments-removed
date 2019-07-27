@@ -99,6 +99,7 @@ AudioContext::AudioContext(nsPIDOMWindow* aWindow,
   
   
   
+  mDestination->CreateAudioChannelAgent();
   mDestination->SetIsOnlyNodeForContext(true);
 }
 

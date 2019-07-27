@@ -17,6 +17,7 @@ namespace mozilla {
 namespace dom {
 
 class AudioContext;
+class EventProxyHandler;
 
 class AudioDestinationNode : public AudioNode
                            , public nsIDOMEventListener
@@ -73,6 +74,8 @@ public:
   
   void SetIsOnlyNodeForContext(bool aIsOnlyNode);
 
+  void CreateAudioChannelAgent();
+
   virtual const char* NodeType() const
   {
     return "AudioDestinationNode";
@@ -88,7 +91,6 @@ protected:
 
 private:
   bool CheckAudioChannelPermissions(AudioChannel aValue);
-  void CreateAudioChannelAgent();
 
   void SetCanPlay(bool aCanPlay);
 
@@ -99,6 +101,8 @@ private:
   uint32_t mFramesToProduce;
 
   nsCOMPtr<nsIAudioChannelAgent> mAudioChannelAgent;
+
+  nsRefPtr<EventProxyHandler> mEventProxyHelper;
 
   
   AudioChannel mAudioChannel;
