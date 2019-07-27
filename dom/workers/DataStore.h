@@ -85,9 +85,6 @@ public:
 
   IMPL_EVENT_HANDLER(change)
 
-  
-  void SetDataStoreImpl(DataStoreImpl& aStore, ErrorResult& aRv);
-
   void SetBackingDataStore(
     const nsMainThreadPtrHandle<DataStore>& aBackingStore);
 

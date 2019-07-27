@@ -6832,7 +6832,29 @@ class CGMethodCall(CGThing):
                                       argConversionStartsAt=argConversionStartsAt,
                                       isConstructor=isConstructor)
 
-        signatures = method.signatures()
+        def filteredSignatures(signatures, descriptor):
+            def typeExposedInWorkers(type):
+                return (not type.isGeckoInterface() or
+                        type.inner.isExternal() or
+                        type.inner.isExposedInAnyWorker())
+            if descriptor.workers:
+                
+                
+                
+                assert all(typeExposedInWorkers(sig[0]) for sig in signatures)
+                signatures = filter(
+                    lambda sig: all(typeExposedInWorkers(arg.type)
+                                    for arg in sig[1]),
+                    signatures)
+                if len(signatures) == 0:
+                    raise TypeError("%s.%s has a worker binding with no "
+                                    "signatures that take arguments exposed in "
+                                    "workers." %
+                                    (descriptor.interface.identifier.name,
+                                     method.identifier.name))
+            return signatures
+
+        signatures = filteredSignatures(method.signatures(), descriptor)
         if len(signatures) == 1:
             
             
@@ -6859,14 +6881,17 @@ class CGMethodCall(CGThing):
 
         argCountCases = []
         for argCountIdx, argCount in enumerate(allowedArgCounts):
-            possibleSignatures = method.signaturesForArgCount(argCount)
+            possibleSignatures = filteredSignatures(
+                method.signaturesForArgCount(argCount),
+                descriptor)
 
             
             
             
             if argCountIdx+1 < len(allowedArgCounts):
-                nextPossibleSignatures = \
-                    method.signaturesForArgCount(allowedArgCounts[argCountIdx+1])
+                nextPossibleSignatures = filteredSignatures(
+                    method.signaturesForArgCount(allowedArgCounts[argCountIdx+1]),
+                    descriptor)
             else:
                 nextPossibleSignatures = None
             if possibleSignatures == nextPossibleSignatures:
