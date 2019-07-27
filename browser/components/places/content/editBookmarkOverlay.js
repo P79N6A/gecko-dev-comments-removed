@@ -469,9 +469,13 @@ let gEditItemOverlay = {
       return false;
 
     
+    if (!this._paneInfo)
+      return false;
+
+    
     currentTags = this._paneInfo.bulkTagging ?
                     this._getCommonTags() :
-                    PlacesUtils.tagging.getTagsForURI(this._uri);
+                    PlacesUtils.tagging.getTagsForURI(this._paneInfo.uri);
     this._initTextField(this._tagsField, currentTags.join(", "), false);
     return true;
   }),
