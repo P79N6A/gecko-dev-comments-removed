@@ -29,6 +29,11 @@ public:
   void DestroyDecoder(MPAPI::Decoder *aDecoder);
 };
 
+
+
+AndroidMediaPluginHost *EnsureAndroidMediaPluginHost();
+
+
 AndroidMediaPluginHost *GetAndroidMediaPluginHost();
 
 } 
