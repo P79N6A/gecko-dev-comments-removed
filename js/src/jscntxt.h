@@ -423,6 +423,7 @@ struct JSContext : public js::ExclusiveContext,
     friend class js::ExclusiveContext;
     friend class JS::AutoSaveExceptionState;
     friend class js::jit::DebugModeOSRVolatileJitFrameIterator;
+    friend void js_ReportOverRecursed(JSContext *);
 
   private:
     
@@ -431,6 +432,10 @@ struct JSContext : public js::ExclusiveContext,
 
     
     JS::ContextOptions  options_;
+
+    
+    
+    bool                overRecursed_;
 
     
     
@@ -571,9 +576,11 @@ struct JSContext : public js::ExclusiveContext,
 
     void clearPendingException() {
         throwing = false;
+        overRecursed_ = false;
         unwrappedException_.setUndefined();
     }
 
+    bool isThrowingOverRecursed() const { return throwing && overRecursed_; }
     bool isPropagatingForcedReturn() const { return propagatingForcedReturn_; }
     void setPropagatingForcedReturn() { propagatingForcedReturn_ = true; }
     void clearPropagatingForcedReturn() { propagatingForcedReturn_ = false; }

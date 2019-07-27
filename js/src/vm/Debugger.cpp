@@ -593,50 +593,56 @@ Debugger::slowPathOnLeaveFrame(JSContext *cx, AbstractFramePtr frame, bool frame
     Debugger::resultToCompletion(cx, frameOk, frame.returnValue(), &status, &value);
 
     
-    AutoObjectVector frames(cx);
-    for (FrameRange r(frame, global); !r.empty(); r.popFront()) {
-        if (!frames.append(r.frontFrame())) {
-            cx->clearPendingException();
-            return false;
-        }
-    }
-
     
-    for (JSObject **p = frames.begin(); p != frames.end(); p++) {
-        RootedNativeObject frameobj(cx, &(*p)->as<NativeObject>());
-        Debugger *dbg = Debugger::fromChildJSObject(frameobj);
-
-        if (dbg->enabled &&
-            !frameobj->getReservedSlot(JSSLOT_DEBUGFRAME_ONPOP_HANDLER).isUndefined()) {
-            RootedValue handler(cx, frameobj->getReservedSlot(JSSLOT_DEBUGFRAME_ONPOP_HANDLER));
-
-            Maybe<AutoCompartment> ac;
-            ac.emplace(cx, dbg->object);
-
-            RootedValue completion(cx);
-            if (!dbg->newCompletionValue(cx, status, value, &completion)) {
-                status = dbg->handleUncaughtException(ac, false);
-                break;
+    
+    
+    if (!cx->isThrowingOverRecursed()) {
+        
+        AutoObjectVector frames(cx);
+        for (FrameRange r(frame, global); !r.empty(); r.popFront()) {
+            if (!frames.append(r.frontFrame())) {
+                cx->clearPendingException();
+                return false;
             }
+        }
 
-            
-            RootedValue rval(cx);
-            bool hookOk = Invoke(cx, ObjectValue(*frameobj), handler, 1, completion.address(),
-                                 &rval);
-            RootedValue nextValue(cx);
-            JSTrapStatus nextStatus = dbg->parseResumptionValue(ac, hookOk, rval, &nextValue);
+        
+        for (JSObject **p = frames.begin(); p != frames.end(); p++) {
+            RootedNativeObject frameobj(cx, &(*p)->as<NativeObject>());
+            Debugger *dbg = Debugger::fromChildJSObject(frameobj);
 
-            
+            if (dbg->enabled &&
+                !frameobj->getReservedSlot(JSSLOT_DEBUGFRAME_ONPOP_HANDLER).isUndefined()) {
+                RootedValue handler(cx, frameobj->getReservedSlot(JSSLOT_DEBUGFRAME_ONPOP_HANDLER));
+
+                Maybe<AutoCompartment> ac;
+                ac.emplace(cx, dbg->object);
+
+                RootedValue completion(cx);
+                if (!dbg->newCompletionValue(cx, status, value, &completion)) {
+                    status = dbg->handleUncaughtException(ac, false);
+                    break;
+                }
+
+                
+                RootedValue rval(cx);
+                bool hookOk = Invoke(cx, ObjectValue(*frameobj), handler, 1, completion.address(),
+                                     &rval);
+                RootedValue nextValue(cx);
+                JSTrapStatus nextStatus = dbg->parseResumptionValue(ac, hookOk, rval, &nextValue);
+
+                
 
 
 
-            MOZ_ASSERT(cx->compartment() == global->compartment());
-            MOZ_ASSERT(!cx->isExceptionPending());
+                MOZ_ASSERT(cx->compartment() == global->compartment());
+                MOZ_ASSERT(!cx->isExceptionPending());
 
-            
-            if (nextStatus != JSTRAP_CONTINUE) {
-                status = nextStatus;
-                value = nextValue;
+                
+                if (nextStatus != JSTRAP_CONTINUE) {
+                    status = nextStatus;
+                    value = nextValue;
+                }
             }
         }
     }
@@ -715,6 +721,11 @@ Debugger::slowPathOnDebuggerStatement(JSContext *cx, AbstractFramePtr frame)
  JSTrapStatus
 Debugger::slowPathOnExceptionUnwind(JSContext *cx, AbstractFramePtr frame)
 {
+    
+    
+    if (cx->isThrowingOverRecursed())
+        return JSTRAP_CONTINUE;
+
     RootedValue rval(cx);
     JSTrapStatus status = dispatchHook(cx, &rval, OnExceptionUnwind, NullPtr());
 
