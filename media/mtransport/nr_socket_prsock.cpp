@@ -520,7 +520,7 @@ int NrSocket::sendto(const void *msg, size_t len,
     
     static SimpleTokenBucket burst(16384*1, 16384);
     
-    static SimpleTokenBucket sustained(3686*20, 3686);
+    static SimpleTokenBucket sustained(7372*20, 7372);
 
     
     if (burst.getTokens(UINT32_MAX) < len) {
