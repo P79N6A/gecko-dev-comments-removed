@@ -164,6 +164,8 @@
 
 
 
+
+
 class JSAtom;
 struct JSCompartment;
 class JSFlatString;
@@ -451,11 +453,18 @@ class HeapPtr : public BarrieredBase<T>
 
 
 
+template <typename T>
+using RelocatablePtr = HeapPtr<T>;
+
+
+
+
+
 template <class T1, class T2>
 static inline void
 BarrieredSetPair(Zone* zone,
-                 HeapPtr<T1*>& v1, T1* val1,
-                 HeapPtr<T2*>& v2, T2* val2)
+                 RelocatablePtr<T1*>& v1, T1* val1,
+                 RelocatablePtr<T2*>& v2, T2* val2)
 {
     if (T1::needWriteBarrierPre(zone)) {
         v1.pre();
@@ -606,6 +615,20 @@ typedef PreBarriered<jit::JitCode*> PreBarrieredJitCode;
 typedef PreBarriered<JSString*> PreBarrieredString;
 typedef PreBarriered<JSAtom*> PreBarrieredAtom;
 
+typedef RelocatablePtr<JSObject*> RelocatablePtrObject;
+typedef RelocatablePtr<JSFunction*> RelocatablePtrFunction;
+typedef RelocatablePtr<PlainObject*> RelocatablePtrPlainObject;
+typedef RelocatablePtr<JSScript*> RelocatablePtrScript;
+typedef RelocatablePtr<NativeObject*> RelocatablePtrNativeObject;
+typedef RelocatablePtr<NestedScopeObject*> RelocatablePtrNestedScopeObject;
+typedef RelocatablePtr<Shape*> RelocatablePtrShape;
+typedef RelocatablePtr<ObjectGroup*> RelocatablePtrObjectGroup;
+typedef RelocatablePtr<jit::JitCode*> RelocatablePtrJitCode;
+typedef RelocatablePtr<JSLinearString*> RelocatablePtrLinearString;
+typedef RelocatablePtr<JSString*> RelocatablePtrString;
+typedef RelocatablePtr<JSAtom*> RelocatablePtrAtom;
+typedef RelocatablePtr<ArrayBufferObjectMaybeShared*> RelocatablePtrArrayBufferObjectMaybeShared;
+
 typedef HeapPtr<NativeObject*> HeapPtrNativeObject;
 typedef HeapPtr<ArrayObject*> HeapPtrArrayObject;
 typedef HeapPtr<ArrayBufferObjectMaybeShared*> HeapPtrArrayBufferObjectMaybeShared;
@@ -626,9 +649,11 @@ typedef HeapPtr<jit::JitCode*> HeapPtrJitCode;
 typedef HeapPtr<ObjectGroup*> HeapPtrObjectGroup;
 
 typedef PreBarriered<Value> PreBarrieredValue;
+typedef RelocatablePtr<Value> RelocatableValue;
 typedef HeapPtr<Value> HeapValue;
 
 typedef PreBarriered<jsid> PreBarrieredId;
+typedef RelocatablePtr<jsid> RelocatableId;
 typedef HeapPtr<jsid> HeapId;
 
 typedef ImmutableTenuredPtr<PropertyName*> ImmutablePropertyNamePtr;

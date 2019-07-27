@@ -119,11 +119,11 @@ struct BaselineScript
 
   private:
     
-    HeapPtrJitCode method_;
+    RelocatablePtrJitCode method_;
 
     
     
-    HeapPtrObject templateScope_;
+    RelocatablePtrObject templateScope_;
 
     
     FallbackICStubSpace fallbackStubSpace_;

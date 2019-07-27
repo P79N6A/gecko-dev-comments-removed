@@ -21,19 +21,19 @@ class RegExpStatics
 {
     
     VectorMatchPairs        matches;
-    HeapPtrLinearString     matchesInput;
+    RelocatablePtrLinearString matchesInput;
 
     
 
 
 
 
-    HeapPtrAtom             lazySource;
+    RelocatablePtrAtom      lazySource;
     RegExpFlag              lazyFlags;
     size_t                  lazyIndex;
 
     
-    HeapPtrString           pendingInput;
+    RelocatablePtrString    pendingInput;
     RegExpFlag              flags;
 
     
