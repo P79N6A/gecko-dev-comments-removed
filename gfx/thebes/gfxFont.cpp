@@ -1949,7 +1949,7 @@ gfxFont::Draw(gfxTextRun *aTextRun, uint32_t aStart, uint32_t aEnd,
     
     fontParams.passedInvMatrix = nullptr;
 
-    fontParams.renderingOptions = GetGlyphRenderingOptions();
+    fontParams.renderingOptions = GetGlyphRenderingOptions(&aRunParams);
     fontParams.drawOptions.mAntialiasMode = Get2DAAMode(mAntialiasOption);
 
     

@@ -257,6 +257,7 @@ public:
     mReferenceFrame(nullptr),
     mLayer(nullptr),
     mIsSolidColorInVisibleRegion(false),
+    mFontSmoothingBackgroundColor(NS_RGBA(0,0,0,0)),
     mSingleItemFixedToViewport(false),
     mNeedComponentAlpha(false),
     mForceTransparentSurface(false),
@@ -440,6 +441,11 @@ public:
 
 
   bool mIsSolidColorInVisibleRegion;
+  
+
+
+
+  nscolor mFontSmoothingBackgroundColor;
   
 
 
@@ -900,6 +906,7 @@ public:
   PaintedDisplayItemLayerUserData() :
     mMaskClipCount(0),
     mForcedBackgroundColor(NS_RGBA(0,0,0,0)),
+    mFontSmoothingBackgroundColor(NS_RGBA(0,0,0,0)),
     mXScale(1.f), mYScale(1.f),
     mAppUnitsPerDevPixel(0),
     mTranslation(0, 0),
@@ -917,6 +924,12 @@ public:
 
 
   nscolor mForcedBackgroundColor;
+
+  
+
+
+
+  nscolor mFontSmoothingBackgroundColor;
 
   
 
@@ -2213,6 +2226,8 @@ ContainerState::PopPaintedLayerData()
     }
     userData->mForcedBackgroundColor = backgroundColor;
 
+    userData->mFontSmoothingBackgroundColor = data->mFontSmoothingBackgroundColor;
+
     
     
     
@@ -2378,6 +2393,15 @@ PaintedLayerData::Accumulate(ContainerState* aState,
     mImage = nullptr;
   }
 
+  bool isFirstVisibleItem = mVisibleRegion.IsEmpty();
+  if (isFirstVisibleItem) {
+    nscolor fontSmoothingBGColor;
+    if (aItem->ProvidesFontSmoothingBackgroundColor(aState->mBuilder,
+                                                    &fontSmoothingBGColor)) {
+      mFontSmoothingBackgroundColor = fontSmoothingBGColor;
+    }
+  }
+
   nscolor uniformColor;
   bool isUniform = aItem->IsUniform(aState->mBuilder, &uniformColor);
 
@@ -2397,7 +2421,7 @@ PaintedLayerData::Accumulate(ContainerState* aState,
       }
     }
     if (isUniform) {
-      if (mVisibleRegion.IsEmpty()) {
+      if (isFirstVisibleItem) {
         
         mSolidColor = uniformColor;
         mIsSolidColorInVisibleRegion = true;
@@ -4469,6 +4493,11 @@ FrameLayerBuilder::DrawPaintedLayer(PaintedLayer* aLayer,
     DrawForcedBackgroundColor(aContext, aLayer, userData->mForcedBackgroundColor);
   }
 
+  if (NS_GET_A(userData->mFontSmoothingBackgroundColor) > 0) {
+    aContext->SetFontSmoothingBackgroundColor(
+      Color::FromABGR(userData->mFontSmoothingBackgroundColor));
+  }
+
   
   
   gfxContextMatrixAutoSaveRestore saveMatrix(aContext);
@@ -4523,6 +4552,8 @@ FrameLayerBuilder::DrawPaintedLayer(PaintedLayer* aLayer,
                              offset, userData->mXScale, userData->mYScale,
                              entry->mCommonClipCount);
   }
+
+  aContext->SetFontSmoothingBackgroundColor(Color());
 
   bool isActiveLayerManager = !aLayer->Manager()->IsInactiveLayerManager();
 
