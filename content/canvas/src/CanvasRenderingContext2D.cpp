@@ -975,6 +975,15 @@ CanvasRenderingContext2D::EnsureTarget()
     }
 
     mTarget->ClearRect(mgfx::Rect(Point(0, 0), Size(mWidth, mHeight)));
+    if (mTarget->GetBackendType() == mgfx::BackendType::CAIRO) {
+      
+      
+      
+      
+      
+      
+      mTarget->PushClipRect(mgfx::Rect(Point(0, 0), Size(mWidth, mHeight)));
+    }
     
     
     if (mCanvasElement) {
@@ -1060,6 +1069,11 @@ CanvasRenderingContext2D::InitializeWithSurface(nsIDocShell *shell,
   if (!mTarget) {
     EnsureErrorTarget();
     mTarget = sErrorTarget;
+  }
+
+  if (mTarget->GetBackendType() == mgfx::BackendType::CAIRO) {
+    
+    mTarget->PushClipRect(mgfx::Rect(Point(0, 0), Size(mWidth, mHeight)));
   }
 
   return NS_OK;
