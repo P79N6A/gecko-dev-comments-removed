@@ -860,11 +860,7 @@ StackFrames.prototype = {
     this.activeThread.addOneTimeListener("paused", (aEvent, aPacket) => {
       let { type, frameFinished } = aPacket.why;
       if (type == "clientEvaluated") {
-        if (!("terminated" in frameFinished)) {
-          deferred.resolve(frameFinished);
-        } else {
-          deferred.reject(new Error("The execution was abruptly terminated."));
-        }
+        deferred.resolve(frameFinished);
       } else {
         deferred.reject(new Error("Active thread paused unexpectedly."));
       }
@@ -978,7 +974,8 @@ StackFrames.prototype = {
     
     
     
-    if (this._currentEvaluation.throw) {
+    
+    if (this._currentEvaluation.throw || this._currentEvaluation.terminated) {
       DebuggerView.WatchExpressions.removeAt(0);
       yield DebuggerController.StackFrames.syncWatchExpressions();
     }
