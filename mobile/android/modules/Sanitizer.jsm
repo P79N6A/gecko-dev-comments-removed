@@ -64,20 +64,16 @@ Sanitizer.prototype = {
     cache: {
       clear: function ()
       {
-        return new Promise(function(resolve, reject) {
-          var cache = Cc["@mozilla.org/netwerk/cache-storage-service;1"].getService(Ci.nsICacheStorageService);
-          try {
-            cache.clear();
-          } catch(er) {}
+        var cache = Cc["@mozilla.org/netwerk/cache-storage-service;1"].getService(Ci.nsICacheStorageService);
+        try {
+          cache.clear();
+        } catch(er) {}
 
-          let imageCache = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools)
-                                                           .getImgCacheForDocument(null);
-          try {
-            imageCache.clearCache(false); 
-          } catch(er) {}
-
-          resolve();
-        });
+        let imageCache = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools)
+                                                         .getImgCacheForDocument(null);
+        try {
+          imageCache.clearCache(false); 
+        } catch(er) {}
       },
 
       get canClear()
@@ -89,10 +85,7 @@ Sanitizer.prototype = {
     cookies: {
       clear: function ()
       {
-        return new Promise(function(resolve, reject) {
-          Services.cookies.removeAll();
-          resolve();
-        });
+        Services.cookies.removeAll();
       },
 
       get canClear()
@@ -104,24 +97,20 @@ Sanitizer.prototype = {
     siteSettings: {
       clear: function ()
       {
-        return new Promise(function(resolve, reject) {
-          
-          Services.perms.removeAll();
+        
+        Services.perms.removeAll();
 
-          
-          Cc["@mozilla.org/content-pref/service;1"]
-            .getService(Ci.nsIContentPrefService2)
-            .removeAllDomains(null);
+        
+        Cc["@mozilla.org/content-pref/service;1"]
+          .getService(Ci.nsIContentPrefService2)
+          .removeAllDomains(null);
 
-          
-          
-          var hosts = Services.logins.getAllDisabledHosts({})
-          for (var host of hosts) {
-            Services.logins.setLoginSavingEnabled(host, true);
-          }
-
-          resolve();
-        });
+        
+        
+        var hosts = Services.logins.getAllDisabledHosts({})
+        for (var host of hosts) {
+          Services.logins.setLoginSavingEnabled(host, true);
+        }
       },
 
       get canClear()
@@ -133,15 +122,11 @@ Sanitizer.prototype = {
     offlineApps: {
       clear: function ()
       {
-        return new Promise(function(resolve, reject) {
-          var cacheService = Cc["@mozilla.org/netwerk/cache-storage-service;1"].getService(Ci.nsICacheStorageService);
-          var appCacheStorage = cacheService.appCacheStorage(LoadContextInfo.default, null);
-          try {
-            appCacheStorage.asyncEvictStorage(null);
-          } catch(er) {}
-
-          resolve();
-        });
+        var cacheService = Cc["@mozilla.org/netwerk/cache-storage-service;1"].getService(Ci.nsICacheStorageService);
+        var appCacheStorage = cacheService.appCacheStorage(LoadContextInfo.default, null);
+        try {
+          appCacheStorage.asyncEvictStorage(null);
+        } catch(er) {}
       },
 
       get canClear()
@@ -153,21 +138,17 @@ Sanitizer.prototype = {
     history: {
       clear: function ()
       {
-        return new Promise(function(resolve, reject) {
-          sendMessageToJava({ type: "Sanitize:ClearHistory" }, function() {
-            try {
-              Services.obs.notifyObservers(null, "browser:purge-session-history", "");
-            }
-            catch (e) { }
+        sendMessageToJava({ type: "Sanitize:ClearHistory" });
 
-            try {
-              var predictor = Cc["@mozilla.org/network/predictor;1"].getService(Ci.nsINetworkPredictor);
-              predictor.reset();
-            } catch (e) { }
+        try {
+          Services.obs.notifyObservers(null, "browser:purge-session-history", "");
+        }
+        catch (e) { }
 
-            resolve();
-          });
-        });
+        try {
+          var predictor = Cc["@mozilla.org/network/predictor;1"].getService(Ci.nsINetworkPredictor);
+          predictor.reset();
+        } catch (e) { }
       },
 
       get canClear()
@@ -181,10 +162,7 @@ Sanitizer.prototype = {
     formdata: {
       clear: function ()
       {
-        return new Promise(function(resolve, reject) {
-          FormHistory.update({ op: "remove" });
-          resolve();
-        });
+        FormHistory.update({ op: "remove" });
       },
 
       canClear: function (aCallback)
@@ -202,18 +180,15 @@ Sanitizer.prototype = {
     downloadFiles: {
       clear: function ()
       {
-        return new Promise(function(resolve, reject) {
-          downloads.iterate(function (dl) {
-            
-            let f = dl.targetFile;
-            if (f.exists()) {
-              f.remove(false);
-            }
+        downloads.iterate(function (dl) {
+          
+          let f = dl.targetFile;
+          if (f.exists()) {
+            f.remove(false);
+          }
 
-            
-            dl.remove();
-          });
-          resolve();
+          
+          dl.remove();
         });
       },
 
@@ -226,10 +201,7 @@ Sanitizer.prototype = {
     passwords: {
       clear: function ()
       {
-        return new Promise(function(resolve, reject) {
-          Services.logins.removeAllLogins();
-          resolve();
-        });
+        Services.logins.removeAllLogins();
       },
 
       get canClear()
@@ -242,16 +214,12 @@ Sanitizer.prototype = {
     sessions: {
       clear: function ()
       {
-        return new Promise(function(resolve, reject) {
-          
-          var sdr = Cc["@mozilla.org/security/sdr;1"].getService(Ci.nsISecretDecoderRing);
-          sdr.logoutAndTeardown();
+        
+        var sdr = Cc["@mozilla.org/security/sdr;1"].getService(Ci.nsISecretDecoderRing);
+        sdr.logoutAndTeardown();
 
-          
-          Services.obs.notifyObservers(null, "net:clear-active-logins", null);
-
-          resolve();
-        });
+        
+        Services.obs.notifyObservers(null, "net:clear-active-logins", null);
       },
 
       get canClear()
