@@ -70,6 +70,13 @@ public:
   
   void NotifyDiversionFailed(nsresult aErrorCode, bool aSkipResume = true);
 
+  
+  void SetApplyConversion(bool aApplyConversion) {
+    if (mChannel) {
+      mChannel->SetApplyConversion(aApplyConversion);
+    }
+  }
+
 protected:
   
   
@@ -153,6 +160,8 @@ private:
   nsRefPtr<nsHttpHandler>  mHttpHandler;
 
   nsRefPtr<HttpChannelParentListener> mParentListener;
+  
+  nsCOMPtr<nsIStreamListener> mConverterListener;
   
   nsresult mStatus;
   

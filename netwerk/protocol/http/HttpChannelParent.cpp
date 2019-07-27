@@ -498,7 +498,14 @@ HttpChannelParent::RecvDivertOnDataAvailable(const nsCString& data,
     return true;
   }
 
-  rv = mParentListener->OnDataAvailable(mChannel, nullptr, stringStream,
+  nsCOMPtr<nsIStreamListener> listener;
+  if (mConverterListener) {
+    listener = mConverterListener;
+  } else {
+    listener = mParentListener;
+    MOZ_ASSERT(listener);
+  }
+  rv = listener->OnDataAvailable(mChannel, nullptr, stringStream,
                                         offset, count);
   stringStream->Close();
   if (NS_FAILED(rv)) {
@@ -530,7 +537,14 @@ HttpChannelParent::RecvDivertOnStopRequest(const nsresult& statusCode)
     mChannel->ForcePending(false);
   }
 
-  mParentListener->OnStopRequest(mChannel, nullptr, status);
+  nsCOMPtr<nsIStreamListener> listener;
+  if (mConverterListener) {
+    listener = mConverterListener;
+  } else {
+    listener = mParentListener;
+    MOZ_ASSERT(listener);
+  }
+  listener->OnStopRequest(mChannel, nullptr, status);
   return true;
 }
 
@@ -539,6 +553,7 @@ HttpChannelParent::RecvDivertComplete()
 {
   MOZ_ASSERT(mParentListener);
   mParentListener = nullptr;
+  mConverterListener = nullptr;
   if (NS_WARN_IF(!mDivertingFromChild)) {
     MOZ_ASSERT(mDivertingFromChild,
                "Cannot RecvDivertComplete if diverting is not set!");
@@ -917,6 +932,28 @@ HttpChannelParent::StartDiversion()
 
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  nsCOMPtr<nsIStreamListener> converterListener;
+  mChannel->DoApplyContentConversions(mParentListener,
+                                      getter_AddRefs(converterListener));
+  if (converterListener) {
+    mConverterListener = converterListener.forget();
+  }
+
+  
+  
   if (NS_WARN_IF(mIPCClosed || !SendDivertMessages())) {
     FailDiversion(NS_ERROR_UNEXPECTED);
     return;
@@ -994,6 +1031,7 @@ HttpChannelParent::NotifyDiversionFailed(nsresult aErrorCode,
     mParentListener->OnStopRequest(mChannel, nullptr, aErrorCode);
   }
   mParentListener = nullptr;
+  mConverterListener = nullptr;
   mChannel = nullptr;
 
   if (!mIPCClosed) {

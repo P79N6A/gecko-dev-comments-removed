@@ -1496,6 +1496,51 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
   return rv;
 }
 
+void
+nsExternalAppHandler::MaybeApplyDecodingForExtension(nsIRequest *aRequest)
+{
+  MOZ_ASSERT(aRequest);
+
+  nsCOMPtr<nsIEncodedChannel> encChannel = do_QueryInterface(aRequest);
+  if (!encChannel) {
+    return;
+  }
+
+  
+  bool applyConversion = true;
+
+  nsCOMPtr<nsIURL> sourceURL(do_QueryInterface(mSourceUrl));
+  if (sourceURL)
+  {
+    nsAutoCString extension;
+    sourceURL->GetFileExtension(extension);
+    if (!extension.IsEmpty())
+    {
+      nsCOMPtr<nsIUTF8StringEnumerator> encEnum;
+      encChannel->GetContentEncodings(getter_AddRefs(encEnum));
+      if (encEnum)
+      {
+        bool hasMore;
+        nsresult rv = encEnum->HasMore(&hasMore);
+        if (NS_SUCCEEDED(rv) && hasMore)
+        {
+          nsAutoCString encType;
+          rv = encEnum->GetNext(encType);
+          if (NS_SUCCEEDED(rv) && !encType.IsEmpty())
+          {
+            MOZ_ASSERT(mExtProtSvc);
+            mExtProtSvc->ApplyDecodingForExtension(extension, encType,
+                                                   &applyConversion);
+          }
+        }
+      }
+    }
+  }
+
+  encChannel->SetApplyConversion( applyConversion );
+  return;
+}
+
 NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISupports * aCtxt)
 {
   NS_PRECONDITION(request, "OnStartRequest without request?");
@@ -1558,35 +1603,7 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
   
   
   
-  nsCOMPtr<nsIEncodedChannel> encChannel = do_QueryInterface( aChannel );
-  if (encChannel) {
-    
-    bool applyConversion = true;
-
-    nsCOMPtr<nsIURL> sourceURL(do_QueryInterface(mSourceUrl));
-    if (sourceURL) {
-      nsAutoCString extension;
-      sourceURL->GetFileExtension(extension);
-      if (!extension.IsEmpty()) {
-        nsCOMPtr<nsIUTF8StringEnumerator> encEnum;
-        encChannel->GetContentEncodings(getter_AddRefs(encEnum));
-        if (encEnum) {
-          bool hasMore;
-          rv = encEnum->HasMore(&hasMore);
-          if (NS_SUCCEEDED(rv) && hasMore) {
-            nsAutoCString encType;
-            rv = encEnum->GetNext(encType);
-            if (NS_SUCCEEDED(rv) && !encType.IsEmpty()) {
-              mExtProtSvc->ApplyDecodingForExtension(extension, encType,
-                                                     &applyConversion);
-            }
-          }
-        }
-      }    
-    }
-
-    encChannel->SetApplyConversion( applyConversion );
-  }
+  MaybeApplyDecodingForExtension(aChannel);
 
   
   

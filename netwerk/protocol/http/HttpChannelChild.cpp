@@ -338,8 +338,7 @@ HttpChannelChild::OnStartRequest(const nsresult& channelStatus,
     SetCookie(mResponseHead->PeekHeader(nsHttp::Set_Cookie));
 
   nsCOMPtr<nsIStreamListener> listener;
-  rv = DoApplyContentConversions(mListener, getter_AddRefs(listener),
-                                 mListenerContext);
+  rv = DoApplyContentConversions(mListener, getter_AddRefs(listener));
   if (NS_FAILED(rv)) {
     Cancel(rv);
   } else if (listener) {
@@ -1672,8 +1671,12 @@ HttpChannelChild::DivertToParent(ChannelDiverterChild **aChild)
   
   mDivertingToParent = true;
 
+  HttpChannelDiverterArgs args;
+  args.mChannelChild() = this;
+  args.mApplyConversion() = mApplyConversion;
+
   PChannelDiverterChild* diverter =
-    gNeckoChild->SendPChannelDiverterConstructor(this);
+    gNeckoChild->SendPChannelDiverterConstructor(args);
   MOZ_RELEASE_ASSERT(diverter);
 
   *aChild = static_cast<ChannelDiverterChild*>(diverter);

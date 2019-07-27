@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "mozilla/net/ChannelDiverterParent.h"
 #include "mozilla/net/NeckoChannelParams.h"
@@ -24,19 +24,23 @@ ChannelDiverterParent::~ChannelDiverterParent()
 }
 
 bool
-ChannelDiverterParent::Init(const ChannelDiverterArgs& aChannel)
+ChannelDiverterParent::Init(const ChannelDiverterArgs& aArgs)
 {
-  switch (aChannel.type()) {
-  case ChannelDiverterArgs::TPHttpChannelParent:
+  switch (aArgs.type()) {
+  case ChannelDiverterArgs::THttpChannelDiverterArgs:
   {
-    mDivertableChannelParent = static_cast<ADivertableParentChannel*>(
-      static_cast<HttpChannelParent*>(aChannel.get_PHttpChannelParent()));
+    auto httpParent = static_cast<HttpChannelParent*>(
+      aArgs.get_HttpChannelDiverterArgs().mChannelParent());
+    httpParent->SetApplyConversion(aArgs.get_HttpChannelDiverterArgs().mApplyConversion());
+
+    mDivertableChannelParent =
+      static_cast<ADivertableParentChannel*>(httpParent);
     break;
   }
   case ChannelDiverterArgs::TPFTPChannelParent:
   {
     mDivertableChannelParent = static_cast<ADivertableParentChannel*>(
-      static_cast<FTPChannelParent*>(aChannel.get_PFTPChannelParent()));
+      static_cast<FTPChannelParent*>(aArgs.get_PFTPChannelParent()));
     break;
   }
   default:
@@ -64,8 +68,8 @@ ChannelDiverterParent::DivertTo(nsIStreamListener* newListener)
 void
 ChannelDiverterParent::ActorDestroy(ActorDestroyReason aWhy)
 {
-  // Implement me! Bug 1005179
+  
 }
 
-} // namespace net
-} // namespace mozilla
+} 
+} 

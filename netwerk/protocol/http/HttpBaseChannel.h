@@ -119,6 +119,9 @@ public:
   NS_IMETHOD GetApplyConversion(bool *value);
   NS_IMETHOD SetApplyConversion(bool value);
   NS_IMETHOD GetContentEncodings(nsIUTF8StringEnumerator** aEncodings);
+  NS_IMETHOD DoApplyContentConversions(nsIStreamListener *aNextListener,
+                                       nsIStreamListener **aNewNextListener,
+                                       nsISupports *aCtxt);
 
   
   NS_IMETHOD GetRequestMethod(nsACString& aMethod);
@@ -230,6 +233,11 @@ public:
     static bool ShouldRewriteRedirectToGET(uint32_t httpStatus,
                                            nsHttpRequestHead::ParsedMethodType method);
 
+    
+    
+    nsresult DoApplyContentConversions(nsIStreamListener *aNextListener,
+                                       nsIStreamListener **aNewNextListener);
+
 protected:
   nsCOMArray<nsISecurityConsoleMessage> mSecurityConsoleMessages;
 
@@ -239,10 +247,6 @@ protected:
 
   
   void ReleaseListeners();
-
-  NS_IMETHOD DoApplyContentConversions(nsIStreamListener *aNextListener,
-                                     nsIStreamListener **aNewNextListener,
-                                     nsISupports *aCtxt);
 
   void AddCookiesToRequest();
   virtual nsresult SetupReplacementChannel(nsIURI *,
