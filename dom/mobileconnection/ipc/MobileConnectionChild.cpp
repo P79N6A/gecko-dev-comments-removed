@@ -340,6 +340,20 @@ MobileConnectionChild::SetRadioEnabled(bool aEnabled,
     ? NS_OK : NS_ERROR_FAILURE;
 }
 
+NS_IMETHODIMP
+MobileConnectionChild::GetNeighboringCellIds(nsINeighboringCellIdsCallback* aCallback)
+{
+  
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+MobileConnectionChild::GetCellInfoList(nsICellInfoListCallback* aCallback)
+{
+  
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 bool
 MobileConnectionChild::SendRequest(const MobileConnectionRequest& aRequest,
                                    nsIMobileConnectionCallback* aCallback)
