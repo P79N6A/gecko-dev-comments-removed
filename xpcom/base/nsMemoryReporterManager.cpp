@@ -1291,8 +1291,7 @@ nsMemoryReporterManager::GetReportsExtended(
     
     
     
-    nsCOMPtr<nsIObserverService> obs =
-      do_GetService("@mozilla.org/observer-service;1");
+    nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
     NS_ENSURE_STATE(obs);
 
     nsPrintfCString genStr("generation=%x anonymize=%d minimize=%d DMDident=",
