@@ -376,16 +376,18 @@ public:
     float* higherWaveData = nullptr;
     float* lowerWaveData = nullptr;
     float tableInterpolationFactor;
-    float rate = 1.0 / mSource->SampleRate();
- 
+    
+    
+    float basePhaseIncrement =
+      static_cast<float>(periodicWaveSize) / mSource->SampleRate();
+
     for (uint32_t i = aStart; i < aEnd; ++i) {
       UpdateParametersIfNeeded(ticks, i);
       mPeriodicWave->waveDataForFundamentalFrequency(mFinalFrequency,
                                                      lowerWaveData,
                                                      higherWaveData,
                                                      tableInterpolationFactor);
-      
-      mPhase += periodicWaveSize * mFinalFrequency * rate;
+      mPhase += basePhaseIncrement * mFinalFrequency;
       mPhase = fmod(mPhase, periodicWaveSize);
       
       uint32_t j1 = floor(mPhase);
