@@ -733,6 +733,9 @@ protected:
   
   bool                         mPendingOnLayoutChange;
   
+  
+  bool                         mPendingDestroy;
+  
   bool                         mNativeCaretIsCreated;
 
   
