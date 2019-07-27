@@ -1793,18 +1793,17 @@ FindPath(JSContext *cx, unsigned argc, jsval *vp)
     
     
     
-    
-    if (!args[0].isObject() && !args[0].isString()) {
+    if (!args[0].isObject() && !args[0].isString() && !args[0].isSymbol()) {
         js_ReportValueErrorFlags(cx, JSREPORT_ERROR, JSMSG_UNEXPECTED_TYPE,
                                  JSDVG_SEARCH_STACK, args[0], JS::NullPtr(),
-                                 "neither an object nor a string", NULL);
+                                 "not an object, string, or symbol", NULL);
         return false;
     }
 
-    if (!args[1].isObject() && !args[1].isString()) {
+    if (!args[1].isObject() && !args[1].isString() && !args[1].isSymbol()) {
         js_ReportValueErrorFlags(cx, JSREPORT_ERROR, JSMSG_UNEXPECTED_TYPE,
                                  JSDVG_SEARCH_STACK, args[0], JS::NullPtr(),
-                                 "neither an object nor a string", NULL);
+                                 "not an object, string, or symbol", NULL);
         return false;
     }
 
@@ -1843,6 +1842,9 @@ FindPath(JSContext *cx, unsigned argc, jsval *vp)
     
     
     
+    
+    
+    
     size_t length = nodes.length();
     RootedObject result(cx, NewDenseAllocatedArray(cx, length));
     if (!result)
@@ -1868,8 +1870,7 @@ FindPath(JSContext *cx, unsigned argc, jsval *vp)
             return false;
         edgeName.release(); 
 
-        if (!JS_DefineProperty(cx, obj, "edge", edgeStr,
-                               JSPROP_ENUMERATE, nullptr, nullptr))
+        if (!JS_DefineProperty(cx, obj, "edge", edgeStr, JSPROP_ENUMERATE, nullptr, nullptr))
             return false;
 
         result->setDenseElement(length - i - 1, ObjectValue(*obj));

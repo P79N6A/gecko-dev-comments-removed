@@ -427,6 +427,7 @@ class TracerConcrete : public Base {
 
 template<> struct Concrete<JSObject> : TracerConcrete<JSObject> { };
 template<> struct Concrete<JSString> : TracerConcrete<JSString> { };
+template<> struct Concrete<JS::Symbol> : TracerConcrete<JS::Symbol> { };
 template<> struct Concrete<JSScript> : TracerConcrete<JSScript> { };
 template<> struct Concrete<js::LazyScript> : TracerConcrete<js::LazyScript> { };
 template<> struct Concrete<js::jit::JitCode> : TracerConcrete<js::jit::JitCode> { };
