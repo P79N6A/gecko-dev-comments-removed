@@ -2321,8 +2321,6 @@ public:
 static void
 DoNuwaFork()
 {
-    NS_ASSERTION(NuwaSpawnPrepare != nullptr,
-                 "NuwaSpawnPrepare() is not available!");
     NuwaSpawnPrepare();       
 
     {
@@ -2331,8 +2329,6 @@ DoNuwaFork()
     }
 
     
-    NS_ASSERTION(NuwaSpawnWait != nullptr,
-                 "NuwaSpawnWait() is not available!");
     NuwaSpawnWait();        
     
 }
