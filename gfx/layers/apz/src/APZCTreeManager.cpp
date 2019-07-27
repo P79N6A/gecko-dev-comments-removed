@@ -1718,6 +1718,7 @@ APZCTreeManager::GetApzcToGeckoTransform(const AsyncPanZoomController *aApzc) co
 already_AddRefed<AsyncPanZoomController>
 APZCTreeManager::GetMultitouchTarget(AsyncPanZoomController* aApzc1, AsyncPanZoomController* aApzc2) const
 {
+  MonitorAutoLock lock(mTreeLock);
   nsRefPtr<AsyncPanZoomController> apzc;
   
   
@@ -1741,7 +1742,7 @@ APZCTreeManager::GetMultitouchTarget(AsyncPanZoomController* aApzc1, AsyncPanZoo
 already_AddRefed<AsyncPanZoomController>
 APZCTreeManager::CommonAncestor(AsyncPanZoomController* aApzc1, AsyncPanZoomController* aApzc2) const
 {
-  MonitorAutoLock lock(mTreeLock);
+  mTreeLock.AssertCurrentThreadOwns();
   nsRefPtr<AsyncPanZoomController> ancestor;
 
   
