@@ -1232,6 +1232,11 @@ HttpChannelChild::Redirect3Complete()
 
   
   mRedirectChannelChild = nullptr;
+
+  if (mInterceptListener) {
+    mInterceptListener->Cleanup();
+    mInterceptListener = nullptr;
+  }
 }
 
 
