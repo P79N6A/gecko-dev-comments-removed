@@ -16,6 +16,7 @@
 #include "mozilla/dom/KeyframeEffect.h" 
 #include "mozilla/dom/Promise.h" 
 #include "nsCSSProperty.h" 
+#include "nsIGlobalObject.h"
 
 
 #ifdef CurrentTime
@@ -53,8 +54,9 @@ protected:
   virtual ~Animation() {}
 
 public:
-  explicit Animation(AnimationTimeline* aTimeline)
-    : mTimeline(aTimeline)
+  explicit Animation(nsIGlobalObject* aGlobal, AnimationTimeline* aTimeline)
+    : mGlobal(aGlobal)
+    , mTimeline(aTimeline)
     , mPlaybackRate(1.0)
     , mPendingState(PendingState::NotPending)
     , mSequenceNum(kUnsequenced)
@@ -339,6 +341,7 @@ protected:
   virtual css::CommonAnimationManager* GetAnimationManager() const = 0;
   AnimationCollection* GetCollection() const;
 
+  nsCOMPtr<nsIGlobalObject> mGlobal;
   nsRefPtr<AnimationTimeline> mTimeline;
   nsRefPtr<KeyframeEffectReadOnly> mEffect;
   
