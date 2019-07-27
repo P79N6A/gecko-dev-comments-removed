@@ -279,7 +279,7 @@ struct IonScript
     uint32_t backedgeEntries_;
 
     
-    uint32_t refcount_;
+    uint32_t invalidationCount_;
 
     
     
@@ -394,8 +394,8 @@ struct IonScript
     static inline size_t offsetOfSkipArgCheckEntryOffset() {
         return offsetof(IonScript, skipArgCheckEntryOffset_);
     }
-    static inline size_t offsetOfRefcount() {
-        return offsetof(IonScript, refcount_);
+    static inline size_t offsetOfInvalidationCount() {
+        return offsetof(IonScript, invalidationCount_);
     }
     static inline size_t offsetOfRecompiling() {
         return offsetof(IonScript, recompiling_);
@@ -581,22 +581,22 @@ struct IonScript
                                 MacroAssembler &masm);
 
     bool invalidated() const {
-        return refcount_ != 0;
+        return invalidationCount_ != 0;
     }
 
     
     bool invalidate(JSContext *cx, bool resetUses, const char *reason);
 
-    size_t refcount() const {
-        return refcount_;
+    size_t invalidationCount() const {
+        return invalidationCount_;
     }
-    void incref() {
-        refcount_++;
+    void incrementInvalidationCount() {
+        invalidationCount_++;
     }
-    void decref(FreeOp *fop) {
-        MOZ_ASSERT(refcount_);
-        refcount_--;
-        if (!refcount_)
+    void decrementInvalidationCount(FreeOp *fop) {
+        MOZ_ASSERT(invalidationCount_);
+        invalidationCount_--;
+        if (!invalidationCount_)
             Destroy(fop, this);
     }
     const types::RecompileInfo& recompileInfo() const {

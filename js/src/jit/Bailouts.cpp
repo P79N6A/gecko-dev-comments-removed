@@ -87,7 +87,7 @@ jit::Bailout(BailoutStack *sp, BaselineBailoutInfo **bailoutInfo)
     
     
     if (iter.ionScript()->invalidated())
-        iter.ionScript()->decref(cx->runtime()->defaultFreeOp());
+        iter.ionScript()->decrementInvalidationCount(cx->runtime()->defaultFreeOp());
 
     return retval;
 }
@@ -159,7 +159,7 @@ jit::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut,
         JitSpew(JitSpew_IonInvalidate, "   new  ra %p", (void *) frame->returnAddress());
     }
 
-    iter.ionScript()->decref(cx->runtime()->defaultFreeOp());
+    iter.ionScript()->decrementInvalidationCount(cx->runtime()->defaultFreeOp());
 
     return retval;
 }

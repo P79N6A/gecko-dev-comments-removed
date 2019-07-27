@@ -3901,7 +3901,7 @@ CodeGenerator::branchIfInvalidated(Register temp, Label *invalidated)
 
     
     masm.branch32(Assembler::NotEqual,
-                  Address(temp, IonScript::offsetOfRefcount()),
+                  Address(temp, IonScript::offsetOfInvalidationCount()),
                   Imm32(0),
                   invalidated);
     return true;
