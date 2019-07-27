@@ -94,6 +94,7 @@ public:
   AnimationPlayState PlayState() const;
   virtual Promise* GetReady(ErrorResult& aRv);
   virtual Promise* GetFinished(ErrorResult& aRv);
+  void Cancel();
   virtual void Finish(ErrorResult& aRv);
   virtual void Play(LimitBehavior aLimitBehavior);
   virtual void Pause();
@@ -200,8 +201,6 @@ public:
 
 
   Nullable<TimeDuration> GetCurrentOrPendingStartTime() const;
-
-  void Cancel();
 
   const nsString& Name() const
   {
