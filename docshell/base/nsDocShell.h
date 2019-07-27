@@ -243,6 +243,13 @@ public:
     }
 
     nsresult HistoryTransactionRemoved(int32_t aIndex);
+
+    
+    
+    void NotifyAsyncPanZoomStarted();
+    
+    
+    void NotifyAsyncPanZoomStopped();
 protected:
     
     virtual ~nsDocShell();

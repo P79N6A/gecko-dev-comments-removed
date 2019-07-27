@@ -9,8 +9,8 @@
 #include "nsISupports.h"
 
 #define NS_ISCROLLOBSERVER_IID \
-  { 0x7c1a8b63, 0xe322, 0x4827, \
-    { 0xa4, 0xb1, 0x3b, 0x6e, 0x59, 0x03, 0x47, 0x7e } }
+  { 0x03465b77, 0x9ce2, 0x4d19, \
+    { 0xb2, 0xf6, 0x82, 0xae, 0xee, 0x85, 0xc3, 0xbf } }
 
 class nsIScrollObserver : public nsISupports
 {
@@ -21,6 +21,16 @@ public:
 
 
   virtual void ScrollPositionChanged() = 0;
+
+  
+
+
+  virtual void AsyncPanZoomStarted(){};
+
+  
+
+
+  virtual void AsyncPanZoomStopped(){};
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIScrollObserver, NS_ISCROLLOBSERVER_IID)
