@@ -70,6 +70,11 @@ let DirectoryLinksProvider = {
   
   _downloadIntervalMS: 86400000,
 
+  
+
+
+  _enhancedLinks: new Map(),
+
   get _observedPrefs() Object.freeze({
     linksURL: PREF_DIRECTORY_SOURCE,
     matchOSLocale: PREF_MATCH_OS_LOCALE,
@@ -144,6 +149,14 @@ let DirectoryLinksProvider = {
       let prefName = this._observedPrefs[pref];
       Services.prefs.removeObserver(prefName, this);
     }
+  },
+
+  
+
+
+  _extractSite: function DirectoryLinksProvider_extractSite(url) {
+    let linkURI = Services.io.newURI(url, null, null);
+    return Services.eTLD.getBaseDomain(linkURI);
   },
 
   _fetchAndCacheLinks: function DirectoryLinksProvider_fetchAndCacheLinks(uri) {
@@ -308,11 +321,28 @@ let DirectoryLinksProvider = {
   
 
 
+  getEnhancedLink: function DirectoryLinksProvider_getEnhancedLink(link) {
+    
+    return link.enhancedImageURI && link ||
+           this._enhancedLinks.get(this._extractSite(link.url));
+  },
+
+  
+
+
 
   getLinks: function DirectoryLinksProvider_getLinks(aCallback) {
     this._readDirectoryLinksFile().then(rawLinks => {
       
+      this._enhancedLinks.clear();
+
+      
       aCallback(rawLinks.map((link, position) => {
+        
+        if (link.enhancedImageURI) {
+          this._enhancedLinks.set(this._extractSite(link.url), link);
+        }
+
         link.directoryIndex = position;
         link.frecency = DIRECTORY_FRECENCY;
         link.lastVisitDate = rawLinks.length - position;
