@@ -6,6 +6,7 @@
 #ifndef GFX_UTILS_H
 #define GFX_UTILS_H
 
+#include "gfxColor.h"
 #include "gfxTypes.h"
 #include "GraphicsFilter.h"
 #include "imgIContainer.h"
@@ -173,7 +174,9 @@ public:
     
 
 
-    static void ClearThebesSurface(gfxASurface* aSurface);
+    static void ClearThebesSurface(gfxASurface* aSurface,
+                                   nsIntRect* aRect = nullptr,
+                                   const gfxRGBA& aColor = gfxRGBA(0.0, 0.0, 0.0, 0.0));
 
     
 
