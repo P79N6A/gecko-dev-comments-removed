@@ -145,6 +145,7 @@ protected:
   static bool sGonkDecoderEnabled;
   static bool sAndroidMCDecoderPreferred;
   static bool sAndroidMCDecoderEnabled;
+  static bool sGMPDecoderEnabled;
 };
 
 
