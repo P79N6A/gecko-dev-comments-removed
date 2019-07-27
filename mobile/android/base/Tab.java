@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -17,6 +18,10 @@ import org.json.JSONObject;
 import org.mozilla.gecko.db.BrowserContract.Bookmarks;
 import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.db.URLMetadata;
+import org.mozilla.gecko.favicons.Favicons;
+import org.mozilla.gecko.favicons.LoadFaviconTask;
+import org.mozilla.gecko.favicons.OnFaviconLoadedListener;
+import org.mozilla.gecko.favicons.RemoteFavicon;
 import org.mozilla.gecko.gfx.Layer;
 import org.mozilla.gecko.util.ThreadUtils;
 
@@ -42,7 +47,9 @@ public class Tab {
     private String mTitle;
     private Bitmap mFavicon;
     private String mFaviconUrl;
-    private int mFaviconSize;
+
+    
+    final TreeSet<RemoteFavicon> mAvailableFavicons = new TreeSet<>();
     private boolean mHasFeeds;
     private boolean mHasOpenSearch;
     private final SiteIdentity mSiteIdentity;
@@ -365,46 +372,81 @@ public class Tab {
         return mHasTouchListeners;
     }
 
-    public void setFaviconLoadId(int faviconLoadId) {
-        mFaviconLoadId = faviconLoadId;
-    }
+    public synchronized void addFavicon(String faviconURL, int faviconSize, String mimeType) {
+        RemoteFavicon favicon = new RemoteFavicon(faviconURL, faviconSize, mimeType);
 
-    public int getFaviconLoadId() {
-        return mFaviconLoadId;
-    }
-
-    
-
-
-    public boolean updateFavicon(Bitmap favicon) {
-        if (mFavicon == favicon) {
-            return false;
+        
+        synchronized (mAvailableFavicons) {
+            mAvailableFavicons.add(favicon);
         }
-        mFavicon = favicon;
-        return true;
     }
 
-    public synchronized void updateFaviconURL(String faviconUrl, int size) {
+    public void loadFavicon() {
         
-        if (mFaviconSize == -1)
-            return;
+        if (!mAvailableFavicons.isEmpty()) {
+            RemoteFavicon newFavicon = mAvailableFavicons.first();
 
-        
-        
-        if (size == -1 || size >= mFaviconSize) {
-            mFaviconUrl = faviconUrl;
-            mFaviconSize = size;
+            
+            if (newFavicon.faviconUrl.equals(mFaviconUrl)) {
+                return;
+            }
+
+            Favicons.cancelFaviconLoad(mFaviconLoadId);
+            mFaviconUrl = newFavicon.faviconUrl;
+        } else {
+            
+            mFaviconUrl = null;
         }
+
+        int flags = (isPrivate() || mErrorType != ErrorType.NONE) ? 0 : LoadFaviconTask.FLAG_PERSIST;
+        mFaviconLoadId = Favicons.getSizedFavicon(mAppContext, mUrl, mFaviconUrl, Favicons.browserToolbarFaviconSize, flags,
+                new OnFaviconLoadedListener() {
+                    @Override
+                    public void onFaviconLoaded(String pageUrl, String faviconURL, Bitmap favicon) {
+                        
+                        
+                        if (!pageUrl.equals(mUrl)) {
+                            return;
+                        }
+
+                        
+                        if (favicon == null) {
+                            
+                            if (!mAvailableFavicons.isEmpty()) {
+                                
+                                mAvailableFavicons.remove(mAvailableFavicons.first());
+
+                                
+                                
+                                loadFavicon();
+
+                                return;
+                            }
+
+                            
+                            favicon = Favicons.defaultFavicon;
+                        }
+
+                        mFavicon = favicon;
+                        mFaviconLoadId = Favicons.NOT_LOADING;
+                        Tabs.getInstance().notifyListeners(Tab.this, Tabs.TabEvents.FAVICON);
+                    }
+                }
+        );
     }
 
     public synchronized void clearFavicon() {
+        
+        
+        Favicons.cancelFaviconLoad(mFaviconLoadId);
+
         
         if (mEnteringReaderMode)
             return;
 
         mFavicon = null;
         mFaviconUrl = null;
-        mFaviconSize = 0;
+        mAvailableFavicons.clear();
     }
 
     public void setHasFeeds(boolean hasFeeds) {
