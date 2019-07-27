@@ -313,6 +313,7 @@ notification > button > .button-box > .button-text {
 .popup-internal-box > autorepeatbutton {
   height: 15px;
   position: relative;
+  list-style-image: none;
   
 
 
@@ -326,11 +327,21 @@ notification > button > .button-box > .button-text {
 }
 
 .popup-internal-box > .autorepeatbutton-up {
+  padding-top: 1px; 
   margin-bottom: -15px;
 }
 
+.popup-internal-box > .autorepeatbutton-up > .autorepeatbutton-icon {
+  -moz-appearance: button-arrow-up;
+}
+
 .popup-internal-box > .autorepeatbutton-down {
+  padding-top: 5px;
   margin-top: -15px;
+}
+
+.popup-internal-box > .autorepeatbutton-down > .autorepeatbutton-icon {
+  -moz-appearance: button-arrow-down;
 }
 
 .popup-internal-box > autorepeatbutton[disabled="true"] {
