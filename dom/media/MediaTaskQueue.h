@@ -27,13 +27,18 @@ typedef MediaPromise<bool, bool, false> ShutdownPromise;
 
 
 
-class MediaTaskQueue {
+class MediaTaskQueue : public AbstractThread {
 public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaTaskQueue)
-
   explicit MediaTaskQueue(TemporaryRef<SharedThreadPool> aPool);
 
   nsresult Dispatch(TemporaryRef<nsIRunnable> aRunnable);
+
+  
+  nsresult Dispatch(already_AddRefed<nsIRunnable> aRunnable) override
+  {
+    RefPtr<nsIRunnable> r(aRunnable);
+    return ForceDispatch(r);
+  }
 
   
   
@@ -60,7 +65,7 @@ public:
 
   
   
-  bool IsCurrentThreadIn();
+  bool IsCurrentThreadIn() override;
 
 protected:
   virtual ~MediaTaskQueue();
