@@ -8,13 +8,11 @@
 #define nsUpdateDriver_h__
 
 #include "nscore.h"
-#ifdef MOZ_UPDATER
 #include "nsIUpdateService.h"
 #include "nsIThread.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "mozilla/Attributes.h"
-#endif
 
 class nsIFile;
 
@@ -57,7 +55,6 @@ nsresult ProcessUpdates(nsIFile *greDir, nsIFile *appDir,
                                     nsIFile *osApplyToDir = nullptr,
                                     ProcessType *pid = nullptr);
 
-#ifdef MOZ_UPDATER
 
 
 
@@ -107,6 +104,4 @@ private:
   nsCOMPtr<nsIThread> mProcessWatcher;
   StagedUpdateInfo mInfo;
 };
-#endif
-
 #endif  
