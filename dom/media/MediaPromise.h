@@ -537,6 +537,112 @@ private:
   nsRefPtr<typename PromiseType::Consumer> mConsumer;
 };
 
+
+
+
+
+
+
+
+
+
+namespace detail {
+
+template<typename PromiseType>
+class MethodCallBase
+{
+public:
+  MethodCallBase() { MOZ_COUNT_CTOR(MethodCallBase); }
+  virtual nsRefPtr<PromiseType> Invoke() = 0;
+  virtual ~MethodCallBase() { MOZ_COUNT_DTOR(MethodCallBase); };
+};
+
+template<typename PromiseType, typename ThisType>
+class MethodCallWithNoArgs : public MethodCallBase<PromiseType>
+{
+public:
+  typedef nsRefPtr<PromiseType>(ThisType::*Type)();
+  MethodCallWithNoArgs(ThisType* aThisVal, Type aMethod)
+    : mThisVal(aThisVal), mMethod(aMethod) {}
+  nsRefPtr<PromiseType> Invoke() MOZ_OVERRIDE { return ((*mThisVal).*mMethod)(); }
+protected:
+  nsRefPtr<ThisType> mThisVal;
+  Type mMethod;
+};
+
+
+
+template<typename PromiseType, typename ThisType, typename Arg1Type, typename Arg2Type>
+class MethodCallWithTwoArgs : public MethodCallBase<PromiseType>
+{
+public:
+  typedef nsRefPtr<PromiseType>(ThisType::*Type)(Arg1Type, Arg2Type);
+  MethodCallWithTwoArgs(ThisType* aThisVal, Type aMethod, Arg1Type aArg1, Arg2Type aArg2)
+    : mThisVal(aThisVal), mMethod(aMethod), mArg1(aArg1), mArg2(aArg2) {}
+  nsRefPtr<PromiseType> Invoke() MOZ_OVERRIDE { return ((*mThisVal).*mMethod)(mArg1, mArg2); }
+protected:
+  nsRefPtr<ThisType> mThisVal;
+  Type mMethod;
+  Arg1Type mArg1;
+  Arg2Type mArg2;
+};
+
+template<typename PromiseType>
+class ProxyRunnable : public nsRunnable
+{
+public:
+  ProxyRunnable(PromiseType* aProxyPromise, MethodCallBase<PromiseType>* aMethodCall)
+    : mProxyPromise(aProxyPromise), mMethodCall(aMethodCall) {}
+
+  NS_IMETHODIMP Run()
+  {
+    nsRefPtr<PromiseType> p = mMethodCall->Invoke();
+    mMethodCall = nullptr;
+    p->ChainTo(mProxyPromise.forget(), "<Proxy Promise>");
+    return NS_OK;
+  }
+
+private:
+  nsRefPtr<PromiseType> mProxyPromise;
+  nsAutoPtr<MethodCallBase<PromiseType>> mMethodCall;
+};
+
+template<typename PromiseType, typename TargetType>
+static nsRefPtr<PromiseType>
+ProxyInternal(TargetType* aTarget, MethodCallBase<PromiseType>* aMethodCall, const char* aCallerName)
+{
+  nsRefPtr<PromiseType> p = new PromiseType(aCallerName);
+  nsRefPtr<ProxyRunnable<PromiseType>> r = new ProxyRunnable<PromiseType>(p, aMethodCall);
+  nsresult rv = detail::DispatchMediaPromiseRunnable(aTarget, r);
+  MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
+  return p;
+}
+
+} 
+
+template<typename PromiseType, typename TargetType, typename ThisType>
+static nsRefPtr<PromiseType>
+ProxyMediaCall(TargetType* aTarget, ThisType* aThisVal, const char* aCallerName,
+               nsRefPtr<PromiseType>(ThisType::*aMethod)())
+{
+  typedef detail::MethodCallWithNoArgs<PromiseType, ThisType> MethodCallType;
+  MethodCallType* methodCall = new MethodCallType(aThisVal, aMethod);
+  return detail::ProxyInternal(aTarget, methodCall, aCallerName);
+}
+
+
+
+template<typename PromiseType, typename TargetType, typename ThisType,
+         typename Arg1Type, typename Arg2Type>
+static nsRefPtr<PromiseType>
+ProxyMediaCall(TargetType* aTarget, ThisType* aThisVal, const char* aCallerName,
+               nsRefPtr<PromiseType>(ThisType::*aMethod)(Arg1Type, Arg2Type), Arg1Type aArg1, Arg2Type aArg2)
+{
+  typedef detail::MethodCallWithTwoArgs<PromiseType, ThisType, Arg1Type, Arg2Type> MethodCallType;
+  MethodCallType* methodCall = new MethodCallType(aThisVal, aMethod, aArg1, aArg2);
+  return detail::ProxyInternal(aTarget, methodCall, aCallerName);
+}
+
 #undef PROMISE_LOG
 
 } 
