@@ -1185,6 +1185,13 @@ this.WidgetMethods = {
 
 
 
+
+  ignoreLeftRight: false,
+
+  
+
+
+
   allowFocusOnRightClick: false,
 
   
@@ -1634,12 +1641,16 @@ this.WidgetMethods = {
 
     switch (aEvent.keyCode) {
       case aEvent.DOM_VK_UP:
-      case aEvent.DOM_VK_LEFT:
         this.focusPrevItem();
         return;
       case aEvent.DOM_VK_DOWN:
-      case aEvent.DOM_VK_RIGHT:
         this.focusNextItem();
+        return;
+      case aEvent.DOM_VK_LEFT:
+        if (!this.ignoreLeftRight) this.focusPrevItem();
+        return;
+      case aEvent.DOM_VK_RIGHT:
+        if (!this.ignoreLeftRight) this.focusNextItem();
         return;
       case aEvent.DOM_VK_PAGE_UP:
         this.focusItemAtDelta(-(this.pageSize || (this.itemCount / PAGE_SIZE_ITEM_COUNT_RATIO)));
