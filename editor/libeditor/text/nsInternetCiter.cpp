@@ -171,20 +171,8 @@ nsInternetCiter::Rewrap(const nsAString& aInString,
   uint32_t citeLevel = 0;
   const nsPromiseFlatString &tString = PromiseFlatString(aInString);
   length = tString.Length();
-#ifdef DEBUG_wrapping
-  int loopcount = 0;
-#endif
   while (posInString < length)
   {
-#ifdef DEBUG_wrapping
-    printf("Outer loop: '%s'\n",
-           NS_LossyConvertUTF16toASCII(Substring(tString, posInString,
-                                                length-posInString)).get());
-    printf("out string is now: '%s'\n",
-           NS_LossyConvertUTF16toASCII(aOutString).get());
-
-#endif
-
     
     uint32_t newCiteLevel = 0;
     while (posInString < length && tString[posInString] == gt)
@@ -265,15 +253,6 @@ nsInternetCiter::Rewrap(const nsAString& aInString,
     
     while ((int32_t)posInString < nextNewline)
     {
-#ifdef DEBUG_wrapping
-      if (++loopcount > 1000)
-        NS_ASSERTION(false, "possible infinite loop in nsInternetCiter\n");
-
-      printf("Inner loop: '%s'\n",
-             NS_LossyConvertUTF16toASCII(Substring(tString, posInString,
-                                              nextNewline-posInString)).get());
-#endif
-
       
       while ((int32_t)posInString < nextNewline
              && nsCRT::IsAsciiSpace(tString[posInString]))
@@ -341,9 +320,6 @@ nsInternetCiter::Rewrap(const nsAString& aInString,
       
       if (NS_FAILED(rv))
       {
-#ifdef DEBUG_akkana
-        printf("nsInternetCiter: LineBreaker not working -- breaking hard\n");
-#endif
         breakPt = eol;
       }
 
@@ -380,17 +356,8 @@ nsInternetCiter::Rewrap(const nsAString& aInString,
         BreakLine(aOutString, outStringCol, citeLevel);
 
     } 
-#ifdef DEBUG_wrapping
-    printf("---------\nEnd inner loop: out string is now '%s'\n-----------\n",
-           NS_LossyConvertUTF16toASCII(aOutString).get());
-#endif
   } 
 
-#ifdef DEBUG_wrapping
-  printf("Final out string is now: '%s'\n",
-         NS_LossyConvertUTF16toASCII(aOutString).get());
-
-#endif
   return NS_OK;
 }
 

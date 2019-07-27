@@ -349,9 +349,7 @@ nsHTMLEditor::GetNextRow(nsIDOMNode* aCurrentRowNode, nsIDOMNode **aRowNode)
       NS_ADDREF(*aRowNode);
       return NS_OK;
     }
-#ifdef DEBUG_cmanske
-    printf("GetNextRow: firstChild of row's parent's sibling is not a TR!\n");
-#endif
+
     
     
     
@@ -457,11 +455,6 @@ nsHTMLEditor::InsertTableColumn(int32_t aNumber, bool aAfter)
   nsCOMPtr<nsIDOMNode> rowNode;
   for ( rowIndex = 0; rowIndex < rowCount; rowIndex++)
   {
-#ifdef DEBUG_cmanske
-    if (rowIndex == rowCount-1)
-      printf(" ***InsertTableColumn: Inserting cell at last row: %d\n", rowIndex);
-#endif
-
     if (startColIndex < colCount)
     {
       
@@ -3023,10 +3016,6 @@ nsHTMLEditor::GetNextSelectedCell(nsIDOMRange **aRange, nsIDOMElement **aCell)
     
     
     if (*aCell) break;
-#ifdef DEBUG_cmanske
-    else
-      printf("GetNextSelectedCell: Collapsed range found\n");
-#endif
 
     
   }
@@ -3091,9 +3080,6 @@ nsHTMLEditor::SetSelectionAfterTableEdit(nsIDOMElement* aTable, int32_t aRow, in
   
   if (!selection)
   {
-#ifdef DEBUG_cmanske
-    printf("Selection not found after table manipulation!\n");
-#endif
     return NS_ERROR_FAILURE;
   }
 
