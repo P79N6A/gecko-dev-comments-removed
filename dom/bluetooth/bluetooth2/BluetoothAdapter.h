@@ -207,6 +207,11 @@ private:
   
 
 
+  void Cleanup();
+
+  
+
+
 
 
   void SetPropertyByValue(const BluetoothNamedValue& aValue);
