@@ -40,8 +40,6 @@ public:
   void MaybeTailDispatch(already_AddRefed<nsIRunnable> aRunnable,
                          bool aAssertDispatchSuccess = true);
 
-  template<typename TargetType> static AbstractThread* Create(TargetType* aTarget);
-
   
   static AbstractThread* MainThread();
 
@@ -61,13 +59,6 @@ public:
   virtual bool IsCurrentThreadIn();
 private:
   nsRefPtr<TargetType> mTarget;
-};
-
-template<typename TargetType>
-AbstractThread*
-AbstractThread::Create(TargetType* aTarget)
-{
-  return new AbstractThreadImpl<TargetType>(aTarget);
 };
 
 } 
