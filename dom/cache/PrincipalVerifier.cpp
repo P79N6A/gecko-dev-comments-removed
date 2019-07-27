@@ -150,7 +150,7 @@ PrincipalVerifier::VerifyOnMainThread()
   
   if (!ssm->IsSystemPrincipal(principal)) {
     nsAutoCString origin;
-    rv = principal->GetOrigin(getter_Copies(origin));
+    rv = principal->GetOrigin(origin);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       DispatchToInitiatingThread(rv);
       return;

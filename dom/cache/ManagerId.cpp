@@ -33,7 +33,7 @@ ManagerId::Create(nsIPrincipal* aPrincipal, ManagerId** aManagerIdOut)
   
 
   nsAutoCString origin;
-  nsresult rv = aPrincipal->GetOrigin(getter_Copies(origin));
+  nsresult rv = aPrincipal->GetOrigin(origin);
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
   uint32_t appId;
