@@ -50,6 +50,7 @@
 #include "mozilla/scache/StartupCacheUtils.h"
 #include "mozilla/MacroForEach.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/dom/ScriptSettings.h"
 
 #include "js/OldDebugAPI.h"
 
@@ -767,8 +768,11 @@ mozJSComponentLoader::PrepareObjectForLocation(JSContext* aCx,
         return nullptr;
 
     if (createdNewGlobal) {
-        RootedObject global(aCx, holder->GetJSObject());
-        JS_FireOnNewGlobalObject(aCx, global);
+        
+        
+        dom::AutoEntryScript aes(GetNativeForGlobal(holder->GetJSObject()));
+        RootedObject global(aes.cx(), holder->GetJSObject());
+        JS_FireOnNewGlobalObject(aes.cx(), global);
     }
 
     return obj;
@@ -783,11 +787,11 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
                                         bool aPropagateExceptions,
                                         MutableHandleValue aException)
 {
-    JSCLContextHelper cx(mContext);
+    MOZ_ASSERT(NS_IsMainThread(), "Must be on main thread.");
 
-    JS_AbortIfWrongThread(JS_GetRuntime(cx));
-
-    JSCLAutoErrorReporterSetter aers(cx, xpc::SystemErrorReporter);
+    dom::AutoJSAPI jsapi;
+    jsapi.Init();
+    JSContext* cx = jsapi.cx();
 
     bool realFile = false;
     nsresult rv = aInfo.EnsureURI();
@@ -1041,6 +1045,10 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
     bool ok = false;
 
     {
+        
+        
+        
+        dom::AutoEntryScript aes(GetNativeForGlobal(CurrentGlobalOrNull(cx)));
         AutoSaveContextOptions asco(cx);
         if (aPropagateExceptions)
             ContextOptionsRef(cx).setDontReportUncaught(true);
