@@ -718,6 +718,11 @@ protected:
   
   void OnAudioSinkError();
 
+  void DispatchOnAudioSinkError()
+  {
+    TaskQueue()->Dispatch(NS_NewRunnableMethod(this, &MediaDecoderStateMachine::OnAudioSinkError));
+  }
+
   
   
   bool NeedToSkipToNextKeyframe();

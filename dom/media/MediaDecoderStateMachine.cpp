@@ -3455,7 +3455,8 @@ void MediaDecoderStateMachine::OnAudioSinkComplete()
 
 void MediaDecoderStateMachine::OnAudioSinkError()
 {
-  AssertCurrentThreadInMonitor();
+  MOZ_ASSERT(OnStateMachineThread());
+  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
   
   if (mAudioCaptured) {
     return;
