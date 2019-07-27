@@ -307,15 +307,6 @@ namespace gc {
 
 
 
-
-
-
-
-void
-MarkCycleCollectorChildren(JSTracer* trc, Shape* shape);
-void
-MarkCycleCollectorChildren(JSTracer* trc, ObjectGroup* group);
-
 void
 PushArena(GCMarker* gcmarker, ArenaHeader* aheader);
 

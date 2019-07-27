@@ -113,6 +113,17 @@ TraceManuallyBarrieredGenericPointerEdge(JSTracer* trc, gc::Cell** thingp, const
 void
 TraceChildren(JSTracer* trc, void* thing, JSGCTraceKind kind);
 
+namespace gc {
+
+
+
+void
+TraceCycleCollectorChildren(JS::CallbackTracer* trc, Shape* shape);
+void
+TraceCycleCollectorChildren(JS::CallbackTracer* trc, ObjectGroup* group);
+
+} 
+
 } 
 
 #endif 
