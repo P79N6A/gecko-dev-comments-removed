@@ -280,9 +280,8 @@ class GCRuntime
 
     bool isGcNeeded() { return isNeeded; }
 
-    double computeHeapGrowthFactor(size_t lastBytes) const;
-    size_t computeTriggerBytes(double growthFactor, size_t lastBytes,
-                               JSGCInvocationKind gckind) const;
+    double computeHeapGrowthFactor(size_t lastBytes);
+    size_t computeTriggerBytes(double growthFactor, size_t lastBytes, JSGCInvocationKind gckind);
     size_t allocationThreshold() { return allocThreshold; }
 
     JSGCMode gcMode() const { return mode; }
@@ -338,7 +337,7 @@ class GCRuntime
     bool releaseObservedTypes();
     void endSweepingZoneGroup();
     bool sweepPhase(SliceBudget &sliceBudget);
-    void endSweepPhase(bool lastGC);
+    void endSweepPhase(JSGCInvocationKind gckind, bool lastGC);
     void sweepZones(FreeOp *fop, bool lastGC);
     void decommitArenasFromAvailableList(Chunk **availableListHeadp);
     void decommitArenas();
@@ -457,9 +456,6 @@ class GCRuntime
 
     
     bool                  isFull;
-
-    
-    JSGCInvocationKind    lastKind;
 
     
     JS::gcreason::Reason  triggerReason;
