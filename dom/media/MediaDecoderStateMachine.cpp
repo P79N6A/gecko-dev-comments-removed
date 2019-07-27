@@ -220,6 +220,7 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mDropVideoUntilNextDiscontinuity(false),
   mDecodeToSeekTarget(false),
   mWaitingForDecoderSeek(false),
+  mCancelingSeek(false),
   mCurrentTimeBeforeSeek(0),
   mLastFrameStatus(MediaDecoderOwner::NEXT_FRAME_UNINITIALIZED),
   mDecodingFrozenAtStateDecoding(false),
@@ -1703,10 +1704,6 @@ void MediaDecoderStateMachine::Seek(const SeekTarget& aTarget)
     return;
   }
 
-  
-  
-  NS_ASSERTION(mState != DECODER_STATE_SEEKING,
-               "We shouldn't already be seeking");
   NS_ASSERTION(mState > DECODER_STATE_DECODING_METADATA,
                "We should have got duration already");
 
@@ -2381,9 +2378,25 @@ void MediaDecoderStateMachine::DecodeSeek()
   NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
 
   if (mState != DECODER_STATE_SEEKING ||
-      !mSeekTarget.IsValid() ||
-      mCurrentSeekTarget.IsValid()) {
+      !mSeekTarget.IsValid()) {
     DECODER_LOG("Early returning from DecodeSeek");
+    return;
+  }
+
+  
+  if (mCurrentSeekTarget.IsValid()) {
+    
+    
+    
+    
+    
+    
+    
+    if (mWaitingForDecoderSeek && !mCancelingSeek) {
+      mReader->CancelSeek();
+      mCancelingSeek = true;
+    }
+
     return;
   }
 
@@ -2470,6 +2483,7 @@ MediaDecoderStateMachine::OnSeekCompleted(int64_t aTime)
 {
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
   mWaitingForDecoderSeek = false;
+  mCancelingSeek = false;
 
   
   
@@ -2481,12 +2495,21 @@ void
 MediaDecoderStateMachine::OnSeekFailed(nsresult aResult)
 {
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+  bool wasCanceled = mCancelingSeek;
   mWaitingForDecoderSeek = false;
-  
-  
-  
+  mCancelingSeek = false;
+
   if (NS_FAILED(aResult)) {
     DecodeError();
+  } else if (wasCanceled && mSeekTarget.IsValid() && mState == DECODER_STATE_SEEKING) {
+    
+    mCurrentSeekTarget = mSeekTarget;
+    mSeekTarget.Reset();
+    mReader->Seek(mCurrentSeekTarget.mTime, mEndTime)
+           ->Then(DecodeTaskQueue(), __func__, this,
+                  &MediaDecoderStateMachine::OnSeekCompleted,
+                  &MediaDecoderStateMachine::OnSeekFailed);
+    mWaitingForDecoderSeek = true;
   }
 }
 
@@ -2549,7 +2572,12 @@ MediaDecoderStateMachine::SeekCompleted()
 
   nsCOMPtr<nsIRunnable> stopEvent;
   bool isLiveStream = mDecoder->GetResource()->GetLength() == -1;
-  if (GetMediaTime() == mEndTime && !isLiveStream) {
+  if (mSeekTarget.IsValid()) {
+    
+    
+    DECODER_LOG("A new seek came along while we were finishing the old one - staying in SEEKING");
+    SetState(DECODER_STATE_SEEKING);
+  } else if (GetMediaTime() == mEndTime && !isLiveStream) {
     
     
     

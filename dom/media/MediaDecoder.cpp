@@ -633,9 +633,7 @@ nsresult MediaDecoder::Seek(double aTime, SeekTarget::Type aSeekType)
   mCurrentTime = aTime;
 
   
-  
-  
-  if (mPlayState != PLAY_STATE_LOADING && mPlayState != PLAY_STATE_SEEKING) {
+  if (mPlayState != PLAY_STATE_LOADING) {
     bool paused = false;
     if (mOwner) {
       paused = mOwner->GetPaused();

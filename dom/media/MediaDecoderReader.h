@@ -163,6 +163,15 @@ public:
   
   
   
+  virtual void CancelSeek() { };
+
+  
+  
+  
+  
+  
+  
+  
   
   
   
