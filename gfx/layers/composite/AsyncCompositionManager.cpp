@@ -141,8 +141,13 @@ static void
 TranslateShadowLayer2D(Layer* aLayer,
                        const gfxPoint& aTranslation)
 {
+  
+  
+  
+  
+  
   Matrix layerTransform;
-  if (!GetBaseTransform2D(aLayer, &layerTransform)) {
+  if (!aLayer->GetLocalTransform().Is2D(&layerTransform)) {
     return;
   }
 
@@ -894,6 +899,18 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
                             aLayer->GetLocalTransform(), fixedLayerMargins);
 }
 
+void
+ClearAsyncTransforms(Layer* aLayer)
+{
+  if (!aLayer->AsLayerComposite()->GetShadowTransformSetByAnimation()) {
+    aLayer->AsLayerComposite()->SetShadowTransform(aLayer->GetBaseTransform());
+  }
+  for (Layer* child = aLayer->GetFirstChild();
+      child; child = child->GetNextSibling()) {
+    ClearAsyncTransforms(child);
+  }
+}
+
 bool
 AsyncCompositionManager::TransformShadowTree(TimeStamp aCurrentFrame)
 {
@@ -908,6 +925,12 @@ AsyncCompositionManager::TransformShadowTree(TimeStamp aCurrentFrame)
   
   
   bool wantNextFrame = SampleAnimations(root, aCurrentFrame);
+
+  
+  
+  
+  
+  ClearAsyncTransforms(root);
 
   
   
