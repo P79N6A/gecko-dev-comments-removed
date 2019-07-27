@@ -1817,8 +1817,19 @@ MediaStreamGraphImpl::RunInStableState(bool aSourceIsMSG)
     mLifecycleState >= LIFECYCLE_WAITING_FOR_THREAD_SHUTDOWN;
 #endif
 
+  TaskDispatcher& tailDispatcher = AbstractThread::MainThread()->TailDispatcher();
   for (uint32_t i = 0; i < runnables.Length(); ++i) {
     runnables[i]->Run();
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    tailDispatcher.DrainDirectTasks();
   }
 }
 

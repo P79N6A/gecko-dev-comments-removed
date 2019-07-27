@@ -39,13 +39,25 @@ public:
   TaskDispatcher() {}
   virtual ~TaskDispatcher() {}
 
+  
+  
+  
+  virtual void AddDirectTask(already_AddRefed<nsIRunnable> aRunnable) = 0;
+
+  
+  
+  
   virtual void AddStateChangeTask(AbstractThread* aThread,
                                   already_AddRefed<nsIRunnable> aRunnable) = 0;
+
+  
+  
   virtual void AddTask(AbstractThread* aThread,
                        already_AddRefed<nsIRunnable> aRunnable,
                        AbstractThread::DispatchFailureHandling aFailureHandling = AbstractThread::AssertDispatchSuccess) = 0;
 
   virtual bool HasTasksFor(AbstractThread* aThread) = 0;
+  virtual void DrainDirectTasks() = 0;
 };
 
 
@@ -58,6 +70,17 @@ public:
   explicit AutoTaskDispatcher(bool aIsTailDispatcher = false) : mIsTailDispatcher(aIsTailDispatcher) {}
   ~AutoTaskDispatcher()
   {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    MOZ_ASSERT(mDirectTasks.empty());
+
     for (size_t i = 0; i < mTaskGroups.Length(); ++i) {
       UniquePtr<PerThreadTaskGroup> group(Move(mTaskGroups[i]));
       nsRefPtr<AbstractThread> thread = group->mThread;
@@ -68,6 +91,20 @@ public:
       nsCOMPtr<nsIRunnable> r = new TaskGroupRunnable(Move(group));
       thread->Dispatch(r.forget(), failureHandling, reason);
     }
+  }
+
+  void DrainDirectTasks() override
+  {
+    while (!mDirectTasks.empty()) {
+      nsCOMPtr<nsIRunnable> r = mDirectTasks.front();
+      mDirectTasks.pop();
+      r->Run();
+    }
+  }
+
+  void AddDirectTask(already_AddRefed<nsIRunnable> aRunnable) override
+  {
+    mDirectTasks.push(Move(aRunnable));
   }
 
   void AddStateChangeTask(AbstractThread* aThread,
@@ -90,7 +127,10 @@ public:
     }
   }
 
-  bool HasTasksFor(AbstractThread* aThread) override { return !!GetTaskGroup(aThread); }
+  bool HasTasksFor(AbstractThread* aThread) override
+  {
+    return !!GetTaskGroup(aThread) || (aThread == AbstractThread::GetCurrent() && !mDirectTasks.empty());
+  }
 
 private:
 
@@ -118,18 +158,37 @@ private:
 
       NS_IMETHODIMP Run()
       {
+        
+        
         for (size_t i = 0; i < mTasks->mStateChangeTasks.Length(); ++i) {
           mTasks->mStateChangeTasks[i]->Run();
         }
 
+        
+        
+        
+        
+        MaybeDrainDirectTasks();
+
         for (size_t i = 0; i < mTasks->mRegularTasks.Length(); ++i) {
           mTasks->mRegularTasks[i]->Run();
+
+          
+          MaybeDrainDirectTasks();
         }
 
         return NS_OK;
       }
 
     private:
+      void MaybeDrainDirectTasks()
+      {
+        AbstractThread* currentThread = AbstractThread::GetCurrent();
+        if (currentThread) {
+          currentThread->TailDispatcher().DrainDirectTasks();
+        }
+      }
+
       UniquePtr<PerThreadTaskGroup> mTasks;
   };
 
@@ -155,6 +214,9 @@ private:
     
     return nullptr;
   }
+
+  
+  std::queue<nsCOMPtr<nsIRunnable>> mDirectTasks;
 
   
   nsTArray<UniquePtr<PerThreadTaskGroup>> mTaskGroups;
