@@ -881,6 +881,11 @@ Accessible::Attributes()
   
   
   if (mRoleMapEntry) {
+    if (mRoleMapEntry->Is(nsGkAtoms::searchbox)) {
+      nsAccUtils::SetAccAttr(attributes, nsGkAtoms::textInputType,
+                             NS_LITERAL_STRING("search"));
+    }
+
     nsAutoString live;
     nsAccUtils::GetAccAttr(attributes, nsGkAtoms::live, live);
     if (live.IsEmpty()) {

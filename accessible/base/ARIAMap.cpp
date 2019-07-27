@@ -497,6 +497,19 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eARIAReadonly
   },
   { 
+    &nsGkAtoms::searchbox,
+    roles::ENTRY,
+    kUseMapRole,
+    eNoValue,
+    eActivateAction,
+    eNoLiveAttr,
+    kGenericAccType,
+    kNoReqStates,
+    eARIAAutoComplete,
+    eARIAMultiline,
+    eARIAReadonlyOrEditable
+  },
+  { 
     &nsGkAtoms::separator_,
     roles::SEPARATOR,
     kUseMapRole,
