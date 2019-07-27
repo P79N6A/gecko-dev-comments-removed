@@ -121,6 +121,11 @@ ScreenManagerParent::RecvScreenForBrowser(PBrowserParent* aBrowser,
                                           bool* aSuccess)
 {
   *aSuccess = false;
+#ifdef MOZ_VALGRIND
+  
+  
+  memset(aRetVal, 0, sizeof(ScreenDetails));
+#endif
 
   
   
