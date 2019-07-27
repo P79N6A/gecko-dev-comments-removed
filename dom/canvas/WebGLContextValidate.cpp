@@ -1949,6 +1949,21 @@ WebGLContext::InitAndValidateGL()
     mDefaultVertexArray->mAttribs.SetLength(mGLMaxVertexAttribs);
     mBoundVertexArray = mDefaultVertexArray;
 
+    
+    
+    
+    
+    
+    
+    
+    
+
+    if (gl->IsCoreProfile()) {
+        MakeContextCurrent();
+        mDefaultVertexArray->GenVertexArray();
+        mDefaultVertexArray->BindVertexArray();
+    }
+
     if (mLoseContextOnMemoryPressure)
         mContextObserver->RegisterMemoryPressureEvent();
 
