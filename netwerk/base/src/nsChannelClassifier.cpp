@@ -41,6 +41,7 @@ NS_IMPL_ISUPPORTS(nsChannelClassifier,
                   nsIURIClassifierCallback)
 
 nsChannelClassifier::nsChannelClassifier()
+  : mIsAllowListed(false)
 {
 #if defined(PR_LOGGING)
     if (!gChannelClassifierLog)
@@ -122,7 +123,12 @@ nsChannelClassifier::ShouldEnableTrackingProtection(nsIChannel *aChannel,
     }
 #endif
 
-    *result = permissions != nsIPermissionManager::ALLOW_ACTION;
+    if (permissions == nsIPermissionManager::ALLOW_ACTION) {
+      mIsAllowListed = true;
+      *result = false;
+    } else {
+      *result = true;
+    }
 
     
     
@@ -259,7 +265,7 @@ void
 nsChannelClassifier::MarkEntryClassified(nsresult status)
 {
     
-    if (status == NS_ERROR_TRACKING_URI) {
+    if (status == NS_ERROR_TRACKING_URI || mIsAllowListed) {
         return;
     }
 
