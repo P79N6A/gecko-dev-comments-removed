@@ -25,7 +25,8 @@ let log = Log.repository.getLogger("Services.FxAccounts.test");
 log.level = Log.Level.Debug;
 
 
-Services.prefs.setCharPref("identity.fxaccounts.loglevel", "DEBUG");
+Services.prefs.setCharPref("identity.fxaccounts.loglevel", "Trace");
+Log.repository.getLogger("FirefoxAccounts").level = Log.Level.Trace;
 
 
 Services.prefs.setCharPref("identity.fxaccounts.remote.oauth.uri", "https://example.com/v1");
@@ -60,15 +61,10 @@ function MockFxAccountsClient() {
   
   this.recoveryEmailStatus = function (sessionToken) {
     
-    let deferred = Promise.defer();
-
-    let response = {
+    return Promise.resolve({
       email: this._email,
       verified: this._verified
-    };
-    deferred.resolve(response);
-
-    return deferred.promise;
+    });
   };
 
   this.accountStatus = function(uid) {
@@ -132,6 +128,8 @@ MockStorage.prototype = Object.freeze({
 
 function MockFxAccounts() {
   return new FxAccounts({
+    VERIFICATION_POLL_TIMEOUT_INITIAL: 100, 
+
     _getCertificateSigned_calls: [],
     _d_signCertificate: Promise.defer(),
     _now_is: new Date(),
@@ -180,7 +178,9 @@ add_task(function test_get_signed_in_user_initially_unset() {
   
   
   
-  let account = new FxAccounts({onlySetInternal: true})
+  let account = new FxAccounts({
+    signedInUserStorage: new MockStorage(),
+  });
   let credentials = {
     email: "foo@example.com",
     uid: "1234@lcip.org",
@@ -190,6 +190,8 @@ add_task(function test_get_signed_in_user_initially_unset() {
     kB: "cafe",
     verified: true
   };
+  
+  account.internal.currentAccountState.signedInUserStorage = account.internal.signedInUserStorage;
 
   let result = yield account.getSignedInUser();
   do_check_eq(result, null);
@@ -218,12 +220,14 @@ add_task(function test_get_signed_in_user_initially_unset() {
   do_check_eq(result, null);
 });
 
-add_task(function test_getCertificate() {
+add_task(function* test_getCertificate() {
   _("getCertificate()");
   
   
   
-  let fxa = new FxAccounts({onlySetInternal: true});
+  let fxa = new FxAccounts({
+    signedInUserStorage: new MockStorage(),
+  });
   let credentials = {
     email: "foo@example.com",
     uid: "1234@lcip.org",
@@ -233,6 +237,8 @@ add_task(function test_getCertificate() {
     kB: "cafe",
     verified: true
   };
+  
+  fxa.internal.currentAccountState.signedInUserStorage = fxa.internal.signedInUserStorage;
   yield fxa.setSignedInUser(credentials);
 
   
@@ -242,7 +248,7 @@ add_task(function test_getCertificate() {
   let offline = Services.io.offline;
   Services.io.offline = true;
   
-  fxa.internal.currentAccountState.getCertificate().then(
+  yield fxa.internal.currentAccountState.getCertificate().then(
     result => {
       Services.io.offline = offline;
       do_throw("Unexpected success");
@@ -253,7 +259,6 @@ add_task(function test_getCertificate() {
       do_check_eq(err, "Error: OFFLINE");
     }
   );
-  _("----- DONE ----\n");
 });
 
 

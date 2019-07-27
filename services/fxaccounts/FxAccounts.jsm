@@ -579,6 +579,11 @@ FxAccountsInternal.prototype = {
 
   version: DATA_FORMAT_VERSION,
 
+  
+  VERIFICATION_POLL_TIMEOUT_INITIAL: 5000, 
+  
+  VERIFICATION_POLL_TIMEOUT_SUBSEQUENT: 15000, 
+
   _fxAccountsClient: null,
 
   get fxAccountsClient() {
@@ -1128,7 +1133,8 @@ FxAccountsInternal.prototype = {
     }
     if (timeoutMs === undefined) {
       let currentMinute = Math.ceil(ageMs / 60000);
-      timeoutMs = 1000 * (currentMinute <= 2 ? 5 : 15);
+      timeoutMs = currentMinute <= 2 ? this.VERIFICATION_POLL_TIMEOUT_INITIAL
+                                     : this.VERIFICATION_POLL_TIMEOUT_SUBSEQUENT;
     }
     log.debug("polling with timeout = " + timeoutMs);
     this.currentTimer = setTimeout(() => {
