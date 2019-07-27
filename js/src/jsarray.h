@@ -101,9 +101,7 @@ NewDenseCopyOnWriteArray(JSContext *cx, HandleArrayObject templateObject, gc::In
 
 
 extern bool
-WouldDefinePastNonwritableLength(ExclusiveContext *cx,
-                                 HandleObject obj, uint32_t index, bool strict,
-                                 bool *definesPast);
+WouldDefinePastNonwritableLength(HandleNativeObject obj, uint32_t index);
 
 
 

@@ -774,6 +774,22 @@ StandardDefineProperty(JSContext *cx, HandleObject obj, HandleId id,
 
 extern bool
 DefineProperty(ExclusiveContext *cx, HandleObject obj, HandleId id, HandleValue value,
+               JSGetterOp getter, JSSetterOp setter, unsigned attrs, ObjectOpResult &result);
+
+extern bool
+DefineProperty(ExclusiveContext *cx, HandleObject obj, PropertyName *name, HandleValue value,
+               JSGetterOp getter, JSSetterOp setter, unsigned attrs, ObjectOpResult &result);
+
+extern bool
+DefineElement(ExclusiveContext *cx, HandleObject obj, uint32_t index, HandleValue value,
+              JSGetterOp getter, JSSetterOp setter, unsigned attrs, ObjectOpResult &result);
+
+
+
+
+
+extern bool
+DefineProperty(ExclusiveContext *cx, HandleObject obj, HandleId id, HandleValue value,
                JSGetterOp getter = nullptr,
                JSSetterOp setter = nullptr,
                unsigned attrs = JSPROP_ENUMERATE);

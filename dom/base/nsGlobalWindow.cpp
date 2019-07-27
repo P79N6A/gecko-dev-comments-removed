@@ -622,8 +622,8 @@ public:
   virtual bool defineProperty(JSContext* cx,
                               JS::Handle<JSObject*> proxy,
                               JS::Handle<jsid> id,
-                              JS::MutableHandle<JSPropertyDescriptor> desc)
-                              const MOZ_OVERRIDE;
+                              JS::MutableHandle<JSPropertyDescriptor> desc,
+                              JS::ObjectOpResult &result) const MOZ_OVERRIDE;
   virtual bool ownPropertyKeys(JSContext *cx,
                                JS::Handle<JSObject*> proxy,
                                JS::AutoIdVector &props) const MOZ_OVERRIDE;
@@ -783,8 +783,8 @@ bool
 nsOuterWindowProxy::defineProperty(JSContext* cx,
                                    JS::Handle<JSObject*> proxy,
                                    JS::Handle<jsid> id,
-                                   JS::MutableHandle<JSPropertyDescriptor> desc)
-                                   const
+                                   JS::MutableHandle<JSPropertyDescriptor> desc,
+                                   JS::ObjectOpResult &result) const
 {
   int32_t index = GetArrayIndexFromId(cx, id);
   if (IsArrayIndex(index)) {
@@ -792,7 +792,7 @@ nsOuterWindowProxy::defineProperty(JSContext* cx,
     
     
     
-    return true;
+    return result.succeed();
   }
 
   
@@ -803,7 +803,7 @@ nsOuterWindowProxy::defineProperty(JSContext* cx,
     return ThrowErrorMessage(cx, MSG_DEFINE_NON_CONFIGURABLE_PROP_ON_WINDOW);
   }
 
-  return js::Wrapper::defineProperty(cx, proxy, id, desc);
+  return js::Wrapper::defineProperty(cx, proxy, id, desc, result);
 }
 
 bool

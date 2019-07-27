@@ -555,12 +555,11 @@ ScriptedDirectProxyHandler::getOwnPropertyDescriptor(JSContext *cx, HandleObject
 
 bool
 ScriptedDirectProxyHandler::defineProperty(JSContext *cx, HandleObject proxy, HandleId id,
-                                           MutableHandle<PropertyDescriptor> desc) const
+                                           MutableHandle<PropertyDescriptor> desc,
+                                           ObjectOpResult &result) const
 {
     
     RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
-
-    
     if (!handler) {
         JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_PROXY_REVOKED);
         return false;
@@ -576,7 +575,7 @@ ScriptedDirectProxyHandler::defineProperty(JSContext *cx, HandleObject proxy, Ha
 
     
     if (trap.isUndefined())
-        return DirectProxyHandler::defineProperty(cx, proxy, id, desc);
+        return DirectProxyHandler::defineProperty(cx, proxy, id, desc, result);
 
     
     RootedValue descObj(cx);
@@ -598,47 +597,49 @@ ScriptedDirectProxyHandler::defineProperty(JSContext *cx, HandleObject proxy, Ha
         return false;
 
     
-    if (ToBoolean(trapResult)) {
-        
-        Rooted<PropertyDescriptor> targetDesc(cx);
-        if (!GetOwnPropertyDescriptor(cx, target, id, &targetDesc))
-            return false;
+    
+    
 
-        
-        bool extensibleTarget;
-        if (!IsExtensible(cx, target, &extensibleTarget))
-            return false;
+    
+    Rooted<PropertyDescriptor> targetDesc(cx);
+    if (!GetOwnPropertyDescriptor(cx, target, id, &targetDesc))
+        return false;
 
+    
+    bool extensibleTarget;
+    if (!IsExtensible(cx, target, &extensibleTarget))
+        return false;
+
+    
+    
+    
+    bool settingConfigFalse = desc.isPermanent();
+    if (!targetDesc.object()) {
         
-        bool settingConfigFalse = desc.isPermanent();
-        if (!targetDesc.object()) {
-            
-            if (!extensibleTarget) {
-                JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_DEFINE_NEW);
-                return false;
-            }
-            
-            if (settingConfigFalse) {
-                JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_DEFINE_NE_AS_NC);
-                return false;
-            }
-        } else {
-            
-            bool valid;
-            Rooted<PropDesc> pd(cx);
-            pd.initFromPropertyDescriptor(desc);
-            if (!ValidatePropertyDescriptor(cx, extensibleTarget, pd, targetDesc, &valid))
-                return false;
-            if (!valid || (settingConfigFalse && !targetDesc.isPermanent())) {
-                JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_DEFINE_INVALID);
-                return false;
-            }
+        if (!extensibleTarget) {
+            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_DEFINE_NEW);
+            return false;
+        }
+        
+        if (settingConfigFalse) {
+            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_DEFINE_NE_AS_NC);
+            return false;
+        }
+    } else {
+        
+        bool valid;
+        Rooted<PropDesc> pd(cx);
+        pd.initFromPropertyDescriptor(desc);
+        if (!ValidatePropertyDescriptor(cx, extensibleTarget, pd, targetDesc, &valid))
+            return false;
+        if (!valid || (settingConfigFalse && !targetDesc.isPermanent())) {
+            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_DEFINE_INVALID);
+            return false;
         }
     }
 
     
-    
-    return true;
+    return result.succeed();
 }
 
 
