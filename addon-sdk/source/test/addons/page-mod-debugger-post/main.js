@@ -132,10 +132,4 @@ function closeConnection() {
   return deferred.promise;
 }
 
-
-module.exports = {};
-
-
-module.exports = {};
-
 require('sdk/test/runner').runTestsFromModule(module);
