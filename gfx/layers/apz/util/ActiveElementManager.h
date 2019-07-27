@@ -53,8 +53,13 @@ public:
 
 
   void HandleTouchEnd(bool aWasClick);
+  
+
+
+
+
+  bool ActiveElementUsesStyle() const;
 private:
-  nsCOMPtr<inIDOMUtils> mDomUtils;
   
 
 
@@ -73,6 +78,10 @@ private:
 
 
   CancelableTask* mSetActiveTask;
+  
+
+
+  bool mActiveElementUsesStyle;
 
   
   void TriggerElementActivation();
