@@ -3,6 +3,7 @@
 
 
 
+#include "SmsFilter.h"
 #include "MobileMessageDatabaseService.h"
 #include "AndroidBridge.h"
 
@@ -46,16 +47,7 @@ MobileMessageDatabaseService::DeleteMessage(int32_t *aMessageIds,
 }
 
 NS_IMETHODIMP
-MobileMessageDatabaseService::CreateMessageCursor(bool aHasStartDate,
-                                                  uint64_t aStartDate,
-                                                  bool aHasEndDate,
-                                                  uint64_t aEndDate,
-                                                  const char16_t** aNumbers,
-                                                  uint32_t aNumbersCount,
-                                                  const nsAString& aDelivery,
-                                                  bool aHasRead,
-                                                  bool aRead,
-                                                  uint64_t aThreadId,
+MobileMessageDatabaseService::CreateMessageCursor(nsIDOMMozSmsFilter* aFilter,
                                                   bool aReverse,
                                                   nsIMobileMessageCursorCallback* aCallback,
                                                   nsICursorContinueCallback** aResult)
