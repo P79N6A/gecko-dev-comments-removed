@@ -62,7 +62,12 @@ HelperAppLauncherDialog.prototype = {
     
     if (!alreadyResolved) {
       let ioSvc = Cc["@mozilla.org/network/io-service;1"].getService(Components.interfaces.nsIIOService);
-      let innerURI = ioSvc.newChannelFromURI(url).URI;
+      let innerURI = ioSvc.newChannelFromURI2(url,
+                                              null,      
+                                              Services.scriptSecurityManager.getSystemPrincipal(),
+                                              null,      
+                                              Ci.nsILoadInfo.SEC_NORMAL,
+                                              Ci.nsIContentPolicy.TYPE_OTHER).URI;
       if (!url.equals(innerURI)) {
         return this._canDownload(innerURI, true);
       }
