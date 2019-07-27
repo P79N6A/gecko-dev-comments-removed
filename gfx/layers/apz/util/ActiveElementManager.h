@@ -43,6 +43,7 @@ public:
 
 
 
+
   void HandleTouchStart(bool aCanBePan);
   
 
@@ -52,7 +53,12 @@ public:
 
 
 
-  void HandleTouchEnd(bool aWasClick);
+  void HandleTouchEndEvent(bool aWasClick);
+  
+
+
+
+  void HandleTouchEnd();
   
 
 
