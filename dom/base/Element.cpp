@@ -992,6 +992,8 @@ Element::CreateShadowRoot(ErrorResult& aError)
   nsRefPtr<ShadowRoot> shadowRoot = new ShadowRoot(this, nodeInfo.forget(),
                                                    protoBinding);
 
+  shadowRoot->SetIsComposedDocParticipant(IsInComposedDoc());
+
   
   
   
@@ -1007,6 +1009,8 @@ Element::CreateShadowRoot(ErrorResult& aError)
          child = child->GetNextSibling()) {
       child->UnbindFromTree(true, false);
     }
+
+    olderShadow->SetIsComposedDocParticipant(false);
   }
 
   
@@ -1578,6 +1582,7 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   
   ShadowRoot* shadowRoot = GetShadowRoot();
   if (shadowRoot) {
+    shadowRoot->SetIsComposedDocParticipant(IsInComposedDoc());
     for (nsIContent* child = shadowRoot->GetFirstChild(); child;
          child = child->GetNextSibling()) {
       rv = child->BindToTree(nullptr, shadowRoot,
@@ -1635,8 +1640,7 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
 
   
   nsIDocument* document =
-    HasFlag(NODE_FORCE_XBL_BINDINGS) || IsInShadowTree() ?
-      OwnerDoc() : GetUncomposedDoc();
+    HasFlag(NODE_FORCE_XBL_BINDINGS) ? OwnerDoc() : GetComposedDoc();
 
   if (aNullParent) {
     if (IsFullScreenAncestor()) {
@@ -1756,6 +1760,8 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
          child = child->GetNextSibling()) {
       child->UnbindFromTree(true, false);
     }
+
+    shadowRoot->SetIsComposedDocParticipant(false);
   }
 }
 

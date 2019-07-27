@@ -146,6 +146,8 @@ HTMLShadowElement::BindToTree(nsIDocument* aDocument,
     
     ShadowRoot* projectedShadow = containingShadow->GetOlderShadowRoot();
     if (projectedShadow) {
+      projectedShadow->SetIsComposedDocParticipant(IsInComposedDoc());
+
       for (nsIContent* child = projectedShadow->GetFirstChild(); child;
            child = child->GetNextSibling()) {
         rv = child->BindToTree(nullptr, projectedShadow,
@@ -173,6 +175,8 @@ HTMLShadowElement::UnbindFromTree(bool aDeep, bool aNullParent)
            child = child->GetNextSibling()) {
         child->UnbindFromTree(true, false);
       }
+
+      projectedShadow->SetIsComposedDocParticipant(false);
     }
   }
 

@@ -157,12 +157,11 @@ void
 HTMLStyleElement::UnbindFromTree(bool aDeep, bool aNullParent)
 {
   nsCOMPtr<nsIDocument> oldDoc = GetUncomposedDoc();
-  nsCOMPtr<nsIDocument> oldComposedDoc = GetComposedDoc();
   ShadowRoot* oldShadow = GetContainingShadow();
 
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
 
-  if (GetContainingShadow() && !oldComposedDoc) {
+  if (oldShadow && GetContainingShadow()) {
     
     
     

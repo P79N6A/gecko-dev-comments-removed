@@ -127,6 +127,12 @@ public:
   Element* Host();
   ShadowRoot* GetOlderShadowRoot() { return mOlderShadow; }
   void StyleSheetChanged();
+
+  bool IsComposedDocParticipant() { return mIsComposedDocParticipant; }
+  void SetIsComposedDocParticipant(bool aIsComposedDocParticipant)
+  {
+    mIsComposedDocParticipant = aIsComposedDocParticipant;
+  }
 protected:
   virtual ~ShadowRoot();
 
@@ -171,6 +177,12 @@ protected:
   
   
   bool mInsertionPointChanged;
+
+  
+  
+  
+  
+  bool mIsComposedDocParticipant;
 };
 
 class ShadowRootStyleSheetList : public StyleSheetList

@@ -390,17 +390,8 @@ nsINode::GetComposedDocInternal() const
   MOZ_ASSERT(HasFlag(NODE_IS_IN_SHADOW_TREE) && IsContent(),
              "Should only be caled on nodes in the shadow tree.");
 
-  
   ShadowRoot* containingShadow = AsContent()->GetContainingShadow();
-
-  nsIContent* poolHost = containingShadow->GetPoolHost();
-  if (!poolHost) {
-    
-    
-    return nullptr;
-  }
-
-  return poolHost->GetComposedDoc();
+  return containingShadow->IsComposedDocParticipant() ?  OwnerDoc() : nullptr;
 }
 
 #ifdef DEBUG
