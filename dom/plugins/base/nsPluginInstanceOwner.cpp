@@ -222,7 +222,7 @@ nsPluginInstanceOwner::GetImageContainer()
 
   
   
-  gfxSize resolution = mObjectFrame->PresContext()->PresShell()->GetCumulativeResolution();
+  gfxSize resolution = mPluginFrame->PresContext()->PresShell()->GetCumulativeResolution();
   ScreenSize screenSize = (r * LayoutDeviceToScreenScale(resolution.width, resolution.height)).Size();
   mInstance->NotifySize(nsIntSize(screenSize.width, screenSize.height));
 
@@ -322,7 +322,7 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
   else
     mPluginWindow = nullptr;
 
-  mObjectFrame = nullptr;
+  mPluginFrame = nullptr;
   mContent = nullptr;
   mWidgetCreationComplete = false;
 #ifdef XP_MACOSX
@@ -365,7 +365,7 @@ nsPluginInstanceOwner::~nsPluginInstanceOwner()
     NS_DispatchToMainThread(event);
   }
 
-  mObjectFrame = nullptr;
+  mPluginFrame = nullptr;
 
   PLUG_DeletePluginNativeWindow(mPluginWindow);
   mPluginWindow = nullptr;
@@ -543,10 +543,10 @@ NS_IMETHODIMP nsPluginInstanceOwner::ShowStatus(const char16_t *aStatusMsg)
 {
   nsresult  rv = NS_ERROR_FAILURE;
 
-  if (!mObjectFrame) {
+  if (!mPluginFrame) {
     return rv;
   }
-  nsCOMPtr<nsIDocShellTreeItem> docShellItem = mObjectFrame->PresContext()->GetDocShell();
+  nsCOMPtr<nsIDocShellTreeItem> docShellItem = mPluginFrame->PresContext()->GetDocShell();
   if (NS_FAILED(rv) || !docShellItem) {
     return rv;
   }
@@ -582,7 +582,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
 {
   
   
-  if (mWaitingForPaint && (!mObjectFrame || IsUpToDate())) {
+  if (mWaitingForPaint && (!mPluginFrame || IsUpToDate())) {
     
     
     nsCOMPtr<nsIRunnable> event = new AsyncPaintWaitEvent(mContent, true);
@@ -590,7 +590,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
     mWaitingForPaint = false;
   }
 
-  if (!mObjectFrame || !invalidRect || !mWidgetVisible)
+  if (!mPluginFrame || !invalidRect || !mWidgetVisible)
     return NS_ERROR_FAILURE;
 
 #if defined(XP_MACOSX) || defined(MOZ_WIDGET_ANDROID)
@@ -621,7 +621,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
   double scaleFactor = 1.0;
   GetContentsScaleFactor(&scaleFactor);
   rect.ScaleRoundOut(scaleFactor);
-  mObjectFrame->InvalidateLayer(nsDisplayItem::TYPE_PLUGIN, &rect);
+  mPluginFrame->InvalidateLayer(nsDisplayItem::TYPE_PLUGIN, &rect);
   return NS_OK;
 }
 
@@ -633,22 +633,22 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRegion(NPRegion invalidRegion)
 NS_IMETHODIMP
 nsPluginInstanceOwner::RedrawPlugin()
 {
-  if (mObjectFrame) {
-    mObjectFrame->InvalidateLayer(nsDisplayItem::TYPE_PLUGIN);
+  if (mPluginFrame) {
+    mPluginFrame->InvalidateLayer(nsDisplayItem::TYPE_PLUGIN);
   }
   return NS_OK;
 }
 
 NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
 {
-  if (!mObjectFrame) {
+  if (!mPluginFrame) {
     NS_WARNING("plugin owner has no owner in getting doc's window handle");
     return NS_ERROR_FAILURE;
   }
 
 #if defined(XP_WIN)
   void** pvalue = (void**)value;
-  nsViewManager* vm = mObjectFrame->PresContext()->GetPresShell()->GetViewManager();
+  nsViewManager* vm = mPluginFrame->PresContext()->GetPresShell()->GetViewManager();
   if (!vm)
     return NS_ERROR_FAILURE;
 #if defined(XP_WIN)
@@ -680,7 +680,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
     
     
 
-    nsIWidget* win = mObjectFrame->GetNearestWidget();
+    nsIWidget* win = mPluginFrame->GetNearestWidget();
     if (win) {
       nsView *view = nsView::GetViewFor(win);
       NS_ASSERTION(view, "No view for widget");
@@ -708,7 +708,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
   return NS_OK;
 #elif (defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_QT)) && defined(MOZ_X11)
   
-  nsIWidget* win = mObjectFrame->GetNearestWidget();
+  nsIWidget* win = mPluginFrame->GetNearestWidget();
   if (!win)
     return NS_ERROR_FAILURE;
   *static_cast<Window*>(value) = (long unsigned int)win->GetNativeData(NS_NATIVE_SHAREABLE_WINDOW);
@@ -1127,8 +1127,8 @@ GetOffsetRootContent(nsIFrame* aFrame)
 LayoutDeviceRect nsPluginInstanceOwner::GetPluginRect()
 {
   
-  nsRect bounds = mObjectFrame->GetContentRectRelativeToSelf() + GetOffsetRootContent(mObjectFrame);
-  LayoutDeviceIntRect rect = LayoutDeviceIntRect::FromAppUnitsToNearest(bounds, mObjectFrame->PresContext()->AppUnitsPerDevPixel());
+  nsRect bounds = mPluginFrame->GetContentRectRelativeToSelf() + GetOffsetRootContent(mPluginFrame);
+  LayoutDeviceIntRect rect = LayoutDeviceIntRect::FromAppUnitsToNearest(bounds, mPluginFrame->PresContext()->AppUnitsPerDevPixel());
   return LayoutDeviceRect(rect);
 }
 
@@ -1350,7 +1350,7 @@ nsPluginInstanceOwner::ProcessMouseDown(nsIDOMEvent* aMouseEvent)
 
   
   
-  if (mObjectFrame && mPluginWindow &&
+  if (mPluginFrame && mPluginWindow &&
       mPluginWindow->type == NPWindowTypeDrawable) {
 
     nsIFocusManager* fm = nsFocusManager::GetFocusManager();
@@ -1482,7 +1482,7 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
 {
   nsEventStatus rv = nsEventStatus_eIgnore;
 
-  if (!mInstance || !mObjectFrame)   
+  if (!mInstance || !mPluginFrame)   
     return nsEventStatus_eIgnore;
 
 #ifdef XP_MACOSX
@@ -1503,9 +1503,9 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
   NPCocoaEvent synthCocoaEvent;
   const NPCocoaEvent* event = static_cast<const NPCocoaEvent*>(anEvent.mPluginEvent);
   nsPoint pt =
-  nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mObjectFrame) -
-  mObjectFrame->GetContentRectRelativeToSelf().TopLeft();
-  nsPresContext* presContext = mObjectFrame->PresContext();
+  nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mPluginFrame) -
+  mPluginFrame->GetContentRectRelativeToSelf().TopLeft();
+  nsPresContext* presContext = mPluginFrame->PresContext();
   
   
   double scaleFactor = 1.0;
@@ -1521,9 +1521,9 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
       {
         
         
-        nsRefPtr<nsFrameSelection> frameselection = mObjectFrame->GetFrameSelection();
+        nsRefPtr<nsFrameSelection> frameselection = mPluginFrame->GetFrameSelection();
         if (!frameselection->GetDragState() ||
-          (nsIPresShell::GetCapturingContent() == mObjectFrame->GetContent())) {
+          (nsIPresShell::GetCapturingContent() == mPluginFrame->GetContent())) {
           synthCocoaEvent.type = NPCocoaEventMouseMoved;
           synthCocoaEvent.data.mouse.pluginX = static_cast<double>(ptPx.x);
           synthCocoaEvent.data.mouse.pluginY = static_cast<double>(ptPx.y);
@@ -1542,7 +1542,7 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
         
         
         if (anEvent.AsMouseEvent()->button == WidgetMouseEvent::eLeftButton &&
-            (nsIPresShell::GetCapturingContent() != mObjectFrame->GetContent())) {
+            (nsIPresShell::GetCapturingContent() != mPluginFrame->GetContent())) {
           synthCocoaEvent.type = NPCocoaEventMouseEntered;
           synthCocoaEvent.data.mouse.pluginX = static_cast<double>(ptPx.x);
           synthCocoaEvent.data.mouse.pluginY = static_cast<double>(ptPx.y);
@@ -1652,12 +1652,12 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
                    anEvent.message == NS_MOUSE_MOVE,
                    "Incorrect event type for coordinate translation");
       nsPoint pt =
-        nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mObjectFrame) -
-        mObjectFrame->GetContentRectRelativeToSelf().TopLeft();
-      nsPresContext* presContext = mObjectFrame->PresContext();
+        nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mPluginFrame) -
+        mPluginFrame->GetContentRectRelativeToSelf().TopLeft();
+      nsPresContext* presContext = mPluginFrame->PresContext();
       nsIntPoint ptPx(presContext->AppUnitsToDevPixels(pt.x),
                       presContext->AppUnitsToDevPixels(pt.y));
-      nsIntPoint widgetPtPx = ptPx + mObjectFrame->GetWindowOriginInPixels(true);
+      nsIntPoint widgetPtPx = ptPx + mPluginFrame->GetWindowOriginInPixels(true);
       const_cast<NPEvent*>(pPluginEvent)->lParam = MAKELPARAM(widgetPtPx.x, widgetPtPx.y);
     }
   }
@@ -1712,10 +1712,10 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
           }
 
         
-        const nsPresContext* presContext = mObjectFrame->PresContext();
+        const nsPresContext* presContext = mPluginFrame->PresContext();
         nsPoint appPoint =
-          nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mObjectFrame) -
-          mObjectFrame->GetContentRectRelativeToSelf().TopLeft();
+          nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mPluginFrame) -
+          mPluginFrame->GetContentRectRelativeToSelf().TopLeft();
         nsIntPoint pluginPoint(presContext->AppUnitsToDevPixels(appPoint.x),
                                presContext->AppUnitsToDevPixels(appPoint.y));
         const WidgetMouseEvent& mouseEvent = *anEvent.AsMouseEvent();
@@ -1913,10 +1913,10 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
           }
 
         
-        const nsPresContext* presContext = mObjectFrame->PresContext();
+        const nsPresContext* presContext = mPluginFrame->PresContext();
         nsPoint appPoint =
-          nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mObjectFrame) -
-          mObjectFrame->GetContentRectRelativeToSelf().TopLeft();
+          nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mPluginFrame) -
+          mPluginFrame->GetContentRectRelativeToSelf().TopLeft();
         nsIntPoint pluginPoint(presContext->AppUnitsToDevPixels(appPoint.x),
                                presContext->AppUnitsToDevPixels(appPoint.y));
 
@@ -2045,7 +2045,7 @@ nsPluginInstanceOwner::Destroy()
 #ifdef XP_MACOSX
 void nsPluginInstanceOwner::Paint(const gfxRect& aDirtyRect, CGContextRef cgContext)
 {
-  if (!mInstance || !mObjectFrame)
+  if (!mInstance || !mPluginFrame)
     return;
 
   gfxRect dirtyRectCopy = aDirtyRect;
@@ -2067,7 +2067,7 @@ void nsPluginInstanceOwner::Paint(const gfxRect& aDirtyRect, CGContextRef cgCont
 
 void nsPluginInstanceOwner::DoCocoaEventDrawRect(const gfxRect& aDrawRect, CGContextRef cgContext)
 {
-  if (!mInstance || !mObjectFrame)
+  if (!mInstance || !mPluginFrame)
     return;
 
   
@@ -2087,7 +2087,7 @@ void nsPluginInstanceOwner::DoCocoaEventDrawRect(const gfxRect& aDrawRect, CGCon
 #ifdef XP_WIN
 void nsPluginInstanceOwner::Paint(const RECT& aDirty, HDC aDC)
 {
-  if (!mInstance || !mObjectFrame)
+  if (!mInstance || !mPluginFrame)
     return;
 
   NPEvent pluginEvent;
@@ -2104,7 +2104,7 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
                                   const gfxRect& aFrameRect,
                                   const gfxRect& aDirtyRect)
 {
-  if (!mInstance || !mObjectFrame || !mPluginDocumentActiveState || mFullScreen)
+  if (!mInstance || !mPluginFrame || !mPluginDocumentActiveState || mFullScreen)
     return;
 
   int32_t model = mInstance->GetANPDrawingModel();
@@ -2169,7 +2169,7 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
                                   const gfxRect& aFrameRect,
                                   const gfxRect& aDirtyRect)
 {
-  if (!mInstance || !mObjectFrame)
+  if (!mInstance || !mPluginFrame)
     return;
 
   
@@ -2524,9 +2524,9 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
 #endif
   }
 
-  if (mObjectFrame) {
+  if (mPluginFrame) {
     
-    mObjectFrame->PrepForDrawing(mWidget);
+    mPluginFrame->PrepForDrawing(mWidget);
   }
 
   if (windowless) {
@@ -2573,7 +2573,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
 
 void* nsPluginInstanceOwner::FixUpPluginWindow(int32_t inPaintState)
 {
-  if (!mWidget || !mPluginWindow || !mInstance || !mObjectFrame)
+  if (!mWidget || !mPluginWindow || !mInstance || !mPluginFrame)
     return nullptr;
 
   nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
@@ -2587,7 +2587,7 @@ void* nsPluginInstanceOwner::FixUpPluginWindow(int32_t inPaintState)
   }
 
   
-  nsIWidget* widget = mObjectFrame->GetNearestWidget();
+  nsIWidget* widget = mPluginFrame->GetNearestWidget();
   if (!widget)
     return nullptr;
   void *cocoaTopLevelWindow = widget->GetNativeData(NS_NATIVE_WINDOW);
@@ -2722,7 +2722,7 @@ void nsPluginInstanceOwner::UpdateWindowPositionAndClipRect(bool aSetWindow)
   const NPWindow oldWindow = *mPluginWindow;
 
   bool windowless = (mPluginWindow->type == NPWindowTypeDrawable);
-  nsIntPoint origin = mObjectFrame->GetWindowOriginInPixels(windowless);
+  nsIntPoint origin = mPluginFrame->GetWindowOriginInPixels(windowless);
 
   mPluginWindow->x = origin.x;
   mPluginWindow->y = origin.y;
@@ -2786,8 +2786,8 @@ nsPluginInstanceOwner::UpdateDocumentActiveState(bool aIsActive)
 NS_IMETHODIMP
 nsPluginInstanceOwner::CallSetWindow()
 {
-  if (mObjectFrame) {
-    mObjectFrame->CallSetWindow(false);
+  if (mPluginFrame) {
+    mPluginFrame->CallSetWindow(false);
   } else if (mInstance) {
     if (UseAsyncRendering()) {
       mInstance->AsyncSetWindow(mPluginWindow);
@@ -2821,29 +2821,29 @@ nsPluginInstanceOwner::GetContentsScaleFactor(double *result)
 void nsPluginInstanceOwner::SetFrame(nsPluginFrame *aFrame)
 {
   
-  if (mObjectFrame == aFrame) {
+  if (mPluginFrame == aFrame) {
     return;
   }
 
   
-  if (mObjectFrame) {
+  if (mPluginFrame) {
     
-    mObjectFrame->SetInstanceOwner(nullptr);
+    mPluginFrame->SetInstanceOwner(nullptr);
   }
 
   
-  mObjectFrame = aFrame;
+  mPluginFrame = aFrame;
 
   
-  if (mObjectFrame) {
-    mObjectFrame->SetInstanceOwner(this);
+  if (mPluginFrame) {
+    mPluginFrame->SetInstanceOwner(this);
     
     
     if (mWidgetCreationComplete) {
-      mObjectFrame->PrepForDrawing(mWidget);
+      mPluginFrame->PrepForDrawing(mWidget);
     }
-    mObjectFrame->FixupWindow(mObjectFrame->GetContentRectRelativeToSelf().Size());
-    mObjectFrame->InvalidateFrame();
+    mPluginFrame->FixupWindow(mPluginFrame->GetContentRectRelativeToSelf().Size());
+    mPluginFrame->InvalidateFrame();
 
     nsFocusManager* fm = nsFocusManager::GetFocusManager();
     const nsIContent* content = aFrame->GetContent();
@@ -2855,7 +2855,7 @@ void nsPluginInstanceOwner::SetFrame(nsPluginFrame *aFrame)
 
 nsPluginFrame* nsPluginInstanceOwner::GetFrame()
 {
-  return mObjectFrame;
+  return mPluginFrame;
 }
 
 NS_IMETHODIMP nsPluginInstanceOwner::PrivateModeChanged(bool aEnabled)
