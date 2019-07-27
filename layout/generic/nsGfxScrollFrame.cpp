@@ -1604,6 +1604,24 @@ ScrollFrameHelper::ScrollFrameHelper(nsContainerFrame* aOuter,
   }
 
   EnsureImageVisPrefsCached();
+
+#ifndef MOZ_WIDGET_ANDROID
+  if (mScrollingActive &&
+      gfxPrefs::LayersTilesEnabled() &&
+      !gfxPrefs::AsyncPanZoomEnabled() &&
+      mOuter->GetContent()) {
+    
+    
+    
+    nsLayoutUtils::SetDisplayPortMargins(mOuter->GetContent(),
+                                         mOuter->PresContext()->PresShell(),
+                                         LayerMargin(),
+                                         gfxPrefs::LayersTileWidth(), gfxPrefs::LayersTileHeight(),
+                                         0,
+                                         nsLayoutUtils::RepaintMode::DoNotRepaint);
+  }
+#endif
+
 }
 
 ScrollFrameHelper::~ScrollFrameHelper()
