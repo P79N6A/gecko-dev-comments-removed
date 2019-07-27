@@ -186,7 +186,10 @@ private:
 
 
 
+
+protected:
   mutable uint16_t    mRecursionLevel;
+private:
   uint32_t            mEntrySize;     
   uint32_t            mEntryCount;    
   uint32_t            mRemovedCount;  
