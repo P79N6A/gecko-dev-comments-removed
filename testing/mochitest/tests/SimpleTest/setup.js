@@ -10,7 +10,7 @@ TestRunner.logger = LogController;
 
 parseQueryString = function(encodedString, useArrays) {
   
-  var qstr = (encodedString[0] == "?") ? encodedString.substring(1) : 
+  var qstr = (encodedString[0] == "?") ? encodedString.substring(1) :
                                          encodedString;
   var pairs = qstr.replace(/\+/g, "%20").split(/(\&amp\;|\&\#38\;|\&#x26;|\&)/);
   var o = {};
@@ -92,7 +92,7 @@ var consoleLevel = params.consoleLevel || null;
 
 if (params.repeat) {
   TestRunner.repeat = params.repeat;
-} 
+}
 
 if (params.runUntilFailure) {
   TestRunner.runUntilFailure = true;
@@ -135,17 +135,13 @@ if (params.dumpDMDAfterTest) {
   TestRunner.dumpDMDAfterTest = true;
 }
 
-if (params.quiet) {
-  TestRunner.quiet = true;
-}
-
 
 TestRunner.logger.addListener("dumpListener", consoleLevel + "", function(msg) {
-  dump(msg.num + " " + msg.level + " " + msg.info.join(' ') + "\n");
+  dump('\n' + msg.info.join(' ').trim() + "\n");
 });
 
 var gTestList = [];
-var RunSet = {}
+var RunSet = {};
 RunSet.runall = function(e) {
   
   
@@ -190,7 +186,7 @@ RunSet.reloadAndRunAll = function(e) {
     window.location.href += "&autorun=1";
   } else {
     window.location.href += "?autorun=1";
-  }  
+  }
 };
 
 
@@ -245,7 +241,7 @@ function hookupTests(testList) {
   }
 
   document.getElementById('runtests').onclick = RunSet.reloadAndRunAll;
-  document.getElementById('toggleNonTests').onclick = toggleNonTests; 
+  document.getElementById('toggleNonTests').onclick = toggleNonTests;
   
   if (params.autorun) {
     RunSet.runall();
