@@ -4541,3 +4541,10 @@ pref("reader.font_type", "sans-serif");
 
 
 pref("reader.has_used_toolbar", false);
+
+#if defined(XP_LINUX) && defined(MOZ_GMP_SANDBOX)
+
+
+
+pref("media.gmp.insecure.allow", false);
+#endif
