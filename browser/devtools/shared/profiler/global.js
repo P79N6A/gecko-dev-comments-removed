@@ -33,25 +33,70 @@ const CATEGORIES = [
 
 
 const CATEGORY_MAPPINGS = {
-  "8": CATEGORIES[0],    
-  "16": CATEGORIES[1],   
-  "32": CATEGORIES[2],   
-  "64": CATEGORIES[3],   
-  "128": CATEGORIES[3],  
-  "256": CATEGORIES[4],  
-  "512": CATEGORIES[5],  
-  "1024": CATEGORIES[6], 
-  "2048": CATEGORIES[7], 
+  "16": CATEGORIES[0],      
+  "32": CATEGORIES[1],      
+  "64": CATEGORIES[2],      
+  "128": CATEGORIES[3],     
+  "256": CATEGORIES[3],     
+  "512": CATEGORIES[4],     
+  "1024": CATEGORIES[5],    
+  "2048": CATEGORIES[6],    
+  "4096": CATEGORIES[7],    
 };
 
 
 
 
-const CATEGORY_OTHER = 8;
 
 
 
-const CATEGORY_JIT = 32;
+
+
+
+const [CATEGORY_MASK, CATEGORY_MASK_LIST] = (function () {
+  let mappings = {};
+  for (let category of CATEGORIES) {
+    let numList = Object.keys(CATEGORY_MAPPINGS)
+          .filter(k => CATEGORY_MAPPINGS[k] == category)
+          .map(k => +k);
+    numList.sort();
+    mappings[category.abbrev] = numList;
+  }
+
+  return [
+    function (name, num) {
+      if (!(name in mappings)) {
+        throw new Error(`Category abbreviation '${name}' does not exist.`);
+      }
+      if (arguments.length == 1) {
+        if (mappings[name].length != 1) {
+          throw new Error(`Expected exactly one category number for '${name}'.`);
+        }
+        return mappings[name][0];
+      }
+      if (num > mappings[name].length) {
+        throw new Error(`Num '${num}' too high for category '${name}'.`);
+      }
+      return mappings[name][num - 1];
+    },
+
+    function (name) {
+      if (!(name in mappings)) {
+        throw new Error(`Category abbreviation '${name}' does not exist.`);
+      }
+      return mappings[name];
+    }
+  ];
+})();
+
+
+
+
+const CATEGORY_OTHER = CATEGORY_MASK('other');
+
+
+
+const CATEGORY_JIT = CATEGORY_MASK('js');
 
 
 exports.L10N = L10N;
@@ -59,3 +104,5 @@ exports.CATEGORIES = CATEGORIES;
 exports.CATEGORY_MAPPINGS = CATEGORY_MAPPINGS;
 exports.CATEGORY_OTHER = CATEGORY_OTHER;
 exports.CATEGORY_JIT = CATEGORY_JIT;
+exports.CATEGORY_MASK = CATEGORY_MASK;
+exports.CATEGORY_MASK_LIST = CATEGORY_MASK_LIST;
