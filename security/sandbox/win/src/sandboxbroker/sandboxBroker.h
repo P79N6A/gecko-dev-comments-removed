@@ -30,7 +30,9 @@ public:
   virtual ~SandboxBroker();
 
   
-  bool SetSecurityLevelForContentProcess();
+#if defined(MOZ_CONTENT_SANDBOX)
+  bool SetSecurityLevelForContentProcess(bool inWarnOnlyMode);
+#endif
   bool SetSecurityLevelForPluginProcess();
   bool SetSecurityLevelForIPDLUnitTestProcess();
   bool SetSecurityLevelForGMPlugin();
