@@ -206,6 +206,18 @@ loop.store.ActiveRoomStore = (function() {
         this._handleRoomUpdate.bind(this));
       this._mozLoop.rooms.on("delete:" + actionData.roomToken,
         this._handleRoomDelete.bind(this));
+
+      this._mozLoop.rooms.get(this._storeState.roomToken,
+        function(err, result) {
+          if (err) {
+            
+            
+            console.error("Failed to get room data:", err);
+            return;
+          }
+
+          this.dispatcher.dispatch(new sharedActions.UpdateRoomInfo(result));
+        }.bind(this));
     },
 
     
@@ -341,21 +353,6 @@ loop.store.ActiveRoomStore = (function() {
 
       this._mozLoop.addConversationContext(this._storeState.windowId,
                                            actionData.sessionId, "");
-
-      
-      
-      
-      if (!this._storeState.roomName) {
-        this._mozLoop.rooms.get(this._storeState.roomToken,
-          function(err, result) {
-            if (err) {
-              console.error("Failed to get room data:", err);
-              return;
-            }
-
-            this.dispatcher.dispatch(new sharedActions.UpdateRoomInfo(result));
-        }.bind(this));
-      }
     },
 
     
