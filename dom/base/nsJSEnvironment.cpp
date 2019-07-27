@@ -486,8 +486,15 @@ SystemErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 
     
     
-    nsContentUtils::AddScriptRunner(new ScriptErrorEvent(win, JS_GetRuntime(cx), xpcReport, exception));
+    DispatchScriptErrorEvent(win, JS_GetRuntime(cx), xpcReport, exception);
   }
+}
+
+void
+DispatchScriptErrorEvent(nsPIDOMWindow *win, JSRuntime *rt, xpc::ErrorReport *xpcReport,
+                         JS::Handle<JS::Value> exception)
+{
+  nsContentUtils::AddScriptRunner(new ScriptErrorEvent(win, rt, xpcReport, exception));
 }
 
 } 
