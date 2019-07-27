@@ -901,9 +901,15 @@ public:
   int64_t mEndTime;
 
   
+  void RecomputeDuration();
+
+  
   
   
   bool mDurationSet;
+
+  
+  Mirror<media::NullableTimeUnit> mNetworkDuration;
 
   
   Mirror<MediaDecoder::PlayState> mPlayState;

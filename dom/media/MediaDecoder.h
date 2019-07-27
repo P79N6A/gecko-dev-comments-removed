@@ -459,7 +459,8 @@ public:
   
   
   
-  virtual void SetDuration(double aDuration);
+  void SetNetworkDuration(media::TimeUnit aDuration);
+  media::NullableTimeUnit NetworkDuration() { return mNetworkDuration; }
 
   
   
@@ -994,6 +995,12 @@ private:
 #endif
 
 protected:
+  
+  Canonical<media::NullableTimeUnit> mNetworkDuration;
+public:
+  AbstractCanonical<media::NullableTimeUnit>* CanonicalNetworkDuration() { return &mNetworkDuration; }
+protected:
+
   
   
   
