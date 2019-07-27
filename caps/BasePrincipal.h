@@ -107,6 +107,10 @@ protected:
   virtual nsresult GetOriginInternal(nsACString& aOrigin) = 0;
   virtual bool SubsumesInternal(nsIPrincipal* aOther, DocumentDomainConsideration aConsider) = 0;
 
+  
+  
+  bool AddonAllowsLoad(nsIURI* aURI);
+
   nsCOMPtr<nsIContentSecurityPolicy> mCSP;
   OriginAttributes mOriginAttributes;
 };

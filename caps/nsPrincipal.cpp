@@ -236,6 +236,12 @@ nsPrincipal::CheckMayLoad(nsIURI* aURI, bool aReport, bool aAllowIfInheritsPrinc
       return NS_OK;
   }
 
+  
+  
+  if (AddonAllowsLoad(aURI)) {
+    return NS_OK;
+  }
+
   if (nsScriptSecurityManager::SecurityCompareURIs(mCodebase, aURI)) {
     return NS_OK;
   }

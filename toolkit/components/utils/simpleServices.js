@@ -44,4 +44,36 @@ RemoteTagServiceService.prototype = {
   }
 };
 
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([RemoteTagServiceService]);
+function AddonPolicyService()
+{
+  this.wrappedJSObject = this;
+  this.mayLoadURICallbacks = new Map();
+}
+
+AddonPolicyService.prototype = {
+  classID: Components.ID("{89560ed3-72e3-498d-a0e8-ffe50334d7c5}"),
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAddonPolicyService]),
+
+  
+
+
+
+
+
+
+  addonMayLoadURI(aAddonId, aURI) {
+    let cb = this.mayLoadURICallbacks[aAddonId];
+    return cb ? cb(aURI) : false;
+  },
+
+  
+
+
+
+
+  setAddonLoadURICallback(aAddonId, aCallback) {
+    this.mayLoadURICallbacks[aAddonId] = aCallback;
+  },
+};
+
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([RemoteTagServiceService, AddonPolicyService]);
