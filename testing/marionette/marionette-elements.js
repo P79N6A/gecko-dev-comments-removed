@@ -12,7 +12,6 @@
 
 
 this.EXPORTED_SYMBOLS = [
-  "Accessibility",
   "ElementManager",
   "CLASS_NAME",
   "SELECTOR",
@@ -47,127 +46,6 @@ function ElementException(msg, num, stack) {
   this.code = num;
   this.stack = stack;
 }
-
-this.Accessibility = function Accessibility() {
-  
-  
-  this.strict = false;
-  this.accessibleRetrieval = Components.classes[
-    '@mozilla.org/accessibleRetrieval;1'].getService(
-      Components.interfaces.nsIAccessibleRetrieval);
-};
-
-Accessibility.prototype = {
-  
-
-
-
-  actionableRoles: new Set([
-    'pushbutton',
-    'checkbutton',
-    'combobox',
-    'key',
-    'link',
-    'menuitem',
-    'check menu item',
-    'radio menu item',
-    'option',
-    'radiobutton',
-    'slider',
-    'spinbutton',
-    'pagetab',
-    'entry',
-    'outlineitem'
-  ]),
-
-  
-
-
-
-
-
-
-  getAccessibleObject(element, mustHaveAccessible = false) {
-    let acc = this.accessibleRetrieval.getAccessibleFor(element);
-    if (!acc && mustHaveAccessible) {
-      this.handleErrorMessage('Element does not have an accessible object');
-    }
-    return acc;
-  },
-
-  
-
-
-
-
-  isActionableRole(accessible) {
-    return this.actionableRoles.has(
-      this.accessibleRetrieval.getStringRole(accessible.role));
-  },
-
-  
-
-
-
-
-  hasActionCount(accessible) {
-    return accessible.actionCount > 0;
-  },
-
-  
-
-
-
-
-  hasValidName(accessible) {
-    return accessible.name && accessible.name.trim();
-  },
-
-  
-
-
-
-
-
-  hasHiddenAttribute(accessible) {
-    let hidden;
-    try {
-      hidden = accessible.attributes.getStringProperty('hidden');
-    } finally {
-      
-      return hidden && hidden === 'true';
-    }
-  },
-
-  
-
-
-
-
-  isHidden(accessible) {
-    while (accessible) {
-      if (this.hasHiddenAttribute(accessible)) {
-        return true;
-      }
-      accessible = accessible.parent;
-    }
-    return false;
-  },
-
-  
-
-
-
-  handleErrorMessage(message) {
-    if (!message) {
-      return;
-    }
-    if (this.strict) {
-      throw new ElementException(message, 56, null);
-    }
-    dump(Date.now() + " Marionette: " + message);
-  }
-};
 
 this.ElementManager = function ElementManager(notSupported) {
   this.seenItems = {};
