@@ -255,27 +255,24 @@ struct BytecodeEmitter
     bool reportStrictWarning(ParseNode *pn, unsigned errorNumber, ...);
     bool reportStrictModeError(ParseNode *pn, unsigned errorNumber, ...);
 
+    ptrdiff_t emitCheck(ptrdiff_t delta);
+
     
     bool emit1(JSOp op);
+
+    
+    
+    bool emit2(JSOp op, jsbytecode op1);
+
+    
+    bool emit3(JSOp op, jsbytecode op1, jsbytecode op2);
+
+    
+    ptrdiff_t emitN(JSOp op, size_t extra);
+
+    ptrdiff_t emitJump(JSOp op, ptrdiff_t off);
+    bool emitCall(JSOp op, uint16_t argc, ParseNode *pn = nullptr);
 };
-
-
-
-
-bool
-Emit2(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp op, jsbytecode op1);
-
-
-
-
-bool
-Emit3(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp op, jsbytecode op1, jsbytecode op2);
-
-
-
-
-ptrdiff_t
-EmitN(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp op, size_t extra);
 
 
 
