@@ -93,6 +93,25 @@ public:
 
   void CancelNotifyAfterRemotePaint(TabChild* aTabChild);
 
+  
+  
+  
+  
+  
+  
+  bool SendWillStop();
+  bool SendPause();
+  bool SendResume();
+  bool SendNotifyChildCreated(const uint64_t& id);
+  bool SendAdoptChild(const uint64_t& id);
+  bool SendMakeSnapshot(const SurfaceDescriptor& inSnapshot, const nsIntRect& dirtyRect);
+  bool SendFlushRendering();
+  bool SendGetTileSize(int32_t* tileWidth, int32_t* tileHeight);
+  bool SendStartFrameTimeRecording(const int32_t& bufferSize, uint32_t* startIndex);
+  bool SendStopFrameTimeRecording(const uint32_t& startIndex, nsTArray<float>* intervals);
+  bool SendNotifyRegionInvalidated(const nsIntRegion& region);
+  bool SendRequestNotifyAfterRemotePaint();
+
 private:
   
   virtual ~CompositorChild();
@@ -159,6 +178,9 @@ private:
 
   
   nsAutoTArray<ClientLayerManager*,0> mOverfillObservers;
+
+  
+  bool mCanSend;
 };
 
 } 
