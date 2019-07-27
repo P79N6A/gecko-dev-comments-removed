@@ -212,6 +212,11 @@ private:
   bool mRequestedToCommitOrCancel;
 
   
+  
+  
+  bool mWasNativeCompositionEndEventDiscarded;
+
+  
   TextComposition() {}
   TextComposition(const TextComposition& aOther);
 
@@ -254,6 +259,22 @@ private:
 
 
   bool MaybeDispatchCompositionUpdate(const WidgetTextEvent* aEvent);
+
+  
+
+
+
+  bool WasNativeCompositionEndEventDiscarded() const
+  {
+    return mWasNativeCompositionEndEventDiscarded;
+  }
+
+  
+
+
+
+
+  void OnCompositionEventDiscarded(const WidgetGUIEvent* aEvent);
 
   
 

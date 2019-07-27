@@ -945,7 +945,14 @@ IMEStateManager::DispatchCompositionEvent(nsINode* aEventTargetNode,
   
   
   
-  if (!aIsSynthesized && aEvent->message == NS_COMPOSITION_END) {
+  
+  
+  
+  
+  
+  if ((!aIsSynthesized ||
+       composition->WasNativeCompositionEndEventDiscarded()) &&
+      aEvent->message == NS_COMPOSITION_END) {
     TextCompositionArray::index_type i =
       sTextCompositions->IndexOf(GUIEvent->widget);
     if (i != TextCompositionArray::NoIndex) {
@@ -957,6 +964,38 @@ IMEStateManager::DispatchCompositionEvent(nsINode* aEventTargetNode,
       sTextCompositions->RemoveElementAt(i);
     }
   }
+}
+
+
+void
+IMEStateManager::OnCompositionEventDiscarded(WidgetEvent* aEvent)
+{
+  
+  
+
+  PR_LOG(sISMLog, PR_LOG_ALWAYS,
+    ("ISM: IMEStateManager::OnCompositionEventDiscarded(aEvent={ mClass=%s, "
+     "message=%s, mFlags={ mIsTrusted=%s } })",
+     GetEventClassIDName(aEvent->mClass),
+     GetEventMessageName(aEvent->message),
+     GetBoolName(aEvent->mFlags.mIsTrusted)));
+
+  MOZ_ASSERT(aEvent->mClass == eCompositionEventClass ||
+             aEvent->mClass == eTextEventClass);
+  if (!aEvent->mFlags.mIsTrusted) {
+    return;
+  }
+
+  
+  
+  if (aEvent->message == NS_COMPOSITION_START) {
+    return;
+  }
+
+  WidgetGUIEvent* GUIEvent = aEvent->AsGUIEvent();
+  nsRefPtr<TextComposition> composition =
+    sTextCompositions->GetCompositionFor(GUIEvent->widget);
+  composition->OnCompositionEventDiscarded(GUIEvent);
 }
 
 

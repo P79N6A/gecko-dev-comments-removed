@@ -41,6 +41,7 @@ TextComposition::TextComposition(nsPresContext* aPresContext,
   , mIsRequestingCommit(false)
   , mIsRequestingCancel(false)
   , mRequestedToCommitOrCancel(false)
+  , mWasNativeCompositionEndEventDiscarded(false)
 {
 }
 
@@ -91,6 +92,28 @@ TextComposition::MaybeDispatchCompositionUpdate(const WidgetTextEvent* aEvent)
                               &compositionUpdate, nullptr, &status, nullptr);
   }
   return !Destroyed();
+}
+
+void
+TextComposition::OnCompositionEventDiscarded(const WidgetGUIEvent* aEvent)
+{
+  
+  
+
+  MOZ_ASSERT(aEvent->mFlags.mIsTrusted,
+             "Shouldn't be called with untrusted event");
+  MOZ_ASSERT(aEvent->mClass == eCompositionEventClass ||
+             aEvent->mClass == eTextEventClass);
+
+  
+  
+  
+  
+  if (aEvent->message != NS_COMPOSITION_END) {
+    return;
+  }
+
+  mWasNativeCompositionEndEventDiscarded = true;
 }
 
 void

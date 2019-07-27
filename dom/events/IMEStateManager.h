@@ -108,6 +108,12 @@ public:
   
 
 
+
+  static void OnCompositionEventDiscarded(WidgetEvent* aEvent);
+
+  
+
+
   static already_AddRefed<TextComposition>
     GetTextCompositionFor(nsIWidget* aWidget);
 
