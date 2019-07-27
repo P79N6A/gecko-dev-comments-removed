@@ -3782,10 +3782,6 @@ pref("layers.tile-height", 256);
 pref("layers.max-active", -1);
 
 
-
-pref("layers.scroll-graph", false);
-
-
 pref("layers.offmainthreadcomposition.enabled", false);
 
 
