@@ -225,9 +225,6 @@ public:
     }
   }
 
-private:
-  
-  friend class MediaPromiseHolder<MediaPromise<ResolveValueType, RejectValueType>>;
   void Resolve(ResolveValueType aResolveValue, const char* aResolveSite)
   {
     MutexAutoLock lock(mMutex);
