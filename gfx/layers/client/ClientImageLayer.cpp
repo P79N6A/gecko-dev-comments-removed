@@ -105,6 +105,13 @@ protected:
       return mImageClientTypeContainer;
     }
 
+    
+    
+    if (ClientManager()->GetCompositorBackendType() == LayersBackend::LAYERS_D3D11) {
+      mImageClientTypeContainer = CompositableType::BUFFER_IMAGE_BUFFERED;
+      return mImageClientTypeContainer;
+    }
+
     AutoLockImage autoLock(mContainer);
 
 #ifdef MOZ_WIDGET_GONK
