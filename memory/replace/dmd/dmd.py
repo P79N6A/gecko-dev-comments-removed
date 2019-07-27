@@ -274,6 +274,10 @@ def getDigestFromFile(args, inputFile):
     traceTable = j['traceTable']
     frameTable = j['frameTable']
 
+    
+    if mode == 'scan':
+        mode = 'live'
+
     if not mode in ['live', 'dark-matter', 'cumulative']:
         raise Exception("bad 'mode' property: '{:s}'".format(mode))
 

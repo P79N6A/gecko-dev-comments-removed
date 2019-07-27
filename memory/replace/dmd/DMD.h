@@ -248,6 +248,15 @@ ClearReports()
 
 
 
+
+
+
+
+
+
+
+
+
 template <typename JSONWriteFunc>
 inline void
 Analyze(UniquePtr<JSONWriteFunc> aWriteFunc)

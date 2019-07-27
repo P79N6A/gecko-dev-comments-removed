@@ -334,6 +334,27 @@ TestSampled(const char* aTestName, const char* aMode, int aSeven)
 }
 
 void
+TestScan(int aSeven)
+{
+  auto f = MakeUnique<FpWriteFunc>("basic-scan.json");
+
+  ResetEverything("--mode=scan");
+
+  uintptr_t* p = (uintptr_t*) malloc(6 * sizeof(uintptr_t*));
+  UseItOrLoseIt(p, aSeven);
+
+  
+  p[0] = 0x123; 
+  p[1] = 0x0; 
+  p[2] = (uintptr_t)((uint8_t*)p - 1); 
+  p[3] = (uintptr_t)p; 
+  p[4] = (uintptr_t)((uint8_t*)p + 1); 
+  p[5] = 0x0; 
+
+  Analyze(Move(f));
+}
+
+void
 RunTests()
 {
   
@@ -363,6 +384,8 @@ RunTests()
   TestUnsampled("unsampled", 2, "cumulative",  seven);
 
   TestSampled("sampled", "live", seven);
+
+  TestScan(seven);
 }
 
 int main()
