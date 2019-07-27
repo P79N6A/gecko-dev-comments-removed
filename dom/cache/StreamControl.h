@@ -20,7 +20,7 @@ namespace ipc {
 namespace dom {
 namespace cache {
 
-class CacheReadStream;
+class PCacheReadStream;
 
 
 
@@ -30,14 +30,14 @@ class StreamControl
 public:
   
   virtual void
-  SerializeControl(CacheReadStream* aReadStreamOut) = 0;
+  SerializeControl(PCacheReadStream* aReadStreamOut) = 0;
 
   virtual void
-  SerializeFds(CacheReadStream* aReadStreamOut,
+  SerializeFds(PCacheReadStream* aReadStreamOut,
                const nsTArray<mozilla::ipc::FileDescriptor>& aFds) = 0;
 
   virtual void
-  DeserializeFds(const CacheReadStream& aReadStream,
+  DeserializeFds(const PCacheReadStream& aReadStream,
                  nsTArray<mozilla::ipc::FileDescriptor>& aFdsOut) = 0;
 
   
