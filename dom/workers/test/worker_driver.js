@@ -26,7 +26,6 @@
 
 
 
-
 function workerTestExec(script) {
   SimpleTest.waitForExplicitFinish();
   var worker = new Worker('worker_wrapper.js');
@@ -36,17 +35,6 @@ function workerTestExec(script) {
 
     } else if (event.data.type == 'status') {
       ok(event.data.status, event.data.msg);
-
-    } else if (event.data.type == 'getPrefs') {
-      var result = {};
-      event.data.prefs.forEach(function(pref) {
-        result[pref] = SpecialPowers.Services.prefs.getBoolPref(pref);
-      });
-      worker.postMessage({
-        type: 'returnPrefs',
-        prefs: event.data.prefs,
-        result: result
-      });
 
     } else if (event.data.type == 'getPermissions') {
       var result = {};
