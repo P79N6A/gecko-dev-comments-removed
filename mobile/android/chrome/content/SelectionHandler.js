@@ -6,6 +6,7 @@
 
 
 const PHONE_NUMBER_CONTAINERS = "td,div";
+const DEFER_CLOSE_TRIGGER_MS = 125; 
 
 var SelectionHandler = {
 
@@ -42,6 +43,7 @@ var SelectionHandler = {
   _draggingHandles: false, 
   _ignoreCompositionChanges: false, 
   _prevHandlePositions: [], 
+  _deferCloseTimer: null, 
 
   
   _prevTargetElementHasText: null,
@@ -105,6 +107,11 @@ var SelectionHandler = {
   },
 
   observe: function sh_observe(aSubject, aTopic, aData) {
+    
+    if (this._deferCloseTimer) {
+      return;
+    }
+
     switch (aTopic) {
       
       
@@ -232,6 +239,11 @@ var SelectionHandler = {
   },
 
   handleEvent: function sh_handleEvent(aEvent) {
+    
+    if (this._deferCloseTimer) {
+      return;
+    }
+
     switch (aEvent.type) {
       case "scroll":
         
@@ -284,7 +296,13 @@ var SelectionHandler = {
     };
   },
 
+  
+
+
   notifySelectionChanged: function sh_notifySelectionChanged(aDocument, aSelection, aReason) {
+    
+    this._cancelDeferredCloseSelection();
+
     
     if (this._draggingHandles) {
       return;
@@ -299,8 +317,13 @@ var SelectionHandler = {
 
     
     if (!aSelection.toString()) {
-      this._closeSelection();
+      this._deferCloseSelection();
+      return;
     }
+
+    
+    this._updateCacheForSelection();
+    this._positionHandles();
   },
 
   
@@ -1011,6 +1034,48 @@ var SelectionHandler = {
   
 
 
+
+
+
+
+
+
+  _deferCloseSelection: function() {
+    
+    this._deferCloseTimer = setTimeout((function() {
+      
+      this._deferCloseTimer = null;
+      this._closeSelection();
+    }).bind(this), DEFER_CLOSE_TRIGGER_MS);
+
+    
+    if (this._prevHandlePositions.length) {
+      let positions = this._prevHandlePositions;
+      for (let i in positions) {
+        positions[i].hidden = true;
+      }
+
+      Messaging.sendRequest({
+        type: "TextSelection:PositionHandles",
+        positions: positions,
+        rtl: this._isRTL
+      });
+    }
+  },
+
+  
+
+
+  _cancelDeferredCloseSelection: function() {
+    if (this._deferCloseTimer) {
+      clearTimeout(this._deferCloseTimer);
+      this._deferCloseTimer = null;
+    }
+  },
+
+  
+
+
   _closeSelection: function sh_closeSelection() {
     
     if (this._activeType == this.TYPE_NONE)
@@ -1023,6 +1088,9 @@ var SelectionHandler = {
   },
 
   _clearSelection: function sh_clearSelection() {
+    
+    this._cancelDeferredCloseSelection();
+
     let selection = this._getSelection();
     if (selection) {
       
@@ -1204,6 +1272,11 @@ var SelectionHandler = {
   },
 
   subdocumentScrolled: function sh_subdocumentScrolled(aElement) {
+    
+    if (this._deferCloseTimer) {
+      return;
+    }
+
     if (this._activeType == this.TYPE_NONE) {
       return;
     }
