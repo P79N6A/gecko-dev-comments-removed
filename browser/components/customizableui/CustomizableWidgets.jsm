@@ -1029,65 +1029,15 @@ if (Services.prefs.getBoolPref("privacy.panicButton.enabled")) {
         case "command":
           this.forgetButtonCalled(aEvent);
           break;
-        case "popupshowing":
-          let popup = aEvent.target;
-          if (popup.id == "customizationui-widget-panel" &&
-              popup.querySelector("#PanelUI-panicView")) {
-            popup.ownerDocument.removeEventListener("popupshowing", this);
-            this._updateHeights(popup, true);
-          }
-          break;
-      }
-    },
-    
-    _updateHeights: function(aContainer, aSetHeights) {
-      
-      
-      let view = aContainer.ownerDocument.getElementById("PanelUI-panicView");
-      let variableHeightItems = view.querySelectorAll("radio, label, description");
-      let win = aContainer.ownerDocument.defaultView;
-      for (let item of variableHeightItems) {
-        if (aSetHeights) {
-          let cs = win.getComputedStyle(item, null);
-          let height = cs.getPropertyValue("height");
-          let width = cs.getPropertyValue("width");
-          item.style.height = height;
-          item.style.width = width;
-          
-          
-          if (item.id == "PanelUI-panic-mainDesc" &&
-              view.getAttribute("current") == "true" &&
-              
-              parseInt(height) > 32) {
-            item.parentNode.style.minHeight = height;
-          }
-        } else {
-          item.style.removeProperty("height");
-          item.style.removeProperty("width");
-          if (item.id == "PanelUI-panic-mainDesc") {
-            item.parentNode.style.removeProperty("min-height");
-          }
-        }
       }
     },
     onViewShowing: function(aEvent) {
-      let view = aEvent.target;
-      let forgetButton = view.querySelector("#PanelUI-panic-view-button");
+      let forgetButton = aEvent.target.querySelector("#PanelUI-panic-view-button");
       forgetButton.addEventListener("command", this);
-      if (view.getAttribute("current") == "true") {
-        
-        this._updateHeights(view, true);
-      } else {
-        
-        
-        view.ownerDocument.addEventListener("popupshowing", this);
-      }
     },
     onViewHiding: function(aEvent) {
-      let view = aEvent.target;
-      let forgetButton = view.querySelector("#PanelUI-panic-view-button");
+      let forgetButton = aEvent.target.querySelector("#PanelUI-panic-view-button");
       forgetButton.removeEventListener("command", this);
-      this._updateHeights(view, false);
     },
   });
 }
