@@ -1,17 +1,18 @@
-
-
-
-
-
-
-
-
-
+/*
+ *  Copyright (c) 2013 The WebRTC project authors. All Rights Reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS.  All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
+ */
 
 #include "webrtc/modules/desktop_capture/window_capturer.h"
 
 #include <assert.h>
 #include <ApplicationServices/ApplicationServices.h>
+#include <Cocoa/Cocoa.h>
 #include <CoreFoundation/CoreFoundation.h>
 
 #include "webrtc/modules/desktop_capture/desktop_frame.h"
@@ -46,11 +47,12 @@ class WindowCapturerMac : public WindowCapturer {
   WindowCapturerMac();
   virtual ~WindowCapturerMac();
 
-  
+  // WindowCapturer interface.
   virtual bool GetWindowList(WindowList* windows) OVERRIDE;
   virtual bool SelectWindow(WindowId id) OVERRIDE;
+  virtual bool BringSelectedWindowToFront() OVERRIDE;
 
-  
+  // DesktopCapturer interface.
   virtual void Start(Callback* callback) OVERRIDE;
   virtual void Capture(const DesktopRegion& region) OVERRIDE;
 
@@ -70,15 +72,15 @@ WindowCapturerMac::~WindowCapturerMac() {
 }
 
 bool WindowCapturerMac::GetWindowList(WindowList* windows) {
-  
+  // Only get on screen, non-desktop windows.
   CFArrayRef window_array = CGWindowListCopyWindowInfo(
       kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements,
       kCGNullWindowID);
   if (!window_array)
     return false;
 
-  
-  
+  // Check windows to make sure they have an id, title, and use window layer
+  // other than 0.
   CFIndex count = CFArrayGetCount(window_array);
   for (CFIndex i = 0; i < count; ++i) {
     CFDictionaryRef window = reinterpret_cast<CFDictionaryRef>(
@@ -90,7 +92,7 @@ bool WindowCapturerMac::GetWindowList(WindowList* windows) {
     CFNumberRef window_layer = reinterpret_cast<CFNumberRef>(
         CFDictionaryGetValue(window, kCGWindowLayer));
     if (window_title && window_id && window_layer) {
-      
+      // Skip windows with layer=0 (menu, dock).
       int layer;
       CFNumberGetValue(window_layer, kCFNumberIntType, &layer);
       if (layer != 0)
@@ -113,7 +115,7 @@ bool WindowCapturerMac::GetWindowList(WindowList* windows) {
 }
 
 bool WindowCapturerMac::SelectWindow(WindowId id) {
-  
+  // Request description for the specified window to make sure |id| is valid.
   CGWindowID ids[1];
   ids[0] = id;
   CFArrayRef window_id_array =
@@ -125,12 +127,49 @@ bool WindowCapturerMac::SelectWindow(WindowId id) {
   CFRelease(window_array);
 
   if (results_count == 0) {
-    
+    // Could not find the window. It might have been closed.
     return false;
   }
 
   window_id_ = id;
   return true;
+}
+
+bool WindowCapturerMac::BringSelectedWindowToFront() {
+  if (!window_id_)
+    return false;
+
+  CGWindowID ids[1];
+  ids[0] = window_id_;
+  CFArrayRef window_id_array =
+      CFArrayCreate(NULL, reinterpret_cast<const void **>(&ids), 1, NULL);
+
+  CFArrayRef window_array =
+      CGWindowListCreateDescriptionFromArray(window_id_array);
+  if (window_array == NULL || 0 == CFArrayGetCount(window_array)) {
+    // Could not find the window. It might have been closed.
+    LOG(LS_INFO) << "Window not found";
+    CFRelease(window_id_array);
+    return false;
+  }
+
+  CFDictionaryRef window = reinterpret_cast<CFDictionaryRef>(
+      CFArrayGetValueAtIndex(window_array, 0));
+  CFNumberRef pid_ref = reinterpret_cast<CFNumberRef>(
+      CFDictionaryGetValue(window, kCGWindowOwnerPID));
+
+  int pid;
+  CFNumberGetValue(pid_ref, kCFNumberIntType, &pid);
+
+  // TODO(jiayl): this will bring the process main window to the front. We
+  // should find a way to bring only the window to the front.
+  bool result =
+      [[NSRunningApplication runningApplicationWithProcessIdentifier: pid]
+          activateWithOptions: NSApplicationActivateIgnoringOtherApps];
+
+  CFRelease(window_id_array);
+  CFRelease(window_array);
+  return result;
 }
 
 void WindowCapturerMac::Start(Callback* callback) {
@@ -179,11 +218,11 @@ void WindowCapturerMac::Capture(const DesktopRegion& region) {
   callback_->OnCaptureCompleted(frame);
 }
 
-}  
+}  // namespace
 
-
+// static
 WindowCapturer* WindowCapturer::Create(const DesktopCaptureOptions& options) {
   return new WindowCapturerMac();
 }
 
-}  
+}  // namespace webrtc
