@@ -7,6 +7,7 @@
 #define mozilla_dom_FontFaceSet_h
 
 #include "mozilla/DOMEventTargetHelper.h"
+#include "mozilla/dom/FontFace.h"
 #include "mozilla/dom/FontFaceSetBinding.h"
 #include "gfxUserFontSet.h"
 #include "nsCSSRules.h"
@@ -138,12 +139,12 @@ private:
   
   
   
-  
   struct FontFaceRuleRecord {
     nsRefPtr<gfxUserFontEntry>   mUserFontEntry;
     nsFontFaceRuleContainer      mContainer;
   };
 
+  FontFace* FontFaceForRule(nsCSSFontFaceRule* aRule);
   void InsertRule(nsCSSFontFaceRule* aRule, uint8_t aSheetType,
                   nsTArray<FontFaceRuleRecord>& oldRules,
                   bool& aFontSetModified);
@@ -182,7 +183,8 @@ private:
   
   nsTHashtable< nsPtrHashKey<nsFontFaceLoader> > mLoaders;
 
-  nsTArray<FontFaceRuleRecord>   mRules;
+  
+  nsTArray<FontFaceRuleRecord> mRules;
 };
 
 } 
