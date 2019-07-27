@@ -28,16 +28,6 @@ var PluginHelper = {
                                                        [uri.host], 1);
     let buttons = [
       {
-        label: Strings.browser.GetStringFromName("clickToPlayPlugins.activate"),
-        callback: function(aChecked) {
-          
-          if (aChecked)
-            Services.perms.add(uri, "plugins", Ci.nsIPermissionManager.ALLOW_ACTION);
-
-          PluginHelper.playAllPlugins(aTab.browser.contentWindow);
-        }
-      },
-      {
         label: Strings.browser.GetStringFromName("clickToPlayPlugins.dontActivate"),
         callback: function(aChecked) {
           
@@ -45,6 +35,16 @@ var PluginHelper = {
             Services.perms.add(uri, "plugins", Ci.nsIPermissionManager.DENY_ACTION);
 
           
+        }
+      },
+      {
+        label: Strings.browser.GetStringFromName("clickToPlayPlugins.activate"),
+        callback: function(aChecked) {
+          
+          if (aChecked)
+            Services.perms.add(uri, "plugins", Ci.nsIPermissionManager.ALLOW_ACTION);
+
+          PluginHelper.playAllPlugins(aTab.browser.contentWindow);
         }
       }
     ];
