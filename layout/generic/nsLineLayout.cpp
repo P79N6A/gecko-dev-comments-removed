@@ -55,12 +55,12 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
   : mPresContext(aPresContext),
     mFloatManager(aFloatManager),
     mBlockReflowState(aOuterReflowState),
-    mLastOptionalBreakContent(nullptr),
-    mForceBreakContent(nullptr),
+    mLastOptionalBreakFrame(nullptr),
+    mForceBreakFrame(nullptr),
     mBlockRS(nullptr),
     mLastOptionalBreakPriority(gfxBreakPriority::eNoBreak),
-    mLastOptionalBreakContentOffset(-1),
-    mForceBreakContentOffset(-1),
+    mLastOptionalBreakFrameOffset(-1),
+    mForceBreakFrameOffset(-1),
     mMinLineBSize(0),
     mTextIndent(0),
     mFirstLetterStyleOK(false),
@@ -855,7 +855,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
 
   int32_t savedOptionalBreakOffset;
   gfxBreakPriority savedOptionalBreakPriority;
-  nsIContent* savedOptionalBreakContent =
+  nsIFrame* savedOptionalBreakFrame =
     GetLastOptionalBreakPosition(&savedOptionalBreakOffset,
                                  &savedOptionalBreakPriority);
 
@@ -1021,7 +1021,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
                  "How'd we get a floated inline frame? "
                  "The frame ctor should've dealt with this.");
     if (CanPlaceFrame(pfd, notSafeToBreak, continuingTextRun,
-                      savedOptionalBreakContent != nullptr, metrics,
+                      savedOptionalBreakFrame != nullptr, metrics,
                       aReflowStatus, &optionalBreakAfterFits)) {
       if (!isEmpty) {
         psd->mHasNonemptyContent = true;
@@ -1049,7 +1049,9 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
           
           
           
-          if (NotifyOptionalBreakPosition(aFrame->GetContent(), INT32_MAX, optionalBreakAfterFits, gfxBreakPriority::eNormalBreak)) {
+          if (NotifyOptionalBreakPosition(aFrame, INT32_MAX,
+                                          optionalBreakAfterFits,
+                                          gfxBreakPriority::eNormalBreak)) {
             
             aReflowStatus = NS_INLINE_LINE_BREAK_AFTER(aReflowStatus);
           }
@@ -1061,7 +1063,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
       aPushedFrame = true;
       
       
-      RestoreSavedBreakPosition(savedOptionalBreakContent,
+      RestoreSavedBreakPosition(savedOptionalBreakFrame,
                                 savedOptionalBreakOffset,
                                 savedOptionalBreakPriority);
     }

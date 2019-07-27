@@ -224,30 +224,32 @@ public:
 
 
 
-  bool NotifyOptionalBreakPosition(nsIContent* aContent, int32_t aOffset,
-                                     bool aFits, gfxBreakPriority aPriority) {
+
+
+  bool NotifyOptionalBreakPosition(nsIFrame* aFrame, int32_t aOffset,
+                                   bool aFits, gfxBreakPriority aPriority) {
     NS_ASSERTION(!aFits || !mNeedBackup,
                   "Shouldn't be updating the break position with a break that fits after we've already flagged an overrun");
     
     
     if ((aFits && aPriority >= mLastOptionalBreakPriority) ||
-        !mLastOptionalBreakContent) {
-      mLastOptionalBreakContent = aContent;
-      mLastOptionalBreakContentOffset = aOffset;
+        !mLastOptionalBreakFrame) {
+      mLastOptionalBreakFrame = aFrame;
+      mLastOptionalBreakFrameOffset = aOffset;
       mLastOptionalBreakPriority = aPriority;
     }
-    return aContent && mForceBreakContent == aContent &&
-      mForceBreakContentOffset == aOffset;
+    return aFrame && mForceBreakFrame == aFrame &&
+      mForceBreakFrameOffset == aOffset;
   }
   
 
 
 
 
-  void RestoreSavedBreakPosition(nsIContent* aContent, int32_t aOffset,
+  void RestoreSavedBreakPosition(nsIFrame* aFrame, int32_t aOffset,
                                  gfxBreakPriority aPriority) {
-    mLastOptionalBreakContent = aContent;
-    mLastOptionalBreakContentOffset = aOffset;
+    mLastOptionalBreakFrame = aFrame;
+    mLastOptionalBreakFrameOffset = aOffset;
     mLastOptionalBreakPriority = aPriority;
   }
   
@@ -255,17 +257,17 @@ public:
 
   void ClearOptionalBreakPosition() {
     mNeedBackup = false;
-    mLastOptionalBreakContent = nullptr;
-    mLastOptionalBreakContentOffset = -1;
+    mLastOptionalBreakFrame = nullptr;
+    mLastOptionalBreakFrameOffset = -1;
     mLastOptionalBreakPriority = gfxBreakPriority::eNoBreak;
   }
   
   
-  nsIContent* GetLastOptionalBreakPosition(int32_t* aOffset,
-                                           gfxBreakPriority* aPriority) {
-    *aOffset = mLastOptionalBreakContentOffset;
+  nsIFrame* GetLastOptionalBreakPosition(int32_t* aOffset,
+                                         gfxBreakPriority* aPriority) {
+    *aOffset = mLastOptionalBreakFrameOffset;
     *aPriority = mLastOptionalBreakPriority;
-    return mLastOptionalBreakContent;
+    return mLastOptionalBreakFrame;
   }
   
   
@@ -283,13 +285,13 @@ public:
   
   
   
-  void ForceBreakAtPosition(nsIContent* aContent, int32_t aOffset) {
-    mForceBreakContent = aContent;
-    mForceBreakContentOffset = aOffset;
+  void ForceBreakAtPosition(nsIFrame* aFrame, int32_t aOffset) {
+    mForceBreakFrame = aFrame;
+    mForceBreakFrameOffset = aOffset;
   }
-  bool HaveForcedBreakPosition() { return mForceBreakContent != nullptr; }
-  int32_t GetForcedBreakPosition(nsIContent* aContent) {
-    return mForceBreakContent == aContent ? mForceBreakContentOffset : -1;
+  bool HaveForcedBreakPosition() { return mForceBreakFrame != nullptr; }
+  int32_t GetForcedBreakPosition(nsIFrame* aFrame) {
+    return mForceBreakFrame == aFrame ? mForceBreakFrameOffset : -1;
   }
 
   
@@ -338,8 +340,8 @@ protected:
   const nsStyleText* mStyleText; 
   const nsHTMLReflowState* mBlockReflowState;
 
-  nsIContent* mLastOptionalBreakContent;
-  nsIContent* mForceBreakContent;
+  nsIFrame* mLastOptionalBreakFrame;
+  nsIFrame* mForceBreakFrame;
   
   
   friend class nsInlineFrame;
@@ -507,8 +509,8 @@ protected:
   }
 
   gfxBreakPriority mLastOptionalBreakPriority;
-  int32_t     mLastOptionalBreakContentOffset;
-  int32_t     mForceBreakContentOffset;
+  int32_t     mLastOptionalBreakFrameOffset;
+  int32_t     mForceBreakFrameOffset;
 
   nscoord mMinLineBSize;
   
