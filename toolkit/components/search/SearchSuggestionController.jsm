@@ -318,7 +318,13 @@ this.SearchSuggestionController.prototype = {
 
 
   _dedupeAndReturnResults: function(suggestResults) {
-    NS_ASSERT(this._searchString !== null, "this._searchString shouldn't be null when returning results");
+    if (this._searchString === null) {
+      
+      
+      
+      return null;
+    }
+
     let results = {
       term: this._searchString,
       remote: [],
