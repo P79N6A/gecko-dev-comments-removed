@@ -3610,35 +3610,6 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
     }
   }
 #endif 
-
-#ifdef MOZ_ENABLE_XREMOTE
-  
-  bool newInstance;
-  {
-    char *e = PR_GetEnv("MOZ_NO_REMOTE");
-    mDisableRemote = (e && *e);
-    if (mDisableRemote) {
-      newInstance = true;
-    } else {
-      e = PR_GetEnv("MOZ_NEW_INSTANCE");
-      newInstance = (e && *e);
-    }
-  }
-
-  if (!newInstance) {
-    
-    const char* desktopStartupIDPtr =
-      mDesktopStartupID.IsEmpty() ? nullptr : mDesktopStartupID.get();
-
-    RemoteResult rr = RemoteCommandLine(desktopStartupIDPtr);
-    if (rr == REMOTE_FOUND) {
-      *aExitFlag = true;
-      return 0;
-    }
-    else if (rr == REMOTE_ARG_BAD)
-      return 1;
-  }
-#endif
 #ifdef MOZ_X11
   
   
@@ -3661,14 +3632,47 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
   }
 #endif
 #if defined(MOZ_WIDGET_GTK)
-  mGdkDisplay = gdk_display_open(display_name);
-  if (!mGdkDisplay) {
-    PR_fprintf(PR_STDERR, "Error: cannot open display: %s\n", display_name);
-    return 1;
+  {
+    mGdkDisplay = gdk_display_open(display_name);
+    if (!mGdkDisplay) {
+      PR_fprintf(PR_STDERR, "Error: cannot open display: %s\n", display_name);
+      return 1;
+    }
+    gdk_display_manager_set_default_display (gdk_display_manager_get(),
+                                             mGdkDisplay);
+    if (!GDK_IS_X11_DISPLAY(mGdkDisplay))
+      mDisableRemote = true;
   }
-  gdk_display_manager_set_default_display (gdk_display_manager_get(),
-                                           mGdkDisplay);
+#endif
+#ifdef MOZ_ENABLE_XREMOTE
+  
+  bool newInstance;
+  {
+    char *e = PR_GetEnv("MOZ_NO_REMOTE");
+    mDisableRemote = (mDisableRemote || (e && *e));
+    if (mDisableRemote) {
+      newInstance = true;
+    } else {
+      e = PR_GetEnv("MOZ_NEW_INSTANCE");
+      newInstance = (e && *e);
+    }
+  }
+
+  if (!newInstance) {
     
+    const char* desktopStartupIDPtr =
+      mDesktopStartupID.IsEmpty() ? nullptr : mDesktopStartupID.get();
+
+    RemoteResult rr = RemoteCommandLine(desktopStartupIDPtr);
+    if (rr == REMOTE_FOUND) {
+      *aExitFlag = true;
+      return 0;
+    }
+    else if (rr == REMOTE_ARG_BAD)
+      return 1;
+  }
+#endif
+#if defined(MOZ_WIDGET_GTK)
   
   _g_set_application_name_fn _g_set_application_name =
     (_g_set_application_name_fn)FindFunction("g_set_application_name");
