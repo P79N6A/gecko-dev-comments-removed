@@ -619,20 +619,22 @@ SimpleTest.expectAssertions = function(min, max) {
 SimpleTest._flakyTimeoutIsOK = false;
 SimpleTest._originalSetTimeout = window.setTimeout;
 window.setTimeout = function SimpleTest_setTimeoutShim() {
-    var testSuiteSupported = false;
     
-    switch (SimpleTest.harnessParameters.testRoot) {
-    case "browser":
-    case "chrome":
-    case "a11y":
-    case "webapprtContent":
-        break;
-    default:
-        if (!SimpleTest._alreadyFinished && arguments.length > 1 && arguments[1] > 0) {
-            if (SimpleTest._flakyTimeoutIsOK) {
-                SimpleTest.todo(false, "The author of the test has indicated that flaky timeouts are expected.  Reason: " + SimpleTest._flakyTimeoutReason);
-            } else {
-                SimpleTest.ok(false, "Test attempted to use a flaky timeout value " + arguments[1]);
+    if (parentRunner) {
+        
+        switch (SimpleTest.harnessParameters.testRoot) {
+        case "browser":
+        case "chrome":
+        case "a11y":
+        case "webapprtContent":
+            break;
+        default:
+            if (!SimpleTest._alreadyFinished && arguments.length > 1 && arguments[1] > 0) {
+                if (SimpleTest._flakyTimeoutIsOK) {
+                    SimpleTest.todo(false, "The author of the test has indicated that flaky timeouts are expected.  Reason: " + SimpleTest._flakyTimeoutReason);
+                } else {
+                    SimpleTest.ok(false, "Test attempted to use a flaky timeout value " + arguments[1]);
+                }
             }
         }
     }
