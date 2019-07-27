@@ -192,6 +192,7 @@ public:
   
   void PushWork(Decoder* aDecoder)
   {
+    MOZ_ASSERT(aDecoder);
     nsRefPtr<Decoder> decoder(aDecoder);
 
     MonitorAutoLock lock(mMonitor);
@@ -201,35 +202,37 @@ public:
       return;
     }
 
-    mQueue.AppendElement(Move(decoder));
+    if (aDecoder->IsSizeDecode()) {
+      mSizeDecodeQueue.AppendElement(Move(decoder));
+    } else {
+      mFullDecodeQueue.AppendElement(Move(decoder));
+    }
+
     mMonitor.Notify();
   }
 
   
   Work PopWork()
   {
-    Work work;
-
     MonitorAutoLock lock(mMonitor);
 
     do {
-      if (!mQueue.IsEmpty()) {
-        
-        
-        
-        
-        work.mType = Work::Type::DECODE;
-        work.mDecoder = mQueue.ElementAt(0);
-        mQueue.RemoveElementAt(0);
+      
+      
+      
+      
 
-#ifdef MOZ_NUWA_PROCESS
-        nsThreadManager::get()->SetThreadWorking();
-#endif 
+      
+      if (!mSizeDecodeQueue.IsEmpty()) {
+        return PopWorkFromQueue(mSizeDecodeQueue);
+      }
 
-        return work;
+      if (!mFullDecodeQueue.IsEmpty()) {
+        return PopWorkFromQueue(mFullDecodeQueue);
       }
 
       if (mShuttingDown) {
+        Work work;
         work.mType = Work::Type::SHUTDOWN;
         return work;
       }
@@ -246,11 +249,26 @@ public:
 private:
   ~DecodePoolImpl() { }
 
+  Work PopWorkFromQueue(nsTArray<nsRefPtr<Decoder>>& aQueue)
+  {
+    Work work;
+    work.mType = Work::Type::DECODE;
+    work.mDecoder = aQueue.ElementAt(0);
+    aQueue.RemoveElementAt(0);
+
+#ifdef MOZ_NUWA_PROCESS
+    nsThreadManager::get()->SetThreadWorking();
+#endif 
+
+    return work;
+  }
+
   nsThreadPoolNaming mThreadNaming;
 
   
   Monitor mMonitor;
-  nsTArray<nsRefPtr<Decoder>> mQueue;
+  nsTArray<nsRefPtr<Decoder>> mSizeDecodeQueue;
+  nsTArray<nsRefPtr<Decoder>> mFullDecodeQueue;
   bool mShuttingDown;
 };
 
