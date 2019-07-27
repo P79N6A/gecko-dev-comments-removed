@@ -694,9 +694,7 @@ var LoginManagerContent = {
     }
 
     
-    
-    var selectedLogin = null;
-
+    var selectedLogin;
     if (usernameField && (usernameField.value || usernameField.disabled || usernameField.readOnly)) {
       
       
@@ -704,20 +702,21 @@ var LoginManagerContent = {
 
       let matchingLogins = logins.filter(function(l)
                                          l.username.toLowerCase() == username);
-      if (matchingLogins.length) {
-        
-        for (let l of matchingLogins) {
-          if (l.username == usernameField.value) {
-            selectedLogin = l;
-          }
-        }
-        
-        if (!selectedLogin) {
-          selectedLogin = matchingLogins[0];
-        }
-      } else {
+      if (matchingLogins.length == 0) {
         log("Password not filled. None of the stored logins match the username already present.");
         recordAutofillResult(AUTOFILL_RESULT.EXISTING_USERNAME);
+        return;
+      }
+
+      
+      for (let l of matchingLogins) {
+        if (l.username == usernameField.value) {
+          selectedLogin = l;
+        }
+      }
+      
+      if (!selectedLogin) {
+        selectedLogin = matchingLogins[0];
       }
     } else if (logins.length == 1) {
       selectedLogin = logins[0];
@@ -731,16 +730,20 @@ var LoginManagerContent = {
         matchingLogins = logins.filter(function(l) l.username);
       else
         matchingLogins = logins.filter(function(l) !l.username);
-      if (matchingLogins.length == 1) {
-        selectedLogin = matchingLogins[0];
-      } else {
+
+      if (matchingLogins.length != 1) {
         log("Multiple logins for form, so not filling any.");
         recordAutofillResult(AUTOFILL_RESULT.MULTIPLE_LOGINS);
+        return;
       }
+
+      selectedLogin = matchingLogins[0];
     }
 
+    
+
     var didFillForm = false;
-    if (selectedLogin && autofillForm && !isFormDisabled) {
+    if (autofillForm && !isFormDisabled) {
       
 
       if (usernameField) {
@@ -762,10 +765,10 @@ var LoginManagerContent = {
         passwordField.setUserInput(selectedLogin.password);
       }
       didFillForm = true;
-    } else if (selectedLogin && !autofillForm) {
+    } else if (!autofillForm) {
       log("autofillForms=false but form can be filled; notified observers");
       recordAutofillResult(AUTOFILL_RESULT.NO_AUTOFILL_FORMS);
-    } else if (selectedLogin && isFormDisabled) {
+    } else if (isFormDisabled) {
       log("autocomplete=off but form can be filled; notified observers");
       recordAutofillResult(AUTOFILL_RESULT.AUTOCOMPLETE_OFF);
     }
