@@ -822,13 +822,6 @@ nsCSPParser::directive()
     return;
   }
 
-  if (mCurDir.Length() < 2) {
-    const char16_t* params[] = { mCurToken.get() };
-    logWarningErrorToConsole(nsIScriptError::warningFlag, "failedToParseUnrecognizedSource",
-                             params, ArrayLength(params));
-    return;
-  }
-
   
   nsCSPDirective* cspDir = directiveName();
   if (!cspDir) {
@@ -841,12 +834,10 @@ nsCSPParser::directive()
   directiveValue(srcs);
 
   
+  
   if (srcs.Length() == 0) {
-    const char16_t* params[] = { mCurToken.get() };
-    logWarningErrorToConsole(nsIScriptError::warningFlag, "failedToParseUnrecognizedSource",
-                             params, ArrayLength(params));
-    delete cspDir;
-    return;
+    nsCSPKeywordSrc *keyword = new nsCSPKeywordSrc(CSP_NONE);
+    srcs.AppendElement(keyword);
   }
 
   
