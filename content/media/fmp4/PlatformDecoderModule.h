@@ -179,6 +179,8 @@ public:
   
   
   
+  
+  
   virtual nsresult Drain() = 0;
 
   

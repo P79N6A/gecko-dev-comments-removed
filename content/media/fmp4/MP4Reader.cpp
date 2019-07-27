@@ -39,7 +39,6 @@ namespace mozilla {
 
 
 
-#ifdef LOG_SAMPLE_DECODE
 static const char*
 TrackTypeToStr(TrackType aTrack)
 {
@@ -53,7 +52,6 @@ TrackTypeToStr(TrackType aTrack)
     return "Unknown";
   }
 }
-#endif
 
 class MP4Stream : public Stream {
 public:
@@ -351,9 +349,8 @@ MP4Reader::Decode(TrackType aTrack)
       if (!compressed) {
         
         
-#ifdef LOG_SAMPLE_DECODE
-        LOG("PopSample %s nullptr", TrackTypeToStr(aTrack));
-#endif
+        LOG("Draining %s", TrackTypeToStr(aTrack));
+        data.mDecoder->Drain();
         return false;
       } else {
 #ifdef LOG_SAMPLE_DECODE
