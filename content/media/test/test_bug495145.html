@@ -1,8 +1,8 @@
 <!DOCTYPE HTML>
 <html>
-<!--
-https://bugzilla.mozilla.org/show_bug.cgi?id=495145
--->
+
+
+
 
 <head>
   <title>Bug 495145 - pausing while ended shouldn't cause problems</title>
@@ -67,7 +67,7 @@ function seeked2(e) {
 
 function createVideo(test, x, token) {
   var v = document.createElement('video');
-  v.preload = "auto";
+  v.preload = "metadata";
   v.token = token;
   manager.started(token);
   v.src = test.name;
