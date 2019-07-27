@@ -621,14 +621,14 @@ function do_single_test_run() {
       if (couldDoKeywordLookup) {
         if (expectKeywordLookup) {
           if (!affectedByWhitelist || (affectedByWhitelist && !inWhitelist)) {
-            let urlparamInput = encodeURIComponent(sanitize(testInput)).replace("%20", "+", "g");
+            let urlparamInput = encodeURIComponent(sanitize(testInput)).replace(/%20/g, "+");
             
             
             if (urlparamInput.startsWith("%3F")) {
               urlparamInput = urlparamInput.replace("%3F", "");
             }
             let searchURL = kSearchEngineURL.replace("{searchTerms}", urlparamInput);
-            let spec = info.preferredURI.spec.replace("%27", "'", "g");
+            let spec = info.preferredURI.spec.replace(/%27/g, "'");
             do_check_eq(spec, searchURL);
           } else {
             do_check_eq(info.preferredURI, null);
