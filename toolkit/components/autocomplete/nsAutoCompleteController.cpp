@@ -484,7 +484,13 @@ nsAutoCompleteController::HandleKeyNavigation(uint32_t aKey, bool *_retval)
     
     bool isOpen = false;
     input->GetPopupOpen(&isOpen);
-    if (isOpen) {
+
+    
+    
+    
+    uint32_t minResultsForPopup;
+    input->GetMinResultsForPopup(&minResultsForPopup);
+    if (isOpen || (mRowCount > 0 && mRowCount < minResultsForPopup)) {
       int32_t selectedIndex;
       popup->GetSelectedIndex(&selectedIndex);
       bool shouldComplete;
