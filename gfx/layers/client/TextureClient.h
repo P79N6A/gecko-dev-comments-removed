@@ -26,7 +26,6 @@
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
 #include "nsISupportsImpl.h"            
-#include "GfxTexturesReporter.h"
 
 class gfxReusableSurfaceWrapper;
 class gfxImageSurface;
@@ -352,14 +351,6 @@ public:
 
   virtual void WaitForBufferOwnership() {}
 
-  
-
-
-
-   void SetWaste(int aWasteArea) {
-     mWasteTracker.Update(aWasteArea, BytesPerPixel(GetFormat()));
-   }
-
 private:
   
 
@@ -402,11 +393,10 @@ protected:
   RefPtr<TextureChild> mActor;
   RefPtr<ISurfaceAllocator> mAllocator;
   TextureFlags mFlags;
-  FenceHandle mReleaseFenceHandle;
-  FenceHandle mAcquireFenceHandle;
-  gl::GfxTextureWasteTracker mWasteTracker;
   bool mShared;
   bool mValid;
+  FenceHandle mReleaseFenceHandle;
+  FenceHandle mAcquireFenceHandle;
 
   friend class TextureChild;
   friend class RemoveTextureFromCompositableTracker;
