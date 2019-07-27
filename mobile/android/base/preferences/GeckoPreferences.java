@@ -947,6 +947,14 @@ OnSharedPreferenceChangeListener
         return true;
     }
 
+    private void refreshSuggestedSites() {
+        final ContentResolver cr = getApplicationContext().getContentResolver();
+
+        
+        
+        cr.notifyChange(SuggestedSites.CONTENT_URI, null);
+    }
+
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
@@ -982,11 +990,7 @@ OnSharedPreferenceChangeListener
             onLocaleSelected(BrowserLocaleManager.getLanguageTag(lastLocale),
                              sharedPreferences.getString(key, null));
         } else if (PREFS_SUGGESTED_SITES.equals(key)) {
-            final ContentResolver cr = getApplicationContext().getContentResolver();
-
-            
-            
-            cr.notifyChange(SuggestedSites.CONTENT_URI, null);
+            refreshSuggestedSites();
         }
     }
 
