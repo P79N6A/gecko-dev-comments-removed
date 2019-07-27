@@ -3812,6 +3812,10 @@ CASE(JSOP_RESUME)
         
         
 
+        
+        if (gen->as<GeneratorObject>().isConstructing())
+            PUSH_UNDEFINED();
+
         GeneratorObject::ResumeKind resumeKind = GeneratorObject::getResumeKind(REGS.pc);
         bool ok = GeneratorObject::resume(cx, activation, gen, val, resumeKind);
         SET_SCRIPT(REGS.fp()->script());
