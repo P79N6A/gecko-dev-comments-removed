@@ -98,7 +98,7 @@ Box::Read(nsTArray<uint8_t>* aDest)
                                        aDest->Length(), &bytes) ||
       bytes != aDest->Length()) {
     
-    MOZ_ASSERT(false);
+    NS_WARNING("Read failed in mp4_demuxer::Box::Read()");
     aDest->Clear();
   }
 }
