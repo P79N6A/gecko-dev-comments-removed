@@ -103,13 +103,14 @@ CSSTransitionPlayer::GetAnimationManager() const
 
 
 
-already_AddRefed<nsIStyleRule>
+void
 nsTransitionManager::StyleContextChanged(dom::Element *aElement,
                                          nsStyleContext *aOldStyleContext,
-                                         nsStyleContext *aNewStyleContext)
+                                         nsRefPtr<nsStyleContext>* aNewStyleContext )
 {
-  NS_PRECONDITION(aOldStyleContext->GetPseudo() ==
-                      aNewStyleContext->GetPseudo(),
+  nsStyleContext* newStyleContext = *aNewStyleContext;
+
+  NS_PRECONDITION(aOldStyleContext->GetPseudo() == newStyleContext->GetPseudo(),
                   "pseudo type mismatch");
 
   if (mInAnimationOnlyStyleUpdate) {
@@ -118,16 +119,16 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
     
     
     
-    return nullptr;
+    return;
   }
 
   if (!mPresContext->IsDynamic()) {
     
-    return nullptr;
+    return;
   }
 
   if (aOldStyleContext->HasPseudoElementData() !=
-      aNewStyleContext->HasPseudoElementData()) {
+      newStyleContext->HasPseudoElementData()) {
     
     
     
@@ -143,7 +144,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
     
     
     
-    return nullptr;
+    return;
   }
 
   
@@ -152,12 +153,12 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
 
   
   
-  const nsStyleDisplay *disp = aNewStyleContext->StyleDisplay();
-  nsCSSPseudoElements::Type pseudoType = aNewStyleContext->GetPseudoType();
+  const nsStyleDisplay *disp = newStyleContext->StyleDisplay();
+  nsCSSPseudoElements::Type pseudoType = newStyleContext->GetPseudoType();
   if (pseudoType != nsCSSPseudoElements::ePseudo_NotPseudoElement) {
     if (pseudoType != nsCSSPseudoElements::ePseudo_before &&
         pseudoType != nsCSSPseudoElements::ePseudo_after) {
-      return nullptr;
+      return;
     }
 
     NS_ASSERTION((pseudoType == nsCSSPseudoElements::ePseudo_before &&
@@ -177,22 +178,22 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
       disp->mTransitionPropertyCount == 1 &&
       disp->mTransitions[0].GetDelay() == 0.0f &&
       disp->mTransitions[0].GetDuration() == 0.0f) {
-    return nullptr;
+    return;
   }
 
 
   
-  if (aNewStyleContext->PresContext()->RestyleManager()->
+  if (newStyleContext->PresContext()->RestyleManager()->
         IsProcessingAnimationStyleChange()) {
-    return nullptr;
+    return;
   }
 
-  if (aNewStyleContext->GetParent() &&
-      aNewStyleContext->GetParent()->HasPseudoElementData()) {
+  if (newStyleContext->GetParent() &&
+      newStyleContext->GetParent()->HasPseudoElementData()) {
     
     
     
-    return nullptr;
+    return;
   }
 
   NS_WARN_IF_FALSE(!nsLayoutUtils::AreAsyncAnimationsEnabled() ||
@@ -208,10 +209,10 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
   if (collection) {
     nsStyleSet* styleSet = mPresContext->StyleSet();
     afterChangeStyle =
-      styleSet->ResolveStyleWithoutAnimation(aElement, aNewStyleContext,
+      styleSet->ResolveStyleWithoutAnimation(aElement, newStyleContext,
                                              eRestyle_CSSTransitions);
   } else {
-    afterChangeStyle = aNewStyleContext;
+    afterChangeStyle = newStyleContext;
   }
 
   
@@ -329,14 +330,12 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
   }
 
   if (!startedAny) {
-    return nullptr;
+    return;
   }
 
   MOZ_ASSERT(collection,
              "must have element transitions if we started any transitions");
 
-  
-  
   
   
   
@@ -370,7 +369,11 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
   
   collection->mStyleRuleRefreshTime = TimeStamp();
 
-  return coverRule.forget();
+  
+  nsCOMArray<nsIStyleRule> rules;
+  rules.AppendObject(coverRule);
+  *aNewStyleContext = mPresContext->StyleSet()->
+                        ResolveStyleByAddingRules(*aNewStyleContext, rules);
 }
 
 void
