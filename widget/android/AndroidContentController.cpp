@@ -3,7 +3,7 @@
 
 
 
-#include "APZCCallbackHandler.h"
+#include "AndroidContentController.h"
 #include "mozilla/layers/APZCTreeManager.h"
 #include "base/message_loop.h"
 #include "nsWindow.h"
@@ -15,10 +15,10 @@ namespace mozilla {
 namespace widget {
 namespace android {
 
-NativePanZoomController::GlobalRef APZCCallbackHandler::sNativePanZoomController = nullptr;
+NativePanZoomController::GlobalRef AndroidContentController::sNativePanZoomController = nullptr;
 
 NativePanZoomController::LocalRef
-APZCCallbackHandler::SetNativePanZoomController(NativePanZoomController::Param obj)
+AndroidContentController::SetNativePanZoomController(NativePanZoomController::Param obj)
 {
     NativePanZoomController::LocalRef old = sNativePanZoomController;
     sNativePanZoomController = obj;
@@ -26,15 +26,15 @@ APZCCallbackHandler::SetNativePanZoomController(NativePanZoomController::Param o
 }
 
 void
-APZCCallbackHandler::NotifyDefaultPrevented(uint64_t aInputBlockId,
-                                            bool aDefaultPrevented)
+AndroidContentController::NotifyDefaultPrevented(uint64_t aInputBlockId,
+                                                 bool aDefaultPrevented)
 {
     if (!AndroidBridge::IsJavaUiThread()) {
         
         
         
         AndroidBridge::Bridge()->PostTaskToUiThread(NewRunnableFunction(
-            &APZCCallbackHandler::NotifyDefaultPrevented,
+            &AndroidContentController::NotifyDefaultPrevented,
             aInputBlockId, aDefaultPrevented), 0);
         return;
     }
@@ -47,7 +47,7 @@ APZCCallbackHandler::NotifyDefaultPrevented(uint64_t aInputBlockId,
 }
 
 void
-APZCCallbackHandler::PostDelayedTask(Task* aTask, int aDelayMs)
+AndroidContentController::PostDelayedTask(Task* aTask, int aDelayMs)
 {
     AndroidBridge::Bridge()->PostTaskToUiThread(aTask, aDelayMs);
 }
