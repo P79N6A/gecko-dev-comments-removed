@@ -102,6 +102,14 @@ bool IsValidPresentedDNSID(Input hostname);
 bool ParseIPv4Address(Input hostname,  uint8_t (&out)[4]);
 bool ParseIPv6Address(Input hostname,  uint8_t (&out)[16]);
 
+bool PresentedDNSIDMatchesReferenceDNSID(Input presentedDNSID,
+                                         Input referenceDNSID)
+{
+  return PresentedDNSIDMatchesReferenceDNSID(presentedDNSID,
+                                             ValidDNSIDMatchType::ReferenceID,
+                                             referenceDNSID);
+}
+
 
 
 
@@ -738,17 +746,64 @@ PresentedDNSIDMatchesReferenceDNSID(
   return true;
 }
 
-} 
 
-bool PresentedDNSIDMatchesReferenceDNSID(Input presentedDNSID,
-                                         Input referenceDNSID)
+
+
+
+
+
+
+
+
+Result
+MatchPresentedIPAddressWithConstraint(Input presentedID,
+                                      Input iPAddressConstraint,
+                                       bool& foundMatch)
 {
-  return PresentedDNSIDMatchesReferenceDNSID(presentedDNSID,
-                                             ValidDNSIDMatchType::ReferenceID,
-                                             referenceDNSID);
-}
+  if (presentedID.GetLength() != 4 && presentedID.GetLength() != 16) {
+    return Result::ERROR_BAD_DER;
+  }
 
-namespace {
+  Reader presented(presentedID);
+  Reader constraint(iPAddressConstraint);
+  Reader constraintAddress;
+  Result rv = constraint.Skip(presentedID.GetLength(),
+                              constraintAddress);
+  if (rv != Success) {
+    return rv;
+  }
+  Reader constraintMask;
+  rv = constraint.Skip(presentedID.GetLength(), constraintMask);
+  if (rv != Success) {
+    return rv;
+  }
+  rv = der::End(constraint);
+  if (rv != Success) {
+    return rv;
+  }
+
+  do {
+    uint8_t presentedByte;
+    rv = presented.Read(presentedByte);
+    if (rv != Success) {
+      return rv;
+    }
+    uint8_t constraintAddressByte;
+    rv = constraintAddress.Read(constraintAddressByte);
+    if (rv != Success) {
+      return rv;
+    }
+    uint8_t constraintMaskByte;
+    rv = constraintMask.Read(constraintMaskByte);
+    if (rv != Success) {
+      return rv;
+    }
+    foundMatch =
+      ((presentedByte ^ constraintAddressByte) & constraintMaskByte) == 0;
+  } while (foundMatch && !presented.AtEnd());
+
+  return Success;
+}
 
 
 
