@@ -1450,7 +1450,7 @@ CssRuleView.prototype = {
     if (refreshOnPrefs.indexOf(pref) > -1) {
       let element = this._viewedElement;
       this._viewedElement = null;
-      this.highlight(element);
+      this.selectElement(element);
     }
   },
 
@@ -1534,7 +1534,7 @@ CssRuleView.prototype = {
 
 
 
-  highlight: function(aElement) {
+  selectElement: function(aElement) {
     if (this._viewedElement === aElement) {
       return promise.resolve(undefined);
     }

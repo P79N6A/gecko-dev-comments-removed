@@ -289,7 +289,7 @@ CssHtmlTree.prototype = {
 
 
 
-  highlight: function(aElement) {
+  selectElement: function(aElement) {
     if (!aElement) {
       this.viewedElement = null;
       this.noResults.hidden = false;
