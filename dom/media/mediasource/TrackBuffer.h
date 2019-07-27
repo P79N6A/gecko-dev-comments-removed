@@ -114,7 +114,6 @@ public:
 
 private:
   friend class DecodersToInitialize;
-  friend class ReleaseDecoderTask;
   ~TrackBuffer();
 
   
