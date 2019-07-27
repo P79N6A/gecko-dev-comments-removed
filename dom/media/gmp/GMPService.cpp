@@ -191,6 +191,27 @@ GeckoMediaPluginService::Init()
     prefs->AddObserver("media.gmp.plugin.crash", this, false);
   }
 
+  nsresult rv = InitStorage();
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  
+  nsCOMPtr<nsIThread> thread;
+  return GetThread(getter_AddRefs(thread));
+}
+
+
+nsresult
+GeckoMediaPluginService::InitStorage()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+    return NS_OK;
+  }
+
   
   
 #ifdef MOZ_WIDGET_GONK
@@ -213,9 +234,7 @@ GeckoMediaPluginService::Init()
     return rv;
   }
 
-  
-  nsCOMPtr<nsIThread> thread;
-  return GetThread(getter_AddRefs(thread));
+  return NS_OK;
 }
 
 NS_IMETHODIMP
