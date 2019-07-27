@@ -204,9 +204,23 @@ CacheStorage::CreateOnWorker(Namespace aNamespace, nsIGlobalObject* aGlobal,
 
   const PrincipalInfo& principalInfo = aWorkerPrivate->GetPrincipalInfo();
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   bool testingEnabled = aWorkerPrivate->DOMCachesTestingEnabled() ||
                         aWorkerPrivate->ServiceWorkersTestingEnabled() ||
-                        aWorkerPrivate->ServiceWorkersTestingInWindow();
+                        aWorkerPrivate->ServiceWorkersTestingInWindow() ||
+                        aWorkerPrivate->IsServiceWorker();
 
   if (!IsTrusted(principalInfo, testingEnabled)) {
     NS_WARNING("CacheStorage not supported on untrusted origins.");
