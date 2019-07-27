@@ -318,10 +318,6 @@ public class Utils {
         }
     }
 
-    public static String getTypeSignatureStringForClass(Class<?> clazz) {
-        return clazz.getCanonicalName().replace('.', '/');
-    }
-
     public static String getTypeSignatureString(Constructor<?> aConstructor) {
         Class<?>[] arguments = aConstructor.getParameterTypes();
         StringBuilder sb = new StringBuilder();
@@ -345,7 +341,7 @@ public class Utils {
 
 
     private static void writeTypeSignature(StringBuilder sb, Class<?> c) {
-        String name = Utils.getTypeSignatureStringForClass(c);
+        String name = c.getCanonicalName().replaceAll("\\.", "/");
 
         
         int len = name.length();
@@ -388,8 +384,7 @@ public class Utils {
 
 
 
-    public static String getCImplementationMethodSignature(Class<?>[] aArgumentTypes, Class<?> aReturnType,
-        String aCMethodName, String aCClassName, boolean aNarrowChars, boolean aCatchException) {
+    public static String getCImplementationMethodSignature(Class<?>[] aArgumentTypes, Class<?> aReturnType, String aCMethodName, String aCClassName, boolean aNarrowChars) {
         StringBuilder retBuffer = new StringBuilder();
 
         retBuffer.append(getCReturnType(aReturnType, aNarrowChars));
@@ -411,14 +406,6 @@ public class Utils {
                 retBuffer.append(", ");
             }
         }
-
-        if (aCatchException) {
-            if (aArgumentTypes.length > 0) {
-                retBuffer.append(", ");
-            }
-            retBuffer.append("nsresult* aResult");
-        }
-
         retBuffer.append(')');
         return retBuffer.toString();
     }
@@ -436,8 +423,7 @@ public class Utils {
 
 
 
-    public static String getCHeaderMethodSignature(Class<?>[] aArgumentTypes, Annotation[][] aArgumentAnnotations, Class<?> aReturnType,
-        String aCMethodName, String aCClassName, boolean aIsStaticStub, boolean aNarrowChars, boolean aCatchException) {
+    public static String getCHeaderMethodSignature(Class<?>[] aArgumentTypes, Annotation[][] aArgumentAnnotations, Class<?> aReturnType, String aCMethodName, String aCClassName, boolean aIsStaticStub, boolean aNarrowChars) {
         StringBuilder retBuffer = new StringBuilder();
 
         
@@ -467,14 +453,6 @@ public class Utils {
                 retBuffer.append(", ");
             }
         }
-
-        if (aCatchException) {
-            if (aArgumentTypes.length > 0) {
-                retBuffer.append(", ");
-            }
-            retBuffer.append("nsresult* aResult = nullptr");
-        }
-
         retBuffer.append(')');
         return retBuffer.toString();
     }
@@ -609,9 +587,9 @@ public class Utils {
         StringBuilder sb = new StringBuilder();
         sb.append("    ");
         sb.append(getClassReferenceName(aClass));
-        sb.append(" = AndroidBridge::GetClassGlobalRef(env, \"");
+        sb.append(" = getClassGlobalRef(\"");
 
-        String name = Utils.getTypeSignatureStringForClass(aClass);
+        String name = aClass.getCanonicalName().replaceAll("\\.", "/");
         Class<?> containerClass = aClass.getDeclaringClass();
         if (containerClass != null) {
             
