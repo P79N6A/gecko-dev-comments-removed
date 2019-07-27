@@ -13,15 +13,15 @@ import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
 import android.text.Layout;
 import android.util.AttributeSet;
-import android.widget.TextView;
 
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.widget.ThemedTextView;
 
 
 
 
 
-public class FadedTextView extends TextView {
+public class FadedTextView extends ThemedTextView {
 
     
     private final int mFadeWidth;
@@ -34,11 +34,7 @@ public class FadedTextView extends TextView {
     }
 
     public FadedTextView(Context context, AttributeSet attrs) {
-        this(context, attrs, android.R.attr.textViewStyle);
-    }
-
-    public FadedTextView(Context context, AttributeSet attrs, int defStyle) {
-        super(context, attrs, defStyle);
+        super(context, attrs);
 
         setSingleLine(true);
         setEllipsize(null);
