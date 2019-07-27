@@ -241,7 +241,7 @@ let MozLoopServiceInternal = {
 
 
   registerWithLoopServer: function(pushUrl, noRetry) {
-    this.hawkRequest("/registration", "POST", { simple_push_url: pushUrl})
+    this.hawkRequest("/registration", "POST", { simplePushURL: pushUrl})
       .then((response) => {
         
         

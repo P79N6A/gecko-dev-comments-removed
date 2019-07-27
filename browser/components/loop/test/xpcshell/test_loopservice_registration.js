@@ -1,6 +1,8 @@
 
 
 
+Cu.import("resource://services-common/utils.js");
+
 
 
 
@@ -49,7 +51,14 @@ add_test(function test_register_websocket_success_loop_server_fail() {
 
 
 add_test(function test_register_success() {
+  mockPushHandler.registrationPushURL = kEndPointUrl;
+
   loopServer.registerPathHandler("/registration", (request, response) => {
+    let body = CommonUtils.readBytesFromInputStream(request.bodyInputStream);
+    let data = JSON.parse(body);
+    Assert.equal(data.simplePushURL, kEndPointUrl,
+                 "Should send correct push url");
+
     response.setStatusLine(null, 200, "OK");
     response.processAsync();
     response.finish();

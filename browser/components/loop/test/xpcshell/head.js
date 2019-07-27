@@ -47,12 +47,13 @@ let mockPushHandler = {
   
   
   registrationResult: null,
+  registrationPushURL: undefined,
 
   
 
 
   initialize: function(registerCallback, notificationCallback) {
-    registerCallback(this.registrationResult);
+    registerCallback(this.registrationResult, this.registrationPushURL);
     this._notificationCallback = notificationCallback;
   },
 
