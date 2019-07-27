@@ -94,6 +94,24 @@ public:
 
 
 
+class TextureReadbackSink
+{
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TextureReadbackSink)
+public:
+  
+
+
+
+
+
+  virtual void ProcessReadback(gfx::DataSourceSurface *aSourceSurface) = 0;
+};
+
+
+
+
+
+
 
 
 
@@ -373,6 +391,15 @@ public:
      mWasteTracker.Update(aWasteArea, BytesPerPixel(GetFormat()));
    }
 
+   
+
+
+
+
+   virtual void SetReadbackSink(TextureReadbackSink* aReadbackSink) {
+     mReadbackSink = aReadbackSink;
+   }
+
 private:
   
 
@@ -420,6 +447,8 @@ protected:
   gl::GfxTextureWasteTracker mWasteTracker;
   bool mShared;
   bool mValid;
+
+  RefPtr<TextureReadbackSink> mReadbackSink;
 
   friend class TextureChild;
   friend class RemoveTextureFromCompositableTracker;
