@@ -484,12 +484,8 @@ IsFontSizeInflationContainer(nsIFrame* aFrame,
   }
 
   nsIContent *content = aFrame->GetContent();
-  
-  
   bool isInline = (aFrame->GetDisplay() == NS_STYLE_DISPLAY_INLINE ||
-                   (aFrame->StyleDisplay()->IsRubyDisplayType() && 
-                    aFrame->GetDisplay() != 
-                      NS_STYLE_DISPLAY_RUBY_TEXT_CONTAINER) ||
+                   aFrame->StyleDisplay()->IsRubyDisplayType() ||
                    (aFrame->IsFloating() &&
                     aFrame->GetType() == nsGkAtoms::letterFrame) ||
                    
