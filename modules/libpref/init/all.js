@@ -765,6 +765,8 @@ pref("toolkit.scrollbox.verticalScrollDistance", 3);
 pref("toolkit.scrollbox.horizontalScrollDistance", 5);
 pref("toolkit.scrollbox.clickToScroll.scrollDelay", 150);
 
+
+
 pref("toolkit.telemetry.server", "https://incoming.telemetry.mozilla.org");
 
 pref("toolkit.telemetry.server_owner", "Mozilla");
@@ -773,6 +775,8 @@ pref("toolkit.telemetry.infoURL", "https://www.mozilla.org/legal/privacy/firefox
 
 
 pref("toolkit.telemetry.debugSlowSql", false);
+
+pref("toolkit.telemetry.unified", true);
 
 
 pref("toolkit.identity.enabled", false);

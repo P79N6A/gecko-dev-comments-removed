@@ -867,6 +867,10 @@ pref("reader.toolbar.vertical", false);
 pref("browser.readinglist.enabled", true);
 
 
+
+pref("toolkit.telemetry.unified", false);
+
+
 pref("selectioncaret.detects.longtap", false);
 
 
