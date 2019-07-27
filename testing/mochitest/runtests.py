@@ -2029,10 +2029,40 @@ class Mochitest(MochitestUtilsMixin):
 
         return result
 
+    def killNamedOrphans(self, pname):
+        """ Kill orphan processes matching the given command name """
+        self.log.info("Checking for orphan %s processes..." % pname)
+        def _psInfo(line):
+            if pname in line:
+                self.log.info(line)
+        process = mozprocess.ProcessHandler(['ps', '-f', '--no-headers'],
+                                            processOutputLine=_psInfo)
+        process.run()
+        process.wait()
+
+        def _psKill(line):
+            parts = line.split()
+            pid = int(parts[0])
+            if len(parts) == 3 and parts[2] == pname and parts[1] == '1':
+                self.log.info("killing %s orphan with pid %d" % (pname, pid))
+                killPid(pid, self.log)
+        process = mozprocess.ProcessHandler(['ps', '-o', 'pid,ppid,comm', '--no-headers'],
+                                            processOutputLine=_psKill)
+        process.run()
+        process.wait()
+
     def runTests(self, options, onLaunch=None):
         """ Prepare, configure, run tests and cleanup """
 
         self.setTestRoot(options)
+
+        
+        
+        
+        
+        
+        self.killNamedOrphans('ssltunnel')
+        self.killNamedOrphans('xpcshell')
 
         
         
