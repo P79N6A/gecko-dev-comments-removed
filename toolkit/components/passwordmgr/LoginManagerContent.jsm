@@ -2,7 +2,6 @@
 
 
 
-
 "use strict";
 
 this.EXPORTED_SYMBOLS = [ "LoginManagerContent",
@@ -452,7 +451,6 @@ var LoginManagerContent = {
     }
   },
 
-
   
 
 
@@ -462,17 +460,19 @@ var LoginManagerContent = {
 
 
 
-  _getPasswordFields : function (form, skipEmptyFields) {
+  _getPasswordFields(form, skipEmptyFields = false) {
     
-    var pwFields = [];
-    for (var i = 0; i < form.elements.length; i++) {
-      var element = form.elements[i];
+    let pwFields = [];
+    for (let i = 0; i < form.elements.length; i++) {
+      let element = form.elements[i];
       if (!(element instanceof Ci.nsIDOMHTMLInputElement) ||
-          element.type != "password")
+          element.type != "password") {
         continue;
+      }
 
-      if (skipEmptyFields && !element.value)
+      if (skipEmptyFields && !element.value) {
         continue;
+      }
 
       pwFields[pwFields.length] = {
                                     index   : i,
@@ -485,14 +485,12 @@ var LoginManagerContent = {
       log("(form ignored -- no password fields.)");
       return null;
     } else if (pwFields.length > 3) {
-      log("(form ignored -- too many password fields. [ got ",
-                  pwFields.length, "])");
+      log("(form ignored -- too many password fields. [ got ", pwFields.length, "])");
       return null;
     }
 
     return pwFields;
   },
-
 
   _isUsernameFieldType: function(element) {
     if (!(element instanceof Ci.nsIDOMHTMLInputElement))
@@ -1090,4 +1088,77 @@ UserAutoCompleteResult.prototype = {
       pwmgr.removeLogin(removedLogin);
     }
   }
+};
+
+
+
+
+
+let FormLikeFactory = {
+  _propsFromForm: [
+      "action",
+      "autocomplete",
+  ],
+
+  
+
+
+
+
+
+
+  createFromForm(aForm) {
+    if (!(aForm instanceof Ci.nsIDOMHTMLFormElement)) {
+      throw new Error("createFromForm: aForm must be a nsIDOMHTMLFormElement");
+    }
+
+    let formLike = {
+      elements: [...aForm.elements],
+      ownerDocument: aForm.ownerDocument,
+      rootElement: aForm,
+    };
+
+    for (let prop of this._propsFromForm) {
+      formLike[prop] = aForm[prop];
+    }
+
+    return formLike;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  createFromPasswordField(aPasswordField) {
+    if (!(aPasswordField instanceof Ci.nsIDOMHTMLInputElement) ||
+        aPasswordField.type != "password" ||
+        !aPasswordField.ownerDocument) {
+      throw new Error("createFromPasswordField requires a password field in a document");
+    }
+
+    if (aPasswordField.form) {
+      return this.createFromForm(aPasswordField.form);
+    }
+
+    let doc = aPasswordField.ownerDocument;
+    log("Created non-form FormLike for rootElement:", doc.documentElement);
+    return {
+      action: "",
+      autocomplete: "on",
+      
+      
+      elements: [for (el of doc.querySelectorAll("input")) if (!el.form) el],
+      ownerDocument: doc,
+      rootElement: doc.documentElement,
+    };
+  },
 };
