@@ -3520,6 +3520,10 @@ nsDocument::SetDocumentCharacterSet(const nsACString& aCharSetID)
   
   
   if (!mCharacterSet.Equals(aCharSetID)) {
+    if (mMasterDocument && !aCharSetID.EqualsLiteral("UTF-8")) {
+      
+      return;
+    }
     mCharacterSet = aCharSetID;
 
     int32_t n = mCharSetObservers.Length();
