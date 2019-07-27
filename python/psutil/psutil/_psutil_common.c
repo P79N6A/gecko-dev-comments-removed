@@ -25,7 +25,6 @@ NoSuchProcess(void) {
 
 
 
-
 PyObject *
 AccessDenied(void) {
     PyObject *exc;

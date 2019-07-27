@@ -7,7 +7,6 @@
 
 
 
-
 #include <Python.h>
 #include <assert.h>
 #include <errno.h>
@@ -55,11 +54,12 @@ psutil_pid_exists(long pid)
 
 
 
+
 int
 psutil_get_proc_list(kinfo_proc **procList, size_t *procCount)
 {
     
-    
+
     static const int mib3[3] = { CTL_KERN, KERN_PROC, KERN_PROC_ALL };
     size_t           size, size2;
     void            *ptr;
@@ -72,7 +72,6 @@ psutil_get_proc_list(kinfo_proc **procList, size_t *procCount)
     *procCount = 0;
 
     
-
 
 
 
@@ -138,7 +137,7 @@ psutil_get_argmax()
 
 
 
-PyObject *
+PyObject*
 psutil_get_arg_list(long pid)
 {
     int mib[3];
@@ -175,8 +174,7 @@ psutil_get_arg_list(long pid)
     mib[1] = KERN_PROCARGS2;
     mib[2] = pid;
     if (sysctl(mib, 3, procargs, &argmax, NULL, 0) < 0) {
-        if (EINVAL == errno) {
-            
+        if (EINVAL == errno) { 
             if ( psutil_pid_exists(pid) ) {
                 AccessDenied();
             } else {
@@ -258,6 +256,8 @@ psutil_get_kinfo_proc(pid_t pid, struct kinfo_proc *kp)
     }
 
     
+
+
     if (len == 0) {
         NoSuchProcess();
         return -1;

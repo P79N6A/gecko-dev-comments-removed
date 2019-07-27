@@ -7,7 +7,6 @@
 
 
 
-
 #include <Python.h>
 #include <assert.h>
 #include <errno.h>
@@ -36,7 +35,7 @@ int
 psutil_get_proc_list(struct kinfo_proc **procList, size_t *procCount)
 {
     int err;
-    struct kinfo_proc *result;
+    struct kinfo_proc * result;
     int done;
     static const int name[] = { CTL_KERN, KERN_PROC, KERN_PROC_PROC, 0 };
     
@@ -83,7 +82,7 @@ psutil_get_proc_list(struct kinfo_proc **procList, size_t *procCount)
         
         if (err == 0) {
             err = sysctl((int *) name, (sizeof(name) / sizeof(*name)) - 1,
-                         result, &length, NULL, 0);
+                          result, &length, NULL, 0);
             if (err == -1)
                 err = errno;
             if (err == 0) {
@@ -115,7 +114,7 @@ psutil_get_proc_list(struct kinfo_proc **procList, size_t *procCount)
 char
 *psutil_get_cmd_path(long pid, size_t *pathsize)
 {
-    int mib[4];
+    int  mib[4];
     char *path;
     size_t size = 0;
 
@@ -204,7 +203,7 @@ char
 
 
 
-PyObject *
+PyObject*
 psutil_get_arg_list(long pid)
 {
     char *argstr = NULL;
@@ -226,7 +225,7 @@ psutil_get_arg_list(long pid)
     
     
     if (argsize > 0) {
-        while (pos < argsize) {
+        while(pos < argsize) {
             item = Py_BuildValue("s", &argstr[pos]);
             if (!item)
                 goto error;
