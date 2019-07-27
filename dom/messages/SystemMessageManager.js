@@ -110,8 +110,6 @@ SystemMessageManager.prototype = {
       
       
       
-      
-      
       Services.obs.notifyObservers( null,
                                    "handle-system-messages-done",
                                     null);
@@ -249,9 +247,6 @@ SystemMessageManager.prototype = {
                               pageURL: this._pageURL,
                               handledCount: messages.length });
 
-      
-      
-      
       
       
       Services.obs.notifyObservers( null,
