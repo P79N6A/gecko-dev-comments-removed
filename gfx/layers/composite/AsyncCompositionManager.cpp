@@ -744,34 +744,41 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
 }
 
 static LayerMetricsWrapper
-FindScrolledLayerForScrollbar(Layer* aScrollbar, bool* aOutIsAncestor)
+FindScrolledLayerRecursive(Layer* aScrollbar, const LayerMetricsWrapper& aSubtreeRoot)
 {
-  
-  
-  
-
-  
-  LayerMetricsWrapper scrollbar(aScrollbar, LayerMetricsWrapper::StartAt::BOTTOM);
-  for (LayerMetricsWrapper ancestor = scrollbar; ancestor; ancestor = ancestor.GetParent()) {
-    for (LayerMetricsWrapper scrollTarget = ancestor;
-         scrollTarget;
-         scrollTarget = scrollTarget.GetPrevSibling()) {
-      if (scrollTarget != scrollbar &&
-          LayerIsScrollbarTarget(scrollTarget, aScrollbar)) {
-        *aOutIsAncestor = (scrollTarget == ancestor);
-        return scrollTarget;
-      }
-    }
-    for (LayerMetricsWrapper scrollTarget = ancestor.GetNextSibling();
-         scrollTarget;
-         scrollTarget = scrollTarget.GetNextSibling()) {
-      if (LayerIsScrollbarTarget(scrollTarget, aScrollbar)) {
-        *aOutIsAncestor = false;
-        return scrollTarget;
-      }
+  if (LayerIsScrollbarTarget(aSubtreeRoot, aScrollbar)) {
+    return aSubtreeRoot;
+  }
+  for (LayerMetricsWrapper child = aSubtreeRoot.GetFirstChild(); child;
+         child = child.GetNextSibling()) {
+    LayerMetricsWrapper target = FindScrolledLayerRecursive(aScrollbar, child);
+    if (target) {
+      return target;
     }
   }
   return LayerMetricsWrapper();
+}
+
+static LayerMetricsWrapper
+FindScrolledLayerForScrollbar(Layer* aScrollbar, bool* aOutIsAncestor)
+{
+  
+  LayerMetricsWrapper scrollbar(aScrollbar);
+  for (LayerMetricsWrapper ancestor = scrollbar; ancestor; ancestor = ancestor.GetParent()) {
+    if (LayerIsScrollbarTarget(ancestor, aScrollbar)) {
+      *aOutIsAncestor = true;
+      return ancestor;
+    }
+  }
+
+  
+  
+  
+  
+  
+  *aOutIsAncestor = false;
+  LayerMetricsWrapper root(aScrollbar->Manager()->GetRoot());
+  return FindScrolledLayerRecursive(aScrollbar, root);
 }
 
 void
