@@ -459,6 +459,12 @@ FlattenBezier(const BezierControlPoints &aControlPoints,
 
   
   
+  if (count == 1 && t1min <= 0 && t1max >= 1.0) {
+    
+    aSink->LineTo(aControlPoints.mCP4);
+    return;
+  }
+
   if (t1min > 0) {
     
     
