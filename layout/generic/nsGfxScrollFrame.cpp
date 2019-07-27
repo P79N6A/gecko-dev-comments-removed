@@ -3091,7 +3091,7 @@ ScrollFrameHelper::ComputeFrameMetrics(Layer* aLayer,
     parentLayerClip = Some(clip);
   }
 
-  if (!gfxPrefs::AsyncPanZoomEnabled()) {
+  if (!nsLayoutUtils::UsesAsyncScrolling()) {
     if (parentLayerClip) {
       
       
