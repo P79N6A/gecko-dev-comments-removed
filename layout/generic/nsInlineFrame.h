@@ -63,6 +63,8 @@ public:
   virtual FrameSearchResult PeekOffsetCharacter(bool aForward, int32_t* aOffset,
                                      bool aRespectClusters = true) MOZ_OVERRIDE;
   
+  virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
+
   
   virtual void AddInlineMinWidth(nsRenderingContext *aRenderingContext,
                                  InlineMinWidthData *aData) MOZ_OVERRIDE;
@@ -165,6 +167,9 @@ private:
   enum DrainFlags {
     eDontReparentFrames = 1, 
     eInFirstLine = 2, 
+    eForDestroy = 4, 
+                     
+                     
   };
   
 
