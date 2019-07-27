@@ -1117,9 +1117,9 @@ PackPDU(const BluetoothAvrcpElementAttribute& aIn, BluetoothDaemonPDU& aPDU)
     return NS_ERROR_ILLEGAL_VALUE; 
   }
 
-  PRUint32 clen = cstr.Length() + 1; 
+  uint32_t clen = cstr.Length() + 1; 
 
-  rv = PackPDU(PackConversion<PRUint32, uint8_t>(clen), aPDU);
+  rv = PackPDU(PackConversion<uint32_t, uint8_t>(clen), aPDU);
   if (NS_FAILED(rv)) {
     return rv;
   }
