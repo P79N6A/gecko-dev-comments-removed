@@ -120,6 +120,8 @@ struct ElementPropertyTransition;
 
 namespace dom {
 
+class AnimationEffect;
+
 class Animation : public nsWrapperCache
 {
 public:
@@ -145,6 +147,11 @@ public:
   virtual const ElementPropertyTransition* AsTransition() const {
     return nullptr;
   }
+
+  
+  
+  
+  already_AddRefed<AnimationEffect> GetEffect();
 
   void SetParentTime(Nullable<TimeDuration> aParentTime);
 
