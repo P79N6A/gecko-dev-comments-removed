@@ -1220,9 +1220,13 @@ nsImageFrame::DisplayAltFeedback(nsRenderingContext& aRenderingContext,
     return;
   }
 
+  DrawTarget* drawTarget = aRenderingContext.GetDrawTarget();
+  gfxContext* gfx = aRenderingContext.ThebesContext();
+
   
-  aRenderingContext.ThebesContext()->Save();
-  aRenderingContext.IntersectClip(inner);
+  gfx->Save();
+  gfx->Clip(NSRectToRect(inner, PresContext()->AppUnitsPerDevPixel(),
+                         *drawTarget));
 
   
   if (gIconLoad->mPrefShowPlaceholders) {
@@ -1261,7 +1265,6 @@ nsImageFrame::DisplayAltFeedback(nsRenderingContext& aRenderingContext,
     
     if (!iconUsed) {
       ColorPattern color(ToDeviceColor(Color(1.f, 0.f, 0.f, 1.f)));
-      DrawTarget* drawTarget = aRenderingContext.GetDrawTarget();
 
       nscoord iconXPos = (vis->mDirection ==   NS_STYLE_DIRECTION_RTL) ?
                          inner.XMost() - size : inner.x;

@@ -4,6 +4,9 @@
 
 
 #include "nsPageFrame.h"
+
+#include "mozilla/gfx/2D.h"
+#include "nsLayoutUtils.h"
 #include "nsPresContext.h"
 #include "nsRenderingContext.h"
 #include "nsGkAtoms.h"
@@ -25,6 +28,7 @@ extern PRLogModuleInfo *GetLayoutPrintingLog();
 #endif
 
 using namespace mozilla;
+using namespace mozilla::gfx;
 
 nsPageFrame*
 NS_NewPageFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
@@ -372,12 +376,16 @@ nsPageFrame::DrawHeaderFooter(nsRenderingContext& aRenderingContext,
       y = aRect.YMost() - aHeight - mPD->mEdgePaperMargin.bottom;
     }
 
+    DrawTarget* drawTarget = aRenderingContext.GetDrawTarget();
+    gfxContext* gfx = aRenderingContext.ThebesContext();
+
     
-    aRenderingContext.ThebesContext()->Save();
+    gfx->Save();
+    gfx->Clip(NSRectToRect(aRect, PresContext()->AppUnitsPerDevPixel(),
+                           *drawTarget));
     aRenderingContext.SetColor(NS_RGB(0,0,0));
-    aRenderingContext.IntersectClip(aRect);
     nsLayoutUtils::DrawString(this, &aRenderingContext, str.get(), str.Length(), nsPoint(x, y + aAscent));
-    aRenderingContext.ThebesContext()->Restore();
+    gfx->Restore();
   }
 }
 
