@@ -3581,7 +3581,7 @@ XULDocument::ExecuteScript(nsXULPrototypeScript *aScript)
     
     
     
-    JS::CloneAndExecuteScript(cx, global, scriptObject);
+    JS::CloneAndExecuteScript(cx, scriptObject);
 
     return NS_OK;
 }
