@@ -115,11 +115,6 @@ this.Keyboard = {
         
         
         this.sendToKeyboard('Keyboard:FocusChange', { 'type': 'blur' });
-        
-        SystemAppProxy.dispatchEvent({
-          type: 'inputmethod-contextchange',
-          inputType: 'blur'
-        });
       }
     } else {
       
