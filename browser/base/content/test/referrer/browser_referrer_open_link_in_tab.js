@@ -16,5 +16,6 @@ function startNewTabTestCase(aTestNumber) {
 }
 
 function test() {
+  requestLongerTimeout(5);  
   startReferrerTest(startNewTabTestCase);
 }
