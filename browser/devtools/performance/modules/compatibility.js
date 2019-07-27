@@ -4,72 +4,9 @@
 "use strict";
 
 const { Task } = require("resource://gre/modules/Task.jsm");
-loader.lazyRequireGetter(this, "promise");
+const { Promise } = require("resource://gre/modules/Promise.jsm");
 loader.lazyRequireGetter(this, "EventEmitter",
   "devtools/toolkit/event-emitter");
-loader.lazyRequireGetter(this, "RecordingUtils",
-  "devtools/performance/recording-utils", true);
-
-const REQUIRED_MEMORY_ACTOR_METHODS = [
-  "attach", "detach", "startRecordingAllocations", "stopRecordingAllocations", "getAllocations"
-];
-
-
-
-
-function ProfilerFront (target) {
-  this._target = target;
-}
-
-ProfilerFront.prototype = {
-  
-  connect: Task.async(function*() {
-    let target = this._target;
-    
-    
-    if (target.form && target.form.profilerActor) {
-      this._profiler = target.form.profilerActor;
-    }
-    
-    
-    else if (target.root && target.root.profilerActor) {
-      this._profiler = target.root.profilerActor;
-    }
-    
-    else {
-      this._profiler = (yield listTabs(target.client)).profilerActor;
-    }
-
-    
-    
-    this.traits = {};
-    this.traits.filterable = target.getTrait("profilerDataFilterable");
-  }),
-
-  
-
-
-
-
-  _request: function (method, ...args) {
-    let deferred = promise.defer();
-    let data = args[0] || {};
-    data.to = this._profiler;
-    data.type = method;
-    this._target.client.request(data, res => {
-      
-      
-      if (method === "getProfile" && !this.traits.filterable) {
-        RecordingUtils.filterSamples(res.profile, data.startTime || 0);
-      }
-
-      deferred.resolve(res);
-    });
-    return deferred.promise;
-  }
-};
-
-exports.ProfilerFront = ProfilerFront;
 
 
 
@@ -87,7 +24,8 @@ function MockFront (blueprint) {
 
 function MockMemoryFront () {
   MockFront.call(this, [
-    ["initialize"],
+    ["start", 0], 
+    ["stop", 0], 
     ["destroy"],
     ["attach"],
     ["detach"],
@@ -101,7 +39,6 @@ exports.MockMemoryFront = MockMemoryFront;
 
 function MockTimelineFront () {
   MockFront.call(this, [
-    ["initialize"],
     ["destroy"],
     ["start", 0],
     ["stop", 0],
@@ -172,9 +109,63 @@ exports.timelineActorSupported = Task.async(timelineActorSupported);
 
 
 
-function listTabs(client) {
-  let deferred = promise.defer();
-  client.listTabs(deferred.resolve);
-  return deferred.promise;
+
+
+
+function getProfiler (target) {
+  let { promise, resolve } = Promise.defer();
+  
+  
+  if (target.form && target.form.profilerActor) {
+    resolve(target.form.profilerActor);
+  }
+  
+  
+  else if (target.root && target.root.profilerActor) {
+    resolve(target.root.profilerActor);
+  }
+  
+  else {
+    target.client.listTabs(({ profilerActor }) => resolve(profilerActor));
+  }
+  return promise;
+}
+exports.getProfiler = Task.async(getProfiler);
+
+
+
+
+
+function legacyRequest (target, actor, method, args) {
+  let { promise, resolve } = Promise.defer();
+  let data = args[0] || {};
+  data.to = actor;
+  data.type = method;
+  target.client.request(data, resolve);
+  return promise;
 }
 
+
+
+
+
+
+
+function actorCompatibilityBridge (method) {
+  return function () {
+    
+    
+    
+    
+    
+    
+    
+    if (this.IS_MOCK || this._actor.request) {
+      return this._actor[method].apply(this._actor, arguments);
+    }
+    else {
+      return legacyRequest(this._target, this._actor, method, arguments);
+    }
+  };
+}
+exports.actorCompatibilityBridge = actorCompatibilityBridge;
