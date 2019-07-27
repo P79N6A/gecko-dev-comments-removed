@@ -286,7 +286,9 @@ Editor.prototype = {
       cm.getWrapperElement().addEventListener("contextmenu", (ev) => {
         ev.preventDefault();
         if (!this.config.contextMenu) return;
-        let popup = el.ownerDocument.getElementById(this.config.contextMenu);
+        let popup = this.config.contextMenu;
+        if (typeof popup == "string")
+          popup = el.ownerDocument.getElementById(this.config.contextMenu);
         popup.openPopupAtScreen(ev.screenX, ev.screenY, true);
       }, false);
 
