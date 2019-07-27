@@ -1166,11 +1166,7 @@ nsHTMLCSSUtils::IsCSSEquivalentToHTMLInlineStyleSet(nsIDOMNode *aNode,
         aIsSet = htmlValueString.Equals(valueStringNorm,
                                         nsCaseInsensitiveStringComparator());
       } else {
-        
-        nsAutoString valueStringLower;
-        ToLowerCase(valueString, valueStringLower);
-        aIsSet = !valueStringLower.EqualsLiteral("monospace") &&
-                 !valueStringLower.EqualsLiteral("serif");
+        aIsSet = true;
       }
       return NS_OK;
     } else if (aHTMLAttribute && aHTMLAttribute->EqualsLiteral("align")) {
