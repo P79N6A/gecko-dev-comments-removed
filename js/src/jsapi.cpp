@@ -3438,7 +3438,6 @@ JS_DefineFunctions(JSContext* cx, HandleObject obj, const JSFunctionSpec* fs,
             if (flags & JSPROP_DEFINE_LATE)
                 continue;
         }
-        flags &= ~JSPROP_DEFINE_LATE;
 
         
 

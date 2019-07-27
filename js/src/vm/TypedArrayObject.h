@@ -277,14 +277,6 @@ IsTypedArrayIndex(jsid id, uint64_t* indexp)
     return StringIsTypedArrayIndex(s, length, indexp);
 }
 
-
-
-
-
-bool
-DefineTypedArrayElement(JSContext *cx, HandleObject arr, uint64_t index,
-                        Handle<PropertyDescriptor> desc, ObjectOpResult &result);
-
 static inline unsigned
 TypedArrayShift(Scalar::Type viewType)
 {

@@ -516,23 +516,23 @@ js::ArraySetLength(JSContext* cx, Handle<ArrayObject*> arr, HandleId id,
         return false;
 
     
+
+    
     uint32_t newLen;
-    if (attrs & JSPROP_IGNORE_VALUE) {
-        
-        
-        
-        
-        newLen = arr->length();
-    } else {
-        
+    if (!CanonicalizeArrayLengthValue(cx, value, &newLen))
+        return false;
 
-        
-        MOZ_ASSERT_IF(attrs & JSPROP_IGNORE_VALUE, value.isUndefined());
-        if (!CanonicalizeArrayLengthValue(cx, value, &newLen))
-            return false;
-
-        
-    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!(attrs & JSPROP_PERMANENT) || (attrs & JSPROP_ENUMERATE))
+        return result.fail(JSMSG_CANT_REDEFINE_PROP);
 
     
     bool lengthIsWritable = arr->lengthIsWritable();
@@ -543,19 +543,8 @@ js::ArraySetLength(JSContext* cx, Handle<ArrayObject*> arr, HandleId id,
         MOZ_ASSERT(lengthShape->writable() == lengthIsWritable);
     }
 #endif
-    uint32_t oldLen = arr->length();
 
-    
-    
-    
-    
-    if ((attrs & (JSPROP_PERMANENT | JSPROP_IGNORE_PERMANENT)) == 0 ||
-        (attrs & (JSPROP_ENUMERATE | JSPROP_IGNORE_ENUMERATE)) == JSPROP_ENUMERATE ||
-        (attrs & (JSPROP_GETTER | JSPROP_SETTER)) != 0 ||
-        (!lengthIsWritable && (attrs & (JSPROP_READONLY | JSPROP_IGNORE_READONLY)) == 0))
-    {
-        return result.fail(JSMSG_CANT_REDEFINE_PROP);
-    }
+    uint32_t oldLen = arr->length();
 
     
     if (!lengthIsWritable) {
@@ -704,23 +693,20 @@ js::ArraySetLength(JSContext* cx, Handle<ArrayObject*> arr, HandleId id,
     } while (false);
 
     
-    
-    arr->setLength(cx, newLen);
 
     
-    if (attrs & JSPROP_READONLY) {
-        
-        
-        
-        
-        RootedShape lengthShape(cx, arr->lookup(cx, id));
-        if (!NativeObject::changeProperty(cx, arr, lengthShape,
-                                          lengthShape->attributes() | JSPROP_READONLY,
-                                          array_length_getter, array_length_setter))
-        {
-            return false;
-        }
+    
+    
+    
+    RootedShape lengthShape(cx, arr->lookup(cx, id));
+    if (!NativeObject::changeProperty(cx, arr, lengthShape, attrs,
+                                      JSPROP_PERMANENT | JSPROP_READONLY | JSPROP_SHARED,
+                                      array_length_getter, array_length_setter))
+    {
+        return false;
     }
+
+    arr->setLength(cx, newLen);
 
     
     

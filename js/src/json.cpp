@@ -710,16 +710,16 @@ Walk(JSContext* cx, HandleObject holder, HandleId name, HandleValue reviver, Mut
                 if (!Walk(cx, obj, id, reviver, &newElement))
                     return false;
 
-                ObjectOpResult ignored;
                 if (newElement.isUndefined()) {
                     
+                    ObjectOpResult ignored;
                     if (!DeleteProperty(cx, obj, id, ignored))
                         return false;
                 } else {
                     
-                    Rooted<PropertyDescriptor> desc(cx);
-                    desc.setDataDescriptor(newElement, JSPROP_ENUMERATE);
-                    if (!StandardDefineProperty(cx, obj, id, desc, ignored))
+                    
+                    
+                    if (!DefineProperty(cx, obj, id, newElement))
                         return false;
                 }
             }
@@ -738,16 +738,16 @@ Walk(JSContext* cx, HandleObject holder, HandleId name, HandleValue reviver, Mut
                 if (!Walk(cx, obj, id, reviver, &newElement))
                     return false;
 
-                ObjectOpResult ignored;
                 if (newElement.isUndefined()) {
                     
+                    ObjectOpResult ignored;
                     if (!DeleteProperty(cx, obj, id, ignored))
                         return false;
                 } else {
                     
-                    Rooted<PropertyDescriptor> desc(cx);
-                    desc.setDataDescriptor(newElement, JSPROP_ENUMERATE);
-                    if (!StandardDefineProperty(cx, obj, id, desc, ignored))
+                    
+                    
+                    if (!DefineProperty(cx, obj, id, newElement))
                         return false;
                 }
             }

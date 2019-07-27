@@ -840,6 +840,40 @@ Unbox(JSContext* cx, HandleObject obj, MutableHandleValue vp)
     return true;
 }
 
+static inline unsigned
+ApplyAttributes(unsigned attrs, bool enumerable, bool writable, bool configurable)
+{
+    
+
+
+
+    if (attrs & JSPROP_IGNORE_ENUMERATE) {
+        attrs &= ~JSPROP_IGNORE_ENUMERATE;
+        if (enumerable)
+            attrs |= JSPROP_ENUMERATE;
+        else
+            attrs &= ~JSPROP_ENUMERATE;
+    }
+    if (attrs & JSPROP_IGNORE_READONLY) {
+        attrs &= ~JSPROP_IGNORE_READONLY;
+        
+        if (!(attrs & (JSPROP_GETTER | JSPROP_SETTER))) {
+            if (!writable)
+                attrs |= JSPROP_READONLY;
+            else
+                attrs &= ~JSPROP_READONLY;
+        }
+    }
+    if (attrs & JSPROP_IGNORE_PERMANENT) {
+        attrs &= ~JSPROP_IGNORE_PERMANENT;
+        if (!configurable)
+            attrs |= JSPROP_PERMANENT;
+        else
+            attrs &= ~JSPROP_PERMANENT;
+    }
+    return attrs;
+}
+
 extern NativeObject*
 InitClass(JSContext* cx, HandleObject obj, HandleObject parent_proto,
           const Class* clasp, JSNative constructor, unsigned nargs,
