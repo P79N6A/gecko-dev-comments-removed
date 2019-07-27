@@ -1,7 +1,6 @@
 
 
 
-
 "use strict";
 
 module.metadata = {
@@ -80,6 +79,7 @@ exports.once = once;
 
 
 function emit (target, type, ...args) {
+  let all = observers(target, '*').length;
   let state = observers(target, type);
   let listeners = state.slice();
   let count = listeners.length;
@@ -87,7 +87,8 @@ function emit (target, type, ...args) {
 
   
   
-  if (count === 0 && type === 'error') console.exception(args[0]);
+  if (count === 0 && type === 'error' && all === 0)
+    console.exception(args[0]);
   while (index < count) {
     try {
       let listener = listeners[index];

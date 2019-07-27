@@ -34,6 +34,9 @@ DEFAULT_COMMON_PREFS = {
     
     'extensions.autoDisableScopes' : 10,
 
+    
+    'app.releaseNotesURL': 'http://localhost/app-dummy/',
+    'app.vendorURL': 'http://localhost/app-dummy/'
 }
 
 DEFAULT_NO_CONNECTIONS_PREFS = {

@@ -8,6 +8,10 @@ module.metadata = {
   "stability": "deprecated"
 };
 
+const getOwnIdentifiers = x => [...Object.getOwnPropertyNames(x),
+                                ...Object.getOwnPropertySymbols(x)];
+
+
 
 
 
@@ -46,7 +50,7 @@ function createAliasProperty(object, name) {
     descriptor.get = property.get.bind(object);
   if ("set" in property && property.set)
     descriptor.set = property.set.bind(object);
-  
+
   
   if ("value" in property) {
     
@@ -104,8 +108,8 @@ exports.Cortex = function Cortex(object, names, prototype) {
   
   
   
-  Object.getOwnPropertyNames(object).forEach(function (name) {
-    if ((!names && "_" !== name.charAt(0)) || (names && ~names.indexOf(name)))
+  getOwnIdentifiers(object).forEach(function (name) {
+    if ((!names && "_" !== name.toString().charAt(0)) || (names && ~names.indexOf(name)))
       defineAlias(object, cortex, name);
   });
   return cortex;

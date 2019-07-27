@@ -1,7 +1,6 @@
 
 
 
-
 "use strict";
 
 module.metadata = {
@@ -10,11 +9,10 @@ module.metadata = {
 
 
 
-
-const getOwnPropertyNames = Object.getOwnPropertyNames,
-      getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor,
-      hasOwn = Object.prototype.hasOwnProperty,
-      _create = Object.create;
+const { getOwnPropertyIdentifiers } = require('../../util/object');
+const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
+const hasOwn = Object.prototype.hasOwnProperty;
+const _create = Object.create;
 
 function doPropertiesMatch(object1, object2, name) {
   
@@ -114,12 +112,12 @@ function Conflict(name) {
 
 function trait(properties) {
   let result = {},
-      keys = getOwnPropertyNames(properties);
- for (let key of keys) {
-   let descriptor = getOwnPropertyDescriptor(properties, key);
-   result[key] = (required === descriptor.value) ? Required(key) : descriptor;
- }
- return result;
+      keys = getOwnPropertyIdentifiers(properties);
+  for (let key of keys) {
+    let descriptor = getOwnPropertyDescriptor(properties, key);
+    result[key] = (required === descriptor.value) ? Required(key) : descriptor;
+  }
+  return result;
 }
 exports.Trait = exports.trait = trait;
 
@@ -140,7 +138,7 @@ function compose(trait1, trait2) {
   let traits = Array.slice(arguments, 0),
       result = {};
   for (let trait of traits) {
-    let keys = getOwnPropertyNames(trait);
+    let keys = getOwnPropertyIdentifiers(trait);
     for (let key of keys) {
       let descriptor = trait[key];
       
@@ -174,7 +172,7 @@ function exclude(keys, trait) {
   let exclusions = Map(keys),
       result = {};
 
-  keys = getOwnPropertyNames(trait);
+  keys = getOwnPropertyIdentifiers(trait);
 
   for (let key of keys) {
     if (!hasOwn.call(exclusions, key) || trait[key].required)
@@ -210,7 +208,7 @@ function override() {
   let traits = Array.slice(arguments, 0),
       result = {};
   for (let trait of traits) {
-    let keys = getOwnPropertyNames(trait);
+    let keys = getOwnPropertyIdentifiers(trait);
     for (let key of keys) {
       let descriptor = trait[key];
       if (!hasOwn.call(result, key) || result[key].required)
@@ -236,7 +234,7 @@ exports.override = override;
 
 function rename(map, trait) {
   let result = {},
-      keys = getOwnPropertyNames(trait);
+      keys = getOwnPropertyIdentifiers(trait);
   for (let key of keys) {
     
     if (hasOwn.call(map, key) && !trait[key].required) {
@@ -281,7 +279,7 @@ function rename(map, trait) {
 function resolve(resolutions, trait) {
   let renames = {},
       exclusions = [],
-      keys = getOwnPropertyNames(resolutions);
+      keys = getOwnPropertyIdentifiers(resolutions);
   for (let key of keys) {  
     if (resolutions[key])       
       renames[key] = resolutions[key];
@@ -306,7 +304,7 @@ exports.resolve = resolve;
 
 function create(proto, trait) {
   let properties = {},
-      keys = getOwnPropertyNames(trait);
+      keys = getOwnPropertyIdentifiers(trait);
   for (let key of keys) {
     let descriptor = trait[key];
     if (descriptor.required && !hasOwn.call(proto, key))
@@ -319,4 +317,3 @@ function create(proto, trait) {
   return _create(proto, properties);
 }
 exports.create = create;
-

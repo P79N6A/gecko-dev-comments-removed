@@ -58,9 +58,9 @@ let promised = (function() {
 
 
 
-    return function promised() {
+    return function promised(...args) {
       
-      return concat.apply([ f, this ], arguments).
+      return [f, this, ...args].
         
         reduce(promisedConcat, resolve([], prototype)).
         

@@ -8,7 +8,6 @@ module.metadata = {
 };
 
 const { Trait } = require('../deprecated/traits');
-const { iteratorSymbol } = require('../util/iteration');
 
 
 
@@ -116,7 +115,7 @@ const listOptions = {
       yield onKeyValue ? [++i, element] : onKeys ? ++i : element;
   },
 };
-listOptions[iteratorSymbol] = function* iterator() {
+listOptions[Symbol.iterator] = function* iterator() {
   let array = this._keyValueMap.slice(0);
 
   for (let element of array)

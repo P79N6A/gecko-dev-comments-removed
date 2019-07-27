@@ -45,6 +45,7 @@ var Class = _dereq_("./class").Class;
 var TypeSystem = _dereq_("./type-system").TypeSystem;
 var values = _dereq_("./util").values;
 var Promise = _dereq_("es6-promise").Promise;
+var MessageEvent = _dereq_("./event").MessageEvent;
 
 var specification = _dereq_("./specification/core.json");
 
@@ -136,7 +137,10 @@ var Client = Class({
       var actor = this.get(packet.from) || this.root;
       var event = actor.events[packet.type];
       if (event) {
-        actor.dispatchEvent(event.read(packet));
+        var message = new MessageEvent(packet.type, {
+          data: event.read(packet)
+        });
+        actor.dispatchEvent(message);
       } else {
         var index = this.requests.indexOf(actor.id);
         if (index >= 0) {
@@ -207,12 +211,12 @@ var Client = Class({
     if (workers) {
       workers.map(this.get).forEach(this.release)
     }
-    this.unergister(actor);
+    this.unregister(actor);
   }
 });
 exports.Client = Client;
 
-},{"./class":3,"./specification/core.json":23,"./specification/protocol.json":24,"./type-system":25,"./util":26,"es6-promise":2}],5:[function(_dereq_,module,exports){
+},{"./class":3,"./event":5,"./specification/core.json":23,"./specification/protocol.json":24,"./type-system":25,"./util":26,"es6-promise":2}],5:[function(_dereq_,module,exports){
 "use strict";
 
 var Symbol = _dereq_("es6-symbol")
@@ -429,7 +433,10 @@ EventEmitter.prototype.addListener = function(type, listener) {
                     'leak detected. %d listeners added. ' +
                     'Use emitter.setMaxListeners() to increase limit.',
                     this._events[type].length);
-      console.trace();
+      if (typeof console.trace === 'function') {
+        
+        console.trace();
+      }
     }
   }
 
@@ -937,7 +944,84 @@ module.exports={
 
         "consoleActor": "console",
         "traceActor": "trace"
+      },
+      "methods": [
+         {
+          "name": "attach",
+          "request": {},
+          "response": { "_retval": "json" }
+         }
+      ],
+      "events": {
+        "tabNavigated": {
+           "typeName": "tabNavigated"
+        }
       }
+    },
+    "console": {
+      "category": "actor",
+      "typeName": "console",
+      "methods": [
+        {
+          "name": "evaluateJS",
+          "request": {
+            "text": {
+              "_option": 0,
+              "type": "string"
+            },
+            "url": {
+              "_option": 1,
+              "type": "string"
+            },
+            "bindObjectActor": {
+              "_option": 2,
+              "type": "nullable:string"
+            },
+            "frameActor": {
+              "_option": 2,
+              "type": "nullable:string"
+            },
+            "selectedNodeActor": {
+              "_option": 2,
+              "type": "nullable:string"
+            }
+          },
+          "response": {
+            "_retval": "evaluatejsresponse"
+          }
+        }
+      ],
+      "events": {}
+    },
+    "evaluatejsresponse": {
+      "category": "dict",
+      "typeName": "evaluatejsresponse",
+      "specializations": {
+        "result": "object",
+        "exception": "object",
+        "exceptionMessage": "string",
+        "input": "string"
+      }
+    },
+    "object": {
+      "category": "actor",
+      "typeName": "object",
+      "methods": [
+         {
+           "name": "property",
+           "request": {
+              "name": {
+                "_arg": 0,
+                "type": "string"
+              }
+           },
+           "response": {
+              "descriptor": {
+                "_retval": "json"
+              }
+           }
+         }
+      ]
     }
   }
 }

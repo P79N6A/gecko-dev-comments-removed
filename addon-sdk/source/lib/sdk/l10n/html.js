@@ -7,15 +7,14 @@ module.metadata = {
   "stability": "unstable"
 };
 
-const { Ci, Cu } = require("chrome");
+const { Ci } = require("chrome");
 const events = require("../system/events");
 const core = require("./core");
+const { loadSheet, removeSheet } = require("../stylesheet/utils");
 
 const assetsURI = require('../self').data.url();
-const { Services } = Cu.import("resource://gre/modules/Services.jsm");
 
-const hideContentStyle = "data:text/css,:root {visibility: hidden !important;}";
-const hideSheetUri = Services.io.newURI(hideContentStyle, null, null);
+const hideSheetUri = "data:text/css,:root {visibility: hidden !important;}";
 
 
 
@@ -46,11 +45,8 @@ function onDocumentReady2Translate(event) {
 
   try {
     
-    if (document.defaultView) {
-      let winUtils = document.defaultView.QueryInterface(Ci.nsIInterfaceRequestor)
-                                         .getInterface(Ci.nsIDOMWindowUtils);
-      winUtils.removeSheet(hideSheetUri, winUtils.USER_SHEET);
-    }
+    if (document.defaultView)
+      removeSheet(document.defaultView, hideSheetUri, 'user');
   }
   catch(e) {
     console.exception(e);
@@ -76,9 +72,7 @@ function onContentWindow(event) {
   try {
     
     
-    let winUtils = document.defaultView.QueryInterface(Ci.nsIInterfaceRequestor)
-                                       .getInterface(Ci.nsIDOMWindowUtils);
-    winUtils.loadSheet(hideSheetUri, winUtils.USER_SHEET);
+    loadSheet(document.defaultView, hideSheetUri, 'user');
   }
   catch(e) {
     console.exception(e);

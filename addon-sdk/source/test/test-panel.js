@@ -675,115 +675,115 @@ exports["test console.log in Panel"] = function(assert, done) {
   }
 };
 
-if (isWindowPBSupported) {
-  exports.testPanelDoesNotShowInPrivateWindowNoAnchor = function(assert, done) {
-    let { loader } = LoaderWithHookedConsole(module, ignorePassingDOMNodeWarning);
-    let { Panel } = loader.require("sdk/panel");
-    let browserWindow = getMostRecentBrowserWindow();
 
-    assert.equal(isPrivate(browserWindow), false, 'open window is not private');
 
-    let panel = Panel({
-      contentURL: SVG_URL
-    });
 
-    testShowPanel(assert, panel).
-      then(makeEmptyPrivateBrowserWindow).
-      then(focus).
-      then(function(window) {
-        assert.equal(isPrivate(window), true, 'opened window is private');
-        assert.pass('private window was focused');
-        return window;
-      }).
-      then(function(window) {
-        let { promise, resolve } = defer();
-        let showTries = 0;
-        let showCount = 0;
 
-        panel.on('show', function runTests() {
-          showCount++;
 
-          if (showTries == 2) {
-            panel.removeListener('show', runTests);
-            assert.equal(showCount, 1, 'show count is correct - 1');
-            resolve(window);
-          }
-        });
-        showTries++;
-        panel.show();
-        showTries++;
-        panel.show(null, browserWindow.gBrowser);
 
-        return promise;
-      }).
-      then(function(window) {
-        assert.equal(panel.isShowing, true, 'panel is still showing');
-        panel.hide();
-        assert.equal(panel.isShowing, false, 'panel is hidden');
-        return window;
-      }).
-      then(close).
-      then(function() {
-        assert.pass('private window was closed');
-      }).
-      then(testShowPanel.bind(null, assert, panel)).
-      then(done, assert.fail.bind(assert));
-  }
 
-  exports.testPanelDoesNotShowInPrivateWindowWithAnchor = function(assert, done) {
-    let { loader } = LoaderWithHookedConsole(module, ignorePassingDOMNodeWarning);
-    let { Panel } = loader.require("sdk/panel");
-    let browserWindow = getMostRecentBrowserWindow();
 
-    assert.equal(isPrivate(browserWindow), false, 'open window is not private');
 
-    let panel = Panel({
-      contentURL: SVG_URL
-    });
 
-    testShowPanel(assert, panel).
-      then(makeEmptyPrivateBrowserWindow).
-      then(focus).
-      then(function(window) {
-        assert.equal(isPrivate(window), true, 'opened window is private');
-        assert.pass('private window was focused');
-        return window;
-      }).
-      then(function(window) {
-        let { promise, resolve } = defer();
-        let showTries = 0;
-        let showCount = 0;
 
-        panel.on('show', function runTests() {
-          showCount++;
 
-          if (showTries == 2) {
-            panel.removeListener('show', runTests);
-            assert.equal(showCount, 1, 'show count is correct - 1');
-            resolve(window);
-          }
-        });
-        showTries++;
-        panel.show(null, window.gBrowser);
-        showTries++;
-        panel.show(null, browserWindow.gBrowser);
 
-        return promise;
-      }).
-      then(function(window) {
-        assert.equal(panel.isShowing, true, 'panel is still showing');
-        panel.hide();
-        assert.equal(panel.isShowing, false, 'panel is hidden');
-        return window;
-      }).
-      then(close).
-      then(function() {
-        assert.pass('private window was closed');
-      }).
-      then(testShowPanel.bind(null, assert, panel)).
-      then(done, assert.fail.bind(assert));
-  }
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function testShowPanel(assert, panel) {
   let { promise, resolve } = defer();

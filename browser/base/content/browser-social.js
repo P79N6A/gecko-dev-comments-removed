@@ -8,7 +8,8 @@ let SocialUI,
     SocialMarks,
     SocialShare,
     SocialSidebar,
-    SocialStatus;
+    SocialStatus,
+    SocialActivationListener;
 
 (function() {
 
@@ -70,8 +71,8 @@ SocialUI = {
 
     Services.prefs.addObserver("social.toast-notifications.enabled", this, false);
 
-    gBrowser.addEventListener("ActivateSocialFeature", this._activationEventHandler.bind(this), true, true);
     CustomizableUI.addListener(this);
+    SocialActivationListener.init();
 
     
     
@@ -105,6 +106,7 @@ SocialUI = {
 
     Services.prefs.removeObserver("social.toast-notifications.enabled", this);
     CustomizableUI.removeListener(this);
+    SocialActivationListener.uninit();
 
     document.getElementById("viewSidebarMenu").removeEventListener("popupshowing", SocialSidebar.populateSidebarMenu, true);
     document.getElementById("social-statusarea-popup").removeEventListener("popupshowing", SocialSidebar.populateSidebarMenu, true);
@@ -169,95 +171,6 @@ SocialUI = {
     SocialShare.populateProviderMenu();
     SocialStatus.populateToolbarPalette();
     SocialMarks.populateToolbarPalette();
-  },
-
-  
-  
-  
-  
-  
-  _activationEventHandler: function SocialUI_activationHandler(e, options={}) {
-    let targetDoc;
-    let node;
-    if (e.target instanceof HTMLDocument) {
-      
-      targetDoc = e.target;
-      node = targetDoc.documentElement
-    } else {
-      targetDoc = e.target.ownerDocument;
-      node = e.target;
-    }
-    if (!(targetDoc instanceof HTMLDocument))
-      return;
-
-    
-    
-    if (!options.bypassContentCheck && targetDoc.defaultView != content)
-      return;
-
-    
-    
-    if (PrivateBrowsingUtils.isWindowPrivate(window))
-      return;
-
-    
-    let now = Date.now();
-    if (now - Social.lastEventReceived < 1000)
-      return;
-    Social.lastEventReceived = now;
-
-    
-    let dwu = window.QueryInterface(Ci.nsIInterfaceRequestor)
-                    .getInterface(Ci.nsIDOMWindowUtils);
-    if (!dwu.isHandlingUserInput) {
-      Cu.reportError("attempt to activate provider without user input from " + targetDoc.nodePrincipal.origin);
-      return;
-    }
-
-    let data = node.getAttribute("data-service");
-    if (data) {
-      try {
-        data = JSON.parse(data);
-      } catch(e) {
-        Cu.reportError("Social Service manifest parse error: "+e);
-        return;
-      }
-    }
-    Social.installProvider(targetDoc, data, function(manifest) {
-      Social.activateFromOrigin(manifest.origin, function(provider) {
-        if (provider.sidebarURL) {
-          SocialSidebar.show(provider.origin);
-        }
-        if (provider.shareURL) {
-          
-          
-          
-          
-          let widget = CustomizableUI.getWidget("social-share-button");
-          if (!widget.areaType) {
-            CustomizableUI.addWidgetToArea("social-share-button", CustomizableUI.AREA_NAVBAR);
-            
-            SocialUI.onCustomizeEnd(window);
-          }
-
-          
-          
-          SocialShare._createFrame();
-          SocialShare.iframe.setAttribute('src', 'data:text/plain;charset=utf8,');
-          SocialShare.iframe.setAttribute('origin', provider.origin);
-          
-          SocialShare.populateProviderMenu();
-          if (SocialShare.panel.state == "open") {
-            SocialShare.sharePage(provider.origin);
-          }
-        }
-        if (provider.postActivationURL) {
-          
-          
-          gBrowser.loadOneTab(provider.postActivationURL, {inBackground: SocialShare.panel.state == "open"});
-        }
-      });
-    }, options);
   },
 
   showLearnMore: function() {
@@ -350,6 +263,68 @@ SocialUI = {
       return;
     
     SocialMarks.update();
+  }
+}
+
+
+SocialActivationListener = {
+  init: function() {
+    messageManager.addMessageListener("Social:Activation", this);
+  },
+  uninit: function() {
+    messageManager.removeMessageListener("Social:Activation", this);
+  },
+  receiveMessage: function(aMessage) {
+    let data = aMessage.json;
+    let browser = aMessage.target;
+    data.window = window;
+    
+    
+    
+    let options;
+    if (browser == SocialShare.iframe && Services.prefs.getBoolPref("social.share.activationPanelEnabled")) {
+      options = { bypassContentCheck: true, bypassInstallPanel: true };
+    }
+
+    
+    
+    if (PrivateBrowsingUtils.isWindowPrivate(window))
+      return;
+    Social.installProvider(data, function(manifest) {
+      Social.activateFromOrigin(manifest.origin, function(provider) {
+        if (provider.sidebarURL) {
+          SocialSidebar.show(provider.origin);
+        }
+        if (provider.shareURL) {
+          
+          
+          
+          
+          let widget = CustomizableUI.getWidget("social-share-button");
+          if (!widget.areaType) {
+            CustomizableUI.addWidgetToArea("social-share-button", CustomizableUI.AREA_NAVBAR);
+            
+            SocialUI.onCustomizeEnd(window);
+          }
+
+          
+          
+          SocialShare._createFrame();
+          SocialShare.iframe.setAttribute('src', 'data:text/plain;charset=utf8,');
+          SocialShare.iframe.setAttribute('origin', provider.origin);
+          
+          SocialShare.populateProviderMenu();
+          if (SocialShare.panel.state == "open") {
+            SocialShare.sharePage(provider.origin);
+          }
+        }
+        if (provider.postActivationURL) {
+          
+          
+          gBrowser.loadOneTab(provider.postActivationURL, {inBackground: SocialShare.panel.state == "open"});
+        }
+      });
+    }, options);
   }
 }
 
@@ -514,15 +489,8 @@ SocialShare = {
       return this.panel.lastChild;
   },
 
-  _activationHandler: function(event) {
-    if (!Services.prefs.getBoolPref("social.share.activationPanelEnabled"))
-      return;
-    SocialUI._activationEventHandler(event, { bypassContentCheck: true, bypassInstallPanel: true });
-  },
-
   uninit: function () {
     if (this.iframe) {
-      this.iframe.removeEventListener("ActivateSocialFeature", this._activationHandler, true, true);
       this.iframe.remove();
     }
   },
@@ -541,7 +509,10 @@ SocialShare = {
     iframe.setAttribute("disableglobalhistory", "true");
     iframe.setAttribute("flex", "1");
     panel.appendChild(iframe);
-    this.iframe.addEventListener("ActivateSocialFeature", this._activationHandler, true, true);
+    iframe.addEventListener("DOMContentLoaded", function _firstload() {
+      iframe.removeEventListener("DOMContentLoaded", _firstload, true);
+      iframe.messageManager.loadFrameScript("chrome://browser/content/content.js", true);
+    }, true);
     this.populateProviderMenu();
   },
 

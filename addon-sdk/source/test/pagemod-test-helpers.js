@@ -1,45 +1,31 @@
 
 
 
-
 "use strict";
 
-const {Cc,Ci} = require("chrome");
-const timer = require("sdk/timers");
-const xulApp = require("sdk/system/xul-app");
+const { Cc, Ci } = require("chrome");
+const { setTimeout } = require("sdk/timers");
 const { Loader } = require("sdk/test/loader");
 const { openTab, getBrowserForTab, closeTab } = require("sdk/tabs/utils");
-const self = require("sdk/self");
 const { merge } = require("sdk/util/object");
+const httpd = require("./lib/httpd");
 
-
+const PORT = 8099;
+const PATH = '/test-contentScriptWhen.html';
 
 
 
 exports.testPageMod = function testPageMod(assert, done, testURL, pageModOptions,
                                            testCallback, timeout) {
-  if (!xulApp.versionInRange(xulApp.platformVersion, "1.9.3a3", "*") &&
-      !xulApp.versionInRange(xulApp.platformVersion, "1.9.2.7", "1.9.2.*")) {
-    assert.pass("Note: not testing PageMod, as it doesn't work on this platform version");
-    return null;
-  }
 
   var wm = Cc['@mozilla.org/appshell/window-mediator;1']
            .getService(Ci.nsIWindowMediator);
   var browserWindow = wm.getMostRecentWindow("navigator:browser");
-  if (!browserWindow) {
-    assert.pass("page-mod tests: could not find the browser window, so " +
-              "will not run. Use -a firefox to run the pagemod tests.")
-    return null;
-  }
 
-  let loader = Loader(module, null, null, {
-    modules: {
-      "sdk/self": merge({}, self, {
-        data: merge({}, self.data, require("./fixtures"))
-      })
-    }
-  });
+  let options = merge({}, require('@loader/options'),
+                      { prefixURI: require('./fixtures').url() });
+
+  let loader = Loader(module, null, options);
   let pageMod = loader.require("sdk/page-mod");
 
   var pageMods = [new pageMod.PageMod(opts) for each(opts in pageModOptions)];
@@ -55,7 +41,7 @@ exports.testPageMod = function testPageMod(assert, done, testURL, pageModOptions
     
     
     
-    timer.setTimeout(testCallback, 0,
+    setTimeout(testCallback, timeout,
       b.contentWindow.wrappedJSObject, 
       function () {
         pageMods.forEach(function(mod) mod.destroy());
@@ -76,7 +62,8 @@ exports.testPageMod = function testPageMod(assert, done, testURL, pageModOptions
 
 
 exports.handleReadyState = function(url, contentScriptWhen, callbacks) {
-  const { PageMod } = Loader(module).require('sdk/page-mod');
+  const loader = Loader(module);
+  const { PageMod } = loader.require('sdk/page-mod');
 
   let pagemod = PageMod({
     include: url,
@@ -86,13 +73,39 @@ exports.handleReadyState = function(url, contentScriptWhen, callbacks) {
     onAttach: worker => {
       let { tab } = worker;
       worker.on('message', readyState => {
-        pagemod.destroy();
         
         let type = 'on' + readyState[0].toUpperCase() + readyState.substr(1);
 
         if (type in callbacks)
           callbacks[type](tab); 
+
+        pagemod.destroy();
+        loader.unload();
       })
     }
   });
+}
+
+
+
+exports.contentScriptWhenServer = function() {
+  const URL = 'http://localhost:' + PORT + PATH;
+
+  const HTML = `/* polyglot js
+    <script src="${URL}"></script>
+    delay both the "DOMContentLoaded"
+    <script async src="${URL}"></script>
+    and "load" events */`;
+
+  let srv = httpd.startServerAsync(PORT);
+
+  srv.registerPathHandler(PATH, (_, response) => {
+    response.processAsync();
+    response.setHeader('Content-Type', 'text/html', false);
+    setTimeout(_ => response.finish(), 500);
+    response.write(HTML);
+  })
+
+  srv.URL = URL;
+  return srv;
 }

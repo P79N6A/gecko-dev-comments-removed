@@ -1,7 +1,6 @@
 
 
 
-
 "use strict";
 
 module.metadata = {
@@ -17,9 +16,10 @@ const {
   required,
 } = require('./traits/core');
 
-const defineProperties = Object.defineProperties,
-      freeze = Object.freeze,
-      create = Object.create;
+const { getOwnPropertyIdentifiers } = require('../util/object');
+const defineProperties = Object.defineProperties;
+const freeze = Object.freeze;
+const create = Object.create;
 
 
 
@@ -31,7 +31,7 @@ const defineProperties = Object.defineProperties,
 
 function _create(proto, trait) {
   let properties = {},
-      keys = Object.getOwnPropertyNames(trait);
+      keys = getOwnPropertyIdentifiers(trait);
   for (let key of keys) {
     let descriptor = trait[key];
     if (descriptor.required &&
@@ -72,9 +72,9 @@ function TraitDescriptor(object)
 
 function Public(instance, trait) {
   let result = {},
-      keys = Object.getOwnPropertyNames(trait);
+      keys = getOwnPropertyIdentifiers(trait);
   for (let key of keys) {
-    if ('_' === key.charAt(0) && '__iterator__' !== key )
+    if (typeof key === 'string' && '_' === key.charAt(0) && '__iterator__' !== key )
       continue;
     let property = trait[key],
         descriptor = {
@@ -184,4 +184,3 @@ const Trait = Composition({
 });
 TraitProto = Trait.prototype;
 exports.Trait = Trait;
-

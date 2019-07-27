@@ -1,7 +1,6 @@
 
 
 
-
 'use strict';
 
 module.metadata = {
@@ -68,9 +67,8 @@ const EventTarget = Class({
     off(this, type, listener);
     return this;
   },
-  off: function(type, listener) {
-    off(this, type, listener);
-    return this;
-  }
+  
+  off: chainable(method(off))
+
 });
 exports.EventTarget = EventTarget;

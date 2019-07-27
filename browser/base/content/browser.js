@@ -3972,7 +3972,7 @@ var XULBrowserWindow = {
                            .chromeEventHandler;
 
     
-    if (browser.localName != "browser" || browser.getTabBrowser() != gBrowser)
+    if (browser.localName != "browser" || !browser.getTabBrowser || browser.getTabBrowser() != gBrowser)
       return true;
 
     if (!E10SUtils.shouldLoadURI(aDocShell, aURI, aReferrer)) {

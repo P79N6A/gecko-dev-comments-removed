@@ -9,7 +9,7 @@ const { defer } = require("../lang/functional");
 const { has } = require("../util/array");
 const { each } = require("../util/object");
 const { EVENTS } = require("./events");
-const { getThumbnailURIForWindow } = require("../content/thumbnail");
+const { getThumbnailURIForWindow, BLANK } = require("../content/thumbnail");
 const { getFaviconURIForLocation } = require("../io/data");
 const { activateTab, getOwnerWindow, getBrowserForTab, getTabTitle,
         setTabTitle, getTabContentDocument, getTabURL, setTabURL,
@@ -199,8 +199,15 @@ const TabTrait = Trait.compose(EventEmitter, {
 
 
 
-  getThumbnail: function getThumbnail()
-    this._tab ? getThumbnailURIForWindow(this._contentWindow) : undefined,
+  getThumbnail() {
+    if (!this._tab)
+      return undefined;
+    if (this._tab.getAttribute('remote')) {
+      console.error('This method is not supported with E10S');
+      return BLANK;
+    }
+    return getThumbnailURIForWindow(this._contentWindow);
+  },
   
 
 

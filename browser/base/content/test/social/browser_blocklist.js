@@ -113,7 +113,13 @@ var tests = {
         try {
           
           
-          Social.installProvider(doc, manifest_bad, function(addonManifest) {
+          let data = {
+            origin: doc.nodePrincipal.origin,
+            url: doc.location.href,
+            manifest: manifest_bad,
+            window: window
+          }
+          Social.installProvider(data, function(addonManifest) {
             gBrowser.removeTab(tab);
             finishTest(false);
           });

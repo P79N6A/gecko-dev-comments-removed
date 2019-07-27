@@ -1,7 +1,6 @@
 
 
 
-
 "use strict";
 
 module.metadata = {
@@ -36,7 +35,7 @@ function merge(source) {
   
   
   Array.slice(arguments, 1).filter(Boolean).forEach(function onEach(properties) {
-    Object.getOwnPropertyNames(properties).forEach(function(name) {
+    getOwnPropertyIdentifiers(properties).forEach(function(name) {
       descriptor[name] = Object.getOwnPropertyDescriptor(properties, name);
     });
   });
@@ -85,8 +84,19 @@ function omit(source, ...values) {
   let copy = {};
   let keys = flatten(values);
   for (let prop in source)
-    if (!~keys.indexOf(prop)) 
+    if (!~keys.indexOf(prop))
       copy[prop] = source[prop];
   return copy;
 }
 exports.omit = omit;
+
+
+function getOwnPropertyIdentifiers(object, options = { names: true, symbols: true, nonEnumerables: true }) {
+  const symbols = !options.symbols ? [] :
+                  Object.getOwnPropertySymbols(object);
+  const names = !options.names ? [] :
+                options.nonEnumerables ? Object.getOwnPropertyNames(object) :
+                Object.keys(object);
+  return [...names, ...symbols];
+}
+exports.getOwnPropertyIdentifiers = getOwnPropertyIdentifiers;
