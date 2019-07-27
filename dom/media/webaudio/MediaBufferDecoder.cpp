@@ -245,14 +245,14 @@ MediaDecodeTask::Decode()
 {
   MOZ_ASSERT(!NS_IsMainThread());
 
-  mBufferDecoder->BeginDecoding(mDecoderReader->TaskQueue());
+  mBufferDecoder->BeginDecoding(mDecoderReader->OwnerThread());
 
   
   
   
   mDecoderReader->SetIgnoreAudioOutputFormat();
 
-  mDecoderReader->AsyncReadMetadata()->Then(mDecoderReader->TaskQueue(), __func__, this,
+  mDecoderReader->AsyncReadMetadata()->Then(mDecoderReader->OwnerThread(), __func__, this,
                                        &MediaDecodeTask::OnMetadataRead,
                                        &MediaDecodeTask::OnMetadataNotRead);
 }
@@ -281,7 +281,7 @@ MediaDecodeTask::OnMetadataNotRead(ReadMetadataFailureReason aReason)
 void
 MediaDecodeTask::RequestSample()
 {
-  mDecoderReader->RequestAudioData()->Then(mDecoderReader->TaskQueue(), __func__, this,
+  mDecoderReader->RequestAudioData()->Then(mDecoderReader->OwnerThread(), __func__, this,
                                            &MediaDecodeTask::SampleDecoded,
                                            &MediaDecodeTask::SampleNotDecoded);
 }
@@ -507,7 +507,7 @@ AsyncDecodeWebAudio(const char* aContentType, uint8_t* aBuffer,
     
     
     
-    MediaTaskQueue* taskQueue = task->Reader()->TaskQueue();
+    MediaTaskQueue* taskQueue = task->Reader()->OwnerThread();
     taskQueue->Dispatch(task.forget());
   }
 }
