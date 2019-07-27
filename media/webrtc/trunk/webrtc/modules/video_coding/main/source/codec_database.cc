@@ -427,8 +427,6 @@ bool VCMCodecDataBase::RequiresEncoderReset(const VideoCodec& new_send_codec) {
     case kVideoCodecI420:
     case kVideoCodecRED:
     case kVideoCodecULPFEC:
-    case kVideoCodecH264:
-      
       break;
     
     case kVideoCodecUnknown:
@@ -640,8 +638,7 @@ bool VCMCodecDataBase::SupportsRenderScheduling() const {
     const VCMExtDecoderMapItem* ext_item = FindExternalDecoderItem(
         receive_codec_.plType);
     if (!ext_item) {
-      WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoCoding, VCMId(id_),
-                   "Unknown payload type: %u", receive_codec_.plType);
+      LOG(LS_ERROR) << "Unknown payload type: " << receive_codec_.plType;
       return false;
     }
     render_timing = ext_item->internal_render_timing;

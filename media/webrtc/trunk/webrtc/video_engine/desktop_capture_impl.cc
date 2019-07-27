@@ -824,9 +824,5 @@ void DesktopCaptureImpl::process() {
 #endif
 }
 
-void DesktopCaptureImpl::OnCursorShapeChanged(MouseCursorShape* cursor_shape) {
-  
-}
-
 }  
 
