@@ -108,8 +108,6 @@ class BackgroundHangThread;
 
 
 
-
-
 class BackgroundHangMonitor
 {
 private:
@@ -206,27 +204,6 @@ public:
 
 
   void NotifyWait();
-
-  
-
-
-
-
-
-
-
-
-
-  static void Prohibit();
-
-  
-
-
-
-
-
-
-  static void Allow();
 };
 
 } 
