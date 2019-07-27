@@ -9,6 +9,7 @@ import re
 import os
 import traceback
 import math
+from collections import defaultdict
 
 
 
@@ -219,6 +220,10 @@ class IDLScope(IDLObject):
             self._name = None
 
         self._dict = {}
+        self.globalNames = set()
+        
+        
+        self.globalNameMapping = defaultdict(set)
 
     def __str__(self):
         return self.QName()
@@ -1097,6 +1102,9 @@ class IDLInterface(IDLObjectWithScope):
                     self.globalNames = attr.args()
                 else:
                     self.globalNames = [ self.identifier.name ]
+                self.parentScope.globalNames.update(self.globalNames)
+                for globalName in self.globalNames:
+                    self.parentScope.globalNameMapping[globalName].add(self.identifier.name)
                 self._isOnGlobalProtoChain = True
             elif (identifier == "NeedNewResolve" or
                   identifier == "OverrideBuiltins" or
