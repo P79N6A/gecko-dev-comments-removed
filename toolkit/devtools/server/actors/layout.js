@@ -277,6 +277,12 @@ LayoutChangesObserver.prototype = Heritage.extend(Observable.prototype, {
 
   _startEventLoop: function() {
     
+    
+    if (!this.tabActor.attached) {
+      return;
+    }
+
+    
     if (this.reflows && this.reflows.length) {
       this.emit("reflows", this.reflows);
       this.reflows = [];
