@@ -14,6 +14,8 @@ function evalWithCache(code, ctx) {
   
   if (!("compileAndGo" in ctx))
     ctx.compileAndGo = true;
+  if (!("isRunOnce" in ctx))
+    ctx.isRunOnce = true;
 
   
   
