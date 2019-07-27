@@ -432,9 +432,6 @@ private:
   bool CanScale(GraphicsFilter aFilter, const nsIntSize& aSize, uint32_t aFlags);
 
   
-  bool CanDownscaleDuringDecode(const nsIntSize& aSize, uint32_t aFlags);
-
-  
   void NotifyNewScaledFrame();
 
   friend class ScaleRunner;
