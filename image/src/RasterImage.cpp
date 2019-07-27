@@ -1510,14 +1510,6 @@ RasterImage::OnImageDataAvailable(nsIRequest*,
   return rv;
 }
 
-nsresult
-RasterImage::OnNewSourceData()
-{
-  
-  MOZ_ASSERT_UNREACHABLE();
-  return NS_ERROR_ILLEGAL_VALUE;
-}
-
  already_AddRefed<nsIEventTarget>
 RasterImage::GetEventTarget()
 {
