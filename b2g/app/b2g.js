@@ -997,6 +997,13 @@ pref("dom.mozApps.themable", true);
 pref("dom.mozApps.selected_theme", "default_theme.gaiamobile.org");
 
 
+pref("network.proxy.pac_generator", true);
+
+
+
+pref("network.proxy.browsing.app_origins", "app://system.gaiamobile.org");
+
+
 pref("media.webspeech.synth.enabled", true);
 
 

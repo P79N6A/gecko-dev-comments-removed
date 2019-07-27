@@ -303,3 +303,7 @@ user_pref("browser.displayedE10SPrompt.1", 5);
 user_pref("browser.tabs.remote.autostart.1", false);
 
 user_pref("dom.ipc.tabs.shutdownTimeoutSecs", 0);
+
+
+
+user_pref("network.proxy.pac_generator", false);
