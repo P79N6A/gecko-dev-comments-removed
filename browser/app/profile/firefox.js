@@ -1179,6 +1179,8 @@ pref("dom.ipc.plugins.enabled.x86_64", true);
 pref("dom.ipc.plugins.enabled", true);
 #endif
 
+pref("dom.ipc.shims.enabledWarnings", false);
+
 
 pref("browser.tabs.remote.autostart", false);
 pref("browser.tabs.remote.desktopbehavior", true);
