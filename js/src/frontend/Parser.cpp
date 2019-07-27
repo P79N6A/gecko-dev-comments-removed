@@ -2964,6 +2964,15 @@ template <typename ParseHandler>
 bool
 Parser<ParseHandler>::noteNameUse(HandlePropertyName name, Node pn)
 {
+    
+
+
+
+
+
+    if (pc->useAsmOrInsideUseAsm())
+        return true;
+
     StmtInfoPC *stmt = LexicalLookup(pc, name, nullptr, (StmtInfoPC *)nullptr);
 
     DefinitionList::Range defs = pc->decls().lookupMulti(name);
