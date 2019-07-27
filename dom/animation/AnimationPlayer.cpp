@@ -70,6 +70,7 @@ AnimationPlayer::SetStartTime(const Nullable<TimeDuration>& aNewStartTime)
   }
 
   UpdateSourceContent();
+  PostUpdate();
 
   
   
