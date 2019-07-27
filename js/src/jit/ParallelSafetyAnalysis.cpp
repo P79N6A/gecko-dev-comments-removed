@@ -458,7 +458,6 @@ ParallelSafetyVisitor::convertToBailout(MInstructionIterator &iter)
 
     
     MBail *bail = MBail::New(graph_.alloc(), Bailout_ParallelUnsafe);
-    TransplantResumePoint(ins, bail);
 
     
     
@@ -782,7 +781,6 @@ ParallelSafetyVisitor::visitThrow(MThrow *thr)
     MBasicBlock *block = thr->block();
     MOZ_ASSERT(block->lastIns() == thr);
     MBail *bail = MBail::New(alloc(), Bailout_ParallelUnsafe);
-    TransplantResumePoint(thr, bail);
     block->discardLastIns();
     block->add(bail);
     block->end(MUnreachable::New(alloc()));
