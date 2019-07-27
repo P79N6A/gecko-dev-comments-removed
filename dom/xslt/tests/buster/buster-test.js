@@ -1,7 +1,7 @@
-/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 var parser = new DOMParser();
 var methodExpr = (new XPathEvaluator).createExpression("xsl:output/@method",
@@ -41,7 +41,7 @@ var itemCache =
     mArray : new Array(),
     getItem : function(aResource)
     {
-        // Directory selected
+        
         if (kContUtils.IsSeq(runItem.prototype.kDatabase, aResource)) {
             var aSeq = kContUtils.MakeSeq(runItem.prototype.kDatabase, aResource);
             dump("sequence: "+aSeq+" with "+aSeq.GetCount()+" elements\n");
@@ -89,7 +89,7 @@ var itemCache =
 function runItem(aResource)
 {
   this.mResource = aResource;
-  // Directory selected
+  
   if (kContUtils.IsSeq(this.kDatabase,this.mResource)) {
       var aSeq = kContUtils.MakeSeq(this.kDatabase,this.mResource);
       dump("THIS SHOULDN'T HAPPEN\n");
@@ -106,24 +106,24 @@ function runItem(aResource)
 
 runItem.prototype = 
 {
-    // RDF resource associated with this test
+    
     mResource : null,
-    // XML documents for the XSLT transformation
+    
     mSourceDoc : null,
     mStyleDoc  : null,
     mResDoc    : null,
-    // XML or plaintext document for the reference
+    
     mRefDoc    : null,
-    // bitfield signaling the loaded documents
+    
     mLoaded    : 0,
     kSource    : 1,
     kStyle     : 2,
     kReference : 4,
-    // a observer, potential argument to run()
+    
     mObserver  : null,
     mSuccess   : null,
     mMethod    : 'xml',
-    // XSLTProcessor, shared by the instances
+    
     kProcessor : new XSLTProcessor(),
     kXalan     : kStandardURL.createInstance(nsIURL),
     kDatabase  : null,
@@ -149,7 +149,7 @@ runItem.prototype =
                 this.kXalan.resolve(cat.Value + "-gold/" + path.Value + ".out");
             dump(name.Value+" links to "+xalan_fl+"\n");
         }
-        // Directory selected
+        
         if (kContUtils.IsSeq(this.kDatabase,this.mResource)) {
             return;
             var aSeq = kContUtils.MakeSeq(this.kDatabase,this.mResource);
@@ -170,7 +170,7 @@ runItem.prototype =
         this.mStyleDoc.load(xalan_fl+".xsl");
     },
 
-    // nsIWebProgressListener
+    
     QueryInterface: function(aIID)
     {
         return this;
@@ -197,7 +197,7 @@ runItem.prototype =
     {
     },
 
-    // onload handler helper
+    
     onload : function(file)
     {
         var self = this;
@@ -221,7 +221,7 @@ runItem.prototype =
                                          null).stringValue;
         var refContent;
         if (!method) {
-            // implicit method, guess from result
+            
             refContent = this.loadTextFile(this.mRefURL);
             if (refContent.match(/^\s*<html/gi)) {
                 method = 'html';
@@ -312,7 +312,14 @@ runItem.prototype =
         if (!serv) {
             throw Components.results.ERR_FAILURE;
         }
-        var chan = serv.newChannel(url, null, null);
+        var chan = serv.newChannel2(url,
+                                    null,
+                                    null,
+                                    null,      
+                                    Services.scriptSecurityManager.getSystemPrincipal(),
+                                    null,      
+                                    Ci.nsILoadInfo.SEC_NORMAL,
+                                    Ci.nsIContentPolicy.TYPE_OTHER);
         var instream = doCreate(SIS_CTRID, nsISIS);
         instream.init(chan.open());
 
