@@ -7366,6 +7366,10 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
   
   nsCOMPtr<nsIDocShell> kungFuDeathGrip(this);
   
+  
+  
+  bool hadTiming = mTiming;
+  MaybeInitTiming();
   if (mContentViewer) {
     
     
@@ -7374,7 +7378,6 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
 
     
     
-    MaybeInitTiming();
     mTiming->NotifyBeforeUnload();
 
     bool okToUnload;
@@ -7458,6 +7461,12 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
 
   
   SetHistoryEntry(&mOSHE, nullptr);
+
+  
+  
+  if (!hadTiming) {
+    mTiming = nullptr;
+  }
 
   return rv;
 }
