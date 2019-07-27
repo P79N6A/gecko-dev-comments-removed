@@ -860,10 +860,15 @@ VectorImage::Draw(gfxContext* aContext,
                               aSubimage, aViewportSize, aSVGContext, animTime, aFlags);
 
   
-  nsRefPtr<gfxDrawable> drawable =
-    SurfaceCache::Lookup(ImageKey(this),
-                         SurfaceKey(params.imageRect.Size(), params.scale,
-                                    aSVGContext, animTime, aFlags));
+  
+  
+  nsRefPtr<gfxDrawable> drawable;
+  if (!(aFlags & FLAG_BYPASS_SURFACE_CACHE)) {
+    drawable =
+      SurfaceCache::Lookup(ImageKey(this),
+                           SurfaceKey(params.imageRect.Size(), params.scale,
+                                      aSVGContext, animTime, aFlags));
+  }
 
   
   if (drawable) {
@@ -890,13 +895,13 @@ VectorImage::CreateDrawableAndShow(const SVGDrawingParameters& aParams)
   nsRefPtr<gfxDrawable> svgDrawable =
     new gfxCallbackDrawable(cb, ThebesIntSize(aParams.imageRect.Size()));
 
-  
-  
-  if (mHaveAnimations)
-    return Show(svgDrawable, aParams);
-
-  
-  if (!SurfaceCache::CanHold(aParams.imageRect.Size()))
+  bool bypassCache = bool(aParams.flags & FLAG_BYPASS_SURFACE_CACHE) ||
+                     
+                     
+                     mHaveAnimations ||
+                     
+                     !SurfaceCache::CanHold(aParams.imageRect.Size());
+  if (bypassCache)
     return Show(svgDrawable, aParams);
 
   
