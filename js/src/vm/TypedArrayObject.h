@@ -46,21 +46,21 @@ class TypedArrayLayout
     TypedArrayLayout(bool isShared, bool isNeuterable, const Class *firstClass, const Class *maxClass);
 
     
-    static const size_t LENGTH_SLOT = JS_BUFVIEW_SLOT_LENGTH;
+    static const size_t BUFFER_SLOT = 0;
 
     
-    static const size_t BUFFER_SLOT = JS_BUFVIEW_SLOT_OWNER;
+    static const size_t LENGTH_SLOT = 1;
 
     
-    static const size_t BYTEOFFSET_SLOT = JS_BUFVIEW_SLOT_BYTEOFFSET;
+    static const size_t BYTEOFFSET_SLOT = 2;
 
-    static const size_t RESERVED_SLOTS = JS_TYPEDARR_SLOTS;
+    static const size_t RESERVED_SLOTS = 3;
 
     
     
     
     
-    static const size_t DATA_SLOT = JS_TYPEDARR_SLOT_DATA;
+    static const size_t DATA_SLOT = 3;
 
     static int lengthOffset();
     static int dataOffset();
@@ -303,9 +303,6 @@ TypedArrayShift(Scalar::Type viewType)
 
 class DataViewObject : public NativeObject
 {
-    static const size_t RESERVED_SLOTS = JS_DATAVIEW_SLOTS;
-    static const size_t DATA_SLOT      = JS_DATAVIEW_SLOT_DATA;
-
   private:
     static const Class protoClass;
 

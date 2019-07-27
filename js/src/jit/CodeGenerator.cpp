@@ -4989,7 +4989,7 @@ CodeGenerator::visitNeuterCheck(LNeuterCheck *lir)
     masm.branchPtr(Assembler::Equal, temp, ImmPtr(&InlineOpaqueTypedObject::class_), &inlineObject);
 
     masm.extractObject(Address(obj, OutlineTypedObject::offsetOfOwnerSlot()), temp);
-    masm.unboxInt32(Address(temp, ArrayBufferObject::flagsOffset()), temp);
+    masm.unboxInt32(Address(temp, ArrayBufferObject::offsetOfFlagsSlot()), temp);
 
     Imm32 flag(ArrayBufferObject::neuteredFlag());
     if (!bailoutTest32(Assembler::NonZero, temp, flag, lir->snapshot()))
@@ -5043,45 +5043,26 @@ CodeGenerator::visitSetTypedObjectOffset(LSetTypedObjectOffset *lir)
     Register object = ToRegister(lir->object());
     Register offset = ToRegister(lir->offset());
     Register temp0 = ToRegister(lir->temp0());
+    Register temp1 = ToRegister(lir->temp1());
 
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    masm.extractObject(Address(object, OutlineTypedObject::offsetOfOwnerSlot()), temp0);
+
+    Label inlineObject, done;
+    masm.loadObjClass(temp0, temp1);
+    masm.branchPtr(Assembler::Equal, temp1, ImmPtr(&InlineOpaqueTypedObject::class_), &inlineObject);
+
+    masm.loadPrivate(Address(temp0, ArrayBufferObject::offsetOfDataSlot()), temp0);
+    masm.jump(&done);
+
+    masm.bind(&inlineObject);
+    masm.addPtr(ImmWord(InlineOpaqueTypedObject::offsetOfDataStart()), temp0);
+
+    masm.bind(&done);
 
     
-    masm.unboxInt32(Address(object, OutlineTypedObject::offsetOfByteOffsetSlot()), temp0);
-
-    
-    masm.subPtr(offset, temp0);
-
-    
-    masm.subPtr(temp0, Address(object, OutlineTypedObject::offsetOfDataSlot()));
-
-    
-    masm.storeValue(JSVAL_TYPE_INT32, offset,
-                    Address(object, OutlineTypedObject::offsetOfByteOffsetSlot()));
+    masm.addPtr(offset, temp0);
+    masm.storePtr(temp0, Address(object, OutlineTypedObject::offsetOfDataSlot()));
 
     return true;
 }

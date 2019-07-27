@@ -87,33 +87,4 @@
 #define JS_SIMDTYPEREPR_INT32         0
 #define JS_SIMDTYPEREPR_FLOAT32       1
 
-
-
-
-
-
-#define JS_BUFVIEW_SLOT_BYTEOFFSET       0
-#define JS_BUFVIEW_SLOT_LENGTH           1 // see (*) below
-#define JS_BUFVIEW_SLOT_OWNER            2
-
-
-#define JS_DATAVIEW_SLOT_DATA            3 // see (**) below
-#define JS_DATAVIEW_SLOTS                3 // Number of slots for data views
-
-
-#define JS_TYPEDARR_SLOT_DATA            3 // see (**) below
-#define JS_TYPEDARR_SLOTS                3 // Number of slots for typed arrays
-
-
-
-
-
-
-
-
-
-
-
-
-
 #endif
