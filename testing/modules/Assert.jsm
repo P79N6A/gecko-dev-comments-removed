@@ -107,7 +107,7 @@ Assert.AssertionError = function(options) {
   
   let stack = Components.stack;
   do {
-    stack = stack.caller;
+    stack = stack.asyncCaller || stack.caller;
   } while(stack.filename && stack.filename.contains("Assert.jsm"))
   this.stack = stack;
 };
