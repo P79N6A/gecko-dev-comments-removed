@@ -340,8 +340,10 @@ function AbstractHealthReporter(branch, policy, sessionRecorder) {
 
   
   
+  
   this._currentProviderInShutdown = null;
   this._currentProviderInInit = null;
+  this._currentProviderInCollect = null;
 }
 
 AbstractHealthReporter.prototype = Object.freeze({
@@ -793,7 +795,8 @@ AbstractHealthReporter.prototype = Object.freeze({
 
       try {
         TelemetryStopwatch.start(TELEMETRY_COLLECT_CONSTANT, this);
-        yield this._providerManager.collectConstantData();
+        yield this._providerManager.collectConstantData(name => this._currentProviderInCollect = name);
+        this._currentProviderInCollect = null;
         TelemetryStopwatch.finish(TELEMETRY_COLLECT_CONSTANT, this);
       } catch (ex) {
         TelemetryStopwatch.cancel(TELEMETRY_COLLECT_CONSTANT, this);
@@ -813,7 +816,8 @@ AbstractHealthReporter.prototype = Object.freeze({
         try {
           TelemetryStopwatch.start(TELEMETRY_COLLECT_DAILY, this);
           this._lastDailyDate = new Date();
-          yield this._providerManager.collectDailyData();
+          yield this._providerManager.collectDailyData(name => this._currentProviderInCollect = name);
+          this._currentProviderInCollect = null;
           TelemetryStopwatch.finish(TELEMETRY_COLLECT_DAILY, this);
         } catch (ex) {
           TelemetryStopwatch.cancel(TELEMETRY_COLLECT_DAILY, this);

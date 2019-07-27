@@ -437,7 +437,10 @@ this.ProviderManager.prototype = Object.freeze({
 
 
 
-  collectConstantData: function () {
+
+
+
+  collectConstantData: function (providerDiagnostic=null) {
     let entries = [];
 
     for (let [name, entry] of this._providers) {
@@ -455,18 +458,20 @@ this.ProviderManager.prototype = Object.freeze({
     };
 
     return this._callCollectOnProviders(entries, "collectConstantData",
-                                        onCollect);
+                                        onCollect, providerDiagnostic);
   },
 
   
 
 
-  collectDailyData: function () {
+  collectDailyData: function (providerDiagnostic=null) {
     return this._callCollectOnProviders(this._providers.values(),
-                                        "collectDailyData");
+                                        "collectDailyData",
+                                        null,
+                                        providerDiagnostic);
   },
 
-  _callCollectOnProviders: function (entries, fnProperty, onCollect=null) {
+  _callCollectOnProviders: function (entries, fnProperty, onCollect=null, providerDiagnostic=null) {
     let promises = [];
 
     for (let entry of entries) {
@@ -502,7 +507,7 @@ this.ProviderManager.prototype = Object.freeze({
       promises.push([provider.name, promise]);
     }
 
-    return this._handleCollectionPromises(promises);
+    return this._handleCollectionPromises(promises, providerDiagnostic);
   },
 
   
@@ -514,9 +519,13 @@ this.ProviderManager.prototype = Object.freeze({
 
 
 
-  _handleCollectionPromises: function (promises) {
+  _handleCollectionPromises: function (promises, providerDiagnostic=null) {
     return Task.spawn(function waitForPromises() {
       for (let [name, promise] of promises) {
+        if (providerDiagnostic) {
+          providerDiagnostic(name);
+        }
+
         try {
           yield promise;
           this._log.debug("Provider collected successfully: " + name);
