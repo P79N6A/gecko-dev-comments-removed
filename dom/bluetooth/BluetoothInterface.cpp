@@ -8,6 +8,9 @@
 #ifdef MOZ_B2G_BT_BLUEDROID
 #include "BluetoothHALInterface.h"
 #endif
+#ifdef MOZ_B2G_BT_DAEMON
+#include "BluetoothDaemonInterface.h"
+#endif
 
 BEGIN_BLUETOOTH_NAMESPACE
 
@@ -96,7 +99,11 @@ BluetoothInterface::GetInstance()
 #ifdef MOZ_B2G_BT_BLUEDROID
   return BluetoothHALInterface::GetInstance();
 #else
+#ifdef MOZ_B2G_BT_DAEMON
+  return BluetoothDaemonInterface::GetInstance();
+#else
   return nullptr;
+#endif
 #endif
 }
 
