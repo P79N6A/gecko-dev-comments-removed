@@ -428,6 +428,8 @@ public:
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }
 
+  const nsCString& GetContentURL() const { return EmptyCString(); }
+
 protected:
   virtual ~MediaResource() {};
 
@@ -460,6 +462,12 @@ public:
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }
 
+  
+  const nsCString& GetContentURL() const
+  {
+    return mContentURL;
+  }
+
 protected:
   BaseMediaResource(MediaDecoder* aDecoder,
                     nsIChannel* aChannel,
@@ -473,6 +481,7 @@ protected:
   {
     MOZ_COUNT_CTOR(BaseMediaResource);
     NS_ASSERTION(!mContentType.IsEmpty(), "Must know content type");
+    mURI->GetSpec(mContentURL);
   }
   virtual ~BaseMediaResource()
   {
@@ -510,6 +519,9 @@ protected:
   
   
   const nsAutoCString mContentType;
+
+  
+  nsAutoCString mContentURL;
 
   
   
