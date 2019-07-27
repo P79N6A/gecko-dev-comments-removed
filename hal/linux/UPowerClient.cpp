@@ -9,6 +9,7 @@
 #include <dbus/dbus-glib-lowlevel.h>
 #include <mozilla/dom/battery/Constants.h>
 #include "nsAutoRef.h"
+#include <cmath>
 
 
 
@@ -435,7 +436,7 @@ UPowerClient::UpdateSavedInfo(GHashTable* aHashTable)
   if (isFull) {
     mLevel = 1.0;
   } else {
-    mLevel = g_value_get_double(static_cast<const GValue*>(g_hash_table_lookup(aHashTable, "Percentage")))*0.01;
+    mLevel = round(g_value_get_double(static_cast<const GValue*>(g_hash_table_lookup(aHashTable, "Percentage"))))*0.01;
   }
 
   if (isFull) {
