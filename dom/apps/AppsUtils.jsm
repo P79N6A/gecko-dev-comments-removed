@@ -507,6 +507,13 @@ this.AppsUtils = {
 
 
   checkAppRole: function(aRole, aStatus) {
+    try {
+      
+      if (Services.prefs.getBoolPref("dom.apps.developer_mode")) {
+        return true;
+      }
+    } catch(e) {}
+
     if (aRole == "theme" && aStatus !== Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
       return false;
     }

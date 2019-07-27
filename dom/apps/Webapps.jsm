@@ -2559,6 +2559,13 @@ this.DOMApplicationRegistry = {
     
     
     function checkAppStatus(aManifest) {
+      try {
+        
+        if (Services.prefs.getBoolPref("dom.apps.developer_mode")) {
+          return true;
+        }
+      } catch(e) {}
+
       let manifestStatus = aManifest.type || "web";
       return manifestStatus === "web" ||
              manifestStatus === "trusted";
@@ -3904,10 +3911,18 @@ this.DOMApplicationRegistry = {
                     ? Ci.nsIPrincipal.APP_STATUS_PRIVILEGED
                     : Ci.nsIPrincipal.APP_STATUS_INSTALLED;
 
+    try {
+      
+      if (Services.prefs.getBoolPref("dom.apps.developer_mode")) {
+        maxStatus = Ci.nsIPrincipal.APP_STATUS_CERTIFIED;
+      }
+    } catch(e) {};
+
     let allowUnsignedLangpack = false;
     try  {
       allowUnsignedLangpack =
-        Services.prefs.getBoolPref("dom.apps.allow_unsigned_langpacks");
+        Services.prefs.getBoolPref("dom.apps.allow_unsigned_langpacks") ||
+        Services.prefs.getBoolPref("dom.apps.developer_mode");
     } catch(e) {}
     let isLangPack = newManifest.role === "langpack" &&
                      (aIsSigned || allowUnsignedLangpack);

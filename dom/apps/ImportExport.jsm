@@ -102,7 +102,12 @@ this.ImportExport = {
 
     
     
-    if (aApp.appStatus == Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
+    let devMode = false;
+    try {
+      devMode = Services.prefs.getBoolPref("dom.apps.developer_mode");
+    } catch(e) {};
+
+    if (aApp.appStatus == Ci.nsIPrincipal.APP_STATUS_CERTIFIED && !devMode) {
       throw "CertifiedAppExportForbidden";
     }
 
@@ -391,6 +396,12 @@ this.ImportExport = {
           yield DOMApplicationRegistry._openPackage(appFile, meta, false);
         let maxStatus = isSigned ? Ci.nsIPrincipal.APP_STATUS_PRIVILEGED
                                  : Ci.nsIPrincipal.APP_STATUS_INSTALLED;
+        try {
+          
+          if (Services.prefs.getBoolPref("dom.apps.developer_mode")) {
+            maxStatus = Ci.nsIPrincipal.APP_STATUS_CERTIFIED;
+          }
+        } catch(e) {};
         meta.appStatus = AppsUtils.getAppManifestStatus(manifest);
         debug("Signed app? " + isSigned);
         if (meta.appStatus > maxStatus) {
