@@ -55,7 +55,6 @@ class Promise MOZ_FINAL : public nsISupports,
                           public SupportsWeakPtr<Promise>
 {
   friend class NativePromiseCallback;
-  friend class PromiseResolverMixin;
   friend class PromiseResolverTask;
   friend class PromiseTask;
   friend class PromiseReportRejectFeature;
@@ -63,9 +62,7 @@ class Promise MOZ_FINAL : public nsISupports,
   friend class PromiseWorkerProxyRunnable;
   friend class RejectPromiseCallback;
   friend class ResolvePromiseCallback;
-  friend class ThenableResolverMixin;
-  friend class WorkerPromiseResolverTask;
-  friend class WorkerPromiseTask;
+  friend class ThenableResolverTask;
   friend class WrapperPromiseCallback;
 
   ~Promise();
@@ -191,6 +188,10 @@ private:
   {
     mResult = aValue;
   }
+
+  
+  static void
+  DispatchToMainOrWorkerThread(nsIRunnable* aRunnable);
 
   
   
