@@ -11289,6 +11289,36 @@ IonBuilder::jsop_instanceof()
         return resumeAfter(ins);
     } while (false);
 
+    
+    do {
+        Shape *shape;
+        uint32_t slot;
+        JSObject *protoObject;
+        if (!inspector->instanceOfData(pc, &shape, &slot, &protoObject))
+            break;
+
+        
+        rhs = addShapeGuard(rhs, shape, Bailout_ShapeGuard);
+
+        
+        MOZ_ASSERT(shape->numFixedSlots() == 0, "Must be a dynamic slot");
+        MSlots *slots = MSlots::New(alloc(), rhs);
+        current->add(slots);
+        MLoadSlot *prototype = MLoadSlot::New(alloc(), slots, slot);
+        current->add(prototype);
+        MGuardObjectIdentity *guard = MGuardObjectIdentity::New(alloc(), prototype, protoObject,
+                                                                 false);
+        current->add(guard);
+
+        if (tryFoldInstanceOf(obj, protoObject))
+            return true;
+
+        MInstanceOf *ins = MInstanceOf::New(alloc(), obj, protoObject);
+        current->add(ins);
+        current->push(ins);
+        return resumeAfter(ins);
+    } while (false);
+
     MCallInstanceOf *ins = MCallInstanceOf::New(alloc(), obj, rhs);
 
     current->add(ins);
