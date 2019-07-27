@@ -1835,7 +1835,7 @@ TEST_F(APZHitTestingTester, HitTesting1) {
 
   
   SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID);
-  manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, paintSequenceNumber++);
+  manager->UpdateHitTestingTree(nullptr, root, false, 0, paintSequenceNumber++);
   hit = GetTargetAPZC(ScreenPoint(15, 15));
   EXPECT_EQ(ApzcOf(root), hit.get());
   
@@ -1844,7 +1844,7 @@ TEST_F(APZHitTestingTester, HitTesting1) {
 
   
   SetScrollableFrameMetrics(layers[3], FrameMetrics::START_SCROLL_ID + 1);
-  manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, paintSequenceNumber++);
+  manager->UpdateHitTestingTree(nullptr, root, false, 0, paintSequenceNumber++);
   EXPECT_NE(ApzcOf(root), ApzcOf(layers[3]));
   hit = GetTargetAPZC(ScreenPoint(25, 25));
   EXPECT_EQ(ApzcOf(layers[3]), hit.get());
@@ -1859,7 +1859,7 @@ TEST_F(APZHitTestingTester, HitTesting1) {
 
   
   SetScrollableFrameMetrics(layers[4], FrameMetrics::START_SCROLL_ID + 2);
-  manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, paintSequenceNumber++);
+  manager->UpdateHitTestingTree(nullptr, root, false, 0, paintSequenceNumber++);
   hit = GetTargetAPZC(ScreenPoint(15, 15));
   EXPECT_EQ(ApzcOf(layers[4]), hit.get());
   
@@ -1889,7 +1889,7 @@ TEST_F(APZHitTestingTester, HitTesting2) {
   CreateHitTesting2LayerTree();
   ScopedLayerTreeRegistration registration(0, root, mcc);
 
-  manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, 0);
+  manager->UpdateHitTestingTree(nullptr, root, false, 0, 0);
 
   
   
@@ -2005,7 +2005,7 @@ TEST_F(APZCTreeManagerTester, ScrollablePaintedLayers) {
   
   SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID);
   SetScrollableFrameMetrics(layers[2], FrameMetrics::START_SCROLL_ID);
-  manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, 0);
+  manager->UpdateHitTestingTree(nullptr, root, false, 0, 0);
 
   TestAsyncPanZoomController* nullAPZC = nullptr;
   
@@ -2016,13 +2016,13 @@ TEST_F(APZCTreeManagerTester, ScrollablePaintedLayers) {
 
   
   SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID + 1);
-  manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, 0);
+  manager->UpdateHitTestingTree(nullptr, root, false, 0, 0);
   EXPECT_NE(ApzcOf(layers[1]), ApzcOf(layers[2]));
 
   
   
   SetScrollableFrameMetrics(layers[2], FrameMetrics::START_SCROLL_ID + 1);
-  manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, 0);
+  manager->UpdateHitTestingTree(nullptr, root, false, 0, 0);
   EXPECT_EQ(ApzcOf(layers[1]), ApzcOf(layers[2]));
 }
 
@@ -2030,7 +2030,7 @@ TEST_F(APZCTreeManagerTester, Bug1068268) {
   CreatePotentiallyLeakingTree();
   ScopedLayerTreeRegistration registration(0, root, mcc);
 
-  manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, 0);
+  manager->UpdateHitTestingTree(nullptr, root, false, 0, 0);
   nsRefPtr<HitTestingTreeNode> root = manager->GetRootNode();
   nsRefPtr<HitTestingTreeNode> node2 = root->GetFirstChild();
   nsRefPtr<HitTestingTreeNode> node5 = root->GetLastChild();
@@ -2051,7 +2051,7 @@ TEST_F(APZCTreeManagerTester, Bug1068268) {
 TEST_F(APZHitTestingTester, ComplexMultiLayerTree) {
   CreateComplexMultiLayerTree();
   ScopedLayerTreeRegistration registration(0, root, mcc);
-  manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, 0);
+  manager->UpdateHitTestingTree(nullptr, root, false, 0, 0);
 
   TestAsyncPanZoomController* nullAPZC = nullptr;
   
@@ -2117,7 +2117,7 @@ TEST_F(APZHitTestingTester, TestRepaintFlushOnNewInputBlock) {
 
   CreateSimpleScrollingLayer();
   ScopedLayerTreeRegistration registration(0, root, mcc);
-  manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, 0);
+  manager->UpdateHitTestingTree(nullptr, root, false, 0, 0);
   TestAsyncPanZoomController* apzcroot = ApzcOf(root);
 
   
@@ -2195,7 +2195,7 @@ protected:
     SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID + 1, CSSRect(0, 0, 100, 100));
     SetScrollHandoff(layers[1], root);
     registration = MakeUnique<ScopedLayerTreeRegistration>(0, root, mcc);
-    manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, 0);
+    manager->UpdateHitTestingTree(nullptr, root, false, 0, 0);
     rootApzc = ApzcOf(root);
   }
 
@@ -2215,7 +2215,7 @@ protected:
     
     
     MOZ_ASSERT(registration);
-    manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, 0);
+    manager->UpdateHitTestingTree(nullptr, root, false, 0, 0);
     rootApzc = ApzcOf(root);
   }
 
@@ -2236,7 +2236,7 @@ protected:
     SetScrollHandoff(layers[2], layers[1]);
     SetScrollHandoff(layers[4], layers[3]);
     registration = MakeUnique<ScopedLayerTreeRegistration>(0, root, mcc);
-    manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, 0);
+    manager->UpdateHitTestingTree(nullptr, root, false, 0, 0);
   }
 
   void CreateScrollgrabLayerTree() {
@@ -2250,7 +2250,7 @@ protected:
     SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID + 1, CSSRect(0, 0, 100, 200));
     SetScrollHandoff(layers[1], root);
     registration = MakeUnique<ScopedLayerTreeRegistration>(0, root, mcc);
-    manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, 0);
+    manager->UpdateHitTestingTree(nullptr, root, false, 0, 0);
     rootApzc = ApzcOf(root);
     rootApzc->GetFrameMetrics().SetHasScrollgrab(true);
   }
@@ -2471,7 +2471,7 @@ protected:
     layers[2]->SetEventRegions(regions);
 
     registration = MakeUnique<ScopedLayerTreeRegistration>(0, root, mcc);
-    manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, 0);
+    manager->UpdateHitTestingTree(nullptr, root, false, 0, 0);
     rootApzc = ApzcOf(root);
   }
 
@@ -2492,7 +2492,7 @@ protected:
     layers[1]->SetEventRegions(regions);
 
     registration = MakeUnique<ScopedLayerTreeRegistration>(0, root, mcc);
-    manager->UpdatePanZoomControllerTree(nullptr, root, false, 0, 0);
+    manager->UpdateHitTestingTree(nullptr, root, false, 0, 0);
     rootApzc = ApzcOf(root);
   }
 };

@@ -127,11 +127,11 @@ public:
 
 
 
-  void UpdatePanZoomControllerTree(CompositorParent* aCompositor,
-                                   Layer* aRoot,
-                                   bool aIsFirstPaint,
-                                   uint64_t aOriginatingLayersId,
-                                   uint32_t aPaintSequenceNumber);
+  void UpdateHitTestingTree(CompositorParent* aCompositor,
+                            Layer* aRoot,
+                            bool aIsFirstPaint,
+                            uint64_t aOriginatingLayersId,
+                            uint32_t aPaintSequenceNumber);
 
   
 
@@ -477,13 +477,13 @@ private:
 
 
 
-  HitTestingTreeNode* UpdatePanZoomControllerTree(TreeBuildingState& aState,
-                                                  const LayerMetricsWrapper& aLayer,
-                                                  uint64_t aLayersId,
-                                                  const gfx::Matrix4x4& aAncestorTransform,
-                                                  HitTestingTreeNode* aParent,
-                                                  HitTestingTreeNode* aNextSibling,
-                                                  const nsIntRegion& aObscured);
+  HitTestingTreeNode* UpdateHitTestingTree(TreeBuildingState& aState,
+                                           const LayerMetricsWrapper& aLayer,
+                                           uint64_t aLayersId,
+                                           const gfx::Matrix4x4& aAncestorTransform,
+                                           HitTestingTreeNode* aParent,
+                                           HitTestingTreeNode* aNextSibling,
+                                           const nsIntRegion& aObscured);
 
   void PrintAPZCInfo(const LayerMetricsWrapper& aLayer,
                      const AsyncPanZoomController* apzc);
