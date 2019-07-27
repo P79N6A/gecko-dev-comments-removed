@@ -8,6 +8,7 @@ import mozilla.prettyprinters
 
 
 
+import mozilla.Interpreter
 import mozilla.jsid
 import mozilla.JSObject
 import mozilla.JSString
