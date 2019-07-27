@@ -230,15 +230,6 @@ public:
 
   
   
-  void StartQueuedSeek();
-
-  
-  
-  
-  void StartSeek(const SeekTarget& aTarget);
-
-  
-  
   
   double GetCurrentTime() const;
   int64_t GetCurrentTimeUs() const;
