@@ -27,9 +27,25 @@ function test_functions() {
     if (typeof AddonManager[prop] != "function")
       continue;
 
+    let args = [];
+
+    
+    
+    
+    if (prop.startsWith("get")) {
+      
+      
+      if (AddonManager[prop].length > 1) {
+        args.push(undefined, () => {});
+      }
+      else {
+        args.push(() => {});
+      }
+    }
+
     try {
       do_print("AddonManager." + prop);
-      AddonManager[prop]();
+      AddonManager[prop](...args);
       do_throw(prop + " did not throw an exception");
     }
     catch (e) {

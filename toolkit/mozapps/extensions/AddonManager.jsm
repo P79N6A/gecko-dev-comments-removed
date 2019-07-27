@@ -182,6 +182,19 @@ function safeCall(aCallback, ...aArgs) {
 
 
 
+
+
+
+
+function makeSafe(aCallback) {
+  return function(...aArgs) {
+    safeCall(aCallback, ...aArgs);
+  }
+}
+
+
+
+
 function reportProviderError(aProvider, aMethod, aError) {
   let method = `provider ${providerName(aProvider)}.${aMethod}`;
   AddonManagerPrivate.recordException("AMI", method, aError);
@@ -241,6 +254,26 @@ function callProviderAsync(aProvider, aMethod, ...aArgs) {
     callback(undefined);
     return;
   }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function promiseCallProvider(aProvider, aMethod, ...aArgs) {
+  return new Promise(resolve => {
+    callProviderAsync(aProvider, aMethod, ...aArgs, resolve);
+  });
 }
 
 
@@ -2105,7 +2138,8 @@ var AddonManagerInternal = {
 
 
 
-  getAddonByID: function AMI_getAddonByID(aID, aCallback) {
+
+  getAddonByID: function AMI_getAddonByID(aID) {
     if (!gStarted)
       throw Components.Exception("AddonManager is not initialized",
                                  Cr.NS_ERROR_NOT_INITIALIZED);
@@ -2114,24 +2148,9 @@ var AddonManagerInternal = {
       throw Components.Exception("aID must be a non-empty string",
                                  Cr.NS_ERROR_INVALID_ARG);
 
-    if (typeof aCallback != "function")
-      throw Components.Exception("aCallback must be a function",
-                                 Cr.NS_ERROR_INVALID_ARG);
-
-    new AsyncObjectCaller(this.providers, "getAddonByID", {
-      nextObject: function getAddonByID_nextObject(aCaller, aProvider) {
-        callProviderAsync(aProvider, "getAddonByID", aID,
-                          function getAddonByID_safeCall(aAddon) {
-          if (aAddon)
-            safeCall(aCallback, aAddon);
-          else
-            aCaller.callNext();
-        });
-      },
-
-      noMoreObjects: function getAddonByID_noMoreObjects(aCaller) {
-        safeCall(aCallback, null);
-      }
+    let promises = [for (p of this.providers) promiseCallProvider(p, "getAddonByID", aID)];
+    return Promise.all(promises).then(aAddons => {
+      return aAddons.find(a => !!a) || null;
     });
   },
 
@@ -2184,7 +2203,8 @@ var AddonManagerInternal = {
 
 
 
-  getAddonsByIDs: function AMI_getAddonsByIDs(aIDs, aCallback) {
+
+  getAddonsByIDs: function AMI_getAddonsByIDs(aIDs) {
     if (!gStarted)
       throw Components.Exception("AddonManager is not initialized",
                                  Cr.NS_ERROR_NOT_INITIALIZED);
@@ -2193,25 +2213,8 @@ var AddonManagerInternal = {
       throw Components.Exception("aIDs must be an array",
                                  Cr.NS_ERROR_INVALID_ARG);
 
-    if (typeof aCallback != "function")
-      throw Components.Exception("aCallback must be a function",
-                                 Cr.NS_ERROR_INVALID_ARG);
-
-    let addons = [];
-
-    new AsyncObjectCaller(aIDs, null, {
-      nextObject: function getAddonsByIDs_nextObject(aCaller, aID) {
-        AddonManagerInternal.getAddonByID(aID,
-                             function getAddonsByIDs_getAddonByID(aAddon) {
-          addons.push(aAddon);
-          aCaller.callNext();
-        });
-      },
-
-      noMoreObjects: function getAddonsByIDs_noMoreObjects(aCaller) {
-        safeCall(aCallback, addons);
-      }
-    });
+    let promises = [AddonManagerInternal.getAddonByID(i) for (i of aIDs)];
+    return Promise.all(promises);
   },
 
   
@@ -2876,7 +2879,13 @@ this.AddonManager = {
   },
 
   getAddonByID: function AM_getAddonByID(aID, aCallback) {
-    AddonManagerInternal.getAddonByID(aID, aCallback);
+    if (typeof aCallback != "function")
+      throw Components.Exception("aCallback must be a function",
+                                 Cr.NS_ERROR_INVALID_ARG);
+
+    AddonManagerInternal.getAddonByID(aID)
+                        .then(makeSafe(aCallback))
+                        .catch(logger.error);
   },
 
   getAddonBySyncGUID: function AM_getAddonBySyncGUID(aGUID, aCallback) {
@@ -2884,7 +2893,13 @@ this.AddonManager = {
   },
 
   getAddonsByIDs: function AM_getAddonsByIDs(aIDs, aCallback) {
-    AddonManagerInternal.getAddonsByIDs(aIDs, aCallback);
+    if (typeof aCallback != "function")
+      throw Components.Exception("aCallback must be a function",
+                                 Cr.NS_ERROR_INVALID_ARG);
+
+    AddonManagerInternal.getAddonsByIDs(aIDs)
+                        .then(makeSafe(aCallback))
+                        .catch(logger.error);
   },
 
   getAddonsWithOperationsByTypes:
