@@ -5,115 +5,97 @@
 
 
 
-var PREF = "privacy.trackingprotection.enabled";
-var BENIGN_PAGE = "http://tracking.example.org/browser/browser/base/content/test/general/benignPage.html";
-var TRACKING_PAGE = "http://tracking.example.org/browser/browser/base/content/test/general/trackingPage.html";
 
-function testBenignPage(gTestBrowser)
-{
-  
-  var notification = PopupNotifications.getNotification("bad-content", gTestBrowser);
-  is(notification, null, "Tracking Content Doorhanger did NOT appear when protection was ON and tracking was NOT present");
+
+
+
+let PREF = "privacy.trackingprotection.enabled";
+let BENIGN_PAGE = "http://tracking.example.org/browser/browser/base/content/test/general/benignPage.html";
+let TRACKING_PAGE = "http://tracking.example.org/browser/browser/base/content/test/general/trackingPage.html";
+let TrackingProtection = null;
+
+registerCleanupFunction(function() {
+  TrackingProtection = null;
+  Services.prefs.clearUserPref(PREF);
+  gBrowser.removeCurrentTab();
+});
+
+function hidden(sel) {
+  let win = gBrowser.ownerGlobal;
+  let el = win.document.querySelector(sel);
+  let display = win.getComputedStyle(el).getPropertyValue("display", null);
+  return display === "none";
 }
 
-function* testTrackingPage(gTestBrowser)
-{
-  
-  var notification = PopupNotifications.getNotification("bad-content", gTestBrowser);
-  isnot(notification, null, "Tracking Content Doorhanger did appear when protection was ON and tracking was present");
-  notification.reshow();
-  var notificationElement = PopupNotifications.panel.firstChild;
+function testBenignPage() {
+  ok (!TrackingProtection.content.hasAttribute("block-disabled"), "blocking not disabled");
+  ok (!TrackingProtection.content.hasAttribute("block-active"), "blocking is not active");
 
   
-  yield promiseWaitForCondition(() => {
-    return notificationElement.disableTrackingContentProtection;
-  });
-
-  
-  ok(notificationElement.isTrackingContentBlocked,
-     "Tracking Content is being blocked");
-
-  
-  ok(!notificationElement.hasAttribute("trackingblockdisabled"),
-    "Doorhanger must have no trackingblockdisabled attribute");
+  ok (!hidden("#tracking-not-detected"), "labelNoTracking is visible");
+  ok (hidden("#tracking-loaded"), "labelTrackingLoaded is hidden");
+  ok (hidden("#tracking-blocked"), "labelTrackingBlocked is hidden");
 }
 
-function* testTrackingPageWhitelisted(gTestBrowser)
-{
-  
-  var notification = PopupNotifications.getNotification("bad-content", gTestBrowser);
-  isnot(notification, null, "Tracking Content Doorhanger did appear when protection was ON and tracking was present but white-listed");
-  notification.reshow();
-  var notificationElement = PopupNotifications.panel.firstChild;
+function testTrackingPage() {
+  ok (!TrackingProtection.content.hasAttribute("block-disabled"), "blocking not disabled");
+  ok (TrackingProtection.content.hasAttribute("block-active"), "blocking is active");
 
   
-  yield promiseWaitForCondition(() => {
-    return notificationElement.disableTrackingContentProtection;
-  });
-
-  var notificationElement = PopupNotifications.panel.firstChild;
-
-  
-  ok(!notificationElement.isTrackingContentBlocked,
-    "Tracking Content is NOT being blocked");
-
-  
-  is(notificationElement.getAttribute("trackingblockdisabled"), "true",
-    "Doorhanger must have [trackingblockdisabled='true'] attribute");
+  ok (hidden("#tracking-not-detected"), "labelNoTracking is hidden");
+  ok (hidden("#tracking-loaded"), "labelTrackingLoaded is hidden");
+  ok (!hidden("#tracking-blocked"), "labelTrackingBlocked is visible");
 }
 
-function testTrackingPageOFF(gTestBrowser)
-{
-  
-  var notification = PopupNotifications.getNotification("bad-content", gTestBrowser);
-  is(notification, null, "Tracking Content Doorhanger did NOT appear when protection was OFF and tracking was present");
-}
+function testTrackingPageWhitelisted() {
+  ok (TrackingProtection.content.hasAttribute("block-disabled"), "blocking is disabled");
+  ok (!TrackingProtection.content.hasAttribute("block-active"), "blocking is not active");
 
-function testBenignPageOFF(gTestBrowser)
-{
   
-  var notification = PopupNotifications.getNotification("bad-content", gTestBrowser);
-  is(notification, null, "Tracking Content Doorhanger did NOT appear when protection was OFF and tracking was NOT present");
+  ok (hidden("#tracking-not-detected"), "labelNoTracking is hidden");
+  ok (!hidden("#tracking-loaded"), "labelTrackingLoaded is visible");
+  ok (hidden("#tracking-blocked"), "labelTrackingBlocked is hidden");
 }
 
 add_task(function* () {
-  registerCleanupFunction(function() {
-    Services.prefs.clearUserPref(PREF);
-    gBrowser.removeCurrentTab();
-  });
-
   yield updateTrackingProtectionDatabase();
 
   let tab = gBrowser.selectedTab = gBrowser.addTab();
 
-  
+  TrackingProtection = gBrowser.ownerGlobal.TrackingProtection;
+  ok (TrackingProtection, "Functionality is attached to the browser window");
+  is (TrackingProtection.enabled, Services.prefs.getBoolPref(PREF),
+    "The initial enabled value is based on the default pref value");
+
+  info("Enable Tracking Protection");
   Services.prefs.setBoolPref(PREF, true);
+  ok (TrackingProtection.enabled, "Functionality is enabled after setting the pref");
 
-  
+  info("Point tab to a test page NOT containing tracking elements");
   yield promiseTabLoadEvent(tab, BENIGN_PAGE);
-  testBenignPage(gBrowser.getBrowserForTab(tab));
+  testBenignPage();
 
-  
+  info("Point tab to a test page containing tracking elements");
   yield promiseTabLoadEvent(tab, TRACKING_PAGE);
 
-  
-  yield testTrackingPage(gBrowser.getBrowserForTab(tab));
+  info("Tracking content must be blocked");
+  testTrackingPage();
 
-  
-  PopupNotifications.panel.firstChild.disableTrackingContentProtection();
+  info("Disable Tracking Content Protection for the page (which reloads the page)");
+  TrackingProtection.disableForCurrentPage();
 
-  
+  info("Wait for tab to reload following tracking-protection page white-listing");
   yield promiseTabLoadEvent(tab);
 
-  
-  yield testTrackingPageWhitelisted(gBrowser.getBrowserForTab(tab));
+  info("Tracking content must be white-listed (NOT blocked)");
+  testTrackingPageWhitelisted();
 
-  
-  PopupNotifications.panel.firstChild.enableTrackingContentProtection();
+  info("Re-enable Tracking Content Protection for the page (which reloads the page)");
+  TrackingProtection.enableForCurrentPage();
 
-  
+  info("Wait for tab to reload following tracking-protection page white-listing");
   yield promiseTabLoadEvent(tab);
 
-  
-  yield testTrackingPage(gBrowser.getBrowserForTab(tab));
+  info("Tracking content must be blocked");
+  testTrackingPage();
 });

@@ -5,42 +5,45 @@
 
 
 
-var PREF = "privacy.trackingprotection.enabled";
-var BENIGN_PAGE = "http://tracking.example.org/browser/browser/base/content/test/general/benignPage.html";
-var TRACKING_PAGE = "http://tracking.example.org/browser/browser/base/content/test/general/trackingPage.html";
 
-function testTrackingPageOFF(gTestBrowser)
-{
-  
-  var notification = PopupNotifications.getNotification("bad-content", gTestBrowser);
-  is(notification, null, "Tracking Content Doorhanger did NOT appear when protection was OFF and tracking was present");
+let PREF = "privacy.trackingprotection.enabled";
+let BENIGN_PAGE = "http://tracking.example.org/browser/browser/base/content/test/general/benignPage.html";
+let TRACKING_PAGE = "http://tracking.example.org/browser/browser/base/content/test/general/trackingPage.html";
+let TrackingProtection = null;
+
+registerCleanupFunction(function() {
+  TrackingProtection = null;
+  Services.prefs.clearUserPref(PREF);
+  gBrowser.removeCurrentTab();
+});
+
+function testTrackingPageOFF() {
+  ok (TrackingProtection.container.hidden, "The container is hidden");
 }
 
-function testBenignPageOFF(gTestBrowser)
-{
-  
-  var notification = PopupNotifications.getNotification("bad-content", gTestBrowser);
-  is(notification, null, "Tracking Content Doorhanger did NOT appear when protection was OFF and tracking was NOT present");
+function testBenignPageOFF() {
+  ok (TrackingProtection.container.hidden, "The container is hidden");
 }
 
 add_task(function* () {
-  registerCleanupFunction(function() {
-    Services.prefs.clearUserPref(PREF);
-    gBrowser.removeCurrentTab();
-  });
-
   yield updateTrackingProtectionDatabase();
 
   let tab = gBrowser.selectedTab = gBrowser.addTab();
 
-  
+  TrackingProtection = gBrowser.ownerGlobal.TrackingProtection;
+  ok (TrackingProtection, "Functionality is attached to the browser window");
+  is (TrackingProtection.enabled, Services.prefs.getBoolPref(PREF),
+    "The initial enabled value is based on the default pref value");
+
+  info ("Disable Tracking Protection");
   Services.prefs.setBoolPref(PREF, false);
+  ok (!TrackingProtection.enabled, "Functionality is disabled after setting the pref");
 
-  
+  info ("Point tab to a test page containing tracking elements");
   yield promiseTabLoadEvent(tab, TRACKING_PAGE);
-  testTrackingPageOFF(gBrowser.getBrowserForTab(tab));
+  testTrackingPageOFF();
 
-  
+  info ("Point tab to a test page NOT containing tracking elements");
   yield promiseTabLoadEvent(tab, BENIGN_PAGE);
-  testBenignPageOFF(gBrowser.getBrowserForTab(tab));
+  testBenignPageOFF();
 });
