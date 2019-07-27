@@ -57,6 +57,7 @@ public:
     : mTimeline(aTimeline)
     , mPlaybackRate(1.0)
     , mPendingState(PendingState::NotPending)
+    , mSequenceNum(kUnsequenced)
     , mIsRunningOnCompositor(false)
     , mIsPreviousStateFinished(false)
     , mFinishedAtLastComposeStyle(false)
@@ -354,6 +355,14 @@ protected:
   
   enum class PendingState { NotPending, PlayPending, PausePending };
   PendingState mPendingState;
+
+  static uint64_t sNextSequenceNum;
+  static const uint64_t kUnsequenced = UINT64_MAX;
+
+  
+  
+  
+  uint64_t mSequenceNum;
 
   bool mIsRunningOnCompositor;
   

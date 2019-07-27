@@ -18,6 +18,9 @@
 namespace mozilla {
 namespace dom {
 
+
+uint64_t Animation::sNextSequenceNum = 0;
+
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(Animation, mTimeline,
                                       mEffect, mReady, mFinished)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(Animation)
@@ -630,15 +633,14 @@ Animation::DoPlay(ErrorResult& aRv, LimitBehavior aLimitBehavior)
   mPendingState = PendingState::PlayPending;
 
   nsIDocument* doc = GetRenderedDocument();
-  if (!doc) {
+  if (doc) {
+    PendingAnimationTracker* tracker =
+      doc->GetOrCreatePendingAnimationTracker();
+    tracker->AddPlayPending(*this);
+  } else {
     TriggerOnNextTick(Nullable<TimeDuration>());
-    return;
   }
 
-  PendingAnimationTracker* tracker = doc->GetOrCreatePendingAnimationTracker();
-  tracker->AddPlayPending(*this);
-
-  
   UpdateTiming(SeekFlag::NoSeek);
 }
 
@@ -682,13 +684,13 @@ Animation::DoPause(ErrorResult& aRv)
   mPendingState = PendingState::PausePending;
 
   nsIDocument* doc = GetRenderedDocument();
-  if (!doc) {
+  if (doc) {
+    PendingAnimationTracker* tracker =
+      doc->GetOrCreatePendingAnimationTracker();
+    tracker->AddPausePending(*this);
+  } else {
     TriggerOnNextTick(Nullable<TimeDuration>());
-    return;
   }
-
-  PendingAnimationTracker* tracker = doc->GetOrCreatePendingAnimationTracker();
-  tracker->AddPausePending(*this);
 
   UpdateTiming(SeekFlag::NoSeek);
 }
@@ -748,6 +750,14 @@ Animation::PauseAt(const TimeDuration& aReadyTime)
 void
 Animation::UpdateTiming(SeekFlag aSeekFlag)
 {
+  
+  
+  if (PlayState() == AnimationPlayState::Idle) {
+    mSequenceNum = kUnsequenced;
+  } else if (mSequenceNum == kUnsequenced) {
+    mSequenceNum = sNextSequenceNum++;
+  }
+
   
   
   UpdateFinishedState(aSeekFlag);
