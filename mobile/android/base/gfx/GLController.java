@@ -5,6 +5,7 @@
 
 package org.mozilla.gecko.gfx;
 
+import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.GeckoThread;
@@ -112,8 +113,12 @@ public class GLController {
     };
 
     private GLController() {
-        mEGLPreloadingThread = new EGLPreloadingThread();
-        mEGLPreloadingThread.start();
+        if (AppConstants.Versions.preICS) {
+            mEGLPreloadingThread = new EGLPreloadingThread();
+            mEGLPreloadingThread.start();
+        } else {
+            mEGLPreloadingThread = null;
+        }
     }
 
     static GLController getInstance(LayerView view) {
@@ -211,10 +216,12 @@ public class GLController {
         
         
         
-        try {
-            mEGLPreloadingThread.join();
-        } catch (InterruptedException e) {
-            Log.w(LOGTAG, "EGLPreloadingThread interrupted", e);
+        if (mEGLPreloadingThread != null) {
+            try {
+                mEGLPreloadingThread.join();
+            } catch (InterruptedException e) {
+                Log.w(LOGTAG, "EGLPreloadingThread interrupted", e);
+            }
         }
 
         mEGL = (EGL10)EGLContext.getEGL();
@@ -225,18 +232,20 @@ public class GLController {
             return;
         }
 
-        
-        
-        
-        
-        
-        
-        
-        
-        int[] returnedVersion = new int[2];
-        if (!mEGL.eglInitialize(mEGLDisplay, returnedVersion)) {
-            Log.w(LOGTAG, "eglInitialize failed");
-            return;
+        if (AppConstants.Versions.preICS) {
+            
+            
+            
+            
+            
+            
+            
+            
+            int[] returnedVersion = new int[2];
+            if (!mEGL.eglInitialize(mEGLDisplay, returnedVersion)) {
+                Log.w(LOGTAG, "eglInitialize failed");
+                return;
+            }
         }
 
         mEGLConfig = chooseConfig();
