@@ -313,6 +313,13 @@ public:
         return static_cast<JSProtoKey>(key);
     }
 
+    
+    static bool getOwnPropertyFromWrapperIfSafe(JSContext* cx,
+                                                JS::HandleObject wrapper,
+                                                JS::HandleId id,
+                                                JS::MutableHandle<JSPropertyDescriptor> desc);
+
+    
     static bool getOwnPropertyFromTargetIfSafe(JSContext* cx,
                                                JS::HandleObject target,
                                                JS::HandleObject wrapper,
