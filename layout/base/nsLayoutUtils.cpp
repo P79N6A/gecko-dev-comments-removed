@@ -8229,6 +8229,13 @@ nsLayoutUtils::ComputeFrameMetrics(nsIFrame* aForFrame,
   metrics.SetIsRoot(aIsRoot);
   metrics.SetScrollParentId(aScrollParentId);
 
+  if (scrollId != FrameMetrics::NULL_SCROLL_ID && !presContext->GetParentPresContext()) {
+    if ((aScrollFrame && (aScrollFrame == presShell->GetRootScrollFrame())) ||
+        aContent == presShell->GetDocument()->GetDocumentElement()) {
+      metrics.SetIsLayersIdRoot(true);
+    }
+  }
+
   
   
   if (aScrollFrame == presShell->GetRootScrollFrame()) {

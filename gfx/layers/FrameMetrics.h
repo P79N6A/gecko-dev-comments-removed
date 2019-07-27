@@ -67,6 +67,7 @@ public:
     , mLineScrollAmount(0, 0)
     , mPageScrollAmount(0, 0)
     , mAllowVerticalScrollWithWheel(false)
+    , mIsLayersIdRoot(false)
   {
   }
 
@@ -100,7 +101,8 @@ public:
            mLineScrollAmount == aOther.mLineScrollAmount &&
            mPageScrollAmount == aOther.mPageScrollAmount &&
            mAllowVerticalScrollWithWheel == aOther.mAllowVerticalScrollWithWheel &&
-           mClipRect == aOther.mClipRect;
+           mClipRect == aOther.mClipRect &&
+           mIsLayersIdRoot == aOther.mIsLayersIdRoot;
   }
   bool operator!=(const FrameMetrics& aOther) const
   {
@@ -525,6 +527,13 @@ public:
     return mClipRect.ref();
   }
 
+  void SetIsLayersIdRoot(bool aValue) {
+    mIsLayersIdRoot = aValue;
+  }
+  bool IsLayersIdRoot() const {
+    return mIsLayersIdRoot;
+  }
+
 private:
 
   
@@ -698,6 +707,10 @@ private:
 
   
   Maybe<ParentLayerIntRect> mClipRect;
+
+  
+  
+  bool mIsLayersIdRoot;
 
   
   
