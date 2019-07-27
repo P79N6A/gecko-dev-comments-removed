@@ -226,6 +226,9 @@ struct Zone : public JS::shadow::Zone,
     
     
     unsigned lastZoneGroupIndex() { return gcLastZoneGroupIndex; }
+
+    void setGCBackgroundSweeping(bool newState);
+    bool isGCBackgroundSweeping() { return gcBackgroundSweeping_; }
 #endif
 
   private:
@@ -300,6 +303,9 @@ struct Zone : public JS::shadow::Zone,
     GCState gcState_;
     bool gcScheduled_;
     bool gcPreserveCode_;
+#ifdef DEBUG
+    bool gcBackgroundSweeping_;
+#endif
     bool jitUsingBarriers_;
 
     

@@ -799,7 +799,7 @@ class PreliminaryObjectArray
 
 class PreliminaryObjectArrayWithTemplate : public PreliminaryObjectArray
 {
-    HeapPtrShape shape_;
+    RelocatablePtrShape shape_;
 
   public:
     explicit PreliminaryObjectArrayWithTemplate(Shape* shape)
@@ -872,7 +872,7 @@ class TypeNewScript
 
   private:
     
-    HeapPtrFunction function_;
+    RelocatablePtrFunction function_;
 
     
     
@@ -884,7 +884,7 @@ class TypeNewScript
     
     
     
-    HeapPtrPlainObject templateObject_;
+    RelocatablePtrPlainObject templateObject_;
 
     
     
@@ -901,11 +901,11 @@ class TypeNewScript
     
     
     
-    HeapPtrShape initializedShape_;
+    RelocatablePtrShape initializedShape_;
 
     
     
-    HeapPtrObjectGroup initializedGroup_;
+    RelocatablePtrObjectGroup initializedGroup_;
 
   public:
     TypeNewScript() { mozilla::PodZero(this); }
