@@ -33,7 +33,7 @@ import org.mozilla.search.R;
 
 
 
-public class AutoCompleteFragment extends Fragment implements AdapterView.OnItemClickListener,
+public class SearchFragment extends Fragment implements AdapterView.OnItemClickListener,
         TextView.OnEditorActionListener, AcceptsJumpTaps {
 
     private View mainView;
@@ -50,13 +50,13 @@ public class AutoCompleteFragment extends Fragment implements AdapterView.OnItem
         RUNNING   
     }
 
-    public AutoCompleteFragment() {
+    public SearchFragment() {
         
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState) {
+                             Bundle savedInstanceState) {
 
 
         mainView = inflater.inflate(R.layout.search_auto_complete, container, false);

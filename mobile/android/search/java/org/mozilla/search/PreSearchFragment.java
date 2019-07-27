@@ -2,14 +2,14 @@
 
 
 
-package org.mozilla.search.stream;
+package org.mozilla.search;
 
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.view.View;
 import android.widget.ArrayAdapter;
 
-import org.mozilla.search.R;
+import org.mozilla.search.stream.PreloadAgent;
 
 
 
@@ -17,7 +17,7 @@ import org.mozilla.search.R;
 
 
 
-public class CardStreamFragment extends ListFragment {
+public class PreSearchFragment extends ListFragment {
 
     private ArrayAdapter<PreloadAgent.TmpItem> adapter;
 
@@ -25,7 +25,7 @@ public class CardStreamFragment extends ListFragment {
 
 
 
-    public CardStreamFragment() {
+    public PreSearchFragment() {
     }
 
     @Override

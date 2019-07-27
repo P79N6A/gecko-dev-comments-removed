@@ -15,7 +15,7 @@ import java.util.Map;
 
 
 
-class PreloadAgent {
+public class PreloadAgent {
 
     public static final List<TmpItem> ITEMS = new ArrayList<TmpItem>();
 
