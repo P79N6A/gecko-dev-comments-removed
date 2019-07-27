@@ -6630,7 +6630,6 @@ HTMLInputElement::HasStepMismatch(bool aUseZeroIfValueNaN) const
 
 
 
-
 static bool PunycodeEncodeEmailAddress(const nsAString& aEmail,
                                        nsAutoCString& aEncodedEmail,
                                        uint32_t* aIndexOfAt)
@@ -6650,19 +6649,8 @@ static bool PunycodeEncodeEmailAddress(const nsAString& aEmail,
     return false;
   }
 
-  const nsDependentCSubstring username = Substring(value, 0, atPos);
-  bool ace;
-  if (NS_SUCCEEDED(idnSrv->IsACE(username, &ace)) && !ace) {
-    nsAutoCString usernameACE;
-    
-    
-    if (NS_SUCCEEDED(idnSrv->ConvertUTF8toACE(username, usernameACE))) {
-      value.Replace(0, atPos, usernameACE);
-      atPos = usernameACE.Length();
-    }
-  }
-
   const nsDependentCSubstring domain = Substring(value, atPos + 1);
+  bool ace;
   if (NS_SUCCEEDED(idnSrv->IsACE(domain, &ace)) && !ace) {
     nsAutoCString domainACE;
     if (NS_FAILED(idnSrv->ConvertUTF8toACE(domain, domainACE))) {
