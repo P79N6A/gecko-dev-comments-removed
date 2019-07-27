@@ -57,7 +57,7 @@ BEGIN_TEST(testXDR_bug506491)
 
     
     JS::RootedValue v2(cx);
-    CHECK(JS_ExecuteScript(cx, global, script, &v2));
+    CHECK(JS_ExecuteScript(cx, script, &v2));
 
     
     JS_GC(rt);
@@ -83,7 +83,7 @@ BEGIN_TEST(testXDR_bug516827)
     CHECK(script);
 
     
-    CHECK(JS_ExecuteScript(cx, global, script));
+    CHECK(JS_ExecuteScript(cx, script));
     return true;
 }
 END_TEST(testXDR_bug516827)

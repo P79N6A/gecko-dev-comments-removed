@@ -3730,11 +3730,15 @@ JS_DecompileFunctionBody(JSContext *cx, JS::Handle<JSFunction*> fun, unsigned in
 
 
 
-extern JS_PUBLIC_API(bool)
-JS_ExecuteScript(JSContext *cx, JS::HandleObject obj, JS::HandleScript script, JS::MutableHandleValue rval);
+
+
+
 
 extern JS_PUBLIC_API(bool)
-JS_ExecuteScript(JSContext *cx, JS::HandleObject obj, JS::HandleScript script);
+JS_ExecuteScript(JSContext *cx, JS::HandleScript script, JS::MutableHandleValue rval);
+
+extern JS_PUBLIC_API(bool)
+JS_ExecuteScript(JSContext *cx, JS::HandleScript script);
 
 
 
