@@ -1587,6 +1587,74 @@ ServiceWorkerManager::AppendPendingOperation(nsIRunnable* aRunnable)
   }
 }
 
+namespace {
+
+class KeepAliveHandler final : public PromiseNativeHandler
+{
+  nsMainThreadPtrHandle<ServiceWorker> mServiceWorker;
+
+  virtual ~KeepAliveHandler()
+  {}
+
+public:
+  explicit KeepAliveHandler(const nsMainThreadPtrHandle<ServiceWorker>& aServiceWorker)
+    : mServiceWorker(aServiceWorker)
+  {}
+
+  void
+  ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) override
+  {
+#ifdef DEBUG
+    WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+    MOZ_ASSERT(workerPrivate);
+    workerPrivate->AssertIsOnWorkerThread();
+#endif
+  }
+
+  void
+  RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) override
+  {
+#ifdef DEBUG
+    WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+    MOZ_ASSERT(workerPrivate);
+    workerPrivate->AssertIsOnWorkerThread();
+#endif
+  }
+};
+
+
+
+already_AddRefed<Promise>
+DispatchExtendableEventOnWorkerScope(JSContext* aCx,
+                                     WorkerGlobalScope* aWorkerScope,
+                                     ExtendableEvent* aEvent)
+{
+  MOZ_ASSERT(aWorkerScope);
+  MOZ_ASSERT(aEvent);
+  nsCOMPtr<nsIGlobalObject> sgo = aWorkerScope;
+  WidgetEvent* internalEvent = aEvent->GetInternalNSEvent();
+
+  ErrorResult result;
+  result = aWorkerScope->DispatchDOMEvent(nullptr, aEvent, nullptr, nullptr);
+  if (result.Failed() || internalEvent->mFlags.mExceptionHasBeenRisen) {
+    return nullptr;
+  }
+
+  nsRefPtr<Promise> waitUntilPromise = aEvent->GetPromise();
+  if (!waitUntilPromise) {
+    ErrorResult result;
+    waitUntilPromise =
+      Promise::Resolve(sgo, aCx, JS::UndefinedHandleValue, result);
+    if (NS_WARN_IF(result.Failed())) {
+      return nullptr;
+    }
+  }
+
+  MOZ_ASSERT(waitUntilPromise);
+  return waitUntilPromise.forget();
+}
+}; 
+
 
 
 
@@ -1674,23 +1742,12 @@ LifecycleEventWorkerRunnable::DispatchLifecycleEvent(JSContext* aCx, WorkerPriva
 
   event->SetTrusted(true);
 
-  nsRefPtr<Promise> waitUntilPromise;
-
-  ErrorResult result;
-  result = target->DispatchDOMEvent(nullptr, event, nullptr, nullptr);
-
-  nsCOMPtr<nsIGlobalObject> sgo = aWorkerPrivate->GlobalScope();
-  WidgetEvent* internalEvent = event->GetInternalNSEvent();
-  if (!result.Failed() && !internalEvent->mFlags.mExceptionHasBeenRisen) {
-    waitUntilPromise = event->GetPromise();
-    if (!waitUntilPromise) {
-      ErrorResult result;
-      waitUntilPromise =
-        Promise::Resolve(sgo, aCx, JS::UndefinedHandleValue, result);
-      if (NS_WARN_IF(result.Failed())) {
-        return true;
-      }
-    }
+  nsRefPtr<Promise> waitUntilPromise =
+    DispatchExtendableEventOnWorkerScope(aCx, aWorkerPrivate->GlobalScope(), event);
+  if (waitUntilPromise) {
+    nsRefPtr<LifecycleEventPromiseHandler> handler =
+      new LifecycleEventPromiseHandler(mTask, mServiceWorker, false );
+    waitUntilPromise->AppendNativeHandler(handler);
   } else {
     
     
@@ -1699,12 +1756,8 @@ LifecycleEventWorkerRunnable::DispatchLifecycleEvent(JSContext* aCx, WorkerPriva
     nsRefPtr<ContinueLifecycleRunnable> r =
       new ContinueLifecycleRunnable(mTask, false , false );
     MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_DispatchToMainThread(r)));
-    return true;
   }
 
-  nsRefPtr<LifecycleEventPromiseHandler> handler =
-    new LifecycleEventPromiseHandler(mTask, mServiceWorker, false );
-  waitUntilPromise->AppendNativeHandler(handler);
   return true;
 }
 
@@ -2091,8 +2144,13 @@ public:
     event->SetTrusted(true);
     event->PostInit(mServiceWorker);
 
-    nsRefPtr<EventTarget> target = do_QueryObject(aWorkerPrivate->GlobalScope());
-    target->DispatchDOMEvent(nullptr, event, nullptr, nullptr);
+    nsRefPtr<Promise> waitUntilPromise =
+      DispatchExtendableEventOnWorkerScope(aCx, aWorkerPrivate->GlobalScope(), event);
+    if (waitUntilPromise) {
+      nsRefPtr<KeepAliveHandler> handler = new KeepAliveHandler(mServiceWorker);
+      waitUntilPromise->AppendNativeHandler(handler);
+    }
+
     return true;
   }
 };
