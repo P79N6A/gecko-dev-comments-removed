@@ -1109,9 +1109,7 @@ loop.webapp = (function($, _, OT, mozL10n) {
     var locationData = sharedUtils.locationData();
 
     dispatcher.dispatch(new sharedActions.ExtractTokenInfo({
-      
-      
-      windowPath: locationData.hash || locationData.pathname
+      windowPath: locationData.pathname
     }));
   }
 
