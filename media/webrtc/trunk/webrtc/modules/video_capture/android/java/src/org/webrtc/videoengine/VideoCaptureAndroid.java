@@ -224,6 +224,12 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback, AppStateL
   private synchronized boolean stopCapture() {
     Log.d(TAG, "stopCapture");
     if (camera == null) {
+      if (mResumeCapture == true) {
+        
+        
+        mResumeCapture = false;
+        return true;
+      }
       throw new RuntimeException("Camera is already stopped!");
     }
     Throwable error = null;
