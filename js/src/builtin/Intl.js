@@ -81,7 +81,7 @@ internalIntlRegExps.currencyDigitsRE = null;
 function getUnicodeLocaleExtensionSequenceRE() {
     return internalIntlRegExps.unicodeLocaleExtensionSequenceRE ||
            (internalIntlRegExps.unicodeLocaleExtensionSequenceRE =
-            regexp_construct_no_statics("-u(-[a-z0-9]{2,8})+"));
+            regexp_construct_no_statics("-u(?:-[a-z0-9]{2,8})+"));
 }
 
 
@@ -90,14 +90,37 @@ function getUnicodeLocaleExtensionSequenceRE() {
 
 function removeUnicodeExtensions(locale) {
     
+    if (callFunction(std_String_startsWith, locale, "x-"))
+        return locale;
+
     
+    
+    
+    var pos = callFunction(std_String_indexOf, locale, "-x-");
+    if (pos < 0)
+        pos = locale.length;
+
+    var left = callFunction(std_String_substring, locale, 0, pos);
+    var right = callFunction(std_String_substring, locale, pos);
+
     var extensions;
     var unicodeLocaleExtensionSequenceRE = getUnicodeLocaleExtensionSequenceRE();
-    while ((extensions = regexp_exec_no_statics(unicodeLocaleExtensionSequenceRE, locale)) !== null) {
-        locale = callFunction(std_String_replace, locale, extensions[0], "");
+    while ((extensions = regexp_exec_no_statics(unicodeLocaleExtensionSequenceRE, left)) !== null) {
+        left = callFunction(std_String_replace, left, extensions[0], "");
         unicodeLocaleExtensionSequenceRE.lastIndex = 0;
     }
-    return locale;
+
+    var combined = left + right;
+    assert(IsStructurallyValidLanguageTag(combined), "recombination produced an invalid language tag");
+    assert(function() {
+        var uindex = callFunction(std_String_indexOf, combined, "-u-");
+        if (uindex < 0)
+            return true;
+        var xindex = callFunction(std_String_indexOf, combined, "-x-");
+        return xindex > 0 && xindex < uindex;
+    }(), "recombination failed to remove all Unicode locale extension sequences");
+
+    return combined;
 }
 
 
