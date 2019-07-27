@@ -74,6 +74,15 @@ let CompatWarning = {
                   Ci.nsIScriptError.warningFlag,
                   "chrome javascript");
       Services.console.logMessage(error);
+
+      if (Preferences.get("dom.ipc.shims.dumpWarnings", false)) {
+        dump(message + "\n");
+        while (stack) {
+          dump(stack + "\n");
+          stack = stack.caller;
+        }
+        dump("\n");
+      }
     };
   },
 
