@@ -76,16 +76,8 @@ enum {
     JOF_CHECKSTRICT     = 1 << 20,  
     JOF_INVOKE          = 1 << 21,  
 
-    JOF_TMPSLOT         = 1 << 22,  
-
-
-    JOF_TMPSLOT2        = 2 << 22,  
-
-    JOF_TMPSLOT3        = 3 << 22,  
-
-    JOF_TMPSLOT_SHIFT   = 22,
-    JOF_TMPSLOT_MASK    = JS_BITMASK(2) << JOF_TMPSLOT_SHIFT,
-
+    
+    
     
     JOF_GNAME           = 1 << 25,  
     JOF_TYPESET         = 1 << 26,  
