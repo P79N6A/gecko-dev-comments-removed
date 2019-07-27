@@ -271,9 +271,11 @@ IonBuilder::getSingleCallTarget(types::TemporaryTypeSet *calleeTypes)
 
 bool
 IonBuilder::getPolyCallTargets(types::TemporaryTypeSet *calleeTypes, bool constructing,
-                               ObjectVector &targets, uint32_t maxTargets)
+                               ObjectVector &targets, uint32_t maxTargets, bool *gotLambda)
 {
     MOZ_ASSERT(targets.empty());
+    MOZ_ASSERT(gotLambda);
+    *gotLambda = false;
 
     if (!calleeTypes)
         return true;
@@ -288,11 +290,9 @@ IonBuilder::getPolyCallTargets(types::TemporaryTypeSet *calleeTypes, bool constr
 
     if (!targets.reserve(objCount))
         return false;
-    for (unsigned i = 0; i < objCount; i++) {
+    for(unsigned i = 0; i < objCount; i++) {
         JSObject *obj = calleeTypes->getSingleObject(i);
-        if (obj) {
-            MOZ_ASSERT(obj->hasSingletonType());
-        } else {
+        if (!obj) {
             types::TypeObject *typeObj = calleeTypes->getTypeObject(i);
             if (!typeObj)
                 continue;
@@ -303,7 +303,7 @@ IonBuilder::getPolyCallTargets(types::TemporaryTypeSet *calleeTypes, bool constr
                 return true;
             }
 
-            MOZ_ASSERT(!obj->hasSingletonType());
+            *gotLambda = true;
         }
 
         
@@ -316,6 +316,10 @@ IonBuilder::getPolyCallTargets(types::TemporaryTypeSet *calleeTypes, bool constr
 
         targets.infallibleAppend(obj);
     }
+
+    
+    if (*gotLambda && targets.length() > 1)
+        targets.clear();
 
     return true;
 }
@@ -4829,7 +4833,7 @@ IonBuilder::inlineSingleCall(CallInfo &callInfo, JSObject *targetArg)
 
 IonBuilder::InliningStatus
 IonBuilder::inlineCallsite(const ObjectVector &targets, ObjectVector &originals,
-                           CallInfo &callInfo)
+                           bool lambda, CallInfo &callInfo)
 {
     if (targets.empty())
         return InliningStatus_NotInlined;
@@ -4864,7 +4868,7 @@ IonBuilder::inlineCallsite(const ObjectVector &targets, ObjectVector &originals,
         
         
         
-        if (target->hasSingletonType()) {
+        if (!lambda) {
             
             MConstant *constFun = constant(ObjectValue(*target));
             callInfo.setFun(constFun);
@@ -5107,25 +5111,21 @@ IonBuilder::inlineCalls(CallInfo &callInfo, const ObjectVector &targets,
             return false;
 
         
-        MConstant *funcDef = nullptr;
-        if (target->hasSingletonType()) {
-            funcDef = MConstant::New(alloc(), ObjectValue(*target), constraints());
-            funcDef->setImplicitlyUsedUnchecked();
-            dispatchBlock->add(funcDef);
+        MConstant *funcDef = MConstant::New(alloc(), ObjectValue(*target), constraints());
+        funcDef->setImplicitlyUsedUnchecked();
+        dispatchBlock->add(funcDef);
 
-            
-            int funIndex = inlineBlock->entryResumePoint()->stackDepth() - callInfo.numFormals();
-            inlineBlock->entryResumePoint()->replaceOperand(funIndex, funcDef);
-            inlineBlock->rewriteSlot(funIndex, funcDef);
-        }
+        
+        int funIndex = inlineBlock->entryResumePoint()->stackDepth() - callInfo.numFormals();
+        inlineBlock->entryResumePoint()->replaceOperand(funIndex, funcDef);
+        inlineBlock->rewriteSlot(funIndex, funcDef);
 
         
         CallInfo inlineInfo(alloc(), callInfo.constructing());
         if (!inlineInfo.init(callInfo))
             return false;
         inlineInfo.popFormals(inlineBlock);
-        if (funcDef)
-            inlineInfo.setFun(funcDef);
+        inlineInfo.setFun(funcDef);
 
         if (maybeCache) {
             MOZ_ASSERT(callInfo.thisArg() == maybeCache->object());
@@ -5160,8 +5160,7 @@ IonBuilder::inlineCalls(CallInfo &callInfo, const ObjectVector &targets,
         
         
         
-        types::TypeObject *funType = original->hasSingletonType() ? nullptr : original->type();
-        dispatch->addCase(original, funType, inlineBlock);
+        dispatch->addCase(original, inlineBlock);
 
         MDefinition *retVal = inlineReturnBlock->peek(-1);
         retPhi->addInput(retVal);
@@ -5212,11 +5211,8 @@ IonBuilder::inlineCalls(CallInfo &callInfo, const ObjectVector &targets,
                     MOZ_ASSERT(!remaining);
 
                     if (targets[i]->is<JSFunction>()) {
-                        JSFunction *target = &targets[i]->as<JSFunction>();
-                        if (target->hasSingletonType()) {
-                            remaining = target;
-                            clonedAtCallsite = target != originals[i];
-                        }
+                        remaining = &targets[i]->as<JSFunction>();
+                        clonedAtCallsite = targets[i] != originals[i];
                     }
                     break;
                 }
@@ -5645,9 +5641,13 @@ IonBuilder::jsop_call(uint32_t argc, bool constructing)
 
     
     ObjectVector originals(alloc());
+    bool gotLambda = false;
     types::TemporaryTypeSet *calleeTypes = current->peek(calleeDepth)->resultTypeSet();
-    if (calleeTypes && !getPolyCallTargets(calleeTypes, constructing, originals, 4))
-        return false;
+    if (calleeTypes) {
+        if (!getPolyCallTargets(calleeTypes, constructing, originals, 4, &gotLambda))
+            return false;
+    }
+    MOZ_ASSERT_IF(gotLambda, originals.length() <= 1);
 
     
     
@@ -5676,7 +5676,7 @@ IonBuilder::jsop_call(uint32_t argc, bool constructing)
         return false;
 
     
-    InliningStatus status = inlineCallsite(targets, originals, callInfo);
+    InliningStatus status = inlineCallsite(targets, originals, gotLambda, callInfo);
     if (status == InliningStatus_Inlined)
         return true;
     if (status == InliningStatus_Error)
