@@ -20,7 +20,6 @@
 #include "mozilla/unused.h"
 #include <cctype>
 #include "mozilla/dom/EncodingUtils.h"
-#include "mozilla/dom/ContentChild.h"
 
 using mozilla::dom::EncodingUtils;
 using namespace mozilla;
@@ -646,33 +645,27 @@ nsPluginTag::GetBlocklistState(uint32_t *aResult)
     return NS_OK;
   }
 
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
-    *aResult = nsIBlocklistService::STATE_BLOCKED;
-    dom::ContentChild* cp = dom::ContentChild::GetSingleton();
-    if (!cp->SendGetBlocklistState(mId, aResult)) {
-      return NS_OK;
-    }
-  } else {
-    nsCOMPtr<nsIBlocklistService> blocklist =
-      do_GetService("@mozilla.org/extensions/blocklist;1");
+  nsCOMPtr<nsIBlocklistService> blocklist =
+    do_GetService("@mozilla.org/extensions/blocklist;1");
 
-    if (!blocklist) {
-      *aResult = nsIBlocklistService::STATE_NOT_BLOCKED;
-      return NS_OK;
-    }
-
-    
-    
-    if (NS_FAILED(blocklist->GetPluginBlocklistState(this, EmptyString(),
-                                                     EmptyString(), aResult))) {
-      *aResult = nsIBlocklistService::STATE_NOT_BLOCKED;
-      return NS_OK;
-    }
+  if (!blocklist) {
+    *aResult = nsIBlocklistService::STATE_NOT_BLOCKED;
+    return NS_OK;
   }
 
-  MOZ_ASSERT(*aResult <= UINT16_MAX);
-  mCachedBlocklistState = (uint16_t) *aResult;
+  
+  
+  uint32_t state;
+  if (NS_FAILED(blocklist->GetPluginBlocklistState(this, EmptyString(),
+                                                   EmptyString(), &state))) {
+    *aResult = nsIBlocklistService::STATE_NOT_BLOCKED;
+    return NS_OK;
+  }
+
+  MOZ_ASSERT(state <= UINT16_MAX);
+  mCachedBlocklistState = (uint16_t) state;
   mCachedBlocklistStateValid = true;
+  *aResult = state;
   return NS_OK;
 }
 
