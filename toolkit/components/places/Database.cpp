@@ -50,9 +50,6 @@
 #define BYTES_PER_KIBIBYTE 1024
 
 
-#define DATABASE_BUSY_TIMEOUT_MS 100
-
-
 #define SYNCGUID_ANNO NS_LITERAL_CSTRING("sync/guid")
 
 
@@ -599,10 +596,6 @@ Database::InitSchema(bool* aDatabaseMigrated)
   if (growthIncrementKiB > 0) {
     (void)mMainConn->SetGrowthIncrement(growthIncrementKiB * BYTES_PER_KIBIBYTE, EmptyCString());
   }
-
-  nsAutoCString busyTimeoutPragma("PRAGMA busy_timeout = ");
-  busyTimeoutPragma.AppendInt(DATABASE_BUSY_TIMEOUT_MS);
-  (void)mMainConn->ExecuteSimpleSQL(busyTimeoutPragma);
 
   
   rv = InitFunctions();
@@ -1217,6 +1210,8 @@ Database::MigrateV7Up()
     return NS_ERROR_FILE_CORRUPTED;
   }
 
+  mozStorageTransaction transaction(mMainConn, false);
+
   
   
   bool lastModIndexExists = false;
@@ -1396,7 +1391,7 @@ Database::MigrateV7Up()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  return NS_OK;
+  return transaction.Commit();
 }
 
 
@@ -1404,6 +1399,7 @@ nsresult
 Database::MigrateV8Up()
 {
   MOZ_ASSERT(NS_IsMainThread());
+  mozStorageTransaction transaction(mMainConn, false);
 
   nsresult rv = mMainConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "DROP TRIGGER IF EXISTS moz_historyvisits_afterinsert_v1_trigger"));
@@ -1449,7 +1445,7 @@ Database::MigrateV8Up()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  return NS_OK;
+  return transaction.Commit();
 }
 
 
@@ -1457,6 +1453,7 @@ nsresult
 Database::MigrateV9Up()
 {
   MOZ_ASSERT(NS_IsMainThread());
+  mozStorageTransaction transaction(mMainConn, false);
   
   
   
@@ -1488,7 +1485,7 @@ Database::MigrateV9Up()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  return NS_OK;
+  return transaction.Commit();
 }
 
 
