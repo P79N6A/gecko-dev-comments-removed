@@ -9,6 +9,7 @@
 #include "nscore.h"
 #include "nsContainerFrame.h"
 #include "nsTableFrame.h"
+#include "mozilla/WritingModes.h"
 
 class nsTableColFrame;
 
@@ -112,6 +113,9 @@ public:
 
 
   virtual nsIAtom* GetType() const override;
+
+  virtual mozilla::WritingMode GetWritingMode() const override
+    { return GetTableFrame()->GetWritingMode(); }
 
   
 
