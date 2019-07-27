@@ -350,6 +350,10 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
         newPlayer = nullptr;
         newPlayers.ReplaceElementAt(newIdx, oldPlayer);
         collection->mPlayers.RemoveElementAt(oldIdx);
+
+        
+        
+        oldPlayer->UpdateRelevance();
       }
     }
   } else {

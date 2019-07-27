@@ -48,7 +48,7 @@ class AnimationPlayer : public nsISupports,
                         public nsWrapperCache
 {
 protected:
-  virtual ~AnimationPlayer() { }
+  virtual ~AnimationPlayer() {}
 
 public:
   explicit AnimationPlayer(AnimationTimeline* aTimeline)
@@ -56,6 +56,7 @@ public:
     , mIsPending(false)
     , mIsRunningOnCompositor(false)
     , mIsPreviousStateFinished(false)
+    , mIsRelevant(false)
   {
   }
 
@@ -191,6 +192,9 @@ public:
     return GetSource() && GetSource()->IsInEffect();
   }
 
+  bool IsRelevant() const { return mIsRelevant; }
+  void UpdateRelevance();
+
   void SetIsRunningOnCompositor() { mIsRunningOnCompositor = true; }
   void ClearIsRunningOnCompositor() { mIsRunningOnCompositor = false; }
 
@@ -256,6 +260,9 @@ protected:
   
   
   bool mIsPreviousStateFinished; 
+  
+  
+  bool mIsRelevant;
 };
 
 } 
