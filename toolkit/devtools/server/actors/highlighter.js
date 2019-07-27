@@ -498,6 +498,40 @@ CanvasFrameAnonymousContentHelper.prototype = {
       return null;
     }
     return this._content;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  scaleRootElement: function(node, id) {
+    let zoom = LayoutHelpers.getCurrentZoom(node);
+    let value = "position:absolute;width:100%;height:100%;";
+
+    if (zoom !== 1) {
+      value = "position:absolute;";
+      value += "transform-origin:top left;transform:scale(" + (1/zoom) + ");";
+      value += "width:" + (100*zoom) + "%;height:" + (100*zoom) + "%;";
+    }
+
+    this.setAttributeForElement(id, "style", value);
   }
 };
 
@@ -725,9 +759,10 @@ AutoRefreshHighlighter.prototype = {
 
 
 
+
+
 function BoxModelHighlighter(tabActor) {
   AutoRefreshHighlighter.call(this, tabActor);
-  EventEmitter.decorate(this);
 
   this.markup = new CanvasFrameAnonymousContentHelper(this.tabActor,
     this._buildMarkup.bind(this));
@@ -765,99 +800,139 @@ BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype
     highlighterContainer.className = "highlighter-container";
 
     
-
-    let svgRoot = this._createSVGNode("svg", highlighterContainer, {
-      "id": "root",
-      "class": "root",
-      "width": "100%",
-      "height": "100%",
-      "style": "width:100%;height:100%;",
-      "hidden": "true"
+    let rootWrapper = createNode(this.win, {
+      parent: highlighterContainer,
+      attributes: {
+        "id": "root",
+        "class": "root"
+      },
+      prefix: this.ID_CLASS_PREFIX
     });
 
-    let boxModelContainer = this._createSVGNode("g", svgRoot, {
-      "class": "container"
+    
+
+    let svg = createSVGNode(this.win, {
+      nodeType: "svg",
+      parent: rootWrapper,
+      attributes: {
+        "id": "elements",
+        "width": "100%",
+        "height": "100%",
+        "style": "width:100%;height:100%;",
+        "hidden": "true"
+      },
+      prefix: this.ID_CLASS_PREFIX
+    });
+
+    let regions = createSVGNode(this.win, {
+      nodeType: "g",
+      parent: svg,
+      attributes: {
+        "class": "regions"
+      },
+      prefix: this.ID_CLASS_PREFIX
     });
 
     for (let region of BOX_MODEL_REGIONS) {
-      this._createSVGNode("polygon", boxModelContainer, {
-        "class": region,
-        "id": region
+      createSVGNode(this.win, {
+        nodeType: "polygon",
+        parent: regions,
+        attributes: {
+          "class": region,
+          "id": region
+        },
+        prefix: this.ID_CLASS_PREFIX
       });
     }
 
     for (let side of BOX_MODEL_SIDES) {
-      this._createSVGNode("line", svgRoot, {
-        "class": "guide-" + side,
-        "id": "guide-" + side,
-        "stroke-width": GUIDE_STROKE_WIDTH
+      createSVGNode(this.win, {
+        nodeType: "line",
+        parent: svg,
+        attributes: {
+          "class": "guide-" + side,
+          "id": "guide-" + side,
+          "stroke-width": GUIDE_STROKE_WIDTH
+        },
+        prefix: this.ID_CLASS_PREFIX
       });
     }
 
-    highlighterContainer.appendChild(svgRoot);
-
     
 
-    let infobarContainer = this._createNode("div", highlighterContainer, {
-      "class": "nodeinfobar-container",
-      "id": "nodeinfobar-container",
-      "position": "top",
-      "hidden": "true"
+    let infobarContainer = createNode(this.win, {
+      parent: rootWrapper,
+      attributes: {
+        "class": "nodeinfobar-container",
+        "id": "nodeinfobar-container",
+        "position": "top",
+        "hidden": "true"
+      },
+      prefix: this.ID_CLASS_PREFIX
     });
 
-    let nodeInfobar = this._createNode("div", infobarContainer, {
-      "class": "nodeinfobar"
+    let nodeInfobar = createNode(this.win, {
+      parent: infobarContainer,
+      attributes: {
+        "class": "nodeinfobar"
+      },
+      prefix: this.ID_CLASS_PREFIX
     });
 
-    let texthbox = this._createNode("div", nodeInfobar, {
-      "class": "nodeinfobar-text"
+    let texthbox = createNode(this.win, {
+      parent: nodeInfobar,
+      attributes: {
+        "class": "nodeinfobar-text"
+      },
+      prefix: this.ID_CLASS_PREFIX
     });
-    this._createNode("span", texthbox, {
-      "class": "nodeinfobar-tagname",
-      "id": "nodeinfobar-tagname"
+    createNode(this.win, {
+      nodeType: "span",
+      parent: texthbox,
+      attributes: {
+        "class": "nodeinfobar-tagname",
+        "id": "nodeinfobar-tagname"
+      },
+      prefix: this.ID_CLASS_PREFIX
     });
-    this._createNode("span", texthbox, {
-      "class": "nodeinfobar-id",
-      "id": "nodeinfobar-id"
+    createNode(this.win, {
+      nodeType: "span",
+      parent: texthbox,
+      attributes: {
+        "class": "nodeinfobar-id",
+        "id": "nodeinfobar-id"
+      },
+      prefix: this.ID_CLASS_PREFIX
     });
-    this._createNode("span", texthbox, {
-      "class": "nodeinfobar-classes",
-      "id": "nodeinfobar-classes"
+    createNode(this.win, {
+      nodeType: "span",
+      parent: texthbox,
+      attributes: {
+        "class": "nodeinfobar-classes",
+        "id": "nodeinfobar-classes"
+      },
+      prefix: this.ID_CLASS_PREFIX
     });
-    this._createNode("span", texthbox, {
-      "class": "nodeinfobar-pseudo-classes",
-      "id": "nodeinfobar-pseudo-classes"
+    createNode(this.win, {
+      nodeType: "span",
+      parent: texthbox,
+      attributes: {
+        "class": "nodeinfobar-pseudo-classes",
+        "id": "nodeinfobar-pseudo-classes"
+      },
+      prefix: this.ID_CLASS_PREFIX
     });
-    this._createNode("span", texthbox, {
-      "class": "nodeinfobar-dimensions",
-      "id": "nodeinfobar-dimensions"
+    createNode(this.win, {
+      nodeType: "span",
+      parent: texthbox,
+      attributes: {
+        "class": "nodeinfobar-dimensions",
+        "id": "nodeinfobar-dimensions"
+      },
+      prefix: this.ID_CLASS_PREFIX
     });
 
     return highlighterContainer;
-  },
-
-  _createSVGNode: function(nodeType, parent, attributes={}) {
-    return this._createNode(nodeType, parent, attributes, SVG_NS);
-  },
-
-  _createNode: function(nodeType, parent, attributes={}, namespace=null) {
-    let node;
-    if (namespace) {
-      node = this.win.document.createElementNS(namespace, nodeType);
-    } else {
-      node = this.win.document.createElement(nodeType);
-    }
-
-    for (let name in attributes) {
-      let value = attributes[name];
-      if (name === "class" || name === "id") {
-        value = this.ID_CLASS_PREFIX + value
-      }
-      node.setAttribute(name, value);
-    }
-
-    parent.appendChild(node);
-    return node;
   },
 
   
@@ -952,15 +1027,15 @@ BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype
 
 
   _hideBoxModel: function() {
-    this.markup.setAttributeForElement(this.ID_CLASS_PREFIX + "root", "hidden",
-      "true");
+    this.markup.setAttributeForElement(this.ID_CLASS_PREFIX + "elements",
+      "hidden", "true");
   },
 
   
 
 
   _showBoxModel: function() {
-    this.markup.removeAttributeForElement(this.ID_CLASS_PREFIX + "root",
+    this.markup.removeAttributeForElement(this.ID_CLASS_PREFIX + "elements",
       "hidden");
   },
 
@@ -1001,6 +1076,10 @@ BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype
           this._hideGuides();
         }
       }
+
+      
+      let rootId = this.ID_CLASS_PREFIX + "root";
+      this.markup.scaleRootElement(this.currentNode, rootId);
 
       return true;
     }
@@ -1255,74 +1334,101 @@ CssTransformHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.proto
   _buildMarkup: function() {
     let doc = this.win.document;
 
-    let container = doc.createElement("div");
-    container.className = "highlighter-container";
+    let container = createNode(this.win, {
+      attributes: {
+        "class": "highlighter-container"
+      }
+    });
 
-    let svgRoot = this._createSVGNode("svg", container, {
-      "class": "root",
-      "id": "root",
-      "hidden": "true",
-      "width": "100%",
-      "height": "100%"
+    
+    let rootWrapper = createNode(this.win, {
+      parent: container,
+      attributes: {
+        "id": "root",
+        "class": "root"
+      },
+      prefix: this.ID_CLASS_PREFIX
+    });
+
+    let svg = createSVGNode(this.win, {
+      nodeType: "svg",
+      parent: rootWrapper,
+      attributes: {
+        "id": "elements",
+        "hidden": "true",
+        "width": "100%",
+        "height": "100%"
+      },
+      prefix: this.ID_CLASS_PREFIX
     });
 
     
     this.markerId = "arrow-marker-" + MARKER_COUNTER;
     MARKER_COUNTER ++;
-    let marker = this._createSVGNode("marker", svgRoot, {
-      "id": this.markerId,
-      "markerWidth": "10",
-      "markerHeight": "5",
-      "orient": "auto",
-      "markerUnits": "strokeWidth",
-      "refX": "10",
-      "refY": "5",
-      "viewBox": "0 0 10 10",
+    let marker = createSVGNode(this.win, {
+      nodeType: "marker",
+      parent: svg,
+      attributes: {
+        "id": this.markerId,
+        "markerWidth": "10",
+        "markerHeight": "5",
+        "orient": "auto",
+        "markerUnits": "strokeWidth",
+        "refX": "10",
+        "refY": "5",
+        "viewBox": "0 0 10 10"
+      },
+      prefix: this.ID_CLASS_PREFIX
     });
-    this._createSVGNode("path", marker, {
-      "d": "M 0 0 L 10 5 L 0 10 z",
-      "fill": "#08C"
+    createSVGNode(this.win, {
+      nodeType: "path",
+      parent: marker,
+      attributes: {
+        "d": "M 0 0 L 10 5 L 0 10 z",
+        "fill": "#08C"
+      }
     });
 
-    let shapesGroup = this._createSVGNode("g", svgRoot);
+    let shapesGroup = createSVGNode(this.win, {
+      nodeType: "g",
+      parent: svg
+    });
 
     
-    this._createSVGNode("polygon", shapesGroup, {
-      "id": "untransformed",
-      "class": "untransformed"
+    createSVGNode(this.win, {
+      nodeType: "polygon",
+      parent: shapesGroup,
+      attributes: {
+        "id": "untransformed",
+        "class": "untransformed"
+      },
+      prefix: this.ID_CLASS_PREFIX
     });
-    this._createSVGNode("polygon", shapesGroup, {
-      "id": "transformed",
-      "class": "transformed"
+    createSVGNode(this.win, {
+      nodeType: "polygon",
+      parent: shapesGroup,
+      attributes: {
+        "id": "transformed",
+        "class": "transformed"
+      },
+      prefix: this.ID_CLASS_PREFIX
     });
 
     
     for (let nb of ["1", "2", "3", "4"]) {
-      this._createSVGNode("line", shapesGroup, {
-        "id": "line" + nb,
-        "class": "line",
-        "marker-end": "url(#" + this.markerId + ")"
+      createSVGNode(this.win, {
+        nodeType: "line",
+        parent: shapesGroup,
+        attributes: {
+          "id": "line" + nb,
+          "class": "line",
+          "marker-end": "url(#" + this.markerId + ")"
+        },
+        prefix: this.ID_CLASS_PREFIX
       });
     }
 
-    container.appendChild(svgRoot);
-
     return container;
-  },
-
-  _createSVGNode: function(nodeType, parent, attributes={}) {
-    let node = this.win.document.createElementNS(SVG_NS, nodeType);
-
-    for (let name in attributes) {
-      let value = attributes[name];
-      if (name === "class" || name === "id") {
-        value = this.ID_CLASS_PREFIX + value
-      }
-      node.setAttribute(name, value);
-    }
-
-    parent.appendChild(node);
-    return node;
   },
 
   
@@ -1401,6 +1507,9 @@ CssTransformHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.proto
       this._setLinePoints(untransformedQuad["p" + nb], quad["p" + nb], "line" + nb);
     }
 
+    
+    this.markup.scaleRootElement(this.currentNode, this.ID_CLASS_PREFIX + "root");
+
     this._showShapes();
   },
 
@@ -1412,11 +1521,13 @@ CssTransformHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.proto
   },
 
   _hideShapes: function() {
-    this.markup.setAttributeForElement(this.ID_CLASS_PREFIX + "root", "hidden", "true");
+    this.markup.setAttributeForElement(this.ID_CLASS_PREFIX + "elements",
+      "hidden", "true");
   },
 
   _showShapes: function() {
-    this.markup.removeAttributeForElement(this.ID_CLASS_PREFIX + "root", "hidden");
+    this.markup.removeAttributeForElement(this.ID_CLASS_PREFIX + "elements",
+      "hidden");
   }
 });
 
@@ -1654,6 +1765,63 @@ function installHelperSheet(win, source, type="agent") {
 
 function isXUL(tabActor) {
   return tabActor.window.document.documentElement.namespaceURI === XUL_NS;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function createSVGNode(win, options) {
+  if (!options.nodeType) {
+    options.nodeType = "box";
+  }
+  options.namespace = SVG_NS;
+  return createNode(win, options);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function createNode(win, options) {
+  let type = options.nodeType || "div";
+
+  let node;
+  if (options.namespace) {
+    node = win.document.createElementNS(options.namespace, type);
+  } else {
+    node = win.document.createElement(type);
+  }
+
+  for (let name in options.attributes || {}) {
+    let value = options.attributes[name];
+    if (options.prefix && (name === "class" || name === "id")) {
+      value = options.prefix + value
+    }
+    node.setAttribute(name, value);
+  }
+
+  if (options.parent) {
+    options.parent.appendChild(node);
+  }
+
+  return node;
 }
 
 XPCOMUtils.defineLazyGetter(this, "DOMUtils", function () {

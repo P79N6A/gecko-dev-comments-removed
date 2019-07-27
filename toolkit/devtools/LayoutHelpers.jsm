@@ -50,7 +50,7 @@ LayoutHelpers.prototype = {
     }
 
     let [xOffset, yOffset] = this.getFrameOffsets(node);
-    let scale = this.calculateScale(node);
+    let scale = LayoutHelpers.getCurrentZoom(node);
 
     return {
       p1: {
@@ -88,19 +88,6 @@ LayoutHelpers.prototype = {
         y: quads.bounds.y * scale + yOffset
       }
     };
-  },
-
-  
-
-
-
-
-
-  calculateScale: function(node) {
-    let win = node.ownerDocument.defaultView;
-    let winUtils = win.QueryInterface(Ci.nsIInterfaceRequestor)
-                      .getInterface(Ci.nsIDOMWindowUtils);
-    return winUtils.fullZoom;
   },
 
   
@@ -411,7 +398,7 @@ LayoutHelpers.prototype = {
     let xOffset = 0;
     let yOffset = 0;
     let frameWin = node.ownerDocument.defaultView;
-    let scale = this.calculateScale(node);
+    let scale = LayoutHelpers.getCurrentZoom(node);
 
     while (true) {
       
@@ -454,7 +441,7 @@ LayoutHelpers.prototype = {
       return;
     }
 
-    let scale = this.calculateScale(node);
+    let scale = LayoutHelpers.getCurrentZoom(node);
 
     
     let offsetLeft = 0;
@@ -606,4 +593,26 @@ LayoutHelpers.isShadowAnonymous = function(node) {
   
   
   return parent.shadowRoot && parent.shadowRoot.contains(node);
+};
+
+
+
+
+
+
+
+
+
+let windowUtils = new WeakMap;
+LayoutHelpers.getCurrentZoom = function(node, map = z=>z) {
+  let win = node.ownerDocument.defaultView;
+  let utils = windowUtils.get(win);
+  if (utils) {
+    return utils.fullZoom;
+  }
+
+  utils = win.QueryInterface(Ci.nsIInterfaceRequestor)
+             .getInterface(Ci.nsIDOMWindowUtils);
+  windowUtils.set(win, utils);
+  return utils.fullZoom;
 };

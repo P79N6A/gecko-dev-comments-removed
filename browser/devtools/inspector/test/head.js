@@ -395,7 +395,7 @@ let isRegionHidden = Task.async(function*(region, toolbox) {
 
 let isHighlighting = Task.async(function*(toolbox) {
   let {data: value} = yield executeInContent("Test:GetHighlighterAttribute", {
-    nodeID: "box-model-root",
+    nodeID: "box-model-elements",
     name: "hidden",
     actorID: getHighlighterActorID(toolbox)
   });
@@ -553,6 +553,19 @@ let clickContainer = Task.async(function*(selector, inspector) {
   EventUtils.synthesizeMouseAtCenter(container.tagLine, {type: "mouseup"},
     inspector.markup.doc.defaultView);
   return updated;
+});
+
+
+
+
+
+
+
+
+
+let zoomPageTo = Task.async(function*(level, actorID) {
+  yield executeInContent("Test:ChangeZoomLevel",
+                         {level, actorID});
 });
 
 

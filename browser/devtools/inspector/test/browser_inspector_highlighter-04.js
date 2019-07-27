@@ -10,6 +10,7 @@ const TEST_URL = "data:text/html;charset=utf-8,<div>test</div>";
 
 
 const ELEMENTS = ["box-model-root",
+                  "box-model-elements",
                   "box-model-margin",
                   "box-model-border",
                   "box-model-padding",

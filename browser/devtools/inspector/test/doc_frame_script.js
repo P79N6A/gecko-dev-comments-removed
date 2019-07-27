@@ -138,6 +138,35 @@ addMessageListener("Test:ChangeHighlightedNodeWaitForUpdate", function(msg) {
 
 
 
+
+addMessageListener("Test:ChangeZoomLevel", function(msg) {
+  let {level, actorID} = msg.data;
+  dumpn("Zooming page to " + level);
+
+  if (actorID) {
+    let {_highlighter: h} = getHighlighterActor(actorID);
+    h.once("updated", () => {
+      sendAsyncMessage("Test:ChangeZoomLevel");
+    });
+  }
+
+  let docShell = content.QueryInterface(Ci.nsIInterfaceRequestor)
+                        .getInterface(Ci.nsIWebNavigation)
+                        .QueryInterface(Ci.nsIDocShell);
+  docShell.contentViewer.fullZoom = level;
+
+  if (!actorID) {
+    sendAsyncMessage("Test:ChangeZoomLevel");
+  }
+});
+
+
+
+
+
+
+
+
 addMessageListener("Test:ElementFromPoint", function(msg) {
   let {x, y} = msg.data;
   dumpn("Getting the element at " + x + "/" + y);
