@@ -64,7 +64,9 @@ MediaDecoderReader::MediaDecoderReader(AbstractMediaDecoder* aDecoder,
                                        MediaTaskQueue* aBorrowedTaskQueue)
   : mAudioCompactor(mAudioQueue)
   , mDecoder(aDecoder)
-  , mTaskQueue(aBorrowedTaskQueue ? aBorrowedTaskQueue : new MediaTaskQueue(GetMediaThreadPool(MediaThreadType::PLAYBACK)))
+  , mTaskQueue(aBorrowedTaskQueue ? aBorrowedTaskQueue
+                                  : new MediaTaskQueue(GetMediaThreadPool(MediaThreadType::PLAYBACK),
+                                                        true))
   , mIgnoreAudioOutputFormat(false)
   , mStartTime(-1)
   , mHitAudioDecodeError(false)
