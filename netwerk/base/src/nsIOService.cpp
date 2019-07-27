@@ -40,6 +40,7 @@
 #include "MainThreadUtils.h"
 #include "nsIWidget.h"
 #include "nsThreadUtils.h"
+#include "mozilla/LoadInfo.h"
 #include "mozilla/net/NeckoCommon.h"
 
 #ifdef MOZ_WIDGET_GONK
@@ -634,13 +635,76 @@ nsIOService::NewChannelFromURIWithProxyFlags2(nsIURI* aURI,
     if (NS_FAILED(rv))
         return rv;
 
+    
+    
+    
+    
+    
+    
+
+    nsCOMPtr<nsILoadInfo> loadInfo;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (aLoadingNode || aLoadingPrincipal) {
+      nsCOMPtr<nsINode> loadingNode(do_QueryInterface(aLoadingNode));
+      loadInfo = new mozilla::LoadInfo(aLoadingPrincipal,
+                                       aTriggeringPrincipal,
+                                       loadingNode,
+                                       aSecurityFlags,
+                                       aContentPolicyType);
+      if (!loadInfo) {
+        return NS_ERROR_UNEXPECTED;
+      }
+    }
+
+    bool newChannel2Succeeded = true;
+
     nsCOMPtr<nsIProxiedProtocolHandler> pph = do_QueryInterface(handler);
-    if (pph)
-        rv = pph->NewProxiedChannel(aURI, nullptr, aProxyFlags, aProxyURI, result);
-    else
-        rv = handler->NewChannel(aURI, result);
-    if (NS_FAILED(rv))
-        return rv;
+    if (pph) {
+        rv = pph->NewProxiedChannel2(aURI, nullptr, aProxyFlags, aProxyURI,
+                                     loadInfo, result);
+        
+        
+        if (NS_FAILED(rv)) {
+            newChannel2Succeeded = false;
+            rv = pph->NewProxiedChannel(aURI, nullptr, aProxyFlags, aProxyURI,
+                                        result);
+        }
+    }
+    else {
+        rv = handler->NewChannel2(aURI, loadInfo, result);
+        
+        
+        if (NS_FAILED(rv)) {
+            newChannel2Succeeded = false;
+            rv = handler->NewChannel(aURI, result);
+        }
+    }
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if ((aLoadingNode || aLoadingPrincipal) && newChannel2Succeeded) {
+      
+      
+      
+      
+      
+      nsCOMPtr<nsILoadInfo> loadInfo;
+      (*result)->GetLoadInfo(getter_AddRefs(loadInfo));
+      MOZ_ASSERT(loadInfo);
+
+      
+      
+      if (loadInfo->GetLoadingSandboxed()) {
+        (*result)->SetOwner(nullptr);
+      }
+    }
 
     
     
