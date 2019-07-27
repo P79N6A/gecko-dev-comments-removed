@@ -842,6 +842,10 @@ MaybeWrapValue(JSContext* cx, JS::MutableHandle<JS::Value> rval)
 
 
 
+
+
+
+
 template <class T>
 MOZ_ALWAYS_INLINE bool
 WrapNewBindingObject(JSContext* cx, T* value, JS::MutableHandle<JS::Value> rval)
