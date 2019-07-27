@@ -36,6 +36,7 @@ pub struct TrackHeaderBox {
     pub name: u32,
     pub size: u64,
     pub track_id: u32,
+    pub enabled: bool,
     pub duration: u64,
     pub width: u32,
     pub height: u32,
@@ -43,11 +44,11 @@ pub struct TrackHeaderBox {
 
 mod byteorder;
 use byteorder::{BigEndian, ReadBytesExt};
-use std::io::{Read, Result, Seek, SeekFrom, Take};
+use std::io::{Read, Seek, SeekFrom, Take};
 use std::io::Cursor;
 
 
-pub fn read_box_header<T: ReadBytesExt>(src: &mut T) -> Result<BoxHeader> {
+pub fn read_box_header<T: ReadBytesExt>(src: &mut T) -> byteorder::Result<BoxHeader> {
     let tmp_size = try!(src.read_u32::<BigEndian>());
     let name = try!(src.read_u32::<BigEndian>());
     let size = match tmp_size {
@@ -95,7 +96,8 @@ fn limit<'a, T: Read>(f: &'a mut T, h: &BoxHeader) -> Take<&'a mut T> {
 }
 
 
-fn recurse<T: Read>(f: &mut T, h: &BoxHeader) {
+fn recurse<T: Read>(f: &mut T, h: &BoxHeader) -> byteorder::Result<()> {
+    use std::error::Error;
     println!("{} -- recursing", h);
     
     
@@ -110,42 +112,51 @@ fn recurse<T: Read>(f: &mut T, h: &BoxHeader) {
     loop {
         match read_box(&mut content) {
             Ok(_) => {},
-            Err(e) => {
-                println!("Error '{:?}' reading box", e.kind());
+            Err(byteorder::Error::UnexpectedEOF) => {
+                
+                
+                
+                println!("Caught byteorder::Error::UnexpectedEOF");
                 break;
+            },
+            Err(byteorder::Error::Io(e)) => {
+                println!("I/O Error '{:?}' reading box: {}",
+                         e.kind(), e.description());
+                return Err(byteorder::Error::Io(e));
             },
         }
     }
     println!("{} -- end", h);
+    Ok(())
 }
 
 
 
 
-pub fn read_box<T: Read + Seek>(f: &mut T) -> Result<()> {
+pub fn read_box<T: Read + Seek>(f: &mut T) -> byteorder::Result<()> {
     read_box_header(f).and_then(|h| {
         match &(fourcc_to_string(h.name))[..] {
             "ftyp" => {
                 let mut content = limit(f, &h);
-                let ftyp = read_ftyp(&mut content, &h).unwrap();
+                let ftyp = try!(read_ftyp(&mut content, &h));
                 println!("{}", ftyp);
             },
-            "moov" => recurse(f, &h),
+            "moov" => try!(recurse(f, &h)),
             "mvhd" => {
                 let mut content = limit(f, &h);
-                let mvhd = read_mvhd(&mut content, &h).unwrap();
+                let mvhd = try!(read_mvhd(&mut content, &h));
                 println!("  {}", mvhd);
             },
-            "trak" => recurse(f, &h),
+            "trak" => try!(recurse(f, &h)),
             "tkhd" => {
                 let mut content = limit(f, &h);
-                let tkhd = read_tkhd(&mut content, &h).unwrap();
+                let tkhd = try!(read_tkhd(&mut content, &h));
                 println!("  {}", tkhd);
             },
             _ => {
                 
                 println!("{} (skipped)", h);
-                skip_box_content(f, &h).unwrap();
+                try!(skip_box_content(f, &h).and(Ok(())));
             },
         };
         Ok(()) 
@@ -171,7 +182,11 @@ pub unsafe extern fn read_box_from_buffer(buffer: *const u8, size: usize)
 
     
     let task = thread::spawn(move || {
-        read_box(&mut c).unwrap();
+        read_box(&mut c).or_else(|e| { match e {
+            
+            byteorder::Error::UnexpectedEOF => { Ok(()) },
+            e => { Err(e) },
+        }}).unwrap();
     });
     
     task.join().is_ok()
@@ -180,15 +195,15 @@ pub unsafe extern fn read_box_from_buffer(buffer: *const u8, size: usize)
 
 
 pub fn read_ftyp<T: ReadBytesExt>(src: &mut T, head: &BoxHeader)
-  -> Option<FileTypeBox> {
-    let major = src.read_u32::<BigEndian>().unwrap();
-    let minor = src.read_u32::<BigEndian>().unwrap();
+  -> byteorder::Result<FileTypeBox> {
+    let major = try!(src.read_u32::<BigEndian>());
+    let minor = try!(src.read_u32::<BigEndian>());
     let brand_count = (head.size - 8 - 8) /4;
     let mut brands = Vec::new();
     for _ in 0..brand_count {
-        brands.push(src.read_u32::<BigEndian>().unwrap());
+        brands.push( try!(src.read_u32::<BigEndian>()) );
     }
-    Some(FileTypeBox{
+    Ok(FileTypeBox{
         name: head.name,
         size: head.size,
         major_brand: major,
@@ -199,35 +214,35 @@ pub fn read_ftyp<T: ReadBytesExt>(src: &mut T, head: &BoxHeader)
 
 
 pub fn read_mvhd<T: ReadBytesExt>(src: &mut T, head: &BoxHeader)
-  -> Option<MovieHeaderBox> {
+  -> byteorder::Result<MovieHeaderBox> {
     let (version, _) = read_fullbox_extra(src);
     match version {
         1 => {
             
             let mut skip: Vec<u8> = vec![0; 16];
-            let r = src.read(&mut skip).unwrap();
+            let r = try!(src.read(&mut skip));
             assert!(r == skip.len());
         },
         0 => {
             
             
             let mut skip: Vec<u8> = vec![0; 8];
-            let r = src.read(&mut skip).unwrap();
+            let r = try!(src.read(&mut skip));
             assert!(r == skip.len());
         },
         _ => panic!("invalid mhdr version"),
     }
     let timescale = src.read_u32::<BigEndian>().unwrap();
     let duration = match version {
-        1 => src.read_u64::<BigEndian>().unwrap(),
-        0 => src.read_u32::<BigEndian>().unwrap() as u64,
+        1 => try!(src.read_u64::<BigEndian>()),
+        0 => try!(src.read_u32::<BigEndian>()) as u64,
         _ => panic!("invalid mhdr version"),
     };
     
     let mut skip: Vec<u8> = vec![0; 80];
-    let r = src.read(&mut skip).unwrap();
+    let r = try!(src.read(&mut skip));
     assert!(r == skip.len());
-    Some(MovieHeaderBox {
+    Ok(MovieHeaderBox {
         name: head.name,
         size: head.size,
         timescale: timescale,
@@ -237,50 +252,48 @@ pub fn read_mvhd<T: ReadBytesExt>(src: &mut T, head: &BoxHeader)
 
 
 pub fn read_tkhd<T: ReadBytesExt>(src: &mut T, head: &BoxHeader)
-  -> Option<TrackHeaderBox> {
+  -> byteorder::Result<TrackHeaderBox> {
     let (version, flags) = read_fullbox_extra(src);
-    if flags & 0x1u32 == 0 || flags & 0x2u32 == 0 {
-        
-        return None;
-    }
+    let disabled = flags & 0x1u32 == 0 || flags & 0x2u32 == 0;
     match version {
         1 => {
             
             let mut skip: Vec<u8> = vec![0; 16];
-            let r = src.read(&mut skip).unwrap();
+            let r = try!(src.read(&mut skip));
             assert!(r == skip.len());
         },
         0 => {
             
             
             let mut skip: Vec<u8> = vec![0; 8];
-            let r = src.read(&mut skip).unwrap();
+            let r = try!(src.read(&mut skip));
             assert!(r == skip.len());
         },
         _ => panic!("invalid tkhd version"),
     }
-    let track_id = src.read_u32::<BigEndian>().unwrap();
-    let _reserved = src.read_u32::<BigEndian>().unwrap();
+    let track_id = try!(src.read_u32::<BigEndian>());
+    let _reserved = try!(src.read_u32::<BigEndian>());
     assert!(_reserved == 0);
     let duration = match version {
         1 => {
-            src.read_u64::<BigEndian>().unwrap()
+            try!(src.read_u64::<BigEndian>())
         },
-        0 => src.read_u32::<BigEndian>().unwrap() as u64,
+        0 => try!(src.read_u32::<BigEndian>()) as u64,
         _ => panic!("invalid tkhd version"),
     };
-    let _reserved = src.read_u32::<BigEndian>().unwrap();
-    let _reserved = src.read_u32::<BigEndian>().unwrap();
+    let _reserved = try!(src.read_u32::<BigEndian>());
+    let _reserved = try!(src.read_u32::<BigEndian>());
     
     let mut skip: Vec<u8> = vec![0; 44];
-    let r = src.read(&mut skip).unwrap();
+    let r = try!(src.read(&mut skip));
     assert!(r == skip.len());
-    let width = src.read_u32::<BigEndian>().unwrap();
-    let height = src.read_u32::<BigEndian>().unwrap();
-    Some(TrackHeaderBox {
+    let width = try!(src.read_u32::<BigEndian>());
+    let height = try!(src.read_u32::<BigEndian>());
+    Ok(TrackHeaderBox {
         name: head.name,
         size: head.size,
         track_id: track_id,
+        enabled: !disabled,
         duration: duration,
         width: width,
         height: height,
@@ -331,9 +344,10 @@ impl fmt::Display for TrackHeaderBox {
         let base = u16::MAX as f64 + 1.0;
         let width = (self.width as f64) / base;
         let height = (self.height as f64) / base;
-        write!(f, "'{}' {} bytes duration {} id {} {}x{}",
+        let disabled = if self.enabled { "" } else { " (disabled)" };
+        write!(f, "'{}' {} bytes duration {} id {} {}x{}{}",
             name, self.size, self.duration, self.track_id,
-            width, height)
+            width, height, disabled)
     }
 }
 
