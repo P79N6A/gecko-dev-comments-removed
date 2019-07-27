@@ -103,8 +103,7 @@ this.Sandbox.prototype = {
     docShell.allowWindowControl = false;
 
     
-    let markupDocViewer = docShell.contentViewer
-                                  .QueryInterface(Ci.nsIMarkupDocumentViewer);
+    let markupDocViewer = docShell.contentViewer;
     markupDocViewer.authorStyleDisabled = true;
 
     

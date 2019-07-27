@@ -50,7 +50,7 @@ const TYPE_LOAD = 'load';
 const TYPE_SCRIPT = 'script'; 
 
 function markupDocumentViewer() {
-    return docShell.contentViewer.QueryInterface(CI.nsIMarkupDocumentViewer);
+    return docShell.contentViewer;
 }
 
 function webNavigation() {

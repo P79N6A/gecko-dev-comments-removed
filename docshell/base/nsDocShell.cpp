@@ -22,7 +22,6 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/unused.h"
 #include "mozilla/VisualEventTracer.h"
-#include "URIUtils.h"
 
 #ifdef MOZ_LOGGING
 
@@ -44,7 +43,6 @@
 #include "nsNetUtil.h"
 #include "nsRect.h"
 #include "prenv.h"
-#include "nsIMarkupDocumentViewer.h"
 #include "nsIDOMWindow.h"
 #include "nsIWebBrowserChrome.h"
 #include "nsPoint.h"
@@ -4560,24 +4558,16 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI *aURI,
 
                 
                 
-                uint32_t type = nsISiteSecurityService::HEADER_HSTS;
-                uint32_t flags = mInPrivateBrowsing
-                                 ? nsISocketProvider::NO_PERMANENT_STORAGE
-                                 : 0;
+                nsCOMPtr<nsISiteSecurityService> sss =
+                          do_GetService(NS_SSSERVICE_CONTRACTID, &rv);
+                NS_ENSURE_SUCCESS(rv, rv);
+                uint32_t flags =
+                  mInPrivateBrowsing ? nsISocketProvider::NO_PERMANENT_STORAGE : 0;
+                
                 bool isStsHost = false;
-                if (XRE_GetProcessType() == GeckoProcessType_Default) {
-                  nsCOMPtr<nsISiteSecurityService> sss =
-                            do_GetService(NS_SSSERVICE_CONTRACTID, &rv);
-                  NS_ENSURE_SUCCESS(rv, rv);
-                  rv = sss->IsSecureURI(type, aURI, flags, &isStsHost);
-                  NS_ENSURE_SUCCESS(rv, rv);
-                } else {
-                  mozilla::dom::ContentChild* cc =
-                    mozilla::dom::ContentChild::GetSingleton();
-                  mozilla::ipc::URIParams uri;
-                  SerializeURI(aURI, uri);
-                  cc->SendIsSecureURI(type, uri, flags, &isStsHost);
-                }
+                rv = sss->IsSecureURI(nsISiteSecurityService::HEADER_HSTS,
+                                      aURI, flags, &isStsHost);
+                NS_ENSURE_SUCCESS(rv, rv);
 
                 uint32_t bucketId;
                 if (isStsHost) {
@@ -7845,19 +7835,17 @@ nsDocShell::RestoreFromHistory()
         mSavingOldViewer = CanSavePresentation(mLoadType, request, doc);
     }
 
-    nsCOMPtr<nsIMarkupDocumentViewer> oldMUDV(
-        do_QueryInterface(mContentViewer));
-    nsCOMPtr<nsIMarkupDocumentViewer> newMUDV(
-        do_QueryInterface(viewer));
+    nsCOMPtr<nsIContentViewer> oldCv(mContentViewer);
+    nsCOMPtr<nsIContentViewer> newCv(viewer);
     int32_t minFontSize = 0;
     float textZoom = 1.0f;
     float pageZoom = 1.0f;
     bool styleDisabled = false;
-    if (oldMUDV && newMUDV) {
-        oldMUDV->GetMinFontSize(&minFontSize);
-        oldMUDV->GetTextZoom(&textZoom);
-        oldMUDV->GetFullZoom(&pageZoom);
-        oldMUDV->GetAuthorStyleDisabled(&styleDisabled);
+    if (oldCv && newCv) {
+        oldCv->GetMinFontSize(&minFontSize);
+        oldCv->GetTextZoom(&textZoom);
+        oldCv->GetFullZoom(&pageZoom);
+        oldCv->GetAuthorStyleDisabled(&styleDisabled);
     }
 
     
@@ -8064,11 +8052,11 @@ nsDocShell::RestoreFromHistory()
         FavorPerformanceHint(true);
 
 
-    if (oldMUDV && newMUDV) {
-        newMUDV->SetMinFontSize(minFontSize);
-        newMUDV->SetTextZoom(textZoom);
-        newMUDV->SetFullZoom(pageZoom);
-        newMUDV->SetAuthorStyleDisabled(styleDisabled);
+    if (oldCv && newCv) {
+        newCv->SetMinFontSize(minFontSize);
+        newCv->SetTextZoom(textZoom);
+        newCv->SetFullZoom(pageZoom);
+        newCv->SetAuthorStyleDisabled(styleDisabled);
     }
 
     nsCOMPtr<nsIDocument> document = do_QueryInterface(domDoc);
@@ -8558,15 +8546,15 @@ nsDocShell::SetupNewViewer(nsIContentViewer * aNewViewer)
     float pageZoom;
     bool styleDisabled;
     
-    nsCOMPtr<nsIMarkupDocumentViewer> newMUDV;
+    nsCOMPtr<nsIContentViewer> newCv;
 
     if (mContentViewer || parent) {
-        nsCOMPtr<nsIMarkupDocumentViewer> oldMUDV;
+        nsCOMPtr<nsIContentViewer> oldCv;
         if (mContentViewer) {
             
             
             
-            oldMUDV = do_QueryInterface(mContentViewer);
+            oldCv = mContentViewer;
 
             
             
@@ -8580,35 +8568,31 @@ nsDocShell::SetupNewViewer(nsIContentViewer * aNewViewer)
         }
         else {
             
-            nsCOMPtr<nsIContentViewer> parentContentViewer;
-            parent->GetContentViewer(getter_AddRefs(parentContentViewer));
-            oldMUDV = do_QueryInterface(parentContentViewer);
+            parent->GetContentViewer(getter_AddRefs(oldCv));
         }
 
-        if (oldMUDV) {
-            nsresult rv;
-
-            newMUDV = do_QueryInterface(aNewViewer,&rv);
-            if (newMUDV) {
-                NS_ENSURE_SUCCESS(oldMUDV->
+        if (oldCv) {
+            newCv = aNewViewer;
+            if (newCv) {
+                NS_ENSURE_SUCCESS(oldCv->
                                   GetForceCharacterSet(forceCharset),
                                   NS_ERROR_FAILURE);
-                NS_ENSURE_SUCCESS(oldMUDV->
+                NS_ENSURE_SUCCESS(oldCv->
                                   GetHintCharacterSet(hintCharset),
                                   NS_ERROR_FAILURE);
-                NS_ENSURE_SUCCESS(oldMUDV->
+                NS_ENSURE_SUCCESS(oldCv->
                                   GetHintCharacterSetSource(&hintCharsetSource),
                                   NS_ERROR_FAILURE);
-                NS_ENSURE_SUCCESS(oldMUDV->
+                NS_ENSURE_SUCCESS(oldCv->
                                   GetMinFontSize(&minFontSize),
                                   NS_ERROR_FAILURE);
-                NS_ENSURE_SUCCESS(oldMUDV->
+                NS_ENSURE_SUCCESS(oldCv->
                                   GetTextZoom(&textZoom),
                                   NS_ERROR_FAILURE);
-                NS_ENSURE_SUCCESS(oldMUDV->
+                NS_ENSURE_SUCCESS(oldCv->
                                   GetFullZoom(&pageZoom),
                                   NS_ERROR_FAILURE);
-                NS_ENSURE_SUCCESS(oldMUDV->
+                NS_ENSURE_SUCCESS(oldCv->
                                   GetAuthorStyleDisabled(&styleDisabled),
                                   NS_ERROR_FAILURE);
             }
@@ -8664,21 +8648,21 @@ nsDocShell::SetupNewViewer(nsIContentViewer * aNewViewer)
 
     
     
-    if (newMUDV) {
-        NS_ENSURE_SUCCESS(newMUDV->SetForceCharacterSet(forceCharset),
+    if (newCv) {
+        NS_ENSURE_SUCCESS(newCv->SetForceCharacterSet(forceCharset),
                           NS_ERROR_FAILURE);
-        NS_ENSURE_SUCCESS(newMUDV->SetHintCharacterSet(hintCharset),
+        NS_ENSURE_SUCCESS(newCv->SetHintCharacterSet(hintCharset),
                           NS_ERROR_FAILURE);
-        NS_ENSURE_SUCCESS(newMUDV->
+        NS_ENSURE_SUCCESS(newCv->
                           SetHintCharacterSetSource(hintCharsetSource),
                           NS_ERROR_FAILURE);
-        NS_ENSURE_SUCCESS(newMUDV->SetMinFontSize(minFontSize),
+        NS_ENSURE_SUCCESS(newCv->SetMinFontSize(minFontSize),
                           NS_ERROR_FAILURE);
-        NS_ENSURE_SUCCESS(newMUDV->SetTextZoom(textZoom),
+        NS_ENSURE_SUCCESS(newCv->SetTextZoom(textZoom),
                           NS_ERROR_FAILURE);
-        NS_ENSURE_SUCCESS(newMUDV->SetFullZoom(pageZoom),
+        NS_ENSURE_SUCCESS(newCv->SetFullZoom(pageZoom),
                           NS_ERROR_FAILURE);
-        NS_ENSURE_SUCCESS(newMUDV->SetAuthorStyleDisabled(styleDisabled),
+        NS_ENSURE_SUCCESS(newCv->SetAuthorStyleDisabled(styleDisabled),
                           NS_ERROR_FAILURE);
     }
 
@@ -12910,23 +12894,16 @@ nsDocShell::ReloadDocument(const char* aCharset,
   
   nsCOMPtr<nsIContentViewer> cv;
   NS_ENSURE_SUCCESS(GetContentViewer(getter_AddRefs(cv)), NS_ERROR_FAILURE);
-  if (cv)
-  {
-    nsCOMPtr<nsIMarkupDocumentViewer> muDV = do_QueryInterface(cv);  
-    if (muDV)
-    {
-      int32_t hint;
-      muDV->GetHintCharacterSetSource(&hint);
-      if (aSource > hint)
-      {
-        nsCString charset(aCharset);
-        muDV->SetHintCharacterSet(charset);
-        muDV->SetHintCharacterSetSource(aSource);
-        if(eCharsetReloadRequested != mCharsetReloadState) 
-        {
-          mCharsetReloadState = eCharsetReloadRequested;
-          return Reload(LOAD_FLAGS_CHARSET_CHANGE);
-        }
+  if (cv) {
+    int32_t hint;
+    cv->GetHintCharacterSetSource(&hint);
+    if (aSource > hint) {
+      nsCString charset(aCharset);
+      cv->SetHintCharacterSet(charset);
+      cv->SetHintCharacterSetSource(aSource);
+      if(eCharsetReloadRequested != mCharsetReloadState) {
+        mCharsetReloadState = eCharsetReloadRequested;
+        return Reload(LOAD_FLAGS_CHARSET_CHANGE);
       }
     }
   }
