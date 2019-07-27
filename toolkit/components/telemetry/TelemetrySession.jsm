@@ -508,9 +508,10 @@ let Impl = {
     let si = Services.startup.getStartupInfo();
 
     
+    let elapsedTime = Date.now() - si.process;
     var ret = {
-      
-      uptime: Math.round((new Date() - si.process) / 60000)
+      totalTime: Math.round(elapsedTime / 1000), 
+      uptime: Math.round(elapsedTime / 60000) 
     }
 
     
