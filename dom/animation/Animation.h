@@ -39,8 +39,8 @@ class AnimValuesStyleRule;
 class CommonAnimationManager;
 } 
 
-class CSSAnimationPlayer;
-class CSSTransitionPlayer;
+class CSSAnimation;
+class CSSTransition;
 
 namespace dom {
 
@@ -70,8 +70,8 @@ public:
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
-  virtual CSSAnimationPlayer* AsCSSAnimationPlayer() { return nullptr; }
-  virtual CSSTransitionPlayer* AsCSSTransitionPlayer() { return nullptr; }
+  virtual CSSAnimation* AsCSSAnimation() { return nullptr; }
+  virtual CSSTransition* AsCSSTransition() { return nullptr; }
 
   
   

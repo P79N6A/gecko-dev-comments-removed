@@ -86,21 +86,21 @@ ElementPropertyTransition::CurrentValuePortion() const
 
 
 mozilla::dom::AnimationPlayState
-CSSTransitionPlayer::PlayStateFromJS() const
+CSSTransition::PlayStateFromJS() const
 {
   FlushStyle();
   return Animation::PlayStateFromJS();
 }
 
 void
-CSSTransitionPlayer::PlayFromJS()
+CSSTransition::PlayFromJS()
 {
   FlushStyle();
   Animation::PlayFromJS();
 }
 
 CommonAnimationManager*
-CSSTransitionPlayer::GetAnimationManager() const
+CSSTransition::GetAnimationManager() const
 {
   nsPresContext* context = GetPresContext();
   if (!context) {
@@ -564,7 +564,7 @@ nsTransitionManager::ConsiderStartingTransition(
   segment.mToKey = 1;
   segment.mTimingFunction.Init(tf);
 
-  nsRefPtr<CSSTransitionPlayer> animation = new CSSTransitionPlayer(timeline);
+  nsRefPtr<CSSTransition> animation = new CSSTransition(timeline);
   
   
   
