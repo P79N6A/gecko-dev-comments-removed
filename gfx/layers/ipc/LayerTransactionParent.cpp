@@ -843,6 +843,8 @@ LayerTransactionParent::RecvClearCachedResources()
     
     
     mLayerManager->ClearCachedResources(mRoot);
+
+    mShadowLayersManager->NotifyClearCachedResources(this);
   }
   return true;
 }
