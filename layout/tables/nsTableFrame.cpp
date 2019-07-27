@@ -1358,8 +1358,7 @@ nsTableFrame::PaintTableBorderBackground(nsRenderingContext& aRenderingContext,
   nsMargin deflate = GetDeflationForBackground(presContext);
   
   
-  nsresult rv = painter.PaintTable(this, deflate, deflate != nsMargin(0, 0, 0, 0));
-  if (NS_FAILED(rv)) return;
+  painter.PaintTable(this, deflate, deflate != nsMargin(0, 0, 0, 0));
 
   if (StyleVisibility()->IsVisible()) {
     if (!IsBorderCollapse()) {

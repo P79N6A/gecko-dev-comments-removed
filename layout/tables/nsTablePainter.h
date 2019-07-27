@@ -81,8 +81,8 @@ class TableBackgroundPainter
 
 
 
-    nsresult PaintTable(nsTableFrame* aTableFrame, const nsMargin& aDeflate,
-                        bool aPaintTableBackground);
+    void PaintTable(nsTableFrame* aTableFrame, const nsMargin& aDeflate,
+                    bool aPaintTableBackground);
 
     
 
@@ -91,8 +91,7 @@ class TableBackgroundPainter
 
 
 
-    nsresult PaintRowGroup(nsTableRowGroupFrame* aFrame)
-    { return PaintRowGroup(aFrame, false); }
+    void PaintRowGroup(nsTableRowGroupFrame* aFrame);
 
     
 
@@ -101,10 +100,10 @@ class TableBackgroundPainter
 
 
 
-    nsresult PaintRow(nsTableRowFrame* aFrame)
-    { return PaintRow(aFrame, false); }
+    void PaintRow(nsTableRowFrame* aFrame);
 
   private:
+    struct TableBackgroundData;
 
     
 
@@ -115,19 +114,10 @@ class TableBackgroundPainter
 
 
 
-    nsresult PaintTableFrame(nsTableFrame*         aTableFrame,
-                             nsTableRowGroupFrame* aFirstRowGroup,
-                             nsTableRowGroupFrame* aLastRowGroup,
-                             const nsMargin&       aDeflate);
-
-    
-
-
-
-    nsresult PaintRowGroup(nsTableRowGroupFrame* aFrame,
-                           bool                  aPassThrough);
-    nsresult PaintRow(nsTableRowFrame* aFrame,
-                      bool             aPassThrough);
+    void PaintTableFrame(nsTableFrame*         aTableFrame,
+                         nsTableRowGroupFrame* aFirstRowGroup,
+                         nsTableRowGroupFrame* aLastRowGroup,
+                         const nsMargin&       aDeflate);
 
     
 
@@ -135,17 +125,38 @@ class TableBackgroundPainter
 
 
 
+    void PaintRowGroup(nsTableRowGroupFrame* aFrame,
+                       TableBackgroundData   aRowGroupBGData,
+                       bool                  aPassThrough);
 
-
-
-    nsresult PaintCell(nsTableCellFrame* aCell,
-                       nsRect&           aCellBGRect,
-                       nsRect&           aRowBGRect,
-                       nsRect&           aRowGroupBGRect,
-                       nsRect&           aColBGRect,
-                       bool              aPassSelf);
+    void PaintRow(nsTableRowFrame* aFrame,
+                  const TableBackgroundData& aRowGroupBGData,
+                  TableBackgroundData aRowBGData,
+                  bool             aPassThrough);
 
     
+
+
+
+
+
+
+
+
+
+
+    void PaintCell(nsTableCellFrame* aCell,
+                   const TableBackgroundData& aRowGroupBGData,
+                   const TableBackgroundData& aRowBGData,
+                   nsRect&           aCellBGRect,
+                   nsRect&           aRowBGRect,
+                   nsRect&           aRowGroupBGRect,
+                   nsRect&           aColBGRect,
+                   bool              aPassSelf);
+
+    
+
+
 
 
 
@@ -154,6 +165,8 @@ class TableBackgroundPainter
 
 
     void ComputeCellBackgrounds(nsTableCellFrame* aCell,
+                                const TableBackgroundData& aRowGroupBGData,
+                                const TableBackgroundData& aRowBGData,
                                 nsRect&           aCellBGRect,
                                 nsRect&           aRowBGRect,
                                 nsRect&           aRowGroupBGRect,
@@ -167,59 +180,58 @@ class TableBackgroundPainter
     void TranslateContext(nscoord aDX,
                           nscoord aDY);
 
-    struct TableBackgroundData;
-    friend struct TableBackgroundData;
     struct TableBackgroundData {
-      nsIFrame*                 mFrame;
+    public:
       
-      nsRect                    mRect;
-      bool                      mVisible;
-      const nsStyleBorder*      mBorder;
+
+
+      TableBackgroundData();
+
+      
+
+
+
+      explicit TableBackgroundData(nsIFrame* aFrame);
+
+      
+      ~TableBackgroundData() {}
 
       
       bool IsVisible() const { return mVisible; }
 
       
-      TableBackgroundData();
-      
-      ~TableBackgroundData();
-      
-
-
-      void Destroy(nsPresContext* aPresContext);
-
+      void MakeInvisible() { mVisible = false; }
 
       
-      void Clear();
+      bool ShouldSetBCBorder() const;
 
       
-      void SetFull(nsIFrame* aFrame);
+      void SetBCBorder(const nsMargin& aBorderWidth);
 
       
-      void SetFrame(nsIFrame* aFrame);
+
+
+
+
+
+
+      nsStyleBorder StyleBorder(const nsStyleBorder& aZeroBorder) const;
+
+      nsIFrame* const mFrame;
 
       
-      void SetData();
+      nsRect mRect;
 
-      
-      bool ShouldSetBCBorder();
-
-      
-      nsresult SetBCBorder(nsMargin&               aBorderWidth,
-                           TableBackgroundPainter* aPainter);
-
-      private:
-      nsStyleBorder* mSynthBorder;
+    private:
+      nsMargin mSynthBorderWidths;
+      bool mVisible;
+      bool mUsesSynthBorder;
     };
 
-    struct ColData;
-    friend struct ColData;
     struct ColData {
-      TableBackgroundData  mCol;
-      TableBackgroundData* mColGroup; 
-      ColData() {
-        mColGroup = nullptr;
-      }
+      ColData(nsIFrame* aFrame, TableBackgroundData& aColGroupBGData);
+      TableBackgroundData mCol;
+      TableBackgroundData& mColGroup; 
     };
 
     nsPresContext*      mPresContext;
@@ -232,10 +244,9 @@ class TableBackgroundPainter
     bool                 mIsBorderCollapse;
     Origin               mOrigin; 
 
-    ColData*             mCols;  
-    uint32_t             mNumCols;
-    TableBackgroundData  mRowGroup; 
-    TableBackgroundData  mRow;      
+    nsTArray<TableBackgroundData> mColGroups;
+    nsTArray<ColData>    mCols;
+    size_t               mNumCols;
 
     nsStyleBorder        mZeroBorder;  
     uint32_t             mBGPaintFlags;
