@@ -72,37 +72,48 @@ struct GMPVideoCodecVP8
   bool mDenoisingOn;
   bool mErrorConcealmentOn;
   bool mAutomaticResizeOn;
-  bool mFrameDroppingOn;
-  int32_t mKeyFrameInterval;
 };
+
+
+
+
+
+struct GMPVideoCodecH264AVCC
+{
+  uint8_t        mVersion; 
+  uint8_t        mProfile; 
+  uint8_t        mConstraints;
+  uint8_t        mLevel;
+  uint8_t        mLengthSizeMinusOne; 
+
+  
+  
+  uint8_t        mNumSPS; 
+
+  
+  
+  
+  
+};
+
+
 
 
 struct GMPVideoCodecH264
 {
-  uint8_t        mProfile;
-  uint8_t        mConstraints;
-  uint8_t        mLevel;
   uint8_t        mPacketizationMode; 
-  bool           mFrameDroppingOn;
-  int32_t        mKeyFrameInterval;
-  
-  const uint8_t* mSPSData;
-  size_t         mSPSLen;
-  const uint8_t* mPPSData;
-  size_t         mPPSLen;
+  struct GMPVideoCodecH264AVCC mAVCC; 
 };
 
 enum GMPVideoCodecType
 {
   kGMPVideoCodecVP8,
+
+  
+  
+  
   kGMPVideoCodecH264,
   kGMPVideoCodecInvalid 
-};
-
-union GMPVideoCodecUnion
-{
-  GMPVideoCodecVP8 mVP8;
-  GMPVideoCodecH264 mH264;
 };
 
 
@@ -121,11 +132,19 @@ struct GMPSimulcastStream
 enum GMPVideoCodecMode {
   kGMPRealtimeVideo,
   kGMPScreensharing,
+  kGMPStreamingVideo,
   kGMPCodecModeInvalid 
+};
+
+enum GMPApiVersion {
+  kGMPVersion32 = 1, 
+  kGMPVersion33 = 33,
 };
 
 struct GMPVideoCodec
 {
+  uint32_t mGMPApiVersion;
+
   GMPVideoCodecType mCodecType;
   char mPLName[kGMPPayloadNameSize]; 
   uint32_t mPLType;
@@ -138,7 +157,8 @@ struct GMPVideoCodec
   uint32_t mMinBitrate; 
   uint32_t mMaxFramerate;
 
-  GMPVideoCodecUnion mCodecSpecific;
+  bool mFrameDroppingOn;
+  int32_t mKeyFrameInterval;
 
   uint32_t mQPMax;
   uint32_t mNumberOfSimulcastStreams;
@@ -157,6 +177,7 @@ enum GMPBufferType {
   GMP_BufferLength16,
   GMP_BufferLength24,
   GMP_BufferLength32,
+  GMP_BufferInvalid,
 };
 
 struct GMPCodecSpecificInfoGeneric {
@@ -188,6 +209,7 @@ union GMPCodecSpecificInfoUnion
 {
   GMPCodecSpecificInfoGeneric mGeneric;
   GMPCodecSpecificInfoVP8 mVP8;
+  GMPCodecSpecificInfoH264 mH264;
 };
 
 
