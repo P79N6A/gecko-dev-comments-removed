@@ -59,18 +59,18 @@ CheckPublicKeySize(Input subjectPublicKeyInfo, unsigned int minimumNonECCBits,
     case ecKey:
       
       return Success;
-    case dsaKey: 
     case rsaKey:
       if (SECKEY_PublicKeyStrengthInBits(publicKey.get()) < minimumNonECCBits) {
         return Result::ERROR_INADEQUATE_KEY_SIZE;
       }
       break;
-    case nullKey:
-    case fortezzaKey:
-    case dhKey:
-    case keaKey:
-    case rsaPssKey:
-    case rsaOaepKey:
+    case dsaKey: 
+    case nullKey: 
+    case fortezzaKey: 
+    case dhKey: 
+    case keaKey: 
+    case rsaPssKey: 
+    case rsaOaepKey: 
     default:
       return Result::ERROR_UNSUPPORTED_KEYALG;
   }
