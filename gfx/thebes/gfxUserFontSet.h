@@ -7,6 +7,7 @@
 #define GFX_USER_FONT_SET_H
 
 #include "gfxFont.h"
+#include "gfxFontFamilyList.h"
 #include "nsRefPtrHashtable.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
@@ -237,6 +238,9 @@ public:
     
     
     gfxUserFontFamily* LookupFamily(const nsAString& aName) const;
+
+    
+    bool ContainsUserFontSetFonts(const mozilla::FontFamilyList& aFontList) const;
 
     
     
@@ -553,7 +557,7 @@ public:
     virtual gfxFont* CreateFontInstance(const gfxFontStyle* aFontStyle,
                                         bool aNeedsBold);
 
-    gfxFontEntry* GetPlatformFontEntry() { return mPlatformFontEntry; }
+    gfxFontEntry* GetPlatformFontEntry() const { return mPlatformFontEntry; }
 
     
     UserFontLoadState LoadState() const { return mUserFontLoadState; }
