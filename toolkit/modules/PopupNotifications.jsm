@@ -277,7 +277,6 @@ PopupNotifications.prototype = {
 
 
 
-
   show: function PopupNotifications_show(browser, id, message, anchorID,
                                          mainAction, secondaryActions, options) {
     function isInvalidAction(a) {
@@ -571,9 +570,20 @@ PopupNotifications.prototype = {
       else
         popupnotification.removeAttribute("learnmoreurl");
 
-      if (n.options.displayOrigin)
-        popupnotification.setAttribute("origin", n.options.displayOrigin);
-      else
+      if (n.options.displayURI) {
+        let uri;
+        try {
+           if (n.options.displayURI instanceof Ci.nsIFileURL) {
+            uri = n.options.displayURI.path;
+          } else {
+            uri = n.options.displayURI.hostPort;
+          }
+          popupnotification.setAttribute("origin", uri);
+        } catch (e) {
+          Cu.reportError(e);
+          popupnotification.removeAttribute("origin");
+        }
+      } else
         popupnotification.removeAttribute("origin");
 
       popupnotification.notification = n;

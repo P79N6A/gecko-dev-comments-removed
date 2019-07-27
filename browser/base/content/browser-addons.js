@@ -47,14 +47,9 @@ const gXPInstallObserver = {
 
     
     var options = {
-      timeout: Date.now() + 30000
+      displayURI: installInfo.originatingURI,
+      timeout: Date.now() + 30000,
     };
-
-    try {
-      options.displayOrigin = installInfo.originatingURI.host;
-    } catch (e) {
-      
-    }
 
     let cancelInstallation = () => {
       if (installInfo) {
@@ -200,14 +195,9 @@ const gXPInstallObserver = {
     var notificationID = aTopic;
     
     var options = {
-      timeout: Date.now() + 30000
+      displayURI: installInfo.originatingURI,
+      timeout: Date.now() + 30000,
     };
-
-    try {
-      options.displayOrigin = installInfo.originatingURI.host;
-    } catch (e) {
-      
-    }
 
     switch (aTopic) {
     case "addon-install-disabled": {
@@ -292,7 +282,13 @@ const gXPInstallObserver = {
     case "addon-install-failed": {
       
       for (let install of installInfo.installs) {
-        let host = options.displayOrigin;
+        let host;
+        try {
+          host  = options.displayURI.host;
+        } catch (e) {
+          
+        }
+
         if (!host)
           host = (install.sourceURI instanceof Ci.nsIStandardURL) &&
                  install.sourceURI.host;
