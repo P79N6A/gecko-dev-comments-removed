@@ -25,6 +25,9 @@ extern PRLogModuleInfo* gMediaDecoderLog;
 #define SINK_LOG_V(msg, ...)
 #endif
 
+
+static const int64_t AUDIO_FUZZ_FRAMES = 1;
+
 AudioSink::AudioSink(MediaDecoderStateMachine* aStateMachine,
                      int64_t aStartTime, AudioInfo aInfo, dom::AudioChannel aChannel)
   : mStateMachine(aStateMachine)
@@ -162,7 +165,7 @@ AudioSink::AudioLoop()
       break;
     }
 
-    if (missingFrames.value() > 0) {
+    if (missingFrames.value() > AUDIO_FUZZ_FRAMES) {
       
       
       
