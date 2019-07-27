@@ -92,18 +92,21 @@ BluetoothPairingListener::Notify(const BluetoothSignal& aData)
     const InfallibleTArray<BluetoothNamedValue>& arr =
       value.get_ArrayOfBluetoothNamedValue();
 
-    MOZ_ASSERT(arr.Length() == 3 &&
+    MOZ_ASSERT(arr.Length() == 4 &&
                arr[0].value().type() == BluetoothValue::TnsString && 
                arr[1].value().type() == BluetoothValue::TnsString && 
-               arr[2].value().type() == BluetoothValue::TnsString);  
+               arr[2].value().type() == BluetoothValue::TnsString && 
+               arr[3].value().type() == BluetoothValue::TnsString);  
 
     nsString deviceAddress = arr[0].value().get_nsString();
-    nsString passkey = arr[1].value().get_nsString();
-    nsString type = arr[2].value().get_nsString();
+    nsString deviceName = arr[1].value().get_nsString();
+    nsString passkey = arr[2].value().get_nsString();
+    nsString type = arr[3].value().get_nsString();
 
     
     InfallibleTArray<BluetoothNamedValue> props;
     BT_APPEND_NAMED_VALUE(props, "Address", deviceAddress);
+    BT_APPEND_NAMED_VALUE(props, "Name", deviceName);
     nsRefPtr<BluetoothDevice> device =
       BluetoothDevice::Create(GetOwner(), props);
 
