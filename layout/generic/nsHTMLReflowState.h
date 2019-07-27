@@ -271,6 +271,15 @@ struct nsHTMLReflowState : public nsCSSOffsetState {
   
   
   
+  
+  
+  nscoord mOrthogonalLimit;
+
+  
+  
+  
+  
+  
   nscoord AvailableWidth() const { return mAvailableWidth; }
   nscoord AvailableHeight() const { return mAvailableHeight; }
   nscoord ComputedWidth() const { return mComputedWidth; }
