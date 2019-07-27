@@ -30,7 +30,7 @@ class nsAppShell : public nsBaseAppShell
 {
 public:
   NS_IMETHOD ResumeNative(void);
-	
+
   nsAppShell();
 
   nsresult Init();

@@ -72,6 +72,7 @@ public:
 
     virtual bool UseTiling() MOZ_OVERRIDE;
     virtual bool UseProgressivePaint() MOZ_OVERRIDE;
+    virtual void InitHardwareVsync() MOZ_OVERRIDE;
 
     
     uint32_t GetAntiAliasingThreshold() { return mFontAntiAliasingThreshold; }

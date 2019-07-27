@@ -42,6 +42,12 @@ VsyncDispatcher::~VsyncDispatcher()
 }
 
 void
+VsyncDispatcher::SetVsyncSource(VsyncSource* aVsyncSource)
+{
+  mVsyncSource = aVsyncSource;
+}
+
+void
 VsyncDispatcher::DispatchTouchEvents(bool aNotifiedCompositors, TimeStamp aVsyncTime)
 {
   
@@ -88,7 +94,7 @@ VsyncDispatcher::AddCompositorVsyncObserver(VsyncObserver* aVsyncObserver)
 void
 VsyncDispatcher::RemoveCompositorVsyncObserver(VsyncObserver* aVsyncObserver)
 {
-  MOZ_ASSERT(CompositorParent::IsInCompositorThread());
+  MOZ_ASSERT(CompositorParent::IsInCompositorThread() || NS_IsMainThread());
   MutexAutoLock lock(mCompositorObserverLock);
   if (mCompositorObservers.Contains(aVsyncObserver)) {
     mCompositorObservers.RemoveElement(aVsyncObserver);

@@ -17,11 +17,13 @@
 
 #include "nsTArray.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/VsyncDispatcher.h"
 #include "qcms.h"
 #include "gfx2DGlue.h"
 #include "gfxPrefs.h"
 
 #include <dlfcn.h>
+#include <CoreVideo/CoreVideo.h>
 
 #include "nsCocoaFeatures.h"
 
@@ -373,14 +375,14 @@ uint32_t
 gfxPlatformMac::ReadAntiAliasingThreshold()
 {
     uint32_t threshold = 0;  
-    
+
     
     bool useAntiAliasingThreshold = Preferences::GetBool("gfx.use_text_smoothing_setting", false);
 
     
     if (!useAntiAliasingThreshold)
         return threshold;
-        
+
     
     CFNumberRef prefValue = (CFNumberRef)CFPreferencesCopyAppValue(CFSTR("AppleAntiAliasingThreshold"), kCFPreferencesCurrentApplication);
 
@@ -417,6 +419,91 @@ gfxPlatformMac::UseProgressivePaint()
   
   
   return nsCocoaFeatures::OnLionOrLater() && gfxPlatform::UseProgressivePaint();
+}
+
+
+static CVReturn VsyncCallback(CVDisplayLinkRef aDisplayLink,
+                              const CVTimeStamp* aNow,
+                              const CVTimeStamp* aOutputTime,
+                              CVOptionFlags aFlagsIn,
+                              CVOptionFlags* aFlagsOut,
+                              void* aDisplayLinkContext)
+{
+  mozilla::VsyncSource* vsyncSource = (mozilla::VsyncSource*) aDisplayLinkContext;
+  if (vsyncSource->IsVsyncEnabled()) {
+    
+    
+    
+    int64_t timestamp = aOutputTime->hostTime;
+    mozilla::TimeStamp vsyncTime = mozilla::TimeStamp::FromSystemTime(timestamp);
+    mozilla::VsyncDispatcher::GetInstance()->NotifyVsync(vsyncTime);
+    return kCVReturnSuccess;
+  } else {
+    return kCVReturnDisplayLinkNotRunning;
+  }
+}
+
+class OSXVsyncSource MOZ_FINAL : public mozilla::VsyncSource
+{
+public:
+  OSXVsyncSource()
+  {
+    EnableVsync();
+  }
+
+  virtual void EnableVsync() MOZ_OVERRIDE
+  {
+    
+    
+    
+    
+    if (CVDisplayLinkCreateWithActiveCGDisplays(&mDisplayLink) != kCVReturnSuccess) {
+      NS_WARNING("Could not create a display link, returning");
+      return;
+    }
+
+    
+    if (CVDisplayLinkSetOutputCallback(mDisplayLink, &VsyncCallback, this) != kCVReturnSuccess) {
+      NS_WARNING("Could not set displaylink output callback");
+      return;
+    }
+
+    
+    if (CVDisplayLinkStart(mDisplayLink) != kCVReturnSuccess) {
+      NS_WARNING("Could not activate the display link");
+      mDisplayLink = nullptr;
+    }
+  }
+
+  virtual void DisableVsync() MOZ_OVERRIDE
+  {
+    
+    if (mDisplayLink) {
+      CVDisplayLinkRelease(mDisplayLink);
+      mDisplayLink = nullptr;
+    }
+  }
+
+  virtual bool IsVsyncEnabled() MOZ_OVERRIDE
+  {
+    return mDisplayLink != nullptr;
+  }
+
+private:
+  virtual ~OSXVsyncSource()
+  {
+    DisableVsync();
+  }
+
+  
+  CVDisplayLinkRef   mDisplayLink;
+}; 
+
+void
+gfxPlatformMac::InitHardwareVsync()
+{
+  nsRefPtr<VsyncSource> osxVsyncSource = new OSXVsyncSource();
+  mozilla::VsyncDispatcher::GetInstance()->SetVsyncSource(osxVsyncSource);
 }
 
 void
