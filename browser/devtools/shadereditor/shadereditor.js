@@ -189,13 +189,13 @@ let ShadersListView = Heritage.extend(WidgetMethods, {
 
     this._onProgramSelect = this._onProgramSelect.bind(this);
     this._onProgramCheck = this._onProgramCheck.bind(this);
-    this._onProgramMouseEnter = this._onProgramMouseEnter.bind(this);
-    this._onProgramMouseLeave = this._onProgramMouseLeave.bind(this);
+    this._onProgramMouseOver = this._onProgramMouseOver.bind(this);
+    this._onProgramMouseOut = this._onProgramMouseOut.bind(this);
 
     this.widget.addEventListener("select", this._onProgramSelect, false);
     this.widget.addEventListener("check", this._onProgramCheck, false);
-    this.widget.addEventListener("mouseenter", this._onProgramMouseEnter, true);
-    this.widget.addEventListener("mouseleave", this._onProgramMouseLeave, true);
+    this.widget.addEventListener("mouseover", this._onProgramMouseOver, true);
+    this.widget.addEventListener("mouseout", this._onProgramMouseOut, true);
   },
 
   
@@ -204,8 +204,8 @@ let ShadersListView = Heritage.extend(WidgetMethods, {
   destroy: function() {
     this.widget.removeEventListener("select", this._onProgramSelect, false);
     this.widget.removeEventListener("check", this._onProgramCheck, false);
-    this.widget.removeEventListener("mouseenter", this._onProgramMouseEnter, true);
-    this.widget.removeEventListener("mouseleave", this._onProgramMouseLeave, true);
+    this.widget.removeEventListener("mouseover", this._onProgramMouseOver, true);
+    this.widget.removeEventListener("mouseout", this._onProgramMouseOut, true);
   },
 
   
@@ -313,7 +313,7 @@ let ShadersListView = Heritage.extend(WidgetMethods, {
   
 
 
-  _onProgramMouseEnter: function(e) {
+  _onProgramMouseOver: function(e) {
     let sourceItem = this.getItemForElement(e.target, { noSiblings: true });
     if (sourceItem && !sourceItem.attachment.isBlackBoxed) {
       sourceItem.attachment.programActor.highlight(HIGHLIGHT_TINT);
@@ -328,7 +328,7 @@ let ShadersListView = Heritage.extend(WidgetMethods, {
   
 
 
-  _onProgramMouseLeave: function(e) {
+  _onProgramMouseOut: function(e) {
     let sourceItem = this.getItemForElement(e.target, { noSiblings: true });
     if (sourceItem && !sourceItem.attachment.isBlackBoxed) {
       sourceItem.attachment.programActor.unhighlight();
@@ -508,7 +508,7 @@ let ShadersEditorsView = {
   _onFailedCompilation: function(type, editor, errors) {
     let lineCount = editor.lineCount();
     let currentLine = editor.getCursor().line;
-    let listeners = { mouseenter: this._onMarkerMouseEnter };
+    let listeners = { mouseover: this._onMarkerMouseOver };
 
     function matchLinesAndMessages(string) {
       return {
@@ -573,7 +573,7 @@ let ShadersEditorsView = {
   
 
 
-  _onMarkerMouseEnter: function(line, node, messages) {
+  _onMarkerMouseOver: function(line, node, messages) {
     if (node._markerErrorsTooltip) {
       return;
     }

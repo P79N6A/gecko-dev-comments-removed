@@ -27,7 +27,7 @@ function ifWebGLSupported() {
   let editorDocument = vsEditor.container.contentDocument;
   let marker = editorDocument.querySelector(".error");
   let parsed = ShadersEditorsView._errors.vs[0].messages;
-  ShadersEditorsView._onMarkerMouseEnter(7, marker, parsed);
+  ShadersEditorsView._onMarkerMouseOver(7, marker, parsed);
 
   let tooltip = marker._markerErrorsTooltip;
   ok(tooltip, "A tooltip was created successfully.");
