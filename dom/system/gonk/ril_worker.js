@@ -797,10 +797,11 @@ RilObject.prototype = {
 
 
   updateICCContact: function(options) {
-    let onsuccess = function onsuccess() {
+    let onsuccess = function onsuccess(updatedContact) {
       let recordIndex =
-        contact.pbrIndex * ICC_MAX_LINEAR_FIXED_RECORDS + contact.recordId;
-      contact.contactId = this.iccInfo.iccid + recordIndex;
+        updatedContact.pbrIndex * ICC_MAX_LINEAR_FIXED_RECORDS + updatedContact.recordId;
+      updatedContact.contactId = this.iccInfo.iccid + recordIndex;
+      options.contact = updatedContact;
       
       this.sendChromeMessage(options);
     }.bind(this);
@@ -9359,6 +9360,8 @@ ICCPDUHelperObject.prototype = {
 
 
 
+
+
   writeStringTo8BitUnpacked: function(numOctets, str) {
     const langTable = PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
     const langShiftTable = PDU_NL_SINGLE_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
@@ -9396,9 +9399,12 @@ ICCPDUHelperObject.prototype = {
     while (j++ < numOctets) {
       GsmPDUHelper.writeHexOctet(0xff);
     }
+
+    return (str) ? str.substring(0, i) : null;
   },
 
   
+
 
 
 
@@ -9468,7 +9474,7 @@ ICCPDUHelperObject.prototype = {
         for (let i = str.length * 2; i < numOctets; i++) {
           GsmPDUHelper.writeHexOctet(0xff);
         }
-        return;
+        return str;
       }
       
 
@@ -9541,6 +9547,7 @@ ICCPDUHelperObject.prototype = {
         GsmPDUHelper.writeHexOctet(0xff);
       }
     }
+    return str;
   },
 
  
@@ -9676,6 +9683,9 @@ ICCPDUHelperObject.prototype = {
 
 
 
+
+
+
   writeAlphaIdDiallingNumber: function(recordSize, alphaId, number) {
     let Buf = this.context.Buf;
     let GsmPDUHelper = this.context.GsmPDUHelper;
@@ -9685,13 +9695,16 @@ ICCPDUHelperObject.prototype = {
     Buf.writeInt32(strLen);
 
     let alphaLen = recordSize - ADN_FOOTER_SIZE_BYTES;
-    this.writeAlphaIdentifier(alphaLen, alphaId);
-    this.writeNumberWithLength(number);
+    let writtenAlphaId = this.writeAlphaIdentifier(alphaLen, alphaId);
+    let writtenNumber = this.writeNumberWithLength(number);
 
     
     GsmPDUHelper.writeHexOctet(0xff);
     GsmPDUHelper.writeHexOctet(0xff);
     Buf.writeStringDelimiter(strLen);
+
+    return {alphaId: writtenAlphaId,
+            number: writtenNumber};
   },
 
   
@@ -9738,16 +9751,18 @@ ICCPDUHelperObject.prototype = {
 
 
 
+
+
   writeAlphaIdentifier: function(numOctets, alphaId) {
     if (numOctets === 0) {
-      return;
+      return null;
     }
 
     
     if (!alphaId || this.context.ICCUtilsHelper.isGsm8BitAlphabet(alphaId)) {
-      this.writeStringTo8BitUnpacked(numOctets, alphaId);
+      return this.writeStringTo8BitUnpacked(numOctets, alphaId);
     } else {
-      this.writeICCUCS2String(numOctets, alphaId);
+      return this.writeICCUCS2String(numOctets, alphaId);
     }
   },
 
@@ -9834,37 +9849,45 @@ ICCPDUHelperObject.prototype = {
     return number;
   },
 
+  
+
+
+
+
+
+
   writeNumberWithLength: function(number) {
     let GsmPDUHelper = this.context.GsmPDUHelper;
 
     if (number) {
       let numStart = number[0] == "+" ? 1 : 0;
-      number = number.substring(0, numStart) +
-               number.substring(numStart)
-                     .replace(/[^0-9*#,]/g, "")
-                     .replace(/\*/g, "a")
-                     .replace(/\#/g, "b")
-                     .replace(/\,/g, "c");
+      let writtenNumber = number.substring(0, numStart) +
+                          number.substring(numStart)
+                                .replace(/[^0-9*#,]/g, "");
 
-      let numDigits = number.length - numStart;
+      let numDigits = writtenNumber.length - numStart;
       if (numDigits > ADN_MAX_NUMBER_DIGITS) {
-        number = number.substring(0, ADN_MAX_NUMBER_DIGITS + numStart);
-        numDigits = number.length - numStart;
+        writtenNumber = writtenNumber.substring(0, ADN_MAX_NUMBER_DIGITS + numStart);
+        numDigits = writtenNumber.length - numStart;
       }
 
       
       let numLen = Math.ceil(numDigits / 2) + 1;
       GsmPDUHelper.writeHexOctet(numLen);
-      this.writeDiallingNumber(number);
+      this.writeDiallingNumber(writtenNumber.replace(/\*/g, "a")
+                                            .replace(/\#/g, "b")
+                                            .replace(/\,/g, "c"));
       
       for (let i = 0; i < ADN_MAX_BCD_NUMBER_BYTES - numLen; i++) {
         GsmPDUHelper.writeHexOctet(0xff);
       }
+      return writtenNumber;
     } else {
       
       for (let i = 0; i < ADN_MAX_BCD_NUMBER_BYTES + 1; i++) {
         GsmPDUHelper.writeHexOctet(0xff);
       }
+      return null;
     }
   }
 };
@@ -12268,15 +12291,16 @@ ICCRecordHelperObject.prototype = {
 
 
   updateADNLike: function(fileId, contact, pin2, onsuccess, onerror) {
+    let updatedContact;
     function dataWriter(recordSize) {
-      this.context.ICCPDUHelper.writeAlphaIdDiallingNumber(recordSize,
-                                                           contact.alphaId,
-                                                           contact.number);
+      updatedContact = this.context.ICCPDUHelper.writeAlphaIdDiallingNumber(recordSize,
+                                                                            contact.alphaId,
+                                                                            contact.number);
     }
 
     function callback(options) {
       if (onsuccess) {
-        onsuccess();
+        onsuccess(updatedContact);
       }
     }
 
@@ -12511,6 +12535,7 @@ ICCRecordHelperObject.prototype = {
   updateEmail: function(pbr, recordNumber, email, adnRecordId, onsuccess, onerror) {
     let fileId = pbr[USIM_PBR_EMAIL].fileId;
     let fileType = pbr[USIM_PBR_EMAIL].fileType;
+    let writtenEmail;
     let dataWriter = function dataWriter(recordSize) {
       let Buf = this.context.Buf;
       let GsmPDUHelper = this.context.GsmPDUHelper;
@@ -12521,9 +12546,9 @@ ICCRecordHelperObject.prototype = {
       Buf.writeInt32(strLen);
 
       if (fileType == ICC_USIM_TYPE1_TAG) {
-        ICCPDUHelper.writeStringTo8BitUnpacked(recordSize, email);
+        writtenEmail = ICCPDUHelper.writeStringTo8BitUnpacked(recordSize, email);
       } else {
-        ICCPDUHelper.writeStringTo8BitUnpacked(recordSize - 2, email);
+        writtenEmail = ICCPDUHelper.writeStringTo8BitUnpacked(recordSize - 2, email);
         GsmPDUHelper.writeHexOctet(pbr.adn.sfi || 0xff);
         GsmPDUHelper.writeHexOctet(adnRecordId);
       }
@@ -12531,11 +12556,17 @@ ICCRecordHelperObject.prototype = {
       Buf.writeStringDelimiter(strLen);
     }.bind(this);
 
+    let callback = (options) => {
+      if (onsuccess) {
+        onsuccess(writtenEmail);
+      }
+    }
+
     this.context.ICCIOHelper.updateLinearFixedEF({
       fileId: fileId,
       recordNumber: recordNumber,
       dataWriter: dataWriter,
-      callback: onsuccess,
+      callback: callback,
       onerror: onerror
     });
   },
@@ -12608,6 +12639,7 @@ ICCRecordHelperObject.prototype = {
   updateANR: function(pbr, recordNumber, number, adnRecordId, onsuccess, onerror) {
     let fileId = pbr[USIM_PBR_ANR0].fileId;
     let fileType = pbr[USIM_PBR_ANR0].fileType;
+    let writtenNumber;
     let dataWriter = function dataWriter(recordSize) {
       let Buf = this.context.Buf;
       let GsmPDUHelper = this.context.GsmPDUHelper;
@@ -12619,7 +12651,7 @@ ICCRecordHelperObject.prototype = {
       
       GsmPDUHelper.writeHexOctet(0xff);
 
-      this.context.ICCPDUHelper.writeNumberWithLength(number);
+      writtenNumber = this.context.ICCPDUHelper.writeNumberWithLength(number);
 
       
       GsmPDUHelper.writeHexOctet(0xff);
@@ -12634,11 +12666,17 @@ ICCRecordHelperObject.prototype = {
       Buf.writeStringDelimiter(strLen);
     }.bind(this);
 
+    let callback = (options) => {
+      if (onsuccess) {
+        onsuccess(writtenNumber);
+      }
+    }
+
     this.context.ICCIOHelper.updateLinearFixedEF({
       fileId: fileId,
       recordNumber: recordNumber,
       dataWriter: dataWriter,
-      callback: onsuccess,
+      callback: callback,
       onerror: onerror
     });
   },
@@ -14760,12 +14798,18 @@ ICCContactHelperObject.prototype = {
     let ICCRecordHelper = this.context.ICCRecordHelper;
     let ICCUtilsHelper = this.context.ICCUtilsHelper;
 
+    let updateContactCb = (updatedContact) => {
+      updatedContact.pbrIndex = contact.pbrIndex;
+      updatedContact.recordId = contact.recordId;
+      onsuccess(updatedContact);
+    }
+
     switch (contactType) {
       case GECKO_CARDCONTACT_TYPE_ADN:
         if (!this.hasDfPhoneBook(appType)) {
-          ICCRecordHelper.updateADNLike(ICC_EF_ADN, contact, null, onsuccess, onerror);
+          ICCRecordHelper.updateADNLike(ICC_EF_ADN, contact, null, updateContactCb, onerror);
         } else {
-          this.updateUSimContact(contact, onsuccess, onerror);
+          this.updateUSimContact(contact, updateContactCb, onerror);
         }
         break;
       case GECKO_CARDCONTACT_TYPE_FDN:
@@ -14777,7 +14821,7 @@ ICCContactHelperObject.prototype = {
           onerror(CONTACT_ERR_CONTACT_TYPE_NOT_SUPPORTED);
           break;
         }
-        ICCRecordHelper.updateADNLike(ICC_EF_FDN, contact, pin2, onsuccess, onerror);
+        ICCRecordHelper.updateADNLike(ICC_EF_FDN, contact, pin2, updateContactCb, onerror);
         break;
       default:
         if (DEBUG) {
@@ -15037,8 +15081,10 @@ ICCContactHelperObject.prototype = {
 
 
   updatePhonebookSet: function(pbr, contact, onsuccess, onerror) {
-    let updateAdnCb = function() {
-      this.updateSupportedPBRFields(pbr, contact, onsuccess, onerror);
+    let updateAdnCb = function(updatedContact) {
+      this.updateSupportedPBRFields(pbr, contact, (updatedContactField) => {
+        onsuccess(Object.assign(updatedContact, updatedContactField));
+      }, onerror);
     }.bind(this);
 
     this.context.ICCRecordHelper.updateADNLike(pbr.adn.fileId, contact, null,
@@ -15055,12 +15101,15 @@ ICCContactHelperObject.prototype = {
 
   updateSupportedPBRFields: function(pbr, contact, onsuccess, onerror) {
     let fieldIndex = 0;
+    let contactField = {};
+
     (function updateField() {
       let field = USIM_PBR_FIELDS[fieldIndex];
       fieldIndex += 1;
+
       if (!field) {
         if (onsuccess) {
-          onsuccess();
+          onsuccess(contactField);
         }
         return;
       }
@@ -15071,7 +15120,10 @@ ICCContactHelperObject.prototype = {
         return;
       }
 
-      this.updateContactField(pbr, contact, field, updateField.bind(this), onerror);
+      this.updateContactField(pbr, contact, field, (fieldEntry) => {
+        contactField = Object.assign(contactField, fieldEntry);
+        updateField.call(this);
+      }, onerror);
     }).call(this);
   },
 
@@ -15110,10 +15162,18 @@ ICCContactHelperObject.prototype = {
     let ICCRecordHelper = this.context.ICCRecordHelper;
 
     if (field === USIM_PBR_EMAIL) {
-      ICCRecordHelper.updateEmail(pbr, contact.recordId, contact.email, null, onsuccess, onerror);
+      ICCRecordHelper.updateEmail(pbr, contact.recordId, contact.email, null,
+        (updatedEmail) => {
+          onsuccess({email: updatedEmail});
+      }, onerror);
     } else if (field === USIM_PBR_ANR0) {
       let anr = Array.isArray(contact.anr) ? contact.anr[0] : null;
-      ICCRecordHelper.updateANR(pbr, contact.recordId, anr, null, onsuccess, onerror);
+      ICCRecordHelper.updateANR(pbr, contact.recordId, anr, null,
+        (updatedANR) => {
+          
+          
+          onsuccess((updatedANR) ? {anr: [updatedANR]} : null);
+      }, onerror);
     } else {
      if (DEBUG) {
        this.context.debug("Unsupported field :" + field);
@@ -15164,10 +15224,18 @@ ICCContactHelperObject.prototype = {
 
       
       if (field === USIM_PBR_EMAIL) {
-        ICCRecordHelper.updateEmail(pbr, recordId, contact.email, contact.recordId, onsuccess, onerror);
+        ICCRecordHelper.updateEmail(pbr, recordId, contact.email, contact.recordId,
+          (updatedEmail) => {
+            onsuccess({email: updatedEmail});
+        }, onerror);
       } else if (field === USIM_PBR_ANR0) {
         let anr = Array.isArray(contact.anr) ? contact.anr[0] : null;
-        ICCRecordHelper.updateANR(pbr, recordId, anr, contact.recordId, onsuccess, onerror);
+        ICCRecordHelper.updateANR(pbr, recordId, anr, contact.recordId,
+          (updatedANR) => {
+            
+            
+            onsuccess((updatedANR) ? {anr: [updatedANR]} : null);
+        }, onerror);
       } else {
         if (DEBUG) {
           this.context.debug("Unsupported field :" + field);
@@ -15191,16 +15259,26 @@ ICCContactHelperObject.prototype = {
 
   addContactFieldType2: function(pbr, contact, field, onsuccess, onerror) {
     let ICCRecordHelper = this.context.ICCRecordHelper;
-
     let successCb = function successCb(recordId) {
-      let updateCb = function updateCb() {
-        this.updateContactFieldIndexInIAP(pbr, contact.recordId, field, recordId, onsuccess, onerror);
+
+      let updateCb = function updateCb(contactField) {
+        this.updateContactFieldIndexInIAP(pbr, contact.recordId, field, recordId, () => {
+          onsuccess(contactField);
+        }, onerror);
       }.bind(this);
 
       if (field === USIM_PBR_EMAIL) {
-        ICCRecordHelper.updateEmail(pbr, recordId, contact.email, contact.recordId, updateCb, onerror);
+        ICCRecordHelper.updateEmail(pbr, recordId, contact.email, contact.recordId,
+          (updatedEmail) => {
+          updateCb({email: updatedEmail});
+        }, onerror);
       } else if (field === USIM_PBR_ANR0) {
-        ICCRecordHelper.updateANR(pbr, recordId, contact.anr[0], contact.recordId, updateCb, onerror);
+        ICCRecordHelper.updateANR(pbr, recordId, contact.anr[0], contact.recordId,
+          (updatedANR) => {
+            
+            
+            updateCb((updatedANR) ? {anr: [updatedANR]} : null);
+        }, onerror);
       }
     }.bind(this);
 
