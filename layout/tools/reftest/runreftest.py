@@ -174,6 +174,7 @@ class RefTest(object):
     
     prefs['browser.snippets.enabled'] = False
     prefs['browser.snippets.syncPromo.enabled'] = False
+    prefs['browser.snippets.firstrunHomepage.enabled'] = False
     
     prefs['general.useragent.updates.enabled'] = False
     

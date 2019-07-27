@@ -836,6 +836,7 @@ pref("browser.snippets.statsUrl", "https://snippets-stats.mozilla.org/mobile");
 
 pref("browser.snippets.enabled", true);
 pref("browser.snippets.syncPromo.enabled", true);
+pref("browser.snippets.firstrunHomepage.enabled", true);
 
 
 pref("browser.webapps.apkFactoryUrl", "https://controller.apk.firefox.com/application.apk");

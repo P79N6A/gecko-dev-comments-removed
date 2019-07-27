@@ -377,6 +377,30 @@ function loadSyncPromoBanner() {
   );
 }
 
+function loadHomePanelsBanner() {
+  let stringBundle = Services.strings.createBundle("chrome://browser/locale/aboutHome.properties");
+  let text = stringBundle.GetStringFromName("banner.firstrunHomepage.text");
+
+  let id = Home.banner.add({
+    text: text,
+    icon: "drawable://homepage_banner_firstrun",
+    onclick: function() {
+      
+      Home.banner.remove(id);
+      
+      Services.prefs.setBoolPref("browser.snippets.firstrunHomepage.enabled", false);
+
+      UITelemetry.addEvent("action.1", "banner", null, "firstrun-homepage");
+    },
+    ondismiss: function() {
+      Home.banner.remove(id);
+      Services.prefs.setBoolPref("browser.snippets.firstrunHomepage.enabled", false);
+
+      UITelemetry.addEvent("cancel.1", "banner", null, "firstrun-homepage");
+    }
+  });
+}
+
 function Snippets() {}
 
 Snippets.prototype = {
@@ -386,7 +410,9 @@ Snippets.prototype = {
   observe: function(subject, topic, data) {
     switch(topic) {
       case "browser-delayed-startup-finished":
-        if (Services.prefs.getBoolPref("browser.snippets.syncPromo.enabled")) {
+        if (Services.prefs.getBoolPref("browser.snippets.firstrunHomepage.enabled")) {
+          loadHomePanelsBanner();
+        } else if (Services.prefs.getBoolPref("browser.snippets.syncPromo.enabled")) {
           loadSyncPromoBanner();
         }
 
