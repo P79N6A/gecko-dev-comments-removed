@@ -1,0 +1,30 @@
+
+
+
+
+@import url("chrome://global/skin/in-content/common.css");
+
+#contentAreaDownloadsView {
+  padding: 18px;
+}
+
+#downloadsRichListBox:not(:-moz-focusring) {
+  border-color: transparent;
+}
+
+.downloadButton:not([disabled="true"]):hover,
+.downloadButton:not([disabled="true"]):hover:active,
+.downloadButton:not([disabled]):hover:active {
+  background: transparent;
+  border: none;
+}
+
+.downloadButton > .button-box {
+  padding-bottom: 0;
+}
+
+#downloadsListEmptyDescription {
+  margin: 1em;
+  text-align: center;
+  color: GrayText;
+}
