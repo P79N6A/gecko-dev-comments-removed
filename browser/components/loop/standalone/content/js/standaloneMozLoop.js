@@ -190,5 +190,33 @@ loop.StandaloneMozLoop = (function(mozL10n) {
     this.rooms = new StandaloneMozLoopRooms(options);
   };
 
+  StandaloneMozLoop.prototype = {
+    
+
+
+
+
+
+
+
+    setLoopCharPref: function(prefName, value) {
+      if (prefName === "seenToS") {
+        return;
+      }
+
+      localStorage.setItem(prefName, value);
+    },
+
+    
+
+
+
+
+
+    getLoopCharPref: function(prefName) {
+      return localStorage.getItem(prefName);
+    }
+  };
+
   return StandaloneMozLoop;
 })(navigator.mozL10n);

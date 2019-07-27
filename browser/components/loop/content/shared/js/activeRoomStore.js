@@ -367,6 +367,9 @@ loop.store.ActiveRoomStore = (function() {
       this.setStoreState({
         roomState: ROOM_STATES.HAS_PARTICIPANTS
       });
+
+      
+      this._mozLoop.setLoopCharPref("seenToS", "seen");
     },
 
     
