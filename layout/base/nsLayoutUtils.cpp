@@ -1110,6 +1110,10 @@ nsLayoutUtils::SetDisplayPortMargins(nsIContent* aContent,
     }
   }
 
+  
+  
+  aPresShell->ScheduleImageVisibilityUpdate();
+
   return true;
 }
 
