@@ -722,6 +722,8 @@ static void ApplyGdkScreenFontOptions(FcPattern *aPattern);
 static void
 PreparePattern(FcPattern* aPattern, bool aIsPrinterFont)
 {
+    FcConfigSubstitute(nullptr, aPattern, FcMatchPattern);
+
     
     
     
