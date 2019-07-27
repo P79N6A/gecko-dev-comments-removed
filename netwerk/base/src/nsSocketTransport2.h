@@ -133,12 +133,6 @@ public:
 
     
     
-    nsresult InitWithConnectedSocket(PRFileDesc* aSocketFD,
-                                     const mozilla::net::NetAddr* aAddr,
-                                     nsISupports* aSecInfo);
-
-    
-    
     
     nsresult InitWithFilename(const char *filename);
 

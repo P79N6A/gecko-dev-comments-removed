@@ -45,8 +45,8 @@ PostEvent(nsServerSocket *s, nsServerSocketFunc func)
 
 
 nsServerSocket::nsServerSocket()
-  : mFD(nullptr)
-  , mLock("nsServerSocket.mLock")
+  : mLock("nsServerSocket.mLock")
+  , mFD(nullptr)
   , mAttached(false)
   , mKeepWhenOffline(false)
 {
@@ -154,25 +154,6 @@ nsServerSocket::TryAttach()
   return NS_OK;
 }
 
-void
-nsServerSocket::CreateClientTransport(PRFileDesc* aClientFD,
-                                      const NetAddr& aClientAddr)
-{
-  nsRefPtr<nsSocketTransport> trans = new nsSocketTransport;
-  if (NS_WARN_IF(!trans)) {
-    mCondition = NS_ERROR_OUT_OF_MEMORY;
-    return;
-  }
-
-  nsresult rv = trans->InitWithConnectedSocket(aClientFD, &aClientAddr);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    mCondition = rv;
-    return;
-  }
-
-  mListener->OnSocketAccepted(this, trans);
-}
-
 
 
 
@@ -204,14 +185,25 @@ nsServerSocket::OnSocketReady(PRFileDesc *fd, int16_t outFlags)
 
   clientFD = PR_Accept(mFD, &prClientAddr, PR_INTERVAL_NO_WAIT);
   PRNetAddrToNetAddr(&prClientAddr, &clientAddr);
-  if (!clientFD) {
+  if (!clientFD)
+  {
     NS_WARNING("PR_Accept failed");
     mCondition = NS_ERROR_UNEXPECTED;
-    return;
   }
-
-  
-  CreateClientTransport(clientFD, clientAddr);
+  else
+  {
+    nsRefPtr<nsSocketTransport> trans = new nsSocketTransport;
+    if (!trans)
+      mCondition = NS_ERROR_OUT_OF_MEMORY;
+    else
+    {
+      nsresult rv = trans->InitWithConnectedSocket(clientFD, &clientAddr);
+      if (NS_FAILED(rv))
+        mCondition = rv;
+      else
+        mListener->OnSocketAccepted(this, trans);
+    }
+  }
 }
 
 void
@@ -336,7 +328,6 @@ NS_IMETHODIMP
 nsServerSocket::InitWithAddress(const PRNetAddr *aAddr, int32_t aBackLog)
 {
   NS_ENSURE_TRUE(mFD == nullptr, NS_ERROR_ALREADY_INITIALIZED);
-  nsresult rv;
 
   
   
@@ -383,17 +374,11 @@ nsServerSocket::InitWithAddress(const PRNetAddr *aAddr, int32_t aBackLog)
   }
 
   
-  rv = SetSocketDefaults();
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    goto fail;
-  }
-
-  
   
   return NS_OK;
 
 fail:
-  rv = ErrorAccordingToNSPR(PR_GetError());
+  nsresult rv = ErrorAccordingToNSPR(PR_GetError());
   Close();
   return rv;
 }
@@ -524,13 +509,6 @@ nsServerSocket::AsyncListen(nsIServerSocketListener *aListener)
     mListener = new ServerSocketListenerProxy(aListener);
     mListenerTarget = NS_GetCurrentThread();
   }
-
-  
-  nsresult rv = OnSocketListen();
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
   return PostEvent(this, &nsServerSocket::OnMsgAttach);
 }
 
