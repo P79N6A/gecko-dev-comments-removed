@@ -320,7 +320,6 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker,
 #endif
   mDecodingMonitor("RasterImage Decoding Monitor"),
   mDecoder(nullptr),
-  mInDecoder(false),
   mStatusDiff(ImageStatusDiff::NoChange()),
   mNotifying(false),
   mHasSize(false),
@@ -331,8 +330,6 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker,
   mDecoded(false),
   mHasBeenDecoded(false),
   mAnimationFinished(false),
-  mFinishing(false),
-  mInUpdateImageContainer(false),
   mWantFullDecode(false),
   mPendingError(false)
 {
@@ -778,10 +775,6 @@ RasterImage::CopyFrame(uint32_t aWhichFrame,
   if (mError)
     return nullptr;
 
-  
-  if (mInDecoder && (aFlags & imgIContainer::FLAG_SYNC_DECODE))
-    return nullptr;
-
   if (!ApplyDecodeFlags(aFlags, aWhichFrame))
     return nullptr;
 
@@ -857,10 +850,6 @@ RasterImage::GetFrameInternal(uint32_t aWhichFrame,
     return nullptr;
 
   if (mError)
-    return nullptr;
-
-  
-  if (mInDecoder && (aFlags & imgIContainer::FLAG_SYNC_DECODE))
     return nullptr;
 
   if (!ApplyDecodeFlags(aFlags, aWhichFrame))
@@ -968,18 +957,16 @@ RasterImage::GetImageContainer(LayerManager* aManager, ImageContainer **_retval)
 void
 RasterImage::UpdateImageContainer()
 {
-  if (!mImageContainer || IsInUpdateImageContainer()) {
+  if (!mImageContainer) {
     return;
   }
-
-  SetInUpdateImageContainer(true);
 
   nsRefPtr<layers::Image> image = GetCurrentImage();
   if (!image) {
     return;
   }
+
   mImageContainer->SetCurrentImage(image);
-  SetInUpdateImageContainer(false);
 }
 
 size_t
@@ -1531,9 +1518,6 @@ RasterImage::AddSourceData(const char *aBuffer, uint32_t aCount)
                                      "sourceDataComplete()!");
 
   
-  NS_ABORT_IF_FALSE(!mInDecoder, "Re-entrant call to AddSourceData!");
-
-  
   
   if (mDecoded) {
     return NS_OK;
@@ -2049,11 +2033,7 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
   nsRefPtr<Decoder> decoder = mDecoder;
   mDecoder = nullptr;
 
-  mFinishing = true;
-  mInDecoder = true;
   decoder->Finish(aIntent);
-  mInDecoder = false;
-  mFinishing = false;
 
   
   
@@ -2104,9 +2084,7 @@ RasterImage::WriteToDecoder(const char *aBuffer, uint32_t aCount, DecodeStrategy
 
   
   nsRefPtr<Decoder> kungFuDeathGrip = mDecoder;
-  mInDecoder = true;
   mDecoder->Write(aBuffer, aCount, aStrategy);
-  mInDecoder = false;
 
   CONTAINER_ENSURE_SUCCESS(mDecoder->GetDecoderError());
 
@@ -2188,25 +2166,8 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
 
   
   
-  
-  if (mFinishing)
-    return NS_OK;
-
-  
-  
   if (mDecoder && mDecoder->NeedsNewFrame())
     return NS_OK;
-
-  
-  
-  
-  
-  
-  
-  if (mInDecoder) {
-    nsRefPtr<imgDecodeRequestor> requestor = new imgDecodeRequestor(*this);
-    return NS_DispatchToCurrentThread(requestor);
-  }
 
   
   if (mDecoder && mDecoder->IsSizeDecode()) {
@@ -2306,7 +2267,7 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
   
   
   
-  if (!mDecoded && !mInDecoder && mHasSourceData && aDecodeType == SYNCHRONOUS_NOTIFY_AND_SOME_DECODE) {
+  if (!mDecoded && mHasSourceData && aDecodeType == SYNCHRONOUS_NOTIFY_AND_SOME_DECODE) {
     PROFILER_LABEL_PRINTF("RasterImage", "DecodeABitOf",
       js::ProfileEntry::Category::GRAPHICS, "%s", GetURIString().get());
 
@@ -2345,12 +2306,6 @@ RasterImage::SyncDecode()
   }
 
   ReentrantMonitorAutoEnter lock(mDecodingMonitor);
-
-  
-  
-  
-  
-  NS_ABORT_IF_FALSE(!mInDecoder, "Yikes, forcing sync in reentrant call!");
 
   if (mDecodeRequest) {
     
@@ -2600,10 +2555,6 @@ RasterImage::Draw(gfxContext* aContext,
     return NS_ERROR_INVALID_ARG;
 
   if (mError)
-    return NS_ERROR_FAILURE;
-
-  
-  if (mInDecoder && (aFlags & imgIContainer::FLAG_SYNC_DECODE))
     return NS_ERROR_FAILURE;
 
   

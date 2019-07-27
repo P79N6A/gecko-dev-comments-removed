@@ -558,8 +558,6 @@ private:
   already_AddRefed<layers::Image> GetCurrentImage();
   void UpdateImageContainer();
 
-  void SetInUpdateImageContainer(bool aInUpdate) { mInUpdateImageContainer = aInUpdate; }
-  bool IsInUpdateImageContainer() { return mInUpdateImageContainer; }
   enum RequestDecodeType {
       ASYNCHRONOUS,
       SYNCHRONOUS_NOTIFY,
@@ -640,8 +638,6 @@ private:
   
   nsRefPtr<Decoder>          mDecoder;
   nsRefPtr<DecodeRequest>    mDecodeRequest;
-
-  bool                       mInDecoder;
   
 
   
@@ -664,11 +660,6 @@ private:
   
   
   bool                       mAnimationFinished:1;
-
-  
-  bool                       mFinishing:1;
-
-  bool                       mInUpdateImageContainer:1;
 
   
   
@@ -754,28 +745,6 @@ protected:
 inline NS_IMETHODIMP RasterImage::GetAnimationMode(uint16_t *aAnimationMode) {
   return GetAnimationModeInternal(aAnimationMode);
 }
-
-
-
-
-
-
-
-class imgDecodeRequestor : public nsRunnable
-{
-  public:
-    explicit imgDecodeRequestor(RasterImage &aContainer) {
-      mContainer = &aContainer;
-    }
-    NS_IMETHOD Run() {
-      if (mContainer)
-        mContainer->StartDecoding();
-      return NS_OK;
-    }
-
-  private:
-    WeakPtr<RasterImage> mContainer;
-};
 
 } 
 } 
