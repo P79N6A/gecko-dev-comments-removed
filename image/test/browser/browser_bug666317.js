@@ -1,7 +1,9 @@
+"use strict";
+
 waitForExplicitFinish();
 
 let pageSource =
-  '<html><body>' +
+  '<html><meta charset=UTF-8><body>' +
     '<img id="testImg" src="' + TESTROOT + 'big.png">' +
   '</body></html>';
 
@@ -10,47 +12,67 @@ let prefBranch = Cc["@mozilla.org/preferences-service;1"]
                    .getService(Ci.nsIPrefService)
                    .getBranch('image.mem.');
 
-function ImageDiscardObserver(result) {
-  this.discard = function onDiscard(request)
-  {
-    result.wasDiscarded = true;
-    this.synchronous = false;
+function imgDiscardingFrameScript() {
+  const Cc = Components.classes;
+  const Ci = Components.interfaces;
+
+  function ImageDiscardObserver(result) {
+    this.discard = function onDiscard(request) {
+      result.wasDiscarded = true;
+    }
   }
 
-  this.synchronous = true;
-}
+  function currentRequest() {
+    let img = content.document.getElementById('testImg');
+    img.QueryInterface(Ci.nsIImageLoadingContent);
+    return img.getRequest(Ci.nsIImageLoadingContent.CURRENT_REQUEST);
+  }
 
-function currentRequest() {
-  let img = gBrowser.getBrowserForTab(newTab).contentWindow
-            .document.getElementById('testImg');
-  img.QueryInterface(Ci.nsIImageLoadingContent);
-  return img.getRequest(Ci.nsIImageLoadingContent.CURRENT_REQUEST);
-}
+  function attachDiscardObserver(result) {
+    
+    let observer = new ImageDiscardObserver(result);
+    let scriptedObserver = Cc["@mozilla.org/image/tools;1"]
+                             .getService(Ci.imgITools)
+                             .createScriptedObserver(observer);
 
-function attachDiscardObserver(result) {
+    
+    let request = currentRequest();
+    return [ request.clone(scriptedObserver), scriptedObserver ];
+  }
+
   
-  let observer = new ImageDiscardObserver(result);
-  let scriptedObserver = Cc["@mozilla.org/image/tools;1"]
-                           .getService(Ci.imgITools)
-                           .createScriptedObserver(observer);
+  var result = { wasDiscarded: false };
+  var scriptedObserver;
+  var clonedRequest;
 
-  
-  let request = currentRequest();
-  return request.clone(scriptedObserver);
-}
+  addMessageListener("test666317:testPart1", function(message) {
+    
+    let doc = content.document;
+    let img = doc.getElementById('testImg');
+    let canvas = doc.createElement('canvas');
+    let ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
 
-function isImgDecoded() {
-  let request = currentRequest();
-  return request.imageStatus & Ci.imgIRequest.STATUS_FRAME_COMPLETE ? true : false;
-}
+    
+    
+    
+    
+    [ clonedRequest, scriptedObserver ] = attachDiscardObserver(result)
+    let decoded = clonedRequest.imageStatus & Ci.imgIRequest.STATUS_FRAME_COMPLETE ? true : false;
 
+    message.target.sendAsyncMessage("test666317:testPart1:Answer",
+                                    { decoded });
+  });
 
-function forceDecodeImg() {
-  let doc = gBrowser.getBrowserForTab(newTab).contentWindow.document;
-  let img = doc.getElementById('testImg');
-  let canvas = doc.createElement('canvas');
-  let ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0);
+  addMessageListener("test666317:wasImgDiscarded", function(message) {
+    let discarded = result.wasDiscarded;
+
+    
+    clonedRequest.cancelAndForgetObserver(0);
+    scriptedObserver = null;
+    message.target.sendAsyncMessage("test666317:wasImgDiscarded:Answer",
+                                    { discarded });
+  });
 }
 
 function test() {
@@ -69,25 +91,38 @@ function test() {
 }
 
 function step2() {
-  
-  var result = { wasDiscarded: false };
-  var clonedRequest = attachDiscardObserver(result);
+  let mm = gBrowser.getBrowserForTab(newTab).QueryInterface(Ci.nsIFrameLoaderOwner)
+           .frameLoader.messageManager;
+  mm.loadFrameScript("data:,(" + escape(imgDiscardingFrameScript.toString()) + ")();", false);
 
   
-  forceDecodeImg();
-  ok(isImgDecoded(), 'Image should initially be decoded.');
+  mm.addMessageListener("test666317:testPart1:Answer", function(message) {
+    let decoded = message.data.decoded;
+    ok(decoded, 'Image should initially be decoded.');
 
-  
-  
-  gBrowser.selectedTab = oldTab;
-  var os = Cc["@mozilla.org/observer-service;1"]
-             .getService(Ci.nsIObserverService);
-  os.notifyObservers(null, 'memory-pressure', 'heap-minimize');
-  ok(result.wasDiscarded, 'Image should be discarded.');
+    
+    
+    gBrowser.selectedTab = oldTab;
+    waitForFocus(() => {
+      var os = Cc["@mozilla.org/observer-service;1"]
+                 .getService(Ci.nsIObserverService);
 
-  
-  gBrowser.removeTab(newTab);
-  prefBranch.setBoolPref('discardable', oldDiscardingPref);
-  clonedRequest.cancelAndForgetObserver(0);
-  finish();
+      os.notifyObservers(null, 'memory-pressure', 'heap-minimize');
+
+      
+      mm.sendAsyncMessage("test666317:wasImgDiscarded");
+    }, oldTab.contentWindow);
+  });
+
+  mm.addMessageListener("test666317:wasImgDiscarded:Answer", function(message) {
+    let discarded = message.data.discarded;
+    ok(discarded, 'Image should be discarded.');
+
+    
+    gBrowser.removeTab(newTab);
+    prefBranch.setBoolPref('discardable', oldDiscardingPref);
+    finish();
+  });
+
+  mm.sendAsyncMessage("test666317:testPart1");
 }
