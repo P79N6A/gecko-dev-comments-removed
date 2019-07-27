@@ -164,7 +164,7 @@ struct gfxFontStyle {
     
     
     gfxFloat GetAdjustedSize(gfxFloat aspect) const {
-        NS_ASSERTION(sizeAdjust != 0.0, "Not meant to be called when sizeAdjust = 0");
+        NS_ASSERTION(sizeAdjust >= 0.0, "Not meant to be called when sizeAdjust = -1.0");
         gfxFloat adjustedSize = std::max(NS_round(size*(sizeAdjust/aspect)), 1.0);
         return std::min(adjustedSize, FONT_MAX_SIZE);
     }
@@ -1387,7 +1387,9 @@ public:
     }
 
     virtual gfxFloat GetAdjustedSize() const {
-        return mAdjustedSize > 0.0 ? mAdjustedSize : mStyle.size;
+        return mAdjustedSize > 0.0
+                 ? mAdjustedSize
+                 : (mStyle.sizeAdjust == 0.0 ? 0.0 : mStyle.size);
     }
 
     float FUnitsToDevUnitsFactor() const {

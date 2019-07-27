@@ -3440,7 +3440,7 @@ StyleAnimationValue::ExtractComputedValue(nsCSSProperty aProperty,
       aComputedValue.SetFloatValue(*static_cast<const float*>(
         StyleDataAtOffset(styleStruct, ssOffset)));
       if (aProperty == eCSSProperty_font_size_adjust &&
-          aComputedValue.GetFloatValue() == 0.0f) {
+          aComputedValue.GetFloatValue() == -1.0f) {
         
         
         
