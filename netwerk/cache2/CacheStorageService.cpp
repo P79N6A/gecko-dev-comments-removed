@@ -957,9 +957,16 @@ CacheStorageService::RemoveEntry(CacheEntry* aEntry, bool aOnlyUnreferenced)
     return false;
   }
 
-  if (aOnlyUnreferenced && aEntry->IsReferenced()) {
-    LOG(("  still referenced, not removing"));
-    return false;
+  if (aOnlyUnreferenced) {
+    if (aEntry->IsReferenced()) {
+      LOG(("  still referenced, not removing"));
+      return false;
+    }
+
+    if (!aEntry->IsUsingDisk() && IsForcedValidEntryInternal(entryKey)) {
+      LOG(("  forced valid, not removing"));
+      return false;
+    }
   }
 
   CacheEntryTable* entries;
@@ -1025,6 +1032,53 @@ CacheStorageService::RecordMemoryOnlyEntry(CacheEntry* aEntry,
   else {
     RemoveExactEntry(entries, entryKey, aEntry, aOverwrite);
   }
+}
+
+
+
+bool CacheStorageService::IsForcedValidEntry(nsACString &aCacheEntryKey)
+{
+  mozilla::MutexAutoLock lock(mLock);
+
+  return IsForcedValidEntryInternal(aCacheEntryKey);
+}
+
+
+
+bool CacheStorageService::IsForcedValidEntryInternal(nsACString &aCacheEntryKey)
+{
+  TimeStamp validUntil;
+
+  if (!mForcedValidEntries.Get(aCacheEntryKey, &validUntil)) {
+    return false;
+  }
+
+  if (validUntil.IsNull()) {
+    return false;
+  }
+
+  
+  if (TimeStamp::NowLoRes() <= validUntil) {
+    return true;
+  }
+
+  
+  mForcedValidEntries.Remove(aCacheEntryKey);
+  return false;
+}
+
+
+
+void CacheStorageService::ForceEntryValidFor(nsACString &aCacheEntryKey,
+                                             uint32_t aSecondsToTheFuture)
+{
+  mozilla::MutexAutoLock lock(mLock);
+
+  
+  TimeStamp validUntil = TimeStamp::NowLoRes() +
+    TimeDuration::FromSeconds(aSecondsToTheFuture);
+
+  mForcedValidEntries.Put(aCacheEntryKey, validUntil);
 }
 
 void

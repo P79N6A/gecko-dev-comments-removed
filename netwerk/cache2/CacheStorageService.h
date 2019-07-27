@@ -92,6 +92,9 @@ public:
   mozilla::Mutex& Lock() { return mLock; }
 
   
+  nsDataHashtable<nsCStringHashKey, TimeStamp> mForcedValidEntries;
+
+  
   
   
   class EntryInfoCallback {
@@ -145,6 +148,32 @@ private:
   void RecordMemoryOnlyEntry(CacheEntry* aEntry,
                              bool aOnlyInMemory,
                              bool aOverwrite);
+
+  
+
+
+
+
+  void ForceEntryValidFor(nsACString &aCacheEntryKey,
+                          uint32_t aSecondsToTheFuture);
+
+private:
+  friend class CacheIndex;
+
+  
+
+
+
+  bool IsForcedValidEntry(nsACString &aCacheEntryKey);
+
+  
+
+
+
+
+
+
+  bool IsForcedValidEntryInternal(nsACString &aCacheEntryKey);
 
 private:
   
