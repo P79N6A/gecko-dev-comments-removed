@@ -54,8 +54,8 @@ IsStatusApplying(LPCWSTR updateDirPath, BOOL &isApplying)
   }
 
   nsAutoHandle statusFile(CreateFileW(updateStatusFilePath, GENERIC_READ,
-                                      FILE_SHARE_READ | 
-                                      FILE_SHARE_WRITE | 
+                                      FILE_SHARE_READ |
+                                      FILE_SHARE_WRITE |
                                       FILE_SHARE_DELETE,
                                       nullptr, OPEN_EXISTING, 0, nullptr));
 
@@ -74,7 +74,7 @@ IsStatusApplying(LPCWSTR updateDirPath, BOOL &isApplying)
   LOG(("updater.exe returned status: %s", buf));
 
   const char kApplying[] = "applying";
-  isApplying = strncmp(buf, kApplying, 
+  isApplying = strncmp(buf, kApplying,
                        sizeof(kApplying) - 1) == 0;
   return TRUE;
 }
@@ -90,7 +90,43 @@ static bool
 IsUpdateBeingStaged(int argc, LPWSTR *argv)
 {
   
-  return argc == 4 && !wcscmp(argv[3], L"-1");
+  return argc == 4 && !wcscmp(argv[3], L"-1") ||
+         argc == 5 && !wcscmp(argv[4], L"-1");
+}
+
+
+
+
+
+
+
+static bool
+IsDigits(WCHAR *str)
+{
+  while (*str) {
+    if (!iswdigit(*str++)) {
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
+
+
+
+
+
+
+
+
+
+
+static bool
+IsOldCommandline(int argc, LPWSTR *argv)
+{
+  return argc == 4 && !wcscmp(argv[3], L"-1") ||
+         !wcscmp(argv[3], L"0/replace") ||
+         IsDigits(argv[3]);
 }
 
 
@@ -103,19 +139,29 @@ IsUpdateBeingStaged(int argc, LPWSTR *argv)
 static BOOL
 GetInstallationDir(int argcTmp, LPWSTR *argvTmp, WCHAR aResultDir[MAX_PATH + 1])
 {
-  if (argcTmp < 2) {
+  int index = 3;
+  if (IsOldCommandline(argcTmp, argvTmp)) {
+    index = 2;
+  }
+
+  if (argcTmp < index) {
     return FALSE;
   }
+
   wcsncpy(aResultDir, argvTmp[2], MAX_PATH);
   WCHAR* backSlash = wcsrchr(aResultDir, L'\\');
   
   if (backSlash && (backSlash[1] == L'\0')) {
     *backSlash = L'\0';
   }
-  bool backgroundUpdate = IsUpdateBeingStaged(argcTmp, argvTmp);
-  bool replaceRequest = (argcTmp >= 4 && wcsstr(argvTmp[3], L"/replace"));
-  if (backgroundUpdate || replaceRequest) {
-    return PathRemoveFileSpecW(aResultDir);
+
+  
+  if (index == 2) {
+    bool backgroundUpdate = IsUpdateBeingStaged(argcTmp, argvTmp);
+    bool replaceRequest = (argcTmp >= 4 && wcsstr(argvTmp[3], L"/replace"));
+    if (backgroundUpdate || replaceRequest) {
+      return PathRemoveFileSpecW(aResultDir);
+    }
   }
   return TRUE;
 }
@@ -145,11 +191,16 @@ StartUpdateProcess(int argc,
   
   LPWSTR cmdLine = MakeCommandLine(argc, argv);
 
+  int index = 3;
+  if (IsOldCommandline(argc, argv)) {
+    index = 2;
+  }
+
   
   
   
   
-  if (argc >= 2 ) {
+  if (argc >= index) {
     
     si.lpDesktop = L"";
     si.dwFlags |= STARTF_USESHOWWINDOW;
@@ -169,7 +220,7 @@ StartUpdateProcess(int argc,
   
   if (PathGetSiblingFilePath(updaterINI, argv[0], L"updater.ini") &&
       PathGetSiblingFilePath(updaterINITemp, argv[0], L"updater.tmp")) {
-    selfHandlePostUpdate = MoveFileExW(updaterINI, updaterINITemp, 
+    selfHandlePostUpdate = MoveFileExW(updaterINI, updaterINITemp,
                                        MOVEFILE_REPLACE_EXISTING);
   }
 
@@ -178,14 +229,14 @@ StartUpdateProcess(int argc,
   
   putenv(const_cast<char*>("MOZ_USING_SERVICE=1"));
   LOG(("Starting service with cmdline: %ls", cmdLine));
-  processStarted = CreateProcessW(argv[0], cmdLine, 
-                                  nullptr, nullptr, FALSE, 
-                                  CREATE_DEFAULT_ERROR_MODE, 
-                                  nullptr, 
+  processStarted = CreateProcessW(argv[0], cmdLine,
+                                  nullptr, nullptr, FALSE,
+                                  CREATE_DEFAULT_ERROR_MODE,
+                                  nullptr,
                                   nullptr, &si, &pi);
   
   putenv(const_cast<char*>("MOZ_USING_SERVICE="));
-  
+
   BOOL updateWasSuccessful = FALSE;
   if (processStarted) {
     
@@ -216,7 +267,7 @@ StartUpdateProcess(int argc,
       if (updateWasSuccessful) {
         LOG(("update.status is still applying even know update "
              " was successful."));
-        if (!WriteStatusFailure(argv[1], 
+        if (!WriteStatusFailure(argv[1],
                                 SERVICE_STILL_APPLYING_ON_SUCCESS)) {
           LOG_WARN(("Could not write update.status still applying on"
                     " success error."));
@@ -226,7 +277,7 @@ StartUpdateProcess(int argc,
         updateWasSuccessful = FALSE;
       } else {
         LOG_WARN(("update.status is still applying and update was not successful."));
-        if (!WriteStatusFailure(argv[1], 
+        if (!WriteStatusFailure(argv[1],
                                 SERVICE_STILL_APPLYING_ON_FAILURE)) {
           LOG_WARN(("Could not write update.status still applying on"
                     " success error."));
@@ -247,9 +298,9 @@ StartUpdateProcess(int argc,
     MoveFileExW(updaterINITemp, updaterINI, MOVEFILE_REPLACE_EXISTING);
 
     
-    if (updateWasSuccessful && argc > 2) {
+    if (updateWasSuccessful && argc > index) {
       LPCWSTR updateInfoDir = argv[1];
-      bool backgroundUpdate = IsUpdateBeingStaged(argc, argv);
+      bool stagingUpdate = IsUpdateBeingStaged(argc, argv);
 
       
       
@@ -261,7 +312,7 @@ StartUpdateProcess(int argc,
       
       
       
-      if (!backgroundUpdate) {
+      if (!stagingUpdate) {
         LOG(("Launching post update process as the service in session 0."));
         if (!LaunchWinPostProcess(installDir, updateInfoDir, true, nullptr)) {
           LOG_WARN(("The post update process could not be launched."
@@ -294,8 +345,8 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
 
     
     
-    if (argc < 2 || 
-        !WriteStatusFailure(argv[1], 
+    if (argc < 2 ||
+        !WriteStatusFailure(argv[1],
                             SERVICE_NOT_ENOUGH_COMMAND_LINE_ARGS)) {
       LOG_WARN(("Could not write update.status service update failure.  (%d)",
                 GetLastError()));
@@ -320,7 +371,7 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
   if (!IsLocalFile(argv[0], isLocal) || !isLocal) {
     LOG_WARN(("Filesystem in path %ls is not supported (%d)",
               argv[0], GetLastError()));
-    if (!WriteStatusFailure(argv[1], 
+    if (!WriteStatusFailure(argv[1],
                             SERVICE_UPDATER_NOT_FIXED_DRIVE)) {
       LOG_WARN(("Could not write update.status service update failure.  (%d)",
                 GetLastError()));
@@ -328,12 +379,12 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
     return FALSE;
   }
 
-  nsAutoHandle noWriteLock(CreateFileW(argv[0], GENERIC_READ, FILE_SHARE_READ, 
+  nsAutoHandle noWriteLock(CreateFileW(argv[0], GENERIC_READ, FILE_SHARE_READ,
                                        nullptr, OPEN_EXISTING, 0, nullptr));
   if (INVALID_HANDLE_VALUE == noWriteLock) {
       LOG_WARN(("Could not set no write sharing access on file.  (%d)",
                 GetLastError()));
-    if (!WriteStatusFailure(argv[1], 
+    if (!WriteStatusFailure(argv[1],
                             SERVICE_COULD_NOT_LOCK_UPDATER)) {
       LOG_WARN(("Could not write update.status service update failure.  (%d)",
                 GetLastError()));
@@ -352,7 +403,7 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
   }
 
   BOOL updaterIsCorrect;
-  if (result && !VerifySameFiles(argv[0], installDirUpdater, 
+  if (result && !VerifySameFiles(argv[0], installDirUpdater,
                                  updaterIsCorrect)) {
     LOG_WARN(("Error checking if the updaters are the same.\n"
               "Path 1: %ls\nPath 2: %ls", argv[0], installDirUpdater));
@@ -360,7 +411,7 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
   }
 
   if (result && !updaterIsCorrect) {
-    LOG_WARN(("The updaters do not match, updater will not run.")); 
+    LOG_WARN(("The updaters do not match, updater will not run."));
     result = FALSE;
   }
 
@@ -368,7 +419,7 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
     LOG(("updater.exe was compared successfully to the installation directory"
          " updater.exe."));
   } else {
-    if (!WriteStatusFailure(argv[1], 
+    if (!WriteStatusFailure(argv[1],
                             SERVICE_UPDATER_COMPARE_ERROR)) {
       LOG_WARN(("Could not write update.status updater compare failure."));
     }
@@ -378,14 +429,14 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
   
   
   
-  HMODULE updaterModule = LoadLibraryEx(argv[0], nullptr, 
+  HMODULE updaterModule = LoadLibraryEx(argv[0], nullptr,
                                         LOAD_LIBRARY_AS_DATAFILE);
   if (!updaterModule) {
     LOG_WARN(("updater.exe module could not be loaded. (%d)", GetLastError()));
     result = FALSE;
   } else {
     char updaterIdentity[64];
-    if (!LoadStringA(updaterModule, IDS_UPDATER_IDENTITY, 
+    if (!LoadStringA(updaterModule, IDS_UPDATER_IDENTITY,
                      updaterIdentity, sizeof(updaterIdentity))) {
       LOG_WARN(("The updater.exe application does not contain the Mozilla"
                 " updater identity."));
@@ -403,7 +454,7 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
     LOG(("The updater.exe application contains the Mozilla"
           " updater identity."));
   } else {
-    if (!WriteStatusFailure(argv[1], 
+    if (!WriteStatusFailure(argv[1],
                             SERVICE_UPDATER_IDENTITY_ERROR)) {
       LOG_WARN(("Could not write update.status no updater identity."));
     }
@@ -443,7 +494,7 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
       
       
       if (!updateProcessWasStarted) {
-        if (!WriteStatusFailure(argv[1], 
+        if (!WriteStatusFailure(argv[1],
                                 SERVICE_UPDATER_COULD_NOT_BE_STARTED)) {
           LOG_WARN(("Could not write update.status service update failure.  (%d)",
                     GetLastError()));
@@ -457,7 +508,7 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
 
     
     
-    if (!WriteStatusFailure(argv[1], 
+    if (!WriteStatusFailure(argv[1],
                             SERVICE_UPDATER_SIGN_ERROR)) {
       LOG_WARN(("Could not write pending state to update.status.  (%d)",
                 GetLastError()));

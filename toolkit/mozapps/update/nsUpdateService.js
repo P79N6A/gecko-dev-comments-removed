@@ -612,7 +612,17 @@ XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpda
       var updateTestFile = getUpdateFile([FILE_PERMS_TEST]);
       LOG("gCanApplyUpdates - testing write access " + updateTestFile.path);
       testWriteAccess(updateTestFile, false);
-#ifdef XP_WIN
+#ifdef XP_MACOSX
+      
+      var appDirTestFile = getAppBaseDir();
+      appDirTestFile.append(FILE_PERMS_TEST);
+      LOG("gCanApplyUpdates - testing write access " + appDirTestFile.path);
+      if (appDirTestFile.exists()) {
+        appDirTestFile.remove(false)
+      }
+      appDirTestFile.create(Ci.nsILocalFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+      appDirTestFile.remove(false);
+#elifdef XP_WIN
       var sysInfo = Cc["@mozilla.org/system-info;1"].
                     getService(Ci.nsIPropertyBag2);
 
