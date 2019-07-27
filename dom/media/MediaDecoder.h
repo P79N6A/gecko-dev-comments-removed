@@ -777,12 +777,12 @@ public:
   
   virtual void MetadataLoaded(nsAutoPtr<MediaInfo> aInfo,
                               nsAutoPtr<MetadataTags> aTags,
-                              bool aRestoredFromDromant) MOZ_OVERRIDE;
+                              bool aRestoredFromDormant) MOZ_OVERRIDE;
 
   
   
   virtual void FirstFrameLoaded(nsAutoPtr<MediaInfo> aInfo,
-                                bool aRestoredFromDromant) MOZ_OVERRIDE;
+                                bool aRestoredFromDormant) MOZ_OVERRIDE;
 
   
   
