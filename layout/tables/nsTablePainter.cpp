@@ -213,26 +213,26 @@ TableBackgroundPainter::PaintTableFrame(nsTableFrame*         aTableFrame,
     if (aFirstRowGroup && aLastRowGroup && mNumCols > 0) {
       
       
-      nsMargin border, tempBorder;
+      LogicalMargin border(wm);
+      LogicalMargin tempBorder(wm);
       nsTableColFrame* colFrame = aTableFrame->GetColFrame(mNumCols - 1);
       if (colFrame) {
-        colFrame->GetContinuousBCBorderWidth(tempBorder);
+        colFrame->GetContinuousBCBorderWidth(wm, tempBorder);
       }
-      border.right = tempBorder.right;
+      border.IEnd(wm) = tempBorder.IEnd(wm);
 
-      LogicalMargin logBorder(wm);
-      aLastRowGroup->GetContinuousBCBorderWidth(wm, logBorder);
-      border.bottom = logBorder.Bottom(wm);
+      aLastRowGroup->GetContinuousBCBorderWidth(wm, tempBorder);
+      border.BEnd(wm) = tempBorder.BEnd(wm);
 
       nsTableRowFrame* rowFrame = aFirstRowGroup->GetFirstRow();
       if (rowFrame) {
-        rowFrame->GetContinuousBCBorderWidth(wm, logBorder);
-        border.top = logBorder.Top(wm);
+        rowFrame->GetContinuousBCBorderWidth(wm, tempBorder);
+        border.BStart(wm) = tempBorder.BStart(wm);
       }
 
-      border.left = aTableFrame->GetContinuousLeftBCBorderWidth();
+      border.IStart(wm) = aTableFrame->GetContinuousLeftBCBorderWidth();
 
-      tableData.SetBCBorder(border);
+      tableData.SetBCBorder(border.GetPhysicalMargin(wm));
     }
   }
 
@@ -279,6 +279,7 @@ TableBackgroundPainter::PaintTable(nsTableFrame*   aTableFrame,
 
   nsTableFrame::RowGroupArray rowGroups;
   aTableFrame->OrderRowGroups(rowGroups);
+  WritingMode wm = aTableFrame->GetWritingMode();
 
   DrawResult result = DrawResult::SUCCESS;
 
@@ -317,7 +318,7 @@ TableBackgroundPainter::PaintTable(nsTableFrame*   aTableFrame,
     
     mColGroups.SetCapacity(colGroupFrames.Length());
 
-    nsMargin border;
+    LogicalMargin border(wm);
     
 
     
@@ -327,9 +328,9 @@ TableBackgroundPainter::PaintTable(nsTableFrame*   aTableFrame,
       
       TableBackgroundData& cgData = *mColGroups.AppendElement(TableBackgroundData(cgFrame));
       if (mIsBorderCollapse && cgData.ShouldSetBCBorder()) {
-        border.left = lastLeftBorder;
-        cgFrame->GetContinuousBCBorderWidth(border);
-        cgData.SetBCBorder(border);
+        border.IStart(wm) = lastLeftBorder;
+        cgFrame->GetContinuousBCBorderWidth(wm, border);
+        cgData.SetBCBorder(border.GetPhysicalMargin(wm));
       }
 
       
@@ -341,10 +342,10 @@ TableBackgroundPainter::PaintTable(nsTableFrame*   aTableFrame,
         
         colData.mCol.mRect.MoveBy(cgData.mRect.x, cgData.mRect.y);
         if (mIsBorderCollapse) {
-          border.left = lastLeftBorder;
-          lastLeftBorder = col->GetContinuousBCBorderWidth(border);
+          border.IStart(wm) = lastLeftBorder;
+          lastLeftBorder = col->GetContinuousBCBorderWidth(wm, border);
           if (colData.mCol.ShouldSetBCBorder()) {
-            colData.mCol.SetBCBorder(border);
+            colData.mCol.SetBCBorder(border.GetPhysicalMargin(wm));
           }
         }
       }

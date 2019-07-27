@@ -101,7 +101,8 @@ public:
 
 
 
-  nscoord GetContinuousBCBorderWidth(nsMargin& aBorder);
+  nscoord GetContinuousBCBorderWidth(mozilla::WritingMode aWM,
+                                     mozilla::LogicalMargin& aBorder);
   
 
 
@@ -325,18 +326,16 @@ inline void nsTableColFrame::SetColIndex (int32_t aColIndex)
 }
 
 inline nscoord
-nsTableColFrame::GetContinuousBCBorderWidth(nsMargin& aBorder)
+nsTableColFrame::GetContinuousBCBorderWidth(mozilla::WritingMode aWM,
+                                            mozilla::LogicalMargin& aBorder)
 {
   int32_t aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
-  mozilla::WritingMode wm = GetWritingMode();
-  mozilla::LogicalMargin border(wm, aBorder);
-  border.BStart(wm) = BC_BORDER_END_HALF_COORD(aPixelsToTwips,
-                                               mBStartContBorderWidth);
-  border.IEnd(wm) = BC_BORDER_START_HALF_COORD(aPixelsToTwips,
-                                               mIEndContBorderWidth);
-  border.BEnd(wm) = BC_BORDER_START_HALF_COORD(aPixelsToTwips,
-                                               mBEndContBorderWidth);
-  aBorder = border.GetPhysicalMargin(wm);
+  aBorder.BStart(aWM) = BC_BORDER_END_HALF_COORD(aPixelsToTwips,
+                                                 mBStartContBorderWidth);
+  aBorder.IEnd(aWM) = BC_BORDER_START_HALF_COORD(aPixelsToTwips,
+                                                 mIEndContBorderWidth);
+  aBorder.BEnd(aWM) = BC_BORDER_START_HALF_COORD(aPixelsToTwips,
+                                                 mBEndContBorderWidth);
   return BC_BORDER_END_HALF_COORD(aPixelsToTwips, mIEndContBorderWidth);
 }
 
