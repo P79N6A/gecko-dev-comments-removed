@@ -145,20 +145,7 @@ public:
     return mState;
   }
 
-  void DispatchAudioCaptured()
-  {
-    nsRefPtr<MediaDecoderStateMachine> self = this;
-    nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction([self] () -> void
-    {
-      MOZ_ASSERT(self->OnTaskQueue());
-      ReentrantMonitorAutoEnter mon(self->mDecoder->GetReentrantMonitor());
-      if (!self->mAudioCaptured) {
-        self->mAudioCaptured = true;
-        self->ScheduleStateMachine();
-      }
-    });
-    TaskQueue()->Dispatch(r.forget());
-  }
+  void DispatchAudioCaptured();
 
   
   bool IsDormantNeeded();
@@ -170,6 +157,9 @@ private:
   
   
   void InitializationTask();
+
+  
+  void UpdateStreamBlockingForStateMachinePlaying();
 
   void Shutdown();
 public:
