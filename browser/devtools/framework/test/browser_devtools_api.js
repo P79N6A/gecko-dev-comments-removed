@@ -9,6 +9,9 @@
 thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: this.docShell is null");
 
 
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: this.doc is undefined");
+
+
 
 const Cu = Components.utils;
 const toolId1 = "test-tool-1";
