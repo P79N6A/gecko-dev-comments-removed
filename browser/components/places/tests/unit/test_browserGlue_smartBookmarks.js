@@ -35,27 +35,6 @@ function countFolderChildren(aFolderItemId) {
   return cc;
 }
 
-
-
-
-
-function rebuildSmartBookmarks() {
-  let consoleListener = {
-    observe: function(aMsg) {
-      do_throw("Got console message: " + aMsg.message);
-    },
-
-    QueryInterface: XPCOMUtils.generateQI([
-      Ci.nsIConsoleListener
-    ]),
-  };
-  Services.console.reset();
-  Services.console.registerListener(consoleListener);
-  Cc["@mozilla.org/browser/browserglue;1"].getService(Ci.nsIBrowserGlue)
-                                          .ensurePlacesDefaultQueriesInitialized();
-  Services.console.unregisterListener(consoleListener);
-}
-
 add_task(function* setup() {
   
   let bg = Cc["@mozilla.org/browser/browserglue;1"].getService(Ci.nsIObserver);
@@ -89,7 +68,7 @@ add_task(function* test_version_0() {
   
   Services.prefs.setIntPref(PREF_SMART_BOOKMARKS_VERSION, 0);
 
-  rebuildSmartBookmarks();
+  yield rebuildSmartBookmarks();
 
   
   Assert.equal(countFolderChildren(PlacesUtils.toolbarFolderId),
@@ -126,7 +105,7 @@ add_task(function* test_version_change() {
   
   Services.prefs.setIntPref(PREF_SMART_BOOKMARKS_VERSION, 1);
 
-  rebuildSmartBookmarks();
+  yield rebuildSmartBookmarks();
 
   
   Assert.equal(countFolderChildren(PlacesUtils.toolbarFolderId),
@@ -173,7 +152,7 @@ add_task(function* test_version_change_pos() {
   
   Services.prefs.setIntPref(PREF_SMART_BOOKMARKS_VERSION, 1);
 
-  rebuildSmartBookmarks();
+  yield rebuildSmartBookmarks();
 
   
   Assert.equal(countFolderChildren(PlacesUtils.toolbarFolderId),
@@ -240,7 +219,7 @@ add_task(function* test_version_change_pos_moved() {
   
   Services.prefs.setIntPref(PREF_SMART_BOOKMARKS_VERSION, 1);
 
-  rebuildSmartBookmarks();
+  yield rebuildSmartBookmarks();
 
   
   Assert.equal(countFolderChildren(PlacesUtils.toolbarFolderId),
@@ -294,7 +273,7 @@ add_task(function* test_recreation() {
   
   Services.prefs.setIntPref(PREF_SMART_BOOKMARKS_VERSION, 1);
 
-  rebuildSmartBookmarks();
+  yield rebuildSmartBookmarks();
 
   
   
@@ -320,7 +299,7 @@ add_task(function* test_recreation_version_0() {
   
   Services.prefs.setIntPref(PREF_SMART_BOOKMARKS_VERSION, 0);
 
-  rebuildSmartBookmarks();
+  yield rebuildSmartBookmarks();
 
   
   

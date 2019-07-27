@@ -382,6 +382,11 @@ BrowserGlue.prototype = {
         else if (data == "force-places-init") {
           this._initPlaces(false);
         }
+        else if (data == "smart-bookmarks-init") {
+          this.ensurePlacesDefaultQueriesInitialized().then(() => {
+            Services.obs.notifyObservers(null, "test-smart-bookmarks-done", null);
+          });
+        }
         break;
       case "initial-migration-will-import-default-bookmarks":
         this._migrationImportsDefaultBookmarks = true;
@@ -1497,7 +1502,7 @@ BrowserGlue.prototype = {
         
         
         this._distributionCustomizer.applyBookmarks();
-        this.ensurePlacesDefaultQueriesInitialized();
+        yield this.ensurePlacesDefaultQueriesInitialized();
       }
       else {
         
@@ -1532,7 +1537,7 @@ BrowserGlue.prototype = {
             this._distributionCustomizer.applyBookmarks();
             
             
-            this.ensurePlacesDefaultQueriesInitialized();
+            yield this.ensurePlacesDefaultQueriesInitialized();
           } catch (e) {
             Cu.reportError(e);
           }
@@ -2041,8 +2046,7 @@ BrowserGlue.prototype = {
     this._sanitizer.sanitize(aParentWindow);
   },
 
-  ensurePlacesDefaultQueriesInitialized:
-  function BG_ensurePlacesDefaultQueriesInitialized() {
+  ensurePlacesDefaultQueriesInitialized: Task.async(function* () {
     
     
     
@@ -2215,7 +2219,7 @@ BrowserGlue.prototype = {
       Services.prefs.setIntPref(SMART_BOOKMARKS_PREF, SMART_BOOKMARKS_VERSION);
       Services.prefs.savePrefFile(null);
     }
-  },
+  }),
 
   
   getMostRecentBrowserWindow: function BG_getMostRecentBrowserWindow() {
