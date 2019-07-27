@@ -8313,7 +8313,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
   
   
   if (transformedCharsFit > 0) {
-    aLineLayout.SetTrimmableISize(NSToCoordFloor(trimmableWidth));
+    aLineLayout.SetTrimmableWidth(NSToCoordFloor(trimmableWidth));
     AddStateBits(TEXT_HAS_NONCOLLAPSED_CHARACTERS);
   }
   if (charsFit > 0 && charsFit == length &&

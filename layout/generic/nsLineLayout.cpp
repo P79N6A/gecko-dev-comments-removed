@@ -93,7 +93,7 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
   mLineNumber = 0;
   mTotalPlacedFrames = 0;
   mBStartEdge = 0;
-  mTrimmableISize = 0;
+  mTrimmableWidth = 0;
 
   mInflationMinFontSize =
     nsLayoutUtils::InflationMinFontSizeFor(aOuterReflowState->frame);
@@ -270,17 +270,13 @@ nsLineLayout::EndLineReflow()
 
 
 void
-nsLineLayout::UpdateBand(WritingMode aWM,
-                         const LogicalRect& aNewAvailSpace,
+nsLineLayout::UpdateBand(const nsRect& aNewAvailSpace,
                          nsIFrame* aFloatFrame)
 {
   WritingMode lineWM = mRootSpan->mWritingMode;
-  
-  
-  LogicalRect availSpace = aNewAvailSpace.ConvertTo(lineWM, aWM,
-                                                    mContainerWidth);
+  LogicalRect availSpace(lineWM, aNewAvailSpace, mContainerWidth);
 #ifdef REALLY_NOISY_REFLOW
-  printf("nsLL::UpdateBand %d, %d, %d, %d, (converted to %d, %d, %d, %d); frame=%p\n  will set mImpacted to true\n",
+  printf("nsLL::UpdateBand %d, %d, %d, %d, (logical %d, %d, %d, %d); frame=%p\n  will set mImpacted to true\n",
          aNewAvailSpace.x, aNewAvailSpace.y,
          aNewAvailSpace.width, aNewAvailSpace.height,
          availSpace.IStart(lineWM), availSpace.BStart(lineWM),
@@ -304,9 +300,9 @@ nsLineLayout::UpdateBand(WritingMode aWM,
 
   
   NS_WARN_IF_FALSE(mRootSpan->mIEnd != NS_UNCONSTRAINEDSIZE &&
-                   availSpace.ISize(lineWM) != NS_UNCONSTRAINEDSIZE,
-                   "have unconstrained inline size; this should only result "
-                   "from very large sizes, not attempts at intrinsic width "
+                   aNewAvailSpace.width != NS_UNCONSTRAINEDSIZE,
+                   "have unconstrained width; this should only result from "
+                   "very large sizes, not attempts at intrinsic width "
                    "calculation");
   
   nscoord deltaICoord = availSpace.IStart(lineWM) - mRootSpan->mIStart;
@@ -317,9 +313,8 @@ nsLineLayout::UpdateBand(WritingMode aWM,
 #ifdef NOISY_REFLOW
   nsFrame::ListTag(stdout, mBlockReflowState->frame);
   printf(": UpdateBand: %d,%d,%d,%d deltaISize=%d deltaICoord=%d\n",
-         availSpace.IStart(lineWM), availSpace.BStart(lineWM),
-         availSpace.ISize(lineWM), availSpace.BSize(lineWM),
-         deltaISize, deltaICoord);
+         aNewAvailSpace.IStart(lineWM), aNewAvailSpace.BStart(lineWM),
+         aNewAvailSpace.ISize(lineWM), aNewAvailSpace.BSize(lineWM), deltaISize, deltaICoord);
 #endif
 
   
@@ -846,8 +841,10 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   metrics.ISize(lineWM) = nscoord(0xdeadbeef);
   metrics.BSize(lineWM) = nscoord(0xdeadbeef);
 #endif
-  LogicalPoint tPt = pfd->mBounds.Origin(lineWM);
-  WritingMode oldWM = mFloatManager->Translate(lineWM, tPt, mContainerWidth);
+  nsRect physicalBounds = pfd->mBounds.GetPhysicalRect(lineWM, mContainerWidth);
+  nscoord tx = physicalBounds.x;
+  nscoord ty = physicalBounds.y;
+  mFloatManager->Translate(tx, ty);
 
   int32_t savedOptionalBreakOffset;
   gfxBreakPriority savedOptionalBreakPriority;
@@ -882,7 +879,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
         
         
         
-        nscoord availableISize = psd->mIEnd - (psd->mICoord - mTrimmableISize);
+        nscoord availableWidth = psd->mIEnd - (psd->mICoord - mTrimmableWidth);
         if (psd->mNoWrap) {
           
           
@@ -893,9 +890,9 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
           
           
           
-          availableISize = 0;
+          availableWidth = 0;
         }
-        placedFloat = AddFloat(outOfFlowFrame, availableISize);
+        placedFloat = AddFloat(outOfFlowFrame, availableWidth);
         NS_ASSERTION(!(outOfFlowFrame->GetType() == nsGkAtoms::letterFrame &&
                        GetFirstLetterStyleOK()),
                     "FirstLetterStyle set on line with floating first letter");
@@ -932,7 +929,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
     }
   }
 
-  mFloatManager->Untranslate(oldWM, tPt, mContainerWidth);
+  mFloatManager->Translate(-tx, -ty);
 
   NS_ASSERTION(metrics.ISize(lineWM) >= 0, "bad inline size");
   NS_ASSERTION(metrics.BSize(lineWM) >= 0,"bad block size");
@@ -1006,7 +1003,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
     
     
     if (!continuingTextRun && !pfd->GetFlag(PFD_SKIPWHENTRIMMINGWHITESPACE)) {
-      mTrimmableISize = 0;
+      mTrimmableWidth = 0;
     }
 
     
@@ -1205,7 +1202,7 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
 
   
   
-  bool outside = pfd->mBounds.IEnd(lineWM) - mTrimmableISize + endMargin >
+  bool outside = pfd->mBounds.IEnd(lineWM) - mTrimmableWidth + endMargin >
                  psd->mIEnd;
   if (!outside) {
     

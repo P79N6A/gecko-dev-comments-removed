@@ -446,12 +446,6 @@ public:
   
   
   void SetOverflowAreas(const nsOverflowAreas& aOverflowAreas);
-  mozilla::LogicalRect GetOverflowArea(nsOverflowType aType,
-                                       mozilla::WritingMode aWM,
-                                       nscoord aContainerWidth)
-  {
-    return mozilla::LogicalRect(aWM, GetOverflowArea(aType), aContainerWidth);
-  }
   nsRect GetOverflowArea(nsOverflowType aType) {
     return mData ? mData->mOverflowAreas.Overflow(aType) : GetPhysicalBounds();
   }

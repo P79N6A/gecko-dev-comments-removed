@@ -113,16 +113,16 @@ public:
   
   
   void ComputeReplacedBlockOffsetsForFloats(nsIFrame* aFrame,
-                          const mozilla::LogicalRect& aFloatAvailableSpace,
-                                            nscoord&  aIStartResult,
-                                            nscoord&  aIEndResult);
+                                            const nsRect& aFloatAvailableSpace,
+                                            nscoord& aLeftResult,
+                                            nscoord& aRightResult);
 
   
   void ComputeBlockAvailSpace(nsIFrame* aFrame,
                               const nsStyleDisplay* aDisplay,
                               const nsFlowAreaRect& aFloatAvailableSpace,
                               bool aBlockAvoidsFloats,
-                              mozilla::LogicalRect& aResult);
+                              nsRect& aResult);
 
 protected:
   void RecoverFloats(nsLineList::iterator aLine, nscoord aDeltaBCoord);
@@ -157,8 +157,7 @@ public:
   
   
   
-  mozilla::WritingMode mFloatManagerWM;
-  mozilla::LogicalPoint mFloatManagerOrigin;
+  nscoord mFloatManagerX, mFloatManagerY;
 
   
   nsReflowStatus mReflowStatus;

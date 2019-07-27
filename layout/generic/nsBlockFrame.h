@@ -319,14 +319,14 @@ public:
 
 
 
-  struct ReplacedElementISizeToClear {
-    nscoord marginIStart, borderBoxISize, marginIEnd;
-    nscoord MarginBoxISize() const
-      { return marginIStart + borderBoxISize + marginIEnd; }
+  struct ReplacedElementWidthToClear {
+    nscoord marginLeft, borderBoxWidth, marginRight;
+    nscoord MarginBoxWidth() const
+      { return marginLeft + borderBoxWidth + marginRight; }
   };
-  static ReplacedElementISizeToClear
-    ISizeToClearPastFloats(nsBlockReflowState& aState,
-                           const mozilla::LogicalRect& aFloatAvailableSpace,
+  static ReplacedElementWidthToClear
+    WidthToClearPastFloats(nsBlockReflowState& aState,
+                           const nsRect& aFloatAvailableSpace,
                            nsIFrame* aFrame);
 
   
@@ -476,10 +476,8 @@ public:
 
 
 
-  static void RecoverFloatsFor(nsIFrame*            aFrame,
-                               nsFloatManager&      aFloatManager,
-                               mozilla::WritingMode aWM,
-                               nscoord              aContainerWidth);
+  static void RecoverFloatsFor(nsIFrame*       aFrame,
+                               nsFloatManager& aFloatManager);
 
   
 
@@ -543,9 +541,7 @@ protected:
   
 
 
-  void RecoverFloats(nsFloatManager&      aFloatManager,
-                     mozilla::WritingMode aWM,
-                     nscoord              aContainerWidth);
+  void RecoverFloats(nsFloatManager& aFloatManager);
 
   
 
@@ -605,13 +601,13 @@ protected:
   
   
   
-  bool PlaceLine(nsBlockReflowState&           aState,
-                   nsLineLayout&               aLineLayout,
-                   line_iterator               aLine,
+  bool PlaceLine(nsBlockReflowState& aState,
+                   nsLineLayout&       aLineLayout,
+                   line_iterator       aLine,
                    nsFloatManager::SavedState* aFloatStateBeforeLine,
-                   mozilla::LogicalRect&       aFloatAvailableSpace, 
-                   nscoord&                    aAvailableSpaceHeight, 
-                   bool*                       aKeepReflowGoing);
+                   nsRect&             aFloatAvailableSpace, 
+                   nscoord&            aAvailableSpaceHeight, 
+                   bool*             aKeepReflowGoing);
 
   
 
@@ -670,28 +666,27 @@ protected:
                          LineReflowStatus* aLineReflowStatus);
 
   
-  mozilla::LogicalRect AdjustFloatAvailableSpace(
-                         nsBlockReflowState&         aState,
-                         const mozilla::LogicalRect& aFloatAvailableSpace,
-                         nsIFrame*                   aFloatFrame);
+  nsRect AdjustFloatAvailableSpace(nsBlockReflowState& aState,
+                                   const nsRect&       aFloatAvailableSpace,
+                                   nsIFrame*           aFloatFrame);
   
-  nscoord ComputeFloatISize(nsBlockReflowState&         aState,
-                            const mozilla::LogicalRect& aFloatAvailableSpace,
-                            nsIFrame*                   aFloat);
-  
+  nscoord ComputeFloatWidth(nsBlockReflowState& aState,
+                            const nsRect&       aFloatAvailableSpace,
+                            nsIFrame*           aFloat);
   
   
   
-  void ReflowFloat(nsBlockReflowState&         aState,
-                   const mozilla::LogicalRect& aAdjustedAvailableSpace,
-                   nsIFrame*                   aFloat,
-                   mozilla::LogicalMargin&     aFloatMargin,
-                   mozilla::LogicalMargin&     aFloatOffsets,
+  
+  void ReflowFloat(nsBlockReflowState& aState,
+                   const nsRect&       aAdjustedAvailableSpace,
+                   nsIFrame*           aFloat,
+                   nsMargin&           aFloatMargin,
+                   nsMargin&           aFloatOffsets,
                    
                    
                    
-                   bool                        aFloatPushedDown,
-                   nsReflowStatus&             aReflowStatus);
+                   bool                aFloatPushedDown,
+                   nsReflowStatus&     aReflowStatus);
 
   
   
@@ -757,7 +752,7 @@ protected:
 
   void PropagateFloatDamage(nsBlockReflowState& aState,
                             nsLineBox* aLine,
-                            nscoord aDeltaBCoord);
+                            nscoord aDeltaY);
 
   void CheckFloats(nsBlockReflowState& aState);
 

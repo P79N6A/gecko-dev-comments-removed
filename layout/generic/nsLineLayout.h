@@ -62,8 +62,7 @@ public:
 
 
 
-  void UpdateBand(mozilla::WritingMode aWM,
-                  const mozilla::LogicalRect& aNewAvailableSpace,
+  void UpdateBand(const nsRect& aNewAvailableSpace,
                   nsIFrame* aFloatFrame);
 
   void BeginSpan(nsIFrame* aFrame, const nsHTMLReflowState* aSpanReflowState,
@@ -151,13 +150,13 @@ public:
   
   
   
-  bool AddFloat(nsIFrame* aFloat, nscoord aAvailableISize)
+  bool AddFloat(nsIFrame* aFloat, nscoord aAvailableWidth)
   {
-    return mBlockRS->AddFloat(this, aFloat, aAvailableISize);
+    return mBlockRS->AddFloat(this, aFloat, aAvailableWidth);
   }
 
-  void SetTrimmableISize(nscoord aTrimmableISize) {
-    mTrimmableISize = aTrimmableISize;
+  void SetTrimmableWidth(nscoord aTrimmableWidth) {
+    mTrimmableWidth = aTrimmableWidth;
   }
 
   
@@ -506,8 +505,7 @@ protected:
   nscoord mFinalLineBSize;
   
   
-  
-  nscoord mTrimmableISize;
+  nscoord mTrimmableWidth;
 
   nscoord mContainerWidth;
 
