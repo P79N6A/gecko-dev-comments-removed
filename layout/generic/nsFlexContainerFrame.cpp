@@ -1127,10 +1127,6 @@ CrossSizeToUseWithRatio(const FlexItem& aFlexItem,
 
 
 
-#define MULDIV(a,b,c) (nscoord(int64_t(a) * int64_t(b) / int64_t(c)))
-
-
-
 
 static nscoord
 MainSizeFromAspectRatio(nscoord aCrossSize,
@@ -1142,10 +1138,10 @@ MainSizeFromAspectRatio(nscoord aCrossSize,
 
   if (IsAxisHorizontal(aAxisTracker.GetCrossAxis())) {
     
-    return MULDIV(aCrossSize, aIntrinsicRatio.height, aIntrinsicRatio.width);
+    return NSCoordMulDiv(aCrossSize, aIntrinsicRatio.height, aIntrinsicRatio.width);
   }
   
-  return MULDIV(aCrossSize, aIntrinsicRatio.width, aIntrinsicRatio.height);
+  return NSCoordMulDiv(aCrossSize, aIntrinsicRatio.width, aIntrinsicRatio.height);
 }
 
 
