@@ -5,9 +5,6 @@
 
 package org.mozilla.gecko.widget;
 
-import android.util.Log;
-import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import org.mozilla.gecko.widget.DoorHanger.Type;
@@ -26,6 +23,15 @@ public class DoorhangerConfig {
         }
     }
 
+    public static class ButtonConfig {
+        public final String label;
+        public final int callback;
+
+        public ButtonConfig(String label, int callback) {
+            this.label = label;
+            this.callback = callback;
+        }
+    }
     private static final String LOGTAG = "DoorhangerConfig";
 
     private final int tabId;
@@ -35,7 +41,8 @@ public class DoorhangerConfig {
     private String message;
     private JSONObject options;
     private Link link;
-    private JSONArray buttons = new JSONArray();
+    private ButtonConfig positiveButtonConfig;
+    private ButtonConfig negativeButtonConfig;
 
     public DoorhangerConfig(Type type, DoorHanger.OnButtonClickListener listener) {
         
@@ -79,37 +86,25 @@ public class DoorhangerConfig {
         return options;
     }
 
-    
-
-
-
-    public void appendButtonsFromJSON(JSONArray buttons) {
-        try {
-            for (int i = 0; i < buttons.length(); i++) {
-                this.buttons.put(buttons.get(i));
-            }
-        } catch (JSONException e) {
-            Log.e(LOGTAG, "Error parsing buttons from JSON", e);
+    public void setButton(String label, int callbackId, boolean isPositive) {
+        final ButtonConfig buttonConfig = new ButtonConfig(label, callbackId);
+        if (isPositive) {
+            positiveButtonConfig = buttonConfig;
+        } else {
+            negativeButtonConfig = buttonConfig;
         }
     }
 
-    public void appendButton(String label, int callbackId) {
-        final JSONObject button = new JSONObject();
-        try {
-            button.put("label", label);
-            button.put("callback", callbackId);
-            this.buttons.put(button);
-        } catch (JSONException e) {
-            Log.e(LOGTAG, "Error creating button", e);
-        }
+    public ButtonConfig getPositiveButtonConfig() {
+        return positiveButtonConfig;
+    }
+
+    public  ButtonConfig getNegativeButtonConfig() {
+        return negativeButtonConfig;
     }
 
     public DoorHanger.OnButtonClickListener getButtonClickListener() {
         return this.buttonClickListener;
-    }
-
-    public JSONArray getButtons() {
-        return buttons;
     }
 
     public void setLink(String label, String url, String delimiter) {
