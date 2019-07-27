@@ -129,7 +129,9 @@ def build_dict(config, env=os.environ):
             return 'asan'
         return 'opt'
 
-    if 'buildapp' in d:
+    
+    
+    if 'buildapp' in d and 'bits' in d:
         d['platform_guess'] = guess_platform()
         d['buildtype_guess'] = guess_buildtype()
 
