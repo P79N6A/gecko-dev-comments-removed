@@ -534,6 +534,9 @@ extract_signature(const char *src, uint32_t sigIndex, const char * dest)
   
   for (i = 0; i <= sigIndex; i++) {
     
+    free(extractedSignature);
+
+    
     if (fseeko(fpSrc, sizeof(uint32_t), SEEK_CUR)) {
       fprintf(stderr, "ERROR: Could not seek past sig algorithm ID.\n");
       goto failure;
