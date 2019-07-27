@@ -62,67 +62,12 @@
     
 
 
-    let paths = {
-      
-
-
-
-      _map: new Map(),
-      
-
-
-      get regexp() {
-        if (this._regexp) {
-          return this._regexp;
-        }
-        let objectURLs = [];
-        for (let [objectURL, _] of this._map) {
-          objectURLs.push(objectURL);
-        }
-        return this._regexp = new RegExp(objectURLs.join("|"), "g");
-      },
-      _regexp: null,
-      
-
-
-      set: function(url, path) {
-        this._regexp = null; 
-        this._map.set(url, path);
-      },
-      
-
-
-      get: function(url) {
-        return this._map.get(url);
-      },
-      
-
-
-
-
-
-
-
-
-
-
-      substitute: function(source) {
-        let map = this._map;
-        return source.replace(this.regexp, function(url) {
-          return map.get(url) || url;
-        }, "g");
-      }
-    };
-
-    
-
-
 
 
     Object.defineProperty(Error.prototype, "moduleStack",
     {
       get: function() {
-        return paths.substitute(this.stack);
+        return this.stack;
       }
     });
     
@@ -133,7 +78,11 @@
     Object.defineProperty(Error.prototype, "moduleName",
     {
       get: function() {
-        return paths.substitute(this.fileName);
+        let match = this.stack.match(/\@(.*):.*:/);
+        if (match) {
+          return match[1];
+        }
+        return "(unknown module)";
       }
     });
 
@@ -187,36 +136,15 @@
           
           throw new Error("Could not find module " + path);
         }
-        
-        
-        
-        
-        source = "require._tmpModules[\"" + name + "\"] = " +
-          "function(exports, require, module) {" +
-          source +
-        "\n}\n";
-        let blob = new Blob(
-          [
-            (new TextEncoder()).encode(source)
-          ], {
-            type: "application/javascript"
-          });
-        objectURL = URL.createObjectURL(blob);
-        paths.set(objectURL, path);
-        importScripts(objectURL);
-        require._tmpModules[name].call(null, exports, require, module);
-
+        let code = new Function("exports", "require", "module",
+          source + "\n//# sourceURL=" + uri + "\n"
+        );
+        code(exports, require, module);
       } catch (ex) {
         
         
         modules.delete(path);
         throw ex;
-      } finally {
-        if (objectURL) {
-          
-          URL.revokeObjectURL(objectURL);
-        }
-        delete require._tmpModules[name];
       }
 
       Object.freeze(module.exports);
@@ -225,14 +153,6 @@
     };
   })();
 
-  
-
-
-
-
-
-
-  require._tmpModules = Object.create(null);
   Object.freeze(require);
 
   Object.defineProperty(exports, "require", {
