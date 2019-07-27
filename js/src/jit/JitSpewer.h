@@ -96,6 +96,7 @@ enum JitSpewChannel {
     JitSpew_Terminator
 };
 
+class MIRGenerator;
 
 
 
