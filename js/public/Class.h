@@ -535,6 +535,10 @@ ObjectClassIs(JSObject &obj, ESClassValue classValue, JSContext *cx);
 inline bool
 IsObjectWithClass(const JS::Value &v, ESClassValue classValue, JSContext *cx);
 
+
+inline bool
+Unbox(JSContext *cx, JS::HandleObject obj, JS::MutableHandleValue vp);
+
 }  
 
 #endif  
