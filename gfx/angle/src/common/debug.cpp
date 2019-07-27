@@ -87,7 +87,6 @@ bool perfActive()
 
 ScopedPerfEventHelper::ScopedPerfEventHelper(const char* format, ...)
 {
-#if defined(ANGLE_ENABLE_PERF)
 #if !defined(ANGLE_ENABLE_TRACE)
     if (!perfActive())
     {
@@ -96,9 +95,12 @@ ScopedPerfEventHelper::ScopedPerfEventHelper(const char* format, ...)
 #endif 
     va_list vararg;
     va_start(vararg, format);
+#if defined(ANGLE_ENABLE_PERF)
     output(true, reinterpret_cast<PerfOutputFunction>(D3DPERF_BeginEvent), format, vararg);
-    va_end(vararg);
+#else
+    output(true, NULL, format, vararg);
 #endif 
+    va_end(vararg);
 }
 
 ScopedPerfEventHelper::~ScopedPerfEventHelper()

@@ -14,6 +14,7 @@
 #include <EGL/egl.h>
 
 #include "common/angleutils.h"
+#include "common/NativeWindow.h"
 
 namespace gl
 {
@@ -33,7 +34,7 @@ class Config;
 class Surface
 {
   public:
-    Surface(Display *display, const egl::Config *config, HWND window, EGLint fixedSize, EGLint width, EGLint height, EGLint postSubBufferSupported);
+    Surface(Display *display, const egl::Config *config, EGLNativeWindowType window, EGLint fixedSize, EGLint width, EGLint height, EGLint postSubBufferSupported);
     Surface(Display *display, const egl::Config *config, HANDLE shareHandle, EGLint width, EGLint height, EGLenum textureFormat, EGLenum textureTarget);
 
     virtual ~Surface();
@@ -42,7 +43,7 @@ class Surface
     void release();
     bool resetSwapChain();
 
-    HWND getWindowHandle();
+    EGLNativeWindowType getWindowHandle();
     bool swap();
     bool postSubBuffer(EGLint x, EGLint y, EGLint width, EGLint height);
 
@@ -83,7 +84,7 @@ private:
     bool resetSwapChain(int backbufferWidth, int backbufferHeight);
     bool swapRect(EGLint x, EGLint y, EGLint width, EGLint height);
 
-    const HWND mWindow;            
+    rx::NativeWindow mNativeWindow;   
     bool mWindowSubclassed;        
     const egl::Config *mConfig;    
     EGLint mHeight;                

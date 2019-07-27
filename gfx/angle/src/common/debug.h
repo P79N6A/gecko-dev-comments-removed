@@ -91,6 +91,10 @@ namespace gl
 
 
 
+#if defined (ANGLE_TEST_CONFIG)
+#define NOASSERT_UNIMPLEMENTED 1
+#endif
+
 
 
 #ifndef NOASSERT_UNIMPLEMENTED

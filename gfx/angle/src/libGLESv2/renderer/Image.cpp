@@ -15,7 +15,7 @@ namespace rx
 
 Image::Image()
 {
-    mWidth = 0; 
+    mWidth = 0;
     mHeight = 0;
     mDepth = 0;
     mInternalFormat = GL_NONE;

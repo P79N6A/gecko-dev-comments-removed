@@ -83,6 +83,9 @@ class TCompiler : public TShHandleBase
     ShShaderOutput getOutputType() const { return outputType; }
     std::string getBuiltInResourcesString() const { return builtInResourcesString; }
 
+    
+    const ShBuiltInResources& getResources() const;
+
   protected:
     sh::GLenum getShaderType() const { return shaderType; }
     
@@ -128,8 +131,6 @@ class TCompiler : public TShHandleBase
     bool limitExpressionComplexity(TIntermNode* root);
     
     const TExtensionBehavior& getExtensionBehavior() const;
-    
-    const ShBuiltInResources& getResources() const;
 
     const ArrayBoundsClamper& getArrayBoundsClamper() const;
     ShArrayIndexClampingStrategy getArrayIndexClampingStrategy() const;

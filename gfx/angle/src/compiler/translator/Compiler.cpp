@@ -502,18 +502,18 @@ bool TCompiler::enforceVertexShaderTimingRestrictions(TIntermNode* root)
 
 void TCompiler::collectVariables(TIntermNode* root)
 {
-    CollectVariables collect(&attributes,
-                             &outputVariables,
-                             &uniforms,
-                             &varyings,
-                             &interfaceBlocks,
-                             hashFunction);
+    sh::CollectVariables collect(&attributes,
+                                 &outputVariables,
+                                 &uniforms,
+                                 &varyings,
+                                 &interfaceBlocks,
+                                 hashFunction);
     root->traverse(&collect);
 
     
     
-    ExpandVariables(uniforms, &expandedUniforms);
-    ExpandVariables(varyings, &expandedVaryings);
+    sh::ExpandVariables(uniforms, &expandedUniforms);
+    sh::ExpandVariables(varyings, &expandedVaryings);
 }
 
 bool TCompiler::enforcePackingRestrictions()

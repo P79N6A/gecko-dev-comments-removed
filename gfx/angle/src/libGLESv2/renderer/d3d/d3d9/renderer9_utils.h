@@ -13,8 +13,15 @@
 #include "libGLESv2/angletypes.h"
 #include "libGLESv2/Caps.h"
 
+namespace gl
+{
+class FramebufferAttachment;
+}
+
 namespace rx
 {
+class RenderTarget9;
+struct Workarounds;
 
 namespace gl_d3d9
 {
@@ -67,6 +74,9 @@ inline bool isDeviceLostError(HRESULT errorCode)
         return false;
     }
 }
+
+RenderTarget9 *GetAttachmentRenderTarget(gl::FramebufferAttachment *attachment);
+Workarounds GenerateWorkarounds();
 
 }
 

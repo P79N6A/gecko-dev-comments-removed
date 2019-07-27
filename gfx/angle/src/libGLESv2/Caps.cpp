@@ -182,11 +182,16 @@ std::vector<std::string> Extensions::getStrings() const
 }
 
 static bool GetFormatSupport(const TextureCapsMap &textureCaps, const std::vector<GLenum> &requiredFormats,
-                             bool requiresFiltering, bool requiresRendering)
+                             bool requiresTexturing, bool requiresFiltering, bool requiresRendering)
 {
     for (size_t i = 0; i < requiredFormats.size(); i++)
     {
         const TextureCaps &cap = textureCaps.get(requiredFormats[i]);
+
+        if (requiresTexturing && !cap.texturable)
+        {
+            return false;
+        }
 
         if (requiresFiltering && !cap.filterable)
         {
@@ -209,7 +214,7 @@ static bool DetermineRGB8AndRGBA8TextureSupport(const TextureCapsMap &textureCap
     requiredFormats.push_back(GL_RGB8);
     requiredFormats.push_back(GL_RGBA8);
 
-    return GetFormatSupport(textureCaps, requiredFormats, true, true);
+    return GetFormatSupport(textureCaps, requiredFormats, true, true, true);
 }
 
 
@@ -218,7 +223,7 @@ static bool DetermineBGRA8TextureSupport(const TextureCapsMap &textureCaps)
     std::vector<GLenum> requiredFormats;
     requiredFormats.push_back(GL_BGRA8_EXT);
 
-    return GetFormatSupport(textureCaps, requiredFormats, true, true);
+    return GetFormatSupport(textureCaps, requiredFormats, true, true, true);
 }
 
 
@@ -228,7 +233,7 @@ static bool DetermineHalfFloatTextureSupport(const TextureCapsMap &textureCaps)
     requiredFormats.push_back(GL_RGB16F);
     requiredFormats.push_back(GL_RGBA16F);
 
-    return GetFormatSupport(textureCaps, requiredFormats, false, true);
+    return GetFormatSupport(textureCaps, requiredFormats, true, false, true);
 }
 
 
@@ -238,7 +243,7 @@ static bool DetermineHalfFloatTextureFilteringSupport(const TextureCapsMap &text
     requiredFormats.push_back(GL_RGB16F);
     requiredFormats.push_back(GL_RGBA16F);
 
-    return GetFormatSupport(textureCaps, requiredFormats, true, false);
+    return GetFormatSupport(textureCaps, requiredFormats, true, true, false);
 }
 
 
@@ -248,7 +253,7 @@ static bool DetermineFloatTextureSupport(const TextureCapsMap &textureCaps)
     requiredFormats.push_back(GL_RGB32F);
     requiredFormats.push_back(GL_RGBA32F);
 
-    return GetFormatSupport(textureCaps, requiredFormats, false, true);
+    return GetFormatSupport(textureCaps, requiredFormats, true, false, true);
 }
 
 
@@ -258,7 +263,7 @@ static bool DetermineFloatTextureFilteringSupport(const TextureCapsMap &textureC
     requiredFormats.push_back(GL_RGB32F);
     requiredFormats.push_back(GL_RGBA32F);
 
-    return GetFormatSupport(textureCaps, requiredFormats, true, false);
+    return GetFormatSupport(textureCaps, requiredFormats, true, true, false);
 }
 
 
@@ -278,7 +283,7 @@ static bool DetermineRGTextureSupport(const TextureCapsMap &textureCaps, bool ch
         requiredFormats.push_back(GL_RG32F);
     }
 
-    return GetFormatSupport(textureCaps, requiredFormats, true, false);
+    return GetFormatSupport(textureCaps, requiredFormats, true, true, false);
 }
 
 
@@ -288,7 +293,7 @@ static bool DetermineDXT1TextureSupport(const TextureCapsMap &textureCaps)
     requiredFormats.push_back(GL_COMPRESSED_RGB_S3TC_DXT1_EXT);
     requiredFormats.push_back(GL_COMPRESSED_RGBA_S3TC_DXT1_EXT);
 
-    return GetFormatSupport(textureCaps, requiredFormats, true, false);
+    return GetFormatSupport(textureCaps, requiredFormats, true, true, false);
 }
 
 
@@ -297,7 +302,7 @@ static bool DetermineDXT3TextureSupport(const TextureCapsMap &textureCaps)
     std::vector<GLenum> requiredFormats;
     requiredFormats.push_back(GL_COMPRESSED_RGBA_S3TC_DXT3_ANGLE);
 
-    return GetFormatSupport(textureCaps, requiredFormats, true, false);
+    return GetFormatSupport(textureCaps, requiredFormats, true, true, false);
 }
 
 
@@ -306,7 +311,7 @@ static bool DetermineDXT5TextureSupport(const TextureCapsMap &textureCaps)
     std::vector<GLenum> requiredFormats;
     requiredFormats.push_back(GL_COMPRESSED_RGBA_S3TC_DXT5_ANGLE);
 
-    return GetFormatSupport(textureCaps, requiredFormats, true, false);
+    return GetFormatSupport(textureCaps, requiredFormats, true, true, false);
 }
 
 
@@ -319,8 +324,8 @@ static bool DetermineSRGBTextureSupport(const TextureCapsMap &textureCaps)
     std::vector<GLenum> requiredRenderFormats;
     requiredRenderFormats.push_back(GL_SRGB8_ALPHA8);
 
-    return GetFormatSupport(textureCaps, requiredFilterFormats, true, false) &&
-           GetFormatSupport(textureCaps, requiredRenderFormats, false, true);
+    return GetFormatSupport(textureCaps, requiredFilterFormats, true, true, false) &&
+           GetFormatSupport(textureCaps, requiredRenderFormats, true, false, true);
 }
 
 
@@ -331,7 +336,7 @@ static bool DetermineDepthTextureSupport(const TextureCapsMap &textureCaps)
     requiredFormats.push_back(GL_DEPTH_COMPONENT32_OES);
     requiredFormats.push_back(GL_DEPTH24_STENCIL8_OES);
 
-    return GetFormatSupport(textureCaps, requiredFormats, true, true);
+    return GetFormatSupport(textureCaps, requiredFormats, true, true, true);
 }
 
 
@@ -346,7 +351,7 @@ static bool DetermineColorBufferFloatSupport(const TextureCapsMap &textureCaps)
     requiredFormats.push_back(GL_RGBA32F);
     requiredFormats.push_back(GL_R11F_G11F_B10F);
 
-    return GetFormatSupport(textureCaps, requiredFormats, false, true);
+    return GetFormatSupport(textureCaps, requiredFormats, true, false, true);
 }
 
 void Extensions::setTextureExtensionSupport(const TextureCapsMap &textureCaps)
