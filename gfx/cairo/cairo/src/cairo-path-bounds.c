@@ -131,6 +131,7 @@ _cairo_path_bounder_curve_to (void *closure,
     else
     {
 	
+	bounder->current_point = *d;
 	return CAIRO_STATUS_SUCCESS;
     }
 }
