@@ -863,15 +863,19 @@ public:
       mStrength = PK11_GetPrivateModulusLen(mPrivKey);
     }
 
-    RootedDictionary<RsaOaepParams> params(aCx);
-    mEarlyRv = Coerce(aCx, params, aAlgorithm);
-    if (NS_FAILED(mEarlyRv)) {
-      mEarlyRv = NS_ERROR_DOM_SYNTAX_ERR;
-      return;
-    }
+    
+    
+    if (!aAlgorithm.IsString()) {
+      RootedDictionary<RsaOaepParams> params(aCx);
+      mEarlyRv = Coerce(aCx, params, aAlgorithm);
+      if (NS_FAILED(mEarlyRv)) {
+        mEarlyRv = NS_ERROR_DOM_SYNTAX_ERR;
+        return;
+      }
 
-    if (params.mLabel.WasPassed() && !params.mLabel.Value().IsNull()) {
-      ATTEMPT_BUFFER_INIT(mLabel, params.mLabel.Value().Value());
+      if (params.mLabel.WasPassed() && !params.mLabel.Value().IsNull()) {
+        ATTEMPT_BUFFER_INIT(mLabel, params.mLabel.Value().Value());
+      }
     }
     
 
