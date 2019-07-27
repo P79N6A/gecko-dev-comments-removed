@@ -5,6 +5,7 @@
 
 
 #include "SharedThreadPool.h"
+#include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/StaticPtr.h"
 #include "nsDataHashtable.h"
@@ -27,85 +28,41 @@ static StaticAutoPtr<nsDataHashtable<nsCStringHashKey, SharedThreadPool*>> sPool
 static already_AddRefed<nsIThreadPool>
 CreateThreadPool(const nsCString& aName);
 
-static void
-DestroySharedThreadPoolHashTable();
-
 void
-SharedThreadPool::EnsureInitialized()
+SharedThreadPool::InitStatics()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  if (sMonitor || sPools) {
-    
-    return;
-  }
+  MOZ_ASSERT(!sMonitor && !sPools);
   sMonitor = new ReentrantMonitor("SharedThreadPool");
   sPools = new nsDataHashtable<nsCStringHashKey, SharedThreadPool*>();
+  ClearOnShutdown(&sMonitor);
+  ClearOnShutdown(&sPools);
 }
 
-class ShutdownPoolsEvent : public nsRunnable {
-public:
-  NS_IMETHODIMP Run() {
-    MOZ_ASSERT(NS_IsMainThread());
-    DestroySharedThreadPoolHashTable();
-    return NS_OK;
-  }
-};
 
-static void
-DestroySharedThreadPoolHashTable()
+bool
+SharedThreadPool::IsEmpty()
 {
-  
-  
-  
-  MOZ_ASSERT(NS_IsMainThread());
-
-  
-  
-  
-  
-  
-  
-  
-  if (!sPools) {
-    MOZ_ASSERT(!sMonitor);
-    return;
-  }
-
-  
-  
-  
-  
-  if (!sPools->Count()) {
-    
-    
-    
-    
-    sPools = nullptr;
-    sMonitor = nullptr;
-  }
+  ReentrantMonitorAutoEnter mon(*sMonitor);
+  return !sPools->Count();
 }
 
 
 void
-SharedThreadPool::SpinUntilShutdown()
+SharedThreadPool::SpinUntilEmpty()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  
-  while (sPools) {
-    if (!NS_ProcessNextEvent(NS_GetCurrentThread(), true)) {
-      break;
-    }
+  while (!IsEmpty()) {
+    sMonitor->AssertNotCurrentThreadIn();
+    NS_ProcessNextEvent(NS_GetCurrentThread(), true);
   }
-  MOZ_ASSERT(!sPools);
-  MOZ_ASSERT(!sMonitor);
 }
 
 TemporaryRef<SharedThreadPool>
 SharedThreadPool::Get(const nsCString& aName, uint32_t aThreadLimit)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  EnsureInitialized();
-  MOZ_ASSERT(sMonitor);
+  MOZ_ASSERT(sMonitor && sPools);
   ReentrantMonitorAutoEnter mon(*sMonitor);
   SharedThreadPool* pool = nullptr;
   nsresult rv;
@@ -148,7 +105,6 @@ NS_IMETHODIMP_(MozExternalRefCountType) SharedThreadPool::AddRef(void)
 NS_IMETHODIMP_(MozExternalRefCountType) SharedThreadPool::Release(void)
 {
   MOZ_ASSERT(sMonitor);
-  bool dispatchShutdownEvent;
   {
     ReentrantMonitorAutoEnter mon(*sMonitor);
     nsrefcnt count = --mRefCnt;
@@ -174,17 +130,8 @@ NS_IMETHODIMP_(MozExternalRefCountType) SharedThreadPool::Release(void)
     mRefCnt = 1;
 
     delete this;
-
-    dispatchShutdownEvent = sPools->Count() == 0;
+    return 0;
   }
-  if (dispatchShutdownEvent) {
-    
-    
-    
-    
-    NS_DispatchToMainThread(new ShutdownPoolsEvent());
-  }
-  return 0;
 }
 
 NS_IMPL_QUERY_INTERFACE(SharedThreadPool, nsIThreadPool, nsIEventTarget)

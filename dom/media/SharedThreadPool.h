@@ -37,10 +37,6 @@ public:
 
   
   
-  static void SpinUntilShutdown();
-
-  
-  
   
   
   NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr) override;
@@ -51,11 +47,17 @@ public:
   NS_FORWARD_SAFE_NSITHREADPOOL(mPool);
   NS_FORWARD_SAFE_NSIEVENTTARGET(mEventTarget);
 
-private:
+  
+  static void InitStatics();
 
   
   
-  static void EnsureInitialized();
+  static void SpinUntilEmpty();
+
+private:
+
+  
+  static bool IsEmpty();
 
   
   

@@ -127,7 +127,7 @@ MediaShutdownManager::Shutdown()
   
   
   
-  SharedThreadPool::SpinUntilShutdown();
+  SharedThreadPool::SpinUntilEmpty();
 
   
   
