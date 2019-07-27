@@ -471,9 +471,8 @@ LIRGeneratorMIPS::visitAsmJSLoadHeap(MAsmJSLoadHeap *ins)
     
     
     if (ptr->isConstantValue() && !ins->needsBoundsCheck()) {
-        int32_t ptrValue = ptr->constantValue().toInt32();
         
-        MOZ_ASSERT(ptrValue >= 0);
+        MOZ_ASSERT(ptr->constantValue().toInt32() >= 0);
         ptrAlloc = LAllocation(ptr->constantVp());
     } else
         ptrAlloc = useRegisterAtStart(ptr);
