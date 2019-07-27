@@ -713,7 +713,7 @@ LayerManagerComposite::ComputeRenderIntegrityInternal(Layer* aLayer,
   }
 }
 
-#ifdef MOZ_ANDROID_OMTC
+#ifdef MOZ_WIDGET_ANDROID
 static float
 GetDisplayportCoverage(const CSSRect& aDisplayPort,
                        const Matrix4x4& aTransformToScreen,
@@ -756,7 +756,7 @@ LayerManagerComposite::ComputeRenderIntegrity()
   float lowPrecisionMultiplier = 1.0f;
   float highPrecisionMultiplier = 1.0f;
 
-#ifdef MOZ_ANDROID_OMTC
+#ifdef MOZ_WIDGET_ANDROID
   
   
   Layer* primaryScrollable = GetPrimaryScrollableLayer();
