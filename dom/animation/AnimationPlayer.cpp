@@ -136,6 +136,17 @@ AnimationPlayer::Tick()
   
   
   
+  
+  if (mIsPending &&
+      !mPendingReadyTime.IsNull() &&
+      mPendingReadyTime.Value() <= mTimeline->GetCurrentTime().Value()) {
+    ResumeAt(mPendingReadyTime.Value());
+    mPendingReadyTime.SetNull();
+  }
+
+  
+  
+  
 
   UpdateSourceContent();
 }
@@ -143,7 +154,6 @@ AnimationPlayer::Tick()
 void
 AnimationPlayer::StartOnNextTick(const Nullable<TimeDuration>& aReadyTime)
 {
-  
   
   
   
