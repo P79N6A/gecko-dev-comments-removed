@@ -454,8 +454,6 @@ public:
 
     virtual bool DidRenderingDeviceReset(DeviceResetReason* aResetReason = nullptr) { return false; }
 
-    void GetPrefFonts(nsIAtom *aLanguage, nsString& array, bool aAppendUnicode = true);
-
     
     void GetLangPrefs(eFontPrefLang aPrefLangs[], uint32_t &aLen, eFontPrefLang aCharLang, eFontPrefLang aPageLang);
     
