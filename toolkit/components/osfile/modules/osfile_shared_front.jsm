@@ -56,39 +56,18 @@ AbstractFile.prototype = {
 
 
 
-
-
-  read: function read(bytes, options = {}) {
-    options = clone(options);
-    options.bytes = bytes == null ? this.stat().size : bytes;
-    let buffer = new Uint8Array(options.bytes);
-    let size = this.readTo(buffer, options);
-    if (size == options.bytes) {
-      return buffer;
+  read: function read(maybeBytes, options = {}) {
+    if (typeof maybeBytes === "object") {
+    
+      options = clone(maybeBytes);
+      maybeBytes = null;
     } else {
-      return buffer.subarray(0, size);
+      options = clone(options || {});
     }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  readTo: function readTo(buffer, options = {}) {
+    if(!("bytes" in options)) {
+      options.bytes = maybeBytes == null ? this.stat().size : maybeBytes;
+    }
+    let buffer = new Uint8Array(options.bytes);
     let {ptr, bytes} = SharedAll.normalizeToPointer(buffer, options.bytes);
     let pos = 0;
     while (pos < bytes) {
@@ -99,8 +78,11 @@ AbstractFile.prototype = {
       pos += chunkSize;
       ptr = SharedAll.offsetBy(ptr, chunkSize);
     }
-
-    return pos;
+    if (pos == options.bytes) {
+      return buffer;
+    } else {
+      return buffer.subarray(0, pos);
+    }
   },
 
   
