@@ -69,6 +69,9 @@ private:
 
     
     mozilla::TimeStamp mChangedTime;
+
+    
+    bool mAllowChangedEvent;
 };
 
 #endif 
