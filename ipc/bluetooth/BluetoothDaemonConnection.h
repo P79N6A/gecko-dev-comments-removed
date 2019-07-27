@@ -41,7 +41,7 @@ class DaemonSocketIOConsumer;
 
 
 
-class BluetoothDaemonPDU final : public UnixSocketIOBuffer
+class DaemonSocketPDU final : public UnixSocketIOBuffer
 {
 public:
   enum {
@@ -53,10 +53,10 @@ public:
     MAX_PAYLOAD_LENGTH = 1 << 16
   };
 
-  BluetoothDaemonPDU(uint8_t aService, uint8_t aOpcode,
+  DaemonSocketPDU(uint8_t aService, uint8_t aOpcode,
                      uint16_t aPayloadSize);
-  BluetoothDaemonPDU(size_t aPayloadSize);
-  ~BluetoothDaemonPDU();
+  DaemonSocketPDU(size_t aPayloadSize);
+  ~DaemonSocketPDU();
 
   void SetConsumer(DaemonSocketIOConsumer* aConsumer)
   {
@@ -102,8 +102,8 @@ class DaemonSocketIOConsumer
 public:
   virtual ~DaemonSocketIOConsumer();
 
-  virtual void Handle(BluetoothDaemonPDU& aPDU) = 0;
-  virtual void StoreUserData(const BluetoothDaemonPDU& aPDU) = 0;
+  virtual void Handle(DaemonSocketPDU& aPDU) = 0;
+  virtual void StoreUserData(const DaemonSocketPDU& aPDU) = 0;
 
 protected:
   DaemonSocketIOConsumer();
