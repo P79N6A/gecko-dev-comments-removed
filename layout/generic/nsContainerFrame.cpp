@@ -752,16 +752,10 @@ nsContainerFrame::SyncFrameViewProperties(nsPresContext*  aPresContext,
             ? nsViewVisibility_kShow : nsViewVisibility_kHide);
   }
 
-  
-  
-  bool isPositioned = aFrame->IsPositioned();
-
   int32_t zIndex = 0;
   bool    autoZIndex = false;
 
-  if (!isPositioned) {
-    autoZIndex = true;
-  } else {
+  if (aFrame->IsAbsPosContaininingBlock()) {
     
     const nsStylePosition* position = aStyleContext->StylePosition();
 
@@ -770,6 +764,8 @@ nsContainerFrame::SyncFrameViewProperties(nsPresContext*  aPresContext,
     } else if (position->mZIndex.GetUnit() == eStyleUnit_Auto) {
       autoZIndex = true;
     }
+  } else {
+    autoZIndex = true;
   }
 
   vm->SetViewZIndex(aView, autoZIndex, zIndex);

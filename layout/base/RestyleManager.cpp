@@ -742,7 +742,7 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
           
           
           
-          if (cont->IsPositioned()) {
+          if (cont->IsAbsPosContaininingBlock()) {
             
             
             
