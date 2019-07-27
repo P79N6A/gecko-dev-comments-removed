@@ -166,6 +166,28 @@ CommonAnimationManager::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
+void
+CommonAnimationManager::AddStyleUpdatesTo(RestyleTracker& aTracker)
+{
+  PRCList* next = PR_LIST_HEAD(&mElementCollections);
+  while (next != &mElementCollections) {
+    ElementAnimationCollection* collection = static_cast<ElementAnimationCollection*>(next);
+    next = PR_NEXT_LINK(next);
+
+    if (!collection->IsForElement()) {
+      
+      
+      
+      
+      continue;
+    }
+
+    nsRestyleHint rshint = collection->IsForTransitions()
+      ? eRestyle_CSSTransitions : eRestyle_CSSAnimations;
+    aTracker.AddPendingRestyle(collection->mElement, rshint, nsChangeHint(0));
+  }
+}
+
  bool
 CommonAnimationManager::ExtractComputedValueForTransition(
                           nsCSSProperty aProperty,
