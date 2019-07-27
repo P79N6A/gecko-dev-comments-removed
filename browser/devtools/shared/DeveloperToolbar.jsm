@@ -104,6 +104,13 @@ let CommandUtils = {
         if (command == null) {
           throw new Error("No command '" + typed + "'");
         }
+
+        
+        if (!target.isLocalTab && !command.isRemoteSafe) {
+          requisition.clear();
+          return;
+        }
+
         if (command.buttonId != null) {
           button.id = command.buttonId;
           if (command.buttonClass != null) {
