@@ -243,12 +243,6 @@ static inline bool IS_WN_REFLECTOR(JSObject *obj)
 
 
 
-inline bool
-AddToCCKind(JSGCTraceKind kind)
-{
-    return kind == JSTRACE_OBJECT || kind == JSTRACE_SCRIPT;
-}
-
 class nsXPConnect : public nsIXPConnect,
                     public nsIThreadObserver,
                     public nsSupportsWeakReference,

@@ -7,6 +7,7 @@
 #ifndef nsCycleCollectionTraversalCallback_h__
 #define nsCycleCollectionTraversalCallback_h__
 
+#include "jspubtd.h"
 #include "nsISupports.h"
 
 class nsCycleCollectionParticipant;
@@ -26,7 +27,8 @@ public:
                                      uint64_t aCompartmentAddress = 0) = 0;
 
   NS_IMETHOD_(void) NoteXPCOMChild(nsISupports* aChild) = 0;
-  NS_IMETHOD_(void) NoteJSChild(void* aChild) = 0;
+  NS_IMETHOD_(void) NoteJSObject(JSObject* aChild) = 0;
+  NS_IMETHOD_(void) NoteJSScript(JSScript* aChild) = 0;
   NS_IMETHOD_(void) NoteNativeChild(void* aChild,
                                     nsCycleCollectionParticipant* aHelper) = 0;
 
