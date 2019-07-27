@@ -172,7 +172,8 @@ pref("dom.webcrypto.enabled", true);
 pref("dom.undo_manager.enabled", false);
 
 
-pref("dom.url.encode_hash", true);
+
+pref("dom.url.encode_decode_hash", false);
 
 
 

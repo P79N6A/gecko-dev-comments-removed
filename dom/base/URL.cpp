@@ -515,7 +515,7 @@ URL::GetHash(nsString& aHash, ErrorResult& aRv) const
   nsresult rv = mURI->GetRef(ref);
   if (NS_SUCCEEDED(rv) && !ref.IsEmpty()) {
     aHash.Assign(char16_t('#'));
-    if (!nsContentUtils::ShouldEncodeURLHash()) {
+    if (nsContentUtils::EncodeDecodeURLHash()) {
       NS_UnescapeURL(ref); 
     }
     AppendUTF8toUTF16(ref, aHash);

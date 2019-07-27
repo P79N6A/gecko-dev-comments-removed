@@ -299,7 +299,7 @@ nsLocation::GetHash(nsAString& aHash)
 
   rv = uri->GetRef(ref);
 
-  if (!nsContentUtils::ShouldEncodeURLHash()) {
+  if (nsContentUtils::EncodeDecodeURLHash()) {
     if (NS_SUCCEEDED(rv)) {
       nsCOMPtr<nsITextToSubURI> textToSubURI(
           do_GetService(NS_ITEXTTOSUBURI_CONTRACTID, &rv));
@@ -326,7 +326,7 @@ nsLocation::GetHash(nsAString& aHash)
   } else { 
     if (NS_SUCCEEDED(rv) && !ref.IsEmpty()) {
       aHash.Assign(char16_t('#'));
-      AppendASCIItoUTF16(ref, aHash);
+      AppendUTF8toUTF16(ref, aHash);
     }
   }
 

@@ -24,6 +24,7 @@
 #include "mozilla/ipc/URIUtils.h"
 #include <algorithm>
 #include "mozilla/dom/EncodingUtils.h"
+#include "nsContentUtils.h"
 
 using mozilla::dom::EncodingUtils;
 using namespace mozilla::ipc;
@@ -553,8 +554,16 @@ nsStandardURL::BuildNormalizedSpec(const char *spec)
         if (mQuery.mLen >= 0)
             approxLen += 1 + queryEncoder.EncodeSegmentCount(spec, mQuery, esc_Query,        encQuery,     useEncQuery);
         
-        if (mRef.mLen >= 0)
-            approxLen += 1 + encoder.EncodeSegmentCount(spec, mRef,       esc_Ref,           encRef,       useEncRef);
+
+        if (mRef.mLen >= 0) {
+            if (nsContentUtils::EncodeDecodeURLHash()) {
+                approxLen += 1 + encoder.EncodeSegmentCount(spec, mRef, esc_Ref,
+                                                            encRef, useEncRef);
+            } else {
+                approxLen += 1 + mRef.mLen;
+                useEncRef = false;
+            }
+        }
     }
 
     
@@ -2458,15 +2467,17 @@ nsStandardURL::SetRef(const nsACString &input)
         mRef.mLen = 0;
     }
 
-    
-    nsAutoCString buf;
-    bool encoded;
-    GET_SEGMENT_ENCODER(encoder);
-    encoder.EncodeSegmentCount(ref, URLSegment(0, refLen), esc_Ref,
-                               buf, encoded);
-    if (encoded) {
-        ref = buf.get();
-        refLen = buf.Length();
+    if (nsContentUtils::EncodeDecodeURLHash()) {
+        
+        nsAutoCString buf;
+        bool encoded;
+        GET_SEGMENT_ENCODER(encoder);
+        encoder.EncodeSegmentCount(ref, URLSegment(0, refLen), esc_Ref,
+                                   buf, encoded);
+        if (encoded) {
+            ref = buf.get();
+            refLen = buf.Length();
+        }
     }
 
     int32_t shift = ReplaceSegment(mRef.mPos, mRef.mLen, ref, refLen);
