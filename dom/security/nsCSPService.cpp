@@ -271,8 +271,21 @@ CSPService::AsyncOnChannelRedirect(nsIChannel *oldChannel,
 {
   nsAsyncRedirectAutoCallback autoCallback(callback);
 
+  nsCOMPtr<nsIURI> newUri;
+  nsresult rv = newChannel->GetURI(getter_AddRefs(newUri));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  
+  
+  if (!sCSPEnabled || !subjectToCSP(newUri)) {
+    return NS_OK;
+  }
+
   nsCOMPtr<nsILoadInfo> loadInfo;
-  nsresult rv = oldChannel->GetLoadInfo(getter_AddRefs(loadInfo));
+  rv = oldChannel->GetLoadInfo(getter_AddRefs(loadInfo));
 
   
   if (!loadInfo) {
@@ -280,17 +293,8 @@ CSPService::AsyncOnChannelRedirect(nsIChannel *oldChannel,
   }
 
   
-  
-  
-  
-
-  nsCOMPtr<nsINode> loadingNode = loadInfo->LoadingNode();
-  nsCOMPtr<nsIPrincipal> principal = loadingNode ?
-                                     loadingNode->NodePrincipal() :
-                                     loadInfo->LoadingPrincipal();
-  NS_ASSERTION(principal, "Can not evaluate CSP without a principal");
   nsCOMPtr<nsIContentSecurityPolicy> csp;
-  rv = principal->GetCsp(getter_AddRefs(csp));
+  rv = loadInfo->LoadingPrincipal()->GetCsp(getter_AddRefs(csp));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -305,10 +309,6 @@ CSPService::AsyncOnChannelRedirect(nsIChannel *oldChannel,
 
 
 
-
-  nsCOMPtr<nsIURI> newUri;
-  rv = newChannel->GetURI(getter_AddRefs(newUri));
-  NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<nsIURI> originalUri;
   rv = oldChannel->GetOriginalURI(getter_AddRefs(originalUri));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -331,12 +331,14 @@ CSPService::AsyncOnChannelRedirect(nsIChannel *oldChannel,
            ("CSPService::AsyncOnChannelRedirect called for %s",
             newUriSpec.get()));
   }
-  if (aDecision == 1)
+  if (aDecision == true) {
     PR_LOG(gCspPRLog, PR_LOG_DEBUG,
            ("CSPService::AsyncOnChannelRedirect ALLOWING request."));
-  else
+  }
+  else {
     PR_LOG(gCspPRLog, PR_LOG_DEBUG,
            ("CSPService::AsyncOnChannelRedirect CANCELLING request."));
+  }
 #endif
 
   

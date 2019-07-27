@@ -149,10 +149,6 @@ CSP_ContentTypeToDirective(nsContentPolicyType aType)
     case nsIContentPolicy::TYPE_MEDIA:
       return nsIContentSecurityPolicy::MEDIA_SRC_DIRECTIVE;
 
-    
-    
-    
-    case nsIContentPolicy::TYPE_DOCUMENT:
     case nsIContentPolicy::TYPE_SUBDOCUMENT:
       return nsIContentSecurityPolicy::FRAME_SRC_DIRECTIVE;
 
@@ -173,7 +169,12 @@ CSP_ContentTypeToDirective(nsContentPolicyType aType)
       return nsIContentSecurityPolicy::DEFAULT_SRC_DIRECTIVE;
 
     
+    
+    case nsIContentPolicy::TYPE_DOCUMENT:
+    
     case nsIContentPolicy::TYPE_CSP_REPORT:
+      return nsIContentSecurityPolicy::NO_DIRECTIVE;
+
     
     default:
       MOZ_ASSERT(false, "Can not map nsContentPolicyType to CSPDirective");
