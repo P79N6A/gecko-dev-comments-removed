@@ -128,11 +128,38 @@ ForceCOWBehavior(JSObject *obj)
     return false;
 }
 
+inline bool
+ShouldWaiveXray(JSContext *cx, JSObject *originalObj)
+{
+    unsigned flags;
+    (void) js::UncheckedUnwrap(originalObj,  true, &flags);
+
+    
+    if (!(flags & WrapperFactory::WAIVE_XRAY_WRAPPER_FLAG))
+        return false;
+
+    
+    
+    
+    if (!(flags & Wrapper::CROSS_COMPARTMENT))
+        return true;
+
+    
+    
+    
+    JSCompartment *oldCompartment = js::GetObjectCompartment(originalObj);
+    JSCompartment *newCompartment = js::GetContextCompartment(cx);
+    bool sameOrigin =
+        AccessCheck::subsumesConsideringDomain(oldCompartment, newCompartment) &&
+        AccessCheck::subsumesConsideringDomain(newCompartment, oldCompartment);
+    return sameOrigin;
+}
+
 JSObject *
 WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
                                    HandleObject objArg, HandleObject objectPassedToWrap)
 {
-    bool waive = WrapperFactory::HasWaiveXrayFlag(objectPassedToWrap);
+    bool waive = ShouldWaiveXray(cx, objectPassedToWrap);
     RootedObject obj(cx, objArg);
     
     
