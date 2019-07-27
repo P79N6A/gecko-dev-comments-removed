@@ -1894,6 +1894,11 @@ struct StyleTransition {
   nsCSSProperty GetProperty() const { return mProperty; }
   nsIAtom* GetUnknownProperty() const { return mUnknownProperty; }
 
+  float GetCombinedDuration() const {
+    
+    return std::max(mDuration, 0.0f) + mDelay;
+  }
+
   void SetTimingFunction(const nsTimingFunction& aTimingFunction)
     { mTimingFunction = aTimingFunction; }
   void SetDelay(float aDelay) { mDelay = aDelay; }

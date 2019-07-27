@@ -176,8 +176,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
     GetAnimationPlayers(aElement, pseudoType, false);
   if (!collection &&
       disp->mTransitionPropertyCount == 1 &&
-      disp->mTransitions[0].GetDelay() == 0.0f &&
-      disp->mTransitions[0].GetDuration() == 0.0f) {
+      disp->mTransitions[0].GetCombinedDuration() <= 0.0f) {
     return;
   }
 
@@ -229,7 +228,8 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
     const StyleTransition& t = disp->mTransitions[i];
     
     
-    if (t.GetDelay() != 0.0f || t.GetDuration() != 0.0f) {
+    
+    if (t.GetCombinedDuration() > 0.0f) {
       
       
       
