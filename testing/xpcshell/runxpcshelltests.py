@@ -606,6 +606,25 @@ class XPCShellTestThread(Thread):
 
         completeCmd = cmdH + cmdT + args
 
+        if self.test_object.get('dmd') == 'true':
+            if sys.platform.startswith('linux'):
+                preloadEnvVar = 'LD_PRELOAD'
+                libdmd = os.path.join(self.xrePath, 'libdmd.so')
+            elif sys.platform == 'osx' or sys.platform == 'darwin':
+                preloadEnvVar = 'DYLD_INSERT_LIBRARIES'
+                
+                
+                contents_dir = os.path.dirname(self.xrePath)
+                libdmd = os.path.join(contents_dir, 'MacOS', 'libdmd.dylib')
+            elif sys.platform == 'win32':
+                preloadEnvVar = 'MOZ_REPLACE_MALLOC_LIB'
+                libdmd = os.path.join(self.xrePath, 'dmd.dll')
+
+            self.env['DMD'] = '--mode=test'
+            self.env['PYTHON'] = sys.executable
+            self.env['BREAKPAD_SYMBOLS_PATH'] = self.symbolsPath
+            self.env[preloadEnvVar] = libdmd
+
         testTimeoutInterval = HARNESS_TIMEOUT
         
         if 'requesttimeoutfactor' in self.test_object:

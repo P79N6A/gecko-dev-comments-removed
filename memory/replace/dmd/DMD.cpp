@@ -1402,17 +1402,15 @@ Init(const malloc_table_t* aMallocTable)
   
 
   char* e = getenv("DMD");
-  StatusMsg("$DMD = '%s'\n", e);
 
   if (!e || strcmp(e, "") == 0 || strcmp(e, "0") == 0) {
-    StatusMsg("DMD is not enabled\n");
     return;
   }
 
+  StatusMsg("$DMD = '%s'\n", e);
+
   
   gOptions = InfallibleAllocPolicy::new_<Options>(e);
-
-  StatusMsg("DMD is enabled\n");
 
 #ifdef XP_MACOSX
   
@@ -1445,6 +1443,10 @@ Init(const malloc_table_t* aMallocTable)
     
     
     
+    
+    
+    
+    
     auto f1 = MakeUnique<FpWriteFunc>(OpenOutputFile("full1.json"));
     auto f2 = MakeUnique<FpWriteFunc>(OpenOutputFile("full2.json"));
     auto f3 = MakeUnique<FpWriteFunc>(OpenOutputFile("full3.json"));
@@ -1453,11 +1455,15 @@ Init(const malloc_table_t* aMallocTable)
 
     StatusMsg("running test mode...\n");
     RunTestMode(Move(f1), Move(f2), Move(f3), Move(f4));
-    StatusMsg("finished test mode\n");
-    exit(0);
-  }
+    StatusMsg("finished test mode; DMD is now disabled again\n");
 
-  gIsDMDRunning = true;
+    
+    
+    gIsDMDRunning = false;
+
+  } else {
+    gIsDMDRunning = true;
+  }
 }
 
 
@@ -1835,36 +1841,52 @@ AnalyzeReports(JSONWriter& aWriter)
 
 
 
-void foo()
+void Foo(int aSeven)
 {
-   char* a[6];
-   for (int i = 0; i < 6; i++) {
-      a[i] = (char*) malloc(128 - 16*i);
-   }
+  char* a[6];
+  for (int i = 0; i < aSeven - 1; i++) {
+    a[i] = (char*) malloc(128 - 16*i);
+  }
 
-   for (int i = 0; i <= 1; i++)
-      Report(a[i]);                     
-   Report(a[2]);                        
-   Report(a[3]);                        
-   
+  for (int i = 0; i < aSeven - 5; i++) {
+    Report(a[i]);                   
+  }
+  Report(a[2]);                     
+  Report(a[3]);                     
+  
 }
 
 
 static void
-UseItOrLoseIt(void* a)
+UseItOrLoseIt(void* aPtr, int aSeven)
 {
   char buf[64];
-  sprintf(buf, "%p\n", a);
-  fwrite(buf, 1, strlen(buf) + 1, stderr);
+  int n = sprintf(buf, "%p\n", aPtr);
+  if (n == 20 + aSeven) {
+    fprintf(stderr, "well, that is surprising");
+  }
 }
-
-
 
 
 static void
 RunTestMode(UniquePtr<FpWriteFunc> aF1, UniquePtr<FpWriteFunc> aF2,
             UniquePtr<FpWriteFunc> aF3, UniquePtr<FpWriteFunc> aF4)
 {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  char* env = getenv("DMD");
+  char* p1 = strstr(env, "--mode=t");
+  char* p2 = strstr(p1, "test");
+  int seven = p2 - p1;
+
   
   gOptions->SetSampleBelowSize(1);
 
@@ -1879,17 +1901,18 @@ RunTestMode(UniquePtr<FpWriteFunc> aF1, UniquePtr<FpWriteFunc> aF2,
   
   
   int i;
-  char* a;
-  for (i = 0; i < 10; i++) {
+  char* a = nullptr;
+  for (i = 0; i < seven + 3; i++) {
       a = (char*) malloc(100);
-      UseItOrLoseIt(a);
+      UseItOrLoseIt(a, seven);
   }
   free(a);
 
   
   
   
-  char* a2 = (char*) malloc(0);
+  
+  char* a2 = (char*) malloc(8);
   Report(a2);
 
   
@@ -1909,7 +1932,7 @@ RunTestMode(UniquePtr<FpWriteFunc> aF1, UniquePtr<FpWriteFunc> aF2,
   
   char* c = (char*) calloc(10, 3);
   Report(c);
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < seven - 4; i++) {
     Report(c);
   }
 
@@ -1951,8 +1974,8 @@ RunTestMode(UniquePtr<FpWriteFunc> aF1, UniquePtr<FpWriteFunc> aF2,
 
   
   
-  foo();
-  foo();
+  Foo(seven);
+  Foo(seven);
 
   
   
@@ -2019,49 +2042,49 @@ RunTestMode(UniquePtr<FpWriteFunc> aF1, UniquePtr<FpWriteFunc> aF2,
   
   
   s = (char*) malloc(128);
-  UseItOrLoseIt(s);
+  UseItOrLoseIt(s, seven);
 
   
   s = (char*) malloc(144);
-  UseItOrLoseIt(s);
+  UseItOrLoseIt(s, seven);
 
   
-  for (int i = 0; i < 16; i++) {
+  for (int i = 0; i < seven + 9; i++) {
     s = (char*) malloc(8);
-    UseItOrLoseIt(s);
+    UseItOrLoseIt(s, seven);
   }
   MOZ_ASSERT(gSmallBlockActualSizeCounter == 0);
 
   
-  for (int i = 0; i < 15; i++) {
+  for (int i = 0; i < seven + 8; i++) {
     s = (char*) malloc(8);
-    UseItOrLoseIt(s);
+    UseItOrLoseIt(s, seven);
   }
   MOZ_ASSERT(gSmallBlockActualSizeCounter == 120);
 
   
   s = (char*) malloc(256);
-  UseItOrLoseIt(s);
+  UseItOrLoseIt(s, seven);
   MOZ_ASSERT(gSmallBlockActualSizeCounter == 120);
 
   
   s = (char*) malloc(96);
-  UseItOrLoseIt(s);
+  UseItOrLoseIt(s, seven);
   MOZ_ASSERT(gSmallBlockActualSizeCounter == 88);
 
   
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < seven - 2; i++) {
     s = (char*) malloc(8);
-    UseItOrLoseIt(s);
+    UseItOrLoseIt(s, seven);
   }
   MOZ_ASSERT(gSmallBlockActualSizeCounter == 0);
 
   
   
   
-  for (int i = 1; i <= 8; i++) {
+  for (int i = 1; i <= seven + 1; i++) {
     s = (char*) malloc(i * 16);
-    UseItOrLoseIt(s);
+    UseItOrLoseIt(s, seven);
   }
   MOZ_ASSERT(gSmallBlockActualSizeCounter == 64);
 
