@@ -59,11 +59,12 @@
     
     branch.setBoolPref("browser.search.isUS", true);
     branch.setCharPref("browser.search.countryCode", "US");
-    
-    branch.setCharPref("browser.search.geoSpecificDefaults.url", "");
 
     
     branch.setCharPref("browser.selfsupport.url", "https://%(server)s/selfsupport-dummy/");
 
     
     branch.setBoolPref("dom.serviceWorkers.periodic-updates.enabled", false);
+
+    
+    branch.setBoolPref("dom.allow_XUL_XBL_for_file", true);

@@ -188,7 +188,6 @@ class RefTest(object):
 
         locations = mozprofile.permissions.ServerLocations()
         locations.add_host(server, port=0)
-        locations.add_host('<file>', port=0)
 
         
         
