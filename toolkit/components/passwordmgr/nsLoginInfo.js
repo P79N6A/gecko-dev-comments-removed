@@ -2,11 +2,10 @@
 
 
 
+const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
 function nsLoginInfo() {}
 
@@ -39,7 +38,7 @@ nsLoginInfo.prototype = {
     this.passwordField = aPasswordField;
   },
 
-  matches : function (aLogin, ignorePassword) {
+  matches(aLogin, ignorePassword) {
     if (this.hostname      != aLogin.hostname      ||
         this.httpRealm     != aLogin.httpRealm     ||
         this.username      != aLogin.username)
@@ -50,8 +49,18 @@ nsLoginInfo.prototype = {
 
     
     if (this.formSubmitURL != "" && aLogin.formSubmitURL != "" &&
-        this.formSubmitURL != aLogin.formSubmitURL)
-      return false;
+        this.formSubmitURL != aLogin.formSubmitURL) {
+      
+      try {
+        let loginURI = Services.io.newURI(aLogin.formSubmitURL, null, null);
+        let matchURI = Services.io.newURI(this.formSubmitURL, null, null);
+        if (loginURI.hostPort != matchURI.hostPort) {
+          return false;
+        }
+      } catch (e) {
+        return false;
+      }
+    }
 
     
 

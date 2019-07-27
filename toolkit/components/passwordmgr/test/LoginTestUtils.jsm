@@ -75,6 +75,15 @@ this.LoginTestUtils = {
 
 
 
+  assertLoginListsMatches(actual, expected, ignorePassword) {
+    Assert.equal(expected.length, actual.length);
+    Assert.ok(expected.every(e => actual.some(a => a.matches(e, ignorePassword))));
+  },
+
+  
+
+
+
   assertDisabledHostsEqual(actual, expected) {
     Assert.deepEqual(actual.sort(), expected.sort());
   },
@@ -164,9 +173,6 @@ this.LoginTestUtils.testData = {
       
       
       new LoginInfo("http://www3.example.com", "http://www.example.com", null,
-                    "the username", "the password",
-                    "form_field_username", "form_field_password"),
-      new LoginInfo("http://www3.example.com", "https://www.example.com", null,
                     "the username", "the password",
                     "form_field_username", "form_field_password"),
       new LoginInfo("http://www3.example.com", "http://example.com", null,
