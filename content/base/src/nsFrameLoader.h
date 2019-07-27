@@ -131,6 +131,10 @@ public:
                                nsRefPtr<nsFrameLoader>& aFirstToSwap,
                                nsRefPtr<nsFrameLoader>& aSecondToSwap);
 
+  nsresult SwapWithOtherRemoteLoader(nsFrameLoader* aOther,
+                                     nsRefPtr<nsFrameLoader>& aFirstToSwap,
+                                     nsRefPtr<nsFrameLoader>& aSecondToSwap);
+
   
   void DestroyChild();
 
