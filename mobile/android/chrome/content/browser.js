@@ -1925,6 +1925,18 @@ var BrowserApp = {
     return this.defaultBrowserWidth = width;
   },
 
+  get layersTileWidth() {
+    delete this.layersTileWidth;
+    let width = Services.prefs.getIntPref("layers.tile-width");
+    return this.layersTileWidth = width;
+  },
+
+  get layersTileHeight() {
+    delete this.layersTileHeight;
+    let height = Services.prefs.getIntPref("layers.tile-height");
+    return this.layersTileHeight = height;
+  },
+
   
   get selectedTab() {
     return this._selectedTab;
@@ -3585,6 +3597,7 @@ Tab.prototype = {
                                           displayPortMargins.top,
                                           displayPortMargins.right,
                                           displayPortMargins.bottom,
+                                          BrowserApp.layersTileWidth, BrowserApp.layersTileHeight,
                                           element, 0);
     }
     this._oldDisplayPortMargins = displayPortMargins;
@@ -6907,7 +6920,7 @@ var SearchEngines = {
   PREF_SUGGEST_PROMPTED: "browser.search.suggest.prompted",
 
   
-  PREF_SEARCH_ACTIVITY_ENGINE_KEY: "search.engines.default",
+  PREF_SEARCH_ACTIVITY_ENGINE_KEY: "search.engines.defaultname",
 
   init: function init() {
     Services.obs.addObserver(this, "SearchEngines:Add", false);
@@ -7047,34 +7060,7 @@ var SearchEngines = {
 
   
   _setSearchActivityDefaultPref: function _setSearchActivityDefaultPref(engine) {
-    
-    
-    function sanitizeName(aName) {
-      const maxLength = 60;
-      const minLength = 1;
-      let name = aName.toLowerCase();
-      name = name.replace(/\s+/g, "-");
-      name = name.replace(/[^-a-z0-9]/g, "");
-
-      if (name.length < minLength) {
-        
-        
-        
-        Cu.reportError("Couldn't create search plugin file name from engine name: " + aName);
-        return null;
-      }
-
-      
-      return name.substring(0, maxLength);
-    }
-
-    let identifier = engine.identifier;
-    if (identifier === null) {
-      
-      
-      identifier = sanitizeName(engine.name);
-    }
-    SharedPreferences.forApp().setCharPref(this.PREF_SEARCH_ACTIVITY_ENGINE_KEY, identifier);
+    SharedPreferences.forApp().setCharPref(this.PREF_SEARCH_ACTIVITY_ENGINE_KEY, engine.name);
   },
 
   
