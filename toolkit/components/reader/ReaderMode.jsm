@@ -27,17 +27,6 @@ let ReaderMode = {
   
   MAX_ELEMS_TO_PARSE: 3000,
 
-  observe: function(aMessage, aTopic, aData) {
-    switch(aTopic) {
-      case "nsPref:changed": {
-        if (aData.startsWith("reader.parse-on-load.")) {
-          this.isEnabledForParseOnLoad = this._getStateForParseOnLoad();
-        }
-        break;
-      }
-    }
-  },
-
   
 
 
