@@ -131,21 +131,21 @@ class Nursery
     JSObject *allocateObject(JSContext *cx, size_t size, size_t numDynamic);
 
     
-    HeapSlot *allocateSlots(JSContext *cx, JSObject *obj, uint32_t nslots);
+    HeapSlot *allocateSlots(JSObject *obj, uint32_t nslots);
 
     
-    ObjectElements *allocateElements(JSContext *cx, JSObject *obj, uint32_t nelems);
+    ObjectElements *allocateElements(JSObject *obj, uint32_t nelems);
 
     
-    HeapSlot *reallocateSlots(JSContext *cx, JSObject *obj, HeapSlot *oldSlots,
+    HeapSlot *reallocateSlots(JSObject *obj, HeapSlot *oldSlots,
                               uint32_t oldCount, uint32_t newCount);
 
     
-    ObjectElements *reallocateElements(JSContext *cx, JSObject *obj, ObjectElements *oldHeader,
+    ObjectElements *reallocateElements(JSObject *obj, ObjectElements *oldHeader,
                                        uint32_t oldCount, uint32_t newCount);
 
     
-    void freeSlots(JSContext *cx, HeapSlot *slots);
+    void freeSlots(HeapSlot *slots);
 
     typedef Vector<types::TypeObject *, 0, SystemAllocPolicy> TypeObjectList;
 
@@ -292,7 +292,7 @@ class Nursery
     JSRuntime *runtime() const { return runtime_; }
 
     
-    HeapSlot *allocateHugeSlots(JSContext *cx, size_t nslots);
+    HeapSlot *allocateHugeSlots(JS::Zone *zone, size_t nslots);
 
     
     void *allocateFromTenured(JS::Zone *zone, gc::AllocKind thingKind);
