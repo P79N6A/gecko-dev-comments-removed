@@ -69,6 +69,8 @@
 #include "AlternateServices.h"
 #include "InterceptedChannel.h"
 #include "nsIHttpPushListener.h"
+#include "nsIX509Cert.h"
+#include "ScopedNSSTypes.h"
 
 namespace mozilla { namespace net {
 
@@ -1213,6 +1215,29 @@ nsHttpChannel::ProcessSSLInformation()
     statusProvider->GetSSLStatus(getter_AddRefs(sslstat));
     if (!sslstat)
         return;
+
+    
+    nsCOMPtr<nsIX509Cert> cert;
+    sslstat->GetServerCert(getter_AddRefs(cert));
+    if (cert) {
+        ScopedCERTCertificate nssCert(cert->GetCert());
+        if (nssCert) {
+            SECOidTag tag = SECOID_GetAlgorithmTag(&nssCert->signature);
+            LOG(("Checking certificate signature: The OID tag is %i [this=%p]\n", tag, this));
+            
+            
+            
+            
+            if (tag == SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION ||
+                tag == SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST ||
+                tag == SEC_OID_ANSIX962_ECDSA_SHA1_SIGNATURE) {
+                nsString consoleErrorTag = NS_LITERAL_STRING("SHA1Sig");
+                nsString consoleErrorMessage
+                        = NS_LITERAL_STRING("SHA-1 Signature");
+                AddSecurityMessage(consoleErrorTag, consoleErrorMessage);
+            }
+        }
+    }
 
     
     
@@ -4958,7 +4983,7 @@ nsHttpChannel::SetupFallbackChannel(const char *aFallbackKey)
 {
     ENSURE_CALLED_BEFORE_CONNECT();
 
-    LOG(("nsHttpChannel::SetupFallbackChannel [this=%p, key=%s]\n",
+    LOG(("nsHttpChannel::SetupFallbackChannel [this=%p, key=%s]",
          this, aFallbackKey));
     mFallbackChannel = true;
     mFallbackKey = aFallbackKey;
