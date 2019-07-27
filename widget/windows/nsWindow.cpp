@@ -2868,7 +2868,9 @@ nsWindow::MakeFullScreen(bool aFullScreen, nsIScreen* aTargetScreen)
     SetSizeMode(mOldSizeMode);
   }
 
-  UpdateNonClientMargins();
+  
+  
+  UpdateNonClientMargins(mSizeMode,  !aFullScreen);
 
   bool visible = mIsVisible;
   if (mOldSizeMode == nsSizeMode_Normal)
