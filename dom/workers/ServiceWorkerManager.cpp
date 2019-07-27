@@ -11,7 +11,6 @@
 
 #include "jsapi.h"
 
-#include "mozilla/LoadContext.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/DOMError.h"
 #include "mozilla/dom/ErrorEvent.h"
@@ -32,10 +31,6 @@
 #include "WorkerPrivate.h"
 #include "WorkerRunnable.h"
 #include "WorkerScope.h"
-
-#ifdef PostMessage
-#undef PostMessage
-#endif
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -2099,17 +2094,6 @@ ServiceWorkerManager::CreateServiceWorker(const nsACString& aScriptSpec,
   
   nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
   rv = ssm->GetNoAppCodebasePrincipal(info.mBaseURI, getter_AddRefs(info.mPrincipal));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  
-  
-  
-  
-  
-  
-  rv = NS_NewLoadGroup(getter_AddRefs(info.mLoadGroup), info.mPrincipal);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
