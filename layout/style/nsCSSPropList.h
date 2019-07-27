@@ -78,6 +78,11 @@
 
 
 
+
+
+
+
+
 #ifndef CSS_PROP_SHORTHAND
 #define CSS_PROP_SHORTHAND(name_, id_, method_, flags_, pref_)
 #define DEFINED_CSS_PROP_SHORTHAND
@@ -169,12 +174,12 @@
 
 #ifndef CSS_PROP_LOGICAL
 #ifdef CSS_PROP_LIST_INCLUDE_LOGICAL
-#define CSS_PROP_LOGICAL(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, struct_, stylestructoffset_, animtype_) CSS_PROP(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, struct_, stylestructoffset_, animtype_)
+#define CSS_PROP_LOGICAL(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, boxshorthand_, struct_, stylestructoffset_, animtype_) CSS_PROP(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, struct_, stylestructoffset_, animtype_)
 #else
 #ifndef CSS_PROP_LIST_EXCLUDE_LOGICAL
 #error Must define exactly one of CSS_PROP_LOGICAL, CSS_PROP_LIST_EXCLUDE_LOGICAL and CSS_PROP_LIST_INCLUDE_LOGICAL when capturing properties using CSS_PROP.
 #endif
-#define CSS_PROP_LOGICAL(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, struct_, stylestructoffset_, animtype_)
+#define CSS_PROP_LOGICAL(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, boxshorthand_, struct_, stylestructoffset_, animtype_)
 #endif
 #define DEFINED_CSS_PROP_LOGICAL
 #endif
@@ -291,7 +296,7 @@
 #define DEFINED_CSS_PROP_BACKENDONLY
 #endif
 #ifndef CSS_PROP_LOGICAL
-#define CSS_PROP_LOGICAL(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, struct_, stylestructoffset_, animtype_)
+#define CSS_PROP_LOGICAL(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, boxshorthand_, struct_, stylestructoffset_, animtype_)
 #define DEFINED_CSS_PROP_LOGICAL
 #endif
 
@@ -823,6 +828,7 @@ CSS_PROP_LOGICAL(
     "",
     VARIANT_HCK,
     kBorderColorKTable,
+    border_color,
     Border,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
@@ -837,6 +843,7 @@ CSS_PROP_LOGICAL(
     "",
     VARIANT_HK,
     kBorderStyleKTable,
+    border_style,
     Border,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
@@ -853,6 +860,7 @@ CSS_PROP_LOGICAL(
     "",
     VARIANT_HKL | VARIANT_CALC,
     kBorderWidthKTable,
+    border_width,
     Border,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
@@ -872,6 +880,7 @@ CSS_PROP_LOGICAL(
     "",
     VARIANT_HCK,
     kBorderColorKTable,
+    border_color,
     Border,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
@@ -885,6 +894,7 @@ CSS_PROP_LOGICAL(
     "",
     VARIANT_HK,
     kBorderStyleKTable,
+    border_style,
     Border,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
@@ -900,6 +910,7 @@ CSS_PROP_LOGICAL(
     "",
     VARIANT_HKL | VARIANT_CALC,
     kBorderWidthKTable,
+    border_width,
     Border,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
@@ -2113,6 +2124,7 @@ CSS_PROP_LOGICAL(
     "",
     VARIANT_AHLP | VARIANT_CALC,
     nullptr,
+    margin,
     Margin,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
@@ -2128,6 +2140,7 @@ CSS_PROP_LOGICAL(
     "",
     VARIANT_AHLP | VARIANT_CALC,
     nullptr,
+    margin,
     Margin,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
@@ -2456,6 +2469,7 @@ CSS_PROP_LOGICAL(
     "",
     VARIANT_HLP | VARIANT_CALC,
     nullptr,
+    padding,
     Padding,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
@@ -2474,6 +2488,7 @@ CSS_PROP_LOGICAL(
     "",
     VARIANT_HLP | VARIANT_CALC,
     nullptr,
+    padding,
     Padding,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)

@@ -471,6 +471,19 @@ public:
     return gPropertyIndexInStruct[aProperty];
   }
 
+  
+
+
+
+
+
+
+
+
+
+
+  static nsCSSProperty BoxShorthandFor(nsCSSProperty aProperty);
+
 private:
   static bool gPropertyEnabled[eCSSProperty_COUNT_with_aliases];
 
