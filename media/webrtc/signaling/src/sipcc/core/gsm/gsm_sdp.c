@@ -3485,6 +3485,27 @@ gsmsdp_negotiate_codec (fsmdef_dcb_t *dcb_p, cc_sdp_t *sdp_p,
                             payload_info->audio.bitrate = 32000;
                             break;
 
+                        case RTP_G722:
+                            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                            payload_info->audio.frequency = 16000;
+                            payload_info->audio.packet_size = 320;
+                            payload_info->audio.bitrate = 64000;
+                            break;
+
                         case RTP_ILBC:
                             payload_info->ilbc.mode =
                               (uint16_t)sdp_attr_get_fmtp_mode_for_payload_type(
@@ -3511,6 +3532,7 @@ gsmsdp_negotiate_codec (fsmdef_dcb_t *dcb_p, cc_sdp_t *sdp_p,
                                   dcb_p->call_id, fname), codec);
                             payload_info->audio.packet_size = -1;
                             payload_info->audio.bitrate = -1;
+                            MOZ_ASSERT(0);
                         } 
 
 
