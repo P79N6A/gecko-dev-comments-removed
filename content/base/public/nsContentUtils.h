@@ -2149,6 +2149,24 @@ public:
 
   static bool IsContentInsertionPoint(const nsIContent* aContent);
 
+  
+
+
+
+  static bool IsForbiddenRequestHeader(const nsACString& aHeader);
+
+  
+
+
+
+  static bool IsForbiddenSystemRequestHeader(const nsACString& aHeader);
+
+  
+
+
+
+  static bool IsForbiddenResponseHeader(const nsACString& aHeader);
+
 private:
   static bool InitializeEventTable();
 
