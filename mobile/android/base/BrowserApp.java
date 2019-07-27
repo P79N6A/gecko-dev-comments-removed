@@ -673,13 +673,6 @@ public class BrowserApp extends GeckoApp
                 Log.e(LOGTAG, "Error initializing media manager", ex);
             }
         }
-
-        if (getProfile().inGuestMode()) {
-            GuestSession.showNotification(this);
-        } else {
-            
-            GuestSession.hideNotification(this);
-        }
     }
 
     private void setupSystemUITinting() {
@@ -788,6 +781,35 @@ public class BrowserApp extends GeckoApp
 
         final LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
         lbm.unregisterReceiver(mOnboardingReceiver);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        
+        
+        ThreadUtils.postToBackgroundThread(new Runnable() {
+            @Override
+            public void run() {
+                if (getProfile().inGuestMode()) {
+                    GuestSession.showNotification(BrowserApp.this);
+                } else {
+                    
+                    
+                    
+                    GuestSession.hideNotification(BrowserApp.this);
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+
+        
+        GuestSession.hideNotification(this);
     }
 
     @Override
@@ -1086,8 +1108,6 @@ public class BrowserApp extends GeckoApp
             mBrowserHealthReporter.uninit();
             mBrowserHealthReporter = null;
         }
-
-        GuestSession.onDestroy(this);
 
         EventDispatcher.getInstance().unregisterGeckoThreadListener((GeckoEventListener)this,
             "Menu:Update",
@@ -2939,6 +2959,9 @@ public class BrowserApp extends GeckoApp
                             args = GUEST_BROWSING_ARG;
                         } else {
                             GeckoProfile.leaveGuestSession(BrowserApp.this);
+
+                            
+                            GuestSession.hideNotification(BrowserApp.this);
                         }
 
                         if (!GuestSession.isSecureKeyguardLocked(BrowserApp.this)) {
