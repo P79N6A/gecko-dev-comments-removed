@@ -12,7 +12,6 @@
 #include "js/ProfilingStack.h"
 #include <stdlib.h>
 #include "mozilla/Atomics.h"
-#include "nsISupportsImpl.h"
 
 
 
@@ -287,10 +286,24 @@ void ProfilerJSEventMarker(const char *event);
 struct PseudoStack
 {
 public:
-  
-  static PseudoStack *create()
-  {
-    return new PseudoStack();
+  PseudoStack()
+    : mStackPointer(0)
+    , mSleepId(0)
+    , mSleepIdObserved(0)
+    , mSleeping(false)
+    , mRuntime(nullptr)
+    , mStartJSSampling(false)
+    , mPrivacyMode(false)
+  { }
+
+  ~PseudoStack() {
+    if (mStackPointer != 0) {
+      
+      
+      
+      
+      abort();
+    }
   }
 
   
@@ -343,13 +356,6 @@ public:
       return;
     }
 
-    
-    
-    
-    if (mStackPointer == 0) {
-      ref();
-    }
-
     volatile StackEntry &entry = mStack[mStackPointer];
 
     
@@ -375,20 +381,9 @@ public:
     STORE_SEQUENCER();
     mStackPointer++;
   }
-
-  
-  
-  
-  bool popAndMaybeDelete()
+  void pop()
   {
     mStackPointer--;
-    if (mStackPointer == 0) {
-      
-      deref();
-      return false;
-    } else {
-      return true;
-    }
   }
   bool isEmpty()
   {
@@ -437,35 +432,6 @@ public:
   
   StackEntry volatile mStack[1024];
  private:
-
-  
-  PseudoStack()
-    : mStackPointer(0)
-    , mSleepId(0)
-    , mSleepIdObserved(0)
-    , mSleeping(false)
-    , mRefCnt(1)
-    , mRuntime(nullptr)
-    , mStartJSSampling(false)
-    , mPrivacyMode(false)
-  { }
-
-  
-  ~PseudoStack() {
-    MOZ_COUNT_DTOR(PseudoStack);
-    if (mStackPointer != 0) {
-      
-      
-      
-      
-      abort();
-    }
-  }
-
-  
-  PseudoStack(const PseudoStack&) MOZ_DELETE;
-  void operator=(const PseudoStack&) MOZ_DELETE;
-
   
   
   PendingMarkers mPendingMarkers;
@@ -480,11 +446,6 @@ public:
   mozilla::Atomic<int> mSleepIdObserved;
   
   mozilla::Atomic<int> mSleeping;
-  
-  
-  
-  mozilla::Atomic<int> mRefCnt;
-
  public:
   
   JSRuntime *mRuntime;
@@ -516,17 +477,6 @@ public:
     MOZ_ASSERT(mSleeping != sleeping);
     mSleepId++;
     mSleeping = sleeping;
-  }
-
-  void ref() {
-    ++mRefCnt;
-  }
-
-  void deref() {
-    int newValue = --mRefCnt;
-    if (newValue == 0) {
-      delete this;
-    }
   }
 };
 

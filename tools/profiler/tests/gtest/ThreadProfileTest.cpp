@@ -9,7 +9,7 @@
 
 
 TEST(ThreadProfile, Initialization) {
-  PseudoStack* stack = PseudoStack::create();
+  PseudoStack* stack = new PseudoStack();
   Thread::tid_t tid = 1000;
   ThreadInfo info("testThread", tid, true, stack, nullptr);
   ThreadProfile tp(&info, 10);
@@ -17,7 +17,7 @@ TEST(ThreadProfile, Initialization) {
 
 
 TEST(ThreadProfile, InsertOneTag) {
-  PseudoStack* stack = PseudoStack::create();
+  PseudoStack* stack = new PseudoStack();
   Thread::tid_t tid = 1000;
   ThreadInfo info("testThread", tid, true, stack, nullptr);
   ThreadProfile tp(&info, 10);
@@ -29,7 +29,7 @@ TEST(ThreadProfile, InsertOneTag) {
 
 
 TEST(ThreadProfile, InsertTagsNoWrap) {
-  PseudoStack* stack = PseudoStack::create();
+  PseudoStack* stack = new PseudoStack();
   Thread::tid_t tid = 1000;
   ThreadInfo info("testThread", tid, true, stack, nullptr);
   ThreadProfile tp(&info, 100);
@@ -48,7 +48,7 @@ TEST(ThreadProfile, InsertTagsNoWrap) {
 
 
 TEST(ThreadProfile, InsertTagsWrap) {
-  PseudoStack* stack = PseudoStack::create();
+  PseudoStack* stack = new PseudoStack();
   Thread::tid_t tid = 1000;
   
   int tags = 24;
