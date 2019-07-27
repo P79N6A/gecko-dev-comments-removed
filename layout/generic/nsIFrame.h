@@ -752,6 +752,11 @@ public:
   
 
 
+  nsRect GetNormalRect() const;
+
+  
+
+
   nsPoint GetNormalPosition() const;
   mozilla::LogicalPoint
   GetLogicalNormalPosition(mozilla::WritingMode aWritingMode,
