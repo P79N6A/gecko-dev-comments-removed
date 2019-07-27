@@ -30,6 +30,8 @@ namespace mozilla { namespace pkix {
 Result
 BackCert::Init()
 {
+  Result rv;
+
   
   
   
@@ -41,23 +43,26 @@ BackCert::Init()
   
   {
     der::Input input;
-    if (input.Init(der.data, der.len) != der::Success) {
-      return MapSECStatus(SECFailure);
+    rv = input.Init(der.data, der.len);
+    if (rv != Success) {
+      return rv;
     }
     der::Input certificate;
-    if (der::ExpectTagAndGetValue(input, der::SEQUENCE, certificate)
-          != der::Success) {
-      return MapSECStatus(SECFailure);
+    rv = der::ExpectTagAndGetValue(input, der::SEQUENCE, certificate);
+    if (rv != Success) {
+      return rv;
     }
-    if (der::End(input) != der::Success) {
-      return MapSECStatus(SECFailure);
+    rv = der::End(input);
+    if (rv != Success) {
+      return rv;
     }
-    if (der::SignedData(certificate, tbsCertificate, signedData)
-          != der::Success) {
-      return MapSECStatus(SECFailure);
+    rv = der::SignedData(certificate, tbsCertificate, signedData);
+    if (rv != Success) {
+      return rv;
     }
-    if (der::End(certificate) != der::Success) {
-      return MapSECStatus(SECFailure);
+    rv = der::End(certificate);
+    if (rv != Success) {
+      return rv;
     }
   }
 
@@ -76,47 +81,49 @@ BackCert::Init()
   
   
   
-  if (der::OptionalVersion(tbsCertificate, version) != der::Success) {
-    return MapSECStatus(SECFailure);
+  rv = der::OptionalVersion(tbsCertificate, version);
+  if (rv != Success) {
+    return rv;
   }
-  if (der::CertificateSerialNumber(tbsCertificate, serialNumber)
-        != der::Success) {
-    return MapSECStatus(SECFailure);
+  rv = der::CertificateSerialNumber(tbsCertificate, serialNumber);
+  if (rv != Success) {
+    return rv;
   }
   
   
   
   SignatureAlgorithm signature;
-  if (der::SignatureAlgorithmIdentifier(tbsCertificate, signature)
-        != der::Success) {
-    return MapSECStatus(SECFailure);
+  rv = der::SignatureAlgorithmIdentifier(tbsCertificate, signature);
+  if (rv != Success) {
+    return rv;
   }
-  if (der::ExpectTagAndGetTLV(tbsCertificate, der::SEQUENCE, issuer)
-        != der::Success) {
-    return MapSECStatus(SECFailure);
+  rv = der::ExpectTagAndGetTLV(tbsCertificate, der::SEQUENCE, issuer);
+  if (rv != Success) {
+    return rv;
   }
-  if (der::ExpectTagAndGetValue(tbsCertificate, der::SEQUENCE, validity)
-        != der::Success) {
-    return MapSECStatus(SECFailure);
-  }
-  
-  
-  
-  
-  if (der::ExpectTagAndGetTLV(tbsCertificate, der::SEQUENCE, subject)
-        != der::Success) {
-    return MapSECStatus(SECFailure);
+  rv = der::ExpectTagAndGetValue(tbsCertificate, der::SEQUENCE, validity);
+  if (rv != Success) {
+    return rv;
   }
   
   
   
   
+  rv = der::ExpectTagAndGetTLV(tbsCertificate, der::SEQUENCE, subject);
+  if (rv != Success) {
+    return rv;
+  }
   
   
   
-  if (der::ExpectTagAndGetTLV(tbsCertificate, der::SEQUENCE,
-                              subjectPublicKeyInfo) != der::Success) {
-    return MapSECStatus(SECFailure);
+  
+  
+  
+  
+  rv = der::ExpectTagAndGetTLV(tbsCertificate, der::SEQUENCE,
+                               subjectPublicKeyInfo);
+  if (rv != Success) {
+    return rv;
   }
 
   static const uint8_t CSC = der::CONTEXT_SPECIFIC | der::CONSTRUCTED;
@@ -127,36 +134,35 @@ BackCert::Init()
 
     
     if (tbsCertificate.Peek(CSC | 1)) {
-      if (der::ExpectTagAndSkipValue(tbsCertificate, CSC | 1) != der::Success) {
-        return MapSECStatus(SECFailure);
+      rv = der::ExpectTagAndSkipValue(tbsCertificate, CSC | 1);
+      if (rv != Success) {
+        return rv;
       }
     }
 
     
     if (tbsCertificate.Peek(CSC | 2)) {
-      if (der::ExpectTagAndSkipValue(tbsCertificate, CSC | 2) != der::Success) {
-        return MapSECStatus(SECFailure);
+      rv = der::ExpectTagAndSkipValue(tbsCertificate, CSC | 2);
+      if (rv != Success) {
+        return rv;
       }
     }
   }
 
   
   if (version == der::Version::v3) {
-    if (der::OptionalExtensions(tbsCertificate, CSC | 3,
-                                bind(&BackCert::RememberExtension, this, _1, _2,
-                                     _3)) != der::Success) {
-      return MapSECStatus(SECFailure);
+    rv = der::OptionalExtensions(tbsCertificate, CSC | 3,
+                                 bind(&BackCert::RememberExtension, this, _1,
+                                      _2, _3));
+    if (rv != Success) {
+      return rv;
     }
   }
 
-  if (der::End(tbsCertificate) != der::Success) {
-    return MapSECStatus(SECFailure);
-  }
-
-  return Success;
+  return der::End(tbsCertificate);
 }
 
-der::Result
+Result
 BackCert::RememberExtension(der::Input& extnID, const SECItem& extnValue,
                              bool& understood)
 {
@@ -247,7 +253,7 @@ BackCert::RememberExtension(der::Input& extnID, const SECItem& extnValue,
     understood = true;
   }
 
-  return der::Success;
+  return Success;
 }
 
 } } 
