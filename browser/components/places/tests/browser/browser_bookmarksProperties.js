@@ -113,8 +113,7 @@ gTests.push({
 
   run: function() {
     
-    ok(this.window.BookmarkPropertiesPanel._readOnly, "Dialog is read-only");
-
+    ok(this.window.gEditItemOverlay.readOnly, "Dialog is read-only");
     
     var acceptButton = this.window.document.documentElement.getButton("accept");
     ok(acceptButton.disabled, "Accept button is disabled");
@@ -126,7 +125,7 @@ gTests.push({
        PlacesUtils.bookmarks.getItemTitle(PlacesUtils.unfiledBookmarksFolderId),
        "Node title is correct");
     
-    this.window.gEditItemOverlay.onNamePickerBlur();
+    this.window.gEditItemOverlay._namePicker.blur();
     is(namepicker.value,
        PlacesUtils.bookmarks.getItemTitle(PlacesUtils.unfiledBookmarksFolderId),
        "Root title is correct");
@@ -146,7 +145,6 @@ gTests.push({
     
   }
 });
-
 
 
 
@@ -226,9 +224,11 @@ gTests.push({
 
     
     info("About to focus the tagsField");
-    tagsField.focus();
-    tagsField.value = "";
-    EventUtils.synthesizeKey("t", {}, this.window);
+    executeSoon(() => {
+                  tagsField.focus();
+                  tagsField.value = "";
+                  EventUtils.synthesizeKey("t", {}, this.window);
+                });
   },
 
   finish: function() {
@@ -250,60 +250,62 @@ gTests.push({
 
 
 
-gTests.push({
-  desc: "Bug 475529 - Add button in new folder dialog not default anymore",
-  sidebar: SIDEBAR_BOOKMARKS_ID,
-  action: ACTION_ADD,
-  itemType: TYPE_FOLDER,
-  window: null,
-  _itemId: null,
 
-  setup: function(aCallback) {
-    
-    aCallback();
-  },
 
-  selectNode: function(tree) {
-    
-    var itemId = PlacesUIUtils.leftPaneQueries["UnfiledBookmarks"];
-    tree.selectItems([itemId]);
-    this.selectedNode = tree.selectedNode;
-  },
 
-  run: function() {
-    this._itemId = this.window.gEditItemOverlay._itemId;
-    
-    var namePicker = this.window.document.getElementById("editBMPanel_namePicker");
-    var self = this;
 
-    this.window.addEventListener("unload", function(event) {
-      self.window.removeEventListener("unload", arguments.callee, false);
-      executeSoon(function () {
-        self.finish();
-      });
-    }, false);
 
-    namePicker.value = "n";
-    info("About to focus the namePicker field");
-    namePicker.focus();
-    EventUtils.synthesizeKey("VK_RETURN", {}, this.window);
-  },
 
-  finish: function() {
-    
-    SidebarUI.hide();
-    runNextTest();
-  },
 
-  cleanup: function() {
-    
-    is(PlacesUtils.bookmarks.getItemTitle(this._itemId), "n",
-       "Folder name has been edited");
 
-    
-    PlacesUtils.bookmarks.removeItem(this._itemId);
-  }
-});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -562,7 +564,7 @@ function open_properties_dialog() {
         
         executeSoon(function () {
           
-          ok(win.gEditItemOverlay._initialized, "EditItemOverlay is initialized");
+          ok(win.gEditItemOverlay.initialized, "EditItemOverlay is initialized");
           gCurrentTest.window = win;
           try {
             gCurrentTest.run();
