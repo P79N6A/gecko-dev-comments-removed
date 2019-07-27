@@ -61,8 +61,20 @@ var FullScreen = {
       this._fullScrToggler.addEventListener("dragenter", this._expandCallback, false);
     }
 
+    if (enterFS) {
+      gNavToolbox.setAttribute("inFullscreen", true);
+      document.documentElement.setAttribute("inFullscreen", true);
+    } else {
+      gNavToolbox.removeAttribute("inFullscreen");
+      document.documentElement.removeAttribute("inFullscreen");
+    }
+
     
-    this.showXULChrome("toolbar", !enterFS);
+    
+    
+    if (document.mozFullScreen || !this.useLionFullScreen) {
+      this.showXULChrome("toolbar", !enterFS);
+    }
 
     if (enterFS) {
       document.addEventListener("keypress", this._keyToggleCallback, false);
@@ -555,14 +567,6 @@ var FullScreen = {
         else
           el.setAttribute("moz-collapsed", "true");
       }
-    }
-
-    if (aShow) {
-      gNavToolbox.removeAttribute("inFullscreen");
-      document.documentElement.removeAttribute("inFullscreen");
-    } else {
-      gNavToolbox.setAttribute("inFullscreen", true);
-      document.documentElement.setAttribute("inFullscreen", true);
     }
 
     ToolbarIconColor.inferFromText();
