@@ -768,6 +768,20 @@ let PageStyleActor = protocol.ActorClass({
     }
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
   getLayout: method(function(node, options) {
     this.cssLogic.highlight(node.rawNode);
 
@@ -795,7 +809,10 @@ let PageStyleActor = protocol.ActorClass({
       "border-top-width",
       "border-right-width",
       "border-bottom-width",
-      "border-left-width"
+      "border-left-width",
+      "z-index",
+      "box-sizing",
+      "display"
     ]) {
       layout[prop] = style.getPropertyValue(prop);
     }
@@ -807,10 +824,6 @@ let PageStyleActor = protocol.ActorClass({
     for (let i in this.map) {
       let property = this.map[i].property;
       this.map[i].value = parseFloat(style.getPropertyValue(property));
-    }
-
-    if (options.margins) {
-      layout.margins = this.processMargins(this.cssLogic);
     }
 
     return layout;
