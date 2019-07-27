@@ -5,7 +5,6 @@
 
 
 #include "EMEDecoderModule.h"
-#include "mtransport/runnable_utils.h"
 #include "mozIGeckoMediaPluginService.h"
 #include "nsServiceManagerUtils.h"
 #include "nsThreadUtils.h"
