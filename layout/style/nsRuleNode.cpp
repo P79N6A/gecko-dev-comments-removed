@@ -2387,18 +2387,19 @@ nsRuleNode::WalkRuleTree(const nsStyleStructID aSID,
       return SetDefaultOnRoot(aSID, aContext);
   }
 
-  
-  const void* res;
-#define STYLE_STRUCT_TEST aSID
-#define STYLE_STRUCT(name, checkdata_cb)                                      \
-  res = Compute##name##Data(startStruct, &ruleData, aContext,                 \
-                            highestNode, detail, ruleData.mCanStoreInRuleTree);
+  typedef const void* (nsRuleNode::*ComputeFunc)(void*, const nsRuleData*,
+                                                 nsStyleContext*, nsRuleNode*,
+                                                 RuleDetail, const bool);
+  static const ComputeFunc sComputeFuncs[] = {
+#define STYLE_STRUCT(name, checkdata_cb) &nsRuleNode::Compute##name##Data,
 #include "nsStyleStructList.h"
 #undef STYLE_STRUCT
-#undef STYLE_STRUCT_TEST
+  };
 
   
-  return res;
+  return (this->*sComputeFuncs[aSID])(startStruct, &ruleData, aContext,
+                                      highestNode, detail,
+                                      ruleData.mCanStoreInRuleTree);
 }
 
 const void*
