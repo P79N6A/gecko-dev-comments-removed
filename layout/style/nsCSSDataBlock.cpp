@@ -163,6 +163,25 @@ MapSinglePropertyInto(nsCSSProperty aProp,
     }
 }
 
+
+
+
+
+
+static inline void
+EnsurePhysicalProperty(nsCSSProperty& aProperty, nsRuleData* aRuleData)
+{
+  uint8_t direction = aRuleData->mStyleContext->StyleVisibility()->mDirection;
+  bool ltr = direction == NS_STYLE_DIRECTION_LTR;
+
+  switch (aProperty) {
+    default:
+      NS_ABORT_IF_FALSE(nsCSSProps::PropHasFlags(aProperty,
+                                                 CSS_PROPERTY_LOGICAL),
+                        "unhandled logical property");
+  }
+}
+
 void
 nsCSSCompressedDataBlock::MapRuleInfoInto(nsRuleData *aRuleData) const
 {
@@ -173,10 +192,20 @@ nsCSSCompressedDataBlock::MapRuleInfoInto(nsRuleData *aRuleData) const
     if (!(aRuleData->mSIDs & mStyleBits))
         return;
 
-    for (uint32_t i = 0; i < mNumProps; i++) {
+    
+    
+    
+    for (uint32_t i = mNumProps; i-- > 0; ) {
         nsCSSProperty iProp = PropertyAtIndex(i);
         if (nsCachedStyleData::GetBitForSID(nsCSSProps::kSIDTable[iProp]) &
             aRuleData->mSIDs) {
+            if (nsCSSProps::PropHasFlags(iProp, CSS_PROPERTY_LOGICAL)) {
+                EnsurePhysicalProperty(iProp, aRuleData);
+                
+                
+                
+                aRuleData->mCanStoreInRuleTree = false;
+            }
             nsCSSValue* target = aRuleData->ValueFor(iProp);
             if (target->GetUnit() == eCSSUnit_Null) {
                 const nsCSSValue *val = ValueAtIndex(i);
@@ -605,11 +634,17 @@ nsCSSExpandedDataBlock::MapRuleInfoInto(nsCSSProperty aPropID,
   const nsCSSValue* src = PropertyAt(aPropID);
   MOZ_ASSERT(src->GetUnit() != eCSSUnit_Null);
 
-  nsCSSValue* dest = aRuleData->ValueFor(aPropID);
+  nsCSSProperty physicalProp = aPropID;
+  if (nsCSSProps::PropHasFlags(aPropID, CSS_PROPERTY_LOGICAL)) {
+    EnsurePhysicalProperty(physicalProp, aRuleData);
+    aRuleData->mCanStoreInRuleTree = false;
+  }
+
+  nsCSSValue* dest = aRuleData->ValueFor(physicalProp);
   MOZ_ASSERT(dest->GetUnit() == eCSSUnit_TokenStream &&
              dest->GetTokenStreamValue()->mPropertyID == aPropID);
 
-  MapSinglePropertyInto(aPropID, src, dest, aRuleData);
+  MapSinglePropertyInto(physicalProp, src, dest, aRuleData);
 }
 
 #ifdef DEBUG
