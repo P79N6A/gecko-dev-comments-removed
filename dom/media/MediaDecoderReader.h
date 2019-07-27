@@ -255,23 +255,20 @@ class RequestSampleCallback {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RequestSampleCallback)
 
-  
-  virtual void OnAudioDecoded(AudioData* aSample) = 0;
+  enum NotDecodedReason {
+    END_OF_STREAM,
+    DECODE_ERROR
+  };
 
   
-  
-  virtual void OnAudioEOS() = 0;
+  virtual void OnAudioDecoded(AudioData* aSample) = 0;
 
   
   virtual void OnVideoDecoded(VideoData* aSample) = 0;
 
   
   
-  virtual void OnVideoEOS() = 0;
-
-  
-  
-  virtual void OnDecodeError() = 0;
+  virtual void OnNotDecoded(MediaData::Type aType, NotDecodedReason aReason) = 0;
 
   
   virtual void BreakCycles() = 0;
@@ -286,16 +283,16 @@ protected:
 
 class AudioDecodeRendezvous : public RequestSampleCallback {
 public:
+  using RequestSampleCallback::NotDecodedReason;
+
   AudioDecodeRendezvous();
   ~AudioDecodeRendezvous();
 
   
   
   virtual void OnAudioDecoded(AudioData* aSample) MOZ_OVERRIDE;
-  virtual void OnAudioEOS() MOZ_OVERRIDE;
   virtual void OnVideoDecoded(VideoData* aSample) MOZ_OVERRIDE {}
-  virtual void OnVideoEOS() MOZ_OVERRIDE {}
-  virtual void OnDecodeError() MOZ_OVERRIDE;
+  virtual void OnNotDecoded(MediaData::Type aType, NotDecodedReason aReason) MOZ_OVERRIDE;
   virtual void BreakCycles() MOZ_OVERRIDE {};
   void Reset();
 
