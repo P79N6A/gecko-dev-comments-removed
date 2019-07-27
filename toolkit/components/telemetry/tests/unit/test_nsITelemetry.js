@@ -707,6 +707,27 @@ function test_datasets()
   Assert.ok(registered.has("TELEMETRY_TEST_KEYED_RELEASE_OPTOUT"));
 }
 
+function test_instantiate() {
+  if (gIsAndroid) {
+    
+    return;
+  }
+
+  const ID = "TELEMETRY_TEST_COUNT";
+  let h = Telemetry.getHistogramById(ID);
+
+  
+  
+  
+  h.add(1);
+  let snapshot = h.snapshot();
+  let subsession = Telemetry.snapshotSubsessionHistograms();
+  Assert.equal(snapshot.sum, subsession[ID].sum,
+               "Histogram and subsession histogram sum must match.");
+  
+  h.clear();
+}
+
 function test_subsession() {
   if (gIsAndroid) {
     
@@ -853,6 +874,9 @@ function generateUUID() {
 
 function run_test()
 {
+  
+  test_instantiate();
+
   let kinds = [Telemetry.HISTOGRAM_EXPONENTIAL, Telemetry.HISTOGRAM_LINEAR]
   for each (let histogram_type in kinds) {
     let [min, max, bucket_count] = [1, INT_MAX - 1, 10]

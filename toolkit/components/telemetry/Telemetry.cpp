@@ -1106,12 +1106,15 @@ HistogramAdd(Histogram& histogram, int32_t value, uint32_t dataset)
     return NS_OK;
   }
 
-  histogram.Add(value);
 #if !defined(MOZ_WIDGET_GONK) && !defined(MOZ_WIDGET_ANDROID)
   if (Histogram* subsession = GetSubsessionHistogram(histogram)) {
     subsession->Add(value);
   }
 #endif
+
+  
+  
+  histogram.Add(value);
 
   return NS_OK;
 }
