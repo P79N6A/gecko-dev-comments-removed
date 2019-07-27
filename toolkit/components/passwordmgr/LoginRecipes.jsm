@@ -33,17 +33,8 @@ function LoginRecipesParent(aOptions = { defaults: true }) {
   if (Services.appinfo.processType != Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
     throw new Error("LoginRecipesParent should only be used from the main process");
   }
-
-  this._recipesByHost = new Map();
-
-  if (aOptions.defaults) {
-    
-    this.initializationPromise = this.load(DEFAULT_RECIPES).then(resolve => {
-      return this;
-    });
-  } else {
-    this.initializationPromise = Promise.resolve(this);
-  }
+  this._defaults = aOptions.defaults;
+  this.reset();
 }
 
 LoginRecipesParent.prototype = {
@@ -53,6 +44,11 @@ LoginRecipesParent.prototype = {
 
 
   initializationPromise: null,
+
+  
+
+
+  _defaults: null,
 
   
 
@@ -82,6 +78,23 @@ LoginRecipesParent.prototype = {
     }
 
     return Promise.resolve();
+  },
+
+  
+
+
+  reset() {
+    log.debug("Resetting recipes with defaults:", this._defaults);
+    this._recipesByHost = new Map();
+
+    if (this._defaults) {
+      
+      this.initializationPromise = this.load(DEFAULT_RECIPES).then(resolve => {
+        return this;
+      });
+    } else {
+      this.initializationPromise = Promise.resolve(this);
+    }
   },
 
   

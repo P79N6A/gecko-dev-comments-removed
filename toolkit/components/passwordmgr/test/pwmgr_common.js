@@ -285,4 +285,12 @@ if (this.addMessageListener) {
   globalMM.addMessageListener("RemoteLogins:onFormSubmit", function onFormSubmit(message) {
     sendAsyncMessage("formSubmissionProcessed", message.data, message.objects);
   });
+} else {
+  
+  SimpleTest.registerCleanupFunction(() => {
+    var { LoginManagerParent } = SpecialPowers.Cu.import("resource://gre/modules/LoginManagerParent.jsm", {});
+    return LoginManagerParent.recipeParentPromise.then((recipeParent) => {
+      SpecialPowers.wrap(recipeParent).reset();
+    });
+  });
 }
