@@ -46,6 +46,7 @@ private:
     mDisplay = nsIntSize(aWidth, aHeight);
     mStereoMode = StereoMode::MONO;
     mHasVideo = aHasVideo;
+    mIsHardwareAccelerated = false;
 
     
     
@@ -75,6 +76,8 @@ public:
   bool mHasVideo;
 
   TrackInfo mTrackInfo;
+
+  bool mIsHardwareAccelerated;
 };
 
 class AudioInfo {
