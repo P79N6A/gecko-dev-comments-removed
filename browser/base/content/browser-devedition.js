@@ -10,6 +10,11 @@ let DevEdition = {
   _devtoolsThemePrefName: "devtools.theme",
   styleSheetLocation: "chrome://browser/skin/devedition.css",
   styleSheet: null,
+  initialized: false,
+
+  get isStyleSheetEnabled() {
+    return this.styleSheet && !this.styleSheet.sheet.disabled;
+  },
 
   get isThemeCurrentlyApplied() {
     let theme = LightweightThemeManager.currentTheme;
@@ -17,6 +22,7 @@ let DevEdition = {
   },
 
   init: function () {
+    this.initialized = true;
     Services.prefs.addObserver(this._devtoolsThemePrefName, this, false);
     Services.obs.addObserver(this, "lightweight-theme-styling-update", false);
     this._updateDevtoolsThemeAttribute();
@@ -24,6 +30,15 @@ let DevEdition = {
     if (this.isThemeCurrentlyApplied) {
       this._toggleStyleSheet(true);
     }
+  },
+
+  createStyleSheet: function() {
+    let styleSheetAttr = `href="${this.styleSheetLocation}" type="text/css"`;
+    this.styleSheet = document.createProcessingInstruction(
+      "xml-stylesheet", styleSheetAttr);
+    this.styleSheet.addEventListener("load", this);
+    document.insertBefore(this.styleSheet, document.documentElement);
+    this.styleSheet.sheet.disabled = true;
   },
 
   observe: function (subject, topic, data) {
@@ -44,7 +59,7 @@ let DevEdition = {
   _inferBrightness: function() {
     ToolbarIconColor.inferFromText();
     
-    if (this.styleSheet &&
+    if (this.isStyleSheetEnabled &&
         document.documentElement.getAttribute("devtoolstheme") == "dark") {
       document.documentElement.setAttribute("brighttitlebarforeground", "true");
     } else {
@@ -66,26 +81,32 @@ let DevEdition = {
   handleEvent: function(e) {
     if (e.type === "load") {
       this.styleSheet.removeEventListener("load", this);
+      this.refreshBrowserDisplay();
+    }
+  },
+
+  refreshBrowserDisplay: function() {
+    
+    
+    if (this.initialized) {
       gBrowser.tabContainer._positionPinnedTabs();
       this._inferBrightness();
     }
   },
 
   _toggleStyleSheet: function(deveditionThemeEnabled) {
-    if (deveditionThemeEnabled && !this.styleSheet) {
-      let styleSheetAttr = `href="${this.styleSheetLocation}" type="text/css"`;
-      this.styleSheet = document.createProcessingInstruction(
-        'xml-stylesheet', styleSheetAttr);
-      this.styleSheet.addEventListener("load", this);
-      document.insertBefore(this.styleSheet, document.documentElement);
+    let wasEnabled = this.isStyleSheetEnabled;
+    if (deveditionThemeEnabled && !wasEnabled) {
       
       
-    } else if (!deveditionThemeEnabled && this.styleSheet) {
-      this.styleSheet.removeEventListener("load", this);
-      this.styleSheet.remove();
-      this.styleSheet = null;
-      gBrowser.tabContainer._positionPinnedTabs();
-      this._inferBrightness();
+      if (!this.styleSheet) {
+        this.createStyleSheet();
+      }
+      this.styleSheet.sheet.disabled = false;
+      this.refreshBrowserDisplay();
+    } else if (!deveditionThemeEnabled && wasEnabled) {
+      this.styleSheet.sheet.disabled = true;
+      this.refreshBrowserDisplay();
     }
   },
 
@@ -98,3 +119,12 @@ let DevEdition = {
     this.styleSheet = null;
   }
 };
+
+#ifndef RELEASE_BUILD
+
+
+
+if (this != Services.appShell.hiddenDOMWindow && DevEdition.isThemeCurrentlyApplied) {
+  DevEdition.createStyleSheet();
+}
+#endif
