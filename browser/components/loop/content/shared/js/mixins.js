@@ -33,10 +33,6 @@ loop.shared.mixins = (function() {
 
 
   var UrlHashChangeMixin = {
-    propTypes: {
-      onUrlHashChange: React.PropTypes.func.isRequired
-    },
-
     componentDidMount: function() {
       rootObject.addEventListener("hashchange", this.onUrlHashChange, false);
     },

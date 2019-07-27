@@ -40,6 +40,13 @@ loop.shared.actions = (function() {
     
 
 
+    ExtractTokenInfo: Action.define("extractTokenInfo", {
+      windowPath: String
+    }),
+
+    
+
+
 
     SetupWindowData: Action.define("setupWindowData", {
       windowId: String,
@@ -49,6 +56,15 @@ loop.shared.actions = (function() {
       
       
       
+    }),
+
+    
+
+
+
+    FetchServerData: Action.define("fetchServerData", {
+      token: String,
+      windowType: String
     }),
 
     
