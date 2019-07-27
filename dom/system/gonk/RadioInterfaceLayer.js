@@ -531,10 +531,20 @@ XPCOMUtils.defineLazyGetter(this, "gRadioEnabledController", function() {
         
         
         
-        for (let i = 0, N = _ril.numRadioInterfaces; i < N; ++i) {
-          let iface = _ril.getRadioInterface(i);
-          iface.workerMessenger.send("hangUpAll");
-        }
+        let hangUpCallback = {
+          QueryInterface: XPCOMUtils.generateQI([Ci.nsITelephonyCallback]),
+          notifySuccess: function() {},
+          notifyError: function() {}
+        };
+
+        gTelephonyService.enumerateCalls({
+          QueryInterface: XPCOMUtils.generateQI([Ci.nsITelephonyListener]),
+          enumerateCallState: function(aInfo) {
+            gTelephonyService.hangUpCall(aInfo.clientId, aInfo.callIndex,
+                                         hangUpCallback);
+          },
+          enumerateCallStateComplete: function() {}
+        });
 
         
         
