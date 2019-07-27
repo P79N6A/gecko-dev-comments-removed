@@ -282,7 +282,7 @@ public:
   
   
   
-  virtual Result IsChainValid(const DERArray& certChain) = 0;
+  virtual Result IsChainValid(const DERArray& certChain, Time time) = 0;
 
   
   

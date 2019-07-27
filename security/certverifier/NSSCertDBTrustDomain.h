@@ -53,8 +53,9 @@ public:
   NSSCertDBTrustDomain(SECTrustType certDBTrustType, OCSPFetching ocspFetching,
                        OCSPCache& ocspCache, void* pinArg,
                        CertVerifier::ocsp_get_config ocspGETConfig,
-           CERTChainVerifyCallback* checkChainCallback = nullptr,
-           ScopedCERTCertList* builtChain = nullptr);
+                       CertVerifier::PinningMode pinningMode,
+           const char* hostname = nullptr,
+       ScopedCERTCertList* builtChain = nullptr);
 
   virtual Result FindIssuer(mozilla::pkix::Input encodedIssuerName,
                             IssuerChecker& checker,
@@ -86,8 +87,8 @@ public:
        const mozilla::pkix::Input* aiaExtension)
                    MOZ_OVERRIDE;
 
-  virtual Result IsChainValid(const mozilla::pkix::DERArray& certChain)
-                              MOZ_OVERRIDE;
+  virtual Result IsChainValid(const mozilla::pkix::DERArray& certChain,
+                              mozilla::pkix::Time time) MOZ_OVERRIDE;
 
 private:
   enum EncodedResponseSource {
@@ -104,7 +105,8 @@ private:
   OCSPCache& mOCSPCache; 
   void* mPinArg; 
   const CertVerifier::ocsp_get_config mOCSPGetConfig;
-  CERTChainVerifyCallback* mCheckChainCallback; 
+  CertVerifier::PinningMode mPinningMode;
+  const char* mHostname; 
   ScopedCERTCertList* mBuiltChain; 
 };
 

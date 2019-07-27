@@ -36,8 +36,8 @@ public:
                                  mozilla::pkix::Time time,
                      const mozilla::pkix::Input* stapledOCSPresponse,
                      const mozilla::pkix::Input* aiaExtension);
-  virtual Result IsChainValid(const mozilla::pkix::DERArray& certChain)
-                              MOZ_OVERRIDE;
+  virtual Result IsChainValid(const mozilla::pkix::DERArray& certChain,
+                              mozilla::pkix::Time time) MOZ_OVERRIDE;
   virtual Result CheckPublicKey(mozilla::pkix::Input subjectPublicKeyInfo)
                                 MOZ_OVERRIDE;
   virtual Result VerifySignedData(

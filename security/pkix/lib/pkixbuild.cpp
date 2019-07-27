@@ -246,7 +246,7 @@ BuildForward(TrustDomain& trustDomain,
 
     
     
-    return trustDomain.IsChainValid(chain);
+    return trustDomain.IsChainValid(chain, time);
   }
 
   if (subject.endEntityOrCA == EndEntityOrCA::MustBeCA) {
