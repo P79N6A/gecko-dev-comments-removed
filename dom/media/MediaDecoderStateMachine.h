@@ -844,7 +844,7 @@ public:
   
   
   
-  State mState;
+  Watchable<State> mState;
 
   
   
@@ -887,6 +887,7 @@ public:
 
   
   
+  WatcherHolder mNextFrameStatusUpdater;
   Canonical<NextFrameStatus>::Holder mNextFrameStatus;
 public:
   AbstractCanonical<NextFrameStatus>* CanonicalNextFrameStatus() { return &mNextFrameStatus; }
@@ -1155,7 +1156,7 @@ protected:
   
   
   
-  bool mAudioCompleted;
+  Watchable<bool> mAudioCompleted;
 
   
   
