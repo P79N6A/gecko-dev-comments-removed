@@ -1194,12 +1194,6 @@ MediaStreamGraphImpl::PrepareUpdatesToMainThreadState(bool aFinalUpdate)
   }
 }
 
-
-
-
-
-
-
 GraphTime
 MediaStreamGraphImpl::RoundUpToNextAudioBlock(GraphTime aTime)
 {

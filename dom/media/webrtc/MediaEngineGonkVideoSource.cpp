@@ -53,11 +53,9 @@ MediaEngineGonkVideoSource::NotifyPull(MediaStreamGraph* aGraph,
 
   
   nsRefPtr<layers::Image> image = mImage;
-  TrackTicks target = aSource->TimeToTicksRoundUp(
-      aSource->GraphRate(), aDesiredTime);
-  TrackTicks delta = target - aLastEndTime;
-  LOGFRAME(("NotifyPull, desired = %ld, target = %ld, delta = %ld %s", (int64_t) aDesiredTime,
-            (int64_t) target, (int64_t) delta, image ? "" : "<null>"));
+  TrackTicks delta = aDesiredTime - aLastEndTime;
+  LOGFRAME(("NotifyPull, desired = %ld, delta = %ld %s", (int64_t) aDesiredTime,
+            (int64_t) delta, image ? "" : "<null>"));
 
   
   
@@ -76,7 +74,7 @@ MediaEngineGonkVideoSource::NotifyPull(MediaStreamGraph* aGraph,
     
     
     if (aSource->AppendToTrack(aID, &(segment))) {
-      aLastEndTime = target;
+      aLastEndTime = aDesiredTime;
     }
   }
 }

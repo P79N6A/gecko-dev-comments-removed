@@ -240,9 +240,7 @@ MediaEngineDefaultVideoSource::NotifyPull(MediaStreamGraph* aGraph,
 
   
   nsRefPtr<layers::Image> image = mImage;
-  TrackTicks target =
-    aSource->TimeToTicksRoundUp(aSource->GraphRate(), aDesiredTime);
-  TrackTicks delta = target - aLastEndTime;
+  TrackTicks delta = aDesiredTime - aLastEndTime;
 
   if (delta > 0) {
     
@@ -251,7 +249,7 @@ MediaEngineDefaultVideoSource::NotifyPull(MediaStreamGraph* aGraph,
     
     
     if (aSource->AppendToTrack(aID, &segment)) {
-      aLastEndTime = target;
+      aLastEndTime = aDesiredTime;
     }
   }
 }

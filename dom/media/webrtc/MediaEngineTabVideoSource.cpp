@@ -200,9 +200,7 @@ MediaEngineTabVideoSource::NotifyPull(MediaStreamGraph*,
 
   
   nsRefPtr<layers::CairoImage> image = mImage;
-  TrackTicks target = aSource->TimeToTicksRoundUp(
-      aSource->GraphRate(), aDesiredTime);
-  TrackTicks delta = target - aLastEndTime;
+  TrackTicks delta = aDesiredTime - aLastEndTime;
   if (delta > 0) {
     
     gfx::IntSize size = image ? image->GetSize() : IntSize(0, 0);
@@ -210,7 +208,7 @@ MediaEngineTabVideoSource::NotifyPull(MediaStreamGraph*,
     
     
     if (aSource->AppendToTrack(aID, &(segment))) {
-      aLastEndTime = target;
+      aLastEndTime = aDesiredTime;
     }
   }
 }

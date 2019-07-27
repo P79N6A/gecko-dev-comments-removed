@@ -134,11 +134,9 @@ MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
   
   
 
-  TrackTicks target = aSource->TimeToTicksRoundUp(
-      aSource->GraphRate(), aDesiredTime);
-  TrackTicks delta = target - aLastEndTime;
-  LOGFRAME(("NotifyPull, desired = %ld, target = %ld, delta = %ld %s", (int64_t) aDesiredTime,
-            (int64_t) target, (int64_t) delta, mImage ? "" : "<null>"));
+  TrackTicks delta = aDesiredTime - aLastEndTime;
+  LOGFRAME(("NotifyPull, desired = %ld, delta = %ld %s", (int64_t) aDesiredTime,
+            (int64_t) delta, mImage.get() ? "" : "<null>"));
 
   
   
@@ -153,7 +151,7 @@ MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
   if (delta > 0) {
     
     if (AppendToTrack(aSource, mImage, aID, delta)) {
-      aLastEndTime = target;
+      aLastEndTime = aDesiredTime;
     }
   }
 }

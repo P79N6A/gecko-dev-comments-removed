@@ -1543,9 +1543,7 @@ NotifyPull(MediaStreamGraph* graph, StreamTime desired_time) {
   nsRefPtr<layers::Image> image = image_;
   
   MOZ_ASSERT(track_rate_ == source_->GraphRate());
-  TrackTicks target = source_->TimeToTicksRoundUp(
-      source_->GraphRate(), desired_time);
-  TrackTicks delta = target - played_ticks_;
+  TrackTicks delta = desired_time - played_ticks_;
 
   
   
@@ -1555,7 +1553,7 @@ NotifyPull(MediaStreamGraph* graph, StreamTime desired_time) {
     segment.AppendFrame(image.forget(), delta, IntSize(width_, height_));
     
     if (source_->AppendToTrack(track_id_, &segment)) {
-      played_ticks_ = target;
+      played_ticks_ = desired_time;
     } else {
       MOZ_MTLOG(ML_ERROR, "AppendToTrack failed");
       return;
