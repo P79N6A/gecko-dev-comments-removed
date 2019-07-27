@@ -23,6 +23,7 @@ this.EXPORTED_SYMBOLS = [
   "CrashesProvider",
 #endif
   "HealthReportProvider",
+  "HotfixProvider",
   "PlacesProvider",
   "SearchesProvider",
   "SessionsProvider",
@@ -1127,6 +1128,157 @@ CrashesProvider.prototype = Object.freeze({
 
 #endif
 
+
+
+
+
+
+
+
+
+
+
+
+function UpdateHotfixMeasurement1() {
+  Metrics.Measurement.call(this);
+}
+
+UpdateHotfixMeasurement1.prototype = Object.freeze({
+  __proto__: Metrics.Measurement.prototype,
+
+  name: "update",
+  version: 1,
+
+  hotfixFieldTypes: {
+    "upgradedFrom": Metrics.Storage.FIELD_LAST_TEXT,
+    "uninstallReason": Metrics.Storage.FIELD_LAST_TEXT,
+    "downloadAttempts": Metrics.Storage.FIELD_LAST_NUMERIC,
+    "downloadFailures": Metrics.Storage.FIELD_LAST_NUMERIC,
+    "installAttempts": Metrics.Storage.FIELD_LAST_NUMERIC,
+    "installFailures": Metrics.Storage.FIELD_LAST_NUMERIC,
+    "notificationsShown": Metrics.Storage.FIELD_LAST_NUMERIC,
+  },
+
+  fields: { },
+
+  
+  
+  shouldIncludeField: function (name) {
+    return name.contains(".");
+  },
+
+  fieldType: function (name) {
+    for (let known in this.hotfixFieldTypes) {
+      if (name.endsWith(known)) {
+        return this.hotfixFieldTypes[known];
+      }
+    }
+
+    return Metrics.Measurement.prototype.fieldType.call(this, name);
+  },
+});
+
+this.HotfixProvider = function () {
+  Metrics.Provider.call(this);
+};
+
+HotfixProvider.prototype = Object.freeze({
+  __proto__: Metrics.Provider.prototype,
+
+  name: "org.mozilla.hotfix",
+  measurementTypes: [
+    UpdateHotfixMeasurement1,
+  ],
+
+  pullOnly: true,
+
+  collectDailyData: function () {
+    return this.storage.enqueueTransaction(this._populateHotfixData.bind(this));
+  },
+
+  _populateHotfixData: function* () {
+    let m = this.getMeasurement("update", 1);
+
+    
+    
+    
+    
+    
+    let files = [
+        ["v20140527", OS.Path.join(OS.Constants.Path.profileDir,
+                                   "hotfix.v20140527.01.json")],
+    ];
+
+    let it = new OS.File.DirectoryIterator(OS.Constants.Path.profileDir);
+    try {
+      yield it.forEach((e, index, it) => {
+        let m = e.name.match(/^updateHotfix\.([a-zA-Z0-9]+)\.json$/);
+        if (m) {
+          files.push([m[1], e.path]);
+        }
+      });
+    } finally {
+      it.close();
+    }
+
+    let decoder = new TextDecoder();
+    for (let e of files) {
+      let [version, path] = e;
+      let p;
+      try {
+        let data = yield OS.File.read(path);
+        p = JSON.parse(decoder.decode(data));
+      } catch (ex if ex instanceof OS.File.Error && ex.becauseNoSuchFile) {
+        continue;
+      } catch (ex) {
+        this._log.warn("Error loading update hotfix payload: " + ex.message);
+      }
+
+      
+      try {
+        for (let k in m.hotfixFieldTypes) {
+          if (!(k in p)) {
+            continue;
+          }
+
+          let value = p[k];
+          if (value === null && k == "uninstallReason") {
+            value = "STILL_INSTALLED";
+          }
+
+          let field = version + "." + k;
+          let fieldType;
+          let storageOp;
+          switch (typeof(value)) {
+            case "string":
+              fieldType = this.storage.FIELD_LAST_TEXT;
+              storageOp = "setLastTextFromFieldID";
+              break;
+            case "number":
+              fieldType = this.storage.FIELD_LAST_NUMERIC;
+              storageOp = "setLastNumericFromFieldID";
+              break;
+            default:
+              this._log.warn("Unknown value in hotfix state: " + k + "=" + value);
+              continue;
+          }
+
+          if (this.storage.hasFieldFromMeasurement(m.id, field, fieldType)) {
+            let fieldID = this.storage.fieldIDFromMeasurement(m.id, field);
+            yield this.storage[storageOp](fieldID, value);
+          } else {
+            let fieldID = yield this.storage.registerField(m.id, field,
+                                                           fieldType);
+            yield this.storage[storageOp](fieldID, value);
+          }
+        }
+
+      } catch (ex) {
+        this._log.warn("Error processing update hotfix data: " + ex);
+      }
+    }
+  },
+});
 
 
 
