@@ -251,6 +251,48 @@ private:
 
 
 
+class ARIAOwnedByIterator MOZ_FINAL : public RelatedAccIterator
+{
+public:
+  explicit ARIAOwnedByIterator(const Accessible* aDependent);
+  virtual ~ARIAOwnedByIterator() { }
+
+  virtual Accessible* Next() MOZ_OVERRIDE;
+
+private:
+  ARIAOwnedByIterator() = delete;
+  ARIAOwnedByIterator(const ARIAOwnedByIterator&) = delete;
+  ARIAOwnedByIterator& operator = (const ARIAOwnedByIterator&) = delete;
+
+  const Accessible* mDependent;
+};
+
+
+
+
+
+class ARIAOwnsIterator MOZ_FINAL : public AccIterable
+{
+public:
+  explicit ARIAOwnsIterator(const Accessible* aOwner);
+  virtual ~ARIAOwnsIterator() { }
+
+  virtual Accessible* Next() MOZ_OVERRIDE;
+
+private:
+  ARIAOwnsIterator() = delete;
+  ARIAOwnsIterator(const ARIAOwnsIterator&) = delete;
+  ARIAOwnsIterator& operator = (const ARIAOwnsIterator&) = delete;
+
+  IDRefsIterator mIter;
+  const Accessible* mOwner;
+};
+
+
+
+
+
+
 class SingleAccIterator : public AccIterable
 {
 public:

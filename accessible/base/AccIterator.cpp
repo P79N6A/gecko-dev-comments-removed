@@ -335,6 +335,64 @@ IDRefsIterator::Next()
 
 
 
+ARIAOwnedByIterator::ARIAOwnedByIterator(const Accessible* aDependent) :
+  RelatedAccIterator(aDependent->Document(), aDependent->GetContent(),
+                     nsGkAtoms::aria_owns), mDependent(aDependent)
+{
+}
+
+Accessible*
+ARIAOwnedByIterator::Next()
+{
+  Accessible* owner = RelatedAccIterator::Next();
+  Accessible* cur = owner;
+  while (cur) {
+    if (cur == mDependent)
+      return Next(); 
+
+    if (cur->IsDoc())
+      break; 
+
+    cur = cur->Parent();
+  }
+
+  return owner;
+}
+
+
+
+
+
+
+ARIAOwnsIterator::ARIAOwnsIterator(const Accessible* aOwner) :
+  mIter(aOwner->Document(), aOwner->GetContent(), nsGkAtoms::aria_owns),
+  mOwner(aOwner)
+{
+}
+
+Accessible*
+ARIAOwnsIterator::Next()
+{
+  Accessible* child = mIter.Next();
+  const Accessible* cur = mOwner;
+  while (cur) {
+    if (cur == child)
+      return Next(); 
+
+    if (cur->IsDoc())
+      break; 
+
+    cur = cur->Parent();
+  }
+
+  return child;
+}
+
+
+
+
+
+
 Accessible*
 SingleAccIterator::Next()
 {
