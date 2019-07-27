@@ -441,9 +441,12 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
         
         
         
+#ifndef MOZ_WIDGET_GTK
+        
         mDestinationPoint = eventPoint;
         StopRepeat();
         StartRepeat();
+#endif
         break;
       }
 
@@ -1081,7 +1084,25 @@ nsSliderFrame::HandlePress(nsPresContext* aPresContext,
 
   mChange = change;
   DragThumb(true);
+  
+  
+  
+  
+#ifdef MOZ_WIDGET_GTK
+  nsRect clientRect;
+  GetClientRect(clientRect);
+
+  
+  
+  if (change > 0) {
+    mDestinationPoint = nsPoint(clientRect.width, clientRect.height);
+  }
+  else {
+    mDestinationPoint = nsPoint(0, 0);
+  }
+#else
   mDestinationPoint = eventPoint;
+#endif
   StartRepeat();
   PageUpDown(change);
   return NS_OK;
