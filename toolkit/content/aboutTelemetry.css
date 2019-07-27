@@ -122,6 +122,7 @@ body[dir="rtl"] .histogram {
   padding: 15px;
   position: relative; 
   display: block;
+  overflow: hidden;
 }
 
 .keyed-histogram-title {
@@ -131,7 +132,6 @@ body[dir="rtl"] .histogram {
   font-weight: bold;
   font-size: 120%;
   white-space: nowrap;
-  overflow: hidden;
 }
 
 
