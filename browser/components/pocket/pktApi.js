@@ -49,11 +49,8 @@ var pktApi = (function() {
 
 
     
-    
-    var pocketAPIhost = Services.prefs.getCharPref("browser.pocket.api");
-    var pocketSiteHost = Services.prefs.getCharPref("browser.pocket.site");
-
-    
+    var pocketAPIhost = Services.prefs.getCharPref("browser.pocket.api"); 	
+    var pocketSiteHost = Services.prefs.getCharPref("browser.pocket.site"); 
     var baseAPIUrl = "https://" + pocketAPIhost + "/v3";
 
 
@@ -85,6 +82,23 @@ var pktApi = (function() {
             }
         return out;
     }
+
+    var parseJSON = function(jsonString){
+        try {
+            var o = JSON.parse(jsonString);
+
+            
+            
+            
+            
+            if (o && typeof o === "object" && o !== null) {
+                return o;
+            }
+        }
+        catch (e) { }
+
+        return undefined;
+    };
 
     
 
@@ -177,6 +191,29 @@ var pktApi = (function() {
 
 
 
+    function getPremiumStatus() {
+        var premiumStatus = getSetting("premium_status");
+        if (typeof premiumStatus === "undefined") {
+            
+            var pocketCookies = getCookiesFromPocket();
+            premiumStatus = pocketCookies['ps'];
+        }
+        return premiumStatus;
+    }
+
+    
+
+
+
+    function isPremiumUser() {
+        return getPremiumStatus() == 1;
+    }
+
+
+    
+
+
+
     function isUserLoggedIn() {
         return (typeof getAccessToken() !== "undefined");
     }
@@ -218,11 +255,16 @@ var pktApi = (function() {
 		request.onreadystatechange = function(e){
 			if (request.readyState == 4) {
 				if (request.status === 200) {
-                    if (options.success) {
-                        options.success(JSON.parse(request.response), request);
+                    
+                    
+                    var response = parseJSON(request.response);
+                    if (options.success && response && response.status == 1) {
+                        options.success(response, request);
+                        return;
                     }
-                    return;
                 }
+
+                
                 if (options.error) {
                     
                     
@@ -231,7 +273,11 @@ var pktApi = (function() {
                     }
 
                     
-                    var errorMessage = request.getResponseHeader("X-Error") || request.statusText;
+                    var errorMessage;
+                    if (request.status !== 200) {
+                        errorMessage = request.getResponseHeader("X-Error") || request.statusText;
+                        errorMessage = JSON.parse('"' + errorMessage + '"');
+                    }
                     var error = {message: errorMessage};
                     options.error(error, request);
                 }
@@ -512,13 +558,6 @@ var pktApi = (function() {
     
 
 
-    function isPremiumUser() {
-        return getSetting('premium_status') == 1;
-    }
-
-    
-
-
 
 
 
@@ -565,14 +604,22 @@ var pktApi = (function() {
     function getSignupAB() {
         if (!getSetting('signupAB'))
         {
-            var rand = (Math.floor(Math.random()*2+1));
-            if (rand == 2)
+            var rand = (Math.floor(Math.random()*100+1));
+            if (rand > 95)
             {
-                setSetting('signupAB','storyboard');
+                setSetting('signupAB','storyboard_nlm');
+            }
+            else if (rand > 90)
+            {
+                setSetting('signupAB','hero_nlm');
+            }
+            else if (rand > 45)
+            {
+                setSetting('signupAB','storyboard_lm');
             }
             else
             {
-                setSetting('signupAB','hero');
+                setSetting('signupAB','hero_lm');
             }
 
         }
