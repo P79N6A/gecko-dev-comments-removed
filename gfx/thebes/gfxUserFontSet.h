@@ -103,7 +103,11 @@ public:
                 break;
             }
         }
-        aFontEntry->mFamilyName = Name();
+        if (aFontEntry->mFamilyName.IsEmpty()) {
+            aFontEntry->mFamilyName = Name();
+        } else {
+            MOZ_ASSERT(aFontEntry->mFamilyName.Equals(Name()));
+        }
         ResetCharacterMap();
     }
 
@@ -118,7 +122,11 @@ public:
                 
                 
                 mAvailableFonts[i] = aRealFontEntry;
-                aRealFontEntry->mFamilyName = Name();
+                if (aRealFontEntry->mFamilyName.IsEmpty()) {
+                    aRealFontEntry->mFamilyName = Name();
+                } else {
+                    MOZ_ASSERT(aRealFontEntry->mFamilyName.Equals(Name()));
+                }
                 break;
             }
         }
