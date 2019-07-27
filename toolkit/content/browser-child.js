@@ -588,7 +588,10 @@ let AutoCompletePopup = {
 
 
 
-let initData = sendSyncMessage("Browser:Init");
+let outerWindowID = content.QueryInterface(Ci.nsIInterfaceRequestor)
+                           .getInterface(Ci.nsIDOMWindowUtils)
+                           .outerWindowID;
+let initData = sendSyncMessage("Browser:Init", {outerWindowID: outerWindowID});
 if (initData.length) {
   docShell.useGlobalHistory = initData[0].useGlobalHistory;
   if (initData[0].initPopup) {
