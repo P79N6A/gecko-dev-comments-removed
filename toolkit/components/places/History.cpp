@@ -185,32 +185,32 @@ struct RemoveVisitsFilter {
 
 class PlaceHashKey : public nsCStringHashKey
 {
-  public:
-    explicit PlaceHashKey(const nsACString& aSpec)
+public:
+  explicit PlaceHashKey(const nsACString& aSpec)
     : nsCStringHashKey(&aSpec)
     , visitCount(0)
     , bookmarked(false)
 #ifdef DEBUG
     , isInitialized(false)
 #endif
-    {
-    }
+  {
+  }
 
-    explicit PlaceHashKey(const nsACString* aSpec)
+  explicit PlaceHashKey(const nsACString* aSpec)
     : nsCStringHashKey(aSpec)
     , visitCount(0)
     , bookmarked(false)
 #ifdef DEBUG
     , isInitialized(false)
 #endif
-    {
-    }
+  {
+  }
 
-    PlaceHashKey(const PlaceHashKey& aOther)
+  PlaceHashKey(const PlaceHashKey& aOther)
     : nsCStringHashKey(&aOther.GetKey())
-    {
-      MOZ_ASSERT(false, "Do not call me!");
-    }
+  {
+    MOZ_ASSERT(false, "Do not call me!");
+  }
 
   void SetProperties(uint32_t aVisitCount, bool aBookmarked)
   {
@@ -237,13 +237,13 @@ class PlaceHashKey : public nsCStringHashKey
     return bookmarked;
   }
 
-    
-    nsTArray<VisitData> visits;
+  
+  nsTArray<VisitData> visits;
 private:
-    
-    uint32_t visitCount;
-    
-    bool bookmarked;
+  
+  uint32_t visitCount;
+  
+  bool bookmarked;
 #ifdef DEBUG
   
   bool isInitialized;
