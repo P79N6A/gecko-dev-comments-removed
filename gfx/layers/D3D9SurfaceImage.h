@@ -41,12 +41,6 @@ public:
   
   const D3DSURFACE_DESC& GetDesc() const;
 
-  
-  
-  
-  
-  HANDLE GetShareHandle();
-
   gfx::IntSize GetSize() MOZ_OVERRIDE;
 
   virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() MOZ_OVERRIDE;
@@ -54,18 +48,16 @@ public:
   virtual TextureClient* GetTextureClient(CompositableClient* aClient) MOZ_OVERRIDE;
   virtual uint8_t* GetBuffer() MOZ_OVERRIDE { return nullptr; }
 
-private:
+  virtual bool IsValid() MOZ_OVERRIDE;
 
-  
-  
-  void EnsureSynchronized();
+private:
 
   gfx::IntSize mSize;
   RefPtr<IDirect3DTexture9> mTexture;
-  RefPtr<IDirect3DQuery9> mQuery;
   RefPtr<TextureClient> mTextureClient;
   HANDLE mShareHandle;
   D3DSURFACE_DESC mDesc;
+  bool mIsValid;
 };
 
 } 
