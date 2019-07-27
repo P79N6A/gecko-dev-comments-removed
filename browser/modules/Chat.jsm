@@ -50,6 +50,38 @@ function getChromeWindow(contentWin) {
 
 
 let Chat = {
+
+  
+
+
+  get chatboxes() {
+    return function*() {
+      let winEnum = Services.wm.getEnumerator("navigator:browser");
+      while (winEnum.hasMoreElements()) {
+        let win = winEnum.getNext();
+        let chatbar = win.document.getElementById("pinnedchats");
+        if (!chatbar)
+          continue;
+
+        
+        
+        let chatboxes = [c for (c of chatbar.children)];
+        for (let chatbox of chatboxes) {
+          yield chatbox;
+        }
+      }
+
+      
+      winEnum = Services.wm.getEnumerator("Social:Chat");
+      while (winEnum.hasMoreElements()) {
+        let win = winEnum.getNext();
+        if (win.closed)
+          continue;
+        yield win.document.getElementById("chatter");
+      }
+    }();
+  },
+
   
 
 
@@ -108,26 +140,11 @@ let Chat = {
 
 
   closeAll: function(origin) {
-    
-    let winEnum = Services.wm.getEnumerator("navigator:browser");
-    while (winEnum.hasMoreElements()) {
-      let win = winEnum.getNext();
-      let chatbar = win.document.getElementById("pinnedchats");
-      if (!chatbar)
+    for (let chatbox of this.chatboxes) {
+      if (chatbox.content.getAttribute("origin") != origin) {
         continue;
-      let chats = [c for (c of chatbar.children) if (c.content.getAttribute("origin") == origin)];
-      [c.close() for (c of chats)];
-    }
-
-    
-    winEnum = Services.wm.getEnumerator("Social:Chat");
-    while (winEnum.hasMoreElements()) {
-      let win = winEnum.getNext();
-      if (win.closed)
-        continue;
-      let chatOrigin = win.document.getElementById("chatter").content.getAttribute("origin");
-      if (origin == chatOrigin)
-        win.close();
+      }
+      chatbox.close();
     }
   },
 

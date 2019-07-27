@@ -784,6 +784,22 @@ let MozLoopServiceInternal = {
     }, pc.id);
   },
 
+  getChatWindowID: function(conversationWindowData) {
+    
+    
+    
+    
+    let windowId = ("contact" in conversationWindowData) ?
+                   conversationWindowData.contact._guid || gLastWindowId++ :
+                   conversationWindowData.roomToken || conversationWindowData.callId ||
+                   gLastWindowId++;
+    return windowId.toString();
+  },
+
+  getChatURL: function(chatWindowId) {
+    return "about:loopconversation#" + chatWindowId;
+  },
+
   
 
 
@@ -794,20 +810,11 @@ let MozLoopServiceInternal = {
   openChatWindow: function(conversationWindowData) {
     
     let origin = this.loopServerUri;
-    
-    
-    
-    
-    let windowId = ("contact" in conversationWindowData) ?
-                   conversationWindowData.contact._guid || gLastWindowId++ :
-                   conversationWindowData.roomToken || conversationWindowData.callId ||
-                   gLastWindowId++;
-    
-    windowId = windowId.toString();
+    let windowId = this.getChatWindowID(conversationWindowData);
 
     gConversationWindowData.set(windowId, conversationWindowData);
 
-    let url = "about:loopconversation#" + windowId;
+    let url = this.getChatURL(windowId);
 
     let callback = chatbox => {
       
@@ -1099,36 +1106,7 @@ this.MozLoopService = {
       }
     });
 
-    
-    
-    LoopRooms.on("joined", (e, room, participant) => {
-      let isOwnerInRoom = false;
-      let isOtherInRoom = false;
-
-      if (!this.getLoopPref("gettingStarted.resumeOnFirstJoin")) {
-        return;
-      }
-
-      if (!room.participants) {
-        return;
-      }
-
-      
-      
-      for (let participant of room.participants.concat(participant)) {
-        if (participant.owner) {
-          isOwnerInRoom = true;
-        } else {
-          isOtherInRoom = true;
-        }
-      }
-
-      if (!isOwnerInRoom || !isOtherInRoom) {
-        return;
-      }
-
-      this.resumeTour("open");
-    });
+    LoopRooms.on("joined", this.maybeResumeTourOnRoomJoined.bind(this));
 
     
     
@@ -1143,6 +1121,49 @@ this.MozLoopService = {
 
     return deferredInitialization.promise;
   }),
+
+  
+
+
+
+  maybeResumeTourOnRoomJoined: function(e, room, participant) {
+    let isOwnerInRoom = false;
+    let isOtherInRoom = false;
+
+    if (!this.getLoopPref("gettingStarted.resumeOnFirstJoin")) {
+      return;
+    }
+
+    if (!room.participants) {
+      return;
+    }
+
+    
+    
+    for (let participant of room.participants.concat(participant)) {
+      if (participant.owner) {
+        isOwnerInRoom = true;
+      } else {
+        isOtherInRoom = true;
+      }
+    }
+
+    if (!isOwnerInRoom || !isOtherInRoom) {
+      return;
+    }
+
+    
+    let chatboxesForRoom = [...Chat.chatboxes].filter(chatbox => {
+      return chatbox.src == MozLoopServiceInternal.getChatURL(room.roomToken);
+    });
+
+    if (!chatboxesForRoom.length) {
+      log.warn("Tried to resume the tour from a join when the chatbox was closed", room);
+      return;
+    }
+
+    this.resumeTour("open");
+  },
 
   
 
