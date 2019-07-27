@@ -236,6 +236,8 @@ private:
 
     void FindHostLimit(nsACString::const_iterator& aStart,
                        nsACString::const_iterator& aEnd);
+    
+    nsresult CheckRefCharacters(const nsACString &input);
 
     
     nsCString mSpec;
