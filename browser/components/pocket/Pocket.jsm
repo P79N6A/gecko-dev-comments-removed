@@ -27,14 +27,21 @@ let Pocket = {
     let window = document.defaultView;
     let iframe = document.getElementById('pocket-panel-iframe');
 
+    let urlToSave = Pocket._urlToSave;
+    let titleToSave = Pocket._titleToSave;
+    Pocket._urlToSave = null;
+    Pocket._titleToSave = null;
     
     
     window.setTimeout(function() {
-      window.pktUI.pocketButtonOnCommand();
+      if (urlToSave) {
+        window.pktUI.tryToSaveUrl(urlToSave, titleToSave);
+      } else {
+        window.pktUI.pocketButtonOnCommand();
+      }
 
       if (iframe.contentDocument &&
-          iframe.contentDocument.readyState == "complete")
-      {
+          iframe.contentDocument.readyState == "complete") {
         window.pktUI.pocketPanelDidShow();
       } else {
         
@@ -80,6 +87,28 @@ let Pocket = {
                         !(locationURI.schemeIs("about") &&
                           locationURI.spec.toLowerCase().startsWith("about:reader?url="));
       }
+    }
+  },
+
+  _urlToSave: null,
+  _titleToSave: null,
+  savePage(browser, url, title) {
+    let document = browser.ownerDocument;
+    let pocketWidget = document.getElementById("pocket-button");
+    let placement = CustomizableUI.getPlacementOfWidget("pocket-button");
+    if (!placement)
+      return;
+
+    this._urlToSave = url;
+    this._titleToSave = title;
+    if (placement.area == CustomizableUI.AREA_PANEL) {
+      let win = document.defaultView;
+      win.PanelUI.show().then(function() {
+        pocketWidget = document.getElementById("pocket-button");
+        pocketWidget.doCommand();
+      });
+    } else {
+      pocketWidget.doCommand();
     }
   },
 };
