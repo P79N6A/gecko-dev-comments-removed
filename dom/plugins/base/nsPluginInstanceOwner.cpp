@@ -2172,7 +2172,8 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
 
   
   gfxContextAutoSaveRestore autoSR(aContext);
-  aContext->Translate(pluginRect.TopLeft());
+  aContext->SetMatrix(
+    aContext->CurrentMatrix().Translate(pluginRect.TopLeft()));
 
   Renderer renderer(window, this, pluginSize, pluginDirtyRect);
 

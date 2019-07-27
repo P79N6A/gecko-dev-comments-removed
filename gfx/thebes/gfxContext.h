@@ -243,12 +243,6 @@ public:
 
 
 
-    void Translate(const gfxPoint& pt);
-
-    
-
-
-
     void Scale(gfxFloat x, gfxFloat y);
 
     
