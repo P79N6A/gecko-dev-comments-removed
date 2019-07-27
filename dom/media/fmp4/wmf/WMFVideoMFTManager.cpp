@@ -236,7 +236,9 @@ WMFVideoMFTManager::Input(mp4_demuxer::MP4Sample* aSample)
 {
   if (mStreamType != VP8 && mStreamType != VP9) {
     
-    mp4_demuxer::AnnexB::ConvertSampleToAnnexB(aSample);
+    if (!mp4_demuxer::AnnexB::ConvertSampleToAnnexB(aSample)) {
+      return E_FAIL;
+    }
   }
   
   const uint8_t* data = reinterpret_cast<const uint8_t*>(aSample->data);

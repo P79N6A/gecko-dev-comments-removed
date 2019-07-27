@@ -62,7 +62,7 @@ public:
 protected:
   
   
-  virtual void PerformFormatSpecificProcess(mp4_demuxer::MP4Sample* aSample) {}
+  virtual bool PerformFormatSpecificProcess(mp4_demuxer::MP4Sample* aSample) { return true; }
 
   
   virtual android::status_t SendSampleToOMX(mp4_demuxer::MP4Sample* aSample) = 0;

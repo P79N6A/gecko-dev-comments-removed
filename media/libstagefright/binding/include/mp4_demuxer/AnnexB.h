@@ -19,7 +19,7 @@ class AnnexB
 public:
   
   
-  static void ConvertSampleToAnnexB(MP4Sample* aSample);
+  static bool ConvertSampleToAnnexB(MP4Sample* aSample);
   
   
   static void ConvertSampleToAVCC(MP4Sample* aSample);
