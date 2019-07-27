@@ -5,13 +5,13 @@
 
 package org.mozilla.gecko.home;
 
-import org.mozilla.gecko.db.BrowserContract.Combined;
 import org.mozilla.gecko.util.StringUtils;
 
 import android.database.Cursor;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.AdapterView.AdapterContextMenuInfo;
+import android.widget.ExpandableListAdapter;
 
 
 
@@ -57,5 +57,12 @@ public class HomeContextMenuInfo extends AdapterContextMenuInfo {
 
     public interface Factory {
         public HomeContextMenuInfo makeInfoForCursor(View view, int position, long id, Cursor cursor);
+    }
+
+    
+
+
+    public interface ExpandableFactory {
+        public HomeContextMenuInfo makeInfoForAdapter(View view, int position, long id, ExpandableListAdapter adapter);
     }
 }
