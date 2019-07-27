@@ -127,10 +127,14 @@ this.ContentControl.prototype = {
         
         this.sendToChild(vc, aMessage, { action: childAction }, true);
       }
-    } else if (!this._childMessageSenders.has(aMessage.target)) {
+    } else if (!this._childMessageSenders.has(aMessage.target) &&
+               origin !== 'top') {
       
       
       this.sendToParent(aMessage);
+    } else {
+      this._contentScope.get().sendAsyncMessage('AccessFu:Present',
+        Presentation.noMove(action));
     }
   },
 

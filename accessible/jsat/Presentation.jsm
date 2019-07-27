@@ -117,6 +117,11 @@ Presenter.prototype = {
   announce: function announce(aAnnouncement) {}, 
 
 
+  
+
+
+
+  noMove: function noMove(aMoveMethod) {},
 
   
 
@@ -536,6 +541,17 @@ B2GPresenter.prototype.announce =
     };
   };
 
+B2GPresenter.prototype.noMove =
+  function B2GPresenter_noMove(aMoveMethod) {
+    return {
+      type: this.type,
+      details: {
+        eventType: 'no-move',
+        data: aMoveMethod
+      }
+    };
+  };
+
 
 
 
@@ -634,6 +650,10 @@ this.Presentation = {
     
     return [p.announce(UtteranceGenerator.genForAnnouncement(aAnnouncement)) 
       for each (p in this.presenters)]; 
+  },
+
+  noMove: function Presentation_noMove(aMoveMethod) {
+    return [p.noMove(aMoveMethod) for each (p in this.presenters)]; 
   },
 
   liveRegion: function Presentation_liveRegion(aAccessible, aIsPolite, aIsHide,
