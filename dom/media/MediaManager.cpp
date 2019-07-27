@@ -130,8 +130,8 @@ HostHasPermission(nsIURI &docURI)
     return false;
   }
 
-  PRUint32 begin = 0;
-  PRUint32 end = 0;
+  uint32_t begin = 0;
+  uint32_t end = 0;
   nsCString domainName;
   
 
@@ -140,7 +140,7 @@ HostHasPermission(nsIURI &docURI)
 
   do {
     end = domainWhiteList.FindChar(',', begin);
-    if (end == (PRUint32)-1) {
+    if (end == (uint32_t)-1) {
       
       end = domainWhiteList.Length();
     }

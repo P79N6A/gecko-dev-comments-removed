@@ -182,14 +182,14 @@ NSSCertDBTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
   
   CERTCertTrust trust;
   if (CERT_GetCertTrust(candidateCert.get(), &trust) == SECSuccess) {
-    PRUint32 flags = SEC_GET_TRUST_FLAGS(&trust, mCertDBTrustType);
+    uint32_t flags = SEC_GET_TRUST_FLAGS(&trust, mCertDBTrustType);
 
     
     
     
     
     
-    PRUint32 relevantTrustBit =
+    uint32_t relevantTrustBit =
       endEntityOrCA == EndEntityOrCA::MustBeCA ? CERTDB_TRUSTED_CA
                                                : CERTDB_TRUSTED;
     if (((flags & (relevantTrustBit|CERTDB_TERMINAL_RECORD)))
