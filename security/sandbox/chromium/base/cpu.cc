@@ -51,6 +51,16 @@ CPU::CPU()
 namespace {
 
 #if defined(ARCH_CPU_X86_FAMILY)
+#if defined(_MSC_VER) && (_MSC_FULL_VER < 160040219)
+
+
+
+
+uint64_t __fastcall _xgetbv(uint32_t xcr) {
+  __asm xgetbv;
+}
+#endif
+
 #ifndef _MSC_VER
 
 #if defined(__pic__) && defined(__i386__)
