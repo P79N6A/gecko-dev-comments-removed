@@ -1533,6 +1533,12 @@ RestyleManager::StartRebuildAllStyleData(RestyleTracker& aRestyleTracker)
 {
   MOZ_ASSERT(mIsProcessingRestyles);
 
+  nsIFrame* rootFrame = mPresContext->PresShell()->GetRootFrame();
+  if (!rootFrame) {
+    
+    return;
+  }
+
   mInRebuildAllStyleData = true;
 
   
@@ -1580,7 +1586,7 @@ RestyleManager::StartRebuildAllStyleData(RestyleTracker& aRestyleTracker)
   
   
   
-  ComputeAndProcessStyleChange(mPresContext->PresShell()->GetRootFrame(),
+  ComputeAndProcessStyleChange(rootFrame,
                                changeHint, aRestyleTracker, restyleHint);
 }
 
