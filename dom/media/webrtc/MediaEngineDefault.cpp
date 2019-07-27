@@ -32,6 +32,11 @@ namespace mozilla {
 
 using namespace mozilla::gfx;
 
+
+
+static const int kFakeVideoTrackCount = 2;
+static const int kFakeAudioTrackCount = 3;
+
 NS_IMPL_ISUPPORTS(MediaEngineDefaultVideoSource, nsITimerCallback)
 
 
@@ -136,6 +141,12 @@ MediaEngineDefaultVideoSource::Start(SourceMediaStream* aStream, TrackID aID)
   aStream->AddTrack(aID, 0, new VideoSegment());
   aStream->AdvanceKnownTracksTime(STREAM_TIME_MAX);
 
+  if (mHasFakeTracks) {
+    for (int i = 0; i < kFakeVideoTrackCount; ++i) {
+      aStream->AddTrack(kTrackCount + i, 0, new VideoSegment());
+    }
+  }
+
   
   mTrackID = aID;
 
@@ -165,6 +176,11 @@ MediaEngineDefaultVideoSource::Stop(SourceMediaStream *aSource, TrackID aID)
   mTimer = nullptr;
 
   aSource->EndTrack(aID);
+  if (mHasFakeTracks) {
+    for (int i = 0; i < kFakeVideoTrackCount; ++i) {
+      aSource->EndTrack(kTrackCount + i);
+    }
+  }
   aSource->Finish();
 
   mState = kStopped;
@@ -250,6 +266,14 @@ MediaEngineDefaultVideoSource::NotifyPull(MediaStreamGraph* aGraph,
     
     if (aSource->AppendToTrack(aID, &segment)) {
       aLastEndTime = aDesiredTime;
+    }
+    
+    if (mHasFakeTracks) {
+      for (int i = 0; i < kFakeVideoTrackCount; ++i) {
+        VideoSegment nullSegment;
+        nullSegment.AppendNullData(delta);
+        aSource->AppendToTrack(kTrackCount + i, &nullSegment);
+      }
     }
   }
 }
@@ -371,6 +395,13 @@ MediaEngineDefaultAudioSource::Start(SourceMediaStream* aStream, TrackID aID)
   AudioSegment* segment = new AudioSegment();
   mSource->AddAudioTrack(aID, AUDIO_RATE, 0, segment);
 
+  if (mHasFakeTracks) {
+    for (int i = 0; i < kFakeAudioTrackCount; ++i) {
+      mSource->AddAudioTrack(kTrackCount + kFakeVideoTrackCount+i,
+                             AUDIO_RATE, 0, new AudioSegment());
+    }
+  }
+
   
   mSource->AdvanceKnownTracksTime(STREAM_TIME_MAX);
 
@@ -405,6 +436,11 @@ MediaEngineDefaultAudioSource::Stop(SourceMediaStream *aSource, TrackID aID)
   mTimer = nullptr;
 
   aSource->EndTrack(aID);
+  if (mHasFakeTracks) {
+    for (int i = 0; i < kFakeAudioTrackCount; ++i) {
+      aSource->EndTrack(kTrackCount + kFakeVideoTrackCount+i);
+    }
+  }
   aSource->Finish();
 
   mState = kStopped;
@@ -424,6 +460,14 @@ MediaEngineDefaultAudioSource::Notify(nsITimer* aTimer)
   segment.AppendFrames(buffer.forget(), channels, AUDIO_FRAME_LENGTH);
   mSource->AppendToTrack(mTrackID, &segment);
 
+  
+  if (mHasFakeTracks) {
+    for (int i = 0; i < kFakeAudioTrackCount; ++i) {
+      AudioSegment nullSegment;
+      nullSegment.AppendNullData(AUDIO_FRAME_LENGTH);
+      mSource->AppendToTrack(kTrackCount + kFakeVideoTrackCount+i, &nullSegment);
+    }
+  }
   return NS_OK;
 }
 
@@ -441,6 +485,7 @@ MediaEngineDefault::EnumerateVideoDevices(MediaSourceType aMediaSource,
   
 
   nsRefPtr<MediaEngineVideoSource> newSource = new MediaEngineDefaultVideoSource();
+  newSource->SetHasFakeTracks(mHasFakeTracks);
   mVSources.AppendElement(newSource);
   aVSources->AppendElement(newSource);
 
@@ -466,6 +511,7 @@ MediaEngineDefault::EnumerateAudioDevices(MediaSourceType aMediaSource,
   if (aASources->Length() == 0) {
     nsRefPtr<MediaEngineAudioSource> newSource =
       new MediaEngineDefaultAudioSource();
+    newSource->SetHasFakeTracks(mHasFakeTracks);
     mASources.AppendElement(newSource);
     aASources->AppendElement(newSource);
   }

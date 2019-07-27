@@ -165,10 +165,18 @@ public:
   
 
 
+  void SetHasFakeTracks(bool aHasFakeTracks) {
+    mHasFakeTracks = aHasFakeTracks;
+  }
+
 protected:
   
-  explicit MediaEngineSource(MediaEngineState aState) : mState(aState) {}
+  explicit MediaEngineSource(MediaEngineState aState)
+    : mState(aState)
+    , mHasFakeTracks(false)
+  {}
   MediaEngineState mState;
+  bool mHasFakeTracks;
 };
 
 

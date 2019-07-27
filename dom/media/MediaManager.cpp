@@ -1369,7 +1369,7 @@ public:
 
     nsRefPtr<MediaEngine> backend;
     if (mConstraints.mFake)
-      backend = new MediaEngineDefault();
+      backend = new MediaEngineDefault(mConstraints.mFakeTracks);
     else
       backend = mManager->GetBackend(mWindowId);
 
@@ -1668,7 +1668,7 @@ MediaManager::GetUserMedia(
   if (c.mFake) {
     
     task = new GetUserMediaTask(c, onSuccess.forget(),
-      onFailure.forget(), windowID, listener, mPrefs, new MediaEngineDefault());
+      onFailure.forget(), windowID, listener, mPrefs, new MediaEngineDefault(c.mFakeTracks));
   } else {
     
     task = new GetUserMediaTask(c, onSuccess.forget(),
