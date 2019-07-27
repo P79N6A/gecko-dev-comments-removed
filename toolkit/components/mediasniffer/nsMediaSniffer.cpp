@@ -29,7 +29,7 @@ static const uint32_t MAX_BYTES_SNIFFED_MP3 = 320 * 144 / 32 + 1 + 4;
 
 NS_IMPL_ISUPPORTS(nsMediaSniffer, nsIContentSniffer)
 
-nsMediaSniffer::nsMediaSnifferEntry nsMediaSniffer::sSnifferEntries[] = {
+nsMediaSnifferEntry nsMediaSniffer::sSnifferEntries[] = {
   
   PATTERN_ENTRY("\xFF\xFF\xFF\xFF\xFF", "OggS", APPLICATION_OGG),
   
@@ -38,21 +38,30 @@ nsMediaSniffer::nsMediaSnifferEntry nsMediaSniffer::sSnifferEntries[] = {
   PATTERN_ENTRY("\xFF\xFF\xFF", "ID3", AUDIO_MP3)
 };
 
-static bool MatchesMP4orISOBrand(const uint8_t aData[4])
-{
-  
-  if (aData[0] == 0x6D &&
-      aData[1] == 0x70 &&
-      aData[2] == 0x34) {
-    return true;
-  }
 
-  
-  if (aData[0] == 0x69 &&
-      aData[1] == 0x73 &&
-      aData[2] == 0x6F &&
-      (aData[3] == 0x6D || aData[3] == 0x32)) {
-    return true;
+nsMediaSnifferEntry sFtypEntries[] = {
+  PATTERN_ENTRY("\xFF\xFF\xFF", "mp4", VIDEO_MP4), 
+  PATTERN_ENTRY("\xFF\xFF\xFF", "3gp", VIDEO_3GPP), 
+  PATTERN_ENTRY("\xFF\xFF\xFF\xFF", "M4A ", AUDIO_MP4),
+  PATTERN_ENTRY("\xFF\xFF\xFF\xFF", "M4P ", AUDIO_MP4)
+};
+
+static bool MatchesBrands(const uint8_t aData[4], nsACString& aSniffedType)
+{
+  for (size_t i = 0; i < mozilla::ArrayLength(sFtypEntries); ++i) {
+    const auto& currentEntry = sFtypEntries[i];
+    bool matched = true;
+    MOZ_ASSERT(currentEntry.mLength <= 4, "Pattern is too large to match brand strings.");
+    for (uint32_t j = 0; j < currentEntry.mLength; ++j) {
+      if ((currentEntry.mMask[j] & aData[j]) != currentEntry.mPattern[j]) {
+        matched = false;
+        break;
+      }
+    }
+    if (matched) {
+      aSniffedType.AssignASCII(currentEntry.mContentType);
+      return true;
+    }
   }
 
   return false;
@@ -60,7 +69,8 @@ static bool MatchesMP4orISOBrand(const uint8_t aData[4])
 
 
 
-static bool MatchesMP4(const uint8_t* aData, const uint32_t aLength)
+
+static bool MatchesMP4(const uint8_t* aData, const uint32_t aLength, nsACString& aSniffedType)
 {
   if (aLength <= MP4_MIN_BYTES_COUNT) {
     return false;
@@ -79,13 +89,13 @@ static bool MatchesMP4(const uint8_t* aData, const uint32_t aLength)
       aData[7] != 0x70) {
     return false;
   }
-  if (MatchesMP4orISOBrand(&aData[8])) {
+  if (MatchesBrands(&aData[8], aSniffedType)) {
     return true;
   }
   
   uint32_t bytesRead = 16;
   while (bytesRead < boxSize) {
-    if (MatchesMP4orISOBrand(&aData[bytesRead])) {
+    if (MatchesBrands(&aData[bytesRead], aSniffedType)) {
       return true;
     }
     bytesRead += 4;
@@ -136,7 +146,7 @@ nsMediaSniffer::GetMIMETypeFromContent(nsIRequest* aRequest,
 
   const uint32_t clampedLength = std::min(aLength, MAX_BYTES_SNIFFED);
 
-  for (uint32_t i = 0; i < mozilla::ArrayLength(sSnifferEntries); ++i) {
+  for (size_t i = 0; i < mozilla::ArrayLength(sSnifferEntries); ++i) {
     const nsMediaSnifferEntry& currentEntry = sSnifferEntries[i];
     if (clampedLength < currentEntry.mLength || currentEntry.mLength == 0) {
       continue;
@@ -154,8 +164,7 @@ nsMediaSniffer::GetMIMETypeFromContent(nsIRequest* aRequest,
     }
   }
 
-  if (MatchesMP4(aData, clampedLength)) {
-    aSniffedType.AssignLiteral(VIDEO_MP4);
+  if (MatchesMP4(aData, clampedLength, aSniffedType)) {
     return NS_OK;
   }
 
