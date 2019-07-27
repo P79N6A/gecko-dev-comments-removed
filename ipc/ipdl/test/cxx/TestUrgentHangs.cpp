@@ -25,6 +25,8 @@ namespace _ipdltest {
 
 
 TestUrgentHangsParent::TestUrgentHangsParent()
+  : mInnerCount(0),
+    mInnerUrgentCount(0)
 {
     MOZ_COUNT_CTOR(TestUrgentHangsParent);
 }
@@ -55,12 +57,12 @@ TestUrgentHangsParent::Main()
     
     MessageLoop::current()->PostDelayedTask(
         FROM_HERE,
-        NewRunnableMethod(this, &TestUrgentHangsParent::FinishTesting),
+        NewRunnableMethod(this, &TestUrgentHangsParent::SecondStage),
         3000);
 }
 
 void
-TestUrgentHangsParent::FinishTesting()
+TestUrgentHangsParent::SecondStage()
 {
     
     
@@ -71,6 +73,29 @@ TestUrgentHangsParent::FinishTesting()
     
     if (SendTest4_1())
         fail("sending Test4_1");
+
+    MessageLoop::current()->PostDelayedTask(
+        FROM_HERE,
+        NewRunnableMethod(this, &TestUrgentHangsParent::ThirdStage),
+        3000);
+}
+
+void
+TestUrgentHangsParent::ThirdStage()
+{
+    
+    
+    
+
+    
+    
+    if (!SendTest5())
+        fail("sending Test5");
+
+    
+    
+    if (SendTest5_1())
+        fail("sending Test5_1");
 
     
     MessageLoop::current()->PostDelayedTask(
@@ -90,7 +115,14 @@ TestUrgentHangsParent::RecvTest1_2()
 bool
 TestUrgentHangsParent::RecvTestInner()
 {
-    fail("TestInner should never be dispatched");
+    mInnerCount++;
+    return true;
+}
+
+bool
+TestUrgentHangsParent::RecvTestInnerUrgent()
+{
+    mInnerUrgentCount++;
     return true;
 }
 
@@ -152,6 +184,30 @@ TestUrgentHangsChild::RecvTest4_1()
     
     
     if (SendTestInner())
+        fail("sending TestInner");
+
+    return true;
+}
+
+bool
+TestUrgentHangsChild::RecvTest5()
+{
+    PR_Sleep(PR_SecondsToInterval(2));
+
+    
+    
+    if (!SendTestInnerUrgent())
+        fail("sending TestInner");
+
+    return true;
+}
+
+bool
+TestUrgentHangsChild::RecvTest5_1()
+{
+    
+    
+    if (!SendTestInnerUrgent())
         fail("sending TestInner");
 
     return true;

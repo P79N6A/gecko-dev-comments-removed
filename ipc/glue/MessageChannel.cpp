@@ -313,6 +313,7 @@ MessageChannel::MessageChannel(MessageListener *aListener)
     mDispatchingAsyncMessagePriority(0),
     mCurrentTransaction(0),
     mTimedOutMessageSeqno(0),
+    mTimedOutMessagePriority(0),
     mRecvdErrors(0),
     mRemoteStackDepthGuess(false),
     mSawInterruptOutMsg(false),
@@ -784,10 +785,11 @@ MessageChannel::Send(Message* aMsg, Message* aReply)
     msg->set_seqno(NextSeqno());
 
     int32_t seqno = msg->seqno();
+    int prio = msg->priority();
     DebugOnly<msgid_t> replyType = msg->type() + 1;
 
     AutoSetValue<bool> replies(mAwaitingSyncReply, true);
-    AutoSetValue<int> prio(mAwaitingSyncReplyPriority, msg->priority());
+    AutoSetValue<int> prioSet(mAwaitingSyncReplyPriority, prio);
     AutoEnterTransaction transact(this, seqno);
 
     int32_t transaction = mCurrentTransaction;
@@ -836,6 +838,7 @@ MessageChannel::Send(Message* aMsg, Message* aReply)
             }
 
             mTimedOutMessageSeqno = seqno;
+            mTimedOutMessagePriority = prio;
             return false;
         }
     }
@@ -1189,7 +1192,15 @@ MessageChannel::DispatchSyncMessage(const Message& aMsg)
     bool& blockingVar = ShouldBlockScripts() ? gParentIsBlocked : dummy;
 
     Result rv;
-    if (mTimedOutMessageSeqno) {
+    if (mTimedOutMessageSeqno && mTimedOutMessagePriority >= prio) {
+        
+        
+        
+        
+        
+        
+        
+        
         
         
         
