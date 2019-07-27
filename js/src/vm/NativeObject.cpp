@@ -1367,8 +1367,8 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
                 if (!CheckAccessorRedefinition(cx, obj, shape, getter, setter, id, attrs))
                     return false;
                 attrs = ApplyOrDefaultAttributes(attrs, shape);
-                shape = NativeObject::changeProperty(cx, obj, shape, attrs,
-                                                     JSPROP_GETTER | JSPROP_SETTER,
+                shape = NativeObject::changeProperty(cx, obj, shape,
+                                                     attrs | JSPROP_GETTER | JSPROP_SETTER,
                                                      (attrs & JSPROP_GETTER)
                                                      ? getter
                                                      : shape->getter(),
@@ -1380,6 +1380,12 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
                 shouldDefine = false;
             }
         }
+
+        
+        
+        
+        if (shouldDefine)
+            attrs |= JSPROP_GETTER | JSPROP_SETTER;
     } else if (desc.hasValue()) {
         
         
@@ -1411,8 +1417,6 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
             }
         }
     } else {
-        
-        
         
         if (!NativeLookupOwnProperty<CanGC>(cx, obj, id, &shape))
             return false;
