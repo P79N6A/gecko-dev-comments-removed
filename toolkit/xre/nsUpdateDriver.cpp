@@ -341,7 +341,7 @@ CopyUpdaterIntoUpdateDir(nsIFile *greDir, nsIFile *appDir, nsIFile *updateDir,
 {
   
 #if defined(XP_MACOSX)
-  if (!CopyFileIntoUpdateDir(greDir, kUpdaterApp, updateDir))
+  if (!CopyFileIntoUpdateDir(appDir, kUpdaterApp, updateDir))
     return false;
 #else
   if (!CopyFileIntoUpdateDir(greDir, kUpdaterBin, updateDir))
