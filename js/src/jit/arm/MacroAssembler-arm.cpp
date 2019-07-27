@@ -143,13 +143,23 @@ MacroAssemblerARM::convertFloat32ToInt32(FloatRegister src, Register dest,
     
     
     
-    ma_vcvt_F32_I32(src, ScratchFloat32Reg.sintOverlay());
     
-    ma_vxfer(ScratchFloat32Reg, dest);
-    ma_vcvt_I32_F32(ScratchFloat32Reg.sintOverlay(), ScratchFloat32Reg);
-    ma_vcmp_f32(src, ScratchFloat32Reg);
+    
+    FloatRegister ScratchSIntReg = ScratchFloat32Reg.sintOverlay();
+    ma_vcvt_F32_I32(src, ScratchSIntReg);
+
+    
+    ma_vxfer(ScratchSIntReg, dest);
+
+    ma_vcvt_I32_F32(ScratchSIntReg, ScratchFloat32Reg);
+    ma_vcmp(src, ScratchFloat32Reg);
     as_vmrs(pc);
     ma_b(fail, Assembler::VFP_NotEqualOrUnordered);
+
+    
+    ma_cmp(dest, Imm32(0x7fffffff));
+    ma_cmp(dest, Imm32(0x80000000), Assembler::NotEqual);
+    ma_b(fail, Assembler::Equal);
 
     if (negativeZeroCheck) {
         ma_cmp(dest, Imm32(0));
