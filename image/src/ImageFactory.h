@@ -59,23 +59,26 @@ public:
 
 
 
-  static already_AddRefed<Image> CreateAnonymousImage(const nsCString& aMimeType);
+  static already_AddRefed<Image>
+  CreateAnonymousImage(const nsCString& aMimeType);
 
 private:
   
-  static already_AddRefed<Image> CreateRasterImage(nsIRequest* aRequest,
-                                                   ProgressTracker* aProgressTracker,
-                                                   const nsCString& aMimeType,
-                                                   ImageURL* aURI,
-                                                   uint32_t aImageFlags,
-                                                   uint32_t aInnerWindowId);
+  static already_AddRefed<Image>
+  CreateRasterImage(nsIRequest* aRequest,
+                    ProgressTracker* aProgressTracker,
+                    const nsCString& aMimeType,
+                    ImageURL* aURI,
+                    uint32_t aImageFlags,
+                    uint32_t aInnerWindowId);
 
-  static already_AddRefed<Image> CreateVectorImage(nsIRequest* aRequest,
-                                                   ProgressTracker* aProgressTracker,
-                                                   const nsCString& aMimeType,
-                                                   ImageURL* aURI,
-                                                   uint32_t aImageFlags,
-                                                   uint32_t aInnerWindowId);
+  static already_AddRefed<Image>
+  CreateVectorImage(nsIRequest* aRequest,
+                    ProgressTracker* aProgressTracker,
+                    const nsCString& aMimeType,
+                    ImageURL* aURI,
+                    uint32_t aImageFlags,
+                    uint32_t aInnerWindowId);
 
   
   virtual ~ImageFactory() = 0;
