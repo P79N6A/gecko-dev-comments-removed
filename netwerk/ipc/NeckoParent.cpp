@@ -480,7 +480,8 @@ NeckoParent::DeallocPTCPServerSocketParent(PTCPServerSocketParent* actor)
 }
 
 PUDPSocketParent*
-NeckoParent::AllocPUDPSocketParent(const nsCString& )
+NeckoParent::AllocPUDPSocketParent(const Principal& ,
+                                   const nsCString& )
 {
   nsRefPtr<UDPSocketParent> p = new UDPSocketParent();
 
@@ -489,9 +490,10 @@ NeckoParent::AllocPUDPSocketParent(const nsCString& )
 
 bool
 NeckoParent::RecvPUDPSocketConstructor(PUDPSocketParent* aActor,
+                                       const Principal& aPrincipal,
                                        const nsCString& aFilter)
 {
-  return static_cast<UDPSocketParent*>(aActor)->Init(aFilter);
+  return static_cast<UDPSocketParent*>(aActor)->Init(aPrincipal, aFilter);
 }
 
 bool
