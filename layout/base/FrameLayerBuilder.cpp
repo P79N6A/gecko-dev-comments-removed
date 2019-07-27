@@ -698,6 +698,9 @@ public:
 protected:
   friend class PaintedLayerData;
 
+  LayerManager::PaintedLayerCreationHint
+    GetLayerCreationHint(const nsIFrame* aAnimatedGeometryRoot);
+
   
 
 
@@ -1681,6 +1684,22 @@ InvalidateEntirePaintedLayer(PaintedLayer* aLayer, const nsIFrame* aAnimatedGeom
   ResetScrollPositionForLayerPixelAlignment(aAnimatedGeometryRoot);
 }
 
+LayerManager::PaintedLayerCreationHint
+ContainerState::GetLayerCreationHint(const nsIFrame* aAnimatedGeometryRoot)
+{
+  
+  
+  if (mParameters.mInLowPrecisionDisplayPort) {
+    return LayerManager::SCROLLABLE;
+  }
+  nsIFrame* animatedGeometryRootParent = aAnimatedGeometryRoot->GetParent();
+  if (animatedGeometryRootParent &&
+      animatedGeometryRootParent->GetType() == nsGkAtoms::scrollFrame) {
+    return LayerManager::SCROLLABLE;
+  }
+  return LayerManager::NONE;
+}
+
 already_AddRefed<PaintedLayer>
 ContainerState::CreateOrRecyclePaintedLayer(const nsIFrame* aAnimatedGeometryRoot,
                                             const nsIFrame* aReferenceFrame,
@@ -1694,15 +1713,8 @@ ContainerState::CreateOrRecyclePaintedLayer(const nsIFrame* aAnimatedGeometryRoo
 
   
   
-  LayerManager::PaintedLayerCreationHint creationHint = LayerManager::NONE;
-  if (mParameters.mInLowPrecisionDisplayPort ) {
-    creationHint = LayerManager::SCROLLABLE;
-  }
-  nsIFrame* animatedGeometryRootParent = aAnimatedGeometryRoot->GetParent();
-  if (animatedGeometryRootParent &&
-      animatedGeometryRootParent->GetType() == nsGkAtoms::scrollFrame) {
-    creationHint = LayerManager::SCROLLABLE;
-  }
+  LayerManager::PaintedLayerCreationHint creationHint =
+    GetLayerCreationHint(aAnimatedGeometryRoot);
 
   if (mNextFreeRecycledPaintedLayer < mRecycledPaintedLayers.Length()) {
     
