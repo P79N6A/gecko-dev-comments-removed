@@ -590,7 +590,21 @@ void mergeStacksIntoProfile(ThreadProfile& aProfile, TickSample* aSample, Native
       
       
       
-      if (jsFrames[jsIndex].hasTrackedOptimizations) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      MOZ_ASSERT_IF(jsFrames[jsIndex].hasTrackedOptimizations,
+                    jsFrames[jsIndex].kind == JS::ProfilingFrameIterator::Frame_Ion);
+      if (!aSample->isSamplingCurrentThread &&
+          (jsFrames[jsIndex].kind == JS::ProfilingFrameIterator::Frame_Ion ||
+           jsFrames[jsIndex].kind == JS::ProfilingFrameIterator::Frame_Baseline)) {
         aProfile.addTag(ProfileEntry('J', jsFrames[jsIndex].returnAddress));
       }
 
