@@ -30,14 +30,14 @@
 #include <mmsystem.h>
 #include <process.h>
 #include "platform.h"
-#include "TableTicker.h"
+#include "GeckoSampler.h"
 #include "ThreadResponsiveness.h"
 #include "ProfileEntry.h"
 
 
 #include "nsMemoryReporterManager.h"
 
-class PlatformData : public Malloced {
+class PlatformData {
  public:
   
   

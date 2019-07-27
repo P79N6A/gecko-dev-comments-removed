@@ -29,7 +29,6 @@
 
 #define DEBUG_MAIN 0
 
-
 namespace lul {
 
 using std::string;

@@ -5,7 +5,7 @@
 #include "mozilla/ProfileGatherer.h"
 #include "mozilla/Services.h"
 #include "nsIObserverService.h"
-#include "TableTicker.h"
+#include "GeckoSampler.h"
 
 using mozilla::dom::AutoJSAPI;
 using mozilla::dom::Promise;
@@ -14,7 +14,7 @@ namespace mozilla {
 
 NS_IMPL_ISUPPORTS0(ProfileGatherer)
 
-ProfileGatherer::ProfileGatherer(TableTicker* aTicker,
+ProfileGatherer::ProfileGatherer(GeckoSampler* aTicker,
                                  double aSinceTime,
                                  Promise* aPromise)
   : mPromise(aPromise)

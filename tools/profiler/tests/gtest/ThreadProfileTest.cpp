@@ -6,6 +6,7 @@
 #include "gtest/gtest.h"
 
 #include "ProfileEntry.h"
+#include "ThreadProfile.h"
 
 
 TEST(ThreadProfile, Initialization) {
