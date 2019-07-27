@@ -396,59 +396,44 @@ PathAppendSafe(LPWSTR base, LPCWSTR extra)
 
 
 
-
-BOOL
-WriteStatusPending(LPCWSTR updateDirPath)
-{
-  WCHAR updateStatusFilePath[MAX_PATH + 1] = { L'\0' };
-  wcsncpy(updateStatusFilePath, updateDirPath, MAX_PATH);
-  if (!PathAppendSafe(updateStatusFilePath, L"update.status")) {
-    return FALSE;
-  }
-
-  const char pending[] = "pending";
-  HANDLE statusFile = CreateFileW(updateStatusFilePath, GENERIC_WRITE, 0,
-                                  nullptr, CREATE_ALWAYS, 0, nullptr);
-  if (statusFile == INVALID_HANDLE_VALUE) {
-    return FALSE;
-  }
-
-  DWORD wrote;
-  BOOL ok = WriteFile(statusFile, pending,
-                      sizeof(pending) - 1, &wrote, nullptr);
-  CloseHandle(statusFile);
-  return ok && (wrote == sizeof(pending) - 1);
-}
-
-
-
-
-
-
-
 BOOL
 WriteStatusFailure(LPCWSTR updateDirPath, int errorCode)
 {
+  
+  
+  WCHAR tmpUpdateStatusFilePath[MAX_PATH + 1] = { L'\0' };
+  GetTempFileNameW(updateDirPath, L"svc", 0, tmpUpdateStatusFilePath);
+
+  HANDLE tmpStatusFile = CreateFileW(tmpUpdateStatusFilePath, GENERIC_WRITE, 0,
+                                     nullptr, CREATE_ALWAYS, 0, nullptr);
+  if (tmpStatusFile == INVALID_HANDLE_VALUE) {
+    return FALSE;
+  }
+
+  char failure[32];
+  sprintf(failure, "failed: %d", errorCode);
+  DWORD toWrite = strlen(failure);
+  DWORD wrote;
+  BOOL ok = WriteFile(tmpStatusFile, failure,
+                      toWrite, &wrote, nullptr);
+  CloseHandle(tmpStatusFile);
+
+  if (!ok || wrote != toWrite) {
+    return FALSE;
+  }
+
   WCHAR updateStatusFilePath[MAX_PATH + 1] = { L'\0' };
   wcsncpy(updateStatusFilePath, updateDirPath, MAX_PATH);
   if (!PathAppendSafe(updateStatusFilePath, L"update.status")) {
     return FALSE;
   }
 
-  HANDLE statusFile = CreateFileW(updateStatusFilePath, GENERIC_WRITE, 0,
-                                  nullptr, CREATE_ALWAYS, 0, nullptr);
-  if (statusFile == INVALID_HANDLE_VALUE) {
+  if (MoveFileExW(tmpUpdateStatusFilePath, updateStatusFilePath,
+                  MOVEFILE_REPLACE_EXISTING) == 0) {
     return FALSE;
   }
-  char failure[32];
-  sprintf(failure, "failed: %d", errorCode);
 
-  DWORD toWrite = strlen(failure);
-  DWORD wrote;
-  BOOL ok = WriteFile(statusFile, failure,
-                      toWrite, &wrote, nullptr);
-  CloseHandle(statusFile);
-  return ok && wrote == toWrite;
+  return TRUE;
 }
 
 #endif
