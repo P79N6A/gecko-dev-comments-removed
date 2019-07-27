@@ -31,6 +31,9 @@ public:
   virtual int32_t TabIndexDefault() MOZ_OVERRIDE;
 
   
+  virtual bool IsInteractiveHTMLContent() const MOZ_OVERRIDE;
+
+  
   NS_DECL_NSIDOMHTMLOBJECTELEMENT
 
   virtual nsresult BindToTree(nsIDocument *aDocument, nsIContent *aParent,

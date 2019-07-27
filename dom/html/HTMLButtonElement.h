@@ -37,6 +37,12 @@ public:
   NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLButtonElement, button)
 
   
+  virtual bool IsInteractiveHTMLContent() const MOZ_OVERRIDE
+  {
+    return true;
+  }
+
+  
   NS_DECL_NSIDOMHTMLBUTTONELEMENT
 
   

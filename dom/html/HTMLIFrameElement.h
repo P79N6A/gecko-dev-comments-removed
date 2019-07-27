@@ -27,6 +27,12 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
+  virtual bool IsInteractiveHTMLContent() const MOZ_OVERRIDE
+  {
+    return true;
+  }
+
+  
   NS_DECL_NSIDOMHTMLIFRAMEELEMENT
 
   

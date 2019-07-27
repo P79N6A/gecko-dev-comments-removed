@@ -24,6 +24,9 @@ public:
   explicit HTMLAudioElement(already_AddRefed<NodeInfo>& aNodeInfo);
 
   
+  virtual bool IsInteractiveHTMLContent() const MOZ_OVERRIDE;
+
+  
   using HTMLMediaElement::GetPaused;
 
   virtual nsresult Clone(NodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;

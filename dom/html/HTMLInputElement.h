@@ -120,6 +120,9 @@ public:
   virtual void Focus(ErrorResult& aError) MOZ_OVERRIDE;
 
   
+  virtual bool IsInteractiveHTMLContent() const MOZ_OVERRIDE;
+
+  
   NS_DECL_NSIDOMHTMLINPUTELEMENT
 
   

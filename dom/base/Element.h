@@ -287,6 +287,11 @@ public:
   
 
 
+  virtual bool IsInteractiveHTMLContent() const;
+
+  
+
+
 
 
 
