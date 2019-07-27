@@ -872,8 +872,7 @@ nsresult
 Connection::internalClose(sqlite3 *aNativeConnection)
 {
   
-  
-  
+  MOZ_ASSERT(aNativeConnection, "Database connection is invalid!");
   MOZ_ASSERT(!isClosed());
 
 #ifdef DEBUG
@@ -902,11 +901,6 @@ Connection::internalClose(sqlite3 *aNativeConnection)
     MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
     mConnectionClosed = true;
   }
-
-  
-  if (!aNativeConnection)
-    return NS_OK;
-
   int srv = sqlite3_close(aNativeConnection);
 
   if (srv == SQLITE_BUSY) {
@@ -1154,14 +1148,11 @@ Connection::AsyncClose(mozIStorageCompletionCallback *aCallback)
   if (!NS_IsMainThread()) {
     return NS_ERROR_NOT_SAME_THREAD;
   }
-
-  
-  
-  
-  nsIEventTarget *asyncThread = getAsyncExecutionTarget();
-
-  if (!mDBConn && !asyncThread)
+  if (!mDBConn)
     return NS_ERROR_NOT_INITIALIZED;
+
+  nsIEventTarget *asyncThread = getAsyncExecutionTarget();
+  NS_ENSURE_TRUE(asyncThread, NS_ERROR_NOT_INITIALIZED);
 
   
   
