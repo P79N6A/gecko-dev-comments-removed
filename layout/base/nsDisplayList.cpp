@@ -1737,10 +1737,8 @@ nsDisplayItem::RecomputeVisibility(nsDisplayListBuilder* aBuilder,
   
   
   
-  if (!ComputeVisibility(aBuilder, aVisibleRegion, nsRect())) {
-    mVisibleRect = nsRect();
+  if (!ComputeVisibility(aBuilder, aVisibleRegion, nsRect()))
     return false;
-  }
 
   nsRegion opaque = TreatAsOpaque(this, aBuilder);
   aBuilder->SubtractFromVisibleRegion(aVisibleRegion, opaque);
