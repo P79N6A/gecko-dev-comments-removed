@@ -216,11 +216,8 @@ ComputeTouchSensitiveRegion(GeckoContentController* aController,
   
   
   
-  ParentLayerIntRect roundedVisible = RoundedIn(visible);
   nsIntRegion unobscured;
-  unobscured.Sub(nsIntRect(roundedVisible.x, roundedVisible.y,
-                           roundedVisible.width, roundedVisible.height),
-                 aObscured);
+  unobscured.Sub(ParentLayerIntRect::ToUntyped(RoundedIn(visible)), aObscured);
   return unobscured;
 }
 

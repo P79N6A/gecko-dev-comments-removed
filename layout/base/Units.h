@@ -27,18 +27,7 @@ struct LayoutDevicePixel;
 struct LayerPixel;
 struct RenderTargetPixel;
 struct ScreenPixel;
-
-
-
-
-
-
-
-
-
-
-
-struct ParentLayerPixel {};
+struct ParentLayerPixel;
 
 template<> struct IsPixel<CSSPixel>          : TrueType {};
 template<> struct IsPixel<LayoutDevicePixel> : TrueType {};
@@ -336,6 +325,24 @@ struct RenderTargetPixel {
 struct ScreenPixel {
   static ScreenIntPoint FromUntyped(const nsIntPoint& aPoint) {
     return ScreenIntPoint(aPoint.x, aPoint.y);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct ParentLayerPixel {
+  static nsIntRect ToUntyped(const ParentLayerIntRect& aRect) {
+    return nsIntRect(aRect.x, aRect.y, aRect.width, aRect.height);
   }
 };
 

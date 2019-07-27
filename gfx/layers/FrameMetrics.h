@@ -20,7 +20,6 @@ template <typename T> struct ParamTraits;
 } 
 
 namespace mozilla {
-
 namespace layers {
 
 
