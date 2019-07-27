@@ -103,31 +103,6 @@ nsRenderingContext::IntersectClip(const nsRect& aRect)
 }
 
 void
-nsRenderingContext::SetClip(const nsIntRegion& aRegion)
-{
-    
-    
-    
-    
-    
-
-    gfxMatrix mat = mThebes->CurrentMatrix();
-    mThebes->SetMatrix(gfxMatrix());
-
-    mThebes->ResetClip();
-
-    mThebes->NewPath();
-    nsIntRegionRectIterator iter(aRegion);
-    const nsIntRect* rect;
-    while ((rect = iter.Next())) {
-        mThebes->Rectangle(gfxRect(rect->x, rect->y, rect->width, rect->height),
-                           true);
-    }
-    mThebes->Clip();
-    mThebes->SetMatrix(mat);
-}
-
-void
 nsRenderingContext::SetColor(nscolor aColor)
 {
     
