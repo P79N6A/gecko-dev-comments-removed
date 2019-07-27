@@ -590,10 +590,10 @@ APZCTreeManager::ReceiveInputEvent(InputData& aEvent,
         
         
         
-        MOZ_ASSERT(
-          (GetScreenToApzcTransform(apzc) * GetApzcToGeckoTransform(apzc))
-          .NudgeToIntegersFixedEpsilon()
-          .IsIdentity());
+        Matrix4x4 transformToGecko = GetScreenToApzcTransform(apzc)
+                                   * GetApzcToGeckoTransform(apzc);
+        ScreenPoint untransformedOrigin = TransformTo<ScreenPixel>(
+          transformToGecko, wheelInput.mOrigin);
 
         result = mInputQueue->ReceiveInputEvent(
           apzc,
@@ -602,6 +602,7 @@ APZCTreeManager::ReceiveInputEvent(InputData& aEvent,
 
         
         apzc->GetGuid(aOutTargetGuid);
+        wheelInput.mOrigin = untransformedOrigin;
       }
       break;
     } case PANGESTURE_INPUT: {
@@ -771,12 +772,6 @@ APZCTreeManager::ProcessTouchInput(MultiTouchInput& aInput,
     Matrix4x4 transformToApzc = GetScreenToApzcTransform(mApzcForInputBlock);
     Matrix4x4 transformToGecko = GetApzcToGeckoTransform(mApzcForInputBlock);
     Matrix4x4 outTransform = transformToApzc * transformToGecko;
-    if (aInput.mType == MultiTouchInput::MULTITOUCH_START) {
-      
-      
-      
-      MOZ_ASSERT(outTransform.NudgeToIntegersFixedEpsilon().IsIdentity());
-    }
     for (size_t i = 0; i < aInput.mTouches.Length(); i++) {
       SingleTouchData& touchData = aInput.mTouches[i];
       touchData.mScreenPoint = TransformTo<ScreenPixel>(
