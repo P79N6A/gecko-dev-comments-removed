@@ -6,7 +6,8 @@
 
 
 
-Components.utils.import("resource://gre/modules/Services.jsm");
+const {utils: Cu, interfaces: Ci, classes: Cc, results: Cr} = Components;
+Cu.import("resource://gre/modules/Services.jsm");
 
 
 
@@ -142,6 +143,14 @@ nsUnknownContentTypeDialog.prototype = {
     this.mContext  = aContext;
     this.mReason   = aReason;
 
+    
+    try {
+      let parent = aContext.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
+      this._mDownloadDir = new downloadModule.DownloadLastDir(parent);
+    } catch (ex) {
+      Cu.reportError("Missing window information when showing nsIHelperAppLauncherDialog: " + ex);
+    }
+
     const nsITimer = Components.interfaces.nsITimer;
     this._showTimer = Components.classes["@mozilla.org/timer;1"]
                                 .createInstance(nsITimer);
@@ -206,6 +215,22 @@ nsUnknownContentTypeDialog.prototype = {
       Services.strings
               .createBundle("chrome://mozapps/locale/downloads/unknownContentType.properties");
 
+    let parent;
+    let gDownloadLastDir;
+    try {
+      parent = aContext.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
+    } catch (ex) {}
+
+    if (parent) {
+      gDownloadLastDir = new downloadModule.DownloadLastDir(parent);
+    } else {
+      
+      
+      
+      gDownloadLastDir = this._mDownloadDir;
+      parent = Services.wm.getMostRecentWindow("");
+    }
+
     Task.spawn(function() {
       if (!aForcePrompt) {
         
@@ -241,11 +266,8 @@ nsUnknownContentTypeDialog.prototype = {
       var nsIFilePicker = Components.interfaces.nsIFilePicker;
       var picker = Components.classes["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
       var windowTitle = bundle.GetStringFromName("saveDialogTitle");
-      var parent = aContext.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIDOMWindow);
       picker.init(parent, windowTitle, nsIFilePicker.modeSave);
       picker.defaultString = aDefaultFile;
-
-      let gDownloadLastDir = new downloadModule.DownloadLastDir(parent);
 
       if (aSuggestedFileExtension) {
         
