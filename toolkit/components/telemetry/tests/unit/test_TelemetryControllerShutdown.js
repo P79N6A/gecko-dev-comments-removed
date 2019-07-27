@@ -61,11 +61,13 @@ add_task(function* test_sendTimeout() {
 
   yield TelemetryController.setup();
   TelemetrySend.setServer("http://localhost:" + httpServer.identity.primaryPort);
-  yield TelemetryController.submitExternalPing("test-ping-type", {});
+  let submissionPromise = TelemetryController.submitExternalPing("test-ping-type", {});
 
   
   AsyncShutdown.profileBeforeChange._trigger();
   AsyncShutdown.sendTelemetry._trigger();
+  
+  yield submissionPromise;
 
   
   Assert.ok(true, "Didn't time out on shutdown.");
