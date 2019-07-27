@@ -81,7 +81,11 @@ function memoryActorSupported (target) {
     return false;
   }
 
-  return !!target.getTrait("memoryActorAllocations");
+  
+  
+  
+  
+  return !!target.getTrait("memoryActorAllocations") && target.hasActor("memory");
 }
 exports.memoryActorSupported = Task.async(memoryActorSupported);
 
