@@ -35,6 +35,7 @@
 #include "nsISupportsImpl.h"
 #include "nsSize.h"                     
 #include "ThreadSafeRefcountingWithMainThreadDestruction.h"
+#include "mozilla/VsyncDispatcher.h"
 
 class CancelableTask;
 class MessageLoop;
@@ -89,52 +90,34 @@ private:
 };
 
 
-class VsyncSource
+
+
+
+
+
+class CompositorVsyncObserver MOZ_FINAL : public VsyncObserver
 {
-public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VsyncSource)
-  virtual void EnableVsync() = 0;
-  virtual void DisableVsync() = 0;
-  virtual bool IsVsyncEnabled() = 0;
-
-protected:
-  virtual ~VsyncSource() {}
-}; 
-
-
-
-
-
-
-
-class VsyncDispatcher MOZ_FINAL
-{
-  
-  
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_MAIN_THREAD_DESTRUCTION(VsyncDispatcher)
   friend class CompositorParent;
 
 public:
-  VsyncDispatcher(CompositorParent* aCompositorParent, VsyncSource* aVsyncSource);
-  static void NotifyVsync(TimeStamp aVsyncTimestamp);
-  void RunVsync(TimeStamp aVsyncTimestamp);
+  CompositorVsyncObserver(CompositorParent* aCompositorParent);
+  virtual bool NotifyVsync(TimeStamp aVsyncTimestamp) MOZ_OVERRIDE;
   void SetNeedsComposite(bool aSchedule);
   bool NeedsComposite();
   void CancelCurrentCompositeTask();
-
+ 
 private:
-  virtual ~VsyncDispatcher();
+  virtual ~CompositorVsyncObserver();
 
   void Composite(TimeStamp aVsyncTimestamp);
   void NotifyCompositeTaskExecuted();
-  void EnableVsync();
-  void DisableVsync();
+  void ObserveVsync();
+  void UnobserveVsync();
   void DispatchTouchEvents(TimeStamp aVsyncTimestamp);
 
   bool mNeedsComposite;
   bool mIsObservingVsync;
   nsRefPtr<CompositorParent> mCompositorParent;
-  nsRefPtr<VsyncSource> mVsyncSource;
 
   mozilla::Monitor mCurrentCompositeTaskMonitor;
   CancelableTask* mCurrentCompositeTask;
@@ -144,7 +127,7 @@ class CompositorParent MOZ_FINAL : public PCompositorParent,
                                    public ShadowLayersManager
 {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_MAIN_THREAD_DESTRUCTION(CompositorParent)
-  friend class VsyncDispatcher;
+  friend class CompositorVsyncObserver;
 
 public:
   explicit CompositorParent(nsIWidget* aWidget,
@@ -405,7 +388,7 @@ protected:
   nsRefPtr<APZCTreeManager> mApzcTreeManager;
 
   nsRefPtr<CompositorThreadHolder> mCompositorThreadHolder;
-  nsRefPtr<VsyncDispatcher> mVsyncDispatcher;
+  nsRefPtr<CompositorVsyncObserver> mCompositorVsyncObserver;
 
   DISALLOW_EVIL_CONSTRUCTORS(CompositorParent);
 };
