@@ -37,27 +37,28 @@ struct TrackInfo {
 
 class VideoInfo {
 private:
-  VideoInfo(int32_t aWidth, int32_t aHeight, bool aHasVideo)
-    : mDisplay(aWidth, aHeight)
-    , mStereoMode(StereoMode::MONO)
-    , mHasVideo(aHasVideo)
-    , mIsHardwareAccelerated(false)
+  void Init(int32_t aWidth, int32_t aHeight, bool aHasVideo)
   {
+    mDisplay = nsIntSize(aWidth, aHeight);
+    mStereoMode = StereoMode::MONO;
+    mHasVideo = aHasVideo;
+    mIsHardwareAccelerated = false;
+
+    
+    
+    mTrackInfo.Init(NS_LITERAL_STRING("2"), NS_LITERAL_STRING("main"),
+                    EmptyString(), EmptyString(), true);
   }
 
 public:
   VideoInfo()
-    : VideoInfo(0, 0, false)
   {
-    
-    
-    mTrackInfo.Init(NS_LITERAL_STRING("2"), NS_LITERAL_STRING("main"),
-    EmptyString(), EmptyString(), true);
+    Init(0, 0, false);
   }
 
   VideoInfo(int32_t aWidth, int32_t aHeight)
-    : VideoInfo(aWidth, aHeight, true)
   {
+    Init(aWidth, aHeight, true);
   }
 
   
