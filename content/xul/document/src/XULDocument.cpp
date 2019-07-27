@@ -4003,7 +4003,9 @@ XULDocument::OverlayForwardReference::Merge(nsIContent* aTargetNode,
             nsDependentAtomString id(idAtom);
 
             if (!id.IsEmpty()) {
-                nsIDocument *doc = aTargetNode->GetDocument();
+                nsIDocument *doc = aTargetNode->GetUncomposedDoc();
+                
+                
                 if (!doc) return NS_ERROR_FAILURE;
 
                 elementInDocument = doc->GetElementById(id);

@@ -453,7 +453,7 @@ HTMLBodyElement::GetAssociatedEditor()
   }
 
   
-  nsPresContext* presContext = GetPresContext();
+  nsPresContext* presContext = GetPresContext(eForComposedDoc);
   if (!presContext) {
     return nullptr;
   }

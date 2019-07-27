@@ -1342,7 +1342,7 @@ nsXULContentBuilder::GetElementsForResult(nsIXULTemplateResult* aResult,
 {
     
     
-    nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(mRoot->GetDocument());
+    nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(mRoot->GetComposedDoc());
     if (! xuldoc)
         return NS_OK;
 
@@ -1359,7 +1359,7 @@ nsXULContentBuilder::CreateElement(int32_t aNameSpaceID,
                                    nsIAtom* aTag,
                                    Element** aResult)
 {
-    nsCOMPtr<nsIDocument> doc = mRoot->GetDocument();
+    nsCOMPtr<nsIDocument> doc = mRoot->GetComposedDoc();
     NS_ASSERTION(doc != nullptr, "not initialized");
     if (! doc)
         return NS_ERROR_NOT_INITIALIZED;
@@ -1457,7 +1457,7 @@ nsXULContentBuilder::HasGeneratedContent(nsIRDFResource* aResource,
         NS_ConvertUTF8toUTF16 refID(uri);
 
         
-        nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(mRoot->GetDocument());
+        nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(mRoot->GetComposedDoc());
         if (! xuldoc)
             return NS_OK;
 
@@ -1576,7 +1576,7 @@ nsXULContentBuilder::GetInsertionLocations(nsIXULTemplateResult* aResult,
     if (NS_FAILED(rv))
         return false;
 
-    nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(mRoot->GetDocument());
+    nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(mRoot->GetComposedDoc());
     if (! xuldoc)
         return false;
 
@@ -1717,7 +1717,7 @@ nsXULContentBuilder::OpenContainer(nsIContent* aElement)
 
         bool rightBuilder = false;
 
-        nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(aElement->GetDocument());
+        nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(aElement->GetComposedDoc());
         if (! xuldoc)
             return NS_OK;
 
@@ -1756,7 +1756,7 @@ nsXULContentBuilder::RebuildAll()
     NS_ENSURE_TRUE(mRoot, NS_ERROR_NOT_INITIALIZED);
 
     
-    nsCOMPtr<nsIDocument> doc = mRoot->GetDocument();
+    nsCOMPtr<nsIDocument> doc = mRoot->GetComposedDoc();
     if (!doc)
         return NS_OK;
 

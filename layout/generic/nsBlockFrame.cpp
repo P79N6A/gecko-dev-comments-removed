@@ -6300,6 +6300,7 @@ nsBlockFrame::AccessibleType()
   }
 
   if (!HasBullet() || !PresContext()) {
+    
     if (!mContent->GetParent()) {
       
       
@@ -6307,7 +6308,7 @@ nsBlockFrame::AccessibleType()
     }
     
     nsCOMPtr<nsIDOMHTMLDocument> htmlDoc =
-      do_QueryInterface(mContent->GetDocument());
+      do_QueryInterface(mContent->GetComposedDoc());
     if (htmlDoc) {
       nsCOMPtr<nsIDOMHTMLElement> body;
       htmlDoc->GetBody(getter_AddRefs(body));

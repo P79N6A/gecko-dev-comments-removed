@@ -1034,10 +1034,12 @@ nsMenuFrame::BuildAcceleratorText(bool aNotify)
     return;
 
   
-  nsIDocument *document = mContent->GetDocument();
+  nsIDocument *document = mContent->GetUncomposedDoc();
   if (!document)
     return;
 
+  
+  
   nsIContent *keyElement = document->GetElementById(keyValue);
   if (!keyElement) {
 #ifdef DEBUG

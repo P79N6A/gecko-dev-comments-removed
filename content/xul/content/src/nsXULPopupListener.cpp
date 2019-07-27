@@ -355,7 +355,7 @@ nsXULPopupListener::LaunchPopup(nsIDOMEvent* aEvent, nsIContent* aTargetContent)
     return rv;
 
   
-  nsCOMPtr<nsIDocument> document = mElement->GetDocument();
+  nsCOMPtr<nsIDocument> document = mElement->GetComposedDoc();
   if (!document) {
     NS_WARNING("No document!");
     return NS_ERROR_FAILURE;
@@ -386,10 +386,14 @@ nsXULPopupListener::LaunchPopup(nsIDOMEvent* aEvent, nsIContent* aTargetContent)
         }
       }
     }
-  } else if (!(popup = document->GetElementById(identifier))) {
+  } else if (!mElement->IsInUncomposedDoc() ||
+             !(popup = document->GetElementById(identifier))) {
     
     
-    NS_ERROR("GetElementById had some kind of spasm.");
+    
+    
+    
+    NS_WARNING("GetElementById had some kind of spasm.");
     return rv;
   }
 

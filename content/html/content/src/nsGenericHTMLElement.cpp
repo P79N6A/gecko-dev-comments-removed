@@ -291,7 +291,8 @@ static const nsAttrValue::EnumTable kDirTable[] = {
 void
 nsGenericHTMLElement::GetAccessKeyLabel(nsString& aLabel)
 {
-  nsPresContext *presContext = GetPresContext();
+  
+  nsPresContext *presContext = GetPresContext(eForComposedDoc);
 
   if (presContext) {
     nsAutoString suffix;
@@ -1111,12 +1112,12 @@ nsGenericHTMLElement::GetFormControlFrame(bool aFlushFrames)
   return nullptr;
 }
 
-
 nsPresContext*
-nsGenericHTMLElement::GetPresContext()
+nsGenericHTMLElement::GetPresContext(PresContextFor aFor)
 {
   
-  nsIDocument* doc = GetDocument();
+  nsIDocument* doc = (aFor == eForComposedDoc) ?
+    GetComposedDoc() : GetUncomposedDoc();
   if (doc) {
     
     nsIPresShell *presShell = doc->GetShell();
@@ -2709,7 +2710,7 @@ nsGenericHTMLElement::RegUnRegAccessKey(bool aDoReg)
   }
 
   
-  nsPresContext *presContext = GetPresContext();
+  nsPresContext* presContext = GetPresContext(eForUncomposedDoc);
 
   if (presContext) {
     EventStateManager* esm = presContext->EventStateManager();
@@ -2727,7 +2728,7 @@ void
 nsGenericHTMLElement::PerformAccesskey(bool aKeyCausesActivation,
                                        bool aIsTrustedEvent)
 {
-  nsPresContext *presContext = GetPresContext();
+  nsPresContext* presContext = GetPresContext(eForUncomposedDoc);
   if (!presContext)
     return;
 
@@ -2941,7 +2942,7 @@ nsGenericHTMLFormElementWithState::GenerateStateKey()
     return NS_OK;
   }
 
-  nsIDocument* doc = GetDocument();
+  nsIDocument* doc = GetUncomposedDoc();
   if (!doc) {
     return NS_OK;
   }
@@ -2989,7 +2990,7 @@ nsGenericHTMLFormElementWithState::GetPrimaryPresState()
 already_AddRefed<nsILayoutHistoryState>
 nsGenericHTMLFormElementWithState::GetLayoutHistory(bool aRead)
 {
-  nsCOMPtr<nsIDocument> doc = GetDocument();
+  nsCOMPtr<nsIDocument> doc = GetUncomposedDoc();
   if (!doc) {
     return nullptr;
   }

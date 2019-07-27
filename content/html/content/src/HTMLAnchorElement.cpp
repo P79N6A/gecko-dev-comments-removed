@@ -199,7 +199,7 @@ HTMLAnchorElement::IsHTMLFocusable(bool aWithMouse,
   }
 
   
-  nsIDocument* doc = GetCurrentDoc();
+  nsIDocument* doc = GetComposedDoc();
   if (doc) {
     nsIPresShell* presShell = doc->GetShell();
     if (presShell) {

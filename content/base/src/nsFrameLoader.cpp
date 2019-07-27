@@ -1891,7 +1891,7 @@ nsresult
 nsFrameLoader::GetWindowDimensions(nsIntRect& aRect)
 {
   
-  nsIDocument* doc = mOwnerContent->GetDocument();
+  nsIDocument* doc = mOwnerContent->GetComposedDoc();
   if (!doc) {
     return NS_ERROR_FAILURE;
   }
@@ -2065,7 +2065,10 @@ nsFrameLoader::TryRemoteBrowser()
 {
   NS_ASSERTION(!mRemoteBrowser, "TryRemoteBrowser called with a remote browser already?");
 
-  nsIDocument* doc = mOwnerContent->GetDocument();
+  
+  
+  
+  nsIDocument* doc = mOwnerContent->GetComposedDoc();
   if (!doc) {
     return false;
   }

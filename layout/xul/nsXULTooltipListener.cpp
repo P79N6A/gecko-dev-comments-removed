@@ -331,7 +331,7 @@ nsXULTooltipListener::CheckTreeBodyMove(nsIDOMMouseEvent* aMouseEvent)
 
   
   nsCOMPtr<nsIBoxObject> bx;
-  nsIDocument* doc = sourceNode->GetDocument();
+  nsIDocument* doc = sourceNode->GetComposedDoc();
   if (doc) {
     ErrorResult ignored;
     bx = doc->GetBoxObjectFor(doc->GetRootElement(), ignored);
@@ -387,11 +387,12 @@ nsXULTooltipListener::ShowTooltip()
     return NS_ERROR_FAILURE; 
 
   
-  nsCOMPtr<nsIDOMXULDocument> xulDoc(do_QueryInterface(tooltipNode->GetDocument()));
+  nsCOMPtr<nsIDOMXULDocument> xulDoc =
+    do_QueryInterface(tooltipNode->GetComposedDoc());
   if (xulDoc) {
     
     
-    if (sourceNode->GetDocument()) {
+    if (sourceNode->IsInComposedDoc()) {
 #ifdef MOZ_XUL
       if (!mIsSourceTree) {
         mLastTreeRow = -1;
@@ -413,7 +414,7 @@ nsXULTooltipListener::ShowTooltip()
                                              this, false, false);
 
       
-      nsIDocument* doc = sourceNode->GetDocument();
+      nsIDocument* doc = sourceNode->GetComposedDoc();
       if (doc) {
         
         
@@ -555,7 +556,7 @@ nsXULTooltipListener::FindTooltip(nsIContent* aTarget, nsIContent** aTooltip)
     return NS_ERROR_NULL_POINTER;
 
   
-  nsIDocument *document = aTarget->GetDocument();
+  nsIDocument *document = aTarget->GetComposedDoc();
   if (!document) {
     NS_WARNING("Unable to retrieve the tooltip node document.");
     return NS_ERROR_FAILURE;
@@ -595,7 +596,9 @@ nsXULTooltipListener::FindTooltip(nsIContent* aTarget, nsIContent** aTooltip)
     return NS_OK;
   }
 
-  if (!tooltipId.IsEmpty()) {
+  if (!tooltipId.IsEmpty() && aTarget->IsInUncomposedDoc()) {
+    
+    
     
     nsCOMPtr<nsIContent> tooltipEl = document->GetElementById(tooltipId);
 
@@ -658,7 +661,7 @@ nsXULTooltipListener::DestroyTooltip()
     mCurrentTooltip = nullptr;
 
     
-    nsCOMPtr<nsIDocument> doc = currentTooltip->GetDocument();
+    nsCOMPtr<nsIDocument> doc = currentTooltip->GetComposedDoc();
     if (doc) {
       
       doc->RemoveSystemEventListener(NS_LITERAL_STRING("DOMMouseScroll"), this,

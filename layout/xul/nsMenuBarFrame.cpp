@@ -72,7 +72,7 @@ nsMenuBarFrame::Init(nsIContent*       aContent,
 
   
   
-  mTarget = aContent->GetDocument();
+  mTarget = aContent->GetComposedDoc();
 
   
   

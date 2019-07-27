@@ -1650,7 +1650,7 @@ Element::ShouldBlur(nsIContent *aContent)
 {
   
   
-  nsIDocument *document = aContent->GetDocument();
+  nsIDocument* document = aContent->GetComposedDoc();
   if (!document)
     return false;
 

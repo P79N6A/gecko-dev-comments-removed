@@ -1287,7 +1287,7 @@ Accessible::NativeAttributes()
   
   nsIContent* startContent = mContent;
   while (startContent) {
-    nsIDocument* doc = startContent->GetDocument();
+    nsIDocument* doc = startContent->GetComposedDoc();
     if (!doc)
       break;
 
