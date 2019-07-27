@@ -138,8 +138,8 @@
     background-size: cover;
   }
 
-.incoming-call-action-group .btn-group-chevron,
-.incoming-call-action-group .btn-group {
+.call-action-group .btn-group-chevron,
+.call-action-group .btn-group {
   
   max-width: 120px;
 }

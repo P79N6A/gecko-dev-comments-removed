@@ -11,8 +11,9 @@ var loop = loop || {};
 loop.conversation = (function(mozL10n) {
   "use strict";
 
-  var sharedViews = loop.shared.views,
-      sharedModels = loop.shared.models;
+  var sharedViews = loop.shared.views;
+  var sharedModels = loop.shared.models;
+  var OutgoingConversationView = loop.conversationViews.OutgoingConversationView;
 
   var IncomingCallView = React.createClass({displayName: 'IncomingCallView',
 
@@ -109,26 +110,23 @@ loop.conversation = (function(mozL10n) {
 
     render: function() {
       
-      var btnClassAccept = "btn btn-accept";
-      var btnClassDecline = "btn btn-error btn-decline";
-      var conversationPanelClass = "incoming-call";
       var dropdownMenuClassesDecline = React.addons.classSet({
         "native-dropdown-menu": true,
         "conversation-window-dropdown": true,
         "visually-hidden": !this.state.showDeclineMenu
       });
       return (
-        React.DOM.div({className: conversationPanelClass}, 
+        React.DOM.div({className: "call-window"}, 
           React.DOM.h2(null, mozL10n.get("incoming_call_title2")), 
-          React.DOM.div({className: "btn-group incoming-call-action-group"}, 
+          React.DOM.div({className: "btn-group call-action-group"}, 
 
-            React.DOM.div({className: "fx-embedded-incoming-call-button-spacer"}), 
+            React.DOM.div({className: "fx-embedded-call-button-spacer"}), 
 
             React.DOM.div({className: "btn-chevron-menu-group"}, 
               React.DOM.div({className: "btn-group-chevron"}, 
                 React.DOM.div({className: "btn-group"}, 
 
-                  React.DOM.button({className: btnClassDecline, 
+                  React.DOM.button({className: "btn btn-error btn-decline", 
                           onClick: this._handleDecline}, 
                     mozL10n.get("incoming_call_cancel_button")
                   ), 
@@ -146,11 +144,11 @@ loop.conversation = (function(mozL10n) {
               )
             ), 
 
-            React.DOM.div({className: "fx-embedded-incoming-call-button-spacer"}), 
+            React.DOM.div({className: "fx-embedded-call-button-spacer"}), 
 
             AcceptCallButton({mode: this._answerModeProps()}), 
 
-            React.DOM.div({className: "fx-embedded-incoming-call-button-spacer"})
+            React.DOM.div({className: "fx-embedded-call-button-spacer"})
 
           )
         )
@@ -492,6 +490,44 @@ loop.conversation = (function(mozL10n) {
   
 
 
+
+  var ConversationControllerView = React.createClass({displayName: 'ConversationControllerView',
+    propTypes: {
+      
+      client: React.PropTypes.instanceOf(loop.Client).isRequired,
+      conversation: React.PropTypes.instanceOf(sharedModels.ConversationModel)
+                         .isRequired,
+      notifications: React.PropTypes.instanceOf(sharedModels.NotificationCollection)
+                          .isRequired,
+      sdk: React.PropTypes.object.isRequired,
+
+      
+      store: React.PropTypes.instanceOf(loop.ConversationStore).isRequired
+    },
+
+    getInitialState: function() {
+      return this.props.store.attributes;
+    },
+
+    render: function() {
+      if (this.state.outgoing) {
+        return (OutgoingConversationView({
+          store: this.props.store}
+        ));
+      }
+
+      return (IncomingConversationView({
+        client: this.props.client, 
+        conversation: this.props.conversation, 
+        notifications: this.props.notifications, 
+        sdk: this.props.sdk}
+      ));
+    }
+  });
+
+  
+
+
   function init() {
     
     
@@ -509,19 +545,24 @@ loop.conversation = (function(mozL10n) {
       }
     });
 
-    document.body.classList.add(loop.shared.utils.getTargetPlatform());
+    var conversationStore = new loop.ConversationStore();
 
+    
+    
+    var outgoingEmail = navigator.mozLoop.getLoopCharPref("outgoingemail");
+    if (outgoingEmail) {
+      conversationStore.set("outgoing", true);
+      conversationStore.set("calleeId", outgoingEmail);
+    }
+
+    
+    
     var client = new loop.Client();
     var conversation = new sharedModels.ConversationModel(
       {},                
       {sdk: window.OT}   
     );
     var notifications = new sharedModels.NotificationCollection();
-
-    window.addEventListener("unload", function(event) {
-      
-      navigator.mozLoop.releaseCallData(conversation.get("callId"));
-    });
 
     
     var helper = new loop.shared.utils.Helper();
@@ -530,7 +571,15 @@ loop.conversation = (function(mozL10n) {
       conversation.set("callId", locationHash.match(/\#incoming\/(.*)/)[1]);
     }
 
-    React.renderComponent(IncomingConversationView({
+    window.addEventListener("unload", function(event) {
+      
+      navigator.mozLoop.releaseCallData(conversation.get("callId"));
+    });
+
+    document.body.classList.add(loop.shared.utils.getTargetPlatform());
+
+    React.renderComponent(ConversationControllerView({
+      store: conversationStore, 
       client: client, 
       conversation: conversation, 
       notifications: notifications, 
@@ -539,6 +588,7 @@ loop.conversation = (function(mozL10n) {
   }
 
   return {
+    ConversationControllerView: ConversationControllerView,
     IncomingConversationView: IncomingConversationView,
     IncomingCallView: IncomingCallView,
     init: init
