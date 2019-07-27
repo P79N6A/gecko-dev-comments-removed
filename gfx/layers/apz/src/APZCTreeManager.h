@@ -21,6 +21,7 @@
 #include "mozilla/Vector.h"             
 #include "nsTArrayForwardDeclare.h"     
 #include "mozilla/gfx/Logging.h"        
+#include "mozilla/layers/APZUtils.h"    
 
 class nsIntRegion;
 
@@ -399,13 +400,6 @@ public:
 
 
 
-  enum HitTestResult {
-    NoApzcHit,
-    ApzcHitRegion,
-    ApzcContentRegion,
-    OverscrolledApzc,
-  };
-
   nsRefPtr<HitTestingTreeNode> GetRootNode() const;
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScreenPoint& aPoint,
                                                          HitTestResult* aOutHitResult);
@@ -545,4 +539,4 @@ private:
 }
 }
 
-#endif
+#endif 
