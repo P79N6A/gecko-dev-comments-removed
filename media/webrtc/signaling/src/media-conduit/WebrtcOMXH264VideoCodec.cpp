@@ -221,6 +221,30 @@ private:
 };
 
 
+static bool IsParamSets(uint8_t* aData, size_t aSize)
+{
+  MOZ_ASSERT(aData && aSize > sizeof(kNALStartCode));
+  return (aData[sizeof(kNALStartCode)] & 0x1f) == kNALTypeSPS;
+}
+
+
+static size_t ParamSetLength(uint8_t* aData, size_t aSize)
+{
+  const uint8_t* data = aData;
+  size_t size = aSize;
+  const uint8_t* nalStart = nullptr;
+  size_t nalSize = 0;
+  while (getNextNALUnit(&data, &size, &nalStart, &nalSize, true) == OK) {
+    if ((*nalStart & 0x1f) != kNALTypeSPS &&
+        (*nalStart & 0x1f) != kNALTypePPS) {
+      MOZ_ASSERT(nalStart - sizeof(kNALStartCode) >= aData);
+      return (nalStart - sizeof(kNALStartCode)) - aData; 
+    }
+  }
+  return aSize; 
+}
+
+
 
 
 class WebrtcOMXDecoder MOZ_FINAL : public GonkNativeWindowNewFrameCallback
@@ -619,12 +643,17 @@ protected:
 
     
     uint32_t target_timestamp = (timeUs * 90ll + 999) / 1000; 
-    bool isParamSets = (flags & MediaCodec::BUFFER_FLAG_CODECCONFIG);
+    
+    
+    
+    
+    bool isParamSets = IsParamSets(output.Elements(), output.Length());
     bool isIFrame = (flags & MediaCodec::BUFFER_FLAG_SYNCFRAME);
     CODEC_LOGD("OMX: encoded frame (%d): time %lld (%u), flags x%x",
                output.Length(), timeUs, target_timestamp, flags);
     
-    MOZ_ASSERT(!(isParamSets && isIFrame));
+    
+    
 
     if (mCallback) {
       
@@ -673,15 +702,18 @@ protected:
                  encoded._length, encoded._encodedWidth, encoded._encodedHeight,
                  isParamSets, isIFrame, encoded._timeStamp, encoded.capture_time_ms_);
       
-      SendEncodedDataToCallback(encoded, isIFrame && !mIsPrevFrameParamSets);
+      SendEncodedDataToCallback(encoded, isIFrame && !mIsPrevFrameParamSets && !isParamSets);
       
       
       
-      mIsPrevFrameParamSets = isParamSets;
+      mIsPrevFrameParamSets = isParamSets && !isIFrame;
       if (isParamSets) {
         
         mParamSets.Clear();
-        mParamSets.AppendElements(encoded._buffer, encoded._length);
+        
+        size_t length = ParamSetLength(encoded._buffer, encoded._length);
+        MOZ_ASSERT(length > 0);
+        mParamSets.AppendElements(encoded._buffer, length);
       }
     }
 
@@ -700,7 +732,7 @@ private:
 
     if (aPrependParamSets) {
       
-      MOZ_ASSERT(mParamSets.Length() > 4); 
+      MOZ_ASSERT(mParamSets.Length() > sizeof(kNALStartCode)); 
       nalu._length = mParamSets.Length();
       nalu._buffer = mParamSets.Elements();
       
