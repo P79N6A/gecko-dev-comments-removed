@@ -164,16 +164,11 @@ function newWindowOpened() {
 
 
 function contextMenuOpened(aWindow, aLinkId) {
-  return new Promise(function(resolve) {
-    aWindow.document.addEventListener("popupshown",
-                                      function handleMenu(aEvent) {
-      aWindow.document.removeEventListener("popupshown", handleMenu, false);
-      resolve(aEvent.target);
-    }, false);
-
-    
-    clickTheLink(aWindow, aLinkId, {type: "contextmenu", button: 2});
-  });
+  let popupShownPromise = BrowserTestUtils.waitForEvent(aWindow.document,
+                                                        "popupshown");
+  
+  clickTheLink(aWindow, aLinkId, { type: "contextmenu", button: 2 });
+  return popupShownPromise.then(e => e.target);
 }
 
 
