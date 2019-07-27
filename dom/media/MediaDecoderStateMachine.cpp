@@ -390,6 +390,16 @@ static void WriteVideoToMediaStream(MediaStream* aStream,
   aOutput->AppendFrame(image.forget(), duration, aIntrinsicSize);
 }
 
+static bool ZeroDurationAtLastChunk(VideoSegment& aInput)
+{
+  
+  
+  
+  StreamTime lastVideoStratTime;
+  aInput.GetLastFrame(&lastVideoStratTime);
+  return lastVideoStratTime == aInput.GetDuration();
+}
+
 void MediaDecoderStateMachine::SendStreamData()
 {
   MOZ_ASSERT(OnTaskQueue());
@@ -500,10 +510,25 @@ void MediaDecoderStateMachine::SendStreamData()
                       v->mTime, v->GetEndTime());
         }
       }
+      
+      if (output.GetLastFrame()) {
+        stream->mEOSVideoCompensation = ZeroDurationAtLastChunk(output);
+      }
       if (output.GetDuration() > 0) {
         mediaStream->AppendToTrack(videoTrackId, &output);
       }
       if (VideoQueue().IsFinished() && !stream->mHaveSentFinishVideo) {
+        if (stream->mEOSVideoCompensation) {
+          VideoSegment endSegment;
+          
+          int64_t deviation_usec = mediaStream->StreamTimeToMicroseconds(1);
+          WriteVideoToMediaStream(mediaStream, stream->mLastVideoImage,
+            stream->mNextVideoTime + deviation_usec, stream->mNextVideoTime,
+            stream->mLastVideoImageDisplaySize, &endSegment);
+          stream->mNextVideoTime += deviation_usec;
+          MOZ_ASSERT(endSegment.GetDuration() > 0);
+          mediaStream->AppendToTrack(videoTrackId, &endSegment);
+        }
         mediaStream->EndTrack(videoTrackId);
         stream->mHaveSentFinishVideo = true;
       }
