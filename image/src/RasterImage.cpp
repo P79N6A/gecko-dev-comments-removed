@@ -1498,6 +1498,7 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
                            SurfaceFormat::B8G8R8A8);
     mDecoder->AllocateFrame();
   }
+  mDecoder->SetSendPartialInvalidations(!mHasBeenDecoded);
   mDecoder->Init();
   CONTAINER_ENSURE_SUCCESS(mDecoder->GetDecoderError());
 
@@ -2400,16 +2401,6 @@ RasterImage::FinishedSomeDecoding(ShutdownReason aReason ,
     }
   }
 
-  if (GetCurrentFrameIndex() > 0) {
-    
-    
-    invalidRect = nsIntRect();
-  }
-  if (mHasBeenDecoded && !invalidRect.IsEmpty()) {
-    
-    invalidRect = mDecoded ? GetFirstFrameRect()
-                           : nsIntRect();
-  }
   if (!invalidRect.IsEmpty() && wasDefaultFlags) {
     
     UpdateImageContainer();
