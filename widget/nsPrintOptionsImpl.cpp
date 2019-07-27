@@ -236,6 +236,17 @@ nsPrintOptions::SerializeToPrintData(nsIPrintSettings* aSettings,
   data->isIFrameSelected() = false;
   data->isRangeSelection() = false;
   
+  
+  data->printAllPages() = true;
+  data->mustCollate() = false;
+  
+  data->pagesAcross() = 1;
+  data->pagesDown() = 1;
+  
+  data->detailedErrorReporting() = true;
+  
+  data->addHeaderAndFooter() = false;
+  data->fileNameExtensionHidden() = false;
 
   return NS_OK;
 }
