@@ -97,14 +97,6 @@ void PluginWindowEvent::Init(const PluginWindowWeakRef &ref, HWND aWnd,
 
 
 
-typedef enum {
-  nsPluginType_Unknown = 0,
-  nsPluginType_Flash,
-  nsPluginType_Real,
-  nsPluginType_PDF,
-  nsPluginType_Other
-} nsPluginType;
-
 class nsPluginNativeWindowWin : public nsPluginNativeWindow {
 public: 
   nsPluginNativeWindowWin();
@@ -135,7 +127,7 @@ private:
   HWND mParentWnd;
   LONG_PTR mParentProc;
 public:
-  nsPluginType mPluginType;
+  nsPluginHost::SpecialType mPluginType;
 };
 
 static bool sInMessageDispatch = false;
@@ -213,7 +205,7 @@ static LRESULT CALLBACK PluginWndProcInternal(HWND hWnd, UINT msg, WPARAM wParam
   
   
   
-  if (win->mPluginType == nsPluginType_Real) {
+  if (win->mPluginType == nsPluginHost::eSpecialType_RealPlayer) {
     if (sInMessageDispatch && msg == sLastMsg)
       return true;
     
@@ -291,7 +283,7 @@ static LRESULT CALLBACK PluginWndProcInternal(HWND hWnd, UINT msg, WPARAM wParam
     case WM_KILLFOCUS: {
       
       
-      if (win->mPluginType == nsPluginType_Real && msg == sLastMsg)
+      if (win->mPluginType == nsPluginHost::eSpecialType_RealPlayer && msg == sLastMsg)
         return TRUE;
       
       
@@ -309,7 +301,7 @@ static LRESULT CALLBACK PluginWndProcInternal(HWND hWnd, UINT msg, WPARAM wParam
   
   
   
-  if (win->mPluginType == nsPluginType_Flash) {
+  if (win->mPluginType == nsPluginHost::eSpecialType_Flash) {
     if (ProcessFlashMessageDelayed(win, inst, hWnd, msg, wParam, lParam))
       return TRUE;
   }
@@ -403,7 +395,7 @@ SetWindowLongHookCheck(HWND hWnd,
 {
   nsPluginNativeWindowWin * win =
     (nsPluginNativeWindowWin *)GetProp(hWnd, NS_PLUGIN_WINDOW_PROPERTY_ASSOCIATION);
-  if (!win || (win && win->mPluginType != nsPluginType_Flash) ||
+  if (!win || (win && win->mPluginType != nsPluginHost::eSpecialType_Flash) ||
       (nIndex == GWLP_WNDPROC &&
        newLong == reinterpret_cast<LONG_PTR>(PluginWndProc)))
     return true;
@@ -507,7 +499,7 @@ nsPluginNativeWindowWin::nsPluginNativeWindowWin() : nsPluginNativeWindow()
 
   mPrevWinProc = nullptr;
   mPluginWinProc = nullptr;
-  mPluginType = nsPluginType_Unknown;
+  mPluginType = nsPluginHost::eSpecialType_None;
 
   mParentWnd = nullptr;
   mParentProc = 0;
@@ -615,18 +607,10 @@ nsresult nsPluginNativeWindowWin::CallSetWindow(nsRefPtr<nsNPAPIPluginInstance> 
   }
 
   
-  if (mPluginType == nsPluginType_Unknown) {
+  if (mPluginType == nsPluginHost::eSpecialType_None) {
     const char* mimetype = nullptr;
-    aPluginInstance->GetMIMEType(&mimetype);
-    if (mimetype) { 
-      if (!strcmp(mimetype, "application/x-shockwave-flash"))
-        mPluginType = nsPluginType_Flash;
-      else if (!strcmp(mimetype, "audio/x-pn-realaudio-plugin"))
-        mPluginType = nsPluginType_Real;
-      else if (!strcmp(mimetype, "application/pdf"))
-        mPluginType = nsPluginType_PDF;
-      else
-        mPluginType = nsPluginType_Other;
+    if (NS_SUCCEEDED(aPluginInstance->GetMIMEType(&mimetype)) && mimetype) {
+      mPluginType = nsPluginHost::GetSpecialType(nsDependentCString(mimetype));
     }
   }
 
@@ -649,7 +633,7 @@ nsresult nsPluginNativeWindowWin::CallSetWindow(nsRefPtr<nsNPAPIPluginInstance> 
 
     
     
-    if (mPluginType == nsPluginType_PDF) {
+    if (mPluginType == nsPluginHost::eSpecialType_PDF) {
       HWND parent = ::GetParent((HWND)window);
       if (mParentWnd != parent) {
         NS_ASSERTION(!mParentWnd, "Plugin's parent window changed");
@@ -663,7 +647,7 @@ nsresult nsPluginNativeWindowWin::CallSetWindow(nsRefPtr<nsNPAPIPluginInstance> 
 
   SubclassAndAssociateWindow();
 
-  if (window && mPluginType == nsPluginType_Flash &&
+  if (window && mPluginType == nsPluginHost::eSpecialType_Flash &&
       !GetPropW((HWND)window, L"PluginInstanceParentProperty")) {
     HookSetWindowLongPtr();
   }
@@ -741,7 +725,7 @@ nsresult nsPluginNativeWindowWin::UndoSubclassAndAssociateWindow()
     SetWindowLongPtr(hWnd, GWL_STYLE, style);
   }
 
-  if (mPluginType == nsPluginType_PDF && mParentWnd) {
+  if (mPluginType == nsPluginHost::eSpecialType_Flash && mParentWnd) {
     ::SetWindowLongPtr(mParentWnd, GWLP_WNDPROC, mParentProc);
     mParentWnd = nullptr;
     mParentProc = 0;

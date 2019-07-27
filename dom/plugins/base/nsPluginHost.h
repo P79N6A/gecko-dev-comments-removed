@@ -172,8 +172,19 @@ public:
   static bool IsTypeWhitelisted(const char *aType);
 
   
-  
-  static bool IsJavaMIMEType(const char *aType);
+  enum SpecialType { eSpecialType_None,
+                     
+                     eSpecialType_Flash,
+                     
+                     
+                     eSpecialType_Java,
+                     
+                     eSpecialType_Silverlight,
+                     
+                     eSpecialType_PDF,
+                     
+                     eSpecialType_RealPlayer };
+  static SpecialType GetSpecialType(const nsACString & aMIMEType);
 
   static nsresult PostPluginUnloadEvent(PRLibrary* aLibrary);
 

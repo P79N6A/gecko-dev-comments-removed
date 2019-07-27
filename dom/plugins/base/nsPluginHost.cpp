@@ -1652,19 +1652,43 @@ nsPluginHost::SiteHasData(nsIPluginTag* plugin, const nsACString& domain,
   return NS_OK;
 }
 
-bool nsPluginHost::IsJavaMIMEType(const char* aType)
+nsPluginHost::SpecialType
+nsPluginHost::GetSpecialType(const nsACString & aMIMEType)
 {
+  if (aMIMEType.LowerCaseEqualsASCII("application/x-shockwave-flash") ||
+      aMIMEType.LowerCaseEqualsASCII("application/futuresplash")) {
+    return eSpecialType_Flash;
+  }
+
+  if (aMIMEType.LowerCaseEqualsASCII("application/x-silverlight") ||
+      aMIMEType.LowerCaseEqualsASCII("application/x-silverlight-2")) {
+    return eSpecialType_Silverlight;
+  }
+
+  if (aMIMEType.LowerCaseEqualsASCII("audio/x-pn-realaudio-plugin")) {
+    NS_WARNING("You are loading RealPlayer");
+    return eSpecialType_RealPlayer;
+  }
+
+  if (aMIMEType.LowerCaseEqualsASCII("application/pdf")) {
+    return eSpecialType_PDF;
+  }
+
+  
+  
+  const nsACString &noParam = Substring(aMIMEType, 0, aMIMEType.FindChar(';'));
+
   
   
   nsAdoptingCString javaMIME = Preferences::GetCString(kPrefJavaMIME);
-  return aType &&
-    (javaMIME.EqualsIgnoreCase(aType) ||
-     (0 == PL_strncasecmp(aType, "application/x-java-vm",
-                          sizeof("application/x-java-vm") - 1)) ||
-     (0 == PL_strncasecmp(aType, "application/x-java-applet",
-                          sizeof("application/x-java-applet") - 1)) ||
-     (0 == PL_strncasecmp(aType, "application/x-java-bean",
-                          sizeof("application/x-java-bean") - 1)));
+  if ((!javaMIME.IsEmpty() && noParam.LowerCaseEqualsASCII(javaMIME)) ||
+      noParam.LowerCaseEqualsASCII("application/x-java-vm") ||
+      noParam.LowerCaseEqualsASCII("application/x-java-applet") ||
+      noParam.LowerCaseEqualsASCII("application/x-java-bean")) {
+    return eSpecialType_Java;
+  }
+
+  return eSpecialType_None;
 }
 
 
