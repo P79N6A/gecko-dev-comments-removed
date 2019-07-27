@@ -34,32 +34,6 @@ this.ResetProfile = {
     return false;
   },
 
-  getMigratedData: function() {
-    Cu.import("resource:///modules/MigrationUtils.jsm");
-
-    
-    const MIGRATED_TYPES = [
-      128,
-      4,  
-      16, 
-      8,  
-      2,  
-    ];
-
-    
-    let dataTypes = [];
-    for (let itemID of MIGRATED_TYPES) {
-      try {
-        let typeName = MigrationUtils.getLocalizedString(itemID + "_" + MOZ_APP_NAME);
-        dataTypes.push(typeName);
-      } catch (x) {
-        
-        Cu.reportError(x);
-      }
-    }
-    return dataTypes;
-  },
-
   
 
 
