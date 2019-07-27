@@ -396,21 +396,6 @@ public:
   
 
   
-
-
-
-
-
-  void RecreateDecodedStream(int64_t aStartTimeUSecs,
-                             MediaStreamGraph* aGraph = nullptr);
-
-  DecodedStreamData* GetDecodedStream()
-  {
-    GetReentrantMonitor().AssertCurrentThreadIn();
-    return mDecodedStream.GetData();
-  }
-
-  
   
   
   virtual void AddOutputStream(ProcessedMediaStream* aStream, bool aFinishWhenEnded);
@@ -1009,13 +994,6 @@ private:
 #endif
 
 protected:
-  
-  
-  
-  
-  
-  DecodedStream mDecodedStream;
-
   
   
   

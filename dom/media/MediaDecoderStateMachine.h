@@ -92,13 +92,13 @@
 #include "mozilla/RollingMean.h"
 #include "MediaTimer.h"
 #include "StateMirroring.h"
+#include "DecodedStream.h"
 
 namespace mozilla {
 
 class AudioSegment;
 class MediaTaskQueue;
 class AudioSink;
-class DecodedStreamData;
 
 
 
@@ -145,7 +145,9 @@ public:
     return mState;
   }
 
-  void DispatchAudioCaptured();
+  DecodedStreamData* GetDecodedStream() const;
+
+  void AddOutputStream(ProcessedMediaStream* aStream, bool aFinishWhenEnded);
 
   
   bool IsDormantNeeded();
@@ -158,12 +160,20 @@ private:
   
   void InitializationTask();
 
+  void DispatchAudioCaptured();
+
   
   
   void UpdateStreamBlockingForPlayState();
 
   
   void UpdateStreamBlockingForStateMachinePlaying();
+
+  
+  
+  
+  
+  void RecreateDecodedStream(int64_t aInitialTime, MediaStreamGraph* aGraph);
 
   void Shutdown();
 public:
@@ -346,6 +356,10 @@ public:
     MOZ_ASSERT(NS_IsMainThread());
     if (mReader) {
       mReader->BreakCycles();
+    }
+    {
+      ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+      mDecodedStream.DestroyData();
     }
     mDecoder = nullptr;
   }
@@ -1278,6 +1292,13 @@ protected:
   bool mSentFirstFrameLoadedEvent;
 
   bool mSentPlaybackEndedEvent;
+
+  
+  
+  
+  
+  
+  DecodedStream mDecodedStream;
 };
 
 } 
