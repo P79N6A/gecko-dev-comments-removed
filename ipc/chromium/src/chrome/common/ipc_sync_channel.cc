@@ -11,7 +11,6 @@
 #include "base/waitable_event.h"
 #include "base/waitable_event_watcher.h"
 #include "chrome/common/ipc_sync_message.h"
-#include "nsISupportsImpl.h"
 
 using base::TimeDelta;
 using base::TimeTicks;
@@ -35,9 +34,9 @@ namespace IPC {
 
 
 
-class SyncChannel::ReceivedSyncMsgQueue {
+class SyncChannel::ReceivedSyncMsgQueue :
+    public base::RefCountedThreadSafe<ReceivedSyncMsgQueue> {
  public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SyncChannel::ReceivedSyncMsgQueue)
   
   
   static ReceivedSyncMsgQueue* AddContext() {
@@ -50,6 +49,9 @@ class SyncChannel::ReceivedSyncMsgQueue {
     }
     rv->listener_count_++;
     return rv;
+  }
+
+  ~ReceivedSyncMsgQueue() {
   }
 
   
@@ -90,7 +92,7 @@ class SyncChannel::ReceivedSyncMsgQueue {
   void DispatchMessages() {
     while (true) {
       Message* message;
-      nsRefPtr<SyncChannel::SyncContext> context;
+      scoped_refptr<SyncChannel::SyncContext> context;
       {
         AutoLock auto_lock(message_lock_);
         if (message_queue_.empty())
@@ -146,9 +148,6 @@ class SyncChannel::ReceivedSyncMsgQueue {
     }
   }
 
- protected:
-  ~ReceivedSyncMsgQueue() {}
-
  private:
   
   
@@ -163,7 +162,7 @@ class SyncChannel::ReceivedSyncMsgQueue {
   struct QueuedMessage {
     QueuedMessage(Message* m, SyncContext* c) : message(m), context(c) { }
     Message* message;
-    nsRefPtr<SyncChannel::SyncContext> context;
+    scoped_refptr<SyncChannel::SyncContext> context;
   };
 
   typedef std::deque<QueuedMessage> SyncMessageQueue;
@@ -369,7 +368,7 @@ bool SyncChannel::SendWithTimeout(Message* message, int timeout_ms) {
   }
 
   
-  nsRefPtr<SyncContext> context(sync_context());
+  scoped_refptr<SyncContext> context(sync_context());
   if (context->shutdown_event()->IsSignaled()) {
     delete message;
     return false;

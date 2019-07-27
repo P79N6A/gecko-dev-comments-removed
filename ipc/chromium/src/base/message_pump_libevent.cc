@@ -13,10 +13,10 @@
 #include "eintr_wrapper.h"
 #include "base/logging.h"
 #include "base/scoped_nsautorelease_pool.h"
+#include "base/scoped_ptr.h"
 #include "base/time.h"
 #include "nsDependentSubstring.h"
 #include "third_party/libevent/event.h"
-#include "mozilla/UniquePtr.h"
 
 
 
@@ -170,11 +170,11 @@ bool MessagePumpLibevent::WatchFileDescriptor(int fd,
   
   
   bool should_delete_event = true;
-  mozilla::UniquePtr<event> evt(controller->ReleaseEvent());
+  scoped_ptr<event> evt(controller->ReleaseEvent());
   if (evt.get() == NULL) {
     should_delete_event = false;
     
-    evt = mozilla::MakeUnique<event>();
+    evt.reset(new event);
   }
 
   
@@ -273,7 +273,7 @@ MessagePumpLibevent::CatchSignal(int sig,
   
   DCHECK(NULL == sigevent->event_);
 
-  mozilla::UniquePtr<event> evt = mozilla::MakeUnique<event>();
+  scoped_ptr<event> evt(new event);
   signal_set(evt.get(), sig, OnLibeventSignalNotification, delegate);
 
   if (event_base_set(event_base_, evt.get()))

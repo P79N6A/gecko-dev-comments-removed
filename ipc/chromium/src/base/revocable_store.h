@@ -5,9 +5,7 @@
 #ifndef BASE_REVOCABLE_STORE_H_
 #define BASE_REVOCABLE_STORE_H_
 
-#include "base/basictypes.h"
-#include "nsISupportsImpl.h"
-#include "nsAutoPtr.h"
+#include "base/ref_counted.h"
 
 
 class RevocableStore {
@@ -17,16 +15,13 @@ class RevocableStore {
   
   
   
-  class StoreRef MOZ_FINAL {
+  class StoreRef : public base::RefCounted<StoreRef> {
    public:
-    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(StoreRef)
     explicit StoreRef(RevocableStore* store) : store_(store) { }
 
     void set_store(RevocableStore* store) { store_ = store; }
     RevocableStore* store() const { return store_; }
 
-   protected:
-    ~StoreRef() {}
    private:
     RevocableStore* store_;
 
@@ -46,7 +41,7 @@ class RevocableStore {
   private:
     
     
-    nsRefPtr<StoreRef> store_reference_;
+    scoped_refptr<StoreRef> store_reference_;
 
     DISALLOW_EVIL_CONSTRUCTORS(Revocable);
   };
@@ -68,7 +63,7 @@ class RevocableStore {
   void Add(Revocable* item);
 
   
-  nsRefPtr<StoreRef> owning_reference_;
+  scoped_refptr<StoreRef> owning_reference_;
 
   
   int count_;

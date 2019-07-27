@@ -7,8 +7,8 @@
 
 #include "base/message_pump.h"
 #include "base/observer_list.h"
+#include "base/scoped_ptr.h"
 #include "base/time.h"
-#include "mozilla/UniquePtr.h"
 
 typedef union _GdkEvent GdkEvent;
 typedef struct _GMainContext GMainContext;
@@ -129,7 +129,7 @@ class MessagePumpForUI : public MessagePump {
   int wakeup_pipe_read_;
   int wakeup_pipe_write_;
   
-  mozilla::UniquePtr<GPollFD> wakeup_gpollfd_;
+  scoped_ptr<GPollFD> wakeup_gpollfd_;
 
   
   ObserverList<Observer> observers_;

@@ -17,8 +17,6 @@
 #include "base/message_loop.h"
 #include "chrome/common/file_descriptor_set_posix.h"
 
-#include "nsAutoPtr.h"
-
 namespace IPC {
 
 
@@ -148,7 +146,7 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
 #if defined(OS_MACOSX)
   struct PendingDescriptors {
     uint32_t id;
-    nsRefPtr<FileDescriptorSet> fds;
+    scoped_refptr<FileDescriptorSet> fds;
 
     PendingDescriptors() : id(0) { }
     PendingDescriptors(uint32_t id, FileDescriptorSet *fds)

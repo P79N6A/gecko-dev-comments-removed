@@ -5,16 +5,14 @@
 #ifndef BASE_MESSAGE_PUMP_H_
 #define BASE_MESSAGE_PUMP_H_
 
-#include "nsISupportsImpl.h"
+#include "base/ref_counted.h"
 
 namespace base {
 
 class TimeTicks;
 
-class MessagePump {
+class MessagePump : public RefCountedThreadSafe<MessagePump> {
  public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MessagePump)
-
   
   
   class Delegate {
@@ -40,6 +38,8 @@ class MessagePump {
     
     virtual bool DoIdleWork() = 0;
   };
+
+  virtual ~MessagePump() {}
 
   
   
@@ -123,9 +123,6 @@ class MessagePump {
   
   
   virtual void ScheduleDelayedWork(const TimeTicks& delayed_work_time) = 0;
-
-protected:
-  virtual ~MessagePump() {};
 };
 
 }  

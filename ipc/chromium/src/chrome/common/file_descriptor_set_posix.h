@@ -9,17 +9,17 @@
 
 #include "base/basictypes.h"
 #include "base/file_descriptor_posix.h"
-#include "nsISupportsImpl.h"
+#include "base/ref_counted.h"
 
 
 
 
 
 
-class FileDescriptorSet {
+class FileDescriptorSet : public base::RefCountedThreadSafe<FileDescriptorSet> {
  public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(FileDescriptorSet)
   FileDescriptorSet();
+  ~FileDescriptorSet();
 
   
   
@@ -84,8 +84,6 @@ class FileDescriptorSet {
   
 
  private:
-  ~FileDescriptorSet();
-
   
   
   

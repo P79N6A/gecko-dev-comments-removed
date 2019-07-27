@@ -10,10 +10,10 @@
 #include <list>
 
 #include "base/basictypes.h"
+#include "base/scoped_ptr.h"
 #include "base/waitable_event_watcher.h"
 #include "chrome/common/child_process_info.h"
 #include "chrome/common/ipc_channel.h"
-#include "mozilla/UniquePtr.h"
 
 namespace mozilla {
 namespace ipc {
@@ -116,7 +116,7 @@ class ChildProcessHost :
   bool opening_channel_;
 
   
-  mozilla::UniquePtr<IPC::Channel> channel_;
+  scoped_ptr<IPC::Channel> channel_;
 
   
   std::wstring channel_id_;
@@ -124,7 +124,7 @@ class ChildProcessHost :
   
   base::WaitableEventWatcher watcher_;
 
-  mozilla::UniquePtr<base::WaitableEvent> process_event_;
+  scoped_ptr<base::WaitableEvent> process_event_;
 };
 
 #endif  
