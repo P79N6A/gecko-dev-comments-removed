@@ -239,9 +239,11 @@ function getGfxField(aPropertyName, aDefault) {
 
 
 function getGfxAdapter(aSuffix = "") {
-  let memoryMB = getGfxField("adapterRAM" + aSuffix, null);
-  if (memoryMB) {
-    memoryMB = parseInt(memoryMB, 10);
+  
+  
+  let memoryMB = parseInt(getGfxField("adapterRAM" + aSuffix, null), 10);
+  if (Number.isNaN(memoryMB)) {
+    memoryMB = null;
   }
 
   return {
