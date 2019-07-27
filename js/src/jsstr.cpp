@@ -422,10 +422,10 @@ const Class StringObject::class_ = {
     js_String_str,
     JSCLASS_HAS_RESERVED_SLOTS(StringObject::RESERVED_SLOTS) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_String),
-    nullptr,                 
-    nullptr,                 
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
     str_enumerate,
     str_resolve
 };

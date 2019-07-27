@@ -868,13 +868,13 @@ const Class MapIteratorObject::class_ = {
     "Map Iterator",
     JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(MapIteratorObject::SlotCount),
-    nullptr,                 
-    nullptr,                 
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
     MapIteratorObject::finalize
 };
 
@@ -1012,17 +1012,17 @@ const Class MapObject::class_ = {
     "Map",
     JSCLASS_HAS_PRIVATE | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_CACHED_PROTO(JSProto_Map),
-    nullptr,                 
-    nullptr,                 
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
     finalize,
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
+    nullptr, 
+    nullptr, 
+    nullptr, 
     mark
 };
 
@@ -1544,13 +1544,13 @@ const Class SetIteratorObject::class_ = {
     "Set Iterator",
     JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(SetIteratorObject::SlotCount),
-    nullptr,                 
-    nullptr,                 
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
     SetIteratorObject::finalize
 };
 
@@ -1684,17 +1684,17 @@ const Class SetObject::class_ = {
     "Set",
     JSCLASS_HAS_PRIVATE | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_CACHED_PROTO(JSProto_Set),
-    nullptr,                 
-    nullptr,                 
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
     finalize,
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
+    nullptr, 
+    nullptr, 
+    nullptr, 
     mark
 };
 

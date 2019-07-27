@@ -78,11 +78,7 @@ MathCache::sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf)
 
 const Class js::MathClass = {
     js_Math_str,
-    JSCLASS_HAS_CACHED_PROTO(JSProto_Math),
-    nullptr,                 
-    nullptr,                 
-    JS_PropertyStub,         
-    JS_StrictPropertyStub    
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Math)
 };
 
 bool

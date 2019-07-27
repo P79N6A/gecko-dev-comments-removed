@@ -53,15 +53,7 @@ using namespace JS;
 
 
 
-static const JSClass kFakeBackstagePassJSClass =
-{
-    "FakeBackstagePass",
-    0,
-    nullptr,
-    nullptr,
-    JS_PropertyStub,
-    JS_StrictPropertyStub
-};
+static const JSClass kFakeBackstagePassJSClass = { "FakeBackstagePass" };
 
 static const char kXPConnectServiceContractID[] = "@mozilla.org/js/xpc/XPConnect;1";
 static const char kObserverServiceContractID[] = "@mozilla.org/observer-service;1";

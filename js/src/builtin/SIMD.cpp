@@ -168,18 +168,15 @@ static bool type##SignMask(JSContext *cx, unsigned argc, Value *vp) { \
 const Class SimdTypeDescr::class_ = {
     "SIMD",
     JSCLASS_HAS_RESERVED_SLOTS(JS_DESCR_SLOTS) | JSCLASS_BACKGROUND_FINALIZE,
-    nullptr,                 
-    nullptr,                 
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
+    nullptr, 
     TypeDescr::finalize,
-    call,
-    nullptr,                 
-    nullptr,                 
-    nullptr
+    call
 };
 
 
@@ -354,11 +351,7 @@ SimdTypeDescr::call(JSContext *cx, unsigned argc, Value *vp)
 
 const Class SIMDObject::class_ = {
     "SIMD",
-    JSCLASS_HAS_CACHED_PROTO(JSProto_SIMD),
-    nullptr,                 
-    nullptr,                 
-    JS_PropertyStub,         
-    JS_StrictPropertyStub    
+    JSCLASS_HAS_CACHED_PROTO(JSProto_SIMD)
 };
 
 JSObject *

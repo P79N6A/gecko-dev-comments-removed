@@ -895,8 +895,8 @@ const Class JSFunction::class_ = {
     JSCLASS_HAS_CACHED_PROTO(JSProto_Function),
     nullptr,                 
     nullptr,                 
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
+    nullptr,                 
+    nullptr,                 
     fun_enumerate,
     js::fun_resolve,
     nullptr,                 
@@ -2124,10 +2124,8 @@ js::DefineFunction(JSContext *cx, HandleObject obj, HandleId id, Native native,
     } else {
         gop = obj->getClass()->getProperty;
         sop = obj->getClass()->setProperty;
-        if (gop == JS_PropertyStub)
-            gop = nullptr;
-        if (sop == JS_StrictPropertyStub)
-            sop = nullptr;
+        MOZ_ASSERT(gop != JS_PropertyStub);
+        MOZ_ASSERT(sop != JS_StrictPropertyStub);
     }
 
     JSFunction::Flags funFlags;
