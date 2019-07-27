@@ -122,9 +122,10 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eOpenCloseAction,
     eNoLiveAttr,
     kGenericAccType,
-    states::COLLAPSED | states::HASPOPUP,
+    states::COLLAPSED | states::HASPOPUP | states::VERTICAL,
     eARIAAutoComplete,
-    eARIAReadonly
+    eARIAReadonly,
+    eARIAOrientation
   },
   { 
     &nsGkAtoms::dialog,
@@ -261,10 +262,11 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoAction,
     eNoLiveAttr,
     eListControl | eSelect,
-    kNoReqStates,
+    states::VERTICAL,
     eARIAMultiSelectable,
     eARIAReadonly,
-    eFocusableUntilDisabled
+    eFocusableUntilDisabled,
+    eARIAOrientation
   },
   { 
     &nsGkAtoms::listitem,
@@ -315,7 +317,8 @@ static nsRoleMapEntry sWAIRoleMaps[] =
                
     eNoLiveAttr,
     kGenericAccType,
-    kNoReqStates
+    states::VERTICAL,
+    eARIAOrientation
   },
   { 
     &nsGkAtoms::menubar,
@@ -325,7 +328,8 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoAction,
     eNoLiveAttr,
     kGenericAccType,
-    kNoReqStates
+    states::HORIZONTAL,
+    eARIAOrientation
   },
   { 
     &nsGkAtoms::menuitem,
@@ -422,7 +426,8 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoAction,
     eNoLiveAttr,
     kGenericAccType,
-    kNoReqStates
+    kNoReqStates,
+    eARIAOrientation
   },
   { 
     &nsGkAtoms::region,
@@ -475,7 +480,7 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoAction,
     eNoLiveAttr,
     kGenericAccType,
-    kNoReqStates,
+    states::VERTICAL,
     eARIAOrientation,
     eARIAReadonly
   },
@@ -487,7 +492,7 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoAction,
     eNoLiveAttr,
     kGenericAccType,
-    kNoReqStates,
+    states::HORIZONTAL,
     eARIAOrientation
   },
   { 
@@ -498,7 +503,7 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoAction,
     eNoLiveAttr,
     kGenericAccType,
-    kNoReqStates,
+    states::HORIZONTAL,
     eARIAOrientation,
     eARIAReadonly
   },
@@ -542,7 +547,8 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoAction,
     eNoLiveAttr,
     eSelect,
-    kNoReqStates
+    states::HORIZONTAL,
+    eARIAOrientation
   },
   { 
     &nsGkAtoms::tabpanel,
@@ -584,7 +590,8 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoAction,
     eNoLiveAttr,
     kGenericAccType,
-    kNoReqStates
+    states::HORIZONTAL,
+    eARIAOrientation
   },
   { 
     &nsGkAtoms::tooltip,
@@ -604,10 +611,11 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoAction,
     eNoLiveAttr,
     eSelect,
-    kNoReqStates,
+    states::VERTICAL,
     eARIAReadonly,
     eARIAMultiSelectable,
-    eFocusableUntilDisabled
+    eFocusableUntilDisabled,
+    eARIAOrientation
   },
   { 
     &nsGkAtoms::treegrid,
@@ -617,10 +625,11 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoAction,
     eNoLiveAttr,
     eSelect | eTable,
-    kNoReqStates,
+    states::VERTICAL,
     eARIAReadonlyOrEditable,
     eARIAMultiSelectable,
-    eFocusableUntilDisabled
+    eFocusableUntilDisabled,
+    eARIAOrientation
   },
   { 
     &nsGkAtoms::treeitem,
