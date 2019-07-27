@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "GetFileOrDirectoryTask.h"
 
@@ -47,7 +47,7 @@ GetFileOrDirectoryTask::GetFileOrDirectoryTask(
   : FileSystemTaskBase(aFileSystem, aParam, aParent)
   , mIsDirectory(false)
 {
-  MOZ_ASSERT(FileSystemUtils::IsParentProcess(),
+  MOZ_ASSERT(XRE_IsParentProcess(),
              "Only call from parent process!");
   MOZ_ASSERT(NS_IsMainThread(), "Only call on main thread!");
   MOZ_ASSERT(aFileSystem);
@@ -119,7 +119,7 @@ GetFileOrDirectoryTask::SetSuccessRequestResult(const FileSystemResponseValue& a
 nsresult
 GetFileOrDirectoryTask::Work()
 {
-  MOZ_ASSERT(FileSystemUtils::IsParentProcess(),
+  MOZ_ASSERT(XRE_IsParentProcess(),
              "Only call from parent process!");
   MOZ_ASSERT(!NS_IsMainThread(), "Only call on worker thread!");
 
@@ -127,7 +127,7 @@ GetFileOrDirectoryTask::Work()
     return NS_ERROR_FAILURE;
   }
 
-  
+  // Whether we want to get the root directory.
   bool getRoot = mTargetRealPath.IsEmpty();
 
   nsCOMPtr<nsIFile> file = mFileSystem->GetLocalFile(mTargetRealPath);
@@ -146,14 +146,14 @@ GetFileOrDirectoryTask::Work()
       return NS_ERROR_DOM_FILE_NOT_FOUND_ERR;
     }
 
-    
+    // If the root directory doesn't exit, create it.
     rv = file->Create(nsIFile::DIRECTORY_TYPE, 0777);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
   }
 
-  
+  // Get isDirectory.
   rv = file->IsDirectory(&mIsDirectory);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -163,20 +163,20 @@ GetFileOrDirectoryTask::Work()
     return NS_OK;
   }
 
-  
+  // Check if the root is a directory.
   if (getRoot) {
     return NS_ERROR_DOM_FILESYSTEM_TYPE_MISMATCH_ERR;
   }
 
   bool isFile;
-  
+  // Get isFile
   rv = file->IsFile(&isFile);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
 
   if (!isFile) {
-    
+    // Neither directory or file.
     return NS_ERROR_DOM_FILESYSTEM_TYPE_MISMATCH_ERR;
   }
 
@@ -224,5 +224,5 @@ GetFileOrDirectoryTask::GetPermissionAccessType(nsCString& aAccess) const
   aAccess.AssignLiteral("read");
 }
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla

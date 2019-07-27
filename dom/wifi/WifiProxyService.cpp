@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "WifiProxyService.h"
 #include "nsServiceManagerUtils.h"
@@ -25,13 +25,13 @@ using namespace mozilla::dom;
 
 namespace mozilla {
 
-// The singleton Wifi service, to be used on the main thread.
+
 static StaticRefPtr<WifiProxyService> gWifiProxyService;
 
-// The singleton supplicant class, that can be used on any thread.
+
 static nsAutoPtr<WpaSupplicant> gWpaSupplicant;
 
-// Runnable used dispatch the WaitForEvent result on the main thread.
+
 class WifiEventDispatcher : public nsRunnable
 {
 public:
@@ -54,7 +54,7 @@ private:
   nsCString mInterface;
 };
 
-// Runnable used to call WaitForEvent on the event thread.
+
 class EventRunnable : public nsRunnable
 {
 public:
@@ -71,8 +71,8 @@ public:
     gWpaSupplicant->WaitForEvent(event, mInterface);
     if (!event.IsEmpty()) {
 #ifdef MOZ_TASK_TRACER
-      // Make wifi initialization events to be the source events of TaskTracer,
-      // and originate the rest correlation tasks from here.
+      
+      
       AutoSourceEvent taskTracerEvent(SourceEventType::Wifi);
       AddLabel("%s %s", mInterface.get(), NS_ConvertUTF16toUTF8(event).get());
 #endif
@@ -86,7 +86,7 @@ private:
   nsCString mInterface;
 };
 
-// Runnable used dispatch the Command result on the main thread.
+
 class WifiResultDispatcher : public nsRunnable
 {
 public:
@@ -109,7 +109,7 @@ private:
   nsCString mInterface;
 };
 
-// Runnable used to call SendCommand on the control thread.
+
 class ControlRunnable : public nsRunnable
 {
 public:
@@ -150,7 +150,7 @@ WifiProxyService::~WifiProxyService()
 already_AddRefed<WifiProxyService>
 WifiProxyService::FactoryCreate()
 {
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+  if (!XRE_IsParentProcess()) {
     return nullptr;
   }
 
@@ -177,18 +177,18 @@ WifiProxyService::Start(nsIWifiEventListener* aListener,
   MOZ_ASSERT(aListener);
 
 #if ANDROID_VERSION >= 19
-  // KK changes the way mux'ing/demux'ing different supplicant interfaces
-  // (e.g. wlan0/p2p0) from multi-sockets to single socket embedded with
-  // prefixed interface name (e.g. IFNAME=wlan0 xxxxxx). Therefore, we use
-  // the first given interface as the global interface for KK.
+  
+  
+  
+  
   aNumOfInterfaces = 1;
 #endif
 
   nsresult rv;
 
-  // Since EventRunnable runs in the manner of blocking, we have to
-  // spin a thread for each interface.
-  // (See the WpaSupplicant::WaitForEvent)
+  
+  
+  
   mEventThreadList.SetLength(aNumOfInterfaces);
   for (uint32_t i = 0; i < aNumOfInterfaces; i++) {
     mEventThreadList[i].mInterface = aInterfaces[i];
@@ -248,7 +248,7 @@ WifiProxyService::SendCommand(JS::Handle<JS::Value> aOptions,
     return NS_ERROR_FAILURE;
   }
 
-  // Dispatch the command to the control thread.
+  
   CommandOptions commandOptions(options);
   nsCOMPtr<nsIRunnable> runnable = new ControlRunnable(commandOptions, aInterface);
   mControlThread->Dispatch(runnable, nsIEventTarget::DISPATCH_NORMAL);
@@ -261,14 +261,14 @@ WifiProxyService::WaitForEvent(const nsACString& aInterface)
   MOZ_ASSERT(NS_IsMainThread());
 
 #if ANDROID_VERSION >= 19
-  // We will only have one global interface for KK.
+  
   if (!mEventThreadList.IsEmpty()) {
     nsCOMPtr<nsIRunnable> runnable = new EventRunnable(aInterface);
     mEventThreadList[0].mThread->Dispatch(runnable, nsIEventTarget::DISPATCH_NORMAL);
     return NS_OK;
   }
 #else
-  // Dispatch to the event thread which has the given interface name
+  
   for (size_t i = 0; i < mEventThreadList.Length(); i++) {
     if (mEventThreadList[i].mInterface.Equals(aInterface)) {
       nsCOMPtr<nsIRunnable> runnable = new EventRunnable(aInterface);
@@ -293,7 +293,7 @@ WifiProxyService::DispatchWifiResult(const WifiResultOptions& aOptions, const ns
     return;
   }
 
-  // Call the listener with a JS value.
+  
   mListener->OnCommand(val, aInterface);
 }
 
@@ -305,10 +305,10 @@ WifiProxyService::DispatchWifiEvent(const nsAString& aEvent, const nsACString& a
 #if ANDROID_VERSION < 19
   mListener->OnWaitEvent(aEvent, aInterface);
 #else
-  // The interface might be embedded in the event string such as
-  // "IFNAME=wlan0 CTRL-EVENT-BSS-ADDED 65 3c:94:d5:7c:11:8b".
-  // Parse the interface name from the event string and use p2p0
-  // as the default interface if "IFNAME" is not found.
+  
+  
+  
+  
   nsAutoString event;
   nsAutoString embeddedInterface(NS_LITERAL_STRING("p2p0"));
   if (StringBeginsWith(aEvent, NS_LITERAL_STRING("IFNAME"))) {
@@ -346,6 +346,6 @@ static const mozilla::Module kWifiProxyServiceModule = {
   nullptr
 };
 
-} // namespace mozilla
+} 
 
 NSMODULE_DEFN(WifiProxyServiceModule) = &kWifiProxyServiceModule;

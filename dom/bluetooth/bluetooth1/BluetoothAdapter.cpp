@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "base/basictypes.h"
 #include "nsDOMClassInfo.h"
@@ -49,7 +49,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(BluetoothAdapter,
   tmp->Unroot();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-
+// QueryInterface implementation for BluetoothAdapter
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(BluetoothAdapter)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
@@ -155,7 +155,7 @@ public:
   }
 };
 
-static int kCreatePairedDeviceTimeout = 50000; 
+static int kCreatePairedDeviceTimeout = 50000; // unit: msec
 
 BluetoothAdapter::BluetoothAdapter(nsPIDOMWindow* aWindow,
                                    const BluetoothValue& aValue)
@@ -186,7 +186,7 @@ BluetoothAdapter::~BluetoothAdapter()
 {
   Unroot();
   BluetoothService* bs = BluetoothService::Get();
-  
+  // We can be null on shutdown, where this might happen
   NS_ENSURE_TRUE_VOID(bs);
   bs->UnregisterBluetoothSignalHandler(NS_LITERAL_STRING(KEY_ADAPTER), this);
 }
@@ -290,7 +290,7 @@ BluetoothAdapter::SetPropertyByValue(const BluetoothNamedValue& aValue)
   }
 }
 
-
+// static
 already_AddRefed<BluetoothAdapter>
 BluetoothAdapter::Create(nsPIDOMWindow* aWindow, const BluetoothValue& aValue)
 {
@@ -404,8 +404,8 @@ BluetoothAdapter::StartStopDiscovery(bool aStart, ErrorResult& aRv)
     bs->StopDiscoveryInternal(results);
   }
 
-  
-  
+  // mDiscovering is not set here, we'll get a Property update from our external
+  // protocol to tell us that it's been set.
 
   return request.forget();
 }
@@ -784,8 +784,8 @@ BluetoothAdapter::SendFile(const nsAString& aDeviceAddress,
     return nullptr;
   }
 
-  if (XRE_GetProcessType() == GeckoProcessType_Default) {
-    
+  if (XRE_IsParentProcess()) {
+    // In-process transfer
     bs->SendFile(aDeviceAddress, &aBlob, results);
   } else {
     ContentChild *cc = ContentChild::GetSingleton();
@@ -947,7 +947,7 @@ BluetoothAdapter::AnswerWaitingCall(ErrorResult& aRv)
 #else
   aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
   return nullptr;
-#endif 
+#endif // MOZ_B2G_RIL
 }
 
 already_AddRefed<DOMRequest>
@@ -975,7 +975,7 @@ BluetoothAdapter::IgnoreWaitingCall(ErrorResult& aRv)
 #else
   aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
   return nullptr;
-#endif 
+#endif // MOZ_B2G_RIL
 }
 
 already_AddRefed<DOMRequest>
@@ -1003,7 +1003,7 @@ BluetoothAdapter::ToggleCalls(ErrorResult& aRv)
 #else
   aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
   return nullptr;
-#endif 
+#endif // MOZ_B2G_RIL
 }
 
 already_AddRefed<DOMRequest>

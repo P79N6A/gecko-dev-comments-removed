@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/CellBroadcast.h"
 #include "mozilla/dom/CellBroadcastMessage.h"
@@ -10,19 +10,19 @@
 #include "mozilla/dom/MozCellBroadcastEvent.h"
 #include "nsServiceManagerUtils.h"
 
-
+// Service instantiation
 #include "ipc/CellBroadcastIPCService.h"
 #if defined(MOZ_WIDGET_GONK) && defined(MOZ_B2G_RIL)
 #include "nsIGonkCellBroadcastService.h"
 #endif
-#include "nsXULAppAPI.h" 
+#include "nsXULAppAPI.h" // For XRE_GetProcessType()
 
 using namespace mozilla::dom;
 using mozilla::ErrorResult;
 
-
-
-
+/**
+ * CellBroadcast::Listener Implementation.
+ */
 
 class CellBroadcast::Listener final : public nsICellBroadcastListener
 {
@@ -54,11 +54,11 @@ private:
 
 NS_IMPL_ISUPPORTS(CellBroadcast::Listener, nsICellBroadcastListener)
 
+/**
+ * CellBroadcast Implementation.
+ */
 
-
-
-
-
+// static
 already_AddRefed<CellBroadcast>
 CellBroadcast::Create(nsPIDOMWindow* aWindow, ErrorResult& aRv)
 {
@@ -108,7 +108,7 @@ CellBroadcast::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
   return MozCellBroadcastBinding::Wrap(aCx, this, aGivenProto);
 }
 
-
+// Forwarded nsICellBroadcastListener methods
 
 NS_IMETHODIMP
 CellBroadcast::NotifyMessageReceived(uint32_t aServiceId,
@@ -152,7 +152,7 @@ NS_CreateCellBroadcastService()
 {
   nsCOMPtr<nsICellBroadcastService> service;
 
-  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+  if (XRE_IsContentProcess()) {
     service = new mozilla::dom::cellbroadcast::CellBroadcastIPCService();
 #if defined(MOZ_WIDGET_GONK) && defined(MOZ_B2G_RIL)
   } else {

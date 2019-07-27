@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "UDPSocket.h"
 #include "mozilla/AsyncEventDispatcher.h"
@@ -45,7 +45,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(UDPSocket)
   NS_INTERFACE_MAP_ENTRY(nsIUDPSocketInternal)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-/* static */ already_AddRefed<UDPSocket>
+ already_AddRefed<UDPSocket>
 UDPSocket::Constructor(const GlobalObject& aGlobal,
                        const UDPOptions& aOptions,
                        ErrorResult& aRv)
@@ -80,7 +80,7 @@ UDPSocket::Constructor(const GlobalObject& aGlobal,
   if (aOptions.mLocalAddress.WasPassed()) {
     localAddress = aOptions.mLocalAddress.Value();
 
-    // check if localAddress is a valid IPv4/6 address
+    
     NS_ConvertUTF16toUTF8 address(localAddress);
     PRNetAddr prAddr;
     PRStatus status = PR_StringToNetAddr(address.BeginReading(), &prAddr);
@@ -171,7 +171,7 @@ UDPSocket::CloseWithReason(nsresult aReason)
 
   if (mOpened) {
     if (mReadyState == SocketReadyState::Opening) {
-      // reject openedPromise with AbortError if socket is closed without error
+      
       nsresult openFailedReason = NS_FAILED(aReason) ? aReason : NS_ERROR_DOM_ABORT_ERR;
       mOpened->MaybeReject(openFailedReason);
     }
@@ -313,8 +313,8 @@ UDPSocket::Send(const StringOrBlobOrArrayBufferOrArrayBufferView& aData,
 
   MOZ_ASSERT(mSocket || mSocketChild);
 
-  // If the remote address and port were not specified in the constructor or as arguments,
-  // throw InvalidAccessError.
+  
+  
   nsCString remoteAddress;
   if (aRemoteAddress.WasPassed()) {
     remoteAddress = NS_ConvertUTF16toUTF8(aRemoteAddress.Value());
@@ -409,8 +409,8 @@ UDPSocket::InitLocal(const nsAString& aLocalAddress,
   }
 
   if (aLocalAddress.IsEmpty()) {
-    rv = sock->Init(aLocalPort, /* loopback = */ false, principal,
-                    mAddressReuse, /* optionalArgc = */ 1);
+    rv = sock->Init(aLocalPort,  false, principal,
+                    mAddressReuse,  1);
   } else {
     PRNetAddr prAddr;
     PR_InitializeNetAddr(PR_IpAddrAny, aLocalPort, &prAddr);
@@ -420,7 +420,7 @@ UDPSocket::InitLocal(const nsAString& aLocalAddress,
     mozilla::net::NetAddr addr;
     PRNetAddrToNetAddr(&prAddr, &addr);
     rv = sock->InitWithAddress(&addr, principal, mAddressReuse,
-                               /* optionalArgc = */ 1);
+                                1);
   }
   if (NS_FAILED(rv)) {
     return rv;
@@ -433,7 +433,7 @@ UDPSocket::InitLocal(const nsAString& aLocalAddress,
 
   mSocket = sock;
 
-  // Get real local address and local port
+  
   nsCOMPtr<nsINetAddr> localAddr;
   rv = mSocket->GetLocalAddr(getter_AddRefs(localAddr));
   if (NS_FAILED(rv)) {
@@ -558,7 +558,7 @@ UDPSocket::Init(const nsString& aLocalAddress,
       }
 
       nsresult rv;
-      if (XRE_GetProcessType() != GeckoProcessType_Default) {
+      if (!XRE_IsParentProcess()) {
         rv = mSocket->InitRemote(mSocket->mLocalAddress, localPort);
       } else {
         rv = mSocket->InitLocal(mSocket->mLocalAddress, localPort);
@@ -613,7 +613,7 @@ UDPSocket::DispatchReceivedData(const nsACString& aRemoteAddress,
 
   JSContext* cx = jsapi.cx();
 
-  // Copy packet data to ArrayBuffer
+  
   JS::Rooted<JSObject*> arrayBuf(cx, ArrayBuffer::Create(cx, aDataLength, aData));
 
   if (NS_WARN_IF(!arrayBuf)) {
@@ -622,7 +622,7 @@ UDPSocket::DispatchReceivedData(const nsACString& aRemoteAddress,
 
   JS::Rooted<JS::Value> jsData(cx, JS::ObjectValue(*arrayBuf));
 
-  // Create DOM event
+  
   RootedDictionary<UDPMessageEventInit> init(cx);
   init.mRemoteAddress = NS_ConvertUTF8toUTF16(aRemoteAddress);
   init.mRemotePort = aRemotePort;
@@ -642,15 +642,15 @@ UDPSocket::DispatchReceivedData(const nsACString& aRemoteAddress,
   return asyncDispatcher->PostDOMEvent();
 }
 
-// nsIUDPSocketListener
+
 
 NS_IMETHODIMP
 UDPSocket::OnPacketReceived(nsIUDPSocket* aSocket, nsIUDPMessage* aMessage)
 {
-  // nsIUDPSocketListener callbacks should be invoked on main thread.
+  
   MOZ_ASSERT(NS_IsMainThread(), "Not running on main thread");
 
-  // Create appropriate JS object for message
+  
   FallibleTArray<uint8_t>& buffer = aMessage->GetDataAsTArray();
 
   nsCOMPtr<nsINetAddr> addr;
@@ -675,7 +675,7 @@ UDPSocket::OnPacketReceived(nsIUDPSocket* aSocket, nsIUDPMessage* aMessage)
 NS_IMETHODIMP
 UDPSocket::OnStopListening(nsIUDPSocket* aSocket, nsresult aStatus)
 {
-  // nsIUDPSocketListener callbacks should be invoked on main thread.
+  
   MOZ_ASSERT(NS_IsMainThread(), "Not running on main thread");
 
   CloseWithReason(aStatus);
@@ -683,7 +683,7 @@ UDPSocket::OnStopListening(nsIUDPSocket* aSocket, nsresult aStatus)
   return NS_OK;
 }
 
-// nsIUDPSocketInternal
+
 
 NS_IMETHODIMP
 UDPSocket::CallListenerError(const nsACString& aMessage,
@@ -715,7 +715,7 @@ UDPSocket::CallListenerOpened()
 
   MOZ_ASSERT(mSocketChild);
 
-  // Get real local address and local port
+  
   nsCString localAddress;
   mSocketChild->GetLocalAddress(localAddress);
   mLocalAddress = NS_ConvertUTF8toUTF16(localAddress);
@@ -745,5 +745,5 @@ UDPSocket::CallListenerClosed()
   return NS_OK;
 }
 
-} // namespace dom
-} // namespace mozilla
+} 
+} 

@@ -581,7 +581,7 @@ Database::Database()
   , mClosed(false)
   , mConnectionShutdown(new DatabaseShutdown(this))
 {
-  MOZ_ASSERT(XRE_GetProcessType() != GeckoProcessType_Content,
+  MOZ_ASSERT(!XRE_IsContentProcess(),
              "Cannot instantiate Places in the content process");
   
   MOZ_ASSERT(!gDatabase);
@@ -949,10 +949,22 @@ Database::InitSchema(bool* aDatabaseMigrated)
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
+      if (currentSchemaVersion < 14) {
+        rv = MigrateV14Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
       if (currentSchemaVersion < 15) {
         rv = MigrateV15Up();
         NS_ENSURE_SUCCESS(rv, rv);
       }
+
+      if (currentSchemaVersion < 16) {
+        rv = MigrateV16Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      
 
       if (currentSchemaVersion < 17) {
         rv = MigrateV17Up();
@@ -1032,8 +1044,8 @@ Database::InitSchema(bool* aDatabaseMigrated)
 
       
 
-      if (currentSchemaVersion < 30) {
-        rv = MigrateV30Up();
+      if (currentSchemaVersion < 29) {
+        rv = MigrateV29Up();
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
@@ -1110,6 +1122,8 @@ Database::InitSchema(bool* aDatabaseMigrated)
 
     
     rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_FAVICONS);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_FAVICONS_GUID);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -1359,6 +1373,41 @@ Database::MigrateV13Up()
 }
 
 nsresult
+Database::MigrateV14Up()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+  
+  
+  nsCOMPtr<mozIStorageStatement> hasGuidStatement;
+  nsresult rv = mMainConn->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT guid FROM moz_favicons"),
+    getter_AddRefs(hasGuidStatement));
+
+  if (NS_FAILED(rv)) {
+    rv = mMainConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "ALTER TABLE moz_favicons "
+      "ADD COLUMN guid TEXT"
+    ));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_FAVICONS_GUID);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
+  rv = mMainConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+    "UPDATE moz_favicons "
+    "SET guid = GENERATE_GUID() "
+    "WHERE guid ISNULL "
+  ));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
 Database::MigrateV15Up()
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -1378,6 +1427,23 @@ Database::MigrateV15Up()
       "FROM moz_bookmarks "
       "WHERE keyword_id = moz_keywords.id "
     ")"
+  ));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
+Database::MigrateV16Up()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+  
+  nsresult rv = mMainConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+    "UPDATE moz_favicons "
+    "SET guid = GENERATE_GUID() "
+    "WHERE guid ISNULL "
   ));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1841,12 +1907,10 @@ Database::MigrateV28Up() {
 }
 
 nsresult
-Database::MigrateV30Up() {
+Database::MigrateV29Up() {
   MOZ_ASSERT(NS_IsMainThread());
 
-  nsresult rv = mMainConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-    "DROP INDEX IF EXISTS moz_favicons_guid_uniqueindex"
-  ));
+  nsresult rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_FAVICONS_GUID);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -1895,6 +1959,16 @@ Database::Shutdown()
     rv = stmt->ExecuteStep(&haveNullGuids);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
     MOZ_ASSERT(!haveNullGuids && "Found a bookmark without a GUID!");
+
+    rv = mMainConn->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT 1 "
+      "FROM moz_favicons "
+      "WHERE guid IS NULL "
+    ), getter_AddRefs(stmt));
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    rv = stmt->ExecuteStep(&haveNullGuids);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    MOZ_ASSERT(!haveNullGuids && "Found a favicon without a GUID!");
   }
 
   { 

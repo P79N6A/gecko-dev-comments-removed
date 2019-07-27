@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "BluetoothUtils.h"
 #include "BluetoothReplyRunnable.h"
@@ -78,12 +78,12 @@ GenerateUuid(nsAString &aUuidString)
   rv = uuidGenerator->GenerateUUIDInPlace(&uuid);
   NS_ENSURE_SUCCESS_VOID(rv);
 
-  
+  // Build a string in {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} format
   char uuidBuffer[NSID_LENGTH];
   uuid.ToProvidedString(uuidBuffer);
   NS_ConvertASCIItoUTF16 uuidString(uuidBuffer);
 
-  
+  // Remove {} and the null terminator
   aUuidString.Assign(Substring(uuidString, 1, NSID_LENGTH - 3));
 }
 
@@ -127,9 +127,9 @@ UnregisterBluetoothSignalHandler(const nsAString& aPath,
   aHandler->SetSignalRegistered(false);
 }
 
-
-
-
+/**
+ * |SetJsObject| is an internal function used by |BroadcastSystemMessage| only
+ */
 static bool
 SetJsObject(JSContext* aContext,
             const BluetoothValue& aValue,
@@ -266,7 +266,7 @@ DispatchReplySuccess(BluetoothReplyRunnable* aRunnable,
 
   BluetoothReply* reply = new BluetoothReply(BluetoothReplySuccess(aValue));
 
-  aRunnable->SetReply(reply); 
+  aRunnable->SetReply(reply); // runnable will delete reply after Run()
   NS_WARN_IF(NS_FAILED(NS_DispatchToMainThread(aRunnable)));
 }
 
@@ -277,7 +277,7 @@ DispatchReplyError(BluetoothReplyRunnable* aRunnable,
   MOZ_ASSERT(aRunnable);
   MOZ_ASSERT(!aErrorStr.IsEmpty());
 
-  
+  // Reply will be deleted by the runnable after running on main thread
 #ifndef MOZ_B2G_BT_API_V1
   BluetoothReply* reply =
     new BluetoothReply(BluetoothReplyError(STATUS_FAIL, nsString(aErrorStr)));
@@ -286,7 +286,7 @@ DispatchReplyError(BluetoothReplyRunnable* aRunnable,
     new BluetoothReply(BluetoothReplyError(nsString(aErrorStr)));
 #endif
 
-  aRunnable->SetReply(reply); 
+  aRunnable->SetReply(reply); // runnable will delete reply after Run()
   NS_WARN_IF(NS_FAILED(NS_DispatchToMainThread(aRunnable)));
 }
 
@@ -297,7 +297,7 @@ DispatchReplyError(BluetoothReplyRunnable* aRunnable,
   MOZ_ASSERT(aRunnable);
   MOZ_ASSERT(aStatus != STATUS_SUCCESS);
 
-  
+  // Reply will be deleted by the runnable after running on main thread
 #ifndef MOZ_B2G_BT_API_V1
   BluetoothReply* reply =
     new BluetoothReply(BluetoothReplyError(aStatus, EmptyString()));
@@ -307,7 +307,7 @@ DispatchReplyError(BluetoothReplyRunnable* aRunnable,
       BluetoothReplyError(NS_LITERAL_STRING("Internal error")));
 #endif
 
-  aRunnable->SetReply(reply); 
+  aRunnable->SetReply(reply); // runnable will delete reply after Run()
   NS_WARN_IF(NS_FAILED(NS_DispatchToMainThread(aRunnable)));
 }
 
@@ -331,12 +331,6 @@ DispatchStatusChangedEvent(const nsAString& aType,
   BluetoothSignal signal(nsString(aType), NS_LITERAL_STRING(KEY_ADAPTER), data);
   bs->DistributeSignal(signal);
 #endif
-}
-
-bool
-IsMainProcess()
-{
-  return XRE_GetProcessType() == GeckoProcessType_Default;
 }
 
 END_BLUETOOTH_NAMESPACE

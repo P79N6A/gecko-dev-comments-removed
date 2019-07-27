@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "Telephony.h"
 
@@ -27,12 +27,12 @@
 #include "TelephonyCallId.h"
 #include "TelephonyDialCallback.h"
 
-// Service instantiation
+
 #include "ipc/TelephonyIPCService.h"
 #if defined(MOZ_WIDGET_GONK) && defined(MOZ_B2G_RIL)
 #include "nsIGonkTelephonyService.h"
 #endif
-#include "nsXULAppAPI.h" // For XRE_GetProcessType()
+#include "nsXULAppAPI.h" 
 
 using namespace mozilla::dom;
 using namespace mozilla::dom::telephony;
@@ -101,7 +101,7 @@ Telephony::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
   return TelephonyBinding::Wrap(aCx, this, aGivenProto);
 }
 
-// static
+
 already_AddRefed<Telephony>
 Telephony::Create(nsPIDOMWindow* aOwner, ErrorResult& aRv)
 {
@@ -142,27 +142,27 @@ Telephony::Create(nsPIDOMWindow* aOwner, ErrorResult& aRv)
   return telephony.forget();
 }
 
-// static
+
 bool
 Telephony::IsValidNumber(const nsAString& aNumber)
 {
   return !aNumber.IsEmpty();
 }
 
-// static
+
 uint32_t
 Telephony::GetNumServices() {
   return mozilla::Preferences::GetInt("ril.numRadioInterfaces", 1);
 }
 
-// static
+
 bool
 Telephony::IsValidServiceId(uint32_t aServiceId)
 {
   return aServiceId < GetNumServices();
 }
 
-// static
+
 bool
 Telephony::IsActiveState(uint16_t aCallState) {
   return aCallState == nsITelephonyService::CALL_STATE_DIALING ||
@@ -257,7 +257,7 @@ Telephony::CreateCall(TelephonyCallId* aId, uint32_t aServiceId,
                       bool aEmergency, bool aConference,
                       bool aSwitchable, bool aMergeable)
 {
-  // We don't have to create an already ended call.
+  
   if (aCallState == nsITelephonyService::CALL_STATE_DISCONNECTED) {
     return nullptr;
   }
@@ -358,7 +358,7 @@ Telephony::HandleCallInfo(nsITelephonyCallInfo* aInfo)
     nsAutoString disconnectedReason;
     aInfo->GetDisconnectedReason(disconnectedReason);
 
-    // State changed.
+    
     if (call->CallState() != callState) {
       if (callState == nsITelephonyService::CALL_STATE_DISCONNECTED) {
         call->UpdateDisconnectedReason(disconnectedReason);
@@ -366,25 +366,25 @@ Telephony::HandleCallInfo(nsITelephonyCallInfo* aInfo)
         return NS_OK;
       }
 
-      // We don't fire the statechange event on a call in conference here.
-      // Instead, the event will be fired later in
-      // TelephonyCallGroup::ChangeState(). Thus the sequence of firing the
-      // statechange events is guaranteed: first on TelephonyCallGroup then on
-      // individual TelephonyCall objects.
+      
+      
+      
+      
+      
       bool fireEvent = !isConference;
       call->ChangeStateInternal(callState, fireEvent);
     }
 
-    // Group changed.
+    
     nsRefPtr<TelephonyCallGroup> group = call->GetGroup();
 
     if (!group && isConference) {
-      // Add to conference.
+      
       NS_ASSERTION(mCalls.Contains(call), "Should in mCalls");
       mGroup->AddCall(call);
       RemoveCall(call);
     } else if (group && !isConference) {
-      // Remove from conference.
+      
       NS_ASSERTION(mGroup->CallsArray().Contains(call), "Should in mGroup");
       mGroup->RemoveCall(call);
       AddCall(call);
@@ -414,8 +414,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(Telephony,
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(Telephony)
-  // Telephony does not expose nsITelephonyListener.  mListener is the exposed
-  // nsITelephonyListener and forwards the calls it receives to us.
+  
+  
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 NS_IMPL_ADDREF_INHERITED(Telephony, DOMEventTargetHelper)
@@ -423,7 +423,7 @@ NS_IMPL_RELEASE_INHERITED(Telephony, DOMEventTargetHelper)
 
 NS_IMPL_ISUPPORTS(Telephony::Listener, nsITelephonyListener)
 
-// Telephony WebIDL
+
 
 already_AddRefed<Promise>
 Telephony::Dial(const nsAString& aNumber, const Optional<uint32_t>& aServiceId,
@@ -452,7 +452,7 @@ Telephony::SendTones(const nsAString& aDTMFChars,
                      ErrorResult& aRv)
 {
   uint32_t serviceId = GetServiceId(aServiceId,
-                                    true /* aGetIfActiveCall */);
+                                    true );
 
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(GetOwner());
   if (!global) {
@@ -490,7 +490,7 @@ Telephony::StartTone(const nsAString& aDTMFChar,
                      ErrorResult& aRv)
 {
   uint32_t serviceId = GetServiceId(aServiceId,
-                                    true /* aGetIfActiveCall */);
+                                    true );
 
   if (aDTMFChar.IsEmpty()) {
     NS_WARNING("Empty tone string will be ignored");
@@ -509,7 +509,7 @@ void
 Telephony::StopTone(const Optional<uint32_t>& aServiceId, ErrorResult& aRv)
 {
   uint32_t serviceId = GetServiceId(aServiceId,
-                                    true /* aGetIfActiveCall */);
+                                    true );
 
   if (!IsValidServiceId(serviceId)) {
     aRv.Throw(NS_ERROR_INVALID_ARG);
@@ -555,7 +555,7 @@ Telephony::GetActive(Nullable<OwningTelephonyCallOrTelephonyCallGroup>& aValue)
   if (mGroup->CallState() == nsITelephonyService::CALL_STATE_CONNECTED) {
     aValue.SetValue().SetAsTelephonyCallGroup() = mGroup;
   } else {
-    // Search the first active call.
+    
     for (uint32_t i = 0; i < mCalls.Length(); i++) {
       if (IsActiveState(mCalls[i]->CallState())) {
         aValue.SetValue().SetAsTelephonyCall() = mCalls[i];
@@ -592,7 +592,7 @@ Telephony::GetReady(ErrorResult& aRv) const
   return promise.forget();
 }
 
-// nsITelephonyListener
+
 
 NS_IMETHODIMP
 Telephony::CallStateChanged(uint32_t aLength, nsITelephonyCallInfo** aAllInfo)
@@ -619,7 +619,7 @@ Telephony::ConferenceCallStateChanged(uint16_t aCallState)
 NS_IMETHODIMP
 Telephony::EnumerateCallStateComplete()
 {
-  // Set conference state.
+  
   if (mGroup->CallsArray().Length() >= 2) {
     const nsTArray<nsRefPtr<TelephonyCall> > &calls = mGroup->CallsArray();
 
@@ -702,7 +702,7 @@ nsresult
 Telephony::DispatchCallEvent(const nsAString& aType,
                              TelephonyCall* aCall)
 {
-  // If it is an incoming event, the call should not be null.
+  
   MOZ_ASSERT(!aType.EqualsLiteral("incoming") || aCall);
 
   CallEventInit init;
@@ -720,7 +720,7 @@ NS_CreateTelephonyService()
 {
   nsCOMPtr<nsITelephonyService> service;
 
-  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+  if (XRE_IsContentProcess()) {
     service = new mozilla::dom::telephony::TelephonyIPCService();
   } else {
 #if defined(MOZ_WIDGET_GONK) && defined(MOZ_B2G_RIL)

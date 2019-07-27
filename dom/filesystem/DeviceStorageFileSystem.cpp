@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/DeviceStorageFileSystem.h"
 
@@ -30,7 +30,7 @@ DeviceStorageFileSystem::DeviceStorageFileSystem(
   mStorageType = aStorageType;
   mStorageName = aStorageName;
 
-  
+  // Generate the string representation of the file system.
   mString.AppendLiteral("devicestorage-");
   mString.Append(mStorageType);
   mString.Append('-');
@@ -39,15 +39,15 @@ DeviceStorageFileSystem::DeviceStorageFileSystem(
   mIsTesting =
     mozilla::Preferences::GetBool("device.storage.prompt.testing", false);
 
-  
+  // Get the permission name required to access the file system.
   nsresult rv =
     DeviceStorageTypeChecker::GetPermissionForType(mStorageType, mPermission);
   NS_WARN_IF(NS_FAILED(rv));
 
-  
-  
-  
-  if (!FileSystemUtils::IsParentProcess()) {
+  // Get the local path of the file system root.
+  // Since the child process is not allowed to access the file system, we only
+  // do this from the parent process.
+  if (!XRE_IsParentProcess()) {
     return;
   }
   nsCOMPtr<nsIFile> rootFile;
@@ -59,9 +59,9 @@ DeviceStorageFileSystem::DeviceStorageFileSystem(
   FileSystemUtils::LocalPathToNormalizedPath(mLocalRootPath,
     mNormalizedLocalRootPath);
 
-  
-  
-  
+  // DeviceStorageTypeChecker is a singleton object and must be initialized on
+  // the main thread. We initialize it here so that we can use it on the worker
+  // thread.
   DebugOnly<DeviceStorageTypeChecker*> typeChecker
     = DeviceStorageTypeChecker::CreateOrGet();
   MOZ_ASSERT(typeChecker);
@@ -100,7 +100,7 @@ DeviceStorageFileSystem::GetWindow() const
 already_AddRefed<nsIFile>
 DeviceStorageFileSystem::GetLocalFile(const nsAString& aRealPath) const
 {
-  MOZ_ASSERT(FileSystemUtils::IsParentProcess(),
+  MOZ_ASSERT(XRE_IsParentProcess(),
              "Should be on parent process!");
   nsAutoString localPath;
   FileSystemUtils::NormalizedPathToLocalPath(aRealPath, localPath);
@@ -116,7 +116,7 @@ DeviceStorageFileSystem::GetLocalFile(const nsAString& aRealPath) const
 bool
 DeviceStorageFileSystem::GetRealPath(BlobImpl* aFile, nsAString& aRealPath) const
 {
-  MOZ_ASSERT(FileSystemUtils::IsParentProcess(),
+  MOZ_ASSERT(XRE_IsParentProcess(),
              "Should be on parent process!");
   MOZ_ASSERT(aFile, "aFile Should not be null.");
 
@@ -141,11 +141,11 @@ DeviceStorageFileSystem::GetRootName() const
 bool
 DeviceStorageFileSystem::IsSafeFile(nsIFile* aFile) const
 {
-  MOZ_ASSERT(FileSystemUtils::IsParentProcess(),
+  MOZ_ASSERT(XRE_IsParentProcess(),
              "Should be on parent process!");
   MOZ_ASSERT(aFile);
 
-  
+  // Check if this file belongs to this storage.
   nsAutoString path;
   if (NS_FAILED(aFile->GetPath(path))) {
     return false;
@@ -154,7 +154,7 @@ DeviceStorageFileSystem::IsSafeFile(nsIFile* aFile) const
     return false;
   }
 
-  
+  // Check if the file type is compatible with the storage type.
   DeviceStorageTypeChecker* typeChecker
     = DeviceStorageTypeChecker::CreateOrGet();
   MOZ_ASSERT(typeChecker);
@@ -168,7 +168,7 @@ DeviceStorageFileSystem::IsSafeDirectory(Directory* aDir) const
   MOZ_ASSERT(aDir);
   nsRefPtr<FileSystemBase> fs = aDir->GetFileSystem();
   MOZ_ASSERT(fs);
-  
+  // Check if the given directory is from this storage.
   return fs->ToString() == mString;
 }
 
@@ -186,5 +186,5 @@ DeviceStorageFileSystem::LocalPathToRealPath(const nsAString& aLocalPath,
   return true;
 }
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla

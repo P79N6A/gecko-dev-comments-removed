@@ -1,17 +1,17 @@
-/* Copyright 2012 Mozilla Foundation and Mozilla contributors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include <android/log.h>
 #include <cutils/properties.h>
@@ -65,21 +65,21 @@ using namespace mozilla::dom::bluetooth;
 
 static void BinderDeadCallback(status_t aErr);
 static void InternalSetAudioRoutes(SwitchState aState);
-// Refer AudioService.java from Android
+
 static int sMaxStreamVolumeTbl[AUDIO_STREAM_CNT] = {
-  5,   // voice call
-  15,  // system
-  15,  // ring
-  15,  // music
-  15,  // alarm
-  15,  // notification
-  15,  // BT SCO
-  15,  // enforced audible
-  15,  // DTMF
-  15,  // TTS
-  15,  // FM
+  5,   
+  15,  
+  15,  
+  15,  
+  15,  
+  15,  
+  15,  
+  15,  
+  15,  
+  15,  
+  15,  
 };
-// A bitwise variable for recording what kind of headset is attached.
+
 static int sHeadsetState;
 #if defined(MOZ_B2G_BT) || ANDROID_VERSION >= 17
 static bool sBluetoothA2dpEnabled;
@@ -191,9 +191,9 @@ protected:
 };
 
 NS_IMPL_ISUPPORTS(AudioChannelVolInitCallback, nsISettingsServiceCallback)
-} /* namespace gonk */
-} /* namespace dom */
-} /* namespace mozilla */
+} 
+} 
+} 
 
 static void
 BinderDeadCallback(status_t aErr)
@@ -341,15 +341,15 @@ AudioManager::HandleBluetoothStatusChanged(nsISupports* aSubject,
 void
 AudioManager::HandleAudioChannelProcessChanged()
 {
-  // Note: If the user answers a VoIP call (e.g. WebRTC calls) during the
-  // telephony call (GSM/CDMA calls) the audio manager won't set the
-  // PHONE_STATE_IN_COMMUNICATION audio state. Once the telephony call finishes
-  // the RIL plumbing sets the PHONE_STATE_NORMAL audio state. This seems to be
-  // an issue for the VoIP call but it is not. Once the RIL plumbing sets the
-  // the PHONE_STATE_NORMAL audio state the AudioManager::mPhoneAudioAgent
-  // member will call the StopPlaying() method causing that this function will
-  // be called again and therefore the audio manager sets the
-  // PHONE_STATE_IN_COMMUNICATION audio state.
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
   if ((mPhoneState == PHONE_STATE_IN_CALL) ||
       (mPhoneState == PHONE_STATE_RINGTONE)) {
@@ -387,8 +387,8 @@ AudioManager::Observe(nsISupports* aSubject,
     return NS_OK;
   }
 
-  // To process the volume control on each audio channel according to
-  // change of settings
+  
+  
   else if (!strcmp(aTopic, MOZ_SETTINGS_CHANGE_ID)) {
     RootedDictionary<dom::SettingChangeNotification> setting(nsContentUtils::RootingCxForThread());
     if (!WrappedJSToDictionary(aSubject, setting)) {
@@ -435,7 +435,7 @@ public:
   : mAudioManager(aAudioManager) { }
   void Notify(const SwitchEvent& aEvent) {
     NotifyHeadphonesStatus(aEvent.status());
-    // When user pulled out the headset, a delay of routing here can avoid the leakage of audio from speaker.
+    
     if (aEvent.status() == SWITCH_STATE_OFF && sSwitchDone) {
       MessageLoop::current()->PostDelayedTask(
         FROM_HERE, NewRunnableFunction(&ProcessDelayedAudioRoute, SWITCH_STATE_OFF), 1000);
@@ -444,7 +444,7 @@ public:
       InternalSetAudioRoutes(aEvent.status());
       sSwitchDone = true;
     }
-    // Handle the coexistence of a2dp / headset device, latest one wins.
+    
 #if ANDROID_VERSION >= 17
     int32_t forceUse = 0;
     mAudioManager->GetForceForUse(AUDIO_POLICY_FORCE_FOR_MEDIA, &forceUse);
@@ -476,11 +476,11 @@ AudioManager::AudioManager()
                                   sMaxStreamVolumeTbl[loop]);
     mCurrentStreamVolumeTbl[loop] = sMaxStreamVolumeTbl[loop];
   }
-  // Force publicnotification to output at maximal volume
+  
   SetStreamVolumeIndex(AUDIO_STREAM_ENFORCED_AUDIBLE,
                        sMaxStreamVolumeTbl[AUDIO_STREAM_ENFORCED_AUDIBLE]);
 
-  // Get the initial volume index from settings DB during boot up.
+  
   nsCOMPtr<nsISettingsService> settingsService =
     do_GetService("@mozilla.org/settingsService;1");
   NS_ENSURE_TRUE_VOID(settingsService);
@@ -495,8 +495,8 @@ AudioManager::AudioManager()
   lock->Get("audio.volume.telephony", callback);
   lock->Get("audio.volume.bt_sco", callback);
 
-  // Gecko only control stream volume not master so set to default value
-  // directly.
+  
+  
   AudioSystem::setMasterVolume(1.0);
   AudioSystem::setErrorCallback(BinderDeadCallback);
 
@@ -554,12 +554,12 @@ static StaticRefPtr<AudioManager> sAudioManager;
 already_AddRefed<AudioManager>
 AudioManager::GetInstance()
 {
-  // Avoid createing AudioManager from content process.
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+  
+  if (!XRE_IsParentProcess()) {
     MOZ_CRASH("Non-chrome processes should not get here.");
   }
 
-  // Avoid createing multiple AudioManager instance inside main process.
+  
   if (!sAudioManager) {
     sAudioManager = new AudioManager();
     ClearOnShutdown(&sAudioManager);
@@ -574,7 +574,7 @@ AudioManager::GetMicrophoneMuted(bool* aMicrophoneMuted)
 {
 #ifdef MOZ_B2G_RIL
   if (mMuteCallToRIL) {
-    // Simply return cached mIsMicMuted if mute call go via RIL.
+    
     *aMicrophoneMuted = mIsMicMuted;
     return NS_OK;
   }
@@ -592,7 +592,7 @@ AudioManager::SetMicrophoneMuted(bool aMicrophoneMuted)
   if (!AudioSystem::muteMicrophone(aMicrophoneMuted)) {
 #ifdef MOZ_B2G_RIL
     if (mMuteCallToRIL) {
-      // Extra mute request to RIL for specific platform.
+      
       nsCOMPtr<nsIRadioInterfaceLayer> ril = do_GetService("@mozilla.org/ril;1");
       NS_ENSURE_TRUE(ril, NS_ERROR_FAILURE);
       ril->SetMicrophoneMuted(aMicrophoneMuted);
@@ -644,13 +644,13 @@ AudioManager::SetPhoneState(int32_t aState)
     mPhoneAudioAgent = do_CreateInstance("@mozilla.org/audiochannelagent;1");
     MOZ_ASSERT(mPhoneAudioAgent);
     if (aState == PHONE_STATE_IN_CALL) {
-      // Telephony doesn't be paused by any other channels.
+      
       mPhoneAudioAgent->Init(nullptr, (int32_t)AudioChannel::Telephony, nullptr);
     } else {
       mPhoneAudioAgent->Init(nullptr, (int32_t)AudioChannel::Ringer, nullptr);
     }
 
-    // Telephony can always play.
+    
     int32_t canPlay;
     mPhoneAudioAgent->StartPlaying(&canPlay);
   }
@@ -664,7 +664,7 @@ AudioManager::SetForceForUse(int32_t aUsage, int32_t aForce)
   if (static_cast<
              status_t (*)(audio_policy_force_use_t, audio_policy_forced_cfg_t)
              >(AudioSystem::setForceUse)) {
-    // Dynamically resolved the ICS signature.
+    
     status_t status = AudioSystem::setForceUse(
                         (audio_policy_force_use_t)aUsage,
                         (audio_policy_forced_cfg_t)aForce);
@@ -680,7 +680,7 @@ AudioManager::GetForceForUse(int32_t aUsage, int32_t* aForce) {
   if (static_cast<
       audio_policy_forced_cfg_t (*)(audio_policy_force_use_t)
       >(AudioSystem::getForceUse)) {
-    // Dynamically resolved the ICS signature.
+    
     *aForce = AudioSystem::getForceUse((audio_policy_force_use_t)aUsage);
     return NS_OK;
   }
@@ -703,7 +703,7 @@ AudioManager::SetFmRadioAudioEnabled(bool aFmRadioAudioEnabled)
     aFmRadioAudioEnabled ? AUDIO_POLICY_DEVICE_STATE_AVAILABLE :
     AUDIO_POLICY_DEVICE_STATE_UNAVAILABLE, "");
   InternalSetAudioRoutes(GetCurrentSwitchState(SWITCH_HEADPHONES));
-  // sync volume with music after powering on fm radio
+  
   if (aFmRadioAudioEnabled) {
     int32_t volIndex = mCurrentStreamVolumeTbl[AUDIO_STREAM_MUSIC];
     SetStreamVolumeIndex(AUDIO_STREAM_FM, volIndex);
@@ -718,7 +718,7 @@ AudioManager::SetAudioChannelVolume(int32_t aChannel, int32_t aIndex) {
 
   switch (static_cast<AudioChannel>(aChannel)) {
     case AudioChannel::Content:
-      // sync FMRadio's volume with content channel.
+      
       if (IsDeviceOn(AUDIO_DEVICE_OUT_FM)) {
         status = SetStreamVolumeIndex(AUDIO_STREAM_FM, aIndex);
         NS_ENSURE_SUCCESS(status, status);

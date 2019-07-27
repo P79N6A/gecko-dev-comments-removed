@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/Logging.h"
 
@@ -43,20 +43,20 @@ namespace mozilla {
 using namespace dom;
 using namespace widget;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * When a method is called, log its arguments and/or related static variables
+ * with LogLevel::Info.  However, if it puts too many logs like
+ * OnDestroyPresContext(), should long only when the method actually does
+ * something. In this case, the log should start with "ISM: <method name>".
+ *
+ * When a method quits due to unexpected situation, log the reason with
+ * LogLevel::Error.  In this case, the log should start with
+ * "ISM:   <method name>(), FAILED".  The indent makes the log look easier.
+ *
+ * When a method does something only in some situations and it may be important
+ * for debug, log the information with LogLevel::Debug.  In this case, the log
+ * should start with "ISM:   <method name>(),".
+ */
 PRLogModuleInfo* sISMLog = nullptr;
 
 static const char*
@@ -192,7 +192,7 @@ bool IMEStateManager::sIsGettingNewIMEState = false;
 bool IMEStateManager::sCheckForIMEUnawareWebApps = false;
 bool IMEStateManager::sRemoteHasFocus = false;
 
-
+// static
 void
 IMEStateManager::Init()
 {
@@ -206,7 +206,7 @@ IMEStateManager::Init()
     false);
 }
 
-
+// static
 void
 IMEStateManager::Shutdown()
 {
@@ -220,7 +220,7 @@ IMEStateManager::Shutdown()
   sTextCompositions = nullptr;
 }
 
-
+// static
 void
 IMEStateManager::OnTabParentDestroying(TabParent* aTabParent)
 {
@@ -231,22 +231,22 @@ IMEStateManager::OnTabParentDestroying(TabParent* aTabParent)
     ("ISM: IMEStateManager::OnTabParentDestroying(aTabParent=0x%p), "
      "The active TabParent is being destroyed", aTabParent));
 
-  
+  // The active remote process might have crashed.
   sActiveTabParent = nullptr;
 
-  
-  
+  // TODO: Need to cancel composition without TextComposition and make
+  //       disable IME.
 }
 
-
+// static
 void
 IMEStateManager::StopIMEStateManagement()
 {
   MOZ_LOG(sISMLog, LogLevel::Info,
     ("ISM: IMEStateManager::StopIMEStateManagement()"));
 
-  
-  
+  // NOTE: Don't set input context from here since this has already lost
+  //       the rights to change input context.
 
   if (sTextCompositions && sPresContext) {
     NotifyIME(REQUEST_TO_COMMIT_COMPOSITION, sPresContext);
@@ -257,13 +257,13 @@ IMEStateManager::StopIMEStateManagement()
   DestroyIMEContentObserver();
 }
 
-
+// static
 nsresult
 IMEStateManager::OnDestroyPresContext(nsPresContext* aPresContext)
 {
   NS_ENSURE_ARG_POINTER(aPresContext);
 
-  
+  // First, if there is a composition in the aPresContext, clean up it.
   if (sTextCompositions) {
     TextCompositionArray::index_type i =
       sTextCompositions->IndexOf(aPresContext);
@@ -271,7 +271,7 @@ IMEStateManager::OnDestroyPresContext(nsPresContext* aPresContext)
       MOZ_LOG(sISMLog, LogLevel::Debug,
         ("ISM:   IMEStateManager::OnDestroyPresContext(), "
          "removing TextComposition instance from the array (index=%u)", i));
-      
+      // there should be only one composition per presContext object.
       sTextCompositions->ElementAt(i)->Destroy();
       sTextCompositions->RemoveElementAt(i);
       if (sTextCompositions->IndexOf(aPresContext) !=
@@ -308,14 +308,14 @@ IMEStateManager::OnDestroyPresContext(nsPresContext* aPresContext)
   return NS_OK;
 }
 
-
+// static
 nsresult
 IMEStateManager::OnRemoveContent(nsPresContext* aPresContext,
                                  nsIContent* aContent)
 {
   NS_ENSURE_ARG_POINTER(aPresContext);
 
-  
+  // First, if there is a composition in the aContent, clean up it.
   if (sTextCompositions) {
     nsRefPtr<TextComposition> compositionInContent =
       sTextCompositions->GetCompositionInContent(aPresContext, aContent);
@@ -325,10 +325,10 @@ IMEStateManager::OnRemoveContent(nsPresContext* aPresContext,
         ("ISM:   IMEStateManager::OnRemoveContent(), "
          "composition is in the content"));
 
-      
-      
-      
-      
+      // Try resetting the native IME state.  Be aware, typically, this method
+      // is called during the content being removed.  Then, the native
+      // composition events which are caused by following APIs are ignored due
+      // to unsafe to run script (in PresShell::HandleEvent()).
       nsCOMPtr<nsIWidget> widget = aPresContext->GetRootWidget();
       MOZ_ASSERT(widget, "Why is there no widget?");
       nsresult rv =
@@ -351,7 +351,7 @@ IMEStateManager::OnRemoveContent(nsPresContext* aPresContext,
 
   DestroyIMEContentObserver();
 
-  
+  // Current IME transaction should commit
   nsCOMPtr<nsIWidget> widget = sPresContext->GetRootWidget();
   if (widget) {
     IMEState newState = GetNewIMEState(sPresContext, nullptr);
@@ -367,7 +367,7 @@ IMEStateManager::OnRemoveContent(nsPresContext* aPresContext,
   return NS_OK;
 }
 
-
+// static
 nsresult
 IMEStateManager::OnChangeFocus(nsPresContext* aPresContext,
                                nsIContent* aContent,
@@ -382,7 +382,7 @@ IMEStateManager::OnChangeFocus(nsPresContext* aPresContext,
   return OnChangeFocusInternal(aPresContext, aContent, action);
 }
 
-
+// static
 nsresult
 IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
                                        nsIContent* aContent,
@@ -409,8 +409,8 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
   nsCOMPtr<nsIWidget> oldWidget =
     sPresContext ? sPresContext->GetRootWidget() : nullptr;
   if (oldWidget && focusActuallyChanging) {
-    
-    
+    // If we're deactivating, we shouldn't commit composition forcibly because
+    // the user may want to continue the composition.
     if (aPresContext) {
       NotifyIME(REQUEST_TO_COMMIT_COMPOSITION, oldWidget);
     }
@@ -451,9 +451,9 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
     return NS_OK;
   }
 
-  
-  
-  
+  // If a child process has focus, we should disable IME state until the child
+  // process actually gets focus because if user types keys before that they
+  // are handled by IME.
   IMEState newState =
     newTabParent ? IMEState(IMEState::DISABLED) :
                    GetNewIMEState(aPresContext, aContent);
@@ -462,10 +462,10 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
   if (newTabParent) {
     if (aAction.mFocusChange == InputContextAction::MENU_GOT_PSEUDO_FOCUS ||
         aAction.mFocusChange == InputContextAction::MENU_LOST_PSEUDO_FOCUS) {
-      
-      
-      
-      
+      // XXX When menu keyboard listener is being uninstalled, IME state needs
+      //     to be restored by the child process asynchronously.  Therefore,
+      //     some key events which are fired immediately after closing menu
+      //     may not be handled by IME.
       unused << newTabParent->
         SendMenuKeyboardListenerInstalled(sInstalledMenuKeyboardListener);
       setIMEState = sInstalledMenuKeyboardListener;
@@ -484,10 +484,10 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
            "will get focus actually"));
       }
     } else {
-      
-      
-      
-      
+      // When focus is NOT changed actually, we shouldn't set IME state since
+      // that means that the window is being activated and the child process
+      // may have composition.  Then, we shouldn't commit the composition with
+      // making IME state disabled.
       setIMEState = false; 
       MOZ_LOG(sISMLog, LogLevel::Debug,
         ("ISM:   IMEStateManager::OnChangeFocusInternal(), doesn't set IME "
@@ -498,8 +498,8 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
 
   if (setIMEState) {
     if (!focusActuallyChanging) {
-      
-      
+      // actual focus isn't changing, but if IME enabled state is changing,
+      // we should do it.
       InputContext context = widget->GetInputContext();
       if (context.mIMEState.mEnabled == newState.mEnabled) {
         MOZ_LOG(sISMLog, LogLevel::Debug,
@@ -509,21 +509,21 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
       }
       aAction.mFocusChange = InputContextAction::FOCUS_NOT_CHANGED;
 
-      
-      
+      // Even if focus isn't changing actually, we should commit current
+      // composition here since the IME state is changing.
       if (sPresContext && oldWidget && !focusActuallyChanging) {
         NotifyIME(REQUEST_TO_COMMIT_COMPOSITION, oldWidget);
       }
     } else if (aAction.mFocusChange == InputContextAction::FOCUS_NOT_CHANGED) {
-      
-      
+      // If aContent isn't null or aContent is null but editable, somebody gets
+      // focus.
       bool gotFocus = aContent || (newState.mEnabled == IMEState::ENABLED);
       aAction.mFocusChange =
         gotFocus ? InputContextAction::GOT_FOCUS :
                    InputContextAction::LOST_FOCUS;
     }
 
-    
+    // Update IME state for new focus widget
     SetIMEState(newState, aContent, widget, aAction);
   }
 
@@ -531,13 +531,13 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
   sPresContext = aPresContext;
   sContent = aContent;
 
-  
-  
+  // Don't call CreateIMEContentObserver() here, it should be called from
+  // focus event handler of editor.
 
   return NS_OK;
 }
 
-
+// static
 void
 IMEStateManager::OnInstalledMenuKeyboardListener(bool aInstalling)
 {
@@ -554,7 +554,7 @@ IMEStateManager::OnInstalledMenuKeyboardListener(bool aInstalling)
   OnChangeFocusInternal(sPresContext, sContent, action);
 }
 
-
+// static
 bool
 IMEStateManager::OnMouseButtonEventInEditor(nsPresContext* aPresContext,
                                             nsIContent* aContent,
@@ -611,7 +611,7 @@ IMEStateManager::OnMouseButtonEventInEditor(nsPresContext* aPresContext,
   return consumed;
 }
 
-
+// static
 void
 IMEStateManager::OnClickInEditor(nsPresContext* aPresContext,
                                  nsIContent* aContent,
@@ -639,7 +639,7 @@ IMEStateManager::OnClickInEditor(nsPresContext* aPresContext,
     MOZ_LOG(sISMLog, LogLevel::Debug,
       ("ISM:   IMEStateManager::OnClickInEditor(), "
        "the mouse event isn't a trusted event"));
-    return; 
+    return; // ignore untrusted event.
   }
 
   int16_t button;
@@ -649,7 +649,7 @@ IMEStateManager::OnClickInEditor(nsPresContext* aPresContext,
     MOZ_LOG(sISMLog, LogLevel::Debug,
       ("ISM:   IMEStateManager::OnClickInEditor(), "
        "the mouse event isn't a left mouse button event"));
-    return; 
+    return; // not a left click event.
   }
 
   int32_t clickCount;
@@ -659,7 +659,7 @@ IMEStateManager::OnClickInEditor(nsPresContext* aPresContext,
     MOZ_LOG(sISMLog, LogLevel::Debug,
       ("ISM:   IMEStateManager::OnClickInEditor(), "
        "the mouse event isn't a single click event"));
-    return; 
+    return; // should notify only first click event.
   }
 
   InputContextAction action(InputContextAction::CAUSE_MOUSE,
@@ -668,7 +668,7 @@ IMEStateManager::OnClickInEditor(nsPresContext* aPresContext,
   SetIMEState(newState, aContent, widget, action);
 }
 
-
+// static
 void
 IMEStateManager::OnFocusInEditor(nsPresContext* aPresContext,
                                  nsIContent* aContent,
@@ -688,8 +688,8 @@ IMEStateManager::OnFocusInEditor(nsPresContext* aPresContext,
     return;
   }
 
-  
-  
+  // If the IMEContentObserver instance isn't managing the editor actually,
+  // we need to recreate the instance.
   if (sActiveIMEContentObserver) {
     if (sActiveIMEContentObserver->IsManaging(aPresContext, aContent)) {
       MOZ_LOG(sISMLog, LogLevel::Debug,
@@ -703,7 +703,7 @@ IMEStateManager::OnFocusInEditor(nsPresContext* aPresContext,
   CreateIMEContentObserver(aEditor);
 }
 
-
+// static
 void
 IMEStateManager::OnEditorInitialized(nsIEditor* aEditor)
 {
@@ -719,7 +719,7 @@ IMEStateManager::OnEditorInitialized(nsIEditor* aEditor)
   sActiveIMEContentObserver->UnsuppressNotifyingIME();
 }
 
-
+// static
 void
 IMEStateManager::OnEditorDestroying(nsIEditor* aEditor)
 {
@@ -732,12 +732,12 @@ IMEStateManager::OnEditorDestroying(nsIEditor* aEditor)
     ("ISM: IMEStateManager::OnEditorDestroying(aEditor=0x%p)",
      aEditor));
 
-  
-  
+  // The IMEContentObserver shouldn't notify IME of anything until reframing
+  // is finished.
   sActiveIMEContentObserver->SuppressNotifyingIME();
 }
 
-
+// static
 void
 IMEStateManager::UpdateIMEState(const IMEState& aNewIMEState,
                                 nsIContent* aContent,
@@ -774,9 +774,9 @@ IMEStateManager::UpdateIMEState(const IMEState& aNewIMEState,
     return;
   }
 
-  
-  
-  
+  // Even if there is active IMEContentObserver, it may not be observing the
+  // editor with current editable root content due to reframed.  In such case,
+  // We should try to reinitialize the IMEContentObserver.
   if (sActiveIMEContentObserver && IsIMEObserverNeeded(aNewIMEState)) {
     MOZ_LOG(sISMLog, LogLevel::Debug,
       ("ISM:   IMEStateManager::UpdateIMEState(), try to reinitialize the "
@@ -789,8 +789,8 @@ IMEStateManager::UpdateIMEState(const IMEState& aNewIMEState,
     }
   }
 
-  
-  
+  // If there is no active IMEContentObserver or it isn't observing the
+  // editor correctly, we should recreate it.
   bool createTextStateManager =
     (!sActiveIMEContentObserver ||
      !sActiveIMEContentObserver->IsManaging(sPresContext, aContent));
@@ -799,7 +799,7 @@ IMEStateManager::UpdateIMEState(const IMEState& aNewIMEState,
     (widget->GetInputContext().mIMEState.mEnabled != aNewIMEState.mEnabled);
 
   if (updateIMEState) {
-    
+    // commit current composition before modifying IME state.
     NotifyIME(REQUEST_TO_COMMIT_COMPOSITION, widget);
   }
 
@@ -818,7 +818,7 @@ IMEStateManager::UpdateIMEState(const IMEState& aNewIMEState,
   }
 }
 
-
+// static
 IMEState
 IMEStateManager::GetNewIMEState(nsPresContext* aPresContext,
                                 nsIContent*    aContent)
@@ -828,7 +828,7 @@ IMEStateManager::GetNewIMEState(nsPresContext* aPresContext,
      "sInstalledMenuKeyboardListener=%s",
      aPresContext, aContent, GetBoolName(sInstalledMenuKeyboardListener)));
 
-  
+  // On Printing or Print Preview, we don't need IME.
   if (aPresContext->Type() == nsPresContext::eContext_PrintPreview ||
       aPresContext->Type() == nsPresContext::eContext_Print) {
     MOZ_LOG(sISMLog, LogLevel::Debug,
@@ -845,8 +845,8 @@ IMEStateManager::GetNewIMEState(nsPresContext* aPresContext,
   }
 
   if (!aContent) {
-    
-    
+    // Even if there are no focused content, the focused document might be
+    // editable, such case is design mode.
     nsIDocument* doc = aPresContext->Document();
     if (doc && doc->HasFlag(NODE_IS_EDITABLE)) {
       MOZ_LOG(sISMLog, LogLevel::Debug,
@@ -860,11 +860,11 @@ IMEStateManager::GetNewIMEState(nsPresContext* aPresContext,
     return IMEState(IMEState::DISABLED);
   }
 
-  
-  
-  
-  
-  
+  // nsIContent::GetDesiredIMEState() may cause a call of UpdateIMEState()
+  // from nsEditor::PostCreate() because GetDesiredIMEState() needs to retrieve
+  // an editor instance for the element if it's editable element.
+  // For avoiding such nested IME state updates, we should set
+  // sIsGettingNewIMEState here and UpdateIMEState() should check it.
   GettingNewIMEStateBlocker blocker;
 
   IMEState newIMEState = aContent->GetDesiredIMEState();
@@ -876,7 +876,7 @@ IMEStateManager::GetNewIMEState(nsPresContext* aPresContext,
   return newIMEState;
 }
 
-
+// Helper class, used for IME enabled state change notification
 class IMEEnabledStateChangedEvent : public nsRunnable {
 public:
   explicit IMEEnabledStateChangedEvent(uint32_t aState)
@@ -923,7 +923,7 @@ MayBeIMEUnawareWebApp(nsINode* aNode)
   return haveKeyEventsListener;
 }
 
-
+// static
 void
 IMEStateManager::SetInputContextForChildProcess(
                    TabParent* aTabParent,
@@ -972,7 +972,7 @@ IMEStateManager::SetInputContextForChildProcess(
   SetInputContext(widget, aInputContext, aAction);
 }
 
-
+// static
 void
 IMEStateManager::SetIMEState(const IMEState& aState,
                              nsIContent* aContent,
@@ -1001,10 +1001,10 @@ IMEStateManager::SetIMEState(const IMEState& aState,
   if (aContent &&
       aContent->IsAnyOfHTMLElements(nsGkAtoms::input, nsGkAtoms::textarea)) {
     if (!aContent->IsHTMLElement(nsGkAtoms::textarea)) {
-      
-      
-      
-      
+      // <input type=number> has an anonymous <input type=text> descendant
+      // that gets focus whenever anyone tries to focus the number control. We
+      // need to check if aContent is one of those anonymous text controls and,
+      // if so, use the number control instead:
       nsIContent* content = aContent;
       HTMLInputElement* inputElement =
         HTMLInputElement::FromContentOrNull(aContent);
@@ -1012,7 +1012,7 @@ IMEStateManager::SetIMEState(const IMEState& aState,
         HTMLInputElement* ownerNumberControl =
           inputElement->GetOwnerNumberControl();
         if (ownerNumberControl) {
-          content = ownerNumberControl; 
+          content = ownerNumberControl; // an <input type=number>
         }
       }
       content->GetAttr(kNameSpaceID_None, nsGkAtoms::type,
@@ -1029,12 +1029,12 @@ IMEStateManager::SetIMEState(const IMEState& aState,
     aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::moz_action_hint,
                       context.mActionHint);
 
-    
-    
+    // Get the input content corresponding to the focused node,
+    // which may be an anonymous child of the input content.
     nsIContent* inputContent = aContent->FindFirstNonChromeOnlyAccessContent();
 
-    
-    
+    // If we don't have an action hint and
+    // return won't submit the form, use "next".
     if (context.mActionHint.IsEmpty() &&
         inputContent->IsHTMLElement(nsGkAtoms::input)) {
       bool willSubmit = false;
@@ -1042,11 +1042,11 @@ IMEStateManager::SetIMEState(const IMEState& aState,
       mozilla::dom::Element* formElement = control->GetFormElement();
       nsCOMPtr<nsIForm> form;
       if (control) {
-        
+        // is this a form and does it have a default submit element?
         if ((form = do_QueryInterface(formElement)) &&
             form->GetDefaultSubmitElement()) {
           willSubmit = true;
-        
+        // is this an html form and does it only have a single text input element?
         } else if (formElement && formElement->IsHTMLElement(nsGkAtoms::form) &&
                    !static_cast<dom::HTMLFormElement*>(formElement)->
                      ImplicitSubmissionIsDisabled()) {
@@ -1061,17 +1061,17 @@ IMEStateManager::SetIMEState(const IMEState& aState,
     }
   }
 
-  
-  
+  // XXX I think that we should use nsContentUtils::IsCallerChrome() instead
+  //     of the process type.
   if (aAction.mCause == InputContextAction::CAUSE_UNKNOWN &&
-      XRE_GetProcessType() != GeckoProcessType_Content) {
+      !XRE_IsContentProcess()) {
     aAction.mCause = InputContextAction::CAUSE_UNKNOWN_CHROME;
   }
 
   SetInputContext(aWidget, context, aAction);
 }
 
-
+// static
 void
 IMEStateManager::SetInputContext(nsIWidget* aWidget,
                                  const InputContext& aInputContext,
@@ -1105,7 +1105,7 @@ IMEStateManager::SetInputContext(nsIWidget* aWidget,
     new IMEEnabledStateChangedEvent(aInputContext.mIMEState.mEnabled));
 }
 
-
+// static
 void
 IMEStateManager::EnsureTextCompositionArray()
 {
@@ -1115,7 +1115,7 @@ IMEStateManager::EnsureTextCompositionArray()
   sTextCompositions = new TextCompositionArray();
 }
 
-
+// static
 void
 IMEStateManager::DispatchCompositionEvent(
                    nsINode* aEventTargetNode,
@@ -1153,8 +1153,8 @@ IMEStateManager::DispatchCompositionEvent(
   nsRefPtr<TextComposition> composition =
     sTextCompositions->GetCompositionFor(aCompositionEvent->widget);
   if (!composition) {
-    
-    
+    // If synthesized event comes after delayed native composition events
+    // for request of commit or cancel, we should ignore it.
     if (NS_WARN_IF(aIsSynthesized)) {
       return;
     }
@@ -1171,24 +1171,24 @@ IMEStateManager::DispatchCompositionEvent(
   else {
     MOZ_ASSERT(aCompositionEvent->message != NS_COMPOSITION_START);
   }
-#endif 
+#endif // #ifdef DEBUG
 
-  
+  // Dispatch the event on composing target.
   composition->DispatchCompositionEvent(aCompositionEvent, aStatus, aCallBack,
                                         aIsSynthesized);
 
-  
+  // WARNING: the |composition| might have been destroyed already.
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  // Remove the ended composition from the array.
+  // NOTE: When TextComposition is synthesizing compositionend event for
+  //       emulating a commit, the instance shouldn't be removed from the array
+  //       because IME may perform it later.  Then, we need to ignore the
+  //       following commit events in TextComposition::DispatchEvent().
+  //       However, if commit or cancel for a request is performed synchronously
+  //       during not safe to dispatch events, PresShell must have discarded
+  //       compositionend event.  Then, the synthesized compositionend event is
+  //       the last event for the composition.  In this case, we need to
+  //       destroy the TextComposition with synthesized compositionend event.
   if ((!aIsSynthesized ||
        composition->WasNativeCompositionEndEventDiscarded()) &&
       aCompositionEvent->CausesDOMCompositionEndEvent()) {
@@ -1205,13 +1205,13 @@ IMEStateManager::DispatchCompositionEvent(
   }
 }
 
-
+// static
 void
 IMEStateManager::OnCompositionEventDiscarded(
                    WidgetCompositionEvent* aCompositionEvent)
 {
-  
-  
+  // Note that this method is never called for synthesized events for emulating
+  // commit or cancel composition.
 
   MOZ_LOG(sISMLog, LogLevel::Info,
     ("ISM: IMEStateManager::OnCompositionEventDiscarded(aCompositionEvent={ "
@@ -1223,8 +1223,8 @@ IMEStateManager::OnCompositionEventDiscarded(
     return;
   }
 
-  
-  
+  // Ignore compositionstart for now because sTextCompositions may not have
+  // been created yet.
   if (aCompositionEvent->message == NS_COMPOSITION_START) {
     return;
   }
@@ -1232,10 +1232,10 @@ IMEStateManager::OnCompositionEventDiscarded(
   nsRefPtr<TextComposition> composition =
     sTextCompositions->GetCompositionFor(aCompositionEvent->widget);
   if (!composition) {
-    
-    
-    
-    
+    // If the PresShell has been being destroyed during composition,
+    // a TextComposition instance for the composition was already removed from
+    // the array and destroyed in OnDestroyPresContext().  Therefore, we may
+    // fail to retrieve a TextComposition instance here.
     MOZ_LOG(sISMLog, LogLevel::Info,
       ("ISM:   IMEStateManager::OnCompositionEventDiscarded(), "
        "TextComposition instance for the widget has already gone"));
@@ -1244,7 +1244,7 @@ IMEStateManager::OnCompositionEventDiscarded(
   composition->OnCompositionEventDiscarded(aCompositionEvent);
 }
 
-
+// static
 nsresult
 IMEStateManager::NotifyIME(IMEMessage aMessage,
                            nsIWidget* aWidget,
@@ -1254,7 +1254,7 @@ IMEStateManager::NotifyIME(IMEMessage aMessage,
                                     aOriginIsRemote);
 }
 
-
+// static
 nsresult
 IMEStateManager::NotifyIME(const IMENotification& aNotification,
                            nsIWidget* aWidget,
@@ -1363,8 +1363,8 @@ IMEStateManager::NotifyIME(const IMENotification& aNotification,
       }
       return aWidget->NotifyIME(aNotification);
     default:
-      
-      
+      // Other notifications should be sent only when there is composition.
+      // So, we need to handle the others below.
       break;
   }
 
@@ -1410,7 +1410,7 @@ IMEStateManager::NotifyIME(const IMENotification& aNotification,
   return NS_ERROR_FAILURE;
 }
 
-
+// static
 nsresult
 IMEStateManager::NotifyIME(IMEMessage aMessage,
                            nsPresContext* aPresContext,
@@ -1434,14 +1434,14 @@ IMEStateManager::NotifyIME(IMEMessage aMessage,
   return NotifyIME(aMessage, widget, aOriginIsRemote);
 }
 
-
+// static
 bool
 IMEStateManager::IsEditable(nsINode* node)
 {
   if (node->IsEditable()) {
     return true;
   }
-  
+  // |node| might be readwrite (for example, a text control)
   if (node->IsElement() &&
       node->AsElement()->State().HasState(NS_EVENT_STATE_MOZ_READWRITE)) {
     return true;
@@ -1449,7 +1449,7 @@ IMEStateManager::IsEditable(nsINode* node)
   return false;
 }
 
-
+// static
 nsINode*
 IMEStateManager::GetRootEditableNode(nsPresContext* aPresContext,
                                      nsIContent* aContent)
@@ -1458,12 +1458,12 @@ IMEStateManager::GetRootEditableNode(nsPresContext* aPresContext,
     nsINode* root = nullptr;
     nsINode* node = aContent;
     while (node && IsEditable(node)) {
-      
-      
-      
-      
-      
-      
+      // If the node has independent selection like <input type="text"> or
+      // <textarea>, the node should be the root editable node for aContent.
+      // FYI: <select> element also has independent selection but IsEditable()
+      //      returns false.
+      // XXX: If somebody adds new editable element which has independent
+      //      selection but doesn't own editor, we'll need more checks here.
       if (node->IsContent() &&
           node->AsContent()->HasIndependentSelection()) {
         return node;
@@ -1482,14 +1482,14 @@ IMEStateManager::GetRootEditableNode(nsPresContext* aPresContext,
   return nullptr;
 }
 
-
+// static
 bool
 IMEStateManager::IsIMEObserverNeeded(const IMEState& aState)
 {
   return aState.IsEditable();
 }
 
-
+// static
 void
 IMEStateManager::DestroyIMEContentObserver()
 {
@@ -1512,7 +1512,7 @@ IMEStateManager::DestroyIMEContentObserver()
   tsm->Destroy();
 }
 
-
+// static
 void
 IMEStateManager::CreateIMEContentObserver(nsIEditor* aEditor)
 {
@@ -1537,10 +1537,10 @@ IMEStateManager::CreateIMEContentObserver(nsIEditor* aEditor)
     MOZ_LOG(sISMLog, LogLevel::Error,
       ("ISM:   IMEStateManager::CreateIMEContentObserver(), FAILED due to "
        "there is a root widget for the nsPresContext"));
-    return; 
+    return; // Sometimes, there are no widgets.
   }
 
-  
+  // If it's not text editable, we don't need to create IMEContentObserver.
   if (!IsIMEObserverNeeded(widget->GetInputContext().mIMEState)) {
     MOZ_LOG(sISMLog, LogLevel::Debug,
       ("ISM:   IMEStateManager::CreateIMEContentObserver() doesn't create "
@@ -1553,14 +1553,14 @@ IMEStateManager::CreateIMEContentObserver(nsIEditor* aEditor)
      "IMEContentObserver instance..."));
   sActiveIMEContentObserver = new IMEContentObserver();
 
-  
-  
-  
+  // IMEContentObserver::Init() might create another IMEContentObserver
+  // instance.  So, sActiveIMEContentObserver would be replaced with new one.
+  // We should hold the current instance here.
   nsRefPtr<IMEContentObserver> kungFuDeathGrip(sActiveIMEContentObserver);
   sActiveIMEContentObserver->Init(widget, sPresContext, sContent, aEditor);
 }
 
-
+// static
 nsresult
 IMEStateManager::GetFocusSelectionAndRoot(nsISelection** aSelection,
                                           nsIContent** aRootContent)
@@ -1572,7 +1572,7 @@ IMEStateManager::GetFocusSelectionAndRoot(nsISelection** aSelection,
                                                         aRootContent);
 }
 
-
+// static
 already_AddRefed<TextComposition>
 IMEStateManager::GetTextCompositionFor(nsIWidget* aWidget)
 {
@@ -1584,7 +1584,7 @@ IMEStateManager::GetTextCompositionFor(nsIWidget* aWidget)
   return textComposition.forget();
 }
 
-
+// static
 already_AddRefed<TextComposition>
 IMEStateManager::GetTextCompositionFor(WidgetGUIEvent* aGUIEvent)
 {
@@ -1593,4 +1593,4 @@ IMEStateManager::GetTextCompositionFor(WidgetGUIEvent* aGUIEvent)
   return GetTextCompositionFor(aGUIEvent->widget);
 }
 
-} 
+} // namespace mozilla

@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 #include "NetworkWorker.h"
 #include "NetworkUtils.h"
@@ -22,13 +22,13 @@ namespace mozilla {
 
 nsCOMPtr<nsIThread> gWorkerThread;
 
-// The singleton network worker, to be used on the main thread.
+
 StaticRefPtr<NetworkWorker> gNetworkWorker;
 
-// The singleton networkutils class, that can be used on any thread.
+
 static nsAutoPtr<NetworkUtils> gNetworkUtils;
 
-// Runnable used dispatch command result on the main thread.
+
 class NetworkResultDispatcher : public nsRunnable
 {
 public:
@@ -51,7 +51,7 @@ private:
   NetworkResultOptions mResult;
 };
 
-// Runnable used dispatch netd command on the worker thread.
+
 class NetworkCommandDispatcher : public nsRunnable
 {
 public:
@@ -74,7 +74,7 @@ private:
   NetworkParams mParams;
 };
 
-// Runnable used dispatch netd result on the worker thread.
+
 class NetdEventRunnable : public nsRunnable
 {
 public:
@@ -134,7 +134,7 @@ NetworkWorker::~NetworkWorker()
 already_AddRefed<NetworkWorker>
 NetworkWorker::FactoryCreate()
 {
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+  if (!XRE_IsParentProcess()) {
     return nullptr;
   }
 
@@ -194,7 +194,7 @@ NetworkWorker::Shutdown()
   return NS_OK;
 }
 
-// Receive command from main thread (NetworkService.js).
+
 NS_IMETHODIMP
 NetworkWorker::PostMessage(JS::Handle<JS::Value> aOptions, JSContext* aCx)
 {
@@ -206,7 +206,7 @@ NetworkWorker::PostMessage(JS::Handle<JS::Value> aOptions, JSContext* aCx)
     return NS_ERROR_FAILURE;
   }
 
-  // Dispatch the command to the control thread.
+  
   NetworkParams NetworkParams(options);
   nsCOMPtr<nsIRunnable> runnable = new NetworkCommandDispatcher(NetworkParams);
   if (gWorkerThread) {
@@ -227,13 +227,13 @@ NetworkWorker::DispatchNetworkResult(const NetworkResultOptions& aOptions)
     return;
   }
 
-  // Call the listener with a JS value.
+  
   if (mListener) {
     mListener->OnEvent(val);
   }
 }
 
-// Callback function from network worker thread to update result on main thread.
+
 void
 NetworkWorker::NotifyResult(NetworkResultOptions& aResult)
 {
@@ -265,6 +265,6 @@ static const mozilla::Module kNetworkWorkerModule = {
   nullptr
 };
 
-} // namespace mozilla
+} 
 
 NSMODULE_DEFN(NetworkWorkerModule) = &kNetworkWorkerModule;

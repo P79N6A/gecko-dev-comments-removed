@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: sw=2 ts=8 et :
- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #include "mozilla/DebugOnly.h"
 
@@ -80,16 +80,16 @@ ParamTraits<MagicGrallocBufferHandle>::Write(Message* aMsg,
   int fds[nfds];
 
 #if ANDROID_VERSION >= 19
-  // Make a copy of "data" and "fds" for flatten() to avoid casting problem
+  
   void *pdata = (void *)data;
   int *pfds = fds;
 
   flattenable->flatten(pdata, nbytes, pfds, nfds);
 
-  // In Kitkat, flatten() will change the value of nbytes and nfds, which dues
-  // to multiple parcelable object consumption. The actual size and fd count
-  // which returned by getFlattenedSize() and getFdCount() are not changed.
-  // So we change nbytes and nfds back by call corresponding calls.
+  
+  
+  
+  
   nbytes = flattenable->getFlattenedSize();
   nfds = flattenable->getFdCount();
 #else
@@ -100,9 +100,9 @@ ParamTraits<MagicGrallocBufferHandle>::Write(Message* aMsg,
   aMsg->WriteSize(nbytes);
   aMsg->WriteBytes(data, nbytes);
   for (size_t n = 0; n < nfds; ++n) {
-    // These buffers can't die in transit because they're created
-    // synchonously and the parent-side buffer can only be dropped if
-    // there's a crash.
+    
+    
+    
     aMsg->WriteFileDescriptor(FileDescriptor(fds[n], false));
   }
 }
@@ -137,23 +137,23 @@ ParamTraits<MagicGrallocBufferHandle>::Read(const Message* aMsg,
       printf_stderr("ParamTraits<MagicGrallocBufferHandle>::Read() failed to read file descriptors\n");
       return false;
     }
-    // If the GraphicBuffer was shared cross-process, SCM_RIGHTS does
-    // the right thing and dup's the fd. If it's shared cross-thread,
-    // SCM_RIGHTS doesn't dup the fd. 
-    // But in shared cross-thread, dup fd is not necessary because we get
-    // a pointer to the GraphicBuffer directly from SharedBufferManagerParent
-    // and don't create a new GraphicBuffer around the fd.
+    
+    
+    
+    
+    
+    
     fds[n] = fd.fd;
   }
 
   aResult->mRef.mOwner = owner;
   aResult->mRef.mKey = index;
-  if (XRE_GetProcessType() == GeckoProcessType_Default) {
-    // If we are in chrome process, we can just get GraphicBuffer directly from
-    // SharedBufferManagerParent.
+  if (XRE_IsParentProcess()) {
+    
+    
     aResult->mGraphicBuffer = SharedBufferManagerParent::GetGraphicBuffer(aResult->mRef);
   } else {
-    // Deserialize GraphicBuffer
+    
 #if ANDROID_VERSION >= 19
     sp<GraphicBuffer> buffer(new GraphicBuffer());
     const void* datap = (const void*)data;
@@ -181,7 +181,7 @@ ParamTraits<MagicGrallocBufferHandle>::Read(const Message* aMsg,
   return true;
 }
 
-} // namespace IPC
+} 
 
 namespace mozilla {
 namespace layers {
@@ -192,30 +192,30 @@ MagicGrallocBufferHandle::MagicGrallocBufferHandle(const sp<GraphicBuffer>& aGra
 {
 }
 
-//-----------------------------------------------------------------------------
-// Parent process
 
-/*static*/ bool
+
+
+ bool
 LayerManagerComposite::SupportsDirectTexturing()
 {
   return true;
 }
 
-/*static*/ void
+ void
 LayerManagerComposite::PlatformSyncBeforeReplyUpdate()
 {
-  // Nothing to be done for gralloc.
+  
 }
 
-//-----------------------------------------------------------------------------
-// Both processes
 
-/*static*/ sp<GraphicBuffer>
+
+
+ sp<GraphicBuffer>
 GetGraphicBufferFrom(MaybeMagicGrallocBufferHandle aHandle)
 {
   if (aHandle.type() != MaybeMagicGrallocBufferHandle::TMagicGrallocBufferHandle) {
     if (aHandle.type() == MaybeMagicGrallocBufferHandle::TGrallocBufferRef) {
-      if (XRE_GetProcessType() == GeckoProcessType_Default) {
+      if (XRE_IsParentProcess()) {
         return SharedBufferManagerParent::GetGraphicBuffer(aHandle.get_GrallocBufferRef());
       }
       return SharedBufferManagerChild::GetSingleton()->GetGraphicBuffer(aHandle.get_GrallocBufferRef().mKey);
@@ -237,11 +237,11 @@ GetGraphicBufferFromDesc(SurfaceDescriptor aDesc)
   return GetGraphicBufferFrom(handle);
 }
 
-/*static*/ void
+ void
 ShadowLayerForwarder::PlatformSyncBeforeUpdate()
 {
-  // Nothing to be done for gralloc.
+  
 }
 
-} // namespace layers
-} // namespace mozilla
+} 
+} 

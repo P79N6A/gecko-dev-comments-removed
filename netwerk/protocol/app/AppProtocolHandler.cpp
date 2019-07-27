@@ -446,7 +446,7 @@ AppProtocolHandler::NewChannel2(nsIURI* aUri,
   }
 
   bool noRemote = (appInfo->mIsCoreApp ||
-                   XRE_GetProcessType() == GeckoProcessType_Default);
+                   XRE_IsParentProcess());
 
   
   nsAutoCString jarSpec(noRemote ? "jar:file://"

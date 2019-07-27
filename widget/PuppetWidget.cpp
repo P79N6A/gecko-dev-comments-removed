@@ -988,7 +988,7 @@ PuppetWidget::MemoryPressureObserver::Observe(nsISupports* aSubject,
 
   if (strcmp("memory-pressure", aTopic) == 0) {
     if (!mWidget->mVisible && mWidget->mLayerManager &&
-        XRE_GetProcessType() == GeckoProcessType_Content) {
+        XRE_IsContentProcess()) {
       mWidget->mLayerManager->ClearCachedResources();
     }
   }
@@ -1009,7 +1009,7 @@ bool
 PuppetWidget::NeedsPaint()
 {
   
-  if (XRE_GetProcessType() == GeckoProcessType_Content &&
+  if (XRE_IsContentProcess() &&
       Preferences::GetBool("browser.tabs.remote.desktopbehavior", false) &&
       mWindowType == eWindowType_popup) {
     NS_WARNING("Trying to paint an e10s popup in the child process!");

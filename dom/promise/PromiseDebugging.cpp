@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "js/Value.h"
 #include "nsThreadUtils.h"
@@ -32,8 +32,8 @@ public:
 
   static void DispatchNeeded() {
     if (sDispatched.get()) {
-      // An instance of `FlushRejections` has already been dispatched
-      // and not run yet. No need to dispatch another one.
+      
+      
       return;
     }
     sDispatched.set(true);
@@ -43,11 +43,11 @@ public:
   static void FlushSync() {
     sDispatched.set(false);
 
-    // Call the callbacks if necessary.
-    // Note that these callbacks may in turn cause Promise to turn
-    // uncaught or consumed. Since `sDispatched` is `false`,
-    // `FlushRejections` will be called once again, on an ulterior
-    // tick.
+    
+    
+    
+    
+    
     PromiseDebugging::FlushUncaughtRejectionsInternal();
   }
 
@@ -57,15 +57,15 @@ public:
   }
 
 private:
-  // `true` if an instance of `FlushRejections` is currently dispatched
-  // and has not been executed yet.
+  
+  
   static ThreadLocal<bool> sDispatched;
 };
 
-/* static */ ThreadLocal<bool>
+ ThreadLocal<bool>
 FlushRejections::sDispatched;
 
-/* static */ void
+ void
 PromiseDebugging::GetState(GlobalObject&, Promise& aPromise,
                            PromiseDebuggingStateHolder& aState)
 {
@@ -86,17 +86,17 @@ PromiseDebugging::GetState(GlobalObject&, Promise& aPromise,
   }
 }
 
-/*static */ nsString
+ nsString
 PromiseDebugging::sIDPrefix;
 
-/* static */ void
+ void
 PromiseDebugging::Init()
 {
   FlushRejections::Init();
 
-  // Generate a prefix for identifiers: "PromiseDebugging.$processid."
+  
   sIDPrefix = NS_LITERAL_STRING("PromiseDebugging.");
-  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+  if (XRE_IsContentProcess()) {
     sIDPrefix.AppendInt(ContentChild::GetSingleton()->GetID());
     sIDPrefix.Append('.');
   } else {
@@ -104,54 +104,54 @@ PromiseDebugging::Init()
   }
 }
 
-/* static */ void
+ void
 PromiseDebugging::Shutdown()
 {
   sIDPrefix.SetIsVoid(true);
 }
 
-/* static */ void
+ void
 PromiseDebugging::FlushUncaughtRejections()
 {
   MOZ_ASSERT(!NS_IsMainThread());
   FlushRejections::FlushSync();
 }
 
-/* static */ void
+ void
 PromiseDebugging::GetAllocationStack(GlobalObject&, Promise& aPromise,
                                      JS::MutableHandle<JSObject*> aStack)
 {
   aStack.set(aPromise.mAllocationStack);
 }
 
-/* static */ void
+ void
 PromiseDebugging::GetRejectionStack(GlobalObject&, Promise& aPromise,
                                     JS::MutableHandle<JSObject*> aStack)
 {
   aStack.set(aPromise.mRejectionStack);
 }
 
-/* static */ void
+ void
 PromiseDebugging::GetFullfillmentStack(GlobalObject&, Promise& aPromise,
                                        JS::MutableHandle<JSObject*> aStack)
 {
   aStack.set(aPromise.mFullfillmentStack);
 }
 
-/* static */ void
+ void
 PromiseDebugging::GetDependentPromises(GlobalObject&, Promise& aPromise,
                                        nsTArray<nsRefPtr<Promise>>& aPromises)
 {
   aPromise.GetDependentPromises(aPromises);
 }
 
-/* static */ double
+ double
 PromiseDebugging::GetPromiseLifetime(GlobalObject&, Promise& aPromise)
 {
   return (TimeStamp::Now() - aPromise.mCreationTimestamp).ToMilliseconds();
 }
 
-/* static */ double
+ double
 PromiseDebugging::GetTimeToSettle(GlobalObject&, Promise& aPromise,
                                   ErrorResult& aRv)
 {
@@ -163,7 +163,7 @@ PromiseDebugging::GetTimeToSettle(GlobalObject&, Promise& aPromise,
           aPromise.mCreationTimestamp).ToMilliseconds();
 }
 
-/* static */ void
+ void
 PromiseDebugging::AddUncaughtRejectionObserver(GlobalObject&,
                                                UncaughtRejectionObserver& aObserver)
 {
@@ -172,7 +172,7 @@ PromiseDebugging::AddUncaughtRejectionObserver(GlobalObject&,
   observers.AppendElement(&aObserver);
 }
 
-/* static */ bool
+ bool
 PromiseDebugging::RemoveUncaughtRejectionObserver(GlobalObject&,
                                                   UncaughtRejectionObserver& aObserver)
 {
@@ -188,21 +188,21 @@ PromiseDebugging::RemoveUncaughtRejectionObserver(GlobalObject&,
   return false;
 }
 
-/* static */ void
+ void
 PromiseDebugging::AddUncaughtRejection(Promise& aPromise)
 {
   CycleCollectedJSRuntime::Get()->mUncaughtRejections.AppendElement(&aPromise);
   FlushRejections::DispatchNeeded();
 }
 
-/* void */ void
+ void
 PromiseDebugging::AddConsumedRejection(Promise& aPromise)
 {
   CycleCollectedJSRuntime::Get()->mConsumedRejections.AppendElement(&aPromise);
   FlushRejections::DispatchNeeded();
 }
 
-/* static */ void
+ void
 PromiseDebugging::GetPromiseID(GlobalObject&,
                                Promise& aPromise,
                                nsString& aID)
@@ -212,51 +212,51 @@ PromiseDebugging::GetPromiseID(GlobalObject&,
   aID.AppendInt(promiseID);
 }
 
-/* static */ void
+ void
 PromiseDebugging::FlushUncaughtRejectionsInternal()
 {
   CycleCollectedJSRuntime* storage = CycleCollectedJSRuntime::Get();
 
-  // The Promise that have been left uncaught (rejected and last in
-  // their chain) since the last call to this function.
+  
+  
   nsTArray<nsCOMPtr<nsISupports>> uncaught;
   storage->mUncaughtRejections.SwapElements(uncaught);
 
-  // The Promise that have been left uncaught at some point, but that
-  // have eventually had their `then` method called.
+  
+  
   nsTArray<nsCOMPtr<nsISupports>> consumed;
   storage->mConsumedRejections.SwapElements(consumed);
 
   nsTArray<nsCOMPtr<nsISupports>>& observers = storage->mUncaughtRejectionObservers;
 
   nsresult rv;
-  // Notify observers of uncaught Promise.
+  
 
   for (size_t i = 0; i < uncaught.Length(); ++i) {
     nsCOMPtr<Promise> promise = do_QueryInterface(uncaught[i], &rv);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
 
     if (!promise->IsLastInChain()) {
-      // This promise is not the last in the chain anymore,
-      // so the error has been caught at some point.
+      
+      
       continue;
     }
 
-    // For the moment, the Promise is still at the end of the
-    // chain. Let's inform observers, so that they may decide whether
-    // to report it.
+    
+    
+    
     for (size_t j = 0; j < observers.Length(); ++j) {
       ErrorResult err;
       nsRefPtr<UncaughtRejectionObserver> obs =
         static_cast<UncaughtRejectionObserver*>(observers[j].get());
 
-      obs->OnLeftUncaught(*promise, err); // Ignore errors
+      obs->OnLeftUncaught(*promise, err); 
     }
 
     promise->SetNotifiedAsUncaught();
   }
 
-  // Notify observers of consumed Promise.
+  
 
   for (size_t i = 0; i < consumed.Length(); ++i) {
     nsCOMPtr<Promise> promise = do_QueryInterface(consumed[i], &rv);
@@ -272,10 +272,10 @@ PromiseDebugging::FlushUncaughtRejectionsInternal()
       nsRefPtr<UncaughtRejectionObserver> obs =
         static_cast<UncaughtRejectionObserver*>(observers[j].get());
 
-      obs->OnConsumed(*promise, err); // Ignore errors
+      obs->OnConsumed(*promise, err); 
     }
   }
 }
 
-} // namespace dom
-} // namespace mozilla
+} 
+} 

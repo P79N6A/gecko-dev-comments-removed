@@ -1,35 +1,35 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "ClientLayerManager.h"
-#include "GeckoProfiler.h"              // for PROFILER_LABEL
-#include "gfxPrefs.h"                   // for gfxPrefs::LayersTile...
-#include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
+#include "GeckoProfiler.h"              
+#include "gfxPrefs.h"                   
+#include "mozilla/Assertions.h"         
 #include "mozilla/Hal.h"
-#include "mozilla/dom/ScreenOrientation.h"  // for ScreenOrientation
-#include "mozilla/dom/TabChild.h"       // for TabChild
-#include "mozilla/hal_sandbox/PHal.h"   // for ScreenConfiguration
+#include "mozilla/dom/ScreenOrientation.h"  
+#include "mozilla/dom/TabChild.h"       
+#include "mozilla/hal_sandbox/PHal.h"   
 #include "mozilla/layers/CompositableClient.h"
-#include "mozilla/layers/CompositorChild.h" // for CompositorChild
+#include "mozilla/layers/CompositorChild.h" 
 #include "mozilla/layers/ContentClient.h"
 #include "mozilla/layers/FrameUniformityData.h"
 #include "mozilla/layers/ISurfaceAllocator.h"
-#include "mozilla/layers/LayersMessages.h"  // for EditReply, etc
-#include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor
-#include "mozilla/layers/PLayerChild.h"  // for PLayerChild
+#include "mozilla/layers/LayersMessages.h"  
+#include "mozilla/layers/LayersSurfaces.h"  
+#include "mozilla/layers/PLayerChild.h"  
 #include "mozilla/layers/LayerTransactionChild.h"
-#include "mozilla/layers/TextureClientPool.h" // for TextureClientPool
+#include "mozilla/layers/TextureClientPool.h" 
 #include "mozilla/layers/PersistentBufferProvider.h"
-#include "ClientReadbackLayer.h"        // for ClientReadbackLayer
+#include "ClientReadbackLayer.h"        
 #include "nsAString.h"
 #include "nsIWidgetListener.h"
-#include "nsTArray.h"                   // for AutoInfallibleTArray
-#include "nsXULAppAPI.h"                // for XRE_GetProcessType, etc
+#include "nsTArray.h"                   
+#include "nsXULAppAPI.h"                
 #include "TiledLayerBuffer.h"
-#include "mozilla/dom/WindowBinding.h"  // for Overfill Callback
-#include "FrameLayerBuilder.h"          // for FrameLayerbuilder
+#include "mozilla/dom/WindowBinding.h"  
+#include "FrameLayerBuilder.h"          
 #ifdef MOZ_WIDGET_ANDROID
 #include "AndroidBridge.h"
 #include "LayerMetricsWrapper.h"
@@ -113,12 +113,12 @@ ClientLayerManager::~ClientLayerManager()
   }
   mMemoryPressureObserver->Destroy();
   ClearCachedResources();
-  // Stop receiveing AsyncParentMessage at Forwarder.
-  // After the call, the message is directly handled by LayerTransactionChild. 
-  // Basically this function should be called in ShadowLayerForwarder's
-  // destructor. But when the destructor is triggered by 
-  // CompositorChild::Destroy(), the destructor can not handle it correctly.
-  // See Bug 1000525.
+  
+  
+  
+  
+  
+  
   mForwarder->StopReceiveAsyncParentMessge();
   mRoot = nullptr;
 
@@ -142,10 +142,10 @@ void
 ClientLayerManager::SetRoot(Layer* aLayer)
 {
   if (mRoot != aLayer) {
-    // Have to hold the old root and its children in order to
-    // maintain the same view of the layer tree in this process as
-    // the parent sees.  Otherwise layers can be destroyed
-    // mid-transaction and bad things can happen (v. bug 612573)
+    
+    
+    
+    
     if (mRoot) {
       Hold(mRoot);
     }
@@ -190,9 +190,9 @@ ClientLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
   MOZ_ASSERT(mKeepAlive.IsEmpty(), "uncommitted txn?");
   nsRefPtr<gfxContext> targetContext = aTarget;
 
-  // If the last transaction was incomplete (a failed DoEmptyTransaction),
-  // don't signal a new transaction to ShadowLayerForwarder. Carry on adding
-  // to the previous transaction.
+  
+  
+  
   dom::ScreenOrientation orientation;
   if (dom::TabChild* window = mWidget->GetOwningTabChild()) {
     orientation = window->GetOrientation();
@@ -205,30 +205,30 @@ ClientLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
   targetBounds.x = targetBounds.y = 0;
   mForwarder->BeginTransaction(targetBounds, mTargetRotation, orientation);
 
-  // If we're drawing on behalf of a context with async pan/zoom
-  // enabled, then the entire buffer of painted layers might be
-  // composited (including resampling) asynchronously before we get
-  // a chance to repaint, so we have to ensure that it's all valid
-  // and not rotated.
-  //
-  // Desktop does not support async zoom yet, so we ignore this for those
-  // platforms.
+  
+  
+  
+  
+  
+  
+  
+  
 #if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
   if (mWidget && mWidget->GetOwningTabChild()) {
     mCompositorMightResample = AsyncPanZoomEnabled();
   }
 #endif
 
-  // If we have a non-default target, we need to let our shadow manager draw
-  // to it. This will happen at the end of the transaction.
-  if (aTarget && XRE_GetProcessType() == GeckoProcessType_Default) {
+  
+  
+  if (aTarget && XRE_IsParentProcess()) {
     mShadowTarget = aTarget;
   } else {
     NS_ASSERTION(!aTarget,
                  "Content-process ClientLayerManager::BeginTransactionWithTarget not supported");
   }
 
-  // If this is a new paint, increment the paint sequence number.
+  
   if (!mIsRepeatTransaction && gfxPrefs::APZTestLoggingEnabled()) {
     ++mPaintSequenceNumber;
     mApzTestData.StartNewPaint(mPaintSequenceNumber);
@@ -262,8 +262,8 @@ ClientLayerManager::EndTransactionInternal(DrawPaintedLayerCallback aCallback,
 
   mTransactionIncomplete = false;
       
-  // Apply pending tree updates before recomputing effective
-  // properties.
+  
+  
   GetRoot()->ApplyPendingUpdatesToSubtree();
     
   mPaintedLayerCallback = aCallback;
@@ -284,8 +284,8 @@ ClientLayerManager::EndTransactionInternal(DrawPaintedLayerCallback aCallback,
   mPaintedLayerCallback = nullptr;
   mPaintedLayerCallbackData = nullptr;
 
-  // Go back to the construction phase if the transaction isn't complete.
-  // Layout will update the layer tree and call EndTransaction().
+  
+  
   mPhase = mTransactionIncomplete ? PHASE_CONSTRUCTION : PHASE_NONE;
 
   NS_ASSERTION(!aCallback || !mTransactionIncomplete,
@@ -344,9 +344,9 @@ ClientLayerManager::EndEmptyTransaction(EndTransactionFlags aFlags)
     return false;
   }
   if (!EndTransactionInternal(nullptr, nullptr, aFlags)) {
-    // Return without calling ForwardTransaction. This leaves the
-    // ShadowLayerForwarder transaction open; the following
-    // EndTransaction will complete it.
+    
+    
+    
     return false;
   }
   if (mWidget) {
@@ -370,7 +370,7 @@ ClientLayerManager::GetRemoteRenderer()
 CompositorChild*
 ClientLayerManager::GetCompositorChild()
 {
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+  if (!XRE_IsParentProcess()) {
     return CompositorChild::Get();
   }
   return GetRemoteRenderer();
@@ -479,9 +479,9 @@ ClientLayerManager::MakeSnapshotIfRequired()
   }
   if (mWidget) {
     if (CompositorChild* remoteRenderer = GetRemoteRenderer()) {
-      // The compositor doesn't draw to a different sized surface
-      // when there's a rotation. Instead we rotate the result
-      // when drawing into dt
+      
+      
+      
       IntRect outerBounds;
       mWidget->GetBounds(outerBounds);
 
@@ -576,7 +576,7 @@ ClientLayerManager::ForwardTransaction(bool aScheduleComposite)
     transactionStart = mTransactionStart;
   }
 
-  // forward this transaction's changeset to our LayerManagerComposite
+  
   bool sent;
   AutoInfallibleTArray<EditReply, 10> replies;
   if (mForwarder->EndTransaction(&replies, mRegionToClear,
@@ -629,9 +629,9 @@ ClientLayerManager::ForwardTransaction(bool aScheduleComposite)
   }
 
   if (!sent) {
-    // Clear the transaction id so that it doesn't get returned
-    // unless we forwarded to somewhere that doesn't actually
-    // have a compositor.
+    
+    
+    
     mTransactionIdAllocator->RevokeTransactionId(mLatestTransactionId);
   }
 
@@ -639,8 +639,8 @@ ClientLayerManager::ForwardTransaction(bool aScheduleComposite)
   mForwarder->SendPendingAsyncMessges();
   mPhase = PHASE_NONE;
 
-  // this may result in Layers being deleted, which results in
-  // PLayer::Send__delete__() and DeallocShmem()
+  
+  
   mKeepAlive.Clear();
 }
 
@@ -660,7 +660,7 @@ ClientLayerManager::Hold(Layer* aLayer)
 bool
 ClientLayerManager::IsCompositingCheap()
 {
-  // Whether compositing is cheap depends on the parent backend.
+  
   return mForwarder->mShadowManager &&
          LayerManager::IsCompositingCheap(mForwarder->GetCompositorBackendType());
 }
@@ -716,7 +716,7 @@ void
 ClientLayerManager::ClearCachedResources(Layer* aSubtree)
 {
   if (mDestroyed) {
-    // ClearCachedResource was already called by ClientLayerManager::Destroy
+    
     return;
   }
   MOZ_ASSERT(!HasShadowManager() || !aSubtree);
@@ -777,8 +777,8 @@ ClientLayerManager::ProgressiveUpdateCallback(bool aHasPendingNewThebesContent,
 {
 #ifdef MOZ_WIDGET_ANDROID
   MOZ_ASSERT(aMetrics.IsScrollable());
-  // This is derived from the code in
-  // gfx/layers/ipc/CompositorParent.cpp::TransformShadowTree.
+  
+  
   CSSToLayerScale paintScale = aMetrics.LayersPixelsPerCSSPixel().ToScaleFactor();
   const CSSRect& metricsDisplayPort =
     (aDrawingCritical && !aMetrics.GetCriticalDisplayPort().IsEmpty()) ?
@@ -812,5 +812,5 @@ ClientLayer::~ClientLayer()
   MOZ_COUNT_DTOR(ClientLayer);
 }
 
-} // namespace layers
-} // namespace mozilla
+} 
+} 

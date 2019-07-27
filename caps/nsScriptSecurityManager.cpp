@@ -1283,7 +1283,7 @@ nsScriptSecurityManager::~nsScriptSecurityManager(void)
     
     
     
-    MOZ_ASSERT_IF(XRE_GetProcessType() == GeckoProcessType_Default,
+    MOZ_ASSERT_IF(XRE_IsParentProcess(),
                   !mDomainPolicy);
 }
 
@@ -1500,7 +1500,7 @@ nsScriptSecurityManager::GetDomainPolicyActive(bool *aRv)
 NS_IMETHODIMP
 nsScriptSecurityManager::ActivateDomainPolicy(nsIDomainPolicy** aRv)
 {
-    if (XRE_GetProcessType() != GeckoProcessType_Default) {
+    if (!XRE_IsParentProcess()) {
         return NS_ERROR_SERVICE_NOT_AVAILABLE;
     }
 

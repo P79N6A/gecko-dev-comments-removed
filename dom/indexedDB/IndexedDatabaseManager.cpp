@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "IndexedDatabaseManager.h"
 
@@ -39,7 +39,7 @@
 #include "WorkerScope.h"
 #include "WorkerPrivate.h"
 
-
+// Bindings for ResolveConstructors
 #include "mozilla/dom/IDBCursorBinding.h"
 #include "mozilla/dom/IDBDatabaseBinding.h"
 #include "mozilla/dom/IDBFactoryBinding.h"
@@ -54,8 +54,8 @@
 
 #define IDB_STR "indexedDB"
 
-
-
+// The two possible values for the data argument when receiving the disk space
+// observer notification.
 #define LOW_DISK_SPACE_DATA_FULL "full"
 #define LOW_DISK_SPACE_DATA_FREE "free"
 
@@ -150,22 +150,22 @@ class DeleteFilesRunnable final
 
   enum State
   {
-    
+    // Just created on the main thread. Next step is State_DirectoryOpenPending.
     State_Initial,
 
-    
-    
+    // Waiting for directory open allowed on the main thread. The next step is
+    // State_DatabaseWorkOpen.
     State_DirectoryOpenPending,
 
-    
-    
+    // Waiting to do/doing work on the QuotaManager IO thread. The next step is
+    // State_UnblockingOpen.
     State_DatabaseWorkOpen,
 
-    
-    
+    // Notifying the QuotaManager that it can proceed to the next operation on
+    // the main thread. Next step is State_Completed.
     State_UnblockingOpen,
 
-    
+    // All done.
     State_Completed
   };
 
@@ -266,7 +266,7 @@ AtomicBoolPrefChangedCallback(const char* aPrefName, void* aClosure)
   *static_cast<Atomic<bool>*>(aClosure) = Preferences::GetBool(aPrefName);
 }
 
-} 
+} // anonymous namespace
 
 IndexedDatabaseManager::IndexedDatabaseManager()
 : mFileMutex("IndexedDatabaseManager.mFileMutex")
@@ -290,7 +290,7 @@ Atomic<IndexedDatabaseManager::LoggingMode>
 
 mozilla::Atomic<bool> IndexedDatabaseManager::sLowDiskSpaceMode(false);
 
-
+// static
 IndexedDatabaseManager*
 IndexedDatabaseManager::GetOrCreate()
 {
@@ -302,14 +302,14 @@ IndexedDatabaseManager::GetOrCreate()
   }
 
   if (!gDBManager) {
-    sIsMainProcess = XRE_GetProcessType() == GeckoProcessType_Default;
+    sIsMainProcess = XRE_IsParentProcess();
 
     if (!sLoggingModule) {
       sLoggingModule = PR_NewLogModule("IndexedDB");
     }
 
     if (sIsMainProcess && Preferences::GetBool("disk_space_watcher.enabled", false)) {
-      
+      // See if we're starting up in low disk space conditions.
       nsCOMPtr<nsIDiskSpaceWatcher> watcher =
         do_GetService(DISKSPACEWATCHER_CONTRACTID);
       if (watcher) {
@@ -343,11 +343,11 @@ IndexedDatabaseManager::GetOrCreate()
   return gDBManager;
 }
 
-
+// static
 IndexedDatabaseManager*
 IndexedDatabaseManager::Get()
 {
-  
+  // Does not return an owning reference.
   return gDBManager;
 }
 
@@ -356,8 +356,8 @@ IndexedDatabaseManager::Init()
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  
-  
+  // During Init() we can't yet call IsMainProcess(), just check sIsMainProcess
+  // directly.
   if (sIsMainProcess) {
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
     NS_ENSURE_STATE(obs);
@@ -377,12 +377,12 @@ IndexedDatabaseManager::Init()
                                        kPrefExperimental,
                                        &gExperimentalFeaturesEnabled);
 
-  
-  
-  
-  
-  
-  
+  // By default IndexedDB uses SQLite with PRAGMA synchronous = NORMAL. This
+  // guarantees (unlike synchronous = OFF) atomicity and consistency, but not
+  // necessarily durability in situations such as power loss. This preference
+  // allows enabling PRAGMA synchronous = FULL on SQLite, which does guarantee
+  // durability, but with an extra fsync() and the corresponding performance
+  // hit.
   sFullSynchronousMode = Preferences::GetBool("dom.indexedDB.fullSynchronous");
 
   Preferences::RegisterCallback(LoggingModePrefChangedCallback,
@@ -400,8 +400,8 @@ IndexedDatabaseManager::Init()
 void
 IndexedDatabaseManager::Destroy()
 {
-  
-  
+  // Setting the closed flag prevents the service from being recreated.
+  // Don't set it though if there's no real instance created.
   if (gInitialized && gClosed.exchange(true)) {
     NS_ERROR("Shutdown more than once?!");
   }
@@ -433,7 +433,7 @@ IndexedDatabaseManager::Destroy()
   delete this;
 }
 
-
+// static
 nsresult
 IndexedDatabaseManager::CommonPostHandleEvent(EventChainPostVisitor& aVisitor,
                                               IDBFactory* aFactory)
@@ -463,7 +463,7 @@ IndexedDatabaseManager::CommonPostHandleEvent(EventChainPostVisitor& aVisitor,
   nsCOMPtr<EventTarget> eventTarget = internalEvent->GetTarget();
   MOZ_ASSERT(eventTarget);
 
-  
+  // Only mess with events that were originally targeted to an IDBRequest.
   nsRefPtr<IDBRequest> request;
   if (NS_FAILED(eventTarget->QueryInterface(kIDBRequestIID,
                                             getter_AddRefs(request))) ||
@@ -498,11 +498,11 @@ IndexedDatabaseManager::CommonPostHandleEvent(EventChainPostVisitor& aVisitor,
         status = nsEventStatus_eIgnore;
       }
     } else {
-      
-      
+      // We don't fire error events at any global for non-window JS on the main
+      // thread.
     }
   } else {
-    
+    // Not on the main thread, must be in a worker.
     WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
     MOZ_ASSERT(workerPrivate);
 
@@ -521,9 +521,9 @@ IndexedDatabaseManager::CommonPostHandleEvent(EventChainPostVisitor& aVisitor,
 
     if (NS_WARN_IF(NS_FAILED(
       EventDispatcher::DispatchDOMEvent(target,
-                                         nullptr,
+                                        /* aWidgetEvent */ nullptr,
                                         errorEvent,
-                                         nullptr,
+                                        /* aPresContext */ nullptr,
                                         &status)))) {
       status = nsEventStatus_eIgnore;
     }
@@ -541,7 +541,7 @@ IndexedDatabaseManager::CommonPostHandleEvent(EventChainPostVisitor& aVisitor,
   }
   category.AppendLiteral("javascript");
 
-  
+  // Log the error to the error console.
   nsCOMPtr<nsIConsoleService> consoleService =
     do_GetService(NS_CONSOLESERVICE_CONTRACTID);
   MOZ_ASSERT(consoleService);
@@ -554,9 +554,9 @@ IndexedDatabaseManager::CommonPostHandleEvent(EventChainPostVisitor& aVisitor,
     MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
       scriptError->InitWithWindowID(errorName,
                                     init.mFilename,
-                                     EmptyString(),
+                                    /* aSourceLine */ EmptyString(),
                                     init.mLineno,
-                                     0,
+                                    /* aColumnNumber */ 0,
                                     nsIScriptError::errorFlag,
                                     category,
                                     innerWindowID)));
@@ -564,9 +564,9 @@ IndexedDatabaseManager::CommonPostHandleEvent(EventChainPostVisitor& aVisitor,
     MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
       scriptError->Init(errorName,
                         init.mFilename,
-                         EmptyString(),
+                        /* aSourceLine */ EmptyString(),
                         init.mLineno,
-                         0,
+                        /* aColumnNumber */ 0,
                         nsIScriptError::errorFlag,
                         category.get())));
   }
@@ -576,7 +576,7 @@ IndexedDatabaseManager::CommonPostHandleEvent(EventChainPostVisitor& aVisitor,
   return NS_OK;
 }
 
-
+// static
 bool
 IndexedDatabaseManager::DefineIndexedDB(JSContext* aCx,
                                         JS::Handle<JSObject*> aGlobal)
@@ -585,8 +585,8 @@ IndexedDatabaseManager::DefineIndexedDB(JSContext* aCx,
   MOZ_ASSERT(js::GetObjectClass(aGlobal)->flags & JSCLASS_DOM_GLOBAL,
              "Passed object is not a global object!");
 
-  
-  
+  // We need to ensure that the manager has been created already here so that we
+  // load preferences that may control which properties are exposed.
   if (NS_WARN_IF(!GetOrCreate())) {
     return false;
   }
@@ -625,7 +625,7 @@ IndexedDatabaseManager::DefineIndexedDB(JSContext* aCx,
   return JS_DefineProperty(aCx, aGlobal, IDB_STR, indexedDB, JSPROP_ENUMERATE);
 }
 
-
+// static
 bool
 IndexedDatabaseManager::IsClosed()
 {
@@ -633,18 +633,18 @@ IndexedDatabaseManager::IsClosed()
 }
 
 #ifdef DEBUG
-
+// static
 bool
 IndexedDatabaseManager::IsMainProcess()
 {
   NS_ASSERTION(gDBManager,
                "IsMainProcess() called before indexedDB has been initialized!");
-  NS_ASSERTION((XRE_GetProcessType() == GeckoProcessType_Default) ==
+  NS_ASSERTION((XRE_IsParentProcess()) ==
                sIsMainProcess, "XRE_GetProcessType changed its tune!");
   return sIsMainProcess;
 }
 
-
+//static
 bool
 IndexedDatabaseManager::InLowDiskSpaceMode()
 {
@@ -654,7 +654,7 @@ IndexedDatabaseManager::InLowDiskSpaceMode()
   return sLowDiskSpaceMode;
 }
 
-
+// static
 IndexedDatabaseManager::LoggingMode
 IndexedDatabaseManager::GetLoggingMode()
 {
@@ -665,7 +665,7 @@ IndexedDatabaseManager::GetLoggingMode()
   return sLoggingMode;
 }
 
-
+// static
 PRLogModuleInfo*
 IndexedDatabaseManager::GetLoggingModule()
 {
@@ -676,9 +676,9 @@ IndexedDatabaseManager::GetLoggingModule()
   return sLoggingModule;
 }
 
-#endif 
+#endif // DEBUG
 
-
+// static
 bool
 IndexedDatabaseManager::InTestingMode()
 {
@@ -688,7 +688,7 @@ IndexedDatabaseManager::InTestingMode()
   return gTestingMode;
 }
 
-
+// static
 bool
 IndexedDatabaseManager::FullSynchronous()
 {
@@ -698,7 +698,7 @@ IndexedDatabaseManager::FullSynchronous()
   return sFullSynchronousMode;
 }
 
-
+// static
 bool
 IndexedDatabaseManager::ExperimentalFeaturesEnabled()
 {
@@ -926,11 +926,11 @@ IndexedDatabaseManager::FlushPendingFileDeletions()
   return NS_OK;
 }
 
-
+// static
 void
 IndexedDatabaseManager::LoggingModePrefChangedCallback(
-                                                    const char* ,
-                                                    void* )
+                                                    const char* /* aPrefName */,
+                                                    void* /* aClosure */)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -1187,7 +1187,7 @@ DeleteFilesRunnable::DirectoryLockAcquired(DirectoryLock* aLock)
   QuotaManager* quotaManager = QuotaManager::Get();
   MOZ_ASSERT(quotaManager);
 
-  
+  // Must set this before dispatching otherwise we will race with the IO thread
   mState = State_DatabaseWorkOpen;
 
   nsresult rv = quotaManager->IOThread()->Dispatch(this, NS_DISPATCH_NORMAL);
@@ -1225,7 +1225,7 @@ DeleteFilesRunnable::Open()
                               mFileManager->Origin(),
                               mFileManager->IsApp(),
                               Client::IDB,
-                               false,
+                              /* aExclusive */ false,
                               this);
 
   return NS_OK;
@@ -1301,8 +1301,8 @@ DeleteFilesRunnable::DoDatabaseWork()
 void
 DeleteFilesRunnable::Finish()
 {
-  
-  
+  // Must set mState before dispatching otherwise we will race with the main
+  // thread.
   mState = State_UnblockingOpen;
 
   MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_DispatchToMainThread(this)));
@@ -1370,7 +1370,7 @@ GetFileReferencesHelper::Run()
       fileInfo->GetReferences(&mMemRefCnt, &mDBRefCnt, &mSliceRefCnt);
 
       if (mMemRefCnt != -1) {
-        
+        // We added an extra temp ref, so account for that accordingly.
         mMemRefCnt--;
       }
 
@@ -1387,6 +1387,6 @@ GetFileReferencesHelper::Run()
   return NS_OK;
 }
 
-} 
-} 
-} 
+} // namespace indexedDB
+} // namespace dom
+} // namespace mozilla

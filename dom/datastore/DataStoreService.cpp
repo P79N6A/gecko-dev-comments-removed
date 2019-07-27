@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "DataStoreService.h"
 
@@ -51,8 +51,8 @@
 #include "nsXULAppAPI.h"
 
 #define ASSERT_PARENT_PROCESS()                                             \
-  AssertIsInMainProcess();                                                  \
-  if (NS_WARN_IF(!IsMainProcess())) {                                       \
+  MOZ_ASSERT(XRE_IsParentProcess());                                        \
+  if (NS_WARN_IF(!XRE_IsParentProcess())) {                                 \
     return NS_ERROR_FAILURE;                                                \
   }
 
@@ -61,7 +61,7 @@ namespace dom {
 
 using namespace indexedDB;
 
-
+// This class contains all the information about a DataStore.
 class DataStoreInfo
 {
 public:
@@ -113,31 +113,17 @@ public:
   nsString mManifestURL;
   bool mReadOnly;
 
-  
+  // A DataStore is enabled when it has its first revision.
   bool mEnabled;
 };
 
 namespace {
 
-
+// Singleton for DataStoreService.
 StaticRefPtr<DataStoreService> gDataStoreService;
 static uint64_t gCounterID = 0;
 
 typedef nsClassHashtable<nsUint32HashKey, DataStoreInfo> HashApp;
-
-bool
-IsMainProcess()
-{
-  static const bool isMainProcess =
-    XRE_GetProcessType() == GeckoProcessType_Default;
-  return isMainProcess;
-}
-
-void
-AssertIsInMainProcess()
-{
-  MOZ_ASSERT(IsMainProcess());
-}
 
 void
 RejectPromise(nsPIDOMWindow* aWindow, Promise* aPromise, nsresult aRv)
@@ -161,8 +147,7 @@ void
 DeleteDatabase(const nsAString& aName,
                const nsAString& aManifestURL)
 {
-  AssertIsInMainProcess();
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
 
   nsRefPtr<DataStoreDB> db = new DataStoreDB(aManifestURL, aName);
   db->Delete();
@@ -174,8 +159,7 @@ DeleteDataStoresAppEnumerator(
                              nsAutoPtr<DataStoreInfo>& aInfo,
                              void* aUserData)
 {
-  AssertIsInMainProcess();
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
 
   auto* appId = static_cast<uint32_t*>(aUserData);
   if (*appId != aAppId) {
@@ -191,8 +175,7 @@ DeleteDataStoresEnumerator(const nsAString& aName,
                            nsAutoPtr<HashApp>& aApps,
                            void* aUserData)
 {
-  AssertIsInMainProcess();
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
 
   aApps->Enumerate(DeleteDataStoresAppEnumerator, aUserData);
   return aApps->Count() ? PL_DHASH_NEXT : PL_DHASH_REMOVE;
@@ -215,8 +198,7 @@ ResetPermission(uint32_t aAppId, const nsAString& aOriginURL,
                 const nsAString& aPermission,
                 bool aReadOnly)
 {
-  AssertIsInMainProcess();
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
 
   nsresult rv;
   nsCOMPtr<nsIIOService> ioService(do_GetService(NS_IOSERVICE_CONTRACTID, &rv));
@@ -252,7 +234,7 @@ ResetPermission(uint32_t aAppId, const nsAString& aOriginURL,
   nsCString basePermission;
   basePermission.Append(NS_ConvertUTF16toUTF8(aPermission));
 
-  
+  // Write permission
   {
     nsCString permission;
     permission.Append(basePermission);
@@ -279,7 +261,7 @@ ResetPermission(uint32_t aAppId, const nsAString& aOriginURL,
     }
   }
 
-  
+  // Read permission
   {
     nsCString permission;
     permission.Append(basePermission);
@@ -302,7 +284,7 @@ ResetPermission(uint32_t aAppId, const nsAString& aOriginURL,
     }
   }
 
-  
+  // Generic permission
   uint32_t perm = nsIPermissionManager::UNKNOWN_ACTION;
   rv = pm->TestExactPermissionFromPrincipal(principal, basePermission.get(),
                                             &perm);
@@ -347,8 +329,7 @@ GetDataStoreInfosEnumerator(const uint32_t& aAppId,
                             DataStoreInfo* aInfo,
                             void* aUserData)
 {
-  AssertIsInMainProcess();
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
 
   auto* data = static_cast<GetDataStoreInfosData*>(aUserData);
   if (aAppId == data->mAppId) {
@@ -384,8 +365,7 @@ GetAppManifestURLsEnumerator(const uint32_t& aAppId,
                              DataStoreInfo* aInfo,
                              void* aUserData)
 {
-  AssertIsInMainProcess();
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
 
   auto* manifestURLs = static_cast<nsIMutableArray*>(aUserData);
   nsCOMPtr<nsISupportsString> manifestURL(do_CreateInstance(NS_SUPPORTS_STRING_CONTRACTID));
@@ -397,7 +377,7 @@ GetAppManifestURLsEnumerator(const uint32_t& aAppId,
   return PL_DHASH_NEXT;
 }
 
-
+// This class is useful to enumerate the add permissions for each app.
 class MOZ_STACK_CLASS AddPermissionsData
 {
 public:
@@ -417,12 +397,11 @@ AddPermissionsEnumerator(const uint32_t& aAppId,
                          DataStoreInfo* aInfo,
                          void* userData)
 {
-  AssertIsInMainProcess();
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
 
   auto* data = static_cast<AddPermissionsData*>(userData);
 
-  
+  // ReadOnly is decided by the owner first.
   bool readOnly = data->mReadOnly || aInfo->mReadOnly;
 
   data->mResult = ResetPermission(aAppId, aInfo->mOriginURL,
@@ -432,7 +411,7 @@ AddPermissionsEnumerator(const uint32_t& aAppId,
   return NS_FAILED(data->mResult) ? PL_DHASH_STOP : PL_DHASH_NEXT;
 }
 
-
+// This class is useful to enumerate the add permissions for each app.
 class MOZ_STACK_CLASS AddAccessPermissionsData
 {
 public:
@@ -457,15 +436,14 @@ AddAccessPermissionsEnumerator(const uint32_t& aAppId,
                                DataStoreInfo* aInfo,
                                void* userData)
 {
-  AssertIsInMainProcess();
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
 
   auto* data = static_cast<AddAccessPermissionsData*>(userData);
 
   nsString permission;
   GeneratePermissionName(permission, data->mName, aInfo->mManifestURL);
 
-  
+  // ReadOnly is decided by the owner first.
   bool readOnly = aInfo->mReadOnly || data->mReadOnly;
 
   data->mResult = ResetPermission(data->mAppId, data->mOriginURL,
@@ -474,10 +452,10 @@ AddAccessPermissionsEnumerator(const uint32_t& aAppId,
   return NS_FAILED(data->mResult) ? PL_DHASH_STOP : PL_DHASH_NEXT;
 }
 
-} 
+} /* anonymous namespace */
 
-
-
+// A PendingRequest is created when a content code wants a list of DataStores
+// but some of them are not enabled yet.
 class PendingRequest
 {
 public:
@@ -495,13 +473,13 @@ public:
   nsRefPtr<Promise> mPromise;
   nsTArray<DataStoreInfo> mStores;
 
-  
-  
+  // This array contains the list of manifestURLs of the DataStores that are
+  // not enabled yet.
   nsTArray<nsString> mPendingDataStores;
 };
 
-
-
+// This callback is used to enable a DataStore when its first revisionID is
+// created.
 class RevisionAddedEnableStoreCallback final :
   public DataStoreRevisionCallback
 {
@@ -517,15 +495,13 @@ public:
     , mName(aName)
     , mManifestURL(aManifestURL)
   {
-    AssertIsInMainProcess();
-    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
   }
 
   void
   Run(const nsAString& aRevisionId)
   {
-    AssertIsInMainProcess();
-    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
 
     nsRefPtr<DataStoreService> service = DataStoreService::Get();
     MOZ_ASSERT(service);
@@ -539,8 +515,8 @@ private:
   nsString mManifestURL;
 };
 
-
-
+// This DataStoreDBCallback is called when DataStoreDB opens the DataStore DB.
+// Then the first revision will be created if it's needed.
 class FirstRevisionIdCallback final : public DataStoreDBCallback
                                     , public nsIDOMEventListener
 {
@@ -553,15 +529,13 @@ public:
     , mName(aName)
     , mManifestURL(aManifestURL)
   {
-    AssertIsInMainProcess();
-    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
   }
 
   void
   Run(DataStoreDB* aDb, RunStatus aStatus) override
   {
-    AssertIsInMainProcess();
-    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
     MOZ_ASSERT(aDb);
 
     if (aStatus == Error) {
@@ -598,7 +572,7 @@ public:
       return;
     }
 
-    
+    // The DB has just been created.
 
     error = CreateFirstRevision(aDb->Transaction());
     if (error.Failed()) {
@@ -622,11 +596,11 @@ public:
     nsRefPtr<RevisionAddedEnableStoreCallback> callback =
       new RevisionAddedEnableStoreCallback(mAppId, mName, mManifestURL);
 
-    
-    
+    // Note: this cx is only used for rooting and AddRevision, neither of which
+    // actually care which compartment we're in.
     AutoSafeJSContext cx;
 
-    
+    // If the revision doesn't exist, let's create it.
     nsRefPtr<DataStoreRevision> revision = new DataStoreRevision();
     nsresult rv = revision->AddRevision(cx, store, 0,
                                         DataStoreRevision::RevisionVoid,
@@ -638,12 +612,11 @@ public:
     return NS_OK;
   }
 
-  
+  // nsIDOMEventListener
   NS_IMETHOD
   HandleEvent(nsIDOMEvent* aEvent) override
   {
-    AssertIsInMainProcess();
-    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
 
     nsRefPtr<IDBRequest> request;
     request.swap(mRequest);
@@ -672,8 +645,8 @@ public:
       return error.StealNSResult();
     }
 
-    
-    
+    // This means that the content is a IDBCursor, so the first revision already
+    // exists.
     if (result.isObject()) {
 #ifdef DEBUG
       IDBCursor* cursor = nullptr;
@@ -708,12 +681,12 @@ private:
 
 NS_IMPL_ISUPPORTS(FirstRevisionIdCallback, nsIDOMEventListener)
 
-
-
-
-
-
-
+// This class calls the 'retrieveRevisionId' method of the DataStore object for
+// any DataStore in the 'mResults' array. When all of them are called, the
+// promise is resolved with 'mResults'.
+// The reson why this has to be done is because DataStore are object that can be
+// created in any thread and in any process. The first revision has been
+// created, but they don't know its value yet.
 class RetrieveRevisionsCounter
 {
 private:
@@ -737,9 +710,9 @@ public:
 
     mResults.AppendElement(aDataStore);
 
-    
+    // DataStore will run this callback when the revisionID is retrieved.
     JSFunction* func = js::NewFunctionWithReserved(aCx, JSCallback,
-                                                   0 , 0 ,
+                                                   0 /* nargs */, 0 /* flags */,
                                                    nullptr);
     if (!func) {
       return;
@@ -750,8 +723,8 @@ public:
       return;
     }
 
-    
-    
+    // We use the ID to know which counter is this. The service keeps all of
+    // these counters alive with their own IDs in an hashtable.
     js::SetFunctionNativeReserved(obj, 0, JS::Int32Value(mId));
 
     JS::Rooted<JS::Value> value(aCx, JS::ObjectValue(*obj));
@@ -779,8 +752,8 @@ private:
     nsRefPtr<RetrieveRevisionsCounter> counter = service->GetCounter(id);
     MOZ_ASSERT(counter);
 
-    
-    
+    // When all the callbacks are called, we can resolve the promise and remove
+    // the counter from the service.
     --counter->mCount;
     if (!counter->mCount) {
       service->RemoveCounter(id);
@@ -797,7 +770,7 @@ private:
   uint32_t mCount;
 };
 
- already_AddRefed<DataStoreService>
+/* static */ already_AddRefed<DataStoreService>
 DataStoreService::GetOrCreate()
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -815,7 +788,7 @@ DataStoreService::GetOrCreate()
   return service.forget();
 }
 
- already_AddRefed<DataStoreService>
+/* static */ already_AddRefed<DataStoreService>
 DataStoreService::Get()
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -824,13 +797,13 @@ DataStoreService::Get()
   return service.forget();
 }
 
- void
+/* static */ void
 DataStoreService::Shutdown()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (gDataStoreService) {
-    if (IsMainProcess()) {
+    if (XRE_IsParentProcess()) {
       nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
       if (obs) {
         obs->RemoveObserver(gDataStoreService, "webapps-clear-data");
@@ -863,7 +836,7 @@ DataStoreService::~DataStoreService()
 nsresult
 DataStoreService::Init()
 {
-  if (!IsMainProcess()) {
+  if (!XRE_IsParentProcess()) {
     return NS_OK;
   }
 
@@ -910,7 +883,7 @@ DataStoreService::InstallDataStore(uint32_t aAppId,
     return rv;
   }
 
-  
+  // Immediately create the first revision.
   return CreateFirstRevisionId(aAppId, aName, aManifestURL);
 }
 
@@ -948,7 +921,7 @@ DataStoreService::GetDataStores(nsIDOMWindow* aWindow,
                                 const nsAString& aOwner,
                                 nsISupports** aDataStores)
 {
-  
+  // FIXME This will be a thread-safe method.
   MOZ_ASSERT(NS_IsMainThread());
 
   nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aWindow);
@@ -971,9 +944,9 @@ DataStoreService::GetDataStores(nsIDOMWindow* aWindow,
 
   nsTArray<DataStoreInfo> stores;
 
-  
-  
-  if (IsMainProcess()) {
+  // If this request comes from the main process, we have access to the
+  // window, so we can skip the ipc communication.
+  if (XRE_IsParentProcess()) {
     uint32_t appId;
     nsresult rv = principal->GetAppId(&appId);
     if (NS_FAILED(rv)) {
@@ -991,8 +964,8 @@ DataStoreService::GetDataStores(nsIDOMWindow* aWindow,
   }
 
   else {
-    
-    
+    // This method can be called in the child so we need to send a request
+    // to the parent and create DataStore object here.
     ContentChild* contentChild = ContentChild::GetSingleton();
 
     nsTArray<DataStoreSetting> array;
@@ -1066,8 +1039,8 @@ DataStoreService::GetDataStoresResolve(nsPIDOMWindow* aWindow,
 
   AutoSafeJSContext cx;
 
-  
-  
+  // The counter will finish this task once all the DataStores will know their
+  // first revision Ids.
   nsRefPtr<RetrieveRevisionsCounter> counter =
     new RetrieveRevisionsCounter(++gCounterID, aPromise, aStores.Length());
   mPendingCounters.Put(gCounterID, counter);
@@ -1123,8 +1096,8 @@ DataStoreService::GetDataStoresResolve(nsPIDOMWindow* aWindow,
   }
 }
 
-
-
+// Thie method populates 'aStores' with the list of DataStores with 'aName' as
+// name and available for this 'aAppId'.
 nsresult
 DataStoreService::GetDataStoreInfos(const nsAString& aName,
                                     const nsAString& aOwner,
@@ -1132,8 +1105,7 @@ DataStoreService::GetDataStoreInfos(const nsAString& aName,
                                     nsIPrincipal* aPrincipal,
                                     nsTArray<DataStoreInfo>& aStores)
 {
-  AssertIsInMainProcess();
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
 
   nsCOMPtr<nsIAppsService> appsService =
     do_GetService("@mozilla.org/AppsService;1");
@@ -1202,14 +1174,14 @@ DataStoreService::GetAppManifestURLsForDataStore(const nsAString& aName,
 bool
 DataStoreService::CheckPermission(nsIPrincipal* aPrincipal)
 {
-  
+  // First of all, the general pref has to be turned on.
   bool enabled = false;
   Preferences::GetBool("dom.datastore.enabled", &enabled);
   if (!enabled) {
     return false;
   }
 
-  
+  // Just for testing, we can enable DataStore for any kind of app.
   if (Preferences::GetBool("dom.testing.datastore_enabled_for_hosted_apps", false)) {
     return true;
   }
@@ -1223,7 +1195,7 @@ DataStoreService::CheckPermission(nsIPrincipal* aPrincipal)
     return false;
   }
 
-  
+  // Only support DataStore API for certified apps for now.
   return status == nsIPrincipal::APP_STATUS_CERTIFIED;
 }
 
@@ -1238,12 +1210,11 @@ DataStoreService::CheckPermission(nsIPrincipal* aPrincipal,
   return NS_OK;
 }
 
-
+// This method is called when an app with DataStores is deleted.
 void
 DataStoreService::DeleteDataStores(uint32_t aAppId)
 {
-  AssertIsInMainProcess();
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
 
   mStores.Enumerate(DeleteDataStoresEnumerator, &aAppId);
   mAccessStores.Enumerate(DeleteDataStoresEnumerator, &aAppId);
@@ -1254,8 +1225,7 @@ DataStoreService::Observe(nsISupports* aSubject,
                           const char* aTopic,
                           const char16_t* aData)
 {
-  AssertIsInMainProcess();
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
 
   if (strcmp(aTopic, "webapps-clear-data")) {
     return NS_OK;
@@ -1265,7 +1235,7 @@ DataStoreService::Observe(nsISupports* aSubject,
     do_QueryInterface(aSubject);
   MOZ_ASSERT(params);
 
-  
+  // DataStore is explosed to apps, not browser content.
   bool browserOnly;
   nsresult rv = params->GetBrowserOnly(&browserOnly);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -1294,23 +1264,22 @@ DataStoreService::AddPermissions(uint32_t aAppId,
                                  const nsAString& aManifestURL,
                                  bool aReadOnly)
 {
-  AssertIsInMainProcess();
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
 
-  
+  // This is the permission name.
   nsString permission;
   GeneratePermissionName(permission, aName, aManifestURL);
 
-  
-  
+  // When a new DataStore is installed, the permissions must be set for the
+  // owner app.
   nsresult rv = ResetPermission(aAppId, aOriginURL, aManifestURL, permission,
                                 aReadOnly);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
 
-  
-  
+  // For any app that wants to have access to this DataStore we add the
+  // permissions.
   HashApp* apps;
   if (!mAccessStores.Get(aName, &apps)) {
     return NS_OK;
@@ -1327,11 +1296,10 @@ DataStoreService::AddAccessPermissions(uint32_t aAppId, const nsAString& aName,
                                        const nsAString& aManifestURL,
                                        bool aReadOnly)
 {
-  AssertIsInMainProcess();
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
 
-  
-  
+  // When an app wants to have access to a DataStore, the permissions must be
+  // set.
   HashApp* apps = nullptr;
   if (!mStores.Get(aName, &apps)) {
     return NS_OK;
@@ -1342,15 +1310,14 @@ DataStoreService::AddAccessPermissions(uint32_t aAppId, const nsAString& aName,
   return data.mResult;
 }
 
-
-
+// This method starts the operation to create the first revision for a DataStore
+// if needed.
 nsresult
 DataStoreService::CreateFirstRevisionId(uint32_t aAppId,
                                         const nsAString& aName,
                                         const nsAString& aManifestURL)
 {
-  AssertIsInMainProcess();
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
 
   nsRefPtr<DataStoreDB> db = new DataStoreDB(aManifestURL, aName);
 
@@ -1379,8 +1346,8 @@ DataStoreService::EnableDataStore(uint32_t aAppId, const nsAString& aName,
     }
   }
 
-  
-  if (IsMainProcess()) {
+  // Notify the child processes.
+  if (XRE_IsParentProcess()) {
     nsTArray<ContentParent*> children;
     ContentParent::GetAll(children);
     for (uint32_t i = 0; i < children.Length(); i++) {
@@ -1391,7 +1358,7 @@ DataStoreService::EnableDataStore(uint32_t aAppId, const nsAString& aName,
     }
   }
 
-  
+  // Maybe we have some pending request waiting for this DataStore.
   PendingRequests* requests;
   if (!mPendingRequests.Get(aName, &requests)) {
     return NS_OK;
@@ -1404,7 +1371,7 @@ DataStoreService::EnableDataStore(uint32_t aAppId, const nsAString& aName,
     if (pos != request.mPendingDataStores.NoIndex) {
       request.mPendingDataStores.RemoveElementAt(pos);
 
-      
+      // No other pending dataStores.
       if (request.mPendingDataStores.IsEmpty()) {
         GetDataStoresResolve(request.mWindow, request.mPromise,
                              request.mStores);
@@ -1416,7 +1383,7 @@ DataStoreService::EnableDataStore(uint32_t aAppId, const nsAString& aName,
     ++i;
   }
 
-  
+  // No other pending requests for this name.
   if (requests->IsEmpty()) {
     mPendingRequests.Remove(aName);
   }
@@ -1447,8 +1414,7 @@ DataStoreService::GetDataStoresFromIPC(const nsAString& aName,
                                        nsIPrincipal* aPrincipal,
                                        nsTArray<DataStoreSetting>* aValue)
 {
-  MOZ_ASSERT(IsMainProcess());
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
 
   uint32_t appId;
   nsresult rv = aPrincipal->GetAppId(&appId);
@@ -1499,5 +1465,5 @@ DataStoreService::GenerateUUID(nsAString& aID)
   return NS_OK;
 }
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla

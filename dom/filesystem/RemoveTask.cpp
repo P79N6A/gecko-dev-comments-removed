@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "RemoveTask.h"
 
@@ -49,7 +49,7 @@ RemoveTask::RemoveTask(FileSystemBase* aFileSystem,
   , mRecursive(false)
   , mReturnValue(false)
 {
-  MOZ_ASSERT(FileSystemUtils::IsParentProcess(),
+  MOZ_ASSERT(XRE_IsParentProcess(),
              "Only call from parent process!");
   MOZ_ASSERT(NS_IsMainThread(), "Only call on main thread!");
   MOZ_ASSERT(aFileSystem);
@@ -123,7 +123,7 @@ RemoveTask::SetSuccessRequestResult(const FileSystemResponseValue& aValue)
 nsresult
 RemoveTask::Work()
 {
-  MOZ_ASSERT(FileSystemUtils::IsParentProcess(),
+  MOZ_ASSERT(XRE_IsParentProcess(),
              "Only call from parent process!");
   MOZ_ASSERT(!NS_IsMainThread(), "Only call on worker thread!");
 
@@ -131,7 +131,7 @@ RemoveTask::Work()
     return NS_ERROR_FAILURE;
   }
 
-  
+  // Get the DOM path if a File is passed as the target.
   if (mTargetBlobImpl) {
     if (!mFileSystem->GetRealPath(mTargetBlobImpl, mTargetRealPath)) {
       return NS_ERROR_DOM_SECURITY_ERR;
@@ -204,5 +204,5 @@ RemoveTask::GetPermissionAccessType(nsCString& aAccess) const
   aAccess.AssignLiteral("write");
 }
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla

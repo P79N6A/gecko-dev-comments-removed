@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "DOMStorageManager.h"
 #include "DOMStorage.h"
@@ -19,24 +19,24 @@
 #include "mozilla/Services.h"
 #include "mozilla/Preferences.h"
 
-// Only allow relatively small amounts of data since performance of
-// the synchronous IO is very bad.
-// We are enforcing simple per-origin quota only.
+
+
+
 #define DEFAULT_QUOTA_LIMIT (5 * 1024)
 
 namespace mozilla {
 namespace dom {
 
-namespace { // anon
+namespace { 
 
 int32_t gQuotaLimit = DEFAULT_QUOTA_LIMIT;
 
-} // anon
+} 
 
 DOMLocalStorageManager*
 DOMLocalStorageManager::sSelf = nullptr;
 
-// static
+
 uint32_t
 DOMStorageManager::GetQuota()
 {
@@ -47,7 +47,7 @@ DOMStorageManager::GetQuota()
     preferencesInitialized = true;
   }
 
-  return gQuotaLimit * 1024; // pref is in kBs
+  return gQuotaLimit * 1024; 
 }
 
 void
@@ -119,7 +119,7 @@ DOMStorageManager::~DOMStorageManager()
   }
 }
 
-namespace { // anon
+namespace { 
 
 nsresult
 CreateScopeKey(nsIPrincipal* aPrincipal,
@@ -137,7 +137,7 @@ CreateScopeKey(nsIPrincipal* aPrincipal,
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (domainScope.IsEmpty()) {
-    // For the file:/// protocol use the exact directory as domain.
+    
     bool isScheme = false;
     if (NS_SUCCEEDED(uri->SchemeIs("file", &isScheme)) && isScheme) {
       nsCOMPtr<nsIURL> url = do_QueryInterface(uri, &rv);
@@ -204,7 +204,7 @@ CreateQuotaDBKey(nsIPrincipal* aPrincipal,
   nsAutoCString eTLDplusOne;
   rv = eTLDService->GetBaseDomain(uri, 0, eTLDplusOne);
   if (NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS == rv) {
-    // XXX bug 357323 - what to do for localhost/file exactly?
+    
     rv = uri->GetAsciiHost(eTLDplusOne);
   }
   NS_ENSURE_SUCCESS(rv, rv);
@@ -230,7 +230,7 @@ CreateQuotaDBKey(nsIPrincipal* aPrincipal,
   return NS_OK;
 }
 
-} // anon
+} 
 
 DOMStorageCache*
 DOMStorageManager::GetCache(const nsACString& aScope) const
@@ -277,13 +277,13 @@ DOMStorageManager::PutCache(const nsACString& aScope,
 
   switch (mType) {
   case SessionStorage:
-    // Lifetime handled by the manager, don't persist
+    
     entry->HardRef();
     cache->Init(this, false, aPrincipal, quotaScope);
     break;
 
   case LocalStorage:
-    // Lifetime handled by the cache, do persist
+    
     cache->Init(this, true, aPrincipal, quotaScope);
     break;
 
@@ -322,7 +322,7 @@ DOMStorageManager::GetStorageInternal(bool aCreate,
 
   nsRefPtr<DOMStorageCache> cache = GetCache(scope);
 
-  // Get or create a cache for the given scope
+  
   if (!cache) {
     if (!aCreate) {
       *aRetval = nullptr;
@@ -330,8 +330,8 @@ DOMStorageManager::GetStorageInternal(bool aCreate,
     }
 
     if (!aRetval) {
-      // This is demand to just preload the cache, if the scope has
-      // no data stored, bypass creation and preload of the cache.
+      
+      
       DOMStorageDBBridge* db = DOMStorageCache::GetDatabase();
       if (db) {
         if (!db->ShouldPreloadScope(scope)) {
@@ -344,8 +344,8 @@ DOMStorageManager::GetStorageInternal(bool aCreate,
       }
     }
 
-    // There is always a single instance of a cache per scope
-    // in a single instance of a DOM storage manager.
+    
+    
     cache = PutCache(scope, aPrincipal);
   } else if (mType == SessionStorage) {
     if (!cache->CheckPrincipal(aPrincipal)) {
@@ -394,7 +394,7 @@ NS_IMETHODIMP
 DOMStorageManager::CloneStorage(nsIDOMStorage* aStorage)
 {
   if (mType != SessionStorage) {
-    // Cloning is supported only for sessionStorage
+    
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
@@ -407,12 +407,12 @@ DOMStorageManager::CloneStorage(nsIDOMStorage* aStorage)
 
   DOMStorageCache* existingCache = GetCache(origCache->Scope());
   if (existingCache) {
-    // Do not replace an existing sessionStorage.
+    
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  // Since this manager is sessionStorage manager, PutCache hard references
-  // the cache in our hashtable.
+  
+  
   nsRefPtr<DOMStorageCache> newCache = PutCache(origCache->Scope(),
                                                 origCache->Principal());
 
@@ -455,7 +455,7 @@ DOMStorageManager::CheckStorage(nsIPrincipal* aPrincipal,
   return NS_OK;
 }
 
-// Obsolete nsIDOMStorageManager methods
+
 
 NS_IMETHODIMP
 DOMStorageManager::GetLocalStorageForPrincipal(nsIPrincipal* aPrincipal,
@@ -470,7 +470,7 @@ DOMStorageManager::GetLocalStorageForPrincipal(nsIPrincipal* aPrincipal,
   return CreateStorage(nullptr, aPrincipal, aDocumentURI, aPrivate, aRetval);
 }
 
-namespace { // anon
+namespace { 
 
 class ClearCacheEnumeratorData
 {
@@ -483,7 +483,7 @@ public:
   nsCString mKeyPrefix;
 };
 
-} // anon
+} 
 
 PLDHashOperator
 DOMStorageManager::ClearCacheEnumerator(DOMStorageCacheHashKey* aEntry, void* aClosure)
@@ -503,7 +503,7 @@ DOMStorageManager::ClearCacheEnumerator(DOMStorageCacheHashKey* aEntry, void* aC
 nsresult
 DOMStorageManager::Observe(const char* aTopic, const nsACString& aScopePrefix)
 {
-  // Clear everything, caches + database
+  
   if (!strcmp(aTopic, "cookie-cleared")) {
     ClearCacheEnumeratorData data(DOMStorageCache::kUnloadComplete);
     mCaches.EnumerateEntries(ClearCacheEnumerator, &data);
@@ -511,8 +511,8 @@ DOMStorageManager::Observe(const char* aTopic, const nsACString& aScopePrefix)
     return NS_OK;
   }
 
-  // Clear from caches everything that has been stored
-  // while in session-only mode
+  
+  
   if (!strcmp(aTopic, "session-only-cleared")) {
     ClearCacheEnumeratorData data(DOMStorageCache::kUnloadSession);
     data.mKeyPrefix = aScopePrefix;
@@ -521,8 +521,8 @@ DOMStorageManager::Observe(const char* aTopic, const nsACString& aScopePrefix)
     return NS_OK;
   }
 
-  // Clear everything (including so and pb data) from caches and database
-  // for the gived domain and subdomains.
+  
+  
   if (!strcmp(aTopic, "domain-data-cleared")) {
     ClearCacheEnumeratorData data(DOMStorageCache::kUnloadComplete);
     data.mKeyPrefix = aScopePrefix;
@@ -531,7 +531,7 @@ DOMStorageManager::Observe(const char* aTopic, const nsACString& aScopePrefix)
     return NS_OK;
   }
 
-  // Clear all private-browsing caches
+  
   if (!strcmp(aTopic, "private-browsing-data-cleared")) {
     ClearCacheEnumeratorData data(DOMStorageCache::kUnloadPrivate);
     mCaches.EnumerateEntries(ClearCacheEnumerator, &data);
@@ -539,10 +539,10 @@ DOMStorageManager::Observe(const char* aTopic, const nsACString& aScopePrefix)
     return NS_OK;
   }
 
-  // Clear localStorage data beloging to an app.
+  
   if (!strcmp(aTopic, "app-data-cleared")) {
 
-    // sessionStorage is expected to stay
+    
     if (mType == SessionStorage) {
       return NS_OK;
     }
@@ -555,7 +555,7 @@ DOMStorageManager::Observe(const char* aTopic, const nsACString& aScopePrefix)
   }
 
   if (!strcmp(aTopic, "profile-change")) {
-    // For case caches are still referenced - clear them completely
+    
     ClearCacheEnumeratorData data(DOMStorageCache::kUnloadComplete);
     mCaches.EnumerateEntries(ClearCacheEnumerator, &data);
 
@@ -585,14 +585,14 @@ DOMStorageManager::Observe(const char* aTopic, const nsACString& aScopePrefix)
       return NS_OK;
     }
 
-    // This immediately completely reloads all caches from the database.
+    
     ClearCacheEnumeratorData data(DOMStorageCache::kTestReload);
     mCaches.EnumerateEntries(ClearCacheEnumerator, &data);
     return NS_OK;
   }
 
   if (!strcmp(aTopic, "test-flushed")) {
-    if (XRE_GetProcessType() != GeckoProcessType_Default) {
+    if (!XRE_IsParentProcess()) {
       nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
       if (obs) {
         obs->NotifyObservers(nullptr, "domstorage-test-flushed", nullptr);
@@ -607,7 +607,7 @@ DOMStorageManager::Observe(const char* aTopic, const nsACString& aScopePrefix)
   return NS_ERROR_UNEXPECTED;
 }
 
-// DOMLocalStorageManager
+
 
 DOMLocalStorageManager::DOMLocalStorageManager()
   : DOMStorageManager(LocalStorage)
@@ -615,10 +615,10 @@ DOMLocalStorageManager::DOMLocalStorageManager()
   NS_ASSERTION(!sSelf, "Somebody is trying to do_CreateInstance(\"@mozilla/dom/localStorage-manager;1\"");
   sSelf = this;
 
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
-    // Do this only on the child process.  The thread IPC bridge
-    // is also used to communicate chrome observer notifications.
-    // Note: must be called after we set sSelf
+  if (!XRE_IsParentProcess()) {
+    
+    
+    
     DOMStorageCache::StartDatabase();
   }
 }
@@ -635,7 +635,7 @@ DOMLocalStorageManager::Ensure()
     return sSelf;
   }
 
-  // Cause sSelf to be populated.
+  
   nsCOMPtr<nsIDOMStorageManager> initializer =
     do_GetService("@mozilla.org/dom/localStorage-manager;1");
   MOZ_ASSERT(sSelf, "Didn't initialize?");
@@ -643,17 +643,17 @@ DOMLocalStorageManager::Ensure()
   return sSelf;
 }
 
-// DOMSessionStorageManager
+
 
 DOMSessionStorageManager::DOMSessionStorageManager()
   : DOMStorageManager(SessionStorage)
 {
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
-    // Do this only on the child process.  The thread IPC bridge
-    // is also used to communicate chrome observer notifications.
+  if (!XRE_IsParentProcess()) {
+    
+    
     DOMStorageCache::StartDatabase();
   }
 }
 
-} // ::dom
-} // ::mozilla
+} 
+} 

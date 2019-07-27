@@ -66,7 +66,7 @@ GetTopLevelWindowActiveState(nsIFrame *aFrame)
   
   
   
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+  if (!XRE_IsParentProcess()) {
     return mozilla::widget::themeconst::FS_INACTIVE;
   }
   

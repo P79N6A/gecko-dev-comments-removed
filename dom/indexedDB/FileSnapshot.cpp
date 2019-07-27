@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "FileSnapshot.h"
 
@@ -20,7 +20,7 @@ namespace mozilla {
 namespace dom {
 namespace indexedDB {
 
-
+// Create as a stored file
 BlobImplSnapshot::BlobImplSnapshot(const nsAString& aName,
                                    const nsAString& aContentType,
                                    MetadataParameters* aMetadataParams,
@@ -48,7 +48,7 @@ BlobImplSnapshot::BlobImplSnapshot(const nsAString& aName,
     do_GetWeakReference(NS_ISUPPORTS_CAST(EventTarget*, aFileHandle));
 }
 
-
+// Create slice
 BlobImplSnapshot::BlobImplSnapshot(const BlobImplSnapshot* aOther,
                                    uint64_t aStart,
                                    uint64_t aLength,
@@ -79,15 +79,15 @@ BlobImplSnapshot::~BlobImplSnapshot()
 
 #ifdef DEBUG
 
-
+// static
 void
 BlobImplSnapshot::AssertSanity()
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+  MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
 }
 
-#endif 
+#endif // DEBUG
 
 NS_IMPL_ISUPPORTS_INHERITED(BlobImplSnapshot, BlobImpl, PIBlobImplSnapshot)
 
@@ -158,6 +158,6 @@ BlobImplSnapshot::IsSnapshot() const
   return true;
 }
 
-} 
-} 
-} 
+} // namespace indexedDB
+} // namespace dom
+} // namespace mozilla

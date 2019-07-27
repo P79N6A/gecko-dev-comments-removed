@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 #include "nsVolumeService.h"
 
@@ -48,7 +48,7 @@ NS_IMPL_ISUPPORTS(nsVolumeService,
 
 StaticRefPtr<nsVolumeService> nsVolumeService::sSingleton;
 
-// static
+
 already_AddRefed<nsVolumeService>
 nsVolumeService::GetSingleton()
 {
@@ -61,14 +61,14 @@ nsVolumeService::GetSingleton()
   return volumeService.forget();
 }
 
-// static
+
 void
 nsVolumeService::Shutdown()
 {
   if (!sSingleton) {
     return;
   }
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+  if (!XRE_IsParentProcess()) {
     sSingleton = nullptr;
     return;
   }
@@ -92,14 +92,14 @@ nsVolumeService::nsVolumeService()
 {
   sSingleton = this;
 
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
-    // VolumeServiceIOThread and the WakeLock listener should only run in the
-    // parent, so we return early.
+  if (!XRE_IsParentProcess()) {
+    
+    
     return;
   }
 
-  // Startup the IOThread side of things. The actual volume changes
-  // are captured by the IOThread and forwarded to main thread.
+  
+  
   XRE_GetIOMessageLoop()->PostTask(
       FROM_HERE,
       NewRunnableFunction(InitVolumeServiceIOThread, this));
@@ -116,7 +116,7 @@ nsVolumeService::~nsVolumeService()
 {
 }
 
-// Callback for nsIDOMMozWakeLockListener
+
 NS_IMETHODIMP
 nsVolumeService::Callback(const nsAString& aTopic, const nsAString& aState)
 {
@@ -173,9 +173,9 @@ nsVolumeService::GetVolumeByPath(const nsAString& aPath, nsIVolume **aResult)
       ERR("GetVolumeByPath: realpath on '%s' failed: %d", utf8Path.get(), errno);
       return NSRESULT_FOR_ERRNO();
     }
-    // The pathname we were passed doesn't exist, so we try stripping off trailing
-    // components until we get a successful call to realpath, or until we run out
-    // of components (if we finally get to /something then we also stop).
+    
+    
+    
     int32_t slashIndex = utf8Path.RFindChar('/');
     if ((slashIndex == kNotFound) || (slashIndex == 0)) {
       errno = ENOENT;
@@ -185,13 +185,13 @@ nsVolumeService::GetVolumeByPath(const nsAString& aPath, nsIVolume **aResult)
     utf8Path.Assign(Substring(utf8Path, 0, slashIndex));
   }
 
-  // The volume mount point is always a directory. Something like /mnt/sdcard
-  // Once we have a full qualified pathname with symlinks removed (which is
-  // what realpath does), we basically check if aPath starts with the mount
-  // point, but we don't want to have /mnt/sdcard match /mnt/sdcardfoo but we
-  // do want it to match /mnt/sdcard/foo
-  // So we add a trailing slash to the mount point and the pathname passed in
-  // prior to doing the comparison.
+  
+  
+  
+  
+  
+  
+  
 
   strlcat(realPathBuf, "/", sizeof(realPathBuf));
 
@@ -220,18 +220,18 @@ nsVolumeService::CreateOrGetVolumeByPath(const nsAString& aPath, nsIVolume** aRe
     return NS_OK;
   }
 
-  // In order to support queries by the updater, we will fabricate a volume
-  // from the pathname, so that the caller can determine the volume size.
+  
+  
   nsCOMPtr<nsIVolume> vol = new nsVolume(NS_LITERAL_STRING("fake"),
                                          aPath, nsIVolume::STATE_MOUNTED,
-                                         -1    /* generation */,
-                                         true  /* isMediaPresent*/,
-                                         false /* isSharing */,
-                                         false /* isFormatting */,
-                                         true  /* isFake */,
-                                         false /* isUnmounting */,
-                                         false /* isRemovable */,
-                                         false /* isHotSwappable*/);
+                                         -1    ,
+                                         true  ,
+                                         false ,
+                                         false ,
+                                         true  ,
+                                         false ,
+                                         false ,
+                                         false );
   vol.forget(aResult);
   return NS_OK;
 }
@@ -271,7 +271,7 @@ nsVolumeService::GetVolumeNames(nsIArray** aVolNames)
 void
 nsVolumeService::GetVolumesForIPC(nsTArray<VolumeInfo>* aResult)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+  MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
 
   MonitorAutoLock autoLock(mArrayMonitor);
@@ -299,12 +299,12 @@ nsVolumeService::GetVolumesForIPC(nsTArray<VolumeInfo>* aResult)
 void
 nsVolumeService::RecvVolumesFromParent(const nsTArray<VolumeInfo>& aVolumes)
 {
-  if (XRE_GetProcessType() == GeckoProcessType_Default) {
-    // We are the parent. Therefore our volumes are already correct.
+  if (XRE_IsParentProcess()) {
+    
     return;
   }
   if (mGotVolumesFromParent) {
-    // We've already done this, no need to do it again.
+    
     return;
   }
 
@@ -340,7 +340,7 @@ void
 nsVolumeService::CheckMountLock(const nsAString& aMountLockName,
                                 const nsAString& aMountLockState)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+  MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
 
   nsRefPtr<nsVolume> vol = FindVolumeByMountLockName(aMountLockName);
@@ -383,9 +383,9 @@ nsVolumeService::FindVolumeByName(const nsAString& aName)
   return nullptr;
 }
 
-//static
+
 already_AddRefed<nsVolume>
-nsVolumeService::CreateOrFindVolumeByName(const nsAString& aName, bool aIsFake /*= false*/)
+nsVolumeService::CreateOrFindVolumeByName(const nsAString& aName, bool aIsFake )
 {
   MonitorAutoLock autoLock(mArrayMonitor);
 
@@ -394,7 +394,7 @@ nsVolumeService::CreateOrFindVolumeByName(const nsAString& aName, bool aIsFake /
   if (vol) {
     return vol.forget();
   }
-  // Volume not found - add a new one
+  
   vol = new nsVolume(aName);
   vol->SetIsFake(aIsFake);
   mVolumeArray.AppendElement(vol);
@@ -412,12 +412,12 @@ nsVolumeService::UpdateVolume(nsIVolume* aVolume, bool aNotifyObservers)
   aVolume->GetIsFake(&aIsFake);
   nsRefPtr<nsVolume> vol = CreateOrFindVolumeByName(volName, aIsFake);
   if (vol->Equals(aVolume)) {
-    // Nothing has really changed. Don't bother telling anybody.
+    
     return;
   }
 
   if (!vol->IsFake() && aIsFake) {
-    // Prevent an incoming fake volume from overriding an existing real volume.
+    
     return;
   }
 
@@ -438,16 +438,16 @@ nsVolumeService::UpdateVolume(nsIVolume* aVolume, bool aNotifyObservers)
 NS_IMETHODIMP
 nsVolumeService::CreateFakeVolume(const nsAString& name, const nsAString& path)
 {
-  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+  if (XRE_IsParentProcess()) {
     nsRefPtr<nsVolume> vol = new nsVolume(name, path, nsIVolume::STATE_INIT,
-                                          -1    /* mountGeneration */,
-                                          true  /* isMediaPresent */,
-                                          false /* isSharing */,
-                                          false /* isFormatting */,
-                                          true  /* isFake */,
-                                          false /* isUnmounting */,
-                                          false /* isRemovable */,
-                                          false /* isHotSwappable */);
+                                          -1    ,
+                                          true  ,
+                                          false ,
+                                          false ,
+                                          true  ,
+                                          false ,
+                                          false ,
+                                          false );
     vol->SetState(nsIVolume::STATE_MOUNTED);
     vol->LogState();
     UpdateVolume(vol.get());
@@ -461,7 +461,7 @@ nsVolumeService::CreateFakeVolume(const nsAString& name, const nsAString& path)
 NS_IMETHODIMP
 nsVolumeService::SetFakeVolumeState(const nsAString& name, int32_t state)
 {
-  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+  if (XRE_IsParentProcess()) {
     nsRefPtr<nsVolume> vol;
     {
       MonitorAutoLock autoLock(mArrayMonitor);
@@ -471,9 +471,9 @@ nsVolumeService::SetFakeVolumeState(const nsAString& name, int32_t state)
       return NS_ERROR_NOT_AVAILABLE;
     }
 
-    // UpdateVolume expects the volume passed in to NOT be the
-    // same pointer as what CreateOrFindVolumeByName would return,
-    // which is why we allocate a temporary volume here.
+    
+    
+    
     nsRefPtr<nsVolume> volume = new nsVolume(name);
     volume->Set(vol);
     volume->SetState(state);
@@ -489,7 +489,7 @@ nsVolumeService::SetFakeVolumeState(const nsAString& name, int32_t state)
 NS_IMETHODIMP
 nsVolumeService::RemoveFakeVolume(const nsAString& name)
 {
-  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+  if (XRE_IsParentProcess()) {
     SetFakeVolumeState(name, nsIVolume::STATE_NOMEDIA);
     RemoveVolumeByName(name);
     return NS_OK;
@@ -512,7 +512,7 @@ nsVolumeService::RemoveVolumeByName(const nsAString& aName)
   }
   mVolumeArray.RemoveElement(vol);
 
-  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+  if (XRE_IsParentProcess()) {
     nsCOMPtr<nsIObserverService> obs = GetObserverService();
     if (!obs) {
       return;
@@ -521,10 +521,10 @@ nsVolumeService::RemoveVolumeByName(const nsAString& aName)
   }
 }
 
-/***************************************************************************
-* The UpdateVolumeRunnable creates an nsVolume and updates the main thread
-* data structure while running on the main thread.
-*/
+
+
+
+
 class UpdateVolumeRunnable : public nsRunnable
 {
 public:
@@ -571,5 +571,5 @@ nsVolumeService::UpdateVolumeIOThread(const Volume* aVolume)
   NS_DispatchToMainThread(new UpdateVolumeRunnable(this, aVolume));
 }
 
-} // namespace system
-} // namespace mozilla
+} 
+} 

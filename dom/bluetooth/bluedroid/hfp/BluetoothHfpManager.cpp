@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "base/basictypes.h"
 
@@ -32,9 +32,9 @@
 #define MOZSETTINGS_CHANGED_ID               "mozsettings-changed"
 #define AUDIO_VOLUME_BT_SCO_ID               "audio.volume.bt_sco"
 
-
-
-
+/**
+ * Dispatch task with arguments to main thread.
+ */
 using namespace mozilla;
 using namespace mozilla::ipc;
 USING_BLUETOOTH_NAMESPACE
@@ -45,22 +45,22 @@ namespace {
 
   bool sInShutdown = false;
 
-  
-  
-  static int sWaitingForDialingInterval = 2000; 
+  // Wait for 2 seconds for Dialer processing event 'BLDN'. '2' seconds is a
+  // magic number. The mechanism should be revised once we can get call history.
+  static int sWaitingForDialingInterval = 2000; //unit: ms
 
-  
-  
-  
-  
-  static int sBusyToneInterval = 3700; 
-} 
+  // Wait 3.7 seconds until Dialer stops playing busy tone. '3' seconds is the
+  // time window set in Dialer and the extra '0.7' second is a magic number.
+  // The mechanism should be revised once we know the exact time at which
+  // Dialer stops playing.
+  static int sBusyToneInterval = 3700; //unit: ms
+} // anonymous namespace
 
 const int BluetoothHfpManager::MAX_NUM_CLIENTS = 1;
 
 static bool
 IsValidDtmf(const char aChar) {
-  
+  // Valid DTMF: [*#0-9ABCD]
   return (aChar == '*' || aChar == '#') ||
          (aChar >= '0' && aChar <= '9') ||
          (aChar >= 'A' && aChar <= 'D');
@@ -68,7 +68,7 @@ IsValidDtmf(const char aChar) {
 
 static bool
 IsSupportedChld(const int aChld) {
-  
+  // We currently only support CHLD=0~3.
   return (aChld >= 0 && aChld <= 3);
 }
 
@@ -149,9 +149,9 @@ private:
 NS_IMPL_ISUPPORTS(BluetoothHfpManager::GetVolumeTask,
                   nsISettingsServiceCallback);
 
-
-
-
+/**
+ *  Call
+ */
 Call::Call()
 {
   Reset();
@@ -163,7 +163,7 @@ Call::Set(const nsAString& aNumber, const bool aIsOutgoing)
   mNumber = aNumber;
   mDirection = (aIsOutgoing) ? HFP_CALL_DIRECTION_OUTGOING :
                                HFP_CALL_DIRECTION_INCOMING;
-  
+  // Same logic as implementation in ril_worker.js
   if (aNumber.Length() && aNumber[0] == '+') {
     mType = HFP_CALL_ADDRESS_TYPE_INTERNATIONAL;
   } else {
@@ -186,9 +186,9 @@ Call::IsActive()
   return (mState == nsITelephonyService::CALL_STATE_CONNECTED);
 }
 
-
-
-
+/**
+ *  BluetoothHfpManager
+ */
 BluetoothHfpManager::BluetoothHfpManager() : mPhoneType(PhoneType::NONE)
 {
   Reset();
@@ -198,8 +198,8 @@ void
 BluetoothHfpManager::ResetCallArray()
 {
   mCurrentCallArray.Clear();
-  
-  
+  // Append a call object at the beginning of mCurrentCallArray since call
+  // index from RIL starts at 1.
   Call call;
   mCurrentCallArray.AppendElement(call);
 
@@ -227,9 +227,9 @@ BluetoothHfpManager::Cleanup()
 void
 BluetoothHfpManager::Reset()
 {
-  
+  // Phone & Device CIND
   ResetCallArray();
-  
+  // Clear Sco state
   mAudioState = HFP_AUDIO_STATE_DISCONNECTED;
   Cleanup();
 }
@@ -237,8 +237,8 @@ BluetoothHfpManager::Reset()
 bool
 BluetoothHfpManager::Init()
 {
-  
-  MOZ_ASSERT(IsMainProcess());
+  // The function must run at b2g process since it would access SettingsService.
+  MOZ_ASSERT(XRE_IsParentProcess());
 
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -252,7 +252,7 @@ BluetoothHfpManager::Init()
   }
 
   hal::RegisterBatteryObserver(this);
-  
+  // Update to the latest battery level
   hal::BatteryInformation batteryInfo;
   hal::GetCurrentBatteryInformation(&batteryInfo);
   Notify(batteryInfo);
@@ -306,10 +306,10 @@ public:
   void Cleanup() override
   {
     sBluetoothHfpInterface = nullptr;
-    
-
-
-
+    /* During re-initialization, a previouly initialized
+     * |BluetoothHandsfreeInterface| has now been cleaned
+     * up, so we start initialization.
+     */
     RunInit();
   }
 
@@ -368,14 +368,14 @@ private:
   nsresult mRv;
 };
 
-
+// static
 void
 BluetoothHfpManager::InitHfpInterface(BluetoothProfileResultHandler* aRes)
 {
   BluetoothInterface* btInf = BluetoothInterface::GetInstance();
   if (NS_WARN_IF(!btInf)) {
-    
-    
+    // If there's no backend interface, we dispatch a runnable
+    // that calls the profile result handler.
     nsRefPtr<nsRunnable> r =
       new OnErrorProfileResultHandlerRunnable(aRes, NS_ERROR_FAILURE);
     if (NS_FAILED(NS_DispatchToMainThread(r))) {
@@ -387,8 +387,8 @@ BluetoothHfpManager::InitHfpInterface(BluetoothProfileResultHandler* aRes)
   BluetoothHandsfreeInterface *interface =
     btInf->GetBluetoothHandsfreeInterface();
   if (NS_WARN_IF(!interface)) {
-    
-    
+    // If there's no HFP interface, we dispatch a runnable
+    // that calls the profile result handler.
     nsRefPtr<nsRunnable> r =
       new OnErrorProfileResultHandlerRunnable(aRes, NS_ERROR_FAILURE);
     if (NS_FAILED(NS_DispatchToMainThread(r))) {
@@ -401,11 +401,11 @@ BluetoothHfpManager::InitHfpInterface(BluetoothProfileResultHandler* aRes)
     new CleanupInitResultHandler(interface, aRes);
 
   if (sBluetoothHfpInterface) {
-    
+    // Cleanup an initialized HFP before initializing again.
     sBluetoothHfpInterface->Cleanup(res);
   } else {
-    
-    
+    // If there's no HFP interface to cleanup first, we dispatch
+    // a runnable that calls the profile result handler.
     nsRefPtr<nsRunnable> r = new InitResultHandlerRunnable(res);
     if (NS_FAILED(NS_DispatchToMainThread(r))) {
       BT_LOGR("Failed to dispatch HFP init runnable");
@@ -482,15 +482,15 @@ private:
   nsRefPtr<BluetoothProfileResultHandler> mRes;
 };
 
-
+// static
 void
 BluetoothHfpManager::DeinitHfpInterface(BluetoothProfileResultHandler* aRes)
 {
   if (sBluetoothHfpInterface) {
     sBluetoothHfpInterface->Cleanup(new CleanupResultHandler(aRes));
   } else if (aRes) {
-    
-    
+    // We dispatch a runnable here to make the profile resource handler
+    // behave as if HFP was initialized.
     nsRefPtr<nsRunnable> r = new DeinitResultHandlerRunnable(aRes);
     if (NS_FAILED(NS_DispatchToMainThread(r))) {
       BT_LOGR("Failed to dispatch cleanup-result-handler runnable");
@@ -498,21 +498,21 @@ BluetoothHfpManager::DeinitHfpInterface(BluetoothProfileResultHandler* aRes)
   }
 }
 
-
+//static
 BluetoothHfpManager*
 BluetoothHfpManager::Get()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  
+  // If sBluetoothHfpManager already exists, exit early
   if (sBluetoothHfpManager) {
     return sBluetoothHfpManager;
   }
 
-  
+  // If we're in shutdown, don't create a new instance
   NS_ENSURE_FALSE(sInShutdown, nullptr);
 
-  
+  // Create a new instance, register, and return
   BluetoothHfpManager* manager = new BluetoothHfpManager();
   NS_ENSURE_TRUE(manager->Init(), nullptr);
 
@@ -540,8 +540,8 @@ BluetoothHfpManager::Observe(nsISupports* aSubject,
 void
 BluetoothHfpManager::Notify(const hal::BatteryInformation& aBatteryInfo)
 {
-  
-  
+  // Range of battery level: [0, 1], double
+  // Range of CIND::BATTCHG: [0, 5], int
   mBattChg = (int) round(aBatteryInfo.level() * 5.0);
   UpdateDeviceCIND();
 }
@@ -551,7 +551,7 @@ BluetoothHfpManager::NotifyConnectionStateChanged(const nsAString& aType)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  
+  // Notify Gecko observers
   nsCOMPtr<nsIObserverService> obs =
     do_GetService("@mozilla.org/observer-service;1");
   NS_ENSURE_TRUE_VOID(obs);
@@ -561,7 +561,7 @@ BluetoothHfpManager::NotifyConnectionStateChanged(const nsAString& aType)
     BT_WARNING("Failed to notify observsers!");
   }
 
-  
+  // Dispatch an event of status change
   bool status;
   nsAutoString eventName;
   if (aType.EqualsLiteral(BLUETOOTH_HFP_STATUS_CHANGED_ID)) {
@@ -577,22 +577,22 @@ BluetoothHfpManager::NotifyConnectionStateChanged(const nsAString& aType)
 
   DispatchStatusChangedEvent(eventName, mDeviceAddress, status);
 
-  
+  // Notify profile controller
   if (aType.EqualsLiteral(BLUETOOTH_HFP_STATUS_CHANGED_ID)) {
     if (IsConnected()) {
       MOZ_ASSERT(mListener);
 
-      
+      // Enumerate current calls
       mListener->EnumerateCalls();
 
       OnConnect(EmptyString());
     } else if (mConnectionState == HFP_CONNECTION_STATE_DISCONNECTED) {
       mDeviceAddress.AssignLiteral(BLUETOOTH_ADDRESS_NONE);
       if (mPrevConnectionState == HFP_CONNECTION_STATE_DISCONNECTED) {
-        
-        
-        
-        
+        // Bug 979160: This implies the outgoing connection failure.
+        // When the outgoing hfp connection fails, state changes to disconnected
+        // state. Since bluedroid would not report connecting state, but only
+        // report connected/disconnected.
         OnConnect(NS_LITERAL_STRING(ERR_CONNECTION_FAILED));
       } else {
         OnDisconnect(EmptyString());
@@ -629,9 +629,9 @@ BluetoothHfpManager::HandleVolumeChanged(nsISupports* aSubject)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  
-  
-  
+  // The string that we're interested in will be a JSON string that looks like:
+  //  {"key":"volumeup", "value":10}
+  //  {"key":"volumedown", "value":2}
   RootedDictionary<dom::SettingChangeNotification> setting(nsContentUtils::RootingCx());
   if (!WrappedJSToDictionary(aSubject, setting)) {
     return;
@@ -645,13 +645,13 @@ BluetoothHfpManager::HandleVolumeChanged(nsISupports* aSubject)
 
   mCurrentVgs = setting.mValue.toNumber();
 
-  
+  // Adjust volume by headset and we don't have to send volume back to headset
   if (mReceiveVgsFlag) {
     mReceiveVgsFlag = false;
     return;
   }
 
-  
+  // Only send volume back when there's a connected headset
   if (IsConnected()) {
     NS_ENSURE_TRUE_VOID(sBluetoothHfpInterface);
     sBluetoothHfpInterface->VolumeControl(
@@ -679,12 +679,12 @@ BluetoothHfpManager::HandleVoiceConnectionChanged(uint32_t aClientId)
   voiceInfo->GetType(type);
   mPhoneType = GetPhoneType(type);
 
-  
+  // Roam
   bool roaming;
   voiceInfo->GetRoaming(&roaming);
   mRoam = (roaming) ? HFP_SERVICE_TYPE_ROAMING : HFP_SERVICE_TYPE_HOME;
 
-  
+  // Service
   nsString regState;
   voiceInfo->GetState(regState);
 
@@ -692,12 +692,12 @@ BluetoothHfpManager::HandleVoiceConnectionChanged(uint32_t aClientId)
     (regState.EqualsLiteral("registered")) ? HFP_NETWORK_STATE_AVAILABLE :
                                              HFP_NETWORK_STATE_NOT_AVAILABLE;
   if (service != mService) {
-    
+    // Notify BluetoothRilListener of service change
     mListener->ServiceChanged(aClientId, service);
   }
   mService = service;
 
-  
+  // Signal
   JS::Rooted<JS::Value> value(nsContentUtils::RootingCxForThread());
   voiceInfo->GetRelSignalStrength(&value);
   NS_ENSURE_TRUE_VOID(value.isNumber());
@@ -705,20 +705,20 @@ BluetoothHfpManager::HandleVoiceConnectionChanged(uint32_t aClientId)
 
   UpdateDeviceCIND();
 
-  
+  // Operator name
   nsCOMPtr<nsIMobileNetworkInfo> network;
   voiceInfo->GetNetwork(getter_AddRefs(network));
   NS_ENSURE_TRUE_VOID(network);
   network->GetLongName(mOperatorName);
 
-  
-  
-  
-  
-  
-  
-  
-  
+  // According to GSM 07.07, "<format> indicates if the format is alphanumeric
+  // or numeric; long alphanumeric format can be upto 16 characters long and
+  // short format up to 8 characters (refer GSM MoU SE.13 [9])..."
+  // However, we found that the operator name may sometimes be longer than 16
+  // characters. After discussion, we decided to fix this here but not in RIL
+  // or modem.
+  //
+  // Please see Bug 871366 for more information.
   if (mOperatorName.Length() > 16) {
     BT_WARNING("The operator name was longer than 16 characters. We cut it.");
     mOperatorName.Left(mOperatorName, 16);
@@ -941,7 +941,7 @@ BluetoothHfpManager::ConvertToBluetoothHandsfreeCallState(int aCallState) const
 {
   BluetoothHandsfreeCallState state;
 
-  
+  // Refer to AOSP BluetoothPhoneService.convertCallState
   if (aCallState == nsITelephonyService::CALL_STATE_INCOMING) {
     state = HFP_CALL_STATE_INCOMING;
   } else if (aCallState == nsITelephonyService::CALL_STATE_DIALING) {
@@ -952,7 +952,7 @@ BluetoothHfpManager::ConvertToBluetoothHandsfreeCallState(int aCallState) const
     state = HFP_CALL_STATE_ACTIVE;
   } else if (aCallState == nsITelephonyService::CALL_STATE_HELD) {
     state = HFP_CALL_STATE_HELD;
-  } else { 
+  } else { // disconnected
     state = HFP_CALL_STATE_IDLE;
   }
 
@@ -962,15 +962,15 @@ BluetoothHfpManager::ConvertToBluetoothHandsfreeCallState(int aCallState) const
 bool
 BluetoothHfpManager::IsTransitionState(uint16_t aCallState, bool aIsConference)
 {
-  
-
-
-
-
-
-
-
-
+  /**
+   * Regard this callstate change as during CHLD=2 transition state if
+   * - the call becomes active, and numActive > 1
+   * - the call becomes held, and numHeld > 1 or an incoming call exists
+   *
+   * TODO:
+   * 1) handle CHLD=1 transition state
+   * 2) handle conference call cases
+   */
   if (!aIsConference) {
     switch (aCallState) {
       case nsITelephonyService::CALL_STATE_CONNECTED:
@@ -995,51 +995,51 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
                                             const bool aIsConference,
                                             bool aSend)
 {
-  
-  
-  
+  // aCallIndex can be UINT32_MAX for the pending outgoing call state update.
+  // aCallIndex will be updated again after real call state changes. See Bug
+  // 990467.
   if (aCallIndex == UINT32_MAX) {
     return;
   }
 
-  
+  // Update call state only
   while (aCallIndex >= mCurrentCallArray.Length()) {
     Call call;
     mCurrentCallArray.AppendElement(call);
   }
   mCurrentCallArray[aCallIndex].mState = aCallState;
 
-  
+  // Return if SLC is disconnected
   if (!IsConnected()) {
     return;
   }
 
-  
+  // Update call information besides call state
   mCurrentCallArray[aCallIndex].Set(aNumber, aIsOutgoing);
 
-  
-  
+  // Notify bluedroid of phone state change if this
+  // call state change is not during transition state
   if (!IsTransitionState(aCallState, aIsConference)) {
     UpdatePhoneCIND(aCallIndex);
   }
 
   switch (aCallState) {
     case nsITelephonyService::CALL_STATE_DIALING:
-      
+      // We've send Dialer a dialing request and this is the response.
       if (!mDialingRequestProcessed) {
         SendResponse(HFP_AT_RESPONSE_OK);
         mDialingRequestProcessed = true;
       }
       break;
     case nsITelephonyService::CALL_STATE_DISCONNECTED:
-      
+      // -1 is necessary because call 0 is an invalid (padding) call object.
       if (mCurrentCallArray.Length() - 1 ==
           GetNumberOfCalls(nsITelephonyService::CALL_STATE_DISCONNECTED)) {
-        
-        
+        // In order to let user hear busy tone via connected Bluetooth headset,
+        // we postpone the timing of dropping SCO.
         if (aError.EqualsLiteral("BusyError")) {
-          
-          
+          // FIXME: UpdatePhoneCIND later since it causes SCO close but
+          // Dialer is still playing busy tone via HF.
           NS_DispatchToMainThread(new CloseScoRunnable());
         }
 
@@ -1054,7 +1054,7 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
 PhoneType
 BluetoothHfpManager::GetPhoneType(const nsAString& aType)
 {
-  
+  // FIXME: Query phone type from RIL after RIL implements new API (bug 912019)
   if (aType.EqualsLiteral("gsm") || aType.EqualsLiteral("gprs") ||
       aType.EqualsLiteral("edge") || aType.EqualsLiteral("umts") ||
       aType.EqualsLiteral("hspa") || aType.EqualsLiteral("hsdpa") ||
@@ -1074,12 +1074,12 @@ BluetoothHfpManager::UpdateSecondNumber(const nsAString& aNumber)
 {
   MOZ_ASSERT(mPhoneType == PhoneType::CDMA);
 
-  
-  
+  // Always regard second call as incoming call since v1.2 RIL
+  // doesn't support outgoing second call in CDMA.
   mCdmaSecondCall.Set(aNumber, false);
 
-  
-  
+  // FIXME: check CDMA + bluedroid
+  //UpdateCIND(CINDType::CALLSETUP, CallSetupState::INCOMING, true);
 }
 
 void
@@ -1088,13 +1088,13 @@ BluetoothHfpManager::AnswerWaitingCall()
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mPhoneType == PhoneType::CDMA);
 
-  
+  // Pick up second call. First call is held now.
   mCdmaSecondCall.mState = nsITelephonyService::CALL_STATE_CONNECTED;
-  
-  
+  // FIXME: check CDMA + bluedroid
+  //UpdateCIND(CINDType::CALLSETUP, CallSetupState::NO_CALLSETUP, true);
 
-  
-  
+  //sCINDItems[CINDType::CALLHELD].value = CallHeldState::ONHOLD_ACTIVE;
+  //SendCommand("+CIEV: ", CINDType::CALLHELD);
 }
 
 void
@@ -1104,8 +1104,8 @@ BluetoothHfpManager::IgnoreWaitingCall()
   MOZ_ASSERT(mPhoneType == PhoneType::CDMA);
 
   mCdmaSecondCall.Reset();
-  
-  
+  // FIXME: check CDMA + bluedroid
+  //UpdateCIND(CINDType::CALLSETUP, CallSetupState::NO_CALLSETUP, true);
 }
 
 void
@@ -1114,17 +1114,17 @@ BluetoothHfpManager::ToggleCalls()
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mPhoneType == PhoneType::CDMA);
 
-  
+  // Toggle acitve and held calls
   mCdmaSecondCall.mState = (mCdmaSecondCall.IsActive()) ?
                              nsITelephonyService::CALL_STATE_HELD :
                              nsITelephonyService::CALL_STATE_CONNECTED;
 }
 
-
-
-
-
-
+/*
+ * Reset connection state and audio state to DISCONNECTED to handle backend
+ * error. The state change triggers UI status bar update as ordinary bluetooth
+ * turn-off sequence.
+ */
 void
 BluetoothHfpManager::HandleBackendError()
 {
@@ -1314,10 +1314,10 @@ BluetoothHfpManager::OnConnect(const nsAString& aErrorStr)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  
-
-
-
+  /**
+   * On the one hand, notify the controller that we've done for outbound
+   * connections. On the other hand, we do nothing for inbound connections.
+   */
   NS_ENSURE_TRUE_VOID(mController);
 
   mController->NotifyCompletion(aErrorStr);
@@ -1329,10 +1329,10 @@ BluetoothHfpManager::OnDisconnect(const nsAString& aErrorStr)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  
-
-
-
+  /**
+   * On the one hand, notify the controller that we've done for outbound
+   * connections. On the other hand, we do nothing for inbound connections.
+   */
   NS_ENSURE_TRUE_VOID(mController);
 
   mController->NotifyCompletion(aErrorStr);
@@ -1342,7 +1342,7 @@ BluetoothHfpManager::OnDisconnect(const nsAString& aErrorStr)
 void
 BluetoothHfpManager::OnUpdateSdpRecords(const nsAString& aDeviceAddress)
 {
-  
+  // Bluedroid handles this part
   MOZ_ASSERT(false);
 }
 
@@ -1351,7 +1351,7 @@ BluetoothHfpManager::OnGetServiceChannel(const nsAString& aDeviceAddress,
                                          const nsAString& aServiceUuid,
                                          int aChannel)
 {
-  
+  // Bluedroid handles this part
   MOZ_ASSERT(false);
 }
 
@@ -1361,9 +1361,9 @@ BluetoothHfpManager::GetAddress(nsAString& aDeviceAddress)
   aDeviceAddress = mDeviceAddress;
 }
 
-
-
-
+//
+// Bluetooth notifications
+//
 
 void
 BluetoothHfpManager::ConnectionStateNotification(
@@ -1435,7 +1435,7 @@ BluetoothHfpManager::VolumeNotification(
     mReceiveVgsFlag = true;
 
     if (aVolume == mCurrentVgs) {
-      
+      // Keep current volume
       return;
     }
 
@@ -1468,8 +1468,8 @@ BluetoothHfpManager::CallHoldNotification(BluetoothHandsfreeCallHoldType aChld,
   MOZ_ASSERT(NS_IsMainThread());
 
   if (!IsSupportedChld((int)aChld)) {
-    
-    
+    // We currently don't support Enhanced Call Control.
+    // AT+CHLD=1x and AT+CHLD=2x will be ignored
     SendResponse(HFP_AT_RESPONSE_ERROR);
     return;
   }
@@ -1488,14 +1488,14 @@ void BluetoothHfpManager::DialCallNotification(const nsAString& aNumber,
 
   nsCString message = NS_ConvertUTF16toUTF8(aNumber);
 
-  
-  
-  
-  
-  
-  
-  
-  
+  // There are three cases based on aNumber,
+  // 1) Empty value:    Redial, BLDN
+  // 2) >xxx:           Memory dial, ATD>xxx
+  // 3) xxx:            Normal dial, ATDxxx
+  // We need to respond OK/Error for dial requests for every case listed above,
+  // 1) and 2):         Respond in either RespondToBLDNTask or
+  //                    HandleCallStateChanged()
+  // 3):                Respond here
   if (message.IsEmpty()) {
     mDialingRequestProcessed = false;
     NotifyDialer(NS_LITERAL_STRING("BLDN"));
@@ -1527,7 +1527,7 @@ BluetoothHfpManager::CnumNotification(const nsAString& aBdAddress)
 {
   static const uint8_t sAddressType[] {
     [HFP_CALL_ADDRESS_TYPE_UNKNOWN] = 0x81,
-    [HFP_CALL_ADDRESS_TYPE_INTERNATIONAL] = 0x91 
+    [HFP_CALL_ADDRESS_TYPE_INTERNATIONAL] = 0x91 // for completeness
   };
 
   MOZ_ASSERT(NS_IsMainThread());
@@ -1638,34 +1638,34 @@ BluetoothHfpManager::KeyPressedNotification(const nsAString& aBdAddress)
   bool hasActiveCall =
     (FindFirstCall(nsITelephonyService::CALL_STATE_CONNECTED) > 0);
 
-  
+  // Refer to AOSP HeadsetStateMachine.processKeyPressed
   if (FindFirstCall(nsITelephonyService::CALL_STATE_INCOMING)
       && !hasActiveCall) {
-    
-
-
-
-
-
+    /*
+     * Bluetooth HSP spec 4.2.2
+     * There is an incoming call, notify Dialer to pick up the phone call
+     * and SCO will be established after we get the CallStateChanged event
+     * indicating the call is answered successfully.
+     */
     NotifyDialer(NS_LITERAL_STRING("ATA"));
   } else if (hasActiveCall) {
     if (!IsScoConnected()) {
-      
-
-
-
+      /*
+       * Bluetooth HSP spec 4.3
+       * If there's no SCO, set up a SCO link.
+       */
       ConnectSco();
     } else {
-      
-
-
-
-
-
+      /*
+       * Bluetooth HSP spec 4.5
+       * There are two ways to release SCO: sending CHUP to dialer or closing
+       * SCO socket directly. We notify dialer only if there is at least one
+       * active call.
+       */
       NotifyDialer(NS_LITERAL_STRING("CHUP"));
     }
   } else {
-    
+    // BLDN
 
     NotifyDialer(NS_LITERAL_STRING("BLDN"));
 
