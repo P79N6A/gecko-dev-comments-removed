@@ -88,6 +88,23 @@ const certificateUsageStatusResponder        = 0x0400;
 
 const NO_FLAGS = 0;
 
+
+
+
+
+
+
+
+
+
+
+
+function pemToBase64(pem) {
+  return pem.replace(/-----BEGIN CERTIFICATE-----/, "")
+            .replace(/-----END CERTIFICATE-----/, "")
+            .replace(/[\r\n]/g, "");
+}
+
 function readFile(file) {
   let fstream = Cc["@mozilla.org/network/file-input-stream;1"]
                   .createInstance(Ci.nsIFileInputStream);
@@ -99,8 +116,16 @@ function readFile(file) {
 
 function addCertFromFile(certdb, filename, trustString) {
   let certFile = do_get_file(filename, false);
-  let der = readFile(certFile);
-  certdb.addCert(der, trustString, null);
+  let certBytes = readFile(certFile);
+  let successful = false;
+  try {
+    certdb.addCert(certBytes, trustString, null);
+    successful = true;
+  } catch (e) {}
+  if (!successful) {
+    
+    certdb.addCertFromBase64(pemToBase64(certBytes), trustString, null);
+  }
 }
 
 function constructCertFromFile(filename) {

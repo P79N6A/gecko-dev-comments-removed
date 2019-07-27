@@ -1,22 +1,11 @@
 "use strict";
 
-
-
-
-
-
-
-
-
-
-
-
 do_get_profile(); 
 const certdb = Cc["@mozilla.org/security/x509certdb;1"]
                  .getService(Ci.nsIX509CertDB);
 
 function load_cert(name, trust) {
-  let filename = "test_intermediate_basic_usage_constraints/" + name + ".der";
+  let filename = "test_intermediate_basic_usage_constraints/" + name + ".pem";
   addCertFromFile(certdb, filename, trust);
 }
 
@@ -24,10 +13,10 @@ function test_cert_for_usages(certChainNicks, expected_usages_string) {
   let certs = [];
   for (let i in certChainNicks) {
     let certNick = certChainNicks[i];
-    let certDER = readFile(do_get_file(
-                             "test_intermediate_basic_usage_constraints/"
-                                + certNick + ".der"), false);
-    certs.push(certdb.constructX509(certDER, certDER.length));
+    let certPEM = readFile(
+                    do_get_file("test_intermediate_basic_usage_constraints/"
+                                + certNick + ".pem"), false);
+    certs.push(certdb.constructX509FromBase64(pemToBase64(certPEM)));
   }
 
   let cert = certs[0];
@@ -39,12 +28,7 @@ function test_cert_for_usages(certChainNicks, expected_usages_string) {
 }
 
 function run_test() {
-  
-  
   let ee_usage1 = 'Client,Server,Sign,Encrypt,Object Signer';
-
-  
-  
   let ca_usage1 = "SSL CA";
 
   
@@ -81,9 +65,6 @@ function run_test() {
   test_cert_for_usages(["ee-int-limited-depth", "int-limited-depth"],
                        ee_usage1);
 
-  
-  
-  
   
   
   
