@@ -146,7 +146,7 @@ public:
   nsIDocument* GetOwnerDoc() const
   { return mOwnerContent ? mOwnerContent->OwnerDoc() : nullptr; }
 
-  PBrowserParent* GetRemoteBrowser();
+  PBrowserParent* GetRemoteBrowser() const;
 
   
 
@@ -162,20 +162,8 @@ public:
 
 
 
-  RenderFrameParent* GetCurrentRemoteFrame() const
-  {
-    return mCurrentRemoteFrame;
-  }
+  RenderFrameParent* GetCurrentRemoteFrame() const;
 
-  
-
-
-
-
-  void SetCurrentRemoteFrame(RenderFrameParent* aFrame)
-  {
-    mCurrentRemoteFrame = aFrame;
-  }
   nsFrameMessageManager* GetFrameMessageManager() { return mMessageManager; }
 
   mozilla::dom::Element* GetOwnerContent() { return mOwnerContent; }
@@ -363,7 +351,6 @@ private:
   
   bool mVisible : 1;
 
-  RenderFrameParent* mCurrentRemoteFrame;
   TabParent* mRemoteBrowser;
   uint64_t mChildID;
 

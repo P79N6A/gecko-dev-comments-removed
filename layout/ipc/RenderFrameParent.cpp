@@ -338,8 +338,6 @@ RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader,
     mLayersId = *aId;
     CompositorChild::Get()->SendNotifyChildCreated(mLayersId);
   }
-  
-  mFrameLoader->SetCurrentRemoteFrame(this);
   *aSuccess = true;
 }
 
@@ -454,15 +452,6 @@ RenderFrameParent::ActorDestroy(ActorDestroyReason why)
     }
   }
 
-  if (mFrameLoader && mFrameLoader->GetCurrentRemoteFrame() == this) {
-    
-    
-    
-    
-    
-    
-    mFrameLoader->SetCurrentRemoteFrame(nullptr);
-  }
   mFrameLoader = nullptr;
 }
 
@@ -490,8 +479,6 @@ RenderFrameParent::RecvUpdateHitRegion(const nsRegion& aRegion)
 void
 RenderFrameParent::TriggerRepaint()
 {
-  mFrameLoader->SetCurrentRemoteFrame(this);
-
   nsIFrame* docFrame = mFrameLoader->GetPrimaryFrameOfOwningContent();
   if (!docFrame) {
     
