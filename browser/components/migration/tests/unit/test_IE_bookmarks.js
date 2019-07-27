@@ -1,18 +1,7 @@
-
-
-
-
-function run_test() {
-  do_test_pending();
-
+add_task(function* () {
   let migrator = MigrationUtils.getMigrator("ie");
-
   
-  do_check_true(migrator.sourceExists);
-
-  
-  let availableSources = migrator.getMigrateData(null, false);
-  do_check_true((availableSources & MigrationUtils.resourceTypes.BOOKMARKS) > 0);
+  Assert.ok(migrator.sourceExists);
 
   
   
@@ -23,34 +12,25 @@ function run_test() {
                           PlacesUtils.toolbarFolderId ];
 
   PlacesUtils.bookmarks.addObserver({
-    onItemAdded: function onItemAdded(aItemId, aParentId, aIndex, aItemType,
-                                      aURI, aTitle) {
+    onItemAdded(aItemId, aParentId, aIndex, aItemType, aURI, aTitle) {
       if (aTitle == label) {
         let index = expectedParents.indexOf(aParentId);
-        do_check_neq(index, -1);
+        Assert.notEqual(index, -1);
         expectedParents.splice(index, 1);
         if (expectedParents.length == 0)
           PlacesUtils.bookmarks.removeObserver(this);
       }
     },
-    onBeginUpdateBatch: function () {},
-    onEndUpdateBatch: function () {},
-    onItemRemoved: function () {},
-    onItemChanged: function () {},
-    onItemVisited: function () {},
-    onItemMoved: function () {},
+    onBeginUpdateBatch() {},
+    onEndUpdateBatch() {},
+    onItemRemoved() {},
+    onItemChanged() {},
+    onItemVisited() {},
+    onItemMoved() {},
   }, false);
 
+  yield promiseMigration(migrator, MigrationUtils.resourceTypes.BOOKMARKS);
+
   
-  Services.obs.addObserver(function onMigrationEnded() {
-    Services.obs.removeObserver(onMigrationEnded, "Migration:Ended");
-
-    
-    do_check_eq(expectedParents.length, 0);
-
-    do_test_finished();
-  }, "Migration:Ended", false);
-
-  migrator.migrate(MigrationUtils.resourceTypes.BOOKMARKS, null,
-                   null);
-}
+  Assert.equal(expectedParents.length, 0);
+});
