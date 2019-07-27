@@ -154,6 +154,8 @@ const PREF_UPDATE_AUTODOWNLOAD = "app.update.auto";
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 const EXPERIMENTS_CHANGED_TOPIC = "experiments-changed";
+const SEARCH_ENGINE_MODIFIED_TOPIC = "browser-search-engine-modified";
+const SEARCH_SERVICE_TOPIC = "browser-search-service";
 
 
 
@@ -651,6 +653,8 @@ function EnvironmentCache() {
   };
 
   this._updateSettings();
+  
+  this._updateSearchEngine();
 
   
   
@@ -663,21 +667,21 @@ function EnvironmentCache() {
   p.push(this._updateProfile());
 #endif
 
+  let setup = () => {
+    this._initTask = null;
+    this._startWatchingPrefs();
+    this._addonBuilder.watchForChanges();
+    this._addObservers();
+    return this.currentEnvironment;
+  };
+
   this._initTask = Promise.all(p)
     .then(
-      () => {
-        this._initTask = null;
-        this._startWatchingPrefs();
-        this._addonBuilder.watchForChanges();
-        return this.currentEnvironment;
-      },
+      () => setup(),
       (err) => {
         
         this._log.error("EnvironmentCache - error while initializing", err);
-        this._initTask = null;
-        this._startWatchingPrefs();
-        this._addonBuilder.watchForChanges();
-        return this.currentEnvironment;
+        return setup();
       });
 }
 EnvironmentCache.prototype = {
@@ -797,6 +801,90 @@ EnvironmentCache.prototype = {
     for (let pref of this._watchedPrefs.keys()) {
       Preferences.ignore(pref, this._onPrefChanged, this);
     }
+  },
+
+  _addObservers: function () {
+    
+    Services.obs.addObserver(this, SEARCH_ENGINE_MODIFIED_TOPIC, false);
+    Services.obs.addObserver(this, SEARCH_SERVICE_TOPIC, false);
+  },
+
+  _removeObservers: function () {
+    
+    Services.obs.removeObserver(this, SEARCH_ENGINE_MODIFIED_TOPIC);
+    Services.obs.removeObserver(this, SEARCH_SERVICE_TOPIC);
+  },
+
+  observe: function (aSubject, aTopic, aData) {
+    this._log.trace("observe - aTopic: " + aTopic + ", aData: " + aData);
+    switch (aTopic) {
+      case SEARCH_ENGINE_MODIFIED_TOPIC:
+        if (aData != "engine-default" && aData != "engine-current") {
+          return;
+        }
+        
+        this._onSearchEngineChange();
+        break;
+      case SEARCH_SERVICE_TOPIC:
+        if (aData != "init-complete") {
+          return;
+        }
+        
+        this._updateSearchEngine();
+        break;
+    }
+  },
+
+  
+
+
+
+
+  _getDefaultSearchEngine: function () {
+    let engine;
+    try {
+      engine = Services.search.defaultEngine;
+    } catch (e) {}
+
+    let name;
+    if (!engine) {
+      name = "NONE";
+    } else if (engine.identifier) {
+      name = engine.identifier;
+    } else if (engine.name) {
+      name = "other-" + engine.name;
+    } else {
+      name = "UNDEFINED";
+    }
+
+    return name;
+  },
+
+  
+
+
+  _updateSearchEngine: function () {
+    this._log.trace("_updateSearchEngine - isInitialized: " + Services.search.isInitialized);
+    if (!Services.search.isInitialized) {
+      return;
+    }
+
+    
+    this._currentEnvironment.settings = this._currentEnvironment.settings || {};
+    
+    this._currentEnvironment.settings.defaultSearchEngine = this._getDefaultSearchEngine();
+  },
+
+  
+
+
+  _onSearchEngineChange: function () {
+    this._log.trace("_onSearchEngineChange");
+
+    
+    let oldEnvironment = Cu.cloneInto(this._currentEnvironment, myScope);
+    this._updateSearchEngine();
+    this._onEnvironmentChange("search-engine-changed", oldEnvironment);
   },
 
   
