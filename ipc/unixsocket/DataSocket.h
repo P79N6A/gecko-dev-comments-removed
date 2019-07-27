@@ -85,70 +85,9 @@ public:
   void EnqueueData(UnixSocketIOBuffer* aBuffer);
   bool HasPendingData() const;
 
-  template <typename T>
-  ssize_t ReceiveData(int aFd, T* aIO)
-  {
-    MOZ_ASSERT(aFd >= 0);
-    MOZ_ASSERT(aIO);
+  ssize_t ReceiveData(int aFd);
 
-    UnixSocketIOBuffer* incoming;
-    nsresult rv = QueryReceiveBuffer(&incoming);
-    if (NS_FAILED(rv)) {
-      
-      NS_DispatchToMainThread(new SocketIORequestClosingRunnable(aIO));
-      return -1;
-    }
-
-    ssize_t res = incoming->Receive(aFd);
-    if (res < 0) {
-      
-      DiscardBuffer();
-      NS_DispatchToMainThread(new SocketIORequestClosingRunnable(aIO));
-      return -1;
-    } else if (!res) {
-      
-      DiscardBuffer();
-      NS_DispatchToMainThread(new SocketIORequestClosingRunnable(aIO));
-      return 0;
-    }
-
-#ifdef MOZ_TASK_TRACER
-    
-    
-    AutoSourceEvent taskTracerEvent(SourceEventType::Unixsocket);
-#endif
-
-    ConsumeBuffer();
-
-    return res;
-  }
-
-  template <typename T>
-  nsresult SendPendingData(int aFd, T* aIO)
-  {
-    MOZ_ASSERT(aFd >= 0);
-    MOZ_ASSERT(aIO);
-
-    while (HasPendingData()) {
-      UnixSocketIOBuffer* outgoing = mOutgoingQ.ElementAt(0);
-
-      ssize_t res = outgoing->Send(aFd);
-      if (res < 0) {
-        
-        NS_DispatchToMainThread(new SocketIORequestClosingRunnable(aIO));
-        return NS_ERROR_FAILURE;
-      } else if (!res && outgoing->GetSize()) {
-        
-        return NS_OK;
-      }
-      if (!outgoing->GetSize()) {
-        mOutgoingQ.RemoveElementAt(0);
-        delete outgoing;
-      }
-    }
-
-    return NS_OK;
-  }
+  nsresult SendPendingData(int aFd);
 
 protected:
   DataSocketIO();
