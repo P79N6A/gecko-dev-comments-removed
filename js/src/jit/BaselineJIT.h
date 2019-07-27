@@ -371,20 +371,15 @@ struct BaselineScript
     uint8_t *nativeCodeForPC(JSScript *script, jsbytecode *pc,
                              PCMappingSlotInfo *slotInfo = nullptr);
 
-    jsbytecode *pcForReturnOffset(JSScript *script, uint32_t nativeOffset);
-    jsbytecode *pcForReturnAddress(JSScript *script, uint8_t *nativeAddress);
-
-    jsbytecode *pcForNativeAddress(JSScript *script, uint8_t *nativeAddress);
-    jsbytecode *pcForNativeOffset(JSScript *script, uint32_t nativeOffset);
+    
+    
+    
+    jsbytecode *approximatePcForNativeAddress(JSScript *script, uint8_t *nativeAddress);
 
     bool addDependentAsmJSModule(JSContext *cx, DependentAsmJSModuleExit exit);
     void unlinkDependentAsmJSModules(FreeOp *fop);
     void removeDependentAsmJSModule(DependentAsmJSModuleExit exit);
 
-  private:
-    jsbytecode *pcForNativeOffset(JSScript *script, uint32_t nativeOffset, bool isReturn);
-
-  public:
     
     
     

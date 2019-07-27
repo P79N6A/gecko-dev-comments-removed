@@ -747,30 +747,13 @@ BaselineScript::nativeCodeForPC(JSScript *script, jsbytecode *pc, PCMappingSlotI
 }
 
 jsbytecode *
-BaselineScript::pcForReturnOffset(JSScript *script, uint32_t nativeOffset)
-{
-    return pcForNativeOffset(script, nativeOffset, true);
-}
-
-jsbytecode *
-BaselineScript::pcForReturnAddress(JSScript *script, uint8_t *nativeAddress)
+BaselineScript::approximatePcForNativeAddress(JSScript *script, uint8_t *nativeAddress)
 {
     MOZ_ASSERT(script->baselineScript() == this);
     MOZ_ASSERT(nativeAddress >= method_->raw());
     MOZ_ASSERT(nativeAddress < method_->raw() + method_->instructionsSize());
-    return pcForReturnOffset(script, uint32_t(nativeAddress - method_->raw()));
-}
 
-jsbytecode *
-BaselineScript::pcForNativeOffset(JSScript *script, uint32_t nativeOffset)
-{
-    return pcForNativeOffset(script, nativeOffset, false);
-}
-
-jsbytecode *
-BaselineScript::pcForNativeOffset(JSScript *script, uint32_t nativeOffset, bool isReturn)
-{
-    MOZ_ASSERT(script->baselineScript() == this);
+    uint32_t nativeOffset = nativeAddress - method_->raw();
     MOZ_ASSERT(nativeOffset < method_->instructionsSize());
 
     
@@ -786,21 +769,18 @@ BaselineScript::pcForNativeOffset(JSScript *script, uint32_t nativeOffset, bool 
     i--;
 
     PCMappingIndexEntry &entry = pcMappingIndexEntry(i);
-    MOZ_ASSERT_IF(isReturn, nativeOffset >= entry.nativeOffset);
 
     CompactBufferReader reader(pcMappingReader(i));
     jsbytecode *curPC = script->offsetToPC(entry.pcOffset);
     uint32_t curNativeOffset = entry.nativeOffset;
 
     MOZ_ASSERT(script->containsPC(curPC));
-    MOZ_ASSERT_IF(isReturn, nativeOffset >= curNativeOffset);
 
     
     
-    if (!isReturn && (curNativeOffset > nativeOffset))
+    if (curNativeOffset > nativeOffset)
         return script->code();
 
-    mozilla::DebugOnly<uint32_t> lastNativeOffset = curNativeOffset;
     jsbytecode *lastPC = curPC;
     while (true) {
         
@@ -813,35 +793,17 @@ BaselineScript::pcForNativeOffset(JSScript *script, uint32_t nativeOffset, bool 
         
         
         
-        
-        
-        
-        if (curNativeOffset > nativeOffset) {
-            MOZ_ASSERT_IF(isReturn, lastNativeOffset == nativeOffset);
+        if (curNativeOffset > nativeOffset)
             return lastPC;
-        }
 
         
         
-        
-        if (!reader.more()) {
-            MOZ_ASSERT_IF(isReturn, curNativeOffset == nativeOffset);
+        if (!reader.more())
             return curPC;
-        }
 
-        lastNativeOffset = curNativeOffset;
         lastPC = curPC;
         curPC += GetBytecodeLength(curPC);
     }
-}
-
-jsbytecode *
-BaselineScript::pcForNativeAddress(JSScript *script, uint8_t *nativeAddress)
-{
-    MOZ_ASSERT(script->baselineScript() == this);
-    MOZ_ASSERT(nativeAddress >= method_->raw());
-    MOZ_ASSERT(nativeAddress < method_->raw() + method_->instructionsSize());
-    return pcForNativeOffset(script, uint32_t(nativeAddress - method_->raw()));
 }
 
 void
