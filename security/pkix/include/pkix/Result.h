@@ -152,7 +152,7 @@ const char* MapResultToName(Result result);
 
 
 
-#ifdef MOZILLA_PKIX_ENUM_CLASS_REALLY_IS_ENUM_CLASS
+#if !defined(_MSC_VER) || (_MSC_VER >= 1700)
 static const Result Success = Result::Success;
 #endif
 
