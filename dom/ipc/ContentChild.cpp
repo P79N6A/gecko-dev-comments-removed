@@ -2496,11 +2496,10 @@ ContentChild::RecvShutdown()
     if (os) {
         os->NotifyObservers(this, "content-child-shutdown", nullptr);
     }
+
     
     
-    MessageLoop::current()->PostTask(
-        FROM_HERE,
-        NewRunnableMethod(this, &ContentChild::SendFinishShutdown));
+    unused << SendFinishShutdown();
     return true;
 }
 

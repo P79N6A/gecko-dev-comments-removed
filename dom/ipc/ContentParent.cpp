@@ -1502,8 +1502,7 @@ ContentParent::ShutDownProcess(ShutDownMethod aMethod)
     
     
     if (aMethod == SEND_SHUTDOWN_MESSAGE) {
-
-        if (SendShutdown()) {
+        if (mIPCOpen && SendShutdown()) {
             mShutdownPending = true;
         }
 
@@ -1776,7 +1775,7 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
 
     
     
-    mShutdownComplete = true;
+    mIPCOpen = false;
 
     if (why == NormalShutdown && !mCalledClose) {
         
@@ -2000,7 +1999,7 @@ ContentParent::InitializeMembers()
     mCalledKillHard = false;
     mCreatedPairedMinidumps = false;
     mShutdownPending = false;
-    mShutdownComplete = false;
+    mIPCOpen = true;
 }
 
 ContentParent::ContentParent(mozIApplication* aApp,
@@ -2745,15 +2744,15 @@ ContentParent::Observe(nsISupports* aSubject,
                        const char16_t* aData)
 {
     if (!strcmp(aTopic, "xpcom-shutdown") && mSubprocess) {
-        if (mShutdownPending) {
-            
-            
-            while (!mShutdownComplete) {
-                NS_ProcessNextEvent(nullptr, true);
-            }
-        } else {
-            
-            ShutDownProcess(CLOSE_CHANNEL);
+        if (!mShutdownPending && mIPCOpen) {
+            ShutDownProcess(SEND_SHUTDOWN_MESSAGE);
+        }
+
+        
+        
+        
+        while (mIPCOpen) {
+            NS_ProcessNextEvent(nullptr, true);
         }
         NS_ASSERTION(!mSubprocess, "Close should have nulled mSubprocess");
     }
