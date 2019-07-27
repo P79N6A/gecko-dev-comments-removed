@@ -16,6 +16,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "DrawMode.h"
 #include "harfbuzz/hb.h"
+#include "nsUnicodeScriptCodes.h"
 
 #ifdef DEBUG
 #include <stdio.h>
@@ -27,6 +28,7 @@ class gfxUserFontSet;
 class gfxTextContextPaint;
 class nsIAtom;
 class nsILanguageAtomService;
+class gfxMissingFontRecorder;
 
 
 
@@ -769,7 +771,8 @@ public:
 
 
     virtual gfxTextRun *MakeTextRun(const char16_t *aString, uint32_t aLength,
-                                    const Parameters *aParams, uint32_t aFlags);
+                                    const Parameters *aParams, uint32_t aFlags,
+                                    gfxMissingFontRecorder *aMFR);
     
 
 
@@ -777,7 +780,8 @@ public:
 
 
     virtual gfxTextRun *MakeTextRun(const uint8_t *aString, uint32_t aLength,
-                                    const Parameters *aParams, uint32_t aFlags);
+                                    const Parameters *aParams, uint32_t aFlags,
+                                    gfxMissingFontRecorder *aMFR);
 
     
 
@@ -787,12 +791,13 @@ public:
     gfxTextRun *MakeTextRun(const T *aString, uint32_t aLength,
                             gfxContext *aRefContext,
                             int32_t aAppUnitsPerDevUnit,
-                            uint32_t aFlags)
+                            uint32_t aFlags,
+                            gfxMissingFontRecorder *aMFR)
     {
         gfxTextRunFactory::Parameters params = {
             aRefContext, nullptr, nullptr, nullptr, 0, aAppUnitsPerDevUnit
         };
-        return MakeTextRun(aString, aLength, &params, aFlags);
+        return MakeTextRun(aString, aLength, &params, aFlags, aMFR);
     }
 
     
@@ -1088,7 +1093,8 @@ protected:
     void InitTextRun(gfxContext *aContext,
                      gfxTextRun *aTextRun,
                      const T *aString,
-                     uint32_t aLength);
+                     uint32_t aLength,
+                     gfxMissingFontRecorder *aMFR);
 
     
     
@@ -1098,7 +1104,8 @@ protected:
                        const T *aString,
                        uint32_t aScriptRunStart,
                        uint32_t aScriptRunEnd,
-                       int32_t aRunScript);
+                       int32_t aRunScript,
+                       gfxMissingFontRecorder *aMFR);
 
     
     
@@ -1124,4 +1131,56 @@ protected:
 
     static nsILanguageAtomService* gLangService;
 };
+
+
+
+
+
+
+#define GFX_MISSING_FONTS_NOTIFY_PREF "gfx.missing_fonts.notify"
+
+class gfxMissingFontRecorder {
+public:
+    gfxMissingFontRecorder()
+    {
+        MOZ_COUNT_CTOR(gfxMissingFontRecorder);
+        memset(&mMissingFonts, 0, sizeof(mMissingFonts));
+    }
+
+    ~gfxMissingFontRecorder()
+    {
+#ifdef DEBUG
+        for (uint32_t i = 0; i < kNumScriptBitsWords; i++) {
+            NS_ASSERTION(mMissingFonts[i] == 0,
+                         "failed to flush the missing-font recorder");
+        }
+#endif
+        MOZ_COUNT_DTOR(gfxMissingFontRecorder);
+    }
+
+    
+    void RecordScript(int32_t aScriptCode)
+    {
+        mMissingFonts[uint32_t(aScriptCode) >> 5] |=
+            (1 << (uint32_t(aScriptCode) & 0x1f));
+    }
+
+    
+    
+    void Flush();
+
+    
+    
+    void Clear()
+    {
+        memset(&mMissingFonts, 0, sizeof(mMissingFonts));
+    }
+
+private:
+    
+    static const uint32_t kNumScriptBitsWords =
+        ((MOZ_NUM_SCRIPT_CODES + 31) / 32);
+    uint32_t mMissingFonts[kNumScriptBitsWords];
+};
+
 #endif

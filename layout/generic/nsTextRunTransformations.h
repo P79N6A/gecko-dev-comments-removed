@@ -21,13 +21,17 @@ public:
   nsTransformedTextRun* MakeTextRun(const uint8_t* aString, uint32_t aLength,
                                     const gfxFontGroup::Parameters* aParams,
                                     gfxFontGroup* aFontGroup, uint32_t aFlags,
-                                    nsStyleContext** aStyles, bool aOwnsFactory = true);
+                                    nsStyleContext** aStyles,
+                                    bool aOwnsFactory);
   nsTransformedTextRun* MakeTextRun(const char16_t* aString, uint32_t aLength,
                                     const gfxFontGroup::Parameters* aParams,
                                     gfxFontGroup* aFontGroup, uint32_t aFlags,
-                                    nsStyleContext** aStyles, bool aOwnsFactory = true);
+                                    nsStyleContext** aStyles,
+                                    bool aOwnsFactory);
 
-  virtual void RebuildTextRun(nsTransformedTextRun* aTextRun, gfxContext* aRefContext) = 0;
+  virtual void RebuildTextRun(nsTransformedTextRun* aTextRun,
+                              gfxContext* aRefContext,
+                              gfxMissingFontRecorder* aMFR) = 0;
 };
 
 
@@ -48,7 +52,9 @@ public:
     : mInnerTransformingTextRunFactory(aInnerTransformingTextRunFactory),
       mAllUppercase(aAllUppercase) {}
 
-  virtual void RebuildTextRun(nsTransformedTextRun* aTextRun, gfxContext* aRefContext) MOZ_OVERRIDE;
+  virtual void RebuildTextRun(nsTransformedTextRun* aTextRun,
+                              gfxContext* aRefContext,
+                              gfxMissingFontRecorder* aMFR) MOZ_OVERRIDE;
 
   
   
@@ -105,11 +111,12 @@ public:
 
 
 
-  void FinishSettingProperties(gfxContext* aRefContext)
+  void FinishSettingProperties(gfxContext* aRefContext,
+                               gfxMissingFontRecorder* aMFR)
   {
     if (mNeedsRebuild) {
       mNeedsRebuild = false;
-      mFactory->RebuildTextRun(this, aRefContext);
+      mFactory->RebuildTextRun(this, aRefContext, aMFR);
     }
   }
 
