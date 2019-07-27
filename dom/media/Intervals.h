@@ -212,6 +212,15 @@ public:
     mFuzz = aFuzz;
   }
 
+  
+  
+  bool TouchesOnRight(const SelfType& aOther) const
+  {
+    return aOther.mStart <= mStart  &&
+      (mStart - mFuzz <= aOther.mEnd + aOther.mFuzz) &&
+      (aOther.mStart - aOther.mFuzz <= mEnd + mFuzz);
+  }
+
   T mStart;
   T mEnd;
   T mFuzz;
@@ -305,10 +314,14 @@ public:
       mIntervals.AppendElement(aInterval);
       return *this;
     }
+    ElemType& last = mIntervals.LastElement();
+    if (aInterval.TouchesOnRight(last)) {
+      last = last.Span(aInterval);
+      return *this;
+    }
     
     
-    if (aInterval.RightOf(mIntervals.LastElement()) &&
-        !aInterval.Touches(mIntervals.LastElement())) {
+    if (aInterval.RightOf(last)) {
       mIntervals.AppendElement(aInterval);
       return *this;
     }
