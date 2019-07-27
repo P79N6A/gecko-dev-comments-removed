@@ -146,9 +146,10 @@ struct FullScreenOptions {
 } 
 } 
 
+
 #define NS_IDOCUMENT_IID \
-{ 0xf63d2f6e, 0xd1c1, 0x49b9, \
- { 0x88, 0x26, 0xd5, 0x9e, 0x5d, 0x72, 0x2a, 0x42 } }
+{ 0x137c6144, 0x513e, 0x4edf, \
+  { 0x84, 0x0e, 0x5e, 0x31, 0x56, 0x63, 0x8e, 0xd6 } }
 
 
 enum DocumentFlavor {
@@ -1924,6 +1925,39 @@ public:
     return mOriginalDocument;
   }
 
+  
+
+
+
+
+
+
+
+
+
+
+
+  virtual void PreloadPictureOpened() = 0;
+
+  virtual void PreloadPictureClosed() = 0;
+
+  virtual void PreloadPictureImageSource(const nsAString& aSrcsetAttr,
+                                         const nsAString& aSizesAttr,
+                                         const nsAString& aTypeAttr,
+                                         const nsAString& aMediaAttr) = 0;
+
+  
+
+
+
+
+
+
+  virtual already_AddRefed<nsIURI>
+    ResolvePreloadImage(nsIURI *aBaseURI,
+                        const nsAString& aSrcAttr,
+                        const nsAString& aSrcsetAttr,
+                        const nsAString& aSizesAttr) = 0;
   
 
 

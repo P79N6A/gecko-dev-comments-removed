@@ -859,12 +859,9 @@ nsHtml5TreeOpExecutor::IsExternalViewSource()
 
 
 
-already_AddRefed<nsIURI>
-nsHtml5TreeOpExecutor::ConvertIfNotPreloadedYet(const nsAString& aURL)
+nsIURI*
+nsHtml5TreeOpExecutor::BaseURIForPreload()
 {
-  if (aURL.IsEmpty()) {
-    return nullptr;
-  }
   
   nsIURI* documentURI = mDocument->GetDocumentURI();
   
@@ -873,10 +870,20 @@ nsHtml5TreeOpExecutor::ConvertIfNotPreloadedYet(const nsAString& aURL)
   
   
   
-  nsIURI* base = (documentURI == documentBaseURI) ?
-                  (mSpeculationBaseURI ?
-                   mSpeculationBaseURI.get() : documentURI)
-                 : documentBaseURI;
+  return (documentURI == documentBaseURI) ?
+          (mSpeculationBaseURI ?
+           mSpeculationBaseURI.get() : documentURI)
+         : documentBaseURI;
+}
+
+already_AddRefed<nsIURI>
+nsHtml5TreeOpExecutor::ConvertIfNotPreloadedYet(const nsAString& aURL)
+{
+  if (aURL.IsEmpty()) {
+    return nullptr;
+  }
+
+  nsIURI* base = BaseURIForPreload();
   const nsCString& charset = mDocument->GetDocumentCharacterSet();
   nsCOMPtr<nsIURI> uri;
   nsresult rv = NS_NewURI(getter_AddRefs(uri), aURL, charset.get(), base);
@@ -884,13 +891,24 @@ nsHtml5TreeOpExecutor::ConvertIfNotPreloadedYet(const nsAString& aURL)
     NS_WARNING("Failed to create a URI");
     return nullptr;
   }
+
+  if (ShouldPreloadURI(uri)) {
+    return uri.forget();
+  }
+
+  return nullptr;
+}
+
+bool
+nsHtml5TreeOpExecutor::ShouldPreloadURI(nsIURI *aURI)
+{
   nsAutoCString spec;
-  uri->GetSpec(spec);
+  aURI->GetSpec(spec);
   if (mPreloadedURLs.Contains(spec)) {
-    return nullptr;
+    return false;
   }
   mPreloadedURLs.PutEntry(spec);
-  return uri.forget();
+  return true;
 }
 
 void
@@ -924,13 +942,39 @@ nsHtml5TreeOpExecutor::PreloadStyle(const nsAString& aURL,
 
 void
 nsHtml5TreeOpExecutor::PreloadImage(const nsAString& aURL,
-                                    const nsAString& aCrossOrigin)
+                                    const nsAString& aCrossOrigin,
+                                    const nsAString& aSrcset,
+                                    const nsAString& aSizes)
 {
-  nsCOMPtr<nsIURI> uri = ConvertIfNotPreloadedYet(aURL);
-  if (!uri) {
-    return;
+  nsCOMPtr<nsIURI> baseURI = BaseURIForPreload();
+  nsCOMPtr<nsIURI> uri = mDocument->ResolvePreloadImage(baseURI, aURL, aSrcset,
+                                                        aSizes);
+  if (uri && ShouldPreloadURI(uri)) {
+    mDocument->MaybePreLoadImage(uri, aCrossOrigin, mSpeculationReferrerPolicy);
   }
-  mDocument->MaybePreLoadImage(uri, aCrossOrigin, mSpeculationReferrerPolicy);
+}
+
+
+
+void
+nsHtml5TreeOpExecutor::PreloadPictureSource(const nsAString& aSrcset,
+                                            const nsAString& aSizes,
+                                            const nsAString& aType,
+                                            const nsAString& aMedia)
+{
+  mDocument->PreloadPictureImageSource(aSrcset, aSizes, aType, aMedia);
+}
+
+void
+nsHtml5TreeOpExecutor::PreloadOpenPicture()
+{
+  mDocument->PreloadPictureOpened();
+}
+
+void
+nsHtml5TreeOpExecutor::PreloadEndPicture()
+{
+  mDocument->PreloadPictureClosed();
 }
 
 void

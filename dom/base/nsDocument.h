@@ -1102,6 +1102,21 @@ public:
 
   void MaybeEndOutermostXBLUpdate();
 
+  virtual void PreloadPictureOpened() MOZ_OVERRIDE;
+  virtual void PreloadPictureClosed() MOZ_OVERRIDE;
+
+  virtual void
+    PreloadPictureImageSource(const nsAString& aSrcsetAttr,
+                              const nsAString& aSizesAttr,
+                              const nsAString& aTypeAttr,
+                              const nsAString& aMediaAttr) MOZ_OVERRIDE;
+
+  virtual already_AddRefed<nsIURI>
+    ResolvePreloadImage(nsIURI *aBaseURI,
+                        const nsAString& aSrcAttr,
+                        const nsAString& aSrcsetAttr,
+                        const nsAString& aSizesAttr) MOZ_OVERRIDE;
+
   virtual void MaybePreLoadImage(nsIURI* uri,
                                  const nsAString &aCrossOriginAttr,
                                  ReferrerPolicy aReferrerPolicy) MOZ_OVERRIDE;
@@ -1766,6 +1781,12 @@ private:
   
   
   nsRefPtrHashtable<nsURIHashKey, imgIRequest> mPreloadingImages;
+
+  
+  int32_t mPreloadPictureDepth;
+
+  
+  nsString mPreloadPictureFoundSource;
 
   nsRefPtr<mozilla::dom::DOMImplementation> mDOMImplementation;
 
