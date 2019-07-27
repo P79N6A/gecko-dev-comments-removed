@@ -491,6 +491,11 @@ class ObjectGroup : public gc::TenuredCell
     
     inline HeapTypeSet *maybeGetProperty(jsid id);
 
+    
+
+
+
+
     inline unsigned getPropertyCount();
     inline Property *getProperty(unsigned i);
 
@@ -559,8 +564,9 @@ class ObjectGroup : public gc::TenuredCell
         return Addendum_OriginalUnboxedGroup << OBJECT_FLAG_ADDENDUM_SHIFT;
     }
 
-  private:
     inline uint32_t basePropertyCount();
+
+  private:
     inline void setBasePropertyCount(uint32_t count);
 
     static void staticAsserts() {

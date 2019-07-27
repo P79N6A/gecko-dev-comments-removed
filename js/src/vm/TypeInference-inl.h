@@ -611,8 +611,8 @@ TypeScript::MonitorAssign(JSContext *cx, HandleObject obj, jsid id)
         
         
         
-        ObjectGroup* group = obj->group();
-        if (group->getPropertyCount() < 128)
+        ObjectGroup *group = obj->group();
+        if (group->basePropertyCount() < 128)
             return;
         MarkObjectGroupUnknownProperties(cx, group);
     }
