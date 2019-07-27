@@ -562,7 +562,8 @@ TelephonyService.prototype = {
 
 
   dial: function(aClientId, aNumber, aIsDialEmergency, aCallback) {
-    if (DEBUG) debug("Dialing " + (aIsDialEmergency ? "emergency " : "") + aNumber);
+    if (DEBUG) debug("Dialing " + (aIsDialEmergency ? "emergency " : "")
+                     + aNumber + ", clientId: " + aClientId);
 
     
     
@@ -691,7 +692,7 @@ TelephonyService.prototype = {
         return;
       }
 
-      if (this._isEmergencyOnly()) {
+      if (this._isEmergencyOnly(aClientId)) {
         if (DEBUG) debug("Error: Dial a normal call when emergencyCallsOnly. Drop");
         aCallback.notifyError(DIAL_ERROR_BAD_NUMBER);
         return;
