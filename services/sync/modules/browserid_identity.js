@@ -424,7 +424,6 @@ this.BrowserIDManager.prototype = {
 
 
 
-
   get currentAuthState() {
     if (this._authFailureReason) {
       this._log.info("currentAuthState returning " + this._authFailureReason +
@@ -436,15 +435,6 @@ this.BrowserIDManager.prototype = {
     
     if (!this.username) {
       return LOGIN_FAILED_NO_USERNAME;
-    }
-
-    
-    
-    
-    
-    if (this._shouldHaveSyncKeyBundle && !this.syncKeyBundle && !Utils.mpLocked()) {
-      
-      return LOGIN_FAILED_LOGIN_REJECTED;
     }
 
     return STATUS_OK;
@@ -467,11 +457,13 @@ this.BrowserIDManager.prototype = {
 
   unlockAndVerifyAuthState: function() {
     if (this._canFetchKeys()) {
+      log.debug("unlockAndVerifyAuthState already has (or can fetch) sync keys");
       return Promise.resolve(STATUS_OK);
     }
     
     if (!Utils.ensureMPUnlocked()) {
       
+      log.debug("unlockAndVerifyAuthState: user declined to unlock master-password");
       return Promise.resolve(MASTER_PASSWORD_LOCKED);
     }
     
@@ -482,7 +474,9 @@ this.BrowserIDManager.prototype = {
         
         
         
-        return this._canFetchKeys() ? STATUS_OK : LOGIN_FAILED_LOGIN_REJECTED;
+        let result = this._canFetchKeys() ? STATUS_OK : LOGIN_FAILED_LOGIN_REJECTED;
+        log.debug("unlockAndVerifyAuthState re-fetched credentials and is returning", result);
+        return result;
       }
     );
   },
@@ -529,6 +523,7 @@ this.BrowserIDManager.prototype = {
     
     
     if (!this._canFetchKeys()) {
+      log.info("Unable to fetch keys (master-password locked?), so aborting token fetch");
       return Promise.resolve(null);
     }
 
