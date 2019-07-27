@@ -1427,13 +1427,11 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
             desc.setGetterObject(shape->getterObject());
             desc.setSetterObject(shape->setterObject());
         }
-    } else if (desc.isAccessorDescriptor()) {
+    } else if (desc.isDataDescriptor() != IsDataDescriptor(shapeAttrs)) {
         
-        
-        
+        if (!IsConfigurable(shapeAttrs) && !skipRedefineChecks)
+            return result.fail(JSMSG_CANT_REDEFINE_PROP);
 
-        
-        
         if (IsImplicitDenseOrTypedArrayElement(shape)) {
             if (IsAnyTypedArray(obj)) {
                 
@@ -1443,35 +1441,38 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
                 return false;
             shape = obj->lookup(cx, id);
         }
-        if (shape->isAccessorDescriptor()) {
-            if (!CheckAccessorRedefinition(cx, obj, shape, desc))
-                return false;
 
-            desc.setAttributes(ApplyOrDefaultAttributes(desc.attributes(), shape));
-            if (!desc.hasGetterObject())
-                desc.setGetter(shape->getter());
-            if (!desc.hasSetterObject())
-                desc.setSetter(shape->setter());
-            desc.attributesRef() |= JSPROP_GETTER | JSPROP_SETTER;
-            desc.assertComplete();
-
-            shape = NativeObject::changeProperty(cx, obj, shape, desc.attributes(),
-                                                 desc.getter(), desc.setter());
-            if (!shape)
-                return false;
-            if (!PurgeScopeChain(cx, obj, id))
-                return false;
-
-            JS_ALWAYS_TRUE(UpdateShapeTypeAndValue(cx, obj, shape, desc.value()));
-            if (!CallAddPropertyHook(cx, obj, shape, desc.value()))
-                return false;
-            return result.succeed();
-        }
-
+        
+        CompletePropertyDescriptor(&desc);
+    } else if (desc.isAccessorDescriptor()) {
         
         
         
+
+        
+        
+        if (!CheckAccessorRedefinition(cx, obj, shape, desc))
+            return false;
+
+        desc.setAttributes(ApplyOrDefaultAttributes(desc.attributes(), shape));
+        if (!desc.hasGetterObject())
+            desc.setGetter(shape->getter());
+        if (!desc.hasSetterObject())
+            desc.setSetter(shape->setter());
         desc.attributesRef() |= JSPROP_GETTER | JSPROP_SETTER;
+        desc.assertComplete();
+
+        shape = NativeObject::changeProperty(cx, obj, shape, desc.attributes(),
+                                             desc.getter(), desc.setter());
+        if (!shape)
+            return false;
+        if (!PurgeScopeChain(cx, obj, id))
+            return false;
+
+        JS_ALWAYS_TRUE(UpdateShapeTypeAndValue(cx, obj, shape, desc.value()));
+        if (!CallAddPropertyHook(cx, obj, shape, desc.value()))
+            return false;
+        return result.succeed();
     } else if (desc.hasValue()) {
         
         
@@ -1480,14 +1481,9 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
                                                !IsAnyTypedArray(obj)));
         } else {
             desc.setAttributes(ApplyOrDefaultAttributes(desc.attributes(), shape));
-
-            
-            if (shape->isAccessorDescriptor()) {
-                if (!CheckAccessorRedefinition(cx, obj, shape, desc))
-                    return false;
-            }
         }
     } else {
+        
         
 
         
@@ -1503,31 +1499,18 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
             shape = obj->lookup(cx, id);
         }
 
-        if (shape->isAccessorDescriptor() &&
-            !CheckAccessorRedefinition(cx, obj, shape, desc))
-        {
-            return false;
-        }
-
         desc.setAttributes(ApplyOrDefaultAttributes(desc.attributes(), shape));
 
-        if (shape->isAccessorDescriptor() && desc.hasWritable()) {
-            
-            
-            
-            desc.value().setUndefined();
-        } else {
-            
-            
-            
-            uint32_t propMask = JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT;
-            desc.setAttributes((shape->attributes() & ~propMask) |
-                               (desc.attributes() & propMask));
-            desc.setGetter(shape->getter());
-            desc.setSetter(shape->setter());
-            if (shape->hasSlot())
-                desc.value().set(obj->getSlot(shape->slot()));
-        }
+        
+        
+        
+        uint32_t propMask = JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT;
+        desc.setAttributes((shape->attributes() & ~propMask) |
+                           (desc.attributes() & propMask));
+        desc.setGetter(shape->getter());
+        desc.setSetter(shape->setter());
+        if (shape->hasSlot())
+            desc.value().set(obj->getSlot(shape->slot()));
     }
 
     
