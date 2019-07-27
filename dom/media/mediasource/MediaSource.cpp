@@ -349,11 +349,6 @@ MediaSource::Enabled(JSContext* cx, JSObject* aGlobal)
     return false;
   }
 
-  bool isHttps = false;
-  if (NS_FAILED(uri->SchemeIs("https", &isHttps)) || !isHttps) {
-    return false;
-  }
-
   nsCOMPtr<nsIEffectiveTLDService> tldServ =
     do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
   NS_ENSURE_TRUE(tldServ, false);
