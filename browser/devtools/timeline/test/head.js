@@ -36,6 +36,16 @@ registerCleanupFunction(() => {
   Services.prefs.setBoolPref("devtools.timeline.enabled", gToolEnabled);
 });
 
+
+registerCleanupFunction(function*() {
+  let target = TargetFactory.forTab(gBrowser.selectedTab);
+  yield gDevTools.closeToolbox(target);
+
+  while (gBrowser.tabs.length > 1) {
+    gBrowser.removeCurrentTab();
+  }
+});
+
 function addTab(url) {
   info("Adding tab: " + url);
 
@@ -49,22 +59,6 @@ function addTab(url) {
     deferred.resolve(tab);
   }, true);
 
-  return deferred.promise;
-}
-
-function removeTab(tab) {
-  info("Removing tab.");
-
-  let deferred = promise.defer();
-  let tabContainer = gBrowser.tabContainer;
-
-  tabContainer.addEventListener("TabClose", function onClose(aEvent) {
-    tabContainer.removeEventListener("TabClose", onClose, false);
-    info("Tab removed and finished closing.");
-    deferred.resolve();
-  }, false);
-
-  gBrowser.removeTab(tab);
   return deferred.promise;
 }
 
@@ -91,25 +85,6 @@ function* initTimelinePanel(url) {
   let toolbox = yield gDevTools.showToolbox(target, "timeline");
   let panel = toolbox.getCurrentPanel();
   return { target, panel };
-}
-
-
-
-
-
-
-
-
-
-
-
-
-function* teardown(panel) {
-  info("Destroying the specified timeline.");
-
-  let tab = panel.target.tab;
-  yield panel._toolbox.destroy();
-  yield removeTab(tab);
 }
 
 
