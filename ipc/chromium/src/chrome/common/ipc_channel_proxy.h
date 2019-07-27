@@ -7,8 +7,9 @@
 
 #include <vector>
 #include "base/lock.h"
-#include "base/ref_counted.h"
 #include "chrome/common/ipc_channel.h"
+#include "nsISupportsImpl.h"
+#include "nsAutoPtr.h"
 
 class MessageLoop;
 
@@ -46,9 +47,9 @@ class ChannelProxy : public Message::Sender {
  public:
   
   
-  class MessageFilter : public base::RefCountedThreadSafe<MessageFilter> {
+  class MessageFilter {
    public:
-    virtual ~MessageFilter() {}
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MessageFilter)
 
     
     
@@ -77,6 +78,8 @@ class ChannelProxy : public Message::Sender {
     virtual bool OnMessageReceived(const Message& message) {
       return false;
     }
+   protected:
+    virtual ~MessageFilter() {}
   };
 
   
@@ -134,12 +137,11 @@ class ChannelProxy : public Message::Sender {
                bool create_pipe_now);
 
   
-  class Context : public base::RefCountedThreadSafe<Context>,
-                  public Channel::Listener {
+  class Context : public Channel::Listener {
    public:
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Context)
     Context(Channel::Listener* listener, MessageFilter* filter,
             MessageLoop* ipc_thread);
-    virtual ~Context() { }
     MessageLoop* ipc_message_loop() const { return ipc_message_loop_; }
     const std::wstring& channel_id() const { return channel_id_; }
 
@@ -147,6 +149,8 @@ class ChannelProxy : public Message::Sender {
     void OnDispatchMessage(const Message& message);
 
    protected:
+    virtual ~Context() {}
+
     
     virtual void OnMessageReceived(const Message& message);
     virtual void OnChannelConnected(int32_t peer_pid);
@@ -184,7 +188,7 @@ class ChannelProxy : public Message::Sender {
     Channel::Listener* listener_;
 
     
-    std::vector<scoped_refptr<MessageFilter> > filters_;
+    std::vector<nsRefPtr<MessageFilter> > filters_;
     MessageLoop* ipc_message_loop_;
     Channel* channel_;
     std::wstring channel_id_;
@@ -201,7 +205,7 @@ class ChannelProxy : public Message::Sender {
   
   
   
-  scoped_refptr<Context> context_;
+  nsRefPtr<Context> context_;
 };
 
 }  
