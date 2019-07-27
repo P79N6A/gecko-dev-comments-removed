@@ -913,9 +913,11 @@ js::IdToStringOrSymbol(JSContext *cx, HandleId id, MutableHandleValue result)
     return true;
 }
 
+namespace js {
 
-static bool
-GetOwnPropertyKeys(JSContext *cx, const CallArgs &args, unsigned flags, const char *fnname)
+
+bool
+GetOwnPropertyKeys(JSContext *cx, const CallArgs &args, unsigned flags)
 {
     
     RootedObject obj(cx, ToObject(cx, args.get(0)));
@@ -947,12 +949,13 @@ GetOwnPropertyKeys(JSContext *cx, const CallArgs &args, unsigned flags, const ch
     return true;
 }
 
+} 
+
 static bool
 obj_getOwnPropertyNames(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-    return GetOwnPropertyKeys(cx, args, JSITER_OWNONLY | JSITER_HIDDEN,
-                              "Object.getOwnPropertyNames");
+    return GetOwnPropertyKeys(cx, args, JSITER_OWNONLY | JSITER_HIDDEN);
 }
 
 
@@ -961,8 +964,7 @@ obj_getOwnPropertySymbols(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return GetOwnPropertyKeys(cx, args,
-                              JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS | JSITER_SYMBOLSONLY,
-                              "Object.getOwnPropertySymbols");
+                              JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS | JSITER_SYMBOLSONLY);
 }
 
 

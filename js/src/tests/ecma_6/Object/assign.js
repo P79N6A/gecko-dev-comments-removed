@@ -27,6 +27,18 @@ function basicMultipleSources() {
 basicMultipleSources();
 
 
+function basicSymbols() {
+    var a = {};
+    var b = { bProp : 7 };
+    var aSymbol = Symbol("aSymbol");
+    b[aSymbol] = 22;
+    Object.assign(a, b);
+    assertEq(a.bProp, 7);
+    assertEq(a[aSymbol], 22);
+}
+basicSymbols();
+
+
 function testToObject() {
     assertThrowsInstanceOf(() => Object.assign(null, null), TypeError);
     assertThrowsInstanceOf(() => Object.assign(), TypeError);

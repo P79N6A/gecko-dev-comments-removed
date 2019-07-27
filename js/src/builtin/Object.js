@@ -19,7 +19,7 @@ function ObjectStaticAssign(target, firstSource) {
         var from = ToObject(nextSource);
 
         
-        var keysArray = std_Object_getOwnPropertyNames(from);
+        var keysArray = OwnPropertyKeys(from);
 
         
         var len = keysArray.length;

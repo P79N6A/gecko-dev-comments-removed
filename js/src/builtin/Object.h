@@ -23,6 +23,9 @@ bool
 obj_construct(JSContext *cx, unsigned argc, JS::Value *vp);
 
 
+bool GetOwnPropertyKeys(JSContext *cx, const CallArgs &args, unsigned flags);
+
+
 
 
 
