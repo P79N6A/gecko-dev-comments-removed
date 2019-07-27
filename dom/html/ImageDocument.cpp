@@ -464,15 +464,9 @@ ImageDocument::Notify(imgIRequest* aRequest, int32_t aType, const nsIntRect* aDa
 
   
   
-  if (aType == imgINotificationObserver::DECODE_COMPLETE) {
+  if (aType == imgINotificationObserver::HAS_TRANSPARENCY) {
     nsCOMPtr<nsIRunnable> runnable =
-      NS_NewRunnableMethod(this, &ImageDocument::AddDecodedClass);
-    nsContentUtils::AddScriptRunner(runnable);
-  }
-
-  if (aType == imgINotificationObserver::DISCARD) {
-    nsCOMPtr<nsIRunnable> runnable =
-      NS_NewRunnableMethod(this, &ImageDocument::RemoveDecodedClass);
+      NS_NewRunnableMethod(this, &ImageDocument::OnHasTransparency);
     nsContentUtils::AddScriptRunner(runnable);
   }
 
@@ -488,7 +482,7 @@ ImageDocument::Notify(imgIRequest* aRequest, int32_t aType, const nsIntRect* aDa
 }
 
 void
-ImageDocument::AddDecodedClass()
+ImageDocument::OnHasTransparency()
 {
   if (!mImageContent || nsContentUtils::IsChildOfSameType(this)) {
     return;
@@ -496,23 +490,7 @@ ImageDocument::AddDecodedClass()
 
   nsDOMTokenList* classList = mImageContent->AsElement()->ClassList();
   mozilla::ErrorResult rv;
-  
-  
-  
-  classList->Add(NS_LITERAL_STRING("decoded"), rv);
-}
-
-void
-ImageDocument::RemoveDecodedClass()
-{
-  if (!mImageContent || nsContentUtils::IsChildOfSameType(this)) {
-    return;
-  }
-
-  nsDOMTokenList* classList = mImageContent->AsElement()->ClassList();
-  mozilla::ErrorResult rv;
-  
-  classList->Remove(NS_LITERAL_STRING("decoded"), rv);
+  classList->Add(NS_LITERAL_STRING("transparent"), rv);
 }
 
 void
