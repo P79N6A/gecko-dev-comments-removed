@@ -419,7 +419,8 @@ class SnapshotIterator
     template <class Op>
     void readFunctionFrameArgs(Op &op, ArgumentsObject **argsObj, Value *thisv,
                                unsigned start, unsigned end, JSScript *script,
-                               const Value &unreadablePlaceholder = UndefinedValue())
+                               const Value &unreadablePlaceholder = UndefinedValue(),
+                               bool silentFailure = false)
     {
         
         if (script->argumentsHasVarBinding()) {
@@ -447,7 +448,7 @@ class SnapshotIterator
             
             
             
-            Value v = maybeRead(unreadablePlaceholder);
+            Value v = maybeRead(unreadablePlaceholder, silentFailure);
             op(v);
         }
     }
@@ -535,7 +536,8 @@ class InlineFrameIterator
                                 JSObject **scopeChain, Value *rval,
                                 ArgumentsObject **argsObj, Value *thisv,
                                 ReadFrameArgsBehavior behavior,
-                                const Value &unreadablePlaceholder = UndefinedValue()) const
+                                const Value &unreadablePlaceholder = UndefinedValue(),
+                                bool silentFailure = false) const
     {
         SnapshotIterator s(si_);
 
@@ -556,7 +558,7 @@ class InlineFrameIterator
             
             if (behavior != ReadFrame_Overflown) {
                 s.readFunctionFrameArgs(argOp, argsObj, thisv, 0, nformal, script(),
-                                        unreadablePlaceholder);
+                                        unreadablePlaceholder, silentFailure);
             }
 
             if (behavior != ReadFrame_Formals) {
@@ -605,7 +607,7 @@ class InlineFrameIterator
             
             
             
-            localOp(s.maybeRead(unreadablePlaceholder));
+            localOp(s.maybeRead(unreadablePlaceholder, silentFailure));
         }
     }
 
