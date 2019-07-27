@@ -55,6 +55,7 @@ function runTests() {
   
   yield addNewTabPageTab();
   yield customizeNewTabPage("classic");
+  yield customizeNewTabPage("enhanced"); 
   let {type, enhanced, title} = getData(0);
   isnot(type, "enhanced", "history link is not enhanced");
   is(enhanced, "", "history link has no enhanced image");
@@ -64,7 +65,7 @@ function runTests() {
 
   
   yield addNewTabPageTab();
-  yield customizeNewTabPage("enhanced");
+  yield customizeNewTabPage("enhanced"); 
   ({type, enhanced, title} = getData(0));
   is(type, "organic", "directory link is organic");
   isnot(enhanced, "", "directory link has enhanced image");
@@ -94,7 +95,7 @@ function runTests() {
 
   
   yield addNewTabPageTab();
-  yield customizeNewTabPage("classic");
+  yield customizeNewTabPage("enhanced"); 
   ({type, enhanced, title} = getData(0));
   isnot(type, "enhanced", "history link is not enhanced");
   is(enhanced, "", "history link has no enhanced image");
@@ -116,7 +117,6 @@ function runTests() {
 
   
   yield addNewTabPageTab();
-  yield customizeNewTabPage("classic");
   ({type, enhanced, title} = getData(0));
   isnot(type, "enhanced", "history link is not enhanced");
   is(enhanced, "", "history link has no enhanced image");
