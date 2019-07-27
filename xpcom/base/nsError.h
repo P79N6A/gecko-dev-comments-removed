@@ -7,6 +7,10 @@
 #ifndef nsError_h__
 #define nsError_h__
 
+#ifndef __cplusplus
+#error nsError.h no longer supports C sources
+#endif
+
 #include "mozilla/Likely.h"
 
 #include <stdint.h>
@@ -112,39 +116,23 @@
 
 
 
+typedef enum class tag_nsresult : uint32_t
+{
+  #undef ERROR
+  #define ERROR(key, val) key = val
+  #include "ErrorList.h"
+  #undef ERROR
+} nsresult;
 
 
 
 
 
-
-
-
-
-#if defined(__cplusplus)
-  typedef enum class tag_nsresult : uint32_t
-  {
-    #undef ERROR
-    #define ERROR(key, val) key = val
-    #include "ErrorList.h"
-    #undef ERROR
-  } nsresult;
-
-  
-
-
-
-  #include "ErrorListCxxDefines.h"
-#else
-  
-
-
-
-
-
-  typedef uint32_t nsresult;
-  #include "ErrorListCDefines.h"
-#endif
+const nsresult
+  #define ERROR(key, val) key = nsresult::key
+  #include "ErrorList.h"
+  #undef ERROR
+;
 
 #undef SUCCESS_OR_FAILURE
 #undef SUCCESS
@@ -155,7 +143,6 @@
 
 
 
-#ifdef __cplusplus
 inline uint32_t
 NS_FAILED_impl(nsresult aErr)
 {
@@ -169,11 +156,6 @@ static_assert(((nsresult)0) < ((nsresult)-1),
               "nsresult must be an unsigned type");
 static_assert(sizeof(nsresult) == sizeof(uint32_t),
               "nsresult must be 32 bits");
-#else
-#define NS_FAILED_impl(_nsresult) ((_nsresult) & 0x80000000)
-#define NS_FAILED(_nsresult)    (MOZ_UNLIKELY(NS_FAILED_impl(_nsresult)))
-#define NS_SUCCEEDED(_nsresult) (MOZ_LIKELY(!NS_FAILED_impl(_nsresult)))
-#endif
 
 
 
@@ -206,7 +188,6 @@ NS_ErrorAccordingToNSPR();
 
 
 
-#ifdef __cplusplus
 inline uint16_t
 NS_ERROR_GET_CODE(nsresult aErr)
 {
@@ -222,11 +203,6 @@ NS_ERROR_GET_SEVERITY(nsresult aErr)
 {
   return uint32_t(aErr) >> 31;
 }
-#else
-#define NS_ERROR_GET_CODE(err)     ((err) & 0xffff)
-#define NS_ERROR_GET_MODULE(err)   ((((err) >> 16) - NS_ERROR_MODULE_BASE_OFFSET) & 0x1fff)
-#define NS_ERROR_GET_SEVERITY(err) (((err) >> 31) & 0x1)
-#endif
 
 
 #ifdef _MSC_VER
