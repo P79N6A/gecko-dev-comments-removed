@@ -655,8 +655,8 @@ StaticEvalObject::create(JSContext *cx, HandleObject enclosing)
     if (!obj)
         return nullptr;
 
-    obj->as<StaticEvalObject>().initEnclosingNestedScope(enclosing);
-    obj->setFixedSlot(STRICT_SLOT, BooleanValue(false));
+    obj->setReservedSlot(SCOPE_CHAIN_SLOT, ObjectOrNullValue(enclosing));
+    obj->setReservedSlot(STRICT_SLOT, BooleanValue(false));
     return &obj->as<StaticEvalObject>();
 }
 

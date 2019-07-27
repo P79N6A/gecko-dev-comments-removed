@@ -206,6 +206,8 @@ ScopeCoordinateFunctionScript(JSScript *script, jsbytecode *pc);
 
 
 
+
+
 class ScopeObject : public NativeObject
 {
   protected:
@@ -351,6 +353,39 @@ class DeclEnvObject : public ScopeObject
     }
 };
 
+
+
+class StaticEvalObject : public ScopeObject
+{
+    static const uint32_t STRICT_SLOT = 1;
+
+  public:
+    static const unsigned RESERVED_SLOTS = 2;
+    static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT2_BACKGROUND;
+
+    static const Class class_;
+
+    static StaticEvalObject *create(JSContext *cx, HandleObject enclosing);
+
+    JSObject *enclosingScopeForStaticScopeIter() {
+        return getReservedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
+    }
+
+    void setStrict() {
+        setReservedSlot(STRICT_SLOT, BooleanValue(true));
+    }
+
+    bool isStrict() const {
+        return getReservedSlot(STRICT_SLOT).isTrue();
+    }
+
+    
+    
+    bool isDirect() const {
+        return getReservedSlot(SCOPE_CHAIN_SLOT).isObject();
+    }
+};
+
 class NestedScopeObject : public ScopeObject
 {
   public:
@@ -459,35 +494,6 @@ class DynamicWithObject : public NestedScopeObject
 
     static inline size_t thisSlot() {
         return THIS_SLOT;
-    }
-};
-
-
-
-class StaticEvalObject : public NestedScopeObject
-{
-    static const uint32_t STRICT_SLOT = 1;
-
-  public:
-    static const unsigned RESERVED_SLOTS = 2;
-    static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT2_BACKGROUND;
-
-    static const Class class_;
-
-    static StaticEvalObject *create(JSContext *cx, HandleObject enclosing);
-
-    void setStrict() {
-        setReservedSlot(STRICT_SLOT, BooleanValue(true));
-    }
-
-    bool isStrict() const {
-        return getReservedSlot(STRICT_SLOT).isTrue();
-    }
-
-    
-    
-    bool isDirect() const {
-        return getReservedSlot(SCOPE_CHAIN_SLOT).isObject();
     }
 };
 
@@ -985,8 +991,7 @@ JSObject::is<js::NestedScopeObject>() const
 {
     return is<js::BlockObject>() ||
            is<js::StaticWithObject>() ||
-           is<js::DynamicWithObject>() ||
-           is<js::StaticEvalObject>();
+           is<js::DynamicWithObject>();
 }
 
 template<>
