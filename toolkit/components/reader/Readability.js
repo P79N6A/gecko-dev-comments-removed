@@ -102,15 +102,17 @@ Readability.prototype = {
     extraneous: /print|archive|comment|discuss|e[\-]?mail|share|reply|all|login|sign|single|utility/i,
     byline: /byline|author|dateline|writtenby/i,
     replaceFonts: /<(\/?)font[^>]*>/gi,
-    trim: /^\s+|\s+$/g,
     normalize: /\s{2,}/g,
-    videos: /http:\/\/(www\.)?(youtube|vimeo)\.com/i,
+    videos: /https?:\/\/(www\.)?(youtube|vimeo)\.com/i,
     nextLink: /(next|weiter|continue|>([^\|]|$)|»([^\|]|$))/i,
     prevLink: /(prev|earl|old|new|<|«)/i,
-    whitespace: /^\s*$/
+    whitespace: /^\s*$/,
+    hasContent: /\S$/,
   },
 
   DIV_TO_P_ELEMS: [ "A", "BLOCKQUOTE", "DL", "DIV", "IMG", "OL", "P", "PRE", "TABLE", "UL", "SELECT" ],
+
+  ALTER_TO_DIV_EXCEPTIONS: ["DIV", "ARTICLE", "SECTION", "P"],
 
   
 
@@ -204,7 +206,7 @@ Readability.prototype = {
         curTitle = this._getInnerText(hOnes[0]);
     }
 
-    curTitle = curTitle.replace(this.REGEXPS.trim, "");
+    curTitle = curTitle.trim();
 
     if (curTitle.split(' ').length <= 4)
       curTitle = origTitle;
@@ -223,8 +225,8 @@ Readability.prototype = {
 
     
     var styleTags = doc.getElementsByTagName("style");
-    for (var st = 0; st < styleTags.length; st += 1) {
-      styleTags[st].textContent = "";
+    for (var st = styleTags.length - 1; st >= 0; st -= 1) {
+      styleTags[st].parentNode.removeChild(styleTags[st]);
     }
 
     if (doc.body) {
@@ -305,6 +307,8 @@ Readability.prototype = {
   },
 
   _setNodeTag: function (node, tag) {
+    
+    
     node.localName = tag.toLowerCase();
     node.tagName = tag.toUpperCase();
   },
@@ -407,6 +411,54 @@ Readability.prototype = {
     node.readability.contentScore += this._getClassWeight(node);
   },
 
+  _removeAndGetNext: function(node) {
+    var nextNode = this._getNextNode(node, true);
+    node.parentNode.removeChild(node);
+    return nextNode;
+  },
+
+  
+
+
+
+
+
+
+  _getNextNode: function(node, ignoreSelfAndKids) {
+    
+    if (!ignoreSelfAndKids && node.firstElementChild) {
+      return node.firstElementChild;
+    }
+    
+    if (node.nextElementSibling) {
+      return node.nextElementSibling;
+    }
+    
+    
+    
+    do {
+      node = node.parentNode;
+    } while (node && !node.nextElementSibling);
+    return node && node.nextElementSibling;
+  },
+
+  _checkByline: function(node, matchString) {
+    if (this._articleByline) {
+      return false;
+    }
+
+    if (node.getAttribute !== undefined) {
+      var rel = node.getAttribute("rel");
+    }
+
+    if ((rel === "author" || this.REGEXPS.byline.test(matchString)) && this._isValidByline(node.textContent)) {
+      this._articleByline = node.textContent.trim();
+      return true;
+    }
+
+    return false;
+  },
+
   
 
 
@@ -430,65 +482,37 @@ Readability.prototype = {
     
     this._articleDir = doc.documentElement.getAttribute("dir");
 
-    
-    function purgeNode(node, allElements) {
-      for (var i = node.childNodes.length; --i >= 0;) {
-        purgeNode(node.childNodes[i], allElements);
-      }
-      if (node._index !== undefined && allElements[node._index] == node)
-        delete allElements[node._index];
-    }
     while (true) {
       var stripUnlikelyCandidates = this._flagIsActive(this.FLAG_STRIP_UNLIKELYS);
-      var allElements = page.getElementsByTagName('*');
 
       
       
       
-      
-      
-      
-      var node = null;
-      var nodesToScore = [];
+      var elementsToScore = [];
+      var node = this._doc.documentElement;
 
-      
-      for (var i = allElements.length; --i >= 0;) {
-        allElements[i]._index = i;
-      }
+      while (node) {
+        var matchString = node.className + " " + node.id;
 
-      
-
-
-
-
-      for (var nodeIndex = 0; nodeIndex < allElements.length; nodeIndex++) {
-        if (!(node = allElements[nodeIndex]))
+        
+        if (this._checkByline(node, matchString)) {
+          node = this._removeAndGetNext(node);
           continue;
-
-        var matchString = node.className + node.id;
-        if (matchString.search(this.REGEXPS.byline) !== -1 && !this._articleByline) {
-          if (this._isValidByline(node.textContent)) {
-            this._articleByline = node.textContent.trim();
-            node.parentNode.removeChild(node);
-            purgeNode(node, allElements);
-            continue;
-          }
         }
 
         
         if (stripUnlikelyCandidates) {
-          if (matchString.search(this.REGEXPS.unlikelyCandidates) !== -1 &&
-            matchString.search(this.REGEXPS.okMaybeItsACandidate) === -1 &&
-            node.tagName !== "BODY") {
+          if (this.REGEXPS.unlikelyCandidates.test(matchString) &&
+              !this.REGEXPS.okMaybeItsACandidate.test(matchString) &&
+              node.tagName !== "BODY") {
             this.log("Removing unlikely candidate - " + matchString);
-            node.parentNode.removeChild(node);
-            purgeNode(node, allElements);
+            node = this._removeAndGetNext(node);
             continue;
           }
         }
 
         if (node.tagName === "P" || node.tagName === "TD" || node.tagName === "PRE")
-          nodesToScore[nodesToScore.length] = node;
+          elementsToScore.push(node);
 
         
         if (node.tagName === "DIV") {
@@ -496,34 +520,28 @@ Readability.prototype = {
           
           
           
-          var pIndex = this._getSinglePIndexInsideDiv(node);
-
-          if (pIndex >= 0 || !this._hasChildBlockElement(node)) {
-            if (pIndex >= 0) {
-              var newNode = node.childNodes[pIndex];
-              node.parentNode.replaceChild(newNode, node);
-              purgeNode(node, allElements);
-            } else {
-              this._setNodeTag(node, "P");
-              nodesToScore[nodesToScore.length] = node;
-            }
+          if (this._hasSinglePInsideElement(node)) {
+            var newNode = node.firstElementChild;
+            node.parentNode.replaceChild(newNode, node);
+            node = newNode;
+          } else if (!this._hasChildBlockElement(node)) {
+            this._setNodeTag(node, "P");
+            elementsToScore.push(node);
           } else {
             
             for (var i = 0, il = node.childNodes.length; i < il; i += 1) {
               var childNode = node.childNodes[i];
-              if (!childNode)
-                continue;
-
-              if (childNode.nodeType === 3) { 
+              if (childNode.nodeType === Node.TEXT_NODE) {
                 var p = doc.createElement('p');
                 p.textContent = childNode.textContent;
                 p.style.display = 'inline';
                 p.className = 'readability-styled';
-                childNode.parentNode.replaceChild(p, childNode);
+                node.replaceChild(p, childNode);
               }
             }
           }
         }
+        node = this._getNextNode(node);
       }
 
       
@@ -533,10 +551,10 @@ Readability.prototype = {
 
 
       var candidates = [];
-      for (var pt = 0; pt < nodesToScore.length; pt += 1) {
-        var parentNode = nodesToScore[pt].parentNode;
+      for (var pt = 0; pt < elementsToScore.length; pt += 1) {
+        var parentNode = elementsToScore[pt].parentNode;
         var grandParentNode = parentNode ? parentNode.parentNode : null;
-        var innerText = this._getInnerText(nodesToScore[pt]);
+        var innerText = this._getInnerText(elementsToScore[pt]);
 
         if (!parentNode || typeof(parentNode.tagName) === 'undefined')
           continue;
@@ -612,15 +630,40 @@ Readability.prototype = {
         
         topCandidate = doc.createElement("DIV");
         neededToCreateTopCandidate = true;
-        var children = page.childNodes;
-        while (children.length) {
-          this.log("Moving child out:", children[0]);
-          topCandidate.appendChild(children[0]);
+        
+        
+        var kids = page.childNodes;
+        while (kids.length) {
+          this.log("Moving child out:", kids[0]);
+          topCandidate.appendChild(kids[0]);
         }
 
         page.appendChild(topCandidate);
 
         this._initializeNode(topCandidate);
+      } else if (topCandidate) {
+        
+        
+        
+        
+        
+        
+        
+        var parentOfTopCandidate = topCandidate.parentNode;
+        
+        var scoreThreshold = topCandidate.readability.contentScore / 3;
+        var lastScore = parentOfTopCandidate.readability.contentScore;
+        while (parentOfTopCandidate && parentOfTopCandidate.readability) {
+          var parentScore = parentOfTopCandidate.readability.contentScore;
+          if (parentScore < scoreThreshold)
+            break;
+          if (parentScore > lastScore) {
+            
+            topCandidate = parentOfTopCandidate;
+            break;
+          }
+          parentOfTopCandidate = parentOfTopCandidate.parentNode;
+        }
       }
 
       
@@ -631,72 +674,71 @@ Readability.prototype = {
         articleContent.id = "readability-content";
 
       var siblingScoreThreshold = Math.max(10, topCandidate.readability.contentScore * 0.2);
-      var siblingNodes = topCandidate.parentNode.childNodes;
+      var siblings = topCandidate.parentNode.children;
 
-      for (var s = 0, sl = siblingNodes.length; s < sl; s += 1) {
-        var siblingNode = siblingNodes[s];
+      for (var s = 0, sl = siblings.length; s < sl; s++) {
+        var sibling = siblings[s];
         var append = false;
 
-        this.log("Looking at sibling node:", siblingNode, ((typeof siblingNode.readability !== 'undefined') ? ("with score " + siblingNode.readability.contentScore) : ''));
-        this.log("Sibling has score " + (siblingNode.readability ? siblingNode.readability.contentScore : 'Unknown'));
+        this.log("Looking at sibling node:", sibling, sibling.readability ? ("with score " + sibling.readability.contentScore) : '');
+        this.log("Sibling has score", sibling.readability ? sibling.readability.contentScore : 'Unknown');
 
-        if (siblingNode === topCandidate)
+        if (sibling === topCandidate) {
           append = true;
+        } else {
+          var contentBonus = 0;
 
-        var contentBonus = 0;
+          
+          if (sibling.className === topCandidate.className && topCandidate.className !== "")
+            contentBonus += topCandidate.readability.contentScore * 0.2;
 
-        
-        if (siblingNode.className === topCandidate.className && topCandidate.className !== "")
-          contentBonus += topCandidate.readability.contentScore * 0.2;
-
-        if (typeof siblingNode.readability !== 'undefined' &&
-          (siblingNode.readability.contentScore+contentBonus) >= siblingScoreThreshold)
-          append = true;
-
-        if (siblingNode.nodeName === "P") {
-          var linkDensity = this._getLinkDensity(siblingNode);
-          var nodeContent = this._getInnerText(siblingNode);
-          var nodeLength = nodeContent.length;
-
-          if (nodeLength > 80 && linkDensity < 0.25) {
+          if (sibling.readability &&
+              ((sibling.readability.contentScore + contentBonus) >= siblingScoreThreshold)) {
             append = true;
-          } else if (nodeLength < 80 && linkDensity === 0 && nodeContent.search(/\.( |$)/) !== -1) {
-            append = true;
+          } else if (sibling.nodeName === "P") {
+            var linkDensity = this._getLinkDensity(sibling);
+            var nodeContent = this._getInnerText(sibling);
+            var nodeLength = nodeContent.length;
+
+            if (nodeLength > 80 && linkDensity < 0.25) {
+              append = true;
+            } else if (nodeLength < 80 && linkDensity === 0 && nodeContent.search(/\.( |$)/) !== -1) {
+              append = true;
+            }
           }
         }
 
         if (append) {
-          this.log("Appending node:", siblingNode);
+          this.log("Appending node:", sibling);
 
+          if (this.ALTER_TO_DIV_EXCEPTIONS.indexOf(sibling.nodeName) === -1) {
+            
+            
+            this.log("Altering sibling:", sibling, 'to div.');
+
+            this._setNodeTag(sibling, "DIV");
+          }
+
+          
+          
+          sibling.removeAttribute("class");
+
+          articleContent.appendChild(sibling);
           
           
           
           
           s -= 1;
           sl -= 1;
-
-          if (siblingNode.nodeName !== "DIV" && siblingNode.nodeName !== "P") {
-            
-            
-            this.log("Altering siblingNode:", siblingNode, 'to div.');
-
-            this._setNodeTag(siblingNode, "DIV");
-          }
-
-          
-          
-          siblingNode.removeAttribute("class");
-
-          
-          
-          articleContent.appendChild(siblingNode);
         }
       }
 
-      this.log("Article content pre-prep: " + articleContent.innerHTML);
+      if (this.ENABLE_LOGGING)
+        this.log("Article content pre-prep: " + articleContent.innerHTML);
       
       this._prepArticle(articleContent);
-      this.log("Article content post-prep: " + articleContent.innerHTML);
+      if (this.ENABLE_LOGGING)
+        this.log("Article content post-prep: " + articleContent.innerHTML);
 
       if (this._curPageNum === 1) {
         if (neededToCreateTopCandidate) {
@@ -718,7 +760,8 @@ Readability.prototype = {
         }
       }
 
-      this.log("Article content after paging: " + articleContent.innerHTML);
+      if (this.ENABLE_LOGGING)
+        this.log("Article content after paging: " + articleContent.innerHTML);
 
       
       
@@ -764,15 +807,8 @@ Readability.prototype = {
 
 
 
-
-
-
-
-
-
-
-
-  _getExcerpt: function(articleContent) {
+  _getArticleMetadata: function() {
+    var metadata = {};
     var values = {};
     var metaElements = this._doc.getElementsByTagName("meta");
 
@@ -789,7 +825,12 @@ Readability.prototype = {
       var elementName = element.getAttribute("name");
       var elementProperty = element.getAttribute("property");
 
-      var name;
+      if (elementName === "author") {
+        metadata.byline = element.getAttribute("content");
+        continue;
+      }
+
+      var name = null;
       if (namePattern.test(elementName)) {
         name = elementName;
       } else if (propertyPattern.test(elementProperty)) {
@@ -808,26 +849,16 @@ Readability.prototype = {
     }
 
     if ("description" in values) {
-      return values["description"];
-    }
-
-    if ("og:description" in values) {
+      metadata.excerpt = values["description"];
+    } else if ("og:description" in values) {
       
-      return values["og:description"];
-    }
-
-    if ("twitter:description" in values) {
+      metadata.excerpt = values["og:description"];
+    } else if ("twitter:description" in values) {
       
-      return values["twitter:description"];
+      metadata.excerpt = values["twitter:description"];
     }
 
-    
-    var paragraphs = articleContent.getElementsByTagName("p");
-    if (paragraphs.length > 0) {
-      return paragraphs[0].textContent;
-    }
-
-    return "";
+    return metadata;
   },
 
   
@@ -853,27 +884,22 @@ Readability.prototype = {
 
 
 
-  _getSinglePIndexInsideDiv: function(e) {
+  _hasSinglePInsideElement: function(e) {
+    
+    if (e.children.length != 1 || e.firstElementChild.tagName !== "P") {
+      return false;
+    }
+    
     var childNodes = e.childNodes;
-    var pIndex = -1;
-
     for (var i = childNodes.length; --i >= 0;) {
       var node = childNodes[i];
-
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        if (node.tagName !== "P")
-          return -1;
-
-        if (pIndex >= 0)
-          return -1;
-
-        pIndex = i;
-      } else if (node.nodeType == Node.TEXT_NODE && this._getInnerText(node, false)) {
-        return -1;
+      if (node.nodeType == Node.TEXT_NODE &&
+          this.REGEXPS.hasContent.test(node.textContent)) {
+        return false;
       }
     }
 
-    return pIndex;
+    return true;
   },
 
   
@@ -882,12 +908,9 @@ Readability.prototype = {
 
 
   _hasChildBlockElement: function (e) {
-    var length = e.childNodes.length;
+    var length = e.children.length;
     for (var i = 0; i < length; i++) {
-      var child = e.childNodes[i];
-      if (child.nodeType != 1)
-        continue;
-
+      var child = e.children[i];
       if (this.DIV_TO_P_ELEMS.indexOf(child.tagName) !== -1 || this._hasChildBlockElement(child))
         return true;
     }
@@ -902,7 +925,7 @@ Readability.prototype = {
 
 
   _getInnerText: function(e, normalizeSpaces) {
-    var textContent = e.textContent.replace(this.REGEXPS.trim, "");
+    var textContent = e.textContent.trim();
     normalizeSpaces = (typeof normalizeSpaces === 'undefined') ? true : normalizeSpaces;
 
     if (normalizeSpaces) {
@@ -933,10 +956,9 @@ Readability.prototype = {
 
   _cleanStyles: function(e) {
     e = e || this._doc;
-    var cur = e.firstChild;
-
     if (!e)
       return;
+    var cur = e.firstChild;
 
     
     if (typeof e.removeAttribute === 'function' && e.className !== 'readability-styled')
@@ -944,7 +966,7 @@ Readability.prototype = {
 
     
     while (cur !== null) {
-      if (cur.nodeType === 1) {
+      if (cur.nodeType === cur.ELEMENT_NODE) {
         
         if (cur.className !== "readability-styled")
           cur.removeAttribute("style");
@@ -1355,19 +1377,19 @@ Readability.prototype = {
 
     
     if (typeof(e.className) === 'string' && e.className !== '') {
-      if (e.className.search(this.REGEXPS.negative) !== -1)
+      if (this.REGEXPS.negative.test(e.className))
         weight -= 25;
 
-      if (e.className.search(this.REGEXPS.positive) !== -1)
+      if (this.REGEXPS.positive.test(e.className))
         weight += 25;
     }
 
     
     if (typeof(e.id) === 'string' && e.id !== '') {
-      if (e.id.search(this.REGEXPS.negative) !== -1)
+      if (this.REGEXPS.negative.test(e.id))
         weight -= 25;
 
-      if (e.id.search(this.REGEXPS.positive) !== -1)
+      if (this.REGEXPS.positive.test(e.id))
         weight += 25;
     }
 
@@ -1395,11 +1417,11 @@ Readability.prototype = {
         }
 
         
-        if (attributeValues.search(this.REGEXPS.videos) !== -1)
+        if (this.REGEXPS.videos.test(attributeValues))
           continue;
 
         
-        if (targetList[y].innerHTML.search(this.REGEXPS.videos) !== -1)
+        if (this.REGEXPS.videos.test(targetList[y].innerHTML))
           continue;
       }
 
@@ -1445,7 +1467,7 @@ Readability.prototype = {
         var embedCount = 0;
         var embeds = tagsList[i].getElementsByTagName("embed");
         for (var ei = 0, il = embeds.length; ei < il; ei += 1) {
-          if (embeds[ei].src.search(this.REGEXPS.videos) === -1)
+          if (!this.REGEXPS.videos.test(embeds[ei].src))
             embedCount += 1;
         }
 
@@ -1532,6 +1554,8 @@ Readability.prototype = {
     this._prepDocument();
 
     var articleTitle = this._getArticleTitle();
+    var metadata = this._getArticleMetadata();
+
     var articleContent = this._grabArticle();
     if (!articleContent)
       return null;
@@ -1548,14 +1572,22 @@ Readability.prototype = {
     
     
 
-    var excerpt = this._getExcerpt(articleContent);
+    
+    
+    
+    if (!metadata.excerpt) {
+      var paragraphs = articleContent.getElementsByTagName("p");
+      if (paragraphs.length > 0) {
+        metadata.excerpt = paragraphs[0].textContent;
+      }
+    }
 
     return { uri: this._uri,
              title: articleTitle,
-             byline: this._articleByline,
+             byline: metadata.byline || this._articleByline,
              dir: this._articleDir,
              content: articleContent.innerHTML,
              length: articleContent.textContent.length,
-             excerpt: excerpt };
+             excerpt: metadata.excerpt };
   }
 };
