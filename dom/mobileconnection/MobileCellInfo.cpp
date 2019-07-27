@@ -4,7 +4,7 @@
 
 
 
-#include "MobileCellInfo.h"
+#include "mozilla/dom/MobileCellInfo.h"
 #include "mozilla/dom/MozMobileCellInfoBinding.h"
 
 using namespace mozilla::dom;

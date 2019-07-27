@@ -2,7 +2,7 @@
 
 
 
-#include "MobileConnectionChild.h"
+#include "mozilla/dom/mobileconnection/MobileConnectionChild.h"
 
 #include "MobileConnectionCallback.h"
 #include "mozilla/dom/MozMobileConnectionBinding.h"

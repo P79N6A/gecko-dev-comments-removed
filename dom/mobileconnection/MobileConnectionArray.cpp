@@ -4,7 +4,7 @@
 
 
 
-#include "MobileConnectionArray.h"
+#include "mozilla/dom/MobileConnectionArray.h"
 #include "mozilla/dom/MozMobileConnectionArrayBinding.h"
 #include "mozilla/Preferences.h"
 

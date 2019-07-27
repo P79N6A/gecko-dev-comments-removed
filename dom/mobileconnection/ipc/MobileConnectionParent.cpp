@@ -2,11 +2,11 @@
 
 
 
-#include "MobileConnectionParent.h"
+#include "mozilla/dom/mobileconnection/MobileConnectionParent.h"
 
 #include "mozilla/AppProcessChecker.h"
 #include "mozilla/dom/BindingUtils.h"
-#include "mozilla/dom/MobileConnectionIPCSerializer.h"
+#include "mozilla/dom/mobileconnection/MobileConnectionIPCSerializer.h"
 #include "mozilla/dom/MozMobileConnectionBinding.h"
 #include "mozilla/dom/ToJSValue.h"
 #include "nsIVariant.h"
