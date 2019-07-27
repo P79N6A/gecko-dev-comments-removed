@@ -149,6 +149,12 @@ CompositorThreadHolder::CreateCompositorThread()
 
 
   options.permanent_hang_timeout = 2048; 
+#if defined(_WIN32)
+  
+
+
+  options.message_loop_type = MessageLoop::TYPE_UI;
+#endif
 
   if (!compositorThread->StartWithOptions(options)) {
     delete compositorThread;
