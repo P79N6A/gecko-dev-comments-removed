@@ -572,6 +572,10 @@ pref("gfx.bundled_fonts.enabled", true);
 pref("gfx.bundled_fonts.force-enabled", false);
 #endif
 
+
+
+pref("gfx.missing_fonts.notify", false);
+
 pref("gfx.filter.nearest.force-enabled", false);
 
 
