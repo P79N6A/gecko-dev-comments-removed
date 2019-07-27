@@ -294,9 +294,7 @@ private:
   
   bool mHasData : 1;
 
-#ifdef PR_LOG
   static char const * StateString(uint32_t aState);
-#endif
 
   enum EState {      
     NOTLOADED = 0,   
