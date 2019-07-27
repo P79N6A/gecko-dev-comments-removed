@@ -2801,41 +2801,40 @@ SourceActor.prototype = {
         return actualLocation;
       }
 
+      
+      
+      
       if (!this.isSourceMapped) {
-        
-        
-        if (originalColumn === undefined) {
+        if (originalColumn !== undefined) {
           
           
           
           
           
-          let lineToEntryPointsMap = [];
+          let columnToEntryPointsMap = [];
 
           
-          let scripts = this.scripts.getScriptsBySourceActor(this);
+          
+          let scripts = this.scripts.getScriptsBySourceActor(this, originalLine);
           for (let script of scripts) {
-            
-            
-            
-            let lineToOffsetsMap = script.getAllOffsets();
+            let columnToOffsetMap = script.getAllColumnOffsets()
+                                          .filter(({ lineNumber }) => {
+              return lineNumber === originalLine;
+            })
 
             
             
             
             
-            for (let line = 0; line < lineToOffsetsMap.length; ++line) {
-              let offsets = lineToOffsetsMap[line];
-              if (offsets) {
-                let entryPoints = lineToEntryPointsMap[line];
-                if (!entryPoints) {
-                  
-                  
-                  entryPoints = [];
-                  lineToEntryPointsMap[line] = entryPoints;
-                }
-                entryPoints.push({ script, offsets });
+            for (let { columnNumber: column, offset } of columnToOffsetMap) {
+              let entryPoints = columnToEntryPointsMap[column];
+              if (!entryPoints) {
+                
+                
+                entryPoints = [];
+                columnToEntryPointsMap[column] = entryPoints;
               }
+              entryPoints.push({ script, offsets: [offset] });
             }
           }
 
@@ -2848,31 +2847,85 @@ SourceActor.prototype = {
           
           
           
-          let actualLine = originalLine + 1;
-          while (actualLine < lineToEntryPointsMap.length) {
-            let entryPoints = lineToEntryPointsMap[actualLine];
+          let actualColumn = originalColumn + 1;
+          while (actualColumn < columnToEntryPointsMap.length) {
+            let entryPoints = columnToEntryPointsMap[actualColumn];
             if (entryPoints) {
               setBreakpointAtEntryPoints(actor, entryPoints);
-              break;
+              return new OriginalLocation(
+                originalSourceActor,
+                originalLine,
+                actualColumn
+              );
             }
-            ++actualLine;
+            ++actualColumn;
           }
-          if (actualLine >= lineToEntryPointsMap.length) {
-            
-            
-            
-            
-            return originalLocation;
-          }
+        }
 
-          return new OriginalLocation(
-            originalSourceActor,
-            actualLine
-          );
-        } else {
+        
+        
+        
+        
+        
+        let lineToEntryPointsMap = [];
+
+        
+        let scripts = this.scripts.getScriptsBySourceActor(this);
+        for (let script of scripts) {
+          
+          
+          
+          let lineToOffsetsMap = script.getAllOffsets();
+
+          
+          
+          
+          
+          for (let line = 0; line < lineToOffsetsMap.length; ++line) {
+            let offsets = lineToOffsetsMap[line];
+            if (offsets) {
+              let entryPoints = lineToEntryPointsMap[line];
+              if (!entryPoints) {
+                
+                
+                entryPoints = [];
+                lineToEntryPointsMap[line] = entryPoints;
+              }
+              entryPoints.push({ script, offsets });
+            }
+          }
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        let actualLine = originalLine + 1;
+        while (actualLine < lineToEntryPointsMap.length) {
+          let entryPoints = lineToEntryPointsMap[actualLine];
+          if (entryPoints) {
+            setBreakpointAtEntryPoints(actor, entryPoints);
+            break;
+          }
+          ++actualLine;
+        }
+        if (actualLine >= lineToEntryPointsMap.length) {
+          
+          
+          
           
           return originalLocation;
         }
+
+        return new OriginalLocation(
+          originalSourceActor,
+          actualLine
+        );
       } else {
         let slideByColumn = (actualColumn) => {
           return this.sources.getAllGeneratedLocations(new OriginalLocation(
