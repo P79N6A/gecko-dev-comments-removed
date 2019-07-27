@@ -266,6 +266,9 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
     if ((aChange & nsChangeHint_UpdateTransformLayer) &&
         aFrame->IsTransformed()) {
       ActiveLayerTracker::NotifyRestyle(aFrame, eCSSProperty_transform);
+      if (!aFrame->GetPrevContinuation()) {
+        nsSVGEffects::InvalidateRenderingObservers(aFrame);
+      }
       
       
       
