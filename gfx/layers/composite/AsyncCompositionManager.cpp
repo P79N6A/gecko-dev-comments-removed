@@ -405,9 +405,7 @@ SampleValue(float aPortion, Animation& aAnimation, StyleAnimationValue& aStart,
   transform.Translate(scaledOrigin);
 
   InfallibleTArray<TransformFunction> functions;
-  Matrix4x4 realTransform;
-  ToMatrix4x4(transform, realTransform);
-  functions.AppendElement(TransformMatrix(realTransform));
+  functions.AppendElement(TransformMatrix(ToMatrix4x4(transform)));
   *aValue = functions;
 }
 
@@ -513,10 +511,7 @@ SampleAnimations(Layer* aLayer, TimeStamp aPoint)
 Matrix4x4
 CombineWithCSSTransform(const gfx3DMatrix& treeTransform, Layer* aLayer)
 {
-  Matrix4x4 result;
-  ToMatrix4x4(treeTransform, result);
-  result = result * aLayer->GetTransform();
-  return result;
+  return ToMatrix4x4(treeTransform) * aLayer->GetTransform();
 }
 
 bool
@@ -701,9 +696,7 @@ ApplyAsyncTransformToScrollbarForContent(TimeStamp aCurrentFrame, ContainerLayer
     
     
     
-    Matrix4x4 targetUntransform;
-    ToMatrix4x4(transientTransform.Inverse(), targetUntransform);
-    transform = transform * targetUntransform;
+    transform = transform * ToMatrix4x4(transientTransform.Inverse());
   }
 
   
@@ -771,8 +764,7 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
   const FrameMetrics& metrics = container->GetFrameMetrics();
   
   
-  gfx3DMatrix currentTransform;
-  To3DMatrix(aLayer->GetTransform(), currentTransform);
+  gfx3DMatrix currentTransform = To3DMatrix(aLayer->GetTransform());
   Matrix4x4 oldTransform = aLayer->GetTransform();
 
   gfx3DMatrix treeTransform;
@@ -849,9 +841,7 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
   computedTransform.ScalePost(1.0f/container->GetPostXScale(),
                               1.0f/container->GetPostYScale(),
                               1);
-  Matrix4x4 matrix;
-  ToMatrix4x4(computedTransform, matrix);
-  layerComposite->SetShadowTransform(matrix);
+  layerComposite->SetShadowTransform(ToMatrix4x4(computedTransform));
   NS_ASSERTION(!layerComposite->GetShadowTransformSetByAnimation(),
                "overwriting animated transform!");
 

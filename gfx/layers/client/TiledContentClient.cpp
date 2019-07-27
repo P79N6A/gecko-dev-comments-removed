@@ -1081,8 +1081,7 @@ GetCompositorSideCompositionBounds(ContainerLayer* aScrollAncestor,
     aScrollAncestor->GetFrameMetrics().mResolution.scale,
     1.f);
 
-  gfx3DMatrix layerTransform;
-  gfx::To3DMatrix(aScrollAncestor->GetTransform(), layerTransform);
+  gfx3DMatrix layerTransform = gfx::To3DMatrix(aScrollAncestor->GetTransform());
 
   
   

@@ -629,8 +629,7 @@ LayerTransactionParent::RecvGetAnimationTransform(PLayerParent* aParent,
   
   
 
-  gfx3DMatrix transform;
-  gfx::To3DMatrix(layer->AsLayerComposite()->GetShadowTransform(), transform);
+  gfx3DMatrix transform = gfx::To3DMatrix(layer->AsLayerComposite()->GetShadowTransform());
   if (ContainerLayer* c = layer->AsContainerLayer()) {
     
     transform.ScalePost(1.0f/c->GetInheritedXScale(),
