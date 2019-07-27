@@ -203,6 +203,8 @@ public:
   
   AutoJSAPI();
 
+  ~AutoJSAPI();
+
   
   
   
@@ -253,6 +255,31 @@ public:
 
   bool CxPusherIsStackTop() const { return mCxPusher->IsStackTop(); }
 
+  
+  
+  
+  
+  void TakeOwnershipOfErrorReporting();
+  bool OwnsErrorReporting() { return mOwnErrorReporting; }
+
+  bool HasException() const {
+    MOZ_ASSERT(CxPusherIsStackTop());
+    return JS_IsExceptionPending(cx());
+  };
+
+  
+  
+  
+  
+  
+  
+  bool StealException(JS::MutableHandle<JS::Value> aVal);
+
+  void ClearException() {
+    MOZ_ASSERT(CxPusherIsStackTop());
+    JS_ClearPendingException(cx());
+  }
+
 protected:
   
   
@@ -265,6 +292,11 @@ private:
   mozilla::Maybe<danger::AutoCxPusher> mCxPusher;
   mozilla::Maybe<JSAutoNullableCompartment> mAutoNullableCompartment;
   JSContext *mCx;
+
+  
+  bool mOwnErrorReporting;
+  bool mOldDontReportUncaught;
+  Maybe<JSErrorReporter> mOldErrorReporter;
 
   void InitInternal(JSObject* aGlobal, JSContext* aCx, bool aIsMainThread);
 };
