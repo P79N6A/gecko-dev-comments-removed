@@ -157,6 +157,8 @@ public class RemoteTabsPanel extends HomeFragment {
             return RemoteTabsStaticFragment.newInstance(R.layout.remote_tabs_needs_password);
         case NeedsUpgrade:
             return RemoteTabsStaticFragment.newInstance(R.layout.remote_tabs_needs_upgrade);
+        case NeedsFinishMigrating:
+            return RemoteTabsStaticFragment.newInstance(R.layout.remote_tabs_needs_finish_migrating);
         default:
             
             
