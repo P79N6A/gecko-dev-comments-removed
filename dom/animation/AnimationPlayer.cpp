@@ -20,16 +20,16 @@ AnimationPlayer::WrapObject(JSContext* aCx)
   return dom::AnimationPlayerBinding::Wrap(aCx, this);
 }
 
-double
-AnimationPlayer::StartTime() const
+Nullable<double>
+AnimationPlayer::GetStartTime() const
 {
-  Nullable<double> startTime = mTimeline->ToTimelineTime(mStartTime);
-  return startTime.IsNull() ? 0.0 : startTime.Value();
+  return mTimeline->ToTimelineTime(mStartTime);
 }
 
-double
-AnimationPlayer::CurrentTime() const
+Nullable<double>
+AnimationPlayer::GetCurrentTime() const
 {
+  Nullable<double> result;
   Nullable<TimeDuration> currentTime = GetCurrentTimeDuration();
 
   
@@ -44,10 +44,12 @@ AnimationPlayer::CurrentTime() const
   
   
   if (currentTime.IsNull()) {
-    return 0.0;
+    result.SetValue(0.0);
+  } else {
+    result.SetValue(currentTime.Value().ToMilliseconds());
   }
 
-  return currentTime.Value().ToMilliseconds();
+  return result;
 }
 
 void

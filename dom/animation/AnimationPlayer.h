@@ -48,8 +48,8 @@ public:
   
   Animation* GetSource() const { return mSource; }
   AnimationTimeline* Timeline() const { return mTimeline; }
-  double StartTime() const;
-  double CurrentTime() const;
+  Nullable<double> GetStartTime() const;
+  Nullable<double> GetCurrentTime() const;
   bool IsRunningOnCompositor() const { return mIsRunningOnCompositor; }
 
   void SetSource(Animation* aSource);
