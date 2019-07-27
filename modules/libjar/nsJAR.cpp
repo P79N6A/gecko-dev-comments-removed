@@ -6,7 +6,7 @@
 #include "nsJARInputStream.h"
 #include "nsJAR.h"
 #include "nsIFile.h"
-#include "nsICertificatePrincipal.h"
+#include "nsIX509Cert.h"
 #include "nsIConsoleService.h"
 #include "nsICryptoHash.h"
 #include "nsIDataSignatureVerifier.h"
@@ -323,12 +323,13 @@ nsJAR::GetInputStreamWithSpec(const nsACString& aJarDirSpec,
 }
 
 NS_IMETHODIMP
-nsJAR::GetCertificatePrincipal(const nsACString &aFilename, nsICertificatePrincipal** aPrincipal)
+nsJAR::GetSigningCert(const nsACString& aFilename, nsIX509Cert** aSigningCert)
 {
   
-  if (!aPrincipal)
+  if (!aSigningCert) {
     return NS_ERROR_NULL_POINTER;
-  *aPrincipal = nullptr;
+  }
+  *aSigningCert = nullptr;
 
   
   
@@ -366,12 +367,11 @@ nsJAR::GetCertificatePrincipal(const nsACString &aFilename, nsICertificatePrinci
   else 
     requestedStatus = mGlobalStatus;
 
-  if (requestedStatus != JAR_VALID_MANIFEST)
+  if (requestedStatus != JAR_VALID_MANIFEST) {
     ReportError(aFilename, requestedStatus);
-  else 
-  {
-    *aPrincipal = mPrincipal;
-    NS_IF_ADDREF(*aPrincipal);
+  } else { 
+    *aSigningCert = mSigningCert;
+    NS_IF_ADDREF(*aSigningCert);
   }
   return NS_OK;
 }
@@ -589,14 +589,15 @@ nsJAR::ParseManifest()
   
   int32_t verifyError;
   rv = verifier->VerifySignature(sigBuffer, sigLen, manifestBuffer, manifestLen,
-                                 &verifyError, getter_AddRefs(mPrincipal));
+                                 &verifyError, getter_AddRefs(mSigningCert));
   if (NS_FAILED(rv)) return rv;
-  if (mPrincipal && verifyError == nsIDataSignatureVerifier::VERIFY_OK)
+  if (mSigningCert && verifyError == nsIDataSignatureVerifier::VERIFY_OK) {
     mGlobalStatus = JAR_VALID_MANIFEST;
-  else if (verifyError == nsIDataSignatureVerifier::VERIFY_ERROR_UNKNOWN_ISSUER)
+  } else if (verifyError == nsIDataSignatureVerifier::VERIFY_ERROR_UNKNOWN_ISSUER) {
     mGlobalStatus = JAR_INVALID_UNKNOWN_CA;
-  else
+  } else {
     mGlobalStatus = JAR_INVALID_SIG;
+  }
 
   
   
