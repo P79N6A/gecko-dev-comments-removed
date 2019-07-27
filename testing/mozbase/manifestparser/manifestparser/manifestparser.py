@@ -386,6 +386,13 @@ def read_ini(fp, variables=None, default='DEFAULT',
             local_dict['skip-if'] = "(%s) || (%s)" % (variables['skip-if'].split('#')[0], local_dict['skip-if'].split('#')[0])
         variables.update(local_dict)
 
+        
+        
+        if 'server-root' in variables:
+            root = os.path.join(os.path.dirname(fp.name),
+                                variables['server-root'])
+            variables['server-root'] = os.path.abspath(root)
+
         return variables
 
     sections = [(i, interpret_variables(variables, j)) for i, j in sections]
@@ -399,6 +406,7 @@ class ManifestParser(object):
 
     def __init__(self, manifests=(), defaults=None, strict=True):
         self._defaults = defaults or {}
+        self._ancestor_defaults = {}
         self.tests = []
         self.manifest_defaults = {}
         self.strict = strict
@@ -412,7 +420,30 @@ class ManifestParser(object):
 
     
 
-    def _read(self, root, filename, defaults):
+    def _read(self, root, filename, defaults, defaults_only=False):
+        """
+        Internal recursive method for reading and parsing manifests.
+        Stores all found tests in self.tests
+        :param root: The base path
+        :param filename: File object or string path for the base manifest file
+        :param defaults: Options that apply to all items
+        :param defaults_only: If True will only gather options, not include
+                              tests. Used for upstream parent includes
+                              (default False)
+        """
+        def read_file(type):
+            include_file = section.split(type, 1)[-1]
+            include_file = normalize_path(include_file)
+            if not os.path.isabs(include_file):
+                include_file = os.path.join(self.getRelativeRoot(here), include_file)
+            if not os.path.exists(include_file):
+                message = "Included file '%s' does not exist" % include_file
+                if self.strict:
+                    raise IOError(message)
+                else:
+                    sys.stderr.write("%s\n" % message)
+                    return
+            return include_file
 
         
         if isinstance(filename, string):
@@ -443,25 +474,31 @@ class ManifestParser(object):
                 subsuite = data['subsuite']
 
             
-            
-            
-            if section.startswith('include:'):
-                include_file = section.split('include:', 1)[-1]
-                include_file = normalize_path(include_file)
-                if not os.path.isabs(include_file):
-                    include_file = os.path.join(self.getRelativeRoot(here), include_file)
-                if not os.path.exists(include_file):
-                    message = "Included file '%s' does not exist" % include_file
-                    if self.strict:
-                        raise IOError(message)
-                    else:
-                        sys.stderr.write("%s\n" % message)
-                        continue
-                include_defaults = data.copy()
-                self._read(root, include_file, include_defaults)
+            if section.startswith('parent:'):
+                include_file = read_file('parent:')
+                if include_file:
+                    self._read(root, include_file, {}, True)
                 continue
 
             
+            if defaults_only:
+                self._ancestor_defaults = dict(data.items() + self._ancestor_defaults.items())
+                break
+
+            
+            
+            
+            if section.startswith('include:'):
+                include_file = read_file('include:')
+                if include_file:
+                    include_defaults = data.copy()
+                    self._read(root, include_file, include_defaults)
+                continue
+
+            
+            
+            data = dict(self._ancestor_defaults.items() + data.items())
+
             test = data
             test['name'] = section
 
