@@ -364,7 +364,7 @@ private:
         
         
         
-        nsCString mCoalescingKey;
+        nsTArray<nsCString> mCoalescingKeys;
 
         
         
@@ -382,7 +382,7 @@ private:
         
         bool mTestedSpdy;
 
-        bool mSpdyPreferred;
+        bool mInPreferredHash;
 
         
         
@@ -589,7 +589,9 @@ private:
 
     
     nsConnectionEntry *GetSpdyPreferredEnt(nsConnectionEntry *aOriginalEntry);
-    void               RemoveSpdyPreferredEnt(nsACString &aDottedDecimal);
+    nsConnectionEntry *LookupPreferredHash(nsConnectionEntry *ent);
+    void               StorePreferredHash(nsConnectionEntry *ent);
+    void               RemovePreferredHash(nsConnectionEntry *ent);
     nsHttpConnection  *GetSpdyPreferredConn(nsConnectionEntry *ent);
     nsDataHashtable<nsCStringHashKey, nsConnectionEntry *>   mSpdyPreferredHash;
     nsConnectionEntry *LookupConnectionEntry(nsHttpConnectionInfo *ci,
