@@ -94,18 +94,6 @@ const Timer = Components.Constructor("@mozilla.org/timer;1", "nsITimer",
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 const kSaveDelayMs = 1500;
 
 
@@ -1226,6 +1214,8 @@ this.DownloadAutoSaveView = function (aList, aStore)
   this._store = aStore;
   this._downloadsMap = new Map();
   this._writer = new DeferredTask(() => this._store.save(), kSaveDelayMs);
+  AsyncShutdown.profileBeforeChange.addBlocker("DownloadAutoSaveView: writing data",
+                                               () => this._writer.finalize());
 }
 
 this.DownloadAutoSaveView.prototype = {
