@@ -2899,7 +2899,7 @@ function BrowserObj(win, server) {
   this.startPage = "about:blank";
   this.mainContentId = null; 
   this.newSession = true; 
-  this.elementManager = new ElementManager([SELECTOR, NAME, LINK_TEXT, PARTIAL_LINK_TEXT]);
+  this.elementManager = new ElementManager([NAME, LINK_TEXT, PARTIAL_LINK_TEXT]);
   this.setBrowser(win);
   this.frameManager = new FrameManager(server); 
 
