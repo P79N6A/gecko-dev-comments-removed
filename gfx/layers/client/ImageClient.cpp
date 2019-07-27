@@ -225,6 +225,10 @@ ImageClientSingle::UpdateImage(ImageContainer* aContainer, uint32_t aContentFlag
       {
         
         DrawTarget* dt = texture->BorrowDrawTarget();
+        if (!dt) {
+          gfxWarning() << "ImageClientSingle::UpdateImage failed in BorrowDrawTarget";
+          return false;
+        }
         MOZ_ASSERT(surface.get());
         dt->CopySurface(surface, IntRect(IntPoint(), surface->GetSize()), IntPoint());
       }
