@@ -47,7 +47,6 @@ protected:
 
   uint32_t  mCurrentCommandID;  
                                 
-  nsIDocument* mDocument;       
 
   
   nsDataHashtable<nsPtrHashKey<nsIContent>, nsChangeObserver *> mContentToObserverTable;
