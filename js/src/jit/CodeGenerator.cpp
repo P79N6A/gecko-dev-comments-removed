@@ -8764,16 +8764,40 @@ CodeGenerator::visitProfilerStackOp(LProfilerStackOp *lir)
     }
 }
 
+class OutOfLineIsCallable : public OutOfLineCodeBase<CodeGenerator>
+{
+    LIsCallable *ins_;
+
+  public:
+    OutOfLineIsCallable(LIsCallable *ins)
+      : ins_(ins)
+    { }
+
+    bool accept(CodeGenerator *codegen) {
+        return codegen->visitOutOfLineIsCallable(this);
+    }
+    LIsCallable *ins() const {
+        return ins_;
+    }
+};
+
 bool
 CodeGenerator::visitIsCallable(LIsCallable *ins)
 {
     Register object = ToRegister(ins->object());
     Register output = ToRegister(ins->output());
 
+    OutOfLineIsCallable *ool = new(alloc()) OutOfLineIsCallable(ins);
+    if (!addOutOfLineCode(ool, ins->mir()))
+        return false;
+
+    Label notFunction, done;
     masm.loadObjClass(object, output);
 
     
-    Label notFunction, done, notCall;
+    masm.branchTestClassIsProxy(true, output, ool->entry());
+
+    
     masm.branchPtr(Assembler::NotEqual, output, ImmPtr(&JSFunction::class_), &notFunction);
     masm.move32(Imm32(1), output);
     masm.jump(&done);
@@ -8781,6 +8805,28 @@ CodeGenerator::visitIsCallable(LIsCallable *ins)
     masm.bind(&notFunction);
     masm.cmpPtrSet(Assembler::NonZero, Address(output, offsetof(js::Class, call)), ImmPtr(nullptr), output);
     masm.bind(&done);
+    masm.bind(ool->rejoin());
+
+    return true;
+}
+
+bool
+CodeGenerator::visitOutOfLineIsCallable(OutOfLineIsCallable *ool)
+{
+    LIsCallable *ins = ool->ins();
+    Register object = ToRegister(ins->object());
+    Register output = ToRegister(ins->output());
+
+    saveVolatile(output);
+    masm.setupUnalignedABICall(1, output);
+    masm.passABIArg(object);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ObjectIsCallable));
+    masm.storeCallResult(output);
+    
+    
+    masm.and32(Imm32(0xFF), output);
+    restoreVolatile(output);
+    masm.jump(ool->rejoin());
 
     return true;
 }

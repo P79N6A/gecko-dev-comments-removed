@@ -42,8 +42,9 @@ class ProxyObject : public JSObject
         return const_cast<ProxyObject*>(this)->private_().toObjectOrNull();
     }
 
-    const BaseProxyHandler *handler() {
-        return static_cast<const BaseProxyHandler*>(GetReservedSlot(this, HANDLER_SLOT).toPrivate());
+    const BaseProxyHandler *handler() const {
+        return static_cast<const BaseProxyHandler*>(
+            GetReservedSlot(const_cast<ProxyObject*>(this), HANDLER_SLOT).toPrivate());
     }
 
     void initHandler(const BaseProxyHandler *handler);
@@ -85,9 +86,13 @@ class ProxyObject : public JSObject
 
         
         
+
+        
+        
         return clasp->isProxy() &&
                (clasp->flags & JSCLASS_IMPLEMENTS_BARRIERS) &&
                clasp->trace == proxy_Trace &&
+               !clasp->call && !clasp->construct &&
                JSCLASS_RESERVED_SLOTS(clasp) >= PROXY_MINIMUM_SLOTS;
     }
 
@@ -100,8 +105,7 @@ class ProxyObject : public JSObject
 
     void nuke(const BaseProxyHandler *handler);
 
-    static const Class callableClass_;
-    static const Class uncallableClass_;
+    static const Class class_;
 };
 
 } 

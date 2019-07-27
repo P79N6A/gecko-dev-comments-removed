@@ -226,6 +226,13 @@ class JS_FRIEND_API(BaseProxyHandler)
 
     
     
+    
+    
+    virtual bool isCallable(JSObject *obj) const;
+    virtual bool isConstructor(JSObject *obj) const;
+
+    
+    
     virtual bool watch(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
                        JS::HandleObject callable) const;
     virtual bool unwatch(JSContext *cx, JS::HandleObject proxy, JS::HandleId id) const;
@@ -306,11 +313,10 @@ class JS_PUBLIC_API(DirectProxyHandler) : public BaseProxyHandler
                                  RegExpGuard *g) const MOZ_OVERRIDE;
     virtual bool boxedValue_unbox(JSContext *cx, HandleObject proxy, MutableHandleValue vp) const;
     virtual JSObject *weakmapKeyDelegate(JSObject *proxy) const MOZ_OVERRIDE;
+    virtual bool isCallable(JSObject *obj) const MOZ_OVERRIDE;
 };
 
-
-extern JS_FRIEND_DATA(const js::Class* const) CallableProxyClassPtr;
-extern JS_FRIEND_DATA(const js::Class* const) UncallableProxyClassPtr;
+extern JS_FRIEND_DATA(const js::Class* const) ProxyClassPtr;
 
 inline bool IsProxy(JSObject *obj)
 {
@@ -382,14 +388,14 @@ IsScriptedProxy(JSObject *obj)
 class MOZ_STACK_CLASS ProxyOptions {
   protected:
     
-    ProxyOptions(bool singletonArg, const Class *claspArg)
+    ProxyOptions(bool singletonArg)
       : singleton_(singletonArg),
-        clasp_(claspArg)
+        clasp_(ProxyClassPtr)
     {}
 
   public:
     ProxyOptions() : singleton_(false),
-                     clasp_(UncallableProxyClassPtr)
+                     clasp_(ProxyClassPtr)
     {}
 
     bool singleton() const { return singleton_; }
@@ -404,11 +410,6 @@ class MOZ_STACK_CLASS ProxyOptions {
     ProxyOptions &setClass(const Class *claspArg) {
         clasp_ = claspArg;
         return *this;
-    }
-    ProxyOptions &selectDefaultClass(bool callable) {
-        const Class *classp = callable? CallableProxyClassPtr :
-                                        UncallableProxyClassPtr;
-        return setClass(classp);
     }
 
   private:
