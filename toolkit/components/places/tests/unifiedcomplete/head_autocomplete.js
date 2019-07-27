@@ -97,6 +97,34 @@ AutoCompleteInput.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIAutoCompleteInput])
 }
 
+
+
+function _check_autocomplete_matches(match, controllerInfo) {
+  let { uri, title, tags, searchEngine, style } = match;
+  let { controllerValue, controllerComment, controllerStyle } = controllerInfo;
+  if (tags)
+    title += " \u2013 " + tags.sort().join(", ");
+  if (searchEngine)
+    title += TITLE_SEARCH_ENGINE_SEPARATOR + searchEngine;
+  if (style)
+    style = style.sort();
+  else
+    style = ["favicon"];
+
+  do_print("Checking against expected '" + uri.spec + "', '" + title + "'...");
+  
+  if (stripPrefix(uri.spec) != stripPrefix(controllerValue) || title != controllerComment) {
+    return false;
+  }
+  let actualStyle = controllerStyle.split(/\s+/).sort();
+  if (style)
+    Assert.equal(actualStyle.toString(), style.toString(), "Match should have expected style");
+  if (uri.spec.startsWith("moz-action:")) {
+    Assert.ok(actualStyle.indexOf("action") != -1, "moz-action results should always have 'action' in their style");
+  }
+  return true;
+}
+
 function* check_autocomplete(test) {
   
   
@@ -144,50 +172,49 @@ function* check_autocomplete(test) {
   Assert.equal(numSearchesStarted, expectedSearches, "All searches started");
 
   
+  
+  
+  
+  
   if (test.matches) {
     
     let matches = test.matches.slice();
 
-    for (let i = 0; i < controller.matchCount; i++) {
-      let value = controller.getValueAt(i);
-      let comment = controller.getCommentAt(i);
-      do_print("Looking for '" + value + "', '" + comment + "' in expected results...");
+    let firstIndexToCheck = 0;
+    if (test.searchParam && test.searchParam == "enable-actions") {
+      firstIndexToCheck = 1;
+      do_print("Checking first match is first autocomplete entry")
+      let controllerValue = controller.getValueAt(0);
+      let controllerComment = controller.getCommentAt(0);
+      let controllerStyle = controller.getStyleAt(0);
+      do_print("First match is '" + controllerValue + "', '" + controllerComment + "");
+      let controllerInfo = { controllerValue, controllerComment, controllerStyle };
+      Assert.ok(_check_autocomplete_matches(matches[0], controllerInfo), "first item is correct");
+      do_print("Checking rest of the matches");
+    }
+
+    for (let i = firstIndexToCheck; i < controller.matchCount; i++) {
+      let controllerValue = controller.getValueAt(i);
+      let controllerComment = controller.getCommentAt(i);
+      let controllerStyle = controller.getStyleAt(i);
+      let controllerInfo = { controllerValue, controllerComment, controllerStyle };
+      do_print("Looking for '" + controllerValue + "', '" + controllerComment + "' in expected results...");
       let j;
-      for (j = 0; j < matches.length; j++) {
+      for (j = firstIndexToCheck; j < matches.length; j++) {
         
         if (matches[j] == undefined)
           continue;
-
-        let { uri, title, tags, searchEngine, style } = matches[j];
-        if (tags)
-          title += " \u2013 " + tags.sort().join(", ");
-        if (searchEngine)
-          title += TITLE_SEARCH_ENGINE_SEPARATOR + searchEngine;
-        if (style)
-          style = style.sort();
-        else
-          style = ["favicon"];
-
-        do_print("Checking against expected '" + uri.spec + "', '" + title + "'...");
-        
-        if (stripPrefix(uri.spec) == stripPrefix(value) && title == comment) {
+        if (_check_autocomplete_matches(matches[j], controllerInfo)) {
           do_print("Got a match at index " + j + "!");
-          let actualStyle = controller.getStyleAt(i).split(/\s+/).sort();
-          if (style)
-            Assert.equal(actualStyle.toString(), style.toString(), "Match should have expected style");
-
           
           matches[j] = undefined;
-          if (uri.spec.startsWith("moz-action:")) {
-            Assert.ok(actualStyle.indexOf("action") != -1, "moz-action results should always have 'action' in their style");
-          }
           break;
         }
       }
 
       
       if (j == matches.length)
-        do_throw("Didn't find the current result ('" + value + "', '" + comment + "') in matches");
+        do_throw("Didn't find the current result ('" + controllerValue + "', '" + controllerComment + "') in matches");
     }
 
     Assert.equal(controller.matchCount, matches.length,
@@ -300,6 +327,50 @@ function stripPrefix(spec)
 function makeActionURI(action, params) {
   let url = "moz-action:" + action + "," + JSON.stringify(params);
   return NetUtil.newURI(url);
+}
+
+
+
+function makeSearchMatch(input, extra = {}) {
+  
+  
+  
+  let params = {
+    engineName: extra.engineName || "MozSearch",
+    input,
+    searchQuery: extra.searchQuery || input,
+    alias: extra.alias, 
+  }
+  return {
+    uri: makeActionURI("searchengine", params),
+    title: params.engineName,
+    style: [ "action", "searchengine" ],
+  }
+}
+
+
+
+function makeVisitMatch(input, url, extra = {}) {
+  
+  
+  
+  let params = {
+    url,
+    input,
+  }
+  return {
+    uri: makeActionURI("visiturl", params),
+    title: extra.title || url,
+    style: [ "action", "visiturl" ],
+  }
+}
+
+function makeSwitchToTabMatch(url, extra = {}) {
+  return {
+    uri: makeActionURI("switchtab", {url}),
+    title: extra.title || url,
+    style: [ "action", "switchtab" ],
+  }
 }
 
 
