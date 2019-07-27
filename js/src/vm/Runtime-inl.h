@@ -11,9 +11,9 @@
 
 #include "jscompartment.h"
 
+#include "gc/Allocator.h"
+#include "gc/GCTrace.h"
 #include "vm/Probes.h"
-
-#include "jsgcinlines.h"
 
 namespace js {
 
@@ -25,13 +25,13 @@ NewObjectCache::lookupProto(const Class *clasp, JSObject *proto, gc::AllocKind k
 }
 
 inline bool
-NewObjectCache::lookupGlobal(const Class *clasp, js::GlobalObject *global, gc::AllocKind kind, EntryIndex *pentry)
+NewObjectCache::lookupGlobal(const Class *clasp, GlobalObject *global, gc::AllocKind kind, EntryIndex *pentry)
 {
     return lookup(clasp, global, kind, pentry);
 }
 
 inline void
-NewObjectCache::fillGlobal(EntryIndex entry, const Class *clasp, js::GlobalObject *global,
+NewObjectCache::fillGlobal(EntryIndex entry, const Class *clasp, GlobalObject *global,
                            gc::AllocKind kind, NativeObject *obj)
 {
     
@@ -39,7 +39,7 @@ NewObjectCache::fillGlobal(EntryIndex entry, const Class *clasp, js::GlobalObjec
 }
 
 inline NativeObject *
-NewObjectCache::newObjectFromHit(JSContext *cx, EntryIndex entryIndex, js::gc::InitialHeap heap)
+NewObjectCache::newObjectFromHit(JSContext *cx, EntryIndex entryIndex, gc::InitialHeap heap)
 {
     
     MOZ_ASSERT(!cx->compartment()->hasObjectMetadataCallback());
@@ -59,11 +59,11 @@ NewObjectCache::newObjectFromHit(JSContext *cx, EntryIndex entryIndex, js::gc::I
     if (cx->runtime()->gc.upcomingZealousGC())
         return nullptr;
 
-    NativeObject *obj = js::gc::AllocateObjectForCacheHit<NoGC>(cx, entry->kind, heap, group->clasp());
+    NativeObject *obj = gc::AllocateObjectForCacheHit<NoGC>(cx, entry->kind, heap, group->clasp());
     if (obj) {
         copyCachedToObject(obj, templateObj, entry->kind);
         probes::CreateObject(cx, obj);
-        js::gc::TraceCreateObject(obj);
+        gc::TraceCreateObject(obj);
         return obj;
     }
 
@@ -76,7 +76,7 @@ NewObjectCache::newObjectFromHit(JSContext *cx, EntryIndex entryIndex, js::gc::I
     
     
     mozilla::DebugOnly<JSObject *> obj2 =
-        js::gc::AllocateObjectForCacheHit<CanGC>(cx, entry->kind, heap, group->clasp());
+        gc::AllocateObjectForCacheHit<CanGC>(cx, entry->kind, heap, group->clasp());
     MOZ_ASSERT(!obj2);
     return nullptr;
 }

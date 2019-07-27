@@ -10,11 +10,11 @@
 #include "jscompartment.h"
 
 #include "builtin/SymbolObject.h"
+#include "gc/Allocator.h"
 #include "gc/Rooting.h"
 #include "vm/StringBuffer.h"
 
 #include "jscompartmentinlines.h"
-#include "jsgcinlines.h"
 
 using JS::Symbol;
 using namespace js;
@@ -26,7 +26,7 @@ Symbol::newInternal(ExclusiveContext *cx, JS::SymbolCode code, JSAtom *descripti
     MOZ_ASSERT(cx->atomsCompartment()->runtimeFromAnyThread()->currentThreadHasExclusiveAccess());
 
     
-    Symbol *p = gc::AllocateNonObject<Symbol, NoGC>(cx);
+    Symbol *p = NewGCSymbol<NoGC>(cx);
     if (!p) {
         ReportOutOfMemory(cx);
         return nullptr;
