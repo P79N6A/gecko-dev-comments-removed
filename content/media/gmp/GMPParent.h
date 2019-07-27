@@ -44,7 +44,8 @@ public:
 
 enum GMPState {
   GMPStateNotLoaded,
-  GMPStateLoaded
+  GMPStateLoaded,
+  GMPStateClosing
 };
 
 class GMPParent MOZ_FINAL : public PGMPParent
@@ -56,8 +57,20 @@ public:
 
   nsresult Init(nsIFile* aPluginDir);
   nsresult LoadProcess();
-  void MaybeUnloadProcess();
-  void UnloadProcess();
+
+  
+  void CloseIfUnused();
+
+  
+  
+  void CloseActive();
+
+  
+  void Shutdown();
+
+  
+  void DeleteProcess();
+
   bool SupportsAPI(const nsCString& aAPI, const nsCString& aTag);
   nsresult GetGMPVideoDecoder(GMPVideoDecoderParent** aGMPVD);
   void VideoDecoderDestroyed(GMPVideoDecoderParent* aDecoder);
