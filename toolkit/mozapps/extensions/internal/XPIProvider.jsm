@@ -2094,6 +2094,8 @@ this.XPIProvider = {
       
       this.applyThemeChange();
 
+      AddonManagerPrivate.markProviderSafe(this);
+
       if (aAppChanged === undefined) {
         
         Services.prefs.setBoolPref(PREF_SHOWN_SELECTION_UI, true);
