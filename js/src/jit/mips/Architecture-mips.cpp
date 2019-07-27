@@ -102,8 +102,8 @@ FloatRegister::singleOverlay(unsigned int which) const
 FloatRegisterSet
 FloatRegister::ReduceSetForPush(const FloatRegisterSet& s)
 {
-    FloatRegisterSet mod;
-    for (TypedRegisterIterator<FloatRegister> iter(s); iter.more(); iter++) {
+    LiveFloatRegisterSet mod;
+    for (FloatRegisterIterator iter(s); iter.more(); iter++) {
         if ((*iter).isSingle()) {
             
             mod.addUnchecked((*iter).doubleOverlay());
@@ -111,7 +111,7 @@ FloatRegister::ReduceSetForPush(const FloatRegisterSet& s)
             mod.addUnchecked(*iter);
         }
     }
-    return mod;
+    return mod.set();
 }
 
 uint32_t

@@ -81,8 +81,8 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler& masm)
     Register scratchReg = R2.payloadReg();
 
     
-    GeneralRegisterSet savedRegs = availableGeneralRegs(2);
-    savedRegs = GeneralRegisterSet::Intersect(GeneralRegisterSet::NonVolatile(), savedRegs);
+    AllocatableGeneralRegisterSet savedRegs(availableGeneralRegs(2));
+    savedRegs.set() = GeneralRegisterSet::Intersect(GeneralRegisterSet::NonVolatile(), savedRegs.set());
 
     Label goodMul, divTest1, divTest2;
     switch(op_) {
