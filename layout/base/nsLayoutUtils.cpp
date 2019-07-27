@@ -3252,7 +3252,17 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
     
     
     if (layerManager && !layerManager->NeedsWidgetInvalidation()) {
-      rootPresContext->ApplyPluginGeometryUpdates();
+#if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
+      if (XRE_GetProcessType() == GeckoProcessType_Content) {
+        
+        
+        
+        rootPresContext->CollectPluginGeometryUpdates(layerManager);
+      } else
+#endif
+      {
+        rootPresContext->ApplyPluginGeometryUpdates();
+      }
     }
 
     

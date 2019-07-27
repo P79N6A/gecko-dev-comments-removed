@@ -76,6 +76,7 @@ class FontFaceSet;
 }
 namespace layers {
 class ContainerLayer;
+class LayerManager;
 }
 }
 
@@ -1482,6 +1483,12 @@ public:
 
 
   void ApplyPluginGeometryUpdates();
+
+  
+
+
+
+  void CollectPluginGeometryUpdates(mozilla::layers::LayerManager* aLayerManager);
 
   virtual bool IsRoot() MOZ_OVERRIDE { return true; }
 
