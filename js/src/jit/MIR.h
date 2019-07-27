@@ -5699,6 +5699,16 @@ class MRegExpTest
     bool possiblyCalls() const {
         return true;
     }
+
+    bool writeRecoverData(CompactBufferWriter &writer) const;
+    bool canRecoverOnBailout() const {
+        
+        
+        
+        if (regexp()->isRegExp())
+            return !regexp()->toRegExp()->source()->needUpdateLastIndex();
+        return false;
+    }
 };
 
 template <class Policy1>
