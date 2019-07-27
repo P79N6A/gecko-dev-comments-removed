@@ -36,7 +36,9 @@ struct TranslationParams {
   float mY;
 };
 struct PathPointParams {  
-  Path* mPath; 
+  
+  
+  Path* MOZ_OWNING_REF mPath;
   float mDistToPoint; 
                       
 };
