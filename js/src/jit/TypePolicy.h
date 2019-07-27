@@ -234,6 +234,16 @@ class NoFloatPolicy : public TypePolicy
 };
 
 
+
+template <unsigned FirstOp>
+class NoFloatPolicyAfter : public TypePolicy
+{
+  public:
+    EMPTY_DATA_;
+    bool adjustInputs(TempAllocator &alloc, MInstruction *ins);
+};
+
+
 class ToDoublePolicy : public BoxInputsPolicy
 {
   public:

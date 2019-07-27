@@ -2668,7 +2668,9 @@ class MNewDerivedTypedObject
 
 
 
-class MObjectState : public MVariadicInstruction
+class MObjectState
+  : public MVariadicInstruction,
+    public NoFloatPolicyAfter<1>::Data
 {
   private:
     uint32_t numSlots_;
@@ -2730,7 +2732,9 @@ class MObjectState : public MVariadicInstruction
 
 
 
-class MArrayState : public MVariadicInstruction
+class MArrayState
+  : public MVariadicInstruction,
+    public NoFloatPolicyAfter<2>::Data
 {
   private:
     uint32_t numElements_;
