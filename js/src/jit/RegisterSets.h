@@ -425,7 +425,7 @@ class TypedRegisterSet
         for (uint32_t a = 0; a < reg.numAliased(); a++) {
             T tmp;
             reg.aliased(a, &tmp);
-            bits_ &= ~(SetType(1) << tmp.code());
+            takeUnchecked(tmp);
         }
     }
     void take(ValueOperand value) {
@@ -488,12 +488,19 @@ class TypedRegisterSet
     T takeAny() {
         MOZ_ASSERT(!empty());
         T reg = getAny();
-        take(reg);
+        takeAllAliasedUnchecked(reg);
+        return reg;
+    }
+    T takeUnaliasedAny() {
+        
+        MOZ_ASSERT(!empty());
+        T reg = getAny();
+        takeUnchecked(reg);
         return reg;
     }
     T takeAnyExcluding(T preclude) {
         T reg = getAnyExcluding(preclude);
-        take(reg);
+        takeAllAliasedUnchecked(reg);
         return reg;
     }
     ValueOperand takeAnyValue() {
@@ -509,15 +516,20 @@ class TypedRegisterSet
 #endif
     }
     T takeFirst() {
+        
         MOZ_ASSERT(!empty());
         T reg = getFirst();
-        take(reg);
+        
+        
+        
+        takeAllAliasedUnchecked(reg);
         return reg;
     }
     T takeLast() {
+        
         MOZ_ASSERT(!empty());
         T reg = getLast();
-        take(reg);
+        takeAllAliasedUnchecked(reg);
         return reg;
     }
     void clear() {
@@ -646,8 +658,14 @@ class RegisterSet {
     FloatRegister takeFloat() {
         return fpu_.takeAny();
     }
+    FloatRegister takeUnaliasedFloat() {
+        return fpu_.takeUnaliasedAny();
+    }
     Register takeGeneral() {
         return gpr_.takeAny();
+    }
+    Register takeUnaliasedGeneral() {
+        return gpr_.takeUnaliasedAny();
     }
     ValueOperand takeValueOperand() {
 #if defined(JS_NUNBOX32)
@@ -670,10 +688,11 @@ class RegisterSet {
         else
             gpr_.takeAllAliasedUnchecked(reg.gpr());
     }
-    AnyRegister takeAny(bool isFloat) {
+    
+    AnyRegister takeUnaliasedAny(bool isFloat) {
         if (isFloat)
-            return AnyRegister(takeFloat());
-        return AnyRegister(takeGeneral());
+            return AnyRegister(takeUnaliasedFloat());
+        return AnyRegister(takeUnaliasedGeneral());
     }
     void clear() {
         gpr_.clear();

@@ -8186,7 +8186,9 @@ StackDecrementForCall(MacroAssembler &masm, uint32_t alignment, const VectorT &a
 static const RegisterSet NonVolatileRegs =
     RegisterSet(GeneralRegisterSet(Registers::NonVolatileMask &
                                    ~(uint32_t(1) << Registers::lr)),
-                FloatRegisterSet(FloatRegisters::NonVolatileMask | (1ULL << FloatRegisters::d15)));
+                FloatRegisterSet(FloatRegisters::NonVolatileMask
+                                 | (1ULL << FloatRegisters::d15)
+                                 | (1ULL << FloatRegisters::s31)));
 #else
 static const RegisterSet NonVolatileRegs =
     RegisterSet(GeneralRegisterSet(Registers::NonVolatileMask),
