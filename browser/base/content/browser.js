@@ -6688,14 +6688,6 @@ var gIdentityHandler = {
   
 
 
-  handleHelpCommand : function(event) {
-    openHelpLink("secure-connection");
-    this._identityPopup.hidePopup();
-  },
-
-  
-
-
 
   handleMoreInfoClick : function(event) {
     displaySecurityInfo();
