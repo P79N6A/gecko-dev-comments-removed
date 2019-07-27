@@ -29,6 +29,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "loopUtils",
   "resource:///modules/loop/utils.js", "utils");
 XPCOMUtils.defineLazyModuleGetter(this, "loopCrypto",
   "resource:///modules/loop/crypto.js", "LoopCrypto");
+XPCOMUtils.defineLazyModuleGetter(this, "ObjectUtils",
+  "resource://gre/modules/ObjectUtils.jsm");
 
 
 this.EXPORTED_SYMBOLS = ["LoopRooms", "roomsPushNotification"];
@@ -311,23 +313,11 @@ let LoopRoomsInternal = {
 
 
 
+
+
+
+
   promiseEncryptRoomData: Task.async(function* (roomData) {
-    
-    
-    
-    function getUnencryptedData() {
-      var serverRoomData = extend({}, roomData);
-      delete serverRoomData.decryptedContext;
-
-      
-      serverRoomData.roomName = roomData.decryptedContext.roomName;
-
-      return {
-        all: roomData,
-        encrypted: serverRoomData
-      };
-    }
-
     var newRoomData = extend({}, roomData);
 
     if (!newRoomData.context) {
@@ -337,17 +327,7 @@ let LoopRoomsInternal = {
     
     let key = yield this.promiseGetOrCreateRoomKey(newRoomData);
 
-    try {
-      newRoomData.context.wrappedKey = yield this.promiseEncryptedRoomKey(key);
-    }
-    catch (ex) {
-      
-      
-      if (ex.message == "FxA re-register not implemented") {
-        return getUnencryptedData();
-      }
-      return Promise.reject(ex);
-    }
+    newRoomData.context.wrappedKey = yield this.promiseEncryptedRoomKey(key);
 
     
     newRoomData.context.value = yield loopCrypto.encryptBytes(key,
@@ -462,8 +442,6 @@ let LoopRoomsInternal = {
       
 
       
-      
-      
       room.decryptedContext = {
         roomName: room.roomName
       };
@@ -475,6 +453,10 @@ let LoopRoomsInternal = {
 
       this.saveAndNotifyUpdate(room, isUpdate);
     } else {
+      
+      
+      
+      
       
       try {
         let roomData = yield this.promiseDecryptRoomData(room);
@@ -853,15 +835,7 @@ let LoopRoomsInternal = {
 
       
       
-      if (!sendData.context) {
-        sendData = {
-          roomName: room.decryptedContext.roomName
-        };
-      } else {
-        
-        
-        yield this.roomsCache.setKey(this.sessionType, all.roomToken, all.roomKey);
-      }
+      yield this.roomsCache.setKey(this.sessionType, all.roomToken, all.roomKey);
 
       let response = yield MozLoopService.hawkRequest(this.sessionType,
           url, "PATCH", sendData);

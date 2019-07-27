@@ -1351,7 +1351,8 @@ this.MozLoopService = {
 
         
         
-        reject(new Error("FxA re-register not implemented"));
+        
+        reject(new Error("No FxA key available"));
         return;
       }
 

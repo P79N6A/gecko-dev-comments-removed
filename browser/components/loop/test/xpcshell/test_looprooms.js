@@ -13,7 +13,7 @@ timerHandlers.startTimer = callback => callback();
 
 let openChatOrig = Chat.open;
 
-const kGuestKey = "uGIs-kGbYt1hBBwjyW7MLQ";
+const kKey = "uGIs-kGbYt1hBBwjyW7MLQ";
 
 
 const kRoomsResponses = new Map([
@@ -306,12 +306,7 @@ add_task(function* setup_server() {
         room.deleted = kRoomUpdates[qs.version].deleted;
         res.write(JSON.stringify([room]));
       } else {
-        
-        if (MozLoopServiceInternal.fxAOAuthTokenData) {
-          res.write(JSON.stringify([...kRoomsResponses.values()].slice(1, 3)));
-        } else {
-          res.write(JSON.stringify([...kRoomsResponses.values()]));
-        }
+        res.write(JSON.stringify([...kRoomsResponses.values()]));
       }
     }
 
@@ -433,8 +428,7 @@ add_task(function* test_openRoom() {
 
 
 add_task(function* test_refresh() {
-  
-  Array.prototype.push.apply(gExpectedAdds, [...kExpectedRooms.values()].slice(1, 3));
+  gExpectedAdds.push(...kExpectedRooms.values());
   gExpectedRefresh = true;
 
   
@@ -443,6 +437,7 @@ add_task(function* test_refresh() {
     email: "fake@invalid.com",
     uid: "fake"
   };
+  Services.prefs.setCharPref("loop.key.fxa", kKey);
 
   yield waitForCondition(() => !gExpectedRefresh);
   yield waitForCondition(() => gExpectedAdds.length === 0);
@@ -641,7 +636,7 @@ add_task(function* () {
 function run_test() {
   setupFakeLoopServer();
 
-  Services.prefs.setCharPref("loop.key", kGuestKey);
+  Services.prefs.setCharPref("loop.key", kKey);
 
   LoopRooms.on("add", onRoomAdded);
   LoopRooms.on("update", onRoomUpdated);
@@ -654,6 +649,7 @@ function run_test() {
     
     Chat.open = openChatOrig;
     Services.prefs.clearUserPref("loop.key");
+    Services.prefs.clearUserPref("loop.key.fxa");
 
     MozLoopServiceInternal.fxAOAuthTokenData = null;
     MozLoopServiceInternal.fxAOAuthProfile = null;
