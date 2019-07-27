@@ -179,7 +179,9 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function () {
 
     setFocusApp: function setFocusApp(id, isFocus) {
       
-      if (isFocus && (id == this.focusApp)) {
+      
+      
+      if (isFocus == (id == this.focusApp)) {
         return;
       }
 
