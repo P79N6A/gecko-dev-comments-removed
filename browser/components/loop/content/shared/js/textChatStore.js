@@ -68,6 +68,27 @@ loop.store.TextChatStore = (function() {
 
     dataChannelsAvailable: function() {
       this.setStoreState({ textChatEnabled: true });
+      window.dispatchEvent(new CustomEvent("LoopChatEnabled"));
+    },
+
+    
+
+
+
+
+
+    _appendTextChatMessage: function(type, actionData) {
+      
+      
+      var message = {
+        type: type,
+        contentType: actionData.contentType,
+        message: actionData.message
+      };
+      var newList = this._storeState.messageList.concat(message);
+      this.setStoreState({ messageList: newList });
+
+      window.dispatchEvent(new CustomEvent("LoopChatMessageAppended"));
     },
 
     
@@ -81,14 +102,8 @@ loop.store.TextChatStore = (function() {
       if (actionData.contentType != CHAT_CONTENT_TYPES.TEXT) {
         return;
       }
-      
-      
-      var newList = this._storeState.messageList.concat({
-        type: CHAT_MESSAGE_TYPES.RECEIVED,
-        contentType: actionData.contentType,
-        message: actionData.message
-      });
-      this.setStoreState({ messageList: newList });
+
+      this._appendTextChatMessage(CHAT_MESSAGE_TYPES.RECEIVED, actionData);
     },
 
     
@@ -97,15 +112,8 @@ loop.store.TextChatStore = (function() {
 
 
     sendTextChatMessage: function(actionData) {
-      
-      
-      var newList = this._storeState.messageList.concat({
-        type: CHAT_MESSAGE_TYPES.SENT,
-        contentType: actionData.contentType,
-        message: actionData.message
-      });
+      this._appendTextChatMessage(CHAT_MESSAGE_TYPES.SENT, actionData);
       this._sdkDriver.sendTextChatMessage(actionData);
-      this.setStoreState({ messageList: newList });
     }
   });
 

@@ -34,8 +34,8 @@
 
 
 
-  min-width: 320px;
-  min-height: 280px;
+  min-width: 260px;
+  min-height: 315px;
 }
 
 #main-window[customize-entered] {
@@ -907,8 +907,32 @@ chatbox {
   width: 260px; 
 }
 
-chatbox[large="true"] {
-  width: 300px;
+chatbox[customSize] {
+  width: 300px; 
+}
+
+#chat-window[customSize] {
+  min-width: 300px;
+}
+
+chatbox[customSize="loopChatEnabled"] {
+  
+  height: 325px;
+}
+
+#chat-window[customSize="loopChatEnabled"] {
+  
+  min-height: calc(325px + 30px);
+}
+
+chatbox[customSize="loopChatMessageAppended"] {
+  
+  height: 445px;
+}
+
+#chat-window[customSize="loopChatMessageAppended"] {
+  
+  min-height: calc(445px + 30px);
 }
 
 chatbox[minimized="true"] {
@@ -920,6 +944,15 @@ chatbar {
   -moz-binding: url("chrome://browser/content/socialchat.xml#chatbar");
   height: 0;
   max-height: 0;
+}
+
+.chatbar-innerbox {
+  margin: -285px 0 0;
+}
+
+chatbar[customSize] > .chatbar-innerbox {
+  
+  margin-top: -425px;
 }
 
 

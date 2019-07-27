@@ -853,26 +853,50 @@ let MozLoopServiceInternal = {
         return;
       }
 
-      chatbox.setAttribute("dark", true);
-      chatbox.setAttribute("large", true);
-
       chatbox.addEventListener("DOMContentLoaded", function loaded(event) {
         if (event.target != chatbox.contentDocument) {
           return;
         }
         chatbox.removeEventListener("DOMContentLoaded", loaded, true);
 
+        let chatbar = chatbox.parentNode;
         let window = chatbox.contentWindow;
 
         function socialFrameChanged(eventName) {
           UITour.availableTargetsCache.clear();
           UITour.notify(eventName);
+
+          if (eventName == "Loop:ChatWindowDetached" || eventName == "Loop:ChatWindowAttached") {
+            
+            
+            let ref = chatbar.chatboxForURL.get(chatbox.src);
+            chatbox = ref && ref.get() || chatbox;
+          }
         }
 
         window.addEventListener("socialFrameHide", socialFrameChanged.bind(null, "Loop:ChatWindowHidden"));
         window.addEventListener("socialFrameShow", socialFrameChanged.bind(null, "Loop:ChatWindowShown"));
         window.addEventListener("socialFrameDetached", socialFrameChanged.bind(null, "Loop:ChatWindowDetached"));
+        window.addEventListener("socialFrameAttached", socialFrameChanged.bind(null, "Loop:ChatWindowAttached"));
         window.addEventListener("unload", socialFrameChanged.bind(null, "Loop:ChatWindowClosed"));
+
+        const kSizeMap = {
+          LoopChatEnabled: "loopChatEnabled",
+          LoopChatMessageAppended: "loopChatMessageAppended"
+        };
+
+        function onChatEvent(event) {
+          
+          
+          let customSize = kSizeMap[event.type];
+          if (customSize) {
+            chatbox.setAttribute("customSize", customSize);
+            chatbox.parentNode.setAttribute("customSize", customSize);
+          }
+        }
+
+        window.addEventListener("LoopChatEnabled", onChatEvent);
+        window.addEventListener("LoopChatMessageAppended", onChatEvent);
 
         injectLoopAPI(window);
 
@@ -918,8 +942,16 @@ let MozLoopServiceInternal = {
       }.bind(this), true);
     };
 
-    if (!Chat.open(null, origin, "", url, undefined, undefined, callback)) {
+    let chatbox = Chat.open(null, origin, "", url, undefined, undefined, callback);
+    if (!chatbox) {
       return null;
+    
+    } else if (chatbox.setAttribute) {
+      
+      
+      chatbox.setAttribute("dark", true);
+      chatbox.setAttribute("customSize", "loopDefault");
+      chatbox.parentNode.setAttribute("customSize", "loopDefault");
     }
     return windowId;
   },
