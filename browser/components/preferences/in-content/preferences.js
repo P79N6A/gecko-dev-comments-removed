@@ -52,6 +52,9 @@ function init_all() {
   window.addEventListener("hashchange", onHashChange);
   gotoPref();
 
+  let helpCmd = document.getElementById("help-button");
+  helpCmd.addEventListener("command", helpButtonCommand);
+
   
   
   Services.obs.notifyObservers(window, "advanced-pane-loaded", null);
