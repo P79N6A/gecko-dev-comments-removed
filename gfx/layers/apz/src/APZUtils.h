@@ -16,6 +16,11 @@ enum HitTestResult {
   HitDispatchToContentRegion,
 };
 
+enum CancelAnimationFlags : uint32_t {
+  Default = 0,            
+  ExcludeOverscroll = 1   
+};
+
 }
 }
 

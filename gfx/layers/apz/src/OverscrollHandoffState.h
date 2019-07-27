@@ -11,6 +11,7 @@
 #include "nsAutoPtr.h"
 #include "nsISupportsImpl.h"  
 #include "Units.h"            
+#include "APZUtils.h"         
 
 namespace mozilla {
 namespace layers {
@@ -93,7 +94,7 @@ public:
   void FlushRepaints() const;
 
   
-  void CancelAnimations() const;
+  void CancelAnimations(CancelAnimationFlags aFlags = Default) const;
 
   
   void ClearOverscroll() const;

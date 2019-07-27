@@ -20,6 +20,7 @@
 #include "InputData.h"
 #include "Axis.h"
 #include "InputQueue.h"
+#include "APZUtils.h"
 #include "LayersTypes.h"
 #include "TaskThrottler.h"
 #include "mozilla/gfx/Matrix.h"
@@ -221,6 +222,12 @@ public:
 
 
 
+  Matrix4x4 GetCurrentAsyncTransformWithOverscroll() const;
+
+  
+
+
+
 
 
 
@@ -286,7 +293,9 @@ public:
   
 
 
-  void CancelAnimation();
+
+
+  void CancelAnimation(CancelAnimationFlags aFlags = Default);
 
   
 
