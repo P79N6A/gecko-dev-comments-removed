@@ -556,14 +556,6 @@ function promiseRaceValuesArray() {
 }
 
 function promiseRacePromiseArray() {
-  function timeoutPromise(n) {
-    return new Promise(function(resolve) {
-      setTimeout(function() {
-        resolve(n);
-      }, n);
-    });
-  }
-
   var arr = [
     new Promise(function(resolve) {
       resolve("first");
@@ -674,7 +666,7 @@ function promiseResolveThenableCleanStack() {
   var thenable = { then: immed };
   var results = [];
 
-  Promise.resolve(thenable).then(incX);
+  var p = Promise.resolve(thenable).then(incX);
   results.push(x);
 
   
@@ -683,8 +675,11 @@ function promiseResolveThenableCleanStack() {
     results.push(x);
     
     is(results[0], 0, "Expected thenable to be called asynchronously");
-    is(results[1], 2, "Expected thenable to be called asynchronously");
-    runTest();
+    
+    p.then(function() {
+      is(results[1], 2, "Expected thenable to be called asynchronously");
+      runTest();
+    });
   },1000);
 }
 
