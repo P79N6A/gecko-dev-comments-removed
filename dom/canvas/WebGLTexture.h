@@ -74,8 +74,8 @@ public:
 
         ImageInfo(GLsizei width,
                   GLsizei height,
-                  GLenum webGLFormat,
-                  GLenum webGLType,
+                  TexInternalFormat webGLFormat,
+                  TexType webGLType,
                   WebGLImageDataStatus status)
             : WebGLRectangleObject(width, height)
             , mWebGLFormat(webGLFormat)
@@ -114,16 +114,16 @@ public:
 
 
 
-        GLenum WebGLFormat() const { return mWebGLFormat; }
+        TexInternalFormat WebGLFormat() const { return mWebGLFormat; }
         
 
 
 
-        GLenum WebGLType() const { return mWebGLType; }
+        TexType WebGLType() const { return mWebGLType; }
 
     protected:
-        GLenum mWebGLFormat; 
-        GLenum mWebGLType;   
+        TexInternalFormat mWebGLFormat; 
+        TexType mWebGLType;   
         WebGLImageDataStatus mImageDataStatus;
 
         friend class WebGLTexture;
@@ -225,7 +225,7 @@ public:
 
     void SetImageInfo(TexImageTarget aTarget, GLint aLevel,
                       GLsizei aWidth, GLsizei aHeight,
-                      GLenum aFormat, GLenum aType, WebGLImageDataStatus aStatus);
+                      TexInternalFormat aFormat, TexType aType, WebGLImageDataStatus aStatus);
 
     void SetMinFilter(GLenum aMinFilter) {
         mMinFilter = aMinFilter;

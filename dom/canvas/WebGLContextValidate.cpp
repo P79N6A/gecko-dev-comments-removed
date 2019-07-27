@@ -1039,13 +1039,8 @@ WebGLContext::ValidateTexSubImageSize(GLint xoffset, GLint yoffset, GLint ,
 
 
 uint32_t
-WebGLContext::GetBitsPerTexel(GLenum format, GLenum type)
+WebGLContext::GetBitsPerTexel(TexInternalFormat format, TexType type)
 {
-    
-    if (!format || !type) {
-        return 0;
-    }
-
     
     if (type == LOCAL_GL_UNSIGNED_SHORT_4_4_4_4 ||
         type == LOCAL_GL_UNSIGNED_SHORT_5_5_5_1 ||
@@ -1058,7 +1053,7 @@ WebGLContext::GetBitsPerTexel(GLenum format, GLenum type)
         return 32;
 
     int bitsPerComponent = 0;
-    switch (type) {
+    switch (type.get()) {
     case LOCAL_GL_UNSIGNED_BYTE:
         bitsPerComponent = 8;
         break;
@@ -1079,7 +1074,7 @@ WebGLContext::GetBitsPerTexel(GLenum format, GLenum type)
         break;
     }
 
-    switch (format) {
+    switch (format.get()) {
         
     case LOCAL_GL_ALPHA:
     case LOCAL_GL_LUMINANCE:
@@ -1309,7 +1304,7 @@ WebGLContext::ValidateCopyTexImage(GLenum format, WebGLTexImageFunc func)
 
 bool
 WebGLContext::ValidateTexImage(GLuint dims, TexImageTarget texImageTarget,
-                               GLint level, GLint internalFormat,
+                               GLint level, GLenum internalFormat,
                                GLint xoffset, GLint yoffset, GLint zoffset,
                                GLint width, GLint height, GLint depth,
                                GLint border, GLenum format, GLenum type,
@@ -1339,7 +1334,7 @@ WebGLContext::ValidateTexImage(GLuint dims, TexImageTarget texImageTarget,
 
 
 
-    if ((GLint) format != internalFormat) {
+    if (format != internalFormat) {
         ErrorInvalidOperation("%s: format does not match internalformat", info);
         return false;
     }

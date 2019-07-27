@@ -13,12 +13,12 @@
 
 namespace mozilla {
 
-bool IsGLDepthFormat(GLenum webGLFormat);
-bool IsGLDepthStencilFormat(GLenum webGLFormat);
-bool FormatHasAlpha(GLenum webGLFormat);
-void DriverFormatsFromFormatAndType(gl::GLContext* gl, GLenum webGLFormat, GLenum webGLType,
+bool IsGLDepthFormat(TexInternalFormat webGLFormat);
+bool IsGLDepthStencilFormat(TexInternalFormat webGLFormat);
+bool FormatHasAlpha(TexInternalFormat webGLFormat);
+void DriverFormatsFromFormatAndType(gl::GLContext* gl, TexInternalFormat webGLFormat, TexType webGLType,
                                     GLenum* out_driverInternalFormat, GLenum* out_driverFormat);
-GLenum DriverTypeFromType(gl::GLContext* gl, GLenum webGLType);
+GLenum DriverTypeFromType(gl::GLContext* gl, TexType webGLType);
 
 
 
@@ -51,7 +51,7 @@ struct GLComponents
         : mComponents(0)
     { }
 
-    explicit GLComponents(GLenum aFormat);
+    explicit GLComponents(TexInternalFormat aFormat);
 
     
     
