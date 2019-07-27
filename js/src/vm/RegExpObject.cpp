@@ -912,11 +912,11 @@ RegExpCompartment::sweep(JSRuntime* rt)
         
         
         bool keep = shared->marked() &&
-                    IsStringMarkedFromAnyThread(&shared->source);
+                    IsStringMarked(&shared->source);
         for (size_t i = 0; i < ArrayLength(shared->compilationArray); i++) {
             RegExpShared::RegExpCompilation& compilation = shared->compilationArray[i];
             if (compilation.jitCode &&
-                IsJitCodeAboutToBeFinalizedFromAnyThread(compilation.jitCode.unsafeGet()))
+                IsJitCodeAboutToBeFinalized(compilation.jitCode.unsafeGet()))
             {
                 keep = false;
             }
@@ -930,7 +930,7 @@ RegExpCompartment::sweep(JSRuntime* rt)
     }
 
     if (matchResultTemplateObject_ &&
-        IsObjectAboutToBeFinalizedFromAnyThread(matchResultTemplateObject_.unsafeGet()))
+        IsObjectAboutToBeFinalized(matchResultTemplateObject_.unsafeGet()))
     {
         matchResultTemplateObject_.set(nullptr);
     }

@@ -255,7 +255,7 @@ JSRuntime::sweepAtoms()
     for (AtomSet::Enum e(*atoms_); !e.empty(); e.popFront()) {
         AtomStateEntry entry = e.front();
         JSAtom* atom = entry.asPtr();
-        bool isDying = IsStringAboutToBeFinalizedFromAnyThread(&atom);
+        bool isDying = IsStringAboutToBeFinalized(&atom);
 
         
         MOZ_ASSERT_IF(hasContexts() && entry.isTagged(), !isDying);
