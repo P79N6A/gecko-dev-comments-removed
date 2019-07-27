@@ -194,6 +194,12 @@ public:
   }
 
   
+  
+  
+  bool UsesGrandancestorStyle() const
+    { return !!(mBits & NS_STYLE_USES_GRANDANCESTOR_STYLE); }
+
+  
   void SetStyle(nsStyleStructID aSID, void* aStruct);
 
   
