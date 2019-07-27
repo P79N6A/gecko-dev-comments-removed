@@ -94,7 +94,7 @@ function BrowserElementChild() {
 
   this._isContentWindowCreated = false;
   this._pendingSetInputMethodActive = [];
-  this._forceDispatchSelectionStateChanged = false;
+  this._selectionStateChangedTarget = null;
 
   this._init();
 };
@@ -600,7 +600,7 @@ BrowserElementChild.prototype = {
     let isMouseUp = (e.states.indexOf('mouseup') == 0);
     let canPaste = this._isCommandEnabled("paste");
 
-    if (!this._forceDispatchSelectionStateChanged) {
+    if (this._selectionStateChangedTarget != e.target) {
       
       
       
@@ -628,10 +628,11 @@ BrowserElementChild.prototype = {
     
     
     
+    
     if (e.visible && !isCollapsed) {
-      this._forceDispatchSelectionStateChanged = true;
+      this._selectionStateChangedTarget = e.target;
     } else {
-      this._forceDispatchSelectionStateChanged = false;
+      this._selectionStateChangedTarget = null;
     }
 
     let zoomFactor = content.screen.width / content.innerWidth;
