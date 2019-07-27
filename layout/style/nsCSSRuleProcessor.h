@@ -52,9 +52,12 @@ public:
 
   
   
+  
+  
   nsCSSRuleProcessor(const sheet_array_type& aSheets,
                      uint8_t aSheetType,
-                     mozilla::dom::Element* aScopeElement);
+                     mozilla::dom::Element* aScopeElement,
+                     nsCSSRuleProcessor* aPreviousCSSRuleProcessor);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(nsCSSRuleProcessor)
