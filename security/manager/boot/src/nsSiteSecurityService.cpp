@@ -2,24 +2,23 @@
 
 
 
-#include "plstr.h"
-#include "prlog.h"
-#include "prprf.h"
-#include "prnetdb.h"
+#include "nsSiteSecurityService.h"
+
+#include "mozilla/LinkedList.h"
+#include "mozilla/Preferences.h"
 #include "nsCRTGlue.h"
-#include "nsIPermissionManager.h"
 #include "nsISSLStatus.h"
 #include "nsISSLStatusProvider.h"
-#include "nsSiteSecurityService.h"
+#include "nsISocketProvider.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
-#include "nsThreadUtils.h"
-#include "nsString.h"
-#include "nsIScriptSecurityManager.h"
-#include "nsISocketProvider.h"
-#include "mozilla/Preferences.h"
-#include "mozilla/LinkedList.h"
 #include "nsSecurityHeaderParser.h"
+#include "nsString.h"
+#include "nsThreadUtils.h"
+#include "plstr.h"
+#include "prlog.h"
+#include "prnetdb.h"
+#include "prprf.h"
 #include "nsXULAppAPI.h"
 
 
@@ -29,12 +28,7 @@
 
 
 
-
 #include "nsSTSPreloadList.inc"
-
-#define STS_SET (nsIPermissionManager::ALLOW_ACTION)
-#define STS_UNSET (nsIPermissionManager::UNKNOWN_ACTION)
-#define STS_KNOCKOUT (nsIPermissionManager::DENY_ACTION)
 
 #if defined(PR_LOGGING)
 static PRLogModuleInfo *
@@ -51,29 +45,58 @@ GetSSSLog()
 
 
 
-nsSSSHostEntry::nsSSSHostEntry(const char* aHost)
-  : mHost(aHost)
-  , mExpireTime(0)
-  , mStsPermission(STS_UNSET)
-  , mExpired(false)
-  , mIncludeSubdomains(false)
+SiteSecurityState::SiteSecurityState(nsCString& aStateString)
+  : mHSTSExpireTime(0)
+  , mHSTSState(SecurityPropertyUnset)
+  , mHSTSIncludeSubdomains(false)
+{
+  uint32_t hstsState = 0;
+  uint32_t hstsIncludeSubdomains = 0; 
+  int32_t matches = PR_sscanf(aStateString.get(), "%lld,%lu,%lu",
+                              &mHSTSExpireTime, &hstsState,
+                              &hstsIncludeSubdomains);
+  bool valid = (matches == 3 &&
+                (hstsIncludeSubdomains == 0 || hstsIncludeSubdomains == 1) &&
+                ((SecurityPropertyState)hstsState == SecurityPropertyUnset ||
+                 (SecurityPropertyState)hstsState == SecurityPropertySet ||
+                 (SecurityPropertyState)hstsState == SecurityPropertyKnockout));
+  if (valid) {
+    mHSTSState = (SecurityPropertyState)hstsState;
+    mHSTSIncludeSubdomains = (hstsIncludeSubdomains == 1);
+  } else {
+    SSSLOG(("%s is not a valid SiteSecurityState", aStateString.get()));
+    mHSTSExpireTime = 0;
+    mHSTSState = SecurityPropertyUnset;
+    mHSTSIncludeSubdomains = false;
+  }
+}
+
+SiteSecurityState::SiteSecurityState(PRTime aHSTSExpireTime,
+                                     SecurityPropertyState aHSTSState,
+                                     bool aHSTSIncludeSubdomains)
+
+  : mHSTSExpireTime(aHSTSExpireTime)
+  , mHSTSState(aHSTSState)
+  , mHSTSIncludeSubdomains(aHSTSIncludeSubdomains)
 {
 }
 
-nsSSSHostEntry::nsSSSHostEntry(const nsSSSHostEntry& toCopy)
-  : mHost(toCopy.mHost)
-  , mExpireTime(toCopy.mExpireTime)
-  , mStsPermission(toCopy.mStsPermission)
-  , mExpired(toCopy.mExpired)
-  , mIncludeSubdomains(toCopy.mIncludeSubdomains)
+void
+SiteSecurityState::ToString(nsCString& aString)
 {
+  aString.Truncate();
+  aString.AppendInt(mHSTSExpireTime);
+  aString.Append(',');
+  aString.AppendInt(mHSTSState);
+  aString.Append(',');
+  aString.AppendInt(static_cast<uint32_t>(mHSTSIncludeSubdomains));
 }
-
 
 
 
 nsSiteSecurityService::nsSiteSecurityService()
   : mUsePreloadList(true)
+  , mPreloadListTimeOffset(0)
 {
 }
 
@@ -93,18 +116,35 @@ nsSiteSecurityService::Init()
      MOZ_CRASH("Child process: no direct access to nsSiteSecurityService");
    }
 
-   nsresult rv;
+  
+  if (!NS_IsMainThread()) {
+    NS_NOTREACHED("nsSiteSecurityService initialized off main thread");
+    return NS_ERROR_NOT_SAME_THREAD;
+  }
 
-   mPermMgr = do_GetService(NS_PERMISSIONMANAGER_CONTRACTID, &rv);
-   NS_ENSURE_SUCCESS(rv, rv);
+  mUsePreloadList = mozilla::Preferences::GetBool(
+    "network.stricttransportsecurity.preloadlist", true);
+  mozilla::Preferences::AddStrongObserver(this,
+    "network.stricttransportsecurity.preloadlist");
+  mPreloadListTimeOffset = mozilla::Preferences::GetInt(
+    "test.currentTimeOffsetSeconds", 0);
+  mozilla::Preferences::AddStrongObserver(this,
+    "test.currentTimeOffsetSeconds");
+  mSiteStateStorage =
+    new mozilla::DataStorage(NS_LITERAL_STRING("SiteSecurityServiceState.txt"));
+  bool storageWillPersist = false;
+  nsresult rv = mSiteStateStorage->Init(storageWillPersist);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+  
+  
+  
+  if (!storageWillPersist) {
+    NS_WARNING("site security information will not be persisted");
+  }
 
-   mUsePreloadList = mozilla::Preferences::GetBool("network.stricttransportsecurity.preloadlist", true);
-   mozilla::Preferences::AddStrongObserver(this, "network.stricttransportsecurity.preloadlist");
-   mObserverService = mozilla::services::GetObserverService();
-   if (mObserverService)
-     mObserverService->AddObserver(this, "last-pb-context-exited", false);
-
-   return NS_OK;
+  return NS_OK;
 }
 
 nsresult
@@ -119,29 +159,6 @@ nsSiteSecurityService::GetHost(nsIURI *aURI, nsACString &aResult)
     return NS_ERROR_UNEXPECTED;
 
   return NS_OK;
-}
-
-nsresult
-nsSiteSecurityService::GetPrincipalForURI(nsIURI* aURI,
-                                          nsIPrincipal** aPrincipal)
-{
-  nsresult rv;
-  nsCOMPtr<nsIScriptSecurityManager> securityManager =
-     do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  nsAutoCString host;
-  rv = GetHost(aURI, host);
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsCOMPtr<nsIURI> uri;
-  rv = NS_NewURI(getter_AddRefs(uri), NS_LITERAL_CSTRING("https://") + host);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  return securityManager->GetNoAppCodebasePrincipal(uri, aPrincipal);
 }
 
 nsresult
@@ -162,46 +179,28 @@ nsSiteSecurityService::SetState(uint32_t aType,
   int64_t expiretime = (PR_Now() / PR_USEC_PER_MSEC) +
                        (maxage * PR_MSEC_PER_SEC);
 
+  SiteSecurityState siteState(expiretime, SecurityPropertySet,
+                              includeSubdomains);
+  nsAutoCString stateString;
+  siteState.ToString(stateString);
+  nsAutoCString hostname;
+  nsresult rv = GetHost(aSourceURI, hostname);
+  NS_ENSURE_SUCCESS(rv, rv);
+  SSSLOG(("SSS: setting state for %s", hostname.get()));
   bool isPrivate = flags & nsISocketProvider::NO_PERMANENT_STORAGE;
-
-  
-  SSSLOG(("SSS: maxage permission SET, adding permission\n"));
-  nsresult rv = AddPermission(aSourceURI,
-                              STS_PERMISSION,
-                              (uint32_t) STS_SET,
-                              (uint32_t) nsIPermissionManager::EXPIRE_TIME,
-                              expiretime,
-                              isPrivate);
+  mozilla::DataStorageType storageType = isPrivate
+                                         ? mozilla::DataStorage_Private
+                                         : mozilla::DataStorage_Persistent;
+  rv = mSiteStateStorage->Put(hostname, stateString, storageType);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (includeSubdomains) {
-    
-    SSSLOG(("SSS: subdomains permission SET, adding permission\n"));
-    rv = AddPermission(aSourceURI,
-                       STS_SUBDOMAIN_PERMISSION,
-                       (uint32_t) STS_SET,
-                       (uint32_t) nsIPermissionManager::EXPIRE_TIME,
-                       expiretime,
-                       isPrivate);
-    NS_ENSURE_SUCCESS(rv, rv);
-  } else { 
-    nsAutoCString hostname;
-    rv = GetHost(aSourceURI, hostname);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    SSSLOG(("SSS: subdomains permission UNSET, removing any existing ones\n"));
-    rv = RemovePermission(hostname, STS_SUBDOMAIN_PERMISSION, isPrivate);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSiteSecurityService::RemoveState(uint32_t aType, nsIURI* aURI, uint32_t aFlags)
+nsSiteSecurityService::RemoveState(uint32_t aType, nsIURI* aURI,
+                                   uint32_t aFlags)
 {
-  
-  
-  NS_ENSURE_TRUE(NS_IsMainThread(), NS_ERROR_UNEXPECTED);
   
   NS_ENSURE_TRUE(aType == nsISiteSecurityService::HEADER_HSTS,
                  NS_ERROR_NOT_IMPLEMENTED);
@@ -211,14 +210,21 @@ nsSiteSecurityService::RemoveState(uint32_t aType, nsIURI* aURI, uint32_t aFlags
   NS_ENSURE_SUCCESS(rv, rv);
 
   bool isPrivate = aFlags & nsISocketProvider::NO_PERMANENT_STORAGE;
-
-  rv = RemovePermission(hostname, STS_PERMISSION, isPrivate);
-  NS_ENSURE_SUCCESS(rv, rv);
-  SSSLOG(("SSS: deleted maxage permission\n"));
-
-  rv = RemovePermission(hostname, STS_SUBDOMAIN_PERMISSION, isPrivate);
-  NS_ENSURE_SUCCESS(rv, rv);
-  SSSLOG(("SSS: deleted subdomains permission\n"));
+  mozilla::DataStorageType storageType = isPrivate
+                                         ? mozilla::DataStorage_Private
+                                         : mozilla::DataStorage_Persistent;
+  
+  if (GetPreloadListEntry(hostname.get())) {
+    SSSLOG(("SSS: storing knockout entry for %s", hostname.get()));
+    SiteSecurityState siteState(0, SecurityPropertyKnockout, false);
+    nsAutoCString stateString;
+    siteState.ToString(stateString);
+    rv = mSiteStateStorage->Put(hostname, stateString, storageType);
+    NS_ENSURE_SUCCESS(rv, rv);
+  } else {
+    SSSLOG(("SSS: removing entry for %s", hostname.get()));
+    mSiteStateStorage->Remove(hostname, storageType);
+  }
 
   return NS_OK;
 }
@@ -238,9 +244,6 @@ nsSiteSecurityService::ProcessHeader(uint32_t aType,
                                      uint64_t *aMaxAge,
                                      bool *aIncludeSubdomains)
 {
-  
-  
-  NS_ENSURE_TRUE(NS_IsMainThread(), NS_ERROR_UNEXPECTED);
   
   NS_ENSURE_TRUE(aType == nsISiteSecurityService::HEADER_HSTS,
                  NS_ERROR_NOT_IMPLEMENTED);
@@ -354,11 +357,13 @@ nsSiteSecurityService::ProcessHeaderMutating(uint32_t aType,
       foundIncludeSubdomains = true;
 
       if (directive->mValue.Length() != 0) {
-        SSSLOG(("SSS: includeSubdomains directive unexpectedly had value '%s'", directive->mValue.get()));
+        SSSLOG(("SSS: includeSubdomains directive unexpectedly had value '%s'",
+                directive->mValue.get()));
         return NS_ERROR_FAILURE;
       }
     } else {
-      SSSLOG(("SSS: ignoring unrecognized directive '%s'", directive->mName.get()));
+      SSSLOG(("SSS: ignoring unrecognized directive '%s'",
+              directive->mName.get()));
       foundUnrecognizedDirective = true;
     }
   }
@@ -381,34 +386,28 @@ nsSiteSecurityService::ProcessHeaderMutating(uint32_t aType,
     *aIncludeSubdomains = foundIncludeSubdomains;
   }
 
-  return foundUnrecognizedDirective ?
-         NS_SUCCESS_LOSS_OF_INSIGNIFICANT_DATA :
-         NS_OK;
+  return foundUnrecognizedDirective ? NS_SUCCESS_LOSS_OF_INSIGNIFICANT_DATA
+                                    : NS_OK;
 }
 
 NS_IMETHODIMP
-nsSiteSecurityService::IsSecureHost(uint32_t aType, const char* aHost,
-                                    uint32_t aFlags, bool* aResult)
+nsSiteSecurityService::IsSecureURI(uint32_t aType, nsIURI* aURI,
+                                   uint32_t aFlags, bool* aResult)
 {
-  
-  
-  NS_ENSURE_TRUE(NS_IsMainThread(), NS_ERROR_UNEXPECTED);
   
   NS_ENSURE_TRUE(aType == nsISiteSecurityService::HEADER_HSTS,
                  NS_ERROR_NOT_IMPLEMENTED);
 
+  nsAutoCString hostname;
+  nsresult rv = GetHost(aURI, hostname);
+  NS_ENSURE_SUCCESS(rv, rv);
   
-  if (HostIsIPAddress(aHost)) {
+  if (HostIsIPAddress(hostname.get())) {
     *aResult = false;
     return NS_OK;
   }
 
-  nsCOMPtr<nsIURI> uri;
-  nsDependentCString hostString(aHost);
-  nsresult rv = NS_NewURI(getter_AddRefs(uri),
-                          NS_LITERAL_CSTRING("https://") + hostString);
-  NS_ENSURE_SUCCESS(rv, rv);
-  return IsSecureURI(aType, uri, aFlags, aResult);
+  return IsSecureHost(aType, hostname.get(), aFlags, aResult);
 }
 
 int STSPreloadCompare(const void *key, const void *entry)
@@ -424,14 +423,7 @@ int STSPreloadCompare(const void *key, const void *entry)
 const nsSTSPreload *
 nsSiteSecurityService::GetPreloadListEntry(const char *aHost)
 {
-  PRTime currentTime = PR_Now();
-  int32_t timeOffset = 0;
-  nsresult rv = mozilla::Preferences::GetInt("test.currentTimeOffsetSeconds",
-                                             &timeOffset);
-  if (NS_SUCCEEDED(rv)) {
-    currentTime += (PRTime(timeOffset) * PR_USEC_PER_SEC);
-  }
-
+  PRTime currentTime = PR_Now() + (mPreloadListTimeOffset * PR_USEC_PER_SEC);
   if (mUsePreloadList && currentTime < gPreloadListExpirationTime) {
     return (const nsSTSPreload *) bsearch(aHost,
                                           kSTSPreloadList,
@@ -444,12 +436,9 @@ nsSiteSecurityService::GetPreloadListEntry(const char *aHost)
 }
 
 NS_IMETHODIMP
-nsSiteSecurityService::IsSecureURI(uint32_t aType, nsIURI* aURI,
-                                   uint32_t aFlags, bool* aResult)
+nsSiteSecurityService::IsSecureHost(uint32_t aType, const char* aHost,
+                                    uint32_t aFlags, bool* aResult)
 {
-  
-  
-  NS_ENSURE_TRUE(NS_IsMainThread(), NS_ERROR_UNEXPECTED);
   
   NS_ENSURE_TRUE(aType == nsISiteSecurityService::HEADER_HSTS,
                  NS_ERROR_NOT_IMPLEMENTED);
@@ -457,59 +446,45 @@ nsSiteSecurityService::IsSecureURI(uint32_t aType, nsIURI* aURI,
   
   *aResult = false;
 
-  nsAutoCString host;
-  nsresult rv = GetHost(aURI, host);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   
-  if (HostIsIPAddress(host.BeginReading())) {
+  if (HostIsIPAddress(aHost)) {
     return NS_OK;
   }
 
   
+  nsAutoCString host(aHost);
+  ToLowerCase(host);
   if (host.EqualsLiteral("chart.apis.google.com") ||
       StringEndsWith(host, NS_LITERAL_CSTRING(".chart.apis.google.com"))) {
     return NS_OK;
   }
 
   const nsSTSPreload *preload = nullptr;
-  nsSSSHostEntry *pbEntry = nullptr;
 
+  
+  
+  
+  
+  
+  
+  
   bool isPrivate = aFlags & nsISocketProvider::NO_PERMANENT_STORAGE;
-  if (isPrivate) {
-    pbEntry = mPrivateModeHostTable.GetEntry(host.get());
-  }
-
-  nsCOMPtr<nsIPrincipal> principal;
-  rv = GetPrincipalForURI(aURI, getter_AddRefs(principal));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  uint32_t permMgrPermission;
-  rv = mPermMgr->TestExactPermissionFromPrincipal(principal, STS_PERMISSION,
-                                                  &permMgrPermission);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  
-  
-  
-  
-  if (pbEntry && pbEntry->mStsPermission != STS_UNSET) {
-    SSSLOG(("Found private browsing table entry for %s", host.get()));
-    if (!pbEntry->IsExpired() && pbEntry->mStsPermission == STS_SET) {
+  mozilla::DataStorageType storageType = isPrivate
+                                         ? mozilla::DataStorage_Private
+                                         : mozilla::DataStorage_Persistent;
+  nsCString value = mSiteStateStorage->Get(host, storageType);
+  SiteSecurityState siteState(value);
+  if (siteState.mHSTSState != SecurityPropertyUnset) {
+    SSSLOG(("Found entry for %s", host.get()));
+    bool expired = siteState.IsExpired(aType);
+    if (!expired && siteState.mHSTSState == SecurityPropertySet) {
       *aResult = true;
       return NS_OK;
     }
-  }
-  
-  
-  else if (permMgrPermission != STS_UNSET) {
-    SSSLOG(("Found permission manager entry for %s", host.get()));
-    if (permMgrPermission == STS_SET) {
-      *aResult = true;
-      return NS_OK;
+
+    
+    if (expired && !GetPreloadListEntry(host.get())) {
+      mSiteStateStorage->Remove(host, storageType);
     }
   }
   
@@ -520,12 +495,9 @@ nsSiteSecurityService::IsSecureURI(uint32_t aType, nsIURI* aURI,
     return NS_OK;
   }
 
-  
-  nsCOMPtr<nsIURI> domainWalkURI;
-  nsCOMPtr<nsIPrincipal> domainWalkPrincipal;
+  SSSLOG(("no HSTS data for %s found, walking up domain", host.get()));
   const char *subdomain;
 
-  SSSLOG(("no HSTS data for %s found, walking up domain", host.get()));
   uint32_t offset = 0;
   for (offset = host.FindChar('.', offset) + 1;
        offset > 0;
@@ -538,46 +510,26 @@ nsSiteSecurityService::IsSecureURI(uint32_t aType, nsIURI* aURI,
       break;
     }
 
-    if (isPrivate) {
-      pbEntry = mPrivateModeHostTable.GetEntry(subdomain);
-    }
-
-    
-    rv = NS_NewURI(getter_AddRefs(domainWalkURI),
-                   NS_LITERAL_CSTRING("https://") + Substring(host, offset));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = GetPrincipalForURI(domainWalkURI, getter_AddRefs(domainWalkPrincipal));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = mPermMgr->TestExactPermissionFromPrincipal(domainWalkPrincipal,
-                                                    STS_PERMISSION,
-                                                    &permMgrPermission);
-    NS_ENSURE_SUCCESS(rv, rv);
-
     
     
     
     
     
     
-    if (pbEntry && pbEntry->mStsPermission != STS_UNSET) {
-      SSSLOG(("Found private browsing table entry for %s", subdomain));
-      if (!pbEntry->IsExpired() && pbEntry->mStsPermission == STS_SET) {
-        *aResult = pbEntry->mIncludeSubdomains;
+    nsCString subdomainString(subdomain);
+    value = mSiteStateStorage->Get(subdomainString, storageType);
+    SiteSecurityState siteState(value);
+    if (siteState.mHSTSState != SecurityPropertyUnset) {
+      SSSLOG(("Found entry for %s", subdomain));
+      bool expired = siteState.IsExpired(aType);
+      if (!expired && siteState.mHSTSState == SecurityPropertySet) {
+        *aResult = siteState.mHSTSIncludeSubdomains;
         break;
       }
-    }
-    else if (permMgrPermission != STS_UNSET) {
-      SSSLOG(("Found permission manager entry for %s", subdomain));
-      if (permMgrPermission == STS_SET) {
-        uint32_t subdomainPermission;
-        rv = mPermMgr->TestExactPermissionFromPrincipal(domainWalkPrincipal,
-                                                        STS_SUBDOMAIN_PERMISSION,
-                                                        &subdomainPermission);
-        NS_ENSURE_SUCCESS(rv, rv);
-        *aResult = (subdomainPermission == STS_SET);
-        break;
+
+      
+      if (expired && !GetPreloadListEntry(subdomain)) {
+        mSiteStateStorage->Remove(subdomainString, storageType);
       }
     }
     
@@ -630,6 +582,12 @@ nsSiteSecurityService::ShouldIgnoreHeaders(nsISupports* aSecurityInfo,
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsSiteSecurityService::ClearAll()
+{
+  return mSiteStateStorage->Clear();
+}
+
 
 
 
@@ -639,123 +597,18 @@ nsSiteSecurityService::Observe(nsISupports *subject,
                                const char *topic,
                                const char16_t *data)
 {
-  if (strcmp(topic, "last-pb-context-exited") == 0) {
-    mPrivateModeHostTable.Clear();
+  
+  if (!NS_IsMainThread()) {
+    NS_NOTREACHED("Preferences accessed off main thread");
+    return NS_ERROR_NOT_SAME_THREAD;
   }
-  else if (strcmp(topic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID) == 0) {
-    mUsePreloadList = mozilla::Preferences::GetBool("network.stricttransportsecurity.preloadlist", true);
+
+  if (strcmp(topic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID) == 0) {
+    mUsePreloadList = mozilla::Preferences::GetBool(
+      "network.stricttransportsecurity.preloadlist", true);
+    mPreloadListTimeOffset =
+      mozilla::Preferences::GetInt("test.currentTimeOffsetSeconds", 0);
   }
 
   return NS_OK;
-}
-
-
-
-
-
-nsresult
-nsSiteSecurityService::AddPermission(nsIURI     *aURI,
-                                     const char *aType,
-                                     uint32_t   aPermission,
-                                     uint32_t   aExpireType,
-                                     int64_t    aExpireTime,
-                                     bool       aIsPrivate)
-{
-    
-    
-    if (!aIsPrivate || aExpireType == nsIPermissionManager::EXPIRE_NEVER) {
-      
-      nsCOMPtr<nsIPrincipal> principal;
-      nsresult rv = GetPrincipalForURI(aURI, getter_AddRefs(principal));
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      return mPermMgr->AddFromPrincipal(principal, aType, aPermission,
-                                        aExpireType, aExpireTime);
-    }
-
-    nsAutoCString host;
-    nsresult rv = GetHost(aURI, host);
-    NS_ENSURE_SUCCESS(rv, rv);
-    SSSLOG(("AddPermission for entry for %s", host.get()));
-
-    
-    
-
-    
-    
-    
-    
-    
-    
-
-    
-    
-    nsSSSHostEntry* entry = mPrivateModeHostTable.PutEntry(host.get());
-    if (!entry) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-    SSSLOG(("Created private mode entry for %s", host.get()));
-
-    
-    
-    
-    
-    
-    if (strcmp(aType, STS_SUBDOMAIN_PERMISSION) == 0) {
-      entry->mIncludeSubdomains = true;
-    }
-    else if (strcmp(aType, STS_PERMISSION) == 0) {
-      entry->mStsPermission = aPermission;
-    }
-
-    
-    entry->SetExpireTime(aExpireTime);
-    return NS_OK;
-}
-
-nsresult
-nsSiteSecurityService::RemovePermission(const nsCString  &aHost,
-                                        const char       *aType,
-                                        bool aIsPrivate)
-{
-    
-    
-    nsCOMPtr<nsIURI> uri;
-    nsresult rv = NS_NewURI(getter_AddRefs(uri),
-                            NS_LITERAL_CSTRING("https://") + aHost);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsCOMPtr<nsIPrincipal> principal;
-    rv = GetPrincipalForURI(uri, getter_AddRefs(principal));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    if (!aIsPrivate) {
-      
-      
-      
-      return mPermMgr->AddFromPrincipal(principal, aType,
-                                        STS_KNOCKOUT,
-                                        nsIPermissionManager::EXPIRE_NEVER, 0);
-    }
-
-    
-    
-    nsSSSHostEntry* entry = mPrivateModeHostTable.GetEntry(aHost.get());
-
-    if (!entry) {
-      entry = mPrivateModeHostTable.PutEntry(aHost.get());
-      if (!entry) {
-        return NS_ERROR_OUT_OF_MEMORY;
-      }
-      SSSLOG(("Created private mode deleted mask for %s", aHost.get()));
-    }
-
-    if (strcmp(aType, STS_PERMISSION) == 0) {
-      entry->mStsPermission = STS_KNOCKOUT;
-    }
-    else if (strcmp(aType, STS_SUBDOMAIN_PERMISSION) == 0) {
-      entry->mIncludeSubdomains = false;
-    }
-
-    return NS_OK;
 }

@@ -2,22 +2,17 @@
 
 
 
-
-
-
-
 #ifndef __nsSiteSecurityService_h__
 #define __nsSiteSecurityService_h__
 
-#include "nsISiteSecurityService.h"
-#include "nsIObserver.h"
-#include "nsIObserverService.h"
-#include "nsIPermissionManager.h"
+#include "mozilla/DataStorage.h"
 #include "nsCOMPtr.h"
-#include "nsIURI.h"
+#include "nsIObserver.h"
+#include "nsISiteSecurityService.h"
 #include "nsString.h"
-#include "nsTHashtable.h"
 #include "prtime.h"
+
+class nsIURI;
 
 
 #define NS_SITE_SECURITY_SERVICE_CID \
@@ -33,91 +28,49 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class nsSSSHostEntry : public PLDHashEntryHdr
-{
-  public:
-    explicit nsSSSHostEntry(const char* aHost);
-    explicit nsSSSHostEntry(const nsSSSHostEntry& toCopy);
-
-    nsCString    mHost;
-    PRTime       mExpireTime;
-    uint32_t     mStsPermission;
-    bool         mExpired;
-    bool         mIncludeSubdomains;
-
-    
-    typedef const char* KeyType;
-    typedef const char* KeyTypePointer;
-
-    KeyType GetKey() const
-    {
-      return mHost.get();
-    }
-
-    bool KeyEquals(KeyTypePointer aKey) const
-    {
-      return !strcmp(mHost.get(), aKey);
-    }
-
-    static KeyTypePointer KeyToPointer(KeyType aKey)
-    {
-      return aKey;
-    }
-
-    static PLDHashNumber HashKey(KeyTypePointer aKey)
-    {
-      return PL_DHashStringKey(nullptr, aKey);
-    }
-
-    void SetExpireTime(PRTime aExpireTime)
-    {
-      mExpireTime = aExpireTime;
-      mExpired = false;
-    }
-
-    bool IsExpired()
-    {
-      
-      
-      
-      if (mExpired || mExpireTime == 0) {
-        return mExpired;
-      }
-
-      PRTime now = PR_Now() / PR_USEC_PER_MSEC;
-      if (now > mExpireTime) {
-        mExpired = true;
-      }
-
-      return mExpired;
-    }
-
-    
-    enum { ALLOW_MEMMOVE = false };
+enum SecurityPropertyState {
+  SecurityPropertyUnset = 0,
+  SecurityPropertySet = 1,
+  SecurityPropertyKnockout = 2
 };
 
+
+
+
+
+
+
+
+
+class SiteSecurityState
+{
+public:
+  SiteSecurityState(nsCString& aStateString);
+  SiteSecurityState(PRTime aHSTSExpireTime, SecurityPropertyState aHSTSState,
+                    bool aHSTSIncludeSubdomains);
+
+  PRTime mHSTSExpireTime;
+  SecurityPropertyState mHSTSState;
+  bool mHSTSIncludeSubdomains;
+
+  bool IsExpired(uint32_t aType)
+  {
+    
+    
+    if (mHSTSExpireTime == 0) {
+      return false;
+    }
+
+    PRTime now = PR_Now() / PR_USEC_PER_MSEC;
+    if (now > mHSTSExpireTime) {
+      return true;
+    }
+
+    return false;
+  }
+
+  void ToString(nsCString &aString);
+};
 
 class nsSTSPreload;
 
@@ -137,7 +90,6 @@ protected:
 
 private:
   nsresult GetHost(nsIURI *aURI, nsACString &aResult);
-  nsresult GetPrincipalForURI(nsIURI *aURI, nsIPrincipal **aPrincipal);
   nsresult SetState(uint32_t aType, nsIURI* aSourceURI, int64_t maxage,
                     bool includeSubdomains, uint32_t flags);
   nsresult ProcessHeaderMutating(uint32_t aType, nsIURI* aSourceURI,
@@ -145,23 +97,9 @@ private:
                                  uint64_t *aMaxAge, bool *aIncludeSubdomains);
   const nsSTSPreload *GetPreloadListEntry(const char *aHost);
 
-  
-  nsresult AddPermission(nsIURI     *aURI,
-                         const char *aType,
-                         uint32_t   aPermission,
-                         uint32_t   aExpireType,
-                         int64_t    aExpireTime,
-                         bool       aIsPrivate);
-  nsresult RemovePermission(const nsCString  &aHost,
-                            const char       *aType,
-                            bool              aIsPrivate);
-
-  
-  nsCOMPtr<nsIPermissionManager> mPermMgr;
-  nsCOMPtr<nsIObserverService> mObserverService;
-
-  nsTHashtable<nsSSSHostEntry> mPrivateModeHostTable;
   bool mUsePreloadList;
+  int64_t mPreloadListTimeOffset;
+  nsRefPtr<mozilla::DataStorage> mSiteStateStorage;
 };
 
 #endif 
