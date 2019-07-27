@@ -772,7 +772,8 @@ nsCSPPolicy::permits(nsContentPolicyType aContentType,
   }
 
   
-  return false;
+  
+  return true;
 }
 
 bool
