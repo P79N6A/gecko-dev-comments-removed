@@ -2,7 +2,7 @@
 
 
 
-from marionette_test import MarionetteTestCase, skip_if_b2g
+from marionette_test import MarionetteTestCase
 from errors import JavascriptException, MarionetteException
 
 class TestSpecialPowersContent(MarionetteTestCase):
@@ -10,8 +10,6 @@ class TestSpecialPowersContent(MarionetteTestCase):
     testpref = "testing.marionette.contentcharpref"
     testvalue = "blabla"
 
-    
-    @skip_if_b2g
     def test_prefs(self):
         result = self.marionette.execute_script("""
         SpecialPowers.setCharPref("%(pref)s", "%(value)s");

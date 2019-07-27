@@ -696,7 +696,7 @@ class BaseMarionetteTestRunner(object):
 
         self.logger.suite_end()
 
-    def add_test(self, test, expected='pass', test_container=False):
+    def add_test(self, test, expected='pass', oop=None):
         filepath = os.path.abspath(test)
 
         if os.path.isdir(filepath):
@@ -719,7 +719,8 @@ class BaseMarionetteTestRunner(object):
                 else:
                     testargs.update({ atype: 'true' })
 
-        testarg_b2g = bool(testargs.get('b2g'))
+        
+        testarg_oop = testargs.get('oop')
 
         file_ext = os.path.splitext(os.path.split(filepath)[-1])[1]
 
@@ -739,6 +740,11 @@ class BaseMarionetteTestRunner(object):
                 else:
                     unfiltered_tests.append(test)
 
+            
+            
+            if testarg_oop is not None:
+                del testargs['oop']
+
             target_tests = manifest.get(tests=unfiltered_tests, **testargs)
             for test in unfiltered_tests:
                 if test['path'] not in [x['path'] for x in target_tests]:
@@ -749,21 +755,54 @@ class BaseMarionetteTestRunner(object):
                 if not os.path.exists(i["path"]):
                     raise IOError("test file: %s does not exist" % i["path"])
 
+                
+                
+                manifest_oop = i.get('oop', 'false')
+
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
                 file_ext = os.path.splitext(os.path.split(i['path'])[-1])[-1]
-                test_container = False
-                if i.get('test_container') and i.get('test_container') == 'true' and testarg_b2g:
-                    test_container = True
-                self.add_test(i["path"], i["expected"], test_container)
+                if (file_ext == '.js' and
+                    testarg_oop != 'false' and
+                    (manifest_oop == 'both' or manifest_oop == 'true')):
+                    self.add_test(i["path"], i["expected"], True)
+
+                
+                
+                
+                
+                
+                
+                
+                
+                if (testarg_oop != 'true' and
+                    (manifest_oop == 'both' or manifest_oop != 'true')):
+                    self.add_test(i["path"], i["expected"], False)
             return
 
-        self.tests.append({'filepath': filepath, 'expected': expected, 'test_container': test_container})
+        if oop is None:
+            
+            
+            
+            oop = file_ext == '.js' and testarg_oop == 'true'
 
-    def run_test(self, filepath, expected, test_container):
+        self.tests.append({'filepath': filepath, 'expected': expected, 'oop': oop})
+
+    def run_test(self, filepath, expected, oop):
 
         testloader = unittest.TestLoader()
         suite = unittest.TestSuite()
         self.test_kwargs['expected'] = expected
-        self.test_kwargs['test_container'] = test_container
+        self.test_kwargs['oop'] = oop
         mod_name = os.path.splitext(os.path.split(filepath)[-1])[0]
         for handler in self.test_handlers:
             if handler.match(os.path.basename(filepath)):
@@ -804,7 +843,7 @@ class BaseMarionetteTestRunner(object):
             random.shuffle(tests)
 
         for test in tests:
-            self.run_test(test['filepath'], test['expected'], test['test_container'])
+            self.run_test(test['filepath'], test['expected'], test['oop'])
             if self.marionette.check_for_crash():
                 break
 
@@ -823,7 +862,11 @@ class BaseMarionetteTestRunner(object):
                                                len(self.tests)))
             self.tests = chunks[self.this_chunk - 1]
 
-        self.run_test_set(self.tests)
+        oop_tests = [x for x in self.tests if x.get('oop')]
+        self.run_test_set(oop_tests)
+
+        in_process_tests = [x for x in self.tests if not x.get('oop')]
+        self.run_test_set(in_process_tests)
 
     def cleanup(self):
         if self.httpd:
