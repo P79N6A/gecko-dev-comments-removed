@@ -100,81 +100,9 @@ protected:
                              nsIAtom* aElementProperty,
                              nsCSSProperty aProperty);
 
-  
-  
-  
-  nsStyleContext* UpdateThrottledStyle(mozilla::dom::Element* aElement,
-                                       nsStyleContext* aParentStyle,
-                                       nsStyleChangeList &aChangeList);
-  
-  already_AddRefed<nsStyleContext> ReparentContent(nsIContent* aContent,
-                                                  nsStyleContext* aParentStyle);
-  
-  static void ReparentBeforeAndAfter(dom::Element* aElement,
-                                     nsIFrame* aPrimaryFrame,
-                                     nsStyleContext* aNewStyle,
-                                     nsStyleSet* aStyleSet);
-
   PRCList mElementCollections;
   nsPresContext *mPresContext; 
 };
-
-
-
-#define IMPL_UPDATE_ALL_THROTTLED_STYLES_INTERNAL(class_, animations_getter_)  \
-void                                                                           \
-class_::UpdateAllThrottledStylesInternal()                                     \
-{                                                                              \
-  TimeStamp now = mPresContext->RefreshDriver()->MostRecentRefresh();          \
-                                                                               \
-  nsStyleChangeList changeList;                                                \
-                                                                               \
-  /* update each transitioning element by finding its root-most ancestor
-     with a transition, and flushing the style on that ancestor and all
-     its descendants*/                                                         \
-  PRCList *next = PR_LIST_HEAD(&mElementCollections);                          \
-  while (next != &mElementCollections) {                                       \
-    ElementAnimationCollection* collection =                                   \
-      static_cast<ElementAnimationCollection*>(next);                          \
-    next = PR_NEXT_LINK(next);                                                 \
-                                                                               \
-    if (collection->mFlushGeneration == now) {                                 \
-                                     \
-      continue;                                                                \
-    }                                                                          \
-                                                                               \
-    
-
-                         \
-    dom::Element* element = collection->mElement;                              \
-                                                 \
-    nsTArray<dom::Element*> ancestors;                                         \
-    do {                                                                       \
-      ancestors.AppendElement(element);                                        \
-    } while ((element = element->GetParentElement()));                         \
-                                                                               \
-    \
-    for (int32_t i = ancestors.Length() - 1; i >= 0; --i) {                    \
-      if (animations_getter_(ancestors[i],                                     \
-                            nsCSSPseudoElements::ePseudo_NotPseudoElement,     \
-                            false)) {                                          \
-        element = ancestors[i];                                                \
-        break;                                                                 \
-      }                                                                        \
-    }                                                                          \
-                                                                               \
-    nsIFrame* primaryFrame;                                                    \
-    if (element &&                                                             \
-        (primaryFrame = nsLayoutUtils::GetStyleFrame(element))) {              \
-      UpdateThrottledStylesForSubtree(element,                                 \
-        primaryFrame->StyleContext()->GetParent(), changeList);                \
-    }                                                                          \
-  }                                                                            \
-                                                                               \
-  RestyleManager* restyleManager = mPresContext->RestyleManager();             \
-  restyleManager->ProcessRestyledFrames(changeList);                           \
-  restyleManager->FlushOverflowChangedTracker();                               \
-}
 
 
 
@@ -462,7 +390,6 @@ struct ElementAnimationCollection : public PRCList
     , mElementProperty(aElementProperty)
     , mManager(aManager)
     , mAnimationGeneration(0)
-    , mFlushGeneration(aNow)
     , mNeedsRefreshes(true)
 #ifdef DEBUG
     , mCalledPropertyDtor(false)
@@ -602,11 +529,6 @@ struct ElementAnimationCollection : public PRCList
 
   
   TimeStamp mStyleRuleRefreshTime;
-
-  
-  
-  
-  TimeStamp mFlushGeneration;
 
   
   

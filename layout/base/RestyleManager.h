@@ -164,6 +164,26 @@ public:
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   void UpdateOnlyAnimationStyles();
 
   bool ThrottledAnimationStyleIsUpToDate() const {
