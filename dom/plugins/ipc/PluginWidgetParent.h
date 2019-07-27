@@ -49,6 +49,8 @@ public:
   void ParentDestroy();
 
 private:
+  void ShutdownCommon(bool aParentInitiated);
+
   
   mozilla::dom::TabParent* GetTabParent();
   

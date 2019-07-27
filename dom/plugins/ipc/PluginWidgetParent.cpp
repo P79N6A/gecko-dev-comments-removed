@@ -170,8 +170,23 @@ PluginWidgetParent::RecvCreate()
 void
 PluginWidgetParent::ActorDestroy(ActorDestroyReason aWhy)
 {
-  mActorDestroyed = true;
   PWLOG("PluginWidgetParent::ActorDestroy()\n");
+}
+
+void
+PluginWidgetParent::ShutdownCommon(bool aParentInitiated)
+{
+  if (mActorDestroyed || !mWidget) {
+    return;
+  }
+
+  PWLOG("PluginWidgetParent::ShutdownCommon()\n");
+  mWidget->UnregisterPluginWindowForRemoteUpdates();
+  DebugOnly<nsresult> rv = mWidget->Destroy();
+  NS_ASSERTION(NS_SUCCEEDED(rv), "widget destroy failure");
+  mWidget = nullptr;
+  mActorDestroyed = true;
+  unused << SendParentShutdown(aParentInitiated);
 }
 
 
@@ -181,16 +196,8 @@ PluginWidgetParent::ActorDestroy(ActorDestroyReason aWhy)
 void
 PluginWidgetParent::ParentDestroy()
 {
-  if (mActorDestroyed || !mWidget) {
-    return;
-  }
   PWLOG("PluginWidgetParent::ParentDestroy()\n");
-  mWidget->UnregisterPluginWindowForRemoteUpdates();
-  DebugOnly<nsresult> rv = mWidget->Destroy();
-  NS_ASSERTION(NS_SUCCEEDED(rv), "widget destroy failure");
-  mWidget = nullptr;
-  mActorDestroyed = true;
-  return;
+  ShutdownCommon(true);
 }
 
 
@@ -198,11 +205,8 @@ PluginWidgetParent::ParentDestroy()
 bool
 PluginWidgetParent::RecvDestroy()
 {
-  bool destroyed = mActorDestroyed;
-  ParentDestroy();
-  if (!destroyed) {
-    unused << SendParentShutdown();
-  }
+  PWLOG("PluginWidgetParent::RecvDestroy()\n");
+  ShutdownCommon(false);
   return true;
 }
 
