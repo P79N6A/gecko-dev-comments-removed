@@ -1156,39 +1156,6 @@ PurgeScopeChain(ExclusiveContext* cx, HandleObject obj, HandleId id)
     return true;
 }
 
-
-
-
-
-static inline bool
-CheckAccessorRedefinition(ExclusiveContext* cx, HandleObject obj, HandleShape shape,
-                          Handle<PropertyDescriptor> desc)
-{
-    MOZ_ASSERT(shape->isAccessorDescriptor());
-    if (shape->configurable())
-        return true;
-    if (desc.getter() == shape->getter() && desc.setter() == shape->setter())
-        return true;
-
-    
-
-
-
-
-
-    if ((desc.attributes() & JSPROP_REDEFINE_NONCONFIGURABLE) &&
-        obj->is<GlobalObject>() &&
-        !obj->getClass()->isDOMClass())
-    {
-        return true;
-    }
-
-    if (!cx->isJSContext())
-        return false;
-
-    return Throw(cx->asJSContext(), shape->propid(), JSMSG_CANT_REDEFINE_PROP);
-}
-
 static bool
 AddOrChangeProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId id,
                     Handle<PropertyDescriptor> desc)
@@ -1483,32 +1450,28 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
 
         
         
-        
-
-        
-        
-        if (!CheckAccessorRedefinition(cx, obj, shape, desc))
-            return false;
-
-        desc.setAttributes(ApplyOrDefaultAttributes(desc.attributes(), shape));
-        if (!desc.hasGetterObject())
-            desc.setGetter(shape->getter());
-        if (!desc.hasSetterObject())
-            desc.setSetter(shape->setter());
-        desc.attributesRef() |= JSPROP_GETTER | JSPROP_SETTER;
-        desc.assertComplete();
-
-        shape = NativeObject::changeProperty(cx, obj, shape, desc.attributes(),
-                                             desc.getter(), desc.setter());
-        if (!shape)
-            return false;
-        if (!PurgeScopeChain(cx, obj, id))
-            return false;
-
-        JS_ALWAYS_TRUE(UpdateShapeTypeAndValue(cx, obj, shape, desc.value()));
-        if (!CallAddPropertyHook(cx, obj, shape, desc.value()))
-            return false;
-        return result.succeed();
+        if (desc.hasSetterObject()) {
+            if (!IsConfigurable(shapeAttrs) &&
+                desc.setterObject() != shape->setterObject() &&
+                !skipRedefineChecks)
+            {
+                return result.fail(JSMSG_CANT_REDEFINE_PROP);
+            }
+        } else {
+            
+            desc.setSetterObject(shape->setterObject());
+        }
+        if (desc.hasGetterObject()) {
+            if (!IsConfigurable(shapeAttrs) &&
+                desc.getterObject() != shape->getterObject() &&
+                !skipRedefineChecks)
+            {
+                return result.fail(JSMSG_CANT_REDEFINE_PROP);
+            }
+        } else {
+            
+            desc.setGetterObject(shape->getterObject());
+        }
     }
 
     
