@@ -41,6 +41,8 @@ MediaSourceReader::MediaSourceReader(MediaSourceDecoder* aDecoder)
   , mDropAudioBeforeThreshold(false)
   , mDropVideoBeforeThreshold(false)
   , mEnded(false)
+  , mAudioIsSeeking(false)
+  , mVideoIsSeeking(false)
 {
 }
 
@@ -75,6 +77,14 @@ MediaSourceReader::OnAudioDecoded(AudioData* aSample)
       return;
     }
     mDropAudioBeforeThreshold = false;
+  }
+
+  
+  
+  
+  if (mAudioIsSeeking) {
+    mAudioIsSeeking = false;
+    aSample->mDiscontinuity = true;
   }
   GetCallback()->OnAudioDecoded(aSample);
 }
@@ -122,6 +132,15 @@ MediaSourceReader::OnVideoDecoded(VideoData* aSample)
     }
     mDropVideoBeforeThreshold = false;
   }
+
+  
+  
+  
+  if (mVideoIsSeeking) {
+    mVideoIsSeeking = false;
+    aSample->mDiscontinuity = true;
+  }
+
   GetCallback()->OnVideoDecoded(aSample);
 }
 
@@ -438,6 +457,7 @@ MediaSourceReader::Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime,
 
   ResetDecode();
   if (mAudioReader) {
+    mAudioIsSeeking = true;
     nsresult rv = mAudioReader->Seek(aTime, aStartTime, aEndTime, aCurrentTime);
     MSE_DEBUG("MediaSourceReader(%p)::Seek audio reader=%p rv=%x", this, mAudioReader.get(), rv);
     if (NS_FAILED(rv)) {
@@ -445,6 +465,7 @@ MediaSourceReader::Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime,
     }
   }
   if (mVideoReader) {
+    mVideoIsSeeking = true;
     nsresult rv = mVideoReader->Seek(aTime, aStartTime, aEndTime, aCurrentTime);
     MSE_DEBUG("MediaSourceReader(%p)::Seek video reader=%p rv=%x", this, mVideoReader.get(), rv);
     if (NS_FAILED(rv)) {

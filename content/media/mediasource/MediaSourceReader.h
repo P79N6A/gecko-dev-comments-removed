@@ -116,6 +116,14 @@ private:
   nsRefPtr<MediaDecoderReader> mVideoReader;
 
   bool mEnded;
+
+  
+  
+  
+  
+  
+  bool mAudioIsSeeking;
+  bool mVideoIsSeeking;
 };
 
 } 
