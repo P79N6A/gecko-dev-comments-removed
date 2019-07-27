@@ -144,6 +144,28 @@ function injectLoopAPI(targetWindow) {
       }
     },
 
+    errors: {
+      enumerable: true,
+      get: function() {
+        let errors = {};
+        for (let [type, error] of MozLoopService.errors) {
+          
+          
+          if (error.error instanceof Ci.nsIException) {
+            MozLoopService.log.debug("Warning: Some errors were omitted from MozLoopAPI.errors " +
+                                     "due to issues copying nsIException across boundaries.",
+                                     error.error);
+            delete error.error;
+          }
+
+          
+          errors[type] = Cu.cloneInto(error, targetWindow);
+
+        }
+        return Cu.cloneInto(errors, targetWindow);
+      },
+    },
+
     
 
 
@@ -513,9 +535,9 @@ function injectLoopAPI(targetWindow) {
             }, targetWindow);
           } catch (ex) {
             
-            if (typeof window !== 'undefined' && "console" in window) {
-              console.log("Failed to construct appVersionInfo; if this isn't " +
-                          "an xpcshell unit test, something is wrong", ex);
+            if (typeof targetWindow !== 'undefined' && "console" in targetWindow) {
+              MozLoopService.log.error("Failed to construct appVersionInfo; if this isn't " +
+                                       "an xpcshell unit test, something is wrong", ex);
             }
           }
         }

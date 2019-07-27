@@ -21,8 +21,19 @@ function promiseGetMozLoopAPI() {
 
   
   
-  loopPanel.addEventListener("popupshown", function onpopupshown() {
-    loopPanel.removeEventListener("popupshown", onpopupshown, true);
+  if (loopPanel.state == "closing" || loopPanel.state == "closed") {
+    loopPanel.addEventListener("popupshown", () => {
+      loopPanel.removeEventListener("popupshown", onpopupshown, true);
+      onpopupshown();
+    }, true);
+
+    
+    btn.click();
+  } else {
+    setTimeout(onpopupshown, 0);
+  }
+
+  function onpopupshown() {
     let iframe = document.getElementById(btn.getAttribute("notificationFrameId"));
 
     if (iframe.contentDocument &&
@@ -41,10 +52,7 @@ function promiseGetMozLoopAPI() {
         deferred.resolve();
       }, true);
     }
-  }, true);
-
-  
-  btn.click();
+  }
 
   
   
@@ -107,7 +115,7 @@ function promiseOAuthParamsSetup(baseURL, params) {
   return deferred.promise;
 }
 
-function resetFxA() {
+function* resetFxA() {
   let global = Cu.import("resource:///modules/loop/MozLoopService.jsm", {});
   global.gHawkClient = null;
   global.gFxAOAuthClientPromise = null;
@@ -116,6 +124,10 @@ function resetFxA() {
   global.gFxAOAuthProfile = null;
   const fxASessionPref = MozLoopServiceInternal.getSessionTokenPrefName(LOOP_SESSION_TYPE.FXA);
   Services.prefs.clearUserPref(fxASessionPref);
+  MozLoopService.errors.clear();
+  let notified = promiseObserverNotified("loop-status-changed");
+  MozLoopServiceInternal.notifyStatusChanged();
+  yield notified;
 }
 
 function setInternalLoopGlobal(aName, aValue) {
@@ -170,6 +182,10 @@ function promiseOAuthGetRegistration(baseURL) {
   xhr.send();
 
   return deferred.promise;
+}
+
+function getLoopString(stringID) {
+  return MozLoopServiceInternal.localizedStrings[stringID].textContent;
 }
 
 

@@ -4,7 +4,7 @@
 
 "use strict";
 
-const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
+const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
 
 
@@ -334,7 +334,56 @@ let MozLoopServiceInternal = {
 
 
 
+
+
+
   setError: function(errorType, error) {
+    let messageString, detailsString, detailsButtonLabelString;
+    const NETWORK_ERRORS = [
+      Cr.NS_ERROR_CONNECTION_REFUSED,
+      Cr.NS_ERROR_NET_INTERRUPT,
+      Cr.NS_ERROR_NET_RESET,
+      Cr.NS_ERROR_NET_TIMEOUT,
+      Cr.NS_ERROR_OFFLINE,
+      Cr.NS_ERROR_PROXY_CONNECTION_REFUSED,
+      Cr.NS_ERROR_UNKNOWN_HOST,
+      Cr.NS_ERROR_UNKNOWN_PROXY_HOST,
+    ];
+
+    if (error.code === null && error.errno === null &&
+        error.error instanceof Ci.nsIException &&
+        NETWORK_ERRORS.indexOf(error.error.result) != -1) {
+      
+      errorType = "network";
+      messageString = "could_not_connect";
+      detailsString = "check_internet_connection";
+      detailsButtonLabelString = "retry_button";
+    } else if (errorType == "profile" && error.code >= 500 && error.code < 600) {
+      messageString = "problem_accessing_account";
+    } else if (error.code == 401) {
+      if (errorType == "login") {
+        messageString = "could_not_authenticate"; 
+        detailsString = "password_changed_question";
+        detailsButtonLabelString = "retry_button";
+      } else {
+        messageString = "session_expired_error_description";
+      }
+    } else if (error.code >= 500 && error.code < 600) {
+      messageString = "service_not_available";
+      detailsString = "try_again_later";
+      detailsButtonLabelString = "retry_button";
+    } else {
+      messageString = "generic_failure_title";
+    }
+
+    error.friendlyMessage = this.localizedStrings[messageString].textContent;
+    error.friendlyDetails = detailsString ?
+                              this.localizedStrings[detailsString].textContent :
+                              null;
+    error.friendlyDetailsButtonLabel = detailsButtonLabelString ?
+                                         this.localizedStrings[detailsButtonLabelString].textContent :
+                                         null;
+
     gErrors.set(errorType, error);
     this.notifyStatusChanged();
   },
@@ -411,7 +460,30 @@ let MozLoopServiceInternal = {
                                           2 * 32, true);
     }
 
-    return gHawkClient.request(path, method, credentials, payloadObj);
+    return gHawkClient.request(path, method, credentials, payloadObj).then((result) => {
+      this.clearError("network");
+      return result;
+    }, (error) => {
+      if (error.code == 401) {
+        this.clearSessionToken(sessionType);
+
+        if (sessionType == LOOP_SESSION_TYPE.FXA) {
+          MozLoopService.logOutFromFxA().then(() => {
+            
+            this.setError("login", error);
+          });
+        } else {
+          if (!this.urlExpiryTimeIsInFuture()) {
+            
+            
+            throw error;
+          }
+
+          this.setError("registration", error);
+        }
+      }
+      throw error;
+    });
   },
 
   
@@ -534,21 +606,13 @@ let MozLoopServiceInternal = {
       }, (error) => {
         
         
-        if (error.code === 401 && error.errno === INVALID_AUTH_TOKEN) {
-          if (this.urlExpiryTimeIsInFuture()) {
-            
-            Cu.reportError("Loop session token is invalid, all previously "
-                           + "generated urls will no longer work.");
-          }
-
+        if (error.code === 401) {
           
-          this.clearSessionToken(sessionType);
           if (retry) {
             return this.registerWithLoopServer(sessionType, pushUrl, false);
           }
         }
 
-        
         log.error("Failed to register with the loop server. Error: ", error);
         this.setError("registration", error);
         throw error;
@@ -568,6 +632,11 @@ let MozLoopServiceInternal = {
 
 
   unregisterFromLoopServer: function(sessionType, pushURL) {
+    let prefType = Services.prefs.getPrefType(this.getSessionTokenPrefName(sessionType));
+    if (prefType == Services.prefs.PREF_INVALID) {
+      return Promise.resolve("already unregistered");
+    }
+
     let unregisterURL = "/registration?simplePushURL=" + encodeURIComponent(pushURL);
     return this.hawkRequest(sessionType, unregisterURL, "DELETE")
       .then(() => {
@@ -577,7 +646,7 @@ let MozLoopServiceInternal = {
       error => {
         
         MozLoopServiceInternal.clearSessionToken(sessionType);
-        if (error.code === 401 && error.errno === INVALID_AUTH_TOKEN) {
+        if (error.code === 401) {
           
           return;
         }
@@ -1117,6 +1186,7 @@ this.MozLoopService = {
 
 
   register: function(mockPushHandler, mockWebSocket) {
+    log.debug("registering");
     
     if (!Services.prefs.getBoolPref("loop.enabled")) {
       throw new Error("Loop is not enabled");
@@ -1194,6 +1264,10 @@ this.MozLoopService = {
 
   get errors() {
     return MozLoopServiceInternal.errors;
+  },
+
+  get log() {
+    return log;
   },
 
   
@@ -1331,6 +1405,8 @@ this.MozLoopService = {
         } else {
           throw new Error("No pushUrl for FxA registration");
         }
+        MozLoopServiceInternal.clearError("login");
+        MozLoopServiceInternal.clearError("profile");
         return gFxAOAuthTokenData;
       }));
     }).then(tokenData => {
@@ -1343,6 +1419,7 @@ this.MozLoopService = {
         MozLoopServiceInternal.notifyStatusChanged("login");
       }, error => {
         log.error("Failed to retrieve profile", error);
+        this.setError("profile", error);
         gFxAOAuthProfile = null;
         MozLoopServiceInternal.notifyStatusChanged();
       });
@@ -1350,6 +1427,10 @@ this.MozLoopService = {
     }).catch(error => {
       gFxAOAuthTokenData = null;
       gFxAOAuthProfile = null;
+      throw error;
+    }).catch((error) => {
+      MozLoopServiceInternal.setError("login", error);
+      
       throw error;
     });
   },
@@ -1363,8 +1444,12 @@ this.MozLoopService = {
 
   logOutFromFxA: Task.async(function*() {
     log.debug("logOutFromFxA");
-    yield MozLoopServiceInternal.unregisterFromLoopServer(LOOP_SESSION_TYPE.FXA,
-                                                          gPushHandler.pushUrl);
+    if (gPushHandler && gPushHandler.pushUrl) {
+      yield MozLoopServiceInternal.unregisterFromLoopServer(LOOP_SESSION_TYPE.FXA,
+                                                            gPushHandler.pushUrl);
+    } else {
+      MozLoopServiceInternal.clearSessionToken(LOOP_SESSION_TYPE.FXA);
+    }
 
     gFxAOAuthTokenData = null;
     gFxAOAuthProfile = null;
@@ -1377,6 +1462,8 @@ this.MozLoopService = {
     
     
     MozLoopServiceInternal.clearError("registration");
+    MozLoopServiceInternal.clearError("login");
+    MozLoopServiceInternal.clearError("profile");
   }),
 
   openFxASettings: function() {
