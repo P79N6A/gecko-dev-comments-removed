@@ -556,10 +556,13 @@ public class TopSitesPanel extends HomeFragment {
             }
 
             
+            final String decodedUrl = StringUtils.decodeUserEnteredUrl(url);
+
             
-            final String imageUrl = BrowserDB.getSuggestedImageUrlForUrl(url);
+            
+            final String imageUrl = BrowserDB.getSuggestedImageUrlForUrl(decodedUrl);
             if (!TextUtils.isEmpty(imageUrl)) {
-                final int bgColor = BrowserDB.getSuggestedBackgroundColorForUrl(url);
+                final int bgColor = BrowserDB.getSuggestedBackgroundColorForUrl(decodedUrl);
                 view.displayThumbnail(imageUrl, bgColor);
                 return;
             }
