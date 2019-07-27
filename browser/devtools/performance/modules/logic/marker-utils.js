@@ -181,4 +181,94 @@ const DOM = exports.DOM = {
     hbox.appendChild(labelValue);
     return hbox;
   },
+
+  
+
+
+
+
+
+
+
+
+
+  buildStackTrace: function(doc, { type, frameIndex, frames }) {
+    let container = doc.createElement("vbox");
+    let labelName = doc.createElement("label");
+    labelName.className = "plain marker-details-labelname";
+    labelName.setAttribute("value", L10N.getStr(`timeline.markerDetail.${type}`));
+    container.appendChild(labelName);
+
+    let wasAsyncParent = false;
+    while (frameIndex > 0) {
+      let frame = frames[frameIndex];
+      let url = frame.source;
+      let displayName = frame.functionDisplayName;
+      let line = frame.line;
+
+      
+      
+      if (wasAsyncParent) {
+        let asyncBox = doc.createElement("hbox");
+        let asyncLabel = doc.createElement("label");
+        asyncLabel.className = "devtools-monospace";
+        asyncLabel.setAttribute("value", L10N.getFormatStr("timeline.markerDetail.asyncStack",
+                                                           frame.asyncCause));
+        asyncBox.appendChild(asyncLabel);
+        container.appendChild(asyncBox);
+        wasAsyncParent = false;
+      }
+
+      let hbox = doc.createElement("hbox");
+
+      if (displayName) {
+        let functionLabel = doc.createElement("label");
+        functionLabel.className = "devtools-monospace";
+        functionLabel.setAttribute("value", displayName);
+        hbox.appendChild(functionLabel);
+      }
+
+      if (url) {
+        let aNode = doc.createElement("a");
+        aNode.className = "waterfall-marker-location devtools-source-link";
+        aNode.href = url;
+        aNode.draggable = false;
+        aNode.setAttribute("title", url);
+
+        let urlNode = doc.createElement("label");
+        urlNode.className = "filename";
+        urlNode.setAttribute("value", WebConsoleUtils.Utils.abbreviateSourceURL(url));
+        let lineNode = doc.createElement("label");
+        lineNode.className = "line-number";
+        lineNode.setAttribute("value", `:${line}`);
+
+        aNode.appendChild(urlNode);
+        aNode.appendChild(lineNode);
+        hbox.appendChild(aNode);
+
+        
+        
+        aNode.setAttribute("data-action", JSON.stringify({
+          url, line, action: "view-source"
+        }));
+      }
+
+      if (!displayName && !url) {
+        let label = doc.createElement("label");
+        label.setAttribute("value", L10N.getStr("timeline.markerDetail.unknownFrame"));
+        hbox.appendChild(label);
+      }
+
+      container.appendChild(hbox);
+
+      if (frame.asyncParent) {
+        frameIndex = frame.asyncParent;
+        wasAsyncParent = true;
+      } else {
+        frameIndex = frame.parent;
+      }
+    }
+
+    return container;
+  }
 };

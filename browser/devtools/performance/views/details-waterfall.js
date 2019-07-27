@@ -3,6 +3,8 @@
 
 "use strict";
 
+const MARKER_DETAILS_WIDTH = 300;
+
 
 
 
@@ -23,6 +25,9 @@ let WaterfallView = Heritage.extend(DetailsSubview, {
 
   initialize: function () {
     DetailsSubview.initialize.call(this);
+
+    
+    $("#waterfall-details").setAttribute("width", MARKER_DETAILS_WIDTH);
 
     this.waterfall = new Waterfall($("#waterfall-breakdown"), $("#waterfall-view"));
     this.details = new MarkerDetails($("#waterfall-details"), $("#waterfall-view > splitter"));
