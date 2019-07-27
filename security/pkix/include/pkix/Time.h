@@ -49,7 +49,7 @@ public:
   
   
   enum Uninitialized { uninitialized };
-  Time(Uninitialized) { }
+  explicit Time(Uninitialized) { }
 
   bool operator==(const Time& other) const
   {

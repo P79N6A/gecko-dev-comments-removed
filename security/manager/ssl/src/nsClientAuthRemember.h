@@ -52,7 +52,7 @@ class nsClientAuthRememberEntry MOZ_FINAL : public PLDHashEntryHdr
     typedef const char* KeyTypePointer;
 
     
-    nsClientAuthRememberEntry(KeyTypePointer aHostWithCertUTF8)
+    explicit nsClientAuthRememberEntry(KeyTypePointer aHostWithCertUTF8)
     {
     }
 
