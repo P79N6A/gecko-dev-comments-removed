@@ -185,15 +185,9 @@ let LoopRoomsInternal = {
         }
         this.rooms.set(room.roomToken, room);
         
-        
-        if (version) {
-          eventEmitter.emit("update", room);
-          eventEmitter.emit("update" + ":" + room.roomToken, room);
-        } else {
-          
-          
-          yield LoopRooms.promise("get", room.roomToken);
-        }
+        let eventName = orig ? "update" : "add";
+        eventEmitter.emit(eventName, room);
+        eventEmitter.emit(eventName + ":" + room.roomToken, room);
       }
 
       
