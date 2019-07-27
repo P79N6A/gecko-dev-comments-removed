@@ -81,28 +81,26 @@ loop.shared.models = (function() {
     
 
 
+    incoming: function() {
+      this.trigger("call:incoming");
+    },
+
+    
+
+
+
+    setupOutgoingCall: function() {
+      this.trigger("call:outgoing:setup");
+    },
+
+    
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    initiate: function(options) {
-      options = options || {};
+    outgoing: function(sessionData) {
+      this._clearPendingCallTimer();
 
       
       function handleOutgoingCallTimeout() {
@@ -112,39 +110,12 @@ loop.shared.models = (function() {
         }
       }
 
-      function handleResult(err, sessionData) {
-        
-        this._clearPendingCallTimer();
+      
+      this._pendingCallTimer = setTimeout(
+        handleOutgoingCallTimeout.bind(this), this.pendingCallTimeout);
 
-        if (err) {
-          this._handleServerError(err);
-          return;
-        }
-
-        if (options.outgoing) {
-          
-          this._pendingCallTimer = setTimeout(
-            handleOutgoingCallTimeout.bind(this), this.pendingCallTimeout);
-        } else {
-          
-          
-          
-          
-          
-          sessionData = sessionData[0];
-        }
-
-        this.setReady(sessionData);
-      }
-
-      if (options.outgoing) {
-        options.client.requestCallInfo(this.get("loopToken"), options.callType,
-          handleResult.bind(this));
-      }
-      else {
-        options.client.requestCallsInfo(this.get("loopVersion"),
-          handleResult.bind(this));
-      }
+      this.setSessionData(sessionData);
+      this.trigger("call:outgoing");
     },
 
     
@@ -161,14 +132,13 @@ loop.shared.models = (function() {
 
 
 
-    setReady: function(sessionData) {
+    setSessionData: function(sessionData) {
       
       this.set({
         sessionId:    sessionData.sessionId,
         sessionToken: sessionData.sessionToken,
         apiKey:       sessionData.apiKey
-      }).trigger("session:ready", this);
-      return this;
+      });
     },
 
     

@@ -158,18 +158,34 @@ loop.conversation = (function(OT, mozL10n) {
     incoming: function(loopVersion) {
       navigator.mozLoop.startAlerting();
       this._conversation.set({loopVersion: loopVersion});
-      this._conversation.once("accept", function() {
+      this._conversation.once("accept", () => {
         this.navigate("call/accept", {trigger: true});
-      }.bind(this));
-      this._conversation.once("decline", function() {
+      });
+      this._conversation.once("decline", () => {
         this.navigate("call/decline", {trigger: true});
-      }.bind(this));
-      this._conversation.once("declineAndBlock", function() {
+      });
+      this._conversation.once("declineAndBlock", () => {
         this.navigate("call/declineAndBlock", {trigger: true});
-      }.bind(this));
-      this.loadReactComponent(loop.conversation.IncomingCallView({
-        model: this._conversation
-      }));
+      });
+      this._conversation.once("call:incoming", this.startCall, this);
+      this._client.requestCallsInfo(loopVersion, (err, sessionData) => {
+        if (err) {
+          console.error("Failed to get the sessionData", err);
+          
+          
+          this._notifier.errorL10n("cannot_start_call_session_not_ready");
+          return;
+        }
+        
+        
+        
+        
+        
+        this._conversation.setSessionData(sessionData[0]);
+        this.loadReactComponent(loop.conversation.IncomingCallView({
+          model: this._conversation
+        }));
+      });
     },
 
     
@@ -177,10 +193,7 @@ loop.conversation = (function(OT, mozL10n) {
 
     accept: function() {
       navigator.mozLoop.stopAlerting();
-      this._conversation.initiate({
-        client: new loop.Client(),
-        outgoing: false
-      });
+      this._conversation.incoming();
     },
 
     
@@ -201,8 +214,8 @@ loop.conversation = (function(OT, mozL10n) {
     declineAndBlock: function() {
       navigator.mozLoop.stopAlerting();
       var token = navigator.mozLoop.getLoopCharPref('loopToken');
-      var client = new loop.Client();
-      client.deleteCallUrl(token, function(error) {
+      this._client.deleteCallUrl(token, function(error) {
+        
         
         
         console.log(error);
@@ -254,8 +267,12 @@ loop.conversation = (function(OT, mozL10n) {
 
     document.title = mozL10n.get("incoming_call_title");
 
+    var client = new loop.Client();
     router = new ConversationRouter({
-      conversation: new loop.shared.models.ConversationModel({}, {sdk: OT}),
+      client: client,
+      conversation: new loop.shared.models.ConversationModel(
+        {},         
+        {sdk: OT}), 
       notifier: new sharedViews.NotificationListView({el: "#messages"})
     });
     Backbone.history.start();
