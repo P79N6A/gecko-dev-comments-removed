@@ -261,6 +261,8 @@ public:
     mUnusedApzTransformWarning = true;
   }
 
+  bool LastFrameMissedHWC() { return mLastFrameMissedHWC; }
+
 private:
   
   nsIntRegion mClippingRegion;
@@ -322,6 +324,10 @@ private:
   RefPtr<CompositingRenderTarget> mTwoPassTmpTarget;
   RefPtr<TextRenderer> mTextRenderer;
   bool mGeometryChanged;
+
+  
+  
+  bool mLastFrameMissedHWC;
 };
 
 
