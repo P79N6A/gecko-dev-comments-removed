@@ -776,11 +776,6 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   
   
   
-  nsSize availSize(mBlockReflowState->ComputedWidth(), NS_UNCONSTRAINEDSIZE);
-
-  
-  
-  
   NS_WARN_IF_FALSE(psd->mIEnd != NS_UNCONSTRAINEDSIZE,
                    "have unconstrained width; this should only result from "
                    "very large sizes, not attempts at intrinsic width "
@@ -790,6 +785,13 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   
   Maybe<nsHTMLReflowState> reflowStateHolder;
   if (!isText) {
+    
+    
+    
+    nsSize availSize =
+      LogicalSize(mBlockReflowState->GetWritingMode(),
+                  mBlockReflowState->ComputedISize(), NS_UNCONSTRAINEDSIZE).
+        GetPhysicalSize(mBlockReflowState->GetWritingMode());
     reflowStateHolder.construct(mPresContext, *psd->mReflowState,
                                 aFrame, availSize);
     nsHTMLReflowState& reflowState = reflowStateHolder.ref();

@@ -3034,7 +3034,10 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
       
       
       
-      nsSize availSpace(aState.ContentISize(), NS_UNCONSTRAINEDSIZE);
+      nsSize availSpace =
+        LogicalSize(aState.mReflowState.GetWritingMode(),
+                    aState.ContentISize(), NS_UNCONSTRAINEDSIZE).
+          GetPhysicalSize(aState.mReflowState.GetWritingMode());
       nsHTMLReflowState reflowState(aState.mPresContext, aState.mReflowState,
                                     frame, availSpace);
 
@@ -5752,7 +5755,7 @@ nsBlockFrame::AdjustFloatAvailableSpace(nsBlockReflowState& aState,
                          availISize, availBSize);
 
   
-  return availSpace.GetPhysicalRect(wm, aState.ContentISize());
+  return availSpace.GetPhysicalRect(wm, aState.mContainerWidth);
 }
 
 nscoord
