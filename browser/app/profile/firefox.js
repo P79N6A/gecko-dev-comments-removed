@@ -1704,11 +1704,6 @@ pref("full-screen-api.enabled", true);
 
 
 
-pref("full-screen-api.approval-required", true);
-
-
-
-
 pref("toolkit.startup.max_resumed_crashes", 3);
 
 
