@@ -188,12 +188,7 @@ SyncImpl.prototype = {
         },
         requests: requests,
       },
-      headers: {},
     };
-    if (this._serverLastModifiedHeader) {
-      request.headers["If-Unmodified-Since"] = this._serverLastModifiedHeader;
-    }
-
     let batchResponse = yield this._sendRequest(request);
     if (batchResponse.status != 200) {
       this._handleUnexpectedResponse("uploading changes", batchResponse);
@@ -207,8 +202,7 @@ SyncImpl.prototype = {
         yield this._deleteItemForGUID(response.body.id);
         continue;
       }
-      if (response.status == 412 || response.status == 409) {
-        
+      if (response.status == 409) {
         
         
         
@@ -219,6 +213,10 @@ SyncImpl.prototype = {
         this._handleUnexpectedResponse("uploading a change", response);
         continue;
       }
+      
+      
+      
+
       let item = yield this._itemForGUID(response.body.id);
       yield this._updateItemWithServerRecord(item, response.body);
     }
@@ -255,12 +253,7 @@ SyncImpl.prototype = {
         },
         requests: requests,
       },
-      headers: {},
     };
-    if (this._serverLastModifiedHeader) {
-      request.headers["If-Unmodified-Since"] = this._serverLastModifiedHeader;
-    }
-
     let batchResponse = yield this._sendRequest(request);
     if (batchResponse.status != 200) {
       this._handleUnexpectedResponse("uploading new items", batchResponse);
@@ -323,12 +316,7 @@ SyncImpl.prototype = {
         },
         requests: requests,
       },
-      headers: {},
     };
-    if (this._serverLastModifiedHeader) {
-      request.headers["If-Unmodified-Since"] = this._serverLastModifiedHeader;
-    }
-
     let batchResponse = yield this._sendRequest(request);
     if (batchResponse.status != 200) {
       this._handleUnexpectedResponse("uploading deleted items", batchResponse);
@@ -337,13 +325,6 @@ SyncImpl.prototype = {
 
     
     for (let response of batchResponse.body.responses) {
-      if (response.status == 412) {
-        
-        
-        
-        
-        continue;
-      }
       
       
       if (response.status != 200 && response.status != 404) {
@@ -370,18 +351,8 @@ SyncImpl.prototype = {
     let request = {
       method: "GET",
       path: path,
-      headers: {},
     };
-    if (this._serverLastModifiedHeader) {
-      request.headers["If-Modified-Since"] = this._serverLastModifiedHeader;
-    }
-
     let response = yield this._sendRequest(request);
-    if (response.status == 304) {
-      
-      log.debug("No server changes");
-      return;
-    }
     if (response.status != 200) {
       this._handleUnexpectedResponse("downloading modified items", response);
       return;
@@ -416,6 +387,13 @@ SyncImpl.prototype = {
         log.warn("Failed to add a new item from server record ${serverRecord}: ${ex}",
                  {serverRecord, ex});
       }
+    }
+
+    
+    
+    
+    if (response.headers && "last-modified" in response.headers) {
+      this._serverLastModifiedHeader = response.headers["last-modified"];
     }
   }),
 
@@ -506,10 +484,6 @@ SyncImpl.prototype = {
     log.debug("Sending request", req);
     let response = yield this._client.request(req);
     log.debug("Received response", response);
-    
-    if (response.headers && "last-modified" in response.headers) {
-      this._serverLastModifiedHeader = response.headers["last-modified"];
-    }
     return response;
   }),
 
