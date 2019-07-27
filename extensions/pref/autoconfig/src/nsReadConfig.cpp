@@ -158,6 +158,11 @@ nsresult nsReadConfig::readConfigFile()
         if (NS_FAILED(rv)) 
             return rv;
 
+        
+        rv = openAndEvaluateJSFile("platform.js", 0, false, false);
+        if (NS_FAILED(rv)) 
+            return rv;
+
         mRead = true;
     }
     
