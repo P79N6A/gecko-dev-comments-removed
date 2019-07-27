@@ -37,17 +37,17 @@ BackCert::Init()
   
   
 
-  der::Input tbsCertificate;
+  Input tbsCertificate;
 
   
   
   {
-    der::Input input;
+    Input input;
     rv = input.Init(der.data, der.len);
     if (rv != Success) {
       return rv;
     }
-    der::Input certificate;
+    Input certificate;
     rv = der::ExpectTagAndGetValue(input, der::SEQUENCE, certificate);
     if (rv != Success) {
       return rv;
@@ -163,7 +163,7 @@ BackCert::Init()
 }
 
 Result
-BackCert::RememberExtension(der::Input& extnID, const SECItem& extnValue,
+BackCert::RememberExtension(Input& extnID, const SECItem& extnValue,
                              bool& understood)
 {
   understood = false;
@@ -243,11 +243,11 @@ BackCert::RememberExtension(der::Input& extnID, const SECItem& extnValue,
     
     
     if (extnValue.len == 0) {
-      return der::Fail(SEC_ERROR_EXTENSION_VALUE_INVALID);
+      return Fail(SEC_ERROR_EXTENSION_VALUE_INVALID);
     }
     if (out->len != 0) {
       
-      return der::Fail(SEC_ERROR_EXTENSION_VALUE_INVALID);
+      return Fail(SEC_ERROR_EXTENSION_VALUE_INVALID);
     }
     *out = extnValue;
     understood = true;
