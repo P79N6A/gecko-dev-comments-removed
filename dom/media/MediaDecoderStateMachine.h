@@ -188,10 +188,6 @@ public:
 
   
   
-  int64_t GetDuration();
-
-  
-  
   bool OnDecodeTaskQueue() const;
   bool OnTaskQueue() const;
 

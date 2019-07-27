@@ -83,6 +83,12 @@ public:
 
   
   
+  
+  
+  void InitializationTask();
+
+  
+  
   virtual nsresult Init(MediaDecoderReader* aCloneDonor) = 0;
 
   
@@ -317,6 +323,9 @@ protected:
 
   
   MediaInfo mInfo;
+
+  
+  Mirror<media::NullableTimeUnit> mDuration;
 
   
   

@@ -402,8 +402,7 @@ public:
   
   virtual double GetDuration();
 
-  
-  int64_t GetMediaDuration() final override;
+  AbstractCanonical<media::NullableTimeUnit>* CanonicalDurationOrNull() override;
 
   
   
