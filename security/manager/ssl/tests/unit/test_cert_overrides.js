@@ -131,6 +131,22 @@ function add_simple_tests() {
   
   
   
+  
+  add_test(function() {
+    let rootCert = constructCertFromFile("tlsserver/test-ca.der");
+    setCertTrust(rootCert, ",,");
+    run_next_test();
+  });
+  add_non_overridable_test("badSubjectAltNames.example.com", SEC_ERROR_BAD_DER);
+  add_test(function() {
+    let rootCert = constructCertFromFile("tlsserver/test-ca.der");
+    setCertTrust(rootCert, "CTu,,");
+    run_next_test();
+  });
+
+  
+  
+  
   add_cert_override_test("self-signed-end-entity-with-cA-true.example.com",
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
                          getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_ISSUER));
@@ -205,20 +221,18 @@ function add_distrust_tests() {
   
   add_connection_test("untrusted.example.com", Cr.NS_OK);
 
-  add_distrust_override_test("tlsserver/default-ee.der",
-                             "untrusted.example.com",
-                             getXPCOMStatusFromNSS(SEC_ERROR_UNTRUSTED_CERT));
+  add_distrust_test("tlsserver/default-ee.der", "untrusted.example.com",
+                    SEC_ERROR_UNTRUSTED_CERT);
 
-  add_distrust_override_test("tlsserver/other-test-ca.der",
-                             "untrustedissuer.example.com",
-                             getXPCOMStatusFromNSS(SEC_ERROR_UNTRUSTED_ISSUER));
+  add_distrust_test("tlsserver/other-test-ca.der",
+                    "untrustedissuer.example.com", SEC_ERROR_UNTRUSTED_ISSUER);
 
-  add_distrust_override_test("tlsserver/test-ca.der",
-                             "ca-used-as-end-entity.example.com",
-                             getXPCOMStatusFromNSS(SEC_ERROR_UNTRUSTED_ISSUER));
+  add_distrust_test("tlsserver/test-ca.der",
+                    "ca-used-as-end-entity.example.com",
+                    SEC_ERROR_UNTRUSTED_ISSUER);
 }
 
-function add_distrust_override_test(certFileName, hostName, expectedResult) {
+function add_distrust_test(certFileName, hostName, expectedResult) {
   let certToDistrust = constructCertFromFile(certFileName);
 
   add_test(function () {
@@ -227,26 +241,9 @@ function add_distrust_override_test(certFileName, hostName, expectedResult) {
     clearSessionCache();
     run_next_test();
   });
-  add_connection_test(hostName, expectedResult, null,
-                      function (securityInfo) {
-                        securityInfo.QueryInterface(Ci.nsISSLStatusProvider);
-                        
-                        
-                        if (securityInfo.SSLStatus) {
-                          certOverrideService.rememberValidityOverride(
-                              hostName, 8443, securityInfo.SSLStatus.serverCert,
-                              Ci.nsICertOverrideService.ERROR_UNTRUSTED, true);
-                        } else {
-                          
-                          
-                          
-                          
-                          do_check_neq(expectedResult, Cr.NS_OK);
-                        }
-                        clearSessionCache();
-                      });
-  add_connection_test(hostName, expectedResult, null,
-                      function () {
-                        setCertTrust(certToDistrust, "u,,");
-                      });
+  add_non_overridable_test(hostName, expectedResult);
+  add_test(function () {
+    setCertTrust(certToDistrust, "u,,");
+    run_next_test();
+  });
 }

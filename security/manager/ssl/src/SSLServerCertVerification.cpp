@@ -351,7 +351,10 @@ DetermineCertOverrideErrors(CERTCertificate* cert, const char* hostName,
 
       SECCertTimeValidity validity = CERT_CheckCertValidTimes(cert, now, false);
       if (validity == secCertTimeUndetermined) {
-        PR_SetError(defaultErrorCodeToReport, 0);
+        
+        
+        
+        MOZ_ASSERT(PR_GetError() == SEC_ERROR_INVALID_ARGS);
         return SECFailure;
       }
       if (validity == secCertTimeExpired) {
@@ -404,7 +407,7 @@ DetermineCertOverrideErrors(CERTCertificate* cert, const char* hostName,
       collectedErrors |= nsICertOverrideService::ERROR_MISMATCH;
       errorCodeMismatch = SSL_ERROR_BAD_CERT_DOMAIN;
     } else if (result != Success) {
-      PR_SetError(defaultErrorCodeToReport, 0);
+      PR_SetError(MapResultToPRErrorCode(result), 0);
       return SECFailure;
     }
   }
@@ -593,6 +596,13 @@ CreateCertErrorRunnable(CertVerifier& certVerifier,
                                   defaultErrorCodeToReport, collected_errors,
                                   errorCodeTrust, errorCodeMismatch,
                                   errorCodeExpired) != SECSuccess) {
+    
+    
+    
+    
+    
+    
+    MOZ_ASSERT(!ErrorIsOverridable(PR_GetError()));
     return nullptr;
   }
 
