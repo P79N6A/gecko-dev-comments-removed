@@ -1297,6 +1297,11 @@ void nsWindow::SetThemeRegion()
 
 void nsWindow::ConfigureAPZCTreeManager()
 {
+  
+  if (!mozilla::BrowserTabsRemoteAutostart() || !mRequireOffMainThreadCompositing) {
+    return;
+  }
+
   nsBaseWidget::ConfigureAPZCTreeManager();
 
   
