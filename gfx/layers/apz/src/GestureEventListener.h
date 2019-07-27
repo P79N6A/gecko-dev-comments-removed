@@ -182,6 +182,15 @@ private:
 
 
 
+  MultiTouchInput mLastTapInput;
+
+  
+
+
+
+
+
+
 
 
   ScreenIntPoint mTouchStartPosition;
