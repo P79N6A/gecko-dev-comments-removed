@@ -893,9 +893,9 @@ GetDisplayPortFromMarginsData(nsIContent* aContent,
   if (isRoot) {
     
     
-    gfxSize localRes = presContext->PresShell()->GetResolution();
-    parentRes.xScale /= localRes.width;
-    parentRes.yScale /= localRes.height;
+    float localRes = presContext->PresShell()->GetResolution();
+    parentRes.xScale /= localRes;
+    parentRes.yScale /= localRes;
   }
   ScreenRect screenRect = LayoutDeviceRect::FromAppUnits(base, auPerDevPixel)
                         * parentRes;
@@ -2815,7 +2815,7 @@ CalculateFrameMetricsForDisplayPort(nsIScrollableFrame* aScrollFrame) {
   if (frame == presShell->GetRootScrollFrame()) {
     
     
-    resolution = presShell->GetXResolution();
+    resolution = presShell->GetResolution();
   }
   
   
@@ -2839,8 +2839,9 @@ CalculateFrameMetricsForDisplayPort(nsIScrollableFrame* aScrollFrame) {
   LayoutDeviceToParentLayerScale2D compBoundsScale;
   if (frame == presShell->GetRootScrollFrame() && presContext->IsRootContentDocument()) {
     if (presContext->GetParentPresContext()) {
-      gfxSize res = presContext->GetParentPresContext()->PresShell()->GetCumulativeResolution();
-      compBoundsScale = LayoutDeviceToParentLayerScale2D(res.width, res.height);
+      float res = presContext->GetParentPresContext()->PresShell()->GetCumulativeResolution();
+      compBoundsScale = LayoutDeviceToParentLayerScale2D(
+          LayoutDeviceToParentLayerScale(res));
     }
   } else {
     compBoundsScale = cumulativeResolution * layerToParentLayerScale;
@@ -7544,12 +7545,12 @@ nsLayoutUtils::CalculateCompositionSizeForFrame(nsIFrame* aFrame)
                       widgetBounds.height * auPerDevPixel);
 #ifdef MOZ_WIDGET_ANDROID
         nsRect frameRect = aFrame->GetRect();
-        gfxSize cumulativeResolution = presShell->GetCumulativeResolution();
-        LayoutDeviceToParentLayerScale2D layoutToParentLayerScale =
+        float cumulativeResolution = presShell->GetCumulativeResolution();
+        LayoutDeviceToParentLayerScale layoutToParentLayerScale =
           
           
           
-          LayoutDeviceToLayerScale2D(cumulativeResolution.width, cumulativeResolution.height) *
+          LayoutDeviceToLayerScale(cumulativeResolution) *
           LayerToScreenScale(1.0) * ScreenToParentLayerScale(1.0);
         ParentLayerRect frameRectPixels =
           LayoutDeviceRect::FromAppUnits(frameRect, auPerDevPixel)
@@ -7558,7 +7559,7 @@ nsLayoutUtils::CalculateCompositionSizeForFrame(nsIFrame* aFrame)
           
           
           size.height =
-            NSToCoordRound(frameRect.height * cumulativeResolution.height);
+            NSToCoordRound(frameRect.height * cumulativeResolution);
         }
 #endif
       } else {
@@ -7605,9 +7606,9 @@ nsLayoutUtils::CalculateRootCompositionSize(nsIFrame* aFrame,
     
     nsIPresShell* rootPresShell = rootPresContext->PresShell();
     if (nsIFrame* rootFrame = rootPresShell->GetRootFrame()) {
-      LayoutDeviceToLayerScale cumulativeResolution(
-        rootPresShell->GetCumulativeResolution().width
-      * nsLayoutUtils::GetTransformToAncestorScale(rootFrame).width);
+      LayoutDeviceToLayerScale2D cumulativeResolution(
+        rootPresShell->GetCumulativeResolution()
+      * nsLayoutUtils::GetTransformToAncestorScale(rootFrame));
       int32_t rootAUPerDevPixel = rootPresContext->AppUnitsPerDevPixel();
       LayerSize frameSize =
         (LayoutDeviceRect::FromAppUnits(rootFrame->GetRect(), rootAUPerDevPixel)
@@ -7631,10 +7632,10 @@ nsLayoutUtils::CalculateRootCompositionSize(nsIFrame* aFrame,
       } else {
         LayoutDeviceIntSize contentSize;
         if (nsLayoutUtils::GetContentViewerSize(rootPresContext, contentSize)) {
-          LayoutDeviceToLayerScale2D scale;
+          LayoutDeviceToLayerScale scale;
           if (rootPresContext->GetParentPresContext()) {
-            gfxSize res = rootPresContext->GetParentPresContext()->PresShell()->GetCumulativeResolution();
-            scale = LayoutDeviceToLayerScale2D(res.width, res.height);
+            float res = rootPresContext->GetParentPresContext()->PresShell()->GetCumulativeResolution();
+            scale = LayoutDeviceToLayerScale(res);
           }
           rootCompositionSize = contentSize * scale * LayerToScreenScale(1.0f);
         }
@@ -7706,9 +7707,9 @@ nsLayoutUtils::CalculateExpandedScrollableRect(nsIFrame* aFrame)
   if (aFrame == aFrame->PresContext()->PresShell()->GetRootScrollFrame()) {
     
     
-    gfxSize res = aFrame->PresContext()->PresShell()->GetResolution();
-    compSize.width = NSToCoordRound(compSize.width / ((float) res.width));
-    compSize.height = NSToCoordRound(compSize.height / ((float) res.height));
+    float res = aFrame->PresContext()->PresShell()->GetResolution();
+    compSize.width = NSToCoordRound(compSize.width / res);
+    compSize.height = NSToCoordRound(compSize.height / res);
   }
 
   if (scrollableRect.width < compSize.width) {

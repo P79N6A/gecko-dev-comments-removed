@@ -1381,17 +1381,15 @@ public:
 
 
 
-  virtual nsresult SetResolution(float aXResolution, float aYResolution) = 0;
-  gfxSize GetResolution() { return gfxSize(mXResolution, mYResolution); }
-  float GetXResolution() { return mXResolution; }
-  float GetYResolution() { return mYResolution; }
-  virtual gfxSize GetCumulativeResolution() = 0;
+  virtual nsresult SetResolution(float aResolution) = 0;
+  float GetResolution() { return mResolution; }
+  virtual float GetCumulativeResolution() = 0;
 
   
 
 
 
-  virtual nsresult SetResolutionAndScaleTo(float aXResolution, float aYResolution) = 0;
+  virtual nsresult SetResolutionAndScaleTo(float aResolution) = 0;
 
   
 
@@ -1719,8 +1717,7 @@ protected:
 
   
   
-  float                     mXResolution;
-  float                     mYResolution;
+  float                     mResolution;
 
   int16_t                   mSelectionFlags;
 

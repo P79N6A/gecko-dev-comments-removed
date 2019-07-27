@@ -148,17 +148,17 @@ public:
   
 
 
-  virtual gfxSize GetResolution() const = 0;
+  virtual float GetResolution() const = 0;
   
 
 
-  virtual void SetResolution(const gfxSize& aResolution) = 0;
+  virtual void SetResolution(float aResolution) = 0;
   
 
 
 
 
-  virtual void SetResolutionAndScaleTo(const gfxSize& aResolution) = 0;
+  virtual void SetResolutionAndScaleTo(float aResolution) = 0;
   
 
 
