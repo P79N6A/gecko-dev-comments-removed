@@ -119,6 +119,12 @@ public:
     ~Listener() { }
   };
 
+  enum State
+  {
+    Open,
+    Closing
+  };
+
   static nsresult GetOrCreate(ManagerId* aManagerId, Manager** aManagerOut);
   static already_AddRefed<Manager> Get(ManagerId* aManagerId);
 
@@ -134,7 +140,8 @@ public:
   
   
   void NoteClosing();
-  bool IsClosing() const;
+
+  State GetState() const;
 
   
   
@@ -185,7 +192,7 @@ private:
 
   Manager(ManagerId* aManagerId, nsIThread* aIOThread);
   ~Manager();
-  void Init();
+  void Init(Manager* aOldManager);
   void Shutdown();
   already_AddRefed<Context> CurrentContext();
 
@@ -249,7 +256,7 @@ private:
   nsTArray<StreamList*> mStreamLists;
 
   bool mShuttingDown;
-  bool mClosing;
+  State mState;
 
   struct CacheIdRefCounter
   {

@@ -157,7 +157,12 @@ public:
       if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
       ref = new Manager(aManagerId, ioThread);
-      ref->Init();
+
+      
+      
+      
+      nsRefPtr<Manager> oldManager = Get(aManagerId, Closing);
+      ref->Init(oldManager);
 
       MOZ_ASSERT(!sFactory->mManagerList.Contains(ref));
       sFactory->mManagerList.AppendElement(ref);
@@ -169,20 +174,20 @@ public:
   }
 
   static already_AddRefed<Manager>
-  Get(ManagerId* aManagerId)
+  Get(ManagerId* aManagerId, State aState = Open)
   {
     mozilla::ipc::AssertIsOnBackgroundThread();
 
     nsresult rv = MaybeCreateInstance();
     if (NS_WARN_IF(NS_FAILED(rv))) { return nullptr; }
 
-    ManagerList::ForwardIterator iter(sFactory->mManagerList);
+    
+    
+    
+    ManagerList::BackwardIterator iter(sFactory->mManagerList);
     while (iter.HasMore()) {
       nsRefPtr<Manager> manager = iter.GetNext();
-      
-      
-      
-      if (!manager->IsClosing() && *manager->mManagerId == *aManagerId) {
+      if (aState == manager->GetState() && *manager->mManagerId == *aManagerId) {
         return manager.forget();
       }
     }
@@ -1450,7 +1455,7 @@ Manager::RemoveContext(Context* aContext)
   
   
   
-  MOZ_ASSERT(mClosing);
+  MOZ_ASSERT(mState == Closing);
 
   mContext = nullptr;
 
@@ -1465,14 +1470,14 @@ Manager::NoteClosing()
 {
   NS_ASSERT_OWNINGTHREAD(Manager);
   
-  mClosing = true;
+  mState = Closing;
 }
 
-bool
-Manager::IsClosing() const
+Manager::State
+Manager::GetState() const
 {
   NS_ASSERT_OWNINGTHREAD(Manager);
-  return mClosing;
+  return mState;
 }
 
 void
@@ -1593,7 +1598,7 @@ Manager::ExecuteCacheOp(Listener* aListener, CacheId aCacheId,
   MOZ_ASSERT(aOpArgs.type() != CacheOpArgs::TCacheAddAllArgs);
   MOZ_ASSERT(aOpArgs.type() != CacheOpArgs::TCachePutAllArgs);
 
-  if (mClosing) {
+  if (mState == Closing) {
     aListener->OnOpComplete(ErrorResult(NS_ERROR_FAILURE), void_t());
     return;
   }
@@ -1637,7 +1642,7 @@ Manager::ExecuteStorageOp(Listener* aListener, Namespace aNamespace,
   NS_ASSERT_OWNINGTHREAD(Manager);
   MOZ_ASSERT(aListener);
 
-  if (mClosing) {
+  if (mState == Closing) {
     aListener->OnOpComplete(ErrorResult(NS_ERROR_FAILURE), void_t());
     return;
   }
@@ -1686,7 +1691,7 @@ Manager::ExecutePutAll(Listener* aListener, CacheId aCacheId,
   NS_ASSERT_OWNINGTHREAD(Manager);
   MOZ_ASSERT(aListener);
 
-  if (mClosing) {
+  if (mState == Closing) {
     aListener->OnOpComplete(ErrorResult(NS_ERROR_FAILURE), CachePutAllResult());
     return;
   }
@@ -1708,7 +1713,7 @@ Manager::Manager(ManagerId* aManagerId, nsIThread* aIOThread)
   , mIOThread(aIOThread)
   , mContext(nullptr)
   , mShuttingDown(false)
-  , mClosing(false)
+  , mState(Open)
 {
   MOZ_ASSERT(mManagerId);
   MOZ_ASSERT(mIOThread);
@@ -1717,7 +1722,7 @@ Manager::Manager(ManagerId* aManagerId, nsIThread* aIOThread)
 Manager::~Manager()
 {
   NS_ASSERT_OWNINGTHREAD(Manager);
-  MOZ_ASSERT(mClosing);
+  MOZ_ASSERT(mState == Closing);
   MOZ_ASSERT(!mContext);
 
   nsCOMPtr<nsIThread> ioThread;
@@ -1731,15 +1736,20 @@ Manager::~Manager()
 }
 
 void
-Manager::Init()
+Manager::Init(Manager* aOldManager)
 {
   NS_ASSERT_OWNINGTHREAD(Manager);
+
+  nsRefPtr<Context> oldContext;
+  if (aOldManager) {
+    oldContext = aOldManager->mContext;
+  }
 
   
   
   
   nsRefPtr<Action> setupAction = new SetupAction();
-  nsRefPtr<Context> ref = Context::Create(this, setupAction);
+  nsRefPtr<Context> ref = Context::Create(this, setupAction, oldContext);
   mContext = ref;
 }
 

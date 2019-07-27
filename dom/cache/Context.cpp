@@ -701,18 +701,19 @@ Context::ThreadsafeHandle::ContextDestroyed(Context* aContext)
 
 
 already_AddRefed<Context>
-Context::Create(Manager* aManager, Action* aQuotaIOThreadAction)
+Context::Create(Manager* aManager, Action* aQuotaIOThreadAction,
+                Context* aOldContext)
 {
   nsRefPtr<Context> context = new Context(aManager);
 
+  
   context->mInitRunnable = new QuotaInitRunnable(context, aManager,
                                                  aQuotaIOThreadAction);
-  nsresult rv = context->mInitRunnable->Dispatch();
-  if (NS_FAILED(rv)) {
-    
-    
-    
-    MOZ_CRASH("Failed to dispatch QuotaInitRunnable.");
+
+  if (aOldContext) {
+    aOldContext->SetNextContext(context);
+  } else {
+    context->Start();
   }
 
   return context.forget();
@@ -720,7 +721,7 @@ Context::Create(Manager* aManager, Action* aQuotaIOThreadAction)
 
 Context::Context(Manager* aManager)
   : mManager(aManager)
-  , mState(STATE_CONTEXT_INIT)
+  , mState(STATE_CONTEXT_PREINIT)
 {
   MOZ_ASSERT(mManager);
 }
@@ -735,7 +736,8 @@ Context::Dispatch(nsIEventTarget* aTarget, Action* aAction)
   MOZ_ASSERT(mState != STATE_CONTEXT_CANCELED);
   if (mState == STATE_CONTEXT_CANCELED) {
     return;
-  } else if (mState == STATE_CONTEXT_INIT) {
+  } else if (mState == STATE_CONTEXT_INIT ||
+             mState == STATE_CONTEXT_PREINIT) {
     PendingAction* pending = mPendingActions.AppendElement();
     pending->mTarget = aTarget;
     pending->mAction = aAction;
@@ -751,8 +753,15 @@ Context::CancelAll()
 {
   NS_ASSERT_OWNINGTHREAD(Context);
 
-  if (mInitRunnable) {
-    MOZ_ASSERT(mState == STATE_CONTEXT_INIT);
+  
+  
+  if (mState == STATE_CONTEXT_PREINIT) {
+    mInitRunnable = nullptr;
+
+  
+  
+  
+  } else if (mState == STATE_CONTEXT_INIT) {
     mInitRunnable->Cancel();
   }
 
@@ -823,6 +832,34 @@ Context::~Context()
   }
 
   mManager->RemoveContext(this);
+
+  if (mNextContext) {
+    mNextContext->Start();
+  }
+}
+
+void
+Context::Start()
+{
+  NS_ASSERT_OWNINGTHREAD(Context);
+
+  
+  
+  if (mState == STATE_CONTEXT_CANCELED) {
+    MOZ_ASSERT(!mInitRunnable);
+    return;
+  }
+
+  MOZ_ASSERT(mState == STATE_CONTEXT_PREINIT);
+  mState = STATE_CONTEXT_INIT;
+
+  nsresult rv = mInitRunnable->Dispatch();
+  if (NS_FAILED(rv)) {
+    
+    
+    
+    MOZ_CRASH("Failed to dispatch QuotaInitRunnable.");
+  }
 }
 
 void
@@ -903,6 +940,15 @@ Context::CreateThreadsafeHandle()
   }
   nsRefPtr<ThreadsafeHandle> ref = mThreadsafeHandle;
   return ref.forget();
+}
+
+void
+Context::SetNextContext(Context* aNextContext)
+{
+  NS_ASSERT_OWNINGTHREAD(Context);
+  MOZ_ASSERT(aNextContext);
+  MOZ_ASSERT(!mNextContext);
+  mNextContext = aNextContext;
 }
 
 } 
