@@ -520,7 +520,8 @@ function startOCSPResponder(serverPort, identity, invalidIdentities,
 }
 
 
-let FakeSSLStatus = function() {
+let FakeSSLStatus = function(certificate) {
+  this.serverCert = certificate;
 };
 
 FakeSSLStatus.prototype = {
