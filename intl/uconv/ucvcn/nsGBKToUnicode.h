@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsGBKToUnicode_h___
-#define nsGBKToUnicode_h___
+#ifndef nsGBK2312ToUnicode_h___
+#define nsGBK2312ToUnicode_h___
 
 #include "nsCOMPtr.h"
 #include "nsIUnicodeDecoder.h"
@@ -20,14 +20,14 @@
 
 
 
-class nsGB18030ToUnicode : public nsBufferDecoderSupport
+class nsGBKToUnicode : public nsBufferDecoderSupport
 {
 public:
 		  
   
 
 
-  nsGB18030ToUnicode() : nsBufferDecoderSupport(1)
+  nsGBKToUnicode() : nsBufferDecoderSupport(1)
   {
     mExtensionDecoder = nullptr;
     m4BytesDecoder = nullptr;
@@ -44,12 +44,24 @@ protected:
   nsCOMPtr<nsIUnicodeDecoder> mExtensionDecoder;
   nsCOMPtr<nsIUnicodeDecoder> m4BytesDecoder;
 
-  void CreateExtensionDecoder();
-  void Create4BytesDecoder();
+  virtual void CreateExtensionDecoder();
+  virtual void Create4BytesDecoder();
   bool TryExtensionDecoder(const char* aSrc, char16_t* aDest);
   bool Try4BytesDecoder(const char* aSrc, char16_t* aDest);
-  bool DecodeToSurrogate(const char* aSrc, char16_t* aDest);
+  virtual bool DecodeToSurrogate(const char* aSrc, char16_t* aDest);
 
+};
+
+
+class nsGB18030ToUnicode : public nsGBKToUnicode
+{
+public:
+  nsGB18030ToUnicode() {}
+  virtual ~nsGB18030ToUnicode() {}
+protected:
+  virtual void CreateExtensionDecoder();
+  virtual void Create4BytesDecoder();
+  virtual bool DecodeToSurrogate(const char* aSrc, char16_t* aDest);
 };
 
 #endif 
