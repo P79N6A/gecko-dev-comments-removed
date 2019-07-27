@@ -78,46 +78,50 @@ FFmpegH264Decoder<LIBAV_VER>::DecodeFrame(mp4_demuxer::MP4Sample* aSample)
 
   
   if (decoded) {
-    nsAutoPtr<VideoData> data;
-
     VideoInfo info;
     info.mDisplay = nsIntSize(mCodecContext->width, mCodecContext->height);
     info.mStereoMode = StereoMode::MONO;
     info.mHasVideo = true;
 
-    data = VideoData::CreateFromImage(
-      info, mImageContainer, aSample->byte_offset, mFrame->pkt_pts,
-      aSample->duration, static_cast<Image*>(mFrame->opaque),
-      aSample->is_sync_point, -1,
-      gfx::IntRect(0, 0, mCodecContext->width, mCodecContext->height));
+    VideoData::YCbCrBuffer b;
+    b.mPlanes[0].mData = mFrame->data[0];
+    b.mPlanes[0].mStride = mFrame->linesize[0];
+    b.mPlanes[0].mHeight = mFrame->height;
+    b.mPlanes[0].mWidth = mFrame->width;
+    b.mPlanes[0].mOffset = b.mPlanes[0].mSkip = 0;
 
-    mCallback->Output(data.forget());
+    b.mPlanes[1].mData = mFrame->data[1];
+    b.mPlanes[1].mStride = mFrame->linesize[1];
+    b.mPlanes[1].mHeight = (mFrame->height + 1) >> 1;
+    b.mPlanes[1].mWidth = (mFrame->width + 1) >> 1;
+    b.mPlanes[1].mOffset = b.mPlanes[1].mSkip = 0;
+
+    b.mPlanes[2].mData = mFrame->data[2];
+    b.mPlanes[2].mStride = mFrame->linesize[2];
+    b.mPlanes[2].mHeight = (mFrame->height + 1) >> 1;
+    b.mPlanes[2].mWidth = (mFrame->width + 1) >> 1;
+    b.mPlanes[2].mOffset = b.mPlanes[2].mSkip = 0;
+
+    VideoData *v = VideoData::Create(info,
+                                     mImageContainer,
+                                     aSample->byte_offset,
+                                     mFrame->pkt_pts,
+                                     aSample->duration,
+                                     b,
+                                     aSample->is_sync_point,
+                                     -1,
+                                     gfx::IntRect(0, 0, mCodecContext->width, mCodecContext->height));
+    if (!v) {
+      NS_WARNING("image allocation error.");
+      mCallback->Error();
+      return;
+    }
+    mCallback->Output(v);
   }
 
   if (mTaskQueue->IsEmpty()) {
     mCallback->InputExhausted();
   }
-}
-
-static void
-PlanarYCbCrDataFromAVFrame(mozilla::layers::PlanarYCbCrData& aData,
-                           AVFrame* aFrame)
-{
-  aData.mPicX = aData.mPicY = 0;
-  aData.mPicSize = mozilla::gfx::IntSize(aFrame->width, aFrame->height);
-  aData.mStereoMode = StereoMode::MONO;
-
-  aData.mYChannel = aFrame->data[0];
-  aData.mYStride = aFrame->linesize[0];
-  aData.mYSize = aData.mPicSize;
-  aData.mYSkip = 0;
-
-  aData.mCbChannel = aFrame->data[1];
-  aData.mCrChannel = aFrame->data[2];
-  aData.mCbCrStride = aFrame->linesize[1];
-  aData.mCbSkip = aData.mCrSkip = 0;
-  aData.mCbCrSize =
-    mozilla::gfx::IntSize((aFrame->width + 1) / 2, (aFrame->height + 1) / 2);
 }
 
  int
@@ -159,16 +163,17 @@ int
 FFmpegH264Decoder<LIBAV_VER>::AllocateYUV420PVideoBuffer(
   AVCodecContext* aCodecContext, AVFrame* aFrame)
 {
-  
-  
-  int edgeWidth = avcodec_get_edge_width();
+  bool needAlign = aCodecContext->codec->capabilities & CODEC_CAP_DR1;
+  int edgeWidth =  needAlign ? avcodec_get_edge_width() : 0;
   int decodeWidth = aCodecContext->width + edgeWidth * 2;
   int decodeHeight = aCodecContext->height + edgeWidth * 2;
 
-  
-  int stride_align[AV_NUM_DATA_POINTERS];
-  avcodec_align_dimensions2(aCodecContext, &decodeWidth, &decodeHeight,
-                            stride_align);
+  if (needAlign) {
+    
+    int stride_align[AV_NUM_DATA_POINTERS];
+    avcodec_align_dimensions2(aCodecContext, &decodeWidth, &decodeHeight,
+                              stride_align);
+  }
 
   
   av_image_fill_linesizes(aFrame->linesize, aCodecContext->pix_fmt,
@@ -214,10 +219,6 @@ FFmpegH264Decoder<LIBAV_VER>::AllocateYUV420PVideoBuffer(
   aFrame->extended_data = aFrame->data;
   aFrame->width = aCodecContext->width;
   aFrame->height = aCodecContext->height;
-
-  mozilla::layers::PlanarYCbCrData data;
-  PlanarYCbCrDataFromAVFrame(data, aFrame);
-  ycbcr->SetDataNoCopy(data);
 
   aFrame->opaque = static_cast<void*>(image.forget().take());
 
