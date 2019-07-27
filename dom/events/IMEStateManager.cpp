@@ -463,7 +463,16 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
   bool setIMEState = true;
 
   if (newTabParent) {
-    if (focusActuallyChanging) {
+    if (aAction.mFocusChange == InputContextAction::MENU_GOT_PSEUDO_FOCUS ||
+        aAction.mFocusChange == InputContextAction::MENU_LOST_PSEUDO_FOCUS) {
+      
+      
+      
+      
+      unused << newTabParent->
+        SendMenuKeyboardListenerInstalled(sInstalledMenuKeyboardListener);
+      setIMEState = sInstalledMenuKeyboardListener;
+    } else if (focusActuallyChanging) {
       InputContext context = widget->GetInputContext();
       if (context.mIMEState.mEnabled == IMEState::DISABLED) {
         setIMEState = false;

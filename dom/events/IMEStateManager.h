@@ -50,7 +50,14 @@ public:
 
 
 
-  static TabParent* GetActiveTabParent() { return sActiveTabParent.get(); }
+  static TabParent* GetActiveTabParent()
+  {
+    
+    if (sInstalledMenuKeyboardListener) {
+      return nullptr;
+    }
+    return sActiveTabParent.get();
+  }
 
   
 
