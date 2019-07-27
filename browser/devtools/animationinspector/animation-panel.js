@@ -187,8 +187,12 @@ function PlayerWidget(player, containerEl) {
   this.onRewindBtnClick = this.onRewindBtnClick.bind(this);
   this.onFastForwardBtnClick = this.onFastForwardBtnClick.bind(this);
   this.onCurrentTimeChanged = this.onCurrentTimeChanged.bind(this);
+  this.onPlaybackRateChanged = this.onPlaybackRateChanged.bind(this);
 
   this.metaDataComponent = new PlayerMetaDataHeader();
+  if (AnimationsController.hasSetPlaybackRate) {
+    this.rateComponent = new PlaybackRateSelector();
+  }
 }
 
 PlayerWidget.prototype = {
@@ -211,6 +215,9 @@ PlayerWidget.prototype = {
     this.stopTimelineAnimation();
     this.stopListeners();
     this.metaDataComponent.destroy();
+    if (this.rateComponent) {
+      this.rateComponent.destroy();
+    }
 
     this.el.remove();
     this.playPauseBtnEl = this.rewindBtnEl = this.fastForwardBtnEl = null;
@@ -226,6 +233,9 @@ PlayerWidget.prototype = {
       this.fastForwardBtnEl.addEventListener("click", this.onFastForwardBtnClick);
       this.currentTimeEl.addEventListener("input", this.onCurrentTimeChanged);
     }
+    if (this.rateComponent) {
+      this.rateComponent.on("rate-changed", this.onPlaybackRateChanged);
+    }
   },
 
   stopListeners: function() {
@@ -235,6 +245,9 @@ PlayerWidget.prototype = {
       this.rewindBtnEl.removeEventListener("click", this.onRewindBtnClick);
       this.fastForwardBtnEl.removeEventListener("click", this.onFastForwardBtnClick);
       this.currentTimeEl.removeEventListener("input", this.onCurrentTimeChanged);
+    }
+    if (this.rateComponent) {
+      this.rateComponent.off("rate-changed", this.onPlaybackRateChanged);
     }
   },
 
@@ -247,7 +260,7 @@ PlayerWidget.prototype = {
       }
     });
 
-    this.metaDataComponent.createMarkup(this.el);
+    this.metaDataComponent.init(this.el);
     this.metaDataComponent.render(state);
 
     
@@ -291,6 +304,11 @@ PlayerWidget.prototype = {
           "class": "ff devtools-button"
         }
       });
+    }
+
+    if (this.rateComponent) {
+      this.rateComponent.init(playbackControlsEl);
+      this.rateComponent.render(state);
     }
 
     
@@ -381,10 +399,21 @@ PlayerWidget.prototype = {
   
 
 
+
+  onPlaybackRateChanged: function(e, rate) {
+    this.setPlaybackRate(rate);
+  },
+
+  
+
+
   onStateChanged: function() {
     let state = this.player.state;
     this.updateWidgetState(state);
     this.metaDataComponent.render(state);
+    if (this.rateComponent) {
+      this.rateComponent.render(state);
+    }
 
     switch (state.playState) {
       case "finished":
@@ -428,6 +457,19 @@ PlayerWidget.prototype = {
 
     yield this.player.setCurrentTime(time);
   }),
+
+  
+
+
+
+
+  setPlaybackRate: function(rate) {
+    if (!AnimationsController.hasSetPlaybackRate) {
+      throw new Error("This server version doesn't support setting animations' playbackRate");
+    }
+
+    return this.player.setPlaybackRate(rate);
+  },
 
   
 
@@ -479,7 +521,8 @@ PlayerWidget.prototype = {
     let start = performance.now();
     let loop = () => {
       this.rafID = requestAnimationFrame(loop);
-      let now = state.currentTime + performance.now() - start;
+      let delta = (performance.now() - start) * state.playbackRate;
+      let now = state.currentTime + delta;
       this.displayTime(now);
     };
 
@@ -540,7 +583,7 @@ function PlayerMetaDataHeader() {
 }
 
 PlayerMetaDataHeader.prototype = {
-  createMarkup: function(containerEl) {
+  init: function(containerEl) {
     
     this.el = createNode({
       parent: containerEl,
@@ -680,6 +723,87 @@ PlayerMetaDataHeader.prototype = {
     }
 
     this.state = state;
+  }
+};
+
+
+
+
+
+
+
+
+function PlaybackRateSelector() {
+  this.currentRate = null;
+  this.onSelectionChanged = this.onSelectionChanged.bind(this);
+  EventEmitter.decorate(this);
+}
+
+PlaybackRateSelector.prototype = {
+  PRESETS: [.1, .5, 1, 2, 5, 10],
+
+  init: function(containerEl) {
+    
+    
+    this.parentEl = containerEl;
+  },
+
+  destroy: function() {
+    this.removeSelect();
+    this.parentEl = this.el = null;
+  },
+
+  removeSelect: function() {
+    if (this.el) {
+      this.el.removeEventListener("change", this.onSelectionChanged);
+      this.el.remove();
+    }
+  },
+
+  
+
+
+
+  getCurrentPresets: function({playbackRate}) {
+    return [...new Set([...this.PRESETS, playbackRate])].sort((a,b) => a > b);
+  },
+
+  render: function(state) {
+    if (state.playbackRate === this.currentRate) {
+      return;
+    }
+
+    this.removeSelect();
+
+    this.el = createNode({
+      parent: this.parentEl,
+      nodeType: "select",
+      attributes: {
+        "class": "rate devtools-button"
+      }
+    });
+
+    for (let preset of this.getCurrentPresets(state)) {
+      let option = createNode({
+        parent: this.el,
+        nodeType: "option",
+        attributes: {
+          value: preset,
+        }
+      });
+      option.textContent = L10N.getFormatStr("player.playbackRateLabel", preset);
+      if (preset === state.playbackRate) {
+        option.setAttribute("selected", "");
+      }
+    }
+
+    this.el.addEventListener("change", this.onSelectionChanged);
+
+    this.currentRate = state.playbackRate;
+  },
+
+  onSelectionChanged: function(e) {
+    this.emit("rate-changed", parseFloat(this.el.value));
   }
 };
 

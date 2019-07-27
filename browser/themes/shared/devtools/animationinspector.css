@@ -182,6 +182,12 @@ body {
   }
 }
 
+.timeline .rate {
+  -moz-appearance: none;
+  text-align: center;
+  border-right: 1px solid var(--theme-splitter-color);
+}
+
 
 
 .timeline .sliders-container {
