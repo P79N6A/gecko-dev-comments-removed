@@ -8,11 +8,13 @@ package org.mozilla.gecko.toolbar;
 import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.CustomEditText;
 import org.mozilla.gecko.InputMethods;
+import org.mozilla.gecko.R;
 import org.mozilla.gecko.toolbar.BrowserToolbar.OnCommitListener;
 import org.mozilla.gecko.toolbar.BrowserToolbar.OnDismissListener;
 import org.mozilla.gecko.toolbar.BrowserToolbar.OnFilterListener;
 import org.mozilla.gecko.util.GamepadUtils;
 import org.mozilla.gecko.util.StringUtils;
+import org.mozilla.gecko.util.HardwareUtils;
 
 import android.content.Context;
 import android.graphics.Rect;
@@ -88,11 +90,18 @@ public class ToolbarEditText extends CustomEditText
         setOnKeyPreImeListener(new KeyPreImeListener());
         setOnSelectionChangedListener(new SelectionChangeListener());
         addTextChangedListener(new TextChangeListener());
+        
+        updateSearchIcon(false);
     }
 
     @Override
     public void onFocusChanged(boolean gainFocus, int direction, Rect previouslyFocusedRect) {
         super.onFocusChanged(gainFocus, direction, previouslyFocusedRect);
+
+        
+        
+        final boolean isActive = !TextUtils.isEmpty(getText());
+        updateSearchIcon(isActive);
 
         if (gainFocus) {
             resetAutocompleteState();
@@ -136,6 +145,26 @@ public class ToolbarEditText extends CustomEditText
 
     void setToolbarPrefs(final ToolbarPrefs prefs) {
         mPrefs = prefs;
+    }
+
+    
+
+
+
+
+
+
+    void updateSearchIcon(boolean isActive) {
+        if (!HardwareUtils.isTablet()) {
+            return;
+        }
+
+        
+        if (isActive) {
+            setCompoundDrawablesWithIntrinsicBounds(R.drawable.search_icon_active, 0, 0, 0);
+        } else {
+            setCompoundDrawablesWithIntrinsicBounds(R.drawable.search_icon_inactive, 0, 0, 0);
+        }
     }
 
     
@@ -513,6 +542,9 @@ public class ToolbarEditText extends CustomEditText
                 
                 removeAutocomplete(editable);
             }
+
+            
+            updateSearchIcon(textLength > 0);
 
             if (mFilterListener != null) {
                 mFilterListener.onFilter(text, doAutocomplete ? ToolbarEditText.this : null);
