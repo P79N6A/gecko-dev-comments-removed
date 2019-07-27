@@ -1254,6 +1254,7 @@ protected:
 
     nsTextEditorState*       mState;
   } mInputData;
+
   
 
 
@@ -1265,6 +1266,11 @@ protected:
 
 
   nsTArray<nsRefPtr<File>> mFiles;
+
+  
+
+
+  nsString mFirstFilePath;
 
   nsRefPtr<FileList>  mFileList;
 
