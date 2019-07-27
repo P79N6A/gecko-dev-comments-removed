@@ -1003,9 +1003,8 @@ ContactDB.prototype = {
         }
         
         
-        let (getAllStore = txn.objectStore(SAVED_GETALL_STORE_NAME)) {
-          getAllStore.clear().onerror = errorCb;
-        }
+        let getAllStore = txn.objectStore(SAVED_GETALL_STORE_NAME);
+        getAllStore.clear().onerror = errorCb;
       }.bind(this);
 
       this.incrementRevision(txn);
