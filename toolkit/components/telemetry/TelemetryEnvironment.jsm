@@ -248,7 +248,7 @@ this.TelemetryEnvironment = {
       return;
     }
 
-    this._log = Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, "TelemetryEnvironment::");
+    this._configureLog();
     this._log.trace("init");
     this._shutdown = false;
     this._startWatchingPrefs();
@@ -273,12 +273,22 @@ this.TelemetryEnvironment = {
     yield this._collectTask;
   }),
 
+  _configureLog: function () {
+    if (this._log) {
+      return;
+    }
+    this._log = Log.repository.getLoggerWithMessagePrefix(
+                                 LOGGER_NAME, "TelemetryEnvironment::");
+  },
+
   
 
 
 
 
+
   registerChangeListener: function (name, listener) {
+    this._configureLog();
     this._log.trace("registerChangeListener for " + name);
     if (this._shutdown) {
       this._log.warn("registerChangeListener - already shutdown")
@@ -291,7 +301,9 @@ this.TelemetryEnvironment = {
 
 
 
+
   unregisterChangeListener: function (name) {
+    this._configureLog();
     this._log.trace("unregisterChangeListener for " + name);
     if (this._shutdown) {
       this._log.warn("registerChangeListener - already shutdown")
