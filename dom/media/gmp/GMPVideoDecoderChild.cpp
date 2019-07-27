@@ -9,21 +9,25 @@
 #include <stdio.h>
 #include "mozilla/unused.h"
 #include "GMPVideoEncodedFrameImpl.h"
+#include "runnable_utils.h"
 
 namespace mozilla {
 namespace gmp {
 
 GMPVideoDecoderChild::GMPVideoDecoderChild(GMPContentChild* aPlugin)
-: GMPSharedMemManager(aPlugin),
-  mPlugin(aPlugin),
-  mVideoDecoder(nullptr),
-  mVideoHost(this)
+  : GMPSharedMemManager(aPlugin)
+  , mPlugin(aPlugin)
+  , mVideoDecoder(nullptr)
+  , mVideoHost(this)
+  , mNeedShmemIntrCount(0)
+  , mPendingDecodeComplete(false)
 {
   MOZ_ASSERT(mPlugin);
 }
 
 GMPVideoDecoderChild::~GMPVideoDecoderChild()
 {
+  MOZ_ASSERT(!mNeedShmemIntrCount);
 }
 
 void
@@ -184,6 +188,16 @@ GMPVideoDecoderChild::RecvDrain()
 bool
 GMPVideoDecoderChild::RecvDecodingComplete()
 {
+  MOZ_ASSERT(mPlugin->GMPMessageLoop() == MessageLoop::current());
+
+  if (mNeedShmemIntrCount) {
+    
+    
+    
+    
+    mPendingDecodeComplete = true;
+    return true;
+  }
   if (mVideoDecoder) {
     
     mVideoDecoder->DecodingComplete();
@@ -197,6 +211,42 @@ GMPVideoDecoderChild::RecvDecodingComplete()
   unused << Send__delete__(this);
 
   return true;
+}
+
+bool
+GMPVideoDecoderChild::Alloc(size_t aSize,
+                            Shmem::SharedMemory::SharedMemoryType aType,
+                            Shmem* aMem)
+{
+  MOZ_ASSERT(mPlugin->GMPMessageLoop() == MessageLoop::current());
+
+  bool rv;
+#ifndef SHMEM_ALLOC_IN_CHILD
+  ++mNeedShmemIntrCount;
+  rv = CallNeedShmem(aSize, aMem);
+  --mNeedShmemIntrCount;
+  if (mPendingDecodeComplete) {
+    auto t = NewRunnableMethod(this, &GMPVideoDecoderChild::RecvDecodingComplete);
+    mPlugin->GMPMessageLoop()->PostTask(FROM_HERE, t);
+  }
+#else
+#ifdef GMP_SAFE_SHMEM
+  rv = AllocShmem(aSize, aType, aMem);
+#else
+  rv = AllocUnsafeShmem(aSize, aType, aMem);
+#endif
+#endif
+  return rv;
+}
+
+void
+GMPVideoDecoderChild::Dealloc(Shmem& aMem)
+{
+#ifndef SHMEM_ALLOC_IN_CHILD
+  SendParentShmemForPool(aMem);
+#else
+  DeallocShmem(aMem);
+#endif
 }
 
 } 
