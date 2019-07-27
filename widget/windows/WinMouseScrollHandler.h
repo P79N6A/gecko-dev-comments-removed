@@ -72,13 +72,6 @@ private:
 
 
 
-
-  static bool DispatchEvent(nsWindowBase* aWidget, WidgetGUIEvent& aEvent);
-
-  
-
-
-
   static void InitEvent(nsWindowBase* aWidget,
                         WidgetGUIEvent& aEvent,
                         nsIntPoint* aPoint = nullptr);

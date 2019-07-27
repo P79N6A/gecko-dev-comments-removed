@@ -56,14 +56,21 @@ public:
 
 
 
-  virtual bool DispatchKeyboardEvent(mozilla::WidgetGUIEvent* aEvent) = 0;
+  virtual bool DispatchKeyboardEvent(mozilla::WidgetKeyboardEvent* aEvent) = 0;
 
   
 
 
 
 
-  virtual bool DispatchScrollEvent(mozilla::WidgetGUIEvent* aEvent) = 0;
+  virtual bool DispatchWheelEvent(mozilla::WidgetWheelEvent* aEvent) = 0;
+
+  
+
+
+
+
+  virtual bool DispatchContentCommandEvent(mozilla::WidgetContentCommandEvent* aEvent) = 0;
 
   
 
