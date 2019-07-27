@@ -44,9 +44,6 @@ InterpreterFrame::initExecuteFrame(JSContext* cx, HandleScript script, AbstractF
     flags_ = type | HAS_SCOPECHAIN;
 
     JSObject* callee = nullptr;
-
-    
-    
     RootedValue newTarget(cx, newTargetValue);
     if (!(flags_ & (GLOBAL))) {
         if (evalInFramePrev) {
@@ -73,6 +70,9 @@ InterpreterFrame::initExecuteFrame(JSContext* cx, HandleScript script, AbstractF
             }
         }
     }
+    
+    
+    MOZ_ASSERT_IF(isFunctionFrame(), newTarget.isObject() || newTarget.isUndefined());
 
     Value* dstvp = (Value*)this - 3;
     dstvp[2] = thisv;

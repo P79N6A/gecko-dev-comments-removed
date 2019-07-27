@@ -7844,8 +7844,13 @@ Parser<ParseHandler>::checkAllowedNestedSyntax(SharedContext::AllowedSyntax allo
 
         
         
-        if (sc->isFunctionBox() && sc->asFunctionBox()->function()->isArrow())
+        if (sc->isFunctionBox() && sc->asFunctionBox()->function()->isArrow()) {
+            
+            
+            if (allowed == SharedContext::AllowedSyntax::NewTarget)
+                return false;
             continue;
+        }
 
         if (!sc->allowSyntax(allowed))
             return false;

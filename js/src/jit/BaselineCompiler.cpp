@@ -1463,24 +1463,22 @@ BaselineCompiler::emit_JSOP_LAMBDA()
     return true;
 }
 
-typedef JSObject* (*LambdaArrowFn)(JSContext*, HandleFunction, HandleObject,
-                                   HandleValue, HandleValue);
+typedef JSObject* (*LambdaArrowFn)(JSContext*, HandleFunction, HandleObject, HandleValue);
 static const VMFunction LambdaArrowInfo = FunctionInfo<LambdaArrowFn>(js::LambdaArrow);
 
 bool
 BaselineCompiler::emit_JSOP_LAMBDA_ARROW()
 {
     
-    frame.popRegsAndSync(2);
+    frame.popRegsAndSync(1);
 
     RootedFunction fun(cx, script->getFunction(GET_UINT32_INDEX(pc)));
 
     prepareVMCall();
-    masm.loadPtr(frame.addressOfScopeChain(), R2.scratchReg());
+    masm.loadPtr(frame.addressOfScopeChain(), R1.scratchReg());
 
-    pushArg(R1);
     pushArg(R0);
-    pushArg(R2.scratchReg());
+    pushArg(R1.scratchReg());
     pushArg(ImmGCPtr(fun));
 
     if (!callVM(LambdaArrowInfo))
@@ -2695,16 +2693,6 @@ BaselineCompiler::emit_JSOP_NEWTARGET()
 
     MOZ_ASSERT(function());
     frame.syncStack(0);
-
-    if (function()->isArrow()) {
-        
-        
-        Register scratch = R0.scratchReg();
-        masm.loadFunctionFromCalleeToken(frame.addressOfCalleeToken(), scratch);
-        masm.loadValue(Address(scratch, FunctionExtended::offsetOfArrowNewTargetSlot()), R0);
-        frame.push(R0);
-        return true;
-    }
 
     
     Label constructing, done;

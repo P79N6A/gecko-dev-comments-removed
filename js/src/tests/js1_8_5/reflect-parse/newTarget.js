@@ -12,7 +12,7 @@ function testNewTarget() {
     assertError("new.target", SyntaxError);
 
     
-    assertInFunctionExpr("()=>new.target", arrowExpr([], newTarget()));
+    assertError("function foo() { (() => new.target) }", SyntaxError);
     assertError("(() => new.target))", SyntaxError);
 
     
