@@ -456,12 +456,8 @@ class IDLExposureMixins():
         self._exposureGlobalNames = set()
         self.exposureSet = set()
         self._location = location
-        self._globalScope = None
 
     def finish(self, scope):
-        assert scope.parentScope is None
-        self._globalScope = scope
-
         
         for globalName in self._exposureGlobalNames:
             if globalName not in scope.globalNames:
@@ -496,8 +492,8 @@ class IDLExposureMixins():
         return len(workerScopes.difference(self.exposureSet)) > 0
 
     def getWorkerExposureSet(self):
-        workerScopes = self._globalScope.globalNameMapping["Worker"]
-        return workerScopes.intersection(self.exposureSet)
+        
+        return set()
 
 
 class IDLExternalInterface(IDLObjectWithIdentifier, IDLExposureMixins):
@@ -805,13 +801,9 @@ class IDLInterface(IDLObjectWithScope, IDLExposureMixins):
 
         ctor = self.ctor()
         if ctor is not None:
-            assert len(ctor._exposureGlobalNames) == 0
-            ctor._exposureGlobalNames.update(self._exposureGlobalNames)
             ctor.finish(scope)
 
         for ctor in self.namedConstructors:
-            assert len(ctor._exposureGlobalNames) == 0
-            ctor._exposureGlobalNames.update(self._exposureGlobalNames)
             ctor.finish(scope)
 
         
@@ -1117,6 +1109,10 @@ class IDLInterface(IDLObjectWithScope, IDLExposureMixins):
             
             len(set(m.identifier.name for m in self.members if
                     m.isMethod() and not m.isStatic())) == 1)
+
+    def getWorkerExposureSet(self):
+        workerScopes = self.parentScope.globalNameMapping["Worker"]
+        return workerScopes.intersection(self.exposureSet)
 
     def inheritanceDepth(self):
         depth = 0
@@ -3060,7 +3056,7 @@ class IDLUndefinedValue(IDLObject):
     def _getDependentObjects(self):
         return set()
 
-class IDLInterfaceMember(IDLObjectWithIdentifier, IDLExposureMixins):
+class IDLInterfaceMember(IDLObjectWithIdentifier):
 
     Tags = enum(
         'Const',
@@ -3078,9 +3074,13 @@ class IDLInterfaceMember(IDLObjectWithIdentifier, IDLExposureMixins):
 
     def __init__(self, location, identifier, tag):
         IDLObjectWithIdentifier.__init__(self, location, None, identifier)
-        IDLExposureMixins.__init__(self, location)
         self.tag = tag
         self._extendedAttrDict = {}
+        
+        
+        
+        self._exposureGlobalNames = set()
+        self.exposureSet = set()
 
     def isMethod(self):
         return self.tag == IDLInterfaceMember.Tags.Method
@@ -3104,24 +3104,26 @@ class IDLInterfaceMember(IDLObjectWithIdentifier, IDLExposureMixins):
         return self._extendedAttrDict.get(name, None)
 
     def finish(self, scope):
-        
-        if (len(self._exposureGlobalNames) == 0):
-            print self.identifier.name
-        assert len(self._exposureGlobalNames) != 0
-        IDLExposureMixins.finish(self, scope)
+        for globalName in self._exposureGlobalNames:
+            if globalName not in scope.globalNames:
+                raise WebIDLError("Unknown [Exposed] value %s" % globalName,
+                                  [self.location])
+        globalNameSetToExposureSet(scope, self._exposureGlobalNames,
+                                   self.exposureSet)
+        self._scope = scope
 
     def validate(self):
         if (self.getExtendedAttribute("Pref") and
-            self.exposureSet != set([self._globalScope.primaryGlobalName])):
+            self.exposureSet != set([self._scope.primaryGlobalName])):
             raise WebIDLError("[Pref] used on an interface member that is not "
-                              "%s-only" % self._globalScope.primaryGlobalName,
+                              "%s-only" % self._scope.primaryGlobalName,
                               [self.location])
 
         if (self.getExtendedAttribute("CheckPermissions") and
-            self.exposureSet != set([self._globalScope.primaryGlobalName])):
+            self.exposureSet != set([self._scope.primaryGlobalName])):
             raise WebIDLError("[CheckPermissions] used on an interface member "
                               "that is not %s-only" %
-                              self._globalScope.primaryGlobalName,
+                              self._scope.primaryGlobalName,
                               [self.location])
 
         if self.isAttr() or self.isMethod():
