@@ -22,6 +22,7 @@
 #include "js/TypeDecls.h"     
 #include "mozilla/dom/DOMString.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include <iosfwd>
 
 
 #ifdef XP_WIN
@@ -581,6 +582,12 @@ public:
   {
     return mNodeInfo->NamespaceID() == aNamespace;
   }
+
+  
+
+
+
+  friend std::ostream& operator<<(std::ostream& aStream, const nsINode& aNode);
 
 protected:
   
@@ -1722,7 +1729,7 @@ public:
     mNodeInfo->GetPrefix(aPrefix);
   }
 #endif
-  void GetLocalName(mozilla::dom::DOMString& aLocalName)
+  void GetLocalName(mozilla::dom::DOMString& aLocalName) const
   {
     const nsString& localName = LocalName();
     if (localName.IsVoid()) {
