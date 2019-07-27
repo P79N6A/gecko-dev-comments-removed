@@ -94,16 +94,6 @@ public:
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
   virtual void DisconnectFromOwner() MOZ_OVERRIDE;
 
-  
-
-
-  bool operator==(BluetoothDevice& aDevice) const
-  {
-    nsString address;
-    aDevice.GetAddress(address);
-    return mAddress.Equals(address);
-  }
-
 private:
   BluetoothDevice(nsPIDOMWindow* aOwner, const BluetoothValue& aValue);
   ~BluetoothDevice();
@@ -186,5 +176,52 @@ private:
 };
 
 END_BLUETOOTH_NAMESPACE
+
+
+
+
+
+
+
+
+template <>
+class nsDefaultComparator <nsRefPtr<mozilla::dom::bluetooth::BluetoothDevice>,
+                           nsRefPtr<mozilla::dom::bluetooth::BluetoothDevice>> {
+  public:
+
+    bool Equals(
+      const nsRefPtr<mozilla::dom::bluetooth::BluetoothDevice>& aDeviceA,
+      const nsRefPtr<mozilla::dom::bluetooth::BluetoothDevice>& aDeviceB) const
+    {
+      nsString addressA, addressB;
+      aDeviceA->GetAddress(addressA);
+      aDeviceB->GetAddress(addressB);
+
+      return addressA.Equals(addressB);
+    }
+};
+
+
+
+
+
+
+
+
+
+template <>
+class nsDefaultComparator <nsRefPtr<mozilla::dom::bluetooth::BluetoothDevice>,
+                           nsString> {
+public:
+  bool Equals(
+    const nsRefPtr<mozilla::dom::bluetooth::BluetoothDevice>& aDevice,
+    const nsString& aAddress) const
+  {
+    nsString deviceAddress;
+    aDevice->GetAddress(deviceAddress);
+
+    return deviceAddress.Equals(aAddress);
+  }
+};
 
 #endif

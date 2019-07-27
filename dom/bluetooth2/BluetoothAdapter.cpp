@@ -280,6 +280,13 @@ BluetoothAdapter::SetPropertyByValue(const BluetoothNamedValue& aValue)
       = value.get_ArrayOfnsString();
 
     for (uint32_t i = 0; i < pairedDeviceAddresses.Length(); i++) {
+      
+      if (mDevices.Contains(pairedDeviceAddresses[i])) {
+        
+        
+        continue;
+      }
+
       InfallibleTArray<BluetoothNamedValue> props;
       BT_APPEND_NAMED_VALUE(props, "Address", pairedDeviceAddresses[i]);
       BT_APPEND_NAMED_VALUE(props, "Paired", true);
@@ -289,9 +296,7 @@ BluetoothAdapter::SetPropertyByValue(const BluetoothNamedValue& aValue)
         BluetoothDevice::Create(GetOwner(), BluetoothValue(props));
 
       
-      if (!mDevices.Contains(pairedDevice)) {
-        mDevices.AppendElement(pairedDevice);
-      }
+      mDevices.AppendElement(pairedDevice);
     }
 
     
@@ -885,14 +890,27 @@ BluetoothAdapter::HandleDevicePaired(const BluetoothValue& aValue)
     return;
   }
 
-  
-  nsRefPtr<BluetoothDevice> pairedDevice =
-    BluetoothDevice::Create(GetOwner(), aValue);
+  const InfallibleTArray<BluetoothNamedValue>& arr =
+    aValue.get_ArrayOfBluetoothNamedValue();
 
-  size_t index = mDevices.IndexOf(pairedDevice);
+  MOZ_ASSERT(arr.Length() == 2 &&
+             arr[0].value().type() == BluetoothValue::TnsString && 
+             arr[1].value().type() == BluetoothValue::Tbool);      
+  MOZ_ASSERT(!arr[0].value().get_nsString().IsEmpty() &&
+             arr[1].value().get_bool());
+
+  nsString deviceAddress = arr[0].value().get_nsString();
+
+  nsRefPtr<BluetoothDevice> pairedDevice = nullptr;
+
+  
+  size_t index = mDevices.IndexOf(deviceAddress);
   if (index == mDevices.NoIndex) {
+    
+    pairedDevice = BluetoothDevice::Create(GetOwner(), aValue);
     mDevices.AppendElement(pairedDevice);
   } else {
+    
     pairedDevice = mDevices[index];
   }
 
@@ -912,19 +930,19 @@ BluetoothAdapter::HandleDeviceUnpaired(const BluetoothValue& aValue)
     return;
   }
 
+  const InfallibleTArray<BluetoothNamedValue>& arr =
+    aValue.get_ArrayOfBluetoothNamedValue();
+
+  MOZ_ASSERT(arr.Length() == 2 &&
+             arr[0].value().type() == BluetoothValue::TnsString && 
+             arr[1].value().type() == BluetoothValue::Tbool);      
+  MOZ_ASSERT(!arr[0].value().get_nsString().IsEmpty() &&
+             !arr[1].value().get_bool());
+
+  nsString deviceAddress = arr[0].value().get_nsString();
+
   
-  nsRefPtr<BluetoothDevice> unpairedDevice =
-    BluetoothDevice::Create(GetOwner(), aValue);
-
-  size_t index = mDevices.IndexOf(unpairedDevice);
-
-  nsString deviceAddress;
-  if (index == mDevices.NoIndex) {
-    unpairedDevice->GetAddress(deviceAddress);
-  } else {
-    mDevices[index]->GetAddress(deviceAddress);
-    mDevices.RemoveElementAt(index);
-  }
+  mDevices.RemoveElement(deviceAddress);
 
   
   BluetoothDeviceEventInit init;
