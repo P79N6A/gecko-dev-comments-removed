@@ -118,8 +118,8 @@ class CodeGeneratorShared : public LElementVisitor
     
     IonInstrumentation sps_;
 
-    bool isNativeToBytecodeMapEnabled() {
-        return gen->isNativeToBytecodeMapEnabled();
+    bool isProfilerInstrumentationEnabled() {
+        return gen->isProfilerInstrumentationEnabled();
     }
 
   protected:

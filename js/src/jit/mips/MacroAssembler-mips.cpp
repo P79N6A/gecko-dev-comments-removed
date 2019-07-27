@@ -3604,6 +3604,18 @@ MacroAssemblerMIPSCompat::handleFailureWithHandlerTail(void *handler)
               JSReturnOperand);
     ma_move(StackPointer, BaselineFrameReg);
     pop(BaselineFrameReg);
+
+    
+    
+    {
+        Label skipProfilingInstrumentation;
+        
+        AbsoluteAddress addressOfEnabled(GetJitContext()->runtime->spsProfiler().addressOfEnabled());
+        branch32(Assembler::Equal, addressOfEnabled, Imm32(0), &skipProfilingInstrumentation);
+        profilerExitFrame();
+        bind(&skipProfilingInstrumentation);
+    }
+
     ret();
 
     

@@ -168,6 +168,8 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
         
         masm.mov(returnLabel.dest(), scratch);
         masm.push(scratch);
+
+        
         masm.push(rbp);
 
         
@@ -230,6 +232,19 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
         masm.addPtr(Imm32(ExitFrameLayout::SizeWithFooter()), rsp);
         masm.addPtr(Imm32(BaselineFrame::Size()), framePtr);
         masm.branchIfFalseBool(ReturnReg, &error);
+
+        
+        
+        {
+            Label skipProfilingInstrumentation;
+            Register realFramePtr = numStackValues;
+            AbsoluteAddress addressOfEnabled(cx->runtime()->spsProfiler.addressOfEnabled());
+            masm.branch32(Assembler::Equal, addressOfEnabled, Imm32(0),
+                          &skipProfilingInstrumentation);
+            masm.lea(Operand(framePtr, sizeof(void*)), realFramePtr);
+            masm.profilerEnterFrame(realFramePtr, scratch);
+            masm.bind(&skipProfilingInstrumentation);
+        }
 
         masm.jump(reg_code);
 
@@ -775,6 +790,17 @@ JitRuntime::generateDebugTrapHandler(JSContext *cx)
                    JSReturnOperand);
     masm.mov(rbp, rsp);
     masm.pop(rbp);
+
+    
+    
+    {
+        Label skipProfilingInstrumentation;
+        AbsoluteAddress addressOfEnabled(cx->runtime()->spsProfiler.addressOfEnabled());
+        masm.branch32(Assembler::Equal, addressOfEnabled, Imm32(0), &skipProfilingInstrumentation);
+        masm.profilerExitFrame();
+        masm.bind(&skipProfilingInstrumentation);
+    }
+
     masm.ret();
 
     Linker linker(masm);

@@ -158,7 +158,7 @@ bool
 CodeGeneratorShared::addNativeToBytecodeEntry(const BytecodeSite *site)
 {
     
-    if (!isNativeToBytecodeMapEnabled())
+    if (!isProfilerInstrumentationEnabled())
         return true;
 
     MOZ_ASSERT(site);

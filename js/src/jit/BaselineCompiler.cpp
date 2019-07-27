@@ -176,6 +176,8 @@ BaselineCompiler::compile()
     prologueOffset_.fixup(&masm);
     epilogueOffset_.fixup(&masm);
     spsPushToggleOffset_.fixup(&masm);
+    profilerEnterFrameToggleOffset_.fixup(&masm);
+    profilerExitFrameToggleOffset_.fixup(&masm);
 #ifdef JS_TRACE_LOGGING
     traceLoggerEnterToggleOffset_.fixup(&masm);
     traceLoggerExitToggleOffset_.fixup(&masm);
@@ -189,6 +191,8 @@ BaselineCompiler::compile()
         BaselineScript::New(script, prologueOffset_.offset(),
                             epilogueOffset_.offset(),
                             spsPushToggleOffset_.offset(),
+                            profilerEnterFrameToggleOffset_.offset(),
+                            profilerExitFrameToggleOffset_.offset(),
                             traceLoggerEnterToggleOffset_.offset(),
                             traceLoggerExitToggleOffset_.offset(),
                             postDebugPrologueOffset_.offset(),
@@ -264,7 +268,8 @@ BaselineCompiler::compile()
         baselineScript->setHasDebugInstrumentation();
 
     
-    if (cx->runtime()->jitRuntime()->isNativeToBytecodeMapEnabled(cx->runtime())) {
+    
+    if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(cx->runtime())) {
         JitSpew(JitSpew_Profiling, "Added JitcodeGlobalEntry for baseline script %s:%d (%p)",
                     script->filename(), script->lineno(), baselineScript.get());
         JitcodeGlobalEntry::BaselineEntry entry;
@@ -276,6 +281,9 @@ BaselineCompiler::compile()
 
         
         code->setHasBytecodeMap();
+
+        
+        baselineScript->toggleProfilerInstrumentation(true);
     }
 
     script->setBaselineScript(cx, baselineScript.release());
@@ -324,6 +332,8 @@ BaselineCompiler::emitPrologue()
     masm.pushReturnAddress();
     masm.checkStackAlignment();
 #endif
+    emitProfilerEnterFrame();
+
     masm.push(BaselineFrameReg);
     masm.mov(BaselineStackReg, BaselineFrameReg);
 
@@ -437,6 +447,8 @@ BaselineCompiler::emitEpilogue()
 
     masm.mov(BaselineFrameReg, BaselineStackReg);
     masm.pop(BaselineFrameReg);
+
+    emitProfilerExitFrame();
 
     masm.ret();
     return true;
@@ -854,6 +866,36 @@ BaselineCompiler::emitSPSPop()
                       Imm32(BaselineFrame::HAS_PUSHED_SPS_FRAME), &noPop);
     masm.spsPopFrameSafe(&cx->runtime()->spsProfiler, R1.scratchReg());
     masm.bind(&noPop);
+}
+
+void
+BaselineCompiler::emitProfilerEnterFrame()
+{
+    
+    
+    Label noInstrument;
+    CodeOffsetLabel toggleOffset = masm.toggledJump(&noInstrument);
+    masm.profilerEnterFrame(BaselineStackReg, R0.scratchReg());
+    masm.bind(&noInstrument);
+
+    
+    MOZ_ASSERT(profilerEnterFrameToggleOffset_.offset() == 0);
+    profilerEnterFrameToggleOffset_ = toggleOffset;
+}
+
+void
+BaselineCompiler::emitProfilerExitFrame()
+{
+    
+    
+    Label noInstrument;
+    CodeOffsetLabel toggleOffset = masm.toggledJump(&noInstrument);
+    masm.profilerExitFrame();
+    masm.bind(&noInstrument);
+
+    
+    MOZ_ASSERT(profilerExitFrameToggleOffset_.offset() == 0);
+    profilerExitFrameToggleOffset_ = toggleOffset;
 }
 
 MethodStatus
@@ -3629,6 +3671,19 @@ BaselineCompiler::emit_JSOP_RESUME()
 
     masm.jump(&returnTarget);
     masm.bind(&genStart);
+
+    
+    
+    {
+        Register scratchReg = scratch2;
+        Label skip;
+        AbsoluteAddress addressOfEnabled(cx->runtime()->spsProfiler.addressOfEnabled());
+        masm.branch32(Assembler::Equal, addressOfEnabled, Imm32(0), &skip);
+        masm.loadPtr(AbsoluteAddress(cx->mainThread().addressOfProfilingActivation()), scratchReg);
+        masm.storePtr(BaselineStackReg,
+                      Address(scratchReg, JitActivation::offsetOfLastProfilingFrame()));
+        masm.bind(&skip);
+    }
 
     
     masm.push(BaselineFrameReg);
