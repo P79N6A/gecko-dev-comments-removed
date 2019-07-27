@@ -105,6 +105,7 @@ public:
     , encodedNameConstraints(nullptr)
     , encodedInhibitAnyPolicy(nullptr)
     , childCert(childCert)
+    , constrainedNames(nullptr)
     , includeCN(includeCN)
   {
   }
@@ -134,7 +135,6 @@ public:
   const SECItem* encodedInhibitAnyPolicy;
 
   BackCert* const childCert;
-  const IncludeCN includeCN;
 
   
   
@@ -143,8 +143,20 @@ public:
   
    CERTCertificate* GetNSSCert() const { return nssCert.get(); }
 
+  
+  
+  
+  
+  Result GetConstrainedNames( const CERTGeneralName** result);
+
+  PLArenaPool* GetArena();
+
 private:
   ScopedCERTCertificate nssCert;
+
+  ScopedPLArenaPool arena;
+  CERTGeneralName* constrainedNames;
+  IncludeCN includeCN;
 
   BackCert(const BackCert&) ;
   void operator=(const BackCert&); ;
