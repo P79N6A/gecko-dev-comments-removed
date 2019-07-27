@@ -418,12 +418,6 @@ enum MOZ_ENUM_TYPE(uint32_t) {
     OBJECT_FLAG_NURSERY_PROTO         = 0x2,
 
     
-
-
-
-    OBJECT_FLAG_SETS_MARKED_UNKNOWN   = 0x4,
-
-    
     OBJECT_FLAG_PROPERTY_COUNT_MASK   = 0xfff8,
     OBJECT_FLAG_PROPERTY_COUNT_SHIFT  = 3,
     OBJECT_FLAG_PROPERTY_COUNT_LIMIT  =
@@ -478,11 +472,6 @@ enum MOZ_ENUM_TYPE(uint32_t) {
     OBJECT_FLAG_DYNAMIC_MASK          = 0x03ff0000,
 
     
-    OBJECT_FLAG_UNKNOWN_MASK =
-        OBJECT_FLAG_DYNAMIC_MASK
-      | OBJECT_FLAG_SETS_MARKED_UNKNOWN,
-
-    
     OBJECT_FLAG_ADDENDUM_MASK         = 0x0c000000,
     OBJECT_FLAG_ADDENDUM_SHIFT        = 26,
 
@@ -496,6 +485,13 @@ typedef uint32_t TypeObjectFlags;
 class StackTypeSet;
 class HeapTypeSet;
 class TemporaryTypeSet;
+
+
+
+
+
+
+
 
 
 
@@ -596,9 +592,6 @@ class TypeSet
 
     
     bool mightBeMIRType(jit::MIRType type);
-
-    
-    bool isDOMClass();
 
     
 
@@ -757,7 +750,7 @@ class TemporaryTypeSet : public TypeSet
     bool hasObjectFlags(CompilerConstraintList *constraints, TypeObjectFlags flags);
 
     
-    const Class *getKnownClass();
+    const Class *getKnownClass(CompilerConstraintList *constraints);
 
     
     enum ForAllResult {
@@ -772,22 +765,26 @@ class TemporaryTypeSet : public TypeSet
     
 
 
-    ForAllResult forAllClasses(bool (*func)(const Class *clasp));
+    ForAllResult forAllClasses(CompilerConstraintList *constraints,
+                               bool (*func)(const Class *clasp));
 
     
-    JSObject *getCommonPrototype();
+    JSObject *getCommonPrototype(CompilerConstraintList *constraints);
 
     
-    Scalar::Type getTypedArrayType();
+    Scalar::Type getTypedArrayType(CompilerConstraintList *constraints);
 
     
-    Scalar::Type getSharedTypedArrayType();
+    Scalar::Type getSharedTypedArrayType(CompilerConstraintList *constraints);
 
     
-    bool maybeCallable();
+    bool isDOMClass(CompilerConstraintList *constraints);
 
     
-    bool maybeEmulatesUndefined();
+    bool maybeCallable(CompilerConstraintList *constraints);
+
+    
+    bool maybeEmulatesUndefined(CompilerConstraintList *constraints);
 
     
     JSObject *getSingleton();
@@ -1559,6 +1556,7 @@ struct TypeObjectKey
 
     bool unknownProperties();
     bool hasFlags(CompilerConstraintList *constraints, TypeObjectFlags flags);
+    bool hasStableClassAndProto(CompilerConstraintList *constraints);
     void watchStateChangeForInlinedCall(CompilerConstraintList *constraints);
     void watchStateChangeForTypedArrayData(CompilerConstraintList *constraints);
     HeapTypeSetKey property(jsid id);
@@ -1740,9 +1738,6 @@ struct TypeCompartment
 
     
     TypeObject *addAllocationSiteTypeObject(JSContext *cx, AllocationSiteKey key);
-
-    
-    void markSetsUnknown(JSContext *cx, TypeObject *obj);
 
     void clearTables();
     void sweep(FreeOp *fop);

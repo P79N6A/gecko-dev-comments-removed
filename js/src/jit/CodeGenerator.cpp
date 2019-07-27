@@ -3610,6 +3610,14 @@ CodeGenerator::emitObjectOrStringResultChecks(LInstruction *lir, MDefinition *mi
         masm.jump(&ok);
 
         masm.bind(&miss);
+
+        
+        
+        masm.loadPtr(Address(output, JSObject::offsetOfType()), temp);
+        masm.branchTestPtr(Assembler::NonZero,
+                           Address(temp, types::TypeObject::offsetOfFlags()),
+                           Imm32(types::OBJECT_FLAG_UNKNOWN_PROPERTIES), &ok);
+
         masm.assumeUnreachable("MIR instruction returned object with unexpected type");
 
         masm.bind(&ok);
@@ -3679,6 +3687,18 @@ CodeGenerator::emitValueResultChecks(LInstruction *lir, MDefinition *mir)
         masm.jump(&ok);
 
         masm.bind(&miss);
+
+        
+        
+        Label realMiss;
+        masm.branchTestObject(Assembler::NotEqual, output, &realMiss);
+        Register payload = masm.extractObject(output, temp1);
+        masm.loadPtr(Address(payload, JSObject::offsetOfType()), temp1);
+        masm.branchTestPtr(Assembler::NonZero,
+                           Address(temp1, types::TypeObject::offsetOfFlags()),
+                           Imm32(types::OBJECT_FLAG_UNKNOWN_PROPERTIES), &ok);
+        masm.bind(&realMiss);
+
         masm.assumeUnreachable("MIR instruction returned value with unexpected type");
 
         masm.bind(&ok);

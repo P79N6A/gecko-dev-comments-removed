@@ -2382,8 +2382,8 @@ JSObject::swap(JSContext *cx, HandleObject a, HandleObject b)
 
     
     
-    MarkTypeObjectUnknownProperties(cx, a->type(), !a->hasSingletonType());
-    MarkTypeObjectUnknownProperties(cx, b->type(), !b->hasSingletonType());
+    MarkTypeObjectUnknownProperties(cx, a->type());
+    MarkTypeObjectUnknownProperties(cx, b->type());
 
     
 
@@ -2704,9 +2704,8 @@ js::SetClassAndProto(JSContext *cx, HandleObject obj,
 
 
 
-
-    MarkTypeObjectUnknownProperties(cx, obj->type(), true);
-    MarkTypeObjectUnknownProperties(cx, type, true);
+    MarkTypeObjectUnknownProperties(cx, obj->type());
+    MarkTypeObjectUnknownProperties(cx, type);
 
     obj->setType(type);
 

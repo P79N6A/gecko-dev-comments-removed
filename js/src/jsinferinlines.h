@@ -509,20 +509,11 @@ MarkTypeObjectFlags(ExclusiveContext *cx, JSObject *obj, TypeObjectFlags flags)
         obj->type()->setFlags(cx, flags);
 }
 
-
-
-
-
-
-
 inline void
-MarkTypeObjectUnknownProperties(JSContext *cx, TypeObject *obj,
-                                bool markSetsUnknown = false)
+MarkTypeObjectUnknownProperties(JSContext *cx, TypeObject *obj)
 {
     if (!obj->unknownProperties())
         obj->markUnknown(cx);
-    if (markSetsUnknown && !(obj->flags() & OBJECT_FLAG_SETS_MARKED_UNKNOWN))
-        cx->compartment()->types.markSetsUnknown(cx, obj);
 }
 
 inline void
