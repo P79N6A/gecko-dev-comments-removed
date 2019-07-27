@@ -4,6 +4,7 @@
 
 
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/TextEventDispatcher.h"
 
 #include "mozilla/layers/CompositorChild.h"
 #include "mozilla/layers/CompositorParent.h"
@@ -1139,6 +1140,12 @@ void nsBaseWidget::OnDestroy()
 {
   
   NS_IF_RELEASE(mContext);
+
+  if (mTextEventDispatcher) {
+    mTextEventDispatcher->OnDestroyWidget();
+    
+    
+  }
 }
 
 NS_METHOD nsBaseWidget::SetWindowClass(const nsAString& xulWinType)
@@ -1576,6 +1583,15 @@ nsBaseWidget::NotifyUIStateChanged(UIStateChangeType aShowAccelerators,
       win->SetKeyboardIndicators(aShowAccelerators, aShowFocusRings);
     }
   }
+}
+
+NS_IMETHODIMP_(nsIWidget::TextEventDispatcher*)
+nsBaseWidget::GetTextEventDispatcher()
+{
+  if (!mTextEventDispatcher) {
+    mTextEventDispatcher = new TextEventDispatcher(this);
+  }
+  return mTextEventDispatcher;
 }
 
 #ifdef ACCESSIBILITY
