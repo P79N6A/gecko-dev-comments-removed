@@ -163,3 +163,34 @@ function getSourceActor(aSources, aURL) {
   let item = aSources.getItemForAttachment(a => a.source.url === aURL);
   return item && item.value;
 }
+
+
+
+
+
+
+
+
+
+function once(target, eventName, useCapture=false) {
+  info("Waiting for event: '" + eventName + "' on " + target + ".");
+
+  let deferred = promise.defer();
+
+  for (let [add, remove] of [
+    ["addEventListener", "removeEventListener"],
+    ["addListener", "removeListener"],
+    ["on", "off"]
+  ]) {
+    if ((add in target) && (remove in target)) {
+      target[add](eventName, function onEvent(...aArgs) {
+        info("Got event: '" + eventName + "' on " + target + ".");
+        target[remove](eventName, onEvent, useCapture);
+        deferred.resolve.apply(deferred, aArgs);
+      }, useCapture);
+      break;
+    }
+  }
+
+  return deferred.promise;
+}
