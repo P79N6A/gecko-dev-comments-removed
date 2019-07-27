@@ -56,6 +56,8 @@ loop.store.ConversationStore = (function() {
   var ConversationStore = Backbone.Model.extend({
     defaults: {
       
+      windowId: undefined,
+      
       callState: CALL_STATES.INIT,
       
       callStateReason: undefined,
@@ -200,7 +202,7 @@ loop.store.ConversationStore = (function() {
         return;
       }
 
-      var callData = navigator.mozLoop.getCallData(actionData.callId);
+      var callData = navigator.mozLoop.getCallData(actionData.windowId);
       if (!callData) {
         console.error("Failed to get the call data");
         this.set({callState: CALL_STATES.TERMINATED});
@@ -210,7 +212,7 @@ loop.store.ConversationStore = (function() {
       this.set({
         contact: callData.contact,
         outgoing: actionData.outgoing,
-        callId: actionData.callId,
+        windowId: actionData.windowId,
         callType: callData.callType,
         callState: CALL_STATES.GATHER
       });
@@ -407,11 +409,7 @@ loop.store.ConversationStore = (function() {
         delete this._websocket;
       }
 
-      
-      
-      var locationHash = new loop.shared.utils.Helper().locationData().hash;
-      var callId = locationHash.match(/\#outgoing\/(.*)/)[1];
-      navigator.mozLoop.releaseCallData(callId);
+      navigator.mozLoop.releaseCallData(this.get("windowId"));
     },
 
     

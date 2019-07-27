@@ -22,6 +22,7 @@ loop.shared.models = (function(l10n) {
       sessionToken: undefined,     
       sessionType:  undefined,     
       apiKey:       undefined,     
+      windowId:     undefined,     
       callId:       undefined,     
       progressURL:  undefined,     
       websocketToken: undefined,   

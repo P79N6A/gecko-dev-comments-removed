@@ -250,6 +250,8 @@ let LoopCallsInternal = {
         respData.calls.forEach((callData) => {
           if (!this.callsData.inUse) {
             callData.sessionType = sessionType;
+            
+            callData.windowId = callData.callId;
             this._startCall(callData, "incoming");
           } else {
             this._returnBusy(callData);
@@ -277,7 +279,7 @@ let LoopCallsInternal = {
       null,
       
       "",
-      "about:loopconversation#" + conversationType + "/" + callData.callId);
+      "about:loopconversation#" + conversationType + "/" + callData.windowId);
   },
 
   
@@ -295,7 +297,7 @@ let LoopCallsInternal = {
       contact: contact,
       callType: callType,
       
-      callId: Math.floor((Math.random() * 100000000))
+      windowId: Math.floor((Math.random() * 100000000))
     };
 
     this._startCall(callData, "outgoing");
@@ -347,9 +349,9 @@ this.LoopCalls = {
 
 
 
-  getCallData: function(loopCallId) {
+  getCallData: function(conversationWindowId) {
     if (LoopCallsInternal.callsData.data &&
-        LoopCallsInternal.callsData.data.callId == loopCallId) {
+        LoopCallsInternal.callsData.data.windowId == conversationWindowId) {
       return LoopCallsInternal.callsData.data;
     } else {
       return undefined;
@@ -363,9 +365,9 @@ this.LoopCalls = {
 
 
 
-  releaseCallData: function(loopCallId) {
+  releaseCallData: function(conversationWindowId) {
     if (LoopCallsInternal.callsData.data &&
-        LoopCallsInternal.callsData.data.callId == loopCallId) {
+        LoopCallsInternal.callsData.data.windowId == conversationWindowId) {
       LoopCallsInternal.callsData.data = undefined;
       LoopCallsInternal.callsData.inUse = false;
     }

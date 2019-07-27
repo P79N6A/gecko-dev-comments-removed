@@ -42,7 +42,7 @@ loop.shared.actions = (function() {
 
     GatherCallData: Action.define("gatherCallData", {
       
-      callId: [String, null],
+      windowId: [String, null],
       outgoing: Boolean
     }),
 

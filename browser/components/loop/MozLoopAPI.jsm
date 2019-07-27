@@ -217,8 +217,8 @@ function injectLoopAPI(targetWindow) {
     getCallData: {
       enumerable: true,
       writable: true,
-      value: function(loopCallId) {
-        return Cu.cloneInto(LoopCalls.getCallData(loopCallId), targetWindow);
+      value: function(conversationWindowId) {
+        return Cu.cloneInto(LoopCalls.getCallData(conversationWindowId), targetWindow);
       }
     },
 
@@ -232,8 +232,8 @@ function injectLoopAPI(targetWindow) {
     releaseCallData: {
       enumerable: true,
       writable: true,
-      value: function(loopCallId) {
-        LoopCalls.releaseCallData(loopCallId);
+      value: function(conversationWindowId) {
+        LoopCalls.releaseCallData(conversationWindowId);
       }
     },
 
