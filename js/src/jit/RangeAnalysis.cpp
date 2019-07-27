@@ -226,6 +226,10 @@ RangeAnalysis::addBetaNodes()
                     bound = intbound;
             }
             comp.setDouble(conservativeLower, bound);
+
+            
+            if (bound == 0)
+                comp.refineToExcludeNegativeZero();
             break;
           case JSOP_GE:
             comp.setDouble(bound, conservativeUpper);
@@ -238,13 +242,24 @@ RangeAnalysis::addBetaNodes()
                     bound = intbound;
             }
             comp.setDouble(bound, conservativeUpper);
+
+            
+            if (bound == 0)
+                comp.refineToExcludeNegativeZero();
             break;
           case JSOP_EQ:
             comp.setDouble(bound, bound);
             break;
-          default:
+          case JSOP_NE:
+            
+            if (bound == 0) {
+                comp.refineToExcludeNegativeZero();
+                break;
+            }
             continue; 
                       
+          default:
+            continue;
         }
 
         if (JitSpewEnabled(JitSpew_Range)) {
