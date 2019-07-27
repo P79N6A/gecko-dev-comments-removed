@@ -730,8 +730,8 @@ class MIRGraph
 
 class MDefinitionIterator
 {
-
   friend class MBasicBlock;
+  friend class MNodeIterator;
 
   private:
     MBasicBlock *block_;
@@ -783,6 +783,94 @@ class MDefinitionIterator
 
     MDefinition *operator ->() {
         return getIns();
+    }
+};
+
+
+
+
+class MNodeIterator
+{
+  private:
+    
+    
+    
+    MInstruction *last_;
+
+    
+    
+    
+    MDefinitionIterator defIter_;
+
+    MBasicBlock *block() const {
+        return defIter_.block_;
+    }
+
+    bool atResumePoint() const {
+        return last_ && !last_->isDiscarded();
+    }
+
+    MNode *getNode() {
+        if (!atResumePoint())
+            return *defIter_;
+
+        
+        
+        
+        
+        if (last_ != block()->lastIns())
+            return last_->resumePoint();
+        return block()->entryResumePoint();
+    }
+
+    void next() {
+        if (!atResumePoint()) {
+            if (defIter_->isInstruction() && defIter_->toInstruction()->resumePoint()) {
+                
+                MOZ_ASSERT(*defIter_ != block()->lastIns());
+                last_ = defIter_->toInstruction();
+            }
+
+            defIter_++;
+        } else {
+            last_ = nullptr;
+        }
+    }
+
+    bool more() const {
+        return defIter_ || atResumePoint();
+    }
+
+  public:
+    explicit MNodeIterator(MBasicBlock *block)
+      : last_(block->entryResumePoint() ? block->lastIns() : nullptr),
+        defIter_(block)
+    {
+        MOZ_ASSERT(bool(block->entryResumePoint()) == atResumePoint());
+
+        
+        
+        
+        MOZ_ASSERT(!block->lastIns()->resumePoint());
+    }
+
+    MNodeIterator operator ++(int) {
+        MNodeIterator old(*this);
+        if (more())
+            next();
+        return old;
+    }
+
+    operator bool() const {
+        return more();
+    }
+
+    MNode *operator *() {
+        return getNode();
+    }
+
+    MNode *operator ->() {
+        return getNode();
     }
 
 };
