@@ -131,7 +131,7 @@ ConsoleStructuredCloneCallbacksError(JSContext* ,
   NS_WARNING("Failed to clone data for the Console API in workers.");
 }
 
-JSStructuredCloneCallbacks gConsoleCallbacks = {
+static const JSStructuredCloneCallbacks gConsoleCallbacks = {
   ConsoleStructuredCloneCallbacksRead,
   ConsoleStructuredCloneCallbacksWrite,
   ConsoleStructuredCloneCallbacksError
