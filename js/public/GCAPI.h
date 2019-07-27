@@ -289,6 +289,21 @@ IsIncrementalGCEnabled(JSRuntime *rt);
 
 
 
+
+
+extern JS_FRIEND_API(void)
+DisableCompactingGC(JSRuntime *rt);
+
+
+
+
+extern JS_FRIEND_API(bool)
+IsCompactingGCEnabled(JSRuntime *rt);
+
+
+
+
+
 JS_FRIEND_API(bool)
 IsIncrementalGCInProgress(JSRuntime *rt);
 
