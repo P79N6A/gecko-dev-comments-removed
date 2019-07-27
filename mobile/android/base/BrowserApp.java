@@ -2643,6 +2643,11 @@ public class BrowserApp extends GeckoApp
         }
 
         
+        
+        
+        mFormAssistPopup.hide();
+
+        
         refreshToolbarHeight();
 
         
