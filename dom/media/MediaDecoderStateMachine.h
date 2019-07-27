@@ -906,6 +906,10 @@ public:
   Mirror<Maybe<double>> mExplicitDuration;
 
   
+  
+  Watchable<media::TimeUnit> mObservedDuration;
+
+  
   Mirror<MediaDecoder::PlayState> mPlayState;
   Mirror<MediaDecoder::PlayState> mNextPlayState;
   Mirror<bool> mLogicallySeeking;
