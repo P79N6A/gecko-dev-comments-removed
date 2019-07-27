@@ -154,19 +154,23 @@ ListenSocketIO::Listen(ConnectionOrientedSocketIO* aCOSocketIO)
       FireSocketError();
       return;
     }
+    if (!mConnector->SetUpListenSocket(GetFd())) {
+      NS_WARNING("Could not set up listen socket!");
+      FireSocketError();
+      return;
+    }
+    
+    
+    
+    if (!mConnector->CreateAddr(true, mAddrSize, mAddr, nullptr)) {
+      NS_WARNING("Cannot create socket address!");
+      FireSocketError();
+      return;
+    }
     SetFd(fd);
   }
 
   mCOSocketIO = aCOSocketIO;
-
-  
-  
-  
-  if (!mConnector->CreateAddr(true, mAddrSize, mAddr, nullptr)) {
-    NS_WARNING("Cannot create socket address!");
-    FireSocketError();
-    return;
-  }
 
   
   nsresult rv = UnixSocketWatcher::Listen(
@@ -187,12 +191,6 @@ ListenSocketIO::OnListening()
 {
   MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
   MOZ_ASSERT(GetConnectionStatus() == SOCKET_IS_LISTENING);
-
-  if (!mConnector->SetUpListenSocket(GetFd())) {
-    NS_WARNING("Could not set up listen socket!");
-    FireSocketError();
-    return;
-  }
 
   AddWatchers(READ_WATCHER, true);
 
