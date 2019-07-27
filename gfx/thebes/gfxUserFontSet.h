@@ -171,13 +171,14 @@ public:
     
     
     
+    
     gfxFontEntry *AddFontFace(const nsAString& aFamilyName,
                               const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
                               uint32_t aWeight,
                               int32_t aStretch,
                               uint32_t aItalicStyle,
                               const nsTArray<gfxFontFeature>& aFeatureSettings,
-                              const nsString& aLanguageOverride,
+                              uint32_t aLanguageOverride,
                               gfxSparseBitSet *aUnicodeRanges = nullptr);
 
     
