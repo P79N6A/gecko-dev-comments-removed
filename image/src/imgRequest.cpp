@@ -77,6 +77,7 @@ imgRequest::imgRequest(imgLoader* aLoader)
  , mIsInCache(false)
  , mDecodeRequested(false)
  , mNewPartPending(false)
+ , mHadInsecureRedirect(false)
 { }
 
 imgRequest::~imgRequest()
@@ -94,6 +95,7 @@ imgRequest::~imgRequest()
 
 nsresult imgRequest::Init(nsIURI *aURI,
                           nsIURI *aCurrentURI,
+                          bool aHadInsecureRedirect,
                           nsIRequest *aRequest,
                           nsIChannel *aChannel,
                           imgCacheEntry *aCacheEntry,
@@ -124,6 +126,26 @@ nsresult imgRequest::Init(nsIURI *aURI,
   mLoadingPrincipal = aLoadingPrincipal;
   mCORSMode = aCORSMode;
   mReferrerPolicy = aReferrerPolicy;
+
+  
+  
+  
+  
+  if (aURI != aCurrentURI) {
+    bool isHttps = false;
+    bool isChrome = false;
+    bool schemeLocal = false;
+    if (NS_FAILED(aURI->SchemeIs("https", &isHttps)) ||
+        NS_FAILED(aURI->SchemeIs("chrome", &isChrome)) ||
+        NS_FAILED(NS_URIChainHasFlags(aURI, nsIProtocolHandler::URI_IS_LOCAL_RESOURCE , &schemeLocal))  ||
+        (!isHttps && !isChrome && !schemeLocal)) {
+      mHadInsecureRedirect = true;
+    }
+  }
+
+  
+  
+  mHadInsecureRedirect = mHadInsecureRedirect || aHadInsecureRedirect;
 
   mChannel->GetNotificationCallbacks(getter_AddRefs(mPrevChannelSink));
 
@@ -1155,6 +1177,18 @@ imgRequest::OnRedirectVerifyCallback(nsresult result)
 
   
   
+  
+  bool isHttps = false;
+  bool isChrome = false;
+  bool schemeLocal = false;
+  if (NS_FAILED(mCurrentURI->SchemeIs("https", &isHttps)) ||
+      NS_FAILED(mCurrentURI->SchemeIs("chrome", &isChrome)) ||
+      NS_FAILED(NS_URIChainHasFlags(mCurrentURI, nsIProtocolHandler::URI_IS_LOCAL_RESOURCE , &schemeLocal))  ||
+      (!isHttps && !isChrome && !schemeLocal)) {
+    mHadInsecureRedirect = true;
+  }
+
+  
   mChannel->GetURI(getter_AddRefs(mCurrentURI));
 
   if (LOG_TEST(PR_LOG_DEBUG)) {
@@ -1164,6 +1198,8 @@ imgRequest::OnRedirectVerifyCallback(nsresult result)
     LOG_MSG_WITH_PARAM(GetImgLog(), "imgRequest::OnChannelRedirect", "new", spec.get());
   }
 
+  
+  
   bool doesNotReturnData = false;
   nsresult rv =
     NS_URIChainHasFlags(mCurrentURI, nsIProtocolHandler::URI_DOES_NOT_RETURN_DATA,

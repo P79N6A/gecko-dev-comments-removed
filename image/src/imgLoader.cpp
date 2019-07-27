@@ -2038,7 +2038,8 @@ nsresult imgLoader::LoadImage(nsIURI *aURI,
 
     nsCOMPtr<nsILoadGroup> channelLoadGroup;
     newChannel->GetLoadGroup(getter_AddRefs(channelLoadGroup));
-    request->Init(aURI, aURI, channelLoadGroup, newChannel, entry, aCX,
+    request->Init(aURI, aURI,  false,
+                  channelLoadGroup, newChannel, entry, aCX,
                   aLoadingPrincipal, corsmode, aReferrerPolicy);
 
     
@@ -2266,8 +2267,16 @@ nsresult imgLoader::LoadImageWithChannel(nsIChannel *channel, imgINotificationOb
     channel->GetOriginalURI(getter_AddRefs(originalURI));
 
     
-    request->Init(originalURI, uri, channel, channel, entry,
-                  aCX, nullptr, imgIRequest::CORS_NONE, RP_Default);
+    
+    
+    
+    
+    
+    
+    
+    request->Init(originalURI, uri,  false,
+                  channel, channel, entry, aCX, nullptr,
+                  imgIRequest::CORS_NONE, RP_Default);
 
     nsRefPtr<ProxyListener> pl =
       new ProxyListener(static_cast<nsIStreamListener*>(request.get()));
@@ -2515,7 +2524,8 @@ imgCacheValidator::imgCacheValidator(nsProgressNotificationProxy* progress,
  : mProgressProxy(progress),
    mRequest(request),
    mContext(aContext),
-   mImgLoader(loader)
+   mImgLoader(loader),
+   mHadInsecureRedirect(false)
 {
   NewRequestAndEntry(forcePrincipalCheckForCacheEntry, loader, getter_AddRefs(mNewRequest),
                      getter_AddRefs(mNewEntry));
@@ -2622,9 +2632,8 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
   
   nsCOMPtr<nsIURI> originalURI;
   channel->GetOriginalURI(getter_AddRefs(originalURI));
-  mNewRequest->Init(originalURI, uri, aRequest, channel, mNewEntry,
-                    mContext, loadingPrincipal,
-                    corsmode, refpol);
+  mNewRequest->Init(originalURI, uri, mHadInsecureRedirect, aRequest, channel,
+                    mNewEntry, mContext, loadingPrincipal, corsmode, refpol);
 
   mDestListener = new ProxyListener(mNewRequest);
 
@@ -2717,6 +2726,21 @@ NS_IMETHODIMP imgCacheValidator::AsyncOnChannelRedirect(nsIChannel *oldChannel,
 {
   
   mNewRequest->SetCacheValidation(mNewEntry, oldChannel);
+
+  
+  
+  
+  nsCOMPtr<nsIURI> oldURI;
+  bool isHttps = false;
+  bool isChrome = false;
+  bool schemeLocal = false;
+  if (NS_FAILED(oldChannel->GetURI(getter_AddRefs(oldURI))) ||
+      NS_FAILED(oldURI->SchemeIs("https", &isHttps)) ||
+      NS_FAILED(oldURI->SchemeIs("chrome", &isChrome)) ||
+      NS_FAILED(NS_URIChainHasFlags(oldURI, nsIProtocolHandler::URI_IS_LOCAL_RESOURCE , &schemeLocal))  ||
+      (!isHttps && !isChrome && !schemeLocal)) {
+    mHadInsecureRedirect = true;
+  }
 
   
   mRedirectCallback = callback;

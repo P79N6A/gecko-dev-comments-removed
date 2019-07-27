@@ -66,6 +66,7 @@ public:
 
   nsresult Init(nsIURI *aURI,
                 nsIURI *aCurrentURI,
+                bool aHadInsecureRedirect,
                 nsIRequest *aRequest,
                 nsIChannel *aChannel,
                 imgCacheEntry *aCacheEntry,
@@ -112,6 +113,10 @@ public:
   bool CacheChanged(nsIRequest* aNewRequest);
 
   bool GetMultipart() const;
+
+  
+  
+  bool HadInsecureRedirect() const { return mHadInsecureRedirect; }
 
   
   int32_t GetCORSMode() const { return mCORSMode; }
@@ -268,6 +273,7 @@ private:
   bool mIsInCache : 1;
   bool mDecodeRequested : 1;
   bool mNewPartPending : 1;
+  bool mHadInsecureRedirect : 1;
 };
 
 #endif
