@@ -20,13 +20,11 @@
 class nsSystemPrincipal final : public nsJSPrincipals
 {
 public:
-    
-    
-    NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_NSIPRINCIPAL
     NS_DECL_NSISERIALIZABLE
+    NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr) override;
 
-    nsSystemPrincipal();
+    nsSystemPrincipal() {}
 
     virtual void GetScriptLocation(nsACString &aStr) override;
 
@@ -35,10 +33,7 @@ public:
 #endif 
 
 protected:
-    virtual ~nsSystemPrincipal(void);
-
-    
-    NS_DECL_OWNINGTHREAD
+    virtual ~nsSystemPrincipal(void) {}
 };
 
-#endif
+#endif 

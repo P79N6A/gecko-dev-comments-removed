@@ -33,17 +33,11 @@ public:
   
   
   
-  nsNullPrincipal();
+  nsNullPrincipal() {}
 
-  
-  
-
-  
-  
-  
-  NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIPRINCIPAL
   NS_DECL_NSISERIALIZABLE
+  NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr) override;
 
   
   static already_AddRefed<nsNullPrincipal> CreateWithInheritedAttributes(nsIPrincipal *aInheritFrom);
@@ -63,7 +57,7 @@ public:
 #endif 
 
  protected:
-  virtual ~nsNullPrincipal();
+  virtual ~nsNullPrincipal() {}
 
   nsCOMPtr<nsIURI> mURI;
   nsCOMPtr<nsIContentSecurityPolicy> mCSP;
