@@ -76,7 +76,7 @@ ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx,
                                            HandleId id,
                                            JS::MutableHandle<JSPropertyDescriptor> desc) const
 {
-    assertEnteredPolicy(cx, wrapper, id, GET | SET);
+    assertEnteredPolicy(cx, wrapper, id, GET | SET | GET_PROPERTY_DESCRIPTOR);
     
     desc.object().set(nullptr);
     if (AllowedByBase(cx, wrapper, id, Wrapper::GET) &&
@@ -273,7 +273,8 @@ ChromeObjectWrapper::enter(JSContext *cx, HandleObject wrapper,
         return true;
     
     
-    *bp = act == Wrapper::GET || act == Wrapper::ENUMERATE;
+    *bp = act == Wrapper::GET || act == Wrapper::ENUMERATE ||
+          act == Wrapper::GET_PROPERTY_DESCRIPTOR;
     if (!*bp || id == JSID_VOID)
         return false;
 
