@@ -581,7 +581,7 @@ DefineTransaction.isStrOrNull = v => typeof(v) == "string" || v === null;
 DefineTransaction.isURI = v => v instanceof Components.interfaces.nsIURI;
 DefineTransaction.isIndex = v => Number.isInteger(v) &&
                                  v >= PlacesUtils.bookmarks.DEFAULT_INDEX;
-DefineTransaction.isGUID = v => /^[a-zA-Z0-9\-_]{12}$/.test(v);
+DefineTransaction.isGuid = v => /^[a-zA-Z0-9\-_]{12}$/.test(v);
 DefineTransaction.isPrimitive = v => v === null || (typeof(v) != "object" &&
                                                     typeof(v) != "function");
 DefineTransaction.isAnnotationObject = function (obj) {
@@ -744,8 +744,8 @@ function (aInput, aRequiredProps = [], aOptionalProps = []) {
 
 DefineTransaction.defineInputProps(["uri", "feedURI", "siteURI"],
                                    DefineTransaction.isURI, null);
-DefineTransaction.defineInputProps(["GUID", "parentGUID", "newParentGUID"],
-                                   DefineTransaction.isGUID);
+DefineTransaction.defineInputProps(["guid", "parentGuid", "newParentGuid"],
+                                   DefineTransaction.isGuid);
 DefineTransaction.defineInputProps(["title"],
                                    DefineTransaction.isStrOrNull, null);
 DefineTransaction.defineInputProps(["keyword", "postData", "tag",
@@ -779,11 +779,11 @@ DefineTransaction.defineArrayInputProp("excludingAnnotations",
 
 
 
-function* ExecuteCreateItem(aTransaction, aParentGUID, aCreateItemFunction,
+function* ExecuteCreateItem(aTransaction, aParentGuid, aCreateItemFunction,
                             aOnUndo = null, aOnRedo = null) {
-  let parentId = yield PlacesUtils.promiseItemId(aParentGUID),
+  let parentId = yield PlacesUtils.promiseItemId(aParentGuid),
       itemId = yield aCreateItemFunction(parentId, ""),
-      guid = yield PlacesUtils.promiseItemGUID(itemId);
+      guid = yield PlacesUtils.promiseItemGuid(itemId);
 
   
   let dateAdded = 0, lastModified = 0;
@@ -798,7 +798,7 @@ function* ExecuteCreateItem(aTransaction, aParentGUID, aCreateItemFunction,
     }
   };
   aTransaction.redo = function* () {
-    parentId = yield PlacesUtils.promiseItemId(aParentGUID);
+    parentId = yield PlacesUtils.promiseItemId(aParentGuid);
     itemId = yield aCreateItemFunction(parentId, guid);
     if (aOnRedo)
       yield aOnRedo();
@@ -851,11 +851,11 @@ function* createItemsFromBookmarksTree(aBookmarksTree, aRestoring = false,
   }
 
   function* createItem(aItem,
-                       aParentGUID,
+                       aParentGuid,
                        aIndex = PlacesUtils.bookmarks.DEFAULT_INDEX) {
     let itemId;
     let guid = aRestoring ? aItem.guid : undefined;
-    let parentId = yield PlacesUtils.promiseItemId(aParentGUID);
+    let parentId = yield PlacesUtils.promiseItemId(aParentGuid);
     let annos = aItem.annos ? [...aItem.annos] : [];
     switch (aItem.type) {
       case PlacesUtils.TYPE_X_MOZ_PLACE: {
@@ -876,7 +876,7 @@ function* createItemsFromBookmarksTree(aBookmarksTree, aRestoring = false,
           itemId = PlacesUtils.bookmarks.createFolder(
               parentId, aItem.title, aIndex, guid);
           if (guid === undefined)
-            guid = yield PlacesUtils.promiseItemGUID(itemId);
+            guid = yield PlacesUtils.promiseItemGuid(itemId);
           if ("children" in aItem) {
             for (let child of aItem.children) {
               yield createItem(child, guid);
@@ -918,7 +918,7 @@ function* createItemsFromBookmarksTree(aBookmarksTree, aRestoring = false,
     return itemId;
   }
   return yield createItem(aBookmarksTree,
-                          aBookmarksTree.parentGUID,
+                          aBookmarksTree.parentGuid,
                           aBookmarksTree.index);
 }
 
@@ -939,13 +939,13 @@ let PT = PlacesTransactions;
 
 
 
-PT.NewBookmark = DefineTransaction(["parentGUID", "uri"],
+PT.NewBookmark = DefineTransaction(["parentGuid", "uri"],
                                    ["index", "title", "keyword", "postData",
                                     "annotations", "tags"]);
 PT.NewBookmark.prototype = Object.seal({
-  execute: function (aParentGUID, aURI, aIndex, aTitle,
+  execute: function (aParentGuid, aURI, aIndex, aTitle,
                      aKeyword, aPostData, aAnnos, aTags) {
-    return ExecuteCreateItem(this, aParentGUID,
+    return ExecuteCreateItem(this, aParentGuid,
       function (parentId, guidToRestore = "") {
         let itemId = PlacesUtils.bookmarks.insertBookmark(
           parentId, aURI, aIndex, aTitle, guidToRestore);
@@ -978,11 +978,11 @@ PT.NewBookmark.prototype = Object.seal({
 
 
 
-PT.NewFolder = DefineTransaction(["parentGUID", "title"],
+PT.NewFolder = DefineTransaction(["parentGuid", "title"],
                                  ["index", "annotations"]);
 PT.NewFolder.prototype = Object.seal({
-  execute: function (aParentGUID, aTitle, aIndex, aAnnos) {
-    return ExecuteCreateItem(this,  aParentGUID,
+  execute: function (aParentGuid, aTitle, aIndex, aAnnos) {
+    return ExecuteCreateItem(this,  aParentGuid,
       function(parentId, guidToRestore = "") {
         let itemId = PlacesUtils.bookmarks.createFolder(
           parentId, aTitle, aIndex, guidToRestore);
@@ -1002,10 +1002,10 @@ PT.NewFolder.prototype = Object.seal({
 
 
 
-PT.NewSeparator = DefineTransaction(["parentGUID"], ["index"]);
+PT.NewSeparator = DefineTransaction(["parentGuid"], ["index"]);
 PT.NewSeparator.prototype = Object.seal({
-  execute: function (aParentGUID, aIndex) {
-    return ExecuteCreateItem(this, aParentGUID,
+  execute: function (aParentGuid, aIndex) {
+    return ExecuteCreateItem(this, aParentGuid,
       function (parentId, guidToRestore = "") {
         let itemId = PlacesUtils.bookmarks.insertSeparator(
           parentId, aIndex, guidToRestore);
@@ -1024,16 +1024,16 @@ PT.NewSeparator.prototype = Object.seal({
 
 
 
-PT.NewLivemark = DefineTransaction(["feedURI", "title", "parentGUID"],
+PT.NewLivemark = DefineTransaction(["feedURI", "title", "parentGuid"],
                                    ["siteURI", "index", "annotations"]);
 PT.NewLivemark.prototype = Object.seal({
-  execute: function* (aFeedURI, aTitle, aParentGUID, aSiteURI, aIndex, aAnnos) {
+  execute: function* (aFeedURI, aTitle, aParentGuid, aSiteURI, aIndex, aAnnos) {
     let livemarkInfo = { title: aTitle
                        , feedURI: aFeedURI
                        , siteURI: aSiteURI
                        , index: aIndex };
     let createItem = function* () {
-      livemarkInfo.parentId = yield PlacesUtils.promiseItemId(aParentGUID);
+      livemarkInfo.parentId = yield PlacesUtils.promiseItemId(aParentGuid);
       let livemark = yield PlacesUtils.livemarks.addLivemark(livemarkInfo);
       if (aAnnos.length > 0)
         PlacesUtils.setAnnotationsForItem(livemark.id, aAnnos);
@@ -1071,13 +1071,13 @@ PT.NewLivemark.prototype = Object.seal({
 
 
 
-PT.Move = DefineTransaction(["GUID", "newParentGUID"], ["newIndex"]);
+PT.Move = DefineTransaction(["guid", "newParentGuid"], ["newIndex"]);
 PT.Move.prototype = Object.seal({
-  execute: function* (aGUID, aNewParentGUID, aNewIndex) {
-    let itemId = yield PlacesUtils.promiseItemId(aGUID),
+  execute: function* (aGuid, aNewParentGuid, aNewIndex) {
+    let itemId = yield PlacesUtils.promiseItemId(aGuid),
         oldParentId = PlacesUtils.bookmarks.getFolderIdForItem(itemId),
         oldIndex = PlacesUtils.bookmarks.getItemIndex(itemId),
-        newParentId = yield PlacesUtils.promiseItemId(aNewParentGUID);
+        newParentId = yield PlacesUtils.promiseItemId(aNewParentGuid);
 
     PlacesUtils.bookmarks.moveItem(itemId, newParentId, aNewIndex);
 
@@ -1098,10 +1098,10 @@ PT.Move.prototype = Object.seal({
 
 
 
-PT.EditTitle = DefineTransaction(["GUID", "title"]);
+PT.EditTitle = DefineTransaction(["guid", "title"]);
 PT.EditTitle.prototype = Object.seal({
-  execute: function* (aGUID, aTitle) {
-    let itemId = yield PlacesUtils.promiseItemId(aGUID),
+  execute: function* (aGuid, aTitle) {
+    let itemId = yield PlacesUtils.promiseItemId(aGuid),
         oldTitle = PlacesUtils.bookmarks.getItemTitle(itemId);
     PlacesUtils.bookmarks.setItemTitle(itemId, aTitle);
     this.undo = () => { PlacesUtils.bookmarks.setItemTitle(itemId, oldTitle); };
@@ -1113,10 +1113,10 @@ PT.EditTitle.prototype = Object.seal({
 
 
 
-PT.EditURI = DefineTransaction(["GUID", "uri"]);
+PT.EditURI = DefineTransaction(["guid", "uri"]);
 PT.EditURI.prototype = Object.seal({
-  execute: function* (aGUID, aURI) {
-    let itemId = yield PlacesUtils.promiseItemId(aGUID),
+  execute: function* (aGuid, aURI) {
+    let itemId = yield PlacesUtils.promiseItemId(aGuid),
         oldURI = PlacesUtils.bookmarks.getBookmarkURI(itemId),
         oldURITags = PlacesUtils.tagging.getTagsForURI(oldURI),
         newURIAdditionalTags = null;
@@ -1156,10 +1156,10 @@ PT.EditURI.prototype = Object.seal({
 
 
 
-PT.Annotate = DefineTransaction(["GUID", "annotations"]);
+PT.Annotate = DefineTransaction(["guid", "annotations"]);
 PT.Annotate.prototype = {
-  execute: function* (aGUID, aNewAnnos) {
-    let itemId = yield PlacesUtils.promiseItemId(aGUID);
+  execute: function* (aGuid, aNewAnnos) {
+    let itemId = yield PlacesUtils.promiseItemId(aGuid);
     let currentAnnos = PlacesUtils.getAnnotationsForItem(itemId);
     let undoAnnos = [];
     for (let newAnno of aNewAnnos) {
@@ -1188,10 +1188,10 @@ PT.Annotate.prototype = {
 
 
 
-PT.EditKeyword = DefineTransaction(["GUID", "keyword"]);
+PT.EditKeyword = DefineTransaction(["guid", "keyword"]);
 PT.EditKeyword.prototype = Object.seal({
-  execute: function* (aGUID, aKeyword) {
-    let itemId = yield PlacesUtils.promiseItemId(aGUID),
+  execute: function* (aGuid, aKeyword) {
+    let itemId = yield PlacesUtils.promiseItemId(aGuid),
         oldKeyword = PlacesUtils.bookmarks.getKeywordForBookmark(itemId);
     PlacesUtils.bookmarks.setKeywordForBookmark(itemId, aKeyword);
     this.undo = () => {
@@ -1205,10 +1205,10 @@ PT.EditKeyword.prototype = Object.seal({
 
 
 
-PT.SortByName = DefineTransaction(["GUID"]);
+PT.SortByName = DefineTransaction(["guid"]);
 PT.SortByName.prototype = {
-  execute: function* (aGUID) {
-    let itemId = yield PlacesUtils.promiseItemId(aGUID),
+  execute: function* (aGuid) {
+    let itemId = yield PlacesUtils.promiseItemId(aGuid),
         oldOrder = [],  
         contents = PlacesUtils.getFolderContents(itemId, false, false).root,
         count = contents.childCount;
@@ -1273,20 +1273,20 @@ PT.SortByName.prototype = {
 
 
 
-PT.Remove = DefineTransaction(["GUID"]);
+PT.Remove = DefineTransaction(["guid"]);
 PT.Remove.prototype = {
-  execute: function* (aGUID) {
+  execute: function* (aGuid) {
     const bms = PlacesUtils.bookmarks;
 
     let itemInfo = null;
     try {
-      itemInfo = yield PlacesUtils.promiseBookmarksTree(aGUID);
+      itemInfo = yield PlacesUtils.promiseBookmarksTree(aGuid);
     }
     catch(ex) {
       throw new Error("Failed to get info for the specified item (guid: " +
-                      aGUID + "). Ex: " + ex);
+                      aGuid + "). Ex: " + ex);
     }
-    PlacesUtils.bookmarks.removeItem(yield PlacesUtils.promiseItemId(aGUID));
+    PlacesUtils.bookmarks.removeItem(yield PlacesUtils.promiseItemId(aGuid));
     this.undo = createItemsFromBookmarksTree.bind(null, itemInfo, true);
   }
 };
@@ -1313,11 +1313,11 @@ PT.Tag.prototype = {
 
       if (yield promiseIsBookmarked(currentURI)) {
         
-        let unfileGUID =
-          yield PlacesUtils.promiseItemGUID(PlacesUtils.unfiledBookmarksFolderId);
+        let unfiledGuid =
+          yield PlacesUtils.promiseItemGuid(PlacesUtils.unfiledBookmarksFolderId);
         let createTxn = TransactionsHistory.getRawTransaction(
           PT.NewBookmark({ uri: currentURI
-                         , tags: aTags, parentGUID: unfileGUID }));
+                         , tags: aTags, parentGuid: unfiledGuid }));
         yield createTxn.execute();
         onUndo.unshift(createTxn.undo.bind(createTxn));
         onRedo.push(createTxn.redo.bind(createTxn));
@@ -1395,19 +1395,19 @@ PT.Untag.prototype = {
 
 
 
-PT.Copy = DefineTransaction(["GUID", "newParentGUID"],
+PT.Copy = DefineTransaction(["guid", "newParentGuid"],
                             ["newIndex", "excludingAnnotations"]);
 PT.Copy.prototype = {
-  execute: function* (aGUID, aNewParentGUID, aNewIndex, aExcludingAnnotations) {
+  execute: function* (aGuid, aNewParentGuid, aNewIndex, aExcludingAnnotations) {
     let creationInfo = null;
     try {
-      creationInfo = yield PlacesUtils.promiseBookmarksTree(aGUID);
+      creationInfo = yield PlacesUtils.promiseBookmarksTree(aGuid);
     }
     catch(ex) {
       throw new Error("Failed to get info for the specified item (guid: " +
-                      aGUID + "). Ex: " + ex);
+                      aGuid + "). Ex: " + ex);
     }
-    creationInfo.parentGUID = aNewParentGUID;
+    creationInfo.parentGuid = aNewParentGuid;
     creationInfo.index = aNewIndex;
 
     let newItemId =
@@ -1416,8 +1416,8 @@ PT.Copy.prototype = {
     let newItemInfo = null;
     this.undo = function* () {
       if (!newItemInfo) {
-        let newItemGUID = yield PlacesUtils.promiseItemGUID(newItemId);
-        newItemInfo = yield PlacesUtils.promiseBookmarksTree(newItemGUID);
+        let newItemGuid = yield PlacesUtils.promiseItemGuid(newItemId);
+        newItemInfo = yield PlacesUtils.promiseBookmarksTree(newItemGuid);
       }
       PlacesUtils.bookmarks.removeItem(newItemId);
     };
@@ -1425,6 +1425,6 @@ PT.Copy.prototype = {
       newItemId = yield createItemsFromBookmarksTree(newItemInfo, true);
     }
 
-    return yield PlacesUtils.promiseItemGUID(newItemId);
+    return yield PlacesUtils.promiseItemGuid(newItemId);
   }
 };

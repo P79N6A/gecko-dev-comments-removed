@@ -1558,7 +1558,7 @@ this.PlacesUtils = {
 
 
 
-  promiseItemGUID: function (aItemId) GUIDHelper.getItemGUID(aItemId),
+  promiseItemGuid: function (aItemId) GuidHelper.getItemGuid(aItemId),
 
   
 
@@ -1570,7 +1570,7 @@ this.PlacesUtils = {
 
 
 
-  promiseItemId: function (aGUID) GUIDHelper.getItemId(aGUID),
+  promiseItemId: function (aGuid) GuidHelper.getItemId(aGuid),
 
   
 
@@ -1639,8 +1639,8 @@ this.PlacesUtils = {
 
 
 
-  promiseBookmarksTree: Task.async(function* (aItemGUID = "", aOptions = {}) {
-    let createItemInfoObject = (aRow, aIncludeParentGUID) => {
+  promiseBookmarksTree: Task.async(function* (aItemGuid = "", aOptions = {}) {
+    let createItemInfoObject = (aRow, aIncludeParentGuid) => {
       let item = {};
       let copyProps = (...props) => {
         for (let prop of props) {
@@ -1650,15 +1650,15 @@ this.PlacesUtils = {
         }
       };
       copyProps("guid", "title", "index", "dateAdded", "lastModified");
-      if (aIncludeParentGUID)
-        copyProps("parentGUID");
+      if (aIncludeParentGuid)
+        copyProps("parentGuid");
 
       let itemId = aRow.getResultByName("id");
       if (aOptions.includeItemIds)
         item.id = itemId;
 
       
-      GUIDHelper.idsForGUIDs.set(item.guid, itemId);
+      GuidHelper.idsForGuids.set(item.guid, itemId);
 
       let type = aRow.getResultByName("type");
       if (type == Ci.nsINavBookmarksService.TYPE_BOOKMARK)
@@ -1707,7 +1707,7 @@ this.PlacesUtils = {
 
     const QUERY_STR =
       `WITH RECURSIVE
-       descendants(fk, level, type, id, guid, parent, parentGUID, position,
+       descendants(fk, level, type, id, guid, parent, parentGuid, position,
                    title, dateAdded, lastModified) AS (
          SELECT b1.fk, 0, b1.type, b1.id, b1.guid, b1.parent,
                 (SELECT guid FROM moz_bookmarks WHERE id = b1.parent),
@@ -1719,7 +1719,7 @@ this.PlacesUtils = {
                 b2.lastModified
          FROM moz_bookmarks b2
          JOIN descendants ON b2.parent = descendants.id AND b2.id <> :tags_folder)
-       SELECT d.level, d.id, d.guid, d.parent, d.parentGUID, d.type,
+       SELECT d.level, d.id, d.guid, d.parent, d.parentGuid, d.type,
               d.position AS [index], d.title, d.dateAdded, d.lastModified,
               h.url, f.url AS iconuri,
               (SELECT GROUP_CONCAT(t.title, ',')
@@ -1740,14 +1740,14 @@ this.PlacesUtils = {
        ORDER BY d.level, d.parent, d.position`;
 
 
-    if (!aItemGUID)
-      aItemGUID = yield this.promiseItemGUID(PlacesUtils.placesRootId);
+    if (!aItemGuid)
+      aItemGuid = yield this.promiseItemGuid(PlacesUtils.placesRootId);
 
     let hasExcludeItemsCallback =
       aOptions.hasOwnProperty("excludeItemsCallback");
     let excludedParents = new Set();
-    let shouldExcludeItem = (aItem, aParentGUID) => {
-      let exclude = excludedParents.has(aParentGUID) ||
+    let shouldExcludeItem = (aItem, aParentGuid) => {
+      let exclude = excludedParents.has(aParentGuid) ||
                     aOptions.excludeItemsCallback(aItem);
       if (exclude) {
         if (aItem.type == this.TYPE_X_MOZ_PLACE_CONTAINER)
@@ -1763,7 +1763,7 @@ this.PlacesUtils = {
       yield conn.executeCached(QUERY_STR,
           { tags_folder: PlacesUtils.tagsFolderId,
             charset_anno: PlacesUtils.CHARSET_ANNO,
-            item_guid: aItemGUID }, (aRow) => {
+            item_guid: aItemGuid }, (aRow) => {
         let item;
         if (!rootItem) {
           
@@ -1787,11 +1787,11 @@ this.PlacesUtils = {
           
           
           item = createItemInfoObject(aRow, false);
-          let parentGUID = aRow.getResultByName("parentGUID");
-          if (hasExcludeItemsCallback && shouldExcludeItem(item, parentGUID))
+          let parentGuid = aRow.getResultByName("parentGuid");
+          if (hasExcludeItemsCallback && shouldExcludeItem(item, parentGuid))
             return;
 
-          let parentItem = parentsMap.get(parentGUID);
+          let parentItem = parentsMap.get(parentGuid);
           if ("children" in parentItem)
             parentItem.children.push(item);
           else
@@ -1921,31 +1921,31 @@ XPCOMUtils.defineLazyGetter(this, "gAsyncDBConnPromised", () => {
 
 
 
-let GUIDHelper = {
+let GuidHelper = {
   
-  GUIDsForIds: new Map(),
-  idsForGUIDs: new Map(),
+  guidsForIds: new Map(),
+  idsForGuids: new Map(),
 
-  getItemId: Task.async(function* (aGUID) {
-    let cached = this.idsForGUIDs.get(aGUID);
+  getItemId: Task.async(function* (aGuid) {
+    let cached = this.idsForGuids.get(aGuid);
     if (cached !== undefined)
       return cached;
 
     let conn = yield PlacesUtils.promiseDBConnection();
     let rows = yield conn.executeCached(
       "SELECT b.id, b.guid from moz_bookmarks b WHERE b.guid = :guid LIMIT 1",
-      { guid: aGUID });
+      { guid: aGuid });
     if (rows.length == 0)
-      throw new Error("no item found for the given guid");
+      throw new Error("no item found for the given GUID");
 
     this.ensureObservingRemovedItems();
     let itemId = rows[0].getResultByName("id");
-    this.idsForGUIDs.set(aGUID, itemId);
+    this.idsForGuids.set(aGuid, itemId);
     return itemId;
   }),
 
-  getItemGUID: Task.async(function* (aItemId) {
-    let cached = this.GUIDsForIds.get(aItemId);
+  getItemGuid: Task.async(function* (aItemId) {
+    let cached = this.guidsForIds.get(aItemId);
     if (cached !== undefined)
       return cached;
 
@@ -1958,7 +1958,7 @@ let GUIDHelper = {
 
     this.ensureObservingRemovedItems();
     let guid = rows[0].getResultByName("guid");
-    this.GUIDsForIds.set(aItemId, guid);
+    this.guidsForIds.set(aItemId, guid);
     return guid;
   }),
 
@@ -1973,15 +1973,15 @@ let GUIDHelper = {
 
       this.observer = {
         onItemAdded: (aItemId, aParentId, aIndex, aItemType, aURI, aTitle,
-                      aDateAdded, aGUID, aParentGUID) => {
-          this.GUIDsForIds.set(aItemId, aGUID);
-          this.GUIDsForIds.set(aParentId, aParentGUID);
+                      aDateAdded, aGuid, aParentGuid) => {
+          this.guidsForIds.set(aItemId, aGuid);
+          this.guidsForIds.set(aParentId, aParentGuid);
         },
         onItemRemoved:
-        (aItemId, aParentId, aIndex, aItemTyep, aURI, aGUID, aParentGUID) => {
-          this.GUIDsForIds.delete(aItemId);
-          this.idsForGUIDs.delete(aGUID);
-          this.GUIDsForIds.set(aParentId, aParentGUID);
+        (aItemId, aParentId, aIndex, aItemTyep, aURI, aGuid, aParentGuid) => {
+          this.guidsForIds.delete(aItemId);
+          this.idsForGuids.delete(aGuid);
+          this.guidsForIds.set(aParentId, aParentGuid);
         },
 
         QueryInterface: XPCOMUtils.generateQI(Ci.nsINavBookmarkObserver),
