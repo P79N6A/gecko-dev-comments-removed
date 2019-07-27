@@ -262,22 +262,31 @@ BaselineCompiler::compile()
         baselineScript->setHasDebugInstrumentation();
 
     
+    if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(cx->runtime()))
+        baselineScript->toggleProfilerInstrumentation(true);
+
     
-    if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(cx->runtime())) {
+    
+    {
         JitSpew(JitSpew_Profiling, "Added JitcodeGlobalEntry for baseline script %s:%d (%p)",
                     script->filename(), script->lineno(), baselineScript.get());
+
+        
+        char *str = JitcodeGlobalEntry::createScriptString(cx, script);
+        if (!str)
+            return Method_Error;
+
         JitcodeGlobalEntry::BaselineEntry entry;
-        entry.init(code->raw(), code->raw() + code->instructionsSize(), script);
+        entry.init(code->raw(), code->rawEnd(), script, str);
 
         JitcodeGlobalTable *globalTable = cx->runtime()->jitRuntime()->getJitcodeGlobalTable();
-        if (!globalTable->addEntry(entry))
+        if (!globalTable->addEntry(entry, cx->runtime())) {
+            entry.destroy();
             return Method_Error;
+        }
 
         
         code->setHasBytecodeMap();
-
-        
-        baselineScript->toggleProfilerInstrumentation(true);
     }
 
     script->setBaselineScript(cx, baselineScript.release());

@@ -661,17 +661,18 @@ JitCode::trace(JSTracer *trc)
 void
 JitCode::finalize(FreeOp *fop)
 {
+    JSRuntime *rt = fop->runtime();
+
     
     if (hasBytecodeMap_) {
-        MOZ_ASSERT(fop->runtime()->jitRuntime()->hasJitcodeGlobalTable());
-        fop->runtime()->jitRuntime()->getJitcodeGlobalTable()->removeEntry(raw());
+        MOZ_ASSERT(rt->jitRuntime()->hasJitcodeGlobalTable());
+        rt->jitRuntime()->getJitcodeGlobalTable()->removeEntry(raw(), rt);
     }
 
     
     
     
-    if (fop->runtime()->jitRuntime())
-        memset(code_, JS_SWEPT_CODE_PATTERN, bufferSize_);
+    memset(code_, JS_SWEPT_CODE_PATTERN, bufferSize_);
     code_ = nullptr;
 
     

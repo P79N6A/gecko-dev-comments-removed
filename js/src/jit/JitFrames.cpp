@@ -2670,7 +2670,7 @@ JitFrameIterator::verifyReturnAddressUsingNativeToBytecodeMap()
 
     
     JitcodeGlobalEntry entry;
-    if (!jitrt->getJitcodeGlobalTable()->lookup(returnAddressToFp_, &entry))
+    if (!jitrt->getJitcodeGlobalTable()->lookup(returnAddressToFp_, &entry, rt))
         return true;
 
     JitSpew(JitSpew_Profiling, "Found nativeToBytecode entry for %p: %p - %p",
@@ -2716,6 +2716,278 @@ JitFrameIterator::verifyReturnAddressUsingNativeToBytecodeMap()
     return true;
 }
 #endif 
+
+JitProfilingFrameIterator::JitProfilingFrameIterator(
+        JSRuntime *rt, const JS::ProfilingFrameIterator::RegisterState &state)
+{
+    
+    
+    if (!rt->mainThread.profilingActivation()) {
+        type_ = JitFrame_Entry;
+        fp_ = nullptr;
+        returnAddressToFp_ = nullptr;
+        return;
+    }
+
+    MOZ_ASSERT(rt->mainThread.profilingActivation()->isJit());
+
+    JitActivation *act = rt->mainThread.profilingActivation()->asJit();
+
+    
+    
+    
+    if (!act->lastProfilingFrame()) {
+        type_ = JitFrame_Entry;
+        fp_ = nullptr;
+        returnAddressToFp_ = nullptr;
+        return;
+    }
+
+    
+    fp_ = (uint8_t *) act->lastProfilingFrame();
+    void *lastCallSite = act->lastProfilingCallSite();
+
+    JitcodeGlobalTable *table = rt->jitRuntime()->getJitcodeGlobalTable();
+
+    
+    MOZ_ASSERT(rt->isProfilerSamplingEnabled());
+
+    
+    MOZ_ASSERT(frameScript()->hasBaselineScript());
+
+    
+    if (tryInitWithPC(state.pc))
+        return;
+
+    
+    if (tryInitWithTable(table, state.pc, rt))
+        return;
+
+    
+    if (lastCallSite) {
+        if (tryInitWithPC(lastCallSite))
+            return;
+
+        
+        if (tryInitWithTable(table, lastCallSite, rt))
+            return;
+    }
+
+    
+    
+    type_ = JitFrame_BaselineJS;
+    returnAddressToFp_ = frameScript()->baselineScript()->method()->raw();
+    
+}
+
+template <typename FrameType, typename ReturnType=CommonFrameLayout*>
+inline ReturnType
+GetPreviousRawFrame(FrameType *frame)
+{
+    size_t prevSize = frame->prevFrameLocalSize() + FrameType::Size();
+    return (ReturnType) (((uint8_t *) frame) + prevSize);
+}
+
+JitProfilingFrameIterator::JitProfilingFrameIterator(void *exitFrame)
+{
+    
+    ExitFrameLayout *frame = (ExitFrameLayout *) exitFrame;
+    FrameType prevType = frame->prevType();
+
+    if (prevType == JitFrame_IonJS || prevType == JitFrame_BaselineJS ||
+        prevType == JitFrame_Unwound_IonJS)
+    {
+        returnAddressToFp_ = frame->returnAddress();
+        fp_ = GetPreviousRawFrame<ExitFrameLayout, uint8_t *>(frame);
+        type_ = JitFrame_IonJS;
+        return;
+    }
+
+    if (prevType == JitFrame_BaselineStub || prevType == JitFrame_Unwound_BaselineStub) {
+        BaselineStubFrameLayout *stubFrame =
+            GetPreviousRawFrame<ExitFrameLayout, BaselineStubFrameLayout *>(frame);
+        MOZ_ASSERT_IF(prevType == JitFrame_BaselineStub,
+                      stubFrame->prevType() == JitFrame_BaselineJS);
+        MOZ_ASSERT_IF(prevType == JitFrame_Unwound_BaselineStub,
+                      stubFrame->prevType() == JitFrame_BaselineJS ||
+                      stubFrame->prevType() == JitFrame_IonJS);
+        returnAddressToFp_ = stubFrame->returnAddress();
+        fp_ = ((uint8_t *) stubFrame->reverseSavedFramePtr())
+                + jit::BaselineFrame::FramePointerOffset;
+        type_ = JitFrame_BaselineJS;
+        return;
+    }
+
+    MOZ_CRASH("Invalid frame type prior to exit frame.");
+}
+
+bool
+JitProfilingFrameIterator::tryInitWithPC(void *pc)
+{
+    JSScript *callee = frameScript();
+
+    
+    if (callee->hasIonScript() && callee->ionScript()->method()->containsNativePC(pc)) {
+        type_ = JitFrame_IonJS;
+        returnAddressToFp_ = pc;
+        return true;
+    }
+
+    
+    if (callee->baselineScript()->method()->containsNativePC(pc)) {
+        type_ = JitFrame_BaselineJS;
+        returnAddressToFp_ = pc;
+        return true;
+    }
+
+    return false;
+}
+
+bool
+JitProfilingFrameIterator::tryInitWithTable(JitcodeGlobalTable *table, void *pc, JSRuntime *rt)
+{
+    if (!pc)
+        return false;
+
+    JitcodeGlobalEntry entry;
+    if (!table->lookup(pc, &entry, rt))
+        return false;
+
+    JSScript *callee = frameScript();
+
+    MOZ_ASSERT(entry.isIon() || entry.isBaseline() || entry.isIonCache());
+    if (entry.isIon()) {
+        
+        if (entry.ionEntry().getScript(0) != callee)
+            return false;
+
+        type_ = JitFrame_IonJS;
+        returnAddressToFp_ = pc;
+        return true;
+    }
+
+    if (entry.isBaseline()) {
+        
+        if (entry.baselineEntry().script() != callee)
+            return false;
+
+        type_ = JitFrame_BaselineJS;
+        returnAddressToFp_ = pc;
+        return true;
+    }
+
+    if (entry.isIonCache()) {
+        JitcodeGlobalEntry ionEntry;
+        table->lookupInfallible(entry.ionCacheEntry().rejoinAddr(), &ionEntry, rt);
+        MOZ_ASSERT(ionEntry.isIon());
+
+        if (ionEntry.ionEntry().getScript(0) != callee)
+            return false;
+
+        type_ = JitFrame_IonJS;
+        returnAddressToFp_ = entry.ionCacheEntry().rejoinAddr();
+        return true;
+    }
+
+    return false;
+}
+
+void
+JitProfilingFrameIterator::operator++()
+{
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    JitFrameLayout *frame = framePtr();
+    FrameType prevType = frame->prevType();
+
+    if (prevType == JitFrame_IonJS) {
+        returnAddressToFp_ = frame->returnAddress();
+        fp_ = GetPreviousRawFrame<JitFrameLayout, uint8_t *>(frame);
+        type_ = JitFrame_IonJS;
+        return;
+    }
+
+    if (prevType == JitFrame_BaselineJS) {
+        returnAddressToFp_ = frame->returnAddress();
+        fp_ = GetPreviousRawFrame<JitFrameLayout, uint8_t *>(frame);
+        type_ = JitFrame_BaselineJS;
+        return;
+    }
+
+    if (prevType == JitFrame_BaselineStub) {
+        BaselineStubFrameLayout *stubFrame =
+            GetPreviousRawFrame<JitFrameLayout, BaselineStubFrameLayout *>(frame);
+        MOZ_ASSERT(stubFrame->prevType() == JitFrame_BaselineJS);
+
+        returnAddressToFp_ = stubFrame->returnAddress();
+        fp_ = ((uint8_t *) stubFrame->reverseSavedFramePtr())
+                + jit::BaselineFrame::FramePointerOffset;
+        type_ = JitFrame_BaselineJS;
+        return;
+    }
+
+    if (prevType == JitFrame_Rectifier) {
+        RectifierFrameLayout *rectFrame =
+            GetPreviousRawFrame<JitFrameLayout, RectifierFrameLayout *>(frame);
+        FrameType rectPrevType = rectFrame->prevType();
+
+        if (rectPrevType == JitFrame_IonJS) {
+            returnAddressToFp_ = rectFrame->returnAddress();
+            fp_ = GetPreviousRawFrame<JitFrameLayout, uint8_t *>(rectFrame);
+            type_ = JitFrame_IonJS;
+            return;
+        }
+
+        if (rectPrevType == JitFrame_BaselineStub) {
+            BaselineStubFrameLayout *stubFrame =
+                GetPreviousRawFrame<JitFrameLayout, BaselineStubFrameLayout *>(rectFrame);
+            returnAddressToFp_ = stubFrame->returnAddress();
+            fp_ = ((uint8_t *) stubFrame->reverseSavedFramePtr())
+                    + jit::BaselineFrame::FramePointerOffset;
+            type_ = JitFrame_BaselineJS;
+            return;
+        }
+
+        MOZ_CRASH("Bad frame type prior to rectifier frame.");
+    }
+
+    if (prevType == JitFrame_Entry) {
+        
+        returnAddressToFp_ = nullptr;
+        fp_ = nullptr;
+        type_ = JitFrame_Entry;
+        return;
+    }
+
+    MOZ_CRASH("Bad frame type.");
+}
 
 JitFrameLayout *
 InvalidationBailoutStack::fp() const

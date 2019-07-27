@@ -7182,7 +7182,22 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
 
         
         JitcodeGlobalTable *globalTable = cx->runtime()->jitRuntime()->getJitcodeGlobalTable();
-        if (!globalTable->addEntry(entry)) {
+        if (!globalTable->addEntry(entry, cx->runtime())) {
+            
+            entry.destroy();
+            return false;
+        }
+
+        
+        code->setHasBytecodeMap();
+    } else {
+        
+        JitcodeGlobalEntry::DummyEntry entry;
+        entry.init(code->raw(), code->rawEnd());
+
+        
+        JitcodeGlobalTable *globalTable = cx->runtime()->jitRuntime()->getJitcodeGlobalTable();
+        if (!globalTable->addEntry(entry, cx->runtime())) {
             
             entry.destroy();
             return false;

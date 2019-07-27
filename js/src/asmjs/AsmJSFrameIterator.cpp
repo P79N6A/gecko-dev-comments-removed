@@ -414,6 +414,16 @@ AsmJSProfilingFrameIterator::AsmJSProfilingFrameIterator(const AsmJSActivation &
     exitReason_(AsmJSExit::None),
     codeRange_(nullptr)
 {
+    
+    
+    
+    
+    
+    if (!module_->profilingEnabled()) {
+        MOZ_ASSERT(done());
+        return;
+    }
+
     initFromFP(activation);
 }
 
