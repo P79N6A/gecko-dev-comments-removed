@@ -91,6 +91,20 @@ add_test(testAsync);
 
 
 
+function testZipEntry() {
+    var uri = jarBase + "/inner40.zip";
+    var chan = ios.newChannel(uri, null, null).QueryInterface(Ci.nsIJARChannel);
+    var entry = chan.zipEntry;
+    do_check_true(entry.CRC32 == 0x8b635486);
+    do_check_true(entry.realSize == 184);
+    run_next_test();
+}
+
+add_test(testZipEntry);
+
+
+
+
 
 if (!inChild) {
 
