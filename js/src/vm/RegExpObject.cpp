@@ -11,6 +11,7 @@
 
 #include "jsstr.h"
 
+#include "builtin/RegExp.h"
 #include "frontend/TokenStream.h"
 #include "irregexp/RegExpParser.h"
 #include "vm/MatchPairs.h"
@@ -273,7 +274,17 @@ const Class RegExpObject::class_ = {
     nullptr, 
     nullptr, 
     nullptr, 
-    RegExpObject::trace
+    RegExpObject::trace,
+
+    
+    {
+        GenericCreateConstructor<js::regexp_construct, 2, JSFunction::FinalizeKind>,
+        CreateRegExpPrototype,
+        nullptr,
+        js::regexp_static_props,
+        js::regexp_methods,
+        js::regexp_properties
+    }
 };
 
 RegExpObject *
