@@ -211,6 +211,9 @@ let UI = {
         this.updateCommands();
         break;
       case "runtime-global-actors":
+        
+        
+        this.checkRuntimeVersion();
         this.updateCommands();
         break;
       case "runtime-details":
@@ -895,6 +898,20 @@ let UI = {
     deck.selectedPanel = null;
     this.updateProjectEditorMenusVisibility();
   },
+
+  checkRuntimeVersion: Task.async(function* () {
+    if (AppManager.connected && AppManager.deviceFront) {
+      let desc = yield AppManager.deviceFront.getDescription();
+      
+      
+      
+      let deviceID = desc.appbuildid.substr(0, 8);
+      let localID = Services.appinfo.appBuildID.substr(0, 8);
+      if (deviceID > localID) {
+        this.reportError("error_runtimeVersionTooRecent", deviceID, localID);
+      }
+    }
+  }),
 
   
 
