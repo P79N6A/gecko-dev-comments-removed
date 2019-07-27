@@ -13,11 +13,9 @@ import java.util.Set;
 
 import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.R;
-import org.mozilla.gecko.background.ReadingListConstants;
 import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.background.fxa.FxAccountUtils;
 import org.mozilla.gecko.background.preferences.PreferenceFragment;
-import org.mozilla.gecko.db.BrowserContract;
 import org.mozilla.gecko.fxa.FirefoxAccounts;
 import org.mozilla.gecko.fxa.FxAccountConstants;
 import org.mozilla.gecko.fxa.authenticator.AndroidFxAccount;
@@ -31,7 +29,6 @@ import org.mozilla.gecko.sync.SyncConfiguration;
 import org.mozilla.gecko.util.HardwareUtils;
 
 import android.accounts.Account;
-import android.accounts.AccountManager;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -178,9 +175,6 @@ public class FxAccountStatusFragment
     historyPreference = (CheckBoxPreference) ensureFindPreference("history");
     tabsPreference = (CheckBoxPreference) ensureFindPreference("tabs");
     passwordsPreference = (CheckBoxPreference) ensureFindPreference("passwords");
-    
-    
-    readingListPreference = (CheckBoxPreference) ensureFindPreference("reading_list");
 
     if (!FxAccountUtils.LOG_PERSONAL_INFORMATION) {
       removeDebugButtons();
@@ -200,7 +194,6 @@ public class FxAccountStatusFragment
     historyPreference.setOnPreferenceClickListener(this);
     tabsPreference.setOnPreferenceClickListener(this);
     passwordsPreference.setOnPreferenceClickListener(this);
-    readingListPreference.setOnPreferenceClickListener(this);
 
     deviceNamePreference = (EditTextPreference) ensureFindPreference("device_name");
     deviceNamePreference.setOnPreferenceChangeListener(this);
@@ -288,14 +281,6 @@ public class FxAccountStatusFragment
       return true;
     }
 
-    if (preference == readingListPreference) {
-      final boolean syncAutomatically = readingListPreference.isChecked();
-      ContentResolver.setIsSyncable(fxAccount.getAndroidAccount(), BrowserContract.READING_LIST_AUTHORITY, 1);
-      ContentResolver.setSyncAutomatically(fxAccount.getAndroidAccount(), BrowserContract.READING_LIST_AUTHORITY, syncAutomatically);
-      FxAccountUtils.pii(LOG_TAG, (syncAutomatically ? "En" : "Dis") + "abling Reading List sync automatically.");
-      return true;
-    }
-
     if (preference == morePreference) {
       getActivity().openOptionsMenu();
       return true;
@@ -330,11 +315,6 @@ public class FxAccountStatusFragment
     
     deviceNamePreference.setEnabled(enabled);
     syncNowPreference.setEnabled(enabled);
-
-    
-    
-    
-    readingListPreference.setEnabled(enabled);
   }
 
   
@@ -556,7 +536,6 @@ public class FxAccountStatusFragment
     } finally {
       
       updateSelectedEngines();
-      updateReadingList();
     }
 
     final String clientName = clientsDataDelegate.getClientName();
@@ -672,19 +651,6 @@ public class FxAccountStatusFragment
 
 
 
-  protected void updateReadingList() {
-    if (AppConstants.MOZ_ANDROID_READING_LIST_SERVICE) {
-      final boolean syncAutomatically = ContentResolver.getSyncAutomatically(fxAccount.getAndroidAccount(), BrowserContract.READING_LIST_AUTHORITY);
-      readingListPreference.setChecked(syncAutomatically);
-    } else {
-      syncCategory.removePreference(readingListPreference);
-    }
-  }
-
-  
-
-
-
   protected void saveEngineSelections() {
     final Map<String, Boolean> engineSelections = new HashMap<String, Boolean>();
     engineSelections.put("bookmarks", bookmarksPreference.isChecked());
@@ -790,16 +756,6 @@ public class FxAccountStatusFragment
         Logger.info(LOG_TAG, "Force syncing.");
         fxAccount.requestSync(FirefoxAccounts.FORCE);
         
-      } else if ("debug_forget_reading_list_oauth_token".equals(key)) {
-        final Account account = fxAccount.getAndroidAccount();
-        final AccountManager accountManager = AccountManager.get(getActivity());
-        final String authToken = accountManager.peekAuthToken(account, ReadingListConstants.AUTH_TOKEN_TYPE);
-        if (authToken != null) {
-          Logger.info(LOG_TAG, "Forgetting reading list oauth token: " + authToken);
-          accountManager.invalidateAuthToken(account.type, authToken);
-        } else {
-          Logger.warn(LOG_TAG, "No reading list oauth token to forget!");
-        }
       } else if ("debug_forget_certificate".equals(key)) {
         State state = fxAccount.getState();
         try {
