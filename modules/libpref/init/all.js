@@ -792,6 +792,7 @@ pref("devtools.chrome.enabled", false);
 
 
 pref("devtools.debugger.log", false);
+pref("devtools.debugger.log.verbose", false);
 
 #ifdef MOZ_DEV_EDITION
 pref("devtools.debugger.remote-enabled", true);
