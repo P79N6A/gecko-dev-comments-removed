@@ -26,7 +26,9 @@
 
 namespace JS {
 
-class AutoIdVector;
+template <typename T>
+class AutoVectorRooter;
+typedef AutoVectorRooter<jsid> AutoIdVector;
 class CallArgs;
 
 template <typename T>
@@ -37,12 +39,14 @@ class JS_FRIEND_API(ReadOnlyCompileOptions);
 class JS_FRIEND_API(OwningCompileOptions);
 class JS_PUBLIC_API(CompartmentOptions);
 
+class Value;
 struct Zone;
 
 } 
 
 namespace js {
 struct ContextFriendFields;
+class Shape;
 } 
 
 
@@ -265,9 +269,16 @@ class JS_PUBLIC_API(AutoGCRooter)
         OBJU32HASHMAP=-23, 
         OBJHASHSET =  -24, 
         JSONPARSER =  -25, 
-        CUSTOM =      -26, 
-        FUNVECTOR =   -27  
+        CUSTOM =      -26  
     };
+
+    static ptrdiff_t GetTag(const Value& value) { return VALVECTOR; }
+    static ptrdiff_t GetTag(const jsid& id) { return IDVECTOR; }
+    static ptrdiff_t GetTag(JSObject* obj) { return OBJVECTOR; }
+    static ptrdiff_t GetTag(JSScript* script) { return SCRIPTVECTOR; }
+    static ptrdiff_t GetTag(JSString* string) { return STRINGVECTOR; }
+    static ptrdiff_t GetTag(js::Shape* shape) { return SHAPEVECTOR; }
+    static ptrdiff_t GetTag(const JSPropertyDescriptor& pd) { return DESCVECTOR; }
 
   private:
     AutoGCRooter ** const stackTop;
