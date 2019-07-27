@@ -279,7 +279,7 @@ gfxFontconfigFontEntry::gfxFontconfigFontEntry(const nsAString& aFaceName,
                                                bool aItalic,
                                                const uint8_t *aData,
                                                FT_Face aFace)
-    : gfxFontEntry(aFaceName), mFontPattern(FcPatternCreate()),
+    : gfxFontEntry(aFaceName),
       mFTFace(aFace), mFTFaceInitialized(true),
       mAspect(0.0), mFontData(aData)
 {
@@ -287,6 +287,24 @@ gfxFontconfigFontEntry::gfxFontconfigFontEntry(const nsAString& aFaceName,
     mItalic = aItalic;
     mStretch = aStretch;
     mIsDataUserFont = true;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    mFontPattern = FcFreeTypeQueryFace(mFTFace, ToFcChar8Ptr(""), 0, nullptr);
+    
+    if (!mFontPattern) {
+        mFontPattern = FcPatternCreate();
+    }
+    FcPatternDel(mFontPattern, FC_FILE);
+    FcPatternDel(mFontPattern, FC_INDEX);
 
     
     
