@@ -94,7 +94,7 @@ add_task(function flush_on_settabstate() {
   let browser = tab.linkedBrowser;
 
   
-  TabState.flush(browser);
+  yield TabStateFlusher.flush(browser);
 
   let state = ss.getTabState(tab);
   yield modifySessionStorage(browser, {test: "on-set-tab-state"});
@@ -122,7 +122,7 @@ add_task(function flush_on_tabclose_racy() {
   let browser = tab.linkedBrowser;
 
   
-  TabState.flush(browser);
+  yield TabStateFlusher.flush(browser);
 
   yield modifySessionStorage(browser, {test: "on-tab-close-racy"});
 

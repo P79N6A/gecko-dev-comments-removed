@@ -1,6 +1,3 @@
-
-
-
 "use strict";
 
 const PATH = "/browser/browser/components/sessionstore/test/";
@@ -147,7 +144,7 @@ let replaceCurrentURI = Task.async(function* (browser, uri) {
   yield promiseBrowserLoaded(browser);
 
   
-  TabState.flush(browser);
+  yield TabStateFlusher.flush(browser);
 });
 
 

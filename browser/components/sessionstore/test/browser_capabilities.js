@@ -31,7 +31,7 @@ add_task(function docshell_capabilities() {
   yield promiseBrowserLoaded(browser);
 
   
-  TabState.flush(browser);
+  yield TabStateFlusher.flush(browser);
 
   
   let disallowedState = JSON.parse(ss.getTabState(tab));
@@ -44,7 +44,7 @@ add_task(function docshell_capabilities() {
   yield promiseTabState(tab, {entries: [{url: "about:robots"}]});
 
   
-  TabState.flush(browser);
+  yield TabStateFlusher.flush(browser);
 
   
   state = JSON.parse(ss.getTabState(tab));

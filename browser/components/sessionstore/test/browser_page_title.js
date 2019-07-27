@@ -22,7 +22,7 @@ add_task(function* () {
   yield promiseBrowserLoaded(browser);
 
   
-  TabState.flush(browser);
+  yield TabStateFlusher.flush(browser);
 
   
   yield ContentTask.spawn(browser, null, function* () {

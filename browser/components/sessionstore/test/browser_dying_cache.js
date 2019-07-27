@@ -1,5 +1,4 @@
-
-
+"use strict";
 
 
 
@@ -19,7 +18,7 @@ add_task(function* test() {
   
   let tab = win.gBrowser.addTab("about:mozilla");
   yield promiseBrowserLoaded(tab.linkedBrowser);
-  TabState.flush(tab.linkedBrowser);
+  yield TabStateFlusher.flush(tab.linkedBrowser);
   yield promiseRemoveTab(win.gBrowser.tabs[0]);
 
   

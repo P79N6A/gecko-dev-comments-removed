@@ -10,7 +10,7 @@ function* createTabWithRandomValue(url) {
   ss.setTabValue(tab, "foobar", r);
 
   
-  TabState.flush(browser);
+  yield TabStateFlusher.flush(browser);
 
   return {tab, r};
 }

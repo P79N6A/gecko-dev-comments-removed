@@ -67,12 +67,12 @@ function testTabRestoreData(aFormData, aExpectedValue, aCallback) {
 
   promiseBrowserLoaded(tab.linkedBrowser).then(() => {
     promiseTabState(tab, tabState).then(() => {
+      
+      return TabStateFlusher.flush(tab.linkedBrowser);
+    }).then(() => {
       let doc = tab.linkedBrowser.contentDocument;
       let select = doc.getElementById("select_id");
       let value = select.options[select.selectedIndex].value;
-
-      
-      TabState.flush(tab.linkedBrowser);
       let restoredTabState = JSON.parse(ss.getTabState(tab));
 
       

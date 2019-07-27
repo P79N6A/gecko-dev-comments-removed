@@ -25,9 +25,9 @@ add_task(function test_label_and_icon() {
   yield promiseBrowserLoaded(browser);
 
   
-  TabState.flush(browser);
+  yield TabStateFlusher.flush(browser);
   let state = ss.getTabState(tab);
-  gBrowser.removeTab(tab);
+  yield promiseRemoveTab(tab);
   browser = null;
 
   
@@ -40,5 +40,5 @@ add_task(function test_label_and_icon() {
   is(tab.label, "Gort! Klaatu barada nikto!", "label is set");
 
   
-  gBrowser.removeTab(tab);
+  yield promiseRemoveTab(tab);
 });
