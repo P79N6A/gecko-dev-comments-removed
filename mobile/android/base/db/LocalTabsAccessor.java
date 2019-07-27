@@ -2,7 +2,7 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.db;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,7 +11,8 @@ import java.util.regex.Pattern;
 
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.mozilla.gecko.db.BrowserContract;
+import org.mozilla.gecko.R;
+import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.util.UIAsyncTask;
 
@@ -20,13 +21,11 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Parcel;
-import android.os.Parcelable;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.util.Log;
 
-public final class TabsAccessor {
+public class LocalTabsAccessor implements TabsAccessor {
     private static final String LOGTAG = "GeckoTabsAccessor";
 
     public static final String[] TABS_PROJECTION_COLUMNS = new String[] {
@@ -54,141 +53,12 @@ public final class TabsAccessor {
 
     private static final Pattern FILTERED_URL_PATTERN = Pattern.compile("^(about|chrome|wyciwyg|file):");
 
-    
+    private final Uri tabsUriWithProfile;
+    private final Uri clientsUriWithProfile;
 
-
-
-
-
-    public static class RemoteClient implements Parcelable {
-        public final String guid;
-        public final String name;
-        public final long lastModified;
-        public final String deviceType;
-        public final ArrayList<RemoteTab> tabs;
-
-        public RemoteClient(String guid, String name, long lastModified, String deviceType) {
-            this.guid = guid;
-            this.name = name;
-            this.lastModified = lastModified;
-            this.deviceType = deviceType;
-            this.tabs = new ArrayList<RemoteTab>();
-        }
-
-        @Override
-        public int describeContents() {
-            return 0;
-        }
-
-        @Override
-        public void writeToParcel(Parcel parcel, int flags) {
-            parcel.writeString(guid);
-            parcel.writeString(name);
-            parcel.writeLong(lastModified);
-            parcel.writeString(deviceType);
-            parcel.writeTypedList(tabs);
-        }
-
-        public static final Creator<RemoteClient> CREATOR = new Creator<RemoteClient>() {
-            @Override
-            public RemoteClient createFromParcel(final Parcel source) {
-                final String guid = source.readString();
-                final String name = source.readString();
-                final long lastModified = source.readLong();
-                final String deviceType = source.readString();
-
-                final RemoteClient client = new RemoteClient(guid, name, lastModified, deviceType);
-                source.readTypedList(client.tabs, RemoteTab.CREATOR);
-
-                return client;
-            }
-
-            @Override
-            public RemoteClient[] newArray(final int size) {
-                return new RemoteClient[size];
-            }
-        };
-    }
-
-    
-
-
-
-
-
-
-    public static class RemoteTab implements Parcelable {
-        public final String title;
-        public final String url;
-
-        public RemoteTab(String title, String url) {
-            this.title = title;
-            this.url = url;
-        }
-
-        @Override
-        public int describeContents() {
-            return 0;
-        }
-
-        @Override
-        public void writeToParcel(Parcel parcel, int flags) {
-            parcel.writeString(title);
-            parcel.writeString(url);
-        }
-
-        public static final Creator<RemoteTab> CREATOR = new Creator<RemoteTab>() {
-            @Override
-            public RemoteTab createFromParcel(final Parcel source) {
-                final String title = source.readString();
-                final String url = source.readString();
-
-                return new RemoteTab(title, url);
-            }
-
-            @Override
-            public RemoteTab[] newArray(final int size) {
-                return new RemoteTab[size];
-            }
-        };
-
-        @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + ((title == null) ? 0 : title.hashCode());
-            result = prime * result + ((url == null) ? 0 : url.hashCode());
-            return result;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            RemoteTab other = (RemoteTab) obj;
-            if (title == null) {
-                if (other.title != null) {
-                    return false;
-                }
-            } else if (!title.equals(other.title)) {
-                return false;
-            }
-            if (url == null) {
-                if (other.url != null) {
-                    return false;
-                }
-            } else if (!url.equals(other.url)) {
-                return false;
-            }
-            return true;
-        }
+    public LocalTabsAccessor(String mProfile) {
+        tabsUriWithProfile = DBUtils.appendProfileWithDefault(mProfile, BrowserContract.Tabs.CONTENT_URI);
+        clientsUriWithProfile = DBUtils.appendProfileWithDefault(mProfile, BrowserContract.Clients.CONTENT_URI);
     }
 
     
@@ -203,8 +73,9 @@ public final class TabsAccessor {
 
 
 
-    public static List<RemoteClient> getClientsFromCursor(final Cursor cursor) {
-        final ArrayList<RemoteClient> clients = new ArrayList<TabsAccessor.RemoteClient>();
+    @Override
+    public List<RemoteClient> getClientsFromCursor(final Cursor cursor) {
+        final ArrayList<RemoteClient> clients = new ArrayList<RemoteClient>();
 
         final int originalPosition = cursor.getPosition();
         try {
@@ -246,12 +117,14 @@ public final class TabsAccessor {
         return clients;
     }
 
-    public static Cursor getRemoteTabsCursor(Context context) {
+    @Override
+    public Cursor getRemoteTabsCursor(Context context) {
         return getRemoteTabsCursor(context, -1);
     }
 
-    public static Cursor getRemoteTabsCursor(Context context, int limit) {
-        Uri uri = BrowserContract.Tabs.CONTENT_URI;
+    @Override
+    public Cursor getRemoteTabsCursor(Context context, int limit) {
+        Uri uri = tabsUriWithProfile;
 
         if (limit > 0) {
             uri = uri.buildUpon()
@@ -267,19 +140,17 @@ public final class TabsAccessor {
         return cursor;
     }
 
-    public interface OnQueryTabsCompleteListener {
-        public void onQueryTabsComplete(List<RemoteClient> clients);
-    }
-
     
     
-    public static void getTabs(final Context context, final OnQueryTabsCompleteListener listener) {
+    @Override
+    public void getTabs(final Context context, final OnQueryTabsCompleteListener listener) {
         getTabs(context, 0, listener);
     }
 
     
     
-    public static void getTabs(final Context context, final int limit, final OnQueryTabsCompleteListener listener) {
+    @Override
+    public void getTabs(final Context context, final int limit, final OnQueryTabsCompleteListener listener) {
         
         if (listener == null)
             return;
@@ -306,15 +177,16 @@ public final class TabsAccessor {
     }
 
     
-    private static void updateLocalClient(final ContentResolver cr) {
+    private void updateLocalClient(final ContentResolver cr) {
         ContentValues values = new ContentValues();
         values.put(BrowserContract.Clients.LAST_MODIFIED, System.currentTimeMillis());
-        cr.update(BrowserContract.Clients.CONTENT_URI, values, LOCAL_CLIENT_SELECTION, null);
+
+        cr.update(clientsUriWithProfile, values, LOCAL_CLIENT_SELECTION, null);
     }
 
     
-    private static void deleteLocalTabs(final ContentResolver cr) {
-        cr.delete(BrowserContract.Tabs.CONTENT_URI, LOCAL_TABS_SELECTION, null);
+    private void deleteLocalTabs(final ContentResolver cr) {
+        cr.delete(tabsUriWithProfile, LOCAL_TABS_SELECTION, null);
     }
 
     
@@ -327,7 +199,7 @@ public final class TabsAccessor {
 
 
 
-    private static void insertLocalTabs(final ContentResolver cr, final Iterable<Tab> tabs) {
+    private void insertLocalTabs(final ContentResolver cr, final Iterable<Tab> tabs) {
         
         JSONArray history = new JSONArray();
         ArrayList<ContentValues> valuesToInsert = new ArrayList<ContentValues>();
@@ -368,11 +240,12 @@ public final class TabsAccessor {
         }
 
         ContentValues[] valuesToInsertArray = valuesToInsert.toArray(new ContentValues[valuesToInsert.size()]);
-        cr.bulkInsert(BrowserContract.Tabs.CONTENT_URI, valuesToInsertArray);
+        cr.bulkInsert(tabsUriWithProfile, valuesToInsertArray);
     }
 
     
-    public static synchronized void persistLocalTabs(final ContentResolver cr, final Iterable<Tab> tabs) {
+    @Override
+    public synchronized void persistLocalTabs(final ContentResolver cr, final Iterable<Tab> tabs) {
         deleteLocalTabs(cr);
         insertLocalTabs(cr, tabs);
         updateLocalClient(cr);
@@ -383,7 +256,7 @@ public final class TabsAccessor {
 
 
 
-    private static boolean isFilteredURL(String url) {
+    private boolean isFilteredURL(String url) {
         return FILTERED_URL_PATTERN.matcher(url).lookingAt();
     }
 
@@ -394,7 +267,8 @@ public final class TabsAccessor {
 
 
 
-    public static String getLastSyncedString(Context context, long now, long time) {
+    @Override
+    public String getLastSyncedString(Context context, long now, long time) {
         final CharSequence relativeTimeSpanString = DateUtils.getRelativeTimeSpanString(time, now, DateUtils.MINUTE_IN_MILLIS);
         return context.getResources().getString(R.string.remote_tabs_last_synced, relativeTimeSpanString);
     }

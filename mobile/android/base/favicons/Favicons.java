@@ -303,7 +303,9 @@ public class Favicons {
 
 
 
-    public static String getFaviconURLForPageURL(Context context, String pageURL) {
+
+
+    public static String getFaviconURLForPageURL(final BrowserDB db, final ContentResolver cr, final String pageURL) {
         
         
         String targetURL;
@@ -316,8 +318,7 @@ public class Favicons {
         }
 
         
-        final ContentResolver resolver = context.getContentResolver();
-        targetURL = BrowserDB.getFaviconURLFromPageURL(resolver, pageURL);
+        targetURL = db.getFaviconURLFromPageURL(cr, pageURL);
         if (targetURL != null) {
             return targetURL;
         }

@@ -51,13 +51,16 @@ public class testThumbnails extends BaseTest {
 
         
         final ContentResolver resolver = getActivity().getContentResolver();
+        final DatabaseHelper helper = new DatabaseHelper(getActivity(), mAsserter);
+        final BrowserDB db = helper.getProfileDB();
+
         
-        byte[] thumbnailData = BrowserDB.getThumbnailForUrl(resolver, site1Url);
+        byte[] thumbnailData = db.getThumbnailForUrl(resolver, site1Url);
         mAsserter.ok(thumbnailData != null && thumbnailData.length > 0, "Checking for thumbnail data", "No thumbnail data found");
         
-        BrowserDB.removeThumbnails(resolver);
+        db.removeThumbnails(resolver);
         
-        thumbnailData = BrowserDB.getThumbnailForUrl(resolver, site1Url);
+        thumbnailData = db.getThumbnailForUrl(resolver, site1Url);
         mAsserter.ok(thumbnailData == null || thumbnailData.length == 0, "Checking for thumbnail data", "Thumbnail data found");
     }
 
