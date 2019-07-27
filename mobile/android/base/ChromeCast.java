@@ -170,7 +170,10 @@ class ChromeCast implements GeckoMediaPlayer {
     }
 
     
-    
+
+
+
+
     @Override
     public JSONObject toJSON() {
         final JSONObject obj = new JSONObject();
@@ -188,7 +191,7 @@ class ChromeCast implements GeckoMediaPlayer {
             obj.put("mirror", canMirror);
             
             obj.put("manufacturer", "Google Inc.");
-        } catch(JSONException ex) {
+        } catch (JSONException ex) {
             debug("Error building route", ex);
         }
 

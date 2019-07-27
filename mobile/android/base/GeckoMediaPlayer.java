@@ -9,7 +9,12 @@ import org.json.JSONObject;
 import org.mozilla.gecko.util.EventCallback;
 
 
+
+
 interface GeckoMediaPlayer {
+    
+
+
     JSONObject toJSON();
     void load(String title, String url, String type, EventCallback callback);
     void play(EventCallback callback);
