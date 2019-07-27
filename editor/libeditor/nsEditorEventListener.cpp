@@ -813,6 +813,10 @@ nsEditorEventListener::DragEnter(nsIDOMDragEvent* aDragEvent)
     mCaret = new nsCaret();
     mCaret->Init(presShell);
     mCaret->SetCaretReadOnly(true);
+    
+    
+    
+    mCaret->SetVisibilityDuringSelection(true);
   }
 
   presShell->SetCaret(mCaret);
