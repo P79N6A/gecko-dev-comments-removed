@@ -7227,14 +7227,25 @@ nsLayoutUtils::FontSizeInflationInner(const nsIFrame *aFrame,
        f = f->GetParent()) {
     nsIContent* content = f->GetContent();
     nsIAtom* fType = f->GetType();
+    nsIFrame* parent = f->GetParent();
     
     
-    if (!(f->GetParent() && f->GetParent()->GetContent() == content) &&
+    if (!(parent && parent->GetContent() == content) &&
         
         fType != nsGkAtoms::inlineFrame &&
         
         
         fType != nsGkAtoms::formControlFrame) {
+      
+      
+      if (fType == nsGkAtoms::rubyTextFrame) {
+        MOZ_ASSERT(parent &&
+                   parent->GetType() == nsGkAtoms::rubyTextContainerFrame);
+        nsIFrame* grandparent = parent->GetParent();
+        MOZ_ASSERT(grandparent &&
+                   grandparent->GetType() == nsGkAtoms::rubyFrame);
+        return FontSizeInflationFor(grandparent);
+      }
       nsStyleCoord stylePosWidth = f->StylePosition()->mWidth;
       nsStyleCoord stylePosHeight = f->StylePosition()->mHeight;
       if (stylePosWidth.GetUnit() != eStyleUnit_Auto ||
