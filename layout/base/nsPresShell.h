@@ -88,7 +88,7 @@ public:
   virtual void Destroy() override;
   virtual void MakeZombie() override;
 
-  virtual nsresult SetPreferenceStyleRules(bool aForceReflow) override;
+  virtual void UpdatePreferenceStyles() override;
 
   NS_IMETHOD GetSelection(SelectionType aType, nsISelection** aSelection) override;
   virtual mozilla::dom::Selection* GetCurrentSelection(SelectionType aType) override;
@@ -514,14 +514,7 @@ protected:
 
   void RecordStyleSheetChange(nsIStyleSheet* aStyleSheet);
 
-    
-
-
-
-  nsresult ClearPreferenceStyleRules(void);
-  nsresult CreatePreferenceStyleSheet(void);
-  nsresult SetPrefLinkRules(void);
-  nsresult SetPrefFocusRules(void);
+  void RemovePreferenceStyles();
 
   
 
