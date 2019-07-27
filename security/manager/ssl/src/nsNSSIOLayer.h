@@ -235,7 +235,10 @@ public:
   bool isInsecureFallbackSite(const nsACString& hostname);
 
   bool mFalseStartRequireNPN;
-  bool mFalseStartRequireForwardSecrecy;
+  
+  
+  
+  bool mUseStaticFallbackList;
   uint16_t mVersionFallbackLimit;
 private:
   mozilla::Mutex mutex;
