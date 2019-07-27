@@ -49,9 +49,16 @@ function connect() {
   });
 }
 
+
+function setPrefDefaults() {
+  Services.prefs.setBoolPref("devtools.inspector.showUserAgentStyles", true);
+  Services.prefs.setBoolPref("devtools.profiler.ui.show-platform-data", true);
+}
+
 window.addEventListener("load", function() {
   let cmdClose = document.getElementById("toolbox-cmd-close");
   cmdClose.addEventListener("command", onCloseCommand);
+  setPrefDefaults();
   connect();
 });
 
