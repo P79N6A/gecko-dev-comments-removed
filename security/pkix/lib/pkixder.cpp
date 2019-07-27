@@ -329,10 +329,10 @@ ReadDigit(Reader& input,  unsigned int& value)
 {
   uint8_t b;
   if (input.Read(b) != Success) {
-    return Result::ERROR_INVALID_TIME;
+    return Result::ERROR_INVALID_DER_TIME;
   }
   if (b < '0' || b > '9') {
-    return Result::ERROR_INVALID_TIME;
+    return Result::ERROR_INVALID_DER_TIME;
   }
   value = static_cast<unsigned int>(b - static_cast<uint8_t>('0'));
   return Success;
@@ -354,7 +354,7 @@ ReadTwoDigits(Reader& input, unsigned int minValue, unsigned int maxValue,
   }
   value = (hi * 10) + lo;
   if (value < minValue || value > maxValue) {
-    return Result::ERROR_INVALID_TIME;
+    return Result::ERROR_INVALID_DER_TIME;
   }
   return Success;
 }
@@ -396,12 +396,12 @@ TimeChoice(Reader& tagged, uint8_t expectedTag,  Time& time)
     yearHi = yearLo >= 50u ? 19u : 20u;
   } else {
     return NotReached("invalid tag given to TimeChoice",
-                      Result::ERROR_INVALID_TIME);
+                      Result::ERROR_INVALID_DER_TIME);
   }
   unsigned int year = (yearHi * 100u) + yearLo;
   if (year < 1970u) {
     
-    return Result::ERROR_INVALID_TIME;
+    return Result::ERROR_INVALID_DER_TIME;
   }
   days = DaysBeforeYear(year);
 
@@ -480,13 +480,13 @@ TimeChoice(Reader& tagged, uint8_t expectedTag,  Time& time)
 
   uint8_t b;
   if (input.Read(b) != Success) {
-    return Result::ERROR_INVALID_TIME;
+    return Result::ERROR_INVALID_DER_TIME;
   }
   if (b != 'Z') {
-    return Result::ERROR_INVALID_TIME;
+    return Result::ERROR_INVALID_DER_TIME;
   }
   if (End(input) != Success) {
-    return Result::ERROR_INVALID_TIME;
+    return Result::ERROR_INVALID_DER_TIME;
   }
 
   uint64_t totalSeconds = (static_cast<uint64_t>(days) * 24u * 60u * 60u) +
