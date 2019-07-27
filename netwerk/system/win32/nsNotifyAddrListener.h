@@ -14,6 +14,9 @@
 #include "nsIObserver.h"
 #include "nsThreadUtils.h"
 #include "nsCOMPtr.h"
+#include "nsIPrefBranch.h"
+
+class nsIPrefBranch;
 
 class nsNotifyAddrListener : public nsINetworkLinkService,
                              public nsIRunnable,
@@ -63,8 +66,14 @@ protected:
 
 private:
     
+    void updateFromPref(nsIPrefBranch *prefs);
+
+    
     
     ULONG mIPInterfaceChecksum;
+
+    
+    bool mAllowChangedEvent;
 };
 
 #endif 
