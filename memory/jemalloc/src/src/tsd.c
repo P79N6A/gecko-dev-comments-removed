@@ -7,21 +7,22 @@
 static unsigned ncleanups;
 static malloc_tsd_cleanup_t cleanups[MALLOC_TSD_CLEANUPS_MAX];
 
+malloc_tsd_data(, , tsd_t, TSD_INITIALIZER)
+
 
 
 void *
 malloc_tsd_malloc(size_t size)
 {
 
-	
-	return (arena_malloc(arenas[0], size, false, false));
+	return (a0malloc(CACHELINE_CEILING(size)));
 }
 
 void
 malloc_tsd_dalloc(void *wrapper)
 {
 
-	idalloct(wrapper, false);
+	a0free(wrapper);
 }
 
 void
@@ -67,10 +68,58 @@ malloc_tsd_cleanup_register(bool (*f)(void))
 }
 
 void
-malloc_tsd_boot(void)
+tsd_cleanup(void *arg)
+{
+	tsd_t *tsd = (tsd_t *)arg;
+
+	switch (tsd->state) {
+	case tsd_state_nominal:
+#define O(n, t)								\
+		n##_cleanup(tsd);
+MALLOC_TSD
+#undef O
+		tsd->state = tsd_state_purgatory;
+		tsd_set(tsd);
+		break;
+	case tsd_state_purgatory:
+		
+
+
+
+
+
+		break;
+	case tsd_state_reincarnated:
+		
+
+
+
+
+		tsd->state = tsd_state_purgatory;
+		tsd_set(tsd);
+		break;
+	default:
+		not_reached();
+	}
+}
+
+bool
+malloc_tsd_boot0(void)
 {
 
 	ncleanups = 0;
+	if (tsd_boot0())
+		return (true);
+	*tsd_arenas_cache_bypassp_get(tsd_fetch()) = true;
+	return (false);
+}
+
+void
+malloc_tsd_boot1(void)
+{
+
+	tsd_boot1();
+	*tsd_arenas_cache_bypassp_get(tsd_fetch()) = false;
 }
 
 #ifdef _WIN32

@@ -4,6 +4,7 @@
 typedef struct tcache_bin_stats_s tcache_bin_stats_t;
 typedef struct malloc_bin_stats_s malloc_bin_stats_t;
 typedef struct malloc_large_stats_s malloc_large_stats_t;
+typedef struct malloc_huge_stats_s malloc_huge_stats_t;
 typedef struct arena_stats_s arena_stats_t;
 typedef struct chunk_stats_s chunk_stats_t;
 
@@ -24,12 +25,6 @@ struct malloc_bin_stats_s {
 
 
 
-	size_t		allocated;
-
-	
-
-
-
 
 
 	uint64_t	nmalloc;
@@ -41,6 +36,12 @@ struct malloc_bin_stats_s {
 
 
 	uint64_t	nrequests;
+
+	
+
+
+
+	size_t		curregs;
 
 	
 	uint64_t	nfills;
@@ -79,7 +80,22 @@ struct malloc_large_stats_s {
 	uint64_t	nrequests;
 
 	
+
+
+
 	size_t		curruns;
+};
+
+struct malloc_huge_stats_s {
+	
+
+
+
+	uint64_t	nmalloc;
+	uint64_t	ndalloc;
+
+	
+	size_t		curhchunks;
 };
 
 struct arena_stats_s {
@@ -101,13 +117,15 @@ struct arena_stats_s {
 	uint64_t	ndalloc_large;
 	uint64_t	nrequests_large;
 
+	size_t		allocated_huge;
+	uint64_t	nmalloc_huge;
+	uint64_t	ndalloc_huge;
+
 	
-
-
-
-
-
 	malloc_large_stats_t	*lstats;
+
+	
+	malloc_huge_stats_t	*hstats;
 };
 
 struct chunk_stats_s {

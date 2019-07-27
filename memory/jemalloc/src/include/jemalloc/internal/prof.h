@@ -3,8 +3,8 @@
 
 typedef struct prof_bt_s prof_bt_t;
 typedef struct prof_cnt_s prof_cnt_t;
-typedef struct prof_thr_cnt_s prof_thr_cnt_t;
-typedef struct prof_ctx_s prof_ctx_t;
+typedef struct prof_tctx_s prof_tctx_t;
+typedef struct prof_gctx_s prof_gctx_t;
 typedef struct prof_tdata_s prof_tdata_t;
 
 
@@ -24,9 +24,6 @@ typedef struct prof_tdata_s prof_tdata_t;
 #define	PROF_BT_MAX			128
 
 
-#define	PROF_TCMAX			1024
-
-
 #define	PROF_CKH_MINITEMS		64
 
 
@@ -40,6 +37,12 @@ typedef struct prof_tdata_s prof_tdata_t;
 
 
 #define	PROF_NCTX_LOCKS			1024
+
+
+
+
+
+#define	PROF_NTDATA_LOCKS		256
 
 
 
@@ -63,68 +66,62 @@ struct prof_bt_s {
 
 typedef struct {
 	prof_bt_t	*bt;
-	unsigned	nignore;
 	unsigned	max;
 } prof_unwind_data_t;
 #endif
 
 struct prof_cnt_s {
 	
-
-
-
-
-
-
-
-
-	int64_t		curobjs;
-	int64_t		curbytes;
+	uint64_t	curobjs;
+	uint64_t	curbytes;
 	uint64_t	accumobjs;
 	uint64_t	accumbytes;
 };
 
-struct prof_thr_cnt_s {
+typedef enum {
+	prof_tctx_state_initializing,
+	prof_tctx_state_nominal,
+	prof_tctx_state_dumping,
+	prof_tctx_state_purgatory 
+} prof_tctx_state_t;
+
+struct prof_tctx_s {
 	
-	ql_elm(prof_thr_cnt_t)	cnts_link;
-
-	
-	ql_elm(prof_thr_cnt_t)	lru_link;
-
-	
-
-
-
-
-
-
-	prof_ctx_t		*ctx;
+	prof_tdata_t		*tdata;
 
 	
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-	unsigned		epoch;
+	uint64_t		thr_uid;
 
 	
 	prof_cnt_t		cnts;
-};
 
-struct prof_ctx_s {
 	
-	prof_bt_t		*bt;
+	prof_gctx_t		*gctx;
 
+	
+	rb_node(prof_tctx_t)	tctx_link;
+
+	
+
+
+
+	bool			prepared;
+
+	
+	prof_tctx_state_t	state;
+
+	
+
+
+
+	prof_cnt_t		dump_cnts;
+};
+typedef rb_tree(prof_tctx_t) prof_tctx_tree_t;
+
+struct prof_gctx_s {
 	
 	malloc_mutex_t		*lock;
 
@@ -137,67 +134,95 @@ struct prof_ctx_s {
 
 
 
+
 	unsigned		nlimbo;
+
+	
+
+
+
+	prof_tctx_tree_t	tctxs;
+
+	
+	rb_node(prof_gctx_t)	dump_link;
 
 	
 	prof_cnt_t		cnt_summed;
 
 	
-	prof_cnt_t		cnt_merged;
+	prof_bt_t		bt;
 
 	
-
-
-
-	ql_head(prof_thr_cnt_t)	cnts_ql;
-
-	
-	ql_elm(prof_ctx_t)	dump_link;
+	void			*vec[1];
 };
-typedef ql_head(prof_ctx_t) prof_ctx_list_t;
+typedef rb_tree(prof_gctx_t) prof_gctx_tree_t;
 
 struct prof_tdata_s {
+	malloc_mutex_t		*lock;
+
+	
+	uint64_t		thr_uid;
+
+	
+
+
+
+	uint64_t		thr_discrim;
+
+	
+	char			*thread_name;
+
+	bool			attached;
+	bool			expired;
+
+	rb_node(prof_tdata_t)	tdata_link;
+
 	
 
 
 
 
 
-
-
-
-
-	ckh_t			bt2cnt;
-
-	
-	ql_head(prof_thr_cnt_t)	lru_ql;
-
-	
-	void			**vec;
+	ckh_t			bt2tctx;
 
 	
 	uint64_t		prng_state;
-	uint64_t		threshold;
-	uint64_t		accum;
+	uint64_t		bytes_until_sample;
 
 	
 	bool			enq;
 	bool			enq_idump;
 	bool			enq_gdump;
+
+	
+
+
+
+
+
+	bool			dumping;
+
+	
+
+
+
+	bool			active;
+
+	
+	prof_cnt_t		cnt_summed;
+
+	
+	void			*vec[PROF_BT_MAX];
 };
+typedef rb_tree(prof_tdata_t) prof_tdata_tree_t;
 
 #endif 
 
 #ifdef JEMALLOC_H_EXTERNS
 
 extern bool	opt_prof;
-
-
-
-
-
-
 extern bool	opt_prof_active;
+extern bool	opt_prof_thread_active_init;
 extern size_t	opt_lg_prof_sample;   
 extern ssize_t	opt_lg_prof_interval; 
 extern bool	opt_prof_gdump;       
@@ -212,6 +237,9 @@ extern char	opt_prof_prefix[
     1];
 
 
+extern bool	prof_active;
+
+
 
 
 
@@ -224,139 +252,71 @@ extern uint64_t	prof_interval;
 
 
 
-extern bool	prof_promote;
+extern size_t	lg_prof_sample;
 
+void	prof_alloc_rollback(tsd_t *tsd, prof_tctx_t *tctx, bool updated);
+void	prof_malloc_sample_object(const void *ptr, size_t usize,
+    prof_tctx_t *tctx);
+void	prof_free_sampled_object(tsd_t *tsd, size_t usize, prof_tctx_t *tctx);
 void	bt_init(prof_bt_t *bt, void **vec);
-void	prof_backtrace(prof_bt_t *bt, unsigned nignore);
-prof_thr_cnt_t	*prof_lookup(prof_bt_t *bt);
+void	prof_backtrace(prof_bt_t *bt);
+prof_tctx_t	*prof_lookup(tsd_t *tsd, prof_bt_t *bt);
 #ifdef JEMALLOC_JET
+size_t	prof_tdata_count(void);
 size_t	prof_bt_count(void);
+const prof_cnt_t *prof_cnt_all(void);
 typedef int (prof_dump_open_t)(bool, const char *);
 extern prof_dump_open_t *prof_dump_open;
+typedef bool (prof_dump_header_t)(bool, const prof_cnt_t *);
+extern prof_dump_header_t *prof_dump_header;
 #endif
 void	prof_idump(void);
 bool	prof_mdump(const char *filename);
 void	prof_gdump(void);
-prof_tdata_t	*prof_tdata_init(void);
-void	prof_tdata_cleanup(void *arg);
+prof_tdata_t	*prof_tdata_init(tsd_t *tsd);
+prof_tdata_t	*prof_tdata_reinit(tsd_t *tsd, prof_tdata_t *tdata);
+void	prof_reset(tsd_t *tsd, size_t lg_sample);
+void	prof_tdata_cleanup(tsd_t *tsd);
+const char	*prof_thread_name_get(void);
+bool	prof_active_get(void);
+bool	prof_active_set(bool active);
+int	prof_thread_name_set(tsd_t *tsd, const char *thread_name);
+bool	prof_thread_active_get(void);
+bool	prof_thread_active_set(bool active);
+bool	prof_thread_active_init_get(void);
+bool	prof_thread_active_init_set(bool active_init);
 void	prof_boot0(void);
 void	prof_boot1(void);
 bool	prof_boot2(void);
 void	prof_prefork(void);
 void	prof_postfork_parent(void);
 void	prof_postfork_child(void);
+void	prof_sample_threshold_update(prof_tdata_t *tdata);
 
 #endif 
 
 #ifdef JEMALLOC_H_INLINES
 
-#define	PROF_ALLOC_PREP(nignore, size, ret) do {			\
-	prof_tdata_t *prof_tdata;					\
-	prof_bt_t bt;							\
-									\
-	assert(size == s2u(size));					\
-									\
-	prof_tdata = prof_tdata_get(true);				\
-	if ((uintptr_t)prof_tdata <= (uintptr_t)PROF_TDATA_STATE_MAX) {	\
-		if (prof_tdata != NULL)					\
-			ret = (prof_thr_cnt_t *)(uintptr_t)1U;		\
-		else							\
-			ret = NULL;					\
-		break;							\
-	}								\
-									\
-	if (opt_prof_active == false) {					\
-		/* Sampling is currently inactive, so avoid sampling. */\
-		ret = (prof_thr_cnt_t *)(uintptr_t)1U;			\
-	} else if (opt_lg_prof_sample == 0) {				\
-		/* Don't bother with sampling logic, since sampling   */\
-		/* interval is 1.                                     */\
-		bt_init(&bt, prof_tdata->vec);				\
-		prof_backtrace(&bt, nignore);				\
-		ret = prof_lookup(&bt);					\
-	} else {							\
-		if (prof_tdata->threshold == 0) {			\
-			/* Initialize.  Seed the prng differently for */\
-			/* each thread.                               */\
-			prof_tdata->prng_state =			\
-			    (uint64_t)(uintptr_t)&size;			\
-			prof_sample_threshold_update(prof_tdata);	\
-		}							\
-									\
-		/* Determine whether to capture a backtrace based on  */\
-		/* whether size is enough for prof_accum to reach     */\
-		/* prof_tdata->threshold.  However, delay updating    */\
-		/* these variables until prof_{m,re}alloc(), because  */\
-		/* we don't know for sure that the allocation will    */\
-		/* succeed.                                           */\
-		/*                                                    */\
-		/* Use subtraction rather than addition to avoid      */\
-		/* potential integer overflow.                        */\
-		if (size >= prof_tdata->threshold -			\
-		    prof_tdata->accum) {				\
-			bt_init(&bt, prof_tdata->vec);			\
-			prof_backtrace(&bt, nignore);			\
-			ret = prof_lookup(&bt);				\
-		} else							\
-			ret = (prof_thr_cnt_t *)(uintptr_t)1U;		\
-	}								\
-} while (0)
-
 #ifndef JEMALLOC_ENABLE_INLINE
-malloc_tsd_protos(JEMALLOC_ATTR(unused), prof_tdata, prof_tdata_t *)
-
-prof_tdata_t	*prof_tdata_get(bool create);
-void	prof_sample_threshold_update(prof_tdata_t *prof_tdata);
-prof_ctx_t	*prof_ctx_get(const void *ptr);
-void	prof_ctx_set(const void *ptr, size_t usize, prof_ctx_t *ctx);
-bool	prof_sample_accum_update(size_t size);
-void	prof_malloc(const void *ptr, size_t usize, prof_thr_cnt_t *cnt);
-void	prof_realloc(const void *ptr, size_t usize, prof_thr_cnt_t *cnt,
-    size_t old_usize, prof_ctx_t *old_ctx);
-void	prof_free(const void *ptr, size_t size);
+bool	prof_active_get_unlocked(void);
+prof_tdata_t	*prof_tdata_get(tsd_t *tsd, bool create);
+bool	prof_sample_accum_update(tsd_t *tsd, size_t usize, bool commit,
+    prof_tdata_t **tdata_out);
+prof_tctx_t	*prof_alloc_prep(tsd_t *tsd, size_t usize, bool update);
+prof_tctx_t	*prof_tctx_get(const void *ptr);
+void	prof_tctx_set(const void *ptr, prof_tctx_t *tctx);
+void	prof_malloc_sample_object(const void *ptr, size_t usize,
+    prof_tctx_t *tctx);
+void	prof_malloc(const void *ptr, size_t usize, prof_tctx_t *tctx);
+void	prof_realloc(tsd_t *tsd, const void *ptr, size_t usize,
+    prof_tctx_t *tctx, bool updated, size_t old_usize, prof_tctx_t *old_tctx);
+void	prof_free(tsd_t *tsd, const void *ptr, size_t usize);
 #endif
 
 #if (defined(JEMALLOC_ENABLE_INLINE) || defined(JEMALLOC_PROF_C_))
-
-malloc_tsd_externs(prof_tdata, prof_tdata_t *)
-malloc_tsd_funcs(JEMALLOC_INLINE, prof_tdata, prof_tdata_t *, NULL,
-    prof_tdata_cleanup)
-
-JEMALLOC_INLINE prof_tdata_t *
-prof_tdata_get(bool create)
+JEMALLOC_ALWAYS_INLINE bool
+prof_active_get_unlocked(void)
 {
-	prof_tdata_t *prof_tdata;
-
-	cassert(config_prof);
-
-	prof_tdata = *prof_tdata_tsd_get();
-	if (create && prof_tdata == NULL)
-		prof_tdata = prof_tdata_init();
-
-	return (prof_tdata);
-}
-
-JEMALLOC_INLINE void
-prof_sample_threshold_update(prof_tdata_t *prof_tdata)
-{
-	
-
-
-
-
-
-
-
-
-
-
-
-
-#ifdef JEMALLOC_PROF
-	uint64_t r;
-	double u;
-
-	cassert(config_prof);
 
 	
 
@@ -364,48 +324,53 @@ prof_sample_threshold_update(prof_tdata_t *prof_tdata)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-	prng64(r, 53, prof_tdata->prng_state,
-	    UINT64_C(6364136223846793005), UINT64_C(1442695040888963407));
-	u = (double)r * (1.0/9007199254740992.0L);
-	prof_tdata->threshold = (uint64_t)(log(u) /
-	    log(1.0 - (1.0 / (double)((uint64_t)1U << opt_lg_prof_sample))))
-	    + (uint64_t)1U;
-#endif
+	return (prof_active);
 }
 
-JEMALLOC_INLINE prof_ctx_t *
-prof_ctx_get(const void *ptr)
+JEMALLOC_ALWAYS_INLINE prof_tdata_t *
+prof_tdata_get(tsd_t *tsd, bool create)
 {
-	prof_ctx_t *ret;
+	prof_tdata_t *tdata;
+
+	cassert(config_prof);
+
+	tdata = tsd_prof_tdata_get(tsd);
+	if (create) {
+		if (unlikely(tdata == NULL)) {
+			if (tsd_nominal(tsd)) {
+				tdata = prof_tdata_init(tsd);
+				tsd_prof_tdata_set(tsd, tdata);
+			}
+		} else if (unlikely(tdata->expired)) {
+			tdata = prof_tdata_reinit(tsd, tdata);
+			tsd_prof_tdata_set(tsd, tdata);
+		}
+		assert(tdata == NULL || tdata->attached);
+	}
+
+	return (tdata);
+}
+
+JEMALLOC_ALWAYS_INLINE prof_tctx_t *
+prof_tctx_get(const void *ptr)
+{
+	prof_tctx_t *ret;
 	arena_chunk_t *chunk;
 
 	cassert(config_prof);
 	assert(ptr != NULL);
 
 	chunk = (arena_chunk_t *)CHUNK_ADDR2BASE(ptr);
-	if (chunk != ptr) {
-		
-		ret = arena_prof_ctx_get(ptr);
-	} else
-		ret = huge_prof_ctx_get(ptr);
+	if (likely(chunk != ptr))
+		ret = arena_prof_tctx_get(ptr);
+	else
+		ret = huge_prof_tctx_get(ptr);
 
 	return (ret);
 }
 
-JEMALLOC_INLINE void
-prof_ctx_set(const void *ptr, size_t usize, prof_ctx_t *ctx)
+JEMALLOC_ALWAYS_INLINE void
+prof_tctx_set(const void *ptr, prof_tctx_t *tctx)
 {
 	arena_chunk_t *chunk;
 
@@ -413,199 +378,117 @@ prof_ctx_set(const void *ptr, size_t usize, prof_ctx_t *ctx)
 	assert(ptr != NULL);
 
 	chunk = (arena_chunk_t *)CHUNK_ADDR2BASE(ptr);
-	if (chunk != ptr) {
-		
-		arena_prof_ctx_set(ptr, usize, ctx);
-	} else
-		huge_prof_ctx_set(ptr, ctx);
+	if (likely(chunk != ptr))
+		arena_prof_tctx_set(ptr, tctx);
+	else
+		huge_prof_tctx_set(ptr, tctx);
 }
 
-JEMALLOC_INLINE bool
-prof_sample_accum_update(size_t size)
+JEMALLOC_ALWAYS_INLINE bool
+prof_sample_accum_update(tsd_t *tsd, size_t usize, bool update,
+    prof_tdata_t **tdata_out)
 {
-	prof_tdata_t *prof_tdata;
+	prof_tdata_t *tdata;
 
 	cassert(config_prof);
-	
-	assert(opt_lg_prof_sample != 0);
 
-	prof_tdata = prof_tdata_get(false);
-	if ((uintptr_t)prof_tdata <= (uintptr_t)PROF_TDATA_STATE_MAX)
+	tdata = prof_tdata_get(tsd, true);
+	if ((uintptr_t)tdata <= (uintptr_t)PROF_TDATA_STATE_MAX)
+		tdata = NULL;
+
+	if (tdata_out != NULL)
+		*tdata_out = tdata;
+
+	if (tdata == NULL)
 		return (true);
 
-	
-	if (size >= prof_tdata->threshold - prof_tdata->accum) {
-		prof_tdata->accum -= (prof_tdata->threshold - size);
-		
-		prof_sample_threshold_update(prof_tdata);
-		while (prof_tdata->accum >= prof_tdata->threshold) {
-			prof_tdata->accum -= prof_tdata->threshold;
-			prof_sample_threshold_update(prof_tdata);
-		}
-		return (false);
+	if (tdata->bytes_until_sample >= usize) {
+		if (update)
+			tdata->bytes_until_sample -= usize;
+		return (true);
 	} else {
-		prof_tdata->accum += size;
-		return (true);
+		
+		if (update)
+			prof_sample_threshold_update(tdata);
+		return (!tdata->active);
 	}
 }
 
-JEMALLOC_INLINE void
-prof_malloc(const void *ptr, size_t usize, prof_thr_cnt_t *cnt)
+JEMALLOC_ALWAYS_INLINE prof_tctx_t *
+prof_alloc_prep(tsd_t *tsd, size_t usize, bool update)
+{
+	prof_tctx_t *ret;
+	prof_tdata_t *tdata;
+	prof_bt_t bt;
+
+	assert(usize == s2u(usize));
+
+	if (!prof_active_get_unlocked() || likely(prof_sample_accum_update(tsd,
+	    usize, update, &tdata)))
+		ret = (prof_tctx_t *)(uintptr_t)1U;
+	else {
+		bt_init(&bt, tdata->vec);
+		prof_backtrace(&bt);
+		ret = prof_lookup(tsd, &bt);
+	}
+
+	return (ret);
+}
+
+JEMALLOC_ALWAYS_INLINE void
+prof_malloc(const void *ptr, size_t usize, prof_tctx_t *tctx)
 {
 
 	cassert(config_prof);
 	assert(ptr != NULL);
 	assert(usize == isalloc(ptr, true));
 
-	if (opt_lg_prof_sample != 0) {
-		if (prof_sample_accum_update(usize)) {
-			
-
-
-
-
-
-
-			assert((uintptr_t)cnt == (uintptr_t)1U);
-		}
-	}
-
-	if ((uintptr_t)cnt > (uintptr_t)1U) {
-		prof_ctx_set(ptr, usize, cnt->ctx);
-
-		cnt->epoch++;
-		
-		mb_write();
-		
-		cnt->cnts.curobjs++;
-		cnt->cnts.curbytes += usize;
-		if (opt_prof_accum) {
-			cnt->cnts.accumobjs++;
-			cnt->cnts.accumbytes += usize;
-		}
-		
-		mb_write();
-		
-		cnt->epoch++;
-		
-		mb_write();
-		
-	} else
-		prof_ctx_set(ptr, usize, (prof_ctx_t *)(uintptr_t)1U);
+	if (unlikely((uintptr_t)tctx > (uintptr_t)1U))
+		prof_malloc_sample_object(ptr, usize, tctx);
+	else
+		prof_tctx_set(ptr, (prof_tctx_t *)(uintptr_t)1U);
 }
 
-JEMALLOC_INLINE void
-prof_realloc(const void *ptr, size_t usize, prof_thr_cnt_t *cnt,
-    size_t old_usize, prof_ctx_t *old_ctx)
+JEMALLOC_ALWAYS_INLINE void
+prof_realloc(tsd_t *tsd, const void *ptr, size_t usize, prof_tctx_t *tctx,
+    bool updated, size_t old_usize, prof_tctx_t *old_tctx)
 {
-	prof_thr_cnt_t *told_cnt;
 
 	cassert(config_prof);
-	assert(ptr != NULL || (uintptr_t)cnt <= (uintptr_t)1U);
+	assert(ptr != NULL || (uintptr_t)tctx <= (uintptr_t)1U);
 
-	if (ptr != NULL) {
+	if (!updated && ptr != NULL) {
 		assert(usize == isalloc(ptr, true));
-		if (opt_lg_prof_sample != 0) {
-			if (prof_sample_accum_update(usize)) {
-				
-
-
-
-
-
-
-
-				cnt = (prof_thr_cnt_t *)(uintptr_t)1U;
-			}
-		}
-	}
-
-	if ((uintptr_t)old_ctx > (uintptr_t)1U) {
-		told_cnt = prof_lookup(old_ctx->bt);
-		if (told_cnt == NULL) {
+		if (prof_sample_accum_update(tsd, usize, true, NULL)) {
 			
 
 
 
-			malloc_mutex_lock(old_ctx->lock);
-			old_ctx->cnt_merged.curobjs--;
-			old_ctx->cnt_merged.curbytes -= old_usize;
-			malloc_mutex_unlock(old_ctx->lock);
-			told_cnt = (prof_thr_cnt_t *)(uintptr_t)1U;
-		}
-	} else
-		told_cnt = (prof_thr_cnt_t *)(uintptr_t)1U;
 
-	if ((uintptr_t)told_cnt > (uintptr_t)1U)
-		told_cnt->epoch++;
-	if ((uintptr_t)cnt > (uintptr_t)1U) {
-		prof_ctx_set(ptr, usize, cnt->ctx);
-		cnt->epoch++;
-	} else if (ptr != NULL)
-		prof_ctx_set(ptr, usize, (prof_ctx_t *)(uintptr_t)1U);
-	
-	mb_write();
-	
-	if ((uintptr_t)told_cnt > (uintptr_t)1U) {
-		told_cnt->cnts.curobjs--;
-		told_cnt->cnts.curbytes -= old_usize;
-	}
-	if ((uintptr_t)cnt > (uintptr_t)1U) {
-		cnt->cnts.curobjs++;
-		cnt->cnts.curbytes += usize;
-		if (opt_prof_accum) {
-			cnt->cnts.accumobjs++;
-			cnt->cnts.accumbytes += usize;
+
+
+			tctx = (prof_tctx_t *)(uintptr_t)1U;
 		}
 	}
-	
-	mb_write();
-	
-	if ((uintptr_t)told_cnt > (uintptr_t)1U)
-		told_cnt->epoch++;
-	if ((uintptr_t)cnt > (uintptr_t)1U)
-		cnt->epoch++;
-	
-	mb_write(); 
+
+	if (unlikely((uintptr_t)old_tctx > (uintptr_t)1U))
+		prof_free_sampled_object(tsd, old_usize, old_tctx);
+	if (unlikely((uintptr_t)tctx > (uintptr_t)1U))
+		prof_malloc_sample_object(ptr, usize, tctx);
+	else
+		prof_tctx_set(ptr, (prof_tctx_t *)(uintptr_t)1U);
 }
 
-JEMALLOC_INLINE void
-prof_free(const void *ptr, size_t size)
+JEMALLOC_ALWAYS_INLINE void
+prof_free(tsd_t *tsd, const void *ptr, size_t usize)
 {
-	prof_ctx_t *ctx = prof_ctx_get(ptr);
+	prof_tctx_t *tctx = prof_tctx_get(ptr);
 
 	cassert(config_prof);
+	assert(usize == isalloc(ptr, true));
 
-	if ((uintptr_t)ctx > (uintptr_t)1) {
-		prof_thr_cnt_t *tcnt;
-		assert(size == isalloc(ptr, true));
-		tcnt = prof_lookup(ctx->bt);
-
-		if (tcnt != NULL) {
-			tcnt->epoch++;
-			
-			mb_write();
-			
-			tcnt->cnts.curobjs--;
-			tcnt->cnts.curbytes -= size;
-			
-			mb_write();
-			
-			tcnt->epoch++;
-			
-			mb_write();
-			
-		} else {
-			
-
-
-
-			malloc_mutex_lock(ctx->lock);
-			ctx->cnt_merged.curobjs--;
-			ctx->cnt_merged.curbytes -= size;
-			malloc_mutex_unlock(ctx->lock);
-		}
-	}
+	if (unlikely((uintptr_t)tctx > (uintptr_t)1U))
+		prof_free_sampled_object(tsd, usize, tctx);
 }
 #endif
 

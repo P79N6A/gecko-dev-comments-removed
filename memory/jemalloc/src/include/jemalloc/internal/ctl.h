@@ -46,6 +46,7 @@ struct ctl_arena_stats_s {
 
 	malloc_bin_stats_t	bstats[NBINS];
 	malloc_large_stats_t	*lstats;	
+	malloc_huge_stats_t	*hstats;	
 };
 
 struct ctl_stats_s {
@@ -57,11 +58,6 @@ struct ctl_stats_s {
 		uint64_t	total;		
 		size_t		high;		
 	} chunks;
-	struct {
-		size_t		allocated;	
-		uint64_t	nmalloc;	
-		uint64_t	ndalloc;	
-	} huge;
 	unsigned		narenas;
 	ctl_arena_stats_t	*arenas;	
 };

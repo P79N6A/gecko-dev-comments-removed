@@ -16,13 +16,16 @@ struct extent_node_s {
 	rb_node(extent_node_t)	link_ad;
 
 	
-	prof_ctx_t		*prof_ctx;
+	prof_tctx_t		*prof_tctx;
 
 	
 	void			*addr;
 
 	
 	size_t			size;
+
+	
+	arena_t			*arena;
 
 	
 	bool			zeroed;
