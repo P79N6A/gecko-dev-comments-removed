@@ -3655,6 +3655,11 @@ nsHttpChannel::CloseCacheEntry(bool doomOnFailure)
     if (doom) {
         LOG(("  dooming cache entry!!"));
         mCacheEntry->AsyncDoom(nullptr);
+    } else {
+      
+      
+      if (mSecurityInfo)
+          mCacheEntry->SetSecurityInfo(mSecurityInfo);
     }
 
     mCachedResponseHead = nullptr;
