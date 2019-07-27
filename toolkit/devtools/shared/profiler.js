@@ -9,6 +9,7 @@ const { Class } = require("sdk/core/heritage");
 loader.lazyRequireGetter(this, "events", "sdk/event/core");
 loader.lazyRequireGetter(this, "EventTarget", "sdk/event/target", true);
 loader.lazyRequireGetter(this, "DevToolsUtils", "devtools/toolkit/DevToolsUtils.js");
+loader.lazyRequireGetter(this, "DeferredTask", "resource://gre/modules/DeferredTask.jsm", true);
 
 
 const PROFILER_SYSTEM_EVENTS = [
@@ -16,6 +17,9 @@ const PROFILER_SYSTEM_EVENTS = [
   "profiler-started",
   "profiler-stopped"
 ];
+
+
+const BUFFER_STATUS_INTERVAL_DEFAULT = 5000; 
 
 loader.lazyGetter(this, "nsIProfilerModule", () => {
   return Cc["@mozilla.org/tools/profiler;1"].getService(Ci.nsIProfiler);
@@ -39,6 +43,13 @@ const ProfilerManager = (function () {
   let consumers = new Set();
 
   return {
+
+    
+    _profilerStatusInterval: BUFFER_STATUS_INTERVAL_DEFAULT,
+
+    
+    _profilerStatusSubscribers: 0,
+
     
 
 
@@ -99,6 +110,7 @@ const ProfilerManager = (function () {
       );
       let { position, totalSize, generation } = this.getBufferInfo();
 
+      this._updateProfilerStatusPolling();
       return { started: true, position, totalSize, generation, currentTime };
     },
 
@@ -110,6 +122,7 @@ const ProfilerManager = (function () {
       if (this.length <= 1) {
         nsIProfilerModule.StopProfiler();
       }
+      this._updateProfilerStatusPolling();
       return { started: false };
     },
 
@@ -239,13 +252,6 @@ const ProfilerManager = (function () {
       let { action, arguments: args } = subject || {};
       let profileLabel = args && args.length > 0 ? `${args[0]}` : void 0;
 
-      let subscribers = Array.from(consumers).filter(c => c.subscribedEvents.has(topic));
-
-      
-      if (subscribers.length === 0) {
-        return;
-      }
-
       
       
       
@@ -272,9 +278,7 @@ const ProfilerManager = (function () {
 
       
       
-      for (let subscriber of subscribers) {
-        events.emit(subscriber, topic, { subject, topic, data, details });
-      }
+      this.emitEvent(topic, { subject, topic, data, details });
     }, "ProfilerManager.observe"),
 
     
@@ -303,6 +307,66 @@ const ProfilerManager = (function () {
         PROFILER_SYSTEM_EVENTS.forEach(eventName => Services.obs.removeObserver(this, eventName));
         this._eventsRegistered = false;
       }
+    },
+
+    
+
+
+
+
+
+
+    emitEvent: function (eventName, data) {
+      let subscribers = Array.from(consumers).filter(c => c.subscribedEvents.has(eventName));
+
+      for (let subscriber of subscribers) {
+        events.emit(subscriber, eventName, data);
+      }
+    },
+
+    
+
+
+
+
+
+    setProfilerStatusInterval: function (interval) {
+      this._profilerStatusInterval = interval;
+      if (this._poller) {
+        this._poller._delayMs = interval;
+      }
+    },
+
+    subscribeToProfilerStatusEvents: function () {
+      this._profilerStatusSubscribers++;
+      this._updateProfilerStatusPolling();
+    },
+
+    unsubscribeToProfilerStatusEvents: function () {
+      this._profilerStatusSubscribers--;
+      this._updateProfilerStatusPolling();
+    },
+
+    
+
+
+
+    _updateProfilerStatusPolling: function () {
+      if (this._profilerStatusSubscribers > 0 && nsIProfilerModule.IsActive()) {
+        if (!this._poller) {
+          this._poller = new DeferredTask(this._emitProfilerStatus.bind(this), this._profilerStatusInterval);
+        }
+        this._poller.arm();
+      }
+      
+      else if (this._poller) {
+        this._poller.disarm();
+      }
+    },
+
+    _emitProfilerStatus: function () {
+      this.emitEvent("profiler-status", this.isActive());
+      this._poller.arm();
     }
   };
 })();
@@ -319,6 +383,7 @@ let Profiler = exports.Profiler = Class({
   },
 
   destroy: function() {
+    this.unregisterEventNotifications({ events: Array.from(this.subscribedEvents) });
     this.subscribedEvents = null;
     ProfilerManager.removeInstance(this);
   },
@@ -366,6 +431,12 @@ let Profiler = exports.Profiler = Class({
   
 
 
+  setProfilerStatusInterval: function(interval) { return ProfilerManager.setProfilerStatusInterval(interval); },
+
+  
+
+
+
 
 
 
@@ -377,6 +448,9 @@ let Profiler = exports.Profiler = Class({
     let response = [];
     (data.events || []).forEach(e => {
       if (!this.subscribedEvents.has(e)) {
+        if (e === "profiler-status") {
+          ProfilerManager.subscribeToProfilerStatusEvents();
+        }
         this.subscribedEvents.add(e);
         response.push(e);
       }
@@ -395,6 +469,9 @@ let Profiler = exports.Profiler = Class({
     let response = [];
     (data.events || []).forEach(e => {
       if (this.subscribedEvents.has(e)) {
+        if (e === "profiler-status") {
+          ProfilerManager.unsubscribeToProfilerStatusEvents();
+        }
         this.subscribedEvents.delete(e);
         response.push(e);
       }
