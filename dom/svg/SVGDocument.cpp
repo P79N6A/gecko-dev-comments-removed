@@ -104,6 +104,8 @@ SVGDocument::EnsureNonSVGUserAgentStyleSheetsLoaded()
 
   mHasLoadedNonSVGUserAgentStyleSheets = true;
 
+  BeginUpdate(UPDATE_STYLE);
+
   if (IsBeingUsedAsImage()) {
     
     
@@ -166,6 +168,8 @@ SVGDocument::EnsureNonSVGUserAgentStyleSheetsLoaded()
   EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::CounterStylesSheet());
   EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::HTMLSheet());
   EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::UASheet());
+
+  EndUpdate(UPDATE_STYLE);
 }
 
 JSObject*
