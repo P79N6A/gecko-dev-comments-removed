@@ -282,28 +282,33 @@ TabSources.prototype = {
     
     
     
-    if (url) {
-      try {
-        let urlInfo = Services.io.newURI(url, null, null).QueryInterface(Ci.nsIURL);
-        if (urlInfo.fileExtension === "html" || urlInfo.fileExtension === "xml") {
-          spec.isInlineSource = true;
-        }
-        else if (urlInfo.fileExtension === "js") {
-          spec.contentType = "text/javascript";
-        }
-      } catch(ex) {
-        
 
-        
-        
-        if (url.indexOf("javascript:") === 0) {
-          spec.contentType = "text/javascript";
+    
+    
+    let element = aSource.element ? aSource.element.unsafeDereference() : null;
+    if (element && (element.tagName !== "SCRIPT" || !element.hasAttribute("src"))) {
+      spec.isInlineSource = true;
+    } else {
+      if (url) {
+        try {
+          let urlInfo = Services.io.newURI(url, null, null).QueryInterface(Ci.nsIURL);
+          if (urlInfo.fileExtension === "js") {
+            spec.contentType = "text/javascript";
+          }
+        } catch(ex) {
+          
+
+          
+          
+          if (url.indexOf("javascript:") === 0) {
+            spec.contentType = "text/javascript";
+          }
         }
       }
-    }
-    else {
-      
-      spec.contentType = "text/javascript";
+      else {
+        
+        spec.contentType = "text/javascript";
+      }
     }
 
     return this.source(spec);
