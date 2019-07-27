@@ -52,7 +52,7 @@ const kSubviewEvents = [
 
 
 
-let kVersion = 0;
+let kVersion = 1;
 
 
 
