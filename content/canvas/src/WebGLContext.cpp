@@ -437,11 +437,6 @@ WebGLContext::SetContextOptions(JSContext* aCx, JS::Handle<JS::Value> aOptions)
     
     newOpts.depth |= newOpts.stencil;
 
-    
-    if (!gfxPrefs::MSAALevel()) {
-      newOpts.antialias = false;
-    }
-
 #if 0
     GenerateWarning("aaHint: %d stencil: %d depth: %d alpha: %d premult: %d preserve: %d\n",
                newOpts.antialias ? 1 : 0,
