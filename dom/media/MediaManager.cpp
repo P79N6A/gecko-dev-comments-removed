@@ -2038,6 +2038,19 @@ GetUserMediaCallbackMediaStreamListener::NotifyFinished(MediaStreamGraph* aGraph
 }
 
 
+void
+GetUserMediaCallbackMediaStreamListener::NotifyDirectListeners(MediaStreamGraph* aGraph,
+                                                               bool aHasListeners)
+{
+  nsRefPtr<MediaOperationRunnable> runnable;
+  runnable = new MediaOperationRunnable(MEDIA_DIRECT_LISTENERS,
+                                        this, nullptr, nullptr,
+                                        mAudioSource, mVideoSource,
+                                        aHasListeners, mWindowID, nullptr);
+  mMediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
+}
+
+
 
 
 void

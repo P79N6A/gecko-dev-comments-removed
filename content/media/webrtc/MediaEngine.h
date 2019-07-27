@@ -87,6 +87,9 @@ public:
   virtual nsresult Start(SourceMediaStream*, TrackID) = 0;
 
   
+  virtual void SetDirectListeners(bool) = 0;
+
+  
 
 
 
