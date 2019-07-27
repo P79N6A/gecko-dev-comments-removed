@@ -244,12 +244,14 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
   
   const nsMargin focusPadding = mRenderer.GetAddedButtonBorderAndPadding();
 
-  nsSize availSize(aButtonReflowState.ComputedWidth(), NS_INTRINSICSIZE);
+  WritingMode wm = aFirstKid->GetWritingMode();
+  LogicalSize availSize = aButtonReflowState.ComputedSize(GetWritingMode());
+  availSize.BSize(wm) = NS_INTRINSICSIZE;
 
   
   
-  availSize.width -= focusPadding.LeftRight();
-  
+  availSize.ISize(wm) -= LogicalMargin(wm, focusPadding).IStartEnd(wm);
+
   
   
   
@@ -262,15 +264,15 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
     nscoord extraleft = extrawidth / 2;
     nscoord extraright = extrawidth - extraleft;
     NS_ASSERTION(extraright >=0, "How'd that happen?");
-    
+
     
     extraleft = std::min(extraleft, aButtonReflowState.ComputedPhysicalPadding().left);
     extraright = std::min(extraright, aButtonReflowState.ComputedPhysicalPadding().right);
     xoffset -= extraleft;
-    availSize.width += extraleft + extraright;
+    availSize.SetWidth(wm, availSize.Width(wm) + extraleft + extraright);
   }
-  availSize.width = std::max(availSize.width,0);
-  
+  availSize.SetWidth(wm, std::max(availSize.Width(wm), 0));
+
   
   
   nsHTMLReflowState adjustedButtonReflowState =

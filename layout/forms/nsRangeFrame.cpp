@@ -343,9 +343,11 @@ nsRangeFrame::ReflowAnonymousContent(nsPresContext*           aPresContext,
     
     
 
-    nsHTMLReflowState trackReflowState(aPresContext, aReflowState, trackFrame,
-                                       nsSize(aReflowState.ComputedWidth(),
-                                              NS_UNCONSTRAINEDSIZE));
+    WritingMode wm = trackFrame->GetWritingMode();
+    LogicalSize availSize = aReflowState.ComputedSize(wm);
+    availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
+    nsHTMLReflowState trackReflowState(aPresContext, aReflowState,
+                                       trackFrame, availSize);
 
     
     
@@ -376,9 +378,11 @@ nsRangeFrame::ReflowAnonymousContent(nsPresContext*           aPresContext,
   nsIFrame* thumbFrame = mThumbDiv->GetPrimaryFrame();
 
   if (thumbFrame) { 
-    nsHTMLReflowState thumbReflowState(aPresContext, aReflowState, thumbFrame,
-                                       nsSize(aReflowState.ComputedWidth(),
-                                              NS_UNCONSTRAINEDSIZE));
+    WritingMode wm = thumbFrame->GetWritingMode();
+    LogicalSize availSize = aReflowState.ComputedSize(wm);
+    availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
+    nsHTMLReflowState thumbReflowState(aPresContext, aReflowState,
+                                       thumbFrame, availSize);
 
     
     
@@ -398,10 +402,11 @@ nsRangeFrame::ReflowAnonymousContent(nsPresContext*           aPresContext,
   nsIFrame* rangeProgressFrame = mProgressDiv->GetPrimaryFrame();
 
   if (rangeProgressFrame) { 
+    WritingMode wm = rangeProgressFrame->GetWritingMode();
+    LogicalSize availSize = aReflowState.ComputedSize(wm);
+    availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
     nsHTMLReflowState progressReflowState(aPresContext, aReflowState,
-                                          rangeProgressFrame,
-                                          nsSize(aReflowState.ComputedWidth(),
-                                                 NS_UNCONSTRAINEDSIZE));
+                                          rangeProgressFrame, availSize);
 
     
     

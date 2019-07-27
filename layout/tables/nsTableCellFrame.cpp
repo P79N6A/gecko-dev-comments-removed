@@ -908,7 +908,8 @@ nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   nsHTMLReflowState kidReflowState(aPresContext, aReflowState, firstKid,
-                                   availSize);
+                                   LogicalSize(firstKid->GetWritingMode(),
+                                               availSize));
 
   
   

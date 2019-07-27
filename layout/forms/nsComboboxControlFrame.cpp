@@ -416,7 +416,9 @@ nsComboboxControlFrame::ReflowDropdown(nsPresContext*  aPresContext,
   
   
   
-  nsSize availSize(aReflowState.AvailableWidth(), NS_UNCONSTRAINEDSIZE);
+  WritingMode wm = mDropdownFrame->GetWritingMode();
+  LogicalSize availSize = aReflowState.AvailableSize(wm);
+  availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
   nsHTMLReflowState kidReflowState(aPresContext, aReflowState, mDropdownFrame,
                                    availSize);
 

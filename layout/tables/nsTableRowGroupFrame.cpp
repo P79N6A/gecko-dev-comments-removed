@@ -382,7 +382,9 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
       
       
       
-      nsSize kidAvailSize(aReflowState.availSize.width, NS_UNCONSTRAINEDSIZE);
+      WritingMode wm = kidFrame->GetWritingMode();
+      LogicalSize kidAvailSize(wm, aReflowState.availSize);
+      kidAvailSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
       nsHTMLReflowState kidReflowState(aPresContext, aReflowState.reflowState,
                                        kidFrame, kidAvailSize,
                                        -1, -1,
@@ -945,8 +947,9 @@ nsTableRowGroupFrame::SplitSpanningCells(nsPresContext&           aPresContext,
         
         
         rowAvailSize.height = std::min(rowAvailSize.height, rowRect.height);
-        nsHTMLReflowState rowReflowState(&aPresContext, aReflowState,
-                                         row, rowAvailSize,
+        nsHTMLReflowState rowReflowState(&aPresContext, aReflowState, row,
+                                         LogicalSize(row->GetWritingMode(),
+                                                     rowAvailSize),
                                          -1, -1,
                                          nsHTMLReflowState::CALLER_WILL_INIT);
         InitChildReflowState(aPresContext, borderCollapse, rowReflowState);
@@ -1080,8 +1083,9 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
         
         availSize.height = std::min(availSize.height, rowRect.height);
 
-        nsHTMLReflowState rowReflowState(aPresContext, aReflowState,
-                                         rowFrame, availSize,
+        nsHTMLReflowState rowReflowState(aPresContext, aReflowState, rowFrame,
+                                         LogicalSize(rowFrame->GetWritingMode(),
+                                                     availSize),
                                          -1, -1,
                                          nsHTMLReflowState::CALLER_WILL_INIT);
                                          

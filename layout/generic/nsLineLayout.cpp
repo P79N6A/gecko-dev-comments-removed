@@ -788,10 +788,8 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
     
     
     
-    nsSize availSize =
-      LogicalSize(mBlockReflowState->GetWritingMode(),
-                  mBlockReflowState->ComputedISize(), NS_UNCONSTRAINEDSIZE).
-        GetPhysicalSize(mBlockReflowState->GetWritingMode());
+    LogicalSize availSize = mBlockReflowState->ComputedSize(frameWM);
+    availSize.BSize(frameWM) = NS_UNCONSTRAINEDSIZE;
     reflowStateHolder.construct(mPresContext, *psd->mReflowState,
                                 aFrame, availSize);
     nsHTMLReflowState& reflowState = reflowStateHolder.ref();

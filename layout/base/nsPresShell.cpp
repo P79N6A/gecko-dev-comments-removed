@@ -8772,11 +8772,12 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
   
   
   
-  nsSize size;
+  WritingMode wm = target->GetWritingMode();
+  LogicalSize size(wm);
   if (target == rootFrame) {
-     size = mPresContext->GetVisibleArea().Size();
+    size = LogicalSize(wm, mPresContext->GetVisibleArea().Size());
   } else {
-     size = target->GetSize();
+    size = target->GetLogicalSize();
   }
 
   NS_ASSERTION(!target->GetNextInFlow() && !target->GetPrevInFlow(),
@@ -8784,7 +8785,7 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
 
   
   
-  nsSize reflowSize(size.width, NS_UNCONSTRAINEDSIZE);
+  LogicalSize reflowSize(wm, size.ISize(wm), NS_UNCONSTRAINEDSIZE);
   nsHTMLReflowState reflowState(mPresContext, target, rcx, reflowSize,
                                 nsHTMLReflowState::CALLER_WILL_INIT);
 
@@ -8798,13 +8799,13 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
     
     
     
-    bool hasUnconstrainedHeight = size.height == NS_UNCONSTRAINEDSIZE;
+    bool hasUnconstrainedBSize = size.BSize(wm) == NS_UNCONSTRAINEDSIZE;
 
-    if (hasUnconstrainedHeight || mLastRootReflowHadUnconstrainedHeight) {
+    if (hasUnconstrainedBSize || mLastRootReflowHadUnconstrainedBSize) {
       reflowState.mFlags.mVResize = true;
     }
 
-    mLastRootReflowHadUnconstrainedHeight = hasUnconstrainedHeight;
+    mLastRootReflowHadUnconstrainedBSize = hasUnconstrainedBSize;
   } else {
     
     
@@ -8817,16 +8818,16 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
   
   NS_ASSERTION(reflowState.ComputedPhysicalMargin() == nsMargin(0, 0, 0, 0),
                "reflow state should not set margin for reflow roots");
-  if (size.height != NS_UNCONSTRAINEDSIZE) {
-    nscoord computedHeight =
-      size.height - reflowState.ComputedPhysicalBorderPadding().TopBottom();
-    computedHeight = std::max(computedHeight, 0);
-    reflowState.SetComputedHeight(computedHeight);
+  if (size.BSize(wm) != NS_UNCONSTRAINEDSIZE) {
+    nscoord computedBSize =
+      size.BSize(wm) - reflowState.ComputedLogicalBorderPadding().BStartEnd(wm);
+    computedBSize = std::max(computedBSize, 0);
+    reflowState.SetComputedBSize(computedBSize);
   }
-  NS_ASSERTION(reflowState.ComputedWidth() ==
-                 size.width -
-                   reflowState.ComputedPhysicalBorderPadding().LeftRight(),
-               "reflow state computed incorrect width");
+  NS_ASSERTION(reflowState.ComputedISize() ==
+               size.ISize(wm) -
+                   reflowState.ComputedLogicalBorderPadding().IStartEnd(wm),
+               "reflow state computed incorrect inline size");
 
   mPresContext->ReflowStarted(aInterruptible);
   mIsReflowing = true;
@@ -8840,9 +8841,11 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
   
   
   nsRect boundsRelativeToTarget = nsRect(0, 0, desiredSize.Width(), desiredSize.Height());
-  NS_ASSERTION((target == rootFrame && size.height == NS_UNCONSTRAINEDSIZE) ||
-               (desiredSize.Width() == size.width &&
-                desiredSize.Height() == size.height),
+  DebugOnly<nsSize> physicalSize = size.GetPhysicalSize(wm);
+  NS_ASSERTION((target == rootFrame &&
+                size.BSize(wm) == NS_UNCONSTRAINEDSIZE) ||
+               (desiredSize.Width() == nsSize(physicalSize).width &&
+                desiredSize.Height() == nsSize(physicalSize).height),
                "non-root frame's desired size changed during an "
                "incremental reflow");
   NS_ASSERTION(target == rootFrame ||
@@ -8867,7 +8870,7 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
                                          target->GetView(), rcx);
 
   target->DidReflow(mPresContext, nullptr, nsDidReflowStatus::FINISHED);
-  if (target == rootFrame && size.height == NS_UNCONSTRAINEDSIZE) {
+  if (target == rootFrame && size.BSize(wm) == NS_UNCONSTRAINEDSIZE) {
     mPresContext->SetVisibleArea(boundsRelativeToTarget);
   }
 

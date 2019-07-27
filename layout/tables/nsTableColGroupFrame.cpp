@@ -372,7 +372,7 @@ nsTableColGroupFrame::Reflow(nsPresContext*          aPresContext,
     
     nsHTMLReflowMetrics kidSize(aReflowState);
     nsHTMLReflowState kidReflowState(aPresContext, aReflowState, kidFrame,
-                                     nsSize(0,0));
+                                     LogicalSize(kidFrame->GetWritingMode()));
 
     nsReflowStatus status;
     ReflowChild(kidFrame, aPresContext, kidSize, kidReflowState, 0, 0, 0, status);
@@ -522,3 +522,4 @@ void nsTableColGroupFrame::Dump(int32_t aIndent)
   delete [] indent;
 }
 #endif
+

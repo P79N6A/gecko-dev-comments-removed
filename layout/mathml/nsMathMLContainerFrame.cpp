@@ -885,11 +885,13 @@ nsMathMLContainerFrame::Reflow(nsPresContext*           aPresContext,
   
 
   nsReflowStatus childStatus;
-  nsSize availSize(aReflowState.ComputedWidth(), NS_UNCONSTRAINEDSIZE);
   nsIFrame* childFrame = mFrames.FirstChild();
   while (childFrame) {
     nsHTMLReflowMetrics childDesiredSize(aReflowState, 
                                          aDesiredSize.mFlags);
+    WritingMode wm = childFrame->GetWritingMode();
+    LogicalSize availSize = aReflowState.ComputedSize(wm);
+    availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
     nsHTMLReflowState childReflowState(aPresContext, aReflowState,
                                        childFrame, availSize);
     ReflowChild(childFrame, aPresContext, childDesiredSize,

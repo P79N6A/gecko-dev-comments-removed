@@ -367,20 +367,24 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  nsSize availSize(aReflowState.ComputedWidth() + aReflowState.ComputedPhysicalPadding().LeftRight(),
-                   NS_UNCONSTRAINEDSIZE);
+  WritingMode innerWM = inner ? inner->GetWritingMode() : GetWritingMode();
+  WritingMode legendWM = legend ? legend->GetWritingMode() : GetWritingMode();
+  LogicalSize innerAvailSize = aReflowState.ComputedSizeWithPadding(innerWM);
+  LogicalSize legendAvailSize = aReflowState.ComputedSizeWithPadding(legendWM);
+  innerAvailSize.BSize(innerWM) = legendAvailSize.BSize(legendWM) =
+    NS_UNCONSTRAINEDSIZE;
   NS_ASSERTION(!inner ||
       nsLayoutUtils::IntrinsicForContainer(aReflowState.rendContext,
                                            inner,
                                            nsLayoutUtils::MIN_WIDTH) <=
-               availSize.width,
-               "Bogus availSize.width; should be bigger");
+               innerAvailSize.ISize(innerWM),
+               "Bogus availSize.ISize; should be bigger");
   NS_ASSERTION(!legend ||
       nsLayoutUtils::IntrinsicForContainer(aReflowState.rendContext,
                                            legend,
                                            nsLayoutUtils::MIN_WIDTH) <=
-               availSize.width,
-               "Bogus availSize.width; should be bigger");
+               legendAvailSize.ISize(legendWM),
+               "Bogus availSize.ISize; should be bigger");
 
   
   nsMargin border = aReflowState.ComputedPhysicalBorderPadding() - aReflowState.ComputedPhysicalPadding();
@@ -391,7 +395,8 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
   
   Maybe<nsHTMLReflowState> legendReflowState;
   if (legend) {
-    legendReflowState.construct(aPresContext, aReflowState, legend, availSize);
+    legendReflowState.construct(aPresContext, aReflowState, legend,
+                                legendAvailSize);
   }
   if (reflowLegend) {
     nsHTMLReflowMetrics legendDesiredSize(aReflowState);
@@ -437,7 +442,8 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
   
   if (reflowInner) {
     nsHTMLReflowState kidReflowState(aPresContext, aReflowState, inner,
-                                     availSize, -1, -1, nsHTMLReflowState::CALLER_WILL_INIT);
+                                     innerAvailSize, -1, -1,
+                                     nsHTMLReflowState::CALLER_WILL_INIT);
     
     kidReflowState.Init(aPresContext, -1, -1, nullptr,
                         &aReflowState.ComputedPhysicalPadding());
@@ -473,22 +479,25 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
     NS_FRAME_TRACE_REFLOW_OUT("FieldSet::Reflow", aStatus);
   }
 
-  nsRect contentRect;
+  LogicalRect contentRect(innerWM);
   if (inner) {
     
     
-    contentRect = inner->GetRect();
+    contentRect = inner->GetLogicalRect(aReflowState.ComputedWidth());
   }
 
   
-  if (availSize.width > contentRect.width) {
-    contentRect.width = availSize.width;
+  if (innerAvailSize.ISize(innerWM) > contentRect.ISize(innerWM)) {
+    contentRect.ISize(innerWM) = innerAvailSize.ISize(innerWM);
   }
 
+  
+  nsRect physicalContentRect =
+    contentRect.GetPhysicalRect(innerWM, aReflowState.ComputedWidth());
   if (legend) {
     
     
-    nsRect innerContentRect = contentRect;
+    nsRect innerContentRect = physicalContentRect;
     innerContentRect.Deflate(aReflowState.ComputedPhysicalPadding());
     
     if (innerContentRect.width > mLegendRect.width) {
@@ -511,7 +520,8 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
       
       mLegendRect.x = innerContentRect.x;
       innerContentRect.width = mLegendRect.width;
-      contentRect.width = mLegendRect.width + aReflowState.ComputedPhysicalPadding().LeftRight();
+      physicalContentRect.width = mLegendRect.width +
+        aReflowState.ComputedPhysicalPadding().LeftRight();
     }
 
     
@@ -527,7 +537,7 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
   
   aDesiredSize.Height() = mLegendSpace + border.TopBottom() +
                           (inner ? inner->GetRect().height : 0);
-  aDesiredSize.Width() = contentRect.width + border.LeftRight();
+  aDesiredSize.Width() = physicalContentRect.width + border.LeftRight();
   aDesiredSize.SetOverflowAreasToDesiredBounds();
   if (legend)
     ConsiderChildOverflow(aDesiredSize.mOverflowAreas, legend);

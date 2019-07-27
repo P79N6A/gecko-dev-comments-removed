@@ -959,9 +959,9 @@ nsFlexContainerFrame::GenerateFlexItemForChild(
   
   
   
-  nsHTMLReflowState childRS(aPresContext, aParentReflowState, aChildFrame,
-                            nsSize(aParentReflowState.ComputedWidth(),
-                                   aParentReflowState.ComputedHeight()));
+  nsHTMLReflowState
+    childRS(aPresContext, aParentReflowState, aChildFrame,
+            aParentReflowState.ComputedSize(aChildFrame->GetWritingMode()));
 
   
   
@@ -1380,11 +1380,12 @@ nsFlexContainerFrame::
                                const nsHTMLReflowState& aParentReflowState)
 {
   
+  WritingMode wm = aFlexItem.Frame()->GetWritingMode();
+  LogicalSize availSize = aParentReflowState.ComputedSize(wm);
+  availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
   nsHTMLReflowState
     childRSForMeasuringHeight(aPresContext, aParentReflowState,
-                              aFlexItem.Frame(),
-                              nsSize(aParentReflowState.ComputedWidth(),
-                                     NS_UNCONSTRAINEDSIZE),
+                              aFlexItem.Frame(), availSize,
                               -1, -1, nsHTMLReflowState::CALLER_WILL_INIT);
   childRSForMeasuringHeight.mFlags.mIsFlexContainerMeasuringHeight = true;
   childRSForMeasuringHeight.Init(aPresContext);
@@ -3498,10 +3499,11 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
       
       
       if (!item->IsStretched() && !item->IsStrut()) {
+        WritingMode wm = item->Frame()->GetWritingMode();
+        LogicalSize availSize = aReflowState.ComputedSize(wm);
+        availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
         nsHTMLReflowState childReflowState(aPresContext, aReflowState,
-                                           item->Frame(),
-                                           nsSize(aReflowState.ComputedWidth(),
-                                                  NS_UNCONSTRAINEDSIZE));
+                                           item->Frame(), availSize);
         
         if (IsAxisHorizontal(aAxisTracker.GetMainAxis())) {
           childReflowState.SetComputedWidth(item->GetMainSize());
@@ -3618,10 +3620,11 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
       
       physicalPosn += containerContentBoxOrigin;
 
+      WritingMode wm = item->Frame()->GetWritingMode();
+      LogicalSize availSize = aReflowState.ComputedSize(wm);
+      availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
       nsHTMLReflowState childReflowState(aPresContext, aReflowState,
-                                         item->Frame(),
-                                         nsSize(aReflowState.ComputedWidth(),
-                                                NS_UNCONSTRAINEDSIZE));
+                                         item->Frame(), availSize);
 
       
       

@@ -3034,10 +3034,9 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
       
       
       
-      nsSize availSpace =
-        LogicalSize(aState.mReflowState.GetWritingMode(),
-                    aState.ContentISize(), NS_UNCONSTRAINEDSIZE).
-          GetPhysicalSize(aState.mReflowState.GetWritingMode());
+      WritingMode wm = frame->GetWritingMode();
+      LogicalSize availSpace = aState.ContentSize(wm);
+      availSpace.BSize(wm) = NS_UNCONSTRAINEDSIZE;
       nsHTMLReflowState reflowState(aState.mPresContext, aState.mReflowState,
                                     frame, availSpace);
 
@@ -3179,8 +3178,9 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
     
     
     
-    nsHTMLReflowState blockHtmlRS(aState.mPresContext, aState.mReflowState, frame,
-                                  availSpace.Size());
+    nsHTMLReflowState
+      blockHtmlRS(aState.mPresContext, aState.mReflowState, frame,
+                  LogicalSize(frame->GetWritingMode(), availSpace.Size()));
     blockHtmlRS.mFlags.mHasClearance = aLine->HasClearance();
 
     nsFloatManager::SavedState floatManagerState;
@@ -3219,7 +3219,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
 #if defined(REFLOW_STATUS_COVERAGE)
     RecordReflowStatus(true, frameReflowStatus);
 #endif
-    
+
     if (NS_INLINE_IS_BREAK_BEFORE(frameReflowStatus)) {
       
       *aKeepReflowGoing = false;
@@ -3232,7 +3232,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
     }
     else {
       
-      
+
       
       
       
@@ -5769,8 +5769,10 @@ nsBlockFrame::ComputeFloatWidth(nsBlockReflowState& aState,
   nsRect availSpace = AdjustFloatAvailableSpace(aState, aFloatAvailableSpace,
                                                 aFloat);
 
-  nsHTMLReflowState floatRS(aState.mPresContext, aState.mReflowState, aFloat, 
-                            availSpace.Size());
+  WritingMode wm = aFloat->GetWritingMode();
+  nsHTMLReflowState floatRS(aState.mPresContext, aState.mReflowState, aFloat,
+                            LogicalSize(wm, availSpace.Size()));
+
   return floatRS.ComputedWidth() + floatRS.ComputedPhysicalBorderPadding().LeftRight() +
     floatRS.ComputedPhysicalMargin().LeftRight();
 }
@@ -5797,9 +5799,10 @@ nsBlockFrame::ReflowFloat(nsBlockReflowState& aState,
   );
 #endif
 
-  nsHTMLReflowState floatRS(aState.mPresContext, aState.mReflowState, aFloat,
-                            nsSize(aAdjustedAvailableSpace.width,
-                                   aAdjustedAvailableSpace.height));
+  nsHTMLReflowState
+    floatRS(aState.mPresContext, aState.mReflowState, aFloat,
+            LogicalSize(aFloat->GetWritingMode(),
+                        aAdjustedAvailableSpace.Size()));
 
   
   
@@ -6797,10 +6800,11 @@ nsBlockFrame::ReflowBullet(nsIFrame* aBulletFrame,
   const nsHTMLReflowState &rs = aState.mReflowState;
 
   
-  nsSize availSize;
+  WritingMode bulletWM = aBulletFrame->GetWritingMode();
+  LogicalSize availSize(bulletWM);
   
-  availSize.width = aState.ContentISize();
-  availSize.height = NS_UNCONSTRAINEDSIZE;
+  availSize.ISize(bulletWM) = aState.ContentISize();
+  availSize.BSize(bulletWM) = NS_UNCONSTRAINEDSIZE;
 
   
   
@@ -6840,7 +6844,6 @@ nsBlockFrame::ReflowBullet(nsIFrame* aBulletFrame,
   LogicalRect logicalFAS(wm, floatAvailSpace, containerWidth);
   
   
-  WritingMode bulletWM = reflowState.GetWritingMode();
   LogicalMargin bulletMargin =
     reflowState.ComputedLogicalMargin().ConvertTo(wm, bulletWM);
   nscoord iStart = logicalFAS.IStart(wm) -
@@ -7029,7 +7032,8 @@ nsBlockFrame::WidthToClearPastFloats(nsBlockReflowState& aState,
   
   
   
-  nsSize availSpace(availWidth, NS_UNCONSTRAINEDSIZE);
+  LogicalSize availSpace(aFrame->GetWritingMode(),
+                         nsSize(availWidth, NS_UNCONSTRAINEDSIZE));
   nsHTMLReflowState reflowState(aState.mPresContext, aState.mReflowState,
                                 aFrame, availSpace);
   result.borderBoxWidth = reflowState.ComputedWidth() +

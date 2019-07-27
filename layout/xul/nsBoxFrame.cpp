@@ -905,9 +905,11 @@ nsBoxFrame::DoLayout(nsBoxLayoutState& aState)
 
   if (HasAbsolutelyPositionedChildren()) {
     
+    WritingMode wm = GetWritingMode();
     nsHTMLReflowState reflowState(aState.PresContext(), this,
                                   aState.GetRenderingContext(),
-                                  nsSize(mRect.width, NS_UNCONSTRAINEDSIZE));
+                                  LogicalSize(wm, GetLogicalSize().ISize(wm),
+                                              NS_UNCONSTRAINEDSIZE));
 
     
     nsHTMLReflowMetrics desiredSize(reflowState);

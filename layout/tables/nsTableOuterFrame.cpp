@@ -356,20 +356,21 @@ void
 nsTableOuterFrame::GetChildMargin(nsPresContext*           aPresContext,
                                   const nsHTMLReflowState& aOuterRS,
                                   nsIFrame*                aChildFrame,
-                                  nscoord                  aAvailWidth,
-                                  nsMargin&                aMargin)
+                                  nscoord                  aAvailISize,
+                                  LogicalMargin&           aMargin)
 {
   
   
 
   
   
-  nsHTMLReflowState childRS(aPresContext, aOuterRS, aChildFrame,
-                            nsSize(aAvailWidth, aOuterRS.AvailableHeight()),
+  WritingMode wm = aChildFrame->GetWritingMode();
+  LogicalSize availSize(wm, aAvailISize, aOuterRS.AvailableSize(wm).BSize(wm));
+  nsHTMLReflowState childRS(aPresContext, aOuterRS, aChildFrame, availSize,
                             -1, -1, nsHTMLReflowState::CALLER_WILL_INIT);
   InitChildReflowState(*aPresContext, childRS);
 
-  aMargin = childRS.ComputedPhysicalMargin();
+  aMargin = childRS.ComputedLogicalMargin();
 }
 
 static nsSize
@@ -783,26 +784,30 @@ nsTableOuterFrame::OuterBeginReflowChild(nsPresContext*           aPresContext,
                                          nsIFrame*                aChildFrame,
                                          const nsHTMLReflowState& aOuterRS,
                                          void*                    aChildRSSpace,
-                                         nscoord                  aAvailWidth)
-{ 
+                                         nscoord                  aAvailISize)
+{
   
-  nscoord availHeight = aOuterRS.AvailableHeight();
-  if (NS_UNCONSTRAINEDSIZE != availHeight) {
+  WritingMode wm = aChildFrame->GetWritingMode();
+  LogicalSize outerSize = aOuterRS.AvailableSize(wm);
+  nscoord availBSize = outerSize.BSize(wm);
+  if (NS_UNCONSTRAINEDSIZE != availBSize) {
     if (mCaptionFrames.FirstChild() == aChildFrame) {
-      availHeight = NS_UNCONSTRAINEDSIZE;
+      availBSize = NS_UNCONSTRAINEDSIZE;
     } else {
-      nsMargin margin;
+      LogicalMargin margin(wm);
       GetChildMargin(aPresContext, aOuterRS, aChildFrame,
-                     aOuterRS.AvailableWidth(), margin);
-    
-      NS_ASSERTION(NS_UNCONSTRAINEDSIZE != margin.top, "No unconstrainedsize arithmetic, please");
-      availHeight -= margin.top;
- 
-      NS_ASSERTION(NS_UNCONSTRAINEDSIZE != margin.bottom, "No unconstrainedsize arithmetic, please");
-      availHeight -= margin.bottom;
+                     outerSize.ISize(wm), margin);
+
+      NS_ASSERTION(NS_UNCONSTRAINEDSIZE != margin.BStart(wm),
+                   "No unconstrainedsize arithmetic, please");
+      availBSize -= margin.BStart(wm);
+
+      NS_ASSERTION(NS_UNCONSTRAINEDSIZE != margin.BEnd(wm),
+                   "No unconstrainedsize arithmetic, please");
+      availBSize -= margin.BEnd(wm);
     }
   }
-  nsSize availSize(aAvailWidth, availHeight);
+  LogicalSize availSize(wm, aAvailISize, availBSize);
   
   
   
@@ -910,22 +915,24 @@ nsTableOuterFrame::Reflow(nsPresContext*           aPresContext,
   }
   
   
+  WritingMode wm;
   if (captionSide == NO_SIDE) {
     
+    wm = InnerTableFrame()->GetWritingMode();
     OuterBeginReflowChild(aPresContext, InnerTableFrame(), aOuterRS,
-                          innerRSSpace, aOuterRS.ComputedWidth());
+                          innerRSSpace, aOuterRS.ComputedSize(wm).ISize(wm));
   } else if (captionSide == NS_STYLE_CAPTION_SIDE_LEFT ||
              captionSide == NS_STYLE_CAPTION_SIDE_RIGHT) {
     
     
     
+    wm = mCaptionFrames.FirstChild()->GetWritingMode();
     OuterBeginReflowChild(aPresContext, mCaptionFrames.FirstChild(), aOuterRS,
-                          captionRSSpace, aOuterRS.ComputedWidth());
-    nscoord innerAvailWidth = aOuterRS.ComputedWidth() -
-      (captionRS->ComputedWidth() + captionRS->ComputedPhysicalMargin().LeftRight() +
-       captionRS->ComputedPhysicalBorderPadding().LeftRight());
+                          captionRSSpace, aOuterRS.ComputedSize(wm).ISize(wm));
+    nscoord innerAvailISize = aOuterRS.ComputedSize(wm).ISize(wm) -
+      captionRS->ComputedSizeWithMarginBorderPadding(wm).ISize(wm);
     OuterBeginReflowChild(aPresContext, InnerTableFrame(), aOuterRS,
-                          innerRSSpace, innerAvailWidth);
+                          innerRSSpace, innerAvailISize);
 
   } else if (captionSide == NS_STYLE_CAPTION_SIDE_TOP ||
              captionSide == NS_STYLE_CAPTION_SIDE_BOTTOM) {
@@ -937,15 +944,16 @@ nsTableOuterFrame::Reflow(nsPresContext*           aPresContext,
     
     
     
+    wm = InnerTableFrame()->GetWritingMode();
     OuterBeginReflowChild(aPresContext, InnerTableFrame(), aOuterRS,
-                          innerRSSpace, aOuterRS.ComputedWidth());
+                          innerRSSpace, aOuterRS.ComputedSize(wm).ISize(wm));
     
     
     
     
     
-    nscoord innerBorderWidth = innerRS->ComputedWidth() +
-                               innerRS->ComputedPhysicalBorderPadding().LeftRight();
+    nscoord innerBorderWidth =
+      innerRS->ComputedSizeWithBorderPadding(wm).ISize(wm);
     OuterBeginReflowChild(aPresContext, mCaptionFrames.FirstChild(), aOuterRS,
                           captionRSSpace, innerBorderWidth);
   } else {
@@ -953,10 +961,12 @@ nsTableOuterFrame::Reflow(nsPresContext*           aPresContext,
                  captionSide == NS_STYLE_CAPTION_SIDE_BOTTOM_OUTSIDE,
                  "unexpected caption-side");
     
+    wm = mCaptionFrames.FirstChild()->GetWritingMode();
     OuterBeginReflowChild(aPresContext, mCaptionFrames.FirstChild(), aOuterRS,
-                          captionRSSpace, aOuterRS.ComputedWidth());
+                          captionRSSpace, aOuterRS.ComputedSize(wm).ISize(wm));
+    wm = InnerTableFrame()->GetWritingMode();
     OuterBeginReflowChild(aPresContext, InnerTableFrame(), aOuterRS,
-                          innerRSSpace, aOuterRS.ComputedWidth());
+                          innerRSSpace, aOuterRS.ComputedSize(wm).ISize(wm));
   }
 
   
