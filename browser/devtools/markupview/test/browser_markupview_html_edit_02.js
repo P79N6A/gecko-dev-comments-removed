@@ -7,6 +7,7 @@
 
 
 loadHelperScript("helper_outerhtml_test_runner.js");
+requestLongerTimeout(2);
 
 const TEST_DATA = [
   {
