@@ -150,6 +150,12 @@ void ProfileBuffer::deleteExpiredStoredMarkers() {
   }
 }
 
+void ProfileBuffer::reset() {
+  mGeneration += 2;
+  mReadPos = mWritePos = 0;
+  deleteExpiredStoredMarkers();
+}
+
 #define DYNAMIC_MAX_STRING 512
 
 char* ProfileBuffer::processDynamicTag(int readPos,
@@ -318,222 +324,183 @@ Maybe<unsigned> UniqueJITOptimizations::getIndex(void* addr, JSRuntime* rt)
 
 void UniqueJITOptimizations::stream(JSStreamWriter& b, JSRuntime* rt)
 {
-  b.BeginArray();
-    for (size_t i = 0; i < mOpts.length(); i++) {
-      b.BeginObject();
-        b.Name("types");
-        b.BeginArray();
-          StreamOptimizationTypeInfoOp typeInfoOp(b);
-          JS::ForEachTrackedOptimizationTypeInfo(rt, mOpts[i].mEntryAddr, mOpts[i].mIndex,
-                                                 typeInfoOp);
-        b.EndArray();
+  for (size_t i = 0; i < mOpts.length(); i++) {
+    b.BeginObject();
+    b.Name("types");
+    b.BeginArray();
+    StreamOptimizationTypeInfoOp typeInfoOp(b);
+    JS::ForEachTrackedOptimizationTypeInfo(rt, mOpts[i].mEntryAddr, mOpts[i].mIndex,
+                                           typeInfoOp);
+    b.EndArray();
 
-        b.Name("attempts");
-        b.BeginArray();
-          JSScript *script;
-          jsbytecode *pc;
-          StreamOptimizationAttemptsOp attemptOp(b);
-          JS::ForEachTrackedOptimizationAttempt(rt, mOpts[i].mEntryAddr, mOpts[i].mIndex,
-                                                attemptOp, &script, &pc);
-        b.EndArray();
+    b.Name("attempts");
+    b.BeginArray();
+    JSScript *script;
+    jsbytecode *pc;
+    StreamOptimizationAttemptsOp attemptOp(b);
+    JS::ForEachTrackedOptimizationAttempt(rt, mOpts[i].mEntryAddr, mOpts[i].mIndex,
+                                          attemptOp, &script, &pc);
+    b.EndArray();
 
-        unsigned line, column;
-        line = JS_PCToLineNumber(script, pc, &column);
-        b.NameValue("line", line);
-        b.NameValue("column", column);
-      b.EndObject();
-    }
-  b.EndArray();
+    unsigned line, column;
+    line = JS_PCToLineNumber(script, pc, &column);
+    b.NameValue("line", line);
+    b.NameValue("column", column);
+    b.EndObject();
+  }
 }
 
 void ProfileBuffer::StreamSamplesToJSObject(JSStreamWriter& b, int aThreadId, JSRuntime* rt,
                                             UniqueJITOptimizations& aUniqueOpts)
 {
-  b.BeginArray();
+  bool sample = false;
+  int readPos = mReadPos;
+  int currentThreadID = -1;
+  while (readPos != mWritePos) {
+    ProfileEntry entry = mEntries[readPos];
+    if (entry.mTagName == 'T') {
+      currentThreadID = entry.mTagInt;
+    }
+    if (currentThreadID == aThreadId) {
+      switch (entry.mTagName) {
+        case 'r':
+          {
+            if (sample) {
+              b.NameValue("responsiveness", entry.mTagFloat);
+            }
+          }
+          break;
+        case 'p':
+          {
+            if (sample) {
+              b.NameValue("power", entry.mTagFloat);
+            }
+          }
+          break;
+        case 'R':
+          {
+            if (sample) {
+              b.NameValue("rss", entry.mTagFloat);
+            }
+          }
+          break;
+        case 'U':
+          {
+            if (sample) {
+              b.NameValue("uss", entry.mTagFloat);
+            }
+          }
+          break;
+        case 'f':
+          {
+            if (sample) {
+              b.NameValue("frameNumber", entry.mTagInt);
+            }
+          }
+          break;
+        case 't':
+          {
+            if (sample) {
+              b.NameValue("time", entry.mTagFloat);
+            }
+          }
+          break;
+        case 's':
+          {
+            
+            if (sample) {
+              b.EndObject();
+            }
+            
+            b.BeginObject();
 
-    bool sample = false;
-    int readPos = mReadPos;
-    int currentThreadID = -1;
-    while (readPos != mWritePos) {
-      ProfileEntry entry = mEntries[readPos];
-      if (entry.mTagName == 'T') {
-        currentThreadID = entry.mTagInt;
-      }
-      if (currentThreadID == aThreadId) {
-        switch (entry.mTagName) {
-          case 'r':
-            {
-              if (sample) {
-                b.NameValue("responsiveness", entry.mTagFloat);
-              }
-            }
-            break;
-          case 'p':
-            {
-              if (sample) {
-                b.NameValue("power", entry.mTagFloat);
-              }
-            }
-            break;
-          case 'R':
-            {
-              if (sample) {
-                b.NameValue("rss", entry.mTagFloat);
-              }
-            }
-            break;
-          case 'U':
-            {
-              if (sample) {
-                b.NameValue("uss", entry.mTagFloat);
-              }
-            }
-            break;
-          case 'f':
-            {
-              if (sample) {
-                b.NameValue("frameNumber", entry.mTagInt);
-              }
-            }
-            break;
-          case 't':
-            {
-              if (sample) {
-                b.NameValue("time", entry.mTagFloat);
-              }
-            }
-            break;
-          case 's':
-            {
-              
-              if (sample) {
-                b.EndObject();
-              }
-              
+            sample = true;
+
+            
+            
+            
+            b.Name("frames");
+            b.BeginArray();
+
               b.BeginObject();
+                b.NameValue("location", "(root)");
+              b.EndObject();
 
-              sample = true;
+              int framePos = (readPos + 1) % mEntrySize;
+              ProfileEntry frame = mEntries[framePos];
+              while (framePos != mWritePos && frame.mTagName != 's' && frame.mTagName != 'T') {
+                int incBy = 1;
+                frame = mEntries[framePos];
 
-              
-              
-              
-              b.Name("frames");
-              b.BeginArray();
+                
+                const char* tagStringData = frame.mTagData;
+                int readAheadPos = (framePos + 1) % mEntrySize;
+                char tagBuff[DYNAMIC_MAX_STRING];
+                
+                
+                tagBuff[DYNAMIC_MAX_STRING-1] = '\0';
 
-                b.BeginObject();
-                  b.NameValue("location", "(root)");
-                b.EndObject();
-
-                int framePos = (readPos + 1) % mEntrySize;
-                ProfileEntry frame = mEntries[framePos];
-                while (framePos != mWritePos && frame.mTagName != 's' && frame.mTagName != 'T') {
-                  int incBy = 1;
-                  frame = mEntries[framePos];
-
-                  
-                  const char* tagStringData = frame.mTagData;
-                  int readAheadPos = (framePos + 1) % mEntrySize;
-                  char tagBuff[DYNAMIC_MAX_STRING];
-                  
-                  
-                  tagBuff[DYNAMIC_MAX_STRING-1] = '\0';
-
-                  if (readAheadPos != mWritePos && mEntries[readAheadPos].mTagName == 'd') {
-                    tagStringData = processDynamicTag(framePos, &incBy, tagBuff);
-                  }
-
-                  
-                  
-                  
-                  
-                  if (frame.mTagName == 'l') {
-                    b.BeginObject();
-                      
-                      
-                      
-                      unsigned long long pc = (unsigned long long)(uintptr_t)frame.mTagPtr;
-                      snprintf(tagBuff, DYNAMIC_MAX_STRING, "%#llx", pc);
-                      b.NameValue("location", tagBuff);
-                    b.EndObject();
-                  } else if (frame.mTagName == 'c') {
-                    b.BeginObject();
-                      b.NameValue("location", tagStringData);
-                      readAheadPos = (framePos + incBy) % mEntrySize;
-                      if (readAheadPos != mWritePos &&
-                          mEntries[readAheadPos].mTagName == 'n') {
-                        b.NameValue("line", mEntries[readAheadPos].mTagInt);
-                        incBy++;
-                      }
-                      readAheadPos = (framePos + incBy) % mEntrySize;
-                      if (readAheadPos != mWritePos &&
-                          mEntries[readAheadPos].mTagName == 'y') {
-                        b.NameValue("category", mEntries[readAheadPos].mTagInt);
-                        incBy++;
-                      }
-                      readAheadPos = (framePos + incBy) % mEntrySize;
-                      if (readAheadPos != mWritePos &&
-                          (mEntries[readAheadPos].mTagName == 'J' ||
-                           mEntries[readAheadPos].mTagName == 'O')) {
-                        void* pc = mEntries[readAheadPos].mTagPtr;
-
-                        
-                        
-                        if (rt) {
-                          JS::ProfilingFrameIterator::FrameKind frameKind =
-                            JS::GetProfilingFrameKindFromNativeAddr(rt, pc);
-                          MOZ_ASSERT(frameKind == JS::ProfilingFrameIterator::Frame_Ion ||
-                                     frameKind == JS::ProfilingFrameIterator::Frame_Baseline);
-                          const char* jitLevelString =
-                            (frameKind == JS::ProfilingFrameIterator::Frame_Ion) ? "ion"
-                                                                                 : "baseline";
-                          b.NameValue("implementation", jitLevelString);
-
-                          
-                          
-                          
-                          bool mightHaveTrackedOpts = mEntries[readAheadPos].mTagName == 'O';
-                          if (mightHaveTrackedOpts) {
-                            Maybe<unsigned> optsIndex = aUniqueOpts.getIndex(pc, rt);
-                            if (optsIndex.isSome()) {
-                              b.NameValue("optsIndex", optsIndex.value());
-                            }
-                          }
-                        }
-
-                        incBy++;
-                      }
-                    b.EndObject();
-                  }
-                  framePos = (framePos + incBy) % mEntrySize;
+                if (readAheadPos != mWritePos && mEntries[readAheadPos].mTagName == 'd') {
+                  tagStringData = processDynamicTag(framePos, &incBy, tagBuff);
                 }
-              b.EndArray();
-            }
-            break;
-        }
+
+                
+                
+                
+                
+                if (frame.mTagName == 'l') {
+                  b.BeginObject();
+                    
+                    
+                    
+                    unsigned long long pc = (unsigned long long)(uintptr_t)frame.mTagPtr;
+                    snprintf(tagBuff, DYNAMIC_MAX_STRING, "%#llx", pc);
+                    b.NameValue("location", tagBuff);
+                  b.EndObject();
+                } else if (frame.mTagName == 'c') {
+                  b.BeginObject();
+                    b.NameValue("location", tagStringData);
+                    readAheadPos = (framePos + incBy) % mEntrySize;
+                    if (readAheadPos != mWritePos &&
+                        mEntries[readAheadPos].mTagName == 'n') {
+                      b.NameValue("line", mEntries[readAheadPos].mTagInt);
+                      incBy++;
+                    }
+                    readAheadPos = (framePos + incBy) % mEntrySize;
+                    if (readAheadPos != mWritePos &&
+                        mEntries[readAheadPos].mTagName == 'y') {
+                      b.NameValue("category", mEntries[readAheadPos].mTagInt);
+                      incBy++;
+                    }
+                  b.EndObject();
+                }
+                framePos = (framePos + incBy) % mEntrySize;
+              }
+            b.EndArray();
+          }
+          break;
       }
-      readPos = (readPos + 1) % mEntrySize;
     }
-    if (sample) {
-      b.EndObject();
-    }
-  b.EndArray();
+    readPos = (readPos + 1) % mEntrySize;
+  }
+  if (sample) {
+    b.EndObject();
+  }
 }
 
 void ProfileBuffer::StreamMarkersToJSObject(JSStreamWriter& b, int aThreadId)
 {
-  b.BeginArray();
-    int readPos = mReadPos;
-    int currentThreadID = -1;
-    while (readPos != mWritePos) {
-      ProfileEntry entry = mEntries[readPos];
-      if (entry.mTagName == 'T') {
-        currentThreadID = entry.mTagInt;
-      } else if (currentThreadID == aThreadId && entry.mTagName == 'm') {
-        entry.getMarker()->StreamJSObject(b);
-      }
-      readPos = (readPos + 1) % mEntrySize;
+  int readPos = mReadPos;
+  int currentThreadID = -1;
+  while (readPos != mWritePos) {
+    ProfileEntry entry = mEntries[readPos];
+    if (entry.mTagName == 'T') {
+      currentThreadID = entry.mTagInt;
+    } else if (currentThreadID == aThreadId && entry.mTagName == 'm') {
+      entry.getMarker()->StreamJSObject(b);
     }
-  b.EndArray();
+    readPos = (readPos + 1) % mEntrySize;
+  }
 }
 
 int ProfileBuffer::FindLastSampleOfThread(int aThreadId)
@@ -658,18 +625,86 @@ void ThreadProfile::StreamJSObject(JSStreamWriter& b)
     }
     b.NameValue("tid", static_cast<int>(mThreadId));
 
-    b.Name("samples");
     UniqueJITOptimizations uniqueOpts;
-    mBuffer->StreamSamplesToJSObject(b, mThreadId, mPseudoStack->mRuntime, uniqueOpts);
 
-    if (!uniqueOpts.empty()) {
+    b.Name("samples");
+    b.BeginArray();
+      if (!mSavedStreamedSamples.empty()) {
+        b.SpliceArrayElements(mSavedStreamedSamples.c_str());
+        mSavedStreamedSamples.clear();
+      }
+      mBuffer->StreamSamplesToJSObject(b, mThreadId, mPseudoStack->mRuntime, uniqueOpts);
+    b.EndArray();
+
+    
+    
+    
+    if (!mSavedStreamedOptimizations.empty()) {
+      MOZ_ASSERT(uniqueOpts.empty());
       b.Name("optimizations");
-      uniqueOpts.stream(b, mPseudoStack->mRuntime);
+      b.BeginArray();
+        b.SpliceArrayElements(mSavedStreamedOptimizations.c_str());
+        mSavedStreamedOptimizations.clear();
+      b.EndArray();
+    } else if (!uniqueOpts.empty()) {
+      b.Name("optimizations");
+      b.BeginArray();
+        uniqueOpts.stream(b, mPseudoStack->mRuntime);
+      b.EndArray();
     }
 
     b.Name("markers");
-    mBuffer->StreamMarkersToJSObject(b, mThreadId);
+    b.BeginArray();
+      if (!mSavedStreamedMarkers.empty()) {
+        b.SpliceArrayElements(mSavedStreamedMarkers.c_str());
+        mSavedStreamedMarkers.clear();
+      }
+      mBuffer->StreamMarkersToJSObject(b, mThreadId);
+    b.EndArray();
   b.EndObject();
+}
+
+void ThreadProfile::FlushSamplesAndMarkers()
+{
+  
+  
+  MOZ_ASSERT(mPseudoStack->mRuntime);
+
+  
+  
+  
+  
+  std::stringstream ss;
+  JSStreamWriter b(ss);
+  UniqueJITOptimizations uniqueOpts;
+  b.BeginBareList();
+    mBuffer->StreamSamplesToJSObject(b, mThreadId, mPseudoStack->mRuntime, uniqueOpts);
+  b.EndBareList();
+  mSavedStreamedSamples = ss.str();
+
+  
+  ss.str("");
+  ss.clear();
+
+  if (!uniqueOpts.empty()) {
+    b.BeginBareList();
+      uniqueOpts.stream(b, mPseudoStack->mRuntime);
+    b.EndBareList();
+    mSavedStreamedOptimizations = ss.str();
+  }
+
+  
+  ss.str("");
+  ss.clear();
+
+  b.BeginBareList();
+    mBuffer->StreamMarkersToJSObject(b, mThreadId);
+  b.EndBareList();
+  mSavedStreamedMarkers = ss.str();
+
+  
+  
+  mBuffer->reset();
 }
 
 JSObject* ThreadProfile::ToJSObject(JSContext *aCx)

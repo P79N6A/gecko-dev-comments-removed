@@ -20,6 +20,17 @@ public:
   void EndObject();
   void BeginArray();
   void EndArray();
+
+  
+  
+  
+  void BeginBareList();
+  void EndBareList();
+
+  
+  
+  void SpliceArrayElements(const char* aElements);
+
   void Name(const char *name);
   void Value(int value);
   void Value(unsigned value);

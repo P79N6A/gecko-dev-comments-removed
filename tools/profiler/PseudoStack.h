@@ -349,10 +349,16 @@ public:
     return sMin(mStackPointer, mozilla::sig_safe_t(mozilla::ArrayLength(mStack)));
   }
 
-  void sampleRuntime(JSRuntime *runtime) {
-    mRuntime = runtime;
-    if (!runtime) {
+  void sampleRuntime(JSRuntime* runtime) {
+    if (mRuntime && !runtime) {
       
+      
+      flushSamplerOnJSShutdown();
+    }
+
+    mRuntime = runtime;
+
+    if (!runtime) {
       return;
     }
 
@@ -361,7 +367,7 @@ public:
     js::SetRuntimeProfilingStack(runtime,
                                  (js::ProfileEntry*) mStack,
                                  (uint32_t*) &mStackPointer,
-                                 uint32_t(mozilla::ArrayLength(mStack)));
+                                 (uint32_t) mozilla::ArrayLength(mStack));
     if (mStartJSSampling)
       enableJSSampling();
   }
@@ -414,6 +420,8 @@ public:
   
   PseudoStack(const PseudoStack&) = delete;
   void operator=(const PseudoStack&) = delete;
+
+  void flushSamplerOnJSShutdown();
 
   
   
