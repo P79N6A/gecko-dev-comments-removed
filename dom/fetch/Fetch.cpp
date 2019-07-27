@@ -28,6 +28,7 @@
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/URLSearchParams.h"
 
+#include "InternalRequest.h"
 #include "InternalResponse.h"
 
 #include "WorkerPrivate.h"
@@ -173,6 +174,11 @@ public:
     nsCOMPtr<nsIPrincipal> principal = mResolver->GetWorkerPrivate()->GetPrincipal();
     nsCOMPtr<nsILoadGroup> loadGroup = mResolver->GetWorkerPrivate()->GetLoadGroup();
     nsRefPtr<FetchDriver> fetch = new FetchDriver(mRequest, principal, loadGroup);
+    nsIDocument* doc = mResolver->GetWorkerPrivate()->GetDocument();
+    if (doc) {
+      fetch->SetReferrerPolicy(doc->GetReferrerPolicy());
+    }
+
     nsresult rv = fetch->Fetch(mResolver);
     
     if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -204,13 +210,10 @@ FetchRequest(nsIGlobalObject* aGlobal, const RequestOrUSVString& aInput,
   }
 
   nsRefPtr<InternalRequest> r = request->GetInternalRequest();
-  if (!r->ReferrerIsNone()) {
-    nsAutoCString ref;
-    aRv = GetRequestReferrer(aGlobal, r, ref);
-    if (NS_WARN_IF(aRv.Failed())) {
-      return nullptr;
-    }
-    r->SetReferrer(ref);
+
+  aRv = UpdateRequestReferrer(aGlobal, r);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
   }
 
   if (NS_IsMainThread()) {
@@ -230,6 +233,7 @@ FetchRequest(nsIGlobalObject* aGlobal, const RequestOrUSVString& aInput,
     nsCOMPtr<nsILoadGroup> loadGroup = doc->GetDocumentLoadGroup();
     nsRefPtr<FetchDriver> fetch =
       new FetchDriver(r, doc->NodePrincipal(), loadGroup);
+    fetch->SetReferrerPolicy(doc->GetReferrerPolicy());
     aRv = fetch->Fetch(resolver);
     if (NS_WARN_IF(aRv.Failed())) {
       return nullptr;
@@ -361,11 +365,15 @@ WorkerFetchResolver::OnResponseEnd()
 
 
 
+
+
 nsresult
-GetRequestReferrer(nsIGlobalObject* aGlobal, const InternalRequest* aRequest, nsCString& aReferrer)
+UpdateRequestReferrer(nsIGlobalObject* aGlobal, InternalRequest* aRequest)
 {
-  if (aRequest->ReferrerIsURL()) {
-    aReferrer = aRequest->ReferrerAsURL();
+  nsAutoString originalReferrer;
+  aRequest->GetReferrer(originalReferrer);
+  
+  if (!originalReferrer.EqualsLiteral(kFETCH_CLIENT_REFERRER_STR)) {
     return NS_OK;
   }
 
@@ -373,24 +381,16 @@ GetRequestReferrer(nsIGlobalObject* aGlobal, const InternalRequest* aRequest, ns
   if (window) {
     nsCOMPtr<nsIDocument> doc = window->GetExtantDoc();
     if (doc) {
-      nsCOMPtr<nsIURI> docURI = doc->GetDocumentURI();
-      nsAutoCString origin;
-      nsresult rv = nsContentUtils::GetASCIIOrigin(docURI, origin);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-
       nsAutoString referrer;
       doc->GetReferrer(referrer);
-      aReferrer = NS_ConvertUTF16toUTF8(referrer);
+      aRequest->SetReferrer(referrer);
     }
   } else {
     WorkerPrivate* worker = GetCurrentThreadWorkerPrivate();
     MOZ_ASSERT(worker);
     worker->AssertIsOnWorkerThread();
-    aReferrer = worker->GetLocationInfo().mHref;
-    
-    
+    WorkerPrivate::LocationInfo& info = worker->GetLocationInfo();
+    aRequest->SetReferrer(NS_ConvertUTF8toUTF16(info.mHref));
   }
 
   return NS_OK;
