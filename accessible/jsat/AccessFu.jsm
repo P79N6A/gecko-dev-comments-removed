@@ -417,14 +417,6 @@ this.AccessFu = {
       let dpr = win.devicePixelRatio;
       let offset = { left: -win.mozInnerScreenX, top: -win.mozInnerScreenY };
 
-      if (!aBrowser.contentWindow) {
-        
-        
-        let clientRect = aBrowser.getBoundingClientRect();
-        let win = aBrowser.ownerDocument.defaultView;
-        offset.left += clientRect.left + win.mozInnerScreenX;
-        offset.top += clientRect.top + win.mozInnerScreenY;
-      }
       
       
       bounds = bounds.translate(offset.left * dpr, offset.top * dpr);
