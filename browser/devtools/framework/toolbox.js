@@ -731,10 +731,13 @@ Toolbox.prototype = {
     if (id === "options") {
       
       
+      radio.setAttribute("role", "button");
       let optionTabContainer = this.doc.getElementById("toolbox-option-container");
       optionTabContainer.appendChild(radio);
       deck.appendChild(vbox);
     } else {
+      radio.setAttribute("role", "tab");
+
       
       if (tabs.childNodes.length == 0 ||
           tabs.lastChild.getAttribute("ordinal") <= toolDefinition.ordinal) {
@@ -849,10 +852,12 @@ Toolbox.prototype = {
     let selected = this.doc.querySelector(".devtools-tab[selected]");
     if (selected) {
       selected.removeAttribute("selected");
+      selected.setAttribute("aria-selected", "false");
     }
 
     let tab = this.doc.getElementById("toolbox-tab-" + id);
     tab.setAttribute("selected", "true");
+    tab.setAttribute("aria-selected", "true");
 
     
     
