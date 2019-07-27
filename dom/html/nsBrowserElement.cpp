@@ -520,21 +520,14 @@ nsBrowserElement::GetAllowedAudioChannels(
 {
   aAudioChannels.Clear();
 
+  NS_ENSURE_TRUE_VOID(IsBrowserElementOrThrow(aRv));
+  NS_ENSURE_TRUE_VOID(IsNotWidgetOrThrow(aRv));
+
   
   if (mBrowserElementAudioChannels.IsEmpty()) {
     nsCOMPtr<nsIFrameLoader> frameLoader = GetFrameLoader();
     if (!frameLoader) {
       aRv.Throw(NS_ERROR_FAILURE);
-      return;
-    }
-
-    bool isBrowserOrApp;
-    aRv = frameLoader->GetOwnerIsBrowserOrAppFrame(&isBrowserOrApp);
-    if (NS_WARN_IF(aRv.Failed())) {
-      return;
-    }
-
-    if (!isBrowserOrApp) {
       return;
     }
 
@@ -594,6 +587,14 @@ nsBrowserElement::GetAllowedAudioChannels(
       return;
     }
 
+    bool noapp = false;
+    Preferences::GetBool("dom.testing.browserElementAudioChannel.noapp", &noapp);
+
+    if (!noapp && !app) {
+      aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
+      return;
+    }
+
     
     nsTArray<nsRefPtr<BrowserElementAudioChannel>> channels;
 
@@ -608,6 +609,7 @@ nsBrowserElement::GetAllowedAudioChannels(
 
     channels.AppendElement(ac);
 
+    
     if (app) {
       const nsAttrValue::EnumTable* audioChannelTable =
         AudioChannelService::GetAudioChannelTable();
