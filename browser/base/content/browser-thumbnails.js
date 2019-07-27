@@ -96,9 +96,13 @@ let gBrowserThumbnails = {
 
   _capture: function Thumbnails_capture(aBrowser) {
     
-    if (this._topSiteURLs.indexOf(aBrowser.currentURI.spec) >= 0 &&
-        this._shouldCapture(aBrowser))
-      PageThumbs.captureAndStoreIfStale(aBrowser);
+    if (this._topSiteURLs.indexOf(aBrowser.currentURI.spec) == -1)
+      return;
+    this._shouldCapture(aBrowser, function (aResult) {
+      if (aResult) {
+        PageThumbs.captureAndStoreIfStale(aBrowser);
+      }
+    });
   },
 
   _delayedCapture: function Thumbnails_delayedCapture(aBrowser) {
@@ -115,73 +119,13 @@ let gBrowserThumbnails = {
     this._timeouts.set(aBrowser, timeout);
   },
 
-  
-  _shouldCapture: function Thumbnails_shouldCapture(aBrowser) {
+  _shouldCapture: function Thumbnails_shouldCapture(aBrowser, aCallback) {
     
-    if (aBrowser != gBrowser.selectedBrowser)
-      return false;
-
-    
-    if (PrivateBrowsingUtils.isWindowPrivate(window))
-      return false;
-
-    let doc = aBrowser.contentDocument;
-
-    
-    
-    if (doc instanceof SVGDocument || doc instanceof XMLDocument)
-      return false;
-
-    
-    if (aBrowser.currentURI.schemeIs("about"))
-      return false;
-
-    
-    if (!aBrowser.docShell)
-      return true;
-
-    
-    if (aBrowser.docShell.busyFlags != Ci.nsIDocShell.BUSY_FLAGS_NONE)
-      return false;
-
-    let channel = aBrowser.docShell.currentDocumentChannel;
-
-    
-    if (!channel)
-      return false;
-
-    
-    
-    let uri = channel.originalURI;
-    if (uri.schemeIs("about"))
-      return false;
-
-    let httpChannel;
-    try {
-      httpChannel = channel.QueryInterface(Ci.nsIHttpChannel);
-    } catch (e) {  }
-
-    if (httpChannel) {
-      
-      try {
-        if (Math.floor(httpChannel.responseStatus / 100) != 2)
-          return false;
-      } catch (e) {
-        
-        
-        return false;
-      }
-
-      
-      if (httpChannel.isNoStoreResponse())
-        return false;
-
-      
-      if (uri.schemeIs("https") && !this._sslDiskCacheEnabled)
-        return false;
+    if (aBrowser != gBrowser.selectedBrowser) {
+      aCallback(false);
+      return;
     }
-
-    return true;
+    PageThumbs.shouldStoreThumbnail(aBrowser, aCallback);
   },
 
   get _topSiteURLs() {

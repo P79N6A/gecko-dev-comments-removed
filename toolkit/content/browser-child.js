@@ -456,6 +456,16 @@ addMessageListener("Browser:Thumbnail:Request", function (aMessage) {
 
 
 
+
+addMessageListener("Browser:Thumbnail:CheckState", function (aMessage) {
+  let result = PageThumbUtils.shouldStoreContentThumbnail(content, docShell);
+  sendAsyncMessage("Browser:Thumbnail:CheckState:Response", {
+    result: result
+  });
+});
+
+
+
 let AddonsChild = RemoteAddonsChild.init(this);
 addEventListener("unload", () => {
   RemoteAddonsChild.uninit(AddonsChild);

@@ -67,6 +67,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "AsyncShutdown",
   "resource://gre/modules/AsyncShutdown.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PageThumbUtils",
   "resource://gre/modules/PageThumbUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
+  "resource://gre/modules/PrivateBrowsingUtils.jsm");
 
 
 
@@ -210,6 +212,38 @@ this.PageThumbs = {
         aCallback(aCanvas);
       }
     });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  shouldStoreThumbnail: function (aBrowser, aCallback) {
+    
+    if (PrivateBrowsingUtils.isBrowserPrivate(aBrowser)) {
+      aCallback(false);
+      return;
+    }
+    if (aBrowser.isRemoteBrowser) {
+      let mm = aBrowser.messageManager;
+      let resultFunc = function (aMsg) {
+        mm.removeMessageListener("Browser:Thumbnail:CheckState:Response", resultFunc);
+        aCallback(aMsg.data.result);
+      }
+      mm.addMessageListener("Browser:Thumbnail:CheckState:Response", resultFunc);
+      mm.sendAsyncMessage("Browser:Thumbnail:CheckState");
+    } else {
+      aCallback(PageThumbUtils.shouldStoreContentThumbnail(aBrowser.contentDocument,
+                                                           aBrowser.docShell));
+    }
   },
 
   

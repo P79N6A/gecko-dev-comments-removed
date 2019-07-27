@@ -101,5 +101,67 @@ this.PageThumbUtils = {
       width -= Math.floor(Math.abs(scaledWidth - thumbnailWidth) * scale);
 
     return [width, height, scale];
+  },
+
+  shouldStoreContentThumbnail: function (aDocument, aDocShell) {
+    
+    
+    if (aDocument instanceof Ci.nsIDOMXMLDocument) {
+      return false;
+    }
+
+    
+    if (aDocShell.currentURI.schemeIs("about")) {
+      return false;
+    }
+
+    
+    if (aDocShell.busyFlags != Ci.nsIDocShell.BUSY_FLAGS_NONE) {
+      return false;
+    }
+
+    let channel = aDocShell.currentDocumentChannel;
+
+    
+    if (!channel) {
+      return false;
+    }
+
+    
+    
+    let uri = channel.originalURI;
+    if (uri.schemeIs("about")) {
+      return false;
+    }
+
+    let httpChannel;
+    try {
+      httpChannel = channel.QueryInterface(Ci.nsIHttpChannel);
+    } catch (e) {  }
+
+    if (httpChannel) {
+      
+      try {
+        if (Math.floor(httpChannel.responseStatus / 100) != 2) {
+        return false;
+        }
+      } catch (e) {
+        
+        
+        return false;
+      }
+
+      
+      if (httpChannel.isNoStoreResponse()) {
+        return false;
+      }
+
+      
+      if (uri.schemeIs("https") &&
+          !Services.prefs.getBoolPref("browser.cache.disk_cache_ssl")) {
+        return false;
+      }
+    } 
+    return true;
   }
 };
