@@ -46,6 +46,26 @@ namespace SystemMemoryReporter {
 #error "This won't work if we're not on Linux."
 #endif
 
+
+
+
+struct MOZ_STACK_CLASS AutoDir
+{
+  AutoDir(DIR* aDir) : mDir(aDir) {}
+  ~AutoDir() { if (mDir) closedir(mDir); };
+  DIR* mDir;
+};
+
+
+
+
+struct MOZ_STACK_CLASS AutoFile
+{
+  AutoFile(FILE* aFile) : mFile(aFile) {}
+  ~AutoFile() { if (mFile) fclose(mFile); }
+  FILE* mFile;
+};
+
 static bool
 EndsWithLiteral(const nsCString& aHaystack, const char* aNeedle)
 {
@@ -178,6 +198,10 @@ public:
 
     
     rv = CollectKgslReports(aHandleReport, aData);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    rv = CollectIonReports(aHandleReport, aData);
     NS_ENSURE_SUCCESS(rv, rv);
 
     return rv;
@@ -680,6 +704,106 @@ private:
     return NS_OK;
   }
 
+  nsresult
+  CollectIonReports(nsIHandleReportCallback* aHandleReport,
+                    nsISupports* aData)
+  {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    const char* const kFormatString = "%63s %" SCNu32 " %" SCNu64;
+    const size_t kNumFields = 3;
+    const size_t kStringSize = 64;
+    const char* const kIonIommuPath = "/sys/kernel/debug/ion/iommu";
+
+    FILE* iommu = fopen(kIonIommuPath, "r");
+    if (!iommu) {
+      if (NS_WARN_IF(errno != ENOENT)) {
+        return NS_ERROR_FAILURE;
+      }
+      
+      return NS_OK;
+    }
+
+    AutoFile iommuGuard(iommu);
+
+    const size_t kBufferLen = 256;
+    char buffer[kBufferLen];
+    char client[kStringSize];
+    uint32_t pid;
+    uint64_t size;
+
+    
+    fgets(buffer, kBufferLen, iommu);
+
+    
+    fgets(buffer, kBufferLen, iommu);
+
+    const char* const kSep = "----";
+    const size_t kSepLen = 4;
+
+    
+    while (fgets(buffer, kBufferLen, iommu) &&
+           strncmp(kSep, buffer, kSepLen) != 0) {
+      if (sscanf(buffer, kFormatString, client, &pid, &size) == kNumFields) {
+        nsPrintfCString entryPath("ion-memory/%s (pid=%d)", client, pid);
+        REPORT(entryPath,
+               size,
+               NS_LITERAL_CSTRING("An ION kernel memory allocation."));
+      }
+    }
+
+    
+    fgets(buffer, kBufferLen, iommu);
+
+    
+    while (fgets(buffer, kBufferLen, iommu) &&
+           strncmp(kSep, buffer, kSepLen) != 0) {
+      if (sscanf(buffer, kFormatString, client, &pid, &size) == kNumFields) {
+        nsPrintfCString entryPath("ion-memory/%s (pid=%d)", client, pid);
+        REPORT(entryPath,
+               size,
+               NS_LITERAL_CSTRING("An ION kernel memory allocation."));
+      }
+    }
+
+    
+
+    return NS_OK;
+  }
+
   uint64_t
   ReadSizeFromFile(const char* aFilename)
   {
@@ -865,20 +989,6 @@ private:
     closedir(d);
     return NS_OK;
   }
-
-  struct AutoDir
-  {
-    AutoDir(DIR* aDir) : mDir(aDir) {}
-    ~AutoDir() { closedir(mDir); };
-    DIR* mDir;
-  };
-
-  struct AutoFile
-  {
-    AutoFile(FILE* aFile) : mFile(aFile) {}
-    ~AutoFile() { fclose(mFile); }
-    FILE* mFile;
-  };
 
   nsresult
   CollectKgslReports(nsIHandleReportCallback* aHandleReport,
