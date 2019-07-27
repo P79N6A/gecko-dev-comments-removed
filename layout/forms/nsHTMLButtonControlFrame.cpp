@@ -268,30 +268,8 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
 
   
   
-  LogicalMargin focusPadding =
+  const LogicalMargin focusPadding =
     LogicalMargin(wm, mRenderer.GetAddedButtonBorderAndPadding());
-
-  
-  
-  
-  
-  
-  
-  nscoord IOverflow = GetMinISize(aButtonReflowState.rendContext) -
-                      aButtonReflowState.ComputedISize();
-  nscoord IFocusPadding = focusPadding.IStartEnd(wm);
-  nscoord focusPaddingReduction = std::min(IFocusPadding,
-                                           std::max(IOverflow, 0));
-  if (focusPaddingReduction > 0) {
-    nscoord startReduction = focusPadding.IStart(wm);
-    if (focusPaddingReduction != IFocusPadding) {
-      startReduction = NSToCoordRound(startReduction *
-                                      (float(focusPaddingReduction) /
-                                       float(IFocusPadding)));
-    }
-    focusPadding.IStart(wm) -= startReduction;
-    focusPadding.IEnd(wm) -= focusPaddingReduction - startReduction;
-  }
 
   
   const LogicalMargin& clbp = aButtonReflowState.ComputedLogicalBorderPadding();
@@ -300,8 +278,26 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
   
   availSize.ISize(wm) -= focusPadding.IStartEnd(wm);
 
+  
+  
+  
+  
   LogicalPoint childPos(wm);
   childPos.I(wm) = focusPadding.IStart(wm) + clbp.IStart(wm);
+  nscoord extraISize = GetMinISize(aButtonReflowState.rendContext) -
+    aButtonReflowState.ComputedISize();
+  if (extraISize > 0) {
+    nscoord extraIStart = extraISize / 2;
+    nscoord extraIEnd = extraISize - extraIStart;
+    NS_ASSERTION(extraIEnd >=0, "How'd that happen?");
+
+    
+    const LogicalMargin& padding = aButtonReflowState.ComputedLogicalPadding();
+    extraIStart = std::min(extraIStart, padding.IStart(wm));
+    extraIEnd = std::min(extraIEnd, padding.IEnd(wm));
+    childPos.I(wm) -= extraIStart;
+    availSize.ISize(wm) = availSize.ISize(wm) + extraIStart + extraIEnd;
+  }
   availSize.ISize(wm) = std::max(availSize.ISize(wm), 0);
 
   
