@@ -876,7 +876,7 @@ function _loadURIWithFlags(browser, uri, params) {
   let referrerPolicy = ('referrerPolicy' in params ? params.referrerPolicy :
                         Ci.nsIHttpChannel.REFERRER_POLICY_DEFAULT);
   let charset = params.charset;
-  let postdata = params.postData;
+  let postData = params.postData;
 
   if (!(flags & browser.webNavigation.LOAD_FLAGS_FROM_EXTERNAL)) {
     browser.userTypedClear++;
@@ -890,13 +890,18 @@ function _loadURIWithFlags(browser, uri, params) {
     if (!mustChangeProcess) {
       browser.webNavigation.loadURIWithOptions(uri, flags,
                                                referrer, referrerPolicy,
-                                               postdata, null, null);
+                                               postData, null, null);
     } else {
+      if (postData) {
+        postData = NetUtil.readInputStreamToString(postData, postData.available());
+      }
+
       LoadInOtherProcess(browser, {
         uri: uri,
         flags: flags,
         referrer: referrer ? referrer.spec : null,
         referrerPolicy: referrerPolicy,
+        postData: postData,
       });
     }
   } catch (e) {
@@ -2675,12 +2680,6 @@ let gMenuButtonUpdateBadge = {
 };
 
 
-const TLS_ERROR_REPORT_TELEMETRY_AUTO_CHECKED   = 2;
-const TLS_ERROR_REPORT_TELEMETRY_AUTO_UNCHECKED = 3;
-const TLS_ERROR_REPORT_TELEMETRY_MANUAL_SEND    = 4;
-const TLS_ERROR_REPORT_TELEMETRY_AUTO_SEND      = 5;
-
-
 
 
 
@@ -2693,7 +2692,6 @@ let BrowserOnClick = {
     mm.addMessageListener("Browser:EnableOnlineMode", this);
     mm.addMessageListener("Browser:SendSSLErrorReport", this);
     mm.addMessageListener("Browser:SetSSLErrorReportAuto", this);
-    mm.addMessageListener("Browser:SSLErrorReportTelemetry", this);
   },
 
   uninit: function () {
@@ -2703,7 +2701,6 @@ let BrowserOnClick = {
     mm.removeMessageListener("Browser:EnableOnlineMode", this);
     mm.removeMessageListener("Browser:SendSSLErrorReport", this);
     mm.removeMessageListener("Browser:SetSSLErrorReportAuto", this);
-    mm.removeMessageListener("Browser:SSLErrorReportTelemetry", this);
   },
 
   handleEvent: function (event) {
@@ -2750,16 +2747,6 @@ let BrowserOnClick = {
       break;
       case "Browser:SetSSLErrorReportAuto":
         Services.prefs.setBoolPref("security.ssl.errorReporting.automatic", msg.json.automatic);
-        let bin = TLS_ERROR_REPORT_TELEMETRY_AUTO_UNCHECKED;
-        if (msg.json.automatic) {
-          bin = TLS_ERROR_REPORT_TELEMETRY_AUTO_CHECKED;
-        }
-        Services.telemetry.getHistogramById("TLS_ERROR_REPORT_UI").add(bin);
-      break;
-      case "Browser:SSLErrorReportTelemetry":
-        let reportStatus = msg.data.reportStatus;
-        Services.telemetry.getHistogramById("TLS_ERROR_REPORT_UI")
-          .add(reportStatus);
       break;
     }
   },
@@ -2780,12 +2767,6 @@ let BrowserOnClick = {
       Cu.reportError("User requested certificate error report sending, but certificate error reporting is disabled");
       return;
     }
-
-    let bin = TLS_ERROR_REPORT_TELEMETRY_MANUAL_SEND;
-    if (Services.prefs.getBoolPref("security.ssl.errorReporting.automatic")) {
-      bin = TLS_ERROR_REPORT_TELEMETRY_AUTO_SEND;
-    }
-    Services.telemetry.getHistogramById("TLS_ERROR_REPORT_UI").add(bin);
 
     let serhelper = Cc["@mozilla.org/network/serialization-helper;1"]
                            .getService(Ci.nsISerializationHelper);
@@ -7203,11 +7184,6 @@ let gRemoteTabsUI = {
     if (window.location.href != getBrowserURL() &&
         
         window.location.href != "chrome://browser/content/hiddenWindow.xul") {
-      return;
-    }
-
-    if (Services.appinfo.inSafeMode) {
-      
       return;
     }
 

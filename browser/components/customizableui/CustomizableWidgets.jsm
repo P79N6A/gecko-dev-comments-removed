@@ -1126,7 +1126,7 @@ if (Services.prefs.getBoolPref("browser.pocket.enabled")) {
 }
 
 #ifdef E10S_TESTING_ONLY
-let e10sDisabled = Services.appinfo.inSafeMode;
+let e10sDisabled = false;
 #ifdef XP_MACOSX
 
 
