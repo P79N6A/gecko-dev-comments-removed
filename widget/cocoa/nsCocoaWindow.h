@@ -21,9 +21,6 @@ class nsMenuBarX;
 @class ChildView;
 
 
-#define CUIDRAW_MAX_AREA 500000
-
-
 
 #if !defined(MAC_OS_X_VERSION_10_7) || \
     MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_7

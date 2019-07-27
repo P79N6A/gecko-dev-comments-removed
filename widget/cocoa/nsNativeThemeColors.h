@@ -9,15 +9,6 @@
 #include "nsCocoaFeatures.h"
 #import <Cocoa/Cocoa.h>
 
-extern "C" {
-  typedef CFTypeRef CUIRendererRef;
-  void CUIDraw(CUIRendererRef r, CGRect rect, CGContextRef ctx, CFDictionaryRef options, CFDictionaryRef* result);
-}
-
-@interface NSWindow(CoreUIRendererPrivate)
-+ (CUIRendererRef)coreUIRenderer;
-@end
-
 enum ColorName {
   toolbarTopBorderGrey,
   toolbarFillGrey,
@@ -64,4 +55,4 @@ static void DrawNativeGreyColorInRect(CGContextRef context, ColorName name,
   CGContextFillRect(context, rect);
 }
 
-#endif
+#endif 
