@@ -165,6 +165,7 @@ public:
 
 
 
+
   uint32_t EnumerateRead(EnumReadFunction aEnumFunc, void* aUserArg) const
   {
     uint32_t n = 0;
@@ -201,6 +202,7 @@ public:
 
 
 
+
   uint32_t Enumerate(EnumFunction aEnumFunc, void* aUserArg)
   {
     uint32_t n = 0;
@@ -216,6 +218,47 @@ public:
       }
     }
     return n;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  class Iterator : public PLDHashTable::Iterator
+  {
+  public:
+    typedef PLDHashTable::Iterator Base;
+
+    explicit Iterator(nsBaseHashtable* aTable) : Base(&aTable->mTable) {}
+    Iterator(Iterator&& aOther) : Base(aOther.mTable) {}
+    ~Iterator() {}
+
+    KeyType GetKey() const { return static_cast<EntryType*>(Get())->GetKey(); }
+    UserDataType GetUserData() const
+    {
+      return static_cast<EntryType*>(Get())->mData;
+    }
+    DataType& GetData() const { return static_cast<EntryType*>(Get())->mData; }
+
+  private:
+    Iterator() = delete;
+    Iterator(const Iterator&) = delete;
+    Iterator& operator=(const Iterator&) = delete;
+    Iterator& operator=(const Iterator&&) = delete;
+  };
+
+  Iterator Iter() { return Iterator(this); }
+
+  Iterator ConstIter() const
+  {
+    return Iterator(const_cast<nsBaseHashtable*>(this));
   }
 
   

@@ -210,6 +210,7 @@ public:
 
 
 
+
   uint32_t EnumerateEntries(Enumerator aEnumFunc, void* aUserArg)
   {
     uint32_t n = 0;
@@ -225,6 +226,39 @@ public:
       }
     }
     return n;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  class Iterator : public PLDHashTable::Iterator
+  {
+  public:
+    typedef PLDHashTable::Iterator Base;
+
+    explicit Iterator(nsTHashtable* aTable) : Base(&aTable->mTable) {}
+    Iterator(Iterator&& aOther) : Base(aOther.mTable) {}
+    ~Iterator() {}
+
+    EntryType* Get() const { return static_cast<EntryType*>(Base::Get()); }
+
+  private:
+    Iterator() = delete;
+    Iterator(const Iterator&) = delete;
+    Iterator& operator=(const Iterator&) = delete;
+    Iterator& operator=(const Iterator&&) = delete;
+  };
+
+  Iterator Iter() { return Iterator(this); }
+
+  Iterator ConstIter() const
+  {
+    return Iterator(const_cast<nsTHashtable*>(this));
   }
 
   
