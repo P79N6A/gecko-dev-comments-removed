@@ -66,6 +66,10 @@ struct BasePoint {
     return Sub(-x, -y);
   }
 
+  T Length() const {
+    return hypot(x, y);
+  }
+
   
   
   

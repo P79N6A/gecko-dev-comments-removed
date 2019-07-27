@@ -91,6 +91,19 @@ public:
     mTaskQueue.RemoveElementAt(0);
   }
 
+  
+  
+  
+  
+  
+  int RunThroughDelayedTasks() {
+    int numTasks = mTaskQueue.Length();
+    for (int i = 0; i < numTasks; i++) {
+      RunDelayedTask();
+    }
+    return numTasks;
+  }
+
 private:
   nsTArray<Task*> mTaskQueue;
 };
@@ -805,6 +818,69 @@ TEST_F(AsyncPanZoomControllerTester, Fling) {
   }
 
   apzc->Destroy();
+}
+
+
+
+
+
+
+
+void
+DoFlingStopTest(bool aSlow) {
+  TimeStamp testStartTime = TimeStamp::Now();
+  AsyncPanZoomController::SetFrameTime(testStartTime);
+
+  nsRefPtr<MockContentControllerDelayed> mcc = new NiceMock<MockContentControllerDelayed>();
+  nsRefPtr<TestAPZCTreeManager> tm = new TestAPZCTreeManager();
+  nsRefPtr<TestAsyncPanZoomController> apzc = new TestAsyncPanZoomController(0, mcc, tm, AsyncPanZoomController::USE_GESTURE_DETECTOR);
+
+  apzc->SetFrameMetrics(TestFrameMetrics());
+  apzc->NotifyLayersUpdated(TestFrameMetrics(), true);
+
+  int time = 0;
+  int touchStart = 50;
+  int touchEnd = 10;
+
+  
+  ApzcPan(apzc, tm, time, touchStart, touchEnd);
+  
+  EXPECT_EQ(2, mcc->RunThroughDelayedTasks());
+
+  
+  
+  
+  int timeDelta = aSlow ? 2000 : 10;
+  int tapCallsExpected = aSlow ? 1 : 0;
+  int delayedTasksExpected = aSlow ? 3 : 2;
+
+  
+  ScreenPoint pointOut;
+  ViewTransform viewTransformOut;
+  apzc->SampleContentTransformForFrame(testStartTime + TimeDuration::FromMilliseconds(timeDelta), &viewTransformOut, pointOut);
+
+  
+  
+  EXPECT_CALL(*mcc, HandleSingleTap(_, 0, apzc->GetGuid())).Times(tapCallsExpected);
+  ApzcTap(apzc, 10, 10, time, 0, nullptr);
+  EXPECT_EQ(delayedTasksExpected, mcc->RunThroughDelayedTasks());
+
+  
+  ScreenPoint finalPointOut;
+  apzc->SampleContentTransformForFrame(testStartTime + TimeDuration::FromMilliseconds(timeDelta + 1000), &viewTransformOut, finalPointOut);
+  EXPECT_EQ(pointOut.x, finalPointOut.x);
+  EXPECT_EQ(pointOut.y, finalPointOut.y);
+
+  apzc->AssertStateIsReset();
+  apzc->Destroy();
+}
+
+TEST_F(AsyncPanZoomControllerTester, FlingStop) {
+  DoFlingStopTest(false);
+}
+
+TEST_F(AsyncPanZoomControllerTester, FlingStopTap) {
+  DoFlingStopTest(true);
 }
 
 TEST_F(AsyncPanZoomControllerTester, OverScrollPanning) {

@@ -314,6 +314,14 @@ typedef GeckoContentController::APZStateChange APZStateChange;
 
 
 
+
+
+
+
+
+
+
+
 static const uint32_t DefaultTouchBehavior = AllowedTouchBehavior::VERTICAL_PAN |
                                              AllowedTouchBehavior::HORIZONTAL_PAN |
                                              AllowedTouchBehavior::PINCH_ZOOM |
@@ -801,17 +809,19 @@ nsEventStatus AsyncPanZoomController::OnTouchStart(const MultiTouchInput& aEvent
   ScreenIntPoint point = GetFirstTouchScreenPoint(aEvent);
 
   switch (mState) {
-    case ANIMATING_ZOOM:
-      
-      
-      {
-        ReentrantMonitorAutoEnter lock(mMonitor);
-        RequestContentRepaint();
-        ScheduleComposite();
-        UpdateSharedCompositorFrameMetrics();
+    case FLING:
+      if (GetVelocityVector().Length() > gfxPrefs::APZFlingStopOnTapThreshold()) {
+        
+        
+        
+        
+        nsRefPtr<GestureEventListener> listener = GetGestureEventListener();
+        if (listener) {
+          listener->CancelSingleTouchDown();
+        }
       }
       
-    case FLING:
+    case ANIMATING_ZOOM:
       CancelAnimation();
       
     case NOTHING: {
@@ -1718,6 +1728,8 @@ void AsyncPanZoomController::CancelAnimation() {
     mAnimation = nullptr;
     
     RequestContentRepaint();
+    ScheduleComposite();
+    UpdateSharedCompositorFrameMetrics();
   }
 }
 

@@ -13,6 +13,9 @@
 #include "nsDebug.h"                    
 #include "nsMathUtils.h"                
 
+#define GEL_LOG(...)
+
+
 namespace mozilla {
 namespace layers {
 
@@ -61,6 +64,8 @@ GestureEventListener::~GestureEventListener()
 
 nsEventStatus GestureEventListener::HandleInputEvent(const MultiTouchInput& aEvent)
 {
+  GEL_LOG("Receiving event type %d with %d touches in state %d\n", aEvent.mType, aEvent.mTouches.Length(), mState);
+
   nsEventStatus rv = nsEventStatus_eIgnore;
 
   
@@ -104,6 +109,23 @@ nsEventStatus GestureEventListener::HandleInputEvent(const MultiTouchInput& aEve
   }
 
   return rv;
+}
+
+void GestureEventListener::CancelSingleTouchDown()
+{
+  GEL_LOG("Cancelling touch-down while in state %d\n", mState);
+
+  switch (mState) {
+  case GESTURE_FIRST_SINGLE_TOUCH_DOWN:
+    CancelLongTapTimeoutTask();
+    CancelMaxTapTimeoutTask();
+    SetState(GESTURE_NONE);
+    break;
+  default:
+    NS_WARNING("IgnoreLastTouchStart() called while in unexpected state");
+    SetState(GESTURE_NONE);
+    break;
+  }
 }
 
 int32_t GestureEventListener::GetLastTouchIdentifier() const
