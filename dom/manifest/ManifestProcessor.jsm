@@ -100,6 +100,7 @@ ManifestProcessor.prototype = {
     const extractor = new ManifestValueExtractor(console);
     const imgObjProcessor = new ImgObjProcessor(console, extractor);
     const processedManifest = {
+      'lang': processLangMember(rawManifest),
       'start_url': processStartURLMember(rawManifest, manifestURL, docURL),
       'display': processDisplayMember(rawManifest),
       'orientation': processOrientationMember(rawManifest),
@@ -246,7 +247,26 @@ ManifestProcessor.prototype = {
       };
       return extractor.extractColorValue(spec);
     }
+
+    function processLangMember(aManifest) {
+      const spec = {
+        objectName: 'manifest',
+        object: aManifest,
+        property: 'lang',
+        expectedType: 'string',
+        trim: true
+      };
+      let tag = extractor.extractValue(spec);
+      
+      
+      
+      
+      
+      
+      
+      
+      return tag;
+    }
   }
 };
-
 this.ManifestProcessor = ManifestProcessor; 
