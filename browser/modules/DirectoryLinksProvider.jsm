@@ -84,6 +84,11 @@ let DirectoryLinksProvider = {
 
   _enhancedLinks: new Map(),
 
+  
+
+
+  _relatedLinks: new Map(),
+
   get _observedPrefs() Object.freeze({
     enhanced: PREF_NEWTAB_ENHANCED,
     linksURL: PREF_DIRECTORY_SOURCE,
@@ -184,6 +189,14 @@ let DirectoryLinksProvider = {
     for (let pref in this._observedPrefs) {
       let prefName = this._observedPrefs[pref];
       Services.prefs.removeObserver(prefName, this);
+    }
+  },
+
+  _cacheRelatedLinks: function(link) {
+    for (let relatedSite of link.related) {
+      let relatedMap = this._relatedLinks.get(relatedSite) || new Map();
+      relatedMap.set(link.url, link);
+      this._relatedLinks.set(relatedSite, relatedMap);
     }
   },
 
@@ -391,22 +404,31 @@ let DirectoryLinksProvider = {
     this._readDirectoryLinksFile().then(rawLinks => {
       
       this._enhancedLinks.clear();
+      this._relatedLinks.clear();
 
-      return rawLinks.filter(link => {
+      let links = [];
+      rawLinks.filter(link => {
         
         return this.isURLAllowed(link.url, ALLOWED_LINK_SCHEMES) &&
                this.isURLAllowed(link.imageURI, ALLOWED_IMAGE_SCHEMES) &&
                this.isURLAllowed(link.enhancedImageURI, ALLOWED_IMAGE_SCHEMES);
-      }).map((link, position) => {
+      }).forEach((link, position) => {
         
         if (link.enhancedImageURI) {
           this._enhancedLinks.set(NewTabUtils.extractSite(link.url), link);
         }
-
-        link.frecency = DIRECTORY_FRECENCY;
         link.lastVisitDate = rawLinks.length - position;
-        return link;
+
+        
+        
+        if ("related" == link.type) {
+          this._cacheRelatedLinks(link);
+          return;
+        }
+        link.frecency = DIRECTORY_FRECENCY;
+        links.push(link);
       });
+      return links;
     }).catch(ex => {
       Cu.reportError(ex);
       return [];
