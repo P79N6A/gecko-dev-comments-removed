@@ -3541,8 +3541,7 @@ WifiWorker.prototype = {
         handleError: function(aErrorMessage) {
           self.requestDone();
         }
-      },
-      "fromInternalSetting");
+      });
   },
 
   notifyTetheringOff: function notifyTetheringOff() {
@@ -3562,8 +3561,7 @@ WifiWorker.prototype = {
         handleError: function(aErrorMessage) {
           self.requestDone();
         }
-      },
-      "fromInternalSetting");
+      });
   },
 
   handleWifiEnabled: function(enabled) {
@@ -3639,7 +3637,7 @@ WifiWorker.prototype = {
       let setting = JSON.parse(data);
       
       
-      if (setting.message && setting.message === "fromInternalSetting") {
+      if (setting.isInternalChange) {
         return;
       }
 
