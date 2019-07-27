@@ -5,25 +5,15 @@
 
 package org.mozilla.gecko.home;
 
-import java.util.EnumSet;
-
 import org.mozilla.gecko.R;
-import org.mozilla.gecko.Telemetry;
-import org.mozilla.gecko.TelemetryContract;
 import org.mozilla.gecko.ThumbnailHelper;
-import org.mozilla.gecko.db.BrowserContract.TopSites;
-import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
-import org.mozilla.gecko.util.StringUtils;
-
 import android.content.Context;
 import android.content.res.TypedArray;
-import android.database.Cursor;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.View;
 import android.widget.AbsListView;
-import android.widget.AdapterView;
 import android.widget.GridView;
 
 
@@ -57,12 +47,6 @@ public class TopSitesGridView extends GridView {
     private int mMeasuredHeight;
 
     
-    private OnUrlOpenListener mUrlOpenListener;
-
-    
-    private OnEditPinnedSiteListener mEditPinnedSiteListener;
-
-    
     private TopSitesGridContextMenuInfo mContextMenuInfo;
 
     
@@ -90,70 +74,6 @@ public class TopSitesGridView extends GridView {
         a.recycle();
     }
 
-    
-
-
-    @Override
-    public void onAttachedToWindow() {
-        super.onAttachedToWindow();
-
-        setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                TopSitesGridItemView item = (TopSitesGridItemView) view;
-
-                
-                String url = StringUtils.decodeUserEnteredUrl(item.getUrl());
-                int type = item.getType();
-
-                
-                
-                if (type != TopSites.TYPE_BLANK) {
-                    if (mUrlOpenListener != null) {
-                        final TelemetryContract.Method method;
-                        if (type == TopSites.TYPE_SUGGESTED) {
-                            method = TelemetryContract.Method.SUGGESTION;
-                        } else {
-                            method = TelemetryContract.Method.GRID_ITEM;
-                        }
-                        Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, method, Integer.toString(position));
-
-                        mUrlOpenListener.onUrlOpen(url, EnumSet.noneOf(OnUrlOpenListener.Flags.class));
-                    }
-                } else {
-                    if (mEditPinnedSiteListener != null) {
-                        mEditPinnedSiteListener.onEditPinnedSite(position, "");
-                    }
-                }
-            }
-        });
-
-        setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-            @Override
-            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                Cursor cursor = (Cursor) parent.getItemAtPosition(position);
-
-                TopSitesGridItemView item = (TopSitesGridItemView) view;
-                if (cursor == null || item.getType() == TopSites.TYPE_BLANK) {
-                    mContextMenuInfo = null;
-                    return false;
-                }
-
-                mContextMenuInfo = new TopSitesGridContextMenuInfo(view, position, id);
-                updateContextMenuFromCursor(mContextMenuInfo, cursor);
-                return showContextMenuForChild(TopSitesGridView.this);
-            }
-        });
-    }
-
-    @Override
-    public void onDetachedFromWindow() {
-        super.onDetachedFromWindow();
-
-        mUrlOpenListener = null;
-        mEditPinnedSiteListener = null;
-    }
-
     @Override
     protected void onFocusChanged(boolean gainFocus, int direction, Rect previouslyFocusedRect) {
         mIsHandlingFocusChange = true;
@@ -168,9 +88,6 @@ public class TopSitesGridView extends GridView {
         }
     }
 
-    
-
-
     @Override
     public int getColumnWidth() {
         
@@ -178,9 +95,6 @@ public class TopSitesGridView extends GridView {
         final int totalHorizontalSpacing = mNumColumns > 0 ? (mNumColumns - 1) * mHorizontalSpacing : 0;
         return (getMeasuredWidth() - getPaddingLeft() - getPaddingRight() - totalHorizontalSpacing) / mNumColumns;
     }
-
-    
-
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -236,35 +150,8 @@ public class TopSitesGridView extends GridView {
         return mContextMenuInfo;
     }
 
-    
-
-
-
-
-
-
-    private void updateContextMenuFromCursor(TopSitesGridContextMenuInfo info, Cursor cursor) {
-        info.url = cursor.getString(cursor.getColumnIndexOrThrow(TopSites.URL));
-        info.title = cursor.getString(cursor.getColumnIndexOrThrow(TopSites.TITLE));
-        info.type = cursor.getInt(cursor.getColumnIndexOrThrow(TopSites.TYPE));
-        info.historyId = cursor.getInt(cursor.getColumnIndexOrThrow(TopSites.HISTORY_ID));
-    }
-    
-
-
-
-
-    public void setOnUrlOpenListener(OnUrlOpenListener listener) {
-        mUrlOpenListener = listener;
-    }
-
-    
-
-
-
-
-    public void setOnEditPinnedSiteListener(final OnEditPinnedSiteListener listener) {
-        mEditPinnedSiteListener = listener;
+    public void setContextMenuInfo(TopSitesGridContextMenuInfo contextMenuInfo) {
+        mContextMenuInfo = contextMenuInfo;
     }
 
     
