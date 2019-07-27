@@ -1484,10 +1484,6 @@ pref("devtools.webconsole.fontSize", 0);
 
 
 
-pref("devtools.selfxss.count", 0);
-
-
-
 
 pref("devtools.webconsole.persistlog", false);
 
@@ -1616,6 +1612,7 @@ pref("loop.retry_delay.limit", 300000);
 pref("loop.feedback.baseUrl", "https://input.mozilla.org/api/v1/feedback");
 pref("loop.feedback.product", "Loop");
 pref("loop.debug.websocket", false);
+pref("loop.debug.sdk", false);
 
 
 pref("services.push.serverURL", "wss://push.services.mozilla.com/");

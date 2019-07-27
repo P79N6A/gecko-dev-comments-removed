@@ -4134,7 +4134,7 @@ function nsBrowserAccess() { }
 nsBrowserAccess.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIBrowserDOMWindow, Ci.nsISupports]),
 
-  _openURIInNewTab: function(aURI, aOpener, aIsExternal) {
+  _openURIInNewTab: function(aURI, aOpener, aIsExternal, aEnsureNonRemote=false) {
     let win, needToFocusWin;
 
     
@@ -4166,6 +4166,15 @@ nsBrowserAccess.prototype = {
                                       inBackground: loadInBackground});
     let browser = win.gBrowser.getBrowserForTab(tab);
 
+    
+    
+    
+    
+    
+    if (win.gMultiProcessBrowser && aEnsureNonRemote) {
+      win.gBrowser.updateBrowserRemoteness(browser, false);
+    }
+
     if (needToFocusWin || (!loadInBackground && aIsExternal))
       win.focus();
 
@@ -4173,6 +4182,14 @@ nsBrowserAccess.prototype = {
   },
 
   openURI: function (aURI, aOpener, aWhere, aContext) {
+    
+    
+    if (aOpener && Cu.isCrossProcessWrapper(aOpener)) {
+      Cu.reportError("nsBrowserAccess.openURI was passed a CPOW for aOpener. " +
+                     "openURI should only ever be called from non-remote browsers.");
+      throw Cr.NS_ERROR_FAILURE;
+    }
+
     var newWindow = null;
     var isExternal = (aContext == Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL);
 
@@ -4198,7 +4215,7 @@ nsBrowserAccess.prototype = {
         newWindow = openDialog(getBrowserURL(), "_blank", "all,dialog=no", url, null, null, null);
         break;
       case Ci.nsIBrowserDOMWindow.OPEN_NEWTAB :
-        let browser = this._openURIInNewTab(aURI, aOpener, isExternal);
+        let browser = this._openURIInNewTab(aURI, aOpener, isExternal, true);
         if (browser)
           newWindow = browser.contentWindow;
         break;
