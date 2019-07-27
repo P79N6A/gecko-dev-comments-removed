@@ -44,7 +44,7 @@ PRMJ_NowInit() {}
 #endif
 
 
-#if defined(JS_THREADSAFE) && defined(XP_WIN)
+#ifdef XP_WIN
 extern void
 PRMJ_NowShutdown();
 #else

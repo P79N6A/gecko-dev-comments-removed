@@ -31,8 +31,6 @@ namespace jit {
   class IonBuilder;
 }
 
-#ifdef JS_THREADSAFE
-
 
 class GlobalHelperThreadState
 {
@@ -103,9 +101,9 @@ class GlobalHelperThreadState
     void lock();
     void unlock();
 
-# ifdef DEBUG
+#ifdef DEBUG
     bool isLocked();
-# endif
+#endif
 
     enum CondVar {
         
@@ -221,9 +219,9 @@ class GlobalHelperThreadState
 
 
     PRLock *helperLock;
-# ifdef DEBUG
+#ifdef DEBUG
     PRThread *lockOwner;
-# endif
+#endif
 
     
     PRCondVar *consumerWakeup;
@@ -309,8 +307,6 @@ struct HelperThread
     void threadLoop();
 };
 
-#endif 
-
 
 
 
@@ -376,7 +372,6 @@ class AutoLockHelperThreadState
 {
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
-#ifdef JS_THREADSAFE
   public:
     explicit AutoLockHelperThreadState(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
     {
@@ -387,13 +382,6 @@ class AutoLockHelperThreadState
     ~AutoLockHelperThreadState() {
         HelperThreadState().unlock();
     }
-#else
-  public:
-    AutoLockHelperThreadState(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-#endif
 };
 
 class AutoUnlockHelperThreadState
@@ -405,16 +393,12 @@ class AutoUnlockHelperThreadState
     explicit AutoUnlockHelperThreadState(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-#ifdef JS_THREADSAFE
         HelperThreadState().unlock();
-#endif
     }
 
     ~AutoUnlockHelperThreadState()
     {
-#ifdef JS_THREADSAFE
         HelperThreadState().lock();
-#endif
     }
 };
 
@@ -489,12 +473,10 @@ struct ParseTask
     ~ParseTask();
 };
 
-#ifdef JS_THREADSAFE
 
 
 extern bool
 OffThreadParsingMustWaitForGC(JSRuntime *rt);
-#endif
 
 
 
@@ -504,10 +486,8 @@ struct SourceCompressionTask
     friend class ScriptSource;
     friend struct HelperThread;
 
-#ifdef JS_THREADSAFE
     
     HelperThread *helperThread;
-#endif
 
   private:
     
@@ -531,13 +511,9 @@ struct SourceCompressionTask
 
   public:
     explicit SourceCompressionTask(ExclusiveContext *cx)
-      : cx(cx), ss(nullptr), abort_(false),
+      : helperThread(nullptr), cx(cx), ss(nullptr), abort_(false),
         result(OOM), compressed(nullptr), compressedBytes(0), compressedHash(0)
-    {
-#ifdef JS_THREADSAFE
-        helperThread = nullptr;
-#endif
-    }
+    {}
 
     ~SourceCompressionTask()
     {

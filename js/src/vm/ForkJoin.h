@@ -523,14 +523,14 @@ class ForkJoinContext : public ThreadSafeContext
 
 class LockedJSContext
 {
-#if defined(JS_THREADSAFE) && defined(JS_ION)
+#ifdef JS_ION
     ForkJoinContext *cx_;
 #endif
     JSContext *jscx_;
 
   public:
     explicit LockedJSContext(ForkJoinContext *cx)
-#if defined(JS_THREADSAFE) && defined(JS_ION)
+#ifdef JS_ION
       : cx_(cx),
         jscx_(cx->acquireJSContext())
 #else
@@ -539,7 +539,7 @@ class LockedJSContext
     { }
 
     ~LockedJSContext() {
-#if defined(JS_THREADSAFE) && defined(JS_ION)
+#ifdef JS_ION
         cx_->releaseJSContext();
 #endif
     }
@@ -591,7 +591,7 @@ enum SpewChannel {
     NumSpewChannels
 };
 
-#if defined(FORKJOIN_SPEW) && defined(JS_THREADSAFE) && defined(JS_ION)
+#if defined(FORKJOIN_SPEW) && defined(JS_ION)
 
 bool SpewEnabled(SpewChannel channel);
 void Spew(SpewChannel channel, const char *fmt, ...);

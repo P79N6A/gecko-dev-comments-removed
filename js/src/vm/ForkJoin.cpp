@@ -19,13 +19,10 @@
 #include "jsprf.h"
 
 #include "builtin/TypedObject.h"
+#include "jit/BaselineJIT.h"
+#include "vm/Monitor.h"
 
-#ifdef JS_THREADSAFE
-# include "jit/BaselineJIT.h"
-# include "vm/Monitor.h"
-#endif
-
-#if defined(JS_THREADSAFE) && defined(JS_ION)
+#ifdef JS_ION
 # include "jit/JitCommon.h"
 # include "jit/RematerializedFrame.h"
 # ifdef FORKJOIN_SPEW
@@ -51,7 +48,6 @@ using mozilla::ThreadLocal;
 
 
 
-
 static bool
 ExecuteSequentially(JSContext *cx_, HandleValue funVal, uint16_t *sliceStart,
                     uint16_t sliceEnd);
@@ -68,7 +64,7 @@ ForkJoinSequentially(JSContext *cx, CallArgs &args)
     return true;
 }
 
-#if !defined(JS_THREADSAFE) || !defined(JS_ION)
+#if !defined(JS_ION)
 bool
 js::ForkJoin(JSContext *cx, CallArgs &args)
 {
@@ -220,7 +216,7 @@ ForkJoinContext::initializeTls()
 
 
 
-#if defined(JS_THREADSAFE) && defined(JS_ION)
+#ifdef JS_ION
 
 
 

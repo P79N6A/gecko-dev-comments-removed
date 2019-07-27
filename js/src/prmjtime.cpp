@@ -33,9 +33,7 @@
 #include <stdlib.h>   
 #endif
 
-#ifdef JS_THREADSAFE
 #include "prinit.h"
-#endif
 
 #endif
 
@@ -91,9 +89,7 @@ struct CalibrationData {
 
     bool calibrated;
 
-#ifdef JS_THREADSAFE
     CRITICAL_SECTION data_lock;
-#endif
 };
 
 static CalibrationData calibration = { 0 };
@@ -140,9 +136,7 @@ PRMJ_NowInit()
     calibration.freq = double(liFreq.QuadPart);
     MOZ_ASSERT(calibration.freq > 0.0);
 
-#ifdef JS_THREADSAFE
     InitializeCriticalSectionAndSpinCount(&calibration.data_lock, DataLockSpinCount);
-#endif
 
     
     if (HMODULE h = GetModuleHandle("kernel32.dll")) {
@@ -151,7 +145,6 @@ PRMJ_NowInit()
     }
 }
 
-#ifdef JS_THREADSAFE
 void
 PRMJ_NowShutdown()
 {
@@ -161,14 +154,6 @@ PRMJ_NowShutdown()
 #define MUTEX_LOCK(m) EnterCriticalSection(m)
 #define MUTEX_UNLOCK(m) LeaveCriticalSection(m)
 #define MUTEX_SETSPINCOUNT(m, c) SetCriticalSectionSpinCount((m),(c))
-
-#else
-
-#define MUTEX_LOCK(m)
-#define MUTEX_UNLOCK(m)
-#define MUTEX_SETSPINCOUNT(m, c)
-
-#endif
 
 
 int64_t

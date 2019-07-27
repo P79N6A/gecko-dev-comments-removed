@@ -974,12 +974,8 @@ MacroAssembler::loadStringChar(Register str, Register index, Register output)
 void
 MacroAssembler::checkInterruptFlagPar(Register tempReg, Label *fail)
 {
-#ifdef JS_THREADSAFE
     movePtr(ImmPtr(GetIonContext()->runtime->addressOfInterruptPar()), tempReg);
     branch32(Assembler::NonZero, Address(tempReg, 0), Imm32(0), fail);
-#else
-    MOZ_ASSUME_UNREACHABLE("JSRuntime::interruptPar doesn't exist on non-threadsafe builds.");
-#endif
 }
 
 

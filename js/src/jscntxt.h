@@ -488,11 +488,9 @@ struct JSContext : public js::ExclusiveContext,
 
     js::LifoAlloc &tempLifoAlloc() { return runtime()->tempLifoAlloc; }
 
-#ifdef JS_THREADSAFE
     unsigned            outstandingRequests;
 
 
-#endif
 
     
     js::Value           iterValue;
@@ -785,12 +783,6 @@ js_ReportValueErrorFlags(JSContext *cx, unsigned flags, const unsigned errorNumb
 
 extern const JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 
-#ifdef JS_THREADSAFE
-# define JS_ASSERT_REQUEST_DEPTH(cx)  JS_ASSERT((cx)->runtime()->requestDepth >= 1)
-#else
-# define JS_ASSERT_REQUEST_DEPTH(cx)  ((void) 0)
-#endif
-
 namespace js {
 
 
@@ -818,7 +810,7 @@ HandleExecutionInterrupt(JSContext *cx);
 inline bool
 CheckForInterrupt(JSContext *cx)
 {
-    JS_ASSERT_REQUEST_DEPTH(cx);
+    MOZ_ASSERT(cx->runtime()->requestDepth >= 1);
     return !cx->runtime()->interrupt || InvokeInterruptCallback(cx);
 }
 
@@ -1028,7 +1020,6 @@ bool intrinsic_TypeDescrIsSizedArrayType(JSContext *cx, unsigned argc, Value *vp
 
 class AutoLockForExclusiveAccess
 {
-#ifdef JS_THREADSAFE
     JSRuntime *runtime;
 
     void init(JSRuntime *rt) {
@@ -1064,19 +1055,6 @@ class AutoLockForExclusiveAccess
             runtime->mainThreadHasExclusiveAccess = false;
         }
     }
-#else 
-  public:
-    AutoLockForExclusiveAccess(ExclusiveContext *cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM) {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-    AutoLockForExclusiveAccess(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM) {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-    ~AutoLockForExclusiveAccess() {
-        
-        
-    }
-#endif 
 
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };

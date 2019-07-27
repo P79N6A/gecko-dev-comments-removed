@@ -17,11 +17,7 @@
 
 struct JSPrincipals {
     
-#ifdef JS_THREADSAFE
     mozilla::Atomic<int32_t> refcount;
-#else
-    int32_t refcount;
-#endif
 
 #ifdef JS_DEBUG
     
