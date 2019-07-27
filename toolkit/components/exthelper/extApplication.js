@@ -586,8 +586,8 @@ Extensions.prototype = {
 
 
 
-gExtensionObserver = new ExtensionObserver();
-gPreferenceObserver = new PreferenceObserver();
+var gExtensionObserver = new ExtensionObserver();
+var gPreferenceObserver = new PreferenceObserver();
 
 
 
