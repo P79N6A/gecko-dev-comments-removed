@@ -71,3 +71,9 @@
 #TabsToolbar:not([collapsed="true"]) + #nav-bar {
   border-top-width: 0 !important;
 }
+
+
+
+#sidebar-box {
+  color: initial;
+}
