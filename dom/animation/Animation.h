@@ -11,6 +11,8 @@
 #include "nsIDocument.h"
 #include "nsWrapperCache.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/TimeStamp.h"
+#include "mozilla/dom/Nullable.h"
 
 struct JSContext;
 
@@ -32,12 +34,15 @@ public:
   nsIDocument* GetParentObject() const { return mDocument; }
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
+  void SetParentTime(Nullable<TimeDuration> aParentTime);
+
 protected:
   virtual ~Animation() { }
 
   
   
   nsRefPtr<nsIDocument> mDocument;
+  Nullable<TimeDuration> mParentTime;
 };
 
 } 

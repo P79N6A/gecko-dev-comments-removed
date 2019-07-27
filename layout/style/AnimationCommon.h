@@ -182,6 +182,8 @@ struct AnimationPlayerCollection : public PRCList
   static void PropertyDtor(void *aObject, nsIAtom *aPropertyName,
                            void *aPropertyValue, void *aData);
 
+  void Tick();
+
   
   
   

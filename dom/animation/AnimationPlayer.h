@@ -152,6 +152,7 @@ public:
   double CurrentTime() const;
 
   void SetSource(Animation* aSource);
+  void Tick();
 
   
   
