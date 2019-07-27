@@ -14,17 +14,12 @@
 #include "mozilla/CheckedInt.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/WritingModes.h"
+#include "nsIWidget.h"
 #include "nsString.h"
 #include "nsTArray.h"
 #include "Units.h"
 
-class nsIWidget;
-
 namespace mozilla {
-
-namespace widget {
-struct IMENotification;
-}
 
 class ContentCacheInParent;
 
@@ -323,7 +318,11 @@ public:
 
 
 
-  void OnEventNeedingAckReceived();
+
+
+
+
+  void OnEventNeedingAckReceived(nsIWidget* aWidget);
 
   
 
@@ -348,9 +347,14 @@ public:
 
 
 
-  void InitNotification(IMENotification& aNotification) const;
+  void MaybeNotifyIME(nsIWidget* aWidget,
+                      IMENotification& aNotification);
 
 private:
+  IMENotification mPendingSelectionChange;
+  IMENotification mPendingTextChange;
+  IMENotification mPendingCompositionUpdate;
+
   
   nsString mCommitStringByRequest;
   
@@ -373,6 +377,7 @@ private:
                          uint32_t aLength,
                          LayoutDeviceIntRect& aUnionTextRect) const;
 
+  void FlushPendingNotifications(nsIWidget* aWidget);
 };
 
 } 
