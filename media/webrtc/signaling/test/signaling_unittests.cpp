@@ -288,7 +288,7 @@ public:
   NS_IMETHOD OnAddIceCandidateSuccess(ER&) MOZ_OVERRIDE;
   NS_IMETHOD OnAddIceCandidateError(uint32_t code, const char *msg, ER&) MOZ_OVERRIDE;
   NS_IMETHOD OnIceCandidate(uint16_t level, const char *mid, const char *cand, ER&) MOZ_OVERRIDE;
-  NS_IMETHODIMP OnNegotiationNeeded(ER&);
+  NS_IMETHOD OnNegotiationNeeded(ER&) MOZ_OVERRIDE;
 
   
   
