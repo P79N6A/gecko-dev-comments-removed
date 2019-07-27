@@ -53,7 +53,8 @@ public:
 #ifdef DEBUG
     , mIsNotNull(aToCopy.mIsNotNull)
 #endif
-  {}
+  {
+  }
 
   
   
@@ -70,7 +71,8 @@ public:
 #ifdef DEBUG
     , mIsNotNull(aToCopy.mIsNotNull)
 #endif
-  {}
+  {
+  }
 
   LoadContext(dom::Element* aTopFrameElement,
               uint32_t aAppId,
@@ -88,7 +90,8 @@ public:
 #ifdef DEBUG
     , mIsNotNull(true)
 #endif
-  {}
+  {
+  }
 
   
   explicit LoadContext(uint32_t aAppId)
@@ -102,7 +105,8 @@ public:
 #ifdef DEBUG
     , mIsNotNull(true)
 #endif
-  {}
+  {
+  }
 
   
   
@@ -127,4 +131,3 @@ private:
 } 
 
 #endif 
-

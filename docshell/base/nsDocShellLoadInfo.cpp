@@ -4,17 +4,12 @@
 
 
 
-
 #include "nsDocShellLoadInfo.h"
 #include "nsISHEntry.h"
 #include "nsIInputStream.h"
 #include "nsIURI.h"
 #include "nsIDocShell.h"
 #include "mozilla/net/ReferrerPolicy.h"
-
-
-
-
 
 nsDocShellLoadInfo::nsDocShellLoadInfo()
   : mInheritOwner(false)
@@ -30,10 +25,6 @@ nsDocShellLoadInfo::~nsDocShellLoadInfo()
 {
 }
 
-
-
-
-
 NS_IMPL_ADDREF(nsDocShellLoadInfo)
 NS_IMPL_RELEASE(nsDocShellLoadInfo)
 
@@ -41,10 +32,6 @@ NS_INTERFACE_MAP_BEGIN(nsDocShellLoadInfo)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDocShellLoadInfo)
   NS_INTERFACE_MAP_ENTRY(nsIDocShellLoadInfo)
 NS_INTERFACE_MAP_END
-
-
-
-
 
 NS_IMETHODIMP
 nsDocShellLoadInfo::GetReferrer(nsIURI** aReferrer)

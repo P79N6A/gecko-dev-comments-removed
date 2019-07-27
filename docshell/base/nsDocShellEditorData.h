@@ -58,7 +58,6 @@ protected:
   
   
   nsIHTMLDocument::EditingState mDetachedEditingState;
-
 };
 
 #endif 

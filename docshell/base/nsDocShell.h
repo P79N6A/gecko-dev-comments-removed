@@ -90,18 +90,11 @@ class nsIWebBrowserFind;
 class nsIWidget;
 
 
-
-
-
 enum ViewMode
 {
   viewNormal = 0x0,
   viewSource = 0x1
 };
-
-
-
-
 
 class nsRefreshTimer : public nsITimerCallback
 {
@@ -130,10 +123,6 @@ enum eCharsetReloadState
   eCharsetReloadStopOrigional
 };
 
-
-
-
-
 class nsDocShell final
   : public nsDocLoader
   , public nsIDocShell
@@ -159,7 +148,7 @@ class nsDocShell final
 
 public:
   MOZ_DECLARE_WEAKREFERENCE_TYPENAME(nsDocShell)
-  
+
   nsDocShell();
 
   NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
@@ -186,7 +175,8 @@ public:
   NS_DECL_NSINETWORKINTERCEPTCONTROLLER
   NS_FORWARD_SAFE_NSIDOMSTORAGEMANAGER(TopSessionStorageManager())
 
-  NS_IMETHOD Stop() override {
+  NS_IMETHOD Stop() override
+  {
     
     
     return nsDocLoader::Stop();
@@ -219,7 +209,7 @@ public:
 
   nsDocShellInfoLoadType ConvertLoadTypeToDocShellLoadInfo(uint32_t aLoadType);
   uint32_t ConvertDocShellLoadInfoToLoadType(
-      nsDocShellInfoLoadType aDocShellLoadType);
+    nsDocShellInfoLoadType aDocShellLoadType);
 
   
   
@@ -269,8 +259,7 @@ public:
   
   
   
-  void AddProfileTimelineMarker(const char* aName,
-                                TracingMetadata aMetaData);
+  void AddProfileTimelineMarker(const char* aName, TracingMetadata aMetaData);
   void AddProfileTimelineMarker(mozilla::UniquePtr<TimelineMarker>&& aMarker);
 
   
@@ -283,7 +272,6 @@ public:
                           bool aInPrivateBrowsing);
 
 protected:
-  
   virtual ~nsDocShell();
   virtual void DestroyChildren() override;
 

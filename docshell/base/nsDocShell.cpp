@@ -712,7 +712,8 @@ SendPing(void* aClosure, nsIContent* aContent, nsIURI* aURI,
   nsPingListener* pingListener =
     new nsPingListener(info->requireSameHost, aContent, loadGroup);
 
-  nsCOMPtr<nsINetworkInterceptController> interceptController = do_QueryInterface(info->docShell);
+  nsCOMPtr<nsINetworkInterceptController> interceptController =
+    do_QueryInterface(info->docShell);
   pingListener->SetInterceptController(interceptController);
   nsCOMPtr<nsIStreamListener> listener(pingListener);
 
@@ -844,10 +845,6 @@ DecreasePrivateDocShellCount()
     }
   }
 }
-
-
-
-
 
 static uint64_t gDocshellIDCounter = 0;
 
@@ -1032,10 +1029,6 @@ nsDocShell::DestroyChildren()
   nsDocLoader::DestroyChildren();
 }
 
-
-
-
-
 NS_IMPL_ADDREF_INHERITED(nsDocShell, nsDocLoader)
 NS_IMPL_RELEASE_INHERITED(nsDocShell, nsDocLoader)
 
@@ -1060,9 +1053,6 @@ NS_INTERFACE_MAP_BEGIN(nsDocShell)
   NS_INTERFACE_MAP_ENTRY(nsIDOMStorageManager)
   NS_INTERFACE_MAP_ENTRY(nsINetworkInterceptController)
 NS_INTERFACE_MAP_END_INHERITING(nsDocLoader)
-
-
-
 
 NS_IMETHODIMP
 nsDocShell::GetInterface(const nsIID& aIID, void** aSink)
@@ -1360,9 +1350,6 @@ nsDocShell::ConvertLoadTypeToDocShellLoadInfo(uint32_t aLoadType)
 
   return docShellLoadType;
 }
-
-
-
 
 NS_IMETHODIMP
 nsDocShell::LoadURI(nsIURI* aURI,
@@ -2610,14 +2597,16 @@ nsDocShell::SetAllowContentRetargeting(bool aAllowContentRetargeting)
 }
 
 NS_IMETHODIMP
-nsDocShell::GetAllowContentRetargetingOnChildren(bool* aAllowContentRetargetingOnChildren)
+nsDocShell::GetAllowContentRetargetingOnChildren(
+    bool* aAllowContentRetargetingOnChildren)
 {
   *aAllowContentRetargetingOnChildren = mAllowContentRetargetingOnChildren;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShell::SetAllowContentRetargetingOnChildren(bool aAllowContentRetargetingOnChildren)
+nsDocShell::SetAllowContentRetargetingOnChildren(
+    bool aAllowContentRetargetingOnChildren)
 {
   mAllowContentRetargetingOnChildren = aAllowContentRetargetingOnChildren;
   return NS_OK;
@@ -3489,7 +3478,8 @@ nsDocShell::SetDocLoaderParent(nsDocLoader* aParent)
     if (NS_SUCCEEDED(parentAsDocShell->GetAllowWindowControl(&value))) {
       SetAllowWindowControl(value);
     }
-    SetAllowContentRetargeting(parentAsDocShell->GetAllowContentRetargetingOnChildren());
+    SetAllowContentRetargeting(
+      parentAsDocShell->GetAllowContentRetargetingOnChildren());
     if (NS_SUCCEEDED(parentAsDocShell->GetIsActive(&value))) {
       SetIsActive(value);
     }
@@ -5611,6 +5601,7 @@ nsDocShell::GetSessionHistory(nsISHistory** aSessionHistory)
 
 
 
+
 NS_IMETHODIMP
 nsDocShell::LoadPage(nsISupports* aPageDescriptor, uint32_t aDisplayType)
 {
@@ -7174,7 +7165,7 @@ nsDocShell::RefreshURIFromQueue()
         timer->InitWithCallback(refreshInfo, delay, nsITimer::TYPE_ONE_SHOT);
       }
     }
-  }  
+  }
 
   return NS_OK;
 }
@@ -7821,20 +7812,19 @@ nsDocShell::EndPageLoad(nsIWebProgress* aProgress,
          aStatus == NS_ERROR_PROXY_CONNECTION_REFUSED) &&
         (isTopFrame || UseErrorPages())) {
       DisplayLoadError(aStatus, url, nullptr, aChannel);
-    }
-    else if (aStatus == NS_ERROR_NET_TIMEOUT ||
-             aStatus == NS_ERROR_REDIRECT_LOOP ||
-             aStatus == NS_ERROR_UNKNOWN_SOCKET_TYPE ||
-             aStatus == NS_ERROR_NET_INTERRUPT ||
-             aStatus == NS_ERROR_NET_RESET ||
-             aStatus == NS_ERROR_OFFLINE ||
-             aStatus == NS_ERROR_MALWARE_URI ||
-             aStatus == NS_ERROR_PHISHING_URI ||
-             aStatus == NS_ERROR_UNWANTED_URI ||
-             aStatus == NS_ERROR_UNSAFE_CONTENT_TYPE ||
-             aStatus == NS_ERROR_REMOTE_XUL ||
-             aStatus == NS_ERROR_OFFLINE ||
-             NS_ERROR_GET_MODULE(aStatus) == NS_ERROR_MODULE_SECURITY) {
+    } else if (aStatus == NS_ERROR_NET_TIMEOUT ||
+               aStatus == NS_ERROR_REDIRECT_LOOP ||
+               aStatus == NS_ERROR_UNKNOWN_SOCKET_TYPE ||
+               aStatus == NS_ERROR_NET_INTERRUPT ||
+               aStatus == NS_ERROR_NET_RESET ||
+               aStatus == NS_ERROR_OFFLINE ||
+               aStatus == NS_ERROR_MALWARE_URI ||
+               aStatus == NS_ERROR_PHISHING_URI ||
+               aStatus == NS_ERROR_UNWANTED_URI ||
+               aStatus == NS_ERROR_UNSAFE_CONTENT_TYPE ||
+               aStatus == NS_ERROR_REMOTE_XUL ||
+               aStatus == NS_ERROR_OFFLINE ||
+               NS_ERROR_GET_MODULE(aStatus) == NS_ERROR_MODULE_SECURITY) {
       
       DisplayLoadError(aStatus, url, nullptr, aChannel);
     } else if (aStatus == NS_ERROR_DOCUMENT_NOT_CACHED) {
@@ -7846,8 +7836,7 @@ nsDocShell::EndPageLoad(nsIWebProgress* aProgress,
       }
       DisplayLoadError(aStatus, url, nullptr, aChannel);
     }
-  }
-  else if (url && NS_SUCCEEDED(aStatus)) {
+  } else if (url && NS_SUCCEEDED(aStatus)) {
     
     mozilla::net::PredictorLearnRedirect(url, aChannel, this);
   }
@@ -8001,9 +7990,9 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
       blankDoc->SetSandboxFlags(mSandboxFlags);
 
       
-      docFactory->CreateInstanceForDocument(NS_ISUPPORTS_CAST(nsIDocShell*, this),
-                                            blankDoc, "view",
-                                            getter_AddRefs(viewer));
+      docFactory->CreateInstanceForDocument(
+        NS_ISUPPORTS_CAST(nsIDocShell*, this), blankDoc, "view",
+        getter_AddRefs(viewer));
 
       
       if (viewer) {
@@ -8405,8 +8394,8 @@ class MOZ_STACK_CLASS PresentationEventForgetter
 {
 public:
   explicit PresentationEventForgetter(
-      nsRevocableEventPtr<nsDocShell::RestorePresentationEvent>&
-        aRestorePresentationEvent)
+        nsRevocableEventPtr<nsDocShell::RestorePresentationEvent>&
+          aRestorePresentationEvent)
     : mRestorePresentationEvent(aRestorePresentationEvent)
     , mEvent(aRestorePresentationEvent.get())
   {
@@ -8785,7 +8774,8 @@ nsDocShell::RestoreFromHistory()
     childShell->GetAllowDNSPrefetch(&allowDNSPrefetch);
 
     bool allowContentRetargeting = childShell->GetAllowContentRetargeting();
-    bool allowContentRetargetingOnChildren = childShell->GetAllowContentRetargetingOnChildren();
+    bool allowContentRetargetingOnChildren =
+      childShell->GetAllowContentRetargetingOnChildren();
 
     uint32_t defaultLoadFlags;
     childShell->GetDefaultLoadFlags(&defaultLoadFlags);
@@ -8804,7 +8794,8 @@ nsDocShell::RestoreFromHistory()
     childShell->SetAllowMedia(allowMedia);
     childShell->SetAllowDNSPrefetch(allowDNSPrefetch);
     childShell->SetAllowContentRetargeting(allowContentRetargeting);
-    childShell->SetAllowContentRetargetingOnChildren(allowContentRetargetingOnChildren);
+    childShell->SetAllowContentRetargetingOnChildren(
+      allowContentRetargetingOnChildren);
     childShell->SetDefaultLoadFlags(defaultLoadFlags);
 
     rv = childShell->BeginRestore(nullptr, false);
@@ -9085,8 +9076,9 @@ nsDocShell::CreateContentViewer(const nsACString& aContentType,
     aOpenedChannel->SetLoadFlags(loadFlags);
 
     mLoadGroup->AddRequest(aRequest, nullptr);
-    if (currentLoadGroup)
+    if (currentLoadGroup) {
       currentLoadGroup->RemoveRequest(aRequest, nullptr, NS_BINDING_RETARGETED);
+    }
 
     
     
@@ -9405,6 +9397,7 @@ nsDocShell::CheckLoadingPermissions()
 
 
 
+
 namespace {
 
 #ifdef MOZ_PLACES
@@ -9515,7 +9508,8 @@ public:
     }
   }
 
-  NS_IMETHOD Run()
+  NS_IMETHOD
+  Run()
   {
     return mDocShell->InternalLoad(mURI, mReferrer,
                                    mReferrerPolicy,
@@ -11222,7 +11216,7 @@ nsDocShell::OnNewURI(nsIURI* aURI, nsIChannel* aChannel, nsISupports* aOwner,
       updateSHistory = false;
       updateGHistory = false; 
     }
-  }  
+  }
 
   
   if (mCurrentURI) {
@@ -11823,9 +11817,9 @@ nsDocShell::AddToSessionHistory(nsIURI* aURI, nsIChannel* aChannel,
         nsCOMPtr<nsISHEntry> child;
         shContainer->GetChildAt(i, getter_AddRefs(child));
         shContainer->RemoveChild(child);
-      }  
+      }
       entry->AbandonBFCacheEntry();
-    }  
+    }
   }
 
   
@@ -12166,7 +12160,8 @@ nsDocShell::WalkHistoryEntries(nsISHEntry* aRootEntry,
     if (aRootShell) {
       
       
-      nsTObserverArray<nsDocLoader*>::ForwardIterator iter(aRootShell->mChildList);
+      nsTObserverArray<nsDocLoader*>::ForwardIterator iter(
+        aRootShell->mChildList);
       while (iter.HasMore()) {
         nsDocShell* child = static_cast<nsDocShell*>(iter.GetNext());
 
@@ -12939,10 +12934,6 @@ nsDocShell::SetLayoutHistoryState(nsILayoutHistoryState* aLayoutHistoryState)
   return NS_OK;
 }
 
-
-
-
-
 nsRefreshTimer::nsRefreshTimer()
   : mDelay(0), mRepeat(false), mMetaRefresh(false)
 {
@@ -12952,10 +12943,6 @@ nsRefreshTimer::~nsRefreshTimer()
 {
 }
 
-
-
-
-
 NS_IMPL_ADDREF(nsRefreshTimer)
 NS_IMPL_RELEASE(nsRefreshTimer)
 
@@ -12963,9 +12950,6 @@ NS_INTERFACE_MAP_BEGIN(nsRefreshTimer)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsITimerCallback)
   NS_INTERFACE_MAP_ENTRY(nsITimerCallback)
 NS_INTERFACE_MAP_END_THREADSAFE
-
-
-
 
 NS_IMETHODIMP
 nsRefreshTimer::Notify(nsITimer* aTimer)
@@ -12980,9 +12964,6 @@ nsRefreshTimer::Notify(nsITimer* aTimer)
   }
   return NS_OK;
 }
-
-
-
 
 nsDocShell::InterfaceRequestorProxy::InterfaceRequestorProxy(
     nsIInterfaceRequestor* aRequestor)
@@ -13022,8 +13003,9 @@ nsDocShell::SetBaseUrlForWyciwyg(nsIContentViewer* aContentViewer)
   nsCOMPtr<nsIURI> baseURI;
   nsresult rv = NS_ERROR_NOT_AVAILABLE;
 
-  if (sURIFixup)
+  if (sURIFixup) {
     rv = sURIFixup->CreateExposableURI(mCurrentURI, getter_AddRefs(baseURI));
+  }
 
   
   if (baseURI) {
@@ -13065,6 +13047,7 @@ nsDocShell::GetAuthPrompt(uint32_t aPromptReason, const nsIID& aIID,
   return wwatch->GetPrompt(mScriptGlobal, aIID,
                            reinterpret_cast<void**>(aResult));
 }
+
 
 
 
@@ -13323,8 +13306,6 @@ nsDocShell::SelectNone(void)
 
 
 
-
-
 class OnLinkClickEvent : public nsRunnable
 {
 public:
@@ -13381,8 +13362,6 @@ OnLinkClickEvent::OnLinkClickEvent(nsDocShell* aHandler,
   , mIsTrusted(aIsTrusted)
 {
 }
-
-
 
 NS_IMETHODIMP
 nsDocShell::OnLinkClick(nsIContent* aContent,
@@ -13934,7 +13913,6 @@ nsDocShell::GetURLSearchParams()
 class JavascriptTimelineMarker : public TimelineMarker
 {
 public:
-
   JavascriptTimelineMarker(nsDocShell* aDocShell, const char* aName,
                            const char* aReason)
     : TimelineMarker(aDocShell, aName, TRACING_INTERVAL_START,
@@ -13949,7 +13927,7 @@ public:
 };
 
 void
-nsDocShell::NotifyJSRunToCompletionStart(const char *aReason)
+nsDocShell::NotifyJSRunToCompletionStart(const char* aReason)
 {
   bool timelineOn = nsIDocShell::GetRecordProfileTimelineMarkers();
 
@@ -14009,7 +13987,8 @@ nsDocShell::MaybeNotifyKeywordSearchLoading(const nsString& aProvider,
 }
 
 NS_IMETHODIMP
-nsDocShell::ShouldPrepareForIntercept(nsIURI* aURI, bool aIsNavigate, bool* aShouldIntercept)
+nsDocShell::ShouldPrepareForIntercept(nsIURI* aURI, bool aIsNavigate,
+                                      bool* aShouldIntercept)
 {
   *aShouldIntercept = false;
   if (mSandboxFlags) {
@@ -14017,7 +13996,7 @@ nsDocShell::ShouldPrepareForIntercept(nsIURI* aURI, bool aIsNavigate, bool* aSho
     return NS_OK;
   }
 
-  nsCOMPtr<nsIServiceWorkerManager> swm = mozilla::services::GetServiceWorkerManager();
+  nsCOMPtr<nsIServiceWorkerManager> swm = services::GetServiceWorkerManager();
   if (!swm) {
     return NS_OK;
   }
@@ -14037,7 +14016,7 @@ nsDocShell::ShouldPrepareForIntercept(nsIURI* aURI, bool aIsNavigate, bool* aSho
 NS_IMETHODIMP
 nsDocShell::ChannelIntercepted(nsIInterceptedChannel* aChannel)
 {
-  nsCOMPtr<nsIServiceWorkerManager> swm = mozilla::services::GetServiceWorkerManager();
+  nsCOMPtr<nsIServiceWorkerManager> swm = services::GetServiceWorkerManager();
   if (!swm) {
     aChannel->Cancel();
     return NS_OK;

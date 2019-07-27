@@ -26,10 +26,6 @@
 
 using namespace mozilla;
 
-
-
-
-
 nsDSURIContentListener::nsDSURIContentListener(nsDocShell* aDocShell)
   : mDocShell(aDocShell)
   , mExistingJPEGRequest(nullptr)
@@ -50,10 +46,6 @@ nsDSURIContentListener::Init()
   return rv;
 }
 
-
-
-
-
 NS_IMPL_ADDREF(nsDSURIContentListener)
 NS_IMPL_RELEASE(nsDSURIContentListener)
 
@@ -63,14 +55,9 @@ NS_INTERFACE_MAP_BEGIN(nsDSURIContentListener)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
 NS_INTERFACE_MAP_END
 
-
-
-
-
 NS_IMETHODIMP
 nsDSURIContentListener::OnStartURIOpen(nsIURI* aURI, bool* aAbortOpen)
 {
-  
   
   
   if (!mDocShell) {
@@ -188,7 +175,6 @@ nsDSURIContentListener::IsPreferred(const char* aContentType,
                                        aDesiredContentType,
                                        aCanHandle);
   }
-  
   
   
   

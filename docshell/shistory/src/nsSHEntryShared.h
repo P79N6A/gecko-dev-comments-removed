@@ -30,64 +30,65 @@ class nsISupportsArray;
 
 
 
-class nsSHEntryShared final : public nsIBFCacheEntry,
-                              public nsIMutationObserver
+class nsSHEntryShared final
+  : public nsIBFCacheEntry
+  , public nsIMutationObserver
 {
-  public:
-    static void EnsureHistoryTracker();
-    static void Shutdown();
+public:
+  static void EnsureHistoryTracker();
+  static void Shutdown();
 
-    nsSHEntryShared();
+  nsSHEntryShared();
 
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIMUTATIONOBSERVER
-    NS_DECL_NSIBFCACHEENTRY
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIMUTATIONOBSERVER
+  NS_DECL_NSIBFCACHEENTRY
 
-  private:
-    ~nsSHEntryShared();
+private:
+  ~nsSHEntryShared();
 
-    friend class nsSHEntry;
+  friend class nsSHEntry;
 
-    friend class HistoryTracker;
-    friend class nsExpirationTracker<nsSHEntryShared, 3>;
-    nsExpirationState *GetExpirationState() { return &mExpirationState; }
+  friend class HistoryTracker;
+  friend class nsExpirationTracker<nsSHEntryShared, 3>;
+  nsExpirationState *GetExpirationState() { return &mExpirationState; }
 
-    static already_AddRefed<nsSHEntryShared> Duplicate(nsSHEntryShared *aEntry);
+  static already_AddRefed<nsSHEntryShared> Duplicate(nsSHEntryShared* aEntry);
 
-    void RemoveFromExpirationTracker();
-    void Expire();
-    nsresult SyncPresentationState();
-    void DropPresentationState();
+  void RemoveFromExpirationTracker();
+  void Expire();
+  nsresult SyncPresentationState();
+  void DropPresentationState();
 
-    nsresult SetContentViewer(nsIContentViewer *aViewer);
+  nsresult SetContentViewer(nsIContentViewer* aViewer);
 
-    
+  
 
-    
-    
-    uint64_t                        mDocShellID;
-    nsCOMArray<nsIDocShellTreeItem> mChildShells;
-    nsCOMPtr<nsISupports>           mOwner;
-    nsCString                       mContentType;
-    bool                            mIsFrameNavigation;
-    bool                            mSaveLayoutState;
-    bool                            mSticky;
-    bool                            mDynamicallyCreated;
-    nsCOMPtr<nsISupports>           mCacheKey;
-    uint32_t                        mLastTouched;
+  
+  
+  uint64_t mDocShellID;
+  nsCOMArray<nsIDocShellTreeItem> mChildShells;
+  nsCOMPtr<nsISupports> mOwner;
+  nsCString mContentType;
+  bool mIsFrameNavigation;
+  bool mSaveLayoutState;
+  bool mSticky;
+  bool mDynamicallyCreated;
+  nsCOMPtr<nsISupports> mCacheKey;
+  uint32_t mLastTouched;
 
-    
-    
-    uint64_t                        mID;
-    nsCOMPtr<nsIContentViewer>      mContentViewer;
-    nsCOMPtr<nsIDocument>           mDocument;
-    nsCOMPtr<nsILayoutHistoryState> mLayoutHistoryState;
-    bool                            mExpired;
-    nsCOMPtr<nsISupports>           mWindowState;
-    nsIntRect                       mViewerBounds;
-    nsCOMPtr<nsISupportsArray>      mRefreshURIList;
-    nsExpirationState               mExpirationState;
-    nsAutoPtr<nsDocShellEditorData> mEditorData;
+  
+  
+  uint64_t mID;
+  nsCOMPtr<nsIContentViewer> mContentViewer;
+  nsCOMPtr<nsIDocument> mDocument;
+  nsCOMPtr<nsILayoutHistoryState> mLayoutHistoryState;
+  bool mExpired;
+  nsCOMPtr<nsISupports> mWindowState;
+  nsIntRect mViewerBounds;
+  nsCOMPtr<nsISupportsArray> mRefreshURIList;
+  nsExpirationState mExpirationState;
+  nsAutoPtr<nsDocShellEditorData> mEditorData;
 };
 
 #endif

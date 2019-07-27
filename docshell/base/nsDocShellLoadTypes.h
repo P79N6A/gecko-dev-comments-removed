@@ -27,8 +27,8 @@
 
 
 
-#define EXTRA_LOAD_FLAGS (LOAD_FLAGS_FIRST_LOAD              | \
-                          LOAD_FLAGS_ALLOW_POPUPS            | \
+#define EXTRA_LOAD_FLAGS (LOAD_FLAGS_FIRST_LOAD | \
+                          LOAD_FLAGS_ALLOW_POPUPS | \
                           0xffff0000)
 
 
@@ -65,7 +65,8 @@ enum LoadType
 
 
 
-  LOAD_ERROR_PAGE = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL, LOAD_FLAGS_ERROR_PAGE)
+  LOAD_ERROR_PAGE = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL,
+                                   LOAD_FLAGS_ERROR_PAGE)
 
   
 };

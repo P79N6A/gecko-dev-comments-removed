@@ -7,17 +7,13 @@
 #ifndef nsSHistory_h
 #define nsSHistory_h
 
-
 #include "nsCOMPtr.h"
-
-
 #include "nsISHistory.h"
 #include "nsISHistoryInternal.h"
 #include "nsIWebNavigation.h"
 #include "nsISimpleEnumerator.h"
 #include "nsTObserverArray.h"
 #include "nsWeakPtr.h"
-
 
 #include "prclist.h"
 
@@ -34,7 +30,6 @@ class nsSHistory final : public PRCList,
 {
 public:
   nsSHistory();
-
   NS_DECL_ISUPPORTS
   NS_DECL_NSISHISTORY
   NS_DECL_NSISHISTORYINTERNAL
@@ -56,15 +51,18 @@ protected:
   friend class nsSHEnumerator;
   friend class nsSHistoryObserver;
 
-   
-   NS_IMETHOD GetTransactionAtIndex(int32_t aIndex, nsISHTransaction ** aResult);
-   nsresult CompareFrames(nsISHEntry * prevEntry, nsISHEntry * nextEntry, nsIDocShell * rootDocShell, long aLoadType, bool * aIsFrameFound);
-   nsresult InitiateLoad(nsISHEntry * aFrameEntry, nsIDocShell * aFrameDS, long aLoadType);
+  
+  NS_IMETHOD GetTransactionAtIndex(int32_t aIndex, nsISHTransaction** aResult);
+  nsresult CompareFrames(nsISHEntry* aPrevEntry, nsISHEntry* aNextEntry,
+                         nsIDocShell* aRootDocShell, long aLoadType,
+                         bool* aIsFrameFound);
+  nsresult InitiateLoad(nsISHEntry* aFrameEntry, nsIDocShell* aFrameDS,
+                        long aLoadType);
 
-   NS_IMETHOD LoadEntry(int32_t aIndex, long aLoadType, uint32_t histCmd);
+  NS_IMETHOD LoadEntry(int32_t aIndex, long aLoadType, uint32_t aHistCmd);
 
 #ifdef DEBUG
-   nsresult PrintHistory();
+  nsresult PrintHistory();
 #endif
 
   
@@ -79,7 +77,9 @@ protected:
 
   void RemoveDynEntries(int32_t aOldIndex, int32_t aNewIndex);
 
-  nsresult LoadNextPossibleEntry(int32_t aNewIndex, long aLoadType, uint32_t aHistCmd);
+  nsresult LoadNextPossibleEntry(int32_t aNewIndex, long aLoadType,
+                                 uint32_t aHistCmd);
+
 protected:
   
   
@@ -93,29 +93,27 @@ protected:
   
   nsAutoTObserverArray<nsWeakPtr, 2> mListeners;
   
-  nsIDocShell *  mRootDocShell;
+  nsIDocShell* mRootDocShell;
 
   
-  static int32_t  sHistoryMaxTotalViewers;
+  static int32_t sHistoryMaxTotalViewers;
 };
-
-
 
 class nsSHEnumerator : public nsISimpleEnumerator
 {
 public:
-
   NS_DECL_ISUPPORTS
   NS_DECL_NSISIMPLEENUMERATOR
 
-  explicit nsSHEnumerator(nsSHistory *  aHistory);
-  
+  explicit nsSHEnumerator(nsSHistory* aHistory);
+
 protected:
   friend class nsSHistory;
   virtual ~nsSHEnumerator();
+
 private:
-  int32_t     mIndex;
-  nsSHistory *  mSHistory;  
+  int32_t mIndex;
+  nsSHistory* mSHistory;
 };
 
-#endif   
+#endif 
