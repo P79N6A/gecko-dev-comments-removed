@@ -1957,7 +1957,7 @@ CommandResult NetworkUtils::setDefaultRouteLegacy(NetworkParams& aOptions)
 
   if (!aOptions.mOldIfname.IsEmpty()) {
     
-    RETURN_IF_FAILED(mNetUtils->do_ifc_remove_default_route(GET_CHAR(mOldIfname)));
+    WARN_IF_FAILED(mNetUtils->do_ifc_remove_default_route(GET_CHAR(mOldIfname)));
     
     WARN_IF_FAILED(mNetUtils->do_ifc_remove_route(GET_CHAR(mOldIfname), "::", 0, NULL));
   }
