@@ -212,10 +212,6 @@ public:
     virtual bool DidRenderingDeviceReset();
 
     
-    gfxFontFamily *FindFontFamily(const nsAString& aName);
-    gfxFontEntry *FindFontEntry(const nsAString& aName, const gfxFontStyle& aFontStyle);
-
-    
     
     bool UseClearTypeForDownloadableFonts();
     bool UseClearTypeAlways();
