@@ -13,6 +13,12 @@
 
 class nsIHttpHeaderVisitor;
 
+
+
+namespace IPC {
+    template <typename> struct ParamTraits;
+}
+
 namespace mozilla { namespace net {
 
 class nsHttpHeaderArray
