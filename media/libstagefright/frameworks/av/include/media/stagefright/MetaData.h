@@ -67,6 +67,7 @@ enum {
     kKeyDriftTime         = 'dftT',  
     kKeyAnchorTime        = 'ancT',  
     kKeyDuration          = 'dura',  
+    kKeyMovieDuration     = 'mdur',  
     kKeyColorFormat       = 'colf',
     kKeyPlatformPrivate   = 'priv',  
     kKeyDecoderComponent  = 'decC',  
