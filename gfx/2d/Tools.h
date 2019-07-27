@@ -133,14 +133,14 @@ struct AlignedArray
     }
 #endif
 
-    delete [] mStorage;
+    moz_free(mStorage);
     mStorage = nullptr;
     mPtr = nullptr;
   }
 
   MOZ_ALWAYS_INLINE void Realloc(size_t aCount, bool aZero = false)
   {
-    delete [] mStorage;
+    moz_free(mStorage);
     CheckedInt32 storageByteCount =
       CheckedInt32(sizeof(T)) * aCount + (alignment - 1);
     if (!storageByteCount.isValid()) {
@@ -152,9 +152,11 @@ struct AlignedArray
     
     
     if (aZero) {
-      mStorage = static_cast<uint8_t *>(calloc(1, storageByteCount.value()));
+      
+      
+      mStorage = static_cast<uint8_t *>(moz_calloc(1, storageByteCount.value()));
     } else {
-      mStorage = new (std::nothrow) uint8_t[storageByteCount.value()];
+      mStorage = static_cast<uint8_t *>(moz_malloc(storageByteCount.value()));
     }
     if (!mStorage) {
       mStorage = nullptr;
