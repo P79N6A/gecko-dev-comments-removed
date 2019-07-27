@@ -503,13 +503,24 @@ nsAutoCompleteController::HandleKeyNavigation(uint32_t aKey, bool *_retval)
         
         
         
+        
+        
         nsAutoString value;
         nsAutoString inputValue;
         input->GetTextValue(inputValue);
-        if (NS_SUCCEEDED(GetDefaultCompleteValue(-1, false, value)) &&
-            value.Equals(inputValue, nsCaseInsensitiveStringComparator())) {
-          input->SetTextValue(value);
-          input->SelectTextRange(value.Length(), value.Length());
+        if (NS_SUCCEEDED(GetDefaultCompleteValue(-1, false, value))) {
+          nsAutoString suggestedValue;
+          int32_t pos = inputValue.Find(" >> ");
+          if (pos > 0) {
+            inputValue.Right(suggestedValue, inputValue.Length() - pos - 4);
+          } else {
+            suggestedValue = inputValue;
+          }
+
+          if (value.Equals(suggestedValue, nsCaseInsensitiveStringComparator())) {
+            input->SetTextValue(value);
+            input->SelectTextRange(value.Length(), value.Length());
+          }
         }
       }
       
@@ -1287,17 +1298,50 @@ nsAutoCompleteController::EnterMatch(bool aIsPopupSelection)
     if (forceComplete && value.IsEmpty()) {
       
       
+      
+      
+      
+      
+      
+      
+      nsAutoString inputValue;
+      input->GetTextValue(inputValue);
+      nsAutoString suggestedValue;
+      int32_t pos = inputValue.Find(" >> ");
+      if (pos > 0) {
+        inputValue.Right(suggestedValue, inputValue.Length() - pos - 4);
+      } else {
+        suggestedValue = inputValue;
+      }
+
+      nsAutoString defaultValue;
       for (uint32_t i = 0; i < mResults.Length(); ++i) {
         nsIAutoCompleteResult *result = mResults[i];
-
         if (result) {
-          int32_t defaultIndex;
-          result->GetDefaultIndex(&defaultIndex);
-          if (defaultIndex >= 0) {
-            result->GetFinalCompleteValueAt(defaultIndex, value);
-            break;
+          if (defaultValue.IsEmpty()) {
+            int32_t defaultIndex;
+            result->GetDefaultIndex(&defaultIndex);
+            if (defaultIndex >= 0) {
+              result->GetFinalCompleteValueAt(defaultIndex, defaultValue);
+            }
+          }
+
+          uint32_t matchCount = 0;
+          result->GetMatchCount(&matchCount);
+          for (uint32_t j = 0; j < matchCount; ++j) {
+            nsAutoString matchValue;
+            result->GetFinalCompleteValueAt(j, matchValue);
+            if (suggestedValue.Equals(matchValue, nsCaseInsensitiveStringComparator())) {
+              value = matchValue;
+              break;
+            }
           }
         }
+      }
+      if (value.IsEmpty()) {
+        
+        
+        value = defaultValue;
       }
     }
   }
