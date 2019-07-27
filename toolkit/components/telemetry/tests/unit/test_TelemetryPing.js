@@ -606,6 +606,173 @@ add_task(function* test_saveLoadPing() {
   }
 });
 
+add_task(function* test_checkSubsession() {
+  const COUNT_ID = "TELEMETRY_TEST_COUNT";
+  const KEYED_ID = "TELEMETRY_TEST_KEYED_COUNT";
+  const count = Telemetry.getHistogramById(COUNT_ID);
+  const keyed = Telemetry.getKeyedHistogramById(KEYED_ID);
+  const registeredIds =
+    new Set(Telemetry.registeredHistograms(Ci.nsITelemetry.DATASET_RELEASE_CHANNEL_OPTIN, []));
+
+  const stableHistograms = new Set([
+    "TELEMETRY_TEST_FLAG",
+    "TELEMETRY_TEST_COUNT",
+    "TELEMETRY_TEST_RELEASE_OPTOUT",
+    "TELEMETRY_TEST_RELEASE_OPTIN",
+    "STARTUP_CRASH_DETECTED",
+  ]);
+
+  const stableKeyedHistograms = new Set([
+    "TELEMETRY_TEST_KEYED_FLAG",
+    "TELEMETRY_TEST_KEYED_COUNT",
+    "TELEMETRY_TEST_KEYED_RELEASE_OPTIN",
+    "TELEMETRY_TEST_KEYED_RELEASE_OPTOUT",
+  ]);
+
+  
+  
+  
+  
+  
+  checkHistograms = (classic, subsession) => {
+    for (let id of Object.keys(classic)) {
+      if (!registeredIds.has(id)) {
+        continue;
+      }
+
+      Assert.ok(id in subsession);
+      if (stableHistograms.has(id)) {
+        Assert.deepEqual(classic[id],
+                         subsession[id]);
+      } else {
+        Assert.equal(classic[id].histogram_type,
+                     subsession[id].histogram_type);
+      }
+    }
+  };
+
+  
+  checkKeyedHistograms = (classic, subsession) => {
+    for (let id of Object.keys(classic)) {
+      if (!registeredIds.has(id)) {
+        continue;
+      }
+
+      Assert.ok(id in subsession);
+      if (stableKeyedHistograms.has(id)) {
+        Assert.deepEqual(classic[id],
+                         subsession[id]);
+      }
+    }
+  };
+
+  
+  
+  count.clear();
+  keyed.clear();
+  let classic = TelemetrySession.getPayload();
+  let subsession = TelemetrySession.getPayload("environment-change");
+
+  Assert.equal(classic.info.reason, "gather-payload");
+  Assert.equal(subsession.info.reason, "environment-change");
+  Assert.ok(!(COUNT_ID in classic.histograms));
+  Assert.ok(!(COUNT_ID in subsession.histograms));
+  Assert.ok(KEYED_ID in classic.keyedHistograms);
+  Assert.ok(KEYED_ID in subsession.keyedHistograms);
+  Assert.deepEqual(classic.keyedHistograms[KEYED_ID], {});
+  Assert.deepEqual(subsession.keyedHistograms[KEYED_ID], {});
+
+  checkHistograms(classic.histograms, subsession.histograms);
+  checkKeyedHistograms(classic.keyedHistograms, subsession.keyedHistograms);
+
+  
+  count.add(1);
+  keyed.add("a", 1);
+  keyed.add("b", 1);
+  classic = TelemetrySession.getPayload();
+  subsession = TelemetrySession.getPayload("environment-change");
+
+  Assert.ok(COUNT_ID in classic.histograms);
+  Assert.ok(COUNT_ID in subsession.histograms);
+  Assert.ok(KEYED_ID in classic.keyedHistograms);
+  Assert.ok(KEYED_ID in subsession.keyedHistograms);
+  Assert.equal(classic.histograms[COUNT_ID].sum, 1);
+  Assert.equal(classic.keyedHistograms[KEYED_ID]["a"].sum, 1);
+  Assert.equal(classic.keyedHistograms[KEYED_ID]["b"].sum, 1);
+
+  checkHistograms(classic.histograms, subsession.histograms);
+  checkKeyedHistograms(classic.keyedHistograms, subsession.keyedHistograms);
+
+  
+  count.clear();
+  keyed.clear();
+  classic = TelemetrySession.getPayload();
+  subsession = TelemetrySession.getPayload("environment-change");
+
+  Assert.ok(!(COUNT_ID in classic.histograms));
+  Assert.ok(!(COUNT_ID in subsession.histograms));
+  Assert.ok(KEYED_ID in classic.keyedHistograms);
+  Assert.ok(KEYED_ID in subsession.keyedHistograms);
+  Assert.deepEqual(classic.keyedHistograms[KEYED_ID], {});
+
+  checkHistograms(classic.histograms, subsession.histograms);
+  checkKeyedHistograms(classic.keyedHistograms, subsession.keyedHistograms);
+
+  
+  count.add(1);
+  keyed.add("a", 1);
+  keyed.add("b", 1);
+  classic = TelemetrySession.getPayload();
+  subsession = TelemetrySession.getPayload("environment-change");
+
+  Assert.ok(COUNT_ID in classic.histograms);
+  Assert.ok(COUNT_ID in subsession.histograms);
+  Assert.ok(KEYED_ID in classic.keyedHistograms);
+  Assert.ok(KEYED_ID in subsession.keyedHistograms);
+  Assert.equal(classic.histograms[COUNT_ID].sum, 1);
+  Assert.equal(classic.keyedHistograms[KEYED_ID]["a"].sum, 1);
+  Assert.equal(classic.keyedHistograms[KEYED_ID]["b"].sum, 1);
+
+  checkHistograms(classic.histograms, subsession.histograms);
+  checkKeyedHistograms(classic.keyedHistograms, subsession.keyedHistograms);
+
+  
+  count.clear(true);
+  keyed.clear(true);
+  classic = TelemetrySession.getPayload();
+  subsession = TelemetrySession.getPayload("environment-change");
+
+  Assert.ok(COUNT_ID in classic.histograms);
+  Assert.ok(COUNT_ID in subsession.histograms);
+  Assert.equal(classic.histograms[COUNT_ID].sum, 1);
+  Assert.equal(subsession.histograms[COUNT_ID].sum, 0);
+
+  Assert.ok(KEYED_ID in classic.keyedHistograms);
+  Assert.ok(KEYED_ID in subsession.keyedHistograms);
+  Assert.equal(classic.keyedHistograms[KEYED_ID]["a"].sum, 1);
+  Assert.equal(classic.keyedHistograms[KEYED_ID]["b"].sum, 1);
+  Assert.deepEqual(subsession.keyedHistograms[KEYED_ID], {});
+
+  
+  count.add(1);
+  keyed.add("a", 1);
+  keyed.add("b", 1);
+  classic = TelemetrySession.getPayload();
+  subsession = TelemetrySession.getPayload("environment-change");
+
+  Assert.ok(COUNT_ID in classic.histograms);
+  Assert.ok(COUNT_ID in subsession.histograms);
+  Assert.equal(classic.histograms[COUNT_ID].sum, 2);
+  Assert.equal(subsession.histograms[COUNT_ID].sum, 1);
+
+  Assert.ok(KEYED_ID in classic.keyedHistograms);
+  Assert.ok(KEYED_ID in subsession.keyedHistograms);
+  Assert.equal(classic.keyedHistograms[KEYED_ID]["a"].sum, 2);
+  Assert.equal(classic.keyedHistograms[KEYED_ID]["b"].sum, 2);
+  Assert.equal(subsession.keyedHistograms[KEYED_ID]["a"].sum, 1);
+  Assert.equal(subsession.keyedHistograms[KEYED_ID]["b"].sum, 1);
+});
+
 
 add_task(function* test_runOldPingFile() {
   let histogramsFile = getSavedHistogramsFile("old-histograms.dat");
