@@ -1865,11 +1865,11 @@ nsProtocolProxyService::ApplyFilters(nsIChannel *channel,
     
     
 
-    nsresult rv;
     nsCOMPtr<nsIProxyInfo> result;
 
     for (FilterLink *iter = mFilters; iter; iter = iter->next) {
         PruneProxyInfo(info, list);
+        nsresult rv = NS_OK;
         if (iter->filter) {
           nsCOMPtr<nsIURI> uri;
           rv = GetProxyURI(channel, getter_AddRefs(uri));
