@@ -25,6 +25,10 @@ class nsTableRowFrame;
 class nsTableColGroupFrame;
 class nsITableLayoutStrategy;
 class nsStyleContext;
+namespace mozilla {
+class WritingMode;
+class LogicalMargin;
+}
 
 struct nsTableReflowState;
 struct BCPropertyData;
@@ -123,6 +127,8 @@ enum nsTableColType {
 class nsTableFrame : public nsContainerFrame
 {
   typedef mozilla::image::DrawResult DrawResult;
+  typedef mozilla::WritingMode WritingMode;
+  typedef mozilla::LogicalMargin LogicalMargin;
 
 public:
   NS_DECL_QUERYFRAME_TARGET(nsTableFrame)
@@ -206,7 +212,8 @@ public:
   virtual nsMargin GetUsedMargin() const override;
 
   
-  nsMargin GetChildAreaOffset(const nsHTMLReflowState* aReflowState) const;
+  LogicalMargin GetChildAreaOffset(const WritingMode aWM,
+                                   const nsHTMLReflowState* aReflowState) const;
 
   
   static nsTableFrame* GetTableFrame(nsIFrame* aSourceFrame);
@@ -273,18 +280,18 @@ public:
 
 
 
-  nsMargin GetOuterBCBorder() const;
+  LogicalMargin GetOuterBCBorder(const WritingMode aWM) const;
 
   
 
 
-  nsMargin GetIncludedOuterBCBorder() const;
+  LogicalMargin GetIncludedOuterBCBorder(const WritingMode aWM) const;
 
   
 
 
 
-  nsMargin GetExcludedOuterBCBorder() const;
+  LogicalMargin GetExcludedOuterBCBorder(const WritingMode aWM) const;
 
   
 
@@ -632,7 +639,8 @@ protected:
 
 
 
-  nscoord GetCollapsedWidth(nsMargin aBorderPadding);
+  nscoord GetCollapsedWidth(const WritingMode aWM,
+                            const LogicalMargin& aBorderPadding);
 
 
   
@@ -641,7 +649,8 @@ protected:
 
 
   void AdjustForCollapsingRowsCols(nsHTMLReflowMetrics& aDesiredSize,
-                                   nsMargin             aBorderPadding);
+                                   const WritingMode aWM,
+                                   const LogicalMargin& aBorderPadding);
 
   
 
@@ -801,8 +810,8 @@ protected:
 
   void ExpandBCDamageArea(mozilla::TableArea& aRect) const;
 
-  void SetColumnDimensions(nscoord         aHeight,
-                           const nsMargin& aReflowState);
+  void SetColumnDimensions(nscoord aHeight, WritingMode aWM,
+                           const LogicalMargin& aBorderPadding);
 
   int32_t CollectRows(nsIFrame*                   aFrame,
                       nsTArray<nsTableRowFrame*>& aCollection);

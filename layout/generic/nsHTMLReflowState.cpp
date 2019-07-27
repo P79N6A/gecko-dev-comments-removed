@@ -2393,7 +2393,8 @@ nsCSSOffsetState::InitOffsets(const LogicalSize& aPercentBasis,
       
       
       ComputedPhysicalPadding().SizeTo(0,0,0,0);
-      ComputedPhysicalBorderPadding() = tableFrame->GetIncludedOuterBCBorder();
+      SetComputedLogicalBorderPadding(
+        tableFrame->GetIncludedOuterBCBorder(mWritingMode));
     }
 
     
