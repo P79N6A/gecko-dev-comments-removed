@@ -411,6 +411,8 @@ public:
     
     virtual bool IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags) { return false; }
 
+    virtual bool DidRenderingDeviceReset() { return false; }
+
     void GetPrefFonts(nsIAtom *aLanguage, nsString& array, bool aAppendUnicode = true);
 
     
