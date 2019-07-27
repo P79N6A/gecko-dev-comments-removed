@@ -2025,7 +2025,7 @@ let Keywords = {
 
 
   fetch(keyword) {
-    if (!keyword || typeof(keyword) != "string")
+    if (typeof(keyword) != "string")
       throw new Error("Invalid keyword");
     keyword = keyword.trim().toLowerCase();
     return gKeywordsCachePromise.then(cache => cache.get(keyword) || null);
