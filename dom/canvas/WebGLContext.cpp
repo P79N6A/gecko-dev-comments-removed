@@ -909,16 +909,23 @@ WebGLContext::SetDimensions(int32_t sWidth, int32_t sHeight)
     
     ++mGeneration;
 
-    MakeContextCurrent();
-
-    gl->fViewport(0, 0, mWidth, mHeight);
-    mViewportWidth = mWidth;
-    mViewportHeight = mHeight;
+    
+    if (gl->WorkAroundDriverBugs()) {
+        if (!mOptions.alpha && gl->Caps().alpha) {
+            mNeedsFakeNoAlpha = true;
+        }
+    }
 
     
     mOptions.depth = gl->Caps().depth;
     mOptions.stencil = gl->Caps().stencil;
     mOptions.antialias = gl->Caps().antialias;
+
+    MakeContextCurrent();
+
+    gl->fViewport(0, 0, mWidth, mHeight);
+    mViewportWidth = mWidth;
+    mViewportHeight = mHeight;
 
     
     
@@ -934,14 +941,9 @@ WebGLContext::SetDimensions(int32_t sWidth, int32_t sHeight)
 
     mShouldPresent = true;
 
-    if (gl->WorkAroundDriverBugs()) {
-        if (!mOptions.alpha && gl->Caps().alpha) {
-            mNeedsFakeNoAlpha = true;
-        }
-    }
-
     MOZ_ASSERT(gl->Caps().color);
-    MOZ_ASSERT(gl->Caps().alpha == mOptions.alpha);
+    MOZ_ASSERT_IF(!mNeedsFakeNoAlpha, gl->Caps().alpha == mOptions.alpha);
+    MOZ_ASSERT_IF(mNeedsFakeNoAlpha, !mOptions.alpha && gl->Caps().alpha);
     MOZ_ASSERT(gl->Caps().depth == mOptions.depth);
     MOZ_ASSERT(gl->Caps().stencil == mOptions.stencil);
     MOZ_ASSERT(gl->Caps().antialias == mOptions.antialias);
