@@ -6,6 +6,7 @@
 
 const FRAME_SCRIPT = "chrome://marionette/content/marionette-listener.js";
 const BROWSER_STARTUP_FINISHED = "browser-delayed-startup-finished";
+const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 
 Cu.import("resource://gre/modules/Log.jsm");
@@ -190,6 +191,8 @@ function MarionetteServerConnection(aPrefix, aTransport, aServer)
     "device": qemu == "1" ? "qemu" : (!device ? "desktop" : device),
     "version": Services.appinfo.version
   };
+
+  this.observing = null;
 }
 
 MarionetteServerConnection.prototype = {
@@ -598,6 +601,18 @@ MarionetteServerConnection.prototype = {
       }
     }
 
+    if (appName == "Firefox") {
+      this._dialogWindowRef = null;
+      let modalHandler = this.handleDialogLoad.bind(this);
+      this.observing = {
+        "tabmodal-dialog-loaded": modalHandler,
+        "common-dialog-loaded": modalHandler
+      }
+      for (let topic in this.observing) {
+        Services.obs.addObserver(this.observing[topic], topic, false);
+      }
+    }
+
     function waitForWindow() {
       let win = this.getCurrentWindow();
       if (!win) {
@@ -623,7 +638,6 @@ MarionetteServerConnection.prototype = {
         let clickToStart;
         try {
           clickToStart = Services.prefs.getBoolPref('marionette.debugging.clicktostart');
-          Services.prefs.setBoolPref('marionette.debugging.clicktostart', false);
         } catch (e) { }
         if (clickToStart && (appName != "B2G")) {
           let pService = Cc["@mozilla.org/embedcomp/prompt-service;1"]
@@ -2511,8 +2525,9 @@ MarionetteServerConnection.prototype = {
       }
       
       for (let win in this.browsers) {
-        for (let i in this.browsers[win].knownFrames) {
-          this.globalMessageManager.broadcastAsyncMessage("Marionette:deleteSession" + this.browsers[win].knownFrames[i], {});
+        let browser = this.browsers[win];
+        for (let i in browser.knownFrames) {
+          this.globalMessageManager.broadcastAsyncMessage("Marionette:deleteSession" + browser.knownFrames[i], {});
         }
       }
       let winEnum = this.getWinEnumerator();
@@ -2531,6 +2546,13 @@ MarionetteServerConnection.prototype = {
     this.sessionId = null;
     this.deleteFile('marionetteChromeScripts');
     this.deleteFile('marionetteContentScripts');
+
+    if (this.observing !== null) {
+      for (let topic in this.observing) {
+        Services.obs.removeObserver(this.observing[topic], topic);
+      }
+      this.observing = null;
+    }
   },
 
   
@@ -2858,9 +2880,137 @@ MarionetteServerConnection.prototype = {
 
 
 
+  get activeDialogWindow () {
+    if (this._dialogWindowRef !== null) {
+      let dialogWin = this._dialogWindowRef.get();
+      if (dialogWin && dialogWin.parent) {
+        return dialogWin;
+      }
+    }
+    return null;
+  },
+
+  get activeDialogUI () {
+    let dialogWin = this.activeDialogWindow;
+    if (dialogWin) {
+      return dialogWin.Dialog.ui;
+    }
+    return this.curBrowser.getTabModalUI();
+  },
+
+  
+
+
+
+  dismissDialog: function MDA_dismissDialog() {
+    this.command_id = this.getCommandId();
+    if (this.activeDialogUI === null) {
+      this.sendError("No tab modal was open when attempting to dismiss the dialog",
+                     27, null, this.command_id);
+      return;
+    }
+
+    let {button0, button1} = this.activeDialogUI;
+    (button1 ? button1 : button0).click();
+    this.sendOk(this.command_id);
+  },
+
+  
+
+
+
+  acceptDialog: function MDA_acceptDialog() {
+    this.command_id = this.getCommandId();
+    if (this.activeDialogUI === null) {
+      this.sendError("No tab modal was open when attempting to accept the dialog",
+                     27, null, this.command_id);
+      return;
+    }
+
+    let {button0} = this.activeDialogUI;
+    button0.click();
+    this.sendOk(this.command_id);
+  },
+
+  
+
+
+
+  getTextFromDialog: function MDA_getTextFromDialog() {
+    this.command_id = this.getCommandId();
+    if (this.activeDialogUI === null) {
+      this.sendError("No tab modal was open when attempting to get the dialog text",
+                     27, null, this.command_id);
+      return;
+    }
+
+    let {infoBody} = this.activeDialogUI;
+    this.sendResponse(infoBody.textContent, this.command_id);
+  },
+
+  
+
+
+
+
+  sendKeysToDialog: function MDA_sendKeysToDialog(aRequest) {
+    this.command_id = this.getCommandId();
+    if (this.activeDialogUI === null) {
+      this.sendError("No tab modal was open when attempting to send keys to a dialog",
+                     27, null, this.command_id);
+      return;
+    }
+
+    
+    let {loginContainer, loginTextbox} = this.activeDialogUI;
+    if (loginContainer.hidden) {
+      this.sendError("This prompt does not accept text input",
+                     11, null, this.command_id);
+    }
+
+    let win = this.activeDialogWindow ? this.activeDialogWindow : this.getCurrentWindow();
+    utils.sendKeysToElement(win, loginTextbox, aRequest.parameters.value,
+                            this.sendOk.bind(this), this.sendError.bind(this),
+                            this.command_id, "chrome");
+  },
+
+  
+
+
+
   generateFrameId: function MDA_generateFrameId(id) {
     let uid = id + (appName == "B2G" ? "-b2g" : "");
     return uid;
+  },
+
+  
+
+
+
+
+
+  handleDialogLoad: function MDA_handleModalLoad(subject, topic) {
+    
+    
+    let clickToStart;
+    try {
+      clickToStart = Services.prefs.getBoolPref('marionette.debugging.clicktostart');
+    } catch (e) { }
+    if (clickToStart) {
+      Services.prefs.setBoolPref('marionette.debugging.clicktostart', false);
+      return;
+    }
+
+    if (topic == "common-dialog-loaded") {
+      this._dialogWindowRef = Cu.getWeakReference(subject);
+    }
+
+    if (this.command_id) {
+      
+      
+      
+      this.sendToClient({from:this.actorID, ok: true, value: null}, this.command_id);
+    }
   },
 
   
@@ -3124,7 +3274,11 @@ MarionetteServerConnection.prototype.requestTypes = {
   "setScreenOrientation": MarionetteServerConnection.prototype.setScreenOrientation,
   "getWindowSize": MarionetteServerConnection.prototype.getWindowSize,
   "setWindowSize": MarionetteServerConnection.prototype.setWindowSize,
-  "maximizeWindow": MarionetteServerConnection.prototype.maximizeWindow
+  "maximizeWindow": MarionetteServerConnection.prototype.maximizeWindow,
+  "dismissDialog": MarionetteServerConnection.prototype.dismissDialog,
+  "acceptDialog": MarionetteServerConnection.prototype.acceptDialog,
+  "getTextFromDialog": MarionetteServerConnection.prototype.getTextFromDialog,
+  "sendKeysToDialog": MarionetteServerConnection.prototype.sendKeysToDialog
 };
 
 
@@ -3157,6 +3311,22 @@ BrowserObj.prototype = {
   get tab () {
     
     return this.browser ? this.browser.selectedTab : null;
+  },
+
+  
+
+
+
+  getTabModalUI: function MDA__getTabModaUI () {
+    let browserForTab = this.browser.getBrowserForTab(this.tab);
+    if (!browserForTab.hasAttribute('tabmodalPromptShowing')) {
+      return null;
+    }
+    
+    
+    let modals = browserForTab.parentNode
+                              .getElementsByTagNameNS(XUL_NS, 'tabmodalprompt');
+    return modals[0].ui;
   },
 
   
