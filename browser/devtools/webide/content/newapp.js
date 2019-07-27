@@ -127,7 +127,7 @@ function doOK() {
   }
 
   
-  let subfolder = projectName.replace(/\W/g, '').toLowerCase();
+  let subfolder = projectName.replace(/[\\/:*?"<>|]/g, '').toLowerCase();
   folder.append(subfolder);
 
   try {
