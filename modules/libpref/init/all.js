@@ -2425,7 +2425,13 @@ pref("dom.ipc.plugins.reportCrashURL", true);
 
 pref("dom.ipc.plugins.unloadTimeoutSecs", 30);
 
+
+
+#ifdef NIGHTLY_BUILD
 pref("dom.ipc.plugins.asyncInit", false);
+#else
+pref("dom.ipc.plugins.asyncInit", true);
+#endif
 
 pref("dom.ipc.processCount", 1);
 
