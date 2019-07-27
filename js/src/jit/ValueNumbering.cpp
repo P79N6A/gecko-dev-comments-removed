@@ -480,33 +480,28 @@ ValueNumberer::fixupOSROnlyLoop(MBasicBlock *block, MBasicBlock *backedge)
 
 
 bool
-ValueNumberer::removePredecessorAndDoDCE(MBasicBlock *block, MBasicBlock *pred)
+ValueNumberer::removePredecessorAndDoDCE(MBasicBlock *block, MBasicBlock *pred, size_t predIndex)
 {
     MOZ_ASSERT(!block->isMarked(),
                "Block marked unreachable should have predecessors removed already");
 
     
     
-    if (!block->phisEmpty()) {
-        uint32_t index = pred->positionInPhiSuccessor();
-        for (MPhiIterator iter(block->phisBegin()), end(block->phisEnd()); iter != end; ++iter) {
-            MPhi *phi = *iter;
-            MOZ_ASSERT(!values_.has(phi), "Visited phi in block having predecessor removed");
+    MOZ_ASSERT(nextDef_ == nullptr);
+    for (MPhiIterator iter(block->phisBegin()), end(block->phisEnd()); iter != end; ) {
+        MPhi *phi = *iter++;
+        MOZ_ASSERT(!values_.has(phi), "Visited phi in block having predecessor removed");
 
-            MDefinition *op = phi->getOperand(index);
-            if (op == phi)
-                continue;
+        MDefinition *op = phi->getOperand(predIndex);
+        phi->removeOperand(predIndex);
 
-            
-            
-            phi->replaceOperand(index, phi);
-
-            if (!handleUseReleased(op, DontSetUseRemoved) || !processDeadDefs())
-                return false;
-        }
+        nextDef_ = *iter;
+        if (!handleUseReleased(op, DontSetUseRemoved) || !processDeadDefs())
+            return false;
     }
+    nextDef_ = nullptr;
 
-    block->removePredecessor(pred);
+    block->removePredecessorWithoutPhiOperands(pred, predIndex);
     return true;
 }
 
@@ -551,7 +546,7 @@ ValueNumberer::removePredecessorAndCleanUp(MBasicBlock *block, MBasicBlock *pred
     }
 
     
-    if (!removePredecessorAndDoDCE(block, pred))
+    if (!removePredecessorAndDoDCE(block, pred, block->getPredecessorIndex(pred)))
         return false;
 
     
@@ -573,7 +568,7 @@ ValueNumberer::removePredecessorAndCleanUp(MBasicBlock *block, MBasicBlock *pred
         if (block->isLoopHeader())
             block->clearLoopHeader();
         for (size_t i = 0, e = block->numPredecessors(); i < e; ++i) {
-            if (!removePredecessorAndDoDCE(block, block->getPredecessor(i)))
+            if (!removePredecessorAndDoDCE(block, block->getPredecessor(i), i))
                 return false;
         }
 
@@ -586,6 +581,7 @@ ValueNumberer::removePredecessorAndCleanUp(MBasicBlock *block, MBasicBlock *pred
                 if (!releaseResumePointOperands(outer) || !processDeadDefs())
                     return false;
             }
+            MOZ_ASSERT(nextDef_ == nullptr);
             for (MInstructionIterator iter(block->begin()), end(block->end()); iter != end; ) {
                 MInstruction *ins = *iter++;
                 nextDef_ = *iter;
@@ -594,6 +590,7 @@ ValueNumberer::removePredecessorAndCleanUp(MBasicBlock *block, MBasicBlock *pred
                         return false;
                 }
             }
+            nextDef_ = nullptr;
         } else {
 #ifdef DEBUG
             MOZ_ASSERT(block->outerResumePoint() == nullptr,
@@ -870,6 +867,7 @@ ValueNumberer::visitUnreachableBlock(MBasicBlock *block)
 
     
     
+    MOZ_ASSERT(nextDef_ == nullptr);
     for (MDefinitionIterator iter(block); iter; ) {
         MDefinition *def = *iter++;
         if (def->hasUses())
@@ -894,6 +892,7 @@ ValueNumberer::visitBlock(MBasicBlock *block, const MBasicBlock *dominatorRoot)
     JitSpew(JitSpew_GVN, "    Visiting block%u", block->id());
 
     
+    MOZ_ASSERT(nextDef_ == nullptr);
     for (MDefinitionIterator iter(block); iter; ) {
         MDefinition *def = *iter++;
 

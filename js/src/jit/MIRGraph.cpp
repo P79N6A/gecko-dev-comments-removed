@@ -1298,6 +1298,16 @@ MBasicBlock::getSuccessorIndex(MBasicBlock *block) const
     MOZ_CRASH("Invalid successor");
 }
 
+size_t
+MBasicBlock::getPredecessorIndex(MBasicBlock *block) const
+{
+    for (size_t i = 0, e = numPredecessors(); i < e; ++i) {
+        if (getPredecessor(i) == block)
+            return i;
+    }
+    MOZ_CRASH("Invalid predecessor");
+}
+
 void
 MBasicBlock::replaceSuccessor(size_t pos, MBasicBlock *split)
 {
@@ -1339,38 +1349,38 @@ MBasicBlock::clearDominatorInfo()
 }
 
 void
-MBasicBlock::removePredecessor(MBasicBlock *pred)
+MBasicBlock::removePredecessorWithoutPhiOperands(MBasicBlock *pred, size_t predIndex)
 {
     
     if (isLoopHeader() && hasUniqueBackedge() && backedge() == pred)
         clearLoopHeader();
 
-    for (size_t i = 0; i < numPredecessors(); i++) {
-        if (getPredecessor(i) != pred)
-            continue;
-
-        
-        
-        if (!phisEmpty()) {
-            for (MPhiIterator iter = phisBegin(); iter != phisEnd(); iter++)
-                iter->removeOperand(i);
-            if (pred->successorWithPhis()) {
-                
-                
-                JS_ASSERT(pred->positionInPhiSuccessor() == i);
-                pred->setSuccessorWithPhis(nullptr, 0);
-                for (size_t j = i+1; j < numPredecessors(); j++)
-                    getPredecessor(j)->setSuccessorWithPhis(this, j - 1);
-            }
-        }
-
-        
-        MBasicBlock **ptr = predecessors_.begin() + i;
-        predecessors_.erase(ptr);
-        return;
+    
+    
+    
+    if (pred->successorWithPhis()) {
+        JS_ASSERT(pred->positionInPhiSuccessor() == predIndex);
+        pred->setSuccessorWithPhis(nullptr, 0);
+        for (size_t j = predIndex+1; j < numPredecessors(); j++)
+            getPredecessor(j)->setSuccessorWithPhis(this, j - 1);
     }
 
-    MOZ_CRASH("predecessor was not found");
+    
+    predecessors_.erase(predecessors_.begin() + predIndex);
+}
+
+void
+MBasicBlock::removePredecessor(MBasicBlock *pred)
+{
+    size_t predIndex = getPredecessorIndex(pred);
+
+    
+    for (MPhiIterator iter(phisBegin()), end(phisEnd()); iter != end; ++iter)
+        iter->removeOperand(predIndex);
+
+    
+    
+    removePredecessorWithoutPhiOperands(pred, predIndex);
 }
 
 void
