@@ -53,10 +53,11 @@ nsEmptyStyleRule::MapRuleInfoInto(nsRuleData* aRuleData)
  void
 nsEmptyStyleRule::List(FILE* out, int32_t aIndent) const
 {
+  nsAutoCString indentStr;
   for (int32_t index = aIndent; --index >= 0; ) {
-    fputs("  ", out);
+    indentStr.AppendLiteral("  ");
   }
-  fputs("[empty style rule] {}\n", out);
+  fprintf_stderr(out, "%s[empty style rule] {}\n", indentStr.get());
 }
 #endif
 
@@ -105,10 +106,11 @@ nsInitialStyleRule::MapRuleInfoInto(nsRuleData* aRuleData)
  void
 nsInitialStyleRule::List(FILE* out, int32_t aIndent) const
 {
+  nsAutoCString indentStr;
   for (int32_t index = aIndent; --index >= 0; ) {
-    fputs("  ", out);
+    indentStr.AppendLiteral("  ");
   }
-  fputs("[initial style rule] {}\n", out);
+  fprintf_stderr(out, "%s[initial style rule] {}\n", indentStr.get());
 }
 #endif
 
@@ -129,10 +131,11 @@ nsDisableTextZoomStyleRule::MapRuleInfoInto(nsRuleData* aRuleData)
  void
 nsDisableTextZoomStyleRule::List(FILE* out, int32_t aIndent) const
 {
+  nsAutoCString indentStr;
   for (int32_t index = aIndent; --index >= 0; ) {
-    fputs("  ", out);
+    indentStr.AppendLiteral("  ");
   }
-  fputs("[disable text zoom style rule] {}\n", out);
+  fprintf_stderr(out, "%s[disable text zoom style rule] {}\n", indentStr.get());
 }
 #endif
 
