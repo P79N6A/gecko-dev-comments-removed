@@ -45,6 +45,9 @@ let gNumberOfThreadsLaunched = 0;
 const PREF_BRANCH = "toolkit.telemetry.";
 const PREF_ENABLED = PREF_BRANCH + "enabled";
 const PREF_FHR_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
+const PREF_FHR_SERVICE_ENABLED = "datareporting.healthreport.service.enabled";
+
+const HAS_DATAREPORTINGSERVICE = "@mozilla.org/datareporting/service;1" in Cc;
 
 const Telemetry = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry);
 
@@ -52,6 +55,7 @@ let gHttpServer = new HttpServer();
 let gServerStarted = false;
 let gRequestIterator = null;
 let gDataReportingClientID = null;
+let gOrigFhrServiceEnabled = true;
 
 XPCOMUtils.defineLazyGetter(this, "gDatareportingService",
   () => Cc["@mozilla.org/datareporting/service;1"]
@@ -219,6 +223,9 @@ function checkPayload(request, reason, successfulPings) {
   do_check_eq(payload.simpleMeasurements.savedPings, 1);
   do_check_true("maximalNumberOfConcurrentThreads" in payload.simpleMeasurements);
   do_check_true(payload.simpleMeasurements.maximalNumberOfConcurrentThreads >= gNumberOfThreadsLaunched);
+
+  let activeTicks = payload.simpleMeasurements.activeTicks;
+  do_check_true(HAS_DATAREPORTINGSERVICE ? activeTicks >= 0 : activeTicks == -1);
 
   do_check_eq(payload.simpleMeasurements.failedProfileLockCount,
               FAILED_PROFILE_LOCK_ATTEMPTS);
@@ -433,6 +440,13 @@ function run_test() {
   }
 
   
+  
+  
+  if (HAS_DATAREPORTINGSERVICE) {
+    do_check_true(gDatareportingService.getSessionRecorder() === undefined);
+  }
+
+  
   do_get_profile();
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9.2");
 
@@ -441,7 +455,11 @@ function run_test() {
 
   
   
-  if ("@mozilla.org/datareporting/service;1" in Cc) {
+  if (HAS_DATAREPORTINGSERVICE) {
+    
+    gOrigFhrServiceEnabled = Services.prefs.getBoolPref(PREF_FHR_SERVICE_ENABLED, true);
+    Services.prefs.setBoolPref(PREF_FHR_SERVICE_ENABLED, false);
+
     gDatareportingService.observe(null, "app-startup", null);
     gDatareportingService.observe(null, "profile-after-change", null);
   }
@@ -495,7 +513,18 @@ function actualTest() {
 add_task(function* asyncSetup() {
   yield TelemetryPing.setup();
 
-  if ("@mozilla.org/datareporting/service;1" in Cc) {
+  
+  do_check_true(TelemetryPing.getPayload().simpleMeasurements.activeTicks == -1);
+
+  if (HAS_DATAREPORTINGSERVICE) {
+    
+    
+    
+    
+    Services.prefs.setBoolPref(PREF_FHR_SERVICE_ENABLED, gOrigFhrServiceEnabled);
+    gDatareportingService.observe(null, "app-startup", null);
+    gDatareportingService.observe(null, "profile-after-change", null);
+
     gDataReportingClientID = yield gDatareportingService.getClientID();
 
     
