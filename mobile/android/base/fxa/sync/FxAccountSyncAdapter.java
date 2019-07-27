@@ -74,7 +74,7 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
   
   
   private static final int MINIMUM_SYNC_DELAY_MILLIS = 15 * 1000;        
-  private volatile long lastSyncRealtimeMillis = 0L;
+  private volatile long lastSyncRealtimeMillis;
 
   protected final ExecutorService executor;
   protected final FxAccountNotificationManager notificationManager;
