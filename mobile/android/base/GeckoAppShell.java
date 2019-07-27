@@ -141,7 +141,7 @@ public class GeckoAppShell
 
     @SuppressWarnings("serial")
     private static final List<String> UNKNOWN_MIME_TYPES = new ArrayList<String>(3) {{
-        add("application/octet-stream"); 
+        add("unknown/unknown"); 
         add("application/unknown");
         add("application/octet-stream"); 
     }};
@@ -1833,13 +1833,13 @@ public class GeckoAppShell
             dm.addCompletedDownload(f.getName(),
                                     f.getName(),
                                     true, 
-                                    aMimeType,
+                                    mimeType,
                                     f.getAbsolutePath(),
                                     Math.max(0, f.length()),
                                     false); 
         } else {
             Context context = getContext();
-            GeckoMediaScannerClient.startScan(context, aFile, aMimeType);
+            GeckoMediaScannerClient.startScan(context, aFile, mimeType);
         }
     }
 
