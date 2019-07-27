@@ -13,7 +13,7 @@ do_get_profile();
 const certdb = Cc["@mozilla.org/security/x509certdb;1"]
                  .getService(Ci.nsIX509CertDB);
 
-const SERVER_PORT = 8080;
+const SERVER_PORT = 8888;
 
 function start_ocsp_responder(expectedCertNames, expectedPaths,
                               expectedMethods) {
