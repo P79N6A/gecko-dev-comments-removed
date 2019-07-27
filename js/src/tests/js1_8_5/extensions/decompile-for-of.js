@@ -1,4 +1,4 @@
-
+// The decompiler can handle the implicit call to @@iterator in a for-of loop.
 
 var x;
 function check(code) {
@@ -9,7 +9,7 @@ function check(code) {
         s = exc.message;
     }
 
-    assertEq(s, "(intermediate value)(...)[Symbol.iterator] is not a function");
+    assertEq(s, `x[Symbol.iterator] is not a function`);
 }
 
 x = {};

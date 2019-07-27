@@ -78,9 +78,9 @@ function testArgumentFunction(pattern, input) {
     'return [a, b, c, d, e, f];'
   )(input);
 }
-
-
-
+// XXX: ES6 requires the `Function` constructor to accept arbitrary
+// `BindingElement`s as formal parameters. See Bug 1037939.
+// Once fixed, please update the assertions below.
 assertThrowsInstanceOf(() => testAll(testArgumentFunction), SyntaxError);
 
 function testThrow(pattern, input) {
@@ -92,9 +92,9 @@ function testThrow(pattern, input) {
 }
 testAll(testThrow);
 
-
-
-
+// XXX: Support for let blocks and expressions will be removed in bug 1023609.
+// However, they test a special code path in destructuring assignment so having
+// these tests here for now seems like a good idea.
 function testLetBlock(pattern, input) {
   return new Function('input',
     'let (' + pattern + ' = input)' +
@@ -110,7 +110,7 @@ function testLetExpression(pattern, input) {
 }
 testAll(testLetExpression);
 
-
+// test global const
 const [ca = 1, cb = 2] = [];
 assertEq(ca, 1);
 assertEq(cb, 2);
@@ -118,7 +118,7 @@ assertEq(cb, 2);
 const {a: {a: cc = 3} = {a: undefined}} = {};
 assertEq(cc, 3);
 
-
+// test that the assignment happens in source order
 var a = undefined, b = undefined, c = undefined;
 ({a: a = 1, c: c = 2, b: b = 3}) = {
   get a() {
@@ -145,19 +145,19 @@ assertEq(b, 4);
 assertThrowsInstanceOf(() => { var {a: {a} = null} = {}; }, TypeError);
 assertThrowsInstanceOf(() => { var [[a] = 2] = []; }, TypeError);
 
-
+// destructuring assignment might have  duplicate variable names.
 var [a = 1, a = 2] = [3];
 assertEq(a, 2);
 
-
+// assignment to properties of default params
 [a = {y: 2}, a.x = 1] = [];
 assertEq(typeof a, 'object');
 assertEq(a.x, 1);
 assertEq(a.y, 2);
 
-
+// defaults are evaluated even if there is no binding
 var evaled = false;
-({a: {} = (evaled = true, {})}) = {};
+({a: {} = (evaled = true, null)}) = {};
 assertEq(evaled, true);
 evaled = false;
 assertThrowsInstanceOf(() => { [[] = (evaled = true, 2)] = [] }, TypeError);
@@ -165,7 +165,7 @@ assertEq(evaled, true);
 
 assertThrowsInstanceOf(() => new Function('var [...rest = defaults] = [];'), SyntaxError);
 
-
+// bug 1124480: destructuring defaults should work correctly as part of for-in
 var defaultsSupportedInForVar = false;
 try
 {

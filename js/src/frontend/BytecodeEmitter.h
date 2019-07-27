@@ -525,9 +525,6 @@ struct BytecodeEmitter
     bool emitInitializeDestructuringDecls(JSOp prologueOp, ParseNode* pattern);
 
     
-    bool emitToObject();
-
-    
     
     bool emitIterator();
 
