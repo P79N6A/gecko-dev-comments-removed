@@ -78,7 +78,6 @@ class nsSMILAnimationController;
 class nsStyleSet;
 class nsTextNode;
 class nsWindowSizes;
-class nsSmallVoidArray;
 class nsDOMCaretPosition;
 class nsViewportInfo;
 class nsIGlobalObject;
@@ -2079,8 +2078,7 @@ public:
 
 
 
-
-  virtual const nsSmallVoidArray* GetAllElementsForId(const nsAString& aElementId) const = 0;
+  virtual const nsTArray<Element*>* GetAllElementsForId(const nsAString& aElementId) const = 0;
 
   
 
