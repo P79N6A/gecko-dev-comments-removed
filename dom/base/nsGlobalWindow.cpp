@@ -2338,6 +2338,9 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
   NS_PRECONDITION(IsOuterWindow(), "Must only be called on outer windows");
 
+  
+  NS_ENSURE_STATE(!mCleanedUp);
+
   if (IsFrozen()) {
     
     
