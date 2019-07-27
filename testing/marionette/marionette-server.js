@@ -481,16 +481,32 @@ MarionetteServerConnection.prototype = {
 
 
   whenBrowserStarted: function MDA_whenBrowserStarted(win, newSession) {
+    utils.window = win;
+
     try {
+      let mm = win.window.messageManager;
+      if (!newSession) {
+        
+        
+        
+        
+        
+        if (mm.childCount === 0) {
+          this.sendOk(this.command_id);
+        } else {
+          this.curBrowser.frameRegsPending = mm.childCount;
+        }
+      }
+
       if (!Services.prefs.getBoolPref("marionette.contentListener") || !newSession) {
-        this.curBrowser.loadFrameScript(FRAME_SCRIPT, win);
+        mm.loadFrameScript(FRAME_SCRIPT, true, true);
+        Services.prefs.setBoolPref("marionette.contentListener", true);
       }
     }
     catch (e) {
       
       logger.info("could not load listener into content for page: " + win.location.href);
     }
-    utils.window = win;
   },
 
   
@@ -1405,8 +1421,8 @@ MarionetteServerConnection.prototype = {
         else {
           utils.window = foundWin;
           this.curBrowser = this.browsers[winId];
+          this.sendOk(command_id);
         }
-        this.sendOk(command_id);
         return;
       }
     }
@@ -2787,6 +2803,16 @@ MarionetteServerConnection.prototype = {
             this.newSessionCommandId = null;
           }
         }
+        if (this.curBrowser.frameRegsPending) {
+          if (this.curBrowser.frameRegsPending > 0) {
+            this.curBrowser.frameRegsPending -= 1;
+          }
+          if (this.curBrowser.frameRegsPending === 0) {
+            
+            
+            this.sendOk(this.command_id);
+          }
+        }
         return [reg, mainContent];
       case "Marionette:emitTouchEvent":
         let globalMessageManager = Cc["@mozilla.org/globalmessagemanager;1"]
@@ -2963,19 +2989,6 @@ BrowserObj.prototype = {
 
   addTab: function BO_addTab(uri) {
     return this.browser.addTab(uri, true);
-  },
-
-  
-
-
-
-
-
-
-
-  loadFrameScript: function BO_loadFrameScript(script, frame) {
-    frame.window.messageManager.loadFrameScript(script, true, true);
-    Services.prefs.setBoolPref("marionette.contentListener", true);
   },
 
   
