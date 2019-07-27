@@ -482,6 +482,23 @@ LIRGeneratorShared::fillBoxUses(LInstruction *lir, size_t n, MDefinition *mir)
 }
 #endif
 
+LUse
+LIRGeneratorShared::useRegisterForTypedLoad(MDefinition *mir, MIRType type)
+{
+    MOZ_ASSERT(type != MIRType_Value && type != MIRType_None);
+    MOZ_ASSERT(mir->type() == MIRType_Object || mir->type() == MIRType_Slots);
+
+#ifdef JS_PUNBOX64
+    
+    
+    
+    if (type != MIRType_Int32 && type != MIRType_Boolean && type != MIRType_Double)
+        return useRegister(mir);
+#endif
+
+    return useRegisterAtStart(mir);
+}
+
 } 
 } 
 
