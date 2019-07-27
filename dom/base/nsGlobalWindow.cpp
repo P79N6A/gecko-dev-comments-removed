@@ -5356,26 +5356,11 @@ nsGlobalWindow::MatchMedia(const nsAString& aMediaQueryList,
   FORWARD_TO_OUTER_OR_THROW(MatchMedia, (aMediaQueryList, aError), aError,
                             nullptr);
 
-  
-  
-  
-  nsGlobalWindow *parent = static_cast<nsGlobalWindow*>(GetPrivateParent());
-  if (parent) {
-    parent->FlushPendingNotifications(Flush_Frames);
-  }
-
-  if (!mDocShell) {
+  if (!mDoc) {
     return nullptr;
   }
 
-  nsRefPtr<nsPresContext> presContext;
-  mDocShell->GetPresContext(getter_AddRefs(presContext));
-
-  if (!presContext) {
-    return nullptr;
-  }
-
-  return presContext->MatchMedia(aMediaQueryList);
+  return mDoc->MatchMedia(aMediaQueryList);
 }
 
 NS_IMETHODIMP

@@ -5,6 +5,7 @@
 
 
 
+
 #include "mozilla/dom/MediaQueryList.h"
 #include "nsPresContext.h"
 #include "nsIMediaList.h"
@@ -14,9 +15,9 @@
 namespace mozilla {
 namespace dom {
 
-MediaQueryList::MediaQueryList(nsPresContext *aPresContext,
+MediaQueryList::MediaQueryList(nsIDocument *aDocument,
                                const nsAString &aMediaQueryList)
-  : mPresContext(aPresContext),
+  : mDocument(aDocument),
     mMediaList(new nsMediaList),
     mMatchesValid(false)
 {
@@ -28,7 +29,7 @@ MediaQueryList::MediaQueryList(nsPresContext *aPresContext,
 
 MediaQueryList::~MediaQueryList()
 {
-  if (mPresContext) {
+  if (mDocument) {
     PR_REMOVE_LINK(this);
   }
 }
@@ -36,15 +37,15 @@ MediaQueryList::~MediaQueryList()
 NS_IMPL_CYCLE_COLLECTION_CLASS(MediaQueryList)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(MediaQueryList)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPresContext)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDocument)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCallbacks)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(MediaQueryList)
-  if (tmp->mPresContext) {
+  if (tmp->mDocument) {
     PR_REMOVE_LINK(tmp);
-    NS_IMPL_CYCLE_COLLECTION_UNLINK(mPresContext)
+    NS_IMPL_CYCLE_COLLECTION_UNLINK(mDocument)
   }
   tmp->RemoveAllListeners();
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
@@ -138,11 +139,33 @@ MediaQueryList::RemoveAllListeners()
 void
 MediaQueryList::RecomputeMatches()
 {
-  if (!mPresContext) {
+  if (!mDocument) {
     return;
   }
 
-  mMatches = mMediaList->Matches(mPresContext, nullptr);
+  if (mDocument->GetParentDocument()) {
+    
+    
+    mDocument->GetParentDocument()->FlushPendingNotifications(Flush_Frames);
+    
+    if (!mDocument) {
+      return;
+    }
+  }
+
+  nsIPresShell* shell = mDocument->GetShell();
+  if (!shell) {
+    
+    return;
+  }
+
+  nsPresContext* presContext = shell->GetPresContext();
+  if (!presContext) {
+    
+    return;
+  }
+
+  mMatches = mMediaList->Matches(presContext, nullptr);
   mMatchesValid = true;
 }
 
@@ -169,10 +192,7 @@ MediaQueryList::MediumFeaturesChanged(NotifyList &aListenersToNotify)
 nsISupports*
 MediaQueryList::GetParentObject() const
 {
-  if (!mPresContext) {
-    return nullptr;
-  }
-  return mPresContext->Document();
+  return mDocument;
 }
 
 JSObject*
