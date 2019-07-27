@@ -40,6 +40,12 @@ let connectionCounters = new Map();
 
 
 
+
+let wrappedConnections = new Set();
+
+
+
+
 let isClosed = false;
 
 let Debugging = {
@@ -64,6 +70,20 @@ function logScriptError(message) {
   if (Debugging.failTestsOnAutoClose) {
     Promise.reject(new Error(message));
   }
+}
+
+
+
+
+
+
+
+
+function getIdentifierByPath(path) {
+  let basename = OS.Path.basename(path);
+  let number = connectionCounters.get(basename) || 0;
+  connectionCounters.set(basename, number + 1);
+  return basename + "#" + number;
 }
 
 
@@ -95,17 +115,17 @@ XPCOMUtils.defineLazyGetter(this, "Barriers", () => {
 
 
 
-  let finalizationObserver = function (subject, topic, connectionIdentifier) {
-    let connectionData = ConnectionData.byId.get(connectionIdentifier);
+  let finalizationObserver = function (subject, topic, identifier) {
+    let connectionData = ConnectionData.byId.get(identifier);
 
     if (connectionData === undefined) {
       logScriptError("Error: Attempt to finalize unknown Sqlite connection: " +
-                     connectionIdentifier + "\n");
+                     identifier + "\n");
       return;
     }
 
-    ConnectionData.byId.delete(connectionIdentifier);
-    logScriptError("Warning: Sqlite connection '" + connectionIdentifier +
+    ConnectionData.byId.delete(identifier);
+    logScriptError("Warning: Sqlite connection '" + identifier +
                    "' was not properly closed. Auto-close triggered by garbage collection.\n");
     connectionData.close();
   };
@@ -170,13 +190,17 @@ XPCOMUtils.defineLazyGetter(this, "Barriers", () => {
 
 
 
-function ConnectionData(connection, basename, number, options) {
-  this._log = Log.repository.getLoggerWithMessagePrefix("Sqlite.Connection." + basename,
-                                                        "Conn #" + number + ": ");
+function ConnectionData(connection, identifier, options={}) {
+  this._log = Log.repository.getLoggerWithMessagePrefix("Sqlite.Connection." +
+                                                        identifier + ": ");
   this._log.info("Opened");
 
   this._dbConn = connection;
-  this._connectionIdentifier = basename + " Conn #" + number;
+
+  
+  
+  this._identifier = identifier;
+
   this._open = true;
 
   this._cachedStatements = new Map();
@@ -204,10 +228,10 @@ function ConnectionData(connection, basename, number, options) {
   this._closeRequested = false;
 
   Barriers.connections.client.addBlocker(
-    this._connectionIdentifier + ": waiting for shutdown",
+    this._identifier + ": waiting for shutdown",
     this._deferredClose.promise,
     () =>  ({
-      identifier: this._connectionIdentifier,
+      identifier: this._identifier,
       isCloseRequested: this._closeRequested,
       hasDbConn: !!this._dbConn,
       hasInProgressTransaction: !!this._inProgressTransaction,
@@ -304,15 +328,23 @@ ConnectionData.prototype = Object.freeze({
     
     this._open = false;
 
-    this._log.debug("Calling asyncClose().");
-    this._dbConn.asyncClose(() => {
+    
+    
+    let markAsClosed = () => {
       this._log.info("Closed");
       this._dbConn = null;
       
       
       Barriers.connections.client.removeBlocker(deferred.promise);
       deferred.resolve();
-    });
+    }
+    if (wrappedConnections.has(this._identifier)) {
+      wrappedConnections.delete(this._identifier);
+      markAsClosed();
+    } else {
+      this._log.debug("Calling asyncClose().");
+      this._dbConn.asyncClose(markAsClosed);
+    }
   },
 
   executeCached: function (sql, params=null, onRow=null) {
@@ -722,12 +754,7 @@ function openConnection(options) {
   }
 
   let file = FileUtils.File(path);
-
-  let basename = OS.Path.basename(path);
-  let number = connectionCounters.get(basename) || 0;
-  connectionCounters.set(basename, number + 1);
-
-  let identifier = basename + "#" + number;
+  let identifier = getIdentifierByPath(path);
 
   log.info("Opening database: " + path + " (" + identifier + ")");
   let deferred = Promise.defer();
@@ -746,8 +773,8 @@ function openConnection(options) {
     log.info("Connection opened");
     try {
       deferred.resolve(
-        new OpenedConnection(connection.QueryInterface(Ci.mozIStorageAsyncConnection), basename, number,
-        openedOptions));
+        new OpenedConnection(connection.QueryInterface(Ci.mozIStorageAsyncConnection),
+                            identifier, openedOptions));
     } catch (ex) {
       log.warn("Could not open database: " + CommonUtils.exceptionStr(ex));
       deferred.reject(ex);
@@ -812,10 +839,7 @@ function cloneStorageConnection(options) {
   }
 
   let path = source.databaseFile.path;
-  let basename = OS.Path.basename(path);
-  let number = connectionCounters.get(basename) || 0;
-  connectionCounters.set(basename, number + 1);
-  let identifier = basename + "#" + number;
+  let identifier = getIdentifierByPath(path);
 
   log.info("Cloning database: " + path + " (" + identifier + ")");
   let deferred = Promise.defer();
@@ -828,14 +852,62 @@ function cloneStorageConnection(options) {
     log.info("Connection cloned");
     try {
       let conn = connection.QueryInterface(Ci.mozIStorageAsyncConnection);
-      deferred.resolve(new OpenedConnection(conn, basename, number,
-                                            openedOptions));
+      deferred.resolve(new OpenedConnection(conn, identifier, openedOptions));
     } catch (ex) {
       log.warn("Could not clone database: " + CommonUtils.exceptionStr(ex));
       deferred.reject(ex);
     }
   });
   return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function wrapStorageConnection(options) {
+  let log = Log.repository.getLogger("Sqlite.ConnectionWrapper");
+
+  let connection = options && options.connection;
+  if (!connection || !(connection instanceof Ci.mozIStorageAsyncConnection)) {
+    throw new TypeError("connection not specified or invalid.");
+  }
+
+  if (isClosed) {
+    throw new Error("Sqlite.jsm has been shutdown. Cannot wrap connection to: " + connection.database.path);
+  }
+
+  let path = connection.databaseFile.path;
+  let identifier = getIdentifierByPath(path);
+
+  log.info("Wrapping database: " + path + " (" + identifier + ")");
+  return new Promise(resolve => {
+    try {
+      let conn = connection.QueryInterface(Ci.mozIStorageAsyncConnection);
+      let wrapper = new OpenedConnection(conn, identifier);
+      
+      
+      wrappedConnections.add(identifier);
+      resolve(wrapper);
+    } catch (ex) {
+      log.warn("Could not wrap database: " + CommonUtils.exceptionStr(ex));
+      throw ex;
+    }
+  });
 }
 
 
@@ -884,18 +956,17 @@ function cloneStorageConnection(options) {
 
 
 
+function OpenedConnection(connection, identifier, options={}) {
+  
+  
+  
+  
+  
+  this._connectionData = new ConnectionData(connection, identifier, options);
 
-function OpenedConnection(connection, basename, number, options) {
   
   
-  
-  
-  
-  this._connectionData = new ConnectionData(connection, basename, number, options);
-
-  
-  
-  ConnectionData.byId.set(this._connectionData._connectionIdentifier,
+  ConnectionData.byId.set(this._connectionData._identifier,
                           this._connectionData);
 
   
@@ -904,7 +975,7 @@ function OpenedConnection(connection, basename, number, options) {
   
   this._witness = FinalizationWitnessService.make(
     "sqlite-finalization-witness",
-    this._connectionData._connectionIdentifier);
+    this._connectionData._identifier);
 }
 
 OpenedConnection.prototype = Object.freeze({
@@ -964,8 +1035,8 @@ OpenedConnection.prototype = Object.freeze({
     
     
     
-    if (ConnectionData.byId.has(this._connectionData._connectionIdentifier)) {
-      ConnectionData.byId.delete(this._connectionData._connectionIdentifier);
+    if (ConnectionData.byId.has(this._connectionData._identifier)) {
+      ConnectionData.byId.delete(this._connectionData._identifier);
       this._witness.forget();
     }
     return this._connectionData.close();
@@ -1175,6 +1246,7 @@ OpenedConnection.prototype = Object.freeze({
 this.Sqlite = {
   openConnection: openConnection,
   cloneStorageConnection: cloneStorageConnection,
+  wrapStorageConnection: wrapStorageConnection,
   
 
 
