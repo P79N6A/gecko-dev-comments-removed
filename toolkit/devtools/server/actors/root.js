@@ -11,6 +11,7 @@ const Services = require("Services");
 const { ActorPool, appendExtraActors, createExtraActors } = require("devtools/server/actors/common");
 const { DebuggerServer } = require("devtools/server/main");
 const { dumpProtocolSpec } = require("devtools/server/protocol");
+const makeDebugger = require("./utils/make-debugger");
 
 
 
@@ -92,6 +93,12 @@ function RootActor(aConnection, aParameters) {
   this._onTabListChanged = this.onTabListChanged.bind(this);
   this._onAddonListChanged = this.onAddonListChanged.bind(this);
   this._extraActors = {};
+
+  
+  this.makeDebugger = makeDebugger.bind(null, {
+    findDebuggees: dbg => dbg.findAllGlobals(),
+    shouldAddNewGlobalAsDebuggee: () => true
+  });
 }
 
 RootActor.prototype = {

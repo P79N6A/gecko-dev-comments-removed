@@ -14,6 +14,8 @@ let { AddonThreadActor, ThreadActor } = require("devtools/server/actors/script")
 let { DebuggerServer } = require("devtools/server/main");
 let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 let { dbg_assert } = DevToolsUtils;
+let makeDebugger = require("./utils/make-debugger");
+let mapURIToAddonID = require("./utils/map-uri-to-addon-id");
 
 let {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -70,6 +72,29 @@ function sendShutdownEvent() {
 }
 
 exports.sendShutdownEvent = sendShutdownEvent;
+
+
+
+
+
+
+
+
+
+
+
+
+const unwrapDebuggerObjectGlobal = wrappedGlobal => {
+  let global;
+  try {
+    global = wrappedGlobal.unsafeDereference();
+  }
+  catch (e) {
+    
+    
+  }
+  return global;
+};
 
 
 
@@ -520,6 +545,13 @@ function TabActor(aConnection)
   this._extraActors = {};
   this._exited = false;
 
+  this._shouldAddNewGlobalAsDebuggee = this._shouldAddNewGlobalAsDebuggee.bind(this);
+
+  this.makeDebugger = makeDebugger.bind(null, {
+    findDebuggees: () => this.windows,
+    shouldAddNewGlobalAsDebuggee: this._shouldAddNewGlobalAsDebuggee
+  });
+
   this.traits = { reconfigure: true };
 }
 
@@ -713,6 +745,37 @@ TabActor.prototype = {
     }
 
     this._exited = true;
+  },
+
+  
+
+
+
+  _shouldAddNewGlobalAsDebuggee: function (wrappedGlobal) {
+    if (wrappedGlobal.hostAnnotations &&
+        wrappedGlobal.hostAnnotations.type == "document" &&
+        wrappedGlobal.hostAnnotations.element === this.window) {
+      return true;
+    }
+
+    let global = unwrapDebuggerObjectGlobal(wrappedGlobal);
+    if (!global) {
+      return false;
+    }
+
+    
+    let metadata = {};
+    let id = "";
+    try {
+      id = getInnerId(this.window);
+      metadata = Cu.getSandboxMetadata(global);
+    }
+    catch (e) {}
+    if (metadata["inner-window-id"] && metadata["inner-window-id"] == id) {
+      return true;
+    }
+
+    return false;
   },
 
   
@@ -999,7 +1062,7 @@ TabActor.prototype = {
     
     
     if (threadActor.attached) {
-      threadActor.findGlobals();
+      threadActor.dbg.addDebuggees();
     }
   },
 
@@ -1287,6 +1350,14 @@ function BrowserAddonActor(aConnection, aAddon) {
   this.conn.addActorPool(this._contextPool);
   this._threadActor = null;
   this._global = null;
+
+  this._shouldAddNewGlobalAsDebuggee = this._shouldAddNewGlobalAsDebuggee.bind(this);
+
+  this.makeDebugger = makeDebugger.bind(null, {
+    findDebuggees: this._findDebuggees.bind(this),
+    shouldAddNewGlobalAsDebuggee: this._shouldAddNewGlobalAsDebuggee
+  });
+
   AddonManager.addAddonListener(this);
 }
 
@@ -1373,8 +1444,7 @@ BrowserAddonActor.prototype = {
     }
 
     if (!this.attached) {
-      this._threadActor = new AddonThreadActor(this.conn, this,
-                                               this._addon.id);
+      this._threadActor = new AddonThreadActor(this.conn, this);
       this._contextPool.addActor(this._threadActor);
     }
 
@@ -1413,6 +1483,61 @@ BrowserAddonActor.prototype = {
       windowUtils.resumeTimeouts();
       windowUtils.suppressEventHandling(false);
     }
+  },
+
+  
+
+
+
+  _shouldAddNewGlobalAsDebuggee: function (aGlobal) {
+    const global = unwrapDebuggerObjectGlobal(aGlobal);
+    try {
+      
+      let metadata = Cu.getSandboxMetadata(global);
+      if (metadata) {
+        return metadata.addonID === this.id;
+      }
+    } catch (e) {}
+
+    if (global instanceof Ci.nsIDOMWindow) {
+      let id = {};
+      if (mapURIToAddonID(global.document.documentURIObject, id)) {
+        return id.value === this.id;
+      }
+      return false;
+    }
+
+    
+    
+    let uridescriptor = aGlobal.getOwnPropertyDescriptor("__URI__");
+    if (uridescriptor && "value" in uridescriptor && uridescriptor.value) {
+      let uri;
+      try {
+        uri = Services.io.newURI(uridescriptor.value, null, null);
+      }
+      catch (e) {
+        DevToolsUtils.reportException(
+          "BrowserAddonActor.prototype._shouldAddNewGlobalAsDebuggee",
+          new Error("Invalid URI: " + uridescriptor.value)
+        );
+        return false;
+      }
+
+      let id = {};
+      if (mapURIToAddonID(uri, id)) {
+        return id.value === this.id;
+      }
+    }
+
+    return false;
+  },
+
+  
+
+
+
+  _findDebuggees: function (dbg) {
+    return dbg.findAllGlobals().filter(this._shouldAddNewGlobalAsDebuggee);
   }
 };
 

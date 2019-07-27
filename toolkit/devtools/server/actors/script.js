@@ -16,6 +16,7 @@ const { SourceMapConsumer, SourceMapGenerator } = require("source-map");
 const promise = require("promise");
 const Debugger = require("Debugger");
 const xpcInspector = require("xpcInspector");
+const mapURIToAddonID = require("./utils/map-uri-to-addon-id");
 
 const { defer, resolve, reject, all } = require("devtools/toolkit/deprecated-sync-thenables");
 const { CssLogic } = require("devtools/styleinspector/css-logic");
@@ -24,8 +25,6 @@ DevToolsUtils.defineLazyGetter(this, "NetUtil", () => {
   return Cu.import("resource://gre/modules/NetUtil.jsm", {}).NetUtil;
 });
 
-let B2G_ID = "{3c2e2abc-06d4-11e1-ac3b-374f68613e61}";
-
 let TYPED_ARRAY_CLASSES = ["Uint8Array", "Uint8ClampedArray", "Uint16Array",
       "Uint32Array", "Int8Array", "Int16Array", "Int32Array", "Float32Array",
       "Float64Array"];
@@ -33,34 +32,6 @@ let TYPED_ARRAY_CLASSES = ["Uint8Array", "Uint8ClampedArray", "Uint16Array",
 
 
 let OBJECT_PREVIEW_MAX_ITEMS = 10;
-
-let addonManager = null;
-
-
-
-
-
-
-
-function mapURIToAddonID(uri, id) {
-  if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT ||
-      (Services.appinfo.ID || undefined) == B2G_ID) {
-    return false;
-  }
-
-  if (!addonManager) {
-    addonManager = Cc["@mozilla.org/addons/integration;1"].
-                   getService(Ci.amIAddonManager);
-  }
-
-  try {
-    return addonManager.mapURIToAddonID(uri, id);
-  }
-  catch (e) {
-    DevToolsUtils.reportException("mapURIToAddonID", e);
-    return false;
-  }
-}
 
 
 
@@ -494,28 +465,40 @@ EventLoop.prototype = {
 
 
 
-function ThreadActor(aHooks, aGlobal)
+
+
+
+
+
+
+
+function ThreadActor(aParent, aGlobal)
 {
   this._state = "detached";
   this._frameActors = [];
-  this._hooks = aHooks;
-  this.global = aGlobal;
-  
-  this._hiddenBreakpoints = new Map();
-
-  this.findGlobals = this.globalManager.findGlobals.bind(this);
-  this.onNewGlobal = this.globalManager.onNewGlobal.bind(this);
-  this.onNewSource = this.onNewSource.bind(this);
-  this._allEventsListener = this._allEventsListener.bind(this);
+  this._parent = aParent;
+  this._dbg = null;
+  this._gripDepth = 0;
+  this._threadLifetimePool = null;
+  this._tabClosed = false;
 
   this._options = {
     useSourceMaps: false,
     autoBlackBox: false
   };
 
-  this._gripDepth = 0;
-  this._threadLifetimePool = null;
-  this._tabClosed = false;
+  
+  
+  this._hiddenBreakpoints = new Map();
+
+  this.global = aGlobal;
+
+  this._allEventsListener = this._allEventsListener.bind(this);
+  this.onNewGlobal = this.onNewGlobal.bind(this);
+  this.onNewSource = this.onNewSource.bind(this);
+  this.uncaughtExceptionHook = this.uncaughtExceptionHook.bind(this);
+  this.onDebuggerStatement = this.onDebuggerStatement.bind(this);
+  this.onNewScript = this.onNewScript.bind(this);
 }
 
 
@@ -529,6 +512,23 @@ ThreadActor.prototype = {
   _gripDepth: null,
 
   actorPrefix: "context",
+
+  get dbg() {
+    if (!this._dbg) {
+      this._dbg = this._parent.makeDebugger();
+      this._dbg.uncaughtExceptionHook = this.uncaughtExceptionHook;
+      this._dbg.onDebuggerStatement = this.onDebuggerStatement;
+      this._dbg.onNewScript = this.onNewScript;
+      this._dbg.on("newGlobal", this.onNewGlobal);
+      
+      this._dbg.enabled = this._state != "detached";
+    }
+    return this._dbg;
+  },
+
+  get globalDebugObject() {
+    return this.dbg.makeGlobalObjectReference(this._parent.window);
+  },
 
   get state() { return this._state; },
   get attached() this.state == "attached" ||
@@ -618,7 +618,7 @@ ThreadActor.prototype = {
 
 
   clearDebuggees: function () {
-    if (this.dbg) {
+    if (this._dbg) {
       this.dbg.removeAllDebuggees();
     }
     this._sources = null;
@@ -627,117 +627,14 @@ ThreadActor.prototype = {
   
 
 
-
-
-  addDebuggee: function (aGlobal) {
-    let globalDebugObject;
-    try {
-      globalDebugObject = this.dbg.addDebuggee(aGlobal);
-    } catch (e) {
-      
-      dumpn("Ignoring request to add the debugger's compartment as a debuggee");
-    }
-    return globalDebugObject;
-  },
-
-  
-
-
-  _initDebugger: function () {
-    this.dbg = new Debugger();
-    this.dbg.uncaughtExceptionHook = this.uncaughtExceptionHook.bind(this);
-    this.dbg.onDebuggerStatement = this.onDebuggerStatement.bind(this);
-    this.dbg.onNewScript = this.onNewScript.bind(this);
-    this.dbg.onNewGlobalObject = this.globalManager.onNewGlobal.bind(this);
+  onNewGlobal: function (aGlobal) {
     
-    this.dbg.enabled = this._state != "detached";
-  },
-
-  
-
-
-  removeDebugee: function (aGlobal) {
-    try {
-      this.dbg.removeDebuggee(aGlobal);
-    } catch(ex) {
+    this.conn.send({
+      from: this.actorID,
+      type: "newGlobal",
       
-      
-    }
-  },
-
-  
-
-
-
-
-  _addDebuggees: function (aWindow) {
-    let globalDebugObject = this.addDebuggee(aWindow);
-    let frames = aWindow.frames;
-    if (frames) {
-      for (let i = 0; i < frames.length; i++) {
-        this._addDebuggees(frames[i]);
-      }
-    }
-    return globalDebugObject;
-  },
-
-  
-
-
-
-  globalManager: {
-    findGlobals: function () {
-      const { getContentGlobals } = require("devtools/server/content-globals");
-
-      this.globalDebugObject = this._addDebuggees(this.global);
-
-      
-      try {
-        getContentGlobals({
-          'inner-window-id': getInnerId(this.global)
-        }).forEach(this.addDebuggee.bind(this));
-      }
-      catch(e) {}
-    },
-
-    
-
-
-
-
-
-
-    onNewGlobal: function (aGlobal) {
-      let useGlobal = (aGlobal.hostAnnotations &&
-                       aGlobal.hostAnnotations.type == "document" &&
-                       aGlobal.hostAnnotations.element === this.global);
-
-      
-      if (!useGlobal) {
-        let metadata = {};
-        let id = "";
-        try {
-          id = getInnerId(this.global);
-          metadata = Cu.getSandboxMetadata(aGlobal.unsafeDereference());
-        }
-        catch (e) {}
-
-        useGlobal = (metadata['inner-window-id'] && metadata['inner-window-id'] == id);
-      }
-
-      
-      
-      if (useGlobal) {
-        this.addDebuggee(aGlobal);
-        
-        this.conn.send({
-          from: this.actorID,
-          type: "newGlobal",
-          
-          hostAnnotations: aGlobal.hostAnnotations
-        });
-      }
-    }
+      hostAnnotations: aGlobal.hostAnnotations
+    });
   },
 
   disconnect: function () {
@@ -759,11 +656,11 @@ ThreadActor.prototype = {
       this._prettyPrintWorker = null;
     }
 
-    if (!this.dbg) {
+    if (!this._dbg) {
       return;
     }
-    this.dbg.enabled = false;
-    this.dbg = null;
+    this._dbg.enabled = false;
+    this._dbg = null;
   },
 
   
@@ -792,15 +689,12 @@ ThreadActor.prototype = {
     
     
     this._nestedEventLoops = new EventLoopStack({
-      hooks: this._hooks,
+      hooks: this._parent,
       connection: this.conn,
       thread: this
     });
 
-    if (!this.dbg) {
-      this._initDebugger();
-    }
-    this.findGlobals();
+    this.dbg.addDebuggees();
     this.dbg.enabled = true;
     try {
       
@@ -1132,8 +1026,8 @@ ThreadActor.prototype = {
     
     
     if (this._nestedEventLoops.size && this._nestedEventLoops.lastPausedUrl
-        && (this._nestedEventLoops.lastPausedUrl !== this._hooks.url
-        || this._nestedEventLoops.lastConnection !== this.conn)) {
+        && (this._nestedEventLoops.lastPausedUrl !== this._parent.url
+            || this._nestedEventLoops.lastConnection !== this.conn)) {
       return {
         error: "wrongOrder",
         message: "trying to resume in the wrong order.",
@@ -1925,6 +1819,7 @@ ThreadActor.prototype = {
       aFrame.onStep = undefined;
       aFrame.onPop = undefined;
     }
+
     
     
     
@@ -4840,9 +4735,9 @@ Object.defineProperty(Debugger.Frame.prototype, "line", {
 
 
 
-function ChromeDebuggerActor(aConnection, aHooks)
+function ChromeDebuggerActor(aConnection, aParent)
 {
-  ThreadActor.call(this, aHooks);
+  ThreadActor.call(this, aParent);
 }
 
 ChromeDebuggerActor.prototype = Object.create(ThreadActor.prototype);
@@ -4857,38 +4752,7 @@ update(ChromeDebuggerActor.prototype, {
 
 
 
-  _allowSource: function(aSourceURL) !!aSourceURL,
-
-   
-
-
-
-
-
-  globalManager: {
-    findGlobals: function () {
-      
-      this.dbg.addAllGlobalsAsDebuggees();
-    },
-
-    
-
-
-
-
-
-
-    onNewGlobal: function (aGlobal) {
-      this.addDebuggee(aGlobal);
-      
-      this.conn.send({
-        from: this.actorID,
-        type: "newGlobal",
-        
-        hostAnnotations: aGlobal.hostAnnotations
-      });
-    }
-  }
+  _allowSource: aSourceURL => !!aSourceURL
 });
 
 exports.ChromeDebuggerActor = ChromeDebuggerActor;
@@ -4906,14 +4770,8 @@ exports.ChromeDebuggerActor = ChromeDebuggerActor;
 
 
 
-
-
-
-
-
-function AddonThreadActor(aConnect, aHooks, aAddonID) {
-  this.addonID = aAddonID;
-  ThreadActor.call(this, aHooks);
+function AddonThreadActor(aConnect, aParent) {
+  ThreadActor.call(this, aParent);
 }
 
 AddonThreadActor.prototype = Object.create(ThreadActor.prototype);
@@ -4943,97 +4801,6 @@ update(AddonThreadActor.prototype, {
     return true;
   },
 
-  
-
-
-
-
-
-  globalManager: {
-    findGlobals: function ADA_findGlobals() {
-      for (let global of this.dbg.findAllGlobals()) {
-        if (this._checkGlobal(global)) {
-          this.dbg.addDebuggee(global);
-        }
-      }
-    },
-
-    
-
-
-
-
-
-
-    onNewGlobal: function ADA_onNewGlobal(aGlobal) {
-      if (this._checkGlobal(aGlobal)) {
-        this.addDebuggee(aGlobal);
-        
-        this.conn.send({
-          from: this.actorID,
-          type: "newGlobal",
-          
-          hostAnnotations: aGlobal.hostAnnotations
-        });
-      }
-    }
-  },
-
-  
-
-
-
-
-  _checkGlobal: function ADA_checkGlobal(aGlobal) {
-    let obj = null;
-    try {
-      obj = aGlobal.unsafeDereference();
-    }
-    catch (e) {
-      
-      
-      return false;
-    }
-
-    try {
-      
-      let metadata = Cu.getSandboxMetadata(obj);
-      if (metadata) {
-        return metadata.addonID === this.addonID;
-      }
-    } catch (e) {
-    }
-
-    if (obj instanceof Ci.nsIDOMWindow) {
-      let id = {};
-      if (mapURIToAddonID(obj.document.documentURIObject, id)) {
-        return id.value === this.addonID;
-      }
-      return false;
-    }
-
-    
-    
-    let uridescriptor = aGlobal.getOwnPropertyDescriptor("__URI__");
-    if (uridescriptor && "value" in uridescriptor && uridescriptor.value) {
-      let uri;
-      try {
-        uri = Services.io.newURI(uridescriptor.value, null, null);
-      }
-      catch (e) {
-        DevToolsUtils.reportException("AddonThreadActor.prototype._checkGlobal",
-                                      new Error("Invalid URI: " + uridescriptor.value));
-        return false;
-      }
-
-      let id = {};
-      if (mapURIToAddonID(uri, id)) {
-        return id.value === this.addonID;
-      }
-    }
-
-    return false;
-  }
 });
 
 exports.AddonThreadActor = AddonThreadActor;

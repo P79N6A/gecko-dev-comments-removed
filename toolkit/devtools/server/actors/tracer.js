@@ -70,12 +70,17 @@ const TRACE_TYPES = new Set([
 
 
 
-function TraceActor(aConn, aParentActor)
+function TracerActor(aConn, aParent)
 {
+  this._dbg = null;
+  this._parent = aParent;
   this._attached = false;
   this._activeTraces = new MapStack();
   this._totalTraces = 0;
   this._startTime = 0;
+  this._sequence = 0;
+  this._bufferSendTimer = null;
+  this._buffer = [];
 
   
   
@@ -85,26 +90,24 @@ function TraceActor(aConn, aParentActor)
     this._requestsForTraceType[type] = 0;
   }
 
-  this._sequence = 0;
-  this._bufferSendTimer = null;
-  this._buffer = [];
+  this.onEnterFrame = this.onEnterFrame.bind(this);
   this.onExitFrame = this.onExitFrame.bind(this);
-
-  
-  
-  
-  this.global = aParentActor.window;
-  if (!Cu.isXrayWrapper(this.global)) {
-      this.global = this.global.wrappedJSObject;
-  }
 }
 
-TraceActor.prototype = {
+TracerActor.prototype = {
   actorPrefix: "trace",
 
   get attached() { return this._attached; },
   get idle()     { return this._attached && this._activeTraces.size === 0; },
   get tracing()  { return this._attached && this._activeTraces.size > 0; },
+
+  get dbg() {
+    if (!this._dbg) {
+      this._dbg = this._parent.makeDebugger();
+      this._dbg.onEnterFrame = this.onEnterFrame;
+    }
+    return this._dbg;
+  },
 
   
 
@@ -126,74 +129,6 @@ TraceActor.prototype = {
   
 
 
-  _initDebugger: function() {
-    this.dbg = new Debugger();
-    this.dbg.onEnterFrame = this.onEnterFrame.bind(this);
-    this.dbg.onNewGlobalObject = this.globalManager.onNewGlobal.bind(this);
-    this.dbg.enabled = false;
-  },
-
-  
-
-
-  _addDebuggee: function(aGlobal) {
-    try {
-      this.dbg.addDebuggee(aGlobal);
-    } catch (e) {
-      
-      DevToolsUtils.reportException("TraceActor",
-                      new Error("Ignoring request to add the debugger's "
-                                + "compartment as a debuggee"));
-    }
-  },
-
-  
-
-
-  _addDebuggees: function(aWindow) {
-    this._addDebuggee(aWindow);
-    let frames = aWindow.frames;
-    if (frames) {
-      for (let i = 0; i < frames.length; i++) {
-        this._addDebuggees(frames[i]);
-      }
-    }
-  },
-
-  
-
-
-
-  globalManager: {
-    
-
-
-    findGlobals: function() {
-      this._addDebuggees(this.global);
-    },
-
-    
-
-
-
-
-
-
-
-    onNewGlobal: function(aGlobal) {
-      
-      
-      if (aGlobal.hostAnnotations &&
-          aGlobal.hostAnnotations.type == "document" &&
-          aGlobal.hostAnnotations.element === this.global) {
-        this._addDebuggee(aGlobal);
-      }
-    },
-  },
-
-  
-
-
 
 
 
@@ -205,11 +140,7 @@ TraceActor.prototype = {
       };
     }
 
-    if (!this.dbg) {
-      this._initDebugger();
-      this.globalManager.findGlobals.call(this);
-    }
-
+    this.dbg.addDebuggees();
     this._attached = true;
 
     return {
@@ -230,10 +161,12 @@ TraceActor.prototype = {
       this.onStopTrace();
     }
 
-    this.dbg = null;
-
+    this._dbg = null;
     this._attached = false;
-    return { type: "detached" };
+
+    return {
+      type: "detached"
+    };
   },
 
   
@@ -307,7 +240,11 @@ TraceActor.prototype = {
       this.dbg.enabled = false;
     }
 
-    return { type: "stoppedTrace", why: "requested", name: name };
+    return {
+      type: "stoppedTrace",
+      why: "requested",
+      name
+    };
   },
 
   
@@ -443,19 +380,19 @@ TraceActor.prototype = {
 
 
 
-TraceActor.prototype.requestTypes = {
-  "attach": TraceActor.prototype.onAttach,
-  "detach": TraceActor.prototype.onDetach,
-  "startTrace": TraceActor.prototype.onStartTrace,
-  "stopTrace": TraceActor.prototype.onStopTrace
+TracerActor.prototype.requestTypes = {
+  "attach": TracerActor.prototype.onAttach,
+  "detach": TracerActor.prototype.onDetach,
+  "startTrace": TracerActor.prototype.onStartTrace,
+  "stopTrace": TracerActor.prototype.onStopTrace
 };
 
 exports.register = function(handle) {
-  handle.addTabActor(TraceActor, "traceActor");
+  handle.addTabActor(TracerActor, "traceActor");
 };
 
 exports.unregister = function(handle) {
-  handle.removeTabActor(TraceActor, "traceActor");
+  handle.removeTabActor(TracerActor, "traceActor");
 };
 
 
@@ -610,7 +547,7 @@ function createValueSnapshot(aValue, aDetailed=false) {
         ? detailedObjectSnapshot(aValue)
         : objectSnapshot(aValue);
     default:
-      DevToolsUtils.reportException("TraceActor",
+      DevToolsUtils.reportException("TracerActor",
                       new Error("Failed to provide a grip for: " + aValue));
       return null;
   }
