@@ -147,6 +147,11 @@ function initNetMonitor(aUrl, aWindow, aEnableCache) {
     if(!aEnableCache) {
       yield toggleCache(target, true);
       info("Cache disabled when the current and all future toolboxes are open.");
+      
+      
+      isnot([...target.activeConsole.getNetworkEvents()].length, 0,
+         "Request to reconfigure the tab was recorded.");
+      target.activeConsole.clearNetworkRequests();
     }
 
     let toolbox = yield gDevTools.showToolbox(target, "netmonitor");

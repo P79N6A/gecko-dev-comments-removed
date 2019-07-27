@@ -201,6 +201,8 @@ let NetMonitorController = {
 
 
 
+
+
   connect: Task.async(function*() {
     if (this._connection) {
       return this._connection;
@@ -209,15 +211,18 @@ let NetMonitorController = {
     let deferred = promise.defer();
     this._connection = deferred.promise;
 
-    let target = this._target;
-    let { client, form } = target;
+    this.client = this._target.client;
     
     
-    if (!target.isTabActor) {
-      this._startChromeMonitoring(client, form.consoleActor, deferred.resolve);
-    } else {
-      this._startMonitoringTab(client, form, deferred.resolve);
+    if (this._target.isTabActor) {
+      this.tabClient = this._target.activeTab;
     }
+    this.webConsoleClient = this._target.activeConsole;
+    this.webConsoleClient.setPreferences(NET_PREFS, () => {
+      this.TargetEventsHandler.connect();
+      this.NetworkEventsHandler.connect();
+      deferred.resolve();
+    });
 
     yield deferred.promise;
     window.emit(EVENTS.CONNECTED);
@@ -241,82 +246,6 @@ let NetMonitorController = {
 
   isConnected: function() {
     return !!this.client;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _startMonitoringTab: function(aClient, aTabGrip, aCallback) {
-    if (!aClient) {
-      Cu.reportError("No client found!");
-      return;
-    }
-    this.client = aClient;
-
-    aClient.attachTab(aTabGrip.actor, (aResponse, aTabClient) => {
-      if (!aTabClient) {
-        Cu.reportError("No tab client found!");
-        return;
-      }
-      this.tabClient = aTabClient;
-
-      aClient.attachConsole(aTabGrip.consoleActor, LISTENERS, (aResponse, aWebConsoleClient) => {
-        if (!aWebConsoleClient) {
-          Cu.reportError("Couldn't attach to console: " + aResponse.error);
-          return;
-        }
-        this.webConsoleClient = aWebConsoleClient;
-        this.webConsoleClient.setPreferences(NET_PREFS, () => {
-          this.TargetEventsHandler.connect();
-          this.NetworkEventsHandler.connect();
-
-          if (aCallback) {
-            aCallback();
-          }
-        });
-      });
-    });
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _startChromeMonitoring: function(aClient, aConsoleActor, aCallback) {
-    if (!aClient) {
-      Cu.reportError("No client found!");
-      return;
-    }
-    this.client = aClient;
-
-    aClient.attachConsole(aConsoleActor, LISTENERS, (aResponse, aWebConsoleClient) => {
-      if (!aWebConsoleClient) {
-        Cu.reportError("Couldn't attach to console: " + aResponse.error);
-        return;
-      }
-      this.webConsoleClient = aWebConsoleClient;
-      this.webConsoleClient.setPreferences(NET_PREFS, () => {
-        this.TargetEventsHandler.connect();
-        this.NetworkEventsHandler.connect();
-
-        if (aCallback) {
-          aCallback();
-        }
-      });
-    });
   },
 
   

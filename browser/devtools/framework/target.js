@@ -165,6 +165,7 @@ function TabTarget(tab) {
   this._handleThreadState = this._handleThreadState.bind(this);
   this.on("thread-resumed", this._handleThreadState);
   this.on("thread-paused", this._handleThreadState);
+  this.activeTab = this.activeConsole = null;
   
   
   if (tab && !["client", "form", "chrome"].every(tab.hasOwnProperty, tab)) {
@@ -420,6 +421,19 @@ TabTarget.prototype = {
         }
         this.activeTab = aTabClient;
         this.threadActor = aResponse.threadActor;
+        attachConsole();
+      });
+    };
+
+    let attachConsole = () => {
+      this._client.attachConsole(this._form.consoleActor,
+                                 [ "NetworkActivity" ],
+                                 (aResponse, aWebConsoleClient) => {
+        if (!aWebConsoleClient) {
+          this._remote.reject("Unable to attach to the console");
+          return;
+        }
+        this.activeConsole = aWebConsoleClient;
         this._remote.resolve(null);
       });
     };
@@ -439,7 +453,7 @@ TabTarget.prototype = {
     } else {
       
       
-      this._remote.resolve(null);
+      attachConsole();
     }
 
     return this._remote.promise;
@@ -593,17 +607,15 @@ TabTarget.prototype = {
         
         
         this._client.close(cleanupAndResolve);
+      } else if (this.activeTab) {
+        
+        
+        
+        
+        this.activeTab.detach();
+        cleanupAndResolve();
       } else {
-        
-        
-        if (this.activeTab) {
-          
-          
-          this.activeTab.detach();
-          cleanupAndResolve();
-        } else {
-          cleanupAndResolve();
-        }
+        cleanupAndResolve();
       }
     }
 
@@ -620,6 +632,7 @@ TabTarget.prototype = {
       promiseTargets.delete(this._form);
     }
     this.activeTab = null;
+    this.activeConsole = null;
     this._client = null;
     this._tab = null;
     this._form = null;
