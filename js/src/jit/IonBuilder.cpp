@@ -9080,18 +9080,21 @@ IonBuilder::freezePropertiesForCommonPrototype(types::TemporaryTypeSet *types, P
     }
 }
 
-inline MDefinition *
+inline bool
 IonBuilder::testCommonGetterSetter(types::TemporaryTypeSet *types, PropertyName *name,
                                    bool isGetter, JSObject *foundProto, Shape *lastProperty,
-                                   Shape *globalShape)
+                                   MDefinition **guard,
+                                   Shape *globalShape,
+                                   MDefinition **globalGuard)
 {
+    MOZ_ASSERT_IF(globalShape, globalGuard);
     bool guardGlobal;
 
     
     if (!objectsHaveCommonPrototype(types, name, isGetter, foundProto, &guardGlobal) ||
         (guardGlobal && !globalShape))
     {
-        return nullptr;
+        return false;
     }
 
     
@@ -9104,14 +9107,17 @@ IonBuilder::testCommonGetterSetter(types::TemporaryTypeSet *types, PropertyName 
     
     
     
+    
+    
     if (guardGlobal) {
         JSObject *obj = &script()->global();
         MDefinition *globalObj = constant(ObjectValue(*obj));
-        addShapeGuard(globalObj, globalShape, Bailout_ShapeGuard);
+        *globalGuard = addShapeGuard(globalObj, globalShape, Bailout_ShapeGuard);
     }
 
     MInstruction *wrapper = constant(ObjectValue(*foundProto));
-    return addShapeGuard(wrapper, lastProperty, Bailout_ShapeGuard);
+    *guard = addShapeGuard(wrapper, lastProperty, Bailout_ShapeGuard);
+    return true;
 }
 
 void
@@ -9669,9 +9675,13 @@ IonBuilder::getPropTryCommonGetter(bool *emitted, MDefinition *obj, PropertyName
         return true;
 
     types::TemporaryTypeSet *objTypes = obj->resultTypeSet();
-    MDefinition *guard = testCommonGetterSetter(objTypes, name,  true,
-                                                foundProto, lastProperty, globalShape);
-    if (!guard)
+    MDefinition *guard = nullptr;
+    MDefinition *globalGuard = nullptr;
+    bool canUseCommonGetter =
+        testCommonGetterSetter(objTypes, name,  true,
+                               foundProto, lastProperty, &guard, globalShape,
+                               &globalGuard);
+    if (!canUseCommonGetter)
         return true;
 
     bool isDOM = objTypes->isDOMClass();
@@ -10120,9 +10130,11 @@ IonBuilder::setPropTryCommonSetter(bool *emitted, MDefinition *obj,
         return true;
 
     types::TemporaryTypeSet *objTypes = obj->resultTypeSet();
-    MDefinition *guard = testCommonGetterSetter(objTypes, name,  false,
-                                                foundProto, lastProperty);
-    if (!guard)
+    MDefinition *guard = nullptr;
+    bool canUseCommonSetter =
+        testCommonGetterSetter(objTypes, name,  false,
+                               foundProto, lastProperty, &guard);
+    if (!canUseCommonSetter)
         return true;
 
     bool isDOM = objTypes->isDOMClass();
