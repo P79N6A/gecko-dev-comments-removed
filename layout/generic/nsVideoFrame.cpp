@@ -223,8 +223,9 @@ nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   
   gfxPoint p = r.TopLeft() + aContainerParameters.mOffset;
   Matrix transform = Matrix::Translation(p.x, p.y);
+  transform.PreScale(r.Width() / frameSize.width,
+                     r.Height() / frameSize.height);
   layer->SetBaseTransform(gfx::Matrix4x4::From2D(transform));
-  layer->SetScaleToSize(IntSize(r.width, r.height), ScaleMode::STRETCH);
   nsRefPtr<Layer> result = layer.forget();
   return result.forget();
 }
