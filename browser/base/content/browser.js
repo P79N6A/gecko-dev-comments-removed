@@ -788,7 +788,7 @@ function gKeywordURIFixup({ target: browser, data: fixupInfo }) {
 
 
 function RedirectLoad({ target: browser, data }) {
-  let tab = gBrowser._getTabForBrowser(browser);
+  let tab = gBrowser.getTabForBrowser(browser);
   
   TabState.flush(browser);
   let tabState = JSON.parse(SessionStore.getTabState(tab));
