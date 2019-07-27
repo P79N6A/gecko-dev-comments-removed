@@ -60,12 +60,12 @@ public:
   
   
   static already_AddRefed<AppleVDADecoder> CreateVDADecoder(
-    const mp4_demuxer::VideoDecoderConfig& aConfig,
+    const VideoInfo& aConfig,
     FlushableMediaTaskQueue* aVideoTaskQueue,
     MediaDataDecoderCallback* aCallback,
     layers::ImageContainer* aImageContainer);
 
-  AppleVDADecoder(const mp4_demuxer::VideoDecoderConfig& aConfig,
+  AppleVDADecoder(const VideoInfo& aConfig,
                   FlushableMediaTaskQueue* aVideoTaskQueue,
                   MediaDataDecoderCallback* aCallback,
                   layers::ImageContainer* aImageContainer);

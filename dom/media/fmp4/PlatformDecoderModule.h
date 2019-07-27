@@ -13,15 +13,12 @@
 #include "mozilla/RefPtr.h"
 #include <queue>
 
-namespace mp4_demuxer {
-class TrackConfig;
-class VideoDecoderConfig;
-class AudioDecoderConfig;
-}
-
 class nsIThreadPool;
 
 namespace mozilla {
+class TrackInfo;
+class AudioInfo;
+class VideoInfo;
 class MediaRawData;
 class DataBuffer;
 
@@ -91,7 +88,7 @@ public:
   
   
   virtual already_AddRefed<MediaDataDecoder>
-  CreateDecoder(const mp4_demuxer::TrackConfig& aConfig,
+  CreateDecoder(const TrackInfo& aConfig,
                 FlushableMediaTaskQueue* aTaskQueue,
                 MediaDataDecoderCallback* aCallback,
                 layers::LayersBackend aLayersBackend = layers::LayersBackend::LAYERS_NONE,
@@ -112,11 +109,11 @@ public:
   
   
   
-  virtual ConversionRequired DecoderNeedsConversion(const mp4_demuxer::TrackConfig& aConfig) const = 0;
+  virtual ConversionRequired DecoderNeedsConversion(const TrackInfo& aConfig) const = 0;
 
   virtual void DisableHardwareAcceleration() {}
 
-  virtual bool SupportsSharedDecoders(const mp4_demuxer::VideoDecoderConfig& aConfig) const {
+  virtual bool SupportsSharedDecoders(const VideoInfo& aConfig) const {
     return true;
   }
 
@@ -137,7 +134,7 @@ protected:
   
   
   virtual already_AddRefed<MediaDataDecoder>
-  CreateVideoDecoder(const mp4_demuxer::VideoDecoderConfig& aConfig,
+  CreateVideoDecoder(const VideoInfo& aConfig,
                      layers::LayersBackend aLayersBackend,
                      layers::ImageContainer* aImageContainer,
                      FlushableMediaTaskQueue* aVideoTaskQueue,
@@ -154,7 +151,7 @@ protected:
   
   
   virtual already_AddRefed<MediaDataDecoder>
-  CreateAudioDecoder(const mp4_demuxer::AudioDecoderConfig& aConfig,
+  CreateAudioDecoder(const AudioInfo& aConfig,
                      FlushableMediaTaskQueue* aAudioTaskQueue,
                      MediaDataDecoderCallback* aCallback) = 0;
 
@@ -262,7 +259,7 @@ public:
   
   
   
-  virtual nsresult ConfigurationChanged(const mp4_demuxer::TrackConfig& aConfig)
+  virtual nsresult ConfigurationChanged(const TrackInfo& aConfig)
   {
     return NS_OK;
   }
