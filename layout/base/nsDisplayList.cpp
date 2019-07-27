@@ -27,6 +27,7 @@
 #include "gfxMatrix.h"
 #include "gfxPrefs.h"
 #include "nsSVGIntegrationUtils.h"
+#include "nsSVGUtils.h"
 #include "nsLayoutUtils.h"
 #include "nsIScrollableFrame.h"
 #include "nsIFrameInlines.h"
@@ -5497,6 +5498,40 @@ bool nsDisplaySVGEffects::TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem
   mEffectsBounds.UnionRect(mEffectsBounds,
     other->mEffectsBounds + other->mFrame->GetOffsetTo(mFrame));
   return true;
+}
+
+gfxRect
+nsDisplaySVGEffects::BBoxInUserSpace() const
+{
+  return nsSVGUtils::GetBBox(mFrame);
+}
+
+gfxPoint
+nsDisplaySVGEffects::UserSpaceOffset() const
+{
+  return nsSVGUtils::FrameSpaceInCSSPxToUserSpaceOffset(mFrame);
+}
+
+void
+nsDisplaySVGEffects::ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
+                                               const nsDisplayItemGeometry* aGeometry,
+                                               nsRegion* aInvalidRegion)
+{
+  const nsDisplaySVGEffectsGeometry* geometry =
+    static_cast<const nsDisplaySVGEffectsGeometry*>(aGeometry);
+  bool snap;
+  nsRect bounds = GetBounds(aBuilder, &snap);
+  if (geometry->mFrameOffsetToReferenceFrame != ToReferenceFrame() ||
+      geometry->mUserSpaceOffset != UserSpaceOffset() ||
+      !geometry->mBBox.IsEqualInterior(BBoxInUserSpace())) {
+    
+    
+    
+    
+    
+    
+    aInvalidRegion->Or(bounds, geometry->mBounds);
+  }
 }
 
 #ifdef MOZ_DUMP_PAINTING
