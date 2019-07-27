@@ -554,7 +554,7 @@ nsImageLoadingContent::FrameDestroyed(nsIFrame* aFrame)
   if (aFrame->HasAnyStateBits(NS_FRAME_IN_POPUP)) {
     
     
-    DecrementVisibleCount( false);
+    DecrementVisibleCount();
   }
 }
 
@@ -777,15 +777,14 @@ nsImageLoadingContent::IncrementVisibleCount()
 }
 
 void
-nsImageLoadingContent::DecrementVisibleCount(bool aRequestDiscard)
+nsImageLoadingContent::DecrementVisibleCount()
 {
   NS_ASSERTION(mVisibleCount > 0, "visible count should be positive here");
   mVisibleCount--;
 
   if (mVisibleCount == 0) {
-    uint32_t flags = aRequestDiscard ? REQUEST_DISCARD : 0;
-    UntrackImage(mCurrentRequest, flags);
-    UntrackImage(mPendingRequest, flags);
+    UntrackImage(mCurrentRequest);
+    UntrackImage(mPendingRequest);
   }
 }
 

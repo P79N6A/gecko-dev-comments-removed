@@ -1153,7 +1153,7 @@ PresShell::Destroy()
 
   mUpdateImageVisibilityEvent.Revoke();
 
-  ClearVisibleImagesList( true);
+  ClearVisibleImagesList();
 
   if (mCaret) {
     mCaret->Terminate();
@@ -5820,7 +5820,7 @@ PresShell::MarkImagesInListVisible(const nsDisplayList& aList)
 static PLDHashOperator
 DecrementVisibleCount(nsRefPtrHashKey<nsIImageLoadingContent>* aEntry, void*)
 {
-  aEntry->GetKey()->DecrementVisibleCount( false);
+  aEntry->GetKey()->DecrementVisibleCount();
   return PL_DHASH_NEXT;
 }
 
@@ -5844,7 +5844,7 @@ PresShell::ClearImageVisibilityVisited(nsView* aView, bool aClear)
   if (aClear) {
     PresShell* presShell = static_cast<PresShell*>(vm->GetPresShell());
     if (!presShell->mImageVisibilityVisited) {
-      presShell->ClearVisibleImagesList( false);
+      presShell->ClearVisibleImagesList();
     }
     presShell->mImageVisibilityVisited = false;
   }
@@ -5853,20 +5853,10 @@ PresShell::ClearImageVisibilityVisited(nsView* aView, bool aClear)
   }
 }
 
-static PLDHashOperator
-DecrementVisibleCountAndDiscard(nsRefPtrHashKey<nsIImageLoadingContent>* aEntry,
-                                void*)
-{
-  aEntry->GetKey()->DecrementVisibleCount( true);
-  return PL_DHASH_NEXT;
-}
-
 void
-PresShell::ClearVisibleImagesList(bool aRequestDiscard)
+PresShell::ClearVisibleImagesList()
 {
-  auto enumerator = aRequestDiscard ? DecrementVisibleCountAndDiscard
-                                    : DecrementVisibleCount;
-  mVisibleImages.EnumerateEntries(enumerator, nullptr);
+  mVisibleImages.EnumerateEntries(DecrementVisibleCount, nullptr);
   mVisibleImages.Clear();
 }
 
@@ -5996,7 +5986,7 @@ PresShell::UpdateImageVisibility()
   
   nsIFrame* rootFrame = GetRootFrame();
   if (!rootFrame) {
-    ClearVisibleImagesList( true);
+    ClearVisibleImagesList();
     return;
   }
 
@@ -6155,7 +6145,7 @@ PresShell::RemoveImageFromVisibleList(nsIImageLoadingContent* aImage)
   mVisibleImages.RemoveEntry(aImage);
   if (mVisibleImages.Count() < count) {
     
-    aImage->DecrementVisibleCount( false);
+    aImage->DecrementVisibleCount();
   }
 }
 
