@@ -943,7 +943,7 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
         if (aPropagateExceptions)
             ContextOptionsRef(cx).setDontReportUncaught(true);
         if (script) {
-            ok = JS_ExecuteScriptVersion(cx, obj, script, JSVERSION_LATEST);
+            ok = JS_ExecuteScript(cx, obj, script);
         } else {
             RootedValue rval(cx);
             ok = JS_CallFunction(cx, obj, function, JS::HandleValueArray::empty(), &rval);
