@@ -14,6 +14,7 @@
 namespace mozilla {
 namespace a11y {
 
+class Attribute;
 class DocAccessibleParent;
 
 class ProxyAccessible
@@ -67,6 +68,11 @@ public:
 
 
   void Description(nsString& aDesc) const;
+
+  
+
+
+  void Attributes(nsTArray<Attribute> *aAttrs) const;
 
   
 
