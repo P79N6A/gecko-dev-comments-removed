@@ -2660,6 +2660,12 @@ public:
 
   static nsMargin ScrollbarAreaToExcludeFromCompositionBoundsFor(nsIFrame* aScrollFrame);
 
+  
+
+
+
+  static bool ContainsMetricsWithId(const Layer* aLayer, const ViewID& aScrollId);
+
 private:
   static uint32_t sFontSizeInflationEmPerLine;
   static uint32_t sFontSizeInflationMinTwips;
