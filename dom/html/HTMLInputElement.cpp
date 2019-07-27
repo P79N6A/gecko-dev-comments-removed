@@ -2151,6 +2151,7 @@ HTMLInputElement::GetValueIfStepped(int32_t aStep,
     return NS_ERROR_DOM_INVALID_STATE_ERR;
   }
 
+  Decimal stepBase = GetStepBase();
   Decimal step = GetStep();
   if (step == kStepAny) {
     if (aCallerType != CALLED_FOR_USER_EVENT) {
@@ -2160,47 +2161,44 @@ HTMLInputElement::GetValueIfStepped(int32_t aStep,
     step = GetDefaultStep();
   }
 
-  Decimal value = GetValueAsDecimal();
-  if (value.isNaN()) {
-    value = Decimal(0);
-  }
-
   Decimal minimum = GetMinimum();
-
   Decimal maximum = GetMaximum();
+
   if (!maximum.isNaN()) {
     
-    maximum = maximum - NS_floorModulo(maximum - GetStepBase(), step);
-  }
-
-  
-  
-  
-  
-  if ((value <= minimum && aStep < 0) ||
-      (value >= maximum && aStep > 0)) {
-    return NS_OK;
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  if (HasStepMismatch(true) &&
-      value != minimum && value != maximum) {
-    if (aStep > 0) {
-      value -= NS_floorModulo(value - GetStepBase(), step);
-    } else if (aStep < 0) {
-      value -= NS_floorModulo(value - GetStepBase(), step);
-      value += step;
+    maximum = maximum - NS_floorModulo(maximum - stepBase, step);
+    if (!minimum.isNaN()) {
+      if (minimum > maximum) {
+        
+        
+        
+        
+        return NS_OK;
+      }
     }
   }
 
-  value += step * Decimal(aStep);
+  Decimal value = GetValueAsDecimal();
+  bool valueWasNaN = false;
+  if (value.isNaN()) {
+    value = Decimal(0);
+    valueWasNaN = true;
+  }
+  Decimal valueBeforeStepping = value;
+
+  Decimal deltaFromStep = NS_floorModulo(value - stepBase, step);
+
+  if (deltaFromStep != Decimal(0)) {
+    if (aStep > 0) {
+      value += step - deltaFromStep;      
+      value += step * Decimal(aStep - 1); 
+    } else if (aStep < 0) {
+      value -= deltaFromStep;             
+      value += step * Decimal(aStep + 1); 
+    }
+  } else {
+    value += step * Decimal(aStep);
+  }
 
   
   
@@ -2218,27 +2216,30 @@ HTMLInputElement::GetValueIfStepped(int32_t aStep,
     }
   }
 
-  
-  
-  if (GetValidityState(VALIDITY_STATE_RANGE_UNDERFLOW) && aStep > 0 &&
-      value <= minimum) {
-    MOZ_ASSERT(!minimum.isNaN(), "Can't be NaN if we are here");
+  if (value < minimum) {
     value = minimum;
-  
-  } else if (GetValidityState(VALIDITY_STATE_RANGE_OVERFLOW) && aStep < 0 &&
-             value >= maximum) {
-    MOZ_ASSERT(!maximum.isNaN(), "Can't be NaN if we are here");
+    deltaFromStep = NS_floorModulo(value - stepBase, step);
+    if (deltaFromStep != Decimal(0)) {
+      value += step - deltaFromStep;
+    }
+  }
+  if (value > maximum) {
     value = maximum;
-  
-  } else if (aStep < 0 && minimum == minimum) {
-    value = std::max(value, minimum);
-  
-  } else if (aStep > 0 && maximum == maximum) {
-    value = std::min(value, maximum);
+    deltaFromStep = NS_floorModulo(value - stepBase, step);
+    if (deltaFromStep != Decimal(0)) {
+      value -= deltaFromStep;
+    }
+  }
+
+  if (!valueWasNaN && 
+      ((aStep > 0 && value < valueBeforeStepping) ||
+       (aStep < 0 && value > valueBeforeStepping))) {
+    
+    
+    return NS_OK;
   }
 
   *aNextStep = value;
-
   return NS_OK;
 }
 
@@ -3701,7 +3702,10 @@ HTMLInputElement::StopNumberControlSpinnerSpin()
 void
 HTMLInputElement::StepNumberControlForUserEvent(int32_t aDirection)
 {
-  if (!IsValid()) {
+  
+  
+  
+  if (HasBadInput()) {
     
     
     
