@@ -392,9 +392,7 @@ public class ToolbarEditText extends CustomEditText
                     
                     
                     finishComposingText();
-                    if (Build.VERSION.SDK_INT >= 9) {
-                        setComposingRegion(composingStart, composingEnd);
-                    }
+                    setComposingRegion(composingStart, composingEnd);
                     return true;
                 }
                 return false;
