@@ -4653,7 +4653,9 @@ TypeObject::clearProperties()
 bool
 TypeObject::needsSweep()
 {
-    return generation() != zone()->types.generation;
+    
+    
+    return generation() != zoneFromAnyThread()->types.generation;
 }
 #endif
 
