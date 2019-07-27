@@ -13,6 +13,7 @@
 #include "mozilla/Move.h"
 #include "nsDebug.h"
 #include "nsISupportsImpl.h"
+#include "nsContentUtils.h"
 
 
 #undef compress
@@ -188,6 +189,31 @@ private:
     CxxStackFrame& operator=(const CxxStackFrame&) MOZ_DELETE;
 };
 
+namespace {
+
+class MOZ_STACK_CLASS MaybeScriptBlocker {
+public:
+    MaybeScriptBlocker(MessageChannel *aChannel
+                  MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+        : mBlocked(aChannel->ShouldBlockScripts())
+    {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        if (mBlocked) {
+            nsContentUtils::AddScriptBlocker();
+        }
+    }
+    ~MaybeScriptBlocker() {
+        if (mBlocked) {
+            nsContentUtils::RemoveScriptBlocker();
+        }
+    }
+private:
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+    bool mBlocked;
+};
+
+} 
+
 MessageChannel::MessageChannel(MessageListener *aListener)
   : mListener(aListener),
     mChannelState(ChannelClosed),
@@ -207,7 +233,8 @@ MessageChannel::MessageChannel(MessageListener *aListener)
     mDispatchingUrgentMessageCount(0),
     mRemoteStackDepthGuess(false),
     mSawInterruptOutMsg(false),
-    mAbortOnError(false)
+    mAbortOnError(false),
+    mBlockScripts(false)
 {
     MOZ_COUNT_CTOR(ipc::MessageChannel);
 
@@ -569,6 +596,9 @@ bool
 MessageChannel::Send(Message* aMsg, Message* aReply)
 {
     
+    MaybeScriptBlocker scriptBlocker(this);
+
+    
     AssertWorkerThread();
     mMonitor->AssertNotCurrentThreadOwns();
 
@@ -596,6 +626,9 @@ MessageChannel::Send(Message* aMsg, Message* aReply)
 bool
 MessageChannel::UrgentCall(Message* aMsg, Message* aReply)
 {
+    
+    MaybeScriptBlocker scriptBlocker(this);
+
     AssertWorkerThread();
     mMonitor->AssertNotCurrentThreadOwns();
     IPC_ASSERT(mSide == ParentSide, "cannot send urgent requests from child");
@@ -625,6 +658,9 @@ MessageChannel::UrgentCall(Message* aMsg, Message* aReply)
 bool
 MessageChannel::RPCCall(Message* aMsg, Message* aReply)
 {
+    
+    MaybeScriptBlocker scriptBlocker(this);
+
     AssertWorkerThread();
     mMonitor->AssertNotCurrentThreadOwns();
     IPC_ASSERT(mSide == ChildSide, "cannot send rpc messages from parent");
@@ -1102,6 +1138,34 @@ MessageChannel::DispatchUrgentMessage(const Message& aMsg)
     Message *reply = nullptr;
 
     MOZ_ASSERT(NS_IsMainThread());
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    MaybeScriptBlocker scriptBlocker(this);
 
     gDispatchingUrgentMessageCount++;
     mDispatchingUrgentMessageCount++;
@@ -1644,6 +1708,13 @@ MessageChannel::CloseWithError()
     SynchronouslyClose();
     mChannelState = ChannelError;
     PostErrorNotifyTask();
+}
+
+void
+MessageChannel::BlockScripts()
+{
+    MOZ_ASSERT(NS_IsMainThread());
+    mBlockScripts = true;
 }
 
 void

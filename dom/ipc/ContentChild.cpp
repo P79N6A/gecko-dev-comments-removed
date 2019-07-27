@@ -565,6 +565,10 @@ ContentChild::Init(MessageLoop* aIOLoop,
     Open(aChannel, aParentHandle, aIOLoop);
     sSingleton = this;
 
+    
+    
+    GetIPCChannel()->BlockScripts();
+
 #ifdef MOZ_X11
     
     

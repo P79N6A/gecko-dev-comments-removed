@@ -89,6 +89,13 @@ class MessageChannel : HasResultCodes
         mAbortOnError = true;
     }
 
+    void BlockScripts();
+
+    bool ShouldBlockScripts() const
+    {
+        return mBlockScripts;
+    }
+
     
     bool Send(Message* aMsg);
 
@@ -639,6 +646,9 @@ class MessageChannel : HasResultCodes
     
     
     bool mAbortOnError;
+
+    
+    bool mBlockScripts;
 };
 
 bool
