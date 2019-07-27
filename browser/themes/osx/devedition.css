@@ -71,8 +71,8 @@
 }
 
 
-#main-window:not([customizing]) #navigator-toolbox[inFullscreen] > #TabsToolbar:not(:-moz-lwtheme) {
-  -moz-appearance: none;
+#TabsToolbar {
+  -moz-appearance: none !important;
 }
 
 
