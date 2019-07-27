@@ -62,7 +62,9 @@ using namespace gfx;
 using namespace layers;
 
 namespace image {
+
 using std::ceil;
+using std::min;
 
 
 #define DECODE_FLAGS_MASK (imgIContainer::FLAG_DECODE_NO_PREMULTIPLY_ALPHA | imgIContainer::FLAG_DECODE_NO_COLORSPACE_CONVERSION)
@@ -319,7 +321,6 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker,
 #endif
   mDecodingMonitor("RasterImage Decoding Monitor"),
   mDecoder(nullptr),
-  mBytesDecoded(0),
   mInDecoder(false),
   mStatusDiff(ImageStatusDiff::NoChange()),
   mNotifying(false),
@@ -1535,7 +1536,7 @@ RasterImage::AddSourceData(const char *aBuffer, uint32_t aCount)
   
   
   
-  if (mMultipart && mBytesDecoded == 0) {
+  if (mMultipart && (!mDecoder || mDecoder->BytesDecoded() == 0)) {
     
     if (mAnimating)
       StopAnimation();
@@ -2095,8 +2096,6 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
     mSourceData.Clear();
   }
 
-  mBytesDecoded = 0;
-
   return NS_OK;
 }
 
@@ -2116,10 +2115,6 @@ RasterImage::WriteToDecoder(const char *aBuffer, uint32_t aCount, DecodeStrategy
   mInDecoder = false;
 
   CONTAINER_ENSURE_SUCCESS(mDecoder->GetDecoderError());
-
-  
-  
-  mBytesDecoded += aCount;
 
   return NS_OK;
 }
@@ -2252,7 +2247,7 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
   
   
   
-  if (mDecoder && !mDecoder->IsSizeDecode() && mBytesDecoded &&
+  if (mDecoder && !mDecoder->IsSizeDecode() && mDecoder->BytesDecoded() > 0 &&
       aDecodeType != SYNCHRONOUS_NOTIFY_AND_SOME_DECODE) {
     return NS_OK;
   }
@@ -2262,8 +2257,9 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
   
   
   
-  if (mBytesDecoded > mSourceData.Length())
+  if (mDecoder && mDecoder->BytesDecoded() > mSourceData.Length()) {
     return NS_OK;
+  }
 
   
   
@@ -2286,7 +2282,7 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
 
   
   
-  if (mDecoder && !mDecoder->IsSizeDecode() && mBytesDecoded) {
+  if (mDecoder && !mDecoder->IsSizeDecode() && mDecoder->BytesDecoded() > 0) {
     return NS_OK;
   }
 
@@ -2304,13 +2300,14 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
 
     rv = FinishedSomeDecoding();
     CONTAINER_ENSURE_SUCCESS(rv);
-
-    MOZ_ASSERT(mDecoder);
   }
 
+  MOZ_ASSERT(mDecoder);
+
   
-  if (mHasSourceData && mBytesDecoded == mSourceData.Length())
+  if (mHasSourceData && mDecoder->BytesDecoded() == mSourceData.Length()) {
     return NS_OK;
+  }
 
   
   
@@ -2379,8 +2376,9 @@ RasterImage::SyncDecode()
   
   
   
-  if (mBytesDecoded > mSourceData.Length())
+  if (mDecoder && mDecoder->BytesDecoded() > mSourceData.Length()) {
     return NS_OK;
+  }
 
   
   
@@ -2411,8 +2409,11 @@ RasterImage::SyncDecode()
     CONTAINER_ENSURE_SUCCESS(rv);
   }
 
+  MOZ_ASSERT(mDecoder);
+
   
-  rv = DecodeSomeData(mSourceData.Length() - mBytesDecoded, DECODE_SYNC);
+  rv = DecodeSomeData(mSourceData.Length() - mDecoder->BytesDecoded(),
+                      DECODE_SYNC);
   CONTAINER_ENSURE_SUCCESS(rv);
 
   
@@ -2772,8 +2773,7 @@ RasterImage::RequestDiscard()
 nsresult
 RasterImage::DecodeSomeData(size_t aMaxBytes, DecodeStrategy aStrategy)
 {
-  
-  NS_ABORT_IF_FALSE(mDecoder, "trying to decode without decoder!");
+  MOZ_ASSERT(mDecoder, "Should have a decoder");
 
   mDecodingMonitor.AssertCurrentThreadIn();
 
@@ -2789,19 +2789,19 @@ RasterImage::DecodeSomeData(size_t aMaxBytes, DecodeStrategy aStrategy)
   }
 
   
-  if (mBytesDecoded == mSourceData.Length())
+  if (mDecoder->BytesDecoded() == mSourceData.Length()) {
     return NS_OK;
+  }
 
-  MOZ_ASSERT(mBytesDecoded < mSourceData.Length());
+  MOZ_ASSERT(mDecoder->BytesDecoded() < mSourceData.Length());
 
   
-  size_t bytesToDecode = std::min(aMaxBytes,
-                                  mSourceData.Length() - mBytesDecoded);
-  nsresult rv = WriteToDecoder(mSourceData.Elements() + mBytesDecoded,
-                               bytesToDecode,
-                               aStrategy);
+  size_t bytesToDecode = min(aMaxBytes,
+                             mSourceData.Length() - mDecoder->BytesDecoded());
+  return WriteToDecoder(mSourceData.Elements() + mDecoder->BytesDecoded(),
+                        bytesToDecode,
+                        aStrategy);
 
-  return rv;
 }
 
 
@@ -2813,7 +2813,7 @@ RasterImage::IsDecodeFinished()
 {
   
   mDecodingMonitor.AssertCurrentThreadIn();
-  NS_ABORT_IF_FALSE(mDecoder, "Can't call IsDecodeFinished() without decoder!");
+  MOZ_ASSERT(mDecoder, "Should have a decoder");
 
   
   if (mDecoder->IsSizeDecode()) {
@@ -2838,7 +2838,7 @@ RasterImage::IsDecodeFinished()
   
   
   
-  if (mHasSourceData && (mBytesDecoded == mSourceData.Length())) {
+  if (mHasSourceData && (mDecoder->BytesDecoded() == mSourceData.Length())) {
     return true;
   }
 
@@ -3031,7 +3031,7 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
         
         Telemetry::ID id = decoder->SpeedHistogram();
         if (id < Telemetry::HistogramCount) {
-          int32_t KBps = int32_t(request->mImage->mBytesDecoded /
+          int32_t KBps = int32_t(decoder->BytesDecoded() /
                                  (1024 * request->mDecodeTime.ToSeconds()));
           Telemetry::Accumulate(id, KBps);
         }
@@ -3207,7 +3207,8 @@ RasterImage::DecodePool::RequestDecode(RasterImage* aImg)
   if (!aImg->mDecoder->NeedsNewFrame()) {
     
     
-    aImg->mDecodeRequest->mBytesToDecode = aImg->mSourceData.Length() - aImg->mBytesDecoded;
+    aImg->mDecodeRequest->mBytesToDecode =
+      aImg->mSourceData.Length() - aImg->mDecoder->BytesDecoded();
 
     if (aImg->mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_PENDING ||
         aImg->mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_ACTIVE) {
@@ -3255,7 +3256,7 @@ RasterImage::DecodePool::DecodeABitOf(RasterImage* aImg, DecodeStrategy aStrateg
     if (aImg->mDecoder &&
         !aImg->mError &&
         !aImg->IsDecodeFinished() &&
-        aImg->mSourceData.Length() > aImg->mBytesDecoded) {
+        aImg->mSourceData.Length() > aImg->mDecoder->BytesDecoded()) {
       RequestDecode(aImg);
     }
   }
@@ -3299,7 +3300,7 @@ RasterImage::DecodePool::DecodeJob::Run()
 
   mRequest->mRequestStatus = DecodeRequest::REQUEST_ACTIVE;
 
-  size_t oldByteCount = mImage->mBytesDecoded;
+  size_t oldByteCount = mImage->mDecoder->BytesDecoded();
 
   DecodeType type = DECODE_TYPE_UNTIL_DONE_BYTES;
 
@@ -3311,7 +3312,7 @@ RasterImage::DecodePool::DecodeJob::Run()
 
   DecodePool::Singleton()->DecodeSomeOfImage(mImage, DECODE_ASYNC, type, mRequest->mBytesToDecode);
 
-  size_t bytesDecoded = mImage->mBytesDecoded - oldByteCount;
+  size_t bytesDecoded = mImage->mDecoder->BytesDecoded() - oldByteCount;
 
   mRequest->mRequestStatus = DecodeRequest::REQUEST_WORK_DONE;
 
@@ -3442,7 +3443,7 @@ RasterImage::DecodePool::DecodeSomeOfImage(RasterImage* aImg,
   }
 
   if (bytesToDecode == 0) {
-    bytesToDecode = aImg->mSourceData.Length() - aImg->mBytesDecoded;
+    bytesToDecode = aImg->mSourceData.Length() - aImg->mDecoder->BytesDecoded();
   }
 
   int32_t chunkCount = 0;
@@ -3456,7 +3457,7 @@ RasterImage::DecodePool::DecodeSomeOfImage(RasterImage* aImg,
   
   
   
-  while ((aImg->mSourceData.Length() > aImg->mBytesDecoded &&
+  while ((aImg->mSourceData.Length() > aImg->mDecoder->BytesDecoded() &&
           bytesToDecode > 0 &&
           !aImg->IsDecodeFinished() &&
           !(aDecodeType == DECODE_TYPE_UNTIL_SIZE && aImg->mHasSize) &&

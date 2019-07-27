@@ -656,7 +656,6 @@ private:
   
   nsRefPtr<Decoder>          mDecoder;
   nsRefPtr<DecodeRequest>    mDecodeRequest;
-  size_t                     mBytesDecoded;
 
   bool                       mInDecoder;
   

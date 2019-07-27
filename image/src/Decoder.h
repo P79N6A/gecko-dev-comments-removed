@@ -101,6 +101,8 @@ public:
     mObserver = aObserver;
   }
 
+  size_t BytesDecoded() const { return mBytesDecoded; }
+
   
   
   uint32_t GetFrameCount() { return mFrameCount; }
@@ -234,6 +236,7 @@ protected:
   uint32_t mColormapSize;
 
   uint32_t mDecodeFlags;
+  size_t mBytesDecoded;
   bool mDecodeDone;
   bool mDataError;
 
