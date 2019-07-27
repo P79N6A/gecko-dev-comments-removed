@@ -315,6 +315,78 @@ add_test(function test_stk_terminal_response_get_input_160_unpacked_characters()
 
 
 
+
+
+
+add_test(function test_stk_terminal_response_get_inkey_no_response_from_user() {
+  let worker = newUint8SupportOutgoingIndexWorker();
+  let context = worker.ContextPool._contexts[0];
+  let buf = context.Buf;
+  let pduHelper = context.GsmPDUHelper;
+
+  buf.sendParcel = function() {
+    
+    do_check_eq(this.readInt32(), REQUEST_STK_SEND_TERMINAL_RESPONSE);
+
+    
+    this.readInt32();
+
+    
+    
+    
+    
+    do_check_eq(this.readInt32(), 32);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_COMMAND_DETAILS |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 3);
+    do_check_eq(pduHelper.readHexOctet(), 0x01);
+    do_check_eq(pduHelper.readHexOctet(), STK_CMD_GET_INKEY);
+    do_check_eq(pduHelper.readHexOctet(), 0x00);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_DEVICE_ID);
+    do_check_eq(pduHelper.readHexOctet(), 2);
+    do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_ME);
+    do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_SIM);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_RESULT |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 1);
+    do_check_eq(pduHelper.readHexOctet(), STK_RESULT_NO_RESPONSE_FROM_USER);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_DURATION);
+    do_check_eq(pduHelper.readHexOctet(), 2);
+    do_check_eq(pduHelper.readHexOctet(), STK_TIME_UNIT_SECOND);
+    do_check_eq(pduHelper.readHexOctet(), 10);
+
+    run_next_test();
+  };
+
+  let response = {
+    command: {
+      commandNumber: 0x01,
+      typeOfCommand: STK_CMD_GET_INKEY,
+      commandQualifier: 0x00,
+      options: {
+        duration: {
+          timeUnit: STK_TIME_UNIT_SECOND,
+          timeInterval: 10
+        },
+        text: 'Enter "+"'
+      }
+    },
+    resultCode: STK_RESULT_NO_RESPONSE_FROM_USER
+  };
+  context.RIL.sendStkTerminalResponse(response);
+});
+
+
+
+
 add_test(function test_stk_terminal_response_get_inkey() {
   function do_test(isYesNo) {
     let worker = newUint8SupportOutgoingIndexWorker();
