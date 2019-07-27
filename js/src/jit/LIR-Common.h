@@ -366,8 +366,7 @@ class LSimdBinaryCompFx4 : public LSimdBinaryComp
 };
 
 
-template<size_t Temps>
-class LSimdBinaryArith : public LInstructionHelper<1, 2, Temps>
+class LSimdBinaryArith : public LInstructionHelper<1, 2, 1>
 {
   public:
     LSimdBinaryArith() {}
@@ -377,6 +376,9 @@ class LSimdBinaryArith : public LInstructionHelper<1, 2, Temps>
     }
     const LAllocation *rhs() {
         return this->getOperand(1);
+    }
+    const LDefinition *temp() {
+        return getTemp(0);
     }
 
     MSimdBinaryArith::Operation operation() const {
@@ -388,23 +390,19 @@ class LSimdBinaryArith : public LInstructionHelper<1, 2, Temps>
 };
 
 
-class LSimdBinaryArithIx4 : public LSimdBinaryArith<0>
+class LSimdBinaryArithIx4 : public LSimdBinaryArith
 {
   public:
     LIR_HEADER(SimdBinaryArithIx4);
-    LSimdBinaryArithIx4() : LSimdBinaryArith<0>() {}
+    LSimdBinaryArithIx4() : LSimdBinaryArith() {}
 };
 
 
-class LSimdBinaryArithFx4 : public LSimdBinaryArith<1>
+class LSimdBinaryArithFx4 : public LSimdBinaryArith
 {
   public:
     LIR_HEADER(SimdBinaryArithFx4);
-    LSimdBinaryArithFx4() : LSimdBinaryArith<1>() {}
-
-    const LDefinition *temp() {
-        return getTemp(0);
-    }
+    LSimdBinaryArithFx4() : LSimdBinaryArith() {}
 };
 
 
