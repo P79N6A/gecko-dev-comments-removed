@@ -147,7 +147,7 @@ var PrintUtils = {
       aWindow = window.content;
     }
 
-    if (Cu.isCrossProcessWrapper(aWindow)) {
+    if (Components.utils.isCrossProcessWrapper(aWindow)) {
       if (!aBrowser) {
         throw new Error("PrintUtils.print expects a remote browser passed as " +
                         "an argument if the content window is a CPOW.");
@@ -155,9 +155,9 @@ var PrintUtils = {
     } else {
       
       
-      aBrowser = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                        .getInterface(Ci.nsIWebNavigation)
-                        .QueryInterface(Ci.nsIDocShell)
+      aBrowser = aWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                        .getInterface(Components.interfaces.nsIWebNavigation)
+                        .QueryInterface(Components.interfaces.nsIDocShell)
                         .chromeEventHandler;
     }
 
