@@ -448,6 +448,11 @@ public:
     
 
 
+    bool HasComplexClip() const;
+
+    
+
+
 
 
     bool ClipContainsRect(const gfxRect& aRect);

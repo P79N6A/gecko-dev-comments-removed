@@ -8,6 +8,11 @@
 
 #include "2D.h"
 
+#ifdef MOZ_X11
+#include <X11/extensions/Xrender.h>
+#include <X11/Xlib.h>
+#endif
+
 struct _cairo;
 typedef struct _cairo cairo_t;
 
@@ -68,6 +73,69 @@ private:
   static void ReturnCairoContextToDrawTarget(DrawTarget *aDT, cairo_t *aCairo);
   DrawTarget *mDT;
 };
+
+#ifdef MOZ_X11
+
+
+
+
+
+
+class BorrowedXlibDrawable
+{
+public:
+  BorrowedXlibDrawable()
+    : mDT(nullptr),
+      mDisplay(nullptr),
+      mDrawable(None),
+      mScreen(nullptr),
+      mVisual(nullptr),
+      mXRenderFormat(nullptr)
+  {}
+
+  explicit BorrowedXlibDrawable(DrawTarget *aDT)
+    : mDT(nullptr),
+      mDisplay(nullptr),
+      mDrawable(None),
+      mScreen(nullptr),
+      mVisual(nullptr),
+      mXRenderFormat(nullptr)
+  {
+    Init(aDT);
+  }
+
+  
+  
+  
+  bool Init(DrawTarget *aDT);
+
+  
+  
+  
+  
+  
+  void Finish();
+
+  ~BorrowedXlibDrawable() {
+    MOZ_ASSERT(!mDrawable);
+  }
+
+  Display *GetDisplay() const { return mDisplay; }
+  Drawable GetDrawable() const { return mDrawable; }
+  Screen *GetScreen() const { return mScreen; }
+  Visual *GetVisual() const { return mVisual; }
+
+  XRenderPictFormat* GetXRenderFormat() const { return mXRenderFormat; }
+
+private:
+  DrawTarget *mDT;
+  Display *mDisplay;
+  Drawable mDrawable;
+  Screen *mScreen;
+  Visual *mVisual;
+  XRenderPictFormat *mXRenderFormat;
+};
+#endif
 
 #ifdef XP_MACOSX
 

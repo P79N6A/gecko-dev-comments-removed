@@ -1656,6 +1656,9 @@ class nsIWidget : public nsISupports {
 
 
     virtual void EndRemoteDrawing() = 0;
+    virtual void EndRemoteDrawingInRegion(mozilla::gfx::DrawTarget* aDrawTarget, nsIntRegion& aInvalidRegion) {
+      EndRemoteDrawing();
+    }
 
     
 

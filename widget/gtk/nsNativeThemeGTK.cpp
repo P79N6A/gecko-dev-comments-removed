@@ -33,6 +33,18 @@
 #include "gfxContext.h"
 #include "gfxPlatformGtk.h"
 #include "gfxGdkNativeRenderer.h"
+#include "mozilla/gfx/BorrowedContext.h"
+#include "mozilla/gfx/HelpersCairo.h"
+
+#ifdef MOZ_X11
+#  ifdef CAIRO_HAS_XLIB_SURFACE
+#    include "cairo-xlib.h"
+#  endif
+#  ifdef CAIRO_HAS_XLIB_XRENDER_SURFACE
+#    include "cairo-xlib-xrender.h"
+#  endif
+#endif
+
 #include <algorithm>
 #include <dlfcn.h>
 
@@ -702,6 +714,158 @@ ThemeRenderer::DrawWithGDK(GdkDrawable * drawable, gint offsetX,
 
   return NS_OK;
 }
+#else
+static void
+DrawThemeWithCairo(gfxContext* aContext, DrawTarget* aDrawTarget,
+                   GtkWidgetState aState, GtkThemeWidgetType aGTKWidgetType,
+                   gint aFlags, GtkTextDirection aDirection, gint aScaleFactor,
+                   bool aSnapped, const Point& aDrawOrigin, const nsIntSize& aDrawSize,
+                   GdkRectangle& aGDKRect, nsITheme::Transparency aTransparency)
+{
+#ifndef MOZ_TREE_CAIRO
+  
+  BorrowedCairoContext borrow(aDrawTarget);
+  if (borrow.mCairo) {
+    if (aSnapped) {
+      cairo_identity_matrix(borrow.mCairo);
+    }
+    if (aDrawOrigin != Point(0, 0)) {
+      cairo_translate(borrow.mCairo, aDrawOrigin.x, aDrawOrigin.y);
+    }
+    if (aScaleFactor != 1) {
+      cairo_scale(borrow.mCairo, aScaleFactor, aScaleFactor);
+    }
+
+    moz_gtk_widget_paint(aGTKWidgetType, borrow.mCairo, &aGDKRect, &aState, aFlags, aDirection);
+
+    borrow.Finish();
+    return;
+  }
+#endif
+
+  
+  bool needClip = !aSnapped || aContext->HasComplexClip();
+#if defined(MOZ_X11) && defined(CAIRO_HAS_XLIB_SURFACE)
+  if (!needClip) {
+    
+    BorrowedXlibDrawable borrow(aDrawTarget);
+    if (borrow.GetDrawable()) {
+      nsIntSize size = aDrawTarget->GetSize();
+      cairo_surface_t* surf = nullptr;
+      
+#ifdef CAIRO_HAS_XLIB_XRENDER_SURFACE
+      if (borrow.GetXRenderFormat()) {
+        surf = cairo_xlib_surface_create_with_xrender_format(
+          borrow.GetDisplay(), borrow.GetDrawable(), borrow.GetScreen(),
+          borrow.GetXRenderFormat(), size.width, size.height);
+      } else {
+#else
+      if (! borrow.GetXRenderFormat()) {
+#endif
+        surf = cairo_xlib_surface_create(
+          borrow.GetDisplay(), borrow.GetDrawable(), borrow.GetVisual(),
+          size.width, size.height);
+      }
+      if (!NS_WARN_IF(!surf)) {
+        cairo_t* cr = cairo_create(surf);
+        if (!NS_WARN_IF(!cr)) {
+          cairo_new_path(cr);
+          cairo_rectangle(cr, aDrawOrigin.x, aDrawOrigin.y, aDrawSize.width, aDrawSize.height);
+          cairo_clip(cr);
+          if (aDrawOrigin != Point(0, 0)) {
+            cairo_translate(cr, aDrawOrigin.x, aDrawOrigin.y);
+          }
+          if (aScaleFactor != 1) {
+            cairo_scale(cr, aScaleFactor, aScaleFactor);
+          }
+
+          moz_gtk_widget_paint(aGTKWidgetType, cr, &aGDKRect, &aState, aFlags, aDirection);
+
+          cairo_destroy(cr);
+        }
+        cairo_surface_destroy(surf);
+      }
+      borrow.Finish();
+      return;
+    }
+  }
+#endif
+
+  
+  
+  uint8_t* data;
+  nsIntSize size;
+  int32_t stride;
+  SurfaceFormat format;
+  if (!needClip && aDrawTarget->LockBits(&data, &size, &stride, &format)) {
+    
+    cairo_surface_t* surf =
+      cairo_image_surface_create_for_data(
+        data + int32_t(aDrawOrigin.y) * stride + int32_t(aDrawOrigin.x) * BytesPerPixel(format),
+        GfxFormatToCairoFormat(format), aDrawSize.width, aDrawSize.height, stride);
+    if (!NS_WARN_IF(!surf)) {
+      cairo_t* cr = cairo_create(surf);
+      if (!NS_WARN_IF(!cr)) {
+        if (aScaleFactor != 1) {
+          cairo_scale(cr, aScaleFactor, aScaleFactor);
+        }
+
+        moz_gtk_widget_paint(aGTKWidgetType, cr, &aGDKRect, &aState, aFlags, aDirection);
+
+        cairo_destroy(cr);
+      }
+      cairo_surface_destroy(surf);
+    }
+    aDrawTarget->ReleaseBits(data);
+  } else {
+    
+    format = aTransparency != nsITheme::eOpaque ? SurfaceFormat::B8G8R8A8 : aDrawTarget->GetFormat();
+    
+    RefPtr<DataSourceSurface> dataSurface =
+      Factory::CreateDataSourceSurface(aDrawSize, format, aTransparency != nsITheme::eOpaque);
+    DataSourceSurface::MappedSurface map;
+    if (!NS_WARN_IF(!(dataSurface && dataSurface->Map(DataSourceSurface::MapType::WRITE, &map)))) {
+      
+      cairo_surface_t* surf =
+        cairo_image_surface_create_for_data(map.mData, GfxFormatToCairoFormat(format),
+                                            aDrawSize.width, aDrawSize.height, map.mStride);
+      cairo_t* cr = nullptr;
+      if (!NS_WARN_IF(!surf)) {
+        cr = cairo_create(surf);
+        if (!NS_WARN_IF(!cr)) {
+          if (aScaleFactor != 1) {
+            cairo_scale(cr, aScaleFactor, aScaleFactor);
+          }
+
+          moz_gtk_widget_paint(aGTKWidgetType, cr, &aGDKRect, &aState, aFlags, aDirection);
+        }
+      }
+
+      
+      dataSurface->Unmap();
+
+      if (cr) {
+        if (needClip || aTransparency != nsITheme::eOpaque) {
+          
+          aDrawTarget->DrawSurface(dataSurface,
+                                   Rect(aDrawOrigin, Size(aDrawSize)),
+                                   Rect(0, 0, aDrawSize.width, aDrawSize.height));
+        } else {
+          
+          aDrawTarget->CopySurface(dataSurface,
+                                   IntRect(0, 0, aDrawSize.width, aDrawSize.height),
+                                   TruncatedToInt(aDrawOrigin));
+        }
+
+        cairo_destroy(cr);
+      }
+
+      if (surf) {
+        cairo_surface_destroy(surf);
+      }
+    }
+  }
+}
 #endif
 
 bool
@@ -796,10 +960,6 @@ nsNativeThemeGTK::DrawWidgetBackground(nsRenderingContext* aContext,
                                        const nsRect& aRect,
                                        const nsRect& aDirtyRect)
 {
-#if (MOZ_WIDGET_GTK != 2)
-  DrawTarget& aDrawTarget = *aContext->GetDrawTarget();
-#endif
-
   GtkWidgetState state;
   GtkThemeWidgetType gtkWidgetType;
   GtkTextDirection direction = GetTextDirection(aFrame);
@@ -819,8 +979,8 @@ nsNativeThemeGTK::DrawWidgetBackground(nsRenderingContext* aContext,
   
   
   
-  bool snapXY = ctx->UserToDevicePixelSnapped(rect);
-  if (snapXY) {
+  bool snapped = ctx->UserToDevicePixelSnapped(rect);
+  if (snapped) {
     
     dirtyRect = ctx->UserToDevice(dirtyRect);
   }
@@ -849,23 +1009,6 @@ nsNativeThemeGTK::DrawWidgetBackground(nsRenderingContext* aContext,
       || !drawingRect.IntersectRect(overflowRect, drawingRect))
     return NS_OK;
 
-  
-
-  GdkRectangle gdk_rect = {-drawingRect.x/scaleFactor,
-                           -drawingRect.y/scaleFactor,
-                           widgetRect.width/scaleFactor,
-                           widgetRect.height/scaleFactor};
-
-  
-  gfxContextAutoSaveRestore autoSR(ctx);
-  gfxMatrix tm;
-  if (!snapXY) { 
-    tm = ctx->CurrentMatrix();
-  }
-  tm.Translate(rect.TopLeft() + gfxPoint(drawingRect.x, drawingRect.y));
-  tm.Scale(scaleFactor, scaleFactor); 
-  ctx->SetMatrix(tm);
-
   NS_ASSERTION(!IsWidgetTypeDisabled(mDisabledWidgetTypes, aWidgetType),
                "Trying to render an unsafe widget!");
 
@@ -875,7 +1018,27 @@ nsNativeThemeGTK::DrawWidgetBackground(nsRenderingContext* aContext,
     gdk_error_trap_push ();
   }
 
+  Transparency transparency = GetWidgetTransparency(aFrame, aWidgetType);
+
+  
+  GdkRectangle gdk_rect = {-drawingRect.x/scaleFactor,
+                           -drawingRect.y/scaleFactor,
+                           widgetRect.width/scaleFactor,
+                           widgetRect.height/scaleFactor};
+
+  
+  gfxPoint origin = rect.TopLeft() + drawingRect.TopLeft();
+
 #if (MOZ_WIDGET_GTK == 2)
+  gfxContextAutoSaveRestore autoSR(ctx);
+  gfxMatrix matrix;
+  if (!snapped) { 
+    matrix = ctx->CurrentMatrix();
+  }
+  matrix.Translate(origin);
+  matrix.Scale(scaleFactor, scaleFactor); 
+  ctx->SetMatrix(matrix);
+
   
   
   GdkRectangle gdk_clip = {0, 0, drawingRect.width, drawingRect.height};
@@ -887,7 +1050,7 @@ nsNativeThemeGTK::DrawWidgetBackground(nsRenderingContext* aContext,
   
   
   uint32_t rendererFlags = 0;
-  if (GetWidgetTransparency(aFrame, aWidgetType) == eOpaque) {
+  if (transparency == eOpaque) {
     rendererFlags |= gfxGdkNativeRenderer::DRAW_IS_OPAQUE;
   }
 
@@ -897,11 +1060,10 @@ nsNativeThemeGTK::DrawWidgetBackground(nsRenderingContext* aContext,
 
   renderer.Draw(ctx, drawingRect.Size(), rendererFlags, colormap);
 #else 
-  cairo_t *cairo_ctx =
-    (cairo_t*)aDrawTarget.GetNativeSurface(NativeSurfaceType::CAIRO_CONTEXT); 
-  MOZ_ASSERT(cairo_ctx);
-  moz_gtk_widget_paint(gtkWidgetType, cairo_ctx, &gdk_rect, 
-                       &state, flags, direction);
+  DrawThemeWithCairo(ctx, aContext->GetDrawTarget(),
+                     state, gtkWidgetType, flags, direction, scaleFactor,
+                     snapped, ToPoint(origin), drawingRect.Size(),
+                     gdk_rect, transparency);
 #endif
 
   if (!safeState) {
