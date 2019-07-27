@@ -81,7 +81,9 @@ public:
   };
 
   
+
   KeyframeEffectReadonly* GetEffect() const { return mEffect; }
+  void SetEffect(KeyframeEffectReadonly* aEffect);
   DocumentTimeline* Timeline() const { return mTimeline; }
   Nullable<TimeDuration> GetStartTime() const { return mStartTime; }
   void SetStartTime(const Nullable<TimeDuration>& aNewStartTime);
@@ -104,6 +106,9 @@ public:
   
   
   
+  
+  
+
   Nullable<double> GetStartTimeAsDouble() const;
   void SetStartTimeAsDouble(const Nullable<double>& aStartTime);
   Nullable<double> GetCurrentTimeAsDouble() const;
@@ -119,9 +124,10 @@ public:
   
   
   
+  
+
   void CancelFromStyle() { DoCancel(); }
 
-  void SetEffect(KeyframeEffectReadonly* aEffect);
   void Tick();
 
   
