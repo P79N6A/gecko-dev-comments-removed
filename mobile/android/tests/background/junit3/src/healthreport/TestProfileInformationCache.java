@@ -12,6 +12,15 @@ import org.mozilla.gecko.background.helpers.FakeProfileTestCase;
 
 public class TestProfileInformationCache extends FakeProfileTestCase {
 
+  public final void testEmptyFile() throws Exception {
+    
+    final File emptyFile = File.createTempFile("empty", "pic", this.fakeProfileDirectory);
+    final MockProfileInformationCache cache = new MockProfileInformationCache(emptyFile);
+
+    
+    assertNull(cache.readJSON());
+  }
+
   public final void testInitState() throws IOException {
     MockProfileInformationCache cache = new MockProfileInformationCache(this.fakeProfileDirectory.getAbsolutePath());
     assertFalse(cache.isInitialized());
