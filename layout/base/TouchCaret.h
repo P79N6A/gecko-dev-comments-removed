@@ -60,6 +60,11 @@ public:
     return mVisible;
   }
 
+  
+
+
+  static void UpdateAndroidActionBarVisibility(bool aVisibility, uint32_t& aViewID);
+
 private:
   
   TouchCaret() = delete;
@@ -280,10 +285,16 @@ private:
   
   static int32_t sTouchCaretInflateSize;
   static int32_t sTouchCaretExpirationTime;
+  static bool sCaretManagesAndroidActionbar;
+  static bool sTouchcaretExtendedvisibility;
 
   
   friend class SelectionCarets;
   static const int32_t sAutoScrollTimerDelay = 30;
+
+  
+  static uint32_t sActionBarViewCount;
+  uint32_t mActionBarViewID;
 };
 } 
 #endif 

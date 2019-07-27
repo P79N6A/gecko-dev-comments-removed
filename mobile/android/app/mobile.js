@@ -882,3 +882,18 @@ pref("selectioncaret.detects.longtap", false);
 
 
 pref("selectioncaret.visibility.affectscaret", true);
+
+
+pref("touchcaret.enabled", false);
+
+
+pref("touchcaret.expiration.time", 0);
+
+
+
+
+pref("touchcaret.extendedvisibility", true);
+
+
+
+pref("caret.manages-android-actionbar", true);
