@@ -275,6 +275,7 @@ class nsStyleSet
     eAgentSheet, 
     eUserSheet, 
     ePresHintSheet,
+    eSVGAttrAnimationSheet,
     eDocSheet, 
     eScopedDocSheet,
     eStyleAttrSheet,
@@ -472,7 +473,7 @@ class nsStyleSet
   unsigned mAuthorStyleDisabled: 1;
   unsigned mInReconstruct : 1;
   unsigned mInitFontFeatureValuesLookup : 1;
-  unsigned mDirty : 9;  
+  unsigned mDirty : 10;  
 
   uint32_t mUnusedRuleNodeCount; 
   nsTArray<nsStyleContext*> mRoots; 
