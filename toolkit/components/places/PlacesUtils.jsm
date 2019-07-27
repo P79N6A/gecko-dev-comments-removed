@@ -49,6 +49,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Bookmarks",
                                   "resource://gre/modules/Bookmarks.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "History",
                                   "resource://gre/modules/History.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AsyncShutdown",
+                                  "resource://gre/modules/AsyncShutdown.jsm");
 
 
 
@@ -1181,6 +1183,207 @@ this.PlacesUtils = {
 
 
 
+
+
+
+
+  _serializeNodeAsJSONToOutputStream: function (aNode, aStream) {
+    function addGenericProperties(aPlacesNode, aJSNode) {
+      aJSNode.title = aPlacesNode.title;
+      aJSNode.id = aPlacesNode.itemId;
+      let guid = aPlacesNode.bookmarkGuid;
+      if (guid) {
+        aJSNode.itemGuid = guid;
+        var parent = aPlacesNode.parent;
+        if (parent)
+          aJSNode.parent = parent.itemId;
+
+        var dateAdded = aPlacesNode.dateAdded;
+        if (dateAdded)
+          aJSNode.dateAdded = dateAdded;
+        var lastModified = aPlacesNode.lastModified;
+        if (lastModified)
+          aJSNode.lastModified = lastModified;
+
+        
+        var annos = [];
+        try {
+          annos = PlacesUtils.getAnnotationsForItem(aJSNode.id).filter(function(anno) {
+            
+            
+            
+            
+            if (anno.name == PlacesUtils.LMANNO_FEEDURI)
+              aJSNode.livemark = 1;
+            return true;
+          });
+        } catch(ex) {}
+        if (annos.length != 0)
+          aJSNode.annos = annos;
+      }
+      
+    }
+
+    function addURIProperties(aPlacesNode, aJSNode) {
+      aJSNode.type = PlacesUtils.TYPE_X_MOZ_PLACE;
+      aJSNode.uri = aPlacesNode.uri;
+      if (aJSNode.id && aJSNode.id != -1) {
+        
+        var keyword = PlacesUtils.bookmarks.getKeywordForBookmark(aJSNode.id);
+        if (keyword)
+          aJSNode.keyword = keyword;
+      }
+
+      if (aPlacesNode.tags)
+        aJSNode.tags = aPlacesNode.tags;
+
+      
+      var uri = PlacesUtils._uri(aPlacesNode.uri);
+      try {
+        var lastCharset = PlacesUtils.annotations.getPageAnnotation(
+                            uri, PlacesUtils.CHARSET_ANNO);
+        aJSNode.charset = lastCharset;
+      } catch (e) {}
+    }
+
+    function addSeparatorProperties(aPlacesNode, aJSNode) {
+      aJSNode.type = PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR;
+    }
+
+    function addContainerProperties(aPlacesNode, aJSNode) {
+      var concreteId = PlacesUtils.getConcreteItemId(aPlacesNode);
+      if (concreteId != -1) {
+        
+        if (PlacesUtils.nodeIsQuery(aPlacesNode) ||
+            concreteId != aPlacesNode.itemId) {
+          aJSNode.type = PlacesUtils.TYPE_X_MOZ_PLACE;
+          aJSNode.uri = aPlacesNode.uri;
+          
+          aJSNode.concreteId = concreteId;
+        }
+        else { 
+          aJSNode.type = PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER;
+
+          
+          if (aJSNode.id == PlacesUtils.placesRootId)
+            aJSNode.root = "placesRoot";
+          else if (aJSNode.id == PlacesUtils.bookmarksMenuFolderId)
+            aJSNode.root = "bookmarksMenuFolder";
+          else if (aJSNode.id == PlacesUtils.tagsFolderId)
+            aJSNode.root = "tagsFolder";
+          else if (aJSNode.id == PlacesUtils.unfiledBookmarksFolderId)
+            aJSNode.root = "unfiledBookmarksFolder";
+          else if (aJSNode.id == PlacesUtils.toolbarFolderId)
+            aJSNode.root = "toolbarFolder";
+        }
+      }
+      else {
+        
+        aJSNode.type = PlacesUtils.TYPE_X_MOZ_PLACE;
+        aJSNode.uri = aPlacesNode.uri;
+      }
+    }
+
+    function appendConvertedComplexNode(aNode, aSourceNode, aArray) {
+      var repr = {};
+
+      for (let [name, value] in Iterator(aNode))
+        repr[name] = value;
+
+      
+      var children = repr.children = [];
+      if (!aNode.livemark) {
+        asContainer(aSourceNode);
+        var wasOpen = aSourceNode.containerOpen;
+        if (!wasOpen)
+          aSourceNode.containerOpen = true;
+        var cc = aSourceNode.childCount;
+        for (var i = 0; i < cc; ++i) {
+          var childNode = aSourceNode.getChild(i);
+          appendConvertedNode(aSourceNode.getChild(i), i, children);
+        }
+        if (!wasOpen)
+          aSourceNode.containerOpen = false;
+      }
+
+      aArray.push(repr);
+      return true;
+    }
+
+    function appendConvertedNode(bNode, aIndex, aArray) {
+      var node = {};
+
+      
+      
+      
+      if (aIndex)
+        node.index = aIndex;
+
+      addGenericProperties(bNode, node);
+
+      var parent = bNode.parent;
+      var grandParent = parent ? parent.parent : null;
+      if (grandParent)
+        node.grandParentId = grandParent.itemId;
+
+      if (PlacesUtils.nodeIsURI(bNode)) {
+        
+        if (parent && parent.itemId == PlacesUtils.tagsFolderId)
+          return false;
+
+        
+        
+        
+        try {
+          PlacesUtils._uri(bNode.uri);
+        } catch (ex) {
+          return false;
+        }
+
+        addURIProperties(bNode, node);
+      }
+      else if (PlacesUtils.nodeIsContainer(bNode)) {
+        
+        if (grandParent && grandParent.itemId == PlacesUtils.tagsFolderId)
+          return false;
+
+        addContainerProperties(bNode, node);
+      }
+      else if (PlacesUtils.nodeIsSeparator(bNode)) {
+        
+        
+        if ((parent && parent.itemId == PlacesUtils.tagsFolderId) ||
+            (grandParent && grandParent.itemId == PlacesUtils.tagsFolderId))
+          return false;
+
+        addSeparatorProperties(bNode, node);
+      }
+
+      if (!node.feedURI && node.type == PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER)
+        return appendConvertedComplexNode(node, bNode, aArray);
+
+      aArray.push(node);
+      return true;
+    }
+
+    
+    var array = [];
+    if (appendConvertedNode(aNode, null, array)) {
+      var json = JSON.stringify(array[0]);
+      aStream.write(json, json.length);
+    }
+    else {
+      throw Cr.NS_ERROR_UNEXPECTED;
+    }
+  },
+
+  
+
+
+
+
+
+
   promiseDBConnection: () => gAsyncDBConnPromised,
 
   
@@ -1189,7 +1392,34 @@ this.PlacesUtils = {
 
 
 
-  promiseWrappedConnection: () => gAsyncDBWrapperPromised,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  withConnectionWrapper: (name, task) => {
+    if (!name) {
+      throw new TypeError("Expecting a user-readable name");
+    }
+    return Task.spawn(function*() {
+      let db = yield gAsyncDBWrapperPromised;
+      return db.executeBeforeShutdown(name, task);
+    });
+  },
 
   
 
@@ -1445,11 +1675,7 @@ this.PlacesUtils = {
 
   getImageURLForResolution:
   function PU_getImageURLForResolution(aWindow, aURL, aWidth = 16, aHeight = 16) {
-    
-    
-    let uri = Services.io.newURI(aURL, null, null);
-    if ((!(uri instanceof Ci.nsIURL) || uri.fileExtension.toLowerCase() != "ico") &&
-        !/^data:image\/(?:x-icon|icon|ico)/.test(aURL)) {
+    if (!aURL.endsWith('.ico') && !aURL.endsWith('.ICO')) {
       return aURL;
     }
     let width  = Math.round(aWidth * aWindow.devicePixelRatio);
@@ -1983,49 +2209,49 @@ let Keywords = {
     
     url = new URL(url);
 
-    return Task.spawn(function* () {
-      let cache = yield gKeywordsCachePromise;
+    return PlacesUtils.withConnectionWrapper("Keywords.insert",  Task.async(function*(db) {
+        let cache = yield gKeywordsCachePromise;
 
-      
-      let oldEntry = cache.get(keyword);
-      if (oldEntry && oldEntry.url.href == url.href &&
-                      oldEntry.postData == keywordEntry.postData) {
-        return;
-      }
+        
+        let oldEntry = cache.get(keyword);
+        if (oldEntry && oldEntry.url.href == url.href &&
+                        oldEntry.postData == keywordEntry.postData) {
+          return;
+        }
 
-      
-      
-      
-      
-      
-      let db = yield PlacesUtils.promiseWrappedConnection();
-      if (oldEntry) {
-        yield db.executeCached(
-          `UPDATE moz_keywords
-           SET place_id = (SELECT id FROM moz_places WHERE url = :url),
-               post_data = :post_data
-           WHERE keyword = :keyword
-          `, { url: url.href, keyword: keyword, post_data: postData });
-        yield notifyKeywordChange(oldEntry.url.href, "");
-      } else {
         
         
-        yield db.executeCached(
-          `INSERT OR IGNORE INTO moz_places (url, rev_host, hidden, frecency, guid)
-           VALUES (:url, :rev_host, 0, :frecency, GENERATE_GUID())
-          `, { url: url.href, rev_host: PlacesUtils.getReversedHost(url),
-               frecency: url.protocol == "place:" ? 0 : -1 });
-        yield db.executeCached(
-          `INSERT INTO moz_keywords (keyword, place_id, post_data)
-           VALUES (:keyword, (SELECT id FROM moz_places WHERE url = :url), :post_data)
-          `, { url: url.href, keyword: keyword, post_data: postData });
-      }
+        
+        
+        
+        if (oldEntry) {
+          yield db.executeCached(
+            `UPDATE moz_keywords
+             SET place_id = (SELECT id FROM moz_places WHERE url = :url),
+                 post_data = :post_data
+             WHERE keyword = :keyword
+            `, { url: url.href, keyword: keyword, post_data: postData });
+          yield notifyKeywordChange(oldEntry.url.href, "");
+        } else {
+          
+          
+          yield db.executeCached(
+            `INSERT OR IGNORE INTO moz_places (url, rev_host, hidden, frecency, guid)
+             VALUES (:url, :rev_host, 0, :frecency, GENERATE_GUID())
+            `, { url: url.href, rev_host: PlacesUtils.getReversedHost(url),
+                 frecency: url.protocol == "place:" ? 0 : -1 });
+          yield db.executeCached(
+            `INSERT INTO moz_keywords (keyword, place_id, post_data)
+             VALUES (:keyword, (SELECT id FROM moz_places WHERE url = :url), :post_data)
+            `, { url: url.href, keyword: keyword, post_data: postData });
+        }
 
-      cache.set(keyword, { keyword, url, postData });
+        cache.set(keyword, { keyword, url, postData });
 
-      
-      yield notifyKeywordChange(url.href, keyword);
-    }.bind(this));
+        
+        yield notifyKeywordChange(url.href, keyword);
+      }.bind(this))
+    );
   },
 
   
@@ -2040,20 +2266,19 @@ let Keywords = {
     if (!keyword || typeof(keyword) != "string")
       throw new Error("Invalid keyword");
     keyword = keyword.trim().toLowerCase();
-    return Task.spawn(function* () {
+    return PlacesUtils.withConnectionWrapper("Keywords.remove",  Task.async(function*(db) {
       let cache = yield gKeywordsCachePromise;
       if (!cache.has(keyword))
         return;
       let { url } = cache.get(keyword);
       cache.delete(keyword);
 
-      let db = yield PlacesUtils.promiseWrappedConnection();
       yield db.execute(`DELETE FROM moz_keywords WHERE keyword = :keyword`,
                        { keyword });
 
       
       yield notifyKeywordChange(url.href, "");
-    }.bind(this));
+    }.bind(this))) ;
   }
 };
 
@@ -2061,94 +2286,96 @@ let Keywords = {
 
 let gIgnoreKeywordNotifications = false;
 
-XPCOMUtils.defineLazyGetter(this, "gKeywordsCachePromise", Task.async(function* () {
-  let cache = new Map();
-  let db = yield PlacesUtils.promiseWrappedConnection();
-  let rows = yield db.execute(
-    `SELECT keyword, url, post_data
-     FROM moz_keywords k
-     JOIN moz_places h ON h.id = k.place_id
-    `);
-  for (let row of rows) {
-    let keyword = row.getResultByName("keyword");
-    let entry = { keyword,
-                  url: new URL(row.getResultByName("url")),
-                  postData: row.getResultByName("post_data") };
-    cache.set(keyword, entry);
-  }
+XPCOMUtils.defineLazyGetter(this, "gKeywordsCachePromise", () =>
+  PlacesUtils.withConnectionWrapper("PlacesUtils: gKeywordsCachePromise",
+    Task.async(function*(db) {
+      let cache = new Map();
+      let rows = yield db.execute(
+        `SELECT keyword, url, post_data
+         FROM moz_keywords k
+         JOIN moz_places h ON h.id = k.place_id
+        `);
+      for (let row of rows) {
+        let keyword = row.getResultByName("keyword");
+        let entry = { keyword,
+                      url: new URL(row.getResultByName("url")),
+                      postData: row.getResultByName("post_data") };
+        cache.set(keyword, entry);
+      }
 
-  
-  function keywordsForHref(href) {
-    let keywords = [];
-    for (let [ key, val ] of cache) {
-      if (val.url.href == href)
-        keywords.push(key);
-    }
-    return keywords;
-  }
-
-  
-  
-  
-  let observer = {
-    QueryInterface: XPCOMUtils.generateQI(Ci.nsINavBookmarkObserver),
-    onBeginUpdateBatch() {},
-    onEndUpdateBatch() {},
-    onItemAdded() {},
-    onItemVisited() {},
-    onItemMoved() {},
-
-    onItemRemoved(id, parentId, index, itemType, uri, guid, parentGuid) {
-      if (itemType != PlacesUtils.bookmarks.TYPE_BOOKMARK)
-        return;
-
-      let keywords = keywordsForHref(uri.spec);
       
-      if (keywords.length == 0)
-        return;
-
-      Task.spawn(function* () {
-        
-        let bookmark = yield PlacesUtils.bookmarks.fetch({ url: uri });
-        if (!bookmark) {
-          for (let keyword of keywords) {
-            yield PlacesUtils.keywords.remove(keyword);
-          }
+      function keywordsForHref(href) {
+        let keywords = [];
+        for (let [ key, val ] of cache) {
+          if (val.url.href == href)
+            keywords.push(key);
         }
-      }).catch(Cu.reportError);
-    },
+        return keywords;
+      }
 
-    onItemChanged(id, prop, isAnno, val, lastMod, itemType, parentId, guid) {
-      if (gIgnoreKeywordNotifications ||
-          prop != "keyword")
-        return;
+      
+      
+      
+      let observer = {
+        QueryInterface: XPCOMUtils.generateQI(Ci.nsINavBookmarkObserver),
+        onBeginUpdateBatch() {},
+        onEndUpdateBatch() {},
+        onItemAdded() {},
+        onItemVisited() {},
+        onItemMoved() {},
 
-      Task.spawn(function* () {
-        let bookmark = yield PlacesUtils.bookmarks.fetch(guid);
-        
-        if (!bookmark)
-          return;
+        onItemRemoved(id, parentId, index, itemType, uri, guid, parentGuid) {
+          if (itemType != PlacesUtils.bookmarks.TYPE_BOOKMARK)
+            return;
 
-        if (val.length == 0) {
+          let keywords = keywordsForHref(uri.spec);
           
-          let keywords = keywordsForHref(bookmark.url.href)
-          for (let keyword of keywords) {
-            cache.delete(keyword);
-          }
-        } else {
-          
-          cache.set(val, { keyword: val, url: bookmark.url });
+          if (keywords.length == 0)
+            return;
+
+          Task.spawn(function* () {
+            
+            let bookmark = yield PlacesUtils.bookmarks.fetch({ url: uri });
+            if (!bookmark) {
+              for (let keyword of keywords) {
+                yield PlacesUtils.keywords.remove(keyword);
+              }
+            }
+          }).catch(Cu.reportError);
+        },
+
+        onItemChanged(id, prop, isAnno, val, lastMod, itemType, parentId, guid) {
+          if (gIgnoreKeywordNotifications ||
+              prop != "keyword")
+            return;
+
+          Task.spawn(function* () {
+            let bookmark = yield PlacesUtils.bookmarks.fetch(guid);
+            
+            if (!bookmark)
+              return;
+
+            if (val.length == 0) {
+              
+              let keywords = keywordsForHref(bookmark.url.href)
+              for (let keyword of keywords) {
+                cache.delete(keyword);
+              }
+            } else {
+              
+              cache.set(val, { keyword: val, url: bookmark.url });
+            }
+          }).catch(Cu.reportError);
         }
-      }).catch(Cu.reportError);
-    }
-  };
+      };
 
-  PlacesUtils.bookmarks.addObserver(observer, false);
-  PlacesUtils.registerShutdownFunction(() => {
-    PlacesUtils.bookmarks.removeObserver(observer);
-  });
-  return cache;
-}));
+      PlacesUtils.bookmarks.addObserver(observer, false);
+      PlacesUtils.registerShutdownFunction(() => {
+        PlacesUtils.bookmarks.removeObserver(observer);
+      });
+      return cache;
+    })
+));
 
 
 
