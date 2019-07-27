@@ -131,19 +131,19 @@ static const Class CallConstructHolder = {
 const char ScriptedIndirectProxyHandler::family = 0;
 
 bool
+ScriptedIndirectProxyHandler::preventExtensions(JSContext *cx, HandleObject proxy, bool *succeeded) const
+{
+    
+    *succeeded = false;
+    return true;
+}
+
+bool
 ScriptedIndirectProxyHandler::isExtensible(JSContext *cx, HandleObject proxy,
                                            bool *extensible) const
 {
     
     *extensible = true;
-    return true;
-}
-
-bool
-ScriptedIndirectProxyHandler::preventExtensions(JSContext *cx, HandleObject proxy, bool *succeeded) const
-{
-    
-    *succeeded = false;
     return true;
 }
 

@@ -1745,25 +1745,25 @@ XrayToString(JSContext *cx, unsigned argc, Value *vp)
 
 template <typename Base, typename Traits>
 bool
-XrayWrapper<Base, Traits>::isExtensible(JSContext *cx, JS::Handle<JSObject*> wrapper,
-                                        bool *extensible) const
+XrayWrapper<Base, Traits>::preventExtensions(JSContext *cx, HandleObject wrapper, bool *succeeded)
+                                             const
 {
     
     
     
     
     
-    *extensible = true;
+    *succeeded = false;
     return true;
 }
 
 template <typename Base, typename Traits>
 bool
-XrayWrapper<Base, Traits>::preventExtensions(JSContext *cx, HandleObject wrapper, bool *succeeded)
-                                             const
+XrayWrapper<Base, Traits>::isExtensible(JSContext *cx, JS::Handle<JSObject*> wrapper,
+                                        bool *extensible) const
 {
     
-    *succeeded = false;
+    *extensible = true;
     return true;
 }
 

@@ -274,6 +274,50 @@ ArrayToIdVector(JSContext *cx, HandleObject proxy, HandleObject target, HandleVa
 }
 
 
+
+bool
+ScriptedDirectProxyHandler::getPrototypeOf(JSContext *cx, HandleObject proxy,
+                                           MutableHandleObject protop) const
+{
+    RootedObject target(cx, proxy->as<ProxyObject>().target());
+    
+    if (!target) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_PROXY_REVOKED);
+        return false;
+    }
+
+    return DirectProxyHandler::getPrototypeOf(cx, proxy, protop);
+}
+
+bool
+ScriptedDirectProxyHandler::setPrototypeOf(JSContext *cx, HandleObject proxy,
+                                           HandleObject proto, bool *bp) const
+{
+    RootedObject target(cx, proxy->as<ProxyObject>().target());
+    if (!target) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_PROXY_REVOKED);
+        return false;
+    }
+
+    return DirectProxyHandler::setPrototypeOf(cx, proxy, proto, bp);
+}
+
+
+
+bool
+ScriptedDirectProxyHandler::setImmutablePrototype(JSContext *cx, HandleObject proxy,
+                                                  bool *succeeded) const
+{
+    RootedObject target(cx, proxy->as<ProxyObject>().target());
+    if (!target) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_PROXY_REVOKED);
+        return false;
+    }
+
+    return DirectProxyHandler::setImmutablePrototype(cx, proxy, succeeded);
+}
+
+
 bool
 ScriptedDirectProxyHandler::preventExtensions(JSContext *cx, HandleObject proxy,
                                               bool *succeeded) const
@@ -325,47 +369,55 @@ ScriptedDirectProxyHandler::preventExtensions(JSContext *cx, HandleObject proxy,
 }
 
 
-
 bool
-ScriptedDirectProxyHandler::getPrototypeOf(JSContext *cx, HandleObject proxy,
-                                           MutableHandleObject protop) const
+ScriptedDirectProxyHandler::isExtensible(JSContext *cx, HandleObject proxy, bool *extensible) const
 {
-    RootedObject target(cx, proxy->as<ProxyObject>().target());
     
-    if (!target) {
+    RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
+
+    
+    if (!handler) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_PROXY_REVOKED);
         return false;
     }
 
-    return DirectProxyHandler::getPrototypeOf(cx, proxy, protop);
-}
-
-bool
-ScriptedDirectProxyHandler::setPrototypeOf(JSContext *cx, HandleObject proxy,
-                                           HandleObject proto, bool *bp) const
-{
+    
     RootedObject target(cx, proxy->as<ProxyObject>().target());
-    if (!target) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_PROXY_REVOKED);
+
+    
+    RootedValue trap(cx);
+    if (!JSObject::getProperty(cx, handler, handler, cx->names().isExtensible, &trap))
         return false;
+
+    
+    if (trap.isUndefined())
+        return DirectProxyHandler::isExtensible(cx, proxy, extensible);
+
+    
+    Value argv[] = {
+        ObjectValue(*target)
+    };
+    RootedValue trapResult(cx);
+    if (!Invoke(cx, ObjectValue(*handler), trap, ArrayLength(argv), argv, &trapResult))
+        return false;
+
+    
+    bool booleanTrapResult = ToBoolean(trapResult);
+
+    
+    bool targetResult;
+    if (!JSObject::isExtensible(cx, target, &targetResult))
+        return false;
+
+    
+    if (targetResult != booleanTrapResult) {
+       JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_PROXY_EXTENSIBILITY);
+       return false;
     }
 
-    return DirectProxyHandler::setPrototypeOf(cx, proxy, proto, bp);
-}
-
-
-
-bool
-ScriptedDirectProxyHandler::setImmutablePrototype(JSContext *cx, HandleObject proxy,
-                                                  bool *succeeded) const
-{
-    RootedObject target(cx, proxy->as<ProxyObject>().target());
-    if (!target) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_PROXY_REVOKED);
-        return false;
-    }
-
-    return DirectProxyHandler::setImmutablePrototype(cx, proxy, succeeded);
+    
+    *extensible = booleanTrapResult;
+    return true;
 }
 
 
@@ -963,58 +1015,6 @@ ScriptedDirectProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject 
 
     
     vp.set(BooleanValue(success));
-    return true;
-}
-
-
-bool
-ScriptedDirectProxyHandler::isExtensible(JSContext *cx, HandleObject proxy, bool *extensible) const
-{
-    
-    RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
-
-    
-    if (!handler) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_PROXY_REVOKED);
-        return false;
-    }
-
-    
-    RootedObject target(cx, proxy->as<ProxyObject>().target());
-
-    
-    RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, cx->names().isExtensible, &trap))
-        return false;
-
-    
-    if (trap.isUndefined())
-        return DirectProxyHandler::isExtensible(cx, proxy, extensible);
-
-    
-    Value argv[] = {
-        ObjectValue(*target)
-    };
-    RootedValue trapResult(cx);
-    if (!Invoke(cx, ObjectValue(*handler), trap, ArrayLength(argv), argv, &trapResult))
-        return false;
-
-    
-    bool booleanTrapResult = ToBoolean(trapResult);
-
-    
-    bool targetResult;
-    if (!JSObject::isExtensible(cx, target, &targetResult))
-        return false;
-
-    
-    if (targetResult != booleanTrapResult) {
-       JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_PROXY_EXTENSIBILITY);
-       return false;
-    }
-
-    
-    *extensible = booleanTrapResult;
     return true;
 }
 
