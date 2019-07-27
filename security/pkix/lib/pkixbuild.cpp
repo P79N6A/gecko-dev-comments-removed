@@ -224,8 +224,17 @@ PathBuildingStep::Check(Input potentialIssuerDER,
   if (deferredSubjectError != Result::ERROR_EXPIRED_CERTIFICATE) {
     CertID certID(subject.GetIssuer(), potentialIssuer.GetSubjectPublicKeyInfo(),
                   subject.GetSerialNumber());
+    Time notBefore(Time::uninitialized);
+    Time notAfter(Time::uninitialized);
+    
+    
+    rv = CheckValidity(subject.GetValidity(), time, &notBefore, &notAfter);
+    if (rv != Success) {
+      return rv;
+    }
+    Duration validityDuration(notAfter, notBefore);
     rv = trustDomain.CheckRevocation(subject.endEntityOrCA, certID, time,
-                                     stapledOCSPResponse,
+                                     validityDuration, stapledOCSPResponse,
                                      subject.GetAuthorityInfoAccess());
     if (rv != Success) {
       return RecordResult(rv, keepGoing);

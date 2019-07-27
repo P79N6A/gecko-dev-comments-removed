@@ -22,16 +22,11 @@
 
 
 
+#include "pkixcheck.h"
 #include "pkixgtest.h"
 
 using namespace mozilla::pkix;
 using namespace mozilla::pkix::test;
-
-namespace mozilla { namespace pkix {
-
-Result CheckValidity(const Input encodedValidity, Time time);
-
-} } 
 
 static const Time PAST_TIME(YMDHMS(1998, 12, 31, 12, 23, 56));
 

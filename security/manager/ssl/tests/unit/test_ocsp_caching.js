@@ -49,6 +49,39 @@ function run_test() {
 function add_tests() {
   
   
+  
+  
+  add_test(function() {
+    Services.prefs.setIntPref("security.pki.cert_short_lifetime_in_days",
+                              12000);
+    run_next_test();
+  });
+  add_connection_test("ocsp-stapling-none.example.com", PRErrorCodeSuccess,
+                      clearSessionCache);
+  add_test(function() {
+    Assert.equal(0, gFetchCount,
+                 "expected zero OCSP requests for a short-lived certificate");
+    Services.prefs.setIntPref("security.pki.cert_short_lifetime_in_days", 100);
+    run_next_test();
+  });
+  
+  
+  add_connection_test("ocsp-stapling-none.example.com", PRErrorCodeSuccess,
+                      clearSessionCache);
+  add_test(function() {
+    Assert.equal(1, gFetchCount,
+                 "expected one OCSP request for a long-lived certificate");
+    Services.prefs.clearUserPref("security.pki.cert_short_lifetime_in_days");
+    run_next_test();
+  });
+
+  
+
+  
+  add_test(function() { clearOCSPCache(); gFetchCount = 0; run_next_test(); });
+
+  
+  
 
   
   

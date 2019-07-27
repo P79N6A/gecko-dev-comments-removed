@@ -45,6 +45,10 @@ Result CheckNameConstraints(Input encodedNameConstraints,
                             const BackCert& firstChild,
                             KeyPurposeId requiredEKUIfPresent);
 
+Result CheckValidity(Input encodedValidity, Time time,
+                      Time* notBeforeOut = nullptr,
+                      Time* notAfterOut = nullptr);
+
 } } 
 
 #endif 
