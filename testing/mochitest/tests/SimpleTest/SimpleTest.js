@@ -23,8 +23,13 @@ var parentRunner = null;
 
 
 var isSingleTestRun = (parent == window && !opener)
-var isPrimaryTestWindow = !!parent.TestRunner || isSingleTestRun;
-
+try {
+  var isPrimaryTestWindow = !!parent.TestRunner || isSingleTestRun;
+} catch(e) {
+  dump("TEST-UNEXPECTED-FAIL, Exception caught: " + e.message +
+                ", at: " + e.fileName + " (" + e.lineNumber +
+                "), location: " + window.location.href + "\n");
+}
 
 
 
