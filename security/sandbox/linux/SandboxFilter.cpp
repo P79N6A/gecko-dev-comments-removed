@@ -5,18 +5,21 @@
 
 
 #include "SandboxFilter.h"
-#include "SandboxInternal.h"
 #include "SandboxFilterUtil.h"
+#include "SandboxInternal.h"
+#include "SandboxLogging.h"
 
 #include "mozilla/UniquePtr.h"
 
 #include <errno.h>
+#include <fcntl.h>
 #include <linux/ipc.h>
 #include <linux/net.h>
 #include <linux/prctl.h>
 #include <linux/sched.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
+#include <sys/syscall.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -55,6 +58,16 @@ class SandboxPolicyCommon : public SandboxPolicyBase
     MOZ_ASSERT(!aux);
     return -ENOSYS;
   }
+
+#if defined(ANDROID) && ANDROID_VERSION < 16
+  
+  
+  static intptr_t TKillCompatTrap(const sandbox::arch_seccomp_data& aArgs,
+                                  void *aux)
+  {
+    return syscall(__NR_tgkill, getpid(), aArgs.args[0], aArgs.args[1]);
+  }
+#endif
 
 public:
   virtual ResultExpr InvalidSyscall() const override {
@@ -155,7 +168,6 @@ public:
     case __NR_read:
       return Allow();
 
-
       
     CASES_FOR_mmap:
     case __NR_munmap:
@@ -176,6 +188,12 @@ public:
       return If(tgid == getpid(), Allow())
         .Else(InvalidSyscall());
     }
+
+#if defined(ANDROID) && ANDROID_VERSION < 16
+      
+    case __NR_tkill:
+      return Trap(TKillCompatTrap, nullptr);
+#endif
 
       
     case __NR_sched_yield:
@@ -494,12 +512,67 @@ GetContentSandboxPolicy()
 
 
 class GMPSandboxPolicy : public SandboxPolicyCommon {
+  static intptr_t OpenTrap(const sandbox::arch_seccomp_data& aArgs,
+                           void* aux)
+  {
+    auto plugin = static_cast<SandboxOpenedFile*>(aux);
+    const char* path;
+    int flags;
+
+    switch (aArgs.nr) {
+#ifdef __NR_open
+    case __NR_open:
+      path = reinterpret_cast<const char*>(aArgs.args[0]);
+      flags = static_cast<int>(aArgs.args[1]);
+      break;
+#endif
+    case __NR_openat:
+      
+      
+      path = reinterpret_cast<const char*>(aArgs.args[1]);
+      flags = static_cast<int>(aArgs.args[2]);
+      break;
+    default:
+      MOZ_CRASH("unexpected syscall number");
+    }
+
+    if ((flags & O_ACCMODE) != O_RDONLY) {
+      SANDBOX_LOG_ERROR("non-read-only open of file %s attempted (flags=0%o)",
+                        path, flags);
+      return -ENOSYS;
+    }
+    if (strcmp(path, plugin->mPath) != 0) {
+      SANDBOX_LOG_ERROR("attempt to open file %s which is not the media plugin"
+                        " %s", path, plugin->mPath);
+      return -ENOSYS;
+    }
+    int fd = plugin->mFd.exchange(-1);
+    if (fd < 0) {
+      SANDBOX_LOG_ERROR("multiple opens of media plugin file unimplemented");
+      return -ENOSYS;
+    }
+    return fd;
+  }
+
+  SandboxOpenedFile* mPlugin;
 public:
-  GMPSandboxPolicy() { }
+  explicit GMPSandboxPolicy(SandboxOpenedFile* aPlugin)
+  : mPlugin(aPlugin)
+  {
+    MOZ_ASSERT(aPlugin->mPath[0] == '/', "plugin path should be absolute");
+  }
+
   virtual ~GMPSandboxPolicy() { }
 
   virtual ResultExpr EvaluateSyscall(int sysno) const override {
     switch (sysno) {
+      
+#ifdef __NR_open
+    case __NR_open:
+#endif
+    case __NR_openat:
+      return Trap(OpenTrap, mPlugin);
+
       
     case __NR_mprotect:
       return Allow();
@@ -516,9 +589,9 @@ public:
 };
 
 UniquePtr<sandbox::bpf_dsl::Policy>
-GetMediaSandboxPolicy()
+GetMediaSandboxPolicy(SandboxOpenedFile* aPlugin)
 {
-  return UniquePtr<sandbox::bpf_dsl::Policy>(new GMPSandboxPolicy());
+  return UniquePtr<sandbox::bpf_dsl::Policy>(new GMPSandboxPolicy(aPlugin));
 }
 
 #endif 
