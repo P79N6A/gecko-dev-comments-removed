@@ -24,7 +24,7 @@ BEGIN_TEST(testGCFinalizeCallback)
     
     FinalizeCalls = 0;
     JS::PrepareForFullGC(rt);
-    JS::IncrementalGC(rt, JS::gcreason::API, 1000000);
+    JS::StartIncrementalGC(rt, JS::gcreason::API, 1000000);
     CHECK(!rt->gc.isIncrementalGCInProgress());
     CHECK(rt->gc.isFullGc());
     CHECK(checkMultipleGroups());
@@ -61,7 +61,7 @@ BEGIN_TEST(testGCFinalizeCallback)
     
     FinalizeCalls = 0;
     JS::PrepareZoneForGC(global1->zone());
-    JS::IncrementalGC(rt, JS::gcreason::API, 1000000);
+    JS::StartIncrementalGC(rt, JS::gcreason::API, 1000000);
     CHECK(!rt->gc.isIncrementalGCInProgress());
     CHECK(!rt->gc.isFullGc());
     CHECK(checkSingleGroup());
@@ -73,7 +73,7 @@ BEGIN_TEST(testGCFinalizeCallback)
     JS::PrepareZoneForGC(global1->zone());
     JS::PrepareZoneForGC(global2->zone());
     JS::PrepareZoneForGC(global3->zone());
-    JS::IncrementalGC(rt, JS::gcreason::API, 1000000);
+    JS::StartIncrementalGC(rt, JS::gcreason::API, 1000000);
     CHECK(!rt->gc.isIncrementalGCInProgress());
     CHECK(!rt->gc.isFullGc());
     CHECK(checkMultipleGroups());
