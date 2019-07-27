@@ -321,7 +321,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
     do {
       --i;
       AnimationPlayer* player = players[i];
-      dom::KeyframeEffectReadonly* effect = player->GetSource();
+      dom::KeyframeEffectReadonly* effect = player->GetEffect();
       MOZ_ASSERT(effect && effect->Properties().Length() == 1,
                  "Should have one animation property for a transition");
       MOZ_ASSERT(effect && effect->Properties()[0].mSegments.Length() == 1,
@@ -340,7 +340,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
                                              currentValue) ||
           currentValue != segment.mToValue) {
         
-        if (!player->GetSource()->IsFinishedTransition()) {
+        if (!player->GetEffect()->IsFinishedTransition()) {
           player->Cancel();
           collection->UpdateAnimationGeneration(mPresContext);
         }
@@ -436,7 +436,7 @@ nsTransitionManager::ConsiderStartingTransition(
     AnimationPlayerPtrArray& players = aElementTransitions->mPlayers;
     for (size_t i = 0, i_end = players.Length(); i < i_end; ++i) {
       const ElementPropertyTransition *iPt =
-        players[i]->GetSource()->AsTransition();
+        players[i]->GetEffect()->AsTransition();
       if (iPt->TransitionProperty() == aProperty) {
         haveCurrentTransition = true;
         currentIndex = i;
@@ -571,7 +571,7 @@ nsTransitionManager::ConsiderStartingTransition(
   
   
   
-  player->SetSource(pt);
+  player->SetEffect(pt);
   player->PlayFromStyle();
 
   if (!aElementTransitions) {
@@ -588,8 +588,8 @@ nsTransitionManager::ConsiderStartingTransition(
   for (size_t i = 0, i_end = players.Length(); i < i_end; ++i) {
     MOZ_ASSERT(
       i == currentIndex ||
-      (players[i]->GetSource() &&
-       players[i]->GetSource()->AsTransition()->TransitionProperty()
+      (players[i]->GetEffect() &&
+       players[i]->GetEffect()->AsTransition()->TransitionProperty()
          != aProperty),
       "duplicate transitions for property");
   }
@@ -681,10 +681,10 @@ nsTransitionManager::UpdateCascadeResults(
   bool changed = false;
   AnimationPlayerPtrArray& players = aTransitions->mPlayers;
   for (size_t playerIdx = players.Length(); playerIdx-- != 0; ) {
-    MOZ_ASSERT(players[playerIdx]->GetSource() &&
-               players[playerIdx]->GetSource()->Properties().Length() == 1,
+    MOZ_ASSERT(players[playerIdx]->GetEffect() &&
+               players[playerIdx]->GetEffect()->Properties().Length() == 1,
                "Should have one animation property for a transition");
-    AnimationProperty& prop = players[playerIdx]->GetSource()->Properties()[0];
+    AnimationProperty& prop = players[playerIdx]->GetEffect()->Properties()[0];
     bool newWinsInCascade = !propertiesUsed.HasProperty(prop.mProperty);
     if (prop.mWinsInCascade != newWinsInCascade) {
       changed = true;
@@ -809,16 +809,16 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
       do {
         --i;
         AnimationPlayer* player = collection->mPlayers[i];
-        if (!player->GetSource()->IsFinishedTransition()) {
-          MOZ_ASSERT(player->GetSource(),
-                     "Transitions should have source content");
+        if (!player->GetEffect()->IsFinishedTransition()) {
+          MOZ_ASSERT(player->GetEffect(),
+                     "Transitions should have an effect");
           ComputedTiming computedTiming =
-            player->GetSource()->GetComputedTiming();
+            player->GetEffect()->GetComputedTiming();
           if (computedTiming.mPhase == ComputedTiming::AnimationPhase_After) {
             nsCSSProperty prop =
-              player->GetSource()->AsTransition()->TransitionProperty();
+              player->GetEffect()->AsTransition()->TransitionProperty();
             TimeDuration duration =
-              player->GetSource()->Timing().mIterationDuration;
+              player->GetEffect()->Timing().mIterationDuration;
             events.AppendElement(
               TransitionEventInfo(collection->mElement, prop,
                                   duration,
@@ -831,7 +831,7 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
             
             
             
-            player->GetSource()->SetIsFinishedTransition();
+            player->GetEffect()->SetIsFinishedTransition();
             collection->UpdateAnimationGeneration(mPresContext);
             transitionStartedOrEnded = true;
           } else if ((computedTiming.mPhase ==
