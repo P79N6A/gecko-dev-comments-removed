@@ -66,7 +66,7 @@ private:
 
 
 
-void DecomposeIntoNoRepeatTriangles(const nsIntRect& aTexCoordRect,
+void DecomposeIntoNoRepeatTriangles(const gfx::IntRect& aTexCoordRect,
                                     const nsIntSize& aTexSize,
                                     RectTriangles& aRects,
                                     bool aFlipY = false);
