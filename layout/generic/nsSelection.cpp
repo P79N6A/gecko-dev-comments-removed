@@ -713,6 +713,12 @@ nsFrameSelection::SetCaretBidiLevel(nsBidiLevel aLevel)
   
   
   mCaretBidiLevel = aLevel;
+
+  nsRefPtr<nsCaret> caret;
+  if (mShell && (caret = mShell->GetCaret())) {
+    caret->SchedulePaint();
+  }
+
   return;
 }
 
@@ -1186,6 +1192,32 @@ Selection::GetInterlinePosition(ErrorResult& aRv)
     return false;
   }
   return mFrameSelection->GetHint() == CARET_ASSOCIATE_AFTER;
+}
+
+Nullable<int16_t>
+Selection::GetCaretBidiLevel(mozilla::ErrorResult& aRv) const
+{
+  if (!mFrameSelection) {
+    aRv.Throw(NS_ERROR_NOT_INITIALIZED);
+    return Nullable<int16_t>();
+  }
+  nsBidiLevel caretBidiLevel = mFrameSelection->GetCaretBidiLevel();
+  return (caretBidiLevel & BIDI_LEVEL_UNDEFINED) ?
+    Nullable<int16_t>() : Nullable<int16_t>(caretBidiLevel);
+}
+
+void
+Selection::SetCaretBidiLevel(const Nullable<int16_t>& aCaretBidiLevel, mozilla::ErrorResult& aRv)
+{
+  if (!mFrameSelection) {
+    aRv.Throw(NS_ERROR_NOT_INITIALIZED);
+    return;
+  }
+  if (aCaretBidiLevel.IsNull()) {
+    mFrameSelection->UndefineCaretBidiLevel();
+  } else {
+    mFrameSelection->SetCaretBidiLevel(aCaretBidiLevel.Value());
+  }
 }
 
 nsPrevNextBidiLevels
