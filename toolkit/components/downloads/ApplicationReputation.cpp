@@ -361,11 +361,8 @@ PendingLookup::IsBinaryFile()
   nsString fileName;
   nsresult rv = mQuery->GetSuggestedFileName(fileName);
   if (NS_FAILED(rv)) {
-    LOG(("No suggested filename [this = %p]", this));
     return false;
   }
-  LOG(("Suggested filename: %s [this = %p]",
-       NS_ConvertUTF16toUTF8(fileName).get(), this));
   return
     
     
