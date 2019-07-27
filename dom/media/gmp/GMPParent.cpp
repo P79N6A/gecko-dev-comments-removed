@@ -808,19 +808,21 @@ GMPParent::ReadGMPMetaData()
 bool
 GMPParent::CanBeSharedCrossNodeIds() const
 {
-  return mNodeId.IsEmpty() &&
-    
-    
-    
-    
-    !mCanDecrypt;
+  return !mAsyncShutdownInProgress &&
+         mNodeId.IsEmpty() &&
+         
+         
+         
+         
+         !mCanDecrypt;
 }
 
 bool
 GMPParent::CanBeUsedFrom(const nsACString& aNodeId) const
 {
-  return (mNodeId.IsEmpty() && State() == GMPStateNotLoaded) ||
-         mNodeId == aNodeId;
+  return !mAsyncShutdownInProgress &&
+         ((mNodeId.IsEmpty() && State() == GMPStateNotLoaded) ||
+          mNodeId == aNodeId);
 }
 
 void
