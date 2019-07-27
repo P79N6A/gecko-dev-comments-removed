@@ -579,24 +579,6 @@ class JSObject : public js::gc::Cell
     static inline bool lookupElement(JSContext *cx, js::HandleObject obj, uint32_t index,
                                      js::MutableHandleObject objp, js::MutableHandleShape propp);
 
-    static bool defineGeneric(js::ExclusiveContext *cx, js::HandleObject obj,
-                              js::HandleId id, js::HandleValue value,
-                              JSPropertyOp getter = nullptr,
-                              JSStrictPropertyOp setter = nullptr,
-                              unsigned attrs = JSPROP_ENUMERATE);
-
-    static bool defineProperty(js::ExclusiveContext *cx, js::HandleObject obj,
-                               js::PropertyName *name, js::HandleValue value,
-                               JSPropertyOp getter = nullptr,
-                               JSStrictPropertyOp setter = nullptr,
-                               unsigned attrs = JSPROP_ENUMERATE);
-
-    static bool defineElement(js::ExclusiveContext *cx, js::HandleObject obj,
-                              uint32_t index, js::HandleValue value,
-                              JSPropertyOp getter = nullptr,
-                              JSStrictPropertyOp setter = nullptr,
-                              unsigned attrs = JSPROP_ENUMERATE);
-
     static inline bool getGeneric(JSContext *cx, js::HandleObject obj, js::HandleObject receiver,
                                   js::HandleId id, js::MutableHandleValue vp);
 
@@ -947,6 +929,43 @@ GetOwnPropertyDescriptor(JSContext *cx, HandleObject obj, HandleId id,
 
 
 
+
+
+extern bool
+StandardDefineProperty(JSContext *cx, HandleObject obj, HandleId id,
+                       const PropDesc &desc, bool throwError, bool *rval);
+
+extern bool
+StandardDefineProperty(JSContext *cx, HandleObject obj, HandleId id,
+                       Handle<PropertyDescriptor> descriptor, bool *bp);
+
+extern bool
+DefineProperty(ExclusiveContext *cx, HandleObject obj, HandleId id, HandleValue value,
+               JSPropertyOp getter = nullptr,
+               JSStrictPropertyOp setter = nullptr,
+               unsigned attrs = JSPROP_ENUMERATE);
+
+extern bool
+DefineProperty(ExclusiveContext *cx, HandleObject obj, PropertyName *name, HandleValue value,
+               JSPropertyOp getter = nullptr,
+               JSStrictPropertyOp setter = nullptr,
+               unsigned attrs = JSPROP_ENUMERATE);
+
+extern bool
+DefineElement(ExclusiveContext *cx, HandleObject obj, uint32_t index, HandleValue value,
+              JSPropertyOp getter = nullptr,
+              JSStrictPropertyOp setter = nullptr,
+              unsigned attrs = JSPROP_ENUMERATE);
+
+
+
+
+
+
+
+
+
+
 extern bool
 SetImmutablePrototype(js::ExclusiveContext *cx, JS::HandleObject obj, bool *succeeded);
 
@@ -1014,14 +1033,6 @@ js_PopulateObject(JSContext *cx, js::HandleObject newborn, js::HandleObject prop
 
 namespace js {
 
-extern bool
-DefineOwnProperty(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
-                  JS::HandleValue descriptor, bool *bp);
-
-extern bool
-DefineOwnProperty(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
-                  JS::Handle<js::PropertyDescriptor> descriptor, bool *bp);
-
 
 
 
@@ -1082,20 +1093,7 @@ CloneObject(JSContext *cx, HandleObject obj, Handle<js::TaggedProto> proto, Hand
 extern NativeObject *
 DeepCloneObjectLiteral(JSContext *cx, HandleNativeObject obj, NewObjectKind newKind = GenericObject);
 
-
-
-
-
-
-
-
-
 extern bool
-DefineProperty(JSContext *cx, js::HandleObject obj,
-               js::HandleId id, const PropDesc &desc, bool throwError,
-               bool *rval);
-
-bool
 DefineProperties(JSContext *cx, HandleObject obj, HandleObject props);
 
 
