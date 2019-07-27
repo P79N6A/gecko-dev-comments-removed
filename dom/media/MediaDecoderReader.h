@@ -20,6 +20,7 @@ class TimeRanges;
 
 class RequestSampleCallback;
 class MediaDecoderReader;
+class SharedDecoderManager;
 
 
 
@@ -47,6 +48,7 @@ public:
   
   
   virtual void ReleaseMediaResources() {};
+  virtual void SetSharedDecoderManager(SharedDecoderManager* aManager) {}
   
   
   
