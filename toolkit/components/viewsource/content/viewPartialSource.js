@@ -22,8 +22,8 @@ const NS_XHTML = 'http://www.w3.org/1999/xhtml';
 
 
 
-const MARK_SELECTION_START = '\u200B\u200B\u200B\u200B\u200B';
-const MARK_SELECTION_END = '\u200B\u200B\u200B\u200B\u200B';
+const MARK_SELECTION_START = '\uFDD0';
+const MARK_SELECTION_END = '\uFDEF';
 
 function onLoadViewPartialSource()
 {
