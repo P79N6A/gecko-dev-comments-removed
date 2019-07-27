@@ -178,9 +178,9 @@ class ThreadPool : public Monitor
     
     ParallelJob *job_;
 
+#ifdef DEBUG
     
     JSRuntime *const runtime_;
-#ifdef DEBUG
     
     mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> stolenSlices_;
 #endif
