@@ -25,6 +25,26 @@ namespace mozilla {
 
 
 
+AudioNodeStream::AudioNodeStream(AudioNodeEngine* aEngine,
+                                 MediaStreamGraph::AudioNodeStreamKind aKind,
+                                 TrackRate aSampleRate)
+  : ProcessedMediaStream(nullptr),
+    mEngine(aEngine),
+    mSampleRate(aSampleRate),
+    mKind(aKind),
+    mNumberOfInputChannels(2),
+    mMarkAsFinishedAfterThisBlock(false),
+    mAudioParamStream(false),
+    mPassThrough(false)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  mChannelCountMode = ChannelCountMode::Max;
+  mChannelInterpretation = ChannelInterpretation::Speakers;
+  
+  mHasCurrentData = true;
+  MOZ_COUNT_CTOR(AudioNodeStream);
+}
+
 AudioNodeStream::~AudioNodeStream()
 {
   MOZ_COUNT_DTOR(AudioNodeStream);
