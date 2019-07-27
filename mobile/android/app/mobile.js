@@ -916,3 +916,8 @@ pref("consoleservice.logcat", false);
 #else
 pref("consoleservice.logcat", true);
 #endif
+
+
+#ifndef RELEASE_BUILD
+pref("dom.serviceWorkers.enabled", true);
+#endif
