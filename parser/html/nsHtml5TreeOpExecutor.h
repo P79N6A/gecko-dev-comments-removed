@@ -70,7 +70,6 @@ class nsHtml5TreeOpExecutor final : public nsHtml5DocumentBuilder,
     
 
 
-    bool             mSpeculationReferrerPolicyWasSet;
     ReferrerPolicy   mSpeculationReferrerPolicy;
 
     nsCOMPtr<nsIURI> mViewSourceBaseURI;

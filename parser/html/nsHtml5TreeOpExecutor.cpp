@@ -63,7 +63,6 @@ static nsITimer* gFlushTimer = nullptr;
 nsHtml5TreeOpExecutor::nsHtml5TreeOpExecutor()
   : nsHtml5DocumentBuilder(false)
   , mPreloadedURLs(23)  
-  , mSpeculationReferrerPolicyWasSet(false)
   , mSpeculationReferrerPolicy(mozilla::net::RP_Default)
 {
   
@@ -1010,20 +1009,10 @@ nsHtml5TreeOpExecutor::SetSpeculationReferrerPolicy(const nsAString& aReferrerPo
 void
 nsHtml5TreeOpExecutor::SetSpeculationReferrerPolicy(ReferrerPolicy aReferrerPolicy)
 {
-  if (mSpeculationReferrerPolicyWasSet &&
-      aReferrerPolicy != mSpeculationReferrerPolicy) {
-    
-    
-    
-    mSpeculationReferrerPolicy = mozilla::net::RP_No_Referrer;
-  }
-  else {
-    
-    
-    
-    mSpeculationReferrerPolicyWasSet = true;
-    mSpeculationReferrerPolicy = aReferrerPolicy;
-  }
+  
+  
+  
+  mSpeculationReferrerPolicy = aReferrerPolicy;
 }
 
 #ifdef DEBUG_NS_HTML5_TREE_OP_EXECUTOR_FLUSH
