@@ -51,14 +51,75 @@ this.BrowserTestUtils = {
 
 
   withNewTab: Task.async(function* (options, taskFn) {
-    let tab = options.gBrowser.addTab(options.url);
-    yield BrowserTestUtils.browserLoaded(tab.linkedBrowser);
-    options.gBrowser.selectedTab = tab;
-
+    let tab = yield BrowserTestUtils.openNewForegroundTab(options.gBrowser, options.url);
     yield taskFn(tab.linkedBrowser);
-
     options.gBrowser.removeTab(tab);
   }),
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  openNewForegroundTab(tabbrowser, opening = "about:blank", aWaitForLoad = true) {
+    let tab;
+    let promises = [
+      BrowserTestUtils.switchTab(tabbrowser, function () {
+        if (typeof opening == "function") {
+          opening();
+          tab = tabbrowser.selectedTab;
+        }
+        else {
+          tabbrowser.selectedTab = tab = tabbrowser.addTab(opening);
+        }
+      })
+    ];
+
+    if (aWaitForLoad) {
+      promises.push(BrowserTestUtils.browserLoaded(tab.linkedBrowser));
+    }
+
+    return Promise.all(promises).then(() => tab);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  switchTab(tabbrowser, tab) {
+    let promise = new Promise(resolve => {
+      tabbrowser.addEventListener("TabSwitchDone", function onSwitch() {
+        tabbrowser.removeEventListener("TabSwitchDone", onSwitch);
+        TestUtils.executeSoon(() => resolve(tabbrowser.selectedTab));
+      });
+    });
+
+    if (typeof tab == "function") {
+      tab();
+    }
+    else {
+      tabbrowser.selectedTab = tab;
+    }
+    return promise;
+  },
 
   
 
