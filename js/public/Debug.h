@@ -359,16 +359,12 @@ class MOZ_STACK_CLASS AutoEntryMonitor {
     
     
     
-    virtual void Entry(JSContext* cx, JSFunction* function,
-                       HandleValue asyncStack,
-                       HandleString asyncCause) = 0;
+    virtual void Entry(JSContext* cx, JSFunction* function) = 0;
 
     
     
     
-    virtual void Entry(JSContext* cx, JSScript* script,
-                       HandleValue asyncStack,
-                       HandleString asyncCause) = 0;
+    virtual void Entry(JSContext* cx, JSScript* script) = 0;
 
     
     virtual void Exit(JSContext* cx) { }

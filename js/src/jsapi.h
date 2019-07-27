@@ -5330,25 +5330,6 @@ CaptureCurrentStack(JSContext* cx, MutableHandleObject stackp, unsigned maxFrame
 
 
 
-extern JS_PUBLIC_API(bool)
-CopyAsyncStack(JSContext* cx, HandleObject asyncStack,
-               HandleString asyncCause, MutableHandleObject stackp,
-               unsigned maxFrameCount);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
