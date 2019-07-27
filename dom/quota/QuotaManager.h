@@ -90,9 +90,6 @@ class QuotaManager MOZ_FINAL : public nsIQuotaManager,
     IgnoreMozBrowser
   };
 
-  typedef void
-  (*WaitingOnStoragesCallback)(nsTArray<nsCOMPtr<nsIOfflineStorage> >&, void*);
-
   typedef nsClassHashtable<nsCStringHashKey,
                            nsTArray<nsIOfflineStorage*>> LiveStorageTable;
 
@@ -194,23 +191,9 @@ public:
   UnregisterStorage(nsIOfflineStorage* aStorage);
 
   
-  void
-  OnStorageClosed(nsIOfflineStorage* aStorage);
-
-  
-  
-  
-  void
-  AbortCloseStoragesForWindow(nsPIDOMWindow* aWindow);
-
-  
   
   void
   AbortCloseStoragesForProcess(ContentParent* aContentParent);
-
-  
-  bool
-  HasOpenTransactions(nsPIDOMWindow* aWindow);
 
   
   
@@ -218,33 +201,6 @@ public:
   WaitForOpenAllowed(const OriginOrPatternString& aOriginOrPattern,
                      Nullable<PersistenceType> aPersistenceType,
                      const nsACString& aId, nsIRunnable* aRunnable);
-
-  
-  
-  
-  nsresult
-  AcquireExclusiveAccess(nsIOfflineStorage* aStorage,
-                         const nsACString& aOrigin,
-                         Nullable<PersistenceType> aPersistenceType,
-                         AcquireListener* aListener,
-                         WaitingOnStoragesCallback aCallback,
-                         void* aClosure)
-  {
-    NS_ASSERTION(aStorage, "Need a storage here!");
-    return AcquireExclusiveAccess(aOrigin, aPersistenceType, aStorage,
-                                  aListener, aCallback, aClosure);
-  }
-
-  nsresult
-  AcquireExclusiveAccess(const nsACString& aOrigin,
-                         Nullable<PersistenceType> aPersistenceType,
-                         AcquireListener* aListener,
-                         WaitingOnStoragesCallback aCallback,
-                         void* aClosure)
-  {
-    return AcquireExclusiveAccess(aOrigin, aPersistenceType, nullptr,
-                                  aListener, aCallback, aClosure);
-  }
 
   void
   AllowNextSynchronizedOp(const OriginOrPatternString& aOriginOrPattern,
@@ -433,18 +389,11 @@ private:
   nsresult
   AcquireExclusiveAccess(const nsACString& aOrigin,
                          Nullable<PersistenceType> aPersistenceType,
-                         nsIOfflineStorage* aStorage,
-                         AcquireListener* aListener,
-                         WaitingOnStoragesCallback aCallback,
-                         void* aClosure);
+                         nsIRunnable* aRunnable);
 
   void
   AddSynchronizedOp(const OriginOrPatternString& aOriginOrPattern,
                     Nullable<PersistenceType> aPersistenceType);
-
-  nsresult
-  RunSynchronizedOp(nsIOfflineStorage* aStorage,
-                    SynchronizedOp* aOp);
 
   SynchronizedOp*
   FindSynchronizedOp(const nsACString& aPattern,
@@ -504,10 +453,6 @@ private:
       mClients[index]->ReleaseIOThreadObjects();
     }
   }
-
-  template <class OwnerClass>
-  void
-  AbortCloseStoragesFor(OwnerClass* aOwnerClass);
 
   LiveStorageTable&
   GetLiveStorageTable(PersistenceType aPersistenceType);

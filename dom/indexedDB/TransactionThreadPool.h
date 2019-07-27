@@ -72,9 +72,6 @@ public:
   void WaitForDatabasesToComplete(nsTArray<nsCString>& aDatabaseIds,
                                   nsIRunnable* aCallback);
 
-  
-  bool HasTransactionsForDatabase(const nsACString& aDatabaseId);
-
   NS_INLINE_DECL_REFCOUNTING(TransactionThreadPool)
 
   void Shutdown();
