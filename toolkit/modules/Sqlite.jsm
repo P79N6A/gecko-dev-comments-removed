@@ -42,7 +42,7 @@ let connectionCounters = new Map();
 
 let isClosed = false;
 
-this.Debugging = {
+let Debugging = {
   
   
   
