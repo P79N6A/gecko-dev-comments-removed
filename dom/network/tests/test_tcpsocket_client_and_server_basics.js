@@ -127,7 +127,7 @@ function waitForConnection(listeningServer) {
     
     
     
-    listeningServer.onconnect = function(ev) {
+    listeningServer.onconnect = function(socket) {
       
       
       listeningServer.onconnect = function() {
@@ -135,13 +135,9 @@ function waitForConnection(listeningServer) {
       };
       ok(true, 'Listening server accepted socket');
       resolve({
-        socket: ev.socket,
-        queue: listenForEventsOnSocket(ev.socket, 'server')
+        socket: socket,
+        queue: listenForEventsOnSocket(socket, 'server')
       });
-    };
-    listeningServer.onerror = function(ev) {
-      ok(false, 'Received an error when not expecting one.');
-      reject();
     };
   });
 }
@@ -175,16 +171,17 @@ function* test_basics() {
   
   let serverPort = 8085;
 
+  let TCPSocket = navigator.mozTCPSocket;
   
-  let listeningServer = new mozTCPServerSocket(serverPort,
-                                               { binaryType: 'arraybuffer' },
-                                               SERVER_BACKLOG);
+  let listeningServer = TCPSocket.listen(serverPort,
+                                         { binaryType: 'arraybuffer' },
+                                         SERVER_BACKLOG);
 
   let connectedPromise = waitForConnection(listeningServer);
 
   
-  let clientSocket = new mozTCPSocket('127.0.0.1', serverPort,
-                                      { binaryType: 'arraybuffer' });
+  let clientSocket = TCPSocket.open('127.0.0.1', serverPort,
+                                    { binaryType: 'arraybuffer' });
   let clientQueue = listenForEventsOnSocket(clientSocket, 'client');
 
   
@@ -290,8 +287,8 @@ function* test_basics() {
 
   
   connectedPromise = waitForConnection(listeningServer);
-  clientSocket = new mozTCPSocket('127.0.0.1', serverPort,
-                                  { binaryType: 'arraybuffer' });
+  clientSocket = TCPSocket.open('127.0.0.1', serverPort,
+                                { binaryType: 'arraybuffer' });
   clientQueue = listenForEventsOnSocket(clientSocket, 'client');
   is((yield clientQueue.waitForEvent()).type, 'open', 'got open event');
 
@@ -317,8 +314,8 @@ function* test_basics() {
 
   
   connectedPromise = waitForConnection(listeningServer);
-  clientSocket = new mozTCPSocket('127.0.0.1', serverPort,
-                                  { binaryType: 'arraybuffer' });
+  clientSocket = TCPSocket.open('127.0.0.1', serverPort,
+                                { binaryType: 'arraybuffer' });
   clientQueue = listenForEventsOnSocket(clientSocket, 'client');
   is((yield clientQueue.waitForEvent()).type, 'open', 'got open event');
 
@@ -346,7 +343,7 @@ function* test_basics() {
                          'server received/client sent');
   
   is((yield serverQueue.waitForEvent()).type, 'close',
-     'The close event should fire after a large send that returned true.');
+     'The drain event should fire after a large send that returned true.');
 
 
   
@@ -355,8 +352,8 @@ function* test_basics() {
   listeningServer.close();
 
   
-  clientSocket = new mozTCPSocket('127.0.0.1', serverPort,
-                                  { binaryType: 'arraybuffer' });
+  clientSocket = TCPSocket.open('127.0.0.1', serverPort,
+                                { binaryType: 'arraybuffer' });
   clientQueue = listenForEventsOnSocket(clientSocket, 'client');
   is((yield clientQueue.waitForEvent()).type, 'error', 'fail to connect');
   is(clientSocket.readyState, 'closed',

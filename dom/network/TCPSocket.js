@@ -13,10 +13,6 @@ const CC = Components.Constructor;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyServiceGetter(this, "gSocketTransportService",
-                                   "@mozilla.org/network/socket-transport-service;1",
-                                   "nsISocketTransportService");
-
 const InputStreamPump = CC(
         "@mozilla.org/network/input-stream-pump;1", "nsIInputStreamPump", "init"),
       AsyncStreamCopier = CC(
@@ -49,7 +45,7 @@ const NETWORK_STATS_THRESHOLD = 65536;
 
 
 function createTCPError(aWindow, aErrorName, aErrorType) {
-  return new DOMError(aErrorName);
+  return new (aWindow ? aWindow.DOMError : DOMError)(aErrorName);
 }
 
 
@@ -67,25 +63,89 @@ function LOG(msg) {
 
 
 
-function TCPSocket() {
-  this.makeGetterSetterEH("onopen");
-  this.makeGetterSetterEH("onclose");
-  this.makeGetterSetterEH("ondrain");
-  this.makeGetterSetterEH("ondata");
-  this.makeGetterSetterEH("onerror");
+function TCPSocketEvent(type, sock, data) {
+  this._type = type;
+  this._target = sock;
+  this._data = data;
+}
 
+
+
+Cu.skipCOWCallableChecks();
+
+TCPSocketEvent.prototype = {
+  __exposedProps__: {
+    type: 'r',
+    target: 'r',
+    data: 'r',
+    
+    
+    
+    
+    
+    then: 'r'
+  },
+  get type() {
+    return this._type;
+  },
+  get target() {
+    return this._target;
+  },
+  get data() {
+    return this._data;
+  },
+  get then() {
+    return undefined;
+  }
+}
+
+
+
+
+
+function TCPSocket() {
   this._readyState = kCLOSED;
+
+  this._onopen = null;
+  this._ondrain = null;
+  this._ondata = null;
+  this._onerror = null;
+  this._onclose = null;
 
   this._binaryType = "string";
 
   this._host = "";
   this._port = 0;
   this._ssl = false;
+
+  this.useWin = null;
 }
 
 TCPSocket.prototype = {
+  __exposedProps__: {
+    open: 'r',
+    host: 'r',
+    port: 'r',
+    ssl: 'r',
+    bufferedAmount: 'r',
+    suspend: 'r',
+    resume: 'r',
+    close: 'r',
+    send: 'r',
+    readyState: 'r',
+    binaryType: 'r',
+    listen: 'r',
+    onopen: 'rw',
+    ondrain: 'rw',
+    ondata: 'rw',
+    onerror: 'rw',
+    onclose: 'rw'
+  },
   
   _binaryType: null,
+
+  
+  _hasPrivileges: null,
 
   
   _transport: null,
@@ -150,21 +210,36 @@ TCPSocket.prototype = {
     }
     return this._multiplexStream.available();
   },
-
-  getEH: function(type) {
-    return this.__DOM_IMPL__.getEventHandler(type);
-   },
-  setEH: function(type, handler) {
-    this.__DOM_IMPL__.setEventHandler(type, handler);
-   },
-  makeGetterSetterEH: function(name) {
-    Object.defineProperty(this, name,
-                          {
-                            get:function()  { return this.getEH(name); },
-                            set:function(h) { return this.setEH(name, h); }
-                          });
-   },
-
+  get onopen() {
+    return this._onopen;
+  },
+  set onopen(f) {
+    this._onopen = f;
+  },
+  get ondrain() {
+    return this._ondrain;
+  },
+  set ondrain(f) {
+    this._ondrain = f;
+  },
+  get ondata() {
+    return this._ondata;
+  },
+  set ondata(f) {
+    this._ondata = f;
+  },
+  get onerror() {
+    return this._onerror;
+  },
+  set onerror(f) {
+    this._onerror = f;
+  },
+  get onclose() {
+    return this._onclose;
+  },
+  set onclose(f) {
+    this._onclose = f;
+  },
 
   _activateTLS: function() {
     let securityInfo = this._transport.securityInfo
@@ -180,7 +255,9 @@ TCPSocket.prototype = {
     } else {
       options = ['starttls'];
     }
-    return gSocketTransportService.createTransport(options, 1, host, port, null);
+    return Cc["@mozilla.org/network/socket-transport-service;1"]
+             .getService(Ci.nsISocketTransportService)
+             .createTransport(options, 1, host, port, null);
   },
 
   _sendBufferedAmount: function ts_sendBufferedAmount() {
@@ -307,7 +384,10 @@ TCPSocket.prototype = {
 #endif
 
   callListener: function ts_callListener(type, data) {
-    this.__DOM_IMPL__.dispatchEvent(new this.useWin.TCPSocketEvent(type, {data: data || ""}));
+    if (!this["on" + type])
+      return;
+
+    this["on" + type].call(null, new TCPSocketEvent(type, this, data || ""));
   },
 
   
@@ -361,6 +441,39 @@ TCPSocket.prototype = {
     }
   },
 
+  createAcceptedParent: function ts_createAcceptedParent(transport, binaryType, windowObject) {
+    let that = new TCPSocket();
+    that._transport = transport;
+    that._initStream(binaryType);
+
+    
+    that._readyState = kOPEN;
+    that._inputStreamPump = new InputStreamPump(that._socketInputStream, -1, -1, 0, 0, false);
+    that._inputStreamPump.asyncRead(that, null);
+
+    
+    that._host = transport.host;
+    that._port = transport.port;
+    that.useWin = windowObject;
+
+    return that;
+  },
+
+  createAcceptedChild: function ts_createAcceptedChild(socketChild, binaryType, windowObject) {
+    let that = new TCPSocket();
+
+    that._binaryType = binaryType;
+    that._inChild = true;
+    that._readyState = kOPEN;
+    socketChild.setSocketAndWindow(that, windowObject);
+    that._socketBridge = socketChild;
+    that._host = socketChild.host;
+    that._port = socketChild.port;
+    that.useWin = windowObject;
+
+    return that;
+  },
+
   setAppId: function ts_setAppId(appId) {
 #ifdef MOZ_WIDGET_GONK
     this._appId = appId;
@@ -398,68 +511,36 @@ TCPSocket.prototype = {
 
   
 
-  init: function(aWindow) {
-    this._inChild = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime)
-                       .processType != Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT;
-    LOG("content process: " + (this._inChild ? "true" : "false"));
-
-    if (aWindow) {
-      let util = aWindow.QueryInterface(
-        Ci.nsIInterfaceRequestor
-      ).getInterface(Ci.nsIDOMWindowUtils);
-
-      this.useWin = aWindow;
-      this.innerWindowID = util.currentInnerWindowID;
-      LOG("window init: " + this.innerWindowID);
-      Services.obs.addObserver(this, "inner-window-destroyed", true);
+  initWindowless: function ts_initWindowless() {
+    try {
+      return Services.prefs.getBoolPref("dom.mozTCPSocket.enabled");
+    } catch (e) {
+      
+      return false;
     }
   },
 
-  __init: function(host, port, options) {
-    if (options.doNotConnect) {
-	return;
-    }
+  init: function ts_init(aWindow) {
+    if (!this.initWindowless())
+      return null;
 
-    LOG("Host info: " + host + ":" + port);
-    this._readyState = kCONNECTING;
-    this._host = host;
-    this._port = port;
-    if (options) {
-      if (options.useSSL) {
-          this._ssl = 'ssl';
-      } else {
-          this._ssl = false;
-      }
-      this._binaryType = options.binaryType || this._binaryType;
-    }
+    let principal = aWindow.document.nodePrincipal;
+    let secMan = Cc["@mozilla.org/scriptsecuritymanager;1"]
+                   .getService(Ci.nsIScriptSecurityManager);
 
-    LOG("SSL: " + this.ssl);
+    let perm = principal == secMan.getSystemPrincipal()
+                 ? Ci.nsIPermissionManager.ALLOW_ACTION
+                 : Services.perms.testExactPermissionFromPrincipal(principal, "tcp-socket");
 
-    if (this._inChild) {
-      this._socketBridge = Cc["@mozilla.org/tcp-socket-child;1"]
-                             .createInstance(Ci.nsITCPSocketChild);
-      this._socketBridge.sendOpen(this, host, port, !!this._ssl,
-                                  this._binaryType, this.useWin, this.useWin || this);
-      return;
-    }
+    this._hasPrivileges = perm == Ci.nsIPermissionManager.ALLOW_ACTION;
 
-    let transport = this._transport = this._createTransport(host, port, this._ssl);
-    transport.setEventSink(this, Services.tm.currentThread);
-    this._initStream(this._binaryType);
+    let util = aWindow.QueryInterface(
+      Ci.nsIInterfaceRequestor
+    ).getInterface(Ci.nsIDOMWindowUtils);
 
-#ifdef MOZ_WIDGET_GONK
-    
-    
-    
-    let networkManager = Cc["@mozilla.org/network/manager;1"].getService(Ci.nsINetworkManager);
-    if (networkManager) {
-      this._activeNetwork = networkManager.active;
-    }
-#endif
-  },
-
-  initWithGlobal: function(global) {
-    this.useWin = global;
+    this.useWin = XPCNativeWrapper.unwrap(aWindow);
+    this.innerWindowID = util.currentInnerWindowID;
+    LOG("window init: " + this.innerWindowID);
   },
 
   observe: function(aSubject, aTopic, aData) {
@@ -485,33 +566,68 @@ TCPSocket.prototype = {
     }
   },
 
-  initAcceptedParent: function(transport, binaryType, global) {
-    this.useWin = global;
-    this._transport = transport;
-    this._initStream(binaryType);
-
-    
-    this._readyState = kOPEN;
-    this._inputStreamPump = new InputStreamPump(this._socketInputStream, -1, -1, 0, 0, false);
-    this._inputStreamPump.asyncRead(this, null);
-
-    
-    this._host = transport.host;
-    this._port = transport.port;
-  },
-
-  initAcceptedChild: function(socketChild, binaryType, global) {
-    this.useWin = global;
-    this._binaryType = binaryType;
-    this._inChild = true;
-    this._readyState = kOPEN;
-    socketChild.setSocketAndWindow(this.getInternalSocket(), this.useWin);
-    this._socketBridge = socketChild;
-    this._host = socketChild.host;
-    this._port = socketChild.port;
-  },
-
   
+  open: function ts_open(host, port, options) {
+    this._inChild = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime)
+                       .processType != Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT;
+    LOG("content process: " + (this._inChild ? "true" : "false"));
+
+    
+    
+    if (this._hasPrivileges !== true && this._hasPrivileges !== null) {
+      throw new Error("TCPSocket does not have permission in this context.\n");
+    }
+    let that = new TCPSocket();
+
+    that.useWin = this.useWin;
+    that.innerWindowID = this.innerWindowID;
+    that._inChild = this._inChild;
+
+    LOG("window init: " + that.innerWindowID);
+    Services.obs.addObserver(that, "inner-window-destroyed", true);
+
+    LOG("startup called");
+    LOG("Host info: " + host + ":" + port);
+
+    that._readyState = kCONNECTING;
+    that._host = host;
+    that._port = port;
+    if (options !== undefined) {
+      if (options.useSecureTransport) {
+          that._ssl = 'ssl';
+      } else {
+          that._ssl = false;
+      }
+      that._binaryType = options.binaryType || that._binaryType;
+    }
+
+    LOG("SSL: " + that.ssl);
+
+    if (this._inChild) {
+      that._socketBridge = Cc["@mozilla.org/tcp-socket-child;1"]
+                             .createInstance(Ci.nsITCPSocketChild);
+      that._socketBridge.sendOpen(that, host, port, !!that._ssl,
+                                  that._binaryType, this.useWin, this.useWin || this);
+      return that;
+    }
+
+    let transport = that._transport = this._createTransport(host, port, that._ssl);
+    transport.setEventSink(that, Services.tm.currentThread);
+    that._initStream(that._binaryType);
+
+#ifdef MOZ_WIDGET_GONK
+    
+    
+    
+    let networkManager = Cc["@mozilla.org/network/manager;1"].getService(Ci.nsINetworkManager);
+    if (networkManager) {
+      that._activeNetwork = networkManager.active;
+    }
+#endif
+
+    return that;
+  },
+
   upgradeToSecure: function ts_upgradeToSecure() {
     if (this._readyState !== kOPEN) {
       throw new Error("Socket not open.");
@@ -533,6 +649,20 @@ TCPSocket.prototype = {
     } else {
       this._waitingForStartTLS = true;
     }
+  },
+
+  listen: function ts_listen(localPort, options, backlog) {
+    
+    
+    if (this._hasPrivileges !== true && this._hasPrivileges !== null) {
+      throw new Error("TCPSocket does not have permission in this context.\n");
+    }
+    let that = new TCPServerSocket(this.useWin);
+
+    options = options || { binaryType : this.binaryType };
+    backlog = backlog || -1;
+    that.listen(localPort, options, backlog);
+    return that;
   },
 
   close: function ts_close() {
@@ -560,15 +690,14 @@ TCPSocket.prototype = {
 
     if (this._binaryType === "arraybuffer") {
       byteLength = byteLength || data.byteLength;
-    } else {
-      byteLength = data.length;
     }
 
     if (this._inChild) {
       this._socketBridge.sendSend(data, byteOffset, byteLength, ++this._trackingNumber);
     }
 
-    let newBufferedAmount = this.bufferedAmount + byteLength;
+    let length = this._binaryType === "arraybuffer" ? byteLength : data.length;
+    let newBufferedAmount = this.bufferedAmount + length;
     let bufferFull = newBufferedAmount >= BUFFER_SIZE;
 
     if (bufferFull) {
@@ -593,7 +722,7 @@ TCPSocket.prototype = {
       new_stream.setData(data, byteOffset, byteLength);
     } else {
       new_stream = new StringInputStream();
-      new_stream.setData(data, byteLength);
+      new_stream.setData(data, length);
     }
 
     if (this._waitingForStartTLS) {
@@ -836,7 +965,7 @@ TCPSocket.prototype = {
   
   onDataAvailable: function ts_onDataAvailable(request, context, inputStream, offset, count) {
     if (this._binaryType === "arraybuffer") {
-      let buffer = new (this.useWin.ArrayBuffer)(count);
+      let buffer = new (this.useWin ? this.useWin.ArrayBuffer : ArrayBuffer)(count);
       this._inputStreamBinary.readArrayBuffer(count, buffer);
       this.callListener("data", buffer);
     } else {
@@ -850,19 +979,25 @@ TCPSocket.prototype = {
 #endif
   },
 
-  getInternalSocket: function() {
-    return this.QueryInterface(Ci.nsITCPSocketInternal);
-  },
-
   classID: Components.ID("{cda91b22-6472-11e1-aa11-834fec09cd0a}"),
 
-  contractID: "@mozilla.org/tcp-socket;1",
+  classInfo: XPCOMUtils.generateCI({
+    classID: Components.ID("{cda91b22-6472-11e1-aa11-834fec09cd0a}"),
+    contractID: "@mozilla.org/tcp-socket;1",
+    classDescription: "Client TCP Socket",
+    interfaces: [
+      Ci.nsIDOMTCPSocket,
+    ],
+    flags: Ci.nsIClassInfo.DOM_OBJECT,
+  }),
+
   QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsIDOMTCPSocket,
     Ci.nsITCPSocketInternal,
     Ci.nsIDOMGlobalPropertyInitializer,
     Ci.nsIObserver,
     Ci.nsISupportsWeakReference
   ])
-};
+}
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([TCPSocket]);
