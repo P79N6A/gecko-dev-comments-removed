@@ -1877,15 +1877,13 @@ public:
         m_formatter.oneByteOp(OP_MOV_EvGv, src, base, index, scale, offset);
     }
 
-#ifdef JS_CODEGEN_X86
     void movw_rm(RegisterID src, const void* addr)
     {
         spew("movw       %s, %p",
              nameIReg(2, src), addr);
         m_formatter.prefix(PRE_OPERAND_SIZE);
-        m_formatter.oneByteOp(OP_MOV_EvGv, src, addr);
+        m_formatter.oneByteOp_disp32(OP_MOV_EvGv, src, addr);
     }
-#endif
 
     void movl_rm(RegisterID src, int offset, RegisterID base)
     {
@@ -1985,12 +1983,27 @@ public:
         m_formatter.immediate8(imm);
     }
 
+    void movb_i8m(int imm, const void* addr)
+    {
+        spew("movb       %d, %p", imm, addr);
+        m_formatter.oneByteOp_disp32(OP_GROUP11_EvIb, GROUP11_MOV, addr);
+        m_formatter.immediate8(imm);
+    }
+
     void movw_i16m(int imm, int offset, RegisterID base)
     {
         spew("movw       $0x%x, %s0x%x(%s)",
              imm, PRETTY_PRINT_OFFSET(offset), nameIReg(base));
         m_formatter.prefix(PRE_OPERAND_SIZE);
         m_formatter.oneByteOp(OP_GROUP11_EvIz, GROUP11_MOV, base, offset);
+        m_formatter.immediate16(imm);
+    }
+
+    void movw_i16m(int imm, const void* addr)
+    {
+        spew("movw       %d, %p", imm, addr);
+        m_formatter.prefix(PRE_OPERAND_SIZE);
+        m_formatter.oneByteOp_disp32(OP_GROUP11_EvIz, GROUP11_MOV, addr);
         m_formatter.immediate16(imm);
     }
 
@@ -2237,14 +2250,12 @@ public:
         m_formatter.oneByteOp8(OP_MOV_EbGv, src, base, index, scale, offset);
     }
 
-#ifdef JS_CODEGEN_X86
     void movb_rm(RegisterID src, const void* addr)
     {
         spew("movb       %s, %p",
              nameIReg(1, src), addr);
-        m_formatter.oneByteOp(OP_MOV_EbGv, src, addr);
+        m_formatter.oneByteOp8(OP_MOV_EbGv, src, addr);
     }
-#endif
 
     void movzbl_mr(int offset, RegisterID base, RegisterID dst)
     {
@@ -2267,14 +2278,12 @@ public:
         m_formatter.twoByteOp(OP2_MOVZX_GvEb, dst, base, index, scale, offset);
     }
 
-#ifdef JS_CODEGEN_X86
     void movzbl_mr(const void* addr, RegisterID dst)
     {
         spew("movzbl     %p, %s",
              addr, nameIReg(dst));
         m_formatter.twoByteOp(OP2_MOVZX_GvEb, dst, addr);
     }
-#endif
 
     void movsbl_mr(int offset, RegisterID base, RegisterID dst)
     {
@@ -2297,14 +2306,12 @@ public:
         m_formatter.twoByteOp(OP2_MOVSX_GvEb, dst, base, index, scale, offset);
     }
 
-#ifdef JS_CODEGEN_X86
     void movsbl_mr(const void* addr, RegisterID dst)
     {
         spew("movsbl     %p, %s",
              addr, nameIReg(4, dst));
         m_formatter.twoByteOp(OP2_MOVSX_GvEb, dst, addr);
     }
-#endif
 
     void movzwl_rr(RegisterID src, RegisterID dst)
     {
@@ -2334,14 +2341,12 @@ public:
         m_formatter.twoByteOp(OP2_MOVZX_GvEw, dst, base, index, scale, offset);
     }
 
-#ifdef JS_CODEGEN_X86
     void movzwl_mr(const void* addr, RegisterID dst)
     {
         spew("movzwl     %p, %s",
              addr, nameIReg(4, dst));
         m_formatter.twoByteOp(OP2_MOVZX_GvEw, dst, addr);
     }
-#endif
 
     void movswl_mr(int offset, RegisterID base, RegisterID dst)
     {
@@ -2364,14 +2369,12 @@ public:
         m_formatter.twoByteOp(OP2_MOVSX_GvEw, dst, base, index, scale, offset);
     }
 
-#ifdef JS_CODEGEN_X86
     void movswl_mr(const void* addr, RegisterID dst)
     {
         spew("movswl     %p, %s",
              addr, nameIReg(4, dst));
         m_formatter.twoByteOp(OP2_MOVSX_GvEw, dst, addr);
     }
-#endif
 
     void movzbl_rr(RegisterID src, RegisterID dst)
     {
@@ -3086,7 +3089,6 @@ public:
         m_formatter.twoByteOp(OP2_MOVSD_VsdWsd, (RegisterID)dst, (RegisterID)src);
     }
 
-#ifdef JS_CODEGEN_X86
     void movsd_mr(const void* address, XMMRegisterID dst)
     {
         spew("movsd      %p, %s",
@@ -3133,7 +3135,7 @@ public:
              nameFPReg(src), address);
         m_formatter.twoByteOp(OP2_MOVPS_WpsVps, (RegisterID)src, address);
     }
-#else
+#ifdef JS_CODEGEN_X64
     JmpSrc movsd_ripr(XMMRegisterID dst)
     {
         spew("movsd      ?(%%rip), %s",
@@ -3820,6 +3822,7 @@ public:
     
     
     
+    
 
     
     
@@ -4090,6 +4093,8 @@ private:
         
         
         
+        
+        
 
         void oneByteOp(OneByteOpcodeID opcode)
         {
@@ -4147,13 +4152,15 @@ private:
         void oneByteOp(OneByteOpcodeID opcode, int reg, const void* address)
         {
             m_buffer.ensureSpace(maxInstructionSize);
+            emitRexIfNeeded(reg, 0, 0);
             m_buffer.putByteUnchecked(opcode);
-            memoryModRM(reg, address);
+            memoryModRM_disp32(reg, address);
         }
 
         void oneByteOp_disp32(OneByteOpcodeID opcode, int reg, const void* address)
         {
             m_buffer.ensureSpace(maxInstructionSize);
+            emitRexIfNeeded(reg, 0, 0);
             m_buffer.putByteUnchecked(opcode);
             memoryModRM_disp32(reg, address);
         }
@@ -4233,6 +4240,7 @@ private:
         void twoByteOp(TwoByteOpcodeID opcode, int reg, const void* address)
         {
             m_buffer.ensureSpace(maxInstructionSize);
+            emitRexIfNeeded(reg, 0, 0);
             m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
             m_buffer.putByteUnchecked(opcode);
             memoryModRM(reg, address);
@@ -4341,6 +4349,9 @@ private:
         
         
         
+        
+        
+        
 
         void oneByteOp8(OneByteOpcodeID opcode, GroupOpcodeID groupOp, RegisterID rm)
         {
@@ -4395,6 +4406,17 @@ private:
             memoryModRM(reg, base, index, scale, offset);
         }
 
+        void oneByteOp8(OneByteOpcodeID opcode, int reg, const void* address)
+        {
+#ifdef JS_CODEGEN_X86
+            MOZ_ASSERT(!byteRegRequiresRex(reg));
+#endif
+            m_buffer.ensureSpace(maxInstructionSize);
+            emitRexIf(byteRegRequiresRex(reg), reg, 0, 0);
+            m_buffer.putByteUnchecked(opcode);
+            memoryModRM_disp32(reg, address);
+        }
+
         void twoByteOp8(TwoByteOpcodeID opcode, RegisterID reg, RegisterID rm)
         {
             m_buffer.ensureSpace(maxInstructionSize);
@@ -4426,6 +4448,7 @@ private:
             registerModRM(groupOp, rm);
         }
 
+        
         
         
         
@@ -4533,6 +4556,7 @@ private:
         
 
         
+        
         inline bool byteRegRequiresRex(int reg)
         {
             return (reg >= X86Registers::esp);
@@ -4569,12 +4593,14 @@ private:
         
         
         
+        
         inline void emitRexIf(bool condition, int r, int x, int b)
         {
             if (condition || regRequiresRex(r) || regRequiresRex(x) || regRequiresRex(b))
                 emitRex(false, r, x, b);
         }
 
+        
         
         inline void emitRexIfNeeded(int r, int x, int b)
         {
@@ -4615,6 +4641,7 @@ private:
         void memoryModRM(int reg, RegisterID base, int offset)
         {
             
+            
 #ifdef JS_CODEGEN_X64
             if ((base == hasSib) || (base == hasSib2))
 #else
@@ -4649,6 +4676,7 @@ private:
 
         void memoryModRM_disp32(int reg, RegisterID base, int offset)
         {
+            
             
 #ifdef JS_CODEGEN_X64
             if ((base == hasSib) || (base == hasSib2))
