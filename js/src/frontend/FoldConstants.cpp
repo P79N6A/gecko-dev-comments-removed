@@ -283,18 +283,15 @@ Fold(ExclusiveContext *cx, ParseNode **pnp,
     
     switch (pn->getArity()) {
       case PN_CODE:
-        if (pn->isKind(PNK_FUNCTION) &&
-            pn->pn_funbox->useAsmOrInsideUseAsm() && options.asmJSOption)
-        {
+        if (pn->isKind(PNK_FUNCTION) && pn->pn_funbox->useAsmOrInsideUseAsm())
             return true;
-        } else {
-            
-            MOZ_ASSERT(pn->getKind() == PNK_FUNCTION);
-            if (pn->pn_body) {
-                if (!Fold(cx, &pn->pn_body, handler, options, pn->pn_funbox->inGenexpLambda,
-                          SyntacticContext::Other))
-                    return false;
-            }
+
+        
+        MOZ_ASSERT(pn->getKind() == PNK_FUNCTION);
+        if (pn->pn_body) {
+            if (!Fold(cx, &pn->pn_body, handler, options, pn->pn_funbox->inGenexpLambda,
+                      SyntacticContext::Other))
+                return false;
         }
         break;
 
@@ -885,7 +882,7 @@ frontend::FoldConstants(ExclusiveContext *cx, ParseNode **pnp, Parser<FullParseH
     
     
     
-    if (parser->pc->useAsmOrInsideUseAsm() && parser->options().asmJSOption)
+    if (parser->pc->useAsmOrInsideUseAsm())
         return true;
 
     return Fold(cx, pnp, parser->handler, parser->options(), false, SyntacticContext::Other);
