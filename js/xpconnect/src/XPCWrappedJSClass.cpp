@@ -32,7 +32,7 @@ NS_IMPL_ISUPPORTS(nsXPCWrappedJSClass, nsIXPCWrappedJSClass)
 
 static uint32_t zero_methods_descriptor;
 
-bool AutoScriptEvaluate::StartEvaluating(HandleObject scope, JSErrorReporter errorReporter)
+bool AutoScriptEvaluate::StartEvaluating(HandleObject scope)
 {
     NS_PRECONDITION(!mEvaluated, "AutoScriptEvaluate::Evaluate should only be called once");
 
@@ -40,10 +40,6 @@ bool AutoScriptEvaluate::StartEvaluating(HandleObject scope, JSErrorReporter err
         return true;
 
     mEvaluated = true;
-    if (!JS_GetErrorReporter(mJSContext)) {
-        JS_SetErrorReporter(mJSContext, errorReporter);
-        mErrorReporterSet = true;
-    }
 
     JS_BeginRequest(mJSContext);
     mAutoCompartment.emplace(mJSContext, scope);
@@ -66,9 +62,6 @@ AutoScriptEvaluate::~AutoScriptEvaluate()
     mState->restore();
 
     JS_EndRequest(mJSContext);
-
-    if (mErrorReporterSet)
-        JS_SetErrorReporter(mJSContext, nullptr);
 }
 
 
@@ -581,69 +574,6 @@ nsXPCWrappedJSClass::GetRootJSObject(JSContext* cx, JSObject* aJSObjArg)
     return result;
 }
 
-void
-xpcWrappedJSErrorReporter(JSContext *cx, const char *message,
-                          JSErrorReport *report)
-{
-    if (report) {
-        
-        
-        if (JSREPORT_IS_EXCEPTION(report->flags)) {
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-
-            return;
-        }
-
-        if (JSREPORT_IS_WARNING(report->flags)) {
-            
-            
-            return;
-        }
-    }
-
-    XPCCallContext ccx(NATIVE_CALLER, cx);
-    if (!ccx.IsValid())
-        return;
-
-    nsCOMPtr<nsIException> e;
-    XPCConvert::JSErrorToXPCException(message, nullptr, nullptr, report,
-                                      getter_AddRefs(e));
-    if (e)
-        ccx.GetXPCContext()->SetException(e);
-}
-
 bool
 nsXPCWrappedJSClass::GetArraySizeFromParam(JSContext* cx,
                                            const XPTMethodDescriptor* method,
@@ -841,8 +771,7 @@ nsXPCWrappedJSClass::CheckForException(XPCCallContext & ccx,
 
             
             
-            if (reportable && is_js_exception &&
-                JS_GetErrorReporter(cx) != xpcWrappedJSErrorReporter)
+            if (reportable && is_js_exception)
             {
                 reportable = !JS_ReportPendingException(cx);
             }
@@ -998,7 +927,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
     uint8_t argc = paramCount -
         (paramCount && XPT_PD_IS_RETVAL(info->params[paramCount-1].flags) ? 1 : 0);
 
-    if (!scriptEval.StartEvaluating(obj, xpcWrappedJSErrorReporter))
+    if (!scriptEval.StartEvaluating(obj))
         goto pre_call_clean_up;
 
     xpcc->SetPendingResult(pending_result);
