@@ -384,17 +384,24 @@ RenderLayers(ContainerT* aContainer,
     }
 
     
-    for (uint32_t i = 0; i < layer->GetFrameMetricsCount(); i++) {
-      
-      
-      if (layer->GetFrameMetrics(i).IsScrollable()) {
+    
+    
+    
+    
+    
+    
+    Matrix4x4 asyncTransform;
+    for (uint32_t i = layer->GetFrameMetricsCount(); i > 0; --i) {
+      if (layer->GetFrameMetrics(i - 1).IsScrollable()) {
         
         
-        ParentLayerRect compositionBounds = layer->GetFrameMetrics(i).mCompositionBounds;
+        ParentLayerRect compositionBounds = layer->GetFrameMetrics(i - 1).mCompositionBounds;
         aManager->GetCompositor()->DrawDiagnostics(DiagnosticFlags::CONTAINER,
                                                    compositionBounds.ToUnknownRect(),
                                                    gfx::Rect(aClipRect.ToUnknownRect()),
-                                                   aContainer->GetEffectiveTransform());
+                                                   asyncTransform * aContainer->GetEffectiveTransform());
+        asyncTransform = layer->GetAsyncPanZoomController(i - 1)->GetCurrentAsyncTransformWithOverscroll()
+                       * asyncTransform;
       }
     }
 
