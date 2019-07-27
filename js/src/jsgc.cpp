@@ -2374,7 +2374,6 @@ MovingTracer::Sweep(JSTracer *jstrc)
     
     rt->newObjectCache.purge();
     rt->nativeIterCache.purge();
-    rt->regExpTestCache.purge();
 }
 
 

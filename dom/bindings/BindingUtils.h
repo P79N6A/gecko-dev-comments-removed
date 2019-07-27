@@ -1213,6 +1213,22 @@ ClearWrapper(T* p, void*)
   ClearWrapper(p, cache);
 }
 
+template<class T>
+inline void
+UpdateWrapper(T* p, nsWrapperCache* cache, JSObject* obj, const JSObject* old)
+{
+  cache->UpdateWrapper(obj, old);
+}
+
+template<class T>
+inline void
+UpdateWrapper(T* p, void*, JSObject* obj, const JSObject* old)
+{
+  nsWrapperCache* cache;
+  CallQueryInterface(p, &cache);
+  UpdateWrapper(p, cache, obj, old);
+}
+
 
 
 
