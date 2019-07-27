@@ -1314,7 +1314,7 @@ UpdateHotfixMeasurement1.prototype = Object.freeze({
   
   
   shouldIncludeField: function (name) {
-    return name.contains(".");
+    return name.includes(".");
   },
 
   fieldType: function (name) {
@@ -1563,7 +1563,7 @@ SearchCountMeasurementBase.prototype = Object.freeze({
 
 
   shouldIncludeField: function (name) {
-    return name.contains(".");
+    return name.includes(".");
   },
 
   

@@ -150,7 +150,7 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
       }
 
       
-      if (!text.toLowerCase().contains(lowerCaseToken)) {
+      if (!text.toLowerCase().includes(lowerCaseToken)) {
         continue;
       }
       
@@ -164,7 +164,7 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
         let lowerCaseLine = aString.toLowerCase();
 
         
-        if (!lowerCaseLine.contains(lowerCaseToken)) {
+        if (!lowerCaseLine.includes(lowerCaseToken)) {
           return;
         }
         

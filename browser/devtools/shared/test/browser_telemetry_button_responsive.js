@@ -58,7 +58,7 @@ function checkResults(histIdFocus, Telemetry) {
 
   for (let [histId, value] of Iterator(result)) {
     if (histId.startsWith("DEVTOOLS_INSPECTOR_") ||
-        !histId.contains(histIdFocus)) {
+        !histId.includes(histIdFocus)) {
       
       
       

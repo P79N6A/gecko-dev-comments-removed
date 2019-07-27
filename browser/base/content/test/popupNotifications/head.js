@@ -307,5 +307,5 @@ function triggerSecondaryCommand(popup, index) {
 
   
   info("Open the popup to trigger secondary command for notification " + notification.id);
-  EventUtils.synthesizeKey("VK_DOWN", { altKey: !navigator.platform.contains("Mac") });
+  EventUtils.synthesizeKey("VK_DOWN", { altKey: !navigator.platform.includes("Mac") });
 }

@@ -15,13 +15,13 @@ function run_test() {
 function test_with_error() {
   let s = DevToolsUtils.safeErrorString(new Error("foo bar"));
   
-  do_check_true(s.contains("foo bar"));
+  do_check_true(s.includes("foo bar"));
   
-  do_check_true(s.contains("test_with_error"))
-  do_check_true(s.contains("test_safeErrorString.js"));
+  do_check_true(s.includes("test_with_error"))
+  do_check_true(s.includes("test_safeErrorString.js"));
   
-  do_check_true(s.contains("Line"));
-  do_check_true(s.contains("column"));
+  do_check_true(s.includes("Line"));
+  do_check_true(s.includes("column"));
 }
 
 function test_with_tricky_error() {
@@ -29,13 +29,13 @@ function test_with_tricky_error() {
   e.stack = { toString: Object.create(null) };
   let s = DevToolsUtils.safeErrorString(e);
   
-  do_check_true(s.contains("batman"));
+  do_check_true(s.includes("batman"));
 }
 
 function test_with_string() {
   let s = DevToolsUtils.safeErrorString("not really an error");
   
-  do_check_true(s.contains("not really an error"));
+  do_check_true(s.includes("not really an error"));
 }
 
 function test_with_thrower() {

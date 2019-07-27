@@ -84,7 +84,7 @@ EventListenersView.prototype = Heritage.extend(WidgetMethods, {
     
     
     let is = (...args) => args.indexOf(type) != -1;
-    let has = str => type.contains(str);
+    let has = str => type.includes(str);
     let starts = str => type.startsWith(str);
     let group;
 

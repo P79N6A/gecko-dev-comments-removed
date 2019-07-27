@@ -45,7 +45,7 @@ function testStayOnPage(win, blockingTab) {
         
         
         let url = win.gBrowser.browsers[0].currentURI.spec;
-        ok(url.contains("onbeforeunload"), "The open tab is the expected one");
+        ok(url.includes("onbeforeunload"), "The open tab is the expected one");
 
         is(contentWindow.GroupItems.getActiveGroupItem(), activeGroup,
            "Active group is still the same");

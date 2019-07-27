@@ -1159,7 +1159,7 @@ Search.prototype = {
     
     
     if (untrimmedHost &&
-        !untrimmedHost.toLowerCase().contains(this._trimmedOriginalSearchString.toLowerCase())) {
+        !untrimmedHost.toLowerCase().includes(this._trimmedOriginalSearchString.toLowerCase())) {
       untrimmedHost = null;
     }
 
@@ -1206,7 +1206,7 @@ Search.prototype = {
     
     let untrimmedURL = prefix + url;
     if (untrimmedURL &&
-        !untrimmedURL.toLowerCase().contains(this._trimmedOriginalSearchString.toLowerCase())) {
+        !untrimmedURL.toLowerCase().includes(this._trimmedOriginalSearchString.toLowerCase())) {
       untrimmedURL = null;
      }
 

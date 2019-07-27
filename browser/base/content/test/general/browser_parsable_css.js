@@ -73,7 +73,7 @@ add_task(function checkAllTheCSS() {
         return;
       }
       
-      if (aMessage.category.contains("CSS") && aMessage.innerWindowID === 0 && aMessage.outerWindowID === 0) {
+      if (aMessage.category.includes("CSS") && aMessage.innerWindowID === 0 && aMessage.outerWindowID === 0) {
         
         if (!ignoredError(aMessage)) {
           ok(false, "Got error message for " + aMessage.sourceName + ": " + aMessage.errorMessage);

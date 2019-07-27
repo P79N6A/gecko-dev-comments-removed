@@ -114,12 +114,12 @@ function test() {
         
         
         
-        if (actor.contains("framerateActor")) {
+        if (actor.includes("framerateActor")) {
           todo(false, "Front for " + actor + " still held in pool!");
           continue;
         }
         
-        if (actor.contains("gcliActor")) {
+        if (actor.includes("gcliActor")) {
           continue;
         }
         ok(false, "Front for " + actor + " still held in pool!");

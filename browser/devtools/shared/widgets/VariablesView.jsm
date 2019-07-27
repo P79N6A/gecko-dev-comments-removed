@@ -1150,7 +1150,7 @@ VariablesView.getterOrSetterEvalMacro = function(aItem, aCurrentString, aPrefix 
         let body = "";
         
         
-        if (aCurrentString.contains("return ")) {
+        if (aCurrentString.includes("return ")) {
           body = "{" + aCurrentString + "}";
         }
         
@@ -1925,8 +1925,8 @@ Scope.prototype = {
       let lowerCaseValue = variable._valueString.toLowerCase();
 
       
-      if (!lowerCaseName.contains(aLowerCaseQuery) &&
-          !lowerCaseValue.contains(aLowerCaseQuery)) {
+      if (!lowerCaseName.includes(aLowerCaseQuery) &&
+          !lowerCaseValue.includes(aLowerCaseQuery)) {
         variable._matched = false;
       }
       
