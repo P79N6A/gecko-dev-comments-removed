@@ -218,7 +218,7 @@ class OSXBootstrapper(BaseBootstrapper):
                 if 'unable to get active developer directory' in e.output:
                     print(XCODE_NO_DEVELOPER_DIRECTORY)
                     self._install_xcode_app_store()
-                    assert False 
+                    assert False  
 
                 output = e.output
 
@@ -228,7 +228,7 @@ class OSXBootstrapper(BaseBootstrapper):
             if '.app/' not in output:
                 print(XCODE_REQUIRED)
                 self._install_xcode_app_store()
-                assert False 
+                assert False  
 
         
         
@@ -334,9 +334,9 @@ class OSXBootstrapper(BaseBootstrapper):
         
         packages = [
             ('android-sdk', 'android-sdk'),
-            ('android-ndk', os.path.join(path_to_android, 'android-ndk.rb')), 
+            ('android-ndk', os.path.join(path_to_android, 'android-ndk.rb')),  
             ('ant', 'ant'),
-            ('brew-cask', 'caskroom/cask/brew-cask'), 
+            ('brew-cask', 'caskroom/cask/brew-cask'),  
         ]
         self._ensure_homebrew_packages(packages)
 
@@ -345,7 +345,7 @@ class OSXBootstrapper(BaseBootstrapper):
         ]
         installed = self._ensure_homebrew_casks(casks)
         if installed:
-            print(JAVA_LICENSE_NOTICE) 
+            print(JAVA_LICENSE_NOTICE)  
 
         
         android_tool = '/usr/local/opt/android-sdk/tools/android'

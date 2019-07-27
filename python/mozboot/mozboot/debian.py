@@ -53,11 +53,11 @@ class DebianBootstrapper(BaseBootstrapper):
     
     
     MOBILE_ANDROID_COMMON_PACKAGES = [
-        'zlib1g-dev', 
+        'zlib1g-dev',  
         'openjdk-7-jdk',
         'ant',
-        'wget', 
-        'libncurses5:i386', 
+        'wget',  
+        'libncurses5:i386',  
         'libstdc++6:i386',
         'zlib1g:i386',
     ]
