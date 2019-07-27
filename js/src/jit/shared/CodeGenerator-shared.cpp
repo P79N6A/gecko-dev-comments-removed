@@ -1252,7 +1252,7 @@ CodeGeneratorShared::jumpToBlock(MBasicBlock *mir)
         
         
         RepatchLabel rejoin;
-        CodeOffsetJump backedge = masm.jumpWithPatch(&rejoin);
+        CodeOffsetJump backedge = masm.backedgeJump(&rejoin);
         masm.bind(&rejoin);
 
         masm.propagateOOM(patchableBackedges_.append(PatchableBackedgeInfo(backedge, mir->lir()->label(), oolEntry)));

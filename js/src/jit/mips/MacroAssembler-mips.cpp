@@ -2810,6 +2810,63 @@ MacroAssemblerMIPSCompat::moveValue(const Value &val, const ValueOperand &dest)
     moveValue(val, dest.typeReg(), dest.payloadReg());
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CodeOffsetJump
+MacroAssemblerMIPSCompat::backedgeJump(RepatchLabel *label)
+{
+    
+    MOZ_ASSERT(!label->used());
+    uint32_t dest = label->bound() ? label->offset() : LabelBase::INVALID_OFFSET;
+    BufferOffset bo = nextOffset();
+    label->use(bo.getOffset());
+
+    
+    m_buffer.ensureSpace(8 * sizeof(uint32_t));
+    if (label->bound()) {
+        int32_t offset = label->offset() - bo.getOffset();
+        MOZ_ASSERT(BOffImm16::IsInRange(offset));
+        as_b(BOffImm16(offset));
+    } else {
+        
+        as_b(BOffImm16(2 * sizeof(uint32_t)));
+    }
+    
+    ma_liPatchable(ScratchRegister, Imm32(dest));
+    MOZ_ASSERT(nextOffset().getOffset() - bo.getOffset() == 3 * sizeof(uint32_t));
+    as_jr(ScratchRegister);
+    
+    ma_liPatchable(ScratchRegister, Imm32(dest));
+    as_jr(ScratchRegister);
+    as_nop();
+    MOZ_ASSERT(nextOffset().getOffset() - bo.getOffset() == 8 * sizeof(uint32_t));
+    return CodeOffsetJump(bo.getOffset());
+}
+
 CodeOffsetJump
 MacroAssemblerMIPSCompat::jumpWithPatch(RepatchLabel *label)
 {
@@ -2825,7 +2882,6 @@ MacroAssemblerMIPSCompat::jumpWithPatch(RepatchLabel *label)
     as_nop();
     return CodeOffsetJump(bo.getOffset());
 }
-
 
 
 
