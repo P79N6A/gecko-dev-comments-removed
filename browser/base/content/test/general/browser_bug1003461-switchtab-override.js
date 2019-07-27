@@ -3,6 +3,10 @@
 
 
 add_task(function* test_switchtab_override() {
+  
+  if (!Services.prefs.getBoolPref("browser.urlbar.unifiedcomplete"))
+    return;
+
   let testURL = "http://example.org/browser/browser/base/content/test/general/dummy_page.html";
 
   info("Opening first tab");
@@ -37,7 +41,8 @@ add_task(function* test_switchtab_override() {
   EventUtils.synthesizeKey("e" , {});
   yield deferred.promise;
 
-  info("Select first autocomplete popup entry");
+  info("Select second autocomplete popup entry");
+  EventUtils.synthesizeKey("VK_DOWN" , {});
   EventUtils.synthesizeKey("VK_DOWN" , {});
   ok(/moz-action:switchtab/.test(gURLBar.value), "switch to tab entry found");
 
