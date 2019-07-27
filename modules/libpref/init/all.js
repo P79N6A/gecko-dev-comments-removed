@@ -3015,11 +3015,8 @@ pref("intl.keyboard.per_window_layout", false);
 
 #ifdef NS_ENABLE_TSF
 
-#ifndef RELEASE_BUILD
 pref("intl.tsf.enable", true);
-#else
-pref("intl.tsf.enable", false);
-#endif
+
 
 
 pref("intl.tsf.force_enable", false);
