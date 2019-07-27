@@ -1903,16 +1903,11 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
     FloatRegister scratch = ScratchDoubleReg;
     Register output = ToRegister(lir->output());
 
-    Label negative, end, bailout;
+    Label negativeOrZero, negative, end, bailout;
 
     
     masm.xorpd(scratch, scratch);
-    masm.branchDouble(Assembler::DoubleLessThan, input, scratch, &negative);
-
-    
-    masm.branchNegativeZero(input, output, &bailout);
-    if (!bailoutFrom(&bailout, lir->snapshot()))
-        return false;
+    masm.branchDouble(Assembler::DoubleLessThanOrEqual, input, scratch, &negativeOrZero);
 
     
     
@@ -1924,6 +1919,20 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
     if (!bailoutCvttsd2si(temp, output, lir->snapshot()))
         return false;
 
+    masm.jump(&end);
+
+    
+    masm.bind(&negativeOrZero);
+    
+    masm.j(Assembler::NotEqual, &negative);
+
+    
+    masm.branchNegativeZero(input, output, &bailout,  false);
+    if (!bailoutFrom(&bailout, lir->snapshot()))
+        return false;
+
+    
+    masm.xor32(output, output);
     masm.jump(&end);
 
     
@@ -1984,16 +1993,11 @@ CodeGeneratorX86Shared::visitRoundF(LRoundF *lir)
     FloatRegister scratch = ScratchFloat32Reg;
     Register output = ToRegister(lir->output());
 
-    Label negative, end, bailout;
+    Label negativeOrZero, negative, end, bailout;
 
     
     masm.xorps(scratch, scratch);
-    masm.branchFloat(Assembler::DoubleLessThan, input, scratch, &negative);
-
-    
-    masm.branchNegativeZeroFloat32(input, output, &bailout);
-    if (!bailoutFrom(&bailout, lir->snapshot()))
-        return false;
+    masm.branchFloat(Assembler::DoubleLessThanOrEqual, input, scratch, &negativeOrZero);
 
     
     
@@ -2006,6 +2010,20 @@ CodeGeneratorX86Shared::visitRoundF(LRoundF *lir)
     if (!bailoutCvttss2si(temp, output, lir->snapshot()))
         return false;
 
+    masm.jump(&end);
+
+    
+    masm.bind(&negativeOrZero);
+    
+    masm.j(Assembler::NotEqual, &negative);
+
+    
+    masm.branchNegativeZeroFloat32(input, output, &bailout);
+    if (!bailoutFrom(&bailout, lir->snapshot()))
+        return false;
+
+    
+    masm.xor32(output, output);
     masm.jump(&end);
 
     

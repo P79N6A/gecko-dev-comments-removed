@@ -197,7 +197,8 @@ MacroAssemblerX86Shared::buildOOLFakeExitFrame(void *fakeReturnAddr)
 void
 MacroAssemblerX86Shared::branchNegativeZero(FloatRegister reg,
                                             Register scratch,
-                                            Label *label)
+                                            Label *label,
+                                            bool maybeNonZero)
 {
     
     
@@ -206,11 +207,13 @@ MacroAssemblerX86Shared::branchNegativeZero(FloatRegister reg,
     Label nonZero;
 
     
-    xorpd(ScratchDoubleReg, ScratchDoubleReg);
+    if (maybeNonZero) {
+        
+        xorpd(ScratchDoubleReg, ScratchDoubleReg);
 
-    
-    branchDouble(DoubleNotEqual, reg, ScratchDoubleReg, &nonZero);
-
+        
+        branchDouble(DoubleNotEqual, reg, ScratchDoubleReg, &nonZero);
+    }
     
     movmskpd(reg, scratch);
 
