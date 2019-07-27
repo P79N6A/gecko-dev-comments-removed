@@ -101,7 +101,7 @@ exports.UI_REQUEST_REFRESH_AUTH = "refreshAuthentication";
 exports.FX_OAUTH_CLIENT_ID = "5882386c6d801776";
 
 
-exports.PROFILE_WEBCHANNEL_ID = "account_updates";
+exports.WEBCHANNEL_ID = "account_updates";
 
 
 

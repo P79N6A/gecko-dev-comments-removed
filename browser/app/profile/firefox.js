@@ -1809,6 +1809,9 @@ pref("identity.fxaccounts.remote.force_auth.uri", "https://accounts.firefox.com/
 pref("identity.fxaccounts.remote.signin.uri", "https://accounts.firefox.com/signin?service=sync&context=fx_desktop_v1");
 
 
+pref("identity.fxaccounts.remote.webchannel.uri", "https://accounts.firefox.com/");
+
+
 
 
 pref("identity.fxaccounts.settings.uri", "https://accounts.firefox.com/settings");
