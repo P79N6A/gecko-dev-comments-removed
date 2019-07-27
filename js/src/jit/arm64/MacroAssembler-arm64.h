@@ -1573,10 +1573,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler
         b(-1); 
     }
 
-    void branch16(Condition cond, Register lhs, Register rhs, Label* label) {
-        MOZ_CRASH("branch16");
-    }
-
     void branch32(Condition cond, const Operand& lhs, Register rhs, Label* label) {
         
         Cmp(ARMRegister(rhs, 32), lhs);
@@ -1637,28 +1633,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler
         branch32(cond, scratch32.asUnsized(), rhs, label);
     }
 
-    void branchSub32(Condition cond, const Address& lhs, Register rhs, Label* label) {
-        MOZ_CRASH("branchSub32");
-    }
-    void branchSub32(Condition cond, const Address& lhs, Imm32 imm, Label* label) {
-        MOZ_CRASH("branchSub32");
-    }
-    void branchSub32(Condition cond, Register lhs, Imm32 imm, Label* label) {
-        MOZ_CRASH("branchSub32");
-    }
-    void branchSub32(Condition cond, Register lhs, Register rhs, Label* label) {
-        MOZ_CRASH("branchSub32");
-    }
-    void branchSub32(Condition cond, AbsoluteAddress lhs, Imm32 rhs, Label* label) {
-        MOZ_CRASH("branchSub32");
-    }
-    void branchSub32(Condition cond, AbsoluteAddress lhs, Register rhs, Label* label) {
-        MOZ_CRASH("branchSub32");
-    }
-
-    void branchTest16(Condition cond, Register lhs, Register rhs, Label* label) {
-        MOZ_CRASH("branchTest16");
-    }
     void branchTest32(Condition cond, Register lhs, Register rhs, Label* label) {
         MOZ_ASSERT(cond == Zero || cond == NonZero || cond == Signed || cond == NotSigned);
         
@@ -3190,13 +3164,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler
     }
     void clampCheck(Register r, Label* handleNotAnInt) {
         MOZ_CRASH("clampCheck");
-    }
-
-    void memMove32(Address Source, Address Dest) {
-        MOZ_CRASH("memMove32");
-    }
-    void memMove64(Address Source, Address Dest) {
-        MOZ_CRASH("memMove64");
     }
 
     void stackCheck(ImmWord limitAddr, Label* label) {
