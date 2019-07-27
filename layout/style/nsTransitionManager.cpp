@@ -181,6 +181,17 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
     return;
   }
 
+  if (collection &&
+      collection->mCheckGeneration ==
+        mPresContext->RestyleManager()->GetAnimationGeneration()) {
+    
+    
+    
+    
+    
+    
+    return;
+  }
 
   
   if (newStyleContext->PresContext()->RestyleManager()->
@@ -367,6 +378,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
     
     
     collection->mStyleRuleRefreshTime = TimeStamp();
+    collection->UpdateCheckGeneration(mPresContext);
   }
 
   

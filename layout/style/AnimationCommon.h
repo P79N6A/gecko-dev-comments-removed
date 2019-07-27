@@ -215,6 +215,7 @@ struct AnimationPlayerCollection : public PRCList
     , mElementProperty(aElementProperty)
     , mManager(aManager)
     , mAnimationGeneration(0)
+    , mCheckGeneration(0)
     , mNeedsRefreshes(true)
 #ifdef DEBUG
     , mCalledPropertyDtor(false)
@@ -368,6 +369,16 @@ struct AnimationPlayerCollection : public PRCList
   uint64_t mAnimationGeneration;
   
   void UpdateAnimationGeneration(nsPresContext* aPresContext);
+
+  
+  
+  
+  
+  
+  
+  uint64_t mCheckGeneration;
+  
+  void UpdateCheckGeneration(nsPresContext* aPresContext);
 
   
   bool HasCurrentAnimations() const;
