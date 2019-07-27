@@ -43,7 +43,6 @@ PaymentProviderStrategy.prototype = {
 
   get iccInfo() {
     if (!this._iccInfo) {
-      this.__DOM_IMPL_._clearCachedIccInfoValue();
       
       this._iccInfo = [{
         mcc: this._getNetworkInfo("mcc"),
