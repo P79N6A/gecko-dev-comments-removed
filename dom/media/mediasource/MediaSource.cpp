@@ -332,6 +332,7 @@ MediaSource::Enabled(JSContext* cx, JSObject* aGlobal)
 
   
   
+  
   nsIPrincipal* principal = nsContentUtils::ObjectPrincipal(global);
   nsCOMPtr<nsIURI> uri;
   if (NS_FAILED(principal->GetURI(getter_AddRefs(uri))) || !uri) {
@@ -348,9 +349,12 @@ MediaSource::Enabled(JSContext* cx, JSObject* aGlobal)
   NS_ENSURE_TRUE(tldServ, false);
 
   nsAutoCString eTLDplusOne;
-  return
-    NS_SUCCEEDED(tldServ->GetBaseDomain(uri, 0, eTLDplusOne)) &&
-    eTLDplusOne.EqualsLiteral("youtube.com");
+   if (NS_FAILED(tldServ->GetBaseDomain(uri, 0, eTLDplusOne))) {
+     return false;
+   }
+
+   return eTLDplusOne.EqualsLiteral("youtube.com") ||
+          eTLDplusOne.EqualsLiteral("youtube-nocookie.com");
 }
 
 bool
