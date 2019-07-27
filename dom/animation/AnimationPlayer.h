@@ -12,6 +12,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/StyleAnimationValue.h" 
 #include "mozilla/TimeStamp.h" 
+#include "mozilla/dom/Animation.h" 
 #include "mozilla/dom/AnimationTimeline.h" 
 #include "nsCSSProperty.h" 
 #include "nsSMILKeySpline.h" 
@@ -145,6 +146,7 @@ public:
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   
+  Animation* GetSource() const { return nullptr; }
   AnimationTimeline* Timeline() const { return mTimeline; }
   double StartTime() const;
   double CurrentTime() const;
