@@ -59,7 +59,6 @@ BlobComponent.prototype =
   contractID: "@mozilla.org/tests/component-blob;1",
 
   
-  implementationLanguage: Components.interfaces.nsIProgrammingLanguage.JAVASCRIPT,
   flags: 0,
 
   getInterfaces: function getInterfaces(aCount) {
