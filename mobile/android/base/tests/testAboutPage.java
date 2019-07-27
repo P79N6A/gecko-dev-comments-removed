@@ -2,34 +2,41 @@ package org.mozilla.gecko.tests;
 
 import org.mozilla.gecko.Actions;
 import org.mozilla.gecko.Element;
+import org.mozilla.gecko.NewTabletUI;
 import org.mozilla.gecko.R;
+
+import android.app.Activity;
 
 
 
 
 
 public class testAboutPage extends PixelTest {
-    private void ensureTitleMatches(final String regex) {
-        Element urlBarTitle = mDriver.findElement(getActivity(), R.id.url_bar_title);
+    private void ensureTitleMatches(final String titleRegex, final String urlRegex) {
+        final Activity activity = getActivity();
+        final Element urlBarTitle = mDriver.findElement(activity, R.id.url_bar_title);
+
+        
+        final String expectedTitle = NewTabletUI.isEnabled(activity) ? urlRegex : titleRegex;
         mAsserter.isnot(urlBarTitle, null, "Got the URL bar title");
-        assertMatches(urlBarTitle.getText(), regex, "page title match");
+        assertMatches(urlBarTitle.getText(), expectedTitle, "page title match");
     }
 
     public void testAboutPage() {
         blockForGeckoReady();
 
         
-        String url = "about:";
+        String url = StringHelper.ABOUT_SCHEME;
         loadAndPaint(url);
 
-        ensureTitleMatches(StringHelper.ABOUT_LABEL);
+        verifyPageTitle(StringHelper.ABOUT_LABEL, url);
 
         
         url = getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
         inputAndLoadUrl(url);
 
         
-        ensureTitleMatches(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE);
+        verifyPageTitle(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE, url);
 
         
         Actions.EventExpecter tabEventExpecter = mActions.expectGeckoEvent("Tab:Added");
@@ -45,6 +52,6 @@ public class testAboutPage extends PixelTest {
         contentEventExpecter.unregisterListener();
 
         
-        ensureTitleMatches(StringHelper.ABOUT_LABEL);
+        verifyPageTitle(StringHelper.ABOUT_LABEL, StringHelper.ABOUT_SCHEME);
     }
 }
