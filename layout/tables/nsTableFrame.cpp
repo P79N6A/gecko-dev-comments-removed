@@ -1545,24 +1545,38 @@ nsTableFrame::IntrinsicISizeOffsets(nsRenderingContext* aRenderingContext)
   return result;
 }
 
- nsSize
+
+LogicalSize
 nsTableFrame::ComputeSize(nsRenderingContext *aRenderingContext,
-                          nsSize aCBSize, nscoord aAvailableWidth,
-                          nsSize aMargin, nsSize aBorder, nsSize aPadding,
+                          WritingMode aWM,
+                          const LogicalSize& aCBSize,
+                          nscoord aAvailableISize,
+                          const LogicalSize& aMargin,
+                          const LogicalSize& aBorder,
+                          const LogicalSize& aPadding,
                           uint32_t aFlags)
 {
-  nsSize result =
-    nsContainerFrame::ComputeSize(aRenderingContext, aCBSize, aAvailableWidth,
+  LogicalSize result =
+    nsContainerFrame::ComputeSize(aRenderingContext, aWM,
+                                  aCBSize, aAvailableISize,
                                   aMargin, aBorder, aPadding, aFlags);
+
+  
+  
+  
+  if (aWM.IsVertical() != GetWritingMode().IsVertical()) {
+    return result;
+  }
 
   
   
   AutoMaybeDisableFontInflation an(this);
 
   
-  nscoord minWidth = GetMinISize(aRenderingContext);
-  if (minWidth > result.width)
-    result.width = minWidth;
+  nscoord minISize = GetMinISize(aRenderingContext);
+  if (minISize > result.ISize(aWM)) {
+    result.ISize(aWM) = minISize;
+  }
 
   return result;
 }
