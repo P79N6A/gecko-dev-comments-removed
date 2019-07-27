@@ -163,7 +163,18 @@ AccountState.prototype = {
   },
 
   getKeyPair: function(mustBeValidUntil) {
-    if (this.keyPair && (this.keyPair.validUntil > mustBeValidUntil)) {
+    
+    
+    
+    
+    
+    let ignoreCachedAuthCredentials = false;
+    try {
+      ignoreCachedAuthCredentials = Services.prefs.getBoolPref("services.sync.debug.ignoreCachedAuthCredentials");
+    } catch(e) {
+      
+    }
+    if (!ignoreCachedAuthCredentials && this.keyPair && (this.keyPair.validUntil > mustBeValidUntil)) {
       log.debug("getKeyPair: already have a keyPair");
       return this.resolve(this.keyPair.keyPair);
     }

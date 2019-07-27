@@ -475,6 +475,17 @@ this.BrowserIDManager.prototype = {
 
 
   hasValidToken: function() {
+    
+    
+    let ignoreCachedAuthCredentials = false;
+    try {
+      ignoreCachedAuthCredentials = Svc.Prefs.get("debug.ignoreCachedAuthCredentials");
+    } catch(e) {
+      
+    }
+    if (ignoreCachedAuthCredentials) {
+      return false;
+    }
     if (!this._token) {
       return false;
     }
