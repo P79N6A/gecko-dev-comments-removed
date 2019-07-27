@@ -1011,7 +1011,9 @@ nsContextMenu.prototype = {
       
       
       
-      if (!tabBrowser) {
+      
+      if (!tabBrowser || !window.toolbar.visible) {
+        
         let browserWindow = RecentWindow.getMostRecentBrowserWindow();
         tabBrowser = browserWindow.gBrowser;
       }
