@@ -1801,7 +1801,7 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
                                                        NS_ConvertUTF16toUTF8(mAppManifestURL));
                 }
 
-                if (mCalledKillHard) {
+                if (mCreatedPairedMinidumps) {
                     
                     
                     
@@ -1946,6 +1946,7 @@ ContentParent::InitializeMembers()
     mCalledClose = false;
     mCalledCloseWithError = false;
     mCalledKillHard = false;
+    mCreatedPairedMinidumps = false;
 }
 
 ContentParent::ContentParent(mozIApplication* aApp,
@@ -3104,7 +3105,7 @@ ContentParent::KillHard()
     mCalledKillHard = true;
     mForceKillTask = nullptr;
 
-#ifdef MOZ_CRASHREPORTER
+#if defined(MOZ_CRASHREPORTER) && !defined(MOZ_B2G)
     if (ManagedPCrashReporterParent().Length() > 0) {
         CrashReporterParent* crashReporter =
             static_cast<CrashReporterParent*>(ManagedPCrashReporterParent()[0]);
@@ -3116,6 +3117,7 @@ ContentParent::KillHard()
         
         
         if (crashReporter->GeneratePairedMinidump(this)) {
+            mCreatedPairedMinidumps = true;
             
             
             
