@@ -184,8 +184,6 @@ struct PLDHashTable
 
   const PLDHashTableOps* ops;
 
-  void*               data;           
-
 private:
   int16_t             mHashShift;     
   
@@ -239,7 +237,7 @@ public:
   uint32_t EntryCount() const { return mEntryCount; }
   uint32_t Generation() const { return mGeneration; }
 
-  bool Init(const PLDHashTableOps* aOps, void* aData, uint32_t aEntrySize,
+  bool Init(const PLDHashTableOps* aOps, uint32_t aEntrySize,
             const mozilla::fallible_t&, uint32_t aLength);
 
   void Finish();
@@ -454,7 +452,7 @@ const PLDHashTableOps* PL_DHashGetStubOps(void);
 
 
 PLDHashTable* PL_NewDHashTable(
-  const PLDHashTableOps* aOps, void* aData, uint32_t aEntrySize,
+  const PLDHashTableOps* aOps, uint32_t aEntrySize,
   uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
 
 
@@ -471,9 +469,8 @@ void PL_DHashTableDestroy(PLDHashTable* aTable);
 
 
 
-
 void PL_DHashTableInit(
-  PLDHashTable* aTable, const PLDHashTableOps* aOps, void* aData,
+  PLDHashTable* aTable, const PLDHashTableOps* aOps,
   uint32_t aEntrySize, uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
 
 
@@ -481,7 +478,7 @@ void PL_DHashTableInit(
 
 
 MOZ_WARN_UNUSED_RESULT bool PL_DHashTableInit(
-  PLDHashTable* aTable, const PLDHashTableOps* aOps, void* aData,
+  PLDHashTable* aTable, const PLDHashTableOps* aOps,
   uint32_t aEntrySize, const mozilla::fallible_t&,
   uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
 
