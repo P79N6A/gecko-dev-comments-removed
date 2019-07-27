@@ -8,7 +8,6 @@
 
 #include "nsINavHistoryService.h"
 #include "nsPIPlacesDatabase.h"
-#include "nsPIPlacesHistoryListenersNotifier.h"
 #include "nsIBrowserHistory.h"
 #include "nsINavBookmarksService.h"
 #include "nsIFaviconService.h"
@@ -67,7 +66,6 @@ class nsNavHistory MOZ_FINAL : public nsSupportsWeakReference
                              , public nsIObserver
                              , public nsIBrowserHistory
                              , public nsPIPlacesDatabase
-                             , public nsPIPlacesHistoryListenersNotifier
                              , public mozIStorageVacuumParticipant
 {
   friend class PlacesSQLQueryBuilder;
@@ -80,7 +78,6 @@ public:
   NS_DECL_NSIBROWSERHISTORY
   NS_DECL_NSIOBSERVER
   NS_DECL_NSPIPLACESDATABASE
-  NS_DECL_NSPIPLACESHISTORYLISTENERSNOTIFIER
   NS_DECL_MOZISTORAGEVACUUMPARTICIPANT
 
   
@@ -182,6 +179,29 @@ public:
 
 
   nsresult invalidateFrecencies(const nsCString& aPlaceIdsQueryString);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsresult NotifyOnPageExpired(nsIURI *aURI, PRTime aVisitTime,
+                               bool aWholeEntry, const nsACString& aGUID,
+                               uint16_t aReason, uint32_t aTransitionType);
 
   
 
