@@ -31,7 +31,9 @@
 namespace mozilla {
 namespace dom {
 
-NS_IMPL_ISUPPORTS(FetchDriver, nsIStreamListener)
+NS_IMPL_ISUPPORTS(FetchDriver,
+                  nsIStreamListener, nsIChannelEventSink, nsIInterfaceRequestor,
+                  nsIAsyncVerifyRedirectCallback)
 
 FetchDriver::FetchDriver(InternalRequest* aRequest, nsIPrincipal* aPrincipal,
                          nsILoadGroup* aLoadGroup)
@@ -89,7 +91,6 @@ FetchDriver::ContinueFetch(bool aCORSFlag)
   nsAutoCString url;
   mRequest->GetURL(url);
   nsCOMPtr<nsIURI> requestURI;
-  
   nsresult rv = NS_NewURI(getter_AddRefs(requestURI), url,
                           nullptr, nullptr);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -331,6 +332,11 @@ FetchDriver::HttpFetch(bool aCORSFlag, bool aCORSPreflightFlag, bool aAuthentica
     FailWithNetworkError();
     return rv;
   }
+
+  
+  
+  chan->GetNotificationCallbacks(getter_AddRefs(mNotificationCallbacks));
+  chan->SetNotificationCallbacks(this);
 
   
   
@@ -688,5 +694,157 @@ FetchDriver::OnStopRequest(nsIRequest* aRequest,
   return NS_OK;
 }
 
+
+NS_IMETHODIMP
+FetchDriver::AsyncOnChannelRedirect(nsIChannel* aOldChannel,
+                                    nsIChannel* aNewChannel,
+                                    uint32_t aFlags,
+                                    nsIAsyncVerifyRedirectCallback *aCallback)
+{
+  NS_PRECONDITION(aNewChannel, "Redirect without a channel?");
+
+  nsresult rv;
+
+  
+  
+  
+  
+  
+  
+  mRequest->UnsetSameOriginDataURL();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (!NS_IsInternalSameURIRedirect(aOldChannel, aNewChannel, aFlags)) {
+    rv = DoesNotRequirePreflight(aNewChannel);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("nsXMLHttpRequest::OnChannelRedirect: "
+                 "DoesNotRequirePreflight returned failure");
+      return rv;
+    }
+  }
+
+  mRedirectCallback = aCallback;
+  mOldRedirectChannel = aOldChannel;
+  mNewRedirectChannel = aNewChannel;
+
+  nsCOMPtr<nsIChannelEventSink> outer =
+    do_GetInterface(mNotificationCallbacks);
+  if (outer) {
+    
+    
+    
+    rv = outer->AsyncOnChannelRedirect(aOldChannel, aNewChannel, aFlags, this);
+    if (NS_FAILED(rv)) {
+      aOldChannel->Cancel(rv);
+      mRedirectCallback = nullptr;
+      mOldRedirectChannel = nullptr;
+      mNewRedirectChannel = nullptr;
+    }
+    return rv;
+  }
+
+  (void) OnRedirectVerifyCallback(NS_OK);
+  return NS_OK;
+}
+
+
+nsresult
+FetchDriver::DoesNotRequirePreflight(nsIChannel* aChannel)
+{
+  
+  
+  if (nsContentUtils::CheckMayLoad(mPrincipal, aChannel, true)) {
+    return NS_OK;
+  }
+
+  
+  nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel);
+  NS_ENSURE_TRUE(httpChannel, NS_ERROR_DOM_BAD_URI);
+
+  nsAutoCString method;
+  httpChannel->GetRequestMethod(method);
+  if (mRequest->Mode() == RequestMode::Cors_with_forced_preflight ||
+      !mRequest->Headers()->HasOnlySimpleHeaders() ||
+      (!method.LowerCaseEqualsLiteral("get") &&
+       !method.LowerCaseEqualsLiteral("post") &&
+       !method.LowerCaseEqualsLiteral("head"))) {
+    return NS_ERROR_DOM_BAD_URI;
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+FetchDriver::GetInterface(const nsIID& aIID, void **aResult)
+{
+  if (aIID.Equals(NS_GET_IID(nsIChannelEventSink))) {
+    *aResult = static_cast<nsIChannelEventSink*>(this);
+    NS_ADDREF_THIS();
+    return NS_OK;
+  }
+
+  nsresult rv;
+
+  if (mNotificationCallbacks) {
+    rv = mNotificationCallbacks->GetInterface(aIID, aResult);
+    if (NS_SUCCEEDED(rv)) {
+      NS_ASSERTION(*aResult, "Lying nsIInterfaceRequestor implementation!");
+      return rv;
+    }
+  }
+  else if (aIID.Equals(NS_GET_IID(nsIStreamListener))) {
+    *aResult = static_cast<nsIStreamListener*>(this);
+    NS_ADDREF_THIS();
+    return NS_OK;
+  }
+  else if (aIID.Equals(NS_GET_IID(nsIRequestObserver))) {
+    *aResult = static_cast<nsIRequestObserver*>(this);
+    NS_ADDREF_THIS();
+    return NS_OK;
+  }
+
+  return QueryInterface(aIID, aResult);
+}
+
+NS_IMETHODIMP
+FetchDriver::OnRedirectVerifyCallback(nsresult aResult)
+{
+  
+  
+  if (NS_SUCCEEDED(aResult)) {
+    
+    
+    
+    nsCOMPtr<nsIURI> newURI;
+    nsresult rv = NS_GetFinalChannelURI(mNewRedirectChannel, getter_AddRefs(newURI));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      aResult = rv;
+    } else {
+      
+      nsAutoCString newUrl;
+      newURI->GetSpec(newUrl);
+      mRequest->SetURL(newUrl);
+    }
+  }
+
+  if (NS_FAILED(aResult)) {
+    mOldRedirectChannel->Cancel(aResult);
+  }
+
+  mOldRedirectChannel = nullptr;
+  mNewRedirectChannel = nullptr;
+  mRedirectCallback->OnRedirectVerifyCallback(aResult);
+  mRedirectCallback = nullptr;
+  return NS_OK;
+}
 } 
 } 
