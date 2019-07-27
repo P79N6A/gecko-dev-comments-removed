@@ -55,6 +55,7 @@ WEBIDL_FILES = [
     'BiquadFilterNode.webidl',
     'Blob.webidl',
     'BoxObject.webidl',
+    'BrowserElement.webidl',
     'BrowserElementDictionaries.webidl',
     'CallsList.webidl',
     'CameraCapabilities.webidl',
@@ -798,4 +799,5 @@ if CONFIG['MOZ_EME']:
         'MediaKeyMessageEvent.webidl',
         'MediaKeys.webidl',
         'MediaKeySession.webidl',
+        'MediaKeySystemAccess.webidl',
     ]
