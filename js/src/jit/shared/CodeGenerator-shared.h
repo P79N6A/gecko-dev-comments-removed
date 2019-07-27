@@ -525,6 +525,18 @@ class CodeGeneratorShared : public LElementVisitor
         emitTracelogTree( false, textId);
     }
 #endif
+    void emitTracelogIonStart() {
+#ifdef JS_TRACE_LOGGING
+        emitTracelogScriptStart();
+        emitTracelogStartEvent(TraceLogger_IonMonkey);
+#endif
+    }
+    void emitTracelogIonStop() {
+#ifdef JS_TRACE_LOGGING
+        emitTracelogStopEvent(TraceLogger_IonMonkey);
+        emitTracelogScriptStop();
+#endif
+    }
 };
 
 
