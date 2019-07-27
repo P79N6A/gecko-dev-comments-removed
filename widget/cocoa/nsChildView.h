@@ -184,6 +184,9 @@ typedef NSInteger NSEventGestureAxis;
   NSEvent* mLastMouseDownEvent;
 
   
+  NSEvent* mLastKeyDownEvent;
+
+  
   BOOL mBlockedLastMouseDown;
 
   
@@ -312,6 +315,8 @@ typedef NSInteger NSEventGestureAxis;
 #endif
 
 - (void)setUsingOMTCompositor:(BOOL)aUseOMTC;
+
+- (NSEvent*)lastKeyDownEvent;
 @end
 
 class ChildViewMouseTracker {
@@ -527,6 +532,14 @@ public:
 
   APZCTreeManager* APZCTM() { return mAPZC ; }
 
+  NS_IMETHOD StartPluginIME(const mozilla::WidgetKeyboardEvent& aKeyboardEvent,
+                            int32_t aPanelX, int32_t aPanelY,
+                            nsString& aCommitted) MOZ_OVERRIDE;
+
+  NS_IMETHOD SetPluginFocused(bool& aFocused);
+
+  bool IsPluginFocused() { return mPluginFocused; }
+
 protected:
   virtual ~nsChildView();
 
@@ -626,6 +639,8 @@ protected:
   bool                  mVisible;
   bool                  mDrawing;
   bool                  mIsDispatchPaint; 
+
+  bool mPluginFocused;
 
   
   

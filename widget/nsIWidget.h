@@ -113,8 +113,8 @@ typedef void* nsNativeWidget;
 #define NS_NATIVE_PLUGIN_ID            105
 
 #define NS_IWIDGET_IID \
-{ 0xa7db3e01, 0xb8fe, 0x4122, \
-  { 0xbe, 0xa6, 0x45, 0x6c, 0xdd, 0x85, 0x30, 0x64 } };
+{ 0x316E4600, 0x15DB, 0x47AE, \
+  { 0xBF, 0xE4, 0x5B, 0xCD, 0xFF, 0x80, 0x80, 0x83 } };
 
 
 
@@ -2007,6 +2007,28 @@ public:
 
 
     NS_IMETHOD NotifyIME(const IMENotification& aIMENotification) = 0;
+
+    
+
+
+
+
+
+
+
+
+    NS_IMETHOD StartPluginIME(const mozilla::WidgetKeyboardEvent& aKeyboardEvent,
+                              int32_t aPanelX, int32_t aPanelY,
+                              nsString& aCommitted) = 0;
+
+    
+
+
+
+
+
+
+    NS_IMETHOD SetPluginFocused(bool& aFocused) = 0;
 
     
 

@@ -32,6 +32,11 @@ public:
 
   virtual int32_t TabIndexDefault() MOZ_OVERRIDE;
 
+#ifdef XP_MACOSX
+  
+  NS_IMETHOD PostHandleEvent(EventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
+#endif
+
   
   NS_DECL_NSIDOMHTMLAPPLETELEMENT
 

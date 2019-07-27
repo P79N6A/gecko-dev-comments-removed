@@ -335,6 +335,7 @@ struct ParamTraits<mozilla::WidgetKeyboardEvent>
     WriteParam(aMsg, aParam.mNativeModifierFlags);
     WriteParam(aMsg, aParam.mNativeCharacters);
     WriteParam(aMsg, aParam.mNativeCharactersIgnoringModifiers);
+    WriteParam(aMsg, aParam.mPluginTextEventString);
 #endif
     
     
@@ -361,6 +362,7 @@ struct ParamTraits<mozilla::WidgetKeyboardEvent>
         && ReadParam(aMsg, aIter, &aResult->mNativeModifierFlags)
         && ReadParam(aMsg, aIter, &aResult->mNativeCharacters)
         && ReadParam(aMsg, aIter, &aResult->mNativeCharactersIgnoringModifiers)
+        && ReadParam(aMsg, aIter, &aResult->mPluginTextEventString)
 #endif
         )
     {

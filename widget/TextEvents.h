@@ -165,6 +165,9 @@ public:
   uint32_t mNativeModifierFlags;
   nsString mNativeCharacters;
   nsString mNativeCharactersIgnoringModifiers;
+  
+  
+  nsString mPluginTextEventString;
 #endif
 
   
@@ -251,6 +254,14 @@ public:
     
     mNativeKeyEvent = nullptr;
     mUniqueId = aEvent.mUniqueId;
+#ifdef XP_MACOSX
+    mNativeKeyCode = aEvent.mNativeKeyCode;
+    mNativeModifierFlags = aEvent.mNativeModifierFlags;
+    mNativeCharacters.Assign(aEvent.mNativeCharacters);
+    mNativeCharactersIgnoringModifiers.
+      Assign(aEvent.mNativeCharactersIgnoringModifiers);
+    mPluginTextEventString.Assign(aEvent.mPluginTextEventString);
+#endif
   }
 
 private:
