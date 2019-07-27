@@ -77,7 +77,7 @@ WMFVideoMFTManager::WMFVideoMFTManager(
   , mImageContainer(aImageContainer)
   , mDXVAEnabled(aDXVAEnabled)
   , mLayersBackend(aLayersBackend)
-  , mUseHwAccel(false)
+  
 {
   NS_ASSERTION(!NS_IsMainThread(), "Should not be on main thread.");
   MOZ_ASSERT(mImageContainer);
@@ -170,6 +170,7 @@ WMFVideoMFTManager::InitializeDXVA()
 TemporaryRef<MFTDecoder>
 WMFVideoMFTManager::Init()
 {
+  mUseHwAccel = false; 
   bool useDxva = InitializeDXVA();
 
   RefPtr<MFTDecoder> decoder(new MFTDecoder());
@@ -504,7 +505,7 @@ WMFVideoMFTManager::Shutdown()
 bool
 WMFVideoMFTManager::IsHardwareAccelerated() const
 {
-  return mUseHwAccel;
+  return mDecoder && mUseHwAccel;
 }
 
 } 
