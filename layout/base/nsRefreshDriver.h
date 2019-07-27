@@ -339,6 +339,8 @@ private:
   double GetRegularTimerInterval(bool *outIsDefault = nullptr) const;
   static double GetThrottledTimerInterval();
 
+  static mozilla::TimeDuration GetMinRecomputeVisibilityInterval();
+
   bool HaveFrameRequestCallbacks() const {
     return mFrameRequestCallbackDocs.Length() != 0;
   }
@@ -367,7 +369,14 @@ private:
   
   const mozilla::TimeDuration mThrottledFrameRequestInterval;
 
+  
+  
+  
+  
+  const mozilla::TimeDuration mMinRecomputeVisibilityInterval;
+
   bool mThrottled;
+  bool mNeedToRecomputeVisibility;
   bool mTestControllingRefreshes;
   bool mViewManagerFlushIsPending;
   bool mRequestedHighPrecision;
@@ -386,6 +395,7 @@ private:
   mozilla::TimeStamp mMostRecentTick;
   mozilla::TimeStamp mTickStart;
   mozilla::TimeStamp mNextThrottledFrameRequestTick;
+  mozilla::TimeStamp mNextRecomputeVisibilityTick;
 
   
   ObserverArray mObservers[3];
