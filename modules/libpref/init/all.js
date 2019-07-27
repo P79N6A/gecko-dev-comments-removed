@@ -475,6 +475,11 @@ pref("media.mediasource.webm.enabled", false);
 pref("media.mediasource.format-reader", false);
 
 
+pref("media.mediasource.format-reader.mp4", true);
+
+pref("media.format-reader.mp4", true);
+
+
 pref("media.mediasource.format-reader.webm", false);
 
 pref("media.format-reader.webm", false);
