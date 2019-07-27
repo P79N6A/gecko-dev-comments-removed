@@ -172,7 +172,7 @@ static void DeferredDestroyCompositor(CompositorParent* aCompositorParent,
 
 void nsBaseWidget::DestroyCompositor()
 {
-  LayerScope::DestroyServerSocket();
+  LayerScope::DeInit();
 
   if (mCompositorChild) {
     mCompositorChild->SendWillStop();
@@ -901,7 +901,7 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
   }
 
   
-  LayerScope::CreateServerSocket();
+  LayerScope::Init();
 
   mCompositorParent = NewCompositorParent(aWidth, aHeight);
   MessageChannel *parentChannel = mCompositorParent->GetIPCChannel();
