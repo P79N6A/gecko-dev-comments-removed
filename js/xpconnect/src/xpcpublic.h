@@ -206,7 +206,11 @@ class XPCStringConvert
     
     struct ZoneStringCache
     {
-        nsStringBuffer* mBuffer;
+        
+        
+        
+        
+        void* mBuffer;
         JSString* mString;
     };
 
