@@ -19,6 +19,30 @@ Promise.all([fetch(url),
   if (results[0] !== results[1]) {
     is(results[0], results[1], 'stored response body should match original');
   }
+
+  
+  return cache.put(url, new Response("overwritten"));
+}).then(function() {
+  return cache.matchAll(url);
+}).then(function(result) {
+  is(result.length, 1, "Only one entry should exist");
+  return result[0].text();
+}).then(function(body) {
+  is(body, "overwritten", "The cache entry should be successfully overwritten");
+
+  
+  return cache.put(url + "#fragment", new Response("more overwritten"));
+}).then(function() {
+  return cache.matchAll(url + "#differentFragment");
+}).then(function(result) {
+  is(result.length, 1, "Only one entry should exist");
+  return result[0].text();
+}).then(function(body) {
+  is(body, "more overwritten", "The cache entry should be successfully overwritten");
+
+  
+  
+
   return caches.delete('putter' + context);
 }).then(function(deleted) {
   ok(deleted, "The cache should be deleted successfully");
