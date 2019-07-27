@@ -22,6 +22,8 @@
 using namespace js;
 using namespace js::jit;
 
+using mozilla::IsInRange;
+
 
 
 
@@ -76,8 +78,8 @@ jit::Bailout(BailoutStack *sp, BaselineBailoutInfo **bailoutInfo)
     JS_ASSERT(bailoutInfo);
 
     
-    MOZ_ASSERT(size_t(FAKE_JIT_TOP_FOR_BAILOUT + sizeof(IonCommonFrameLayout)) < 0x1000 &&
-               size_t(FAKE_JIT_TOP_FOR_BAILOUT) >= 0,
+    MOZ_ASSERT(IsInRange(FAKE_JIT_TOP_FOR_BAILOUT, 0, 0x1000) &&
+               IsInRange(FAKE_JIT_TOP_FOR_BAILOUT + sizeof(IonCommonFrameLayout), 0, 0x1000),
                "Fake jitTop pointer should be within the first page.");
     cx->mainThread().jitTop = FAKE_JIT_TOP_FOR_BAILOUT;
     gc::AutoSuppressGC suppress(cx);
