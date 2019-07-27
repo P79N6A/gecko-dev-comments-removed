@@ -57,6 +57,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "DownloadUIHelper",
                                   "resource://gre/modules/DownloadUIHelper.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadUtils",
                                   "resource://gre/modules/DownloadUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
+                                  "resource://gre/modules/FileUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
                                   "resource://gre/modules/osfile.jsm")
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
@@ -91,11 +93,6 @@ const kDownloadsStringsRequiringFormatting = {
 const kDownloadsStringsRequiringPluralForm = {
   otherDownloads2: true
 };
-
-XPCOMUtils.defineLazyGetter(this, "DownloadsLocalFileCtor", function () {
-  return Components.Constructor("@mozilla.org/file/local;1",
-                                "nsILocalFile", "initWithPath");
-});
 
 const kPartialDownloadSuffix = ".part";
 
@@ -352,12 +349,12 @@ this.DownloadsCommon = {
           break;
         case nsIDM.DOWNLOAD_DOWNLOADING:
           summary.numDownloading++;
-          if (dataItem.maxBytes > 0 && dataItem.speed > 0) {
-            let sizeLeft = dataItem.maxBytes - dataItem.currBytes;
+          if (dataItem.maxBytes > 0 && dataItem.download.speed > 0) {
+            let sizeLeft = dataItem.maxBytes - dataItem.download.currentBytes;
             summary.rawTimeLeft = Math.max(summary.rawTimeLeft,
-                                           sizeLeft / dataItem.speed);
+                                           sizeLeft / dataItem.download.speed);
             summary.slowestSpeed = Math.min(summary.slowestSpeed,
-                                            dataItem.speed);
+                                            dataItem.download.speed);
           }
           break;
       }
@@ -366,7 +363,7 @@ this.DownloadsCommon = {
           dataItem.state != nsIDM.DOWNLOAD_CANCELED &&
           dataItem.state != nsIDM.DOWNLOAD_FAILED) {
         summary.totalSize += dataItem.maxBytes;
-        summary.totalTransferred += dataItem.currBytes;
+        summary.totalTransferred += dataItem.download.currentBytes;
       }
     }
 
@@ -479,7 +476,6 @@ this.DownloadsCommon = {
   },
 
   
-
 
 
 
@@ -733,7 +729,8 @@ DownloadsDataCtor.prototype = {
           }
 
           PlacesUtils.annotations.setPageAnnotation(
-                        NetUtil.newURI(aDataItem.uri), "downloads/metaData",
+                        NetUtil.newURI(aDataItem.download.source.url),
+                        "downloads/metaData",
                         JSON.stringify(downloadMetaData), 0,
                         PlacesUtils.annotations.EXPIRE_WITH_HISTORY);
         } catch (ex) {
@@ -798,7 +795,7 @@ DownloadsDataCtor.prototype = {
     
     
     let loadedItemsArray = [...this.dataItems];
-    loadedItemsArray.sort((a, b) => b.startTime - a.startTime);
+    loadedItemsArray.sort((a, b) => b.download.startTime - a.download.startTime);
     loadedItemsArray.forEach(dataItem => aView.onDataItemAdded(dataItem, false));
 
     
@@ -873,13 +870,8 @@ XPCOMUtils.defineLazyGetter(this, "DownloadsData", function() {
 
 
 function DownloadsDataItem(aDownload) {
-  this._download = aDownload;
-
-  this.file = aDownload.target.path;
-  this.target = OS.Path.basename(aDownload.target.path);
-  this.uri = aDownload.source.url;
+  this.download = aDownload;
   this.endTime = Date.now();
-
   this.updateFromDownload();
 }
 
@@ -889,44 +881,38 @@ DownloadsDataItem.prototype = {
 
   updateFromDownload() {
     
-    if (this._download.succeeded) {
+    if (this.download.succeeded) {
       this.state = nsIDM.DOWNLOAD_FINISHED;
-    } else if (this._download.error &&
-               this._download.error.becauseBlockedByParentalControls) {
+    } else if (this.download.error &&
+               this.download.error.becauseBlockedByParentalControls) {
       this.state = nsIDM.DOWNLOAD_BLOCKED_PARENTAL;
-    } else if (this._download.error &&
-               this._download.error.becauseBlockedByReputationCheck) {
+    } else if (this.download.error &&
+               this.download.error.becauseBlockedByReputationCheck) {
       this.state = nsIDM.DOWNLOAD_DIRTY;
-    } else if (this._download.error) {
+    } else if (this.download.error) {
       this.state = nsIDM.DOWNLOAD_FAILED;
-    } else if (this._download.canceled && this._download.hasPartialData) {
+    } else if (this.download.canceled && this.download.hasPartialData) {
       this.state = nsIDM.DOWNLOAD_PAUSED;
-    } else if (this._download.canceled) {
+    } else if (this.download.canceled) {
       this.state = nsIDM.DOWNLOAD_CANCELED;
-    } else if (this._download.stopped) {
+    } else if (this.download.stopped) {
       this.state = nsIDM.DOWNLOAD_NOTSTARTED;
     } else {
       this.state = nsIDM.DOWNLOAD_DOWNLOADING;
     }
 
-    this.referrer = this._download.source.referrer;
-    this.startTime = this._download.startTime;
-    this.currBytes = this._download.currentBytes;
-    this.resumable = this._download.hasPartialData;
-    this.speed = this._download.speed;
-
-    if (this._download.succeeded) {
+    if (this.download.succeeded) {
       
       
       
-      this.maxBytes = this._download.hasProgress ?
-                             this._download.totalBytes :
-                             this._download.currentBytes;
+      this.maxBytes = this.download.hasProgress ?
+                             this.download.totalBytes :
+                             this.download.currentBytes;
       this.percentComplete = 100;
-    } else if (this._download.hasProgress) {
+    } else if (this.download.hasProgress) {
       
-      this.maxBytes = this._download.totalBytes;
-      this.percentComplete = this._download.progress;
+      this.maxBytes = this.download.totalBytes;
+      this.percentComplete = this.download.progress;
     } else {
       
       this.maxBytes = -1;
@@ -981,13 +967,6 @@ DownloadsDataItem.prototype = {
   
 
 
-  get openable() {
-    return this.state == nsIDM.DOWNLOAD_FINISHED;
-  },
-
-  
-
-
 
   get canRetry() {
     return this.state == nsIDM.DOWNLOAD_CANCELED ||
@@ -1001,11 +980,16 @@ DownloadsDataItem.prototype = {
 
 
 
+
+
   get localFile() {
-    return this._getFile(this.file);
+    
+    return new FileUtils.File(this.download.target.path);
   },
 
   
+
+
 
 
 
@@ -1013,87 +997,7 @@ DownloadsDataItem.prototype = {
 
 
   get partFile() {
-    return this._getFile(this.file + kPartialDownloadSuffix);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  _getFile(aFilename) {
-    
-    
-    
-    if (aFilename.startsWith("file:")) {
-      
-      
-      let fileUrl = NetUtil.newURI(aFilename).QueryInterface(Ci.nsIFileURL);
-      return fileUrl.file.clone().QueryInterface(Ci.nsILocalFile);
-    } else {
-      
-      
-      return new DownloadsLocalFileCtor(aFilename);
-    }
-  },
-
-  
-
-
-  openLocalFile() {
-    this._download.launch().then(null, Cu.reportError);
-  },
-
-  
-
-
-  showLocalFile() {
-    DownloadsCommon.showDownloadedFile(this.localFile);
-  },
-
-  
-
-
-
-  togglePauseResume() {
-    if (this._download.stopped) {
-      this._download.start();
-    } else {
-      this._download.cancel();
-    }
-  },
-
-  
-
-
-
-  retry() {
-    this._download.start();
-  },
-
-  
-
-
-  cancel() {
-    this._download.cancel();
-    this._download.removePartialData().then(null, Cu.reportError);
-  },
-
-  
-
-
-  remove() {
-    Downloads.getList(Downloads.ALL)
-             .then(list => list.remove(this._download))
-             .then(() => this._download.finalize(true))
-             .then(null, Cu.reportError);
+    return new FileUtils.File(this.download.target.path + kPartialDownloadSuffix);
   },
 };
 
