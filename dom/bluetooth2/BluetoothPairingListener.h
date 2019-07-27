@@ -38,6 +38,7 @@ public:
 
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
   virtual void DisconnectFromOwner() MOZ_OVERRIDE;
+  virtual void EventListenerAdded(nsIAtom* aType) MOZ_OVERRIDE;
 
   IMPL_EVENT_HANDLER(displaypasskeyreq);
   IMPL_EVENT_HANDLER(enterpincodereq);
@@ -47,6 +48,21 @@ public:
 private:
   BluetoothPairingListener(nsPIDOMWindow* aWindow);
   ~BluetoothPairingListener();
+
+  
+
+
+
+
+
+
+  void TryListeningToBluetoothSignal();
+
+  
+
+
+
+  bool mHasListenedToSignal;
 };
 
 END_BLUETOOTH_NAMESPACE

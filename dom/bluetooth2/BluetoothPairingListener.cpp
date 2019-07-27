@@ -21,13 +21,11 @@ NS_IMPL_RELEASE_INHERITED(BluetoothPairingListener, DOMEventTargetHelper)
 
 BluetoothPairingListener::BluetoothPairingListener(nsPIDOMWindow* aWindow)
   : DOMEventTargetHelper(aWindow)
+  , mHasListenedToSignal(false)
 {
   MOZ_ASSERT(aWindow);
 
-  BluetoothService* bs = BluetoothService::Get();
-  NS_ENSURE_TRUE_VOID(bs);
-  bs->RegisterBluetoothSignalHandler(NS_LITERAL_STRING(KEY_PAIRING_LISTENER),
-                                     this);
+  TryListeningToBluetoothSignal();
 }
 
 already_AddRefed<BluetoothPairingListener>
@@ -133,4 +131,40 @@ BluetoothPairingListener::DisconnectFromOwner()
   NS_ENSURE_TRUE_VOID(bs);
   bs->UnregisterBluetoothSignalHandler(NS_LITERAL_STRING(KEY_PAIRING_LISTENER),
                                        this);
+}
+
+void
+BluetoothPairingListener::EventListenerAdded(nsIAtom* aType)
+{
+  DOMEventTargetHelper::EventListenerAdded(aType);
+
+  TryListeningToBluetoothSignal();
+}
+
+void
+BluetoothPairingListener::TryListeningToBluetoothSignal()
+{
+  if (mHasListenedToSignal) {
+    
+    return;
+  }
+
+  
+  
+  
+  if (!HasListenersFor(nsGkAtoms::ondisplaypasskeyreq) ||
+      !HasListenersFor(nsGkAtoms::onenterpincodereq) ||
+      !HasListenersFor(nsGkAtoms::onpairingconfirmationreq) ||
+      !HasListenersFor(nsGkAtoms::onpairingconsentreq)) {
+    BT_LOGR("Pairing listener is not ready to handle pairing requests!");
+    return;
+  }
+
+  
+  BluetoothService* bs = BluetoothService::Get();
+  NS_ENSURE_TRUE_VOID(bs);
+  bs->RegisterBluetoothSignalHandler(NS_LITERAL_STRING(KEY_PAIRING_LISTENER),
+                                     this);
+
+  mHasListenedToSignal = true;
 }
