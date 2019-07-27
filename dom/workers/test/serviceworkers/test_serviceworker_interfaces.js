@@ -91,9 +91,9 @@ var interfaceNamesInGlobalScope =
 
     "BroadcastChannel",
 
-    { name: "Cache", release: false },
+    "Cache",
 
-    { name: "CacheStorage", release: false },
+    "CacheStorage",
 
     "Client",
 
