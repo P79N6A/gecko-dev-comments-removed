@@ -1409,8 +1409,14 @@ MediaCache::QueueUpdate()
   if (mUpdateQueued)
     return;
   mUpdateQueued = true;
-  nsCOMPtr<nsIRunnable> event = new UpdateEvent();
-  NS_DispatchToMainThread(event);
+  
+  
+  
+  nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+  if (mainThread) {
+    nsCOMPtr<nsIRunnable> event = new UpdateEvent();
+    mainThread->Dispatch(event.forget(), NS_DISPATCH_NORMAL);
+  }
 }
 
 void

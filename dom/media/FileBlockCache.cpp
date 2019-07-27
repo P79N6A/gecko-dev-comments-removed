@@ -74,9 +74,16 @@ void FileBlockCache::Close()
     
     
     
-    nsCOMPtr<nsIRunnable> event = new ShutdownThreadEvent(mThread);
-    mThread = nullptr;
-    NS_DispatchToMainThread(event);
+    nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+    if (mainThread) {
+      nsCOMPtr<nsIRunnable> event = new ShutdownThreadEvent(mThread);
+      mainThread->Dispatch(event.forget(), NS_DISPATCH_NORMAL);
+    } else {
+      
+      
+      
+      mThread->Shutdown();
+    }
   }
 }
 
