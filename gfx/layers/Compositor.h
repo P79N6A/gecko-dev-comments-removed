@@ -487,6 +487,17 @@ public:
   }
   void SetCompositionTime(TimeStamp aTimeStamp) {
     mCompositionTime = aTimeStamp;
+    mCompositeAgainTime = TimeStamp();
+  }
+
+  void CompositeAgainAt(TimeStamp aTimeStamp) {
+    if (mCompositeAgainTime.IsNull() ||
+        mCompositeAgainTime > aTimeStamp) {
+      mCompositeAgainTime = aTimeStamp;
+    }
+  }
+  TimeStamp GetCompositeAgainTime() const {
+    return mCompositeAgainTime;
   }
 
 protected:
@@ -507,6 +518,11 @@ protected:
 
 
   TimeStamp mCompositionTime;
+  
+
+
+
+  TimeStamp mCompositeAgainTime;
 
   uint32_t mCompositorID;
   DiagnosticTypes mDiagnosticTypes;
