@@ -2038,11 +2038,6 @@ InvalidateOldStyle(const nsSubstring& aKey,
         static_cast<CustomCounterStyle*>(aStyle.get());
       if (style->GetRule() != newRule) {
         toBeRemoved = true;
-        
-        
-        
-        
-        style->ResetDependentData();
       } else if (style->GetRuleGeneration() != newRule->GetGeneration()) {
         toBeUpdated = true;
         style->ResetCachedData();
@@ -2052,6 +2047,13 @@ InvalidateOldStyle(const nsSubstring& aKey,
   data->mChanged = data->mChanged || toBeUpdated || toBeRemoved;
   if (toBeRemoved) {
     if (aStyle->IsDependentStyle()) {
+      if (aStyle->IsCustomStyle()) {
+        
+        
+        
+        
+        static_cast<CustomCounterStyle*>(aStyle.get())->ResetDependentData();
+      }
       
       
       
