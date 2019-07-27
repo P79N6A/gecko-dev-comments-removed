@@ -843,7 +843,7 @@ function SupportedLocales(availableLocales, requestedLocales, options) {
         if (matcher !== undefined) {
             matcher = ToString(matcher);
             if (matcher !== "lookup" && matcher !== "best fit")
-                ThrowError(JSMSG_INVALID_LOCALE_MATCHER, matcher);
+                ThrowRangeError(JSMSG_INVALID_LOCALE_MATCHER, matcher);
         }
     }
 
@@ -888,7 +888,7 @@ function GetOption(options, property, type, values, fallback) {
 
         
         if (values !== undefined && callFunction(std_Array_indexOf, values, value) === -1)
-            ThrowError(JSMSG_INVALID_OPTION_VALUE, property, value);
+            ThrowRangeError(JSMSG_INVALID_OPTION_VALUE, property, value);
 
         
         return value;
@@ -917,7 +917,7 @@ function GetNumberOption(options, property, minimum, maximum, fallback) {
     if (value !== undefined) {
         value = ToNumber(value);
         if (Number_isNaN(value) || value < minimum || value > maximum)
-            ThrowError(JSMSG_INVALID_DIGITS_VALUE, value);
+            ThrowRangeError(JSMSG_INVALID_DIGITS_VALUE, value);
         return std_Math_floor(value);
     }
 
@@ -1081,7 +1081,7 @@ function getIntlObjectInternals(obj, className, methodName) {
     assert(internals === undefined || isInitializedIntlObject(obj), "bad mapping in internalsMap");
 
     if (internals === undefined || internals.type !== className)
-        ThrowError(JSMSG_INTL_OBJECT_NOT_INITED, className, methodName, className);
+        ThrowTypeError(JSMSG_INTL_OBJECT_NOT_INITED, className, methodName, className);
 
     return internals;
 }
@@ -1255,7 +1255,7 @@ function InitializeCollator(collator, locales, options) {
 
     
     if (isInitializedIntlObject(collator))
-        ThrowError(JSMSG_INTL_OBJECT_REINITED);
+        ThrowTypeError(JSMSG_INTL_OBJECT_REINITED);
 
     
     var internals = initializeIntlObject(collator);
@@ -1597,7 +1597,7 @@ function InitializeNumberFormat(numberFormat, locales, options) {
 
     
     if (isInitializedIntlObject(numberFormat))
-        ThrowError(JSMSG_INTL_OBJECT_REINITED);
+        ThrowTypeError(JSMSG_INTL_OBJECT_REINITED);
 
     
     var internals = initializeIntlObject(numberFormat);
@@ -1666,11 +1666,11 @@ function InitializeNumberFormat(numberFormat, locales, options) {
     
     var c = GetOption(options, "currency", "string", undefined, undefined);
     if (c !== undefined && !IsWellFormedCurrencyCode(c))
-        ThrowError(JSMSG_INVALID_CURRENCY_CODE, c);
+        ThrowRangeError(JSMSG_INVALID_CURRENCY_CODE, c);
     var cDigits;
     if (s === "currency") {
         if (c === undefined)
-            ThrowError(JSMSG_UNDEFINED_CURRENCY);
+            ThrowTypeError(JSMSG_UNDEFINED_CURRENCY);
 
         
         c = toASCIIUpperCase(c);
@@ -2045,7 +2045,7 @@ function InitializeDateTimeFormat(dateTimeFormat, locales, options) {
 
     
     if (isInitializedIntlObject(dateTimeFormat))
-        ThrowError(JSMSG_INTL_OBJECT_REINITED);
+        ThrowTypeError(JSMSG_INTL_OBJECT_REINITED);
 
     
     var internals = initializeIntlObject(dateTimeFormat);
@@ -2101,7 +2101,7 @@ function InitializeDateTimeFormat(dateTimeFormat, locales, options) {
     if (tz !== undefined) {
         tz = toASCIIUpperCase(ToString(tz));
         if (tz !== "UTC")
-            ThrowError(JSMSG_INVALID_TIME_ZONE, tz);
+            ThrowRangeError(JSMSG_INVALID_TIME_ZONE, tz);
     }
     lazyDateTimeFormatData.timeZone = tz;
 
