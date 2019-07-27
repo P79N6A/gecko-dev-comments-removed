@@ -1030,7 +1030,7 @@ this.MozLoopService = {
     };
     LoopRooms.on("add", onRoomsChange);
     LoopRooms.on("update", onRoomsChange);
-    LoopRooms.on("joined", (e, roomToken, participant) => {
+    LoopRooms.on("joined", (e, room, participant) => {
       
       
       if (MozLoopServiceInternal.doNotDisturb || participant.owner) {
@@ -1039,7 +1039,12 @@ this.MozLoopService = {
 
       let window = gWM.getMostRecentWindow("navigator:browser");
       if (window) {
-        window.LoopUI.playSound("room-joined");
+        window.LoopUI.showNotification({
+          sound: "room-joined",
+          title: room.roomName,
+          message: MozLoopServiceInternal.localizedStrings.get("rooms_room_joined_label"),
+          selectTab: "rooms"
+        });
       }
     });
 
