@@ -19,13 +19,7 @@ var requestList2NotCanceled;
 var listener1 = {
   onLookupComplete: function(inRequest, inRecord, inStatus) {
     
-    if (inRequest == requestList1Canceled1 ||
-        inRequest == requestList1Canceled2) {
-      
-      do_check_eq(inStatus, Cr.NS_ERROR_ABORT);
-
-      do_test_finished();
-    } else if (inRequest == requestList1NotCanceled) {
+    if (inRequest == requestList1NotCanceled) {
       
       do_check_neq(inStatus, Cr.NS_ERROR_ABORT);
 
@@ -44,12 +38,7 @@ var listener1 = {
 var listener2 = {
   onLookupComplete: function(inRequest, inRecord, inStatus) {
     
-    if (inRequest == requestList2Canceled) {
-      
-      do_check_eq(inStatus, Cr.NS_ERROR_ABORT);
-
-      do_test_finished();
-    } else {
+    if (inRequest == requestList2NotCanceled) {
       
       do_check_neq(inStatus, Cr.NS_ERROR_ABORT);
 
@@ -89,9 +78,6 @@ function run_test() {
   requestList2Canceled = dns.asyncResolve(hostname2, flags, listener2, mainThread);
   requestList2Canceled.cancel(Cr.NS_ERROR_ABORT);
 
-  do_test_pending();
-  do_test_pending();
-  do_test_pending();
   do_test_pending();
   do_test_pending();
 }
