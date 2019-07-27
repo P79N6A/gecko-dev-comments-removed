@@ -264,15 +264,10 @@ TrackUnionStream::TrackUnionStream(DOMMediaStream* aWrapper) :
       if (interval.mStart >= interval.mEnd) {
         break;
       }
+      TrackTicks ticks = interval.mEnd - interval.mStart;
       next = interval.mEnd;
 
-      
-      StreamTime outputEnd = GraphTimeToStreamTime(interval.mEnd);
-      TrackTicks startTicks = outputTrack->GetEnd();
-      StreamTime outputStart = GraphTimeToStreamTime(interval.mStart);
-      MOZ_ASSERT(startTicks == outputStart, "Samples missing");
-      TrackTicks ticks = outputEnd - startTicks;
-      StreamTime inputStart = source->GraphTimeToStreamTime(interval.mStart);
+      StreamTime outputStart = outputTrack->GetEnd();
 
       if (interval.mInputIsBlocked) {
         
@@ -280,89 +275,18 @@ TrackUnionStream::TrackUnionStream(DOMMediaStream* aWrapper) :
         STREAM_LOG(PR_LOG_DEBUG+1, ("TrackUnionStream %p appending %lld ticks of null data to track %d",
                    this, (long long)ticks, outputTrack->GetID()));
       } else {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        if (map->mEndOfLastInputIntervalInInputStream != inputStart ||
-            map->mEndOfLastInputIntervalInOutputStream != outputStart) {
-          
-          map->mEndOfConsumedInputTicks = inputStart - 1;
-        }
-        TrackTicks inputStartTicks = map->mEndOfConsumedInputTicks;
-        TrackTicks inputEndTicks = inputStartTicks + ticks;
-        map->mEndOfConsumedInputTicks = inputEndTicks;
-        map->mEndOfLastInputIntervalInInputStream = inputEnd;
-        map->mEndOfLastInputIntervalInOutputStream = outputEnd;
-
-        if (GraphImpl()->mFlushSourcesNow) {
-          TrackTicks flushto = inputEndTicks;
-          STREAM_LOG(PR_LOG_DEBUG, ("TrackUnionStream %p flushing after %lld of %lld ticks of input data from track %d for track %d",
-              this, flushto, aInputTrack->GetSegment()->GetDuration(), aInputTrack->GetID(), outputTrack->GetID()));
-          aInputTrack->FlushAfter(flushto);
-          MOZ_ASSERT(inputTrackEndPoint >= aInputTrack->GetEnd());
-        }
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        if (inputStartTicks < 0) {
-          
-          
-          
-          
-          
-          
-          segment->AppendNullData(-inputStartTicks);
-          inputStartTicks = 0;
-        }
-        if (inputEndTicks > inputStartTicks) {
-          segment->AppendSlice(*aInputTrack->GetSegment(),
-                               std::min(inputTrackEndPoint, inputStartTicks),
-                               std::min(inputTrackEndPoint, inputEndTicks));
-        }
-        STREAM_LOG(PR_LOG_DEBUG+1, ("TrackUnionStream %p appending %lld ticks of input data to track %d",
-                   this, (long long)(std::min(inputTrackEndPoint, inputEndTicks) - std::min(inputTrackEndPoint, inputStartTicks)),
-                   outputTrack->GetID()));
+        MOZ_ASSERT(outputTrack->GetEnd() == GraphTimeToStreamTime(interval.mStart),
+                   "Samples missing");
+        StreamTime inputStart = source->GraphTimeToStreamTime(interval.mStart);
+        segment->AppendSlice(*aInputTrack->GetSegment(),
+                             std::min(inputTrackEndPoint, inputStart),
+                             std::min(inputTrackEndPoint, inputEnd));
       }
       ApplyTrackDisabling(outputTrack->GetID(), segment);
       for (uint32_t j = 0; j < mListeners.Length(); ++j) {
         MediaStreamListener* l = mListeners[j];
         l->NotifyQueuedTrackChanges(Graph(), outputTrack->GetID(),
-                                    startTicks, 0, *segment);
+                                    outputStart, 0, *segment);
       }
       outputTrack->GetSegment()->AppendFrom(segment);
     }
