@@ -141,8 +141,7 @@ ToJSValue(JSContext* aCx,
 
 
 template <class T>
-typename EnableIf<IsBaseOf<nsWrapperCache, T>::value &&
-                  IsBaseOf<nsISupports, T>::value, bool>::Type
+typename EnableIf<IsBaseOf<nsWrapperCache, T>::value, bool>::Type
 ToJSValue(JSContext* aCx,
           T& aArgument,
           JS::MutableHandle<JS::Value> aValue)
