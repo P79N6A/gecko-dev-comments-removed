@@ -13,8 +13,8 @@ import subprocess
 
 
 
-ANDROID_PLATFORM = 'android-21'
-ANDROID_BUILD_TOOLS_VERSION = '21.1.2'
+ANDROID_PLATFORM = 'android-22'
+ANDROID_BUILD_TOOLS_VERSION = '22.0.1'
 
 
 
