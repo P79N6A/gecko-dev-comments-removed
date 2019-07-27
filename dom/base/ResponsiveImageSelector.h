@@ -49,8 +49,7 @@ public:
   bool SetSizesFromDescriptor(const nsAString & aSizesDescriptor);
 
   
-  nsresult SetDefaultSource(const nsAString & aSpec);
-  void SetDefaultSource(nsIURI *aURL);
+  void SetDefaultSource(const nsAString& aURLString);
 
   uint32_t NumCandidates(bool aIncludeDefault = true);
 
@@ -59,6 +58,8 @@ public:
   
   
   already_AddRefed<nsIURI> GetSelectedImageURL();
+  
+  bool GetSelectedImageURLSpec(nsAString& aResult);
   double GetSelectedImageDensity();
 
   
@@ -79,7 +80,7 @@ private:
 
   
   
-  void AppendDefaultCandidate(nsIURI *aURL);
+  void AppendDefaultCandidate(const nsAString& aURLString);
 
   
   int GetSelectedCandidateIndex();
@@ -100,6 +101,9 @@ private:
   
   nsTArray<ResponsiveImageCandidate> mCandidates;
   int mSelectedCandidateIndex;
+  
+  
+  nsCOMPtr<nsIURI> mSelectedCandidateURL;
 
   nsTArray< nsAutoPtr<nsMediaQuery> > mSizeQueries;
   nsTArray<nsCSSValue> mSizeValues;
@@ -108,9 +112,9 @@ private:
 class ResponsiveImageCandidate {
 public:
   ResponsiveImageCandidate();
-  ResponsiveImageCandidate(nsIURI *aURL, double aDensity);
+  ResponsiveImageCandidate(const nsAString& aURLString, double aDensity);
 
-  void SetURL(nsIURI *aURL);
+  void SetURLSpec(const nsAString& aURLString);
   
   
   
@@ -132,7 +136,7 @@ public:
   
   bool HasSameParameter(const ResponsiveImageCandidate & aOther) const;
 
-  already_AddRefed<nsIURI> URL() const;
+  const nsAString& URLString() const;
 
   
   double Density(ResponsiveImageSelector *aSelector) const;
@@ -156,7 +160,7 @@ public:
 
 private:
 
-  nsCOMPtr<nsIURI> mURL;
+  nsString mURLString;
   eCandidateType mType;
   union {
     double mDensity;
