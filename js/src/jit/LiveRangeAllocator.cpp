@@ -647,8 +647,16 @@ LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
             if (ins->isCall()) {
                 for (AnyRegisterIterator iter(allRegisters_); iter.more(); iter++) {
                     if (forLSRA) {
-                        if (!addFixedRangeAtHead(*iter, inputOf(*ins), outputOf(*ins)))
-                            return false;
+                        AnyRegister reg(*iter);
+                        
+                        
+                        
+                        
+                        
+                        for (size_t i = 0; i < reg.numAliased(); i++) {
+                            if (!addFixedRangeAtHead(reg.aliased(i), inputOf(*ins), outputOf(*ins)))
+                                return false;
+                        }
                     } else {
                         bool found = false;
 
