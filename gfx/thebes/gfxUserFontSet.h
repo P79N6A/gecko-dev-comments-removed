@@ -154,14 +154,14 @@ public:
     
     
     
-    already_AddRefed<gfxUserFontEntry> CreateFontFace(
+    virtual already_AddRefed<gfxUserFontEntry> CreateFontFace(
                               const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
                               uint32_t aWeight,
                               int32_t aStretch,
                               uint32_t aItalicStyle,
                               const nsTArray<gfxFontFeature>& aFeatureSettings,
                               uint32_t aLanguageOverride,
-                              gfxSparseBitSet* aUnicodeRanges);
+                              gfxSparseBitSet* aUnicodeRanges) = 0;
 
     
     
