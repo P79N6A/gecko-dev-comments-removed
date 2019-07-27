@@ -19,12 +19,12 @@
 #ifndef asmjs_AsmJSSignalHandlers_h
 #define asmjs_AsmJSSignalHandlers_h
 
-struct JSRuntime;
-
-#ifdef XP_MACOSX
+#if defined(XP_MACOSX) && defined(ASMJS_MAY_USE_SIGNAL_HANDLERS_FOR_OOB)
 # include <mach/mach.h>
 # include "jslock.h"
 #endif
+
+struct JSRuntime;
 
 namespace js {
 
@@ -39,13 +39,13 @@ EnsureSignalHandlersInstalled(JSRuntime *rt);
 extern void
 InterruptRunningJitCode(JSRuntime *rt);
 
+#if defined(XP_MACOSX) && defined(ASMJS_MAY_USE_SIGNAL_HANDLERS_FOR_OOB)
 
 
 
 
 
 
-#ifdef XP_MACOSX
 class AsmJSMachExceptionHandler
 {
     bool installed_;

@@ -204,7 +204,9 @@ class MIRGenerator
     void addAbortedPreliminaryGroup(ObjectGroup *group);
 
     Label *outOfBoundsLabel_;
+#if defined(ASMJS_MAY_USE_SIGNAL_HANDLERS_FOR_OOB)
     bool usesSignalHandlersForAsmJSOOB_;
+#endif
 
     void setForceAbort() {
         shouldForceAbort_ = true;
@@ -237,7 +239,7 @@ class MIRGenerator
         
         
         
-#ifdef JS_CODEGEN_X64
+#if defined(ASMJS_MAY_USE_SIGNAL_HANDLERS_FOR_OOB)
         if (usesSignalHandlersForAsmJSOOB_)
             return false;
 #endif

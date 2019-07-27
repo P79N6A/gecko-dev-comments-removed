@@ -54,6 +54,8 @@ ValidateAsmJS(ExclusiveContext *cx, AsmJSParser &parser, frontend::ParseNode *st
 
 const size_t AsmJSPageSize = 4096;
 
+#if defined(ASMJS_MAY_USE_SIGNAL_HANDLERS_FOR_OOB)
+
 
 
 
@@ -61,7 +63,7 @@ static_assert(jit::AsmJSCheckedImmediateRange <= jit::AsmJSImmediateRange,
               "AsmJSImmediateRange should be the size of an unconstrained "
               "address immediate");
 
-#ifdef JS_CPU_X64
+
 
 
 
@@ -73,7 +75,7 @@ static const size_t AsmJSMappedSize = 4 * 1024ULL * 1024ULL * 1024ULL +
                                       jit::AsmJSCheckedImmediateRange +
                                       AsmJSPageSize;
 
-#endif
+#endif 
 
 
 
