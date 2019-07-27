@@ -1222,7 +1222,7 @@ SourceScripts.prototype = {
 
 
   _onSourcesAdded: function(aResponse) {
-    if (aResponse.error) {
+    if (aResponse.error || !aResponse.sources) {
       let msg = "Error getting sources: " + aResponse.message;
       Cu.reportError(msg);
       dumpn(msg);
