@@ -2489,6 +2489,21 @@ ContentChild::RecvAssociatePluginId(const uint32_t& aPluginId,
     return true;
 }
 
+bool
+ContentChild::RecvShutdown()
+{
+    nsCOMPtr<nsIObserverService> os = services::GetObserverService();
+    if (os) {
+        os->NotifyObservers(this, "content-child-shutdown", nullptr);
+    }
+    
+    
+    MessageLoop::current()->PostTask(
+        FROM_HERE,
+        NewRunnableMethod(this, &ContentChild::SendFinishShutdown));
+    return true;
+}
+
 PBrowserOrId
 ContentChild::GetBrowserOrId(TabChild* aTabChild)
 {
