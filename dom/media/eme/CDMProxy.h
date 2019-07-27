@@ -105,6 +105,9 @@ public:
   void Shutdown();
 
   
+  void Terminated();
+
+  
   const nsCString& GetNodeId() const;
 
   
@@ -156,9 +159,6 @@ public:
   void gmp_Decrypted(uint32_t aId,
                      GMPErr aResult,
                      const nsTArray<uint8_t>& aDecryptedData);
-
-  
-  void gmp_Terminated();
 
   CDMCaps& Capabilites();
 

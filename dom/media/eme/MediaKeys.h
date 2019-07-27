@@ -105,6 +105,10 @@ public:
   void Shutdown();
 
   
+  
+  void Terminated();
+
+  
   bool IsBoundToMediaElement() const;
 
   
