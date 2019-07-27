@@ -301,6 +301,12 @@ HiddenBrowser.prototype = {
       doc.getElementById("win").appendChild(this._browser);
 
       
+      
+      if (!this._browser.docShell) {
+        return;
+      }
+
+      
       this._browser.docShell.isActive = false;
 
       this._browser.messageManager.loadFrameScript(BROWSER_CONTENT_SCRIPT,
