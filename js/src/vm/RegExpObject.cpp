@@ -159,11 +159,7 @@ MatchPairs::initArrayFrom(MatchPairs &copyFrom)
     if (!allocOrExpandArray(copyFrom.pairCount()))
         return false;
 
-    for (size_t i = 0; i < pairCount_; i++) {
-        JS_ASSERT(copyFrom[i].check());
-        pairs_[i].start = copyFrom[i].start;
-        pairs_[i].limit = copyFrom[i].limit;
-    }
+    PodCopy(pairs_, copyFrom.pairs_, pairCount_);
 
     return true;
 }
@@ -553,7 +549,10 @@ RegExpShared::execute(JSContext *cx, HandleLinearString input, size_t *lastIndex
         return RegExpRunStatus_Error;
 
     
-    if (!matches.initArray(pairCount()))
+
+
+
+    if (!matches.allocOrExpandArray(pairCount()))
         return RegExpRunStatus_Error;
 
     
@@ -577,6 +576,7 @@ RegExpShared::execute(JSContext *cx, HandleLinearString input, size_t *lastIndex
     irregexp::RegExpStackScope stackScope(cx->runtime());
 
     if (canStringMatch) {
+        JS_ASSERT(pairCount() == 1);
         int res = StringFindPattern(input, source, start + charsOffset);
         if (res == -1)
             return RegExpRunStatus_Success_NotFound;
