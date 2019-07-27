@@ -2249,62 +2249,96 @@ baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg
 {
     MOZ_ASSERT(cxArg->isThreadLocal(obj));
 
+    
     if (MOZ_UNLIKELY(obj->watched())) {
         if (mode == ParallelExecution)
             return false;
 
-        
         JSContext *cx = cxArg->asJSContext();
         WatchpointMap *wpmap = cx->compartment()->watchpointMap;
         if (wpmap && !wpmap->triggerWatchpoint(cx, obj, id, vp))
             return false;
     }
 
-    RootedObject pobj(cxArg);
+    
+    
+    
     RootedShape shape(cxArg);
-    if (mode == ParallelExecution) {
-        NativeObject *npobj;
-        if (!LookupPropertyPure(cxArg, obj, id, &npobj, shape.address()))
-            return false;
-        pobj = npobj;
-    } else {
-        JSContext *cx = cxArg->asJSContext();
-        if (!LookupNativeProperty(cx, obj, id, &pobj, &shape))
-            return false;
-    }
+    RootedNativeObject pobj(cxArg, obj);
 
-    if (!shape)
-        return SetNonexistentProperty<mode>(cxArg, receiver, id, qualified, vp, strict);
-
-    if (pobj->isNative()) {
-        RootedNativeObject nativePObj(cxArg, &pobj->as<NativeObject>());
-        return SetExistingProperty<mode>(cxArg, obj, receiver, id, nativePObj, shape, vp, strict);
-    }
-
-    if (pobj->is<ProxyObject>()) {
-        if (mode == ParallelExecution)
-            return false;
-
-        JSContext *cx = cxArg->asJSContext();
-        Rooted<PropertyDescriptor> pd(cx);
-        if (!Proxy::getPropertyDescriptor(cx, pobj, id, &pd))
-            return false;
-
-        if ((pd.attributes() & (JSPROP_SHARED | JSPROP_SHADOWABLE)) == JSPROP_SHARED) {
-            return !pd.setter() ||
-                   CallSetter(cx, receiver, id, pd.setter(), pd.attributes(), strict, vp);
+    
+    
+    for (;;) {
+        
+        bool done;
+        if (mode == ParallelExecution) {
+            
+            
+            NativeObject *ancestor;
+            if (!LookupPropertyPure(cxArg, pobj, id, &ancestor, shape.address()))
+                return false;
+            done = true;
+            if (shape)
+                pobj = ancestor;
+        } else {
+            RootedObject ancestor(cxArg);
+            if (!LookupOwnPropertyInline<CanGC>(cxArg->asJSContext(), pobj, id, &ancestor,
+                                                &shape, &done))
+            {
+                return false;
+            }
+            if (!done || ancestor != pobj)
+                shape = nullptr;
         }
 
-        if (pd.isReadonly()) {
-            if (strict)
-                return JSObject::reportReadOnly(cx, id, JSREPORT_ERROR);
-            if (cx->compartment()->options().extraWarnings(cx))
-                return JSObject::reportReadOnly(cx, id, JSREPORT_STRICT | JSREPORT_WARNING);
-            return true;
+        if (shape) {
+            
+            return SetExistingProperty<mode>(cxArg, obj, receiver, id, pobj, shape, vp, strict);
         }
-    }
 
-    return SetPropertyByDefining<mode>(cxArg, receiver, id, vp, strict);
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        RootedObject proto(cxArg, done ? nullptr : pobj->getProto());
+        if (!proto) {
+            
+            return SetNonexistentProperty<mode>(cxArg, receiver, id, qualified, vp, strict);
+        }
+
+        
+        
+        
+        
+        
+        if (!proto->isNative()) {
+            if (mode == ParallelExecution)
+                return false;
+
+            
+            
+            
+            if (!qualified) {
+                RootedObject pobj(cxArg);
+                if (!JSObject::lookupGeneric(cxArg->asJSContext(), proto, id, &pobj, &shape))
+                    return false;
+                if (!shape) {
+                    return SetNonexistentProperty<mode>(cxArg, receiver, id, qualified, vp,
+                                                        strict);
+                }
+            }
+
+            return JSObject::setGeneric(cxArg->asJSContext(), proto, receiver, id, vp,
+                                        strict);
+        }
+        pobj = &proto->as<NativeObject>();
+    }
 }
 
 template bool
