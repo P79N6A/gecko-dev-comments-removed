@@ -1135,7 +1135,7 @@ ChromeTooltipListener::ChromeTooltipListener(nsWebBrowser* inBrowser,
   : mWebBrowser(inBrowser), mWebBrowserChrome(inChrome),
      mTooltipListenerInstalled(false),
      mMouseClientX(0), mMouseClientY(0),
-     mShowingTooltip(false)
+     mShowingTooltip(false), mTooltipShownOnce(false)
 {
   mTooltipTextProvider = do_GetService(NS_TOOLTIPTEXTPROVIDER_CONTRACTID);
   if (!mTooltipTextProvider) {
@@ -1270,11 +1270,17 @@ ChromeTooltipListener::HandleEvent(nsIDOMEvent* aEvent)
   aEvent->GetType(eventType);
 
   if (eventType.EqualsLiteral("keydown") ||
-      eventType.EqualsLiteral("mousedown") ||
-      eventType.EqualsLiteral("mouseout"))
+      eventType.EqualsLiteral("mousedown")) {
     return HideTooltip();
-  if (eventType.EqualsLiteral("mousemove"))
+  }
+  else if (eventType.EqualsLiteral("mouseout")) {
+    
+    mTooltipShownOnce = false;
+    return HideTooltip();
+  }
+  else if (eventType.EqualsLiteral("mousemove")) {
     return MouseMove(aEvent);
+  }
 
   NS_ERROR("Unexpected event type");
   return NS_OK;
@@ -1302,35 +1308,43 @@ ChromeTooltipListener::MouseMove(nsIDOMEvent* aMouseEvent)
   mouseEvent->GetClientY(&newMouseY);
   if ( mMouseClientX == newMouseX && mMouseClientY == newMouseY )
     return NS_OK;
+
+  
+  if (mShowingTooltip &&
+      (abs(mMouseClientX - newMouseX) <= kTooltipMouseMoveTolerance) &&
+      (abs(mMouseClientY - newMouseY) <= kTooltipMouseMoveTolerance))
+    return NS_OK;
+
   mMouseClientX = newMouseX; mMouseClientY = newMouseY;
   mouseEvent->GetScreenX(&mMouseScreenX);
   mouseEvent->GetScreenY(&mMouseScreenY);
 
-  
-  
-  
-  
-  if ( mShowingTooltip )
-    return HideTooltip();
-  if ( mTooltipTimer )
-    mTooltipTimer->Cancel();
-
-  mTooltipTimer = do_CreateInstance("@mozilla.org/timer;1");
   if ( mTooltipTimer ) {
-    nsCOMPtr<EventTarget> eventTarget = aMouseEvent->InternalDOMEvent()->GetTarget();
-    if ( eventTarget )
-      mPossibleTooltipNode = do_QueryInterface(eventTarget);
-    if ( mPossibleTooltipNode ) {
-      nsresult rv =
-        mTooltipTimer->InitWithFuncCallback(sTooltipCallback, this,
-          LookAndFeel::GetInt(LookAndFeel::eIntID_TooltipDelay, 500),
-          nsITimer::TYPE_ONE_SHOT);
-      if (NS_FAILED(rv))
-        mPossibleTooltipNode = nullptr;
-    }
+    mTooltipTimer->Cancel();
   }
-  else
-    NS_WARNING ( "Could not create a timer for tooltip tracking" );
+
+  if (!mShowingTooltip && !mTooltipShownOnce) {
+    mTooltipTimer = do_CreateInstance("@mozilla.org/timer;1");
+    if ( mTooltipTimer ) {
+      nsCOMPtr<EventTarget> eventTarget = aMouseEvent->InternalDOMEvent()->GetTarget();
+      if ( eventTarget )
+        mPossibleTooltipNode = do_QueryInterface(eventTarget);
+      if ( mPossibleTooltipNode ) {
+        nsresult rv =
+          mTooltipTimer->InitWithFuncCallback(sTooltipCallback, this,
+            LookAndFeel::GetInt(LookAndFeel::eIntID_TooltipDelay, 500),
+            nsITimer::TYPE_ONE_SHOT);
+        if (NS_FAILED(rv))
+          mPossibleTooltipNode = nullptr;
+      }
+    }
+    else
+      NS_WARNING ( "Could not create a timer for tooltip tracking" );
+  }
+  else {
+    mTooltipShownOnce = true;
+    return HideTooltip();
+  }
 
   return NS_OK;
 
@@ -1378,10 +1392,6 @@ ChromeTooltipListener::HideTooltip()
     mTooltipTimer = nullptr;
     
     mPossibleTooltipNode = nullptr;
-  }
-  if ( mAutoHideTimer ) {
-    mAutoHideTimer->Cancel();
-    mAutoHideTimer = nullptr;
   }
 
   
@@ -1461,7 +1471,6 @@ ChromeTooltipListener::sTooltipCallback(nsITimer *aTimer,
       
       if (textFound) {
         nsString tipText(tooltipText);
-        self->CreateAutoHideTimer();
         nsIntPoint screenDot = widget->WidgetToScreenOffset();
         self->ShowTooltip (self->mMouseScreenX - screenDot.x,
                            self->mMouseScreenY - screenDot.y,
@@ -1472,47 +1481,6 @@ ChromeTooltipListener::sTooltipCallback(nsITimer *aTimer,
     
     self->mPossibleTooltipNode = nullptr;
   } 
-  
-} 
-
-
-
-
-
-
-
-void
-ChromeTooltipListener::CreateAutoHideTimer()
-{
-  
-  if ( mAutoHideTimer ) {
-    mAutoHideTimer->Cancel();
-    mAutoHideTimer = nullptr;
-  }
-  
-  mAutoHideTimer = do_CreateInstance("@mozilla.org/timer;1");
-  if ( mAutoHideTimer )
-    mAutoHideTimer->InitWithFuncCallback(sAutoHideCallback, this, kTooltipAutoHideTime, 
-                                         nsITimer::TYPE_ONE_SHOT);
-
-} 
-
-
-
-
-
-
-
-
-
-void
-ChromeTooltipListener::sAutoHideCallback(nsITimer *aTimer, void* aListener)
-{
-  ChromeTooltipListener* self = static_cast<ChromeTooltipListener*>(aListener);
-  if ( self )
-    self->HideTooltip();
-
-  
   
 } 
 

@@ -166,7 +166,8 @@ private:
 
     
   enum {
-    kTooltipAutoHideTime = 5000        
+    kTooltipAutoHideTime = 5000,       
+    kTooltipMouseMoveTolerance = 7     
   };
 
   NS_IMETHOD AddTooltipListener();
@@ -192,11 +193,7 @@ private:
   int32_t mMouseClientX, mMouseClientY;       
   int32_t mMouseScreenX, mMouseScreenY;       
   bool mShowingTooltip;
-
-    
-  nsCOMPtr<nsITimer> mAutoHideTimer;
-  static void sAutoHideCallback ( nsITimer* aTimer, void* aListener ) ;
-  void CreateAutoHideTimer ( ) ;
+  bool mTooltipShownOnce;
 
     
     
