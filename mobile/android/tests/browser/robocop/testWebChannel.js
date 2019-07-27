@@ -2,14 +2,32 @@
 
 
 
-Cu.import("resource://gre/modules/Promise.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "WebChannel",
-  "resource://gre/modules/WebChannel.jsm");
 
-const HTTP_PATH = "http://example.com";
-const HTTP_ENDPOINT = "/browser/browser/base/content/test/general/browser_web_channel.html";
+const { classes: Cc, interfaces: Ci, utils: Cu } = Components; 
+
+Cu.import("resource://gre/modules/Promise.jsm"); 
+Cu.import("resource://gre/modules/Services.jsm"); 
+Cu.import("resource://gre/modules/XPCOMUtils.jsm"); 
+XPCOMUtils.defineLazyModuleGetter(this, "WebChannel",
+  "resource://gre/modules/WebChannel.jsm"); 
+
+const HTTP_PATH = "http://mochi.test:8888";
+const HTTP_ENDPOINT = "/tests/robocop/testWebChannel.html";
+
+const gChromeWin = Services.wm.getMostRecentWindow("navigator:browser");
+let BrowserApp = gChromeWin.BrowserApp;
+
+
+
+
+function ok(passed, text) {
+  do_report_result(passed, text, Components.stack.caller, false);
+}
+
+function is(lhs, rhs, text) {
+  do_report_result(lhs === rhs, "[ " + lhs + " === " + rhs + " ] " + text,
+    Components.stack.caller, false);
+}
 
 
 
@@ -25,11 +43,11 @@ let gTests = [
           is(id, "generic");
           is(message.something.nested, "hello");
           channel.stopListening();
-          gBrowser.removeTab(tab);
+          BrowserApp.closeTab(tab);
           resolve();
         });
 
-        tab = gBrowser.addTab(HTTP_PATH + HTTP_ENDPOINT + "?generic");
+        tab = BrowserApp.addTab(HTTP_PATH + HTTP_ENDPOINT + "?generic");
       });
     }
   },
@@ -51,12 +69,12 @@ let gTests = [
           if (message.command === "two") {
             is(message.detail.data.nested, true);
             channel.stopListening();
-            gBrowser.removeTab(tab);
+            BrowserApp.closeTab(tab);
             resolve();
           }
         });
 
-        tab = gBrowser.addTab(HTTP_PATH + HTTP_ENDPOINT + "?twoway");
+        tab = BrowserApp.addTab(HTTP_PATH + HTTP_ENDPOINT + "?twoway");
       });
     }
   },
@@ -69,26 +87,21 @@ let gTests = [
 
         channel.listen(function (id, message, sender) {
           is(id, "multichannel");
-          gBrowser.removeTab(tab);
+          BrowserApp.closeTab(tab);
           resolve();
         });
 
-        tab = gBrowser.addTab(HTTP_PATH + HTTP_ENDPOINT + "?multichannel");
+        tab = BrowserApp.addTab(HTTP_PATH + HTTP_ENDPOINT + "?multichannel");
       });
     }
   }
 ]; 
 
-function test() {
-  waitForExplicitFinish();
+add_task(function test() {
+  for (let test of gTests) {
+    do_print("Running: " + test.desc);
+    yield test.run();
+  }
+});
 
-  Task.spawn(function () {
-    for (let test of gTests) {
-      info("Running: " + test.desc);
-      yield test.run();
-    }
-  }).then(finish, ex => {
-    ok(false, "Unexpected Exception: " + ex);
-    finish();
-  });
-}
+run_next_test();
