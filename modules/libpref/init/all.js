@@ -2157,6 +2157,9 @@ pref("layout.css.grid.enabled", false);
 pref("layout.css.ruby.enabled", false);
 
 
+pref("layout.css.display-contents.enabled", false);
+
+
 pref("layout.css.box-decoration-break.enabled", true);
 
 
