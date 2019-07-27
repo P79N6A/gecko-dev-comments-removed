@@ -41,6 +41,7 @@
 #include "jit/Sink.h"
 #include "jit/StupidAllocator.h"
 #include "jit/ValueNumbering.h"
+#include "vm/Debugger.h"
 #include "vm/HelperThreads.h"
 #include "vm/TraceLogging.h"
 
@@ -49,6 +50,7 @@
 #include "jsscriptinlines.h"
 
 #include "jit/JitFrames-inl.h"
+#include "vm/Debugger-inl.h"
 #include "vm/ScopeObject-inl.h"
 
 using namespace js;
@@ -396,6 +398,67 @@ JitCompartment::ensureIonStubsExist(JSContext* cx)
     return true;
 }
 
+struct OnIonCompilationInfo {
+    size_t numBlocks;
+    size_t scriptIndex;
+    LSprinter graph;
+
+    explicit OnIonCompilationInfo(LifoAlloc* alloc)
+      : numBlocks(0),
+        scriptIndex(0),
+        graph(alloc)
+    { }
+
+    bool filled() const {
+        return numBlocks != 0;
+    }
+};
+
+typedef Vector<OnIonCompilationInfo> OnIonCompilationVector;
+
+
+
+
+
+
+
+
+
+
+
+
+static inline void
+PrepareForDebuggerOnIonCompilationHook(JSContext* cx, jit::MIRGraph& graph,
+                                       AutoScriptVector* scripts, OnIonCompilationInfo* info)
+{
+    info->numBlocks = 0;
+    if (!Debugger::observesIonCompilation(cx))
+        return;
+
+    
+    info->scriptIndex = scripts->length();
+    if (!scripts->reserve(graph.numBlocks() + scripts->length())) {
+        cx->clearPendingException();
+        return;
+    }
+
+    
+    info->numBlocks = graph.numBlocks();
+    for (jit::MBasicBlockIterator block(graph.begin()); block != graph.end(); block++)
+        scripts->infallibleAppend(block->info().script());
+
+    
+    
+    
+    
+    jit::JSONSpewer spewer(info->graph);
+    spewer.spewDebuggerGraph(&graph);
+    if (info->graph.hadOutOfMemory()) {
+        scripts->resize(info->scriptIndex);
+        info->numBlocks = 0;
+    }
+}
+
 void
 jit::FinishOffThreadBuilder(JSContext* cx, IonBuilder* builder)
 {
@@ -461,6 +524,41 @@ class AutoLazyLinkExitFrame
     }
 };
 
+static bool
+LinkCodeGen(JSContext* cx, IonBuilder* builder, CodeGenerator *codegen,
+            AutoScriptVector* scripts, OnIonCompilationInfo* info)
+{
+    RootedScript script(cx, builder->script());
+    TraceLoggerThread* logger = TraceLoggerForMainThread(cx->runtime());
+    TraceLoggerEvent event(logger, TraceLogger_AnnotateScripts, script);
+    AutoTraceLog logScript(logger, event);
+    AutoTraceLog logLink(logger, TraceLogger_IonLinking);
+
+    if (!codegen->link(cx, builder->constraints()))
+        return false;
+
+    PrepareForDebuggerOnIonCompilationHook(cx, builder->graph(), scripts, info);
+    return true;
+}
+
+static bool
+LinkBackgroundCodeGen(JSContext* cx, IonBuilder* builder,
+                      AutoScriptVector* scripts, OnIonCompilationInfo* info)
+{
+    CodeGenerator* codegen = builder->backgroundCodegen();
+    if (!codegen)
+        return false;
+
+    JitContext jctx(cx, &builder->alloc());
+
+    
+    
+    
+    codegen->masm.constructRoot(cx);
+
+    return LinkCodeGen(cx, builder, codegen, scripts, info);
+}
+
 uint8_t*
 jit::LazyLinkTopActivation(JSContext* cx)
 {
@@ -470,32 +568,23 @@ jit::LazyLinkTopActivation(JSContext* cx)
     
     JitFrameIterator it(iter);
     LazyLinkExitFrameLayout* ll = it.exitFrame()->as<LazyLinkExitFrameLayout>();
-    JSScript* calleeScript = ScriptFromCalleeToken(ll->jsFrame()->calleeToken());
+    RootedScript calleeScript(cx, ScriptFromCalleeToken(ll->jsFrame()->calleeToken()));
+
 
     
     IonBuilder* builder = calleeScript->ionScript()->pendingBuilder();
     calleeScript->setPendingIonBuilder(cx, nullptr);
 
-    AutoEnterAnalysis enterTypes(cx);
-    RootedScript script(cx, builder->script());
+    
+    AutoScriptVector debugScripts(cx);
+    OnIonCompilationInfo info(builder->alloc().lifoAlloc());
 
     
     builder->remove();
 
-    if (CodeGenerator* codegen = builder->backgroundCodegen()) {
-        js::TraceLoggerThread* logger = TraceLoggerForMainThread(cx->runtime());
-        TraceLoggerEvent event(logger, TraceLogger_AnnotateScripts, script);
-        AutoTraceLog logScript(logger, event);
-        AutoTraceLog logLink(logger, TraceLogger_IonLinking);
-
-        JitContext jctx(cx, &builder->alloc());
-
-        
-        
-        
-        codegen->masm.constructRoot(cx);
-
-        if (!codegen->link(cx, builder->constraints())) {
+    {
+        AutoEnterAnalysis enterTypes(cx);
+        if (!LinkBackgroundCodeGen(cx, builder, &debugScripts, &info)) {
             
             
             
@@ -503,12 +592,15 @@ jit::LazyLinkTopActivation(JSContext* cx)
         }
     }
 
+    if (info.filled())
+        Debugger::onIonCompilation(cx, debugScripts, info.graph);
+
     FinishOffThreadBuilder(cx, builder);
 
-    MOZ_ASSERT(script->hasBaselineScript());
-    MOZ_ASSERT(script->baselineOrIonRawPointer());
+    MOZ_ASSERT(calleeScript->hasBaselineScript());
+    MOZ_ASSERT(calleeScript->baselineOrIonRawPointer());
 
-    return script->baselineOrIonRawPointer();
+    return calleeScript->baselineOrIonRawPointer();
 }
 
  void
@@ -1629,6 +1721,40 @@ CompileBackEnd(MIRGenerator* mir)
     return GenerateCode(mir, lir);
 }
 
+
+static IonBuilder*
+GetFinishedBuilder(JSContext* cx, GlobalHelperThreadState::IonBuilderVector& finished)
+{
+    for (size_t i = 0; i < finished.length(); i++) {
+        IonBuilder* testBuilder = finished[i];
+        if (testBuilder->compartment == CompileCompartment::get(cx->compartment())) {
+            HelperThreadState().remove(finished, &i);
+            return testBuilder;
+        }
+    }
+
+    return nullptr;
+}
+
+static bool
+IsBuilderScriptOnStack(JSContext* cx, IonBuilder* builder)
+{
+    for (JitActivationIterator iter(cx->runtime()); !iter.done(); ++iter) {
+        for (JitFrameIterator it(iter); !it.done(); ++it) {
+            if (!it.isIonJS())
+                continue;
+            if (it.checkInvalidation())
+                continue;
+
+            JSScript* script = it.script();
+            if (builder->script() == script)
+                return true;
+        }
+    }
+
+    return false;
+}
+
 void
 AttachFinishedCompilations(JSContext* cx)
 {
@@ -1636,87 +1762,79 @@ AttachFinishedCompilations(JSContext* cx)
     if (!ion)
         return;
 
-    AutoEnterAnalysis enterTypes(cx);
-    AutoLockHelperThreadState lock;
-
-    GlobalHelperThreadState::IonBuilderVector& finished = HelperThreadState().ionFinishedList();
-
-    TraceLoggerThread* logger = TraceLoggerForMainThread(cx->runtime());
+    LifoAlloc* debuggerAlloc = cx->new_<LifoAlloc>(TempAllocator::PreferredLifoChunkSize);
+    if (!debuggerAlloc) {
+        
+        
+        
+        cx->clearPendingException();
+        return;
+    }
 
     
-    
-    while (true) {
-        IonBuilder* builder = nullptr;
+    AutoScriptVector debugScripts(cx);
+    OnIonCompilationVector onIonCompilationVector(cx);
+
+    {
+        AutoEnterAnalysis enterTypes(cx);
+        AutoLockHelperThreadState lock;
+
+        GlobalHelperThreadState::IonBuilderVector& finished = HelperThreadState().ionFinishedList();
 
         
-        for (size_t i = 0; i < finished.length(); i++) {
-            IonBuilder* testBuilder = finished[i];
-            if (testBuilder->compartment == CompileCompartment::get(cx->compartment())) {
-                builder = testBuilder;
-                HelperThreadState().remove(finished, &i);
+        
+        while (true) {
+            
+            IonBuilder* builder = GetFinishedBuilder(cx, finished);
+            if (!builder)
                 break;
-            }
-        }
-        if (!builder)
-            break;
 
-        
-        
-        if (builder->script()->hasIonScript()) {
-            bool onStack = false;
-            for (JitActivationIterator iter(cx->runtime()); !iter.done(); ++iter) {
-                for (JitFrameIterator it(iter); !it.done(); ++it) {
-                    if (!it.isIonJS())
-                        continue;
-                    if (it.checkInvalidation())
-                        continue;
-
-                    JSScript* script = it.script();
-                    if (builder->script() == script) {
-                        onStack = true;
-                        break;
-                    }
-                }
-                if (onStack)
-                    break;
-            }
-
-            if (onStack) {
+            
+            
+            if (builder->script()->hasIonScript() && IsBuilderScriptOnStack(cx, builder)) {
                 builder->script()->setPendingIonBuilder(cx, builder);
                 HelperThreadState().ionLazyLinkList().insertFront(builder);
                 continue;
             }
-        }
 
-        if (CodeGenerator* codegen = builder->backgroundCodegen()) {
-            RootedScript script(cx, builder->script());
-            JitContext jctx(cx, &builder->alloc());
-            TraceLoggerEvent event(logger, TraceLogger_AnnotateScripts, script);
-            AutoTraceLog logScript(logger, event);
-            AutoTraceLog logLink(logger, TraceLogger_IonLinking);
+            AutoUnlockHelperThreadState unlock;
 
-            
-            
-            
-            codegen->masm.constructRoot(cx);
-
-            bool success;
-            {
-                AutoUnlockHelperThreadState unlock;
-                success = codegen->link(cx, builder->constraints());
-            }
-
-            if (!success) {
+            OnIonCompilationInfo info(debuggerAlloc);
+            if (!LinkBackgroundCodeGen(cx, builder, &debugScripts, &info)) {
                 
                 
                 
                 
                 cx->clearPendingException();
             }
+
+            if (info.filled()) {
+                if (!onIonCompilationVector.append(info))
+                    cx->clearPendingException();
+            }
+
+            FinishOffThreadBuilder(cx, builder);
+        }
+    }
+
+    for (size_t i = 0; i < onIonCompilationVector.length(); i++) {
+        OnIonCompilationInfo& info = onIonCompilationVector[i];
+
+        
+        
+        AutoScriptVector sliceScripts(cx);
+        if (!sliceScripts.reserve(info.numBlocks)) {
+            cx->clearPendingException();
+            continue;
         }
 
-        FinishOffThreadBuilder(cx, builder);
+        for (size_t b = 0; b < info.numBlocks; b++)
+            sliceScripts.infallibleAppend(debugScripts[info.scriptIndex + b]);
+
+        Debugger::onIonCompilation(cx, sliceScripts, info.graph);
     }
+
+    js_delete(debuggerAlloc);
 }
 
 void
@@ -1865,8 +1983,6 @@ IonCompile(JSContext* cx, JSScript* script,
 
     JitContext jctx(cx, temp);
 
-    AutoEnterAnalysis enter(cx);
-
     if (!cx->compartment()->ensureJitCompartmentExists(cx))
         return AbortReason_Alloc;
 
@@ -1923,8 +2039,12 @@ IonCompile(JSContext* cx, JSScript* script,
 
     SpewBeginFunction(builder, builderScript);
 
-    bool succeeded = builder->build();
-    builder->clearForBackEnd();
+    bool succeeded;
+    {
+        AutoEnterAnalysis enter(cx);
+        succeeded = builder->build();
+        builder->clearForBackEnd();
+    }
 
     if (!succeeded) {
         AbortReason reason = builder->abortReason();
@@ -1988,15 +2108,26 @@ IonCompile(JSContext* cx, JSScript* script,
         return AbortReason_NoAbort;
     }
 
-    ScopedJSDeletePtr<CodeGenerator> codegen(CompileBackEnd(builder));
-    if (!codegen) {
-        JitSpew(JitSpew_IonAbort, "Failed during back-end compilation.");
-        return AbortReason_Disable;
+    
+    AutoScriptVector debugScripts(cx);
+    OnIonCompilationInfo debugInfo(alloc);
+
+    ScopedJSDeletePtr<CodeGenerator> codegen;
+    {
+        AutoEnterAnalysis enter(cx);
+        codegen = CompileBackEnd(builder);
+        if (!codegen) {
+            JitSpew(JitSpew_IonAbort, "Failed during back-end compilation.");
+            return AbortReason_Disable;
+        }
+
+        succeeded = LinkCodeGen(cx, builder, codegen, &debugScripts, &debugInfo);
     }
 
-    bool success = codegen->link(cx, builder->constraints());
+    if (debugInfo.filled())
+        Debugger::onIonCompilation(cx, debugScripts, debugInfo.graph);
 
-    if (success)
+    if (succeeded)
         return AbortReason_NoAbort;
     if (cx->isExceptionPending())
         return AbortReason_Error;
