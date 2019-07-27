@@ -37,6 +37,8 @@ AppendStateToStr(TrackBuffersManager::AppendState aState)
   }
 }
 
+static Atomic<uint32_t> sStreamSourceID(0u);
+
 TrackBuffersManager::TrackBuffersManager(dom::SourceBuffer* aParent, MediaSourceDecoder* aParentDecoder, const nsACString& aType)
   : mInputBuffer(new MediaByteBuffer)
   , mAppendState(AppendState::WAITING_FOR_SEGMENT)
@@ -795,6 +797,9 @@ TrackBuffersManager::OnDemuxerInitDone(nsresult)
   mActiveTrack = false;
 
   
+  uint32_t streamID = sStreamSourceID++;
+
+  
   if (!mFirstInitializationSegmentReceived) {
     mAudioTracks.mNumTracks = numAudios;
     
@@ -829,7 +834,8 @@ TrackBuffersManager::OnDemuxerInitDone(nsresult)
       
       mAudioTracks.mBuffers.AppendElement(TrackBuffer());
       
-      mAudioTracks.mInfo = info.mAudio.Clone();
+      mAudioTracks.mInfo = new SharedTrackInfo(info.mAudio, streamID);
+      mAudioTracks.mLastInfo = mAudioTracks.mInfo;
     }
 
     mVideoTracks.mNumTracks = numVideos;
@@ -860,7 +866,8 @@ TrackBuffersManager::OnDemuxerInitDone(nsresult)
       
       mVideoTracks.mBuffers.AppendElement(TrackBuffer());
       
-      mVideoTracks.mInfo = info.mVideo.Clone();
+      mVideoTracks.mInfo = new SharedTrackInfo(info.mVideo, streamID);
+      mVideoTracks.mLastInfo = mVideoTracks.mInfo;
     }
     
     
@@ -868,6 +875,9 @@ TrackBuffersManager::OnDemuxerInitDone(nsresult)
 
     
     mFirstInitializationSegmentReceived = true;
+  } else {
+    mAudioTracks.mLastInfo = new SharedTrackInfo(info.mAudio, streamID);
+    mVideoTracks.mLastInfo = new SharedTrackInfo(info.mVideo, streamID);
   }
 
   
@@ -1316,6 +1326,8 @@ TrackBuffersManager::ProcessFrame(MediaRawData* aSample,
   
   aSample->mTime = presentationTimestamp.ToMicroseconds();
   aSample->mTimecode = decodeTimestamp.ToMicroseconds();
+  aSample->mTrackInfo = trackBuffer.mLastInfo;
+
   if (firstRemovedIndex >= 0) {
     data.InsertElementAt(firstRemovedIndex, aSample);
   } else {

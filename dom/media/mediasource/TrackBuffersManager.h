@@ -217,7 +217,9 @@ private:
     
     uint32_t mSizeBuffer;
     
-    UniquePtr<TrackInfo> mInfo;
+    nsRefPtr<SharedTrackInfo> mInfo;
+    
+    nsRefPtr<SharedTrackInfo> mLastInfo;
   };
 
   bool ProcessFrame(MediaRawData* aSample, TrackData& aTrackData);
