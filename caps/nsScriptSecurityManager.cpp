@@ -697,8 +697,24 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
             
             
             
-            if (!SecurityCompareURIs(sourceBaseURI,targetBaseURI) &&
-                !nsContentUtils::IsExactSitePermAllow(aPrincipal,WEBAPPS_PERM_NAME)){
+            
+            auto themeOrigin = Preferences::GetCString("b2g.theme.origin");
+            if (themeOrigin) {
+                nsAutoCString targetOrigin;
+                nsPrincipal::GetOriginForURI(targetBaseURI, getter_Copies(targetOrigin));
+                if (targetOrigin.Equals(themeOrigin)) {
+                    nsAutoCString pOrigin;
+                    aPrincipal->GetOrigin(getter_Copies(pOrigin));
+                    return nsContentUtils::IsExactSitePermAllow(aPrincipal, "themeable") ||
+                           pOrigin.Equals(themeOrigin)
+                        ? NS_OK : NS_ERROR_DOM_BAD_URI;
+                }
+            }
+            
+            
+            
+            if (!SecurityCompareURIs(sourceBaseURI, targetBaseURI) &&
+                !nsContentUtils::IsExactSitePermAllow(aPrincipal, WEBAPPS_PERM_NAME)) {
                 return NS_ERROR_DOM_BAD_URI;
             }
         }

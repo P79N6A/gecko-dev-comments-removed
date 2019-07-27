@@ -36,6 +36,7 @@
 #include "SerializedLoadContext.h"
 #include "nsAuthInformationHolder.h"
 #include "nsIAuthPromptCallback.h"
+#include "nsPrincipal.h"
 
 using mozilla::dom::ContentParent;
 using mozilla::dom::TabParent;
@@ -556,7 +557,25 @@ NeckoParent::AllocPRemoteOpenFileParent(const SerializedLoadContext& aSerialized
       }
     }
 
-    if (hasManage || netErrorWhiteList) {
+    
+    
+    bool themeWhitelist = false;
+    if (Preferences::GetBool("dom.mozApps.themable") && appUri) {
+      nsAutoCString origin;
+      nsPrincipal::GetOriginForURI(appUri, getter_Copies(origin));
+      nsAutoCString themeOrigin;
+      themeOrigin = Preferences::GetCString("b2g.theme.origin");
+      themeWhitelist = origin.Equals(themeOrigin);
+      if (themeWhitelist) {
+        bool hasThemePerm = false;
+        mozApp->HasPermission("themeable", &hasThemePerm);
+        if (!hasThemePerm) {
+          return nullptr;
+        }
+      }
+    }
+
+    if (hasManage || netErrorWhiteList || themeWhitelist) {
       
       
       

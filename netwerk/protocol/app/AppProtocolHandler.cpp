@@ -11,8 +11,12 @@
 #include "nsIAppsService.h"
 #include "nsILoadInfo.h"
 #include "nsXULAppAPI.h"
+#include "nsPrincipal.h"
 
 #include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/Preferences.h"
+
+using namespace mozilla;
 
 
 
@@ -382,6 +386,23 @@ AppProtocolHandler::NewChannel(nsIURI* aUri, nsIChannel* *aResult)
   nsAutoCString host;
   nsresult rv = aUri->GetHost(host);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  if (Preferences::GetBool("dom.mozApps.themable")) {
+    nsAutoCString origin;
+    nsPrincipal::GetOriginForURI(aUri, getter_Copies(origin));
+    nsAdoptingCString themeOrigin;
+    themeOrigin = Preferences::GetCString("b2g.theme.origin");
+    if (themeOrigin.Equals(origin)) {
+      
+      
+      nsAdoptingCString selectedTheme;
+      selectedTheme = Preferences::GetCString("dom.mozApps.selected_theme");
+      if (!selectedTheme.IsEmpty()) {
+        
+        host = selectedTheme;
+      }
+    }
+  }
 
   nsAutoCString fileSpec;
   nsCOMPtr<nsIURL> url = do_QueryInterface(aUri);

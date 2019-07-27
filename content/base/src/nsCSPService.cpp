@@ -23,6 +23,7 @@
 #include "mozilla/Preferences.h"
 #include "nsIScriptError.h"
 #include "nsContentUtils.h"
+#include "nsPrincipal.h"
 
 using namespace mozilla;
 
@@ -126,14 +127,19 @@ CSPService::ShouldLoad(uint32_t aContentType,
     
     
     
+    
 
     switch (aContentType) {
       case nsIContentPolicy::TYPE_SCRIPT:
       case nsIContentPolicy::TYPE_STYLESHEET:
         {
+          
+          auto themeOrigin = Preferences::GetCString("b2g.theme.origin");
           nsAutoCString sourceOrigin;
           aRequestOrigin->GetPrePath(sourceOrigin);
-          if (!sourceOrigin.Equals(contentOrigin)) {
+
+          if (!(sourceOrigin.Equals(contentOrigin) ||
+                (themeOrigin && themeOrigin.Equals(contentOrigin)))) {
             *aDecision = nsIContentPolicy::REJECT_SERVER;
           }
         }
