@@ -43,28 +43,6 @@ loader.lazyGetter(this, "DOMUtils", function () {
 
 
 
-loader.lazyGetter(this, "REGEX_ALL_CSS_PROPERTIES", function () {
-  let names = DOMUtils.getCSSPropertyNames();
-    let pattern = "^(";
-
-    for (let i = 0; i < names.length; i++) {
-      if (i > 0) {
-        pattern += "|";
-      }
-      pattern += names[i];
-    }
-    pattern += ")\\s*:\\s*";
-
-    return new RegExp(pattern);
-});
-
-
-
-
-
-
-
-
 
 
 
@@ -100,12 +78,12 @@ OutputParser.prototype = {
   parseCssProperty: function(name, value, options={}) {
     options = this._mergeOptions(options);
 
-    
-    
-    options.expectCubicBezier = ["transition", "transition-timing-function",
-      "animation", "animation-timing-function"].indexOf(name) !== -1;
-
+    options.expectCubicBezier =
+      safeCssPropertySupportsType(name, DOMUtils.TYPE_TIMING_FUNCTION);
     options.expectFilter = name === "filter";
+    options.supportsColor =
+      safeCssPropertySupportsType(name, DOMUtils.TYPE_COLOR) ||
+      safeCssPropertySupportsType(name, DOMUtils.TYPE_GRADIENT);
 
     if (this._cssPropertySupportsValue(name, value)) {
       return this._parse(value, options);
@@ -113,24 +91,6 @@ OutputParser.prototype = {
     this._appendTextNode(value);
 
     return this._toDOM();
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  parseHTMLAttribute: function(value, options={}) {
-    options.isHTMLAttribute = true;
-    options = this._mergeOptions(options);
-
-    return this._parse(value, options);
   },
 
   
@@ -240,20 +200,7 @@ OutputParser.prototype = {
         }
       }
 
-      matched = text.match(REGEX_ALL_CSS_PROPERTIES);
-      if (matched) {
-        let [match] = matched;
-
-        text = this._trimMatchFromStart(text, match);
-        this._appendTextNode(match);
-
-        if (options.isHTMLAttribute) {
-          [text] = this._appendColorOnMatch(text, options);
-        }
-        continue;
-      }
-
-      if (!options.isHTMLAttribute) {
+      if (options.supportsColor) {
         let dirty;
 
         [text, dirty] = this._appendColorOnMatch(text, options);
@@ -595,12 +542,6 @@ OutputParser.prototype = {
 
 
 
-
-
-
-
-
-
   _mergeOptions: function(overrides) {
     let defaults = {
       defaultColorType: true,
@@ -608,7 +549,7 @@ OutputParser.prototype = {
       colorClass: "",
       bezierSwatchClass: "",
       bezierClass: "",
-      isHTMLAttribute: false,
+      supportsColor: false,
       urlClass: "",
       baseURI: ""
     };
@@ -623,3 +564,20 @@ OutputParser.prototype = {
     return defaults;
   }
 };
+
+
+
+
+
+
+
+
+
+
+function safeCssPropertySupportsType(name, type) {
+  try {
+    return DOMUtils.cssPropertySupportsType(name, type);
+  } catch(e) {
+    return false;
+  }
+}
