@@ -247,35 +247,29 @@ nsGeolocationSettings::HandleGeolocationPerOriginSettingsChange(const JS::Value&
   JS::AutoIdArray ids(cx, JS_Enumerate(cx, obj));
 
   
-  if (!ids)
+  if (!ids) {
       return;
+  }
 
   
   for (size_t i = 0; i < ids.length(); i++) {
     JS::RootedId id(cx);
     id = ids[i];
 
-    JS::RootedValue v(cx);
-    if (!JS_IdToValue(cx, id, &v) || !v.isString())
-      continue;
-
-    JS::RootedString str(cx, v.toString());
-    if (!str)
-      continue;
-
     
-    nsString origin;
-    if (!AssignJSString(cx, origin, str))
+    nsAutoJSString origin;
+    if (!origin.init(cx, id)) {
       continue;
-
-    
-    if (mAlwaysPreciseApps.Contains(origin))
+    }
+    if (mAlwaysPreciseApps.Contains(origin)) {
       continue;
+    }
 
     
     JS::RootedValue propertyValue(cx);
-    if (!JS_GetPropertyById(cx, obj, id, &propertyValue) || !propertyValue.isObject())
+    if (!JS_GetPropertyById(cx, obj, id, &propertyValue) || !propertyValue.isObject()) {
       continue;
+    }
     JS::RootedObject settingObj(cx, &propertyValue.toObject());
 
     GeolocationSetting *settings = new GeolocationSetting(origin);
@@ -316,10 +310,17 @@ nsGeolocationSettings::HandleGeolocationAlwaysPreciseChange(const JS::Value& aVa
   
   mAlwaysPreciseApps.Clear();
 
-  AutoJSAPI jsapi;
-  jsapi.Init();
-  JSContext* cx = jsapi.cx();
-  JS::Rooted<JSObject*> obj(cx, &aVal.toObject());
+  
+  JS::Rooted<JSObject*> obj(nsContentUtils::RootingCx(), &aVal.toObject());
+  MOZ_ASSERT(obj);
+  nsIGlobalObject* global = xpc::NativeGlobal(obj);
+  NS_ENSURE_TRUE_VOID(global && global->GetGlobalJSObject());
+
+  
+  AutoEntryScript aes(global);
+  aes.TakeOwnershipOfErrorReporting();
+  JSContext *cx = aes.cx();
+
   if (!JS_IsArrayObject(cx, obj)) {
     return;
   }
@@ -337,8 +338,8 @@ nsGeolocationSettings::HandleGeolocationAlwaysPreciseChange(const JS::Value& aVa
       continue;
     }
 
-    nsString origin;
-    if (!AssignJSString(cx, origin, value.toString())) {
+    nsAutoJSString origin;
+    if (!origin.init(cx, value)) {
       continue;
     }
 
@@ -351,15 +352,11 @@ nsGeolocationSettings::HandleGeolocationAlwaysPreciseChange(const JS::Value& aVa
 }
 
 
-
 void
 GeolocationSetting::HandleTypeChange(const JS::Value& aVal)
 {
-  AutoJSAPI jsapi;
-  jsapi.Init();
-  JSContext* cx = jsapi.cx();
-  nsString str;
-  if (!aVal.isString() || !AssignJSString(cx, str, aVal.toString())) {
+  nsAutoJSString str;
+  if (!str.init(aVal)) {
     return;
   }
 
@@ -433,14 +430,12 @@ GeolocationSetting::HandleApproxDistanceChange(const JS::Value& aVal)
 void
 GeolocationSetting::HandleFixedCoordsChange(const JS::Value& aVal)
 {
-  AutoJSAPI jsapi;
-  jsapi.Init();
-  JSContext* cx = jsapi.cx();
-  nsString str;
-  if (!aVal.isString() || !AssignJSString(cx, str, aVal.toString()) || str.IsEmpty()) {
-    return;
+  nsAutoJSString str;
+  if (!str.init(aVal)) {
+      return;
   }
 
+  
   
   
   int32_t const comma = str.Find(",");
@@ -448,13 +443,16 @@ GeolocationSetting::HandleFixedCoordsChange(const JS::Value& aVal)
     return;
   }
 
+  
   nsresult rv;
-  nsString slat(Substring(str, 1, comma));
+  nsString slat(Substring(str, 1, comma - 1));
   nsString slon(Substring(str, comma + 1));
   double lat = slat.ToDouble(&rv);
   NS_ENSURE_SUCCESS(rv,);
   double lon = slon.ToDouble(&rv);
   NS_ENSURE_SUCCESS(rv,);
+
+  
   mLatitude = lat;
   mLongitude = lon;
 
