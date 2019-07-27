@@ -13,8 +13,8 @@
   if (!window.OT) window.OT = {};
 
   OT.properties = {
-    version: 'v2.2.7.2',         
-    build: '9425efe',    
+    version: 'v2.2.9.1',         
+    build: '72b534e',    
 
     
     debug: 'false',
@@ -24,7 +24,7 @@
     
     cdnURL: 'http://static.opentok.com',
     
-    loggingURL: 'https://hlg.tokbox.com/prod',
+    loggingURL: 'http://hlg.tokbox.com/prod',
     
     apiURL: 'http://anvil.opentok.com',
 
@@ -38,19 +38,17 @@
     
     cdnURLSSL: 'https://static.opentok.com',
     
+    loggingURLSSL: 'https://hlg.tokbox.com/prod',
+    
     apiURLSSL: 'https://anvil.opentok.com',
 
     minimumVersion: {
-      firefox: parseFloat('26'),
-      chrome: parseFloat('32')
+      firefox: parseFloat('29'),
+      chrome: parseFloat('34')
     }
   };
 
 })(window);
-
-
-
-
 
 
 
@@ -296,10 +294,6 @@
 
   OTHelpers.noop = function() {};
 
-
-  OTHelpers.supportsWebSockets = function() {
-    return 'WebSocket' in window;
-  };
 
 
 
@@ -765,7 +759,7 @@
   var _rng = whatwgRNG || mathRNG;
 
   
-  var BufferClass = typeof(Buffer) == 'function' ? Buffer : Array;
+  var BufferClass = typeof(Buffer) === 'function' ? Buffer : Array;
 
   
   var _byteToHex = [];
@@ -814,8 +808,8 @@
     
     var i = buf && offset || 0;
 
-    if (typeof(options) == 'string') {
-      buf = options == 'binary' ? new BufferClass(16) : null;
+    if (typeof(options) === 'string') {
+      buf = options === 'binary' ? new BufferClass(16) : null;
       options = null;
     }
     options = options || {};
@@ -856,7 +850,7 @@
 
 (function(window, OTHelpers, undefined) {
 
-OTHelpers.useLogHelpers = function(on){
+  OTHelpers.useLogHelpers = function(on){
 
     
     on.DEBUG    = 5;
@@ -871,9 +865,9 @@ OTHelpers.useLogHelpers = function(on){
         _canApplyConsole = true;
 
     try {
-        Function.prototype.bind.call(window.console.log, window.console);
+      Function.prototype.bind.call(window.console.log, window.console);
     } catch (err) {
-        _canApplyConsole = false;
+      _canApplyConsole = false;
     }
 
     
@@ -882,9 +876,9 @@ OTHelpers.useLogHelpers = function(on){
     var makeLogArgumentsSafe = function(args) { return args; };
 
     if (OTHelpers.browser() === 'IE') {
-        makeLogArgumentsSafe = function(args) {
-            return [toDebugString(Array.prototype.slice.apply(args))];
-        };
+      makeLogArgumentsSafe = function(args) {
+        return [toDebugString(Array.prototype.slice.apply(args))];
+      };
     }
 
     
@@ -896,41 +890,41 @@ OTHelpers.useLogHelpers = function(on){
     
     
     function generateLoggingMethod(method, level, fallback) {
-        return function() {
-            if (on.shouldLog(level)) {
-                var cons = window.console,
-                    args = makeLogArgumentsSafe(arguments);
+      return function() {
+        if (on.shouldLog(level)) {
+          var cons = window.console,
+              args = makeLogArgumentsSafe(arguments);
 
-                
-                
-                
-                if (cons && cons[method]) {
-                    
-                    
-                    
-                    if (cons[method].apply || _canApplyConsole) {
-                        if (!cons[method].apply) {
-                            cons[method] = Function.prototype.bind.call(cons[method], cons);
-                        }
+          
+          
+          
+          if (cons && cons[method]) {
+            
+            
+            
+            if (cons[method].apply || _canApplyConsole) {
+              if (!cons[method].apply) {
+                cons[method] = Function.prototype.bind.call(cons[method], cons);
+              }
 
-                        cons[method].apply(cons, args);
-                    }
-                    else {
-                        
-                        
-                        cons[method](args);
-                    }
-                }
-                else if (fallback) {
-                    fallback.apply(on, args);
-
-                    
-                    return;
-                }
-
-                appendToLogs(method, makeLogArgumentsSafe(arguments));
+              cons[method].apply(cons, args);
             }
-        };
+            else {
+              
+              
+              cons[method](args);
+            }
+          }
+          else if (fallback) {
+            fallback.apply(on, args);
+
+            
+            return;
+          }
+
+          appendToLogs(method, makeLogArgumentsSafe(arguments));
+        }
+      };
     }
 
     on.log = generateLoggingMethod('log', on.LOG);
@@ -943,131 +937,92 @@ OTHelpers.useLogHelpers = function(on){
 
 
     on.setLogLevel = function(level) {
-        _logLevel = typeof(level) === 'number' ? level : 0;
-        on.debug("TB.setLogLevel(" + _logLevel + ")");
-        return _logLevel;
+      _logLevel = typeof(level) === 'number' ? level : 0;
+      on.debug('TB.setLogLevel(' + _logLevel + ')');
+      return _logLevel;
     };
 
     on.getLogs = function() {
-        return _logs;
+      return _logs;
     };
 
     
     on.shouldLog = function(level) {
-        return _logLevel >= level;
+      return _logLevel >= level;
     };
 
     
     
     function formatDateStamp() {
-        var now = new Date();
-        return now.toLocaleTimeString() + now.getMilliseconds();
+      var now = new Date();
+      return now.toLocaleTimeString() + now.getMilliseconds();
     }
 
     function toJson(object) {
-        try {
-            return JSON.stringify(object);
-        } catch(e) {
-            return object.toString();
-        }
+      try {
+        return JSON.stringify(object);
+      } catch(e) {
+        return object.toString();
+      }
     }
 
     function toDebugString(object) {
-        var components = [];
+      var components = [];
 
-        if (typeof(object) === 'undefined') {
-            
+      if (typeof(object) === 'undefined') {
+        
+      }
+      else if (object === null) {
+        components.push('NULL');
+      }
+      else if (OTHelpers.isArray(object)) {
+        for (var i=0; i<object.length; ++i) {
+          components.push(toJson(object[i]));
         }
-        else if (object === null) {
-            components.push('NULL');
-        }
-        else if (OTHelpers.isArray(object)) {
-            for (var i=0; i<object.length; ++i) {
-                components.push(toJson(object[i]));
-            }
-        }
-        else if (OTHelpers.isObject(object)) {
-            for (var key in object) {
-                var stringValue;
+      }
+      else if (OTHelpers.isObject(object)) {
+        for (var key in object) {
+          var stringValue;
 
-                if (!OTHelpers.isFunction(object[key])) {
-                    stringValue = toJson(object[key]);
-                }
-                else if (object.hasOwnProperty(key)) {
-                    stringValue = 'function ' + key + '()';
-                }
+          if (!OTHelpers.isFunction(object[key])) {
+            stringValue = toJson(object[key]);
+          }
+          else if (object.hasOwnProperty(key)) {
+            stringValue = 'function ' + key + '()';
+          }
 
-                components.push(key + ': ' + stringValue);
-            }
+          components.push(key + ': ' + stringValue);
         }
-        else if (OTHelpers.isFunction(object)) {
-            try {
-                components.push(object.toString());
-            } catch(e) {
-                components.push('function()');
-            }
+      }
+      else if (OTHelpers.isFunction(object)) {
+        try {
+          components.push(object.toString());
+        } catch(e) {
+          components.push('function()');
         }
-        else  {
-            components.push(object.toString());
-        }
+      }
+      else  {
+        components.push(object.toString());
+      }
 
-        return components.join(", ");
+      return components.join(', ');
     }
 
     
     function appendToLogs(level, args) {
-        if (!args) return;
+      if (!args) return;
 
-        var message = toDebugString(args);
-        if (message.length <= 2) return;
+      var message = toDebugString(args);
+      if (message.length <= 2) return;
 
-        _logs.push(
-            [level, formatDateStamp(), message]
-        );
+      _logs.push(
+        [level, formatDateStamp(), message]
+      );
     }
-};
+  };
 
-OTHelpers.useLogHelpers(OTHelpers);
-OTHelpers.setLogLevel(OTHelpers.ERROR);
-
-})(window, window.OTHelpers);
-
-
-
-
-
-
-(function(window, OTHelpers, undefined) {
-
-    
-    
-    
-    
-    
-    OTHelpers.on = function(element, eventName,  handler) {
-        if (element.addEventListener) {
-            element.addEventListener(eventName, handler, false);
-        } else if (element.attachEvent) {
-            element.attachEvent("on" + eventName, handler);
-        } else {
-            var oldHandler = element["on"+eventName];
-            element["on"+eventName] = function() {
-              handler.apply(this, arguments);
-              if (oldHandler) oldHandler.apply(this, arguments);
-            };
-        }
-        return element;
-    };
-
-    
-    OTHelpers.off = function(element, eventName, handler) {
-        if (element.removeEventListener) {
-            element.removeEventListener (eventName, handler,false);
-        }
-        else if (element.detachEvent) {
-            element.detachEvent("on" + eventName, handler);
-        }
-    };
+  OTHelpers.useLogHelpers(OTHelpers);
+  OTHelpers.setLogLevel(OTHelpers.ERROR);
 
 })(window, window.OTHelpers);
 
@@ -1078,9 +1033,48 @@ OTHelpers.setLogLevel(OTHelpers.ERROR);
 
 (function(window, OTHelpers, undefined) {
 
-  var _domReady = typeof document === 'undefined' ||
-                  document.readyState === 'complete' ||
-                 (document.readyState === 'interactive' && document.body),
+  
+  
+  
+  
+  
+  OTHelpers.on = function(element, eventName,  handler) {
+    if (element.addEventListener) {
+      element.addEventListener(eventName, handler, false);
+    } else if (element.attachEvent) {
+      element.attachEvent('on' + eventName, handler);
+    } else {
+      var oldHandler = element['on'+eventName];
+      element['on'+eventName] = function() {
+        handler.apply(this, arguments);
+        if (oldHandler) oldHandler.apply(this, arguments);
+      };
+    }
+    return element;
+  };
+
+  
+  OTHelpers.off = function(element, eventName, handler) {
+    if (element.removeEventListener) {
+      element.removeEventListener (eventName, handler,false);
+    }
+    else if (element.detachEvent) {
+      element.detachEvent('on' + eventName, handler);
+    }
+  };
+
+})(window, window.OTHelpers);
+
+
+
+
+
+
+(function(window, OTHelpers, undefined) {
+
+  var _domReady = typeof(document) === 'undefined' ||
+                    document.readyState === 'complete' ||
+                   (document.readyState === 'interactive' && document.body),
 
       _loadCallbacks = [],
       _unloadCallbacks = [],
@@ -1140,7 +1134,7 @@ OTHelpers.setLogLevel(OTHelpers.ERROR);
 
   if (_domReady) {
     onDomReady();
-  } else if(typeof document !== 'undefined') {
+  } else if(typeof(document) !== 'undefined') {
     if (document.addEventListener) {
       document.addEventListener('DOMContentLoaded', onDomReady, false);
     } else if (document.attachEvent) {
@@ -1153,6 +1147,22 @@ OTHelpers.setLogLevel(OTHelpers.ERROR);
 
 })(window, window.OTHelpers);
 
+
+
+
+
+(function(window, OTHelpers, undefined) {
+
+  OTHelpers.castToBoolean = function(value, defaultValue) {
+    if (value === undefined) return defaultValue;
+    return value === 'true' || value === true;
+  };
+
+  OTHelpers.roundFloat = function(value, places) {
+    return Number(value.toFixed(places));
+  };
+
+})(window, window.OTHelpers);
 
 
 
@@ -1186,6 +1196,25 @@ OTHelpers.setLogLevel(OTHelpers.ERROR);
     memoriseCapabilityTest(_name, callback);
   };
 
+
+  
+  
+  var memoriseCapabilityTest = function (name, callback) {
+    capabilities[name] = function() {
+      var result = callback();
+      capabilities[name] = function() {
+        return result;
+      };
+
+      return result;
+    };
+  };
+
+  var testCapability = function (name) {
+    return capabilities[name]();
+  };
+
+
   
   
   
@@ -1202,7 +1231,7 @@ OTHelpers.setLogLevel(OTHelpers.ERROR);
         OTHelpers.error('hasCapabilities was called with an unknown capability: ' + name);
         return false;
       }
-      else if (capabilities[name]() === false) {
+      else if (testCapability(name) === false) {
         return false;
       }
     }
@@ -1210,37 +1239,22 @@ OTHelpers.setLogLevel(OTHelpers.ERROR);
     return true;
   };
 
-
-  
-  
-  var memoriseCapabilityTest = function memoriseCapabilityTest(name, callback) {
-    capabilities[name] = function() {
-      var result = callback();
-      capabilities[name] = function() {
-        return result;
-      };
-
-      return result;
-    };
-  };
-
 })(window, window.OTHelpers);
+
+
 
 
 
 
 (function(window, OTHelpers, undefined) {
 
-OTHelpers.castToBoolean = function(value, defaultValue) {
-    if (value === undefined) return defaultValue;
-    return value === 'true' || value === true;
-};
-
-OTHelpers.roundFloat = function(value, places) {
-    return Number(value.toFixed(places));
-};
+  
+  OTHelpers.registerCapability('websockets', function() {
+    return 'WebSocket' in window;
+  });
 
 })(window, window.OTHelpers);
+
 
 
 
@@ -1264,9 +1278,9 @@ OTHelpers.roundFloat = function(value, places) {
       var postMessageIsAsynchronous = true;
       var oldOnMessage = window.onmessage;
       window.onmessage = function() {
-          postMessageIsAsynchronous = false;
+        postMessageIsAsynchronous = false;
       };
-      window.postMessage("", "*");
+      window.postMessage('', '*');
       window.onmessage = oldOnMessage;
       return postMessageIsAsynchronous;
     }
@@ -1958,7 +1972,7 @@ OTHelpers.roundFloat = function(value, places) {
     };
 
   };
-  
+
 })(window, window.OTHelpers);
 
 
@@ -1969,29 +1983,32 @@ OTHelpers.roundFloat = function(value, places) {
 
 (function(window, OTHelpers, undefined) {
 
-OTHelpers.isElementNode = function(node) {
-    return node && typeof node === 'object' && node.nodeType == 1;
-};
+  OTHelpers.isElementNode = function(node) {
+    return node && typeof node === 'object' && node.nodeType === 1;
+  };
 
+  
+  OTHelpers.supportsClassList = function() {
+    var hasSupport = (typeof document !== 'undefined') &&
+            ('classList' in document.createElement('a'));
 
-OTHelpers.supportsClassList = function() {
-    var hasSupport = typeof(document !== "undefined") && ("classList" in document.createElement("a"));
     OTHelpers.supportsClassList = function() { return hasSupport; };
 
     return hasSupport;
-};
+  };
 
-OTHelpers.removeElement = function(element) {
+  OTHelpers.removeElement = function(element) {
     if (element && element.parentNode) {
-        element.parentNode.removeChild(element);
+      element.parentNode.removeChild(element);
     }
-};
+  };
 
-OTHelpers.removeElementById = function(elementId) {
+  OTHelpers.removeElementById = function(elementId) {
+    
     this.removeElement(OTHelpers(elementId));
-};
+  };
 
-OTHelpers.removeElementsByType = function(parentElem, type) {
+  OTHelpers.removeElementsByType = function(parentElem, type) {
     if (!parentElem) return;
 
     var elements = parentElem.getElementsByTagName(type);
@@ -2002,227 +2019,238 @@ OTHelpers.removeElementsByType = function(parentElem, type) {
     
     
     while (elements.length) {
-        parentElem.removeChild(elements[0]);
+      parentElem.removeChild(elements[0]);
     }
-};
+  };
 
-OTHelpers.emptyElement = function(element) {
+  OTHelpers.emptyElement = function(element) {
     while (element.firstChild) {
-        element.removeChild(element.firstChild);
+      element.removeChild(element.firstChild);
     }
     return element;
-};
+  };
 
-OTHelpers.createElement = function(nodeName, attributes, children, doc) {
+  OTHelpers.createElement = function(nodeName, attributes, children, doc) {
     var element = (doc || document).createElement(nodeName);
 
     if (attributes) {
-        for (var name in attributes) {
-            if (typeof(attributes[name]) === 'object') {
-                if (!element[name]) element[name] = {};
+      for (var name in attributes) {
+        if (typeof(attributes[name]) === 'object') {
+          if (!element[name]) element[name] = {};
 
-                var subAttrs = attributes[name];
-                for (var n in subAttrs) {
-                    element[name][n] = subAttrs[n];
-                }
-            }
-            else if (name === 'className') {
-                element.className = attributes[name];
-            }
-            else {
-                element.setAttribute(name, attributes[name]);
-            }
+          var subAttrs = attributes[name];
+          for (var n in subAttrs) {
+            element[name][n] = subAttrs[n];
+          }
         }
+        else if (name === 'className') {
+          element.className = attributes[name];
+        }
+        else {
+          element.setAttribute(name, attributes[name]);
+        }
+      }
     }
 
     var setChildren = function(child) {
-        if(typeof child === 'string') {
-            element.innerHTML = element.innerHTML + child;
-        } else {
-            element.appendChild(child);
-        }
+      if(typeof child === 'string') {
+        element.innerHTML = element.innerHTML + child;
+      } else {
+        element.appendChild(child);
+      }
     };
 
     if(OTHelpers.isArray(children)) {
-        OTHelpers.forEach(children, setChildren);
+      OTHelpers.forEach(children, setChildren);
     } else if(children) {
-        setChildren(children);
+      setChildren(children);
     }
 
     return element;
-};
+  };
 
-OTHelpers.createButton = function(innerHTML, attributes, events) {
+  OTHelpers.createButton = function(innerHTML, attributes, events) {
     var button = OTHelpers.createElement('button', attributes, innerHTML);
 
     if (events) {
-        for (var name in events) {
-            if (events.hasOwnProperty(name)) {
-                OTHelpers.on(button, name, events[name]);
-            }
+      for (var name in events) {
+        if (events.hasOwnProperty(name)) {
+          OTHelpers.on(button, name, events[name]);
         }
+      }
 
-        button._boundEvents = events;
+      button._boundEvents = events;
     }
 
     return button;
-};
+  };
 
 
+  
+  
+  OTHelpers.isDisplayNone = function(element) {
+    if ( (element.offsetWidth === 0 || element.offsetHeight === 0) &&
+                OTHelpers.css(element, 'display') === 'none') return true;
 
-OTHelpers.isDisplayNone = function(element) {
-    if ( (element.offsetWidth === 0 || element.offsetHeight === 0) && OTHelpers.css(element, 'display') === 'none') return true;
-    if (element.parentNode && element.parentNode.style) return OTHelpers.isDisplayNone(element.parentNode);
+    if (element.parentNode && element.parentNode.style) {
+      return OTHelpers.isDisplayNone(element.parentNode);
+    }
+
     return false;
-};
+  };
 
-OTHelpers.findElementWithDisplayNone = function(element) {
-    if ( (element.offsetWidth === 0 || element.offsetHeight === 0) && OTHelpers.css(element, 'display') === 'none') return element;
-    if (element.parentNode && element.parentNode.style) return OTHelpers.findElementWithDisplayNone(element.parentNode);
+  OTHelpers.findElementWithDisplayNone = function(element) {
+    if ( (element.offsetWidth === 0 || element.offsetHeight === 0) &&
+              OTHelpers.css(element, 'display') === 'none') return element;
+
+    if (element.parentNode && element.parentNode.style) {
+      return OTHelpers.findElementWithDisplayNone(element.parentNode);
+    }
+
     return null;
-};
+  };
 
-function objectHasProperties(obj) {
+  function objectHasProperties(obj) {
     for (var key in obj) {
-        if (obj.hasOwnProperty(key)) return true;
+      if (obj.hasOwnProperty(key)) return true;
     }
     return false;
-}
+  }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-OTHelpers.observeStyleChanges = function(element, stylesToObserve, onChange) {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  OTHelpers.observeStyleChanges = function(element, stylesToObserve, onChange) {
     var oldStyles = {};
 
     var getStyle = function getStyle(style) {
-            switch (style) {
-            case 'width':
-                return OTHelpers.width(element);
+      switch (style) {
+      case 'width':
+        return OTHelpers.width(element);
 
-            case 'height':
-                return OTHelpers.height(element);
+      case 'height':
+        return OTHelpers.height(element);
 
-            default:
-                return OTHelpers.css(element);
-            }
-        };
+      default:
+        return OTHelpers.css(element);
+      }
+    };
 
     
     OTHelpers.forEach(stylesToObserve, function(style) {
-        oldStyles[style] = getStyle(style);
+      oldStyles[style] = getStyle(style);
     });
 
     var observer = new MutationObserver(function(mutations) {
-        var changeSet = {};
+      var changeSet = {};
 
-        OTHelpers.forEach(mutations, function(mutation) {
-            if (mutation.attributeName !== 'style') return;
+      OTHelpers.forEach(mutations, function(mutation) {
+        if (mutation.attributeName !== 'style') return;
 
-            var isHidden = OTHelpers.isDisplayNone(element);
+        var isHidden = OTHelpers.isDisplayNone(element);
 
-            OTHelpers.forEach(stylesToObserve, function(style) {
-                if(isHidden && (style == 'width' || style == 'height')) return;
+        OTHelpers.forEach(stylesToObserve, function(style) {
+          if(isHidden && (style === 'width' || style === 'height')) return;
 
-                var newValue = getStyle(style);
+          var newValue = getStyle(style);
 
-                if (newValue !== oldStyles[style]) {
-                    
-
-                    changeSet[style] = [oldStyles[style], newValue];
-                    oldStyles[style] = newValue;
-                }
-            });
+          if (newValue !== oldStyles[style]) {
+            changeSet[style] = [oldStyles[style], newValue];
+            oldStyles[style] = newValue;
+          }
         });
+      });
 
-        if (objectHasProperties(changeSet)) {
-            
-            OTHelpers.callAsync(function() {
-                onChange.call(null, changeSet);
-            });
-        }
+      if (objectHasProperties(changeSet)) {
+        
+        OTHelpers.callAsync(function() {
+          onChange.call(null, changeSet);
+        });
+      }
     });
 
     observer.observe(element, {
-        attributes:true,
-        attributeFilter: ['style'],
-        childList:false,
-        characterData:false,
-        subtree:false
+      attributes:true,
+      attributeFilter: ['style'],
+      childList:false,
+      characterData:false,
+      subtree:false
     });
 
     return observer;
-};
+  };
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-OTHelpers.observeNodeOrChildNodeRemoval = function(element, onChange) {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  OTHelpers.observeNodeOrChildNodeRemoval = function(element, onChange) {
     var observer = new MutationObserver(function(mutations) {
-        var removedNodes = [];
+      var removedNodes = [];
 
-        OTHelpers.forEach(mutations, function(mutation) {
-            if (mutation.removedNodes.length) {
-                removedNodes = removedNodes.concat(Array.prototype.slice.call(mutation.removedNodes));
-            }
-        });
-
-        if (removedNodes.length) {
-            
-            OTHelpers.callAsync(function() {
-                onChange(removedNodes);
-            });
+      OTHelpers.forEach(mutations, function(mutation) {
+        if (mutation.removedNodes.length) {
+          removedNodes = removedNodes.concat(Array.prototype.slice.call(mutation.removedNodes));
         }
+      });
+
+      if (removedNodes.length) {
+        
+        OTHelpers.callAsync(function() {
+          onChange(removedNodes);
+        });
+      }
     });
 
     observer.observe(element, {
-        attributes:false,
-        childList:true,
-        characterData:false,
-        subtree:true
+      attributes:false,
+      childList:true,
+      characterData:false,
+      subtree:true
     });
 
     return observer;
-};
+  };
 
 })(window, window.OTHelpers);
 
@@ -2274,10 +2302,29 @@ OTHelpers.observeNodeOrChildNodeRemoval = function(element, onChange) {
     domElement.scrolling = 'no';
     domElement.setAttribute('scrolling', 'no');
 
+    
+    
+    var frameContent = '<!DOCTYPE html><html><head>' +
+                      '<meta http-equiv="x-ua-compatible" content="IE=Edge">' +
+                      '<meta http-equiv="Content-type" content="text/html; charset=utf-8">' +
+                      '<title></title></head><body></body></html>';
+
     var wrappedCallback = function() {
       var doc = domElement.contentDocument || domElement.contentWindow.document;
-      doc.body.style.backgroundColor = 'transparent';
-      doc.body.style.border = 'none';
+
+      if (OTHelpers.browserVersion().iframeNeedsLoad) {
+        doc.body.style.backgroundColor = 'transparent';
+        doc.body.style.border = 'none';
+
+        if (OTHelpers.browser() !== 'IE') {
+          
+          
+          doc.open();
+          doc.write(frameContent);
+          doc.close();
+        }
+      }
+
       callback(
         domElement.contentWindow,
         doc
@@ -2285,8 +2332,18 @@ OTHelpers.observeNodeOrChildNodeRemoval = function(element, onChange) {
     };
 
     document.body.appendChild(domElement);
-    
+
     if(OTHelpers.browserVersion().iframeNeedsLoad) {
+      if (OTHelpers.browser() === 'IE') {
+        
+        
+        
+        domElement.contentWindow.contents = frameContent;
+        
+        domElement.src = 'javascript:window["contents"]';
+        
+      }
+
       OTHelpers.on(domElement, 'load', wrappedCallback);
     } else {
       setTimeout(wrappedCallback);
@@ -2302,7 +2359,7 @@ OTHelpers.observeNodeOrChildNodeRemoval = function(element, onChange) {
     this.element = domElement;
 
   };
-  
+
 })(window, window.OTHelpers);
 
 
@@ -2418,141 +2475,141 @@ OTHelpers.observeNodeOrChildNodeRemoval = function(element, onChange) {
 
 (function(window, OTHelpers, undefined) {
 
-OTHelpers.addClass = function(element, value) {
+  OTHelpers.addClass = function(element, value) {
     
     if (element.nodeType !== 1) {
-        return;
+      return;
     }
 
     var classNames = OTHelpers.trim(value).split(/\s+/),
         i, l;
 
     if (OTHelpers.supportsClassList()) {
-        for (i=0, l=classNames.length; i<l; ++i) {
-            element.classList.add(classNames[i]);
-        }
+      for (i=0, l=classNames.length; i<l; ++i) {
+        element.classList.add(classNames[i]);
+      }
 
-        return;
+      return;
     }
 
     
 
     if (!element.className && classNames.length === 1) {
-        element.className = value;
+      element.className = value;
     }
     else {
-        var setClass = " " + element.className + " ";
+      var setClass = ' ' + element.className + ' ';
 
-        for (i=0, l=classNames.length; i<l; ++i) {
-            if ( !~setClass.indexOf( " " + classNames[i] + " ")) {
-                setClass += classNames[i] + " ";
-            }
+      for (i=0, l=classNames.length; i<l; ++i) {
+        if ( !~setClass.indexOf( ' ' + classNames[i] + ' ')) {
+          setClass += classNames[i] + ' ';
         }
+      }
 
-        element.className = OTHelpers.trim(setClass);
+      element.className = OTHelpers.trim(setClass);
     }
 
     return this;
-};
+  };
 
-OTHelpers.removeClass = function(element, value) {
+  OTHelpers.removeClass = function(element, value) {
     if (!value) return;
 
     
     if (element.nodeType !== 1) {
-        return;
+      return;
     }
 
     var newClasses = OTHelpers.trim(value).split(/\s+/),
         i, l;
 
     if (OTHelpers.supportsClassList()) {
-        for (i=0, l=newClasses.length; i<l; ++i) {
-            element.classList.remove(newClasses[i]);
-        }
+      for (i=0, l=newClasses.length; i<l; ++i) {
+        element.classList.remove(newClasses[i]);
+      }
 
-        return;
+      return;
     }
 
-    var className = (" " + element.className + " ").replace(/[\s+]/, ' ');
+    var className = (' ' + element.className + ' ').replace(/[\s+]/, ' ');
 
     for (i=0,l=newClasses.length; i<l; ++i) {
-        className = className.replace(' ' + newClasses[i] + ' ', ' ');
+      className = className.replace(' ' + newClasses[i] + ' ', ' ');
     }
 
     element.className = OTHelpers.trim(className);
 
     return this;
-};
+  };
+
+
+  
 
 
 
-
-
-
-var _width = function(element) {
+  var _width = function(element) {
         if (element.offsetWidth > 0) {
-            return element.offsetWidth + 'px';
+          return element.offsetWidth + 'px';
         }
 
         return OTHelpers.css(element, 'width');
-    },
+      },
 
-    _height = function(element) {
+      _height = function(element) {
         if (element.offsetHeight > 0) {
-            return element.offsetHeight + 'px';
+          return element.offsetHeight + 'px';
         }
 
         return OTHelpers.css(element, 'height');
-    };
+      };
 
-OTHelpers.width = function(element, newWidth) {
+  OTHelpers.width = function(element, newWidth) {
     if (newWidth) {
-        OTHelpers.css(element, 'width', newWidth);
-        return this;
+      OTHelpers.css(element, 'width', newWidth);
+      return this;
     }
     else {
-        if (OTHelpers.isDisplayNone(element)) {
-            
-            return OTHelpers.makeVisibleAndYield(element, function() {
-                return _width(element);
-            });
-        }
-        else {
-            return _width(element);
-        }
+      if (OTHelpers.isDisplayNone(element)) {
+        
+        return OTHelpers.makeVisibleAndYield(element, function() {
+          return _width(element);
+        });
+      }
+      else {
+        return _width(element);
+      }
     }
-};
+  };
 
-OTHelpers.height = function(element, newHeight) {
+  OTHelpers.height = function(element, newHeight) {
     if (newHeight) {
-        OTHelpers.css(element, 'height', newHeight);
-        return this;
+      OTHelpers.css(element, 'height', newHeight);
+      return this;
     }
     else {
-        if (OTHelpers.isDisplayNone(element)) {
-            
-            return OTHelpers.makeVisibleAndYield(element, function() {
-                return _height(element);
-            });
-        }
-        else {
-            return _height(element);
-        }
+      if (OTHelpers.isDisplayNone(element)) {
+        
+        return OTHelpers.makeVisibleAndYield(element, function() {
+          return _height(element);
+        });
+      }
+      else {
+        return _height(element);
+      }
     }
-};
+  };
 
-
-
-OTHelpers.centerElement = function(element, width, height) {
+  
+  
+  OTHelpers.centerElement = function(element, width, height) {
     if (!width) width = parseInt(OTHelpers.width(element), 10);
     if (!height) height = parseInt(OTHelpers.height(element), 10);
 
-    var marginLeft = -0.5 * width + "px";
-    var marginTop = -0.5 * height + "px";
-    OTHelpers.css(element, "margin", marginTop + " 0 0 " + marginLeft);
-    OTHelpers.addClass(element, "OT_centered");
-};
+    var marginLeft = -0.5 * width + 'px';
+    var marginTop = -0.5 * height + 'px';
+    OTHelpers.css(element, 'margin', marginTop + ' 0 0 ' + marginLeft);
+    OTHelpers.addClass(element, 'OT_centered');
+  };
 
 })(window, window.OTHelpers);
 
@@ -2570,27 +2627,27 @@ OTHelpers.centerElement = function(element, width, height) {
       defaultDisplays = {};
 
   var defaultDisplayValueForElement = function(element) {
-      if (defaultDisplays[element.ownerDocument] &&
-        defaultDisplays[element.ownerDocument][element.nodeName]) {
-        return defaultDisplays[element.ownerDocument][element.nodeName];
-      }
+    if (defaultDisplays[element.ownerDocument] &&
+      defaultDisplays[element.ownerDocument][element.nodeName]) {
+      return defaultDisplays[element.ownerDocument][element.nodeName];
+    }
 
-      if (!defaultDisplays[element.ownerDocument]) defaultDisplays[element.ownerDocument] = {};
+    if (!defaultDisplays[element.ownerDocument]) defaultDisplays[element.ownerDocument] = {};
+
     
-      
-      
-      var testNode = element.ownerDocument.createElement(element.nodeName),
-          defaultDisplay;
+    
+    var testNode = element.ownerDocument.createElement(element.nodeName),
+        defaultDisplay;
 
-      element.ownerDocument.body.appendChild(testNode);
-      defaultDisplay = defaultDisplays[element.ownerDocument][element.nodeName] =
-        OTHelpers.css(testNode, 'display');
+    element.ownerDocument.body.appendChild(testNode);
+    defaultDisplay = defaultDisplays[element.ownerDocument][element.nodeName] =
+      OTHelpers.css(testNode, 'display');
 
-      OTHelpers.removeElement(testNode);
-      testNode = null;
+    OTHelpers.removeElement(testNode);
+    testNode = null;
 
-      return defaultDisplay;
-    };
+    return defaultDisplay;
+  };
 
   var isHidden = function(element) {
     var computedStyle = OTHelpers.getComputedStyle(element);
@@ -2630,7 +2687,9 @@ OTHelpers.centerElement = function(element, width, height) {
       var style = element.style;
 
       for (var cssName in nameOrHash) {
-        style[cssName] = nameOrHash[cssName];
+        if (nameOrHash.hasOwnProperty(cssName)) {
+          style[cssName] = nameOrHash[cssName];
+        }
       }
 
       return this;
@@ -2687,7 +2746,7 @@ OTHelpers.centerElement = function(element, width, height) {
     return ret;
   };
 
-
+  
   OTHelpers.makeVisibleAndYield = function(element, callback) {
     
     
@@ -2710,16 +2769,29 @@ OTHelpers.centerElement = function(element, width, height) {
 
 (function(window, OTHelpers, undefined) {
 
-  OTHelpers.requestAnimationFrame =
-    OTHelpers.bind(
-        window.requestAnimationFrame ||
-        window.mozRequestAnimationFrame ||
-        window.webkitRequestAnimationFrame ||
-        window.msRequestAnimationFrame ||
-        setTimeout, window);
+  var requestAnimationFrame = window.requestAnimationFrame ||
+                              window.mozRequestAnimationFrame ||
+                              window.webkitRequestAnimationFrame ||
+                              window.msRequestAnimationFrame;
 
+  if (requestAnimationFrame) {
+    requestAnimationFrame = OTHelpers.bind(requestAnimationFrame, window);
+  }
+  else {
+    var lastTime = 0;
+    var startTime = OTHelpers.now();
+
+    requestAnimationFrame = function(callback){
+      var currTime = OTHelpers.now();
+      var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+      var id = window.setTimeout(function() { callback(currTime - startTime); }, timeToCall);
+      lastTime = currTime + timeToCall;
+      return id;
+    };
+  }
+
+  OTHelpers.requestAnimationFrame = requestAnimationFrame;
 })(window, window.OTHelpers);
-
 
 
 
@@ -2947,7 +3019,8 @@ OTHelpers.centerElement = function(element, width, height) {
     return retVal;
   };
 
-  OT.setLogLevel(OT.properties.debug ? OT.DEBUG : OT.ERROR);
+  var debugTrue = OT.properties.debug === 'true' || OT.properties.debug === true;
+  OT.setLogLevel(debugTrue ? OT.DEBUG : OT.ERROR);
 
   OT.$.userAgent = function() {
     var userAgent = navigator.userAgent;
@@ -3071,10 +3144,9 @@ OTHelpers.centerElement = function(element, width, height) {
   var checkBoxElement = function (classes, nameAndId, onChange) {
     var checkbox = templateElement.call(this, '', null, 'input').on('change', onChange);
 
-    if (OT.$.browser() === 'ie' && OT.$.browserVersion() <= 8) {
+    if (OT.$.browser() === 'IE' && OT.$.browserVersion().version <= 8) {
       
       checkbox.on('click', function() {
-        console.log('CLICK');
         checkbox.blur();
         checkbox.focus();
       });
@@ -3103,11 +3175,12 @@ OTHelpers.centerElement = function(element, width, height) {
   OT.Dialogs.AllowDeny.Chrome.initialPrompt = function() {
     var modal = new OT.$.Modal(function(window, document) {
 
-      var el = templateElement.bind(document),
+      var el = OT.$.bind(templateElement, document),
           close, root;
 
       close = el('OT_closeButton', '&times;')
         .on('click', function() {
+          modal.trigger('closeButtonClicked');
           modal.close();
         });
 
@@ -3132,12 +3205,13 @@ OTHelpers.centerElement = function(element, width, height) {
   OT.Dialogs.AllowDeny.Chrome.previouslyDenied = function(website) {
     var modal = new OT.$.Modal(function(window, document) {
 
-      var el = templateElement.bind(document),
+      var el = OT.$.bind(templateElement, document),
           close,
           root;
 
       close = el('OT_closeButton', '&times;')
         .on('click', function() {
+          modal.trigger('closeButtonClicked');
           modal.close();
         });
 
@@ -3180,7 +3254,7 @@ OTHelpers.centerElement = function(element, width, height) {
   OT.Dialogs.AllowDeny.Chrome.deniedNow = function() {
     var modal = new OT.$.Modal(function(window, document) {
 
-      var el = templateElement.bind(document),
+      var el = OT.$.bind(templateElement, document),
           root;
 
       root = el('OT_root OT_dialog-blackout',
@@ -3207,12 +3281,13 @@ OTHelpers.centerElement = function(element, width, height) {
   OT.Dialogs.AllowDeny.Firefox.maybeDenied = function() {
     var modal = new OT.$.Modal(function(window, document) {
 
-      var el = templateElement.bind(document),
+      var el = OT.$.bind(templateElement, document),
           close,
           root;
 
       close = el('OT_closeButton', '&times;')
         .on('click', function() {
+          modal.trigger('closeButtonClicked');
           modal.close();
         });
 
@@ -3254,8 +3329,8 @@ OTHelpers.centerElement = function(element, width, height) {
   OT.Dialogs.AllowDeny.Firefox.denied = function() {
     var modal = new OT.$.Modal(function(window, document) {
 
-      var el = templateElement.bind(document),
-          btn = templateElement.bind(document, 'OT_dialog-button OT_dialog-button-large'),
+      var el = OT.$.bind(templateElement, document),
+          btn = OT.$.bind(templateElement, document, 'OT_dialog-button OT_dialog-button-large'),
           root,
           refreshButton;
 
@@ -3291,10 +3366,26 @@ OTHelpers.centerElement = function(element, width, height) {
     var modal = new OT.$.Modal(function(window, document) {
 
       var el = OT.$.bind(templateElement, document),
-          btn = OT.$.bind(templateElement, document,
-                    'OT_dialog-button OT_dialog-button-large OT_dialog-button-disabled'),
-          downloadButton = btn('Download OpenTok'),
-          refreshButton = btn('Refresh page'),
+          btn = function(children, size) {
+            var classes = 'OT_dialog-button ' +
+                          (size ? 'OT_dialog-button-' + size : 'OT_dialog-button-large'),
+                b = el(classes, children);
+
+            b.enable = function() {
+              OT.$.removeClass(this, 'OT_dialog-button-disabled');
+              return this;
+            };
+
+            b.disable = function() {
+              OT.$.addClass(this, 'OT_dialog-button-disabled');
+              return this;
+            };
+
+            return b;
+          },
+          downloadButton = btn('Download plugin'),
+          cancelButton = btn('cancel', 'small'),
+          refreshButton = btn('Refresh browser'),
           acceptEULA,
           checkbox,
           close,
@@ -3302,6 +3393,13 @@ OTHelpers.centerElement = function(element, width, height) {
 
       function onDownload() {
         modal.trigger('download');
+        setTimeout(function() {
+          root.querySelector('.OT_dialog-messages-main').innerHTML =
+                                              'Plugin installation successful';
+          var sections = root.querySelectorAll('.OT_dialog-single-button-wide');
+          OT.$.addClass(sections[0], 'OT_dialog-hidden');
+          OT.$.removeClass(sections[1], 'OT_dialog-hidden');
+        }, 3000);
       }
 
       function onRefresh() {
@@ -3318,29 +3416,37 @@ OTHelpers.centerElement = function(element, width, height) {
       }
 
       function enableButtons() {
-        OT.$.removeClass(downloadButton, 'OT_dialog-button-disabled');
+        downloadButton.enable();
         downloadButton.on('click', onDownload);
 
-        OT.$.removeClass(refreshButton, 'OT_dialog-button-disabled');
+        refreshButton.enable();
         refreshButton.on('click', onRefresh);
       }
 
       function disableButtons() {
-        OT.$.addClass(downloadButton, 'OT_dialog-button-disabled');
+        downloadButton.disable();
         downloadButton.off('click', onDownload);
 
-        OT.$.addClass(refreshButton, 'OT_dialog-button-disabled');
+        refreshButton.disable();
         refreshButton.off('click', onRefresh);
       }
 
+      downloadButton.disable();
+      refreshButton.disable();
+
+      cancelButton.on('click', function() {
+        modal.trigger('cancelButtonClicked');
+        modal.close();
+      });
 
       close = el('OT_closeButton', '&times;')
         .on('click', function() {
+          modal.trigger('closeButtonClicked');
           modal.close();
         });
 
       acceptEULA = linkElement.call(document,
-                                    'End-user license agreement',
+                                    'end-user license agreement',
                                     'http://tokbox.com/support/ie-eula');
 
       checkbox = checkBoxElement.call(document, null, 'acceptEULA', onToggleEULA);
@@ -3348,30 +3454,28 @@ OTHelpers.centerElement = function(element, width, height) {
       root = el('OT_root OT_dialog OT_dialog-plugin-prompt', [
         close,
         el('OT_dialog-messages', [
-          el('OT_dialog-messages-main', 'This app requires real-time communication'),
-          el('OT_dialog-messages-minor', 'These 2 simple steps will ' +
-            'enable real-time communications in Internet Explorer:')
+          el('OT_dialog-messages-main', 'This app requires real-time communication')
         ]),
-        el('OT_dialog-button-pair', [
-          el('OT_dialog-button-with-title', [
+        el('OT_dialog-single-button-wide', [
+          el('OT_dialog-single-button-with-title', [
             el('OT_dialog-button-title', [
-              el('', 'Step 1', 'strong'),
               checkbox,
               (function() {
-                var x = el('', 'Accept', 'label');
+                var x = el('', 'accept', 'label');
                 x.setAttribute('for', checkbox.id);
                 x.style.margin = '0 5px';
                 return x;
               })(),
               acceptEULA
             ]),
-            downloadButton
-          ]),
-          el('OT_dialog-button-pair-seperator', ''),
-          el('OT_dialog-button-with-title', [
+            downloadButton,
+            cancelButton
+          ])
+        ]),
+        el('OT_dialog-single-button-wide OT_dialog-hidden', [
+          el('OT_dialog-single-button-with-title', [
             el('OT_dialog-button-title', [
-              el('', 'Step 2', 'strong'),
-              'Reload this page after installation'
+              'You can now enjoy webRTC enabled video via Internet Explorer.'
             ]),
             refreshButton
           ])
@@ -3389,7 +3493,7 @@ OTHelpers.centerElement = function(element, width, height) {
   OT.Dialogs.Plugin.promptToReinstall = function() {
     var modal = new OT.$.Modal(function(window, document) {
 
-      var el = templateElement.bind(document),
+      var el = OT.$.bind(templateElement, document),
           close,
           okayButton,
           root;
@@ -3402,6 +3506,7 @@ OTHelpers.centerElement = function(element, width, height) {
       });
 
       OT.$.on(close, 'click', function() {
+        modal.trigger('closeButtonClicked');
         modal.close();
       });
 
@@ -3432,7 +3537,7 @@ OTHelpers.centerElement = function(element, width, height) {
 
     var modal = new OT.$.Modal(function(window, document) {
 
-      var el = templateElement.bind(document),
+      var el = OT.$.bind(templateElement, document),
           root;
 
       progressText = el('OT_dialog-plugin-upgrade-percentage', '0%', 'strong');
@@ -3480,7 +3585,7 @@ OTHelpers.centerElement = function(element, width, height) {
 
   OT.Dialogs.Plugin.updateComplete = function(error) {
     var modal = new OT.$.Modal(function(window, document) {
-      var el = templateElement.bind(document),
+      var el = OT.$.bind(templateElement, document),
           reloadButton,
           root;
 
@@ -3555,6 +3660,12 @@ OTHelpers.centerElement = function(element, width, height) {
       } else {
         props.assetURL = props.cdnURL + '/webrtc/' + props.version;
       }
+    }
+
+    var isIE89 = OT.$.browser() === 'IE' && OT.$.browserVersion().version <= 9;
+    if (!(isIE89 && window.location.protocol.indexOf('https') < 0)) {
+      props.apiURL = props.apiURLSSL;
+      props.loggingURL = props.loggingURLSSL;
     }
 
     if (!props.configURL) props.configURL = props.assetURL + '/js/dynamic_config.min.js';
@@ -3942,44 +4053,64 @@ var PluginObject = function PluginObject (plugin) {
     return _plugin.valid;
   };
 
-  if (_plugin.attachEvent) {
-    this.on = function (name, callback) {
-      _plugin.attachEvent('on'+name, callback);
-      return this;
-    };
-  } else {
-    this.on = function (name, callback) {
-      _plugin.addEventListener(name, callback, false);
-      return this;
-    };
-  }
-
   
-  
-  if (window.detachEvent) {
-    this.off = function (name, callback) {
-      _plugin.detachEvent('on'+name, callback);
-      return this;
-    };
-  }
-  else {
-    this.off = function (name, callback) {
-      _plugin.removeEventListener(name, callback);
-      return this;
-    };
-  }
 
-  this.once = function (name, callback) {
-    var fn = OT.$.bind(function () {
-      this.off(name, fn);
-      return callback.apply(null, arguments);
-    }, this);
+  var eventHandlers = {};
 
-    this.on(name, fn);
+  var onCustomEvent = OT.$.bind(curryCallAsync(function onCustomEvent() {
+    var args = Array.prototype.slice.call(arguments),
+        name = args.shift();
+
+    if (!eventHandlers.hasOwnProperty(name) && eventHandlers[name].length) {
+      return;
+    }
+
+    OT.$.forEach(eventHandlers[name], function(handler) {
+      handler[0].apply(handler[1], args);
+    });
+  }), this);
+
+
+  this.on = function (name, callback, context) {
+    if (!eventHandlers.hasOwnProperty(name)) {
+      eventHandlers[name] = [];
+    }
+
+    eventHandlers[name].push([callback, context]);
     return this;
   };
 
+  this.off = function (name, callback, context) {
+    if (!eventHandlers.hasOwnProperty(name) ||
+        eventHandlers[name].length === 0) {
+      return;
+    }
+
+    OT.$.filter(eventHandlers[name], function(listener) {
+      return listener[0] === callback &&
+              listener[1] === context;
+    });
+
+    return this;
+  };
+
+  this.once = function (name, callback, context) {
+    var fn = function () {
+      this.off(name, fn, this);
+      return callback.apply(context, arguments);
+    };
+
+    this.on(name, fn, this);
+    return this;
+  };
+
+
   this.onReady = function(readyCallback) {
+    if (_plugin.on) {
+      
+      _plugin.on(-1, {customEvent: curryCallAsync(onCustomEvent, this)});
+    }
+
     
     if (_plugin.initialise) {
       this.on('ready', OT.$.bind(curryCallAsync(readyCallback), this));
@@ -4002,7 +4133,19 @@ var PluginObject = function PluginObject (plugin) {
   this.setStream = function(stream, completion) {
     if (completion) {
       if (stream.hasVideo()) {
-        this.once('renderingStarted', completion);
+        
+        
+        var verifyStream = function() {
+          if (_plugin.videoWidth > 0) {
+            
+            setTimeout(completion, 200);
+          }
+          else {
+            setTimeout(verifyStream, 500);
+          }
+        };
+
+        setTimeout(verifyStream, 500);
       }
       else {
         
@@ -4135,6 +4278,76 @@ var createPeerController = function createPeerController (completion) {
   });
 
   return o;
+};
+
+
+
+
+
+
+
+
+
+
+var VideoContainer = function VideoContainer (plugin, stream) {
+  this.domElement = plugin._;
+  this.parentElement = plugin._.parentNode;
+
+  plugin.addRef(this);
+
+  this.appendTo = function (parentDomElement) {
+    if (parentDomElement && plugin._.parentNode !== parentDomElement) {
+      debug('VideoContainer appendTo', parentDomElement);
+      parentDomElement.appendChild(plugin._);
+      this.parentElement = parentDomElement;
+    }
+  };
+
+  this.show = function (completion) {
+    debug('VideoContainer show');
+    plugin._.removeAttribute('width');
+    plugin._.removeAttribute('height');
+    plugin.setStream(stream, completion);
+    OT.$.show(plugin._);
+  };
+
+  this.setWidth = function (width) {
+    debug('VideoContainer setWidth to ' + width);
+    plugin._.setAttribute('width', width);
+  };
+
+  this.setHeight = function (height) {
+    debug('VideoContainer setHeight to ' + height);
+    plugin._.setAttribute('height', height);
+  };
+
+  this.setVolume = function (value) {
+    
+    debug('VideoContainer setVolume not implemented: called with ' + value);
+  };
+
+  this.getVolume = function () {
+    
+    debug('VideoContainer getVolume not implemented');
+    return 0.5;
+  };
+
+  this.getImgData = function () {
+    return plugin._.getImgData('image/png');
+  };
+
+  this.getVideoWidth = function () {
+    return plugin._.videoWidth;
+  };
+
+  this.getVideoHeight = function () {
+    return plugin._.videoHeight;
+  };
+
+  this.destroy = function () {
+    plugin._.setStream(null);
+    plugin.removeRef(this);
+  };
 };
 
 
@@ -4362,76 +4575,6 @@ var AutoUpdater;
   };
 
 })();
-
-
-
-
-
-
-
-
-
-
-var VideoContainer = function VideoContainer (plugin, stream) {
-  this.domElement = plugin._;
-  this.parentElement = plugin._.parentNode;
-
-  plugin.addRef(this);
-
-  this.appendTo = function (parentDomElement) {
-    if (parentDomElement && plugin._.parentNode !== parentDomElement) {
-      debug('VideoContainer appendTo', parentDomElement);
-      parentDomElement.appendChild(plugin._);
-      this.parentElement = parentDomElement;
-    }
-  };
-
-  this.show = function (completion) {
-    debug('VideoContainer show');
-    plugin._.removeAttribute('width');
-    plugin._.removeAttribute('height');
-    plugin.setStream(stream, completion);
-    OT.$.show(plugin._);
-  };
-
-  this.setWidth = function (width) {
-    debug('VideoContainer setWidth to ' + width);
-    plugin._.setAttribute('width', width);
-  };
-
-  this.setHeight = function (height) {
-    debug('VideoContainer setHeight to ' + height);
-    plugin._.setAttribute('height', height);
-  };
-
-  this.setVolume = function (value) {
-    
-    debug('VideoContainer setVolume not implemented: called with ' + value);
-  };
-
-  this.getVolume = function () {
-    
-    debug('VideoContainer getVolume not implemented');
-    return 0.5;
-  };
-
-  this.getImgData = function () {
-    return plugin._.getImgData('image/png');
-  };
-
-  this.getVideoWidth = function () {
-    return plugin._.videoWidth;
-  };
-
-  this.getVideoHeight = function () {
-    return plugin._.videoHeight;
-  };
-
-  this.destroy = function () {
-    plugin._.setStream(null);
-    plugin.removeRef(this);
-  };
-};
 
 
 
@@ -4690,108 +4833,6 @@ var RTCStatsReport = function (reports) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var PeerConnection = function PeerConnection (iceServers, options, plugin) {
   var id = OT.$.uuid(),
       hasLocalDescription = false,
@@ -5016,9 +5057,9 @@ var PeerConnection = function PeerConnection (iceServers, options, plugin) {
   
 
 var pluginInfo = {
-    mimeType: 'application/x-opentokie,version=0.4.0.7',
-    activeXName: 'TokBox.OpenTokIE.0.4.0.7',
-    version: '0.4.0.7'
+    mimeType: 'application/x-opentokie,version=0.4.0.8',
+    activeXName: 'TokBox.OpenTokIE.0.4.0.8',
+    version: '0.4.0.8'
   },
   _document = scope.document,
   readyCallbacks = [];
@@ -5412,7 +5453,8 @@ waitForDomReady();
         loadingContainer,
         width,
         height,
-        loading = true;
+        loading = true,
+        audioOnly = false;
 
     if (properties) {
       width = properties.width;
@@ -5528,7 +5570,20 @@ waitForDomReady();
       }
     };
 
+    this.setBackgroundImageURI = function(bgImgURI) {
+      if (bgImgURI.substr(0, 5) !== 'http:' && bgImgURI.substr(0, 6) !== 'https:') {
+        if (bgImgURI.substr(0, 22) !== 'data:image/png;base64,') {
+          bgImgURI = 'data:image/png;base64,' + bgImgURI;
+        }
+      }
+      OT.$.css(posterContainer, 'backgroundImage', 'url(' + bgImgURI + ')');
+      OT.$.css(posterContainer, 'backgroundSize', 'contain');
+      OT.$.css(posterContainer, 'opacity', '1.0');
+    };
 
+    if (properties && properties.style && properties.style.backgroundImageURI) {
+      this.setBackgroundImageURI(properties.style.backgroundImageURI);
+    }
 
     this.bindVideo = function(webRTCStream, options, completion) {
       
@@ -5622,6 +5677,18 @@ waitForDomReady();
         }
       },
 
+      audioOnly: {
+        get: function() { return audioOnly; },
+        set: function(a) {
+          audioOnly = a;
+
+          if (audioOnly) {
+            OT.$.addClass(container, 'OT_audio-only');
+          } else {
+            OT.$.removeClass(container, 'OT_audio-only');
+          }
+        }
+      },
 
       domId: {
         get: function() { return container.getAttribute('id'); }
@@ -5645,28 +5712,6 @@ waitForDomReady();
 })(window);
 
 !(function(window) {
-
-  
-
-  var nativeGetUserMedia,
-      vendorToW3CErrors,
-      gumNamesToMessages,
-      mapVendorErrorName,
-      parseErrorEvent,
-      areInvalidConstraints;
-
-  
-  nativeGetUserMedia = (function() {
-    if (navigator.getUserMedia) {
-      return OT.$.bind(navigator.getUserMedia, navigator);
-    } else if (navigator.mozGetUserMedia) {
-      return OT.$.bind(navigator.mozGetUserMedia, navigator);
-    } else if (navigator.webkitGetUserMedia) {
-      return OT.$.bind(navigator.webkitGetUserMedia, navigator);
-    } else if (TBPlugin.isInstalled()) {
-      return OT.$.bind(TBPlugin.getUserMedia, TBPlugin);
-    }
-  })();
 
   var NativeRTCPeerConnection = (window.webkitRTCPeerConnection ||
                                  window.mozRTCPeerConnection);
@@ -5742,6 +5787,178 @@ waitForDomReady();
     }
   }
 
+
+  OT.$.createPeerConnection = function (config, options, publishersWebRtcStream, completion) {
+    if (TBPlugin.isInstalled()) {
+      TBPlugin.initPeerConnection(config, options,
+                                  publishersWebRtcStream, completion);
+    }
+    else {
+      var pc;
+
+      try {
+        pc = new NativeRTCPeerConnection(config, options);
+      } catch(e) {
+        completion(e.message);
+        return;
+      }
+
+      completion(null, pc);
+    }
+  };
+
+  
+  
+  
+  
+  
+  
+  
+  
+  OT.$.supportedCryptoScheme = function() {
+    if (!OT.$.hasCapabilities('webrtc')) return 'NONE';
+
+    var chromeVersion = window.navigator.userAgent.toLowerCase().match(/chrome\/([0-9\.]+)/i);
+    return chromeVersion && parseFloat(chromeVersion[1], 10) < 25 ? 'SDES_SRTP' : 'DTLS_SRTP';
+  };
+
+})(window);
+
+!(function(window) {
+
+  
+
+  
+
+  
+  
+  
+  
+  
+
+
+  
+  
+  
+  OT.$.registerCapability('getUserMedia', function() {
+    return !!(navigator.webkitGetUserMedia || navigator.mozGetUserMedia || TBPlugin.isInstalled());
+  });
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  OT.$.registerCapability('PeerConnection', function() {
+    var browser = OT.$.browserVersion();
+
+    if (navigator.webkitGetUserMedia) {
+      return typeof(window.webkitRTCPeerConnection) === 'function' &&
+                      !!window.webkitRTCPeerConnection.prototype.addStream;
+
+    } else if (navigator.mozGetUserMedia) {
+      if (typeof(window.mozRTCPeerConnection) === 'function' && browser.version > 20.0) {
+        try {
+          new window.mozRTCPeerConnection();
+          return true;
+        } catch (err) {
+          return false;
+        }
+      }
+    } else {
+      return TBPlugin.isInstalled();
+    }
+  });
+
+
+  
+  
+  
+  
+  OT.$.registerCapability('webrtc', function() {
+    var browser = OT.$.browserVersion(),
+        minimumVersions = OT.properties.minimumVersion || {},
+        minimumVersion = minimumVersions[browser.browser.toLowerCase()];
+
+    if(minimumVersion && minimumVersion > browser.version) {
+      OT.debug('Support for', browser.browser, 'is disabled because we require',
+        minimumVersion, 'but this is', browser.version);
+      return false;
+    }
+
+
+    return OT.$.hasCapabilities('getUserMedia', 'PeerConnection');
+  });
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  OT.$.registerCapability('bundle', function() {
+    return OT.$.hasCapabilities('webrtc') &&
+              (OT.$.browser() === 'Chrome' || TBPlugin.isInstalled());
+  });
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  OT.$.registerCapability('RTCPMux', function() {
+    return OT.$.hasCapabilities('webrtc') &&
+                (OT.$.browser() === 'Chrome' || TBPlugin.isInstalled());
+  });
+
+
+
+  
+  
+  OT.$.registerCapability('getMediaDevices', function() {
+    return OT.$.isFunction(window.MediaStreamTrack) &&
+              OT.$.isFunction(window.MediaStreamTrack.getSources);
+  });
+
+})(window);
+
+!(function() {
+
+  var nativeGetUserMedia,
+      vendorToW3CErrors,
+      gumNamesToMessages,
+      mapVendorErrorName,
+      parseErrorEvent,
+      areInvalidConstraints;
+
+  
+  nativeGetUserMedia = (function() {
+    if (navigator.getUserMedia) {
+      return OT.$.bind(navigator.getUserMedia, navigator);
+    } else if (navigator.mozGetUserMedia) {
+      return OT.$.bind(navigator.mozGetUserMedia, navigator);
+    } else if (navigator.webkitGetUserMedia) {
+      return OT.$.bind(navigator.webkitGetUserMedia, navigator);
+    } else if (TBPlugin.isInstalled()) {
+      return OT.$.bind(TBPlugin.getUserMedia, TBPlugin);
+    }
+  })();
 
   
   
@@ -5826,113 +6043,6 @@ waitForDomReady();
     return true;
   };
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  OT.$.supportsWebRTC = function() {
-    var _supportsWebRTC = false;
-
-    var browser = OT.$.browserVersion(),
-        minimumVersions = OT.properties.minimumVersion || {},
-        minimumVersion = minimumVersions[browser.browser.toLowerCase()];
-
-    if(minimumVersion && minimumVersion > browser.version) {
-      OT.debug('Support for', browser.browser, 'is disabled because we require',
-        minimumVersion, 'but this is', browser.version);
-      _supportsWebRTC = false;
-
-    } else if (navigator.webkitGetUserMedia) {
-      _supportsWebRTC = typeof(webkitRTCPeerConnection) === 'function' &&
-        !!webkitRTCPeerConnection.prototype.addStream;
-
-    } else if (navigator.mozGetUserMedia) {
-      if (typeof(mozRTCPeerConnection) === 'function' && browser.version > 20.0) {
-        try {
-          new mozRTCPeerConnection();
-          _supportsWebRTC = true;
-        } catch (err) {
-          _supportsWebRTC = false;
-        }
-      }
-    } else if (TBPlugin.isInstalled()) {
-      _supportsWebRTC = true;
-    }
-
-    OT.$.supportsWebRTC = function() {
-      return _supportsWebRTC;
-    };
-
-    return _supportsWebRTC;
-  };
-
-  
-  
-  
-  
-  
-  
-  
-  
-  OT.$.supportedCryptoScheme = function() {
-    if (!OT.$.supportsWebRTC()) return 'NONE';
-
-    var chromeVersion = window.navigator.userAgent.toLowerCase().match(/chrome\/([0-9\.]+)/i);
-    return chromeVersion && parseFloat(chromeVersion[1], 10) < 25 ? 'SDES_SRTP' : 'DTLS_SRTP';
-  };
-
-  
-  
-  
-  
-  
-  
-  
-  OT.$.supportsBundle = function() {
-    return OT.$.supportsWebRTC() && (OT.$.browser() === 'Chrome' || TBPlugin.isInstalled());
-  };
-
-  
-  
-  
-  
-  
-  
-  
-  
-  OT.$.supportsRtcpMux = function() {
-    return OT.$.supportsWebRTC() && (OT.$.browser() === 'Chrome' || TBPlugin.isInstalled());
-  };
-
-  OT.$.shouldAskForDevices = function(callback) {
-    var memoiseReply = function(audio, video) {
-      OT.$.shouldAskForDevices = function(callback) {
-        setTimeout(OT.$.bind(callback, null, { video: video, audio: audio }));
-      };
-      OT.$.shouldAskForDevices(callback);
-    };
-    var MST = window.MediaStreamTrack;
-    if(MST != null && OT.$.isFunction(MST.getSources)) {
-      window.MediaStreamTrack.getSources(function(sources) {
-        var hasAudio = sources.some(function(src) {
-          return src.kind === 'audio';
-        });
-        var hasVideo = sources.some(function(src) {
-          return src.kind === 'video';
-        });
-        memoiseReply(hasAudio, hasVideo);
-      });
-    } else {
-      memoiseReply(true, true);
-    }
-  };
 
   
   
@@ -5964,36 +6074,6 @@ waitForDomReady();
   
   
   
-
-  var chromeToW3CDeviceKinds = {
-    audio: 'audioInput',
-    video: 'videoInput'
-  };
-
-  
-  OT.$.canGetMediaDevices = function() {
-    return typeof MediaStreamTrack === 'function' && OT.$.isFunction(MediaStreamTrack.getSources);
-  };
-
-  OT.$.getMediaDevices = function(callback) {
-    if(OT.$.canGetMediaDevices()) {
-      MediaStreamTrack.getSources(function(sources) {
-        var filteredSources = OT.$.filter(sources, function(source) {
-          return chromeToW3CDeviceKinds[source.kind] != null;
-        });
-        callback(void 0, OT.$.map(filteredSources, function(source) {
-          return {
-            deviceId: source.id,
-            label: source.label,
-            kind: chromeToW3CDeviceKinds[source.kind]
-          };
-        }));
-      });
-    } else {
-      callback(new Error('This browser does not support getMediaDevices APIs'));
-    }
-  };
-
   OT.$.getUserMedia = function(constraints, success, failure, accessDialogOpened,
     accessDialogClosed, accessDenied, customGetUserMedia) {
 
@@ -6081,25 +6161,71 @@ waitForDomReady();
     }
   };
 
-  OT.$.createPeerConnection = function (config, options, publishersWebRtcStream, completion) {
-    if (TBPlugin.isInstalled()) {
-      TBPlugin.initPeerConnection(config, options,
-                                  publishersWebRtcStream, completion);
-    }
-    else {
-      var pc;
+})();
 
-      try {
-        pc = new NativeRTCPeerConnection(config, options);
-      } catch(e) {
-        completion(e.message);
-        return;
-      }
+!(function(window) {
 
-      completion(null, pc);
+  
+
+  
+
+  
+  
+  
+  
+  
+
+  var chromeToW3CDeviceKinds = {
+    audio: 'audioInput',
+    video: 'videoInput'
+  };
+
+
+  OT.$.shouldAskForDevices = function(callback) {
+    var MST = window.MediaStreamTrack;
+
+    if(MST != null && OT.$.isFunction(MST.getSources)) {
+      window.MediaStreamTrack.getSources(function(sources) {
+        var hasAudio = sources.some(function(src) {
+          return src.kind === 'audio';
+        });
+
+        var hasVideo = sources.some(function(src) {
+          return src.kind === 'video';
+        });
+
+        callback.call(null, { video: hasVideo, audio: hasAudio });
+      });
+
+    } else {
+      
+      OT.$.shouldAskForDevices = function(callback) {
+        setTimeout(OT.$.bind(callback, null, { video: true, audio: true }));
+      };
+
+      OT.$.shouldAskForDevices(callback);
     }
   };
 
+
+  OT.$.getMediaDevices = function(callback) {
+    if(OT.$.hasCapabilities('getMediaDevices')) {
+      window.MediaStreamTrack.getSources(function(sources) {
+        var filteredSources = OT.$.filter(sources, function(source) {
+          return chromeToW3CDeviceKinds[source.kind] != null;
+        });
+        callback(void 0, OT.$.map(filteredSources, function(source) {
+          return {
+            deviceId: source.id,
+            label: source.label,
+            kind: chromeToW3CDeviceKinds[source.kind]
+          };
+        }));
+      });
+    } else {
+      callback(new Error('This browser does not support getMediaDevices APIs'));
+    }
+  };
 
 })(window);
 (function(window) {
@@ -6385,8 +6511,7 @@ waitForDomReady();
     var _onVideoError = OT.$.bind(function(event) {
           var reason = 'There was an unexpected problem with the Video Stream: ' +
                         videoElementErrorCodeToStr(event.target.error.code);
-
-          errorHandler.call(null, null, reason, this, 'VideoElement');
+          errorHandler(reason, this, 'VideoElement');
         }, this),
 
         
@@ -6470,14 +6595,7 @@ waitForDomReady();
     
     this.unbindStream = function() {
       if (_domElement) {
-        if (!navigator.mozGetUserMedia) {
-          
-          
-          window.URL.revokeObjectURL(_domElement.src);
-        }
-        else {
-          _domElement.mozSrcObject = null;
-        }
+        unbindNativeStream(_domElement);
       }
 
       return this;
@@ -6720,6 +6838,7 @@ waitForDomReady();
 
       onError = function onError (event) {
         cleanup();
+        unbindNativeStream(videoElement);
         completion('There was an unexpected problem with the Video Stream: ' +
           videoElementErrorCodeToStr(event.target.error.code));
       };
@@ -6728,6 +6847,7 @@ waitForDomReady();
         
         
         cleanup();
+        unbindNativeStream(videoElement);
         completion('Stream ended while trying to bind it to a video element.');
       };
 
@@ -6737,13 +6857,16 @@ waitForDomReady();
           cleanup();
           completion('The video stream failed to connect. Please notify the site ' +
             'owner if this continues to happen.');
-        } else {
+        } else if (webRtcStream.ended === true) {
           
+          
+          onStoppedLoading();
+        } else {
+
           OT.warn('Never got the loadedmetadata event but currentTime > 0');
           onLoad(null);
         }
       }, this), 30000);
-
 
       videoElement.addEventListener('loadedmetadata', onLoad, false);
       videoElement.addEventListener('error', onError, false);
@@ -6763,6 +6886,113 @@ waitForDomReady();
 
     videoElement.play();
   }
+
+
+  function unbindNativeStream(videoElement) {
+    if (videoElement.srcObject !== void 0) {
+      videoElement.srcObject = null;
+    } else if (videoElement.mozSrcObject !== void 0) {
+      videoElement.mozSrcObject = null;
+    } else {
+      window.URL.revokeObjectURL(videoElement.src);
+    }
+  }
+
+
+})(window);
+
+
+!(function() {
+  
+
+  
+
+  var currentGuidStorage,
+      currentGuid;
+
+  var isInvalidStorage = function isInvalidStorage (storageInterface) {
+    return !(OT.$.isFunction(storageInterface.get) && OT.$.isFunction(storageInterface.set));
+  };
+
+  var getClientGuid = function getClientGuid (completion) {
+    if (currentGuid) {
+      completion(null, currentGuid);
+      return;
+    }
+
+    
+    
+    
+    currentGuidStorage.get(completion);
+  };
+
+  OT.overrideGuidStorage = function (storageInterface) {
+    if (isInvalidStorage(storageInterface)) {
+      throw new Error('The storageInterface argument does not seem to be valid, ' +
+                                        'it must implement get and set methods');
+    }
+
+    if (currentGuidStorage === storageInterface) {
+      return;
+    }
+
+    currentGuidStorage = storageInterface;
+
+    
+    
+    if (currentGuid) {
+      currentGuidStorage.set(currentGuid, function(error) {
+        if (error) {
+          OT.error('Failed to send initial Guid value (' + currentGuid +
+                                ') to the newly assigned Guid Storage. The error was: ' + error);
+          
+        }
+      });
+    }
+  };
+
+  if (!OT._) OT._ = {};
+  OT._.getClientGuid = function (completion) {
+    getClientGuid(function(error, guid) {
+      if (error) {
+        completion(error);
+        return;
+      }
+
+      if (!guid) {
+        
+        
+        guid = OT.$.uuid();
+        currentGuidStorage.set(guid, function(error) {
+          if (error) {
+            completion(error);
+            return;
+          }
+
+          currentGuid = guid;
+        });
+      }
+      else if (!currentGuid) {
+        currentGuid = guid;
+      }
+
+      completion(null, currentGuid);
+    });
+  };
+
+
+  
+  
+  OT.overrideGuidStorage({
+    get: function(completion) {
+      completion(null, OT.$.getCookie('opentok_client_id'));
+    },
+
+    set: function(guid, completion) {
+      OT.$.setCookie('opentok_client_id', guid);
+      completion(null);
+    }
+  });
 
 })(window);
 !(function(window) {
@@ -6948,35 +7178,42 @@ waitForDomReady();
 
       if (!options) options = {};
 
-      
-      var data = OT.$.extend({
-        'variation' : '',
-        'guid' : this.getClientGuid(),
-        'widget_id' : '',
-        'session_id': '',
-        'connection_id': '',
-        'stream_id' : '',
-        'partner_id' : partnerId,
-        'source' : window.location.href,
-        'section' : '',
-        'build' : ''
-      }, options),
-
-      onComplete = function(){
-        
-        
-      };
-
-      
-      
-      for (var key in camelCasedKeys) {
-        if (camelCasedKeys.hasOwnProperty(key) && data[key]) {
-          data[camelCasedKeys[key]] = data[key];
-          delete data[key];
+      OT._.getClientGuid(function(error, guid) {
+        if (error) {
+          
+          return;
         }
-      }
 
-      post(data, onComplete, false);
+        
+        var data = OT.$.extend({
+          'variation' : '',
+          'guid' : guid,
+          'widget_id' : '',
+          'session_id': '',
+          'connection_id': '',
+          'stream_id' : '',
+          'partner_id' : partnerId,
+          'source' : window.location.href,
+          'section' : '',
+          'build' : ''
+        }, options),
+
+        onComplete = function(){
+          
+          
+        };
+
+        
+        
+        for (var key in camelCasedKeys) {
+          if (camelCasedKeys.hasOwnProperty(key) && data[key]) {
+            data[camelCasedKeys[key]] = data[key];
+            delete data[key];
+          }
+        }
+
+        post(data, onComplete, false);
+      });
     };
 
     
@@ -6986,34 +7223,43 @@ waitForDomReady();
 
       if (!options) options = {};
 
-      
-      var data = OT.$.extend({
-        'guid' : this.getClientGuid(),
-        'widget_id' : '',
-        'session_id': '',
-        'connection_id': '',
-        'stream_id' : '',
-        'partner_id' : partnerId,
-        'source' : window.location.href,
-        'build' : '',
-        'duration' : 0 
-      }, options),
-
-      onComplete = function(){
-        
-        
-      };
-
-      
-      
-      for (var key in camelCasedKeys) {
-        if (camelCasedKeys.hasOwnProperty(key) && data[key]) {
-          data[camelCasedKeys[key]] = data[key];
-          delete data[key];
+      OT._.getClientGuid(function(error, guid) {
+        if (error) {
+          
+          return;
         }
-      }
 
-      post(data, onComplete, true);
+        
+        var data = OT.$.extend({
+          'guid' : guid,
+          'widget_id' : '',
+          'session_id': '',
+          'connection_id': '',
+          'stream_id' : '',
+          'partner_id' : partnerId,
+          'source' : window.location.href,
+          'build' : '',
+          'duration' : 0 
+        }, options),
+
+        onComplete = function(){
+          
+          
+        };
+
+        
+        
+        for (var key in camelCasedKeys) {
+          if (camelCasedKeys.hasOwnProperty(key)) {
+            if(data[key]) {
+              data[camelCasedKeys[key]] = data[key];
+            }
+            delete data[key];
+          }
+        }
+
+        post(data, onComplete, true);
+      });
     };
 
     
@@ -7036,24 +7282,28 @@ waitForDomReady();
         escapedPayload.join('|')
       ];
     };
-
-    
-    this.getClientGuid = function() {
-      var guid = OT.$.getCookie('opentok_client_id');
-      if (!guid) {
-        guid = OT.$.uuid();
-        OT.$.setCookie('opentok_client_id', guid);
-      }
-      
-      
-      this.getClientGuid = function() {
-        return guid;
-      };
-      return guid;
-    };
   };
 
 })(window);
+!(function() {
+
+  OT.$.registerCapability('audioOutputLevelStat', function() {
+    return OT.$.browserVersion().browser === 'Chrome';
+  });
+
+  OT.$.registerCapability('webAudioCapableRemoteStream', function() {
+    return OT.$.browserVersion().browser === 'Firefox';
+  });
+
+  OT.$.registerCapability('getStatsWithSingleParameter', function() {
+    return OT.$.browserVersion().browser === 'Chrome';
+  });
+
+  OT.$.registerCapability('webAudio', function() {
+    return 'AudioContext' in window;
+  });
+
+})();
 !(function(window) {
 
   
@@ -7070,6 +7320,8 @@ waitForDomReady();
   if (!window.URL && window.webkitURL) {
     window.URL = window.webkitURL;
   }
+
+  var _analytics = new OT.Analytics();
 
   var 
       _intervalId,
@@ -7124,6 +7376,18 @@ waitForDomReady();
 
     return session;
   };
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7439,7 +7703,8 @@ waitForDomReady();
     OT.debug('OT.checkSystemRequirements()');
 
     
-    var systemRequirementsMet = (OT.$.supportsWebSockets() && OT.$.supportsWebRTC());
+    var systemRequirementsMet = OT.$.hasCapabilities('websockets', 'webrtc') ||
+                                      TBPlugin.isInstalled();
 
     systemRequirementsMet = systemRequirementsMet ?
                                       this.HAS_REQUIREMENTS : this.NOT_HAS_REQUIREMENTS;
@@ -7448,6 +7713,16 @@ waitForDomReady();
       OT.debug('OT.checkSystemRequirements()');
       return systemRequirementsMet;
     };
+
+    if(systemRequirementsMet === this.NOT_HAS_REQUIREMENTS) {
+      _analytics.logEvent({
+        action: 'checkSystemRequirements',
+        variation: 'notHasRequirements',
+        'payload_type': 'userAgent',
+        'partner_id': OT.APIKEY,
+        payload: OT.$.userAgent()
+      });
+    }
 
     return systemRequirementsMet;
   };
@@ -7468,6 +7743,20 @@ waitForDomReady();
   OT.upgradeSystemRequirements = function(){
     
     OT.onLoad( function() {
+
+      if(TBPlugin.isSupported()) {
+        OT.Dialogs.Plugin.promptToInstall().on({
+          download: function() {
+            window.location = TBPlugin.pathToInstaller();
+          },
+          refresh: function() {
+            location.reload();
+          },
+          closed: function() {}
+        });
+        return;
+      }
+
       var id = '_upgradeFlash';
 
          
@@ -7497,7 +7786,8 @@ waitForDomReady();
         d.setAttribute('scrolling', 'no');
 
         var browser = OT.$.browserVersion(),
-            isSupportedButOld = OT.properties.minimumVersion[browser.browser.toLowerCase()];
+            minimumBrowserVersion = OT.properties.minimumVersion[browser.browser.toLowerCase()],
+            isSupportedButOld =  minimumBrowserVersion > browser.version;
         d.src = OT.properties.assetURL + '/html/upgrade.html#' +
                           encodeURIComponent(isSupportedButOld ? 'true' : 'false') + ',' +
                           encodeURIComponent(JSON.stringify(OT.properties.minimumVersion)) + '|' +
@@ -8070,7 +8360,10 @@ waitForDomReady();
 
     
     ENV_LOADED: 'envLoaded',
-    ENV_UNLOADED: 'envUnloaded'
+    ENV_UNLOADED: 'envUnloaded',
+
+    
+    AUDIO_LEVEL_UPDATED: 'audioLevelUpdated'
   };
 
   OT.ExceptionCodes = {
@@ -8362,12 +8655,6 @@ waitForDomReady();
 
 
 
-
-
-
-
-
-
   var connectionEventPluralDeprecationWarningShown = false;
   OT.ConnectionEvent = function (type, connection, reason) {
     OT.Event.call(this, type, false);
@@ -8390,6 +8677,7 @@ waitForDomReady();
     this.connection = connection;
     this.reason = reason;
   };
+
 
 
 
@@ -8764,7 +9052,6 @@ waitForDomReady();
     this.from = from;
   };
 
-
   OT.StreamUpdatedEvent = function (stream, key, oldValue, newValue) {
     OT.Event.call(this, 'updated', false);
     this.target = stream;
@@ -8777,6 +9064,86 @@ waitForDomReady();
     OT.Event.call(this, type, false);
     this.target = target;
     this.reason = reason;
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  OT.VideoEnabledChangedEvent = function(type, properties) {
+    OT.Event.call(this, type, false);
+    this.reason = properties.reason;
+  };
+
+  OT.VideoDisableWarningEvent = function(type) {
+    OT.Event.call(this, type, false);
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+  OT.AudioLevelUpdatedEvent = function(audioLevel) {
+    OT.Event.call(this, OT.Event.names.AUDIO_LEVEL_UPDATED, false);
+    this.audioLevel = audioLevel;
   };
 
 })(window);
@@ -11421,7 +11788,7 @@ waitForDomReady();
           return (OT.$.now() - lastMessageTimestamp) >= WEB_SOCKET_CONNECTIVITY_TIMEOUT;
         },
 
-        sendKeepAlive = OT.$.bind(function sendKeepAlive () {
+        sendKeepAlive = OT.$.bind(function() {
           if (!this.is('connected')) return;
 
           if ( hasLostConnectivity() ) {
@@ -11429,7 +11796,7 @@ waitForDomReady();
           }
           else  {
             webSocket.send(OT.Rumor.Message.Ping());
-            keepAliveTimer = setTimeout(sendKeepAlive.bind(this), WEB_SOCKET_KEEP_ALIVE_INTERVAL);
+            keepAliveTimer = setTimeout(sendKeepAlive, WEB_SOCKET_KEEP_ALIVE_INTERVAL);
           }
         }, this),
 
@@ -11463,7 +11830,7 @@ waitForDomReady();
 
           if (onOpen) onOpen(id);
 
-          setTimeout(function() {
+          keepAliveTimer = setTimeout(function() {
             lastMessageTimestamp = OT.$.now();
             sendKeepAlive();
           }, WEB_SOCKET_KEEP_ALIVE_INTERVAL);
@@ -11747,7 +12114,6 @@ waitForDomReady();
         webSocket.onClose(function(error) {
           state = 'closed'; 
           events.onClose({ code: error });
-          webSocket.finalize();
         });
         webSocket.onError(function(error) {
           state = 'closed'; 
@@ -12175,7 +12541,7 @@ waitForDomReady();
 
     return message;
   };
-  
+
   OT.Raptor.parseIceServers = function (message) {
     try {
       return JSON.parse(message.data).content.iceServers;
@@ -12326,8 +12692,8 @@ waitForDomReady();
       id: subscriberId,
       connection: connectionId,
       keyManagementMethod: OT.$.supportedCryptoScheme(),
-      bundleSupport: OT.$.supportsBundle(),
-      rtcpMuxSupport: OT.$.supportsRtcpMux()
+      bundleSupport: OT.$.hasCapabilities('bundle'),
+      rtcpMuxSupport: OT.$.hasCapabilities('RTCPMux')
     };
     if (channelsToSubscribeTo) content.channel = channelsToSubscribeTo;
 
@@ -12860,7 +13226,7 @@ waitForDomReady();
 
   OT.Raptor.Dispatcher = function () {
 
-    if(typeof EventEmitter !== 'undefined') {
+    if(OT.isNodeModule) {
       EventEmitter.call(this);
     } else {
       OT.$.eventing(this, true);
@@ -12870,7 +13236,7 @@ waitForDomReady();
     this.callbacks = {};
   };
 
-  if(typeof EventEmitter !== 'undefined') {
+  if(OT.isNodeModule) {
     util.inherits(OT.Raptor.Dispatcher, EventEmitter);
   }
 
@@ -12920,7 +13286,7 @@ waitForDomReady();
 
     var message = OT.Raptor.unboxFromRumorMessage(rumorMessage);
     OT.debug('OT.Raptor.dispatch ' + message.signature);
-    OT.debug(message);
+    OT.debug(rumorMessage.data);
 
     switch(message.resource) {
       case 'session':
@@ -13172,6 +13538,15 @@ waitForDomReady();
     return archive;
   }
 
+  var sessionRead;
+  var sessionReadQueue = [];
+
+  function sessionReadQueuePush(type, args) {
+    var triggerArgs = ['signal'];
+    triggerArgs.push.apply(triggerArgs, args);
+    sessionReadQueue.push(triggerArgs);
+  }
+
   window.OT.SessionDispatcher = function(session) {
 
     var dispatcher = new OT.Raptor.Dispatcher();
@@ -13220,6 +13595,13 @@ waitForDomReady();
       session._.subscriberMap = {};
 
       dispatcher.triggerCallback(transactionId, null, state);
+
+      sessionRead = true;
+      for (var i = 0; i < sessionReadQueue.length; ++i) {
+        dispatcher.trigger.apply(dispatcher, sessionReadQueue[i]);
+      }
+      sessionReadQueue = [];
+
     });
 
     dispatcher.on('connection#created', function(connection) {
@@ -13432,8 +13814,14 @@ waitForDomReady();
     });
 
     dispatcher.on('signal', function(fromAddress, signalType, data) {
-      session._.dispatchSignal(session.connections.get(fromAddress),
-                               signalType, data);
+      if (sessionRead) {
+        var fromConnection = session.connections.get(fromAddress);
+        session._.dispatchSignal(fromConnection, signalType, data);
+      } else {
+        if (!sessionRead) {
+          sessionReadQueuePush('signal', arguments);
+        }
+      }
     });
 
     dispatcher.on('archive#created', function(archive) {
@@ -13887,30 +14275,6 @@ waitForDomReady();
     _exceptionHandler(options.target, errorMsg, code, context);
   };
 
-
-
-
-
-
-
-
-
-
-  OT.exceptionHandler = function(componentId, msg, errorTitle, errorCode, context) {
-    var target;
-
-    if (componentId) {
-      target = OT.components[componentId];
-
-      if (!target) {
-        OT.warn('Could not find the component with component ID ' + componentId);
-      }
-    }
-
-    _exceptionHandler(target, msg, errorCode, context);
-  };
-
-
   
   OT.dispatchError = function (code, message, completionHandler, session) {
     OT.error(code, message);
@@ -13943,6 +14307,7 @@ waitForDomReady();
 !(function() {
 
   
+
 
 
 
@@ -14055,6 +14420,10 @@ waitForDomReady();
         switch(key) {
           case 'active':
             this.active = OT.$.castToBoolean(attributes[key]);
+            break;
+
+          case 'disableWarning':
+            this.disableWarning = OT.$.castToBoolean(attributes[key]);
             break;
 
           case 'frameRate':
@@ -14180,6 +14549,14 @@ waitForDomReady();
         case 'active':
           _key = channel.type === 'audio' ? 'hasAudio' : 'hasVideo';
           this[_key] = newValue;
+          break;
+
+        case 'disableWarning':
+          _key = channel.type === 'audio' ? 'audioDisableWarning': 'videoDisableWarning';
+          this[_key] = newValue;
+          if (!this[channel.type === 'audio' ? 'hasAudio' : 'hasVideo']) {
+            return; 
+          }
           break;
 
         case 'orientation':
@@ -14393,6 +14770,170 @@ waitForDomReady();
   };
 
 })(window);
+!(function() {
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  OT.GetStatsAudioLevelSampler = function(peerConnection) {
+
+    if (!OT.$.hasCapabilities('audioOutputLevelStat', 'getStatsWithSingleParameter')) {
+      throw new Error('The current platform does not provide the required capabilities');
+    }
+
+    var _peerConnection = peerConnection,
+        _statsProperty = 'audioOutputLevel';
+
+    
+
+
+
+
+
+    this.sample = function(done) {
+      _peerConnection.getStatsWithSingleParameter(function(statsReport) {
+        var results = statsReport.result();
+
+        for (var i = 0; i < results.length; i++) {
+          var result = results[i];
+          if (result.local) {
+            var audioOutputLevel = parseFloat(result.local.stat(_statsProperty));
+            if (!isNaN(audioOutputLevel)) {
+              
+              done(audioOutputLevel / 32768);
+              return;
+            }
+          }
+        }
+
+        done(null);
+      });
+    };
+  };
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  OT.AnalyserAudioLevelSampler = function(audioContext) {
+
+    var _sampler = this,
+        _analyser = null,
+        _timeDomainData = null;
+
+    var _getAnalyser = function(stream) {
+      var sourceNode = audioContext.createMediaStreamSource(stream);
+      var analyser = audioContext.createAnalyser();
+      sourceNode.connect(analyser);
+      return analyser;
+    };
+
+    this.webOTStream = null;
+
+    this.sample = function(done) {
+
+      if (!_analyser && _sampler.webOTStream) {
+        _analyser = _getAnalyser(_sampler.webOTStream);
+        _timeDomainData = new Uint8Array(_analyser.frequencyBinCount);
+      }
+
+      if (_analyser) {
+        _analyser.getByteTimeDomainData(_timeDomainData);
+
+        
+        var max = 0;
+        for (var idx = 0; idx < _timeDomainData.length; idx++) {
+          max = Math.max(max, Math.abs(_timeDomainData[idx] - 128));
+        }
+
+        
+        
+        done(max / 128);
+      } else {
+        done(null);
+      }
+    };
+  };
+
+  
+
+
+
+
+
+
+
+
+  OT.AudioLevelTransformer = function() {
+
+    var _averageAudioLevel = null;
+
+    
+
+
+
+
+    this.transform = function(audioLevel) {
+      if (_averageAudioLevel === null || audioLevel >= _averageAudioLevel) {
+        _averageAudioLevel = audioLevel;
+      } else {
+        
+        _averageAudioLevel = audioLevel * 0.3 + _averageAudioLevel * 0.7;
+      }
+
+      
+      var logScaled = (Math.log(_averageAudioLevel) / Math.LN10) / 1.5 + 1;
+
+      return Math.min(Math.max(logScaled, 0), 1);
+    };
+  };
+
+})(window);
+!(function() {
+
+  
+
+
+
+
+
+
+  OT.IntervalRunner = function(callback, frequency) {
+    var _callback = callback,
+      _frequency = frequency,
+      _intervalId = null;
+
+    this.start = function() {
+      _intervalId = window.setInterval(_callback, 1000 / _frequency);
+    };
+
+    this.stop = function() {
+      window.clearInterval(_intervalId);
+      _intervalId = null;
+    };
+  };
+
+})(window);
 !(function(window) {
 
   
@@ -14502,6 +15043,35 @@ waitForDomReady();
     return sdpLines.join('\r\n');
   };
 
+  var removeVideoCodec = function removeVideoCodec (sdp, codec) {
+    var matcher =  new RegExp('a=rtpmap:(\\d+) ' + codec + '\\/\\d+', 'i'),
+        payloadTypes = [],
+        videoMediaLineIndex,
+        sdpLines,
+        match;
+
+    sdpLines = OT.$.filter(sdp.split('\r\n'), function(line, index) {
+      if (line.indexOf('m=video') !== -1) videoMediaLineIndex = index;
+
+      match = line.match(matcher);
+      if (match !== null) {
+        payloadTypes.push(match[1]);
+
+        
+        return false;
+      }
+
+      return true;
+    });
+
+    if (payloadTypes.length && videoMediaLineIndex) {
+      sdpLines[videoMediaLineIndex] = sdpLines[videoMediaLineIndex].replace(
+        new RegExp(payloadTypes.join('|'), 'ig') , '').replace(/\s+/g, ' ');
+    }
+
+    return sdpLines.join('\r\n');
+  };
+
   
   
   
@@ -14526,6 +15096,8 @@ waitForDomReady();
 
     setLocalDescription = function(answer) {
       answer.sdp = removeComfortNoise(answer.sdp);
+      answer.sdp = removeVideoCodec(answer.sdp, 'ulpfec');
+      answer.sdp = removeVideoCodec(answer.sdp, 'red');
 
       peerConnection.setLocalDescription(
         answer,
@@ -14610,6 +15182,8 @@ waitForDomReady();
 
     setLocalDescription = function(offer) {
       offer.sdp = removeComfortNoise(offer.sdp);
+      offer.sdp = removeVideoCodec(offer.sdp, 'ulpfec');
+      offer.sdp = removeVideoCodec(offer.sdp, 'red');
 
       peerConnection.setLocalDescription(
         offer,
@@ -15027,6 +15601,14 @@ waitForDomReady();
 
     this.remoteStreams = function() {
       return _peerConnection ? getRemoteStreams() : [];
+    };
+
+    this.getStatsWithSingleParameter = function(callback) {
+      if (OT.$.hasCapabilities('getStatsWithSingleParameter')) {
+        createPeerConnection(function() {
+          _peerConnection.getStats(callback);
+        });
+      }
     };
 
     var qos = new OT.PeerConnection.QOS(qosCallback);
@@ -15606,7 +16188,7 @@ waitForDomReady();
 
     
     _onPeerError = function(errorReason, prefix) {
-      this.trigger('error', null, errorReason, this, prefix);
+      this.trigger('error', errorReason, this, prefix);
     };
 
     _relayMessageToPeer = OT.$.bind(function(type, payload) {
@@ -15758,10 +16340,16 @@ waitForDomReady();
         session._.subscriberCreate(stream, subscriber, channelsToSubscribeTo,
           OT.$.bind(function(err, message) {
             if (err) {
-              this.trigger('error', null, err.message, this, 'Subscribe');
+              this.trigger('error', err.message, this, 'Subscribe');
             }
             _peerConnection.setIceServers(OT.Raptor.parseIceServers(message));
           }, this));
+      }
+    };
+
+    this.getStatsWithSingleParameter = function(callback) {
+      if(_peerConnection) {
+        _peerConnection.getStatsWithSingleParameter(callback);
       }
     };
   };
@@ -15905,17 +16493,17 @@ waitForDomReady();
 
       if (_options.onCreate) _options.onCreate(this.domElement);
 
-      
-      if (_options.mode !== 'auto') {
-        widget.setDisplayMode(_options.mode);
-      } else {
+      widget.setDisplayMode(_options.mode);
+
+      if (_options.mode === 'auto') {
         
         
-        widget.setDisplayMode('on');
+        OT.$.addClass(widget.domElement, 'OT_mode-on-hold');
         setTimeout(function() {
-          widget.setDisplayMode(_options.mode);
+          OT.$.removeClass(widget.domElement, 'OT_mode-on-hold');
         }, 2000);
       }
+
 
       
       parent.appendChild(this.domElement);
@@ -16236,6 +16824,109 @@ waitForDomReady();
   };
 
 })(window);
+!(function() {
+
+  OT.Chrome.AudioLevelMeter = function(options) {
+
+    var widget = this,
+        _meterBarElement,
+        _voiceOnlyIconElement,
+        _meterValueElement,
+        _value,
+        _maxValue = options.maxValue || 1,
+        _minValue = options.minValue || 0;
+
+    
+    OT.Chrome.Behaviour.Widget(this, {
+      mode: options ? options.mode : 'auto',
+      nodeName: 'div',
+      htmlAttributes: {
+        className: 'OT_audio-level-meter'
+      },
+      onCreate: function() {
+        _meterBarElement = OT.$.createElement('div', {
+          className: 'OT_audio-level-meter__bar'
+        }, '');
+        _meterValueElement = OT.$.createElement('div', {
+          className: 'OT_audio-level-meter__value'
+        }, '');
+        _voiceOnlyIconElement = OT.$.createElement('div', {
+          className: 'OT_audio-level-meter__audio-only-img'
+        }, '');
+
+        widget.domElement.appendChild(_meterBarElement);
+        widget.domElement.appendChild(_voiceOnlyIconElement);
+        widget.domElement.appendChild(_meterValueElement);
+      }
+    });
+
+    function updateView() {
+      var percentSize = _value * 100 / (_maxValue - _minValue);
+      _meterValueElement.style.width = _meterValueElement.style.height = 2 * percentSize + '%';
+      _meterValueElement.style.top = _meterValueElement.style.right = -percentSize + '%';
+    }
+
+    widget.setValue = function(value) {
+      _value = value;
+      updateView();
+    };
+  };
+
+})(window);
+!(function() {
+  OT.Chrome.VideoDisabledIndicator = function(options) {
+    var _mode,
+        _videoDisabled = false,
+        _warning = false,
+        updateClasses;
+
+    _mode = options.mode || 'auto';
+    updateClasses = function(domElement) {
+      if (_videoDisabled) {
+        OT.$.addClass(domElement, 'OT_video-disabled');
+      } else {
+        OT.$.removeClass(domElement, 'OT_video-disabled');
+      }
+      if(_warning) {
+        OT.$.addClass(domElement, 'OT_video-disabled-warning');
+      } else {
+        OT.$.removeClass(domElement, 'OT_video-disabled-warning');
+      }
+      if ((_videoDisabled || _warning) && (_mode === 'auto' || _mode === 'on')) {
+        OT.$.addClass(domElement, 'OT_active');
+      } else {
+        OT.$.removeClass(domElement, 'OT_active');
+      }
+    };
+
+    this.disableVideo = function(value) {
+      _videoDisabled = value;
+      if(value === true) {
+        _warning = false;
+      }
+      updateClasses(this.domElement);
+    };
+
+    this.setWarning = function(value) {
+      _warning = value;
+      updateClasses(this.domElement);
+    };
+
+    
+    OT.Chrome.Behaviour.Widget(this, {
+      mode: _mode,
+      nodeName: 'div',
+      htmlAttributes: {
+        className: 'OT_video-disabled-indicator'
+      }
+    });
+
+    this.setDisplayMode = function(mode) {
+      _mode = mode;
+      updateClasses(this.domElement);
+    };
+  };
+})(window);
 (function() {
 
 
@@ -16373,7 +17064,39 @@ waitForDomReady();
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -16467,11 +17190,13 @@ waitForDomReady();
       buttonDisplayMode: ['auto', 'mini', 'mini-auto', 'off', 'on'],
       nameDisplayMode: ['auto', 'off', 'on'],
       bugDisplayMode: ['auto', 'off', 'on'],
+      audioLevelDisplayMode: ['auto', 'off', 'on'],
       showSettingsButton: [true, false],
       showMicButton: [true, false],
       backgroundImageURI: null,
       showControlBar: [true, false],
-      showArchiveStatus: [true, false]
+      showArchiveStatus: [true, false],
+      videoDisabledDisplayMode: ['auto', 'off', 'on']
     };
 
 
@@ -16547,7 +17272,7 @@ waitForDomReady();
     };
 
     this.set = function(key, value) {
-      OT.debug('Publisher.setStyle: ' + key.toString());
+      OT.debug('setStyle: ' + key.toString());
 
       var newValue = castValue(value),
           oldValue;
@@ -16960,12 +17685,15 @@ waitForDomReady();
         _publishStartTime,
         _microphone,
         _chrome,
+        _audioLevelMeter,
         _analytics = new OT.Analytics(),
         _validResolutions,
         _validFrameRates = [ 1, 7, 15, 30 ],
         _prevStats,
         _state,
-        _iceServers;
+        _iceServers,
+        _audioLevelCapable = OT.$.hasCapabilities('webAudio'),
+        _audioLevelSampler;
 
     _validResolutions = {
       '320x240': {width: 320, height: 240},
@@ -16979,12 +17707,39 @@ waitForDomReady();
 
     OT.$.eventing(this);
 
+    if(_audioLevelCapable) {
+      _audioLevelSampler = new OT.AnalyserAudioLevelSampler(new window.AudioContext());
+
+      var publisher = this;
+      var audioLevelRunner = new OT.IntervalRunner(function() {
+        _audioLevelSampler.sample(function(audioInputLevel) {
+          OT.$.requestAnimationFrame(function() {
+            publisher.dispatchEvent(
+              new OT.AudioLevelUpdatedEvent(audioInputLevel));
+          });
+        });
+      }, 60);
+
+      this.on({
+        'audioLevelUpdated:added': function(count) {
+          if (count === 1) {
+            audioLevelRunner.start();
+          }
+        },
+        'audioLevelUpdated:removed': function(count) {
+          if (count === 0) {
+            audioLevelRunner.stop();
+          }
+        }
+      });
+    }
+
     OT.StylableComponent(this, {
-      showMicButton: true,
       showArchiveStatus: true,
       nameDisplayMode: 'auto',
       buttonDisplayMode: 'auto',
       bugDisplayMode: 'auto',
+      audioLevelDisplayMode: 'auto',
       backgroundImageURI: null
     });
 
@@ -17006,6 +17761,9 @@ waitForDomReady();
         },
 
         recordQOS = OT.$.bind(function(connection, parsedStats) {
+          if(!_state.isPublishing()) {
+            return;
+          }
           var QoSBlob = {
             'widget_type': 'Publisher',
             'stream_type': 'WebRTC',
@@ -17105,6 +17863,10 @@ waitForDomReady();
             onLoaded.call(this);
           }, this));
 
+          if(_audioLevelSampler) {
+            _audioLevelSampler.webOTStream = webOTStream;
+          }
+
         },
 
         onStreamAvailableError = function(error) {
@@ -17189,13 +17951,25 @@ waitForDomReady();
               if(!event.isDefaultPrevented()) {
                 if(browser.browser === 'Chrome') {
                   accessDialogChromeTimeout = setTimeout(function() {
+                    accessDialogChromeTimeout = null;
+                    logAnalyticsEvent('allowDenyHelpers', 'show', 'version', 'Chrome');
                     accessDialogPrompt = OT.Dialogs.AllowDeny.Chrome.initialPrompt();
+                    accessDialogPrompt.on('closeButtonClicked', function() {
+                      logAnalyticsEvent('allowDenyHelpers', 'dismissed', 'version', 'Chrome');
+                    });
                   }, 5000);
                 } else if(browser.browser === 'Firefox') {
                   accessDialogFirefoxTimeout = setTimeout(function() {
+                    accessDialogFirefoxTimeout = null;
+                    logAnalyticsEvent('allowDenyHelpers', 'show', 'version', 'Firefox');
                     accessDialogPrompt = OT.Dialogs.AllowDeny.Firefox.maybeDenied();
+                    accessDialogPrompt.on('closeButtonClicked', function() {
+                      logAnalyticsEvent('allowDenyHelpers', 'dismissed', 'version', 'Firefox');
+                    });
                   }, 7000);
                 }
+              } else {
+                logAnalyticsEvent('allowDenyHelpers', 'developerPrevented', '', '');
               }
             }
           );
@@ -17206,16 +17980,20 @@ waitForDomReady();
 
           if(accessDialogChromeTimeout) {
             clearTimeout(accessDialogChromeTimeout);
+            logAnalyticsEvent('allowDenyHelpers', 'notShown', 'version', 'Chrome');
             accessDialogChromeTimeout = null;
           }
 
           if(accessDialogFirefoxTimeout) {
             clearTimeout(accessDialogFirefoxTimeout);
+            logAnalyticsEvent('allowDenyHelpers', 'notShown', 'version', 'Firefox');
             accessDialogFirefoxTimeout = null;
           }
 
           if(accessDialogPrompt) {
             accessDialogPrompt.close();
+            var browser = OT.$.browserVersion();
+            logAnalyticsEvent('allowDenyHelpers', 'closed', 'version', browser.browser);
             accessDialogPrompt = null;
           }
 
@@ -17365,7 +18143,7 @@ waitForDomReady();
           switch(key) {
             case 'nameDisplayMode':
               _chrome.name.setDisplayMode(value);
-              _chrome.backingBar.nameMode = value;
+              _chrome.backingBar.setNameMode(value);
               break;
 
             case 'showArchiveStatus':
@@ -17374,29 +18152,35 @@ waitForDomReady();
               break;
 
             case 'buttonDisplayMode':
-            case 'showMicButton':
-              
-              
-              
+              _chrome.muteButton.setDisplayMode(value);
+              _chrome.backingBar.setMuteMode(value);
+              break;
+
+            case 'audioLevelDisplayMode':
+              _chrome.audioLevel.setDisplayMode(value);
+              break;
+
             case 'bugDisplayMode':
               
+
+            case 'backgroundImageURI':
+              _container.setBackgroundImageURI(value);
           }
         },
 
         _createChrome = function() {
+
           if(this.getStyle('bugDisplayMode') === 'off') {
             logAnalyticsEvent('bugDisplayMode', 'createChrome', 'mode', 'off');
           }
           if(!this.getStyle('showArchiveStatus')) {
             logAnalyticsEvent('showArchiveStatus', 'createChrome', 'mode', 'off');
           }
-          _chrome = new OT.Chrome({
-            parent: _container.domElement
-          }).set({
 
+          var widgets = {
             backingBar: new OT.Chrome.BackingBar({
-              nameMode: this.getStyle('nameDisplayMode'),
-              muteMode: chromeButtonMode.call(this, this.getStyle('showMicButton'))
+              nameMode: !_publishProperties.name ? 'off' : this.getStyle('nameDisplayMode'),
+              muteMode: chromeButtonMode.call(this, this.getStyle('buttonDisplayMode'))
             }),
 
             name: new OT.Chrome.NamePanel({
@@ -17407,7 +18191,7 @@ waitForDomReady();
 
             muteButton: new OT.Chrome.MuteButton({
               muted: _publishProperties.publishAudio === false,
-              mode: chromeButtonMode.call(this, this.getStyle('showMicButton'))
+              mode: chromeButtonMode.call(this, this.getStyle('buttonDisplayMode'))
             }),
 
             opentokButton: new OT.Chrome.OpenTokButton({
@@ -17418,8 +18202,24 @@ waitForDomReady();
               show: this.getStyle('showArchiveStatus'),
               archiving: false
             })
+          };
 
-          }).on({
+          if(_audioLevelCapable) {
+            _audioLevelMeter = new OT.Chrome.AudioLevelMeter({
+              mode: this.getStyle('audioLevelDisplayMode')
+            });
+
+            var audioLevelTransformer = new OT.AudioLevelTransformer();
+            this.on('audioLevelUpdated', function(evt) {
+              _audioLevelMeter.setValue(audioLevelTransformer.transform(evt.audioLevel));
+            });
+
+            widgets.audioLevel = _audioLevelMeter;
+          }
+
+          _chrome = new OT.Chrome({
+            parent: _container.domElement
+          }).set(widgets).on({
             muted: OT.$.bind(this.publishAudio, this, false),
             unmuted: OT.$.bind(this.publishAudio, this, true)
           });
@@ -17555,7 +18355,7 @@ waitForDomReady();
                 ]);
             }
           }
-      
+
           if (_publishProperties.frameRate !== void 0 &&
             OT.$.arrayIndexOf(_validFrameRates, _publishProperties.frameRate) === -1) {
             OT.warn('Invalid frameRate passed to the publisher got: ' +
@@ -17691,6 +18491,7 @@ waitForDomReady();
       }
 
       if(_container) {
+        _container.audioOnly(!value);
         _container.showPoster(!value);
       }
 
@@ -18030,6 +18831,40 @@ waitForDomReady();
 
 
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	
 
 
@@ -18086,6 +18921,7 @@ waitForDomReady();
         _container,
         _streamContainer,
         _chrome,
+        _audioLevelMeter,
         _stream,
         _fromConnectionId,
         _peerConnection,
@@ -18094,11 +18930,15 @@ waitForDomReady();
         _startConnectingTime,
         _properties = OT.$.clone(options),
         _analytics = new OT.Analytics(),
-        _audioVolume = 50,
+        _audioVolume = 100,
         _state,
-        _subscribeAudioFalseWorkaround, 
         _prevStats,
-        _lastSubscribeToVideoReason;
+        _lastSubscribeToVideoReason,
+        _audioLevelCapable =  OT.$.hasCapabilities('audioOutputLevelStat') ||
+                              OT.$.hasCapabilities('webAudioCapableRemoteStream'),
+        _audioLevelSampler,
+        _audioLevelRunner,
+        _frameRateRestricted = false;
 
     this.id = _domId;
     this.widgetId = _widgetId;
@@ -18117,14 +18957,32 @@ waitForDomReady();
       return;
     }
 
-    OT.$.eventing(this);
+    OT.$.eventing(this, false);
+
+    if(_audioLevelCapable) {
+      this.on({
+        'audioLevelUpdated:added': function(count) {
+          if (count === 1 && _audioLevelRunner) {
+            _audioLevelRunner.start();
+          }
+        },
+        'audioLevelUpdated:removed': function(count) {
+          if (count === 0 && _audioLevelRunner) {
+            _audioLevelRunner.stop();
+          }
+        }
+      });
+    }
 
     OT.StylableComponent(this, {
       nameDisplayMode: 'auto',
       buttonDisplayMode: 'auto',
+      audioLevelDisplayMode: 'auto',
+      videoDisabledIndicatorDisplayMode: 'auto',
       backgroundImageURI: null,
       showArchiveStatus: true,
-      showMicButton: true
+      showMicButton: true,
+      bugDisplayMode: 'auto'
     });
 
     var logAnalyticsEvent = function(action, variation, payloadType, payload) {
@@ -18188,14 +19046,12 @@ waitForDomReady();
             _peerConnection && _peerConnection.hasRelayCandidates()
           ].join('|'));
 
-          if(_subscribeAudioFalseWorkaround) {
-            _subscribeAudioFalseWorkaround = null;
-            this.subscribeToVideo(false);
-          }
-
           _container.loading(false);
 
           _createChrome.call(this);
+          if(_frameRateRestricted) {
+            _stream.setRestrictFrameRate(true);
+          }
 
           this.trigger('subscribeComplete', null, this);
           this.trigger('loaded', this);
@@ -18221,7 +19077,7 @@ waitForDomReady();
           this.disconnect();
         },
 
-        onPeerConnectionFailure = function(code, reason, peerConnection, prefix) {
+        onPeerConnectionFailure = OT.$.bind(function(reason, peerConnection, prefix) {
           if (_state.isAttemptingToSubscribe()) {
             
             
@@ -18251,7 +19107,7 @@ waitForDomReady();
             }
           );
           _showError.call(this, reason);
-        },
+        }, this),
 
         onRemoteStreamAdded = function(webOTStream) {
           OT.debug('OT.Subscriber.onRemoteStreamAdded');
@@ -18261,12 +19117,11 @@ waitForDomReady();
           
           this.subscribeToAudio(_properties.subscribeToAudio);
 
-          var preserver = _subscribeAudioFalseWorkaround;
-          this.subscribeToVideo(_properties.subscribeToVideo);
-          _subscribeAudioFalseWorkaround = preserver;
+          _lastSubscribeToVideoReason = 'loading';
+          this.subscribeToVideo(_properties.subscribeToVideo, 'loading');
 
           var videoContainerOptions = {
-            error: OT.$.bind(onPeerConnectionFailure, this),
+            error: onPeerConnectionFailure,
             audioVolume: _audioVolume
           };
 
@@ -18288,8 +19143,7 @@ waitForDomReady();
                                               videoContainerOptions,
                                               OT.$.bind(function(err) {
             if (err) {
-              onPeerConnectionFailure.call(this, null, err.message || err, _peerConnection,
-                'VideoElement');
+              onPeerConnectionFailure(err.message || err, _peerConnection, 'VideoElement');
               return;
             }
 
@@ -18306,6 +19160,10 @@ waitForDomReady();
 
             onLoaded.call(this, null);
           }, this));
+
+          if (OT.$.hasCapabilities('webAudioCapableRemoteStream') && _audioLevelSampler) {
+            _audioLevelSampler.webOTStream = webOTStream;
+          }
 
           logAnalyticsEvent('createPeerConnection', 'StreamAdded', '', '');
           this.trigger('streamAdded', this);
@@ -18338,10 +19196,23 @@ waitForDomReady();
               });
               break;
 
+            case 'videoDisableWarning':
+              _chrome.videoDisabledIndicator.setWarning(event.newValue);
+              this.dispatchEvent(new OT.VideoDisableWarningEvent(
+                event.newValue ? 'videoDisableWarning' : 'videoDisableWarningLifted'
+              ));
+              break;
+
             case 'hasVideo':
               if(_container) {
-                _container.showPoster(!(_stream.hasVideo && _properties.subscribeToVideo));
+                var audioOnly = !(_stream.hasVideo && _properties.subscribeToVideo);
+                _container.audioOnly(audioOnly);
+                _container.showPoster(audioOnly);
               }
+              this.dispatchEvent(new OT.VideoEnabledChangedEvent(
+                _stream.hasVideo ? 'videoEnabled' : 'videoDisabled', {
+                reason: 'publishVideo'
+              }));
               break;
 
             case 'hasAudio':
@@ -18372,6 +19243,11 @@ waitForDomReady();
           switch(key) {
             case 'nameDisplayMode':
               _chrome.name.setDisplayMode(value);
+              _chrome.backingBar.setNameMode(value);
+              break;
+
+            case 'videoDisabledDisplayMode':
+              _chrome.videoDisabledIndicator.setDisplayMode(value);
               break;
 
             case 'showArchiveStatus':
@@ -18379,23 +19255,31 @@ waitForDomReady();
               break;
 
             case 'buttonDisplayMode':
-              
+              _chrome.muteButton.setDisplayMode(value);
+              _chrome.backingBar.setMuteMode(value);
+              break;
+
+            case 'audioLevelDisplayMode':
+              _chrome.audioLevel.setDisplayMode(value);
+              break;
 
             case 'bugDisplayMode':
               
+
+            case 'backgroundImageURI':
+              _container.setBackgroundImageURI(value);
           }
         },
 
         _createChrome = function() {
+          
           if(this.getStyle('bugDisplayMode') === 'off') {
             logAnalyticsEvent('bugDisplayMode', 'createChrome', 'mode', 'off');
           }
-          _chrome = new OT.Chrome({
-            parent: _container.domElement
-          }).set({
 
+          var widgets = {
             backingBar: new OT.Chrome.BackingBar({
-              nameMode: this.getStyle('nameDisplayMode'),
+              nameMode: !_properties.name ? 'off' : this.getStyle('nameDisplayMode'),
               muteMode: chromeButtonMode.call(this, this.getStyle('showMuteButton'))
             }),
 
@@ -18418,8 +19302,28 @@ waitForDomReady();
               show: this.getStyle('showArchiveStatus'),
               archiving: false
             })
+          };
 
-          }).on({
+          if(_audioLevelCapable) {
+            _audioLevelMeter = new OT.Chrome.AudioLevelMeter({
+              mode: this.getStyle('audioLevelDisplayMode')
+            });
+
+            var audioLevelTransformer = new OT.AudioLevelTransformer();
+            this.on('audioLevelUpdated', function(evt) {
+              _audioLevelMeter.setValue(audioLevelTransformer.transform(evt.audioLevel));
+            });
+
+            widgets.audioLevel = _audioLevelMeter;
+          }
+
+          widgets.videoDisabledIndicator = new OT.Chrome.VideoDisabledIndicator({
+            mode: this.getStyle('videoDisabledDisplayMode')
+          });
+
+          _chrome = new OT.Chrome({
+            parent: _container.domElement
+          }).set(widgets).on({
             muted: function() {
               muteAudio.call(this, true);
             },
@@ -18490,11 +19394,6 @@ waitForDomReady();
       this.id = _domId = _container.domId();
       this.element = _container.domElement;
 
-      if(!_properties.subscribeToVideo && OT.$.browser() === 'Chrome') {
-        _subscribeAudioFalseWorkaround = true;
-        _properties.subscribeToVideo = true;
-      }
-
       _startConnectingTime = OT.$.now();
 
       if (_stream.connection.id !== _session.connection.id) {
@@ -18515,6 +19414,28 @@ waitForDomReady();
 
         
         _peerConnection.init();
+
+        if (OT.$.hasCapabilities('audioOutputLevelStat')) {
+          _audioLevelSampler = new OT.GetStatsAudioLevelSampler(_peerConnection, 'out');
+        } else if (OT.$.hasCapabilities('webAudioCapableRemoteStream')) {
+          _audioLevelSampler = new OT.AnalyserAudioLevelSampler(new window.AudioContext());
+        }
+
+        if(_audioLevelSampler) {
+          var subscriber = this;
+          
+          
+          _audioLevelRunner = new OT.IntervalRunner(function() {
+            _audioLevelSampler.sample(function(audioOutputLevel) {
+              if (audioOutputLevel !== null) {
+                OT.$.requestAnimationFrame(function() {
+                  subscriber.dispatchEvent(
+                    new OT.AudioLevelUpdatedEvent(audioOutputLevel));
+                });
+              }
+            });
+          }, 60);
+        }
       } else {
         logAnalyticsEvent('createPeerConnection', 'Attempt', '', '');
 
@@ -18545,6 +19466,10 @@ waitForDomReady();
       }
 
       _state.set('Destroyed');
+
+      if(_audioLevelRunner) {
+        _audioLevelRunner.stop();
+      }
 
       this.disconnect();
 
@@ -18624,13 +19549,16 @@ waitForDomReady();
       } else {
         if (_lastSubscribeToVideoReason === 'auto') {
           OT.info('Video has been re-enabled');
+          _chrome.videoDisabledIndicator.disableVideo(false);
         } else {
           OT.info('Video was not re-enabled because it was manually disabled');
           return;
         }
       }
       this.subscribeToVideo(active, 'auto');
-      this.dispatchEvent(new OT.Event(active ? 'videoEnabled' : 'videoDisabled'));
+      if(!active) {
+        _chrome.videoDisabledIndicator.disableVideo(true);
+      }
       logAnalyticsEvent('updateQuality', 'video', active ? 'videoEnabled' : 'videoDisabled', true);
     };
 
@@ -18785,6 +19713,12 @@ waitForDomReady();
       _properties.mute = _properties.mute;
     };
 
+    var reasonMap = {
+      auto: 'quality',
+      publishVideo: 'publishVideo',
+      subscribeToVideo: 'subscribeToVideo'
+    };
+
 
     
 
@@ -18813,22 +19747,22 @@ waitForDomReady();
 
 
     this.subscribeToVideo = function(pValue, reason) {
-      if(_subscribeAudioFalseWorkaround && pValue === true) {
-        
-        _subscribeAudioFalseWorkaround = false;
-        return;
-      }
-
       var value = OT.$.castToBoolean(pValue, true);
 
       if(_container) {
-        _container.showPoster(!(value && _stream.hasVideo));
+        var audioOnly = !(value && _stream.hasVideo);
+        _container.audioOnly(audioOnly);
+        _container.showPoster(audioOnly);
         if(value && _container.video()) {
           _container.loading(value);
           _container.video().whenTimeIncrements(function(){
             _container.loading(false);
           }, this);
         }
+      }
+
+      if (_chrome && _chrome.videoDisabledIndicator) {
+        _chrome.videoDisabledIndicator.disableVideo(false);
       }
 
       if (_peerConnection) {
@@ -18842,6 +19776,15 @@ waitForDomReady();
 
       _properties.subscribeToVideo = value;
       _lastSubscribeToVideoReason = reason;
+
+      if (reason !== 'loading') {
+        this.dispatchEvent(new OT.VideoEnabledChangedEvent(
+          value ? 'videoEnabled' : 'videoDisabled',
+          {
+            reason: reasonMap[reason] || 'subscribeToVideo'
+          }
+        ));
+      }
 
       return this;
     };
@@ -18910,6 +19853,7 @@ waitForDomReady();
       if (typeof val !== 'boolean') {
         OT.error('OT.Subscriber.restrictFrameRate: expected a boolean value got a ' + typeof val);
       } else {
+        _frameRateRestricted = val;
         _stream.setRestrictFrameRate(val);
       }
       return this;
@@ -18927,6 +19871,39 @@ waitForDomReady();
 
     _state = new OT.SubscribingState(stateChangeFailed);
 
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	
 
 
@@ -18947,7 +19924,96 @@ waitForDomReady();
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19004,17 +20070,17 @@ waitForDomReady();
     this.messagingURL = sessionJSON.messaging_url;
     this.symphonyAddress = sessionJSON.symphony_address;
 
-    this.p2pEnabled = sessionJSON.properties &&
+    this.p2pEnabled = !!(sessionJSON.properties &&
       sessionJSON.properties.p2p &&
       sessionJSON.properties.p2p.preference &&
-      sessionJSON.properties.p2p.preference.value === 'enabled';
+      sessionJSON.properties.p2p.preference.value === 'enabled');
   };
 
   
   
   
   OT.SessionInfo.get = function(session, onSuccess, onFailure) {
-    var sessionInfoURL = OT.properties.apiURLSSL + '/session/' + session.id + '?extended=true',
+    var sessionInfoURL = OT.properties.apiURL + '/session/' + session.id + '?extended=true',
 
         browser = OT.$.browserVersion(),
 
@@ -19049,7 +20115,7 @@ waitForDomReady();
       };
     }
 
-    session.logEvent('getSessionInfo', 'Attempt', 'api_url', OT.properties.apiURLSSL);
+    session.logEvent('getSessionInfo', 'Attempt', 'api_url', OT.properties.apiURL);
 
     OT.$.getJSON(sessionInfoURL, options, function(error, sessionInfo) {
       if(error) {
@@ -19101,7 +20167,7 @@ waitForDomReady();
   };
 
   onGetResponseCallback = function(session, onSuccess, rawSessionInfo) {
-    session.logEvent('getSessionInfo', 'Success', 'api_url', OT.properties.apiURLSSL);
+    session.logEvent('getSessionInfo', 'Success', 'api_url', OT.properties.apiURL);
 
     onSuccess( new OT.SessionInfo(rawSessionInfo) );
   };
@@ -19144,13 +20210,12 @@ waitForDomReady();
 
 
 
-
 	OT.Capabilities = function(permissions) {
 	    this.publish = OT.$.arrayIndexOf(permissions, 'publish') !== -1 ? 1 : 0;
 	    this.subscribe = OT.$.arrayIndexOf(permissions, 'subscribe') !== -1 ? 1 : 0;
 	    this.forceUnpublish = OT.$.arrayIndexOf(permissions, 'forceunpublish') !== -1 ? 1 : 0;
 	    this.forceDisconnect = OT.$.arrayIndexOf(permissions, 'forcedisconnect') !== -1 ? 1 : 0;
-	    this.supportsWebRTC = OT.$.supportsWebRTC() ? 1 : 0;
+	    this.supportsWebRTC = OT.$.hasCapabilities('webrtc') ? 1 : 0;
 
       this.permittedTo = function(action) {
         return this.hasOwnProperty(action) && this[action] === 1;
@@ -19328,6 +20393,10 @@ waitForDomReady();
       var stream = event.target,
           propertyName = event.changedProperty,
           newValue = event.newValue;
+
+      if (propertyName === 'videoDisableWarning' || propertyName === 'audioDisableWarning') {
+        return; 
+      }
 
       if (propertyName === 'orientation') {
         propertyName = 'videoDimensions';
@@ -19567,18 +20636,6 @@ waitForDomReady();
     };
 
  
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -19941,6 +20998,7 @@ waitForDomReady();
 
 
 
+
     this.publish = function(publisher, properties, completionHandler) {
       if(typeof publisher === 'function') {
         completionHandler = publisher;
@@ -20122,6 +21180,27 @@ waitForDomReady();
 
 
  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20646,9 +21725,6 @@ waitForDomReady();
 
 
 
-
-
-
     this.signal = function(options, completion) {
       var _options = options,
           _completion = completion;
@@ -21008,6 +22084,14 @@ waitForDomReady();
 
 
 
+
+
+
+
+
+
+
+
 	
 
 
@@ -21078,7 +22162,7 @@ waitForDomReady();
 
 })(window);
 (function() {
-  
+
   var txt = function(text) {
     return document.createTextNode(text);
   };
@@ -21094,7 +22178,7 @@ waitForDomReady();
         publisher,
         devicesById;
 
-    this.change = function() {
+    this.change = OT.$.bind(function() {
       destroyExistingPublisher();
 
       var settings;
@@ -21134,7 +22218,7 @@ waitForDomReady();
       });
 
       publisher = pub;
-    }.bind(this);
+    }, this);
 
     this.cleanup = destroyExistingPublisher = function() {
       if(publisher) {
@@ -21154,17 +22238,17 @@ waitForDomReady();
       return el({ value: device.deviceId }, txt(device.label), 'option');
     };
 
-    this.setDeviceList = function (devices) {
+    this.setDeviceList = OT.$.bind(function (devices) {
       opts.selectTag.innerHTML = '';
       devicesById = {};
       if(devices.length > 0) {
-        devices.map(addDevice).map(opts.selectTag.appendChild.bind(opts.selectTag));
+        devices.map(addDevice).map(OT.$.bind(opts.selectTag.appendChild, opts.selectTag));
         opts.selectTag.removeAttribute('disabled');
       } else {
         disableSelector(opts.selectTag, 'No devices');
       }
       this.change();
-    }.bind(this);
+    }, this);
 
     this.setLoading = function() {
       disableSelector(opts.selectTag, 'Loading...');
@@ -21190,7 +22274,7 @@ waitForDomReady();
       return camera && camera.pickedDevice;
     };
 
-    this.destroy = function() {
+    this.destroy = OT.$.bind(function() {
       if(this.is('destroyed')) {
         return;
       }
@@ -21204,14 +22288,14 @@ waitForDomReady();
         targetElement.parentNode.removeChild(targetElement);
       }
       setState('destroyed');
-    }.bind(this);
+    }, this);
 
     if(targetElement == null) {
       callback(new Error('You must provide a targetElement'));
       return;
     }
 
-    if(!OT.$.canGetMediaDevices()) {
+    if(!OT.$.hasCapabilities('getMediaDevices')) {
       callback(new Error('This browser does not support getMediaDevices APIs'));
       return;
     }
@@ -21264,7 +22348,7 @@ waitForDomReady();
     camera.setLoading();
     microphone.setLoading();
 
-    OT.getDevices(function(error, devices) {
+    OT.getDevices(OT.$.bind(function(error, devices) {
       if (error) {
         callback(error);
         return;
@@ -21286,7 +22370,7 @@ waitForDomReady();
 
       setState('chooseDevices');
 
-    }.bind(this));
+    }, this));
 
     setupDOM = function() {
       var insertMode = options.insertMode;
