@@ -1155,11 +1155,17 @@ struct TypeObject : public gc::TenuredCell
         setAddendum(Addendum_NewScript, newScript);
     }
 
+    TypeDescr *maybeTypeDescr() {
+        
+        
+        if (addendumKind() == Addendum_TypeDescr)
+            return reinterpret_cast<TypeDescr *>(addendum_);
+        return nullptr;
+    }
+
     TypeDescr &typeDescr() {
-        
-        
         MOZ_ASSERT(addendumKind() == Addendum_TypeDescr);
-        return *reinterpret_cast<TypeDescr *>(addendum_);
+        return *maybeTypeDescr();
     }
 
     void setTypeDescr(TypeDescr *descr) {
