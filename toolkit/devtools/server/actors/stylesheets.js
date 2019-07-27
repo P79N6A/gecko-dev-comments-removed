@@ -24,8 +24,9 @@ loader.lazyGetter(this, "CssLogic", () => require("devtools/styleinspector/css-l
 let TRANSITION_CLASS = "moz-styleeditor-transitioning";
 let TRANSITION_DURATION_MS = 500;
 let TRANSITION_BUFFER_MS = 1000;
-let TRANSITION_RULE = "\
-:root.moz-styleeditor-transitioning, :root.moz-styleeditor-transitioning * {\
+let TRANSITION_RULE_SELECTOR =
+".moz-styleeditor-transitioning:root, .moz-styleeditor-transitioning:root *";
+let TRANSITION_RULE = TRANSITION_RULE_SELECTOR + " {\
 transition-duration: " + TRANSITION_DURATION_MS + "ms !important; \
 transition-delay: 0ms !important;\
 transition-timing-function: ease-out !important;\
@@ -907,20 +908,16 @@ let StyleSheetActor = protocol.ActorClass({
 
 
   _insertTransistionRule: function() {
-    
-    
-    
-    if (this._transitionRefCount == 0) {
-      this.rawSheet.insertRule(TRANSITION_RULE, this.rawSheet.cssRules.length);
-      this.document.documentElement.classList.add(TRANSITION_CLASS);
-    }
+    this.document.documentElement.classList.add(TRANSITION_CLASS);
 
-    this._transitionRefCount++;
+    
+    this.rawSheet.insertRule(TRANSITION_RULE, this.rawSheet.cssRules.length);
 
     
     
-    this.window.setTimeout(this._onTransitionEnd.bind(this),
-                           TRANSITION_DURATION_MS + TRANSITION_BUFFER_MS);
+    this.window.clearTimeout(this._transitionTimeout);
+    this._transitionTimeout = this.window.setTimeout(this._onTransitionEnd.bind(this),
+                              TRANSITION_DURATION_MS + TRANSITION_BUFFER_MS);
   },
 
   
@@ -929,9 +926,12 @@ let StyleSheetActor = protocol.ActorClass({
 
   _onTransitionEnd: function()
   {
-    if (--this._transitionRefCount == 0) {
-      this.document.documentElement.classList.remove(TRANSITION_CLASS);
-      this.rawSheet.deleteRule(this.rawSheet.cssRules.length - 1);
+    this.document.documentElement.classList.remove(TRANSITION_CLASS);
+
+    let index = this.rawSheet.cssRules.length - 1;
+    let rule = this.rawSheet.cssRules[index];
+    if (rule.selectorText == TRANSITION_RULE_SELECTOR) {
+      this.rawSheet.deleteRule(index);
     }
 
     events.emit(this, "style-applied");
