@@ -217,6 +217,22 @@ public:
 
   static void ClearIdentifiers();
 
+  bool RegisterActor(NPObject* aObject);
+  void UnregisterActor(NPObject* aObject);
+
+  static PluginScriptableObjectChild* GetActorForNPObject(NPObject* aObject);
+
+  static void RegisterObject(NPObject* aObject, PluginInstanceChild* aInstance);
+  static void UnregisterObject(NPObject* aObject);
+
+  static PluginInstanceChild* GetInstanceForNPObject(NPObject* aObject);
+
+  
+
+
+
+  static void NotifyOfInstanceShutdown(PluginInstanceChild* aInstance);
+
 private:
   static NPObject*
   ScriptableAllocate(NPP aInstance,
@@ -297,6 +313,29 @@ private:
 
   typedef nsDataHashtable<nsCStringHashKey, nsRefPtr<StoredIdentifier>> IdentifierTable;
   static IdentifierTable sIdentifiers;
+
+  struct NPObjectData : public nsPtrHashKey<NPObject>
+  {
+    explicit NPObjectData(const NPObject* key)
+    : nsPtrHashKey<NPObject>(key),
+      instance(nullptr),
+      actor(nullptr)
+    { }
+
+    
+    PluginInstanceChild* instance;
+
+    
+    PluginScriptableObjectChild* actor;
+  };
+
+  static PLDHashOperator CollectForInstance(NPObjectData* d, void* userArg);
+
+  
+
+
+
+  static nsTHashtable<NPObjectData>* sObjectMap;
 };
 
 } 

@@ -157,17 +157,6 @@ public:
 
     static PluginModuleChild* current();
 
-    bool RegisterActorForNPObject(NPObject* aObject,
-                                  PluginScriptableObjectChild* aActor);
-
-    void UnregisterActorForNPObject(NPObject* aObject);
-
-    PluginScriptableObjectChild* GetActorForNPObject(NPObject* aObject);
-
-#ifdef DEBUG
-    bool NPObjectIsRegistered(NPObject* aObject);
-#endif
-
     
 
 
@@ -353,26 +342,6 @@ private:
     NestedLoopTimer *mNestedLoopTimerObject;
 #endif
 
-    struct NPObjectData : public nsPtrHashKey<NPObject>
-    {
-        explicit NPObjectData(const NPObject* key)
-            : nsPtrHashKey<NPObject>(key)
-            , instance(nullptr)
-            , actor(nullptr)
-        { }
-
-        
-        PluginInstanceChild* instance;
-
-        
-        PluginScriptableObjectChild* actor;
-    };
-    
-
-
-
-    nsTHashtable<NPObjectData> mObjectMap;
-
 public: 
     
 
@@ -384,15 +353,7 @@ public:
         return mFunctions.destroy(instance->GetNPP(), 0);
     }
 
-    
-
-
-
-    void FindNPObjectsForInstance(PluginInstanceChild* instance);
-
 private:
-    static PLDHashOperator CollectForInstance(NPObjectData* d, void* userArg);
-
 #if defined(OS_WIN)
     virtual void EnteredCall() MOZ_OVERRIDE;
     virtual void ExitedCall() MOZ_OVERRIDE;
