@@ -4,33 +4,11 @@
 MARIONETTE_TIMEOUT = 60000;
 MARIONETTE_HEAD_JS = "head.js";
 
-const TEST_DATA = [
-  
+function testChangeCallBarringPassword(aExpectedError, aOptions) {
+  log("Test changing call barring password from " +
+      aOptions.pin + " to " + aOptions.newPin);
 
-  
-  [null, "0000", "InvalidPassword"],
-  ["0000", null, "InvalidPassword"],
-  [null, null, "InvalidPassword"],
-
-  
-  ["000", "0000", "InvalidPassword"],
-  ["00000", "1111", "InvalidPassword"],
-  ["abcd", "efgh", "InvalidPassword"],
-
-  
-  
-  
-  ["1234", "1234", "RequestNotSupported"]
-];
-
-function testChangeCallBarringPassword(aPin, aNewPin, aExpectedError) {
-  log("Test changing call barring password to " + aPin + "/" + aNewPin);
-
-  let options = {
-    pin: aPin,
-    newPin: aNewPin
-  };
-  return changeCallBarringPassword(options)
+  return changeCallBarringPassword(aOptions)
     .then(function resolve() {
       ok(!aExpectedError, "changeCallBarringPassword success");
     }, function reject(aError) {
@@ -40,11 +18,67 @@ function testChangeCallBarringPassword(aPin, aNewPin, aExpectedError) {
 
 
 startTestCommon(function() {
-  let promise = Promise.resolve();
-  for (let i = 0; i < TEST_DATA.length; i++) {
-    let data = TEST_DATA[i];
-    promise =
-      promise.then(() => testChangeCallBarringPassword(data[0], data[1], data[2]));
-  }
-  return promise;
+  return Promise.resolve()
+
+    
+    
+
+    
+    .then(() => testChangeCallBarringPassword("InvalidPassword", {
+      pin: null,
+      newPin: "0000"
+    }))
+
+    .then(() => testChangeCallBarringPassword("InvalidPassword", {
+      pin: "000",
+      newPin: "0000"
+    }))
+
+    .then(() => testChangeCallBarringPassword("InvalidPassword", {
+      pin: "00000",
+      newPin: "0000"
+    }))
+
+    .then(() => testChangeCallBarringPassword("InvalidPassword", {
+      pin: "abcd",
+      newPin: "0000"
+    }))
+
+    
+    .then(() => testChangeCallBarringPassword("InvalidPassword", {
+      pin: "0000",
+      newPin: null
+    }))
+
+    .then(() => testChangeCallBarringPassword("InvalidPassword", {
+      pin: "0000",
+      newPin: "000"
+    }))
+
+    .then(() => testChangeCallBarringPassword("InvalidPassword", {
+      pin: "0000",
+      newPin: "00000"
+    }))
+
+    .then(() => testChangeCallBarringPassword("InvalidPassword", {
+      pin: "0000",
+      newPin: "abcd"
+    }))
+
+    
+    .then(() => testChangeCallBarringPassword("IncorrectPassword", {
+      pin: "1111",
+      newPin: "2222"
+    }))
+
+    
+    .then(() => testChangeCallBarringPassword(null, {
+      pin: "0000",
+      newPin: "2222"
+    }))
+
+    .then(() => testChangeCallBarringPassword(null, {
+      pin: "2222",
+      newPin: "0000"
+    }));
 });

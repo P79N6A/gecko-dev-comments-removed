@@ -42,15 +42,16 @@ const TEST_DATA = [
     }
   },
   
-  
+  {
+    password: "0000",  
+    newPassword: "1234",
+    newPasswordAgain: "1234"
+  },
   
   {
-    password: "0000",
-    newPassword: "1234",
-    newPasswordAgain: "1234",
-    expectedError: {
-      name: "RequestNotSupported"
-    }
+    password: "1234",
+    newPassword: "0000",
+    newPasswordAgain: "0000"
   }
 ];
 
