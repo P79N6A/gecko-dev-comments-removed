@@ -1026,7 +1026,7 @@ public:
 
   void StartBlock(Block* aBlock)
   {
-    NS_ABORT_IF_FALSE(!mFreeList, "should not have free list");
+    MOZ_ASSERT(!mFreeList, "should not have free list");
 
     
     nsPurpleBufferEntry* entries = aBlock->mEntries;

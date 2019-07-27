@@ -346,7 +346,7 @@ DOMSVGNumberList::GetItemAt(uint32_t aIndex)
 void
 DOMSVGNumberList::MaybeInsertNullInAnimValListAt(uint32_t aIndex)
 {
-  NS_ABORT_IF_FALSE(!IsAnimValList(), "call from baseVal to animVal");
+  MOZ_ASSERT(!IsAnimValList(), "call from baseVal to animVal");
 
   DOMSVGNumberList* animVal = mAList->mAnimVal;
 
@@ -355,8 +355,8 @@ DOMSVGNumberList::MaybeInsertNullInAnimValListAt(uint32_t aIndex)
     return;
   }
 
-  NS_ABORT_IF_FALSE(animVal->mItems.Length() == mItems.Length(),
-                    "animVal list not in sync!");
+  MOZ_ASSERT(animVal->mItems.Length() == mItems.Length(),
+             "animVal list not in sync!");
 
   animVal->mItems.InsertElementAt(aIndex, static_cast<DOMSVGNumber*>(nullptr));
 
@@ -366,7 +366,7 @@ DOMSVGNumberList::MaybeInsertNullInAnimValListAt(uint32_t aIndex)
 void
 DOMSVGNumberList::MaybeRemoveItemFromAnimValListAt(uint32_t aIndex)
 {
-  NS_ABORT_IF_FALSE(!IsAnimValList(), "call from baseVal to animVal");
+  MOZ_ASSERT(!IsAnimValList(), "call from baseVal to animVal");
 
   
   
@@ -377,8 +377,8 @@ DOMSVGNumberList::MaybeRemoveItemFromAnimValListAt(uint32_t aIndex)
     return;
   }
 
-  NS_ABORT_IF_FALSE(animVal->mItems.Length() == mItems.Length(),
-                    "animVal list not in sync!");
+  MOZ_ASSERT(animVal->mItems.Length() == mItems.Length(),
+             "animVal list not in sync!");
 
   if (animVal->mItems[aIndex]) {
     animVal->mItems[aIndex]->RemovingFromList();

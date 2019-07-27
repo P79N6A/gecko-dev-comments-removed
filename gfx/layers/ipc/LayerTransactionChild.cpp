@@ -32,8 +32,8 @@ LayerTransactionChild::Destroy()
   
   
   mDestroyed = true;
-  NS_ABORT_IF_FALSE(0 == ManagedPLayerChild().Length(),
-                    "layers should have been cleaned up by now");
+  MOZ_ASSERT(0 == ManagedPLayerChild().Length(),
+             "layers should have been cleaned up by now");
 
   for (size_t i = 0; i < ManagedPTextureChild().Length(); ++i) {
     TextureClient* texture = TextureClient::AsTextureClient(ManagedPTextureChild()[i]);

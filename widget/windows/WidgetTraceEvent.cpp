@@ -111,7 +111,7 @@ void SignalTracerThread()
 
 bool FireAndWaitForTracerEvent()
 {
-  NS_ABORT_IF_FALSE(sEventHandle, "Tracing not initialized!");
+  MOZ_ASSERT(sEventHandle, "Tracing not initialized!");
 
   
   static HWND hidden_window = nullptr;

@@ -8,7 +8,6 @@
 #include "ShadowLayerChild.h"
 #include "Layers.h"                     
 #include "ShadowLayers.h"               
-#include "nsDebug.h"                    
 
 namespace mozilla {
 namespace layers {
@@ -23,8 +22,8 @@ ShadowLayerChild::~ShadowLayerChild()
 void
 ShadowLayerChild::ActorDestroy(ActorDestroyReason why)
 {
-  NS_ABORT_IF_FALSE(AncestorDeletion != why,
-                    "shadowable layer should have been cleaned up by now");
+  MOZ_ASSERT(AncestorDeletion != why,
+             "shadowable layer should have been cleaned up by now");
 
   if (AbnormalShutdown == why) {
     

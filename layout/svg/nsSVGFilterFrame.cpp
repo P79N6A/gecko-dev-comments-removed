@@ -36,7 +36,7 @@ public:
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
     
     
-    NS_ABORT_IF_FALSE(!mFrame->mLoopFlag, "Undetected reference loop!");
+    MOZ_ASSERT(!mFrame->mLoopFlag, "Undetected reference loop!");
     mFrame->mLoopFlag = true;
   }
   ~AutoFilterReferencer() {

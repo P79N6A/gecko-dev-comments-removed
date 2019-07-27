@@ -3128,8 +3128,8 @@ protected:
 private:
   nsOverflowAreas* GetOverflowAreasProperty();
   nsRect GetVisualOverflowFromDeltas() const {
-    NS_ABORT_IF_FALSE(mOverflow.mType != NS_FRAME_OVERFLOW_LARGE,
-                      "should not be called when overflow is in a property");
+    MOZ_ASSERT(mOverflow.mType != NS_FRAME_OVERFLOW_LARGE,
+               "should not be called when overflow is in a property");
     
     
     

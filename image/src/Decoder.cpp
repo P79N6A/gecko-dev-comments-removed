@@ -102,7 +102,7 @@ Decoder::InitSharedDecoder(uint8_t* aImageData, uint32_t aImageDataLength,
                            RawAccessFrameRef&& aFrameRef)
 {
   
-  NS_ABORT_IF_FALSE(!mInitialized, "Can't re-initialize a decoder!");
+  MOZ_ASSERT(!mInitialized, "Can't re-initialize a decoder!");
 
   mImageData = aImageData;
   mImageDataLength = aImageDataLength;
@@ -570,8 +570,8 @@ Decoder::PostSize(int32_t aWidth,
                   Orientation aOrientation )
 {
   
-  NS_ABORT_IF_FALSE(aWidth >= 0, "Width can't be negative!");
-  NS_ABORT_IF_FALSE(aHeight >= 0, "Height can't be negative!");
+  MOZ_ASSERT(aWidth >= 0, "Width can't be negative!");
+  MOZ_ASSERT(aHeight >= 0, "Height can't be negative!");
 
   
   mImageMetadata.SetSize(aWidth, aHeight, aOrientation);
@@ -590,7 +590,7 @@ void
 Decoder::PostFrameStart()
 {
   
-  NS_ABORT_IF_FALSE(!mInFrame, "Starting new frame but not done with old one!");
+  MOZ_ASSERT(!mInFrame, "Starting new frame but not done with old one!");
 
   
   mInFrame = true;
@@ -634,8 +634,8 @@ Decoder::PostInvalidation(const nsIntRect& aRect,
                             )
 {
   
-  NS_ABORT_IF_FALSE(mInFrame, "Can't invalidate when not mid-frame!");
-  NS_ABORT_IF_FALSE(mCurrentFrame, "Can't invalidate when not mid-frame!");
+  MOZ_ASSERT(mInFrame, "Can't invalidate when not mid-frame!");
+  MOZ_ASSERT(mCurrentFrame, "Can't invalidate when not mid-frame!");
 
   
   
@@ -648,9 +648,9 @@ Decoder::PostInvalidation(const nsIntRect& aRect,
 void
 Decoder::PostDecodeDone(int32_t aLoopCount )
 {
-  NS_ABORT_IF_FALSE(!IsSizeDecode(), "Can't be done with decoding with size decode!");
-  NS_ABORT_IF_FALSE(!mInFrame, "Can't be done decoding if we're mid-frame!");
-  NS_ABORT_IF_FALSE(!mDecodeDone, "Decode already done!");
+  MOZ_ASSERT(!IsSizeDecode(), "Can't be done with decoding with size decode!");
+  MOZ_ASSERT(!mInFrame, "Can't be done decoding if we're mid-frame!");
+  MOZ_ASSERT(!mDecodeDone, "Decode already done!");
   mDecodeDone = true;
 
   mImageMetadata.SetLoopCount(aLoopCount);
@@ -671,7 +671,7 @@ Decoder::PostDataError()
 void
 Decoder::PostDecoderError(nsresult aFailureCode)
 {
-  NS_ABORT_IF_FALSE(NS_FAILED(aFailureCode), "Not a failure code!");
+  MOZ_ASSERT(NS_FAILED(aFailureCode), "Not a failure code!");
 
   mFailCode = aFailureCode;
 

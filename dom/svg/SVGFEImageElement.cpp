@@ -334,7 +334,7 @@ SVGFEImageElement::Notify(imgIRequest* aRequest, int32_t aType, const nsIntRect*
     
     nsCOMPtr<imgIContainer> container;
     aRequest->GetImage(getter_AddRefs(container));
-    NS_ABORT_IF_FALSE(container, "who sent the notification then?");
+    MOZ_ASSERT(container, "who sent the notification then?");
     container->StartDecoding();
   }
 

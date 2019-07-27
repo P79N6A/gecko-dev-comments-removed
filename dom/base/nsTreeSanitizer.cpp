@@ -1103,8 +1103,8 @@ nsTreeSanitizer::SanitizeStyleSheet(const nsAString& aOriginal,
                          aDocument->NodePrincipal(), 0, false);
   NS_ENSURE_SUCCESS(rv, true);
   
-  NS_ABORT_IF_FALSE(!sheet->IsModified(),
-      "should not get marked modified during parsing");
+  MOZ_ASSERT(!sheet->IsModified(),
+             "should not get marked modified during parsing");
   sheet->SetComplete();
   
   int32_t ruleCount = sheet->StyleRuleCount();
