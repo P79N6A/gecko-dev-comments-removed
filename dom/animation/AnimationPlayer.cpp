@@ -61,7 +61,7 @@ AnimationPlayer::SetStartTime(const Nullable<TimeDuration>& aNewStartTime)
     mHoldTime = previousCurrentTime;
   }
 
-  CancelPendingPlay();
+  CancelPendingTasks();
   if (mReady) {
     
     
@@ -334,7 +334,7 @@ void
 AnimationPlayer::Cancel()
 {
   if (mPendingState != PendingState::NotPending) {
-    CancelPendingPlay();
+    CancelPendingTasks();
     if (mReady) {
       mReady->MaybeReject(NS_ERROR_DOM_ABORT_ERR);
     }
@@ -466,7 +466,7 @@ void
 AnimationPlayer::DoPause()
 {
   if (mPendingState == PendingState::PlayPending) {
-    CancelPendingPlay();
+    CancelPendingTasks();
     
     
     
@@ -541,7 +541,7 @@ AnimationPlayer::PostUpdate()
 }
 
 void
-AnimationPlayer::CancelPendingPlay()
+AnimationPlayer::CancelPendingTasks()
 {
   if (mPendingState == PendingState::NotPending) {
     return;
@@ -551,7 +551,11 @@ AnimationPlayer::CancelPendingPlay()
   if (doc) {
     PendingPlayerTracker* tracker = doc->GetPendingPlayerTracker();
     if (tracker) {
-      tracker->RemovePlayPending(*this);
+      if (mPendingState == PendingState::PlayPending) {
+        tracker->RemovePlayPending(*this);
+      } else {
+        tracker->RemovePausePending(*this);
+      }
     }
   }
 

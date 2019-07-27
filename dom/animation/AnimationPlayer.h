@@ -243,9 +243,11 @@ protected:
   void FlushStyle() const;
   void PostUpdate();
   
-  
-  
-  void CancelPendingPlay();
+
+
+
+
+  void CancelPendingTasks();
 
   bool IsPossiblyOrphanedPendingPlayer() const;
   StickyTimeDuration SourceContentEnd() const;
