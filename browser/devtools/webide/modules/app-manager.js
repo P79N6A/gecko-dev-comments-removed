@@ -346,6 +346,8 @@ let AppManager = exports.AppManager = {
       this.connection.on(Connection.Events.CONNECTED, onConnectedOrDisconnected);
       this.connection.on(Connection.Events.DISCONNECTED, onConnectedOrDisconnected);
       try {
+        
+        this.connection.resetOptions();
         this.selectedRuntime.connect(this.connection).then(
           () => {},
           deferred.reject.bind(deferred));
