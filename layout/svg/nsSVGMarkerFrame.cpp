@@ -157,7 +157,7 @@ nsSVGMarkerFrame::PaintMark(nsRenderingContext *aContext,
   nsISVGChildFrame* SVGFrame = do_QueryFrame(kid);
   
   SVGFrame->NotifySVGChanged(nsISVGChildFrame::TRANSFORM_CHANGED);
-  nsSVGUtils::PaintFrameWithEffects(kid, aContext, markTM);
+  nsSVGUtils::PaintFrameWithEffects(kid, *gfx, markTM);
 
   if (StyleDisplay()->IsScrollableOverflow())
     gfx->Restore();

@@ -279,7 +279,7 @@ public:
 
   static void
   PaintFrameWithEffects(nsIFrame *aFrame,
-                        nsRenderingContext *aContext,
+                        gfxContext& aContext,
                         const gfxMatrix& aTransform,
                         const nsIntRect *aDirtyRect = nullptr);
 
