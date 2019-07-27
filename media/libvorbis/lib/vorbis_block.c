@@ -31,16 +31,6 @@
 #include "registry.h"
 #include "misc.h"
 
-static int ilog2(unsigned int v){
-  int ret=0;
-  if(v)--v;
-  while(v){
-    ret++;
-    v>>=1;
-  }
-  return(ret);
-}
-
 
 
 
@@ -184,14 +174,19 @@ static int _vds_shared_init(vorbis_dsp_state *v,vorbis_info *vi,int encp){
   private_state *b=NULL;
   int hs;
 
-  if(ci==NULL) return 1;
+  if(ci==NULL||
+     ci->modes<=0||
+     ci->blocksizes[0]<64||
+     ci->blocksizes[1]<ci->blocksizes[0]){
+    return 1;
+  }
   hs=ci->halfrate_flag;
 
   memset(v,0,sizeof(*v));
   b=v->backend_state=_ogg_calloc(1,sizeof(*b));
 
   v->vi=vi;
-  b->modebits=ilog2(ci->modes);
+  b->modebits=ov_ilog(ci->modes-1);
 
   b->transform[0]=_ogg_calloc(VI_TRANSFORMB,sizeof(*b->transform[0]));
   b->transform[1]=_ogg_calloc(VI_TRANSFORMB,sizeof(*b->transform[1]));
@@ -204,8 +199,14 @@ static int _vds_shared_init(vorbis_dsp_state *v,vorbis_info *vi,int encp){
   mdct_init(b->transform[1][0],ci->blocksizes[1]>>hs);
 
   
-  b->window[0]=ilog2(ci->blocksizes[0])-6;
-  b->window[1]=ilog2(ci->blocksizes[1])-6;
+  
+
+
+
+
+
+  b->window[0]=ov_ilog(ci->blocksizes[0])-7;
+  b->window[1]=ov_ilog(ci->blocksizes[1])-7;
 
   if(encp){ 
 

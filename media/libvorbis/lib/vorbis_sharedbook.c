@@ -26,13 +26,11 @@
 #include "scales.h"
 
 
-int _ilog(unsigned int v){
-  int ret=0;
-  while(v){
-    ret++;
-    v>>=1;
-  }
-  return(ret);
+
+int ov_ilog(ogg_uint32_t v){
+  int ret;
+  for(ret=0;v;ret++)v>>=1;
+  return ret;
 }
 
 
@@ -126,15 +124,14 @@ ogg_uint32_t *_make_words(char *l,long n,long sparsecount){
   }
 
   
+  
 
 
-
-
-  if(sparsecount != 1){
+  if(!(count==1 && marker[2]==2)){
     for(i=1;i<33;i++)
       if(marker[i] & (0xffffffffUL>>(32-i))){
-	_ogg_free(r);
-	return(NULL);
+        _ogg_free(r);
+        return(NULL);
       }
   }
 
@@ -313,6 +310,7 @@ static int sort32a(const void *a,const void *b){
 int vorbis_book_init_decode(codebook *c,const static_codebook *s){
   int i,j,n=0,tabn;
   int *sortindex;
+
   memset(c,0,sizeof(*c));
 
   
@@ -325,7 +323,6 @@ int vorbis_book_init_decode(codebook *c,const static_codebook *s){
   c->dim=s->dim;
 
   if(n>0){
-
     
 
 
@@ -361,7 +358,6 @@ int vorbis_book_init_decode(codebook *c,const static_codebook *s){
       c->codelist[sortindex[i]]=codes[i];
     _ogg_free(codes);
 
-
     c->valuelist=_book_unquantize(s,n,sortindex);
     c->dec_index=_ogg_malloc(n*sizeof(*c->dec_index));
 
@@ -370,51 +366,62 @@ int vorbis_book_init_decode(codebook *c,const static_codebook *s){
         c->dec_index[sortindex[n++]]=i;
 
     c->dec_codelengths=_ogg_malloc(n*sizeof(*c->dec_codelengths));
-    for(n=0,i=0;i<s->entries;i++)
-      if(s->lengthlist[i]>0)
-        c->dec_codelengths[sortindex[n++]]=s->lengthlist[i];
-
-    c->dec_firsttablen=_ilog(c->used_entries)-4; 
-    if(c->dec_firsttablen<5)c->dec_firsttablen=5;
-    if(c->dec_firsttablen>8)c->dec_firsttablen=8;
-
-    tabn=1<<c->dec_firsttablen;
-    c->dec_firsttable=_ogg_calloc(tabn,sizeof(*c->dec_firsttable));
     c->dec_maxlength=0;
-
-    for(i=0;i<n;i++){
-      if(c->dec_maxlength<c->dec_codelengths[i])
-        c->dec_maxlength=c->dec_codelengths[i];
-      if(c->dec_codelengths[i]<=c->dec_firsttablen){
-        ogg_uint32_t orig=bitreverse(c->codelist[i]);
-        for(j=0;j<(1<<(c->dec_firsttablen-c->dec_codelengths[i]));j++)
-          c->dec_firsttable[orig|(j<<c->dec_codelengths[i])]=i+1;
+    for(n=0,i=0;i<s->entries;i++)
+      if(s->lengthlist[i]>0){
+        c->dec_codelengths[sortindex[n++]]=s->lengthlist[i];
+        if(s->lengthlist[i]>c->dec_maxlength)
+          c->dec_maxlength=s->lengthlist[i];
       }
-    }
 
-    
-
-    {
-      ogg_uint32_t mask=0xfffffffeUL<<(31-c->dec_firsttablen);
-      long lo=0,hi=0;
-
-      for(i=0;i<tabn;i++){
-        ogg_uint32_t word=i<<(32-c->dec_firsttablen);
-        if(c->dec_firsttable[bitreverse(word)]==0){
-          while((lo+1)<n && c->codelist[lo+1]<=word)lo++;
-          while(    hi<n && word>=(c->codelist[hi]&mask))hi++;
-
-          
+    if(n==1 && c->dec_maxlength==1){
+      
 
 
-          {
-            unsigned long loval=lo;
-            unsigned long hival=n-hi;
+      c->dec_firsttablen=1;
+      c->dec_firsttable=_ogg_calloc(2,sizeof(*c->dec_firsttable));
+      c->dec_firsttable[0]=c->dec_firsttable[1]=1;
 
-            if(loval>0x7fff)loval=0x7fff;
-            if(hival>0x7fff)hival=0x7fff;
-            c->dec_firsttable[bitreverse(word)]=
-              0x80000000UL | (loval<<15) | hival;
+    }else{
+      c->dec_firsttablen=ov_ilog(c->used_entries)-4; 
+      if(c->dec_firsttablen<5)c->dec_firsttablen=5;
+      if(c->dec_firsttablen>8)c->dec_firsttablen=8;
+
+      tabn=1<<c->dec_firsttablen;
+      c->dec_firsttable=_ogg_calloc(tabn,sizeof(*c->dec_firsttable));
+
+      for(i=0;i<n;i++){
+        if(c->dec_codelengths[i]<=c->dec_firsttablen){
+          ogg_uint32_t orig=bitreverse(c->codelist[i]);
+          for(j=0;j<(1<<(c->dec_firsttablen-c->dec_codelengths[i]));j++)
+            c->dec_firsttable[orig|(j<<c->dec_codelengths[i])]=i+1;
+        }
+      }
+
+      
+
+      {
+        ogg_uint32_t mask=0xfffffffeUL<<(31-c->dec_firsttablen);
+        long lo=0,hi=0;
+
+        for(i=0;i<tabn;i++){
+          ogg_uint32_t word=i<<(32-c->dec_firsttablen);
+          if(c->dec_firsttable[bitreverse(word)]==0){
+            while((lo+1)<n && c->codelist[lo+1]<=word)lo++;
+            while(    hi<n && word>=(c->codelist[hi]&mask))hi++;
+
+            
+
+
+            {
+              unsigned long loval=lo;
+              unsigned long hival=n-hi;
+
+              if(loval>0x7fff)loval=0x7fff;
+              if(hival>0x7fff)hival=0x7fff;
+              c->dec_firsttable[bitreverse(word)]=
+                0x80000000UL | (loval<<15) | hival;
+            }
           }
         }
       }

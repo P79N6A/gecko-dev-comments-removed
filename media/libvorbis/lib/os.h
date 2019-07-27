@@ -120,7 +120,8 @@ static inline int vorbis_ftoi(double f){
 
 
 
-#if defined(_MSC_VER) && !defined(_WIN64) && !defined(_WIN32_WCE)
+#if defined(_MSC_VER) && !defined(_WIN64) && \
+      !defined(_WIN32_WCE) && !defined(_M_ARM)
 #  define VORBIS_FPU_CONTROL
 
 typedef ogg_int16_t vorbis_fpu_control;
