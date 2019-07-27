@@ -57,6 +57,7 @@
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include <algorithm>
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/AutoRestore.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/DOMJSClass.h"
@@ -96,6 +97,7 @@ class IncrementalFinalizeRunnable : public nsRunnable
   nsTArray<nsISupports*> mSupports;
   DeferredFinalizeArray mDeferredFinalizeFunctions;
   uint32_t mFinalizeFunctionToRun;
+  bool mReleasing;
 
   static const PRTime SliceMillis = 10; 
 
@@ -1124,6 +1126,7 @@ IncrementalFinalizeRunnable::IncrementalFinalizeRunnable(CycleCollectedJSRuntime
                                                          DeferredFinalizerTable& aFinalizers)
   : mRuntime(aRt)
   , mFinalizeFunctionToRun(0)
+  , mReleasing(false)
 {
   this->mSupports.SwapElements(aSupports);
   DeferredFinalizeFunctionHolder* function =
@@ -1143,39 +1146,46 @@ IncrementalFinalizeRunnable::~IncrementalFinalizeRunnable()
 void
 IncrementalFinalizeRunnable::ReleaseNow(bool aLimited)
 {
-  
-  MOZ_ASSERT(mDeferredFinalizeFunctions.Length() != 0,
-             "We should have at least ReleaseSliceNow to run");
-  MOZ_ASSERT(mFinalizeFunctionToRun < mDeferredFinalizeFunctions.Length(),
-             "No more finalizers to run?");
+  if (mReleasing) {
+    MOZ_ASSERT(false, "Try to avoid re-entering ReleaseNow!");
+    return;
+  }
+  {
+    mozilla::AutoRestore<bool> ar(mReleasing);
+    mReleasing = true;
+    MOZ_ASSERT(mDeferredFinalizeFunctions.Length() != 0,
+               "We should have at least ReleaseSliceNow to run");
+    MOZ_ASSERT(mFinalizeFunctionToRun < mDeferredFinalizeFunctions.Length(),
+               "No more finalizers to run?");
 
-  TimeDuration sliceTime = TimeDuration::FromMilliseconds(SliceMillis);
-  TimeStamp started = TimeStamp::Now();
-  bool timeout = false;
-  do {
-    const DeferredFinalizeFunctionHolder& function =
-      mDeferredFinalizeFunctions[mFinalizeFunctionToRun];
-    if (aLimited) {
-      bool done = false;
-      while (!timeout && !done) {
-        
+    TimeDuration sliceTime = TimeDuration::FromMilliseconds(SliceMillis);
+    TimeStamp started = TimeStamp::Now();
+    bool timeout = false;
+    do {
+      const DeferredFinalizeFunctionHolder& function =
+        mDeferredFinalizeFunctions[mFinalizeFunctionToRun];
+      if (aLimited) {
+        bool done = false;
+        while (!timeout && !done) {
+          
 
 
 
-        done = function.run(100, function.data);
-        timeout = TimeStamp::Now() - started >= sliceTime;
-      }
-      if (done) {
+          done = function.run(100, function.data);
+          timeout = TimeStamp::Now() - started >= sliceTime;
+        }
+        if (done) {
+          ++mFinalizeFunctionToRun;
+        }
+        if (timeout) {
+          break;
+        }
+      } else {
+        function.run(UINT32_MAX, function.data);
         ++mFinalizeFunctionToRun;
       }
-      if (timeout) {
-        break;
-      }
-    } else {
-      function.run(UINT32_MAX, function.data);
-      ++mFinalizeFunctionToRun;
-    }
-  } while (mFinalizeFunctionToRun < mDeferredFinalizeFunctions.Length());
+    } while (mFinalizeFunctionToRun < mDeferredFinalizeFunctions.Length());
+  }
 
   if (mFinalizeFunctionToRun == mDeferredFinalizeFunctions.Length()) {
     MOZ_ASSERT(mRuntime->mFinalizeRunnable == this);
@@ -1210,7 +1220,21 @@ IncrementalFinalizeRunnable::Run()
 void
 CycleCollectedJSRuntime::FinalizeDeferredThings(DeferredFinalizeType aType)
 {
-  MOZ_ASSERT(!mFinalizeRunnable);
+  
+
+
+
+
+
+
+  if (mFinalizeRunnable) {
+    mFinalizeRunnable->ReleaseNow(false);
+    if (mFinalizeRunnable) {
+      
+      
+      return;
+    }
+  }
   mFinalizeRunnable = new IncrementalFinalizeRunnable(this,
                                                       mDeferredSupports,
                                                       mDeferredFinalizerTable);
@@ -1260,17 +1284,6 @@ CycleCollectedJSRuntime::OnGC(JSGCStatus aStatus)
         AnnotateAndSetOutOfMemory(&mLargeAllocationFailureState, OOMState::Recovered);
       }
 #endif
-
-      
-
-
-
-
-
-
-      if (mFinalizeRunnable) {
-        mFinalizeRunnable->ReleaseNow(false);
-      }
 
       
       FinalizeDeferredThings(JS::WasIncrementalGC(mJSRuntime) ? FinalizeIncrementally :
