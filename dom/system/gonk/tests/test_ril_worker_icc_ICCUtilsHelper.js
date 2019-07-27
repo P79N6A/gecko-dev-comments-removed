@@ -161,12 +161,12 @@ add_test(function test_get_network_name_from_icc() {
   }
 
   
-  testGetNetworkNameFromICC({mcc: 123, mnc: 456, lac: 0x1000}, null);
-  testGetNetworkNameFromICC({mcc: 321, mnc: 654, lac: 0x2000}, null);
+  testGetNetworkNameFromICC({mcc: "123", mnc: "456", lac: 0x1000}, null);
+  testGetNetworkNameFromICC({mcc: "321", mnc: "654", lac: 0x2000}, null);
 
   
-  RIL.iccInfo.mcc = 123;
-  RIL.iccInfo.mnc = 456;
+  RIL.iccInfo.mcc = "123";
+  RIL.iccInfo.mnc = "456";
 
   RIL.voiceRegistrationState = {
     cell: {
@@ -181,56 +181,108 @@ add_test(function test_get_network_name_from_icc() {
       {"fullName": "PNN1Long", "shortName": "PNN1Short"},
       {"fullName": "PNN2Long", "shortName": "PNN2Short"},
       {"fullName": "PNN3Long", "shortName": "PNN3Short"},
-      {"fullName": "PNN4Long", "shortName": "PNN4Short"}
+      {"fullName": "PNN4Long", "shortName": "PNN4Short"},
+      {"fullName": "PNN5Long", "shortName": "PNN5Short"},
+      {"fullName": "PNN6Long", "shortName": "PNN6Short"},
+      {"fullName": "PNN7Long", "shortName": "PNN7Short"},
+      {"fullName": "PNN8Long", "shortName": "PNN8Short"}
     ]
   };
 
   
-  testGetNetworkNameFromICC({mcc: 321, mnc: 654, lac: 0x1000}, null);
+  testGetNetworkNameFromICC({mcc: "321", mnc: "654", lac: 0x1000}, null);
 
   
   
-  testGetNetworkNameFromICC({mcc: 123, mnc: 456, lac: 0x1000},
+  testGetNetworkNameFromICC({mcc: "123", mnc: "456", lac: 0x1000},
                             {longName: "PNN1Long", shortName: "PNN1Short"});
 
   
   RIL.iccInfoPrivate.OPL = [
     {
-      "mcc": 123,
-      "mnc": 456,
+      "mcc": "123",
+      "mnc": "456",
       "lacTacStart": 0,
       "lacTacEnd": 0xFFFE,
       "pnnRecordId": 4
     },
     {
-      "mcc": 321,
-      "mnc": 654,
+      "mcc": "321",
+      "mnc": "654",
       "lacTacStart": 0,
       "lacTacEnd": 0x0010,
       "pnnRecordId": 3
     },
     {
-      "mcc": 321,
-      "mnc": 654,
+      "mcc": "321",
+      "mnc": "654",
       "lacTacStart": 0x0100,
       "lacTacEnd": 0x1010,
       "pnnRecordId": 2
+    },
+    {
+      "mcc": ";;;",
+      "mnc": "01",
+      "lacTacStart": 0,
+      "lacTacEnd": 0xFFFE,
+      "pnnRecordId": 5
+    },
+    {
+      "mcc": "00;",
+      "mnc": "02",
+      "lacTacStart": 0,
+      "lacTacEnd": 0xFFFE,
+      "pnnRecordId": 6
+    },
+    {
+      "mcc": "001",
+      "mnc": ";;",
+      "lacTacStart": 0,
+      "lacTacEnd": 0xFFFE,
+      "pnnRecordId": 7
+    },
+    {
+      "mcc": "002",
+      "mnc": "0;",
+      "lacTacStart": 0,
+      "lacTacEnd": 0xFFFE,
+      "pnnRecordId": 8
     }
   ];
 
   
-  testGetNetworkNameFromICC({mcc: 123, mnc: 456, lac: 0x1000},
+  testGetNetworkNameFromICC({mcc: "123", mnc: "456", lac: 0x1000},
                             {longName: "PNN4Long", shortName: "PNN4Short"});
 
   
   
-  testGetNetworkNameFromICC({mcc: 321, mnc: 654, lac: 0x1000},
+  testGetNetworkNameFromICC({mcc: "321", mnc: "654", lac: 0x1000},
                             {longName: "PNN2Long", shortName: "PNN2Short"});
 
   
   
-  testGetNetworkNameFromICC({mcc: 321, mnc: 654, lac: 0x0001},
+  testGetNetworkNameFromICC({mcc: "321", mnc: "654", lac: 0x0001},
                             {longName: "PNN3Long", shortName: "PNN3Short"});
+
+  
+  
+  testGetNetworkNameFromICC({mcc: "001", mnc: "01", lac: 0x0001},
+                            {longName: "PNN5Long", shortName: "PNN5Short"});
+
+  
+  
+  testGetNetworkNameFromICC({mcc: "001", mnc: "02", lac: 0x0001},
+                            {longName: "PNN6Long", shortName: "PNN6Short"});
+
+  
+  
+  testGetNetworkNameFromICC({mcc: "001", mnc: "03", lac: 0x0001},
+                            {longName: "PNN7Long", shortName: "PNN7Short"});
+
+  
+  
+  testGetNetworkNameFromICC({mcc: "002", mnc: "03", lac: 0x0001},
+                            {longName: "PNN8Long", shortName: "PNN8Short"});
 
   run_next_test();
 });
