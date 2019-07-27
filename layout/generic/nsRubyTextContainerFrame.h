@@ -18,6 +18,9 @@
 nsContainerFrame* NS_NewRubyTextContainerFrame(nsIPresShell* aPresShell,
                                                nsStyleContext* aContext);
 
+
+
+
 class nsRubyTextContainerFrame MOZ_FINAL : public nsBlockFrame
 {
 public:

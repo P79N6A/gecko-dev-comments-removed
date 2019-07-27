@@ -674,6 +674,7 @@ public:
 
   static void EnsureBlockDisplay(uint8_t& display,
                                  bool aConvertListItem = false);
+  static void EnsureInlineDisplay(uint8_t& display);
 
   
   nsRuleNode* Transition(nsIStyleRule* aRule, uint8_t aLevel,

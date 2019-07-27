@@ -356,12 +356,11 @@ nsStyleContext::ApplyStyleFixups(bool aSkipParentDisplayBasedStyleFixup)
   
   
   
+  
+  
   if (!aSkipParentDisplayBasedStyleFixup && mParent) {
     const nsStyleDisplay* parentDisp = mParent->StyleDisplay();
-    if ((parentDisp->mDisplay == NS_STYLE_DISPLAY_FLEX ||
-         parentDisp->mDisplay == NS_STYLE_DISPLAY_INLINE_FLEX ||
-         parentDisp->mDisplay == NS_STYLE_DISPLAY_GRID ||
-         parentDisp->mDisplay == NS_STYLE_DISPLAY_INLINE_GRID) &&
+    if (parentDisp->IsFlexOrGridDisplayType() &&
         GetPseudo() != nsCSSAnonBoxes::mozNonElement) {
       uint8_t displayVal = disp->mDisplay;
       
@@ -394,6 +393,16 @@ nsStyleContext::ApplyStyleFixups(bool aSkipParentDisplayBasedStyleFixup)
             static_cast<nsStyleDisplay*>(GetUniqueStyleData(eStyleStruct_Display));
           mutable_display->mDisplay = displayVal;
         }
+      } 
+    } else if (parentDisp->IsRubyDisplayType()) {
+      uint8_t displayVal = disp->mDisplay;
+      nsRuleNode::EnsureInlineDisplay(displayVal);
+      
+      if (displayVal != disp->mDisplay && 
+          !disp->IsOutOfFlowStyle()) {
+        nsStyleDisplay *mutable_display =
+          static_cast<nsStyleDisplay*>(GetUniqueStyleData(eStyleStruct_Display));
+        mutable_display->mDisplay = displayVal;
       }
     }
   }
