@@ -99,6 +99,18 @@ public class ShareDialog extends Locales.LocaleAwareActivity implements SendTabT
         SendTabList sendTabList = (SendTabList) findViewById(R.id.overlay_send_tab_btn);
 
         ParcelableClientRecord[] clientrecords = (ParcelableClientRecord[]) intent.getParcelableArrayExtra(SendTab.EXTRA_CLIENT_RECORDS);
+
+        
+        
+        
+        if (state == State.DEVICES_ONLY && clientrecords.length == 0) {
+            Log.e(LOGTAG, "In state: " + State.DEVICES_ONLY + " and received 0 synced clients. Finishing...");
+            Toast.makeText(this, getResources().getText(R.string.overlay_no_synced_devices), Toast.LENGTH_SHORT)
+                 .show();
+            finish();
+            return;
+        }
+
         sendTabList.setSyncClients(clientrecords);
 
         if (state == State.DEVICES_ONLY || sendTabList.getCount() <= MAXIMUM_INLINE_DEVICES) {
