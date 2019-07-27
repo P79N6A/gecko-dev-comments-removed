@@ -104,9 +104,6 @@ public class TopSitesPanel extends HomeFragment {
     private int mMaxGridEntries;
 
     
-    private TilesRecorder mTilesRecorder;
-
-    
     private static final long PRIORITY_RESET_TIMEOUT = 10000;
 
     public static TopSitesPanel newInstance() {
@@ -133,8 +130,6 @@ public class TopSitesPanel extends HomeFragment {
         super.onAttach(activity);
 
         mMaxGridEntries = activity.getResources().getInteger(R.integer.number_of_top_sites);
-
-        mTilesRecorder = new TilesRecorder();
     }
 
     @Override
@@ -229,7 +224,7 @@ public class TopSitesPanel extends HomeFragment {
                         if (!tab.isPrivate()) {
                             final Locale locale = Locale.getDefault();
                             final String localeTag = Locales.getLanguageTag(locale);
-                            mTilesRecorder.recordAction(tab, TilesRecorder.ACTION_CLICK, position, getTilesSnapshot(), localeTag);
+                            TilesRecorder.recordAction(tab, TilesRecorder.ACTION_CLICK, position, getTilesSnapshot(), localeTag);
                         }
 
                         mUrlOpenListener.onUrlOpen(url, EnumSet.noneOf(OnUrlOpenListener.Flags.class));
