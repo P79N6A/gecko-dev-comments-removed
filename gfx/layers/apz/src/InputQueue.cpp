@@ -77,6 +77,14 @@ InputQueue::ReceiveTouchInput(const nsRefPtr<AsyncPanZoomController>& aTarget,
                               uint64_t* aOutInputBlockId) {
   TouchBlockState* block = nullptr;
   if (aEvent.mType == MultiTouchInput::MULTITOUCH_START) {
+    nsTArray<TouchBehaviorFlags> currentBehaviors;
+    bool haveBehaviors = false;
+    if (!gfxPrefs::TouchActionEnabled()) {
+      haveBehaviors = true;
+    } else if (!mInputBlockQueue.IsEmpty() && CurrentBlock()->AsTouchBlock()) {
+      haveBehaviors = CurrentTouchBlock()->GetAllowedTouchBehaviors(currentBehaviors);
+    }
+
     block = StartNewTouchBlock(aTarget, aTargetConfirmed, false);
     INPQ_LOG("started new touch block %p for target %p\n", block, aTarget.get());
 
@@ -85,7 +93,8 @@ InputQueue::ReceiveTouchInput(const nsRefPtr<AsyncPanZoomController>& aTarget,
     
     if (block == CurrentBlock() &&
         aEvent.mTouches.Length() == 1 &&
-        block->GetOverscrollHandoffChain()->HasFastMovingApzc()) {
+        block->GetOverscrollHandoffChain()->HasFastMovingApzc() &&
+        haveBehaviors) {
       
       
       
@@ -93,6 +102,9 @@ InputQueue::ReceiveTouchInput(const nsRefPtr<AsyncPanZoomController>& aTarget,
       
       block->SetDuringFastMotion();
       block->SetConfirmedTargetApzc(aTarget);
+      if (gfxPrefs::TouchActionEnabled()) {
+        block->SetAllowedTouchBehaviors(currentBehaviors);
+      }
       INPQ_LOG("block %p tagged as fast-motion\n", block);
     }
 

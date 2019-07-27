@@ -214,6 +214,12 @@ public:
   
 
 
+
+  bool GetAllowedTouchBehaviors(nsTArray<TouchBehaviorFlags>& aOutBehaviors) const;
+
+  
+
+
   void CopyPropertiesFrom(const TouchBlockState& aOther);
 
   
