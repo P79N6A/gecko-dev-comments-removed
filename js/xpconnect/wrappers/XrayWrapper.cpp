@@ -2215,18 +2215,6 @@ XrayWrapper<Base, Traits>::setPrototypeOf(JSContext *cx, JS::HandleObject wrappe
     return true;
 }
 
-template <typename Base, typename Traits>
-bool
-XrayWrapper<Base, Traits>::setImmutablePrototype(JSContext *cx, JS::HandleObject wrapper,
-                                                 bool *succeeded) const
-{
-    
-    
-    
-    
-    *succeeded = false;
-    return true;
-}
 
 
 

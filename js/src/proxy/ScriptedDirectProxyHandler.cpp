@@ -360,21 +360,6 @@ ScriptedDirectProxyHandler::setPrototypeOf(JSContext *cx, HandleObject proxy,
 
 
 bool
-ScriptedDirectProxyHandler::setImmutablePrototype(JSContext *cx, HandleObject proxy,
-                                                  bool *succeeded) const
-{
-    RootedObject target(cx, proxy->as<ProxyObject>().target());
-    if (!target) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_PROXY_REVOKED);
-        return false;
-    }
-
-    return DirectProxyHandler::setImmutablePrototype(cx, proxy, succeeded);
-}
-
-
-
-bool
 ScriptedDirectProxyHandler::getPropertyDescriptor(JSContext *cx, HandleObject proxy, HandleId id,
                                                   MutableHandle<PropertyDescriptor> desc) const
 {
