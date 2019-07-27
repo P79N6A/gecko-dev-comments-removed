@@ -1937,10 +1937,70 @@ MaybeReportUndeclaredVarAssignment(JSContext *cx, JSString *propname)
                                         JSMSG_UNDECLARED_VAR, bytes.ptr());
 }
 
+
+
+
+
+
+
+
+
 template <ExecutionMode mode>
 static bool
 SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
-                      HandleObject receiver, HandleId id, HandleValue v, bool strict);
+                      HandleObject receiver, HandleId id, HandleValue v, bool strict)
+{
+    
+    
+    
+    bool extensible;
+    if (mode == ParallelExecution) {
+        if (receiver->is<ProxyObject>())
+            return false;
+        extensible = receiver->nonProxyIsExtensible();
+    } else {
+        if (!JSObject::isExtensible(cxArg->asJSContext(), receiver, &extensible))
+            return false;
+    }
+    if (!extensible) {
+        
+        
+        if (strict)
+            return receiver->reportNotExtensible(cxArg);
+        if (mode == SequentialExecution &&
+            cxArg->asJSContext()->compartment()->options().extraWarnings(cxArg->asJSContext()))
+        {
+            return receiver->reportNotExtensible(cxArg, JSREPORT_STRICT | JSREPORT_WARNING);
+        }
+        return true;
+    }
+
+    
+    const Class *clasp = receiver->getClass();
+    if (mode == ParallelExecution) {
+        if (receiver->isDelegate())
+            return false;
+
+        if (clasp->getProperty != JS_PropertyStub || !types::HasTypePropertyId(receiver, id, v))
+            return false;
+    } else {
+        
+        if (!PurgeScopeChain(cxArg->asJSContext(), receiver, id))
+            return false;
+    }
+
+    
+    if (!receiver->is<NativeObject>()) {
+        if (mode == ParallelExecution)
+            return false;
+        return JSObject::defineGeneric(cxArg->asJSContext(), receiver, id, v,
+                                       clasp->getProperty, clasp->setProperty, JSPROP_ENUMERATE);
+    }
+    Rooted<NativeObject*> nativeReceiver(cxArg, &receiver->as<NativeObject>());
+    return DefinePropertyOrElement<mode>(cxArg, nativeReceiver, id,
+                                         clasp->getProperty, clasp->setProperty,
+                                         JSPROP_ENUMERATE, v, true, strict);
+}
 
 template <ExecutionMode mode>
 bool
@@ -2134,71 +2194,6 @@ baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg
 
     MOZ_ASSERT(attrs == JSPROP_ENUMERATE);
     return SetPropertyByDefining<mode>(cxArg, receiver, id, vp, strict);
-}
-
-
-
-
-
-
-
-
-
-template <ExecutionMode mode>
-static bool
-SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
-                      HandleObject receiver, HandleId id, HandleValue v, bool strict)
-{
-    
-    
-    
-    bool extensible;
-    if (mode == ParallelExecution) {
-        if (receiver->is<ProxyObject>())
-            return false;
-        extensible = receiver->nonProxyIsExtensible();
-    } else {
-        if (!JSObject::isExtensible(cxArg->asJSContext(), receiver, &extensible))
-            return false;
-    }
-    if (!extensible) {
-        
-        
-        if (strict)
-            return receiver->reportNotExtensible(cxArg);
-        if (mode == SequentialExecution &&
-            cxArg->asJSContext()->compartment()->options().extraWarnings(cxArg->asJSContext()))
-        {
-            return receiver->reportNotExtensible(cxArg, JSREPORT_STRICT | JSREPORT_WARNING);
-        }
-        return true;
-    }
-
-    
-    const Class *clasp = receiver->getClass();
-    if (mode == ParallelExecution) {
-        if (receiver->isDelegate())
-            return false;
-
-        if (clasp->getProperty != JS_PropertyStub || !types::HasTypePropertyId(receiver, id, v))
-            return false;
-    } else {
-        
-        if (!PurgeScopeChain(cxArg->asJSContext(), receiver, id))
-            return false;
-    }
-
-    
-    if (!receiver->is<NativeObject>()) {
-        if (mode == ParallelExecution)
-            return false;
-        return JSObject::defineGeneric(cxArg->asJSContext(), receiver, id, v,
-                                       clasp->getProperty, clasp->setProperty, JSPROP_ENUMERATE);
-    }
-    Rooted<NativeObject*> nativeReceiver(cxArg, &receiver->as<NativeObject>());
-    return DefinePropertyOrElement<mode>(cxArg, nativeReceiver, id,
-                                         clasp->getProperty, clasp->setProperty,
-                                         JSPROP_ENUMERATE, v, true, strict);
 }
 
 template bool
