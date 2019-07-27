@@ -7,14 +7,16 @@ assertEq(RegExp.prototype.flags, "");
 assertEq(/foo/iymg.flags, "gimy");
 assertEq(RegExp("").flags, "");
 assertEq(RegExp("", "mygi").flags, "gimy");
-assertThrowsInstanceOf(() => RegExp("", "mygui").flags, SyntaxError);
 
+assertThrowsInstanceOf(() => RegExp("", "mygui").flags, SyntaxError);
 
 assertEq(genericFlags({}), "");
 assertEq(genericFlags({ignoreCase: true}), "i");
-assertEq(genericFlags({sticky:1, unicode:1, global: 0}), "uy");
+assertEq(genericFlags({sticky:1, unicode:1, global: 0}), "y");
+
 assertEq(genericFlags({__proto__: {multiline: true}}), "m");
-assertEq(genericFlags(new Proxy({}, {get(){return true}})), "gimuy");
+assertEq(genericFlags(new Proxy({}, {get(){return true}})), "gimy");
+
 
 assertThrowsInstanceOf(() => genericFlags(), TypeError);
 assertThrowsInstanceOf(() => genericFlags(1), TypeError);
