@@ -517,10 +517,14 @@ AutoEntryScript::AutoEntryScript(nsIGlobalObject* aGlobalObject,
   , ScriptSettingsStackEntry(aGlobalObject,  true)
   , mWebIDLCallerPrincipal(nullptr)
   , mDocShellForJSRunToCompletion(nullptr)
+  , mIsMainThread(aIsMainThread)
 {
   MOZ_ASSERT(aGlobalObject);
   MOZ_ASSERT_IF(!aCx, aIsMainThread); 
   MOZ_ASSERT_IF(aCx && aIsMainThread, aCx == FindJSContext(aGlobalObject));
+  if (aIsMainThread) {
+    nsContentUtils::EnterMicroTask();
+  }
 
   if (aIsMainThread && gRunToCompletionListeners > 0) {
     nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aGlobalObject);
@@ -538,6 +542,10 @@ AutoEntryScript::~AutoEntryScript()
 {
   if (mDocShellForJSRunToCompletion) {
     mDocShellForJSRunToCompletion->NotifyJSRunToCompletionStop();
+  }
+
+  if (mIsMainThread) {
+    nsContentUtils::LeaveMicroTask();
   }
 
   
