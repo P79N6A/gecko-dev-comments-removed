@@ -216,21 +216,21 @@ FormAutoComplete.prototype = {
             
             
             
-            let allResults = wrappedResult._values;
+            let allResults = wrappedResult._labels;
             let datalistResults, datalistLabels;
             if (allResults) {
                 
-                datalistResults = allResults.slice(wrappedResult.entries.length);
+                datalistLabels = allResults.slice(wrappedResult.entries.length);
                 let filtered = [];
-                datalistLabels = [];
-                for (let i = datalistResults.length; i > 0; --i) {
-                    if (datalistResults[i - 1].contains(searchString)) {
-                        filtered.push(datalistResults[i - 1]);
-                        datalistLabels.push(wrappedResult._labels[i - 1]);
+                datalistResults = [];
+                for (let i = 0; i < datalistLabels.length; ++i) {
+                    if (datalistLabels[i].toLowerCase().includes(searchString)) {
+                        filtered.push(datalistLabels[i]);
+                        datalistResults.push(wrappedResult._values[i]);
                     }
                 }
 
-                datalistResults = filtered;
+                datalistLabels = filtered;
             }
 
             let searchTokens = searchString.split(/\s+/);
