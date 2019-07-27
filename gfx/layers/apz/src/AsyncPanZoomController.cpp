@@ -2627,6 +2627,12 @@ AsyncPanZoomController::ProcessPendingInputBlocks() {
     if (curBlock->IsDefaultPrevented()) {
       SetState(NOTHING);
       curBlock->DropEvents();
+      
+      nsRefPtr<GestureEventListener> listener = GetGestureEventListener();
+      if (listener) {
+        MultiTouchInput cancel(MultiTouchInput::MULTITOUCH_CANCEL, 0, TimeStamp::Now(), 0);
+        listener->HandleInputEvent(cancel);
+      }
     } else {
       while (curBlock->HasEvents()) {
         HandleInputEvent(curBlock->RemoveFirstEvent());
