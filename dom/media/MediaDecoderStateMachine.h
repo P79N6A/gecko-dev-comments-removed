@@ -326,7 +326,17 @@ public:
   void ScheduleStateMachineWithLockAndWakeDecoder();
 
   
+  
+  
+  
+  
   void ScheduleStateMachine();
+  void ScheduleStateMachineCrossThread()
+  {
+    nsCOMPtr<nsIRunnable> task =
+      NS_NewRunnableMethod(this, &MediaDecoderStateMachine::RunStateMachine);
+    TaskQueue()->Dispatch(task.forget());
+  }
 
   
   

@@ -889,7 +889,7 @@ public:
 
   
   
-  nsresult ScheduleStateMachineThread();
+  nsresult ScheduleStateMachine();
 
   struct Statistics {
     
