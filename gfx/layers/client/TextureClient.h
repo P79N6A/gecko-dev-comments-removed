@@ -120,34 +120,18 @@ public:
   TextureClient(TextureFlags aFlags = TextureFlags::DEFAULT);
   virtual ~TextureClient();
 
-  
-  
-  
-  
   static TemporaryRef<BufferTextureClient>
   CreateBufferTextureClient(ISurfaceAllocator* aAllocator,
                             gfx::SurfaceFormat aFormat,
                             TextureFlags aTextureFlags,
                             gfx::BackendType aMoz2dBackend);
 
-  
   static TemporaryRef<TextureClient>
-  CreateForDrawing(ISurfaceAllocator* aAllocator,
-                   gfx::SurfaceFormat aFormat,
-                   gfx::IntSize aSize,
-                   gfx::BackendType aMoz2dBackend,
-                   TextureFlags aTextureFlags,
-                   TextureAllocationFlags flags = ALLOC_DEFAULT);
-
-  
-  
-  static TemporaryRef<BufferTextureClient>
-  CreateForRawBufferAccess(ISurfaceAllocator* aAllocator,
-                           gfx::SurfaceFormat aFormat,
-                           gfx::IntSize aSize,
-                           gfx::BackendType aMoz2dBackend,
-                           TextureFlags aTextureFlags,
-                           TextureAllocationFlags flags = ALLOC_DEFAULT);
+  CreateTextureClientForDrawing(ISurfaceAllocator* aAllocator,
+                                gfx::SurfaceFormat aFormat,
+                                TextureFlags aTextureFlags,
+                                gfx::BackendType aMoz2dBackend,
+                                const gfx::IntSize& aSizeHint);
 
   virtual TextureClientYCbCr* AsTextureClientYCbCr() { return nullptr; }
 
