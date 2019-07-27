@@ -37,8 +37,8 @@ GLBlitTextureImageHelper::~GLBlitTextureImageHelper()
 }
 
 void
-GLBlitTextureImageHelper::BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
-                                           TextureImage *aDst, const nsIntRect& aDstRect)
+GLBlitTextureImageHelper::BlitTextureImage(TextureImage *aSrc, const gfx::IntRect& aSrcRect,
+                                           TextureImage *aDst, const gfx::IntRect& aDstRect)
 {
     GLContext *gl = mCompositor->gl();
     NS_ASSERTION(!aSrc->InUpdate(), "Source texture is in update!");
@@ -61,8 +61,8 @@ GLBlitTextureImageHelper::BlitTextureImage(TextureImage *aSrc, const nsIntRect& 
     aDst->BeginBigImageIteration();
     do {
         
-        nsIntRect dstSubRect;
-        nsIntRect dstTextureRect = ThebesIntRect(aDst->GetTileRect());
+        gfx::IntRect dstSubRect;
+        gfx::IntRect dstTextureRect = ThebesIntRect(aDst->GetTileRect());
         dstSubRect.IntersectRect(aDstRect, dstTextureRect);
 
         
@@ -70,7 +70,7 @@ GLBlitTextureImageHelper::BlitTextureImage(TextureImage *aSrc, const nsIntRect& 
             continue;
 
         
-        nsIntRect dstInSrcRect(dstSubRect);
+        gfx::IntRect dstInSrcRect(dstSubRect);
         dstInSrcRect.MoveBy(-aDstRect.TopLeft());
         
         dstInSrcRect.ScaleRoundOut(1.0f / blitScaleX, 1.0f / blitScaleY);
@@ -83,8 +83,8 @@ GLBlitTextureImageHelper::BlitTextureImage(TextureImage *aSrc, const nsIntRect& 
         
         do {
             
-            nsIntRect srcSubRect;
-            nsIntRect srcTextureRect = ThebesIntRect(aSrc->GetTileRect());
+            gfx::IntRect srcSubRect;
+            gfx::IntRect srcTextureRect = ThebesIntRect(aSrc->GetTileRect());
             srcSubRect.IntersectRect(aSrcRect, srcTextureRect);
 
             
@@ -104,7 +104,7 @@ GLBlitTextureImageHelper::BlitTextureImage(TextureImage *aSrc, const nsIntRect& 
             
             
             
-            nsIntRect srcSubInDstRect(srcSubRect);
+            gfx::IntRect srcSubInDstRect(srcSubRect);
             srcSubInDstRect.MoveBy(-aSrcRect.TopLeft());
             srcSubInDstRect.ScaleRoundOut(blitScaleX, blitScaleY);
             srcSubInDstRect.MoveBy(aDstRect.TopLeft());

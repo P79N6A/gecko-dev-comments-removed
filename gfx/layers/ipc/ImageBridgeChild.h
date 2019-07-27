@@ -17,10 +17,9 @@
 #include "mozilla/layers/PImageBridgeChild.h"
 #include "nsDebug.h"                    
 #include "nsRegion.h"                   
+#include "mozilla/gfx/Rect.h"
 
 class MessageLoop;
-struct nsIntPoint;
-struct nsIntRect;
 
 namespace base {
 class Thread;
@@ -241,7 +240,7 @@ public:
 
 
   virtual void UpdatePictureRect(CompositableClient* aCompositable,
-                                 const nsIntRect& aRect) override;
+                                 const gfx::IntRect& aRect) override;
 
 
   virtual void UpdateTextureRegion(CompositableClient* aCompositable,

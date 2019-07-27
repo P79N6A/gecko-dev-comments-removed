@@ -102,7 +102,7 @@ TextureImageEGL::GetUpdateRegion(nsIntRegion& aForRegion)
     if (mTextureState != Valid) {
         
         
-        aForRegion = nsIntRect(nsIntPoint(0, 0), mSize);
+        aForRegion = gfx::IntRect(gfx::IntPoint(0, 0), mSize);
     }
 
     
@@ -122,7 +122,7 @@ TextureImageEGL::BeginUpdate(nsIntRegion& aRegion)
     mUpdateRect = aRegion.GetBounds();
 
     
-    if (!nsIntRect(nsIntPoint(0, 0), mSize).Contains(mUpdateRect)) {
+    if (!gfx::IntRect(gfx::IntPoint(0, 0), mSize).Contains(mUpdateRect)) {
         NS_ERROR("update outside of image");
         return nullptr;
     }
@@ -198,11 +198,11 @@ TextureImageEGL::EndUpdate()
 bool
 TextureImageEGL::DirectUpdate(gfx::DataSourceSurface* aSurf, const nsIntRegion& aRegion, const gfx::IntPoint& aFrom )
 {
-    nsIntRect bounds = aRegion.GetBounds();
+    gfx::IntRect bounds = aRegion.GetBounds();
 
     nsIntRegion region;
     if (mTextureState != Valid) {
-        bounds = nsIntRect(0, 0, mSize.width, mSize.height);
+        bounds = gfx::IntRect(0, 0, mSize.width, mSize.height);
         region = nsIntRegion(bounds);
     } else {
         region = aRegion;
@@ -214,7 +214,7 @@ TextureImageEGL::DirectUpdate(gfx::DataSourceSurface* aSurf, const nsIntRegion& 
                              region,
                              mTexture,
                              mTextureState == Created,
-                             bounds.TopLeft() + nsIntPoint(aFrom.x, aFrom.y),
+                             bounds.TopLeft() + gfx::IntPoint(aFrom.x, aFrom.y),
                              false);
 
     mTextureState = Valid;

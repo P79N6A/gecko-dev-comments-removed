@@ -5292,7 +5292,7 @@ PresShell::RenderNode(nsIDOMNode* aNode,
     
     nsIntRect rrectPixels = aRegion->GetBounds();
 
-    nsRect rrect = rrectPixels.ToAppUnits(nsPresContext::AppUnitsPerCSSPixel());
+    nsRect rrect = ToAppUnits(rrectPixels, nsPresContext::AppUnitsPerCSSPixel());
     area.IntersectRect(area, rrect);
 
     nsPresContext* pc = GetPresContext();
@@ -7377,10 +7377,9 @@ PresShell::HandleEvent(nsIFrame* aFrame,
       }
     }
 
-    if (!frame) {
-      NS_WARNING("Nothing to handle this event!");
+    NS_WARN_IF_FALSE(frame, "Nothing to handle this event!");
+    if (!frame)
       return NS_OK;
-    }
 
     nsPresContext* framePresContext = frame->PresContext();
     nsPresContext* rootPresContext = framePresContext->GetRootPresContext();
@@ -7583,16 +7582,9 @@ PresShell::HandleEvent(nsIFrame* aFrame,
       if (WidgetPointerEvent* pointerEvent = aEvent->AsPointerEvent()) {
         
         
-        nsWeakFrame frameKeeper(frame);
-        
-        
         
         
         while(CheckPointerCaptureState(pointerEvent->pointerId));
-        
-        if (!frameKeeper.IsAlive()) {
-          frame = nullptr;
-        }
       }
     }
 
@@ -7634,11 +7626,7 @@ PresShell::HandleEvent(nsIFrame* aFrame,
           delete event;
         }
       }
-      return NS_OK;
-    }
 
-    if (!frame) {
-      NS_WARNING("Nothing to handle this event!");
       return NS_OK;
     }
 

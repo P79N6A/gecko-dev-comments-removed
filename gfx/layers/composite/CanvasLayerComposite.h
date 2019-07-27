@@ -14,7 +14,6 @@
 #include "nsDebug.h"                    
 #include "nsRect.h"                     
 #include "nscore.h"                     
-struct nsIntPoint;
 
 namespace mozilla {
 namespace layers {

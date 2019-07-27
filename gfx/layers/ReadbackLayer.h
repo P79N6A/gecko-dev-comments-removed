@@ -9,14 +9,13 @@
 #include <stdint.h>                     
 #include "Layers.h"                     
 #include "gfxColor.h"                   
-#include "gfxRect.h"                    
+#include "mozilla/gfx/Rect.h"                    
+#include "mozilla/gfx/Point.h"                    
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
 #include "nsDebug.h"                    
 #include "nsPoint.h"                    
-#include "nsRect.h"                     
-#include "nsSize.h"                     
 #include "nscore.h"                     
 
 class gfxContext;
@@ -61,14 +60,14 @@ public:
 
 
   virtual already_AddRefed<gfxContext>
-      BeginUpdate(const nsIntRect& aRect, uint64_t aSequenceNumber) = 0;
+      BeginUpdate(const gfx::IntRect& aRect, uint64_t aSequenceNumber) = 0;
   
 
 
 
 
 
-  virtual void EndUpdate(gfxContext* aContext, const nsIntRect& aRect) = 0;
+  virtual void EndUpdate(gfxContext* aContext, const gfx::IntRect& aRect) = 0;
 };
 
 
@@ -122,13 +121,13 @@ public:
 
 
 
-  void SetSize(const nsIntSize& aSize)
+  void SetSize(const gfx::IntSize& aSize)
   {
     NS_ASSERTION(!mSink, "Should have no sink while changing size!");
     mSize = aSize;
   }
-  const nsIntSize& GetSize() { return mSize; }
-  nsIntRect GetRect() { return nsIntRect(nsIntPoint(0, 0), mSize); }
+  const gfx::IntSize& GetSize() { return mSize; }
+  gfx::IntRect GetRect() { return gfx::IntRect(gfx::IntPoint(0, 0), mSize); }
 
   bool IsBackgroundKnown()
   {
@@ -180,7 +179,7 @@ protected:
 
   uint64_t mSequenceCounter;
   nsAutoPtr<ReadbackSink> mSink;
-  nsIntSize mSize;
+  gfx::IntSize mSize;
 
   
   

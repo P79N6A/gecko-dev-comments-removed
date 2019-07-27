@@ -17,7 +17,6 @@
 #include "nsAString.h"
 #include "nsRefPtr.h"                   
 #include "nsISupportsImpl.h"            
-#include "nsPoint.h"                    
 #include "nsString.h"                   
 #include "gfxVR.h"
 

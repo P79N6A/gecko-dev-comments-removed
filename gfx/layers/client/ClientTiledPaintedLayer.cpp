@@ -18,7 +18,6 @@
 #include "mozilla/layers/LayersMessages.h"
 #include "mozilla/mozalloc.h"           
 #include "nsISupportsImpl.h"            
-#include "nsRect.h"                     
 #include "LayersLogging.h"
 
 namespace mozilla {
@@ -424,12 +423,12 @@ ClientTiledPaintedLayer::RenderLayer()
     
     
     
-    nsIntRect bounds = neededRegion.GetBounds();
-    nsIntRect wholeTiles = bounds;
-    wholeTiles.InflateToMultiple(nsIntSize(
+    IntRect bounds = neededRegion.GetBounds();
+    IntRect wholeTiles = bounds;
+    wholeTiles.InflateToMultiple(IntSize(
       gfxPlatform::GetPlatform()->GetTileWidth(),
       gfxPlatform::GetPlatform()->GetTileHeight()));
-    nsIntRect padded = bounds;
+    IntRect padded = bounds;
     padded.Inflate(1);
     padded.IntersectRect(padded, wholeTiles);
     neededRegion = padded;

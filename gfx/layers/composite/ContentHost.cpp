@@ -327,7 +327,7 @@ ContentHostSingleBuffered::UpdateThebes(const ThebesBufferData& aData,
 
   
   nsIntRegion finalRegion;
-  finalRegion.And(nsIntRect(nsIntPoint(), bufferSize), destRegion);
+  finalRegion.And(IntRect(IntPoint(), bufferSize), destRegion);
 
   
   

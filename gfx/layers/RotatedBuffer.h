@@ -16,8 +16,6 @@
 #include "nsCOMPtr.h"                   
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
-#include "nsPoint.h"                    
-#include "nsRect.h"                     
 #include "nsRegion.h"                   
 #include "LayersTypes.h"
 
@@ -50,8 +48,8 @@ class RotatedBuffer {
 public:
   typedef gfxContentType ContentType;
 
-  RotatedBuffer(const nsIntRect& aBufferRect,
-                const nsIntPoint& aBufferRotation)
+  RotatedBuffer(const gfx::IntRect& aBufferRect,
+                const gfx::IntPoint& aBufferRotation)
     : mBufferRect(aBufferRect)
     , mBufferRotation(aBufferRotation)
     , mDidSelfCopy(false)
@@ -81,8 +79,8 @@ public:
 
 
 
-  const nsIntRect& BufferRect() const { return mBufferRect; }
-  const nsIntPoint& BufferRotation() const { return mBufferRotation; }
+  const gfx::IntRect& BufferRect() const { return mBufferRect; }
+  const gfx::IntPoint& BufferRotation() const { return mBufferRotation; }
 
   virtual bool HaveBuffer() const = 0;
   virtual bool HaveBufferOnWhite() const = 0;
@@ -97,7 +95,7 @@ protected:
   enum YSide {
     TOP, BOTTOM
   };
-  nsIntRect GetQuadrantRectangle(XSide aXSide, YSide aYSide) const;
+  gfx::IntRect GetQuadrantRectangle(XSide aXSide, YSide aYSide) const;
 
   gfx::Rect GetSourceRectangle(XSide aXSide, YSide aYSide) const;
 
@@ -114,7 +112,7 @@ protected:
                           const gfx::Matrix* aMaskTransform) const;
 
   
-  nsIntRect             mBufferRect;
+  gfx::IntRect             mBufferRect;
   
 
 
@@ -125,7 +123,7 @@ protected:
 
 
 
-  nsIntPoint            mBufferRotation;
+  gfx::IntPoint            mBufferRotation;
   
   
   bool                  mDidSelfCopy;
@@ -135,8 +133,8 @@ class SourceRotatedBuffer : public RotatedBuffer
 {
 public:
   SourceRotatedBuffer(gfx::SourceSurface* aSource, gfx::SourceSurface* aSourceOnWhite,
-                      const nsIntRect& aBufferRect,
-                      const nsIntPoint& aBufferRotation)
+                      const gfx::IntRect& aBufferRect,
+                      const gfx::IntPoint& aBufferRotation)
     : RotatedBuffer(aBufferRect, aBufferRotation)
     , mSource(aSource)
     , mSourceOnWhite(aSourceOnWhite)
@@ -310,7 +308,7 @@ public:
 
 
   virtual void
-  CreateBuffer(ContentType aType, const nsIntRect& aRect, uint32_t aFlags,
+  CreateBuffer(ContentType aType, const gfx::IntRect& aRect, uint32_t aFlags,
                RefPtr<gfx::DrawTarget>* aBlackDT, RefPtr<gfx::DrawTarget>* aWhiteDT) = 0;
 
   
@@ -375,7 +373,7 @@ protected:
 
 
   gfx::DrawTarget*
-  BorrowDrawTargetForQuadrantUpdate(const nsIntRect& aBounds,
+  BorrowDrawTargetForQuadrantUpdate(const gfx::IntRect& aBounds,
                                     ContextSource aSource,
                                     DrawIterator* aIter);
 

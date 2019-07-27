@@ -14,13 +14,12 @@
 #include "mozilla/RefPtr.h"
 #include "nsColor.h"
 #include "nsPrintfCString.h"
+#include "mozilla/gfx/Rect.h"
 
 class gfxASurface;
 class gfxDrawable;
 class nsIntRegion;
 class nsIPresShell;
-
-struct nsIntRect;
 
 namespace mozilla {
 namespace layers {
@@ -125,7 +124,7 @@ public:
 
 
 
-    static bool GfxRectToIntRect(const gfxRect& aIn, nsIntRect* aOut);
+    static bool GfxRectToIntRect(const gfxRect& aIn, mozilla::gfx::IntRect* aOut);
 
     
 
@@ -163,7 +162,7 @@ public:
 
 
     static void ClearThebesSurface(gfxASurface* aSurface,
-                                   nsIntRect* aRect = nullptr,
+                                   mozilla::gfx::IntRect* aRect = nullptr,
                                    const gfxRGBA& aColor = gfxRGBA(0.0, 0.0, 0.0, 0.0));
 
     

@@ -9,9 +9,9 @@
 #include "gfxColor.h"
 #include "gfxContext.h"
 #include "gfxXlibSurface.h"
+#include "mozilla/gfx/Rect.h"
 
 class QRect;
-struct nsIntRect;
 
 
 
@@ -31,8 +31,9 @@ public:
 
     virtual nsresult DrawWithXlib(cairo_surface_t* surface,
                                   nsIntPoint offset,
-                                  nsIntRect* clipRects, uint32_t numClipRects) = 0;
-  
+                                  mozilla::gfx::IntRect* clipRects,
+                                  uint32_t numClipRects) = 0;
+
     enum {
         
         

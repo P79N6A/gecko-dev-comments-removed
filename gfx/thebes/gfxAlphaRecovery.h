@@ -8,9 +8,8 @@
 
 #include "mozilla/SSE.h"
 #include "gfxTypes.h"
-#include "nsRect.h"
+#include "mozilla/gfx/Rect.h"
 
-struct nsIntRect;
 class gfxImageSurface;
 
 class gfxAlphaRecovery {
@@ -53,11 +52,11 @@ public:
 
 
 
-    static nsIntRect AlignRectForSubimageRecovery(const nsIntRect& aRect,
-                                                  gfxImageSurface* aSurface);
+    static mozilla::gfx::IntRect AlignRectForSubimageRecovery(const mozilla::gfx::IntRect& aRect,
+                                                              gfxImageSurface* aSurface);
 #else
-    static nsIntRect AlignRectForSubimageRecovery(const nsIntRect& aRect,
-                                                  gfxImageSurface*)
+    static mozilla::gfx::IntRect AlignRectForSubimageRecovery(const mozilla::gfx::IntRect& aRect,
+                                                              gfxImageSurface*)
     { return aRect; }
 #endif
 

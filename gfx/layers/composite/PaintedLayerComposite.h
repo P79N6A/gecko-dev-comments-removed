@@ -7,7 +7,7 @@
 #define GFX_PaintedLayerComposite_H
 
 #include "Layers.h"                     
-#include "gfxRect.h"                    
+#include "mozilla/gfx/Rect.h"
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
 #include "mozilla/layers/LayerManagerComposite.h"  
@@ -15,9 +15,6 @@
 #include "nsDebug.h"                    
 #include "nsRegion.h"                   
 #include "nscore.h"                     
-
-struct nsIntPoint;
-struct nsIntRect;
 
 
 namespace mozilla {
@@ -57,7 +54,7 @@ public:
 
   virtual TiledLayerComposer* GetTiledLayerComposer() override;
 
-  virtual void RenderLayer(const nsIntRect& aClipRect) override;
+  virtual void RenderLayer(const gfx::IntRect& aClipRect) override;
 
   virtual void CleanupResources() override;
 

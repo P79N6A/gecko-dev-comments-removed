@@ -21,8 +21,6 @@
 #include "nsRefPtr.h"                   
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
-#include "nsPoint.h"                    
-#include "nsRect.h"                     
 #include "nsString.h"                   
 
 namespace mozilla {
@@ -82,7 +80,7 @@ ImageLayerComposite::GetLayer()
 }
 
 void
-ImageLayerComposite::RenderLayer(const nsIntRect& aClipRect)
+ImageLayerComposite::RenderLayer(const IntRect& aClipRect)
 {
   if (!mImageHost || !mImageHost->IsAttached()) {
     return;

@@ -393,7 +393,7 @@ ProgressTracker::SyncNotify(IProgressObserver* aObserver)
     if (NS_FAILED(mImage->GetWidth(&rect.width)) ||
         NS_FAILED(mImage->GetHeight(&rect.height))) {
       
-      rect = nsIntRect::GetMaxSizedIntRect();
+      rect = GetMaxSizedIntRect();
     }
   }
 

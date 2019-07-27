@@ -28,13 +28,10 @@
 #include "mozilla/layers/TextureClient.h"  
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
-#include "nsRect.h"                     
 #include "nsSize.h"                     
 #include "nsTArray.h"                   
 #include "nsXULAppAPI.h"                
 #include "mozilla/ReentrantMonitor.h"
-
-struct nsIntPoint;
 
 namespace mozilla {
 namespace ipc {
@@ -62,7 +59,7 @@ public:
     , mRotationChanged(false)
   {}
 
-  void Begin(const nsIntRect& aTargetBounds, ScreenRotation aRotation,
+  void Begin(const gfx::IntRect& aTargetBounds, ScreenRotation aRotation,
              dom::ScreenOrientation aOrientation)
   {
     mOpen = true;
@@ -139,7 +136,7 @@ public:
   EditVector mCset;
   EditVector mPaints;
   ShadowableLayerSet mMutants;
-  nsIntRect mTargetBounds;
+  gfx::IntRect mTargetBounds;
   ScreenRotation mTargetRotation;
   dom::ScreenOrientation mTargetOrientation;
   bool mSwapRequired;
@@ -185,7 +182,7 @@ ShadowLayerForwarder::~ShadowLayerForwarder()
 }
 
 void
-ShadowLayerForwarder::BeginTransaction(const nsIntRect& aTargetBounds,
+ShadowLayerForwarder::BeginTransaction(const gfx::IntRect& aTargetBounds,
                                        ScreenRotation aRotation,
                                        dom::ScreenOrientation aOrientation)
 {
@@ -354,7 +351,7 @@ ShadowLayerForwarder::UpdateTextureRegion(CompositableClient* aCompositable,
 
 void
 ShadowLayerForwarder::UpdatePictureRect(CompositableClient* aCompositable,
-                                        const nsIntRect& aRect)
+                                        const gfx::IntRect& aRect)
 {
   MOZ_ASSERT(aCompositable);
   MOZ_ASSERT(aCompositable->GetIPDLActor());

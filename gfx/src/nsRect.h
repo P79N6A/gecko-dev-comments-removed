@@ -13,17 +13,17 @@
 #include "nsDebug.h"                    
 #include "gfxCore.h"                    
 #include "mozilla/Likely.h"             
-#include "mozilla/gfx/BaseRect.h"       
-#include "mozilla/gfx/NumericTools.h"   
+#include "mozilla/gfx/Rect.h"
 #include "nsCoord.h"                    
 #include "nsISupportsImpl.h"            
 #include "nsPoint.h"                    
 #include "nsSize.h"                     
 #include "nscore.h"                     
 
-struct nsIntRect;
 struct nsMargin;
 struct nsIntMargin;
+
+typedef mozilla::gfx::IntRect nsIntRect;
 
 struct NS_GFX nsRect :
   public mozilla::gfx::BaseRect<nscoord, nsRect, nsPoint, nsSize, nsMargin> {
@@ -179,56 +179,6 @@ struct NS_GFX nsRect :
   }
 };
 
-struct NS_GFX nsIntRect :
-  public mozilla::gfx::BaseRect<int32_t, nsIntRect, nsIntPoint, nsIntSize, nsIntMargin> {
-  typedef mozilla::gfx::BaseRect<int32_t, nsIntRect, nsIntPoint, nsIntSize, nsIntMargin> Super;
-
-  
-  nsIntRect() : Super()
-  {
-  }
-  nsIntRect(const nsIntRect& aRect) : Super(aRect)
-  {
-  }
-  nsIntRect(const nsIntPoint& aOrigin, const nsIntSize &aSize) : Super(aOrigin, aSize)
-  {
-  }
-  nsIntRect(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight) :
-      Super(aX, aY, aWidth, aHeight)
-  {
-  }
-
-  MOZ_WARN_UNUSED_RESULT inline nsRect
-  ToAppUnits(nscoord aAppUnitsPerPixel) const;
-
-  
-  
-  static const nsIntRect& GetMaxSizedIntRect() {
-    static const nsIntRect r(0, 0, INT32_MAX, INT32_MAX);
-    return r;
-  }
-
-  void InflateToMultiple(const nsIntSize& aTileSize)
-  {
-    int32_t xMost = XMost();
-    int32_t yMost = YMost();
-
-    x = RoundDownToMultiple(x, aTileSize.width);
-    y = RoundDownToMultiple(y, aTileSize.height);
-    xMost = RoundUpToMultiple(xMost, aTileSize.width);
-    yMost = RoundUpToMultiple(yMost, aTileSize.height);
-
-    width = xMost - x;
-    height = yMost - y;
-  }
-
-  
-  bool operator==(const nsIntRect& aRect) const
-  {
-    return IsEqualEdges(aRect);
-  }
-};
-
 
 
 
@@ -335,15 +285,11 @@ nsRect::ToInsidePixels(nscoord aAppUnitsPerPixel) const
   return ScaleToInsidePixels(1.0f, 1.0f, aAppUnitsPerPixel);
 }
 
+const nsIntRect& GetMaxSizedIntRect();
 
-inline nsRect
-nsIntRect::ToAppUnits(nscoord aAppUnitsPerPixel) const
-{
-  return nsRect(NSIntPixelsToAppUnits(x, aAppUnitsPerPixel),
-                NSIntPixelsToAppUnits(y, aAppUnitsPerPixel),
-                NSIntPixelsToAppUnits(width, aAppUnitsPerPixel),
-                NSIntPixelsToAppUnits(height, aAppUnitsPerPixel));
-}
+
+nsRect
+ToAppUnits(const nsIntRect& aRect, nscoord aAppUnitsPerPixel);
 
 #ifdef DEBUG
 

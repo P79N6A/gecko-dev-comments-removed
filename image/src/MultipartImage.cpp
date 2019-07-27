@@ -182,7 +182,7 @@ void MultipartImage::FinishTransition()
   
   
   mTracker->SyncNotifyProgress(newCurrentPartTracker->GetProgress(),
-                               nsIntRect::GetMaxSizedIntRect());
+                               GetMaxSizedIntRect());
 }
 
 already_AddRefed<imgIContainer>

@@ -8,9 +8,9 @@
 
 #include "nsRegion.h"                   
 #include "mozilla/UniquePtr.h"          
+#include "mozilla/gfx/Point.h"
 
 class nsPresContext;
-struct nsIntPoint;
 
 namespace mozilla {
 namespace layers {
@@ -59,12 +59,11 @@ struct LayerProperties
 
 
 
-  virtual nsIntRegion ComputeDifferences(Layer* aRoot, 
+  virtual nsIntRegion ComputeDifferences(Layer* aRoot,
                                          NotifySubDocInvalidationFunc aCallback,
                                          bool* aGeometryChanged = nullptr) = 0;
-  
-  
-  virtual void MoveBy(const nsIntPoint& aOffset) = 0;
+
+  virtual void MoveBy(const gfx::IntPoint& aOffset) = 0;
 };
 
 } 

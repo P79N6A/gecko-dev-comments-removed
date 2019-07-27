@@ -12,6 +12,7 @@
 #include <stdint.h>                     
 #include "gfxTypes.h"
 #include "mozilla/Attributes.h"         
+#include "mozilla/gfx/Rect.h"
 #include "mozilla/WidgetUtils.h"        
 #include "mozilla/dom/ScreenOrientation.h"  
 #include "mozilla/ipc/SharedMemory.h"   
@@ -21,9 +22,6 @@
 #include "nsRegion.h"                   
 #include "nsTArrayForwardDeclare.h"     
 #include "nsIWidget.h"
-
-struct nsIntPoint;
-struct nsIntRect;
 
 namespace mozilla {
 namespace layers {
@@ -170,7 +168,7 @@ public:
 
 
 
-  void BeginTransaction(const nsIntRect& aTargetBounds,
+  void BeginTransaction(const gfx::IntRect& aTargetBounds,
                         ScreenRotation aRotation,
                         mozilla::dom::ScreenOrientation aOrientation);
 
@@ -258,7 +256,7 @@ public:
 
 
   void UpdatePictureRect(CompositableClient* aCompositable,
-                         const nsIntRect& aRect) override;
+                         const gfx::IntRect& aRect) override;
 
   
 

@@ -9,15 +9,13 @@
 #include "GLTextureImage.h"             
 #include "ImageLayers.h"                
 #include "mozilla/Attributes.h"         
+#include "mozilla/gfx/Rect.h"
 #include "mozilla/RefPtr.h"             
 #include "mozilla/layers/LayerManagerComposite.h"  
 #include "mozilla/layers/LayersTypes.h"  
 #include "nsISupportsImpl.h"            
 #include "nscore.h"                     
 #include "CompositableHost.h"           
-
-struct nsIntPoint;
-struct nsIntRect;
 
 namespace mozilla {
 namespace layers {
@@ -54,7 +52,7 @@ public:
     }
   }
 
-  virtual void RenderLayer(const nsIntRect& aClipRect) override;
+  virtual void RenderLayer(const gfx::IntRect& aClipRect) override;
 
   virtual void ComputeEffectiveTransforms(const mozilla::gfx::Matrix4x4& aTransformToSurface) override;
 

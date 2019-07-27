@@ -23,7 +23,6 @@
 
 
 class MetroWidget;
-struct nsIntPoint;
 
 namespace mozilla {
 namespace dom {

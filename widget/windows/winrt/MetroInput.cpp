@@ -20,6 +20,7 @@
 #include "mozilla/Preferences.h"  
 #include "WinUtils.h"
 #include "nsIPresShell.h"
+#include "nsPoint.h"
 
 
 #include <windows.ui.core.h> 

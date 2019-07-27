@@ -11,9 +11,6 @@
 #include "mozilla/layers/LayerManagerComposite.h"  
 #include "nsISupportsImpl.h"            
 
-struct nsIntPoint;
-struct nsIntRect;
-
 namespace mozilla {
 namespace layers {
 
@@ -50,7 +47,7 @@ public:
 
   virtual void Destroy() override { mDestroyed = true; }
 
-  virtual void RenderLayer(const nsIntRect& aClipRect) override;
+  virtual void RenderLayer(const gfx::IntRect& aClipRect) override;
   virtual void CleanupResources() override {};
 
   virtual void GenEffectChain(EffectChain& aEffect) override;
