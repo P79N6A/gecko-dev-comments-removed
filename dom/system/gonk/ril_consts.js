@@ -427,6 +427,7 @@ this.RIL_PREFERRED_NETWORK_TYPE_TO_GECKO = [
 ];
 
 this.GECKO_SUPPORTED_NETWORK_TYPES_DEFAULT = "gsm,wcdma";
+
 this.GECKO_SUPPORTED_NETWORK_TYPES = [
   "gsm",
   "wcdma",
