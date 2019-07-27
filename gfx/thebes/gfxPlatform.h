@@ -50,6 +50,7 @@ class SourceSurface;
 class DataSourceSurface;
 class ScaledFont;
 class DrawEventRecorder;
+class VsyncSource;
 
 inline uint32_t
 BackendTypeBit(BackendType b)
@@ -583,6 +584,17 @@ public:
     static bool UsesOffMainThreadCompositing();
 
     bool HasEnoughTotalSystemMemoryForSkiaGL();
+
+    
+
+
+
+    virtual mozilla::gfx::VsyncSource* GetHardwareVsync() {
+      MOZ_ASSERT(mVsyncSource != nullptr);
+      MOZ_ASSERT(XRE_IsParentProcess());
+      return mVsyncSource;
+    }
+
 protected:
     gfxPlatform();
     virtual ~gfxPlatform();
@@ -593,7 +605,10 @@ protected:
     
 
 
-    virtual void InitHardwareVsync() {}
+    virtual already_AddRefed<mozilla::gfx::VsyncSource> CreateHardwareVsyncSource() {
+      NS_WARNING("Hardware vsync not supported on platform yet");
+      return nullptr;
+    }
 
     
 
@@ -658,6 +673,9 @@ protected:
     int32_t mWordCacheMaxEntries;
 
     uint32_t mTotalSystemMemory;
+
+    
+    nsRefPtr<mozilla::gfx::VsyncSource> mVsyncSource;
 
 private:
     
