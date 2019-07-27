@@ -22,7 +22,9 @@
 #include "nsAutoPtr.h"                  
 #include "nsDebug.h"                    
 #include "nsXULAppAPI.h"                
-#include "TextureClientSharedSurface.h"
+#ifdef MOZ_WIDGET_GONK
+#include "SharedSurfaceGralloc.h"
+#endif
 
 using namespace mozilla::gfx;
 using namespace mozilla::gl;
@@ -35,6 +37,13 @@ CanvasClient::CreateCanvasClient(CanvasClientType aType,
                                  CompositableForwarder* aForwarder,
                                  TextureFlags aFlags)
 {
+#ifndef MOZ_WIDGET_GONK
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+    NS_WARNING("Most platforms still need an optimized way to share GL cross process.");
+    return MakeAndAddRef<CanvasClient2D>(aForwarder, aFlags);
+  }
+#endif
+
   switch (aType) {
   case CanvasClientTypeShSurf:
     return MakeAndAddRef<CanvasClientSharedSurface>(aForwarder, aFlags);
@@ -140,11 +149,28 @@ CanvasClient2D::CreateTextureClientForCanvas(gfx::SurfaceFormat aFormat,
 CanvasClientSharedSurface::CanvasClientSharedSurface(CompositableForwarder* aLayerForwarder,
                                                      TextureFlags aFlags)
   : CanvasClient(aLayerForwarder, aFlags)
-{ }
-
-CanvasClientSharedSurface::~CanvasClientSharedSurface()
 {
-  ClearSurfaces();
+}
+
+
+
+
+static TemporaryRef<TextureClient>
+TexClientFromShSurf(ISurfaceAllocator* aAllocator, SharedSurface* surf,
+                    TextureFlags flags)
+{
+  switch (surf->mType) {
+    case SharedSurfaceType::Basic:
+      return nullptr;
+
+#ifdef MOZ_WIDGET_GONK
+    case SharedSurfaceType::Gralloc:
+      return GrallocTextureClientOGL::FromSharedSurface(surf, flags);
+#endif
+
+    default:
+      return MakeAndAddRef<SharedSurfaceTextureClient>(aAllocator, flags, surf);
+  }
 }
 
 
@@ -304,92 +330,91 @@ TexClientFromReadback(SharedSurface* src, ISurfaceAllocator* allocator,
 
 
 
-static TemporaryRef<SharedSurfaceTextureClient>
+static TemporaryRef<gl::ShSurfHandle>
 CloneSurface(gl::SharedSurface* src, gl::SurfaceFactory* factory)
 {
-    RefPtr<SharedSurfaceTextureClient> dest = factory->NewTexClient(src->mSize);
+    RefPtr<gl::ShSurfHandle> dest = factory->NewShSurfHandle(src->mSize);
     if (!dest) {
-      return nullptr;
+        return nullptr;
     }
     SharedSurface::ProdCopy(src, dest->Surf(), factory);
-    dest->Surf()->Fence();
     return dest.forget();
 }
 
 void
 CanvasClientSharedSurface::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
 {
+  if (mFront) {
+    mPrevFront = mFront;
+    mFront = nullptr;
+  }
+
   auto gl = aLayer->mGLContext;
   gl->MakeCurrent();
 
-  RefPtr<TextureClient> newFront;
-
   if (aLayer->mGLFrontbuffer) {
-    mShSurfClient = CloneSurface(aLayer->mGLFrontbuffer.get(), aLayer->mFactory.get());
-    if (!mShSurfClient) {
-      gfxCriticalError() << "Invalid canvas front buffer";
-      return;
-    }
+    mFront = CloneSurface(aLayer->mGLFrontbuffer.get(), aLayer->mFactory.get());
+    if (mFront)
+      mFront->Surf()->Fence();
   } else {
-    mShSurfClient = gl->Screen()->Front();
-    if (!mShSurfClient) {
-      return;
-    }
+    mFront = gl->Screen()->Front();
   }
-  MOZ_ASSERT(mShSurfClient);
-
-  newFront = mShSurfClient;
-
-  SharedSurface* surf = mShSurfClient->Surf();
-
-  
-  mReadbackClient = nullptr;
-
-  auto forwarder = GetForwarder();
-
-  bool needsReadback = (surf->mType == SharedSurfaceType::Basic);
-  if (needsReadback) {
-    TextureFlags flags = aLayer->Flags() |
-                         TextureFlags::IMMUTABLE;
-
-    auto manager = aLayer->ClientManager();
-    auto shadowForwarder = manager->AsShadowForwarder();
-    auto layersBackend = shadowForwarder->GetCompositorBackendType();
-    mReadbackClient = TexClientFromReadback(surf, forwarder, flags, layersBackend);
-
-    newFront = mReadbackClient;
-  } else {
-    mReadbackClient = nullptr;
-  }
-
-  MOZ_ASSERT(newFront);
-  if (!newFront) {
-    
-    gfxCriticalError() << "Failed to allocate a TextureClient for SharedSurface Canvas. Size: " << aSize;
+  if (!mFront) {
+    gfxCriticalError() << "Invalid canvas front buffer";
     return;
   }
 
-  if (mFront) {
-    if (mFront->GetFlags() & TextureFlags::RECYCLE) {
-      mFront->WaitForCompositorRecycle();
-    }
-  }
-
-  mFront = newFront;
+  
+  SharedSurface* surf = mFront->Surf();
+  auto forwarder = GetForwarder();
+  auto flags = GetTextureFlags() | TextureFlags::IMMUTABLE;
 
   
-  MOZ_ALWAYS_TRUE( AddTextureClient(mFront) );
+  RefPtr<TextureClient> newTex = TexClientFromShSurf(GetForwarder(), surf, flags);
+  if (!newTex) {
+    auto manager = aLayer->ClientManager();
+    auto shadowForwarder = manager->AsShadowForwarder();
+    auto layersBackend = shadowForwarder->GetCompositorBackendType();
 
-  forwarder->UseTexture(this, mFront);
+    newTex = TexClientFromReadback(surf, forwarder, flags, layersBackend);
+  }
+
+  if (!newTex) {
+    
+    gfxCriticalError() << "Failed to allocate a TextureClient for SharedSurface Canvas. size: " << aSize;
+    return;
+  }
+
+  
+  MOZ_ALWAYS_TRUE( AddTextureClient(newTex) );
+
+  
+  if (mFrontTex) {
+    
+    RefPtr<AsyncTransactionTracker> tracker = new RemoveTextureFromCompositableTracker();
+    
+    tracker->SetTextureClient(mFrontTex);
+    mFrontTex->SetRemoveFromCompositableTracker(tracker);
+    
+    GetForwarder()->RemoveTextureFromCompositableAsync(tracker, this, mFrontTex);
+
+    mFrontTex = nullptr;
+  }
+
+  
+  mFrontTex = newTex;
+
+  forwarder->UseTexture(this, mFrontTex);
 }
 
 void
 CanvasClientSharedSurface::ClearSurfaces()
 {
+  mFrontTex = nullptr;
+  
   mFront = nullptr;
-  mShSurfClient = nullptr;
-  mReadbackClient = nullptr;
+  mPrevFront = nullptr;
 }
 
-} 
-} 
+}
+}

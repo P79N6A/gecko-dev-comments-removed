@@ -206,7 +206,7 @@ bool ImageBridgeParent::RecvWillStop()
 static void
 ReleaseImageBridgeParent(ImageBridgeParent* aImageBridgeParent)
 {
-  RELEASE_MANUALLY(aImageBridgeParent);
+  aImageBridgeParent->Release();
 }
 
 bool ImageBridgeParent::RecvStop()
@@ -218,7 +218,7 @@ bool ImageBridgeParent::RecvStop()
   
   
   
-  ADDREF_MANUALLY(this);
+  AddRef();
   MessageLoop::current()->PostTask(
     FROM_HERE,
     NewRunnableFunction(&ReleaseImageBridgeParent, this));
