@@ -236,25 +236,34 @@ MediaSourceReader::OnAudioNotDecoded(NotDecodedReason aReason)
   mAudioRequest.Complete();
 
   MSE_DEBUG("aReason=%u IsEnded: %d", aReason, IsEnded());
-  if (aReason == DECODE_ERROR || aReason == CANCELED) {
-    mAudioPromise.Reject(aReason, __func__);
+  if (aReason == CANCELED) {
+    mAudioPromise.Reject(CANCELED, __func__);
     return;
   }
 
   
   
-  MOZ_ASSERT(aReason == END_OF_STREAM);
-  if (mAudioSourceDecoder) {
+  if (aReason == END_OF_STREAM && mAudioSourceDecoder) {
     AdjustEndTime(&mLastAudioTime, mAudioSourceDecoder);
   }
 
+  SwitchSourceResult result = SwitchAudioSource(&mLastAudioTime);
   
-  if (SwitchAudioSource(&mLastAudioTime) == SOURCE_NEW) {
+  if (result == SOURCE_NEW) {
     GetAudioReader()->ResetDecode();
     mAudioSeekRequest.Begin(GetAudioReader()->Seek(GetReaderAudioTime(mLastAudioTime), 0)
                             ->RefableThen(GetTaskQueue(), __func__, this,
                                           &MediaSourceReader::CompleteAudioSeekAndDoRequest,
                                           &MediaSourceReader::CompleteAudioSeekAndRejectPromise));
+    return;
+  }
+
+  
+  
+  
+  
+  if (aReason == DECODE_ERROR && result != SOURCE_NONE) {
+    mAudioPromise.Reject(DECODE_ERROR, __func__);
     return;
   }
 
@@ -367,25 +376,35 @@ MediaSourceReader::OnVideoNotDecoded(NotDecodedReason aReason)
   mVideoRequest.Complete();
 
   MSE_DEBUG("aReason=%u IsEnded: %d", aReason, IsEnded());
-  if (aReason == DECODE_ERROR || aReason == CANCELED) {
-    mVideoPromise.Reject(aReason, __func__);
+
+  if (aReason == CANCELED) {
+    mVideoPromise.Reject(CANCELED, __func__);
     return;
   }
 
   
   
-  MOZ_ASSERT(aReason == END_OF_STREAM);
-  if (mVideoSourceDecoder) {
+  if (aReason == END_OF_STREAM && mVideoSourceDecoder) {
     AdjustEndTime(&mLastVideoTime, mVideoSourceDecoder);
   }
 
   
-  if (SwitchVideoSource(&mLastVideoTime) == SOURCE_NEW) {
+  SwitchSourceResult result = SwitchVideoSource(&mLastVideoTime);
+  if (result == SOURCE_NEW) {
     GetVideoReader()->ResetDecode();
     mVideoSeekRequest.Begin(GetVideoReader()->Seek(GetReaderVideoTime(mLastVideoTime), 0)
                            ->RefableThen(GetTaskQueue(), __func__, this,
                                          &MediaSourceReader::CompleteVideoSeekAndDoRequest,
                                          &MediaSourceReader::CompleteVideoSeekAndRejectPromise));
+    return;
+  }
+
+  
+  
+  
+  
+  if (aReason == DECODE_ERROR && result != SOURCE_NONE) {
+    mVideoPromise.Reject(DECODE_ERROR, __func__);
     return;
   }
 
