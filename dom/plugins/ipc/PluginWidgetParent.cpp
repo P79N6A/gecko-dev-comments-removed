@@ -8,6 +8,12 @@
 #include "nsWidgetsCID.h"
 #include "nsDebug.h"
 
+#if defined(MOZ_WIDGET_GTK)
+#include "nsPluginNativeWindowGtk.h"
+#else
+#include "nsPluginNativeWindow.h"
+#endif
+
 using namespace mozilla::widget;
 
 #define PWLOG(...)
@@ -28,6 +34,9 @@ static NS_DEFINE_CID(kWidgetCID, NS_CHILD_CID);
 }
 
 PluginWidgetParent::PluginWidgetParent()
+#if defined(MOZ_WIDGET_GTK)
+  : mWrapper(nullptr)
+#endif
 {
   PWLOG("PluginWidgetParent::PluginWidgetParent()\n");
   MOZ_COUNT_CTOR(PluginWidgetParent);
@@ -63,7 +72,6 @@ PluginWidgetParent::ActorDestroy(ActorDestroyReason aWhy)
 
 
 
-
 bool
 PluginWidgetParent::RecvCreate()
 {
@@ -72,6 +80,15 @@ PluginWidgetParent::RecvCreate()
   nsresult rv;
 
   mWidget = do_CreateInstance(kWidgetCID, &rv);
+
+#if defined(MOZ_WIDGET_GTK)
+  
+  
+  PLUG_NewPluginNativeWindow((nsPluginNativeWindow**)&mWrapper);
+  if (!mWrapper) {
+    return false;
+  }
+#endif
 
   
   nsCOMPtr<nsIWidget> parentWidget = GetTabParent()->GetWidget();
@@ -97,6 +114,14 @@ PluginWidgetParent::RecvCreate()
   
   
   RecvMove(0, 0);
+
+#if defined(MOZ_WIDGET_GTK)
+  
+  mWrapper->window = mWidget->GetNativeData(NS_NATIVE_PLUGIN_PORT);
+  mWrapper->CreateXEmbedWindow(false);
+  mWrapper->SetAllocation();
+  PWLOG("Plugin XID=%p\n", (void*)mWrapper->window);
+#endif
 
   return true;
 }
@@ -143,7 +168,12 @@ PluginWidgetParent::RecvGetNativePluginPort(uintptr_t* value)
 {
   ENSURE_CHANNEL;
   PWLOG("PluginWidgetParent::RecvGetNativeData()\n");
+#if defined(MOZ_WIDGET_GTK)
+  *value = (uintptr_t)mWrapper->window;
+#else
   *value = (uintptr_t)mWidget->GetNativeData(NS_NATIVE_PLUGIN_PORT);
+#endif
+  PWLOG("PluginWidgetParent::RecvGetNativeData() %p\n", (void*)*value);
   return true;
 }
 
@@ -153,6 +183,11 @@ PluginWidgetParent::RecvResize(const nsIntRect& aRect)
   ENSURE_CHANNEL;
   PWLOG("PluginWidgetParent::RecvResize(%d, %d, %d, %d)\n", aRect.x, aRect.y, aRect.width, aRect.height);
   mWidget->Resize(aRect.width, aRect.height, true);
+#if defined(MOZ_WIDGET_GTK)
+  mWrapper->width = aRect.width;
+  mWrapper->height = aRect.height;
+  mWrapper->SetAllocation();
+#endif
   return true;
 }
 
