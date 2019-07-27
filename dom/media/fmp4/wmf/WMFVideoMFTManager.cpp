@@ -508,7 +508,7 @@ WMFVideoMFTManager::Output(int64_t aStreamOffset,
     }
     
     NS_WARNING("WMFVideoMFTManager::Output() unexpected error");
-    return E_FAIL;
+    return hr;
   }
 
   nsRefPtr<VideoData> frame;
