@@ -22,7 +22,6 @@
 #include "nsISeekableStream.h"
 #include "nsILoadGroupChild.h"
 #include "nsIProtocolProxyService2.h"
-#include "nsIURIClassifier.h"
 #include "nsMimeTypes.h"
 #include "nsNetUtil.h"
 #include "prprf.h"
@@ -40,7 +39,6 @@
 #include "GeckoProfiler.h"
 #include "nsIConsoleService.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/Preferences.h"
 #include "mozilla/VisualEventTracer.h"
 #include "nsISSLSocketControl.h"
 #include "sslt.h"
@@ -242,7 +240,6 @@ nsHttpChannel::nsHttpChannel()
     , mIsPartialRequest(0)
     , mHasAutoRedirectVetoNotifier(0)
     , mPushedStream(nullptr)
-    , mLocalBlocklist(false)
     , mDidReval(false)
 {
     LOG(("Creating nsHttpChannel [this=%p]\n", this));
@@ -440,7 +437,7 @@ nsHttpChannel::SpeculativeConnect()
     
     
     
-    if (mLocalBlocklist || mApplicationCache || gIOService->IsOffline() ||
+    if (mApplicationCache || gIOService->IsOffline() ||
         mUpgradeProtocolCallback || !(mCaps & NS_HTTP_ALLOW_KEEPALIVE))
         return;
 
@@ -4876,21 +4873,6 @@ nsHttpChannel::BeginConnect()
     if (mAPIRedirectToURI) {
         return AsyncCall(&nsHttpChannel::HandleAsyncAPIRedirect);
     }
-    
-    if (mLoadFlags & LOAD_CLASSIFY_URI) {
-        nsCOMPtr<nsIURIClassifier> classifier = do_GetService(NS_URICLASSIFIERSERVICE_CONTRACTID);
-        if (classifier) {
-            nsCOMPtr<nsIPrincipal> principal = GetPrincipal(false);
-            bool tp = Preferences::GetBool("privacy.trackingprotection.enabled",
-                                           false);
-            nsresult response = NS_OK;
-            classifier->ClassifyLocal(principal, tp, &response);
-            if (NS_FAILED(response)) {
-                LOG(("nsHttpChannel::Found principal on local blocklist [this=%p]", this));
-                mLocalBlocklist = true;
-            }
-        }
-    }
 
     
     
@@ -4910,7 +4892,7 @@ nsHttpChannel::BeginConnect()
     if (mLoadFlags & VALIDATE_ALWAYS || BYPASS_LOCAL_CACHE(mLoadFlags))
         mCaps |= NS_HTTP_REFRESH_DNS;
 
-    if (!mLocalBlocklist && !mConnectionInfo->UsingHttpProxy() &&
+    if (!mConnectionInfo->UsingHttpProxy() &&
         !(mLoadFlags & (LOAD_NO_NETWORK_IO | LOAD_ONLY_FROM_CACHE))) {
         
         
@@ -4954,17 +4936,27 @@ nsHttpChannel::BeginConnect()
         }
         mCaps &= ~NS_HTTP_ALLOW_PIPELINING;
     }
-    if (mCanceled || !mLocalBlocklist) {
-        return ContinueBeginConnect();
+
+    
+    
+    
+    if (mCanceled)
+        rv = mStatus;
+    else
+        rv = Connect();
+    if (NS_FAILED(rv)) {
+        LOG(("Calling AsyncAbort [rv=%x mCanceled=%i]\n", rv, mCanceled));
+        CloseCacheEntry(true);
+        AsyncAbort(rv);
+    } else if (mLoadFlags & LOAD_CLASSIFY_URI) {
+        nsRefPtr<nsChannelClassifier> classifier = new nsChannelClassifier();
+        rv = classifier->Start(this);
+        if (NS_FAILED(rv)) {
+            Cancel(rv);
+            return rv;
+        }
     }
-    MOZ_ASSERT(!mCanceled && mLocalBlocklist);
-    
-    
-    
-    nsRefPtr<nsChannelClassifier> classifier = new nsChannelClassifier();
-    LOG(("nsHttpChannel::Starting nsChannelClassifier %p [this=%p]",
-         classifier.get(), this));
-    classifier->Start(this);
+
     return NS_OK;
 }
 
@@ -4999,30 +4991,6 @@ nsHttpChannel::SetPriority(int32_t value)
     if (mTransaction)
         gHttpHandler->RescheduleTransaction(mTransaction, mPriority);
     return NS_OK;
-}
-
-
-
-
-NS_IMETHODIMP
-nsHttpChannel::ContinueBeginConnect()
-{
-    LOG(("nsHttpChannel::ContinueBeginConnect [this=%p]", this));
-    nsresult rv;
-    
-    
-    
-    if (mCanceled) {
-        rv = mStatus;
-    } else {
-        rv = Connect();
-    }
-    if (NS_FAILED(rv)) {
-        LOG(("Calling AsyncAbort [rv=%x mCanceled=%i]\n", rv, mCanceled));
-        CloseCacheEntry(true);
-        AsyncAbort(rv);
-    }
-    return rv;
 }
 
 
