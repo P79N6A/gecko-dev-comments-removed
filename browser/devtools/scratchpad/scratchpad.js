@@ -1133,12 +1133,19 @@ var Scratchpad = {
   importFromFile: function SP_importFromFile(aFile, aSilentError, aCallback)
   {
     
-    let channel = NetUtil.newChannel(aFile);
+    let channel = NetUtil.newChannel2(aFile,
+                                      null,
+                                      null,
+                                      window.document,
+                                      null, 
+                                      null, 
+                                      Ci.nsILoadInfo.SEC_NORMAL,
+                                      Ci.nsIContentPolicy.TYPE_OTHER);
     channel.contentType = "application/javascript";
 
     this.notificationBox.removeAllNotifications(false);
 
-    NetUtil.asyncFetch(channel, (aInputStream, aStatus) => {
+    NetUtil.asyncFetch2(channel, (aInputStream, aStatus) => {
       let content = null;
 
       if (Components.isSuccessCode(aStatus)) {

@@ -185,7 +185,14 @@ AppCacheUtils.prototype = {
                         .createInstance(Ci.nsIScriptableInputStream);
     let deferred = promise.defer();
     let buffer = "";
-    let channel = Services.io.newChannel(uri, null, null);
+    let channel = Services.io.newChannel2(uri,
+                                          null,
+                                          null,
+                                          null,      
+                                          Services.scriptSecurityManager.getSystemPrincipal(),
+                                          null,      
+                                          Ci.nsILoadInfo.SEC_NORMAL,
+                                          Ci.nsIContentPolicy.TYPE_OTHER);
 
     
     channel.loadFlags |= Ci.nsIRequest.LOAD_BYPASS_CACHE;
