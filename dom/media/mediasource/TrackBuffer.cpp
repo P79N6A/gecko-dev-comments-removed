@@ -1003,8 +1003,8 @@ TrackBuffer::RangeRemoval(media::Microseconds aStart,
       decoders[i]->GetBuffered(buffered);
       if (media::Microseconds::FromSeconds(buffered->GetEndTime()) < aEnd) {
         
-        MSE_DEBUG("remove all bufferedEnd=%f time=%f, size=%lld",
-                  buffered->GetEndTime(), time,
+        MSE_DEBUG("remove all bufferedEnd=%f size=%lld",
+                  buffered->GetEndTime(),
                   decoders[i]->GetResource()->GetSize());
         decoders[i]->GetResource()->EvictAll();
       } else {
