@@ -124,6 +124,11 @@ protected:
             
             return true;
           }
+          if (aNode->IsHTMLElement(nsGkAtoms::rp)) {
+            
+            
+            return true;
+          }
           return false;
         }
         bool isVisible = frame->StyleVisibility()->IsVisible();
