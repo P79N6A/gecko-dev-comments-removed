@@ -4,7 +4,6 @@
 
 
 
-
 #include "vm/SavedStacks.h"
 
 #include "mozilla/Attributes.h"
@@ -26,7 +25,7 @@
 
 #include "jscntxtinlines.h"
 
-#include "vm/ObjectImpl-inl.h"
+#include "vm/NativeObject-inl.h"
 
 using mozilla::AddToHash;
 using mozilla::HashString;

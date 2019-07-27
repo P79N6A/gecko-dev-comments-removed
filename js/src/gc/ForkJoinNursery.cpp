@@ -21,7 +21,7 @@
 
 #include "jsgcinlines.h"
 #include "gc/Nursery-inl.h"
-#include "vm/ObjectImpl-inl.h"
+#include "vm/NativeObject-inl.h"
 
 
 
