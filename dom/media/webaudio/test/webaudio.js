@@ -93,6 +93,25 @@ function compareBuffers(got, expected) {
   }
 }
 
+
+
+
+
+
+
+
+function rms(audiobuffer, channel = 0, start = 0, end = audiobuffer.length) {
+  var buffer= audiobuffer.getChannelData(channel);
+  var rms = 0;
+  for (var i = start; i < end; i++) {
+    rms += buffer[i] * buffer[i];
+  }
+
+  rms /= buffer.length;
+  rms = Math.sqrt(rms);
+  return rms;
+}
+
 function getEmptyBuffer(context, length) {
   return context.createBuffer(gTest.numberOfChannels, length, context.sampleRate);
 }
