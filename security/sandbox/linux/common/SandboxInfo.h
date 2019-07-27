@@ -31,6 +31,12 @@ public:
     kEnabledForMedia   = 1 << 2,
     
     kVerbose           = 1 << 3,
+    
+    kHasSeccompTSync   = 1 << 4,
+    
+    kHasUserNamespaces = 1 << 5,
+    
+    kHasPrivilegedUserNamespaces = 1 << 6,
   };
 
   bool Test(Flags aFlag) const { return (mFlags & aFlag) == aFlag; }
