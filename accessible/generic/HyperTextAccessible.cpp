@@ -985,6 +985,9 @@ HyperTextAccessible::NativeAttributes()
 nsIAtom*
 HyperTextAccessible::LandmarkRole() const
 {
+  if (!HasOwnContent())
+    return nullptr;
+
   
   
   if (mContent->IsHTMLElement(nsGkAtoms::nav)) {
