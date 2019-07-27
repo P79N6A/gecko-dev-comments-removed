@@ -280,8 +280,7 @@ this.MobileIdentityManager = {
     .then(
       (creds) => {
         if (creds) {
-          this.iccInfo[aServiceId].credentials = creds;
-          return;
+          return creds;
         }
         return this.credStore.getByMsisdn(this.iccInfo[aServiceId].msisdn);
       }
@@ -306,10 +305,12 @@ this.MobileIdentityManager = {
     )
     .then(
       (result) => {
-        log.debug("Discover result ${}", result);
+        
+        
         if (!result || !result.verificationMethods) {
           return;
         }
+        log.debug("Discover result ${}", result);
         this.iccInfo[aServiceId].verificationMethods = result.verificationMethods;
         this.iccInfo[aServiceId].verificationDetails = result.verificationDetails;
         this.iccInfo[aServiceId].canDoSilentVerification =
@@ -678,11 +679,13 @@ this.MobileIdentityManager = {
         
         
         
+        
         if (result.serviceId !== undefined &&
             result.serviceId !== null) {
           let icc = this.iccInfo[result.serviceId];
           log.debug("icc ${}", icc);
-          if (!icc || !icc.msisdn && !icc.canDoSilentVerification) {
+          if (!icc || !icc.msisdn && !icc.canDoSilentVerification &&
+              !icc.credentials) {
             return Promise.reject(ERROR_INTERNAL_CANNOT_VERIFY_SELECTION);
           }
           msisdn = icc.msisdn;
@@ -972,7 +975,12 @@ this.MobileIdentityManager = {
         
         
         
+        
         if (creds) {
+          permission = permissionManager.testPermissionFromPrincipal(
+            principal,
+            MOBILEID_PERM
+          );
           if (permission == Ci.nsIPermissionManager.ALLOW_ACTION) {
             return creds;
           }
