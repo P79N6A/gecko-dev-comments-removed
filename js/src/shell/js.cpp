@@ -357,6 +357,12 @@ ShellInterruptCallback(JSContext *cx)
     if (!gServiceInterrupt)
         return true;
 
+    
+    
+    
+    
+    gServiceInterrupt = false;
+
     bool result;
     RootedValue interruptFunc(cx, *gInterruptFunc);
     if (!interruptFunc.isNull()) {
@@ -378,10 +384,6 @@ ShellInterruptCallback(JSContext *cx)
 
     if (!result && gExitCode == 0)
         gExitCode = EXITCODE_TIMEOUT;
-
-    
-    
-    gServiceInterrupt = false;
 
     return result;
 }
