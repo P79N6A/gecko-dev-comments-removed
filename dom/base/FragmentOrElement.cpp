@@ -326,7 +326,7 @@ nsIContent::GetBaseURI(bool aTryUseXHRDocBaseURI) const
       base = explicitBaseURI;
       break;
     }
-    
+
     
     elem->GetAttr(kNameSpaceID_XML, nsGkAtoms::base, attr);
     if (!attr.IsEmpty()) {
@@ -334,7 +334,7 @@ nsIContent::GetBaseURI(bool aTryUseXHRDocBaseURI) const
     }
     elem = elem->GetParent();
   } while(elem);
-  
+
   
   for (uint32_t i = baseAttrs.Length() - 1; i != uint32_t(-1); --i) {
     nsCOMPtr<nsIURI> newBase;
@@ -455,7 +455,7 @@ FragmentOrElement::Children()
   FragmentOrElement::nsDOMSlots *slots = DOMSlots();
 
   if (!slots->mChildrenList) {
-    slots->mChildrenList = new nsContentList(this, kNameSpaceID_Wildcard, 
+    slots->mChildrenList = new nsContentList(this, kNameSpaceID_Wildcard,
                                              nsGkAtoms::_asterisk, nsGkAtoms::_asterisk,
                                              false);
   }
@@ -1686,7 +1686,7 @@ FragmentOrElement::CanSkip(nsINode* aNode, bool aRemovingAllowed)
   if (!root) {
     return false;
   }
- 
+
   
   
   if (root->IsPurpleRoot()) {
@@ -1740,7 +1740,7 @@ FragmentOrElement::CanSkip(nsINode* aNode, bool aRemovingAllowed)
     }
   }
 
-  if (!currentDoc || !foundBlack) { 
+  if (!currentDoc || !foundBlack) {
     root->SetIsPurpleRoot(true);
     if (domOnlyCycle) {
       if (!gNodesToUnbind) {
@@ -1798,7 +1798,7 @@ FragmentOrElement::CanSkipThis(nsINode* aNode)
     return true;
   }
   nsIDocument* c = aNode->GetUncomposedDoc();
-  return 
+  return
     ((c && nsCCUncollectableMarker::InGeneration(c->GetMarkedCCGeneration())) ||
      aNode->InCCBlackTree()) && !NeedsScriptTraverse(aNode);
 }
@@ -2465,7 +2465,7 @@ StartElement(Element* aContent, StringBuilder& aBuilder)
       delete attValue;
       continue;
     }
-    
+
     aBuilder.Append(" ");
 
     if (MOZ_LIKELY(attNs == kNameSpaceID_None) ||
@@ -2525,12 +2525,12 @@ ShouldEscape(nsIContent* aParent)
   static const nsIAtom* nonEscapingElements[] = {
     nsGkAtoms::style, nsGkAtoms::script, nsGkAtoms::xmp,
     nsGkAtoms::iframe, nsGkAtoms::noembed, nsGkAtoms::noframes,
-    nsGkAtoms::plaintext, 
+    nsGkAtoms::plaintext,
     
     
     
     
-    nsGkAtoms::noscript    
+    nsGkAtoms::noscript
   };
   static mozilla::BloomFilter<12, nsIAtom> sFilter;
   static bool sInitialized = false;
