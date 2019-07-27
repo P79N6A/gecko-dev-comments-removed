@@ -351,7 +351,7 @@ typedef mozilla::gfx::Matrix4x4 Matrix4x4;
 
 
 
-StaticAutoPtr<ComputedTimingFunction> gComputedTimingFunction;
+StaticAutoPtr<ComputedTimingFunction> gZoomAnimationFunction;
 
 
 
@@ -638,7 +638,7 @@ public:
 
     
     
-    float sampledPosition = gComputedTimingFunction->GetValue(animPosition);
+    float sampledPosition = gZoomAnimationFunction->GetValue(animPosition);
 
     
     
@@ -859,10 +859,10 @@ AsyncPanZoomController::InitializeGlobalState()
     return;
   sInitialized = true;
 
-  gComputedTimingFunction = new ComputedTimingFunction();
-  gComputedTimingFunction->Init(
+  gZoomAnimationFunction = new ComputedTimingFunction();
+  gZoomAnimationFunction->Init(
     nsTimingFunction(NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE));
-  ClearOnShutdown(&gComputedTimingFunction);
+  ClearOnShutdown(&gZoomAnimationFunction);
 }
 
 AsyncPanZoomController::AsyncPanZoomController(uint64_t aLayersId,
