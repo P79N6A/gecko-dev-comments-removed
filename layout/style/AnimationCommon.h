@@ -223,7 +223,7 @@ private:
 
 } 
 
-typedef InfallibleTArray<nsRefPtr<dom::Animation>> AnimationPlayerPtrArray;
+typedef InfallibleTArray<nsRefPtr<dom::Animation>> AnimationPtrArray;
 
 enum EnsureStyleRuleFlags {
   EnsureStyleRule_IsThrottled,
@@ -258,8 +258,8 @@ struct AnimationCollection : public PRCList
 
   void Destroy()
   {
-    for (size_t playerIdx = mPlayers.Length(); playerIdx-- != 0; ) {
-      mPlayers[playerIdx]->Cancel();
+    for (size_t animIdx = mAnimations.Length(); animIdx-- != 0; ) {
+      mAnimations[animIdx]->Cancel();
     }
     
     mElement->DeleteProperty(mElementProperty);
@@ -374,7 +374,7 @@ struct AnimationCollection : public PRCList
     }
   }
 
-  void NotifyPlayerUpdated();
+  void NotifyAnimationUpdated();
 
   static void LogAsyncAnimationFailure(nsCString& aMessage,
                                        const nsIContent* aContent = nullptr);
@@ -387,7 +387,7 @@ struct AnimationCollection : public PRCList
 
   mozilla::css::CommonAnimationManager *mManager;
 
-  mozilla::AnimationPlayerPtrArray mPlayers;
+  mozilla::AnimationPtrArray mAnimations;
 
   
   

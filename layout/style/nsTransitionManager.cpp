@@ -312,14 +312,14 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
       }
     }
 
-    AnimationPlayerPtrArray& players = collection->mPlayers;
-    size_t i = players.Length();
+    AnimationPtrArray& animations = collection->mAnimations;
+    size_t i = animations.Length();
     MOZ_ASSERT(i != 0, "empty transitions list?");
     StyleAnimationValue currentValue;
     do {
       --i;
-      Animation* player = players[i];
-      dom::KeyframeEffectReadonly* effect = player->GetEffect();
+      Animation* anim = animations[i];
+      dom::KeyframeEffectReadonly* effect = anim->GetEffect();
       MOZ_ASSERT(effect && effect->Properties().Length() == 1,
                  "Should have one animation property for a transition");
       MOZ_ASSERT(effect && effect->Properties()[0].mSegments.Length() == 1,
@@ -338,15 +338,15 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
                                              currentValue) ||
           currentValue != segment.mToValue) {
         
-        if (!player->GetEffect()->IsFinishedTransition()) {
-          player->Cancel();
+        if (!anim->GetEffect()->IsFinishedTransition()) {
+          anim->Cancel();
           collection->UpdateAnimationGeneration(mPresContext);
         }
-        players.RemoveElementAt(i);
+        animations.RemoveElementAt(i);
       }
     } while (i != 0);
 
-    if (players.IsEmpty()) {
+    if (animations.IsEmpty()) {
       collection->Destroy();
       collection = nullptr;
     }
@@ -431,10 +431,10 @@ nsTransitionManager::ConsiderStartingTransition(
   size_t currentIndex = nsTArray<ElementPropertyTransition>::NoIndex;
   const ElementPropertyTransition *oldPT = nullptr;
   if (aElementTransitions) {
-    AnimationPlayerPtrArray& players = aElementTransitions->mPlayers;
-    for (size_t i = 0, i_end = players.Length(); i < i_end; ++i) {
+    AnimationPtrArray& animations = aElementTransitions->mAnimations;
+    for (size_t i = 0, i_end = animations.Length(); i < i_end; ++i) {
       const ElementPropertyTransition *iPt =
-        players[i]->GetEffect()->AsTransition();
+        animations[i]->GetEffect()->AsTransition();
       if (iPt->TransitionProperty() == aProperty) {
         haveCurrentTransition = true;
         currentIndex = i;
@@ -474,13 +474,13 @@ nsTransitionManager::ConsiderStartingTransition(
       
       
       
-      AnimationPlayerPtrArray& players = aElementTransitions->mPlayers;
-      players[currentIndex]->Cancel();
+      AnimationPtrArray& animations = aElementTransitions->mAnimations;
+      animations[currentIndex]->Cancel();
       oldPT = nullptr; 
-      players.RemoveElementAt(currentIndex);
+      animations.RemoveElementAt(currentIndex);
       aElementTransitions->UpdateAnimationGeneration(mPresContext);
 
-      if (players.IsEmpty()) {
+      if (animations.IsEmpty()) {
         aElementTransitions->Destroy();
         
         aElementTransitions = nullptr;
@@ -564,13 +564,13 @@ nsTransitionManager::ConsiderStartingTransition(
   segment.mToKey = 1;
   segment.mTimingFunction.Init(tf);
 
-  nsRefPtr<CSSTransitionPlayer> player = new CSSTransitionPlayer(timeline);
+  nsRefPtr<CSSTransitionPlayer> animation = new CSSTransitionPlayer(timeline);
   
   
   
   
-  player->SetEffect(pt);
-  player->PlayFromStyle();
+  animation->SetEffect(pt);
+  animation->PlayFromStyle();
 
   if (!aElementTransitions) {
     aElementTransitions =
@@ -581,23 +581,23 @@ nsTransitionManager::ConsiderStartingTransition(
     }
   }
 
-  AnimationPlayerPtrArray& players = aElementTransitions->mPlayers;
+  AnimationPtrArray& animations = aElementTransitions->mAnimations;
 #ifdef DEBUG
-  for (size_t i = 0, i_end = players.Length(); i < i_end; ++i) {
+  for (size_t i = 0, i_end = animations.Length(); i < i_end; ++i) {
     MOZ_ASSERT(
       i == currentIndex ||
-      (players[i]->GetEffect() &&
-       players[i]->GetEffect()->AsTransition()->TransitionProperty()
+      (animations[i]->GetEffect() &&
+       animations[i]->GetEffect()->AsTransition()->TransitionProperty()
          != aProperty),
       "duplicate transitions for property");
   }
 #endif
   if (haveCurrentTransition) {
-    players[currentIndex]->Cancel();
+    animations[currentIndex]->Cancel();
     oldPT = nullptr; 
-    players[currentIndex] = player;
+    animations[currentIndex] = animation;
   } else {
-    if (!players.AppendElement(player)) {
+    if (!animations.AppendElement(animation)) {
       NS_WARNING("out of memory");
       return;
     }
@@ -674,12 +674,12 @@ nsTransitionManager::UpdateCascadeResults(AnimationCollection* aTransitions,
   
   
   bool changed = false;
-  AnimationPlayerPtrArray& players = aTransitions->mPlayers;
-  for (size_t playerIdx = players.Length(); playerIdx-- != 0; ) {
-    MOZ_ASSERT(players[playerIdx]->GetEffect() &&
-               players[playerIdx]->GetEffect()->Properties().Length() == 1,
+  AnimationPtrArray& animations = aTransitions->mAnimations;
+  for (size_t animIdx = animations.Length(); animIdx-- != 0; ) {
+    MOZ_ASSERT(animations[animIdx]->GetEffect() &&
+               animations[animIdx]->GetEffect()->Properties().Length() == 1,
                "Should have one animation property for a transition");
-    AnimationProperty& prop = players[playerIdx]->GetEffect()->Properties()[0];
+    AnimationProperty& prop = animations[animIdx]->GetEffect()->Properties()[0];
     bool newWinsInCascade = !propertiesUsed.HasProperty(prop.mProperty);
     if (prop.mWinsInCascade != newWinsInCascade) {
       changed = true;
@@ -797,22 +797,21 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
                  "Element::UnbindFromTree should have "
                  "destroyed the element transitions object");
 
-      size_t i = collection->mPlayers.Length();
+      size_t i = collection->mAnimations.Length();
       MOZ_ASSERT(i != 0, "empty transitions list?");
       bool transitionStartedOrEnded = false;
       do {
         --i;
-        Animation* player = collection->mPlayers[i];
-        if (!player->GetEffect()->IsFinishedTransition()) {
-          MOZ_ASSERT(player->GetEffect(),
-                     "Transitions should have an effect");
+        Animation* anim = collection->mAnimations[i];
+        if (!anim->GetEffect()->IsFinishedTransition()) {
+          MOZ_ASSERT(anim->GetEffect(), "Transitions should have an effect");
           ComputedTiming computedTiming =
-            player->GetEffect()->GetComputedTiming();
+            anim->GetEffect()->GetComputedTiming();
           if (computedTiming.mPhase == ComputedTiming::AnimationPhase_After) {
             nsCSSProperty prop =
-              player->GetEffect()->AsTransition()->TransitionProperty();
+              anim->GetEffect()->AsTransition()->TransitionProperty();
             TimeDuration duration =
-              player->GetEffect()->Timing().mIterationDuration;
+              anim->GetEffect()->Timing().mIterationDuration;
             events.AppendElement(
               TransitionEventInfo(collection->mElement, prop,
                                   duration,
@@ -825,13 +824,13 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
             
             
             
-            player->GetEffect()->SetIsFinishedTransition(true);
+            anim->GetEffect()->SetIsFinishedTransition(true);
             collection->UpdateAnimationGeneration(mPresContext);
             transitionStartedOrEnded = true;
           } else if ((computedTiming.mPhase ==
                       ComputedTiming::AnimationPhase_Active) &&
                      canThrottleTick &&
-                     !player->IsRunningOnCompositor()) {
+                     !anim->IsRunningOnCompositor()) {
             
             
             collection->UpdateAnimationGeneration(mPresContext);
@@ -855,7 +854,7 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
         didThrottle = true;
       }
 
-      if (collection->mPlayers.IsEmpty()) {
+      if (collection->mAnimations.IsEmpty()) {
         collection->Destroy();
         
         collection = nullptr;
