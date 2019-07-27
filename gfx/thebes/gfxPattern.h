@@ -52,7 +52,7 @@ public:
 
 
 
-    mozilla::gfx::Pattern *GetPattern(mozilla::gfx::DrawTarget *aTarget,
+    mozilla::gfx::Pattern *GetPattern(const mozilla::gfx::DrawTarget *aTarget,
                                       mozilla::gfx::Matrix *aOriginalUserToDevice = nullptr);
     bool IsOpaque();
 
