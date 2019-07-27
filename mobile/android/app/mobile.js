@@ -417,6 +417,7 @@ pref("ui.mouse.radius.topmm", 5);
 pref("ui.mouse.radius.rightmm", 3);
 pref("ui.mouse.radius.bottommm", 2);
 pref("ui.mouse.radius.visitedWeight", 120);
+pref("ui.mouse.radius.reposition", true);
 
 
 pref("browser.ui.show-margins-threshold", 10);

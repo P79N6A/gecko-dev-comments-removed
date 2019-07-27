@@ -673,6 +673,18 @@ public:
                                        nsIWidget* aWidget, nsIntPoint aPt,
                                        nsView* aView);
 
+  
+
+
+
+
+
+
+
+  static nsIntPoint TranslateViewToWidget(nsPresContext* aPresContext,
+                                          nsView* aView, nsPoint aPt,
+                                          nsIWidget* aWidget);
+
   enum FrameForPointFlags {
     
 
