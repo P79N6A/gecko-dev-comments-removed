@@ -4191,6 +4191,10 @@ MaybeUnwrapElements(const MDefinition* elementsOrObj)
     if (elementsOrObj->type() == MIRType_Object)
         return nullptr;
 
+    
+    if (!elementsOrObj->isElements())
+        return nullptr;
+
     return elementsOrObj->toElements();
 }
 
@@ -4201,12 +4205,14 @@ GetStoreObject(const MDefinition* store)
     switch (store->op()) {
       case MDefinition::Op_StoreElement: {
         const MDefinition* elementsOrObj = store->toStoreElement()->elements();
+        if (elementsOrObj->type() == MIRType_Object)
+            return elementsOrObj;
+
         const MDefinition* elements = MaybeUnwrapElements(elementsOrObj);
         if (elements)
             return elements->toElements()->input();
 
-        MOZ_ASSERT(elementsOrObj->type() == MIRType_Object);
-        return elementsOrObj;
+        return nullptr;
       }
 
       case MDefinition::Op_StoreElementHole:
@@ -4224,6 +4230,10 @@ GenericLoadMightAlias(const MDefinition* elementsOrObj, const MDefinition* store
     const MElements* elements = MaybeUnwrapElements(elementsOrObj);
     if (elements)
         return elements->mightAlias(store);
+
+    
+    if (elementsOrObj->type() != MIRType_Object)
+        return true;
 
     
     
