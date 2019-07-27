@@ -1581,7 +1581,7 @@ TabChild::SendPendingTouchPreventedResponse(bool aPreventDefault,
 {
   if (mPendingTouchPreventedResponse) {
     MOZ_ASSERT(aGuid == mPendingTouchPreventedGuid);
-    SendContentReceivedTouch(mPendingTouchPreventedGuid, mPendingTouchPreventedBlockId, aPreventDefault);
+    SendContentReceivedInputBlock(mPendingTouchPreventedGuid, mPendingTouchPreventedBlockId, aPreventDefault);
     mPendingTouchPreventedResponse = false;
   }
 }
@@ -2161,7 +2161,7 @@ TabChild::RecvHandleLongTap(const CSSPoint& aPoint, const ScrollableLayerGuid& a
     TABC_LOG("MOZLONGTAP event handled: %d\n", eventHandled);
   }
 
-  SendContentReceivedTouch(aGuid, aInputBlockId, eventHandled);
+  SendContentReceivedInputBlock(aGuid, aInputBlockId, eventHandled);
 
   return true;
 }
@@ -2606,11 +2606,11 @@ TabChild::RecvRealTouchEvent(const WidgetTouchEvent& aEvent,
     if (mPendingTouchPreventedResponse) {
       
       
-      SendContentReceivedTouch(mPendingTouchPreventedGuid, mPendingTouchPreventedBlockId, false);
+      SendContentReceivedInputBlock(mPendingTouchPreventedGuid, mPendingTouchPreventedBlockId, false);
       mPendingTouchPreventedResponse = false;
     }
     if (isTouchPrevented) {
-      SendContentReceivedTouch(aGuid, aInputBlockId, isTouchPrevented);
+      SendContentReceivedInputBlock(aGuid, aInputBlockId, isTouchPrevented);
     } else {
       mPendingTouchPreventedResponse = true;
       mPendingTouchPreventedGuid = aGuid;

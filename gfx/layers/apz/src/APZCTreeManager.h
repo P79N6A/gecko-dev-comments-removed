@@ -211,8 +211,7 @@ public:
 
 
 
-  void ContentReceivedTouch(uint64_t aInputBlockId,
-                            bool aPreventDefault);
+  void ContentReceivedInputBlock(uint64_t aInputBlockId, bool aPreventDefault);
 
   
 

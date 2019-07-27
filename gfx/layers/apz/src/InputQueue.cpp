@@ -263,7 +263,7 @@ InputQueue::MainThreadTimeout(const uint64_t& aInputBlockId) {
 }
 
 void
-InputQueue::ContentReceivedTouch(uint64_t aInputBlockId, bool aPreventDefault) {
+InputQueue::ContentReceivedInputBlock(uint64_t aInputBlockId, bool aPreventDefault) {
   AsyncPanZoomController::AssertOnControllerThread();
 
   INPQ_LOG("got a content response; block=%" PRIu64 "\n", aInputBlockId);

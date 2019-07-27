@@ -146,8 +146,8 @@ public:
     return GetInputQueue()->ReceiveInputEvent(this, true, aEvent, aOutInputBlockId);
   }
 
-  void ContentReceivedTouch(uint64_t aInputBlockId, bool aPreventDefault) {
-    GetInputQueue()->ContentReceivedTouch(aInputBlockId, aPreventDefault);
+  void ContentReceivedInputBlock(uint64_t aInputBlockId, bool aPreventDefault) {
+    GetInputQueue()->ContentReceivedInputBlock(aInputBlockId, aPreventDefault);
   }
   
   void SetAllowedTouchBehavior(uint64_t aInputBlockId, const nsTArray<TouchBehaviorFlags>& aBehaviors) {
@@ -708,7 +708,7 @@ TEST_F(APZCPinchGestureDetectorTester, Pinch_PreventDefault) {
   PinchWithTouchInput(apzc, 250, 300, 1.25, touchInputId, nullptr, nullptr, &blockId);
 
   
-  apzc->ContentReceivedTouch(blockId, true);
+  apzc->ContentReceivedInputBlock(blockId, true);
 
   
   
@@ -918,7 +918,7 @@ protected:
 
     
     
-    apzc->ContentReceivedTouch(blockId, true);
+    apzc->ContentReceivedInputBlock(blockId, true);
     
     
     EXPECT_LE(1, mcc->RunThroughDelayedTasks());
@@ -1189,7 +1189,7 @@ protected:
 
     
     Pan(apzc, time, touchStart, touchEnd, false, nullptr, nullptr, &blockId);
-    apzc->ContentReceivedTouch(blockId, false);
+    apzc->ContentReceivedInputBlock(blockId, false);
     while (mcc->RunThroughDelayedTasks());
 
     
@@ -1209,7 +1209,7 @@ protected:
 
     
     
-    apzc->ContentReceivedTouch(blockId, aPreventDefault);
+    apzc->ContentReceivedInputBlock(blockId, aPreventDefault);
     while (mcc->RunThroughDelayedTasks());
 
     
@@ -1299,7 +1299,7 @@ protected:
       apzc->SetAllowedTouchBehavior(blockId, allowedTouchBehaviors);
     }
     
-    apzc->ContentReceivedTouch(blockId, false);
+    apzc->ContentReceivedInputBlock(blockId, false);
 
     MockFunction<void(std::string checkPointName)> check;
 
@@ -1332,7 +1332,7 @@ protected:
     
     
     
-    apzc->ContentReceivedTouch(blockId, false);
+    apzc->ContentReceivedInputBlock(blockId, false);
     mcc->CheckHasDelayedTask();
     mcc->RunDelayedTask();
 
@@ -1370,7 +1370,7 @@ protected:
       apzc->SetAllowedTouchBehavior(blockId, allowedTouchBehaviors);
     }
     
-    apzc->ContentReceivedTouch(blockId, false);
+    apzc->ContentReceivedInputBlock(blockId, false);
 
     MockFunction<void(std::string checkPointName)> check;
 
@@ -1398,7 +1398,7 @@ protected:
     
     
     
-    apzc->ContentReceivedTouch(blockId, true);
+    apzc->ContentReceivedInputBlock(blockId, true);
     mcc->CheckHasDelayedTask();
     mcc->RunDelayedTask();
 
@@ -1502,8 +1502,8 @@ TEST_F(APZCGestureDetectorTester, DoubleTap) {
   DoubleTapAndCheckStatus(apzc, 10, 10, time, &blockIds);
 
   
-  apzc->ContentReceivedTouch(blockIds[0], false);
-  apzc->ContentReceivedTouch(blockIds[1], false);
+  apzc->ContentReceivedInputBlock(blockIds[0], false);
+  apzc->ContentReceivedInputBlock(blockIds[1], false);
 
   while (mcc->RunThroughDelayedTasks());
 
@@ -1522,8 +1522,8 @@ TEST_F(APZCGestureDetectorTester, DoubleTapNotZoomable) {
   DoubleTapAndCheckStatus(apzc, 10, 10, time, &blockIds);
 
   
-  apzc->ContentReceivedTouch(blockIds[0], false);
-  apzc->ContentReceivedTouch(blockIds[1], false);
+  apzc->ContentReceivedInputBlock(blockIds[0], false);
+  apzc->ContentReceivedInputBlock(blockIds[1], false);
 
   while (mcc->RunThroughDelayedTasks());
 
@@ -1542,8 +1542,8 @@ TEST_F(APZCGestureDetectorTester, DoubleTapPreventDefaultFirstOnly) {
   DoubleTapAndCheckStatus(apzc, 10, 10, time, &blockIds);
 
   
-  apzc->ContentReceivedTouch(blockIds[0], true);
-  apzc->ContentReceivedTouch(blockIds[1], false);
+  apzc->ContentReceivedInputBlock(blockIds[0], true);
+  apzc->ContentReceivedInputBlock(blockIds[1], false);
 
   while (mcc->RunThroughDelayedTasks());
 
@@ -1562,8 +1562,8 @@ TEST_F(APZCGestureDetectorTester, DoubleTapPreventDefaultBoth) {
   DoubleTapAndCheckStatus(apzc, 10, 10, time, &blockIds);
 
   
-  apzc->ContentReceivedTouch(blockIds[0], true);
-  apzc->ContentReceivedTouch(blockIds[1], true);
+  apzc->ContentReceivedInputBlock(blockIds[0], true);
+  apzc->ContentReceivedInputBlock(blockIds[1], true);
 
   while (mcc->RunThroughDelayedTasks());
 
@@ -2227,7 +2227,7 @@ TEST_F(APZOverscrollHandoffTester, DeferredInputEventProcessing) {
   ApzcPanNoFling(childApzc, time, 90, 30, &blockId);
 
   
-  childApzc->ContentReceivedTouch(blockId, false);
+  childApzc->ContentReceivedInputBlock(blockId, false);
 
   
   EXPECT_EQ(50, childApzc->GetFrameMetrics().GetScrollOffset().y);
@@ -2266,7 +2266,7 @@ TEST_F(APZOverscrollHandoffTester, LayerStructureChangesWhileEventsArePending) {
   ApzcPanNoFling(childApzc, time, 30, 90, &secondBlockId);
 
   
-  childApzc->ContentReceivedTouch(blockId, false);
+  childApzc->ContentReceivedInputBlock(blockId, false);
 
   
   
@@ -2275,7 +2275,7 @@ TEST_F(APZOverscrollHandoffTester, LayerStructureChangesWhileEventsArePending) {
   EXPECT_EQ(0, middleApzc->GetFrameMetrics().GetScrollOffset().y);
 
   
-  childApzc->ContentReceivedTouch(secondBlockId, false);
+  childApzc->ContentReceivedInputBlock(secondBlockId, false);
 
   
   
