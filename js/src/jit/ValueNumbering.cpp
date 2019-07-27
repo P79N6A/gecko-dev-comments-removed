@@ -756,8 +756,10 @@ ValueNumberer::visitDefinition(MDefinition* def)
         if (sim == nullptr)
             return false;
 
+        bool isNewInstruction = sim->block() == nullptr;
+
         
-        if (sim->block() == nullptr)
+        if (isNewInstruction)
             def->block()->insertAfter(def->toInstruction(), sim->toInstruction());
 
 #ifdef DEBUG
@@ -783,6 +785,11 @@ ValueNumberer::visitDefinition(MDefinition* def)
 
         
         def = sim;
+
+        
+        
+        if (!isNewInstruction)
+            return true;
     }
 
     
