@@ -2987,6 +2987,35 @@ JitProfilingFrameIterator::JitProfilingFrameIterator(void* exitFrame)
         return;
     }
 
+    if (prevType == JitFrame_Unwound_Rectifier) {
+        
+        
+        
+        RectifierFrameLayout* rectFrame =
+            GetPreviousRawFrame<JitFrameLayout, RectifierFrameLayout*>((JitFrameLayout*) frame);
+
+        MOZ_ASSERT(rectFrame->prevType() == JitFrame_BaselineStub ||
+                   rectFrame->prevType() == JitFrame_IonJS);
+
+        if (rectFrame->prevType() == JitFrame_BaselineStub) {
+            
+            BaselineStubFrameLayout* stubFrame =
+                GetPreviousRawFrame<RectifierFrameLayout, BaselineStubFrameLayout*>(rectFrame);
+            MOZ_ASSERT(stubFrame->prevType() == JitFrame_BaselineJS);
+            returnAddressToFp_ = stubFrame->returnAddress();
+            fp_ = ((uint8_t*) stubFrame->reverseSavedFramePtr())
+                    + jit::BaselineFrame::FramePointerOffset;
+            type_ = JitFrame_BaselineJS;
+            return;
+        }
+
+        
+        returnAddressToFp_ = rectFrame->returnAddress();
+        fp_ = GetPreviousRawFrame<RectifierFrameLayout, uint8_t*>(rectFrame);
+        type_ = JitFrame_IonJS;
+        return;
+    }
+
     MOZ_CRASH("Invalid frame type prior to exit frame.");
 }
 
