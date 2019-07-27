@@ -61,7 +61,8 @@ public class InstallListener extends BroadcastReceiver {
         if (TextUtils.isEmpty(manifestUrl)) {
             Log.i(LOGTAG, "No manifest URL present in metadata");
             return;
-        } else if (!isCorrectManifest(manifestUrl)) {
+        }
+        if (!isCorrectManifest(manifestUrl)) {
             
             
             

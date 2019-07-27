@@ -822,7 +822,9 @@ public class BrowserSearch extends HomeFragment
 
             if (engine == -1) {
                 return ROW_STANDARD;
-            } else if (engine == 0 && mSuggestionsEnabled) {
+            }
+
+            if (engine == 0 && mSuggestionsEnabled) {
                 
                 
                 

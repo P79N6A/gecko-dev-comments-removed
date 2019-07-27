@@ -258,7 +258,9 @@ public class AndroidGamepadManager {
             
             sPendingGamepads.get(deviceId).add(ev);
             return true;
-        } else if (!sGamepads.containsKey(deviceId)) {
+        }
+
+        if (!sGamepads.containsKey(deviceId)) {
             InputDevice device = ev.getDevice();
             if (device != null &&
                 (device.getSources() & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD) {
