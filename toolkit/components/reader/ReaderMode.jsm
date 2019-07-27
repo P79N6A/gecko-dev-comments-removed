@@ -67,43 +67,10 @@ this.ReaderMode = {
 
 
 
+
   isProbablyReaderable: function(doc) {
     let uri = Services.io.newURI(doc.documentURI, null, null);
-
-    if (!this._shouldCheckUri(uri)) {
-      return false;
-    }
-
-    let REGEXPS = {
-      unlikelyCandidates: /combx|comment|community|disqus|extra|foot|header|menu|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup|tweet|twitter/i,
-      okMaybeItsACandidate: /and|article|body|column|main|shadow/i,
-    };
-
-    let nodes = doc.getElementsByTagName("p");
-    if (nodes.length < 5) {
-      return false;
-    }
-
-    let possibleParagraphs = 0;
-    for (let i = 0; i < nodes.length; i++) {
-      let node = nodes[i];
-      let matchString = node.className + " " + node.id;
-
-      if (REGEXPS.unlikelyCandidates.test(matchString) &&
-          !REGEXPS.okMaybeItsACandidate.test(matchString)) {
-        continue;
-      }
-
-      if (node.textContent.trim().length < 200) {
-        continue;
-      }
-
-      possibleParagraphs++;
-      if (possibleParagraphs >= 5) {
-        return true;
-      }
-    }
-    return false;
+    return this._shouldCheckUri(uri);
   },
 
   
