@@ -92,7 +92,7 @@ pref("network.buffer.cache.count", 24);
 pref("network.buffer.cache.size",  16384);
 
 
-pref("network.predictor.enable", false); 
+pref("network.predictor.enabled", false); 
 pref("network.predictor.max-db-size", 2097152); 
 pref("network.predictor.preserve", 50); 
 

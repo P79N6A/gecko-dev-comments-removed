@@ -1584,7 +1584,7 @@ pref("network.dir.format", 2);
 pref("network.prefetch-next", true);
 
 
-pref("network.predictor.enabled", false);
+pref("network.predictor.enabled", true);
 pref("network.predictor.enable-hover-on-ssl", false);
 pref("network.predictor.page-degradation.day", 0);
 pref("network.predictor.page-degradation.week", 5);
@@ -1599,9 +1599,8 @@ pref("network.predictor.subresource-degradation.max", 100);
 pref("network.predictor.preconnect-min-confidence", 90);
 pref("network.predictor.preresolve-min-confidence", 60);
 pref("network.predictor.redirect-likely-confidence", 75);
-pref("network.predictor.max-queue-size", 50);
-pref("network.predictor.max-db-size", 157286400); 
-pref("network.predictor.preserve", 80); 
+pref("network.predictor.max-resources-per-entry", 100);
+pref("network.predictor.cleaned-up", false);
 
 
 
