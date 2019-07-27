@@ -145,6 +145,17 @@ function CheckObjectCoercible(v) {
 }
 
 
+function ToLength(v) {
+    v = ToInteger(v);
+
+    if (v <= 0)
+        return 0;
+
+    
+    return v < 0x1fffffffffffff ? v : 0x1fffffffffffff;
+}
+
+
 
 #ifdef ENABLE_PARALLEL_JS
 
