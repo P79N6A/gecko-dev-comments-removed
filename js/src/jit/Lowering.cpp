@@ -1741,6 +1741,7 @@ LIRGenerator::visitToDouble(MToDouble *convert)
         return lowerConstantDouble(0, convert);
 
       case MIRType_Undefined:
+      case MIRType_Symbol:
         JS_ASSERT(conversion != MToDouble::NumbersOnly);
         return lowerConstantDouble(GenericNaN(), convert);
 
@@ -1790,6 +1791,7 @@ LIRGenerator::visitToFloat32(MToFloat32 *convert)
         return lowerConstantFloat32(0, convert);
 
       case MIRType_Undefined:
+      case MIRType_Symbol:
         JS_ASSERT(conversion != MToFloat32::NumbersOnly);
         return lowerConstantFloat32(GenericNaN(), convert);
 
