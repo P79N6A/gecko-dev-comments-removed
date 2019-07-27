@@ -1469,25 +1469,6 @@ CanvasRenderingContext2D::ClearTarget()
   state->colorStyles[Style::FILL] = NS_RGB(0,0,0);
   state->colorStyles[Style::STROKE] = NS_RGB(0,0,0);
   state->shadowColor = NS_RGBA(0,0,0,0);
-
-  
-  
-  nsRefPtr<nsStyleContext> canvasStyle;
-  if (mCanvasElement && mCanvasElement->IsInDoc()) {
-    nsCOMPtr<nsIPresShell> presShell = GetPresShell();
-    if (presShell) {
-      canvasStyle =
-        nsComputedDOMStyle::GetStyleContextForElement(mCanvasElement,
-                                                      nullptr,
-                                                      presShell);
-      if (canvasStyle) {
-        WritingMode wm(canvasStyle);
-        if (wm.IsVertical() && !wm.IsSideways()) {
-          state->textBaseline = TextBaseline::MIDDLE;
-        }
-      }
-    }
-  }
 }
 
 NS_IMETHODIMP
@@ -3284,7 +3265,6 @@ struct MOZ_STACK_CLASS CanvasBidiProcessor : public nsBidiPresUtils::BidiProcess
     gfxPoint point = mPt;
     bool rtl = mTextRun->IsRightToLeft();
     bool verticalRun = mTextRun->IsVertical();
-    bool centerBaseline = mTextRun->UseCenterBaseline();
 
     gfxFloat& inlineCoord = verticalRun ? point.y : point.x;
     inlineCoord += xOffset;
@@ -3353,27 +3333,20 @@ struct MOZ_STACK_CLASS CanvasBidiProcessor : public nsBidiPresUtils::BidiProcess
       if (runs[c].mOrientation ==
           gfxTextRunFactory::TEXT_ORIENT_VERTICAL_SIDEWAYS_RIGHT) {
         sidewaysRestore.Init(mCtx->mTarget);
+        
+        
+        
+        
         const gfxFont::Metrics& metrics = mTextRun->GetFontGroup()->
           GetFirstValidFont()->GetMetrics(gfxFont::eHorizontal);
-
-        gfx::Matrix mat = mCtx->mTarget->GetTransform().Copy().
+        mCtx->mTarget->SetTransform(mCtx->mTarget->GetTransform().Copy().
           PreTranslate(baselineOrigin).      
           PreRotate(gfx::Float(M_PI / 2.0)). 
-          PreTranslate(-baselineOrigin);     
-
-        if (centerBaseline) {
-          
-          
-          
-          
-          float offset = (metrics.emAscent - metrics.emDescent) / 2;
-          mat = mat.PreTranslate(Point(0, offset));
+          PreTranslate(-baselineOrigin).     
+          PreTranslate(Point(0, (metrics.emAscent - metrics.emDescent) / 2)));
                               
                               
                               
-        }
-
-        mCtx->mTarget->SetTransform(mat);
       }
 
       RefPtr<GlyphRenderingOptions> renderingOptions = font->GetGlyphRenderingOptions();
@@ -3668,42 +3641,36 @@ CanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
   
   processor.mFontgrp->UpdateUserFonts(); 
   const gfxFont::Metrics& fontMetrics =
-    processor.mFontgrp->GetFirstValidFont()->GetMetrics(gfxFont::eHorizontal);
+    processor.mFontgrp->GetFirstValidFont()->GetMetrics(
+      ((processor.mTextRunFlags & gfxTextRunFactory::TEXT_ORIENT_MASK) ==
+        gfxTextRunFactory::TEXT_ORIENT_HORIZONTAL)
+      ? gfxFont::eHorizontal : gfxFont::eVertical);
 
-  gfxFloat baselineAnchor;
+  gfxFloat anchorY;
 
   switch (state.textBaseline)
   {
   case TextBaseline::HANGING:
       
   case TextBaseline::TOP:
-    baselineAnchor = fontMetrics.emAscent;
+    anchorY = fontMetrics.emAscent;
     break;
   case TextBaseline::MIDDLE:
-    baselineAnchor = (fontMetrics.emAscent - fontMetrics.emDescent) * .5f;
+    anchorY = (fontMetrics.emAscent - fontMetrics.emDescent) * .5f;
     break;
   case TextBaseline::IDEOGRAPHIC:
     
   case TextBaseline::ALPHABETIC:
-    baselineAnchor = 0;
+    anchorY = 0;
     break;
   case TextBaseline::BOTTOM:
-    baselineAnchor = -fontMetrics.emDescent;
+    anchorY = -fontMetrics.emDescent;
     break;
   default:
     MOZ_CRASH("unexpected TextBaseline");
   }
 
-  if (processor.mTextRun->IsVertical()) {
-    if (processor.mTextRun->UseCenterBaseline()) {
-      
-      
-      baselineAnchor -= (fontMetrics.emAscent - fontMetrics.emDescent) * .5f;
-    }
-    processor.mPt.x -= baselineAnchor;
-  } else {
-    processor.mPt.y += baselineAnchor;
-  }
+  processor.mPt.y += anchorY;
 
   
   processor.mBoundingBox.width = totalWidth;
