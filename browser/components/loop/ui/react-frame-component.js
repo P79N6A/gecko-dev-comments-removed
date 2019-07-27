@@ -70,8 +70,12 @@ window.Frame = React.createClass({
         if (isStyleSheet(parentHeadNode)) {
           
           
-          if (parentHeadNode.hasAttribute("class") && this.props.cssClass &&
-            parentHeadNode.getAttribute("class") !== this.props.cssClass) {
+          
+          
+          
+          
+          if (parentHeadNode.hasAttribute("class") &&
+              parentHeadNode.getAttribute("class") !== this.props.cssClass) {
             return;
           }
         }
