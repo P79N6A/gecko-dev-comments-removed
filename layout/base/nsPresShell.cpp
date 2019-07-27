@@ -2134,7 +2134,7 @@ PresShell::SetIgnoreFrameDestruction(bool aIgnore)
   if (mDocument) {
     
     
-    mDocument->StyleImageLoader()->ClearFrames();
+    mDocument->StyleImageLoader()->ClearFrames(mPresContext);
   }
   mIgnoreFrameDestruction = aIgnore;
 }

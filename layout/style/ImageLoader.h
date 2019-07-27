@@ -59,7 +59,10 @@ public:
 
   void SetAnimationMode(uint16_t aMode);
 
-  void ClearFrames();
+  
+  
+  
+  void ClearFrames(nsPresContext* aPresContext);
 
   void LoadImage(nsIURI* aURI, nsIPrincipal* aPrincipal, nsIURI* aReferrer,
                  Image* aCSSValue);
@@ -92,6 +95,10 @@ private:
   static PLDHashOperator
   SetAnimationModeEnumerator(nsISupports* aKey, FrameSet* aValue,
                              void* aClosure);
+
+  static PLDHashOperator
+  DeregisterRequestEnumerator(nsISupports* aKey, FrameSet* aValue,
+                              void* aClosure);
 
   nsresult OnStartContainer(imgIRequest *aRequest, imgIContainer* aImage);
   nsresult OnStopFrame(imgIRequest *aRequest);
