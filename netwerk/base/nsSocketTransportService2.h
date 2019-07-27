@@ -18,6 +18,7 @@
 #include "mozilla/Mutex.h"
 #include "mozilla/net/DashboardTypes.h"
 #include "mozilla/Atomics.h"
+#include "mozilla/TimeStamp.h"
 
 class nsASocketHandler;
 struct PRPollDesc;
@@ -193,9 +194,14 @@ private:
     PRPollDesc *mPollList;                        
 
     PRIntervalTime PollTimeout();            
-    nsresult       DoPollIteration(bool wait);
+    nsresult       DoPollIteration(bool wait,
+                                   mozilla::TimeDuration *pollDuration);
                                              
-    int32_t        Poll(bool wait, uint32_t *interval);
+    int32_t        Poll(bool wait,
+                        uint32_t *interval,
+                        mozilla::TimeDuration *pollDuration);
+                                             
+                                             
                                              
                                              
                                              
@@ -221,6 +227,7 @@ private:
     bool                   mServeMultipleEventsPerPollIter;
     mozilla::Atomic<bool>  mServingPendingQueue;
     int32_t                mMaxTimePerPollIter;
+    bool                   mTelemetryEnabledPref;
 
     void OnKeepaliveEnabledPrefChange();
     void NotifyKeepaliveEnabledPrefChange(SocketContext *sock);
