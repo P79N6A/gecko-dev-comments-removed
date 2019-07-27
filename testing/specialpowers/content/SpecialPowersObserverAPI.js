@@ -509,6 +509,17 @@ SpecialPowersObserverAPI.prototype = {
         return undefined;	
       }
 
+      case "SPPeriodicServiceWorkerUpdates": {
+        
+        
+        
+        Cc["@mozilla.org/service-worker-periodic-updater;1"].
+          getService(Ci.nsIObserver).
+          observe(null, "idle-daily", "");
+
+        return undefined;	
+      }
+
       default:
         throw new SpecialPowersError("Unrecognized Special Powers API");
     }
