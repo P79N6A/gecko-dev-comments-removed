@@ -849,7 +849,7 @@ CreateVsyncRefreshTimer()
   
   gfxPrefs::GetSingleton();
 
-  if (!gfxPrefs::VsyncAlignedRefreshDriver()) {
+  if (!gfxPrefs::VsyncAlignedRefreshDriver() || !gfxPrefs::HardwareVsyncEnabled()) {
     return;
   }
 
