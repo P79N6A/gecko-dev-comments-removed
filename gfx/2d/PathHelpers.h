@@ -362,9 +362,10 @@ inline bool UserToDevicePixelSnapped(Rect& aRect, const DrawTarget& aDrawTarget,
 
 
 inline void MaybeSnapToDevicePixels(Rect& aRect, const DrawTarget& aDrawTarget,
-                                    bool aIgnoreScale = false)
+                                    bool aAllowScaleOr90DegreeRotate = false)
 {
-  if (UserToDevicePixelSnapped(aRect, aDrawTarget, aIgnoreScale)) {
+  if (UserToDevicePixelSnapped(aRect, aDrawTarget,
+                               aAllowScaleOr90DegreeRotate)) {
     
     
     Matrix mat = aDrawTarget.GetTransform();
