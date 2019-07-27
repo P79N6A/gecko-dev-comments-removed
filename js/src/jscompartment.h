@@ -591,6 +591,7 @@ struct JSCompartment
         DeprecatedLetExpression = 5,        
         DeprecatedNoSuchMethod = 6,         
         DeprecatedFlagsArgument = 7,        
+        RegExpSourceProperty = 8,           
         DeprecatedLanguageExtensionCount
     };
 
