@@ -45,6 +45,11 @@ function addParamGroups(command) {
 
 
 function getHelpManData(commandData, context) {
+  
+  commandData.command.params = commandData.command.params.filter(
+    param => !param.hidden
+  );
+
   addParamGroups(commandData.command);
   commandData.subcommands.forEach(addParamGroups);
 
