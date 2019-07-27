@@ -517,9 +517,11 @@ TestRunner.runTests = function () {
     var singleTestRun = this._urls.length <= 1 && TestRunner.repeat <= 1;
     TestRunner.showTestReport = singleTestRun;
     var frame = $('testframe');
-    frame.src="";
+    frame.src = "";
     if (singleTestRun) {
-        document.body.setAttribute("singletest", singleTestRun);
+        
+        var body = document.getElementsByTagName("body")[0];
+        body.setAttribute("singletest", "true");
         frame.removeAttribute("scrolling");
     }
     TestRunner._checkForHangs();
