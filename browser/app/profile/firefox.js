@@ -1446,12 +1446,11 @@ pref("devtools.performance.ui.show-jit-optimizations", false);
 
 
 
-#if MOZ_UPDATE_CHANNEL == aurora
+#ifdef MOZ_DEV_EDITION
   pref("devtools.performance.ui.retro-mode", true);
 #else
   pref("devtools.performance.ui.retro-mode", false);
 #endif
-
 
 
 pref("devtools.cache.disabled", false);
