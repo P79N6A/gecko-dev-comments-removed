@@ -117,6 +117,9 @@ ConsoleAPIStorageService.prototype = {
 
 
 
+
+
+
   recordEvent: function CS_recordEvent(aId, aOuterId, aEvent)
   {
     if (!_consoleStorage.has(aId)) {
