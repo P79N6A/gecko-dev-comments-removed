@@ -6971,9 +6971,22 @@ nsLayoutUtils::CalculateCompositionSizeForFrame(nsIFrame* aFrame)
         size = nsSize(widgetBounds.width * auPerDevPixel,
                       widgetBounds.height * auPerDevPixel);
 #ifdef MOZ_WIDGET_ANDROID
-        nsSize frameSize = aFrame->GetSize();
-        if (frameSize.height < size.height) {
-          size.height = frameSize.height;
+        nsRect frameRect = aFrame->GetRect();
+        gfxSize cumulativeResolution = presShell->GetCumulativeResolution();
+        LayoutDeviceToParentLayerScale layoutToParentLayerScale =
+          
+          
+          
+          LayoutDeviceToLayerScale(cumulativeResolution.width, cumulativeResolution.height) *
+          LayerToScreenScale(1.0) * ScreenToParentLayerScale(1.0);
+        ParentLayerRect frameRectPixels =
+          LayoutDeviceRect::FromAppUnits(frameRect, auPerDevPixel)
+          * layoutToParentLayerScale;
+        if (frameRectPixels.height < ParentLayerRect(ViewAs<ParentLayerPixel>(widgetBounds)).height) {
+          
+          
+          size.height =
+            NSToCoordRound(frameRect.height * cumulativeResolution.height);
         }
 #endif
       } else {
