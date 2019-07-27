@@ -64,8 +64,7 @@ public:
   
   virtual bool MatchesCacheId(CacheId aCacheId) const { return false; }
 
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(cache::Action)
-  NS_DECL_OWNINGTHREAD
+  NS_INLINE_DECL_REFCOUNTING(cache::Action)
 
 protected:
   Action();

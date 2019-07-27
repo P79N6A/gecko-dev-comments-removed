@@ -914,7 +914,9 @@ private:
   {
     
     MOZ_ASSERT(aClosure);
-    nsRefPtr<CachePutAllAction> action = static_cast<CachePutAllAction*>(aClosure);
+    
+    
+    CachePutAllAction* action = static_cast<CachePutAllAction*>(aClosure);
     action->CallOnAsyncCopyCompleteOnTargetThread(aRv);
   }
 
@@ -922,7 +924,9 @@ private:
   CallOnAsyncCopyCompleteOnTargetThread(nsresult aRv)
   {
     
-    nsCOMPtr<nsIRunnable> runnable = NS_NewRunnableMethodWithArg<nsresult>(
+    
+    
+    nsCOMPtr<nsIRunnable> runnable = NS_NewNonOwningRunnableMethodWithArgs<nsresult>(
       this, &CachePutAllAction::OnAsyncCopyComplete, aRv);
     MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
       mTargetThread->Dispatch(runnable, nsIThread::DISPATCH_NORMAL)));
