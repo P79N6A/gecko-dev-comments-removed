@@ -2,14 +2,14 @@
 
 
 
-#ifndef mozilla_dom_mobileconnection_MobileConnectionIPCSerialiser_h
-#define mozilla_dom_mobileconnection_MobileConnectionIPCSerialiser_h
+#ifndef dom_mobileconnection_src_ipc_MobileConnectionIPCSerialiser_h
+#define dom_mobileconnection_src_ipc_MobileConnectionIPCSerialiser_h
 
 #include "ipc/IPCMessageUtils.h"
 #include "mozilla/dom/MobileCellInfo.h"
 #include "mozilla/dom/MobileConnectionInfo.h"
 #include "mozilla/dom/MobileNetworkInfo.h"
-#include "mozilla/dom/MozMobileConnectionBinding.h"
+#include "MozMobileConnectionBinding.h"
 
 using mozilla::AutoSafeJSContext;
 using mozilla::dom::MobileNetworkInfo;

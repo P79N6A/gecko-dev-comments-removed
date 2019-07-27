@@ -2,7 +2,7 @@
 
 
 
-#include "mozilla/dom/MobileConnection.h"
+#include "MobileConnection.h"
 
 #include "MobileConnectionCallback.h"
 #include "mozilla/dom/CFStateChangeEvent.h"
@@ -42,7 +42,6 @@
 
 using mozilla::ErrorResult;
 using namespace mozilla::dom;
-using namespace mozilla::dom::mobileconnection;
 
 class MobileConnection::Listener MOZ_FINAL : public nsIMobileConnectionListener
 {

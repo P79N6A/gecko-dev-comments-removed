@@ -2,17 +2,16 @@
 
 
 
-#ifndef mozilla_dom_mobileconnection_MobileConnectionCallback_h
-#define mozilla_dom_mobileconnection_MobileConnectionCallback_h
+#ifndef mozilla_dom_MobileConnectionCallback_h
+#define mozilla_dom_MobileConnectionCallback_h
 
 #include "mozilla/dom/DOMRequest.h"
-#include "mozilla/dom/mobileconnection/MobileConnectionIPCSerializer.h"
+#include "mozilla/dom/MobileConnectionIPCSerializer.h"
 #include "nsCOMPtr.h"
 #include "nsIMobileConnectionService.h"
 
 namespace mozilla {
 namespace dom {
-namespace mobileconnection {
 
 
 
@@ -73,7 +72,6 @@ private:
   nsRefPtr<DOMRequest> mRequest;
 };
 
-} 
 } 
 } 
 
