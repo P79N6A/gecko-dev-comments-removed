@@ -9260,11 +9260,28 @@ nsCSSFrameConstructor::CreateNeededPseudos(nsFrameConstructorState& aState,
       ParentType prevParentType = ourParentType;
       do {
         
+        
         FCItemIterator spaceEndIter(endIter);
         if (prevParentType != eTypeBlock &&
             !aParentFrame->IsGeneratedContentFrame() &&
             spaceEndIter.item().IsWhitespace(aState)) {
           bool trailingSpaces = spaceEndIter.SkipWhitespace(aState);
+          int nextDisplay = -1;
+          int prevDisplay = -1;
+
+          if (!endIter.AtStart() && IsRubyParentType(ourParentType)) {
+            FCItemIterator prevItemIter(endIter);
+            prevItemIter.Prev();
+            prevDisplay =
+              prevItemIter.item().mStyleContext->StyleDisplay()->mDisplay;
+          }
+
+          
+          
+          if (!spaceEndIter.IsDone() && IsRubyParentType(ourParentType)) {
+            nextDisplay =
+              spaceEndIter.item().mStyleContext->StyleDisplay()->mDisplay;
+          }
 
           
           
@@ -9272,13 +9289,35 @@ nsCSSFrameConstructor::CreateNeededPseudos(nsFrameConstructorState& aState,
           
           
           
-          if ((trailingSpaces && ourParentType != eTypeBlock) ||
-              (!trailingSpaces && spaceEndIter.item().DesiredParentType() !=
-               eTypeBlock)) {
-            
+          
+          
+          
+          
+          
+          
+          bool isRubyLeadingTrailingParentType =
+            ourParentType == eTypeRuby ||
+            ourParentType == eTypeRubyBaseContainer ||
+            ourParentType == eTypeRubyTextContainer;
+          bool isRubyLeading =
+            prevDisplay == -1 && isRubyLeadingTrailingParentType;
+          bool isRubyTrailing =
+            nextDisplay == -1 && isRubyLeadingTrailingParentType;
+          
+          
+          bool isRubyInterLevel =
+            (nextDisplay == NS_STYLE_DISPLAY_RUBY_TEXT_CONTAINER) ||
+            (nextDisplay == NS_STYLE_DISPLAY_RUBY_TEXT &&
+             prevDisplay != NS_STYLE_DISPLAY_RUBY_TEXT);
+
+          if ((!trailingSpaces &&
+               IsTableParentType(spaceEndIter.item().DesiredParentType())) ||
+              (trailingSpaces && IsTableParentType(ourParentType)) ||
+              isRubyLeading || isRubyTrailing || isRubyInterLevel) {
             bool updateStart = (iter == endIter);
             endIter.DeleteItemsTo(spaceEndIter);
-            NS_ASSERTION(trailingSpaces == endIter.IsDone(), "These should match");
+            NS_ASSERTION(trailingSpaces == endIter.IsDone(),
+                         "These should match");
 
             if (updateStart) {
               iter = endIter;
@@ -9326,7 +9365,16 @@ nsCSSFrameConstructor::CreateNeededPseudos(nsFrameConstructorState& aState,
         
         
         
+        if (spaceEndIter != endIter &&
+            !spaceEndIter.IsDone() &&
+            ourParentType == spaceEndIter.item().DesiredParentType()) {
+            endIter = spaceEndIter;
+            break;
+        }
+
+        
         endIter = spaceEndIter;
+        prevParentType = endIter.item().DesiredParentType();
 
         endIter.Next();
       } while (!endIter.IsDone());
