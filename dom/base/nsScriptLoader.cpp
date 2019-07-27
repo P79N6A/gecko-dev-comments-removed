@@ -76,6 +76,7 @@ nsScriptLoadRequestList::Clear()
 {
   while (!isEmpty()) {
     nsRefPtr<nsScriptLoadRequest> first = StealFirst();
+    first->Cancel();
     
   }
 }
@@ -1486,6 +1487,10 @@ nsScriptLoader::PrepareLoadedRequest(nsScriptLoadRequest* aRequest,
     return aStatus;
   }
 
+  if (aRequest->IsCanceled()) {
+    return NS_BINDING_ABORTED;
+  }
+
   
   
   if (!mDocument) {
@@ -1557,9 +1562,14 @@ nsScriptLoader::PrepareLoadedRequest(nsScriptLoadRequest* aRequest,
   aRequest->mLoading = false;
 
   
+  
+  
   if (aRequest->mIsAsync) {
-    nsRefPtr<nsScriptLoadRequest> req = mLoadingAsyncRequests.Steal(aRequest);
-    mLoadedAsyncRequests.AppendElement(req);
+    MOZ_ASSERT(aRequest->isInList());
+    if (aRequest->isInList()) {
+      nsRefPtr<nsScriptLoadRequest> req = mLoadingAsyncRequests.Steal(aRequest);
+      mLoadedAsyncRequests.AppendElement(req);
+    }
   }
 
   return NS_OK;
@@ -1580,7 +1590,10 @@ nsScriptLoader::ParsingComplete(bool aTerminated)
     mLoadedAsyncRequests.Clear();
     mNonAsyncExternalScriptInsertedRequests.Clear();
     mXSLTRequests.Clear();
-    mParserBlockingRequest = nullptr;
+    if (mParserBlockingRequest) {
+      mParserBlockingRequest->Cancel();
+      mParserBlockingRequest = nullptr;
+    }
   }
 
   

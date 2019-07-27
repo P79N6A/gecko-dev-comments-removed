@@ -64,6 +64,7 @@ public:
       mIsAsync(false),
       mIsNonAsyncScriptInserted(false),
       mIsXSLT(false),
+      mIsCanceled(false),
       mScriptTextBuf(nullptr),
       mScriptTextLength(0),
       mJSVersion(aVersion),
@@ -89,6 +90,16 @@ public:
     return mElement == nullptr;
   }
 
+  void Cancel()
+  {
+    mIsCanceled = true;
+  }
+
+  bool IsCanceled() const
+  {
+    return mIsCanceled;
+  }
+
   using super::getNext;
   using super::isInList;
 
@@ -100,6 +111,7 @@ public:
   bool mIsAsync;          
   bool mIsNonAsyncScriptInserted; 
   bool mIsXSLT;           
+  bool mIsCanceled;       
   nsString mSourceMapURL; 
   char16_t* mScriptTextBuf; 
   size_t mScriptTextLength; 
