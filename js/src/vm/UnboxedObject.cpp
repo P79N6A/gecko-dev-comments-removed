@@ -898,6 +898,7 @@ const Class UnboxedPlainObject::class_ = {
     nullptr,        
     nullptr,        
     nullptr,        
+    nullptr,        
     UnboxedPlainObject::trace,
     JS_NULL_CLASS_SPEC,
     JS_NULL_CLASS_EXT,

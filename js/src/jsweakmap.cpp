@@ -617,6 +617,7 @@ const Class WeakMapObject::class_ = {
     nullptr, 
     nullptr, 
     nullptr, 
+    nullptr, 
     WeakMap_finalize,
     nullptr, 
     nullptr, 

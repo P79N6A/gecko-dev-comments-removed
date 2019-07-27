@@ -28,6 +28,7 @@ static const js::Class TenuredClass = {
     nullptr, 
     nullptr, 
     nullptr, 
+    nullptr, 
     _finalize,
     nullptr, 
     nullptr, 
@@ -41,6 +42,7 @@ static const js::Class TenuredClass = {
 static const js::Class NurseryClass = {
     "NurseryClass",
     JSCLASS_FINALIZE_FROM_NURSERY | JSCLASS_HAS_RESERVED_SLOTS(1),
+    nullptr, 
     nullptr, 
     nullptr, 
     nullptr, 

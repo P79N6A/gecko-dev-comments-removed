@@ -845,6 +845,7 @@ TypedArrayObject::sharedTypedArrayPrototypeClass = {
     nullptr,                
     nullptr,                
     nullptr,                
+    nullptr,                
     {
         GenericCreateConstructor<TypedArrayConstructor, 3, JSFunction::FinalizeKind>,
         GenericCreatePrototype,
@@ -1801,6 +1802,7 @@ IMPL_TYPED_ARRAY_COMBINED_UNWRAPPERS(Float64, double, double)
     nullptr,                 /* setProperty */                                 \
     nullptr,                 /* enumerate   */                                 \
     nullptr,                 /* resolve     */                                 \
+    nullptr,                 /* mayResolve  */                                 \
     nullptr,                 /* convert     */                                 \
     nullptr,                 /* finalize    */                                 \
     nullptr,                 /* call        */                                 \
@@ -1846,6 +1848,7 @@ const Class TypedArrayObject::classes[Scalar::MaxTypedArrayViewType] = {
     nullptr, /* setProperty */ \
     nullptr, /* enumerate */ \
     nullptr, /* resolve */ \
+    nullptr, /* mayResolve */ \
     nullptr, /* convert */ \
     nullptr, /* finalize */ \
     nullptr, /* call */ \
@@ -1895,6 +1898,7 @@ const Class DataViewObject::class_ = {
     JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(TypedArrayLayout::RESERVED_SLOTS) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_DataView),
+    nullptr, 
     nullptr, 
     nullptr, 
     nullptr, 

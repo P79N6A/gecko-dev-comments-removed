@@ -25,6 +25,7 @@ const Class SymbolObject::class_ = {
     nullptr, 
     nullptr, 
     nullptr, 
+    nullptr, 
     convert
 };
 

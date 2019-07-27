@@ -3044,6 +3044,7 @@ const Class DateObject::class_ = {
     nullptr, 
     nullptr, 
     nullptr, 
+    nullptr, 
     date_convert,
     nullptr, 
     nullptr, 

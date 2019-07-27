@@ -186,6 +186,7 @@ SavedFrame::finishSavedFrameInit(JSContext* cx, HandleObject ctor, HandleObject 
     nullptr,                    
     nullptr,                    
     nullptr,                    
+    nullptr,                    
     SavedFrame::finalize,       
     nullptr,                    
     nullptr,                    

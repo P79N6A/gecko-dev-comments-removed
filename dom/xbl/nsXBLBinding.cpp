@@ -93,7 +93,7 @@ static const JSClass gPrototypeJSClass = {
     
     JSCLASS_HAS_RESERVED_SLOTS(1),
     nullptr, nullptr, nullptr, nullptr,
-    XBLEnumerate, nullptr,
+    XBLEnumerate, nullptr, nullptr,
     nullptr, XBLFinalize,
     nullptr, nullptr, nullptr, nullptr
 };

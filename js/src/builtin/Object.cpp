@@ -1195,6 +1195,7 @@ const Class PlainObject::class_ = {
     nullptr,  
     nullptr,  
     nullptr,  
+    nullptr,  
     {
         CreateObjectConstructor,
         CreateObjectPrototype,

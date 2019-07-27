@@ -648,6 +648,7 @@ const XPCWrappedNativeJSClass XPC_WN_NoHelper_JSClass = {
 
     XPC_WN_Shared_Enumerate,           
     XPC_WN_NoHelper_Resolve,           
+    nullptr,                           
     XPC_WN_Shared_Convert,             
     XPC_WN_NoHelper_Finalize,          
 
@@ -1289,6 +1290,7 @@ const js::Class XPC_WN_ModsAllowed_WithCall_Proto_JSClass = {
     XPC_WN_Shared_Proto_Enumerate,  
     XPC_WN_ModsAllowed_Proto_Resolve, 
     nullptr,                        
+    nullptr,                        
     XPC_WN_Shared_Proto_Finalize,   
 
     
@@ -1313,6 +1315,7 @@ const js::Class XPC_WN_ModsAllowed_NoCall_Proto_JSClass = {
     nullptr,                        
     XPC_WN_Shared_Proto_Enumerate,  
     XPC_WN_ModsAllowed_Proto_Resolve, 
+    nullptr,                        
     nullptr,                        
     XPC_WN_Shared_Proto_Finalize,   
 
@@ -1392,6 +1395,7 @@ const js::Class XPC_WN_NoMods_WithCall_Proto_JSClass = {
     XPC_WN_Shared_Proto_Enumerate,             
     XPC_WN_NoMods_Proto_Resolve,               
     nullptr,                                   
+    nullptr,                                   
     XPC_WN_Shared_Proto_Finalize,              
 
     
@@ -1416,6 +1420,7 @@ const js::Class XPC_WN_NoMods_NoCall_Proto_JSClass = {
     nullptr,                                   
     XPC_WN_Shared_Proto_Enumerate,             
     XPC_WN_NoMods_Proto_Resolve,               
+    nullptr,                                   
     nullptr,                                   
     XPC_WN_Shared_Proto_Finalize,              
 
@@ -1511,6 +1516,7 @@ const js::Class XPC_WN_Tearoff_JSClass = {
     nullptr,                                   
     XPC_WN_TearOff_Enumerate,                  
     XPC_WN_TearOff_Resolve,                    
+    nullptr,                                   
     XPC_WN_Shared_Convert,                     
     XPC_WN_TearOff_Finalize,                   
 

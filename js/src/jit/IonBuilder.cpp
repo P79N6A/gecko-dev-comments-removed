@@ -7102,18 +7102,8 @@ ObjectHasExtraOwnProperty(CompileCompartment* comp, TypeSet::ObjectKey* object, 
         return name == comp->runtime()->names().length;
 
     
-    if (!clasp->resolve)
-        return false;
-
-    if (clasp->resolve == str_resolve) {
-        
-        return false;
-    }
-
-    if (clasp->resolve == fun_resolve)
-        return FunctionHasResolveHook(comp->runtime()->names(), NameToId(name));
-
-    return true;
+    JSObject* singleton = object->isSingleton() ? object->singleton() : nullptr;
+    return ClassMayResolveId(comp->runtime()->names(), clasp, NameToId(name), singleton);
 }
 
 void

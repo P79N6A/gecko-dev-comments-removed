@@ -109,6 +109,7 @@ const Class ArrayBufferObject::class_ = {
     nullptr,                 
     nullptr,                 
     nullptr,                 
+    nullptr,                 
     ArrayBufferObject::finalize,
     nullptr,        
     nullptr,        

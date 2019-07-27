@@ -181,6 +181,7 @@ const Class SimdTypeDescr::class_ = {
     nullptr, 
     nullptr, 
     nullptr, 
+    nullptr, 
     TypeDescr::finalize,
     call
 };

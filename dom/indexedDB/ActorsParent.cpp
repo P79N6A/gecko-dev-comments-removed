@@ -20130,6 +20130,7 @@ const JSClass CreateIndexOp::ThreadLocalJSRuntime::kGlobalClass = {
    nullptr,
    nullptr,
    nullptr,
+   nullptr,
    JS_GlobalObjectTraceHook
 };
 

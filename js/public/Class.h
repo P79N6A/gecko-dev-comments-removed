@@ -24,6 +24,7 @@
 
 
 
+struct JSAtomState;
 struct JSFreeOp;
 struct JSFunctionSpec;
 
@@ -283,6 +284,18 @@ typedef bool
 
 
 
+
+
+
+
+
+
+
+typedef bool
+(* JSMayResolveOp)(const JSAtomState& names, jsid id, JSObject* maybeObj);
+
+
+
 typedef bool
 (* JSConvertOp)(JSContext* cx, JS::HandleObject obj, JSType type,
                 JS::MutableHandleValue vp);
@@ -420,6 +433,7 @@ typedef void
     JSSetterOp          setProperty;                                          \
     JSEnumerateOp       enumerate;                                            \
     JSResolveOp         resolve;                                              \
+    JSMayResolveOp      mayResolve;                                           \
     JSConvertOp         convert;                                              \
     FinalizeOpType      finalize;                                             \
     JSNative            call;                                                 \
@@ -687,6 +701,8 @@ static_assert(offsetof(JSClass, setProperty) == offsetof(Class, setProperty),
 static_assert(offsetof(JSClass, enumerate) == offsetof(Class, enumerate),
               "Class and JSClass must be consistent");
 static_assert(offsetof(JSClass, resolve) == offsetof(Class, resolve),
+              "Class and JSClass must be consistent");
+static_assert(offsetof(JSClass, mayResolve) == offsetof(Class, mayResolve),
               "Class and JSClass must be consistent");
 static_assert(offsetof(JSClass, convert) == offsetof(Class, convert),
               "Class and JSClass must be consistent");
