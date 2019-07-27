@@ -283,6 +283,35 @@
 #  define MOZ_TSAN_BLACKLIST
 #endif
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if defined(__GNUC__) || defined(__clang__)
+#  define MOZ_ALLOCATOR __attribute__ ((malloc, warn_unused_result))
+#else
+#  define MOZ_ALLOCATOR
+#endif
+
 #ifdef __cplusplus
 
 
