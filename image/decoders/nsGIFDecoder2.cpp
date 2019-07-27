@@ -162,7 +162,7 @@ nsGIFDecoder2::BeginGIF()
 }
 
 
-void
+nsresult
 nsGIFDecoder2::BeginImageFrame(uint16_t aDepth)
 {
   MOZ_ASSERT(HasSize());
@@ -175,35 +175,31 @@ nsGIFDecoder2::BeginImageFrame(uint16_t aDepth)
     format = gfx::SurfaceFormat::B8G8R8X8;
   }
 
+  nsIntRect frameRect(mGIFStruct.x_offset, mGIFStruct.y_offset,
+                      mGIFStruct.width, mGIFStruct.height);
+
   
   
+  nsresult rv = NS_OK;
   if (mGIFStruct.images_decoded) {
     
-    NeedNewFrame(mGIFStruct.images_decoded, mGIFStruct.x_offset,
-                 mGIFStruct.y_offset, mGIFStruct.width, mGIFStruct.height,
-                 format, aDepth);
+    rv = AllocateFrame(mGIFStruct.images_decoded, GetSize(),
+                       frameRect, format, aDepth);
   } else {
-    nsRefPtr<imgFrame> currentFrame = GetCurrentFrame();
-
-    
-    
-    if (!currentFrame->GetRect().IsEqualEdges(nsIntRect(mGIFStruct.x_offset,
-                                                        mGIFStruct.y_offset,
-                                                        mGIFStruct.width,
-                                                        mGIFStruct.height))) {
-
+    if (!nsIntRect(nsIntPoint(), GetSize()).IsEqualEdges(frameRect)) {
       
       
       PostHasTransparency();
-
-      
-      NeedNewFrame(mGIFStruct.images_decoded, mGIFStruct.x_offset,
-                   mGIFStruct.y_offset, mGIFStruct.width, mGIFStruct.height,
-                   format);
     }
+
+    
+    rv = AllocateFrame(mGIFStruct.images_decoded, GetSize(),
+                       frameRect, format);
   }
 
   mCurrentFrameIndex = mGIFStruct.images_decoded;
+
+  return rv;
 }
 
 
@@ -967,27 +963,13 @@ nsGIFDecoder2::WriteInternal(const char* aBuffer, uint32_t aCount)
       }
       
       mColorMask = 0xFF >> (8 - realDepth);
-      BeginImageFrame(realDepth);
 
-      if (NeedsNewFrame()) {
-        
-        
-        
-        uint32_t size =
-          len + mGIFStruct.bytes_to_consume + mGIFStruct.bytes_in_hold;
-        if (size) {
-          if (SetHold(q,
-                      mGIFStruct.bytes_to_consume + mGIFStruct.bytes_in_hold,
-                      buf, len)) {
-            
-            GETN(9, gif_image_header_continue);
-            return;
-          }
-        }
-        break;
-      } else {
-        
+      if (NS_FAILED(BeginImageFrame(realDepth))) {
+        mGIFStruct.state = gif_error;
+        return;
       }
+
+      
     }
 
     case gif_image_header_continue: {

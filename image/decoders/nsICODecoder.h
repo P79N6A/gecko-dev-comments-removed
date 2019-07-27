@@ -40,16 +40,15 @@ public:
 
   virtual void WriteInternal(const char* aBuffer, uint32_t aCount) override;
   virtual void FinishInternal() override;
-  virtual nsresult AllocateFrame(const nsIntSize& aTargetSize
-                                   ) override;
-
-protected:
-  virtual bool NeedsNewFrame() const override;
+  virtual void FinishWithErrorInternal() override;
 
 private:
   
   
   bool WriteToContainedDecoder(const char* aBuffer, uint32_t aCount);
+
+  
+  void GetFinalStateFromContainedDecoder();
 
   
   void ProcessDirEntry(IconDirEntry& aTarget);
@@ -84,7 +83,6 @@ private:
   uint32_t mRowBytes; 
   int32_t mOldLine;   
   nsRefPtr<Decoder> mContainedDecoder; 
-  RawAccessFrameRef mRefForContainedDecoder; 
 
   char mDirEntryArray[ICODIRENTRYSIZE]; 
   IconDirEntry mDirEntry; 

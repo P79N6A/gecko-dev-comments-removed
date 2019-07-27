@@ -41,8 +41,6 @@ Decoder::Decoder(RasterImage* aImage)
   , mImageIsLocked(false)
   , mFrameCount(0)
   , mFailCode(NS_OK)
-  , mNeedsNewFrame(false)
-  , mNeedsToFlushData(false)
   , mInitialized(false)
   , mSizeDecode(false)
   , mInFrame(false)
@@ -86,33 +84,6 @@ Decoder::Init()
   
   InitInternal();
 
-  mInitialized = true;
-}
-
-
-
-void
-Decoder::InitSharedDecoder(uint8_t* aImageData, uint32_t aImageDataLength,
-                           uint32_t* aColormap, uint32_t aColormapSize,
-                           RawAccessFrameRef&& aFrameRef)
-{
-  
-  MOZ_ASSERT(!mInitialized, "Can't re-initialize a decoder!");
-
-  mImageData = aImageData;
-  mImageDataLength = aImageDataLength;
-  mColormap = aColormap;
-  mColormapSize = aColormapSize;
-  mCurrentFrame = Move(aFrameRef);
-
-  
-  if (!IsSizeDecode()) {
-    mFrameCount++;
-    PostFrameStart();
-  }
-
-  
-  InitInternal();
   mInitialized = true;
 }
 
@@ -179,6 +150,9 @@ Decoder::Write(const char* aBuffer, uint32_t aCount)
   PROFILER_LABEL("ImageDecoder", "Write",
     js::ProfileEntry::Category::GRAPHICS);
 
+  MOZ_ASSERT(aBuffer);
+  MOZ_ASSERT(aCount > 0);
+
   
   MOZ_ASSERT(!HasDecoderError(),
              "Not allowed to make more decoder calls after error!");
@@ -191,12 +165,6 @@ Decoder::Write(const char* aBuffer, uint32_t aCount)
   mBytesDecoded += aCount;
 
   
-  if (aBuffer == nullptr && aCount == 0) {
-    MOZ_ASSERT(mNeedsToFlushData, "Flushing when we don't need to");
-    mNeedsToFlushData = false;
-  }
-
-  
   if (HasDataError()) {
     return;
   }
@@ -206,27 +174,8 @@ Decoder::Write(const char* aBuffer, uint32_t aCount)
     return;
   }
 
-  MOZ_ASSERT(!NeedsNewFrame() || HasDataError(),
-             "Should not need a new frame before writing anything");
-  MOZ_ASSERT(!NeedsToFlushData() || HasDataError(),
-             "Should not need to flush data before writing anything");
-
   
   WriteInternal(aBuffer, aCount);
-
-  
-  while (NeedsNewFrame() && !HasDataError()) {
-    MOZ_ASSERT(!IsSizeDecode(), "Shouldn't need new frame for size decode");
-
-    nsresult rv = AllocateFrame();
-
-    if (NS_SUCCEEDED(rv)) {
-      
-      WriteInternal(nullptr, 0);
-    }
-
-    mNeedsToFlushData = false;
-  }
 
   
   mDecodeTime += (TimeStamp::Now() - start);
@@ -238,6 +187,8 @@ Decoder::CompleteDecode()
   
   if (!HasError()) {
     FinishInternal();
+  } else {
+    FinishWithErrorInternal();
   }
 
   
@@ -328,135 +279,51 @@ Decoder::Finish()
       mCurrentFrame->SetOptimizable();
     }
 
-    mImage->OnDecodingComplete();
-  }
-}
-
-void
-Decoder::FinishSharedDecoder()
-{
-  if (!HasError()) {
-    FinishInternal();
+    mImage->OnDecodingComplete(mIsAnimated);
   }
 }
 
 nsresult
-Decoder::AllocateFrame(const nsIntSize& aTargetSize )
+Decoder::AllocateFrame(uint32_t aFrameNum,
+                       const nsIntSize& aTargetSize,
+                       const nsIntRect& aFrameRect,
+                       gfx::SurfaceFormat aFormat,
+                       uint8_t aPaletteDepth)
 {
-  MOZ_ASSERT(mNeedsNewFrame);
-
-  nsIntSize targetSize = aTargetSize;
-  if (targetSize == nsIntSize()) {
-    MOZ_ASSERT(HasSize());
-    targetSize = mImageMetadata.GetSize();
-  }
-
-  mCurrentFrame = EnsureFrame(mNewFrameData.mFrameNum,
-                              targetSize,
-                              mNewFrameData.mFrameRect,
-                              GetDecodeFlags(),
-                              mNewFrameData.mFormat,
-                              mNewFrameData.mPaletteDepth,
-                              mCurrentFrame.get());
+  mCurrentFrame = AllocateFrameInternal(aFrameNum, aTargetSize, aFrameRect,
+                                        GetDecodeFlags(), aFormat,
+                                        aPaletteDepth, mCurrentFrame.get());
 
   if (mCurrentFrame) {
     
     mCurrentFrame->GetImageData(&mImageData, &mImageDataLength);
     mCurrentFrame->GetPaletteData(&mColormap, &mColormapSize);
 
-    if (mNewFrameData.mFrameNum + 1 == mFrameCount) {
+    if (aFrameNum + 1 == mFrameCount) {
       PostFrameStart();
     }
   } else {
     PostDataError();
   }
 
-  
-  
-  mNeedsNewFrame = false;
-
-  
-  
-  if (mBytesDecoded > 0) {
-    mNeedsToFlushData = true;
-  }
-
   return mCurrentFrame ? NS_OK : NS_ERROR_FAILURE;
 }
 
 RawAccessFrameRef
-Decoder::EnsureFrame(uint32_t aFrameNum,
-                     const nsIntSize& aTargetSize,
-                     const nsIntRect& aFrameRect,
-                     uint32_t aDecodeFlags,
-                     SurfaceFormat aFormat,
-                     uint8_t aPaletteDepth,
-                     imgFrame* aPreviousFrame)
+Decoder::AllocateFrameInternal(uint32_t aFrameNum,
+                               const nsIntSize& aTargetSize,
+                               const nsIntRect& aFrameRect,
+                               uint32_t aDecodeFlags,
+                               SurfaceFormat aFormat,
+                               uint8_t aPaletteDepth,
+                               imgFrame* aPreviousFrame)
 {
   if (mDataError || NS_FAILED(mFailCode)) {
     return RawAccessFrameRef();
   }
 
-  MOZ_ASSERT(aFrameNum <= mFrameCount, "Invalid frame index!");
-  if (aFrameNum > mFrameCount) {
-    return RawAccessFrameRef();
-  }
-
-  
-  if (aFrameNum == mFrameCount) {
-    return InternalAddFrame(aFrameNum, aTargetSize, aFrameRect, aDecodeFlags,
-                            aFormat, aPaletteDepth, aPreviousFrame);
-  }
-
-  
-  
-  
-  
-  
-  MOZ_ASSERT(aFrameNum == 0, "Replacing a frame other than the first?");
-  MOZ_ASSERT(mFrameCount == 1, "Should have only one frame");
-  MOZ_ASSERT(aPreviousFrame, "Need the previous frame to replace");
-  if (aFrameNum != 0 || !aPreviousFrame || mFrameCount != 1) {
-    return RawAccessFrameRef();
-  }
-
-  MOZ_ASSERT(!aPreviousFrame->GetRect().IsEqualEdges(aFrameRect) ||
-             aPreviousFrame->GetFormat() != aFormat ||
-             aPreviousFrame->GetPaletteDepth() != aPaletteDepth,
-             "Replacing first frame with the same kind of frame?");
-
-  
-  mInFrame = false;
-  RawAccessFrameRef ref = Move(mCurrentFrame);
-
-  MOZ_ASSERT(ref, "No ref to current frame?");
-
-  
-  nsIntSize oldSize = aPreviousFrame->GetImageSize();
-  bool nonPremult =
-    aDecodeFlags & imgIContainer::FLAG_DECODE_NO_PREMULTIPLY_ALPHA;
-  if (NS_FAILED(aPreviousFrame->ReinitForDecoder(oldSize, aFrameRect, aFormat,
-                                                 aPaletteDepth, nonPremult))) {
-    NS_WARNING("imgFrame::ReinitForDecoder should succeed");
-    mFrameCount = 0;
-    aPreviousFrame->Abort();
-    return RawAccessFrameRef();
-  }
-
-  return ref;
-}
-
-RawAccessFrameRef
-Decoder::InternalAddFrame(uint32_t aFrameNum,
-                          const nsIntSize& aTargetSize,
-                          const nsIntRect& aFrameRect,
-                          uint32_t aDecodeFlags,
-                          SurfaceFormat aFormat,
-                          uint8_t aPaletteDepth,
-                          imgFrame* aPreviousFrame)
-{
-  MOZ_ASSERT(aFrameNum <= mFrameCount, "Invalid frame index!");
-  if (aFrameNum > mFrameCount) {
+  if (aFrameNum != mFrameCount) {
+    MOZ_ASSERT_UNREACHABLE("Allocating frames out of order");
     return RawAccessFrameRef();
   }
 
@@ -559,6 +426,7 @@ Decoder::SetSizeOnImage()
 void Decoder::InitInternal() { }
 void Decoder::WriteInternal(const char* aBuffer, uint32_t aCount) { }
 void Decoder::FinishInternal() { }
+void Decoder::FinishWithErrorInternal() { }
 
 
 
@@ -683,24 +551,6 @@ Decoder::PostDecoderError(nsresult aFailureCode)
   if (mInFrame && mCurrentFrame) {
     mCurrentFrame->Abort();
   }
-}
-
-void
-Decoder::NeedNewFrame(uint32_t framenum, uint32_t x_offset, uint32_t y_offset,
-                      uint32_t width, uint32_t height,
-                      gfx::SurfaceFormat format,
-                      uint8_t palette_depth )
-{
-  
-  MOZ_ASSERT(!mNeedsNewFrame);
-
-  
-  MOZ_ASSERT(framenum == mFrameCount || framenum == (mFrameCount - 1));
-
-  mNewFrameData = NewFrameData(framenum,
-                               nsIntRect(x_offset, y_offset, width, height),
-                               format, palette_depth);
-  mNeedsNewFrame = true;
 }
 
 Telemetry::ID

@@ -157,19 +157,6 @@ public:
                             GraphicsFilter aFilter,
                             uint32_t aImageFlags);
 
-  
-
-
-
-
-
-
-  nsresult ReinitForDecoder(const nsIntSize& aImageSize,
-                            const nsIntRect& aRect,
-                            SurfaceFormat aFormat,
-                            uint8_t aPaletteDepth = 0,
-                            bool aNonPremult = false);
-
   DrawableFrameRef DrawableRef();
   RawAccessFrameRef RawAccessRef();
 

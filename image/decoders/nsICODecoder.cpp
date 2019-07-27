@@ -81,12 +81,34 @@ nsICODecoder::FinishInternal()
   MOZ_ASSERT(!HasError(), "Shouldn't call FinishInternal after error!");
 
   
-  if (mContainedDecoder) {
-    mContainedDecoder->FinishSharedDecoder();
-    mDecodeDone = mContainedDecoder->GetDecodeDone();
-    mProgress |= mContainedDecoder->TakeProgress();
-    mInvalidRect.UnionRect(mInvalidRect, mContainedDecoder->TakeInvalidRect());
+  if (mContainedDecoder && !mContainedDecoder->HasError()) {
+    mContainedDecoder->FinishInternal();
   }
+
+  GetFinalStateFromContainedDecoder();
+}
+
+void
+nsICODecoder::FinishWithErrorInternal()
+{
+  GetFinalStateFromContainedDecoder();
+}
+
+void
+nsICODecoder::GetFinalStateFromContainedDecoder()
+{
+  if (!mContainedDecoder) {
+    return;
+  }
+
+  mDecodeDone = mContainedDecoder->GetDecodeDone();
+  mDataError = mDataError || mContainedDecoder->HasDataError();
+  mFailCode = NS_SUCCEEDED(mFailCode) ? mContainedDecoder->GetDecoderError()
+                                      : mFailCode;
+  mDecodeAborted = mContainedDecoder->WasAborted();
+  mProgress |= mContainedDecoder->TakeProgress();
+  mInvalidRect.UnionRect(mInvalidRect, mContainedDecoder->TakeInvalidRect());
+  mCurrentFrame = mContainedDecoder->GetCurrentFrameRef();
 }
 
 
@@ -217,13 +239,8 @@ void
 nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
 {
   MOZ_ASSERT(!HasError(), "Shouldn't call WriteInternal after error!");
-
-  if (!aCount) {
-    if (mContainedDecoder) {
-      WriteToContainedDecoder(aBuffer, aCount);
-    }
-    return;
-  }
+  MOZ_ASSERT(aBuffer);
+  MOZ_ASSERT(aCount > 0);
 
   while (aCount && (mPos < ICONCOUNTOFFSET)) { 
     if (mPos == 2) { 
@@ -343,9 +360,7 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
       mContainedDecoder = new nsPNGDecoder(mImage);
       mContainedDecoder->SetSizeDecode(IsSizeDecode());
       mContainedDecoder->SetSendPartialInvalidations(mSendPartialInvalidations);
-      mContainedDecoder->InitSharedDecoder(mImageData, mImageDataLength,
-                                           mColormap, mColormapSize,
-                                           Move(mRefForContainedDecoder));
+      mContainedDecoder->Init();
       if (!WriteToContainedDecoder(mSignature, PNGSIGNATURESIZE)) {
         return;
       }
@@ -422,9 +437,7 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
     bmpDecoder->SetUseAlphaData(true);
     mContainedDecoder->SetSizeDecode(IsSizeDecode());
     mContainedDecoder->SetSendPartialInvalidations(mSendPartialInvalidations);
-    mContainedDecoder->InitSharedDecoder(mImageData, mImageDataLength,
-                                         mColormap, mColormapSize,
-                                         Move(mRefForContainedDecoder));
+    mContainedDecoder->Init();
 
     
     
@@ -625,36 +638,6 @@ nsICODecoder::ProcessDirEntry(IconDirEntry& aTarget)
   memcpy(&aTarget.mImageOffset, mDirEntryArray + 12,
          sizeof(aTarget.mImageOffset));
   aTarget.mImageOffset = LittleEndian::readUint32(&aTarget.mImageOffset);
-}
-
-bool
-nsICODecoder::NeedsNewFrame() const
-{
-  if (mContainedDecoder) {
-    return mContainedDecoder->NeedsNewFrame();
-  }
-
-  return Decoder::NeedsNewFrame();
-}
-
-nsresult
-nsICODecoder::AllocateFrame(const nsIntSize& aTargetSize )
-{
-  nsresult rv;
-
-  if (mContainedDecoder) {
-    rv = mContainedDecoder->AllocateFrame(aTargetSize);
-    mCurrentFrame = mContainedDecoder->GetCurrentFrameRef();
-    mProgress |= mContainedDecoder->TakeProgress();
-    mInvalidRect.UnionRect(mInvalidRect, mContainedDecoder->TakeInvalidRect());
-    return rv;
-  }
-
-  
-  
-  rv = Decoder::AllocateFrame(aTargetSize);
-  mRefForContainedDecoder = GetCurrentFrameRef();
-  return rv;
 }
 
 } 
