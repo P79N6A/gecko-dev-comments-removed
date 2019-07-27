@@ -161,6 +161,9 @@ class GCMarker : public JSTracer
     template <typename T> void traverse(T* thing);
 
     
+    template <typename T> void traverse(JSObject* source, T* target);
+
+    
 
 
 
@@ -284,9 +287,6 @@ class GCMarker : public JSTracer
     void saveValueRanges();
     inline void processMarkStackTop(SliceBudget& budget);
     void processMarkStackOther(uintptr_t tag, uintptr_t addr);
-
-    void markAndScanString(JSObject* source, JSString* str);
-    void markAndScanSymbol(JSObject* source, JS::Symbol* sym);
 
     
     uint32_t color;
