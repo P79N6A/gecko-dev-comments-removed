@@ -27,6 +27,7 @@
 #include "nsMathUtils.h"
 #include "nsTArrayForwardDeclare.h"
 #include "Units.h"
+#include "mozilla/dom/AutocompleteInfoBinding.h"
 
 #if defined(XP_WIN)
 
@@ -2045,8 +2046,22 @@ public:
 
 
 
-  static AutocompleteAttrState SerializeAutocompleteAttribute(const nsAttrValue* aAttr,
-                                                          nsAString& aResult);
+  static AutocompleteAttrState
+  SerializeAutocompleteAttribute(const nsAttrValue* aAttr,
+                                 nsAString& aResult,
+                                 AutocompleteAttrState aCachedState =
+                                   eAutocompleteAttrState_Unknown);
+
+  
+
+
+
+
+  static AutocompleteAttrState
+  SerializeAutocompleteAttribute(const nsAttrValue* aAttr,
+                                 mozilla::dom::AutocompleteInfo& aInfo,
+                                 AutocompleteAttrState aCachedState =
+                                   eAutocompleteAttrState_Unknown);
 
   
 
@@ -2205,8 +2220,9 @@ private:
   static void* AllocClassMatchingInfo(nsINode* aRootNode,
                                       const nsString* aClasses);
 
+  
   static AutocompleteAttrState InternalSerializeAutocompleteAttribute(const nsAttrValue* aAttrVal,
-                                                                  nsAString& aResult);
+                                                                      mozilla::dom::AutocompleteInfo& aInfo);
 
   static nsIXPConnect *sXPConnect;
 
