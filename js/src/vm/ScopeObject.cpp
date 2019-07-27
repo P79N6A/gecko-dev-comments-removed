@@ -1167,27 +1167,29 @@ ScopeIter::ScopeIter(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc
 }
 
 void
-ScopeIter::settle()
+ScopeIter::incrementStaticScopeIter()
 {
+    ssi_++;
+
     
     
     
     if (!ssi_.done() && ssi_.type() == StaticScopeIter<CanGC>::NamedLambda)
         ssi_++;
+}
 
+void
+ScopeIter::settle()
+{
     
     
     if (frame_ && frame_.isNonEvalFunctionFrame() &&
         frame_.fun()->isHeavyweight() && !frame_.hasCallObj())
     {
         MOZ_ASSERT(ssi_.type() == StaticScopeIter<CanGC>::Function);
-        ssi_++;
+        incrementStaticScopeIter();
     }
 
-    
-    
-    
-    
     
     
     if (frame_ && (ssi_.done() || maybeStaticScope() == frame_.script()->enclosingStaticScope()))
@@ -1224,7 +1226,7 @@ ScopeIter::operator++()
             scope_ = &scope_->as<DeclEnvObject>().enclosingScope();
     }
 
-    ssi_++;
+    incrementStaticScopeIter();
     settle();
 
     return *this;
