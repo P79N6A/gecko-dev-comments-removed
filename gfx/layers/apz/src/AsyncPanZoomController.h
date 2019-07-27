@@ -1069,6 +1069,13 @@ public:
   {
     mTestAsyncScrollOffset = aPoint;
   }
+  
+
+
+  void SetTestAsyncZoom(const LayerToParentLayerScale& aZoom)
+  {
+    mTestAsyncZoom = aZoom;
+  }
 
   void MarkAsyncTransformAppliedToContent()
   {
@@ -1083,6 +1090,8 @@ public:
 private:
   
   CSSPoint mTestAsyncScrollOffset;
+  
+  LayerToParentLayerScale mTestAsyncZoom;
   
   
   bool mAsyncTransformAppliedToContent;
