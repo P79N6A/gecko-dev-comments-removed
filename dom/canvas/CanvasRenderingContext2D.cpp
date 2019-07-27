@@ -1277,7 +1277,7 @@ CanvasRenderingContext2D::Scale(double x, double y, ErrorResult& error)
   }
 
   Matrix newMatrix = mTarget->GetTransform();
-  mTarget->SetTransform(newMatrix.Scale(x, y));
+  mTarget->SetTransform(newMatrix.PreScale(x, y));
 }
 
 void
@@ -1302,8 +1302,7 @@ CanvasRenderingContext2D::Translate(double x, double y, ErrorResult& error)
     return;
   }
 
-  Matrix newMatrix = mTarget->GetTransform();
-  mTarget->SetTransform(newMatrix.Translate(x, y));
+  mTarget->SetTransform(Matrix(mTarget->GetTransform()).PreTranslate(x, y));
 }
 
 void
@@ -3023,9 +3022,9 @@ CanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
 
     
     
-    newTransform.Translate(aX, 0);
-    newTransform.Scale(aMaxWidth.Value() / totalWidth, 1);
-    newTransform.Translate(-aX, 0);
+    newTransform.PreTranslate(aX, 0);
+    newTransform.PreScale(aMaxWidth.Value() / totalWidth, 1);
+    newTransform.PreTranslate(-aX, 0);
     
     Matrix androidCompilerBug = newTransform;
     mTarget->SetTransform(androidCompilerBug);

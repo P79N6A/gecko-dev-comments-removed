@@ -4620,10 +4620,10 @@ ContainerState::SetupMaskLayer(Layer *aLayer,
     Matrix::Scaling(surfaceSize.width / boundingRect.Width(),
                     surfaceSize.height / boundingRect.Height());
   gfx::Point p = boundingRect.TopLeft();
-  maskTransform.Translate(-p.x, -p.y);
+  maskTransform.PreTranslate(-p.x, -p.y);
   
   gfx::Matrix imageTransform = maskTransform;
-  imageTransform.Scale(mParameters.mXScale, mParameters.mYScale);
+  imageTransform.PreScale(mParameters.mXScale, mParameters.mYScale);
 
   nsAutoPtr<MaskLayerImageCache::MaskLayerImageKey> newKey(
     new MaskLayerImageCache::MaskLayerImageKey());

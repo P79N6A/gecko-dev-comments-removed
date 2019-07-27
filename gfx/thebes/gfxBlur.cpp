@@ -93,7 +93,7 @@ DrawBlur(gfxContext* aDestinationCtx,
 
     Matrix oldTransform = dest->GetTransform();
     Matrix newTransform = oldTransform;
-    newTransform.Translate(aTopLeft.x, aTopLeft.y);
+    newTransform.PreTranslate(aTopLeft.x, aTopLeft.y);
 
     
     
