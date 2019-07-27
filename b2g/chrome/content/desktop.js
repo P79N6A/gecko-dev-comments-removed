@@ -53,6 +53,36 @@ function setupButtons() {
   });
 }
 
+function setupStorage() {
+  let directory = null;
+
+  
+  try {
+    let service = Cc['@mozilla.org/commandlinehandler/general-startup;1?type=b2gcmds'].getService(Ci.nsISupports);
+    let args = service.wrappedJSObject.cmdLine;
+    if (args) {
+      let path = args.handleFlagWithParam('storage-path', false);
+      directory = Cc['@mozilla.org/file/local;1'].createInstance(Ci.nsIFile);
+      directory.initWithPath(path);
+    }
+  } catch(e) {
+    directory = null;
+  }
+
+  
+  if (!directory) {
+    directory = Services.dirsvc.get('ProfD', Ci.nsIFile);
+    directory.append('storage');
+    if (!directory.exists()) {
+      directory.create(Ci.nsIFile.DIRECTORY_TYPE, parseInt("755", 8));
+    }
+  }
+  dump("Set storage path to: " + directory.path + "\n");
+
+  
+  Services.prefs.setCharPref('device.storage.overrideRootDir', directory.path);
+}
+
 function checkDebuggerPort() {
   
   
@@ -141,6 +171,7 @@ window.addEventListener('ContentStart', function() {
   }
   setupButtons();
   checkDebuggerPort();
+  setupStorage();
   
   
   if (isMulet) {
