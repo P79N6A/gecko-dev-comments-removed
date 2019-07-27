@@ -21,6 +21,19 @@
 #include <stdint.h>
 
 
+#define GMP_MAX_RECORD_SIZE (1024 * 1024 * 1024)
+
+
+#define GMP_MAX_RECORD_NAME_SIZE 200
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29,6 +42,8 @@
 class GMPRecord {
 public:
 
+  
+  
   
   
   virtual GMPErr Open() = 0;
@@ -41,8 +56,10 @@ public:
   
   
   
+  
   virtual GMPErr Write(const uint8_t* aData, uint32_t aDataSize) = 0;
 
+  
   
   
   
@@ -62,8 +79,10 @@ class GMPRecordClient {
   
   
   
+  
   virtual void OpenComplete(GMPErr aStatus) = 0;
 
+  
   
   
   
@@ -79,6 +98,7 @@ class GMPRecordClient {
                             const uint8_t* aData,
                             uint32_t aDataSize) = 0;
 
+  
   
   
   
