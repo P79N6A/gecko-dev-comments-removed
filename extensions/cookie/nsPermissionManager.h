@@ -205,7 +205,8 @@ public:
                        int64_t  aExpireTime,
                        int64_t aModificationTime,
                        NotifyOperationType aNotifyOperation,
-                       DBOperationType aDBOperation);
+                       DBOperationType aDBOperation,
+                       const bool aIgnoreSessionPermissions = false);
 
   
 

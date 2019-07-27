@@ -437,7 +437,8 @@ nsPermissionManager::Init()
       
       uint64_t modificationTime = 0;
       AddInternal(principal, perm.type, perm.capability, 0, perm.expireType,
-                  perm.expireTime, modificationTime, eNotify, eNoDBOperation);
+                  perm.expireTime, modificationTime, eNotify, eNoDBOperation,
+                  true );
     }
 
     
@@ -717,7 +718,8 @@ nsPermissionManager::AddInternal(nsIPrincipal* aPrincipal,
                                  int64_t               aExpireTime,
                                  int64_t               aModificationTime,
                                  NotifyOperationType   aNotifyOperation,
-                                 DBOperationType       aDBOperation)
+                                 DBOperationType       aDBOperation,
+                                 const bool            aIgnoreSessionPermissions)
 {
   nsAutoCString host;
   nsresult rv = GetHostForPrincipal(aPrincipal, host);
@@ -739,6 +741,12 @@ nsPermissionManager::AddInternal(nsIPrincipal* aPrincipal,
     ContentParent::GetAll(cplist);
     for (uint32_t i = 0; i < cplist.Length(); ++i) {
       ContentParent* cp = cplist[i];
+      
+      
+      
+      if (cp->IsPreallocated() &&
+          aExpireType == nsIPermissionManager::EXPIRE_SESSION)
+        continue;
       if (cp->NeedsPermissionsUpdate())
         unused << cp->SendAddPermission(permission);
     }
@@ -822,6 +830,16 @@ nsPermissionManager::AddInternal(nsIPrincipal* aPrincipal,
       } else {
         
         id = aID;
+      }
+
+      
+      
+      
+      
+      if (aIgnoreSessionPermissions &&
+          aExpireType == nsIPermissionManager::EXPIRE_SESSION) {
+        aPermission = nsIPermissionManager::PROMPT_ACTION;
+        aExpireType = nsIPermissionManager::EXPIRE_NEVER;
       }
 
       entry->GetPermissions().AppendElement(PermissionEntry(id, typeIndex, aPermission,
