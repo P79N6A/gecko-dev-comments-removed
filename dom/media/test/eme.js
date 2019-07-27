@@ -34,14 +34,6 @@ function StringToArrayBuffer(str)
   return arr;
 }
 
-function StringToHex(str){
-  var res = "";
-  for (var i = 0; i < str.length; ++i) {
-      res += ("0" + str.charCodeAt(i).toString(16)).slice(-2);
-  }
-  return res;
-}
-
 function Base64ToHex(str)
 {
   var bin = window.atob(str.replace(/-/g, "+").replace(/_/g, "/"));
@@ -97,8 +89,11 @@ function TimeRangesToString(trs)
 function SourceBufferToString(sb)
 {
   return ("SourceBuffer{"
-    + (sb.updating ? "updating, " : "")
-    + "buffered=" + TimeRangesToString(sb.buffered)
+    + "AppendMode=" + (sb.AppendMode || "-")
+    + ", updating=" + (sb.updating ? "true" : "false")
+    + ", buffered=" + TimeRangesToString(sb.buffered)
+    + ", audioTracks=" + (sb.audioTracks ? sb.audioTracks.length : "-")
+    + ", videoTracks=" + (sb.videoTracks ? sb.videoTracks.length : "-")
     + "}");
 }
 
@@ -313,6 +308,7 @@ function PlayMultiTrack(test, elem, token)
 
 
 
+
 function LoadTest(test, elem, token)
 {
   if (test.fragments) {
@@ -353,103 +349,76 @@ function SetupEME(test, token, params)
     ? params.onSetKeysFail
     : bail(token + " Failed to set MediaKeys on <video> element");
 
-  
-  
-  
-  var initDataQueue = [];
-  function processInitDataQueue()
-  {
-    if (initDataQueue === null) { return; }
-    if (initDataQueue.length === 0) { initDataQueue = null; return; }
-    var ev = initDataQueue.shift();
+  var firstEncrypted = true;
 
-    var sessionType = (params && params.sessionType) ? params.sessionType : "temporary";
-    Log(token, "createSession(" + sessionType + ") for (" + ev.initDataType + ", " + StringToHex(ArrayBufferToString(ev.initData)) + ")");
-    var session = v.mediaKeys.createSession(sessionType);
-    if (params && params.onsessioncreated) {
-      params.onsessioncreated(session);
+  v.addEventListener("encrypted", function(ev) {
+    if (!firstEncrypted) {
+      
+      
+      Log(token, "got encrypted event again, initDataType=" + ev.initDataType);
+      return;
+    }
+    firstEncrypted = false;
+
+    Log(token, "got encrypted event, initDataType=" + ev.initDataType);
+    var options = [
+      {
+        initDataType: ev.initDataType,
+        videoType: test.type,
+        audioType: test.type,
+      }
+    ];
+
+    function chain(promise, onReject) {
+      return promise.then(function(value) {
+        return Promise.resolve(value);
+      }).catch(function(reason) {
+        onReject(reason);
+        return Promise.reject();
+      })
     }
 
-    return new Promise(function (resolve, reject) {
-      session.addEventListener("message", UpdateSessionFunc(test, token, sessionType, resolve, reject));
-      Log(token, "session.generateRequest(" + ev.initDataType + ", " + StringToHex(ArrayBufferToString(ev.initData)) + ")");
-      session.generateRequest(ev.initDataType, ev.initData).catch(function(reason) {
-        
-        
-        bail(token + ": session.generateRequest(" + ev.initDataType + ", " + StringToHex(ArrayBufferToString(ev.initData)) + ") failed")(reason);
-        reject();
+    var p = navigator.requestMediaKeySystemAccess(KEYSYSTEM_TYPE, options);
+    var r = bail(token + " Failed to request key system access.");
+    chain(p, r)
+    .then(function(keySystemAccess) {
+      var p = keySystemAccess.createMediaKeys();
+      var r = bail(token +  " Failed to create MediaKeys object");
+      return chain(p, r);
+    })
+
+    .then(function(mediaKeys) {
+      Log(token, "created MediaKeys object ok");
+      mediaKeys.sessions = [];
+      var p = v.setMediaKeys(mediaKeys);
+      return chain(p, onSetKeysFail);
+    })
+
+    .then(function() {
+      Log(token, "set MediaKeys on <video> element ok");
+      var sessionType = (params && params.sessionType) ? params.sessionType : "temporary";
+      var session = v.mediaKeys.createSession(sessionType);
+      if (params && params.onsessioncreated) {
+        params.onsessioncreated(session);
+      }
+
+      return new Promise(function (resolve, reject) {
+        session.addEventListener("message", UpdateSessionFunc(test, token, sessionType, resolve, reject));
+        session.generateRequest(ev.initDataType, ev.initData).catch(function(reason) {
+          
+          
+          bail(token + ": session.generateRequest failed")(reason);
+          reject();
+        });
       });
     })
 
-    .then(function(aSession) {
-      Log(token, "session.generateRequest(" + ev.initDataType + ", " + StringToHex(ArrayBufferToString(ev.initData)) + ") succeeded");
+    .then(function(session) {
+      Log(token, ": session.generateRequest succeeded");
       if (params && params.onsessionupdated) {
-        params.onsessionupdated(aSession);
+        params.onsessionupdated(session);
       }
-      processInitDataQueue();
     });
-  }
-
-  
-  
-  var initDataType = null;
-  v.addEventListener("encrypted", function(ev) {
-    if (initDataType === null) {
-      Log(token, "got first encrypted(" + ev.initDataType + ", " + StringToHex(ArrayBufferToString(ev.initData)) + "), setup session");
-      initDataType = ev.initDataType;
-      initDataQueue.push(ev);
-
-      function chain(promise, onReject) {
-        return promise.then(function(value) {
-          return Promise.resolve(value);
-        }).catch(function(reason) {
-          onReject(reason);
-          return Promise.reject();
-        })
-      }
-
-      var options = [
-         {
-           initDataType: ev.initDataType,
-           videoType: test.type,
-           audioType: test.type,
-         }
-       ];
-      var p = navigator.requestMediaKeySystemAccess(KEYSYSTEM_TYPE, options);
-      var r = bail(token + " Failed to request key system access.");
-      chain(p, r)
-      .then(function(keySystemAccess) {
-        var p = keySystemAccess.createMediaKeys();
-        var r = bail(token +  " Failed to create MediaKeys object");
-        return chain(p, r);
-      })
-
-      .then(function(mediaKeys) {
-        Log(token, "created MediaKeys object ok");
-        mediaKeys.sessions = [];
-        var p = v.setMediaKeys(mediaKeys);
-        return chain(p, onSetKeysFail);
-      })
-
-      .then(function() {
-        Log(token, "set MediaKeys on <video> element ok");
-        processInitDataQueue();
-      })
-    } else {
-      if (ev.initDataType !== initDataType) {
-        return bail(token + ": encrypted(" + ev.initDataType + ", " +
-                    StringToHex(ArrayBufferToString(ev.initData)) + ")")
-                   ("expected " + initDataType);
-      }
-      if (initDataQueue !== null) {
-        Log(token, "got encrypted(" + ev.initDataType + ", " + StringToHex(ArrayBufferToString(ev.initData)) + ") event, queue it for later session update");
-        initDataQueue.push(ev);
-      } else {
-        Log(token, "got encrypted(" + ev.initDataType + ", " + StringToHex(ArrayBufferToString(ev.initData)) + ") event, update session now");
-        initDataQueue = [ev];
-        processInitDataQueue();
-      }
-    }
   });
   return v;
 }
