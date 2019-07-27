@@ -6,6 +6,7 @@
 
 #include "mozilla/dom/cache/Manager.h"
 
+#include "mozilla/AutoRestore.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPtr.h"
@@ -197,9 +198,7 @@ public:
     MOZ_ALWAYS_TRUE(sFactory->mManagerList.RemoveElement(aManager));
 
     
-    if (sFactory->mManagerList.IsEmpty()) {
-      DestroyInstance();
-    }
+    MaybeDestroyInstance();
   }
 
   static void
@@ -236,6 +235,7 @@ public:
 
 private:
   Factory()
+    : mInSyncShutdown(false)
   {
     MOZ_COUNT_CTOR(cache::Manager::Factory);
   }
@@ -244,6 +244,7 @@ private:
   {
     MOZ_COUNT_DTOR(cache::Manager::Factory);
     MOZ_ASSERT(mManagerList.IsEmpty());
+    MOZ_ASSERT(!mInSyncShutdown);
   }
 
   static nsresult
@@ -285,10 +286,18 @@ private:
   }
 
   static void
-  DestroyInstance()
+  MaybeDestroyInstance()
   {
     mozilla::ipc::AssertIsOnBackgroundThread();
     MOZ_ASSERT(sFactory);
+
+    
+    
+    
+    
+    if (!sFactory->mManagerList.IsEmpty() || sFactory->mInSyncShutdown) {
+      return;
+    }
 
     
     
@@ -320,11 +329,21 @@ private:
 
     MOZ_ASSERT(!sFactory->mManagerList.IsEmpty());
 
-    ManagerList::ForwardIterator iter(sFactory->mManagerList);
-    while (iter.HasMore()) {
-      nsRefPtr<Manager> manager = iter.GetNext();
-      manager->Shutdown();
+    {
+      
+      
+      
+      AutoRestore<bool> restore(sFactory->mInSyncShutdown);
+      sFactory->mInSyncShutdown = true;
+
+      ManagerList::ForwardIterator iter(sFactory->mManagerList);
+      while (iter.HasMore()) {
+        nsRefPtr<Manager> manager = iter.GetNext();
+        manager->Shutdown();
+      }
     }
+
+    MaybeDestroyInstance();
   }
 
   class ShutdownAllRunnable MOZ_FINAL : public nsRunnable
@@ -363,6 +382,11 @@ private:
   
   typedef nsTObserverArray<Manager*> ManagerList;
   ManagerList mManagerList;
+
+  
+  
+  
+  bool mInSyncShutdown;
 };
 
 
