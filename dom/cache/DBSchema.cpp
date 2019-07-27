@@ -28,11 +28,11 @@ namespace dom {
 namespace cache {
 namespace db {
 
-const int32_t kMaxWipeSchemaVersion = 6;
+const int32_t kMaxWipeSchemaVersion = 7;
 
 namespace {
 
-const int32_t kLatestSchemaVersion = 6;
+const int32_t kLatestSchemaVersion = 7;
 const int32_t kMaxEntriesPerStatement = 255;
 
 } 
@@ -196,6 +196,8 @@ CreateSchema(mozIStorageConnection* aConn)
   nsAutoCString pragmas(
     
     
+    
+    
     "PRAGMA auto_vacuum = INCREMENTAL; "
   );
 
@@ -304,10 +306,13 @@ CreateSchema(mozIStorageConnection* aConn)
     ));
     if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
+    
+    
+    
     rv = aConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "CREATE TABLE storage ("
         "namespace INTEGER NOT NULL, "
-        "key TEXT NOT NULL, "
+        "key BLOB NULL, "
         "cache_id INTEGER NOT NULL REFERENCES caches(id), "
         "PRIMARY KEY(namespace, key) "
       ");"
@@ -685,16 +690,17 @@ StorageGetCacheId(mozIStorageConnection* aConn, Namespace aNamespace,
 
   *aFoundCacheOut = false;
 
+  
   nsCOMPtr<mozIStorageStatement> state;
   nsresult rv = aConn->CreateStatement(NS_LITERAL_CSTRING(
-    "SELECT cache_id FROM storage WHERE namespace=?1 AND key=?2 ORDER BY rowid;"
+    "SELECT cache_id FROM storage WHERE namespace=?1 AND key IS ?2 ORDER BY rowid;"
   ), getter_AddRefs(state));
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
   rv = state->BindInt32Parameter(0, aNamespace);
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
-  rv = state->BindStringParameter(1, aKey);
+  rv = state->BindStringAsBlobParameter(1, aKey);
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
   bool hasMoreData = false;
@@ -728,7 +734,7 @@ StoragePutCache(mozIStorageConnection* aConn, Namespace aNamespace,
   rv = state->BindInt32Parameter(0, aNamespace);
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
-  rv = state->BindStringParameter(1, aKey);
+  rv = state->BindStringAsBlobParameter(1, aKey);
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
   rv = state->BindInt64Parameter(2, aCacheId);
@@ -747,16 +753,17 @@ StorageForgetCache(mozIStorageConnection* aConn, Namespace aNamespace,
   MOZ_ASSERT(!NS_IsMainThread());
   MOZ_ASSERT(aConn);
 
+  
   nsCOMPtr<mozIStorageStatement> state;
   nsresult rv = aConn->CreateStatement(NS_LITERAL_CSTRING(
-    "DELETE FROM storage WHERE namespace=?1 AND key=?2;"
+    "DELETE FROM storage WHERE namespace=?1 AND key IS ?2;"
   ), getter_AddRefs(state));
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
   rv = state->BindInt32Parameter(0, aNamespace);
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
-  rv = state->BindStringParameter(1, aKey);
+  rv = state->BindStringAsBlobParameter(1, aKey);
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
   rv = state->Execute();
@@ -784,8 +791,9 @@ StorageGetKeys(mozIStorageConnection* aConn, Namespace aNamespace,
   bool hasMoreData = false;
   while (NS_SUCCEEDED(state->ExecuteStep(&hasMoreData)) && hasMoreData) {
     nsAutoString key;
-    rv = state->GetString(0, key);
+    rv = state->GetBlobAsString(0, key);
     if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
     aKeysOut.AppendElement(key);
   }
 
@@ -1191,9 +1199,7 @@ InsertEntry(mozIStorageConnection* aConn, CacheId aCacheId,
   rv = BindId(state, 16, aResponseBodyId);
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
-  rv = state->BindBlobParameter(17, reinterpret_cast<const uint8_t*>
-                                  (aResponse.securityInfo().get()),
-                                aResponse.securityInfo().Length());
+  rv = state->BindUTF8StringAsBlobParameter(17, aResponse.securityInfo());
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
   rv = state->BindInt64Parameter(18, aCacheId);
@@ -1328,12 +1334,8 @@ ReadResponse(mozIStorageConnection* aConn, EntryId aEntryId,
     if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
   }
 
-  uint8_t* data = nullptr;
-  uint32_t dataLength = 0;
-  rv = state->GetBlob(6, &dataLength, &data);
+  rv = state->GetBlobAsUTF8String(6, aSavedResponseOut->mValue.securityInfo());
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
-  aSavedResponseOut->mValue.securityInfo().Adopt(
-    reinterpret_cast<char*>(data), dataLength);
 
   rv = aConn->CreateStatement(NS_LITERAL_CSTRING(
     "SELECT "
