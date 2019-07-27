@@ -379,6 +379,8 @@ def ContextDerivedTypedList(type, base_class=List):
 
 
 
+
+
 VARIABLES = {
     
     'ANDROID_GENERATED_RESFILES': (StrictOrderingOnAppendList, list,
@@ -509,7 +511,7 @@ VARIABLES = {
 
        This variable contains a list of files to copy into
        ``$(FINAL_TARGET)/components/``.
-        """, 'libs'),
+        """, 'misc'),
 
     'EXTRA_JS_MODULES': (HierarchicalStringList, list,
         """Additional JavaScript files to distribute.
@@ -542,7 +544,7 @@ VARIABLES = {
 
        This variable contains a list of files to preprocess.  Generated
        files will be installed in the ``/components`` directory of the distribution.
-        """, 'libs'),
+        """, 'misc'),
 
     'FINAL_LIBRARY': (unicode, unicode,
         """Library in which the objects of the current directory will be linked.
