@@ -1429,15 +1429,22 @@ js::NativeDefineProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId 
 
             attrs = ApplyOrDefaultAttributes(attrs, shape);
 
-            
-            unsigned attrMask = ~(JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT);
-            shape = NativeObject::changeProperty(cx, obj, shape, attrs, attrMask,
-                                                 shape->getter(), shape->setter());
-            if (!shape)
-                return false;
-            if (shape->hasSlot())
-                updateValue = obj->getSlot(shape->slot());
-            shouldDefine = false;
+            if (shape->isAccessorDescriptor() && !(attrs & JSPROP_IGNORE_READONLY)) {
+                
+                
+                
+                updateValue = UndefinedValue();
+            } else {
+                
+                
+                
+                uint32_t propMask = JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT;
+                attrs = (shape->attributes() & ~propMask) | (attrs & propMask);
+                getter = shape->getter();
+                setter = shape->setter();
+                if (shape->hasSlot())
+                    updateValue = obj->getSlot(shape->slot());
+            }
         }
     }
 
@@ -1454,7 +1461,7 @@ js::NativeDefineProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId 
         
         attrs = ApplyOrDefaultAttributes(attrs) & ~JSPROP_IGNORE_VALUE;
         return DefinePropertyOrElement(cx, obj, id, getter, setter,
-                                       attrs, value, false, false);
+                                       attrs, updateValue, false, false);
     }
 
     MOZ_ASSERT(shape);
