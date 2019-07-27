@@ -198,8 +198,6 @@ public:
 
   bool IsOnCompositorSide() const MOZ_OVERRIDE { return false; }
 
-  virtual bool IsImageBridgeChild() const { return false; }
-
   
 
 
