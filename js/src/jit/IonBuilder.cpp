@@ -9692,9 +9692,12 @@ IonBuilder::getPropTryCommonGetter(bool *emitted, MDefinition *obj, PropertyName
         if (jitinfo->isAlwaysInSlot) {
             
             
-            get = MGetDOMMember::New(alloc(), jitinfo, obj, guard);
+            get = MGetDOMMember::New(alloc(), jitinfo, obj, guard, globalGuard);
         } else {
-            get = MGetDOMProperty::New(alloc(), jitinfo, obj, guard);
+            get = MGetDOMProperty::New(alloc(), jitinfo, obj, guard, globalGuard);
+        }
+        if (!get) {
+            return false;
         }
         current->add(get);
         current->push(get);
