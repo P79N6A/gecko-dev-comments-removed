@@ -5,6 +5,16 @@
 
 
 
+function clearAllImageCaches()
+{
+  var tools = SpecialPowers.Cc["@mozilla.org/image/tools;1"]
+                             .getService(SpecialPowers.Ci.imgITools);
+  var imageCache = tools.getImgCacheForDocument(window.document);
+  imageCache.clearCache(true);  
+  imageCache.clearCache(false); 
+}
+
+
 function clearImageCache()
 {
   var tools = SpecialPowers.Cc["@mozilla.org/image/tools;1"]
