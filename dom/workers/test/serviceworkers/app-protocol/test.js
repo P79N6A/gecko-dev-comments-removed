@@ -46,6 +46,14 @@ function testRedirectedHttpsResponse() {
   return testRedirectedResponseWorker("redirected-https", "HTTPSIFRAMELOADED");
 }
 
+function testCachedRedirectedResponse() {
+  return testRedirectedResponseWorker("redirected-cached", "IFRAMELOADED");
+}
+
+function testCachedRedirectedHttpsResponse() {
+  return testRedirectedResponseWorker("redirected-https-cached", "HTTPSIFRAMELOADED");
+}
+
 function testRedirectedResponseWorker(aFrameId, aAlert) {
   
   
