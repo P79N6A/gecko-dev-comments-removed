@@ -118,38 +118,10 @@ let MessageListener = {
   receiveMessage: function ({name, data}) {
     switch (name) {
       case "SessionStore:restoreHistory":
-        let reloadCallback = () => {
-          
-          
-          sendAsyncMessage("SessionStore:reloadPendingTab", {epoch: data.epoch});
-        };
-        gContentRestore.restoreHistory(data.epoch, data.tabData, reloadCallback);
-
-        
-        
-        
-        
-        
-        
-        sendSyncMessage("SessionStore:restoreHistoryComplete", {epoch: data.epoch});
+        this.restoreHistory(data);
         break;
       case "SessionStore:restoreTabContent":
-        let epoch = gContentRestore.getRestoreEpoch();
-        let finishCallback = () => {
-          
-          
-          sendAsyncMessage("SessionStore:restoreTabContentComplete", {epoch: epoch});
-        };
-
-        
-        let didStartLoad = gContentRestore.restoreTabContent(data.loadArguments, finishCallback);
-
-        sendAsyncMessage("SessionStore:restoreTabContentStarted", {epoch: epoch});
-
-        if (!didStartLoad) {
-          
-          sendAsyncMessage("SessionStore:restoreTabContentComplete", {epoch: epoch});
-        }
+        this.restoreTabContent(data);
         break;
       case "SessionStore:resetRestore":
         gContentRestore.resetRestore();
@@ -157,6 +129,57 @@ let MessageListener = {
       default:
         debug("received unknown message '" + name + "'");
         break;
+    }
+  },
+
+  restoreHistory({epoch, tabData}) {
+    gContentRestore.restoreHistory(epoch, tabData, {
+      onReload() {
+        
+        
+        sendAsyncMessage("SessionStore:reloadPendingTab", {epoch});
+      },
+
+      
+      
+      
+
+      onLoadStarted() {
+        
+        sendSyncMessage("SessionStore:restoreTabContentStarted", {epoch});
+      },
+
+      onLoadFinished() {
+        
+        
+        sendAsyncMessage("SessionStore:restoreTabContentComplete", {epoch});
+      }
+    });
+
+    
+    
+    
+    
+    
+    
+    sendSyncMessage("SessionStore:restoreHistoryComplete", {epoch});
+  },
+
+  restoreTabContent({loadArguments}) {
+    let epoch = gContentRestore.getRestoreEpoch();
+
+    
+    let didStartLoad = gContentRestore.restoreTabContent(loadArguments, () => {
+      
+      
+      sendAsyncMessage("SessionStore:restoreTabContentComplete", {epoch});
+    });
+
+    sendAsyncMessage("SessionStore:restoreTabContentStarted", {epoch});
+
+    if (!didStartLoad) {
+      
+      sendAsyncMessage("SessionStore:restoreTabContentComplete", {epoch});
     }
   }
 };

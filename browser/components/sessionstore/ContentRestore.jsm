@@ -102,6 +102,8 @@ function ContentRestoreInternal(chromeGlobal) {
 
   
   
+  
+  
   this._progressListener = null;
 }
 
@@ -121,7 +123,7 @@ ContentRestoreInternal.prototype = {
 
 
 
-  restoreHistory: function (epoch, tabData, reloadCallback) {
+  restoreHistory(epoch, tabData, callbacks) {
     this._tabData = tabData;
     this._epoch = epoch;
 
@@ -142,7 +144,7 @@ ContentRestoreInternal.prototype = {
     SessionHistory.restore(this.docShell, tabData);
 
     
-    let listener = new HistoryListener(this.docShell, reloadCallback);
+    let listener = new HistoryListener(this.docShell, callbacks.onReload);
     webNavigation.sessionHistory.addSHistoryListener(listener);
     this._historyListener = listener;
 
@@ -155,6 +157,22 @@ ContentRestoreInternal.prototype = {
       SessionStorage.restore(this.docShell, tabData.storage);
       delete tabData.storage;
     }
+
+    
+    
+    this._progressListener = new ProgressListener(this.docShell, {
+      onStartRequest: () => {
+        
+        
+        this._tabData = null;
+
+        
+        this.restoreTabContentStarted(callbacks.onLoadFinished);
+
+        
+        callbacks.onLoadStarted();
+      }
+    });
   },
 
   
@@ -169,20 +187,7 @@ ContentRestoreInternal.prototype = {
     let history = webNavigation.sessionHistory;
 
     
-    this._historyListener.uninstall();
-    this._historyListener = null;
-
-    
-    
-    let progressListener = new ProgressListener(this.docShell, () => {
-      
-      
-      
-      this.resetRestore();
-
-      finishCallback();
-    });
-    this._progressListener = progressListener;
+    this.restoreTabContentStarted(finishCallback);
 
     
     
@@ -242,6 +247,32 @@ ContentRestoreInternal.prototype = {
       
       return false;
     }
+  },
+
+  
+
+
+
+  restoreTabContentStarted(finishCallback) {
+    
+    this._historyListener.uninstall();
+    this._historyListener = null;
+
+    
+    this._progressListener.uninstall();
+
+    
+    
+    this._progressListener = new ProgressListener(this.docShell, {
+      onStopRequest: () => {
+        
+        
+        
+        this.resetRestore();
+
+        finishCallback();
+      }
+    });
   },
 
   
@@ -381,14 +412,28 @@ HistoryListener.prototype = {
     }
   },
 
-  OnHistoryNewEntry: function(newURI) {},
   OnHistoryGoBack: function(backURI) { return true; },
   OnHistoryGoForward: function(forwardURI) { return true; },
   OnHistoryGotoIndex: function(index, gotoURI) { return true; },
   OnHistoryPurge: function(numEntries) { return true; },
   OnHistoryReplaceEntry: function(index) {},
 
-  OnHistoryReload: function(reloadURI, reloadFlags) {
+  
+  
+  OnHistoryNewEntry(newURI) {
+    
+    
+    this.webNavigation.setCurrentURI(Utils.makeURI("about:blank"));
+
+    
+    
+    
+    
+    let flags = Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP;
+    this.webNavigation.loadURI(newURI.spec, flags, null, null, null);
+  },
+
+  OnHistoryReload(reloadURI, reloadFlags) {
     this.callback();
 
     
@@ -402,15 +447,19 @@ HistoryListener.prototype = {
 
 
 
-function ProgressListener(docShell, callback)
-{
+
+
+
+
+function ProgressListener(docShell, callbacks) {
   let webProgress = docShell.QueryInterface(Ci.nsIInterfaceRequestor)
                             .getInterface(Ci.nsIWebProgress);
   webProgress.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_STATE_WINDOW);
 
   this.webProgress = webProgress;
-  this.callback = callback;
+  this.callbacks = callbacks;
 }
+
 ProgressListener.prototype = {
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsIWebProgressListener,
@@ -422,10 +471,17 @@ ProgressListener.prototype = {
   },
 
   onStateChange: function(webProgress, request, stateFlags, status) {
-    if (webProgress.isTopLevel &&
-        stateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
-        stateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW) {
-      this.callback();
+    let {STATE_IS_WINDOW, STATE_STOP, STATE_START} = Ci.nsIWebProgressListener;
+    if (!webProgress.isTopLevel || !(stateFlags & STATE_IS_WINDOW)) {
+      return;
+    }
+
+    if (stateFlags & STATE_START && this.callbacks.onStartRequest) {
+      this.callbacks.onStartRequest();
+    }
+
+    if (stateFlags & STATE_STOP && this.callbacks.onStopRequest) {
+      this.callbacks.onStopRequest();
     }
   },
 

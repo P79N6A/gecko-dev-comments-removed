@@ -669,14 +669,20 @@ let SessionStoreInternal = {
         break;
       case "SessionStore:restoreTabContentStarted":
         if (this.isCurrentEpoch(browser, aMessage.data.epoch)) {
-          
-          
-          
-          
-          let tabData = browser.__SS_data;
-          if (tabData.userTypedValue && !tabData.userTypedClear) {
-            browser.userTypedValue = tabData.userTypedValue;
-            win.URLBarSetURI();
+          if (browser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
+            
+            
+            this.markTabAsRestoring(tab);
+          } else {
+            
+            
+            
+            
+            let tabData = browser.__SS_data;
+            if (tabData.userTypedValue && !tabData.userTypedClear) {
+              browser.userTypedValue = tabData.userTypedValue;
+              win.URLBarSetURI();
+            }
           }
         }
         break;
@@ -2690,8 +2696,24 @@ let SessionStoreInternal = {
 
 
   restoreTabContent: function (aTab, aLoadArguments = null) {
-    let window = aTab.ownerDocument.defaultView;
+    this.markTabAsRestoring(aTab);
+
     let browser = aTab.linkedBrowser;
+    browser.messageManager.sendAsyncMessage("SessionStore:restoreTabContent",
+      {loadArguments: aLoadArguments});
+  },
+
+  
+
+
+
+
+
+  markTabAsRestoring(aTab) {
+    let browser = aTab.linkedBrowser;
+    if (browser.__SS_restoreState != TAB_STATE_NEEDS_RESTORE) {
+      throw new Error("Given tab is not pending.");
+    }
 
     
     TabRestoreQueue.remove(aTab);
@@ -2703,9 +2725,6 @@ let SessionStoreInternal = {
     browser.__SS_restoreState = TAB_STATE_RESTORING;
     browser.removeAttribute("pending");
     aTab.removeAttribute("pending");
-
-    browser.messageManager.sendAsyncMessage("SessionStore:restoreTabContent",
-      {loadArguments: aLoadArguments});
   },
 
   
@@ -3257,7 +3276,7 @@ let SessionStoreInternal = {
 
     
     
-    let hosts = Object.keys(cookieHosts).join("|").replace(/\./g, "\\.");
+    let hosts = Object.keys(cookieHosts).join("|").replace("\\.", "\\.", "g");
     
     if (!hosts.length)
       return;
