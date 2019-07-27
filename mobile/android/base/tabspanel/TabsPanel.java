@@ -172,9 +172,15 @@ public class TabsPanel extends LinearLayout
             @Override
             public void onClick(View view) {
                 final Menu menu = mPopupMenu.getMenu();
+
+                
+                menu.findItem(R.id.new_tab).setVisible(mCurrentPanel != Panel.NORMAL_TABS);
+                menu.findItem(R.id.new_private_tab).setVisible(mCurrentPanel != Panel.PRIVATE_TABS);
+
+                
                 menu.findItem(R.id.close_all_tabs).setVisible(mCurrentPanel == Panel.NORMAL_TABS);
                 menu.findItem(R.id.close_private_tabs).setVisible(mCurrentPanel == Panel.PRIVATE_TABS);
-
+ 
                 mPopupMenu.show();
             }
         });
