@@ -3724,7 +3724,7 @@ SVGTextFrame::PaintSVG(nsRenderingContext* aContext,
     if (frame == caretFrame && ShouldPaintCaret(run, caret)) {
       
       
-      caret->PaintCaret(nullptr, aContext, frame, nsPoint());
+      caret->PaintCaret(nullptr, *aContext->GetDrawTarget(), frame, nsPoint());
       gfx->NewPath();
     }
 

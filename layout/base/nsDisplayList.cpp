@@ -2900,7 +2900,7 @@ nsDisplayCaret::Paint(nsDisplayListBuilder* aBuilder,
                       nsRenderingContext* aCtx) {
   
   
-  mCaret->PaintCaret(aBuilder, aCtx, mFrame, ToReferenceFrame());
+  mCaret->PaintCaret(aBuilder, *aCtx->GetDrawTarget(), mFrame, ToReferenceFrame());
 }
 
 bool
