@@ -221,8 +221,6 @@ public:
   static void SetFullScreenState(dom::Element* aElement, bool aIsFullScreen);
 
   static bool IsRemoteTarget(nsIContent* aTarget);
-  static LayoutDeviceIntPoint GetChildProcessOffset(nsFrameLoader* aFrameLoader,
-                                                    const WidgetEvent& aEvent);
 
   
   static bool WheelEventIsScrollAction(WidgetWheelEvent* aEvent);

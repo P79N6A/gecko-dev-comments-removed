@@ -1141,24 +1141,6 @@ EventStateManager::IsRemoteTarget(nsIContent* target) {
   return false;
 }
 
- LayoutDeviceIntPoint
-EventStateManager::GetChildProcessOffset(nsFrameLoader* aFrameLoader,
-                                         const WidgetEvent& aEvent)
-{
-  
-  
-  nsIFrame* targetFrame = aFrameLoader->GetPrimaryFrameOfOwningContent();
-  if (!targetFrame) {
-    return LayoutDeviceIntPoint();
-  }
-  nsPresContext* presContext = targetFrame->PresContext();
-
-  
-  nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(&aEvent,
-                                                            targetFrame);
-  return LayoutDeviceIntPoint::FromAppUnitsToNearest(pt, presContext->AppUnitsPerDevPixel());
-}
-
 bool
 CrossProcessSafeEvent(const WidgetEvent& aEvent)
 {
