@@ -319,8 +319,7 @@ PlacesTreeView.prototype = {
         let isopen = false;
 
         if (uri) {
-          let docURI = this._getDocumentURI();
-          let val = this._xulStore.getValue(docURI, uri, "open");
+          let val = this._xulStore.getValue(document.documentURIObject, uri, "open");
           isopen = (val == "true");
         }
 
@@ -1122,18 +1121,6 @@ PlacesTreeView.prototype = {
   },
 
   
-  _documentURI: null,
-  _getDocumentURI: function()
-  {
-    if (!this._documentURI) {
-      let ioService = Cc["@mozilla.org/network/io-service;1"].
-                      getService(Ci.nsIIOService);
-      this._documentURI = ioService.newURI(document.URL, null, null);
-    }
-    return this._documentURI;
-  },
-
-  
   get rowCount() this._rows.length,
   get selection() this._selection,
   set selection(val) this._selection = val,
@@ -1517,7 +1504,7 @@ PlacesTreeView.prototype = {
       let uri = node.uri;
 
       if (uri) {
-        let docURI = this._getDocumentURI();
+        let docURI = document.documentURIObject;
 
         if (node.containerOpen) {
           this._xulStore.removeValue(docURI, uri, "open");
