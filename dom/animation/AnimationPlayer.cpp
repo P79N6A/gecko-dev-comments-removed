@@ -442,6 +442,9 @@ AnimationPlayer::DoPlay()
   
   mReady = nullptr;
 
+  
+  mStartTime.SetNull();
+
   mIsPending = true;
 
   nsIDocument* doc = GetRenderedDocument();
