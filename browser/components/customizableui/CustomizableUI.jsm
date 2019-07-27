@@ -345,6 +345,57 @@ let CustomizableUIInternal = {
     }
   },
 
+  _placeNewDefaultWidgetsInArea: function(aArea) {
+    let futurePlacedWidgets = gFuturePlacements.get(aArea);
+    let savedPlacements = gSavedState && gSavedState.placements && gSavedState.placements[aArea];
+    let defaultPlacements = gAreas.get(aArea).get("defaultPlacements");
+    if (!savedPlacements || !savedPlacements.length || !futurePlacedWidgets || !defaultPlacements ||
+        !defaultPlacements.length) {
+      return;
+    }
+    let defaultWidgetIndex = -1;
+
+    for (let widgetId of futurePlacedWidgets) {
+      let widget = gPalette.get(widgetId);
+      if (!widget || widget.source !== CustomizableUI.SOURCE_BUILTIN ||
+          !widget.defaultArea || !widget._introducedInVersion ||
+          savedPlacements.indexOf(widget.id) !== -1) {
+        continue;
+      }
+      defaultWidgetIndex = defaultPlacements.indexOf(widget.id);
+      if (defaultWidgetIndex === -1) {
+        continue;
+      }
+      
+      
+      
+      for (let i = defaultWidgetIndex; i >= 0; i--) {
+        
+        if (i === 0 && i === defaultWidgetIndex) {
+          savedPlacements.splice(0, 0, widget.id);
+          
+          
+          futurePlacedWidgets.delete(widget.id);
+          break;
+        }
+        
+        
+        if (i) {
+          let previousWidget = defaultPlacements[i - 1];
+          let previousWidgetIndex = savedPlacements.indexOf(previousWidget);
+          if (previousWidgetIndex != -1) {
+            savedPlacements.splice(previousWidgetIndex + 1, 0, widget.id);
+            futurePlacedWidgets.delete(widget.id);
+            break;
+          }
+        }
+      }
+      
+      
+      
+    }
+  },
+
   wrapWidget: function(aWidgetId) {
     if (gGroupWrapperCache.has(aWidgetId)) {
       return gGroupWrapperCache.get(aWidgetId);
@@ -424,6 +475,9 @@ let CustomizableUIInternal = {
 
     if (!areaIsKnown) {
       gAreas.set(aName, props);
+
+      
+      this._placeNewDefaultWidgetsInArea(aName);
 
       if (props.get("legacy") && !gPlacements.has(aName)) {
         
