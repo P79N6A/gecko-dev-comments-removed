@@ -616,6 +616,11 @@ public:
   
 
 
+  static bool DocumentInactiveForImageLoads(nsIDocument* aDocument);
+
+  
+
+
 
 
 
@@ -646,7 +651,8 @@ public:
 
 
   static imgLoader* GetImgLoaderForDocument(nsIDocument* aDoc);
-  static imgLoader* GetImgLoaderForChannel(nsIChannel* aChannel);
+  static imgLoader* GetImgLoaderForChannel(nsIChannel* aChannel,
+                                           nsIDocument* aContext);
 
   
 
