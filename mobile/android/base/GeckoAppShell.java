@@ -125,7 +125,6 @@ public class GeckoAppShell
     
     private GeckoAppShell() { }
 
-    private static boolean restartScheduled;
     private static GeckoEditableListener editableListener;
 
     private static final CrashHandler CRASH_HANDLER = new CrashHandler() {
@@ -821,42 +820,9 @@ public class GeckoAppShell
             getGeckoInterface().getActivity().moveTaskToBack(true);
     }
 
-    public static void returnIMEQueryResult(String result, int selectionStart, int selectionLength) {
-        
-        
-    }
-
-    @WrapElementForJNI(stubName = "NotifyXreExit")
-    static void onXreExit() {
-        
-        GeckoThread.setLaunchState(GeckoThread.LaunchState.GeckoExiting);
-        if (getGeckoInterface() != null) {
-            if (restartScheduled) {
-                getGeckoInterface().doRestart();
-            } else {
-                getGeckoInterface().getActivity().finish();
-            }
-        }
-
-        systemExit();
-    }
-
-    static void gracefulExit() {
-        Log.d(LOGTAG, "Initiating graceful exit...");
-        sendEventToGeckoSync(GeckoEvent.createBroadcastEvent("Browser:Quit", ""));
-        GeckoThread.setLaunchState(GeckoThread.LaunchState.GeckoExited);
-        System.exit(0);
-    }
-
-    static void systemExit() {
-        Log.d(LOGTAG, "Killing via System.exit()");
-        GeckoThread.setLaunchState(GeckoThread.LaunchState.GeckoExited);
-        System.exit(0);
-    }
-
     @WrapElementForJNI
     static void scheduleRestart() {
-        restartScheduled = true;
+        getGeckoInterface().doRestart();
     }
 
     
@@ -1687,24 +1653,6 @@ public class GeckoAppShell
         EnumerateGeckoProcesses(visitor);
     }
 
-    public static boolean checkForGeckoProcs() {
-
-        class GeckoPidCallback implements GeckoProcessesVisitor {
-            public boolean otherPidExist;
-            @Override
-            public boolean callback(int pid) {
-                if (pid != android.os.Process.myPid()) {
-                    otherPidExist = true;
-                    return false;
-                }
-                return true;
-            }            
-        }
-        GeckoPidCallback visitor = new GeckoPidCallback();            
-        EnumerateGeckoProcesses(visitor);
-        return visitor.otherPidExist;
-    }
-
     interface GeckoProcessesVisitor{
         boolean callback(int pid);
     }
@@ -1756,14 +1704,6 @@ public class GeckoAppShell
         }
     }
 
-    public static void waitForAnotherGeckoProc(){
-        int countdown = 40;
-        while (!checkForGeckoProcs() &&  --countdown > 0) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {}
-        }
-    }
     public static String getAppNameByPID(int pid) {
         BufferedReader cmdlineReader = null;
         String path = "/proc/" + pid + "/cmdline";
