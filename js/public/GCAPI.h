@@ -285,8 +285,8 @@ class GarbageCollectionEvent
     
     
     struct Collection {
-        int64_t startTimestamp;
-        int64_t endTimestamp;
+        double startTimestamp;
+        double endTimestamp;
     };
 
     
