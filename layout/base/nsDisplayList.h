@@ -1272,8 +1272,15 @@ public:
   
 
 
+  const nsRect& GetVisibleRect() const { return mVisibleRect; }
 
-  const nsRect& GetVisibleRect() { return mVisibleRect; }
+  
+
+
+
+
+
+  virtual const nsRect& GetVisibleRectForChildren() const { return mVisibleRect; }
 
   
 
@@ -1685,6 +1692,11 @@ public:
   void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                nsDisplayItem::HitTestState* aState,
                nsTArray<nsIFrame*> *aOutFrames) const;
+  
+
+
+
+  nsRect GetVisibleRect() const;
 
 #if defined(DEBUG) || defined(MOZ_DUMP_PAINTING)
   bool DidComputeVisibility() const { return mDidComputeVisibility; }
@@ -1704,8 +1716,6 @@ public:
   {
     mForceTransparentSurface = true;
   }
-
-  nsRect GetVisibleRect() const { return mVisibleRect; }
 
 private:
   
@@ -3245,11 +3255,14 @@ public:
 
 
   nsDisplayTransform(nsDisplayListBuilder* aBuilder, nsIFrame *aFrame,
-                     nsDisplayList *aList, uint32_t aIndex = 0);
+                     nsDisplayList *aList, const nsRect& aChildrenVisibleRect,
+                     uint32_t aIndex = 0);
   nsDisplayTransform(nsDisplayListBuilder* aBuilder, nsIFrame *aFrame,
-                     nsDisplayItem *aItem, uint32_t aIndex = 0);
+                     nsDisplayItem *aItem, const nsRect& aChildrenVisibleRect,
+                     uint32_t aIndex = 0);
   nsDisplayTransform(nsDisplayListBuilder* aBuilder, nsIFrame *aFrame,
-                     nsDisplayList *aList, ComputeTransformFunction aTransformGetter, uint32_t aIndex = 0);
+                     nsDisplayList *aList, const nsRect& aChildrenVisibleRect,
+                     ComputeTransformFunction aTransformGetter, uint32_t aIndex = 0);
 
 #ifdef NS_BUILD_REFCNT_LOGGING
   virtual ~nsDisplayTransform()
@@ -3305,6 +3318,11 @@ public:
       return mFrame;
     }
     return nsDisplayItem::ReferenceFrameForChildren(); 
+  }
+
+  virtual const nsRect& GetVisibleRectForChildren() const MOZ_OVERRIDE
+  {
+    return mChildrenVisibleRect;
   }
 
   enum {
@@ -3454,6 +3472,7 @@ private:
   nsDisplayWrapList mStoredList;
   gfx3DMatrix mTransform;
   ComputeTransformFunction mTransformGetter;
+  nsRect mChildrenVisibleRect;
   uint32_t mIndex;
 };
 
