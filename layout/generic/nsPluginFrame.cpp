@@ -626,6 +626,12 @@ nsPluginFrame::CallSetWindow(bool aCheckIsHidden)
   nsIntRect intBounds = bounds.ToNearestPixels(appUnitsPerDevPixel);
 
   
+  
+  LayoutDeviceIntPoint intOffset = GetRemoteTabChromeOffset();
+  intBounds.x += intOffset.x;
+  intBounds.y += intOffset.y;
+
+  
   double scaleFactor = 1.0;
   if (NS_FAILED(mInstanceOwner->GetContentsScaleFactor(&scaleFactor))) {
     scaleFactor = 1.0;
@@ -753,7 +759,30 @@ nsPluginFrame::IsHidden(bool aCheckVisibilityStyle) const
   return false;
 }
 
-nsIntPoint nsPluginFrame::GetWindowOriginInPixels(bool aWindowless)
+mozilla::LayoutDeviceIntPoint
+nsPluginFrame::GetRemoteTabChromeOffset()
+{
+  LayoutDeviceIntPoint offset;
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    nsCOMPtr<nsIDOMWindow> window = do_QueryInterface(GetContent()->OwnerDoc()->GetWindow());
+    if (window) {
+      nsCOMPtr<nsIDOMWindow> topWindow;
+      window->GetTop(getter_AddRefs(topWindow));
+      if (topWindow) {
+        dom::TabChild* tc = dom::TabChild::GetFrom(topWindow);
+        if (tc) {
+          LayoutDeviceIntPoint chromeOffset;
+          tc->SendGetTabOffset(&chromeOffset);
+          offset -= chromeOffset;
+        }
+      }
+    }
+  }
+  return offset;
+}
+
+nsIntPoint
+nsPluginFrame::GetWindowOriginInPixels(bool aWindowless)
 {
   nsView * parentWithView;
   nsPoint origin(0,0);
@@ -769,8 +798,19 @@ nsIntPoint nsPluginFrame::GetWindowOriginInPixels(bool aWindowless)
   }
   origin += GetContentRectRelativeToSelf().TopLeft();
 
-  return nsIntPoint(PresContext()->AppUnitsToDevPixels(origin.x),
-                    PresContext()->AppUnitsToDevPixels(origin.y));
+  nsIntPoint pt(PresContext()->AppUnitsToDevPixels(origin.x),
+                PresContext()->AppUnitsToDevPixels(origin.y));
+
+  
+  
+  
+  
+  if (aWindowless) {
+    mozilla::LayoutDeviceIntPoint lpt = GetRemoteTabChromeOffset();
+    pt += nsIntPoint(lpt.x, lpt.y);
+  }
+
+  return pt;
 }
 
 void

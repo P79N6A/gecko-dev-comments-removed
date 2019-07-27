@@ -14,6 +14,7 @@
 #include "nsRegion.h"
 #include "nsDisplayList.h"
 #include "nsIReflowCallback.h"
+#include "Units.h"
 
 #ifdef XP_WIN
 #include <windows.h> 
@@ -220,6 +221,13 @@ protected:
   bool IsPaintedByGecko() const;
 
   nsIntPoint GetWindowOriginInPixels(bool aWindowless);
+  
+  
+
+
+
+
+  mozilla::LayoutDeviceIntPoint GetRemoteTabChromeOffset();
 
   static void PaintPrintPlugin(nsIFrame* aFrame,
                                nsRenderingContext* aRenderingContext,
