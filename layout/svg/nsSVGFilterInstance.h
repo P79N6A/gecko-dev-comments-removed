@@ -208,7 +208,7 @@ private:
   
 
 
-  nsIFrame*               mTargetFrame;
+  nsIFrame* mTargetFrame;
 
   
 
@@ -223,24 +223,24 @@ private:
   
 
 
-  gfxRect                 mTargetBBox;
+  gfxRect mTargetBBox;
 
   
 
 
-  gfxRect                 mUserSpaceBounds;
-  nsIntRect               mFilterSpaceBounds;
+  gfxRect mUserSpaceBounds;
+  nsIntRect mFilterSpaceBounds;
 
   
 
 
-  gfxSize                 mUserSpaceToFilterSpaceScale;
-  gfxSize                 mFilterSpaceToUserSpaceScale;
+  gfxSize mUserSpaceToFilterSpaceScale;
+  gfxSize mFilterSpaceToUserSpaceScale;
 
   
 
 
-  uint16_t                mPrimitiveUnits;
+  uint16_t mPrimitiveUnits;
 
   
 
@@ -261,7 +261,7 @@ private:
 
   int32_t mSourceAlphaAvailable;
 
-  bool                    mInitialized;
+  bool mInitialized;
 };
 
 #endif

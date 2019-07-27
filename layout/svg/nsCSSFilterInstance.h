@@ -114,7 +114,7 @@ private:
   
 
 
-  nsIFrame*               mTargetFrame;
+  nsIFrame* mTargetFrame;
 
   
 

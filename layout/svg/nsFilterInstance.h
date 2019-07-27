@@ -263,61 +263,61 @@ private:
   
 
 
-  nsIFrame*               mTargetFrame;
+  nsIFrame* mTargetFrame;
 
   nsSVGFilterPaintCallback* mPaintCallback;
 
   
 
 
-  gfxRect                 mTargetBBox;
+  gfxRect mTargetBBox;
 
   
 
 
-  nsIntRect               mTargetBBoxInFilterSpace;
+  nsIntRect mTargetBBoxInFilterSpace;
 
   
 
 
-  gfxMatrix               mFilterSpaceToDeviceSpaceTransform;
+  gfxMatrix mFilterSpaceToDeviceSpaceTransform;
 
   
 
 
-  gfxMatrix               mFilterSpaceToFrameSpaceInCSSPxTransform;
-  gfxMatrix               mFrameSpaceInCSSPxToFilterSpaceTransform;
+  gfxMatrix mFilterSpaceToFrameSpaceInCSSPxTransform;
+  gfxMatrix mFrameSpaceInCSSPxToFilterSpaceTransform;
 
   
 
 
-  gfxSize                 mUserSpaceToFilterSpaceScale;
-  gfxSize                 mFilterSpaceToUserSpaceScale;
+  gfxSize mUserSpaceToFilterSpaceScale;
+  gfxSize mFilterSpaceToUserSpaceScale;
 
   
 
 
 
-  nsIntRect               mTargetBounds;
+  nsIntRect mTargetBounds;
 
   
 
 
-  nsIntRegion             mPostFilterDirtyRegion;
+  nsIntRegion mPostFilterDirtyRegion;
 
   
 
 
-  nsIntRegion             mPreFilterDirtyRegion;
+  nsIntRegion mPreFilterDirtyRegion;
 
-  SourceInfo              mSourceGraphic;
-  SourceInfo              mFillPaint;
-  SourceInfo              mStrokePaint;
-  nsIFrame*               mTransformRoot;
+  SourceInfo mSourceGraphic;
+  SourceInfo mFillPaint;
+  SourceInfo mStrokePaint;
+  nsIFrame* mTransformRoot;
   nsTArray<mozilla::RefPtr<SourceSurface>> mInputImages;
   nsTArray<FilterPrimitiveDescription> mPrimitiveDescriptions;
-  int32_t                 mAppUnitsPerCSSPx;
-  bool                    mInitialized;
+  int32_t mAppUnitsPerCSSPx;
+  bool mInitialized;
 };
 
 #endif
