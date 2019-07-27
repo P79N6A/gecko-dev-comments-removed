@@ -179,11 +179,6 @@ public:
   
 
 
-  virtual void OnTransaction();
-
-  
-
-
   virtual void OnDetach() {}
 
   

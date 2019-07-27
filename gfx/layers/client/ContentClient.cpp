@@ -99,18 +99,6 @@ ContentClient::CreateContentClient(CompositableForwarder* aForwarder)
 void
 ContentClient::EndPaint(nsTArray<ReadbackProcessor::Update>* aReadbackUpdates)
 {
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  OnTransaction();
 }
 
 void
