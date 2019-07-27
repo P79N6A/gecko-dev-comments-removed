@@ -23,7 +23,7 @@ public:
   
   
   
-  AutoObjectMapperPOSIX(void(*aLog)(const char*));
+  explicit AutoObjectMapperPOSIX(void(*aLog)(const char*));
 
   
   ~AutoObjectMapperPOSIX();
