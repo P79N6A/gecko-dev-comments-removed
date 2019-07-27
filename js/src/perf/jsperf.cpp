@@ -11,6 +11,8 @@
 using namespace js;
 using JS::PerfMeasurement;
 
+using mozilla::UniquePtr;
+
 
 
 static PerfMeasurement* GetPM(JSContext* cx, JS::HandleValue value, const char* fname);
