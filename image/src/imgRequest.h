@@ -26,7 +26,6 @@ class imgCacheValidator;
 class imgLoader;
 class imgRequestProxy;
 class imgCacheEntry;
-class imgMemoryReporter;
 class nsIApplicationCache;
 class nsIProperties;
 class nsIRequest;
@@ -127,7 +126,7 @@ public:
   
   
   
-  already_AddRefed<ProgressTracker> GetProgressTracker();
+  already_AddRefed<ProgressTracker> GetProgressTracker() const;
 
   
   already_AddRefed<Image> GetImage() const;
@@ -189,6 +188,8 @@ public:
 
   nsIProperties* Properties() const { return mProperties; }
 
+  bool HasConsumers() const;
+
 private:
   friend class mozilla::image::ProgressTracker;
 
@@ -196,8 +197,6 @@ private:
 
   
   void UpdateCacheEntrySize();
-
-  bool HasConsumers();
 
   
   bool IsDecodeRequested() const;
@@ -215,7 +214,6 @@ public:
                      const nsACString& aContentDisposition);
 
 private:
-  friend class imgMemoryReporter;
   friend class FinishPreparingForNewPartRunnable;
 
   void FinishPreparingForNewPart(const NewPartResult& aResult);
