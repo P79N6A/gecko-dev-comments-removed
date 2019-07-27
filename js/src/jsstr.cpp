@@ -1520,6 +1520,18 @@ str_contains(JSContext* cx, unsigned argc, Value* vp)
         return false;
 
     
+    bool isRegExp;
+    if (!IsRegExp(cx, args.get(0), &isRegExp))
+        return false;
+
+    
+    if (isRegExp) {
+        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_INVALID_ARG_TYPE,
+                             "first", "", "Regular Expression");
+        return false;
+    }
+
+    
     RootedLinearString searchStr(cx, ArgToRootedString(cx, args, 0));
     if (!searchStr)
         return false;
@@ -1732,7 +1744,12 @@ js::str_startsWith(JSContext* cx, unsigned argc, Value* vp)
         return false;
 
     
-    if (args.get(0).isObject() && IsObjectWithClass(args[0], ESClass_RegExp, cx)) {
+    bool isRegExp;
+    if (!IsRegExp(cx, args.get(0), &isRegExp))
+        return false;
+
+    
+    if (isRegExp) {
         JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_INVALID_ARG_TYPE,
                              "first", "", "Regular Expression");
         return false;
@@ -1793,7 +1810,12 @@ str_endsWith(JSContext* cx, unsigned argc, Value* vp)
         return false;
 
     
-    if (args.get(0).isObject() && IsObjectWithClass(args[0], ESClass_RegExp, cx)) {
+    bool isRegExp;
+    if (!IsRegExp(cx, args.get(0), &isRegExp))
+        return false;
+
+    
+    if (isRegExp) {
         JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_INVALID_ARG_TYPE,
                              "first", "", "Regular Expression");
         return false;
