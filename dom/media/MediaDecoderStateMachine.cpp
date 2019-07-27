@@ -2611,21 +2611,21 @@ void MediaDecoderStateMachine::UpdateRenderedVideoFrames()
   }
 
   TimeStamp nowTime;
-  const int64_t clock_time = GetClock(&nowTime);
+  const int64_t clockTime = GetClock(&nowTime);
   
   
   int64_t remainingTime = AUDIO_DURATION_USECS;
-  NS_ASSERTION(clock_time >= 0, "Should have positive clock time.");
+  NS_ASSERTION(clockTime >= 0, "Should have positive clock time.");
   nsRefPtr<VideoData> currentFrame;
   if (VideoQueue().GetSize() > 0) {
     VideoData* frame = VideoQueue().PeekFront();
     int32_t droppedFrames = 0;
-    while (IsRealTime() || clock_time >= frame->mTime) {
+    while (IsRealTime() || clockTime >= frame->mTime) {
       mVideoFrameEndTime = frame->GetEndTime();
       if (currentFrame) {
         mDecoder->NotifyDecodedFrames(0, 0, 1);
         VERBOSE_LOG("discarding video frame mTime=%lld clock_time=%lld (%d so far)",
-                    currentFrame->mTime, clock_time, ++droppedFrames);
+                    currentFrame->mTime, clockTime, ++droppedFrames);
       }
       currentFrame = frame;
       nsRefPtr<VideoData> releaseMe = VideoQueue().PopFront();
@@ -2637,7 +2637,7 @@ void MediaDecoderStateMachine::UpdateRenderedVideoFrames()
     
     
     if (frame && !currentFrame) {
-      remainingTime = frame->mTime - clock_time;
+      remainingTime = frame->mTime - clockTime;
     }
   }
 
@@ -2673,7 +2673,7 @@ void MediaDecoderStateMachine::UpdateRenderedVideoFrames()
   
   if (mVideoFrameEndTime != -1 || mAudioEndTime != -1) {
     
-    int64_t t = std::min(clock_time, std::max(mVideoFrameEndTime, mAudioEndTime));
+    int64_t t = std::min(clockTime, std::max(mVideoFrameEndTime, mAudioEndTime));
     
     
     if (t > GetMediaTime()) {
@@ -2687,7 +2687,7 @@ void MediaDecoderStateMachine::UpdateRenderedVideoFrames()
 
   if (currentFrame) {
     
-    int64_t delta = currentFrame->mTime - clock_time;
+    int64_t delta = currentFrame->mTime - clockTime;
     TimeStamp presTime = nowTime + TimeDuration::FromMicroseconds(delta / mPlaybackRate);
     NS_ASSERTION(currentFrame->mTime >= 0, "Should have positive frame time");
     {
@@ -2699,7 +2699,7 @@ void MediaDecoderStateMachine::UpdateRenderedVideoFrames()
     MOZ_ASSERT(IsPlaying());
     MediaDecoder::FrameStatistics& frameStats = mDecoder->GetFrameStatistics();
     frameStats.NotifyPresentedFrame();
-    remainingTime = currentFrame->GetEndTime() - clock_time;
+    remainingTime = currentFrame->GetEndTime() - clockTime;
     currentFrame = nullptr;
   }
 
@@ -2713,7 +2713,7 @@ void MediaDecoderStateMachine::UpdateRenderedVideoFrames()
   if (remainingTime <= 0) {
     VideoData* nextFrame = VideoQueue().PeekFront();
     if (nextFrame) {
-      remainingTime = nextFrame->mTime - clock_time;
+      remainingTime = nextFrame->mTime - clockTime;
     } else {
       remainingTime = AUDIO_DURATION_USECS;
     }
