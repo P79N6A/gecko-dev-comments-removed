@@ -392,26 +392,67 @@ NS_IMETHODIMP JSStackFrame::GetLanguageName(nsACString& aLanguageName)
 }
 
 
+
+
+
+
+
+
+
+
+
+
+template<typename ReturnType, typename GetterOutParamType>
+static void
+GetValueIfNotCached(JSContext* aCx, JSObject* aStack,
+                    JS::SavedFrameResult (*aPropGetter)(JSContext*,
+                                                        JS::Handle<JSObject*>,
+                                                        GetterOutParamType),
+                    bool aIsCached, bool* aCanCache, bool* aUseCachedValue,
+                    ReturnType aValue)
+{
+  MOZ_ASSERT(aStack);
+
+  JS::Rooted<JSObject*> stack(aCx, aStack);
+  
+  
+  *aCanCache = js::GetContextCompartment(aCx) == js::GetObjectCompartment(stack);
+  if (*aCanCache && aIsCached) {
+    *aUseCachedValue = true;
+    return;
+  }
+
+  *aUseCachedValue = false;
+  JS::ExposeObjectToActiveJS(stack);
+
+  aPropGetter(aCx, stack, aValue);
+}
+
+
 NS_IMETHODIMP JSStackFrame::GetFilename(nsAString& aFilename)
 {
-  
-  
-  if (!mFilenameInitialized && mStack) {
-    ThreadsafeAutoJSContext cx;
-    JS::Rooted<JSObject*> stack(cx, mStack);
-    JS::ExposeObjectToActiveJS(mStack);
-    JS::Rooted<JSString*> filename(cx);
-    JS::GetSavedFrameSource(cx, stack, &filename);
-    nsAutoJSString str;
-    if (!str.init(cx, filename)) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
+  NS_ENSURE_TRUE(mStack, NS_ERROR_NOT_AVAILABLE);
+  ThreadsafeAutoJSContext cx;
+  JS::Rooted<JSString*> filename(cx);
+  bool canCache = false, useCachedValue = false;
+  GetValueIfNotCached(cx, mStack, JS::GetSavedFrameSource, mFilenameInitialized,
+                      &canCache, &useCachedValue, &filename);
+  if (useCachedValue) {
+    return StackFrame::GetFilename(aFilename);
+  }
 
+  nsAutoJSString str;
+  if (!str.init(cx, filename)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+  aFilename = str;
+
+  if (canCache) {
     mFilename = str;
     mFilenameInitialized = true;
   }
 
-  return StackFrame::GetFilename(aFilename);
+  return NS_OK;
 }
 
 NS_IMETHODIMP StackFrame::GetFilename(nsAString& aFilename)
@@ -429,26 +470,34 @@ NS_IMETHODIMP StackFrame::GetFilename(nsAString& aFilename)
 
 NS_IMETHODIMP JSStackFrame::GetName(nsAString& aFunction)
 {
-  
-  
-  if (!mFunnameInitialized && mStack) {
-    ThreadsafeAutoJSContext cx;
-    JS::Rooted<JSObject*> stack(cx, mStack);
-    JS::ExposeObjectToActiveJS(mStack);
-    JS::Rooted<JSString*> name(cx);
-    
-    JS::GetSavedFrameFunctionDisplayName(cx, stack, &name);
-    if (name) {
-      nsAutoJSString str;
-      if (!str.init(cx, name)) {
-        return NS_ERROR_OUT_OF_MEMORY;
-      }
-      mFunname = str;
+  NS_ENSURE_TRUE(mStack, NS_ERROR_NOT_AVAILABLE);
+  ThreadsafeAutoJSContext cx;
+  JS::Rooted<JSString*> name(cx);
+  bool canCache = false, useCachedValue = false;
+  GetValueIfNotCached(cx, mStack, JS::GetSavedFrameFunctionDisplayName,
+                      mFunnameInitialized, &canCache, &useCachedValue,
+                      &name);
+
+  if (useCachedValue) {
+    return StackFrame::GetName(aFunction);
+  }
+
+  if (name) {
+    nsAutoJSString str;
+    if (!str.init(cx, name)) {
+      return NS_ERROR_OUT_OF_MEMORY;
     }
+    aFunction = str;
+  } else {
+    aFunction.SetIsVoid(true);
+  }
+
+  if (canCache) {
+    mFunname = aFunction;
     mFunnameInitialized = true;
   }
 
-  return StackFrame::GetName(aFunction);
+  return NS_OK;
 }
 
 NS_IMETHODIMP StackFrame::GetName(nsAString& aFunction)
@@ -467,19 +516,25 @@ NS_IMETHODIMP StackFrame::GetName(nsAString& aFunction)
 nsresult
 JSStackFrame::GetLineno(int32_t* aLineNo)
 {
-  
-  
-  if (!mLinenoInitialized && mStack) {
-    ThreadsafeAutoJSContext cx;
-    JS::Rooted<JSObject*> stack(cx, mStack);
-    JS::ExposeObjectToActiveJS(mStack);
-    uint32_t line;
-    JS::GetSavedFrameLine(cx, stack, &line);
+  NS_ENSURE_TRUE(mStack, NS_ERROR_NOT_AVAILABLE);
+  ThreadsafeAutoJSContext cx;
+  uint32_t line;
+  bool canCache = false, useCachedValue = false;
+  GetValueIfNotCached(cx, mStack, JS::GetSavedFrameLine, mLinenoInitialized,
+                      &canCache, &useCachedValue, &line);
+
+  if (useCachedValue) {
+    return StackFrame::GetLineno(aLineNo);
+  }
+
+  *aLineNo = line;
+
+  if (canCache) {
     mLineno = line;
     mLinenoInitialized = true;
   }
 
-  return StackFrame::GetLineno(aLineNo);
+  return NS_OK;
 }
 
 
@@ -492,19 +547,25 @@ NS_IMETHODIMP StackFrame::GetLineNumber(int32_t* aLineNumber)
 nsresult
 JSStackFrame::GetColNo(int32_t* aColNo)
 {
-  
-  
-  if (!mColNoInitialized && mStack) {
-    ThreadsafeAutoJSContext cx;
-    JS::Rooted<JSObject*> stack(cx, mStack);
-    JS::ExposeObjectToActiveJS(mStack);
-    uint32_t col;
-    JS::GetSavedFrameColumn(cx, stack, &col);
+  NS_ENSURE_TRUE(mStack, NS_ERROR_NOT_AVAILABLE);
+  ThreadsafeAutoJSContext cx;
+  uint32_t col;
+  bool canCache = false, useCachedValue = false;
+  GetValueIfNotCached(cx, mStack, JS::GetSavedFrameColumn, mColNoInitialized,
+                      &canCache, &useCachedValue, &col);
+
+  if (useCachedValue) {
+    return StackFrame::GetColNo(aColNo);
+  }
+
+  *aColNo = col;
+
+  if (canCache) {
     mColNo = col;
     mColNoInitialized = true;
   }
 
-  return StackFrame::GetColNo(aColNo);
+  return NS_OK;
 }
 
 
@@ -552,26 +613,34 @@ NS_IMETHODIMP JSStackFrame::GetSanitized(JSContext* aCx, nsIStackFrame** aSaniti
 
 NS_IMETHODIMP JSStackFrame::GetCaller(nsIStackFrame** aCaller)
 {
-  
-  
-  if (!mCallerInitialized && mStack) {
-    ThreadsafeAutoJSContext cx;
-    JS::Rooted<JSObject*> stack(cx, mStack);
-    JS::ExposeObjectToActiveJS(mStack);
-    JS::Rooted<JSObject*> caller(cx);
-    JS::GetSavedFrameParent(cx, stack, &caller);
+  NS_ENSURE_TRUE(mStack, NS_ERROR_NOT_AVAILABLE);
+  ThreadsafeAutoJSContext cx;
+  JS::Rooted<JSObject*> callerObj(cx);
+  bool canCache = false, useCachedValue = false;
+  GetValueIfNotCached(cx, mStack, JS::GetSavedFrameParent, mCallerInitialized,
+                      &canCache, &useCachedValue, &callerObj);
 
-    if (caller) {
-      mCaller = new JSStackFrame(caller);
-    } else {
-      
-      
-      
-      mCaller = new StackFrame();
-    }
+  if (useCachedValue) {
+    return StackFrame::GetCaller(aCaller);
+  }
+
+  nsCOMPtr<nsIStackFrame> caller;
+  if (callerObj) {
+      caller = new JSStackFrame(callerObj);
+  } else {
+    
+    
+    
+    caller = new StackFrame();
+  }
+  caller.forget(aCaller);
+
+  if (canCache) {
+    mCaller = *aCaller;
     mCallerInitialized = true;
   }
-  return StackFrame::GetCaller(aCaller);
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP StackFrame::GetCaller(nsIStackFrame** aCaller)
@@ -582,26 +651,42 @@ NS_IMETHODIMP StackFrame::GetCaller(nsIStackFrame** aCaller)
 
 NS_IMETHODIMP JSStackFrame::GetFormattedStack(nsAString& aStack)
 {
+  NS_ENSURE_TRUE(mStack, NS_ERROR_NOT_AVAILABLE);
   
   
-  if (!mFormattedStackInitialized && mStack) {
-    ThreadsafeAutoJSContext cx;
-    JS::Rooted<JSObject*> stack(cx, mStack);
-    JS::ExposeObjectToActiveJS(mStack);
-    JS::Rooted<JSString*> formattedStack(cx);
-    if (!JS::StringifySavedFrameStack(cx, stack, &formattedStack)) {
-      return NS_ERROR_UNEXPECTED;
-    }
+  
+  
+  ThreadsafeAutoJSContext cx;
 
-    nsAutoJSString str;
-    if (!str.init(cx, formattedStack)) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
+  
+  
+  bool canCache =
+    js::GetContextCompartment(cx) == js::GetObjectCompartment(mStack);
+  if (canCache && mFormattedStackInitialized) {
+    aStack = mFormattedStack;
+    return NS_OK;
+  }
+
+  JS::ExposeObjectToActiveJS(mStack);
+  JS::Rooted<JSObject*> stack(cx, mStack);
+
+  JS::Rooted<JSString*> formattedStack(cx);
+  if (!JS::StringifySavedFrameStack(cx, stack, &formattedStack)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  nsAutoJSString str;
+  if (!str.init(cx, formattedStack)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  aStack = str;
+
+  if (canCache) {
     mFormattedStack = str;
     mFormattedStackInitialized = true;
   }
 
-  aStack = mFormattedStack;
   return NS_OK;
 }
 
