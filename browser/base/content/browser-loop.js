@@ -13,14 +13,48 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
 
 (function() {
   LoopUI = {
+    
+
+
+
     get toolbarButton() {
       delete this.toolbarButton;
       return this.toolbarButton = CustomizableUI.getWidget("loop-button").forWindow(window);
     },
 
+    
+
+
     get panel() {
       delete this.panel;
       return this.panel = document.getElementById("loop-notification-panel");
+    },
+
+    
+
+
+
+    get browser() {
+      let browser = document.querySelector("#loop-notification-panel > #loop-panel-iframe");
+      if (browser) {
+        delete this.browser;
+        this.browser = browser;
+      }
+      return browser;
+    },
+
+    
+
+
+
+
+    get selectedTab() {
+      if (!this.browser) {
+        return null;
+      }
+
+      let selectedTab = this.browser.contentDocument.querySelector(".tab-view > .selected");
+      return selectedTab && selectedTab.getAttribute("data-tab-name");
     },
 
     
@@ -39,12 +73,24 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
       });
     },
 
+    
+
+
+
+
+
+
+
+
     togglePanel: function(event, tabId = null) {
       if (this.panel.state == "open") {
-        this.panel.hidePopup();
-      } else {
-        this.openCallPanel(event, tabId);
+        return new Promise(resolve => {
+          this.panel.hidePopup();
+          resolve();
+        });
       }
+
+      return this.openCallPanel(event, tabId);
     },
 
     

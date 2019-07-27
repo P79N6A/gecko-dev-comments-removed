@@ -740,11 +740,13 @@ function injectLoopAPI(targetWindow) {
 
 
 
+
+
     notifyUITour: {
       enumerable: true,
       writable: true,
-      value: function(subject) {
-        UITour.notify(subject);
+      value: function(subject, params) {
+        UITour.notify(subject, params);
       }
     },
 
