@@ -664,13 +664,13 @@ MaybeLogOutput(SECItem* result, const char* suffix)
 
 
 
-SECStatus
+Result
 GenerateKeyPair( ScopedSECKEYPublicKey& publicKey,
                  ScopedSECKEYPrivateKey& privateKey)
 {
   ScopedPtr<PK11SlotInfo, PK11_FreeSlot> slot(PK11_GetInternalSlot());
   if (!slot) {
-    return SECFailure;
+    return MapPRErrorCodeToResult(PR_GetError());
   }
 
   
@@ -687,21 +687,22 @@ GenerateKeyPair( ScopedSECKEYPublicKey& publicKey,
     if (privateKey) {
       publicKey = publicKeyTemp;
       assert(publicKey);
-      return SECSuccess;
+      return Success;
     }
 
     assert(!publicKeyTemp);
 
     if (PR_GetError() != SEC_ERROR_PKCS11_FUNCTION_FAILED) {
-      return SECFailure;
+      break;
     }
 
     PRTime now = PR_Now();
     if (PK11_RandomUpdate(&now, sizeof(PRTime)) != SECSuccess) {
-      return SECFailure;
+      break;
     }
   }
-  return SECFailure;
+
+  return MapPRErrorCodeToResult(PR_GetError());
 }
 
 
@@ -742,7 +743,7 @@ CreateEncodedCertificate(PLArenaPool* arena, long version,
   
   ScopedSECKEYPublicKey publicKey;
   ScopedSECKEYPrivateKey privateKeyTemp;
-  if (GenerateKeyPair(publicKey, privateKeyTemp) != SECSuccess) {
+  if (GenerateKeyPair(publicKey, privateKeyTemp) != Success) {
     return nullptr;
   }
 
