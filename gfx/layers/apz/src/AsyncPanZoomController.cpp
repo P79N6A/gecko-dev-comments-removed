@@ -3098,7 +3098,7 @@ void AsyncPanZoomController::ShareCompositorFrameMetrics() {
       
       
       
-      if (!compositor->SendSharedCompositorFrameMetrics(mem, handle, mAPZCId)) {
+      if (!compositor->SendSharedCompositorFrameMetrics(mem, handle, mLayersId, mAPZCId)) {
         APZC_LOG("%p failed to share FrameMetrics with content process.", this);
       }
     }
