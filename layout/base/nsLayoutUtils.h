@@ -502,6 +502,14 @@ public:
   
 
 
+
+
+  static nsIFrame* GetAnimatedGeometryRootForFrame(nsIFrame* aFrame,
+                                                   const nsIFrame* aStopAtAncestor);
+
+  
+
+
   static nsIScrollableFrame* GetScrollableFrameFor(const nsIFrame *aScrolledFrame);
 
   
