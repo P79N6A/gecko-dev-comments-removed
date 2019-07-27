@@ -251,21 +251,21 @@ this.Keyboard = {
   forwardEvent: function keyboardForwardEvent(newEventName, msg) {
     let mm = msg.target.QueryInterface(Ci.nsIFrameLoaderOwner)
                 .frameLoader.messageManager;
-    if (newEventName === 'Keyboard:FocusChange' &&
-        msg.data.type === 'blur') {
-      
-      
-      
-      
-      if (mm !== this.formMM) {
-        return false;
+    if (newEventName === 'Keyboard:FocusChange') {
+      if (msg.data.type !== 'blur') { 
+        
+        
+        this.formMM = mm;
+      } else { 
+        
+        
+        
+        
+        if (mm !== this.formMM) {
+          return false;
+        }
       }
-
-      this.sendToKeyboard(newEventName, msg.data);
-      return true;
     }
-
-    this.formMM = mm;
 
     this.sendToKeyboard(newEventName, msg.data);
     return true;
