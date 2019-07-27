@@ -267,8 +267,8 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
 
   
   
-  mNextFrameStatusUpdater->Watch(mState,  true);
-  mNextFrameStatusUpdater->Watch(mAudioCompleted,  true);
+  mNextFrameStatusUpdater->Watch(mState);
+  mNextFrameStatusUpdater->Watch(mAudioCompleted);
   mNextFrameStatusUpdater->AddWeakCallback(this, &MediaDecoderStateMachine::UpdateNextFrameStatus);
 
   static bool sPrefCacheInit = false;
