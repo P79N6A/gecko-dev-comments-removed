@@ -94,7 +94,7 @@ function BrowserElementChild() {
 
   this._isContentWindowCreated = false;
   this._pendingSetInputMethodActive = [];
-  this._forceDispatchSelectionChange = false;
+  this._forceDispatchSelectionStateChanged = false;
 
   this._init();
 };
@@ -162,8 +162,8 @@ BrowserElementChild.prototype = {
                       true,
                       false);
 
-    addEventListener('mozselectionchange',
-                     this._selectionChangeHandler.bind(this),
+    addEventListener('mozselectionstatechanged',
+                     this._selectionStateChangedHandler.bind(this),
                       false,
                       false);
 
@@ -592,7 +592,7 @@ BrowserElementChild.prototype = {
     sendAsyncMsg('scrollviewchange', detail);
   },
 
-  _selectionChangeHandler: function(e) {
+  _selectionStateChangedHandler: function(e) {
     e.stopPropagation();
     let boundingClientRect = e.boundingClientRect;
     if (!boundingClientRect) {
@@ -600,18 +600,18 @@ BrowserElementChild.prototype = {
     }
 
     let isCollapsed = (e.selectedText.length == 0);
-    let isMouseUp = (e.reasons.indexOf('mouseup') == 0);
+    let isMouseUp = (e.states.indexOf('mouseup') == 0);
     let canPaste = this._isCommandEnabled("paste");
 
-    if (!this._forceDispatchSelectionChange) {
+    if (!this._forceDispatchSelectionStateChanged) {
       
       
       
       
-      if(e.reasons.length == 0 ||
-         e.reasons.indexOf('drag') == 0 ||
-         e.reasons.indexOf('keypress') == 0 ||
-         e.reasons.indexOf('mousedown') == 0) {
+      if(e.states.length == 0 ||
+         e.states.indexOf('drag') == 0 ||
+         e.states.indexOf('keypress') == 0 ||
+         e.states.indexOf('mousedown') == 0) {
         return;
       }
 
@@ -635,9 +635,9 @@ BrowserElementChild.prototype = {
     
     
     if (isMouseUp && !isCollapsed) {
-      this._forceDispatchSelectionChange = true;
+      this._forceDispatchSelectionStateChanged = true;
     } else {
-      this._forceDispatchSelectionChange = false;
+      this._forceDispatchSelectionStateChanged = false;
     }
 
     let zoomFactor = content.screen.width / content.innerWidth;
@@ -658,7 +658,7 @@ BrowserElementChild.prototype = {
         canPaste: this._isCommandEnabled("paste"),
       },
       zoomFactor: zoomFactor,
-      reasons: e.reasons,
+      states: e.states,
       isCollapsed: (e.selectedText.length == 0),
     };
 
@@ -673,7 +673,7 @@ BrowserElementChild.prototype = {
       currentWindow = currentWindow.parent;
     }
 
-    sendAsyncMsg('selectionchange', detail);
+    sendAsyncMsg('selectionstatechanged', detail);
   },
 
   _themeColorChangedHandler: function(eventType, target) {
