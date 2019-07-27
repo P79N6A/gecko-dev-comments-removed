@@ -363,6 +363,20 @@ struct StaticPinset {
 };
 
 
+static const char* kPinset_facebook_sha256_Data[] = {
+  kVerisign_Class_3_Public_Primary_Certification_Authority___G3Fingerprint,
+  kDigiCert_High_Assurance_EV_Root_CAFingerprint,
+};
+static const StaticFingerprints kPinset_facebook_sha256 = {
+  sizeof(kPinset_facebook_sha256_Data) / sizeof(const char*),
+  kPinset_facebook_sha256_Data
+};
+
+static const StaticPinset kPinset_facebook = {
+  nullptr,
+  &kPinset_facebook_sha256
+};
+
 static const char* kPinset_google_root_pems_sha256_Data[] = {
   kEquifax_Secure_CAFingerprint,
   kAmerica_Online_Root_Certification_Authority_2Fingerprint,
@@ -774,6 +788,7 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "dropbox.com", false, false, false, -1, &kPinset_dropbox },
   { "encrypted.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "exclude-subdomains.pinning.example.com", false, false, false, 0, &kPinset_mozilla_test },
+  { "facebook.com", true, true, false, -1, &kPinset_facebook },
   { "g.co", true, false, false, -1, &kPinset_google_root_pems },
   { "glass.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "gmail.com", false, false, false, -1, &kPinset_google_root_pems },
@@ -1071,4 +1086,4 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
 
 static const int32_t kUnknownId = -1;
 
-static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1417256260438000);
+static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1417640422391000);
