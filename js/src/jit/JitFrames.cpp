@@ -2781,14 +2781,11 @@ JitProfilingFrameIterator::JitProfilingFrameIterator(
     MOZ_ASSERT(rt->isProfilerSamplingEnabled());
 
     
-    MOZ_ASSERT(frameScript()->hasBaselineScript());
-
-    
     if (tryInitWithPC(state.pc))
         return;
 
     
-    if (tryInitWithTable(table, state.pc, rt))
+    if (tryInitWithTable(table, state.pc, rt,  false))
         return;
 
     
@@ -2797,15 +2794,24 @@ JitProfilingFrameIterator::JitProfilingFrameIterator(
             return;
 
         
-        if (tryInitWithTable(table, lastCallSite, rt))
+        if (tryInitWithTable(table, lastCallSite, rt,  true))
             return;
+    }
+
+    
+    
+    
+    if (!frameScript()->hasBaselineScript()) {
+        type_ = JitFrame_Entry;
+        fp_ = nullptr;
+        returnAddressToFp_ = nullptr;
+        return;
     }
 
     
     
     type_ = JitFrame_BaselineJS;
     returnAddressToFp_ = frameScript()->baselineScript()->method()->raw();
-    
 }
 
 template <typename FrameType, typename ReturnType=CommonFrameLayout*>
@@ -2862,7 +2868,7 @@ JitProfilingFrameIterator::tryInitWithPC(void *pc)
     }
 
     
-    if (callee->baselineScript()->method()->containsNativePC(pc)) {
+    if (callee->hasBaselineScript() && callee->baselineScript()->method()->containsNativePC(pc)) {
         type_ = JitFrame_BaselineJS;
         returnAddressToFp_ = pc;
         return true;
@@ -2872,7 +2878,8 @@ JitProfilingFrameIterator::tryInitWithPC(void *pc)
 }
 
 bool
-JitProfilingFrameIterator::tryInitWithTable(JitcodeGlobalTable *table, void *pc, JSRuntime *rt)
+JitProfilingFrameIterator::tryInitWithTable(JitcodeGlobalTable *table, void *pc, JSRuntime *rt,
+                                            bool forLastCallSite)
 {
     if (!pc)
         return false;
@@ -2896,7 +2903,7 @@ JitProfilingFrameIterator::tryInitWithTable(JitcodeGlobalTable *table, void *pc,
 
     if (entry.isBaseline()) {
         
-        if (entry.baselineEntry().script() != callee)
+        if (forLastCallSite && entry.baselineEntry().script() != callee)
             return false;
 
         type_ = JitFrame_BaselineJS;
