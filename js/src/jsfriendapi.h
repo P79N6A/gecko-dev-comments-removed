@@ -2622,6 +2622,17 @@ GetObjectEnvironmentObjectForFunction(JSFunction *fun);
 extern JS_FRIEND_API(JSPrincipals *)
 GetSavedFramePrincipals(JS::HandleObject savedFrame);
 
+
+
+
+
+
+
+
+
+extern JS_FRIEND_API(JSObject *)
+GetFirstSubsumedSavedFrame(JSContext *cx, JS::HandleObject savedFrame);
+
 } 
 
 extern JS_FRIEND_API(bool)

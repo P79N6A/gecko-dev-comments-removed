@@ -739,11 +739,10 @@ DOMException::Sanitize(JSContext* aCx,
     
     
     
-    while (retval->mLocation && !retval->mLocation->CallerSubsumes(aCx)) {
-      nsCOMPtr<nsIStackFrame> caller;
-      retval->mLocation->GetCaller(getter_AddRefs(caller));
-      retval->mLocation.swap(caller);
-    }
+    nsCOMPtr<nsIStackFrame> stack;
+    nsresult rv = retval->mLocation->GetSanitized(aCx, getter_AddRefs(stack));
+    NS_ENSURE_SUCCESS(rv, false);
+    retval->mLocation.swap(stack);
   }
 
   return ToJSValue(aCx, retval, aSanitizedValue);
