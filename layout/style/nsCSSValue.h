@@ -87,7 +87,7 @@ struct URLValue {
            nsIPrincipal* aOriginPrincipal);
 
 protected:
-  ~URLValue();
+  ~URLValue() {};
 
 public:
   bool operator==(const URLValue& aOther) const;
@@ -108,8 +108,7 @@ private:
   
   mutable nsCOMPtr<nsIURI> mURI;
 public:
-  nsStringBuffer* mString; 
-                           
+  nsRefPtr<nsStringBuffer> mString;
   nsCOMPtr<nsIURI> mReferrer;
   nsCOMPtr<nsIPrincipal> mOriginPrincipal;
 
