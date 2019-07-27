@@ -88,7 +88,7 @@ public:
 
   virtual void SetVolume(double aVolume) override;
 
-  virtual double GetMediaTimeSecs() override;
+  virtual int64_t GetMediaTimeUs() override;
 
   
   virtual void SetElementVisibility(bool aIsVisible) override;;
@@ -191,8 +191,6 @@ private:
   
   
   nsRefPtr<mozilla::dom::WakeLock> mWakeLock;
-
-  int64_t GetMediaTimeUs();
 
   
   
