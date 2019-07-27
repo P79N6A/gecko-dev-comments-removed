@@ -136,10 +136,10 @@ void
 nsBMPDecoder::FinishInternal()
 {
     
-    MOZ_ASSERT(!HasError(), "Can't call FinishInternal on error!");
+    NS_ABORT_IF_FALSE(!HasError(), "Can't call FinishInternal on error!");
 
     
-    MOZ_ASSERT(GetFrameCount() <= 1, "Multiple BMP frames?");
+    NS_ABORT_IF_FALSE(GetFrameCount() <= 1, "Multiple BMP frames?");
 
     
     if (!IsSizeDecode() && HasSize()) {
@@ -201,7 +201,7 @@ nsBMPDecoder::CalcBitShift()
 void
 nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
 {
-  MOZ_ASSERT(!HasError(), "Shouldn't call WriteInternal after error!");
+  NS_ABORT_IF_FALSE(!HasError(), "Shouldn't call WriteInternal after error!");
 
   
   if (!aCount || !mCurLine) {
@@ -869,7 +869,8 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
             continue;
 
           default :
-            MOZ_ASSERT(0, "BMP RLE decompression: unknown state!");
+            NS_ABORT_IF_FALSE(0,
+                           "BMP RLE decompression: unknown state!");
             PostDecoderError(NS_ERROR_UNEXPECTED);
             return;
         }

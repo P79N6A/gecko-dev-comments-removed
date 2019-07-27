@@ -752,9 +752,8 @@ FindSuitableDTD(CParserContext& aParserContext)
   aParserContext.mAutoDetectStatus = ePrimaryDetect;
 
   
-  MOZ_ASSERT(aParserContext.mParserCommand != eViewSource,
-             "The old parser is not supposed to be used for View Source "
-             "anymore.");
+  NS_ABORT_IF_FALSE(aParserContext.mParserCommand != eViewSource,
+    "The old parser is not supposed to be used for View Source anymore.");
 
   
   

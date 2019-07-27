@@ -1246,7 +1246,7 @@ nsImageFrame::DisplayAltFeedback(nsRenderingContext& aRenderingContext,
                                  nsPoint              aPt)
 {
   
-  MOZ_ASSERT(gIconLoad, "How did we succeed in Init then?");
+  NS_ABORT_IF_FALSE(gIconLoad, "How did we succeed in Init then?");
 
   
   nsRect  inner = GetInnerArea() + aPt;

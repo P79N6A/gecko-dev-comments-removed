@@ -5345,8 +5345,8 @@ nsIFrame::GetPositionIgnoringScrolling()
 nsRect
 nsIFrame::GetOverflowRect(nsOverflowType aType) const
 {
-  MOZ_ASSERT(aType == eVisualOverflow || aType == eScrollableOverflow,
-             "unexpected type");
+  NS_ABORT_IF_FALSE(aType == eVisualOverflow || aType == eScrollableOverflow,
+                    "unexpected type");
 
   
   

@@ -69,8 +69,8 @@ SVGTransformableElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
       
       NS_UpdateHint(retval, nsChangeHint_ReconstructFrame);
     } else {
-      MOZ_ASSERT(aModType == nsIDOMMutationEvent::MODIFICATION,
-                 "Unknown modification type.");
+      NS_ABORT_IF_FALSE(aModType == nsIDOMMutationEvent::MODIFICATION,
+                        "Unknown modification type.");
       
       NS_UpdateHint(retval, NS_CombineHint(nsChangeHint_UpdatePostTransformOverflow,
                                            nsChangeHint_UpdateTransformLayer));
@@ -102,8 +102,8 @@ SVGTransformableElement::PrependLocalTransformsTo(const gfxMatrix &aMatrix,
     return result;
   }
 
-  MOZ_ASSERT(aWhich == eAllTransforms || aWhich == eUserSpaceToParent,
-             "Unknown TransformTypes");
+  NS_ABORT_IF_FALSE(aWhich == eAllTransforms || aWhich == eUserSpaceToParent,
+                    "Unknown TransformTypes");
 
   
   

@@ -236,7 +236,7 @@ bool InitEventTracing(bool aLog)
 
   
   
-  MOZ_ASSERT(!sTracerThread, "Event tracing already initialized!");
+  NS_ABORT_IF_FALSE(!sTracerThread, "Event tracing already initialized!");
   sTracerThread = PR_CreateThread(PR_USER_THREAD,
                                   TracerThread,
                                   args,

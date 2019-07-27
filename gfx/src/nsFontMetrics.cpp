@@ -17,9 +17,8 @@
 #include "nsIAtom.h"                    
 #include "nsMathUtils.h"                
 #include "nsRenderingContext.h"         
-#include "nsString.h"                   
+#include "nsString.h"               
 #include "nsStyleConsts.h"              
-#include "mozilla/Assertions.h"         
 
 class gfxUserFontSet;
 
@@ -127,7 +126,7 @@ nsFontMetrics::Init(const nsFont& aFont,
                     gfxUserFontSet *aUserFontSet,
                     gfxTextPerfMetrics *aTextPerf)
 {
-    MOZ_ASSERT(mP2A == 0, "already initialized");
+    NS_ABORT_IF_FALSE(mP2A == 0, "already initialized");
 
     mFont = aFont;
     mLanguage = aLanguage;

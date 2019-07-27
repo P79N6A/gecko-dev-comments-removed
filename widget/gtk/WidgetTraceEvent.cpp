@@ -48,12 +48,12 @@ void CleanUpWidgetTracing()
 
 bool FireAndWaitForTracerEvent()
 {
-  MOZ_ASSERT(sMutex && sCondVar, "Tracing not initialized!");
+  NS_ABORT_IF_FALSE(sMutex && sCondVar, "Tracing not initialized!");
 
   
   
   MutexAutoLock lock(*sMutex);
-  MOZ_ASSERT(!sTracerProcessed, "Tracer synchronization state is wrong");
+  NS_ABORT_IF_FALSE(!sTracerProcessed, "Tracer synchronization state is wrong");
   g_idle_add_full(G_PRIORITY_DEFAULT,
                   TracerCallback,
                   nullptr,

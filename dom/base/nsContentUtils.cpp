@@ -4273,7 +4273,7 @@ nsContentUtils::ParseFragmentXML(const nsAString& aSourceBuffer,
     
   }
   nsCOMPtr<nsIContentSink> contentsink = do_QueryInterface(sXMLFragmentSink);
-  MOZ_ASSERT(contentsink, "Sink doesn't QI to nsIContentSink!");
+  NS_ABORT_IF_FALSE(contentsink, "Sink doesn't QI to nsIContentSink!");
   sXMLFragmentParser->SetContentSink(contentsink);
 
   sXMLFragmentSink->SetTargetDocument(aDocument);

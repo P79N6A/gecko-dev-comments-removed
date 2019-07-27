@@ -694,8 +694,8 @@ public:
 
   T* operator->() const MOZ_NO_ADDREF_RELEASE_ON_RETURN
   {
-    MOZ_ASSERT(mRawPtr != 0,
-               "You can't dereference a NULL nsCOMPtr with operator->().");
+    NS_ABORT_IF_FALSE(mRawPtr != 0,
+                      "You can't dereference a NULL nsCOMPtr with operator->().");
     return get();
   }
 
@@ -706,8 +706,8 @@ public:
 public:
   T& operator*() const
   {
-    MOZ_ASSERT(mRawPtr != 0,
-               "You can't dereference a NULL nsCOMPtr with operator*().");
+    NS_ABORT_IF_FALSE(mRawPtr != 0,
+                      "You can't dereference a NULL nsCOMPtr with operator*().");
     return *get();
   }
 
@@ -973,8 +973,8 @@ public:
 
   nsISupports* operator->() const MOZ_NO_ADDREF_RELEASE_ON_RETURN
   {
-    MOZ_ASSERT(mRawPtr != 0,
-               "You can't dereference a NULL nsCOMPtr with operator->().");
+    NS_ABORT_IF_FALSE(mRawPtr != 0,
+                      "You can't dereference a NULL nsCOMPtr with operator->().");
     return get();
   }
 
@@ -986,8 +986,8 @@ public:
 
   nsISupports& operator*() const
   {
-    MOZ_ASSERT(mRawPtr != 0,
-               "You can't dereference a NULL nsCOMPtr with operator*().");
+    NS_ABORT_IF_FALSE(mRawPtr != 0,
+                      "You can't dereference a NULL nsCOMPtr with operator*().");
     return *get();
   }
 

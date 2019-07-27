@@ -405,8 +405,8 @@ class MessageChannel : HasResultCodes
     
     void AssertWorkerThread() const
     {
-        MOZ_ASSERT(mWorkerLoopID == MessageLoop::current()->id(),
-                   "not on worker thread!");
+        NS_ABORT_IF_FALSE(mWorkerLoopID == MessageLoop::current()->id(),
+                          "not on worker thread!");
     }
 
     
@@ -414,8 +414,8 @@ class MessageChannel : HasResultCodes
     
     void AssertLinkThread() const
     {
-        MOZ_ASSERT(mWorkerLoopID != MessageLoop::current()->id(),
-                   "on worker thread but should not be!");
+        NS_ABORT_IF_FALSE(mWorkerLoopID != MessageLoop::current()->id(),
+                          "on worker thread but should not be!");
     }
 
   private:

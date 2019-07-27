@@ -1143,7 +1143,7 @@ imgFrame::SizeOfExcludingThis(gfxMemoryLocation aLocation,
 
   
   
-  MOZ_ASSERT(
+  NS_ABORT_IF_FALSE(
     (aLocation == gfxMemoryLocation::IN_PROCESS_HEAP &&  aMallocSizeOf) ||
     (aLocation != gfxMemoryLocation::IN_PROCESS_HEAP && !aMallocSizeOf),
     "mismatch between aLocation and aMallocSizeOf");

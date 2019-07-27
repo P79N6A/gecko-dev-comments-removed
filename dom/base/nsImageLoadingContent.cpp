@@ -136,7 +136,7 @@ nsImageLoadingContent::Notify(imgIRequest* aRequest,
 
   if (aType == imgINotificationObserver::LOAD_COMPLETE) {
     
-    MOZ_ASSERT(aRequest, "no request?");
+    NS_ABORT_IF_FALSE(aRequest, "no request?");
 
     NS_PRECONDITION(aRequest == mCurrentRequest || aRequest == mPendingRequest,
                     "Unknown request");
@@ -227,8 +227,8 @@ nsImageLoadingContent::OnLoadComplete(imgIRequest* aRequest, nsresult aStatus)
   if (aRequest == mPendingRequest) {
     MakePendingRequestCurrent();
   }
-  MOZ_ASSERT(aRequest == mCurrentRequest,
-             "One way or another, we should be current by now");
+  NS_ABORT_IF_FALSE(aRequest == mCurrentRequest,
+                    "One way or another, we should be current by now");
 
   
   
@@ -890,9 +890,9 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
   
 #ifdef DEBUG
   nsCOMPtr<nsIContent> thisContent = do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
-  MOZ_ASSERT(thisContent &&
-             thisContent->NodePrincipal() == aDocument->NodePrincipal(),
-             "Principal mismatch?");
+  NS_ABORT_IF_FALSE(thisContent &&
+                    thisContent->NodePrincipal() == aDocument->NodePrincipal(),
+                    "Principal mismatch?");
 #endif
 
   
@@ -1219,7 +1219,7 @@ void
 nsImageLoadingContent::SetBlockedRequest(nsIURI* aURI, int16_t aContentDecision)
 {
   
-  MOZ_ASSERT(!NS_CP_ACCEPTED(aContentDecision), "Blocked but not?");
+  NS_ABORT_IF_FALSE(!NS_CP_ACCEPTED(aContentDecision), "Blocked but not?");
 
   
   
@@ -1347,8 +1347,8 @@ nsImageLoadingContent::ClearCurrentRequest(nsresult aReason,
     mCurrentRequestFlags = 0;
     return;
   }
-  MOZ_ASSERT(!mCurrentURI,
-             "Shouldn't have both mCurrentRequest and mCurrentURI!");
+  NS_ABORT_IF_FALSE(!mCurrentURI,
+                    "Shouldn't have both mCurrentRequest and mCurrentURI!");
 
   
   

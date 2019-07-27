@@ -48,9 +48,9 @@ Attr::Attr(nsDOMAttributeMap *aAttrMap,
            const nsAString  &aValue, bool aNsAware)
   : nsIAttribute(aAttrMap, aNodeInfo, aNsAware), mValue(aValue)
 {
-  MOZ_ASSERT(mNodeInfo, "We must get a nodeinfo here!");
-  MOZ_ASSERT(mNodeInfo->NodeType() == nsIDOMNode::ATTRIBUTE_NODE,
-             "Wrong nodeType");
+  NS_ABORT_IF_FALSE(mNodeInfo, "We must get a nodeinfo here!");
+  NS_ABORT_IF_FALSE(mNodeInfo->NodeType() == nsIDOMNode::ATTRIBUTE_NODE,
+                    "Wrong nodeType");
 
   
   

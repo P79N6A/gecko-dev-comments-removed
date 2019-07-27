@@ -95,7 +95,7 @@ public:
                  "memory not allocated\n");
       return NS_OK;
     }
-    MOZ_ASSERT(mSink, "mSink is null!");
+    NS_ABORT_IF_FALSE(mSink, "mSink is null!");
 
     
     

@@ -554,7 +554,7 @@ IsShortcutPath(const nsAString& aPath)
   
   
   
-  MOZ_ASSERT(!aPath.IsEmpty(), "don't pass an empty string");
+  NS_ABORT_IF_FALSE(!aPath.IsEmpty(), "don't pass an empty string");
   int32_t len = aPath.Length();
   return len >= 4 && (StringTail(aPath, 4).LowerCaseEqualsASCII(".lnk"));
 }

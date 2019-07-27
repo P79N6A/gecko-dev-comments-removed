@@ -209,7 +209,7 @@ CompositorOGL::Initialize()
   ScopedGfxFeatureReporter reporter("GL Layers", force);
 
   
-  MOZ_ASSERT(mGLContext == nullptr, "Don't reinitialize CompositorOGL");
+  NS_ABORT_IF_FALSE(mGLContext == nullptr, "Don't reinitialize CompositorOGL");
 
   mGLContext = CreateContext();
 

@@ -109,14 +109,14 @@ PluginProcessChild::Init()
     
     
     std::vector<std::string> values = CommandLine::ForCurrentProcess()->argv();
-    MOZ_ASSERT(values.size() >= 2, "not enough args");
+    NS_ABORT_IF_FALSE(values.size() >= 2, "not enough args");
 
     pluginFilename = UnmungePluginDsoPath(values[1]);
 
 #elif defined(OS_WIN)
     std::vector<std::wstring> values =
         CommandLine::ForCurrentProcess()->GetLooseValues();
-    MOZ_ASSERT(values.size() >= 1, "not enough loose args");
+    NS_ABORT_IF_FALSE(values.size() >= 1, "not enough loose args");
 
     if (ShouldProtectPluginCurrentDirectory(values[0].c_str())) {
         SanitizeEnvironmentVariables();

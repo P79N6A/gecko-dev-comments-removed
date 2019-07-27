@@ -29,7 +29,7 @@ Link::Link(Element *aElement)
   , mNeedsRegistration(false)
   , mRegistered(false)
 {
-  MOZ_ASSERT(mElement, "Must have an element");
+  NS_ABORT_IF_FALSE(mElement, "Must have an element");
 }
 
 Link::~Link()
@@ -58,9 +58,9 @@ Link::SetLinkState(nsLinkState aState)
   
   mRegistered = false;
 
-  MOZ_ASSERT(LinkState() == NS_EVENT_STATE_VISITED ||
-             LinkState() == NS_EVENT_STATE_UNVISITED,
-             "Unexpected state obtained from LinkState()!");
+  NS_ABORT_IF_FALSE(LinkState() == NS_EVENT_STATE_VISITED ||
+                    LinkState() == NS_EVENT_STATE_UNVISITED,
+                    "Unexpected state obtained from LinkState()!");
 
   
   mElement->UpdateState(true);

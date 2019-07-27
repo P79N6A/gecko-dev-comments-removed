@@ -211,7 +211,7 @@ nsJPEGDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
   mSegment = (const JOCTET*)aBuffer;
   mSegmentLen = aCount;
 
-  MOZ_ASSERT(!HasError(), "Shouldn't call WriteInternal after error!");
+  NS_ABORT_IF_FALSE(!HasError(), "Shouldn't call WriteInternal after error!");
 
   
   nsresult error_code;
@@ -574,9 +574,8 @@ nsJPEGDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
     break;
 
   case JPEG_ERROR:
-    MOZ_ASSERT(false,
-               "Should always return immediately after error and not re-enter "
-               "decoder");
+    NS_ABORT_IF_FALSE(0, "Should always return immediately after error and"
+                         " not re-enter decoder");
   }
 
   PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
@@ -948,8 +947,8 @@ term_source (j_decompress_ptr jd)
 
   
   
-  MOZ_ASSERT(decoder->mState != JPEG_ERROR,
-             "Calling term_source on a JPEG with mState == JPEG_ERROR!");
+  NS_ABORT_IF_FALSE(decoder->mState != JPEG_ERROR,
+                    "Calling term_source on a JPEG with mState == JPEG_ERROR!");
 
   
   decoder->NotifyDone();

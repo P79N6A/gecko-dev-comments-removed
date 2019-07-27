@@ -212,7 +212,7 @@ BlockingResourceBase::BlockingResourceBase(
   , mAcquired()
 #endif
 {
-  MOZ_ASSERT(mName, "Name must be nonnull");
+  NS_ABORT_IF_FALSE(mName, "Name must be nonnull");
   
   
   if (PR_SUCCESS != PR_CallOnce(&sCallOnce, InitStatics)) {

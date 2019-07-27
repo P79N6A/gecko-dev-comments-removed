@@ -92,7 +92,7 @@ struct TimerAdditionComparator
 
   bool LessThan(nsTimerImpl* aFromArray, nsTimerImpl* aNewTimer) const
   {
-    MOZ_ASSERT(aNewTimer == timerToInsert, "Unexpected timer ordering");
+    NS_ABORT_IF_FALSE(aNewTimer == timerToInsert, "Unexpected timer ordering");
 
     
     return aFromArray->mTimeout <= now ||
