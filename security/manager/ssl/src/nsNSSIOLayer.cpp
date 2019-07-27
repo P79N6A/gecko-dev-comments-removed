@@ -1030,6 +1030,17 @@ retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
 
   uint32_t reason;
   switch (err) {
+    case SSL_ERROR_INAPPROPRIATE_FALLBACK_ALERT:
+      
+      
+      
+      
+      socketInfo->SharedState().IOLayerHelpers()
+        .rememberTolerantAtVersion(socketInfo->GetHostName(),
+                                   socketInfo->GetPort(),
+                                   range.max + 1);
+      return false;
+
     case SSL_ERROR_BAD_MAC_ALERT: reason = 1; break;
     case SSL_ERROR_BAD_MAC_READ: reason = 2; break;
     case SSL_ERROR_HANDSHAKE_FAILURE_ALERT: reason = 3; break;
