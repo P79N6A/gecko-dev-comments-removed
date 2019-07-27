@@ -6,10 +6,12 @@
 
 
 
+#include "nsCaret.h"
+
+#include <algorithm>
+
 #include "nsCOMPtr.h"
-
 #include "nsITimer.h"
-
 #include "nsFrameSelection.h"
 #include "nsIFrame.h"
 #include "nsIScrollableFrame.h"
@@ -22,7 +24,6 @@
 #include "nsPresContext.h"
 #include "nsBlockFrame.h"
 #include "nsISelectionController.h"
-#include "nsCaret.h"
 #include "nsTextFrame.h"
 #include "nsXULPopupManager.h"
 #include "nsMenuPopupFrame.h"
@@ -30,18 +31,16 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/dom/Selection.h"
-#include <algorithm>
-
-
-
-
-static const int32_t kMinBidiIndicatorPixels = 2;
-
 #include "nsIBidiKeyboard.h"
 #include "nsContentUtils.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
+
+
+
+
+static const int32_t kMinBidiIndicatorPixels = 2;
 
 
 
