@@ -34,7 +34,7 @@
 
 
 #define CHECK_WRITING_MODE(param) \
-   NS_ASSERTION(param == GetWritingMode(), "writing-mode mismatch")
+   NS_ASSERTION(param == mWritingMode, "writing-mode mismatch")
 
 namespace mozilla {
 
@@ -563,9 +563,7 @@ private:
     return mPoint.y;
   }
 
-#ifdef DEBUG
   WritingMode mWritingMode;
-#endif
 
   
   
@@ -685,35 +683,21 @@ public:
       *this : LogicalSize(aToMode, GetPhysicalSize(aFromMode));
   }
 
-  
-
-
-  bool IsAllZero() const
-  {
-    return ISize() == 0 && BSize() == 0;
-  }
-
-  
-
-
-
   bool operator==(const LogicalSize& aOther) const
   {
-    CHECK_WRITING_MODE(aOther.GetWritingMode());
-    return mSize == aOther.mSize;
+    return mWritingMode == aOther.mWritingMode && mSize == aOther.mSize;
   }
 
   bool operator!=(const LogicalSize& aOther) const
   {
-    CHECK_WRITING_MODE(aOther.GetWritingMode());
-    return mSize != aOther.mSize;
+    return mWritingMode != aOther.mWritingMode || mSize != aOther.mSize;
   }
 
   LogicalSize operator+(const LogicalSize& aOther) const
   {
     CHECK_WRITING_MODE(aOther.GetWritingMode());
-    return LogicalSize(GetWritingMode(), ISize() + aOther.ISize(),
-                                         BSize() + aOther.BSize());
+    return LogicalSize(mWritingMode, ISize() + aOther.ISize(),
+                                     BSize() + aOther.BSize());
   }
   LogicalSize& operator+=(const LogicalSize& aOther)
   {
@@ -726,8 +710,8 @@ public:
   LogicalSize operator-(const LogicalSize& aOther) const
   {
     CHECK_WRITING_MODE(aOther.GetWritingMode());
-    return LogicalSize(GetWritingMode(), ISize() - aOther.ISize(),
-                                         BSize() - aOther.BSize());
+    return LogicalSize(mWritingMode, ISize() - aOther.ISize(),
+                                     BSize() - aOther.BSize());
   }
   LogicalSize& operator-=(const LogicalSize& aOther)
   {
@@ -766,9 +750,7 @@ private:
     return mSize.height;
   }
 
-#ifdef DEBUG
   WritingMode mWritingMode;
-#endif
   nsSize      mSize;
 };
 
@@ -1064,9 +1046,7 @@ private:
     return mMargin.TopBottom();
   }
 
-#ifdef DEBUG
   WritingMode mWritingMode;
-#endif
   nsMargin    mMargin;
 };
 
@@ -1496,9 +1476,7 @@ private:
     return mRect.height;
   }
 
-#ifdef DEBUG
   WritingMode mWritingMode;
-#endif
   nsRect      mRect;
 };
 
