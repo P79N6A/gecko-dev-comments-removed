@@ -395,6 +395,7 @@ public:
 
 
 
+
 #if defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_COCOA)
   static TimeStamp FromSystemTime(int64_t aSystemTime)
   {
