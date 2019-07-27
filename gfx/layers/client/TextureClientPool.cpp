@@ -137,18 +137,8 @@ void
 TextureClientPool::ReturnDeferredClients()
 {
   while (!mTextureClientsDeferred.empty()) {
-    mTextureClients.push(mTextureClientsDeferred.top());
+    ReturnTextureClient(mTextureClientsDeferred.top());
     mTextureClientsDeferred.pop();
-
-    MOZ_ASSERT(mOutstandingClients > 0);
-    mOutstandingClients--;
-  }
-  ShrinkToMinimumSize();
-  
-  
-  if (mTextureClients.size() > sMinCacheSize) {
-    mTimer->InitWithFuncCallback(ShrinkCallback, this, sShrinkTimeout,
-                                 nsITimer::TYPE_ONE_SHOT);
   }
 }
 
