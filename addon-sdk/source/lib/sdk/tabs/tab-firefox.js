@@ -22,6 +22,10 @@ const { viewFor } = require('../view/core');
 const { observer } = require('./observer');
 
 
+const FRAMESCRIPT_MANAGER = '../../framescript/FrameScriptManager.jsm';
+require(FRAMESCRIPT_MANAGER).enableTabEvents();
+
+
 const TABS = [];
 
 
@@ -39,9 +43,6 @@ const TabTrait = Trait.compose(EventEmitter, {
 
   window: null,
   constructor: function Tab(options) {
-    this._onReady = this._onReady.bind(this);
-    this._onLoad = this._onLoad.bind(this);
-    this._onPageShow = this._onPageShow.bind(this);
     this._tab = options.tab;
     
     let window = this.window = options.window || require('../windows').BrowserWindow({ window: getOwnerWindow(this._tab) });
@@ -59,9 +60,12 @@ const TabTrait = Trait.compose(EventEmitter, {
 
     this.on(EVENTS.close.name, this.destroy.bind(this));
 
-    this._browser.addEventListener(EVENTS.ready.dom, this._onReady, true);
-    this._browser.addEventListener(EVENTS.load.dom, this._onLoad, true);
-    this._browser.addEventListener(EVENTS.pageshow.dom, this._onPageShow, true);
+    this._onContentEvent = this._onContentEvent.bind(this);
+    this._browser.messageManager.addMessageListener('sdk/tab/event', this._onContentEvent);
+
+    
+    
+    this._skipBlankEvents = options.inNewWindow && options.url !== 'about:blank';
 
     if (options.isPinned)
       this.pin();
@@ -84,9 +88,7 @@ const TabTrait = Trait.compose(EventEmitter, {
       let browser = this._browser;
       
       if (browser) {
-        browser.removeEventListener(EVENTS.ready.dom, this._onReady, true);
-        browser.removeEventListener(EVENTS.load.dom, this._onLoad, true);
-        browser.removeEventListener(EVENTS.pageshow.dom, this._onPageShow, true);
+        browser.messageManager.removeMessageListener('sdk/tab/event', this._onContentEvent);
       }
       this._tab = null;
       TABS.splice(TABS.indexOf(this), 1);
@@ -97,33 +99,17 @@ const TabTrait = Trait.compose(EventEmitter, {
 
 
 
-  _onReady: function _onReady(event) {
+  _onContentEvent: function({ data }) {
     
-    if (event.target == this._contentDocument)
-      this._emit(EVENTS.ready.name, this._public);
+    if (this._skipBlankEvents && this.window.tabs.length === 1 && this.url === 'about:blank')
+      return;
+
+    
+    this._skipBlankEvents = false;
+
+    this._emit(data.type, this._public, data.persisted);
   },
 
-  
-
-
-
-  _onLoad: function _onLoad(event) {
-    
-    if (event.target == this._contentDocument) {
-      this._emit(EVENTS.load.name, this._public);
-    }
-  },
-
-  
-
-
-
-  _onPageShow: function _onPageShow(event) {
-    
-    if (event.target == this._contentDocument) {
-      this._emit(EVENTS.pageshow.name, this._public, event.persisted);
-    }
-  },
   
 
 

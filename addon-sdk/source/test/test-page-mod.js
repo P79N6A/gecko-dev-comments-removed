@@ -678,8 +678,10 @@ exports.testContentScriptWhenOnTabOpen = function(assert, done) {
 
 
 exports.testContentScriptWhenOnTabReady = function(assert, done) {
-  const url = "data:text/html;charset=utf-8,testContentScriptWhenOnTabReady";
-
+  
+  let iframeURL = 'data:text/html;charset=utf-8,testContentScriptWhenOnTabReady';
+  let iframe = '<iframe src="' + iframeURL + '" />';
+  let url = 'data:text/html;charset=utf-8,' + encodeURIComponent(iframe);
   tabs.open({
     url: url,
     onReady: function(tab) {

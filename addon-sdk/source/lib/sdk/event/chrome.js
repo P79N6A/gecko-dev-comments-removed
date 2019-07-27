@@ -10,8 +10,9 @@ module.metadata = {
 
 const { Cc, Ci, Cr } = require("chrome");
 const { emit, on, off } = require("./core");
-const { addObserver } = Cc['@mozilla.org/observer-service;1'].
+const { addObserver, removeObserver } = Cc["@mozilla.org/observer-service;1"].
                         getService(Ci.nsIObserverService);
+const { when: unload } = require("../system/unload");
 
 
 
@@ -47,6 +48,11 @@ function observe(topic) {
   
   
   addObserver(observerChannel, topic, true);
+
+  
+  
+  
+  unload(() => removeObserver(observerChannel, topic));
 
   return observerChannel;
 }

@@ -199,6 +199,7 @@ destroy.define(Worker, function (worker, reason) {
   
   
   off(worker);
+  off(worker.port);
 });
 
 

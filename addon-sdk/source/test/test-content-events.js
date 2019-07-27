@@ -10,6 +10,12 @@ const { openTab, closeTab, getBrowserForTab } = require("sdk/tabs/utils");
 const { defer } = require("sdk/core/promise");
 const { curry, identity, partial } = require("sdk/lang/functional");
 
+const { nuke } = require("sdk/loader/sandbox");
+
+const { open: openWindow, close: closeWindow } = require('sdk/window/helpers');
+
+const openBrowserWindow = partial(openWindow, null, {features: {toolbar: true}});
+
 let when = curry(function(options, tab) {
   let type = options.type || options;
   let capture = options.capture || false;
@@ -116,6 +122,46 @@ exports["test nested frames"] = function(assert, done) {
     });
 };
 
+exports["test dead object errors"] = function(assert, done) {
+  let system = require("sdk/system/events");
+  let loader = Loader(module);
+  let { events } = loader.require("sdk/content/events");
+
+  
+  
+  function onMessage({ subject }) {
+    let message = subject.wrappedJSObject;
+    let { level } = message;
+    let text = String(message.arguments[0]);
+
+    if (level === "error" && text.contains("can't access dead object"))
+      fail(text);
+  }
+
+  let cleanup = () => system.off("console-api-log-event", onMessage);
+  let fail = (reason) => {
+    cleanup();
+    assert.fail(reason);
+  }
+
+  loader.unload();
+
+  
+  
+  let url = Object.keys(loader.sandboxes).
+    find(url => url.endsWith("/sdk/content/events.js"));
+
+  nuke(loader.sandboxes[url]);
+
+  system.on("console-api-log-event", onMessage, true);
+
+  openBrowserWindow().
+    then(closeWindow).
+    then(() => assert.pass("checking dead object errors")).
+    then(cleanup).
+    then(done, fail);
+};
+
 
 
 
@@ -125,7 +171,7 @@ function eventFilter (type, target, callback) {
   if (target.URL.startsWith("data:text/html,") &&
     type !== "chrome-document-global-created" &&
     type !== "content-document-global-created")
-  
+
     callback();
 }
 require("test").run(exports);
