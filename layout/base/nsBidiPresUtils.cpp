@@ -1263,7 +1263,7 @@ nsBidiPresUtils::ResolveParagraphWithinBlock(nsBlockFrame* aBlockFrame,
   aBpd->ResetData();
 }
 
-void
+ nscoord
 nsBidiPresUtils::ReorderFrames(nsIFrame* aFirstFrameOnLine,
                                int32_t aNumFramesOnLine,
                                WritingMode aLineWM,
@@ -1273,16 +1273,17 @@ nsBidiPresUtils::ReorderFrames(nsIFrame* aFirstFrameOnLine,
   
   if (aFirstFrameOnLine->GetType() == nsGkAtoms::lineFrame) {
     aFirstFrameOnLine = aFirstFrameOnLine->GetFirstPrincipalChild();
-    if (!aFirstFrameOnLine)
-      return;
+    if (!aFirstFrameOnLine) {
+      return 0;
+    }
     
     
     aNumFramesOnLine = -1;
   }
 
   BidiLineData bld(aFirstFrameOnLine, aNumFramesOnLine);
-  RepositionInlineFrames(&bld, aFirstFrameOnLine, aLineWM,
-                         aContainerSize, aStart);
+  return RepositionInlineFrames(&bld, aFirstFrameOnLine, aLineWM,
+                                aContainerSize, aStart);
 }
 
 nsIFrame*
@@ -1437,6 +1438,41 @@ nsBidiPresUtils::IsFirstOrLast(nsIFrame* aFrame,
   }
 }
 
+ void
+nsBidiPresUtils::RepositionRubyContentFrame(
+  nsIFrame* aFrame, WritingMode aFrameWM, const LogicalMargin& aBorderPadding)
+{
+  const nsFrameList& childList = aFrame->PrincipalChildList();
+  if (childList.IsEmpty()) {
+    return;
+  }
+
+  
+  
+  
+  nscoord isize = ReorderFrames(childList.FirstChild(),
+                                childList.GetLength(),
+                                aFrameWM, aFrame->GetSize(),
+                                aBorderPadding.IStart(aFrameWM));
+  isize += aBorderPadding.IEnd(aFrameWM);
+
+  if (aFrame->StyleText()->mRubyAlign == NS_STYLE_RUBY_ALIGN_START) {
+    return;
+  }
+  nscoord residualISize = aFrame->ISize(aFrameWM) - isize;
+  if (residualISize <= 0) {
+    return;
+  }
+
+  
+  
+  for (nsIFrame* child : childList) {
+    LogicalRect rect = child->GetLogicalRect(aFrameWM, 0);
+    rect.IStart(aFrameWM) += residualISize / 2;
+    child->SetRect(aFrameWM, rect, 0);
+  }
+}
+
  nscoord
 nsBidiPresUtils::RepositionRubyFrame(
   nsIFrame* aFrame,
@@ -1492,14 +1528,7 @@ nsBidiPresUtils::RepositionRubyFrame(
   } else {
     if (frameType == nsGkAtoms::rubyBaseFrame ||
         frameType == nsGkAtoms::rubyTextFrame) {
-      
-      
-      
-      const nsFrameList& childList = aFrame->PrincipalChildList();
-      if (childList.NotEmpty()) {
-        ReorderFrames(childList.FirstChild(), childList.GetLength(),
-                      frameWM, frameSize, aBorderPadding.IStart(frameWM));
-      }
+      RepositionRubyContentFrame(aFrame, frameWM, aBorderPadding);
     }
     
     
@@ -1636,7 +1665,7 @@ nsBidiPresUtils::InitContinuationStates(nsIFrame*              aFrame,
   }
 }
 
-void
+ nscoord
 nsBidiPresUtils::RepositionInlineFrames(BidiLineData *aBld,
                                         nsIFrame* aFirstChild,
                                         WritingMode aLineWM,
@@ -1673,6 +1702,7 @@ nsBidiPresUtils::RepositionInlineFrames(BidiLineData *aBld,
       start, &continuationStates,
       aLineWM, false, aContainerSize);
   }
+  return start;
 }
 
 bool

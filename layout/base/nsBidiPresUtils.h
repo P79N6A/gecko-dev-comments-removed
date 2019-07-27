@@ -162,11 +162,13 @@ public:
 
 
 
-  static void ReorderFrames(nsIFrame* aFirstFrameOnLine,
-                            int32_t aNumFramesOnLine,
-                            mozilla::WritingMode aLineWM,
-                            const nsSize& aContainerSize,
-                            nscoord aStart);
+
+
+  static nscoord ReorderFrames(nsIFrame* aFirstFrameOnLine,
+                               int32_t aNumFramesOnLine,
+                               mozilla::WritingMode aLineWM,
+                               const nsSize& aContainerSize,
+                               nscoord aStart);
 
   
 
@@ -400,6 +402,14 @@ private:
   
 
 
+
+  static void RepositionRubyContentFrame(
+    nsIFrame* aFrame, mozilla::WritingMode aFrameWM,
+    const mozilla::LogicalMargin& aBorderPadding);
+
+  
+
+
   static nscoord RepositionRubyFrame(
     nsIFrame* aFrame,
     const nsContinuationStates* aContinuationStates,
@@ -478,11 +488,12 @@ private:
 
 
 
-  static void RepositionInlineFrames(BidiLineData* aBld,
-                                     nsIFrame* aFirstChild,
-                                     mozilla::WritingMode aLineWM,
-                                     const nsSize& aContainerSize,
-                                     nscoord aStart);
+
+  static nscoord RepositionInlineFrames(BidiLineData* aBld,
+                                        nsIFrame* aFirstChild,
+                                        mozilla::WritingMode aLineWM,
+                                        const nsSize& aContainerSize,
+                                        nscoord aStart);
   
   
 
