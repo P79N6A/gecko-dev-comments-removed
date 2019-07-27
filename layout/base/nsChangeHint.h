@@ -88,13 +88,25 @@ enum nsChangeHint {
 
 
 
+
+
+
+
   nsChangeHint_UpdatePostTransformOverflow = 0x2000,
 
   
 
 
 
-  nsChangeHint_ChildrenOnlyTransform = 0x4000,
+
+
+  nsChangeHint_UpdateParentOverflow = 0x4000,
+
+  
+
+
+
+  nsChangeHint_ChildrenOnlyTransform = 0x8000,
 
   
 
@@ -106,7 +118,7 @@ enum nsChangeHint {
 
 
 
-  nsChangeHint_RecomputePosition = 0x8000,
+  nsChangeHint_RecomputePosition = 0x10000,
 
   
 
@@ -114,7 +126,7 @@ enum nsChangeHint {
 
 
 
-  nsChangeHint_AddOrRemoveTransform = 0x10000,
+  nsChangeHint_AddOrRemoveTransform = 0x20000,
 
   
 
@@ -122,19 +134,19 @@ enum nsChangeHint {
 
 
 
-  nsChangeHint_BorderStyleNoneChange = 0x20000,
+  nsChangeHint_BorderStyleNoneChange = 0x40000,
 
   
 
 
 
-  nsChangeHint_UpdateTextPath = 0x40000,
+  nsChangeHint_UpdateTextPath = 0x80000,
 
   
 
 
 
-  nsChangeHint_SchedulePaint = 0x80000,
+  nsChangeHint_SchedulePaint = 0x100000,
 
   
 
@@ -150,12 +162,12 @@ enum nsChangeHint {
 
 
 
-  nsChangeHint_NeutralChange = 0x100000,
+  nsChangeHint_NeutralChange = 0x200000,
 
   
 
 
-  nsChangeHint_InvalidateRenderingObservers = 0x200000
+  nsChangeHint_InvalidateRenderingObservers = 0x400000
 
   
   
@@ -214,6 +226,7 @@ inline bool NS_IsHintSubset(nsChangeHint aSubset, nsChangeHint aSuperSet) {
           nsChangeHint_UpdateOpacityLayer | \
           nsChangeHint_UpdateOverflow | \
           nsChangeHint_UpdatePostTransformOverflow | \
+          nsChangeHint_UpdateParentOverflow | \
           nsChangeHint_ChildrenOnlyTransform | \
           nsChangeHint_RecomputePosition | \
           nsChangeHint_AddOrRemoveTransform | \
@@ -229,6 +242,7 @@ inline nsChangeHint NS_HintsNotHandledForDescendantsIn(nsChangeHint aChangeHint)
     nsChangeHint_UpdateOpacityLayer |
     nsChangeHint_UpdateOverflow |
     nsChangeHint_UpdatePostTransformOverflow |
+    nsChangeHint_UpdateParentOverflow |
     nsChangeHint_ChildrenOnlyTransform |
     nsChangeHint_RecomputePosition |
     nsChangeHint_AddOrRemoveTransform |
