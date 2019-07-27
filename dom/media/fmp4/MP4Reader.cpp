@@ -531,6 +531,7 @@ MP4Reader::Decode(TrackType aTrack)
       nsAutoPtr<MP4Sample> compressed(PopSample(aTrack));
       if (!compressed) {
         
+        LOG("MP4Reader: EOS or error - no samples available");
         LOG("Draining %s", TrackTypeToStr(aTrack));
         data.mMonitor.Lock();
         MOZ_ASSERT(!data.mEOS);
