@@ -4,20 +4,19 @@
 
 package org.mozilla.gecko;
 
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+
 import org.mozilla.gecko.mozglue.RobocopTarget;
 
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
-import android.os.Build;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
 import android.util.Log;
-
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
 
 
 
@@ -150,18 +149,13 @@ public final class GeckoSharedPrefs {
         
         
         
-        if (Build.VERSION.SDK_INT < 9) {
+        
+        final StrictMode.ThreadPolicy savedPolicy = StrictMode.allowThreadDiskReads();
+        StrictMode.allowThreadDiskWrites();
+        try {
             performMigration(context);
-        } else {
-            
-            final StrictMode.ThreadPolicy savedPolicy = StrictMode.allowThreadDiskReads();
-            StrictMode.allowThreadDiskWrites();
-
-            try {
-                performMigration(context);
-            } finally {
-                StrictMode.setThreadPolicy(savedPolicy);
-            }
+        } finally {
+            StrictMode.setThreadPolicy(savedPolicy);
         }
 
         migrationDone = true;
