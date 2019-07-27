@@ -405,6 +405,13 @@ var commandsPeerConnection = [
     return test.pcRemote.checkMediaFlowPresent();
   },
 
+
+
+
+
+
+
+
   function PC_LOCAL_CHECK_STATS(test) {
     return test.pcLocal.getStats(null).then(stats => {
       test.pcLocal.checkStats(stats, test.steeplechase);
