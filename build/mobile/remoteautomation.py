@@ -75,7 +75,10 @@ class RemoteAutomation(Automation):
             env['MOZ_CRASHREPORTER_DISABLE'] = '1'
 
         
-        env['MOZ_DISABLE_NONLOCAL_CONNECTIONS'] = '1'
+        
+        
+        
+        env.setdefault('MOZ_DISABLE_NONLOCAL_CONNECTIONS', '1')
 
         return env
 
