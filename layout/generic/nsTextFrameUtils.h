@@ -7,6 +7,8 @@
 #define NSTEXTFRAMEUTILS_H_
 
 #include "gfxSkipChars.h"
+#include "nsBidiUtils.h"
+#include "nsUnicodeProperties.h"
 
 class nsIContent;
 struct nsStyleText;
@@ -75,7 +77,12 @@ public:
 
   static bool
   IsSpaceCombiningSequenceTail(const char16_t* aChars, int32_t aLength) {
-    return aLength > 0 && aChars[0] == 0x200D; 
+    return aLength > 0 &&
+      (mozilla::unicode::IsClusterExtender(aChars[0]) ||
+       (IsBidiControl(aChars[0]) &&
+        IsSpaceCombiningSequenceTail(aChars + 1, aLength - 1)
+       )
+      );
   }
 
   enum CompressionMode {
