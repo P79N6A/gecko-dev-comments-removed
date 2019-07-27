@@ -7809,11 +7809,11 @@ nsIFrame::IsFocusable(int32_t *aTabIndex, bool aWithMouse)
       
       nsIScrollableFrame *scrollFrame = do_QueryFrame(this);
       if (scrollFrame &&
-          scrollFrame->GetScrollbarStyles() != ScrollbarStyles(NS_STYLE_OVERFLOW_HIDDEN, NS_STYLE_OVERFLOW_HIDDEN) &&
+          !scrollFrame->GetScrollbarStyles().IsHiddenInBothDirections() &&
           !scrollFrame->GetScrollRange().IsEqualEdges(nsRect(0, 0, 0, 0))) {
-          
-          isFocusable = true;
-          tabIndex = 0;
+        
+        isFocusable = true;
+        tabIndex = 0;
       }
     }
   }
