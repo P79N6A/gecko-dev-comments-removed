@@ -23,9 +23,6 @@ const EXPECTED_REFLOWS = [
   
   
   "ssi_getWindowDimension@resource:///modules/sessionstore/SessionStore.jsm",
-
-  
-  "PreviewController.prototype.wasResizedSinceLastPreview@resource:///modules/WindowsPreviewPerTab.jsm"
 ];
 
 if (Services.appinfo.OS == "WINNT" || Services.appinfo.OS == "Darwin") {
