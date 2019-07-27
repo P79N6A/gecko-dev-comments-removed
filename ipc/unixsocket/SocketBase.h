@@ -486,6 +486,36 @@ private:
   UnixSocketRawData* mData;
 };
 
+
+
+
+template <typename T>
+class SocketIOShutdownTask MOZ_FINAL : public SocketIOTask<T>
+{
+public:
+  SocketIOShutdownTask(T* aIO)
+  : SocketIOTask<T>(aIO)
+  { }
+
+  void Run() MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+
+    T* io = SocketIOTask<T>::GetIO();
+
+    
+    
+    
+    
+    
+    io->ShutdownOnIOThread();
+
+    nsRefPtr<nsRunnable> r = new SocketIODeleteInstanceRunnable<T>(io);
+    nsresult rv = NS_DispatchToMainThread(r);
+    NS_ENSURE_SUCCESS_VOID(rv);
+  }
+};
+
 }
 }
 
