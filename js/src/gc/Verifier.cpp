@@ -306,6 +306,8 @@ AssertMarkedOrAllocated(const EdgeValue &edge)
     
     if (edge.kind == JSTRACE_STRING && static_cast<JSString *>(edge.thing)->isPermanentAtom())
         return;
+    if (edge.kind == JSTRACE_SYMBOL && static_cast<JS::Symbol *>(edge.thing)->isWellKnownSymbol())
+        return;
 
     char msgbuf[1024];
     const char *label = edge.label;
