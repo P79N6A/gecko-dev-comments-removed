@@ -15,6 +15,7 @@
 #include "mozilla/CSSStyleSheet.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/RuleProcessorCache.h"
 #include "nsIDocumentInlines.h"
 #include "nsRuleWalker.h"
 #include "nsStyleContext.h"
@@ -181,6 +182,19 @@ nsStyleSet::~nsStyleSet()
       static_cast<CSSStyleSheet*>(mSheets[type][i])->DropStyleSet(this);
     }
   }
+
+  
+  nsCSSRuleProcessor* rp;
+  rp = static_cast<nsCSSRuleProcessor*>(mRuleProcessors[eAgentSheet].get());
+  if (rp) {
+    MOZ_ASSERT(rp->IsShared());
+    rp->ReleaseStyleSetRef();
+  }
+  rp = static_cast<nsCSSRuleProcessor*>(mRuleProcessors[eUserSheet].get());
+  if (rp) {
+    MOZ_ASSERT(rp->IsShared());
+    rp->ReleaseStyleSetRef();
+  }
 }
 
 size_t
@@ -190,7 +204,16 @@ nsStyleSet::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
 
   for (int i = 0; i < eSheetTypeCount; i++) {
     if (mRuleProcessors[i]) {
-      n += mRuleProcessors[i]->SizeOfIncludingThis(aMallocSizeOf);
+      bool shared = false;
+      if (i == eAgentSheet || i == eUserSheet) {
+        
+        nsCSSRuleProcessor* rp =
+          static_cast<nsCSSRuleProcessor*>(mRuleProcessors[i].get());
+        shared = rp->IsShared();
+      }
+      if (!shared) {
+        n += mRuleProcessors[i]->SizeOfIncludingThis(aMallocSizeOf);
+      }
     }
     
     
@@ -364,7 +387,15 @@ nsStyleSet::GatherRuleProcessors(sheetType aType)
 {
   nsCOMPtr<nsIStyleRuleProcessor> oldRuleProcessor(mRuleProcessors[aType]);
   nsTArray<nsCOMPtr<nsIStyleRuleProcessor>> oldScopedDocRuleProcessors;
-
+  if (aType == eAgentSheet || aType == eUserSheet) {
+    
+    nsCSSRuleProcessor* rp =
+      static_cast<nsCSSRuleProcessor*>(mRuleProcessors[aType].get());
+    if (rp) {
+      MOZ_ASSERT(rp->IsShared());
+      rp->ReleaseStyleSetRef();
+    }
+  }
   mRuleProcessors[aType] = nullptr;
   if (aType == eScopedDocSheet) {
     for (uint32_t i = 0; i < mScopedDocSheetRuleProcessors.Length(); i++) {
@@ -477,9 +508,42 @@ nsStyleSet::GatherRuleProcessors(sheetType aType)
   if (mSheets[aType].Count()) {
     switch (aType) {
       case eAgentSheet:
-      case eUserSheet:
+      case eUserSheet: {
+        
+        
+        nsCOMArray<nsIStyleSheet>& sheets = mSheets[aType];
+        nsTArray<nsRefPtr<CSSStyleSheet>> cssSheets(sheets.Count());
+        for (int32_t i = 0, i_end = sheets.Count(); i < i_end; ++i) {
+          nsRefPtr<CSSStyleSheet> cssSheet = do_QueryObject(sheets[i]);
+          NS_ASSERTION(cssSheet, "not a CSS sheet");
+          cssSheets.AppendElement(cssSheet);
+        }
+        nsTArray<CSSStyleSheet*> cssSheetsRaw(cssSheets.Length());
+        for (int32_t i = 0, i_end = cssSheets.Length(); i < i_end; ++i) {
+          cssSheetsRaw.AppendElement(cssSheets[i]);
+        }
+        nsCSSRuleProcessor* rp =
+          RuleProcessorCache::GetRuleProcessor(cssSheetsRaw, PresContext());
+        if (!rp) {
+          rp = new nsCSSRuleProcessor(cssSheets, uint8_t(aType), nullptr,
+                                      static_cast<nsCSSRuleProcessor*>(
+                                       oldRuleProcessor.get()),
+                                      true );
+          nsTArray<css::DocumentRule*> documentRules;
+          nsDocumentRuleResultCacheKey cacheKey;
+          rp->TakeDocumentRulesAndCacheKey(PresContext(),
+                                           documentRules, cacheKey);
+          RuleProcessorCache::PutRuleProcessor(cssSheetsRaw,
+                                               Move(documentRules),
+                                               cacheKey, rp);
+        }
+        mRuleProcessors[aType] = rp;
+        rp->AddStyleSetRef();
+        break;
+      }
       case eDocSheet:
       case eOverrideSheet: {
+        
         
         nsCOMArray<nsIStyleSheet>& sheets = mSheets[aType];
         nsTArray<nsRefPtr<CSSStyleSheet>> cssSheets(sheets.Count());
