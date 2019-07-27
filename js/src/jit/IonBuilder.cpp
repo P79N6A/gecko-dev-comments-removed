@@ -377,11 +377,14 @@ IonBuilder::canInlineTarget(JSFunction *target, CallInfo &callInfo)
     if (!inlineScript->hasBaselineScript())
         return DontInline(inlineScript, "No baseline jitcode");
 
-    if (TooManyArguments(target->nargs()))
+    if (TooManyFormalArguments(target->nargs()))
         return DontInline(inlineScript, "Too many args");
 
-    if (TooManyArguments(callInfo.argc()))
-        return DontInline(inlineScript, "Too many args");
+    
+    
+    
+    if (TooManyFormalArguments(callInfo.argc()))
+        return DontInline(inlineScript, "Too many actual args");
 
     
     IonBuilder *builder = callerBuilder_;
