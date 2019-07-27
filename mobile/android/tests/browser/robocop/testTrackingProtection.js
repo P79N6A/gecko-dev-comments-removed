@@ -43,7 +43,6 @@ function promiseLoadEvent(browser, url, eventType="load", runBeforeLoad) {
 
 
 
-var PREF = "privacy.trackingprotection.enabled";
 var TABLE = "urlclassifier.trackingTable";
 
 
@@ -85,34 +84,22 @@ function doUpdate() {
 }
 
 
-let browser;
 
-add_test(function setup_browser() {
-  let chromeWin = Services.wm.getMostRecentWindow("navigator:browser");
-  let BrowserApp = chromeWin.BrowserApp;
+add_task(function* test_tracking_pb() {
+  let BrowserApp = Services.wm.getMostRecentWindow("navigator:browser").BrowserApp;
 
-  do_register_cleanup(function cleanup() {
-    Services.prefs.clearUserPref(PREF);
-    Services.prefs.clearUserPref(TABLE);
-    BrowserApp.closeTab(BrowserApp.getTabForBrowser(browser));
+  
+  let browser = BrowserApp.addTab("about:blank", { selected: true, parentId: BrowserApp.selectedTab.id, isPrivate: true }).browser;
+  yield new Promise((resolve, reject) => {
+    browser.addEventListener("load", function startTests(event) {
+      browser.removeEventListener("load", startTests, true);
+      Services.tm.mainThread.dispatch(resolve, Ci.nsIThread.DISPATCH_NORMAL);
+    }, true);
   });
 
   
-  let url = "about:blank";
-  browser = BrowserApp.addTab(url, { selected: true, parentId: BrowserApp.selectedTab.id }).browser;
-  browser.addEventListener("load", function startTests(event) {
-    browser.removeEventListener("load", startTests, true);
-    Services.tm.mainThread.dispatch(run_next_test, Ci.nsIThread.DISPATCH_NORMAL);
-  }, true);
-});
-
-add_task(function* () {
-  
   Services.prefs.setCharPref(TABLE, "test-track-simple");
   yield doUpdate();
-
-  
-  Services.prefs.setBoolPref(PREF, true);
 
   
   yield promiseLoadEvent(browser, "http://tracking.example.org/tests/robocop/tracking_good.html");
@@ -136,7 +123,7 @@ add_task(function* () {
   Messaging.sendRequest({ type: "Test:Expected", expected: "tracking_content_blocked" });
 
   
-  Services.prefs.setBoolPref(PREF, false);
+  Services.prefs.setBoolPref("privacy.trackingprotection.pbmode.enabled", false);
 
   
   yield promiseLoadEvent(browser, "http://tracking.example.org/tests/robocop/tracking_bad.html");
