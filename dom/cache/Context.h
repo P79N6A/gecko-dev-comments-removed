@@ -11,10 +11,13 @@
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsISupportsImpl.h"
+#include "nsProxyRelease.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "nsTObserverArray.h"
 
 class nsIEventTarget;
+class nsIThread;
 
 namespace mozilla {
 namespace dom {
@@ -22,6 +25,19 @@ namespace cache {
 
 class Action;
 class Manager;
+class OfflineStorage;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -44,6 +60,53 @@ class Manager;
 class Context final
 {
 public:
+  
+  
+  class ThreadsafeHandle final
+  {
+    friend class Context;
+  public:
+    void AllowToClose();
+    void InvalidateAndAllowToClose();
+  private:
+    explicit ThreadsafeHandle(Context* aContext);
+    ~ThreadsafeHandle();
+
+    
+    ThreadsafeHandle(const ThreadsafeHandle&) = delete;
+    ThreadsafeHandle& operator=(const ThreadsafeHandle&) = delete;
+
+    void AllowToCloseOnOwningThread();
+    void InvalidateAndAllowToCloseOnOwningThread();
+
+    void ContextDestroyed(Context* aContext);
+
+    
+    
+    nsRefPtr<Context> mStrongRef;
+
+    
+    
+    
+    Context* mWeakRef;
+
+    nsCOMPtr<nsIThread> mOwningThread;
+
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(cache::Context::ThreadsafeHandle)
+  };
+
+  
+  
+  
+  
+  
+  class Activity
+  {
+  public:
+    virtual void Cancel() = 0;
+    virtual bool MatchesCacheId(CacheId aCacheId) const = 0;
+  };
+
   static already_AddRefed<Context>
   Create(Manager* aManager, Action* aQuotaIOThreadAction);
 
@@ -61,10 +124,26 @@ public:
   void CancelAll();
 
   
+  void Invalidate();
+
+  
+  
+  void AllowToClose();
+
+  
   
   
   
   void CancelForCacheId(CacheId aCacheId);
+
+  void AddActivity(Activity* aActivity);
+  void RemoveActivity(Activity* aActivity);
+
+  const QuotaInfo&
+  GetQuotaInfo() const
+  {
+    return mQuotaInfo;
+  }
 
 private:
   class QuotaInitRunnable;
@@ -86,8 +165,11 @@ private:
   explicit Context(Manager* aManager);
   ~Context();
   void DispatchAction(nsIEventTarget* aTarget, Action* aAction);
-  void OnQuotaInit(nsresult aRv, const QuotaInfo& aQuotaInfo);
-  void OnActionRunnableComplete(ActionRunnable* const aAction);
+  void OnQuotaInit(nsresult aRv, const QuotaInfo& aQuotaInfo,
+                   nsMainThreadPtrHandle<OfflineStorage>& aOfflineStorage);
+
+  already_AddRefed<ThreadsafeHandle>
+  CreateThreadsafeHandle();
 
   nsRefPtr<Manager> mManager;
   State mState;
@@ -95,7 +177,16 @@ private:
   nsTArray<PendingAction> mPendingActions;
 
   
-  nsTArray<ActionRunnable*> mActionRunnables;
+  
+  typedef nsTObserverArray<Activity*> ActivityList;
+  ActivityList mActivityList;
+
+  
+  
+  
+  nsRefPtr<ThreadsafeHandle> mThreadsafeHandle;
+
+  nsMainThreadPtrHandle<OfflineStorage> mOfflineStorage;
 
 public:
   NS_INLINE_DECL_REFCOUNTING(cache::Context)
