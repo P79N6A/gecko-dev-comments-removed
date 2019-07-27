@@ -142,6 +142,30 @@ function MarionetteServerConnection(aPrefix, aTransport, aServer)
   this.testName = null;
   this.mozBrowserClose = null;
   this.oopFrameId = null; 
+  this.sessionCapabilities = {
+    
+    "browserName": appName,
+    "browserVersion": Services.appinfo.version,
+    "platformName": Services.appinfo.OS.toUpperCase(),
+    "platformVersion": Services.appinfo.platformVersion,
+
+    
+    "handlesAlerts": false,
+    "nativeEvents": false,
+    "rotatable": appName == "B2G",
+    "secureSsl": false,
+    "takesElementScreenshot": true,
+    "takesScreenshot": true,
+
+    
+    "platform": Services.appinfo.OS.toUpperCase(),
+
+    
+    "XULappId" : Services.appinfo.ID,
+    "appBuildId" : Services.appinfo.appBuildID,
+    "device": qemu == "1" ? "qemu" : (!device ? "desktop" : device),
+    "version": Services.appinfo.version
+  };
 }
 
 MarionetteServerConnection.prototype = {
@@ -516,11 +540,15 @@ MarionetteServerConnection.prototype = {
 
 
 
-  newSession: function MDA_newSession() {
+  newSession: function MDA_newSession(aRequest) {
+    logger.info("The newSession request is " + JSON.stringify(aRequest))
     this.command_id = this.getCommandId();
     this.newSessionCommandId = this.command_id;
 
     this.scriptTimeout = 10000;
+    if (aRequest && aRequest.parameters) {
+      this.setSessionCapabilities(aRequest.parameters.capabilities);
+    }
 
     function waitForWindow() {
       let win = this.getCurrentWindow();
@@ -579,41 +607,38 @@ MarionetteServerConnection.prototype = {
   getSessionCapabilities: function MDA_getSessionCapabilities() {
     this.command_id = this.getCommandId();
 
-    let isB2G = appName == "B2G";
-    let platformName = Services.appinfo.OS.toUpperCase();
-
-    let caps = {
-      
-      "browserName": appName,
-      "browserVersion": Services.appinfo.version,
-      "platformName": platformName,
-      "platformVersion": Services.appinfo.platformVersion,
-
-      
-      "handlesAlerts": false,
-      "nativeEvents": false,
-      "rotatable": isB2G,
-      "secureSsl": false,
-      "takesElementScreenshot": true,
-      "takesScreenshot": true,
-
-      
-      "platform": platformName,
-
-      
-      "XULappId" : Services.appinfo.ID,
-      "appBuildId" : Services.appinfo.appBuildID,
-      "device": qemu == "1" ? "qemu" : (!device ? "desktop" : device),
-      "version": Services.appinfo.version
-    };
-
     
     
     
-    if (isB2G)
-      caps.b2g = true;
+    if (appName == "B2G")
+      this.sessionCapabilities.b2g = true;
 
-    this.sendResponse(caps, this.command_id);
+    this.sendResponse(this.sessionCapabilities, this.command_id);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  setSessionCapabilities: function MDA_setSessionCapabilities (capabilities) {
+    this.command_id = this.getCommandId();
+    var tempCapabilities = {};
+    for (var caps in this.sessionCapabilities) {
+      tempCapabilities[caps] = this.sessionCapabilities[caps];
+    }
+
+    for (var caps in capabilities) {
+      tempCapabilities[caps] = capabilities[caps];
+    }
+
+    this.sessionCapabilities = tempCapabilities;
   },
 
   
