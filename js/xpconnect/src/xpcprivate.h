@@ -3357,23 +3357,11 @@ Atob(JSContext *cx, unsigned argc, jsval *vp);
 bool
 Btoa(JSContext *cx, unsigned argc, jsval *vp);
 
-class FunctionForwarderOptions;
-
-
-
-
-
 
 
 bool
 NewFunctionForwarder(JSContext *cx, JS::HandleId id, JS::HandleObject callable,
-                     FunctionForwarderOptions &options, JS::MutableHandleValue vp);
-
-
-
-bool
-NewNonCloningFunctionForwarder(JSContext *cx, JS::HandleId id,
-                               JS::HandleObject callable, JS::MutableHandleValue vp);
+                     JS::MutableHandleValue vp);
 
 
 nsresult
@@ -3486,16 +3474,13 @@ public:
                   JSObject* options = nullptr)
         : OptionsBase(cx, options)
         , defineAs(cx, JSID_VOID)
-        , allowCallbacks(false)
     { }
 
     virtual bool Parse() {
-        return ParseId("defineAs", &defineAs) &&
-               ParseBoolean("allowCallbacks", &allowCallbacks);
+        return ParseId("defineAs", &defineAs);
     };
 
     JS::RootedId defineAs;
-    bool allowCallbacks;
 };
 
 class MOZ_STACK_CLASS StackScopedCloneOptions : public OptionsBase {
@@ -3518,43 +3503,6 @@ public:
     
     
     bool cloneFunctions;
-};
-
-class MOZ_STACK_CLASS FunctionForwarderOptions : public OptionsBase {
-public:
-    FunctionForwarderOptions(JSContext *cx = xpc_GetSafeJSContext(),
-                             JSObject* options = nullptr)
-        : OptionsBase(cx, options)
-        , allowCallbacks(false)
-    { }
-
-    JSObject *ToJSObject(JSContext *cx) {
-        JS::RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
-        JS::RootedObject obj(cx, JS_NewObjectWithGivenProto(cx, nullptr, JS::NullPtr(), global));
-        if (!obj)
-            return nullptr;
-
-        JS::RootedValue val(cx);
-        unsigned attrs = JSPROP_READONLY | JSPROP_PERMANENT;
-        val = JS::BooleanValue(allowCallbacks);
-        if (!JS_DefineProperty(cx, obj, "allowCallbacks", val, attrs))
-            return nullptr;
-
-        return obj;
-    }
-
-    virtual bool Parse() {
-        return ParseBoolean("allowCallbacks", &allowCallbacks);
-    };
-
-    
-    
-    
-    
-    
-    
-    
-    bool allowCallbacks;
 };
 
 JSObject *

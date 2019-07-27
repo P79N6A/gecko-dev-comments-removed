@@ -80,8 +80,7 @@ StackScopedCloneRead(JSContext *cx, JSStructuredCloneReader *reader, uint32_t ta
       if (!JS_WrapObject(cx, &obj))
           return nullptr;
 
-      FunctionForwarderOptions forwarderOptions(cx);
-      if (!xpc::NewFunctionForwarder(cx, JSID_VOIDHANDLE, obj, forwarderOptions, &functionValue))
+      if (!xpc::NewFunctionForwarder(cx, JSID_VOIDHANDLE, obj, &functionValue))
           return nullptr;
 
       return &functionValue.toObject();
@@ -229,57 +228,8 @@ CheckSameOriginArg(JSContext *cx, HandleValue v)
     return false;
 }
 
-
-
-
-
 static bool
-CloningFunctionForwarder(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-
-    
-    RootedObject optionsObj(cx, &js::GetFunctionNativeReserved(&args.callee(), 1).toObject());
-    FunctionForwarderOptions options(cx, optionsObj);
-    if (!options.Parse())
-        return false;
-
-    
-    RootedObject forwarderObj(cx, &js::GetFunctionNativeReserved(&args.callee(), 0).toObject());
-    RootedObject origFunObj(cx, UncheckedUnwrap(forwarderObj));
-    {
-        JSAutoCompartment ac(cx, origFunObj);
-        
-        
-        StackScopedCloneOptions cloneOptions;
-        cloneOptions.wrapReflectors = true;
-        for (unsigned i = 0; i < args.length(); i++) {
-            RootedObject argObj(cx, args[i].isObject() ? &args[i].toObject() : nullptr);
-            if (options.allowCallbacks && argObj && JS_ObjectIsCallable(cx, argObj)) {
-                FunctionForwarderOptions innerOptions(cx);
-                if (!JS_WrapObject(cx, &argObj))
-                    return false;
-                if (!xpc::NewFunctionForwarder(cx, JSID_VOIDHANDLE, argObj, innerOptions, args[i]))
-                    return false;
-            } else if (!StackScopedClone(cx, cloneOptions, args[i])) {
-                return false;
-            }
-        }
-
-        
-        
-        RootedValue functionVal(cx, ObjectValue(*origFunObj));
-
-        if (!JS_CallFunctionValue(cx, JS::NullPtr(), functionVal, args, args.rval()))
-            return false;
-    }
-
-    
-    return JS_WrapValue(cx, args.rval());
-}
-
-static bool
-NonCloningFunctionForwarder(JSContext *cx, unsigned argc, Value *vp)
+FunctionForwarder(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -314,43 +264,16 @@ NonCloningFunctionForwarder(JSContext *cx, unsigned argc, Value *vp)
     
     return JS_WrapValue(cx, args.rval());
 }
+
 bool
 NewFunctionForwarder(JSContext *cx, HandleId idArg, HandleObject callable,
-                     FunctionForwarderOptions &options, MutableHandleValue vp)
+                     MutableHandleValue vp)
 {
     RootedId id(cx, idArg);
     if (id == JSID_VOIDHANDLE)
         id = GetRTIdByIndex(cx, XPCJSRuntime::IDX_EMPTYSTRING);
 
-    JSFunction *fun = js::NewFunctionByIdWithReserved(cx, CloningFunctionForwarder, 0,0,
-                                                      JS::CurrentGlobalOrNull(cx), id);
-    if (!fun)
-        return false;
-
-    
-    AssertSameCompartment(cx, callable);
-    RootedObject funObj(cx, JS_GetFunctionObject(fun));
-    js::SetFunctionNativeReserved(funObj, 0, ObjectValue(*callable));
-
-    
-    RootedObject optionsObj(cx, options.ToJSObject(cx));
-    if (!optionsObj)
-        return false;
-    js::SetFunctionNativeReserved(funObj, 1, ObjectValue(*optionsObj));
-
-    vp.setObject(*funObj);
-    return true;
-}
-
-bool
-NewNonCloningFunctionForwarder(JSContext *cx, HandleId idArg, HandleObject callable,
-                               MutableHandleValue vp)
-{
-    RootedId id(cx, idArg);
-    if (id == JSID_VOIDHANDLE)
-        id = GetRTIdByIndex(cx, XPCJSRuntime::IDX_EMPTYSTRING);
-
-    JSFunction *fun = js::NewFunctionByIdWithReserved(cx, NonCloningFunctionForwarder,
+    JSFunction *fun = js::NewFunctionByIdWithReserved(cx, FunctionForwarder,
                                                       0,0, JS::CurrentGlobalOrNull(cx), id);
     if (!fun)
         return false;
@@ -427,9 +350,7 @@ ExportFunction(JSContext *cx, HandleValue vfunction, HandleValue vscope, HandleV
 
         
         
-        FunctionForwarderOptions forwarderOptions(cx);
-        forwarderOptions.allowCallbacks = options.allowCallbacks;
-        if (!NewFunctionForwarder(cx, id, funObj, forwarderOptions, rval)) {
+        if (!NewFunctionForwarder(cx, id, funObj, rval)) {
             JS_ReportError(cx, "Exporting function failed");
             return false;
         }
