@@ -303,7 +303,12 @@ function FxAccountsInternal() {
 
   
   
+  
+#if defined(MOZ_B2G)
   this.signedInUserStorage = new JSONStorage({
+#else
+  this.signedInUserStorage = new LoginManagerStorage({
+#endif
     filename: DEFAULT_STORAGE_FILENAME,
     baseDir: OS.Constants.Path.profileDir,
   });
@@ -900,6 +905,171 @@ JSONStorage.prototype = {
     return CommonUtils.readJSON(this.path);
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+function LoginManagerStorage(options) {
+  
+  this.jsonStorage = new JSONStorage(options);
+}
+
+LoginManagerStorage.prototype = {
+  
+  
+  
+
+  
+  get _isLoggedIn() {
+    return Services.logins.isLoggedIn;
+  },
+
+  
+  
+  
+  _clearLoginMgrData: Task.async(function* () {
+    try { 
+      yield Services.logins.initializationPromise;
+      if (!this._isLoggedIn) {
+        return false;
+      }
+      let logins = Services.logins.findLogins({}, FXA_PWDMGR_HOST, null, FXA_PWDMGR_REALM);
+      for (let login of logins) {
+        Services.logins.removeLogin(login);
+      }
+      return true;
+    } catch (ex) {
+      log.error("Failed to clear login data: ${}", ex);
+      return false;
+    }
+  }),
+
+  set: Task.async(function* (contents) {
+    if (!contents) {
+      
+      yield this.jsonStorage.set(contents);
+
+      
+      let cleared = yield this._clearLoginMgrData();
+      if (!cleared) {
+        
+        
+        log.info("not removing credentials from login manager - not logged in");
+      }
+      return;
+    }
+
+    
+    
+    
+    let toWriteJSON = {version: contents.version};
+    let accountDataJSON = toWriteJSON.accountData = {};
+    let toWriteLoginMgr = {version: contents.version};
+    let accountDataLoginMgr = toWriteLoginMgr.accountData = {};
+    for (let [name, value] of Iterator(contents.accountData)) {
+      if (FXA_PWDMGR_PLAINTEXT_FIELDS.indexOf(name) >= 0) {
+        accountDataJSON[name] = value;
+      } else {
+        accountDataLoginMgr[name] = value;
+      }
+    }
+    yield this.jsonStorage.set(toWriteJSON);
+
+    try { 
+      
+      yield Services.logins.initializationPromise;
+      
+      
+      if (!this._isLoggedIn) {
+        log.info("not saving credentials to login manager - not logged in");
+        return;
+      }
+      
+      let loginInfo = new Components.Constructor(
+         "@mozilla.org/login-manager/loginInfo;1", Ci.nsILoginInfo, "init");
+      let login = new loginInfo(FXA_PWDMGR_HOST,
+                                null, 
+                                FXA_PWDMGR_REALM, 
+                                contents.accountData.email, 
+                                JSON.stringify(toWriteLoginMgr), 
+                                "", 
+                                "");
+
+      let existingLogins = Services.logins.findLogins({}, FXA_PWDMGR_HOST, null,
+                                                      FXA_PWDMGR_REALM);
+      if (existingLogins.length) {
+        Services.logins.modifyLogin(existingLogins[0], login);
+      } else {
+        Services.logins.addLogin(login);
+      }
+    } catch (ex) {
+      log.error("Failed to save data to the login manager: ${}", ex);
+    }
+  }),
+
+  get: Task.async(function* () {
+    
+    
+    let data = yield this.jsonStorage.get();
+    if (!data) {
+      
+      
+      yield this._clearLoginMgrData();
+      return null;
+    }
+
+    
+    
+    if (data.accountData.kA || data.accountData.kB || data.keyFetchToken) {
+      log.info("account data needs migration to the login manager.");
+      yield this.set(data);
+    }
+
+    try { 
+      
+      yield Services.logins.initializationPromise;
+
+      if (!this._isLoggedIn) {
+        log.info("returning partial account data as the login manager is locked.");
+        return data;
+      }
+
+      let logins = Services.logins.findLogins({}, FXA_PWDMGR_HOST, null, FXA_PWDMGR_REALM);
+      if (logins.length == 0) {
+        
+        log.info("Can't find the rest of the credentials in the login manager");
+        return data;
+      }
+      let login = logins[0];
+      if (login.username == data.accountData.email) {
+        let lmData = JSON.parse(login.password);
+        if (lmData.version == data.version) {
+          
+          copyObjectProperties(lmData.accountData, data.accountData);
+        } else {
+          log.info("version field in the login manager doesn't match - ignoring it");
+          yield this._clearLoginMgrData();
+        }
+      } else {
+        log.info("username in the login manager doesn't match - ignoring it");
+        yield this._clearLoginMgrData();
+      }
+    } catch (ex) {
+      log.error("Failed to get data from the login manager: ${}", ex);
+    }
+    return data;
+  }),
+
+}
 
 
 XPCOMUtils.defineLazyGetter(this, "fxAccounts", function() {
