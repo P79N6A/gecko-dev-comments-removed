@@ -253,7 +253,7 @@ public:
   static nsIFrame* GetFrameAtOrBefore(nsIFrame*       aParentFrame,
                                       nsIFrame*       aPriorChildFrame,
                                       nsIAtom*        aChildType);
-  bool IsAutoHeight();
+  bool IsAutoBSize(mozilla::WritingMode aWM);
 
   
 
@@ -345,7 +345,7 @@ public:
 
 
 
-  nscoord TableShrinkWidthToFit(nsRenderingContext *aRenderingContext,
+  nscoord TableShrinkISizeToFit(nsRenderingContext *aRenderingContext,
                                 nscoord aWidthInCB);
 
   
@@ -370,7 +370,7 @@ public:
 
   void ReflowTable(nsHTMLReflowMetrics&     aDesiredSize,
                    const nsHTMLReflowState& aReflowState,
-                   nscoord                  aAvailHeight,
+                   nscoord                  aAvailBSize,
                    nsIFrame*&               aLastChildReflowed,
                    nsReflowStatus&          aStatus);
 
@@ -638,7 +638,7 @@ protected:
 
 
 
-  nscoord GetCollapsedWidth(const WritingMode aWM,
+  nscoord GetCollapsedISize(const WritingMode aWM,
                             const LogicalMargin& aBorderPadding);
 
 
@@ -683,19 +683,20 @@ public:
 
   
   
-  nscoord CalcBorderBoxHeight(const nsHTMLReflowState& aReflowState);
+  nscoord CalcBorderBoxBSize(const nsHTMLReflowState& aReflowState);
 
 protected:
 
   
   
   
-  void CalcDesiredHeight(const nsHTMLReflowState& aReflowState, nsHTMLReflowMetrics& aDesiredSize);
+  void CalcDesiredBSize(const nsHTMLReflowState& aReflowState,
+                        nsHTMLReflowMetrics& aDesiredSize);
 
   
 
-  void DistributeHeightToRows(const nsHTMLReflowState& aReflowState,
-                              nscoord                  aAmount);
+  void DistributeBSizeToRows(const nsHTMLReflowState& aReflowState,
+                             nscoord                  aAmount);
 
   void PlaceChild(nsTableReflowState&  aReflowState,
                   nsIFrame*            aKidFrame,

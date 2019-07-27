@@ -858,7 +858,10 @@ nsTableRowFrame::ReflowChildren(nsPresContext*           aPresContext,
       kidFrame->GetLogicalNormalPosition(wm, containerWidth);
     
     
-    MOZ_ASSERT(origKidNormalPosition.B(wm) == 0);
+    
+    
+    
+    MOZ_ASSERT(origKidNormalPosition.B(wm) == 0 || wm.IsVerticalRL());
     nsRect kidVisualOverflow = kidFrame->GetVisualOverflowRect();
     LogicalPoint kidPosition(wm, iCoord, 0);
     bool firstReflow =

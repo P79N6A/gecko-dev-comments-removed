@@ -190,8 +190,10 @@ public:
 
 
 
+
   nscoord CollapseRowGroupIfNecessary(nscoord aBTotalOffset,
-                                      nscoord aISize);
+                                      nscoord aISize,
+                                      mozilla::WritingMode aWM);
 
 
 public:
