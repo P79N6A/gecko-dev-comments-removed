@@ -1358,3 +1358,10 @@ toolbarpaletteitem[place="palette"][hidden] {
 #password-notification-password[focused]::after {
   content: none;
 }
+
+
+@media (-moz-mac-yosemite-theme) {
+  #password-notification-password::after {
+    transition: none;
+  }
+}
