@@ -370,6 +370,23 @@ Migrator.prototype = {
   
   
   createFxAccount: Task.async(function* (win) {
+    let {url, options} = yield this.getFxAccountOptions();
+    win.switchToTabHavingURI(url, true, options);
+    
+    
+    
+  }),
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  getFxAccountOptions: Task.async(function* (win) {
     
     if (this._state != this.STATE_USER_FXA) {
       this.log.warn("createFxAccount called in an unexpected state: ${}", this._state);
@@ -394,11 +411,10 @@ Migrator.prototype = {
     let customize = !this._allEnginesEnabled();
     tail += "&customizeSync=" + customize;
 
-    win.switchToTabHavingURI("about:accounts?action=" + action + tail, true,
-                             {ignoreFragment: true, replaceQueryString: true});
-    
-    
-    
+    return {
+      url: "about:accounts?action=" + action + tail,
+      options: {ignoreFragment: true, replaceQueryString: true}
+    };
   }),
 
   
