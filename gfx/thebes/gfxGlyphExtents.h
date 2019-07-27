@@ -63,7 +63,6 @@ public:
     
     
     bool GetTightGlyphExtentsAppUnits(gfxFont *aFont,
-            gfxFont::Orientation aOrientation,
             gfxContext *aContext, uint32_t aGlyphID, gfxRect *aExtents);
 
     void SetContainedGlyphWidthAppUnits(uint32_t aGlyphID, uint16_t aWidth) {
