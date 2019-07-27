@@ -72,7 +72,11 @@ nsFormControlFrame::GetLogicalBaseline(WritingMode aWritingMode) const
   
   
   
-  return BSize(aWritingMode) -
+  
+  
+  return aWritingMode.IsLineInverted()
+    ? GetLogicalUsedBorderAndPadding(aWritingMode).BStart(aWritingMode)
+    : BSize(aWritingMode) -
          GetLogicalUsedBorderAndPadding(aWritingMode).BEnd(aWritingMode);
 }
 
