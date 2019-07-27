@@ -6,12 +6,15 @@ function test() {
   waitForExplicitFinish();
   gBrowser.selectedTab = gBrowser.addTab();
   
-  window.content.addEventListener("load", testIframeCert, true);
+  gBrowser.selectedTab.linkedBrowser.addEventListener("load", testIframeCert, true);
   content.location = "data:text/html,<iframe width='700' height='700' src='about:certerror'></iframe>";
 }
 
-function testIframeCert() {
-  window.content.removeEventListener("load", testIframeCert, true);
+function testIframeCert(e) {
+  if (e.target.location.href == "about:blank") {
+    return;
+  }
+  gBrowser.selectedTab.linkedBrowser.removeEventListener("load", testIframeCert, true);
   
   var doc = gBrowser.contentDocument.getElementsByTagName('iframe')[0].contentDocument;
   var eC = doc.getElementById("expertContent");
