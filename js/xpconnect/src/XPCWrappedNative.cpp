@@ -480,36 +480,6 @@ FinishCreate(XPCWrappedNativeScope* Scope,
 
         if (cache && !cache->GetWrapperPreserveColor())
             cache->SetWrapper(flat);
-
-        
-        
-        XPCNativeScriptableInfo* si = wrapper->GetScriptableInfo();
-        if (si && si->GetFlags().WantPostCreate()) {
-            nsresult rv = si->GetCallback()->PostCreate(wrapper, cx, flat);
-            if (NS_FAILED(rv)) {
-                
-                
-                
-                
-                
-                
-                
-                
-                NS_ERROR("PostCreate failed! This is known to cause "
-                         "inconsistent state for some class types and may even "
-                         "cause a crash in combination with a JS GC. Fix the "
-                         "failing PostCreate ASAP!");
-
-                map->Remove(wrapper);
-
-                
-                
-
-                if (cache)
-                    cache->ClearWrapper();
-                return rv;
-            }
-        }
     }
 
     DEBUG_CheckClassInfoClaims(wrapper);
