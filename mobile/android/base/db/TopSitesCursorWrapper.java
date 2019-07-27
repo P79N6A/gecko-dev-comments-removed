@@ -1,3 +1,6 @@
+
+
+
 package org.mozilla.gecko.db;
 
 import java.util.HashMap;
@@ -70,7 +73,7 @@ public class TopSitesCursorWrapper implements Cursor {
     private final Cursor suggestedCursor;
 
     
-    private SparseBooleanArray pinnedPositions;
+    private final SparseBooleanArray pinnedPositions = new SparseBooleanArray();
 
     
     private int currentPosition = -1;
@@ -92,8 +95,20 @@ public class TopSitesCursorWrapper implements Cursor {
         currentRowType = RowType.UNKNOWN;
 
         this.minSize = minSize;
+
+        
+        if (topCursor == null) {
+            throw new IllegalArgumentException("topCursor is null.");
+        }
+
+        if (pinnedCursor == null) {
+            throw new IllegalArgumentException("pinnedCursor is null.");
+        }
+
         this.topCursor = topCursor;
         this.pinnedCursor = pinnedCursor;
+
+        
         this.suggestedCursor = suggestedCursor;
 
         updateIndexMaps();
@@ -125,11 +140,7 @@ public class TopSitesCursorWrapper implements Cursor {
     }
 
     private void updatePinnedPositions() {
-        if (pinnedPositions == null) {
-            pinnedPositions = new SparseBooleanArray();
-        } else {
-            pinnedPositions.clear();
-        }
+        pinnedPositions.clear();
 
         pinnedCursor.moveToPosition(-1);
         while (pinnedCursor.moveToNext()) {
@@ -237,6 +248,9 @@ public class TopSitesCursorWrapper implements Cursor {
             case SUGGESTED:
                 map = suggestedIndexes;
                 break;
+
+            default:
+                return -1;
         }
 
         if (map != null) {
@@ -448,6 +462,7 @@ public class TopSitesCursorWrapper implements Cursor {
         return columnNames;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public boolean requery() {
         boolean result = topCursor.requery() && pinnedCursor.requery();
@@ -529,6 +544,7 @@ public class TopSitesCursorWrapper implements Cursor {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void deactivate() {
         topCursor.deactivate();
@@ -557,7 +573,7 @@ public class TopSitesCursorWrapper implements Cursor {
 
         pinnedCursor.close();
         pinnedIndexes = null;
-        pinnedPositions = null;
+        pinnedPositions.clear();
 
         if (suggestedCursor != null) {
             suggestedCursor.close();
