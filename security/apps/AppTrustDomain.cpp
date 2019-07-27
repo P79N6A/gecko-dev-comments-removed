@@ -86,9 +86,9 @@ AppTrustDomain::SetTrustedRoot(AppTrustedRoot trustedRoot)
 }
 
 SECStatus
-AppTrustDomain::FindPotentialIssuers(const SECItem* encodedIssuerName,
-                                     PRTime time,
-                              mozilla::pkix::ScopedCERTCertList& results)
+AppTrustDomain::FindIssuer(const SECItem& encodedIssuerName,
+                           IssuerChecker& checker, PRTime time)
+
 {
   MOZ_ASSERT(mTrustedRoot);
   if (!mTrustedRoot) {
@@ -96,8 +96,31 @@ AppTrustDomain::FindPotentialIssuers(const SECItem* encodedIssuerName,
     return SECFailure;
   }
 
-  results = CERT_CreateSubjectCertList(nullptr, CERT_GetDefaultCertDB(),
-                                       encodedIssuerName, time, true);
+  
+  
+  
+  
+  
+  
+  
+  
+  mozilla::pkix::ScopedCERTCertList
+    candidates(CERT_CreateSubjectCertList(nullptr, CERT_GetDefaultCertDB(),
+                                          &encodedIssuerName, time, true));
+  if (candidates) {
+    for (CERTCertListNode* n = CERT_LIST_HEAD(candidates);
+         !CERT_LIST_END(n, candidates); n = CERT_LIST_NEXT(n)) {
+      bool keepGoing;
+      SECStatus srv = checker.Check(n->cert->derCert, keepGoing);
+      if (srv != SECSuccess) {
+        return SECFailure;
+      }
+      if (!keepGoing) {
+        break;
+      }
+    }
+  }
+
   return SECSuccess;
 }
 

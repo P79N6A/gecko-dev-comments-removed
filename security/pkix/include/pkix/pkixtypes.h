@@ -142,6 +142,19 @@ public:
                                  const SECItem& candidateCertDER,
                           TrustLevel* trustLevel) = 0;
 
+  class IssuerChecker
+  {
+  public:
+    virtual SECStatus Check(const SECItem& potentialIssuerDER,
+                             bool& keepGoing) = 0;
+  protected:
+    IssuerChecker();
+    virtual ~IssuerChecker();
+  private:
+    IssuerChecker(const IssuerChecker&) ;
+    void operator=(const IssuerChecker&) ;
+  };
+
   
   
   
@@ -150,9 +163,41 @@ public:
   
   
   
-  virtual SECStatus FindPotentialIssuers(const SECItem* encodedIssuerName,
-                                         PRTime time,
-                                  ScopedCERTCertList& results) = 0;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual SECStatus FindIssuer(const SECItem& encodedIssuerName,
+                               IssuerChecker& checker, PRTime time) = 0;
 
   
   

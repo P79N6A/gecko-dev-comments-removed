@@ -41,7 +41,12 @@ static Result BuildForward(TrustDomain& trustDomain,
                            unsigned int subCACount,
                             ScopedCERTCertList& results);
 
-class PathBuildingStep
+TrustDomain::IssuerChecker::IssuerChecker() { }
+TrustDomain::IssuerChecker::~IssuerChecker() { }
+
+
+
+class PathBuildingStep : public TrustDomain::IssuerChecker
 {
 public:
   PathBuildingStep(TrustDomain& trustDomain, const BackCert& subject,
@@ -65,7 +70,7 @@ public:
   {
   }
 
-  SECStatus Build(const SECItem& potentialIssuerDER,
+  SECStatus Check(const SECItem& potentialIssuerDER,
                    bool& keepGoing);
 
   Result CheckResult() const;
@@ -132,7 +137,7 @@ PathBuildingStep::CheckResult() const
 
 
 SECStatus
-PathBuildingStep::Build(const SECItem& potentialIssuerDER,
+PathBuildingStep::Check(const SECItem& potentialIssuerDER,
                          bool& keepGoing)
 {
   BackCert potentialIssuer(potentialIssuerDER, &subject,
@@ -281,24 +286,9 @@ BuildForward(TrustDomain& trustDomain,
                                stapledOCSPResponse, subCACount, results);
 
   
-  ScopedCERTCertList candidates;
-  if (trustDomain.FindPotentialIssuers(&subject.GetIssuer(), time,
-                                       candidates) != SECSuccess) {
+  if (trustDomain.FindIssuer(subject.GetIssuer(), pathBuilder, time)
+        != SECSuccess) {
     return MapSECStatus(SECFailure);
-  }
-  if (!candidates) {
-    return Fail(RecoverableError, SEC_ERROR_UNKNOWN_ISSUER);
-  }
-  for (CERTCertListNode* n = CERT_LIST_HEAD(candidates);
-       !CERT_LIST_END(n, candidates); n = CERT_LIST_NEXT(n)) {
-    bool keepGoing;
-    SECStatus srv = pathBuilder.Build(n->cert->derCert, keepGoing);
-    if (srv != SECSuccess) {
-      return MapSECStatus(SECFailure);
-    }
-    if (!keepGoing) {
-      break;
-    }
   }
 
   rv = pathBuilder.CheckResult();
