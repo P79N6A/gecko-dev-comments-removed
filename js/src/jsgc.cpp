@@ -971,9 +971,36 @@ Chunk::allocateArena(Zone *zone, AllocKind thingKind)
 
     zone->usage.addGCArena();
 
-    if (!rt->isHeapCompacting() && zone->usage.gcBytes() >= zone->threshold.gcTriggerBytes()) {
-        AutoUnlockGC unlock(rt);
-        rt->gc.triggerZoneGC(zone, JS::gcreason::ALLOC_TRIGGER);
+    if (!rt->isHeapCompacting()) {
+        size_t usedBytes = zone->usage.gcBytes();
+        size_t thresholdBytes = zone->threshold.gcTriggerBytes();
+        size_t igcThresholdBytes = thresholdBytes * rt->gc.tunables.zoneAllocThresholdFactor();
+
+        if (usedBytes >= thresholdBytes) {
+            
+            
+            AutoUnlockGC unlock(rt);
+            rt->gc.triggerZoneGC(zone, JS::gcreason::ALLOC_TRIGGER);
+        } else if (usedBytes >= igcThresholdBytes) {
+            
+            if (zone->gcDelayBytes < ArenaSize)
+                zone->gcDelayBytes = 0;
+            else
+                zone->gcDelayBytes -= ArenaSize;
+
+            if (!zone->gcDelayBytes) {
+                
+                
+                
+                
+                AutoUnlockGC unlock(rt);
+                rt->gc.triggerZoneGC(zone, JS::gcreason::ALLOC_TRIGGER);
+
+                
+                
+                zone->gcDelayBytes = rt->gc.tunables.zoneAllocDelayBytes();
+            }
+        }
     }
 
     return aheader;
@@ -5676,7 +5703,12 @@ GCRuntime::gcCycle(bool incremental, int64_t budget, JSGCInvocationKind gckind,
 
     if (!incremental) {
         
-        resetIncrementalGC("requested");
+        
+        
+        
+        if (reason != JS::gcreason::ALLOC_TRIGGER)
+            resetIncrementalGC("requested");
+
         stats.nonincremental("requested");
         budget = SliceBudget::Unlimited;
     } else {
@@ -5874,6 +5906,8 @@ GCRuntime::gcSlice(JSGCInvocationKind gckind, JS::gcreason::Reason reason, int64
     int64_t budget;
     if (millis)
         budget = SliceBudget::TimeBudget(millis);
+    else if (reason == JS::gcreason::ALLOC_TRIGGER)
+        budget = sliceBudget;
     else if (schedulingState.inHighFrequencyGCMode() && tunables.isDynamicMarkSliceEnabled())
         budget = sliceBudget * IGC_MARK_SLICE_MULTIPLIER;
     else

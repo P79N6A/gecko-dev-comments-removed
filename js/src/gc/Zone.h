@@ -284,6 +284,10 @@ struct Zone : public JS::shadow::Zone,
     js::gc::ZoneHeapThreshold threshold;
 
     
+    
+    size_t gcDelayBytes;
+
+    
     void *data;
 
     bool isSystem;
