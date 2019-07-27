@@ -909,6 +909,7 @@ loop.webapp = (function($, _, OT, mozL10n) {
     
     document.documentElement.lang = mozL10n.language.code;
     document.documentElement.dir = mozL10n.language.direction;
+    document.title = mozL10n.get("clientShortname2");
   }
 
   return {
