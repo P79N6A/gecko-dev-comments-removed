@@ -188,7 +188,11 @@ this.BrowserIDManager.prototype = {
       this._log.error("Could not authenticate: " + err);
     });
 
-    this._shouldHaveSyncKeyBundle = false;
+    
+    
+    
+    
+    this.resetCredentials();
     this._authFailureReason = null;
 
     return this._fxaService.getSignedInUser().then(accountData => {
@@ -579,6 +583,7 @@ this.BrowserIDManager.prototype = {
           
           this._authFailureReason = LOGIN_FAILED_NETWORK_ERROR;
         }
+        
         
         
         
