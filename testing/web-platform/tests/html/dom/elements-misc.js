@@ -50,6 +50,9 @@ var miscElements = {
     radiogroup: "string",
     "default": "boolean",
   },
+  dialog: {
+    open: "boolean",
+  },
 
   
   undefinedelement: {},
