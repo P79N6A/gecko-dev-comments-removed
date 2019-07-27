@@ -204,7 +204,7 @@ IsAndroidAvailable()
   return false;
 #else
   
-  return AndroidBridge::Bridge()->GetAPIVersion() >= 16;
+  return AndroidBridge::Bridge() && (AndroidBridge::Bridge()->GetAPIVersion() >= 16);
 #endif
 }
 

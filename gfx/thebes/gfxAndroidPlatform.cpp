@@ -415,7 +415,7 @@ gfxAndroidPlatform::UseAcceleratedSkiaCanvas()
 bool gfxAndroidPlatform::HaveChoiceOfHWAndSWCanvas()
 {
 #ifdef MOZ_WIDGET_ANDROID
-    if (AndroidBridge::Bridge()->GetAPIVersion() < 11) {
+    if (!AndroidBridge::Bridge() || AndroidBridge::Bridge()->GetAPIVersion() < 11) {
         
         return false;
     }
