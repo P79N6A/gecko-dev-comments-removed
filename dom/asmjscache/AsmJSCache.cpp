@@ -833,13 +833,15 @@ MainProcessRunnable::OpenCacheFileForWrite()
     mQuotaObject = qm->GetQuotaObject(mPersistence, mGroup, mOrigin, file);
     NS_ENSURE_STATE(mQuotaObject);
 
-    if (!mQuotaObject->MaybeAllocateMoreSpace(0, mWriteParams.mSize)) {
+    if (!mQuotaObject->MaybeUpdateSize(mWriteParams.mSize,
+                                        false)) {
       
       
       
       
       EvictEntries(mDirectory, mGroup, mOrigin, mWriteParams.mSize, mMetadata);
-      if (!mQuotaObject->MaybeAllocateMoreSpace(0, mWriteParams.mSize)) {
+      if (!mQuotaObject->MaybeUpdateSize(mWriteParams.mSize,
+                                          false)) {
         mResult = JS::AsmJSCache_QuotaExceeded;
         return NS_ERROR_FAILURE;
       }

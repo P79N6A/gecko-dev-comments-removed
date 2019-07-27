@@ -13,6 +13,7 @@
 #include "mozilla/Endian.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozIStorageStatement.h"
+#include "mozIStorageValueArray.h"
 #include "nsAlgorithm.h"
 #include "nsJSUtils.h"
 #include "ReportInternalError.h"
@@ -97,23 +98,16 @@ namespace indexedDB {
 
 
 
-
-
-
-
-
-const int MaxArrayCollapse = 3;
-
-const int MaxRecursionDepth = 256;
-
 nsresult
 Key::EncodeJSValInternal(JSContext* aCx, JS::Handle<JS::Value> aVal,
                          uint8_t aTypeOffset, uint16_t aRecursionDepth)
 {
-  NS_ENSURE_TRUE(aRecursionDepth < MaxRecursionDepth, NS_ERROR_DOM_INDEXEDDB_DATA_ERR);
-
-  static_assert(eMaxType * MaxArrayCollapse < 256,
+  static_assert(eMaxType * kMaxArrayCollapse < 256,
                 "Unable to encode jsvals.");
+
+  if (NS_WARN_IF(aRecursionDepth == kMaxRecursionDepth)) {
+    return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
+  }
 
   if (aVal.isString()) {
     nsAutoJSString str;
@@ -139,12 +133,12 @@ Key::EncodeJSValInternal(JSContext* aCx, JS::Handle<JS::Value> aVal,
     if (JS_IsArrayObject(aCx, obj)) {
       aTypeOffset += eMaxType;
 
-      if (aTypeOffset == eMaxType * MaxArrayCollapse) {
+      if (aTypeOffset == eMaxType * kMaxArrayCollapse) {
         mBuffer.Append(aTypeOffset);
         aTypeOffset = 0;
       }
       NS_ASSERTION((aTypeOffset % eMaxType) == 0 &&
-                   aTypeOffset < (eMaxType * MaxArrayCollapse),
+                   aTypeOffset < (eMaxType * kMaxArrayCollapse),
                    "Wrong typeoffset");
 
       uint32_t length;
@@ -192,7 +186,9 @@ Key::DecodeJSValInternal(const unsigned char*& aPos, const unsigned char* aEnd,
                          JSContext* aCx, uint8_t aTypeOffset, JS::MutableHandle<JS::Value> aVal,
                          uint16_t aRecursionDepth)
 {
-  NS_ENSURE_TRUE(aRecursionDepth < MaxRecursionDepth, NS_ERROR_DOM_INDEXEDDB_DATA_ERR);
+  if (NS_WARN_IF(aRecursionDepth == kMaxRecursionDepth)) {
+    return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
+  }
 
   if (*aPos - aTypeOffset >= eArray) {
     JS::Rooted<JSObject*> array(aCx, JS_NewArrayObject(aCx, 0));
@@ -204,7 +200,7 @@ Key::DecodeJSValInternal(const unsigned char*& aPos, const unsigned char* aEnd,
 
     aTypeOffset += eMaxType;
 
-    if (aTypeOffset == eMaxType * MaxArrayCollapse) {
+    if (aTypeOffset == eMaxType * kMaxArrayCollapse) {
       ++aPos;
       aTypeOffset = 0;
     }
@@ -331,10 +327,9 @@ nsresult
 Key::DecodeJSVal(const unsigned char*& aPos,
                  const unsigned char* aEnd,
                  JSContext* aCx,
-                 uint8_t aTypeOffset,
                  JS::MutableHandle<JS::Value> aVal)
 {
-  return DecodeJSValInternal(aPos, aEnd, aCx, aTypeOffset, aVal, 0);
+  return DecodeJSValInternal(aPos, aEnd, aCx, 0, aVal, 0);
 }
 
 
@@ -466,16 +461,14 @@ nsresult
 Key::SetFromStatement(mozIStorageStatement* aStatement,
                       uint32_t aIndex)
 {
-  uint8_t* data;
-  uint32_t dataLength = 0;
+  return SetFromSource(aStatement, aIndex);
+}
 
-  nsresult rv = aStatement->GetBlob(aIndex, &dataLength, &data);
-  NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
-
-  mBuffer.Adopt(
-    reinterpret_cast<char*>(const_cast<uint8_t*>(data)), dataLength);
-
-  return NS_OK;
+nsresult
+Key::SetFromValueArray(mozIStorageValueArray* aValues,
+                      uint32_t aIndex)
+{
+  return SetFromSource(aValues, aIndex);
 }
 
 nsresult
@@ -509,7 +502,7 @@ Key::ToJSVal(JSContext* aCx,
   }
 
   const unsigned char* pos = BufferStart();
-  nsresult rv = DecodeJSVal(pos, BufferEnd(), aCx, 0, aVal);
+  nsresult rv = DecodeJSVal(pos, BufferEnd(), aCx, aVal);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -539,6 +532,23 @@ Key::AppendItem(JSContext* aCx, bool aFirstOfArray, JS::Handle<JS::Value> aVal)
     Unset();
     return rv;
   }
+
+  return NS_OK;
+}
+
+template <typename T>
+nsresult
+Key::SetFromSource(T* aSource, uint32_t aIndex)
+{
+  const uint8_t* data;
+  uint32_t dataLength = 0;
+
+  nsresult rv = aSource->GetSharedBlob(aIndex, &dataLength, &data);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
+  }
+
+  mBuffer.Assign(reinterpret_cast<const char*>(data), dataLength);
 
   return NS_OK;
 }

@@ -141,6 +141,10 @@ struct telemetry_file {
   nsRefPtr<QuotaObject> quotaObject;
 
   
+  
+  int fileChunkSize;
+
+  
   sqlite3_file pReal[1];
 };
 
@@ -283,8 +287,7 @@ GetQuotaObjectFromNameAndParameters(const char *zName,
   MOZ_ASSERT(zURIParameterKey);
 
   const char *persistenceType =
-    persistenceType = sqlite3_uri_parameter(zURIParameterKey,
-                                            "persistenceType");
+    sqlite3_uri_parameter(zURIParameterKey, "persistenceType");
   if (!persistenceType) {
     return nullptr;
   }
@@ -352,6 +355,9 @@ xClose(sqlite3_file *pFile)
     delete p->base.pMethods;
     p->base.pMethods = nullptr;
     p->quotaObject = nullptr;
+#ifdef DEBUG
+    p->fileChunkSize = 0;
+#endif
   }
   return rc;
 }
@@ -376,23 +382,6 @@ xRead(sqlite3_file *pFile, void *zBuf, int iAmt, sqlite_int64 iOfst)
 
 
 int
-xWrite(sqlite3_file *pFile, const void *zBuf, int iAmt, sqlite_int64 iOfst)
-{
-  telemetry_file *p = (telemetry_file *)pFile;
-  if (p->quotaObject && !p->quotaObject->MaybeAllocateMoreSpace(iOfst, iAmt)) {
-    return SQLITE_FULL;
-  }
-  IOThreadAutoTimer ioTimer(p->histograms->writeMS, IOInterposeObserver::OpWrite);
-  int rc;
-  rc = p->pReal->pMethods->xWrite(p->pReal, zBuf, iAmt, iOfst);
-  Telemetry::Accumulate(p->histograms->writeB, rc == SQLITE_OK ? iAmt : 0);
-  return rc;
-}
-
-
-
-
-int
 xFileSize(sqlite3_file *pFile, sqlite_int64 *pSize)
 {
   IOThreadAutoTimer ioTimer(IOInterposeObserver::OpStat);
@@ -406,22 +395,66 @@ xFileSize(sqlite3_file *pFile, sqlite_int64 *pSize)
 
 
 int
+xWrite(sqlite3_file *pFile, const void *zBuf, int iAmt, sqlite_int64 iOfst)
+{
+  telemetry_file *p = (telemetry_file *)pFile;
+  IOThreadAutoTimer ioTimer(p->histograms->writeMS, IOInterposeObserver::OpWrite);
+  int rc;
+  if (p->quotaObject) {
+    MOZ_ASSERT(INT64_MAX - iOfst >= iAmt);
+    if (!p->quotaObject->MaybeUpdateSize(iOfst + iAmt,  false)) {
+      return SQLITE_FULL;
+    }
+  }
+  rc = p->pReal->pMethods->xWrite(p->pReal, zBuf, iAmt, iOfst);
+  Telemetry::Accumulate(p->histograms->writeB, rc == SQLITE_OK ? iAmt : 0);
+  if (p->quotaObject && rc != SQLITE_OK) {
+    NS_WARNING("xWrite failed on a quota-controlled file, attempting to "
+               "update its current size...");
+    sqlite_int64 currentSize;
+    if (xFileSize(pFile, &currentSize) == SQLITE_OK) {
+      p->quotaObject->MaybeUpdateSize(currentSize,  true);
+    }
+  }
+  return rc;
+}
+
+
+
+
+int
 xTruncate(sqlite3_file *pFile, sqlite_int64 size)
 {
   IOThreadAutoTimer ioTimer(Telemetry::MOZ_SQLITE_TRUNCATE_MS);
   telemetry_file *p = (telemetry_file *)pFile;
   int rc;
   Telemetry::AutoTimer<Telemetry::MOZ_SQLITE_TRUNCATE_MS> timer;
+  if (p->quotaObject) {
+    if (p->fileChunkSize > 0) {
+      
+      
+      size =
+        ((size + p->fileChunkSize - 1) / p->fileChunkSize) * p->fileChunkSize;
+    }
+    if (!p->quotaObject->MaybeUpdateSize(size,  true)) {
+      return SQLITE_FULL;
+    }
+  }
   rc = p->pReal->pMethods->xTruncate(p->pReal, size);
-  if (rc == SQLITE_OK && p->quotaObject) {
-    
-    
-    
-    
-    sqlite_int64 newSize;
-    rc = xFileSize(pFile, &newSize);
+  if (p->quotaObject) {
     if (rc == SQLITE_OK) {
-      p->quotaObject->UpdateSize(newSize);
+#ifdef DEBUG
+      
+      sqlite_int64 newSize;
+      MOZ_ASSERT(xFileSize(pFile, &newSize) == SQLITE_OK);
+      MOZ_ASSERT(newSize == size);
+#endif
+    } else {
+      NS_WARNING("xTruncate failed on a quota-controlled file, attempting to "
+                 "update its current size...");
+      if (xFileSize(pFile, &size) == SQLITE_OK) {
+        p->quotaObject->MaybeUpdateSize(size,  true);
+      }
     }
   }
   return rc;
@@ -480,7 +513,41 @@ int
 xFileControl(sqlite3_file *pFile, int op, void *pArg)
 {
   telemetry_file *p = (telemetry_file *)pFile;
-  int rc = p->pReal->pMethods->xFileControl(p->pReal, op, pArg);
+  int rc;
+  
+  
+  if (op == SQLITE_FCNTL_SIZE_HINT && p->quotaObject) {
+    sqlite3_int64 hintSize = *static_cast<sqlite3_int64*>(pArg);
+    sqlite3_int64 currentSize;
+    rc = xFileSize(pFile, &currentSize);
+    if (rc != SQLITE_OK) {
+      return rc;
+    }
+    if (hintSize > currentSize) {
+      rc = xTruncate(pFile, hintSize);
+      if (rc != SQLITE_OK) {
+        return rc;
+      }
+    }
+  }
+  rc = p->pReal->pMethods->xFileControl(p->pReal, op, pArg);
+  
+  if (op == SQLITE_FCNTL_CHUNK_SIZE && rc == SQLITE_OK) {
+    p->fileChunkSize = *static_cast<int*>(pArg);
+  }
+#ifdef DEBUG
+  if (op == SQLITE_FCNTL_SIZE_HINT && p->quotaObject && rc == SQLITE_OK) {
+    sqlite3_int64 hintSize = *static_cast<sqlite3_int64*>(pArg);
+    if (p->fileChunkSize > 0) {
+      hintSize =
+        ((hintSize + p->fileChunkSize - 1) / p->fileChunkSize) *
+          p->fileChunkSize;
+    }
+    sqlite3_int64 currentSize;
+    MOZ_ASSERT(xFileSize(pFile, &currentSize) == SQLITE_OK);
+    MOZ_ASSERT(currentSize >= hintSize);
+  }
+#endif
   return rc;
 }
 
@@ -650,7 +717,7 @@ xDelete(sqlite3_vfs* vfs, const char *zName, int syncDir)
 
   rc = orig_vfs->xDelete(orig_vfs, zName, syncDir);
   if (rc == SQLITE_OK && quotaObject) {
-    quotaObject->UpdateSize(0);
+    MOZ_ALWAYS_TRUE(quotaObject->MaybeUpdateSize(0,  true));
   }
 
   return rc;
