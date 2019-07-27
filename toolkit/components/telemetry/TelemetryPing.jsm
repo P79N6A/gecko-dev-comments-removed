@@ -18,8 +18,8 @@ Cu.import("resource://gre/modules/LightweightThemeManager.jsm", this);
 #endif
 Cu.import("resource://gre/modules/ThirdPartyCookieProbe.jsm", this);
 Cu.import("resource://gre/modules/Promise.jsm", this);
-Cu.import("resource://gre/modules/Task.jsm", this);
 Cu.import("resource://gre/modules/AsyncShutdown.jsm", this);
+Cu.import("resource://gre/modules/DeferredTask.jsm", this);
 Cu.import("resource://gre/modules/Preferences.jsm");
 
 
@@ -968,47 +968,41 @@ let Impl = {
     
     
     
-    this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
     let deferred = Promise.defer();
+    let delayedTask = new DeferredTask(function* () {
+      this._initialized = true;
 
-    function timerCallback() {
-      Task.spawn(function*(){
-        this._initialized = true;
-
-        yield TelemetryFile.loadSavedPings();
+      yield TelemetryFile.loadSavedPings();
+      
+      
+      if (TelemetryFile.pingsOverdue > 0) {
         
         
-        if (TelemetryFile.pingsOverdue > 0) {
-          
-          
-          
-          yield this.send("overdue-flush", this._server);
-        }
+        
+        yield this.send("overdue-flush", this._server);
+      }
 
-        if ("@mozilla.org/datareporting/service;1" in Cc) {
-          let drs = Cc["@mozilla.org/datareporting/service;1"]
-                      .getService(Ci.nsISupports)
-                      .wrappedJSObject;
-          this._clientID = yield drs.getClientID();
-          
-          Preferences.set(PREF_CACHED_CLIENTID, this._clientID);
-        } else {
-          
-          Preferences.reset(PREF_CACHED_CLIENTID);
-        }
+      if ("@mozilla.org/datareporting/service;1" in Cc) {
+        let drs = Cc["@mozilla.org/datareporting/service;1"]
+                    .getService(Ci.nsISupports)
+                    .wrappedJSObject;
+        this._clientID = yield drs.getClientID();
+        
+        Preferences.set(PREF_CACHED_CLIENTID, this._clientID);
+      } else {
+        
+        Preferences.reset(PREF_CACHED_CLIENTID);
+      }
 
-        this.attachObservers();
-        this.gatherMemory();
+      this.attachObservers();
+      this.gatherMemory();
 
-        Telemetry.asyncFetchTelemetryData(function () {});
-        delete this._timer;
-        deferred.resolve();
-      }.bind(this));
-    }
+      Telemetry.asyncFetchTelemetryData(function () {});
+      deferred.resolve();
 
-    this._timer.initWithCallback(timerCallback.bind(this),
-                                 aTesting ? TELEMETRY_TEST_DELAY : TELEMETRY_DELAY,
-                                 Ci.nsITimer.TYPE_ONE_SHOT);
+    }.bind(this), aTesting ? TELEMETRY_TEST_DELAY : TELEMETRY_DELAY);
+
+    delayedTask.arm();
     return deferred.promise;
   },
 
