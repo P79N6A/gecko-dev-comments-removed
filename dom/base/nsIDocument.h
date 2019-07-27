@@ -16,6 +16,8 @@
 #include "nsILoadGroup.h"                
 #include "nsINode.h"                     
 #include "nsIScriptGlobalObject.h"       
+#include "nsIServiceManager.h"
+#include "nsIUUIDGenerator.h"
 #include "nsPIDOMWindow.h"               
 #include "nsPropertyTable.h"             
 #include "nsTHashtable.h"                
@@ -746,6 +748,8 @@ public:
   nsTArray<nsRefPtr<mozilla::dom::AnonymousContent>>& GetAnonymousContents() {
     return mAnonymousContents;
   }
+
+  nsresult GetId(nsAString& aId);
 
 protected:
   virtual Element *GetRootElementInternal() const = 0;
@@ -2798,6 +2802,7 @@ protected:
   nsCOMPtr<nsIChannel> mChannel;
 private:
   nsCString mContentType;
+  nsString mId;
 protected:
 
   
