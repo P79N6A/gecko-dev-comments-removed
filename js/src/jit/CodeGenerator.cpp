@@ -1757,7 +1757,7 @@ void
 CodeGenerator::emitLambdaInit(Register output, Register scopeChain,
                               const LambdaFunctionInfo& info)
 {
-    MOZ_ASSERT(!!(info.flags & JSFunction::ARROW) == !!(info.flags & JSFunction::EXTENDED));
+    MOZ_ASSERT(info.fun->isArrow() == !!(info.flags & JSFunction::EXTENDED));
 
     
     

@@ -2370,10 +2370,24 @@ MacroAssembler::branchIfNotInterpretedConstructor(Register fun, Register scratch
 
     
     
-    Label done;
-    bits = IMM32_16ADJ( (JSFunction::IS_FUN_PROTO | JSFunction::ARROW | JSFunction::SELF_HOSTED) );
-    branchTest32(Assembler::Zero, scratch, Imm32(bits), &done);
+    Label done, moreChecks;
+
+    
+    bits = IMM32_16ADJ( (JSFunction::IS_FUN_PROTO | JSFunction::SELF_HOSTED) );
+    branchTest32(Assembler::NonZero, scratch, Imm32(bits), &moreChecks);
+
+    
+    bits = IMM32_16ADJ(JSFunction::FUNCTION_KIND_MASK);
+    and32(Imm32(bits), scratch);
+
+    bits = IMM32_16ADJ(JSFunction::ARROW_KIND);
+    branch32(Assembler::NotEqual, scratch, Imm32(bits), &done);
+
+    
+    load32(Address(fun, JSFunction::offsetOfNargs()), scratch);
+
     {
+        bind(&moreChecks);
         
         
         

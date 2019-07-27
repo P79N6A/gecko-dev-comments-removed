@@ -28,37 +28,48 @@ class JSFunction : public js::NativeObject
   public:
     static const js::Class class_;
 
+    enum FunctionKind {
+        NormalFunction = 0,
+        Arrow,                      
+        AsmJS                       
+    };
+
     enum Flags {
         INTERPRETED      = 0x0001,  
         NATIVE_CTOR      = 0x0002,  
         EXTENDED         = 0x0004,  
-        IS_FUN_PROTO     = 0x0010,  
-        EXPR_BODY        = 0x0020,  
+        IS_FUN_PROTO     = 0x0008,  
+        EXPR_BODY        = 0x0010,  
 
-        HAS_GUESSED_ATOM = 0x0040,  
+        HAS_GUESSED_ATOM = 0x0020,  
 
-        LAMBDA           = 0x0080,  
+        LAMBDA           = 0x0040,  
 
 
-        SELF_HOSTED      = 0x0100,  
+        SELF_HOSTED      = 0x0080,  
 
-        SELF_HOSTED_CTOR = 0x0200,  
+        SELF_HOSTED_CTOR = 0x0100,  
 
-        HAS_REST         = 0x0400,  
-        ASMJS            = 0x0800,  
-        INTERPRETED_LAZY = 0x1000,  
-        ARROW            = 0x2000,  
-        RESOLVED_LENGTH  = 0x4000,  
-        RESOLVED_NAME    = 0x8000,  
+        HAS_REST         = 0x0200,  
+        INTERPRETED_LAZY = 0x0400,  
+        RESOLVED_LENGTH  = 0x0800,  
+        RESOLVED_NAME    = 0x1000,  
+
+        FUNCTION_KIND_SHIFT = 13,
+        FUNCTION_KIND_MASK  = 0x3 << FUNCTION_KIND_SHIFT,
+
+        ASMJS_KIND = AsmJS << FUNCTION_KIND_SHIFT,
+        ARROW_KIND = Arrow << FUNCTION_KIND_SHIFT,
 
         
         NATIVE_FUN = 0,
-        ASMJS_CTOR = ASMJS | NATIVE_CTOR,
-        ASMJS_LAMBDA_CTOR = ASMJS | NATIVE_CTOR | LAMBDA,
+        ASMJS_CTOR = ASMJS_KIND | NATIVE_CTOR,
+        ASMJS_LAMBDA_CTOR = ASMJS_KIND | NATIVE_CTOR | LAMBDA,
         INTERPRETED_LAMBDA = INTERPRETED | LAMBDA,
-        INTERPRETED_LAMBDA_ARROW = INTERPRETED | LAMBDA | ARROW,
+        INTERPRETED_LAMBDA_ARROW = INTERPRETED | LAMBDA | ARROW_KIND,
         STABLE_ACROSS_CLONES = NATIVE_CTOR | IS_FUN_PROTO | EXPR_BODY | HAS_GUESSED_ATOM |
-                               LAMBDA | SELF_HOSTED | SELF_HOSTED_CTOR | HAS_REST | ASMJS | ARROW
+                               LAMBDA | SELF_HOSTED | SELF_HOSTED_CTOR | HAS_REST |
+                               FUNCTION_KIND_MASK
     };
 
     static_assert((INTERPRETED | INTERPRETED_LAZY) == js::JS_FUNCTION_INTERPRETED_BITS,
@@ -113,13 +124,17 @@ class JSFunction : public js::NativeObject
         return flags_;
     }
 
+    FunctionKind kind() const {
+        return static_cast<FunctionKind>((flags_ & FUNCTION_KIND_MASK) >> FUNCTION_KIND_SHIFT);
+    }
+
     
     bool isInterpreted()            const { return flags() & (INTERPRETED | INTERPRETED_LAZY); }
     bool isNative()                 const { return !isInterpreted(); }
 
     
     bool isNativeConstructor()      const { return flags() & NATIVE_CTOR; }
-    bool isAsmJSNative()            const { return flags() & ASMJS; }
+    bool isAsmJSNative()            const { return kind() == AsmJS; }
 
     
     bool isFunctionPrototype()      const { return flags() & IS_FUN_PROTO; }
@@ -133,7 +148,7 @@ class JSFunction : public js::NativeObject
     bool hasScript()                const { return flags() & INTERPRETED; }
 
     
-    bool isArrow()                  const { return flags() & ARROW; }
+    bool isArrow()                  const { return kind() == Arrow; }
 
     bool hasResolvedLength()        const { return flags() & RESOLVED_LENGTH; }
     bool hasResolvedName()          const { return flags() & RESOLVED_NAME; }
@@ -170,6 +185,10 @@ class JSFunction : public js::NativeObject
     void setFlags(uint16_t flags) {
         this->flags_ = flags;
     }
+    void setKind(FunctionKind kind) {
+        this->flags_ &= ~FUNCTION_KIND_MASK;
+        this->flags_ |= static_cast<uint16_t>(kind) << FUNCTION_KIND_SHIFT;
+    }
 
     
     void setArgCount(uint16_t nargs) {
@@ -202,7 +221,7 @@ class JSFunction : public js::NativeObject
     }
 
     void setArrow() {
-        flags_ |= ARROW;
+        setKind(Arrow);
     }
 
     void setResolvedLength() {
