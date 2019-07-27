@@ -129,18 +129,7 @@ struct EnumSerializer {
 template <typename E,
           E MinLegal,
           E HighBound>
-struct ContiguousEnumValidator
-{
-  static bool IsLegalValue(E e)
-  {
-    return MinLegal <= e && e < HighBound;
-  }
-};
-
-template <typename E,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) MinLegal,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) HighBound>
-class ContiguousTypedEnumValidator
+class ContiguousEnumValidator
 {
   
   
@@ -151,25 +140,13 @@ class ContiguousTypedEnumValidator
 public:
   static bool IsLegalValue(E e)
   {
-    typedef MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) ActualEnumType;
-    return IsLessThanOrEqual(MinLegal, ActualEnumType(e)) &&
-           ActualEnumType(e) < HighBound;
+    return IsLessThanOrEqual(MinLegal, e) && e < HighBound;
   }
 };
 
 template <typename E,
           E AllBits>
 struct BitFlagsEnumValidator
-{
-  static bool IsLegalValue(E e)
-  {
-    return (e & AllBits) == e;
-  }
-};
-
-template <typename E,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) AllBits>
-struct BitFlagsTypedEnumValidator
 {
   static bool IsLegalValue(E e)
   {
@@ -206,19 +183,6 @@ struct ContiguousEnumSerializer
 
 
 
-template <typename E,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) MinLegal,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) HighBound>
-struct ContiguousTypedEnumSerializer
-  : EnumSerializer<E,
-                   ContiguousTypedEnumValidator<E, MinLegal, HighBound>>
-{};
-
-
-
-
-
-
 
 
 
@@ -239,18 +203,6 @@ template <typename E,
 struct BitFlagsEnumSerializer
   : EnumSerializer<E,
                    BitFlagsEnumValidator<E, AllBits>>
-{};
-
-
-
-
-
-
-template <typename E,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) AllBits>
-struct BitFlagsTypedEnumSerializer
-  : EnumSerializer<E,
-                   BitFlagsTypedEnumValidator<E, AllBits>>
 {};
 
 template <>

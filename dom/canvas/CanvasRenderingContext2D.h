@@ -543,17 +543,17 @@ public:
 
   NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS(CanvasRenderingContext2D)
 
-  MOZ_BEGIN_NESTED_ENUM_CLASS(CanvasMultiGetterType, uint8_t)
+  enum class CanvasMultiGetterType : uint8_t {
     STRING = 0,
     PATTERN = 1,
     GRADIENT = 2
-  MOZ_END_NESTED_ENUM_CLASS(CanvasMultiGetterType)
+  };
 
-  MOZ_BEGIN_NESTED_ENUM_CLASS(Style, uint8_t)
+  enum class Style : uint8_t {
     STROKE = 0,
     FILL,
     MAX
-  MOZ_END_NESTED_ENUM_CLASS(Style)
+  };
 
   nsINode* GetParentObject()
   {
@@ -891,31 +891,29 @@ protected:
 
   
 
-public: 
-        
-        
-  MOZ_BEGIN_NESTED_ENUM_CLASS(TextAlign, uint8_t)
+protected:
+  enum class TextAlign : uint8_t {
     START,
     END,
     LEFT,
     RIGHT,
     CENTER
-  MOZ_END_NESTED_ENUM_CLASS(TextAlign)
+  };
 
-  MOZ_BEGIN_NESTED_ENUM_CLASS(TextBaseline, uint8_t)
+  enum class TextBaseline : uint8_t {
     TOP,
     HANGING,
     MIDDLE,
     ALPHABETIC,
     IDEOGRAPHIC,
     BOTTOM
-  MOZ_END_NESTED_ENUM_CLASS(TextBaseline)
+  };
 
-  MOZ_BEGIN_NESTED_ENUM_CLASS(TextDrawOperation, uint8_t)
+  enum class TextDrawOperation : uint8_t {
     FILL,
     STROKE,
     MEASURE
-  MOZ_END_NESTED_ENUM_CLASS(TextDrawOperation)
+  };
 
 protected:
   gfxFontGroup *GetCurrentFontStyle();
@@ -1104,13 +1102,7 @@ protected:
   friend class CanvasDrawObserver;
 };
 
-MOZ_FINISH_NESTED_ENUM_CLASS(CanvasRenderingContext2D::CanvasMultiGetterType)
-MOZ_FINISH_NESTED_ENUM_CLASS(CanvasRenderingContext2D::Style)
-MOZ_FINISH_NESTED_ENUM_CLASS(CanvasRenderingContext2D::TextAlign)
-MOZ_FINISH_NESTED_ENUM_CLASS(CanvasRenderingContext2D::TextBaseline)
-MOZ_FINISH_NESTED_ENUM_CLASS(CanvasRenderingContext2D::TextDrawOperation)
-
 }
 }
 
-#endif 
+#endif

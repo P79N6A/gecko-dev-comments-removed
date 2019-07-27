@@ -1025,11 +1025,11 @@ protected:
   bool mIsAudioPrerolling;
   bool mIsVideoPrerolling;
 
-  MOZ_BEGIN_NESTED_ENUM_CLASS(RequestStatus)
+  enum class RequestStatus {
     Idle,
     Pending,
     Waiting
-  MOZ_END_NESTED_ENUM_CLASS(RequestStatus)
+  };
 
   
   

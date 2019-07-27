@@ -23,10 +23,10 @@ public:
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(CanvasGradient)
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(CanvasGradient)
 
-  MOZ_BEGIN_NESTED_ENUM_CLASS(Type, uint8_t)
+  enum class Type : uint8_t {
     LINEAR = 0,
     RADIAL
-  MOZ_END_NESTED_ENUM_CLASS(Type)
+  };
 
   Type GetType()
   {
@@ -75,9 +75,7 @@ protected:
   virtual ~CanvasGradient() {}
 };
 
-MOZ_FINISH_NESTED_ENUM_CLASS(CanvasGradient::Type)
-
 } 
 } 
 
-#endif 
+#endif

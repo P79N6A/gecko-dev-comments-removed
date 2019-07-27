@@ -212,7 +212,7 @@ private:
 public:
   
   
-  MOZ_BEGIN_NESTED_ENUM_CLASS(OOMState, uint32_t)
+  enum class OOMState : uint32_t {
     
     OK,
 
@@ -240,7 +240,7 @@ public:
     
     
     Recovered
-  MOZ_END_NESTED_ENUM_CLASS(OOMState)
+  };
 
 private:
   void AnnotateAndSetOutOfMemory(OOMState* aStatePtr, OOMState aNewState);
@@ -315,8 +315,6 @@ private:
   OOMState mOutOfMemoryState;
   OOMState mLargeAllocationFailureState;
 };
-
-MOZ_FINISH_NESTED_ENUM_CLASS(CycleCollectedJSRuntime::OOMState)
 
 void TraceScriptHolder(nsISupports* aHolder, JSTracer* aTracer);
 

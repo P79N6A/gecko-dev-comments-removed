@@ -37,7 +37,7 @@ class WebGLImageConverter
 
 
 
-    template<MOZ_ENUM_CLASS_ENUM_TYPE(WebGLTexelFormat) Format>
+    template<WebGLTexelFormat Format>
     static size_t NumElementsPerTexelForFormat() {
         switch (Format) {
             case WebGLTexelFormat::R8:
@@ -78,9 +78,9 @@ class WebGLImageConverter
 
 
 
-    template<MOZ_ENUM_CLASS_ENUM_TYPE(WebGLTexelFormat) SrcFormat,
-             MOZ_ENUM_CLASS_ENUM_TYPE(WebGLTexelFormat) DstFormat,
-             MOZ_ENUM_CLASS_ENUM_TYPE(WebGLTexelPremultiplicationOp) PremultiplicationOp>
+    template<WebGLTexelFormat SrcFormat,
+             WebGLTexelFormat DstFormat,
+             WebGLTexelPremultiplicationOp PremultiplicationOp>
     void run()
     {
         
@@ -151,9 +151,9 @@ class WebGLImageConverter
             typename DataTypeForFormat<DstFormat>::Type
             DstType;
 
-        const MOZ_ENUM_CLASS_ENUM_TYPE(WebGLTexelFormat) IntermediateSrcFormat
+        const WebGLTexelFormat IntermediateSrcFormat
             = IntermediateFormat<SrcFormat>::Value;
-        const MOZ_ENUM_CLASS_ENUM_TYPE(WebGLTexelFormat) IntermediateDstFormat
+        const WebGLTexelFormat IntermediateDstFormat
             = IntermediateFormat<DstFormat>::Value;
         typedef
             typename DataTypeForFormat<IntermediateSrcFormat>::Type
@@ -218,8 +218,8 @@ class WebGLImageConverter
         return;
     }
 
-    template<MOZ_ENUM_CLASS_ENUM_TYPE(WebGLTexelFormat) SrcFormat,
-             MOZ_ENUM_CLASS_ENUM_TYPE(WebGLTexelFormat) DstFormat>
+    template<WebGLTexelFormat SrcFormat,
+             WebGLTexelFormat DstFormat>
     void run(WebGLTexelPremultiplicationOp premultiplicationOp)
     {
         #define WEBGLIMAGECONVERTER_CASE_PREMULTIPLICATIONOP(PremultiplicationOp) \
@@ -237,7 +237,7 @@ class WebGLImageConverter
         #undef WEBGLIMAGECONVERTER_CASE_PREMULTIPLICATIONOP
     }
 
-    template<MOZ_ENUM_CLASS_ENUM_TYPE(WebGLTexelFormat) SrcFormat>
+    template<WebGLTexelFormat SrcFormat>
     void run(WebGLTexelFormat dstFormat,
              WebGLTexelPremultiplicationOp premultiplicationOp)
     {

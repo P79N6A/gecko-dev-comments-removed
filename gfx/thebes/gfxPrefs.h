@@ -78,14 +78,14 @@ private:
 
 private:
   
-  MOZ_BEGIN_NESTED_ENUM_CLASS(UpdatePolicy)
+  enum class UpdatePolicy {
     Skip, 
     Once, 
     Live  
-  MOZ_END_NESTED_ENUM_CLASS(UpdatePolicy)
+  };
 
   
-  template <MOZ_ENUM_CLASS_ENUM_TYPE(UpdatePolicy) Update, class T, T Default(void), const char* Pref(void)>
+  template <UpdatePolicy Update, class T, T Default(void), const char* Pref(void)>
   class PrefTemplate
   {
   public:
@@ -381,4 +381,4 @@ private:
 
 #undef DECL_GFX_PREF /* Don't need it outside of this file */
 
-#endif 
+#endif
