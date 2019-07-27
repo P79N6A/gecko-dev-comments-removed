@@ -286,8 +286,8 @@ ChromeObjectWrapper::enter(JSContext *cx, HandleObject wrapper,
         return true;
     
     
-    *bp = act == Wrapper::GET || act == Wrapper::ENUMERATE ||
-          act == Wrapper::GET_PROPERTY_DESCRIPTOR;
+    *bp = (act == Wrapper::GET || act == Wrapper::ENUMERATE ||
+           act == Wrapper::GET_PROPERTY_DESCRIPTOR) && !JS_IsExceptionPending(cx);
     if (!*bp || id == JSID_VOID)
         return false;
 
