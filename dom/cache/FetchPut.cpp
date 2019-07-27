@@ -441,6 +441,10 @@ FetchPut::MaybeNotifyListener()
   if (!mListener) {
     return;
   }
+  
+  
+  
+  nsRefPtr<FetchPut> kungFuDeathGrip(this);
   mListener->OnFetchPut(this, mRequestId, mResult);
 }
 
