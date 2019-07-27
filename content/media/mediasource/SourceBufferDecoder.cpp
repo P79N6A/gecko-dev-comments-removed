@@ -38,7 +38,6 @@ SourceBufferDecoder::SourceBufferDecoder(MediaResource* aResource,
   , mParentDecoder(aParentDecoder)
   , mReader(nullptr)
   , mMediaDuration(-1)
-  , mDiscarded(false)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_COUNT_CTOR(SourceBufferDecoder);
@@ -153,6 +152,10 @@ SourceBufferDecoder::OnStateMachineThread() const
 bool
 SourceBufferDecoder::OnDecodeThread() const
 {
+  
+  if (mTaskQueue) {
+    return mTaskQueue->IsCurrentThreadIn();
+  }
   return mParentDecoder->OnDecodeThread();
 }
 
