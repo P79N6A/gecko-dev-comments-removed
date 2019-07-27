@@ -4042,11 +4042,13 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
               // string.
               curId = ids[i];
               binding_detail::FakeString propName;
-              if (!JS_GetPropertyById(cx, mozMapObj, curId, &temp) ||
-                  !JS_IdToValue(cx, curId, &propNameValue) ||
-                  !ConvertJSValueToString(cx, propNameValue, eStringify,
-                                          eStringify, propName)) {
+              bool isSymbol;
+              if (!ConvertIdToString(cx, curId, propName, isSymbol) ||
+                  (!isSymbol && !JS_GetPropertyById(cx, mozMapObj, curId, &temp))) {
                 $*{exceptionCode}
+              }
+              if (isSymbol) {
+                continue;
               }
 
               ${valueType}* slotPtr = mozMap.AddEntry(propName);
@@ -9600,38 +9602,38 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
         argName = self.arguments[0].identifier.name
         if argName == "id":
             
-            idDecl = "JS::Rooted<jsid> id_(cx, id);\n"
+            decls = "JS::Rooted<jsid> id_(cx, id);\n"
             idName = "id_"
         else:
-            idDecl = ""
+            decls = ""
             idName = "id"
-        unwrapString = fill(
+
+        decls += "binding_detail::FakeString %s;\n" % argName
+
+        main = fill(
             """
-            if (!ConvertJSValueToString(cx, nameVal, eStringify, eStringify,
-                                        ${argName})) {
-              return false;
-            }
+            ${nativeType}* self = UnwrapProxy(proxy);
+            $*{op}
             """,
-            argName=argName)
+            nativeType=self.descriptor.nativeType,
+            op=CGProxySpecialOperation.define(self))
+
         if self.value is None:
-            
-            
-            unwrapString = fill(
+            return fill(
                 """
-                if (MOZ_LIKELY(JSID_IS_STRING(${idName}))) {
-                  if (!AssignJSString(cx, ${argName}, JSID_TO_STRING(${idName}))) {
-                    return false;
-                  }
-                } else {
-                  nameVal = js::IdToValue(${idName});
-                  $*{unwrapString}
+                $*{decls}
+                bool isSymbol;
+                if (!ConvertIdToString(cx, ${idName}, ${argName}, isSymbol)) {
+                  return false;
+                }
+                if (!isSymbol) {
+                  $*{main}
                 }
                 """,
+                decls=decls,
                 idName=idName,
                 argName=argName,
-                unwrapString=unwrapString)
-        else:
-            unwrapString = ("nameVal = %s;\n" % self.value) + unwrapString
+                main=main)
 
         
         
@@ -9639,19 +9641,20 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
         
         return fill(
             """
-            JS::Rooted<JS::Value> nameVal(cx);
-            $*{idDecl}
-            binding_detail::FakeString ${argName};
-            $*{unwrapString}
-
-            ${nativeType}* self = UnwrapProxy(proxy);
-            $*{op}
+            $*{decls}
+            JS::Rooted<JS::Value> nameVal(cx, ${value});
+            if (!nameVal.isSymbol()) {
+              if (!ConvertJSValueToString(cx, nameVal, eStringify, eStringify,
+                                          ${argName})) {
+                return false;
+              }
+              $*{main}
+            }
             """,
-            idDecl=idDecl,
+            decls=decls,
+            value=self.value,
             argName=argName,
-            unwrapString=unwrapString,
-            nativeType=self.descriptor.nativeType,
-            op=CGProxySpecialOperation.define(self))
+            main=main)
 
 
 class CGProxyNamedGetter(CGProxyNamedOperation):
