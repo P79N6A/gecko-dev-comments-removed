@@ -1532,12 +1532,11 @@ let Impl = {
       try {
         this._initialized = true;
 
-        let hasLoaded = yield this._loadSessionData();
-        if (!hasLoaded) {
-          
-          yield this._saveSessionData(this._getSessionDataObject()).catch(() =>
-            this._log.error("setupChromeProcess - Could not write session data to disk."));
-        }
+        yield this._loadSessionData();
+        
+        
+        yield this._saveSessionData(this._getSessionDataObject());
+
         this.attachObservers();
         this.gatherMemory();
 
@@ -1965,8 +1964,8 @@ let Impl = {
       if (data &&
           "profileSubsessionCounter" in data &&
           typeof(data.profileSubsessionCounter) == "number" &&
-          "previousSubsessionId" in data) {
-        this._previousSubsessionId = data.previousSubsessionId;
+          "subsessionId" in data) {
+        this._previousSubsessionId = data.subsessionId;
         
         
         
@@ -1985,7 +1984,7 @@ let Impl = {
 
   _getSessionDataObject: function() {
     return {
-      previousSubsessionId: this._previousSubsessionId,
+      subsessionId: this._subsessionId,
       profileSubsessionCounter: this._profileSubsessionCounter,
     };
   },

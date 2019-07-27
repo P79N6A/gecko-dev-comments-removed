@@ -1167,7 +1167,7 @@ add_task(function* test_savedSessionData() {
   
   const dataFilePath = OS.Path.join(DATAREPORTING_PATH, "session-state.json");
   const sessionState = {
-    previousSubsessionId: null,
+    subsessionId: null,
     profileSubsessionCounter: 3785,
   };
   yield CommonUtils.writeJSON(sessionState, dataFilePath);
@@ -1209,7 +1209,40 @@ add_task(function* test_savedSessionData() {
   
   let data = yield CommonUtils.readJSON(dataFilePath);
   Assert.equal(data.profileSubsessionCounter, expectedSubsessions);
-  Assert.equal(data.previousSubsessionId, expectedUUID);
+  Assert.equal(data.subsessionId, expectedUUID);
+});
+
+add_task(function* test_sessionData_ShortSession() {
+  if (gIsAndroid) {
+    
+    return;
+  }
+
+  const SESSION_STATE_PATH = OS.Path.join(DATAREPORTING_PATH, "session-state.json");
+
+  
+  yield TelemetrySession.shutdown();
+  yield OS.File.remove(SESSION_STATE_PATH, { ignoreAbsent: true });
+
+  const expectedUUID = "009fd1ad-b85e-4817-b3e5-000000003785";
+  fakeGenerateUUID(generateUUID, () => expectedUUID);
+
+  
+  
+  TelemetrySession.reset();
+  yield TelemetrySession.shutdown();
+
+  
+  fakeGenerateUUID(generateUUID, generateUUID);
+
+  
+  
+  yield TelemetrySession.reset();
+
+  
+  let payload = TelemetrySession.getPayload();
+  Assert.equal(payload.info.profileSubsessionCounter, 2);
+  Assert.equal(payload.info.previousSubsessionId, expectedUUID);
 });
 
 add_task(function* test_invalidSessionData() {
@@ -1238,7 +1271,7 @@ add_task(function* test_invalidSessionData() {
   
   let data = yield CommonUtils.readJSON(dataFilePath);
   Assert.equal(data.profileSubsessionCounter, expectedSubsessions);
-  Assert.equal(data.previousSubsessionId, null);
+  Assert.equal(data.subsessionId, expectedUUID);
 });
 
 add_task(function* test_abortedSession() {
