@@ -94,7 +94,6 @@ class IncrementalFinalizeRunnable : public nsRunnable
   typedef CycleCollectedJSRuntime::DeferredFinalizerTable DeferredFinalizerTable;
 
   CycleCollectedJSRuntime* mRuntime;
-  nsTArray<nsISupports*> mSupports;
   DeferredFinalizeArray mDeferredFinalizeFunctions;
   uint32_t mFinalizeFunctionToRun;
   bool mReleasing;
@@ -108,7 +107,6 @@ class IncrementalFinalizeRunnable : public nsRunnable
 
 public:
   IncrementalFinalizeRunnable(CycleCollectedJSRuntime* aRt,
-                              nsTArray<nsISupports*>& aMSupports,
                               DeferredFinalizerTable& aFinalizerTable);
   virtual ~IncrementalFinalizeRunnable();
 
@@ -508,7 +506,6 @@ CycleCollectedJSRuntime::~CycleCollectedJSRuntime()
 {
   MOZ_ASSERT(mJSRuntime);
   MOZ_ASSERT(!mDeferredFinalizerTable.Count());
-  MOZ_ASSERT(!mDeferredSupports.Length());
 
   
   mPendingException = nullptr;
@@ -1045,30 +1042,9 @@ CycleCollectedJSRuntime::DeferredFinalize(DeferredFinalizeAppendFunction aAppend
 void
 CycleCollectedJSRuntime::DeferredFinalize(nsISupports* aSupports)
 {
-#ifdef MOZ_CRASHREPORTER
-  
-  
-  
-  
-  size_t oldLength = mDeferredSupports.Length();
-  nsISupports** itemPtr = mDeferredSupports.AppendElement(aSupports);
-  size_t newLength = mDeferredSupports.Length();
-  nsISupports* item = mDeferredSupports.ElementAt(newLength - 1);
-  if ((newLength - oldLength != 1) || !itemPtr ||
-      (*itemPtr != aSupports) || (item != aSupports)) {
-    nsAutoCString debugInfo;
-    debugInfo.AppendPrintf("\noldLength [%u], newLength [%u], aSupports [%p], item [%p], itemPtr [%p], *itemPtr [%p]",
-                           oldLength, newLength, aSupports, item, itemPtr, itemPtr ? *itemPtr : NULL);
-    #define CRASH_MESSAGE "nsTArray::AppendElement() failed!"
-    CrashReporter::AppendAppNotesToCrashReport(NS_LITERAL_CSTRING("\nBug 997908: ") +
-                                               NS_LITERAL_CSTRING(CRASH_MESSAGE));
-    CrashReporter::AppendAppNotesToCrashReport(debugInfo);
-    MOZ_CRASH(CRASH_MESSAGE);
-    #undef CRASH_MESSAGE
-  }
-#else
-  mDeferredSupports.AppendElement(aSupports);
-#endif
+  typedef DeferredFinalizerImpl<nsISupports> Impl;
+  DeferredFinalize(Impl::AppendDeferredFinalizePointer, Impl::DeferredFinalize,
+                   aSupports);
 }
 
 void
@@ -1077,26 +1053,6 @@ CycleCollectedJSRuntime::DumpJSHeap(FILE* aFile)
   js::DumpHeapComplete(Runtime(), aFile, js::CollectNurseryBeforeDump);
 }
 
-
-bool
-ReleaseSliceNow(uint32_t aSlice, void* aData)
-{
-  MOZ_ASSERT(aSlice > 0, "nonsensical/useless call with slice == 0");
-  nsTArray<nsISupports*>* items = static_cast<nsTArray<nsISupports*>*>(aData);
-
-  uint32_t length = items->Length();
-  aSlice = std::min(aSlice, length);
-  for (uint32_t i = length; i > length - aSlice; --i) {
-    
-    uint32_t lastItemIdx = i - 1;
-
-    nsISupports* wrapper = items->ElementAt(lastItemIdx);
-    items->RemoveElementAt(lastItemIdx);
-    NS_IF_RELEASE(wrapper);
-  }
-
-  return items->IsEmpty();
-}
 
  PLDHashOperator
 IncrementalFinalizeRunnable::DeferredFinalizerEnumerator(DeferredFinalizeFunction& aFunction,
@@ -1113,19 +1069,11 @@ IncrementalFinalizeRunnable::DeferredFinalizerEnumerator(DeferredFinalizeFunctio
 }
 
 IncrementalFinalizeRunnable::IncrementalFinalizeRunnable(CycleCollectedJSRuntime* aRt,
-                                                         nsTArray<nsISupports*>& aSupports,
                                                          DeferredFinalizerTable& aFinalizers)
   : mRuntime(aRt)
   , mFinalizeFunctionToRun(0)
   , mReleasing(false)
 {
-  this->mSupports.SwapElements(aSupports);
-  DeferredFinalizeFunctionHolder* function =
-    mDeferredFinalizeFunctions.AppendElement();
-  function->run = ReleaseSliceNow;
-  function->data = &this->mSupports;
-
-  
   aFinalizers.Enumerate(DeferredFinalizerEnumerator, &mDeferredFinalizeFunctions);
 }
 
@@ -1191,7 +1139,6 @@ IncrementalFinalizeRunnable::Run()
 {
   if (mRuntime->mFinalizeRunnable != this) {
     
-    MOZ_ASSERT(!mSupports.Length());
     MOZ_ASSERT(!mDeferredFinalizeFunctions.Length());
     return NS_OK;
   }
@@ -1226,13 +1173,16 @@ CycleCollectedJSRuntime::FinalizeDeferredThings(DeferredFinalizeType aType)
       return;
     }
   }
+
+  if (mDeferredFinalizerTable.Count() == 0) {
+    return;
+  }
+
   mFinalizeRunnable = new IncrementalFinalizeRunnable(this,
-                                                      mDeferredSupports,
                                                       mDeferredFinalizerTable);
 
   
-  MOZ_ASSERT(!mDeferredSupports.Length());
-  MOZ_ASSERT(!mDeferredFinalizerTable.Count());
+  MOZ_ASSERT(mDeferredFinalizerTable.Count() == 0);
 
   if (aType == FinalizeIncrementally) {
     NS_DispatchToCurrentThread(mFinalizeRunnable);
