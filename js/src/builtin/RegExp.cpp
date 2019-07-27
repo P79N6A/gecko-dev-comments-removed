@@ -194,27 +194,38 @@ RegExpInitialize(JSContext* cx, RegExpObjectBuilder& builder,
 
 
 
+
+
 static bool
 CompileRegExpObject(JSContext* cx, RegExpObjectBuilder& builder, CallArgs args,
-                    RegExpCreationMode creationMode)
+                    RegExpCreationMode creationMode, bool patternIsRegExp=false)
 {
     if (args.length() == 0) {
+        
+
+
+
         RegExpStatics* res = cx->global()->getRegExpStatics(cx);
         if (!res)
             return false;
-        Rooted<JSAtom*> empty(cx, cx->runtime()->emptyString);
+
+        RootedAtom empty(cx, cx->runtime()->emptyString);
         RegExpObject* reobj = builder.build(empty, res->getFlags());
         if (!reobj)
             return false;
+
         args.rval().setObject(*reobj);
         return true;
     }
 
-    RootedValue sourceValue(cx, args[0]);
+    RootedValue patternValue(cx, args.get(0));
 
-    if (IsObjectWithClass(sourceValue, ESClass_RegExp, cx)) {
+    
+
+
+
+    if (IsObjectWithClass(patternValue, ESClass_RegExp, cx)) {
         
-
 
 
         if (args.hasDefined(1) && creationMode == CreateForCompile) {
@@ -227,7 +238,7 @@ CompileRegExpObject(JSContext* cx, RegExpObjectBuilder& builder, CallArgs args,
 
 
 
-        RootedObject sourceObj(cx, &sourceValue.toObject());
+        RootedObject patternObj(cx, &patternValue.toObject());
 
         RootedAtom sourceAtom(cx);
         RegExpFlag flags;
@@ -236,16 +247,15 @@ CompileRegExpObject(JSContext* cx, RegExpObjectBuilder& builder, CallArgs args,
 
 
 
+
+
             RegExpGuard g(cx);
-            if (!RegExpToShared(cx, sourceObj, &g))
+            if (!RegExpToShared(cx, patternObj, &g))
                 return false;
             sourceAtom = g->getSource();
 
-            
-
-
-
             if (args.hasDefined(1)) {
+                
                 flags = RegExpFlag(0);
                 RootedString flagStr(cx, ToString<CanGC>(cx, args[1]));
                 if (!flagStr)
@@ -253,9 +263,17 @@ CompileRegExpObject(JSContext* cx, RegExpObjectBuilder& builder, CallArgs args,
                 if (!ParseRegExpFlags(cx, flagStr, &flags))
                     return false;
             } else {
+                
+
+
+
                 flags = g->getFlags();
             }
         }
+
+        
+
+
 
         RegExpObject* reobj = builder.build(sourceAtom, flags);
         if (!reobj)
@@ -265,8 +283,41 @@ CompileRegExpObject(JSContext* cx, RegExpObjectBuilder& builder, CallArgs args,
         return true;
     }
 
+    RootedValue P(cx);
+    RootedValue F(cx);
+    
+    if (patternIsRegExp) {
+        MOZ_ASSERT(creationMode == CreateForConstruct);
+        RootedObject patternObj(cx, &patternValue.toObject());
+
+        
+        if (!GetProperty(cx, patternObj, patternObj, cx->names().source, &P))
+            return false;
+
+        
+        if (!args.hasDefined(1)) {
+            
+            if (!GetProperty(cx, patternObj, patternObj, cx->names().flags, &F))
+                return false;
+        } else {
+            
+            F = args[1];
+        }
+    } else {
+        
+
+
+
+        P = patternValue;
+        F = args.get(1);
+    }
+
+    
+
+
+
     RootedObject reobj(cx);
-    if (!RegExpInitialize(cx, builder, sourceValue, args.get(1), UseRegExpStatics, &reobj))
+    if (!RegExpInitialize(cx, builder, P, F, UseRegExpStatics, &reobj))
         return false;
 
     args.rval().setObject(*reobj);
@@ -307,10 +358,13 @@ js::IsRegExp(JSContext* cx, HandleValue value, bool* result)
     return true;
 }
 
+
 MOZ_ALWAYS_INLINE bool
 regexp_compile_impl(JSContext* cx, CallArgs args)
 {
     MOZ_ASSERT(IsRegExpObject(args.thisv()));
+
+    
     RegExpObjectBuilder builder(cx, &args.thisv().toObject().as<RegExpObject>());
     return CompileRegExpObject(cx, builder, args, CreateForCompile);
 }
@@ -319,31 +373,44 @@ static bool
 regexp_compile(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
+
+    
     return CallNonGenericMethod<IsRegExpObject, regexp_compile_impl>(cx, args);
 }
+
 
 bool
 js::regexp_construct(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
+    
+    bool patternIsRegExp;
+    if (!IsRegExp(cx, args.get(0), &patternIsRegExp))
+        return false;
+
+    
     if (!args.isConstructing()) {
         
+        if (patternIsRegExp && !args.hasDefined(1)) {
+            RootedObject patternObj(cx, &args[0].toObject());
 
+            
+            RootedValue patternConstructor(cx);
+            if (!GetProperty(cx, patternObj, patternObj, cx->names().constructor, &patternConstructor))
+                return false;
 
-
-
-        if (args.hasDefined(0) &&
-            IsObjectWithClass(args[0], ESClass_RegExp, cx) &&
-            !args.hasDefined(1))
-        {
-            args.rval().set(args[0]);
-            return true;
+            
+            if (patternConstructor.isObject() && patternConstructor.toObject() == args.callee()) {
+                args.rval().set(args[0]);
+                return true;
+            }
         }
     }
 
+    
     RegExpObjectBuilder builder(cx);
-    return CompileRegExpObject(cx, builder, args, CreateForConstruct);
+    return CompileRegExpObject(cx, builder, args, CreateForConstruct, patternIsRegExp);
 }
 
 bool
@@ -356,6 +423,9 @@ js::regexp_construct_no_statics(JSContext* cx, unsigned argc, Value* vp)
     MOZ_ASSERT_IF(args.length() == 2, args[1].isString());
     MOZ_ASSERT(!args.isConstructing());
 
+    
+
+    
     RegExpObjectBuilder builder(cx);
     RootedObject reobj(cx);
     if (!RegExpInitialize(cx, builder, args[0], args.get(1), DontUseRegExpStatics, &reobj))
