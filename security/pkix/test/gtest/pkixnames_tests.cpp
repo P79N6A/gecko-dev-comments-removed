@@ -1074,7 +1074,6 @@ static const uint8_t ipv6_other_addr_bytes[] = {
 static const uint8_t ipv4_other_addr_bytes[] = {
   5, 6, 7, 8
 };
-static const uint8_t ipv4_other_addr_str[] = "5.6.7.8";
 static const uint8_t ipv4_other_addr_bytes_FFFFFFFF[] = {
   5, 6, 7, 8, 0xff, 0xff, 0xff, 0xff
 };
@@ -1908,12 +1907,12 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
   },
   { 
     ByteString(), IPAddress(ipv4_addr_bytes),
-    GeneralSubtree(IPAddress(ipv4_addr_truncated_bytes)),
+    GeneralSubtree(IPAddress(ipv4_constraint_truncated_bytes)),
     Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
   },
   { 
     ByteString(), IPAddress(ipv4_addr_bytes),
-    GeneralSubtree(IPAddress(ipv4_addr_overlong_bytes)),
+    GeneralSubtree(IPAddress(ipv4_constraint_overlong_bytes)),
     Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
   },
   { 
@@ -1938,12 +1937,12 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
   },
   { 
     ByteString(), IPAddress(ipv6_addr_bytes),
-    GeneralSubtree(IPAddress(ipv6_addr_truncated_bytes)),
+    GeneralSubtree(IPAddress(ipv6_constraint_truncated_bytes)),
     Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
   },
   { 
     ByteString(), IPAddress(ipv6_addr_bytes),
-    GeneralSubtree(IPAddress(ipv6_addr_overlong_bytes)),
+    GeneralSubtree(IPAddress(ipv6_constraint_overlong_bytes)),
     Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
   },
 
