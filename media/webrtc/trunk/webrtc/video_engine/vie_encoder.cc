@@ -705,6 +705,20 @@ void ViEEncoder::DeliverFrame(int id,
     return;
   }
 #endif
+#ifdef MOZ_WEBRTC_OMX
+  
+  if (qm_callback_ && vcm_.SendCodec() == webrtc::kVideoCodecH264) {
+    if (vcm_.RegisterVideoQMCallback(NULL) != 0) {
+      WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideo,
+                   ViEId(engine_id_, channel_id_),
+                   "VCM::RegisterQMCallback(NULL) failure");
+      return;
+    }
+    delete qm_callback_;
+    qm_callback_ = NULL;
+  }
+#endif
+
   if (vcm_.AddVideoFrame(*decimated_frame,
                          vpm_.ContentMetrics()) != VCM_OK) {
     WEBRTC_TRACE(webrtc::kTraceError,
