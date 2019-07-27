@@ -169,6 +169,22 @@ SizeOfEntryStore(uint32_t aCapacity, uint32_t aEntrySize, uint32_t* aNbytes)
   return uint64_t(*aNbytes) == nbytes64;   
 }
 
+PLDHashTable*
+PL_NewDHashTable(const PLDHashTableOps* aOps, uint32_t aEntrySize,
+                 uint32_t aLength)
+{
+  PLDHashTable* table = new PLDHashTable();
+  PL_DHashTableInit(table, aOps, aEntrySize, aLength);
+  return table;
+}
+
+void
+PL_DHashTableDestroy(PLDHashTable* aTable)
+{
+  PL_DHashTableFinish(aTable);
+  delete aTable;
+}
+
 
 
 
@@ -202,7 +218,6 @@ MOZ_ALWAYS_INLINE void
 PLDHashTable::Init(const PLDHashTableOps* aOps,
                    uint32_t aEntrySize, uint32_t aLength)
 {
-  MOZ_ASSERT(!mAutoFinish);
   MOZ_ASSERT(!IsInitialized());
 
   
@@ -251,19 +266,6 @@ PL_DHashTableInit(PLDHashTable* aTable, const PLDHashTableOps* aOps,
   aTable->Init(aOps, aEntrySize, aLength);
 }
 
-PLDHashTable::PLDHashTable(const PLDHashTableOps* aOps, uint32_t aEntrySize,
-                           uint32_t aLength)
-  : mOps(nullptr)
-  , mAutoFinish(0)
-  , mEntryStore(nullptr)
-#ifdef DEBUG
-  , mRecursionLevel()
-#endif
-{
-  Init(aOps, aEntrySize, aLength);
-  mAutoFinish = 1;
-}
-
 PLDHashTable& PLDHashTable::operator=(PLDHashTable&& aOther)
 {
   if (this == &aOther) {
@@ -271,7 +273,6 @@ PLDHashTable& PLDHashTable::operator=(PLDHashTable&& aOther)
   }
 
   
-  mAutoFinish = 0;
   Finish();
 
   
@@ -280,9 +281,7 @@ PLDHashTable& PLDHashTable::operator=(PLDHashTable&& aOther)
   mEntrySize = Move(aOther.mEntrySize);
   mEntryCount = Move(aOther.mEntryCount);
   mRemovedCount = Move(aOther.mRemovedCount);
-  
-  mGeneration = aOther.mGeneration;
-  mAutoFinish = aOther.mAutoFinish;
+  mGeneration = Move(aOther.mGeneration);
   mEntryStore = Move(aOther.mEntryStore);
 #ifdef PL_DHASHMETER
   mStats = Move(aOther.mStats);
@@ -341,8 +340,6 @@ PLDHashTable::EntryIsFree(PLDHashEntryHdr* aEntry)
 MOZ_ALWAYS_INLINE void
 PLDHashTable::Finish()
 {
-  MOZ_ASSERT(!mAutoFinish);
-
   if (!IsInitialized()) {
     MOZ_ASSERT(!mEntryStore);
     return;
@@ -376,20 +373,6 @@ void
 PL_DHashTableFinish(PLDHashTable* aTable)
 {
   aTable->Finish();
-}
-
-PLDHashTable::~PLDHashTable()
-{
-  
-  
-  if (mAutoFinish) {
-    mAutoFinish = 0;
-    Finish();
-  } else {
-    
-    
-    
-  }
 }
 
 

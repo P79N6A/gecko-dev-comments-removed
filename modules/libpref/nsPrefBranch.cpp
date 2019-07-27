@@ -555,15 +555,15 @@ NS_IMETHODIMP nsPrefBranch::GetChildList(const char *aStartingAt, uint32_t *aCou
   *aChildArray = nullptr;
   *aCount = 0;
 
-  if (!gHashTable->IsInitialized())
+  if (!gHashTable.IsInitialized())
     return NS_ERROR_NOT_INITIALIZED;
 
   
   
-
+  
   ed.parent = getPrefName(aStartingAt);
   ed.pref_list = &prefArray;
-  PL_DHashTableEnumerate(gHashTable, pref_enumChild, &ed);
+  PL_DHashTableEnumerate(&gHashTable, pref_enumChild, &ed);
 
   
   
