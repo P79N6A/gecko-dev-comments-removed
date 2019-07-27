@@ -667,7 +667,7 @@ class FirstLargerOffset
   int32_t mSoftTextOffset;
 
 public:
-  FirstLargerOffset(int32_t aSoftTextOffset) : mSoftTextOffset(aSoftTextOffset) {}
+  explicit FirstLargerOffset(int32_t aSoftTextOffset) : mSoftTextOffset(aSoftTextOffset) {}
   int operator()(const T& t) const {
   
   
