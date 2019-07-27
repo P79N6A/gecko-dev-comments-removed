@@ -3953,6 +3953,19 @@ CompileFunction(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOption
                 const char16_t *chars, size_t length, JS::MutableHandleFunction fun,
                 HandleObject enclosingStaticScope = NullPtr());
 
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(bool)
+CompileFunction(JSContext *cx, AutoObjectVector &scopeChain,
+                const ReadOnlyCompileOptions &options,
+                const char *name, unsigned nargs, const char *const *argnames,
+                const char16_t *chars, size_t length, JS::MutableHandleFunction fun);
+
 } 
 
 extern JS_PUBLIC_API(JSString *)
