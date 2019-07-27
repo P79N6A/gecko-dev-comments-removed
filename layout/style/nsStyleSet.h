@@ -318,6 +318,10 @@ class nsStyleSet
   
   void EndReconstruct();
 
+  bool IsInRuleTreeReconstruct() const {
+    return mInReconstruct;
+  }
+
   
   
   

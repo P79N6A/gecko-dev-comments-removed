@@ -890,7 +890,7 @@ RestyleManager::RestyleElement(Element*        aElement,
           newContext->StyleFont()->mFont.size) {
         
         newContext = nullptr;
-        DoRebuildAllStyleData(aRestyleTracker, nsChangeHint(0));
+        DoRebuildAllStyleData(aRestyleTracker, nsChangeHint(0), aRestyleHint);
         if (aMinHint == 0) {
           return;
         }
@@ -1406,7 +1406,13 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint)
 
   mPresContext->SetProcessingRestyles(true);
 
-  DoRebuildAllStyleData(mPendingRestyles, aExtraHint);
+  
+  
+  
+  
+  
+  
+  DoRebuildAllStyleData(mPendingRestyles, aExtraHint, eRestyle_Subtree);
 
   mPresContext->SetProcessingRestyles(false);
 
@@ -1419,13 +1425,27 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint)
 
 void
 RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
-                                      nsChangeHint aExtraHint)
+                                      nsChangeHint aExtraHint,
+                                      nsRestyleHint aRestyleHint)
 {
   
   
   nsresult rv = mPresContext->StyleSet()->BeginReconstruct();
   if (NS_FAILED(rv)) {
     return;
+  }
+
+  if (aRestyleHint & ~eRestyle_Subtree) {
+    
+    
+    
+    
+    
+    
+    
+    aRestyleTracker.AddPendingRestyle(mPresContext->Document()->GetRootElement(),
+                                      aRestyleHint, nsChangeHint(0));
+    aRestyleHint = nsRestyleHint(0);
   }
 
   
@@ -1438,9 +1458,10 @@ RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
   
   
   
+  
   ComputeStyleChangeFor(mPresContext->PresShell()->GetRootFrame(),
                         &changeList, aExtraHint,
-                        aRestyleTracker, eRestyle_Subtree);
+                        aRestyleTracker, aRestyleHint);
   
   ProcessRestyledFrames(changeList);
   FlushOverflowChangedTracker();
@@ -2340,7 +2361,16 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
              "eRestyle_LaterSiblings must not be part of aRestyleHint");
 
   nsRestyleHint hintToRestore = nsRestyleHint(0);
-  if (mContent && mContent->IsElement()) {
+  if (mContent && mContent->IsElement() &&
+      
+      
+      
+      
+      
+      
+      
+      
+      (mContent->GetParent() || mContent->GetPrimaryFrame() == mFrame)) {
     mContent->OwnerDoc()->FlushPendingLinkUpdates();
     RestyleTracker::RestyleData restyleData;
     if (mRestyleTracker.GetRestyleData(mContent->AsElement(), &restyleData)) {
@@ -2473,10 +2503,16 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
   }
   else if (!(aRestyleHint & (eRestyle_Self | eRestyle_Subtree))) {
     Element* element = ElementForStyleContext(mParentContent, aSelf, pseudoType);
-    if (aRestyleHint == nsRestyleHint(0)) {
+    if (aRestyleHint == nsRestyleHint(0) &&
+        !styleSet->IsInRuleTreeReconstruct()) {
       newContext =
         styleSet->ReparentStyleContext(oldContext, parentContext, element);
     } else {
+      
+      
+      
+      
+      
       newContext =
         styleSet->ResolveStyleWithReplacement(element, parentContext, oldContext,
                                               aRestyleHint);
@@ -2586,8 +2622,19 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
     if (!(aRestyleHint & (eRestyle_Self | eRestyle_Subtree))) {
       Element* element = extraPseudoType != nsCSSPseudoElements::ePseudo_AnonBox
                            ? mContent->AsElement() : nullptr;
-      newExtraContext =
-        styleSet->ReparentStyleContext(oldExtraContext, newContext, element);
+      if (styleSet->IsInRuleTreeReconstruct()) {
+        
+        
+        
+        
+        newExtraContext =
+          styleSet->ResolveStyleWithReplacement(element, newContext,
+                                                oldExtraContext,
+                                                nsRestyleHint(0));
+      } else {
+        newExtraContext =
+          styleSet->ReparentStyleContext(oldExtraContext, newContext, element);
+      }
     } else if (extraPseudoType == nsCSSPseudoElements::ePseudo_AnonBox) {
       newExtraContext = styleSet->ResolveAnonymousBoxStyle(extraPseudoTag,
                                                            newContext);
@@ -2711,7 +2758,8 @@ ElementRestyler::RestyleUndisplayedChildren(nsRestyleHint aChildRestyleHint)
 
       nsRestyleHint thisChildHint = aChildRestyleHint;
       RestyleTracker::RestyleData undisplayedRestyleData;
-      if (mRestyleTracker.GetRestyleData(undisplayed->mContent->AsElement(),
+      Element* element = undisplayed->mContent->AsElement();
+      if (mRestyleTracker.GetRestyleData(element,
                                          &undisplayedRestyleData)) {
         thisChildHint =
           nsRestyleHint(thisChildHint | undisplayedRestyleData.mRestyleHint);
@@ -2720,12 +2768,18 @@ ElementRestyler::RestyleUndisplayedChildren(nsRestyleHint aChildRestyleHint)
       nsStyleSet* styleSet = mPresContext->StyleSet();
       if (thisChildHint & (eRestyle_Self | eRestyle_Subtree)) {
         undisplayedContext =
-          styleSet->ResolveStyleFor(undisplayed->mContent->AsElement(),
+          styleSet->ResolveStyleFor(element,
                                     mFrame->StyleContext(),
                                     mTreeMatchContext);
-      } else if (thisChildHint) {
+      } else if (thisChildHint ||
+                 styleSet->IsInRuleTreeReconstruct()) {
+        
+        
+        
+        
+        
         undisplayedContext =
-          styleSet->ResolveStyleWithReplacement(undisplayed->mContent->AsElement(),
+          styleSet->ResolveStyleWithReplacement(element,
                                                 mFrame->StyleContext(),
                                                 undisplayed->mStyle,
                                                 thisChildHint);
@@ -2733,7 +2787,7 @@ ElementRestyler::RestyleUndisplayedChildren(nsRestyleHint aChildRestyleHint)
         undisplayedContext =
           styleSet->ReparentStyleContext(undisplayed->mStyle,
                                          mFrame->StyleContext(),
-                                         undisplayed->mContent->AsElement());
+                                         element);
       }
       const nsStyleDisplay* display = undisplayedContext->StyleDisplay();
       if (display->mDisplay != NS_STYLE_DISPLAY_NONE) {
