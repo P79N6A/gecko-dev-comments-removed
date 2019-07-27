@@ -4198,7 +4198,43 @@ pref("dom.mozContacts.enabled", false);
 pref("dom.mozAlarms.enabled", false);
 
 
-pref("services.push.enabled", false);
+pref("dom.push.enabled", false);
+
+pref("dom.push.debug", false);
+pref("dom.push.serverURL", "wss://push.services.mozilla.com/");
+pref("dom.push.userAgentID", "");
+
+
+
+pref("dom.push.connection.enabled", true);
+
+
+
+pref("dom.push.retryBaseInterval", 5000);
+
+
+
+
+pref("dom.push.pingInterval", 1800000); 
+
+
+pref("dom.push.requestTimeout", 10000);
+pref("dom.push.pingInterval.default", 180000);
+pref("dom.push.pingInterval.mobile", 180000); 
+pref("dom.push.pingInterval.wifi", 180000);  
+
+
+pref("dom.push.adaptive.enabled", false);
+pref("dom.push.adaptive.lastGoodPingInterval", 180000);
+pref("dom.push.adaptive.lastGoodPingInterval.mobile", 180000);
+pref("dom.push.adaptive.lastGoodPingInterval.wifi", 180000);
+
+pref("dom.push.adaptive.gap", 60000); 
+
+pref("dom.push.adaptive.upperLimit", 1740000); 
+
+
+pref("dom.push.udp.wakeupEnabled", false);
 
 
 pref("dom.mozNetworkStats.enabled", false);
