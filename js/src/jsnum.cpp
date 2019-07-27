@@ -50,6 +50,8 @@ using mozilla::RangedPtr;
 
 using JS::AutoCheckCannotGC;
 using JS::GenericNaN;
+using JS::ToInt8;
+using JS::ToInt16;
 using JS::ToInt32;
 using JS::ToInt64;
 using JS::ToUint32;
@@ -1546,6 +1548,44 @@ JS_PUBLIC_API(bool)
 js::ToNumberSlow(JSContext* cx, Value v, double* out)
 {
     return ToNumberSlow(static_cast<ExclusiveContext*>(cx), v, out);
+}
+
+
+
+
+
+JS_PUBLIC_API(bool)
+js::ToInt8Slow(JSContext *cx, const HandleValue v, int8_t *out)
+{
+    MOZ_ASSERT(!v.isInt32());
+    double d;
+    if (v.isDouble()) {
+        d = v.toDouble();
+    } else {
+        if (!ToNumberSlow(cx, v, &d))
+            return false;
+    }
+    *out = ToInt8(d);
+    return true;
+}
+
+
+
+
+
+JS_PUBLIC_API(bool)
+js::ToInt16Slow(JSContext *cx, const HandleValue v, int16_t *out)
+{
+    MOZ_ASSERT(!v.isInt32());
+    double d;
+    if (v.isDouble()) {
+        d = v.toDouble();
+    } else {
+        if (!ToNumberSlow(cx, v, &d))
+            return false;
+    }
+    *out = ToInt16(d);
+    return true;
 }
 
 

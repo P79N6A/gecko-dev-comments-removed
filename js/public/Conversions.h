@@ -34,6 +34,14 @@ ToNumberSlow(JSContext* cx, JS::Value v, double* dp);
 
 
 extern JS_PUBLIC_API(bool)
+ToInt8Slow(JSContext *cx, JS::HandleValue v, int8_t *out);
+
+
+extern JS_PUBLIC_API(bool)
+ToInt16Slow(JSContext *cx, JS::HandleValue v, int16_t *out);
+
+
+extern JS_PUBLIC_API(bool)
 ToInt32Slow(JSContext* cx, JS::HandleValue v, int32_t* out);
 
 
@@ -170,6 +178,19 @@ ToUint32(JSContext* cx, HandleValue v, uint32_t* out)
 
 
 MOZ_ALWAYS_INLINE bool
+ToInt16(JSContext *cx, JS::HandleValue v, int16_t *out)
+{
+    detail::AssertArgumentsAreSane(cx, v);
+
+    if (v.isInt32()) {
+        *out = int16_t(v.toInt32());
+        return true;
+    }
+    return js::ToInt16Slow(cx, v, out);
+}
+
+
+MOZ_ALWAYS_INLINE bool
 ToUint16(JSContext* cx, HandleValue v, uint16_t* out)
 {
     detail::AssertArgumentsAreSane(cx, v);
@@ -179,6 +200,19 @@ ToUint16(JSContext* cx, HandleValue v, uint16_t* out)
         return true;
     }
     return js::ToUint16Slow(cx, v, out);
+}
+
+
+MOZ_ALWAYS_INLINE bool
+ToInt8(JSContext *cx, JS::HandleValue v, int8_t *out)
+{
+    detail::AssertArgumentsAreSane(cx, v);
+
+    if (v.isInt32()) {
+        *out = int8_t(v.toInt32());
+        return true;
+    }
+    return js::ToInt8Slow(cx, v, out);
 }
 
 
@@ -482,6 +516,20 @@ inline uint32_t
 ToUint32(double d)
 {
     return detail::ToUintWidth<uint32_t>(d);
+}
+
+
+inline int8_t
+ToInt8(double d)
+{
+    return detail::ToIntWidth<int8_t>(d);
+}
+
+
+inline int16_t
+ToInt16(double d)
+{
+    return detail::ToIntWidth<int16_t>(d);
 }
 
 
