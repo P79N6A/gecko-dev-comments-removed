@@ -939,6 +939,14 @@ MarkCalleeToken(JSTracer *trc, CalleeToken token)
     }
 }
 
+uintptr_t *
+JitFrameLayout::slotRef(SafepointSlotEntry where)
+{
+    if (where.stack)
+        return (uintptr_t *)((uint8_t *)this - where.slot);
+    return (uintptr_t *)((uint8_t *)argv() + where.slot);
+}
+
 #ifdef JS_NUNBOX32
 static inline uintptr_t
 ReadAllocation(const JitFrameIterator &frame, const LAllocation *a)
@@ -947,31 +955,29 @@ ReadAllocation(const JitFrameIterator &frame, const LAllocation *a)
         Register reg = a->toGeneralReg()->reg();
         return frame.machineState().read(reg);
     }
-    if (a->isStackSlot()) {
-        uint32_t slot = a->toStackSlot()->slot();
-        return *frame.jsFrame()->slotRef(slot);
-    }
-    uint32_t index = a->toArgument()->index();
-    uint8_t *argv = reinterpret_cast<uint8_t *>(frame.jsFrame()->argv());
-    return *reinterpret_cast<uintptr_t *>(argv + index);
+    return *frame.jsFrame()->slotRef(SafepointSlotEntry(a));
 }
 #endif
 
 static void
-MarkFrameAndActualArguments(JSTracer *trc, const JitFrameIterator &frame)
+MarkExtraActualArguments(JSTracer *trc, const JitFrameIterator &frame)
 {
-    
     
     
 
     JitFrameLayout *layout = frame.jsFrame();
 
+    if (!CalleeTokenIsFunction(layout->calleeToken())) {
+        MOZ_ASSERT(frame.numActualArgs() == 0);
+        return;
+    }
+
     size_t nargs = frame.numActualArgs();
-    MOZ_ASSERT_IF(!CalleeTokenIsFunction(layout->calleeToken()), nargs == 0);
+    size_t nformals = CalleeTokenToFunction(layout->calleeToken())->nargs();
 
     
     Value *argv = layout->argv();
-    for (size_t i = 0; i < nargs + 1; i++)
+    for (size_t i = nformals + 1; i < nargs + 1; i++)
         gc::MarkValueRoot(trc, &argv[i], "ion-argv");
 }
 
@@ -982,16 +988,9 @@ WriteAllocation(const JitFrameIterator &frame, const LAllocation *a, uintptr_t v
     if (a->isGeneralReg()) {
         Register reg = a->toGeneralReg()->reg();
         frame.machineState().write(reg, value);
-        return;
+    } else {
+        *frame.jsFrame()->slotRef(SafepointSlotEntry(a)) = value;
     }
-    if (a->isStackSlot()) {
-        uint32_t slot = a->toStackSlot()->slot();
-        *frame.jsFrame()->slotRef(slot) = value;
-        return;
-    }
-    uint32_t index = a->toArgument()->index();
-    uint8_t *argv = reinterpret_cast<uint8_t *>(frame.jsFrame()->argv());
-    *reinterpret_cast<uintptr_t *>(argv + index) = value;
 }
 #endif
 
@@ -1012,7 +1011,7 @@ MarkIonJSFrame(JSTracer *trc, const JitFrameIterator &frame)
         ionScript = frame.ionScriptFromCalleeToken();
     }
 
-    MarkFrameAndActualArguments(trc, frame);
+    MarkExtraActualArguments(trc, frame);
 
     const SafepointIndex *si = ionScript->getSafepointIndex(frame.returnAddressToFp());
 
@@ -1020,14 +1019,15 @@ MarkIonJSFrame(JSTracer *trc, const JitFrameIterator &frame)
 
     
     
-    uint32_t slot;
-    while (safepoint.getGcSlot(&slot)) {
-        uintptr_t *ref = layout->slotRef(slot);
+    SafepointSlotEntry entry;
+
+    while (safepoint.getGcSlot(&entry)) {
+        uintptr_t *ref = layout->slotRef(entry);
         gc::MarkGCThingRoot(trc, reinterpret_cast<void **>(ref), "ion-gc-slot");
     }
 
-    while (safepoint.getValueSlot(&slot)) {
-        Value *v = (Value *)layout->slotRef(slot);
+    while (safepoint.getValueSlot(&entry)) {
+        Value *v = (Value *)layout->slotRef(entry);
         gc::MarkValueRoot(trc, v, "ion-gc-slot");
     }
 
@@ -1070,7 +1070,7 @@ MarkBailoutFrame(JSTracer *trc, const JitFrameIterator &frame)
 
     
     
-    MarkFrameAndActualArguments(trc, frame);
+    MarkExtraActualArguments(trc, frame);
 
     
     
@@ -1128,16 +1128,16 @@ UpdateIonJSFrameForMinorGC(JSTracer *trc, const JitFrameIterator &frame)
     }
 
     
-    uint32_t slot;
-    while (safepoint.getGcSlot(&slot));
-    while (safepoint.getValueSlot(&slot));
+    SafepointSlotEntry entry;
+    while (safepoint.getGcSlot(&entry));
+    while (safepoint.getValueSlot(&entry));
 #ifdef JS_NUNBOX32
     LAllocation type, payload;
     while (safepoint.getNunboxSlot(&type, &payload));
 #endif
 
-    while (safepoint.getSlotsOrElementsSlot(&slot)) {
-        HeapSlot **slots = reinterpret_cast<HeapSlot **>(layout->slotRef(slot));
+    while (safepoint.getSlotsOrElementsSlot(&entry)) {
+        HeapSlot **slots = reinterpret_cast<HeapSlot **>(layout->slotRef(entry));
         nursery.forwardBufferPointer(slots);
     }
 }
