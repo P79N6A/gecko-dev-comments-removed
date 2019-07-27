@@ -18,6 +18,7 @@
 #include "nsUnicharInputStream.h"
 #include "nsIRunnable.h"
 #include "nsThreadUtils.h"
+#include "nsProxyRelease.h"
 
 #define MOZ_PERSONAL_DICT_NAME "persdict.dat"
 
@@ -54,11 +55,18 @@ public:
 
   NS_IMETHOD Run()
   {
-    if (!NS_IsMainThread()) {
-      mDict->SyncLoad();
+    mDict->SyncLoad();
 
+    
+    mozPersonalDictionary *dict;
+    mDict.forget(&dict);
+
+    nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+    if (mainThread) {
+      NS_ProxyRelease(mainThread, static_cast<mozIPersonalDictionary *>(dict));
+    } else {
       
-      NS_DispatchToMainThread(this);
+      NS_WARNING("Cannot get main thread, leaking mozPersonalDictionary.");
     }
 
     return NS_OK;
