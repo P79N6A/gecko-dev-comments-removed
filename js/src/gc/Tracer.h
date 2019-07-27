@@ -353,12 +353,25 @@ class GCMarker : public JSTracer
 void
 SetMarkStackLimit(JSRuntime *rt, size_t limit);
 
+
+
+inline bool
+IsMarkingGray(JSTracer *trc)
+{
+    return trc->callback == js::GCMarker::GrayCallback;
+}
+
+
+inline bool
+IsMarkingTracer(JSTracer *trc)
+{
+    
+    
+    
+    MOZ_ASSERT(!IsMarkingGray(trc));
+    return trc->callback == nullptr;
+}
+
 } 
-
-
-
-
-#define IS_GC_MARKING_TRACER(trc) \
-    ((trc)->callback == nullptr || (trc)->callback == GCMarker::GrayCallback)
 
 #endif 

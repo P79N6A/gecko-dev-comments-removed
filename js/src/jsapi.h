@@ -1729,12 +1729,6 @@ extern JS_PUBLIC_API(bool)
 JS_IsGCMarkingTracer(JSTracer *trc);
 
 
-#ifdef JS_DEBUG
-extern JS_PUBLIC_API(bool)
-JS_IsMarkingGray(JSTracer *trc);
-#endif
-
-
 
 
 
