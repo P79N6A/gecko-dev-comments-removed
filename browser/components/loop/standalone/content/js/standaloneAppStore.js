@@ -109,7 +109,10 @@ loop.store.StandaloneAppStore = (function() {
       var token;
 
       
-      if (sharedUtils.isIOS(navigator.platform)) {
+      var unsupportedPlatform =
+        sharedUtils.getUnsupportedPlatform(navigator.platform);
+
+      if (unsupportedPlatform) {
         windowType = "unsupportedDevice";
       } else if (!this._sdk.checkSystemRequirements()) {
         windowType = "unsupportedBrowser";
@@ -127,7 +130,8 @@ loop.store.StandaloneAppStore = (function() {
 
       this.setStoreState({
         windowType: windowType,
-        isFirefox: sharedUtils.isFirefox(navigator.userAgent)
+        isFirefox: sharedUtils.isFirefox(navigator.userAgent),
+        unsupportedPlatform: unsupportedPlatform
       });
 
       
