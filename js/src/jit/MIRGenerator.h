@@ -144,7 +144,8 @@ class MIRGenerator
     
     
     bool usesSimd();
-    void noteMinAsmJSHeapLength(uint32_t len) {
+    void initMinAsmJSHeapLength(uint32_t len) {
+        JS_ASSERT(minAsmJSHeapLength_ == 0);
         minAsmJSHeapLength_ = len;
     }
     uint32_t minAsmJSHeapLength() const {

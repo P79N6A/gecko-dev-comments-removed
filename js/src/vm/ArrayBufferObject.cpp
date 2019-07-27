@@ -392,11 +392,6 @@ ArrayBufferObject::changeContents(JSContext *cx, BufferContents newContents)
     }
 }
 
-#if defined(JS_CODEGEN_X64)
-
-JS_STATIC_ASSERT(AsmJSAllocationGranularity == AsmJSPageSize);
-#endif
-
  bool
 ArrayBufferObject::prepareForAsmJSNoSignals(JSContext *cx, Handle<ArrayBufferObject*> buffer)
 {
@@ -449,7 +444,7 @@ ArrayBufferObject::prepareForAsmJS(JSContext *cx, Handle<ArrayBufferObject*> buf
 # endif
 
     
-    JS_ASSERT(buffer->byteLength() % AsmJSAllocationGranularity == 0);
+    JS_ASSERT(buffer->byteLength() % AsmJSPageSize == 0);
 # ifdef XP_WIN
     if (!VirtualAlloc(data, buffer->byteLength(), MEM_COMMIT, PAGE_READWRITE)) {
         VirtualFree(data, 0, MEM_RELEASE);

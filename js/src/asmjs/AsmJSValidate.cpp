@@ -1421,8 +1421,6 @@ class MOZ_STACK_CLASS ModuleCompiler
         return exits_.add(p, Move(exitDescriptor), *exitIndex);
     }
 
-    
-    
     void requireHeapLengthToBeAtLeast(uint32_t len) {
         module_->requireHeapLengthToBeAtLeast(len);
     }
@@ -3429,17 +3427,17 @@ CheckArrayAccess(FunctionCompiler &f, ParseNode *elem, Scalar::Type *viewType,
 
     *viewType = global->viewType();
 
-    uint32_t pointer;
-    if (IsLiteralOrConstInt(f, indexExpr, &pointer)) {
-        if (pointer > (uint32_t(INT32_MAX) >> TypedArrayShift(*viewType)))
+    uint32_t index;
+    if (IsLiteralOrConstInt(f, indexExpr, &index)) {
+        uint64_t byteOffset = uint64_t(index) << TypedArrayShift(*viewType);
+        if (byteOffset > INT32_MAX)
             return f.fail(indexExpr, "constant index out of range");
-        pointer <<= TypedArrayShift(*viewType);
-        
-        
-        
-        f.m().requireHeapLengthToBeAtLeast(uint32_t(pointer) + 1);
+
+        unsigned elementSize = 1 << TypedArrayShift(*viewType);
+        f.m().requireHeapLengthToBeAtLeast(byteOffset + elementSize);
+
         *needsBoundsCheck = NO_BOUNDS_CHECK;
-        *def = f.constant(Int32Value(pointer), Type::Int);
+        *def = f.constant(Int32Value(byteOffset), Type::Int);
         return true;
     }
 
@@ -3467,12 +3465,13 @@ CheckArrayAccess(FunctionCompiler &f, ParseNode *elem, Scalar::Type *viewType,
         
         
         
-        if (IsLiteralOrConstInt(f, pointerNode, &pointer) && pointer <= uint32_t(INT32_MAX)) {
+        uint32_t byteOffset;
+        if (IsLiteralOrConstInt(f, pointerNode, &byteOffset) && byteOffset <= uint32_t(INT32_MAX)) {
             
-            pointer &= mask;
-            if (pointer < f.m().minHeapLength())
+            byteOffset &= mask;
+            if (byteOffset < f.m().minHeapLength())
                 *needsBoundsCheck = NO_BOUNDS_CHECK;
-            *def = f.constant(Int32Value(pointer), Type::Int);
+            *def = f.constant(Int32Value(byteOffset), Type::Int);
             return true;
         }
 
@@ -5406,14 +5405,8 @@ CheckFunction(ModuleCompiler &m, LifoAlloc &lifo, MIRGenerator **mir, ModuleComp
 
     m.parser().release(mark);
 
-    
-    
-    
-    uint32_t len = RoundUpToNextValidAsmJSHeapLength(m.minHeapLength());
-    m.requireHeapLengthToBeAtLeast(len);
-
     *mir = f.extractMIR();
-    (*mir)->noteMinAsmJSHeapLength(len);
+    (*mir)->initMinAsmJSHeapLength(m.minHeapLength());
     *funcOut = func;
     return true;
 }
@@ -6934,7 +6927,7 @@ NoExceptionPending(ExclusiveContext *cx)
 }
 
 bool
-js::CompileAsmJS(ExclusiveContext *cx, AsmJSParser &parser, ParseNode *stmtList, bool *validated)
+js::ValidateAsmJS(ExclusiveContext *cx, AsmJSParser &parser, ParseNode *stmtList, bool *validated)
 {
     *validated = false;
 

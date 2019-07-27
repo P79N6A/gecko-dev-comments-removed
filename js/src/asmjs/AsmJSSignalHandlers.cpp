@@ -483,7 +483,7 @@ HandleException(PEXCEPTION_POINTERS exception)
     
     if (!module.maybeHeap() ||
         faultingAddress < module.maybeHeap() ||
-        faultingAddress >= module.maybeHeap() + AsmJSBufferProtectedSize)
+        faultingAddress >= module.maybeHeap() + AsmJSMappedSize)
     {
         return false;
     }
@@ -691,7 +691,7 @@ HandleMachException(JSRuntime *rt, const ExceptionRequest &request)
     
     if (!module.maybeHeap() ||
         faultingAddress < module.maybeHeap() ||
-        faultingAddress >= module.maybeHeap() + AsmJSBufferProtectedSize)
+        faultingAddress >= module.maybeHeap() + AsmJSMappedSize)
     {
         return false;
     }
@@ -930,7 +930,7 @@ HandleSignal(int signum, siginfo_t *info, void *ctx)
     
     if (!module.maybeHeap() ||
         faultingAddress < module.maybeHeap() ||
-        faultingAddress >= module.maybeHeap() + AsmJSBufferProtectedSize)
+        faultingAddress >= module.maybeHeap() + AsmJSMappedSize)
     {
         return false;
     }
