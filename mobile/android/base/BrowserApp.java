@@ -78,8 +78,8 @@ import org.mozilla.gecko.widget.GeckoActionProvider;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.BroadcastReceiver;
 import android.app.KeyguardManager;
+import android.content.BroadcastReceiver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -521,14 +521,8 @@ public class BrowserApp extends GeckoApp
         final String args = intent.getStringExtra("args");
 
         if (GuestSession.shouldUse(this, args)) {
-            GuestSession.configureWindow(getWindow());
             mProfile = GeckoProfile.createGuestProfile(this);
         } else {
-            
-            final KeyguardManager manager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
-            if (Versions.feature16Plus && !manager.isKeyguardSecure()) {
-                GuestSession.configureWindow(getWindow());
-            }
             GeckoProfile.maybeCleanupGuestProfile(this);
         }
 
@@ -757,12 +751,26 @@ public class BrowserApp extends GeckoApp
         final String args = getIntent().getStringExtra("args");
         
         
+        
         final boolean enableGuestSession = GuestSession.shouldUse(this, args);
         final boolean inGuestSession = GeckoProfile.get(this).inGuestMode();
         if (enableGuestSession != inGuestSession) {
             doRestart(getIntent());
             GeckoAppShell.systemExit();
             return;
+        }
+
+        final KeyguardManager manager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+        
+        if (Versions.feature11Plus && manager != null) {
+            
+            
+            
+            if (manager.isKeyguardLocked() && (GeckoProfile.get(this).inGuestMode() || !manager.isKeyguardSecure())) {
+                GuestSession.configureWindow(getWindow());
+            } else {
+                GuestSession.unconfigureWindow(getWindow());
+            }
         }
 
         EventDispatcher.getInstance().unregisterGeckoThreadListener((GeckoEventListener)this,
