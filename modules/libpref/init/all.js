@@ -2250,6 +2250,9 @@ pref("layout.css.background-blend-mode.enabled", true);
 pref("layout.css.vertical-text.enabled", true);
 
 
+pref("layout.css.text-combine-upright.enabled", false);
+
+
 pref("layout.css.object-fit-and-position.enabled", true);
 
 
