@@ -77,7 +77,7 @@ const cloneValueInto = function(value, targetWindow) {
 
   
   
-  for (let prop of value) {
+  for (let prop of Object.getOwnPropertyNames(value)) {
     if (typeof value[prop] == "function") {
       delete value[prop];
     }

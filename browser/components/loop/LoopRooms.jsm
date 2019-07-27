@@ -88,7 +88,6 @@ let LoopRoomsInternal = {
       
       
       for (let room of roomsList) {
-        let eventName = this.rooms.has(room.roomToken) ? "update" : "add";
         this.rooms.set(room.roomToken, room);
         yield LoopRooms.promise("get", room.roomToken);
       }
