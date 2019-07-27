@@ -17,8 +17,11 @@
 
 #ifdef DEBUG
 #include "prinit.h"
+#include "prthread.h"
 
 #include "nsStringGlue.h"
+
+#include "mozilla/DeadlockDetector.h"
 #include "nsXPCOM.h"
 #endif
 
@@ -28,9 +31,6 @@
 
 namespace mozilla {
 
-#ifdef DEBUG
-template <class T> class DeadlockDetector;
-#endif
 
 
 
@@ -53,39 +53,87 @@ public:
 #ifdef DEBUG
 
   static size_t
-  SizeOfDeadlockDetector(MallocSizeOf aMallocSizeOf);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  bool Print(nsACString& aOut) const;
-
-  size_t
-  SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
+  SizeOfDeadlockDetector(MallocSizeOf aMallocSizeOf)
   {
-    
-    
-    
-    size_t n = aMallocSizeOf(this);
-    return n;
+    return sDeadlockDetector ?
+        sDeadlockDetector->SizeOfIncludingThis(aMallocSizeOf) : 0;
   }
 
+private:
   
-  typedef DeadlockDetector<BlockingResourceBase> DDT;
+  struct DeadlockDetectorEntry;
+
+  
+  typedef DeadlockDetector<DeadlockDetectorEntry> DDT;
+
+  
+
+
+
+
+
+
+
+
+  struct DeadlockDetectorEntry
+  {
+    DeadlockDetectorEntry(const char* aName,
+                          BlockingResourceType aType)
+      : mName(aName)
+      , mType(aType)
+      , mAcquired(false)
+    {
+      NS_ABORT_IF_FALSE(mName, "Name must be nonnull");
+    }
+
+    size_t
+    SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
+    {
+      
+      
+      
+      size_t n = aMallocSizeOf(this);
+      return n;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool Print(const DDT::ResourceAcquisition& aFirstSeen,
+               nsACString& aOut) const;
+
+    
+
+
+
+
+    const char* mName;
+    
+
+
+
+
+    BlockingResourceType mType;
+    
+
+
+
+    bool mAcquired;
+  };
 
 protected:
   
@@ -127,6 +175,23 @@ protected:
 
 
   void Release();             
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static bool PrintCycle(const DDT::ResourceAcquisitionArray* aCycle,
+                         nsACString& aOut);
 
   
 
@@ -186,7 +251,7 @@ protected:
 
   bool GetAcquisitionState()
   {
-    return mAcquired;
+    return mDDEntry->mAcquired;
   }
 
   
@@ -197,7 +262,7 @@ protected:
 
   void SetAcquisitionState(bool aAcquisitionState)
   {
-    mAcquired = aAcquisitionState;
+    mDDEntry->mAcquired = aAcquisitionState;
   }
 
   
@@ -213,21 +278,7 @@ private:
 
 
 
-
-  const char* mName;
-
-  
-
-
-
-
-  BlockingResourceType mType;
-
-  
-
-
-
-  bool mAcquired;
+  DeadlockDetectorEntry* mDDEntry;
 
   
 
@@ -256,7 +307,15 @@ private:
 
 
 
-  static PRStatus InitStatics();
+  static PRStatus InitStatics()
+  {
+    PR_NewThreadPrivateIndex(&sResourceAcqnChainFrontTPI, 0);
+    sDeadlockDetector = new DDT();
+    if (!sDeadlockDetector) {
+      NS_RUNTIMEABORT("can't allocate deadlock detector");
+    }
+    return PR_SUCCESS;
+  }
 
   
 
@@ -264,7 +323,11 @@ private:
 
 
 
-  static void Shutdown();
+  static void Shutdown()
+  {
+    delete sDeadlockDetector;
+    sDeadlockDetector = 0;
+  }
 
 #  ifdef MOZILLA_INTERNAL_API
   
