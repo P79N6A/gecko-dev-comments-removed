@@ -879,7 +879,7 @@ function _loadURIWithFlags(browser, uri, params) {
   let referrerPolicy = ('referrerPolicy' in params ? params.referrerPolicy :
                         Ci.nsIHttpChannel.REFERRER_POLICY_DEFAULT);
   let charset = params.charset;
-  let postData = params.postData;
+  let postdata = params.postData;
 
   if (!(flags & browser.webNavigation.LOAD_FLAGS_FROM_EXTERNAL)) {
     browser.userTypedClear++;
@@ -893,18 +893,13 @@ function _loadURIWithFlags(browser, uri, params) {
     if (!mustChangeProcess) {
       browser.webNavigation.loadURIWithOptions(uri, flags,
                                                referrer, referrerPolicy,
-                                               postData, null, null);
+                                               postdata, null, null);
     } else {
-      if (postData) {
-        postData = NetUtil.readInputStreamToString(postData, postData.available());
-      }
-
       LoadInOtherProcess(browser, {
         uri: uri,
         flags: flags,
         referrer: referrer ? referrer.spec : null,
         referrerPolicy: referrerPolicy,
-        postData: postData,
       });
     }
   } catch (e) {
@@ -914,7 +909,7 @@ function _loadURIWithFlags(browser, uri, params) {
     
     gBrowser.updateBrowserRemotenessByURL(browser, uri);
     browser.webNavigation.loadURIWithOptions(uri, flags, referrer, referrerPolicy,
-                                             postData, null, null);
+                                             postdata, null, null);
   } finally {
     if (browser.userTypedClear) {
       browser.userTypedClear--;
@@ -3469,9 +3464,8 @@ const BrowserSearch = {
       if (!aSearchBar || document.activeElement != aSearchBar.textbox.inputField) {
         let url = gBrowser.currentURI.spec.toLowerCase();
         let mm = gBrowser.selectedBrowser.messageManager;
-        if (url === "about:home") {
-          AboutHome.focusInput(mm);
-        } else if (url === "about:newtab" && NewTabUtils.allPages.enabled) {
+        if (url === "about:home" ||
+            (url === "about:newtab" && NewTabUtils.allPages.enabled)) {
           ContentSearch.focusInput(mm);
         } else {
           openUILinkIn("about:home", "current");
