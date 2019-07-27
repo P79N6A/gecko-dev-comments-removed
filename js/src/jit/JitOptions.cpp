@@ -12,13 +12,30 @@
 using namespace js;
 using namespace js::jit;
 
+using mozilla::Maybe;
+
 namespace js {
 namespace jit {
 
 JitOptions js_JitOptions;
 
+static void Warn(const char *env, const char *value)
+{
+    fprintf(stderr, "Warning: I didn't understand %s=\"%s\"\n", env, value);
+}
+
 template<typename T> struct IsBool : mozilla::FalseType {};
 template<> struct IsBool<bool> : mozilla::TrueType {};
+
+static Maybe<int>
+ParseInt(const char *str)
+{
+    char *endp;
+    int retval = strtol(str, &endp, 0);
+    if (*endp == '\0')
+        return mozilla::Some(retval);
+    return mozilla::Nothing();
+}
 
 template<typename T>
 T overrideDefault(const char *param, T dflt) {
@@ -34,14 +51,12 @@ T overrideDefault(const char *param, T dflt) {
             strcmp(str, "no")) {
             return false;
         }
-        fprintf(stderr, "Warning: I didn't understand %s=\"%s\"", param, str);
+        Warn(param, str);
     } else {
-        char *endp;
-        int retval = strtol(str, &endp, 0);
-        if (*endp == '\0')
-            return retval;
-
-        fprintf(stderr, "Warning: I didn't understand %s=\"%s\"", param, str);
+        Maybe<int> value = ParseInt(str);
+        if (value.isSome())
+            return value.ref();
+        Warn(param, str);
     }
     return dflt;
 }
@@ -96,13 +111,23 @@ JitOptions::JitOptions()
     
     
     
-    SET_DEFAULT(forceDefaultIonWarmUpThreshold, false);
-    SET_DEFAULT(forcedDefaultIonWarmUpThreshold, 1000);
+    const char *forcedDefaultIonWarmUpThresholdEnv = "JIT_OPTION_forcedDefaultIonWarmUpThreshold";
+    if (const char *env = getenv(forcedDefaultIonWarmUpThresholdEnv)) {
+        Maybe<int> value = ParseInt(env);
+        if (value.isSome())
+            forcedDefaultIonWarmUpThreshold.emplace(value.ref());
+        else
+            Warn(forcedDefaultIonWarmUpThresholdEnv, env);
+    }
 
     
     
-    forceRegisterAllocator = false;
-    forcedRegisterAllocator = RegisterAllocator_LSRA;
+    const char *forcedRegisterAllocatorEnv = "JIT_OPTION_forcedRegisterAllocator";
+    if (const char *env = getenv(forcedRegisterAllocatorEnv)) {
+        forcedRegisterAllocator = LookupRegisterAllocator(env);
+        if (!forcedRegisterAllocator.isSome())
+            Warn(forcedRegisterAllocatorEnv, env);
+    }
 
     
     SET_DEFAULT(limitScriptSize, true);
@@ -148,15 +173,13 @@ JitOptions::setEagerCompilation()
 {
     eagerCompilation = true;
     baselineWarmUpThreshold = 0;
-    forceDefaultIonWarmUpThreshold = true;
-    forcedDefaultIonWarmUpThreshold = 0;
+    forcedDefaultIonWarmUpThreshold.emplace(0);
 }
 
 void
 JitOptions::setCompilerWarmUpThreshold(uint32_t warmUpThreshold)
 {
-    forceDefaultIonWarmUpThreshold = true;
-    forcedDefaultIonWarmUpThreshold = warmUpThreshold;
+    forcedDefaultIonWarmUpThreshold.emplace(warmUpThreshold);
 
     
     if (eagerCompilation && warmUpThreshold != 0) {
@@ -169,7 +192,7 @@ JitOptions::setCompilerWarmUpThreshold(uint32_t warmUpThreshold)
 void
 JitOptions::resetCompilerWarmUpThreshold()
 {
-    forceDefaultIonWarmUpThreshold = false;
+    forcedDefaultIonWarmUpThreshold.reset();
 
     
     if (eagerCompilation) {
