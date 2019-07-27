@@ -475,6 +475,36 @@ var BrowserApp = {
     }
 
     
+    if (Services.prefs.prefHasUserValue("intl.locale.os")) {
+      try {
+        let currentAcceptLang = Services.prefs.getCharPref("intl.accept_languages");
+
+        
+        
+        if (currentAcceptLang.startsWith("chrome://global/locale/intl.properties,")) {
+          
+          try {
+            let currentUALocale = Services.prefs.getCharPref("general.useragent.locale");
+            if (currentUALocale.startsWith("chrome://")) {
+              
+            } else {
+              
+              this.setLocalizedPref("general.useragent.locale", currentUALocale);
+            }
+          } catch (ee) {
+          }
+
+          
+          let osLocale = this.getOSLocalePref();
+          let uaLocale = this.getUALocalePref();
+          this.computeAcceptLanguages(osLocale, uaLocale);
+        }
+      } catch (e) {
+        
+      }
+    }
+
+    
     Messaging.sendRequest({ type: "Gecko:Ready" });
   },
 
@@ -1503,6 +1533,33 @@ var BrowserApp = {
     }
   },
 
+  getUALocalePref: function () {
+    try {
+      return Services.prefs.getComplexValue("general.useragent.locale", Ci.nsIPrefLocalizedString).data;
+    } catch (e) {
+      try {
+        return Services.prefs.getCharPref("general.useragent.locale");
+      } catch (ee) {
+        return undefined;
+      }
+    }
+  },
+
+  getOSLocalePref: function () {
+    try {
+      return Services.prefs.getCharPref("intl.locale.os");
+    } catch (e) {
+      return undefined;
+    }
+  },
+
+  setLocalizedPref: function (pref, value) {
+    let pls = Cc["@mozilla.org/pref-localizedstring;1"]
+                .createInstance(Ci.nsIPrefLocalizedString);
+    pls.data = value;
+    Services.prefs.setComplexValue(pref, Ci.nsIPrefLocalizedString, pls);
+  },
+
   observe: function(aSubject, aTopic, aData) {
     let browser = this.selectedBrowser;
 
@@ -1744,11 +1801,7 @@ var BrowserApp = {
       case "Locale:OS":
         
         console.log("Locale:OS: " + aData);
-        let currentOSLocale;
-        try {
-          currentOSLocale = Services.prefs.getCharPref("intl.locale.os");
-        } catch (e) {
-        }
+        let currentOSLocale = this.getOSLocalePref();
         if (currentOSLocale == aData) {
           break;
         }
@@ -1760,11 +1813,7 @@ var BrowserApp = {
         Services.prefs.setCharPref("intl.locale.os", aData);
         Services.prefs.savePrefFile(null);
 
-        let appLocale;
-        try {
-          appLocale = Services.prefs.getCharPref("general.useragent.locale");
-        } catch (e) {
-        }
+        let appLocale = this.getUALocalePref();
 
         this.computeAcceptLanguages(aData, appLocale);
         break;
@@ -1774,7 +1823,10 @@ var BrowserApp = {
           
           
           console.log("Locale:Changed: " + aData);
-          Services.prefs.setCharPref("general.useragent.locale", aData);
+
+          
+          
+          this.setLocalizedPref("general.useragent.locale", aData);
         } else {
           
           console.log("Switching to system locale.");
@@ -1863,7 +1915,7 @@ var BrowserApp = {
 
     let result = chosen.join(",");
     console.log("Setting intl.accept_languages to " + result);
-    Services.prefs.setCharPref("intl.accept_languages", result);
+    this.setLocalizedPref("intl.accept_languages", result);
   },
 
   get defaultBrowserWidth() {
