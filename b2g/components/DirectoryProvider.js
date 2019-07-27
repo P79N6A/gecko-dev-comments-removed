@@ -15,6 +15,7 @@ const UPDATE_ARCHIVE_DIR = "UpdArchD"
 const LOCAL_DIR = "/data/local";
 const UPDATES_DIR = "updates/0";
 const FOTA_DIR = "updates/fota";
+const COREAPPSDIR_PREF = "b2g.coreappsdir"
 
 XPCOMUtils.defineLazyServiceGetter(Services, "env",
                                    "@mozilla.org/process/environment;1",
@@ -100,9 +101,24 @@ DirectoryProvider.prototype = {
     
     
     
+    
     if (prop == "coreAppsDir") {
-      let appsDir = Services.dirsvc.get("ProfD", Ci.nsIFile);
-      appsDir.append("webapps");
+      let coreAppsDirPref;
+      try {
+        coreAppsDirPref = Services.prefs.getCharPref(COREAPPSDIR_PREF);
+      } catch (e) {
+        
+        
+      }
+      let appsDir;
+      
+      if (!coreAppsDirPref || coreAppsDirPref == "") {
+        appsDir = Services.dirsvc.get("ProfD", Ci.nsIFile);
+        appsDir.append("webapps");
+      } else {
+        appsDir = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile)
+        appsDir.initWithPath(coreAppsDirPref);
+      }
       persistent.value = true;
       return appsDir;
     } else if (prop == "ProfD") {
