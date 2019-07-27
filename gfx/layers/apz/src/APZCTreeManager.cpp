@@ -308,7 +308,7 @@ APZCTreeManager::PrepareAPZCForLayer(const LayerMetricsWrapper& aLayer,
                  << "\tsr=" << aMetrics.mScrollableRect
                  << (aLayer.GetVisibleRegion().IsEmpty() ? "\tscrollinfo" : "")
                  << (apzc->HasScrollgrab() ? "\tscrollgrab" : "")
-                 << "\t" << aMetrics.GetContentDescription().get();
+                 << "\t" << aLayer.GetContentDescription();
 
     
     if (aNextSibling) {

@@ -259,7 +259,6 @@ public:
     mNeedComponentAlpha(false),
     mForceTransparentSurface(false),
     mHideAllLayersBelow(false),
-    mOpaqueForAnimatedGeometryRootParent(false),
     mImage(nullptr),
     mCommonClipCount(-1),
     mNewChildLayersIndex(-1),
@@ -459,13 +458,6 @@ public:
 
 
   bool mHideAllLayersBelow;
-  
-
-
-
-
-
-  bool mOpaqueForAnimatedGeometryRootParent;
 
   
 
@@ -540,9 +532,6 @@ struct NewLayerEntry {
   nsRefPtr<Layer> mLayer;
   const nsIFrame* mAnimatedGeometryRoot;
   const nsIFrame* mFixedPosFrameForLayerData;
-  
-  
-  UniquePtr<FrameMetrics> mBaseFrameMetrics;
   
   
   
@@ -769,20 +758,12 @@ protected:
   
 
 
-  void SetupScrollingMetadata(NewLayerEntry* aEntry);
-
-  
 
 
 
 
 
-
-
-
-
-
-  void PostprocessRetainedLayers(nsIntRegion* aOpaqueRegionForContainer);
+  void ApplyOcclusionCulling(nsIntRegion* aOpaqueRegionForContainer);
 
   
 
@@ -795,8 +776,7 @@ protected:
                                 const nsIFrame* aFixedPosFrame,
                                 const DisplayItemClip& aClip,
                                 nsDisplayList* aList,
-                                bool* aHideAllLayersBelow,
-                                bool* aOpaqueForAnimatedGeometryRootParent);
+                                bool* aHideAllLayersBelow);
 
   
 
@@ -2160,7 +2140,12 @@ ContainerState::PopThebesLayerData()
     newLayerEntry->mVisibleRegion = data->mVisibleRegion;
     newLayerEntry->mOpaqueRegion = data->mOpaqueRegion;
     newLayerEntry->mHideAllLayersBelow = data->mHideAllLayersBelow;
-    newLayerEntry->mOpaqueForAnimatedGeometryRootParent = data->mOpaqueForAnimatedGeometryRootParent;
+    if (nsLayoutUtils::GetScrollableFrameFor(newLayerEntry->mAnimatedGeometryRoot) &&
+        !nsDisplayScrollLayer::IsConstructingScrollLayerForScrolledFrame(newLayerEntry->mAnimatedGeometryRoot)) {
+      
+      
+      newLayerEntry->mOpaqueForAnimatedGeometryRootParent = true;
+    }
   } else {
     SetOuterVisibleRegionForLayer(layer, data->mVisibleRegion);
   }
@@ -2677,8 +2662,7 @@ ContainerState::ComputeOpaqueRect(nsDisplayItem* aItem,
                                   const nsIFrame* aFixedPosFrame,
                                   const DisplayItemClip& aClip,
                                   nsDisplayList* aList,
-                                  bool* aHideAllLayersBelow,
-                                  bool* aOpaqueForAnimatedGeometryRootParent)
+                                  bool* aHideAllLayersBelow)
 {
   bool snapOpaque;
   nsRegion opaque = aItem->GetOpaqueRegion(mBuilder, &snapOpaque);
@@ -2705,23 +2689,6 @@ ContainerState::ComputeOpaqueRect(nsDisplayItem* aItem,
     opaquePixels = ScaleRegionToInsidePixels(opaqueClipped, snapOpaque);
     if (aFixedPosFrame && ItemCoversScrollableArea(aItem, opaque)) {
       *aHideAllLayersBelow = true;
-    }
-
-    nsIScrollableFrame* sf = nsLayoutUtils::GetScrollableFrameFor(aAnimatedGeometryRoot);
-    if (sf) {
-      nsRect displayport;
-      bool usingDisplayport =
-        nsLayoutUtils::GetDisplayPort(aAnimatedGeometryRoot->GetContent(), &displayport);
-      if (!usingDisplayport) {
-        
-        
-        displayport = sf->GetScrollPortRect();
-      }
-      nsIFrame* scrollFrame = do_QueryFrame(sf);
-      displayport += scrollFrame->GetOffsetToCrossDoc(mContainerReferenceFrame);
-      if (opaque.Contains(displayport)) {
-        *aOpaqueForAnimatedGeometryRootParent = true;
-      }
     }
   }
   return opaquePixels;
@@ -3003,22 +2970,15 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList,
         newLayerEntry->mVisibleRegion = itemVisibleRect;
         newLayerEntry->mOpaqueRegion = ComputeOpaqueRect(item,
           animatedGeometryRoot, fixedPosFrame, itemClip, aList,
-          &newLayerEntry->mHideAllLayersBelow,
-          &newLayerEntry->mOpaqueForAnimatedGeometryRootParent);
+          &newLayerEntry->mHideAllLayersBelow);
       } else {
         SetOuterVisibleRegionForLayer(ownLayer, itemVisibleRect,
             layerContentsVisibleRect.width >= 0 ? &layerContentsVisibleRect : nullptr);
       }
-      if (itemType == nsDisplayItem::TYPE_SCROLL_LAYER ||
-          itemType == nsDisplayItem::TYPE_SCROLL_INFO_LAYER) {
+      if (itemType == nsDisplayItem::TYPE_SCROLL_LAYER) {
         nsDisplayScrollLayer* scrollItem = static_cast<nsDisplayScrollLayer*>(item);
         newLayerEntry->mOpaqueForAnimatedGeometryRootParent =
             scrollItem->IsDisplayPortOpaque();
-        newLayerEntry->mBaseFrameMetrics =
-            scrollItem->ComputeFrameMetrics(ownLayer, mParameters);
-      } else if (itemType == nsDisplayItem::TYPE_SUBDOCUMENT) {
-        newLayerEntry->mBaseFrameMetrics =
-          static_cast<nsDisplaySubDocument*>(item)->ComputeFrameMetrics(ownLayer, mParameters);
       }
 
       
@@ -3051,8 +3011,7 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList,
         nsIntRegion opaquePixels = ComputeOpaqueRect(item,
             animatedGeometryRoot, thebesLayerData->mFixedPosFrameForLayerData,
             itemClip, aList,
-            &thebesLayerData->mHideAllLayersBelow,
-            &thebesLayerData->mOpaqueForAnimatedGeometryRootParent);
+            &thebesLayerData->mHideAllLayersBelow);
         thebesLayerData->Accumulate(this, item, opaquePixels,
             itemVisibleRect, itemDrawRect, itemClip);
       }
@@ -3478,63 +3437,7 @@ FindOpaqueRegionEntry(nsTArray<OpaqueRegionEntry>& aEntries,
 }
 
 void
-ContainerState::SetupScrollingMetadata(NewLayerEntry* aEntry)
-{
-  nsAutoTArray<FrameMetrics,2> metricsArray;
-  if (aEntry->mBaseFrameMetrics) {
-    metricsArray.AppendElement(*aEntry->mBaseFrameMetrics);
-  }
-  uint32_t baseLength = metricsArray.Length();
-
-  nsIntRect tmpClipRect;
-  const nsIntRect* layerClip = aEntry->mLayer->GetClipRect();
-  nsIFrame* fParent;
-  for (const nsIFrame* f = aEntry->mAnimatedGeometryRoot;
-       f != mContainerAnimatedGeometryRoot;
-       f = nsLayoutUtils::GetAnimatedGeometryRootForFrame(
-           fParent, mContainerAnimatedGeometryRoot)) {
-    fParent = nsLayoutUtils::GetCrossDocParentFrame(f);
-    if (!fParent) {
-      
-      
-      
-      
-      
-      
-      
-      metricsArray.SetLength(baseLength);
-      aEntry->mLayer->SetFrameMetrics(metricsArray);
-      return;
-    }
-
-    nsIScrollableFrame* scrollFrame = nsLayoutUtils::GetScrollableFrameFor(f);
-    if (!scrollFrame) {
-      continue;
-    }
-
-    nsRect clipRect(0, 0, -1, -1);
-    scrollFrame->ComputeFrameMetrics(aEntry->mLayer, mContainerReferenceFrame,
-                                     mParameters, &clipRect, &metricsArray);
-    if (clipRect.width >= 0) {
-      nsIntRect pixClip = ScaleToNearestPixels(clipRect);
-      if (layerClip) {
-        tmpClipRect.IntersectRect(pixClip, *layerClip);
-      } else {
-        tmpClipRect = pixClip;
-      }
-      layerClip = &tmpClipRect;
-      
-      
-      
-    }
-  }
-  aEntry->mLayer->SetClipRect(layerClip);
-  
-  aEntry->mLayer->SetFrameMetrics(metricsArray);
-}
-
-void
-ContainerState::PostprocessRetainedLayers(nsIntRegion* aOpaqueRegionForContainer)
+ContainerState::ApplyOcclusionCulling(nsIntRegion* aOpaqueRegionForContainer)
 {
   nsAutoTArray<OpaqueRegionEntry,4> opaqueRegions;
   bool hideAll = false;
@@ -3554,10 +3457,6 @@ ContainerState::PostprocessRetainedLayers(nsIntRegion* aOpaqueRegionForContainer
     } else if (data) {
       e->mVisibleRegion.Sub(e->mVisibleRegion, data->mOpaqueRegion);
     }
-
-    SetOuterVisibleRegionForLayer(e->mLayer, e->mVisibleRegion,
-      e->mLayerContentsVisibleRect.width >= 0 ? &e->mLayerContentsVisibleRect : nullptr);
-    SetupScrollingMetadata(e);
 
     if (!e->mOpaqueRegion.IsEmpty()) {
       const nsIFrame* animatedGeometryRootToCover = e->mAnimatedGeometryRoot;
@@ -3585,6 +3484,9 @@ ContainerState::PostprocessRetainedLayers(nsIntRegion* aOpaqueRegionForContainer
         hideAll = true;
       }
     }
+
+    SetOuterVisibleRegionForLayer(e->mLayer, e->mVisibleRegion,
+	  e->mLayerContentsVisibleRect.width >= 0 ? &e->mLayerContentsVisibleRect : nullptr);
 
     if (e->mLayer->GetType() == Layer::TYPE_READBACK) {
       
@@ -3616,7 +3518,7 @@ ContainerState::Finish(uint32_t* aTextContentFlags, LayerManagerData* aData,
 
   if (mLayerBuilder->IsBuildingRetainedLayers()) {
     nsIntRegion containerOpaqueRegion;
-    PostprocessRetainedLayers(&containerOpaqueRegion);
+    ApplyOcclusionCulling(&containerOpaqueRegion);
     if (containerOpaqueRegion.Contains(aContainerPixelBounds)) {
       aChildItems->SetIsOpaque();
     }

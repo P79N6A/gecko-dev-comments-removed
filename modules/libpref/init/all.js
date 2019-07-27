@@ -427,9 +427,6 @@ pref("media.audio_data.enabled", false);
 pref("layers.async-pan-zoom.enabled", false);
 
 
-pref("layout.async-containerless-scrolling.enabled", true);
-
-
 
 pref("apz.allow_checkerboarding", true);
 pref("apz.asyncscroll.throttle", 100);

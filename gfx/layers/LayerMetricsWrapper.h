@@ -328,6 +328,13 @@ public:
     return mLayer->GetClipRect();
   }
 
+  const std::string& GetContentDescription() const
+  {
+    MOZ_ASSERT(IsValid());
+
+    return mLayer->GetContentDescription();
+  }
+
   
   
   

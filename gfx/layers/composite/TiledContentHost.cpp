@@ -367,9 +367,9 @@ TiledContentHost::Composite(EffectChain& aEffectChain,
   if (aOpacity == 1.0f && gfxPrefs::LowPrecisionOpacity() < 1.0f) {
     
     
-    for (LayerMetricsWrapper ancestor(GetLayer(), LayerMetricsWrapper::StartAt::BOTTOM); ancestor; ancestor = ancestor.GetParent()) {
-      if (ancestor.Metrics().IsScrollable()) {
-        backgroundColor = ancestor.Metrics().GetBackgroundColor();
+    for (Layer* ancestor = GetLayer(); ancestor; ancestor = ancestor->GetParent()) {
+      if (ancestor->HasScrollableFrameMetrics()) {
+        backgroundColor = ancestor->GetBackgroundColor();
         break;
       }
     }

@@ -1171,6 +1171,28 @@ public:
     }
   }
 
+  void SetBackgroundColor(const gfxRGBA& aColor)
+  {
+    if (mBackgroundColor == aColor) {
+      return;
+    }
+
+    MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) BackgroundColor", this));
+    mBackgroundColor = aColor;
+    Mutated();
+  }
+
+  void SetContentDescription(const std::string& aContentDescription)
+  {
+    if (mContentDescription == aContentDescription) {
+      return;
+    }
+
+    MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) ContentDescription", this));
+    mContentDescription = aContentDescription;
+    Mutated();
+  }
+
   
   float GetOpacity() { return mOpacity; }
   gfx::CompositionOp GetMixBlendMode() const { return mMixBlendMode; }
@@ -1204,6 +1226,8 @@ public:
   FrameMetrics::ViewID GetScrollbarTargetContainerId() { return mScrollbarTargetId; }
   ScrollDirection GetScrollbarDirection() { return mScrollbarDirection; }
   Layer* GetMaskLayer() const { return mMaskLayer; }
+  gfxRGBA GetBackgroundColor() const { return mBackgroundColor; }
+  const std::string& GetContentDescription() const { return mContentDescription; }
 
 
   
@@ -1631,6 +1655,12 @@ protected:
   
   
   uint64_t mAnimationGeneration;
+  
+  gfxRGBA mBackgroundColor;
+  
+  
+  
+  std::string mContentDescription;
 #ifdef MOZ_DUMP_PAINTING
   nsTArray<nsCString> mExtraDumpInfo;
 #endif
