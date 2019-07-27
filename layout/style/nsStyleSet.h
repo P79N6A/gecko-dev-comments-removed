@@ -165,8 +165,7 @@ class nsStyleSet
   
   
   already_AddRefed<nsStyleContext>
-  ResolveStyleForNonElement(nsStyleContext* aParentContext,
-                            bool aSuppressLineBreak = false);
+  ResolveStyleForNonElement(nsStyleContext* aParentContext);
 
   
   
@@ -448,10 +447,7 @@ class nsStyleSet
     
     
     
-    eSkipParentDisplayBasedStyleFixup = 1 << 3,
-
-    
-    eSuppressLineBreak = 1 << 4
+    eSkipParentDisplayBasedStyleFixup = 1 << 3
   };
 
   already_AddRefed<nsStyleContext>

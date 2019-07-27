@@ -135,12 +135,6 @@ public:
                                                   NS_STYLE_CONTEXT_TYPE_SHIFT);
   }
 
-  enum {
-    eRelevantLinkVisited = 1 << 0,
-    eSuppressLineBreak = 1 << 1
-  };
-
-  
   
   
   
@@ -150,7 +144,8 @@ public:
   
   already_AddRefed<nsStyleContext>
   FindChildWithRules(const nsIAtom* aPseudoTag, nsRuleNode* aRules,
-                     nsRuleNode* aRulesIfVisited, uint32_t aFlags);
+                     nsRuleNode* aRulesIfVisited,
+                     bool aRelevantLinkVisited);
 
   
   
