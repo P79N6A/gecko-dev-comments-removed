@@ -122,6 +122,16 @@ public class ShareDialog extends Locales.LocaleAwareActivity implements SendTabT
                 clientrecords.length <= MAXIMUM_INLINE_DEVICES) {
             
             sendTabList.switchState(SendTabList.State.LIST);
+
+            
+            
+            
+            
+            
+            if (clientrecords == null || clientrecords.length == 0) {
+                readingListButton.setBackgroundResource(
+                        R.drawable.overlay_share_button_background_first);
+            }
             return;
         }
 
