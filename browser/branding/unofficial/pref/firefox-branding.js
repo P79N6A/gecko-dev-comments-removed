@@ -24,12 +24,5 @@ pref("app.update.url.details", "https://nightly.mozilla.org");
 pref("app.update.checkInstallTime.days", 2);
 
 
-pref("browser.search.param.yahoo-fr", "moz35");
-pref("browser.search.param.yahoo-fr-ja", "mozff");
-#ifdef MOZ_METRO
-pref("browser.search.param.yahoo-fr-metro", "");
-#endif
-
-
 
 pref("devtools.selfxss.count", 0);
