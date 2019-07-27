@@ -57,10 +57,10 @@ VMFunction::addToFunctions()
 }
 
 bool
-InvokeFunction(JSContext* cx, HandleObject obj, uint32_t argc, Value* argv,
+InvokeFunction(JSContext* cx, HandleObject obj, bool constructing, uint32_t argc, Value* argv,
                MutableHandleValue rval)
 {
-    AutoArrayRooter argvRoot(cx, argc + 1, argv);
+    AutoArrayRooter argvRoot(cx, argc + 1 + constructing, argv);
 
     
     Value thisv = argv[0];
@@ -70,9 +70,18 @@ InvokeFunction(JSContext* cx, HandleObject obj, uint32_t argc, Value* argv,
     
     
     if (thisv.isMagic(JS_IS_CONSTRUCTING))
-        return InvokeConstructor(cx, ObjectValue(*obj), argc, argvWithoutThis, rval);
+        return InvokeConstructor(cx, ObjectValue(*obj), argc, argvWithoutThis, true, rval);
 
     return Invoke(cx, thisv, ObjectValue(*obj), argc, argvWithoutThis, rval);
+}
+
+bool
+InvokeFunctionShuffleNewTarget(JSContext* cx, HandleObject obj, uint32_t numActualArgs,
+                               uint32_t numFormalArgs, Value* argv, MutableHandleValue rval)
+{
+    MOZ_ASSERT(numFormalArgs > numActualArgs);
+    argv[1 + numActualArgs] = argv[1 + numFormalArgs];
+    return InvokeFunction(cx, obj, true, numActualArgs, argv, rval);
 }
 
 bool

@@ -285,6 +285,7 @@ class MOZ_STACK_CLASS CallArgsBase :
 {
   protected:
     unsigned argc_;
+    bool constructing_;
 
   public:
     
@@ -314,13 +315,18 @@ class MOZ_STACK_CLASS CallArgsBase :
         return i < argc_ && !this->argv_[i].isUndefined();
     }
 
+    MutableHandleValue newTarget() const {
+        MOZ_ASSERT(constructing_);
+        return MutableHandleValue::fromMarkedLocation(&this->argv_[argc_]);
+    }
+
   public:
     
     
     
 
     Value* array() const { return this->argv_; }
-    Value* end() const { return this->argv_ + argc_; }
+    Value* end() const { return this->argv_ + argc_ + constructing_; }
 };
 
 } 
@@ -329,13 +335,14 @@ class MOZ_STACK_CLASS CallArgs : public detail::CallArgsBase<detail::IncludeUsed
 {
   private:
     friend CallArgs CallArgsFromVp(unsigned argc, Value* vp);
-    friend CallArgs CallArgsFromSp(unsigned argc, Value* sp);
+    friend CallArgs CallArgsFromSp(unsigned stackSlots, Value* sp, bool constructing);
 
-    static CallArgs create(unsigned argc, Value* argv) {
+    static CallArgs create(unsigned argc, Value* argv, bool constructing) {
         CallArgs args;
         args.clearUsedRval();
         args.argv_ = argv;
         args.argc_ = argc;
+        args.constructing_ = constructing;
         return args;
     }
 
@@ -351,16 +358,16 @@ class MOZ_STACK_CLASS CallArgs : public detail::CallArgsBase<detail::IncludeUsed
 MOZ_ALWAYS_INLINE CallArgs
 CallArgsFromVp(unsigned argc, Value* vp)
 {
-    return CallArgs::create(argc, vp + 2);
+    return CallArgs::create(argc, vp + 2, vp[1].isMagic(JS_IS_CONSTRUCTING));
 }
 
 
 
 
 MOZ_ALWAYS_INLINE CallArgs
-CallArgsFromSp(unsigned argc, Value* sp)
+CallArgsFromSp(unsigned stackSlots, Value* sp, bool constructing = false)
 {
-    return CallArgs::create(argc, sp - argc);
+    return CallArgs::create(stackSlots - constructing, sp - stackSlots, constructing);
 }
 
 } 
