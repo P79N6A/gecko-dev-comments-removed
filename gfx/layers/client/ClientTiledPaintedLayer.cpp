@@ -13,7 +13,6 @@
 #include "mozilla/Assertions.h"         
 #include "mozilla/gfx/BaseSize.h"       
 #include "mozilla/gfx/Rect.h"           
-#include "mozilla/layers/CompositorChild.h"
 #include "mozilla/layers/LayerMetricsWrapper.h" 
 #include "mozilla/layers/LayersMessages.h"
 #include "mozilla/mozalloc.h"           
@@ -23,6 +22,7 @@
 
 namespace mozilla {
 namespace layers {
+
 
 ClientTiledPaintedLayer::ClientTiledPaintedLayer(ClientLayerManager* const aManager,
                                                ClientLayerManager::PaintedLayerCreationHint aCreationHint)
@@ -178,36 +178,6 @@ ClientTiledPaintedLayer::BeginPaint()
 }
 
 bool
-ClientTiledPaintedLayer::IsScrollingOnCompositor(const FrameMetrics& aParentMetrics)
-{
-  CompositorChild* compositor = nullptr;
-  if (Manager() && Manager()->AsClientLayerManager()) {
-    compositor = Manager()->AsClientLayerManager()->GetCompositorChild();
-  }
-
-  if (!compositor) {
-    return false;
-  }
-
-  FrameMetrics compositorMetrics;
-  if (!compositor->LookupCompositorFrameMetrics(aParentMetrics.GetScrollId(),
-                                                compositorMetrics)) {
-    return false;
-  }
-
-  
-  
-  float COORDINATE_EPSILON = 1.f;
-
-  return !FuzzyEqualsAdditive(compositorMetrics.GetScrollOffset().x,
-                              aParentMetrics.GetScrollOffset().x,
-                              COORDINATE_EPSILON) ||
-         !FuzzyEqualsAdditive(compositorMetrics.GetScrollOffset().y,
-                              aParentMetrics.GetScrollOffset().y,
-                              COORDINATE_EPSILON);
-}
-
-bool
 ClientTiledPaintedLayer::UseFastPath()
 {
   LayerMetricsWrapper scrollAncestor;
@@ -221,13 +191,7 @@ ClientTiledPaintedLayer::UseFastPath()
                                  || gfxPrefs::UseLowPrecisionBuffer()
                                  || !parentMetrics.GetCriticalDisplayPort().IsEmpty();
   bool isFixed = GetIsFixedPosition() || GetParent()->GetIsFixedPosition();
-  bool isScrollable = parentMetrics.IsScrollable();
-
-  return !multipleTransactionsNeeded || isFixed || !isScrollable
-#if !defined(MOZ_WIDGET_ANDROID) || defined(MOZ_ANDROID_APZ)
-         || !IsScrollingOnCompositor(parentMetrics)
-#endif
-         ;
+  return !multipleTransactionsNeeded || isFixed || parentMetrics.GetDisplayPort().IsEmpty();
 }
 
 bool
