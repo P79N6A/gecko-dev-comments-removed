@@ -842,21 +842,6 @@ EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
       NS_ASSERTION(selectedText.mSucceeded, "Failed to get selected text");
       compositionEvent->mData = selectedText.mReply.mString;
     }
-    
-  case NS_COMPOSITION_END:
-  case NS_COMPOSITION_CHANGE:
-  case NS_COMPOSITION_COMMIT_AS_IS:
-  case NS_COMPOSITION_COMMIT:
-    {
-      WidgetCompositionEvent* compositionEvent = aEvent->AsCompositionEvent();
-      if (IsTargetCrossProcess(compositionEvent)) {
-        
-        if (GetCrossProcessTarget()->SendCompositionEvent(*compositionEvent)) {
-          
-          aEvent->mFlags.mPropagationStopped = true;
-        }
-      }
-    }
     break;
   }
   return NS_OK;

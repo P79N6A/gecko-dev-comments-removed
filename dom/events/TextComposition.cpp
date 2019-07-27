@@ -17,6 +17,8 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/TextComposition.h"
 #include "mozilla/TextEvents.h"
+#include "mozilla/unused.h"
+#include "mozilla/dom/TabParent.h"
 
 using namespace mozilla::widget;
 
@@ -30,9 +32,11 @@ namespace mozilla {
 
 TextComposition::TextComposition(nsPresContext* aPresContext,
                                  nsINode* aNode,
+                                 TabParent* aTabParent,
                                  WidgetCompositionEvent* aCompositionEvent)
   : mPresContext(aPresContext)
   , mNode(aNode)
+  , mTabParent(aTabParent)
   , mNativeContext(
       aCompositionEvent->widget->GetInputContext().mNativeIMEContext)
   , mCompositionStartOffset(0)
@@ -55,6 +59,7 @@ TextComposition::Destroy()
 {
   mPresContext = nullptr;
   mNode = nullptr;
+  mTabParent = nullptr;
   
   
 }
@@ -77,6 +82,8 @@ bool
 TextComposition::MaybeDispatchCompositionUpdate(
                    const WidgetCompositionEvent* aCompositionEvent)
 {
+  MOZ_RELEASE_ASSERT(!mTabParent);
+
   if (!IsValidStateForComposition(aCompositionEvent->widget)) {
     return false;
   }
@@ -95,6 +102,8 @@ TextComposition::CloneAndDispatchAs(
                    nsEventStatus* aStatus,
                    EventDispatchingCallback* aCallBack)
 {
+  MOZ_RELEASE_ASSERT(!mTabParent);
+
   MOZ_ASSERT(IsValidStateForComposition(aCompositionEvent->widget),
              "Should be called only when it's safe to dispatch an event");
 
@@ -118,13 +127,18 @@ TextComposition::CloneAndDispatchAs(
 
 void
 TextComposition::OnCompositionEventDiscarded(
-                   const WidgetCompositionEvent* aCompositionEvent)
+                   WidgetCompositionEvent* aCompositionEvent)
 {
   
   
 
   MOZ_ASSERT(aCompositionEvent->mFlags.mIsTrusted,
              "Shouldn't be called with untrusted event");
+
+  if (mTabParent) {
+    
+    unused << mTabParent->SendCompositionEvent(*aCompositionEvent);
+  }
 
   
   
@@ -198,6 +212,21 @@ TextComposition::DispatchCompositionEvent(
                    EventDispatchingCallback* aCallBack,
                    bool aIsSynthesized)
 {
+  
+  
+  if (mTabParent) {
+    unused << mTabParent->SendCompositionEvent(*aCompositionEvent);
+    aCompositionEvent->mFlags.mPropagationStopped = true;
+    if (aCompositionEvent->CausesDOMTextEvent()) {
+      mLastData = aCompositionEvent->mData;
+      
+      
+      EditorWillHandleCompositionChangeEvent(aCompositionEvent);
+      EditorDidHandleCompositionChangeEvent();
+    }
+    return;
+  }
+
   if (!mAllowControlCharacters) {
     RemoveControlCharactersFrom(aCompositionEvent->mData,
                                 aCompositionEvent->mRanges);
@@ -349,6 +378,8 @@ void
 TextComposition::NotityUpdateComposition(
                    const WidgetCompositionEvent* aCompositionEvent)
 {
+  MOZ_RELEASE_ASSERT(!mTabParent);
+
   nsEventStatus status;
 
   
@@ -465,6 +496,8 @@ TextComposition::EditorWillHandleCompositionChangeEvent(
 void
 TextComposition::OnEditorDestroyed()
 {
+  MOZ_RELEASE_ASSERT(!mTabParent);
+
   MOZ_ASSERT(!mIsEditorHandlingEvent,
              "The editor should have stopped listening events");
   nsCOMPtr<nsIWidget> widget = GetWidget();
@@ -487,6 +520,8 @@ TextComposition::EditorDidHandleCompositionChangeEvent()
 void
 TextComposition::StartHandlingComposition(nsIEditor* aEditor)
 {
+  MOZ_RELEASE_ASSERT(!mTabParent);
+
   MOZ_ASSERT(!HasEditor(), "There is a handling editor already");
   mEditorWeak = do_GetWeakReference(aEditor);
 }
@@ -494,6 +529,8 @@ TextComposition::StartHandlingComposition(nsIEditor* aEditor)
 void
 TextComposition::EndHandlingComposition(nsIEditor* aEditor)
 {
+  MOZ_RELEASE_ASSERT(!mTabParent);
+
 #ifdef DEBUG
   nsCOMPtr<nsIEditor> editor = GetEditor();
   MOZ_ASSERT(editor == aEditor, "Another editor handled the composition?");

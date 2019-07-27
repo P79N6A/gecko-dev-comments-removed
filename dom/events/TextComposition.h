@@ -17,6 +17,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/TextRange.h"
+#include "mozilla/dom/TabParent.h"
 
 class nsIEditor;
 
@@ -38,8 +39,11 @@ class TextComposition final
   NS_INLINE_DECL_REFCOUNTING(TextComposition)
 
 public:
+  typedef dom::TabParent TabParent;
+
   TextComposition(nsPresContext* aPresContext,
                   nsINode* aNode,
+                  TabParent* aTabParent,
                   WidgetCompositionEvent* aCompositionEvent);
 
   bool Destroyed() const { return !mPresContext; }
@@ -173,6 +177,7 @@ private:
   
   nsPresContext* mPresContext;
   nsCOMPtr<nsINode> mNode;
+  nsRefPtr<TabParent> mTabParent;
 
   
   
@@ -314,8 +319,7 @@ private:
 
 
 
-  void OnCompositionEventDiscarded(
-         const WidgetCompositionEvent* aCompositionEvent);
+  void OnCompositionEventDiscarded(WidgetCompositionEvent* aCompositionEvent);
 
   
 

@@ -157,7 +157,7 @@ public:
 
 
   static void OnCompositionEventDiscarded(
-                const WidgetCompositionEvent* aCompositionEvent);
+                WidgetCompositionEvent* aCompositionEvent);
 
   
 
