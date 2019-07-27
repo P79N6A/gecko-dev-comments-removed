@@ -652,6 +652,20 @@ IMEStateManager::UpdateIMEState(const IMEState& aNewIMEState,
   
   
   
+  if (sActiveIMEContentObserver && IsIMEObserverNeeded(aNewIMEState)) {
+    PR_LOG(sISMLog, PR_LOG_DEBUG,
+      ("ISM:   IMEStateManager::UpdateIMEState(), try to reinitialize the "
+       "active IMEContentObserver"));
+    if (!sActiveIMEContentObserver->MaybeReinitialize(widget, sPresContext,
+                                                      aContent, aEditor)) {
+      PR_LOG(sISMLog, PR_LOG_ERROR,
+        ("ISM:   IMEStateManager::UpdateIMEState(), failed to reinitialize the "
+         "active IMEContentObserver"));
+    }
+  }
+
+  
+  
   bool createTextStateManager =
     (!sActiveIMEContentObserver ||
      !sActiveIMEContentObserver->IsManaging(sPresContext, aContent));
@@ -1128,18 +1142,9 @@ IMEStateManager::GetRootEditableNode(nsPresContext* aPresContext,
 
 
 bool
-IMEStateManager::IsEditableIMEState(nsIWidget* aWidget)
+IMEStateManager::IsIMEObserverNeeded(const IMEState& aState)
 {
-  switch (aWidget->GetInputContext().mIMEState.mEnabled) {
-    case IMEState::ENABLED:
-    case IMEState::PASSWORD:
-      return true;
-    case IMEState::PLUGIN:
-    case IMEState::DISABLED:
-      return false;
-    default:
-      MOZ_CRASH("Unknown IME enable state");
-  }
+  return aState.IsEditable();
 }
 
 
@@ -1194,7 +1199,7 @@ IMEStateManager::CreateIMEContentObserver(nsIEditor* aEditor)
   }
 
   
-  if (!IsEditableIMEState(widget)) {
+  if (!IsIMEObserverNeeded(widget->GetInputContext().mIMEState)) {
     MOZ_LOG(sISMLog, PR_LOG_DEBUG,
       ("ISM:   IMEStateManager::CreateIMEContentObserver() doesn't create "
        "IMEContentObserver because of non-editable IME state"));
