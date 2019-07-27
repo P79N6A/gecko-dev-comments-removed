@@ -413,6 +413,8 @@ class MDefinition : public MNode
     virtual void printOpcode(FILE *fp) const;
     void dump(FILE *fp) const;
     void dump() const;
+    void dumpLocation(FILE *fp) const;
+    void dumpLocation() const;
 
     
     virtual bool neverHoist() const { return false; }
