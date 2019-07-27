@@ -28,7 +28,7 @@ GeneratorObject::create(JSContext *cx, AbstractFramePtr frame)
         RootedObject fun(cx, frame.fun());
         
         
-        if (!JSObject::getProperty(cx, fun, fun, cx->names().prototype, &pval))
+        if (!GetProperty(cx, fun, fun, cx->names().prototype, &pval))
             return nullptr;
         JSObject *proto = pval.isObject() ? &pval.toObject() : nullptr;
         if (!proto) {

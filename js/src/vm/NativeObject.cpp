@@ -1725,7 +1725,7 @@ GetPropertyHelperInline(JSContext *cx,
         MutableHandleValue vpHandle = MaybeRooted<Value, allowGC>::toMutableHandle(vp);
         return obj2->template is<ProxyObject>()
                ? Proxy::get(cx, obj2Handle, receiverHandle, idHandle, vpHandle)
-               : JSObject::getGeneric(cx, obj2Handle, obj2Handle, idHandle, vpHandle);
+               : GetProperty(cx, obj2Handle, obj2Handle, idHandle, vpHandle);
     }
 
     typename MaybeRooted<NativeObject*, allowGC>::HandleType nobj2 =
@@ -2115,7 +2115,7 @@ js::NativeSetProperty(JSContext *cx, HandleNativeObject obj, HandleObject receiv
                     return SetNonexistentProperty(cx, obj, receiver, id, qualified, vp, strict);
             }
 
-            return JSObject::setGeneric(cx, proto, receiver, id, vp, strict);
+            return SetProperty(cx, proto, receiver, id, vp, strict);
         }
         pobj = &proto->as<NativeObject>();
     }

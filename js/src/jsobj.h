@@ -560,44 +560,6 @@ class JSObject : public js::gc::Cell
     bool callMethod(JSContext *cx, js::HandleId id, unsigned argc, js::Value *argv,
                     js::MutableHandleValue vp);
 
-    static inline bool getGeneric(JSContext *cx, js::HandleObject obj, js::HandleObject receiver,
-                                  js::HandleId id, js::MutableHandleValue vp);
-
-    static inline bool getGenericNoGC(JSContext *cx, JSObject *obj, JSObject *receiver,
-                                      jsid id, js::Value *vp);
-
-    static bool getProperty(JSContext *cx, js::HandleObject obj, js::HandleObject receiver,
-                            js::PropertyName *name, js::MutableHandleValue vp)
-    {
-        JS::RootedId id(cx, js::NameToId(name));
-        return getGeneric(cx, obj, receiver, id, vp);
-    }
-
-    static bool getPropertyNoGC(JSContext *cx, JSObject *obj, JSObject *receiver,
-                                js::PropertyName *name, js::Value *vp)
-    {
-        return getGenericNoGC(cx, obj, receiver, js::NameToId(name), vp);
-    }
-
-    static inline bool getElement(JSContext *cx, js::HandleObject obj, js::HandleObject receiver,
-                                  uint32_t index, js::MutableHandleValue vp);
-    static inline bool getElementNoGC(JSContext *cx, JSObject *obj, JSObject *receiver,
-                                      uint32_t index, js::Value *vp);
-
-    static inline bool setGeneric(JSContext *cx, js::HandleObject obj, js::HandleObject receiver,
-                                  js::HandleId id, js::MutableHandleValue vp, bool strict);
-
-    static bool setProperty(JSContext *cx, js::HandleObject obj, js::HandleObject receiver,
-                            js::PropertyName *name,
-                            js::MutableHandleValue vp, bool strict)
-    {
-        JS::RootedId id(cx, js::NameToId(name));
-        return setGeneric(cx, obj, receiver, id, vp, strict);
-    }
-
-    static inline bool setElement(JSContext *cx, js::HandleObject obj, js::HandleObject receiver,
-                                  uint32_t index, js::MutableHandleValue vp, bool strict);
-
     static bool nonNativeSetProperty(JSContext *cx, js::HandleObject obj,
                                      js::HandleObject receiver, js::HandleId id,
                                      js::MutableHandleValue vp, bool strict);
@@ -956,6 +918,74 @@ HasProperty(JSContext *cx, HandleObject obj, PropertyName *name, bool *foundp);
 
 
 
+inline bool
+GetProperty(JSContext *cx, HandleObject obj, HandleObject receiver, HandleId id,
+            MutableHandleValue vp);
+
+inline bool
+GetProperty(JSContext *cx, HandleObject obj, HandleObject receiver, PropertyName *name,
+            MutableHandleValue vp)
+{
+    RootedId id(cx, NameToId(name));
+    return GetProperty(cx, obj, receiver, id, vp);
+}
+
+inline bool
+GetElement(JSContext *cx, HandleObject obj, HandleObject receiver, uint32_t index,
+           MutableHandleValue vp);
+
+inline bool
+GetPropertyNoGC(JSContext *cx, JSObject *obj, JSObject *receiver, jsid id, Value *vp);
+
+inline bool
+GetPropertyNoGC(JSContext *cx, JSObject *obj, JSObject *receiver, PropertyName *name, Value *vp)
+{
+    return GetPropertyNoGC(cx, obj, receiver, NameToId(name), vp);
+}
+
+inline bool
+GetElementNoGC(JSContext *cx, JSObject *obj, JSObject *receiver, uint32_t index, Value *vp);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+inline bool
+SetProperty(JSContext *cx, HandleObject obj, HandleObject receiver, HandleId id,
+            MutableHandleValue vp, bool strict);
+
+inline bool
+SetProperty(JSContext *cx, HandleObject obj, HandleObject receiver, PropertyName *name,
+            MutableHandleValue vp, bool strict)
+{
+    RootedId id(cx, NameToId(name));
+    return SetProperty(cx, obj, receiver, id, vp, strict);
+}
+
+inline bool
+SetElement(JSContext *cx, HandleObject obj, HandleObject receiver, uint32_t index,
+           MutableHandleValue vp, bool strict);
+
+
+
+
+
+
+
+
+
 
 extern bool
 SetImmutablePrototype(js::ExclusiveContext *cx, JS::HandleObject obj, bool *succeeded);
@@ -1155,15 +1185,6 @@ namespace js {
 bool
 LookupPropertyPure(ExclusiveContext *cx, JSObject *obj, jsid id, NativeObject **objp,
                    Shape **propp);
-
-bool
-GetPropertyPure(ExclusiveContext *cx, JSObject *obj, jsid id, Value *vp);
-
-inline bool
-GetPropertyPure(ExclusiveContext *cx, JSObject *obj, PropertyName *name, Value *vp)
-{
-    return GetPropertyPure(cx, obj, NameToId(name), vp);
-}
 
 bool
 GetOwnPropertyDescriptor(JSContext *cx, HandleObject obj, HandleId id,

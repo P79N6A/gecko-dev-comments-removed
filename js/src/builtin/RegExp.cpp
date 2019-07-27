@@ -251,7 +251,7 @@ CompileRegExpObject(JSContext *cx, RegExpObjectBuilder &builder, CallArgs args)
 
 
         RootedValue v(cx);
-        if (!JSObject::getProperty(cx, sourceObj, sourceObj, cx->names().source, &v))
+        if (!GetProperty(cx, sourceObj, sourceObj, cx->names().source, &v))
             return false;
 
         
@@ -394,35 +394,35 @@ regexp_flags(JSContext *cx, unsigned argc, JS::Value *vp)
 
     
     RootedValue global(cx);
-    if (!JSObject::getProperty(cx, thisObj, thisObj, cx->names().global, &global))
+    if (!GetProperty(cx, thisObj, thisObj, cx->names().global, &global))
         return false;
     if (ToBoolean(global) && !sb.append('g'))
         return false;
 
     
     RootedValue ignoreCase(cx);
-    if (!JSObject::getProperty(cx, thisObj, thisObj, cx->names().ignoreCase, &ignoreCase))
+    if (!GetProperty(cx, thisObj, thisObj, cx->names().ignoreCase, &ignoreCase))
         return false;
     if (ToBoolean(ignoreCase) && !sb.append('i'))
         return false;
 
     
     RootedValue multiline(cx);
-    if (!JSObject::getProperty(cx, thisObj, thisObj, cx->names().multiline, &multiline))
+    if (!GetProperty(cx, thisObj, thisObj, cx->names().multiline, &multiline))
         return false;
     if (ToBoolean(multiline) && !sb.append('m'))
         return false;
 
     
     RootedValue unicode(cx);
-    if (!JSObject::getProperty(cx, thisObj, thisObj, cx->names().unicode, &unicode))
+    if (!GetProperty(cx, thisObj, thisObj, cx->names().unicode, &unicode))
         return false;
     if (ToBoolean(unicode) && !sb.append('u'))
         return false;
 
     
     RootedValue sticky(cx);
-    if (!JSObject::getProperty(cx, thisObj, thisObj, cx->names().sticky, &sticky))
+    if (!GetProperty(cx, thisObj, thisObj, cx->names().sticky, &sticky))
         return false;
     if (ToBoolean(sticky) && !sb.append('y'))
         return false;

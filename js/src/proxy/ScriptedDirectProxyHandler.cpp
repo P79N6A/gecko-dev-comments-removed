@@ -181,7 +181,7 @@ ArrayToIdVector(JSContext *cx, HandleObject proxy, HandleObject target, HandleVa
     for (uint32_t i = 0; i < n; ++i) {
         
         RootedValue v(cx);
-        if (!JSObject::getElement(cx, array, array, i, &v))
+        if (!GetElement(cx, array, array, i, &v))
             return false;
 
         
@@ -324,7 +324,7 @@ ScriptedDirectProxyHandler::preventExtensions(JSContext *cx, HandleObject proxy,
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, cx->names().preventExtensions, &trap))
+    if (!GetProperty(cx, handler, handler, cx->names().preventExtensions, &trap))
         return false;
 
     
@@ -376,7 +376,7 @@ ScriptedDirectProxyHandler::isExtensible(JSContext *cx, HandleObject proxy, bool
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, cx->names().isExtensible, &trap))
+    if (!GetProperty(cx, handler, handler, cx->names().isExtensible, &trap))
         return false;
 
     
@@ -451,7 +451,7 @@ ScriptedDirectProxyHandler::getOwnPropertyDescriptor(JSContext *cx, HandleObject
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, cx->names().getOwnPropertyDescriptor, &trap))
+    if (!GetProperty(cx, handler, handler, cx->names().getOwnPropertyDescriptor, &trap))
         return false;
 
     
@@ -571,8 +571,8 @@ ScriptedDirectProxyHandler::defineProperty(JSContext *cx, HandleObject proxy, Ha
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, cx->names().defineProperty, &trap))
-         return false;
+    if (!GetProperty(cx, handler, handler, cx->names().defineProperty, &trap))
+        return false;
 
     
     if (trap.isUndefined())
@@ -660,7 +660,7 @@ ScriptedDirectProxyHandler::ownPropertyKeys(JSContext *cx, HandleObject proxy,
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, cx->names().ownKeys, &trap))
+    if (!GetProperty(cx, handler, handler, cx->names().ownKeys, &trap))
         return false;
 
     
@@ -706,7 +706,7 @@ ScriptedDirectProxyHandler::delete_(JSContext *cx, HandleObject proxy, HandleId 
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, cx->names().deleteProperty, &trap))
+    if (!GetProperty(cx, handler, handler, cx->names().deleteProperty, &trap))
         return false;
 
     
@@ -769,7 +769,7 @@ ScriptedDirectProxyHandler::enumerate(JSContext *cx, HandleObject proxy,
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, cx->names().enumerate, &trap))
+    if (!GetProperty(cx, handler, handler, cx->names().enumerate, &trap))
         return false;
 
     
@@ -818,7 +818,7 @@ ScriptedDirectProxyHandler::has(JSContext *cx, HandleObject proxy, HandleId id, 
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, cx->names().has, &trap))
+    if (!GetProperty(cx, handler, handler, cx->names().has, &trap))
         return false;
 
     
@@ -886,7 +886,7 @@ ScriptedDirectProxyHandler::get(JSContext *cx, HandleObject proxy, HandleObject 
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, cx->names().get, &trap))
+    if (!GetProperty(cx, handler, handler, cx->names().get, &trap))
         return false;
 
     
@@ -955,7 +955,7 @@ ScriptedDirectProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject 
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, cx->names().set, &trap))
+    if (!GetProperty(cx, handler, handler, cx->names().set, &trap))
         return false;
 
     
@@ -1038,7 +1038,7 @@ ScriptedDirectProxyHandler::call(JSContext *cx, HandleObject proxy, const CallAr
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, cx->names().apply, &trap))
+    if (!GetProperty(cx, handler, handler, cx->names().apply, &trap))
         return false;
 
     
@@ -1083,7 +1083,7 @@ ScriptedDirectProxyHandler::construct(JSContext *cx, HandleObject proxy, const C
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, cx->names().construct, &trap))
+    if (!GetProperty(cx, handler, handler, cx->names().construct, &trap))
         return false;
 
     

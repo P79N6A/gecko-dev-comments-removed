@@ -2462,7 +2462,7 @@ date_toJSON(JSContext *cx, unsigned argc, Value *vp)
 
     
     RootedValue toISO(cx);
-    if (!JSObject::getProperty(cx, obj, obj, cx->names().toISOString, &toISO))
+    if (!GetProperty(cx, obj, obj, cx->names().toISOString, &toISO))
         return false;
 
     

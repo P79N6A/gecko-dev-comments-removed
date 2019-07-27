@@ -427,7 +427,7 @@ GetCustomIterator(JSContext *cx, HandleObject obj, unsigned flags, MutableHandle
     RootedValue rval(cx);
     
     HandlePropertyName name = cx->names().iteratorIntrinsic;
-    if (!JSObject::getProperty(cx, obj, obj, name, &rval))
+    if (!GetProperty(cx, obj, obj, name, &rval))
         return false;
 
     
@@ -897,7 +897,7 @@ NativeIteratorNext(JSContext *cx, NativeIterator *ni, MutableHandleValue rval, b
         return false;
     ni->incCursor();
     RootedObject obj(cx, ni->obj);
-    if (!JSObject::getGeneric(cx, obj, obj, id, rval))
+    if (!GetProperty(cx, obj, obj, id, rval))
         return false;
 
     
@@ -1303,7 +1303,7 @@ js::IteratorMore(JSContext *cx, HandleObject iterobj, MutableHandleValue rval)
     JS_CHECK_RECURSION(cx, return false);
 
     
-    if (!JSObject::getProperty(cx, iterobj, iterobj, cx->names().next, rval))
+    if (!GetProperty(cx, iterobj, iterobj, cx->names().next, rval))
         return false;
     
     if (!Invoke(cx, ObjectValue(*iterobj), rval, 0, nullptr, rval)) {
@@ -1343,7 +1343,7 @@ js::IteratorMore(JSContext *cx, HandleObject iterobj, MutableHandleValue rval)
 
     
     
-    if (!JSObject::getProperty(cx, result, result, cx->names().done, rval))
+    if (!GetProperty(cx, result, result, cx->names().done, rval))
         return false;
 
     bool done = ToBoolean(rval);
@@ -1353,7 +1353,7 @@ js::IteratorMore(JSContext *cx, HandleObject iterobj, MutableHandleValue rval)
      }
 
     
-    return JSObject::getProperty(cx, result, result, cx->names().value, rval);
+    return GetProperty(cx, result, result, cx->names().value, rval);
 }
 
 static bool
