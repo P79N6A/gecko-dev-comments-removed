@@ -993,7 +993,11 @@ nsContextMenu.prototype = {
 
   
   viewFrameSource: function() {
-    BrowserViewSourceOfDocument(this.target.ownerDocument);
+    BrowserViewSourceOfDocument({
+      browser: this.browser,
+      URL: gContextMenuContentData.docLocation,
+      outerWindowID: gContextMenuContentData.frameOuterWindowID,
+    });
   },
 
   viewInfo: function() {
