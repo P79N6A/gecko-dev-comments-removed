@@ -55,7 +55,16 @@ void fillAbortMessage(char (&msg)[N], uintptr_t retAddress) {
 }
 #endif
 
-#if defined(XP_UNIX)
+#if defined(XP_UNIX) && !defined(MOZ_ASAN)
+
+
+
+
+
+
+
+
+
 
 
 
