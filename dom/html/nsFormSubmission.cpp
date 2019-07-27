@@ -469,8 +469,8 @@ nsFSMultipartFormData::AddNameFilePair(const nsAString& aName,
 
     
     nsAutoString contentType16;
-    rv = aFile->GetType(contentType16);
-    if (NS_FAILED(rv) || contentType16.IsEmpty()) {
+    aFile->GetType(contentType16);
+    if (contentType16.IsEmpty()) {
       contentType16.AssignLiteral("application/octet-stream");
     }
     contentType.Adopt(nsLinebreakConverter::
@@ -479,8 +479,11 @@ nsFSMultipartFormData::AddNameFilePair(const nsAString& aName,
                                         nsLinebreakConverter::eLinebreakSpace));
 
     
-    rv = aFile->GetInternalStream(getter_AddRefs(fileStream));
-    NS_ENSURE_SUCCESS(rv, rv);
+    aFile->GetInternalStream(getter_AddRefs(fileStream), error);
+    if (NS_WARN_IF(error.Failed())) {
+      return error.StealNSResult();
+    }
+
     if (fileStream) {
       
       nsCOMPtr<nsIInputStream> bufferedStream;
@@ -513,14 +516,19 @@ nsFSMultipartFormData::AddNameFilePair(const nsAString& aName,
 
   
   
-  uint64_t size;
-  if (fileStream && NS_SUCCEEDED(aFile->GetSize(&size))) {
-    
-    
-    AddPostDataStream();
+  if (fileStream) {
+    ErrorResult error;
+    uint64_t size = aFile->GetSize(error);
+    if (error.Failed()) {
+      error.SuppressException();
+    } else {
+      
+      
+      AddPostDataStream();
 
-    mPostDataStream->AppendStream(fileStream);
-    mTotalLength += size;
+      mPostDataStream->AppendStream(fileStream);
+      mTotalLength += size;
+    }
   }
 
   
