@@ -50,7 +50,7 @@ public class Tab {
     private String mTitle;
     private Bitmap mFavicon;
     private String mFaviconUrl;
-    private String mApplicationId;
+    private String mApplicationId; 
 
     
     final TreeSet<RemoteFavicon> mAvailableFavicons = new TreeSet<>();

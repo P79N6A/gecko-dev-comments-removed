@@ -2234,6 +2234,14 @@ public class BrowserApp extends GeckoApp
         
         hideHomePager(url);
         loadUrlOrKeywordSearch(url);
+        clearSelectedTabApplicationId();
+    }
+
+    private void clearSelectedTabApplicationId() {
+        final Tab selected = Tabs.getInstance().getSelectedTab();
+        if (selected != null) {
+            selected.setApplicationId(null);
+        }
     }
 
     private void loadUrlOrKeywordSearch(final String url) {
@@ -3572,6 +3580,7 @@ public class BrowserApp extends GeckoApp
             startActivity(intent);
         } else if (!maybeSwitchToTab(url, flags)) {
             openUrlAndStopEditing(url);
+            clearSelectedTabApplicationId();
         }
     }
 
