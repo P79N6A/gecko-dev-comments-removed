@@ -485,11 +485,10 @@ void nsPluginTag::TryUnloadPlugin(bool inShutdown)
 {
   
   
-  if (mLibrary && !inShutdown) {
+  if (!mPlugin) {
     return;
   }
-
-  if (mPlugin) {
+  if (inShutdown || mPlugin->GetLibrary()->IsOOP()) {
     mPlugin->Shutdown();
     mPlugin = nullptr;
   }
