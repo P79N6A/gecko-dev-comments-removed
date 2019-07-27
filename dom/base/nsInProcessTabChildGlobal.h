@@ -150,6 +150,9 @@ public:
   {
     MOZ_CRASH("nsInProcessTabChildGlobal doesn't use DOM bindings!");
   }
+
+  already_AddRefed<nsIFrameLoader> GetFrameLoader();
+
 protected:
   virtual ~nsInProcessTabChildGlobal();
 
@@ -165,6 +168,11 @@ protected:
   
   bool mIsBrowserOrAppFrame;
   bool mPreventEventsEscaping;
+
+  
+  
+  
+  nsCOMPtr<nsIFrameLoader> mFrameLoader;
 public:
   nsIContent* mOwner;
   nsFrameMessageManager* mChromeMessageManager;
