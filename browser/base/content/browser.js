@@ -6488,9 +6488,13 @@ var gIdentityHandler = {
     
     
     
+    
+    
     if (state &
         (nsIWebProgressListener.STATE_BLOCKED_MIXED_ACTIVE_CONTENT |
-         nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT)) {
+         nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT  |
+         nsIWebProgressListener.STATE_BLOCKED_TRACKING_CONTENT     |
+         nsIWebProgressListener.STATE_LOADED_TRACKING_CONTENT)) {
       this.showBadContentDoorhanger(state);
     }
   },
@@ -6513,7 +6517,9 @@ var gIdentityHandler = {
     
     let iconState = "bad-content-blocked-notification-icon";
 
-    if (state & Ci.nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT) {
+    if (state &
+        (Ci.nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT |
+         Ci.nsIWebProgressListener.STATE_LOADED_TRACKING_CONTENT)) {
       iconState = "bad-content-unblocked-notification-icon";
     }
 
