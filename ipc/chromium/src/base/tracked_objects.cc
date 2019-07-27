@@ -189,7 +189,7 @@ void ThreadData::RunOnAllThreads(void (*function)()) {
   ThreadSafeDownCounter* counter =
     new ThreadSafeDownCounter(message_loops.size() + 1);  
 
-  HANDLE completion_handle = CreateEvent(NULL, false, false, NULL);
+  HANDLE completion_handle = CreateEventW(NULL, false, false, NULL);
   
   for (size_t i = 0; i < message_loops.size(); ++i)
     message_loops[i]->PostTask(FROM_HERE,
