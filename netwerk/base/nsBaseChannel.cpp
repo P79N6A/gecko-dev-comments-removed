@@ -5,10 +5,12 @@
 
 
 #include "nsBaseChannel.h"
+#include "nsContentUtils.h"
 #include "nsURLHelper.h"
 #include "nsNetCID.h"
 #include "nsMimeTypes.h"
 #include "nsIContentSniffer.h"
+#include "nsIScriptSecurityManager.h"
 #include "nsMimeTypes.h"
 #include "nsIHttpEventSink.h"
 #include "nsIHttpChannel.h"
@@ -152,8 +154,15 @@ nsBaseChannel::ContinueRedirect()
 
   if (mOpenRedirectChannel) {
     nsresult rv = mRedirectChannel->AsyncOpen(mListener, mListenerContext);
-    if (NS_FAILED(rv))
-      return rv;
+    NS_ENSURE_SUCCESS(rv, rv);
+    
+    
+    if (mLoadInfo) {
+      nsCOMPtr<nsIPrincipal> uriPrincipal;
+      nsIScriptSecurityManager *sm = nsContentUtils::GetSecurityManager();
+      sm->GetChannelURIPrincipal(this, getter_AddRefs(uriPrincipal));
+      mLoadInfo->AppendRedirectedPrincipal(uriPrincipal);
+    }
   }
 
   mRedirectChannel = nullptr;
