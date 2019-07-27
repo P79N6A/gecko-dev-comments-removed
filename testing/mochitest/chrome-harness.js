@@ -58,62 +58,6 @@ function getChromeDir(resolvedURI) {
 }
 
 
-
-
-
-
-
-
-
-
-
-function getFileListing(basePath, testPath, dir, srvScope)
-{
-  var uri = getResolvedURI(basePath);
-  var chromeDir = getChromeDir(uri);
-  chromeDir.appendRelativePath(dir);
-  basePath += '/' + dir.replace(/\\/g, '/');
-
-  if (testPath == "false" || testPath == false) {
-    testPath = "";
-  }
-  testPath = testPath.replace(/\\\\/g, '\\').replace(/\\/g, '/');
-
-  var ioSvc = Components.classes["@mozilla.org/network/io-service;1"].
-              getService(Components.interfaces.nsIIOService);
-  var testsDirURI = ioSvc.newFileURI(chromeDir);
-  var testsDir = ioSvc.newURI(testPath, null, testsDirURI)
-                  .QueryInterface(Components.interfaces.nsIFileURL).file;
-
-  if (testPath != undefined) {
-    var extraPath = testPath;
-
-    var fileNameRegexp = /(browser|test)_.+\.(xul|html|js)$/;
-
-    
-    if (!testsDir.exists())
-      return null;
-
-    if (testsDir.isFile()) {
-      if (fileNameRegexp.test(testsDir.leafName)) {
-        var singlePath = basePath + '/' + testPath;
-        var links = {};
-        links[singlePath] = true;
-        return links;
-      }
-      
-      return null;
-    }
-
-    
-    basePath += "/" + testPath;
-  }
-  var [links, count] = srvScope.list(basePath, testsDir, true);
-  return links;
-}
-
-
-
 function getRootDirectory(path, chromeURI) {
   if (chromeURI === undefined)
   {
@@ -313,19 +257,6 @@ function getTestList(params, callback) {
     }
   }
   params = config;
-  if (params.manifestFile) {
-    getTestManifest("http://mochi.test:8888/" + params.manifestFile, params, callback);
-    return;
-  }
-
-  var links = {};
-  
-  var scriptLoader = Cc["@mozilla.org/moz/jssubscript-loader;1"].
-                       getService(Ci.mozIJSSubScriptLoader);
-  var srvScope = {};
-  scriptLoader.loadSubScript('chrome://mochikit/content/server.js',
-                             srvScope);
-
-  links = getFileListing(baseurl, params.testPath, params.testRoot, srvScope);
-  callback(links);
+  getTestManifest("http://mochi.test:8888/" + params.manifestFile, params, callback);
+  return;
 }

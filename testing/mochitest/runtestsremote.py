@@ -547,13 +547,13 @@ def run_test_harness(options):
         if not options.autorun:
             
             
-            options.testPath = robocop_tests[0]['name']
+            options.test_paths = [robocop_tests[0]['name']]
 
         retVal = None
         
         active_tests = []
         for test in robocop_tests:
-            if options.testPath and options.testPath != test['name']:
+            if options.test_paths and test['name'] not in options.test_paths:
                 continue
 
             if 'disabled' in test:
