@@ -359,12 +359,52 @@ void AMPEG4ElementaryAssembler::submitAccessUnit() {
 
     LOGV("Access unit complete (%d nal units)", mPackets.size());
 
-    for (List<sp<ABuffer> >::iterator it = mPackets.begin();
-         it != mPackets.end(); ++it) {
-        sp<ABuffer> accessUnit = new ABuffer((*it)->size());
-        sp<ABuffer> nal = *it;
-        memcpy(accessUnit->data(), nal->data(), nal->size());
-        CopyTimes(accessUnit, nal);
+    if (mIsGeneric) {
+        
+
+
+
+
+
+
+
+
+        for (List<sp<ABuffer> >::iterator it = mPackets.begin();
+             it != mPackets.end(); ++it) {
+            sp<ABuffer> accessUnit = new ABuffer((*it)->size());
+            sp<ABuffer> nal = *it;
+            memcpy(accessUnit->data(), nal->data(), nal->size());
+            CopyTimes(accessUnit, nal);
+
+            if (mAccessUnitDamaged) {
+                accessUnit->meta()->setInt32("damaged", true);
+            }
+
+            sp<AMessage> msg = mNotifyMsg->dup();
+            msg->setObject("access-unit", accessUnit);
+            msg->post();
+        }
+    } else {
+        
+
+
+
+
+        size_t totalSize = 0;
+
+        for (List<sp<ABuffer> >::iterator it = mPackets.begin();
+             it != mPackets.end(); ++it) {
+            totalSize += (*it)->size();
+        }
+        sp<ABuffer> accessUnit = new ABuffer(totalSize);
+        size_t offset = 0;
+        for (List<sp<ABuffer> >::iterator it = mPackets.begin();
+             it != mPackets.end(); ++it) {
+            sp<ABuffer> nal = *it;
+            memcpy(accessUnit->data() + offset, nal->data(), nal->size());
+            offset += nal->size();
+        }
+        CopyTimes(accessUnit, *mPackets.begin());
 
         if (mAccessUnitDamaged) {
             accessUnit->meta()->setInt32("damaged", true);
