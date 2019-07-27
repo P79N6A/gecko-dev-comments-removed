@@ -391,14 +391,14 @@ loop.shared.views = (function(_, l10n) {
 
       
       this.listenTo(this.publisher, "accessDialogOpened accessDenied",
-                    function(event) {
-                      event.preventDefault();
+                    function(ev) {
+                      ev.preventDefault();
                     });
 
-      this.listenTo(this.publisher, "streamCreated", function(event) {
+      this.listenTo(this.publisher, "streamCreated", function(ev) {
         this.setState({
-          audio: {enabled: event.stream.hasAudio},
-          video: {enabled: event.stream.hasVideo}
+          audio: {enabled: ev.stream.hasAudio},
+          video: {enabled: ev.stream.hasVideo}
         });
       }.bind(this));
 
