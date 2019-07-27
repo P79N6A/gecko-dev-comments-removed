@@ -52,25 +52,23 @@ var common_tests = [
 
 
 function testConstraints(tests) {
-  var i = 0;
-  next();
+  function testgum(p, test) {
+    return p.then(function() {
+      return navigator.mediaDevices.getUserMedia(test.constraints);
+    })
+    .then(function() {
+      is(null, test.error, test.message);
+    }, function(reason) {
+      is(reason.name, test.error, test.message + ": " + reason.message);
+    });
+  }
 
-  function Success() {
-    ok(!tests[i].error, tests[i].message);
-    i++;
-    next();
-  }
-  function Failure(err) {
-    ok(tests[i].error? (err.name == tests[i].error) : false,
-       tests[i].message + " (err=" + err.name + ")");
-    i++;
-    next();
-  }
-  function next() {
-    if (i < tests.length) {
-      navigator.mozGetUserMedia(tests[i].constraints, Success, Failure);
-    } else {
-      SimpleTest.finish();
-    }
-  }
-};
+  var p = new Promise(function(resolve) { resolve(); });
+  tests.forEach(function(test) {
+    p = testgum(p, test);
+  });
+  p.catch(function(reason) {
+    ok(false, "Unexpected failure: " + reason.message);
+  })
+  .then(SimpleTest.finish);
+}
