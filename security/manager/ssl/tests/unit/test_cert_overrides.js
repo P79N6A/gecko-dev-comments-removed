@@ -53,7 +53,7 @@ function check_telemetry() {
                     .snapshot();
   do_check_eq(histogram.counts[ 0], 0);
   do_check_eq(histogram.counts[ 2], 7); 
-  do_check_eq(histogram.counts[ 3], 0); 
+  do_check_eq(histogram.counts[ 3], 1); 
   do_check_eq(histogram.counts[ 4], 0); 
   do_check_eq(histogram.counts[ 5], 1); 
   do_check_eq(histogram.counts[ 6], 0); 
@@ -75,7 +75,7 @@ function check_telemetry() {
   do_check_eq(keySizeHistogram.counts[0], 0);
   do_check_eq(keySizeHistogram.counts[1], 0); 
   do_check_eq(keySizeHistogram.counts[2], 4); 
-  do_check_eq(keySizeHistogram.counts[3], 47); 
+  do_check_eq(keySizeHistogram.counts[3], 49); 
 
   run_next_test();
 }
@@ -193,6 +193,12 @@ function add_simple_tests() {
     clearSessionCache();
     run_next_test();
   });
+
+  
+  
+  add_cert_override_test("end-entity-issued-by-non-CA.example.com",
+                         Ci.nsICertOverrideService.ERROR_UNTRUSTED,
+                         getXPCOMStatusFromNSS(SEC_ERROR_CA_CERT_INVALID));
 
   add_cert_override_test("inadequate-key-size-ee.example.com",
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
