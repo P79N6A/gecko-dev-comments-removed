@@ -451,20 +451,6 @@ WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj,
     
     
     
-    
-    else if (targetSubsumesOrigin && !originSubsumesTarget &&
-             !waiveXrayFlag && xrayType == NotXray &&
-             IsContentXBLScope(target))
-    {
-        wrapper = &PermissiveXrayOpaque::singleton;
-    }
-
-    
-    
-    
-    
-    
-    
     else {
 
         
