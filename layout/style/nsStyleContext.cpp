@@ -509,8 +509,21 @@ nsStyleContext::ApplyStyleFixups(bool aSkipParentDisplayBasedStyleFixup)
   
   
   if (!aSkipParentDisplayBasedStyleFixup && mParent) {
-    const nsStyleDisplay* parentDisp = mParent->StyleDisplay();
-    if (parentDisp->IsFlexOrGridDisplayType() &&
+    
+    
+    
+    
+    
+    nsStyleContext* containerContext = mParent;
+    const nsStyleDisplay* containerDisp = containerContext->StyleDisplay();
+    while (containerDisp->mDisplay == NS_STYLE_DISPLAY_CONTENTS) {
+      if (!containerContext->GetParent()) {
+        break;
+      }
+      containerContext = containerContext->GetParent();
+      containerDisp = containerContext->StyleDisplay();
+    }
+    if (containerDisp->IsFlexOrGridDisplayType() &&
         GetPseudo() != nsCSSAnonBoxes::mozNonElement) {
       uint8_t displayVal = disp->mDisplay;
       
@@ -543,8 +556,8 @@ nsStyleContext::ApplyStyleFixups(bool aSkipParentDisplayBasedStyleFixup)
             static_cast<nsStyleDisplay*>(GetUniqueStyleData(eStyleStruct_Display));
           mutable_display->mDisplay = displayVal;
         }
-      } 
-    } else if (parentDisp->IsRubyDisplayType()) {
+      }
+    } else if (containerDisp->IsRubyDisplayType()) {
       uint8_t displayVal = disp->mDisplay;
       nsRuleNode::EnsureInlineDisplay(displayVal);
       
