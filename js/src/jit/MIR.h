@@ -8199,6 +8199,12 @@ class MLoadElementHole
     {
         setResultType(MIRType_Value);
         setMovable();
+
+        
+        
+        
+        setGuard();
+
         MOZ_ASSERT(elements->type() == MIRType_Elements);
         MOZ_ASSERT(index->type() == MIRType_Int32);
         MOZ_ASSERT(initLength->type() == MIRType_Int32);
