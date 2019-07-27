@@ -42,7 +42,6 @@
 #include "nsString.h"                   
 #include "nsStringFwd.h"                
 #include "nsStyleUtil.h"                
-#include "nsXULAppAPI.h"                
 
 using namespace mozilla;
 
@@ -155,12 +154,6 @@ NS_IMETHODIMP
 DictionaryFetcher::Fetch(nsIEditor* aEditor)
 {
   NS_ENSURE_ARG_POINTER(aEditor);
-
-  if (XRE_GetProcessType() == GeckoProcessType_Content) {
-    
-    
-    return  NS_ERROR_FAILURE;
-  }
 
   nsresult rv;
 
@@ -712,10 +705,6 @@ nsEditorSpellCheck::UpdateCurrentDictionary(nsIEditorSpellCheckCallback* aCallba
   NS_ENSURE_STATE(doc);
   doc->GetContentLanguage(fetcher->mRootDocContentLang);
 
-  if (XRE_GetProcessType() == GeckoProcessType_Content) {
-    DictionaryFetched(nullptr);
-  }
-
   rv = fetcher->Fetch(mEditor);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -726,37 +715,38 @@ nsresult
 nsEditorSpellCheck::DictionaryFetched(DictionaryFetcher* aFetcher)
 {
   nsRefPtr<nsEditorSpellCheck> kungFuDeathGrip = this;
-  nsAutoString dictName;
+
   nsresult rv = NS_OK;
-  if (aFetcher) {
+
+  
+  
+  CallbackCaller callbackCaller(aFetcher->mCallback);
+  UpdateDictionnaryHolder holder(this);
+
+  if (aFetcher->mGroup < mDictionaryFetcherGroup) {
     
     
-    CallbackCaller callbackCaller(aFetcher->mCallback);
-    UpdateDictionnaryHolder holder(this);
-
-    if (aFetcher->mGroup < mDictionaryFetcherGroup) {
-      
-      
-      return NS_OK;
-    }
-
-    mPreferredLang.Assign(aFetcher->mRootContentLang);
-
-    
-    
-    dictName.Assign(aFetcher->mDictionary);
-    if (!dictName.IsEmpty()) {
-      if (NS_FAILED(SetCurrentDictionary(dictName))) { 
-        
-        ClearCurrentDictionary(mEditor);
-      }
-      return NS_OK;
-    }
-
-    if (mPreferredLang.IsEmpty()) {
-      mPreferredLang.Assign(aFetcher->mRootDocContentLang);
-    }
+    return NS_OK;
   }
+
+  mPreferredLang.Assign(aFetcher->mRootContentLang);
+
+  
+  
+  nsAutoString dictName;
+  dictName.Assign(aFetcher->mDictionary);
+  if (!dictName.IsEmpty()) {
+    if (NS_FAILED(SetCurrentDictionary(dictName))) { 
+      
+      ClearCurrentDictionary(mEditor);
+    }
+    return NS_OK;
+  }
+
+  if (mPreferredLang.IsEmpty()) {
+    mPreferredLang.Assign(aFetcher->mRootDocContentLang);
+  }
+
   
   if (!mPreferredLang.IsEmpty()) {
     dictName.Assign(mPreferredLang);
