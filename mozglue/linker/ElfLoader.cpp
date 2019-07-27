@@ -1019,7 +1019,49 @@ SEGVHandler::FinishInitialization()
   if (signalHandlingBroken || signalHandlingSlow)
     return;
 
-  if (!Divert(sigaction, __wrap_sigaction))
+  typedef int (*sigaction_func)(int, const struct sigaction *,
+                                struct sigaction *);
+
+  sigaction_func libc_sigaction;
+
+#if defined(ANDROID)
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void *libc = dlopen("libc.so", RTLD_GLOBAL | RTLD_LAZY);
+  if (libc) {
+    libc_sigaction =
+      reinterpret_cast<sigaction_func>(dlsym(libc, "sigaction"));
+  } else
+#endif
+  {
+    libc_sigaction = sigaction;
+  }
+
+  if (!Divert(libc_sigaction, __wrap_sigaction))
     return;
 
   
