@@ -1579,6 +1579,9 @@ ContainerState::CreateOrRecycleThebesLayer(const nsIFrame* aAnimatedGeometryRoot
   
   
   LayerManager::ThebesLayerCreationHint creationHint = LayerManager::NONE;
+  if (mParameters.mInLowPrecisionDisplayPort ) {
+    creationHint = LayerManager::SCROLLABLE;
+  }
   nsIFrame* animatedGeometryRootParent = aAnimatedGeometryRoot->GetParent();
   if (animatedGeometryRootParent &&
       animatedGeometryRootParent->GetType() == nsGkAtoms::scrollFrame) {
