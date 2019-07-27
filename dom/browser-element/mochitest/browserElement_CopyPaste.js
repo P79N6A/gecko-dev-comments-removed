@@ -142,9 +142,9 @@ function dispatchTest(e) {
 }
 
 function testSelectAll(e) {
-  iframe.addEventListener("mozbrowserselectionchange", function selectchangeforselectall(e) {
-    iframe.removeEventListener("mozbrowserselectionchange", selectchangeforselectall, true);
-    ok(true, "got mozbrowserselectionchange event." + stateMeaning);
+  iframe.addEventListener("mozbrowserselectionstatechanged", function selectchangeforselectall(e) {
+    iframe.removeEventListener("mozbrowserselectionstatechanged", selectchangeforselectall, true);
+    ok(true, "got mozbrowserselectionstatechanged event." + stateMeaning);
     ok(e.detail, "event.detail is not null." + stateMeaning);
     ok(e.detail.width != 0, "event.detail.width is not zero" + stateMeaning);
     ok(e.detail.height != 0, "event.detail.height is not zero" + stateMeaning);
