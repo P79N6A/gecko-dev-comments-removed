@@ -1334,12 +1334,10 @@ RasterImage::CreateDecoder(const Maybe<nsIntSize>& aSize, uint32_t aFlags)
     
     
     
-    
-    
     decoder->SetSize(mSize, mOrientation);
     decoder->NeedNewFrame(0, 0, 0, aSize->width, aSize->height,
                           SurfaceFormat::B8G8R8A8);
-    decoder->AllocateFrame(*aSize);
+    decoder->AllocateFrame();
   }
   decoder->SetIterator(mSourceBuffer->Iterator());
 
