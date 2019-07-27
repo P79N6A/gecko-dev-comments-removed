@@ -31,7 +31,7 @@ public:
 
   
   nsIGlobalObject* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx);
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   
   void Register(RTCIdentityProvider& aIdp);
