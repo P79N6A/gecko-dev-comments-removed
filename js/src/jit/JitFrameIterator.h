@@ -37,6 +37,7 @@ enum FrameType
     
     
     JitFrame_BaselineStub,
+    JitFrame_IonStub,
 
     
     
@@ -55,6 +56,7 @@ enum FrameType
     JitFrame_Unwound_BaselineJS,
     JitFrame_Unwound_IonJS,
     JitFrame_Unwound_BaselineStub,
+    JitFrame_Unwound_IonStub,
     JitFrame_Unwound_Rectifier,
     JitFrame_Unwound_IonAccessorIC,
 
@@ -165,6 +167,9 @@ class JitFrameIterator
     }
     bool isIonJS() const {
         return type_ == JitFrame_IonJS;
+    }
+    bool isIonStub() const {
+        return type_ == JitFrame_IonStub;
     }
     bool isBailoutJS() const {
         return type_ == JitFrame_Bailout;
