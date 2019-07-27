@@ -248,11 +248,13 @@ public:
 
 
 
+
   bool IsPlaying() const
   {
     
     
     return HasInPlayEffect() &&
+           mPlaybackRate != 0.0 &&
            (PlayState() == AnimationPlayState::Running ||
             mPendingState == PendingState::PlayPending);
   }
