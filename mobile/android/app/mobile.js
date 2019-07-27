@@ -870,3 +870,8 @@ pref("gfx.vsync.refreshdriver", true);
 
 
 pref("selectioncaret.detects.longtap", false);
+
+
+#ifdef NIGHTLY_BUILD
+pref("dom.serviceWorkers.enabled", true);
+#endif

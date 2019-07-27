@@ -1889,4 +1889,6 @@ pref("readinglist.scheduler.enabled", true);
 pref("readinglist.server", "https://readinglist.services.mozilla.com/v1");
 
 
-pref("reader.parse-node-limit", 0);
+#ifdef NIGHTLY_BUILD
+pref("dom.serviceWorkers.enabled", true);
+#endif
