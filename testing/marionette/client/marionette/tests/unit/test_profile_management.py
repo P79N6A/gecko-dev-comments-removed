@@ -55,10 +55,9 @@ class TestLog(MarionetteTestCase):
 
         
         
-        self.marionette.restart(in_app=False)
+        self.marionette.restart()
 
-        bool_value = self.marionette.execute_script("""
-          return SpecialPowers.getBoolPref('marionette.test.restart');
-        """)
         
-        self.assertTrue(bool_value)
+        self.assertRaisesRegexp(JavascriptException, "Error getting pref",
+                                self.marionette.execute_script,
+                                "return SpecialPowers.getBoolPref('marionette.test.restart');")
