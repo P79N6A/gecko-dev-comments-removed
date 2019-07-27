@@ -41,13 +41,13 @@ public:
 
 
 
-  void UpdateWithTouchAtDevicePoint(ScreenCoord aPos, uint32_t aTimestampMs);
+  void UpdateWithTouchAtDevicePoint(ParentLayerCoord aPos, uint32_t aTimestampMs);
 
   
 
 
 
-  void StartTouch(ScreenCoord aPos, uint32_t aTimestampMs);
+  void StartTouch(ParentLayerCoord aPos, uint32_t aTimestampMs);
 
   
 
@@ -73,7 +73,7 @@ public:
 
 
 
-  bool AdjustDisplacement(ScreenCoord aDisplacement,
+  bool AdjustDisplacement(ParentLayerCoord aDisplacement,
                            float& aDisplacementOut,
                            float& aOverscrollAmountOut);
 
@@ -81,7 +81,7 @@ public:
 
 
 
-  void OverscrollBy(ScreenCoord aOverscroll);
+  void OverscrollBy(ParentLayerCoord aOverscroll);
 
   
 
@@ -94,7 +94,7 @@ public:
 
 
 
-  ScreenCoord GetOverscroll() const;
+  ParentLayerCoord GetOverscroll() const;
 
   
 
@@ -138,20 +138,20 @@ public:
   
 
 
-  ScreenCoord PanStart() const;
+  ParentLayerCoord PanStart() const;
 
   
 
 
 
 
-  ScreenCoord PanDistance() const;
+  ParentLayerCoord PanDistance() const;
 
   
 
 
 
-  ScreenCoord PanDistance(ScreenCoord aPos) const;
+  ParentLayerCoord PanDistance(ParentLayerCoord aPos) const;
 
   
 
@@ -198,7 +198,7 @@ public:
 
 
 
-  ScreenCoord DisplacementWillOverscrollAmount(ScreenCoord aDisplacement) const;
+  ParentLayerCoord DisplacementWillOverscrollAmount(ParentLayerCoord aDisplacement) const;
 
   
 
@@ -223,30 +223,30 @@ public:
 
   bool ScaleWillOverscrollBothSides(float aScale) const;
 
-  ScreenCoord GetOrigin() const;
-  ScreenCoord GetCompositionLength() const;
-  ScreenCoord GetPageStart() const;
-  ScreenCoord GetPageLength() const;
-  ScreenCoord GetCompositionEnd() const;
-  ScreenCoord GetPageEnd() const;
+  ParentLayerCoord GetOrigin() const;
+  ParentLayerCoord GetCompositionLength() const;
+  ParentLayerCoord GetPageStart() const;
+  ParentLayerCoord GetPageLength() const;
+  ParentLayerCoord GetCompositionEnd() const;
+  ParentLayerCoord GetPageEnd() const;
 
-  ScreenCoord GetPos() const { return mPos; }
+  ParentLayerCoord GetPos() const { return mPos; }
 
-  virtual ScreenCoord GetPointOffset(const ScreenPoint& aPoint) const = 0;
-  virtual ScreenCoord GetRectLength(const ScreenRect& aRect) const = 0;
-  virtual ScreenCoord GetRectOffset(const ScreenRect& aRect) const = 0;
+  virtual ParentLayerCoord GetPointOffset(const ParentLayerPoint& aPoint) const = 0;
+  virtual ParentLayerCoord GetRectLength(const ParentLayerRect& aRect) const = 0;
+  virtual ParentLayerCoord GetRectOffset(const ParentLayerRect& aRect) const = 0;
 
   virtual ScreenPoint MakePoint(ScreenCoord aCoord) const = 0;
 
 protected:
-  ScreenCoord mPos;
+  ParentLayerCoord mPos;
   uint32_t mPosTimeMs;
-  ScreenCoord mStartPos;
+  ParentLayerCoord mStartPos;
   float mVelocity;      
   bool mAxisLocked;     
   AsyncPanZoomController* mAsyncPanZoomController;
-  ScreenCoord mOverscroll;  
-  bool mInUnderscroll;      
+  ParentLayerCoord mOverscroll;  
+  bool mInUnderscroll;           
   
   
   
@@ -257,27 +257,27 @@ protected:
 
   
   
-  ScreenCoord ApplyResistance(ScreenCoord aOverscroll) const;
+  ParentLayerCoord ApplyResistance(ParentLayerCoord aOverscroll) const;
 
   
-  float ToLocalVelocity(float aVelocityInchesPerMs);
+  float ToLocalVelocity(float aVelocityInchesPerMs) const;
 };
 
 class AxisX : public Axis {
 public:
   explicit AxisX(AsyncPanZoomController* mAsyncPanZoomController);
-  virtual ScreenCoord GetPointOffset(const ScreenPoint& aPoint) const MOZ_OVERRIDE;
-  virtual ScreenCoord GetRectLength(const ScreenRect& aRect) const MOZ_OVERRIDE;
-  virtual ScreenCoord GetRectOffset(const ScreenRect& aRect) const MOZ_OVERRIDE;
+  virtual ParentLayerCoord GetPointOffset(const ParentLayerPoint& aPoint) const MOZ_OVERRIDE;
+  virtual ParentLayerCoord GetRectLength(const ParentLayerRect& aRect) const MOZ_OVERRIDE;
+  virtual ParentLayerCoord GetRectOffset(const ParentLayerRect& aRect) const MOZ_OVERRIDE;
   virtual ScreenPoint MakePoint(ScreenCoord aCoord) const MOZ_OVERRIDE;
 };
 
 class AxisY : public Axis {
 public:
   explicit AxisY(AsyncPanZoomController* mAsyncPanZoomController);
-  virtual ScreenCoord GetPointOffset(const ScreenPoint& aPoint) const MOZ_OVERRIDE;
-  virtual ScreenCoord GetRectLength(const ScreenRect& aRect) const MOZ_OVERRIDE;
-  virtual ScreenCoord GetRectOffset(const ScreenRect& aRect) const MOZ_OVERRIDE;
+  virtual ParentLayerCoord GetPointOffset(const ParentLayerPoint& aPoint) const MOZ_OVERRIDE;
+  virtual ParentLayerCoord GetRectLength(const ParentLayerRect& aRect) const MOZ_OVERRIDE;
+  virtual ParentLayerCoord GetRectOffset(const ParentLayerRect& aRect) const MOZ_OVERRIDE;
   virtual ScreenPoint MakePoint(ScreenCoord aCoord) const MOZ_OVERRIDE;
 };
 

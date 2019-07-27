@@ -2784,12 +2784,11 @@ CalculateFrameMetricsForDisplayPort(nsIFrame* aScrollFrame,
   nsIPresShell* presShell = presContext->PresShell();
   CSSToLayoutDeviceScale deviceScale(float(nsPresContext::AppUnitsPerCSSPixel())
                                      / presContext->AppUnitsPerDevPixel());
-  ParentLayerToLayerScale resolution;
+  float resolution = 1.0f;
   if (aScrollFrame == presShell->GetRootScrollFrame()) {
     
     
-    resolution = ParentLayerToLayerScale(presShell->GetXResolution(),
-                                         presShell->GetYResolution());
+    resolution = presShell->GetXResolution();
   }
   
   
@@ -2801,10 +2800,11 @@ CalculateFrameMetricsForDisplayPort(nsIFrame* aScrollFrame,
       presShell->GetCumulativeResolution().width
     * nsLayoutUtils::GetTransformToAncestorScale(aScrollFrame).width);
 
+  LayerToParentLayerScale layerToParentLayerScale(1.0f);
   metrics.mDevPixelsPerCSSPixel = deviceScale;
   metrics.mPresShellResolution = resolution;
   metrics.mCumulativeResolution = cumulativeResolution;
-  metrics.SetZoom(deviceScale * cumulativeResolution * LayerToScreenScale(1));
+  metrics.SetZoom(deviceScale * cumulativeResolution * layerToParentLayerScale);
 
   
   
@@ -2816,9 +2816,7 @@ CalculateFrameMetricsForDisplayPort(nsIFrame* aScrollFrame,
       compBoundsScale = LayoutDeviceToParentLayerScale(res.width, res.height);
     }
   } else {
-    compBoundsScale = cumulativeResolution
-                    * LayerToScreenScale(1.0f)
-                    * ScreenToParentLayerScale(1.0f);
+    compBoundsScale = cumulativeResolution * layerToParentLayerScale;
   }
   metrics.mCompositionBounds
       = LayoutDeviceRect::FromAppUnits(nsRect(nsPoint(0, 0), compositionSize),
@@ -2869,7 +2867,7 @@ nsLayoutUtils::GetOrMaybeCreateDisplayPort(nsDisplayListBuilder& aBuilder,
     if (!haveDisplayPort) {
       FrameMetrics metrics = CalculateFrameMetricsForDisplayPort(aScrollFrame, scrollableFrame);
       ScreenMargin displayportMargins = APZCTreeManager::CalculatePendingDisplayPort(
-          metrics, ScreenPoint(0.0f, 0.0f), 0.0);
+          metrics, ParentLayerPoint(0.0f, 0.0f), 0.0);
       nsIPresShell* presShell = aScrollFrame->PresContext()->GetPresShell();
       gfx::IntSize alignment = gfxPlatform::GetPlatform()->UseTiling()
           ? gfx::IntSize(gfxPrefs::LayersTileWidth(), gfxPrefs::LayersTileHeight()) :

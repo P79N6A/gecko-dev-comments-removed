@@ -724,10 +724,9 @@ nsDisplayScrollLayer::ComputeFrameMetrics(nsIFrame* aForFrame,
   
   
   if (aScrollFrame == presShell->GetRootScrollFrame()) {
-    metrics.mPresShellResolution = ParentLayerToLayerScale(presShell->GetXResolution(),
-                                                  presShell->GetYResolution());
+    metrics.mPresShellResolution = presShell->GetXResolution();
   } else {
-    metrics.mPresShellResolution = ParentLayerToLayerScale(1.0f);
+    metrics.mPresShellResolution = 1.0f;
   }
   
   
@@ -747,9 +746,9 @@ nsDisplayScrollLayer::ComputeFrameMetrics(nsIFrame* aForFrame,
 
   
   
-  const LayerToScreenScale layerToScreenScale(1.0f);
+  const LayerToParentLayerScale layerToParentLayerScale(1.0f);
   metrics.SetZoom(metrics.mCumulativeResolution * metrics.mDevPixelsPerCSSPixel
-                  * layerToScreenScale);
+                  * layerToParentLayerScale);
 
   if (presShell) {
     nsIDocument* document = nullptr;
@@ -763,11 +762,6 @@ nsDisplayScrollLayer::ComputeFrameMetrics(nsIFrame* aForFrame,
     metrics.SetMayHaveTouchCaret(presShell->MayHaveTouchCaret());
   }
 
-  LayoutDeviceToParentLayerScale layoutToParentLayerScale =
-    
-    
-    metrics.mCumulativeResolution * LayerToScreenScale(1.0) * ScreenToParentLayerScale(1.0);
-
   
   
   
@@ -776,7 +770,8 @@ nsDisplayScrollLayer::ComputeFrameMetrics(nsIFrame* aForFrame,
   nsRect compositionBounds(frameForCompositionBoundsCalculation->GetOffsetToCrossDoc(aReferenceFrame),
                            frameForCompositionBoundsCalculation->GetSize());
   ParentLayerRect frameBounds = LayoutDeviceRect::FromAppUnits(compositionBounds, auPerDevPixel)
-                                 * layoutToParentLayerScale;
+                              * metrics.mCumulativeResolution
+                              * layerToParentLayerScale;
   metrics.mCompositionBounds = frameBounds;
 
   
