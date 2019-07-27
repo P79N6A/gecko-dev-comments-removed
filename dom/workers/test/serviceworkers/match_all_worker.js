@@ -1,5 +1,5 @@
 function loop() {
-  self.clients.getServiced().then(function(result) {
+  self.clients.matchAll().then(function(result) {
     setTimeout(loop, 0);
   });
 }
