@@ -395,24 +395,29 @@ Decode6Bit(string& aStr)
 }
 
 static bool
-DecodeBase64(string& aEncoded, vector<uint8_t>& aOutDecoded)
+DecodeBase64KeyOrId(string& aEncoded, vector<uint8_t>& aOutDecoded)
 {
-  if (!Decode6Bit(aEncoded)) {
+  if (aEncoded.size() != 22 || 
+      !Decode6Bit(aEncoded)) {
     return false;
   }
 
   
   int shift = 0;
 
-  aOutDecoded.resize(aEncoded.length() * 6 / 8);
-  aOutDecoded.reserve(aEncoded.length() * 6 / 8 + 1);
-  auto out = aOutDecoded.begin();
+  aOutDecoded.resize(16);
+  vector<uint8_t>::iterator out = aOutDecoded.begin();
   for (size_t i = 0; i < aEncoded.length(); i++) {
     if (!shift) {
       *out = aEncoded[i] << 2;
     } else {
       *out |= aEncoded[i] >> (6 - shift);
-      *(++out) = aEncoded[i] << (shift + 2);
+      out++;
+      if (out == aOutDecoded.end()) {
+        
+        break;
+      }
+      *out = aEncoded[i] << (shift + 2);
     }
     shift = (shift + 2) % 8;
   }
@@ -423,7 +428,8 @@ DecodeBase64(string& aEncoded, vector<uint8_t>& aOutDecoded)
 static bool
 DecodeKey(string& aEncoded, Key& aOutDecoded)
 {
-  return DecodeBase64(aEncoded, aOutDecoded) &&
+  return
+    DecodeBase64KeyOrId(aEncoded, aOutDecoded) &&
     
     aOutDecoded.size() == CLEARKEY_KEY_LEN;
 }
@@ -477,7 +483,7 @@ ParseKeyObject(ParserContext& aCtx, KeyIdPair& aOutKey)
 
   return !key.empty() &&
          !keyId.empty() &&
-         DecodeBase64(keyId, aOutKey.mKeyId) &&
+         DecodeBase64KeyOrId(keyId, aOutKey.mKeyId) &&
          DecodeKey(key, aOutKey.mKey) &&
          GetNextSymbol(aCtx) == '}';
 }
