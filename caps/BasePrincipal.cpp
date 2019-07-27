@@ -115,6 +115,12 @@ OriginAttributes::PopulateFromSuffix(const nsACString& aStr)
   return usp->ForEach(iterator);
 }
 
+void
+OriginAttributes::CookieJar(nsACString& aStr)
+{
+  mozilla::GetJarPrefix(mAppId, mInBrowser, aStr);
+}
+
 BasePrincipal::BasePrincipal()
 {}
 
@@ -223,7 +229,7 @@ BasePrincipal::GetJarPrefix(nsACString& aJarPrefix)
 {
   MOZ_ASSERT(AppId() != nsIScriptSecurityManager::UNKNOWN_APP_ID);
 
-  mozilla::GetJarPrefix(AppId(), IsInBrowserElement(), aJarPrefix);
+  mOriginAttributes.CookieJar(aJarPrefix);
   return NS_OK;
 }
 
@@ -246,10 +252,8 @@ BasePrincipal::GetOriginSuffix(nsACString& aOriginAttributes)
 NS_IMETHODIMP
 BasePrincipal::GetCookieJar(nsACString& aCookieJar)
 {
-  
-  
-  
-  return GetJarPrefix(aCookieJar);
+  mOriginAttributes.CookieJar(aCookieJar);
+  return NS_OK;
 }
 
 NS_IMETHODIMP

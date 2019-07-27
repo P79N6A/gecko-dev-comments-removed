@@ -28,6 +28,8 @@ public:
     mAppId = aAppId;
     mInBrowser = aInBrowser;
   }
+  explicit OriginAttributes(const OriginAttributesDictionary& aOther)
+    : OriginAttributesDictionary(aOther) {}
 
   bool operator==(const OriginAttributes& aOther) const
   {
@@ -44,6 +46,8 @@ public:
   
   void CreateSuffix(nsACString& aStr) const;
   bool PopulateFromSuffix(const nsACString& aStr);
+
+  void CookieJar(nsACString& aStr);
 };
 
 
