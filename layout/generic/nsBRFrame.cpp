@@ -6,6 +6,7 @@
 
 
 #include "nsCOMPtr.h"
+#include "nsFontMetrics.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
 #include "nsLineLayout.h"

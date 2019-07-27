@@ -4,6 +4,7 @@
 
 
 #include "nsBidiPresUtils.h"
+#include "nsFontMetrics.h"
 #include "nsGkAtoms.h"
 #include "nsPresContext.h"
 #include "nsRenderingContext.h"
