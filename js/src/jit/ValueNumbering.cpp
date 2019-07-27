@@ -304,10 +304,6 @@ ValueNumberer::releaseResumePointOperands(MResumePoint *resume)
         if (!resume->hasOperand(i))
             continue;
         MDefinition *op = resume->getOperand(i);
-        
-        
-        if (op->isDiscarded())
-            continue;
         resume->releaseOperand(i);
 
         
