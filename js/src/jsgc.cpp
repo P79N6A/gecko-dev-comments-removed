@@ -5354,8 +5354,8 @@ GCRuntime::endSweepPhase(bool lastGC)
             SweepScriptData(rt);
 
         
-        if (jit::ExecutableAllocator *execAlloc = rt->maybeExecAlloc())
-            execAlloc->purge();
+        if (jit::JitRuntime *jitRuntime = rt->jitRuntime())
+            jitRuntime->execAlloc().purge();
 
         
 

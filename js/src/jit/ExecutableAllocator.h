@@ -78,7 +78,8 @@ namespace jit {
   class ExecutablePool {
 
     friend class ExecutableAllocator;
-private:
+
+  private:
     struct Allocation {
         char* pages;
         size_t size;
@@ -98,7 +99,7 @@ private:
     size_t m_regexpCodeBytes;
     size_t m_otherCodeBytes;
 
-public:
+  public:
     void release(bool willDestroy = false)
     {
         MOZ_ASSERT(m_refCount != 0);
@@ -140,7 +141,10 @@ public:
 
     ~ExecutablePool();
 
-private:
+  private:
+    ExecutablePool(const ExecutablePool &) = delete;
+    void operator=(const ExecutablePool &) = delete;
+
     
     
     
@@ -177,9 +181,9 @@ class ExecutableAllocator {
     enum ProtectionSetting { Writable, Executable };
     DestroyCallback destroyCallback;
 
-public:
+  public:
     ExecutableAllocator()
-      : destroyCallback(NULL)
+      : destroyCallback(nullptr)
     {
         if (!pageSize) {
             pageSize = determinePageSize();
@@ -229,13 +233,13 @@ public:
         MOZ_ASSERT(roundUpAllocationSize(n, sizeof(void*)) == n);
 
         if (n == OVERSIZE_ALLOCATION) {
-            *poolp = NULL;
-            return NULL;
+            *poolp = nullptr;
+            return nullptr;
         }
 
         *poolp = poolForSize(n);
         if (!*poolp)
-            return NULL;
+            return nullptr;
 
         
         
@@ -259,7 +263,7 @@ public:
         this->destroyCallback = destroyCallback;
     }
 
-private:
+  private:
     static size_t pageSize;
     static size_t largeAllocSize;
 #ifdef XP_WIN
@@ -295,25 +299,25 @@ private:
     {
         size_t allocSize = roundUpAllocationSize(n, pageSize);
         if (allocSize == OVERSIZE_ALLOCATION)
-            return NULL;
+            return nullptr;
 
         if (!m_pools.initialized() && !m_pools.init())
-            return NULL;
+            return nullptr;
 
         ExecutablePool::Allocation a = systemAlloc(allocSize);
         if (!a.pages)
-            return NULL;
+            return nullptr;
 
         ExecutablePool *pool = js_new<ExecutablePool>(this, a);
         if (!pool) {
             systemRelease(a);
-            return NULL;
+            return nullptr;
         }
         m_pools.put(pool);
         return pool;
     }
 
-public:
+  public:
     ExecutablePool* poolForSize(size_t n)
     {
         
@@ -321,7 +325,7 @@ public:
         
         
         
-        ExecutablePool *minPool = NULL;
+        ExecutablePool *minPool = nullptr;
         for (size_t i = 0; i < m_smallPools.length(); i++) {
             ExecutablePool *pool = m_smallPools[i];
             if (n <= pool->available() && (!minPool || pool->available() < minPool->available()))
@@ -339,7 +343,7 @@ public:
         
         ExecutablePool* pool = createPool(largeAllocSize);
         if (!pool)
-            return NULL;
+            return nullptr;
         
 
         if (m_smallPools.length() < maxSmallPools) {
@@ -349,12 +353,13 @@ public:
         } else {
             
             int iMin = 0;
-            for (size_t i = 1; i < m_smallPools.length(); i++)
+            for (size_t i = 1; i < m_smallPools.length(); i++) {
                 if (m_smallPools[i]->available() <
                     m_smallPools[iMin]->available())
                 {
                     iMin = i;
                 }
+	    }
 
             
             
@@ -433,7 +438,9 @@ public:
     }
 #endif
 
-private:
+  private:
+    ExecutableAllocator(const ExecutableAllocator &) = delete;
+    void operator=(const ExecutableAllocator &) = delete;
 
 #if ENABLE_ASSEMBLER_WX_EXCLUSIVE
     static void reprotectRegion(void*, size_t, ProtectionSetting);

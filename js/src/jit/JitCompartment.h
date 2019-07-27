@@ -142,8 +142,7 @@ class JitRuntime
     friend class JitCompartment;
 
     
-    
-    ExecutableAllocator *execAlloc_;
+    ExecutableAllocator execAlloc_;
 
     
     JitCode *exceptionTail_;
@@ -257,7 +256,7 @@ class JitRuntime
 
     static void Mark(JSTracer *trc);
 
-    ExecutableAllocator *execAlloc() const {
+    ExecutableAllocator &execAlloc() {
         return execAlloc_;
     }
 
