@@ -2455,7 +2455,8 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
                  "non pseudo-element frame without content node");
     newContext = styleSet->ResolveStyleForNonElement(parentContext);
   }
-  else if (!aRestyleHint && !prevContinuation) {
+  else if (!(aRestyleHint & (eRestyle_Self | eRestyle_Subtree)) &&
+           !prevContinuation) {
     
     
     
@@ -2464,10 +2465,18 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
     
     
     
-    newContext =
-      styleSet->ReparentStyleContext(oldContext, parentContext,
-                                     ElementForStyleContext(mParentContent,
-                                                            aSelf, pseudoType));
+
+    Element* element = ElementForStyleContext(mParentContent, aSelf, pseudoType);
+    if (aRestyleHint == nsRestyleHint(0)) {
+      newContext =
+        styleSet->ReparentStyleContext(oldContext, parentContext, element);
+    } else {
+      MOZ_ASSERT(!(~aRestyleHint & (eRestyle_CSSTransitions |
+                                    eRestyle_CSSAnimations)),
+                 "unexpected restyle bits");
+      newContext =
+        styleSet->ResolveStyleWithReplacement(element, parentContext, oldContext);
+    }
   } else if (pseudoType == nsCSSPseudoElements::ePseudo_AnonBox) {
     newContext = styleSet->ResolveAnonymousBoxStyle(pseudoTag,
                                                     parentContext);
@@ -2701,11 +2710,19 @@ ElementRestyler::RestyleUndisplayedChildren(nsRestyleHint aChildRestyleHint)
       }
       nsRefPtr<nsStyleContext> undisplayedContext;
       nsStyleSet* styleSet = mPresContext->StyleSet();
-      if (thisChildHint) {
+      if (thisChildHint & (eRestyle_Self | eRestyle_Subtree)) {
         undisplayedContext =
           styleSet->ResolveStyleFor(undisplayed->mContent->AsElement(),
                                     mFrame->StyleContext(),
                                     mTreeMatchContext);
+      } else if (thisChildHint) {
+        MOZ_ASSERT(!(~thisChildHint & (eRestyle_CSSTransitions |
+                                       eRestyle_CSSAnimations)),
+                   "unexpected restyle bits");
+        undisplayedContext =
+          styleSet->ResolveStyleWithReplacement(undisplayed->mContent->AsElement(),
+                                                mFrame->StyleContext(),
+                                                undisplayed->mStyle);
       } else {
         undisplayedContext =
           styleSet->ReparentStyleContext(undisplayed->mStyle,

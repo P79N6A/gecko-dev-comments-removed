@@ -252,9 +252,32 @@ inline nsChangeHint NS_HintsNotHandledForDescendantsIn(nsChangeHint aChangeHint)
 
 
 enum nsRestyleHint {
-  eRestyle_Self = 0x1,
-  eRestyle_Subtree = 0x2, 
-  eRestyle_LaterSiblings = 0x4 
+  
+  
+  
+  
+  eRestyle_Self = (1<<0),
+
+  
+  eRestyle_Subtree = (1<<1),
+
+  
+  
+  eRestyle_LaterSiblings = (1<<2),
+
+  
+  
+  
+  
+  
+  eRestyle_CSSTransitions = (1<<3),
+
+  
+  
+  
+  
+  
+  eRestyle_CSSAnimations = (1<<4),
 };
 
 
