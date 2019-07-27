@@ -11,6 +11,7 @@ import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.db.DBUtils;
 import org.mozilla.gecko.db.ReadingListAccessor;
 import org.mozilla.gecko.favicons.Favicons;
+import org.mozilla.gecko.mozglue.RobocopTarget;
 import org.mozilla.gecko.util.EventCallback;
 import org.mozilla.gecko.util.NativeEventListener;
 import org.mozilla.gecko.util.NativeJSObject;
@@ -34,6 +35,8 @@ public final class ReadingListHelper implements NativeEventListener {
     private final ReadingListAccessor readingListAccessor;
     private final ContentObserver contentObserver;
 
+    volatile boolean fetchInBackground = true;
+
     public ReadingListHelper(Context context, GeckoProfile profile) {
         this.context = context;
         this.db = profile.getDB();
@@ -46,7 +49,9 @@ public final class ReadingListHelper implements NativeEventListener {
         contentObserver = new ContentObserver(null) {
             @Override
             public void onChange(boolean selfChange) {
-                fetchContent();
+                if (fetchInBackground) {
+                    fetchContent();
+                }
             }
         };
 
@@ -286,5 +291,14 @@ public final class ReadingListHelper implements NativeEventListener {
                 }
             }
         });
+    }
+
+    @RobocopTarget
+    
+
+
+
+    public void disableBackgroundFetches() {
+        fetchInBackground = false;
     }
 }
