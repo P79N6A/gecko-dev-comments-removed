@@ -965,7 +965,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   pfd->mBounds.BSize(lineWM) = metrics.BSize(lineWM);
 
   
-  aFrame->SetSize(nsSize(metrics.Width(), metrics.Height()));
+  aFrame->SetRect(lineWM, pfd->mBounds, mContainerWidth);
 
   
   aFrame->DidReflow(mPresContext,
