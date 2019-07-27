@@ -43,6 +43,12 @@ SplitCriticalEdgesForBlock(MIRGraph &graph, MBasicBlock *block)
         graph.insertBlockAfter(block, split);
         split->end(MGoto::New(graph.alloc(), target));
 
+        
+        
+        
+        
+        
+        
         if (MResumePoint *rp = split->entryResumePoint()) {
             rp->releaseUses();
             split->clearEntryResumePoint();
