@@ -290,6 +290,9 @@ enum nsRestyleHint {
   eRestyle_Self = (1<<0),
 
   
+  
+  
+  
   eRestyle_Subtree = (1<<1),
 
   
@@ -340,6 +343,8 @@ enum nsRestyleHint {
   
   eRestyle_Force = (1<<8),
 
+  
+  
   
   
   
