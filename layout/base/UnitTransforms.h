@@ -37,10 +37,7 @@ enum class PixelCastJustification : uint8_t {
   
   
   
-  LayoutDeviceToScreenForUntransformedEvent,
-  
-  
-  LayoutDeviceIsScreenForTabDims
+  LayoutDeviceToScreenForUntransformedEvent
 };
 
 template <class TargetUnits, class SourceUnits>

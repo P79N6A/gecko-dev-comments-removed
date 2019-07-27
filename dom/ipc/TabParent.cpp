@@ -90,7 +90,6 @@
 #include "nsPIWindowRoot.h"
 #include "gfxDrawable.h"
 #include "ImageOps.h"
-#include "UnitTransforms.h"
 #include <algorithm>
 
 using namespace mozilla::dom;
@@ -335,25 +334,7 @@ TabParent::SetOwnerElement(Element* aElement)
   RemoveWindowListeners();
 
   
-  
-  nsRefPtr<nsPIWindowRoot> curTopLevelWin, newTopLevelWin;
-  if (mFrameElement) {
-    curTopLevelWin = nsContentUtils::GetWindowRoot(mFrameElement->OwnerDoc());
-  }
-  if (aElement) {
-    newTopLevelWin = nsContentUtils::GetWindowRoot(aElement->OwnerDoc());
-  }
-  bool isSameTopLevelWin = curTopLevelWin == newTopLevelWin;
-  if (curTopLevelWin && !isSameTopLevelWin) {
-    curTopLevelWin->RemoveBrowser(this);
-  }
-
-  
   mFrameElement = aElement;
-
-  if (newTopLevelWin && !isSameTopLevelWin) {
-    newTopLevelWin->AddBrowser(this);
-  }
 
   AddWindowListeners();
   TryCacheDPIAndScale();
@@ -985,21 +966,7 @@ TabParent::UpdateDimensions(const nsIntRect& rect, const ScreenIntSize& size)
     mOrientation = orientation;
     mChromeOffset = chromeOffset;
 
-    CSSToLayoutDeviceScale widgetScale;
-    if (widget) {
-      widgetScale = widget->GetDefaultScale();
-    }
-
-    LayoutDeviceIntRect devicePixelRect =
-      ViewAs<LayoutDevicePixel>(mRect,
-                                PixelCastJustification::LayoutDeviceIsScreenForTabDims);
-    LayoutDeviceIntSize devicePixelSize =
-      ViewAs<LayoutDevicePixel>(mDimensions.ToUnknownSize(),
-                                PixelCastJustification::LayoutDeviceIsScreenForTabDims);
-
-    CSSRect unscaledRect = devicePixelRect / widgetScale;
-    CSSSize unscaledSize = devicePixelSize / widgetScale;
-    unused << SendUpdateDimensions(unscaledRect, unscaledSize, orientation, chromeOffset);
+    unused << SendUpdateDimensions(mRect, mDimensions, mOrientation, mChromeOffset);
   }
 }
 
@@ -1018,7 +985,6 @@ TabParent::UIResolutionChanged()
     
     
     mDPI = -1;
-    TryCacheDPIAndScale();
     unused << SendUIResolutionChanged();
   }
 }

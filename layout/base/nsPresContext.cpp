@@ -1798,15 +1798,6 @@ nsPresContext::UIResolutionChanged()
   }
 }
 
-void
-nsPresContext::UIResolutionChangedSync()
-{
-  if (!mPendingUIResolutionChanged) {
-    mPendingUIResolutionChanged = true;
-    UIResolutionChangedInternal();
-  }
-}
-
  bool
 nsPresContext::UIResolutionChangedSubdocumentCallback(nsIDocument* aDocument,
                                                       void* aData)
@@ -1822,24 +1813,9 @@ nsPresContext::UIResolutionChangedSubdocumentCallback(nsIDocument* aDocument,
 }
 
 static void
-NotifyTabUIResolutionChanged(TabParent* aTab, void *aArg)
+NotifyUIResolutionChanged(TabParent* aTabParent, void* aArg)
 {
-  aTab->UIResolutionChanged();
-}
-
-static void
-NotifyChildrenUIResolutionChanged(nsIDOMWindow* aWindow)
-{
-  nsCOMPtr<nsPIDOMWindow> piWin = do_QueryInterface(aWindow);
-  if (!piWin) {
-    return;
-  }
-  nsCOMPtr<nsIDocument> doc = piWin->GetExtantDoc();
-  nsRefPtr<nsPIWindowRoot> topLevelWin = nsContentUtils::GetWindowRoot(doc);
-  if (!topLevelWin) {
-    return;
-  }
-  topLevelWin->EnumerateBrowsers(NotifyTabUIResolutionChanged, nullptr);
+  aTabParent->UIResolutionChanged();
 }
 
 void
@@ -1853,7 +1829,9 @@ nsPresContext::UIResolutionChangedInternal()
   }
 
   
-  NotifyChildrenUIResolutionChanged(mDocument->GetWindow());
+  
+  nsContentUtils::CallOnAllRemoteChildren(mDocument->GetWindow(),
+                                          NotifyUIResolutionChanged, nullptr);
 
   mDocument->EnumerateSubDocuments(UIResolutionChangedSubdocumentCallback,
                                    nullptr);
