@@ -4124,6 +4124,97 @@ MLoadElement::foldsTo(TempAllocator &alloc)
     return foldsToStoredValue(alloc, store->value());
 }
 
+
+
+
+static inline const MElements *
+MaybeUnwrapElements(const MDefinition *elementsOrObj)
+{
+    
+    if (elementsOrObj->isConvertElementsToDoubles())
+        return MaybeUnwrapElements(elementsOrObj->toConvertElementsToDoubles()->elements());
+
+    
+    if (elementsOrObj->type() == MIRType_Object)
+        return nullptr;
+
+    return elementsOrObj->toElements();
+}
+
+
+static inline const MDefinition *
+GetStoreObject(const MDefinition *store)
+{
+    switch (store->op()) {
+      case MDefinition::Op_StoreElement: {
+        const MDefinition *elementsOrObj = store->toStoreElement()->elements();
+        const MDefinition *elements = MaybeUnwrapElements(elementsOrObj);
+        if (elements)
+            return elements->toElements()->input();
+
+        MOZ_ASSERT(elementsOrObj->type() == MIRType_Object);
+        return elementsOrObj;
+      }
+
+      case MDefinition::Op_StoreElementHole:
+        return store->toStoreElementHole()->object();
+
+      default:
+        return nullptr;
+    }
+}
+
+
+static bool
+GenericLoadMightAlias(const MDefinition *elementsOrObj, const MDefinition *store)
+{
+    const MElements *elements = MaybeUnwrapElements(elementsOrObj);
+    if (elements)
+        return elements->mightAlias(store);
+
+    
+    
+    const MDefinition *object = elementsOrObj;
+    MOZ_ASSERT(object->type() == MIRType_Object);
+    if (!object->resultTypeSet())
+        return true;
+
+    const MDefinition *storeObject = GetStoreObject(store);
+    if (!storeObject)
+        return true;
+    if (!storeObject->resultTypeSet())
+        return true;
+
+    return object->resultTypeSet()->objectsIntersect(storeObject->resultTypeSet());
+}
+
+bool
+MElements::mightAlias(const MDefinition *store) const
+{
+    if (!input()->resultTypeSet())
+        return true;
+
+    const MDefinition *storeObj = GetStoreObject(store);
+    if (!storeObj)
+        return true;
+    if (!storeObj->resultTypeSet())
+        return true;
+
+    return input()->resultTypeSet()->objectsIntersect(storeObj->resultTypeSet());
+}
+
+bool
+MLoadElement::mightAlias(const MDefinition *store) const
+{
+    return GenericLoadMightAlias(elements(), store);
+}
+
+bool
+MInitializedLength::mightAlias(const MDefinition *store) const
+{
+    return GenericLoadMightAlias(elements(), store);
+}
+
 bool
 MGuardReceiverPolymorphic::congruentTo(const MDefinition *ins) const
 {
