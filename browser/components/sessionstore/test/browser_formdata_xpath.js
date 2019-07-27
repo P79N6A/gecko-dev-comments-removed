@@ -62,8 +62,8 @@ add_task(function test_form_data_restoration() {
   }
 
   
-  gBrowser.removeTab(tab2);
-  gBrowser.removeTab(tab);
+  yield promiseRemoveTab(tab2);
+  yield promiseRemoveTab(tab);
 
   
   tab = ss.undoCloseTab(window, 0);
@@ -81,7 +81,7 @@ add_task(function test_form_data_restoration() {
   }
 
   
-  gBrowser.removeTab(tab);
+  yield promiseRemoveTab(tab);
 });
 
 function createFilePath(leaf) {
