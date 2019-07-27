@@ -4,6 +4,8 @@
 MARIONETTE_TIMEOUT = 60000;
 MARIONETTE_HEAD_JS = 'head.js';
 
+const TESTING_HOSTAPD = [{ ssid: 'ap0' }];
+
 function connectToFirstNetwork() {
   let firstNetwork;
   return gTestSuite.requestWifiScan()
@@ -18,6 +20,11 @@ gTestSuite.doTestTethering(function() {
   let firstNetwork;
 
   return gTestSuite.ensureWifiEnabled(true)
+    
+    .then(() => gTestSuite.startHostapds(TESTING_HOSTAPD))
+    .then(() => gTestSuite.verifyNumOfProcesses('hostapd', TESTING_HOSTAPD.length))
+
+    
     .then(function () {
       return Promise.all([
         
@@ -46,8 +53,12 @@ gTestSuite.doTestTethering(function() {
         
         
         gTestSuite.waitForWifiManagerEventOnce('enabled'),
-        gTestSuite.waitForRilDataConnected(false),
-        gTestSuite.waitForConnected(firstNetwork),
+
+        
+        
+        
+        
+        
 
         
         gTestSuite.requestTetheringEnabled(false)
@@ -55,5 +66,9 @@ gTestSuite.doTestTethering(function() {
     })
     
     
-    .then(() => gTestSuite.requestWifiEnabled(false));
+    .then(() => gTestSuite.requestWifiEnabled(false))
+
+    
+    .then(gTestSuite.killAllHostapd)
+    .then(() => gTestSuite.verifyNumOfProcesses('hostapd', 0));
 });

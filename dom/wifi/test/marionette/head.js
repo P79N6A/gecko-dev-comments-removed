@@ -50,6 +50,7 @@ let gTestSuite = (function() {
   let wifiManager;
   let wifiOrigEnabled;
   let pendingEmulatorShellCount = 0;
+  let sdkVersion;
 
   
 
@@ -1179,7 +1180,13 @@ let gTestSuite = (function() {
     
     
     function verifyIptables() {
-      return runEmulatorShellSafe(['iptables', '-t', 'nat', '-L', 'POSTROUTING'])
+      let MASQUERADE_checkSection = 'POSTROUTING';
+      if (sdkVersion > 15) {
+        
+        MASQUERADE_checkSection = 'natctrl_nat_POSTROUTING';
+      }
+
+      return runEmulatorShellSafe(['iptables', '-t', 'nat', '-L', MASQUERADE_checkSection])
         .then(function(aLines) {
           
           
@@ -1273,6 +1280,10 @@ let gTestSuite = (function() {
           throw 'window.navigator.mozWifiManager is NULL';
         }
         wifiOrigEnabled = wifiManager.enabled;
+      })
+      .then(() => runEmulatorShellSafe(['getprop', 'ro.build.version.sdk']))
+      .then(aLines => {
+        sdkVersion = parseInt(aLines[0]);
       });
   }
 
@@ -1397,7 +1408,12 @@ let gTestSuite = (function() {
     return suite.doTest(function() {
       return verifyInitialState()
         .then(initTetheringTestEnvironment)
+        
+        
+        
+        .then(stopStockHostapd)
         .then(aTestCaseChain)
+        .then(startStockHostapd)
         .then(restoreToInitialState, function onreject(aReason) {
           return restoreToInitialState()
             .then(() => { throw aReason; }); 
