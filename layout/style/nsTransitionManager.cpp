@@ -204,6 +204,20 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
   
   
   
+  nsRefPtr<nsStyleContext> afterChangeStyle;
+  if (collection) {
+    nsStyleSet* styleSet = mPresContext->StyleSet();
+    afterChangeStyle =
+      styleSet->ResolveStyleWithoutAnimation(aElement, aNewStyleContext,
+                                             eRestyle_CSSTransitions);
+  } else {
+    afterChangeStyle = aNewStyleContext;
+  }
+
+  
+  
+  
+  
   bool startedAny = false;
   nsCSSPropertySet whichStarted;
   for (uint32_t i = disp->mTransitionPropertyCount; i-- != 0; ) {
@@ -225,19 +239,19 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
              p < eCSSProperty_COUNT_no_shorthands;
              p = nsCSSProperty(p + 1)) {
           ConsiderStartingTransition(p, t, aElement, collection,
-                                     aOldStyleContext, aNewStyleContext,
+                                     aOldStyleContext, afterChangeStyle,
                                      &startedAny, &whichStarted);
         }
       } else if (nsCSSProps::IsShorthand(property)) {
         CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(
             subprop, property, nsCSSProps::eEnabledForAllContent) {
           ConsiderStartingTransition(*subprop, t, aElement, collection,
-                                     aOldStyleContext, aNewStyleContext,
+                                     aOldStyleContext, afterChangeStyle,
                                      &startedAny, &whichStarted);
         }
       } else {
         ConsiderStartingTransition(property, t, aElement, collection,
-                                   aOldStyleContext, aNewStyleContext,
+                                   aOldStyleContext, afterChangeStyle,
                                    &startedAny, &whichStarted);
       }
     }
@@ -298,7 +312,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
            !allTransitionProperties.HasProperty(prop.mProperty)) ||
           
           
-          !ExtractComputedValueForTransition(prop.mProperty, aNewStyleContext,
+          !ExtractComputedValueForTransition(prop.mProperty, afterChangeStyle,
                                              currentValue) ||
           currentValue != segment.mToValue) {
         
