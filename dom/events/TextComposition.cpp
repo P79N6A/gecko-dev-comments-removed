@@ -224,6 +224,17 @@ TextComposition::DispatchCompositionEvent(
     dispatchEvent = dispatchDOMTextEvent = false;
   }
 
+  
+  
+  
+  if (dispatchDOMTextEvent &&
+      aCompositionEvent->message == NS_COMPOSITION_CHANGE &&
+      mLastData == aCompositionEvent->mData &&
+      mRanges && aCompositionEvent->mRanges &&
+      mRanges->Equals(*aCompositionEvent->mRanges)) {
+    dispatchEvent = dispatchDOMTextEvent = false;
+  }
+
   if (dispatchDOMTextEvent) {
     if (!MaybeDispatchCompositionUpdate(aCompositionEvent)) {
       return;
