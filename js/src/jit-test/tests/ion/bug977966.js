@@ -72,6 +72,30 @@ function split_join_4(i) {
     return i;
 }
 
+
+
+function split_join_pattern(i) {
+    var s = i + "-" + i;
+    assertEq(s.split("-").join("$`$&$'"), i + "$`$&$'" + i);
+    assertEq(s.replace("-", "$`$&$'"), "" + i + i + "-" + i + i);
+}
+
+
+
+function split_join_multiple(i) {
+    var s1 = i + "-\n-" + i + "-\n-" + i;
+    assertEq(s1.split("-\n-").join("-")  , i + "-" + i + "-" + i);
+    assertEq(s1.replace("-\n-", "-")     , i + "-" + i + "-\n-" + i);
+    
+    assertEq(s1.replace("-\n-", "-", "g"), i + "-" + i + "-" + i);
+
+    var s2 = "abc";
+    assertEq(s2.split("").join("" + i)   , "a" + i + "b" + i + "c");
+    assertEq(s2.replace("", "" + i)      , i + "abc");
+    
+    assertEq(s2.replace("", "" + i, "g") , i + "a" + i + "b" + i + "c" + i);
+}
+
 for (var i = 0; i < 100; ++i) {
     join_check(i);
     split(i);
@@ -80,4 +104,6 @@ for (var i = 0; i < 100; ++i) {
     split_join_2(i);
     split_join_3(i);
     split_join_4(i);
+    split_join_pattern(i);
+    split_join_multiple(i);
 }

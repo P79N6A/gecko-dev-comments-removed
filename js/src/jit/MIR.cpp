@@ -3380,6 +3380,9 @@ MBoundsCheck::foldsTo(TempAllocator &alloc)
 
 MDefinition *
 MArrayJoin::foldsTo(TempAllocator &alloc) {
+    
+    return this;
+
     MDefinition *arr = array();
 
     if (!arr->isStringSplit())
