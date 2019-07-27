@@ -1712,11 +1712,6 @@ pref("dom.debug.propagate_gesture_events_through_content", false);
 pref("geo.wifi.uri", "https://location.services.mozilla.com/v1/geolocate?key=%MOZILLA_API_KEY%");
 
 
-#ifdef XP_MACOSX
-pref("geo.provider.use_corelocation", true);
-#endif
-
-
 
 pref("network.disable.ipc.security", true);
 
