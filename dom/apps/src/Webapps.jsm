@@ -3399,12 +3399,20 @@ this.DOMApplicationRegistry = {
         debug("Setting origin to " + uri.prePath +
               " for " + aOldApp.manifestURL);
         let newId = uri.prePath.substring(6); 
-        if (newId in this.webapps) {
+        if (newId in this.webapps && this._isLaunchable(this.webapps[newId])) {
           throw "DUPLICATE_ORIGIN";
         }
         aOldApp.origin = uri.prePath;
         
         let oldId = aOldApp.id;
+
+        if (oldId == newId) {
+          
+          
+          
+          return;
+        }
+
         aOldApp.id = newId;
         this.webapps[newId] = aOldApp;
         delete this.webapps[oldId];
