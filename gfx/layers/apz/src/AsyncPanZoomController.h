@@ -725,7 +725,8 @@ protected:
 
     PINCHING,                 
     ANIMATING_ZOOM,           
-    SNAP_BACK,                
+    OVERSCROLL_ANIMATION,     
+
     SMOOTH_SCROLL,            
 
   };
@@ -829,7 +830,7 @@ public:
 
 private:
   friend class FlingAnimation;
-  friend class OverscrollSnapBackAnimation;
+  friend class OverscrollAnimation;
   friend class SmoothScrollAnimation;
   
   ScreenPoint mLastFlingVelocity;
@@ -849,11 +850,10 @@ private:
   
   void AcceptFling(const ScreenPoint& aVelocity,
                    const nsRefPtr<const OverscrollHandoffChain>& aOverscrollHandoffChain,
-                   bool aHandoff,
-                   bool aAllowOverscroll);
+                   bool aHandoff);
 
   
-  void StartSnapBack();
+  void StartOverscrollAnimation(const ScreenPoint& aVelocity);
 
   void StartSmoothScroll();
 

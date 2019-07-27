@@ -37,7 +37,8 @@ Axis::Axis(AsyncPanZoomController* aAsyncPanZoomController)
     mVelocity(0.0f),
     mAxisLocked(false),
     mAsyncPanZoomController(aAsyncPanZoomController),
-    mOverscroll(0)
+    mOverscroll(0),
+    mInUnderscroll(false)
 {
 }
 
@@ -181,7 +182,11 @@ ScreenCoord Axis::GetOverscroll() const {
   return mOverscroll;
 }
 
-bool Axis::SampleSnapBack(const TimeDuration& aDelta) {
+bool Axis::IsInUnderscroll() const {
+  return mInUnderscroll;
+}
+
+bool Axis::SampleOverscrollAnimation(const TimeDuration& aDelta) {
   
   
   
@@ -196,40 +201,45 @@ bool Axis::SampleSnapBack(const TimeDuration& aDelta) {
   
   
   
-  const float kSpringStiffness = gfxPrefs::APZOverscrollSnapBackSpringStiffness();
-  const float kSpringFriction = gfxPrefs::APZOverscrollSnapBackSpringFriction();
-  const float kMass = gfxPrefs::APZOverscrollSnapBackMass();
-  float force = -1 * kSpringStiffness * mOverscroll - kSpringFriction * mVelocity;
-  float acceleration = force / kMass;
-  mVelocity += acceleration * aDelta.ToMilliseconds();
-  float displacement = mVelocity * aDelta.ToMilliseconds();
-  if (mOverscroll > 0) {
-    if (displacement > 0) {
-      NS_WARNING("Overscroll snap-back animation is moving in the wrong direction!");
-      return false;
-    }
-    mOverscroll = std::max(mOverscroll + displacement, 0.0f);
+  const float kSpringStiffness = gfxPrefs::APZOverscrollSpringStiffness();
+  const float kSpringFriction = gfxPrefs::APZOverscrollSpringFriction();
+
+  
+  float springForce = -1 * kSpringStiffness * mOverscroll;
+  
+  mVelocity += springForce * aDelta.ToMilliseconds();
+
+  
+  mVelocity *= pow(double(1 - kSpringFriction), aDelta.ToMilliseconds());
+
+  
+  
+  
+  
+  float oldOverscroll = mOverscroll;
+  mOverscroll += (mVelocity * aDelta.ToMilliseconds());
+  bool signChange = (oldOverscroll * mOverscroll) < 0;
+  if (signChange) {
     
-    if (mOverscroll == 0.f) {
-      mVelocity = 0;
-      return false;
-    }
-    return true;
-  } else if (mOverscroll < 0) {
-    if (displacement < 0) {
-      NS_WARNING("Overscroll snap-back animation is moving in the wrong direction!");
-      return false;
-    }
-    mOverscroll = std::min(mOverscroll + displacement, 0.0f);
     
-    if (mOverscroll == 0.f) {
-      mVelocity = 0;
-      return false;
-    }
-    return true;
+    mInUnderscroll = !mInUnderscroll;
   }
+
   
-  return false;
+  
+  
+  if (fabs(mOverscroll) < gfxPrefs::APZOverscrollStopDistanceThreshold() &&
+      fabs(mVelocity) < gfxPrefs::APZOverscrollStopVelocityThreshold()) {
+    
+    
+    mOverscroll = 0;
+    mVelocity = 0;
+    mInUnderscroll = false;
+    return false;
+  }
+
+  
+  return true;
 }
 
 bool Axis::IsOverscrolled() const {

@@ -92,7 +92,13 @@ public:
 
 
 
-  bool SampleSnapBack(const TimeDuration& aDelta);
+  bool IsInUnderscroll() const;
+
+  
+
+
+
+  bool SampleOverscrollAnimation(const TimeDuration& aDelta);
 
   
 
@@ -220,7 +226,42 @@ protected:
   
   
   
+  
+  
   ScreenCoord mOverscroll;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool mInUnderscroll;
   
   
   
