@@ -15,7 +15,7 @@ function ok(passed, text) {
   do_report_result(passed, text, Components.stack.caller, false);
 }
 
-function promiseLoadEvent(browser, url, eventType="load") {
+function promiseLoadEvent(browser, url, eventType="load", runBeforeLoad) {
   return new Promise((resolve, reject) => {
     do_print("Wait browser event: " + eventType);
 
@@ -30,7 +30,11 @@ function promiseLoadEvent(browser, url, eventType="load") {
       resolve(event);
     }
 
-    browser.addEventListener(eventType, handle, true, true);
+    browser.addEventListener(eventType, handle, true);
+
+    if (runBeforeLoad) {
+      runBeforeLoad();
+    }
     if (url) {
       browser.loadURI(url);
     }
@@ -120,6 +124,19 @@ add_task(function* () {
 
   
   yield promiseLoadEvent(browser, "http://tracking.example.org/tests/robocop/tracking_bad.html");
+  Messaging.sendRequest({ type: "Test:Expected", expected: "tracking_content_blocked" });
+
+  
+  
+  yield promiseLoadEvent(browser, undefined, undefined, () => {
+    Services.obs.notifyObservers(null, "Session:Reload", "{\"allowContent\":true,\"contentType\":\"tracking\"}");
+  });
+  Messaging.sendRequest({ type: "Test:Expected", expected: "tracking_content_loaded" });
+
+  
+  yield promiseLoadEvent(browser, undefined, undefined, () => {
+    Services.obs.notifyObservers(null, "Session:Reload", "{\"allowContent\":false,\"contentType\":\"tracking\"}");
+  });
   Messaging.sendRequest({ type: "Test:Expected", expected: "tracking_content_blocked" });
 
   
