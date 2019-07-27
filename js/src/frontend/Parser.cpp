@@ -2198,6 +2198,8 @@ Parser<FullParseHandler>::functionArgsAndBody(ParseNode *pn, HandleFunction fun,
                 if (parser->hadAbortedSyntaxParse()) {
                     
                     parser->clearAbortedSyntaxParse();
+                    MOZ_ASSERT_IF(parser->context->isJSContext(),
+                                  !parser->context->asJSContext()->isExceptionPending());
                     break;
                 }
                 return false;
