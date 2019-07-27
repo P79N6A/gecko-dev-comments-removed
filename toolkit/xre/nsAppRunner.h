@@ -32,11 +32,7 @@
 
 #define NS_LOCALSTORE_UNSAFE_FILE "LStoreS"
 
-class nsACString;
-struct nsStaticModuleInfo;
-
 class nsINativeAppSupport;
-class nsICmdLineService;
 class nsXREDirProvider;
 class nsIToolkitProfileService;
 class nsIFile;

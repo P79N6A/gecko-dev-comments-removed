@@ -23,7 +23,6 @@ namespace mozilla {
 namespace image {
 
 class Decoder;
-class RasterImage;
 
 
 

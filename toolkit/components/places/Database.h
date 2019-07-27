@@ -43,7 +43,6 @@
 
 #define TOPIC_PLACES_CONNECTION_CLOSED "places-connection-closed"
 
-class nsIStringBundle;
 class nsIRunnable;
 
 namespace mozilla {

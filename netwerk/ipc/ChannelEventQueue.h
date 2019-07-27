@@ -13,7 +13,6 @@
 
 class nsISupports;
 class nsIEventTarget;
-class nsIThread;
 
 namespace mozilla {
 namespace net {
@@ -32,8 +31,6 @@ class ChannelEvent
 
 
 
-
-class AutoEventEnqueuerBase;
 
 class ChannelEventQueue final
 {

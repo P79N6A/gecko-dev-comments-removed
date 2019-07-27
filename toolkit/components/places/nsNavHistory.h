@@ -51,7 +51,6 @@
 
 #define TOPIC_FRECENCY_UPDATED "places-frecency-updated"
 
-class mozIAnnotationService;
 class nsNavHistory;
 class QueryKeyValuePair;
 class nsIEffectiveTLDService;
