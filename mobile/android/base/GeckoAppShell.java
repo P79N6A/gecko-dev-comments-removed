@@ -183,6 +183,7 @@ public class GeckoAppShell
     
 
     
+    public static native void registerJavaUiThread();
     public static native void nativeInit();
 
     

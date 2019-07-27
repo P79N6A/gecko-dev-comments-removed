@@ -38,7 +38,7 @@ void
 APZCCallbackHandler::NotifyDefaultPrevented(const ScrollableLayerGuid& aGuid,
                                             bool aDefaultPrevented)
 {
-    if (NS_IsMainThread()) {
+    if (!AndroidBridge::IsJavaUiThread()) {
         
         
         
@@ -48,7 +48,7 @@ APZCCallbackHandler::NotifyDefaultPrevented(const ScrollableLayerGuid& aGuid,
         return;
     }
 
-    
+    MOZ_ASSERT(AndroidBridge::IsJavaUiThread());
     APZCTreeManager* controller = nsWindow::GetAPZCTreeManager();
     if (controller) {
         controller->ContentReceivedTouch(aGuid, aDefaultPrevented);
