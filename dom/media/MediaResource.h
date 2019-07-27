@@ -538,6 +538,8 @@ public:
   void CacheClientNotifyDataEnded(nsresult aStatus);
   
   void CacheClientNotifyPrincipalChanged();
+  
+  void CacheClientNotifySuspendedStatusChanged();
 
   
   

@@ -196,6 +196,10 @@ public:
 
   
   
+  void QueueSuspendedStatusUpdate(int64_t aResourceID);
+
+  
+  
   
   
   
@@ -347,6 +351,8 @@ protected:
 #ifdef DEBUG
   bool            mInUpdate;
 #endif
+  
+  nsTArray<int64_t> mSuspendedStatusToNotify;
 };
 
 NS_IMETHODIMP
@@ -1351,10 +1357,12 @@ MediaCache::Update()
     case RESUME:
       CACHE_LOG(PR_LOG_DEBUG, ("Stream %p Resumed", stream));
       rv = stream->mClient->CacheClientResume();
+      QueueSuspendedStatusUpdate(stream->mResourceID);
       break;
     case SUSPEND:
       CACHE_LOG(PR_LOG_DEBUG, ("Stream %p Suspended", stream));
       rv = stream->mClient->CacheClientSuspend();
+      QueueSuspendedStatusUpdate(stream->mResourceID);
       break;
     default:
       rv = NS_OK;
@@ -1369,6 +1377,15 @@ MediaCache::Update()
       stream->CloseInternal(mon);
     }
   }
+
+  
+  for (uint32_t i = 0; i < mSuspendedStatusToNotify.Length(); ++i) {
+    MediaCache::ResourceStreamIterator iter(mSuspendedStatusToNotify[i]);
+    while (MediaCacheStream* stream = iter.Next()) {
+      stream->mClient->CacheClientNotifySuspendedStatusChanged();
+    }
+  }
+  mSuspendedStatusToNotify.Clear();
 }
 
 class UpdateEvent : public nsRunnable
@@ -1397,6 +1414,15 @@ MediaCache::QueueUpdate()
   mUpdateQueued = true;
   nsCOMPtr<nsIRunnable> event = new UpdateEvent();
   NS_DispatchToMainThread(event);
+}
+
+void
+MediaCache::QueueSuspendedStatusUpdate(int64_t aResourceID)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
+  if (!mSuspendedStatusToNotify.Contains(aResourceID)) {
+    mSuspendedStatusToNotify.AppendElement(aResourceID);
+  }
 }
 
 #ifdef DEBUG_VERIFY_CACHE
@@ -1980,6 +2006,10 @@ MediaCacheStream::CloseInternal(ReentrantMonitorAutoEnter& aReentrantMonitor)
   if (mClosed)
     return;
   mClosed = true;
+  
+  
+  
+  gMediaCache->QueueSuspendedStatusUpdate(mResourceID);
   gMediaCache->ReleaseStreamBlocks(this);
   
   aReentrantMonitor.NotifyAll();
