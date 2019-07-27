@@ -5,6 +5,126 @@
 
 
 
+function String_substring(start, end) {
+    
+    CheckObjectCoercible(this);
+    var str = ToString(this);
+
+    
+    var len = str.length;
+
+    
+    var intStart = ToInteger(start);
+
+    
+    var intEnd = (end === undefined) ? len : ToInteger(end);
+
+    
+    var finalStart = std_Math_min(std_Math_max(intStart, 0), len);
+
+    
+    var finalEnd = std_Math_min(std_Math_max(intEnd, 0), len);
+
+    
+    var from, to;
+    if (finalStart < finalEnd) {
+        from = finalStart;
+        to = finalEnd;
+    } else {
+        from = finalEnd;
+        to = finalStart;
+    }
+
+    
+    
+    
+    
+    return SubstringKernel(str, from | 0, (to - from) | 0);
+}
+
+function String_static_substring(string, start, end) {
+    if (arguments.length < 1)
+        ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'String.substring');
+    return callFunction(String_substring, string, start, end);
+}
+
+
+function String_substr(start, length) {
+    
+    CheckObjectCoercible(this);
+    var str = ToString(this);
+
+    
+    var intStart = ToInteger(start);
+
+    
+    var size = str.length;
+    
+    
+    var end = (length === undefined) ? size : ToInteger(length);
+
+    
+    if (intStart < 0)
+        intStart = std_Math_max(intStart + size, 0);
+
+    
+    var resultLength = std_Math_min(std_Math_max(end, 0), size - intStart)
+
+    
+    if (resultLength <= 0)
+        return "";
+
+    
+    
+    
+    
+    return SubstringKernel(str, intStart | 0, resultLength | 0);
+}
+
+function String_static_substr(string, start, length) {
+    if (arguments.length < 1)
+        ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'String.substr');
+    return callFunction(String_substr, string, start, length);
+}
+
+
+function String_slice(start, end) {
+    
+    CheckObjectCoercible(this);
+    var str = ToString(this);
+
+    
+    var len = str.length;
+
+    
+    var intStart = ToInteger(start);
+
+    
+    var intEnd = (end === undefined) ? len : ToInteger(end);
+
+    
+    var from = (intStart < 0) ? std_Math_max(len + intStart, 0) : std_Math_min(intStart, len);
+
+    
+    var to = (intEnd < 0) ? std_Math_max(len + intEnd, 0) : std_Math_min(intEnd, len);
+
+    
+    var span = std_Math_max(to - from, 0);
+
+    
+    
+    
+    
+    return SubstringKernel(str, from | 0, span | 0);
+}
+
+function String_static_slice(string, start, end) {
+    if (arguments.length < 1)
+        ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'String.slice');
+    return callFunction(String_slice, string, start, end);
+}
+
+
 function String_codePointAt(pos) {
     
     CheckObjectCoercible(this);
