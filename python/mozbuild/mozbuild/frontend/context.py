@@ -1404,6 +1404,11 @@ VARIABLES = {
         the path(s) with a '/' character and a '!' character, respectively::
            TEST_HARNESS_FILES.path += ['/build/bar.py', '!quux.py']
         """, 'libs'),
+
+    'NO_EXPAND_LIBS': (bool, bool,
+        """Forces to build a real static library, and no corresponding fake
+           library.
+        """, None),
 }
 
 
