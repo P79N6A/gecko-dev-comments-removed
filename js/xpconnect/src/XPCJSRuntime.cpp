@@ -587,13 +587,8 @@ AddonWindowOrNull(JSObject *aObj)
     
     
     
-    
-    
-    
-    if (!js::IsCrossCompartmentWrapper(proto)) {
-        NS_WARNING("An addon modified its global prototype - it likely won't work right!");
-        return nullptr;
-    }
+    MOZ_RELEASE_ASSERT(js::IsCrossCompartmentWrapper(proto) ||
+                       xpc::IsSandboxPrototypeProxy(proto));
     JSObject *mainGlobal = js::UncheckedUnwrap(proto,  false);
     MOZ_RELEASE_ASSERT(JS_IsGlobalObject(mainGlobal));
 
