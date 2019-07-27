@@ -614,7 +614,8 @@ let MozLoopServiceInternal = {
               return this.hawkRequestInternal(sessionType, path, method, payloadObj, false);
             },
             () => {
-              return handle401Error(error); 
+              
+              return handle401Error(error);
             }
           );
         }
@@ -916,10 +917,10 @@ let MozLoopServiceInternal = {
             
             
             
-            var pair = pc.id.split("(");  
+            var pair = pc.id.split("(");
             if (pair.length == 2) {
               pc.id = pair[0] + "(session=" + context.sessionId +
-                  (context.callId ? " call=" + context.callId : "") + " " + pair[1]; 
+                  (context.callId ? " call=" + context.callId : "") + " " + pair[1];
             }
           }
 

@@ -93,7 +93,8 @@ add_test(function test_reconnect_websocket() {
 
 add_test(function test_reopen_websocket() {
   MozLoopPushHandler.uaID = undefined;
-  MozLoopPushHandler.registeredChannels = {}; 
+  
+  MozLoopPushHandler.registeredChannels = {};
   mockWebSocket.serverClose();
   
 });

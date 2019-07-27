@@ -112,7 +112,6 @@ loop.validate = (function() {
 
     _dependencyMatchTypes: function(value, types) {
       return types.some(function(Type) {
-        
         try {
           return typeof Type === "undefined"         || 
                  Type === null && value === null     || 
