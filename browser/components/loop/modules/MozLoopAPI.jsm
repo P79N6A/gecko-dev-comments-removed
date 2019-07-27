@@ -669,11 +669,20 @@ function injectLoopAPI(targetWindow) {
       },
     },
 
+    
+
+
+
+
+
+
+
+
     logInToFxA: {
       enumerable: true,
       writable: true,
-      value: function() {
-        return MozLoopService.logInToFxA();
+      value: function(forceReAuth) {
+        return MozLoopService.logInToFxA(forceReAuth);
       }
     },
 
@@ -691,6 +700,18 @@ function injectLoopAPI(targetWindow) {
       value: function() {
         return MozLoopService.openFxASettings();
       },
+    },
+
+    
+
+
+
+
+    hasEncryptionKey: {
+      enumerable: true,
+      get: function() {
+        return MozLoopService.hasEncryptionKey;
+      }
     },
 
     

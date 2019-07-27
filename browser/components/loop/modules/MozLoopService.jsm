@@ -950,7 +950,8 @@ let MozLoopServiceInternal = {
 
 
 
-  promiseFxAOAuthClient: Task.async(function* () {
+
+  promiseFxAOAuthClient: Task.async(function* (forceReAuth) {
     
     
     if (gFxAOAuthClientPromise) {
@@ -961,6 +962,10 @@ let MozLoopServiceInternal = {
       parameters => {
         
         parameters.keys = true;
+        if (forceReAuth) {
+          parameters.action = "force_auth";
+          parameters.email = MozLoopService.userProfile.email;
+        }
 
         try {
           gFxAOAuthClient = new FxAccountsOAuthClient({
@@ -986,9 +991,10 @@ let MozLoopServiceInternal = {
 
 
 
-  promiseFxAOAuthAuthorization: function() {
+
+  promiseFxAOAuthAuthorization: function(forceReAuth) {
     let deferred = Promise.defer();
-    this.promiseFxAOAuthClient().then(
+    this.promiseFxAOAuthClient(forceReAuth).then(
       client => {
         client.onComplete = this._fxAOAuthComplete.bind(this, deferred);
         client.onError = this._fxAOAuthError.bind(this, deferred);
@@ -1366,6 +1372,18 @@ this.MozLoopService = {
     });
   },
 
+  
+
+
+
+
+
+
+  get hasEncryptionKey() {
+    return !this.userProfile ||
+      Services.prefs.prefHasUserValue("loop.key.fxa");
+  },
+
   get errors() {
     return MozLoopServiceInternal.errors;
   },
@@ -1470,12 +1488,13 @@ this.MozLoopService = {
 
 
 
-  logInToFxA: function() {
+
+  logInToFxA: function(forceReAuth) {
     log.debug("logInToFxA with fxAOAuthTokenData:", !!MozLoopServiceInternal.fxAOAuthTokenData);
-    if (MozLoopServiceInternal.fxAOAuthTokenData) {
+    if (!forceReAuth && MozLoopServiceInternal.fxAOAuthTokenData) {
       return Promise.resolve(MozLoopServiceInternal.fxAOAuthTokenData);
     }
-    return MozLoopServiceInternal.promiseFxAOAuthAuthorization().then(response => {
+    return MozLoopServiceInternal.promiseFxAOAuthAuthorization(forceReAuth).then(response => {
       return MozLoopServiceInternal.promiseFxAOAuthToken(response.code, response.state);
     }).then(tokenData => {
       MozLoopServiceInternal.fxAOAuthTokenData = tokenData;
