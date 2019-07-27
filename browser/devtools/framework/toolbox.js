@@ -691,6 +691,13 @@ Toolbox.prototype = {
       if (!button) {
         return false;
       }
+
+      
+      
+      if (this.target.isMultiProcess && options.id === "command-button-tilt") {
+        return false;
+      }
+
       return {
         id: options.id,
         button: button,
@@ -698,7 +705,7 @@ Toolbox.prototype = {
         visibilityswitch: "devtools." + options.id + ".enabled",
         isTargetSupported: options.isTargetSupported ? options.isTargetSupported
                                                      : target => target.isLocalTab
-      }
+      };
     }).filter(button=>button);
   },
 
@@ -724,6 +731,18 @@ Toolbox.prototype = {
         }
       }
     });
+
+    
+    
+    let tiltEnabled = !this.target.isMultiProcess &&
+                      Services.prefs.getBoolPref("devtools.command-button-tilt.enabled");
+    let tiltButton = this.doc.getElementById("command-button-tilt");
+
+    if (tiltEnabled) {
+      tiltButton.removeAttribute("hidden");
+    } else {
+      tiltButton.setAttribute("hidden", "true");
+    }
   },
 
   
