@@ -505,7 +505,8 @@ var BrowserApp = {
       
     }
 
-    window.messageManager.loadFrameScript("chrome://browser/content/content.js", true);
+    let mm = window.getGroupMessageManager("browsers");
+    mm.loadFrameScript("chrome://browser/content/content.js", true);
 
     
     Messaging.sendRequest({ type: "Gecko:Ready" });
@@ -3287,6 +3288,7 @@ Tab.prototype = {
 
     this.browser = document.createElement("browser");
     this.browser.setAttribute("type", "content-targetable");
+    this.browser.setAttribute("messagemanagergroup", "browsers");
     this.setBrowserSize(kDefaultCSSViewportWidth, kDefaultCSSViewportHeight);
 
     
