@@ -13,6 +13,13 @@
 #include "base/string_util.h"
 #include "chrome/common/chrome_switches.h"
 
+#if defined(XP_MACOSX)
+#include "nsCocoaFeatures.h"
+
+
+extern "C" CGError CGSSetDebugOptions(int options);
+#endif
+
 #ifdef XP_WIN
 #include <objbase.h>
 bool ShouldProtectPluginCurrentDirectory(char16ptr_t pluginFilePath);
@@ -119,9 +126,21 @@ PluginProcessChild::Init()
       return false;
     }
 
-    return mPlugin.InitForChrome(pluginFilename, ParentHandle(),
-                                 IOThreadChild::message_loop(),
-                                 IOThreadChild::channel());
+    bool retval = mPlugin.InitForChrome(pluginFilename, ParentHandle(),
+                                        IOThreadChild::message_loop(),
+                                        IOThreadChild::channel());
+#if defined(XP_MACOSX)
+    if (nsCocoaFeatures::OnYosemiteOrLater()) {
+      
+      
+      
+      
+      
+      
+      CGSSetDebugOptions(0x80000007);
+    }
+#endif
+    return retval;
 }
 
 void
