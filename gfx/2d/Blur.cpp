@@ -498,7 +498,11 @@ AlphaBoxBlur::Blur(uint8_t* aData)
 
       
       size_t szB = stride * size.height;
-      uint8_t* tmpData = new uint8_t[szB];
+      uint8_t* tmpData = new (std::nothrow) uint8_t[szB];
+      if (!tmpData) {
+        return;
+      }
+
       memset(tmpData, 0, szB);
 
       uint8_t* a = aData;
