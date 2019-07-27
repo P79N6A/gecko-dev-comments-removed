@@ -68,8 +68,10 @@ JS_Assert(const char* s, const char* file, int ln);
 
 
 
+
 extern JS_PUBLIC_DATA(uint32_t) OOM_maxAllocations; 
 extern JS_PUBLIC_DATA(uint32_t) OOM_counter; 
+extern JS_PUBLIC_DATA(bool) OOM_failAlways;
 
 #ifdef JS_OOM_BREAKPOINT
 static MOZ_NEVER_INLINE void js_failedAllocBreakpoint() { asm(""); }
@@ -78,39 +80,44 @@ static MOZ_NEVER_INLINE void js_failedAllocBreakpoint() { asm(""); }
 #define JS_OOM_CALL_BP_FUNC() do {} while(0)
 #endif
 
-#  define JS_OOM_POSSIBLY_FAIL() \
-    do \
-    { \
-        if (++OOM_counter > OOM_maxAllocations) { \
-            JS_OOM_CALL_BP_FUNC();\
-            return nullptr; \
-        } \
-    } while (0)
-#  define JS_OOM_POSSIBLY_FAIL_BOOL() \
-    do \
-    { \
-        if (++OOM_counter > OOM_maxAllocations) { \
-            JS_OOM_CALL_BP_FUNC();\
-            return false; \
-        } \
-    } while (0)
-
 namespace js {
 namespace oom {
 static inline bool ShouldFailWithOOM()
 {
-    if (++OOM_counter > OOM_maxAllocations) {
+    OOM_counter++;
+    if (OOM_counter == OOM_maxAllocations ||
+        (OOM_counter > OOM_maxAllocations && OOM_failAlways))
+    {
         JS_OOM_CALL_BP_FUNC();
         return true;
     }
     return false;
 }
-}
-}
+} 
+} 
+
+#  define JS_OOM_POSSIBLY_FAIL()                                              \
+    do {                                                                      \
+        if (js::oom::ShouldFailWithOOM())                                     \
+            return nullptr;                                                   \
+    } while (0)
+
+#  define JS_OOM_POSSIBLY_FAIL_BOOL()                                         \
+    do {                                                                      \
+        if (js::oom::ShouldFailWithOOM())                                     \
+            return false;                                                     \
+    } while (0)
+
 # else
+
 #  define JS_OOM_POSSIBLY_FAIL() do {} while(0)
 #  define JS_OOM_POSSIBLY_FAIL_BOOL() do {} while(0)
-namespace js { namespace oom { static inline bool ShouldFailWithOOM() { return false; } } }
+namespace js {
+namespace oom {
+static inline bool ShouldFailWithOOM() { return false; }
+} 
+} 
+
 # endif 
 
 static inline void* js_malloc(size_t bytes)

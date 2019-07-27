@@ -31,6 +31,7 @@ using mozilla::PodArrayZero;
 
 JS_PUBLIC_DATA(uint32_t) OOM_maxAllocations = UINT32_MAX;
 JS_PUBLIC_DATA(uint32_t) OOM_counter = 0;
+JS_PUBLIC_DATA(bool) OOM_failAlways = true;
 #endif
 
 JS_PUBLIC_API(void)
