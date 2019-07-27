@@ -272,7 +272,7 @@ public:
   
   void AddProfileTimelineMarker(const char* aName,
                                 TracingMetadata aMetaData);
-  void AddProfileTimelineMarker(mozilla::UniquePtr<TimelineMarker>& aMarker);
+  void AddProfileTimelineMarker(mozilla::UniquePtr<TimelineMarker>&& aMarker);
 
   
   
