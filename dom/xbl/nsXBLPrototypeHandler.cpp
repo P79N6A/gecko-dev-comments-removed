@@ -44,6 +44,7 @@
 #include "mozilla/BasicEvents.h"
 #include "mozilla/JSEventHandler.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/dom/Element.h"
 #include "mozilla/dom/EventHandlerBinding.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "xpcpublic.h"
@@ -301,15 +302,14 @@ nsXBLPrototypeHandler::ExecuteHandler(EventTarget* aTarget,
   MOZ_ASSERT(!js::IsCrossCompartmentWrapper(genericHandler));
 
   
-  
-  
-  JS::Rooted<JS::Value> targetV(cx, JS::UndefinedValue());
-  rv = nsContentUtils::WrapNative(cx, scriptTarget, &targetV);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsRefPtr<Element> targetElement = do_QueryObject(scriptTarget);
+  JS::AutoObjectVector scopeChain(cx);
+  ok = nsJSUtils::GetScopeChainForElement(cx, targetElement, scopeChain);
+  NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
 
   
-  JS::Rooted<JSObject*> target(cx, &targetV.toObject());
-  JS::Rooted<JSObject*> bound(cx, JS_CloneFunctionObject(cx, genericHandler, target));
+  JS::Rooted<JSObject*> bound(cx, JS::CloneFunctionObject(cx, genericHandler,
+                                                          scopeChain));
   NS_ENSURE_TRUE(bound, NS_ERROR_FAILURE);
 
   nsRefPtr<EventHandlerNonNull> handlerCallback =
