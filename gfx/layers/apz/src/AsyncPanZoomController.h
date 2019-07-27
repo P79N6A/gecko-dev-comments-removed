@@ -169,15 +169,14 @@ public:
 
 
 
-
-
-
-
-
-
   void SampleContentTransformForFrame(ViewTransform* aOutTransform,
-                                      ScreenPoint& aScrollOffset,
-                                      Matrix4x4* aOutOverscrollTransform);
+                                      ScreenPoint& aScrollOffset);
+
+  
+
+
+
+  Matrix4x4 GetOverscrollTransform() const;
 
   
 
@@ -594,12 +593,6 @@ private:
 
 
   bool ConvertToGecko(const ScreenPoint& aPoint, CSSPoint* aOut);
-
-  
-
-
-
-  void GetOverscrollTransform(Matrix4x4* aTransform) const;
 
   enum AxisLockMode {
     FREE,     
