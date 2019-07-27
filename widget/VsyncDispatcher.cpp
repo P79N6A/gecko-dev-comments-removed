@@ -45,9 +45,7 @@ CompositorVsyncDispatcher::NotifyVsync(TimeStamp aVsyncTimestamp)
 {
   
 #ifdef MOZ_ENABLE_PROFILER_SPS
-    if (profiler_is_active()) {
-        layers::CompositorParent::PostInsertVsyncProfilerMarker(aVsyncTimestamp);
-    }
+  layers::CompositorParent::PostInsertVsyncProfilerMarker(aVsyncTimestamp);
 #endif
 
   MutexAutoLock lock(mCompositorObserverLock);
