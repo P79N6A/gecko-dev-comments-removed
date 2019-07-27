@@ -226,7 +226,10 @@ FontFace::FontFace(nsISupports* aParent, nsPresContext* aPresContext)
 
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aParent);
 
-  if (global) {
+  
+  
+  
+  if (global && FontFaceSet::PrefEnabled()) {
     ErrorResult rv;
     mLoaded = Promise::Create(global, rv);
   }
