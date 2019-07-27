@@ -54,29 +54,36 @@ NS_IMPL_ISUPPORTS(nsHTMLCSSStyleSheet, nsIStyleRuleProcessor)
  void
 nsHTMLCSSStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
 {
-  Element* element = aData->mElement;
+  ElementRulesMatching(aData->mPresContext, aData->mElement,
+                       aData->mRuleWalker);
+}
 
+void
+nsHTMLCSSStyleSheet::ElementRulesMatching(nsPresContext* aPresContext,
+                                          Element* aElement,
+                                          nsRuleWalker* aRuleWalker)
+{
   
-  css::StyleRule* rule = element->GetInlineStyleRule();
+  css::StyleRule* rule = aElement->GetInlineStyleRule();
   if (rule) {
     rule->RuleMatched();
-    aData->mRuleWalker->Forward(rule);
+    aRuleWalker->Forward(rule);
   }
 
-  rule = element->GetSMILOverrideStyleRule();
+  rule = aElement->GetSMILOverrideStyleRule();
   if (rule) {
-    if (aData->mPresContext->IsProcessingRestyles() &&
-        !aData->mPresContext->IsProcessingAnimationStyleChange()) {
+    if (aPresContext->IsProcessingRestyles() &&
+        !aPresContext->IsProcessingAnimationStyleChange()) {
       
       
       
-      aData->mPresContext->PresShell()->RestyleForAnimation(element,
-                                                            eRestyle_Self);
+      aPresContext->PresShell()->RestyleForAnimation(aElement,
+                                                     eRestyle_Self);
     } else {
       
       
       rule->RuleMatched();
-      aData->mRuleWalker->Forward(rule);
+      aRuleWalker->Forward(rule);
     }
   }
 }
