@@ -390,24 +390,7 @@ SVGPathElement::BuildPath(PathBuilder* aBuilder)
     }
   }
 
-  RefPtr<PathBuilder> builder;
-  if (aBuilder) {
-    builder = aBuilder;
-  } else {
-    RefPtr<DrawTarget> drawTarget =
-      gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
-    
-    
-    
-    
-    
-    
-    
-    RefPtr<PathBuilder> builder =
-      drawTarget->CreatePathBuilder(GetFillRule());
-  }
-
-  return mD.GetAnimValue().BuildPath(builder, strokeLineCap, strokeWidth);
+  return mD.GetAnimValue().BuildPath(aBuilder, strokeLineCap, strokeWidth);
 }
 
 } 

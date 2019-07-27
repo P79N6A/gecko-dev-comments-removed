@@ -67,12 +67,6 @@ public:
 
 
 
-  mozilla::TemporaryRef<PathBuilder> CreatePathBuilder();
-
-  
-
-
-
   FillRule GetFillRule();
 };
 

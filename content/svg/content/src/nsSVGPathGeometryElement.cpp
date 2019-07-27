@@ -66,26 +66,6 @@ nsSVGPathGeometryElement::GetPathForLengthOrPositionMeasuring()
   return nullptr;
 }
 
-TemporaryRef<PathBuilder>
-nsSVGPathGeometryElement::CreatePathBuilder()
-{
-  RefPtr<DrawTarget> drawTarget =
-    gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
-  NS_ASSERTION(gfxPlatform::GetPlatform()->
-                 SupportsAzureContentForDrawTarget(drawTarget),
-               "Should support Moz2D content drawing");
-
-  
-  
-  
-  
-  
-  
-  
-
-  return drawTarget->CreatePathBuilder(GetFillRule());
-}
-
 FillRule
 nsSVGPathGeometryElement::GetFillRule()
 {
