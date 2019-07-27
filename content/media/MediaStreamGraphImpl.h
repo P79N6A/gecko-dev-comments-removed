@@ -22,7 +22,9 @@ namespace mozilla {
 
 template <typename T>
 class LinkedList;
+#ifdef MOZ_WEBRTC
 class AudioOutputObserver;
+#endif
 
 
 
@@ -611,7 +613,9 @@ public:
 
   nsRefPtr<AsyncLatencyLogger> mLatencyLog;
   AudioMixer mMixer;
+#ifdef MOZ_WEBRTC
   nsRefPtr<AudioOutputObserver> mFarendObserverRef;
+#endif
 
 private:
   virtual ~MediaStreamGraphImpl();
