@@ -2498,6 +2498,7 @@ nsPrintEngine::DoPrint(nsPrintObject * aPO)
         poPresContext->SetIsRenderingOnlySelection(true);
         
         
+        
         nsRenderingContext rc(mPrt->mPrintDC->CreateRenderingContext());
 
         
