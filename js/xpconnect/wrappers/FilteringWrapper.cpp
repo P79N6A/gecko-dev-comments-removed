@@ -154,6 +154,20 @@ FilteringWrapper<Base, Policy>::defaultValue(JSContext *cx, HandleObject obj,
 
 template <typename Base, typename Policy>
 bool
+FilteringWrapper<Base, Policy>::getPrototypeOf(JSContext *cx, JS::HandleObject wrapper,
+                                               JS::MutableHandleObject protop) const
+{
+    
+    if (Policy::AllowGetPrototypeOf)
+        return Base::getPrototypeOf(cx, wrapper, protop);
+
+    
+    protop.set(nullptr);
+    return true;
+}
+
+template <typename Base, typename Policy>
+bool
 FilteringWrapper<Base, Policy>::enter(JSContext *cx, HandleObject wrapper,
                                       HandleId id, Wrapper::Action act, bool *bp) const
 {
@@ -199,15 +213,6 @@ CrossOriginXrayWrapper::getOwnPropertyDescriptor(JSContext *cx,
 {
     
     return getPropertyDescriptor(cx, wrapper, id, desc);
-}
-
-bool
-CrossOriginXrayWrapper::getPrototypeOf(JSContext *cx, JS::HandleObject wrapper,
-                                       JS::MutableHandleObject protop) const
-{
-    
-    protop.set(nullptr);
-    return true;
 }
 
 bool

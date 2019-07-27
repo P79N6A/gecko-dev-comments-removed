@@ -35,6 +35,7 @@ enum CrossOriginObjectType {
 CrossOriginObjectType IdentifyCrossOriginObject(JSObject *obj);
 
 struct Policy {
+    static const bool AllowGetPrototypeOf = false;
 };
 
 
@@ -83,6 +84,12 @@ struct CrossOriginAccessiblePropertiesOnly : public Policy {
 
 
 struct ExposedPropertiesOnly : public Policy {
+
+    
+    
+    
+    static const bool AllowGetPrototypeOf = true;
+
     static bool check(JSContext *cx, JS::HandleObject wrapper, JS::HandleId id, js::Wrapper::Action act);
 
     static bool deny(js::Wrapper::Action act, JS::HandleId id);
