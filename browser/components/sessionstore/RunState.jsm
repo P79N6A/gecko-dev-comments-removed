@@ -13,6 +13,8 @@ Cu.import("resource://gre/modules/Services.jsm", this);
 const STATE_STOPPED = 0;
 const STATE_RUNNING = 1;
 const STATE_QUITTING = 2;
+const STATE_CLOSING = 3;
+const STATE_CLOSED = 4;
 
 
 let state = STATE_STOPPED;
@@ -52,7 +54,20 @@ this.RunState = Object.freeze({
   
   
   get isQuitting() {
-    return state == STATE_QUITTING;
+    return state >= STATE_QUITTING;
+  },
+
+  
+  
+  
+  get isClosing() {
+    return state == STATE_CLOSING;
+  },
+
+  
+  
+  get isClosed() {
+    return state == STATE_CLOSED;
   },
 
   
@@ -61,6 +76,24 @@ this.RunState = Object.freeze({
   setRunning() {
     if (this.isStopped) {
       state = STATE_RUNNING;
+    }
+  },
+
+  
+  
+  
+  setClosing() {
+    if (this.isQuitting) {
+      state = STATE_CLOSING;
+    }
+  },
+
+  
+  
+  
+  setClosed() {
+    if (this.isClosing) {
+      state = STATE_CLOSED;
     }
   }
 });

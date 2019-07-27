@@ -194,11 +194,6 @@ let SessionFileInternal = {
     }
   },
 
-  
-
-
-  _isClosed: false,
-
   read: Task.async(function* () {
     let result;
     let noFilesFound = true;
@@ -270,15 +265,16 @@ let SessionFileInternal = {
   },
 
   write: function (aData) {
-    if (this._isClosed) {
+    if (RunState.isClosed) {
       return Promise.reject(new Error("SessionFile is closed"));
     }
 
     let isFinalWrite = false;
-    if (RunState.isQuitting) {
+    if (RunState.isClosing) {
       
       
-      isFinalWrite = this._isClosed = true;
+      isFinalWrite = true;
+      RunState.setClosed();
     }
 
     let refObj = {};

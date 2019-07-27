@@ -524,6 +524,9 @@ let SessionStoreInternal = {
     }
 
     
+    RunState.setClosing();
+
+    
     if (this._sessionInitialized) {
       SessionSaver.run();
     }
