@@ -241,6 +241,20 @@ private:
   int32_t mActiveTouchId;
 
   nscoord mCaretCenterToDownPointOffsetY;
+
+  
+  
+  
+  
+  
+  nscoord mDragUpYBoundary;
+  
+  
+  
+  
+  
+  nscoord mDragDownYBoundary;
+
   DragMode mDragMode;
 
   
