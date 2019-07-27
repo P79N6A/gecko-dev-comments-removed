@@ -387,7 +387,7 @@ nsFirstLetterFrame::GetLogicalSkipSides(const nsHTMLReflowState* aReflowState) c
     
     
     
-    return LogicalSides(LOGICAL_SIDES_ALL);
+    return LogicalSides(eLogicalSideBitsAll);
   }
   return LogicalSides();  
 }
