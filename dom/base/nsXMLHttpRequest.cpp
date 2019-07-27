@@ -106,7 +106,10 @@ using namespace mozilla::dom;
 #define XML_HTTP_REQUEST_HEADERS_RECEIVED (1 << 2) // 2 HEADERS_RECEIVED
 #define XML_HTTP_REQUEST_LOADING          (1 << 3) // 3 LOADING
 #define XML_HTTP_REQUEST_DONE             (1 << 4) // 4 DONE
-#define XML_HTTP_REQUEST_SENT             (1 << 5) // Internal, OPENED in IE and external view
+#define XML_HTTP_REQUEST_SENT             (1 << 5) // Internal, corresponds to
+                                                   
+                                                   
+                                                   
 
 
 #define XML_HTTP_REQUEST_ABORTED        (1 << 7)  // Internal
@@ -1078,8 +1081,7 @@ nsXMLHttpRequest::GetResponseURL(nsAString& aUrl)
 {
   aUrl.Truncate();
 
-  uint16_t readyState;
-  GetReadyState(&readyState);
+  uint16_t readyState = ReadyState();
   if ((readyState == UNSENT || readyState == OPENED) || !mChannel) {
     return;
   }
@@ -3368,8 +3370,11 @@ void
 nsXMLHttpRequest::SetWithCredentials(bool aWithCredentials, ErrorResult& aRv)
 {
   
-  if (XML_HTTP_REQUEST_SENT & mState) {
-    aRv = NS_ERROR_FAILURE;
+  
+  
+  if (!(mState & XML_HTTP_REQUEST_UNSENT) &&
+      !(mState & XML_HTTP_REQUEST_OPENED)) {
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
 
