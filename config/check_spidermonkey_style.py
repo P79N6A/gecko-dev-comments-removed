@@ -243,6 +243,7 @@ def check_style():
     
 
     mfbt_inclnames = set()      
+    mozalloc_inclnames = set()  
     js_names = dict()           
 
     
@@ -250,6 +251,10 @@ def check_style():
         if filename.startswith('mfbt/') and filename.endswith('.h'):
             inclname = 'mozilla/' + filename.split('/')[-1]
             mfbt_inclnames.add(inclname)
+
+        if filename.startswith('memory/mozalloc/') and filename.endswith('.h'):
+            inclname = 'mozilla/' + filename.split('/')[-1]
+            mozalloc_inclnames.add(inclname)
 
         if filename.startswith('js/public/') and filename.endswith('.h'):
             inclname = 'js/' + filename[len('js/public/'):]
@@ -261,13 +266,13 @@ def check_style():
             inclname = filename[len('js/src/'):]
             js_names[filename] = inclname
 
-    all_inclnames = mfbt_inclnames | set(js_names.values())
+    all_inclnames = mfbt_inclnames | mozalloc_inclnames | set(js_names.values())
 
     edges = dict()      
 
     
     
-    for inclname in mfbt_inclnames:
+    for inclname in mfbt_inclnames | mozalloc_inclnames:
         edges[inclname] = set()
 
     
