@@ -54,6 +54,14 @@ extern "C" {
 
 
 
+#ifndef free_impl
+#define free_impl free
+#define free_impl_
+#endif
+#ifndef malloc_impl
+#define malloc_impl malloc
+#define malloc_impl_
+#endif
 
 
 
@@ -62,30 +70,19 @@ extern "C" {
 
 
 
-MFBT_API
-void moz_free(void* ptr);
+
+
+
+
 
 MFBT_API void* moz_xmalloc(size_t size)
     NS_ATTR_MALLOC NS_WARN_UNUSED_RESULT;
 
-MFBT_API
-void* moz_malloc(size_t size)
-    NS_ATTR_MALLOC NS_WARN_UNUSED_RESULT;
-
-
 MFBT_API void* moz_xcalloc(size_t nmemb, size_t size)
     NS_ATTR_MALLOC NS_WARN_UNUSED_RESULT;
 
-MFBT_API void* moz_calloc(size_t nmemb, size_t size)
-    NS_ATTR_MALLOC NS_WARN_UNUSED_RESULT;
-
-
 MFBT_API void* moz_xrealloc(void* ptr, size_t size)
     NS_ATTR_MALLOC NS_WARN_UNUSED_RESULT;
-
-MFBT_API void* moz_realloc(void* ptr, size_t size)
-    NS_ATTR_MALLOC NS_WARN_UNUSED_RESULT;
-
 
 MFBT_API char* moz_xstrdup(const char* str)
     NS_ATTR_MALLOC NS_WARN_UNUSED_RESULT;
@@ -187,7 +184,7 @@ void* operator new(size_t size) MOZALLOC_THROW_BAD_ALLOC
 MOZALLOC_EXPORT_NEW MOZALLOC_INLINE
 void* operator new(size_t size, const std::nothrow_t&) MOZALLOC_THROW_IF_HAS_EXCEPTIONS
 {
-    return moz_malloc(size);
+    return malloc_impl(size);
 }
 
 MOZALLOC_EXPORT_NEW MOZALLOC_INLINE
@@ -199,31 +196,31 @@ void* operator new[](size_t size) MOZALLOC_THROW_BAD_ALLOC
 MOZALLOC_EXPORT_NEW MOZALLOC_INLINE
 void* operator new[](size_t size, const std::nothrow_t&) MOZALLOC_THROW_IF_HAS_EXCEPTIONS
 {
-    return moz_malloc(size);
+    return malloc_impl(size);
 }
 
 MOZALLOC_EXPORT_NEW MOZALLOC_INLINE
 void operator delete(void* ptr) MOZALLOC_THROW_IF_HAS_EXCEPTIONS
 {
-    return moz_free(ptr);
+    return free_impl(ptr);
 }
 
 MOZALLOC_EXPORT_NEW MOZALLOC_INLINE
 void operator delete(void* ptr, const std::nothrow_t&) MOZALLOC_THROW_IF_HAS_EXCEPTIONS
 {
-    return moz_free(ptr);
+    return free_impl(ptr);
 }
 
 MOZALLOC_EXPORT_NEW MOZALLOC_INLINE
 void operator delete[](void* ptr) MOZALLOC_THROW_IF_HAS_EXCEPTIONS
 {
-    return moz_free(ptr);
+    return free_impl(ptr);
 }
 
 MOZALLOC_EXPORT_NEW MOZALLOC_INLINE
 void operator delete[](void* ptr, const std::nothrow_t&) MOZALLOC_THROW_IF_HAS_EXCEPTIONS
 {
-    return moz_free(ptr);
+    return free_impl(ptr);
 }
 
 
@@ -249,25 +246,25 @@ void operator delete[](void* ptr, const std::nothrow_t&) MOZALLOC_THROW_IF_HAS_E
 MOZALLOC_INLINE
 void* operator new(size_t size, const mozilla::fallible_t&) MOZALLOC_THROW_IF_HAS_EXCEPTIONS
 {
-    return moz_malloc(size);
+    return malloc_impl(size);
 }
 
 MOZALLOC_INLINE
 void* operator new[](size_t size, const mozilla::fallible_t&) MOZALLOC_THROW_IF_HAS_EXCEPTIONS
 {
-    return moz_malloc(size);
+    return malloc_impl(size);
 }
 
 MOZALLOC_INLINE
 void operator delete(void* ptr, const mozilla::fallible_t&) MOZALLOC_THROW_IF_HAS_EXCEPTIONS
 {
-    moz_free(ptr);
+    free_impl(ptr);
 }
 
 MOZALLOC_INLINE
 void operator delete[](void* ptr, const mozilla::fallible_t&) MOZALLOC_THROW_IF_HAS_EXCEPTIONS
 {
-    moz_free(ptr);
+    free_impl(ptr);
 }
 
 
@@ -305,7 +302,7 @@ public:
 
     void free_(void* aPtr)
     {
-        moz_free(aPtr);
+        free_impl(aPtr);
     }
 
     void reportAllocOverflow() const
@@ -314,5 +311,14 @@ public:
 };
 
 #endif  
+
+#ifdef malloc_impl_
+#undef malloc_impl_
+#undef malloc_impl
+#endif
+#ifdef free_impl_
+#undef free_impl_
+#undef free_impl
+#endif
 
 #endif
