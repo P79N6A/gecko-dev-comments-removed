@@ -17,6 +17,8 @@ Cu.import("resource://gre/modules/TelemetryStopwatch.jsm", this);
 
 XPCOMUtils.defineLazyModuleGetter(this, "console",
   "resource://gre/modules/devtools/Console.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Battery",
+  "resource://gre/modules/Battery.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PrivacyFilter",
   "resource:///modules/sessionstore/PrivacyFilter.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionStore",
@@ -26,22 +28,21 @@ XPCOMUtils.defineLazyModuleGetter(this, "SessionFile",
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
   "resource://gre/modules/PrivateBrowsingUtils.jsm");
 
-
-XPCOMUtils.defineLazyGetter(this, "gInterval", function () {
-  const PREF = "browser.sessionstore.interval";
-
+function observeSaveIntervalPref(obj, pref, property) {
   
-  Services.prefs.addObserver(PREF, () => {
-    this.gInterval = Services.prefs.getIntPref(PREF);
+  Services.prefs.addObserver(pref, () => {
+    obj[property] = Services.prefs.getIntPref(pref);
 
     
     
     SessionSaverInternal.cancel();
     SessionSaverInternal.runDelayed(0);
   }, false);
+  obj[property] = Services.prefs.getIntPref(pref);
+}
 
-  return Services.prefs.getIntPref(PREF);
-});
+observeSaveIntervalPref(this, "browser.sessionstore.interval", "gInterval");
+observeSaveIntervalPref(this, "browser.sessionstore.interval_battery", "gIntervalBattery");
 
 
 function notify(subject, topic) {
@@ -145,7 +146,8 @@ let SessionSaverInternal = {
     }
 
     
-    delay = Math.max(this._lastSaveTime + gInterval - Date.now(), delay, 0);
+    let interval = Battery.charging ? gInterval : gIntervalBattery;
+    delay = Math.max(this._lastSaveTime + interval - Date.now(), delay, 0);
 
     
     this._timeoutID = setTimeout(() => this._saveStateAsync(), delay);
