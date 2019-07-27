@@ -158,8 +158,14 @@ public final class EventDispatcher {
         }
 
         if (listeners != null) {
-            if (listeners.size() == 0) {
+            if (listeners.isEmpty()) {
                 Log.w(LOGTAG, "No listeners for " + type);
+
+                
+                
+                if (callback != null) {
+                    callback.sendError("No listeners for request");
+                }
             }
             try {
                 for (final NativeEventListener listener : listeners) {
@@ -195,7 +201,7 @@ public final class EventDispatcher {
             synchronized (mGeckoThreadJSONListeners) {
                 listeners = mGeckoThreadJSONListeners.get(type);
             }
-            if (listeners == null || listeners.size() == 0) {
+            if (listeners == null || listeners.isEmpty()) {
                 Log.w(LOGTAG, "No listeners for " + type);
 
                 
