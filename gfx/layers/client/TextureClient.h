@@ -403,7 +403,7 @@ public:
 
 
 
-  void KeepUntilFullDeallocation(UniquePtr<KeepAlive> aKeep);
+  void KeepUntilFullDeallocation(UniquePtr<KeepAlive> aKeep, bool aMainThreadOnly = false);
 
   
 
