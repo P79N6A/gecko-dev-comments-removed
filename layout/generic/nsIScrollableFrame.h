@@ -206,6 +206,15 @@ public:
 
 
 
+  enum ScrollMomentum { NOT_MOMENTUM, SYNTHESIZED_MOMENTUM_EVENT };
+  
+
+
+
+
+
+
+
 
   virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode,
                         const nsRect* aRange = nullptr) = 0;
@@ -262,7 +271,7 @@ public:
   virtual void ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit, ScrollMode aMode,
                         nsIntPoint* aOverflow = nullptr,
                         nsIAtom* aOrigin = nullptr,
-                        bool aIsMomentum = false) = 0;
+                        ScrollMomentum aMomentum = NOT_MOMENTUM) = 0;
   
 
 

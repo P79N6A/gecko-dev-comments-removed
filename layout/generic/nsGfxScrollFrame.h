@@ -221,7 +221,8 @@ public:
 
   void ScrollBy(nsIntPoint aDelta, nsIScrollableFrame::ScrollUnit aUnit,
                 nsIScrollableFrame::ScrollMode aMode, nsIntPoint* aOverflow,
-                nsIAtom* aOrigin = nullptr, bool aIsMomentum = false);
+                nsIAtom* aOrigin = nullptr,
+                nsIScrollableFrame::ScrollMomentum aMomentum = nsIScrollableFrame::NOT_MOMENTUM);
   
 
 
@@ -481,6 +482,10 @@ public:
 
   
   
+  bool mIgnoreMomentumScroll:1;
+
+  
+  
   bool mScaleToResolution:1;
 
   
@@ -708,8 +713,9 @@ public:
 
   virtual void ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit, ScrollMode aMode,
                         nsIntPoint* aOverflow, nsIAtom* aOrigin = nullptr,
-                        bool aIsMomentum = false) MOZ_OVERRIDE {
-    mHelper.ScrollBy(aDelta, aUnit, aMode, aOverflow, aOrigin, aIsMomentum);
+                        nsIScrollableFrame::ScrollMomentum aMomentum = nsIScrollableFrame::NOT_MOMENTUM)
+                        MOZ_OVERRIDE {
+    mHelper.ScrollBy(aDelta, aUnit, aMode, aOverflow, aOrigin, aMomentum);
   }
   
 
@@ -1076,8 +1082,9 @@ public:
 
   virtual void ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit, ScrollMode aMode,
                         nsIntPoint* aOverflow, nsIAtom* aOrigin = nullptr,
-                        bool aIsMomentum = false) MOZ_OVERRIDE {
-    mHelper.ScrollBy(aDelta, aUnit, aMode, aOverflow, aOrigin, aIsMomentum);
+                        nsIScrollableFrame::ScrollMomentum aMomentum = nsIScrollableFrame::NOT_MOMENTUM)
+                        MOZ_OVERRIDE {
+    mHelper.ScrollBy(aDelta, aUnit, aMode, aOverflow, aOrigin, aMomentum);
   }
   
 
