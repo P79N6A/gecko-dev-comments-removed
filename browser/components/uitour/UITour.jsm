@@ -432,8 +432,7 @@ this.UITour = {
         }
 
         
-        this.showHeartbeat(window, messageManager, data.message, data.thankyouMessage, data.flowId,
-                           data.engagementURL);
+        this.showHeartbeat(window, messageManager, data);
         break;
       }
 
@@ -1041,16 +1040,21 @@ this.UITour = {
 
 
 
-  showHeartbeat: function(aChromeWindow, aMessageManager, aMessage, aThankyouMessage, aFlowId,
-                          aEngagementURL = null) {
+
+
+
+
+
+
+  showHeartbeat: function(aChromeWindow, aMessageManager, aOptions) {
     let nb = aChromeWindow.document.getElementById("high-priority-global-notificationbox");
 
     
-    let notice = nb.appendNotification(aMessage, "heartbeat-" + aFlowId,
-      "chrome://branding/content/icon64.png", nb.PRIORITY_INFO_HIGH, null, function() {
+    let notice = nb.appendNotification(aOptions.message, "heartbeat-" + aOptions.flowId,
+      "chrome://browser/skin/heartbeat-icon.svg", nb.PRIORITY_INFO_HIGH, null, function() {
         
         
-        this.notify("Heartbeat:NotificationClosed", { flowId: aFlowId, timestamp: Date.now() });
+        this.notify("Heartbeat:NotificationClosed", { flowId: aOptions.flowId, timestamp: Date.now() });
     }.bind(this));
 
     
@@ -1082,11 +1086,10 @@ this.UITour = {
         let rating = Number(evt.target.getAttribute("data-score"), 10);
 
         
-        this.notify("Heartbeat:Voted", { flowId: aFlowId, score: rating, timestamp: Date.now() });
+        this.notify("Heartbeat:Voted", { flowId: aOptions.flowId, score: rating, timestamp: Date.now() });
 
         
-        notice.image = "chrome://browser/skin/heartbeat-icon.svg";
-        notice.label = aThankyouMessage;
+        notice.label = aOptions.thankyouMessage;
         messageImage.classList.remove("pulse-onshow");
         messageImage.classList.add("pulse-twice");
 
@@ -1099,7 +1102,7 @@ this.UITour = {
         
         let engagementURL = null;
         try {
-          engagementURL = new URL(aEngagementURL);
+          engagementURL = new URL(aOptions.engagementURL);
         } catch (error) {
           log.error("showHeartbeat: Invalid URL specified.");
         }
@@ -1109,7 +1112,7 @@ this.UITour = {
           
           engagementURL.searchParams.append("type", "stars");
           engagementURL.searchParams.append("score", rating);
-          engagementURL.searchParams.append("flowid", aFlowId);
+          engagementURL.searchParams.append("flowid", aOptions.flowId);
 
           
           aChromeWindow.gBrowser.selectedTab =
@@ -1136,8 +1139,28 @@ this.UITour = {
     rightSpacer.flex = 20;
     frag.appendChild(rightSpacer);
 
+    messageText.flex = 0; 
     let leftSpacer = messageText.nextSibling;
     leftSpacer.flex = 0;
+
+    
+    let learnMoreURL = null;
+    try {
+      learnMoreURL = new URL(aOptions.learnMoreURL);
+    } catch (error) {
+      log.error("showHeartbeat: Invalid learnMore URL specified.");
+    }
+
+    
+    if (aOptions.learnMoreLabel && learnMoreURL) {
+      let learnMore = aChromeWindow.document.createElement("label");
+      learnMore.className = "text-link";
+      learnMore.href = learnMoreURL.toString();
+      learnMore.setAttribute("value", aOptions.learnMoreLabel);
+      learnMore.addEventListener("click", () => this.notify("Heartbeat:LearnMore",
+        { flowId: aOptions.flowId, timestamp: Date.now() }));
+      frag.appendChild(learnMore);
+    }
 
     
     notice.appendChild(frag);
@@ -1146,7 +1169,7 @@ this.UITour = {
     messageText.classList.add("heartbeat");
 
     
-    this.notify("Heartbeat:NotificationOffered", { flowId: aFlowId, timestamp: Date.now() });
+    this.notify("Heartbeat:NotificationOffered", { flowId: aOptions.flowId, timestamp: Date.now() });
   },
 
   

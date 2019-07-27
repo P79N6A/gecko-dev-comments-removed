@@ -14,6 +14,11 @@ function test() {
   UITourTest();
 }
 
+function getHeartbeatNotification(aId) {
+  
+  return notificationBox.getNotificationWithValue("heartbeat-" + aId);
+}
+
 
 
 
@@ -23,8 +28,7 @@ function test() {
 
 
 function simulateVote(aId, aScore) {
-  
-  let notification = notificationBox.getNotificationWithValue("heartbeat-" + aId);
+  let notification = getHeartbeatNotification(aId);
 
   let ratingContainer = notification.childNodes[0];
   ok(ratingContainer, "The notification has a valid rating container.");
@@ -33,6 +37,21 @@ function simulateVote(aId, aScore) {
   ok(ratingElement[0], "The rating container contains the requested rating element.");
 
   ratingElement[0].click();
+}
+
+
+
+
+
+
+
+function clickLearnMore(aId) {
+  let notification = getHeartbeatNotification(aId);
+
+  let learnMoreLabel = notification.childNodes[2];
+  ok(learnMoreLabel, "The notification has a valid learn more label.");
+
+  learnMoreLabel.click();
 }
 
 
@@ -230,5 +249,48 @@ let tests = [
     });
 
     gContentAPI.showHeartbeat("How would you rate Firefox?", "Thank you!", flowId, engagementURL);
+  },
+
+  
+
+
+
+  function test_heartbeat_learnmore(done) {
+    let dummyURL = "http://example.com";
+    let flowId = "ui-ratefirefox-" + Math.random();
+    let originalTabCount = gBrowser.tabs.length;
+    const expectedTabCount = originalTabCount + 1;
+
+    gContentAPI.observe(function (aEventName, aData) {
+      switch (aEventName) {
+        case "Heartbeat:NotificationOffered": {
+          info("'Heartbeat:Offered' notification received (timestamp " + aData.timestamp.toString() + ").");
+          ok(Number.isFinite(aData.timestamp), "Timestamp must be a number.");
+          
+          clickLearnMore(flowId);
+          break;
+        }
+        case "Heartbeat:LearnMore": {
+          info("'Heartbeat:LearnMore' notification received (timestamp " + aData.timestamp.toString() + ").");
+          ok(Number.isFinite(aData.timestamp), "Timestamp must be a number.");
+          cleanUpNotification(flowId);
+          break;
+        }
+        case "Heartbeat:NotificationClosed": {
+          info("'Heartbeat:NotificationClosed' notification received (timestamp " + aData.timestamp.toString() + ").");
+          ok(Number.isFinite(aData.timestamp), "Timestamp must be a number.");
+          is(gBrowser.tabs.length, expectedTabCount, "Learn more URL should open in a new tab.");
+          gBrowser.removeCurrentTab();
+          done();
+          break;
+        }
+        default:
+          
+          ok(false, "Unexpected notification received: " + aEventName);
+      }
+    });
+
+    gContentAPI.showHeartbeat("How would you rate Firefox?", "Thank you!", flowId, dummyURL,
+                              "What is this?", dummyURL);
   }
 ];
