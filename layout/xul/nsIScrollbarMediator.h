@@ -29,9 +29,20 @@ public:
 
 
 
-  virtual void ScrollByPage(nsScrollbarFrame* aScrollbar, int32_t aDirection) = 0;
-  virtual void ScrollByWhole(nsScrollbarFrame* aScrollbar, int32_t aDirection) = 0;
-  virtual void ScrollByLine(nsScrollbarFrame* aScrollbar, int32_t aDirection) = 0;
+
+  enum ScrollSnapMode { DISABLE_SNAP, ENABLE_SNAP };
+
+  
+
+
+
+
+  virtual void ScrollByPage(nsScrollbarFrame* aScrollbar, int32_t aDirection,
+                            ScrollSnapMode aSnap = DISABLE_SNAP) = 0;
+  virtual void ScrollByWhole(nsScrollbarFrame* aScrollbar, int32_t aDirection,
+                            ScrollSnapMode aSnap = DISABLE_SNAP) = 0;
+  virtual void ScrollByLine(nsScrollbarFrame* aScrollbar, int32_t aDirection,
+                            ScrollSnapMode aSnap = DISABLE_SNAP) = 0;
   
 
 
@@ -49,6 +60,11 @@ public:
   virtual void ThumbMoved(nsScrollbarFrame* aScrollbar,
                           nscoord aOldPos,
                           nscoord aNewPos) = 0;
+  
+
+
+
+  virtual void ScrollbarReleased(nsScrollbarFrame* aScrollbar) = 0;
   virtual void VisibilityChanged(bool aVisible) = 0;
 
   
