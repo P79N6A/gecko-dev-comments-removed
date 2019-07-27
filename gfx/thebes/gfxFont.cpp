@@ -5764,6 +5764,9 @@ gfxFont::InitFakeSmallCapsRun(gfxContext     *aContext,
     uint32_t runStart = 0;
 
     for (uint32_t i = 0; i <= aLength; ++i) {
+        uint32_t extraCodeUnits = 0; 
+                                     
+                                     
         RunCaseAction chAction = kNoChange;
         
         
@@ -5772,6 +5775,7 @@ gfxFont::InitFakeSmallCapsRun(gfxContext     *aContext,
             if (NS_IS_HIGH_SURROGATE(ch) && i < aLength - 1 &&
                 NS_IS_LOW_SURROGATE(aText[i + 1])) {
                 ch = SURROGATE_TO_UCS4(ch, aText[i + 1]);
+                extraCodeUnits = 1;
             }
             
             
@@ -5885,6 +5889,7 @@ gfxFont::InitFakeSmallCapsRun(gfxContext     *aContext,
             runStart = i;
         }
 
+        i += extraCodeUnits;
         if (i < aLength) {
             runAction = chAction;
         }
