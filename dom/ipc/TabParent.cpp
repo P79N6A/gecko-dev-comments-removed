@@ -784,7 +784,7 @@ TabParent::MapEventCoordinatesForChildProcess(
     aEvent->refPoint = LayoutDeviceIntPoint();
     
     
-    const nsTArray< nsRefPtr<Touch> >& touches =
+    const WidgetTouchEvent::TouchArray& touches =
       aEvent->AsTouchEvent()->touches;
     for (uint32_t i = 0; i < touches.Length(); ++i) {
       Touch* touch = touches[i];
