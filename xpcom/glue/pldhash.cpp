@@ -728,7 +728,6 @@ PLDHashTable::ShrinkIfAppropriate()
   uint32_t capacity = Capacity();
   if (mRemovedCount >= capacity >> 2 ||
       (capacity > PL_DHASH_MIN_CAPACITY && mEntryCount <= MinLoad(capacity))) {
-
     uint32_t log2;
     BestCapacity(mEntryCount, &capacity, &log2);
 
@@ -737,75 +736,6 @@ PLDHashTable::ShrinkIfAppropriate()
 
     (void) ChangeTable(deltaLog2);
   }
-}
-
-MOZ_ALWAYS_INLINE uint32_t
-PLDHashTable::Enumerate(PLDHashEnumerator aEtor, void* aArg)
-{
-#ifdef DEBUG
-  
-  
-  
-  
-  bool wasIdleAndWritableAtStart = mChecker.IsIdle() && mChecker.IsWritable();
-  AutoReadOp op(mChecker);
-#endif
-
-  if (!mEntryStore) {
-    return 0;
-  }
-
-  char* entryAddr = mEntryStore;
-  uint32_t capacity = Capacity();
-  uint32_t tableSize = capacity * mEntrySize;
-  char* entryLimit = mEntryStore + tableSize;
-  uint32_t i = 0;
-  bool didRemove = false;
-
-  if (ChaosMode::isActive(ChaosMode::HashTableIteration)) {
-    
-    
-    
-    entryAddr += ChaosMode::randomUint32LessThan(capacity) * mEntrySize;
-  }
-
-  for (uint32_t e = 0; e < capacity; ++e) {
-    PLDHashEntryHdr* entry = (PLDHashEntryHdr*)entryAddr;
-    if (ENTRY_IS_LIVE(entry)) {
-      PLDHashOperator op = aEtor(this, entry, i++, aArg);
-      if (op & PL_DHASH_REMOVE) {
-        PL_DHashTableRawRemove(this, entry);
-        didRemove = true;
-      }
-      if (op & PL_DHASH_STOP) {
-        break;
-      }
-    }
-    entryAddr += mEntrySize;
-    if (entryAddr >= entryLimit) {
-      entryAddr -= tableSize;
-    }
-  }
-
-  
-  
-  MOZ_ASSERT_IF(didRemove, wasIdleAndWritableAtStart);
-
-  
-  
-  
-  if (didRemove) {
-    ShrinkIfAppropriate();
-  }
-
-  return i;
-}
-
-uint32_t
-PL_DHashTableEnumerate(PLDHashTable* aTable, PLDHashEnumerator aEtor,
-                       void* aArg)
-{
-  return aTable->Enumerate(aEtor, aArg);
 }
 
 MOZ_ALWAYS_INLINE size_t

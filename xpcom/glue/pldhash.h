@@ -83,60 +83,6 @@ private:
   PLDHashNumber mKeyHash;
 };
 
-
-
-
-
-enum PLDHashOperator
-{
-  PL_DHASH_NEXT = 0,          
-  PL_DHASH_STOP = 1,          
-  PL_DHASH_REMOVE = 2         
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef PLDHashOperator (*PLDHashEnumerator)(PLDHashTable* aTable,
-                                             PLDHashEntryHdr* aHdr,
-                                             uint32_t aNumber, void* aArg);
-
 typedef size_t (*PLDHashSizeOfEntryExcludingThisFun)(
   PLDHashEntryHdr* aHdr, mozilla::MallocSizeOf aMallocSizeOf, void* aArg);
 
@@ -371,8 +317,6 @@ public:
   void Remove(const void* aKey);
 
   void RawRemove(PLDHashEntryHdr* aEntry);
-
-  uint32_t Enumerate(PLDHashEnumerator aEtor, void* aArg);
 
   
   
@@ -675,10 +619,6 @@ PL_DHashTableRemove(PLDHashTable* aTable, const void* aKey);
 
 
 void PL_DHashTableRawRemove(PLDHashTable* aTable, PLDHashEntryHdr* aEntry);
-
-uint32_t
-PL_DHashTableEnumerate(PLDHashTable* aTable, PLDHashEnumerator aEtor,
-                       void* aArg);
 
 
 

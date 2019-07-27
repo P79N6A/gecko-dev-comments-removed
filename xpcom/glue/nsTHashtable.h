@@ -71,6 +71,16 @@
 
 
 
+
+
+
+enum PLDHashOperator
+{
+  PL_DHASH_NEXT = 0,          
+  PL_DHASH_STOP = 1,          
+  PL_DHASH_REMOVE = 2         
+};
+
 template<class EntryType>
 class nsTHashtable
 {
@@ -191,6 +201,9 @@ public:
   typedef PLDHashOperator (*Enumerator)(EntryType* aEntry, void* userArg);
 
   
+
+
+
 
 
 
