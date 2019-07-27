@@ -1232,6 +1232,7 @@ nsCacheService::Shutdown()
         
         
         (void) SyncWithCacheIOThread();
+        mActiveEntries.Shutdown();
 
         
         parentDir = mObserver->DiskCacheParentDirectory();
