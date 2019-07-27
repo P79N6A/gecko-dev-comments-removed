@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/Snprintf.h"
 #include "nsILocaleService.h"
 #include "nsDateTimeFormatCID.h"
 #include "nsIDateTimeFormat.h"
@@ -113,7 +114,7 @@ NS_IMETHODIMP nsScriptableDateFormat::FormatDateTime(
     
     PRTime prtime;
     char string[32];
-    sprintf(string, "%.2d/%.2d/%d %.2d:%.2d:%.2d", month, day, year, hour, minute, second);
+    snprintf_literal(string, "%.2d/%.2d/%d %.2d:%.2d:%.2d", month, day, year, hour, minute, second);
     if (PR_SUCCESS != PR_ParseTimeString(string, false, &prtime))
       return NS_ERROR_INVALID_ARG;
 

@@ -4,6 +4,7 @@
 
 
 #include "TestCommon.h"
+#include "mozilla/Snprintf.h"
 #include "nsXPCOM.h"
 #include "nsStringAPI.h"
 #include "nsIPersistentProperties2.h"
@@ -76,7 +77,7 @@ main(int argc, char* argv[])
   while (1) {
     char name[16];
     name[0] = 0;
-    sprintf(name, "%d", i);
+    snprintf_literal(name, "%d", i);
     nsAutoString v;
     ret = props->GetStringProperty(nsDependentCString(name), v);
     if (NS_FAILED(ret) || (!v.Length())) {
