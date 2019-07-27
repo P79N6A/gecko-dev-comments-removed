@@ -1701,29 +1701,10 @@ void MediaDecoderStateMachine::Seek(const SeekTarget& aTarget)
     return;
   }
   mQueuedSeekTarget.Reset();
-
-  
-  int64_t end = GetEndTime();
-  NS_ASSERTION(mStartTime != -1, "Should know start time by now");
-  NS_ASSERTION(end != -1, "Should know end time by now");
-  int64_t seekTime = aTarget.mTime + mStartTime;
-  seekTime = std::min(seekTime, end);
-  seekTime = std::max(mStartTime, seekTime);
-  NS_ASSERTION(seekTime >= mStartTime && seekTime <= end,
-               "Can only seek in range [0,duration]");
-  mSeekTarget = SeekTarget(seekTime, aTarget.mType, aTarget.mEventVisibility);
+  mSeekTarget = aTarget;
 
   DECODER_LOG("Changed state to SEEKING (to %lld)", mSeekTarget.mTime);
   SetState(DECODER_STATE_SEEKING);
-
-  
-  
-  
-  
-  if (mAudioCaptured) {
-    mDecoder->RecreateDecodedStream(seekTime - mStartTime);
-  }
-
   ScheduleStateMachine();
 }
 
@@ -1877,6 +1858,29 @@ MediaDecoderStateMachine::InitiateSeek()
 
   mCurrentSeekTarget = mSeekTarget;
   mSeekTarget.Reset();
+
+  
+  int64_t end = GetEndTime();
+  NS_ASSERTION(mStartTime != -1, "Should know start time by now");
+  NS_ASSERTION(end != -1, "Should know end time by now");
+  int64_t seekTime = mCurrentSeekTarget.mTime + mStartTime;
+  seekTime = std::min(seekTime, end);
+  seekTime = std::max(mStartTime, seekTime);
+  NS_ASSERTION(seekTime >= mStartTime && seekTime <= end,
+               "Can only seek in range [0,duration]");
+  mCurrentSeekTarget.mTime = seekTime;
+
+  if (mAudioCaptured) {
+    
+    
+    
+    
+    nsCOMPtr<nsIRunnable> event =
+      NS_NewRunnableMethodWithArg<int64_t>(mDecoder, &MediaDecoder::RecreateDecodedStream,
+                                           seekTime - mStartTime);
+    NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+  }
+
   mDropAudioUntilNextDiscontinuity = HasAudio();
   mDropVideoUntilNextDiscontinuity = HasVideo();
 
