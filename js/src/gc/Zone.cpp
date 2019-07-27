@@ -133,7 +133,6 @@ Zone::sweepBreakpoints(FreeOp* fop)
     MOZ_ASSERT(isGCSweepingOrCompacting());
     for (ZoneCellIterUnderGC i(this, AllocKind::SCRIPT); !i.done(); i.next()) {
         JSScript* script = i.get<JSScript>();
-        MOZ_ASSERT_IF(isGCSweeping(), script->zone()->isGCSweeping());
         if (!script->hasAnyBreakpointsOrStepMode())
             continue;
 
@@ -148,8 +147,16 @@ Zone::sweepBreakpoints(FreeOp* fop)
             for (Breakpoint* bp = site->firstBreakpoint(); bp; bp = nextbp) {
                 nextbp = bp->nextInSite();
                 HeapPtrNativeObject& dbgobj = bp->debugger->toJSObjectRef();
+
+                
+                
+                
+                
+                
                 MOZ_ASSERT_IF(isGCSweeping() && dbgobj->zone()->isCollecting(),
-                              dbgobj->zone()->isGCSweeping());
+                              dbgobj->zone()->isGCSweeping() ||
+                              (!scriptGone && dbgobj->asTenured().isMarked()));
+
                 bool dying = scriptGone || IsAboutToBeFinalized(&dbgobj);
                 MOZ_ASSERT_IF(!dying, !IsAboutToBeFinalized(&bp->getHandlerRef()));
                 if (dying)
