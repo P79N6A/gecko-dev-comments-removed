@@ -119,11 +119,7 @@ public class SearchFragment extends Fragment implements AdapterView.OnItemClickL
                 new AutoCompleteAgentManager(getActivity(), new MainUiHandler(autoCompleteAdapter));
 
         
-        
-
-        
-        
-        transitionToRunning();
+        transitionToWaiting();
 
         
         suggestionDropdown.setOnItemClickListener(new AdapterView.OnItemClickListener() {
