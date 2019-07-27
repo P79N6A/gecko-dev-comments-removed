@@ -34,7 +34,7 @@ class ServiceWorkerClient;
 
 
 class MessageEvent final : public Event,
-                               public nsIDOMMessageEvent
+                           public nsIDOMMessageEvent
 {
 public:
   MessageEvent(EventTarget* aOwner,

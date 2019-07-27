@@ -147,7 +147,7 @@ public:
 };
 
 class nsXMLHttpRequestUpload final : public nsXHREventTarget,
-                                         public nsIXMLHttpRequestUpload
+                                     public nsIXMLHttpRequestUpload
 {
 public:
   explicit nsXMLHttpRequestUpload(mozilla::DOMEventTargetHelper* aOwner)
@@ -180,15 +180,15 @@ class nsXMLHttpRequestXPCOMifier;
 
 
 class nsXMLHttpRequest final : public nsXHREventTarget,
-                                   public nsIXMLHttpRequest,
-                                   public nsIJSXMLHttpRequest,
-                                   public nsIStreamListener,
-                                   public nsIChannelEventSink,
-                                   public nsIProgressEventSink,
-                                   public nsIInterfaceRequestor,
-                                   public nsSupportsWeakReference,
-                                   public nsITimerCallback,
-                                   public nsISizeOfEventTarget
+                               public nsIXMLHttpRequest,
+                               public nsIJSXMLHttpRequest,
+                               public nsIStreamListener,
+                               public nsIChannelEventSink,
+                               public nsIProgressEventSink,
+                               public nsIInterfaceRequestor,
+                               public nsSupportsWeakReference,
+                               public nsITimerCallback,
+                               public nsISizeOfEventTarget
 {
   friend class nsXHRParseEndListener;
   friend class nsXMLHttpRequestXPCOMifier;
@@ -634,7 +634,8 @@ protected:
   nsCOMPtr<nsIStreamListener> mXMLParserStreamListener;
 
   
-  class nsHeaderVisitor : public nsIHttpHeaderVisitor {
+  class nsHeaderVisitor : public nsIHttpHeaderVisitor
+  {
   public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIHTTPHEADERVISITOR
@@ -820,10 +821,10 @@ private:
 
 
 class nsXMLHttpRequestXPCOMifier final : public nsIStreamListener,
-                                             public nsIChannelEventSink,
-                                             public nsIProgressEventSink,
-                                             public nsIInterfaceRequestor,
-                                             public nsITimerCallback
+                                         public nsIChannelEventSink,
+                                         public nsIProgressEventSink,
+                                         public nsIInterfaceRequestor,
+                                         public nsITimerCallback
 {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsXMLHttpRequestXPCOMifier,

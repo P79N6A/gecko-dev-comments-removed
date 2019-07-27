@@ -25,7 +25,7 @@ namespace layout {
 
 
 class VsyncParent final : public PVsyncParent,
-                              public VsyncObserver
+                          public VsyncObserver
 {
   friend class mozilla::ipc::BackgroundParentImpl;
 

@@ -45,8 +45,8 @@ namespace dom {
 
 
 class XPathResult final : public nsIXPathResult,
-                              public nsStubMutationObserver,
-                              public nsWrapperCache
+                          public nsStubMutationObserver,
+                          public nsWrapperCache
 {
     ~XPathResult();
 

@@ -99,7 +99,7 @@ class CSPViolationReportListener : public nsIStreamListener
 
 
 class CSPReportRedirectSink final : public nsIChannelEventSink,
-                                        public nsIInterfaceRequestor
+                                    public nsIInterfaceRequestor
 {
   public:
     NS_DECL_NSICHANNELEVENTSINK

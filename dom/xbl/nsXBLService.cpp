@@ -168,7 +168,7 @@ public:
 
 
 class nsXBLStreamListener final : public nsIStreamListener,
-                                      public nsIDOMEventListener
+                                  public nsIDOMEventListener
 {
 public:
   NS_DECL_ISUPPORTS

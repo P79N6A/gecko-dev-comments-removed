@@ -26,7 +26,7 @@ namespace mobileconnection {
 
 
 class MobileConnectionChild final : public PMobileConnectionChild
-                                      , public nsIMobileConnection
+                                  , public nsIMobileConnection
 {
 public:
   NS_DECL_ISUPPORTS

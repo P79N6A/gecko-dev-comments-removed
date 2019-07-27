@@ -23,7 +23,7 @@ class DOMLocalStorageManager;
 
 
 class DOMStorageDBChild final : public DOMStorageDBBridge
-                                  , public PStorageChild
+                              , public PStorageChild
 {
   virtual ~DOMStorageDBChild();
 
@@ -107,7 +107,7 @@ private:
 
 
 class DOMStorageDBParent final : public PStorageParent
-                                   , public DOMStorageObserverSink
+                               , public DOMStorageObserverSink
 {
   virtual ~DOMStorageDBParent();
 

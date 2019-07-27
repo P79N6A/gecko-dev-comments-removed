@@ -39,7 +39,7 @@ class DOMSVGLength;
 
 
 class DOMSVGLengthList final : public nsISupports,
-                                   public nsWrapperCache
+                               public nsWrapperCache
 {
   friend class AutoChangeLengthListNotifier;
   friend class DOMSVGLength;

@@ -24,7 +24,7 @@ class nsGridCell;
 
 
 class nsGridLayout2 final : public nsStackLayout, 
-                                public nsIGridPart
+                            public nsIGridPart
 {
 public:
 

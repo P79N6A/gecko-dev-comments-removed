@@ -75,7 +75,7 @@ class ErrorResult;
 
 
 class DOMSVGLength final : public nsIDOMSVGLength,
-                               public nsWrapperCache
+                           public nsWrapperCache
 {
   friend class AutoChangeLengthNotifier;
 

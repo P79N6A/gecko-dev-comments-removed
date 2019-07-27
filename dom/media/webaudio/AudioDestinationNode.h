@@ -20,9 +20,9 @@ class AudioContext;
 class EventProxyHandler;
 
 class AudioDestinationNode final : public AudioNode
-                                     , public nsIDOMEventListener
-                                     , public nsIAudioChannelAgentCallback
-                                     , public MainThreadMediaStreamListener
+                                 , public nsIDOMEventListener
+                                 , public nsIAudioChannelAgentCallback
+                                 , public MainThreadMediaStreamListener
 {
 public:
   

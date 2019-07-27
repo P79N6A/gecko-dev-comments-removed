@@ -47,7 +47,7 @@ class SVGAnimatedPathSegList;
 
 
 class DOMSVGPathSegList final : public nsISupports,
-                                    public nsWrapperCache
+                                public nsWrapperCache
 {
   friend class AutoChangePathSegListNotifier;
   friend class DOMSVGPathSeg;

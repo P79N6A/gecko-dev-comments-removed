@@ -917,8 +917,8 @@ nsCORSListenerProxy::UpdateChannel(nsIChannel* aChannel, bool aAllowDataURI)
 
 
 class nsCORSPreflightListener final : public nsIStreamListener,
-                                          public nsIInterfaceRequestor,
-                                          public nsIChannelEventSink
+                                      public nsIInterfaceRequestor,
+                                      public nsIChannelEventSink
 {
 public:
   nsCORSPreflightListener(nsIChannel* aOuterChannel,

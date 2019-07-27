@@ -48,7 +48,7 @@ class SVGAnimatedPointList;
 
 
 class DOMSVGPointList final : public nsISupports,
-                                  public nsWrapperCache
+                              public nsWrapperCache
 {
   friend class AutoChangePointListNotifier;
   friend class nsISVGPoint;

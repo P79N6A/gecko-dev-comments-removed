@@ -11,16 +11,21 @@
 #include "mozilla/dom/MobileNetworkInfo.h"
 #include "mozilla/dom/MozMobileConnectionBinding.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsIIccService.h"
 #include "nsIMobileConnectionService.h"
 #include "nsWeakPtr.h"
+
+#ifdef MOZ_B2G_RIL
+#include "nsIIccProvider.h"
+#endif 
 
 namespace mozilla {
 namespace dom {
 
 class MobileConnection final : public DOMEventTargetHelper
                              , private nsIMobileConnectionListener
+#ifdef MOZ_B2G_RIL
                              , private nsIIccListener
+#endif 
 {
   
 
@@ -35,7 +40,9 @@ class MobileConnection final : public DOMEventTargetHelper
 public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIMOBILECONNECTIONLISTENER
+#ifdef MOZ_B2G_RIL
   NS_DECL_NSIICCLISTENER
+#endif 
   NS_REALLY_FORWARD_NSIDOMEVENTTARGET(DOMEventTargetHelper)
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(MobileConnection,
                                            DOMEventTargetHelper)
@@ -162,7 +169,9 @@ private:
   uint32_t mClientId;
   nsString mIccId;
   nsCOMPtr<nsIMobileConnection> mMobileConnection;
-  nsCOMPtr<nsIIcc> mIccHandler;
+#ifdef MOZ_B2G_RIL
+  nsCOMPtr<nsIIccProvider> mIcc;
+#endif 
   nsRefPtr<Listener> mListener;
   nsRefPtr<MobileConnectionInfo> mVoice;
   nsRefPtr<MobileConnectionInfo> mData;

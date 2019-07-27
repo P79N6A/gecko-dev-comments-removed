@@ -98,8 +98,8 @@ GetProxyURI(nsIChannel *channel, nsIURI **aOut)
 
 
 class nsAsyncResolveRequest final : public nsIRunnable
-                                      , public nsPACManCallback
-                                      , public nsICancelable
+                                  , public nsPACManCallback
+                                  , public nsICancelable
 {
 public:
     NS_DECL_THREADSAFE_ISUPPORTS

@@ -324,7 +324,8 @@ private:
                     imgRequestProxy **aRequest);
 
   class IconLoad final : public nsIObserver,
-                             public imgINotificationObserver {
+                         public imgINotificationObserver
+  {
     
     
   public:

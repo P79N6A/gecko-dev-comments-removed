@@ -40,7 +40,7 @@ class TreeBoxObject;
 
 
 class nsTreeColumn final : public nsITreeColumn
-                             , public nsWrapperCache
+                         , public nsWrapperCache
 {
 public:
   nsTreeColumn(nsTreeColumns* aColumns, nsIContent* aContent);
@@ -151,7 +151,7 @@ private:
 NS_DEFINE_STATIC_IID_ACCESSOR(nsTreeColumn, NS_TREECOLUMN_IMPL_CID)
 
 class nsTreeColumns final : public nsITreeColumns
-                              , public nsWrapperCache
+                          , public nsWrapperCache
 {
 private:
   ~nsTreeColumns();

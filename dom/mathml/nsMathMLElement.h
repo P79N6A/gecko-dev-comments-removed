@@ -26,8 +26,8 @@ class EventChainPreVisitor;
 
 
 class nsMathMLElement final : public nsMathMLElementBase,
-                                  public nsIDOMElement,
-                                  public mozilla::dom::Link
+                              public nsIDOMElement,
+                              public mozilla::dom::Link
 {
 public:
   explicit nsMathMLElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);

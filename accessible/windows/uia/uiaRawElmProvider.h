@@ -21,7 +21,7 @@ class AccessibleWrap;
 
 
 class uiaRawElmProvider final : public IAccessibleEx,
-                                    public IRawElementProviderSimple
+                                public IRawElementProviderSimple
 {
 public:
   uiaRawElmProvider(AccessibleWrap* aAcc) : mAcc(aAcc) { }

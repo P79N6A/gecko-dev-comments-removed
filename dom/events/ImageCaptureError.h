@@ -21,7 +21,7 @@ namespace dom {
 
 
 class ImageCaptureError final : public nsISupports,
-                                    public nsWrapperCache
+                                public nsWrapperCache
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS

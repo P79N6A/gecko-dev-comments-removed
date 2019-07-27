@@ -144,7 +144,7 @@ using namespace mozilla::gfx;
 
 
 class SRGBOverrideObserver final : public nsIObserver,
-                                       public nsSupportsWeakReference
+                                   public nsSupportsWeakReference
 {
     ~SRGBOverrideObserver() {}
 public:

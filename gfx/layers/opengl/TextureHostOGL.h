@@ -185,8 +185,8 @@ protected:
 
 
 class TextureImageTextureSourceOGL final : public DataTextureSource
-                                             , public TextureSourceOGL
-                                             , public BigImageIterator
+                                         , public TextureSourceOGL
+                                         , public BigImageIterator
 {
 public:
   explicit TextureImageTextureSourceOGL(CompositorOGL *aCompositor,

@@ -946,9 +946,10 @@ private:
 
 
 class nsXULScrollFrame final : public nsBoxFrame,
-                                   public nsIScrollableFrame,
-                                   public nsIAnonymousContentCreator,
-                                   public nsIStatefulFrame {
+                               public nsIScrollableFrame,
+                               public nsIAnonymousContentCreator,
+                               public nsIStatefulFrame
+{
 public:
   typedef mozilla::ScrollFrameHelper ScrollFrameHelper;
   typedef mozilla::CSSIntPoint CSSIntPoint;

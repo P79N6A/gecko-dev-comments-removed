@@ -17,7 +17,7 @@
 namespace mozilla {
 
 class SnappyUncompressInputStream final : public nsIInputStream
-                                            , protected detail::SnappyFrameUtils
+                                        , protected detail::SnappyFrameUtils
 {
 public:
   

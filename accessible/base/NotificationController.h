@@ -86,7 +86,7 @@ private:
 
 
 class NotificationController final : public EventQueue,
-                                         public nsARefreshObserver
+                                     public nsARefreshObserver
 {
 public:
   NotificationController(DocAccessible* aDocument, nsIPresShell* aPresShell);

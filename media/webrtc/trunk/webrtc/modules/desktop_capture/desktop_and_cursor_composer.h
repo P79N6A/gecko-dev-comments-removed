@@ -20,8 +20,8 @@ namespace webrtc {
 
 
 class DesktopAndCursorComposer : public DesktopCapturer,
-                            public DesktopCapturer::Callback,
-                            public MouseCursorMonitor::Callback {
+                                 public DesktopCapturer::Callback,
+                                 public MouseCursorMonitor::Callback {
  public:
   
   

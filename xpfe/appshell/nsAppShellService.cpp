@@ -322,7 +322,8 @@ WebBrowserChrome2Stub::GetInterface(const nsIID & aIID, void **aSink)
 
 
 class WindowlessBrowserStub final : public nsIWebNavigation,
-                                        public nsIInterfaceRequestor {
+                                    public nsIInterfaceRequestor
+{
 public:
   WindowlessBrowserStub(nsIWebBrowser *aBrowser, nsISupports *aContainer) {
     mBrowser = aBrowser;

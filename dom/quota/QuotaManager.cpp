@@ -263,8 +263,8 @@ private:
 
 
 class AsyncUsageRunnable final : public UsageInfo,
-                                     public nsRunnable,
-                                     public nsIQuotaRequest
+                                 public nsRunnable,
+                                 public nsIQuotaRequest
 {
   enum CallbackState {
     

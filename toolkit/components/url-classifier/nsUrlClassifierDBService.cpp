@@ -738,7 +738,7 @@ nsUrlClassifierDBServiceWorker::OpenDb()
 
 
 class nsUrlClassifierLookupCallback final : public nsIUrlClassifierLookupCallback
-                                              , public nsIUrlClassifierHashCompleterCallback
+                                          , public nsIUrlClassifierHashCompleterCallback
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS

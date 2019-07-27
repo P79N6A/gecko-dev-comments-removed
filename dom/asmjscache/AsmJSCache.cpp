@@ -1108,7 +1108,7 @@ FindHashMatch(const Metadata& aMetadata, const ReadParams& aReadParams,
 
 
 class SingleProcessRunnable final : public File,
-                                        private MainProcessRunnable
+                                    private MainProcessRunnable
 {
 public:
   
@@ -1186,7 +1186,7 @@ private:
 
 
 class ParentProcessRunnable final : public PAsmJSCacheEntryParent,
-                                        public MainProcessRunnable
+                                    public MainProcessRunnable
 {
 public:
   
@@ -1357,7 +1357,7 @@ DeallocEntryParent(PAsmJSCacheEntryParent* aActor)
 namespace {
 
 class ChildProcessRunnable final : public File,
-                                       public PAsmJSCacheEntryChild
+                                   public PAsmJSCacheEntryChild
 {
 public:
   NS_DECL_NSIRUNNABLE

@@ -27,8 +27,8 @@ class HTMLInputElement;
 
 
 class nsNumberControlFrame final : public nsContainerFrame
-                                     , public nsIAnonymousContentCreator
-                                     , public nsITextControlFrame
+                                 , public nsIAnonymousContentCreator
+                                 , public nsITextControlFrame
 {
   friend nsIFrame*
   NS_NewNumberControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);

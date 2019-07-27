@@ -24,7 +24,7 @@
 
 
 class nsScreenManagerProxy final : public nsIScreenManager,
-                                       public mozilla::dom::PScreenManagerChild
+                                   public mozilla::dom::PScreenManagerChild
 {
 public:
   nsScreenManagerProxy();

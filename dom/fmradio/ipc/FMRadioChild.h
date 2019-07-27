@@ -23,7 +23,7 @@ BEGIN_FMRADIO_NAMESPACE
 
 
 class FMRadioChild final : public IFMRadioService
-                             , public PFMRadioChild
+                         , public PFMRadioChild
 {
 public:
   static FMRadioChild* Singleton();

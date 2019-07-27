@@ -1293,8 +1293,8 @@ nsObjectLoadingContent::GetBaseURI(nsIURI **aResult)
 
 
 class ObjectInterfaceRequestorShim final : public nsIInterfaceRequestor,
-                                               public nsIChannelEventSink,
-                                               public nsIStreamListener
+                                           public nsIChannelEventSink,
+                                           public nsIStreamListener
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS

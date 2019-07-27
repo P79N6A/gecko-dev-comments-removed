@@ -15,7 +15,7 @@ typedef nsHTMLButtonControlFrame nsColorControlFrameSuper;
 
 
 class nsColorControlFrame final : public nsColorControlFrameSuper,
-                                      public nsIAnonymousContentCreator
+                                  public nsIAnonymousContentCreator
 {
   typedef mozilla::dom::Element Element;
 

@@ -129,7 +129,7 @@ public:
 
 
 class ContentClientBasic final : public ContentClient
-                                   , protected RotatedContentBuffer
+                               , protected RotatedContentBuffer
 {
 public:
   ContentClientBasic();

@@ -51,7 +51,6 @@
 #include "mozilla/dom/bluetooth/PBluetoothParent.h"
 #include "mozilla/dom/cellbroadcast/CellBroadcastParent.h"
 #include "mozilla/dom/devicestorage/DeviceStorageRequestParent.h"
-#include "mozilla/dom/icc/IccParent.h"
 #include "mozilla/dom/mobileconnection/MobileConnectionParent.h"
 #include "mozilla/dom/mobilemessage/SmsParent.h"
 #include "mozilla/dom/power/PowerManagerService.h"
@@ -225,7 +224,6 @@ using namespace CrashReporter;
 using namespace mozilla::dom::bluetooth;
 using namespace mozilla::dom::cellbroadcast;
 using namespace mozilla::dom::devicestorage;
-using namespace mozilla::dom::icc;
 using namespace mozilla::dom::indexedDB;
 using namespace mozilla::dom::power;
 using namespace mozilla::dom::mobileconnection;
@@ -243,7 +241,7 @@ using namespace mozilla::widget;
 #ifdef ENABLE_TESTS
 
 class BackgroundTester final : public nsIIPCBackgroundChildCreateCallback,
-                                   public nsIObserver
+                               public nsIObserver
 {
     static uint32_t sCallbackCount;
 
@@ -3386,27 +3384,6 @@ bool
 ContentParent::DeallocPHalParent(hal_sandbox::PHalParent* aHal)
 {
     delete aHal;
-    return true;
-}
-
-PIccParent*
-ContentParent::AllocPIccParent(const uint32_t& aServiceId)
-{
-    if (!AssertAppProcessPermission(this, "mobileconnection")) {
-        return nullptr;
-    }
-    IccParent* parent = new IccParent(aServiceId);
-    
-    parent->AddRef();
-
-    return parent;
-}
-
-bool
-ContentParent::DeallocPIccParent(PIccParent* aActor)
-{
-    
-    static_cast<IccParent*>(aActor)->Release();
     return true;
 }
 

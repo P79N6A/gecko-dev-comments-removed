@@ -31,7 +31,7 @@ class nsISupportsArray;
 
 
 class nsSHEntryShared final : public nsIBFCacheEntry,
-                                  public nsIMutationObserver
+                              public nsIMutationObserver
 {
   public:
     static void EnsureHistoryTracker();

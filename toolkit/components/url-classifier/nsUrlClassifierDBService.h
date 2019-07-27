@@ -51,8 +51,8 @@ class TableUpdate;
 
 
 class nsUrlClassifierDBService final : public nsIUrlClassifierDBService,
-                                           public nsIURIClassifier,
-                                           public nsIObserver
+                                       public nsIURIClassifier,
+                                       public nsIObserver
 {
 public:
   

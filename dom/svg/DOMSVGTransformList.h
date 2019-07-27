@@ -34,7 +34,7 @@ class SVGTransform;
 
 
 class DOMSVGTransformList final : public nsISupports,
-                                      public nsWrapperCache
+                                  public nsWrapperCache
 {
   friend class AutoChangeTransformListNotifier;
   friend class dom::SVGTransform;

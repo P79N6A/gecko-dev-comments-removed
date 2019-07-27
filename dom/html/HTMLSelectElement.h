@@ -113,8 +113,8 @@ private:
 
 
 class HTMLSelectElement final : public nsGenericHTMLFormElementWithState,
-                                    public nsIDOMHTMLSelectElement,
-                                    public nsIConstraintValidation
+                                public nsIDOMHTMLSelectElement,
+                                public nsIConstraintValidation
 {
 public:
   

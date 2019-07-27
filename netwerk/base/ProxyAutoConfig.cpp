@@ -259,7 +259,7 @@ static void SetRunning(ProxyAutoConfig *arg)
 
 
 class PACResolver final : public nsIDNSListener
-                            , public nsITimerCallback
+                        , public nsITimerCallback
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS

@@ -19,7 +19,7 @@ class nsPrintEngine;
 
 
 class nsPagePrintTimer final : public nsRunnable,
-                                   public nsITimerCallback
+                               public nsITimerCallback
 {
 public:
 

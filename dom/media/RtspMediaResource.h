@@ -209,7 +209,7 @@ public:
   
   
   class Listener final : public nsIInterfaceRequestor,
-                             public nsIStreamingProtocolListener
+                         public nsIStreamingProtocolListener
   {
     ~Listener() {}
   public:

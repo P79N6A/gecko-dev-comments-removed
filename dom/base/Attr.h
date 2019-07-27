@@ -29,7 +29,7 @@ namespace dom {
 
 
 class Attr final : public nsIAttribute,
-                       public nsIDOMAttr
+                   public nsIDOMAttr
 {
   virtual ~Attr() {}
 

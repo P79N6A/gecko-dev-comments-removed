@@ -39,7 +39,7 @@ class DOMSVGNumber;
 
 
 class DOMSVGNumberList final : public nsISupports,
-                                   public nsWrapperCache
+                               public nsWrapperCache
 {
   friend class AutoChangeNumberListNotifier;
   friend class DOMSVGNumber;

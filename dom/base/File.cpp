@@ -52,8 +52,8 @@ namespace dom {
 
 
 class DataOwnerAdapter final : public nsIInputStream,
-                                   public nsISeekableStream,
-                                   public nsIIPCSerializableInputStream
+                               public nsISeekableStream,
+                               public nsIIPCSerializableInputStream
 {
   typedef FileImplMemory::DataOwner DataOwner;
 public:

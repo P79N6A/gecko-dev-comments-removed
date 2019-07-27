@@ -2409,10 +2409,10 @@ private:
 
 
 class nsXPCWrappedJS final : protected nsAutoXPTCStub,
-                                 public nsIXPConnectWrappedJS,
-                                 public nsSupportsWeakReference,
-                                 public nsIPropertyBag,
-                                 public XPCRootSetElem
+                             public nsIXPConnectWrappedJS,
+                             public nsSupportsWeakReference,
+                             public nsIPropertyBag,
+                             public XPCRootSetElem
 {
 public:
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS

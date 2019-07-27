@@ -1506,7 +1506,7 @@ CompositorParent::RequestNotifyLayerTreeCleared(uint64_t aLayersId, CompositorUp
 
 
 class CrossProcessCompositorParent final : public PCompositorParent,
-                                               public ShadowLayersManager
+                                           public ShadowLayersManager
 {
   friend class CompositorParent;
 

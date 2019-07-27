@@ -36,7 +36,7 @@ class SpecificLayerAttributes;
 
 
 class ClientTiledPaintedLayer : public PaintedLayer,
-                               public ClientLayer
+                                public ClientLayer
 {
   typedef PaintedLayer Base;
 

@@ -14,7 +14,7 @@
 
 
 class nsStreamListenerWrapper final : public nsIStreamListener
-                                        , public nsIThreadRetargetableStreamListener
+                                    , public nsIThreadRetargetableStreamListener
 {
 public:
   explicit nsStreamListenerWrapper(nsIStreamListener *listener)

@@ -477,7 +477,7 @@ static const char sPopStatePrefStr[] = "browser.history.allowPopState";
 
 
 class nsGlobalWindowObserver final : public nsIObserver,
-                                         public nsIInterfaceRequestor
+                                     public nsIInterfaceRequestor
 {
 public:
   explicit nsGlobalWindowObserver(nsGlobalWindow* aWindow) : mWindow(aWindow) {}

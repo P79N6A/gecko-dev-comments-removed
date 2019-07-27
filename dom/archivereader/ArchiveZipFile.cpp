@@ -21,7 +21,7 @@ USING_ARCHIVEREADER_NAMESPACE
 
 
 class ArchiveInputStream final : public nsIInputStream,
-                                     public nsISeekableStream
+                                 public nsISeekableStream
 {
 public:
   ArchiveInputStream(uint64_t aParentSize,

@@ -34,7 +34,7 @@ class SharedThreadPool;
 
 
 class WMFByteStream final : public IMFByteStream
-                              , public IMFAttributes
+                          , public IMFAttributes
 {
   ~WMFByteStream();
 

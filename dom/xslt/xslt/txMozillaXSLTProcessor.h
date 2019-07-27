@@ -50,10 +50,10 @@ class GlobalObject;
 
 
 class txMozillaXSLTProcessor final : public nsIXSLTProcessor,
-                                         public nsIXSLTProcessorPrivate,
-                                         public nsIDocumentTransformer,
-                                         public nsStubMutationObserver,
-                                         public nsWrapperCache
+                                     public nsIXSLTProcessorPrivate,
+                                     public nsIDocumentTransformer,
+                                     public nsStubMutationObserver,
+                                     public nsWrapperCache
 {
 public:
     

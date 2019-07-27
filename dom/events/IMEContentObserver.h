@@ -32,11 +32,11 @@ class EventStateManager;
 
 
 class IMEContentObserver final : public nsISelectionListener
-                                   , public nsStubMutationObserver
-                                   , public nsIReflowObserver
-                                   , public nsIScrollObserver
-                                   , public nsSupportsWeakReference
-                                   , public nsIEditorObserver
+                               , public nsStubMutationObserver
+                               , public nsIReflowObserver
+                               , public nsIScrollObserver
+                               , public nsSupportsWeakReference
+                               , public nsIEditorObserver
 {
   friend class AsyncMergeableNotificationsFlusher;
 

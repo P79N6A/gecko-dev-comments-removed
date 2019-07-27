@@ -42,7 +42,7 @@ class SVGAnimationElement;
 
 
 class nsSMILAnimationController final : public nsSMILTimeContainer,
-                                            public nsARefreshObserver
+                                        public nsARefreshObserver
 {
 public:
   explicit nsSMILAnimationController(nsIDocument* aDoc);
