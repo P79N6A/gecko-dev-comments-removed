@@ -100,13 +100,14 @@ import android.nfc.NfcAdapter;
 import android.nfc.NfcEvent;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.StrictMode;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.InputDevice;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -132,7 +133,8 @@ public class BrowserApp extends GeckoApp
                                    BrowserSearch.OnEditSuggestionListener,
                                    HomePager.OnNewTabsListener,
                                    OnUrlOpenListener,
-                                   ActionModeCompat.Presenter {
+                                   ActionModeCompat.Presenter,
+                                   LayoutInflater.Factory {
     private static final String LOGTAG = "GeckoBrowserApp";
 
     private static final int TABS_ANIMATION_DURATION = 450;
@@ -230,6 +232,17 @@ public class BrowserApp extends GeckoApp
     private DynamicToolbar mDynamicToolbar = new DynamicToolbar();
 
     @Override
+    public View onCreateView(final String name, final Context context, final AttributeSet attrs) {
+        final View view;
+        if (BrowserToolbar.class.getName().equals(name)) {
+            view = BrowserToolbar.create(context, attrs);
+        } else {
+            view = super.onCreateView(name, context, attrs);
+        }
+        return view;
+    }
+
+    @Override
     public void onTabChanged(Tab tab, Tabs.TabEvents msg, Object data) {
         if (tab == null) {
             
@@ -280,35 +293,8 @@ public class BrowserApp extends GeckoApp
                     loadFavicon(tab);
                 }
                 break;
-            case BOOKMARK_ADDED:
-                showBookmarkAddedToast();
-                break;
-            case BOOKMARK_REMOVED:
-                showBookmarkRemovedToast();
-                break;
         }
         super.onTabChanged(tab, msg, data);
-    }
-
-    private void showBookmarkAddedToast() {
-        getButtonToast().show(false,
-                getResources().getString(R.string.bookmark_added),
-                ButtonToast.LENGTH_SHORT,
-                getResources().getString(R.string.bookmark_options),
-                null,
-                new ButtonToast.ToastListener() {
-                    @Override
-                    public void onButtonClicked() {
-                        showBookmarkDialog();
-                    }
-
-                    @Override
-                    public void onToastHidden(ButtonToast.ReasonHidden reason) { }
-                });
-    }
-
-    private void showBookmarkRemovedToast() {
-        Toast.makeText(this, R.string.bookmark_removed, Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -470,7 +456,7 @@ public class BrowserApp extends GeckoApp
         (new UIAsyncTask.WithoutParams<String>(ThreadUtils.getBackgroundHandler()) {
             @Override
             public String doInBackground() {
-                return Favicons.getFaviconURLForPageURL(getContext(), url);
+                return Favicons.getFaviconURLForPageURL(url);
             }
 
             @Override
@@ -635,7 +621,7 @@ public class BrowserApp extends GeckoApp
                 Method init = mediaManagerClass.getMethod("init", Context.class);
                 init.invoke(null, this);
             } catch(Exception ex) {
-                Log.e(LOGTAG, "Error initializing media manager", ex);
+                Log.i(LOGTAG, "Error initializing media manager", ex);
             }
         }
     }
@@ -665,7 +651,7 @@ public class BrowserApp extends GeckoApp
                 return Class.forName("org.mozilla.gecko.MediaPlayerManager");
             } catch(Exception ex) {
                 
-                Log.e(LOGTAG, "No native casting support", ex);
+                Log.i(LOGTAG, "No native casting support", ex);
             }
         }
 
@@ -697,10 +683,6 @@ public class BrowserApp extends GeckoApp
         super.onResume();
         EventDispatcher.getInstance().unregisterGeckoThreadListener((GeckoEventListener)this,
             "Prompt:ShowTop");
-        if (AppConstants.MOZ_STUMBLER_BUILD_TIME_ENABLED) {
-            
-            GeckoPreferences.broadcastStumblerPref(this);
-        }
     }
 
     @Override
@@ -887,7 +869,7 @@ public class BrowserApp extends GeckoApp
                 try {
                     args.put("tabId", tab.getId());
                 } catch (JSONException e) {
-                    Log.e(LOGTAG, "error building json arguments", e);
+                    Log.e(LOGTAG, "error building json arguments");
                 }
                 GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Feeds:Subscribe", args.toString()));
                 if (Versions.preHC) {
@@ -905,7 +887,7 @@ public class BrowserApp extends GeckoApp
                 try {
                     args.put("tabId", tab.getId());
                 } catch (JSONException e) {
-                    Log.e(LOGTAG, "error building json arguments", e);
+                    Log.e(LOGTAG, "error building json arguments");
                     return true;
                 }
                 GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("SearchEngines:Add", args.toString()));
@@ -942,13 +924,11 @@ public class BrowserApp extends GeckoApp
             }
 
             final OnFaviconLoadedListener listener = new GeckoAppShell.CreateShortcutFaviconLoadedListener(url, title);
-            Favicons.getSizedFavicon(getContext(),
-                                     url,
-                                     tab.getFaviconURL(),
-                                     Integer.MAX_VALUE,
-                                     LoadFaviconTask.FLAG_PERSIST,
-                                     listener);
-
+            Favicons.getSizedFavicon(url,
+                    tab.getFaviconURL(),
+                    Integer.MAX_VALUE,
+                    LoadFaviconTask.FLAG_PERSIST,
+                    listener);
             return true;
         }
 
@@ -1033,7 +1013,7 @@ public class BrowserApp extends GeckoApp
                 Method destroy = mediaManagerClass.getMethod("onDestroy",  (Class[]) null);
                 destroy.invoke(null);
             } catch(Exception ex) {
-                Log.e(LOGTAG, "Error destroying media manager", ex);
+                Log.i(LOGTAG, "Error destroying media manager", ex);
             }
         }
 
@@ -1452,11 +1432,6 @@ public class BrowserApp extends GeckoApp
                     }
                 });
 
-                if (AppConstants.MOZ_STUMBLER_BUILD_TIME_ENABLED) {
-                    
-                    
-                    GeckoPreferences.broadcastStumblerPref(this);
-                }
                 super.handleMessage(event, message);
             } else if (event.equals("Gecko:Ready")) {
                 
@@ -1520,12 +1495,13 @@ public class BrowserApp extends GeckoApp
 
     @Override
     public void addTab() {
-        Tabs.getInstance().addTab();
+        
+        Tabs.getInstance().loadUrl(AboutPages.HOME, Tabs.LOADURL_NEW_TAB);
     }
 
     @Override
     public void addPrivateTab() {
-        Tabs.getInstance().addPrivateTab();
+        Tabs.getInstance().loadUrl(AboutPages.PRIVATEBROWSING, Tabs.LOADURL_NEW_TAB | Tabs.LOADURL_PRIVATE);
     }
 
     @Override
@@ -1744,7 +1720,7 @@ public class BrowserApp extends GeckoApp
         final int tabFaviconSize = getResources().getDimensionPixelSize(R.dimen.browser_toolbar_favicon_size);
 
         int flags = (tab.isPrivate() || tab.getErrorType() != Tab.ErrorType.NONE) ? 0 : LoadFaviconTask.FLAG_PERSIST;
-        int id = Favicons.getSizedFavicon(getContext(), tab.getURL(), tab.getFaviconURL(), tabFaviconSize, flags, sFaviconLoadedListener);
+        int id = Favicons.getSizedFavicon(tab.getURL(), tab.getFaviconURL(), tabFaviconSize, flags, sFaviconLoadedListener);
 
         tab.setFaviconLoadId(id);
     }
@@ -1893,6 +1869,9 @@ public class BrowserApp extends GeckoApp
 
 
     private static void recordSearch(SearchEngine engine, String where) {
+        Log.i(LOGTAG, "Recording search: " +
+                      ((engine == null) ? "null" : engine.name) +
+                      ", " + where);
         try {
             String identifier = (engine == null) ? "other" : engine.getEngineIdentifier();
             JSONObject message = new JSONObject();
@@ -1901,7 +1880,7 @@ public class BrowserApp extends GeckoApp
             message.put("identifier", identifier);
             EventDispatcher.getInstance().dispatchEvent(message, null);
         } catch (Exception e) {
-            Log.e(LOGTAG, "Error recording search.", e);
+            Log.w(LOGTAG, "Error recording search.", e);
         }
     }
 
@@ -2269,13 +2248,8 @@ public class BrowserApp extends GeckoApp
         if (info.parent == 0) {
             destination = menu;
         } else if (info.parent == GECKO_TOOLS_MENU) {
-            
-            if (Versions.feature11Plus) {
-                MenuItem tools = menu.findItem(R.id.tools);
-                destination = tools != null ? tools.getSubMenu() : menu;
-            } else {
-                destination = menu;
-            }
+            MenuItem tools = menu.findItem(R.id.tools);
+            destination = tools != null ? tools.getSubMenu() : menu;
         } else {
             MenuItem parent = menu.findItem(info.parent);
             if (parent == null) {
@@ -2300,6 +2274,7 @@ public class BrowserApp extends GeckoApp
         item.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
+                Log.i(LOGTAG, "Menu item clicked");
                 GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Menu:Clicked", Integer.toString(info.id - ADDON_MENU_OFFSET)));
                 return true;
             }
@@ -2524,10 +2499,7 @@ public class BrowserApp extends GeckoApp
 
             
             
-            if (Versions.feature11Plus) {
-                
-                MenuUtils.safeSetEnabled(aMenu, R.id.page, false);
-            }
+            MenuUtils.safeSetEnabled(aMenu, R.id.page, false);
             MenuUtils.safeSetEnabled(aMenu, R.id.subscribe, false);
             MenuUtils.safeSetEnabled(aMenu, R.id.add_search_engine, false);
             MenuUtils.safeSetEnabled(aMenu, R.id.site_settings, false);
@@ -2556,18 +2528,16 @@ public class BrowserApp extends GeckoApp
         }
 
         
-        final boolean shareEnabled = RestrictedProfiles.isAllowed(RestrictedProfiles.Restriction.DISALLOW_SHARE);
-        share.setVisible(shareEnabled);
-        share.setEnabled(StringUtils.isShareableUrl(url) && shareEnabled);
-        MenuUtils.safeSetEnabled(aMenu, R.id.apps, RestrictedProfiles.isAllowed(RestrictedProfiles.Restriction.DISALLOW_INSTALL_APPS));
-        MenuUtils.safeSetEnabled(aMenu, R.id.addons, RestrictedProfiles.isAllowed(RestrictedProfiles.Restriction.DISALLOW_INSTALL_EXTENSIONS));
-        MenuUtils.safeSetEnabled(aMenu, R.id.downloads, RestrictedProfiles.isAllowed(RestrictedProfiles.Restriction.DISALLOW_DOWNLOADS));
+        final boolean inGuestMode = GeckoProfile.get(this).inGuestMode();
+        share.setVisible(!inGuestMode);
+        share.setEnabled(StringUtils.isShareableUrl(url) && !inGuestMode);
+        MenuUtils.safeSetEnabled(aMenu, R.id.apps, !inGuestMode);
+        MenuUtils.safeSetEnabled(aMenu, R.id.addons, !inGuestMode);
+        MenuUtils.safeSetEnabled(aMenu, R.id.downloads, !inGuestMode);
 
         
         
-        if (Versions.feature11Plus) {
-            MenuUtils.safeSetEnabled(aMenu, R.id.page, !isAboutHome(tab));
-        }
+        MenuUtils.safeSetEnabled(aMenu, R.id.page, !isAboutHome(tab));
         MenuUtils.safeSetEnabled(aMenu, R.id.subscribe, tab.hasFeeds());
         MenuUtils.safeSetEnabled(aMenu, R.id.add_search_engine, tab.hasOpenSearch());
         MenuUtils.safeSetEnabled(aMenu, R.id.site_settings, !isAboutHome(tab));
@@ -2655,10 +2625,25 @@ public class BrowserApp extends GeckoApp
                 if (item.isChecked()) {
                     Telemetry.sendUIEvent(TelemetryContract.Event.UNSAVE, TelemetryContract.Method.MENU, "bookmark");
                     tab.removeBookmark();
+                    Toast.makeText(this, R.string.bookmark_removed, Toast.LENGTH_SHORT).show();
                     item.setIcon(R.drawable.ic_menu_bookmark_add);
                 } else {
                     Telemetry.sendUIEvent(TelemetryContract.Event.SAVE, TelemetryContract.Method.MENU, "bookmark");
                     tab.addBookmark();
+                    getButtonToast().show(false,
+                        getResources().getString(R.string.bookmark_added),
+                        ButtonToast.LENGTH_SHORT,
+                        getResources().getString(R.string.bookmark_options),
+                        null,
+                        new ButtonToast.ToastListener() {
+                            @Override
+                            public void onButtonClicked() {
+                                showBookmarkDialog();
+                            }
+
+                            @Override
+                            public void onToastHidden(ButtonToast.ReasonHidden reason) { }
+                        });
                     item.setIcon(R.drawable.ic_menu_bookmark_remove);
                 }
             }
@@ -2749,7 +2734,7 @@ public class BrowserApp extends GeckoApp
                 args.put("desktopMode", !item.isChecked());
                 args.put("tabId", selectedTab.getId());
             } catch (JSONException e) {
-                Log.e(LOGTAG, "error building json arguments", e);
+                Log.e(LOGTAG, "error building json arguments");
             }
             GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("DesktopMode:Change", args.toString()));
             return true;
@@ -2879,27 +2864,30 @@ public class BrowserApp extends GeckoApp
             return;
         }
 
-        
-        final String keyName = getPackageName() + ".feedback_launch_count";
-        final StrictMode.ThreadPolicy savedPolicy = StrictMode.allowThreadDiskReads();
+        (new UIAsyncTask.WithoutParams<Boolean>(ThreadUtils.getBackgroundHandler()) {
+            @Override
+            public synchronized Boolean doInBackground() {
+                
+                SharedPreferences settings = getPreferences(Activity.MODE_PRIVATE);
+                String keyName = getPackageName() + ".feedback_launch_count";
+                int launchCount = settings.getInt(keyName, 0);
+                if (launchCount >= FEEDBACK_LAUNCH_COUNT)
+                    return false;
 
-        
-        try {
-            SharedPreferences settings = getPreferences(Activity.MODE_PRIVATE);
-            int launchCount = settings.getInt(keyName, 0);
-            if (launchCount < FEEDBACK_LAUNCH_COUNT) {
                 
                 launchCount++;
-                settings.edit().putInt(keyName, launchCount).apply();
+                settings.edit().putInt(keyName, launchCount).commit();
 
                 
-                if (launchCount == FEEDBACK_LAUNCH_COUNT) {
-                    GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Feedback:Show", null));
-                }
+                return launchCount == FEEDBACK_LAUNCH_COUNT;
             }
-        } finally {
-            StrictMode.setThreadPolicy(savedPolicy);
-        }
+
+            @Override
+            public void onPostExecute(Boolean shouldShowFeedbackPage) {
+                if (shouldShowFeedbackPage)
+                    GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Feedback:Show", null));
+            }
+        }).execute();
     }
 
     @Override
@@ -2910,8 +2898,13 @@ public class BrowserApp extends GeckoApp
     }
 
     private void resetFeedbackLaunchCount() {
-        SharedPreferences settings = getPreferences(Activity.MODE_PRIVATE);
-        settings.edit().putInt(getPackageName() + ".feedback_launch_count", 0).apply();
+        ThreadUtils.postToBackgroundThread(new Runnable() {
+            @Override
+            public synchronized void run() {
+                SharedPreferences settings = getPreferences(Activity.MODE_PRIVATE);
+                settings.edit().putInt(getPackageName() + ".feedback_launch_count", 0).commit();
+            }
+        });
     }
 
     private void getLastUrl() {
