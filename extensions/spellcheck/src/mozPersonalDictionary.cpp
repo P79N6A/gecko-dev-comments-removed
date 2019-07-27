@@ -21,9 +21,6 @@
 
 #define MOZ_PERSONAL_DICT_NAME "persdict.dat"
 
-const int kMaxWordLen=256;
-
-
 
 
 
@@ -390,4 +387,3 @@ NS_IMETHODIMP mozPersonalDictionary::Observe(nsISupports *aSubject, const char *
 
   return NS_OK;
 }
-
