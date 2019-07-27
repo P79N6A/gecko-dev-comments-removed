@@ -72,8 +72,7 @@ public:
   void FillObserverArray(nsCOMArray<nsIObserver>& aArray);
 
   
-  
-  void UnmarkGrayStrongObservers();
+  void AppendStrongObservers(nsCOMArray<nsIObserver>& aArray);
 
 private:
   nsTArray<ObserverRef> mObservers;
