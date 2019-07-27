@@ -13,7 +13,7 @@
 }
 
 body {
-  font-family: "Lucida Grande", sans-serif;
+  font: message-box;
   font-size: 12px;
   background: #fbfbfb;
 }
@@ -363,23 +363,6 @@ p {
 .windows p,
 .linux p {
   line-height: 16px;
-}
-
-
-
-
-
-.windows * {
-  font-family: 'Segoe';
-}
-
-.mac * {
-  font-family: 'Lucida Grande';
-}
-
-.linux * {
-  
-  font-family: 'Ubuntu', sans-serif;
 }
 
 
