@@ -214,9 +214,7 @@ public:
 
   
   
-  virtual ~nsThreadStartupEvent()
-  {
-  }
+  virtual ~nsThreadStartupEvent() {}
 
 private:
   NS_IMETHOD Run()
@@ -688,7 +686,8 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult)
   LOG(("THRD(%p) ProcessNextEvent [%u %u]\n", this, aMayWait, mRunningEvent));
 
   
-  MOZ_RELEASE_ASSERT(mIsMainThread != MAIN_THREAD || !ipc::ProcessingUrgentMessages());
+  MOZ_RELEASE_ASSERT(mIsMainThread != MAIN_THREAD ||
+                     !ipc::ProcessingUrgentMessages());
 
   if (NS_WARN_IF(PR_GetCurrentThread() != mThread)) {
     return NS_ERROR_NOT_SAME_THREAD;

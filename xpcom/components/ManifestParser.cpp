@@ -225,7 +225,7 @@ LogMessageWithContext(FileLocation& aFile,
     
     
     LogMessage("Warning: in '%s', line %i: %s", file.get(),
-               aLineNumber, (char*) formatted);
+               aLineNumber, (char*)formatted);
     return;
   }
 

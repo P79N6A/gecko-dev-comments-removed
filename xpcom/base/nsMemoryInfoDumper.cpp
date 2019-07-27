@@ -124,7 +124,8 @@ private:
   const bool mDumpChildProcesses;
 };
 
-NS_IMPL_ISUPPORTS_INHERITED(GCAndCCLogDumpRunnable, nsRunnable, nsIDumpGCAndCCLogsCallback)
+NS_IMPL_ISUPPORTS_INHERITED(GCAndCCLogDumpRunnable, nsRunnable,
+                            nsIDumpGCAndCCLogsCallback)
 
 } 
 
@@ -178,10 +179,9 @@ void doGCCCDump(const uint8_t aRecvSig)
   LOG("SignalWatcher(sig %d) dispatching GC/CC log runnable.", aRecvSig);
   
   nsRefPtr<GCAndCCLogDumpRunnable> runnable =
-    new GCAndCCLogDumpRunnable(
-       EmptyString(),
-       true,
-       true);
+    new GCAndCCLogDumpRunnable( EmptyString(),
+                                true,
+                                true);
   NS_DispatchToMainThread(runnable);
 }
 
@@ -195,7 +195,8 @@ void
 doMemoryReport(const nsCString& aInputStr)
 {
   bool minimize = aInputStr.EqualsLiteral("minimize memory report");
-  LOG("FifoWatcher(command:%s) dispatching memory report runnable.", aInputStr.get());
+  LOG("FifoWatcher(command:%s) dispatching memory report runnable.",
+      aInputStr.get());
   nsRefPtr<DumpMemoryInfoToTempDirRunnable> runnable =
     new DumpMemoryInfoToTempDirRunnable( EmptyString(),
                                          false,
@@ -314,7 +315,8 @@ EnsureNonEmptyIdentifier(nsAString& aIdentifier)
 
 
 
-class nsDumpGCAndCCLogsCallbackHolder MOZ_FINAL : public nsIDumpGCAndCCLogsCallback
+class nsDumpGCAndCCLogsCallbackHolder MOZ_FINAL
+  : public nsIDumpGCAndCCLogsCallback
 {
 public:
   NS_DECL_ISUPPORTS
