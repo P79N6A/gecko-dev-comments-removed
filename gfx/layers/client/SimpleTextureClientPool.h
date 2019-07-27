@@ -32,6 +32,8 @@ public:
   NS_INLINE_DECL_REFCOUNTING(SimpleTextureClientPool)
 
   SimpleTextureClientPool(gfx::SurfaceFormat aFormat, gfx::IntSize aSize,
+                          uint32_t aMaxTextureClients,
+                          uint32_t aShrinkTimeoutMsec,
                           ISurfaceAllocator *aAllocator);
 
   
@@ -51,15 +53,7 @@ public:
 private:
   
   
-  static const uint32_t sShrinkTimeout = 3000;
-
-  
-  
   static const uint32_t sMinCacheSize = 16;
-
-  
-  
-  static const uint32_t sMaxTextureClients = 50;
 
   static void ShrinkCallback(nsITimer *aTimer, void *aClosure);
   static void RecycleCallback(TextureClient* aClient, void* aClosure);
@@ -67,6 +61,14 @@ private:
 
   gfx::SurfaceFormat mFormat;
   gfx::IntSize mSize;
+
+  
+  
+  uint32_t mMaxTextureClients;
+
+  
+  
+  uint32_t mShrinkTimeoutMsec;
 
   
   

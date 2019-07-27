@@ -21,9 +21,13 @@ ShrinkCallback(nsITimer *aTimer, void *aClosure)
 }
 
 TextureClientPool::TextureClientPool(gfx::SurfaceFormat aFormat, gfx::IntSize aSize,
+                                     uint32_t aMaxTextureClients,
+                                     uint32_t aShrinkTimeoutMsec,
                                      ISurfaceAllocator *aAllocator)
   : mFormat(aFormat)
   , mSize(aSize)
+  , mMaxTextureClients(aMaxTextureClients)
+  , mShrinkTimeoutMsec(aShrinkTimeoutMsec)
   , mOutstandingClients(0)
   , mSurfaceAllocator(aAllocator)
 {
@@ -82,7 +86,7 @@ TextureClientPool::ReturnTextureClient(TextureClient *aClient)
   
   
   if (mTextureClients.size() > sMinCacheSize) {
-    mTimer->InitWithFuncCallback(ShrinkCallback, this, sShrinkTimeout,
+    mTimer->InitWithFuncCallback(ShrinkCallback, this, mShrinkTimeoutMsec,
                                  nsITimer::TYPE_ONE_SHOT);
   }
 }
@@ -103,7 +107,7 @@ TextureClientPool::ShrinkToMaximumSize()
   
   
   
-  while (totalClientsOutstanding > sMaxTextureClients) {
+  while (totalClientsOutstanding > mMaxTextureClients) {
     if (mTextureClientsDeferred.size()) {
       mOutstandingClients--;
       mTextureClientsDeferred.pop();

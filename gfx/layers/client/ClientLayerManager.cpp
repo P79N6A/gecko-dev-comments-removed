@@ -572,6 +572,8 @@ ClientLayerManager::GetTexturePool(SurfaceFormat aFormat)
   mTexturePools.AppendElement(
       new TextureClientPool(aFormat, IntSize(gfxPrefs::LayersTileWidth(),
                                              gfxPrefs::LayersTileHeight()),
+                            gfxPrefs::LayersTileMaxPoolSize(),
+                            gfxPrefs::LayersTileShrinkPoolTimeout(),
                             mForwarder));
 
   return mTexturePools.LastElement();
@@ -586,6 +588,8 @@ ClientLayerManager::GetSimpleTileTexturePool(SurfaceFormat aFormat)
   if (mSimpleTilePools[index].get() == nullptr) {
     mSimpleTilePools[index] = new SimpleTextureClientPool(aFormat, IntSize(gfxPrefs::LayersTileWidth(),
                                                                            gfxPrefs::LayersTileHeight()),
+                                                          gfxPrefs::LayersTileMaxPoolSize(),
+                                                          gfxPrefs::LayersTileShrinkPoolTimeout(),
                                                           mForwarder);
   }
 
