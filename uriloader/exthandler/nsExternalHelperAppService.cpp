@@ -1322,16 +1322,18 @@ void nsExternalAppHandler::RetargetLoadNotifications(nsIRequest *request)
   
   nsCOMPtr<nsIDocumentLoader> origContextLoader =
     do_GetInterface(mContentContext);
-  if (origContextLoader)
+  if (origContextLoader) {
     origContextLoader->GetDocumentChannel(getter_AddRefs(mOriginalChannel));
+  }
 
   bool isPrivate = NS_UsePrivateBrowsing(aChannel);
 
   nsCOMPtr<nsILoadGroup> oldLoadGroup;
   aChannel->GetLoadGroup(getter_AddRefs(oldLoadGroup));
 
-  if(oldLoadGroup)
-     oldLoadGroup->RemoveRequest(request, nullptr, NS_BINDING_RETARGETED);
+  if(oldLoadGroup) {
+    oldLoadGroup->RemoveRequest(request, nullptr, NS_BINDING_RETARGETED);
+  }
       
   aChannel->SetLoadGroup(nullptr);
   aChannel->SetNotificationCallbacks(nullptr);
@@ -1526,8 +1528,7 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
   }
 
   
-  if (aChannel)
-  {
+  if (aChannel) {
     aChannel->GetURI(getter_AddRefs(mSourceUrl));
   }
 
@@ -1558,30 +1559,24 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
   
   
   nsCOMPtr<nsIEncodedChannel> encChannel = do_QueryInterface( aChannel );
-  if (encChannel) 
-  {
+  if (encChannel) {
     
     bool applyConversion = true;
 
     nsCOMPtr<nsIURL> sourceURL(do_QueryInterface(mSourceUrl));
-    if (sourceURL)
-    {
+    if (sourceURL) {
       nsAutoCString extension;
       sourceURL->GetFileExtension(extension);
-      if (!extension.IsEmpty())
-      {
+      if (!extension.IsEmpty()) {
         nsCOMPtr<nsIUTF8StringEnumerator> encEnum;
         encChannel->GetContentEncodings(getter_AddRefs(encEnum));
-        if (encEnum)
-        {
+        if (encEnum) {
           bool hasMore;
           rv = encEnum->HasMore(&hasMore);
-          if (NS_SUCCEEDED(rv) && hasMore)
-          {
+          if (NS_SUCCEEDED(rv) && hasMore) {
             nsAutoCString encType;
             rv = encEnum->GetNext(encType);
-            if (NS_SUCCEEDED(rv) && !encType.IsEmpty())
-            {
+            if (NS_SUCCEEDED(rv) && !encType.IsEmpty()) {
               mExtProtSvc->ApplyDecodingForExtension(extension, encType,
                                                      &applyConversion);
             }
@@ -1595,8 +1590,9 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
 
   
   
-  if (XRE_GetProcessType() == GeckoProcessType_Content)
-     return NS_OK;
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    return NS_OK;
+  }
 
   rv = SetUpTempFile(aChannel);
   if (NS_FAILED(rv)) {
@@ -1644,8 +1640,7 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
 
   bool alwaysAsk = true;
   mMimeInfo->GetAlwaysAskBeforeHandling(&alwaysAsk);
-  if (alwaysAsk)
-  {
+  if (alwaysAsk) {
     
     
     
@@ -1654,22 +1649,18 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
 
     bool mimeTypeIsInDatastore = false;
     nsCOMPtr<nsIHandlerService> handlerSvc = do_GetService(NS_HANDLERSERVICE_CONTRACTID);
-    if (handlerSvc)
+    if (handlerSvc) {
       handlerSvc->Exists(mMimeInfo, &mimeTypeIsInDatastore);
-    if (!handlerSvc || !mimeTypeIsInDatastore)
-    {
+    }
+    if (!handlerSvc || !mimeTypeIsInDatastore) {
       nsAutoCString MIMEType;
       mMimeInfo->GetMIMEType(MIMEType);
-
-      if (!GetNeverAskFlagFromPref(NEVER_ASK_FOR_SAVE_TO_DISK_PREF, MIMEType.get()))
-      {
+      if (!GetNeverAskFlagFromPref(NEVER_ASK_FOR_SAVE_TO_DISK_PREF, MIMEType.get())) {
         
         alwaysAsk = false;
         
         mMimeInfo->SetPreferredAction(nsIMIMEInfo::saveToDisk);
-      }
-      else if (!GetNeverAskFlagFromPref(NEVER_ASK_FOR_OPEN_FILE_PREF, MIMEType.get()))
-      {
+      } else if (!GetNeverAskFlagFromPref(NEVER_ASK_FOR_OPEN_FILE_PREF, MIMEType.get())) {
         
         alwaysAsk = false;
       }
@@ -1738,12 +1729,9 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
 
 #endif
     if (action == nsIMIMEInfo::useHelperApp ||
-        action == nsIMIMEInfo::useSystemDefault)
-    {
+        action == nsIMIMEInfo::useSystemDefault) {
         rv = LaunchWithApplication(nullptr, false);
-    }
-    else 
-    {
+    } else {
         rv = SaveToDisk(nullptr, false);
     }
   }
@@ -1756,8 +1744,7 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
 void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequest *aRequest, const nsAFlatString &path)
 {
     nsAutoString msgId;
-    switch(rv)
-    {
+    switch (rv) {
     case NS_ERROR_OUT_OF_MEMORY:
         
         msgId.AssignLiteral("noMemory");
@@ -1784,9 +1771,7 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
 #else
           msgId.AssignLiteral("accessError");
 #endif
-        }
-        else
-        {
+        } else {
           msgId.AssignLiteral("launchError");
         }
         break;
@@ -1811,8 +1796,7 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
 
     default:
         
-        switch(type)
-        {
+        switch (type) {
         case kReadError:
           msgId.AssignLiteral("readError");
           break;
@@ -1834,24 +1818,20 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
     
     nsCOMPtr<nsIStringBundleService> stringService =
         mozilla::services::GetStringBundleService();
-    if (stringService)
-    {
+    if (stringService) {
         nsCOMPtr<nsIStringBundle> bundle;
-        if (NS_SUCCEEDED(stringService->CreateBundle("chrome://global/locale/nsWebBrowserPersist.properties", getter_AddRefs(bundle))))
-        {
+        if (NS_SUCCEEDED(stringService->CreateBundle("chrome://global/locale/nsWebBrowserPersist.properties",
+                         getter_AddRefs(bundle)))) {
             nsXPIDLString msgText;
             const char16_t *strings[] = { path.get() };
-            if(NS_SUCCEEDED(bundle->FormatStringFromName(msgId.get(), strings, 1, getter_Copies(msgText))))
-            {
-              if (mDialogProgressListener)
-              {
+            if (NS_SUCCEEDED(bundle->FormatStringFromName(msgId.get(), strings, 1,
+                                                          getter_Copies(msgText)))) {
+              if (mDialogProgressListener) {
                 
                 mDialogProgressListener->OnStatusChange(nullptr, (type == kReadError) ? aRequest : nullptr, rv, msgText);
               } else if (mTransfer) {
                 mTransfer->OnStatusChange(nullptr, (type == kReadError) ? aRequest : nullptr, rv, msgText);
-              }
-              else
-              if (XRE_GetProcessType() == GeckoProcessType_Default) {
+              } else if (XRE_GetProcessType() == GeckoProcessType_Default) {
                 
                 nsresult qiRv;
                 nsCOMPtr<nsIPrompt> prompter(do_GetInterface(GetDialogParent(), &qiRv));
@@ -1871,11 +1851,9 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
 
                 
                 
-                if (!prompter)
-                {
+                if (!prompter) {
                   nsCOMPtr<nsPIDOMWindow> window(do_GetInterface(GetDialogParent()));
-                  if (!window || !window->GetDocShell())
-                  {
+                  if (!window || !window->GetDocShell()) {
                     return;
                   }
 
@@ -1892,8 +1870,7 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
 
                   
                   
-                  if (!prompter)
-                  {
+                  if (!prompter) {
                     PR_LOG(nsExternalHelperAppService::mLog, PR_LOG_ERROR,
                            ("No prompter from DocShell, no way to alert user"));
                     return;
@@ -1915,31 +1892,30 @@ nsExternalAppHandler::OnDataAvailable(nsIRequest *request, nsISupports * aCtxt,
 {
   nsresult rv = NS_OK;
   
-  if (mCanceled || !mSaver) 
+  if (mCanceled || !mSaver) {
+    
     return request->Cancel(NS_BINDING_ABORTED);
+  }
 
   
-  if (count > 0)
-  {
+  if (count > 0) {
     mProgress += count;
 
     nsCOMPtr<nsIStreamListener> saver = do_QueryInterface(mSaver);
     rv = saver->OnDataAvailable(request, aCtxt, inStr, sourceOffset, count);
-    if (NS_SUCCEEDED(rv))
-    {
+    if (NS_SUCCEEDED(rv)) {
       
       if (mTransfer) {
         mTransfer->OnProgressChange64(nullptr, request, mProgress,
                                       mContentLength, mProgress,
                                       mContentLength);
       }
-    }
-    else
-    {
+    } else {
       
       nsAutoString tempFilePath;
-      if (mTempFile)
+      if (mTempFile) {
         mTempFile->GetPath(tempFilePath);
+      }
       SendStatusChange(kReadError, rv, request, tempFilePath);
 
       
@@ -1959,8 +1935,7 @@ NS_IMETHODIMP nsExternalAppHandler::OnStopRequest(nsIRequest *request, nsISuppor
   mStopRequestIssued = true;
 
   
-  if (!mCanceled && NS_FAILED(aStatus))
-  {
+  if (!mCanceled && NS_FAILED(aStatus)) {
     
     nsAutoString tempFilePath;
     if (mTempFile)
@@ -1971,8 +1946,9 @@ NS_IMETHODIMP nsExternalAppHandler::OnStopRequest(nsIRequest *request, nsISuppor
   }
 
   
-  if (mCanceled || !mSaver)
+  if (mCanceled || !mSaver) {
     return NS_OK;
+  }
 
   return mSaver->Finish(NS_OK);
 }
@@ -2368,14 +2344,12 @@ NS_IMETHODIMP nsExternalAppHandler::LaunchWithApplication(nsIFile * aApplication
   
   
   nsCOMPtr<nsIFileURL> fileUrl(do_QueryInterface(mSourceUrl));
-  if (fileUrl && mIsFileChannel)
-  {
+  if (fileUrl && mIsFileChannel) {
     Cancel(NS_BINDING_ABORTED);
     nsCOMPtr<nsIFile> file;
     nsresult rv = fileUrl->GetFile(getter_AddRefs(file));
 
-    if (NS_SUCCEEDED(rv))
-    {
+    if (NS_SUCCEEDED(rv)) {
       rv = mMimeInfo->LaunchWithFile(file);
       if (NS_SUCCEEDED(rv))
         return NS_OK;
@@ -2398,8 +2372,7 @@ NS_IMETHODIMP nsExternalAppHandler::LaunchWithApplication(nsIFile * aApplication
   nsCOMPtr<nsIFile> fileToUse;
   (void) GetDownloadDirectory(getter_AddRefs(fileToUse));
 
-  if (mSuggestedFileName.IsEmpty())
-  {
+  if (mSuggestedFileName.IsEmpty()) {
     
     mSuggestedFileName = mTempLeafName;
   }
@@ -2411,17 +2384,14 @@ NS_IMETHODIMP nsExternalAppHandler::LaunchWithApplication(nsIFile * aApplication
 #endif
 
   nsresult rv = fileToUse->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0644);
-  if(NS_SUCCEEDED(rv))
-  {
+  if(NS_SUCCEEDED(rv)) {
     mFinalFileDestination = do_QueryInterface(fileToUse);
     
     rv = CreateTransfer();
     if (NS_FAILED(rv)) {
       Cancel(rv);
     }
-  }
-  else
-  {
+  } else {
     
     
     
@@ -2485,8 +2455,7 @@ void nsExternalAppHandler::ProcessAnyRefreshTags()
    
    
    
-   if (mContentContext && mOriginalChannel)
-   {
+   if (mContentContext && mOriginalChannel) {
      nsCOMPtr<nsIRefreshURI> refreshHandler (do_GetInterface(mContentContext));
      if (refreshHandler) {
         refreshHandler->SetupRefreshURI(mOriginalChannel);
