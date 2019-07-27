@@ -101,9 +101,7 @@ MediaEngineGonkVideoSource::NotifyPull(MediaStreamGraph* aGraph,
     segment.AppendFrame(image.forget(), delta, size);
     
     
-    if (aSource->AppendToTrack(aID, &(segment))) {
-      aLastEndTime = aDesiredTime;
-    }
+    aSource->AppendToTrack(aID, &(segment));
   }
 }
 
