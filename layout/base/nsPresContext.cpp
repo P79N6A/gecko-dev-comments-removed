@@ -252,24 +252,14 @@ nsPresContext::nsPresContext(nsIDocument* aDocument, nsPresContextType aType)
   PR_INIT_CLIST(&mDOMMediaQueryLists);
 }
 
-nsPresContext::~nsPresContext()
+void
+nsPresContext::Destroy()
 {
-  NS_PRECONDITION(!mShell, "Presshell forgot to clear our mShell pointer");
-  SetShell(nullptr);
-
-  NS_ABORT_IF_FALSE(PR_CLIST_IS_EMPTY(&mDOMMediaQueryLists),
-                    "must not have media query lists left");
-
-  
-  
-  if (mRefreshDriver && mRefreshDriver->PresContext() == this) {
-    mRefreshDriver->Disconnect();
-  }
-
   if (mEventManager) {
     
     mEventManager->NotifyDestroyPresContext(this);
     mEventManager->SetPresContext(nullptr);
+    mEventManager = nullptr;
   }
 
   if (mPrefChangedTimer)
@@ -321,6 +311,24 @@ nsPresContext::~nsPresContext()
   Preferences::UnregisterCallback(nsPresContext::PrefChangedCallback,
                                   "nglayout.debug.paint_flashing_chrome",
                                   this);
+
+  
+  
+  if (mRefreshDriver && mRefreshDriver->PresContext() == this) {
+    mRefreshDriver->Disconnect();
+    mRefreshDriver = nullptr;
+  }
+}
+
+nsPresContext::~nsPresContext()
+{
+  NS_PRECONDITION(!mShell, "Presshell forgot to clear our mShell pointer");
+  SetShell(nullptr);
+
+  NS_ABORT_IF_FALSE(PR_CLIST_IS_EMPTY(&mDOMMediaQueryLists),
+                    "must not have media query lists left");
+
+  Destroy();
 }
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsPresContext)
@@ -368,13 +376,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsPresContext)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mDocument);
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mDeviceContext); 
-  if (tmp->mEventManager) {
-    
-    tmp->mEventManager->NotifyDestroyPresContext(tmp);
-    tmp->mEventManager->SetPresContext(nullptr);
-    tmp->mEventManager = nullptr;
-  }
-
   
   
   
@@ -387,15 +388,11 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsPresContext)
   }
 
   
-
   
   
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPrintSettings);
-  if (tmp->mPrefChangedTimer)
-  {
-    tmp->mPrefChangedTimer->Cancel();
-    tmp->mPrefChangedTimer = nullptr;
-  }
+
+  tmp->Destroy();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 

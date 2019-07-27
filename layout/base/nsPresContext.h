@@ -1172,6 +1172,9 @@ public:
 #endif
 
 protected:
+  
+  void Destroy();
+
   void InvalidatePaintedLayers();
   void AppUnitsPerDevPixelChanged();
 
