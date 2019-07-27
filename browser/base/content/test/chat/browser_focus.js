@@ -10,12 +10,16 @@ const CHAT_URL = "https://example.com/browser/browser/base/content/test/chat/cha
 
 function isTabFocused() {
   let tabb = gBrowser.getBrowserForTab(gBrowser.selectedTab);
-  return Services.focus.focusedWindow == tabb.contentWindow;
+  
+  let elt = Services.focus.getFocusedElementForWindow(window, false, {});
+  return elt == tabb;
 }
 
 
 function isChatFocused(chat) {
-  return chat.chatbar._isChatFocused(chat);
+  
+  let elt = Services.focus.getFocusedElementForWindow(window, false, {});
+  return elt == chat.content;
 }
 
 let chatbar = document.getElementById("pinnedchats");
