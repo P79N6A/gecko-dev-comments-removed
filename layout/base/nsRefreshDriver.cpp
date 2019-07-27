@@ -440,9 +440,13 @@ private:
     Tick(vsyncJsNow, aTimeStamp);
   }
 
-  nsRefPtr<RefreshTimerVsyncDispatcher> mVsyncDispatcher;
   nsRefPtr<RefreshDriverVsyncObserver> mVsyncObserver;
-  VsyncChild* mVsyncChild;
+  
+  nsRefPtr<RefreshTimerVsyncDispatcher> mVsyncDispatcher;
+  
+  
+  
+  nsRefPtr<VsyncChild> mVsyncChild;
 }; 
 
 

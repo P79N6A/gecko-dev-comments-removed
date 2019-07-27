@@ -190,7 +190,10 @@ BackgroundChildImpl::DeallocPFileDescriptorSetChild(
 BackgroundChildImpl::PVsyncChild*
 BackgroundChildImpl::AllocPVsyncChild()
 {
-  return new mozilla::layout::VsyncChild();
+  nsRefPtr<mozilla::layout::VsyncChild> actor = new mozilla::layout::VsyncChild();
+  
+  
+  return actor.forget().take();
 }
 
 bool
@@ -198,7 +201,9 @@ BackgroundChildImpl::DeallocPVsyncChild(PVsyncChild* aActor)
 {
   MOZ_ASSERT(aActor);
 
-  delete static_cast<mozilla::layout::VsyncChild*>(aActor);
+  
+  nsRefPtr<mozilla::layout::VsyncChild> actor =
+      dont_AddRef(static_cast<mozilla::layout::VsyncChild*>(aActor));
   return true;
 }
 
