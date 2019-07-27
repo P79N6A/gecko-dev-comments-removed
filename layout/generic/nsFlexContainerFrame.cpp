@@ -145,14 +145,16 @@ GetSizePropertyForAxis(const nsIFrame* aFrame, AxisOrientationType aAxis)
 
 
 
+
+
 static nscoord
-PhysicalPosFromLogicalPos(nscoord aLogicalPosn,
-                          nscoord aLogicalContainerSize,
-                          AxisOrientationType aAxis) {
+PhysicalCoordFromFlexRelativeCoord(nscoord aFlexRelativeCoord,
+                                   nscoord aContainerSize,
+                                   AxisOrientationType aAxis) {
   if (AxisGrowsInPositiveDirection(aAxis)) {
-    return aLogicalPosn;
+    return aFlexRelativeCoord;
   }
-  return aLogicalContainerSize - aLogicalPosn;
+  return aContainerSize - aFlexRelativeCoord;
 }
 
 
@@ -217,21 +219,26 @@ public:
 
 
 
-  nsPoint PhysicalPointFromLogicalPoint(nscoord aMainPosn,
-                                        nscoord aCrossPosn,
-                                        nscoord aContainerMainSize,
-                                        nscoord aContainerCrossSize) const {
-    nscoord physicalPosnInMainAxis =
-      PhysicalPosFromLogicalPos(aMainPosn, aContainerMainSize, mMainAxis);
-    nscoord physicalPosnInCrossAxis =
-      PhysicalPosFromLogicalPos(aCrossPosn, aContainerCrossSize, mCrossAxis);
+
+  nsPoint PhysicalPointFromFlexRelativePoint(nscoord aMainCoord,
+                                             nscoord aCrossCoord,
+                                             nscoord aContainerMainSize,
+                                             nscoord aContainerCrossSize) const {
+    nscoord physicalCoordInMainAxis =
+      PhysicalCoordFromFlexRelativeCoord(aMainCoord, aContainerMainSize,
+                                         mMainAxis);
+    nscoord physicalCoordInCrossAxis =
+      PhysicalCoordFromFlexRelativeCoord(aCrossCoord, aContainerCrossSize,
+                                         mCrossAxis);
 
     return IsAxisHorizontal(mMainAxis) ?
-      nsPoint(physicalPosnInMainAxis, physicalPosnInCrossAxis) :
-      nsPoint(physicalPosnInCrossAxis, physicalPosnInMainAxis);
+      nsPoint(physicalCoordInMainAxis, physicalCoordInCrossAxis) :
+      nsPoint(physicalCoordInCrossAxis, physicalCoordInMainAxis);
   }
-  nsSize PhysicalSizeFromLogicalSizes(nscoord aMainSize,
-                                      nscoord aCrossSize) const {
+
+
+  nsSize PhysicalSizeFromFlexRelativeSizes(nscoord aMainSize,
+                                           nscoord aCrossSize) const {
     return IsAxisHorizontal(mMainAxis) ?
       nsSize(aMainSize, aCrossSize) :
       nsSize(aCrossSize, aMainSize);
@@ -3258,14 +3265,16 @@ FlexLine::PositionItemsInMainAxis(uint8_t aJustifyContent,
 
 
 static nscoord
-ComputePhysicalAscentFromLogicalAscent(nscoord aLogicalAscent,
-                                       nscoord aContentBoxCrossSize,
-                                       const nsHTMLReflowState& aReflowState,
-                                       const FlexboxAxisTracker& aAxisTracker)
+ComputePhysicalAscentFromFlexRelativeAscent(
+  nscoord aFlexRelativeAscent,
+  nscoord aContentBoxCrossSize,
+  const nsHTMLReflowState& aReflowState,
+  const FlexboxAxisTracker& aAxisTracker)
 {
   return aReflowState.ComputedPhysicalBorderPadding().top +
-    PhysicalPosFromLogicalPos(aLogicalAscent, aContentBoxCrossSize,
-                              aAxisTracker.GetCrossAxis());
+    PhysicalCoordFromFlexRelativeCoord(aFlexRelativeAscent,
+                                       aContentBoxCrossSize,
+                                       aAxisTracker.GetCrossAxis());
 }
 
 void
@@ -3609,7 +3618,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
       flexContainerAscent = nscoord_MIN;
     } else  {
       flexContainerAscent =
-        ComputePhysicalAscentFromLogicalAscent(
+        ComputePhysicalAscentFromFlexRelativeAscent(
           crossAxisPosnTracker.GetPosition() + firstLineBaselineOffset,
           contentBoxCrossSize, aReflowState, aAxisTracker);
     }
@@ -3643,7 +3652,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
       flexContainerAscent = nscoord_MIN;
     } else {
       flexContainerAscent =
-        ComputePhysicalAscentFromLogicalAscent(
+        ComputePhysicalAscentFromFlexRelativeAscent(
           crossAxisPosnTracker.GetPosition() - lastLineBaselineOffset,
           contentBoxCrossSize, aReflowState, aAxisTracker);
     }
@@ -3665,7 +3674,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
   for (const FlexLine* line = lines.getFirst(); line; line = line->getNext()) {
     for (const FlexItem* item = line->GetFirstItem(); item;
          item = item->getNext()) {
-      nsPoint physicalPosn = aAxisTracker.PhysicalPointFromLogicalPoint(
+      nsPoint physicalPosn = aAxisTracker.PhysicalPointFromFlexRelativePoint(
                                item->GetMainPosition(),
                                item->GetCrossPosition(),
                                aContentBoxMainSize,
@@ -3677,8 +3686,8 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
       
       
       nsSize finalFlexedPhysicalSize =
-        aAxisTracker.PhysicalSizeFromLogicalSizes(item->GetMainSize(),
-                                                  item->GetCrossSize());
+        aAxisTracker.PhysicalSizeFromFlexRelativeSizes(item->GetMainSize(),
+                                                       item->GetCrossSize());
       LogicalPoint framePos(outerWM, physicalPosn,
                             containerWidth - finalFlexedPhysicalSize.width -
                               item->GetBorderPadding().LeftRight());
@@ -3726,8 +3735,8 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
   }
 
   nsSize desiredContentBoxSize =
-    aAxisTracker.PhysicalSizeFromLogicalSizes(aContentBoxMainSize,
-                                              contentBoxCrossSize);
+    aAxisTracker.PhysicalSizeFromFlexRelativeSizes(aContentBoxMainSize,
+                                                   contentBoxCrossSize);
 
   aDesiredSize.Width() = desiredContentBoxSize.width +
     containerBorderPadding.LeftRight();
