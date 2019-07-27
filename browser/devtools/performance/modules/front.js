@@ -6,7 +6,6 @@
 const { Cc, Ci, Cu, Cr } = require("chrome");
 const { Task } = require("resource://gre/modules/Task.jsm");
 const { extend } = require("sdk/util/object");
-const { RecordingModel } = require("devtools/performance/recording-model");
 
 loader.lazyRequireGetter(this, "Services");
 loader.lazyRequireGetter(this, "promise");
@@ -27,21 +26,9 @@ loader.lazyImporter(this, "setTimeout",
   "resource://gre/modules/Timer.jsm");
 loader.lazyImporter(this, "clearTimeout",
   "resource://gre/modules/Timer.jsm");
-loader.lazyImporter(this, "Promise",
-  "resource://gre/modules/Promise.jsm");
-
 
 
 const DEFAULT_ALLOCATION_SITES_PULL_TIMEOUT = 200; 
-
-
-const CONNECTION_PIPE_EVENTS = [
-  "console-profile-start", "console-profile-ending", "console-profile-end",
-  "timeline-data", "profiler-already-active", "profiler-activated"
-];
-
-
-const PROFILER_EVENTS = ["console-api-profiler", "profiler-stopped"];
 
 
 
@@ -84,16 +71,6 @@ function PerformanceActorsConnection(target) {
   this._target = target;
   this._client = this._target.client;
   this._request = this._request.bind(this);
-  this._pendingConsoleRecordings = [];
-  this._sitesPullTimeout = 0;
-  this._recordings = [];
-
-  this._onTimelineMarkers = this._onTimelineMarkers.bind(this);
-  this._onTimelineFrames = this._onTimelineFrames.bind(this);
-  this._onTimelineMemory = this._onTimelineMemory.bind(this);
-  this._onTimelineTicks = this._onTimelineTicks.bind(this);
-  this._onProfilerEvent = this._onProfilerEvent.bind(this);
-  this._pullAllocationSites = this._pullAllocationSites.bind(this);
 
   Services.obs.notifyObservers(null, "performance-actors-connection-created", null);
 }
@@ -112,13 +89,9 @@ PerformanceActorsConnection.prototype = {
 
 
   open: Task.async(function*() {
-    if (this._connecting) {
-      return this._connecting.promise;
+    if (this._connected) {
+      return;
     }
-
-    
-    
-    this._connecting = Promise.defer();
 
     
     yield this._target.makeRemote();
@@ -131,11 +104,8 @@ PerformanceActorsConnection.prototype = {
     yield this._connectTimelineActor();
     yield this._connectMemoryActor();
 
-    yield this._registerListeners();
-
     this._connected = true;
 
-    this._connecting.resolve();
     Services.obs.notifyObservers(null, "performance-actors-connection-opened", null);
   }),
 
@@ -143,14 +113,7 @@ PerformanceActorsConnection.prototype = {
 
 
   destroy: Task.async(function*() {
-    if (this._connecting && !this._connected) {
-      console.warn("Attempting to destroy SharedPerformanceActorsConnection before initialization completion. If testing, ensure `gDevTools.testing` is set.");
-    }
-
-    yield this._unregisterListeners();
     yield this._disconnectActors();
-
-    this._memory = this._timeline = this._profiler = this._target = this._client = null;
     this._connected = false;
   }),
 
@@ -203,35 +166,6 @@ PerformanceActorsConnection.prototype = {
   
 
 
-
-  _registerListeners: Task.async(function*() {
-    
-    this._timeline.on("markers", this._onTimelineMarkers);
-    this._timeline.on("frames", this._onTimelineFrames);
-    this._timeline.on("memory", this._onTimelineMemory);
-    this._timeline.on("ticks", this._onTimelineTicks);
-
-    
-    yield this._request("profiler", "registerEventNotifications", { events: PROFILER_EVENTS });
-    this._client.addListener("eventNotification", this._onProfilerEvent);
-  }),
-
-  
-
-
-  _unregisterListeners: Task.async(function*() {
-    this._timeline.off("markers", this._onTimelineMarkers);
-    this._timeline.off("frames", this._onTimelineFrames);
-    this._timeline.off("memory", this._onTimelineMemory);
-    this._timeline.off("ticks", this._onTimelineTicks);
-
-    yield this._request("profiler", "unregisterEventNotifications", { events: PROFILER_EVENTS });
-    this._client.removeListener("eventNotification", this._onProfilerEvent);
-  }),
-
-  
-
-
   _disconnectActors: Task.async(function* () {
     yield this._timeline.destroy();
     yield this._memory.destroy();
@@ -270,123 +204,36 @@ PerformanceActorsConnection.prototype = {
     if (actor == "memory") {
       return this._memory[method].apply(this._memory, args);
     }
-  },
+  }
+};
+
+
+
+
+
+
+
+
+function PerformanceFront(connection) {
+  EventEmitter.decorate(this);
+
+  this._request = connection._request;
 
   
-
-
-
-
-
-  _onProfilerEvent: function (_, { topic, subject, details }) {
-    if (topic === "console-api-profiler") {
-      if (subject.action === "profile") {
-        this._onConsoleProfileStart(details);
-      } else if (subject.action === "profileEnd") {
-        this._onConsoleProfileEnd(details);
-      }
-    } else if (topic === "profiler-stopped") {
-      this._onProfilerUnexpectedlyStopped();
-    }
-  },
+  connection._timeline.on("markers", markers => this.emit("markers", markers));
+  connection._timeline.on("frames", (delta, frames) => this.emit("frames", delta, frames));
+  connection._timeline.on("memory", (delta, measurement) => this.emit("memory", delta, measurement));
+  connection._timeline.on("ticks", (delta, timestamps) => this.emit("ticks", delta, timestamps));
 
   
+  this._usingMockMemory = connection._usingMockMemory;
+  this._usingMockTimeline = connection._usingMockTimeline;
 
+  this._pullAllocationSites = this._pullAllocationSites.bind(this);
+  this._sitesPullTimeout = 0;
+}
 
-  _onProfilerUnexpectedlyStopped: function () {
-
-  },
-
-  
-
-
-
-
-
-
-
-
-  _onConsoleProfileStart: Task.async(function *({ profileLabel, currentTime: startTime }) {
-    let recordings = this._recordings;
-
-    
-    if (recordings.find(e => e.getLabel() === profileLabel)) {
-      return;
-    }
-
-    
-    
-    
-    
-    yield gDevTools.getToolbox(this._target).loadTool("performance");
-
-    let model = yield this.startRecording(extend(getRecordingModelPrefs(), {
-      console: true,
-      label: profileLabel
-    }));
-
-    this.emit("console-profile-start", model);
-  }),
-
-  
-
-
-
-
-
-  _onConsoleProfileEnd: Task.async(function *(profilerData) {
-    let pending = this._recordings.filter(r => r.isConsole() && r.isRecording());
-    if (pending.length === 0) {
-      return;
-    }
-
-    let model;
-    
-    
-    if (profilerData.profileLabel) {
-      model = pending.find(e => e.getLabel() === profilerData.profileLabel);
-    }
-    
-    else {
-      model = pending[pending.length - 1];
-    }
-
-    
-    
-    if (!model) {
-      Cu.reportError("console.profileEnd() called with label that does not match a recording.");
-      return;
-    }
-
-    this.emit("console-profile-ending", model);
-    yield this.stopRecording(model);
-    this.emit("console-profile-end", model);
-  }),
-
-  
-
-
-
-  _onTimelineMarkers: function (markers) { this._onTimelineData("markers", markers); },
-  _onTimelineFrames: function (delta, frames) { this._onTimelineData("frames", delta, frames); },
-  _onTimelineMemory: function (delta, measurement) { this._onTimelineData("memory", delta, measurement); },
-  _onTimelineTicks: function (delta, timestamps) { this._onTimelineData("ticks", delta, timestamps); },
-
-  
-
-
-
-
-
-
-
-
-
-
-  _onTimelineData: function (...data) {
-    this._recordings.forEach(e => e.addTimelineData.apply(e, data));
-    this.emit("timeline-data", ...data);
-  },
+PerformanceFront.prototype = {
 
   
 
@@ -398,25 +245,17 @@ PerformanceActorsConnection.prototype = {
 
 
   startRecording: Task.async(function*(options = {}) {
-    let model = new RecordingModel(options);
     
     
     let profilerStartTime = yield this._startProfiler();
     let timelineStartTime = yield this._startTimeline(options);
     let memoryStartTime = yield this._startMemory(options);
 
-    let data = {
+    return {
       profilerStartTime,
       timelineStartTime,
       memoryStartTime
     };
-
-    
-    
-    model.populate(data);
-    this._recordings.push(model);
-
-    return model;
   }),
 
   
@@ -427,39 +266,13 @@ PerformanceActorsConnection.prototype = {
 
 
 
-  stopRecording: Task.async(function*(model) {
-    
-    
-    if (!this._recordings.includes(model)) {
-      return;
-    }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    this._recordings.splice(this._recordings.indexOf(model), 1);
-
-    let config = model.getConfiguration();
+  stopRecording: Task.async(function*(options = {}) {
+    let memoryEndTime = yield this._stopMemory(options);
+    let timelineEndTime = yield this._stopTimeline(options);
     let profilerData = yield this._request("profiler", "getProfile");
-    let memoryEndTime = Date.now();
-    let timelineEndTime = Date.now();
 
-    
-    
-    
-    
-    if (!this.isRecording()) {
-      memoryEndTime = yield this._stopMemory(config);
-      timelineEndTime = yield this._stopTimeline(config);
-    }
-
-    
-    model._onStopRecording({
+    return {
       
       profile: profilerData.profile,
 
@@ -467,20 +280,8 @@ PerformanceActorsConnection.prototype = {
       profilerEndTime: profilerData.currentTime,
       timelineEndTime: timelineEndTime,
       memoryEndTime: memoryEndTime
-    });
-
-    return model;
+    };
   }),
-
-  
-
-
-
-
-
-  isRecording: function () {
-    return this._recordings.some(recording => recording.isRecording());
-  },
 
   
 
@@ -588,8 +389,7 @@ PerformanceActorsConnection.prototype = {
     }
 
     let memoryData = yield this._request("memory", "getAllocations");
-
-    this._onTimelineData("allocations", {
+    this.emit("allocations", {
       sites: memoryData.allocations,
       timestamps: memoryData.allocationsTimestamps,
       frames: memoryData.frames,
@@ -601,60 +401,6 @@ PerformanceActorsConnection.prototype = {
 
     deferred.resolve();
   }),
-
-  toString: () => "[object PerformanceActorsConnection]"
-};
-
-
-
-
-
-
-
-
-function PerformanceFront(connection) {
-  EventEmitter.decorate(this);
-
-  this._connection = connection;
-  this._request = connection._request;
-
-  
-  this._usingMockMemory = connection._usingMockMemory;
-  this._usingMockTimeline = connection._usingMockTimeline;
-
-  
-  
-  CONNECTION_PIPE_EVENTS.forEach(eventName => this._connection.on(eventName, () => this.emit.apply(this, arguments)));
-}
-
-PerformanceFront.prototype = {
-
-  
-
-
-
-
-
-
-
-
-
-  startRecording: function (options) {
-    return this._connection.startRecording(options);
-  },
-
-  
-
-
-
-
-
-
-
-
-  stopRecording: function (model) {
-    return this._connection.stopRecording(model);
-  },
 
   
 
@@ -675,19 +421,6 @@ function listTabs(client) {
   let deferred = promise.defer();
   client.listTabs(deferred.resolve);
   return deferred.promise;
-}
-
-
-
-
-function getRecordingModelPrefs () {
-  return {
-    withMemory: Services.prefs.getBoolPref("devtools.performance.ui.enable-memory"),
-    withTicks: Services.prefs.getBoolPref("devtools.performance.ui.enable-framerate"),
-    withAllocations: Services.prefs.getBoolPref("devtools.performance.ui.enable-memory"),
-    allocationsSampleProbability: +Services.prefs.getCharPref("devtools.performance.memory.sample-probability"),
-    allocationsMaxLogLength: Services.prefs.getIntPref("devtools.performance.memory.max-log-length")
-  };
 }
 
 exports.getPerformanceActorsConnection = target => SharedPerformanceActors.forTarget(target);

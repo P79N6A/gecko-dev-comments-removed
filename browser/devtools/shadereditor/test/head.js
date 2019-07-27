@@ -1,5 +1,5 @@
-
-
+/* Any copyright is dedicated to the Public Domain.
+   http://creativecommons.org/publicdomain/zero/1.0/ */
 "use strict";
 
 const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
@@ -7,7 +7,7 @@ const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 let { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
 
 let gEnableLogging = Services.prefs.getBoolPref("devtools.debugger.log");
-
+// To enable logging for try runs, just set the pref to true.
 Services.prefs.setBoolPref("devtools.debugger.log", false);
 
 let { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
@@ -31,31 +31,29 @@ const MULTIPLE_CONTEXTS_URL = EXAMPLE_URL + "doc_multiple-contexts.html";
 const OVERLAPPING_GEOMETRY_CANVAS_URL = EXAMPLE_URL + "doc_overlapping-geometry.html";
 const BLENDED_GEOMETRY_CANVAS_URL = EXAMPLE_URL + "doc_blended-geometry.html";
 
-
+// All tests are asynchronous.
 waitForExplicitFinish();
 
 let gToolEnabled = Services.prefs.getBoolPref("devtools.shadereditor.enabled");
-
-gDevTools.testing = true;
 
 registerCleanupFunction(() => {
   info("finish() was called, cleaning up...");
   Services.prefs.setBoolPref("devtools.debugger.log", gEnableLogging);
   Services.prefs.setBoolPref("devtools.shadereditor.enabled", gToolEnabled);
 
-  
-  
+  // These tests use a lot of memory due to GL contexts, so force a GC to help
+  // fragmentation.
   info("Forcing GC after shadereditor test.");
   Cu.forceGC();
 });
 
-
-
-
-
-
-
-
+/**
+ * Call manually in tests that use frame script utils after initializing
+ * the shader editor. Must be called after initializing so we can detect
+ * whether or not `content` is a CPOW or not. Call after init but before navigating
+ * to different pages, as bfcache and thus shader caching gets really strange if
+ * frame script attached in the middle of the test.
+ */
 function loadFrameScripts () {
   if (Cu.isCrossProcessWrapper(content)) {
     mm = gBrowser.selectedBrowser.messageManager;
@@ -141,7 +139,7 @@ function once(aTarget, aEventName, aUseCapture = false) {
   let deferred = promise.defer();
 
   for (let [add, remove] of [
-    ["on", "off"], 
+    ["on", "off"], // Use event emitter before DOM events for consistency
     ["addEventListener", "removeEventListener"],
     ["addListener", "removeListener"]
   ]) {
@@ -157,10 +155,10 @@ function once(aTarget, aEventName, aUseCapture = false) {
   return deferred.promise;
 }
 
-
-
-
-
+// Hack around `once`, as that only resolves to a single (first) argument
+// and discards the rest. `onceSpread` is similar, except resolves to an
+// array of all of the arguments in the handler. These should be consolidated
+// into the same function, but many tests will need to be changed.
 function onceSpread(aTarget, aEvent) {
   let deferred = promise.defer();
   aTarget.once(aEvent, (...args) => deferred.resolve(args));
@@ -276,14 +274,14 @@ function teardown(aPanel) {
   ]);
 }
 
-
-
-
-
-
-
-
-
+// Due to `program-linked` events firing synchronously, we cannot
+// just yield/chain them together, as then we miss all actors after the
+// first event since they're fired consecutively. This allows us to capture
+// all actors and returns an array containing them.
+//
+// Takes a `front` object that is an event emitter, the number of
+// programs that should be listened to and waited on, and an optional
+// `onAdd` function that calls with the entire actors array on program link
 function getPrograms(front, count, onAdd) {
   let actors = [];
   let deferred = promise.defer();

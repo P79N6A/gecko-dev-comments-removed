@@ -1,9 +1,9 @@
+/* vim:set ts=2 sw=2 sts=2 et: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
+/* CSS Variables specific to this panel that aren't defined by the themes */
 .theme-dark {
   --cell-border-color: rgba(255,255,255,0.15);
   --focus-cell-border-color: rgba(255,255,255,0.5);
@@ -18,7 +18,7 @@
   --row-hover-background-color: rgba(76,158,217,0.2);
 }
 
-
+/* Toolbar */
 
 #performance-toolbar > tabs,
 #performance-toolbar {
@@ -60,7 +60,7 @@
   border-radius: 1px;
 }
 
-
+/* Recording Notice */
 
 #performance-view .notice-container {
   font-size: 120%;
@@ -75,11 +75,7 @@
   margin: 0;
 }
 
-#performance-view .notice-container vbox {
-  text-align: center;
-}
-
-
+/* Overview Panel */
 
 .record-button {
   list-style-image: url(profiler-stopwatch.svg);
@@ -101,7 +97,7 @@
   display: none;
 }
 
-
+/* Details Panel */
 
 #select-waterfall-view {
   list-style-image: url(performance-icons.svg#details-waterfall);
@@ -117,10 +113,10 @@
   list-style-image: url(performance-icons.svg#details-flamegraph);
 }
 
-
+/* Profile call tree */
 
 .call-tree-cells-container {
-  
+  /* Hack: force hardware acceleration */
   transform: translateZ(1px);
   overflow: auto;
 }
@@ -221,7 +217,7 @@
 .call-tree-item:not([origin="content"]) .call-tree-url,
 .call-tree-item:not([origin="content"]) .call-tree-line,
 .call-tree-item:not([origin="content"]) .call-tree-column {
-  
+  /* Style chrome and non-JS nodes differently. */
   opacity: 0.6;
 }
 
@@ -305,12 +301,12 @@
   transform-origin: center right;
 }
 
-
-
-
+/**
+ * Details Waterfall Styles
+ */
 
 .waterfall-list-contents {
-  
+  /* Hack: force hardware acceleration */
   transform: translateZ(1px);
   overflow-x: hidden;
   overflow-y: auto;
@@ -321,8 +317,8 @@
 }
 
 .waterfall-background-ticks {
-  
-  
+  /* Background created on a <canvas> in js. */
+  /* @see browser/devtools/timeline/widgets/waterfall.js */
   background-image: -moz-element(#waterfall-background);
   background-repeat: repeat-y;
   background-position: -1px center;
@@ -373,7 +369,7 @@
 }
 
 .waterfall-header-tick:not(:first-child) {
-  -moz-margin-start: -100px !important; 
+  -moz-margin-start: -100px !important; /* Don't affect layout. */
 }
 
 .waterfall-marker-bullet {
@@ -465,7 +461,7 @@
   font-weight: bold;
 }
 
-
+/* Recording items */
 
 .recording-item {
   padding: 4px;
@@ -491,13 +487,13 @@
 }
 
 #recordings-list .selected label {
-  
+  /* Text inside a selected item should not be custom colored. */
   color: inherit !important;
 }
 
-
-
-
+/**
+ * JIT View
+ */
 
 #jit-optimizations-view {
   width: 350px;
@@ -506,7 +502,7 @@
   min-width: 200px;
 }
 
-
+/* override default styles for tree widget */
 #jit-optimizations-view .tree-widget-empty-text {
   font-size: inherit;
   padding: 0px;
@@ -519,7 +515,7 @@
 
 #jit-optimizations-toolbar {
   height: 18px;
-  min-height: 0px; 
+  min-height: 0px; /* override .devtools-toolbar min-height */
 }
 
 .jit-optimizations-title {
@@ -531,7 +527,7 @@
   font-size: 90%;
 }
 
-
+/* override default .tree-widget-item line-height */
 #jit-optimizations-raw-view .tree-widget-item {
   line-height: 20px !important;
   display: block;
@@ -548,7 +544,7 @@
 }
 
 #jit-optimizations-view .opt-outcome::before {
-  content: "â†’";
+  content: "→";
   margin: 4px 0px;
   color: var(--theme-body-color);
 }

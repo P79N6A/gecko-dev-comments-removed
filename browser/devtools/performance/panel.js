@@ -6,7 +6,7 @@
 "use strict";
 
 const {Cc, Ci, Cu, Cr} = require("chrome");
-const { PerformanceFront } = require("devtools/performance/front");
+const { PerformanceFront, getPerformanceActorsConnection } = require("devtools/performance/front");
 
 Cu.import("resource://gre/modules/Task.jsm");
 
@@ -35,11 +35,7 @@ PerformancePanel.prototype = {
     this.panelWin.gToolbox = this._toolbox;
     this.panelWin.gTarget = this.target;
 
-    
-    
-    this._connection = this.panelWin.gToolbox.getPerformanceActorsConnection();
-    
-    
+    this._connection = getPerformanceActorsConnection(this.target);
     yield this._connection.open();
 
     this.panelWin.gFront = new PerformanceFront(this._connection);
@@ -60,6 +56,9 @@ PerformancePanel.prototype = {
     if (this._destroyed) {
       return;
     }
+
+    
+    yield this._connection.destroy();
 
     yield this.panelWin.shutdownPerformance();
     this.emit("destroyed");

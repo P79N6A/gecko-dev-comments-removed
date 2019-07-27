@@ -4,7 +4,6 @@
 "use strict";
 
 const { Cc, Ci, Cu, Cr } = require("chrome");
-const { Task } = require("resource://gre/modules/Task.jsm");
 
 loader.lazyRequireGetter(this, "PerformanceIO",
   "devtools/performance/io", true);
@@ -18,8 +17,9 @@ loader.lazyRequireGetter(this, "RecordingUtils",
 
 
 const RecordingModel = function (options={}) {
+  this._front = options.front;
+  this._performance = options.performance;
   this._label = options.label || "";
-  this._console = options.console || false;
 
   this._configuration = {
     withTicks: options.withTicks || false,
@@ -32,7 +32,6 @@ const RecordingModel = function (options={}) {
 
 RecordingModel.prototype = {
   
-  _console: false,
   _imported: false,
   _recording: false,
   _profilerStartTime: 0,
@@ -84,14 +83,14 @@ RecordingModel.prototype = {
   
 
 
+  startRecording: Task.async(function *() {
+    
+    
+    
+    
+    this._localStartTime = this._performance.now();
 
-  populate: function (info) {
-    
-    
-    
-    
-    this._localStartTime = Date.now()
-
+    let info = yield this._front.startRecording(this.getConfiguration());
     this._profilerStartTime = info.profilerStartTime;
     this._timelineStartTime = info.timelineStartTime;
     this._memoryStartTime = info.memoryStartTime;
@@ -102,13 +101,13 @@ RecordingModel.prototype = {
     this._memory = [];
     this._ticks = [];
     this._allocations = { sites: [], timestamps: [], frames: [], counts: [] };
-  },
+  }),
 
   
 
 
-
-  _onStopRecording: Task.async(function *(info) {
+  stopRecording: Task.async(function *() {
+    let info = yield this._front.stopRecording(this.getConfiguration());
     this._profile = info.profile;
     this._duration = info.profilerEndTime - this._profilerStartTime;
     this._recording = false;
@@ -141,7 +140,7 @@ RecordingModel.prototype = {
     
     
     if (this._recording) {
-      return Date.now() - this._localStartTime;
+      return this._performance.now() - this._localStartTime;
     } else {
       return this._duration;
     }
@@ -217,22 +216,6 @@ RecordingModel.prototype = {
     let allocations = this.getAllocations();
     let profile = this.getProfile();
     return { label, duration, markers, frames, memory, ticks, allocations, profile };
-  },
-
-  
-
-
-
-  isImported: function () {
-    return this._imported;
-  },
-
-  
-
-
-
-  isConsole: function () {
-    return this._console;
   },
 
   
