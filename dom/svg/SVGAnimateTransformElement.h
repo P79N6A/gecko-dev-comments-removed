@@ -39,7 +39,7 @@ public:
                         nsAttrValue& aResult) MOZ_OVERRIDE;
 
   
-  virtual nsSMILAnimationFunction& AnimationFunction();
+  virtual nsSMILAnimationFunction& AnimationFunction() MOZ_OVERRIDE;
 };
 
 } 
