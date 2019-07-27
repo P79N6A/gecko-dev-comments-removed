@@ -56,11 +56,6 @@ private:
   
 
 
-  void SendIPCEvent(AccEvent* aEvent) const;
-
-  
-
-
   void CoalesceTextChangeEventsFor(AccHideEvent* aTailEvent,
                                    AccHideEvent* aThisEvent);
   void CoalesceTextChangeEventsFor(AccShowEvent* aTailEvent,

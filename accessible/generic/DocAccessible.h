@@ -336,6 +336,12 @@ public:
 
   void RecreateAccessible(nsIContent* aContent);
 
+  
+
+
+
+  DocAccessibleChild* IPCDoc() const { return mIPCDoc; }
+
 protected:
   virtual ~DocAccessible();
 
@@ -518,12 +524,6 @@ protected:
 
 
   bool IsLoadEventTarget() const;
-
-  
-
-
-
-  DocAccessibleChild* IPCDoc() const { return mIPCDoc; }
 
   
 
