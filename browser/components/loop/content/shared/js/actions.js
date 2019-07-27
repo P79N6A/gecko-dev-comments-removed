@@ -35,10 +35,8 @@ loop.shared.actions = (function() {
 
     GatherCallData: Action.define("gatherCallData", {
       
-      
-      calleeId: [String, null],
-      
-      callId: [String, null]
+      callId: [String, null],
+      outgoing: Boolean
     }),
 
     

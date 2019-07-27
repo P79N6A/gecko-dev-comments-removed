@@ -64,7 +64,7 @@ loop.store = (function() {
       
       outgoing: undefined,
       
-      calleeId: undefined,
+      contact: undefined,
       
       
       callType: CALL_TYPES.AUDIO_VIDEO,
@@ -83,9 +83,9 @@ loop.store = (function() {
       
       sessionToken: undefined,
       
-      audioMuted: true,
+      audioMuted: false,
       
-      videoMuted: true
+      videoMuted: false
     },
 
     
@@ -192,14 +192,29 @@ loop.store = (function() {
 
 
     gatherCallData: function(actionData) {
+      if (!actionData.outgoing) {
+        
+        
+        this.set({outgoing: false});
+        return;
+      }
+
+      var callData = navigator.mozLoop.getCallData(actionData.callId);
+      if (!callData) {
+        console.error("Failed to get the call data");
+        this.set({callState: CALL_STATES.TERMINATED});
+        return;
+      }
+
       this.set({
-        calleeId: actionData.calleeId,
-        outgoing: !!actionData.calleeId,
+        contact: callData.contact,
+        outgoing: actionData.outgoing,
         callId: actionData.callId,
+        callType: callData.callType,
         callState: CALL_STATES.GATHER
       });
 
-      this.videoMuted = this.get("callType") !== CALL_TYPES.AUDIO_VIDEO;
+      this.set({videoMuted: this.get("callType") === CALL_TYPES.AUDIO_ONLY});
 
       if (this.get("outgoing")) {
         this._setupOutgoingCall();
@@ -285,7 +300,7 @@ loop.store = (function() {
 
     setMute: function(actionData) {
       var muteType = actionData.type + "Muted";
-      this.set(muteType, actionData.enabled);
+      this.set(muteType, !actionData.enabled);
     },
 
     
@@ -293,8 +308,13 @@ loop.store = (function() {
 
 
     _setupOutgoingCall: function() {
-      
-      this.client.setupOutgoingCall([this.get("calleeId")],
+      var contactAddresses = [];
+
+      this.get("contact").email.forEach(function(address) {
+        contactAddresses.push(address.value);
+      });
+
+      this.client.setupOutgoingCall(contactAddresses,
         this.get("callType"),
         function(err, result) {
           if (err) {

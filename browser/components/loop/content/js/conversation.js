@@ -553,10 +553,6 @@ loop.conversation = (function(mozL10n) {
 
     
     
-    var outgoingEmail = navigator.mozLoop.getLoopCharPref("outgoingemail");
-
-    
-    
     var conversation = new sharedModels.ConversationModel(
       {},                
       {sdk: window.OT}   
@@ -566,14 +562,25 @@ loop.conversation = (function(mozL10n) {
     var helper = new loop.shared.utils.Helper();
     var locationHash = helper.locationHash();
     var callId;
-    if (locationHash) {
-      callId = locationHash.match(/\#incoming\/(.*)/)[1]
-      conversation.set("callId", callId);
+    var outgoing;
+
+    var hash = locationHash.match(/\#incoming\/(.*)/);
+    if (hash) {
+      callId = hash[1];
+      outgoing = false;
+    } else {
+      hash = locationHash.match(/\#outgoing\/(.*)/);
+      if (hash) {
+        callId = hash[1];
+        outgoing = true;
+      }
     }
+
+    conversation.set({callId: callId});
 
     window.addEventListener("unload", function(event) {
       
-      navigator.mozLoop.releaseCallData(conversation.get("callId"));
+      navigator.mozLoop.releaseCallData(callId);
     });
 
     document.body.classList.add(loop.shared.utils.getTargetPlatform());
@@ -588,7 +595,7 @@ loop.conversation = (function(mozL10n) {
 
     dispatcher.dispatch(new loop.shared.actions.GatherCallData({
       callId: callId,
-      calleeId: outgoingEmail
+      outgoing: outgoing
     }));
   }
 

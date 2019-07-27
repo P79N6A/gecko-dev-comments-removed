@@ -592,11 +592,26 @@ function injectLoopAPI(targetWindow) {
         return MozLoopService.generateUUID();
       }
     },
+
+    
+
+
+
+
+
+
+    startDirectCall: {
+      enumerable: true,
+      writable: true,
+      value: function(contact, callType) {
+        MozLoopService.startDirectCall(contact, callType);
+      }
+    },
   };
 
   function onStatusChanged(aSubject, aTopic, aData) {
     let event = new targetWindow.CustomEvent("LoopStatusChanged");
-    targetWindow.dispatchEvent(event)
+    targetWindow.dispatchEvent(event);
   };
 
   function onDOMWindowDestroyed(aSubject, aTopic, aData) {

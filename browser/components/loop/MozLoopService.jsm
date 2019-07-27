@@ -719,13 +719,8 @@ let MozLoopServiceInternal = {
       if (respData.calls && Array.isArray(respData.calls)) {
         respData.calls.forEach((callData) => {
           if (!this.callsData.inUse) {
-            this.callsData.inUse = true;
             callData.sessionType = sessionType;
-            this.callsData.data = callData;
-            this.openChatWindow(
-              null,
-              this.localizedStrings["incoming_call_title2"].textContent,
-              "about:loopconversation#incoming/" + callData.callId);
+            this._startCall(callData, "incoming");
           } else {
             this._returnBusy(callData);
           }
@@ -736,6 +731,44 @@ let MozLoopServiceInternal = {
     } catch (err) {
       log.warn("Error parsing calls info", err);
     }
+  },
+
+  
+
+
+
+
+
+
+  _startCall: function(callData, conversationType) {
+    this.callsData.inUse = true;
+    this.callsData.data = callData;
+    this.openChatWindow(
+      null,
+      
+      "",
+      "about:loopconversation#" + conversationType + "/" + callData.callId);
+  },
+
+  
+
+
+
+
+
+
+  startDirectCall: function(contact, callType) {
+    if (this.callsData.inUse)
+      return false;
+
+    var callData = {
+      contact: contact,
+      callType: callType,
+      callId: Math.floor((Math.random() * 10))
+    };
+
+    this._startCall(callData, "outgoing");
+    return true;
   },
 
    
@@ -1504,5 +1537,16 @@ this.MozLoopService = {
   hawkRequest: function(sessionType, path, method, payloadObj) {
     return MozLoopServiceInternal.hawkRequest(sessionType, path, method, payloadObj).catch(
       error => {MozLoopServiceInternal._hawkRequestError(error);});
+  },
+
+    
+
+
+
+
+
+
+  startDirectCall: function(contact, callType) {
+    MozLoopServiceInternal.startDirectCall(contact, callType);
   },
 };
