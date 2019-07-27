@@ -62,31 +62,32 @@ packToFloat16(float v)
 
     
     uint16_t f16Bits = uint16_t(f32Bits >> 16) & 0x8000;
+    const uint32_t mantissa = f32Bits & 0x7FFFFF;
+    const uint32_t exp = (f32Bits >> 23) & 0xFF;
 
     
-    if ((f32Bits & 0x7FFFFFFF) == 0x00000000) {
-        return f16Bits;
+    
+    
+    
+    if (exp >= 143) {
+        if (mantissa && exp == 0xFF) {
+            
+            return f16Bits | kFloat16Value_NaN;
+        } else {
+            
+            return f16Bits | kFloat16Value_Infinity;
+        }
     }
 
     
-    if (f32Value != f32Value) {
-        return f16Bits | kFloat16Value_NaN;
-    }
-
-    int32_t exp = int32_t(f32Bits >> 23) - 127;
-
     
-    if (exp < -14) {
-        return f16Bits;
-    }
-
     
-    if (exp > 15) {
-        return f16Bits | kFloat16Value_Infinity;
+    if (exp <= 112) {
+        return f16Bits | uint16_t(mantissa >> (14 + 112 - exp));
     }
 
-    f16Bits |= uint16_t(exp + 15) << 10;
-    f16Bits |= uint16_t(f32Bits >> 13) & 0x03FF;
+    f16Bits |= uint16_t(exp - 112) << 10;
+    f16Bits |= uint16_t(mantissa >> 13) & 0x03FF;
 
     return f16Bits;
 }
@@ -94,21 +95,41 @@ packToFloat16(float v)
 MOZ_ALWAYS_INLINE float
 unpackFromFloat16(uint16_t v)
 {
-    union
-    {
+    union {
         float f32Value;
         uint32_t f32Bits;
     };
 
     
     f32Bits = uint32_t(v & 0x8000) << 16;
+    uint16_t exp = (v >> 10) & 0x001F;
+    uint16_t mantissa = v & 0x03FF;
 
-    if ((v & 0x7FFF) == 0x0000) {
+    if (exp) {
+        
+        
+        
+        if (mantissa) {
+            exp = 112; 
+            mantissa <<= 1;
+            
+            
+            while ((mantissa & (1 << 10)) == 0) {
+                mantissa <<= 1;
+                --exp;
+            }
+            mantissa &= 0x03FF;
+
+            f32Bits |= (exp << 23) | (mantissa << 13);
+
+            
+            return f32Value;
+        }
+
         
         return f32Value;
     }
 
-    uint16_t exp = (v >> 10) & 0x001F;
     if (exp == 0x001F) {
         if (v & 0x03FF) {
             
