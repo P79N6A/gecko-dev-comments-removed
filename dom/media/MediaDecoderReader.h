@@ -179,6 +179,7 @@ public:
   
   
   virtual bool IsMediaSeekable() = 0;
+  void SetStartTime(int64_t aStartTime);
 
 protected:
   virtual ~MediaDecoderReader();
@@ -235,6 +236,11 @@ protected:
   
   bool mIgnoreAudioOutputFormat;
 
+  
+  
+  
+  
+  int64_t mStartTime;
 private:
 
   nsRefPtr<RequestSampleCallback> mSampleDecodedCallback;

@@ -2890,6 +2890,11 @@ void MediaDecoderStateMachine::SetStartTime(int64_t aStartTimeUsecs)
       mEndTime = mStartTime + mEndTime;
     }
   }
+
+  
+  
+  mReader->SetStartTime(mStartTime);
+
   
   
   
