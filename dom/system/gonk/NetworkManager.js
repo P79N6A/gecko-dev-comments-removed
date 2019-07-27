@@ -344,14 +344,16 @@ NetworkManager.prototype = {
             gNetworkService.removeHostRoutes(network.name);
             this.setHostRoutes(network);
           }
+
+          
+          
+          gNetworkService.removeDefaultRoute(network);
+
           
           
           if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_DUN) {
             this.setSecondaryDefaultRoute(network);
           }
-          
-          
-          gNetworkService.removeDefaultRoute(network);
 
           this._addSubnetRoutes(network);
           this.setAndConfigureActive();
