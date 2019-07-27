@@ -35,11 +35,19 @@ namespace layers {
 
 
 
+
+
+
+
+
+
 class TaskThrottler {
 public:
-  TaskThrottler(const TimeStamp& aTimeStamp);
+  TaskThrottler(const TimeStamp& aTimeStamp, const TimeDuration& aMaxWait);
 
   
+
+
 
 
 
@@ -92,6 +100,7 @@ private:
   bool mOutstanding;
   UniquePtr<CancelableTask> mQueuedTask;
   TimeStamp mStartTime;
+  TimeDuration mMaxWait;
   RollingMean<TimeDuration, TimeDuration> mMean;
 };
 

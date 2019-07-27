@@ -443,11 +443,6 @@ TabChildBase::UpdateFrameHandler(const FrameMetrics& aFrameMetrics)
       return true;
     }
   }
-
-  
-  
-  
-  mLastRootMetrics = ProcessUpdateFrame(mLastRootMetrics);
   return true;
 }
 
