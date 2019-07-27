@@ -485,6 +485,11 @@ TrackBuffer::QueueInitializeDecoder(SourceBufferDecoder* aDecoder)
 void
 TrackBuffer::InitializeDecoder(SourceBufferDecoder* aDecoder)
 {
+  if (!mParentDecoder) {
+    MSE_DEBUG("TrackBuffer(%p) was shutdown. Aborting initialization.",
+              this);
+    return;
+  }
   
   
   
@@ -587,6 +592,11 @@ TrackBuffer::InitializeDecoder(SourceBufferDecoder* aDecoder)
 void
 TrackBuffer::CompleteInitializeDecoder(SourceBufferDecoder* aDecoder)
 {
+  if (!mParentDecoder) {
+    MSE_DEBUG("TrackBuffer(%p) was shutdown. Aborting initialization.",
+              this);
+    return;
+  }
   ReentrantMonitorAutoEnter mon(mParentDecoder->GetReentrantMonitor());
   if (mCurrentDecoder != aDecoder) {
     MSE_DEBUG("TrackBuffer(%p) append was cancelled. Aborting initialization.",
