@@ -2,7 +2,7 @@
 
 
 
-const TESTCASE_URI = TEST_BASE + "nostyle.html";
+const TESTCASE_URI = TEST_BASE_HTTP + "nostyle.html";
 
 
 function test()

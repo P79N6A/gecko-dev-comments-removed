@@ -104,11 +104,11 @@ let StyleSheetsActor = exports.StyleSheetsActor = protocol.ActorClass({
       let actors = [];
 
       for (let doc of documents) {
-        let sheets = yield this._addStyleSheets(doc.styleSheets);
+        let sheets = yield this._addStyleSheets(doc);
         actors = actors.concat(sheets);
 
         
-        for (let iframe of doc.getElementsByTagName("iframe")) {
+        for (let iframe of doc.querySelectorAll("iframe, browser, frame")) {
           if (iframe.contentDocument) {
             
             
@@ -130,16 +130,45 @@ let StyleSheetsActor = exports.StyleSheetsActor = protocol.ActorClass({
 
 
 
-  _addStyleSheets: function(styleSheets)
+
+  _shouldListSheet: function(doc, sheet) {
+    
+    
+    
+    if (sheet.href && sheet.href.toLowerCase() == "about:preferencestylesheet") {
+      return false;
+    }
+
+    return true;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _addStyleSheets: function(doc)
   {
     return Task.spawn(function*() {
+      let isChrome = Services.scriptSecurityManager.isSystemPrincipal(doc.nodePrincipal);
+      let styleSheets = isChrome ? DOMUtils.getAllStyleSheets(doc) : doc.styleSheets;
       let actors = [];
       for (let i = 0; i < styleSheets.length; i++) {
-        let actor = this.parentActor.createStyleSheetActor(styleSheets[i]);
+        let sheet = styleSheets[i];
+        if (!this._shouldListSheet(doc, sheet)) {
+          continue;
+        }
+
+        let actor = this.parentActor.createStyleSheetActor(sheet);
         actors.push(actor);
 
         
-        let imports = yield this._getImported(actor);
+        let imports = yield this._getImported(doc, actor);
         actors = actors.concat(imports);
       }
       return actors;
@@ -154,7 +183,9 @@ let StyleSheetsActor = exports.StyleSheetsActor = protocol.ActorClass({
 
 
 
-  _getImported: function(styleSheet) {
+
+
+  _getImported: function(doc, styleSheet) {
     return Task.spawn(function*() {
       let rules = yield styleSheet.getCSSRules();
       let imported = [];
@@ -164,14 +195,14 @@ let StyleSheetsActor = exports.StyleSheetsActor = protocol.ActorClass({
         if (rule.type == Ci.nsIDOMCSSRule.IMPORT_RULE) {
           
           
-          if (!rule.styleSheet) {
+          if (!rule.styleSheet || !this._shouldListSheet(doc, rule.styleSheet)) {
             continue;
           }
           let actor = this.parentActor.createStyleSheetActor(rule.styleSheet);
           imported.push(actor);
 
           
-          let children = yield this._getImported(actor);
+          let children = yield this._getImported(doc, actor);
           imported = imported.concat(children);
         }
         else if (rule.type != Ci.nsIDOMCSSRule.CHARSET_RULE) {

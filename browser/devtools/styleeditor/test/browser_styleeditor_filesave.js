@@ -2,8 +2,8 @@
 
 
 
-const TESTCASE_URI_HTML = TEST_BASE + "simple.html";
-const TESTCASE_URI_CSS = TEST_BASE + "simple.css";
+const TESTCASE_URI_HTML = TEST_BASE_HTTP + "simple.html";
+const TESTCASE_URI_CSS = TEST_BASE_HTTP + "simple.css";
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
