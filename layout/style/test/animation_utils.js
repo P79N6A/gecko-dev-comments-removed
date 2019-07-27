@@ -190,13 +190,21 @@ function findKeyframesRule(name) {
 
 
 
-function runOMTATest(aTestFunction, aOnSkip) {
+
+
+
+
+
+function runOMTATest(aTestFunction, aOnSkip, specialPowersForPrefs) {
   const OMTAPrefKey = "layers.offmainthreadcomposition.async-animations";
   var utils      = SpecialPowers.DOMWindowUtils;
+  if (!specialPowersForPrefs) {
+      specialPowersForPrefs = SpecialPowers;
+  }
   var expectOMTA = utils.layerManagerRemote &&
                    
                    
-                   SpecialPowers.getBoolPref(OMTAPrefKey);
+                   specialPowersForPrefs.getBoolPref(OMTAPrefKey);
 
   isOMTAWorking().then(function(isWorking) {
     if (expectOMTA) {
