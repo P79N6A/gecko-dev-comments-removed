@@ -7120,6 +7120,7 @@ frontend::EmitTree(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
       case PNK_IMPORT:
       case PNK_EXPORT:
+      case PNK_EXPORT_FROM:
        
        bce->reportError(nullptr, JSMSG_MODULES_NOT_IMPLEMENTED);
        return false;
