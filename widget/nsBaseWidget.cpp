@@ -181,22 +181,39 @@ nsBaseWidget::Shutdown()
   mShutdownObserver = nullptr;
 }
 
+static void DeferredDestroyCompositor(nsRefPtr<CompositorParent> aCompositorParent,
+                                      nsRefPtr<CompositorChild> aCompositorChild)
+{
+    
+    
+    
+}
+
 void nsBaseWidget::DestroyCompositor()
 {
   if (mCompositorChild) {
-    mCompositorChild->Destroy();
-    mCompositorChild = nullptr;
-    mCompositorParent = nullptr;
-  }
-}
+    nsRefPtr<CompositorChild> compositorChild = mCompositorChild.forget();
+    nsRefPtr<CompositorParent> compositorParent = mCompositorParent.forget();
 
-void nsBaseWidget::DestroyLayerManager()
-{
-  if (mLayerManager) {
-    mLayerManager->Destroy();
-    mLayerManager = nullptr;
+    compositorChild->SendWillStop();
+    
+    
+    compositorChild->Destroy();
+
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    MessageLoop::current()->PostTask(FROM_HERE,
+               NewRunnableFunction(DeferredDestroyCompositor, compositorParent,
+                                   compositorChild));
   }
-  DestroyCompositor();
 }
 
 
@@ -211,6 +228,11 @@ nsBaseWidget::~nsBaseWidget()
     static_cast<BasicLayerManager*>(mLayerManager.get())->ClearRetainerWidget();
   }
 
+  if (mLayerManager) {
+    mLayerManager->Destroy();
+    mLayerManager = nullptr;
+  }
+
   if (mShutdownObserver) {
     
     
@@ -220,7 +242,7 @@ nsBaseWidget::~nsBaseWidget()
     nsContentUtils::UnregisterShutdownObserver(mShutdownObserver);
   }
 
-  DestroyLayerManager();
+  DestroyCompositor();
 
 #ifdef NOISY_WIDGET_LEAKS
   gNumWidgets--;
@@ -1059,12 +1081,8 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
   MOZ_ASSERT(gfxPlatform::UsesOffMainThreadCompositing(),
              "This function assumes OMTC");
 
-  MOZ_ASSERT(!mCompositorParent && !mCompositorChild,
-    "Should have properly cleaned up the previous PCompositor pair beforehand");
-
-  if (mCompositorChild) {
-    mCompositorChild->Destroy();
-  }
+  MOZ_ASSERT(!mCompositorParent,
+    "Should have properly cleaned up the previous CompositorParent beforehand");
 
   
   
@@ -1077,9 +1095,11 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
 
   CreateCompositorVsyncDispatcher();
   mCompositorParent = NewCompositorParent(aWidth, aHeight);
+  MessageChannel *parentChannel = mCompositorParent->GetIPCChannel();
   nsRefPtr<ClientLayerManager> lm = new ClientLayerManager(this);
+  MessageLoop *childMessageLoop = CompositorParent::CompositorLoop();
   mCompositorChild = new CompositorChild(lm);
-  mCompositorChild->OpenSameProcess(mCompositorParent);
+  mCompositorChild->Open(parentChannel, childMessageLoop, ipc::ChildSide);
 
   if (gfxPrefs::AsyncPanZoomEnabled() &&
       (WindowType() == eWindowType_toplevel || WindowType() == eWindowType_child)) {
@@ -1108,20 +1128,26 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
       backendHints, 0, &textureFactoryIdentifier, &success);
   }
 
-  ShadowLayerForwarder* lf = lm->AsShadowForwarder();
+  if (success) {
+    ShadowLayerForwarder* lf = lm->AsShadowForwarder();
+    if (!lf) {
+      lm = nullptr;
+      mCompositorChild = nullptr;
+      return;
+    }
+    lf->SetShadowManager(shadowManager);
+    lf->IdentifyTextureHost(textureFactoryIdentifier);
+    ImageBridgeChild::IdentifyCompositorTextureHost(textureFactoryIdentifier);
+    WindowUsesOMTC();
 
-  if (!success || !lf) {
-    NS_WARNING("Failed to create an OMT compositor.");
-    DestroyCompositor();
+    mLayerManager = lm.forget();
     return;
   }
 
-  lf->SetShadowManager(shadowManager);
-  lf->IdentifyTextureHost(textureFactoryIdentifier);
-  ImageBridgeChild::IdentifyCompositorTextureHost(textureFactoryIdentifier);
-  WindowUsesOMTC();
-
-  mLayerManager = lm.forget();
+  NS_WARNING("Failed to create an OMT compositor.");
+  DestroyCompositor();
+  
+  
 }
 
 bool nsBaseWidget::ShouldUseOffMainThreadCompositing()

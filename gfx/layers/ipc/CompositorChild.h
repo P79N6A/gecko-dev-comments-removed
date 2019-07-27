@@ -60,12 +60,6 @@ public:
   static PCompositorChild*
   Create(Transport* aTransport, ProcessId aOtherProcess);
 
-  
-
-
-
-  bool OpenSameProcess(CompositorParent* aParent);
-
   static CompositorChild* Get();
 
   static bool ChildProcessHasCompositor() { return sCompositor != nullptr; }
@@ -174,9 +168,6 @@ private:
                                                         void* aLayerTransactionChild);
 
   nsRefPtr<ClientLayerManager> mLayerManager;
-  
-  
-  nsRefPtr<CompositorParent> mCompositorParent;
 
   
   
