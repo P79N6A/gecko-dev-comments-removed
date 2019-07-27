@@ -588,6 +588,20 @@ APZCTreeManager::GetTouchInputBlockAPZC(const MultiTouchInput& aEvent,
     return apzc.forget();
   }
 
+  { 
+    
+    
+    
+    
+    
+    
+    
+    MonitorAutoLock lock(mTreeLock);
+    for (AsyncPanZoomController* apzc = mRootApzc; apzc; apzc = apzc->GetPrevSibling()) {
+      FlushRepaintsRecursively(apzc);
+    }
+  }
+
   apzc = GetTargetAPZC(aEvent.mTouches[0].mScreenPoint, aOutInOverscrolledApzc);
   for (size_t i = 1; i < aEvent.mTouches.Length(); i++) {
     nsRefPtr<AsyncPanZoomController> apzc2 = GetTargetAPZC(aEvent.mTouches[i].mScreenPoint, aOutInOverscrolledApzc);
@@ -833,6 +847,17 @@ APZCTreeManager::UpdateZoomConstraintsRecursively(AsyncPanZoomController* aApzc,
     if (!child->IsRootForLayersId()) {
       UpdateZoomConstraintsRecursively(child, aConstraints);
     }
+  }
+}
+
+void
+APZCTreeManager::FlushRepaintsRecursively(AsyncPanZoomController* aApzc)
+{
+  mTreeLock.AssertCurrentThreadOwns();
+
+  aApzc->FlushRepaintForNewInputBlock();
+  for (AsyncPanZoomController* child = aApzc->GetLastChild(); child; child = child->GetPrevSibling()) {
+    FlushRepaintsRecursively(child);
   }
 }
 

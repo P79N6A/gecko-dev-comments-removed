@@ -78,6 +78,11 @@ public:
   
 
 
+  void CancelPendingTask();
+
+  
+
+
   TimeDuration TimeSinceLastRequest(const TimeStamp& aTimeStamp);
 
   

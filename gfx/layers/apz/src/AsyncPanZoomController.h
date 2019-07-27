@@ -547,7 +547,10 @@ protected:
 
 
 
-  void RequestContentRepaint(FrameMetrics& aFrameMetrics);
+
+
+
+  void RequestContentRepaint(FrameMetrics& aFrameMetrics, bool aThrottled = true);
 
   
 
@@ -795,6 +798,12 @@ public:
 
 
   void SetAllowedTouchBehavior(const nsTArray<TouchBehaviorFlags>& aBehaviors);
+
+  
+
+
+
+  void FlushRepaintForNewInputBlock();
 
 private:
   void ScheduleContentResponseTimeout();
