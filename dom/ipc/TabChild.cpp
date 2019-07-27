@@ -329,6 +329,13 @@ TabChildBase::HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize)
     metrics.SetScrollId(viewId);
   }
 
+  if (nsIPresShell* shell = document->GetShell()) {
+    if (nsPresContext* context = shell->GetPresContext()) {
+      metrics.mDevPixelsPerCSSPixel = CSSToLayoutDeviceScale(
+        (float)nsPresContext::AppUnitsPerCSSPixel() / context->AppUnitsPerDevPixel());
+    }
+  }
+
   metrics.mCumulativeResolution = metrics.GetZoom() / metrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
   
   
@@ -757,6 +764,8 @@ TabChild::HandleEvent(nsIDOMEvent* aEvent)
   if (eventType.EqualsLiteral("DOMMetaAdded")) {
     
     
+    HandlePossibleViewportChange(mInnerSize);
+  } else if (eventType.EqualsLiteral("FullZoomChange")) {
     HandlePossibleViewportChange(mInnerSize);
   }
 
@@ -1463,6 +1472,7 @@ TabChild::ActorDestroy(ActorDestroyReason why)
       (mTabChildGlobal->mMessageManager.get())->Disconnect();
     mTabChildGlobal->mMessageManager = nullptr;
   }
+
   if (Id() != 0) {
     NestedTabChildMap().erase(Id());
   }
@@ -2546,6 +2556,7 @@ TabChild::InitTabChildGlobal(FrameScriptLoading aScriptLoading)
     root->SetParentTarget(scope);
 
     chromeHandler->AddEventListener(NS_LITERAL_STRING("DOMMetaAdded"), this, false);
+    chromeHandler->AddEventListener(NS_LITERAL_STRING("FullZoomChange"), this, false);
   }
 
   if (aScriptLoading != DONT_LOAD_SCRIPTS && !mTriedBrowserInit) {
