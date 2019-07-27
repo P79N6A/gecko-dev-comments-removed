@@ -359,8 +359,14 @@ KeyStoreConnector::GetSocketAddr(const sockaddr_any& aAddr,
 
 KeyStore::KeyStore()
 {
+  MOZ_COUNT_CTOR(KeyStore);
   ::startKeyStoreService();
   Listen();
+}
+
+KeyStore::~KeyStore()
+{
+  MOZ_COUNT_DTOR(KeyStore);
 }
 
 void
