@@ -4539,21 +4539,6 @@ nsTextFrame::CharacterDataChanged(CharacterDataChangeInfo* aInfo)
   return NS_OK;
 }
 
- void
-nsTextFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
-{
-  
-  
-  if (StyleText()->mTextTransform == NS_STYLE_TEXT_TRANSFORM_CAPITALIZE &&
-      mTextRun &&
-      !(mTextRun->GetFlags() & nsTextFrameUtils::TEXT_IS_TRANSFORMED)) {
-    NS_ERROR("the current textrun doesn't match the style");
-    
-    ClearTextRuns();
-  }
-  nsFrame::DidSetStyleContext(aOldStyleContext);
-}
-
 class nsDisplayTextGeometry : public nsCharClipGeometry
 {
 public:
