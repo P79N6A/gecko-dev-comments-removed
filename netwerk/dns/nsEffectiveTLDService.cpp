@@ -254,7 +254,8 @@ nsEffectiveTLDService::GetBaseDomainInternal(nsCString  &aHostname,
   const char *currDomain = aHostname.get();
   const char *nextDot = strchr(currDomain, '.');
   const char *end = currDomain + aHostname.Length();
-  const char *eTLD = currDomain;
+  
+  const char *eTLD = nullptr;
   while (1) {
     
     
