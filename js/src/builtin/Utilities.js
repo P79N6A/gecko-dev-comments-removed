@@ -23,6 +23,7 @@
 
 
 
+
 #include "SelfHostingDefines.h"
 
 
@@ -92,7 +93,7 @@ function ToNumber(v) {
 
 function CheckObjectCoercible(v) {
     if (v === undefined || v === null)
-        ThrowError(JSMSG_CANT_CONVERT_TO, ToString(v), "object");
+        ThrowTypeError(JSMSG_CANT_CONVERT_TO, ToString(v), "object");
 }
 
 
@@ -125,7 +126,7 @@ function GetMethod(O, P) {
 
     
     if (!IsCallable(func))
-        ThrowError(JSMSG_NOT_FUNCTION, typeof func);
+        ThrowTypeError(JSMSG_NOT_FUNCTION, typeof func);
 
     
     return func;
@@ -148,7 +149,7 @@ function GetIterator(obj, method) {
 
     
     if (!IsObject(iterator))
-        ThrowError(JSMSG_NOT_ITERABLE, ToString(iterator));
+        ThrowTypeError(JSMSG_NOT_ITERABLE, ToString(iterator));
 
     
     return iterator;
@@ -168,7 +169,7 @@ function SpeciesConstructor(obj, defaultConstructor) {
 
     
     if (!IsObject(ctor))
-        ThrowError(JSMSG_NOT_NONNULL_OBJECT, "object's 'constructor' property");
+        ThrowTypeError(JSMSG_NOT_NONNULL_OBJECT, "object's 'constructor' property");
 
     
     
@@ -183,6 +184,5 @@ function SpeciesConstructor(obj, defaultConstructor) {
         return s;
 
     
-    ThrowError(JSMSG_NOT_CONSTRUCTOR,
-               "@@species property of object's constructor");
+    ThrowTypeError(JSMSG_NOT_CONSTRUCTOR, "@@species property of object's constructor");
 }
