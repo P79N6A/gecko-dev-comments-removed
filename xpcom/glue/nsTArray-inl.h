@@ -109,13 +109,14 @@ bool IsTwiceTheRequiredBytesRepresentableAsUint32(size_t aCapacity,
                                                   size_t aElemSize);
 
 template<class Alloc, class Copy>
-typename Alloc::ResultTypeProxy
+template<typename ActualAlloc>
+typename ActualAlloc::ResultTypeProxy
 nsTArray_base<Alloc, Copy>::EnsureCapacity(size_type aCapacity,
                                            size_type aElemSize)
 {
   
   if (aCapacity <= mHdr->mCapacity) {
-    return Alloc::SuccessResult();
+    return ActualAlloc::SuccessResult();
   }
 
   
@@ -124,24 +125,24 @@ nsTArray_base<Alloc, Copy>::EnsureCapacity(size_type aCapacity,
   
   
   if (!IsTwiceTheRequiredBytesRepresentableAsUint32(aCapacity, aElemSize)) {
-    Alloc::SizeTooBig((size_t)aCapacity * aElemSize);
-    return Alloc::FailureResult();
+    ActualAlloc::SizeTooBig((size_t)aCapacity * aElemSize);
+    return ActualAlloc::FailureResult();
   }
 
   size_t reqSize = sizeof(Header) + aCapacity * aElemSize;
 
   if (mHdr == EmptyHdr()) {
     
-    Header* header = static_cast<Header*>(Alloc::Malloc(reqSize));
+    Header* header = static_cast<Header*>(ActualAlloc::Malloc(reqSize));
     if (!header) {
-      return Alloc::FailureResult();
+      return ActualAlloc::FailureResult();
     }
     header->mLength = 0;
     header->mCapacity = aCapacity;
     header->mIsAutoArray = 0;
     mHdr = header;
 
-    return Alloc::SuccessResult();
+    return ActualAlloc::SuccessResult();
   }
 
   
@@ -167,21 +168,21 @@ nsTArray_base<Alloc, Copy>::EnsureCapacity(size_type aCapacity,
   Header* header;
   if (UsesAutoArrayBuffer() || !Copy::allowRealloc) {
     
-    header = static_cast<Header*>(Alloc::Malloc(bytesToAlloc));
+    header = static_cast<Header*>(ActualAlloc::Malloc(bytesToAlloc));
     if (!header) {
-      return Alloc::FailureResult();
+      return ActualAlloc::FailureResult();
     }
 
     Copy::CopyHeaderAndElements(header, mHdr, Length(), aElemSize);
 
     if (!UsesAutoArrayBuffer()) {
-      Alloc::Free(mHdr);
+      ActualAlloc::Free(mHdr);
     }
   } else {
     
-    header = static_cast<Header*>(Alloc::Realloc(mHdr, bytesToAlloc));
+    header = static_cast<Header*>(ActualAlloc::Realloc(mHdr, bytesToAlloc));
     if (!header) {
-      return Alloc::FailureResult();
+      return ActualAlloc::FailureResult();
     }
   }
 
@@ -192,10 +193,11 @@ nsTArray_base<Alloc, Copy>::EnsureCapacity(size_type aCapacity,
 
   mHdr = header;
 
-  return Alloc::SuccessResult();
+  return ActualAlloc::SuccessResult();
 }
 
 template<class Alloc, class Copy>
+template<typename ActualAlloc>
 void
 nsTArray_base<Alloc, Copy>::ShrinkCapacity(size_type aElemSize,
                                            size_t aElemAlign)
@@ -217,20 +219,20 @@ nsTArray_base<Alloc, Copy>::ShrinkCapacity(size_type aElemSize,
     header->mLength = length;
     Copy::CopyElements(header + 1, mHdr + 1, length, aElemSize);
 
-    Alloc::Free(mHdr);
+    ActualAlloc::Free(mHdr);
     mHdr = header;
     return;
   }
 
   if (length == 0) {
     MOZ_ASSERT(!IsAutoArray(), "autoarray should have fit 0 elements");
-    Alloc::Free(mHdr);
+    ActualAlloc::Free(mHdr);
     mHdr = EmptyHdr();
     return;
   }
 
   size_type size = sizeof(Header) + length * aElemSize;
-  void* ptr = Alloc::Realloc(mHdr, size);
+  void* ptr = ActualAlloc::Realloc(mHdr, size);
   if (!ptr) {
     return;
   }
@@ -239,6 +241,7 @@ nsTArray_base<Alloc, Copy>::ShrinkCapacity(size_type aElemSize,
 }
 
 template<class Alloc, class Copy>
+template<typename ActualAlloc>
 void
 nsTArray_base<Alloc, Copy>::ShiftData(index_type aStart,
                                       size_type aOldLen, size_type aNewLen,
@@ -254,7 +257,7 @@ nsTArray_base<Alloc, Copy>::ShiftData(index_type aStart,
   
   mHdr->mLength += aNewLen - aOldLen;
   if (mHdr->mLength == 0) {
-    ShrinkCapacity(aElemSize, aElemAlign);
+    ShrinkCapacity<ActualAlloc>(aElemSize, aElemAlign);
   } else {
     
     if (num == 0) {
@@ -270,6 +273,7 @@ nsTArray_base<Alloc, Copy>::ShiftData(index_type aStart,
 }
 
 template<class Alloc, class Copy>
+template<typename ActualAlloc>
 bool
 nsTArray_base<Alloc, Copy>::InsertSlotsAt(index_type aIndex, size_type aCount,
                                           size_type aElemSize,
@@ -278,7 +282,7 @@ nsTArray_base<Alloc, Copy>::InsertSlotsAt(index_type aIndex, size_type aCount,
   MOZ_ASSERT(aIndex <= Length(), "Bogus insertion index");
   size_type newLen = Length() + aCount;
 
-  EnsureCapacity(newLen, aElemSize);
+  EnsureCapacity<ActualAlloc>(newLen, aElemSize);
 
   
   if (Capacity() < newLen) {
@@ -287,7 +291,7 @@ nsTArray_base<Alloc, Copy>::InsertSlotsAt(index_type aIndex, size_type aCount,
 
   
   
-  ShiftData(aIndex, 0, aCount, aElemSize, aElemAlign);
+  ShiftData<ActualAlloc>(aIndex, 0, aCount, aElemSize, aElemAlign);
 
   return true;
 }
@@ -325,8 +329,8 @@ nsTArray_base<Alloc, Copy>::IsAutoArrayRestorer::~IsAutoArrayRestorer()
 }
 
 template<class Alloc, class Copy>
-template<class Allocator>
-typename Alloc::ResultTypeProxy
+template<typename ActualAlloc, class Allocator>
+typename ActualAlloc::ResultTypeProxy
 nsTArray_base<Alloc, Copy>::SwapArrayElements(nsTArray_base<Allocator,
                                                             Copy>& aOther,
                                               size_type aElemSize,
@@ -348,16 +352,16 @@ nsTArray_base<Alloc, Copy>::SwapArrayElements(nsTArray_base<Allocator,
   if ((!UsesAutoArrayBuffer() || Capacity() < aOther.Length()) &&
       (!aOther.UsesAutoArrayBuffer() || aOther.Capacity() < Length())) {
 
-    if (!EnsureNotUsingAutoArrayBuffer(aElemSize) ||
-        !aOther.EnsureNotUsingAutoArrayBuffer(aElemSize)) {
-      return Alloc::FailureResult();
+    if (!EnsureNotUsingAutoArrayBuffer<ActualAlloc>(aElemSize) ||
+        !aOther.template EnsureNotUsingAutoArrayBuffer<ActualAlloc>(aElemSize)) {
+      return ActualAlloc::FailureResult();
     }
 
     Header* temp = mHdr;
     mHdr = aOther.mHdr;
     aOther.mHdr = temp;
 
-    return Alloc::SuccessResult();
+    return ActualAlloc::SuccessResult();
   }
 
   
@@ -371,9 +375,9 @@ nsTArray_base<Alloc, Copy>::SwapArrayElements(nsTArray_base<Allocator,
   
   
 
-  if (!Alloc::Successful(EnsureCapacity(aOther.Length(), aElemSize)) ||
-      !Allocator::Successful(aOther.EnsureCapacity(Length(), aElemSize))) {
-    return Alloc::FailureResult();
+  if (!ActualAlloc::Successful(EnsureCapacity<ActualAlloc>(aOther.Length(), aElemSize)) ||
+      !Allocator::Successful(aOther.template EnsureCapacity<Allocator>(Length(), aElemSize))) {
+    return ActualAlloc::FailureResult();
   }
 
   
@@ -398,9 +402,10 @@ nsTArray_base<Alloc, Copy>::SwapArrayElements(nsTArray_base<Allocator,
   
   
   
-  nsAutoArrayBase<nsTArray_Impl<uint8_t, Alloc>, 64> temp;
-  if (!Alloc::Successful(temp.EnsureCapacity(smallerLength, aElemSize))) {
-    return Alloc::FailureResult();
+  nsAutoArrayBase<nsTArray_Impl<uint8_t, ActualAlloc>, 64> temp;
+  if (!ActualAlloc::Successful(temp.template EnsureCapacity<ActualAlloc>(smallerLength,
+                                                                         aElemSize))) {
+    return ActualAlloc::FailureResult();
   }
 
   Copy::CopyElements(temp.Elements(), smallerElements, smallerLength, aElemSize);
@@ -422,10 +427,11 @@ nsTArray_base<Alloc, Copy>::SwapArrayElements(nsTArray_base<Allocator,
     aOther.mHdr->mLength = tempLength;
   }
 
-  return Alloc::SuccessResult();
+  return ActualAlloc::SuccessResult();
 }
 
 template<class Alloc, class Copy>
+template<typename ActualAlloc>
 bool
 nsTArray_base<Alloc, Copy>::EnsureNotUsingAutoArrayBuffer(size_type aElemSize)
 {
@@ -442,7 +448,7 @@ nsTArray_base<Alloc, Copy>::EnsureNotUsingAutoArrayBuffer(size_type aElemSize)
 
     size_type size = sizeof(Header) + Length() * aElemSize;
 
-    Header* header = static_cast<Header*>(Alloc::Malloc(size));
+    Header* header = static_cast<Header*>(ActualAlloc::Malloc(size));
     if (!header) {
       return false;
     }
