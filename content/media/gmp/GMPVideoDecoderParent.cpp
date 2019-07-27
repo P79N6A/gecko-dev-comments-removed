@@ -228,6 +228,10 @@ GMPVideoDecoderParent::RecvDecoded(const GMPVideoi420FrameData& aDecodedFrame)
     return false;
   }
 
+  if (!CheckFrameData(aDecodedFrame)) {
+    LOGE(("%s: Decoded frame corrupt, ignoring", __FUNCTION__));
+    return false;
+  }
   auto f = new GMPVideoi420FrameImpl(aDecodedFrame, &mVideoHost);
 
   
