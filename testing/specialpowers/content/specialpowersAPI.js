@@ -213,9 +213,8 @@ function unwrapPrivileged(x) {
   if (!isWrapper(x))
     throw "Trying to unwrap a non-wrapped object!";
 
-  var obj = x.SpecialPowers_wrappedObject;
   
-  return obj;
+  return x.SpecialPowers_wrappedObject;
 };
 
 function crawlProtoChain(obj, fn) {
@@ -663,10 +662,10 @@ SpecialPowersAPI.prototype = {
 
 
 
-  get Cc() { return wrapPrivileged(this.getFullComponents().classes); },
+  get Cc() { return wrapPrivileged(this.getFullComponents()).classes; },
   get Ci() { return this.Components.interfaces; },
-  get Cu() { return wrapPrivileged(this.getFullComponents().utils); },
-  get Cr() { return wrapPrivileged(this.Components.results); },
+  get Cu() { return wrapPrivileged(this.getFullComponents()).utils; },
+  get Cr() { return wrapPrivileged(this.Components).results; },
 
   
 
