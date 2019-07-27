@@ -527,8 +527,7 @@ nsCSSBorderRenderer::FillSolidBorder(const Rect& aOuterRect,
   
   
   if (!AllCornersZeroSize(aBorderRadii)) {
-    RefPtr<PathBuilder> builder =
-      mDrawTarget->CreatePathBuilder(FillRule::FILL_EVEN_ODD);
+    RefPtr<PathBuilder> builder = mDrawTarget->CreatePathBuilder();
 
     RectCornerRadii innerRadii;
     ComputeInnerRadii(aBorderRadii, aBorderSizes, &innerRadii);
@@ -1473,8 +1472,7 @@ nsCSSBorderRenderer::DrawBorders()
     
     
     
-    RefPtr<PathBuilder> builder =
-      mDrawTarget->CreatePathBuilder(FillRule::FILL_EVEN_ODD);
+    RefPtr<PathBuilder> builder = mDrawTarget->CreatePathBuilder();
     AppendRoundedRectToPath(builder, mOuterRect, mBorderRadii, true);
     AppendRoundedRectToPath(builder, ToRect(borderInnerRect.rect), borderInnerRect.corners, false);
     RefPtr<Path> path = builder->Finish();
