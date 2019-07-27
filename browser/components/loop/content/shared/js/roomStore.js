@@ -20,6 +20,20 @@ loop.store = loop.store || {};
 
 
 
+
+
+  var MAX_ROOM_CREATION_SIZE = loop.store.MAX_ROOM_CREATION_SIZE = 2;
+
+  
+
+
+
+  var DEFAULT_EXPIRES_IN = loop.store.DEFAULT_EXPIRES_IN = 24 * 7 * 8;
+
+  
+
+
+
   var roomSchema = {
     roomToken:    String,
     roomUrl:      String,
@@ -61,13 +75,13 @@ loop.store = loop.store || {};
 
 
 
-    maxRoomCreationSize: 2,
+    maxRoomCreationSize: MAX_ROOM_CREATION_SIZE,
 
     
 
 
 
-    defaultExpiresIn: 24 * 7 * 8,
+    defaultExpiresIn: DEFAULT_EXPIRES_IN,
 
     
 

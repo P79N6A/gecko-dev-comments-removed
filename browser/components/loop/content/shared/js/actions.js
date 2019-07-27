@@ -79,7 +79,9 @@ loop.shared.actions = (function() {
 
 
 
-    FetchEmailLink: Action.define("fetchEmailLink", {
+    FetchRoomEmailLink: Action.define("fetchRoomEmailLink", {
+      roomOwner: String,
+      roomName: String
     }),
 
     

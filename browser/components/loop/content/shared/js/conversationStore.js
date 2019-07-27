@@ -210,7 +210,7 @@ loop.store = loop.store || {};
         "retryCall",
         "mediaConnected",
         "setMute",
-        "fetchEmailLink"
+        "fetchRoomEmailLink"
       ]);
 
       this.setStoreState({
@@ -326,15 +326,18 @@ loop.store = loop.store || {};
 
 
 
-    fetchEmailLink: function() {
-      
-      
-      this.client.requestCallUrl("", function(err, callUrlData) {
+    fetchRoomEmailLink: function(actionData) {
+      this.mozLoop.rooms.create({
+        roomName: actionData.roomName,
+        roomOwner: actionData.roomOwner,
+        maxSize:   loop.store.MAX_ROOM_CREATION_SIZE,
+        expiresIn: loop.store.DEFAULT_EXPIRES_IN
+      }, function(err, createdRoomData) {
         if (err) {
           this.trigger("error:emailLink");
           return;
         }
-        this.setStoreState({"emailLink": callUrlData.callUrl});
+        this.setStoreState({"emailLink": createdRoomData.roomUrl});
       }.bind(this));
     },
 
