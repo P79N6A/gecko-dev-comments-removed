@@ -266,7 +266,7 @@ var gSanitizePromptDialog = {
       this.showItemList();
     else
       this.hideItemList();
-  }
+  },
 
 #ifdef CRH_DIALOG_TREE_VIEW
   
