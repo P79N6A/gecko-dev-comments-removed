@@ -84,7 +84,6 @@
 #include "nsConsoleService.h"
 #include "nsDebugImpl.h"
 #include "nsFrameMessageManager.h"
-#include "nsGeolocationSettings.h"
 #include "nsHashPropertyBag.h"
 #include "nsIAlertsService.h"
 #include "nsIAppsService.h"
@@ -3688,19 +3687,6 @@ ContentParent::RecvAddGeolocationListener(const IPC::Principal& aPrincipal,
     
     RecvRemoveGeolocationListener();
     mGeolocationWatchID = AddGeolocationListener(this, aHighAccuracy);
-
-    
-    nsAutoCString origin;
-    
-    nsCOMPtr<nsIPrincipal> principal = static_cast<nsIPrincipal*>(aPrincipal);
-    if (!principal) {
-      return true;
-    }
-    principal->GetOrigin(getter_Copies(origin));
-    nsRefPtr<nsGeolocationSettings> gs = nsGeolocationSettings::GetGeolocationSettings();
-    if (gs) {
-      gs->PutWatchOrigin(mGeolocationWatchID, origin);
-    }
     return true;
 }
 
@@ -3713,11 +3699,6 @@ ContentParent::RecvRemoveGeolocationListener()
             return true;
         }
         geo->ClearWatch(mGeolocationWatchID);
-
-        nsRefPtr<nsGeolocationSettings> gs = nsGeolocationSettings::GetGeolocationSettings();
-        if (gs) {
-          gs->RemoveWatchOrigin(mGeolocationWatchID);
-        }
         mGeolocationWatchID = -1;
     }
     return true;
@@ -3729,21 +3710,8 @@ ContentParent::RecvSetGeolocationHigherAccuracy(const bool& aEnable)
     
     
     if (mGeolocationWatchID != -1) {
-        nsCString origin;
-        nsRefPtr<nsGeolocationSettings> gs = nsGeolocationSettings::GetGeolocationSettings();
-        
-        if (gs) {
-          gs->GetWatchOrigin(mGeolocationWatchID, origin);
-        }
-
-        
         RecvRemoveGeolocationListener();
         mGeolocationWatchID = AddGeolocationListener(this, aEnable);
-
-        
-        if (gs) {
-          gs->PutWatchOrigin(mGeolocationWatchID, origin);
-        }
     }
     return true;
 }
