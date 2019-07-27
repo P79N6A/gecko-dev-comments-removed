@@ -68,6 +68,13 @@ enum GMPDOMException {
   kGMPTimeoutError = 23
 };
 
+enum GMPSessionMessageType {
+  kGMPLicenseRequest = 0,
+  kGMPLicenseRenewal = 1,
+  kGMPLicenseRelease = 2,
+  kGMPMessageInvalid = 3 
+};
+
 
 typedef int64_t GMPTimestamp;
 
@@ -139,10 +146,9 @@ public:
   
   virtual void SessionMessage(const char* aSessionId,
                               uint32_t aSessionIdLength,
+                              GMPSessionMessageType aMessageType,
                               const uint8_t* aMessage,
-                              uint32_t aMessageLength,
-                              const char* aDestinationURL,
-                              uint32_t aDestinationURLLength) = 0;
+                              uint32_t aMessageLength) = 0;
 
   
    virtual void ExpirationChange(const char* aSessionId,
@@ -213,7 +219,7 @@ enum GMPSessionType {
   kGMPSessionInvalid = 2 
 };
 
-#define GMP_API_DECRYPTOR "eme-decrypt-v2"
+#define GMP_API_DECRYPTOR "eme-decrypt-v3"
 
 
 

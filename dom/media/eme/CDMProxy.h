@@ -120,8 +120,8 @@ public:
 
   
   void OnSessionMessage(const nsAString& aSessionId,
-                        nsTArray<uint8_t>& aMessage,
-                        const nsAString& aDestinationURL);
+                        GMPSessionMessageType aMessageType,
+                        nsTArray<uint8_t>& aMessage);
 
   
   void OnExpirationChange(const nsAString& aSessionId,
