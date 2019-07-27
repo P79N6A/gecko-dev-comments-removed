@@ -206,6 +206,8 @@ public:
     return mFrameMetrics;
   }
 
+  using AsyncPanZoomController::GetVelocityVector;
+
   void AssertStateIsReset() const {
     ReentrantMonitorAutoEnter lock(mMonitor);
     EXPECT_EQ(NOTHING, mState);
@@ -1857,6 +1859,22 @@ protected:
     manager->ClearTree();
   }
 
+  
+
+
+  void SampleAnimationsOnce() {
+    const TimeDuration increment = TimeDuration::FromMilliseconds(1);
+    ParentLayerPoint pointOut;
+    ViewTransform viewTransformOut;
+    mcc->AdvanceBy(increment);
+
+    for (const nsRefPtr<Layer>& layer : layers) {
+      if (TestAsyncPanZoomController* apzc = ApzcOf(layer)) {
+        apzc->SampleContentTransformForFrame(&viewTransformOut, pointOut);
+      }
+    }
+  }
+
   nsRefPtr<MockContentControllerDelayed> mcc;
 
   nsTArray<nsRefPtr<Layer> > layers;
@@ -2528,20 +2546,58 @@ protected:
     manager->UpdateHitTestingTree(nullptr, root, false, 0, 0);
   }
 
-  void CreateScrollgrabLayerTree() {
+  void CreateScrollgrabLayerTree(bool makeParentScrollable = true) {
     const char* layerTreeSyntax = "c(t)";
     nsIntRegion layerVisibleRegion[] = {
       nsIntRegion(IntRect(0, 0, 100, 100)),  
       nsIntRegion(IntRect(0, 20, 100, 80))   
     };
     root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm, layers);
-    SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID, CSSRect(0, 0, 100, 120));
+    float parentHeight = makeParentScrollable ? 120 : 100;
+    SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID, CSSRect(0, 0, 100, parentHeight));
     SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID + 1, CSSRect(0, 0, 100, 200));
     SetScrollHandoff(layers[1], root);
     registration = MakeUnique<ScopedLayerTreeRegistration>(0, root, mcc);
     manager->UpdateHitTestingTree(nullptr, root, false, 0, 0);
     rootApzc = ApzcOf(root);
     rootApzc->GetFrameMetrics().SetHasScrollgrab(true);
+  }
+
+  void TestFlingAcceleration() {
+    
+    
+    const float kAcceleration = 100.0f;
+    SCOPED_GFX_PREF(APZFlingAccelBaseMultiplier, float, kAcceleration);
+
+    nsRefPtr<TestAsyncPanZoomController> childApzc = ApzcOf(layers[1]);
+
+    
+    
+    Pan(manager, mcc, 70, 40);
+
+    
+    SampleAnimationsOnce();
+
+    float childVelocityAfterFling1 = childApzc->GetVelocityVector().y;
+
+    
+    Pan(manager, mcc, 70, 40);
+
+    
+    
+    SampleAnimationsOnce();
+
+    float childVelocityAfterFling2 = childApzc->GetVelocityVector().y;
+
+    
+    
+    EXPECT_GT(childVelocityAfterFling2,
+              childVelocityAfterFling1 * kAcceleration / 2);
+
+    
+    
+    EXPECT_LE(childVelocityAfterFling2,
+              childVelocityAfterFling1 * kAcceleration * kAcceleration / 4);
   }
 };
 
@@ -2742,6 +2798,16 @@ TEST_F(APZOverscrollHandoffTester, ScrollgrabFling) {
   
   rootApzc->AssertStateIsFling();
   childApzc->AssertStateIsReset();
+}
+
+TEST_F(APZOverscrollHandoffTester, ScrollgrabFlingAcceleration1) {
+  CreateScrollgrabLayerTree(true );
+  TestFlingAcceleration();
+}
+
+TEST_F(APZOverscrollHandoffTester, ScrollgrabFlingAcceleration2) {
+  CreateScrollgrabLayerTree(false );
+  TestFlingAcceleration();
 }
 
 class APZEventRegionsTester : public APZCTreeManagerTester {

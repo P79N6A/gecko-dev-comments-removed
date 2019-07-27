@@ -545,6 +545,7 @@ public:
       
       
       
+      APZC_LOG("%p fling went into overscroll, handing off with velocity %s\n", &mApzc, Stringify(velocity).c_str());
       mDeferredTasks.append(NewRunnableMethod(&mApzc,
                                               &AsyncPanZoomController::HandleFlingOverscroll,
                                               velocity,
@@ -2131,6 +2132,7 @@ void AsyncPanZoomController::AcceptFling(const ParentLayerPoint& aVelocity,
                                          bool aHandoff) {
   
   
+  APZC_LOG("%p accepting fling with velocity %s\n", this, Stringify(aVelocity).c_str());
   mX.SetVelocity(mX.GetVelocity() + aVelocity.x);
   mY.SetVelocity(mY.GetVelocity() + aVelocity.y);
   SetState(FLING);
