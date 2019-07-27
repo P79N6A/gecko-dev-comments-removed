@@ -198,6 +198,13 @@ AudioBlockPanMonoToStereo(const float aInput[WEBAUDIO_BLOCK_SIZE],
                           float aOutputL[WEBAUDIO_BLOCK_SIZE],
                           float aOutputR[WEBAUDIO_BLOCK_SIZE]);
 
+void
+AudioBlockPanMonoToStereo(const float aInput[WEBAUDIO_BLOCK_SIZE],
+                          float aGainL[WEBAUDIO_BLOCK_SIZE],
+                          float aGainR[WEBAUDIO_BLOCK_SIZE],
+                          float aOutputL[WEBAUDIO_BLOCK_SIZE],
+                          float aOutputR[WEBAUDIO_BLOCK_SIZE]);
+
 
 
 
@@ -206,6 +213,14 @@ void
 AudioBlockPanStereoToStereo(const float aInputL[WEBAUDIO_BLOCK_SIZE],
                             const float aInputR[WEBAUDIO_BLOCK_SIZE],
                             float aGainL, float aGainR, bool aIsOnTheLeft,
+                            float aOutputL[WEBAUDIO_BLOCK_SIZE],
+                            float aOutputR[WEBAUDIO_BLOCK_SIZE]);
+void
+AudioBlockPanStereoToStereo(const float aInputL[WEBAUDIO_BLOCK_SIZE],
+                            const float aInputR[WEBAUDIO_BLOCK_SIZE],
+                            float aGainL[WEBAUDIO_BLOCK_SIZE],
+                            float aGainR[WEBAUDIO_BLOCK_SIZE],
+                            bool  aIsOnTheLeft[WEBAUDIO_BLOCK_SIZE],
                             float aOutputL[WEBAUDIO_BLOCK_SIZE],
                             float aOutputR[WEBAUDIO_BLOCK_SIZE]);
 
