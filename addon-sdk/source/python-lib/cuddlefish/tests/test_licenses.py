@@ -44,19 +44,28 @@ class Licenses(unittest.TestCase):
                   skipdirs=["sdk-docs"], 
                   )
         self.scan(os.path.join("python-lib", "mozrunner"), [".py"])
-
-        for sdk_package in ["addon-kit", "api-utils", "test-harness"]:
-            self.scan(os.path.join("packages", sdk_package),
-                      [".js", ".py", ".md"])
+        self.scan("lib", [".js", ".jsm", ".css"],
+                  skipdirs=[
+                    "diffpatcher", 
+                    "method", 
+                    "child_process", 
+                    "fs" 
+                  ])
+        self.scan("test", [".js", ".jsm", ".css", ".html"],
+                  skipdirs=[
+                    "buffers", 
+                    "querystring", 
+                    "path" 
+                  ])
+        self.scan("modules", [".js", ".jsm"])
         self.scan("examples", [".js", ".css", ".html", ".md"])
-        self.scan("bin", [".bat", ".ps1"])
+        self.scan("bin", [".bat", ".ps1", ".js"])
         for fn in [os.path.join("bin", "activate"),
                    os.path.join("bin", "cfx"),
                    os.path.join("bin", "integration-scripts", "buildbot-run-cfx-helper"),
                    os.path.join("bin", "integration-scripts", "integration-check"),
                    ]:
             self.scan_file(from_sdk_top(fn))
-        self.scan("doc", [".js", ".css", ".md"], skipdirs=["syntaxhighlighter"])
 
         if self.missing:
             print

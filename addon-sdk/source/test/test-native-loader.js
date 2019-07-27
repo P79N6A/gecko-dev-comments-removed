@@ -1,7 +1,6 @@
 
 
 
-
 'use strict';
 
 let {
@@ -259,4 +258,4 @@ function loadAddon (uri, map) {
   }).then(null, console.error);
 }
 
-require('test').run(exports);
+require('sdk/test').run(exports);

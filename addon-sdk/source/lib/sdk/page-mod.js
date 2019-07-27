@@ -14,7 +14,7 @@ const { getAttachEventType, WorkerHost } = require('./content/utils');
 const { Class } = require('./core/heritage');
 const { Disposable } = require('./core/disposable');
 const { WeakReference } = require('./core/reference');
-const { Worker } = require('./content/worker-parent');
+const { Worker } = require('./content/worker');
 const { EventTarget } = require('./event/target');
 const { on, emit, once, setListeners } = require('./event/core');
 const { on: domOn, removeListener: domOff } = require('./dom/events');
@@ -189,6 +189,10 @@ function applyOnExistingDocuments (mod) {
   getTabs().forEach(tab => {
     
     let window = getTabContentWindow(tab);
+    
+    
+    if (!window || !window.frames)
+      return;
     let uri = getTabURI(tab);
     if (has(mod.attachTo, "top") && modMatchesURI(mod, uri))
       onContent(mod, window);
@@ -216,7 +220,7 @@ function createWorker (mod, window) {
     
     if (event === 'attach')
       emit(mod, event, worker)
-    else 
+    else
       emit(mod, event, ...args);
   })
   once(worker, 'detach', () => worker.destroy());

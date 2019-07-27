@@ -1,11 +1,10 @@
 
 
 
-
 'use strict';
 
 const traceback = require('sdk/console/traceback');
-const REQUIRE_LINE_NO = 30;
+const REQUIRE_LINE_NO = 29;
 
 exports.test_no_args = function(assert) {
   let passed = tryRequireModule(assert);
@@ -28,7 +27,8 @@ function tryRequireModule(assert, module) {
   try {
     
     let doesNotExist = require(module);
-  } catch(e) {
+  }
+  catch(e) {
     checkError(assert, module, e);
     passed = true;
   }
@@ -64,4 +64,4 @@ function checkError (assert, name, e) {
                           'stacktrace has correct line number');
 }
 
-require('test').run(exports);
+require('sdk/test').run(exports);

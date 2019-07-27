@@ -79,6 +79,32 @@ exports.testPreferedLocalizedLocale = function(assert) {
   prefs.reset(PREF_ACCEPT_LANGUAGES);
 }
 
+
+exports.testPreferedContentLocale = function(assert) {
+  prefs.set(PREF_MATCH_OS_LOCALE, false);
+  let noLocale = "",
+      bundleURL = "chrome://global/locale/intl.properties";
+  prefs.set(PREF_SELECTED_LOCALE, noLocale);
+  prefs.setLocalized(PREF_ACCEPT_LANGUAGES, bundleURL);
+
+  
+  let expectedLocaleList = BundleService.createBundle(bundleURL).
+    GetStringFromName(PREF_ACCEPT_LANGUAGES).
+    split(",").
+    map(locale => locale.trim().toLowerCase());
+
+  
+  if (expectedLocaleList.indexOf("en-us") == -1)
+    expectedLocaleList.push("en-us");
+
+  assertPrefered(assert, expectedLocaleList, "test localized content locale pref value");
+
+  
+  prefs.reset(PREF_MATCH_OS_LOCALE);
+  prefs.reset(PREF_SELECTED_LOCALE);
+  prefs.reset(PREF_ACCEPT_LANGUAGES);
+}
+
 exports.testPreferedOsLocale = function(assert) {
   prefs.set(PREF_MATCH_OS_LOCALE, true);
   prefs.set(PREF_SELECTED_LOCALE, "");

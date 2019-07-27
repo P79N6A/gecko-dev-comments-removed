@@ -1,7 +1,6 @@
 
 
 
-
 "use strict";
 
 const { Trait } = require('sdk/deprecated/traits');
@@ -390,10 +389,10 @@ exports['test:custom iterator'] = function(assert) {
     }
   });
 
-  let (i = 0, sub = Sub()) {
-    for (let item in sub)
+  let i = 0, sub = Sub();
+  for (let item in sub) {
     assert.equal(++i, item, "iterated item has the right value");
-  };
+  }
 };
 
 require('sdk/test').run(exports);

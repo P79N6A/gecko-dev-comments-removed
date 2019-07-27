@@ -113,6 +113,18 @@ exports.isObject = isObject;
 
 
 
+
+function isGenerator(aValue) {
+  return !!(aValue && aValue.isGenerator && aValue.isGenerator());
+}
+exports.isGenerator = isGenerator;
+
+
+
+
+
+
+
 var isArray = Array.isArray || function isArray(value) {
   Object.prototype.toString.call(value) === "[object Array]";
 }

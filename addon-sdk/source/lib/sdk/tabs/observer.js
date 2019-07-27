@@ -7,12 +7,13 @@ module.metadata = {
   "stability": "unstable"
 };
 
-const { EventEmitterTrait: EventEmitter } = require("../deprecated/events");
+const { EventTarget } = require("../event/target");
+const { emit } = require("../event/core");
 const { DOMEventAssembler } = require("../deprecated/events/assembler");
-const { Trait } = require("../deprecated/light-traits");
-const { getActiveTab, getTabs, getTabContainer } = require("./utils");
+const { Class } = require("../core/heritage");
+const { getActiveTab, getTabs } = require("./utils");
 const { browserWindowIterator } = require("../deprecated/window-utils");
-const { isBrowser } = require('../window/utils');
+const { isBrowser, windows, getMostRecentBrowserWindow } = require("../window/utils");
 const { observer: windowObserver } = require("../windows/observer");
 
 const EVENTS = {
@@ -24,15 +25,69 @@ const EVENTS = {
   "TabUnpinned": "unpinned"
 };
 
+const selectedTab = Symbol("observer/state/selectedTab");
 
 
 
-const observer = Trait.compose(DOMEventAssembler, EventEmitter).create({
-  
+const Observer = Class({
+  implements: [EventTarget, DOMEventAssembler],
+  initialize() {
+    this[selectedTab] = null;
+    
+    
+    
+    
+    this.on("select", tab => {
+      const selected = this[selectedTab];
+      if (selected !== tab) {
+        if (selected) {
+          emit(this, 'deactivate', selected);
+        }
+
+        if (tab) {
+          this[selectedTab] = tab;
+          emit(this, 'activate', this[selectedTab]);
+        }
+      }
+    });
 
 
+    
+    
+    windowObserver.on("open", chromeWindow => {
+      if (isBrowser(chromeWindow)) {
+        this.observe(chromeWindow);
+      }
+    });
 
-  _emit: Trait.required,
+    windowObserver.on("close", chromeWindow => {
+      if (isBrowser(chromeWindow)) {
+        
+        
+        if (getActiveTab(chromeWindow) === this[selectedTab]) {
+          emit(this, "deactivate", this[selectedTab]);
+          this[selectedTab] = null;
+        }
+        this.ignore(chromeWindow);
+      }
+    });
+
+
+    
+    
+    
+    windowObserver.on("activate", chromeWindow => {
+      if (isBrowser(chromeWindow)) {
+        emit(this, "select", getActiveTab(chromeWindow));
+      }
+    });
+
+    
+    
+    for (let chromeWindow of browserWindowIterator()) {
+      this.observe(chromeWindow);
+    }
+  },
   
 
 
@@ -45,54 +100,8 @@ const observer = Trait.compose(DOMEventAssembler, EventEmitter).create({
 
 
   handleEvent: function handleEvent(event) {
-    this._emit(EVENTS[event.type], event.target, event);
+    emit(this, EVENTS[event.type], event.target, event);
   }
 });
 
-
-
-
-
-var selectedTab = null;
-function onTabSelect(tab) {
-  if (selectedTab !== tab) {
-    if (selectedTab) observer._emit('deactivate', selectedTab);
-    if (tab) observer._emit('activate', selectedTab = tab);
-  }
-};
-observer.on('select', onTabSelect);
-
-
-
-function onWindowOpen(chromeWindow) {
-  if (!isBrowser(chromeWindow)) return; 
-  observer.observe(getTabContainer(chromeWindow));
-}
-windowObserver.on("open", onWindowOpen);
-
-function onWindowClose(chromeWindow) {
-  if (!isBrowser(chromeWindow)) return; 
-  
-  
-  if (getActiveTab(chromeWindow) == selectedTab) {
-    observer._emit("deactivate", selectedTab);
-    selectedTab = null;
-  }
-  observer.ignore(getTabContainer(chromeWindow));
-}
-windowObserver.on("close", onWindowClose);
-
-
-
-
-
-windowObserver.on("activate", function onWindowActivate(chromeWindow) {
-  if (!isBrowser(chromeWindow)) return; 
-  observer._emit("select", getActiveTab(chromeWindow));
-});
-
-
-
-for (let window of browserWindowIterator()) onWindowOpen(window);
-
-exports.observer = observer;
+exports.observer = new Observer();

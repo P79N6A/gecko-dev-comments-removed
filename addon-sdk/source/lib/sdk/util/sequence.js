@@ -1,7 +1,6 @@
 
 
 
-
 "use strict";
 
 module.metadata = {
@@ -22,14 +21,15 @@ module.metadata = {
 
 
 const { complement, flip, identity } = require("../lang/functional");
-const { isArray, isArguments, isMap, isSet,
+const { isArray, isArguments, isMap, isSet, isGenerator,
         isString, isBoolean, isNumber } = require("../lang/type");
 
 const Sequence = function Sequence(iterator) {
-  if (iterator.isGenerator && iterator.isGenerator())
-    this[Symbol.iterator] = iterator;
-  else
+  if (!isGenerator(iterator)) {
     throw TypeError("Expected generator argument");
+  }
+
+  this[Symbol.iterator] = iterator;
 };
 exports.Sequence = Sequence;
 
@@ -60,9 +60,6 @@ const seq = polymorphic({
   default: x => x instanceof Sequence ? x : new Sequence(x)
 });
 exports.seq = seq;
-
-
-
 
 
 const string = (...etc) => "".concat(...etc);
@@ -111,6 +108,27 @@ const pairs = polymorphic({
 });
 exports.pairs = pairs;
 
+const names = polymorphic({
+  null: empty,
+  void: empty,
+  default: object => seq(function*() {
+    for (let name of Object.getOwnPropertyNames(object)) {
+      yield name;
+    }
+  })
+});
+exports.names = names;
+
+const symbols = polymorphic({
+  null: empty,
+  void: empty,
+  default: object => seq(function* () {
+    for (let symbol of Object.getOwnPropertySymbols(object)) {
+      yield symbol;
+    }
+  })
+});
+exports.symbols = symbols;
 
 const keys = polymorphic({
   null: empty,

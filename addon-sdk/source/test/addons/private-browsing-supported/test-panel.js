@@ -1,3 +1,6 @@
+
+
+
 'use strict';
 
 const { open, focus, close } = require('sdk/window/helpers');

@@ -5,15 +5,12 @@
 import os
 import xml.dom.minidom
 import StringIO
-import codecs
-import glob
 
 RDF_NS = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
 EM_NS = "http://www.mozilla.org/2004/em-rdf#"
 
 class RDF(object):
     def __str__(self):
-        
         
         
         
@@ -115,12 +112,7 @@ class RDFManifest(RDF):
 
         return True;
 
-    def add_node(self, node):
-        top =  self.dom.documentElement.getElementsByTagName("Description")[0];
-        top.appendChild(node)
-
-
-def gen_manifest(template_root_dir, target_cfg, jid, harness_options={},
+def gen_manifest(template_root_dir, target_cfg, jid,
                  update_url=None, bootstrap=True, enable_mobile=False):
     install_rdf = os.path.join(template_root_dir, "install.rdf")
     manifest = RDFManifest(install_rdf)
@@ -129,51 +121,13 @@ def gen_manifest(template_root_dir, target_cfg, jid, harness_options={},
     manifest.set("em:id", jid)
     manifest.set("em:version",
                  target_cfg.get('version', '1.0'))
-
-    if "locale" in harness_options:
-        
-        
-        
-        
-        localizable_in = ["title", "author", "description", "homepage"]
-        localized_out  = ["name", "creator", "description", "homepageURL"]
-        for lang in harness_options["locale"]:
-            desc = dom.createElement("Description")
-
-            for value_in in localizable_in:
-                key_in = "extensions." + target_cfg.get("id", "") + "." + value_in
-                tag_out = localized_out[localizable_in.index(value_in)]
-
-                if key_in in harness_options["locale"][lang]:
-                    elem = dom.createElement("em:" + tag_out)
-                    elem_value = harness_options["locale"][lang][key_in]
-                    elem.appendChild(dom.createTextNode(elem_value))
-                    desc.appendChild(elem)
-
-            
-            if desc.hasChildNodes():
-                locale = dom.createElement("em:locale")
-                locale.appendChild(dom.createTextNode(lang))
-                desc.appendChild(locale)
-
-                localized = dom.createElement("em:localized")
-                localized.appendChild(desc)
-                manifest.add_node(localized)
-
     manifest.set("em:name",
                  target_cfg.get('title', target_cfg.get('fullName', target_cfg['name'])))
     manifest.set("em:description",
                  target_cfg.get("description", ""))
     manifest.set("em:creator",
                  target_cfg.get("author", ""))
-
-    if target_cfg.get("homepage"):
-        manifest.set("em:homepageURL", target_cfg.get("homepage"))
-    else:
-        manifest.remove("em:homepageURL")
-
     manifest.set("em:bootstrap", str(bootstrap).lower())
-
     
     
     
@@ -182,7 +136,7 @@ def gen_manifest(template_root_dir, target_cfg, jid, harness_options={},
     for translator in target_cfg.get("translators", [ ]):
         elem = dom.createElement("em:translator");
         elem.appendChild(dom.createTextNode(translator))
-        manifest.add_node(elem)
+        dom.documentElement.getElementsByTagName("Description")[0].appendChild(elem)
 
     for developer in target_cfg.get("developers", [ ]):
         elem = dom.createElement("em:developer");
@@ -192,7 +146,7 @@ def gen_manifest(template_root_dir, target_cfg, jid, harness_options={},
     for contributor in target_cfg.get("contributors", [ ]):
         elem = dom.createElement("em:contributor");
         elem.appendChild(dom.createTextNode(contributor))
-        manifest.add_node(elem)
+        dom.documentElement.getElementsByTagName("Description")[0].appendChild(elem)
 
     if update_url:
         manifest.set("em:updateURL", update_url)
@@ -215,7 +169,7 @@ def gen_manifest(template_root_dir, target_cfg, jid, harness_options={},
 
     if enable_mobile:
         target_app = dom.createElement("em:targetApplication")
-        manifest.add_node(target_app)
+        dom.documentElement.getElementsByTagName("Description")[0].appendChild(target_app)
 
         ta_desc = dom.createElement("Description")
         target_app.appendChild(ta_desc)
@@ -231,6 +185,11 @@ def gen_manifest(template_root_dir, target_cfg, jid, harness_options={},
         elem = dom.createElement("em:maxVersion")
         elem.appendChild(dom.createTextNode("30.0a1"))
         ta_desc.appendChild(elem)
+
+    if target_cfg.get("homepage"):
+        manifest.set("em:homepageURL", target_cfg.get("homepage"))
+    else:
+        manifest.remove("em:homepageURL")
 
     return manifest
 

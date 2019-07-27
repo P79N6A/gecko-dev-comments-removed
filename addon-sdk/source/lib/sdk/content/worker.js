@@ -7,280 +7,178 @@ module.metadata = {
   "stability": "unstable"
 };
 
+const { emit } = require('../event/core');
+const { omit } = require('../util/object');
 const { Class } = require('../core/heritage');
-const { EventTarget } = require('../event/target');
-const { on, off, emit, setListeners } = require('../event/core');
-const {
-  attach, detach, destroy
-} = require('./utils');
 const { method } = require('../lang/functional');
-const { Ci, Cu, Cc } = require('chrome');
-const unload = require('../system/unload');
-const events = require('../system/events');
-const { getInnerId } = require("../window/utils");
-const { WorkerSandbox } = require('./sandbox');
+const { getInnerId } = require('../window/utils');
+const { EventTarget } = require('../event/target');
+const { when, ensure } = require('../system/unload');
 const { getTabForWindow } = require('../tabs/helpers');
+const { getTabForContentWindow, getBrowserForTab } = require('../tabs/utils');
 const { isPrivate } = require('../private-browsing/utils');
+const { getFrameElement } = require('../window/utils');
+const { attach, detach, destroy } = require('./utils');
+const { on: observe } = require('../system/events');
+const { uuid } = require('../util/uuid');
+const { Ci, Cc } = require('chrome');
+
+const ppmm = Cc["@mozilla.org/parentprocessmessagemanager;1"].
+  getService(Ci.nsIMessageBroadcaster);
 
 
+const ADDON = omit(require('@loader/options'), ['modules', 'globals']);
 
 const workers = new WeakMap();
-
 let modelFor = (worker) => workers.get(worker);
 
-const ERR_DESTROYED =
-  "Couldn't find the worker to receive this message. " +
+const ERR_DESTROYED = "Couldn't find the worker to receive this message. " +
   "The script may not be initialized yet, or may already have been unloaded.";
 
 const ERR_FROZEN = "The page is currently hidden and can no longer be used " +
                    "until it is visible again.";
 
 
-
-
-
-
 const Worker = Class({
   implements: [EventTarget],
-  initialize: function WorkerConstructor (options) {
-    
-    let model = createModel();
+  initialize(options = {}) {
+
+    let model = {
+      inited: false,
+      earlyEvents: [],        
+      frozen: true,           
+      options,
+    };
     workers.set(this, model);
 
-    options = options || {};
+    ensure(this, 'destroy');
+    this.on('detach', this.detach);
+    EventTarget.prototype.initialize.call(this, options);
 
-    if ('contentScriptFile' in options)
-      this.contentScriptFile = options.contentScriptFile;
-    if ('contentScriptOptions' in options)
-      this.contentScriptOptions = options.contentScriptOptions;
-    if ('contentScript' in options)
-      this.contentScript = options.contentScript;
-    if ('injectInDocument' in options)
-      this.injectInDocument = !!options.injectInDocument;
+    this.receive = this.receive.bind(this);
 
-    setListeners(this, options);
+    model.observe = ({ subject }) => {
+      let id = subject.QueryInterface(Ci.nsISupportsPRUint64).data;
+      if (model.window && getInnerId(model.window) === id)
+        this.detach();
+    }
 
-    unload.ensure(this, "destroy");
+    observe('inner-window-destroyed', model.observe);
 
-    
-    
-    this.port = createPort(this);
-
-    model.documentUnload = documentUnload.bind(this);
-    model.pageShow = pageShow.bind(this);
-    model.pageHide = pageHide.bind(this);
+    this.port = EventTarget();
+    this.port.emit = this.send.bind(this, 'event');
+    this.postMessage = this.send.bind(this, 'message');
 
     if ('window' in options)
       attach(this, options.window);
   },
-
   
-
-
-
-
-
-
-
-
-
-
-
-  postMessage: function (...data) {
+  receive({ data: { id, args }}) {
     let model = modelFor(this);
-    let args = ['message'].concat(data);
+    if (id !== model.id || !model.childWorker)
+      return;
+    if (args[0] === 'event')
+      emit(this.port, ...args.slice(1))
+    else
+      emit(this, ...args);
+  },
+  send(...args) {
+    let model = modelFor(this);
     if (!model.inited) {
       model.earlyEvents.push(args);
       return;
     }
-    processMessage.apply(null, [this].concat(args));
+    if (!model.childWorker && args[0] !== 'detach')
+      throw new Error(ERR_DESTROYED);
+    if (model.frozen && args[0] !== 'detach')
+      throw new Error(ERR_FROZEN);
+    try {
+      model.manager.sendAsyncMessage('sdk/worker/message', { id: model.id, args });
+    } catch (e) {
+      
+    }
   },
-
-  get url () {
-    let model = modelFor(this);
-    
-    return model.window ? model.window.document.location.href : null;
-  },
-
-  get contentURL () {
-    let model = modelFor(this);
-    return model.window ? model.window.document.URL : null;
-  },
-
-  get tab () {
-    let model = modelFor(this);
-    
-    if (model.window)
-      return getTabForWindow(model.window);
-    return null;
-  },
-
   
-  
-  getSandbox: function () {
-    return modelFor(this).contentWorker;
+  get url() {
+    let { window } = modelFor(this);
+    return window && window.document.location.href;
   },
-
-  toString: function () { return '[object Worker]'; },
+  get contentURL() {
+    let { window } = modelFor(this);
+    return window && window.document.URL;
+  },
+  get tab() {
+    let { window } = modelFor(this);
+    return window && getTabForWindow(window);
+  },
+  toString: () => '[object Worker]',
+  
   attach: method(attach),
   detach: method(detach),
-  destroy: method(destroy)
-});
+  destroy: method(destroy),
+})
 exports.Worker = Worker;
 
-attach.define(Worker, function (worker, window) {
+attach.define(Worker, function(worker, window) {
   let model = modelFor(worker);
+
   model.window = window;
-  
-  
-  
-  
-  model.windowID = getInnerId(model.window);
-  events.on("inner-window-destroyed", model.documentUnload);
+  model.options.window = getInnerId(window);
+  model.id = model.options.id = String(uuid());
 
-  
-  model.contentWorker = WorkerSandbox(worker, model.window);
+  let tab = getTabForContentWindow(window);
+  if (tab) {
+    model.manager = getBrowserForTab(tab).messageManager;
+  } else {
+    model.manager = getFrameElement(window.top).frameLoader.messageManager;
+  }
 
-  
-  
-  model.window.addEventListener("pageshow", model.pageShow, true);
-  model.window.addEventListener("pagehide", model.pageHide, true);
+  model.manager.addMessageListener('sdk/worker/event', worker.receive);
+  model.manager.addMessageListener('sdk/worker/attach', attach);
 
-  
-  model.inited = true;
-  model.frozen = false;
+  model.manager.sendAsyncMessage('sdk/worker/create', {
+    options: model.options,
+    addon: ADDON
+  });
 
-  
-  emit(worker, 'attach', window);
+  function attach({ data }) {
+    if (data.id !== model.id)
+      return;
+    model.manager.removeMessageListener('sdk/worker/attach', attach);
+    model.childWorker = true;
 
-  
-  
-  model.earlyEvents.forEach(args => processMessage.apply(null, [worker].concat(args)));
-});
+    worker.on('pageshow', () => model.frozen = false);
+    worker.on('pagehide', () => model.frozen = true);
+
+    model.inited = true;
+    model.frozen = false;
+
+    model.earlyEvents.forEach(args => worker.send(...args));
+    emit(worker, 'attach', window);
+  }
+})
 
 
-
-
-
-detach.define(Worker, function (worker, reason) {
+detach.define(Worker, function(worker, reason) {
   let model = modelFor(worker);
+  worker.send('detach', reason);
+  if (!model.childWorker)
+    return;
 
-  
-  if (model.contentWorker) {
-    model.contentWorker.destroy(reason);
-  }
-
-  model.contentWorker = null;
-  if (model.window) {
-    model.window.removeEventListener("pageshow", model.pageShow, true);
-    model.window.removeEventListener("pagehide", model.pageHide, true);
-  }
+  model.childWorker = null;
+  model.earlyEvents = [];
   model.window = null;
-  
-  
-  if (model.windowID) {
-    model.windowID = null;
-    events.off("inner-window-destroyed", model.documentUnload);
-    model.earlyEvents.length = 0;
-    emit(worker, 'detach');
-  }
-  model.inited = false;
-});
+  emit(worker, 'detach');
+  model.manager.removeMessageListener('sdk/worker/event', this.receive);
+})
 
 isPrivate.define(Worker, ({ tab }) => isPrivate(tab));
 
 
-
-
-
-destroy.define(Worker, function (worker, reason) {
+destroy.define(Worker, function(worker, reason) {
   detach(worker, reason);
   modelFor(worker).inited = true;
-  
-  
-  off(worker);
-  off(worker.port);
-});
+})
 
 
-
-
-function documentUnload ({ subject, data }) {
-  let model = modelFor(this);
-  let innerWinID = subject.QueryInterface(Ci.nsISupportsPRUint64).data;
-  if (innerWinID != model.windowID) return false;
-  detach(this);
-  return true;
-}
-
-function pageShow () {
-  let model = modelFor(this);
-  model.contentWorker.emitSync('pageshow');
-  emit(this, 'pageshow');
-  model.frozen = false;
-}
-
-function pageHide () {
-  let model = modelFor(this);
-  model.contentWorker.emitSync('pagehide');
-  emit(this, 'pagehide');
-  model.frozen = true;
-}
-
-
-
-
-
-
-
-function processMessage (worker, ...args) {
-  let model = modelFor(worker) || {};
-  if (!model.contentWorker)
-    throw new Error(ERR_DESTROYED);
-  if (model.frozen)
-    throw new Error(ERR_FROZEN);
-  model.contentWorker.emit.apply(null, args);
-}
-
-function createModel () {
-  return {
-    
-    earlyEvents: [],
-    
-    inited: false,
-    
-    
-    frozen: true,
-    
-
-
-
-    contentWorker: null,
-    
-
-
-
-
-    window: null
-  };
-}
-
-function createPort (worker) {
-  let port = EventTarget();
-  port.emit = emitEventToContent.bind(null, worker);
-  return port;
-}
-
-
-
-
-
-function emitEventToContent (worker, ...eventArgs) {
-  let model = modelFor(worker);
-  let args = ['event'].concat(eventArgs);
-  if (!model.inited) {
-    model.earlyEvents.push(args);
-    return;
-  }
-  processMessage.apply(null, [worker].concat(args));
-}
+when(() => ppmm.broadcastAsyncMessage('sdk/loader/unload', { data: ADDON }));

@@ -8,8 +8,9 @@ module.metadata = {
   "stability": "unstable"
 };
 
-const { Trait } = require("../deprecated/light-traits");
-const { EventEmitterTrait: EventEmitter } = require("../deprecated/events");
+const { Class } = require("../core/heritage");
+const { EventTarget } = require("../event/target");
+const { emit } = require("../event/core");
 const { DOMEventAssembler } = require("../deprecated/events/assembler");
 const { browserWindowIterator } = require('../deprecated/window-utils');
 const { isBrowser } = require('../window/utils');
@@ -17,12 +18,26 @@ const { observer: windowObserver } = require("../windows/observer");
 
 
 
-const observer = Trait.compose(DOMEventAssembler, EventEmitter).create({
-  
+const Observer = Class({
+  implements: [DOMEventAssembler, EventTarget],
+  initialize() {
+    
+    windowObserver.on("open", window => {
+      if (isBrowser(window))
+        this.observe(window);
+    });
 
+    
+    windowObserver.on("close", window => {
+      if (isBrowser(window))
+        this.ignore(window);
+    });
 
-
-  _emit: Trait.required,
+    
+    for (let window of browserWindowIterator()) {
+      this.observe(window);
+    }
+  },
   
 
 
@@ -34,24 +49,9 @@ const observer = Trait.compose(DOMEventAssembler, EventEmitter).create({
 
 
 
-  handleEvent: function handleEvent(event) {
-    this._emit(event.type, event, event.target.ownerDocument.defaultView);
+  handleEvent(event) {
+    emit(this, event.type, event, event.target.ownerDocument.defaultView);
   }
 });
 
-
-windowObserver.on("open", function onOpen(window) {
-  if (isBrowser(window))
-    observer.observe(window);
-});
-
-windowObserver.on("close", function onClose(window) {
-  if (isBrowser(window))
-    observer.ignore(window);
-});
-
-
-for (let window of browserWindowIterator())
-  observer.observe(window);
-
-exports.observer = observer;
+exports.observer = new Observer();

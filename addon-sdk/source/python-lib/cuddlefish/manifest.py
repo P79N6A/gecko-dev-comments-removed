@@ -417,6 +417,9 @@ class ManifestBuilder:
                         
                         
                         continue
+                    if reqname.endswith(".jsm"):
+                        
+                        continue
                     if not self.abort_on_missing:
                         
                         
@@ -802,4 +805,3 @@ if __name__ == '__main__':
             sys.exit(1)
         print "requires: %s" % (",".join(sorted(requires.keys())))
         print "locations: %s" % locations
-
