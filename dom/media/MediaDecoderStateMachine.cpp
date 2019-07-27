@@ -2925,12 +2925,6 @@ MediaDecoderStateMachine::FlushDecoding()
   
   
   
-  mAudioRequestStatus = RequestStatus::Idle;
-  mVideoRequestStatus = RequestStatus::Idle;
-
-  
-  
-  
   ResetPlayback();
 }
 
