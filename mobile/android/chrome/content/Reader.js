@@ -102,7 +102,10 @@ let Reader = {
     let uri = tab.browser.currentURI;
     let urlWithoutRef = uri.specIgnoringRef;
 
-    let article = yield this.getArticle(urlWithoutRef, tabID);
+    let article = yield this.getArticle(urlWithoutRef, tabID).catch(e => {
+      Cu.reportError("Error getting article for tab: " + e);
+      return null;
+    });
     if (!article) {
       
       
@@ -146,7 +149,6 @@ let Reader = {
 
 
 
-
   getArticle: Task.async(function* (url, tabId) {
     
     let tab = BrowserApp.getTabForId(tabId);
@@ -168,10 +170,7 @@ let Reader = {
 
     
     
-    return yield this._downloadAndParseDocument(url).catch(e => {
-      Cu.reportError("Error downloading and parsing article: " + e);
-      return null;
-    });
+    return yield this._downloadAndParseDocument(url);
   }),
 
   
@@ -269,16 +268,18 @@ let Reader = {
     return new Promise((resolve, reject) => {
       let numTags = doc.getElementsByTagName("*").length;
       if (numTags > this.MAX_ELEMS_TO_PARSE) {
-        reject("Aborting parse for " + uri.spec + "; " + numTags + " elements found");
+        this.log("Aborting parse for " + uri.spec + "; " + numTags + " elements found");
+        resolve(null);
         return;
       }
 
       let worker = new ChromeWorker("readerWorker.js");
-      worker.onmessage = function (evt) {
+      worker.onmessage = evt => {
         let article = evt.data;
 
         if (!article) {
-          reject("Worker did not return an article");
+          this.log("Worker did not return an article");
+          resolve(null);
           return;
         }
 
@@ -291,8 +292,8 @@ let Reader = {
         resolve(article);
       };
 
-      worker.onerror = function (evt) {
-        reject(evt.message);
+      worker.onerror = evt => {
+        reject("Error in worker: " + evt.message);
       };
 
       try {

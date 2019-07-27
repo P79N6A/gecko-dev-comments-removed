@@ -4215,27 +4215,31 @@ Tab.prototype = {
           this.tilesData = null;
         }
 
-        if (!Reader.isEnabledForParseOnLoad)
+        if (!Reader.isEnabledForParseOnLoad) {
           return;
+        }
+
+        let resetReaderFlags = currentURL => {
+          
+          
+          if (!currentURL.startsWith("about:reader")) {
+            this.savedArticle = null;
+            this.readerEnabled = false;
+            this.readerActive = false;
+          } else {
+            this.readerActive = true;
+          }
+        };
 
         
         Reader.parseDocumentFromTab(this).then(article => {
           
           
-          let uri = this.browser.currentURI;
-          let tabURL = uri.specIgnoringRef;
+          let currentURL = this.browser.currentURI.specIgnoringRef;
+
           
-          
-          if (article == null || (article.url != tabURL)) {
-            
-            
-            if (!tabURL.startsWith("about:reader")) {
-              this.savedArticle = null;
-              this.readerEnabled = false;
-              this.readerActive = false;
-            } else {
-              this.readerActive = true;
-            }
+          if (article == null || (article.url != currentURL)) {
+            resetReaderFlags(currentURL);
             return;
           }
 
@@ -4246,12 +4250,16 @@ Tab.prototype = {
             tabID: this.id
           });
 
-          if(this.readerActive)
+          if (this.readerActive) {
             this.readerActive = false;
-
-          if(!this.readerEnabled)
+          }
+          if (!this.readerEnabled) {
             this.readerEnabled = true;
-        }, e => Cu.reportError("Error parsing document from tab: " + e));
+          }
+        }).catch(e => {
+          Cu.reportError("Error parsing document from tab: " + e);
+          resetReaderFlags(this.browser.currentURI.specIgnoringRef);
+        });
       }
     }
   },
