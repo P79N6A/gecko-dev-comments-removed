@@ -1362,10 +1362,6 @@ nsCSSGridTemplateAreaScanner::Next(nsCSSGridTemplateAreaToken& aTokenResult)
     aTokenResult.isTrash = false;
   } else if (ch == '.') {
     
-    
-    while (mOffset < mCount && mBuffer[mOffset] == '.') {
-      mOffset++;
-    }
     aTokenResult.mName.Truncate();
     aTokenResult.isTrash = false;
   } else {
