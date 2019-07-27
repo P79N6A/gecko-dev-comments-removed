@@ -66,6 +66,11 @@ public:
   
 
 
+  nsresult StartComposition(nsEventStatus& aStatus);
+
+  
+
+
 
 
 

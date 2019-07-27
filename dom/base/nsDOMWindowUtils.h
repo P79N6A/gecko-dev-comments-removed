@@ -57,6 +57,8 @@ private:
 class nsDOMWindowUtils MOZ_FINAL : public nsIDOMWindowUtils,
                                    public nsSupportsWeakReference
 {
+  typedef mozilla::widget::TextEventDispatcher
+    TextEventDispatcher;
 public:
   explicit nsDOMWindowUtils(nsGlobalWindow *aWindow);
   NS_DECL_ISUPPORTS
@@ -78,6 +80,17 @@ protected:
   nsPresContext* GetPresContext();
   nsIDocument* GetDocument();
   mozilla::layers::LayerTransactionChild* GetLayerTransaction();
+  
+
+
+
+
+
+
+
+
+  nsresult GetTextEventDispatcher(
+             TextEventDispatcher** aDispatcher);
 
   nsView* GetViewToDispatchEvent(nsPresContext* presContext, nsIPresShell** presShell);
 
