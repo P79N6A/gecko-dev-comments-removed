@@ -499,6 +499,26 @@ ComponentsUtilsInterposition.methods.evalInSandbox =
     }
   };
 
+
+
+
+
+let ContentDocumentInterposition = new Interposition();
+
+ContentDocumentInterposition.methods.importNode =
+  function(addon, target, node, deep) {
+    if (!Cu.isCrossProcessWrapper(node)) {
+      
+      
+      
+      
+      Cu.reportError("Calling contentDocument.importNode on a XUL node is not allowed.");
+      return node;
+    }
+
+    return target.importNode(node, deep);
+  };
+
 let RemoteAddonsParent = {
   init: function() {
     let mm = Cc["@mozilla.org/globalmessagemanager;1"].getService(Ci.nsIMessageListenerManager);
@@ -531,6 +551,7 @@ let RemoteAddonsParent = {
 
     register("EventTarget", EventTargetInterposition);
     register("ContentDocShellTreeItem", ContentDocShellTreeItemInterposition);
+    register("ContentDocument", ContentDocumentInterposition);
 
     return result;
   },
