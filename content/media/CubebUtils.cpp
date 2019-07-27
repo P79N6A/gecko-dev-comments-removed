@@ -22,14 +22,21 @@ namespace {
 
 StaticMutex sMutex;
 cubeb* sCubebContext;
+double sVolumeScale;
+uint32_t sCubebLatency;
+bool sCubebLatencyPrefSet;
+
+
+
+
+
+
+
+
 
 
 
 uint32_t sPreferredSampleRate;
-
-double sVolumeScale;
-uint32_t sCubebLatency;
-bool sCubebLatencyPrefSet;
 
 } 
 
@@ -89,6 +96,7 @@ void InitPreferredSampleRate()
   if (sPreferredSampleRate == 0 &&
       cubeb_get_preferred_sample_rate(GetCubebContextUnlocked(),
                                       &sPreferredSampleRate) != CUBEB_OK) {
+    
     sPreferredSampleRate = 44100;
   }
 }
@@ -139,20 +147,20 @@ void ShutdownLibrary()
   }
 }
 
-int MaxNumberOfChannels()
+uint32_t MaxNumberOfChannels()
 {
   cubeb* cubebContext = GetCubebContext();
   uint32_t maxNumberOfChannels;
   if (cubebContext &&
       cubeb_get_max_channel_count(cubebContext,
                                   &maxNumberOfChannels) == CUBEB_OK) {
-    return static_cast<int>(maxNumberOfChannels);
+    return maxNumberOfChannels;
   }
 
   return 0;
 }
 
-int PreferredSampleRate()
+uint32_t PreferredSampleRate()
 {
   MOZ_ASSERT(sPreferredSampleRate,
              "sPreferredSampleRate has not been initialized!");
