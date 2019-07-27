@@ -48,6 +48,7 @@ public final class WebActivityMapper {
         
 
 
+        @Override
         public String getMime(JSONObject data) throws JSONException {
             return data.optString("type", null);
         }
@@ -55,6 +56,7 @@ public final class WebActivityMapper {
         
 
 
+        @Override
         public String getUri(JSONObject data) throws JSONException {
             
             String uri = data.optString("uri", null);

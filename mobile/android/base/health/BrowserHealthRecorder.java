@@ -101,16 +101,19 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
     private final SessionInformation previousSession;
     private volatile SessionInformation session;
 
+    @Override
     public void setCurrentSession(SessionInformation session) {
         this.session = session;
     }
 
+    @Override
     public void recordGeckoStartupTime(long duration) {
         if (this.session == null) {
             return;
         }
         this.session.setTimedGeckoStartup(duration);
     }
+    @Override
     public void recordJavaStartupTime(long duration) {
         if (this.session == null) {
             return;
@@ -164,6 +167,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
         this.prefs = appPrefs;
     }
 
+    @Override
     public boolean isEnabled() {
         return true;
     }
@@ -172,6 +176,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
 
 
 
+    @Override
     public synchronized void close() {
         switch (this.state) {
             case CLOSED:
@@ -208,12 +213,14 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
             EVENT_SEARCH);
     }
 
+    @Override
     public void onAppLocaleChanged(String to) {
         Log.d(LOG_TAG, "Setting health recorder app locale to " + to);
         this.profileCache.beginInitialization();
         this.profileCache.setAppLocale(to);
     }
 
+    @Override
     public void onAddonChanged(String id, JSONObject json) {
         this.profileCache.beginInitialization();
         try {
@@ -223,6 +230,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
         }
     }
 
+    @Override
     public void onAddonUninstalling(String id) {
         this.profileCache.beginInitialization();
         try {
@@ -243,6 +251,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
 
 
 
+    @Override
     public synchronized void onEnvironmentChanged() {
         onEnvironmentChanged(true, "E");
     }
@@ -252,6 +261,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
 
 
 
+    @Override
     public synchronized void onEnvironmentChanged(final boolean startNewSession, final String sessionEndReason) {
         final int previousEnv = this.env;
         this.env = -1;
@@ -685,6 +695,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
 
 
 
+    @Override
     public void recordSearch(final String engineID, final String location) {
         if (this.state != State.INITIALIZED) {
             Log.d(LOG_TAG, "Not initialized: not recording search. (" + this.state + ")");
@@ -824,6 +835,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
         }
     }
 
+    @Override
     public void checkForOrphanSessions() {
         if (!this.orphanChecked.compareAndSet(false, true)) {
             Log.w(LOG_TAG, "Attempting to check for orphan sessions more than once.");
@@ -854,6 +866,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
         }
     }
 
+    @Override
     public void recordSessionEnd(String reason, SharedPreferences.Editor editor) {
         recordSessionEnd(reason, editor, env);
     }
@@ -864,6 +877,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
 
 
 
+    @Override
     public void recordSessionEnd(String reason, SharedPreferences.Editor editor, final int environment) {
         Log.d(LOG_TAG, "Recording session end: " + reason);
         if (state != State.INITIALIZED) {

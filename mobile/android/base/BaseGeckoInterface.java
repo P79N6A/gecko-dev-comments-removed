@@ -35,6 +35,7 @@ public class BaseGeckoInterface implements GeckoAppShell.GeckoInterface {
         mContext = context;
     }
 
+    @Override
     public GeckoProfile getProfile() {
         
         if (mProfile == null) {
@@ -44,32 +45,39 @@ public class BaseGeckoInterface implements GeckoAppShell.GeckoInterface {
     }
 
     
+    @Override
     public PromptService getPromptService() {
         return null;
     }
 
+    @Override
     public Activity getActivity() {
         return (Activity)mContext;
     }
 
+    @Override
     public String getDefaultUAString() {
         return HardwareUtils.isTablet() ? AppConstants.USER_AGENT_FENNEC_TABLET :
                                           AppConstants.USER_AGENT_FENNEC_MOBILE;
     }
 
     
+    @Override
     public LocationListener getLocationListener() {
         return null;
     }
 
     
+    @Override
     public SensorEventListener getSensorEventListener() {
         return null;
     }
 
     
+    @Override
     public void doRestart() {}
 
+    @Override
     public void setFullScreen(final boolean fullscreen) {
         ThreadUtils.postToUiThread(new Runnable() {
             @Override
@@ -80,53 +88,67 @@ public class BaseGeckoInterface implements GeckoAppShell.GeckoInterface {
     }
 
     
+    @Override
     public void addPluginView(final View view, final RectF rect, final boolean isFullScreen) {}
 
     
+    @Override
     public void removePluginView(final View view, final boolean isFullScreen) {}
 
     
+    @Override
     public void enableCameraView() {}
 
     
+    @Override
     public void disableCameraView() {}
 
     
+    @Override
     public void addAppStateListener(GeckoAppShell.AppStateListener listener) {}
 
     
+    @Override
     public void removeAppStateListener(GeckoAppShell.AppStateListener listener) {}
 
     
+    @Override
     public View getCameraView() {
         return null;
     }
 
     
+    @Override
     public void notifyWakeLockChanged(String topic, String state) {}
 
     
+    @Override
     public FormAssistPopup getFormAssistPopup() {
         return null;
     }
 
+    @Override
     public boolean areTabsShown() {
         return false;
     }
 
     
+    @Override
     public AbsoluteLayout getPluginContainer() {
         return null;
     }
 
+    @Override
     public void notifyCheckUpdateResult(String result) {
         GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Update:CheckResult", result));
     }
 
+    @Override
     public boolean hasTabsSideBar() {
         return false;
     }
 
     
+    @Override
     public void invalidateOptionsMenu() {}
 }

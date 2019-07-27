@@ -136,6 +136,7 @@ public class testMasterPassword extends PixelTest {
         }
     }
 
+    @Override
     public void clearPrivateData() {
 
         

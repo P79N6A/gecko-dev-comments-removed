@@ -139,6 +139,7 @@ public class testImportFromAndroid extends AboutHomeTest {
 
         
         boolean importComplete = waitForTest(new BooleanTest() {
+            @Override
             public boolean test() {
                 return !mSolo.searchText("Please wait...");
             }
@@ -199,6 +200,7 @@ public class testImportFromAndroid extends AboutHomeTest {
         }
     }
 
+    @Override
     public void tearDown() throws Exception {
         deleteImportedData();
         super.tearDown();

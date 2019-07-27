@@ -237,6 +237,7 @@ public class StumblerService extends PersistentIntentService
     }
 
     
+    @Override
     public void notifyStorageStateEmpty(boolean isEmpty) {
         if (isEmpty) {
             UploadAlarmReceiver.cancelAlarm(this, !mScanManager.isPassiveMode());

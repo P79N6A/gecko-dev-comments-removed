@@ -155,10 +155,12 @@ public class ButtonToast {
             animator.addPropertyAnimationListener(new PropertyAnimator.PropertyAnimationListener () {
                 
                 
+                @Override
                 public void onPropertyAnimationEnd() {
                     mView.clearAnimation();
                     mView.setVisibility(View.GONE);
                 }
+                @Override
                 public void onPropertyAnimationStart() { }
             });
             animator.start();
