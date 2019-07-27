@@ -323,7 +323,7 @@ pref("media.video-queue.default-size", 3);
 
 
 pref("image.decode-only-on-draw.enabled", true);
-pref("image.mem.allow_locking_in_content_processes", false); 
+pref("image.mem.allow_locking_in_content_processes", true);
 
 
 
