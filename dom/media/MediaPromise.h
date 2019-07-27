@@ -702,6 +702,9 @@ public:
 };
 
 
+typedef MediaPromise<bool, nsresult,  false> GenericPromise;
+
+
 
 
 
