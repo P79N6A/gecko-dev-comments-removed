@@ -36,7 +36,6 @@ pref("full-screen-api.enabled", true);
 
 
 pref("dom.indexedDB.enabled", true);
-pref("dom.indexedDB.warningQuota", 50);
 
 
 pref("browser.offline-apps.notify", false);

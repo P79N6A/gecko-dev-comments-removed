@@ -85,10 +85,6 @@ this.SitePermissions = {
     }
 
     Services.perms.add(aURI, aPermissionID, aState);
-
-    if (aPermissionID in gPermissionObject &&
-        gPermissionObject[aPermissionID].onChange)
-      gPermissionObject[aPermissionID].onChange(aURI, aState);
   },
 
   
@@ -98,10 +94,6 @@ this.SitePermissions = {
       return;
 
     Services.perms.remove(aURI.host, aPermissionID);
-
-    if (aPermissionID in gPermissionObject &&
-        gPermissionObject[aPermissionID].onChange)
-      gPermissionObject[aPermissionID].onChange(aURI, this.UNKNOWN);
   },
 
   
@@ -132,9 +124,6 @@ this.SitePermissions = {
 
 let gPermissionObject = {
   
-
-
-
 
 
 
@@ -195,12 +184,7 @@ let gPermissionObject = {
     exactHostMatch: true
   },
 
-  "indexedDB": {
-    onChange: function (aURI, aState) {
-      if (aState == SitePermissions.BLOCK)
-        Services.perms.remove(aURI.host, "indexedDB-unlimited");
-    }
-  },
+  "indexedDB": {},
 
   "fullscreen": {},
 

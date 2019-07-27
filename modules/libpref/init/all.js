@@ -116,8 +116,6 @@ pref("dom.quotaManager.testing", false);
 
 pref("dom.indexedDB.enabled", true);
 
-pref("dom.indexedDB.warningQuota", 50);
-
 pref("dom.indexedDB.experimental", false);
 
 pref("dom.indexedDB.logging.enabled", true);

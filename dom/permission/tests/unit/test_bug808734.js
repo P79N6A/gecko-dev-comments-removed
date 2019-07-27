@@ -21,11 +21,6 @@ var gData = [
 },
 
 {
-  permission: "storage",
-  expected: ["indexedDB-unlimited"]
-},
-
-{
   permission: "contacts",
   access: UNKNOWN,
   expected: []
