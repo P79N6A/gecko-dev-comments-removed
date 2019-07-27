@@ -164,6 +164,10 @@ public:
     return mResult;
   }
 
+  bool ErrorCodeIs(nsresult rv) const {
+    return mResult == rv;
+  }
+
 private:
   friend struct IPC::ParamTraits<ErrorResult>;
   void SerializeMessage(IPC::Message* aMsg) const;

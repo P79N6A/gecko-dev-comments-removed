@@ -724,8 +724,8 @@ nsRange::IsPointInRange(nsINode& aParent, uint32_t aOffset, ErrorResult& aRv)
 {
   uint16_t compareResult = ComparePoint(aParent, aOffset, aRv);
   
-  if (aRv.ErrorCode() == NS_ERROR_DOM_WRONG_DOCUMENT_ERR) {
-    aRv = NS_OK;
+  if (aRv.ErrorCodeIs(NS_ERROR_DOM_WRONG_DOCUMENT_ERR)) {
+    aRv.SuppressException();
     return false;
   }
 
