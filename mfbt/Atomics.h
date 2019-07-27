@@ -742,7 +742,7 @@ public:
   explicit MOZ_CONSTEXPR Atomic(bool aInit) : Base(aInit) {}
 
   
-  operator bool() const
+  MOZ_IMPLICIT operator bool() const
   {
     return Base::Intrinsics::load(Base::mValue);
   }

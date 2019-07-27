@@ -176,7 +176,7 @@ public:
   }
 
   
-  operator bool() { return mLength; }
+  explicit operator bool() { return mLength; }
 
   
   const char* get() { return mBuf; }
