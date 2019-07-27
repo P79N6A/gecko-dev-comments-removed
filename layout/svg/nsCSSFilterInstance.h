@@ -40,9 +40,11 @@ public:
 
 
 
+
+
   nsCSSFilterInstance(const nsStyleFilter& aFilter,
-                      nsIFrame *aTargetFrame,
-                      const nsIntRect& mTargetBBoxInFilterSpace,
+                      nscolor aShadowFallbackColor,
+                      const nsIntRect& aTargetBBoxInFilterSpace,
                       const gfxMatrix& aFrameSpaceInCSSPxToFilterSpaceTransform);
 
   
@@ -114,7 +116,8 @@ private:
   
 
 
-  nsIFrame* mTargetFrame;
+
+  nscolor mShadowFallbackColor;
 
   
 
