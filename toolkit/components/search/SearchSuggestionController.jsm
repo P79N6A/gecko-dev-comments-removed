@@ -47,6 +47,16 @@ this.SearchSuggestionController.prototype = {
   maxRemoteResults: 10,
 
   
+
+
+  remoteTimeout: REMOTE_TIMEOUT,
+
+  
+
+
+  formHistoryParam: DEFAULT_FORM_HISTORY_PARAM,
+
+  
   
 
 
@@ -168,7 +178,7 @@ this.SearchSuggestionController.prototype = {
           this._remoteResultTimer = Cc["@mozilla.org/timer;1"].
                                     createInstance(Ci.nsITimer);
           this._remoteResultTimer.initWithCallback(this._onRemoteTimeout.bind(this),
-                                                   REMOTE_TIMEOUT,
+                                                   this.remoteTimeout || REMOTE_TIMEOUT,
                                                    Ci.nsITimer.TYPE_ONE_SHOT);
         }
 
@@ -199,7 +209,8 @@ this.SearchSuggestionController.prototype = {
 
     let formHistory = Cc["@mozilla.org/autocomplete/search;1?name=form-history"].
                       createInstance(Ci.nsIAutoCompleteSearch);
-    formHistory.startSearch(searchTerm, DEFAULT_FORM_HISTORY_PARAM, this._formHistoryResult,
+    formHistory.startSearch(searchTerm, this.formHistoryParam || DEFAULT_FORM_HISTORY_PARAM,
+                            this._formHistoryResult,
                             acSearchObserver);
     return deferredFormHistory;
   },
@@ -346,4 +357,14 @@ this.SearchSuggestionController.prototype = {
     this._deferredRemoteResult = null;
     this._searchString = null;
   },
+};
+
+
+
+
+
+
+
+this.SearchSuggestionController.engineOffersSuggestions = function(engine) {
+ return engine.supportsResponseType(SEARCH_RESPONSE_SUGGESTION_JSON);
 };
