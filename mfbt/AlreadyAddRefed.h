@@ -29,7 +29,7 @@ struct unused_t;
 
 
 template<class T>
-struct already_AddRefed
+struct MOZ_MUST_USE already_AddRefed
 {
   
 

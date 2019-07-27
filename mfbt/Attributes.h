@@ -452,6 +452,9 @@
 
 
 
+
+
+
 #ifdef MOZ_CLANG_PLUGIN
 #  define MOZ_MUST_OVERRIDE __attribute__((annotate("moz_must_override")))
 #  define MOZ_STACK_CLASS __attribute__((annotate("moz_stack_class")))
@@ -470,6 +473,7 @@
 #  define MOZ_NON_OWNING_REF __attribute__((annotate("moz_weak_ref")))
 #  define MOZ_UNSAFE_REF(reason) __attribute__((annotate("moz_weak_ref")))
 #  define MOZ_NO_ADDREF_RELEASE_ON_RETURN __attribute__((annotate("moz_no_addref_release_on_return")))
+#  define MOZ_MUST_USE __attribute__((annotate("moz_must_use")))
 
 
 
@@ -493,6 +497,7 @@
 #  define MOZ_NON_OWNING_REF
 #  define MOZ_UNSAFE_REF(reason)
 #  define MOZ_NO_ADDREF_RELEASE_ON_RETURN
+#  define MOZ_MUST_USE
 #endif 
 
 #endif 
