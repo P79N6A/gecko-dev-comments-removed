@@ -521,6 +521,10 @@
 
 
 
+
+
+
+
 #ifdef MOZ_CLANG_PLUGIN
 #  define MOZ_MUST_OVERRIDE __attribute__((annotate("moz_must_override")))
 #  define MOZ_STACK_CLASS __attribute__((annotate("moz_stack_class")))
@@ -537,6 +541,7 @@
 #  define MOZ_NO_ARITHMETIC_EXPR_IN_ARGUMENT __attribute__((annotate("moz_no_arith_expr_in_arg")))
 #  define MOZ_OWNING_REF __attribute__((annotate("moz_strong_ref")))
 #  define MOZ_NON_OWNING_REF __attribute__((annotate("moz_weak_ref")))
+#  define MOZ_UNSAFE_REF(reason) __attribute__((annotate("moz_strong_ref")))
 
 
 
@@ -558,6 +563,7 @@
 #  define MOZ_HEAP_ALLOCATOR
 #  define MOZ_OWNING_REF
 #  define MOZ_NON_OWNING_REF
+#  define MOZ_UNSAFE_REF(reason)
 #endif 
 
 
