@@ -22,6 +22,7 @@ namespace frontend { struct Definition; }
 
 class StaticWithObject;
 class StaticEvalObject;
+class StaticNonSyntacticScopeObjects;
 
 
 
@@ -62,6 +63,7 @@ class StaticScopeIter
                       obj->is<StaticBlockObject>() ||
                       obj->is<StaticWithObject>() ||
                       obj->is<StaticEvalObject>() ||
+                      obj->is<StaticNonSyntacticScopeObjects>() ||
                       obj->is<JSFunction>());
     }
 
@@ -81,6 +83,7 @@ class StaticScopeIter
                       obj->is<StaticBlockObject>() ||
                       obj->is<StaticWithObject>() ||
                       obj->is<StaticEvalObject>() ||
+                      obj->is<StaticNonSyntacticScopeObjects>() ||
                       obj->is<JSFunction>());
     }
 
@@ -96,15 +99,18 @@ class StaticScopeIter
     void operator++(int);
 
     
-    bool hasDynamicScopeObject() const;
+    
+    
+    bool hasSyntacticDynamicScopeObject() const;
     Shape* scopeShape() const;
 
-    enum Type { Function, Block, With, NamedLambda, Eval };
+    enum Type { Function, Block, With, NamedLambda, Eval, NonSyntactic };
     Type type() const;
 
     StaticBlockObject& block() const;
     StaticWithObject& staticWith() const;
     StaticEvalObject& eval() const;
+    StaticNonSyntacticScopeObjects& nonSyntactic() const;
     JSScript* funScript() const;
     JSFunction& fun() const;
 };
@@ -164,6 +170,11 @@ ScopeCoordinateName(ScopeCoordinateNameCache& cache, JSScript* script, jsbytecod
 
 extern JSScript*
 ScopeCoordinateFunctionScript(JSScript* script, jsbytecode* pc);
+
+
+
+
+
 
 
 
@@ -354,6 +365,7 @@ class DeclEnvObject : public ScopeObject
 
 
 
+
 class StaticEvalObject : public ScopeObject
 {
     static const uint32_t STRICT_SLOT = 1;
@@ -380,6 +392,34 @@ class StaticEvalObject : public ScopeObject
     
     bool isDirect() const {
         return getReservedSlot(SCOPE_CHAIN_SLOT).isObject();
+    }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class StaticNonSyntacticScopeObjects : public ScopeObject
+{
+  public:
+    static const unsigned RESERVED_SLOTS = 1;
+    static const Class class_;
+
+    static StaticNonSyntacticScopeObjects* create(JSContext* cx, HandleObject enclosing);
+
+    JSObject* enclosingScopeForStaticScopeIter() {
+        return getReservedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
     }
 };
 
@@ -747,17 +787,20 @@ class ScopeIter
     inline JSObject& enclosingScope() const;
 
     
-    enum Type { Call, Block, With, Eval };
+    enum Type { Call, Block, With, Eval, NonSyntactic };
     Type type() const;
 
-    inline bool hasScopeObject() const;
-    inline bool canHaveScopeObject() const;
+    inline bool hasNonSyntacticScopeObject() const;
+    inline bool hasSyntacticScopeObject() const;
+    inline bool hasAnyScopeObject() const;
+    inline bool canHaveSyntacticScopeObject() const;
     ScopeObject& scope() const;
 
     JSObject* maybeStaticScope() const;
     StaticBlockObject& staticBlock() const { return ssi_.block(); }
     StaticWithObject& staticWith() const { return ssi_.staticWith(); }
     StaticEvalObject& staticEval() const { return ssi_.eval(); }
+    StaticNonSyntacticScopeObjects& staticNonSyntactic() const { return ssi_.nonSyntactic(); }
     JSFunction& fun() const { return ssi_.fun(); }
 
     bool withinInitialFrame() const { return !!frame_; }
@@ -1054,16 +1097,50 @@ ScopeIter::done() const
 }
 
 inline bool
-ScopeIter::hasScopeObject() const
+ScopeIter::hasSyntacticScopeObject() const
 {
-    return ssi_.hasDynamicScopeObject();
+    return ssi_.hasSyntacticDynamicScopeObject();
 }
 
 inline bool
-ScopeIter::canHaveScopeObject() const
+ScopeIter::hasNonSyntacticScopeObject() const
 {
     
-    return !ssi_.done() && (type() != Eval || staticEval().isStrict());
+    
+    
+    if (ssi_.type() == StaticScopeIter<CanGC>::NonSyntactic) {
+        MOZ_ASSERT_IF(scope_->is<DynamicWithObject>(),
+                      !scope_->as<DynamicWithObject>().isSyntactic());
+        return scope_->is<DynamicWithObject>();
+    }
+    return false;
+}
+
+inline bool
+ScopeIter::hasAnyScopeObject() const
+{
+    return hasSyntacticScopeObject() || hasNonSyntacticScopeObject();
+}
+
+inline bool
+ScopeIter::canHaveSyntacticScopeObject() const
+{
+    if (ssi_.done())
+        return false;
+
+    switch (type()) {
+      case Call:
+        return true;
+      case Block:
+        return true;
+      case With:
+        return true;
+      case Eval:
+        
+        return staticEval().isStrict();
+      case NonSyntactic:
+        return false;
+    }
 }
 
 inline JSObject&
