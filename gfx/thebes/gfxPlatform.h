@@ -298,6 +298,10 @@ public:
                                  const nsACString& aGenericFamily,
                                  nsTArray<nsString>& aListOfFonts);
 
+    int GetTileWidth();
+    int GetTileHeight();
+    void SetTileSize(int aWidth, int aHeight);
+
     
 
 
@@ -665,6 +669,9 @@ private:
     mozilla::gfx::BackendType mContentBackend;
     
     uint32_t mContentBackendBitmask;
+
+    int mTileWidth;
+    int mTileHeight;
 
     mozilla::widget::GfxInfoCollector<gfxPlatform> mAzureCanvasBackendCollector;
 

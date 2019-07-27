@@ -11,7 +11,7 @@
 
 #include <stdint.h>                     
 #include <sys/types.h>                  
-#include "gfxPrefs.h"                   
+#include "gfxPlatform.h"                
 #include "nsDebug.h"                    
 #include "nsPoint.h"                    
 #include "nsRect.h"                     
@@ -94,7 +94,7 @@ public:
     : mRetainedWidth(0)
     , mRetainedHeight(0)
     , mResolution(1)
-    , mTileSize(gfxPrefs::LayersTileWidth(), gfxPrefs::LayersTileHeight())
+    , mTileSize(gfxPlatform::GetPlatform()->GetTileWidth(), gfxPlatform::GetPlatform()->GetTileHeight())
   {}
 
   ~TiledLayerBuffer() {}
