@@ -2,6 +2,7 @@
 
 
 
+Cu.import("resource://gre/modules/CrashSubmit.jsm", this);
 Cu.import("resource://gre/modules/Services.jsm");
 
 const CRASH_URL = "http://example.com/browser/browser/base/content/test/plugins/plugin_crashCommentAndURL.html";
@@ -85,7 +86,7 @@ function doNextRun() {
   }
 }
 
-function onCrash() {
+function onCrash(event) {
   try {
     let plugin = gBrowser.contentDocument.getElementById("plugin");
     let elt = gPluginHandler.getPluginUI.bind(gPluginHandler, plugin);
@@ -96,6 +97,12 @@ function onCrash() {
        "Submission UI visibility should be correct");
     if (!currentRun.shouldSubmissionUIBeVisible) {
       
+      
+      let propBag = event.detail.QueryInterface(Ci.nsIPropertyBag2);
+      let crashID = propBag.getPropertyAsAString("pluginDumpID");
+      ok(!!crashID, "pluginDumpID should be set");
+      CrashSubmit.delete(crashID);
+
       doNextRun();
       return;
     }
