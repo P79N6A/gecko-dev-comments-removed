@@ -886,6 +886,22 @@ public:
   bool mDurationSet;
 
   
+  Mirror<MediaDecoder::PlayState>::Holder mPlayState;
+  Mirror<MediaDecoder::PlayState>::Holder mNextPlayState;
+
+  
+  
+  
+  
+  
+  bool IsLogicallyPlaying()
+  {
+    MOZ_ASSERT(OnTaskQueue());
+    return mPlayState == MediaDecoder::PLAY_STATE_PLAYING ||
+           mNextPlayState == MediaDecoder::PLAY_STATE_PLAYING;
+  }
+
+  
   
   WatcherHolder mNextFrameStatusUpdater;
   Canonical<NextFrameStatus>::Holder mNextFrameStatus;

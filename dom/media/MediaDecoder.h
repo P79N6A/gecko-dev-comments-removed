@@ -705,12 +705,6 @@ public:
 
   
   
-  PlayState GetState() {
-    return mPlayState;
-  }
-
-  
-  
   void FireTimeUpdate();
 
   
@@ -846,13 +840,6 @@ public:
   void UpdateSameOriginStatus(bool aSameOrigin);
 
   MediaDecoderOwner* GetOwner() override;
-
-  
-  
-  
-  
-  
-  bool IsLogicallyPlaying();
 
 #ifdef MOZ_EME
   
@@ -1149,15 +1136,18 @@ protected:
   
   
   
-  Watchable<PlayState> mPlayState;
+  Canonical<PlayState>::Holder mPlayState;
 
   
   
   
   
   
-  
-  PlayState mNextState;
+  Canonical<PlayState>::Holder mNextState;
+public:
+  AbstractCanonical<PlayState>* CanonicalPlayState() { return &mPlayState; }
+  AbstractCanonical<PlayState>* CanonicalNextPlayState() { return &mNextState; }
+protected:
 
   
   

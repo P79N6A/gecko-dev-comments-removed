@@ -255,8 +255,15 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   MOZ_DIAGNOSTIC_ASSERT(pool);
   mTaskQueue = new MediaTaskQueue(pool.forget(),  true);
 
+  
   mNextFrameStatus.Init(mTaskQueue, MediaDecoderOwner::NEXT_FRAME_UNINITIALIZED,
                         "MediaDecoderStateMachine::mNextFrameStatus (Canonical)");
+
+  
+  mPlayState.Init(mTaskQueue, MediaDecoder::PLAY_STATE_LOADING, "MediaDecoderStateMachine::mPlayState (Mirror)",
+                  aDecoder->CanonicalPlayState());
+  mNextPlayState.Init(mTaskQueue, MediaDecoder::PLAY_STATE_PAUSED, "MediaDecoderStateMachine::mNextPlayState (Mirror)",
+                  aDecoder->CanonicalNextPlayState());
 
   
   
@@ -1222,7 +1229,7 @@ void MediaDecoderStateMachine::MaybeStartPlayback()
     return;
   }
 
-  bool playStatePermits = mDecoder->GetState() == MediaDecoder::PLAY_STATE_PLAYING;
+  bool playStatePermits = mPlayState == MediaDecoder::PLAY_STATE_PLAYING;
   bool decodeStatePermits = mState == DECODER_STATE_DECODING || mState == DECODER_STATE_COMPLETED;
   if (!playStatePermits || !decodeStatePermits || mIsAudioPrerolling || mIsVideoPrerolling) {
     DECODER_LOG("Not starting playback [playStatePermits: %d, decodeStatePermits: %d, "
@@ -1797,7 +1804,7 @@ MediaDecoderStateMachine::DispatchDecodeTasksIfNeeded()
   MOZ_ASSERT(mState != DECODER_STATE_COMPLETED ||
              (!needToDecodeAudio && !needToDecodeVideo));
 
-  bool needIdle = !mDecoder->IsLogicallyPlaying() &&
+  bool needIdle = !IsLogicallyPlaying() &&
                   mState != DECODER_STATE_SEEKING &&
                   !needToDecodeAudio &&
                   !needToDecodeVideo &&
@@ -2514,6 +2521,8 @@ MediaDecoderStateMachine::FinishShutdown()
   mPendingWakeDecoder = nullptr;
 
   
+  mPlayState.DisconnectIfConnected();
+  mNextPlayState.DisconnectIfConnected();
   mNextFrameStatus.DisconnectAll();
 
   MOZ_ASSERT(mState == DECODER_STATE_SHUTDOWN,
@@ -2616,8 +2625,7 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
     }
 
     case DECODER_STATE_DECODING: {
-      if (mDecoder->GetState() != MediaDecoder::PLAY_STATE_PLAYING &&
-          IsPlaying())
+      if (mPlayState != MediaDecoder::PLAY_STATE_PLAYING && IsPlaying())
       {
         
         
@@ -2628,7 +2636,7 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
       MaybeStartPlayback();
 
       AdvanceFrame();
-      NS_ASSERTION(mDecoder->GetState() != MediaDecoder::PLAY_STATE_PLAYING ||
+      NS_ASSERTION(mPlayState != MediaDecoder::PLAY_STATE_PLAYING ||
                    IsStateMachineScheduled() ||
                    mPlaybackRate == 0.0, "Must have timer scheduled");
       return NS_OK;
@@ -2696,9 +2704,8 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
           (mAudioCaptured && !mDecoder->GetDecodedStream()->IsFinished()))
       {
         AdvanceFrame();
-        NS_ASSERTION(mDecoder->GetState() != MediaDecoder::PLAY_STATE_PLAYING ||
-                     mPlaybackRate == 0 ||
-                     IsStateMachineScheduled(),
+        NS_ASSERTION(mPlayState != MediaDecoder::PLAY_STATE_PLAYING ||
+                     mPlaybackRate == 0 || IsStateMachineScheduled(),
                      "Must have timer scheduled");
         return NS_OK;
       }
@@ -2716,7 +2723,7 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
 
       StopAudioThread();
 
-      if (mDecoder->GetState() == MediaDecoder::PLAY_STATE_PLAYING &&
+      if (mPlayState == MediaDecoder::PLAY_STATE_PLAYING &&
           !mSentPlaybackEndedEvent)
       {
         int64_t clockTime = std::max(mAudioEndTime, mVideoFrameEndTime);
@@ -2896,7 +2903,7 @@ void MediaDecoderStateMachine::AdvanceFrame()
   NS_ASSERTION(!HasAudio() || mAudioStartTime != -1,
                "Should know audio start time if we have audio.");
 
-  if (mDecoder->GetState() != MediaDecoder::PLAY_STATE_PLAYING) {
+  if (mPlayState != MediaDecoder::PLAY_STATE_PLAYING) {
     return;
   }
 
@@ -2953,7 +2960,7 @@ void MediaDecoderStateMachine::AdvanceFrame()
   
   
   if (mState == DECODER_STATE_DECODING &&
-      mDecoder->GetState() == MediaDecoder::PLAY_STATE_PLAYING &&
+      mPlayState == MediaDecoder::PLAY_STATE_PLAYING &&
       mDecoder->IsExpectingMoreData()) {
     bool shouldBuffer;
     if (mReader->UseBufferingHeuristics()) {
