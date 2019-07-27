@@ -2262,6 +2262,24 @@ static const nsCSSProperty gBorderSubpropTable[] = {
   eCSSProperty_UNKNOWN
 };
 
+static const nsCSSProperty gBorderBlockEndSubpropTable[] = {
+  
+  
+  eCSSProperty_border_block_end_width,
+  eCSSProperty_border_block_end_style,
+  eCSSProperty_border_block_end_color,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gBorderBlockStartSubpropTable[] = {
+  
+  
+  eCSSProperty_border_block_start_width,
+  eCSSProperty_border_block_start_style,
+  eCSSProperty_border_block_start_color,
+  eCSSProperty_UNKNOWN
+};
+
 static const nsCSSProperty gBorderBottomSubpropTable[] = {
   
   
