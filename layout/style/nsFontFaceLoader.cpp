@@ -118,7 +118,6 @@ nsFontFaceLoader::LoadTimerCallback(nsITimer* aTimer, void* aClosure)
   if (updateUserFontSet) {
     ufe->mFontDataLoadingState = gfxUserFontEntry::LOADING_SLOWLY;
     nsPresContext* ctx = loader->mFontFaceSet->GetPresContext();
-    NS_ASSERTION(ctx, "userfontset doesn't have a presContext?");
     if (ctx) {
       loader->mFontFaceSet->IncrementGeneration();
       ctx->UserFontSetUpdated(loader->GetUserFontEntry());
@@ -155,10 +154,6 @@ nsFontFaceLoader::OnStreamComplete(nsIStreamLoader* aLoader,
     }
   }
 
-  nsPresContext* ctx = mFontFaceSet->GetPresContext();
-  NS_ASSERTION(ctx && !ctx->PresShell()->IsDestroying(),
-               "We should have been canceled already");
-
   if (NS_SUCCEEDED(aStatus)) {
     
     
@@ -184,11 +179,12 @@ nsFontFaceLoader::OnStreamComplete(nsIStreamLoader* aLoader,
   
   
   
+  nsPresContext* ctx = mFontFaceSet->GetPresContext();
   bool fontUpdate =
     mUserFontEntry->FontDataDownloadComplete(aString, aStringLen, aStatus);
 
   
-  if (fontUpdate) {
+  if (fontUpdate && ctx) {
     
     
     ctx->UserFontSetUpdated(mUserFontEntry);
