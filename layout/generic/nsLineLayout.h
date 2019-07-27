@@ -27,6 +27,10 @@
 class nsFloatManager;
 struct nsStyleText;
 
+namespace mozilla {
+class RubyReflowState;
+}
+
 class nsLineLayout {
 public:
   
@@ -97,6 +101,13 @@ public:
   void SplitLineTo(int32_t aNewCount);
 
   bool IsZeroBSize();
+
+  
+  
+  void SetRubyReflowState(mozilla::RubyReflowState* aRubyReflowState)
+  {
+    mRubyReflowState = aRubyReflowState;
+  }
 
   
   
@@ -557,6 +568,10 @@ protected:
   
   int32_t mLineNumber;
   mozilla::JustificationInfo mJustificationInfo;
+
+  
+  
+  mozilla::RubyReflowState* mRubyReflowState;
 
   int32_t mTotalPlacedFrames;
 
