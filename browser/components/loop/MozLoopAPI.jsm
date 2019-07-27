@@ -76,6 +76,14 @@ const cloneValueInto = function(value, targetWindow) {
   }
 
   
+  
+  for (let prop of value) {
+    if (typeof value[prop] == "function") {
+      delete value[prop];
+    }
+  }
+
+  
   if (value.constructor.name == "Error") {
     return cloneErrorObject(value, targetWindow);
   }
@@ -176,8 +184,10 @@ function injectLoopAPI(targetWindow) {
           }
 
           
+          if (error.hasOwnProperty("toString")) {
+            delete error.toString;
+          }
           errors[type] = Cu.cloneInto(error, targetWindow);
-
         }
         return Cu.cloneInto(errors, targetWindow);
       },

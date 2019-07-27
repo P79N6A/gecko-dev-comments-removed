@@ -5,22 +5,51 @@
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
-Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "MozLoopService",
-                                  "resource:///modules/loop/MozLoopService.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "LOOP_SESSION_TYPE",
-                                  "resource:///modules/loop/MozLoopService.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "MozLoopPushHandler",
-                                  "resource:///modules/loop/MozLoopPushHandler.jsm");
+const {MozLoopService, LOOP_SESSION_TYPE} = Cu.import("resource:///modules/loop/MozLoopService.jsm", {});
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+                                  "resource://gre/modules/Promise.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+                                  "resource://gre/modules/Task.jsm");
+XPCOMUtils.defineLazyGetter(this, "eventEmitter", function() {
+  const {EventEmitter} = Cu.import("resource://gre/modules/devtools/event-emitter.js", {});
+  return new EventEmitter();
+});
 
 this.EXPORTED_SYMBOLS = ["LoopRooms", "roomsPushNotification"];
 
-let gRoomsListFetched = false;
-let gRooms = new Map();
-let gCallbacks = new Map();
+const roomsPushNotification = function(version, channelID) {
+  return LoopRoomsInternal.onNotification(version, channelID);
+};
+
+
+
+
+
+let gDirty = true;
+
+
+
+
+
+
+
+const extend = function(target, source) {
+  for (let key of Object.getOwnPropertyNames(source)) {
+    target[key] = source[key];
+  }
+  return target;
+};
+
+
+
+
+
+
+
+
+let LoopRoomsInternal = {
+  rooms: new Map(),
 
   
 
@@ -29,55 +58,81 @@ let gCallbacks = new Map();
 
 
 
-const roomsPushNotification = function(version, channelID) {
-    return LoopRoomsInternal.onNotification(version, channelID);
-  };
 
-let LoopRoomsInternal = {
-  getAll: function(callback) {
-    Task.spawn(function*() {
+
+
+  getAll: function(version = null, callback) {
+    if (!callback) {
+      callback = version;
+      version = null;
+    }
+
+    Task.spawn(function* () {
       yield MozLoopService.register();
 
-      if (gRoomsListFetched) {
-        callback(null, [...gRooms.values()]);
+      if (!gDirty) {
+        callback(null, [...this.rooms.values()]);
         return;
       }
+
       
       let sessionType = MozLoopService.userProfile ? LOOP_SESSION_TYPE.FXA :
                         LOOP_SESSION_TYPE.GUEST;
-      let rooms = yield this.requestRoomList(sessionType);
-      
-      
-      for (let room of rooms) {
-        let id = MozLoopService.generateLocalID();
-        room.localRoomId = id;
-        
-        
-        try {
-          let details = yield this.requestRoomDetails(room.roomToken, sessionType);
-          for (let attr in details) {
-            room[attr] = details[attr]
-          }
-          delete room.currSize; 
-          gRooms.set(id, room);
-        }
-        catch (error) {MozLoopService.log.warn(
-          "failed GETing room details for roomToken = " + room.roomToken + ": ", error)}
+      let url = "/rooms" + (version ? "?version=" + encodeURIComponent(version) : "");
+      let response = yield MozLoopService.hawkRequest(sessionType, url, "GET");
+      let roomsList = JSON.parse(response.body);
+      if (!Array.isArray(roomsList)) {
+        throw new Error("Missing array of rooms in response.");
       }
-      callback(null, [...gRooms.values()]);
-      return;
-      }.bind(this)).catch((error) => {MozLoopService.log.error("getAll error:", error);
-                                      callback(error)});
-    return;
+
+      
+      
+      for (let room of roomsList) {
+        let eventName = this.rooms.has(room.roomToken) ? "update" : "add";
+        this.rooms.set(room.roomToken, room);
+        yield LoopRooms.promise("get", room.roomToken);
+      }
+
+      
+      gDirty = false;
+      callback(null, [...this.rooms.values()]);
+    }.bind(this)).catch(error => {
+      callback(error);
+    });
   },
 
-  getRoomData: function(localRoomId, callback) {
-    if (gRooms.has(localRoomId)) {
-      callback(null, gRooms.get(localRoomId));
+  
+
+
+
+
+
+
+
+
+
+  get: function(roomToken, callback) {
+    let room = this.rooms.has(roomToken) ? this.rooms.get(roomToken) : {};
+    
+    if (!room || gDirty || !("participants" in room)) {
+      let sessionType = MozLoopService.userProfile ? LOOP_SESSION_TYPE.FXA :
+                        LOOP_SESSION_TYPE.GUEST;
+      MozLoopService.hawkRequest(sessionType, "/rooms/" + encodeURIComponent(roomToken), "GET")
+        .then(response => {
+          let eventName = ("roomToken" in room) ? "add" : "update";
+          extend(room, JSON.parse(response.body));
+          
+          if ("currSize" in room) {
+            delete room.currSize;
+          }
+          this.rooms.set(roomToken, room);
+
+          eventEmitter.emit(eventName, room);
+          callback(null, room);
+        }, err => callback(err)).catch(err => callback(err));
     } else {
-      callback(new Error("Room data not found or not fetched yet for room with ID " + localRoomId));
+      callback(null, room);
     }
-    return;
   },
 
   
@@ -87,185 +142,40 @@ let LoopRoomsInternal = {
 
 
 
-  requestRoomList: function(sessionType) {
-    return MozLoopService.hawkRequest(sessionType, "/rooms", "GET")
+
+
+  create: function(room, callback) {
+    if (!("roomName" in room) || !("expiresIn" in room) ||
+        !("roomOwner" in room) || !("maxSize" in room)) {
+      callback(new Error("Missing required property to create a room"));
+      return;
+    }
+
+    let sessionType = MozLoopService.userProfile ? LOOP_SESSION_TYPE.FXA :
+                      LOOP_SESSION_TYPE.GUEST;
+
+    MozLoopService.hawkRequest(sessionType, "/rooms", "POST", room)
       .then(response => {
-        let roomsList = JSON.parse(response.body);
-        if (!Array.isArray(roomsList)) {
-          
-          
-          throw new Error("Missing array of rooms in response.");
-        }
-        return roomsList;
-      });
+        let data = JSON.parse(response.body);
+        extend(room, data);
+        
+        delete room.expiresIn;
+        this.rooms.set(room.roomToken, room);
+
+        eventEmitter.emit("add", room);
+        callback(null, room);
+      }, error => callback(error)).catch(error => callback(error));
   },
 
   
-
-
-
-
-
-
-
-  requestRoomDetails: function(token, sessionType) {
-    return MozLoopService.hawkRequest(sessionType, "/rooms/" + token, "GET")
-      .then(response => JSON.parse(response.body));
-  },
-
-  
-
 
 
 
 
 
   onNotification: function(version, channelID) {
-    return;
-  },
-
-  createRoom: function(props, callback) {
-    
-    
-    let localRoomId = MozLoopService.generateLocalID((id) => {gRooms.has(id)})
-    let room = {localRoomId : localRoomId};
-    for (let prop in props) {
-      room[prop] = props[prop]
-    }
-
-    gRooms.set(localRoomId, room);
-    this.addCallback(localRoomId, "RoomCreated", callback);
-    MozLoopService.openChatWindow(null, "", "about:loopconversation#room/" + localRoomId);
-
-    if (!"roomName" in props ||
-        !"expiresIn" in props ||
-        !"roomOwner" in props ||
-        !"maxSize" in props) {
-      this.postCallback(localRoomId, "RoomCreated",
-                        new Error("missing required room create property"));
-      return localRoomId;
-    }
-
-    let sessionType = MozLoopService.userProfile ? LOOP_SESSION_TYPE.FXA :
-                                                   LOOP_SESSION_TYPE.GUEST;
-
-    MozLoopService.hawkRequest(sessionType, "/rooms", "POST", props).then(
-      (response) => {
-        let data = JSON.parse(response.body);
-        for (let attr in data) {
-          room[attr] = data[attr]
-        }
-        delete room.expiresIn; 
-        this.postCallback(localRoomId, "RoomCreated", null, room);
-      },
-      (error) => {
-        this.postCallback(localRoomId, "RoomCreated", error);
-      });
-
-    return localRoomId;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  postCallback: function(localRoomId, callbackName, error, success) {
-    let roomCallbacks = gCallbacks.get(localRoomId);
-    if (!roomCallbacks) {
-      
-      
-      
-      gCallbacks.set(localRoomId, new Map([[
-        callbackName,
-        { callbackList: [], result: { error: error, success: success } }]]));
-      return;
-    }
-
-    let namedCallback = roomCallbacks.get(callbackName);
-    
-    if (!namedCallback) {
-      roomCallbacks.set(
-        callbackName,
-        {callbackList: [], result: {error: error, success: success}});
-      return;
-    }
-
-    
-    namedCallback.result = {error: error, success: success};
-
-    
-    namedCallback.callbackList.forEach((callback) => {
-      callback(error, success);
-    });
-  },
-
-  addCallback: function(localRoomId, callbackName, callback) {
-    let roomCallbacks = gCallbacks.get(localRoomId);
-    if (!roomCallbacks) {
-      
-      
-      gCallbacks.set(localRoomId, new Map([[
-        callbackName,
-        {callbackList: [callback]}]]));
-      return;
-    }
-
-    let namedCallback = roomCallbacks.get(callbackName);
-    
-    if (!namedCallback) {
-      roomCallbacks.set(
-        callbackName,
-        {callbackList: [callback]});
-      return;
-    }
-
-    
-    if (namedCallback.callbackList.indexOf(callback) >= 0) {
-      return;
-    }
-    namedCallback.callbackList.push(callback);
-
-    
-    
-    let result = namedCallback.result;
-    if (result) {
-      callback(result.error, result.success);
-    }
-  },
-
-  deleteCallback: function(localRoomId, callbackName, callback) {
-    let roomCallbacks = gCallbacks.get(localRoomId);
-    if (!roomCallbacks) {
-      return;
-    }
-
-    let namedCallback = roomCallbacks.get(callbackName);
-    if (!namedCallback) {
-      return;
-    }
-
-    let i = namedCallback.callbackList.indexOf(callback);
-    if (i >= 0) {
-      namedCallback.callbackList.splice(i, 1);
-    }
-
-    return;
+    gDirty = true;
+    this.getAll(version, () => {});
   },
 };
 Object.freeze(LoopRoomsInternal);
@@ -277,67 +187,41 @@ Object.freeze(LoopRoomsInternal);
 
 
 
+
+
+
+
+
+
 this.LoopRooms = {
-  
-
-
-
-
-
-
-
-  getAll: function(callback) {
-    return LoopRoomsInternal.getAll(callback);
+  getAll: function(version, callback) {
+    return LoopRoomsInternal.getAll(version, callback);
   },
 
-  
-
-
-
-
-
-
-
-
-  getRoomData: function(localRoomId, callback) {
-    return LoopRoomsInternal.getRoomData(localRoomId, callback);
+  get: function(roomToken, callback) {
+    return LoopRoomsInternal.get(roomToken, callback);
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-  createRoom: function(roomProps, callback) {
-    return LoopRoomsInternal.createRoom(roomProps, callback);
+  create: function(options, callback) {
+    return LoopRoomsInternal.create(options, callback);
   },
 
-  
-
-
-
-
-
-
-  addCallback: function(localRoomId, callbackName, callback) {
-    return LoopRoomsInternal.addCallback(localRoomId, callbackName, callback);
+  promise: function(method, ...params) {
+    return new Promise((resolve, reject) => {
+      this[method](...params, (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      });
+    });
   },
 
-  
+  on: (...params) => eventEmitter.on(...params),
 
+  once: (...params) => eventEmitter.once(...params),
 
-
-
-
-
-  deleteCallback: function(localRoomId, callbackName, callback) {
-    return LoopRoomsInternal.deleteCallback(localRoomId, callbackName, callback);
-  },
+  off: (...params) => eventEmitter.off(...params)
 };
-Object.freeze(LoopRooms);
+Object.freeze(this.LoopRooms);
