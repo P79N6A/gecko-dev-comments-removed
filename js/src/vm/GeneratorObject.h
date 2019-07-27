@@ -137,12 +137,7 @@ class GeneratorObject : public NativeObject
     }
     bool isSuspended() const {
         MOZ_ASSERT(!isClosed());
-        
         return !isRunning() && !isClosing();
-    }
-    bool isNewborn() const {
-        MOZ_ASSERT(!isClosed());
-        return getFixedSlot(YIELD_INDEX_SLOT).toInt32() == 0;
     }
     void setRunning() {
         MOZ_ASSERT(isSuspended());
@@ -201,17 +196,6 @@ class LegacyGeneratorObject : public GeneratorObject
     static const Class class_;
 
     static bool close(JSContext *cx, HandleObject obj);
-
-    
-    
-    
-    static bool maybeCloseNewborn(LegacyGeneratorObject *genObj) {
-        if (genObj->isNewborn()) {
-            genObj->setClosed();
-            return true;
-        }
-        return false;
-    }
 };
 
 class StarGeneratorObject : public GeneratorObject
