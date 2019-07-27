@@ -2,7 +2,7 @@
 
 
 
-const Cu = Components.utils;
+const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource:///modules/webrtcUI.jsm");
 
@@ -129,7 +129,12 @@ let PositionHandler = {
   adjustPosition: function() {
     if (!this.positionCustomized) {
       
-      window.moveTo((screen.width - document.documentElement.clientWidth) / 2, 0);
+      
+      
+      let width = {};
+      Cc["@mozilla.org/gfx/screenmanager;1"].getService(Ci.nsIScreenManager)
+        .primaryScreen.GetRectDisplayPix({}, {}, width, {});
+      window.moveTo((width.value - document.documentElement.clientWidth) / 2, 0);
     } else {
       
       this.setXPosition(window.screenX);
