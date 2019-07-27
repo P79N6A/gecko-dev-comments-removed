@@ -17,7 +17,6 @@
 
 namespace mozilla {
 
-class ContainerParser;
 class MediaSourceDecoder;
 
 namespace dom {
@@ -48,6 +47,11 @@ public:
 
   
   
+  
+  bool NewDecoder();
+
+  
+  
   void DiscardDecoder();
 
   void Detach();
@@ -58,6 +62,11 @@ public:
   
   
   bool IsReady();
+
+  
+  void LastTimestamp(int64_t& aStart, int64_t& aEnd);
+  void SetLastStartTimestamp(int64_t aStart);
+  void SetLastEndTimestamp(int64_t aEnd);
 
   
   
@@ -79,15 +88,6 @@ public:
 
 private:
   ~TrackBuffer();
-
-  
-  
-  
-  bool NewDecoder();
-
-  
-  
-  bool AppendDataToCurrentResource(const uint8_t* aData, uint32_t aLength);
 
   
   bool QueueInitializeDecoder(nsRefPtr<SourceBufferDecoder> aDecoder);
@@ -112,8 +112,6 @@ private:
   
   void RemoveDecoder(nsRefPtr<SourceBufferDecoder> aDecoder);
 
-  nsAutoPtr<ContainerParser> mParser;
-
   
   
   
@@ -137,6 +135,10 @@ private:
   
   int64_t mLastStartTimestamp;
   int64_t mLastEndTimestamp;
+
+  
+  
+  bool mHasInit;
 
   
   

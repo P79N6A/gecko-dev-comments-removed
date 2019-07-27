@@ -28,6 +28,7 @@ struct JSContext;
 
 namespace mozilla {
 
+class ContainerParser;
 class ErrorResult;
 class TrackBuffer;
 template <typename T> class AsyncEventRunner;
@@ -120,6 +121,13 @@ private:
   void QueueAsyncSimpleEvent(const char* aName);
 
   
+  
+  bool InitNewDecoder();
+
+  
+  void DiscardDecoder();
+
+  
   void StartUpdating();
   void StopUpdating();
   void AbortUpdating();
@@ -133,7 +141,11 @@ private:
 
   nsRefPtr<MediaSource> mMediaSource;
 
+  const nsCString mType;
+
   uint32_t mEvictionThreshold;
+
+  nsAutoPtr<ContainerParser> mParser;
 
   nsRefPtr<TrackBuffer> mTrackBuffer;
 
