@@ -1528,6 +1528,9 @@ protected:
 };
 
 
+class GlyphBufferAzure;
+struct DrawGlyphParams;
+
 class gfxFont {
 
     friend class gfxHarfBuzzShaper;
@@ -1629,7 +1632,7 @@ public:
         return nullptr;
     }
 
-    virtual gfxFloat GetAdjustedSize() {
+    virtual gfxFloat GetAdjustedSize() const {
         return mAdjustedSize > 0.0 ? mAdjustedSize : mStyle.size;
     }
 
@@ -1855,7 +1858,7 @@ public:
                                   (size / threshold);
     }
 
-    gfxFontEntry *GetFontEntry() { return mFontEntry.get(); }
+    gfxFontEntry *GetFontEntry() const { return mFontEntry.get(); }
     bool HasCharacter(uint32_t ch) {
         if (!mIsValid)
             return false;
@@ -2019,6 +2022,24 @@ public:
     GetSubSuperscriptFont(int32_t aAppUnitsPerDevPixel);
 
 protected:
+    
+    
+    
+    
+    void DrawOneGlyph(uint32_t           aGlyphID,
+                      double             aAdvance,
+                      gfxPoint          *aPt,
+                      GlyphBufferAzure&  aBuffer,
+                      bool              *aEmittedGlyphs) const;
+
+    
+    
+    
+    bool DrawGlyphs(gfxShapedText          *aShapedText,
+                    uint32_t                aOffset, 
+                    uint32_t                aCount, 
+                    gfxPoint               *aPt,
+                    const DrawGlyphParams&  aParams);
 
     
     
@@ -2256,19 +2277,18 @@ protected:
     void SanitizeMetrics(gfxFont::Metrics *aMetrics, bool aIsBadUnderlineFont);
 
     bool RenderSVGGlyph(gfxContext *aContext, gfxPoint aPoint, DrawMode aDrawMode,
-                        uint32_t aGlyphId, gfxTextContextPaint *aContextPaint);
+                        uint32_t aGlyphId, gfxTextContextPaint *aContextPaint) const;
     bool RenderSVGGlyph(gfxContext *aContext, gfxPoint aPoint, DrawMode aDrawMode,
                         uint32_t aGlyphId, gfxTextContextPaint *aContextPaint,
                         gfxTextRunDrawCallbacks *aCallbacks,
-                        bool& aEmittedGlyphs);
+                        bool& aEmittedGlyphs) const;
 
-    bool RenderColorGlyph(gfxContext* aContext, gfxPoint& point, uint32_t aGlyphId);
     bool RenderColorGlyph(gfxContext* aContext,
                           mozilla::gfx::ScaledFont* scaledFont,
                           mozilla::gfx::GlyphRenderingOptions* renderingOptions,
                           mozilla::gfx::DrawOptions drawOptions,
                           const mozilla::gfx::Point& aPoint,
-                          uint32_t aGlyphId);
+                          uint32_t aGlyphId) const;
 
     
     
