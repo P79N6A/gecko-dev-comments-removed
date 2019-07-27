@@ -68,6 +68,15 @@ SharedLibraryInfo SharedLibraryInfo::GetInfoForSelf()
   SharedLibraryInfo info;
 
 #if !defined(MOZ_WIDGET_GONK)
+#ifdef ANDROID
+  if (!dl_iterate_phdr) {
+    
+    
+    
+    
+    return info;
+  }
+#endif
   dl_iterate_phdr(dl_iterate_callback, &info);
 #ifndef ANDROID
   return info;
