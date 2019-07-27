@@ -1499,7 +1499,7 @@ SetScrollableFrameMetrics(Layer* aLayer, FrameMetrics::ViewID aScrollId,
 
 static already_AddRefed<AsyncPanZoomController>
 GetTargetAPZC(APZCTreeManager* manager, const ScreenPoint& aPoint,
-              gfx3DMatrix& aTransformToApzcOut, gfx3DMatrix& aTransformToGeckoOut)
+              Matrix4x4& aTransformToApzcOut, Matrix4x4& aTransformToGeckoOut)
 {
   nsRefPtr<AsyncPanZoomController> hit = manager->GetTargetAPZC(aPoint, nullptr);
   if (hit) {
@@ -1520,15 +1520,15 @@ TEST_F(APZCTreeManagerTester, HitTesting1) {
   ScopedLayerTreeRegistration controller(0, root, mcc);
 
   nsRefPtr<APZCTreeManager> manager = new TestAPZCTreeManager();
-  gfx3DMatrix transformToApzc;
-  gfx3DMatrix transformToGecko;
+  Matrix4x4 transformToApzc;
+  Matrix4x4 transformToGecko;
 
   
   nsRefPtr<AsyncPanZoomController> hit = GetTargetAPZC(manager, ScreenPoint(20, 20), transformToApzc, transformToGecko);
   AsyncPanZoomController* nullAPZC = nullptr;
   EXPECT_EQ(nullAPZC, hit.get());
-  EXPECT_EQ(gfx3DMatrix(), transformToApzc);
-  EXPECT_EQ(gfx3DMatrix(), transformToGecko);
+  EXPECT_EQ(Matrix4x4(), transformToApzc);
+  EXPECT_EQ(Matrix4x4(), transformToGecko);
 
   uint32_t paintSequenceNumber = 0;
 
@@ -1538,8 +1538,8 @@ TEST_F(APZCTreeManagerTester, HitTesting1) {
   hit = GetTargetAPZC(manager, ScreenPoint(15, 15), transformToApzc, transformToGecko);
   EXPECT_EQ(root->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
   
-  EXPECT_EQ(gfxPoint(15, 15), transformToApzc.Transform(gfxPoint(15, 15)));
-  EXPECT_EQ(gfxPoint(15, 15), transformToGecko.Transform(gfxPoint(15, 15)));
+  EXPECT_EQ(Point(15, 15), transformToApzc * Point(15, 15));
+  EXPECT_EQ(Point(15, 15), transformToGecko * Point(15, 15));
 
   
   SetScrollableFrameMetrics(layers[3], FrameMetrics::START_SCROLL_ID + 1);
@@ -1548,8 +1548,8 @@ TEST_F(APZCTreeManagerTester, HitTesting1) {
   hit = GetTargetAPZC(manager, ScreenPoint(25, 25), transformToApzc, transformToGecko);
   EXPECT_EQ(layers[3]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
   
-  EXPECT_EQ(gfxPoint(25, 25), transformToApzc.Transform(gfxPoint(25, 25)));
-  EXPECT_EQ(gfxPoint(25, 25), transformToGecko.Transform(gfxPoint(25, 25)));
+  EXPECT_EQ(Point(25, 25), transformToApzc * Point(25, 25));
+  EXPECT_EQ(Point(25, 25), transformToGecko * Point(25, 25));
 
   
   
@@ -1562,25 +1562,25 @@ TEST_F(APZCTreeManagerTester, HitTesting1) {
   hit = GetTargetAPZC(manager, ScreenPoint(15, 15), transformToApzc, transformToGecko);
   EXPECT_EQ(layers[4]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
   
-  EXPECT_EQ(gfxPoint(15, 15), transformToApzc.Transform(gfxPoint(15, 15)));
-  EXPECT_EQ(gfxPoint(15, 15), transformToGecko.Transform(gfxPoint(15, 15)));
+  EXPECT_EQ(Point(15, 15), transformToApzc * Point(15, 15));
+  EXPECT_EQ(Point(15, 15), transformToGecko * Point(15, 15));
 
   
   hit = GetTargetAPZC(manager, ScreenPoint(90, 90), transformToApzc, transformToGecko);
   EXPECT_EQ(root->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
   
-  EXPECT_EQ(gfxPoint(90, 90), transformToApzc.Transform(gfxPoint(90, 90)));
-  EXPECT_EQ(gfxPoint(90, 90), transformToGecko.Transform(gfxPoint(90, 90)));
+  EXPECT_EQ(Point(90, 90), transformToApzc * Point(90, 90));
+  EXPECT_EQ(Point(90, 90), transformToGecko * Point(90, 90));
 
   
   hit = GetTargetAPZC(manager, ScreenPoint(1000, 10), transformToApzc, transformToGecko);
   EXPECT_EQ(nullAPZC, hit.get());
-  EXPECT_EQ(gfx3DMatrix(), transformToApzc);
-  EXPECT_EQ(gfx3DMatrix(), transformToGecko);
+  EXPECT_EQ(Matrix4x4(), transformToApzc);
+  EXPECT_EQ(Matrix4x4(), transformToGecko);
   hit = GetTargetAPZC(manager, ScreenPoint(-1000, 10), transformToApzc, transformToGecko);
   EXPECT_EQ(nullAPZC, hit.get());
-  EXPECT_EQ(gfx3DMatrix(), transformToApzc);
-  EXPECT_EQ(gfx3DMatrix(), transformToGecko);
+  EXPECT_EQ(Matrix4x4(), transformToApzc);
+  EXPECT_EQ(Matrix4x4(), transformToGecko);
 
   manager->ClearTree();
 }
@@ -1598,8 +1598,8 @@ TEST_F(APZCTreeManagerTester, HitTesting2) {
 
   nsRefPtr<TestAPZCTreeManager> manager = new TestAPZCTreeManager();
   nsRefPtr<AsyncPanZoomController> hit;
-  gfx3DMatrix transformToApzc;
-  gfx3DMatrix transformToGecko;
+  Matrix4x4 transformToApzc;
+  Matrix4x4 transformToGecko;
 
   
   Matrix4x4 transform;
@@ -1626,8 +1626,8 @@ TEST_F(APZCTreeManagerTester, HitTesting2) {
   
   hit = GetTargetAPZC(manager, ScreenPoint(75, 25), transformToApzc, transformToGecko);
   EXPECT_EQ(apzcroot, hit.get());
-  EXPECT_EQ(gfxPoint(75, 25), transformToApzc.Transform(gfxPoint(75, 25)));
-  EXPECT_EQ(gfxPoint(75, 25), transformToGecko.Transform(gfxPoint(75, 25)));
+  EXPECT_EQ(Point(75, 25), transformToApzc * Point(75, 25));
+  EXPECT_EQ(Point(75, 25), transformToGecko * Point(75, 25));
 
   
   
@@ -1638,31 +1638,31 @@ TEST_F(APZCTreeManagerTester, HitTesting2) {
   
   hit = GetTargetAPZC(manager, ScreenPoint(15, 75), transformToApzc, transformToGecko);
   EXPECT_EQ(apzcroot, hit.get());
-  EXPECT_EQ(gfxPoint(15, 75), transformToApzc.Transform(gfxPoint(15, 75)));
-  EXPECT_EQ(gfxPoint(15, 75), transformToGecko.Transform(gfxPoint(15, 75)));
+  EXPECT_EQ(Point(15, 75), transformToApzc * Point(15, 75));
+  EXPECT_EQ(Point(15, 75), transformToGecko * Point(15, 75));
 
   
   hit = GetTargetAPZC(manager, ScreenPoint(25, 25), transformToApzc, transformToGecko);
   EXPECT_EQ(apzc1, hit.get());
-  EXPECT_EQ(gfxPoint(25, 25), transformToApzc.Transform(gfxPoint(25, 25)));
-  EXPECT_EQ(gfxPoint(25, 25), transformToGecko.Transform(gfxPoint(25, 25)));
+  EXPECT_EQ(Point(25, 25), transformToApzc * Point(25, 25));
+  EXPECT_EQ(Point(25, 25), transformToGecko * Point(25, 25));
 
   
   hit = GetTargetAPZC(manager, ScreenPoint(25, 75), transformToApzc, transformToGecko);
   EXPECT_EQ(apzc3, hit.get());
   
-  EXPECT_EQ(gfxPoint(12.5, 75), transformToApzc.Transform(gfxPoint(25, 75)));
+  EXPECT_EQ(Point(12.5, 75), transformToApzc * Point(25, 75));
   
-  EXPECT_EQ(gfxPoint(25, 75), transformToGecko.Transform(gfxPoint(12.5, 75)));
+  EXPECT_EQ(Point(25, 75), transformToGecko * Point(12.5, 75));
 
   
   
   hit = GetTargetAPZC(manager, ScreenPoint(75, 75), transformToApzc, transformToGecko);
   EXPECT_EQ(apzc3, hit.get());
   
-  EXPECT_EQ(gfxPoint(37.5, 75), transformToApzc.Transform(gfxPoint(75, 75)));
+  EXPECT_EQ(Point(37.5, 75), transformToApzc * Point(75, 75));
   
-  EXPECT_EQ(gfxPoint(75, 75), transformToGecko.Transform(gfxPoint(37.5, 75)));
+  EXPECT_EQ(Point(75, 75), transformToGecko * Point(37.5, 75));
 
   
   
@@ -1684,21 +1684,21 @@ TEST_F(APZCTreeManagerTester, HitTesting2) {
   hit = GetTargetAPZC(manager, ScreenPoint(75, 75), transformToApzc, transformToGecko);
   EXPECT_EQ(apzcroot, hit.get());
   
-  EXPECT_EQ(gfxPoint(75, 75), transformToApzc.Transform(gfxPoint(75, 75)));
+  EXPECT_EQ(Point(75, 75), transformToApzc * Point(75, 75));
   
   
   
-  EXPECT_EQ(gfxPoint(75, 75), transformToGecko.Transform(gfxPoint(75, 75)));
+  EXPECT_EQ(Point(75, 75), transformToGecko * Point(75, 75));
 
   
   hit = GetTargetAPZC(manager, ScreenPoint(25, 25), transformToApzc, transformToGecko);
   EXPECT_EQ(apzc3, hit.get());
   
   
-  EXPECT_EQ(gfxPoint(12.5, 75), transformToApzc.Transform(gfxPoint(25, 25)));
+  EXPECT_EQ(Point(12.5, 75), transformToApzc * Point(25, 25));
   
   
-  EXPECT_EQ(gfxPoint(25, 25), transformToGecko.Transform(gfxPoint(12.5, 75)));
+  EXPECT_EQ(Point(25, 25), transformToGecko * Point(12.5, 75));
 
   
   
@@ -1712,19 +1712,19 @@ TEST_F(APZCTreeManagerTester, HitTesting2) {
   hit = GetTargetAPZC(manager, ScreenPoint(75, 75), transformToApzc, transformToGecko);
   EXPECT_EQ(apzcroot, hit.get());
   
-  EXPECT_EQ(gfxPoint(75, 75), transformToApzc.Transform(gfxPoint(75, 75)));
+  EXPECT_EQ(Point(75, 75), transformToApzc * Point(75, 75));
   
   
-  EXPECT_EQ(gfxPoint(75, 125), transformToGecko.Transform(gfxPoint(75, 75)));
+  EXPECT_EQ(Point(75, 125), transformToGecko * Point(75, 75));
 
   
   hit = GetTargetAPZC(manager, ScreenPoint(25, 25), transformToApzc, transformToGecko);
   EXPECT_EQ(apzcroot, hit.get());
   
-  EXPECT_EQ(gfxPoint(25, 25), transformToApzc.Transform(gfxPoint(25, 25)));
+  EXPECT_EQ(Point(25, 25), transformToApzc * Point(25, 25));
   
   
-  EXPECT_EQ(gfxPoint(25, 75), transformToGecko.Transform(gfxPoint(25, 25)));
+  EXPECT_EQ(Point(25, 75), transformToGecko * Point(25, 25));
 
   manager->ClearTree();
 }
