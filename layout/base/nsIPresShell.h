@@ -593,7 +593,9 @@ public:
 
 
 
-  virtual nsresult GoToAnchor(const nsAString& aAnchorName, bool aScroll) = 0;
+
+  virtual nsresult GoToAnchor(const nsAString& aAnchorName, bool aScroll,
+                              uint32_t aAdditionalScrollFlags = 0) = 0;
 
   
 
