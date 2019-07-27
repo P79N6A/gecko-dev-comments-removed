@@ -339,6 +339,19 @@ OOBCert.Client.prototype = {
               oob: oobData
             });
             break;
+          case AuthenticationResult.ALLOW:
+          case AuthenticationResult.ALLOW_PERSIST:
+            
+            
+            if (packet.k != oobData.k) {
+              transport.close(new Error("Auth secret mismatch"));
+              return;
+            }
+            
+            
+            transport.hooks = null;
+            deferred.resolve(transport);
+            break;
           default:
             transport.close(new Error("Invalid auth result: " + authResult));
             return;
