@@ -579,7 +579,15 @@ Animation::DoPlay(LimitBehavior aLimitBehavior)
   
   
   
-  if (!abortedPause) {
+  
+  
+  
+  
+  
+  
+  
+  
+  if (!mHoldTime.IsNull()) {
     mStartTime.SetNull();
   }
 
