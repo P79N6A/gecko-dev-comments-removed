@@ -137,6 +137,8 @@ Decoder::Write(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy)
         
         WriteInternal(nullptr, 0, aStrategy);
       }
+
+      mNeedsToFlushData = false;
     }
   }
 
