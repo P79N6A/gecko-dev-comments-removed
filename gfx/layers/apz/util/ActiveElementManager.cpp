@@ -118,6 +118,11 @@ ActiveElementManager::HandleTouchEnd(bool aWasClick)
   CancelTask();
   if (aWasClick) {
     SetActive(mTarget);
+  } else {
+    
+    
+    
+    ResetActive();
   }
 
   ResetTouchBlockState();
