@@ -99,6 +99,8 @@ public:
   };
   virtual int      GetSensorOrientation(uint32_t aType = RAW_SENSOR_ORIENTATION);
 
+  virtual bool     IsEmulated();
+
   
 
 
@@ -140,6 +142,7 @@ protected:
 #endif
   int                           mRawSensorOrientation;
   int                           mSensorOrientation;
+  bool                          mEmulated;
 
 private:
   GonkCameraHardware(const GonkCameraHardware&) = delete;
