@@ -27,7 +27,6 @@
 
 #include <ctype.h>
 #include <string.h>
-#include <wchar.h>
 
 #include "jsapi.h"
 #include "jsarray.h"
@@ -1168,19 +1167,9 @@ FirstCharMatcher8bit(const char *text, uint32_t n, const char pat)
 }
 
 static const jschar *
-FirstCharMatcher16bit (const jschar *text, uint32_t n, const jschar pat)
+FirstCharMatcher16bit(const jschar *text, uint32_t n, const jschar pat)
 {
-    
-#if (WCHAR_MIN == 0 && WCHAR_MAX == UINT16_MAX) || (WCHAR_MIN == INT16_MIN && WCHAR_MAX == INT16_MAX)
-    
-
-
-
-
-    const wchar_t *wtext = (const wchar_t *) text;
-    const wchar_t wpat = (const wchar_t) pat;
-    return (jschar *) (wmemchr(wtext, wpat, n));
-#elif defined(__clang__)
+#if defined(XP_DARWIN) || defined(XP_WIN)
     
 
 
