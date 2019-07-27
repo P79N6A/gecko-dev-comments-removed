@@ -131,7 +131,7 @@ struct TypeInferenceSizes;
 
 namespace js {
 class DebugScopes;
-class ObjectWeakMap;
+class LazyArrayBufferTable;
 class WeakMapBase;
 }
 
@@ -256,7 +256,6 @@ struct JSCompartment
                                 size_t *compartmentTables,
                                 size_t *innerViews,
                                 size_t *lazyArrayBuffers,
-                                size_t *objectMetadataTables,
                                 size_t *crossCompartmentWrappers,
                                 size_t *regexpCompartment,
                                 size_t *savedStacksSet);
@@ -290,16 +289,10 @@ struct JSCompartment
     js::ReadBarrieredScriptSourceObject selfHostingScriptSource;
 
     
-    
-    js::ObjectWeakMap *objectMetadataTable;
-
-    
     js::InnerViewTable innerViews;
 
     
-    
-    
-    js::ObjectWeakMap *lazyArrayBuffers;
+    js::LazyArrayBufferTable *lazyArrayBuffers;
 
     
     mozilla::LinkedList<js::UnboxedLayout> unboxedLayouts;
@@ -398,14 +391,15 @@ struct JSCompartment
     void fixupInitialShapeTable();
     void fixupAfterMovingGC();
     void fixupGlobal();
+    void fixupBaseShapeTable();
 
     bool hasObjectMetadataCallback() const { return objectMetadataCallback; }
     void setObjectMetadataCallback(js::ObjectMetadataCallback callback);
     void forgetObjectMetadataCallback() {
         objectMetadataCallback = nullptr;
     }
-    JSObject *callObjectMetadataCallback(JSContext *cx) const {
-        return objectMetadataCallback(cx);
+    bool callObjectMetadataCallback(JSContext *cx, JSObject **obj) const {
+        return objectMetadataCallback(cx, obj);
     }
     const void *addressOfMetadataCallback() const {
         return &objectMetadataCallback;
