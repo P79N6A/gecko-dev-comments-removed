@@ -100,8 +100,10 @@ class Test1BrowserCall(MarionetteTestCase):
         call_button.click()
 
         
-        video = self.wait_for_element_displayed(By.CLASS_NAME, "media")
-        self.assertEqual(video.tag_name, "div", "expect a video container")
+        pending_header = self.wait_for_element_displayed(By.CLASS_NAME,
+                                                         "pending-header")
+        self.assertEqual(pending_header.tag_name, "header",
+                         "expect a pending header")
 
     def accept_and_verify_incoming_call(self):
         self.marionette.set_context("chrome")
