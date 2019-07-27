@@ -1956,30 +1956,6 @@ RilObject.prototype = {
     let sc = mmi.serviceCode;
     switch (sc) {
       
-      
-      
-      
-      case MMI_SC_CLIR:
-        options.procedure = mmi.procedure;
-        switch (options.procedure) {
-          case MMI_PROCEDURE_INTERROGATION:
-            this.getCLIR(options);
-            return;
-          case MMI_PROCEDURE_ACTIVATION:
-            options.clirMode = CLIR_INVOCATION;
-            break;
-          case MMI_PROCEDURE_DEACTIVATION:
-            options.clirMode = CLIR_SUPPRESSION;
-            break;
-          default:
-            _sendMMIError(MMI_ERROR_KS_NOT_SUPPORTED);
-            return;
-        }
-        options.isSetCLIR = true;
-        this.setCLIR(options);
-        return;
-
-      
       case MMI_SC_CHANGE_PASSWORD:
         if (!_isRadioAvailable() || !_isValidChangePasswordRequest()) {
           return;
@@ -4608,66 +4584,6 @@ RilObject.prototype[REQUEST_GET_CLIR] = function REQUEST_GET_CLIR(length, option
 
   options.n = Buf.readInt32(); 
   options.m = Buf.readInt32(); 
-
-  if (options.rilMessageType === "sendMMI") {
-    
-    switch (options.m) {
-      
-      case 0:
-        options.statusMessage = MMI_SM_KS_SERVICE_NOT_PROVISIONED;
-        break;
-      
-      case 1:
-        options.statusMessage = MMI_SM_KS_CLIR_PERMANENT;
-        break;
-      
-      case 2:
-        options.errorMsg = MMI_ERROR_KS_ERROR;
-        break;
-      
-      case 3:
-        
-        switch (options.n) {
-          
-          case 0:
-          
-          case 1:
-            options.statusMessage = MMI_SM_KS_CLIR_DEFAULT_ON_NEXT_CALL_ON;
-            break;
-          
-          case 2:
-            options.statusMessage = MMI_SM_KS_CLIR_DEFAULT_ON_NEXT_CALL_OFF;
-            break;
-          default:
-            options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
-            break;
-        }
-        break;
-      
-      case 4:
-        
-        switch (options.n) {
-          
-          case 0:
-          
-          case 2:
-            options.statusMessage = MMI_SM_KS_CLIR_DEFAULT_OFF_NEXT_CALL_OFF;
-            break;
-          
-          case 1:
-            options.statusMessage = MMI_SM_KS_CLIR_DEFAULT_OFF_NEXT_CALL_ON;
-            break;
-          default:
-            options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
-            break;
-        }
-        break;
-      default:
-        options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
-        break;
-    }
-  }
-
   this.sendChromeMessage(options);
 };
 RilObject.prototype[REQUEST_SET_CLIR] = function REQUEST_SET_CLIR(length, options) {
@@ -4676,16 +4592,6 @@ RilObject.prototype[REQUEST_SET_CLIR] = function REQUEST_SET_CLIR(length, option
     return;
   }
 
-  if (!options.errorMsg && options.rilMessageType === "sendMMI") {
-    switch (options.procedure) {
-      case MMI_PROCEDURE_ACTIVATION:
-        options.statusMessage = MMI_SM_KS_SERVICE_ENABLED;
-        break;
-      case MMI_PROCEDURE_DEACTIVATION:
-        options.statusMessage = MMI_SM_KS_SERVICE_DISABLED;
-        break;
-    }
-  }
   this.sendChromeMessage(options);
 };
 
