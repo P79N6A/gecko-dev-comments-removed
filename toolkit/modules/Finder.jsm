@@ -620,12 +620,11 @@ Finder.prototype = {
 
 
 
-  _getEditableNode: function (aNode) {
-    while (aNode) {
-      if (aNode instanceof Ci.nsIDOMNSEditableElement)
-        return aNode.editor ? aNode : null;
 
-      aNode = aNode.parentNode;
+  _getEditableNode: function (aNode) {
+    if (aNode.nodeType === aNode.TEXT_NODE && aNode.parentNode && aNode.parentNode.parentNode &&
+        aNode.parentNode.parentNode instanceof Ci.nsIDOMNSEditableElement) {
+      return aNode.parentNode.parentNode;
     }
     return null;
   },
