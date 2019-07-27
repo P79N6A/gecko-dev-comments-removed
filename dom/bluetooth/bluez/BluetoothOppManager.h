@@ -219,6 +219,8 @@ private:
   nsRefPtr<BluetoothSocket> mRfcommSocket;
   nsRefPtr<BluetoothSocket> mL2capSocket;
 
+  BluetoothSocketType mSocketType;
+
   
   
   mozilla::TimeStamp mLastServiceChannelCheck;
