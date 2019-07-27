@@ -211,6 +211,25 @@ function injectLoopAPI(targetWindow) {
 
 
 
+
+    startImport: {
+      enumerable: true,
+      writable: true,
+      value: function(options, callback) {
+        LoopContacts.startImport(options, getChromeWindow(targetWindow), function(...results) {
+          callback(...[cloneValueInto(r, targetWindow) for (r of results)]);
+        });
+      }
+    },
+
+    
+
+
+
+
+
+
+
     getStrings: {
       enumerable: true,
       writable: true,
