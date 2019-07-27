@@ -637,11 +637,6 @@ protected:
 
   
   
-  void SendStreamAudio(AudioData* aAudio, DecodedStreamData* aStream,
-                       AudioSegment* aOutput);
-
-  
-  
   
   nsresult RunStateMachine();
 
