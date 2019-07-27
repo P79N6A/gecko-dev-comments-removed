@@ -25,6 +25,7 @@
 using namespace mozilla;
 using namespace mozilla::css;
 using mozilla::dom::Animation;
+using mozilla::dom::AnimationPlayState;
 using mozilla::dom::KeyframeEffectReadonly;
 using mozilla::CSSAnimation;
 
@@ -49,7 +50,7 @@ CSSAnimation::Pause()
   Animation::Pause();
 }
 
-mozilla::dom::AnimationPlayState
+AnimationPlayState
 CSSAnimation::PlayStateFromJS() const
 {
   
@@ -365,19 +366,22 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
 
         
         
-        
-        
-        
-        
-        
-        
-        if (!oldAnim->IsStylePaused() && newAnim->IsPausedOrPausing()) {
-          oldAnim->PauseFromStyle();
-          animationChanged = true;
-        } else if (oldAnim->IsStylePaused() &&
-                   !newAnim->IsPausedOrPausing()) {
-          oldAnim->PlayFromStyle();
-          animationChanged = true;
+        if (oldAnim->PlayState() != AnimationPlayState::Idle) {
+          
+          
+          
+          
+          
+          
+          
+          if (!oldAnim->IsStylePaused() && newAnim->IsPausedOrPausing()) {
+            oldAnim->PauseFromStyle();
+            animationChanged = true;
+          } else if (oldAnim->IsStylePaused() &&
+                    !newAnim->IsPausedOrPausing()) {
+            oldAnim->PlayFromStyle();
+            animationChanged = true;
+          }
         }
 
         if (animationChanged) {
