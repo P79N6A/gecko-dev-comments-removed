@@ -1452,24 +1452,30 @@ ifstream* UIOpenRead(const string& filename)
   return file;
 }
 
-ofstream* UIOpenWrite(const string& filename, bool append) 
+ofstream* UIOpenWrite(const string& filename,
+                      bool append, 
+                      bool binary) 
 {
   
+  std::ios_base::openmode mode = ios::out;
+  if (append) {
+    mode = mode | ios::app;
+  }
+  if (binary) {
+    mode = mode | ios::binary;
+  }
 
-  
   
   
   
 #if _MSC_VER >= 1400  
   ofstream* file = new ofstream();
-  file->open(UTF8ToWide(filename).c_str(), append ? ios::out | ios::app
-                                                  : ios::out);
+  file->open(UTF8ToWide(filename).c_str(), mode);
 #elif defined(_MSC_VER)
-  ofstream* file = new ofstream(_wfopen(UTF8ToWide(filename).c_str(),
-                                        append ? L"a" : L"w"));
+#error "Compiling with your version of MSVC is no longer supported."
 #else   
   ofstream* file = new ofstream(WideToMBCP(UTF8ToWide(filename), CP_ACP).c_str(),
-                                append ? ios::out | ios::app : ios::out);
+                                mode);
 #endif  
 
   return file;
