@@ -47,6 +47,8 @@ static MOZ_CONSTEXPR_VAR FloatRegister ReturnFloat32Reg = xmm0;
 static MOZ_CONSTEXPR_VAR FloatRegister ScratchFloat32Reg = xmm7;
 static MOZ_CONSTEXPR_VAR FloatRegister ReturnDoubleReg = xmm0;
 static MOZ_CONSTEXPR_VAR FloatRegister ScratchDoubleReg = xmm7;
+static MOZ_CONSTEXPR_VAR FloatRegister ReturnSimdReg = xmm0;
+static MOZ_CONSTEXPR_VAR FloatRegister ScratchSimdReg = xmm7;
 
 
 static MOZ_CONSTEXPR_VAR Register ArgumentsRectifierReg = esi;
