@@ -9,6 +9,7 @@
 
 #include "nsCOMPtr.h"
 
+class gfxDrawable;
 class imgIContainer;
 struct nsIntRect;
 
@@ -48,6 +49,13 @@ public:
 
   static already_AddRefed<Image> Orient(Image* aImage, Orientation aOrientation);
   static already_AddRefed<imgIContainer> Orient(imgIContainer* aImage, Orientation aOrientation);
+
+  
+
+
+
+
+  static already_AddRefed<imgIContainer> CreateFromDrawable(gfxDrawable* aDrawable);
 
 private:
   
