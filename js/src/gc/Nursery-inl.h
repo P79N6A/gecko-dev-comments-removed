@@ -22,7 +22,6 @@ js::Nursery::getForwardedPointer(JSObject** ref) const
     const gc::RelocationOverlay* overlay = reinterpret_cast<const gc::RelocationOverlay*>(*ref);
     if (!overlay->isForwarded())
         return false;
-    
     *ref = static_cast<JSObject*>(overlay->forwardingAddress());
     return true;
 }

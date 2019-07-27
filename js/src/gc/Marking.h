@@ -153,6 +153,7 @@ class GCMarker : public JSTracer
 
     
     template <typename S> void traverse(S source, jsid target);
+    template <typename S> void traverse(S source, Value target);
 
     
 
