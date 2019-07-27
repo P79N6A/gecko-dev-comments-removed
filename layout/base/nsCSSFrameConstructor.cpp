@@ -9893,63 +9893,78 @@ nsCSSFrameConstructor::CreateNeededPseudoContainers(
         }
     }
 
-    const PseudoParentData& pseudoData = sPseudoParentData[wrapperType];
-    nsIAtom* pseudoType = *pseudoData.mPseudoType;
     nsStyleContext* parentStyle = aParentFrame->StyleContext();
-    nsIContent* parentContent = aParentFrame->GetContent();
-
-    if (pseudoType == nsCSSAnonBoxes::table &&
-        (parentStyle->StyleDisplay()->mDisplay == NS_STYLE_DISPLAY_INLINE ||
-         IsRubyParentType(ourParentType) ||
-         parentStyle->StyleDisplay()->mDisplay == NS_STYLE_DISPLAY_RUBY_BASE ||
-         parentStyle->StyleDisplay()->mDisplay == NS_STYLE_DISPLAY_RUBY_TEXT)) {
-      pseudoType = nsCSSAnonBoxes::inlineTable;
-    }
-
-    already_AddRefed<nsStyleContext> wrapperStyle =
-      mPresShell->StyleSet()->ResolveAnonymousBoxStyle(pseudoType, parentStyle);
-    FrameConstructionItem* newItem =
-      new FrameConstructionItem(&pseudoData.mFCData,
-                                
-                                parentContent,
-                                
-                                pseudoType,
-                                
-                                
-                                
-                                iter.item().mNameSpaceID,
-                                
-                                nullptr,
-                                wrapperStyle,
-                                true, nullptr);
-
-    
-    
-    
-    
-    
-    newItem->mIsAllInline = newItem->mHasInlineEnds =
-      newItem->mStyleContext->StyleDisplay()->IsInlineOutsideStyle();
-
-    
-    
-    newItem->mChildItems.SetLineBoundaryAtStart(true);
-    newItem->mChildItems.SetLineBoundaryAtEnd(true);
-    
-    
-    newItem->mChildItems.SetParentHasNoXBLChildren(
-      aItems.ParentHasNoXBLChildren());
-
-    
-    
-    iter.AppendItemsToList(endIter, newItem->mChildItems);
-
-    iter.InsertItem(newItem);
+    WrapItemsInPseudoParent(aParentFrame->GetContent(), parentStyle,
+                            wrapperType, iter, endIter);
 
     
     
     
   } while (!iter.IsDone());
+}
+
+
+
+
+
+
+void
+nsCSSFrameConstructor::WrapItemsInPseudoParent(nsIContent* aParentContent,
+                                               nsStyleContext* aParentStyle,
+                                               ParentType aWrapperType,
+                                               FCItemIterator& aIter,
+                                               const FCItemIterator& aEndIter)
+{
+  const PseudoParentData& pseudoData = sPseudoParentData[aWrapperType];
+  nsIAtom* pseudoType = *pseudoData.mPseudoType;
+  uint8_t parentDisplay = aParentStyle->StyleDisplay()->mDisplay;
+
+  if (pseudoType == nsCSSAnonBoxes::table &&
+      (parentDisplay == NS_STYLE_DISPLAY_INLINE ||
+       parentDisplay == NS_STYLE_DISPLAY_RUBY_BASE ||
+       parentDisplay == NS_STYLE_DISPLAY_RUBY_TEXT)) {
+    pseudoType = nsCSSAnonBoxes::inlineTable;
+  }
+
+  already_AddRefed<nsStyleContext> wrapperStyle =
+    mPresShell->StyleSet()->ResolveAnonymousBoxStyle(pseudoType, aParentStyle);
+  FrameConstructionItem* newItem =
+    new FrameConstructionItem(&pseudoData.mFCData,
+                              
+                              aParentContent,
+                              
+                              pseudoType,
+                              
+                              
+                              
+                              aIter.item().mNameSpaceID,
+                              
+                              nullptr,
+                              wrapperStyle,
+                              true, nullptr);
+
+  
+  
+  
+  
+  
+  newItem->mIsAllInline = newItem->mHasInlineEnds =
+    newItem->mStyleContext->StyleDisplay()->IsInlineOutsideStyle();
+
+  
+  
+  newItem->mChildItems.SetLineBoundaryAtStart(true);
+  newItem->mChildItems.SetLineBoundaryAtEnd(true);
+  
+  
+  newItem->mChildItems.SetParentHasNoXBLChildren(
+      aIter.List()->ParentHasNoXBLChildren());
+
+  
+  
+  aIter.AppendItemsToList(aEndIter, newItem->mChildItems);
+
+  aIter.InsertItem(newItem);
 }
 
 void nsCSSFrameConstructor::CreateNeededPseudoSiblings(

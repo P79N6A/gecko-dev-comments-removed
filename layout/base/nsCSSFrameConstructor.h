@@ -1171,6 +1171,15 @@ private:
   
 
 
+  inline void WrapItemsInPseudoParent(nsIContent* aParentContent,
+                                      nsStyleContext* aParentStyle,
+                                      ParentType aWrapperType,
+                                      FCItemIterator& aIter,
+                                      const FCItemIterator& aEndIter);
+
+  
+
+
   inline void CreateNeededPseudoSiblings(nsFrameConstructorState& aState,
                                          FrameConstructionItemList& aItems,
                                          nsIFrame* aParentFrame);
