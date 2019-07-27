@@ -171,5 +171,3 @@ DebuggerMemory::getTrackingAllocationSites(JSContext *cx, unsigned argc, Value *
  const JSFunctionSpec DebuggerMemory::methods[] = {
     JS_FS_END
 };
-
-} 
