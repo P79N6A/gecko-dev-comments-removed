@@ -11,6 +11,8 @@
 #include "gfxContext.h"
 #include "gfxPlatform.h"
 #include "gfxSVGGlyphs.h"
+#include "mozilla/gfx/2D.h"
+#include "mozilla/RefPtr.h"
 #include "nsDisplayList.h"
 #include "nsGkAtoms.h"
 #include "nsRenderingContext.h"
@@ -447,8 +449,21 @@ nsSVGPathGeometryFrame::GetBBoxContribution(const Matrix &aToBBoxUserspace,
     return bbox;
   }
 
-  nsRefPtr<gfxContext> tmpCtx =
-    new gfxContext(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
+  RefPtr<DrawTarget> tmpDT;
+#ifdef XP_WIN
+  
+  
+  
+  
+  
+  nsRefPtr<gfxASurface> refSurf =
+    gfxPlatform::GetPlatform()->ScreenReferenceSurface();
+  tmpDT = gfxPlatform::GetPlatform()->
+    CreateDrawTargetForSurface(refSurf, IntSize(1, 1));
+#else
+  tmpDT = gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
+#endif
+  nsRefPtr<gfxContext> tmpCtx = new gfxContext(tmpDT);
 
   GeneratePath(tmpCtx, aToBBoxUserspace);
   tmpCtx->IdentityMatrix();
