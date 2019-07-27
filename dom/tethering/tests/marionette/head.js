@@ -222,6 +222,14 @@ let gTestSuite = (function() {
 
 
 
+  function setTetheringDunRequired() {
+    return runEmulatorShellSafe(['setprop', 'ro.tethering.dun_required', '1']);
+  }
+
+  
+
+
+
 
 
 
@@ -704,6 +712,7 @@ let gTestSuite = (function() {
   suite.setWifiTetheringEnabled = setWifiTetheringEnabled;
   suite.getDataApnSettings = getDataApnSettings;
   suite.setDataApnSettings = setDataApnSettings;
+  suite.setTetheringDunRequired = setTetheringDunRequired;
 
 
   
