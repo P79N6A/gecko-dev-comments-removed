@@ -42,4 +42,15 @@ function run_test() {
                                         "example.com.", 0));
   do_check_false(SSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HSTS,
                                         "example.com..", 0));
+
+  
+  
+  uri = Services.io.newURI("https://../foo", null, null);
+  do_check_eq(uri.host, "..");
+  try {
+    SSService.isSecureURI(Ci.nsISiteSecurityService.HEADER_HSTS, uri, 0);
+    do_check_false(true); 
+  } catch (e) {
+    do_check_eq(e.result, Cr.NS_ERROR_UNEXPECTED);
+  }
 }
