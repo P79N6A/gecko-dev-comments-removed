@@ -964,11 +964,9 @@ CanFalseStartCallback(PRFileDesc* fd, void* client_data, PRBool *canFalseStart)
 
   
   
-  
-  
-  if (channelInfo.protocolVersion < SSL_LIBRARY_VERSION_TLS_1_0) {
+  if (channelInfo.protocolVersion != SSL_LIBRARY_VERSION_TLS_1_2) {
     PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("CanFalseStartCallback [%p] failed - "
-                                      "SSL Version must be >= TLS1 %x\n", fd,
+                                      "SSL Version must be TLS 1.2, was %x\n", fd,
                                       static_cast<int32_t>(channelInfo.protocolVersion)));
     reasonsForNotFalseStarting |= POSSIBLE_VERSION_DOWNGRADE;
   }
