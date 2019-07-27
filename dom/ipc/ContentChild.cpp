@@ -510,6 +510,12 @@ NS_IMPL_ISUPPORTS(BackgroundChildPrimer, nsIIPCBackgroundChildCreateCallback)
 
 ContentChild* ContentChild::sSingleton;
 
+static void
+PostForkPreload()
+{
+    TabChild::PostForkPreload();
+}
+
 
 
 static void
@@ -520,6 +526,7 @@ InitOnContentProcessCreated()
     if (IsNuwaProcess()) {
         return;
     }
+    PostForkPreload();
 #endif
 
     
@@ -2086,6 +2093,9 @@ ContentChild::RecvAppInfo(const nsCString& version, const nsCString& buildID,
 #endif
        ) {
         PreloadSlowThings();
+#ifndef MOZ_NUWA_PROCESS
+        PostForkPreload();
+#endif
     }
 
 #ifdef MOZ_NUWA_PROCESS

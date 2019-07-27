@@ -103,6 +103,12 @@ this.DOMApplicationRegistry = {
       this.cpmm.addMessageListener(aMsgName, this);
     }).bind(this));
 
+    this.resetList();
+
+    Services.obs.addObserver(this, "xpcom-shutdown", false);
+  },
+
+  resetList: function() {
     this.cpmm.sendAsyncMessage("Webapps:RegisterForMessages", {
       messages: APPS_IPC_MSG_NAMES
     });
@@ -110,6 +116,7 @@ this.DOMApplicationRegistry = {
     
     let list = this.cpmm.sendSyncMessage("Webapps:GetList", { })[0];
     this.webapps = list.webapps;
+
     
     
     this.localIdIndex = { };
@@ -118,8 +125,6 @@ this.DOMApplicationRegistry = {
       this.localIdIndex[app.localId] = app;
       app.manifest = list.manifests[id];
     }
-
-    Services.obs.addObserver(this, "xpcom-shutdown", false);
   },
 
   observe: function(aSubject, aTopic, aData) {
