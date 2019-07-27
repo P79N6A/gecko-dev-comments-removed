@@ -197,6 +197,8 @@ class RefTest(object):
     
     if special_powers and (manifest.endswith('crashtests.list') or manifest.endswith('jstests.list')):
       addons.append(os.path.join(SCRIPT_DIRECTORY, 'specialpowers'))
+      
+      prefs['security.turn_off_all_security_so_that_viruses_can_take_over_this_computer'] = True
 
     
     distExtDir = os.path.join(options.app[ : options.app.rfind(os.sep)], "distribution", "extensions")
