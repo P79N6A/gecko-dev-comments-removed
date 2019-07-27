@@ -128,6 +128,7 @@ public:
   typedef mozilla::CSSPoint CSSPoint;
   typedef mozilla::CSSSize CSSSize;
   typedef mozilla::LayerMargin LayerMargin;
+  typedef mozilla::LayoutDeviceIntRect LayoutDeviceIntRect;
 
   
 
@@ -2151,6 +2152,15 @@ public:
 
   static void
   UpdateImageVisibilityForFrame(nsIFrame* aImageFrame);
+
+  
+
+
+
+
+  static bool
+  GetContentViewerBounds(nsPresContext* aPresContext,
+                         LayoutDeviceIntRect& aOutRect);
 
  
 
