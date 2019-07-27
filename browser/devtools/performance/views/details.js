@@ -3,8 +3,6 @@
 
 "use strict";
 
-const DEFAULT_DETAILS_SUBVIEW = "waterfall";
-
 
 
 
@@ -14,11 +12,11 @@ let DetailsView = {
 
 
   components: {
-    "waterfall": { id: "waterfall-view", view: WaterfallView },
+    "waterfall": { id: "waterfall-view", view: WaterfallView, requires: ["timeline"] },
     "js-calltree": { id: "js-calltree-view", view: JsCallTreeView },
-    "js-flamegraph": { id: "js-flamegraph-view", view: JsFlameGraphView },
-    "memory-calltree": { id: "memory-calltree-view", view: MemoryCallTreeView, pref: "enable-memory" },
-    "memory-flamegraph": { id: "memory-flamegraph-view", view: MemoryFlameGraphView, pref: "enable-memory" }
+    "js-flamegraph": { id: "js-flamegraph-view", view: JsFlameGraphView, requires: ["timeline"] },
+    "memory-calltree": { id: "memory-calltree-view", view: MemoryCallTreeView, requires: ["memory"], pref: "enable-memory" },
+    "memory-flamegraph": { id: "memory-flamegraph-view", view: MemoryFlameGraphView, requires: ["memory", "timeline"], pref: "enable-memory" }
   },
 
   
@@ -36,7 +34,7 @@ let DetailsView = {
       button.addEventListener("command", this._onViewToggle);
     }
 
-    yield this.selectView(DEFAULT_DETAILS_SUBVIEW);
+    yield this.selectDefaultView();
     yield this.setAvailableViews();
 
     PerformanceController.on(EVENTS.RECORDING_STOPPED, this._onRecordingStoppedOrSelected);
@@ -67,17 +65,22 @@ let DetailsView = {
 
 
   setAvailableViews: Task.async(function* () {
-    for (let [name, { view, pref }] of Iterator(this.components)) {
+    let mocks = gFront.getMocksInUse();
+    for (let [name, { view, pref, requires }] of Iterator(this.components)) {
       let recording = PerformanceController.getCurrentRecording();
 
       let isRecorded = recording && !recording.isRecording();
+      
       let isEnabled = !pref || PerformanceController.getPref(pref);
-      $(`toolbarbutton[data-view=${name}]`).hidden = !isRecorded || !isEnabled;
+      
+      let isSupported = !requires || requires.every(r => !mocks[r]);
+
+      $(`toolbarbutton[data-view=${name}]`).hidden = !isRecorded || !(isEnabled && isSupported);
 
       
       
       if (!isEnabled && this.isViewSelected(view)) {
-        yield this.selectView(DEFAULT_DETAILS_SUBVIEW);
+        yield this.selectDefaultView();
       }
     }
   }),
@@ -105,6 +108,22 @@ let DetailsView = {
 
     this.emit(EVENTS.DETAILS_VIEW_SELECTED, viewName);
   }),
+
+  
+
+
+
+  selectDefaultView: function () {
+    let { timeline: mockTimeline } = gFront.getMocksInUse();
+    
+    if (mockTimeline) {
+      return this.selectView("js-calltree");
+    } else {
+      
+      
+      return this.selectView("waterfall");
+    }
+  },
 
   
 

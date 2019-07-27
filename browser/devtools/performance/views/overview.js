@@ -26,6 +26,9 @@ let OverviewView = {
 
 
   initialize: function () {
+    if (gFront.getMocksInUse().timeline) {
+      this.disable();
+    }
     this._onRecordingWillStart = this._onRecordingWillStart.bind(this);
     this._onRecordingStarted = this._onRecordingStarted.bind(this);
     this._onRecordingWillStop = this._onRecordingWillStop.bind(this);
@@ -65,8 +68,31 @@ let OverviewView = {
 
 
 
+  disable: function () {
+    this._disabled = true;
+    $("#overview-pane").hidden = true;
+  },
+
+  
+
+
+
+
+  isDisabled: function () {
+    return this._disabled;
+  },
+
+  
+
+
+
+
 
   setTimeInterval: function(interval, options = {}) {
+    if (this.isDisabled()) {
+      return;
+    }
+
     let recording = PerformanceController.getCurrentRecording();
     if (recording == null) {
       throw new Error("A recording should be available in order to set the selection.");
@@ -87,6 +113,11 @@ let OverviewView = {
 
   getTimeInterval: function() {
     let recording = PerformanceController.getCurrentRecording();
+
+    if (this.isDisabled()) {
+      return { startTime: 0, endTime: recording.getDuration() };
+    }
+
     if (recording == null) {
       throw new Error("A recording should be available in order to get the selection.");
     }
@@ -172,6 +203,9 @@ let OverviewView = {
 
 
   render: Task.async(function *(resolution) {
+    if (this.isDisabled()) {
+      return;
+    }
     let recording = PerformanceController.getCurrentRecording();
     let duration = recording.getDuration();
     let markers = recording.getMarkers();
