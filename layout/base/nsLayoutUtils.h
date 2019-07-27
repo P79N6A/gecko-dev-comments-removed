@@ -182,7 +182,8 @@ public:
 
 
 
-  static void SetDisplayPortMargins(nsIContent* aContent,
+
+  static bool SetDisplayPortMargins(nsIContent* aContent,
                                     nsIPresShell* aPresShell,
                                     const ScreenMargin& aMargins,
                                     uint32_t aPriority = 0,
@@ -2429,7 +2430,18 @@ public:
     }
   }
 
- 
+  
+
+
+
+
+
+
+
+  static bool CalculateAndSetDisplayPortMargins(nsIScrollableFrame* aScrollFrame,
+                                                RepaintMode aRepaintMode);
+
+  
 
 
 
