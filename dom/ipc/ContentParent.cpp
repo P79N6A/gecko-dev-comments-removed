@@ -1411,6 +1411,13 @@ ContentParent::ShutDownProcess(bool aCloseWithError)
         
         mCalledClose = true;
         Close();
+#ifdef MOZ_NUWA_PROCESS
+        
+        
+        if (IsNuwaProcess()) {
+            KillHard();
+        }
+#endif
     }
 
     if (aCloseWithError && !mCalledCloseWithError) {
@@ -2931,17 +2938,13 @@ ContentParent::KillHard()
     if (!KillProcess(OtherProcess(), 1, false)) {
         NS_WARNING("failed to kill subprocess!");
     }
-    mSubprocess->SetAlreadyDead();
+    if (mSubprocess) {
+        mSubprocess->SetAlreadyDead();
+    }
     XRE_GetIOMessageLoop()->PostTask(
         FROM_HERE,
         NewRunnableFunction(&ProcessWatcher::EnsureProcessTerminated,
                             OtherProcess(), true));
-    
-    MessageLoop::current()->PostDelayedTask(
-        FROM_HERE,
-        NewRunnableMethod(this, &ContentParent::ShutDownProcess,
-                           true),
-        3000);
     
     
     SetOtherProcess(0);
