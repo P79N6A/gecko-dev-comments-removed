@@ -95,6 +95,43 @@ AnimationPlayer::GetCurrentTime() const
   return result;
 }
 
+
+void
+AnimationPlayer::SilentlySetCurrentTime(const TimeDuration& aSeekTime)
+{
+  if (!mHoldTime.IsNull() ||
+      !mTimeline ||
+      mTimeline->GetCurrentTime().IsNull()
+      ) {
+    mHoldTime.SetValue(aSeekTime);
+    if (!mTimeline || mTimeline->GetCurrentTime().IsNull()) {
+      mStartTime.SetNull();
+    }
+  } else {
+    
+    mStartTime.SetValue(mTimeline->GetCurrentTime().Value() - aSeekTime);
+  }
+
+  
+  
+}
+
+
+void
+AnimationPlayer::SetCurrentTime(const TimeDuration& aSeekTime)
+{
+  SilentlySetCurrentTime(aSeekTime);
+
+  
+
+  UpdateSourceContent();
+  PostUpdate();
+
+  
+  
+  
+}
+
 AnimationPlayState
 AnimationPlayer::PlayState() const
 {
@@ -168,6 +205,20 @@ Nullable<double>
 AnimationPlayer::GetCurrentTimeAsDouble() const
 {
   return AnimationUtils::TimeDurationToDouble(GetCurrentTime());
+}
+
+void
+AnimationPlayer::SetCurrentTimeAsDouble(const Nullable<double>& aCurrentTime,
+                                        ErrorResult& aRv)
+{
+  if (aCurrentTime.IsNull()) {
+    if (!GetCurrentTime().IsNull()) {
+      aRv.Throw(NS_ERROR_DOM_TYPE_ERR);
+    }
+    return;
+  }
+
+  return SetCurrentTime(TimeDuration::FromMilliseconds(aCurrentTime.Value()));
 }
 
 void
