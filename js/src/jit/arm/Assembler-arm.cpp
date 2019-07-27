@@ -77,8 +77,11 @@ ABIArgGenerator::next(MIRType type)
 
     return current_;
 }
-const Register ABIArgGenerator::NonArgReturnVolatileReg0 = r4;
-const Register ABIArgGenerator::NonArgReturnVolatileReg1 = r5;
+
+const Register ABIArgGenerator::NonArgReturnReg0 = r4;
+const Register ABIArgGenerator::NonArgReturnReg1 = r5;
+const Register ABIArgGenerator::NonReturn_VolatileReg0 = r2;
+const Register ABIArgGenerator::NonReturn_VolatileReg1 = r3;
 
 
 
