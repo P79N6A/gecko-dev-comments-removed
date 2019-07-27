@@ -77,7 +77,7 @@ public:
 
   
   
-  nsCOMPtr<nsIDOMRange> mCreatedRange;
+  nsRefPtr<nsRange> mCreatedRange;
 
   
   nsRefPtr<nsRange> mNoCheckRange;
@@ -212,8 +212,7 @@ public:
   
   
   
-  nsresult SkipSpellCheckForNode(nsIEditor* aEditor,
-                                 nsIDOMNode *aNode, bool * aCheckSpelling);
+  bool ShouldSpellCheckNode(nsIEditor* aEditor, nsINode *aNode);
 
   nsresult SpellCheckAfterChange(nsIDOMNode* aCursorNode, int32_t aCursorOffset,
                                  nsIDOMNode* aPreviousNode, int32_t aPreviousOffset,
@@ -224,10 +223,10 @@ public:
   nsresult ScheduleSpellCheck(const mozInlineSpellStatus& aStatus);
 
   nsresult DoSpellCheckSelection(mozInlineSpellWordUtil& aWordUtil,
-                                 nsISelection* aSpellCheckSelection,
+                                 mozilla::dom::Selection* aSpellCheckSelection,
                                  mozInlineSpellStatus* aStatus);
   nsresult DoSpellCheck(mozInlineSpellWordUtil& aWordUtil,
-                        nsISelection *aSpellCheckSelection,
+                        mozilla::dom::Selection *aSpellCheckSelection,
                         mozInlineSpellStatus* aStatus,
                         bool* aDoneChecking);
 
@@ -237,9 +236,10 @@ public:
                               int32_t aOffset,
                               nsIDOMRange **aRange);
 
-  nsresult CleanupRangesInSelection(nsISelection *aSelection);
+  nsresult CleanupRangesInSelection(mozilla::dom::Selection *aSelection);
 
-  nsresult RemoveRange(nsISelection *aSpellCheckSelection, nsIDOMRange * aRange);
+  nsresult RemoveRange(mozilla::dom::Selection *aSpellCheckSelection,
+                       nsRange *aRange);
   nsresult AddRange(nsISelection *aSpellCheckSelection, nsIDOMRange * aRange);
   bool     SpellCheckSelectionIsFull() { return mNumWordsInSpellSelection >= mMaxNumWordsInSpellSelection; }
 
