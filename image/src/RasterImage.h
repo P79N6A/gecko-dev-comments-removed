@@ -171,14 +171,9 @@ public:
   
   uint32_t GetNumFrames() const;
 
-  virtual size_t HeapSizeOfSourceWithComputedFallback(MallocSizeOf aMallocSizeOf) const;
-  virtual size_t HeapSizeOfDecodedWithComputedFallback(MallocSizeOf aMallocSizeOf) const;
-  virtual size_t NonHeapSizeOfDecoded() const;
-  virtual size_t OutOfProcessSizeOfDecoded() const;
-
-  virtual size_t HeapSizeOfVectorImageDocument(nsACString* aDocURL = nullptr) const MOZ_OVERRIDE {
-    return 0;
-  }
+  virtual size_t SizeOfSourceWithComputedFallback(MallocSizeOf aMallocSizeOf) const;
+  virtual size_t SizeOfDecoded(gfxMemoryLocation aLocation,
+                               MallocSizeOf aMallocSizeOf) const;
 
   
   void Discard(bool aForce = false, bool aNotify = true);

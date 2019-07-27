@@ -366,69 +366,33 @@ VectorImage::FrameRect(uint32_t aWhichFrame)
 }
 
 size_t
-VectorImage::HeapSizeOfSourceWithComputedFallback(MallocSizeOf aMallocSizeOf) const
-{
-  
-  
-  
-  
-  
-  
-  return 0;
-}
-
-size_t
-VectorImage::HeapSizeOfDecodedWithComputedFallback(MallocSizeOf aMallocSizeOf) const
-{
-  
-  
-  
-  
-  
-  
-  
-  
-  return SurfaceCache::SizeOfSurfaces(ImageKey(this),
-                                      gfxMemoryLocation::IN_PROCESS_HEAP,
-                                      aMallocSizeOf);
-}
-
-size_t
-VectorImage::NonHeapSizeOfDecoded() const
-{
-  return SurfaceCache::SizeOfSurfaces(ImageKey(this),
-                                      gfxMemoryLocation::IN_PROCESS_NONHEAP,
-                                      nullptr);
-}
-
-size_t
-VectorImage::OutOfProcessSizeOfDecoded() const
-{
-  return SurfaceCache::SizeOfSurfaces(ImageKey(this),
-                                      gfxMemoryLocation::OUT_OF_PROCESS,
-                                      nullptr);
-}
-
-MOZ_DEFINE_MALLOC_SIZE_OF(WindowsMallocSizeOf);
-
-size_t
-VectorImage::HeapSizeOfVectorImageDocument(nsACString* aDocURL) const
+VectorImage::SizeOfSourceWithComputedFallback(MallocSizeOf aMallocSizeOf) const
 {
   nsIDocument* doc = mSVGDocumentWrapper->GetDocument();
   if (!doc) {
-    if (aDocURL) {
-      mURI->GetSpec(*aDocURL);
-    }
     return 0; 
   }
 
-  if (aDocURL) {
-    doc->GetDocumentURI()->GetSpec(*aDocURL);
+  nsWindowSizes windowSizes(aMallocSizeOf);
+  doc->DocAddSizeOfIncludingThis(&windowSizes);
+
+  if (windowSizes.getTotalSize() == 0) {
+    
+    
+    
+    
+    
+    return 100 * 1024;
   }
 
-  nsWindowSizes windowSizes(WindowsMallocSizeOf);
-  doc->DocAddSizeOfIncludingThis(&windowSizes);
   return windowSizes.getTotalSize();
+}
+
+size_t
+VectorImage::SizeOfDecoded(gfxMemoryLocation aLocation,
+                           MallocSizeOf aMallocSizeOf) const
+{
+  return SurfaceCache::SizeOfSurfaces(ImageKey(this), aLocation, aMallocSizeOf);
 }
 
 nsresult
