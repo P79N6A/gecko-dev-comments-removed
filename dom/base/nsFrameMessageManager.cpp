@@ -1537,10 +1537,13 @@ nsFrameScriptExecutor::TryCacheLoadAndCompileScript(const nsAString& aURL,
 
   if (dataStringBuf && dataStringLength > 0) {
     AutoSafeJSContext cx;
-    JS::Rooted<JSObject*> global(cx, mGlobal->GetJSObject());
+    
+    
+    JS::Rooted<JSObject*> global(cx, xpc::CompilationScope());
+
     if (global) {
       JSAutoCompartment ac(cx, global);
-      JS::CompileOptions options(cx);
+      JS::CompileOptions options(cx, JSVERSION_LATEST);
       options.setFileAndLine(url.get(), 1);
       options.setNoScriptRval(true);
       JS::Rooted<JSScript*> script(cx);
