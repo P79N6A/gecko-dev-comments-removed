@@ -7,7 +7,6 @@
 
 #include "CompositableHost.h"           
 #include "LayersLogging.h"              
-#include "gfx2DGlue.h"                  
 #include "mozilla/gfx/2D.h"             
 #include "mozilla/ipc/Shmem.h"          
 #include "mozilla/layers/CompositableTransactionParent.h" 

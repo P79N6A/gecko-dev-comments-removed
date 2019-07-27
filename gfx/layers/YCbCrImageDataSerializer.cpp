@@ -5,7 +5,6 @@
 
 #include "mozilla/layers/YCbCrImageDataSerializer.h"
 #include <string.h>                     
-#include "gfx2DGlue.h"                  
 #include "mozilla/gfx/2D.h"             
 #include "mozilla/gfx/BaseSize.h"       
 #include "mozilla/gfx/Logging.h"        

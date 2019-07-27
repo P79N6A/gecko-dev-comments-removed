@@ -242,8 +242,7 @@ nsSVGMaskFrame::GetMaskForMaskedFrame(gfxContext* aContext,
 
   bool resultOverflows;
   IntSize maskSurfaceSize =
-    ToIntSize(nsSVGUtils::ConvertToSurfaceSize(maskSurfaceRect.Size(),
-                                               &resultOverflows));
+    nsSVGUtils::ConvertToSurfaceSize(maskSurfaceRect.Size(), &resultOverflows);
 
   if (resultOverflows || maskSurfaceSize.IsEmpty()) {
     

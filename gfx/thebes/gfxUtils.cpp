@@ -441,8 +441,7 @@ CreateSamplingRestrictedDrawable(gfxDrawable* aDrawable,
     gfxIntSize size(int32_t(needed.Width()), int32_t(needed.Height()));
 
     RefPtr<DrawTarget> target =
-      gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(ToIntSize(size),
-                                                                   aFormat);
+      gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(size, aFormat);
     if (!target) {
       return nullptr;
     }
@@ -869,7 +868,7 @@ gfxUtils::GetYCbCrToRGBDestFormatAndSize(const PlanarYCbCrData& aData,
   
   
   bool prescale = aSuggestedSize.width > 0 && aSuggestedSize.height > 0 &&
-                    ToIntSize(aSuggestedSize) != aData.mPicSize;
+                    aSuggestedSize != aData.mPicSize;
 
   if (aSuggestedFormat == gfxImageFormat::RGB16_565) {
 #if defined(HAVE_YCBCR_TO_RGB565)
@@ -905,7 +904,7 @@ gfxUtils::GetYCbCrToRGBDestFormatAndSize(const PlanarYCbCrData& aData,
       prescale = false;
   }
   if (!prescale) {
-    ToIntSize(aSuggestedSize) = aData.mPicSize;
+    aSuggestedSize = aData.mPicSize;
   }
 }
 
@@ -929,7 +928,7 @@ gfxUtils::ConvertYCbCrToRGB(const PlanarYCbCrData& aData,
                       aData.mCbCrSize.height);
 
   
-  if (ToIntSize(aDestSize) != aData.mPicSize) {
+  if (aDestSize != aData.mPicSize) {
 #if defined(HAVE_YCBCR_TO_RGB565)
     if (aDestFormat == gfxImageFormat::RGB16_565) {
       ScaleYCbCrToRGB565(aData.mYChannel,
