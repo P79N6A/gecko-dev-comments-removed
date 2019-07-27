@@ -264,7 +264,7 @@ class ShapeTable {
 
 
 
-#define JSPROP_SHADOWABLE       JSPROP_INDEX
+#define JSPROP_SHADOWABLE       JSPROP_INTERNAL_USE_BIT
 
 
 

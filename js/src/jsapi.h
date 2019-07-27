@@ -896,7 +896,7 @@ class MOZ_STACK_CLASS SourceBufferHolder final
                                            set of the same-named property in an
                                            object that delegates to a prototype
                                            containing this property */
-#define JSPROP_INDEX            0x80    /* name is actually (int) index */
+#define JSPROP_INTERNAL_USE_BIT 0x80    /* internal JS engine use only */
 #define JSPROP_DEFINE_LATE     0x100    /* Don't define property when initially creating
                                            the constructor. Some objects like Function/Object
                                            have self-hosted functions that can only be defined
