@@ -218,12 +218,18 @@ class JitSpewIndent
     ~JitSpewIndent() {}
 };
 
-static inline void JitSpew(JitSpewChannel, const char* fmt, ...)
+
+
+
+static inline void JitSpewCheckArguments(JitSpewChannel channel, const char* fmt)
 { }
-static inline void JitSpewStart(JitSpewChannel channel, const char* fmt, ...)
-{ }
-static inline void JitSpewCont(JitSpewChannel channel, const char* fmt, ...)
-{ }
+
+#define JitSpewCheckExpandedArgs(channel, fmt, ...) JitSpewCheckArguments(channel, fmt)
+#define JitSpewCheckExpandedArgs_(ArgList) JitSpewCheckExpandedArgs ArgList /* Fix MSVC issue */
+#define JitSpew(...) JitSpewCheckExpandedArgs_((__VA_ARGS__))
+#define JitSpewStart(...) JitSpewCheckExpandedArgs_((__VA_ARGS__))
+#define JitSpewCont(...) JitSpewCheckExpandedArgs_((__VA_ARGS__))
+
 static inline void JitSpewFin(JitSpewChannel channel)
 { }
 
