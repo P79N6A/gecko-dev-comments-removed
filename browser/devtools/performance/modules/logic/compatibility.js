@@ -3,8 +3,6 @@
 
 "use strict";
 
-const { Task } = require("resource://gre/modules/Task.jsm");
-
 loader.lazyRequireGetter(this, "promise");
 loader.lazyRequireGetter(this, "EventEmitter",
   "devtools/toolkit/event-emitter");
@@ -86,7 +84,7 @@ function memoryActorSupported (target) {
   
   return !!target.getTrait("memoryActorAllocations") && target.hasActor("memory");
 }
-exports.memoryActorSupported = Task.async(memoryActorSupported);
+exports.memoryActorSupported = memoryActorSupported;
 
 
 
@@ -104,7 +102,7 @@ function timelineActorSupported(target) {
 
   return target.hasActor("timeline");
 }
-exports.timelineActorSupported = Task.async(timelineActorSupported);
+exports.timelineActorSupported = timelineActorSupported;
 
 
 
@@ -131,7 +129,7 @@ function getProfiler (target) {
   }
   return deferred.promise;
 }
-exports.getProfiler = Task.async(getProfiler);
+exports.getProfiler = getProfiler;
 
 
 
