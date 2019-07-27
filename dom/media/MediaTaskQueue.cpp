@@ -161,8 +161,9 @@ MediaTaskQueue::BeginShutdown()
 {
   
   
-  MOZ_ASSERT_IF(AbstractThread::GetCurrent(),
-                !AbstractThread::GetCurrent()->TailDispatcher().HasTasksFor(this));
+  if (AbstractThread* currentThread = AbstractThread::GetCurrent()) {
+    currentThread->TailDispatcher().DispatchTasksFor(this);
+  }
 
   MonitorAutoLock mon(mQueueMonitor);
   mIsShutdown = true;
