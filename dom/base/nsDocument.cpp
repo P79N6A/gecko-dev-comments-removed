@@ -5844,6 +5844,7 @@ nsDocument::RegisterUnresolvedElement(Element* aElement, nsIAtom* aTypeName)
 
   nsRefPtr<Element>* elem = unresolved->AppendElement();
   *elem = aElement;
+  aElement->AddStates(NS_EVENT_STATE_UNRESOLVED);
 
   return NS_OK;
 }
@@ -6274,10 +6275,16 @@ nsDocument::RegisterElement(JSContext* aCx, const nsAString& aType,
     for (size_t i = 0; i < candidates->Length(); ++i) {
       Element *elem = candidates->ElementAt(i);
 
+      elem->RemoveStates(NS_EVENT_STATE_UNRESOLVED);
+
       
       
       
-      if (elem->NodeInfo()->NameAtom() != nameAtom) {
+      
+      
+      
+      if (elem->NodeInfo()->NameAtom() != nameAtom &&
+          elem->Tag() == nameAtom) {
         
         continue;
       }
