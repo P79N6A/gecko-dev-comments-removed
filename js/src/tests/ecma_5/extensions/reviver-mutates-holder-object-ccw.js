@@ -15,14 +15,6 @@ print(BUGNUMBER + ": " + summary);
 
 
 
-if (typeof newGlobal !== "function")
-{
-  var newGlobal = function()
-  {
-    return { evaluate: eval };
-  };
-}
-
 
 
 var first = "unset";

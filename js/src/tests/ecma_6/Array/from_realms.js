@@ -26,10 +26,11 @@ if (typeof newGlobal === 'function') {
     h.eval("function f() { mainGlobal.result = this; }");
     g.Array.from.call(Array, [5, 6, 7], h.f);
     
-    this.name = "main";
-    g.name = "g";
-    h.name = "h";
-    assertEq(result.name, "h");
+    
+    this.globalName = "main";
+    g.globalName = "g";
+    h.globalName = "h";
+    assertEq(result.globalName, "h");
 }
 
 if (typeof reportCompare === 'function')
