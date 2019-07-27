@@ -131,11 +131,24 @@ nsNumberControlFrame::Reflow(nsPresContext* aPresContext,
   const nscoord contentBoxISize = aReflowState.ComputedISize();
   nscoord contentBoxBSize = aReflowState.ComputedBSize();
 
+  
+  
+  const nscoord borderBoxISize = contentBoxISize +
+    aReflowState.ComputedLogicalBorderPadding().IStartEnd(myWM);
+
+  nscoord borderBoxBSize;
+  if (contentBoxBSize != NS_INTRINSICSIZE) {
+    borderBoxBSize = contentBoxBSize +
+      aReflowState.ComputedLogicalBorderPadding().BStartEnd(myWM);
+  } 
+
   nsIFrame* outerWrapperFrame = mOuterWrapper->GetPrimaryFrame();
 
   if (!outerWrapperFrame) { 
     if (contentBoxBSize == NS_INTRINSICSIZE) {
       contentBoxBSize = 0;
+      borderBoxBSize =
+        aReflowState.ComputedLogicalBorderPadding().BStartEnd(myWM);
     }
   } else {
     NS_ASSERTION(outerWrapperFrame == mFrames.FirstChild(), "huh?");
@@ -150,20 +163,24 @@ nsNumberControlFrame::Reflow(nsPresContext* aPresContext,
                                          outerWrapperFrame, availSize);
 
     
-    nscoord xoffset = aReflowState.ComputedPhysicalBorderPadding().left +
-                        wrapperReflowState.ComputedPhysicalMargin().left;
-    nscoord yoffset = aReflowState.ComputedPhysicalBorderPadding().top +
-                        wrapperReflowState.ComputedPhysicalMargin().top;
+    LogicalMargin wrapperMargin =
+      wrapperReflowState.ComputedLogicalMargin().ConvertTo(myWM, wrapperWM);
+
+    
+    LogicalPoint
+      wrapperOffset(myWM,
+                    aReflowState.ComputedLogicalBorderPadding().IStart(myWM) +
+                    wrapperMargin.IStart(myWM),
+                    aReflowState.ComputedLogicalBorderPadding().BStart(myWM) +
+                    wrapperMargin.BStart(myWM));
 
     nsReflowStatus childStatus;
     ReflowChild(outerWrapperFrame, aPresContext, wrappersDesiredSize,
-                wrapperReflowState, xoffset, yoffset, 0, childStatus);
+                wrapperReflowState, myWM, wrapperOffset, 0, 0, childStatus);
     MOZ_ASSERT(NS_FRAME_IS_FULLY_COMPLETE(childStatus),
                "We gave our child unconstrained available block-size, "
                "so it should be complete");
 
-    LogicalMargin wrapperMargin =
-      wrapperReflowState.ComputedLogicalMargin().ConvertTo(myWM, wrapperWM);
     nscoord wrappersMarginBoxBSize =
       wrappersDesiredSize.BSize(myWM) + wrapperMargin.BStartEnd(myWM);
 
@@ -181,15 +198,23 @@ nsNumberControlFrame::Reflow(nsPresContext* aPresContext,
         NS_CSS_MINMAX(contentBoxBSize,
                       aReflowState.ComputedMinBSize(),
                       aReflowState.ComputedMaxBSize());
+
+      borderBoxBSize = contentBoxBSize +
+        aReflowState.ComputedLogicalBorderPadding().BStartEnd(myWM);
     }
 
     
     nscoord extraSpace = contentBoxBSize - wrappersMarginBoxBSize;
-    yoffset += std::max(0, extraSpace / 2);
+    wrapperOffset.B(myWM) += std::max(0, extraSpace / 2);
+
+    
+    nscoord borderBoxWidth = myWM.IsVertical() ?
+      borderBoxBSize : borderBoxISize;
 
     
     FinishReflowChild(outerWrapperFrame, aPresContext, wrappersDesiredSize,
-                      &wrapperReflowState, xoffset, yoffset, 0);
+                      &wrapperReflowState, myWM, wrapperOffset,
+                      borderBoxWidth, 0);
 
     aDesiredSize.SetBlockStartAscent(
        wrappersDesiredSize.BlockStartAscent() +
@@ -197,12 +222,7 @@ nsNumberControlFrame::Reflow(nsPresContext* aPresContext,
                                  contentBoxISize));
   }
 
-  LogicalSize
-    logicalDesiredSize(myWM,
-                       contentBoxISize +
-                       aReflowState.ComputedLogicalBorderPadding().IStartEnd(myWM),
-                       contentBoxBSize +
-                       aReflowState.ComputedLogicalBorderPadding().BStartEnd(myWM));
+  LogicalSize logicalDesiredSize(myWM, borderBoxISize, borderBoxBSize);
   aDesiredSize.SetSize(myWM, logicalDesiredSize);
 
   aDesiredSize.SetOverflowAreasToDesiredBounds();
