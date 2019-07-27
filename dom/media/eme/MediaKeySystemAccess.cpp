@@ -161,8 +161,7 @@ MediaKeySystemAccess::GetKeySystemStatus(const nsAString& aKeySystem,
     if (!Preferences::GetBool("media.gmp-eme-adobe.enabled", false)) {
       return MediaKeySystemStatus::Cdm_disabled;
     }
-    if (!MP4Decoder::CanCreateH264Decoder() ||
-        !MP4Decoder::CanCreateAACDecoder() ||
+    if ((!WMFDecoderModule::HasH264() || !WMFDecoderModule::HasAAC()) ||
         !EMEVoucherFileExists()) {
       
       

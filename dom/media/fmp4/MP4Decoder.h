@@ -41,10 +41,6 @@ public:
   
   
   static bool IsEnabled();
-
-  static bool IsVideoAccelerated(layers::LayersBackend aBackend);
-  static bool CanCreateAACDecoder();
-  static bool CanCreateH264Decoder();
 };
 
 } 
