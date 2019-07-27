@@ -637,6 +637,9 @@ protected:
   void OnAudioSinkComplete();
 
   
+  void OnAudioSinkError();
+
+  
   
   
   
