@@ -177,6 +177,11 @@ BaselineCompiler::compile()
     prologueOffset_.fixup(&masm);
     epilogueOffset_.fixup(&masm);
     spsPushToggleOffset_.fixup(&masm);
+#ifdef JS_TRACE_LOGGING
+    traceLoggerEnterToggleOffset_.fixup(&masm);
+    traceLoggerExitToggleOffset_.fixup(&masm);
+    traceLoggerScriptTextIdOffset_.fixup(&masm);
+#endif
     postDebugPrologueOffset_.fixup(&masm);
 
     
@@ -186,6 +191,9 @@ BaselineCompiler::compile()
         BaselineScript::New(script, prologueOffset_.offset(),
                             epilogueOffset_.offset(),
                             spsPushToggleOffset_.offset(),
+                            traceLoggerEnterToggleOffset_.offset(),
+                            traceLoggerExitToggleOffset_.offset(),
+                            traceLoggerScriptTextIdOffset_.offset(),
                             postDebugPrologueOffset_.offset(),
                             icEntries_.length(),
                             pcMappingIndexEntries.length(),
@@ -240,6 +248,11 @@ BaselineCompiler::compile()
     
     if (cx->runtime()->spsProfiler.enabled())
         baselineScript->toggleSPS(true);
+
+    if (TraceLogTextIdEnabled(TraceLogger_Scripts))
+        baselineScript->toggleTraceLoggerScripts(cx->runtime(), script, true);
+    if (TraceLogTextIdEnabled(TraceLogger_Engine))
+        baselineScript->toggleTraceLoggerEngine(true);
 
     uint32_t *bytecodeMap = baselineScript->bytecodeTypeMap();
     types::FillBytecodeTypeMap(script, bytecodeMap);
@@ -372,15 +385,8 @@ BaselineCompiler::emitPrologue()
     if (needsEarlyStackCheck())
         masm.bind(&earlyStackCheckFailed);
 
-#ifdef JS_TRACE_LOGGING
-    TraceLoggerThread *logger = TraceLoggerForMainThread(cx->runtime());
-    Register loggerReg = RegisterSet::Volatile().takeGeneral();
-    masm.Push(loggerReg);
-    masm.movePtr(ImmPtr(logger), loggerReg);
-    masm.tracelogStart(loggerReg, TraceLogCreateTextId(logger, script));
-    masm.tracelogStart(loggerReg, TraceLogger_Baseline);
-    masm.Pop(loggerReg);
-#endif
+    if (!emitTraceLoggerEnter())
+        return false;
 
     
     
@@ -419,13 +425,8 @@ BaselineCompiler::emitEpilogue()
     masm.bind(&return_);
 
 #ifdef JS_TRACE_LOGGING
-    TraceLoggerThread *logger = TraceLoggerForMainThread(cx->runtime());
-    Register loggerReg = RegisterSet::Volatile().takeGeneral();
-    masm.Push(loggerReg);
-    masm.movePtr(ImmPtr(logger), loggerReg);
-    masm.tracelogStop(loggerReg, TraceLogger_Baseline);
-    masm.tracelogStop(loggerReg, TraceLogger_Scripts);
-    masm.Pop(loggerReg);
+    if (!emitTraceLoggerExit())
+        return false;
 #endif
 
     
@@ -761,6 +762,60 @@ BaselineCompiler::emitDebugTrap()
     icEntry.setReturnOffset(CodeOffsetLabel(masm.currentOffset()));
     if (!icEntries_.append(icEntry))
         return false;
+
+    return true;
+}
+
+bool
+BaselineCompiler::emitTraceLoggerEnter()
+{
+    TraceLoggerThread *logger = TraceLoggerForMainThread(cx->runtime());
+    RegisterSet regs = RegisterSet::Volatile();
+    Register loggerReg = regs.takeGeneral();
+    Register scriptReg = regs.takeGeneral();
+
+    Label noTraceLogger;
+    traceLoggerEnterToggleOffset_ = masm.toggledJump(&noTraceLogger);
+
+    masm.Push(loggerReg);
+    masm.Push(scriptReg);
+
+    masm.movePtr(ImmPtr(logger), loggerReg);
+
+    
+    traceLoggerScriptTextIdOffset_ =
+        masm.movWithPatch(ImmWord(uintptr_t(TraceLogger_Scripts)), scriptReg);
+    masm.tracelogStart(loggerReg, scriptReg);
+
+    
+    masm.tracelogStart(loggerReg, TraceLogger_Baseline,  true);
+
+    masm.Pop(scriptReg);
+    masm.Pop(loggerReg);
+
+    masm.bind(&noTraceLogger);
+
+    return true;
+}
+
+bool
+BaselineCompiler::emitTraceLoggerExit()
+{
+    TraceLoggerThread *logger = TraceLoggerForMainThread(cx->runtime());
+    Register loggerReg = RegisterSet::Volatile().takeGeneral();
+
+    Label noTraceLogger;
+    traceLoggerExitToggleOffset_ = masm.toggledJump(&noTraceLogger);
+
+    masm.Push(loggerReg);
+    masm.movePtr(ImmPtr(logger), loggerReg);
+
+    masm.tracelogStop(loggerReg, TraceLogger_Baseline,  true);
+    masm.tracelogStop(loggerReg, TraceLogger_Scripts,  true);
+
+    masm.Pop(loggerReg);
+
+    masm.bind(&noTraceLogger);
 
     return true;
 }
