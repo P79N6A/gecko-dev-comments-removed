@@ -121,9 +121,9 @@ function run_test() {
 
   
   
-  do_check_eq(connection.schemaVersion, 5);
+  do_check_eq(connection.schemaVersion, 6);
 
-  let select = connection.createStatement("SELECT modificationTime FROM moz_hosts")
+  let select = connection.createStatement("SELECT modificationTime FROM moz_perms")
   let numMigrated = 0;
   while (select.executeStep()) {
     let thisModTime = select.getInt64(0);
