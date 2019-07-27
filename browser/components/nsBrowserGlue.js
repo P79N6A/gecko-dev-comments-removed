@@ -740,13 +740,6 @@ BrowserGlue.prototype = {
 #endif
     webrtcUI.uninit();
     FormValidationHandler.uninit();
-
-    
-    
-    if (Services.prefs.getPrefType("loop.autologin-after-restart") != Ci.nsIPrefBranch.PREF_BOOL ||
-        !Services.prefs.getBoolPref("loop.autologin-after-restart")) {
-      Services.prefs.clearUserPref("loop.hawk-session-token.fxa");
-    }
   },
 
   
