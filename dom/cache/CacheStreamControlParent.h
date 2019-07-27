@@ -32,14 +32,14 @@ public:
 
   
   virtual void
-  SerializeControl(PCacheReadStream* aReadStreamOut) override;
+  SerializeControl(CacheReadStream* aReadStreamOut) override;
 
   virtual void
-  SerializeFds(PCacheReadStream* aReadStreamOut,
+  SerializeFds(CacheReadStream* aReadStreamOut,
                const nsTArray<mozilla::ipc::FileDescriptor>& aFds) override;
 
   virtual void
-  DeserializeFds(const PCacheReadStream& aReadStream,
+  DeserializeFds(const CacheReadStream& aReadStream,
                  nsTArray<mozilla::ipc::FileDescriptor>& aFdsOut) override;
 
 private:
