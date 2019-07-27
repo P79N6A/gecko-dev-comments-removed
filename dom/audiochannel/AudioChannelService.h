@@ -43,11 +43,6 @@ public:
 
   static already_AddRefed<AudioChannelService> GetOrCreate();
 
-  
-
-
-  static void Shutdown();
-
   static bool IsAudioChannelMutedByDefault();
 
   
@@ -136,6 +131,11 @@ private:
   AudioChannelService();
   ~AudioChannelService();
 
+  
+
+
+  static void Shutdown();
+
   void MaybeSendStatusUpdate();
 
   bool ContentOrNormalChannelIsActive();
@@ -203,8 +203,6 @@ private:
 #ifdef MOZ_WIDGET_GONK
   nsTArray<SpeakerManagerService*>  mSpeakerManager;
 #endif
-
-  bool mDisabled;
 
   nsCOMPtr<nsIRunnable> mRunnable;
 
