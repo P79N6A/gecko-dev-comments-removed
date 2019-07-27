@@ -41,7 +41,12 @@ public:
 
   explicit MediaTaskQueue(TemporaryRef<SharedThreadPool> aPool, bool aRequireTailDispatch = false);
 
-  nsresult Dispatch(TemporaryRef<nsIRunnable> aRunnable);
+  nsresult Dispatch(TemporaryRef<nsIRunnable> aRunnable)
+  {
+    MonitorAutoLock mon(mQueueMonitor);
+    nsCOMPtr<nsIRunnable> r = dont_AddRef(aRunnable.take());
+    return DispatchLocked(r.forget(), AbortIfFlushing);
+  }
 
   
   
@@ -78,9 +83,8 @@ public:
   void Dispatch(already_AddRefed<nsIRunnable> aRunnable,
                 DispatchFailureHandling aFailureHandling = AssertDispatchSuccess) override
   {
-    RefPtr<nsIRunnable> r(aRunnable);
     MonitorAutoLock mon(mQueueMonitor);
-    nsresult rv = DispatchLocked(r, AbortIfFlushing);
+    nsresult rv = DispatchLocked(Move(aRunnable), AbortIfFlushing);
     MOZ_DIAGNOSTIC_ASSERT(aFailureHandling == DontAssertDispatchSuccess || NS_SUCCEEDED(rv));
     unused << rv;
   }
@@ -121,8 +125,7 @@ protected:
 
   enum DispatchMode { AbortIfFlushing, IgnoreFlushing };
 
-  nsresult DispatchLocked(TemporaryRef<nsIRunnable> aRunnable,
-                          DispatchMode aMode);
+  nsresult DispatchLocked(already_AddRefed<nsIRunnable> aRunnable, DispatchMode aMode);
 
   RefPtr<SharedThreadPool> mPool;
 
@@ -130,7 +133,7 @@ protected:
   Monitor mQueueMonitor;
 
   
-  std::queue<RefPtr<nsIRunnable>> mTasks;
+  std::queue<nsCOMPtr<nsIRunnable>> mTasks;
 
   
   
