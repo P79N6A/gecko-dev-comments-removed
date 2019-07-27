@@ -332,8 +332,6 @@ let gFxAccounts = {
       this.openSignInAgainPage("menupanel");
       break;
     case "migrate-signup":
-      this.fxaMigrator.createFxAccount(window);
-      break;
     case "migrate-verify":
       
       
