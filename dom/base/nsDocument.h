@@ -1520,7 +1520,7 @@ protected:
 
   nsTArray<nsIObserver*> mCharSetObservers;
 
-  PLDHashTable2 *mSubDocuments;
+  PLDHashTable *mSubDocuments;
 
   
   nsAttrAndChildArray mChildren;

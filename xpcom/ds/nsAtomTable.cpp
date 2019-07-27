@@ -41,7 +41,7 @@ using namespace mozilla;
 
 
 
-static PLDHashTable2* gAtomTable;
+static PLDHashTable* gAtomTable;
 
 class StaticAtomEntry : public PLDHashEntryHdr
 {
@@ -543,8 +543,8 @@ static inline void
 EnsureTableExists()
 {
   if (!gAtomTable) {
-    gAtomTable = new PLDHashTable2(&AtomTableOps, sizeof(AtomTableEntry),
-                                   ATOM_HASHTABLE_INITIAL_LENGTH);
+    gAtomTable = new PLDHashTable(&AtomTableOps, sizeof(AtomTableEntry),
+                                  ATOM_HASHTABLE_INITIAL_LENGTH);
   }
 }
 

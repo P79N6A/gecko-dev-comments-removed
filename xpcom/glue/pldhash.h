@@ -342,9 +342,6 @@ private:
 };
 
 
-typedef PLDHashTable PLDHashTable2;
-
-
 
 
 

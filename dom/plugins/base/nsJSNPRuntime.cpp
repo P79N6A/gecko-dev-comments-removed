@@ -83,7 +83,7 @@ static JSObjWrapperTable sJSObjWrappers;
 static bool sJSObjWrappersAccessible = false;
 
 
-static PLDHashTable2* sNPObjWrappers;
+static PLDHashTable* sNPObjWrappers;
 
 
 
@@ -408,7 +408,7 @@ CreateNPObjWrapperTable()
   }
 
   sNPObjWrappers =
-    new PLDHashTable2(PL_DHashGetStubOps(), sizeof(NPObjWrapperHashEntry));
+    new PLDHashTable(PL_DHashGetStubOps(), sizeof(NPObjWrapperHashEntry));
   return true;
 }
 
@@ -1970,7 +1970,7 @@ NPObjWrapperPluginDestroyedCallback(PLDHashTable *table, PLDHashEntryHdr *hdr,
   if (entry->mNpp == nppcx->npp) {
     
     
-    PLDHashTable2 *tmp = static_cast<PLDHashTable2*>(table);
+    PLDHashTable *tmp = static_cast<PLDHashTable*>(table);
     sNPObjWrappers = nullptr;
 
     NPObject *npobj = entry->mNPObj;

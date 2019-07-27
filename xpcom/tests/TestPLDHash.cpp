@@ -27,8 +27,8 @@ static bool test_pldhash_Init_capacity_ok()
   
   
   
-  PLDHashTable2 t(PL_DHashGetStubOps(), sizeof(PLDHashEntryStub),
-                  PL_DHASH_MAX_INITIAL_LENGTH);
+  PLDHashTable t(PL_DHashGetStubOps(), sizeof(PLDHashEntryStub),
+                 PL_DHASH_MAX_INITIAL_LENGTH);
 
   
   if (!t.IsInitialized()) {
@@ -40,7 +40,7 @@ static bool test_pldhash_Init_capacity_ok()
 
 static bool test_pldhash_lazy_storage()
 {
-  PLDHashTable2 t(PL_DHashGetStubOps(), sizeof(PLDHashEntryStub));
+  PLDHashTable t(PL_DHashGetStubOps(), sizeof(PLDHashEntryStub));
 
   
   
@@ -115,40 +115,40 @@ static const PLDHashTableOps trivialOps = {
 
 static bool test_pldhash_move_semantics()
 {
-  PLDHashTable2 t1(&trivialOps, sizeof(PLDHashEntryStub));
+  PLDHashTable t1(&trivialOps, sizeof(PLDHashEntryStub));
   PL_DHashTableAdd(&t1, (const void*)88);
-  PLDHashTable2 t2(&trivialOps, sizeof(PLDHashEntryStub));
+  PLDHashTable t2(&trivialOps, sizeof(PLDHashEntryStub));
   PL_DHashTableAdd(&t2, (const void*)99);
 
   t1 = mozilla::Move(t1);   
 
   t1 = mozilla::Move(t2);   
 
-  PLDHashTable2 t3(&trivialOps, sizeof(PLDHashEntryStub));
-  PLDHashTable2 t4(&trivialOps, sizeof(PLDHashEntryStub));
+  PLDHashTable t3(&trivialOps, sizeof(PLDHashEntryStub));
+  PLDHashTable t4(&trivialOps, sizeof(PLDHashEntryStub));
   PL_DHashTableAdd(&t3, (const void*)88);
 
   t3 = mozilla::Move(t4);   
 
-  PLDHashTable2 t5(&trivialOps, sizeof(PLDHashEntryStub));
-  PLDHashTable2 t6(&trivialOps, sizeof(PLDHashEntryStub));
+  PLDHashTable t5(&trivialOps, sizeof(PLDHashEntryStub));
+  PLDHashTable t6(&trivialOps, sizeof(PLDHashEntryStub));
   PL_DHashTableAdd(&t6, (const void*)88);
 
   t5 = mozilla::Move(t6);   
 
-  PLDHashTable2 t7(&trivialOps, sizeof(PLDHashEntryStub));
-  PLDHashTable2 t8(mozilla::Move(t7));  
+  PLDHashTable t7(&trivialOps, sizeof(PLDHashEntryStub));
+  PLDHashTable t8(mozilla::Move(t7));  
 
-  PLDHashTable2 t9(&trivialOps, sizeof(PLDHashEntryStub));
+  PLDHashTable t9(&trivialOps, sizeof(PLDHashEntryStub));
   PL_DHashTableAdd(&t9, (const void*)88);
-  PLDHashTable2 t10(mozilla::Move(t9));  
+  PLDHashTable t10(mozilla::Move(t9));  
 
   return true;
 }
 
 static bool test_pldhash_Clear()
 {
-  PLDHashTable2 t1(&trivialOps, sizeof(PLDHashEntryStub));
+  PLDHashTable t1(&trivialOps, sizeof(PLDHashEntryStub));
 
   t1.Clear();
   if (t1.EntryCount() != 0) {
@@ -194,8 +194,8 @@ static bool test_pldhash_Clear()
 static bool test_pldhash_grow_to_max_capacity()
 {
   
-  PLDHashTable2* t =
-    new PLDHashTable2(&trivialOps, sizeof(PLDHashEntryStub), 128);
+  PLDHashTable* t =
+    new PLDHashTable(&trivialOps, sizeof(PLDHashEntryStub), 128);
 
   
   if (!t->IsInitialized()) {

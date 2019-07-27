@@ -40,7 +40,7 @@ struct HttpHeapAtom {
     char                 value[1];
 };
 
-static PLDHashTable2       *sAtomTable;
+static PLDHashTable        *sAtomTable;
 static struct HttpHeapAtom *sHeapAtoms = nullptr;
 static Mutex               *sLock = nullptr;
 
@@ -103,8 +103,8 @@ nsHttp::CreateAtomTable()
     
     
     
-    sAtomTable = new PLDHashTable2(&ops, sizeof(PLDHashEntryStub),
-                                   NUM_HTTP_ATOMS + 10);
+    sAtomTable = new PLDHashTable(&ops, sizeof(PLDHashEntryStub),
+                                  NUM_HTTP_ATOMS + 10);
 
     
     const char *const atoms[] = {

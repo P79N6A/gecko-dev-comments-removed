@@ -719,7 +719,7 @@ protected:
     
 
 
-    PLDHashTable2* mBroadcasterMap;
+    PLDHashTable* mBroadcasterMap;
 
     nsAutoPtr<nsInterfaceHashtable<nsURIHashKey,nsIObserver> > mOverlayLoadObservers;
     nsAutoPtr<nsInterfaceHashtable<nsURIHashKey,nsIObserver> > mPendingOverlayLoadNotifications;

@@ -305,7 +305,7 @@ private:
 
     
     static const PLDHashTableOps ops;
-    PLDHashTable2                table;
+    PLDHashTable                 table;
     bool                         initialized;
 
     static const uint32_t kInitialTableLength = 256;
