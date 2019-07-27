@@ -67,8 +67,7 @@ public:
   bool AnyUpdating();
 
   
-  
-  void Remove(double aStart, double aEnd, ErrorResult& aRv);
+  void RangeRemoval(double aStart, double aEnd);
 
   
   void Ended();
