@@ -154,6 +154,12 @@ SelectionManager::ProcessTextSelChangeEvent(AccEvent* aEvent)
     return;
 
   Selection* selection = caretCntr->DOMSelection();
+
+  
+  
+  if (!selection)
+    selection = event->mSel;
+
   mCaretOffset = caretCntr->DOMPointToOffset(selection->GetFocusNode(),
                                              selection->FocusOffset());
   mAccWithCaret = caretCntr;
@@ -179,8 +185,7 @@ SelectionManager::NotifySelectionChanged(nsIDOMDocument* aDOMDocument,
     logging::SelChange(aSelection, document, aReason);
 #endif
 
-  
-  if (document && document->IsContentLoaded()) {
+  if (document) {
     
     
     
