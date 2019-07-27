@@ -135,7 +135,7 @@ struct SurfaceCache
 
 
 
-  static void Insert(gfx::DrawTarget*  aTarget,
+  static void Insert(gfx::SourceSurface*  aSurface,
                      const ImageKey    aImageKey,
                      const SurfaceKey& aSurfaceKey);
 
