@@ -164,7 +164,8 @@ private:
                                 
 
   bool             mInWhitespace;
-  bool             mPreFormatted;
+  bool             mPreFormattedMail; 
+                                      
   bool             mStartedOutput; 
 
   

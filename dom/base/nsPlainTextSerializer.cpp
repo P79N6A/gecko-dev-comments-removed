@@ -88,7 +88,7 @@ nsPlainTextSerializer::nsPlainTextSerializer()
   
   mEmptyLines = 1; 
   mInWhitespace = false;
-  mPreFormatted = false;
+  mPreFormattedMail = false;
   mStartedOutput = false;
 
   mPreformattedBlockBoundary = false;
@@ -513,9 +513,9 @@ nsPlainTextSerializer::DoOpenContainer(nsIAtom* aTag)
 
       if (kNotFound != style.Find("pre-wrap", true, whitespace)) {
 #ifdef DEBUG_preformatted
-        printf("Set mPreFormatted based on style pre-wrap\n");
+        printf("Set mPreFormattedMail based on style pre-wrap\n");
 #endif
-        mPreFormatted = true;
+        mPreFormattedMail = true;
         int32_t widthOffset = style.Find("width:");
         if (widthOffset >= 0) {
           
@@ -541,16 +541,16 @@ nsPlainTextSerializer::DoOpenContainer(nsIAtom* aTag)
       }
       else if (kNotFound != style.Find("pre", true, whitespace)) {
 #ifdef DEBUG_preformatted
-        printf("Set mPreFormatted based on style pre\n");
+        printf("Set mPreFormattedMail based on style pre\n");
 #endif
-        mPreFormatted = true;
+        mPreFormattedMail = true;
         mWrapColumn = 0;
       }
     } 
     else {
       
       mInWhitespace = true;
-      mPreFormatted = false;
+      mPreFormattedMail = false;
     }
 
     return NS_OK;
@@ -1035,7 +1035,7 @@ nsPlainTextSerializer::DoAddText(bool aIsLineBreak, const nsAString& aText)
     
     
     if ((mFlags & nsIDocumentEncoder::OutputPreformatted) ||
-        (mPreFormatted && !mWrapColumn) ||
+        (mPreFormattedMail && !mWrapColumn) ||
         IsInPre()) {
       EnsureVerticalSpace(mEmptyLines+1);
     }
@@ -1556,14 +1556,14 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
   
   
   
-  if ((mPreFormatted && !mWrapColumn) || (IsInPre() && !mPreFormatted)
+  if ((mPreFormattedMail && !mWrapColumn) || (IsInPre() && !mPreFormattedMail)
       || ((mSpanLevel > 0 || mDontWrapAnyQuotes)
           && mEmptyLines >= 0 && str.First() == char16_t('>'))) {
     
 
     
     
-    NS_ASSERTION(mCurrentLine.IsEmpty() || (IsInPre() && !mPreFormatted),
+    NS_ASSERTION(mCurrentLine.IsEmpty() || (IsInPre() && !mPreFormattedMail),
                  "Mixed wrapping data and nonwrapping data on the same line");
     if (!mCurrentLine.IsEmpty()) {
       FlushLine();
@@ -1701,7 +1701,7 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
         }
       }
       
-      if (mInWhitespace && (nextpos == bol) && !mPreFormatted &&
+      if (mInWhitespace && (nextpos == bol) && !mPreFormattedMail &&
           !(mFlags & nsIDocumentEncoder::OutputPreformatted)) {
         
         bol++;
@@ -1720,7 +1720,7 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
       mInWhitespace = true;
       
       offsetIntoBuffer = str.get() + bol;
-      if (mPreFormatted || (mFlags & nsIDocumentEncoder::OutputPreformatted)) {
+      if (mPreFormattedMail || (mFlags & nsIDocumentEncoder::OutputPreformatted)) {
         
         nextpos++;
         AddToLine(offsetIntoBuffer, nextpos-bol);
