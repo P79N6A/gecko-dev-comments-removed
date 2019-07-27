@@ -16,41 +16,6 @@ class HTMLMediaElement;
 class MediaTrack;
 class AudioTrackList;
 class VideoTrackList;
-class AudioTrack;
-class VideoTrack;
-class MediaTrackList;
-
-
-
-
-
-
-class MediaTrackListListener
-{
-public:
-  MediaTrackListListener(MediaTrackList* aMediaTrackList)
-    : mMediaTrackList(aMediaTrackList) {};
-
-  ~MediaTrackListListener()
-  {
-    mMediaTrackList = nullptr;
-  };
-
-  
-  
-  
-  void NotifyMediaTrackCreated(MediaTrack* aTrack);
-
-  
-  
-  
-  void NotifyMediaTrackEnded(const nsAString& aId);
-
-protected:
-  
-  
-  MediaTrackList* mMediaTrackList;
-};
 
 
 
@@ -79,19 +44,6 @@ public:
 
   void RemoveTrack(const nsRefPtr<MediaTrack>& aTrack);
 
-  static already_AddRefed<AudioTrack>
-  CreateAudioTrack(const nsAString& aId,
-                   const nsAString& aKind,
-                   const nsAString& aLabel,
-                   const nsAString& aLanguage,
-                   bool aEnabled);
-
-  static already_AddRefed<VideoTrack>
-  CreateVideoTrack(const nsAString& aId,
-                   const nsAString& aKind,
-                   const nsAString& aLabel,
-                   const nsAString& aLanguage);
-
   virtual void EmptyTracks();
 
   void CreateAndDispatchChangeEvent();
@@ -110,19 +62,9 @@ public:
   IMPL_EVENT_HANDLER(addtrack)
   IMPL_EVENT_HANDLER(removetrack)
 
-  friend class MediaTrackListListener;
-  friend class AudioTrack;
-  friend class VideoTrack;
-
 protected:
   void CreateAndDispatchTrackEventRunner(MediaTrack* aTrack,
                                          const nsAString& aEventName);
-
-  virtual AudioTrackList* AsAudioTrackList() { return nullptr; }
-
-  virtual VideoTrackList* AsVideoTrackList() { return nullptr; }
-
-  HTMLMediaElement* GetMediaElement() { return mMediaElement; }
 
   nsTArray<nsRefPtr<MediaTrack>> mTracks;
   nsRefPtr<HTMLMediaElement> mMediaElement;
