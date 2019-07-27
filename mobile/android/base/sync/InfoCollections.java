@@ -98,6 +98,6 @@ public class InfoCollections {
     }
 
     
-    return (serverLastModified.longValue() > lastModified);
+    return serverLastModified > lastModified;
   }
 }

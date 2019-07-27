@@ -314,7 +314,7 @@ public class SendTabActivity extends LocaleAwareActivity {
       @Override
       protected void onPostExecute(final Boolean success) {
         
-        notifyAndFinish(success.booleanValue());
+        notifyAndFinish(success);
       }
     }.execute();
   }

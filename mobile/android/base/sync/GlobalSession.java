@@ -1014,7 +1014,7 @@ public class GlobalSession implements HttpResponseObserver {
         if (version == null) {
           continue; 
         }
-        engineSettings = new EngineSettings(Utils.generateGuid(), version.intValue());
+        engineSettings = new EngineSettings(Utils.generateGuid(), version);
       } catch (NoSuchStageException e) {
         
         
