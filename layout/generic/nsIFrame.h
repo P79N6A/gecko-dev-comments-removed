@@ -36,6 +36,7 @@
 #include "gfx3DMatrix.h"
 #include "nsLayoutUtils.h"
 #include "nsFrameState.h"
+#include "CaretAssociationHint.h"
 
 #ifdef ACCESSIBILITY
 #include "mozilla/a11y/AccTypes.h"
@@ -1259,7 +1260,7 @@ public:
     
     
     
-    bool associateWithNext;
+    mozilla::CaretAssociationHint associate;
   };
   enum {
     IGNORE_SELECTION_STYLE = 0x01,

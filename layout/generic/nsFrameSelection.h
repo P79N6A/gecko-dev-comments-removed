@@ -14,8 +14,10 @@
 #include "nsISelectionController.h"
 #include "nsITableCellLayout.h"
 #include "nsIDOMElement.h"
-#include "nsRange.h"
+#include "WordMovementType.h"
+#include "CaretAssociationHint.h"
 
+class nsRange;
 class nsTableOuterFrame;
 
 
@@ -50,8 +52,6 @@ struct SelectionDetails
 class nsIPresShell;
 class nsIScrollableFrame;
 
-enum EWordMovementType { eStartWord, eEndWord, eDefaultBehavior };
-
 
 
 
@@ -66,22 +66,7 @@ struct MOZ_STACK_CLASS nsPeekOffsetStruct
                      bool aScrollViewStop,
                      bool aIsKeyboardSelect,
                      bool aVisual,
-                     EWordMovementType aWordMovementType = eDefaultBehavior)
-    : mAmount(aAmount)
-    , mDirection(aDirection)
-    , mStartOffset(aStartOffset)
-    , mDesiredX(aDesiredX)
-    , mWordMovementType(aWordMovementType)
-    , mJumpLines(aJumpLines)
-    , mScrollViewStop(aScrollViewStop)
-    , mIsKeyboardSelect(aIsKeyboardSelect)
-    , mVisual(aVisual)
-    , mResultContent()
-    , mResultFrame(nullptr)
-    , mContentOffset(0)
-    , mAttachForward(false)
-  {
-  }
+                     mozilla::EWordMovementType aWordMovementType = mozilla::eDefaultBehavior);
 
   
   
@@ -117,7 +102,7 @@ struct MOZ_STACK_CLASS nsPeekOffsetStruct
   
   
   
-  EWordMovementType mWordMovementType;
+  mozilla::EWordMovementType mWordMovementType;
 
   
   
@@ -152,7 +137,7 @@ struct MOZ_STACK_CLASS nsPeekOffsetStruct
   
   
   
-  bool mAttachForward;
+  mozilla::CaretAssociationHint mAttach;
 };
 
 struct nsPrevNextBidiLevels
@@ -188,7 +173,8 @@ class nsIScrollableFrame;
 
 class nsFrameSelection MOZ_FINAL {
 public:
-  enum HINT { HINTLEFT = 0, HINTRIGHT = 1};  
+  typedef mozilla::CaretAssociationHint CaretAssociateHint;
+
   
   
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(nsFrameSelection)
@@ -220,7 +206,7 @@ public:
                        uint32_t aContentEndOffset,
                        bool aContinueSelection,
                        bool aMultipleSelection,
-                       bool aHint);
+                       CaretAssociateHint aHint);
 
   
 
@@ -387,10 +373,10 @@ public:
 
 
 
-  virtual nsIFrame* GetFrameForNodeOffset(nsIContent *aNode,
-                                          int32_t     aOffset,
-                                          HINT        aHint,
-                                          int32_t    *aReturnOffset) const;
+  virtual nsIFrame* GetFrameForNodeOffset(nsIContent*        aNode,
+                                          int32_t            aOffset,
+                                          CaretAssociateHint aHint,
+                                          int32_t*           aReturnOffset) const;
 
   
 
@@ -409,8 +395,8 @@ public:
                       bool aExtend,
                       nsIScrollableFrame* aScrollableFrame);
 
-  void SetHint(HINT aHintRight) { mHint = aHintRight; }
-  HINT GetHint() const { return mHint; }
+  void SetHint(CaretAssociateHint aHintRight) { mHint = aHintRight; }
+  CaretAssociateHint GetHint() const { return mHint; }
 
   
 
@@ -597,15 +583,15 @@ public:
   void DisconnectFromPresShell();
   nsresult ClearNormalSelection();
 
-  static HINT GetHintForPosition(nsIContent* aContent, int32_t aOffset);
+  static CaretAssociateHint GetHintForPosition(nsIContent* aContent, int32_t aOffset);
 
 private:
-  ~nsFrameSelection() {}
+  ~nsFrameSelection();
 
   nsresult TakeFocus(nsIContent *aNewFocus,
                      uint32_t aContentOffset,
                      uint32_t aContentEndOffset,
-                     HINT aHint,
+                     CaretAssociateHint aHint,
                      bool aContinueSelection,
                      bool aMultipleSelection);
 
@@ -613,11 +599,11 @@ private:
                          nsIContent *aNode,
                          uint32_t aContentOffset,
                          uint32_t aKeycode,
-                         HINT aHint);
+                         CaretAssociateHint aHint);
   void BidiLevelFromClick(nsIContent *aNewFocus, uint32_t aContentOffset);
   nsPrevNextBidiLevels GetPrevNextBidiLevels(nsIContent *aNode,
                                              uint32_t aContentOffset,
-                                             HINT aHint,
+                                             CaretAssociateHint aHint,
                                              bool aJumpLines) const;
 
   bool AdjustForMaintainedSelection(nsIContent *aContent, int32_t aOffset);
@@ -710,7 +696,7 @@ private:
   int16_t mSelectionChangeReason; 
   int16_t mDisplaySelection; 
 
-  HINT  mHint;   
+  CaretAssociateHint mHint;   
   uint8_t mCaretBidiLevel;
 
   int32_t mDesiredX;

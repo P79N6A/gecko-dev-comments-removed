@@ -40,6 +40,7 @@
 #include "nsWindowMemoryReporter.h"
 #include "WindowNamedPropertiesHandler.h"
 #include "nsFrameSelection.h"
+#include "nsISelectionListener.h"
 
 
 #include "nsJSUtils.h"

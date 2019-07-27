@@ -2,6 +2,7 @@
 
 
 
+
 #include "nsImageFrame.h"
 #include "nsIFormControlFrame.h"
 #include "nsPresContext.h"
@@ -10,6 +11,7 @@
 #include "nsFormControlFrame.h"
 #include "nsLayoutUtils.h"
 #include "mozilla/MouseEvents.h"
+#include "nsIContent.h"
 
 using namespace mozilla;
 
