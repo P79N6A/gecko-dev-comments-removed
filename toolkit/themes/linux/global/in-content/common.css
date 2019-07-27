@@ -4,7 +4,7 @@
 
 %include ../../../shared/in-content/common.inc.css
 
-xul|tab[selected] {
+xul|tab[visuallyselected] {
   
 
   margin-bottom: 0;
