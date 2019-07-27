@@ -44,7 +44,7 @@ function addBreakpoint() {
 }
 
 function pauseDebuggee() {
-  sendMouseClickToTab(gTab, content.document.querySelector("button"));
+  generateMouseClickInTab(gTab, "content.document.querySelector('button')");
 
   
   

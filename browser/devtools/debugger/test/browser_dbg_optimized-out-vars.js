@@ -19,7 +19,7 @@ function test() {
 
     
     
-    sendMouseClickToTab(tab, content.document.querySelector("button"));
+    generateMouseClickInTab(tab, "content.document.querySelector('button')");
 
     yield waitForDebuggerEvents(panel, gDebugger.EVENTS.FETCHED_SCOPES);
     let gVars = gDebugger.DebuggerView.Variables;
