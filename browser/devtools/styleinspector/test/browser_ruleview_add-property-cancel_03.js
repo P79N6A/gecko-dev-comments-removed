@@ -27,7 +27,7 @@ function* testCancelNew(inspector, ruleView) {
   
 
   let elementRuleEditor = getRuleViewRuleEditor(ruleView, 0);
-  let editor = yield focusEditableField(elementRuleEditor.closeBrace);
+  let editor = yield focusEditableField(ruleView, elementRuleEditor.closeBrace);
 
   is(inplaceEditor(elementRuleEditor.newPropSpan), editor,
     "Property editor is focused");
@@ -46,7 +46,7 @@ function* testCancelNewOnEscape(inspector, ruleView) {
   
 
   let elementRuleEditor = getRuleViewRuleEditor(ruleView, 0);
-  let editor = yield focusEditableField(elementRuleEditor.closeBrace);
+  let editor = yield focusEditableField(ruleView, elementRuleEditor.closeBrace);
 
   is(inplaceEditor(elementRuleEditor.newPropSpan), editor, "Next focused editor should be the new property editor.");
 

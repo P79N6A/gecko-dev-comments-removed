@@ -22,9 +22,11 @@ add_task(function*() {
   let change = spectrum.once("changed");
 
   info("Pressing mouse down over color picker.");
+  let onRuleViewChanged = view.once("ruleview-changed");
   EventUtils.synthesizeMouseAtCenter(spectrum.dragger, {
     type: "mousedown",
   }, spectrum.dragger.ownerDocument.defaultView);
+  yield onRuleViewChanged;
 
   let value = yield change;
   info(`Color changed to ${value} on mousedown.`);
@@ -41,6 +43,7 @@ add_task(function*() {
   
 
   info("Moving mouse over color picker without any buttons pressed.");
+
   EventUtils.synthesizeMouse(spectrum.dragger, 10, 10, {
     button: -1, 
     type: "mousemove",

@@ -413,16 +413,31 @@ function* waitForComputedStyleProperty(selector, pseudo, name, expected) {
 
 
 
-let focusEditableField = Task.async(function*(editable, xOffset=1, yOffset=1, options={}) {
-  let onFocus = once(editable.parentNode, "focus", true);
+let focusEditableField = Task.async(function*(ruleView, editable, xOffset=1, yOffset=1, options={}) {
+  
+  let expectRuleViewUpdate =
+    editable.classList.contains("ruleview-propertyname") ||
+    editable.classList.contains("ruleview-propertyvalue");
+  let onRuleViewChanged;
+  if (expectRuleViewUpdate) {
+    onRuleViewChanged = ruleView.once("ruleview-changed");
+  }
 
+  let onFocus = once(editable.parentNode, "focus", true);
   info("Clicking on editable field to turn to edit mode");
   EventUtils.synthesizeMouse(editable, xOffset, yOffset, options,
     editable.ownerDocument.defaultView);
   let event = yield onFocus;
 
   info("Editable field gained focus, returning the input field now");
-  return inplaceEditor(editable.ownerDocument.activeElement);
+  let onEdit = inplaceEditor(editable.ownerDocument.activeElement);
+
+  if (expectRuleViewUpdate) {
+    info("Waiting for rule view update");
+    yield onRuleViewChanged;
+  }
+
+  return onEdit;
 });
 
 
@@ -718,7 +733,9 @@ function getRuleViewSelectorHighlighterIcon(view, selectorText) {
 
 
 
-let simulateColorPickerChange = Task.async(function*(colorPicker, newRgba, expectedChange) {
+
+let simulateColorPickerChange = Task.async(function*(ruleView, colorPicker, newRgba, expectedChange) {
+  let onRuleViewChanged = ruleView.once("ruleview-changed");
   info("Getting the spectrum colorpicker object");
   let spectrum = yield colorPicker.spectrum;
   info("Setting the new color");
@@ -726,6 +743,8 @@ let simulateColorPickerChange = Task.async(function*(colorPicker, newRgba, expec
   info("Applying the change");
   spectrum.updateUI();
   spectrum.onChange();
+  info("Waiting for rule-view to update");
+  yield onRuleViewChanged;
 
   if (expectedChange) {
     info("Waiting for the style to be applied on the page");
@@ -781,7 +800,7 @@ function getRuleViewRuleEditor(view, childrenIndex, nodeIndex) {
 let focusNewRuleViewProperty = Task.async(function*(ruleEditor) {
   info("Clicking on a close ruleEditor brace to start editing a new property");
   ruleEditor.closeBrace.scrollIntoView();
-  let editor = yield focusEditableField(ruleEditor.closeBrace);
+  let editor = yield focusEditableField(ruleEditor.ruleView, ruleEditor.closeBrace);
 
   is(inplaceEditor(ruleEditor.newPropSpan), editor, "Focused editor is the new property editor.");
   is(ruleEditor.rule.textProps.length,  0, "Starting with one new text property.");
