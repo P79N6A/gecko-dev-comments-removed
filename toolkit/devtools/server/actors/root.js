@@ -346,14 +346,14 @@ RootActor.prototype = {
     return { processes: processes };
   },
 
-  onAttachProcess: function (aRequest) {
+  onGetProcess: function (aRequest) {
     if (!DebuggerServer.allowChromeProcess) {
       return { error: "forbidden",
                message: "You are not allowed to debug chrome." };
     }
     if (("id" in aRequest) && typeof(aRequest.id) != "number") {
       return { error: "wrongParameter",
-               message: "attachProcess requires a valid `id` attribute." };
+               message: "getProcess requires a valid `id` attribute." };
     }
     
     
@@ -421,7 +421,7 @@ RootActor.prototype.requestTypes = {
   "getTab": RootActor.prototype.onGetTab,
   "listAddons": RootActor.prototype.onListAddons,
   "listProcesses": RootActor.prototype.onListProcesses,
-  "attachProcess": RootActor.prototype.onAttachProcess,
+  "getProcess": RootActor.prototype.onGetProcess,
   "echo": RootActor.prototype.onEcho,
   "protocolDescription": RootActor.prototype.onProtocolDescription
 };

@@ -14,7 +14,7 @@ function run_test() {
   let client = new DebuggerClient(transport);
   client.connect(() => {
     
-    client.attachProcess().then(response => {
+    client.getProcess().then(response => {
       let actor = response.form.actor;
       client.attachTab(actor, (response, tabClient) => {
         tabClient.attachThread(null, (response, threadClient) => {

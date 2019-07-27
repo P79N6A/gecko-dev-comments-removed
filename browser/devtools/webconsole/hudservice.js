@@ -191,7 +191,7 @@ HUD_SERVICE.prototype =
 
       let client = new DebuggerClient(DebuggerServer.connectPipe());
       client.connect(() => {
-        client.attachProcess().then(aResponse => {
+        client.getProcess().then(aResponse => {
           
           
           deferred.resolve({ form: aResponse.form, client: client, chrome: false });

@@ -231,7 +231,7 @@ let AppManager = exports.AppManager = {
     if (this.selectedProject.type == "mainProcess") {
       
       if (this.connection.client.mainRoot.traits.allowChromeProcess) {
-        return this.connection.client.attachProcess()
+        return this.connection.client.getProcess()
                    .then(aResponse => {
                      return devtools.TargetFactory.forRemoteTab({
                        form: aResponse.form,
