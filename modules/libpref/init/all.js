@@ -179,7 +179,7 @@ pref("dom.url.encode_decode_hash", true);
 
 
 
-#ifdef E10S_TESTING_ONLY
+#ifdef NIGHTLY_BUILD
 pref("dom.compartment_per_addon", true);
 #else
 pref("dom.compartment_per_addon", false);
@@ -771,8 +771,6 @@ pref("toolkit.scrollbox.verticalScrollDistance", 3);
 pref("toolkit.scrollbox.horizontalScrollDistance", 5);
 pref("toolkit.scrollbox.clickToScroll.scrollDelay", 150);
 
-
-
 pref("toolkit.telemetry.server", "https://incoming.telemetry.mozilla.org");
 
 pref("toolkit.telemetry.server_owner", "Mozilla");
@@ -781,8 +779,6 @@ pref("toolkit.telemetry.infoURL", "https://www.mozilla.org/legal/privacy/firefox
 
 
 pref("toolkit.telemetry.debugSlowSql", false);
-
-pref("toolkit.telemetry.unified", true);
 
 
 pref("toolkit.identity.enabled", false);
@@ -796,9 +792,9 @@ pref("devtools.errorconsole.deprecation_warnings", true);
 
 
 #ifdef MOZ_DEV_EDITION
-sticky_pref("devtools.chrome.enabled", true);
+pref("devtools.chrome.enabled", true);
 #else
-sticky_pref("devtools.chrome.enabled", false);
+pref("devtools.chrome.enabled", false);
 #endif
 
 
@@ -806,9 +802,9 @@ pref("devtools.debugger.log", false);
 pref("devtools.debugger.log.verbose", false);
 
 #ifdef MOZ_DEV_EDITION
-sticky_pref("devtools.debugger.remote-enabled", true);
+pref("devtools.debugger.remote-enabled", true);
 #else
-sticky_pref("devtools.debugger.remote-enabled", false);
+pref("devtools.debugger.remote-enabled", false);
 #endif
 pref("devtools.debugger.remote-port", 6000);
 
@@ -2438,7 +2434,7 @@ pref("dom.ipc.plugins.unloadTimeoutSecs", 30);
 
 
 
-#ifdef E10S_TESTING_ONLY
+#ifdef NIGHTLY_BUILD
 pref("dom.ipc.plugins.asyncInit", false);
 #else
 pref("dom.ipc.plugins.asyncInit", true);
@@ -4118,7 +4114,6 @@ pref("browser.history.maxStateObjectSize", 655360);
 pref("xpinstall.whitelist.required", true);
 
 pref("xpinstall.signatures.required", false);
-pref("xpinstall.signatures.infoURL", "https://wiki.mozilla.org/Addons/Extension_Signing");
 pref("extensions.alwaysUnpack", false);
 pref("extensions.minCompatiblePlatformVersion", "2.0");
 
@@ -4718,3 +4713,10 @@ pref("gfx.vsync.refreshdriver", true);
 #ifdef MOZ_SECUREELEMENT
 pref("dom.secureelement.enabled", false);
 #endif
+
+
+
+
+
+
+pref("dom.compositionevent.allow_control_characters", false);

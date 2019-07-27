@@ -222,6 +222,13 @@ private:
   bool mWasNativeCompositionEndEventDiscarded;
 
   
+  
+  
+  
+  
+  bool mAllowControlCharacters;
+
+  
   TextComposition() {}
   TextComposition(const TextComposition& aOther);
 
