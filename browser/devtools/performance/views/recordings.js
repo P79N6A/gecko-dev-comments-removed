@@ -24,6 +24,8 @@ let RecordingsView = Heritage.extend(WidgetMethods, {
 
     PerformanceController.on(EVENTS.RECORDING_STARTED, this._onRecordingStarted);
     PerformanceController.on(EVENTS.RECORDING_STOPPED, this._onRecordingStopped);
+    PerformanceController.on(EVENTS.CONSOLE_RECORDING_STARTED, this._onRecordingStarted);
+    PerformanceController.on(EVENTS.CONSOLE_RECORDING_STOPPED, this._onRecordingStopped);
     PerformanceController.on(EVENTS.RECORDING_IMPORTED, this._onRecordingImported);
     PerformanceController.on(EVENTS.RECORDINGS_CLEARED, this._onRecordingsCleared);
     this.widget.addEventListener("select", this._onSelect, false);
@@ -35,6 +37,8 @@ let RecordingsView = Heritage.extend(WidgetMethods, {
   destroy: function() {
     PerformanceController.off(EVENTS.RECORDING_STARTED, this._onRecordingStarted);
     PerformanceController.off(EVENTS.RECORDING_STOPPED, this._onRecordingStopped);
+    PerformanceController.off(EVENTS.CONSOLE_RECORDING_STARTED, this._onRecordingStarted);
+    PerformanceController.off(EVENTS.CONSOLE_RECORDING_STOPPED, this._onRecordingStopped);
     PerformanceController.off(EVENTS.RECORDING_IMPORTED, this._onRecordingImported);
     PerformanceController.off(EVENTS.RECORDINGS_CLEARED, this._onRecordingsCleared);
     this.widget.removeEventListener("select", this._onSelect, false);
@@ -96,25 +100,17 @@ let RecordingsView = Heritage.extend(WidgetMethods, {
 
   _onRecordingStarted: function (_, recording) {
     
-    let recordingItem;
-
     
     
     
-    let profileLabel = recording.getLabel();
-    if (profileLabel) {
-      recordingItem = this.getItemForAttachment(e => e.getLabel() == profileLabel);
-    }
-    
-    if (!recordingItem) {
-      recordingItem = this.addEmptyRecording(recording);
-    }
+    let recordingItem = this.addEmptyRecording(recording);
 
     
     recordingItem.isRecording = true;
 
     
-    if (!recording.getLabel()) {
+    
+    if (!recording.isConsole() || this.selectedIndex === -1) {
       this.selectedItem = recordingItem;
     }
   },
@@ -126,26 +122,18 @@ let RecordingsView = Heritage.extend(WidgetMethods, {
 
 
   _onRecordingStopped: function (_, recording) {
-    let recordingItem;
-
-    
-    
-    
-    let profileLabel = recording.getLabel();
-    if (profileLabel) {
-      recordingItem = this.getItemForAttachment(e => e.getLabel() == profileLabel);
-    }
-    
-    if (!recordingItem) {
-      recordingItem = this.getItemForPredicate(e => e.isRecording);
-    }
+    let recordingItem = this.getItemForPredicate(e => e.attachment === recording);
 
     
     recordingItem.isRecording = false;
 
     
     this.finalizeRecording(recordingItem);
-    this.forceSelect(recordingItem);
+
+    
+    if (!recording.isConsole()) {
+      this.forceSelect(recordingItem);
+    }
   },
 
   
@@ -195,21 +183,11 @@ let RecordingsView = Heritage.extend(WidgetMethods, {
 
 
   _onSelect: Task.async(function*({ detail: recordingItem }) {
-    
-    
     if (!recordingItem) {
       return;
     }
 
     let model = recordingItem.attachment;
-
-    
-    
-    if (recordingItem.isRecording) {
-      this.emit(EVENTS.RECORDING_SELECTED, model);
-      return;
-    }
-
     this.emit(EVENTS.RECORDING_SELECTED, model);
   }),
 

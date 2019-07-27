@@ -49,6 +49,9 @@ let OverviewView = {
     PerformanceController.on(EVENTS.RECORDING_WILL_STOP, this._onRecordingWillStop);
     PerformanceController.on(EVENTS.RECORDING_STOPPED, this._onRecordingStopped);
     PerformanceController.on(EVENTS.RECORDING_SELECTED, this._onRecordingSelected);
+    PerformanceController.on(EVENTS.CONSOLE_RECORDING_STARTED, this._onRecordingStarted);
+    PerformanceController.on(EVENTS.CONSOLE_RECORDING_STOPPED, this._onRecordingStopped);
+    PerformanceController.on(EVENTS.CONSOLE_RECORDING_WILL_STOP, this._onRecordingWillStop);
   },
 
   
@@ -72,6 +75,9 @@ let OverviewView = {
     PerformanceController.off(EVENTS.RECORDING_WILL_STOP, this._onRecordingWillStop);
     PerformanceController.off(EVENTS.RECORDING_STOPPED, this._onRecordingStopped);
     PerformanceController.off(EVENTS.RECORDING_SELECTED, this._onRecordingSelected);
+    PerformanceController.off(EVENTS.CONSOLE_RECORDING_STARTED, this._onRecordingStarted);
+    PerformanceController.off(EVENTS.CONSOLE_RECORDING_STOPPED, this._onRecordingStopped);
+    PerformanceController.off(EVENTS.CONSOLE_RECORDING_WILL_STOP, this._onRecordingWillStop);
   }),
 
   
@@ -279,7 +285,7 @@ let OverviewView = {
   _prepareNextTick: function () {
     
     
-    if (this._timeoutId) {
+    if (this.isRendering()) {
       this._timeoutId = setTimeout(this._onRecordingTick, OVERVIEW_UPDATE_INTERVAL);
     }
   },
@@ -305,8 +311,11 @@ let OverviewView = {
   
 
 
-  _onRecordingWillStart: Task.async(function* (_, recording) {
-    yield this._checkSelection(recording);
+
+
+  _onRecordingWillStart: Task.async(function* () {
+    this._onRecordingStateChange();
+    yield this._checkSelection();
     this.markersOverview.dropSelection();
   }),
 
@@ -314,21 +323,29 @@ let OverviewView = {
 
 
   _onRecordingStarted: function (_, recording) {
-    this._timeoutId = setTimeout(this._onRecordingTick, OVERVIEW_UPDATE_INTERVAL);
+    this._onRecordingStateChange();
   },
 
   
 
 
   _onRecordingWillStop: function(_, recording) {
-    clearTimeout(this._timeoutId);
-    this._timeoutId = null;
+    this._onRecordingStateChange();
   },
 
   
 
 
   _onRecordingStopped: Task.async(function* (_, recording) {
+    this._onRecordingStateChange();
+    
+    
+    
+    
+    
+    if (recording !== PerformanceController.getCurrentRecording()) {
+      return;
+    }
     this.render(FRAMERATE_GRAPH_HIGH_RES_INTERVAL);
     yield this._checkSelection(recording);
   }),
@@ -340,9 +357,9 @@ let OverviewView = {
     if (!recording) {
       return;
     }
+    this._onRecordingStateChange();
     
-    
-    if (!this._timeoutId) {
+    if (!recording.isRecording()) {
       yield this.render(FRAMERATE_GRAPH_HIGH_RES_INTERVAL);
     }
     yield this._checkSelection(recording);
@@ -353,8 +370,44 @@ let OverviewView = {
 
 
 
+
+  _onRecordingStateChange: function () {
+    let currentRecording = PerformanceController.getCurrentRecording();
+    if (!currentRecording || (this.isRendering() && !currentRecording.isRecording())) {
+      this._stopPolling();
+    } else if (currentRecording.isRecording() && !this.isRendering()) {
+      this._startPolling();
+    }
+  },
+
+  
+
+
+  _startPolling: function () {
+    this._timeoutId = setTimeout(this._onRecordingTick, OVERVIEW_UPDATE_INTERVAL);
+  },
+
+  
+
+
+  _stopPolling: function () {
+    clearTimeout(this._timeoutId);
+    this._timeoutId = null;
+  },
+
+  
+
+
+  isRendering: function () {
+    return !!this._timeoutId;
+  },
+
+  
+
+
+
   _checkSelection: Task.async(function* (recording) {
-    let selectionEnabled = !recording.isRecording();
+    let selectionEnabled = recording ? !recording.isRecording() : false;
 
     if (yield this._markersGraphAvailable()) {
       this.markersOverview.selectionEnabled = selectionEnabled;

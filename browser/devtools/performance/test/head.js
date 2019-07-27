@@ -185,8 +185,6 @@ function initBackend(aUrl, targetOps={}) {
     
     merge(target, targetOps);
 
-    yield gDevTools.showToolbox(target, "performance");
-
     let connection = getPerformanceActorsConnection(target);
     yield connection.open();
 
@@ -217,6 +215,51 @@ function initPerformance(aUrl, selectedTool="performance", targetOps={}) {
   });
 }
 
+
+
+
+
+function initConsole(aUrl) {
+  return Task.spawn(function*() {
+    let { target, toolbox, panel } = yield initPerformance(aUrl, "webconsole");
+    let { hud } = panel;
+    return {
+      target, toolbox, panel, console: {
+        profile: (s) => consoleExecute(hud, "profile", s),
+        profileEnd: (s) => consoleExecute(hud, "profileEnd", s)
+      }
+    };
+  });
+}
+
+function consoleExecute (console, method, val) {
+  let { ui, jsterm } = console;
+  let { promise, resolve } = Promise.defer();
+  let message = `console.${method}("${val}")`;
+
+  ui.on("new-messages", handler);
+  jsterm.execute(message);
+
+  let { console: c } = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
+  function handler (event, messages) {
+    for (let msg of messages) {
+      if (msg.response._message === message) {
+        ui.off("new-messages", handler);
+        resolve();
+        return;
+      }
+    }
+  }
+  return promise;
+}
+
+function waitForProfilerConnection() {
+  let { promise, resolve } = Promise.defer();
+  Services.obs.addObserver(resolve, "performance-actors-connection-opened", false);
+  return promise.then(() =>
+    Services.obs.removeObserver(resolve, "performance-actors-connection-opened"));
+}
+
 function* teardown(panel) {
   info("Destroying the performance tool.");
 
@@ -239,19 +282,27 @@ function consoleMethod (...args) {
   if (!mm) {
     throw new Error("`loadFrameScripts()` must be called before using frame scripts.");
   }
+  
+  
+  
+  
+  
+  if (args[1] == null) {
+    args[1] = "";
+  }
   mm.sendAsyncMessage("devtools:test:console", args);
 }
 
-function* consoleProfile(connection, label) {
-  let notified = connection.once("profile");
+function* consoleProfile(win, label) {
+  let profileStart = once(win.PerformanceController, win.EVENTS.CONSOLE_RECORDING_STARTED);
   consoleMethod("profile", label);
-  yield notified;
+  yield profileStart;
 }
 
-function* consoleProfileEnd(connection) {
-  let notified = connection.once("profileEnd");
-  consoleMethod("profileEnd");
-  yield notified;
+function* consoleProfileEnd(win, label) {
+  let ended = once(win.PerformanceController, win.EVENTS.CONSOLE_RECORDING_STOPPED);
+  consoleMethod("profileEnd", label);
+  yield ended;
 }
 
 function command (button) {
