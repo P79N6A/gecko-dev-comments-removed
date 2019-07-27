@@ -379,15 +379,20 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
     
     collection->mStyleRuleRefreshTime = TimeStamp();
     collection->UpdateCheckGeneration(mPresContext);
+    collection->mNeedsRefreshes = true;
+    TimeStamp now = mPresContext->RefreshDriver()->MostRecentRefresh();
+    collection->EnsureStyleRuleFor(now, EnsureStyleRule_IsNotThrottled);
   }
 
   
-  nsCOMArray<nsIStyleRule> rules;
-  if (startedAny) {
-    rules.AppendObject(coverRule);
+  *aNewStyleContext = afterChangeStyle;
+  if (collection) {
+    
+    
+    
+    
+    collection->PostRestyleForAnimation(mPresContext);
   }
-  *aNewStyleContext = mPresContext->StyleSet()->
-                        ResolveStyleByAddingRules(*aNewStyleContext, rules);
 }
 
 void
@@ -473,8 +478,6 @@ nsTransitionManager::ConsiderStartingTransition(
     
     return;
   }
-
-  nsPresContext *presContext = aNewStyleContext->PresContext();
 
   if (!shouldAnimate) {
     if (haveCurrentTransition) {
@@ -612,7 +615,6 @@ nsTransitionManager::ConsiderStartingTransition(
     }
   }
   aElementTransitions->UpdateAnimationGeneration(mPresContext);
-  aElementTransitions->PostRestyleForAnimation(presContext);
 
   *aStartedAny = true;
   aWhichStarted->AddProperty(aProperty);
