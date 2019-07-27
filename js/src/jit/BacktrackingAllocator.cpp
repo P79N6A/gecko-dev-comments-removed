@@ -1267,7 +1267,7 @@ BacktrackingAllocator::populateSafepoints()
                     break;
 #endif
                   default:
-                    MOZ_CRASH("Bad register type");
+                    MOZ_ASSUME_UNREACHABLE("Bad register type");
                 }
             }
         }
@@ -1506,7 +1506,7 @@ BacktrackingAllocator::computeSpillWeight(const LiveInterval *interval)
 
           default:
             
-            MOZ_CRASH("Bad use");
+            MOZ_ASSUME_UNREACHABLE("Bad use");
         }
     }
 

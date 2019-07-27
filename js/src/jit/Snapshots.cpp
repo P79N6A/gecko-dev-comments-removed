@@ -251,7 +251,7 @@ RValueAllocation::layoutFromMode(Mode mode)
       }
     }
 
-    MOZ_CRASH("Wrong mode type?");
+    MOZ_ASSUME_UNREACHABLE("Wrong mode type?");
 }
 
 
@@ -401,7 +401,7 @@ ValTypeToString(JSValueType type)
       case JSVAL_TYPE_MAGIC:
         return "magic";
       default:
-        MOZ_CRASH("no payload");
+        MOZ_ASSUME_UNREACHABLE("no payload");
     }
 }
 
