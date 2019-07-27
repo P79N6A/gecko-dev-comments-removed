@@ -467,7 +467,7 @@ MediaStreamGraphImpl::WillUnderrun(MediaStream* aStream, GraphTime aTime,
   
   
   
-  if (bufferEnd <= aEndBlockingDecisions && aStream->mBlocked.GetBefore(aTime)) {
+  if (bufferEnd < aEndBlockingDecisions && aStream->mBlocked.GetBefore(aTime)) {
     STREAM_LOG(PR_LOG_DEBUG+1, ("MediaStream %p will block due to speculative data underrun, "
                                 "bufferEnd %f (end at %ld)",
                                 aStream, MediaTimeToSeconds(bufferEnd), bufferEnd));
