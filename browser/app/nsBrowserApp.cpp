@@ -37,6 +37,11 @@
 
 #ifdef XP_WIN
 
+#ifdef MOZ_ASAN
+
+
+#define XRE_DONT_SUPPORT_XPSP2
+#endif
 #include "nsWindowsWMain.cpp"
 #define snprintf _snprintf
 #define strcasecmp _stricmp
