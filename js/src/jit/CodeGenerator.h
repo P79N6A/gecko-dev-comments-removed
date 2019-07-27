@@ -472,6 +472,22 @@ class CodeGenerator : public CodeGeneratorSpecific
 #if defined(JS_ION_PERF)
     PerfSpewer perfSpewer_;
 #endif
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    uint32_t simdRefreshTemplatesDuringLink_;
+
+    void registerSimdTemplate(InlineTypedObject *templateObject);
+    void captureSimdTemplate(JSContext *cx);
 };
 
 } 

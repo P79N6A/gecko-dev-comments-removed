@@ -65,6 +65,9 @@ class OptimizationInfo
     bool inlineNative_;
 
     
+    bool eagerSimdUnbox_;
+
+    
     bool gvn_;
 
     
@@ -141,6 +144,10 @@ class OptimizationInfo
     }
 
     uint32_t compilerWarmUpThreshold(JSScript *script, jsbytecode *pc = nullptr) const;
+
+    bool eagerSimdUnboxEnabled() const {
+        return eagerSimdUnbox_ && !js_JitOptions.disableEagerSimdUnbox;
+    }
 
     bool gvnEnabled() const {
         return gvn_ && !js_JitOptions.disableGvn;

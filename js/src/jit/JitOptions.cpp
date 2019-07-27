@@ -82,6 +82,9 @@ JitOptions::JitOptions()
     SET_DEFAULT(disableScalarReplacement, false);
 
     
+    SET_DEFAULT(disableEagerSimdUnbox, false);
+
+    
     SET_DEFAULT(disableGvn, false);
 
     

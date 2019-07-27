@@ -728,6 +728,12 @@ ValueNumberer::visitDefinition(MDefinition *def)
 
     
     
+    
+    if (def->isRecoveredOnBailout())
+        return true;
+
+    
+    
     MInstruction *dep = def->dependency();
     if (dep != nullptr && (dep->isDiscarded() || dep->block()->isDead())) {
         JitSpew(JitSpew_GVN, "      AliasAnalysis invalidated");

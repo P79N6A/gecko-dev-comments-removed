@@ -448,6 +448,24 @@ class JitCompartment
             tpl.set(TypedObject::createZeroed(cx, descr, 0, gc::TenuredHeap));
         return tpl.get();
     }
+
+    JSObject *maybeGetSimdTemplateObjectFor(SimdTypeDescr::Type type) const {
+        const ReadBarrieredObject &tpl = simdTemplateObjects_[type];
+
+        
+        
+        
+        return tpl.unbarrieredGet();
+    }
+
+    
+    
+    void registerSimdTemplateObjectFor(SimdTypeDescr::Type type) {
+        ReadBarrieredObject &tpl = simdTemplateObjects_[type];
+        MOZ_ASSERT(tpl.unbarrieredGet());
+        tpl.get();
+    }
+
     JitCode *getStubCode(uint32_t key) {
         ICStubCodeMap::AddPtr p = stubCodes_->lookupForAdd(key);
         if (p)
