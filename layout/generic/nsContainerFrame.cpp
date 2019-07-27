@@ -142,12 +142,11 @@ nsContainerFrame::RemoveFrame(ChildListID aListID,
   nsIPresShell* shell = PresContext()->PresShell();
   nsContainerFrame* lastParent = nullptr;
   while (aOldFrame) {
-    
-    
-    
-    
     nsIFrame* oldFrameNextContinuation = aOldFrame->GetNextContinuation();
     nsContainerFrame* parent = aOldFrame->GetParent();
+    
+    
+    
     parent->StealFrame(aOldFrame, true);
     aOldFrame->Destroy();
     aOldFrame = oldFrameNextContinuation;

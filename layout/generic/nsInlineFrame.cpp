@@ -204,6 +204,45 @@ nsInlineFrame::DestroyFrom(nsIFrame* aDestructRoot)
   nsContainerFrame::DestroyFrom(aDestructRoot);
 }
 
+nsresult
+nsInlineFrame::StealFrame(nsIFrame* aChild,
+                          bool      aForceNormal)
+{
+  if (aChild->HasAnyStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER) &&
+      !aForceNormal) {
+    return nsContainerFrame::StealFrame(aChild, aForceNormal);
+  }
+
+  nsInlineFrame* parent = this;
+  bool removed = false;
+  do {
+    removed = parent->mFrames.StartRemoveFrame(aChild);
+    if (removed) {
+      break;
+    }
+
+    
+    
+    nsFrameList* frameList = parent->GetOverflowFrames();
+    if (frameList) {
+      removed = frameList->ContinueRemoveFrame(aChild);
+      if (frameList->IsEmpty()) {
+        parent->DestroyOverflowList();
+      }
+      if (removed) {
+        break;
+      }
+    }
+
+    
+    
+    parent = static_cast<nsInlineFrame*>(parent->GetNextInFlow());
+  } while (parent);
+
+  MOZ_ASSERT(removed, "nsInlineFrame::StealFrame: can't find aChild");
+  return removed ? NS_OK : NS_ERROR_UNEXPECTED;
+}
+
 void
 nsInlineFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
