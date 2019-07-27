@@ -434,7 +434,11 @@ public:
 
 
 
-  bool IsInRootChromeDocument() { return mIsInRootChromeDocument; }
+
+
+  bool IsInRootChromeDocumentOrPopup() {
+    return (mIsInChromePresContext || mIsBuildingForPopup) && !IsInSubdocument();
+  }
 
   
 
@@ -911,7 +915,7 @@ private:
   
   
   bool                           mInTransform;
-  bool                           mIsInRootChromeDocument;
+  bool                           mIsInChromePresContext;
   bool                           mSyncDecodeImages;
   bool                           mIsPaintingToWindow;
   bool                           mIsCompositingCheap;
@@ -923,6 +927,7 @@ private:
   
   bool                           mHaveScrollableDisplayPort;
   bool                           mWindowDraggingAllowed;
+  bool                           mIsBuildingForPopup;
 };
 
 class nsDisplayItem;
