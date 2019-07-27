@@ -3093,16 +3093,16 @@ nsHTMLEditRules::WillMakeList(Selection* aSelection,
   NS_ENSURE_STATE(mHTMLEditor);
   nsAutoSelectionReset selectionResetter(aSelection, mHTMLEditor);
 
-  nsCOMArray<nsIDOMNode> arrayOfNodes;
-  res = GetListActionNodes(arrayOfNodes, aEntireList);
+  nsCOMArray<nsIDOMNode> arrayOfDOMNodes;
+  res = GetListActionNodes(arrayOfDOMNodes, aEntireList);
   NS_ENSURE_SUCCESS(res, res);
 
-  int32_t listCount = arrayOfNodes.Count();
+  int32_t listCount = arrayOfDOMNodes.Count();
 
   
   bool bOnlyBreaks = true;
   for (int32_t j = 0; j < listCount; j++) {
-    nsIDOMNode* curNode = arrayOfNodes[j];
+    nsIDOMNode* curNode = arrayOfDOMNodes[j];
     
     if (!nsTextEditUtils::IsBreak(curNode) && !IsEmptyInline(curNode)) {
       bOnlyBreaks = false;
@@ -3117,7 +3117,7 @@ nsHTMLEditRules::WillMakeList(Selection* aSelection,
     if (bOnlyBreaks) {
       for (int32_t j = 0; j < (int32_t)listCount; j++) {
         NS_ENSURE_STATE(mHTMLEditor);
-        res = mHTMLEditor->DeleteNode(arrayOfNodes[j]);
+        res = mHTMLEditor->DeleteNode(arrayOfDOMNodes[j]);
         NS_ENSURE_SUCCESS(res, res);
       }
     }
@@ -3159,21 +3159,26 @@ nsHTMLEditRules::WillMakeList(Selection* aSelection,
   
   
 
-  res = LookInsideDivBQandList(arrayOfNodes);
-  NS_ENSURE_SUCCESS(res, res);
+  nsTArray<nsCOMPtr<nsINode>> arrayOfNodes;
+  for (int32_t i = 0; i < arrayOfDOMNodes.Count(); i++) {
+    nsCOMPtr<nsINode> node = do_QueryInterface(arrayOfDOMNodes[i]);
+    NS_ENSURE_STATE(node);
+    arrayOfNodes.AppendElement(node);
+  }
+  LookInsideDivBQandList(arrayOfNodes);
 
   
   
 
-  listCount = arrayOfNodes.Count();
+  listCount = arrayOfNodes.Length();
   nsCOMPtr<nsINode> curParent;
   nsCOMPtr<Element> curList, prevListItem;
 
   for (int32_t i = 0; i < listCount; i++) {
     
     nsCOMPtr<nsIDOMNode> newBlock;
-    nsCOMPtr<nsIContent> curNode = do_QueryInterface(arrayOfNodes[i]);
-    NS_ENSURE_STATE(curNode);
+    NS_ENSURE_STATE(arrayOfNodes[i]->IsContent());
+    nsCOMPtr<nsIContent> curNode = arrayOfNodes[i]->AsContent();
     int32_t offset;
     curParent = nsEditor::GetNodeLocation(curNode, &offset);
 
@@ -3293,12 +3298,11 @@ nsHTMLEditRules::WillMakeList(Selection* aSelection,
     if (curNode->IsHTMLElement(nsGkAtoms::div)) {
       prevListItem = nullptr;
       int32_t j = i + 1;
-      res = GetInnerContent(curNode->AsDOMNode(), arrayOfNodes, &j);
-      NS_ENSURE_SUCCESS(res, res);
+      GetInnerContent(*curNode, arrayOfNodes, &j);
       NS_ENSURE_STATE(mHTMLEditor);
       res = mHTMLEditor->RemoveContainer(curNode);
       NS_ENSURE_SUCCESS(res, res);
-      listCount = arrayOfNodes.Count();
+      listCount = arrayOfNodes.Length();
       continue;
     }
 
@@ -6118,67 +6122,68 @@ nsHTMLEditRules::GetListActionNodes(nsCOMArray<nsIDOMNode> &outArrayOfNodes,
 
   
   
-  res = LookInsideDivBQandList(outArrayOfNodes);
-  return res;
+  nsTArray<nsCOMPtr<nsINode>> arrayOfNodes;
+  for (int32_t i = 0; i < outArrayOfNodes.Count(); i++) {
+    nsCOMPtr<nsINode> node = do_QueryInterface(outArrayOfNodes[i]);
+    NS_ENSURE_STATE(node);
+    arrayOfNodes.AppendElement(node);
+  }
+  LookInsideDivBQandList(arrayOfNodes);
+  outArrayOfNodes.Clear();
+  for (auto& node : arrayOfNodes) {
+    outArrayOfNodes.AppendObject(GetAsDOMNode(node));
+  }
+  return NS_OK;
 }
 
 
-
-
-
-nsresult 
-nsHTMLEditRules::LookInsideDivBQandList(nsCOMArray<nsIDOMNode>& aNodeArray)
+void
+nsHTMLEditRules::LookInsideDivBQandList(nsTArray<nsCOMPtr<nsINode>>& aNodeArray)
 {
+  NS_ENSURE_TRUE(mHTMLEditor, );
+  nsCOMPtr<nsIEditor> kungFuDeathGrip(mHTMLEditor);
+
   
   
-  int32_t listCount = aNodeArray.Count();
+  int32_t listCount = aNodeArray.Length();
   if (listCount != 1) {
-    return NS_OK;
+    return;
   }
 
-  nsCOMPtr<nsINode> curNode = do_QueryInterface(aNodeArray[0]);
-  NS_ENSURE_STATE(curNode);
+  nsCOMPtr<nsINode> curNode = aNodeArray[0];
 
-  while (curNode->IsElement() &&
-         (curNode->IsHTMLElement(nsGkAtoms::div) ||
-          nsHTMLEditUtils::IsList(curNode) ||
-          curNode->IsHTMLElement(nsGkAtoms::blockquote))) {
+  while (curNode->IsHTMLElement(nsGkAtoms::div) ||
+         nsHTMLEditUtils::IsList(curNode) ||
+         curNode->IsHTMLElement(nsGkAtoms::blockquote)) {
     
-    NS_ENSURE_STATE(mHTMLEditor);
     uint32_t numChildren = mHTMLEditor->CountEditableChildren(curNode);
     if (numChildren != 1) {
       break;
     }
 
     
-    
-    nsIContent* tmp = curNode->GetFirstChild();
-    if (!tmp->IsElement()) {
-      break;
-    }
-
-    dom::Element* element = tmp->AsElement();
-    if (!element->IsHTMLElement(nsGkAtoms::div) &&
-        !nsHTMLEditUtils::IsList(element) &&
-        !element->IsHTMLElement(nsGkAtoms::blockquote)) {
+    nsCOMPtr<nsIContent> child = curNode->GetFirstChild();
+    if (!child->IsHTMLElement(nsGkAtoms::div) &&
+        !nsHTMLEditUtils::IsList(child) &&
+        !child->IsHTMLElement(nsGkAtoms::blockquote)) {
       break;
     }
 
     
-    curNode = tmp;
+    curNode = child;
   }
 
   
   
-  aNodeArray.RemoveObjectAt(0);
+  aNodeArray.RemoveElementAt(0);
   if (curNode->IsAnyOfHTMLElements(nsGkAtoms::div,
                                    nsGkAtoms::blockquote)) {
     int32_t j = 0;
-    return GetInnerContent(curNode->AsDOMNode(), aNodeArray, &j, false, false);
+    GetInnerContent(*curNode, aNodeArray, &j, Lists::no, Tables::no);
+    return;
   }
 
-  aNodeArray.AppendObject(curNode->AsDOMNode());
-  return NS_OK;
+  aNodeArray.AppendElement(curNode);
 }
 
 
