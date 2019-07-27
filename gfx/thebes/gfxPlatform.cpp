@@ -2184,6 +2184,10 @@ InitLayersAccelerationPrefs()
             sLayersSupportsD3D11 = true;
           }
         }
+        if (!gfxPrefs::LayersD3D11DisableWARP()) {
+          
+          sLayersSupportsD3D11 = true;
+        }
       }
     }
 #endif
