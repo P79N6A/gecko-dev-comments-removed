@@ -831,7 +831,7 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
             
             
             
-            player->GetEffect()->SetIsFinishedTransition();
+            player->GetEffect()->SetIsFinishedTransition(true);
             collection->UpdateAnimationGeneration(mPresContext);
             transitionStartedOrEnded = true;
           } else if ((computedTiming.mPhase ==

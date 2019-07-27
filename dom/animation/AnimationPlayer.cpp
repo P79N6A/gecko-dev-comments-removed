@@ -697,6 +697,9 @@ AnimationPlayer::UpdateFinishedState(bool aSeekFlag)
   } else if (!currentFinishedState && mIsPreviousStateFinished) {
     
     mFinished = nullptr;
+    if (mEffect->AsTransition()) {
+      mEffect->SetIsFinishedTransition(false);
+    }
   }
   mIsPreviousStateFinished = currentFinishedState;
   
