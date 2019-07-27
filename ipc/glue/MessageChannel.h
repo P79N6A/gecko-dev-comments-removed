@@ -226,14 +226,9 @@ class MessageChannel : HasResultCodes
     
     bool SendAndWait(Message* aMsg, Message* aReply);
 
-    bool RPCCall(Message* aMsg, Message* aReply);
-    bool InterruptCall(Message* aMsg, Message* aReply);
-    bool UrgentCall(Message* aMsg, Message* aReply);
-
     bool InterruptEventOccurred();
 
-    bool ProcessPendingUrgentRequest();
-    bool ProcessPendingRPCCall();
+    bool ProcessPendingRequest(Message aUrgent);
 
     void MaybeUndeferIncall();
     void EnqueuePendingMessages();
@@ -327,15 +322,11 @@ class MessageChannel : HasResultCodes
     
     bool AwaitingSyncReply() const {
         mMonitor->AssertCurrentThreadOwns();
-        return mPendingSyncReplies > 0;
+        return mAwaitingSyncReply;
     }
-    bool AwaitingUrgentReply() const {
+    int AwaitingSyncReplyPriority() const {
         mMonitor->AssertCurrentThreadOwns();
-        return mPendingUrgentReplies > 0;
-    }
-    bool AwaitingRPCReply() const {
-        mMonitor->AssertCurrentThreadOwns();
-        return mPendingRPCReplies > 0;
+        return mAwaitingSyncReplyPriority;
     }
     bool AwaitingInterruptReply() const {
         mMonitor->AssertCurrentThreadOwns();
@@ -344,12 +335,13 @@ class MessageChannel : HasResultCodes
 
     
     bool DispatchingSyncMessage() const {
+        AssertWorkerThread();
         return mDispatchingSyncMessage;
     }
 
-    
-    bool DispatchingUrgentMessage() const {
-        return mDispatchingUrgentMessageCount > 0;
+    int DispatchingSyncMessagePriority() const {
+        AssertWorkerThread();
+        return mDispatchingSyncMessagePriority;
     }
 
     bool Connected() const;
@@ -367,6 +359,7 @@ class MessageChannel : HasResultCodes
     
     void SynchronouslyClose();
 
+    bool ShouldDeferMessage(const Message& aMsg);
     void OnMessageReceivedFromLink(const Message& aMsg);
     void OnChannelErrorFromLink();
 
@@ -460,33 +453,34 @@ class MessageChannel : HasResultCodes
 
     static bool sIsPumpingMessages;
 
-    class AutoEnterPendingReply {
+    template<class T>
+    class AutoSetValue {
       public:
-        explicit AutoEnterPendingReply(size_t &replyVar)
-          : mReplyVar(replyVar)
+        explicit AutoSetValue(T &var, const T &newValue)
+          : mVar(var), mPrev(var)
         {
-            mReplyVar++;
+            mVar = newValue;
         }
-        ~AutoEnterPendingReply() {
-            mReplyVar--;
+        ~AutoSetValue() {
+            mVar = mPrev;
         }
       private:
-        size_t& mReplyVar;
+        T& mVar;
+        T mPrev;
     };
 
     
+    bool mAwaitingSyncReply;
+    int mAwaitingSyncReplyPriority;
+
     
-    size_t mPendingSyncReplies;
+    
+    bool mDispatchingSyncMessage;
+    int mDispatchingSyncMessagePriority;
 
     
     
     
-    size_t mPendingUrgentReplies;
-    size_t mPendingRPCReplies;
-
-    
-    
-    
     
     
     
@@ -503,35 +497,35 @@ class MessageChannel : HasResultCodes
     
 
     
-    int32_t mCurrentRPCTransaction;
+    int32_t mCurrentTransaction;
 
-    class AutoEnterRPCTransaction
+    class AutoEnterTransaction
     {
       public:
-       explicit AutoEnterRPCTransaction(MessageChannel *aChan)
+       explicit AutoEnterTransaction(MessageChannel *aChan)
         : mChan(aChan),
-          mOldTransaction(mChan->mCurrentRPCTransaction)
+          mOldTransaction(mChan->mCurrentTransaction)
        {
            mChan->mMonitor->AssertCurrentThreadOwns();
-           if (mChan->mCurrentRPCTransaction == 0)
-               mChan->mCurrentRPCTransaction = mChan->NextSeqno();
+           if (mChan->mCurrentTransaction == 0)
+               mChan->mCurrentTransaction = mChan->NextSeqno();
        }
-       AutoEnterRPCTransaction(MessageChannel *aChan, Message *message)
+       explicit AutoEnterTransaction(MessageChannel *aChan, Message *message)
         : mChan(aChan),
-          mOldTransaction(mChan->mCurrentRPCTransaction)
+          mOldTransaction(mChan->mCurrentTransaction)
        {
            mChan->mMonitor->AssertCurrentThreadOwns();
 
-           if (!message->is_rpc() && !message->is_urgent())
+           if (!message->is_sync())
                return;
 
-           MOZ_ASSERT_IF(mChan->mSide == ParentSide,
-                         !mOldTransaction || mOldTransaction == message->transaction_id());
-           mChan->mCurrentRPCTransaction = message->transaction_id();
+           MOZ_ASSERT_IF(mChan->mSide == ParentSide && mOldTransaction != message->transaction_id(),
+                         !mOldTransaction || message->priority() > mChan->AwaitingSyncReplyPriority());
+           mChan->mCurrentTransaction = message->transaction_id();
        }
-       ~AutoEnterRPCTransaction() {
+       ~AutoEnterTransaction() {
            mChan->mMonitor->AssertCurrentThreadOwns();
-           mChan->mCurrentRPCTransaction = mOldTransaction;
+           mChan->mCurrentTransaction = mOldTransaction;
        }
 
       private:
@@ -542,12 +536,6 @@ class MessageChannel : HasResultCodes
     
     
     nsAutoPtr<Message> mRecvd;
-
-    
-    bool mDispatchingSyncMessage;
-
-    
-    size_t mDispatchingUrgentMessageCount;
 
     
     
@@ -586,18 +574,6 @@ class MessageChannel : HasResultCodes
     
     
     MessageQueue mPending;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    nsAutoPtr<Message> mPendingUrgentRequest;
-    nsAutoPtr<Message> mPendingRPCCall;
 
     
     
@@ -676,7 +652,7 @@ class MessageChannel : HasResultCodes
 };
 
 bool
-ProcessingUrgentMessages();
+ParentProcessIsBlocked();
 
 } 
 } 
