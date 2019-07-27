@@ -58,8 +58,8 @@ namespace {
 
 
 
-base::LazyInstance<base::ThreadLocalBoolean> lazy_tls_bool(
-    base::LINKER_INITIALIZED);
+base::LazyInstance<base::ThreadLocalBoolean> lazy_tls_bool =
+    LAZY_INSTANCE_INITIALIZER;
 
 }  
 

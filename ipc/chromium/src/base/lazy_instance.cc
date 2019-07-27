@@ -10,25 +10,46 @@
 #include "base/platform_thread.h"
 
 namespace base {
+namespace internal {
 
-void LazyInstanceHelper::EnsureInstance(void* instance,
-                                        void (*ctor)(void*),
-                                        void (*dtor)(void*)) {
+
+
+bool NeedsLazyInstance(subtle::AtomicWord* state) {
   
   
-  if (base::subtle::Acquire_CompareAndSwap(
-          &state_, STATE_EMPTY, STATE_CREATING) == STATE_EMPTY) {
+  
+  
+  
+  if (subtle::NoBarrier_CompareAndSwap(state, 0,
+                                       kLazyInstanceStateCreating) == 0)
     
-    ctor(instance);
-    
-    base::subtle::Release_Store(&state_, STATE_CREATED);
-    
-    base::AtExitManager::RegisterCallback(dtor, instance);
-  } else {
-    
-    while (base::subtle::NoBarrier_Load(&state_) != STATE_CREATED)
-      PlatformThread::YieldCurrentThread();
+    return true;
+
+  
+  
+  
+  
+  
+  while (subtle::Acquire_Load(state) == kLazyInstanceStateCreating) {
+    PlatformThread::YieldCurrentThread();
   }
+  
+  return false;
 }
 
+void CompleteLazyInstance(subtle::AtomicWord* state,
+                          subtle::AtomicWord new_instance,
+                          void* lazy_instance,
+                          void (*dtor)(void*)) {
+  
+  
+  
+  subtle::Release_Store(state, new_instance);
+
+  
+  if (dtor)
+    AtExitManager::RegisterCallback(dtor, lazy_instance);
+}
+
+}  
 }  

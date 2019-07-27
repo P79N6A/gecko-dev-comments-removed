@@ -35,76 +35,161 @@
 #ifndef BASE_LAZY_INSTANCE_H_
 #define BASE_LAZY_INSTANCE_H_
 
+#include <new>  
+
 #include "base/atomicops.h"
 #include "base/basictypes.h"
+#include "base/logging.h"
+
+#include "mozilla/Alignment.h"
+
+
+
+
+
+#define LAZY_INSTANCE_INITIALIZER {0}
 
 namespace base {
 
 template <typename Type>
 struct DefaultLazyInstanceTraits {
-  static void New(void* instance) {
+  static const bool kRegisterOnExit = true;
+
+  static Type* New(void* instance) {
+    DCHECK_EQ(reinterpret_cast<uintptr_t>(instance) & (MOZ_ALIGNOF(Type) - 1), 0u)
+        << ": Bad boy, the buffer passed to placement new is not aligned!\n"
+        "This may break some stuff like SSE-based optimizations assuming the "
+        "<Type> objects are word aligned.";
     
     
-    new (instance) Type();
+    return new (instance) Type();
   }
-  static void Delete(void* instance) {
+  static void Delete(Type* instance) {
     
-    reinterpret_cast<Type*>(instance)->~Type();
+    instance->~Type();
   }
 };
 
 
 
-class LazyInstanceHelper {
- protected:
-  enum {
-    STATE_EMPTY    = 0,
-    STATE_CREATING = 1,
-    STATE_CREATED  = 2
-  };
+namespace internal {
 
-  explicit LazyInstanceHelper(LinkerInitialized x) {  }
-  
-  
 
-  
-  
-  
-  void EnsureInstance(void* instance, void (*ctor)(void*), void (*dtor)(void*));
 
-  base::subtle::Atomic32 state_;
 
- private:
-  DISALLOW_COPY_AND_ASSIGN(LazyInstanceHelper);
+
+
+
+
+
+template <typename Type>
+struct LeakyLazyInstanceTraits {
+  static const bool kRegisterOnExit = false;
+
+  static Type* New(void* instance) {
+    return DefaultLazyInstanceTraits<Type>::New(instance);
+  }
+  static void Delete(Type* instance) {
+  }
 };
+
+
+
+static const subtle::AtomicWord kLazyInstanceStateCreating = 1;
+
+
+
+
+bool NeedsLazyInstance(subtle::AtomicWord* state);
+
+
+
+void CompleteLazyInstance(subtle::AtomicWord* state,
+                                      subtle::AtomicWord new_instance,
+                                      void* lazy_instance,
+                                      void (*dtor)(void*));
+
+}  
 
 template <typename Type, typename Traits = DefaultLazyInstanceTraits<Type> >
-class LazyInstance : public LazyInstanceHelper {
+class LazyInstance {
  public:
-  explicit LazyInstance(LinkerInitialized x) : LazyInstanceHelper(x) { }
   
   
+  
+  
+  
+  
+
+  
+  
+  typedef LazyInstance<Type, internal::LeakyLazyInstanceTraits<Type> > Leaky;
 
   Type& Get() {
     return *Pointer();
   }
 
   Type* Pointer() {
-    Type* instance = reinterpret_cast<Type*>(&buf_);
+    
+    
+    static const subtle::AtomicWord kLazyInstanceCreatedMask =
+        ~internal::kLazyInstanceStateCreating;
 
     
-    if (base::subtle::NoBarrier_Load(&state_) != STATE_CREATED)
-      EnsureInstance(instance, Traits::New, Traits::Delete);
+    
+    
+    
+    
+    
+    
+    subtle::AtomicWord value = subtle::Acquire_Load(&private_instance_);
+    if (!(value & kLazyInstanceCreatedMask) &&
+        internal::NeedsLazyInstance(&private_instance_)) {
+      
+      value = reinterpret_cast<subtle::AtomicWord>(
+          Traits::New(private_buf_.addr()));
+      internal::CompleteLazyInstance(&private_instance_, value, this,
+                                     Traits::kRegisterOnExit ? OnExit : NULL);
+    }
 
-    return instance;
+    return instance();
   }
 
- private:
-  int8_t buf_[sizeof(Type)];  
+  bool operator==(Type* p) {
+    switch (subtle::NoBarrier_Load(&private_instance_)) {
+      case 0:
+        return p == NULL;
+      case internal::kLazyInstanceStateCreating:
+        return static_cast<void*>(p) == private_buf_.addr();
+      default:
+        return p == instance();
+    }
+  }
 
-  DISALLOW_COPY_AND_ASSIGN(LazyInstance);
+  
+  
+  
+
+  subtle::AtomicWord private_instance_;
+  
+  mozilla::AlignedStorage2<Type> private_buf_;
+
+ private:
+  Type* instance() {
+    return reinterpret_cast<Type*>(subtle::NoBarrier_Load(&private_instance_));
+  }
+
+  
+  
+  
+  static void OnExit(void* lazy_instance) {
+    LazyInstance<Type, Traits>* me =
+        reinterpret_cast<LazyInstance<Type, Traits>*>(lazy_instance);
+    Traits::Delete(me->instance());
+    subtle::NoBarrier_Store(&me->private_instance_, 0);
+  }
 };
 
 }  
 
-#endif
+#endif  
