@@ -3039,3 +3039,95 @@ nsRange::Constructor(const GlobalObject& aGlobal,
 
   return window->GetDoc()->CreateRange(aRv);
 }
+
+void
+nsRange::ExcludeNonSelectableNodes(nsTArray<nsRefPtr<nsRange>>* aOutRanges)
+{
+  MOZ_ASSERT(mIsPositioned);
+  MOZ_ASSERT(mEndParent);
+  MOZ_ASSERT(mStartParent);
+
+  nsRange* range = this;
+  nsRefPtr<nsRange> newRange;
+  while (range) {
+    nsCOMPtr<nsIContentIterator> iter = NS_NewPreContentIterator();
+    nsresult rv = iter->Init(range);
+    if (NS_FAILED(rv)) {
+      return;
+    }
+
+    bool added = false;
+    bool seenSelectable = false;
+    nsIContent* firstNonSelectableContent = nullptr;
+    while (true) {
+      ErrorResult err;
+      nsINode* node = iter->GetCurrentNode();
+      iter->Next();
+      bool selectable = true;
+      nsIContent* content =
+        node && node->IsContent() ? node->AsContent() : nullptr;
+      if (content) {
+        nsIFrame* frame = content->GetPrimaryFrame();
+        for (nsIContent* p = content; !frame && (p = p->GetParent()); ) {
+          frame = p->GetPrimaryFrame();
+        }
+        if (frame) {
+          frame->IsSelectable(&selectable, nullptr);
+        }
+      }
+
+      if (!selectable) {
+        if (!firstNonSelectableContent) {
+          firstNonSelectableContent = content;
+        }
+        if (iter->IsDone() && seenSelectable) {
+          
+          
+          range->SetEndBefore(*firstNonSelectableContent, err);
+        }
+      } else if (firstNonSelectableContent) {
+        if (range == this && !seenSelectable) {
+          
+          
+          range->SetStartBefore(*node, err);
+          if (err.Failed()) {
+            return;
+          }
+          break; 
+        } else {
+          
+          nsINode* endParent = range->mEndParent;
+          int32_t endOffset = range->mEndOffset;
+
+          
+          range->SetEndBefore(*firstNonSelectableContent, err);
+
+          
+          
+          
+          if (!added && !err.Failed()) {
+            aOutRanges->AppendElement(range);
+          }
+
+          
+          rv = CreateRange(node, 0, endParent, endOffset,
+                           getter_AddRefs(newRange));
+          if (NS_FAILED(rv) || newRange->Collapsed()) {
+            newRange = nullptr;
+          }
+          range = newRange;
+          break; 
+        }
+      } else {
+        seenSelectable = true;
+        if (!added) {
+          added = true;
+          aOutRanges->AppendElement(range);
+        }
+      }
+      if (iter->IsDone()) {
+        return;
+      }
+    }
+  }
+}
