@@ -72,12 +72,12 @@ let DebuggerSocket = {};
 
 
 DebuggerSocket.connect = Task.async(function*(settings) {
+  
+  if (!settings.authenticator) {
+    settings.authenticator = new (Authenticators.get().Client)();
+  }
   let { host, port, encryption, authenticator, cert } = settings;
   let transport = yield _getTransport(settings);
-
-  
-  authenticator = authenticator || new (Authenticators.get().Client)();
-
   yield authenticator.authenticate({
     host,
     port,
@@ -87,6 +87,11 @@ DebuggerSocket.connect = Task.async(function*(settings) {
   });
   return transport;
 });
+
+
+
+
+
 
 
 
@@ -149,15 +154,31 @@ let _getTransport = Task.async(function*(settings) {
 
 
 
-let _attemptTransport = Task.async(function*({ host, port, encryption }) {
+
+
+
+
+
+let _attemptTransport = Task.async(function*(settings) {
+  let { authenticator } = settings;
   
   
-  let { s, input, output } = yield _attemptConnect({ host, port, encryption });
+  let { s, input, output } = yield _attemptConnect(settings);
 
   
   
   let { alive, certError } = yield _isInputAlive(input);
   dumpv("Server cert accepted? " + !certError);
+
+  
+  
+  alive = alive && authenticator.validateConnection({
+    host: settings.host,
+    port: settings.port,
+    encryption: settings.encryption,
+    cert: settings.cert,
+    socket: s
+  });
 
   let transport;
   if (alive) {

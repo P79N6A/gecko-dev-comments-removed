@@ -9,6 +9,8 @@
 let { Ci, Cc } = require("chrome");
 let Services = require("Services");
 let promise = require("promise");
+let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
+let { dumpn, dumpv } = DevToolsUtils;
 loader.lazyRequireGetter(this, "prompt",
   "devtools/toolkit/security/prompt");
 loader.lazyRequireGetter(this, "cert",
@@ -90,6 +92,27 @@ Prompt.Client = function() {};
 Prompt.Client.prototype = {
 
   mode: Prompt.mode,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  validateConnection() {
+    return true;
+  },
 
   
 
@@ -232,6 +255,38 @@ OOBCert.Client = function() {};
 OOBCert.Client.prototype = {
 
   mode: OOBCert.mode,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  validateConnection({ cert, socket }) {
+    
+    
+    
+    dumpv("Validate server cert hash");
+    let serverCert = socket.securityInfo.QueryInterface(Ci.nsISSLStatusProvider)
+                           .SSLStatus.serverCert;
+    let advertisedCert = cert;
+    if (serverCert.sha256Fingerprint != advertisedCert.sha256) {
+      dumpn("Server cert hash doesn't match advertisement");
+      return false;
+    }
+    return true;
+  },
 
   
 
