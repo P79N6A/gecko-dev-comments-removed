@@ -71,7 +71,7 @@ WebGL2Context::ValidateBufferForTarget(GLenum target, WebGLBuffer* buffer,
     }
 
     ErrorInvalidOperation("%s: buffer already bound to a incompatible target %s",
-                          info, EnumName(buffer->Target().get()));
+                          info, EnumName(buffer->Target()));
     return false;
 }
 
@@ -155,7 +155,7 @@ WebGL2Context::GetBufferSubData(GLenum target, GLintptr offset,
 {
     if (IsContextLost())
         return;
-    
+
     
     
     
@@ -168,7 +168,7 @@ WebGL2Context::GetBufferSubData(GLenum target, GLintptr offset,
     
     
     if (offset < 0)
-        return ErrorInvalidValue("getBufferSubData: negative offset"); 
+        return ErrorInvalidValue("getBufferSubData: negative offset");
 
     
     
@@ -179,7 +179,7 @@ WebGL2Context::GetBufferSubData(GLenum target, GLintptr offset,
     WebGLBuffer* boundBuffer = bufferSlot.get();
     if (!boundBuffer)
         return ErrorInvalidOperation("getBufferSubData: no buffer bound");
-    
+
     
     
     const dom::ArrayBuffer& data = maybeData.Value();
