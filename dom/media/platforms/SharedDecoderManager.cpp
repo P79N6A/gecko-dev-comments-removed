@@ -163,16 +163,15 @@ void
 SharedDecoderManager::SetIdle(MediaDataDecoder* aProxy)
 {
   if (aProxy && mActiveProxy == aProxy) {
-    MonitorAutoLock mon(mMonitor);
-    mWaitForInternalDrain = true;
-    nsresult rv;
     {
+      MonitorAutoLock mon(mMonitor);
+      mWaitForInternalDrain = true;
       
       
-      MonitorAutoUnlock mon(mMonitor);
-      rv = mActiveProxy->Drain();
     }
+    nsresult rv = mActiveProxy->Drain();
     if (NS_SUCCEEDED(rv)) {
+      MonitorAutoLock mon(mMonitor);
       while (mWaitForInternalDrain) {
         mon.Wait();
       }
