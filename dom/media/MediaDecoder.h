@@ -512,7 +512,7 @@ public:
 
   
   
-  void DurationChanged(media::TimeUnit aNewDuration);
+  void DurationChanged();
 
   bool OnStateMachineTaskQueue() const override;
 
@@ -996,7 +996,15 @@ protected:
   
   Canonical<Maybe<double>> mExplicitDuration;
   double ExplicitDuration() { return mExplicitDuration.Ref().ref(); }
-  void SetExplicitDuration(double aValue) { mExplicitDuration.Set(Some(aValue)); }
+  void SetExplicitDuration(double aValue)
+  {
+    mExplicitDuration.Set(Some(aValue));
+
+    
+    
+    DurationChanged();
+  }
+
 public:
   AbstractCanonical<Maybe<double>>* CanonicalExplicitDuration() { return &mExplicitDuration; }
 protected:
@@ -1087,6 +1095,9 @@ protected:
   
   
   bool mMediaTracksConstructed;
+
+  
+  bool mFiredMetadataLoaded;
 
   
   
