@@ -11,9 +11,12 @@ const INDENT_COUNT_THRESHOLD = 5;
 const CHARACTER_LIMIT = 250; 
 
 
+
 const KNOWN_SOURCE_GROUPS = {
   "Add-on SDK": "resource://gre/modules/commonjs/",
 };
+
+KNOWN_SOURCE_GROUPS[L10N.getStr("evalGroupLabel")] = "eval";
 
 
 
@@ -170,14 +173,22 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     let fullUrl = aSource.url || aSource.introductionUrl;
     let url = fullUrl.split(" -> ").pop();
     let label = aSource.addonPath ? aSource.addonPath : SourceUtils.getSourceLabel(url);
+    let group;
 
     if (!aSource.url && aSource.introductionUrl) {
-      label += ' > eval';
+      label += ' > ' + aSource.introductionType;
+      group = L10N.getStr("evalGroupLabel");
+    }
+    else if(aSource.addonID) {
+      group = aSource.addonID;
+    }
+    else {
+      group = SourceUtils.getSourceGroup(url);
     }
 
     return {
       label: label,
-      group: aSource.addonID ? aSource.addonID : SourceUtils.getSourceGroup(url),
+      group: group,
       unicodeUrl: NetworkHelper.convertToUnicode(unescape(fullUrl))
     };
   },
