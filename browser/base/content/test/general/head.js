@@ -413,6 +413,7 @@ function waitForDocLoadAndStopIt(aExpectedURL, aBrowser=gBrowser.selectedBrowser
 
 
 
+
 function waitForDocLoadComplete(aBrowser=gBrowser) {
   return new Promise(resolve => {
     let listener = {
@@ -426,7 +427,9 @@ function waitForDocLoadComplete(aBrowser=gBrowser) {
         if ((flags & docStop) == docStop && status != Cr.NS_BINDING_ABORTED) {
           aBrowser.removeProgressListener(this);
           waitForDocLoadComplete.listeners.delete(this);
-          info("Browser loaded " + aBrowser.contentWindow.location);
+
+          let chan = req.QueryInterface(Ci.nsIChannel);
+          info("Browser loaded " + chan.originalURI.spec);
           resolve();
         }
       },
