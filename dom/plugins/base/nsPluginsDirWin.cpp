@@ -71,7 +71,7 @@ static char* GetKeyValue(void* verbuf, const WCHAR* key,
 {
   WCHAR keybuf[64]; 
                     
-  const WCHAR keyFormat[] = L"\\StringFileInfo\\%04X%04X\\%s";
+  const WCHAR keyFormat[] = L"\\StringFileInfo\\%04X%04X\\%ls";
   WCHAR *buf = nullptr;
   UINT blen;
 
