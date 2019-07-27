@@ -27,6 +27,8 @@ struct VertexShaderConstants
   gfx::Rect textureCoords;
   gfx::Rect layerQuad;
   gfx::Rect maskQuad;
+  float vrEyeToSourceUVScale[2];
+  float vrEyeToSourceUVOffset[2];
 };
 
 struct PixelShaderConstants
@@ -93,6 +95,13 @@ public:
                         const EffectChain &aEffectChain,
                         gfx::Float aOpacity,
                         const gfx::Matrix4x4 &aTransform) MOZ_OVERRIDE;
+
+  
+  void DrawVRDistortion(const gfx::Rect &aRect,
+                        const gfx::Rect &aClipRect,
+                        const EffectChain &aEffectChain,
+                        gfx::Float aOpacity,
+                        const gfx::Matrix4x4 &aTransform);
 
   
 
