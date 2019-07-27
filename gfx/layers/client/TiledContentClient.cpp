@@ -1189,7 +1189,7 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
 
       
       aTile.mInvalidFront.Or(aTile.mInvalidFront,
-        nsIntRect(NS_roundf(drawRect.x), NS_roundf(drawRect.y),
+        nsIntRect(NS_lroundf(drawRect.x), NS_lroundf(drawRect.y),
                   drawRect.width, drawRect.height));
 
       if (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
@@ -1235,11 +1235,11 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
                        dirtyRect->height);
     drawRect.Scale(mResolution);
 
-    gfx::IntRect copyRect(NS_roundf((dirtyRect->x - mSinglePaintBufferOffset.x) * mResolution),
-                          NS_roundf((dirtyRect->y - mSinglePaintBufferOffset.y) * mResolution),
+    gfx::IntRect copyRect(NS_lroundf((dirtyRect->x - mSinglePaintBufferOffset.x) * mResolution),
+                          NS_lroundf((dirtyRect->y - mSinglePaintBufferOffset.y) * mResolution),
                           drawRect.width,
                           drawRect.height);
-    gfx::IntPoint copyTarget(NS_roundf(drawRect.x), NS_roundf(drawRect.y));
+    gfx::IntPoint copyTarget(NS_lroundf(drawRect.x), NS_lroundf(drawRect.y));
     drawTarget->CopySurface(source, copyRect, copyTarget);
 
     
