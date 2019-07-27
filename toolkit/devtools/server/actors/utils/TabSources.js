@@ -297,10 +297,8 @@ TabSources.prototype = {
           }
         } catch(ex) {
           
-
           
-          
-          if (url.indexOf("javascript:") === 0) {
+          if (url.indexOf("javascript:") === 0 || url === 'debugger eval code') {
             spec.contentType = "text/javascript";
           }
         }

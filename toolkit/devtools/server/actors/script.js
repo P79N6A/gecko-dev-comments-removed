@@ -5407,6 +5407,10 @@ function getSourceURL(source) {
 
     return source.displayURL;
   }
+  else if(source.url === 'debugger eval code') {
+    
+    return null;
+  }
   return source.url;
 }
 exports.getSourceURL = getSourceURL;
