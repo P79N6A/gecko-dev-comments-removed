@@ -168,7 +168,7 @@ nsSVGPathGeometryFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
     if (aOldStyleContext->PeekStyleSVG()) {
       if ((StyleSVG()->mStrokeLinecap !=
              aOldStyleContext->PeekStyleSVG()->mStrokeLinecap) &&
-          element->Tag() == nsGkAtoms::path) {
+          element->IsSVGElement(nsGkAtoms::path)) {
         
         
         

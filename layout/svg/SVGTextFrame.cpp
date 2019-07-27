@@ -239,23 +239,19 @@ GetFirstNonAAncestor(nsIContent* aContent)
 static bool
 IsTextContentElement(nsIContent* aContent)
 {
-  if (!aContent->IsSVGElement()) {
-    return false;
-  }
-
-  if (aContent->Tag() == nsGkAtoms::text) {
+  if (aContent->IsSVGElement(nsGkAtoms::text)) {
     nsIContent* parent = GetFirstNonAAncestor(aContent->GetParent());
     return !parent || !IsTextContentElement(parent);
   }
 
-  if (aContent->Tag() == nsGkAtoms::textPath) {
+  if (aContent->IsSVGElement(nsGkAtoms::textPath)) {
     nsIContent* parent = GetFirstNonAAncestor(aContent->GetParent());
     return parent && parent->IsSVGElement(nsGkAtoms::text);
   }
 
-  if (aContent->Tag() == nsGkAtoms::a ||
-      aContent->Tag() == nsGkAtoms::tspan ||
-      aContent->Tag() == nsGkAtoms::altGlyph) {
+  if (aContent->IsAnyOfSVGElements(nsGkAtoms::a,
+                                   nsGkAtoms::tspan,
+                                   nsGkAtoms::altGlyph)) {
     return true;
   }
 
@@ -1722,7 +1718,7 @@ TextFrameIterator::Next()
       if (next) {
         
         mCurrentPosition += next->GetPosition();
-        if (next->GetContent()->Tag() == nsGkAtoms::textPath) {
+        if (next->GetContent()->IsSVGElement(nsGkAtoms::textPath)) {
           
           mTextPathFrames.AppendElement(next);
         }
@@ -1743,7 +1739,7 @@ TextFrameIterator::Next()
           }
           
           mCurrentPosition -= mCurrentFrame->GetPosition();
-          if (mCurrentFrame->GetContent()->Tag() == nsGkAtoms::textPath) {
+          if (mCurrentFrame->GetContent()->IsSVGElement(nsGkAtoms::textPath)) {
             
             mTextPathFrames.TruncateLength(mTextPathFrames.Length() - 1);
           }
@@ -1757,7 +1753,7 @@ TextFrameIterator::Next()
           if (next) {
             
             mCurrentPosition += next->GetPosition();
-            if (next->GetContent()->Tag() == nsGkAtoms::textPath) {
+            if (next->GetContent()->IsSVGElement(nsGkAtoms::textPath)) {
               
               mTextPathFrames.AppendElement(next);
             }
@@ -3423,7 +3419,7 @@ SVGTextFrame::HandleAttributeChangeInDescendant(Element* aElement,
                                                 int32_t aNameSpaceID,
                                                 nsIAtom* aAttribute)
 {
-  if (aElement->Tag() == nsGkAtoms::textPath) {
+  if (aElement->IsSVGElement(nsGkAtoms::textPath)) {
     if (aNameSpaceID == kNameSpaceID_None &&
         aAttribute == nsGkAtoms::startOffset) {
       NotifyGlyphMetricsChange();
@@ -4415,14 +4411,14 @@ SVGTextFrame::ResolvePositions(nsIContent* aContent,
     return aIndex;
   }
 
-  if (aContent->Tag() == nsGkAtoms::textPath) {
+  if (aContent->IsSVGElement(nsGkAtoms::textPath)) {
     
     
     if (HasTextContent(aContent)) {
       mPositions[aIndex].mPosition = gfxPoint();
       mPositions[aIndex].mStartOfChunk = true;
     }
-  } else if (aContent->Tag() != nsGkAtoms::a) {
+  } else if (!aContent->IsSVGElement(nsGkAtoms::a)) {
     
     nsSVGElement* element = static_cast<nsSVGElement*>(aContent);
 
@@ -4514,7 +4510,7 @@ SVGTextFrame::ResolvePositions(nsIContent* aContent,
   }
 
   
-  bool inTextPath = aInTextPath || aContent->Tag() == nsGkAtoms::textPath;
+  bool inTextPath = aInTextPath || aContent->IsSVGElement(nsGkAtoms::textPath);
   for (nsIContent* child = aContent->GetFirstChild();
        child;
        child = child->GetNextSibling()) {
@@ -4522,7 +4518,7 @@ SVGTextFrame::ResolvePositions(nsIContent* aContent,
                               aDeltas);
   }
 
-  if (aContent->Tag() == nsGkAtoms::textPath) {
+  if (aContent->IsSVGElement(nsGkAtoms::textPath)) {
     
     aForceStartOfChunk = true;
   }

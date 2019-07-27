@@ -381,8 +381,8 @@ nsSVGDisplayContainerFrame::ReflowSVG()
   
   
   
-  MOZ_ASSERT(mContent->Tag() == nsGkAtoms::svg ||
-             (mContent->Tag() == nsGkAtoms::use &&
+  MOZ_ASSERT(mContent->IsSVGElement(nsGkAtoms::svg) ||
+             (mContent->IsSVGElement(nsGkAtoms::use) &&
               mRect.Size() == nsSize(0,0)) ||
              mRect.IsEqualEdges(nsRect()),
              "Only inner-<svg>/<use> is expected to have mRect set");
