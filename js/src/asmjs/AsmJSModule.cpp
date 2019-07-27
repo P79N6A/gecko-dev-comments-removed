@@ -706,6 +706,8 @@ AddressOf(AsmJSImmKind kind, ExclusiveContext* cx)
         return RedirectCall(FuncCast(__aeabi_uidivmod), Args_General2);
       case AsmJSImm_AtomicCmpXchg:
         return RedirectCall(FuncCast<int32_t (int32_t, int32_t, int32_t, int32_t)>(js::atomics_cmpxchg_asm_callout), Args_General4);
+      case AsmJSImm_AtomicXchg:
+        return RedirectCall(FuncCast<int32_t (int32_t, int32_t, int32_t)>(js::atomics_xchg_asm_callout), Args_General3);
       case AsmJSImm_AtomicFetchAdd:
         return RedirectCall(FuncCast<int32_t (int32_t, int32_t, int32_t)>(js::atomics_add_asm_callout), Args_General3);
       case AsmJSImm_AtomicFetchSub:
