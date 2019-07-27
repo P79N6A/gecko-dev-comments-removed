@@ -31,7 +31,7 @@ class LIRGenerator;
 
 struct AllocationIntegrityState
 {
-    explicit AllocationIntegrityState(const LIRGraph &graph)
+    explicit AllocationIntegrityState(LIRGraph &graph)
       : graph(graph)
     {}
 
@@ -47,7 +47,7 @@ struct AllocationIntegrityState
 
   private:
 
-    const LIRGraph &graph;
+    LIRGraph &graph;
 
     
     
