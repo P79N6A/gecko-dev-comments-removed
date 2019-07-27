@@ -4,6 +4,9 @@
 
 "use strict";
 
+
+
+
 let gFetchCount = 0;
 let gGoodOCSPResponse = null;
 
@@ -89,14 +92,22 @@ function add_tests() {
   add_connection_test("ocsp-stapling-unknown.example.com",
                       SEC_ERROR_OCSP_UNKNOWN_CERT,
                       clearSessionCache);
-  add_test(function() { do_check_eq(gFetchCount, 0); run_next_test(); });
+  add_test(function() {
+    equal(gFetchCount, 0,
+          "Stapled Unknown response -> a fetch should not have been attempted");
+    run_next_test();
+  });
 
   
   
   add_connection_test("ocsp-stapling-none.example.com",
                       SEC_ERROR_OCSP_UNKNOWN_CERT,
                       clearSessionCache);
-  add_test(function() { do_check_eq(gFetchCount, 1); run_next_test(); });
+  add_test(function() {
+    equal(gFetchCount, 1,
+          "No stapled response -> a fetch should have been attempted");
+    run_next_test();
+  });
 
   
   
@@ -117,14 +128,23 @@ function add_tests() {
   });
   add_connection_test("ocsp-stapling-none.example.com", PRErrorCodeSuccess,
                       clearSessionCache);
-  add_test(function() { do_check_eq(gFetchCount, 2); run_next_test(); });
+  add_test(function() {
+    equal(gFetchCount, 2,
+          "Cached Unknown response, no stapled response -> a fetch should" +
+          " have been attempted");
+    run_next_test();
+  });
 
   
   
   
   add_connection_test("ocsp-stapling-none.example.com", PRErrorCodeSuccess,
                       clearSessionCache);
-  add_test(function() { do_check_eq(gFetchCount, 2); run_next_test(); });
+  add_test(function() {
+    equal(gFetchCount, 2,
+          "Cached Good response -> a fetch should not have been attempted");
+    run_next_test();
+  });
 
 
   
@@ -136,19 +156,31 @@ function add_tests() {
   
   add_connection_test("ocsp-stapling-none.example.com", PRErrorCodeSuccess,
                       clearSessionCache);
-  add_test(function() { do_check_eq(gFetchCount, 1); run_next_test(); });
+  add_test(function() {
+    equal(gFetchCount, 1,
+          "No stapled response -> a fetch should have been attempted");
+    run_next_test();
+  });
 
   
   add_connection_test("ocsp-stapling-none.example.com", PRErrorCodeSuccess,
                       clearSessionCache);
-  add_test(function() { do_check_eq(gFetchCount, 1); run_next_test(); });
+  add_test(function() {
+    equal(gFetchCount, 1,
+          "Noted OCSP server failure -> a fetch should not have been attempted");
+    run_next_test();
+  });
 
   
   
   add_connection_test("ocsp-stapling-revoked.example.com",
                       SEC_ERROR_REVOKED_CERTIFICATE,
                       clearSessionCache);
-  add_test(function() { do_check_eq(gFetchCount, 1); run_next_test(); });
+  add_test(function() {
+    equal(gFetchCount, 1,
+          "Stapled Revoked response -> a fetch should not have been attempted");
+    run_next_test();
+  });
 
   
 

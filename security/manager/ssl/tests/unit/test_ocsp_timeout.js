@@ -70,15 +70,18 @@ function add_tests_in_mode(useHardFail) {
     
     const FUZZ_MS = 300;
     if (useHardFail) {
-      do_check_true(timeDifference + FUZZ_MS > 10000);
+      ok(timeDifference + FUZZ_MS > 10000,
+         "Automatic OCSP timeout should be about 10s for hard-fail");
     } else {
-      do_check_true(timeDifference + FUZZ_MS > 2000);
+      ok(timeDifference + FUZZ_MS > 2000,
+         "Automatic OCSP timeout should be about 2s for soft-fail");
     }
     
     
     
     
-    do_check_true(timeDifference < 60000);
+    ok(timeDifference < 60000,
+       "Automatic OCSP timeout shouldn't be more than 60s");
     clearOCSPCache();
     run_next_test();
   });
