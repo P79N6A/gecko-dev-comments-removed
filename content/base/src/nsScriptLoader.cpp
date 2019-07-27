@@ -895,7 +895,7 @@ nsScriptLoader::AttemptAsyncScriptParse(nsScriptLoadRequest* aRequest)
   JSContext* cx = jsapi.cx();
   JS::Rooted<JSObject*> global(cx, globalObject->GetGlobalJSObject());
   JS::CompileOptions options(cx);
-  FillCompileOptionsForRequest(aRequest, global, &options);
+  FillCompileOptionsForRequest(jsapi, aRequest, global, &options);
 
   if (!JS::CanCompileOffThread(cx, options, aRequest->mScriptTextLength)) {
     return NS_ERROR_FAILURE;
@@ -1066,7 +1066,8 @@ nsScriptLoader::GetScriptGlobalObject()
 }
 
 void
-nsScriptLoader::FillCompileOptionsForRequest(nsScriptLoadRequest *aRequest,
+nsScriptLoader::FillCompileOptionsForRequest(const AutoJSAPI &jsapi,
+                                             nsScriptLoadRequest *aRequest,
                                              JS::Handle<JSObject *> aScopeChain,
                                              JS::CompileOptions *aOptions)
 {
@@ -1085,15 +1086,9 @@ nsScriptLoader::FillCompileOptionsForRequest(nsScriptLoadRequest *aRequest,
     aOptions->setOriginPrincipals(nsJSPrincipals::get(aRequest->mOriginPrincipal));
   }
 
-  AutoJSContext cx;
+  JSContext* cx = jsapi.cx();
   JS::Rooted<JS::Value> elementVal(cx);
   MOZ_ASSERT(aRequest->mElement);
-  
-  
-  
-  
-  
-  JSAutoCompartment ac(cx, aScopeChain);
   if (NS_SUCCEEDED(nsContentUtils::WrapNative(cx, aRequest->mElement,
                                               &elementVal,
                                                true))) {
@@ -1165,7 +1160,7 @@ nsScriptLoader::EvaluateScript(nsScriptLoadRequest* aRequest,
     }
 
     JS::CompileOptions options(entryScript.cx());
-    FillCompileOptionsForRequest(aRequest, global, &options);
+    FillCompileOptionsForRequest(entryScript, aRequest, global, &options);
     rv = nsJSUtils::EvaluateString(entryScript.cx(), aSrcBuf, global, options,
                                    aOffThreadToken);
   }
