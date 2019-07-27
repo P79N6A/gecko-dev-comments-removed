@@ -1860,6 +1860,10 @@ nsresult WriteMinidumpForException(EXCEPTION_POINTERS* aExceptionInfo)
 #ifdef XP_LINUX
 bool WriteMinidumpForSigInfo(int signo, siginfo_t* info, void* uc)
 {
+  if (!gExceptionHandler) {
+    
+    return false;
+  }
   return gExceptionHandler->HandleSignal(signo, info, uc);
 }
 #endif
