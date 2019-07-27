@@ -336,6 +336,17 @@
 }
 
 
+#define NS_TLSSERVERSOCKET_CONTRACTID \
+    "@mozilla.org/network/tls-server-socket;1"
+#define NS_TLSSERVERSOCKET_CID                       \
+{ /* 1813cbb4-c98e-4622-8c7d-839167f3f272 */         \
+    0x1813cbb4,                                      \
+    0xc98e,                                          \
+    0x4622,                                          \
+    {0x8c, 0x7d, 0x83, 0x91, 0x67, 0xf3, 0xf2, 0x72} \
+}
+
+
 #define NS_UDPSOCKET_CONTRACTID \
     "@mozilla.org/network/udp-socket;1"
 #define NS_UDPSOCKET_CID                             \
