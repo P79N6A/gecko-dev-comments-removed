@@ -63,6 +63,19 @@ public:
 
 
 
+
+  static FilterDescription GetFilterDescription(nsIContent* aFilteredElement,
+                                                const nsTArray<nsStyleFilter>& aFilterChain,
+                                                const UserSpaceMetrics& aMetrics,
+                                                const gfxRect& aBBox,
+                                                nsTArray<mozilla::RefPtr<SourceSurface>>& aOutAdditionalImages);
+
+  
+
+
+
+
+
   static nsresult PaintFilteredFrame(nsIFrame *aFilteredFrame,
                                      nsRenderingContext *aContext,
                                      const gfxMatrix& aTransform,
@@ -143,6 +156,12 @@ public:
 
 
   nsresult Render(gfxContext* aContext);
+
+  const FilterDescription& ExtractDescriptionAndAdditionalImages(nsTArray<mozilla::RefPtr<SourceSurface>>& aOutAdditionalImages)
+  {
+    mInputImages.SwapElements(aOutAdditionalImages);
+    return mFilterDescription;
+  }
 
   
 
