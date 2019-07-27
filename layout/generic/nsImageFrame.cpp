@@ -1225,8 +1225,8 @@ nsImageFrame::DisplayAltFeedback(nsRenderingContext& aRenderingContext,
 
   
   gfx->Save();
-  gfx->Clip(NSRectToRect(inner, PresContext()->AppUnitsPerDevPixel(),
-                         *drawTarget));
+  gfx->Clip(NSRectToSnappedRect(inner, PresContext()->AppUnitsPerDevPixel(),
+                                *drawTarget));
 
   
   if (gIconLoad->mPrefShowPlaceholders) {

@@ -1834,9 +1834,9 @@ void nsDisplayMathMLSelectionRect::Paint(nsDisplayListBuilder* aBuilder,
                                          nsRenderingContext* aCtx)
 {
   DrawTarget* drawTarget = aCtx->GetDrawTarget();
-  Rect rect = NSRectToRect(mRect + ToReferenceFrame(),
-                           mFrame->PresContext()->AppUnitsPerDevPixel(),
-                           *drawTarget);
+  Rect rect = NSRectToSnappedRect(mRect + ToReferenceFrame(),
+                                  mFrame->PresContext()->AppUnitsPerDevPixel(),
+                                  *drawTarget);
   
   nscolor bgColor =
     LookAndFeel::GetColor(LookAndFeel::eColorID_TextSelectBackground,

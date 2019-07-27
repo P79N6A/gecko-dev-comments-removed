@@ -2423,8 +2423,8 @@ gfx::Rect NSRectToRect(const nsRect& aRect, double aAppUnitsPerPixel);
 
 
 
-gfx::Rect NSRectToRect(const nsRect& aRect, double aAppUnitsPerPixel,
-                       const gfx::DrawTarget& aSnapDT);
+gfx::Rect NSRectToSnappedRect(const nsRect& aRect, double aAppUnitsPerPixel,
+                              const gfx::DrawTarget& aSnapDT);
 
 void StrokeLineWithSnapping(const nsPoint& aP1, const nsPoint& aP2,
                             int32_t aAppUnitsPerDevPixel,
