@@ -573,6 +573,13 @@ jit::MakeSingletonTypeSet(types::CompilerConstraintList *constraints, JSObject *
     return alloc->new_<types::TemporaryTypeSet>(alloc, types::Type::ObjectType(obj));
 }
 
+static types::TemporaryTypeSet *
+MakeUnknownTypeSet()
+{
+    LifoAlloc *alloc = GetIonContext()->temp->lifoAlloc();
+    return alloc->new_<types::TemporaryTypeSet>(alloc, types::Type::UnknownType());
+}
+
 MConstant::MConstant(const js::Value &vp, types::CompilerConstraintList *constraints)
   : value_(vp)
 {
@@ -581,6 +588,16 @@ MConstant::MConstant(const js::Value &vp, types::CompilerConstraintList *constra
         
         
         setResultTypeSet(MakeSingletonTypeSet(constraints, &vp.toObject()));
+    }
+    if (vp.isMagic() && vp.whyMagic() == JS_UNINITIALIZED_LEXICAL) {
+        
+        
+        
+        
+        
+        
+        
+        setResultTypeSet(MakeUnknownTypeSet());
     }
 
     setMovable();
