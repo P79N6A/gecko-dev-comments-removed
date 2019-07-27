@@ -515,7 +515,10 @@ let SyncServerCallback = {
 
 
 
-  onRequest: function onRequest(request) {},
+
+
+
+  onRequest: function onRequest(request, response) {},
 };
 
 
@@ -796,7 +799,7 @@ SyncServer.prototype = {
     this._log.debug("SyncServer: Handling request: " + req.method + " " + req.path);
 
     if (this.callback.onRequest) {
-      this.callback.onRequest(req);
+      this.callback.onRequest(req, resp);
     }
 
     let parts = this.pathRE.exec(req.path);

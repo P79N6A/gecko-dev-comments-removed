@@ -72,6 +72,11 @@ WeaveService.prototype = {
                                          Ci.nsISupportsWeakReference]),
 
   ensureLoaded: function () {
+    
+    if (!this.fxAccountsEnabled) {
+      Cu.import("resource://services-sync/FxaMigrator.jsm");
+    }
+
     Components.utils.import("resource://services-sync/main.js");
 
     
