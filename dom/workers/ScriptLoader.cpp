@@ -531,7 +531,7 @@ private:
 
     
     
-    if (!mCanceledMainThread && loadInfo.Finished()) {
+    if (loadInfo.Finished()) {
       ExecuteFinishedScripts();
     }
   }
@@ -607,15 +607,26 @@ private:
     for (uint32_t index = 0; index < mLoadInfos.Length(); index++) {
       ScriptLoadInfo& loadInfo = mLoadInfos[index];
 
+      
+      
+      bool callLoadingFinished = true;
+
       if (loadInfo.mCachePromise) {
         MOZ_ASSERT(mWorkerPrivate->IsServiceWorker());
         loadInfo.mCachePromise->MaybeReject(NS_BINDING_ABORTED);
         loadInfo.mCachePromise = nullptr;
+        callLoadingFinished = false;
       }
 
-      if (loadInfo.mChannel &&
-          NS_FAILED(loadInfo.mChannel->Cancel(NS_BINDING_ABORTED))) {
-        NS_WARNING("Failed to cancel channel!");
+      if (loadInfo.mChannel) {
+        if (NS_SUCCEEDED(loadInfo.mChannel->Cancel(NS_BINDING_ABORTED))) {
+          callLoadingFinished = false;
+        } else {
+          NS_WARNING("Failed to cancel channel!");
+        }
+      }
+
+      if (callLoadingFinished && !loadInfo.Finished()) {
         LoadingFinished(index, NS_BINDING_ABORTED);
       }
     }
@@ -1085,8 +1096,10 @@ CachePromiseHandler::ResolvedCallback(JSContext* aCx,
   MOZ_ASSERT(mLoadInfo.mCacheStatus == ScriptLoadInfo::WritingToCache);
   mLoadInfo.mCacheStatus = ScriptLoadInfo::Cached;
 
-  mLoadInfo.mCachePromise = nullptr;
-  mRunnable->MaybeExecuteFinishedScripts(mIndex);
+  if (mLoadInfo.mCachePromise) {
+    mLoadInfo.mCachePromise = nullptr;
+    mRunnable->MaybeExecuteFinishedScripts(mIndex);
+  }
 }
 
 void
@@ -1237,6 +1250,12 @@ CacheScriptLoader::Fail(nsresult aRv)
   }
 
   mLoadInfo.mCacheStatus = ScriptLoadInfo::Cancel;
+
+  
+  if (mLoadInfo.Finished()) {
+    return;
+  }
+
   mRunnable->LoadingFinished(mIndex, aRv);
 }
 
