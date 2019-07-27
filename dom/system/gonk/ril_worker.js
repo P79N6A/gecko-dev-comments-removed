@@ -3127,6 +3127,14 @@ RilObject.prototype = {
     });
 
     
+    if (options.eventList != null) {
+      GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_EVENT_LIST |
+                                 COMPREHENSIONTLV_FLAG_CR);
+      GsmPDUHelper.writeHexOctet(1);
+      GsmPDUHelper.writeHexOctet(options.eventList);
+    }
+
+    
     GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_DEVICE_ID |
                                COMPREHENSIONTLV_FLAG_CR);
     GsmPDUHelper.writeHexOctet(2);
@@ -3147,14 +3155,6 @@ RilObject.prototype = {
                                  COMPREHENSIONTLV_FLAG_CR);
       GsmPDUHelper.writeHexOctet(0);
       
-    }
-
-    
-    if (options.eventList != null) {
-      GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_EVENT_LIST |
-                                 COMPREHENSIONTLV_FLAG_CR);
-      GsmPDUHelper.writeHexOctet(1);
-      GsmPDUHelper.writeHexOctet(options.eventList);
     }
 
     
