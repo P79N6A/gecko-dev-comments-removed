@@ -199,6 +199,7 @@ private:
   mutable RefPtr<ID2D1DeviceContext> mDC;
   RefPtr<ID2D1Bitmap1> mBitmap;
   RefPtr<ID2D1Bitmap1> mTempBitmap;
+  RefPtr<ID2D1Effect> mBlendEffect;
 
   
   RefPtr<IDWriteRenderingParams> mTextRenderingParams;
