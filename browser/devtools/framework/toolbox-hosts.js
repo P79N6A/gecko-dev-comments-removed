@@ -14,6 +14,12 @@ Cu.import("resource:///modules/devtools/DOMHelpers.jsm");
 
 
 
+const MIN_PAGE_SIZE = 25;
+
+
+
+
+
 
 
 
@@ -57,7 +63,7 @@ BottomHost.prototype = {
     this.frame.className = "devtools-toolbox-bottom-iframe";
     this.frame.height = Math.min(
       Services.prefs.getIntPref(this.heightPref),
-      this._nbox.clientHeight - 10 
+      this._nbox.clientHeight - MIN_PAGE_SIZE
     );
 
     this._nbox.appendChild(this._splitter);
@@ -144,7 +150,7 @@ SidebarHost.prototype = {
 
     this.frame.width = Math.min(
       Services.prefs.getIntPref(this.widthPref),
-      this._sidebar.clientWidth - 10 
+      this._sidebar.clientWidth - MIN_PAGE_SIZE
     );
 
     this._sidebar.appendChild(this._splitter);
