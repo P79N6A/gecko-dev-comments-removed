@@ -147,7 +147,7 @@ public:
 };
 
 template<class ListenerT>
-class  IProtocolManager
+class IProtocolManager
 {
 public:
     enum ActorDestroyReason {
