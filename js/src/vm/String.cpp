@@ -630,13 +630,6 @@ template <typename CharT>
 JSFlatString*
 JSDependentString::undependInternal(ExclusiveContext* cx)
 {
-    
-
-
-
-
-    JSString::writeBarrierPre(base());
-
     size_t n = length();
     CharT* s = cx->pod_malloc<CharT>(n + 1);
     if (!s)
