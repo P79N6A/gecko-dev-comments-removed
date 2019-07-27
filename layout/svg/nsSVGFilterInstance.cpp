@@ -389,7 +389,7 @@ nsSVGFilterInstance::BuildPrimitives(nsTArray<FilterPrimitiveDescription>& aPrim
   }
 
   
-  nsDataHashtable<nsStringHashKey, int32_t> imageTable(10);
+  nsDataHashtable<nsStringHashKey, int32_t> imageTable(8);
 
   
   nsCOMPtr<nsIPrincipal> principal = mTargetFrame->GetContent()->NodePrincipal();

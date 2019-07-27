@@ -114,13 +114,13 @@ using namespace mozilla::places;
   (HISTORY_ADDITIONAL_DATE_CONT_NUM + \
    std::min(6, (int32_t)ceilf((float)_daysFromOldestVisit/30)))
 
-#define HISTORY_DATE_CONT_MAX 10
+#define HISTORY_DATE_CONT_LENGTH 8
 
 
-#define EMBED_VISITS_INITIAL_CACHE_SIZE 128
+#define EMBED_VISITS_INITIAL_CACHE_LENGTH 64
 
 
-#define RECENT_EVENTS_INITIAL_CACHE_SIZE 128
+#define RECENT_EVENTS_INITIAL_CACHE_LENGTH 64
 
 
 #ifdef MOZ_XUL
@@ -255,10 +255,10 @@ nsNavHistory::nsNavHistory()
   : mBatchLevel(0)
   , mBatchDBTransaction(nullptr)
   , mCachedNow(0)
-  , mRecentTyped(RECENT_EVENTS_INITIAL_CACHE_SIZE)
-  , mRecentLink(RECENT_EVENTS_INITIAL_CACHE_SIZE)
-  , mRecentBookmark(RECENT_EVENTS_INITIAL_CACHE_SIZE)
-  , mEmbedVisits(EMBED_VISITS_INITIAL_CACHE_SIZE)
+  , mRecentTyped(RECENT_EVENTS_INITIAL_CACHE_LENGTH)
+  , mRecentLink(RECENT_EVENTS_INITIAL_CACHE_LENGTH)
+  , mRecentBookmark(RECENT_EVENTS_INITIAL_CACHE_LENGTH)
+  , mEmbedVisits(EMBED_VISITS_INITIAL_CACHE_LENGTH)
   , mHistoryEnabled(true)
   , mNumVisitsForFrecency(10)
   , mTagsFolder(-1)
@@ -2190,8 +2190,8 @@ nsNavHistory::GetQueryResults(nsNavHistoryQueryResultNode *aResultNode,
 
   nsCString queryString;
   bool paramsPresent = false;
-  nsNavHistory::StringHash addParams(HISTORY_DATE_CONT_MAX);
-  nsresult rv = ConstructQueryString(aQueries, aOptions, queryString, 
+  nsNavHistory::StringHash addParams(HISTORY_DATE_CONT_LENGTH);
+  nsresult rv = ConstructQueryString(aQueries, aOptions, queryString,
                                      paramsPresent, addParams);
   NS_ENSURE_SUCCESS(rv,rv);
 
@@ -2967,7 +2967,7 @@ nsNavHistory::AsyncExecuteLegacyQueries(nsINavHistoryQuery** aQueries,
 
   nsCString queryString;
   bool paramsPresent = false;
-  nsNavHistory::StringHash addParams(HISTORY_DATE_CONT_MAX);
+  nsNavHistory::StringHash addParams(HISTORY_DATE_CONT_LENGTH);
   nsresult rv = ConstructQueryString(queries, options, queryString,
                                      paramsPresent, addParams);
   NS_ENSURE_SUCCESS(rv,rv);

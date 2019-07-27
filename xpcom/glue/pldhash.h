@@ -29,15 +29,18 @@
 
 
 
-#undef PL_DHASH_MAX_SIZE
-#define PL_DHASH_MAX_SIZE     ((uint32_t)1 << 26)
+#define PL_DHASH_MAX_CAPACITY           ((uint32_t)1 << 26)
+
+#define PL_DHASH_MIN_CAPACITY           16
 
 
-#ifndef PL_DHASH_MIN_SIZE
-#define PL_DHASH_MIN_SIZE 16
-#elif (PL_DHASH_MIN_SIZE & (PL_DHASH_MIN_SIZE - 1)) != 0
-#error "PL_DHASH_MIN_SIZE must be a power of two!"
-#endif
+
+
+
+#define PL_DHASH_MAX_INITIAL_LENGTH     (PL_DHASH_MAX_CAPACITY / 2)
+
+
+#define PL_DHASH_DEFAULT_INITIAL_LENGTH 8
 
 
 
@@ -223,7 +226,7 @@ struct PLDHashTable
 
 
 
-#define PL_DHASH_TABLE_SIZE(table) \
+#define PL_DHASH_TABLE_CAPACITY(table) \
     ((uint32_t)1 << (PL_DHASH_BITS - (table)->hashShift))
 
 
@@ -381,9 +384,9 @@ NS_COM_GLUE const PLDHashTableOps* PL_DHashGetStubOps(void);
 
 
 
-NS_COM_GLUE PLDHashTable* PL_NewDHashTable(const PLDHashTableOps* aOps,
-                                           void* aData, uint32_t aEntrySize,
-                                           uint32_t aCapacity);
+NS_COM_GLUE PLDHashTable* PL_NewDHashTable(
+  const PLDHashTableOps* aOps, void* aData, uint32_t aEntrySize,
+  uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
 
 
 
@@ -399,9 +402,10 @@ NS_COM_GLUE void PL_DHashTableDestroy(PLDHashTable* aTable);
 
 
 
-NS_COM_GLUE void PL_DHashTableInit(PLDHashTable* aTable,
-                                   const PLDHashTableOps* aOps, void* aData,
-                                   uint32_t aEntrySize, uint32_t aCapacity);
+
+NS_COM_GLUE void PL_DHashTableInit(
+  PLDHashTable* aTable, const PLDHashTableOps* aOps, void* aData,
+  uint32_t aEntrySize, uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
 
 
 
@@ -409,7 +413,8 @@ NS_COM_GLUE void PL_DHashTableInit(PLDHashTable* aTable,
 
 MOZ_WARN_UNUSED_RESULT NS_COM_GLUE bool PL_DHashTableInit(
   PLDHashTable* aTable, const PLDHashTableOps* aOps, void* aData,
-  uint32_t aEntrySize, uint32_t aCapacity, const mozilla::fallible_t&);
+  uint32_t aEntrySize, const mozilla::fallible_t&,
+  uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
 
 
 

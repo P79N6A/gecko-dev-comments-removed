@@ -673,7 +673,7 @@ gfxFontEntry::GetExistingFontTable(uint32_t aTag, hb_blob_t **aBlob)
     if (!mFontTableCache) {
         
         
-        mFontTableCache = new nsTHashtable<FontTableHashEntry>(10);
+        mFontTableCache = new nsTHashtable<FontTableHashEntry>(8);
     }
 
     FontTableHashEntry *entry = mFontTableCache->GetEntry(aTag);
@@ -692,7 +692,7 @@ gfxFontEntry::ShareFontTableAndGetBlob(uint32_t aTag,
     if (MOZ_UNLIKELY(!mFontTableCache)) {
         
         
-      mFontTableCache = new nsTHashtable<FontTableHashEntry>(10);
+      mFontTableCache = new nsTHashtable<FontTableHashEntry>(8);
     }
 
     FontTableHashEntry *entry = mFontTableCache->PutEntry(aTag);

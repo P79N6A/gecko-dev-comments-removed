@@ -504,7 +504,7 @@ private:
 
 template<typename T>
 
-const uint32_t DeadlockDetector<T>::kDefaultNumBuckets = 64;
+const uint32_t DeadlockDetector<T>::kDefaultNumBuckets = 32;
 
 
 } 

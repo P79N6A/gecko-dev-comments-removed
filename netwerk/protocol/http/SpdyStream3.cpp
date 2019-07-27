@@ -400,7 +400,7 @@ SpdyStream3::ParseHttpRequestHeaders(const char *buf,
   
   
   nsClassHashtable<nsCStringHashKey, nsCString>
-    hdrHash(1 + (mTransaction->RequestHead()->Headers().Count() * 2));
+    hdrHash(mTransaction->RequestHead()->Headers().Count());
 
   const char *beginBuffer = mFlatHttpRequestHeaders.BeginReading();
 

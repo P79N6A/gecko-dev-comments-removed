@@ -19,8 +19,8 @@
 
 #include "GeckoProfiler.h"
 
-#define BOOKMARKS_TO_KEYWORDS_INITIAL_CACHE_SIZE 64
-#define RECENT_BOOKMARKS_INITIAL_CACHE_SIZE 10
+#define BOOKMARKS_TO_KEYWORDS_INITIAL_CACHE_LENGTH 32
+#define RECENT_BOOKMARKS_INITIAL_CACHE_LENGTH 10
 
 #define RECENT_BOOKMARKS_THRESHOLD PRTime((int64_t)1 * 60 * PR_USEC_PER_SEC)
 
@@ -169,7 +169,7 @@ ExpireNonrecentBookmarksCallback(BookmarkKeyClass* aKey,
 static void
 ExpireNonrecentBookmarks(nsTHashtable<BookmarkKeyClass>* hashTable)
 {
-  if (hashTable->Count() > RECENT_BOOKMARKS_INITIAL_CACHE_SIZE) {
+  if (hashTable->Count() > RECENT_BOOKMARKS_INITIAL_CACHE_LENGTH) {
     int64_t threshold = PR_Now() - RECENT_BOOKMARKS_THRESHOLD;
     (void)hashTable->EnumerateEntries(ExpireNonrecentBookmarksCallback,
                                       reinterpret_cast<void*>(&threshold));
@@ -208,10 +208,10 @@ nsNavBookmarks::nsNavBookmarks()
   , mCanNotify(false)
   , mCacheObservers("bookmark-observers")
   , mBatching(false)
-  , mBookmarkToKeywordHash(BOOKMARKS_TO_KEYWORDS_INITIAL_CACHE_SIZE)
+  , mBookmarkToKeywordHash(BOOKMARKS_TO_KEYWORDS_INITIAL_CACHE_LENGTH)
   , mBookmarkToKeywordHashInitialized(false)
-  , mRecentBookmarksCache(RECENT_BOOKMARKS_INITIAL_CACHE_SIZE)
-  , mUncachableBookmarks(RECENT_BOOKMARKS_INITIAL_CACHE_SIZE)
+  , mRecentBookmarksCache(RECENT_BOOKMARKS_INITIAL_CACHE_LENGTH)
+  , mUncachableBookmarks(RECENT_BOOKMARKS_INITIAL_CACHE_LENGTH)
 {
   NS_ASSERTION(!gBookmarksService,
                "Attempting to create two instances of the service!");

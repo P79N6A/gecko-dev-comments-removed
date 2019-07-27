@@ -85,8 +85,8 @@ class nsTHashtable
 public:
   
   
-  nsTHashtable() { Init(PL_DHASH_MIN_SIZE); }
-  explicit nsTHashtable(uint32_t aInitSize) { Init(aInitSize); }
+  nsTHashtable() { Init(PL_DHASH_DEFAULT_INITIAL_LENGTH); }
+  explicit nsTHashtable(uint32_t aInitLength) { Init(aInitLength); }
 
   
 
@@ -364,7 +364,7 @@ private:
 
 
 
-  void Init(uint32_t aInitSize);
+  void Init(uint32_t aInitLength);
 
   
 
@@ -405,7 +405,7 @@ nsTHashtable<EntryType>::~nsTHashtable()
 
 template<class EntryType>
 void
-nsTHashtable<EntryType>::Init(uint32_t aInitSize)
+nsTHashtable<EntryType>::Init(uint32_t aInitLength)
 {
   static const PLDHashTableOps sOps =
   {
@@ -419,7 +419,7 @@ nsTHashtable<EntryType>::Init(uint32_t aInitSize)
     s_InitEntry
   };
 
-  PL_DHashTableInit(&mTable, &sOps, nullptr, sizeof(EntryType), aInitSize);
+  PL_DHashTableInit(&mTable, &sOps, nullptr, sizeof(EntryType), aInitLength);
 }
 
 

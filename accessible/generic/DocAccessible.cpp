@@ -78,8 +78,8 @@ DocAccessible::
                   nsIPresShell* aPresShell) :
   HyperTextAccessibleWrap(aRootContent, this),
   
-  mAccessibleCache(kDefaultCacheSize),
-  mNodeToAccessibleMap(kDefaultCacheSize),
+  mAccessibleCache(kDefaultCacheLength),
+  mNodeToAccessibleMap(kDefaultCacheLength),
   mDocumentNode(aDocument),
   mScrollPositionChangedTicks(0),
   mLoadState(eTreeConstructionPending), mDocFlags(0), mLoadEventType(0),

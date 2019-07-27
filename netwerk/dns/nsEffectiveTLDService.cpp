@@ -62,10 +62,6 @@ nsDomainEntry::FuncForStaticAsserts(void)
 static nsEffectiveTLDService *gService = nullptr;
 
 nsEffectiveTLDService::nsEffectiveTLDService()
-  
-  
-  
-  
   : mHash(ArrayLength(nsDomainEntry::entries))
 {
 }

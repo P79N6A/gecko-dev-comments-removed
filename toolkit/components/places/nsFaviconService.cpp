@@ -35,10 +35,10 @@
 
 #define OPTIMIZED_FAVICON_DIMENSION 16
 
-#define MAX_FAVICON_CACHE_SIZE 256
+#define MAX_FAILED_FAVICONS 256
 #define FAVICON_CACHE_REDUCE_COUNT 64
 
-#define MAX_UNASSOCIATED_FAVICONS 64
+#define UNASSOCIATED_FAVICONS_LENGTH 32
 
 
 
@@ -77,8 +77,8 @@ NS_IMPL_ISUPPORTS_CI(
 nsFaviconService::nsFaviconService()
   : mOptimizedIconDimension(OPTIMIZED_FAVICON_DIMENSION)
   , mFailedFaviconSerial(0)
-  , mFailedFavicons(MAX_FAVICON_CACHE_SIZE)
-  , mUnassociatedIcons(MAX_UNASSOCIATED_FAVICONS)
+  , mFailedFavicons(MAX_FAILED_FAVICONS / 2)
+  , mUnassociatedIcons(UNASSOCIATED_FAVICONS_LENGTH)
 {
   NS_ASSERTION(!gFaviconService,
                "Attempting to create two instances of the service!");
@@ -435,11 +435,11 @@ nsFaviconService::AddFailedFavicon(nsIURI* aFaviconURI)
   mFailedFavicons.Put(spec, mFailedFaviconSerial);
   mFailedFaviconSerial ++;
 
-  if (mFailedFavicons.Count() > MAX_FAVICON_CACHE_SIZE) {
+  if (mFailedFavicons.Count() > MAX_FAILED_FAVICONS) {
     
     
     uint32_t threshold = mFailedFaviconSerial -
-                         MAX_FAVICON_CACHE_SIZE + FAVICON_CACHE_REDUCE_COUNT;
+                         MAX_FAILED_FAVICONS + FAVICON_CACHE_REDUCE_COUNT;
     mFailedFavicons.Enumerate(ExpireFailedFaviconsCallback, &threshold);
   }
   return NS_OK;

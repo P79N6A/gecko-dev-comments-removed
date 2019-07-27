@@ -1725,7 +1725,7 @@ nsNPObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, NPObject *npobj)
   if (!sNPObjWrappers.ops) {
     
     PL_DHashTableInit(&sNPObjWrappers, PL_DHashGetStubOps(), nullptr,
-                      sizeof(NPObjWrapperHashEntry), 16);
+                      sizeof(NPObjWrapperHashEntry));
   }
 
   NPObjWrapperHashEntry *entry = static_cast<NPObjWrapperHashEntry *>

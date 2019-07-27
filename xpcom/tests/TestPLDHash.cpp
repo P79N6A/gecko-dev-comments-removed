@@ -21,8 +21,9 @@ static bool test_pldhash_Init_capacity_ok()
   
   PLDHashTable t;
   bool ok = PL_DHashTableInit(&t, PL_DHashGetStubOps(), nullptr,
-                              sizeof(PLDHashEntryStub), PL_DHASH_MAX_SIZE,
-                              mozilla::fallible_t());
+                              sizeof(PLDHashEntryStub),
+                              mozilla::fallible_t(),
+                              PL_DHASH_MAX_INITIAL_LENGTH);
   if (ok)
     PL_DHashTableFinish(&t);
 
@@ -34,8 +35,9 @@ static bool test_pldhash_Init_capacity_too_large()
   
   PLDHashTable t;
   bool ok = PL_DHashTableInit(&t, PL_DHashGetStubOps(), nullptr,
-                              sizeof(PLDHashEntryStub), PL_DHASH_MAX_SIZE + 1,
-                              mozilla::fallible_t());
+                              sizeof(PLDHashEntryStub),
+                              mozilla::fallible_t(),
+                              PL_DHASH_MAX_INITIAL_LENGTH + 1);
   
 
   return !ok;   
@@ -58,8 +60,8 @@ static bool test_pldhash_Init_overflow()
   
   PLDHashTable t;
   bool ok = PL_DHashTableInit(&t, nullptr, nullptr,
-                              sizeof(OneKBEntry), PL_DHASH_MAX_SIZE,
-                              mozilla::fallible_t());
+                              sizeof(OneKBEntry), mozilla::fallible_t(),
+                              PL_DHASH_MAX_INITIAL_LENGTH);
 
   return !ok;   
 }
@@ -89,8 +91,8 @@ static bool test_pldhash_grow_to_max_capacity()
   };
 
   PLDHashTable t;
-  bool ok = PL_DHashTableInit(&t, &ops, nullptr, sizeof(PLDHashEntryStub), 256,
-                              mozilla::fallible_t());
+  bool ok = PL_DHashTableInit(&t, &ops, nullptr, sizeof(PLDHashEntryStub),
+                              mozilla::fallible_t(), 128);
   if (!ok)
     return false;
 
@@ -105,7 +107,7 @@ static bool test_pldhash_grow_to_max_capacity()
 
   
   
-  return numInserted == PL_DHASH_MAX_SIZE - (PL_DHASH_MAX_SIZE >> 5);
+  return numInserted == PL_DHASH_MAX_CAPACITY - (PL_DHASH_MAX_CAPACITY >> 5);
 }
 #endif
 
