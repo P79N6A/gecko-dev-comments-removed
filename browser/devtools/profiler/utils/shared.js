@@ -85,12 +85,7 @@ ProfilerConnection.prototype = {
 
     
     
-    if (this._target.chrome) {
-      this._profiler = this._target.form.profilerActor;
-    }
-    
-    
-    else if (this._target.form && this._target.form.profilerActor) {
+    if (this._target.form && this._target.form.profilerActor) {
       this._profiler = this._target.form.profilerActor;
       yield this._registerEventNotifications();
     }
@@ -101,7 +96,8 @@ ProfilerConnection.prototype = {
       yield this._registerEventNotifications();
     }
     
-    else {
+    
+    else if (!this._target.chrome) {
       this._profiler = (yield listTabs(this._client)).profilerActor;
       yield this._registerEventNotifications();
     }
