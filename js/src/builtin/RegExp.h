@@ -93,6 +93,9 @@ regexp_test_no_statics(JSContext* cx, unsigned argc, Value* vp);
 extern bool
 regexp_construct_no_statics(JSContext* cx, unsigned argc, Value* vp);
 
+extern bool
+IsRegExp(JSContext* cx, HandleValue value, bool* result);
+
 
 extern bool
 regexp_construct(JSContext* cx, unsigned argc, Value* vp);
