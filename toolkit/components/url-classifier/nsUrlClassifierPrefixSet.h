@@ -19,6 +19,7 @@
 #include "mozilla/Mutex.h"
 #include "mozilla/CondVar.h"
 #include "mozilla/FileUtils.h"
+#include "mozilla/Atomics.h"
 
 class nsUrlClassifierPrefixSet MOZ_FINAL
   : public nsIUrlClassifierPrefixSet
@@ -35,11 +36,10 @@ public:
   NS_IMETHOD LoadFromFile(nsIFile* aFile);
   NS_IMETHOD StoreToFile(nsIFile* aFile);
 
+  size_t SizeInMemory() { return mMemoryInUse; };
+
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIMEMORYREPORTER
-
-  
-  size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf);
 
 protected:
   virtual ~nsUrlClassifierPrefixSet();
@@ -52,6 +52,9 @@ protected:
   uint32_t BinSearch(uint32_t start, uint32_t end, uint32_t target);
   nsresult LoadFromFd(mozilla::AutoFDClose& fileFd);
   nsresult StoreToFd(mozilla::AutoFDClose& fileFd);
+
+  
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf);
 
   
   
@@ -67,6 +70,9 @@ protected:
   
   uint32_t mTotalPrefixes;
 
+  
+  
+  mozilla::Atomic<size_t> mMemoryInUse;
   nsCString mMemoryReportPath;
 };
 
