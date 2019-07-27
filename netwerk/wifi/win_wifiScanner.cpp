@@ -2,6 +2,7 @@
 
 
 
+#include "nsWifiAccessPoint.h"
 #include "win_wifiScanner.h"
 
 
