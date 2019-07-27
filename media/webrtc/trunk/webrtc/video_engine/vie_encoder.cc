@@ -636,6 +636,7 @@ void ViEEncoder::DeliverFrame(int id,
     return;
   }
 #endif
+  
 
 #ifdef MOZ_WEBRTC_OMX
   

@@ -98,6 +98,7 @@ void VCMPacket::Reset() {
 void VCMPacket::CopyCodecSpecifics(const RTPVideoHeader& videoHeader) {
   switch (videoHeader.codec) {
     case kRtpVideoVp8:
+    case kRtpVideoVp9:
       
       
       
@@ -110,7 +111,7 @@ void VCMPacket::CopyCodecSpecifics(const RTPVideoHeader& videoHeader) {
       else
         completeNALU = kNaluIncomplete;
 
-      codec = kVideoCodecVP8;
+      codec = videoHeader.codec == kRtpVideoVp8 ? kVideoCodecVP8 : kVideoCodecVP9;
       return;
     case kRtpVideoH264:
       isFirstPacket = videoHeader.isFirstPacket;
