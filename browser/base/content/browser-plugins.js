@@ -1162,7 +1162,8 @@ var gPluginHandler = {
     let submitReports   = true; 
     let pluginName      = propBag.getPropertyAsAString("pluginName");
     let pluginDumpID    = propBag.getPropertyAsAString("pluginDumpID");
-    let browserDumpID = null;
+    let browserDumpID   = null;
+    let gmpPlugin       = false;
 
     try {
       browserDumpID = propBag.getPropertyAsAString("browserDumpID");
@@ -1170,8 +1171,16 @@ var gPluginHandler = {
       
     }
 
+    try {
+      gmpPlugin = propBag.getPropertyAsBool("gmpPlugin");
+    } catch (e) {
+      
+    }
+
     
-    pluginName = this.makeNicePluginName(pluginName);
+    if (!gmpPlugin) {
+      pluginName = this.makeNicePluginName(pluginName);
+    }
 
     let messageString = gNavigatorBundle.getFormattedString("crashedpluginsMessage.title", [pluginName]);
 
