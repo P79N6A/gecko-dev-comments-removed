@@ -119,6 +119,8 @@ let StackFrameCache = Class({
 
 
 
+
+
   makeEvent: function() {
     const size = this._framesToForms.size;
     if (!size || size <= this._lastEventSize) {
@@ -151,6 +153,7 @@ let StackFrameCache = Class({
 
     if (frame) {
       this._assignFrameIndices(frame.parent);
+      this._assignFrameIndices(frame.asyncParent);
     }
 
     const index = this._framesToIndices.size;
@@ -175,9 +178,12 @@ let StackFrameCache = Class({
         column: frame.column,
         source: frame.source,
         functionDisplayName: frame.functionDisplayName,
-        parent: this._framesToIndices.get(frame.parent)
+        parent: this._framesToIndices.get(frame.parent),
+        asyncParent: this._framesToIndices.get(frame.asyncParent),
+        asyncCause: frame.asyncCause
       };
       this._createFrameForms(frame.parent);
+      this._createFrameForms(frame.asyncParent);
     }
 
     this._framesToForms.set(frame, form);
