@@ -973,72 +973,15 @@ function injectLoopAPI(targetWindow) {
 
 
 
-
-
-
-    isSocialShareButtonAvailable: {
-      enumerable: true,
-      writable: true,
-      value: function() {
-        let win = Services.wm.getMostRecentWindow("navigator:browser");
-        if (!win || !win.CustomizableUI) {
-          return false;
-        }
-
-        let widget = win.CustomizableUI.getWidget(kShareWidgetId);
-        if (widget) {
-          if (!socialShareButtonListenersAdded) {
-            let eventName = "social:" + kShareWidgetId;
-            Services.obs.addObserver(onShareWidgetChanged, eventName + "-added", false);
-            Services.obs.addObserver(onShareWidgetChanged, eventName + "-removed", false);
-            socialShareButtonListenersAdded = true;
-          }
-          return !!widget.areaType;
-        }
-
-        return false;
-      }
-    },
-
-    
-
-
-
-    addSocialShareButton: {
-      enumerable: true,
-      writable: true,
-      value: function() {
-        
-        if (api.isSocialShareButtonAvailable.value()) {
-          return;
-        }
-
-        let win = Services.wm.getMostRecentWindow("navigator:browser");
-        if (!win || !win.CustomizableUI) {
-          return;
-        }
-        win.CustomizableUI.addWidgetToArea(kShareWidgetId, win.CustomizableUI.AREA_NAVBAR);
-      }
-    },
-
-    
-
-
-
     addSocialShareProvider: {
       enumerable: true,
       writable: true,
       value: function() {
-        
-        if (!api.isSocialShareButtonAvailable.value()) {
-          return;
-        }
-
         let win = Services.wm.getMostRecentWindow("navigator:browser");
         if (!win || !win.SocialShare) {
           return;
         }
-        win.SocialShare.showDirectory();
+        win.SocialShare.showDirectory(win.LoopUI.toolbarButton.anchor);
       }
     },
 
@@ -1087,7 +1030,8 @@ function injectLoopAPI(targetWindow) {
         if (body) {
           graphData.body = body;
         }
-        win.SocialShare.sharePage(providerOrigin, graphData);
+        win.SocialShare.sharePage(providerOrigin, graphData, null,
+          win.LoopUI.toolbarButton.anchor);
       }
     }
   };

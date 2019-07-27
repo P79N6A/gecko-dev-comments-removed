@@ -1749,11 +1749,7 @@ pref("social.sidebar.unload_timeout_ms", 10000);
 
 
 
-#ifdef EARLY_BETA_OR_EARLIER
 pref("social.share.activationPanelEnabled", true);
-#else
-pref("social.share.activationPanelEnabled", false);
-#endif
 pref("social.shareDirectory", "https://activations.cdn.mozilla.net/sharePanel.html");
 
 pref("dom.identity.enabled", false);

@@ -404,13 +404,6 @@ loop.shared.actions = (function() {
 
 
 
-    AddSocialShareButton: Action.define("addSocialShareButton", {
-    }),
-
-    
-
-
-
     AddSocialShareProvider: Action.define("addSocialShareProvider", {
     }),
 
@@ -436,7 +429,6 @@ loop.shared.actions = (function() {
       roomOwner: String,
       roomToken: String,
       roomUrl: String,
-      socialShareButtonAvailable: Boolean,
       socialShareProviders: Array
     }),
 
@@ -460,7 +452,6 @@ loop.shared.actions = (function() {
 
 
     UpdateSocialShareInfo: Action.define("updateSocialShareInfo", {
-      socialShareButtonAvailable: Boolean,
       socialShareProviders: Array
     }),
 
