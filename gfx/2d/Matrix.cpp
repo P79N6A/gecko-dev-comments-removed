@@ -227,6 +227,81 @@ Rect Matrix4x4::ProjectRectBounds(const Rect& aRect, const Rect &aClip) const
   return Rect(min_x, min_y, max_x - min_x, max_y - min_y);
 }
 
+
+size_t
+Matrix4x4::TransformAndClipRect(const Rect& aRect, const Rect& aClip, Point* aVerts) const
+{
+  
+  
+  Point4D points[2][kTransformAndClipRectMaxVerts];
+  Point4D* dstPoint = points[0];
+  *dstPoint++ = *this * Point4D(aRect.x, aRect.y, 0, 1);
+  *dstPoint++ = *this * Point4D(aRect.XMost(), aRect.y, 0, 1);
+  *dstPoint++ = *this * Point4D(aRect.XMost(), aRect.YMost(), 0, 1);
+  *dstPoint++ = *this * Point4D(aRect.x, aRect.YMost(), 0, 1);
+
+  
+  
+  Point4D planeNormals[4];
+  planeNormals[0] = Point4D(1.0, 0.0, 0.0, -aClip.x);
+  planeNormals[1] = Point4D(-1.0, 0.0, 0.0, aClip.XMost());
+  planeNormals[2] = Point4D(0.0, 1.0, 0.0, -aClip.y);
+  planeNormals[3] = Point4D(0.0, -1.0, 0.0, aClip.YMost());
+
+  
+  
+  
+  for (int plane=0; plane < 4; plane++) {
+    planeNormals[plane].Normalize();
+
+    Point4D* srcPoint = points[plane & 1];
+    Point4D* srcPointEnd = dstPoint;
+    dstPoint = points[~plane & 1];
+
+    Point4D* prevPoint = srcPointEnd - 1;
+    float prevDot = planeNormals[plane].DotProduct(*prevPoint);
+    while (srcPoint < srcPointEnd) {
+      float nextDot = planeNormals[plane].DotProduct(*srcPoint);
+
+      if ((nextDot >= 0.0) != (prevDot >= 0.0)) {
+        
+        
+        float t = -prevDot / (nextDot - prevDot);
+        *dstPoint++ = *srcPoint * t + *prevPoint * (1.0 - t);
+      }
+
+      if (nextDot >= 0.0) {
+        
+        
+        *dstPoint++ = *srcPoint;
+      }
+
+      prevPoint = srcPoint++;
+      prevDot = nextDot;
+    }
+  }
+
+  size_t dstPointCount = 0;
+  size_t srcPointCount = dstPoint - points[0];
+  for (Point4D* srcPoint = points[0]; srcPoint < points[0] + srcPointCount; srcPoint++) {
+
+    Point p;
+    if (srcPoint->w == 0.0) {
+      
+      
+      p = Point(0.0, 0.0);
+    } else {
+      p = srcPoint->As2DPoint();
+    }
+    
+    if (dstPointCount == 0 || p != aVerts[dstPointCount - 1]) {
+      aVerts[dstPointCount++] = p;
+    }
+  }
+
+  return dstPointCount;
+}
+
 bool
 Matrix4x4::Invert()
 {

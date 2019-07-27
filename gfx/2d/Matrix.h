@@ -482,7 +482,20 @@ public:
     return *this * Point4D(aPoint.x, aPoint.y, z, 1);
   }
 
-  Rect ProjectRectBounds(const Rect& aRect, const Rect &aClip) const;
+  Rect ProjectRectBounds(const Rect& aRect, const Rect& aClip) const;
+
+  
+
+
+
+
+
+
+
+
+
+  size_t TransformAndClipRect(const Rect& aRect, const Rect& aClip, Point* aVerts) const;
+  static const size_t kTransformAndClipRectMaxVerts = 32;
 
   static Matrix4x4 From2D(const Matrix &aMatrix) {
     Matrix4x4 matrix;
