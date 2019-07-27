@@ -527,6 +527,7 @@ struct JSCompartment
         DeprecatedExpressionClosure = 3,    
         DeprecatedLetBlock = 4,             
         DeprecatedLetExpression = 5,        
+        DeprecatedNoSuchMethod = 6,         
         DeprecatedLanguageExtensionCount
     };
 
