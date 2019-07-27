@@ -4186,7 +4186,6 @@ RestyleManager::StructsToLog()
 }
 #endif
 
-#ifdef DEBUG
  nsCString
 RestyleManager::RestyleHintToString(nsRestyleHint aHint)
 {
@@ -4219,6 +4218,7 @@ RestyleManager::RestyleHintToString(nsRestyleHint aHint)
   return result;
 }
 
+#ifdef DEBUG
  nsCString
 RestyleManager::ChangeHintToString(nsChangeHint aHint)
 {
