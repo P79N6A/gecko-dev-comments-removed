@@ -135,6 +135,8 @@ class MessageChannel : HasResultCodes
         return !mCxxStackFrames.empty();
     }
 
+    void CancelCurrentTransaction();
+
     
 
 
@@ -264,6 +266,8 @@ class MessageChannel : HasResultCodes
     bool WaitResponse(bool aWaitTimedOut);
 
     bool ShouldContinueFromTimeout();
+
+    void CancelCurrentTransactionInternal();
 
     
     
@@ -546,17 +550,21 @@ class MessageChannel : HasResultCodes
 
     class AutoEnterTransaction
     {
-      public:
+     public:
        explicit AutoEnterTransaction(MessageChannel *aChan, int32_t aMsgSeqno)
         : mChan(aChan),
+          mNewTransaction(0),
           mOldTransaction(mChan->mCurrentTransaction)
        {
            mChan->mMonitor->AssertCurrentThreadOwns();
-           if (mChan->mCurrentTransaction == 0)
+           if (mChan->mCurrentTransaction == 0) {
+               mNewTransaction = aMsgSeqno;
                mChan->mCurrentTransaction = aMsgSeqno;
+           }
        }
        explicit AutoEnterTransaction(MessageChannel *aChan, const Message &aMessage)
         : mChan(aChan),
+          mNewTransaction(aMessage.transaction_id()),
           mOldTransaction(mChan->mCurrentTransaction)
        {
            mChan->mMonitor->AssertCurrentThreadOwns();
@@ -570,12 +578,14 @@ class MessageChannel : HasResultCodes
        }
        ~AutoEnterTransaction() {
            mChan->mMonitor->AssertCurrentThreadOwns();
-           mChan->mCurrentTransaction = mOldTransaction;
+           if (mChan->mCurrentTransaction == mNewTransaction) {
+               mChan->mCurrentTransaction = mOldTransaction;
+           }
        }
 
       private:
        MessageChannel *mChan;
-       int32_t mOldTransaction;
+       int32_t mNewTransaction, mOldTransaction;
     };
 
     
