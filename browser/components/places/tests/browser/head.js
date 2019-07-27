@@ -11,16 +11,16 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesTestUtils",
 
 
 let cachedLeftPaneFolderIdGetter;
-let (getter = PlacesUIUtils.__lookupGetter__("leftPaneFolderId")) {
-  if (!cachedLeftPaneFolderIdGetter && typeof(getter) == "function")
-    cachedLeftPaneFolderIdGetter = getter;
+let getter = PlacesUIUtils.__lookupGetter__("leftPaneFolderId");
+if (!cachedLeftPaneFolderIdGetter && typeof(getter) == "function") {
+  cachedLeftPaneFolderIdGetter = getter;
 }
 
+
 registerCleanupFunction(function(){
-  let (getter = PlacesUIUtils.__lookupGetter__("leftPaneFolderId")) {
-    if (cachedLeftPaneFolderIdGetter && typeof(getter) != "function")
-      PlacesUIUtils.__defineGetter__("leftPaneFolderId",
-                                     cachedLeftPaneFolderIdGetter);
+  let getter = PlacesUIUtils.__lookupGetter__("leftPaneFolderId");
+  if (cachedLeftPaneFolderIdGetter && typeof(getter) != "function") {
+    PlacesUIUtils.__defineGetter__("leftPaneFolderId", cachedLeftPaneFolderIdGetter);
   }
 });
 

@@ -27,10 +27,9 @@ function test() {
 
   
   
-  let (sessionStoreJS = getSessionstoreFile()) {
-    if (sessionStoreJS.exists())
-      sessionStoreJS.remove(false);
-  }
+  let sessionStoreJS = getSessionstoreFile();
+  if (sessionStoreJS.exists())
+    sessionStoreJS.remove(false);
 
   
   const TEST_URL = "data:text/html;charset=utf-8,"
