@@ -18,7 +18,7 @@ function runTests() {
   let expectedValues = [1, 1, 1, 1, 8, 10];
 
    
-  let previousValues = [24, 1, 1, 1, 1, 8];
+  let previousValues = [9, 1, 1, 1, 1, 8];
 
   let existingTab, existingTabGridLength, newTab, newTabGridLength;
   yield addNewTabPageTab();
