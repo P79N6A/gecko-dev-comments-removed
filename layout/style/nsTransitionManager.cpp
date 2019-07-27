@@ -73,6 +73,58 @@ ElementPropertyTransition::CurrentValuePortion() const
 
 
 void
+nsTransitionManager::UpdateThrottledStylesForSubtree(nsIContent* aContent,
+                                                     nsStyleContext* aParentStyle,
+                                                     nsStyleChangeList& aChangeList)
+{
+  dom::Element* element;
+  if (aContent->IsElement()) {
+    element = aContent->AsElement();
+  } else {
+    element = nullptr;
+  }
+
+  nsRefPtr<nsStyleContext> newStyle;
+
+  ElementAnimationCollection* collection;
+  if (element &&
+      (collection =
+        GetElementTransitions(element,
+                              nsCSSPseudoElements::ePseudo_NotPseudoElement,
+                              false))) {
+    
+    newStyle = UpdateThrottledStyle(element, aParentStyle, aChangeList);
+    
+    collection->mFlushGeneration =
+      mPresContext->RefreshDriver()->MostRecentRefresh();
+  } else {
+    newStyle = ReparentContent(aContent, aParentStyle);
+  }
+
+  
+  if (newStyle) {
+    for (nsIContent *child = aContent->GetFirstChild(); child;
+         child = child->GetNextSibling()) {
+      UpdateThrottledStylesForSubtree(child, newStyle, aChangeList);
+    }
+  }
+}
+
+IMPL_UPDATE_ALL_THROTTLED_STYLES_INTERNAL(nsTransitionManager,
+                                          GetElementTransitions)
+
+void
+nsTransitionManager::UpdateAllThrottledStyles()
+{
+  if (PR_CLIST_IS_EMPTY(&mElementCollections)) {
+    
+    return;
+  }
+
+  UpdateAllThrottledStylesInternal();
+}
+
+void
 nsTransitionManager::ElementCollectionRemoved()
 {
   
@@ -110,15 +162,6 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
   NS_PRECONDITION(aOldStyleContext->HasPseudoElementData() ==
                       aNewStyleContext->HasPseudoElementData(),
                   "pseudo type mismatch");
-
-  if (mInAnimationOnlyStyleUpdate) {
-    
-    
-    
-    
-    
-    return nullptr;
-  }
 
   if (!mPresContext->IsDynamic()) {
     

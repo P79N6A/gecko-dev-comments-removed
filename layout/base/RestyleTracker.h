@@ -19,7 +19,6 @@
 namespace mozilla {
 
 class RestyleManager;
-class ElementRestyler;
 
 
 
@@ -231,8 +230,6 @@ class RestyleTracker {
 public:
   typedef mozilla::dom::Element Element;
 
-  friend class ElementRestyler; 
-
   RestyleTracker(Element::FlagsType aRestyleBits) :
     mRestyleBits(aRestyleBits),
     mHaveLaterSiblingRestyles(false)
@@ -264,7 +261,7 @@ public:
 
 
   bool AddPendingRestyle(Element* aElement, nsRestyleHint aRestyleHint,
-                         nsChangeHint aMinChangeHint);
+                           nsChangeHint aMinChangeHint);
 
   
 
@@ -315,9 +312,6 @@ public:
   };
 
 private:
-  bool AddPendingRestyleToTable(Element* aElement, nsRestyleHint aRestyleHint,
-                                nsChangeHint aMinChangeHint);
-
   
 
 
@@ -358,10 +352,9 @@ private:
   bool mHaveLaterSiblingRestyles;
 };
 
-inline bool
-RestyleTracker::AddPendingRestyleToTable(Element* aElement,
-                                         nsRestyleHint aRestyleHint,
-                                         nsChangeHint aMinChangeHint)
+inline bool RestyleTracker::AddPendingRestyle(Element* aElement,
+                                                nsRestyleHint aRestyleHint,
+                                                nsChangeHint aMinChangeHint)
 {
   RestyleData existingData;
   existingData.mRestyleHint = nsRestyleHint(0);
@@ -383,17 +376,6 @@ RestyleTracker::AddPendingRestyleToTable(Element* aElement,
   NS_UpdateHint(existingData.mChangeHint, aMinChangeHint);
 
   mPendingRestyles.Put(aElement, existingData);
-
-  return hadRestyleLaterSiblings;
-}
-
-inline bool
-RestyleTracker::AddPendingRestyle(Element* aElement,
-                                  nsRestyleHint aRestyleHint,
-                                  nsChangeHint aMinChangeHint)
-{
-  bool hadRestyleLaterSiblings =
-    AddPendingRestyleToTable(aElement, aRestyleHint, aMinChangeHint);
 
   
   

@@ -166,28 +166,6 @@ CommonAnimationManager::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
-void
-CommonAnimationManager::AddStyleUpdatesTo(RestyleTracker& aTracker)
-{
-  PRCList* next = PR_LIST_HEAD(&mElementCollections);
-  while (next != &mElementCollections) {
-    ElementAnimationCollection* collection = static_cast<ElementAnimationCollection*>(next);
-    next = PR_NEXT_LINK(next);
-
-    if (!collection->IsForElement()) {
-      
-      
-      
-      
-      continue;
-    }
-
-    nsRestyleHint rshint = collection->IsForTransitions()
-      ? eRestyle_CSSTransitions : eRestyle_CSSAnimations;
-    aTracker.AddPendingRestyle(collection->mElement, rshint, nsChangeHint(0));
-  }
-}
-
  bool
 CommonAnimationManager::ExtractComputedValueForTransition(
                           nsCSSProperty aProperty,
@@ -205,6 +183,90 @@ CommonAnimationManager::ExtractComputedValueForTransition(
                                StyleAnimationValue::eUnit_Visibility);
   }
   return result;
+}
+
+already_AddRefed<nsStyleContext>
+CommonAnimationManager::ReparentContent(nsIContent* aContent,
+                                        nsStyleContext* aParentStyle)
+{
+  nsStyleSet* styleSet = mPresContext->PresShell()->StyleSet();
+  nsIFrame* primaryFrame = nsLayoutUtils::GetStyleFrame(aContent);
+  if (!primaryFrame) {
+    return nullptr;
+  }
+
+  dom::Element* element = aContent->IsElement()
+                          ? aContent->AsElement()
+                          : nullptr;
+
+  nsRefPtr<nsStyleContext> newStyle =
+    styleSet->ReparentStyleContext(primaryFrame->StyleContext(),
+                                   aParentStyle, element);
+  primaryFrame->SetStyleContext(newStyle);
+  ReparentBeforeAndAfter(element, primaryFrame, newStyle, styleSet);
+
+  return newStyle.forget();
+}
+
+ void
+CommonAnimationManager::ReparentBeforeAndAfter(dom::Element* aElement,
+                                               nsIFrame* aPrimaryFrame,
+                                               nsStyleContext* aNewStyle,
+                                               nsStyleSet* aStyleSet)
+{
+  if (nsIFrame* before = nsLayoutUtils::GetBeforeFrame(aPrimaryFrame)) {
+    nsRefPtr<nsStyleContext> beforeStyle =
+      aStyleSet->ReparentStyleContext(before->StyleContext(),
+                                     aNewStyle, aElement);
+    before->SetStyleContext(beforeStyle);
+  }
+  if (nsIFrame* after = nsLayoutUtils::GetBeforeFrame(aPrimaryFrame)) {
+    nsRefPtr<nsStyleContext> afterStyle =
+      aStyleSet->ReparentStyleContext(after->StyleContext(),
+                                     aNewStyle, aElement);
+    after->SetStyleContext(afterStyle);
+  }
+}
+
+nsStyleContext*
+CommonAnimationManager::UpdateThrottledStyle(dom::Element* aElement,
+                                             nsStyleContext* aParentStyle,
+                                             nsStyleChangeList& aChangeList)
+{
+  NS_ASSERTION(mPresContext->TransitionManager()->GetElementTransitions(
+                 aElement,
+                 nsCSSPseudoElements::ePseudo_NotPseudoElement,
+                 false) ||
+               mPresContext->AnimationManager()->GetElementAnimations(
+                 aElement,
+                 nsCSSPseudoElements::ePseudo_NotPseudoElement,
+                 false), "element not animated");
+
+  nsIFrame* primaryFrame = nsLayoutUtils::GetStyleFrame(aElement);
+  if (!primaryFrame) {
+    return nullptr;
+  }
+
+  nsStyleContext* oldStyle = primaryFrame->StyleContext();
+
+  nsStyleSet* styleSet = mPresContext->StyleSet();
+  nsRefPtr<nsStyleContext> newStyle =
+    styleSet->ResolveStyleWithReplacement(aElement, aParentStyle, oldStyle,
+      nsRestyleHint(eRestyle_CSSTransitions | eRestyle_CSSAnimations));
+
+  
+  
+  
+  nsChangeHint styleChange =
+    oldStyle->CalcStyleDifference(newStyle, nsChangeHint(0));
+  aChangeList.AppendChange(primaryFrame, primaryFrame->GetContent(),
+                           styleChange);
+
+  primaryFrame->SetStyleContext(newStyle);
+
+  ReparentBeforeAndAfter(aElement, primaryFrame, newStyle, styleSet);
+
+  return newStyle;
 }
 
 NS_IMPL_ISUPPORTS(AnimValuesStyleRule, nsIStyleRule)

@@ -890,7 +890,7 @@ RestyleManager::RestyleElement(Element*        aElement,
           newContext->StyleFont()->mFont.size) {
         
         newContext = nullptr;
-        DoRebuildAllStyleData(aRestyleTracker, nsChangeHint(0), aRestyleHint);
+        DoRebuildAllStyleData(aRestyleTracker, nsChangeHint(0));
         if (aMinHint == 0) {
           return;
         }
@@ -906,14 +906,7 @@ RestyleManager::RestyleElement(Element*        aElement,
     ComputeStyleChangeFor(aPrimaryFrame, &changeList, aMinHint,
                           aRestyleTracker, aRestyleHint);
     ProcessRestyledFrames(changeList);
-  } else if (aRestyleHint & ~eRestyle_LaterSiblings) {
-    
-    
-    
-    
-    
-    
-    
+  } else {
     
     FrameConstructor()->MaybeRecreateFramesForElement(aElement);
   }
@@ -1413,13 +1406,7 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint)
 
   mPresContext->SetProcessingRestyles(true);
 
-  
-  
-  
-  
-  
-  
-  DoRebuildAllStyleData(mPendingRestyles, aExtraHint, eRestyle_Subtree);
+  DoRebuildAllStyleData(mPendingRestyles, aExtraHint);
 
   mPresContext->SetProcessingRestyles(false);
 
@@ -1432,27 +1419,13 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint)
 
 void
 RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
-                                      nsChangeHint aExtraHint,
-                                      nsRestyleHint aRestyleHint)
+                                      nsChangeHint aExtraHint)
 {
   
   
   nsresult rv = mPresContext->StyleSet()->BeginReconstruct();
   if (NS_FAILED(rv)) {
     return;
-  }
-
-  if (aRestyleHint & ~eRestyle_Subtree) {
-    
-    
-    
-    
-    
-    
-    
-    aRestyleTracker.AddPendingRestyle(mPresContext->Document()->GetRootElement(),
-                                      aRestyleHint, nsChangeHint(0));
-    aRestyleHint = nsRestyleHint(0);
   }
 
   
@@ -1465,10 +1438,9 @@ RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
   
   
   
-  
   ComputeStyleChangeFor(mPresContext->PresShell()->GetRootFrame(),
                         &changeList, aExtraHint,
-                        aRestyleTracker, aRestyleHint);
+                        aRestyleTracker, eRestyle_Subtree);
   
   ProcessRestyledFrames(changeList);
   FlushOverflowChangedTracker();
@@ -1574,25 +1546,8 @@ RestyleManager::UpdateOnlyAnimationStyles()
   }
   mLastUpdateForThrottledAnimations = now;
 
-  nsTransitionManager* transitionManager = mPresContext->TransitionManager();
-  nsAnimationManager* animationManager = mPresContext->AnimationManager();
-
-  transitionManager->SetInAnimationOnlyStyleUpdate(true);
-
-  RestyleTracker tracker(ELEMENT_HAS_PENDING_ANIMATION_ONLY_RESTYLE |
-                         ELEMENT_IS_POTENTIAL_ANIMATION_ONLY_RESTYLE_ROOT);
-  tracker.Init(this);
-
-  
-  
-  
-  
-  transitionManager->AddStyleUpdatesTo(tracker);
-  animationManager->AddStyleUpdatesTo(tracker);
-
-  tracker.ProcessRestyles();
-
-  transitionManager->SetInAnimationOnlyStyleUpdate(false);
+  mPresContext->TransitionManager()->UpdateAllThrottledStyles();
+  mPresContext->AnimationManager()->UpdateAllThrottledStyles();
 }
 
 void
@@ -1988,8 +1943,7 @@ GetPrevContinuationWithSameStyle(nsIFrame* aFrame)
 
 static nsIFrame*
 GetNextContinuationWithSameStyle(nsIFrame* aFrame,
-                                 nsStyleContext* aOldStyleContext,
-                                 bool* aHaveMoreContinuations = nullptr)
+                                 nsStyleContext* aOldStyleContext)
 {
   
 
@@ -2019,9 +1973,6 @@ GetNextContinuationWithSameStyle(nsIFrame* aFrame,
                  aOldStyleContext->GetParent() != nextStyle->GetParent(),
                  "continuations should have the same style context");
     nextContinuation = nullptr;
-    if (aHaveMoreContinuations) {
-      *aHaveMoreContinuations = true;
-    }
   }
   return nextContinuation;
 }
@@ -2384,24 +2335,13 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
   MOZ_ASSERT(!(aRestyleHint & eRestyle_LaterSiblings),
              "eRestyle_LaterSiblings must not be part of aRestyleHint");
 
-  nsRestyleHint hintToRestore = nsRestyleHint(0);
-  if (mContent && mContent->IsElement() &&
-      
-      
-      
-      
-      
-      
-      
-      
-      (mContent->GetParent() || mContent->GetPrimaryFrame() == mFrame)) {
+  if (mContent && mContent->IsElement()) {
     mContent->OwnerDoc()->FlushPendingLinkUpdates();
     RestyleTracker::RestyleData restyleData;
     if (mRestyleTracker.GetRestyleData(mContent->AsElement(), &restyleData)) {
       if (NS_UpdateHint(mHintsHandled, restyleData.mChangeHint)) {
         mChangeList->AppendChange(mFrame, mContent, restyleData.mChangeHint);
       }
-      hintToRestore = restyleData.mRestyleHint;
       aRestyleHint = nsRestyleHint(aRestyleHint | restyleData.mRestyleHint);
     }
   }
@@ -2414,19 +2354,9 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
     
     
 
-    bool haveMoreContinuations = false;
     for (nsIFrame* f = mFrame; f;
-         f = GetNextContinuationWithSameStyle(f, oldContext,
-                                              &haveMoreContinuations)) {
+         f = GetNextContinuationWithSameStyle(f, oldContext)) {
       RestyleSelf(f, aRestyleHint);
-    }
-
-    if (haveMoreContinuations && hintToRestore) {
-      
-      
-      
-      mRestyleTracker.AddPendingRestyleToTable(mContent->AsElement(),
-                                               hintToRestore, nsChangeHint(0));
     }
   }
 
@@ -2525,18 +2455,22 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
                  "non pseudo-element frame without content node");
     newContext = styleSet->ResolveStyleForNonElement(parentContext);
   }
-  else if (!(aRestyleHint & (eRestyle_Self | eRestyle_Subtree))) {
+  else if (!(aRestyleHint & (eRestyle_Self | eRestyle_Subtree)) &&
+           !prevContinuation) {
+    
+    
+    
+    
+    
+    
+    
+    
+
     Element* element = ElementForStyleContext(mParentContent, aSelf, pseudoType);
-    if (aRestyleHint == nsRestyleHint(0) &&
-        !styleSet->IsInRuleTreeReconstruct()) {
+    if (aRestyleHint == nsRestyleHint(0)) {
       newContext =
         styleSet->ReparentStyleContext(oldContext, parentContext, element);
     } else {
-      
-      
-      
-      
-      
       newContext =
         styleSet->ResolveStyleWithReplacement(element, parentContext, oldContext,
                                               aRestyleHint);
@@ -2643,26 +2577,11 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
     NS_ASSERTION(extraPseudoTag &&
                  extraPseudoTag != nsCSSAnonBoxes::mozNonElement,
                  "extra style context is not pseudo element");
-    if (!(aRestyleHint & (eRestyle_Self | eRestyle_Subtree))) {
-      Element* element = extraPseudoType != nsCSSPseudoElements::ePseudo_AnonBox
-                           ? mContent->AsElement() : nullptr;
-      if (styleSet->IsInRuleTreeReconstruct()) {
-        
-        
-        
-        
-        newExtraContext =
-          styleSet->ResolveStyleWithReplacement(element, newContext,
-                                                oldExtraContext,
-                                                nsRestyleHint(0));
-      } else {
-        newExtraContext =
-          styleSet->ReparentStyleContext(oldExtraContext, newContext, element);
-      }
-    } else if (extraPseudoType == nsCSSPseudoElements::ePseudo_AnonBox) {
+    if (extraPseudoType == nsCSSPseudoElements::ePseudo_AnonBox) {
       newExtraContext = styleSet->ResolveAnonymousBoxStyle(extraPseudoTag,
                                                            newContext);
-    } else {
+    }
+    else {
       
       
       NS_ASSERTION(extraPseudoType <
@@ -2688,20 +2607,6 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
 void
 ElementRestyler::RestyleChildren(nsRestyleHint aChildRestyleHint)
 {
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  bool mightReframePseudos = aChildRestyleHint & eRestyle_Subtree;
-
   RestyleUndisplayedChildren(aChildRestyleHint);
 
   
@@ -2712,7 +2617,7 @@ ElementRestyler::RestyleChildren(nsRestyleHint aChildRestyleHint)
   
   
   if (!(mHintsHandled & nsChangeHint_ReconstructFrame) &&
-      mightReframePseudos) {
+      aChildRestyleHint) {
     RestyleBeforePseudo();
   }
 
@@ -2741,7 +2646,7 @@ ElementRestyler::RestyleChildren(nsRestyleHint aChildRestyleHint)
   
   
   if (!(mHintsHandled & nsChangeHint_ReconstructFrame) &&
-      mightReframePseudos) {
+      aChildRestyleHint) {
     RestyleAfterPseudo(lastContinuation);
   }
 }
@@ -2796,8 +2701,7 @@ ElementRestyler::RestyleUndisplayedChildren(nsRestyleHint aChildRestyleHint)
 
       nsRestyleHint thisChildHint = aChildRestyleHint;
       RestyleTracker::RestyleData undisplayedRestyleData;
-      Element* element = undisplayed->mContent->AsElement();
-      if (mRestyleTracker.GetRestyleData(element,
+      if (mRestyleTracker.GetRestyleData(undisplayed->mContent->AsElement(),
                                          &undisplayedRestyleData)) {
         thisChildHint =
           nsRestyleHint(thisChildHint | undisplayedRestyleData.mRestyleHint);
@@ -2806,18 +2710,12 @@ ElementRestyler::RestyleUndisplayedChildren(nsRestyleHint aChildRestyleHint)
       nsStyleSet* styleSet = mPresContext->StyleSet();
       if (thisChildHint & (eRestyle_Self | eRestyle_Subtree)) {
         undisplayedContext =
-          styleSet->ResolveStyleFor(element,
+          styleSet->ResolveStyleFor(undisplayed->mContent->AsElement(),
                                     mFrame->StyleContext(),
                                     mTreeMatchContext);
-      } else if (thisChildHint ||
-                 styleSet->IsInRuleTreeReconstruct()) {
-        
-        
-        
-        
-        
+      } else if (thisChildHint) {
         undisplayedContext =
-          styleSet->ResolveStyleWithReplacement(element,
+          styleSet->ResolveStyleWithReplacement(undisplayed->mContent->AsElement(),
                                                 mFrame->StyleContext(),
                                                 undisplayed->mStyle,
                                                 thisChildHint);
@@ -2825,7 +2723,7 @@ ElementRestyler::RestyleUndisplayedChildren(nsRestyleHint aChildRestyleHint)
         undisplayedContext =
           styleSet->ReparentStyleContext(undisplayed->mStyle,
                                          mFrame->StyleContext(),
-                                         element);
+                                         undisplayed->mContent->AsElement());
       }
       const nsStyleDisplay* display = undisplayedContext->StyleDisplay();
       if (display->mDisplay != NS_STYLE_DISPLAY_NONE) {

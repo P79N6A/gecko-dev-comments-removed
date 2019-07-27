@@ -67,7 +67,6 @@ class nsTransitionManager MOZ_FINAL
 public:
   nsTransitionManager(nsPresContext *aPresContext)
     : mozilla::css::CommonAnimationManager(aPresContext)
-    , mInAnimationOnlyStyleUpdate(false)
   {
   }
 
@@ -118,10 +117,6 @@ public:
                         nsStyleContext *aOldStyleContext,
                         nsStyleContext *aNewStyleContext);
 
-  void SetInAnimationOnlyStyleUpdate(bool aInAnimationOnlyUpdate) {
-    mInAnimationOnlyStyleUpdate = aInAnimationOnlyUpdate;
-  }
-
   
   virtual void RulesMatching(ElementRuleProcessorData* aData) MOZ_OVERRIDE;
   virtual void RulesMatching(PseudoElementRuleProcessorData* aData) MOZ_OVERRIDE;
@@ -138,6 +133,27 @@ public:
   virtual void WillRefresh(mozilla::TimeStamp aTime) MOZ_OVERRIDE;
 
   void FlushTransitions(FlushFlags aFlags);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  void UpdateAllThrottledStyles();
 
   ElementAnimationCollection* GetElementTransitions(
     mozilla::dom::Element *aElement,
@@ -161,8 +177,13 @@ private:
                              nsCSSPropertySet* aWhichStarted);
   void WalkTransitionRule(ElementDependentRuleProcessorData* aData,
                           nsCSSPseudoElements::Type aPseudoType);
-
-  bool mInAnimationOnlyStyleUpdate;
+  
+  
+  
+  void UpdateThrottledStylesForSubtree(nsIContent* aContent,
+                                       nsStyleContext* aParentStyle,
+                                       nsStyleChangeList &aChangeList);
+  void UpdateAllThrottledStylesInternal();
 };
 
 #endif 

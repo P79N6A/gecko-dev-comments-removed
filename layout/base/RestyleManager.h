@@ -164,26 +164,6 @@ public:
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   void UpdateOnlyAnimationStyles();
 
   bool ThrottledAnimationStyleIsUpToDate() const {
@@ -199,8 +179,7 @@ public:
   
   
   void DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
-                             nsChangeHint aExtraHint,
-                             nsRestyleHint aRestyleHint);
+                             nsChangeHint aExtraHint);
 
   
   void PostRestyleEvent(Element* aElement,
