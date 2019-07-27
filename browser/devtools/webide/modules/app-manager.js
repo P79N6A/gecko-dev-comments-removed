@@ -217,11 +217,25 @@ let AppManager = exports.AppManager = {
 
   getTarget: function() {
     if (this.selectedProject.type == "mainProcess") {
-      return devtools.TargetFactory.forRemoteTab({
-        form: this._listTabsResponse,
-        client: this.connection.client,
-        chrome: true
-      });
+      
+      if (this.connection.client.mainRoot.traits.allowChromeProcess) {
+        return this.connection.client.attachProcess()
+                   .then(aResponse => {
+                     return devtools.TargetFactory.forRemoteTab({
+                       form: aResponse.form,
+                       client: this.connection.client,
+                       chrome: true
+                     });
+                   });
+      } else {
+        
+        return devtools.TargetFactory.forRemoteTab({
+          form: this._listTabsResponse,
+          client: this.connection.client,
+          chrome: true,
+          isTabActor: false
+        });
+      }
     }
 
     if (this.selectedProject.type == "tab") {
@@ -414,8 +428,12 @@ let AppManager = exports.AppManager = {
   },
 
   isMainProcessDebuggable: function() {
-    return this._listTabsResponse &&
-           this._listTabsResponse.consoleActor;
+    
+    
+    return this.connection.client &&
+           this.connection.client.mainRoot.traits.allowChromeProcess ||
+           (this._listTabsResponse &&
+            this._listTabsResponse.consoleActor);
   },
 
   get deviceFront() {

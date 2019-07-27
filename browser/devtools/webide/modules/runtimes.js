@@ -575,6 +575,7 @@ let gLocalRuntime = {
       DebuggerServer.init();
       DebuggerServer.addBrowserActors();
     }
+    DebuggerServer.allowChromeProcess = true;
     connection.host = null; 
     connection.port = null;
     connection.connect();
