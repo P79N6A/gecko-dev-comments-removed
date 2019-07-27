@@ -140,7 +140,7 @@ nsAboutProtocolHandler::NewChannel2(nsIURI* uri,
 
     if (NS_SUCCEEDED(rv)) {
         
-        rv = aboutMod->NewChannel(uri, result);
+        rv = aboutMod->NewChannel(uri, aLoadInfo, result);
         if (NS_SUCCEEDED(rv)) {
             
             
