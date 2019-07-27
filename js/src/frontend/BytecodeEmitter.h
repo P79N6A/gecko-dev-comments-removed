@@ -88,6 +88,18 @@ struct StmtInfoBCE;
 typedef Vector<jsbytecode, 0> BytecodeVector;
 typedef Vector<jssrcnote, 0> SrcNotesVector;
 
+
+
+
+
+
+
+enum VarEmitOption {
+    DefineVars        = 0,
+    PushInitialValues = 1,
+    InitializeVars    = 2
+};
+
 struct BytecodeEmitter
 {
     typedef StmtInfoBCE StmtInfo;
@@ -292,6 +304,8 @@ struct BytecodeEmitter
     
     ptrdiff_t emitN(JSOp op, size_t extra);
 
+    bool emitNumberOp(double dval);
+
     ptrdiff_t emitJump(JSOp op, ptrdiff_t off);
     bool emitCall(JSOp op, uint16_t argc, ParseNode *pn = nullptr);
 
@@ -331,6 +345,57 @@ struct BytecodeEmitter
 
     bool emitVarOp(ParseNode *pn, JSOp op);
     bool emitVarIncDec(ParseNode *pn);
+
+    bool emitNameOp(ParseNode *pn, bool callContext);
+    bool emitNameIncDec(ParseNode *pn);
+
+    bool maybeEmitVarDecl(JSOp prologOp, ParseNode *pn, jsatomid *result);
+    bool emitVariables(ParseNode *pn, VarEmitOption emitOption, bool isLetExpr = false);
+
+    bool emitNewInit(JSProtoKey key);
+
+    bool emitPrepareIteratorResult();
+    bool emitFinishIteratorResult(bool done);
+
+    bool emitYieldOp(JSOp op);
+
+    bool emitPropLHS(ParseNode *pn, JSOp op);
+    bool emitPropOp(ParseNode *pn, JSOp op);
+    bool emitPropIncDec(ParseNode *pn);
+
+    
+    
+    
+    bool emitElemOperands(ParseNode *pn, JSOp op);
+
+    bool emitElemOpBase(JSOp op);
+    bool emitElemOp(ParseNode *pn, JSOp op);
+    bool emitElemIncDec(ParseNode *pn);
+
+    MOZ_NEVER_INLINE bool emitSwitch(ParseNode *pn);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool emitDestructuringLHS(ParseNode *target, VarEmitOption emitOption);
+
+    
+    
+    bool emitIteratorNext(ParseNode *pn);
+
+    
+    
+    bool emitDefault(ParseNode *defaultExpr);
+
+    bool emitTemplateString(ParseNode *pn);
+    bool emitAssignment(ParseNode *lhs, JSOp op, ParseNode *rhs);
 };
 
 
