@@ -176,6 +176,16 @@
 
 
 
+#ifdef __GNUC__
+#define MOZ_FORMAT_PRINTF(stringIndex, firstToCheck)  \
+    __attribute__ ((format (printf, stringIndex, firstToCheck)))
+#else
+#define MOZ_FORMAT_PRINTF(stringIndex, firstToCheck)
+#endif
+
+
+
+
 #define NS_IMETHOD          NS_IMETHOD_(nsresult)
 #define NS_IMETHODIMP       NS_IMETHODIMP_(nsresult)
 #define NS_METHOD           NS_METHOD_(nsresult)
