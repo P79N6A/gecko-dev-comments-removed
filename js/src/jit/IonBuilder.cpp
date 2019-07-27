@@ -11164,6 +11164,95 @@ IonBuilder::jsop_in_dense()
     return true;
 }
 
+static bool
+HasOnProtoChain(types::CompilerConstraintList *constraints, types::TypeObjectKey *object,
+                JSObject *protoObject, bool *hasOnProto)
+{
+    MOZ_ASSERT(protoObject);
+
+    while (true) {
+        if (object->unknownProperties() ||
+            !object->clasp()->isNative() ||
+            !object->hasTenuredProto())
+        {
+            return false;
+        }
+
+        
+        object->hasFlags(constraints, types::OBJECT_FLAG_UNKNOWN_PROPERTIES);
+
+        JSObject *proto = object->proto().toObjectOrNull();
+        if (!proto) {
+            *hasOnProto = false;
+            return true;
+        }
+
+        if (proto == protoObject) {
+            *hasOnProto = true;
+            return true;
+        }
+
+        object = types::TypeObjectKey::get(proto);
+    }
+
+    MOZ_CRASH("Unreachable");
+}
+
+bool
+IonBuilder::tryFoldInstanceOf(MDefinition *lhs, JSObject *protoObject)
+{
+    
+
+    if (!lhs->mightBeType(MIRType_Object)) {
+        
+        lhs->setImplicitlyUsedUnchecked();
+        pushConstant(BooleanValue(false));
+        return true;
+    }
+
+    types::TemporaryTypeSet *lhsTypes = lhs->resultTypeSet();
+    if (!lhsTypes || lhsTypes->unknownObject())
+        return false;
+
+    
+    
+    bool isFirst = true;
+    bool knownIsInstance = false;
+
+    for (unsigned i = 0; i < lhsTypes->getObjectCount(); i++) {
+        types::TypeObjectKey *object = lhsTypes->getObject(i);
+        if (!object)
+            continue;
+
+        bool isInstance;
+        if (!HasOnProtoChain(constraints(), object, protoObject, &isInstance))
+            return false;
+
+        if (isFirst) {
+            knownIsInstance = isInstance;
+            isFirst = false;
+        } else if (knownIsInstance != isInstance) {
+            
+            
+            return false;
+        }
+    }
+
+    if (knownIsInstance && lhsTypes->getKnownMIRType() != MIRType_Object) {
+        
+        
+        
+        MIsObject *isObject = MIsObject::New(alloc(), lhs);
+        current->add(isObject);
+        current->push(isObject);
+        return true;
+    }
+
+    lhs->setImplicitlyUsedUnchecked();
+    pushConstant(BooleanValue(knownIsInstance));
+    return true;
+}
+
 bool
 IonBuilder::jsop_instanceof()
 {
@@ -11189,6 +11278,9 @@ IonBuilder::jsop_instanceof()
             break;
 
         rhs->setImplicitlyUsedUnchecked();
+
+        if (tryFoldInstanceOf(obj, protoObject))
+            return true;
 
         MInstanceOf *ins = MInstanceOf::New(alloc(), obj, protoObject);
 
