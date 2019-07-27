@@ -17,7 +17,6 @@
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/PermissionMessageUtils.h"
 #include "mozilla/dom/quota/Client.h"
-#include "mozilla/dom/quota/OriginOrPatternString.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/QuotaObject.h"
 #include "mozilla/dom/quota/UsageInfo.h"
@@ -42,7 +41,6 @@
 #define ASMJSCACHE_ENTRY_FILE_NAME_BASE "module"
 
 using mozilla::dom::quota::AssertIsOnIOThread;
-using mozilla::dom::quota::OriginOrPatternString;
 using mozilla::dom::quota::PersistenceType;
 using mozilla::dom::quota::QuotaManager;
 using mozilla::dom::quota::QuotaObject;
@@ -482,8 +480,12 @@ private:
 
 
 
-class MainProcessRunnable : public virtual FileDescriptorHolder
+class MainProcessRunnable
+  : public virtual FileDescriptorHolder
+  , public quota::OpenDirectoryListener
 {
+  typedef mozilla::dom::quota::QuotaManager::DirectoryLock DirectoryLock;
+
 public:
   NS_DECL_NSIRUNNABLE
 
@@ -496,7 +498,6 @@ public:
   : mPrincipal(aPrincipal),
     mOpenMode(aOpenMode),
     mWriteParams(aWriteParams),
-    mNeedAllowNextSynchronizedOp(false),
     mPersistence(quota::PERSISTENCE_TYPE_INVALID),
     mState(eInitial),
     mResult(JS::AsmJSCache_InternalError),
@@ -509,7 +510,7 @@ public:
   virtual ~MainProcessRunnable()
   {
     MOZ_ASSERT(mState == eFinished);
-    MOZ_ASSERT(!mNeedAllowNextSynchronizedOp);
+    MOZ_ASSERT(!mDirectoryLock);
   }
 
 protected:
@@ -637,16 +638,22 @@ private:
     }
   }
 
+  
+  virtual void
+  DirectoryLockAcquired(DirectoryLock* aLock) override;
+
+  virtual void
+  DirectoryLockFailed() override;
+
   nsIPrincipal* const mPrincipal;
   const OpenMode mOpenMode;
   const WriteParams mWriteParams;
 
   
-  bool mNeedAllowNextSynchronizedOp;
   quota::PersistenceType mPersistence;
   nsCString mGroup;
   nsCString mOrigin;
-  nsCString mStorageId;
+  nsRefPtr<DirectoryLock> mDirectoryLock;
 
   
   nsCOMPtr<nsIFile> mDirectory;
@@ -740,9 +747,6 @@ MainProcessRunnable::InitOnMainThread()
 
   mEnforcingQuota =
     QuotaManager::IsQuotaEnforced(mPersistence, mOrigin, mIsApp);
-
-  QuotaManager::GetStorageId(mPersistence, mOrigin, quota::Client::ASMJS,
-                             NS_LITERAL_STRING("asmjs"), mStorageId);
 
   return NS_OK;
 }
@@ -924,15 +928,7 @@ MainProcessRunnable::FinishOnMainThread()
   
   FileDescriptorHolder::Finish();
 
-  if (mNeedAllowNextSynchronizedOp) {
-    mNeedAllowNextSynchronizedOp = false;
-    QuotaManager* qm = QuotaManager::Get();
-    if (qm) {
-      qm->AllowNextSynchronizedOp(OriginOrPatternString::FromOrigin(mOrigin),
-                                  Nullable<PersistenceType>(mPersistence),
-                                  mStorageId);
-    }
-  }
+  mDirectoryLock = nullptr;
 }
 
 NS_IMETHODIMP
@@ -953,24 +949,16 @@ MainProcessRunnable::Run()
       }
 
       mState = eWaitingToOpenMetadata;
-      rv = QuotaManager::Get()->WaitForOpenAllowed(
-                                     OriginOrPatternString::FromOrigin(mOrigin),
-                                     Nullable<PersistenceType>(mPersistence),
-                                     mStorageId, this);
-      if (NS_FAILED(rv)) {
-        Fail();
-        return NS_OK;
-      }
 
-      mNeedAllowNextSynchronizedOp = true;
-      return NS_OK;
-    }
+      
+      QuotaManager::Get()->OpenDirectory(mPersistence,
+                                         mGroup,
+                                         mOrigin,
+                                         mIsApp,
+                                         quota::Client::ASMJS,
+                                          true,
+                                         this);
 
-    case eWaitingToOpenMetadata: {
-      MOZ_ASSERT(NS_IsMainThread());
-
-      mState = eReadyToReadMetadata;
-      DispatchToIOThread();
       return NS_OK;
     }
 
@@ -1061,6 +1049,7 @@ MainProcessRunnable::Run()
       return NS_OK;
     }
 
+    case eWaitingToOpenMetadata:
     case eWaitingToOpenCacheFileForRead:
     case eOpened:
     case eFinished: {
@@ -1070,6 +1059,29 @@ MainProcessRunnable::Run()
 
   MOZ_MAKE_COMPILER_ASSUME_IS_UNREACHABLE("Corrupt state");
   return NS_OK;
+}
+
+void
+MainProcessRunnable::DirectoryLockAcquired(DirectoryLock* aLock)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(mState == eWaitingToOpenMetadata);
+  MOZ_ASSERT(!mDirectoryLock);
+
+  mDirectoryLock = aLock;
+
+  mState = eReadyToReadMetadata;
+  DispatchToIOThread();
+}
+
+void
+MainProcessRunnable::DirectoryLockFailed()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(mState == eWaitingToOpenMetadata);
+  MOZ_ASSERT(!mDirectoryLock);
+
+  Fail();
 }
 
 bool
@@ -1121,6 +1133,8 @@ class SingleProcessRunnable final : public File,
                                     private MainProcessRunnable
 {
 public:
+  NS_DECL_ISUPPORTS_INHERITED
+
   
   
   
@@ -1192,6 +1206,8 @@ private:
   ReadParams mReadParams;
 };
 
+NS_IMPL_ISUPPORTS_INHERITED0(SingleProcessRunnable, File)
+
 
 
 
@@ -1199,6 +1215,8 @@ class ParentProcessRunnable final : public PAsmJSCacheEntryParent,
                                     public MainProcessRunnable
 {
 public:
+  NS_DECL_ISUPPORTS_INHERITED
+
   
   
   
@@ -1338,6 +1356,8 @@ private:
   bool mOpened;
   bool mFinished;
 };
+
+NS_IMPL_ISUPPORTS_INHERITED0(ParentProcessRunnable, FileDescriptorHolder)
 
 } 
 
@@ -1844,11 +1864,12 @@ public:
   { }
 
   virtual void
-  WaitForStoragesToComplete(nsTArray<nsIOfflineStorage*>& aStorages,
-                            nsIRunnable* aCallback) override
-  {
-    MOZ_ASSERT_UNREACHABLE("There are no storages");
-  }
+  AbortOperations(const nsACString& aOrigin) override
+  { }
+
+  virtual void
+  AbortOperationsForProcess(ContentParentId aContentParentId) override
+  { }
 
   virtual void
   PerformIdleMaintenance() override

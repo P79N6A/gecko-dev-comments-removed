@@ -8,6 +8,7 @@
 #define mozilla_dom_cache_Context_h
 
 #include "mozilla/dom/cache/Types.h"
+#include "mozilla/dom/quota/QuotaManager.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsISupportsImpl.h"
@@ -25,7 +26,6 @@ namespace cache {
 
 class Action;
 class Manager;
-class OfflineStorage;
 
 
 
@@ -59,6 +59,8 @@ class OfflineStorage;
 
 class Context final
 {
+  typedef mozilla::dom::quota::QuotaManager::DirectoryLock DirectoryLock;
+
 public:
   
   
@@ -182,7 +184,7 @@ private:
   void Start();
   void DispatchAction(Action* aAction, bool aDoomData = false);
   void OnQuotaInit(nsresult aRv, const QuotaInfo& aQuotaInfo,
-                   nsMainThreadPtrHandle<OfflineStorage>& aOfflineStorage);
+                   nsMainThreadPtrHandle<DirectoryLock>& aDirectoryLock);
 
   already_AddRefed<ThreadsafeHandle>
   CreateThreadsafeHandle();
@@ -212,7 +214,7 @@ private:
   
   nsRefPtr<ThreadsafeHandle> mThreadsafeHandle;
 
-  nsMainThreadPtrHandle<OfflineStorage> mOfflineStorage;
+  nsMainThreadPtrHandle<DirectoryLock> mDirectoryLock;
   nsRefPtr<Context> mNextContext;
 
 public:

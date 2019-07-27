@@ -24,39 +24,21 @@ class ManagerId final
 {
 public:
   
-  class MOZ_STACK_CLASS Comparator final
-  {
-  public:
-    bool Equals(ManagerId *aA, ManagerId* aB) const { return *aA == *aB; }
-    bool LessThan(ManagerId *aA, ManagerId* aB) const { return *aA < *aB; }
-  };
-
-  
   static nsresult Create(nsIPrincipal* aPrincipal, ManagerId** aManagerIdOut);
 
   
   already_AddRefed<nsIPrincipal> Principal() const;
 
-  const nsACString& Origin() const { return mOrigin; }
+  const nsACString& ExtendedOrigin() const { return mExtendedOrigin; }
 
   bool operator==(const ManagerId& aOther) const
   {
-    return mOrigin == aOther.mOrigin &&
-           mAppId == aOther.mAppId &&
-           mInBrowserElement == aOther.mInBrowserElement;
-  }
-
-  bool operator<(const ManagerId& aOther) const
-  {
-    return mOrigin < aOther.mOrigin ||
-           (mOrigin == aOther.mOrigin && mAppId < aOther.mAppId) ||
-           (mOrigin == aOther.mOrigin && mAppId == aOther.mAppId &&
-            mInBrowserElement < aOther.mInBrowserElement);
+    return mExtendedOrigin == aOther.mExtendedOrigin;
   }
 
 private:
   ManagerId(nsIPrincipal* aPrincipal, const nsACString& aOrigin,
-            uint32_t aAppId, bool aInBrowserElement);
+            const nsACString& aJarPrefix);
   ~ManagerId();
 
   ManagerId(const ManagerId&) = delete;
@@ -66,9 +48,7 @@ private:
   nsCOMPtr<nsIPrincipal> mPrincipal;
 
   
-  const nsCString mOrigin;
-  const uint32_t mAppId;
-  const bool mInBrowserElement;
+  const nsCString mExtendedOrigin;
 
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(mozilla::dom::cache::ManagerId)

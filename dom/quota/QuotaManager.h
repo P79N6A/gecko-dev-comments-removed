@@ -13,18 +13,17 @@
 #include "nsIQuotaManager.h"
 
 #include "mozilla/dom/Nullable.h"
+#include "mozilla/dom/ipc/IdType.h"
 #include "mozilla/Mutex.h"
 
 #include "nsClassHashtable.h"
 #include "nsRefPtrHashtable.h"
 
-#include "ArrayCluster.h"
 #include "Client.h"
 #include "PersistenceType.h"
 
 #define QUOTA_MANAGER_CONTRACTID "@mozilla.org/dom/quota/manager;1"
 
-class nsIOfflineStorage;
 class nsIPrincipal;
 class nsIThread;
 class nsITimer;
@@ -34,23 +33,18 @@ class nsIRunnable;
 
 namespace mozilla {
 namespace dom {
-class ContentParent;
+class OptionalContentId;
 }
 }
 
 BEGIN_QUOTA_NAMESPACE
 
-class AsyncUsageRunnable;
-class CollectOriginsHelper;
-class FinalizeOriginEvictionRunnable;
 class GroupInfo;
 class GroupInfoPair;
-class OriginClearRunnable;
+class OpenDirectoryListener;
 class OriginInfo;
-class OriginOrPatternString;
+class OriginScope;
 class QuotaObject;
-class ResetOrClearRunnable;
-struct SynchronizedOp;
 
 struct OriginParams
 {
@@ -70,16 +64,13 @@ struct OriginParams
 class QuotaManager final : public nsIQuotaManager,
                            public nsIObserver
 {
-  friend class AsyncUsageRunnable;
-  friend class CollectOriginsHelper;
-  friend class FinalizeOriginEvictionRunnable;
+public:
+  class DirectoryLock;
+
+private:
   friend class GroupInfo;
-  friend class OriginClearRunnable;
   friend class OriginInfo;
   friend class QuotaObject;
-  friend class ResetOrClearRunnable;
-
-  typedef mozilla::dom::ContentParent ContentParent;
 
   enum MozBrowserPatternFlag
   {
@@ -88,8 +79,10 @@ class QuotaManager final : public nsIQuotaManager,
     IgnoreMozBrowser
   };
 
+  class DirectoryLockImpl;
+
   typedef nsClassHashtable<nsCStringHashKey,
-                           nsTArray<nsIOfflineStorage*>> LiveStorageTable;
+                           nsTArray<DirectoryLockImpl*>> DirectoryLockTable;
 
 public:
   NS_DECL_ISUPPORTS
@@ -110,6 +103,22 @@ public:
 
   
   static bool IsShuttingDown();
+
+  bool
+  IsOriginInitialized(const nsACString& aOrigin) const
+  {
+    AssertIsOnIOThread();
+
+    return mInitializedOrigins.Contains(aOrigin);
+  }
+
+  bool
+  IsTemporaryStorageInitialized() const
+  {
+    AssertIsOnIOThread();
+
+    return mTemporaryStorageInitialized;
+  }
 
   void
   InitQuotaForOrigin(PersistenceType aPersistenceType,
@@ -155,41 +164,50 @@ public:
                  const nsAString& aPath);
 
   
-  bool
-  RegisterStorage(nsIOfflineStorage* aStorage);
-
   
   void
-  UnregisterStorage(nsIOfflineStorage* aStorage);
-
-  
-  
-  void
-  AbortCloseStoragesForProcess(ContentParent* aContentParent);
-
-  
-  
-  nsresult
-  WaitForOpenAllowed(const OriginOrPatternString& aOriginOrPattern,
-                     Nullable<PersistenceType> aPersistenceType,
-                     const nsACString& aId, nsIRunnable* aRunnable);
-
-  void
-  AllowNextSynchronizedOp(const OriginOrPatternString& aOriginOrPattern,
-                          Nullable<PersistenceType> aPersistenceType,
-                          const nsACString& aId);
-
-  bool
-  IsClearOriginPending(const nsACString& aPattern,
-                       Nullable<PersistenceType> aPersistenceType)
-  {
-    return !!FindSynchronizedOp(aPattern, aPersistenceType, EmptyCString());
-  }
+  AbortOperationsForProcess(ContentParentId aContentParentId);
 
   nsresult
   GetDirectoryForOrigin(PersistenceType aPersistenceType,
                         const nsACString& aASCIIOrigin,
                         nsIFile** aDirectory) const;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  void
+  OpenDirectory(PersistenceType aPersistenceType,
+                const nsACString& aGroup,
+                const nsACString& aOrigin,
+                bool aIsApp,
+                Client::Type aClientType,
+                bool aExclusive,
+                OpenDirectoryListener* aOpenListener);
+
+  
+  void
+  OpenDirectoryInternal(Nullable<PersistenceType> aPersistenceType,
+                        const OriginScope& aOriginScope,
+                        bool aExclusive,
+                        OpenDirectoryListener* aOpenListener);
+
+  
+  uint64_t
+  CollectOriginsForEviction(uint64_t aMinSizeToBeFreed,
+                            nsTArray<nsRefPtr<DirectoryLock>>& aLocks);
 
   nsresult
   EnsureOriginIsInitialized(PersistenceType aPersistenceType,
@@ -219,7 +237,7 @@ public:
     return mIOThread;
   }
 
-  already_AddRefed<Client>
+  Client*
   GetClient(Client::Type aClientType);
 
   const nsString&
@@ -251,7 +269,6 @@ public:
   GetStorageId(PersistenceType aPersistenceType,
                const nsACString& aOrigin,
                Client::Type aClientType,
-               const nsAString& aName,
                nsACString& aDatabaseId);
 
   static nsresult
@@ -328,28 +345,39 @@ private:
   nsresult
   Init();
 
+  already_AddRefed<DirectoryLockImpl>
+  CreateDirectoryLock(Nullable<PersistenceType> aPersistenceType,
+                      const nsACString& aGroup,
+                      const OriginScope& aOriginScope,
+                      Nullable<bool> aIsApp,
+                      Nullable<Client::Type> aClientType,
+                      bool aExclusive,
+                      bool aInternal,
+                      OpenDirectoryListener* aOpenListener);
+
+  already_AddRefed<DirectoryLockImpl>
+  CreateDirectoryLockForEviction(PersistenceType aPersistenceType,
+                                 const nsACString& aGroup,
+                                 const nsACString& aOrigin,
+                                 bool aIsApp);
+
+  void
+  RegisterDirectoryLock(DirectoryLockImpl* aLock);
+
+  void
+  UnregisterDirectoryLock(DirectoryLockImpl* aLock);
+
+  void
+  RemovePendingDirectoryLock(DirectoryLockImpl* aLock);
+
   uint64_t
   LockedCollectOriginsForEviction(uint64_t aMinSizeToBeFreed,
-                                  nsTArray<OriginInfo*>& aOriginInfos);
+                                  nsTArray<nsRefPtr<DirectoryLock>>& aLocks);
 
   void
   LockedRemoveQuotaForOrigin(PersistenceType aPersistenceType,
                              const nsACString& aGroup,
                              const nsACString& aOrigin);
-
-  nsresult
-  AcquireExclusiveAccess(const nsACString& aOrigin,
-                         Nullable<PersistenceType> aPersistenceType,
-                         nsIRunnable* aRunnable);
-
-  void
-  AddSynchronizedOp(const OriginOrPatternString& aOriginOrPattern,
-                    Nullable<PersistenceType> aPersistenceType);
-
-  SynchronizedOp*
-  FindSynchronizedOp(const nsACString& aPattern,
-                     Nullable<PersistenceType> aPersistenceType,
-                     const nsACString& aId);
 
   nsresult
   MaybeUpgradeIndexedDBDirectory();
@@ -377,22 +405,12 @@ private:
   void
   CheckTemporaryStorageLimits();
 
-  
-  uint64_t
-  CollectOriginsForEviction(uint64_t aMinSizeToBeFreed,
-                            nsTArray<OriginInfo*>& aOriginInfos);
-
   void
   DeleteFilesForOrigin(PersistenceType aPersistenceType,
                        const nsACString& aOrigin);
 
   void
-  FinalizeOriginEviction(nsTArray<OriginParams>& aOrigins);
-
-  void
-  SaveOriginAccessTime(PersistenceType aPersistenceType,
-                       const nsACString& aOrigin,
-                       int64_t aTimestamp);
+  FinalizeOriginEviction(nsTArray<nsRefPtr<DirectoryLock>>& aLocks);
 
   void
   ReleaseIOThreadObjects()
@@ -404,8 +422,8 @@ private:
     }
   }
 
-  LiveStorageTable&
-  GetLiveStorageTable(PersistenceType aPersistenceType);
+  DirectoryLockTable&
+  GetDirectoryLockTable(PersistenceType aPersistenceType);
 
   static void
   GetOriginPatternString(uint32_t aAppId,
@@ -428,29 +446,19 @@ private:
                                 GroupInfoPair* aValue,
                                 void* aUserArg);
 
-  static PLDHashOperator
-  AddLiveStorageOrigins(const nsACString& aKey,
-                        nsTArray<nsIOfflineStorage*>* aValue,
-                        void* aUserArg);
-
-  static PLDHashOperator
-  GetInactiveTemporaryStorageOrigins(const nsACString& aKey,
-                                     GroupInfoPair* aValue,
-                                     void* aUserArg);
-
   mozilla::Mutex mQuotaMutex;
 
   nsClassHashtable<nsCStringHashKey, GroupInfoPair> mGroupInfoPairs;
 
   
-  nsClassHashtable<nsCStringHashKey,
-                   ArrayCluster<nsIOfflineStorage*> > mLiveStorages;
-
-  LiveStorageTable mTemporaryLiveStorageTable;
-  LiveStorageTable mDefaultLiveStorageTable;
+  nsTArray<nsRefPtr<DirectoryLockImpl>> mPendingDirectoryLocks;
 
   
-  nsAutoTArray<nsAutoPtr<SynchronizedOp>, 5> mSynchronizedOps;
+  nsTArray<DirectoryLockImpl*> mDirectoryLocks;
+
+  
+  DirectoryLockTable mTemporaryDirectoryLockTable;
+  DirectoryLockTable mDefaultDirectoryLockTable;
 
   
   nsCOMPtr<nsIThread> mIOThread;
@@ -475,6 +483,61 @@ private:
   bool mTemporaryStorageInitialized;
 
   bool mStorageAreaInitialized;
+};
+
+class NS_NO_VTABLE RefCountedObject
+{
+public:
+  NS_IMETHOD_(MozExternalRefCountType)
+  AddRef() = 0;
+
+  NS_IMETHOD_(MozExternalRefCountType)
+  Release() = 0;
+};
+
+
+
+class QuotaManager::DirectoryLock
+  : public nsISupports
+{
+  friend class DirectoryLockImpl;
+
+public:
+  
+  
+  const Nullable<PersistenceType>&
+  GetPersistenceType() const;
+
+  const nsACString&
+  GetGroup() const;
+
+  const OriginScope&
+  GetOriginScope() const;
+
+  const Nullable<bool>&
+  GetIsApp() const;
+
+private:
+  DirectoryLock()
+  { }
+
+  ~DirectoryLock()
+  { }
+};
+
+class NS_NO_VTABLE OpenDirectoryListener
+  : public RefCountedObject
+{
+public:
+  virtual void
+  DirectoryLockAcquired(QuotaManager::DirectoryLock* aLock) = 0;
+
+  virtual void
+  DirectoryLockFailed() = 0;
+
+protected:
+  virtual ~OpenDirectoryListener()
+  { }
 };
 
 END_QUOTA_NAMESPACE

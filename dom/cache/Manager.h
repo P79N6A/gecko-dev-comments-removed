@@ -135,6 +135,9 @@ public:
   static void ShutdownAllOnMainThread();
 
   
+  static void AbortOnMainThread(const nsACString& aOrigin);
+
+  
   void RemoveListener(Listener* aListener);
 
   
@@ -197,7 +200,8 @@ private:
   ~Manager();
   void Init(Manager* aOldManager);
   void Shutdown();
-  already_AddRefed<Context> CurrentContext();
+
+  void Abort();
 
   ListenerId SaveListener(Listener* aListener);
   Listener* GetListener(ListenerId aListenerId) const;

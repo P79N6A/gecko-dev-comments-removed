@@ -249,6 +249,26 @@ public:
   }
 
   static void
+  StartAbortOnMainThread(const nsACString& aOrigin)
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    
+    StaticMutexAutoLock lock(sMutex);
+
+    if (!sBackgroundThread) {
+      return;
+    }
+
+    
+    
+    nsCOMPtr<nsIRunnable> runnable = new AbortRunnable(aOrigin);
+    nsresult rv = sBackgroundThread->Dispatch(runnable,
+                                              nsIThread::DISPATCH_NORMAL);
+    MOZ_ALWAYS_TRUE(NS_SUCCEEDED(rv));
+  }
+
+  static void
   StartShutdownAllOnMainThread()
   {
     MOZ_ASSERT(NS_IsMainThread());
@@ -358,6 +378,36 @@ private:
   }
 
   static void
+  AbortOnBackgroundThread(const nsACString& aOrigin)
+  {
+    mozilla::ipc::AssertIsOnBackgroundThread();
+
+    
+    
+    
+    if (!sFactory) {
+#ifdef DEBUG
+      StaticMutexAutoLock lock(sMutex);
+      MOZ_ASSERT(!sBackgroundThread);
+#endif
+      return;
+    }
+
+    MOZ_ASSERT(!sFactory->mManagerList.IsEmpty());
+
+    {
+      ManagerList::ForwardIterator iter(sFactory->mManagerList);
+      while (iter.HasMore()) {
+        nsRefPtr<Manager> manager = iter.GetNext();
+        if (aOrigin.IsVoid() ||
+            manager->mManagerId->ExtendedOrigin() == aOrigin) {
+          manager->Abort();
+        }
+      }
+    }
+  }
+
+  static void
   ShutdownAllOnBackgroundThread()
   {
     mozilla::ipc::AssertIsOnBackgroundThread();
@@ -392,6 +442,26 @@ private:
 
     MaybeDestroyInstance();
   }
+
+  class AbortRunnable final : public nsRunnable
+  {
+  public:
+    explicit AbortRunnable(const nsACString& aOrigin)
+      : mOrigin(aOrigin)
+    { }
+
+    NS_IMETHOD
+    Run() override
+    {
+      mozilla::ipc::AssertIsOnBackgroundThread();
+      AbortOnBackgroundThread(mOrigin);
+      return NS_OK;
+    }
+  private:
+    ~AbortRunnable() { }
+
+    const nsCString mOrigin;
+  };
 
   class ShutdownAllRunnable final : public nsRunnable
   {
@@ -1482,6 +1552,15 @@ Manager::ShutdownAllOnMainThread()
   }
 }
 
+
+void
+Manager::AbortOnMainThread(const nsACString& aOrigin)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  Factory::StartAbortOnMainThread(aOrigin);
+}
+
 void
 Manager::RemoveListener(Listener* aListener)
 {
@@ -1855,6 +1934,22 @@ Manager::Shutdown()
     context->CancelAll();
     return;
   }
+}
+
+void
+Manager::Abort()
+{
+  NS_ASSERT_OWNINGTHREAD(Manager);
+  MOZ_ASSERT(mContext);
+
+  
+  
+  
+  NoteClosing();
+
+  
+  nsRefPtr<Context> context = mContext;
+  context->CancelAll();
 }
 
 Manager::ListenerId
