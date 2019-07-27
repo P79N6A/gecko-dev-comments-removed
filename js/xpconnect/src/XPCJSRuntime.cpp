@@ -526,7 +526,7 @@ bool
 IsInAddonScope(JSObject *obj)
 {
     
-    XPCWrappedNativeScope *scope = GetObjectScope(obj);
+    XPCWrappedNativeScope *scope = MaybeGetObjectScope(obj);
     return scope && scope->IsAddonScope();
 }
 
