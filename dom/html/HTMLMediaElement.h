@@ -26,13 +26,6 @@
 #include "nsGkAtoms.h"
 
 
-
-
-#ifdef None
-#undef None
-#endif
-
-
 #ifdef CurrentTime
 #undef CurrentTime
 #endif
@@ -551,8 +544,6 @@ public:
 
   already_AddRefed<Promise> SetMediaKeys(MediaKeys* mediaKeys,
                                          ErrorResult& aRv);
-
-  MediaWaitingFor WaitingFor() const;
 
   mozilla::dom::EventHandlerNonNull* GetOnencrypted();
   void SetOnencrypted(mozilla::dom::EventHandlerNonNull* listener);
@@ -1336,8 +1327,6 @@ protected:
   nsRefPtr<AudioTrackList> mAudioTrackList;
 
   nsRefPtr<VideoTrackList> mVideoTrackList;
-
-  MediaWaitingFor mWaitingFor;
 
   enum ElementInTreeState {
     
