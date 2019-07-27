@@ -13,7 +13,6 @@ Cu.import("resource://gre/modules/AppConstants.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/AddonManager.jsm");
-Cu.import("resource://gre/modules/DelayedInit.jsm");
 Cu.import('resource://gre/modules/Payment.jsm');
 Cu.import("resource://gre/modules/NotificationDB.jsm");
 Cu.import("resource://gre/modules/SpatialNavigation.jsm");
@@ -376,6 +375,41 @@ var BrowserApp = {
     dump("zerdatime " + Date.now() + " - browser chrome startup finished.");
 
     this.deck = document.getElementById("browsers");
+    this.deck.addEventListener("DOMContentLoaded", function BrowserApp_delayedStartup() {
+      try {
+        BrowserApp.deck.removeEventListener("DOMContentLoaded", BrowserApp_delayedStartup, false);
+        Services.obs.notifyObservers(window, "browser-delayed-startup-finished", "");
+        Messaging.sendRequest({ type: "Gecko:DelayedStartup" });
+
+        
+        Services.tm.mainThread.dispatch(function() {
+          
+          Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
+          Services.search.init();
+
+          
+          CastingApps.init();
+          DownloadNotifications.init();
+
+          if (AppConstants.MOZ_SAFE_BROWSING) {
+            
+            SafeBrowsing.init();
+          };
+
+          
+          setTimeout(() => {
+            BrowserApp.gmpInstallManager = new GMPInstallManager();
+            BrowserApp.gmpInstallManager.simpleCheckAndInstall().then(null, () => {});
+          }, 1000 * 60);
+        }, Ci.nsIThread.DISPATCH_NORMAL);
+
+        if (AppConstants.NIGHTLY_BUILD) {
+          WebcompatReporter.init();
+          Telemetry.addData("TRACKING_PROTECTION_ENABLED",
+            Services.prefs.getBoolPref("privacy.trackingprotection.enabled"));
+        }
+      } catch(ex) { console.log(ex); }
+    }, false);
 
     BrowserEventHandler.init();
     ViewportHandler.init();
@@ -519,40 +553,6 @@ var BrowserApp = {
 
     
     Messaging.sendRequest({ type: "Gecko:Ready" });
-
-    this.deck.addEventListener("DOMContentLoaded", function BrowserApp_delayedStartup() {
-      BrowserApp.deck.removeEventListener("DOMContentLoaded", BrowserApp_delayedStartup, false);
-
-      function InitLater(fn, object, name) {
-        return DelayedInit.schedule(fn, object, name, 15000 );
-      }
-
-      InitLater(() => Services.obs.notifyObservers(window, "browser-delayed-startup-finished", ""));
-      InitLater(() => Messaging.sendRequest({ type: "Gecko:DelayedStartup" }));
-
-      if (AppConstants.NIGHTLY_BUILD) {
-        InitLater(() => Telemetry.addData("TRACKING_PROTECTION_ENABLED",
-            Services.prefs.getBoolPref("privacy.trackingprotection.enabled")));
-        InitLater(() => WebcompatReporter.init());
-      }
-
-      InitLater(() => CastingApps.init(), window, "CastingApps");
-      InitLater(() => Services.search.init(), Services, "search");
-      InitLater(() => DownloadNotifications.init(), window, "DownloadNotifications");
-
-      if (AppConstants.MOZ_SAFE_BROWSING) {
-        
-        InitLater(() => SafeBrowsing.init(), window, "SafeBrowsing");
-      }
-
-      InitLater(() => Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager));
-
-      InitLater(() => {
-          BrowserApp.gmpInstallManager = new GMPInstallManager();
-          BrowserApp.gmpInstallManager.simpleCheckAndInstall().then(null, () => {});
-      }, BrowserApp, "gmpInstallManager");
-
-    }, false);
   },
 
   get _startupStatus() {
@@ -5851,7 +5851,7 @@ var FormAssistant = {
 
   
   _isAutoComplete: function _isAutoComplete(aElement) {
-    if (!(aElement instanceof HTMLInputElement) || aElement.readOnly ||
+    if (!(aElement instanceof HTMLInputElement) || aElement.readOnly || aElement.disabled ||
         (aElement.getAttribute("type") == "password") ||
         (aElement.hasAttribute("autocomplete") &&
          aElement.getAttribute("autocomplete").toLowerCase() == "off"))
