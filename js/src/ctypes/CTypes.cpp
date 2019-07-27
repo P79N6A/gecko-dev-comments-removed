@@ -1645,7 +1645,7 @@ InitTypeConstructor(JSContext* cx,
 
   
   
-  js::SetFunctionNativeReserved(obj, SLOT_FN_CTORPROTO, OBJECT_TO_JSVAL(typeProto));
+  js::SetFunctionNativeReserved(obj, SLOT_FN_CTORPROTO, ObjectValue(*typeProto));
 
   
   
@@ -1665,7 +1665,7 @@ InitTypeConstructor(JSContext* cx,
     return false;
 
   
-  JS_SetReservedSlot(typeProto, SLOT_OURDATAPROTO, OBJECT_TO_JSVAL(dataProto));
+  JS_SetReservedSlot(typeProto, SLOT_OURDATAPROTO, ObjectValue(*dataProto));
 
   if (!JS_FreezeObject(cx, obj) ||
       
@@ -1702,8 +1702,7 @@ InitInt64Class(JSContext* cx,
   if (!fun)
     return nullptr;
 
-  js::SetFunctionNativeReserved(fun, SLOT_FN_INT64PROTO,
-    OBJECT_TO_JSVAL(prototype));
+  js::SetFunctionNativeReserved(fun, SLOT_FN_INT64PROTO, ObjectValue(*prototype));
 
   if (!JS_FreezeObject(cx, ctor))
     return nullptr;
@@ -1720,7 +1719,7 @@ AttachProtos(JSObject* proto, const AutoObjectVector& protos)
   
   
   for (uint32_t i = 0; i <= SLOT_CTYPES; ++i)
-    JS_SetReservedSlot(proto, i, OBJECT_TO_JSVAL(protos[i]));
+    JS_SetReservedSlot(proto, i, ObjectOrNullValue(protos[i]));
 }
 
 static bool
@@ -1759,7 +1758,7 @@ InitTypeClasses(JSContext* cx, HandleObject ctypesObj)
     return false;
 
   
-  JS_SetReservedSlot(CTypeProto, SLOT_OURDATAPROTO, OBJECT_TO_JSVAL(CDataProto));
+  JS_SetReservedSlot(CTypeProto, SLOT_OURDATAPROTO, ObjectValue(*CDataProto));
 
   
   
@@ -3948,7 +3947,7 @@ CType::Create(JSContext* cx,
     
     
     
-    JS_SetReservedSlot(typeObj, SLOT_PROTO, OBJECT_TO_JSVAL(prototype));
+    JS_SetReservedSlot(typeObj, SLOT_PROTO, ObjectValue(*prototype));
   }
 
   if (!JS_FreezeObject(cx, typeObj))
@@ -4630,10 +4629,10 @@ PointerType::CreateInternal(JSContext* cx, HandleObject baseType)
     return nullptr;
 
   
-  JS_SetReservedSlot(typeObj, SLOT_TARGET_T, OBJECT_TO_JSVAL(baseType));
+  JS_SetReservedSlot(typeObj, SLOT_TARGET_T, ObjectValue(*baseType));
 
   
-  JS_SetReservedSlot(baseType, SLOT_PTR, OBJECT_TO_JSVAL(typeObj));
+  JS_SetReservedSlot(baseType, SLOT_PTR, ObjectValue(*typeObj));
 
   return typeObj;
 }
@@ -4955,7 +4954,7 @@ ArrayType::CreateInternal(JSContext* cx,
     return nullptr;
 
   
-  JS_SetReservedSlot(typeObj, SLOT_ELEMENT_T, OBJECT_TO_JSVAL(baseType));
+  JS_SetReservedSlot(typeObj, SLOT_ELEMENT_T, ObjectValue(*baseType));
 
   
   JS_SetReservedSlot(typeObj, SLOT_LENGTH, lengthVal);
@@ -5642,7 +5641,7 @@ StructType::DefineInternal(JSContext* cx, JSObject* typeObj_, JSObject* fieldsOb
   JS_SetReservedSlot(typeObj, SLOT_ALIGN, INT_TO_JSVAL(structAlign));
   
   
-  JS_SetReservedSlot(typeObj, SLOT_PROTO, OBJECT_TO_JSVAL(prototype));
+  JS_SetReservedSlot(typeObj, SLOT_PROTO, ObjectValue(*prototype));
   return true;
 }
 
@@ -5922,7 +5921,7 @@ StructType::FieldsArrayGetter(JSContext* cx, JS::CallArgs args)
     JSObject* fields = BuildFieldsArray(cx, obj);
     if (!fields)
       return false;
-    JS_SetReservedSlot(obj, SLOT_FIELDS, OBJECT_TO_JSVAL(fields));
+    JS_SetReservedSlot(obj, SLOT_FIELDS, ObjectValue(*fields));
 
     args.rval().setObject(*fields);
   }
@@ -6207,7 +6206,7 @@ PrepareCIF(JSContext* cx,
            FunctionInfo* fninfo)
 {
   ffi_abi abi;
-  if (!GetABI(cx, OBJECT_TO_JSVAL(fninfo->mABI), &abi)) {
+  if (!GetABI(cx, ObjectOrNullValue(fninfo->mABI), &abi)) {
     JS_ReportError(cx, "Invalid ABI specification");
     return false;
   }
@@ -6473,7 +6472,7 @@ FunctionType::ConstructData(JSContext* cx,
     return false;
 
   
-  JS_SetReservedSlot(dataObj, SLOT_REFERENT, OBJECT_TO_JSVAL(closureObj));
+  JS_SetReservedSlot(dataObj, SLOT_REFERENT, ObjectValue(*closureObj));
 
   
   
@@ -6595,7 +6594,7 @@ FunctionType::Call(JSContext* cx,
         return false;
       }
       if (!(type = CData::GetCType(obj)) ||
-          !(type = PrepareType(cx, OBJECT_TO_JSVAL(type))) ||
+          !(type = PrepareType(cx, ObjectValue(*type))) ||
           
           
           !ConvertArgument(cx, obj, i, args[i], type, &values[i], &strings) ||
@@ -7079,11 +7078,11 @@ CData::Create(JSContext* cx,
     return nullptr;
 
   
-  JS_SetReservedSlot(dataObj, SLOT_CTYPE, OBJECT_TO_JSVAL(typeObj));
+  JS_SetReservedSlot(dataObj, SLOT_CTYPE, ObjectValue(*typeObj));
 
   
   if (refObj)
-    JS_SetReservedSlot(dataObj, SLOT_REFERENT, OBJECT_TO_JSVAL(refObj));
+    JS_SetReservedSlot(dataObj, SLOT_REFERENT, ObjectValue(*refObj));
 
   
   JS_SetReservedSlot(dataObj, SLOT_OWNS, BooleanValue(ownResult));
@@ -7777,15 +7776,15 @@ CDataFinalizer::Construct(JSContext* cx, unsigned argc, jsval* vp)
   
   JS_SetReservedSlot(objResult,
                      SLOT_DATAFINALIZER_VALTYPE,
-                     OBJECT_TO_JSVAL(objBestArgType));
+                     ObjectOrNullValue(objBestArgType));
 
   
   JS_SetReservedSlot(objResult,
                      SLOT_DATAFINALIZER_CODETYPE,
-                     OBJECT_TO_JSVAL(objCodePtrType));
+                     ObjectValue(*objCodePtrType));
 
   ffi_abi abi;
-  if (!GetABI(cx, OBJECT_TO_JSVAL(funInfoFinalizer->mABI), &abi)) {
+  if (!GetABI(cx, ObjectOrNullValue(funInfoFinalizer->mABI), &abi)) {
     JS_ReportError(cx, "Internal Error: "
                    "Invalid ABI specification in CDataFinalizer");
     return false;

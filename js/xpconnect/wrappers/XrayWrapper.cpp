@@ -1002,7 +1002,7 @@ XrayTraits::attachExpandoObject(JSContext* cx, HandleObject target,
 
     
     JS_SetReservedSlot(expandoObject, JSSLOT_EXPANDO_EXCLUSIVE_GLOBAL,
-                       OBJECT_TO_JSVAL(exclusiveGlobal));
+                       ObjectOrNullValue(exclusiveGlobal));
 
     
     
@@ -1012,7 +1012,7 @@ XrayTraits::attachExpandoObject(JSContext* cx, HandleObject target,
         preserveWrapper(target);
 
     
-    JS_SetReservedSlot(expandoObject, JSSLOT_EXPANDO_NEXT, OBJECT_TO_JSVAL(chain));
+    JS_SetReservedSlot(expandoObject, JSSLOT_EXPANDO_NEXT, ObjectOrNullValue(chain));
     setExpandoChain(cx, target, expandoObject);
 
     return expandoObject;
