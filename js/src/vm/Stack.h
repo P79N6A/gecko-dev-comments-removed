@@ -1301,6 +1301,8 @@ class ActivationIterator
 
 namespace jit {
 
+class BailoutFrameInfo;
+
 
 class JitActivation : public Activation
 {
@@ -1330,7 +1332,9 @@ class JitActivation : public Activation
     
     
     
-    IonBailoutIterator  *ionBailoutIterator_;
+    
+    
+    BailoutFrameInfo *bailoutData_;
 
     void clearRematerializedFrames();
 
@@ -1388,10 +1392,7 @@ class JitActivation : public Activation
     
     
     
-    
-    
-    template <class T>
-    RematerializedFrame *getRematerializedFrame(ThreadSafeContext *cx, const T &iter,
+    RematerializedFrame *getRematerializedFrame(ThreadSafeContext *cx, const JitFrameIterator &iter,
                                                 size_t inlineDepth = 0);
 
     
@@ -1421,17 +1422,14 @@ class JitActivation : public Activation
 
     void markIonRecovery(JSTracer *trc);
 
-    class RegisterBailoutIterator
-    {
-        JitActivation &activation_;
-
-      public:
-        RegisterBailoutIterator(JitActivation &activation, IonBailoutIterator *iter);
-        ~RegisterBailoutIterator();
-    };
+    
+    const BailoutFrameInfo *bailoutData() const { return bailoutData_; }
 
     
-    const IonBailoutIterator *bailoutData() const { return ionBailoutIterator_; }
+    void setBailoutData(BailoutFrameInfo *bailoutData);
+
+    
+    void cleanBailoutData();
 };
 
 
