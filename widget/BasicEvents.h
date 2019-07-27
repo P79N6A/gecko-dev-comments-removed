@@ -49,7 +49,7 @@ enum EventClassID MOZ_ENUM_TYPE(EventClassIDType)
   
   eGestureNotifyEventClass,          
   eSimpleGestureEventClass,          
-  NS_TOUCH_EVENT,                    
+  eTouchEventClass,                  
 
   
   NS_SCROLLPORT_EVENT,               
