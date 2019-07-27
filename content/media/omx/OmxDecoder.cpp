@@ -162,7 +162,19 @@ bool OmxDecoder::Init(sp<MediaExtractor>& extractor) {
   return true;
 }
 
-bool OmxDecoder::EnsureMetadata() {
+bool OmxDecoder::TryLoad() {
+
+  if (!AllocateMediaResources()) {
+    return false;
+  }
+
+  
+  if (mVideoSource.get()) {
+    if (mVideoSource->IsWaitingResources()) {
+      return true;
+    }
+  }
+
   
   int64_t totalDurationUs = 0;
   int64_t durationUs = 0;

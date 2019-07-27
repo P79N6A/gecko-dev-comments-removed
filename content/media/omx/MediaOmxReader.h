@@ -44,11 +44,6 @@ protected:
   android::sp<android::OmxDecoder> mOmxDecoder;
   android::sp<android::MediaExtractor> mExtractor;
   MP3FrameParser mMP3FrameParser;
-
-  
-  
-  bool mIsWaitingResources;
-
   
   
   
@@ -58,11 +53,6 @@ protected:
   
   
   virtual void EnsureActive();
-
-  
-  
-  
-  void UpdateIsWaitingMediaResources();
 
 public:
   MediaOmxReader(AbstractMediaDecoder* aDecoder);
@@ -86,8 +76,7 @@ public:
     return mHasVideo;
   }
 
-  
-  virtual bool IsWaitingMediaResources() MOZ_OVERRIDE;
+  virtual bool IsWaitingMediaResources();
 
   virtual bool IsDormantNeeded();
   virtual void ReleaseMediaResources();
