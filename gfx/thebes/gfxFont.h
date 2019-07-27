@@ -61,7 +61,7 @@ class GlyphRenderingOptions;
 struct gfxFontStyle {
     gfxFontStyle();
     gfxFontStyle(uint8_t aStyle, uint16_t aWeight, int16_t aStretch,
-                 gfxFloat aSize, nsIAtom *aLanguage,
+                 gfxFloat aSize, nsIAtom *aLanguage, bool aExplicitLanguage,
                  float aSizeAdjust, bool aSystemFont,
                  bool aPrinterFont,
                  bool aWeightSynthesis, bool aStyleSynthesis,
@@ -144,6 +144,10 @@ struct gfxFontStyle {
     bool noFallbackVariantFeatures : 1;
 
     
+    
+    bool explicitLanguage : 1;
+
+    
     uint8_t variantCaps;
 
     
@@ -181,6 +185,7 @@ struct gfxFontStyle {
             (systemFont == other.systemFont) &&
             (printerFont == other.printerFont) &&
             (useGrayscaleAntialiasing == other.useGrayscaleAntialiasing) &&
+            (explicitLanguage == other.explicitLanguage) &&
             (weight == other.weight) &&
             (stretch == other.stretch) &&
             (language == other.language) &&

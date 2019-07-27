@@ -10442,19 +10442,16 @@ void ReflowCountMgr::PaintCount(const char*     aName,
         nsLayoutUtils::PointToGfxPoint(aOffset, appUnitsPerDevPixel);
       aRenderingContext->ThebesContext()->SetMatrix(
         aRenderingContext->ThebesContext()->CurrentMatrix().Translate(devPixelOffset));
+
+      
+      
       nsFont font(eFamily_serif, NS_FONT_STYLE_NORMAL,
                   NS_FONT_WEIGHT_NORMAL, NS_FONT_STRETCH_NORMAL, 0,
                   nsPresContext::CSSPixelsToAppUnits(11));
-
       nsRefPtr<nsFontMetrics> fm;
       aPresContext->DeviceContext()->GetMetricsFor(font,
-        
-        aPresContext->GetPresShell()->GetRootFrame()->
-          StyleFont()->mLanguage,
-        gfxFont::eHorizontal,
-        aPresContext->GetUserFontSet(),
-        aPresContext->GetTextPerfMetrics(),
-        *getter_AddRefs(fm));
+        nsGkAtoms::x_western, false, gfxFont::eHorizontal, nullptr,
+        aPresContext->GetTextPerfMetrics(), *getter_AddRefs(fm));
 
       char buf[16];
       int len = sprintf(buf, "%d", counter->mCount);

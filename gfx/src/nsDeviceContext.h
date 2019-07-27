@@ -118,7 +118,8 @@ public:
 
 
 
-    nsresult GetMetricsFor(const nsFont& aFont, nsIAtom* aLanguage,
+    nsresult GetMetricsFor(const nsFont& aFont,
+                           nsIAtom* aLanguage, bool aExplicitLanguage,
                            gfxFont::Orientation aOrientation,
                            gfxUserFontSet* aUserFontSet,
                            gfxTextPerfMetrics* aTextPerf,
