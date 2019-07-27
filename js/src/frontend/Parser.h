@@ -350,6 +350,9 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
     
     bool isUnexpectedEOF_:1;
 
+    
+    bool sawDeprecatedForEach:1;
+
     typedef typename ParseHandler::Node Node;
     typedef typename ParseHandler::DefinitionNode DefinitionNode;
 
