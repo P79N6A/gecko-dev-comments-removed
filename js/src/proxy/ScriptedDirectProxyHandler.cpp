@@ -143,6 +143,16 @@ IsSealed(JSContext* cx, HandleObject obj, HandleId id, bool *bp)
     return true;
 }
 
+static bool
+HasOwn(JSContext *cx, HandleObject obj, HandleId id, bool *bp)
+{
+    Rooted<PropertyDescriptor> desc(cx);
+    if (!JS_GetPropertyDescriptorById(cx, obj, id, &desc))
+        return false;
+    *bp = (desc.object() == obj);
+    return true;
+}
+
 
 static JSObject *
 GetDirectProxyHandlerObject(JSObject *proxy)
@@ -199,7 +209,7 @@ ArrayToIdVector(JSContext *cx, HandleObject proxy, HandleObject target, HandleVa
 
         
         bool isFixed;
-        if (!HasOwnProperty(cx, target, id, &isFixed))
+        if (!HasOwn(cx, target, id, &isFixed))
             return false;
 
         
@@ -246,7 +256,7 @@ ArrayToIdVector(JSContext *cx, HandleObject proxy, HandleObject target, HandleVa
 
         
         bool isFixed;
-        if (!HasOwnProperty(cx, target, id, &isFixed))
+        if (!HasOwn(cx, target, id, &isFixed))
             return false;
 
         
