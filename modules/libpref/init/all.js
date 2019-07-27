@@ -3635,7 +3635,11 @@ pref("font.name-list.sans-serif.zh-TW", "Fira Sans,Droid Sans Fallback");
 #elif defined(ANDROID)
 
 
-
+pref("font.name.serif.ar", "Charis SIL Compact");
+pref("font.name.sans-serif.ar", "Clear Sans");
+pref("font.name.monospace.ar", "Droid Sans Mono");
+pref("font.name-list.serif.ar", "Droid Serif, Noto Naskh Arabic, Droid Arabic Naskh");
+pref("font.name-list.sans-serif.ar", "Roboto, Droid Sans, Droid Sans Arabic");
 
 pref("font.name.serif.el", "Droid Serif"); 
 pref("font.name.sans-serif.el", "Clear Sans");
