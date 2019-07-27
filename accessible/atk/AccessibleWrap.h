@@ -65,7 +65,6 @@ public:
 
   
   MaiHyperlink* GetMaiHyperlink(bool aCreate = true);
-  void SetMaiHyperlink(MaiHyperlink* aMaiHyperlink);
 
   static const char * ReturnString(nsAString &aString) {
     static nsCString returnedString;
