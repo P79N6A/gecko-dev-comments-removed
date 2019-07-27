@@ -3375,9 +3375,11 @@ WebGLContext::CompileShader(WebGLShader* shader)
             size_t len = lenWithNull - 1;
 
             nsAutoCString info;
-            info.SetLength(len); 
-            ShGetInfoLog(compiler, info.BeginWriting());
-
+            if (len) {
+                
+                info.SetLength(len); 
+                ShGetInfoLog(compiler, info.BeginWriting());
+            }
             shader->SetTranslationFailure(info);
         }
         ShDestruct(compiler);
