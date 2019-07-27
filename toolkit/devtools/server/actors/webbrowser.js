@@ -96,15 +96,20 @@ exports.sendShutdownEvent = sendShutdownEvent;
 
 
 const unwrapDebuggerObjectGlobal = wrappedGlobal => {
-  let global;
   try {
-    global = wrappedGlobal.unsafeDereference();
+    
+    
+    
+    
+    
+    
+    let global = wrappedGlobal.unsafeDereference();
+    Object.getPrototypeOf(global);
+    return global;
   }
   catch (e) {
-    
-    
+    return undefined;
   }
-  return global;
 };
 
 
@@ -659,34 +664,6 @@ TabActor.prototype = {
   
 
 
-
-
-
-
-  get originalDocShell() {
-    if (!this._originalWindow) {
-      return this.docShell;
-    }
-
-    return this._originalWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                               .getInterface(Ci.nsIWebNavigation)
-                               .QueryInterface(Ci.nsIDocShell);
-  },
-
-  
-
-
-
-
-
-
-  get originalWindow() {
-    return this._originalWindow || this.window;
-  },
-
-  
-
-
   get webProgress() {
     return this.docShell
       .QueryInterface(Ci.nsIInterfaceRequestor)
@@ -817,9 +794,7 @@ TabActor.prototype = {
       metadata = Cu.getSandboxMetadata(global);
     }
     catch (e) {}
-    if (metadata
-        && metadata["inner-window-id"]
-        && metadata["inner-window-id"] == id) {
+    if (metadata["inner-window-id"] && metadata["inner-window-id"] == id) {
       return true;
     }
 
