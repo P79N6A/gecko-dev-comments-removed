@@ -4,9 +4,10 @@
 
 
 
-#ifndef mozilla_dom_bluetooth_bluetoothcommon_h__
-#define mozilla_dom_bluetooth_bluetoothcommon_h__
+#ifndef mozilla_dom_bluetooth_bluetoothcommon_h
+#define mozilla_dom_bluetooth_bluetoothcommon_h
 
+#include "mozilla/Compiler.h"
 #include "mozilla/Observer.h"
 #include "nsPrintfCString.h"
 #include "nsString.h"
@@ -16,10 +17,16 @@ extern bool gBluetoothDebugFlag;
 
 #define SWITCH_BT_DEBUG(V) (gBluetoothDebugFlag = V)
 
-#if MOZ_IS_GCC && MOZ_GCC_VERSION_AT_LEAST(4, 7, 0)
+#if MOZ_IS_GCC
+# if MOZ_GCC_VERSION_AT_LEAST(4, 7, 0)
 
-#define INIT_ARRAY_AT(in_, out_) \
-  [in_] = out_
+# define INIT_ARRAY_AT(in_, out_) \
+    [in_] = out_
+# else
+
+# define INIT_ARRAY_AT(in_, out_) \
+    out_
+# endif
 #else
 
 #define INIT_ARRAY_AT(in_, out_) \
@@ -178,6 +185,21 @@ extern bool gBluetoothDebugFlag;
 #define PAIRING_REQ_TYPE_ENTERPINCODE         "enterpincodereq"
 #define PAIRING_REQ_TYPE_CONFIRMATION         "pairingconfirmationreq"
 #define PAIRING_REQ_TYPE_CONSENT              "pairingconsentreq"
+
+
+
+
+
+
+
+#define PAIRED_STATUS_CHANGED_ID             "pairedstatuschanged"
+
+
+
+
+
+
+#define DISCOVERY_STATE_CHANGED_ID           "discoverystatechanged"
 
 
 
@@ -503,13 +525,13 @@ enum {
 };
 
 enum BluetoothAvrcpMediaAttribute {
-  AVRCP_MEDIA_ATTRIBUTE_TITLE,
-  AVRCP_MEDIA_ATTRIBUTE_ARTIST,
-  AVRCP_MEDIA_ATTRIBUTE_ALBUM,
-  AVRCP_MEDIA_ATTRIBUTE_TRACK_NUM,
-  AVRCP_MEDIA_ATTRIBUTE_NUM_TRACKS,
-  AVRCP_MEDIA_ATTRIBUTE_GENRE,
-  AVRCP_MEDIA_ATTRIBUTE_PLAYING_TIME
+  AVRCP_MEDIA_ATTRIBUTE_TITLE = 0x01,
+  AVRCP_MEDIA_ATTRIBUTE_ARTIST = 0x02,
+  AVRCP_MEDIA_ATTRIBUTE_ALBUM = 0x03,
+  AVRCP_MEDIA_ATTRIBUTE_TRACK_NUM = 0x04,
+  AVRCP_MEDIA_ATTRIBUTE_NUM_TRACKS = 0x05,
+  AVRCP_MEDIA_ATTRIBUTE_GENRE = 0x06,
+  AVRCP_MEDIA_ATTRIBUTE_PLAYING_TIME = 0x07
 };
 
 enum BluetoothAvrcpPlayerAttribute {
@@ -517,6 +539,19 @@ enum BluetoothAvrcpPlayerAttribute {
   AVRCP_PLAYER_ATTRIBUTE_REPEAT,
   AVRCP_PLAYER_ATTRIBUTE_SHUFFLE,
   AVRCP_PLAYER_ATTRIBUTE_SCAN
+};
+
+enum BluetoothAvrcpPlayerRepeatValue {
+  AVRCP_PLAYER_VAL_OFF_REPEAT = 0x01,
+  AVRCP_PLAYER_VAL_SINGLE_REPEAT = 0x02,
+  AVRCP_PLAYER_VAL_ALL_REPEAT = 0x03,
+  AVRCP_PLAYER_VAL_GROUP_REPEAT = 0x04
+};
+
+enum BluetoothAvrcpPlayerShuffleValue {
+  AVRCP_PLAYER_VAL_OFF_SHUFFLE = 0x01,
+  AVRCP_PLAYER_VAL_ALL_SHUFFLE = 0x02,
+  AVRCP_PLAYER_VAL_GROUP_SHUFFLE = 0x03
 };
 
 enum BluetoothAvrcpStatus {
