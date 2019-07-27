@@ -42,7 +42,9 @@ class PCompositorParent;
 struct ViewTransform;
 class AsyncPanZoomAnimation;
 class FlingAnimation;
+class InputBlockState;
 class TouchBlockState;
+class OverscrollHandoffChain;
 
 
 
@@ -540,12 +542,6 @@ private:
 
 
 
-  void CancelAnimationForHandoffChain();
-
-  
-
-
-
 
 
   bool ArePointerEventsConsumable(TouchBlockState* aBlock, uint32_t aTouchPoints);
@@ -568,8 +564,8 @@ private:
   
 
 
-  bool IsTransformingState(PanZoomState aState);
-  bool IsPanningState(PanZoomState mState);
+  static bool IsTransformingState(PanZoomState aState);
+  bool IsInPanningState() const;
 
   
 
@@ -791,6 +787,15 @@ private:
 
 
 
+
+private:
+  UniquePtr<InputBlockState> mPanGestureState;
+
+
+  
+
+
+
 public:
   
 
@@ -799,7 +804,8 @@ public:
 
 
 
-  bool TakeOverFling(ScreenPoint aVelocity);
+  bool TakeOverFling(ScreenPoint aVelocity,
+                     const nsRefPtr<const OverscrollHandoffChain>& aOverscrollHandoffChain);
 
 private:
   friend class FlingAnimation;
@@ -814,10 +820,13 @@ private:
   
   
   
-  void HandleFlingOverscroll(const ScreenPoint& aVelocity);
+  void HandleFlingOverscroll(const ScreenPoint& aVelocity,
+                             const nsRefPtr<const OverscrollHandoffChain>& aOverscrollHandoffChain);
 
   
-  void AcceptFling(const ScreenPoint& aVelocity, bool aAllowOverscroll);
+  void AcceptFling(const ScreenPoint& aVelocity,
+                   const nsRefPtr<const OverscrollHandoffChain>& aOverscrollHandoffChain,
+                   bool aAllowOverscroll);
 
   
   void StartSnapBack();
@@ -907,6 +916,7 @@ public:
 
 
   bool AttemptScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
+                     const OverscrollHandoffChain& aOverscrollHandoffChain,
                      uint32_t aOverscrollHandoffChainIndex = 0);
 
   void FlushRepaintForOverscrollHandoff();
@@ -925,14 +935,10 @@ private:
 
 
 
-  bool CallDispatchScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
+  bool CallDispatchScroll(const ScreenPoint& aStartPoint,
+                          const ScreenPoint& aEndPoint,
+                          const OverscrollHandoffChain& aOverscrollHandoffChain,
                           uint32_t aOverscrollHandoffChainIndex);
-
-  
-
-
-
-  void CallSnapBackOverscrolledApzc();
 
   
 
@@ -942,6 +948,26 @@ private:
 
   bool OverscrollBy(const CSSPoint& aOverscroll);
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsRefPtr<const OverscrollHandoffChain> BuildOverscrollHandoffChain();
 
   
 

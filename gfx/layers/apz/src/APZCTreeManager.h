@@ -42,6 +42,7 @@ class Layer;
 class AsyncPanZoomController;
 class CompositorParent;
 class APZPaintLogHelper;
+class OverscrollHandoffChain;
 
 
 
@@ -297,7 +298,13 @@ public:
 
 
 
-  bool DispatchScroll(AsyncPanZoomController* aAPZC, ScreenPoint aStartPoint, ScreenPoint aEndPoint,
+
+
+
+  bool DispatchScroll(AsyncPanZoomController* aApzc,
+                      ScreenPoint aStartPoint,
+                      ScreenPoint aEndPoint,
+                      const OverscrollHandoffChain& aOverscrollHandoffChain,
                       uint32_t aOverscrollHandoffChainIndex);
 
   
@@ -310,32 +317,19 @@ public:
 
 
 
-  bool HandOffFling(AsyncPanZoomController* aApzc, ScreenPoint aVelocity);
+  bool HandOffFling(AsyncPanZoomController* aApzc, ScreenPoint aVelocity,
+                    nsRefPtr<const OverscrollHandoffChain> aOverscrollHandoffChain);
 
-  bool FlushRepaintsForOverscrollHandoffChain();
-  bool CancelAnimationsForOverscrollHandoffChain();
   void SnapBackOverscrolledApzc(AsyncPanZoomController* aStart);
 
   
 
 
-
-
-  bool CanBePanned(AsyncPanZoomController* aApzc);
-
+  nsRefPtr<const OverscrollHandoffChain> BuildOverscrollHandoffChain(const nsRefPtr<AsyncPanZoomController>& aInitialTarget);
 protected:
   
   virtual ~APZCTreeManager();
 
-  
-
-
-  void BuildOverscrollHandoffChain(const nsRefPtr<AsyncPanZoomController>& aInitialTarget);
-
-  
-
-
-  void ClearOverscrollHandoffChain();
 public:
   
 
@@ -421,12 +415,6 @@ private:
 
 
   gfx::Matrix4x4 mCachedTransformToApzcForInputBlock;
-  
-
-
-
-
-  Vector< nsRefPtr<AsyncPanZoomController> > mOverscrollHandoffChain;
   
 
   gfx::TreeLog mApzcTreeLog;

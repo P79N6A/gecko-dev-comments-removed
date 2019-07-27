@@ -4,9 +4,10 @@
 
 
 
-#include "TouchBlockState.h"
+#include "InputBlockState.h"
 #include "mozilla/layers/APZCTreeManager.h" 
 #include "gfxPrefs.h"                       
+#include "OverscrollHandoffChain.h"
 
 #define TBS_LOG(...)
 
@@ -14,8 +15,22 @@
 namespace mozilla {
 namespace layers {
 
-TouchBlockState::TouchBlockState()
-  : mAllowedTouchBehaviorSet(false)
+InputBlockState::InputBlockState(const nsRefPtr<const OverscrollHandoffChain>& aOverscrollHandoffChain)
+  : mOverscrollHandoffChain(aOverscrollHandoffChain)
+{
+  
+  MOZ_ASSERT(mOverscrollHandoffChain);
+}
+
+const nsRefPtr<const OverscrollHandoffChain>&
+InputBlockState::GetOverscrollHandoffChain() const
+{
+  return mOverscrollHandoffChain;
+}
+
+TouchBlockState::TouchBlockState(const nsRefPtr<const OverscrollHandoffChain>& aOverscrollHandoffChain)
+  : InputBlockState(aOverscrollHandoffChain)
+  , mAllowedTouchBehaviorSet(false)
   , mPreventDefault(false)
   , mContentResponded(false)
   , mContentResponseTimerExpired(false)

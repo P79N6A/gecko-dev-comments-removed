@@ -4,15 +4,31 @@
 
 
 
-#ifndef mozilla_layers_TouchBlockState_h
-#define mozilla_layers_TouchBlockState_h
+#ifndef mozilla_layers_InputBlockState_h
+#define mozilla_layers_InputBlockState_h
 
 #include "nsTArray.h"                       
 #include "InputData.h"                      
+#include "nsAutoPtr.h"
 
 namespace mozilla {
 namespace layers {
 
+class OverscrollHandoffChain;
+
+
+
+
+
+class InputBlockState
+{
+public:
+  InputBlockState(const nsRefPtr<const OverscrollHandoffChain>& aOverscrollHandoffChain);
+
+  const nsRefPtr<const OverscrollHandoffChain>& GetOverscrollHandoffChain() const;
+private:
+  nsRefPtr<const OverscrollHandoffChain> mOverscrollHandoffChain;
+};
 
 
 
@@ -44,12 +60,13 @@ namespace layers {
 
 
 
-class TouchBlockState
+
+class TouchBlockState : public InputBlockState
 {
 public:
   typedef uint32_t TouchBehaviorFlags;
 
-  TouchBlockState();
+  TouchBlockState(const nsRefPtr<const OverscrollHandoffChain>& aOverscrollHandoffChain);
 
   
 

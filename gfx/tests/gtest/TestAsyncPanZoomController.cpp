@@ -155,14 +155,6 @@ public:
 };
 
 class TestAPZCTreeManager : public APZCTreeManager {
-public:
-  
-  void BuildOverscrollHandoffChain(AsyncPanZoomController* aApzc) {
-    APZCTreeManager::BuildOverscrollHandoffChain(aApzc);
-  }
-  void ClearOverscrollHandoffChain() {
-    APZCTreeManager::ClearOverscrollHandoffChain();
-  }
 };
 
 static FrameMetrics
@@ -199,16 +191,10 @@ protected:
     tm = new TestAPZCTreeManager();
     apzc = new TestAsyncPanZoomController(0, mcc, tm, mGestureBehavior);
     apzc->SetFrameMetrics(TestFrameMetrics());
-
-    
-    
-    
-    tm->BuildOverscrollHandoffChain(apzc);
   }
 
   virtual void TearDown()
   {
-    tm->ClearOverscrollHandoffChain();
     apzc->Destroy();
   }
 
@@ -1650,9 +1636,7 @@ TEST_F(APZCTreeManagerTester, HitTesting2) {
   
   
   
-  manager->BuildOverscrollHandoffChain(apzcroot);
   ApzcPanNoFling(apzcroot, time, 100, 50);
-  manager->ClearOverscrollHandoffChain();
 
   
   hit = GetTargetAPZC(manager, ScreenPoint(75, 75), transformToApzc, transformToGecko);
@@ -1678,9 +1662,7 @@ TEST_F(APZCTreeManagerTester, HitTesting2) {
   
   
   
-  manager->BuildOverscrollHandoffChain(apzcroot);
   ApzcPanNoFling(apzcroot, time, 100, 50);
-  manager->ClearOverscrollHandoffChain();
 
   
   hit = GetTargetAPZC(manager, ScreenPoint(75, 75), transformToApzc, transformToGecko);
