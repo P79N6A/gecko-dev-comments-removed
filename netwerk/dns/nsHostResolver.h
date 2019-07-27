@@ -298,6 +298,22 @@ private:
 
     nsresult ConditionallyRefreshRecord(nsHostRecord *rec, const char *host);
     
+#if TTL_AVAILABLE
+    
+
+    
+    
+    
+    
+    void DnsExperimentChangedInternal();
+
+    
+    static void DnsExperimentChanged(const char* aPref, void* aClosure);
+
+    
+    void InitCRandom();
+#endif
+
     static void  MoveQueue(nsHostRecord *aRec, PRCList &aDestQ);
     
     static void ThreadFunc(void *);
