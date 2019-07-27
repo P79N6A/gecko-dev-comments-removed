@@ -472,7 +472,12 @@ RestyleTracker::AddPendingRestyle(Element* aElement,
       RestyleData* curData;
       mPendingRestyles.Get(cur, &curData);
       NS_ASSERTION(curData, "expected to find a RestyleData for cur");
-      curData->mDescendants.AppendElement(aElement);
+      
+      
+      
+      if (!(curData->mRestyleHint & eRestyle_ForceDescendants)) {
+        curData->mDescendants.AppendElement(aElement);
+      }
     }
   }
 
