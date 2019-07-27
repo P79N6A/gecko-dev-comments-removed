@@ -4,7 +4,7 @@
 
 
 
-#include "nsTArray.h"
+
 
 
 
@@ -487,95 +487,77 @@ nsTString_CharT::ReplaceSubstring(const self_type& aTarget,
                                   const self_type& aNewValue,
                                   const fallible_t&)
 {
-  if (aTarget.Length() == 0)
+  uint32_t t = aTarget.Length();
+  if (t == 0)
+    return true;
+
+  int32_t gap = FindSubstring(mData, mLength, aTarget.Data(), t, false);
+  if (gap == kNotFound)
     return true;
 
   
-  nsAutoTArray<Segment, 16> nonMatching;
-  uint32_t i = 0;
-  uint32_t newLength = 0;
-  while (true)
-  {
-    int32_t r = FindSubstring(mData + i, mLength - i, static_cast<const char_type*>(aTarget.Data()), aTarget.Length(), false);
-    int32_t until = (r == kNotFound) ? mLength - i : r;
-    nonMatching.AppendElement(Segment(i, until));
-    newLength += until;
-    if (r == kNotFound) {
-      break;
-    }
+  nsAutoTArray<uint32_t, 16> gaps;
+  int32_t pos = 0;
+  do {
+    gaps.AppendElement(gap);
+    pos += gap + t;
+    gap = FindSubstring(mData + pos, mLength - pos, aTarget.Data(), t, false);
+  } while (gap != kNotFound);
 
-    newLength += aNewValue.Length();
-    i += r + aTarget.Length();
-    if (i >= mLength) {
-      
-      
-      nonMatching.AppendElement(Segment(mLength, 0));
-      break;
-    }
-  }
-
-  
-  
-  if (nonMatching.Length() == 1) {
-    MOZ_ASSERT(nonMatching[0].mBegin == 0 && nonMatching[0].mLength == mLength,
-               "We should have the correct non-matching segment.");
-    return true;
-  }
-
-  
-  
-  
-  
+  uint32_t n = aNewValue.Length();
+  uint32_t l = mLength + (n - t) * gaps.Length();
   char_type* oldData;
   uint32_t oldFlags;
-  if (!MutatePrep(XPCOM_MAX(mLength, newLength), &oldData, &oldFlags))
+  if (!MutatePrep(XPCOM_MAX(mLength, l), &oldData, &oldFlags))
     return false;
-  if (oldData) {
-    
-    char_traits::copy(mData, oldData, mLength);
-    ::ReleaseData(oldData, oldFlags);
-  }
-
-  if (aTarget.Length() >= aNewValue.Length()) {
-    
-    const uint32_t delta = (aTarget.Length() - aNewValue.Length());
-    for (i = 1; i < nonMatching.Length(); ++i) {
-      
-      
-      
-      const char_type* sourceSegmentPtr = mData + nonMatching[i].mBegin;
-      char_type* destinationSegmentPtr = mData + nonMatching[i].mBegin - i * delta;
-      
-      
-      char_traits::copy(destinationSegmentPtr - aNewValue.Length(),
-                        aNewValue.Data(), aNewValue.Length());
-      char_traits::move(destinationSegmentPtr, sourceSegmentPtr,
-                        nonMatching[i].mLength);
-    }
-  } else {
-    
-    const uint32_t delta = (aNewValue.Length() - aTarget.Length());
-    for (i = nonMatching.Length() - 1; i > 0; --i) {
-      
-      
-      
-      const char_type* sourceSegmentPtr = mData + nonMatching[i].mBegin;
-      char_type* destinationSegmentPtr = mData + nonMatching[i].mBegin + i * delta;
-      char_traits::move(destinationSegmentPtr, sourceSegmentPtr,
-                        nonMatching[i].mLength);
-      
-      
-      char_traits::copy(destinationSegmentPtr - aNewValue.Length(),
-                        aNewValue.Data(), aNewValue.Length());
-    }
-  }
 
   
-  mLength = newLength;
-  mData[mLength] = char_type(0);
+  gaps.AppendElement(Length() + 1 - pos);
+  
+  const char_type* src = mData + mLength + 1;
+  mLength = l;
+  if (!oldData && t < n) {
+    
+    char_type* dest = mData + l + 1;
+    for (size_t i = gaps.Length() - 1; i > 0; i--) {
+      if (gaps[i] > 0) {
+        src -= gaps[i];
+        dest -= gaps[i];
+        char_traits::move(dest, src, gaps[i]);
+      }
+      src -= t;
+      dest -= n;
+      char_traits::copy(dest, aNewValue.Data(), n);
+    }
+    return true;
+  }
 
+  src = mData;
+  if (oldData) {
+    
+    src = oldData;
+    if (gaps[0] > 0)
+      char_traits::copy(mData, src, gaps[0]);
+  }
+
+  char_type* dest = mData + gaps[0];
+  src += gaps[0];
+  for (size_t i = 1; i < gaps.Length(); i++) {
+    char_traits::copy(dest, aNewValue.Data(), n);
+    dest += n;
+    src += t;
+    if (gaps[i] > 0) {
+      char_traits::move(dest, src, gaps[i]);
+      dest += gaps[i];
+      src += gaps[i];
+    }
+  }
+
+  if (oldData)
+    ::ReleaseData(oldData, oldFlags);
   return true;
 }
+
 
 
 
