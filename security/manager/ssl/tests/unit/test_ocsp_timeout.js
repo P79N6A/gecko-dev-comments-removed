@@ -31,7 +31,7 @@ function run_test() {
 
   let socket = Cc["@mozilla.org/network/server-socket;1"]
                  .createInstance(Ci.nsIServerSocket);
-  socket.init(8080, true, -1);
+  socket.init(8888, true, -1);
   socket.asyncListen(gSocketListener);
 
   add_tests_in_mode(true);
