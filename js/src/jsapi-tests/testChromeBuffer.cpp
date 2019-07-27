@@ -63,8 +63,8 @@ BEGIN_TEST(testChromeBuffer)
 
 
     {
-        JSRuntimeOptions oldOptions = JS::RuntimeOptionsRef(rt);
         
+        JS::RuntimeOptions oldOptions = JS::RuntimeOptionsRef(rt);
         JS::RuntimeOptionsRef(rt).setIon(false).setBaseline(false);
         {
             JSAutoCompartment ac(cx, trusted_glob);
