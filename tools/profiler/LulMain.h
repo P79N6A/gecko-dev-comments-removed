@@ -60,7 +60,7 @@ namespace lul {
 class TaggedUWord {
 public:
   
-  TaggedUWord(uintptr_t w)
+  explicit TaggedUWord(uintptr_t w)
     : mValue(w)
     , mValid(true)
   {}
@@ -165,7 +165,7 @@ class CFICache;
 class LUL {
 public:
   
-  LUL(void (*aLog)(const char*));
+  explicit LUL(void (*aLog)(const char*));
 
   
   

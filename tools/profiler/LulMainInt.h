@@ -223,7 +223,7 @@ public:
   
   
 
-  SecMap(void(*aLog)(const char*));
+  explicit SecMap(void(*aLog)(const char*));
   ~SecMap();
 
   
