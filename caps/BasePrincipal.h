@@ -56,6 +56,39 @@ public:
                           nsACString& aOriginNoSuffix);
 };
 
+class OriginAttributesPattern : public dom::OriginAttributesPatternDictionary
+{
+public:
+  
+  
+  
+  
+  
+  
+  OriginAttributesPattern() {}
+
+  explicit OriginAttributesPattern(const OriginAttributesPatternDictionary& aOther)
+    : OriginAttributesPatternDictionary(aOther) {}
+
+  
+  bool Matches(const OriginAttributes& aAttrs) const
+  {
+    if (mAppId.WasPassed() && mAppId.Value() != aAttrs.mAppId) {
+      return false;
+    }
+
+    if (mInBrowser.WasPassed() && mInBrowser.Value() != aAttrs.mInBrowser) {
+      return false;
+    }
+
+    if (mAddonId.WasPassed() && mAddonId.Value() != aAttrs.mAddonId) {
+      return false;
+    }
+
+    return true;
+  }
+};
+
 
 
 
