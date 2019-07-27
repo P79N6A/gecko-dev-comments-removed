@@ -37,6 +37,7 @@
 
 #include "mozilla/gfx/2D.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/Move.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Services.h"
 #include "mozilla/Preferences.h"
@@ -188,21 +189,21 @@ class ScaleRequest
 public:
   ScaleRequest(RasterImage* aImage,
                const nsIntSize& aSize,
-               imgFrame* aSrcFrame)
-    : dstSize(aSize)
-    , dstLocked(false)
+               RawAccessFrameRef&& aSrcRef)
+    : weakImage(aImage)
+    , srcRef(Move(aSrcRef))
+    , srcRect(srcRef->GetRect())
+    , dstSize(aSize)
     , done(false)
     , stopped(false)
   {
-    MOZ_ASSERT(!aSrcFrame->GetIsPaletted());
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(!srcRef->GetIsPaletted());
     MOZ_ASSERT(aSize.width > 0 && aSize.height > 0);
-
-    weakImage = aImage;
-    srcRect = aSrcFrame->GetRect();
   }
 
   
-  bool GetSurfaces(imgFrame* srcFrame)
+  bool AcquireResources()
   {
     MOZ_ASSERT(NS_IsMainThread());
 
@@ -211,80 +212,68 @@ public:
       return false;
     }
 
-    bool success = false;
-    if (!dstLocked) {
+    if (!dstFrame) {
       
       
-      bool imgLocked = NS_SUCCEEDED(image->LockImage());
-      bool srcLocked = NS_SUCCEEDED(srcFrame->LockImageData());
-      srcSurface = srcFrame->GetSurface();
-
-      dstLocked = NS_SUCCEEDED(dstFrame->LockImageData());
-      dstSurface = dstFrame->GetSurface();
-
-      success = imgLocked && srcLocked && dstLocked && srcSurface && dstSurface;
-
-      if (success) {
-        srcData = srcFrame->GetImageData();
-        dstData = dstFrame->GetImageData();
-        srcStride = srcFrame->GetImageBytesPerRow();
-        dstStride = dstFrame->GetImageBytesPerRow();
-        srcFormat = srcFrame->GetFormat();
+      if (NS_FAILED(image->LockImage())) {
+        return false;
       }
 
       
       
-      
-      if (srcLocked) {
-        success = NS_SUCCEEDED(srcFrame->UnlockImageData()) && success;
+      nsRefPtr<imgFrame> tentativeDstFrame = new imgFrame();
+      nsresult rv =
+        tentativeDstFrame->Init(0, 0, dstSize.width, dstSize.height,
+                                SurfaceFormat::B8G8R8A8);
+      if (NS_FAILED(rv)) {
+        return false;
       }
+
+      
+      
+      RawAccessFrameRef tentativeDstRef = tentativeDstFrame->RawAccessRef();
+      if (!tentativeDstRef) {
+        return false;
+      }
+
+      dstFrame = tentativeDstFrame.forget();
+      dstRef = Move(tentativeDstRef);
     }
 
-    return success;
+    return true;
   }
 
   
-  bool ReleaseSurfaces()
+  void ReleaseResources()
   {
     MOZ_ASSERT(NS_IsMainThread());
 
     nsRefPtr<RasterImage> image = weakImage.get();
-    if (!image) {
-      return false;
+    if (image) {
+      image->UnlockImage();
     }
 
-    bool success = false;
-    if (dstLocked) {
-      if (DiscardingEnabled())
-        dstFrame->SetDiscardable();
-      success = NS_SUCCEEDED(dstFrame->UnlockImageData());
-      success = success && NS_SUCCEEDED(image->UnlockImage());
-
-      dstLocked = false;
-      srcData = nullptr;
-      dstData = nullptr;
-      srcSurface = nullptr;
-      dstSurface = nullptr;
+    if (DiscardingEnabled() && dstFrame) {
+      dstFrame->SetDiscardable();
     }
-    return success;
+
+    
+    
+    srcRef.reset();
+    dstRef.reset();
   }
 
   
   WeakPtr<RasterImage> weakImage;
   nsRefPtr<imgFrame> dstFrame;
-  RefPtr<SourceSurface> srcSurface;
-  RefPtr<SourceSurface> dstSurface;
+  RawAccessFrameRef srcRef;
+  RawAccessFrameRef dstRef;
 
   
-  uint8_t* srcData;
-  uint8_t* dstData;
   nsIntRect srcRect;
   nsIntSize dstSize;
-  uint32_t srcStride;
-  uint32_t dstStride;
-  SurfaceFormat srcFormat;
-  bool dstLocked;
   bool done;
+
   
   
   
@@ -301,9 +290,11 @@ public:
   NS_IMETHOD Run()
   {
     
-    mScaleRequest->ReleaseSurfaces();
-
     nsRefPtr<RasterImage> image = mScaleRequest->weakImage.get();
+
+    
+    
+    mScaleRequest->ReleaseResources();
 
     if (image) {
       RasterImage::ScaleStatus status;
@@ -328,36 +319,36 @@ class ScaleRunner : public nsRunnable
 public:
   ScaleRunner(RasterImage* aImage,
               const nsIntSize& aSize,
-              imgFrame* aSrcFrame)
+              RawAccessFrameRef&& aSrcRef)
   {
-    nsAutoPtr<ScaleRequest> request(new ScaleRequest(aImage, aSize, aSrcFrame));
-
-    
-    
-    request->dstFrame = new imgFrame();
-    nsresult rv = request->dstFrame->Init(0, 0, request->dstSize.width, request->dstSize.height,
-                                          SurfaceFormat::B8G8R8A8);
-
-    if (NS_FAILED(rv) || !request->GetSurfaces(aSrcFrame)) {
+    nsAutoPtr<ScaleRequest> req(new ScaleRequest(aImage, aSize, Move(aSrcRef)));
+    if (!req->AcquireResources()) {
       return;
     }
 
-    aImage->ScalingStart(request);
-
-    mScaleRequest = request;
+    aImage->ScalingStart(req);
+    mScaleRequest = req;
   }
 
   NS_IMETHOD Run()
   {
-    
-    ScaleRequest* request = mScaleRequest;
+    ScaleRequest* req = mScaleRequest.get();
 
-    if (!request->stopped) {
-      request->done = gfx::Scale(request->srcData, request->srcRect.width, request->srcRect.height, request->srcStride,
-                                 request->dstData, request->dstSize.width, request->dstSize.height, request->dstStride,
-                                 request->srcFormat);
+    if (!req->stopped) {
+      
+      uint8_t* srcData = req->srcRef->GetImageData();
+      uint8_t* dstData = req->dstRef->GetImageData();
+      uint32_t srcStride = req->srcRef->GetImageBytesPerRow();
+      uint32_t dstStride = req->dstRef->GetImageBytesPerRow();
+      SurfaceFormat srcFormat = req->srcRef->GetFormat();
+
+      
+      req->done =
+        gfx::Scale(srcData, req->srcRect.width, req->srcRect.height, srcStride,
+                   dstData, req->dstSize.width, req->dstSize.height, dstStride,
+                   srcFormat);
     } else {
-      request->done = false;
+      req->done = false;
     }
 
     
@@ -2624,8 +2615,8 @@ RasterImage::RequestScale(imgFrame* aFrame, nsIntSize aSize)
   }
 
   
-  if (NS_FAILED(aFrame->LockImageData())) {
-    aFrame->UnlockImageData();
+  RawAccessFrameRef frameRef = aFrame->RawAccessRef();
+  if (!frameRef) {
     return;
   }
 
@@ -2634,7 +2625,7 @@ RasterImage::RequestScale(imgFrame* aFrame, nsIntSize aSize)
     mScaleRequest->stopped = true;
   }
 
-  nsRefPtr<ScaleRunner> runner = new ScaleRunner(this, aSize, aFrame);
+  nsRefPtr<ScaleRunner> runner = new ScaleRunner(this, aSize, Move(frameRef));
   if (runner->IsOK()) {
     if (!sScaleWorkerThread) {
       NS_NewNamedThread("Image Scaler", getter_AddRefs(sScaleWorkerThread));
@@ -2643,8 +2634,6 @@ RasterImage::RequestScale(imgFrame* aFrame, nsIntSize aSize)
 
     sScaleWorkerThread->Dispatch(runner, NS_DISPATCH_NORMAL);
   }
-
-  aFrame->UnlockImageData();
 }
 
 bool
