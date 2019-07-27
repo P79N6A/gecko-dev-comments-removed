@@ -99,7 +99,11 @@ let TrackingProtection = {
     
     
     
-    Services.perms.remove(gBrowser.selectedBrowser.currentURI,
+    let normalizedUrl = Services.io.newURI(
+      "https://" + gBrowser.selectedBrowser.currentURI.hostPort,
+      null, null);
+
+    Services.perms.remove(normalizedUrl,
       "trackingprotection");
 
     
