@@ -35,7 +35,7 @@ public:
   
   void MetadataCallback(AudioFileStreamID aFileStream,
                         AudioFileStreamPropertyID aPropertyID,
-                        uint32_t* aFlags);
+                        UInt32* aFlags);
   void SampleCallback(uint32_t aNumBytes,
                       uint32_t aNumPackets,
                       const void* aData,

@@ -158,7 +158,7 @@ AppleATDecoder::Shutdown()
 void
 AppleATDecoder::MetadataCallback(AudioFileStreamID aFileStream,
                                  AudioFileStreamPropertyID aPropertyID,
-                                 uint32_t* aFlags)
+                                 UInt32* aFlags)
 {
   if (aPropertyID == kAudioFileStreamProperty_ReadyToProducePackets) {
     SetupDecoder();
@@ -245,7 +245,7 @@ AppleATDecoder::SampleCallback(uint32_t aNumBytes,
 
     
     
-    uint32_t numFrames = MAX_AUDIO_FRAMES;
+    UInt32 numFrames = MAX_AUDIO_FRAMES;
 
     OSStatus rv = AudioConverterFillComplexBuffer(mConverter,
                                                   _PassthroughInputDataCallback,
