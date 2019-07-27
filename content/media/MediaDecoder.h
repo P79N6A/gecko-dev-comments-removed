@@ -813,7 +813,7 @@ public:
   
   
   
-  void PlaybackPositionChanged();
+  virtual void PlaybackPositionChanged();
 
   
   
