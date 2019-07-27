@@ -772,7 +772,7 @@ protected:
 
   
   
-  const nsAutoPtr<MediaDecoderStateMachineScheduler> mScheduler;
+  const nsRefPtr<MediaDecoderStateMachineScheduler> mScheduler;
 
   
   
