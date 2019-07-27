@@ -300,19 +300,13 @@ nsCSPHostSrc::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected
 
   
   
-  
-  
-  if (mHost.EqualsASCII("*") &&
-      mScheme.IsEmpty() &&
-      mPort.IsEmpty()) {
-    return true;
-  }
 
   
   nsAutoCString scheme;
   nsresult rv = aUri->GetScheme(scheme);
   NS_ENSURE_SUCCESS(rv, false);
-  if (!mScheme.EqualsASCII(scheme.get())) {
+  if (!mScheme.IsEmpty() &&
+      !mScheme.EqualsASCII(scheme.get())) {
     return false;
   }
 
@@ -320,6 +314,12 @@ nsCSPHostSrc::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected
   
   NS_ASSERTION((!mHost.IsEmpty()), "host can not be the empty string");
 
+  
+  if (mHost.EqualsASCII("*")) {
+    return true;
+  }
+
+  
   
   nsAutoCString uriHost;
   rv = aUri->GetHost(uriHost);
@@ -375,6 +375,7 @@ nsCSPHostSrc::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected
     return true;
   }
 
+  
   
   int32_t uriPort;
   rv = aUri->GetPort(&uriPort);
