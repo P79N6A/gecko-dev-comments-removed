@@ -237,7 +237,19 @@ public:
 
   bool IsRasterImage();
   bool IsAnimatedImage();
-  already_AddRefed<ImageContainer> GetContainer(LayerManager* aManager);
+
+  
+
+
+
+
+
+
+  bool IsContainerAvailable(LayerManager* aManager,
+                            nsDisplayListBuilder* aBuilder);
+
+  
+  already_AddRefed<imgIContainer> GetImage();
 
   bool IsReady() { return mIsReady; }
 
