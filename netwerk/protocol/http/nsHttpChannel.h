@@ -418,6 +418,8 @@ private:
         MAYBE_INTERCEPT,   
         INTERCEPTED,       
     } mInterceptCache;
+    
+    const uint64_t mInterceptionID;
 
     bool PossiblyIntercepted() {
         return mInterceptCache != DO_NOT_INTERCEPT;

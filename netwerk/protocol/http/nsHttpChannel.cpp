@@ -84,6 +84,10 @@ namespace mozilla { namespace net {
 namespace {
 
 
+
+static uint64_t gNumIntercepted = 0;
+
+
 #define BYPASS_LOCAL_CACHE(loadFlags) \
         (loadFlags & (nsIRequest::LOAD_BYPASS_CACHE | \
                       nsICachingChannel::LOAD_BYPASS_LOCAL_CACHE))
@@ -223,6 +227,7 @@ nsHttpChannel::nsHttpChannel()
     , mRequestTime(0)
     , mOfflineCacheLastModifiedTime(0)
     , mInterceptCache(DO_NOT_INTERCEPT)
+    , mInterceptionID(gNumIntercepted++)
     , mCachedContentIsValid(false)
     , mCachedContentIsPartial(false)
     , mCacheOnlyMetadata(false)
@@ -2782,7 +2787,7 @@ nsHttpChannel::OpenCacheEntry(bool isHttps)
         extension.Append(nsPrintfCString("%d", mPostID));
     }
     if (PossiblyIntercepted()) {
-        extension.Append('u');
+        extension.Append(nsPrintfCString("u%lld", mInterceptionID));
     }
 
     
