@@ -56,18 +56,6 @@ GenerateUuid(nsAString &aUuidString);
 
 
 
-
-void
-GeneratePathFromGattId(const BluetoothGattId& aId,
-                       nsAString& aPath,
-                       nsAString& aUuidStr);
-
-
-
-
-
-
-
 void
 GeneratePathFromGattId(const BluetoothGattId& aId,
                        nsAString& aPath);
