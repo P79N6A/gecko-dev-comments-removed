@@ -16,6 +16,9 @@
 
 #ifdef _MSC_VER
 # include <intrin.h> 
+# if defined(_M_X64) && (_MSC_FULL_VER >= 160040219)
+#  include <immintrin.h> 
+# endif
 #endif
 
 using namespace js;
@@ -141,6 +144,30 @@ CPUInfo::SSEVersion CPUInfo::maxEnabledSSEVersion = UnknownSSE;
 bool CPUInfo::avxPresent = false;
 bool CPUInfo::avxEnabled = true;
 
+static uintptr_t
+ReadXGETBV()
+{
+    
+    
+    
+    
+    size_t xcr0EAX = 0;
+#if defined(_XCR_XFEATURE_ENABLED_MASK)
+    xcr0EAX = _xgetbv(_XCR_XFEATURE_ENABLED_MASK);
+#elif defined(__GNUC__)
+    
+    
+    asm(".byte 0x0f, 0x01, 0xd0" : "=a"(xcr0EAX) : "c"(0) : "%edx");
+#elif defined(_MSC_VER) && defined(_M_IX86)
+    __asm {
+        xor ecx, ecx
+        _asm _emit 0x0f _asm _emit 0x01 _asm _emit 0xd0
+        mov xcr0EAX, eax
+    }
+#endif
+    return xcr0EAX;
+}
+
 void
 CPUInfo::SetSSEVersion()
 {
@@ -202,4 +229,12 @@ CPUInfo::SetSSEVersion()
     static const int AVXBit = 1 << 28;
     static const int XSAVEBit = 1 << 27;
     avxPresent = (flagsECX & AVXBit) && (flagsECX & XSAVEBit) && avxEnabled;
+
+    
+    if (avxPresent) {
+        size_t xcr0EAX = ReadXGETBV();
+        static const int xcr0SSEBit = 1 << 1;
+        static const int xcr0AVXBit = 1 << 2;
+        avxPresent = (xcr0EAX & xcr0SSEBit) && (xcr0EAX & xcr0AVXBit);
+    }
 }
