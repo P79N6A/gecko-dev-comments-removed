@@ -112,7 +112,6 @@ exports.drawGraphElementBackground = drawGraphElementBackground;
 function findOptimalTimeInterval(timeScale,
                                  minSpacing=TIME_GRADUATION_MIN_SPACING) {
   let timingStep = TIME_INTERVAL_MULTIPLE;
-  let maxIters = OPTIMAL_TIME_INTERVAL_MAX_ITERS;
   let numIters = 0;
 
   if (timeScale > minSpacing) {
@@ -121,7 +120,7 @@ function findOptimalTimeInterval(timeScale,
 
   while (true) {
     let scaledStep = timeScale * timingStep;
-    if (++numIters > maxIters) {
+    if (++numIters > OPTIMAL_TIME_INTERVAL_MAX_ITERS) {
       return scaledStep;
     }
     if (scaledStep < minSpacing) {

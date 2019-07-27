@@ -7,6 +7,7 @@
 const Cu = Components.utils;
 const {gDevTools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
 const {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+const {require} = devtools;
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const TargetFactory = devtools.TargetFactory;
 const {console} = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
@@ -213,6 +214,16 @@ let openAnimationInspector = Task.async(function*() {
     window: win
   };
 });
+
+
+
+
+
+
+function openAnimationInspectorNewUI() {
+  enableNewUI();
+  return openAnimationInspector();
+}
 
 
 
