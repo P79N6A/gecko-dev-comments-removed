@@ -1376,7 +1376,6 @@ this.PushService = {
             "push-subscription-change",
             scope
           );
-          
           globalMM.broadcastAsyncMessage('pushsubscriptionchanged', scope);
         }
         resolve();
