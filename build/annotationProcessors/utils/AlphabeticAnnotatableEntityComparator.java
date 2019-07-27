@@ -57,16 +57,16 @@ public class AlphabeticAnnotatableEntityComparator<T extends Member> implements 
         }
 
         
-        lName = Utils.getTypeSignatureStringForMethod(aLhs);
-        rName = Utils.getTypeSignatureStringForMethod(aRhs);
+        lName = Utils.getSignature(aLhs);
+        rName = Utils.getSignature(aRhs);
 
         return lName.compareTo(rName);
     }
 
     private static int compare(Constructor<?> aLhs, Constructor<?> aRhs) {
         
-        String lName = Utils.getTypeSignatureString(aLhs);
-        String rName = Utils.getTypeSignatureString(aRhs);
+        String lName = Utils.getSignature(aLhs);
+        String rName = Utils.getSignature(aRhs);
 
         return lName.compareTo(rName);
     }

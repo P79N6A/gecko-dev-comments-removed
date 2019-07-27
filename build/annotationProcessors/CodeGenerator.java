@@ -5,6 +5,7 @@
 package org.mozilla.gecko.annotationProcessors;
 
 import org.mozilla.gecko.annotationProcessors.classloader.AnnotatableEntity;
+import org.mozilla.gecko.annotationProcessors.classloader.ClassWithOptions;
 import org.mozilla.gecko.annotationProcessors.utils.Utils;
 
 import java.lang.annotation.Annotation;
@@ -13,246 +14,402 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.HashMap;
 import java.util.HashSet;
 
 public class CodeGenerator {
     private static final Class<?>[] EMPTY_CLASS_ARRAY = new Class<?>[0];
-    private static final Annotation[][] GETTER_ARGUMENT_ANNOTATIONS = new Annotation[0][0];
-    private static final Annotation[][] SETTER_ARGUMENT_ANNOTATIONS = new Annotation[1][0];
 
     
-    private final StringBuilder zeroingCode = new StringBuilder();
-    private final StringBuilder wrapperStartupCode = new StringBuilder();
-    private final StringBuilder wrapperMethodBodies = new StringBuilder();
-    private final StringBuilder headerPublic = new StringBuilder();
-    private final StringBuilder headerProtected = new StringBuilder();
+    private final StringBuilder cpp = new StringBuilder();
+    private final StringBuilder header = new StringBuilder();
 
-    private final HashSet<String> seenClasses = new HashSet<String>();
+    private final Class<?> cls;
+    private final String clsName;
 
-    private final String mCClassName;
+    private final HashSet<String> takenMethodNames = new HashSet<String>();
 
-    private final Class<?> mClassToWrap;
+    public CodeGenerator(ClassWithOptions annotatedClass) {
+        this.cls = annotatedClass.wrappedClass;
+        this.clsName = annotatedClass.generatedName;
 
-    private boolean mHasEncounteredDefaultConstructor;
+        header.append(
+                "class " + clsName + " : public mozilla::jni::Class<" + clsName + "> {\n" +
+                "\n" +
+                "public:\n" +
+                "    typedef mozilla::jni::Ref<" + clsName + "> Ref;\n" +
+                "    typedef mozilla::jni::LocalRef<" + clsName + "> LocalRef;\n" +
+                "    typedef mozilla::jni::GlobalRef<" + clsName + "> GlobalRef;\n" +
+                "    typedef const typename mozilla::jni::Param<" + clsName + ">::Type& Param;\n" +
+                "\n" +
+                "    static constexpr char name[] =\n" +
+                "            \"" + cls.getName().replace('.', '/') + "\";\n" +
+                "\n" +
+                "protected:\n" +
+                "    " + clsName + "(jobject instance) : Class(instance) {}\n" +
+                "\n");
 
-    
-    private final HashMap<Member, String> mMembersToIds = new HashMap<Member, String>();
-    private final HashSet<String> mTakenMemberNames = new HashSet<String>();
-    private int mNameMunger;
-
-    private final boolean mLazyInit;
-
-    public CodeGenerator(Class<?> aClass, String aGeneratedName) {
-        this(aClass, aGeneratedName, false);
+        cpp.append(
+                "constexpr char " + clsName + "::name[];\n" +
+                "\n");
     }
 
-    public CodeGenerator(Class<?> aClass, String aGeneratedName, boolean aLazyInit) {
-        mClassToWrap = aClass;
-        mCClassName = aGeneratedName;
-        mLazyInit = aLazyInit;
-
-        
-        
-        
-        
-        wrapperStartupCode.append("void ").append(mCClassName).append("::InitStubs(JNIEnv *env) {\n");
-
-        
-        headerPublic.append("class ").append(mCClassName).append(" : public AutoGlobalWrappedJavaObject {\n" +
-                            "public:\n" +
-                            "    static void InitStubs(JNIEnv *env);\n");
-        headerProtected.append("protected:");
-
-        generateWrapperMethod();
+    private String getTraitsName(String uniqueName, boolean includeScope) {
+        return (includeScope ? clsName + "::" : "") + uniqueName + "_t";
     }
 
-    
-
-
-
-    private void generateWrapperMethod() {
-        headerPublic.append("    static ").append(mCClassName).append("* Wrap(jobject obj);\n" +
-                "    ").append(mCClassName).append("(jobject obj, JNIEnv* env) : AutoGlobalWrappedJavaObject(obj, env) {};\n");
-
-        wrapperMethodBodies.append("\n").append(mCClassName).append("* ").append(mCClassName).append("::Wrap(jobject obj) {\n" +
-                "    JNIEnv *env = GetJNIForThread();\n" +
-                "    ").append(mCClassName).append("* ret = new ").append(mCClassName).append("(obj, env);\n" +
-                "    env->DeleteLocalRef(obj);\n" +
-                "    return ret;\n" +
-                "}\n");
-    }
-
-    private void generateMemberCommon(Member theMethod, String aCMethodName, Class<?> aClass) {
-        ensureClassHeaderAndStartup(aClass);
-        writeMemberIdField(theMethod, aCMethodName);
-
-        if (!mLazyInit) {
-            writeMemberInit(theMethod, wrapperStartupCode);
+    private String getNativeParameterType(Class<?> type, AnnotationInfo info) {
+        if (type == cls) {
+            return clsName + "::Param";
         }
+        return Utils.getNativeParameterType(type, info);
     }
 
-    
-
-
-
-
-    public void generateMethod(AnnotatableEntity aMethodTuple) {
-        
-        Method theMethod = aMethodTuple.getMethod();
-
-        String CMethodName = aMethodTuple.mAnnotationInfo.wrapperName;
-
-        generateMemberCommon(theMethod, CMethodName, mClassToWrap);
-
-        boolean isFieldStatic = Utils.isMemberStatic(theMethod);
-
-        Class<?>[] parameterTypes = theMethod.getParameterTypes();
-        Class<?> returnType = theMethod.getReturnType();
-
-        
-        String implementationSignature = Utils.getCImplementationMethodSignature(parameterTypes, returnType, CMethodName,
-            mCClassName, aMethodTuple.mAnnotationInfo.narrowChars, aMethodTuple.mAnnotationInfo.catchException);
-        String headerSignature = Utils.getCHeaderMethodSignature(parameterTypes, theMethod.getParameterAnnotations(), returnType,
-            CMethodName, mCClassName, isFieldStatic, aMethodTuple.mAnnotationInfo.narrowChars, aMethodTuple.mAnnotationInfo.catchException);
-
-        
-        writeSignatureToHeader(headerSignature);
-
-        
-        writeMethodBody(implementationSignature, theMethod, mClassToWrap,
-                        aMethodTuple.mAnnotationInfo.isMultithreaded,
-                        aMethodTuple.mAnnotationInfo.noThrow,
-                        aMethodTuple.mAnnotationInfo.narrowChars,
-                        aMethodTuple.mAnnotationInfo.catchException);
+    private String getNativeReturnType(Class<?> type, AnnotationInfo info) {
+        if (type == cls) {
+            return clsName + "::LocalRef";
+        }
+        return Utils.getNativeReturnType(type, info);
     }
 
-    private void generateGetterOrSetterBody(Field aField, String aFieldName, boolean aIsFieldStatic, boolean isSetter, boolean aNarrowChars) {
-        StringBuilder argumentContent = null;
-        Class<?> fieldType = aField.getType();
+    private void generateMember(AnnotationInfo info, Member member,
+                                String uniqueName, Class<?> type) {
+        header.append(
+                "public:\n" +
+                "    struct " + getTraitsName(uniqueName,  false) + " {\n" +
+                "        typedef " + clsName + " Owner;\n" +
+                "        typedef " + getNativeReturnType(type, info) + " ReturnType;\n" +
+                "        typedef " + getNativeParameterType(type, info) + " SetterType;\n" +
+                "        static constexpr char name[] = \"" +
+                        Utils.getMemberName(member) + "\";\n" +
+                "        static constexpr char signature[] =\n" +
+                "                \"" + Utils.getSignature(member) + "\";\n" +
+                "        static const bool isStatic = " + Utils.isStatic(member) + ";\n" +
+                "        static const bool isMultithreaded = " + info.isMultithreaded + ";\n" +
+                "        static const mozilla::jni::ExceptionMode exceptionMode = " + (
+                        info.catchException ? "mozilla::jni::ExceptionMode::NSRESULT" :
+                        info.noThrow ?        "mozilla::jni::ExceptionMode::IGNORE" :
+                                              "mozilla::jni::ExceptionMode::ABORT") + ";\n" +
+                "    };\n" +
+                "\n");
 
-        if (isSetter) {
-            Class<?>[] setterArguments = new Class<?>[]{fieldType};
-            
-            argumentContent = getArgumentMarshalling(setterArguments);
+        cpp.append(
+                "constexpr char " + getTraitsName(uniqueName,  true) +
+                        "::name[];\n" +
+                "constexpr char " + getTraitsName(uniqueName,  true) +
+                        "::signature[];\n" +
+                "\n");
+    }
+
+    private String getUniqueMethodName(String basename) {
+        String newName = basename;
+        int index = 1;
+
+        while (takenMethodNames.contains(newName)) {
+            newName = basename + (++index);
         }
 
-        if (mLazyInit) {
-            writeMemberInit(aField, wrapperMethodBodies);
-        }
+        takenMethodNames.add(newName);
+        return newName;
+    }
 
-        boolean isObjectReturningMethod = Utils.isObjectType(fieldType);
-        wrapperMethodBodies.append("    ");
-        if (isSetter) {
-            wrapperMethodBodies.append("env->Set");
+    
+
+
+
+    private String generatePrototype(String name, Class<?>[] argTypes,
+                                     Class<?> returnType, AnnotationInfo info,
+                                     boolean includeScope, boolean includeArgName) {
+
+        final StringBuilder proto = new StringBuilder();
+        int argIndex = 0;
+
+        if (info.catchException) {
+            proto.append("nsresult ");
         } else {
-            wrapperMethodBodies.append("return ");
+            proto.append(getNativeReturnType(returnType, info)).append(' ');
+        }
 
-            if (isObjectReturningMethod) {
-                wrapperMethodBodies.append("static_cast<").append(Utils.getCReturnType(fieldType, aNarrowChars)).append(">(");
+        if (includeScope) {
+            proto.append(clsName).append("::");
+        }
+
+        proto.append(name).append('(');
+
+        for (Class<?> argType : argTypes) {
+            proto.append(getNativeParameterType(argType, info));
+            if (includeArgName) {
+                proto.append(" a").append(argIndex++);
             }
-
-            wrapperMethodBodies.append("env->Get");
+            proto.append(", ");
         }
 
-        if (aIsFieldStatic) {
-            wrapperMethodBodies.append("Static");
-        }
-        wrapperMethodBodies.append(Utils.getFieldType(fieldType))
-                           .append("Field(");
-
-        
-        if (aIsFieldStatic) {
-            wrapperMethodBodies.append(Utils.getClassReferenceName(mClassToWrap));
-        } else {
-            wrapperMethodBodies.append("wrapped_obj");
-        }
-        wrapperMethodBodies.append(", j")
-                           .append(aFieldName);
-        if (isSetter) {
-            wrapperMethodBodies.append(argumentContent);
+        if (info.catchException && returnType != void.class) {
+            proto.append(getNativeReturnType(returnType, info)).append('*');
+            if (includeArgName) {
+                proto.append(" a").append(argIndex++);
+            }
+            proto.append(", ");
         }
 
-        if (!isSetter && isObjectReturningMethod) {
-            wrapperMethodBodies.append(')');
+        if (proto.substring(proto.length() - 2).equals(", ")) {
+            proto.setLength(proto.length() - 2);
         }
-        wrapperMethodBodies.append(");\n" +
-                               "}\n");
+
+        return proto.append(')').toString();
     }
 
-    public void generateField(AnnotatableEntity aFieldTuple) {
-        Field theField = aFieldTuple.getField();
+    
+
+
+
+    private String generateDeclaration(String name, Class<?>[] argTypes,
+                                       Class<?> returnType, AnnotationInfo info,
+                                       boolean isStatic) {
+
+        return (isStatic ? "static " : "") +
+            generatePrototype(name, argTypes, returnType, info,
+                               false,  false) +
+            (isStatic ? ";" : " const;");
+    }
+
+    
+
+
+
+    private String generateDefinition(String accessorName, String name, Class<?>[] argTypes,
+                                      Class<?> returnType, AnnotationInfo info, boolean isStatic) {
+
+        final StringBuilder def = new StringBuilder(
+                generatePrototype(name, argTypes, returnType, info,
+                                   true,  true));
+
+        if (!isStatic) {
+            def.append(" const");
+        }
+        def.append("\n{\n");
+
 
         
         
-        if (theField.getName().equals("$VALUES")) {
+        
+
+        if (info.catchException && returnType == void.class) {
+            def.append(
+                    "    nsresult rv = NS_OK;\n" +
+                    "    ");
+
+        } else if (info.catchException) {
+            
+            final String resultArg = "a" + argTypes.length;
+            def.append(
+                    "    MOZ_ASSERT(" + resultArg + ");\n" +
+                    "    nsresult rv = NS_OK;\n" +
+                    "    *" + resultArg + " = ");
+
+        } else {
+            def.append(
+                    "    return ");
+        }
+
+
+        
+
+        def.append(accessorName).append("(")
+           .append(isStatic ? "nullptr" : "this");
+
+        if (info.catchException) {
+            def.append(", &rv");
+        } else {
+            def.append(", nullptr");
+        }
+
+        
+        for (int argIndex = 0; argIndex < argTypes.length; argIndex++) {
+            def.append(", a").append(argIndex);
+        }
+
+        def.append(");\n");
+
+
+        if (info.catchException) {
+            def.append("    return rv;\n");
+        }
+
+        return def.append("}").toString();
+    }
+
+    
+
+
+
+
+    public void generateMethod(AnnotatableEntity annotatedMethod) {
+        
+        final Method method = annotatedMethod.getMethod();
+        final AnnotationInfo info = annotatedMethod.mAnnotationInfo;
+        final String uniqueName = getUniqueMethodName(info.wrapperName);
+        final Class<?> returnType = method.getReturnType();
+
+        if (method.isSynthetic()) {
             return;
         }
 
-        String CFieldName = aFieldTuple.mAnnotationInfo.wrapperName;
+        generateMember(info, method, uniqueName, returnType);
 
-        Class<?> fieldType = theField.getType();
+        final Class<?>[] argTypes = method.getParameterTypes();
+        final boolean isStatic = Utils.isStatic(method);
 
-        generateMemberCommon(theField, CFieldName, mClassToWrap);
+        header.append(
+                "    " + generateDeclaration(info.wrapperName, argTypes,
+                                             returnType, info, isStatic) + "\n" +
+                "\n");
 
-        boolean isFieldStatic = Utils.isMemberStatic(theField);
-        boolean isFieldFinal = Utils.isMemberFinal(theField);
-
-        String getterName = "get" + CFieldName;
-        String getterSignature = Utils.getCImplementationMethodSignature(EMPTY_CLASS_ARRAY, fieldType, getterName, mCClassName, aFieldTuple.mAnnotationInfo.narrowChars, false);
-        String getterHeaderSignature = Utils.getCHeaderMethodSignature(EMPTY_CLASS_ARRAY, GETTER_ARGUMENT_ANNOTATIONS, fieldType, getterName, mCClassName, isFieldStatic, aFieldTuple.mAnnotationInfo.narrowChars, false);
-
-        writeSignatureToHeader(getterHeaderSignature);
-
-        writeFunctionStartupBoilerPlate(getterSignature, true);
-
-        generateGetterOrSetterBody(theField, CFieldName, isFieldStatic, false, aFieldTuple.mAnnotationInfo.narrowChars);
-
-        
-        if (!isFieldFinal) {
-            String setterName = "set" + CFieldName;
-
-            Class<?>[] setterArguments = new Class<?>[]{fieldType};
-
-            String setterSignature = Utils.getCImplementationMethodSignature(setterArguments, Void.class, setterName, mCClassName, aFieldTuple.mAnnotationInfo.narrowChars, false);
-            String setterHeaderSignature = Utils.getCHeaderMethodSignature(setterArguments, SETTER_ARGUMENT_ANNOTATIONS, Void.class, setterName, mCClassName, isFieldStatic, aFieldTuple.mAnnotationInfo.narrowChars, false);
-
-            writeSignatureToHeader(setterHeaderSignature);
-
-            writeFunctionStartupBoilerPlate(setterSignature, true);
-
-            generateGetterOrSetterBody(theField, CFieldName, isFieldStatic, true, aFieldTuple.mAnnotationInfo.narrowChars);
-        }
+        cpp.append(
+                generateDefinition(
+                        "mozilla::jni::Method<" +
+                                getTraitsName(uniqueName,  false) + ">::Call",
+                        info.wrapperName, argTypes, returnType, info, isStatic) + "\n" +
+                "\n");
     }
 
-    public void generateConstructor(AnnotatableEntity aCtorTuple) {
-        
-        Constructor<?> theCtor = aCtorTuple.getConstructor();
-        String CMethodName = mCClassName;
+    private String getLiteral(Object val, AnnotationInfo info) {
+        final Class<?> type = val.getClass();
 
-        generateMemberCommon(theCtor, mCClassName, mClassToWrap);
+        if (type == char.class || type == Character.class) {
+            final char c = (char) val;
+            if (c >= 0x20 && c < 0x7F) {
+                return "'" + c + '\'';
+            }
+            return "u'\\u" + Integer.toHexString(0x10000 | (int) c).substring(1) + '\'';
 
-        String implementationSignature = Utils.getCImplementationMethodSignature(theCtor.getParameterTypes(), Void.class, CMethodName,
-            mCClassName, aCtorTuple.mAnnotationInfo.narrowChars, aCtorTuple.mAnnotationInfo.catchException);
-        String headerSignature = Utils.getCHeaderMethodSignature(theCtor.getParameterTypes(), theCtor.getParameterAnnotations(), Void.class, CMethodName,
-            mCClassName, false, aCtorTuple.mAnnotationInfo.narrowChars, aCtorTuple.mAnnotationInfo.catchException);
-
-        
-        headerSignature = headerSignature.substring(5);
-        implementationSignature = implementationSignature.substring(5);
-
-        
-        writeSignatureToHeader(headerSignature);
-
-        
-        writeCtorBody(implementationSignature, theCtor,
-            aCtorTuple.mAnnotationInfo.isMultithreaded,
-            aCtorTuple.mAnnotationInfo.noThrow,
-            aCtorTuple.mAnnotationInfo.catchException);
-
-        if (theCtor.getParameterTypes().length == 0) {
-            mHasEncounteredDefaultConstructor = true;
+        } else if (type == CharSequence.class || type == String.class) {
+            final CharSequence str = (CharSequence) val;
+            final StringBuilder out = new StringBuilder(info.narrowChars ? "u8\"" : "u\"");
+            for (int i = 0; i < str.length(); i++) {
+                final char c = str.charAt(i);
+                if (c >= 0x20 && c < 0x7F) {
+                    out.append(c);
+                } else {
+                    out.append("\\u").append(Integer.toHexString(0x10000 | (int) c).substring(1));
+                }
+            }
+            return out.append('"').toString();
         }
+
+        return String.valueOf(val);
+    }
+
+    public void generateField(AnnotatableEntity annotatedField) {
+        final Field field = annotatedField.getField();
+        final AnnotationInfo info = annotatedField.mAnnotationInfo;
+        final String uniqueName = info.wrapperName;
+        final Class<?> type = field.getType();
+
+        
+        
+        if (field.isSynthetic() || field.getName().equals("$VALUES")) {
+            return;
+        }
+
+        final boolean isStatic = Utils.isStatic(field);
+        final boolean isFinal = Utils.isFinal(field);
+
+        if (isStatic && isFinal && (type.isPrimitive() || type == String.class)) {
+            Object val = null;
+            try {
+                val = field.get(null);
+            } catch (final IllegalAccessException e) {
+            }
+
+            if (val != null && type.isPrimitive()) {
+                
+                header.append(
+                    "public:\n" +
+                    "    static const " + Utils.getNativeReturnType(type, info) +
+                            ' ' + info.wrapperName + " = " + getLiteral(val, info) + ";\n" +
+                    "\n");
+                return;
+
+            } else if (val != null && type == String.class) {
+                final String nativeType = info.narrowChars ? "char" : "char16_t";
+
+                header.append(
+                    "public:\n" +
+                    "    static const " + nativeType + ' ' + info.wrapperName + "[];\n" +
+                    "\n");
+
+                cpp.append(
+                    "const " + nativeType + ' ' + clsName + "::" + info.wrapperName +
+                            "[] = " + getLiteral(val, info) + ";\n" +
+                    "\n");
+                return;
+            }
+
+            
+        }
+
+        generateMember(info, field, uniqueName, type);
+
+        final Class<?>[] getterArgs = EMPTY_CLASS_ARRAY;
+
+        header.append(
+                "    " + generateDeclaration(info.wrapperName, getterArgs,
+                                             type, info, isStatic) + "\n" +
+                "\n");
+
+        cpp.append(
+                generateDefinition(
+                        "mozilla::jni::Field<" +
+                                getTraitsName(uniqueName,  false) + ">::Get",
+                        info.wrapperName, getterArgs, type, info, isStatic) + "\n" +
+                "\n");
+
+        if (isFinal) {
+            return;
+        }
+
+        final Class<?>[] setterArgs = new Class<?>[] { type };
+
+        header.append(
+                "    " + generateDeclaration(info.wrapperName, setterArgs,
+                                             void.class, info, isStatic) + "\n" +
+                "\n");
+
+        cpp.append(
+                generateDefinition(
+                        "mozilla::jni::Field<" +
+                                getTraitsName(uniqueName,  false) + ">::Set",
+                        info.wrapperName, setterArgs, void.class, info, isStatic) + "\n" +
+                "\n");
+    }
+
+    public void generateConstructor(AnnotatableEntity annotatedConstructor) {
+        
+        final Constructor<?> method = annotatedConstructor.getConstructor();
+        final AnnotationInfo info = annotatedConstructor.mAnnotationInfo;
+        final String wrapperName = "New";
+        final String uniqueName = getUniqueMethodName(wrapperName);
+        final Class<?> returnType = cls;
+
+        if (method.isSynthetic()) {
+            return;
+        }
+
+        generateMember(info, method, uniqueName, returnType);
+
+        final Class<?>[] argTypes = method.getParameterTypes();
+
+        header.append(
+                "    " + generateDeclaration(wrapperName, argTypes,
+                                             returnType, info,  true) + "\n" +
+                "\n");
+
+        cpp.append(
+                generateDefinition(
+                        "mozilla::jni::Constructor<" +
+                                getTraitsName(uniqueName,  false) + ">::Call",
+                        wrapperName, argTypes, returnType, info,  true) + "\n" +
+                "\n");
     }
 
     public void generateMembers(Member[] members) {
@@ -261,11 +418,14 @@ public class CodeGenerator {
                 continue;
             }
 
-            String name = m.getName();
+            String name = Utils.getMemberName(m);
             name = name.substring(0, 1).toUpperCase() + name.substring(1);
 
-            AnnotationInfo info = new AnnotationInfo(name, true, true, true, true);
-            AnnotatableEntity entity = new AnnotatableEntity(m, info);
+            final AnnotationInfo info = new AnnotationInfo(name,
+                     true,  false,
+                     false,  true);
+            final AnnotatableEntity entity = new AnnotatableEntity(m, info);
+
             if (m instanceof Constructor) {
                 generateConstructor(entity);
             } else if (m instanceof Method) {
@@ -273,393 +433,10 @@ public class CodeGenerator {
             } else if (m instanceof Field) {
                 generateField(entity);
             } else {
-                throw new IllegalArgumentException("expected member to be Constructor, Method, or Field");
+                throw new IllegalArgumentException(
+                        "expected member to be Constructor, Method, or Field");
             }
         }
-    }
-
-    
-
-
-
-
-
-    private void ensureClassHeaderAndStartup(Class<?> aClass) {
-        String className = aClass.getCanonicalName();
-        if (seenClasses.contains(className)) {
-            return;
-        }
-
-        zeroingCode.append("jclass ")
-                   .append(mCClassName)
-                   .append("::")
-                   .append(Utils.getClassReferenceName(aClass))
-                   .append(" = 0;\n");
-
-        
-        headerProtected.append("\n    static jclass ")
-                       .append(Utils.getClassReferenceName(aClass))
-                       .append(";\n");
-
-        
-        wrapperStartupCode.append(Utils.getStartupLineForClass(aClass));
-
-        seenClasses.add(className);
-    }
-
-    
-
-
-    private void writeFunctionStartupBoilerPlate(String methodSignature, boolean aIsThreaded) {
-        
-        wrapperMethodBodies.append('\n')
-                           .append(methodSignature)
-                           .append(" {\n");
-
-        wrapperMethodBodies.append("    JNIEnv *env = ");
-        if (!aIsThreaded) {
-            wrapperMethodBodies.append("AndroidBridge::GetJNIEnv();\n");
-        } else {
-            wrapperMethodBodies.append("GetJNIForThread();\n");
-        }
-    }
-
-    
-
-
-
-
-
-
-    private void writeFramePushBoilerplate(Member aMethod,
-            boolean aIsObjectReturningMethod, boolean aNoThrow) {
-        if (aMethod instanceof Field) {
-            throw new IllegalArgumentException("Tried to push frame for a FIELD?!");
-        }
-
-        Method m;
-        Constructor<?> c;
-
-        Class<?> returnType;
-
-        int localReferencesNeeded;
-        if (aMethod instanceof Method) {
-            m = (Method) aMethod;
-            returnType = m.getReturnType();
-            localReferencesNeeded = Utils.enumerateReferenceArguments(m.getParameterTypes());
-        } else {
-            c = (Constructor<?>) aMethod;
-            returnType = Void.class;
-            localReferencesNeeded = Utils.enumerateReferenceArguments(c.getParameterTypes());
-        }
-
-        
-        
-        if (aIsObjectReturningMethod) {
-            localReferencesNeeded++;
-        }
-        wrapperMethodBodies.append(
-                "    if (env->PushLocalFrame(").append(localReferencesNeeded).append(") != 0) {\n");
-        if (!aNoThrow) {
-            wrapperMethodBodies.append(
-                "        AndroidBridge::HandleUncaughtException(env);\n" +
-                "        MOZ_CRASH(\"Exception should have caused crash.\");\n");
-        } else {
-            wrapperMethodBodies.append(
-                "        return").append(Utils.getFailureReturnForType(returnType)).append(";\n");
-        }
-        wrapperMethodBodies.append(
-                "    }\n\n");
-    }
-
-    private StringBuilder getArgumentMarshalling(Class<?>[] argumentTypes) {
-        StringBuilder argumentContent = new StringBuilder();
-
-        
-        argumentContent.append(", ");
-        if (argumentTypes.length > 2) {
-            wrapperMethodBodies.append("    jvalue args[").append(argumentTypes.length).append("];\n");
-            for (int aT = 0; aT < argumentTypes.length; aT++) {
-                wrapperMethodBodies.append("    args[").append(aT).append("].")
-                                   .append(Utils.getArrayArgumentMashallingLine(argumentTypes[aT], "a" + aT));
-            }
-
-            
-            argumentContent.append("args");
-            wrapperMethodBodies.append('\n');
-        } else {
-            
-            boolean needsNewline = false;
-            for (int aT = 0; aT < argumentTypes.length; aT++) {
-                
-                
-                if (Utils.isCharSequence(argumentTypes[aT])) {
-                    wrapperMethodBodies.append("    jstring j").append(aT).append(" = AndroidBridge::NewJavaString(env, a").append(aT).append(");\n");
-                    needsNewline = true;
-                    
-                    
-                    argumentContent.append('j').append(aT);
-                } else {
-                    argumentContent.append('a').append(aT);
-                }
-                if (aT != argumentTypes.length - 1) {
-                    argumentContent.append(", ");
-                }
-            }
-            if (needsNewline) {
-                wrapperMethodBodies.append('\n');
-            }
-        }
-
-        return argumentContent;
-    }
-
-    private void writeCatchException() {
-        wrapperMethodBodies.append(
-            "    if (env->ExceptionCheck()) {\n" +
-            "        env->ExceptionClear();\n" +
-            "        if (aResult) {\n" +
-            "            *aResult = NS_ERROR_FAILURE;\n" +
-            "        }\n" +
-            "    } else if (aResult) {\n" +
-            "        *aResult = NS_OK;\n" +
-            "    }\n\n");
-    }
-
-    private void writeCtorBody(String implementationSignature, Constructor<?> theCtor,
-            boolean aIsThreaded, boolean aNoThrow, boolean aCatchException) {
-        Class<?>[] argumentTypes = theCtor.getParameterTypes();
-
-        writeFunctionStartupBoilerPlate(implementationSignature, aIsThreaded);
-
-        writeFramePushBoilerplate(theCtor, false, aNoThrow);
-
-        if (mLazyInit) {
-            writeMemberInit(theCtor, wrapperMethodBodies);
-        }
-
-        
-        boolean hasArguments = argumentTypes.length != 0;
-
-        StringBuilder argumentContent = new StringBuilder();
-        if (hasArguments) {
-            argumentContent = getArgumentMarshalling(argumentTypes);
-        }
-
-        
-        wrapperMethodBodies.append("    Init(env->NewObject");
-        if (argumentTypes.length > 2) {
-            wrapperMethodBodies.append('A');
-        }
-
-        wrapperMethodBodies.append('(');
-
-
-        
-        wrapperMethodBodies.append(Utils.getClassReferenceName(mClassToWrap)).append(", ");
-
-        wrapperMethodBodies.append(mMembersToIds.get(theCtor))
-        
-                           .append(argumentContent)
-                           .append("), env);\n");
-
-        
-        if (aCatchException) {
-            writeCatchException();
-        }
-
-        wrapperMethodBodies.append("    env->PopLocalFrame(nullptr);\n}\n");
-    }
-
-    
-
-
-
-
-
-
-
-    private void writeMethodBody(String methodSignature, Method aMethod,
-                                 Class<?> aClass, boolean aIsMultithreaded,
-                                 boolean aNoThrow, boolean aNarrowChars,
-                                 boolean aCatchException) {
-        Class<?>[] argumentTypes = aMethod.getParameterTypes();
-        Class<?> returnType = aMethod.getReturnType();
-
-        writeFunctionStartupBoilerPlate(methodSignature, aIsMultithreaded);
-
-        boolean isObjectReturningMethod = !returnType.getCanonicalName().equals("void") && Utils.isObjectType(returnType);
-
-        writeFramePushBoilerplate(aMethod, isObjectReturningMethod, aNoThrow);
-
-        if (mLazyInit) {
-            writeMemberInit(aMethod, wrapperMethodBodies);
-        }
-
-        
-        boolean hasArguments = argumentTypes.length != 0;
-
-        
-        
-        
-        
-        
-        StringBuilder argumentContent = new StringBuilder();
-        if (hasArguments) {
-            argumentContent = getArgumentMarshalling(argumentTypes);
-        }
-
-        
-        wrapperMethodBodies.append("    ");
-        if (!returnType.getCanonicalName().equals("void")) {
-            if (isObjectReturningMethod) {
-                wrapperMethodBodies.append("jobject");
-            } else {
-                wrapperMethodBodies.append(Utils.getCReturnType(returnType, aNarrowChars));
-            }
-            wrapperMethodBodies.append(" temp = ");
-        }
-
-        boolean isStaticJavaMethod = Utils.isMemberStatic(aMethod);
-
-        
-        wrapperMethodBodies.append("env->")
-                           .append(Utils.getCallPrefix(returnType, isStaticJavaMethod));
-        if (argumentTypes.length > 2) {
-            wrapperMethodBodies.append('A');
-        }
-
-        wrapperMethodBodies.append('(');
-        
-        if (!isStaticJavaMethod) {
-            wrapperMethodBodies.append("wrapped_obj, ");
-        } else {
-            
-            
-            wrapperMethodBodies.append(Utils.getClassReferenceName(aClass)).append(", ");
-        }
-
-        wrapperMethodBodies.append(mMembersToIds.get(aMethod));
-
-        
-        wrapperMethodBodies.append(argumentContent)
-                           .append(");\n");
-
-        
-        if (!aNoThrow) {
-            wrapperMethodBodies.append("    AndroidBridge::HandleUncaughtException(env);\n");
-        }
-
-        
-        if (aCatchException) {
-            writeCatchException();
-        }
-
-        
-        
-        if (isObjectReturningMethod) {
-            wrapperMethodBodies.append("    ")
-                               .append(Utils.getCReturnType(returnType, aNarrowChars))
-                               .append(" ret = static_cast<").append(Utils.getCReturnType(returnType, aNarrowChars)).append(">(env->PopLocalFrame(temp));\n" +
-                                       "    return ret;\n");
-        } else if (!returnType.getCanonicalName().equals("void")) {
-            
-            
-            wrapperMethodBodies.append("    env->PopLocalFrame(nullptr);\n" +
-                                       "    return temp;\n");
-        } else {
-            
-            wrapperMethodBodies.append("    env->PopLocalFrame(nullptr);\n");
-        }
-        wrapperMethodBodies.append("}\n");
-    }
-
-    
-
-
-
-
-
-    private void writeMemberInit(Member aMember, StringBuilder aOutput) {
-        if (mLazyInit) {
-            aOutput.append("    if (!" + mMembersToIds.get(aMember) + ") {\n    ");
-        }
-
-        aOutput.append("    " + mMembersToIds.get(aMember)).append(" = AndroidBridge::Get");
-        if (Utils.isMemberStatic(aMember)) {
-            aOutput.append("Static");
-        }
-
-        boolean isField = aMember instanceof Field;
-        if (isField) {
-            aOutput.append("FieldID(env, " + Utils.getClassReferenceName(aMember.getDeclaringClass()) + ", \"");
-        } else {
-            aOutput.append("MethodID(env, " + Utils.getClassReferenceName(aMember.getDeclaringClass()) + ", \"");
-        }
-
-        if (aMember instanceof Constructor) {
-            aOutput.append("<init>");
-        } else {
-            aOutput.append(aMember.getName());
-        }
-
-        aOutput.append("\", \"")
-                          .append(Utils.getTypeSignatureStringForMember(aMember))
-                          .append("\");\n");
-
-        if (mLazyInit) {
-            aOutput.append("    }\n\n");
-        }
-    }
-
-    private void writeZeroingFor(Member aMember, final String aMemberName) {
-        if (aMember instanceof Field) {
-            zeroingCode.append("jfieldID ");
-        } else {
-            zeroingCode.append("jmethodID ");
-        }
-        zeroingCode.append(mCClassName)
-                   .append("::")
-                   .append(aMemberName)
-                   .append(" = 0;\n");
-    }
-
-    
-
-
-
-
-    private void writeMemberIdField(Member aMember, final String aCMethodName) {
-        String memberName = 'j'+ aCMethodName;
-
-        if (aMember instanceof Field) {
-            headerProtected.append("    static jfieldID ");
-        } else {
-            headerProtected.append("    static jmethodID ");
-        }
-
-        while(mTakenMemberNames.contains(memberName)) {
-            memberName = 'j' + aCMethodName + mNameMunger;
-            mNameMunger++;
-        }
-
-        writeZeroingFor(aMember, memberName);
-        mMembersToIds.put(aMember, memberName);
-        mTakenMemberNames.add(memberName);
-
-        headerProtected.append(memberName)
-                       .append(";\n");
-    }
-
-    
-
-
-
-
-    private void writeSignatureToHeader(String aSignature) {
-        headerPublic.append("    ")
-                    .append(aSignature)
-                    .append(";\n");
     }
 
     
@@ -668,12 +445,7 @@ public class CodeGenerator {
 
 
     public String getWrapperFileContents() {
-        wrapperStartupCode.append("}\n");
-        zeroingCode.append(wrapperStartupCode)
-                   .append(wrapperMethodBodies);
-        wrapperMethodBodies.setLength(0);
-        wrapperStartupCode.setLength(0);
-        return zeroingCode.toString();
+        return cpp.toString();
     }
 
     
@@ -682,12 +454,9 @@ public class CodeGenerator {
 
 
     public String getHeaderFileContents() {
-        if (!mHasEncounteredDefaultConstructor) {
-            headerPublic.append("    ").append(mCClassName).append("() : AutoGlobalWrappedJavaObject() {};\n");
-        }
-        headerProtected.append("};\n\n");
-        headerPublic.append(headerProtected);
-        headerProtected.setLength(0);
-        return headerPublic.toString();
+        header.append(
+                "};\n" +
+                "\n");
+        return header.toString();
     }
 }

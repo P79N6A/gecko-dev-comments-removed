@@ -119,8 +119,7 @@ public class GeneratableElementIterator implements Iterator<AnnotatableEntity> {
 
                     
                     if (stubName.isEmpty()) {
-                        String aMethodName = candidateElement.getName();
-                        stubName = aMethodName.substring(0, 1).toUpperCase() + aMethodName.substring(1);
+                        stubName = Utils.getNativeName(candidateElement);
                     }
 
                     AnnotationInfo annotationInfo = new AnnotationInfo(
@@ -134,7 +133,11 @@ public class GeneratableElementIterator implements Iterator<AnnotatableEntity> {
             
             if (mIterateEveryEntry) {
                 AnnotationInfo annotationInfo = new AnnotationInfo(
-                    candidateElement.getName(), false, false, false, false);
+                    Utils.getNativeName(candidateElement),
+                     true,
+                     false,
+                     false,
+                     false);
                 mNextReturnValue = new AnnotatableEntity(candidateElement, annotationInfo);
                 return;
             }
