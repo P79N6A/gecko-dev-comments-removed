@@ -578,6 +578,8 @@ nsTransitionManager::ConsiderStartingTransition(
 
   nsRefPtr<CSSTransition> animation = new CSSTransition(timeline);
   animation->SetOwningElement(*aElement, aNewStyleContext->GetPseudoType());
+  animation->SetCreationSequence(
+    mPresContext->RestyleManager()->GetAnimationGeneration());
   
   
   
