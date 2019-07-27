@@ -2551,6 +2551,42 @@ protected:
     manager->UpdateHitTestingTree(nullptr, root, false, 0, 0);
     rootApzc = ApzcOf(root);
   }
+
+  void CreateBug1117712LayerTree() {
+    const char* layerTreeSyntax = "c(c(t)t)";
+    
+    
+    
+    
+    
+    
+    
+    nsIntRegion layerVisibleRegions[] = {
+      nsIntRegion(nsIntRect(0, 0, 100, 100)),
+      nsIntRegion(nsIntRect(0, 0, 0, 0)),
+      nsIntRegion(nsIntRect(0, 0, 10, 10)),
+      nsIntRegion(nsIntRect(0, 0, 100, 100)),
+    };
+    Matrix4x4 layerTransforms[] = {
+      Matrix4x4(),
+      Matrix4x4::Translation(50, 0, 0),
+      Matrix4x4(),
+      Matrix4x4(),
+    };
+    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, layerTransforms, lm, layers);
+
+    SetScrollableFrameMetrics(layers[2], FrameMetrics::START_SCROLL_ID + 1, CSSRect(0, 0, 10, 10));
+    SetScrollableFrameMetrics(layers[3], FrameMetrics::START_SCROLL_ID + 2, CSSRect(0, 0, 100, 100));
+
+    EventRegions regions(nsIntRegion(nsIntRect(0, 0, 10, 10)));
+    layers[2]->SetEventRegions(regions);
+    regions.mHitRegion = nsIntRegion(nsIntRect(0, 0, 100, 100));
+    regions.mDispatchToContentHitRegion = nsIntRegion(nsIntRect(0, 0, 100, 100));
+    layers[3]->SetEventRegions(regions);
+
+    registration = MakeUnique<ScopedLayerTreeRegistration>(0, root, mcc);
+    manager->UpdateHitTestingTree(nullptr, root, false, 0, 0);
+  }
 };
 
 TEST_F(APZEventRegionsTester, HitRegionImmediateResponse) {
@@ -2641,6 +2677,28 @@ TEST_F(APZEventRegionsTester, Obscuration) {
   nsRefPtr<AsyncPanZoomController> hit = manager->GetTargetAPZC(ScreenPoint(50, 75), &result);
   EXPECT_EQ(child, hit.get());
   EXPECT_EQ(HitTestResult::ApzcHitRegion, result);
+}
+
+TEST_F(APZEventRegionsTester, Bug1117712) {
+  SCOPED_GFX_PREF(LayoutEventRegionsEnabled, bool, true);
+
+  CreateBug1117712LayerTree();
+
+  TestAsyncPanZoomController* apzc2 = ApzcOf(layers[2]);
+
+  
+  
+  int time = 0;
+  uint64_t inputBlockId = 0;
+  Tap(manager, 55, 5, time, 100, nullptr, &inputBlockId);
+  
+  
+  EXPECT_CALL(*mcc, HandleSingleTap(CSSPoint(55, 5), 0, apzc2->GetGuid())).Times(1);
+
+  nsTArray<ScrollableLayerGuid> targets;
+  targets.AppendElement(apzc2->GetGuid());
+  manager->SetTargetAPZC(inputBlockId, targets);
+  while (mcc->RunThroughDelayedTasks());    
 }
 
 class TaskRunMetrics {
