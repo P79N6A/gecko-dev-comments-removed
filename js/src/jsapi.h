@@ -5449,6 +5449,9 @@ struct PerformanceGroup {
     PerformanceData data;
 
     
+    const uint64_t uid;
+
+    
     
     
     bool hasStopwatch(uint64_t iteration) const {
@@ -5472,12 +5475,7 @@ struct PerformanceGroup {
         stopwatch_ = nullptr;
     }
 
-    explicit PerformanceGroup(void* key)
-      : stopwatch_(nullptr)
-      , iteration_(0)
-      , key_(key)
-      , refCount_(0)
-    { }
+    explicit PerformanceGroup(JSContext* cx, void* key);
     ~PerformanceGroup()
     {
         MOZ_ASSERT(refCount_ == 0);
@@ -5589,7 +5587,7 @@ extern JS_PUBLIC_API(PerformanceData*)
 GetPerformanceData(JSRuntime*);
 
 typedef bool
-(PerformanceStatsWalker)(JSContext* cx, const PerformanceData& stats, void* closure);
+(PerformanceStatsWalker)(JSContext* cx, const PerformanceData& stats, uint64_t uid, void* closure);
 
 
 

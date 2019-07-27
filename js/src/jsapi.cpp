@@ -338,7 +338,7 @@ IterPerformanceStats(JSContext* cx,
             continue;
         }
 
-        if (!(*walker)(cx, group->data, closure)) {
+        if (!(*walker)(cx, group->data, group->uid, closure)) {
             
             return false;
         }
@@ -551,8 +551,6 @@ JS_Init(void)
     using js::TlsPerThreadData;
     if (!TlsPerThreadData.initialized() && !TlsPerThreadData.init())
         return false;
-
-    jit::ExecutableAllocator::initStatic();
 
     if (!jit::InitializeIon())
         return false;

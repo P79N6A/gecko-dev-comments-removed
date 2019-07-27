@@ -1517,6 +1517,7 @@ struct JSRuntime : public JS::shadow::Runtime,
           , currentPerfGroupCallback(nullptr)
           , isMonitoringJank_(false)
           , isMonitoringCPOW_(false)
+          , idCounter_(0)
         { }
 
         
@@ -1571,6 +1572,13 @@ struct JSRuntime : public JS::shadow::Runtime,
         }
 
         
+
+
+        uint64_t uniqueId() {
+            return idCounter_++;
+        }
+
+        
         
         
         
@@ -1620,6 +1628,11 @@ struct JSRuntime : public JS::shadow::Runtime,
 
         bool isMonitoringJank_;
         bool isMonitoringCPOW_;
+
+        
+
+
+        uint64_t idCounter_;
     };
     Stopwatch stopwatch;
 };
