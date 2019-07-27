@@ -46,7 +46,7 @@ using namespace mozilla;
 using namespace mozilla::widget::android;
 using namespace mozilla::gfx;
 
-StaticRefPtr<AndroidBridge> AndroidBridge::sBridge;
+AndroidBridge* AndroidBridge::sBridge;
 static unsigned sJavaEnvThreadIndex = 0;
 static jobject sGlobalContext = nullptr;
 static void JavaThreadDetachFunc(void *arg);
@@ -1549,8 +1549,7 @@ void AndroidBridge::SyncFrameMetrics(const ScreenPoint& aScrollOffset, float aZo
 }
 
 AndroidBridge::AndroidBridge()
-  : mLayerClient(nullptr),
-    mNativePanZoomController(nullptr)
+  : mLayerClient(nullptr)
 {
 }
 
@@ -1975,77 +1974,8 @@ AndroidBridge::ProgressiveUpdateCallback(bool aHasPendingNewThebesContent, const
     return ret;
 }
 
-mozilla::widget::android::NativePanZoomController*
-AndroidBridge::SetNativePanZoomController(jobject obj)
-{
-    mozilla::widget::android::NativePanZoomController* old = mNativePanZoomController;
-    mNativePanZoomController = mozilla::widget::android::NativePanZoomController::Wrap(obj);
-    return old;
-}
-
 void
-AndroidBridge::RequestContentRepaint(const mozilla::layers::FrameMetrics& aFrameMetrics)
-{
-    ALOG_BRIDGE("AndroidBridge::RequestContentRepaint");
-
-    
-}
-
-void
-AndroidBridge::AcknowledgeScrollUpdate(const mozilla::layers::FrameMetrics::ViewID& aScrollId,
-                                       const uint32_t& aScrollGeneration)
-{
-    
-}
-
-void
-AndroidBridge::HandleDoubleTap(const CSSPoint& aPoint,
-                               int32_t aModifiers,
-                               const mozilla::layers::ScrollableLayerGuid& aGuid)
-{
-    nsCString data = nsPrintfCString("{ \"x\": %d, \"y\": %d }", aPoint.x, aPoint.y);
-    nsAppShell::gAppShell->PostEvent(AndroidGeckoEvent::MakeBroadcastEvent(
-            NS_LITERAL_CSTRING("Gesture:DoubleTap"), data));
-}
-
-void
-AndroidBridge::HandleSingleTap(const CSSPoint& aPoint,
-                               int32_t aModifiers,
-                               const mozilla::layers::ScrollableLayerGuid& aGuid)
-{
-    
-    nsCString data = nsPrintfCString("{ \"x\": %d, \"y\": %d }", aPoint.x, aPoint.y);
-    nsAppShell::gAppShell->PostEvent(AndroidGeckoEvent::MakeBroadcastEvent(
-            NS_LITERAL_CSTRING("Gesture:SingleTap"), data));
-}
-
-void
-AndroidBridge::HandleLongTap(const CSSPoint& aPoint,
-                             int32_t aModifiers,
-                             const mozilla::layers::ScrollableLayerGuid& aGuid)
-{
-    nsCString data = nsPrintfCString("{ \"x\": %d, \"y\": %d }", aPoint.x, aPoint.y);
-    nsAppShell::gAppShell->PostEvent(AndroidGeckoEvent::MakeBroadcastEvent(
-            NS_LITERAL_CSTRING("Gesture:LongPress"), data));
-}
-
-void
-AndroidBridge::HandleLongTapUp(const CSSPoint& aPoint,
-                               int32_t aModifiers,
-                               const mozilla::layers::ScrollableLayerGuid& aGuid)
-{
-}
-
-void
-AndroidBridge::SendAsyncScrollDOMEvent(bool aIsRoot,
-                                       const CSSRect& aContentRect,
-                                       const CSSSize& aScrollableSize)
-{
-    
-}
-
-void
-AndroidBridge::PostDelayedTask(Task* aTask, int aDelayMs)
+AndroidBridge::PostTaskToUiThread(Task* aTask, int aDelayMs)
 {
     
     
@@ -2066,12 +1996,12 @@ AndroidBridge::PostDelayedTask(Task* aTask, int aDelayMs)
         
         
         
-        mNativePanZoomController->PostDelayedCallbackWrapper((int64_t)aDelayMs);
+        GeckoAppShell::RequestUiThreadCallback((int64_t)aDelayMs);
     }
 }
 
 int64_t
-AndroidBridge::RunDelayedTasks()
+AndroidBridge::RunDelayedUiThreadTasks()
 {
     while (mDelayedTaskQueue.Length() > 0) {
         DelayedTask* nextTask = mDelayedTaskQueue[0];
