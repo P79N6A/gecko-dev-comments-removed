@@ -211,7 +211,9 @@ CheckMarkedThing(JSTracer *trc, T **thingp)
 
 
 
-    MOZ_ASSERT_IF(IsThingPoisoned(thing) && rt->isHeapBusy(),
+
+
+    MOZ_ASSERT_IF(IsThingPoisoned(thing) && rt->isHeapBusy() && !rt->gc.isBackgroundSweeping(),
                   !InFreeList(thing->asTenured().arenaHeader(), thing));
 #endif
 }
