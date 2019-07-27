@@ -380,17 +380,46 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, void **returnAddrOut)
     
 
     MacroAssembler masm(cx);
+    
+    
+    
 
     
     
     MOZ_ASSERT(ArgumentsRectifierReg == r8);
 
     
+    masm.addl(Imm32(1), r8);
+
+    
     masm.loadPtr(Address(rsp, RectifierFrameLayout::offsetOfCalleeToken()), rax);
     masm.mov(rax, rcx);
     masm.andq(Imm32(uint32_t(CalleeTokenMask)), rcx);
     masm.movzwl(Operand(rcx, JSFunction::offsetOfNargs()), rcx);
+
+    
+    
+    
+    static_assert(sizeof(JitFrameLayout) % JitStackAlignment == 0,
+      "No need to consider the JitFrameLayout for aligning the stack");
+    static_assert(JitStackAlignment % sizeof(Value) == 0,
+      "Ensure that we can pad the stack by pushing extra UndefinedValue");
+
+    const uint32_t alignment = JitStackAlignment / sizeof(Value);
+    MOZ_ASSERT(IsPowerOfTwo(alignment));
+    masm.addl(Imm32(alignment - 1  + 1 ), rcx);
+    masm.andl(Imm32(~(alignment - 1)), rcx);
+
+    
     masm.subq(r8, rcx);
+
+    
+    
+    
+    
+    
+    
+    
 
     
     masm.loadPtr(Address(rsp, RectifierFrameLayout::offsetOfNumActualArgs()), rdx);
@@ -410,11 +439,14 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, void **returnAddrOut)
     }
 
     
-    BaseIndex b = BaseIndex(r9, r8, TimesEight, sizeof(RectifierFrameLayout));
+    static_assert(sizeof(Value) == 8, "TimesEight is used to skip arguments");
+
+    
+    
+    BaseIndex b = BaseIndex(r9, r8, TimesEight, sizeof(RectifierFrameLayout) - sizeof(Value));
     masm.lea(Operand(b), rcx);
 
     
-    masm.addl(Imm32(1), r8);
     {
         Label copyLoopTop;
 
@@ -424,6 +456,14 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, void **returnAddrOut)
         masm.subl(Imm32(1), r8);
         masm.j(Assembler::NonZero, &copyLoopTop);
     }
+
+    
+    
+    
+    
+    
+    
+    
 
     
     masm.subq(rsp, r9);
