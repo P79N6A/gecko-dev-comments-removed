@@ -7287,8 +7287,7 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
   nsTArray<nsFilePickerFilter> filters;
   nsString allExtensionsList;
 
-  bool allMimeTypeFiltersAreValid = true;
-  bool atLeastOneFileExtensionFilter = false;
+  bool allFiltersAreValid = true;
 
   
   while (tokenizer.hasMoreTokens()) {
@@ -7315,10 +7314,6 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
       filterMask = nsIFilePicker::filterVideo;
       filterBundle->GetStringFromName(MOZ_UTF16("videoFilter"),
                                       getter_Copies(extensionListStr));
-    } else if (token.First() == '.') {
-      extensionListStr = NS_LITERAL_STRING("*") + token;
-      filterName = extensionListStr + NS_LITERAL_STRING("; ");
-      atLeastOneFileExtensionFilter = true;
     } else {
       
       nsCOMPtr<nsIMIMEInfo> mimeInfo;
@@ -7327,7 +7322,7 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
                       EmptyCString(), 
                       getter_AddRefs(mimeInfo))) ||
           !mimeInfo) {
-        allMimeTypeFiltersAreValid =  false;
+        allFiltersAreValid =  false;
         continue;
       }
 
@@ -7360,7 +7355,7 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
 
     if (!filterMask && (extensionListStr.IsEmpty() || filterName.IsEmpty())) {
       
-      allMimeTypeFiltersAreValid = false;
+      allFiltersAreValid = false;
       continue;
     }
 
@@ -7383,29 +7378,6 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
   }
 
   
-  
-  nsTArray<nsFilePickerFilter> filtersCopy;
-  filtersCopy = filters;
-  for (uint32_t i = 0; i < filtersCopy.Length(); ++i) {
-    const nsFilePickerFilter& filterToCheck = filtersCopy[i];
-    if (filterToCheck.mFilterMask) {
-      continue;
-    }
-    for (uint32_t j = 0; j < filtersCopy.Length(); ++j) {
-      if (i == j) {
-        continue;
-      }
-      if (FindInReadable(filterToCheck.mFilter, filtersCopy[j].mFilter)) {
-        
-        
-        
-        filters.RemoveElement(filterToCheck);
-      }
-    }
-  }
-
-
-  
   if (filters.Length() > 1) {
     nsXPIDLString title;
     nsContentUtils::GetLocalizedString(nsContentUtils::eFORMS_PROPERTIES,
@@ -7423,8 +7395,9 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
     }
   }
 
-  if (filters.Length() >= 1 &&
-      (allMimeTypeFiltersAreValid || atLeastOneFileExtensionFilter)) {
+  
+  
+  if (filters.Length() >= 1 && allFiltersAreValid) {
     
     
     filePicker->SetFilterIndex(1);
