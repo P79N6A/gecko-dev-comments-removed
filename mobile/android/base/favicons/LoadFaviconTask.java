@@ -20,6 +20,7 @@ import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.favicons.decoders.FaviconDecoder;
 import org.mozilla.gecko.favicons.decoders.LoadFaviconResult;
 import org.mozilla.gecko.util.GeckoJarReader;
+import org.mozilla.gecko.util.IOUtils;
 import org.mozilla.gecko.util.ThreadUtils;
 
 import java.io.IOException;
@@ -31,6 +32,8 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.mozilla.gecko.util.IOUtils.ConsumedInputStream;
 
 
 
@@ -49,7 +52,7 @@ public class LoadFaviconTask {
     private static final int MAX_REDIRECTS_TO_FOLLOW = 5;
     
     
-    private static final int DEFAULT_FAVICON_BUFFER_SIZE = 25000;
+    public static final int DEFAULT_FAVICON_BUFFER_SIZE = 25000;
 
     private static final AtomicInteger nextFaviconLoadId = new AtomicInteger(0);
     private final Context context;
@@ -282,38 +285,13 @@ public class LoadFaviconTask {
         }
 
         
-        byte[] buffer = new byte[bufferSize];
-
-        
-        int bPointer = 0;
-
-        
-        int lastRead = 0;
-        InputStream contentStream = entity.getContent();
-        try {
-            
-            
-            while (lastRead != -1) {
-                
-                lastRead = contentStream.read(buffer, bPointer, buffer.length - bPointer);
-                bPointer += lastRead;
-
-                
-                if (bPointer == buffer.length) {
-                    bufferSize *= 2;
-                    byte[] newBuffer = new byte[bufferSize];
-
-                    
-                    System.arraycopy(buffer, 0, newBuffer, 0, buffer.length);
-                    buffer = newBuffer;
-                }
-            }
-        } finally {
-            contentStream.close();
+        ConsumedInputStream result = IOUtils.readFully(entity.getContent(), bufferSize);
+        if (result == null) {
+            return null;
         }
 
         
-        return FaviconDecoder.decodeFavicon(buffer, 0, bPointer + 1);
+        return FaviconDecoder.decodeFavicon(result.getData(), 0, result.consumedLength);
     }
 
     
