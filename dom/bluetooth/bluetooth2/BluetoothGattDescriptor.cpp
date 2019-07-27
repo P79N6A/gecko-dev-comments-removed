@@ -52,3 +52,29 @@ BluetoothGattDescriptor::WrapObject(JSContext* aContext,
 {
   return BluetoothGattDescriptorBinding::Wrap(aContext, this, aGivenProto);
 }
+
+void
+BluetoothGattDescriptor::GetValue(JSContext* cx,
+                                  JS::MutableHandle<JSObject*> aValue) const
+{
+  MOZ_ASSERT(aValue);
+
+  aValue.set(mValue.IsEmpty()
+             ? nullptr
+             : ArrayBuffer::Create(cx, mValue.Length(), mValue.Elements()));
+}
+
+already_AddRefed<Promise>
+BluetoothGattDescriptor::ReadValue(ErrorResult& aRv)
+{
+  
+  return nullptr;
+}
+
+already_AddRefed<Promise>
+BluetoothGattDescriptor::WriteValue(
+  const RootedTypedArray<ArrayBuffer>& aValue, ErrorResult& aRv)
+{
+  
+  return nullptr;
+}
