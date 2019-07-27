@@ -168,6 +168,9 @@ private:
   void gmp_Init(uint32_t aPromiseId);
 
   
+  void gmp_Shutdown();
+
+  
   void OnCDMCreated(uint32_t aPromiseId);
 
   struct CreateSessionData {
