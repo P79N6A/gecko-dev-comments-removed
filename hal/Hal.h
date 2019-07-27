@@ -14,6 +14,7 @@
 #include "mozilla/Types.h"
 #include "nsTArray.h"
 #include "prlog.h"
+#include "mozilla/dom/MozPowerManagerBinding.h"
 #include "mozilla/dom/battery/Types.h"
 #include "mozilla/dom/network/Types.h"
 #include "mozilla/dom/power/Types.h"
@@ -575,7 +576,7 @@ void StartForceQuitWatchdog(hal::ShutdownMode aMode, int32_t aTimeoutSecs);
 
 
 
-void FactoryReset();
+void FactoryReset(mozilla::dom::FactoryResetReason& aReason);
 
 
 
