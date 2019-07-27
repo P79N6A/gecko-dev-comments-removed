@@ -227,13 +227,16 @@ TEST_F(pkix_cert_extensions, WrongOIDCriticalExtension)
 
 TEST_F(pkix_cert_extensions, CriticalAIAExtension)
 {
+  
+  
   static const uint8_t criticalAIAExtensionBytes[] = {
-    0x30, 0x0f, 
+    0x30, 0x11, 
       0x06, 0x08, 
         
         0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x01, 0x01,
       0x01, 0x01, 0xff, 
-      0x04, 0x00 
+      0x04, 0x02, 
+        0x30, 0x00, 
   };
   static const SECItem criticalAIAExtension = {
     siBuffer,
