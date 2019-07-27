@@ -1588,6 +1588,15 @@ pref("services.push.serverURL", "wss://push.services.mozilla.com/");
 
 pref("social.sidebar.unload_timeout_ms", 10000);
 
+
+
+#ifdef RELEASE_BUILD
+pref("social.share.activationPanelEnabled", false);
+#else
+pref("social.share.activationPanelEnabled", true);
+#endif
+pref("social.shareDirectory", "https://activations.cdn.mozilla.net/en-US/sharePanel.html");
+
 pref("dom.identity.enabled", false);
 
 
