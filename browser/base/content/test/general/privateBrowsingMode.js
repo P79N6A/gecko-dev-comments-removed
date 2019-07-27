@@ -1,3 +1,0 @@
-
-var perWindowPrivateBrowsing = true;
-
