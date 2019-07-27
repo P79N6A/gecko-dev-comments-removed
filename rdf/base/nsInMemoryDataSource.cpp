@@ -290,9 +290,13 @@ public:
     NS_DECL_RDFIDATASOURCE
 
 protected:
-    static PLDHashOperator
-    SweepForwardArcsEntries(PLDHashTable* aTable, PLDHashEntryHdr* aHdr,
-                            uint32_t aNumber, void* aArg);
+    struct SweepInfo {
+        Assertion* mUnassertList;
+        PLDHashTable* mReverseArcs;
+    };
+
+    static void
+    SweepForwardArcsEntries(PLDHashTable* aTable, SweepInfo* aArg);
 
 public:
     
@@ -1766,19 +1770,13 @@ InMemoryDataSource::Mark(nsIRDFResource* aSource,
     return NS_OK;
 }
 
-
-struct SweepInfo {
-    Assertion* mUnassertList;
-    PLDHashTable* mReverseArcs;
-};
-
 NS_IMETHODIMP
 InMemoryDataSource::Sweep()
 {
     SweepInfo info = { nullptr, &mReverseArcs };
 
     
-    PL_DHashTableEnumerate(&mForwardArcs, SweepForwardArcsEntries, &info);
+    SweepForwardArcsEntries(&mForwardArcs, &info);
 
     
     Assertion* as = info.mUnassertList;
@@ -1806,93 +1804,87 @@ InMemoryDataSource::Sweep()
 }
 
 
-PLDHashOperator
+void
 InMemoryDataSource::SweepForwardArcsEntries(PLDHashTable* aTable,
-                                            PLDHashEntryHdr* aHdr,
-                                            uint32_t aNumber, void* aArg)
+                                            SweepInfo* aInfo)
 {
-    PLDHashOperator result = PL_DHASH_NEXT;
-    Entry* entry = static_cast<Entry*>(aHdr);
-    SweepInfo* info = static_cast<SweepInfo*>(aArg);
+    for (auto iter = aTable->RemovingIter(); !iter.Done(); iter.Next()) {
+        auto entry = static_cast<Entry*>(iter.Get());
 
-    Assertion* as = entry->mAssertions;
-    if (as && (as->mHashEntry))
-    {
-        
-        PL_DHashTableEnumerate(as->u.hash.mPropertyHash,
-                               SweepForwardArcsEntries, info);
-
-        
-        if (!as->u.hash.mPropertyHash->EntryCount()) {
-            as->Release();
-            result = PL_DHASH_REMOVE;
-        }
-
-        return result;
-    }
-
-    Assertion* prev = nullptr;
-    while (as) {
-        if (as->IsMarked()) {
-            prev = as;
-            as->Unmark();
-            as = as->mNext;
-        }
-        else {
+        Assertion* as = entry->mAssertions;
+        if (as && (as->mHashEntry)) {
             
-            Assertion* next = as->mNext;
-            if (prev) {
-                prev->mNext = next;
+            SweepForwardArcsEntries(as->u.hash.mPropertyHash, aInfo);
+
+            
+            if (!as->u.hash.mPropertyHash->EntryCount()) {
+                as->Release();
+                iter.Remove();
+            }
+            continue;
+        }
+
+        Assertion* prev = nullptr;
+        while (as) {
+            if (as->IsMarked()) {
+                prev = as;
+                as->Unmark();
+                as = as->mNext;
             }
             else {
                 
-                entry->mAssertions = next;
-            }
-
-            
-            PLDHashEntryHdr* hdr =
-                PL_DHashTableSearch(info->mReverseArcs, as->u.as.mTarget);
-            NS_ASSERTION(hdr, "no assertion in reverse arcs");
-
-            Entry* rentry = static_cast<Entry*>(hdr);
-            Assertion* ras = rentry->mAssertions;
-            Assertion* rprev = nullptr;
-            while (ras) {
-                if (ras == as) {
-                    if (rprev) {
-                        rprev->u.as.mInvNext = ras->u.as.mInvNext;
-                    }
-                    else {
-                        
-                        rentry->mAssertions = ras->u.as.mInvNext;
-                    }
-                    as->u.as.mInvNext = nullptr; 
-                    break;
+                Assertion* next = as->mNext;
+                if (prev) {
+                    prev->mNext = next;
                 }
-                rprev = ras;
-                ras = ras->u.as.mInvNext;
+                else {
+                    
+                    entry->mAssertions = next;
+                }
+
+                
+                PLDHashEntryHdr* hdr =
+                    PL_DHashTableSearch(aInfo->mReverseArcs, as->u.as.mTarget);
+                NS_ASSERTION(hdr, "no assertion in reverse arcs");
+
+                Entry* rentry = static_cast<Entry*>(hdr);
+                Assertion* ras = rentry->mAssertions;
+                Assertion* rprev = nullptr;
+                while (ras) {
+                    if (ras == as) {
+                        if (rprev) {
+                            rprev->u.as.mInvNext = ras->u.as.mInvNext;
+                        }
+                        else {
+                            
+                            rentry->mAssertions = ras->u.as.mInvNext;
+                        }
+                        as->u.as.mInvNext = nullptr; 
+                        break;
+                    }
+                    rprev = ras;
+                    ras = ras->u.as.mInvNext;
+                }
+
+                
+                if (! rentry->mAssertions) {
+                    PL_DHashTableRawRemove(aInfo->mReverseArcs, hdr);
+                }
+
+                
+                as->mNext = aInfo->mUnassertList;
+                aInfo->mUnassertList = as;
+
+                
+                as = next;
             }
+        }
 
-            
-            if (! rentry->mAssertions)
-            {
-                PL_DHashTableRawRemove(info->mReverseArcs, hdr);
-            }
-
-            
-            as->mNext = info->mUnassertList;
-            info->mUnassertList = as;
-
-            
-            as = next;
+        
+        if (! entry->mAssertions) {
+            iter.Remove();
         }
     }
-
-    
-    if (! entry->mAssertions)
-        result = PL_DHASH_REMOVE;
-
-    return result;
 }
 
 
