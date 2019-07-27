@@ -85,6 +85,14 @@ public:
 
 private:
   
+  
+  
+  
+  VideoData* FindStartTime(int64_t& aOutStartTime);
+  AudioData* DecodeToFirstAudioData();
+  VideoData* DecodeToFirstVideoData();
+
+  
   ReentrantMonitor mMonitor;
 
   

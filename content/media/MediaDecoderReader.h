@@ -98,12 +98,6 @@ public:
   
   
   
-  
-  virtual VideoData* FindStartTime(int64_t& aOutStartTime);
-
-  
-  
-  
   virtual nsresult Seek(int64_t aTime,
                         int64_t aStartTime,
                         int64_t aEndTime,
@@ -168,9 +162,6 @@ public:
   AbstractMediaDecoder* GetDecoder() {
     return mDecoder;
   }
-
-  AudioData* DecodeToFirstAudioData();
-  VideoData* DecodeToFirstVideoData();
 
   MediaInfo GetMediaInfo() { return mInfo; }
 
