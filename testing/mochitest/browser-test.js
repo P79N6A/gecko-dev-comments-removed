@@ -88,6 +88,12 @@ function testInit() {
   }
   if (gConfig.e10s) {
     e10s_init();
+    let globalMM = Cc["@mozilla.org/globalmessagemanager;1"]
+                     .getService(Ci.nsIMessageListenerManager);
+    globalMM.loadFrameScript("chrome://mochikit/content/shutdown-leaks-collector.js", true);
+  } else {
+    
+    Components.utils.import("chrome://mochikit/content/ShutdownLeaksCollector.jsm");
   }
 }
 
@@ -574,6 +580,10 @@ Tester.prototype = {
           
           
           Services.obs.notifyObservers(null, "memory-pressure", "heap-minimize");
+
+          let ppmm = Cc["@mozilla.org/parentprocessmessagemanager;1"]
+                       .getService(Ci.nsIMessageBroadcaster);
+          ppmm.broadcastAsyncMessage("browser-test:collect-request");
 
           checkForLeakedGlobalWindows(aResults => {
             if (aResults.length == 0) {
