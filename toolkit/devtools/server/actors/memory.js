@@ -7,20 +7,10 @@
 const protocol = require("devtools/server/protocol");
 const { method, RetVal, Arg, types } = protocol;
 const { MemoryBridge } = require("./utils/memory-bridge");
+const { actorBridge } = require("./utils/actor-utils");
 loader.lazyRequireGetter(this, "events", "sdk/event/core");
 loader.lazyRequireGetter(this, "StackFrameCache",
                          "devtools/server/actors/utils/stack", true);
-
-
-
-
-
-
-function linkBridge (methodName, definition) {
-  return method(function () {
-    return this.bridge[methodName].apply(this.bridge, arguments);
-  }, definition);
-}
 
 types.addDictType("AllocationsRecordingOptions", {
   
@@ -79,7 +69,7 @@ let MemoryActor = protocol.ActorClass({
 
 
 
-  attach: linkBridge("attach", {
+  attach: actorBridge("attach", {
     request: {},
     response: {
       type: "attached"
@@ -89,7 +79,7 @@ let MemoryActor = protocol.ActorClass({
   
 
 
-  detach: linkBridge("detach", {
+  detach: actorBridge("detach", {
     request: {},
     response: {
       type: "detached"
@@ -99,7 +89,7 @@ let MemoryActor = protocol.ActorClass({
   
 
 
-  getState: linkBridge("getState", {
+  getState: actorBridge("getState", {
     response: {
       state: RetVal(0, "string")
     }
@@ -109,7 +99,7 @@ let MemoryActor = protocol.ActorClass({
 
 
 
-  takeCensus: linkBridge("takeCensus", {
+  takeCensus: actorBridge("takeCensus", {
     request: {},
     response: RetVal("json")
   }),
@@ -120,7 +110,7 @@ let MemoryActor = protocol.ActorClass({
 
 
 
-  startRecordingAllocations: linkBridge("startRecordingAllocations", {
+  startRecordingAllocations: actorBridge("startRecordingAllocations", {
     request: {
       options: Arg(0, "nullable:AllocationsRecordingOptions")
     },
@@ -133,7 +123,7 @@ let MemoryActor = protocol.ActorClass({
   
 
 
-  stopRecordingAllocations: linkBridge("stopRecordingAllocations", {
+  stopRecordingAllocations: actorBridge("stopRecordingAllocations", {
     request: {},
     response: {
       
@@ -145,14 +135,14 @@ let MemoryActor = protocol.ActorClass({
 
 
 
-  getAllocationsSettings: linkBridge("getAllocationsSettings", {
+  getAllocationsSettings: actorBridge("getAllocationsSettings", {
     request: {},
     response: {
       options: RetVal(0, "json")
     }
   }),
 
-  getAllocations: linkBridge("getAllocations", {
+  getAllocations: actorBridge("getAllocations", {
     request: {},
     response: RetVal("json")
   }),
@@ -160,7 +150,7 @@ let MemoryActor = protocol.ActorClass({
   
 
 
-  forceGarbageCollection: linkBridge("forceGarbageCollection", {
+  forceGarbageCollection: actorBridge("forceGarbageCollection", {
     request: {},
     response: {}
   }),
@@ -170,7 +160,7 @@ let MemoryActor = protocol.ActorClass({
 
 
 
-  forceCycleCollection: linkBridge("forceCycleCollection", {
+  forceCycleCollection: actorBridge("forceCycleCollection", {
     request: {},
     response: {}
   }),
@@ -181,12 +171,12 @@ let MemoryActor = protocol.ActorClass({
 
 
 
-  measure: linkBridge("measure", {
+  measure: actorBridge("measure", {
     request: {},
     response: RetVal("json"),
   }),
 
-  residentUnique: linkBridge("residentUnique", {
+  residentUnique: actorBridge("residentUnique", {
     request: {},
     response: { value: RetVal("number") }
   }),
