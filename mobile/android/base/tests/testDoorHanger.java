@@ -22,43 +22,30 @@ public class testDoorHanger extends BaseTest {
         String OFFLINE_STORAGE_URL = getAbsoluteUrl(StringHelper.ROBOCOP_OFFLINE_STORAGE_URL);
         String LOGIN_URL = getAbsoluteUrl(StringHelper.ROBOCOP_LOGIN_URL);
 
-        
-        String GEO_MESSAGE = "Share your location with";
-        String GEO_ALLOW = "Share";
-        String GEO_DENY = "Don't share";
-
-        String OFFLINE_MESSAGE = "to store data on your device for offline use";
-        String OFFLINE_ALLOW = "Allow";
-        String OFFLINE_DENY = "Don't allow";
-
-        String LOGIN_MESSAGE = "Save password";
-        String LOGIN_ALLOW = "Save";
-        String LOGIN_DENY = "Don't save";
-
         blockForGeckoReady();
 
         
         inputAndLoadUrl(GEO_URL);
-        waitForText(GEO_MESSAGE);
-        mAsserter.is(mSolo.searchText(GEO_MESSAGE), true, "Geolocation doorhanger has been displayed");
+        waitForText(StringHelper.GEO_MESSAGE);
+        mAsserter.is(mSolo.searchText(StringHelper.GEO_MESSAGE), true, "Geolocation doorhanger has been displayed");
 
         
         waitForCheckBox();
         mSolo.clickOnCheckBox(0);
-        mSolo.clickOnButton(GEO_ALLOW);
-        waitForTextDismissed(GEO_MESSAGE);
-        mAsserter.is(mSolo.searchText(GEO_MESSAGE), false, "Geolocation doorhanger has been hidden when allowing share");
+        mSolo.clickOnButton(StringHelper.GEO_ALLOW);
+        waitForTextDismissed(StringHelper.GEO_MESSAGE);
+        mAsserter.is(mSolo.searchText(StringHelper.GEO_MESSAGE), false, "Geolocation doorhanger has been hidden when allowing share");
 
         
         inputAndLoadUrl(GEO_URL);
-        waitForText(GEO_MESSAGE);
+        waitForText(StringHelper.GEO_MESSAGE);
 
         
         waitForCheckBox();
         mSolo.clickOnCheckBox(0);
-        mSolo.clickOnButton(GEO_DENY);
-        waitForTextDismissed(GEO_MESSAGE);
-        mAsserter.is(mSolo.searchText(GEO_MESSAGE), false, "Geolocation doorhanger has been hidden when denying share");
+        mSolo.clickOnButton(StringHelper.GEO_DENY);
+        waitForTextDismissed(StringHelper.GEO_MESSAGE);
+        mAsserter.is(mSolo.searchText(StringHelper.GEO_MESSAGE), false, "Geolocation doorhanger has been hidden when denying share");
 
         
 
@@ -108,25 +95,25 @@ public class testDoorHanger extends BaseTest {
 
         
         inputAndLoadUrl(OFFLINE_STORAGE_URL);
-        waitForText(OFFLINE_MESSAGE);
+        waitForText(StringHelper.OFFLINE_MESSAGE);
 
         
         waitForCheckBox();
         mSolo.clickOnCheckBox(0);
-        mSolo.clickOnButton(OFFLINE_DENY);
-        waitForTextDismissed(OFFLINE_MESSAGE);
-        mAsserter.is(mSolo.searchText(OFFLINE_MESSAGE), false, "Offline storage doorhanger notification is hidden when denying storage");
+        mSolo.clickOnButton(StringHelper.OFFLINE_DENY);
+        waitForTextDismissed(StringHelper.OFFLINE_MESSAGE);
+        mAsserter.is(mSolo.searchText(StringHelper.OFFLINE_MESSAGE), false, "Offline storage doorhanger notification is hidden when denying storage");
 
         
         inputAndLoadUrl(OFFLINE_STORAGE_URL);
-        waitForText(OFFLINE_MESSAGE);
+        waitForText(StringHelper.OFFLINE_MESSAGE);
 
         
-        mSolo.clickOnButton(OFFLINE_ALLOW);
-        waitForTextDismissed(OFFLINE_MESSAGE);
-        mAsserter.is(mSolo.searchText(OFFLINE_MESSAGE), false, "Offline storage doorhanger notification is hidden when allowing storage");
+        mSolo.clickOnButton(StringHelper.OFFLINE_ALLOW);
+        waitForTextDismissed(StringHelper.OFFLINE_MESSAGE);
+        mAsserter.is(mSolo.searchText(StringHelper.OFFLINE_MESSAGE), false, "Offline storage doorhanger notification is hidden when allowing storage");
         inputAndLoadUrl(OFFLINE_STORAGE_URL);
-        mAsserter.is(mSolo.searchText(OFFLINE_MESSAGE), false, "Offline storage doorhanger is no longer triggered");
+        mAsserter.is(mSolo.searchText(StringHelper.OFFLINE_MESSAGE), false, "Offline storage doorhanger is no longer triggered");
 
         try {
             
@@ -142,30 +129,27 @@ public class testDoorHanger extends BaseTest {
 
         
         inputAndLoadUrl(LOGIN_URL);
-        waitForText(LOGIN_MESSAGE);
+        waitForText(StringHelper.LOGIN_MESSAGE);
 
         
-        mSolo.clickOnButton(LOGIN_DENY);
-        waitForTextDismissed(LOGIN_MESSAGE);
-        mAsserter.is(mSolo.searchText(LOGIN_MESSAGE), false, "Login doorhanger notification is hidden when denying saving password");
+        mSolo.clickOnButton(StringHelper.LOGIN_DENY);
+        waitForTextDismissed(StringHelper.LOGIN_MESSAGE);
+        mAsserter.is(mSolo.searchText(StringHelper.LOGIN_MESSAGE), false, "Login doorhanger notification is hidden when denying saving password");
 
         
         inputAndLoadUrl(LOGIN_URL);
-        waitForText(LOGIN_MESSAGE);
+        waitForText(StringHelper.LOGIN_MESSAGE);
 
         
-        mSolo.clickOnButton(LOGIN_ALLOW);
-        waitForTextDismissed(LOGIN_MESSAGE);
-        mAsserter.is(mSolo.searchText(LOGIN_MESSAGE), false, "Login doorhanger notification is hidden when allowing saving password");
+        mSolo.clickOnButton(StringHelper.LOGIN_ALLOW);
+        waitForTextDismissed(StringHelper.LOGIN_MESSAGE);
+        mAsserter.is(mSolo.searchText(StringHelper.LOGIN_MESSAGE), false, "Login doorhanger notification is hidden when allowing saving password");
 
         testPopupBlocking();
     }
 
     private void testPopupBlocking() {
         String POPUP_URL = getAbsoluteUrl(StringHelper.ROBOCOP_POPUP_URL);
-        String POPUP_MESSAGE = "prevented this site from opening";
-        String POPUP_ALLOW = "Show";
-        String POPUP_DENY = "Don't show";
 
         try {
             JSONObject jsonPref = new JSONObject();
@@ -179,17 +163,17 @@ public class testDoorHanger extends BaseTest {
 
         
         inputAndLoadUrl(POPUP_URL);
-        waitForText(POPUP_MESSAGE);
-        mAsserter.is(mSolo.searchText(POPUP_MESSAGE), true, "Popup blocker is displayed");
+        waitForText(StringHelper.POPUP_MESSAGE);
+        mAsserter.is(mSolo.searchText(StringHelper.POPUP_MESSAGE), true, "Popup blocker is displayed");
 
         
         Actions.EventExpecter tabEventExpecter = mActions.expectGeckoEvent("Tab:Added");
 
         waitForCheckBox();
         mSolo.clickOnCheckBox(0);
-        mSolo.clickOnButton(POPUP_ALLOW);
-        waitForTextDismissed(POPUP_MESSAGE);
-        mAsserter.is(mSolo.searchText(POPUP_MESSAGE), false, "Popup blocker is hidden when popup allowed");
+        mSolo.clickOnButton(StringHelper.POPUP_ALLOW);
+        waitForTextDismissed(StringHelper.POPUP_MESSAGE);
+        mAsserter.is(mSolo.searchText(StringHelper.POPUP_MESSAGE), false, "Popup blocker is hidden when popup allowed");
 
         try {
             final JSONObject data = new JSONObject(tabEventExpecter.blockForEventData());
@@ -207,14 +191,14 @@ public class testDoorHanger extends BaseTest {
 
         
         inputAndLoadUrl(POPUP_URL);
-        waitForText(POPUP_MESSAGE);
-        mAsserter.is(mSolo.searchText(POPUP_MESSAGE), true, "Popup blocker is displayed");
+        waitForText(StringHelper.POPUP_MESSAGE);
+        mAsserter.is(mSolo.searchText(StringHelper.POPUP_MESSAGE), true, "Popup blocker is displayed");
 
         waitForCheckBox();
         mSolo.clickOnCheckBox(0);
-        mSolo.clickOnButton(POPUP_DENY);
-        waitForTextDismissed(POPUP_MESSAGE);
-        mAsserter.is(mSolo.searchText(POPUP_MESSAGE), false, "Popup blocker is hidden when popup denied");
+        mSolo.clickOnButton(StringHelper.POPUP_DENY);
+        waitForTextDismissed(StringHelper.POPUP_MESSAGE);
+        mAsserter.is(mSolo.searchText(StringHelper.POPUP_MESSAGE), false, "Popup blocker is hidden when popup denied");
 
         
         verifyUrl(POPUP_URL);
