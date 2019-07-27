@@ -484,13 +484,8 @@ JSCompartment::wrap(JSContext* cx, MutableHandle<PropertyDescriptor> desc)
     return wrap(cx, desc.value());
 }
 
-
-
-
-
-
 void
-JSCompartment::traceCrossCompartmentWrappers(JSTracer* trc)
+JSCompartment::traceOutgoingCrossCompartmentWrappers(JSTracer* trc)
 {
     MOZ_ASSERT(trc->runtime()->isHeapMajorCollecting());
     MOZ_ASSERT(!zone()->isCollecting() || trc->runtime()->gc.isHeapCompacting());
@@ -516,10 +511,8 @@ JSCompartment::trace(JSTracer* trc)
 }
 
 void
-JSCompartment::traceRoots(JSTracer* trc)
+JSCompartment::traceRoots(JSTracer* trc, js::gc::GCRuntime::TraceOrMarkRuntime traceOrMark)
 {
-    
-    
     if (objectMetadataState.is<PendingMetadata>()) {
         TraceRoot(trc,
                   objectMetadataState.as<PendingMetadata>().unsafeGet(),
@@ -527,16 +520,38 @@ JSCompartment::traceRoots(JSTracer* trc)
     }
 
     if (!trc->runtime()->isHeapMinorCollecting()) {
+        
+        
+
         if (jitCompartment_)
             jitCompartment_->mark(trc, this);
 
         
-
-
-
+        
         if (enterCompartmentDepth && global_.unbarrieredGet())
             TraceRoot(trc, global_.unsafeGet(), "on-stack compartment global");
     }
+
+    
+    
+    if (traceOrMark == js::gc::GCRuntime::MarkRuntime && !zone()->isCollecting())
+        return;
+
+    
+    if (traceOrMark == js::gc::GCRuntime::TraceRuntime) {
+        if (watchpointMap)
+            watchpointMap->markAll(trc);
+    }
+
+    
+    if (debugScopes)
+        debugScopes->mark(trc);
+
+    if (lazyArrayBuffers)
+        lazyArrayBuffers->trace(trc);
+
+    if (objectMetadataTable)
+        objectMetadataTable->trace(trc);
 }
 
 void

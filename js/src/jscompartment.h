@@ -512,9 +512,24 @@ struct JSCompartment
         explicit WrapperEnum(JSCompartment* c) : js::WrapperMap::Enum(c->crossCompartmentWrappers) {}
     };
 
-    void traceCrossCompartmentWrappers(JSTracer* trc);
+    
+
+
+
     void trace(JSTracer* trc);
-    void traceRoots(JSTracer* trc);
+    
+
+
+
+    void traceRoots(JSTracer* trc, js::gc::GCRuntime::TraceOrMarkRuntime traceOrMark);
+    
+
+
+
+
+
+    void traceOutgoingCrossCompartmentWrappers(JSTracer* trc);
+
     bool preserveJitCode() { return gcPreserveJitCode; }
 
     void sweepAfterMinorGC();

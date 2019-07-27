@@ -2591,9 +2591,8 @@ GCRuntime::updatePointersToRelocatedCells(Zone* zone)
     for (CompartmentsIter comp(rt, SkipAtoms); !comp.done(); comp.next()) {
         
         comp->sweepCrossCompartmentWrappers();
-
         
-        comp->traceCrossCompartmentWrappers(&trc);
+        comp->traceOutgoingCrossCompartmentWrappers(&trc);
     }
 
     
