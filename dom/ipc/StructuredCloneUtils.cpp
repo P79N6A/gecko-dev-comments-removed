@@ -6,11 +6,12 @@
 
 #include "StructuredCloneUtils.h"
 
-#include "nsIDOMFile.h"
 #include "nsIDOMDOMException.h"
 #include "nsIMutable.h"
 #include "nsIXPConnect.h"
 
+#include "mozilla/dom/BlobBinding.h"
+#include "nsDOMFile.h"
 #include "nsContentUtils.h"
 #include "nsJSEnvironment.h"
 #include "MainThreadUtils.h"
@@ -38,58 +39,37 @@ Read(JSContext* aCx, JSStructuredCloneReader* aReader, uint32_t aTag,
   StructuredCloneClosure* closure =
     static_cast<StructuredCloneClosure*>(aClosure);
 
-  if (aTag == SCTAG_DOM_FILE) {
-    MOZ_ASSERT(aData < closure->mBlobs.Length());
-
-    nsCOMPtr<nsIDOMFile> file = do_QueryInterface(closure->mBlobs[aData]);
-    MOZ_ASSERT(file);
-
-#ifdef DEBUG
-    {
-      
-      nsCOMPtr<nsIMutable> mutableFile = do_QueryInterface(file);
-      bool isMutable;
-      MOZ_ASSERT(NS_SUCCEEDED(mutableFile->GetMutable(&isMutable)));
-      MOZ_ASSERT(!isMutable);
-    }
-#endif
-
-    JS::Rooted<JS::Value> wrappedFile(aCx);
-    nsresult rv = nsContentUtils::WrapNative(aCx, file, &NS_GET_IID(nsIDOMFile),
-                                             &wrappedFile);
-    if (NS_FAILED(rv)) {
-      Error(aCx, nsIDOMDOMException::DATA_CLONE_ERR);
-      return nullptr;
-    }
-
-    return &wrappedFile.toObject();
-  }
-
   if (aTag == SCTAG_DOM_BLOB) {
-    MOZ_ASSERT(aData < closure->mBlobs.Length());
-
-    nsCOMPtr<nsIDOMBlob> blob = do_QueryInterface(closure->mBlobs[aData]);
-    MOZ_ASSERT(blob);
+    
+    
+    
+    
+    
+    JS::Rooted<JS::Value> val(aCx);
+    {
+      MOZ_ASSERT(aData < closure->mBlobs.Length());
+      nsRefPtr<DOMFile> blob = closure->mBlobs[aData];
 
 #ifdef DEBUG
-    {
-      
-      nsCOMPtr<nsIMutable> mutableBlob = do_QueryInterface(blob);
-      bool isMutable;
-      MOZ_ASSERT(NS_SUCCEEDED(mutableBlob->GetMutable(&isMutable)));
-      MOZ_ASSERT(!isMutable);
-    }
+      {
+        
+        bool isMutable;
+        MOZ_ASSERT(NS_SUCCEEDED(blob->GetMutable(&isMutable)));
+        MOZ_ASSERT(!isMutable);
+      }
 #endif
 
-    JS::Rooted<JS::Value> wrappedBlob(aCx);
-    nsresult rv = nsContentUtils::WrapNative(aCx, blob, &NS_GET_IID(nsIDOMBlob),
-                                             &wrappedBlob);
-    if (NS_FAILED(rv)) {
-      Error(aCx, nsIDOMDOMException::DATA_CLONE_ERR);
-      return nullptr;
+      
+      nsIGlobalObject *global = xpc::NativeGlobal(JS::CurrentGlobalOrNull(aCx));
+      MOZ_ASSERT(global);
+
+      nsRefPtr<DOMFile> newBlob = new DOMFile(global, blob->Impl());
+      if (!WrapNewBindingObject(aCx, newBlob, &val)) {
+        return nullptr;
+      }
     }
 
-    return &wrappedBlob.toObject();
+    return &val.toObject();
   }
 
   return NS_DOMReadStructuredClone(aCx, aReader, aTag, aData, nullptr);
@@ -106,39 +86,14 @@ Write(JSContext* aCx, JSStructuredCloneWriter* aWriter,
     static_cast<StructuredCloneClosure*>(aClosure);
 
   
-  nsCOMPtr<nsIXPConnectWrappedNative> wrappedNative;
-  nsContentUtils::XPConnect()->
-    GetWrappedNativeOfJSObject(aCx, aObj, getter_AddRefs(wrappedNative));
-
-  if (wrappedNative) {
-    
-    nsISupports* wrappedObject = wrappedNative->Native();
-    MOZ_ASSERT(wrappedObject);
-
-    
-    nsCOMPtr<nsIDOMFile> file = do_QueryInterface(wrappedObject);
-    if (file) {
-      nsCOMPtr<nsIMutable> mutableFile = do_QueryInterface(file);
-      if (mutableFile &&
-          NS_SUCCEEDED(mutableFile->SetMutable(false)) &&
-          JS_WriteUint32Pair(aWriter, SCTAG_DOM_FILE,
-                             closure->mBlobs.Length())) {
-        closure->mBlobs.AppendElement(file);
-        return true;
-      }
-    }
-
-    
-    nsCOMPtr<nsIDOMBlob> blob = do_QueryInterface(wrappedObject);
-    if (blob) {
-      nsCOMPtr<nsIMutable> mutableBlob = do_QueryInterface(blob);
-      if (mutableBlob &&
-          NS_SUCCEEDED(mutableBlob->SetMutable(false)) &&
-          JS_WriteUint32Pair(aWriter, SCTAG_DOM_BLOB,
-                             closure->mBlobs.Length())) {
-        closure->mBlobs.AppendElement(blob);
-        return true;
-      }
+  {
+    DOMFile* blob = nullptr;
+    if (NS_SUCCEEDED(UNWRAP_OBJECT(Blob, aObj, blob)) &&
+        NS_SUCCEEDED(blob->SetMutable(false)) &&
+        JS_WriteUint32Pair(aWriter, SCTAG_DOM_BLOB,
+                           closure->mBlobs.Length())) {
+      closure->mBlobs.AppendElement(blob);
+      return true;
     }
   }
 
