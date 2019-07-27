@@ -309,10 +309,7 @@ pref("dom.indexedDB.warningQuota", 5);
 pref("media.preload.default", 1); 
 pref("media.preload.auto", 2);    
 pref("media.cache_size", 4096);    
-#ifdef MOZ_FMP4
 
-pref("media.fragmented-mp4.gonk.enabled", false);
-#endif
 
 
 pref("media.video-queue.default-size", 3);

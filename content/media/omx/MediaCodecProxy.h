@@ -10,17 +10,11 @@
 #include <nsString.h>
 
 #include <stagefright/MediaCodec.h>
-#include <stagefright/MediaBuffer.h>
 #include <utils/threads.h>
 
 #include "MediaResourceHandler.h"
 
 namespace android {
-
-
-
-
-
 
 class MediaCodecProxy : public MediaResourceHandler::ResourceListener
 {
@@ -40,9 +34,6 @@ public:
     virtual void codecCanceled() = 0;
   };
 
-  enum {
-    kKeyBufferIndex = 'bfin',
-  };
   
   bool allocated() const;
 
@@ -113,13 +104,6 @@ public:
   
   void requestActivityNotification(const sp<AMessage> &aNotify);
 
-  status_t Input(const uint8_t* aData, uint32_t aDataSize,
-                 int64_t aTimestampUsecs, uint64_t flags);
-  status_t Output(MediaBuffer** aBuffer, int64_t aTimeoutUs);
-  bool Prepare();
-  bool IsWaitingResources();
-  bool IsDormantNeeded();
-  void ReleaseMediaResources();
 protected:
   virtual ~MediaCodecProxy();
 
@@ -165,10 +149,6 @@ private:
   
   mutable RWLock mCodecLock;
   sp<MediaCodec> mCodec;
-  
-  Vector<sp<ABuffer> > mInputBuffers;
-  Vector<sp<ABuffer> > mOutputBuffers;
-
 };
 
 } 

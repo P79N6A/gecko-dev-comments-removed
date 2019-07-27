@@ -123,7 +123,6 @@ protected:
   
   static bool sUseBlankDecoder;
   static bool sFFmpegDecoderEnabled;
-  static bool sGonkDecoderEnabled;
 };
 
 
@@ -145,10 +144,6 @@ public:
   virtual void InputExhausted() = 0;
 
   virtual void DrainComplete() = 0;
-
-  virtual void NotifyResourcesStatusChanged() {};
-
-  virtual void ReleaseMediaResources() {};
 };
 
 
@@ -214,15 +209,6 @@ public:
   
   virtual nsresult Shutdown() = 0;
 
-  
-  virtual bool IsWaitingMediaResources() {
-    return false;
-  };
-  virtual bool IsDormantNeeded() {
-    return false;
-  };
-  virtual void ReleaseMediaResources() {};
-  virtual void ReleaseDecoder() {};
 };
 
 } 
