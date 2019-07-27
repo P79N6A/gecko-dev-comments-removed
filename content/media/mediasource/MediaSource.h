@@ -130,7 +130,7 @@ private:
 
   MediaSourceReadyState mReadyState;
 
-  bool mFirstSourceBufferInitialization;
+  bool mFirstSourceBufferInitialized;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(MediaSource, MOZILLA_DOM_MEDIASOURCE_IMPLEMENTATION_IID)
