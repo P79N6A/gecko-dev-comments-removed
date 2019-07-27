@@ -93,12 +93,19 @@ this.FxAccountsMgmtService = {
       delete data.accountId;
     }
 
+    
+    if (data.method == "getAccounts") {
+      data.method = "getAccount";
+    }
+
     switch(data.method) {
-      case "getAccounts":
-        FxAccountsManager.getAccount().then(
-          account => {
+      case "getAccount":
+      case "getKeys":
+        FxAccountsManager[data.method]().then(
+          result => {
             
-            self._onFulfill(msg.id, account);
+            
+            self._onFulfill(msg.id, result);
           },
           reason => {
             self._onReject(msg.id, reason);
