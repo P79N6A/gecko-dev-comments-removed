@@ -76,6 +76,7 @@ nsresult nsDataObj::CStream::Init(nsIURI *pSourceURI,
                      nsIContentPolicy::TYPE_OTHER,
                      nullptr,   
                      nullptr,   
+                     nullptr,   
                      nsIRequest::LOAD_FROM_CACHE);
 
   NS_ENSURE_SUCCESS(rv, rv);

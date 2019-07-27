@@ -31,6 +31,7 @@
 #include "nsApplicationCache.h"
 #include "nsApplicationCacheService.h"
 #include "nsMimeTypes.h"
+#include "nsNetStrings.h"
 #include "nsDNSPrefetch.h"
 #include "nsAboutProtocolHandler.h"
 #include "nsXULAppAPI.h"
@@ -629,8 +630,10 @@ CreateNewBinaryDetectorFactory(nsISupports *aOuter, REFNSIID aIID, void **aResul
 
 static nsresult nsNetStartup()
 {
-    return NS_OK;
+    gNetStrings = new nsNetStrings();
+    return gNetStrings ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
+
 
 
 static void nsNetShutdown()
@@ -643,6 +646,10 @@ static void nsNetShutdown()
 #ifdef XP_MACOSX
     net_ShutdownURLHelperOSX();
 #endif
+    
+    
+    delete gNetStrings;
+    gNetStrings = nullptr;
     
     
     nsDNSPrefetch::Shutdown();
