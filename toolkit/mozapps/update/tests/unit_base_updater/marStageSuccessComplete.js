@@ -29,7 +29,8 @@ function run_test() {
 
   
   
-  if (IS_UNIX && !IS_MACOSX) {
+  
+  if (IS_UNIX && !IS_MACOSX && !IS_TOOLKIT_GONK) {
     removeSymlink();
     createSymlink();
     do_register_cleanup(removeSymlink);
@@ -87,7 +88,8 @@ function finishCheckUpdateApplied() {
     checkUpdateLogContains("removing old distribution directory");
   }
 
-  if (IS_UNIX && !IS_MACOSX) {
+  
+  if (IS_UNIX && !IS_MACOSX && !IS_TOOLKIT_GONK) {
     checkSymlink();
   }
   checkAppBundleModTime();
