@@ -21,6 +21,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "LoopStorage",
                                         "resource:///modules/loop/LoopStorage.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "hookWindowCloseForPanelClose",
                                         "resource://gre/modules/MozSocialAPI.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PageMetadata",
+                                        "resource://gre/modules/PageMetadata.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
                                         "resource://gre/modules/PluralForm.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "UITour",
@@ -841,6 +843,24 @@ function injectLoopAPI(targetWindow) {
 
         
         return "https://www.gravatar.com/avatar/" + md5Email + ".jpg?default=blank&s=" + size;
+      }
+    },
+
+    
+
+
+
+
+
+    getSelectedTabMetadata: {
+      value: function(callback) {
+        let win = Services.wm.getMostRecentWindow("navigator:browser");
+        win.messageManager.addMessageListener("PageMetadata:PageDataResult", function onPageDataResult(msg) {
+          win.messageManager.removeMessageListener("PageMetadata:PageDataResult", onPageDataResult);
+          let pageData = msg.json;
+          callback(cloneValueInto(pageData, targetWindow));
+        });
+        win.gBrowser.selectedBrowser.messageManager.sendAsyncMessage("PageMetadata:GetPageData");
       }
     },
 
