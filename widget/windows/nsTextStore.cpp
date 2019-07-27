@@ -774,6 +774,13 @@ public:
            mActiveTIPKeyboardDescription.EqualsLiteral("Google Japanese Input");
   }
 
+  bool IsATOKActive() const
+  {
+    
+    return StringBeginsWith(mActiveTIPKeyboardDescription,
+                            NS_LITERAL_STRING("ATOK "));
+  }
+
 public: 
   STDMETHODIMP OnActivated(REFCLSID clsid, REFGUID guidProfile,
                            BOOL fActivated);
@@ -1174,8 +1181,6 @@ bool nsTextStore::sDoNotReturnNoLayoutErrorToEasyChangjei = false;
 bool nsTextStore::sDoNotReturnNoLayoutErrorToGoogleJaInputAtFirstChar = false;
 bool nsTextStore::sDoNotReturnNoLayoutErrorToGoogleJaInputAtCaret = false;
 
-#define TIP_NAME_BEGINS_WITH_ATOK \
-  (NS_LITERAL_STRING("ATOK "))
 
 #define TIP_NAME_FREE_CHANG_JIE_2010 \
   (NS_LITERAL_STRING("Free CangJie IME 10"))
@@ -3301,9 +3306,7 @@ nsTextStore::GetTextExt(TsViewCookie vcView,
   
   
   
-  if (sCreateNativeCaretForATOK &&
-      StringBeginsWith(
-        activeTIPKeyboardDescription, TIP_NAME_BEGINS_WITH_ATOK) &&
+  if (sCreateNativeCaretForATOK && kSink->IsATOKActive() &&
       mComposition.IsComposing() &&
       mComposition.mStart <= acpStart && mComposition.EndOffset() >= acpStart &&
       mComposition.mStart <= acpEnd && mComposition.EndOffset() >= acpEnd) {
