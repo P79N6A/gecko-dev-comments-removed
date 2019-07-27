@@ -4525,36 +4525,42 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay* aDisplay,
                !mPresShell->GetPresContext()->IsPaginated(),
                "Shouldn't propagate scroll in paginated contexts");
 
-  
-  
-  
-  
-  
-  if (aDisplay->IsBlockInsideStyle() &&
-      aDisplay->IsScrollableOverflow() &&
-      !propagatedScrollToViewport) {
+  if (aDisplay->IsBlockInsideStyle()) {
     
     
     
-    if (mPresShell->GetPresContext()->IsPaginated() &&
-        aDisplay->IsBlockOutsideStyle() &&
-        !aElement->IsInNativeAnonymousSubtree()) {
-      static const FrameConstructionData sForcedNonScrollableBlockData =
-        FULL_CTOR_FCDATA(FCDATA_FORCED_NON_SCROLLABLE_BLOCK,
-                         &nsCSSFrameConstructor::ConstructNonScrollableBlock);
-      return &sForcedNonScrollableBlockData;
+    
+    const uint32_t kCaptionCtorFlags =
+      FCDATA_IS_TABLE_PART | FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeTable);
+    bool caption = aDisplay->mDisplay == NS_STYLE_DISPLAY_TABLE_CAPTION;
+    bool suppressScrollFrame = false;
+    bool needScrollFrame = aDisplay->IsScrollableOverflow() &&
+                           !propagatedScrollToViewport;
+    if (needScrollFrame) {
+      suppressScrollFrame = mPresShell->GetPresContext()->IsPaginated() &&
+                            aDisplay->IsBlockOutsideStyle() &&
+                            !aElement->IsInNativeAnonymousSubtree();
+      if (!suppressScrollFrame) {
+        static const FrameConstructionData sScrollableBlockData[2] =
+          { FULL_CTOR_FCDATA(0, &nsCSSFrameConstructor::ConstructScrollableBlock),
+            FULL_CTOR_FCDATA(kCaptionCtorFlags,
+                             &nsCSSFrameConstructor::ConstructScrollableBlock) };
+        return &sScrollableBlockData[caption];
+      }
     }
 
-    static const FrameConstructionData sScrollableBlockData =
-      FULL_CTOR_FCDATA(0, &nsCSSFrameConstructor::ConstructScrollableBlock);
-    return &sScrollableBlockData;
-  }
-
-  
-  if (aDisplay->IsBlockInsideStyle()) {
-    static const FrameConstructionData sNonScrollableBlockData =
-      FULL_CTOR_FCDATA(0, &nsCSSFrameConstructor::ConstructNonScrollableBlock);
-    return &sNonScrollableBlockData;
+    
+    static const FrameConstructionData sNonScrollableBlockData[2][2] {
+      { FULL_CTOR_FCDATA(0,
+                         &nsCSSFrameConstructor::ConstructNonScrollableBlock),
+        FULL_CTOR_FCDATA(kCaptionCtorFlags,
+                         &nsCSSFrameConstructor::ConstructNonScrollableBlock) },
+      { FULL_CTOR_FCDATA(FCDATA_FORCED_NON_SCROLLABLE_BLOCK,
+                         &nsCSSFrameConstructor::ConstructNonScrollableBlock),
+        FULL_CTOR_FCDATA(FCDATA_FORCED_NON_SCROLLABLE_BLOCK | kCaptionCtorFlags,
+                         &nsCSSFrameConstructor::ConstructNonScrollableBlock) }
+    };
+    return &sNonScrollableBlockData[suppressScrollFrame][caption];
   }
 
   
@@ -4614,11 +4620,6 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay* aDisplay,
     
     
     
-    { NS_STYLE_DISPLAY_TABLE_CAPTION,
-      FCDATA_DECL(FCDATA_IS_TABLE_PART | FCDATA_ALLOW_BLOCK_STYLES |
-                  FCDATA_DISALLOW_OUT_OF_FLOW | FCDATA_SKIP_ABSPOS_PUSH |
-                  FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeTable),
-                  NS_NewTableCaptionFrame) },
     { NS_STYLE_DISPLAY_TABLE_ROW_GROUP,
       FULL_CTOR_FCDATA(FCDATA_IS_TABLE_PART |
                        FCDATA_DESIRED_PARENT_TYPE_TO_BITS(eTypeTable),
