@@ -5,6 +5,7 @@
 const {Cc, Ci, Cu} = require("chrome");
 const {rgbToHsl} = require("devtools/css-color").colorUtils;
 const {EventEmitter} = Cu.import("resource://gre/modules/devtools/event-emitter.js");
+const promise = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
 
 Cu.import("resource://gre/modules/Services.jsm");
 
@@ -112,6 +113,8 @@ function Eyedropper(chromeWindow, opts = { copyOnSelect: true }) {
   this._chromeWindow = chromeWindow;
   this._chromeDocument = chromeWindow.document;
 
+  this._OS = XULRuntime.OS;
+
   this._dragging = true;
   this.loaded = false;
 
@@ -126,6 +129,10 @@ function Eyedropper(chromeWindow, opts = { copyOnSelect: true }) {
     width: CANVAS_WIDTH,      
     height: CANVAS_WIDTH      
   };
+
+  let mm = this._contentTab.linkedBrowser.messageManager;
+  mm.loadFrameScript("resource:///modules/devtools/eyedropper/eyedropper-child.js", true);
+
   EventEmitter.decorate(this);
 }
 
@@ -167,6 +174,30 @@ Eyedropper.prototype = {
     return rgb;
   },
 
+  get _contentTab() {
+    return this._chromeWindow.gBrowser.selectedTab;
+  },
+
+  
+
+
+
+
+
+  getContentScreenshot: function() {
+    let deferred = promise.defer();
+
+    let mm = this._contentTab.linkedBrowser.messageManager;
+    function onScreenshot(message) {
+      mm.removeMessageListener("Eyedropper:Screenshot", onScreenshot);
+      deferred.resolve(message.data);
+    }
+    mm.addMessageListener("Eyedropper:Screenshot", onScreenshot);
+    mm.sendAsyncMessage("Eyedropper:RequestContentScreenshot");
+
+    return deferred.promise;
+  },
+
   
 
 
@@ -174,15 +205,31 @@ Eyedropper.prototype = {
   open: function() {
     if (this.isOpen) {
       
-      return;
+      return promise.resolve();
     }
+    let deferred = promise.defer();
+
     this.isOpen = true;
 
-    this._OS = XULRuntime.OS;
-
-    this._chromeDocument.addEventListener("mousemove", this._onFirstMouseMove);
-
     this._showCrosshairs();
+
+    
+    this.getContentScreenshot().then((dataURL) => {
+      this._contentImage = new this._chromeWindow.Image();
+      this._contentImage.src = dataURL;
+
+      
+      this._contentImage.onload = () => {
+        
+        this._chromeDocument.addEventListener("mousemove", this._onFirstMouseMove);
+        deferred.resolve();
+
+        this.isStarted = true;
+        this.emit("started");
+      }
+    });
+
+    return deferred.promise;
   },
 
   
@@ -215,22 +262,43 @@ Eyedropper.prototype = {
 
 
 
+
+
+  _isInContent: function(clientX, clientY) {
+    let box = this._contentTab.linkedBrowser.getBoundingClientRect();
+    if (clientX > box.left &&
+        clientX < box.right &&
+        clientY > box.top &&
+        clientY < box.bottom) {
+      return true;
+    }
+    return false;
+  },
+
+  
+
+
+
+
+
   _setCoordinates: function(event) {
+    let inContent = this._isInContent(event.clientX, event.clientY);
     let win = this._chromeWindow;
 
-    let x, y;
-    if (this._OS == "Linux") {
-      
-      let windowX = win.screenX + (win.outerWidth - win.innerWidth);
-      x = event.screenX - windowX;
+    
+    let x = event.clientX;
+    let y = event.clientY;
 
-      let windowY = win.screenY + (win.outerHeight - win.innerHeight);
-      y = event.screenY - windowY;
+    if (inContent) {
+      
+      let box = this._contentTab.linkedBrowser.getBoundingClientRect();
+      x = x - box.left;
+      y = y - box.top;
+
+      this._zoomArea.contentWidth = box.width;
+      this._zoomArea.contentHeight = box.height;
     }
-    else {
-      x = event.clientX;
-      y = event.clientY;
-    }
+    this._zoomArea.inContent = inContent;
 
     
     x = Math.max(0, Math.min(x, win.outerWidth - 1));
@@ -548,29 +616,66 @@ Eyedropper.prototype = {
 
 
   _drawWindow: function() {
-    let { width, height, x, y } = this._zoomArea;
+    let { width, height, x, y, inContent,
+          contentWidth, contentHeight } = this._zoomArea;
 
     let zoomedWidth = width / this.zoom;
     let zoomedHeight = height / this.zoom;
 
-    let drawX = x - (zoomedWidth / 2);
-    let drawY = y - (zoomedHeight / 2);
+    let leftX = x - (zoomedWidth / 2);
+    let topY = y - (zoomedHeight / 2);
 
     
-    this._ctx.drawWindow(this._chromeWindow, drawX, drawY, zoomedWidth,
-                        zoomedHeight, "white");
+    if (inContent) {
+      
+      let sx = leftX;
+      let sy = topY;
+      let sw = zoomedWidth;
+      let sh = zoomedHeight;
+      let dx = 0;
+      let dy = 0;
+
+      
+      if (leftX < 0) {
+        sx = 0;
+        sw = zoomedWidth + leftX;
+        dx = -leftX;
+      }
+      else if (leftX + zoomedWidth > contentWidth) {
+        sw = contentWidth - leftX;
+      }
+      if (topY < 0) {
+        sy = 0;
+        sh = zoomedHeight + topY;
+        dy = -topY;
+      }
+      else if (topY + zoomedHeight > contentHeight) {
+        sh = contentHeight - topY;
+      }
+      let dw = sw;
+      let dh = sh;
+
+      
+      if (leftX < 0 || topY < 0 ||
+          leftX + zoomedWidth > contentWidth ||
+          topY + zoomedHeight > contentHeight) {
+        this._ctx.fillStyle = "white";
+        this._ctx.fillRect(0, 0, width, height);
+      }
+
+      
+      this._ctx.drawImage(this._contentImage, sx, sy, sw,
+                          sh, dx, dy, dw, dh);
+    }
+    else {
+      
+      this._ctx.drawWindow(this._chromeWindow, leftX, topY, zoomedWidth,
+                           zoomedHeight, "white");
+    }
 
     
-    let sx = 0;
-    let sy = 0;
-    let sw = zoomedWidth;
-    let sh = zoomedHeight;
-    let dx = 0;
-    let dy = 0;
-    let dw = width;
-    let dh = height;
-
-    this._ctx.drawImage(this._canvas, sx, sy, sw, sh, dx, dy, dw, dh);
+    this._ctx.drawImage(this._canvas, 0, 0, zoomedWidth, zoomedHeight,
+                                      0, 0, width, height);
 
     let rgb = this.centerColor;
     this._colorPreview.style.backgroundColor = toColorString(rgb, "rgb");
@@ -635,6 +740,7 @@ Eyedropper.prototype = {
     this._removePanelListeners();
     this._removeListeners();
 
+    this.isStarted = false;
     this.isOpen = false;
     this._isSelecting = false;
 

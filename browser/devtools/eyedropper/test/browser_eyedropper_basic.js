@@ -10,53 +10,69 @@ const DIV_COLOR = "#0000FF";
 
 
 
-function test() {
-  addTab(TESTCASE_URI).then(testEscape);
-}
+let test = asyncTest(function*() {
+  yield addTab(TESTCASE_URI);
 
-function testEscape() {
+  info("added tab");
+
+  yield testEscape();
+
+  info("testing selecting a color");
+
+  yield testSelect();
+});
+
+function* testEscape() {
   let dropper = new Eyedropper(window);
 
-  dropper.once("destroy", (event) => {
-    ok(true, "escape closed the eyedropper");
+  yield inspectPage(dropper, false);
 
-    
-    testSelect();
-  });
+  let destroyed = dropper.once("destroy");
+  pressESC();
+  yield destroyed;
 
-  inspectPage(dropper, false).then(pressESC);
+  ok(true, "escape closed the eyedropper");
 }
 
-function testSelect() {
+function* testSelect() {
   let dropper = new Eyedropper(window);
 
-  dropper.once("select", (event, color) => {
-    is(color, DIV_COLOR, "correct color selected");
-  });
+  let selected = dropper.once("select");
+  let copied = waitForClipboard(() => {}, DIV_COLOR);
+
+  yield inspectPage(dropper);
+
+  let color = yield selected;
+  is(color, DIV_COLOR, "correct color selected");
 
   
-  waitForClipboard(DIV_COLOR, () => {
-    inspectPage(dropper); 
-  }, finish, finish);
+  yield copied;
 }
 
 
 
-function inspectPage(dropper, click=true) {
-  dropper.open();
+function* inspectPage(dropper, click=true) {
+  yield dropper.open();
 
-  let target = content.document.getElementById("test");
-  let win = content.window;
+  info("dropper opened");
 
-  EventUtils.synthesizeMouse(target, 20, 20, { type: "mousemove" }, win);
+  let target = document.documentElement;
+  let win = window;
 
-  return dropperLoaded(dropper).then(() => {
-    EventUtils.synthesizeMouse(target, 30, 30, { type: "mousemove" }, win);
+  
+  let box = gBrowser.selectedTab.linkedBrowser.getBoundingClientRect();
+  let x = box.left + 100;
+  let y = box.top + 100;
 
-    if (click) {
-      EventUtils.synthesizeMouse(target, 30, 30, {}, win);
-    }
-  });
+  EventUtils.synthesizeMouse(target, x, y, { type: "mousemove" }, win);
+
+  yield dropperLoaded(dropper);
+
+  EventUtils.synthesizeMouse(target, x + 10, y + 10, { type: "mousemove" }, win);
+
+  if (click) {
+    EventUtils.synthesizeMouse(target, x + 10, y + 10, {}, win);
+  }
 }
 
 function pressESC() {
