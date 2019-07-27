@@ -29,7 +29,7 @@ class nsSVGClipPathFrame;
 class nsSVGPaintServerFrame;
 class nsSVGFilterFrame;
 class nsSVGMaskFrame;
-class nsSVGFilterProperty;
+class nsSVGFilterChainObserver;
 
 
 
@@ -202,7 +202,7 @@ class nsSVGFilterReference MOZ_FINAL :
 public:
   nsSVGFilterReference(nsIURI* aURI,
                        nsIContent* aObservingContent,
-                       nsSVGFilterProperty* aFilterChainObserver)
+                       nsSVGFilterChainObserver* aFilterChainObserver)
     : nsSVGIDRenderingObserver(aURI, aObservingContent, false)
     , mFilterChainObserver(aFilterChainObserver)
   {
@@ -230,7 +230,7 @@ protected:
   virtual void DoUpdate() MOZ_OVERRIDE;
 
 private:
-  nsSVGFilterProperty* mFilterChainObserver;
+  nsSVGFilterChainObserver* mFilterChainObserver;
 };
 
 
@@ -243,10 +243,10 @@ private:
 
 
 
-class nsSVGFilterProperty : public nsISupports {
+class nsSVGFilterChainObserver : public nsISupports {
 public:
-  nsSVGFilterProperty(const nsTArray<nsStyleFilter> &aFilters,
-                      nsIFrame *aFilteredFrame);
+  nsSVGFilterChainObserver(const nsTArray<nsStyleFilter>& aFilters,
+                           nsIContent* aFilteredElement);
 
   bool ReferencesValidResources();
   bool IsInObserverLists() const;
@@ -256,12 +256,25 @@ public:
   NS_DECL_ISUPPORTS
 
 protected:
-  virtual ~nsSVGFilterProperty();
+  virtual ~nsSVGFilterChainObserver();
 
-  virtual void DoUpdate();
+  virtual void DoUpdate() = 0;
 
 private:
   nsTArray<nsRefPtr<nsSVGFilterReference>> mReferences;
+};
+
+class nsSVGFilterProperty : public nsSVGFilterChainObserver {
+public:
+  nsSVGFilterProperty(const nsTArray<nsStyleFilter> &aFilters,
+                      nsIFrame *aFilteredFrame)
+    : nsSVGFilterChainObserver(aFilters, aFilteredFrame->GetContent())
+    , mFrameReference(aFilteredFrame)
+  {}
+
+protected:
+  virtual void DoUpdate() MOZ_OVERRIDE;
+
   nsSVGFrameReferenceFromProperty mFrameReference;
 };
 
