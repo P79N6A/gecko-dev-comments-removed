@@ -33,6 +33,27 @@ MobileCellInfo::MobileCellInfo(nsPIDOMWindow* aWindow)
   SetIsDOMBinding();
 }
 
+MobileCellInfo::MobileCellInfo(int32_t aGsmLocationAreaCode,
+                               int64_t aGsmCellId,
+                               int32_t aCdmaBaseStationId,
+                               int32_t aCdmaBaseStationLatitude,
+                               int32_t aCdmaBaseStationLongitude,
+                               int32_t aCdmaSystemId,
+                               int32_t aCdmaNetworkId)
+  : mGsmLocationAreaCode(aGsmLocationAreaCode)
+  , mGsmCellId(aGsmCellId)
+  , mCdmaBaseStationId(aCdmaBaseStationId)
+  , mCdmaBaseStationLatitude(aCdmaBaseStationLatitude)
+  , mCdmaBaseStationLongitude(aCdmaBaseStationLongitude)
+  , mCdmaSystemId(aCdmaSystemId)
+  , mCdmaNetworkId(aCdmaNetworkId)
+{
+  
+  
+  
+  
+}
+
 void
 MobileCellInfo::Update(nsIMobileCellInfo* aInfo)
 {
@@ -52,6 +73,7 @@ MobileCellInfo::Update(nsIMobileCellInfo* aInfo)
 JSObject*
 MobileCellInfo::WrapObject(JSContext* aCx)
 {
+  MOZ_ASSERT(IsDOMBinding());
   return MozMobileCellInfoBinding::Wrap(aCx, this);
 }
 

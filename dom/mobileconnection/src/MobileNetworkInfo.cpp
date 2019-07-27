@@ -25,6 +25,22 @@ MobileNetworkInfo::MobileNetworkInfo(nsPIDOMWindow* aWindow)
   SetIsDOMBinding();
 }
 
+MobileNetworkInfo::MobileNetworkInfo(const nsAString& aShortName,
+                                     const nsAString& aLongName,
+                                     const nsAString& aMcc,
+                                     const nsAString& aMnc,
+                                     const nsAString& aState)
+  : mShortName(aShortName)
+  , mLongName(aLongName)
+  , mMcc(aMcc)
+  , mMnc(aMnc)
+  , mState(aState)
+{
+  
+  
+  SetIsDOMBinding();
+}
+
 void
 MobileNetworkInfo::Update(nsIMobileNetworkInfo* aInfo)
 {
