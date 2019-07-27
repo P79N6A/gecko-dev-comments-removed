@@ -935,8 +935,8 @@ Search.prototype = {
     
     
     let [url, action] = this._enableActions && openPageCount > 0 ?
-                        ["moz-action:switchtab," + escapedURL, "action "] :
-                        [escapedURL, ""];
+                        ["moz-action:switchtab," + escapedURL, "switchtab"] :
+                        [escapedURL, null];
 
     
     let title = bookmarkTitle || historyTitle;
@@ -986,7 +986,7 @@ Search.prototype = {
     }
 
     if (action)
-      match.style = "action " + match.style;
+      match.style = "action " + action;
 
     match.value = url;
     match.comment = title;
