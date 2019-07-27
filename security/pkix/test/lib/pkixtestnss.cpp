@@ -74,7 +74,7 @@ InitReusedKeyPair()
   return reusedKeyPair ? PR_SUCCESS : PR_FAILURE;
 }
 
-class NSSTestKeyPair : public TestKeyPair
+class NSSTestKeyPair final : public TestKeyPair
 {
 public:
   
@@ -86,9 +86,8 @@ public:
   {
   }
 
-  virtual Result SignData(const ByteString& tbs,
-                          const ByteString& signatureAlgorithm,
-                           ByteString& signature) const
+  Result SignData(const ByteString& tbs, const ByteString& signatureAlgorithm,
+                   ByteString& signature) const override
   {
     
     
@@ -126,7 +125,7 @@ public:
     return Success;
   }
 
-  virtual TestKeyPair* Clone() const
+  TestKeyPair* Clone() const override
   {
     ScopedSECKEYPrivateKey
       privateKeyCopy(SECKEY_CopyPrivateKey(privateKey.get()));

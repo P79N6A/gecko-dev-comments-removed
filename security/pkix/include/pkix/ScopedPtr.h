@@ -32,7 +32,7 @@ namespace mozilla { namespace pkix {
 
 
 template <typename T, void (&Destroyer)(T*)>
-class ScopedPtr
+class ScopedPtr final
 {
 public:
   explicit ScopedPtr(T* value = nullptr) : mValue(value) { }

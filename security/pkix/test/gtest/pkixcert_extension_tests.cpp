@@ -60,49 +60,48 @@ CreateCertWithOneExtension(const char* subjectStr, const ByteString& extension)
   return CreateCertWithExtensions(subjectStr, extensions);
 }
 
-class TrustEverythingTrustDomain : public TrustDomain
+class TrustEverythingTrustDomain final : public TrustDomain
 {
 private:
-  virtual Result GetCertTrust(EndEntityOrCA, const CertPolicyId&,
-                              Input candidateCert,
-                               TrustLevel& trustLevel)
+  Result GetCertTrust(EndEntityOrCA, const CertPolicyId&, Input candidateCert,
+                       TrustLevel& trustLevel) override
   {
     trustLevel = TrustLevel::TrustAnchor;
     return Success;
   }
 
-  virtual Result FindIssuer(Input ,
-                            IssuerChecker& , Time )
+  Result FindIssuer(Input , IssuerChecker& ,
+                    Time ) override
   {
     ADD_FAILURE();
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  virtual Result CheckRevocation(EndEntityOrCA, const CertID&, Time,
-                                  const Input*,
-                                  const Input*)
+  Result CheckRevocation(EndEntityOrCA, const CertID&, Time,
+                          const Input*,  const Input*)
+                         override
   {
     return Success;
   }
 
-  virtual Result IsChainValid(const DERArray&, Time)
+  Result IsChainValid(const DERArray&, Time) override
   {
     return Success;
   }
 
-  virtual Result VerifySignedData(const SignedDataWithSignature& signedData,
-                                  Input subjectPublicKeyInfo)
+  Result VerifySignedData(const SignedDataWithSignature& signedData,
+                          Input subjectPublicKeyInfo) override
   {
     return TestVerifySignedData(signedData, subjectPublicKeyInfo);
   }
 
-  virtual Result DigestBuf(Input,  uint8_t*, size_t)
+  Result DigestBuf(Input,  uint8_t*, size_t) override
   {
     ADD_FAILURE();
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  virtual Result CheckPublicKey(Input subjectPublicKeyInfo)
+  Result CheckPublicKey(Input subjectPublicKeyInfo) override
   {
     return TestCheckPublicKey(subjectPublicKeyInfo);
   }

@@ -43,7 +43,7 @@ TrustDomain::IssuerChecker::~IssuerChecker() { }
 
 
 
-class PathBuildingStep : public TrustDomain::IssuerChecker
+class PathBuildingStep final : public TrustDomain::IssuerChecker
 {
 public:
   PathBuildingStep(TrustDomain& trustDomain, const BackCert& subject,
@@ -66,7 +66,7 @@ public:
 
   Result Check(Input potentialIssuerDER,
                 const Input* additionalNameConstraints,
-                bool& keepGoing);
+                bool& keepGoing) override;
 
   Result CheckResult() const;
 

@@ -39,7 +39,7 @@ namespace mozilla { namespace pkix {
 
 
 
-class Time
+class Time final
 {
 public:
   

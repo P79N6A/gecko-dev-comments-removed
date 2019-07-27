@@ -38,7 +38,7 @@ namespace mozilla { namespace pkix {
 
 
 
-class BackCert
+class BackCert final
 {
 public:
   
@@ -147,7 +147,7 @@ private:
   void operator=(const BackCert&) = delete;
 };
 
-class NonOwningDERArray : public DERArray
+class NonOwningDERArray final : public DERArray
 {
 public:
   NonOwningDERArray()
@@ -157,9 +157,9 @@ public:
     
   }
 
-  virtual size_t GetLength() const { return numItems; }
+  size_t GetLength() const override { return numItems; }
 
-  virtual const Input* GetDER(size_t i) const
+  const Input* GetDER(size_t i) const override
   {
     return i < numItems ? &items[i] : nullptr;
   }

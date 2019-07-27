@@ -73,7 +73,7 @@ enum class SignatureAlgorithm
   unsupported_algorithm = 19,
 };
 
-struct SignedDataWithSignature
+struct SignedDataWithSignature final
 {
 public:
   Input data;
@@ -107,7 +107,8 @@ enum class KeyPurposeId {
   id_kp_OCSPSigning = 9,          
 };
 
-struct CertPolicyId {
+struct CertPolicyId final
+{
   uint16_t numBytes;
   static const uint16_t MAX_BYTES = 24;
   uint8_t bytes[MAX_BYTES];
@@ -135,7 +136,7 @@ enum class TrustLevel {
 
 
 
-struct CertID
+struct CertID final
 {
 public:
   CertID(Input issuer, Input issuerSubjectPublicKeyInfo, Input serialNumber)

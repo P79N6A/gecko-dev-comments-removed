@@ -50,7 +50,7 @@ class Reader;
 
 
 
-class Input
+class Input final
 {
 public:
   typedef uint16_t size_type;
@@ -142,7 +142,7 @@ InputsAreEqual(const Input& a, const Input& b)
 
 
 
-class Reader
+class Reader final
 {
 public:
   Reader()
@@ -284,7 +284,7 @@ public:
 
   bool AtEnd() const { return input == end; }
 
-  class Mark
+  class Mark final
   {
   private:
     friend class Reader;
