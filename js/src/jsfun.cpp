@@ -1985,6 +1985,20 @@ js::NewScriptedFunction(ExclusiveContext* cx, unsigned nargs,
                                 atom, nullptr, allocKind, newKind);
 }
 
+#ifdef DEBUG
+static bool
+NewFunctionScopeIsWellFormed(ExclusiveContext* cx, HandleObject parent)
+{
+    
+    
+    
+    
+    RootedObject realParent(cx, SkipScopeParent(parent));
+    return !realParent || realParent == cx->global() ||
+           realParent->is<DebugScopeObject>();
+}
+#endif
+
 JSFunction*
 js::NewFunctionWithProto(ExclusiveContext* cx, Native native,
                          unsigned nargs, JSFunction::Flags flags, HandleObject enclosingDynamicScope,
@@ -1994,6 +2008,7 @@ js::NewFunctionWithProto(ExclusiveContext* cx, Native native,
 {
     MOZ_ASSERT(allocKind == AllocKind::FUNCTION || allocKind == AllocKind::FUNCTION_EXTENDED);
     MOZ_ASSERT_IF(native, !enclosingDynamicScope);
+    MOZ_ASSERT(NewFunctionScopeIsWellFormed(cx, enclosingDynamicScope));
 
     RootedObject funobj(cx);
     
@@ -2001,17 +2016,6 @@ js::NewFunctionWithProto(ExclusiveContext* cx, Native native,
     
     if (native && !IsAsmJSModuleNative(native))
         newKind = SingletonObject;
-#ifdef DEBUG
-    RootedObject nonScopeParent(cx, SkipScopeParent(enclosingDynamicScope));
-    
-    
-    
-    
-    
-    MOZ_ASSERT(!nonScopeParent || nonScopeParent == cx->global() ||
-               nonScopeParent->is<DebugScopeObject>() ||
-               nonScopeParent->isUnqualifiedVarObj());
-#endif
     funobj = NewObjectWithClassProto(cx, &JSFunction::class_, proto, allocKind,
                                      newKind);
     if (!funobj)
@@ -2074,22 +2078,6 @@ js::CanReuseScriptForClone(JSCompartment* compartment, HandleFunction fun,
            (fun->hasScript() && fun->nonLazyScript()->hasNonSyntacticScope());
 }
 
-static bool
-FunctionCloneScopeIsWellFormed(JSContext* cx, HandleObject parent)
-{
-    MOZ_ASSERT(parent);
-    RootedObject realParent(cx, SkipScopeParent(parent));
-    
-    
-    
-    
-    
-    return !realParent || realParent == cx->global() ||
-           realParent->is<DebugScopeObject>() ||
-           realParent->isUnqualifiedVarObj();
-}
-
-
 static inline JSFunction*
 NewFunctionClone(JSContext* cx, HandleFunction fun, NewObjectKind newKind,
                  gc::AllocKind allocKind, HandleObject proto)
@@ -2133,7 +2121,7 @@ js::CloneFunctionReuseScript(JSContext* cx, HandleFunction fun, HandleObject par
                              NewObjectKind newKind ,
                              HandleObject proto )
 {
-    MOZ_ASSERT(FunctionCloneScopeIsWellFormed(cx, parent));
+    MOZ_ASSERT(NewFunctionScopeIsWellFormed(cx, parent));
     MOZ_ASSERT(!fun->isBoundFunction());
     MOZ_ASSERT(CanReuseScriptForClone(cx->compartment(), fun, parent));
 
@@ -2168,7 +2156,7 @@ js::CloneFunctionAndScript(JSContext* cx, HandleFunction fun, HandleObject paren
                            gc::AllocKind allocKind ,
                            HandleObject proto )
 {
-    MOZ_ASSERT(FunctionCloneScopeIsWellFormed(cx, parent));
+    MOZ_ASSERT(NewFunctionScopeIsWellFormed(cx, parent));
     MOZ_ASSERT(!fun->isBoundFunction());
 
     RootedFunction clone(cx, NewFunctionClone(cx, fun, SingletonObject, allocKind, proto));
