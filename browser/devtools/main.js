@@ -277,7 +277,9 @@ Tools.jsprofiler = {
   inMenu: true,
 
   isTargetSupported: function (target) {
-    return !target.isAddon;
+    
+    
+    return !target.isAddon && (!target.isApp || target.form.profilerActor);
   },
 
   build: function (frame, target) {
