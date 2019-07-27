@@ -265,7 +265,8 @@ enum nsCSSUnit {
   eCSSUnit_Counters     = 22,     
   eCSSUnit_Cubic_Bezier = 23,     
   eCSSUnit_Steps        = 24,     
-  eCSSUnit_Function     = 25,     
+  eCSSUnit_Symbols      = 25,     
+  eCSSUnit_Function     = 26,     
                                   
                                   
                                   
