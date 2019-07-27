@@ -7262,7 +7262,7 @@ IonBuilder::checkTypedObjectIndexInBounds(int32_t elemSize,
         
         
         types::TypeObjectKey *globalType = types::TypeObjectKey::get(&script()->global());
-        if (globalType->hasFlags(constraints(), types::OBJECT_FLAG_SIZED_OBJECT_NEUTERED))
+        if (globalType->hasFlags(constraints(), types::OBJECT_FLAG_TYPED_OBJECT_NEUTERED))
             return false;
     } else if (objPrediction.kind() == type::UnsizedArray) {
         
@@ -8563,6 +8563,7 @@ IonBuilder::jsop_length_fastPath()
     if (obj->mightBeType(MIRType_Object)) {
         types::TemporaryTypeSet *objTypes = obj->resultTypeSet();
 
+        
         if (objTypes &&
             objTypes->getKnownClass() == &ArrayObject::class_ &&
             !objTypes->hasObjectFlags(constraints(), types::OBJECT_FLAG_LENGTH_OVERFLOW))
@@ -8573,6 +8574,30 @@ IonBuilder::jsop_length_fastPath()
 
             
             MArrayLength *length = MArrayLength::New(alloc(), elements);
+            current->add(length);
+            current->push(length);
+            return true;
+        }
+
+        
+        TypedObjectPrediction prediction = typedObjectPrediction(obj);
+        if (!prediction.isUseless()) {
+            types::TypeObjectKey *globalType = types::TypeObjectKey::get(&script()->global());
+            if (globalType->hasFlags(constraints(), types::OBJECT_FLAG_TYPED_OBJECT_NEUTERED))
+                return false;
+
+            MInstruction *length;
+            int32_t sizedLength;
+            if (prediction.hasKnownArrayLength(&sizedLength)) {
+                obj->setImplicitlyUsedUnchecked();
+                length = MConstant::New(alloc(), Int32Value(sizedLength));
+            } else if (prediction.kind() == type::UnsizedArray) {
+                length = MTypedObjectUnsizedLength::New(alloc(), obj);
+            } else {
+                return false;
+            }
+
+            current->pop();
             current->add(length);
             current->push(length);
             return true;
@@ -9308,7 +9333,7 @@ IonBuilder::getPropTryScalarPropOfTypedObject(bool *emitted, MDefinition *typedO
 
     
     types::TypeObjectKey *globalType = types::TypeObjectKey::get(&script()->global());
-    if (globalType->hasFlags(constraints(), types::OBJECT_FLAG_SIZED_OBJECT_NEUTERED))
+    if (globalType->hasFlags(constraints(), types::OBJECT_FLAG_TYPED_OBJECT_NEUTERED))
         return true;
 
     
@@ -9325,7 +9350,7 @@ IonBuilder::getPropTryComplexPropOfTypedObject(bool *emitted,
 {
     
     types::TypeObjectKey *globalType = types::TypeObjectKey::get(&script()->global());
-    if (globalType->hasFlags(constraints(), types::OBJECT_FLAG_SIZED_OBJECT_NEUTERED))
+    if (globalType->hasFlags(constraints(), types::OBJECT_FLAG_TYPED_OBJECT_NEUTERED))
         return true;
 
     
@@ -9984,7 +10009,7 @@ IonBuilder::setPropTryScalarPropOfTypedObject(bool *emitted,
 
     
     types::TypeObjectKey *globalType = types::TypeObjectKey::get(&script()->global());
-    if (globalType->hasFlags(constraints(), types::OBJECT_FLAG_SIZED_OBJECT_NEUTERED))
+    if (globalType->hasFlags(constraints(), types::OBJECT_FLAG_TYPED_OBJECT_NEUTERED))
         return true;
 
     

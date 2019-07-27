@@ -524,12 +524,12 @@ ArrayBufferObject::neuter(JSContext *cx, Handle<ArrayBufferObject*> buffer,
     
     
     
-    if (buffer->hasSizedObjectViews()) {
+    if (buffer->hasTypedObjectViews()) {
         
         
         if (!cx->global()->getType(cx))
             CrashAtUnhandlableOOM("ArrayBufferObject::neuter");
-        types::MarkTypeObjectFlags(cx, cx->global(), types::OBJECT_FLAG_SIZED_OBJECT_NEUTERED);
+        types::MarkTypeObjectFlags(cx, cx->global(), types::OBJECT_FLAG_TYPED_OBJECT_NEUTERED);
     }
 
     
