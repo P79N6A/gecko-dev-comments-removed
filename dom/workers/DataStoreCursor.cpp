@@ -82,7 +82,19 @@ public:
     aWorkerPrivate->AssertIsOnWorkerThread();
 
     mPromiseWorkerProxy =
-      new PromiseWorkerProxy(aWorkerPrivate, aWorkerPromise);
+      PromiseWorkerProxy::Create(aWorkerPrivate, aWorkerPromise);
+  }
+
+  bool Dispatch(JSContext* aCx)
+  {
+    if (mPromiseWorkerProxy) {
+      return DataStoreCursorRunnable::Dispatch(aCx);
+    }
+
+    
+    
+    
+    return true;
   }
 
 protected:

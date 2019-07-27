@@ -223,11 +223,25 @@ public:
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
 
+    
     mPromiseWorkerProxy =
-      new PromiseWorkerProxy(aWorkerPrivate,
-                             aWorkerPromise,
-                             &kGetDataStoresStructuredCloneCallbacks);
+      PromiseWorkerProxy::Create(aWorkerPrivate,
+                                 aWorkerPromise,
+                                 &kGetDataStoresStructuredCloneCallbacks);
   }
+
+  bool Dispatch(JSContext* aCx)
+  {
+    if (mPromiseWorkerProxy) {
+      return WorkerMainThreadRunnable::Dispatch(aCx);
+    }
+
+    
+    
+    
+    return true;
+  }
+
 
 protected:
   virtual bool

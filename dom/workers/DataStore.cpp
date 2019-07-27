@@ -137,10 +137,40 @@ protected:
   }
 };
 
-
-class DataStoreGetRunnable MOZ_FINAL : public DataStoreRunnable
+class DataStoreProxyRunnable : public DataStoreRunnable
 {
+public:
+  DataStoreProxyRunnable(WorkerPrivate* aWorkerPrivate,
+                         const nsMainThreadPtrHandle<DataStore>& aBackingStore,
+                         Promise* aWorkerPromise)
+    : DataStoreRunnable(aWorkerPrivate, aBackingStore)
+  {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+
+    mPromiseWorkerProxy =
+      PromiseWorkerProxy::Create(aWorkerPrivate, aWorkerPromise);
+  }
+
+  bool Dispatch(JSContext* aCx)
+  {
+    if (mPromiseWorkerProxy) {
+      return DataStoreRunnable::Dispatch(aCx);
+    }
+
+    
+    
+    
+    return true;
+  }
+
+protected:
   nsRefPtr<PromiseWorkerProxy> mPromiseWorkerProxy;
+};
+
+
+class DataStoreGetRunnable MOZ_FINAL : public DataStoreProxyRunnable
+{
   Sequence<OwningStringOrUnsignedLong> mId;
   ErrorResult& mRv;
 
@@ -150,7 +180,7 @@ public:
                        Promise* aWorkerPromise,
                        const Sequence<OwningStringOrUnsignedLong>& aId,
                        ErrorResult& aRv)
-    : DataStoreRunnable(aWorkerPrivate, aBackingStore)
+    : DataStoreProxyRunnable(aWorkerPrivate, aBackingStore, aWorkerPromise)
     , mRv(aRv)
   {
     MOZ_ASSERT(aWorkerPrivate);
@@ -159,9 +189,6 @@ public:
     if (!mId.AppendElements(aId)) {
       mRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     }
-
-    mPromiseWorkerProxy =
-      new PromiseWorkerProxy(aWorkerPrivate, aWorkerPromise);
   }
 
 protected:
@@ -177,9 +204,8 @@ protected:
 };
 
 
-class DataStorePutRunnable MOZ_FINAL : public DataStoreRunnable
+class DataStorePutRunnable MOZ_FINAL : public DataStoreProxyRunnable
 {
-  nsRefPtr<PromiseWorkerProxy> mPromiseWorkerProxy;
   JSAutoStructuredCloneBuffer mObjBuffer;
   const StringOrUnsignedLong& mId;
   const nsString mRevisionId;
@@ -194,7 +220,7 @@ public:
                        const StringOrUnsignedLong& aId,
                        const nsAString& aRevisionId,
                        ErrorResult& aRv)
-    : DataStoreRunnable(aWorkerPrivate, aBackingStore)
+    : DataStoreProxyRunnable(aWorkerPrivate, aBackingStore, aWorkerPromise)
     , mId(aId)
     , mRevisionId(aRevisionId)
     , mRv(aRv)
@@ -207,9 +233,6 @@ public:
       JS_ClearPendingException(aCx);
       mRv.Throw(NS_ERROR_DOM_DATA_CLONE_ERR);
     }
-
-    mPromiseWorkerProxy =
-      new PromiseWorkerProxy(aWorkerPrivate, aWorkerPromise);
   }
 
 protected:
@@ -244,9 +267,8 @@ protected:
 };
 
 
-class DataStoreAddRunnable MOZ_FINAL : public DataStoreRunnable
+class DataStoreAddRunnable MOZ_FINAL : public DataStoreProxyRunnable
 {
-  nsRefPtr<PromiseWorkerProxy> mPromiseWorkerProxy;
   JSAutoStructuredCloneBuffer mObjBuffer;
   const Optional<StringOrUnsignedLong>& mId;
   const nsString mRevisionId;
@@ -261,7 +283,7 @@ public:
                        const Optional<StringOrUnsignedLong>& aId,
                        const nsAString& aRevisionId,
                        ErrorResult& aRv)
-    : DataStoreRunnable(aWorkerPrivate, aBackingStore)
+    : DataStoreProxyRunnable(aWorkerPrivate, aBackingStore, aWorkerPromise)
     , mId(aId)
     , mRevisionId(aRevisionId)
     , mRv(aRv)
@@ -274,9 +296,6 @@ public:
       JS_ClearPendingException(aCx);
       mRv.Throw(NS_ERROR_DOM_DATA_CLONE_ERR);
     }
-
-    mPromiseWorkerProxy =
-      new PromiseWorkerProxy(aWorkerPrivate, aWorkerPromise);
   }
 
 protected:
@@ -312,9 +331,8 @@ protected:
 
 
 
-class DataStoreRemoveRunnable MOZ_FINAL : public DataStoreRunnable
+class DataStoreRemoveRunnable MOZ_FINAL : public DataStoreProxyRunnable
 {
-  nsRefPtr<PromiseWorkerProxy> mPromiseWorkerProxy;
   const StringOrUnsignedLong& mId;
   const nsString mRevisionId;
   ErrorResult& mRv;
@@ -326,16 +344,13 @@ public:
                           const StringOrUnsignedLong& aId,
                           const nsAString& aRevisionId,
                           ErrorResult& aRv)
-    : DataStoreRunnable(aWorkerPrivate, aBackingStore)
+    : DataStoreProxyRunnable(aWorkerPrivate, aBackingStore, aWorkerPromise)
     , mId(aId)
     , mRevisionId(aRevisionId)
     , mRv(aRv)
   {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
-
-    mPromiseWorkerProxy =
-      new PromiseWorkerProxy(aWorkerPrivate, aWorkerPromise);
   }
 
 protected:
@@ -351,9 +366,8 @@ protected:
 };
 
 
-class DataStoreClearRunnable MOZ_FINAL : public DataStoreRunnable
+class DataStoreClearRunnable MOZ_FINAL : public DataStoreProxyRunnable
 {
-  nsRefPtr<PromiseWorkerProxy> mPromiseWorkerProxy;
   const nsString mRevisionId;
   ErrorResult& mRv;
 
@@ -363,15 +377,12 @@ public:
                          Promise* aWorkerPromise,
                          const nsAString& aRevisionId,
                          ErrorResult& aRv)
-    : DataStoreRunnable(aWorkerPrivate, aBackingStore)
+    : DataStoreProxyRunnable(aWorkerPrivate, aBackingStore, aWorkerPromise)
     , mRevisionId(aRevisionId)
     , mRv(aRv)
   {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
-
-    mPromiseWorkerProxy =
-      new PromiseWorkerProxy(aWorkerPrivate, aWorkerPromise);
   }
 
 protected:
@@ -626,9 +637,8 @@ WorkerDataStore::GetRevisionId(JSContext* aCx,
 }
 
 
-class DataStoreGetLengthRunnable MOZ_FINAL : public DataStoreRunnable
+class DataStoreGetLengthRunnable MOZ_FINAL : public DataStoreProxyRunnable
 {
-  nsRefPtr<PromiseWorkerProxy> mPromiseWorkerProxy;
   ErrorResult& mRv;
 
 public:
@@ -636,14 +646,11 @@ public:
                              const nsMainThreadPtrHandle<DataStore>& aBackingStore,
                              Promise* aWorkerPromise,
                              ErrorResult& aRv)
-    : DataStoreRunnable(aWorkerPrivate, aBackingStore)
+    : DataStoreProxyRunnable(aWorkerPrivate, aBackingStore, aWorkerPromise)
     , mRv(aRv)
   {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
-
-    mPromiseWorkerProxy =
-      new PromiseWorkerProxy(aWorkerPrivate, aWorkerPromise);
   }
 
 protected:
