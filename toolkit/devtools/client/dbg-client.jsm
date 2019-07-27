@@ -647,6 +647,9 @@ DebuggerClient.prototype = {
 
 
 
+
+
+
   request: function (aRequest, aOnResponse) {
     if (!this.mainRoot) {
       throw Error("Have not yet received a hello packet from the server.");
@@ -664,6 +667,27 @@ DebuggerClient.prototype = {
 
     this._pendingRequests.push(request);
     this._sendRequests();
+
+    
+    
+    let deferred = promise.defer();
+    function listenerJson(resp) {
+      request.off("json-reply", listenerJson);
+      request.off("bulk-reply", listenerBulk);
+      if (resp.error) {
+        deferred.reject(resp);
+      } else {
+        deferred.resolve(resp);
+      }
+    }
+    function listenerBulk(resp) {
+      request.off("json-reply", listenerJson);
+      request.off("bulk-reply", listenerBulk);
+      deferred.resolve(resp);
+    }
+    request.on("json-reply", listenerJson);
+    request.on("bulk-reply", listenerBulk);
+    request.then = deferred.promise.then.bind(deferred.promise);
 
     return request;
   },
