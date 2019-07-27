@@ -49,7 +49,7 @@ struct JS_PUBLIC_API(SliceBudget)
     
     explicit SliceBudget(WorkBudget work);
 
-    void reset() {
+    void makeUnlimited() {
         deadline = unlimitedDeadline;
         counter = unlimitedStartCounter;
     }
