@@ -934,6 +934,93 @@ TEST_F(APZCBasicTester, FlingIntoOverscroll) {
   EXPECT_TRUE(recoveredFromOverscroll);
 }
 
+TEST_F(APZCBasicTester, OverScrollPanning) {
+  SCOPED_GFX_PREF(APZOverscrollEnabled, bool, true);
+
+  
+  int time = 0;
+  int touchStart = 500;
+  int touchEnd = 10;
+  ApzcPan(apzc, time, touchStart, touchEnd);
+  EXPECT_TRUE(apzc->IsOverscrolled());
+
+  
+  
+  
+  
+  
+  
+
+  ScreenPoint pointOut;
+  ViewTransform viewTransformOut;
+
+  
+  
+  apzc->SampleContentTransformForFrame(testStartTime + TimeDuration::FromMilliseconds(10000), &viewTransformOut, pointOut);
+  EXPECT_EQ(ScreenPoint(0, 90), pointOut);
+  EXPECT_TRUE(apzc->IsOverscrolled());
+
+  
+  
+  apzc->SampleContentTransformForFrame(testStartTime + TimeDuration::FromMilliseconds(20000), &viewTransformOut, pointOut);
+  EXPECT_EQ(ScreenPoint(0, 90), pointOut);
+  EXPECT_TRUE(apzc->IsOverscrolled());
+
+  
+  apzc->SampleContentTransformForFrame(testStartTime + TimeDuration::FromMilliseconds(30000), &viewTransformOut, pointOut);
+  EXPECT_EQ(ScreenPoint(0, 90), pointOut);
+  EXPECT_FALSE(apzc->IsOverscrolled());
+
+  apzc->AssertStateIsReset();
+}
+
+TEST_F(APZCBasicTester, OverScrollAbort) {
+  SCOPED_GFX_PREF(APZOverscrollEnabled, bool, true);
+
+  
+  int time = 0;
+  int touchStart = 500;
+  int touchEnd = 10;
+  ApzcPan(apzc, time, touchStart, touchEnd);
+  EXPECT_TRUE(apzc->IsOverscrolled());
+
+  ScreenPoint pointOut;
+  ViewTransform viewTransformOut;
+
+  
+  
+  
+  apzc->SampleContentTransformForFrame(testStartTime + TimeDuration::FromMilliseconds(10000), &viewTransformOut, pointOut);
+  EXPECT_TRUE(apzc->IsOverscrolled());
+
+  
+  
+  apzc->CancelAnimation();
+  EXPECT_FALSE(apzc->IsOverscrolled());
+  apzc->AssertStateIsReset();
+}
+
+TEST_F(APZCBasicTester, OverScrollPanningAbort) {
+  SCOPED_GFX_PREF(APZOverscrollEnabled, bool, true);
+
+  
+  
+  int time = 0;
+  int touchStart = 500;
+  int touchEnd = 10;
+  ApzcPan(apzc, time, touchStart, touchEnd,
+          true);                   
+  EXPECT_TRUE(apzc->IsOverscrolled());
+
+  
+  
+  
+  apzc->CancelAnimation();
+  EXPECT_FALSE(apzc->IsOverscrolled());
+  apzc->AssertStateIsReset();
+}
+
+
 class APZCFlingStopTester : public APZCGestureDetectorTester {
 protected:
   
