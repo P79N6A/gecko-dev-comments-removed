@@ -16,9 +16,7 @@
 #include "nsPIDOMWindow.h"
 #include "nsTArray.h"
 #include "GetUserMediaRequest.h"
-#include "PCOMContentPermissionRequestChild.h"
 #include "mozilla/dom/PBrowserChild.h"
-#include "mozilla/dom/TabChild.h"
 #include "mozilla/dom/MediaStreamTrackBinding.h"
 #include "nsISupportsPrimitives.h"
 #include "nsServiceManagerUtils.h"
@@ -110,7 +108,6 @@ namespace {
 
 
 class MediaPermissionRequest : public nsIContentPermissionRequest
-                             , public PCOMContentPermissionRequestChild
 {
 public:
   NS_DECL_ISUPPORTS
@@ -118,11 +115,6 @@ public:
 
   MediaPermissionRequest(nsRefPtr<dom::GetUserMediaRequest> &aRequest,
                          nsTArray<nsCOMPtr<nsIMediaDevice> > &aDevices);
-
-  
-  virtual bool Recv__delete__(const bool &allow,
-                              const InfallibleTArray<PermissionChoice>& choices) MOZ_OVERRIDE;
-  virtual void IPDLRelease() MOZ_OVERRIDE { Release(); }
 
   already_AddRefed<nsPIDOMWindow> GetOwner();
 
@@ -317,29 +309,6 @@ MediaPermissionRequest::GetOwner()
 }
 
 
-bool
-MediaPermissionRequest::Recv__delete__(const bool& allow,
-                                       const InfallibleTArray<PermissionChoice>& choices)
-{
-  if (allow) {
-    
-    nsString audioDevice, videoDevice;
-    for (uint32_t i = 0; i < choices.Length(); ++i) {
-      const nsString &choice = choices[i].choice();
-      if (choices[i].type().EqualsLiteral(AUDIO_PERMISSION_NAME)) {
-        audioDevice = choice;
-      } else if (choices[i].type().EqualsLiteral(VIDEO_PERMISSION_NAME)) {
-        videoDevice = choice;
-      }
-    }
-    (void) DoAllow(audioDevice, videoDevice);
-  } else {
-    (void) Cancel();
-  }
-  return true;
-}
-
-
 class MediaDeviceSuccessCallback: public nsIGetUserMediaDevicesSuccessCallback
 {
 public:
@@ -400,45 +369,8 @@ MediaDeviceSuccessCallback::OnSuccess(nsIVariant* aDevices)
 nsresult
 MediaDeviceSuccessCallback::DoPrompt(nsRefPtr<MediaPermissionRequest> &req)
 {
-  
-  if (XRE_GetProcessType() == GeckoProcessType_Content) {
-    MOZ_ASSERT(NS_IsMainThread()); 
-
-    nsresult rv;
-
-    nsCOMPtr<nsPIDOMWindow> window(req->GetOwner());
-    NS_ENSURE_TRUE(window, NS_ERROR_FAILURE);
-
-    dom::TabChild* child = dom::TabChild::GetFrom(window->GetDocShell());
-    NS_ENSURE_TRUE(child, NS_ERROR_FAILURE);
-
-    nsCOMPtr<nsIArray> typeArray;
-    rv = req->GetTypes(getter_AddRefs(typeArray));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsTArray<PermissionRequest> permArray;
-    RemotePermissionRequest::ConvertArrayToPermissionRequest(typeArray, permArray);
-
-    nsCOMPtr<nsIPrincipal> principal;
-    rv = req->GetPrincipal(getter_AddRefs(principal));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    req->AddRef();
-    child->SendPContentPermissionRequestConstructor(req,
-                                                    permArray,
-                                                    IPC::Principal(principal));
-
-    req->Sendprompt();
-    return NS_OK;
-  }
-
-  
-  nsCOMPtr<nsIContentPermissionPrompt> prompt =
-      do_GetService(NS_CONTENT_PERMISSION_PROMPT_CONTRACTID);
-  if (prompt) {
-    prompt->Prompt(req);
-  }
-  return NS_OK;
+  nsCOMPtr<nsPIDOMWindow> window(req->GetOwner());
+  return dom::nsContentPermissionUtils::AskPermission(req, window);
 }
 
 

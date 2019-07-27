@@ -8,7 +8,11 @@
 #include "nsIContentPermissionPrompt.h"
 #include "nsTArray.h"
 #include "nsIMutableArray.h"
-#include "PCOMContentPermissionRequestChild.h"
+#include "mozilla/dom/PContentPermissionRequestChild.h"
+
+
+
+#undef LoadImage
 
 class nsPIDOMWindow;
 class nsContentPermissionRequestProxy;
@@ -49,18 +53,31 @@ protected:
   nsTArray<nsString> mOptions;
 };
 
-uint32_t ConvertPermissionRequestToArray(nsTArray<PermissionRequest>& aSrcArray,
-                                         nsIMutableArray* aDesArray);
+class nsContentPermissionUtils
+{
+public:
+  static uint32_t
+  ConvertPermissionRequestToArray(nsTArray<PermissionRequest>& aSrcArray,
+                                  nsIMutableArray* aDesArray);
 
-nsresult CreatePermissionArray(const nsACString& aType,
-                               const nsACString& aAccess,
-                               const nsTArray<nsString>& aOptions,
-                               nsIArray** aTypesArray);
+  static uint32_t
+  ConvertArrayToPermissionRequest(nsIArray* aSrcArray,
+                                  nsTArray<PermissionRequest>& aDesArray);
 
-PContentPermissionRequestParent*
-CreateContentPermissionRequestParent(const nsTArray<PermissionRequest>& aRequests,
-                                     Element* element,
-                                     const IPC::Principal& principal);
+  static nsresult
+  CreatePermissionArray(const nsACString& aType,
+                        const nsACString& aAccess,
+                        const nsTArray<nsString>& aOptions,
+                        nsIArray** aTypesArray);
+
+  static PContentPermissionRequestParent*
+  CreateContentPermissionRequestParent(const nsTArray<PermissionRequest>& aRequests,
+                                       Element* element,
+                                       const IPC::Principal& principal);
+
+  static nsresult
+  AskPermission(nsIContentPermissionRequest* aRequest, nsPIDOMWindow* aWindow);
+};
 
 } 
 } 
@@ -75,6 +92,7 @@ class nsContentPermissionRequestProxy : public nsIContentPermissionRequest
 
   nsresult Init(const nsTArray<mozilla::dom::PermissionRequest>& requests,
                 mozilla::dom::ContentPermissionRequestParent* parent);
+
   void OnParentDestroyed();
 
  private:
@@ -88,12 +106,11 @@ class nsContentPermissionRequestProxy : public nsIContentPermissionRequest
 
 
 
-class RemotePermissionRequest : public nsIContentPermissionRequest
-                              , public PCOMContentPermissionRequestChild
+class RemotePermissionRequest MOZ_FINAL : public nsISupports
+                                        , public mozilla::dom::PContentPermissionRequestChild
 {
 public:
   NS_DECL_ISUPPORTS
-  NS_DECL_NSICONTENTPERMISSIONREQUEST
 
   RemotePermissionRequest(nsIContentPermissionRequest* aRequest,
                           nsPIDOMWindow* aWindow);
@@ -101,16 +118,31 @@ public:
   
   virtual bool Recv__delete__(const bool &aAllow,
                               const nsTArray<PermissionChoice>& aChoices) MOZ_OVERRIDE;
-  virtual void IPDLRelease() MOZ_OVERRIDE { Release(); }
 
-  static uint32_t ConvertArrayToPermissionRequest(
-                                nsIArray* aSrcArray,
-                                nsTArray<PermissionRequest>& aDesArray);
+  void IPDLAddRef()
+  {
+    mIPCOpen = true;
+    AddRef();
+  }
+
+  void IPDLRelease()
+  {
+    mIPCOpen = false;
+    Release();
+  }
+
 private:
-  virtual ~RemotePermissionRequest() {}
+  virtual ~RemotePermissionRequest()
+  {
+    MOZ_ASSERT(!mIPCOpen, "Protocol must not be open when RemotePermissionRequest is destroyed.");
+  }
+
+  void DoAllow(JS::HandleValue aChoices);
+  void DoCancel();
 
   nsCOMPtr<nsIContentPermissionRequest> mRequest;
   nsCOMPtr<nsPIDOMWindow>               mWindow;
+  bool                                  mIPCOpen;
 };
 
 #endif 
