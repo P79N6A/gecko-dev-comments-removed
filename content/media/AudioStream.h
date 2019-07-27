@@ -407,6 +407,10 @@ private:
   bool mIsFirst;
   
   bool mMicrophoneActive;
+  
+  
+  
+  bool mShouldDropFrames;
 
   
   static StaticMutex sMutex;
