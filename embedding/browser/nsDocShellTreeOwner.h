@@ -8,6 +8,7 @@
 #define nsDocShellTreeOwner_h__
 
 
+#include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
 
@@ -128,8 +129,8 @@ protected:
     
     
     
-   ChromeTooltipListener*         mChromeTooltipListener;
-   ChromeContextMenuListener*     mChromeContextMenuListener;
+   nsRefPtr<ChromeTooltipListener>     mChromeTooltipListener;
+   nsRefPtr<ChromeContextMenuListener> mChromeContextMenuListener;
 
    nsCOMPtr<nsIPrompt>     mPrompter;
    nsCOMPtr<nsIAuthPrompt> mAuthPrompter;
