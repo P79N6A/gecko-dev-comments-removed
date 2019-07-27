@@ -88,20 +88,18 @@ SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel)
   } else if (aSandboxLevel == 2) {
     jobLevel = sandbox::JOB_RESTRICTED;
     accessTokenLevel = sandbox::USER_LIMITED;
-    
-    
-    initialIntegrityLevel = sandbox::INTEGRITY_LEVEL_MEDIUM;
+    initialIntegrityLevel = sandbox::INTEGRITY_LEVEL_LOW;
     delayedIntegrityLevel = sandbox::INTEGRITY_LEVEL_LOW;
   } else if (aSandboxLevel == 1) {
-    jobLevel = sandbox::JOB_INTERACTIVE;
-    accessTokenLevel = sandbox::USER_INTERACTIVE;
-    
-    
-    initialIntegrityLevel = sandbox::INTEGRITY_LEVEL_LAST;
+    jobLevel = sandbox::JOB_NONE;
+    accessTokenLevel = sandbox::USER_NON_ADMIN;
+    initialIntegrityLevel = sandbox::INTEGRITY_LEVEL_LOW;
     delayedIntegrityLevel = sandbox::INTEGRITY_LEVEL_LOW;
   } else {
     jobLevel = sandbox::JOB_NONE;
     accessTokenLevel = sandbox::USER_NON_ADMIN;
+    
+    
     initialIntegrityLevel = sandbox::INTEGRITY_LEVEL_LAST;
     delayedIntegrityLevel = sandbox::INTEGRITY_LEVEL_MEDIUM;
   }
@@ -119,7 +117,7 @@ SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel)
   result = mPolicy->SetDelayedIntegrityLevel(delayedIntegrityLevel);
   ret = ret && (sandbox::SBOX_ALL_OK == result);
 
-  if (aSandboxLevel > 0) {
+  if (aSandboxLevel > 1) {
     result = mPolicy->SetAlternateDesktop(true);
     ret = ret && (sandbox::SBOX_ALL_OK == result);
   }
@@ -130,6 +128,12 @@ SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel)
   result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
                             sandbox::TargetPolicy::FILES_ALLOW_ANY,
                             L"\\??\\pipe\\chrome.*");
+  ret = ret && (sandbox::SBOX_ALL_OK == result);
+
+  
+  result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
+                            sandbox::TargetPolicy::FILES_ALLOW_ANY,
+                            L"\\??\\pipe\\gecko-crash-server-pipe.*");
   ret = ret && (sandbox::SBOX_ALL_OK == result);
 
   
