@@ -261,7 +261,19 @@ this.Download.prototype = {
 
 
 
+
+
+
+
+
   hasPartialData: false,
+
+  
+
+
+
+
+  hasBlockedData: false,
 
   
 
@@ -353,11 +365,18 @@ this.Download.prototype = {
                                 message: "Cannot start after finalization."}));
     }
 
+    if (this.error && this.error.becauseBlockedByReputationCheck) {
+      return Promise.reject(new DownloadError({
+                                message: "Cannot start after being blocked " +
+                                         "by a reputation check."}));
+    }
+
     
     this.stopped = false;
     this.canceled = false;
     this.error = null;
     this.hasProgress = false;
+    this.hasBlockedData = false;
     this.progress = 0;
     this.totalBytes = 0;
     this.currentBytes = 0;
@@ -449,19 +468,15 @@ this.Download.prototype = {
                                  DS_setProperties.bind(this));
 
         
-        
-        
-        
-        if ((yield DownloadIntegration.shouldBlockForReputationCheck(this)) ||
-            this._promiseCanceled) {
+        if (this._promiseCanceled) {
           try {
             yield OS.File.remove(this.target.path);
           } catch (ex) {
             Cu.reportError(ex);
           }
+
           
-          
-          throw new DownloadError({ becauseBlockedByReputationCheck: true });
+          throw new DownloadError();
         }
 
         
@@ -513,24 +528,7 @@ this.Download.prototype = {
           this.speed = 0;
           this._notifyChange();
           if (this.succeeded) {
-            yield DownloadIntegration.downloadDone(this);
-
-            this._deferSucceeded.resolve();
-
-            if (this.launchWhenSucceeded) {
-              this.launch().then(null, Cu.reportError);
-
-              
-              
-              if (this.source.isPrivate) {
-                gExternalAppLauncher.deleteTemporaryPrivateFileWhenPossible(
-                                     new FileUtils.File(this.target.path));
-              } else if (Services.prefs.getBoolPref(
-                          "browser.helperApps.deleteTempFileOnExit")) {
-                gExternalAppLauncher.deleteTemporaryFileOnExit(
-                                     new FileUtils.File(this.target.path));
-              }
-            }
+            yield this._succeed();
           }
         }
       }
@@ -539,6 +537,133 @@ this.Download.prototype = {
     
     this._notifyChange();
     return currentAttempt;
+  },
+
+  
+
+
+
+
+
+
+  _succeed: Task.async(function* () {
+    yield DownloadIntegration.downloadDone(this);
+
+    this._deferSucceeded.resolve();
+
+    if (this.launchWhenSucceeded) {
+      this.launch().then(null, Cu.reportError);
+
+      
+      
+      if (this.source.isPrivate) {
+        gExternalAppLauncher.deleteTemporaryPrivateFileWhenPossible(
+                             new FileUtils.File(this.target.path));
+      } else if (Services.prefs.getBoolPref(
+                  "browser.helperApps.deleteTempFileOnExit")) {
+        gExternalAppLauncher.deleteTemporaryFileOnExit(
+                             new FileUtils.File(this.target.path));
+      }
+    }
+  }),
+
+  
+
+
+
+
+  _promiseUnblock: null,
+
+  
+
+
+
+
+
+  _promiseConfirmBlock: null,
+
+  
+
+
+
+
+
+
+
+
+
+  unblock: function() {
+    if (this._promiseUnblock) {
+      return this._promiseUnblock;
+    }
+
+    if (this._promiseConfirmBlock) {
+      return Promise.reject(new Error(
+        "Download block has been confirmed, cannot unblock."));
+    }
+
+    if (!this.hasBlockedData) {
+      return Promise.reject(new Error(
+        "unblock may only be called on Downloads with blocked data."));
+    }
+
+    this._promiseUnblock = Task.spawn(function* () {
+      try {
+        yield OS.File.move(this.target.partFilePath, this.target.path);
+      } catch (ex) {
+        yield this.refresh();
+        this._promiseUnblock = null;
+        throw ex;
+      }
+
+      this.succeeded = true;
+      this.hasBlockedData = false;
+      this._notifyChange();
+      yield this._succeed();
+    }.bind(this));
+
+    return this._promiseUnblock;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  confirmBlock: function() {
+    if (this._promiseConfirmBlock) {
+      return this._promiseConfirmBlock;
+    }
+
+    if (this._promiseUnblock) {
+      return Promise.reject(new Error(
+        "Download is being unblocked, cannot confirmBlock."));
+    }
+
+    if (!this.hasBlockedData) {
+      return Promise.reject(new Error(
+        "confirmBlock may only be called on Downloads with blocked data."));
+    }
+
+    this._promiseConfirmBlock = Task.spawn(function* () {
+      try {
+        yield OS.File.remove(this.target.partFilePath);
+      } catch (ex) {
+        yield this.refresh();
+        this._promiseConfirmBlock = null;
+        throw ex;
+      }
+
+      this.hasBlockedData = false;
+      this._notifyChange();
+    }.bind(this));
+
+    return this._promiseConfirmBlock;
   },
 
   
@@ -772,21 +897,34 @@ this.Download.prototype = {
       }
 
       
-      if (this.hasPartialData && this.target.partFilePath) {
-        let stat = yield OS.File.stat(this.target.partFilePath);
+      if ((this.hasPartialData || this.hasBlockedData) &&
+          this.target.partFilePath) {
 
-        
-        if (!this.stopped || this._finalized) {
-          return;
+        try {
+          let stat = yield OS.File.stat(this.target.partFilePath);
+
+          
+          if (!this.stopped || this._finalized) {
+            return;
+          }
+
+          
+          this.currentBytes = stat.size;
+          if (this.totalBytes > 0) {
+            this.hasProgress = true;
+            this.progress = Math.floor(this.currentBytes /
+                                           this.totalBytes * 100);
+          }
+        } catch (ex if ex instanceof OS.File.Error && ex.becauseNoSuchFile) {
+          
+          if (!this.stopped || this._finalized) {
+            return;
+          }
+
+          this.hasBlockedData = false;
+          this.hasPartialData = false;
         }
 
-        
-        this.currentBytes = stat.size;
-        if (this.totalBytes > 0) {
-          this.hasProgress = true;
-          this.progress = Math.floor(this.currentBytes /
-                                         this.totalBytes * 100);
-        }
         this._notifyChange();
       }
     }.bind(this)).then(null, Cu.reportError);
@@ -984,6 +1122,7 @@ const kPlainSerializableDownloadProperties = [
   "canceled",
   "totalBytes",
   "hasPartialData",
+  "hasBlockedData",
   "tryToKeepPartialData",
   "launcherPath",
   "launchWhenSucceeded",
@@ -1818,11 +1957,6 @@ this.DownloadCopySaver.prototype = {
                 
                 
                 if (Components.isSuccessCode(aStatusCode)) {
-                  if (partFilePath) {
-                    
-                    backgroundFileSaver.setTarget(
-                                        new FileUtils.File(targetPath), false);
-                  }
                   backgroundFileSaver.finish(Cr.NS_OK);
                 }
               }
@@ -1855,6 +1989,8 @@ this.DownloadCopySaver.prototype = {
         
         
         yield deferSaveComplete.promise;
+
+        yield this._checkReputationAndMove();
       } catch (ex) {
         
         
@@ -1875,6 +2011,47 @@ this.DownloadCopySaver.prototype = {
       }
     }.bind(this));
   },
+
+  
+
+
+
+
+
+
+
+
+
+  _checkReputationAndMove: Task.async(function* () {
+    let download = this.download;
+    let targetPath = this.download.target.path;
+    let partFilePath = this.download.target.partFilePath;
+
+    if (yield DownloadIntegration.shouldBlockForReputationCheck(download)) {
+      download.progress = 100;
+      download.hasPartialData = false;
+
+      
+      
+      
+      
+      if (!DownloadIntegration.shouldKeepBlockedData() || !partFilePath) {
+        try {
+          yield OS.File.remove(partFilePath || targetPath);
+        } catch (ex) {
+          Cu.reportError(ex);
+        }
+      } else {
+        download.hasBlockedData = true;
+      }
+
+      throw new DownloadError({ becauseBlockedByReputationCheck: true });
+    }
+
+    if (partFilePath) {
+      yield OS.File.move(partFilePath, targetPath);
+    }
+  }),
 
   
 
@@ -2171,13 +2348,12 @@ this.DownloadLegacySaver.prototype = {
         
         
         
-        if (this.download.target.partFilePath) {
-          yield OS.File.move(this.download.target.partFilePath,
-                             this.download.target.path);
-        } else {
-          
-          
-          
+        
+        
+        
+        
+        
+        if (!this.download.target.partFilePath) {
           try {
             
             let file = yield OS.File.open(this.download.target.path,
@@ -2185,6 +2361,9 @@ this.DownloadLegacySaver.prototype = {
             yield file.close();
           } catch (ex if ex instanceof OS.File.Error && ex.becauseExists) { }
         }
+
+        yield this._checkReputationAndMove();
+
       } catch (ex) {
         
         
@@ -2215,6 +2394,10 @@ this.DownloadLegacySaver.prototype = {
         this.firstExecutionFinished = true;
       }
     }.bind(this));
+  },
+
+  _checkReputationAndMove: function () {
+    return DownloadCopySaver.prototype._checkReputationAndMove.call(this);
   },
 
   

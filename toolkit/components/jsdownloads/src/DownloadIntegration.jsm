@@ -152,6 +152,7 @@ this.DownloadIntegration = {
   dontCheckApplicationReputation: true,
 #endif
   shouldBlockInTestForApplicationReputation: false,
+  shouldKeepBlockedDataInTest: false,
   dontOpenFileAndFolder: false,
   downloadDoneCalled: false,
   _deferTestOpenFile: null,
@@ -172,6 +173,30 @@ this.DownloadIntegration = {
   set testMode(mode) {
     this._downloadsDirectory = null;
     return (this._testMode = mode);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  shouldKeepBlockedData: function() {
+    if (this.shouldBlockInTestForApplicationReputation) {
+      return this.shouldKeepBlockedDataInTest;
+    }
+
+    return false;
   },
 
   

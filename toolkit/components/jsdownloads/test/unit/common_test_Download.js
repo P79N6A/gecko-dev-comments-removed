@@ -1551,38 +1551,227 @@ add_task(function test_getSha256Hash()
 
 
 
-add_task(function test_blocked_applicationReputation()
-{
+
+
+
+
+
+
+
+
+
+let promiseBlockedDownload = Task.async(function* (options) {
   function cleanup() {
     DownloadIntegration.shouldBlockInTestForApplicationReputation = false;
+    DownloadIntegration.shouldKeepBlockedDataInTest = false;
   }
   do_register_cleanup(cleanup);
+
+  let {keepPartialData, keepBlockedData} = options;
   DownloadIntegration.shouldBlockInTestForApplicationReputation = true;
+  DownloadIntegration.shouldKeepBlockedDataInTest = keepBlockedData;
 
   let download;
+
   try {
-    if (!gUseLegacySaver) {
-      
-      
+    if (keepPartialData) {
+      download = yield promiseStartDownload_tryToKeepPartialData();
+      continueResponses();
+    } else if (gUseLegacySaver) {
+      download = yield promiseStartLegacyDownload();
+    } else {
       download = yield promiseNewDownload();
       yield download.start();
-    } else {
-      
-      
-      
-      
-      download = yield promiseStartLegacyDownload();
-      yield promiseDownloadStopped(download);
+      do_throw("The download should have blocked.");
     }
+
+    yield promiseDownloadStopped(download);
     do_throw("The download should have blocked.");
   } catch (ex if ex instanceof Downloads.Error && ex.becauseBlocked) {
     do_check_true(ex.becauseBlockedByReputationCheck);
     do_check_true(download.error.becauseBlockedByReputationCheck);
   }
 
+  do_check_true(download.stopped);
+  do_check_false(download.succeeded);
+  do_check_false(yield OS.File.exists(download.target.path));
+
+  cleanup();
+  return download;
+});
+
+
+
+
+
+add_task(function test_blocked_applicationReputation()
+{
+  let download = yield promiseBlockedDownload({
+    keepPartialData: false,
+    keepBlockedData: false,
+  });
+
   
   do_check_false(yield OS.File.exists(download.target.path));
-  cleanup();
+
+  
+  do_check_false(download.hasBlockedData);
+});
+
+
+
+
+
+add_task(function test_blocked_applicationReputation_confirmBlock()
+{
+  let download = yield promiseBlockedDownload({
+    keepPartialData: true,
+    keepBlockedData: true,
+  });
+
+  do_check_true(download.hasBlockedData);
+  do_check_true(yield OS.File.exists(download.target.partFilePath));
+
+  yield download.confirmBlock();
+
+  
+  
+  do_check_true(download.stopped);
+  do_check_false(download.succeeded);
+  do_check_false(download.hasBlockedData);
+  do_check_false(yield OS.File.exists(download.target.partFilePath));
+  do_check_false(yield OS.File.exists(download.target.path));
+});
+
+
+
+
+
+add_task(function test_blocked_applicationReputation_unblock()
+{
+  let download = yield promiseBlockedDownload({
+    keepPartialData: true,
+    keepBlockedData: true,
+  });
+
+  do_check_true(download.hasBlockedData);
+  do_check_true(yield OS.File.exists(download.target.partFilePath));
+
+  yield download.unblock();
+
+  
+  
+  do_check_true(download.stopped);
+  do_check_true(download.succeeded);
+  do_check_false(download.hasBlockedData);
+  do_check_false(yield OS.File.exists(download.target.partFilePath));
+  do_check_true(yield OS.File.exists(download.target.path));
+
+  
+  
+  do_check_true(download.error instanceof Downloads.Error);
+  do_check_true(download.error.becauseBlocked);
+  do_check_true(download.error.becauseBlockedByReputationCheck);
+});
+
+
+
+
+add_task(function test_blocked_applicationReputation_cancel()
+{
+  let download = yield promiseBlockedDownload({
+    keepPartialData: true,
+    keepBlockedData: true,
+  });
+
+  
+  yield download.cancel();
+
+  
+  
+  do_check_true(download.error.becauseBlockedByReputationCheck);
+  do_check_true(download.stopped);
+  do_check_false(download.succeeded);
+  do_check_true(download.hasBlockedData);
+});
+
+
+
+
+add_task(function test_blocked_applicationReputation_decisionRace()
+{
+  let download = yield promiseBlockedDownload({
+    keepPartialData: true,
+    keepBlockedData: true,
+  });
+
+  let unblockPromise = download.unblock();
+  let confirmBlockPromise = download.confirmBlock();
+
+  yield confirmBlockPromise.then(() => {
+    do_throw("confirmBlock should have failed.");
+  }, () => {});
+
+  yield unblockPromise;
+
+  
+  
+  do_check_true(download.stopped);
+  do_check_true(download.succeeded);
+  do_check_false(download.hasBlockedData);
+  do_check_false(yield OS.File.exists(download.target.partFilePath));
+  do_check_true(yield OS.File.exists(download.target.path));
+
+  download = yield promiseBlockedDownload({
+    keepPartialData: true,
+    keepBlockedData: true,
+  });
+
+  confirmBlockPromise = download.confirmBlock();
+  unblockPromise = download.unblock();
+
+  yield unblockPromise.then(() => {
+    do_throw("unblock should have failed.");
+  }, () => {});
+
+  yield confirmBlockPromise;
+
+  
+  
+  do_check_true(download.stopped);
+  do_check_false(download.succeeded);
+  do_check_false(download.hasBlockedData);
+  do_check_false(yield OS.File.exists(download.target.partFilePath));
+  do_check_false(yield OS.File.exists(download.target.path));
+});
+
+
+
+
+
+add_task(function test_blocked_applicationReputation_unblock()
+{
+  let download = yield promiseBlockedDownload({
+    keepPartialData: true,
+    keepBlockedData: true,
+  });
+
+  do_check_true(download.hasBlockedData);
+  do_check_true(yield OS.File.exists(download.target.partFilePath));
+
+  
+  yield OS.File.remove(download.target.partFilePath);
+
+  let unblockPromise = download.unblock();
+  yield unblockPromise.then(() => {
+    do_throw("unblock should have failed.");
+  }, () => {});
+
+  
+  
+  do_check_false(download.hasBlockedData);
+  do_check_true(download.stopped);
+  do_check_false(download.succeeded);
 });
 
 
