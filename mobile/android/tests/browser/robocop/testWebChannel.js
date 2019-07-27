@@ -20,18 +20,6 @@ let BrowserApp = gChromeWin.BrowserApp;
 
 
 
-function ok(passed, text) {
-  do_report_result(passed, text, Components.stack.caller, false);
-}
-
-function is(lhs, rhs, text) {
-  do_report_result(lhs === rhs, "[ " + lhs + " === " + rhs + " ] " + text,
-    Components.stack.caller, false);
-}
-
-
-
-
 let gTests = [
   {
     desc: "WebChannel generic message",

@@ -575,6 +575,21 @@ function do_report_result(passed, text, stack, todo) {
   }
 }
 
+
+
+
+function ok(condition, msg) {
+  do_report_result(condition, msg, Components.stack.caller, false);
+}
+
+
+
+
+function is(left, right, msg) {
+  do_report_result(left === right, "[ " + left + " === " + right + " ] " + msg,
+    Components.stack.caller, false);
+}
+
 function _do_check_eq(left, right, stack, todo) {
   if (!stack)
     stack = Components.stack.caller;
