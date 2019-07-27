@@ -170,6 +170,7 @@ GeckoMediaPluginService::Init()
   MOZ_ASSERT(obsService);
   MOZ_ALWAYS_TRUE(NS_SUCCEEDED(obsService->AddObserver(this, "profile-change-teardown", false)));
   MOZ_ALWAYS_TRUE(NS_SUCCEEDED(obsService->AddObserver(this, NS_XPCOM_SHUTDOWN_THREADS_OBSERVER_ID, false)));
+  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(obsService->AddObserver(this, "last-pb-context-exited", false)));
 
   nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
   if (prefs) {
@@ -312,6 +313,13 @@ GeckoMediaPluginService::Observe(nsISupports* aSubject,
     if (gmpThread) {
       gmpThread->Shutdown();
     }
+  } else if (!strcmp("last-pb-context-exited", aTopic)) {
+    
+    
+    
+    
+    
+    mTempNodeIds.Clear();
   }
   return NS_OK;
 }
@@ -959,6 +967,16 @@ ReadFromFile(nsIFile* aPath,
 }
 
 NS_IMETHODIMP
+GeckoMediaPluginService::IsPersistentStorageAllowed(const nsACString& aNodeId,
+                                                    bool* aOutAllowed)
+{
+  MOZ_ASSERT(NS_GetCurrentThread() == mGMPThread);
+  NS_ENSURE_ARG(aOutAllowed);
+  *aOutAllowed = mPersistentStorageAllowed.Get(aNodeId);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 GeckoMediaPluginService::GetNodeId(const nsAString& aOrigin,
                                    const nsAString& aTopLevelOrigin,
                                    bool aInPrivateBrowsing,
@@ -973,16 +991,44 @@ GeckoMediaPluginService::GetNodeId(const nsAString& aOrigin,
   nsresult rv;
   const uint32_t NodeIdSaltLength = 32;
 
-  if (aInPrivateBrowsing ||
-      aOrigin.EqualsLiteral("null") ||
+  if (aOrigin.EqualsLiteral("null") ||
       aOrigin.IsEmpty() ||
       aTopLevelOrigin.EqualsLiteral("null") ||
       aTopLevelOrigin.IsEmpty()) {
     
+    
+    
     nsAutoCString salt;
     rv = GenerateRandomPathName(salt, NodeIdSaltLength);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
     aOutId = salt;
-    return rv;
+    mPersistentStorageAllowed.Put(salt, false);
+    return NS_OK;
+  }
+
+  const uint32_t hash = AddToHash(HashString(aOrigin),
+                                  HashString(aTopLevelOrigin));
+
+  if (aInPrivateBrowsing) {
+    
+    
+    
+    nsCString* salt = nullptr;
+    if (!(salt = mTempNodeIds.Get(hash))) {
+      
+      nsAutoCString newSalt;
+      rv = GenerateRandomPathName(newSalt, NodeIdSaltLength);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+      }
+      salt = new nsCString(newSalt);
+      mTempNodeIds.Put(hash, salt);
+      mPersistentStorageAllowed.Put(*salt, false);
+    }
+    aOutId = *salt;
+    return NS_OK;
   }
 
   
@@ -1004,8 +1050,6 @@ GeckoMediaPluginService::GetNodeId(const nsAString& aOrigin,
     return rv;
   }
 
-  uint32_t hash = AddToHash(HashString(aOrigin),
-                            HashString(aTopLevelOrigin));
   nsAutoCString hashStr;
   hashStr.AppendInt((int64_t)hash);
 
@@ -1079,6 +1123,7 @@ GeckoMediaPluginService::GetNodeId(const nsAString& aOrigin,
   }
 
   aOutId = salt;
+  mPersistentStorageAllowed.Put(salt, true);
 
   return NS_OK;
 }
