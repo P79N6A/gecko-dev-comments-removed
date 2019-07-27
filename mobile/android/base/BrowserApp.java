@@ -664,6 +664,16 @@ public class BrowserApp extends GeckoApp
         
         IconDirectoryEntry.setMaxBPP(GeckoAppShell.getScreenDepth());
 
+        Class<?> mediaManagerClass = getMediaPlayerManager();
+        if (mediaManagerClass != null) {
+            try {
+                Method init = mediaManagerClass.getMethod("init", Context.class);
+                init.invoke(null, this);
+            } catch(Exception ex) {
+                Log.e(LOGTAG, "Error initializing media manager", ex);
+            }
+        }
+
         if (getProfile().inGuestMode()) {
             GuestSession.showNotification(this);
         } else {
@@ -1542,19 +1552,6 @@ public class BrowserApp extends GeckoApp
                     }
                 });
 
-                if (AppConstants.MOZ_MEDIA_PLAYER) {
-                    
-                    Class<?> mediaManagerClass = getMediaPlayerManager();
-                    if (mediaManagerClass != null) {
-                        try {
-                            Method init = mediaManagerClass.getMethod("init", Context.class);
-                            init.invoke(null, this);
-                        } catch(Exception ex) {
-                            Log.e(LOGTAG, "Error initializing media manager", ex);
-                        }
-                    }
-                }
-
                 if (AppConstants.MOZ_STUMBLER_BUILD_TIME_ENABLED) {
                     
                     
@@ -1567,7 +1564,6 @@ public class BrowserApp extends GeckoApp
                         }
                     }, oneSecondInMillis);
                 }
-
                 super.handleMessage(event, message);
             } else if (event.equals("Gecko:Ready")) {
                 
