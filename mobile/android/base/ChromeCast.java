@@ -193,7 +193,8 @@ class ChromeCast implements GeckoMediaPlayer {
             .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
                 @Override
                 public void onConnected(Bundle connectionHint) {
-                    if (!apiClient.isConnected()) {
+                    
+                    if (apiClient != null && !apiClient.isConnected()) {
                         debug("Connection failed");
                         callback.sendError("Not connected");
                         return;
@@ -428,7 +429,8 @@ class ChromeCast implements GeckoMediaPlayer {
             .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
                     @Override
                     public void onConnected(Bundle connectionHint) {
-                        if (!apiClient.isConnected()) {
+                        
+                        if (apiClient == null || !apiClient.isConnected()) {
                             return;
                         }
 
