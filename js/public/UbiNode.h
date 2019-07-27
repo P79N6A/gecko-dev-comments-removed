@@ -17,8 +17,8 @@
 
 #include "js/GCAPI.h"
 #include "js/HashTable.h"
+#include "js/TracingAPI.h"
 #include "js/TypeDecls.h"
-
 
 
 

@@ -16,6 +16,7 @@
 
 #include "gc/FindSCCs.h"
 #include "gc/GCRuntime.h"
+#include "js/TracingAPI.h"
 
 namespace js {
 
@@ -259,7 +260,6 @@ struct Zone : public JS::shadow::Zone,
     
     
     
-    typedef js::HashSet<Zone *, js::DefaultHasher<Zone *>, js::SystemAllocPolicy> ZoneSet;
     ZoneSet gcZoneGroupEdges;
 
     

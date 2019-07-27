@@ -18,6 +18,7 @@
 
 #include "gc/GCInternals.h"
 #include "gc/Marking.h"
+#include "gc/Zone.h"
 
 #include "vm/Symbol.h"
 
@@ -117,6 +118,37 @@ JS_TraceRuntime(JSTracer *trc)
 {
     AssertHeapIsIdle(trc->runtime());
     TraceRuntime(trc);
+}
+
+JS_PUBLIC_API(void)
+JS_TraceIncomingCCWs(JSTracer *trc, const JS::ZoneSet &zones)
+{
+    for (js::ZonesIter z(trc->runtime(), SkipAtoms); !z.done(); z.next()) {
+        Zone *zone = z.get();
+        if (!zone || zones.has(zone))
+            continue;
+
+        for (js::CompartmentsInZoneIter c(zone); !c.done(); c.next()) {
+            JSCompartment *comp = c.get();
+            if (!comp)
+                continue;
+
+            for (JSCompartment::WrapperEnum e(comp); !e.empty(); e.popFront()) {
+                const CrossCompartmentKey &key = e.front().key();
+                
+                
+                if (key.kind == CrossCompartmentKey::StringWrapper)
+                    continue;
+                
+                
+                if (!zones.has(static_cast<JSObject *>(key.wrapped)->zone()))
+                    continue;
+
+                void *thing = key.wrapped;
+                trc->callback(trc, &thing, GetGCThingTraceKind(key.wrapped));
+            }
+        }
+    }
 }
 
 static size_t
