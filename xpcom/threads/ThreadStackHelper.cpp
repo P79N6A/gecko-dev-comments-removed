@@ -76,10 +76,11 @@ ThreadStackHelper::Shutdown()
 }
 
 ThreadStackHelper::ThreadStackHelper()
-  : mStackToFill(nullptr)
-#ifdef MOZ_THREADSTACKHELPER_PSEUDO
-  , mPseudoStack(mozilla_get_pseudo_stack())
+  :
+#ifdef MOZ_ENABLE_PROFILER_SPS
+    mPseudoStack(mozilla_get_pseudo_stack()),
 #endif
+    mStackToFill(nullptr)
   , mMaxStackSize(Stack::sMaxInlineStorage)
   , mMaxBufferSize(0)
 {
@@ -195,7 +196,7 @@ ThreadStackHelper::PrepareStackBuffer(Stack& aStack)
 {
   
   aStack.clear();
-#ifdef MOZ_THREADSTACKHELPER_PSEUDO
+#ifdef MOZ_ENABLE_PROFILER_SPS
   
 
 
@@ -218,7 +219,7 @@ ThreadStackHelper::PrepareStackBuffer(Stack& aStack)
 #endif
 }
 
-#ifdef MOZ_THREADSTACKHELPER_PSEUDO
+#ifdef MOZ_ENABLE_PROFILER_SPS
 
 namespace {
 
@@ -293,7 +294,7 @@ ThreadStackHelper::FillStackBuffer()
 {
   MOZ_ASSERT(mStackToFill->empty());
 
-#ifdef MOZ_THREADSTACKHELPER_PSEUDO
+#ifdef MOZ_ENABLE_PROFILER_SPS
   size_t reservedSize = mStackToFill->capacity();
   size_t reservedBufferSize = mStackToFill->AvailableBufferSize();
   intptr_t availableBufferSize = intptr_t(reservedBufferSize);
