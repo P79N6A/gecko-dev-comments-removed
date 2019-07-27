@@ -849,30 +849,16 @@ PluginContent.prototype = {
   
   
   pluginInstanceCrashed: function (target, aEvent) {
-    
-    if (!(aEvent instanceof Ci.nsIDOMCustomEvent))
+    if (!(aEvent instanceof this.content.PluginCrashedEvent))
       return;
 
-    let propBag = aEvent.detail.QueryInterface(Ci.nsIPropertyBag2);
-    let submittedReport = propBag.getPropertyAsBool("submittedCrashReport");
+    let submittedReport = aEvent.submittedCrashReport;
     let doPrompt        = true; 
     let submitReports   = true; 
-    let pluginName      = propBag.getPropertyAsAString("pluginName");
-    let pluginDumpID    = propBag.getPropertyAsAString("pluginDumpID");
-    let browserDumpID   = null;
-    let gmpPlugin       = false;
-
-    try {
-      browserDumpID = propBag.getPropertyAsAString("browserDumpID");
-    } catch (e) {
-      
-    }
-
-    try {
-      gmpPlugin = propBag.getPropertyAsBool("gmpPlugin");
-    } catch (e) {
-      
-    }
+    let pluginName      = aEvent.pluginName;
+    let pluginDumpID    = aEvent.pluginDumpID;
+    let browserDumpID   = aEvent.browserDumpID;
+    let gmpPlugin       = aEvent.gmpPlugin;
 
     
     if (!gmpPlugin) {
