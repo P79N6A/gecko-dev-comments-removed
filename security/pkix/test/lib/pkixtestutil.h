@@ -29,11 +29,10 @@
 #include <stdint.h> 
 #include <string>
 
-#include "keyhi.h"
 #include "pkix/enumclass.h"
 #include "pkix/pkixtypes.h"
 #include "pkix/ScopedPtr.h"
-#include "seccomon.h"
+#include "secitem.h"
 
 namespace mozilla { namespace pkix { namespace test {
 
@@ -76,10 +75,6 @@ SECITEM_FreeItem_true(SECItem* item)
 } 
 
 typedef mozilla::pkix::ScopedPtr<SECItem, SECITEM_FreeItem_true> ScopedSECItem;
-typedef mozilla::pkix::ScopedPtr<SECKEYPublicKey, SECKEY_DestroyPublicKey>
-  ScopedSECKEYPublicKey;
-typedef mozilla::pkix::ScopedPtr<SECKEYPrivateKey, SECKEY_DestroyPrivateKey>
-  ScopedSECKEYPrivateKey;
 
 
 static const uint8_t tlv_id_kp_OCSPSigning[] = {
@@ -97,10 +92,41 @@ extern const Input sha256WithRSAEncryption;
 mozilla::pkix::Time YMDHMS(int16_t year, int16_t month, int16_t day,
                            int16_t hour, int16_t minutes, int16_t seconds);
 
-Result GenerateKeyPair( ScopedSECKEYPublicKey& publicKey,
-                        ScopedSECKEYPrivateKey& privateKey);
 
 ByteString CNToDERName(const char* cn);
+
+class TestKeyPair
+{
+public:
+  virtual ~TestKeyPair() { }
+
+  
+  
+  const ByteString subjectPublicKeyInfo;
+
+  
+  
+  const ByteString subjectPublicKey;
+
+  virtual Result SignData(const ByteString& tbs,
+                          SignatureAlgorithm signatureAlgorithm,
+                           ByteString& signature) const = 0;
+
+  virtual TestKeyPair* Clone() const = 0;
+protected:
+  TestKeyPair(const ByteString& spki, const ByteString& spk)
+    : subjectPublicKeyInfo(spki)
+    , subjectPublicKey(spk)
+  {
+  }
+
+  TestKeyPair(const TestKeyPair&) ;
+  void operator=(const TestKeyPair&) ;
+};
+
+TestKeyPair* GenerateKeyPair();
+inline void DeleteTestKeyPair(TestKeyPair* keyPair) { delete keyPair; }
+typedef ScopedPtr<TestKeyPair, DeleteTestKeyPair> ScopedTestKeyPair;
 
 
 
@@ -128,16 +154,15 @@ enum Version { v1 = 0, v2 = 1, v3 = 2 };
 
 
 
-ByteString CreateEncodedCertificate(long version,
-                                    Input signature,
+ByteString CreateEncodedCertificate(long version, Input signature,
                                     const ByteString& serialNumber,
                                     const ByteString& issuerNameDER,
-                                    std::time_t notBefore, std::time_t notAfter,
+                                    time_t notBefore, time_t notAfter,
                                     const ByteString& subjectNameDER,
-                        const ByteString* extensions,
-                        SECKEYPrivateKey* issuerPrivateKey,
+                                     const ByteString* extensions,
+                                     TestKeyPair* issuerKeyPair,
                                     SignatureAlgorithm signatureAlgorithm,
-                             ScopedSECKEYPrivateKey& privateKey);
+                                     ScopedTestKeyPair& keyPairResult);
 
 ByteString CreateEncodedSerialNumber(long value);
 
@@ -196,7 +221,7 @@ public:
   bool includeEmptyExtensions; 
                                
                                
-  ScopedSECKEYPrivateKey signerPrivateKey;
+  ScopedTestKeyPair signerKeyPair;
   bool badSignature; 
   const ByteString* certs; 
 
