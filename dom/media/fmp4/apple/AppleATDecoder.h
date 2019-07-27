@@ -11,6 +11,7 @@
 #include "PlatformDecoderModule.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/ReentrantMonitor.h"
+#include "mozilla/Vector.h"
 #include "nsIThread.h"
 
 namespace mozilla {
@@ -34,15 +35,29 @@ public:
   
   const mp4_demuxer::AudioDecoderConfig& mConfig;
 
+  
+  mozilla::Vector<uint8_t> mMagicCookie;
+  
+  
+  bool mFileStreamError;
+
 private:
   RefPtr<MediaTaskQueue> mTaskQueue;
   MediaDataDecoderCallback* mCallback;
   AudioConverterRef mConverter;
   AudioStreamBasicDescription mOutputFormat;
   UInt32 mFormatID;
+  AudioFileStreamID mStream;
+  nsTArray<nsAutoPtr<mp4_demuxer::MP4Sample>> mQueuedSamples;
 
   void SubmitSample(nsAutoPtr<mp4_demuxer::MP4Sample> aSample);
-  nsresult GetInputAudioDescription(AudioStreamBasicDescription& aDesc);
+  nsresult DecodeSample(mp4_demuxer::MP4Sample* aSample);
+  nsresult GetInputAudioDescription(AudioStreamBasicDescription& aDesc,
+                                    const mozilla::Vector<uint8_t>& aExtraData);
+  
+  
+  nsresult SetupDecoder(mp4_demuxer::MP4Sample* aSample);
+  nsresult GetImplicitAACMagicCookie(const mp4_demuxer::MP4Sample* aSample);
 };
 
 } 
