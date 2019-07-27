@@ -387,16 +387,18 @@ ProgressTracker::SyncNotify(IProgressObserver* aObserver)
                        "ProgressTracker::SyncNotify", "uri", spec.get());
 #endif
 
-  nsIntRect r;
+  nsIntRect rect;
   if (mImage) {
-    
-    
-    r = mImage->FrameRect(imgIContainer::FRAME_CURRENT);
+    if (NS_FAILED(mImage->GetWidth(&rect.width)) ||
+        NS_FAILED(mImage->GetHeight(&rect.height))) {
+      
+      rect = nsIntRect::GetMaxSizedIntRect();
+    }
   }
 
   ObserverArray array;
   array.AppendElement(aObserver);
-  SyncNotifyInternal(array, !!mImage, mProgress, r);
+  SyncNotifyInternal(array, !!mImage, mProgress, rect);
 }
 
 void

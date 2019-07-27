@@ -650,40 +650,6 @@ RasterImage::IsOpaque()
   return !(progress & FLAG_HAS_TRANSPARENCY);
 }
 
-nsIntRect
-RasterImage::FrameRect(uint32_t aWhichFrame)
-{
-  if (aWhichFrame > FRAME_MAX_VALUE) {
-    NS_WARNING("aWhichFrame outside valid range!");
-    return nsIntRect();
-  }
-
-  if (!mHasFirstFrame) {
-    return nsIntRect();
-  }
-
-  if (GetNumFrames() == 1) {
-    return nsIntRect(0, 0, mSize.width, mSize.height);
-  }
-
-  
-  MOZ_ASSERT(mFrameBlender, "We should be animated here");
-  nsRefPtr<imgFrame> frame =
-    mFrameBlender->RawGetFrame(GetRequestedFrameIndex(aWhichFrame));
-
-  
-  if (frame) {
-    return frame->GetRect();
-  }
-
-  
-  
-  
-  
-  
-  return nsIntRect();
-}
-
 void
 RasterImage::OnSurfaceDiscarded()
 {
