@@ -1084,15 +1084,25 @@ nsHttpConnection::TakeTransport(nsISocketTransport  **aTransport,
         }
     }
 
-    NS_IF_ADDREF(*aTransport = mSocketTransport);
-    NS_IF_ADDREF(*aInputStream = mSocketIn);
-    NS_IF_ADDREF(*aOutputStream = mSocketOut);
-
     mSocketTransport->SetSecurityCallbacks(nullptr);
     mSocketTransport->SetEventSink(nullptr, nullptr);
-    mSocketTransport = nullptr;
-    mSocketIn = nullptr;
-    mSocketOut = nullptr;
+
+    
+    
+    
+    
+    if (mTLSFilter) {
+        nsCOMPtr<nsISupports> ref1(mSocketIn);
+        nsCOMPtr<nsISupports> ref2(mSocketOut);
+        mTLSFilter->newIODriver(mSocketIn, mSocketOut,
+                                getter_AddRefs(mSocketIn),
+                                getter_AddRefs(mSocketOut));
+        mTLSFilter = nullptr;
+    }
+
+    mSocketTransport.forget(aTransport);
+    mSocketIn.forget(aInputStream);
+    mSocketOut.forget(aOutputStream);
 
     return NS_OK;
 }
