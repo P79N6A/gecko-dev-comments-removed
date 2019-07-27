@@ -1490,10 +1490,17 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
   nsChangeHint hint = nsChangeHint(0);
 
   
-  if (mZIndex != aOther.mZIndex ||
-      mObjectFit != aOther.mObjectFit ||
-      mObjectPosition != aOther.mObjectPosition) {
+  if (mZIndex != aOther.mZIndex) {
     NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
+  }
+
+  
+  
+  
+  if (mObjectFit != aOther.mObjectFit ||
+      mObjectPosition != aOther.mObjectPosition) {
+    NS_UpdateHint(hint, NS_CombineHint(nsChangeHint_RepaintFrame,
+                                       nsChangeHint_NeedReflow));
   }
 
   if (mOrder != aOther.mOrder) {
