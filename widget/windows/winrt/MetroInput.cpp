@@ -1223,14 +1223,9 @@ MetroInput::HandleTouchStartEvent(WidgetTouchEvent* aEvent)
     CancelGesture();
     return;
   }
-  MOZ_ASSERT(mApzConsumingTouch);
-  if (result == nsEventStatus_eIgnore) {
-    
-    mApzConsumingTouch = false;
-  }
 
   
-  if (gTouchActionPropertyEnabled && mApzConsumingTouch) {
+  if (gTouchActionPropertyEnabled) {
     nsTArray<TouchBehaviorFlags> touchBehaviors;
     
     
@@ -1252,9 +1247,7 @@ MetroInput::HandleTouchStartEvent(WidgetTouchEvent* aEvent)
   if (nsEventStatus_eConsumeNoDefault == contentStatus) {
     
     
-    if (mApzConsumingTouch) {
-      mWidget->ApzContentConsumingTouch(mTargetAPZCGuid);
-    }
+    mWidget->ApzContentConsumingTouch(mTargetAPZCGuid);
     mCancelable = false;
 
     
@@ -1268,13 +1261,11 @@ MetroInput::HandleFirstTouchMoveEvent(WidgetTouchEvent* aEvent)
   
   WidgetTouchEvent transformedEvent(*aEvent);
   DUMP_TOUCH_IDS("APZC(2)", aEvent);
-  if (mApzConsumingTouch) {
-    nsEventStatus apzcStatus = mWidget->ApzReceiveInputEvent(&transformedEvent, &mTargetAPZCGuid);
-    if (apzcStatus == nsEventStatus_eConsumeNoDefault) {
-      
-      CancelGesture();
-      return;
-    }
+  nsEventStatus apzcStatus = mWidget->ApzReceiveInputEvent(&transformedEvent, &mTargetAPZCGuid);
+  if (apzcStatus == nsEventStatus_eConsumeNoDefault) {
+    
+    CancelGesture();
+    return;
   }
 
   
@@ -1318,9 +1309,7 @@ MetroInput::SendPendingResponseToApz()
   
   
   if (mCancelable) {
-    if (mApzConsumingTouch) {
-      mWidget->ApzContentIgnoringTouch(mTargetAPZCGuid);
-    }
+    mWidget->ApzContentIgnoringTouch(mTargetAPZCGuid);
     mCancelable = false;
   }
 }
@@ -1363,7 +1352,6 @@ MetroInput::DeliverNextQueuedTouchEvent()
     SendPendingResponseToApz();
 
     mCancelable = true;
-    mApzConsumingTouch = true;
     mTargetAPZCGuid = ScrollableLayerGuid();
   }
 

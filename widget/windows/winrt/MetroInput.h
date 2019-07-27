@@ -208,12 +208,6 @@ private:
   
   
   
-  
-  
-  
-  
-  
-  bool mApzConsumingTouch;
   bool mCancelable;
   bool mRecognizerWantsEvents;
 
