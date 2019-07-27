@@ -230,24 +230,6 @@ LinkableAccessible::UnbindFromParent()
 
 
 
-EnumRoleAccessible::
-  EnumRoleAccessible(nsIContent* aNode, DocAccessible* aDoc, roles::Role aRole) :
-  AccessibleWrap(aNode, aDoc), mRole(aRole)
-{
-}
-
-NS_IMPL_ISUPPORTS_INHERITED0(EnumRoleAccessible, Accessible)
-
-role
-EnumRoleAccessible::NativeRole()
-{
-  return mRole;
-}
-
-
-
-
-
 uint64_t
 DummyAccessible::NativeState()
 {
