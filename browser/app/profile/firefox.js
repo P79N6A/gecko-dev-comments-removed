@@ -1328,11 +1328,8 @@ pref("services.sync.prefs.sync.xpinstall.whitelist.required", true);
 
 
 #ifdef MOZ_DEV_EDITION
+pref("lightweightThemes.selectedThemeID", "firefox-devedition@mozilla.org");
 pref("browser.devedition.theme.enabled", true);
-pref("browser.devedition.theme.showCustomizeButton", true);
-#else
-pref("browser.devedition.theme.enabled", false);
-pref("browser.devedition.theme.showCustomizeButton", false);
 #endif
 
 
@@ -1498,8 +1495,13 @@ pref("devtools.tilt.outro_transition", true);
 
 
 
+
+
 pref("devtools.scratchpad.recentFilesMax", 10);
+pref("devtools.scratchpad.lineNumbers", true);
+pref("devtools.scratchpad.wrapText", false);
 pref("devtools.scratchpad.showTrailingSpace", false);
+pref("devtools.scratchpad.editorFontSize", 12);
 pref("devtools.scratchpad.enableAutocompletion", true);
 
 
@@ -1605,6 +1607,7 @@ pref("devtools.hud.loglimit.console", 200);
 
 
 pref("devtools.eyedropper.zoom", 6);
+
 
 
 
