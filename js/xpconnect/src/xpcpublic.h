@@ -139,9 +139,6 @@ XrayAwareCalleeGlobal(JSObject* fun);
 void
 TraceXPCGlobal(JSTracer* trc, JSObject* obj);
 
-uint64_t
-GetCompartmentCPOWMicroseconds(JSCompartment* compartment);
-
 } 
 
 namespace JS {
@@ -531,6 +528,12 @@ class ErrorReport {
 void
 DispatchScriptErrorEvent(nsPIDOMWindow* win, JSRuntime* rt, xpc::ErrorReport* xpcReport,
                          JS::Handle<JS::Value> exception);
+
+
+
+
+extern void
+GetCurrentCompartmentName(JSContext*, nsCString& name);
 
 } 
 
