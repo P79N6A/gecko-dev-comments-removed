@@ -774,8 +774,6 @@ pref("toolkit.telemetry.infoURL", "https://www.mozilla.org/legal/privacy/firefox
 
 pref("toolkit.telemetry.debugSlowSql", false);
 
-pref("toolkit.telemetry.archive.enabled", true);
-
 
 pref("toolkit.identity.enabled", false);
 pref("toolkit.identity.debug", false);

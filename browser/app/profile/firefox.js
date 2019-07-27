@@ -1837,6 +1837,10 @@ pref("browser.translation.neverForLanguages", "");
 pref("browser.translation.ui.show", false);
 
 
+
+pref("toolkit.telemetry.archive.enabled", true);
+
+
 pref("experiments.enabled", true);
 pref("experiments.manifest.fetchIntervalSeconds", 86400);
 pref("experiments.manifest.uri", "https://telemetry-experiment.cdn.mozilla.net/manifest/v1/firefox/%VERSION%/%CHANNEL%");

@@ -173,4 +173,7 @@ Services.prefs.setCharPref("toolkit.telemetry.log.level", "Trace");
 TelemetryPing.initLogging();
 
 
+Services.prefs.setBoolPref("toolkit.telemetry.archive.enabled", true);
+
+
 fakeSchedulerTimer(() => {}, () => {});
