@@ -127,22 +127,44 @@ Point4D ComputePerspectivePlaneIntercept(const Point4D& aFirst,
   
   
   
-  
 
   
   
 
   
   
-  float w = 0.00001f;
-  float t = (w - aFirst.w) / (aSecond.w - aFirst.w);
+  float t = -aFirst.w / (aSecond.w - aFirst.w);
 
   
   return aFirst + (aSecond - aFirst) * t;
 }
 
-Rect Matrix4x4::ProjectRectBounds(const Rect& aRect) const
+Rect Matrix4x4::ProjectRectBounds(const Rect& aRect, const Rect &aClip) const
 {
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+  
+  
+  
+
+  
+  
   Point4D points[4];
 
   points[0] = ProjectPoint(aRect.TopLeft());
@@ -155,33 +177,38 @@ Rect Matrix4x4::ProjectRectBounds(const Rect& aRect) const
   Float max_x = -std::numeric_limits<Float>::max();
   Float max_y = -std::numeric_limits<Float>::max();
 
-  bool foundPoint = false;
   for (int i=0; i<4; i++) {
     
     if (points[i].HasPositiveWCoord()) {
-      foundPoint = true;
-      Point point2d = points[i].As2DPoint();
-      min_x = min<Float>(point2d.x, min_x);
-      max_x = max<Float>(point2d.x, max_x);
-      min_y = min<Float>(point2d.y, min_y);
-      max_y = max<Float>(point2d.y, max_y);
+      Point point2d = aClip.ClampPoint(points[i].As2DPoint());
+      min_x = std::min<Float>(point2d.x, min_x);
+      max_x = std::max<Float>(point2d.x, max_x);
+      min_y = std::min<Float>(point2d.y, min_y);
+      max_y = std::max<Float>(point2d.y, max_y);
     }
 
     int next = (i == 3) ? 0 : i + 1;
     if (points[i].HasPositiveWCoord() != points[next].HasPositiveWCoord()) {
       
       
+      
       Point4D intercept = ComputePerspectivePlaneIntercept(points[i], points[next]);
-
-      Point point2d = intercept.As2DPoint();
-      min_x = min<Float>(point2d.x, min_x);
-      max_x = max<Float>(point2d.x, max_x);
-      min_y = min<Float>(point2d.y, min_y);
-      max_y = max<Float>(point2d.y, max_y);
+      
+      
+      if (intercept.x < 0.0f) {
+        min_x = aClip.x;
+      } else if (intercept.x > 0.0f) {
+        max_x = aClip.XMost();
+      }
+      if (intercept.y < 0.0f) {
+        min_y = aClip.y;
+      } else if (intercept.y > 0.0f) {
+        max_y = aClip.YMost();
+      }
     }
   }
 
-  if (!foundPoint) {
+  if (max_x <= min_x || max_y <= min_y) {
     return Rect(0, 0, 0, 0);
   }
 

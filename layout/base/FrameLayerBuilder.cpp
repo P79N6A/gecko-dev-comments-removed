@@ -1987,7 +1987,9 @@ SetOuterVisibleRegion(Layer* aLayer, nsIntRegion* aOuterVisibleRegion,
     
     Rect outerVisible(outerRect.x, outerRect.y, outerRect.width, outerRect.height);
     transform.Invert();
-    gfxRect layerVisible = ThebesRect(transform.ProjectRectBounds(outerVisible));
+
+    Rect layerContentsVisible(-float(INT32_MAX) / 2, -float(INT32_MAX) / 2,
+                              float(INT32_MAX), float(INT32_MAX));
     if (aLayerContentsVisibleRect) {
       NS_ASSERTION(aLayerContentsVisibleRect->width >= 0 &&
                    aLayerContentsVisibleRect->height >= 0,
@@ -1995,11 +1997,11 @@ SetOuterVisibleRegion(Layer* aLayer, nsIntRegion* aOuterVisibleRegion,
       
       
       
-      gfxRect layerContentsVisible(
+      layerContentsVisible = Rect(
           aLayerContentsVisibleRect->x, aLayerContentsVisibleRect->y,
           aLayerContentsVisibleRect->width, aLayerContentsVisibleRect->height);
-      layerVisible.IntersectRect(layerVisible, layerContentsVisible);
     }
+    gfxRect layerVisible = ThebesRect(transform.ProjectRectBounds(outerVisible, layerContentsVisible));
     layerVisible.RoundOut();
     nsIntRect visRect;
     if (gfxUtils::GfxRectToIntRect(layerVisible, &visRect)) {
