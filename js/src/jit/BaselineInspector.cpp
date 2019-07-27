@@ -23,7 +23,7 @@ SetElemICInspector::sawOOBDenseWrite() const
 
     
     for (ICStub* stub = icEntry_->firstStub(); stub; stub = stub->next()) {
-        if (stub->isSetElem_DenseAdd())
+        if (stub->isSetElem_DenseOrUnboxedArrayAdd())
             return true;
     }
 
@@ -59,7 +59,7 @@ SetElemICInspector::sawDenseWrite() const
 
     
     for (ICStub* stub = icEntry_->firstStub(); stub; stub = stub->next()) {
-        if (stub->isSetElem_DenseAdd() || stub->isSetElem_Dense())
+        if (stub->isSetElem_DenseOrUnboxedArrayAdd() || stub->isSetElem_DenseOrUnboxedArray())
             return true;
     }
     return false;
@@ -455,6 +455,25 @@ BaselineInspector::getTemplateObject(jsbytecode* pc)
             if (JSObject* obj = stub->toCall_Scripted()->templateObject())
                 return obj;
             break;
+          default:
+            break;
+        }
+    }
+
+    return nullptr;
+}
+
+ObjectGroup*
+BaselineInspector::getTemplateObjectGroup(jsbytecode* pc)
+{
+    if (!hasBaselineScript())
+        return nullptr;
+
+    const ICEntry& entry = icEntryFromPC(pc);
+    for (ICStub* stub = entry.firstStub(); stub; stub = stub->next()) {
+        switch (stub->kind()) {
+          case ICStub::NewArray_Fallback:
+            return stub->toNewArray_Fallback()->templateGroup();
           default:
             break;
         }

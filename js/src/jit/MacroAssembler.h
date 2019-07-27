@@ -729,6 +729,9 @@ class MacroAssembler : public MacroAssemblerSpecific
     void storeUnboxedProperty(T address, JSValueType type,
                               ConstantOrRegister value, Label* failure);
 
+    void checkUnboxedArrayCapacity(Register obj, const Int32Key& index, Register temp,
+                                   Label* failure);
+
     Register extractString(const Address& address, Register scratch) {
         return extractObject(address, scratch);
     }

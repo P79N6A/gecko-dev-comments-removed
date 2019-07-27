@@ -52,6 +52,8 @@ NewObjectCache::newObjectFromHit(JSContext* cx, EntryIndex entryIndex, gc::Initi
     
     ObjectGroup* group = templateObj->group_;
 
+    MOZ_ASSERT(!group->hasUnanalyzedPreliminaryObjects());
+
     if (group->shouldPreTenure())
         heap = gc::TenuredHeap;
 

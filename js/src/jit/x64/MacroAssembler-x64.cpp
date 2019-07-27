@@ -534,8 +534,13 @@ MacroAssemblerX64::branchValueIsNurseryObject(Condition cond, ValueOperand value
 {
     MOZ_ASSERT(cond == Assembler::Equal || cond == Assembler::NotEqual);
 
-    
     const Nursery& nursery = GetJitContext()->runtime->gcNursery();
+
+    
+    if (!nursery.exists())
+        return;
+
+    
     Value start = ObjectValue(*reinterpret_cast<JSObject*>(nursery.start()));
 
     movePtr(ImmWord(-ptrdiff_t(start.asRawBits())), ScratchReg);
