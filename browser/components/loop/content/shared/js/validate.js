@@ -2,8 +2,6 @@
 
 
 
-
-
 var loop = loop || {};
 loop.validate = (function() {
   "use strict";

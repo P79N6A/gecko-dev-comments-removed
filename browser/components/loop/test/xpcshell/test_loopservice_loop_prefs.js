@@ -1,7 +1,6 @@
 
 
 
-
 "use strict";
 
 var fakeCharPrefName = "color";
@@ -65,7 +64,7 @@ function test_setLoopPref_non_coercible_type()
 {
   MozLoopService.setLoopPref(fakeCharPrefName, true);
 
-  ok(true, "Setting non-coercible type should not fail");
+  Assert.ok(true, "Setting non-coercible type should not fail");
 }
 
 

@@ -2,8 +2,6 @@
 
 
 
-
-
 var loop = loop || {};
 loop.StandaloneClient = (function($) {
   "use strict";

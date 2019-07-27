@@ -2,16 +2,13 @@
 
 
 
-
-
-
-var expect = chai.expect;
-
 describe("loop.shared.mixins", function() {
   "use strict";
 
+  var expect = chai.expect;
   var sandbox;
   var sharedMixins = loop.shared.mixins;
+  var TestUtils = React.addons.TestUtils;
   var ROOM_STATES = loop.store.ROOM_STATES;
 
   beforeEach(function() {

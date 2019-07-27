@@ -2,8 +2,6 @@
 
 
 
-
-
 var loop = loop || {};
 loop.store = loop.store || {};
 

@@ -2,8 +2,6 @@
 
 
 
-
-
 var loop = loop || {};
 loop.FeedbackAPIClient = (function($, _) {
   "use strict";

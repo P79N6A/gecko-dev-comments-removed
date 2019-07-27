@@ -2,10 +2,6 @@
 
 
 
-
-
-
-
 var loop = loop || {};
 loop.shared = loop.shared || {};
 loop.shared.views = loop.shared.views || {};

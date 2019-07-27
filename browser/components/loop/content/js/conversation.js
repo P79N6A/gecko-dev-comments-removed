@@ -2,11 +2,6 @@
 
 
 
-
-
-
-
-
 var loop = loop || {};
 loop.conversation = (function(mozL10n) {
   "use strict";

@@ -1,9 +1,8 @@
 
 
 
-var expect = chai.expect;
-
 describe("loop.store.StandaloneAppStore", function () {
+  var expect = chai.expect;
   var sharedActions = loop.shared.actions;
   var sharedUtils = loop.shared.utils;
   var sandbox, dispatcher;

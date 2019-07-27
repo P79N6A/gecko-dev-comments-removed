@@ -2,10 +2,6 @@
 
 
 
-
-
-
-
 var loop = loop || {};
 loop.conversationViews = (function(mozL10n) {
 

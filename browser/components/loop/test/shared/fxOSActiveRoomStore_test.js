@@ -1,13 +1,12 @@
 
 
-var expect = chai.expect;
-var sharedActions = loop.shared.actions;
 
 describe("loop.store.FxOSActiveRoomStore", function () {
   "use strict";
 
   var ROOM_STATES = loop.store.ROOM_STATES;
-
+  var expect = chai.expect;
+  var sharedActions = loop.shared.actions;
   var sandbox;
   var dispatcher;
   var fakeMozLoop;

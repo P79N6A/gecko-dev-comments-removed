@@ -1,12 +1,10 @@
 
 
 
-
-
-var expect = chai.expect;
-
 describe("Validator", function() {
   "use strict";
+
+  var expect = chai.expect;
 
   
   function create(dependencies, values) {

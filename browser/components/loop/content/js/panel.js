@@ -2,11 +2,6 @@
 
 
 
-
-
-
-
-
 var loop = loop || {};
 loop.panel = (function(_, mozL10n) {
   "use strict";

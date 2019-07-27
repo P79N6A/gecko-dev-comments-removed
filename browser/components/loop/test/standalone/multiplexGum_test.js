@@ -2,18 +2,15 @@
 
 
 
-
-
-var expect = chai.expect;
-
 describe("loop.standaloneMedia._MultiplexGum", function() {
   "use strict";
 
+  var expect = chai.expect;
   var defaultGum =
     navigator.getUserMedia ||
     navigator.mozGetUserMedia ||
     navigator.webkitGetUserMedia ||
-    (window.TBPlugin && TBPlugin.getUserMedia);
+    (window.TBPlugin && window.TBPlugin.getUserMedia);
 
   var sandbox;
   var multiplexGum;

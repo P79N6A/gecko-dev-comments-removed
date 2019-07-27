@@ -2,11 +2,10 @@
 
 
 
-var expect = chai.expect;
-
 describe("loop.StandaloneMozLoop", function() {
   "use strict";
 
+  var expect = chai.expect;
   var sandbox, fakeXHR, requests, callback, mozLoop;
   var fakeToken, fakeBaseServerUrl, fakeServerErrorDescription;
 

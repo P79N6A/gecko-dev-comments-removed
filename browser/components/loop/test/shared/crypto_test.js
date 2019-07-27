@@ -2,13 +2,10 @@
 
 
 
-
-
-var expect = chai.expect;
-
 describe("loop.crypto", function() {
   "use strict";
 
+  var expect = chai.expect;
   var sandbox, oldCrypto;
 
   beforeEach(function() {

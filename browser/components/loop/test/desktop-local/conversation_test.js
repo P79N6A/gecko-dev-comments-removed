@@ -2,13 +2,11 @@
 
 
 
-
-
-var expect = chai.expect;
-
 describe("loop.conversation", function() {
   "use strict";
 
+  var expect = chai.expect;
+  var TestUtils = React.addons.TestUtils;
   var sharedModels = loop.shared.models,
       fakeWindow,
       sandbox;

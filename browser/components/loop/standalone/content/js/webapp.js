@@ -2,11 +2,6 @@
 
 
 
-
-
-
-
-
 var loop = loop || {};
 loop.webapp = (function($, _, OT, mozL10n) {
   "use strict";

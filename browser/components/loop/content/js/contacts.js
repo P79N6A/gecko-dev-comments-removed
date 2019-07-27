@@ -2,11 +2,6 @@
 
 
 
-
-
-
-
-
 var loop = loop || {};
 loop.contacts = (function(_, mozL10n) {
   "use strict";

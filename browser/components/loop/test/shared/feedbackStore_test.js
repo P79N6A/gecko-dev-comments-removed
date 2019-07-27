@@ -1,11 +1,11 @@
 
 
-var expect = chai.expect;
-var sharedActions = loop.shared.actions;
 
 describe("loop.store.FeedbackStore", function () {
   "use strict";
 
+  var expect = chai.expect;
+  var sharedActions = loop.shared.actions;
   var FEEDBACK_STATES = loop.store.FEEDBACK_STATES;
   var sandbox, dispatcher, store, feedbackClient;
 

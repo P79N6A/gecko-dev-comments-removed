@@ -2,12 +2,11 @@
 
 
 
-
-
-var expect = chai.expect;
-
 describe("loop.standaloneRoomViews", function() {
   "use strict";
+
+  var expect = chai.expect;
+  var TestUtils = React.addons.TestUtils;
 
   var ROOM_STATES = loop.store.ROOM_STATES;
   var FEEDBACK_STATES = loop.store.FEEDBACK_STATES;

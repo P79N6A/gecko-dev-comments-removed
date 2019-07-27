@@ -1,11 +1,11 @@
 
 
-var expect = chai.expect;
-var sharedActions = loop.shared.actions;
 
 describe("loop.store.ActiveRoomStore", function () {
   "use strict";
 
+  var expect = chai.expect;
+  var sharedActions = loop.shared.actions;
   var REST_ERRNOS = loop.shared.utils.REST_ERRNOS;
   var ROOM_STATES = loop.store.ROOM_STATES;
   var FAILURE_DETAILS = loop.shared.utils.FAILURE_DETAILS;

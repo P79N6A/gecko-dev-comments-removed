@@ -2,16 +2,13 @@
 
 
 
-
-
-
-var expect = chai.expect;
-var l10n = navigator.mozL10n || document.mozL10n;
-var TestUtils = React.addons.TestUtils;
-
 describe("loop.shared.views", function() {
   "use strict";
 
+  var expect = chai.expect;
+  var l10n = navigator.mozL10n || document.mozL10n;
+  var TestUtils = React.addons.TestUtils;
+  var sharedActions = loop.shared.actions;
   var sharedModels = loop.shared.models;
   var sharedViews = loop.shared.views;
   var SCREEN_SHARE_STATES = loop.shared.utils.SCREEN_SHARE_STATES;

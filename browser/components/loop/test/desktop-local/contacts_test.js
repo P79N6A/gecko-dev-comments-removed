@@ -2,14 +2,11 @@
 
 
 
-
-
-
-var expect = chai.expect;
-var TestUtils = React.addons.TestUtils;
-
 describe("loop.contacts", function() {
   "use strict";
+
+  var expect = chai.expect;
+  var TestUtils = React.addons.TestUtils;
 
   var fakeAddContactButtonText = "Fake Add Contact";
   var fakeEditContactButtonText = "Fake Edit Contact";

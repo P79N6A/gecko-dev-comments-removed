@@ -2,13 +2,10 @@
 
 
 
-
-
-var expect = chai.expect;
-
 describe("loop.Client", function() {
   "use strict";
 
+  var expect = chai.expect;
   var sandbox,
       callback,
       client,

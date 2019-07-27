@@ -2,8 +2,6 @@
 
 
 
-
-
 var loop = loop || {};
 loop.shared = loop.shared || {};
 loop.shared.actions = (function() {

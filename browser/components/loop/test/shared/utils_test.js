@@ -2,14 +2,10 @@
 
 
 
-
-
-
-var expect = chai.expect;
-
 describe("loop.shared.utils", function() {
   "use strict";
 
+  var expect = chai.expect;
   var sandbox;
   var sharedUtils = loop.shared.utils;
 

@@ -2,8 +2,6 @@
 
 
 
-
-
 var loop = loop || {};
 loop.shared = loop.shared || {};
 loop.shared.models = (function(l10n) {

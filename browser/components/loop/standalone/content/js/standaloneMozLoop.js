@@ -6,8 +6,6 @@
 
 
 
-
-
 var loop = loop || {};
 loop.StandaloneMozLoop = (function(mozL10n) {
   "use strict";

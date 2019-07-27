@@ -2,11 +2,6 @@
 
 
 
-
-
-
-
-
 var loop = loop || {};
 loop.roomViews = (function(mozL10n) {
   "use strict";

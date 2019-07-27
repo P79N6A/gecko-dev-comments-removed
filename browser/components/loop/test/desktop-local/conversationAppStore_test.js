@@ -1,10 +1,9 @@
 
 
 
-var expect = chai.expect;
-
 describe("loop.store.ConversationAppStore", function () {
 
+  var expect = chai.expect;
   var sharedActions = loop.shared.actions;
   var sandbox, dispatcher;
 

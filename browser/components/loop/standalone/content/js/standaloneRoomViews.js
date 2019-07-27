@@ -2,11 +2,6 @@
 
 
 
-
-
-
-
-
 var loop = loop || {};
 loop.standaloneRoomViews = (function(mozL10n) {
   "use strict";

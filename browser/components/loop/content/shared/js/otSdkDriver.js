@@ -2,8 +2,6 @@
 
 
 
-
-
 var loop = loop || {};
 loop.OTSdkDriver = (function() {
 

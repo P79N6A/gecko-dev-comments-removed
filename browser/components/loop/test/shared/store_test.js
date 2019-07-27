@@ -2,14 +2,14 @@
 
 
 
-var expect = chai.expect;
-
 describe("loop.store", function () {
   "use strict";
 
+  var expect = chai.expect;
   var dispatcher;
   var sandbox;
   var sharedActions = loop.shared.actions;
+  var TestUtils = React.addons.TestUtils;
 
   beforeEach(function() {
     sandbox = sinon.sandbox.create();
