@@ -15,7 +15,6 @@
 #include "nsDisplayList.h"
 #include "RenderFrameUtils.h"
 
-class nsContentView;
 class nsFrameLoader;
 class nsSubDocumentFrame;
 
@@ -65,12 +64,6 @@ public:
   virtual ~RenderFrameParent();
 
   void Destroy();
-
-  
-
-
-
-  nsContentView* GetRootContentView();
 
   void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                         nsSubDocumentFrame* aFrame,
@@ -139,10 +132,6 @@ private:
   nsRefPtr<RemoteContentController> mContentController;
 
   layers::APZCTreeManager* GetApzcTreeManager();
-
-  
-  
-  nsRefPtr<nsContentView> mRootContentView;
 
   
   

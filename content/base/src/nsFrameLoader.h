@@ -54,101 +54,7 @@ typedef struct _GtkWidget GtkWidget;
 class QX11EmbedContainer;
 #endif
 
-
-
-
-
-
-
-
-
-
-class nsContentView MOZ_FINAL : public nsIContentView
-{
-public:
-  typedef mozilla::layers::FrameMetrics::ViewID ViewID;
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSICONTENTVIEW
- 
-  struct ViewConfig {
-    ViewConfig()
-      : mScrollOffset(0, 0)
-      , mXScale(1.0)
-      , mYScale(1.0)
-    {}
-
-    
-
-    bool operator==(const ViewConfig& aOther) const
-    {
-      return (mScrollOffset == aOther.mScrollOffset &&
-              mXScale == aOther.mXScale &&
-              mYScale == aOther.mYScale);
-    }
-
-    
-    
-    
-    
-    
-    
-    nsPoint mScrollOffset;
-    
-    
-    
-    
-    
-    float mXScale;
-    float mYScale;
-  };
-
-  nsContentView(nsFrameLoader* aFrameLoader, ViewID aScrollId, bool aIsRoot,
-                ViewConfig aConfig = ViewConfig())
-    : mViewportSize(0, 0)
-    , mContentSize(0, 0)
-    , mParentScaleX(1.0)
-    , mParentScaleY(1.0)
-    , mFrameLoader(aFrameLoader)
-    , mScrollId(aScrollId)
-    , mIsRoot(aIsRoot)
-    , mConfig(aConfig)
-  {}
-
-  bool IsRoot() const
-  {
-    return mIsRoot;
-  }
-
-  ViewID GetId() const
-  {
-    return mScrollId;
-  }
-
-  ViewConfig GetViewConfig() const
-  {
-    return mConfig;
-  }
-
-  nsSize mViewportSize;
-  nsSize mContentSize;
-  float mParentScaleX;
-  float mParentScaleY;
-
-  nsFrameLoader* mFrameLoader;  
-
-private:
-  ~nsContentView() {}
-
-  nsresult Update(const ViewConfig& aConfig);
-
-  ViewID mScrollId;
-  bool mIsRoot;
-  ViewConfig mConfig;
-};
-
-
 class nsFrameLoader MOZ_FINAL : public nsIFrameLoader,
-                                public nsIContentViewManager,
                                 public nsStubMutationObserver,
                                 public mozilla::dom::ipc::MessageManagerCallback
 {
@@ -174,7 +80,6 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsFrameLoader, nsIFrameLoader)
   NS_DECL_NSIFRAMELOADER
-  NS_DECL_NSICONTENTVIEWMANAGER
   NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
   nsresult CheckForRecursiveLoad(nsIURI* aURI);
   nsresult ReallyStartLoading();

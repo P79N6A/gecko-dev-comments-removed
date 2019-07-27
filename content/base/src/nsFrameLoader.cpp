@@ -122,113 +122,6 @@ public:
   nsRefPtr<nsIDocShell> mDocShell;
 };
 
-NS_IMPL_ISUPPORTS(nsContentView, nsIContentView)
-
-nsresult
-nsContentView::Update(const ViewConfig& aConfig)
-{
-  if (aConfig == mConfig) {
-    return NS_OK;
-  }
-  mConfig = aConfig;
-
-  
-  
-  if (!mFrameLoader) {
-    if (IsRoot()) {
-      
-      
-      
-      return NS_OK;
-    } else {
-      
-      return NS_ERROR_NOT_AVAILABLE;
-    }
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsContentView::ScrollTo(float aXpx, float aYpx)
-{
-  ViewConfig config(mConfig);
-  config.mScrollOffset = nsPoint(nsPresContext::CSSPixelsToAppUnits(aXpx),
-                                 nsPresContext::CSSPixelsToAppUnits(aYpx));
-  return Update(config);
-}
-
-NS_IMETHODIMP
-nsContentView::ScrollBy(float aDXpx, float aDYpx)
-{
-  ViewConfig config(mConfig);
-  config.mScrollOffset.MoveBy(nsPresContext::CSSPixelsToAppUnits(aDXpx),
-                              nsPresContext::CSSPixelsToAppUnits(aDYpx));
-  return Update(config);
-}
-
-NS_IMETHODIMP
-nsContentView::SetScale(float aXScale, float aYScale)
-{
-  ViewConfig config(mConfig);
-  config.mXScale = aXScale;
-  config.mYScale = aYScale;
-  return Update(config);
-}
-
-NS_IMETHODIMP
-nsContentView::GetScrollX(float* aViewScrollX)
-{
-  *aViewScrollX = nsPresContext::AppUnitsToFloatCSSPixels(
-    mConfig.mScrollOffset.x);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsContentView::GetScrollY(float* aViewScrollY)
-{
-  *aViewScrollY = nsPresContext::AppUnitsToFloatCSSPixels(
-    mConfig.mScrollOffset.y);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsContentView::GetViewportWidth(float* aWidth)
-{
-  *aWidth = nsPresContext::AppUnitsToFloatCSSPixels(mViewportSize.width);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsContentView::GetViewportHeight(float* aHeight)
-{
-  *aHeight = nsPresContext::AppUnitsToFloatCSSPixels(mViewportSize.height);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsContentView::GetContentWidth(float* aWidth)
-{
-  *aWidth = nsPresContext::AppUnitsToFloatCSSPixels(mContentSize.width);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsContentView::GetContentHeight(float* aHeight)
-{
-  *aHeight = nsPresContext::AppUnitsToFloatCSSPixels(mContentSize.height);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsContentView::GetId(nsContentViewId* aId)
-{
-  NS_ASSERTION(sizeof(nsContentViewId) == sizeof(ViewID),
-               "ID size for XPCOM ID and internal ID type are not the same!");
-  *aId = mScrollId;
-  return NS_OK;
-}
-
 
 
 
@@ -252,7 +145,6 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(nsFrameLoader)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsFrameLoader)
   NS_INTERFACE_MAP_ENTRY(nsIFrameLoader)
-  NS_INTERFACE_MAP_ENTRY(nsIContentViewManager)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIFrameLoader)
 NS_INTERFACE_MAP_END
 
@@ -2376,34 +2268,6 @@ nsFrameLoader::GetMessageManager(nsIMessageSender** aManager)
   if (mMessageManager) {
     CallQueryInterface(mMessageManager, aManager);
   }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsFrameLoader::GetContentViewsIn(float aXPx, float aYPx,
-                                 float aTopSize, float aRightSize,
-                                 float aBottomSize, float aLeftSize,
-                                 uint32_t* aLength,
-                                 nsIContentView*** aResult)
-{
-  *aResult = nullptr;
-  *aLength = 0;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsFrameLoader::GetRootContentView(nsIContentView** aContentView)
-{
-  RenderFrameParent* rfp = GetCurrentRemoteFrame();
-  if (!rfp) {
-    *aContentView = nullptr;
-    return NS_OK;
-  }
-
-  nsContentView* view = rfp->GetRootContentView();
-  NS_ABORT_IF_FALSE(view, "Should always be able to create root scrollable!");
-  nsRefPtr<nsIContentView>(view).forget(aContentView);
-
   return NS_OK;
 }
 
