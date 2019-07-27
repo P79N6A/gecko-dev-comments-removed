@@ -137,7 +137,8 @@ DataReportingService.prototype = Object.freeze({
         this._os.removeObserver(this, "sessionstore-windows-restored");
         this._os.addObserver(this, "quit-application", false);
 
-        this.policy.startPolling();
+        let policy = this.policy;
+        policy.startPolling();
 
         
         
@@ -175,7 +176,7 @@ DataReportingService.prototype = Object.freeze({
             
             
             let reporter = this.healthReporter;
-            this.policy.ensureUserNotified();
+            policy.ensureUserNotified();
           }.bind(this),
         }, delayInterval, this.timer.TYPE_ONE_SHOT);
 
