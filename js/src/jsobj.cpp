@@ -2471,10 +2471,7 @@ DefineConstructorAndPrototype(JSContext *cx, HandleObject obj, JSProtoKey key, H
 
 
 
-
-
-
-    RootedNativeObject proto(cx, NewNativeObjectWithClassProto(cx, clasp, protoProto, obj, SingletonObject));
+    RootedNativeObject proto(cx, NewNativeObjectWithClassProto(cx, clasp, protoProto, SingletonObject));
     if (!proto)
         return nullptr;
 
