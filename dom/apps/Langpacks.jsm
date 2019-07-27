@@ -224,13 +224,12 @@ this.Langpacks = {
 
   
   register: function(aApp, aManifest) {
-    debug("register app " + aApp.manifestURL + " role=" + aApp.role);
-
     if (aApp.role !== "langpack") {
-      debug("Not a langpack.");
       
       return;
     }
+
+    debug("register app " + aApp.manifestURL);
 
     if (!this.checkManifest(aManifest)) {
       debug("Invalid langpack manifest.");
@@ -283,32 +282,31 @@ this.Langpacks = {
   
   
   unregister: function(aApp, aManifest) {
-    debug("unregister app " + aApp.manifestURL + " role=" + aApp.role);
+    if (aApp.role !== "langpack") {
+      
+      return;
+    }
 
-      if (aApp.role !== "langpack") {
-        debug("Not a langpack.");
-        
-        return;
-      }
+    debug("unregister app " + aApp.manifestURL);
 
-      for (let app in this._data) {
-        let sendEvent = false;
-        for (let lang in this._data[app].langs) {
-          if (this._data[app].langs[lang].from == aApp.manifestURL) {
-            sendEvent = true;
-            delete this._data[app].langs[lang];
-          }
-        }
-        
-        
-        if (sendEvent) {
-          this.sendAppUpdate(app);
-          ppmm.broadcastAsyncMessage(
-              "Webapps:AdditionalLanguageChange",
-              { manifestURL: app,
-                languages: this.getAdditionalLanguages(app).langs });
+    for (let app in this._data) {
+      let sendEvent = false;
+      for (let lang in this._data[app].langs) {
+        if (this._data[app].langs[lang].from == aApp.manifestURL) {
+          sendEvent = true;
+          delete this._data[app].langs[lang];
         }
       }
+      
+      
+      if (sendEvent) {
+        this.sendAppUpdate(app);
+        ppmm.broadcastAsyncMessage(
+            "Webapps:AdditionalLanguageChange",
+            { manifestURL: app,
+              languages: this.getAdditionalLanguages(app).langs });
+      }
+    }
   }
 }
 
