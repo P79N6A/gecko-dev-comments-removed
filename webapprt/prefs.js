@@ -77,7 +77,9 @@ pref("dom.payment.provider.0.requestMethod", "GET");
 
 pref("dom.always_allow_move_resize_window", true);
 
-pref("plugin.allowed_types", "application/x-shockwave-flash,application/futuresplash");
+
+
+pref("plugin.allowed_types", " ");
 
 pref("devtools.debugger.remote-enabled", true);
 pref("devtools.debugger.force-local", true);
