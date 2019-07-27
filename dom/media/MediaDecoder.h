@@ -273,6 +273,14 @@ class MediaDecoder : public nsIObserver,
                      public AbstractMediaDecoder
 {
 public:
+  struct SeekResolveValue {
+    SeekResolveValue(bool aAtEnd, MediaDecoderEventVisibility aEventVisibility)
+      : mAtEnd(aAtEnd), mEventVisibility(aEventVisibility) {}
+    bool mAtEnd;
+    MediaDecoderEventVisibility mEventVisibility;
+  };
+
+  typedef MediaPromise<SeekResolveValue, bool ,  true> SeekPromise;
   class DecodedStreamGraphListener;
 
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -795,13 +803,22 @@ public:
   
   void PlaybackEnded();
 
-  
-  
-  void SeekingStopped(MediaDecoderEventVisibility aEventVisibility = MediaDecoderEventVisibility::Observable);
+  void OnSeekRejected() { mSeekRequest.Complete(); }
+  void OnSeekResolvedInternal(bool aAtEnd, MediaDecoderEventVisibility aEventVisibility);
 
+  void OnSeekResolved(SeekResolveValue aVal)
+  {
+    mSeekRequest.Complete();
+    OnSeekResolvedInternal(aVal.mAtEnd, aVal.mEventVisibility);
+  }
+
+#ifdef MOZ_AUDIO_OFFLOAD
   
-  
-  void SeekingStoppedAtEnd(MediaDecoderEventVisibility aEventVisibility = MediaDecoderEventVisibility::Observable);
+  void SimulateSeekResolvedForAudioOffload(MediaDecoderEventVisibility aEventVisibility)
+  {
+    OnSeekResolvedInternal(false, aEventVisibility);
+  }
+#endif
 
   
   
@@ -1133,6 +1150,8 @@ protected:
   
   
   SeekTarget mRequestedSeekTarget;
+
+  MediaPromiseConsumerHolder<SeekPromise> mSeekRequest;
 
   
   
