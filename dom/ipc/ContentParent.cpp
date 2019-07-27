@@ -4343,7 +4343,12 @@ ContentParent::RecvPrivateDocShellsExist(const bool& aExist)
         sPrivateContent->AppendElement(this);
     } else {
         sPrivateContent->RemoveElement(this);
-        if (!sPrivateContent->Length()) {
+
+        
+        
+        
+        if (!sPrivateContent->Length() &&
+            !Preferences::GetBool("browser.privatebrowsing.autostart")) {
             nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
             obs->NotifyObservers(nullptr, "last-pb-context-exited", nullptr);
             delete sPrivateContent;
