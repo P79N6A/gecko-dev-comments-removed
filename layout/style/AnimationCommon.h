@@ -188,9 +188,6 @@ struct AnimationPlayerCollection : public PRCList
 
   void Tick();
 
-  
-  
-  
   void EnsureStyleRuleFor(TimeStamp aRefreshTime, EnsureStyleRuleFlags aFlags);
 
   bool CanThrottleTransformChanges(mozilla::TimeStamp aTime);
