@@ -122,7 +122,7 @@ protected:
     void ResolveAutoPosition(int32_t aStart)
     {
       MOZ_ASSERT(IsAuto(), "Why call me?");
-      MOZ_ASSERT(aStart > 0, "expected a 1-based line number");
+      MOZ_ASSERT(aStart >= 0, "expected a zero-based line number");
       mStart = aStart;
       mEnd += aStart;
     }
@@ -130,7 +130,7 @@ protected:
 
 
 
-    uint32_t HypotheticalEnd() const { return IsAuto() ? mEnd + 1 : mEnd; }
+    uint32_t HypotheticalEnd() const { return mEnd; }
     
 
 
@@ -356,9 +356,9 @@ protected:
     mGridColEnd = std::max(mGridColEnd, aArea.mCols.HypotheticalEnd());
     mGridRowEnd = std::max(mGridRowEnd, aArea.mRows.HypotheticalEnd());
     MOZ_ASSERT(mGridColEnd <= uint32_t(nsStyleGridLine::kMaxLine -
-                                       nsStyleGridLine::kMinLine) &&
+                                       nsStyleGridLine::kMinLine - 1) &&
                mGridRowEnd <= uint32_t(nsStyleGridLine::kMaxLine -
-                                       nsStyleGridLine::kMinLine));
+                                       nsStyleGridLine::kMinLine - 1));
   }
 
   
@@ -469,10 +469,12 @@ private:
 
   uint32_t mExplicitGridRowEnd;
   
-  uint32_t mGridColEnd; 
-  uint32_t mGridRowEnd; 
+  
+  uint32_t mGridColEnd;
+  uint32_t mGridRowEnd;
 
   
+
 
 
 
