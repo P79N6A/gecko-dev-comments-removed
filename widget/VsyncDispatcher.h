@@ -6,24 +6,22 @@
 #ifndef mozilla_widget_VsyncDispatcher_h
 #define mozilla_widget_VsyncDispatcher_h
 
-#include "base/message_loop.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/TimeStamp.h"
 #include "nsISupportsImpl.h"
 #include "nsTArray.h"
-#include "ThreadSafeRefcountingWithMainThreadDestruction.h"
+#include "nsRefPtr.h"
 
 namespace mozilla {
-class TimeStamp;
-
-namespace layers {
-class CompositorVsyncObserver;
-}
 
 class VsyncObserver
 {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VsyncObserver)
 
 public:
+  
+  
+  
   
   
   virtual bool NotifyVsync(TimeStamp aVsyncTimestamp) = 0;
@@ -33,9 +31,11 @@ protected:
   virtual ~VsyncObserver() {}
 }; 
 
+
 class CompositorVsyncDispatcher MOZ_FINAL
 {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CompositorVsyncDispatcher)
+
 public:
   CompositorVsyncDispatcher();
 
@@ -53,8 +53,39 @@ public:
 
 private:
   virtual ~CompositorVsyncDispatcher();
+
   Mutex mCompositorObserverLock;
   nsRefPtr<VsyncObserver> mCompositorVsyncObserver;
+};
+
+
+class RefreshTimerVsyncDispatcher MOZ_FINAL
+{
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RefreshTimerVsyncDispatcher)
+
+public:
+  RefreshTimerVsyncDispatcher();
+
+  
+  void NotifyVsync(TimeStamp aVsyncTimestamp);
+
+  
+  
+  void SetParentRefreshTimer(VsyncObserver* aVsyncObserver);
+
+  
+  
+  
+  
+  void AddChildRefreshTimer(VsyncObserver* aVsyncObserver);
+  void RemoveChildRefreshTimer(VsyncObserver* aVsyncObserver);
+
+private:
+  virtual ~RefreshTimerVsyncDispatcher();
+
+  Mutex mRefreshTimersLock;
+  nsRefPtr<VsyncObserver> mParentRefreshTimer;
+  nsTArray<nsRefPtr<VsyncObserver>> mChildRefreshTimers;
 };
 
 } 
