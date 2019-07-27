@@ -2,6 +2,7 @@
 
 
 
+
 #ifndef mozilla_dom_textdecoder_h_
 #define mozilla_dom_textdecoder_h_
 
@@ -15,6 +16,8 @@ namespace mozilla {
 class ErrorResult;
 
 namespace dom {
+
+class ArrayBufferViewOrArrayBuffer;
 
 class TextDecoder MOZ_FINAL
   : public NonRefcountedDOMObject
@@ -98,18 +101,13 @@ public:
               const bool aStream, nsAString& aOutDecodedString,
               ErrorResult& aRv);
 
-  void Decode(nsAString& aOutDecodedString,
-              ErrorResult& aRv) {
-    Decode(nullptr, 0, false, aOutDecodedString, aRv);
-  }
-
-  void Decode(const ArrayBufferView& aView,
+  void Decode(const Optional<ArrayBufferViewOrArrayBuffer>& aBuffer,
               const TextDecodeOptions& aOptions,
               nsAString& aOutDecodedString,
-              ErrorResult& aRv) {
-    aView.ComputeLengthAndData();
-    Decode(reinterpret_cast<char*>(aView.Data()), aView.Length(),
-           aOptions.mStream, aOutDecodedString, aRv);
+              ErrorResult& aRv);
+
+  bool Fatal() const {
+    return mFatal;
   }
 
 private:
