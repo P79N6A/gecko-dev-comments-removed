@@ -2592,7 +2592,16 @@ MediaDecoderStateMachine::SeekCompleted()
     newCurrentTime = mAudioStartTime = seekTime;
   } else if (HasAudio()) {
     AudioData* audio = AudioQueue().PeekFront();
-    newCurrentTime = mAudioStartTime = audio ? audio->mTime : seekTime;
+    
+    
+    
+    
+    
+    
+    int64_t videoStart = video ? video->mTime : seekTime;
+    int64_t audioStart = audio ? audio->mTime : seekTime;
+    newCurrentTime = mAudioStartTime =
+        std::min(std::min(audioStart, videoStart), seekTime);
   } else {
     newCurrentTime = video ? video->mTime : seekTime;
   }
