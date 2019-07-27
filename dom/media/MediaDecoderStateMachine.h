@@ -344,11 +344,7 @@ public:
   void OnNotDecoded(MediaData::Type aType, RequestSampleCallback::NotDecodedReason aReason);
 
 private:
-  
-  
-  void OnAudioEOS();
-  void OnVideoEOS();
-  void OnDecodeError();
+  void AcquireMonitorAndInvokeDecodeError();
 
 protected:
   virtual ~MediaDecoderStateMachine();
