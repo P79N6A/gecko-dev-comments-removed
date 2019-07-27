@@ -4183,7 +4183,7 @@ static void
 UpdateFrameIterPc(FrameIter &iter)
 {
     if (iter.abstractFramePtr().isRematerializedFrame()) {
-#ifdef DEBUG
+#if defined(DEBUG) && defined(JS_ION)
         
         
         
