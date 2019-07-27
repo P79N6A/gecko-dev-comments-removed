@@ -594,46 +594,10 @@ private:
   gfxFloat GetOffsetScale(nsIFrame* aTextPathFrame);
   gfxFloat GetStartOffset(nsIFrame* aTextPathFrame);
 
-  DrawMode SetupCairoState(gfxContext* aContext,
-                           nsIFrame* aFrame,
-                           gfxTextContextPaint* aOuterContextPaint,
-                           gfxTextContextPaint** aThisContextPaint);
-
-  
-
-
-
-  bool SetupCairoStroke(gfxContext* aContext,
-                        nsIFrame* aFrame,
-                        gfxTextContextPaint* aOuterContextPaint,
-                        SVGTextContextPaint* aThisContextPaint);
-
-  
-
-
-
-  bool SetupCairoFill(gfxContext* aContext,
-                      nsIFrame* aFrame,
-                      gfxTextContextPaint* aOuterContextPaint,
-                      SVGTextContextPaint* aThisContextPaint);
-
-  
-
-
-
-
-
-
-
-
-
-  void SetupInheritablePaint(gfxContext* aContext,
+  DrawMode SetupContextPaint(const gfxMatrix& aContextMatrix,
                              nsIFrame* aFrame,
-                             float& aOpacity,
                              gfxTextContextPaint* aOuterContextPaint,
-                             SVGTextContextPaint::Paint& aTargetPaint,
-                             nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
-                             const FramePropertyDescriptor* aProperty);
+                             SVGTextContextPaint* aThisContextPaint);
 
   
 
