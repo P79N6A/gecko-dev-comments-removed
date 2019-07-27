@@ -3519,11 +3519,7 @@ static void ScrollToShowRect(nsIFrame*                aFrame,
   
   
   if (needToScroll) {
-    nsIScrollableFrame::ScrollMode scrollMode = nsIScrollableFrame::INSTANT;
-    if (gfxPrefs::ScrollBehaviorEnabled() && aFlags & nsIPresShell::SCROLL_SMOOTH) {
-      scrollMode = nsIScrollableFrame::SMOOTH_MSD;
-    }
-    aFrameAsScrollable->ScrollTo(scrollPt, scrollMode, &allowedRange);
+    aFrameAsScrollable->ScrollTo(scrollPt, nsIScrollableFrame::INSTANT, &allowedRange);
   }
 }
 
