@@ -1,7 +1,3 @@
-
-
-
-
 function AutoCompleteResult(aValues, aFinalCompleteValues) {
   this._values = aValues;
   this._finalCompleteValues = aFinalCompleteValues;

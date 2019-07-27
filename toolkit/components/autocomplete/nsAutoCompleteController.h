@@ -151,6 +151,14 @@ protected:
   uint32_t mSearchesFailed;
   bool mFirstSearchResult;
   uint32_t mImmediateSearchesCount;
+  
+  
+  
+  
+  
+  
+  
+  int32_t  mCompletedSelectionIndex;
 };
 
 #endif 
