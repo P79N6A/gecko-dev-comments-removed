@@ -242,6 +242,8 @@ public:
                                        nsresult aStatus,
                                        bool aLastPart) MOZ_OVERRIDE;
 
+  void BlockOnloadForDecodeOnDraw();
+
   
 
 
@@ -395,6 +397,7 @@ private:
 
   
   bool                       mHasSize:1;       
+  bool                       mBlockedOnload:1; 
   bool                       mDecodeOnDraw:1;  
   bool                       mTransient:1;     
   bool                       mDiscardable:1;   
