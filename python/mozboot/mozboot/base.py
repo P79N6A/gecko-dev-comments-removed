@@ -74,7 +74,7 @@ We recommend the following tools for installing Python:
 
 
 
-MODERN_MERCURIAL_VERSION = StrictVersion('3.0')
+MODERN_MERCURIAL_VERSION = StrictVersion('3.2.4')
 
 
 MODERN_PYTHON_VERSION = LooseVersion('2.7.3')
