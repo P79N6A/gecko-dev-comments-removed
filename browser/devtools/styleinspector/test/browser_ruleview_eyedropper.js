@@ -33,7 +33,7 @@ const EXPECTED_COLOR = "rgb(255, 255, 85)";
 
 
 
-let test = asyncTest(function*() {
+add_task(function*() {
   yield addTab("data:text/html;charset=utf-8,rule view eyedropper test");
   content.document.body.innerHTML = PAGE_CONTENT;
 

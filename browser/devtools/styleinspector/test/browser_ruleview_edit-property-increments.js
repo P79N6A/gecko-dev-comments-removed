@@ -7,7 +7,7 @@
 
 
 
-let test = asyncTest(function*() {
+add_task(function*() {
   yield addTab("data:text/html;charset=utf-8,sample document for bug 722691");
   createDocument();
   let {toolbox, inspector, view} = yield openRuleView();

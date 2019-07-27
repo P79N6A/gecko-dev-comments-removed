@@ -6,7 +6,7 @@
 
 
 
-let test = asyncTest(function*() {
+add_task(function*() {
   yield addTab("data:text/html;charset=utf-8,browser_ruleview_refresh-on-attribute-change.js");
 
   info("Preparing the test document and node");

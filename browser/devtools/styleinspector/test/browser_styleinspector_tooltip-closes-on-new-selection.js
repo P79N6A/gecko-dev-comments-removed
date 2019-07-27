@@ -6,7 +6,7 @@
 
 
 
-let test = asyncTest(function*() {
+add_task(function*() {
   yield addTab("data:text/html;charset=utf-8,<div class='one'>el 1</div><div class='two'>el 2</div>");
 
   let {toolbox, inspector, view} = yield openRuleView();
