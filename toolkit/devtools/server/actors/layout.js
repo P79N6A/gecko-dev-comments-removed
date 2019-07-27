@@ -206,6 +206,28 @@ Observable.prototype = {
 
 
 
+let gIgnoreLayoutChanges = false;
+exports.setIgnoreLayoutChanges = function(ignore, syncReflowNode) {
+  if (syncReflowNode) {
+    let forceSyncReflow = syncReflowNode.offsetWidth;
+  }
+  gIgnoreLayoutChanges = ignore;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -302,6 +324,10 @@ LayoutChangesObserver.prototype = Heritage.extend(Observable.prototype, {
 
 
   _onReflow: function(start, end, isInterruptible) {
+    if (gIgnoreLayoutChanges) {
+      return;
+    }
+
     
     
     this.reflows.push({
