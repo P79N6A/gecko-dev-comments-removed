@@ -611,6 +611,9 @@ pref("shutdown.watchdog.timeoutSecs", -1);
 #endif
 
 
+pref("webapps.update.enabled", true);
+
+
 pref("webapps.update.interval", 86400);
 
 

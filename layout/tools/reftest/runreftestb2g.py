@@ -443,6 +443,15 @@ class B2GRemoteReftest(RefTest):
         
         prefs["toolkit.telemetry.prompted"] = 999
         prefs["toolkit.telemetry.notifiedOptOut"] = 999
+        
+        prefs["app.update.enabled"] = False
+        prefs["app.update.url"] = ""
+        prefs["app.update.url.override"] = ""
+        
+        prefs["webapps.update.enabled"] = False
+        
+        prefs["browser.newtabpage.directory.source"] = ""
+        prefs["browser.newtabpage.directory.ping"] = ""
 
         if options.oop:
             prefs['browser.tabs.remote.autostart'] = True
