@@ -57,6 +57,9 @@ const MAX_LRU_PINGS = 50;
 const MAX_ARCHIVED_PINGS_RETENTION_MS = 180 * 24 * 60 * 60 * 1000;  
 
 
+const ARCHIVE_QUOTA_BYTES = 120 * 1024 * 1024; 
+
+
 
 let pingsLoaded = 0;
 
@@ -78,6 +81,7 @@ let isPingDirectoryCreated = false;
 
 let Policy = {
   now: () => new Date(),
+  getArchiveQuota: () => ARCHIVE_QUOTA_BYTES,
 };
 
 this.TelemetryStorage = {
@@ -147,7 +151,7 @@ this.TelemetryStorage = {
 
 
   testCleanupTaskPromise: function() {
-    return (TelemetryStorageImpl._archiveCleanTask || Promise.resolve());
+    return (TelemetryStorageImpl._cleanArchiveTask || Promise.resolve());
   },
 
   
@@ -425,9 +429,9 @@ let TelemetryStorageImpl = {
   
   _archivedPings: new Map(),
   
-  _archiveCleanTaskArchiveLoadingTask: null,
+  _scanArchiveTask: null,
   
-  _archiveCleanTask: null,
+  _cleanArchiveTask: null,
   
   _scannedArchiveDirectory: false,
 
@@ -453,7 +457,7 @@ let TelemetryStorageImpl = {
     yield this.savePendingPings();
     
     
-    yield this._archiveCleanTask;
+    yield this._cleanArchiveTask;
   }),
 
   
@@ -540,23 +544,23 @@ let TelemetryStorageImpl = {
 
   runCleanPingArchiveTask: function() {
     
-    if (this._archiveCleanTask) {
-      return this._archiveCleanTask;
+    if (this._cleanArchiveTask) {
+      return this._cleanArchiveTask;
     }
 
     
-    let clear = () => this._archiveCleanTask = null;
+    let clear = () => this._cleanArchiveTask = null;
     
-    this._archiveCleanTask = this.cleanArchiveTask().then(clear, clear);
-    return this._archiveCleanTask;
+    this._cleanArchiveTask = this._cleanArchive().then(clear, clear);
+    return this._cleanArchiveTask;
   },
 
-  cleanArchiveTask: Task.async(function*() {
-    this._log.trace("cleanArchiveTask");
+  
 
-    if (!(yield OS.File.exists(gPingsArchivePath))) {
-      return;
-    }
+
+
+  _purgeOldPings: Task.async(function*() {
+    this._log.trace("_purgeOldPings");
 
     const now = Policy.now().getTime();
     let dirIterator = new OS.File.DirectoryIterator(gPingsArchivePath);
@@ -568,18 +572,18 @@ let TelemetryStorageImpl = {
     
     for (let dir of subdirs) {
       if (this._shutdown) {
-        this._log.trace("cleanArchiveTask - Terminating the clean up task due to shutdown");
+        this._log.trace("_purgeOldPings - Terminating the clean up task due to shutdown");
         return;
       }
 
       if (!isValidArchiveDir(dir.name)) {
-        this._log.warn("cleanArchiveTask - skipping invalidly named subdirectory " + dir.path);
+        this._log.warn("_purgeOldPings - skipping invalidly named subdirectory " + dir.path);
         continue;
       }
 
       const archiveDate = getDateFromArchiveDir(dir.name);
       if (!archiveDate) {
-        this._log.warn("cleanArchiveTask - skipping invalid subdirectory date " + dir.path);
+        this._log.warn("_purgeOldPings - skipping invalid subdirectory date " + dir.path);
         continue;
       }
 
@@ -594,13 +598,17 @@ let TelemetryStorageImpl = {
             newestRemovedMonth = archiveDate;
           }
         } catch (ex) {
-          this._log.error("cleanArchiveTask - Unable to remove " + dir.path, ex);
+          this._log.error("_purgeOldPings - Unable to remove " + dir.path, ex);
         }
       }
     }
 
     
-    if (this._scannedArchiveDirectory && newestRemovedMonth) {
+    yield this.loadArchivedPingList();
+
+    
+    
+    if (newestRemovedMonth) {
       
       for (let [id, info] of this._archivedPings) {
         const timestampCreated = new Date(info.timestampCreated);
@@ -611,6 +619,102 @@ let TelemetryStorageImpl = {
         this._archivedPings.delete(id);
       }
     }
+  }),
+
+  
+
+
+
+  _enforceArchiveQuota: Task.async(function*() {
+    this._log.trace("_enforceArchiveQuota");
+
+    
+    let pingList = [for (p of this._archivedPings) {
+      id: p[0],
+      timestampCreated: p[1].timestampCreated,
+      type: p[1].type,
+    }];
+
+    pingList.sort((a, b) => b.timestampCreated - a.timestampCreated);
+
+    
+    const SAFE_QUOTA = Policy.getArchiveQuota() * 0.9;
+    
+    
+    let lastPingIndexToKeep = null;
+    let archiveSizeInBytes = 0;
+
+    
+    for (let i = 0; i < pingList.length; i++) {
+      if (this._shutdown) {
+        this._log.trace("_enforceArchiveQuota - Terminating the clean up task due to shutdown");
+        return;
+      }
+
+      let ping = pingList[i];
+
+      
+      const fileSize =
+        yield getArchivedPingSize(ping.id, new Date(ping.timestampCreated), ping.type);
+      if (!fileSize) {
+        this._log.warn("_enforceArchiveQuota - Unable to find the size of ping " + ping.id);
+        continue;
+      }
+
+      archiveSizeInBytes += fileSize;
+
+      if (archiveSizeInBytes < SAFE_QUOTA) {
+        
+        
+        lastPingIndexToKeep = i;
+      } else if (archiveSizeInBytes > Policy.getArchiveQuota()) {
+        
+        break;
+      }
+    }
+
+    
+    if (archiveSizeInBytes < Policy.getArchiveQuota()) {
+      return;
+    }
+
+    this._log.info("_enforceArchiveQuota - archive size: " + archiveSizeInBytes + "bytes"
+                   + ", safety quota: " + SAFE_QUOTA + "bytes");
+
+    let pingsToPurge = pingList.slice(lastPingIndexToKeep + 1);
+
+    
+    for (let ping of pingsToPurge) {
+      if (this._shutdown) {
+        this._log.trace("_enforceArchiveQuota - Terminating the clean up task due to shutdown");
+        return;
+      }
+
+      
+      
+      yield this._removeArchivedPing(ping.id, ping.timestampCreated, ping.type);
+
+      
+      this._archivedPings.delete(ping.id);
+    }
+  }),
+
+  _cleanArchive: Task.async(function*() {
+    this._log.trace("cleanArchiveTask");
+
+    if (!(yield OS.File.exists(gPingsArchivePath))) {
+      return;
+    }
+
+    
+    try {
+      yield this._purgeOldPings();
+    } catch (ex) {
+      this._log.error("_cleanArchive - There was an error removing old directories", ex);
+    }
+
+    
+    yield this._enforceArchiveQuota();
   }),
 
   
@@ -631,8 +735,8 @@ let TelemetryStorageImpl = {
 
   loadArchivedPingList: function() {
     
-    if (this._archiveScanningTask) {
-      return this._archiveScanningTask;
+    if (this._scanArchiveTask) {
+      return this._scanArchiveTask;
     }
 
     if (this._scannedArchiveDirectory) {
@@ -642,12 +746,12 @@ let TelemetryStorageImpl = {
 
     
     let clear = pingList => {
-      this._archiveScanningTask = null;
+      this._scanArchiveTask = null;
       return pingList;
     };
     
-    this._archiveScanningTask = this._scanArchive().then(clear, clear);
-    return this._archiveScanningTask;
+    this._scanArchiveTask = this._scanArchive().then(clear, clear);
+    return this._scanArchiveTask;
   },
 
   _scanArchive: Task.async(function*() {
@@ -1081,6 +1185,24 @@ function getArchivedPingPath(aPingId, aDate, aType) {
   let fileName = [aDate.getTime(), aPingId, aType, "json"].join(".");
   return OS.Path.join(archivedPingDir, fileName);
 }
+
+
+
+
+
+let getArchivedPingSize = Task.async(function*(aPingId, aDate, aType) {
+  const path = getArchivedPingPath(aPingId, aDate, aType);
+  let filePaths = [ path + "lz4", path ];
+
+  for (let path of filePaths) {
+    try {
+      return (yield OS.File.stat(path)).size;;
+    } catch (e) {}
+  }
+
+  
+  return 0;
+});
 
 
 
