@@ -1286,6 +1286,37 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
 {
     desc_.assertValid();
 
+    
+    
+    
+    
+    
+    
+
+    
+    if (obj->is<ArrayObject>()) {
+        
+        Rooted<ArrayObject*> arr(cx, &obj->as<ArrayObject>());
+        if (id == NameToId(cx->names().length)) {
+            if (!cx->shouldBeJSContext())
+                return false;
+            return ArraySetLength(cx->asJSContext(), arr, id, desc_.attributes(), desc_.value(),
+                                  result);
+        }
+
+        
+        uint32_t index;
+        if (IdIsIndex(id, &index)) {
+            if (WouldDefinePastNonwritableLength(obj, index))
+                return result.fail(JSMSG_CANT_DEFINE_PAST_ARRAY_LENGTH);
+        }
+    } else if (IsAnyTypedArray(obj)) {
+        
+        uint64_t index;
+        if (IsTypedArrayIndex(id, &index))
+            return result.succeed();
+    }
+
     Rooted<PropertyDescriptor> desc(cx, desc_);
 
     RootedShape shape(cx);
@@ -1421,27 +1452,6 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
     
     
     desc.setAttributes(ApplyOrDefaultAttributes(desc.attributes()) & ~JSPROP_IGNORE_VALUE);
-
-    if (obj->is<ArrayObject>()) {
-        Rooted<ArrayObject*> arr(cx, &obj->as<ArrayObject>());
-        if (id == NameToId(cx->names().length)) {
-            if (!cx->shouldBeJSContext())
-                return false;
-            return ArraySetLength(cx->asJSContext(), arr, id, desc.attributes(), desc.value(),
-                                  result);
-        }
-
-        uint32_t index;
-        if (IdIsIndex(id, &index)) {
-            if (WouldDefinePastNonwritableLength(obj, index))
-                return result.fail(JSMSG_CANT_DEFINE_PAST_ARRAY_LENGTH);
-        }
-    } else if (IsAnyTypedArray(obj)) {
-        
-        uint64_t index;
-        if (IsTypedArrayIndex(id, &index))
-            return result.succeed();
-    }
 
     
     
