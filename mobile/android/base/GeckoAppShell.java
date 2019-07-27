@@ -1198,7 +1198,10 @@ public class GeckoAppShell
 
         if (intent != null) {
             
-            intent.addCategory(Intent.CATEGORY_BROWSABLE);
+            if (!targetURI.startsWith("file:")) {
+                
+                intent.addCategory(Intent.CATEGORY_BROWSABLE);
+            }
 
             
             
