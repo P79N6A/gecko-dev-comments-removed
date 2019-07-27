@@ -1224,9 +1224,10 @@ class DwarfCFIToModule: public CallFrameInfo::Handler {
   
   DwarfCFIToModule(const unsigned int num_dw_regs,
                    Reporter *reporter,
+                   UniqueStringUniverse* usu,
                    Summariser* summ)
-      : summ_(summ), num_dw_regs_(num_dw_regs), reporter_(reporter),
-        return_address_(-1) {
+      : summ_(summ), usu_(usu), num_dw_regs_(num_dw_regs),
+        reporter_(reporter), return_address_(-1) {
   }
   virtual ~DwarfCFIToModule() {}
 
@@ -1252,6 +1253,9 @@ class DwarfCFIToModule: public CallFrameInfo::Handler {
 
   
   Summariser* summ_;
+
+  
+  UniqueStringUniverse* usu_;
 
   
   const unsigned int num_dw_regs_;

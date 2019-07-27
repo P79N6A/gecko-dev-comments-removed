@@ -205,7 +205,6 @@ class Thread {
 
 
 
-
 #undef HAVE_NATIVE_UNWIND
 #if defined(MOZ_PROFILING) \
     && (defined(SPS_PLAT_amd64_linux) || defined(SPS_PLAT_arm_android) \
@@ -217,7 +216,6 @@ class Thread {
 
 
 
-extern const char* PROFILER_MODE;
 extern const char* PROFILER_INTERVAL;
 extern const char* PROFILER_ENTRIES;
 extern const char* PROFILER_STACK;
@@ -227,18 +225,10 @@ void read_profiler_env_vars();
 void profiler_usage();
 
 
-bool set_profiler_mode(const char*);
 bool set_profiler_interval(const char*);
 bool set_profiler_entries(const char*);
 bool set_profiler_scan(const char*);
 bool is_native_unwinding_avail();
-
-typedef  enum { UnwINVALID, UnwNATIVE, UnwPSEUDO, UnwCOMBINED }  UnwMode;
-extern UnwMode sUnwindMode;       
-extern int     sUnwindInterval;   
-extern int     sUnwindStackScan;  
-
-extern int     sProfileEntries;   
 
 void set_tls_stack_top(void* stackTop);
 

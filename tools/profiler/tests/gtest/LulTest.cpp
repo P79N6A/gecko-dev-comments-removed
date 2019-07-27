@@ -4,9 +4,10 @@
 
 
 #include "gtest/gtest.h"
+#include "mozilla/Atomics.h"
 #include "LulMain.h"
-#include "GeckoProfiler.h"     
-#include "UnwinderThread2.h"   
+#include "GeckoProfiler.h"       
+#include "platform-linux-lul.h"  
 
 
 
@@ -15,7 +16,7 @@
 
 
 static void
-logging_sink_for_LUL(const char* str) {
+gtest_logging_sink_for_LUL(const char* str) {
   if (DEBUG_LUL_TEST == 0) {
     return;
   }
@@ -35,12 +36,12 @@ TEST(LUL, unwind_consistency) {
   
   
   
-  lul::LUL* lul = new lul::LUL(logging_sink_for_LUL);
-  lul->RegisterUnwinderThread();
+  lul::LUL* lul = new lul::LUL(gtest_logging_sink_for_LUL);
   read_procmaps(lul);
 
   
   
+  lul->EnableUnwinding();
   int nTests = 0, nTestsPassed = 0;
   RunLulUnitTests(&nTests, &nTestsPassed, lul);
   EXPECT_TRUE(nTests == 6) << "Unexpected number of tests";

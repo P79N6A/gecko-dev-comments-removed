@@ -7,12 +7,7 @@
 #ifndef LulMain_h
 #define LulMain_h
 
-#include <pthread.h>   
-
-#include <map>
-
 #include "LulPlatformMacros.h"
-#include "LulRWLock.h"
 
 
 
@@ -57,8 +52,9 @@
 namespace lul {
 
 
-class TaggedUWord {
+class MOZ_STACK_CLASS TaggedUWord {
 public:
+  
   
   explicit TaggedUWord(uintptr_t w)
     : mValue(w)
@@ -66,11 +62,13 @@ public:
   {}
 
   
+  
   TaggedUWord()
     : mValue(0)
     , mValid(false)
   {}
 
+  
   
   void Add(TaggedUWord other) {
     if (mValid && other.Valid()) {
@@ -82,11 +80,15 @@ public:
   }
 
   
+  
   bool IsAligned() const {
     return mValid && (mValue & (sizeof(uintptr_t)-1)) == 0;
   }
 
+  
   uintptr_t Value() const { return mValue; }
+
+  
   bool      Valid() const { return mValid; }
 
 private:
@@ -133,6 +135,44 @@ struct StackImage {
 
 
 
+template<typename T>
+class LULStats {
+public:
+  LULStats()
+    : mContext(0)
+    , mCFI(0)
+    , mScanned(0)
+  {}
+
+  template <typename S>
+  LULStats(const LULStats<S>& aOther)
+    : mContext(aOther.mContext)
+    , mCFI(aOther.mCFI)
+    , mScanned(aOther.mScanned)
+  {}
+
+  template <typename S>
+  LULStats<T>& operator=(const LULStats<S>& aOther)
+  {
+    mContext = aOther.mContext;
+    mCFI     = aOther.mCFI;
+    mScanned = aOther.mScanned;
+    return *this;
+  }
+
+  template <typename S>
+  uint32_t operator-(const LULStats<S>& aOther) {
+    return (mContext - aOther.mContext) +
+           (mCFI - aOther.mCFI) + (mScanned - aOther.mScanned);
+  }
+
+  T mContext; 
+  T mCFI;     
+  T mScanned; 
+};
+
+
+
 
 
 
@@ -160,7 +200,7 @@ struct StackImage {
 
 class PriMap;
 class SegArray;
-class CFICache;
+class UniqueStringUniverse;
 
 class LUL {
 public:
@@ -177,6 +217,10 @@ public:
   
   
   
+  void EnableUnwinding();
+
+  
+  
   
   
   
@@ -185,6 +229,7 @@ public:
   void NotifyAfterMap(uintptr_t aRXavma, size_t aSize,
                       const char* aFileName, const void* aMappedImage);
 
+  
   
   
   
@@ -203,8 +248,10 @@ public:
   
   
   
+  
   void NotifyBeforeUnmap(uintptr_t aAvmaMin, uintptr_t aAvmaMax);
 
+  
   
   
   
@@ -215,10 +262,6 @@ public:
   
   
   size_t CountMappings();
-
-  
-  
-  void RegisterUnwinderThread();
 
   
   
@@ -262,17 +305,30 @@ public:
   
   void (*mLog)(const char*);
 
+  
+  
+  LULStats<mozilla::Atomic<uint32_t>> mStats;
+
+  
+  
+  void MaybeShowStats();
+
 private:
   
-  
-  void InvalidateCFICaches();
-
-  
-  LulRWLock* mRWlock;
+  LULStats<uint32_t> mStatsPrevious;
 
   
   
+  bool mAdminMode;
+
   
+  
+  
+  
+  
+  
+  int mAdminThreadId;
+
   
   
   
@@ -280,22 +336,12 @@ private:
 
   
   
-  
-  
-  
   SegArray* mSegArray;
 
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  std::map<pthread_t, CFICache*> mCaches;
+  UniqueStringUniverse* mUSU;
 };
 
 

@@ -63,28 +63,33 @@
 #include <strings.h>    
 #include <errno.h>
 #include <stdarg.h>
+#include "prenv.h"
 #include "platform.h"
 #include "GeckoProfiler.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/LinuxSignal.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/DebugOnly.h"
 #include "ProfileEntry.h"
 #include "nsThreadUtils.h"
 #include "TableTicker.h"
 #include "ThreadResponsiveness.h"
-#include "UnwinderThread2.h"
+
 #if defined(__ARM_EABI__) && defined(MOZ_WIDGET_GONK)
  
-#define USE_EHABI_STACKWALK
-#include "EHABIStackWalk.h"
+# define USE_EHABI_STACKWALK
+# include "EHABIStackWalk.h"
+#elif defined(SPS_PLAT_amd64_linux) || defined(SPS_PLAT_x86_linux)
+# define USE_LUL_STACKWALK
+# include "LulMain.h"
+# include "platform-linux-lul.h"
 #endif
 
 
 #include "nsMemoryReporterManager.h"
 
 #include <string.h>
-#include <stdio.h>
 #include <list>
 
 #ifdef MOZ_NUWA_PROCESS
@@ -93,16 +98,25 @@
 
 #define SIGNAL_SAVE_PROFILE SIGUSR2
 
-#if defined(__GLIBC__)
+using namespace mozilla;
 
-#include <sys/syscall.h>
-pid_t gettid()
+#if defined(USE_LUL_STACKWALK)
+
+
+
+
+lul::LUL* sLUL = nullptr;
+
+
+static void sLUL_initialization_routine(void)
 {
-  return (pid_t) syscall(SYS_gettid);
+  MOZ_ASSERT(!sLUL);
+  MOZ_ASSERT(gettid() == getpid()); 
+  sLUL = new lul::LUL(logging_sink_for_LUL);
+  
+  read_procmaps(sLUL);
 }
 #endif
-
-using namespace mozilla;
 
  Thread::tid_t
 Thread::GetCurrentId()
@@ -294,6 +308,9 @@ static void* SignalSender(void* arg) {
 #endif
 
   int vm_tgid_ = getpid();
+  DebugOnly<int> my_tid = gettid();
+
+  unsigned int nSignalsSent = 0;
 
   TimeDuration lastSleepOverhead = 0;
   TimeStamp sampleStart = TimeStamp::Now();
@@ -328,6 +345,7 @@ static void* SignalSender(void* arg) {
         sCurrentThreadProfile = info->Profile();
 
         int threadId = info->ThreadId();
+        MOZ_ASSERT(threadId != my_tid);
 
         
         
@@ -348,6 +366,17 @@ static void* SignalSender(void* arg) {
         
         sem_wait(&sSignalHandlingDone);
         isFirstProfiledThread = false;
+
+        
+        
+        
+        
+        
+        if ((++nSignalsSent & 0xF) == 0) {
+#          if defined(USE_LUL_STACKWALK)
+           sLUL->MaybeShowStats();
+#          endif
+        }
       }
     }
 
@@ -378,9 +407,16 @@ Sampler::~Sampler() {
 void Sampler::Start() {
   LOG("Sampler started");
 
-#ifdef USE_EHABI_STACKWALK
+#if defined(USE_EHABI_STACKWALK)
   mozilla::EHABIStackWalkInit();
+#elif defined(USE_LUL_STACKWALK)
+  
+  
+  if (!sLUL) {
+     sLUL_initialization_routine();
+  }
 #endif
+
   SamplerRegistry::AddActiveSampler(this);
 
   
@@ -412,6 +448,19 @@ void Sampler::Start() {
   }
   LOG("Signal installed");
   signal_handler_installed_ = true;
+
+#if defined(USE_LUL_STACKWALK)
+  
+  
+  
+  sLUL->EnableUnwinding();
+
+  
+  if (PR_GetEnv("MOZ_PROFILER_LUL_TEST")) {
+     int nTests = 0, nTestsPassed = 0;
+     RunLulUnitTests(&nTests, &nTestsPassed, sLUL);
+  }
+#endif
 
   
   
@@ -502,7 +551,6 @@ bool Sampler::RegisterCurrentThread(const char* aName,
   }
 #endif
 
-  uwt__register_thread_for_profiling(stackTop);
   return true;
 }
 
@@ -533,8 +581,6 @@ void Sampler::UnregisterCurrentThread()
       }
     }
   }
-
-  uwt__unregister_thread_for_profiling();
 }
 
 #ifdef ANDROID
@@ -583,9 +629,7 @@ static void ReadProfilerVars(const char* fileName, const char** features,
       feature = strtok_r(line, "=", &savePtr);
       value = strtok_r(NULL, "", &savePtr);
 
-      if (strncmp(feature, PROFILER_MODE, bufferSize) == 0) {
-        set_profiler_mode(value);
-      } else if (strncmp(feature, PROFILER_INTERVAL, bufferSize) == 0) {
+      if (strncmp(feature, PROFILER_INTERVAL, bufferSize) == 0) {
         set_profiler_interval(value);
       } else if (strncmp(feature, PROFILER_ENTRIES, bufferSize) == 0) {
         set_profiler_entries(value);

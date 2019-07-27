@@ -69,9 +69,6 @@ void mozilla_sampler_init(void* stackTop);
 
 void mozilla_sampler_shutdown();
 
-void mozilla_sampler_print_location1();
-void mozilla_sampler_print_location2();
-
 
 
 
@@ -89,9 +86,6 @@ void mozilla_sampler_sleep_end();
 
 double mozilla_sampler_time();
 double mozilla_sampler_time(const mozilla::TimeStamp& aTime);
-
-
-extern bool sps_version2();
 
 void mozilla_sampler_tracing(const char* aCategory, const char* aInfo,
                              TracingMetadata aMetaData);

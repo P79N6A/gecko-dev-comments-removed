@@ -109,24 +109,6 @@ private:
   uint32_t mGenID;
 };
 
-
-typedef struct _UnwinderThreadBuffer UnwinderThreadBuffer;
-
-
-
-
-
-
-struct LinkedUWTBuffer
-{
-  LinkedUWTBuffer()
-    :mNext(nullptr)
-  {}
-  virtual ~LinkedUWTBuffer() {}
-  virtual UnwinderThreadBuffer* GetBuffer() = 0;
-  LinkedUWTBuffer*  mNext;
-};
-
 template<typename T>
 class ProfilerLinkedList {
 public:
@@ -174,7 +156,6 @@ private:
 };
 
 typedef ProfilerLinkedList<ProfilerMarker> ProfilerMarkerLinkedList;
-typedef ProfilerLinkedList<LinkedUWTBuffer> UWTBufferLinkedList;
 
 template<typename T>
 class ProfilerSignalSafeLinkedList {
@@ -253,16 +234,6 @@ public:
     
     
     mSleepId++;
-  }
-
-  void addLinkedUWTBuffer(LinkedUWTBuffer* aBuff)
-  {
-    mPendingUWTBuffers.insert(aBuff);
-  }
-
-  UWTBufferLinkedList* getLinkedUWTBuffers()
-  {
-    return mPendingUWTBuffers.accessList();
   }
 
   void addMarker(const char *aMarkerStr, ProfilerMarkerPayload *aPayload, float aTime)
@@ -426,8 +397,6 @@ public:
   
   
   ProfilerSignalSafeLinkedList<ProfilerMarker> mPendingMarkers;
-  
-  ProfilerSignalSafeLinkedList<LinkedUWTBuffer> mPendingUWTBuffers;
   
   
   mozilla::sig_safe_t mStackPointer;

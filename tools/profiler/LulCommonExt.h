@@ -73,6 +73,10 @@
 
 namespace lul {
 
+using std::string;
+using std::map;
+
+
 
 
 
@@ -81,12 +85,10 @@ namespace lul {
 class UniqueString;
 
 
-const UniqueString* ToUniqueString(std::string);
-
-
 const char* const FromUniqueString(const UniqueString*);
 
 
+bool IsEmptyUniqueString(const UniqueString*);
 
 
 
@@ -94,35 +96,15 @@ const char* const FromUniqueString(const UniqueString*);
 
 
 
-
-
-
-
-
-
-
-
-
-
-inline static const UniqueString* ustr__empty() {
-  static const UniqueString* us = nullptr;
-  if (!us) us = ToUniqueString("");
-  return us;
-}
-
-
-inline static const UniqueString* ustr__ZDcfa() {
-  static const UniqueString* us = nullptr;
-  if (!us) us = ToUniqueString(".cfa");
-  return us;
-}
-
-
-inline static const UniqueString* ustr__ZDra() {
-  static const UniqueString* us = nullptr;
-  if (!us) us = ToUniqueString(".ra");
-  return us;
-}
+class UniqueStringUniverse {
+public:
+  UniqueStringUniverse() {}
+  ~UniqueStringUniverse();
+  
+  const UniqueString* ToUniqueString(string str);
+private:
+  map<string, UniqueString*> map_;
+};
 
 
 
@@ -474,7 +456,7 @@ public:
   struct Expr {
     
     Expr(const UniqueString* ident, long offset, bool deref) {
-      if (ident == ustr__empty()) {
+      if (IsEmptyUniqueString(ident)) {
         Expr();
       } else {
         postfix_ = "";

@@ -77,34 +77,38 @@ class UniqueString {
   const char* str_;
 };
 
-class UniqueStringUniverse {
-public:
-  UniqueStringUniverse() {};
-  const UniqueString* FindOrCopy(string str) {
-    std::map<string, UniqueString*>::iterator it = map_.find(str);
-    if (it == map_.end()) {
-      UniqueString* ustr = new UniqueString(str);
-      map_[str] = ustr;
-      return ustr;
-    } else {
-      return it->second;
-    }
-  }
-private:
-  std::map<string, UniqueString*> map_;
-};
-
-
-const UniqueString* ToUniqueString(string str) {
-  
-  
-  static UniqueStringUniverse sUniverse;
-  return sUniverse.FindOrCopy(str);
-}
-
 const char* const FromUniqueString(const UniqueString* ustr)
 {
   return ustr->str_;
+}
+
+bool IsEmptyUniqueString(const UniqueString* ustr)
+{
+  return (ustr->str_)[0] == '\0';
+}
+
+
+
+
+
+UniqueStringUniverse::~UniqueStringUniverse()
+{
+  for (std::map<string, UniqueString*>::iterator it = map_.begin();
+       it != map_.end(); it++) {
+    delete it->second;
+  }
+}
+
+const UniqueString* UniqueStringUniverse::ToUniqueString(string str)
+{
+  std::map<string, UniqueString*>::iterator it = map_.find(str);
+  if (it == map_.end()) {
+    UniqueString* ustr = new UniqueString(str);
+    map_[str] = ustr;
+    return ustr;
+  } else {
+    return it->second;
+  }
 }
 
 }  
