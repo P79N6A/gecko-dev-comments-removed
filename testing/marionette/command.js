@@ -150,11 +150,6 @@ CommandProcessor.prototype.execute = function(payload, okHandler, respHandler, c
   
   cmd.id = cmdId;
 
-  
-  
-  
-  this.driver.listener.curCmdId = cmd.id;
-
   let req = Task.spawn(function*() {
     let fn = this.driver.commands[cmd.name];
     if (typeof fn == "undefined") {

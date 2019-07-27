@@ -1171,16 +1171,20 @@ GeckoDriver.prototype.get = function(cmd, resp) {
 
   switch (this.context) {
     case Context.CONTENT:
+      let get = this.listener.get({url: url, pageTimeout: this.pageTimeout});
+      let id = this.listener.curId;
+
       
       
       
       this.curBrowser.pendingCommands.push(() => {
-        cmd.parameters.command_id = cmd.id;
+        cmd.parameters.command_id = id;
         this.mm.broadcastAsyncMessage(
             "Marionette:pollForReadyState" + this.curBrowser.curFrameId,
             cmd.parameters);
       });
-      yield this.listener.get({url: url, pageTimeout: this.pageTimeout});
+
+      yield get;
       break;
 
     case Context.CHROME:
