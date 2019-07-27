@@ -41,33 +41,38 @@ function test_strict() {
   
   
   add_connection_test("unknownissuer.include-subdomains.pinning.example.com",
-    getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE));
+                      MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE);
 
   
   add_connection_test("bad.include-subdomains.pinning.example.com",
-    getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE));
+                      MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE);
 
   
   add_connection_test("bad.include-subdomains.pinning.example.com.",
-    getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE));
+                      MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE);
   
   add_connection_test("bad.include-subdomains.pinning.example.com..",
-    getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE));
+                      MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE);
 
   
-  add_connection_test("include-subdomains.pinning.example.com", Cr.NS_OK);
-  add_connection_test("good.include-subdomains.pinning.example.com", Cr.NS_OK);
-  add_connection_test("exclude-subdomains.pinning.example.com", Cr.NS_OK);
+  add_connection_test("include-subdomains.pinning.example.com",
+                      PRErrorCodeSuccess);
+  add_connection_test("good.include-subdomains.pinning.example.com",
+                      PRErrorCodeSuccess);
+  add_connection_test("exclude-subdomains.pinning.example.com",
+                      PRErrorCodeSuccess);
 
   
   
-  add_connection_test("sub.exclude-subdomains.pinning.example.com", Cr.NS_OK);
+  add_connection_test("sub.exclude-subdomains.pinning.example.com",
+                      PRErrorCodeSuccess);
 
   
   
   
   
-  add_connection_test("test-mode.pinning.example.com", Cr.NS_OK);
+  add_connection_test("test-mode.pinning.example.com",
+                      PRErrorCodeSuccess);
 }
 
 function test_mitm() {
@@ -78,19 +83,24 @@ function test_mitm() {
     run_next_test();
   });
 
-  add_connection_test("include-subdomains.pinning.example.com", Cr.NS_OK);
-  add_connection_test("good.include-subdomains.pinning.example.com", Cr.NS_OK);
+  add_connection_test("include-subdomains.pinning.example.com",
+                      PRErrorCodeSuccess);
+  add_connection_test("good.include-subdomains.pinning.example.com",
+                      PRErrorCodeSuccess);
 
   add_connection_test("unknownissuer.include-subdomains.pinning.example.com",
-    getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_ISSUER));
+                      SEC_ERROR_UNKNOWN_ISSUER);
 
   
   
-  add_connection_test("bad.include-subdomains.pinning.example.com", Cr.NS_OK);
+  add_connection_test("bad.include-subdomains.pinning.example.com",
+                      PRErrorCodeSuccess);
 
-  add_connection_test("exclude-subdomains.pinning.example.com", Cr.NS_OK);
-  add_connection_test("sub.exclude-subdomains.pinning.example.com", Cr.NS_OK);
-  add_connection_test("test-mode.pinning.example.com", Cr.NS_OK);
+  add_connection_test("exclude-subdomains.pinning.example.com",
+                      PRErrorCodeSuccess);
+  add_connection_test("sub.exclude-subdomains.pinning.example.com",
+                      PRErrorCodeSuccess);
+  add_connection_test("test-mode.pinning.example.com", PRErrorCodeSuccess);
 };
 
 function test_disabled() {
@@ -100,15 +110,20 @@ function test_disabled() {
     run_next_test();
   });
 
-  add_connection_test("include-subdomains.pinning.example.com", Cr.NS_OK);
-  add_connection_test("good.include-subdomains.pinning.example.com", Cr.NS_OK);
-  add_connection_test("bad.include-subdomains.pinning.example.com", Cr.NS_OK);
-  add_connection_test("exclude-subdomains.pinning.example.com", Cr.NS_OK);
-  add_connection_test("sub.exclude-subdomains.pinning.example.com", Cr.NS_OK);
-  add_connection_test("test-mode.pinning.example.com", Cr.NS_OK);
+  add_connection_test("include-subdomains.pinning.example.com",
+                      PRErrorCodeSuccess);
+  add_connection_test("good.include-subdomains.pinning.example.com",
+                      PRErrorCodeSuccess);
+  add_connection_test("bad.include-subdomains.pinning.example.com",
+                      PRErrorCodeSuccess);
+  add_connection_test("exclude-subdomains.pinning.example.com",
+                      PRErrorCodeSuccess);
+  add_connection_test("sub.exclude-subdomains.pinning.example.com",
+                      PRErrorCodeSuccess);
+  add_connection_test("test-mode.pinning.example.com", PRErrorCodeSuccess);
 
   add_connection_test("unknownissuer.include-subdomains.pinning.example.com",
-    getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_ISSUER));
+                      SEC_ERROR_UNKNOWN_ISSUER);
 }
 
 function test_enforce_test_mode() {
@@ -119,27 +134,31 @@ function test_enforce_test_mode() {
   });
 
   add_connection_test("unknownissuer.include-subdomains.pinning.example.com",
-    getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE));
+                      MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE);
 
   
   add_connection_test("bad.include-subdomains.pinning.example.com",
-    getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE));
+                      MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE);
 
   
-  add_connection_test("include-subdomains.pinning.example.com", Cr.NS_OK);
-  add_connection_test("good.include-subdomains.pinning.example.com", Cr.NS_OK);
-  add_connection_test("exclude-subdomains.pinning.example.com", Cr.NS_OK);
+  add_connection_test("include-subdomains.pinning.example.com",
+                      PRErrorCodeSuccess);
+  add_connection_test("good.include-subdomains.pinning.example.com",
+                      PRErrorCodeSuccess);
+  add_connection_test("exclude-subdomains.pinning.example.com",
+                      PRErrorCodeSuccess);
 
   
   
-  add_connection_test("sub.exclude-subdomains.pinning.example.com", Cr.NS_OK);
+  add_connection_test("sub.exclude-subdomains.pinning.example.com",
+                      PRErrorCodeSuccess);
 
   
   
   
   
   add_connection_test("test-mode.pinning.example.com",
-    getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE));
+                      MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE);
 }
 
 function check_pinning_telemetry() {
