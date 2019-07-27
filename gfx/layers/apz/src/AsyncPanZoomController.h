@@ -540,6 +540,12 @@ private:
 
 
 
+  void CancelAnimationForHandoffChain();
+
+  
+
+
+
 
   void SetState(PanZoomState aState);
 

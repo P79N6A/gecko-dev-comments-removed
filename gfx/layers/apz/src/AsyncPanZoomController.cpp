@@ -813,6 +813,18 @@ AsyncPanZoomController::AxisLockMode AsyncPanZoomController::GetAxisLockMode()
   return static_cast<AxisLockMode>(gfxPrefs::APZAxisLockMode());
 }
 
+void
+AsyncPanZoomController::CancelAnimationForHandoffChain()
+{
+  APZCTreeManager* treeManagerLocal = mTreeManager;
+  if (treeManagerLocal && treeManagerLocal->CancelAnimationsForOverscrollHandoffChain()) {
+    return;
+  }
+  NS_WARNING("Overscroll handoff chain was empty in CancelAnimationForHandoffChain! This should not be the case.");
+  
+  CancelAnimation();
+}
+
 nsEventStatus AsyncPanZoomController::ReceiveInputEvent(const InputData& aEvent) {
   AssertOnControllerThread();
 
@@ -830,7 +842,7 @@ nsEventStatus AsyncPanZoomController::ReceiveInputEvent(const InputData& aEvent)
       ScheduleContentResponseTimeout();
       
       
-      CancelAnimation();
+      CancelAnimationForHandoffChain();
     } else {
       
       
@@ -967,7 +979,7 @@ nsEventStatus AsyncPanZoomController::OnTouchStart(const MultiTouchInput& aEvent
       }
       
     case ANIMATING_ZOOM:
-      CancelAnimation();
+      CancelAnimationForHandoffChain();
       
     case NOTHING: {
       mX.StartTouch(point.x, aEvent.mTime);
@@ -1293,7 +1305,7 @@ nsEventStatus AsyncPanZoomController::OnPanMayBegin(const PanGestureInput& aEven
 
   mX.StartTouch(aEvent.mPanStartPoint.x, aEvent.mTime);
   mY.StartTouch(aEvent.mPanStartPoint.y, aEvent.mTime);
-  CancelAnimation();
+  CancelAnimationForHandoffChain();
 
   return nsEventStatus_eConsumeNoDefault;
 }
