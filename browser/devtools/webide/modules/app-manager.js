@@ -365,7 +365,10 @@ let AppManager = exports.AppManager = {
       try {
         
         this.connection.resetOptions();
-        deferred.resolve(this.selectedRuntime.connect(this.connection));
+        
+        
+        this.selectedRuntime.connect(this.connection)
+                            .then(null, e => deferred.reject(e));
       } catch(e) {
         deferred.reject(e);
       }

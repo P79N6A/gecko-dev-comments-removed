@@ -2,7 +2,7 @@
 
 
 
-const {Cu} = require("chrome");
+const {Cu, Ci} = require("chrome");
 const {Devices} = Cu.import("resource://gre/modules/devtools/Devices.jsm");
 const {Services} = Cu.import("resource://gre/modules/Services.jsm");
 const {Simulator} = Cu.import("resource://gre/modules/devtools/Simulator.jsm");
@@ -11,6 +11,10 @@ const {DebuggerServer} = require("resource://gre/modules/devtools/dbg-server.jsm
 const discovery = require("devtools/toolkit/discovery/discovery");
 const EventEmitter = require("devtools/toolkit/event-emitter");
 const promise = require("promise");
+loader.lazyRequireGetter(this, "AuthenticationResult",
+  "devtools/toolkit/security/auth", true);
+loader.lazyRequireGetter(this, "DevToolsUtils",
+  "devtools/toolkit/DevToolsUtils");
 
 const Strings = Services.strings.createBundle("chrome://browser/locale/devtools/webide.properties");
 
@@ -448,7 +452,7 @@ WiFiRuntime.prototype = {
       return promise.reject(new Error("Can't find device: " + this.name));
     }
     connection.advertisement = service;
-    
+    connection.authenticator.sendOOB = this.sendOOB;
     connection.connect();
     return promise.resolve();
   },
@@ -458,6 +462,81 @@ WiFiRuntime.prototype = {
   get name() {
     return this.deviceName;
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  sendOOB(session) {
+    const WINDOW_ID = "devtools:wifi-auth";
+    let { authResult } = session;
+    
+    if (authResult != AuthenticationResult.PENDING) {
+      throw new Error("Expected PENDING result, got " + authResult);
+    }
+
+    
+    let promptWindow;
+    let windowListener = {
+      onOpenWindow(xulWindow) {
+        let win = xulWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                           .getInterface(Ci.nsIDOMWindow);
+        win.addEventListener("load", function listener() {
+          win.removeEventListener("load", listener, false);
+          if (win.document.documentElement.getAttribute("id") != WINDOW_ID) {
+            return;
+          }
+          
+          promptWindow = win;
+          Services.wm.removeListener(windowListener);
+        }, false);
+      },
+      onCloseWindow() {},
+      onWindowTitleChange() {}
+    };
+    Services.wm.addListener(windowListener);
+
+    
+    DevToolsUtils.executeSoon(() => {
+      let win = Services.wm.getMostRecentWindow("devtools:webide");
+      let width = win.outerWidth * 0.8;
+      let height = win.outerHeight * 0.5;
+      win.openDialog("chrome://webide/content/wifi-auth.xhtml",
+                     WINDOW_ID,
+                     "modal=yes,width=" + width + ",height=" + height, session);
+    });
+
+    return {
+      close() {
+        if (!promptWindow) {
+          return;
+        }
+        promptWindow.close();
+        promptWindow = null;
+      }
+    };
+  }
 };
 
 
