@@ -4991,3 +4991,8 @@ pref("memory.report_concurrency", 1);
 
 pref("memory.report_concurrency", 10);
 #endif
+
+
+pref("media.useAudioChannelService", true);
+
+pref("media.useAudioChannelAPI", false);
