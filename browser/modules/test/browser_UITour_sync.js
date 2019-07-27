@@ -51,7 +51,7 @@ let tests = [
         tabBrowser.removeEventListener("load", onload, true);
 
         ise(tabBrowser.contentDocument.location.href,
-            "about:accounts?action=signup",
+            "about:accounts?action=signup&entrypoint=uitour",
             "about:accounts should have replaced the tab");
 
         

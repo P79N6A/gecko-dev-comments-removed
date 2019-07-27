@@ -424,7 +424,7 @@ this.UITour = {
         
         
         
-        contentDocument.location.href = "about:accounts?action=signup";
+        contentDocument.location.href = "about:accounts?action=signup&entrypoint=uitour";
         break;
       }
     }

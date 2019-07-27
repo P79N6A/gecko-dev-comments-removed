@@ -316,7 +316,9 @@ let gSyncUI = {
 
 
 
-  openSetup: function SUI_openSetup(wizardType) {
+
+
+  openSetup: function SUI_openSetup(wizardType, entryPoint = "syncbutton") {
     let xps = Components.classes["@mozilla.org/weave/service;1"]
                                 .getService(Components.interfaces.nsISupports)
                                 .wrappedJSObject;
@@ -325,7 +327,13 @@ let gSyncUI = {
         if (userData) {
           this.openPrefs();
         } else {
-          switchToTabHavingURI("about:accounts", true);
+          
+          if (UITour.originTabs.get(window) && UITour.originTabs.get(window).has(gBrowser.selectedTab)) {
+            entryPoint = "uitour";
+          }
+          switchToTabHavingURI("about:accounts?entrypoint=" + entryPoint, true, {
+            replaceQueryString: true
+          });
         }
       });
     } else {
@@ -366,8 +374,14 @@ let gSyncUI = {
     openPreferences("paneSync");
   },
 
-  openSignInAgainPage: function () {
-    switchToTabHavingURI("about:accounts?action=reauth", true);
+  openSignInAgainPage: function (entryPoint = "syncbutton") {
+    
+    if (UITour.originTabs.get(window) && UITour.originTabs.get(window).has(gBrowser.selectedTab)) {
+      entryPoint = "uitour";
+    }
+    switchToTabHavingURI("about:accounts?action=reauth&entrypoint=" + entryPoint, true, {
+      replaceQueryString: true
+    });
   },
 
   

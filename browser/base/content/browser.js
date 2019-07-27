@@ -180,6 +180,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "TabCrashReporter",
 XPCOMUtils.defineLazyModuleGetter(this, "FormValidationHandler",
   "resource:///modules/FormValidationHandler.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "UITour",
+  "resource:///modules/UITour.jsm");
+
 let gInitialPages = [
   "about:blank",
   "about:newtab",
@@ -1016,12 +1019,6 @@ var gBrowserInit = {
         setTimeout(pageShowEventHandlers, 0, message.data.persisted);
       }
     });
-
-    gBrowser.addEventListener("AboutTabCrashedLoad", function(event) {
-#ifdef MOZ_CRASHREPORTER
-      TabCrashReporter.onAboutTabCrashedLoad(gBrowser.getBrowserForDocument(event.target));
-#endif
-    }, false, true);
 
     if (uriToLoad && uriToLoad != "about:blank") {
       if (uriToLoad instanceof Ci.nsISupportsArray) {
@@ -4050,6 +4047,11 @@ var TabsProgressListener = {
         if (event.target.documentElement)
           event.target.documentElement.removeAttribute("hasBrowserHandlers");
       }, true);
+
+#ifdef MOZ_CRASHREPORTER
+      if (doc.documentURI.startsWith("about:tabcrashed"))
+        TabCrashReporter.onAboutTabCrashedLoad(aBrowser);
+#endif
     }
   },
 
@@ -6922,6 +6924,10 @@ let gRemoteTabsUI = {
 
 
 
+
+
+
+
 function switchToTabHavingURI(aURI, aOpenNew, aOpenParams={}) {
   
   
@@ -6930,6 +6936,8 @@ function switchToTabHavingURI(aURI, aOpenNew, aOpenParams={}) {
   ]);
 
   let ignoreFragment = aOpenParams.ignoreFragment;
+  let replaceQueryString = aOpenParams.replaceQueryString;
+
   
   
   delete aOpenParams.ignoreFragment;
@@ -6960,6 +6968,15 @@ function switchToTabHavingURI(aURI, aOpenNew, aOpenParams={}) {
           browser.loadURI(spec);
         }
         return true;
+      }
+      if (replaceQueryString) {
+        if (browser.currentURI.spec.split("?")[0] == aURI.spec.split("?")[0]) {
+          
+          aWindow.focus();
+          aWindow.gBrowser.tabContainer.selectedIndex = i;
+          browser.loadURI(aURI.spec);
+          return true;
+        }
       }
     }
     return false;
