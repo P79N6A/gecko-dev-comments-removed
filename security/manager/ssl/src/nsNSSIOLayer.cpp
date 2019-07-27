@@ -1209,6 +1209,12 @@ retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
   SSLVersionRange range = socketInfo->GetTLSVersionRange();
   nsSSLIOLayerHelpers& helpers = socketInfo->SharedState().IOLayerHelpers();
 
+  if (err == SSL_ERROR_UNSUPPORTED_VERSION &&
+      range.min == SSL_LIBRARY_VERSION_TLS_1_0) {
+    socketInfo->SetSecurityState(nsIWebProgressListener::STATE_IS_INSECURE |
+                                 nsIWebProgressListener::STATE_USES_SSL_3);
+  }
+
   if (err == SSL_ERROR_INAPPROPRIATE_FALLBACK_ALERT) {
     
     
