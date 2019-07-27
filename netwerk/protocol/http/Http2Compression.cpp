@@ -169,6 +169,12 @@ nvFIFO::VariableLength() const
   return mTable.GetSize();
 }
 
+uint32_t
+nvFIFO::StaticLength() const
+{
+  return gStaticHeaders->GetSize();
+}
+
 void
 nvFIFO::Clear()
 {
@@ -180,15 +186,17 @@ nvFIFO::Clear()
 const nvPair *
 nvFIFO::operator[] (int32_t index) const
 {
+  
+  
   if (index >= (mTable.GetSize() + gStaticHeaders->GetSize())) {
     MOZ_ASSERT(false);
     NS_WARNING("nvFIFO Table Out of Range");
     return nullptr;
   }
-  if (index >= mTable.GetSize()) {
-    return static_cast<nvPair *>(gStaticHeaders->ObjectAt(index - mTable.GetSize()));
+  if (index >= gStaticHeaders->GetSize()) {
+    return static_cast<nvPair *>(mTable.ObjectAt(index - gStaticHeaders->GetSize()));
   }
-  return static_cast<nvPair *>(mTable.ObjectAt(index));
+  return static_cast<nvPair *>(gStaticHeaders->ObjectAt(index));
 }
 
 Http2BaseCompressor::Http2BaseCompressor()
@@ -200,109 +208,35 @@ Http2BaseCompressor::Http2BaseCompressor()
 void
 Http2BaseCompressor::ClearHeaderTable()
 {
-  uint32_t dynamicCount = mHeaderTable.VariableLength();
   mHeaderTable.Clear();
-
-  for (int32_t i = mReferenceSet.Length() - 1; i >= 0; --i) {
-    if (mReferenceSet[i] < dynamicCount) {
-      mReferenceSet.RemoveElementAt(i);
-    } else {
-      mReferenceSet[i] -= dynamicCount;
-    }
-  }
-
-  for (int32_t i = mAlternateReferenceSet.Length() - 1; i >= 0; --i) {
-    if (mAlternateReferenceSet[i] < dynamicCount) {
-      mAlternateReferenceSet.RemoveElementAt(i);
-    } else {
-      mAlternateReferenceSet[i] -= dynamicCount;
-    }
-  }
 }
 
 void
-Http2BaseCompressor::UpdateReferenceSet(int32_t delta)
+Http2BaseCompressor::MakeRoom(uint32_t amount, const char *direction)
 {
-  if (!delta)
-    return;
-
-  uint32_t headerTableSize = mHeaderTable.VariableLength();
-  uint32_t oldHeaderTableSize = headerTableSize + delta;
-
-  for (int32_t i = mReferenceSet.Length() - 1; i >= 0; --i) {
-    uint32_t indexRef = mReferenceSet[i];
-    if (indexRef >= headerTableSize) {
-      if (indexRef < oldHeaderTableSize) {
-        
-        LOG(("HTTP base compressor reference to index %u removed.\n",
-             indexRef));
-        mReferenceSet.RemoveElementAt(i);
-      } else {
-        
-        uint32_t newRef = indexRef - delta;
-        LOG(("HTTP base compressor reference to index %u changed to %d (%s %s)\n",
-             mReferenceSet[i], newRef, mHeaderTable[newRef]->mName.get(),
-             mHeaderTable[newRef]->mValue.get()));
-        mReferenceSet[i] = newRef;
-      }
-    }
-  }
-
-  for (int32_t i = mAlternateReferenceSet.Length() - 1; i >= 0; --i) {
-    uint32_t indexRef = mAlternateReferenceSet[i];
-    if (indexRef >= headerTableSize) {
-      if (indexRef < oldHeaderTableSize) {
-        
-        LOG(("HTTP base compressor new reference to index %u removed.\n",
-             indexRef));
-        mAlternateReferenceSet.RemoveElementAt(i);
-      } else {
-        
-        uint32_t newRef = indexRef - delta;
-        LOG(("HTTP base compressor new reference to index %u changed to %d (%s %s)\n",
-             mAlternateReferenceSet[i], newRef, mHeaderTable[newRef]->mName.get(),
-             mHeaderTable[newRef]->mValue.get()));
-        mAlternateReferenceSet[i] = newRef;
-      }
-    }
-  }
-}
-
-void
-Http2BaseCompressor::IncrementReferenceSetIndices()
-{
-  LOG(("Http2BaseCompressor::IncrementReferenceSetIndices"));
-  for (int32_t i = mReferenceSet.Length() - 1; i >= 0; --i) {
-    mReferenceSet[i] = mReferenceSet[i] + 1;
-  }
-
-  for (int32_t i = mAlternateReferenceSet.Length() - 1; i >= 0; --i) {
-    mAlternateReferenceSet[i] = mAlternateReferenceSet[i] + 1;
+  
+  while (mHeaderTable.VariableLength() && ((mHeaderTable.ByteCount() + amount) > mMaxBuffer)) {
+    
+    uint32_t index = mHeaderTable.Length() - 1;
+    LOG(("HTTP %s header table index %u %s %s removed for size.\n",
+         direction, index, mHeaderTable[index]->mName.get(),
+         mHeaderTable[index]->mValue.get()));
+    mHeaderTable.RemoveElement();
   }
 }
 
 void
 Http2BaseCompressor::DumpState()
 {
-  LOG(("Alternate Reference Set"));
-  uint32_t i;
-  uint32_t length = mAlternateReferenceSet.Length();
-  for (i = 0; i < length; ++i) {
-    LOG(("index %u: %u", i, mAlternateReferenceSet[i]));
-  }
-
-  LOG(("Reference Set"));
-  length = mReferenceSet.Length();
-  for (i = 0; i < length; ++i) {
-    LOG(("index %u: %u", i, mReferenceSet[i]));
-  }
-
   LOG(("Header Table"));
-  length = mHeaderTable.Length();
-  uint32_t variableLength = mHeaderTable.VariableLength();
+  uint32_t i;
+  uint32_t length = mHeaderTable.Length();
+  uint32_t staticLength = mHeaderTable.StaticLength();
+  
   for (i = 0; i < length; ++i) {
     const nvPair *pair = mHeaderTable[i];
-    LOG(("%sindex %u: %s %s", i < variableLength ? "" : "static ", i,
+    
+    LOG(("%sindex %u: %s %s", i < staticLength ? "static " : "", i,
          pair->mName.get(), pair->mValue.get()));
   }
 }
@@ -311,7 +245,6 @@ nsresult
 Http2Decompressor::DecodeHeaderBlock(const uint8_t *data, uint32_t datalen,
                                      nsACString &output)
 {
-  mAlternateReferenceSet.Clear();
   mOffset = 0;
   mData = data;
   mDataLen = datalen;
@@ -322,6 +255,7 @@ Http2Decompressor::DecodeHeaderBlock(const uint8_t *data, uint32_t datalen,
   mHeaderScheme.Truncate();
   mHeaderPath.Truncate();
   mHeaderMethod.Truncate();
+  mSeenNonColonHeader = false;
 
   nsresult rv = NS_OK;
   while (NS_SUCCEEDED(rv) && (mOffset < datalen)) {
@@ -344,22 +278,6 @@ Http2Decompressor::DecodeHeaderBlock(const uint8_t *data, uint32_t datalen,
     DumpState();
   }
 
-  
-  
-  
-
-  uint32_t setLen = mReferenceSet.Length();
-  for (uint32_t index = 0; index < setLen; ++index) {
-    if (!mAlternateReferenceSet.Contains(mReferenceSet[index])) {
-      LOG(("HTTP decompressor carryover in reference set with index %u %s %s\n",
-           mReferenceSet[index],
-           mHeaderTable[mReferenceSet[index]]->mName.get(),
-           mHeaderTable[mReferenceSet[index]]->mValue.get()));
-      OutputHeader(mReferenceSet[index]);
-    }
-  }
-
-  mAlternateReferenceSet.Clear();
   return rv;
 }
 
@@ -473,38 +391,34 @@ Http2Decompressor::OutputHeader(const nsACString &name, const nsACString &value)
   }
 
   
-  if(*(name.BeginReading()) == ':') {
+  bool isColonHeader = false;
+  for (const char *cPtr = name.BeginReading();
+       cPtr && cPtr < name.EndReading();
+       ++cPtr) {
+    if (*cPtr == ':') {
+      isColonHeader = true;
+      break;
+    } else if (*cPtr != ' ' && *cPtr != '\t') {
+      isColonHeader = false;
+      break;
+    }
+  }
+  if(isColonHeader) {
+    if (mSeenNonColonHeader) {
+      LOG(("HTTP Decompressor found illegal : header %s", name.BeginReading()));
+      return NS_ERROR_ILLEGAL_VALUE;
+    }
     LOG(("HTTP Decompressor not gatewaying %s into http/1",
          name.BeginReading()));
     return NS_OK;
   }
 
+  LOG(("Http2Decompressor::OutputHeader %s %s", name.BeginReading(),
+       value.BeginReading()));
+  mSeenNonColonHeader = true;
   mOutput->Append(name);
   mOutput->AppendLiteral(": ");
-  
-  bool isSetCookie = name.EqualsLiteral("set-cookie");
-  int32_t valueLen = value.Length();
-  nsAutoCString textValue;
-  for (int32_t i = 0; i < valueLen; ++i) {
-    if (value[i] == '\0') {
-      if (isSetCookie) {
-        LOG(("Http2Decompressor::OutputHeader %s %s", name.BeginReading(),
-             textValue.get()));
-        mOutput->Append(textValue);
-        textValue.Truncate(0);
-        mOutput->AppendLiteral("\r\n");
-        mOutput->Append(name);
-        mOutput->AppendLiteral(": ");
-      } else {
-        textValue.AppendLiteral(", ");
-      }
-    } else {
-      textValue.Append(value[i]);
-    }
-  }
-  LOG(("Http2Decompressor::OutputHeader %s %s", name.BeginReading(),
-       textValue.get()));
-  mOutput->Append(textValue);
+  mOutput->Append(value);
   mOutput->AppendLiteral("\r\n");
   return NS_OK;
 }
@@ -512,6 +426,7 @@ Http2Decompressor::OutputHeader(const nsACString &name, const nsACString &value)
 nsresult
 Http2Decompressor::OutputHeader(uint32_t index)
 {
+  
   
   if (mHeaderTable.Length() <= index) {
     LOG(("Http2Decompressor::OutputHeader index too large %u", index));
@@ -525,6 +440,7 @@ Http2Decompressor::OutputHeader(uint32_t index)
 nsresult
 Http2Decompressor::CopyHeaderString(uint32_t index, nsACString &name)
 {
+  
   
   if (mHeaderTable.Length() <= index)
     return NS_ERROR_ILLEGAL_VALUE;
@@ -715,31 +631,12 @@ Http2Decompressor::CopyHuffmanStringFromInput(uint32_t bytes, nsACString &val)
   return NS_OK;
 }
 
-void
-Http2Decompressor::MakeRoom(uint32_t amount)
-{
-  
-  uint32_t removedCount = 0;
-  while (mHeaderTable.VariableLength() && ((mHeaderTable.ByteCount() + amount) > mMaxBuffer)) {
-    uint32_t index = mHeaderTable.VariableLength() - 1;
-    LOG(("HTTP decompressor header table index %u %s %s removed for size.\n",
-         index, mHeaderTable[index]->mName.get(),
-         mHeaderTable[index]->mValue.get()));
-    mHeaderTable.RemoveElement();
-    ++removedCount;
-  }
-
-  
-  UpdateReferenceSet(removedCount);
-}
-
 nsresult
 Http2Decompressor::DoIndexed()
 {
   
   MOZ_ASSERT(mData[mOffset] & 0x80);
 
-  
   
 
   uint32_t index;
@@ -752,42 +649,10 @@ Http2Decompressor::DoIndexed()
   if (index == 0) {
     return NS_ERROR_ILLEGAL_VALUE;
   }
+  
   index--; 
 
-  
-  
-  
-  
-  if (mReferenceSet.RemoveElement(index)) {
-    mAlternateReferenceSet.RemoveElement(index);
-    return NS_OK;
-  }
-
-  rv = OutputHeader(index);
-  if (index >= mHeaderTable.VariableLength()) {
-    const nvPair *pair = mHeaderTable[index];
-    uint32_t room = pair->Size();
-
-    if (room > mMaxBuffer) {
-      ClearHeaderTable();
-      LOG(("HTTP decompressor index not referenced due to size %u %s %s\n",
-           room, pair->mName.get(), pair->mValue.get()));
-      LOG(("Decompressor state after ClearHeaderTable"));
-      DumpState();
-      return rv;
-    }
-
-    LOG(("HTTP decompressor inserting static entry %u %s %s into dynamic table",
-         index, pair->mName.get(), pair->mValue.get()));
-    MakeRoom(room);
-    mHeaderTable.AddElement(pair->mName, pair->mValue);
-    IncrementReferenceSetIndices();
-    index = 0;
-  }
-
-  mReferenceSet.AppendElement(index);
-  mAlternateReferenceSet.AppendElement(index);
-  return rv;
+  return OutputHeader(index);
 }
 
 nsresult
@@ -823,6 +688,7 @@ Http2Decompressor::DoLiteralInternal(nsACString &name, nsACString &value,
          name.BeginReading()));
   } else {
     
+    
     rv = CopyHeaderString(index - 1, name);
     LOG(("Http2Decompressor::DoLiteralInternal indexed name %d %s",
          index, name.BeginReading()));
@@ -853,16 +719,12 @@ Http2Decompressor::DoLiteralWithoutIndex()
   
   MOZ_ASSERT((mData[mOffset] & 0xF0) == 0x00);
 
-  
-  
   nsAutoCString name, value;
   nsresult rv = DoLiteralInternal(name, value, 4);
 
   LOG(("HTTP decompressor literal without index %s %s\n",
        name.get(), value.get()));
 
-  
-  
   if (NS_SUCCEEDED(rv))
     rv = OutputHeader(name, value);
   return rv;
@@ -884,21 +746,17 @@ Http2Decompressor::DoLiteralWithIncremental()
   uint32_t room = nvPair(name, value).Size();
   if (room > mMaxBuffer) {
     ClearHeaderTable();
-    LOG(("HTTP decompressor literal with index not referenced due to size %u %s %s\n",
+    LOG(("HTTP decompressor literal with index not inserted due to size %u %s %s\n",
          room, name.get(), value.get()));
     LOG(("Decompressor state after ClearHeaderTable"));
     DumpState();
     return NS_OK;
   }
 
-  MakeRoom(room);
+  MakeRoom(room, "decompressor");
 
   
-  
   mHeaderTable.AddElement(name, value);
-  IncrementReferenceSetIndices();
-  mReferenceSet.AppendElement(0);
-  mAlternateReferenceSet.AppendElement(0);
 
   LOG(("HTTP decompressor literal with index 0 %s %s\n",
        name.get(), value.get()));
@@ -912,16 +770,12 @@ Http2Decompressor::DoLiteralNeverIndexed()
   
   MOZ_ASSERT((mData[mOffset] & 0xF0) == 0x10);
 
-  
-  
   nsAutoCString name, value;
   nsresult rv = DoLiteralInternal(name, value, 4);
 
   LOG(("HTTP decompressor literal never indexed %s %s\n",
        name.get(), value.get()));
 
-  
-  
   if (NS_SUCCEEDED(rv))
     rv = OutputHeader(name, value);
   return rv;
@@ -933,18 +787,9 @@ Http2Decompressor::DoContextUpdate()
   
   MOZ_ASSERT((mData[mOffset] & 0xE0) == 0x20);
 
-  if (mData[mOffset] & 0x10) {
-    
-    LOG(("Http2Decompressor::DoContextUpdate clearing reference set"));
-    mReferenceSet.Clear();
-    mAlternateReferenceSet.Clear();
-    ++mOffset;
-    return NS_OK;
-  }
-
   
   uint32_t newMaxSize;
-  nsresult rv = DecodeInteger(4, newMaxSize);
+  nsresult rv = DecodeInteger(5, newMaxSize);
   LOG(("Http2Decompressor::DoContextUpdate new maximum size %u", newMaxSize));
   if (NS_FAILED(rv))
     return rv;
@@ -959,8 +804,6 @@ Http2Compressor::EncodeHeaderBlock(const nsCString &nvInput,
                                    const nsACString &host, const nsACString &scheme,
                                    bool connectForm, nsACString &output)
 {
-  mAlternateReferenceSet.Clear();
-  mImpliedReferenceSet.Clear();
   mOutput = &output;
   output.SetCapacity(1024);
   output.Truncate();
@@ -1021,7 +864,19 @@ Http2Compressor::EncodeHeaderBlock(const nsCString &nvInput,
 
     
     
-    if(*(name.BeginReading()) == ':') {
+    bool isColonHeader = false;
+    for (const char *cPtr = name.BeginReading();
+         cPtr && cPtr < name.EndReading();
+         ++cPtr) {
+      if (*cPtr == ':') {
+        isColonHeader = true;
+        break;
+      } else if (*cPtr != ' ' && *cPtr != '\t') {
+        isColonHeader = false;
+        break;
+      }
+    }
+    if(isColonHeader) {
       continue;
     }
 
@@ -1084,23 +939,6 @@ Http2Compressor::EncodeHeaderBlock(const nsCString &nvInput,
     }
   }
 
-  
-  
-  uint32_t setLen = mReferenceSet.Length();
-  for (uint32_t index = 0; index < setLen; ++index) {
-    uint32_t indexRef = mReferenceSet[index];
-    if (!mAlternateReferenceSet.Contains(indexRef)) {
-      LOG(("Http2Compressor::EncodeHeaderBlock toggling off %s %s",
-           mHeaderTable[indexRef]->mName.get(),
-           mHeaderTable[indexRef]->mValue.get()));
-      DoOutput(kToggleOff, mHeaderTable[indexRef],
-               mReferenceSet[index]);
-    }
-  }
-
-  mReferenceSet = mAlternateReferenceSet;
-  mAlternateReferenceSet.Clear();
-  mImpliedReferenceSet.Clear();
   mOutput = nullptr;
   LOG(("Compressor state after EncodeHeaderBlock"));
   DumpState();
@@ -1169,11 +1007,10 @@ Http2Compressor::DoOutput(Http2Compressor::outputCode code,
     HuffmanAppend(pair->mValue);
     break;
 
-  case kToggleOff:
-  case kToggleOn:
-    LOG(("HTTP compressor %p toggle %s index %u %s %s\n",
-         this, (code == kToggleOff) ? "off" : "on",
-         index, pair->mName.get(), pair->mValue.get()));
+  case kIndex:
+    LOG(("HTTP compressor %p index %u %s %s\n",
+         this, index, pair->mName.get(), pair->mValue.get()));
+    
     
     
     EncodeInteger(7, index + 1);
@@ -1181,10 +1018,6 @@ Http2Compressor::DoOutput(Http2Compressor::outputCode code,
     *startByte = *startByte | 0x80; 
     break;
 
-  case kNop:
-    LOG(("HTTP compressor %p implied in reference set index %u %s %s\n",
-         this, index, pair->mName.get(), pair->mValue.get()));
-    break;
   }
 }
 
@@ -1218,99 +1051,6 @@ Http2Compressor::EncodeInteger(uint32_t prefixLen, uint32_t val)
     val = q;
     mOutput->Append(reinterpret_cast<char *>(&tmp), 1);
   } while (q);
-}
-
-void
-Http2Compressor::ClearHeaderTable()
-{
-  uint32_t dynamicCount = mHeaderTable.VariableLength();
-
-  Http2BaseCompressor::ClearHeaderTable();
-
-  for (int32_t i = mImpliedReferenceSet.Length() - 1; i >= 0; --i) {
-    if (mImpliedReferenceSet[i] < dynamicCount) {
-      mImpliedReferenceSet.RemoveElementAt(i);
-    } else {
-      mImpliedReferenceSet[i] -= dynamicCount;
-    }
-  }
-  LOG(("Compressor state after ClearHeaderTable"));
-  DumpState();
-}
-
-
-void
-Http2Compressor::UpdateReferenceSet(int32_t delta)
-{
-  if (!delta)
-    return;
-
-  Http2BaseCompressor::UpdateReferenceSet(delta);
-
-  uint32_t headerTableSize = mHeaderTable.VariableLength();
-  uint32_t oldHeaderTableSize = headerTableSize + delta;
-
-  for (int32_t i = mImpliedReferenceSet.Length() - 1; i >= 0; --i) {
-    uint32_t indexRef = mImpliedReferenceSet[i];
-    if (indexRef >= headerTableSize) {
-      if (indexRef < oldHeaderTableSize) {
-        
-        LOG(("HTTP compressor implied reference to index %u removed.\n",
-             indexRef));
-        mImpliedReferenceSet.RemoveElementAt(i);
-      } else {
-        
-        uint32_t newRef = indexRef - delta;
-        LOG(("HTTP compressor implied reference to index %u changed to %d (%s %s)\n",
-             mImpliedReferenceSet[i], newRef, mHeaderTable[newRef]->mName.get(),
-             mHeaderTable[newRef]->mValue.get()));
-        mImpliedReferenceSet[i] = newRef;
-      }
-    }
-  }
-}
-
-void
-Http2Compressor::IncrementReferenceSetIndices()
-{
-  Http2BaseCompressor::IncrementReferenceSetIndices();
-
-  LOG(("Http2Compressor::IncrementReferenceSetIndices"));
-  for (int32_t i = mImpliedReferenceSet.Length() - 1; i >= 0; --i) {
-    mImpliedReferenceSet[i] = mImpliedReferenceSet[i] + 1;
-  }
-}
-
-void
-Http2Compressor::MakeRoom(uint32_t amount)
-{
-  
-  uint32_t removedCount = 0;
-  while (mHeaderTable.VariableLength() && ((mHeaderTable.ByteCount() + amount) > mMaxBuffer)) {
-
-    
-    
-    
-    uint32_t index = mHeaderTable.VariableLength() - 1;
-    if (mImpliedReferenceSet.Contains(index) ) {
-      LOG(("HTTP compressor header table index %u %s %s about to be "
-           "removed for size but has an implied reference. Will Toggle.\n",
-           index, mHeaderTable[index]->mName.get(),
-           mHeaderTable[index]->mValue.get()));
-
-      DoOutput(kToggleOff, mHeaderTable[index], index);
-      DoOutput(kToggleOn, mHeaderTable[index], index);
-    }
-
-    LOG(("HTTP compressor header table index %u %s %s removed for size.\n",
-         index, mHeaderTable[index]->mName.get(),
-         mHeaderTable[index]->mValue.get()));
-    mHeaderTable.RemoveElement();
-    ++removedCount;
-  }
-
-  
-  UpdateReferenceSet(removedCount);
 }
 
 void
@@ -1388,18 +1128,6 @@ Http2Compressor::HuffmanAppend(const nsCString &value)
 }
 
 void
-Http2Compressor::DumpState()
-{
-  LOG(("Implied Reference Set"));
-  uint32_t length = mImpliedReferenceSet.Length();
-  for (uint32_t i = 0; i < length; ++i) {
-    LOG(("index %u: %u", i, mImpliedReferenceSet[i]));
-  }
-
-  Http2BaseCompressor::DumpState();
-}
-
-void
 Http2Compressor::ProcessHeader(const nvPair inputPair, bool noLocalIndex,
                                bool neverIndex)
 {
@@ -1412,8 +1140,10 @@ Http2Compressor::ProcessHeader(const nvPair inputPair, bool noLocalIndex,
   LOG(("Http2Compressor::ProcessHeader %s %s", inputPair.mName.get(),
        inputPair.mValue.get()));
 
+  
   for (uint32_t index = 0; index < headerTableSize; ++index) {
     if (mHeaderTable[index]->mName.Equals(inputPair.mName)) {
+      
       nameReference = index + 1;
       if (mHeaderTable[index]->mValue.Equals(inputPair.mValue)) {
         match = true;
@@ -1441,54 +1171,20 @@ Http2Compressor::ProcessHeader(const nvPair inputPair, bool noLocalIndex,
 
     
     
-    MakeRoom(newSize);
+    MakeRoom(newSize, "compressor");
     DoOutput(kIndexedLiteral, &inputPair, nameReference);
 
     mHeaderTable.AddElement(inputPair.mName, inputPair.mValue);
-    IncrementReferenceSetIndices();
     LOG(("HTTP compressor %p new literal placed at index 0\n",
          this));
-    mAlternateReferenceSet.AppendElement(0);
     LOG(("Compressor state after literal with index"));
     DumpState();
     return;
   }
 
   
-  
-  if (mReferenceSet.Contains(matchedIndex)) {
-    if (mAlternateReferenceSet.Contains(matchedIndex)) {
-      DoOutput(kToggleOff, &inputPair, matchedIndex);
-      DoOutput(kToggleOn, &inputPair, matchedIndex);
-      LOG(("Compressor state after toggle off/on index"));
-    } else {
-      DoOutput(kNop, &inputPair, matchedIndex);
-      if (!mImpliedReferenceSet.Contains(matchedIndex))
-        mImpliedReferenceSet.AppendElement(matchedIndex);
-      mAlternateReferenceSet.AppendElement(matchedIndex);
-      LOG(("Compressor state after NOP index"));
-    }
-    DumpState();
-    return;
-  }
+  DoOutput(kIndex, &inputPair, matchedIndex);
 
-  
-  
-  bool isStatic = (matchedIndex >= mHeaderTable.VariableLength());
-  if (isStatic) {
-    MakeRoom(newSize);
-  }
-
-  
-  DoOutput(kToggleOn, &inputPair, matchedIndex);
-
-  if (isStatic) {
-    mHeaderTable.AddElement(inputPair.mName, inputPair.mValue);
-    IncrementReferenceSetIndices();
-    mAlternateReferenceSet.AppendElement(0);
-  } else {
-    mAlternateReferenceSet.AppendElement(matchedIndex);
-  }
   LOG(("Compressor state after index"));
   DumpState();
   return;
@@ -1531,7 +1227,6 @@ Http2Compressor::SetMaxBufferSizeInternal(uint32_t maxBufferSize)
     mHeaderTable.RemoveElement();
     ++removedCount;
   }
-  UpdateReferenceSet(removedCount);
 
   mMaxBuffer = maxBufferSize;
 

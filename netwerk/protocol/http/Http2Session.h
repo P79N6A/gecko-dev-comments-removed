@@ -112,7 +112,6 @@ public:
   const static uint8_t kFlag_END_HEADERS = 0x04; 
   const static uint8_t kFlag_END_PUSH_PROMISE = 0x04; 
   const static uint8_t kFlag_ACK = 0x01; 
-  const static uint8_t kFlag_END_SEGMENT = 0x02; 
   const static uint8_t kFlag_PADDED = 0x08; 
   const static uint8_t kFlag_PRIORITY = 0x20; 
 
@@ -120,7 +119,8 @@ public:
     SETTINGS_TYPE_HEADER_TABLE_SIZE = 1, 
     SETTINGS_TYPE_ENABLE_PUSH = 2,     
     SETTINGS_TYPE_MAX_CONCURRENT = 3,  
-    SETTINGS_TYPE_INITIAL_WINDOW = 4  
+    SETTINGS_TYPE_INITIAL_WINDOW = 4,  
+    SETTINGS_TYPE_MAX_FRAME_SIZE = 5   
   };
 
   
@@ -150,7 +150,14 @@ public:
 
   
   
-  const static uint32_t kMaxFrameData = 16383;
+  const static uint32_t kMaxFrameData = 0x4000;
+
+  const static uint8_t kFrameLengthBytes = 3;
+  const static uint8_t kFrameStreamIDBytes = 4;
+  const static uint8_t kFrameFlagBytes = 1;
+  const static uint8_t kFrameTypeBytes = 1;
+  const static uint8_t kFrameHeaderBytes = kFrameLengthBytes + kFrameFlagBytes +
+    kFrameTypeBytes + kFrameStreamIDBytes;
 
   static nsresult RecvHeaders(Http2Session *);
   static nsresult RecvPriority(Http2Session *);
