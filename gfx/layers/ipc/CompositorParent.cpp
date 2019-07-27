@@ -147,7 +147,8 @@ CompositorThreadHolder::CreateCompositorThread()
   options.transient_hang_timeout = 128; 
   
 
-  options.permanent_hang_timeout = 8192; 
+
+  options.permanent_hang_timeout = 2048; 
 
   if (!compositorThread->StartWithOptions(options)) {
     delete compositorThread;
