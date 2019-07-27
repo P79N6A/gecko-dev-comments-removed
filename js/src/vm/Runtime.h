@@ -479,7 +479,6 @@ void DisableExtraThreads();
 
 
 
-
 class PerThreadData : public PerThreadDataFriendFields
 {
     
