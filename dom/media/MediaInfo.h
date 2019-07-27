@@ -6,63 +6,125 @@
 #if !defined(MediaInfo_h)
 #define MediaInfo_h
 
-#include "nsSize.h"
 #include "nsRect.h"
-#include "ImageTypes.h"
+#include "nsRefPtr.h"
+#include "nsSize.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "ImageTypes.h"
+#include "MediaData.h"
 #include "StreamBuffer.h" 
 
 namespace mozilla {
 
-struct TrackInfo {
-  void Init(const nsAString& aId,
+class TrackInfo {
+public:
+  enum TrackType {
+    kUndefinedTrack,
+    kAudioTrack,
+    kVideoTrack,
+    kTextTrack
+  };
+  TrackInfo(TrackType aType,
+            const nsAString& aId,
             const nsAString& aKind,
             const nsAString& aLabel,
             const nsAString& aLanguage,
             bool aEnabled,
-            TrackID aOutputId = TRACK_INVALID)
+            TrackID aTrackId = TRACK_INVALID)
+    : mId(aId)
+    , mKind(aKind)
+    , mLabel(aLabel)
+    , mLanguage(aLanguage)
+    , mEnabled(aEnabled)
+    , mTrackId(aTrackId)
+    , mDuration(0)
+    , mMediaTime(0)
+    , mType(aType)
+  {
+  }
+
+  
+  void Init(TrackType aType,
+            const nsAString& aId,
+            const nsAString& aKind,
+            const nsAString& aLabel,
+            const nsAString& aLanguage,
+            bool aEnabled,
+            TrackID aTrackId = TRACK_INVALID)
   {
     mId = aId;
     mKind = aKind;
     mLabel = aLabel;
     mLanguage = aLanguage;
     mEnabled = aEnabled;
-    mOutputId = aOutputId;
+    mTrackId = aTrackId;
+    mType = aType;
   }
 
+  
   nsString mId;
   nsString mKind;
   nsString mLabel;
   nsString mLanguage;
   bool mEnabled;
-  TrackID mOutputId;
+
+  TrackID mTrackId;
+
+  nsAutoCString mMimeType;
+  int64_t mDuration;
+  int64_t mMediaTime;
+  CryptoTrack mCrypto;
+
+  bool IsAudio() const
+  {
+    return mType == kAudioTrack;
+  }
+  bool IsVideo() const
+  {
+    return mType == kVideoTrack;
+  }
+  bool IsText() const
+  {
+    return mType == kTextTrack;
+  }
+  TrackType GetType() const
+  {
+    return mType;
+  }
+  bool virtual IsValid() const = 0;
+
+private:
+  TrackType mType;
 };
 
 
-class VideoInfo {
-private:
-  void Init(int32_t aWidth, int32_t aHeight, bool aHasVideo)
-  {
-    mDisplay = nsIntSize(aWidth, aHeight);
-    mStereoMode = StereoMode::MONO;
-    mHasVideo = aHasVideo;
-
-    
-    
-    mTrackInfo.Init(NS_LITERAL_STRING("2"), NS_LITERAL_STRING("main"),
-                    EmptyString(), EmptyString(), true, 2);
-  }
-
+class VideoInfo : public TrackInfo {
 public:
   VideoInfo()
+    : VideoInfo(0, 0, false)
   {
-    Init(0, 0, false);
   }
 
   VideoInfo(int32_t aWidth, int32_t aHeight)
+    : VideoInfo(aWidth, aHeight, true)
   {
-    Init(aWidth, aHeight, true);
+  }
+
+  VideoInfo(int32_t aWidth, int32_t aHeight, bool aHasVideo)
+    : TrackInfo(kVideoTrack, NS_LITERAL_STRING("2"), NS_LITERAL_STRING("main"),
+                EmptyString(), EmptyString(), true, 2)
+    , mDisplay(nsIntSize(aWidth, aHeight))
+    , mStereoMode(StereoMode::MONO)
+    , mImage(nsIntSize(aWidth, aHeight))
+    , mExtraData(new DataBuffer)
+    , mHasVideo(aHasVideo)
+  {
+  }
+
+  virtual bool IsValid() const override
+  {
+    return mDisplay.width > 0 && mDisplay.height > 0;
   }
 
   
@@ -73,22 +135,28 @@ public:
   StereoMode mStereoMode;
 
   
-  bool mHasVideo;
+  nsIntSize mImage;
 
-  TrackInfo mTrackInfo;
+  nsRefPtr<DataBuffer> mExtraData;
+
+  
+  bool mHasVideo;
 };
 
-class AudioInfo {
+class AudioInfo : public TrackInfo {
 public:
   AudioInfo()
-    : mRate(44100)
-    , mChannels(2)
+    : TrackInfo(kAudioTrack, NS_LITERAL_STRING("1"), NS_LITERAL_STRING("main"),
+                EmptyString(), EmptyString(), true, 1)
+    , mRate(0)
+    , mChannels(0)
+    , mBitDepth(0)
+    , mProfile(0)
+    , mExtendedProfile(0)
+    , mCodecSpecificConfig(new DataBuffer)
+    , mExtraData(new DataBuffer)
     , mHasAudio(false)
   {
-    
-    
-    mTrackInfo.Init(NS_LITERAL_STRING("1"), NS_LITERAL_STRING("main"),
-                    EmptyString(), EmptyString(), true, 1);
   }
 
   
@@ -98,9 +166,24 @@ public:
   uint32_t mChannels;
 
   
-  bool mHasAudio;
+  uint32_t mBitDepth;
 
-  TrackInfo mTrackInfo;
+  
+  int8_t mProfile;
+
+  
+  int8_t mExtendedProfile;
+
+  nsRefPtr<DataBuffer> mCodecSpecificConfig;
+  nsRefPtr<DataBuffer> mExtraData;
+
+  virtual bool IsValid() const override
+  {
+    return mChannels > 0 && mRate > 0;
+  }
+
+  
+  bool mHasAudio;
 };
 
 class EncryptionInfo {
