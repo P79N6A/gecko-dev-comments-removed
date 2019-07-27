@@ -119,6 +119,7 @@ public:
 
 
 
+
   nsFilterInstance(nsIFrame *aTargetFrame,
                    nsIContent* aTargetContent,
                    const UserSpaceMetrics& aMetrics,
