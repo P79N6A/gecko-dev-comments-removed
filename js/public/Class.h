@@ -122,12 +122,14 @@ class ObjectOpResult
 
 
 
-    bool checkStrict(JSContext *cx, HandleId id) {
-        return ok() || reportError(cx, id);
+    bool checkStrict(JSContext *cx, HandleObject obj, HandleId id) {
+        if (ok())
+            return true;
+        return reportError(cx, obj, id);
     }
 
     
-    JS_PUBLIC_API(bool) reportError(JSContext *cx, HandleId id);
+    JS_PUBLIC_API(bool) reportError(JSContext *cx, HandleObject obj, HandleId id);
 };
 
 }
