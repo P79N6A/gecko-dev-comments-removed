@@ -25,8 +25,6 @@
 #include "nsIRDFService.h"
 #include "nsRDFCID.h"
 #include "rdf.h"
-#include "nsIScriptContext.h"
-#include "nsIScriptGlobalObject.h"
 #include "nsIServiceManager.h"
 #include "nsISupportsArray.h"
 #include "nsIXPConnect.h"
@@ -51,7 +49,6 @@
 #include "nsIDocument.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/ScriptSettings.h"
-#include "nsCxPusher.h"
 
 using namespace mozilla;
 
@@ -224,14 +221,14 @@ nsHTTPIndex::OnStartRequest(nsIRequest *request, nsISupports* aContext)
   if (mBindToGlobalObject && mRequestor) {
     mBindToGlobalObject = false;
 
+    nsCOMPtr<nsIGlobalObject> globalObject = do_GetInterface(mRequestor);
+    NS_ENSURE_TRUE(globalObject, NS_ERROR_FAILURE);
+
     
-    nsCOMPtr<nsIScriptGlobalObject> scriptGlobal(do_GetInterface(mRequestor));
-    NS_ENSURE_TRUE(scriptGlobal, NS_ERROR_FAILURE);
+    
+    dom::AutoEntryScript aes(globalObject);
+    JSContext* cx = aes.cx();
 
-    nsIScriptContext *context = scriptGlobal->GetContext();
-    NS_ENSURE_TRUE(context, NS_ERROR_FAILURE);
-
-    AutoPushJSContext cx(context->GetNativeContext());
     JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
 
     
