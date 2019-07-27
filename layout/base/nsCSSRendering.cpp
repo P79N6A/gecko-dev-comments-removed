@@ -951,6 +951,33 @@ nsCSSRendering::PaintFocus(nsPresContext* aPresContext,
 
 
 
+typedef nsStyleBackground::Position::PositionCoord PositionCoord;
+static void
+ComputeBackgroundAnchorCoord(const PositionCoord& aCoord,
+                             const nscoord aOriginBounds,
+                             const nscoord aImageSize,
+                             nscoord* aTopLeftCoord,
+                             nscoord* aAnchorPointCoord)
+{
+  *aAnchorPointCoord = aCoord.mLength;
+  *aTopLeftCoord = aCoord.mLength;
+
+  if (aCoord.mHasPercent) {
+    
+    nscoord extraSpace = aOriginBounds - aImageSize;
+    *aTopLeftCoord += NSToCoordRound(aCoord.mPercent * extraSpace);
+
+    
+    
+    *aAnchorPointCoord += NSToCoordRound(aCoord.mPercent * aOriginBounds);
+  }
+}
+
+
+
+
+
+
 
 
 
@@ -964,23 +991,19 @@ nsCSSRendering::PaintFocus(nsPresContext* aPresContext,
 
 
 static void
-ComputeBackgroundAnchorPoint(const nsStyleBackground::Layer& aLayer,
+ComputeBackgroundAnchorPoint(const nsStyleBackground::Position& aPos,
                              const nsSize& aOriginBounds,
                              const nsSize& aImageSize,
                              nsPoint* aTopLeft,
                              nsPoint* aAnchorPoint)
 {
-  double percentX = aLayer.mPosition.mXPosition.mPercent;
-  nscoord lengthX = aLayer.mPosition.mXPosition.mLength;
-  aAnchorPoint->x = lengthX + NSToCoordRound(percentX*aOriginBounds.width);
-  aTopLeft->x = lengthX +
-    NSToCoordRound(percentX*(aOriginBounds.width - aImageSize.width));
+  ComputeBackgroundAnchorCoord(aPos.mXPosition,
+                               aOriginBounds.width, aImageSize.width,
+                               &aTopLeft->x, &aAnchorPoint->x);
 
-  double percentY = aLayer.mPosition.mYPosition.mPercent;
-  nscoord lengthY = aLayer.mPosition.mYPosition.mLength;
-  aAnchorPoint->y = lengthY + NSToCoordRound(percentY*aOriginBounds.height);
-  aTopLeft->y = lengthY +
-    NSToCoordRound(percentY*(aOriginBounds.height - aImageSize.height));
+  ComputeBackgroundAnchorCoord(aPos.mYPosition,
+                               aOriginBounds.height, aImageSize.height,
+                               &aTopLeft->y, &aAnchorPoint->y);
 }
 
 nsIFrame*
@@ -3167,7 +3190,7 @@ nsCSSRendering::PrepareBackgroundLayer(nsPresContext* aPresContext,
 
   
   
-  ComputeBackgroundAnchorPoint(aLayer, bgPositionSize, imageSize,
+  ComputeBackgroundAnchorPoint(aLayer.mPosition, bgPositionSize, imageSize,
                                &imageTopLeft, &state.mAnchor);
   imageTopLeft += bgPositioningArea.TopLeft();
   state.mAnchor += bgPositioningArea.TopLeft();
