@@ -2853,11 +2853,12 @@ function parseQueryString(aQueryString) {
     return;
   }
   
-  let paramsArray = aQueryString.replace(/^[?&]/, "").split("&").map(e =>
-    let (param = e.split("=")) {
+  let paramsArray = aQueryString.replace(/^[?&]/, "").split("&").map(e => {
+    let param = e.split("=");
+    return {
       name: param[0] ? NetworkHelper.convertToUnicode(unescape(param[0])) : "",
       value: param[1] ? NetworkHelper.convertToUnicode(unescape(param[1])) : ""
-    });
+    }});
   return paramsArray;
 }
 
