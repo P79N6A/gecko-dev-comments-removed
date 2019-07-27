@@ -379,52 +379,62 @@ nsHTMLReflowState::Init(nsPresContext* aPresContext,
 
   nsIFrame *parent = frame->GetParent();
   if (parent &&
-      (parent->GetStateBits() & NS_FRAME_IN_CONSTRAINED_HEIGHT) &&
+      (parent->GetStateBits() & NS_FRAME_IN_CONSTRAINED_BSIZE) &&
       !(parent->GetType() == nsGkAtoms::scrollFrame &&
         parent->StyleDisplay()->mOverflowY != NS_STYLE_OVERFLOW_HIDDEN)) {
-    frame->AddStateBits(NS_FRAME_IN_CONSTRAINED_HEIGHT);
+    frame->AddStateBits(NS_FRAME_IN_CONSTRAINED_BSIZE);
   } else if (type == nsGkAtoms::svgForeignObjectFrame) {
     
-    frame->AddStateBits(NS_FRAME_IN_CONSTRAINED_HEIGHT);
-  } else if ((mStylePosition->mHeight.GetUnit() != eStyleUnit_Auto ||
-              mStylePosition->mMaxHeight.GetUnit() != eStyleUnit_None) &&
-              
-              
-             (frame->GetContent() &&
-            !(frame->GetContent()->IsAnyOfHTMLElements(nsGkAtoms::body,
-                                                       nsGkAtoms::html)))) {
+    frame->AddStateBits(NS_FRAME_IN_CONSTRAINED_BSIZE);
+  } else {
+    const bool vertical = mWritingMode.IsVertical();
+    const nsStyleCoord& bSizeCoord =
+      vertical ? mStylePosition->mWidth : mStylePosition->mHeight;
+    const nsStyleCoord& maxBSizeCoord =
+      vertical ? mStylePosition->mMaxWidth : mStylePosition->mMaxHeight;
+    if ((bSizeCoord.GetUnit() != eStyleUnit_Auto ||
+         maxBSizeCoord.GetUnit() != eStyleUnit_None) &&
+         
+         (frame->GetContent() &&
+        !(frame->GetContent()->IsAnyOfHTMLElements(nsGkAtoms::body,
+                                                   nsGkAtoms::html)))) {
 
-    
-    
-    
-    nsIFrame* containingBlk = frame;
-    while (containingBlk) {
-      const nsStylePosition* stylePos = containingBlk->StylePosition();
-      if ((stylePos->mHeight.IsCoordPercentCalcUnit() &&
-           !stylePos->mHeight.HasPercent()) ||
-          (stylePos->mMaxHeight.IsCoordPercentCalcUnit() &&
-           !stylePos->mMaxHeight.HasPercent())) {
-        frame->AddStateBits(NS_FRAME_IN_CONSTRAINED_HEIGHT);
-        break;
-      } else if ((stylePos->mHeight.IsCoordPercentCalcUnit() &&
-                  stylePos->mHeight.HasPercent()) ||
-                 (stylePos->mMaxHeight.IsCoordPercentCalcUnit() &&
-                  stylePos->mMaxHeight.HasPercent())) {
-        if (!(containingBlk = containingBlk->GetContainingBlock())) {
-          
-          
-          frame->RemoveStateBits(NS_FRAME_IN_CONSTRAINED_HEIGHT);
+      
+      
+      
+      nsIFrame* containingBlk = frame;
+      while (containingBlk) {
+        const nsStylePosition* stylePos = containingBlk->StylePosition();
+        const nsStyleCoord& bSizeCoord =
+          vertical ? stylePos->mWidth : stylePos->mHeight;
+        const nsStyleCoord& maxBSizeCoord =
+          vertical ? stylePos->mMaxWidth : stylePos->mMaxHeight;
+        if ((bSizeCoord.IsCoordPercentCalcUnit() &&
+             !bSizeCoord.HasPercent()) ||
+            (maxBSizeCoord.IsCoordPercentCalcUnit() &&
+             !maxBSizeCoord.HasPercent())) {
+          frame->AddStateBits(NS_FRAME_IN_CONSTRAINED_BSIZE);
+          break;
+        } else if ((bSizeCoord.IsCoordPercentCalcUnit() &&
+                    bSizeCoord.HasPercent()) ||
+                   (maxBSizeCoord.IsCoordPercentCalcUnit() &&
+                    maxBSizeCoord.HasPercent())) {
+          if (!(containingBlk = containingBlk->GetContainingBlock())) {
+            
+            
+            frame->RemoveStateBits(NS_FRAME_IN_CONSTRAINED_BSIZE);
+            break;
+          }
+
+          continue;
+        } else {
+          frame->RemoveStateBits(NS_FRAME_IN_CONSTRAINED_BSIZE);
           break;
         }
-
-        continue;
-      } else {
-        frame->RemoveStateBits(NS_FRAME_IN_CONSTRAINED_HEIGHT);
-        break;
       }
+    } else {
+      frame->RemoveStateBits(NS_FRAME_IN_CONSTRAINED_BSIZE);
     }
-  } else {
-    frame->RemoveStateBits(NS_FRAME_IN_CONSTRAINED_HEIGHT);
   }
 
   NS_WARN_IF_FALSE((mFrameType == NS_CSS_FRAME_TYPE_INLINE &&

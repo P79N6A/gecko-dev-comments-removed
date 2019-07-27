@@ -7311,7 +7311,7 @@ ShouldInflateFontsForContainer(const nsIFrame *aFrame)
   const nsStyleText* styleText = aFrame->StyleText();
 
   return styleText->mTextSizeAdjust != NS_STYLE_TEXT_SIZE_ADJUST_NONE &&
-         !(aFrame->GetStateBits() & NS_FRAME_IN_CONSTRAINED_HEIGHT) &&
+         !(aFrame->GetStateBits() & NS_FRAME_IN_CONSTRAINED_BSIZE) &&
          
          
          

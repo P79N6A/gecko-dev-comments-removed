@@ -210,7 +210,7 @@ nsLineLayout::BeginLineReflow(nscoord aICoord, nscoord aBCoord,
   
   
   if (!(LineContainerFrame()->GetStateBits() &
-        NS_FRAME_IN_CONSTRAINED_HEIGHT)) {
+        NS_FRAME_IN_CONSTRAINED_BSIZE)) {
 
     
     
