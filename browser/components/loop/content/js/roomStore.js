@@ -513,11 +513,7 @@ loop.store = loop.store || {};
         
         
         if (!Object.getOwnPropertyNames(roomData).length) {
-          
-          
-          setTimeout(function() {
-            this.dispatchAction(new sharedActions.UpdateRoomContextDone());
-          }.bind(this), 0);
+          this.dispatchAction(new sharedActions.UpdateRoomContextDone());
           return;
         }
 
