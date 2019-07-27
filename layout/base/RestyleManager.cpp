@@ -2776,6 +2776,16 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
                                     nsChangeHint_ReconstructFrame);
           
           newContext = oldContext;
+#ifdef DEBUG
+          
+          
+          
+          
+          
+          if (oldContext->GetParent() != parentContext) {
+            oldContext->AddStyleBit(NS_STYLE_IS_GOING_AWAY);
+          }
+#endif
         }
       } else {
         
