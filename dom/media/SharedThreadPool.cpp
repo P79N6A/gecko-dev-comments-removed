@@ -54,8 +54,27 @@ public:
 static void
 DestroySharedThreadPoolHashTable()
 {
+  
+  
+  
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(sMonitor && sPools);
+
+  
+  
+  
+  
+  
+  
+  
+  if (!sPools) {
+    MOZ_ASSERT(!sMonitor);
+    return;
+  }
+
+  
+  
+  
+  
   if (!sPools->Count()) {
     
     
