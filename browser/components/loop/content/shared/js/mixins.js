@@ -279,10 +279,13 @@ loop.shared.mixins = (function() {
 
 
 
-    getRemoteVideoDimensions: function() {
+
+
+
+    getRemoteVideoDimensions: function(videoType) {
       var remoteVideoDimensions;
 
-      Object.keys(this._videoDimensionsCache.remote).forEach(function(videoType) {
+      if (videoType in this._videoDimensionsCache.remote) {
         var node = this._getElement("." + (videoType === "camera" ? "remote" : videoType));
         var width = node.offsetWidth;
         
@@ -327,7 +330,7 @@ loop.shared.mixins = (function() {
               remoteVideoDimensions.height: leadingAxisSize;
           }
         }
-      }, this);
+      }
 
       
       
@@ -394,6 +397,12 @@ loop.shared.mixins = (function() {
           var ratio = this._videoDimensionsCache.local[videoType].aspectRatio;
           if (videoType == "camera" && this.updateLocalCameraPosition) {
             this.updateLocalCameraPosition(ratio);
+          }
+        }, this);
+        Object.keys(this._videoDimensionsCache.remote).forEach(function(videoType) {
+          var ratio = this._videoDimensionsCache.remote[videoType].aspectRatio;
+          if (videoType == "camera" && this.updateRemoteCameraPosition) {
+            this.updateRemoteCameraPosition(ratio);
           }
         }, this);
       }.bind(this), 0);

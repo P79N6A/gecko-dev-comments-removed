@@ -263,6 +263,16 @@ loop.standaloneRoomViews = (function(mozL10n) {
         
         this.updateVideoContainer();
       }
+
+      
+      if (this.state.receivingScreenShare && !nextState.receivingScreenShare) {
+        
+        var node = this._getElement(".remote");
+        node.removeAttribute("style");
+
+        
+        this.updateVideoContainer();
+      }
     },
 
     joinRoom: function() {
@@ -318,7 +328,9 @@ loop.standaloneRoomViews = (function(mozL10n) {
 
         
         
-        var remoteVideoDimensions = this.getRemoteVideoDimensions();
+        var remoteVideoDimensions = this.getRemoteVideoDimensions(
+          this.state.receivingScreenShare ? "screen" : "camera");
+
         targetWidth = remoteVideoDimensions.streamWidth * LOCAL_STREAM_SIZE;
 
         var realWidth = targetWidth * ratio.width;
@@ -350,6 +362,53 @@ loop.standaloneRoomViews = (function(mozL10n) {
 
 
 
+
+
+
+
+    updateRemoteCameraPosition: function(ratio) {
+      
+      if (!this.state.receivingScreenShare) {
+        return;
+      }
+      
+      
+      if (window.matchMedia && window.matchMedia("screen and (max-width:640px)").matches) {
+        return;
+      }
+
+      
+      var LOCAL_REMOTE_SEPARATION = 10;
+
+      var node = this._getElement(".remote");
+      var localNode = this._getElement(".local");
+
+      
+      node.style.width = localNode.offsetWidth + "px";
+
+      
+      var height = ((localNode.offsetWidth / ratio.width) * ratio.height);
+      node.style.height = height + "px";
+
+      node.style.right = "auto";
+      node.style.bottom = "auto";
+
+      
+      
+
+      
+      
+      node.style.top = (localNode.offsetTop - height - LOCAL_REMOTE_SEPARATION) + "px";
+
+      
+      node.style.left = localNode.offsetLeft + "px";
+    },
+
+    
+
+
+
+
     _roomIsActive: function() {
       return this.state.roomState === ROOM_STATES.JOINED            ||
              this.state.roomState === ROOM_STATES.SESSION_CONNECTED ||
@@ -367,14 +426,14 @@ loop.standaloneRoomViews = (function(mozL10n) {
       var remoteStreamClasses = React.addons.classSet({
         "video_inner": true,
         "remote": true,
-        "remote-stream": true,
-        hide: this.state.receivingScreenShare
+        "focus-stream": !this.state.receivingScreenShare,
+        "remote-inset-stream": this.state.receivingScreenShare
       });
 
       var screenShareStreamClasses = React.addons.classSet({
         "screen": true,
-        "remote-stream": true,
-        hide: !this.state.receivingScreenShare
+        "focus-stream": this.state.receivingScreenShare,
+        hide: !this.state.receivingScreenShare,
       });
 
       return (
