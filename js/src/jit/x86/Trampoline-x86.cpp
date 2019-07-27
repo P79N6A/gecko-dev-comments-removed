@@ -67,6 +67,20 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
 
     
     masm.loadPtr(Address(ebp, ARG_ARGC), eax);
+
+    
+    {
+        Label noNewTarget;
+        masm.loadPtr(Address(ebp, ARG_CALLEETOKEN), edx);
+        masm.branchTest32(Assembler::Zero, edx, Imm32(CalleeToken_FunctionConstructing),
+                          &noNewTarget);
+
+        masm.addl(Imm32(1), eax);
+
+        masm.bind(&noNewTarget);
+    }
+
+    
     masm.shll(Imm32(3), eax);
 
     
@@ -397,6 +411,14 @@ JitRuntime::generateArgumentsRectifier(JSContext* cx, void** returnAddrOut)
 
     MOZ_ASSERT(IsPowerOfTwo(JitStackValueAlignment));
     masm.addl(Imm32(JitStackValueAlignment - 1 ), ecx);
+
+    
+    static_assert(CalleeToken_FunctionConstructing == 1,
+      "Ensure that we can use the constructing bit to count an extra push");
+    masm.mov(eax, edx);
+    masm.andl(Imm32(CalleeToken_FunctionConstructing), edx);
+    masm.addl(edx, ecx);
+
     masm.andl(Imm32(~(JitStackValueAlignment - 1)), ecx);
     masm.subl(esi, ecx);
 
@@ -451,6 +473,31 @@ JitRuntime::generateArgumentsRectifier(JSContext* cx, void** returnAddrOut)
         masm.subl(Imm32(sizeof(Value)), ecx);
         masm.subl(Imm32(1), esi);
         masm.j(Assembler::NonZero, &copyLoopTop);
+    }
+
+    {
+        Label notConstructing;
+
+        masm.mov(eax, ebx);
+        masm.branchTest32(Assembler::Zero, ebx, Imm32(CalleeToken_FunctionConstructing),
+                          &notConstructing);
+
+        BaseValueIndex src(FramePointer, edx,
+                           sizeof(RectifierFrameLayout) +
+                           sizeof(Value) +
+                           sizeof(void*));
+
+        masm.andl(Imm32(CalleeTokenMask), ebx);
+        masm.movzwl(Operand(ebx, JSFunction::offsetOfNargs()), ebx);
+
+        BaseValueIndex dst(esp, ebx, sizeof(Value));
+
+        ValueOperand newTarget(ecx, edi);
+
+        masm.loadValue(src, newTarget);
+        masm.storeValue(newTarget, dst);
+
+        masm.bind(&notConstructing);
     }
 
     

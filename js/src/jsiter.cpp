@@ -449,15 +449,13 @@ GetCustomIterator(JSContext* cx, HandleObject obj, unsigned flags, MutableHandle
         return false;
     if (rval.isPrimitive()) {
         
-
-
-
+        
         JSAutoByteString bytes;
         if (!AtomToPrintableString(cx, name, &bytes))
             return false;
         RootedValue val(cx, ObjectValue(*obj));
         ReportValueError2(cx, JSMSG_BAD_TRAP_RETURN_VALUE,
-                          -1, val, nullptr, bytes.ptr());
+                          JSDVG_IGNORE_STACK, val, nullptr, bytes.ptr());
         return false;
     }
     objp.set(&rval.toObject());

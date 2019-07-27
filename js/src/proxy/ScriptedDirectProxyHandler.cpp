@@ -1038,13 +1038,14 @@ ScriptedDirectProxyHandler::construct(JSContext* cx, HandleObject proxy, const C
     
     if (trap.isUndefined()) {
         RootedValue targetv(cx, ObjectValue(*target));
-        return InvokeConstructor(cx, targetv, args.length(), args.array(), args.rval());
+        return InvokeConstructor(cx, targetv, args.length(), args.array(), true, args.rval());
     }
 
     
     Value constructArgv[] = {
         ObjectValue(*target),
-        ObjectValue(*argsArray)
+        ObjectValue(*argsArray),
+        args.newTarget()
     };
     RootedValue thisValue(cx, ObjectValue(*handler));
     if (!Invoke(cx, thisValue, trap, ArrayLength(constructArgv), constructArgv, args.rval()))

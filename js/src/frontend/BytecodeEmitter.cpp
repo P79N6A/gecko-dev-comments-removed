@@ -6447,6 +6447,8 @@ BytecodeEmitter::emitCallOrNew(ParseNode* pn)
             return false;
     }
 
+    bool isNewOp = pn->getOp() == JSOP_NEW || pn->getOp() == JSOP_SPREADNEW;
+
     
 
 
@@ -6459,9 +6461,20 @@ BytecodeEmitter::emitCallOrNew(ParseNode* pn)
             if (!emitTree(pn3))
                 return false;
         }
+
+        if (isNewOp) {
+            
+            if (!emitDupAt(this->stackDepth - 1 - (argc + 1)))
+                return false;
+        }
     } else {
         if (!emitArray(pn2->pn_next, argc, JSOP_SPREADCALLARRAY))
             return false;
+
+        if (isNewOp) {
+            if (!emitDupAt(this->stackDepth - 1 - 2))
+                return false;
+        }
     }
     emittingForInit = oldEmittingForInit;
 
