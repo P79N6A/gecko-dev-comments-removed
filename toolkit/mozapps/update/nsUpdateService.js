@@ -497,7 +497,7 @@ function hasUpdateMutex() {
 
 XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpdates() {
   let useService = false;
-  if (shouldUseService()) {
+  if (shouldUseService() && isServiceInstalled()) {
     
     
     LOG("gCanApplyUpdates - bypass the write checks because we'll use the service");
@@ -648,7 +648,8 @@ function getCanStageUpdates() {
     return false;
   }
 
-  if (AppConstants.platform == "win" && shouldUseService()) {
+  if (AppConstants.platform == "win" && isServiceInstalled() &&
+      shouldUseService()) {
     
     
     LOG("getCanStageUpdates - able to stage updates using the service");
@@ -1028,8 +1029,9 @@ function releaseSDCardMountLock() {
 
 
 
+
 function shouldUseService() {
-  if (AppConstants.MOZ_MAINTENANCE_SERVICE && isServiceInstalled()) {
+  if (AppConstants.MOZ_MAINTENANCE_SERVICE) {
     return getPref("getBoolPref",
                    PREF_APP_UPDATE_SERVICE_ENABLED, false);
   }
@@ -3494,10 +3496,15 @@ Checker.prototype = {
     if (AppConstants.platform == "gonk") {
       let sysLibs = {};
       Cu.import("resource://gre/modules/systemlibs.js", sysLibs);
+      let productDevice = sysLibs.libcutils.property_get("ro.product.device");
+      let buildType = sysLibs.libcutils.property_get("ro.build.type");
       url = url.replace(/%PRODUCT_MODEL%/g,
                         sysLibs.libcutils.property_get("ro.product.model"));
-      url = url.replace(/%PRODUCT_DEVICE%/g,
-                        sysLibs.libcutils.property_get("ro.product.device"));
+      if (buildType == "user") {
+        url = url.replace(/%PRODUCT_DEVICE%/g, productDevice);
+      } else {
+        url = url.replace(/%PRODUCT_DEVICE%/g, productDevice + "-" + buildType);
+      }
       url = url.replace(/%B2G_VERSION%/g,
                         getPref("getCharPref", PREF_APP_B2G_VERSION, null));
     }
@@ -4212,7 +4219,7 @@ Downloader.prototype = {
 
     if (maxProgress != this._patch.size) {
       LOG("Downloader:onProgress - maxProgress: " + maxProgress +
-          " is not equal to expected patch size: " + this._patch.size);
+          " is not equal to expectd patch size: " + this._patch.size);
       
       
       
