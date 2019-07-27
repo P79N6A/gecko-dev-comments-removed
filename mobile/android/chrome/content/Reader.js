@@ -35,27 +35,6 @@ let Reader = {
         mm.broadcastAsyncMessage("Reader:Removed", { url: aData });
         break;
       }
-      case "Gesture:DoubleTap": {
-        
-        if (!BrowserApp.selectedBrowser.currentURI.spec.startsWith("about:reader")) {
-          return;
-        }
-
-        let win = BrowserApp.selectedBrowser.contentWindow;
-        let scrollBy;
-        
-        if (JSON.parse(aData).y < (win.innerHeight / 2)) {
-          scrollBy = - win.innerHeight + 50;
-        } else {
-          scrollBy = win.innerHeight - 50;
-        }
-
-        let viewport = BrowserApp.selectedTab.getViewport();
-        let newY = Math.min(Math.max(viewport.cssY + scrollBy, viewport.cssPageTop), viewport.cssPageBottom);
-        let newRect = new Rect(viewport.cssX, newY, viewport.cssWidth, viewport.cssHeight);
-        ZoomHelper.zoomToRect(newRect, -1);
-        break;
-      }
     }
   },
 
