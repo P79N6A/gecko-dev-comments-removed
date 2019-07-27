@@ -83,14 +83,6 @@ SharedSurface_Basic::SharedSurface_Basic(GLContext* gl,
 
     DebugOnly<GLenum> status = mGL->fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER);
     MOZ_ASSERT(status == LOCAL_GL_FRAMEBUFFER_COMPLETE);
-
-    int32_t stride = gfx::GetAlignedStride<4>(size.width * BytesPerPixel(format));
-    mData = gfx::Factory::CreateDataSourceSurfaceWithStride(size, format, stride);
-    
-    
-    if (NS_WARN_IF(!mData)) {
-        return;
-    }
 }
 
 SharedSurface_Basic::~SharedSurface_Basic()
@@ -102,54 +94,6 @@ SharedSurface_Basic::~SharedSurface_Basic()
         mGL->fDeleteFramebuffers(1, &mFB);
 
     mGL->fDeleteTextures(1, &mTex);
-}
-
-void
-SharedSurface_Basic::Fence()
-{
-    
-    if (NS_WARN_IF(!mData)) {
-        return;
-    }
-
-    mGL->MakeCurrent();
-    ScopedBindFramebuffer autoFB(mGL, mFB);
-    ReadPixelsIntoDataSurface(mGL, mData);
-}
-
-bool
-SharedSurface_Basic::WaitSync()
-{
-    return true;
-}
-
-bool
-SharedSurface_Basic::PollSync()
-{
-    return true;
-}
-
-void
-SharedSurface_Basic::Fence_ContentThread_Impl()
-{
-}
-
-bool
-SharedSurface_Basic::WaitSync_ContentThread_Impl()
-{
-    mGL->MakeCurrent();
-    ScopedBindFramebuffer autoFB(mGL, mFB);
-    ReadPixelsIntoDataSurface(mGL, mData);
-    return true;
-}
-
-bool
-SharedSurface_Basic::PollSync_ContentThread_Impl()
-{
-    mGL->MakeCurrent();
-    ScopedBindFramebuffer autoFB(mGL, mFB);
-    ReadPixelsIntoDataSurface(mGL, mData);
-    return true;
 }
 
 
