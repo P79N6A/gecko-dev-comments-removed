@@ -21,10 +21,10 @@ updateAppInfo();
 
 
 
-function promiseMigration(migrator, resourceType) {
+function promiseMigration(migrator, resourceType, aProfile = null) {
   
-  let availableSources = migrator.getMigrateData(null, false);
-  Assert.ok((availableSources & resourceType) > 0);
+  let availableSources = migrator.getMigrateData(aProfile, false);
+  Assert.ok((availableSources & resourceType) > 0, "Resource supported by migrator");
 
   return new Promise (resolve => {
     Services.obs.addObserver(function onMigrationEnded() {
@@ -32,7 +32,7 @@ function promiseMigration(migrator, resourceType) {
       resolve();
     }, "Migration:Ended", false);
 
-    migrator.migrate(resourceType, null, null);
+    migrator.migrate(resourceType, null, aProfile);
   });
 }
 
