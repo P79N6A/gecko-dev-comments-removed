@@ -217,7 +217,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
         
         
         {
-            AutoForbidPools afp(&masm);
+            AutoForbidPools afp(&masm, 5);
             Label skipJump;
             masm.mov(pc, scratch);
             masm.addPtr(Imm32(2 * sizeof(uint32_t)), scratch);
@@ -674,7 +674,7 @@ JitRuntime::generateBailoutTable(JSContext *cx, uint32_t frameClass)
     {
         
         Label bailout;
-        AutoForbidPools afp(&masm);
+        AutoForbidPools afp(&masm, BAILOUT_TABLE_SIZE);
         for (size_t i = 0; i < BAILOUT_TABLE_SIZE; i++)
             masm.ma_bl(&bailout);
         masm.bind(&bailout);

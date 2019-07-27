@@ -1025,7 +1025,7 @@ void
 PatchJump(CodeLocationJump &jump_, CodeLocationLabel label);
 class InstructionIterator;
 class Assembler;
-typedef js::jit::AssemblerBufferWithConstantPool<1024, 4, Instruction, Assembler, 1> ARMBuffer;
+typedef js::jit::AssemblerBufferWithConstantPools<1024, 4, Instruction, Assembler> ARMBuffer;
 
 class Assembler : public AssemblerShared
 {
@@ -1137,6 +1137,8 @@ class Assembler : public AssemblerShared
     BufferOffset actualOffset(BufferOffset) const;
     static uint32_t NopFill;
     static uint32_t GetNopFill();
+    static uint32_t AsmPoolMaxOffset;
+    static uint32_t GetPoolMaxOffset();
   protected:
 
     
@@ -1175,16 +1177,12 @@ class Assembler : public AssemblerShared
     
     
     static Assembler *Dummy;
-    mozilla::Array<Pool, 4> pools_;
-    Pool *int32Pool;
-    Pool *doublePool;
 
   public:
     
+    
     Assembler()
-      : m_buffer(4, 4, 0, &pools_[0], 8, 0xeaffffff, GetNopFill()),
-        int32Pool(m_buffer.getPool(1)),
-        doublePool(m_buffer.getPool(0)),
+      : m_buffer(1, 1, 8, GetPoolMaxOffset(), 8, 0xe320f000, 0xeaffffff, GetNopFill()),
         isFinished(false),
         dtmActive(false),
         dtmCond(Always)
@@ -1195,21 +1193,6 @@ class Assembler : public AssemblerShared
     
     void initWithAllocator() {
         m_buffer.initWithAllocator();
-
-        
-        new (&pools_[2]) Pool (1024, 8, 4, 8, 8, m_buffer.LifoAlloc_, true);
-        
-        new (&pools_[3]) Pool (4096, 4, 4, 8, 4, m_buffer.LifoAlloc_, true, true);
-        
-        new (doublePool) Pool (1024, 8, 4, 8, 8, m_buffer.LifoAlloc_, false, false, &pools_[2]);
-        
-        new (int32Pool) Pool (4096, 4, 4, 8, 4, m_buffer.LifoAlloc_, false, true, &pools_[3]);
-        for (int i = 0; i < 4; i++) {
-            if (pools_[i].poolData == nullptr) {
-                m_buffer.fail_oom();
-                return;
-            }
-        }
     }
 
     static Condition InvertCondition(Condition cond);
@@ -1302,7 +1285,7 @@ class Assembler : public AssemblerShared
   public:
     void writeCodePointer(AbsoluteLabel *label);
 
-    BufferOffset align(int alignment);
+    void align(int alignment);
     BufferOffset as_nop();
     BufferOffset as_alu(Register dest, Register src1, Operand2 op2,
                 ALUOp op, SetCond_ sc = NoSetCond, Condition c = Always, Instruction *instdest = nullptr);
@@ -1397,13 +1380,13 @@ class Assembler : public AssemblerShared
     
 
     
-    BufferOffset as_bx(Register r, Condition c = Always, bool isPatchable = false);
+    BufferOffset as_bx(Register r, Condition c = Always);
 
     
     
-    BufferOffset as_b(BOffImm off, Condition c, bool isPatchable = false);
+    BufferOffset as_b(BOffImm off, Condition c);
 
-    BufferOffset as_b(Label *l, Condition c = Always, bool isPatchable = false);
+    BufferOffset as_b(Label *l, Condition c = Always);
     BufferOffset as_b(BOffImm off, Condition c, BufferOffset inst);
 
     
@@ -1678,7 +1661,7 @@ class Assembler : public AssemblerShared
 
     
     
-    static void InsertTokenIntoTag(uint32_t size, uint8_t *load, int32_t token);
+    static void InsertIndexIntoTag(uint8_t *load, uint32_t index);
     
     
     
@@ -1688,19 +1671,17 @@ class Assembler : public AssemblerShared
     
     
     
-    void dumpPool();
     void flushBuffer();
-    void enterNoPool();
+    void enterNoPool(size_t maxInst);
     void leaveNoPool();
     
     
-    static ptrdiff_t getBranchOffset(const Instruction *i);
+    static ptrdiff_t GetBranchOffset(const Instruction *i);
     static void RetargetNearBranch(Instruction *i, int offset, Condition cond, bool final = true);
     static void RetargetNearBranch(Instruction *i, int offset, bool final = true);
     static void RetargetFarBranch(Instruction *i, uint8_t **slot, uint8_t *dest, Condition cond);
 
     static void WritePoolHeader(uint8_t *start, Pool *p, bool isNatural);
-    static void WritePoolFooter(uint8_t *start, Pool *p, bool isNatural);
     static void WritePoolGuard(BufferOffset branch, Instruction *inst, BufferOffset dest);
 
 
@@ -2196,8 +2177,15 @@ class DoubleEncoder {
 class AutoForbidPools {
     Assembler *masm_;
   public:
-    AutoForbidPools(Assembler *masm) : masm_(masm) {
-        masm_->enterNoPool();
+    
+    
+    
+    
+    
+    
+    
+    AutoForbidPools(Assembler *masm, size_t maxInst) : masm_(masm) {
+        masm_->enterNoPool(maxInst);
     }
     ~AutoForbidPools() {
         masm_->leaveNoPool();

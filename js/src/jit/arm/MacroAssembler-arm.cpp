@@ -1293,8 +1293,6 @@ void
 MacroAssemblerARM::ma_pop(Register r)
 {
     ma_dtr(IsLoad, sp, Imm32(4), r, PostIndex);
-    if (r == pc)
-        m_buffer.markGuard();
 }
 void
 MacroAssemblerARM::ma_push(Register r)
@@ -1324,9 +1322,9 @@ MacroAssemblerARM::ma_vpush(VFPRegister r)
 
 
 BufferOffset
-MacroAssemblerARM::ma_b(Label *dest, Assembler::Condition c, bool isPatchable)
+MacroAssemblerARM::ma_b(Label *dest, Assembler::Condition c)
 {
-    return as_b(dest, c, isPatchable);
+    return as_b(dest, c);
 }
 
 void
@@ -1360,8 +1358,6 @@ MacroAssemblerARM::ma_b(void *target, Relocation::Kind reloc, Assembler::Conditi
         break;
       case Assembler::B_LDR:
         as_Imm32Pool(pc, trg, c);
-        if (c == Always)
-            m_buffer.markGuard();
         break;
       default:
         MOZ_ASSUME_UNREACHABLE("Other methods of generating tracable jumps NYI");
@@ -1755,7 +1751,7 @@ MacroAssemblerARMCompat::buildFakeExitFrame(Register scratch, uint32_t *offset)
 
     Push(Imm32(descriptor)); 
 
-    enterNoPool();
+    enterNoPool(2);
     DebugOnly<uint32_t> offsetBeforePush = currentOffset();
     Push(pc); 
 
@@ -2120,7 +2116,7 @@ MacroAssemblerARMCompat::movePtr(AsmJSImmPtr imm, Register dest)
     else
         rs = L_LDR;
 
-    append(AsmJSAbsoluteLink(CodeOffsetLabel(nextOffset().getOffset()), imm.kind()));
+    append(AsmJSAbsoluteLink(CodeOffsetLabel(currentOffset()), imm.kind()));
     ma_movPatchable(Imm32(-1), dest, Always, rs);
 }
 void
@@ -3659,7 +3655,7 @@ MacroAssemblerARM::ma_callIon(const Register r)
     
     
     
-    AutoForbidPools afp(this);
+    AutoForbidPools afp(this, 2);
     as_dtr(IsStore, 32, PreIndex, pc, DTRAddr(sp, DtrOffImm(-8)));
     as_blx(r);
 }
@@ -3668,7 +3664,7 @@ MacroAssemblerARM::ma_callIonNoPush(const Register r)
 {
     
     
-    AutoForbidPools afp(this);
+    AutoForbidPools afp(this, 2);
     as_dtr(IsStore, 32, Offset, pc, DTRAddr(sp, DtrOffImm(0)));
     as_blx(r);
 }
@@ -3679,7 +3675,7 @@ MacroAssemblerARM::ma_callIonHalfPush(const Register r)
     
     
     
-    AutoForbidPools afp(this);
+    AutoForbidPools afp(this, 2);
     ma_push(pc);
     as_blx(r);
 }
@@ -4426,7 +4422,7 @@ CodeOffsetLabel
 MacroAssemblerARMCompat::toggledJump(Label *label)
 {
     
-    BufferOffset b = ma_b(label, Always, true);
+    BufferOffset b = ma_b(label, Always);
     CodeOffsetLabel ret(b.getOffset());
     return ret;
 }
@@ -4585,7 +4581,7 @@ MacroAssemblerARMCompat::jumpWithPatch(RepatchLabel *label, Condition cond)
     BufferOffset bo = as_BranchPool(0xdeadbeef, label, &pe, cond);
     
     
-    CodeOffsetJump ret(bo.getOffset(), pe.encode());
+    CodeOffsetJump ret(bo.getOffset(), pe.index());
     return ret;
 }
 

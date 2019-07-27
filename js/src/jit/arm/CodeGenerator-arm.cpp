@@ -1113,7 +1113,10 @@ CodeGeneratorARM::emitTableSwitchDispatch(MTableSwitch *mir, Register index, Reg
     
     masm.ma_sub(index, Imm32(mir->low()), index, SetCond);
     masm.ma_rsb(index, Imm32(cases - 1), index, SetCond, Assembler::NotSigned);
-    AutoForbidPools afp(&masm);
+    
+    
+    
+    AutoForbidPools afp(&masm, 1 + 1 + cases);
     masm.ma_ldr(DTRAddr(pc, DtrRegImmShift(index, LSL, 2)), pc, Offset, Assembler::NotSigned);
     masm.ma_b(defaultcase);
 

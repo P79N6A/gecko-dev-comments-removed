@@ -12,1210 +12,862 @@
 #include "jit/IonSpewer.h"
 #include "jit/shared/IonAssemblerBuffer.h"
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 namespace js {
 namespace jit {
+
 typedef Vector<BufferOffset, 512, OldIonAllocPolicy> LoadOffsets;
+
+
+typedef int32_t PoolAllocUnit;
 
 struct Pool
   : public OldIonAllocPolicy
 {
-    const int maxOffset;
-    const int immSize;
-    const int instSize;
-    const int bias;
-
   private:
-    const int alignment;
+    
+    
+    
+    
+    const size_t maxOffset_;
+    
+    
+    const unsigned bias_;
+
+    
+    unsigned numEntries_;
+    
+    unsigned buffSize;
+    
+    PoolAllocUnit *poolData_;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    BufferOffset limitingUser;
+    
+    unsigned limitingUsee;
 
   public:
-    const bool isBackref;
-    const bool canDedup;
     
-    Pool *other;
-    uint8_t *poolData;
-    uint32_t numEntries;
-    uint32_t buffSize;
+    
+    
+    
     LoadOffsets loadOffsets;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    BufferOffset limitingUser;
-    int limitingUsee;
-
-    Pool(int maxOffset_, int immSize_, int instSize_, int bias_, int alignment_, LifoAlloc &LifoAlloc_,
-         bool isBackref_ = false, bool canDedup_ = false, Pool *other_ = nullptr)
-        : maxOffset(maxOffset_), immSize(immSize_), instSize(instSize_),
-          bias(bias_), alignment(alignment_),
-          isBackref(isBackref_), canDedup(canDedup_), other(other_),
-          poolData(static_cast<uint8_t *>(LifoAlloc_.alloc(8*immSize))), numEntries(0),
-          buffSize(8), loadOffsets(), limitingUser(), limitingUsee(INT_MIN)
+    explicit Pool(size_t maxOffset, unsigned bias, LifoAlloc &lifoAlloc)
+        : maxOffset_(maxOffset), bias_(bias), numEntries_(0), buffSize(8),
+          poolData_(lifoAlloc.newArrayUninitialized<PoolAllocUnit>(buffSize)),
+          limitingUser(), limitingUsee(INT_MIN), loadOffsets()
     {
     }
-    static const int garbage=0xa5a5a5a5;
-    Pool() : maxOffset(garbage), immSize(garbage), instSize(garbage), bias(garbage),
-             alignment(garbage), isBackref(garbage), canDedup(garbage), other((Pool*)garbage)
+    static const unsigned Garbage = 0xa5a5a5a5;
+    Pool() : maxOffset_(Garbage), bias_(Garbage)
     {
     }
+
+    PoolAllocUnit *poolData() const {
+        return poolData_;
+    }
+
+    unsigned numEntries() const {
+        return numEntries_;
+    }
+
+    size_t getPoolSize() const {
+        return numEntries_ * sizeof(PoolAllocUnit);
+    }
+
+    
+    
+    
+    
+    
+    
     
     
     void updateLimiter(BufferOffset nextInst) {
-        int oldRange, newRange;
-        if (isBackref) {
-            
-            oldRange = limitingUser.getOffset() - ((numEntries - limitingUsee) * immSize);
-            newRange = nextInst.getOffset();
-        } else {
-            oldRange = (limitingUsee * immSize) - limitingUser.getOffset();
-            newRange = (numEntries * immSize) - nextInst.getOffset();
-        }
+        ptrdiff_t oldRange = limitingUsee * sizeof(PoolAllocUnit) - limitingUser.getOffset();
+        ptrdiff_t newRange = numEntries_ * sizeof(PoolAllocUnit) - nextInst.getOffset();
         if (!limitingUser.assigned() || newRange > oldRange) {
             
             limitingUser = nextInst;
-            limitingUsee = numEntries;
+            limitingUsee = numEntries_;
         }
     }
-    
-    
-    
 
     
     
     
     
     
-    
-    
-    
-    
-    bool checkFullBackref(int poolOffset, int codeOffset) {
+    bool checkFull(size_t poolOffset) const {
+        
         if (!limitingUser.assigned())
             return false;
-        signed int distance = limitingUser.getOffset() + bias - codeOffset + poolOffset +
-            (numEntries - limitingUsee + 1) * immSize;
-        if (distance >= maxOffset)
-            return true;
-        return false;
+        size_t offset = poolOffset + limitingUsee * sizeof(PoolAllocUnit)
+                        - (limitingUser.getOffset() + bias_);
+        return offset >= maxOffset_;
     }
 
-    
-    
-    
-    
-
-    bool checkFull(int poolOffset) {
-        
-        
-        
-        JS_ASSERT(!isBackref);
-        
-        if (!limitingUser.assigned()) {
-            return false;
-        }
-        
-        
-        if (poolOffset + limitingUsee * immSize - (limitingUser.getOffset() + bias) >= maxOffset) {
-            return true;
-        }
-        return false;
-    }
-
-    
-    
-    uint32_t insertEntry(uint8_t *data, BufferOffset off, LifoAlloc &LifoAlloc_) {
-        if (numEntries == buffSize) {
-            buffSize <<= 1;
-            uint8_t *tmp = static_cast<uint8_t*>(LifoAlloc_.alloc(immSize * buffSize));
-            memcpy(tmp, poolData,  immSize * numEntries);
-            if (poolData == nullptr) {
+    unsigned insertEntry(unsigned num, uint8_t *data, BufferOffset off, LifoAlloc &lifoAlloc) {
+        if (numEntries_ + num >= buffSize) {
+            
+            buffSize *= 2;
+            PoolAllocUnit *tmp = lifoAlloc.newArrayUninitialized<PoolAllocUnit>(buffSize);
+            if (poolData_ == nullptr) {
                 buffSize = 0;
                 return -1;
             }
-            poolData = tmp;
+            mozilla::PodCopy(tmp, poolData_, numEntries_);
+            poolData_ = tmp;
         }
-        memcpy(&poolData[numEntries * immSize], data, immSize);
+        mozilla::PodCopy(&poolData_[numEntries_], (PoolAllocUnit *)data, num);
         loadOffsets.append(off.getOffset());
-        return numEntries++;
+        unsigned ret = numEntries_;
+        numEntries_ += num;
+        return ret;
     }
 
     bool reset(LifoAlloc &a) {
-        numEntries = 0;
+        numEntries_ = 0;
         buffSize = 8;
-        poolData = static_cast<uint8_t*>(a.alloc(buffSize * immSize));
-        if (poolData == nullptr)
+        poolData_ = static_cast<PoolAllocUnit *>(a.alloc(buffSize * sizeof(PoolAllocUnit)));
+        if (poolData_ == nullptr)
             return false;
 
-        void *otherSpace = a.alloc(sizeof(Pool));
-        if (otherSpace == nullptr)
-            return false;
-
-        other = new (otherSpace) Pool(other->maxOffset, other->immSize, other->instSize,
-                                      other->bias, other->alignment, a, other->isBackref,
-                                      other->canDedup);
         new (&loadOffsets) LoadOffsets;
 
         limitingUser = BufferOffset();
         limitingUsee = -1;
         return true;
-
-    }
-    
-    
-    
-    uint8_t* align(uint8_t *ptr) {
-        return (uint8_t*)align((uint32_t)ptr);
-    }
-    uint32_t align(uint32_t ptr) {
-        if (numEntries == 0)
-            return ptr;
-        return (ptr + alignment-1) & ~(alignment-1);
-    }
-    uint32_t forceAlign(uint32_t ptr) {
-        return (ptr + alignment-1) & ~(alignment-1);
-    }
-    bool isAligned(uint32_t ptr) {
-        return ptr == align(ptr);
-    }
-    int getAlignment() {
-        return alignment;
     }
 
-    uint32_t addPoolSize(uint32_t start) {
-        start = align(start);
-        start += immSize * numEntries;
-        return start;
-    }
-    uint8_t *addPoolSize(uint8_t *start) {
-        start = align(start);
-        start += immSize * numEntries;
-        return start;
-    }
-    uint32_t getPoolSize() {
-        return immSize * numEntries;
-    }
 };
 
 
-template <int SliceSize, int InstBaseSize>
+template <size_t SliceSize, size_t InstSize>
 struct BufferSliceTail : public BufferSlice<SliceSize> {
-    Pool *data;
-    mozilla::Array<uint8_t, (SliceSize + (InstBaseSize * 8 - 1)) / (InstBaseSize * 8)> isBranch;
+  private:
+    
+    
+    mozilla::Array<uint8_t, (SliceSize / InstSize) / 8> isBranch_;
+  public:
+    Pool *pool;
+    
+    
+    
+    
     bool isNatural : 1;
-    BufferSliceTail *getNext() {
-        return (BufferSliceTail *)this->next;
+    BufferSliceTail *getNext() const {
+        return (BufferSliceTail *)this->next_;
     }
-    BufferSliceTail() : data(nullptr), isNatural(true) {
-        memset(&isBranch[0], 0, sizeof(isBranch));
+    explicit BufferSliceTail() : pool(nullptr), isNatural(true) {
+        static_assert(SliceSize % (8 * InstSize) == 0, "SliceSize must be a multple of 8 * InstSize.");
+        mozilla::PodArrayZero(isBranch_);
     }
     void markNextAsBranch() {
-        int idx = this->nodeSize / InstBaseSize;
-        isBranch[idx >> 3] |= 1 << (idx & 0x7);
+        
+        
+        
+        MOZ_ASSERT(this->nodeSize_ % InstSize == 0);
+        MOZ_ASSERT(this->nodeSize_ < SliceSize);
+        size_t idx = this->nodeSize_ / InstSize;
+        isBranch_[idx >> 3] |= 1 << (idx & 0x7);
     }
-    bool isNextBranch() {
-        unsigned int size = this->nodeSize;
-        if (size >= SliceSize)
-            return false;
-        int idx = size / InstBaseSize;
-        return (isBranch[idx >> 3] >> (idx & 0x7)) & 1;
+    bool isBranch(unsigned idx) const {
+        MOZ_ASSERT(idx < this->nodeSize_ / InstSize);
+        return (isBranch_[idx >> 3] >> (idx & 0x7)) & 1;
+    }
+    bool isNextBranch() const {
+        size_t size = this->nodeSize_;
+        MOZ_ASSERT(size < SliceSize);
+        return isBranch(size / InstSize);
     }
 };
 
-#if 0
-static int getId() {
-    if (MaybeGetIonContext())
-        return MaybeGetIonContext()->getNextAssemblerId();
-    return NULL_ID;
-}
-#endif
-static inline void spewEntry(uint8_t *ptr, int length) {
-#if IS_LITTLE_ENDIAN
-    for (int idx = 0; idx < length; idx++) {
-        IonSpewCont(IonSpew_Pools, "%02x", ptr[length - idx - 1]);
-        if (((idx & 3) == 3) && (idx + 1 != length))
-            IonSpewCont(IonSpew_Pools, "_");
-    }
-#else
-    for (int idx = 0; idx < length; idx++) {
-        IonSpewCont(IonSpew_Pools, "%02x", ptr[idx]);
-        if (((idx & 3) == 3) && (idx + 1 != length))
-            IonSpewCont(IonSpew_Pools, "_");
-    }
-#endif
-}
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template <int SliceSize, int InstBaseSize, class Inst, class Asm, int poolKindBits>
-struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst> {
+template <size_t SliceSize, size_t InstSize, class Inst, class Asm>
+struct AssemblerBufferWithConstantPools : public AssemblerBuffer<SliceSize, Inst> {
   private:
-    mozilla::Array<int, 1 << poolKindBits> entryCount;
-    static const int offsetBits = 32 - poolKindBits;
+    
+    
+    
+    size_t poolEntryCount;
   public:
-
     class PoolEntry {
-        template <int ss, int ibs, class i, class a, int pkb>
-        friend struct AssemblerBufferWithConstantPool;
-        uint32_t offset_ : offsetBits;
-        uint32_t kind_ : poolKindBits;
-        PoolEntry(int offset, int kind) : offset_(offset), kind_(kind) {
-        }
+        size_t index_;
       public:
-        uint32_t encode() {
-            uint32_t ret;
-            memcpy(&ret, this, sizeof(uint32_t));
-            return ret;
+        explicit PoolEntry(size_t index) : index_(index) {
         }
-        PoolEntry(uint32_t bits) : offset_(((1u << offsetBits) - 1) & bits),
-                                 kind_(bits >> offsetBits) {
+        PoolEntry() : index_(-1) {
         }
-        PoolEntry() : offset_((1u << offsetBits) - 1), kind_((1u << poolKindBits) - 1) {
-        }
-
-        uint32_t poolKind() const {
-            return kind_;
-        }
-        uint32_t offset() const {
-            return offset_;
+        size_t index() const {
+            return index_;
         }
     };
+
   private:
-    typedef BufferSliceTail<SliceSize, InstBaseSize> BufferSlice;
+    typedef BufferSliceTail<SliceSize, InstSize> BufferSlice;
     typedef AssemblerBuffer<SliceSize, Inst> Parent;
 
     
-    const int guardSize;
+    const unsigned guardSize_;
     
-    const int headerSize;
     
-    const int footerSize;
-    
-    static const int numPoolKinds = 1 << poolKindBits;
-
-    Pool *pools;
+    const unsigned headerSize_;
 
     
-    const int instBufferAlign;
+    
+    
+    
+    const size_t poolMaxOffset_;
 
     
-    int numDumps;
+    
+    const unsigned pcBias_;
+
+    
+    Pool pool_;
+
+    
+    const size_t instBufferAlign_;
+
     struct PoolInfo {
-        int offset; 
-        int size;   
-        int finalPos; 
+        
+        
+        size_t offset;
+        
+        unsigned size;
+        
+        
+        
+        
+        
+        
+        size_t finalPos;
+        
         BufferSlice *slice;
     };
-    PoolInfo *poolInfo;
     
     
+    unsigned numDumps_;
     
-    int poolSize;
+    size_t poolInfoSize_;
+    
+    PoolInfo *poolInfo_;
+
+    
+    bool canNotPlacePool_;
+
+#ifdef DEBUG
     
     
-    int canNotPlacePool;
+    size_t canNotPlacePoolStartOffset_;
     
-    bool inBackref;
+    
+    size_t canNotPlacePoolMaxInst_;
+#endif
+
+    
+    const uint32_t alignFillInst_;
 
     
     
     
     
-    const uint32_t nopFillInst;
-    const uint32_t nopFill;
+    const uint32_t nopFillInst_;
+    const unsigned nopFill_;
     
     
-    bool inhibitNops;
+    bool inhibitNops_;
 
-    
-    BufferOffset perforation;
-    BufferSlice *perforatedNode;
   public:
+
+    
+    
     int id;
+
   private:
-    static const int logBasePoolInfo = 3;
-    BufferSlice ** getHead() {
-        return (BufferSlice**)&this->head;
+    
+    
+    BufferSlice *getHead() const {
+        return (BufferSlice *)this->head;
     }
-    BufferSlice ** getTail() {
-        return (BufferSlice**)&this->tail;
+    BufferSlice *getTail() const {
+        return (BufferSlice *)this->tail;
     }
 
     virtual BufferSlice *newSlice(LifoAlloc &a) {
-        BufferSlice *tmp = static_cast<BufferSlice*>(a.alloc(sizeof(BufferSlice)));
-        if (!tmp) {
+        BufferSlice *slice = a.new_<BufferSlice>();
+        if (!slice) {
             this->m_oom = true;
             return nullptr;
         }
-        new (tmp) BufferSlice;
-        return tmp;
+        return slice;
     }
+
   public:
-    AssemblerBufferWithConstantPool(int guardSize_, int headerSize_, int footerSize_,
-                                    Pool *pools_, int instBufferAlign_,
-                                    uint32_t nopFillInst_, uint32_t nopFill_ = 0)
-        : guardSize(guardSize_), headerSize(headerSize_),
-          footerSize(footerSize_),
-          pools(pools_),
-          instBufferAlign(instBufferAlign_), numDumps(0),
-          poolInfo(nullptr),
-          poolSize(0), canNotPlacePool(0), inBackref(false),
-          nopFillInst(nopFillInst_), nopFill(nopFill_), inhibitNops(false),
-          perforatedNode(nullptr), id(-1)
+    AssemblerBufferWithConstantPools(unsigned guardSize, unsigned headerSize,
+                                     size_t instBufferAlign, size_t poolMaxOffset,
+                                     unsigned pcBias, uint32_t alignFillInst, uint32_t nopFillInst,
+                                     unsigned nopFill = 0)
+        : poolEntryCount(0), guardSize_(guardSize), headerSize_(headerSize),
+          poolMaxOffset_(poolMaxOffset), pcBias_(pcBias),
+          instBufferAlign_(instBufferAlign),
+          numDumps_(0), poolInfoSize_(8), poolInfo_(nullptr),
+          canNotPlacePool_(false), alignFillInst_(alignFillInst),
+          nopFillInst_(nopFillInst), nopFill_(nopFill), inhibitNops_(false),
+          id(-1)
     {
-        for (int idx = 0; idx < numPoolKinds; idx++) {
-            entryCount[idx] = 0;
-        }
     }
 
     
     
     void initWithAllocator() {
-        poolInfo = static_cast<PoolInfo*>(this->LifoAlloc_.alloc(sizeof(PoolInfo) * (1 << logBasePoolInfo)));
+        poolInfo_ = this->lifoAlloc_.template newArrayUninitialized<PoolInfo>(poolInfoSize_);
+
+        new (&pool_) Pool (poolMaxOffset_, pcBias_, this->lifoAlloc_);
+        if (pool_.poolData() == nullptr)
+            this->fail_oom();
     }
 
-    const PoolInfo & getInfo(int x) const {
-        static const PoolInfo nil = {0,0,0};
-        if (x < 0 || x >= numDumps)
-            return nil;
-        return poolInfo[x];
-    }
-    void executableCopy(uint8_t *dest_) {
-        if (this->oom())
-            return;
+  private:
+    const PoolInfo &getLastPoolInfo() const {
         
-        flushPool();
-        for (int idx = 0; idx < numPoolKinds; idx++) {
-            JS_ASSERT(pools[idx].numEntries == 0 && pools[idx].other->numEntries == 0);
-        }
-        typedef mozilla::Array<uint8_t, InstBaseSize> Chunk;
-        mozilla::DebugOnly<Chunk *> start = (Chunk*)dest_;
-        Chunk *dest = (Chunk*)(((uint32_t)dest_ + instBufferAlign - 1) & ~(instBufferAlign -1));
-        int curIndex = 0;
-        int curInstOffset = 0;
-        JS_ASSERT(start == dest);
-        for (BufferSlice * cur = *getHead(); cur != nullptr; cur = cur->getNext()) {
-            Chunk *src = (Chunk*)&cur->instructions;
-            for (unsigned int idx = 0; idx <cur->size()/InstBaseSize;
-                 idx++, curInstOffset += InstBaseSize) {
-                
-                if (cur->isBranch[idx >> 3] & (1 << (idx & 7))) {
-                    
-                    patchBranch((Inst*)&src[idx], curIndex, BufferOffset(curInstOffset));
-                }
-                memcpy(&dest[idx], &src[idx], sizeof(Chunk));
-            }
-            dest+=cur->size()/InstBaseSize;
-            if (cur->data != nullptr) {
-                
-                curIndex ++;
-                
-                uint8_t *poolDest = (uint8_t*)dest;
-                Asm::WritePoolHeader(poolDest, cur->data, cur->isNatural);
-                poolDest += headerSize;
-                for (int idx = 0; idx < numPoolKinds; idx++) {
-                    Pool *curPool = &cur->data[idx];
-                    
-                    poolDest = curPool->align(poolDest);
-                    memcpy(poolDest, curPool->poolData, curPool->immSize * curPool->numEntries);
-                    poolDest += curPool->immSize * curPool->numEntries;
-                }
-                
-                
-                for (int idx = numPoolKinds - 1; idx >= 0; idx--) {
-                    Pool *curPool = cur->data[idx].other;
-                    
-                    poolDest = curPool->align(poolDest);
-                    memcpy(poolDest, curPool->poolData, curPool->immSize * curPool->numEntries);
-                    poolDest += curPool->immSize * curPool->numEntries;
-                }
-                
-                Asm::WritePoolFooter(poolDest, cur->data, cur->isNatural);
-                poolDest += footerSize;
-                
-                
-                dest = (Chunk*) poolDest;
-            }
-        }
+        
+        static const PoolInfo nil = {0, 0, 0, nullptr};
+
+        if (numDumps_ > 0)
+            return poolInfo_[numDumps_ - 1];
+
+        return nil;
     }
 
+    size_t sizeExcludingCurrentPool() const {
+        
+        
+        size_t codeEnd = this->nextOffset().getOffset();
+        
+        
+        PoolInfo pi = getLastPoolInfo();
+        return codeEnd + (pi.finalPos - pi.offset);
+    }
+
+  public:
+    size_t size() const {
+        
+        
+        MOZ_ASSERT(pool_.numEntries() == 0);
+        return sizeExcludingCurrentPool();
+    }
+
+  private:
     void insertNopFill() {
         
-        if (nopFill > 0 && !inhibitNops && !canNotPlacePool) {
-            inhibitNops = true;
+        if (nopFill_ > 0 && !inhibitNops_ && !canNotPlacePool_) {
+            inhibitNops_ = true;
 
             
             
-            for (int i = 0; i < nopFill; i++)
-                putInt(nopFillInst);
+            for (size_t i = 0; i < nopFill_; i++)
+                putInt(nopFillInst_);
 
-            inhibitNops = false;
+            inhibitNops_ = false;
         }
     }
 
-    BufferOffset insertEntry(uint32_t instSize, uint8_t *inst, Pool *p, uint8_t *data,
-                             PoolEntry *pe = nullptr, bool markAsBranch = false) {
+    void markNextAsBranch() {
+        
+        
+        this->ensureSpace(InstSize);
+        MOZ_ASSERT(this->getTail() != nullptr);
+        this->getTail()->markNextAsBranch();
+    }
+
+    bool isNextBranch() const {
+        MOZ_ASSERT(this->getTail() != nullptr);
+        return this->getTail()->isNextBranch();
+    }
+
+    int insertEntryForwards(unsigned numInst, unsigned numPoolEntries, uint8_t *inst, uint8_t *data) {
+        size_t nextOffset = sizeExcludingCurrentPool();
+        size_t poolOffset = nextOffset + (numInst + guardSize_ + headerSize_) * InstSize;
+
+        
+
+        
+        
+        if (numPoolEntries)
+            pool_.updateLimiter(BufferOffset(nextOffset));
+
+        if (pool_.checkFull(poolOffset)) {
+            if (numPoolEntries)
+                IonSpew(IonSpew_Pools, "[%d] Inserting pool entry caused a spill", id);
+            else
+                IonSpew(IonSpew_Pools, "[%d] Inserting instruction(%d) caused a spill", id,
+                        sizeExcludingCurrentPool());
+
+            finishPool();
+            if (this->oom())
+                return uint32_t(-1);
+            return insertEntryForwards(numInst, numPoolEntries, inst, data);
+        }
+        if (numPoolEntries)
+            return pool_.insertEntry(numPoolEntries, data, this->nextOffset(), this->lifoAlloc_);
+
+        
+        
+        
+        return UINT_MAX;
+    }
+
+  public:
+    BufferOffset allocEntry(size_t numInst, unsigned numPoolEntries,
+                            uint8_t *inst, uint8_t *data, PoolEntry *pe = nullptr,
+                            bool markAsBranch = false) {
+        
+        
+        MOZ_ASSERT_IF(numPoolEntries, !canNotPlacePool_);
+
         if (this->oom() && !this->bail())
             return BufferOffset();
+
         insertNopFill();
 
-        int token;
-        if (p != nullptr) {
-            int poolId = p - pools;
-            const char sigil = inBackref ? 'B' : 'F';
-
-            IonSpew(IonSpew_Pools, "[%d]{%c} Inserting entry into pool %d", id, sigil, poolId);
+#ifdef DEBUG
+        if (numPoolEntries) {
+            IonSpew(IonSpew_Pools, "[%d] Inserting %d entries into pool", id, numPoolEntries);
             IonSpewStart(IonSpew_Pools, "[%d] data is: 0x", id);
-            spewEntry(data, p->immSize);
+            size_t length = numPoolEntries * sizeof(PoolAllocUnit);
+            for (unsigned idx = 0; idx < length; idx++) {
+                IonSpewCont(IonSpew_Pools, "%02x", data[length - idx - 1]);
+                if (((idx & 3) == 3) && (idx + 1 != length))
+                    IonSpewCont(IonSpew_Pools, "_");
+            }
             IonSpewFin(IonSpew_Pools);
         }
+#endif
+
         
-        if (inBackref)
-            token = insertEntryBackwards(instSize, inst, p, data);
-        else
-            token = insertEntryForwards(instSize, inst, p, data);
+        unsigned index = insertEntryForwards(numInst, numPoolEntries, inst, data);
         
         PoolEntry retPE;
-        if (p != nullptr) {
+        if (numPoolEntries) {
             if (this->oom())
                 return BufferOffset();
-            int poolId = p - pools;
-            IonSpew(IonSpew_Pools, "[%d] Entry has token %d, offset ~%d", id, token, size());
-            Asm::InsertTokenIntoTag(instSize, inst, token);
-            JS_ASSERT(poolId < (1 << poolKindBits));
-            JS_ASSERT(poolId >= 0);
+            IonSpew(IonSpew_Pools, "[%d] Entry has index %u, offset %u", id, index,
+                    sizeExcludingCurrentPool());
+            Asm::InsertIndexIntoTag(inst, index);
             
-            retPE = PoolEntry(entryCount[poolId], poolId);
-            entryCount[poolId]++;
+            retPE = PoolEntry(poolEntryCount);
+            poolEntryCount += numPoolEntries;
         }
         
         if (pe != nullptr)
             *pe = retPE;
         if (markAsBranch)
-            this->markNextAsBranch();
-        return this->putBlob(instSize, inst);
+            markNextAsBranch();
+        return this->putBlob(numInst * InstSize, inst);
     }
 
-    uint32_t insertEntryBackwards(uint32_t instSize, uint8_t *inst, Pool *p, uint8_t *data) {
-        
-        
-        
-
-        if (p == nullptr)
-            return INT_MIN;
-        
-        
-        int poolOffset = footerSize;
-        Pool *cur, *tmp;
-        
-        
-        
-        for (cur = pools; cur < &pools[numPoolKinds]; cur++) {
-            
-            tmp = cur->other;
-            if (p == cur)
-                tmp->updateLimiter(this->nextOffset());
-
-            if (tmp->checkFullBackref(poolOffset, perforation.getOffset())) {
-                
-                
-                if (p != nullptr)
-                    IonSpew(IonSpew_Pools, "[%d]Inserting pool entry caused a spill", id);
-                else
-                    IonSpew(IonSpew_Pools, "[%d]Inserting instruction(%d) caused a spill", id, size());
-
-                this->finishPool();
-                if (this->oom())
-                    return uint32_t(-1);
-                return this->insertEntryForwards(instSize, inst, p, data);
-            }
-            
-            
-            poolOffset += tmp->immSize * tmp->numEntries + tmp->getAlignment();
-            if (p == tmp) {
-                poolOffset += tmp->immSize;
-            }
-        }
-        return p->numEntries + p->other->insertEntry(data, this->nextOffset(), this->LifoAlloc_);
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    int insertEntryForwards(uint32_t instSize, uint8_t *inst, Pool *p, uint8_t *data) {
-        
-        
-        uint32_t nextOffset = this->size() + instSize;
-        uint32_t poolOffset = nextOffset;
-        Pool *tmp;
-        
-        if (!perforatedNode)
-            poolOffset += guardSize;
-        
-        
-        poolOffset += headerSize;
-
-        
-        for (tmp = pools; tmp < &pools[numPoolKinds]; tmp++) {
-            
-            JS_ASSERT((tmp->getAlignment() & (tmp->getAlignment() - 1)) == 0);
-            
-            
-            
-            
-            if (p == tmp)
-                poolOffset = tmp->forceAlign(poolOffset);
-            else
-                poolOffset = tmp->align(poolOffset);
-
-            
-            
-            if (p == tmp) {
-                p->updateLimiter(BufferOffset(nextOffset));
-            }
-            if (tmp->checkFull(poolOffset)) {
-                
-                if (p != nullptr)
-                    IonSpew(IonSpew_Pools, "[%d] Inserting pool entry caused a spill", id);
-                else
-                    IonSpew(IonSpew_Pools, "[%d] Inserting instruction(%d) caused a spill", id, size());
-
-                this->dumpPool();
-                return this->insertEntryBackwards(instSize, inst, p, data);
-            }
-            
-            if (p == tmp) {
-                nextOffset += tmp->immSize;
-            }
-            nextOffset += tmp->immSize * tmp->numEntries;
-        }
-        if (p == nullptr) {
-            return INT_MIN;
-        }
-        return p->insertEntry(data, this->nextOffset(), this->LifoAlloc_);
-    }
     BufferOffset putInt(uint32_t value, bool markAsBranch = false) {
-        return insertEntry(sizeof(uint32_t) / sizeof(uint8_t), (uint8_t*)&value,
-                           nullptr, nullptr, nullptr, markAsBranch);
-    }
-    
-    void perforate() {
-        
-        
-        if (inBackref)
-            return;
-        if (canNotPlacePool)
-            return;
-        
-        
-        bool empty = true;
-        for (int i = 0; i < numPoolKinds; i++) {
-            if (pools[i].numEntries != 0) {
-                empty = false;
-                break;
-            }
-        }
-        if (empty)
-            return;
-        perforatedNode = *getTail();
-        perforation = this->nextOffset();
-        Parent::perforate();
-        IonSpew(IonSpew_Pools, "[%d] Adding a perforation at offset %d", id, perforation.getOffset());
+        return allocEntry(1, 0, (uint8_t *)&value, nullptr, nullptr, markAsBranch);
     }
 
-    
-    
-    
-    PoolInfo getPoolData() const {
-        int prevOffset = getInfo(numDumps-1).offset;
-        int prevEnd = getInfo(numDumps-1).finalPos;
+  private:
+    PoolInfo getPoolData(BufferSlice *perforatedSlice, size_t perfOffset) const {
+        PoolInfo pi = getLastPoolInfo();
+        size_t prevOffset = pi.offset;
+        size_t prevEnd = pi.finalPos;
         
-        int perfOffset = perforation.assigned() ?
-            perforation.getOffset() :
-            this->nextOffset().getOffset() + this->guardSize;
-        int initOffset = prevEnd + (perfOffset - prevOffset);
-        int finOffset = initOffset;
-        bool poolIsEmpty = true;
-        for (int poolIdx = 0; poolIdx < numPoolKinds; poolIdx++) {
-            if (pools[poolIdx].numEntries != 0) {
-                poolIsEmpty = false;
-                break;
-            }
-            if (pools[poolIdx].other != nullptr && pools[poolIdx].other->numEntries != 0) {
-                poolIsEmpty = false;
-                break;
-            }
-        }
-        if (!poolIsEmpty) {
-            finOffset += headerSize;
-            for (int poolIdx = 0; poolIdx < numPoolKinds; poolIdx++) {
-                finOffset=pools[poolIdx].align(finOffset);
-                finOffset+=pools[poolIdx].numEntries * pools[poolIdx].immSize;
-            }
-            
-            
-            for (int poolIdx = numPoolKinds-1; poolIdx >= 0; poolIdx--) {
-                finOffset=pools[poolIdx].other->align(finOffset);
-                finOffset+=pools[poolIdx].other->numEntries * pools[poolIdx].other->immSize;
-            }
-            finOffset += footerSize;
+        size_t initOffset = perfOffset + (prevEnd - prevOffset);
+        size_t finOffset = initOffset;
+        if (pool_.numEntries() != 0) {
+            finOffset += headerSize_ * InstSize;
+            finOffset += pool_.getPoolSize();
         }
 
         PoolInfo ret;
         ret.offset = perfOffset;
         ret.size = finOffset - initOffset;
         ret.finalPos = finOffset;
-        ret.slice = perforatedNode;
+        ret.slice = perforatedSlice;
         return ret;
     }
+
     void finishPool() {
-        
-        
-        
-        
-        
-        IonSpew(IonSpew_Pools, "[%d] Finishing pool %d", id, numDumps);
-        JS_ASSERT(inBackref);
-        PoolInfo newPoolInfo = getPoolData();
-        if (newPoolInfo.size == 0) {
+        IonSpew(IonSpew_Pools, "[%d] Attempting to finish pool %d with %d entries.", id,
+                numDumps_, pool_.numEntries());
+
+        if (pool_.numEntries() == 0) {
             
-            
-            new (&perforation) BufferOffset();
-            perforatedNode = nullptr;
-            inBackref = false;
             IonSpew(IonSpew_Pools, "[%d] Aborting because the pool is empty", id);
-            
-            
             return;
         }
-        JS_ASSERT(perforatedNode != nullptr);
-        if (numDumps >= (1 << logBasePoolInfo) && (numDumps & (numDumps - 1)) == 0) {
+
+        
+        MOZ_ASSERT(!canNotPlacePool_);
+
+        
+        BufferOffset branch = this->nextOffset();
+        
+        markNextAsBranch();
+        this->putBlob(guardSize_ * InstSize, nullptr);
+        BufferOffset afterPool = this->nextOffset();
+        Asm::WritePoolGuard(branch, this->getInst(branch), afterPool);
+
+        
+        
+        
+        BufferSlice *perforatedSlice = getTail();
+        BufferOffset perforation = this->nextOffset();
+        Parent::perforate();
+        perforatedSlice->isNatural = false;
+        IonSpew(IonSpew_Pools, "[%d] Adding a perforation at offset %d", id, perforation.getOffset());
+
+        
+        
+        
+        size_t poolOffset = perforation.getOffset();
+        
+        PoolInfo pi = getLastPoolInfo();
+        size_t magicAlign = pi.finalPos - pi.offset;
+        
+        poolOffset += magicAlign;
+        
+        poolOffset += headerSize_ * InstSize;
+
+        unsigned idx = 0;
+        for (BufferOffset *iter = pool_.loadOffsets.begin();
+             iter != pool_.loadOffsets.end();
+             ++iter, ++idx)
+        {
             
-            PoolInfo *tmp = static_cast<PoolInfo*>(this->LifoAlloc_.alloc(sizeof(PoolInfo) * numDumps * 2));
+            MOZ_ASSERT(iter->getOffset() < perforation.getOffset());
+
+            
+            
+            Inst *inst = this->getInst(*iter);
+            size_t codeOffset = poolOffset - iter->getOffset();
+
+            
+            
+            
+            
+            IonSpew(IonSpew_Pools, "[%d] Fixing entry %d offset to %u", id, idx,
+                    codeOffset - magicAlign);
+            Asm::PatchConstantPoolLoad(inst, (uint8_t *)inst + codeOffset - magicAlign);
+        }
+
+        
+        if (numDumps_ >= poolInfoSize_) {
+            
+            poolInfoSize_ *= 2;
+            PoolInfo *tmp = this->lifoAlloc_.template newArrayUninitialized<PoolInfo>(poolInfoSize_);
             if (tmp == nullptr) {
                 this->fail_oom();
                 return;
             }
-            memcpy(tmp, poolInfo, sizeof(PoolInfo) * numDumps);
-            poolInfo = tmp;
-
+            mozilla::PodCopy(tmp, poolInfo_, numDumps_);
+            poolInfo_ = tmp;
         }
+        PoolInfo newPoolInfo = getPoolData(perforatedSlice, perforation.getOffset());
+        MOZ_ASSERT(numDumps_ < poolInfoSize_);
+        poolInfo_[numDumps_] = newPoolInfo;
+        numDumps_++;
 
         
         
-        
-        int poolOffset = perforation.getOffset();
-        int magicAlign = getInfo(numDumps-1).finalPos - getInfo(numDumps-1).offset;
-        poolOffset += magicAlign;
-        poolOffset += headerSize;
-        for (int poolIdx = 0; poolIdx < numPoolKinds; poolIdx++) {
-            poolOffset = pools[poolIdx].align(poolOffset);
-            poolOffset += pools[poolIdx].numEntries * pools[poolIdx].immSize;
-        }
-        mozilla::Array<LoadOffsets, 1 << poolKindBits> outcasts;
-        mozilla::Array<uint8_t *, 1 << poolKindBits> outcastEntries;
-        
-        
-        int skippedBytes = 0;
-        for (int poolIdx = numPoolKinds-1; poolIdx >= 0; poolIdx--) {
-            Pool *p =  pools[poolIdx].other;
-            JS_ASSERT(p != nullptr);
-            unsigned int idx = p->numEntries-1;
-            
-            
-            
-            
-            
-            outcastEntries[poolIdx] = new uint8_t[p->getPoolSize()];
-            bool *preservedEntries = new bool[p->numEntries];
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            poolOffset = p->align(poolOffset);
-            int numSkips = 0;
-            int fakePoolOffset = poolOffset - pools[poolIdx].numEntries * pools[poolIdx].immSize;
-            for (BufferOffset *iter = p->loadOffsets.end() - 1;
-                 iter != p->loadOffsets.begin() - 1; --iter, --idx)
-            {
-
-                IonSpew(IonSpew_Pools, "[%d] Linking entry %d in pool %d", id, idx+ pools[poolIdx].numEntries, poolIdx);
-                JS_ASSERT(iter->getOffset() >= perforation.getOffset());
-                
-                
-                Inst *inst = this->getInst(*iter);
-                
-                
-                
-                int codeOffset = fakePoolOffset - iter->getOffset() - newPoolInfo.size + numSkips * p->immSize - skippedBytes;
-                
-                
-                
-                
-                IonSpew(IonSpew_Pools, "[%d] Fixing offset to %d", id, codeOffset - magicAlign);
-                if (!Asm::PatchConstantPoolLoad(inst, (uint8_t*)inst + codeOffset - magicAlign)) {
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    IonSpew(IonSpew_Pools, "[%d]***Offset was still out of range!***", id, codeOffset - magicAlign);
-                    IonSpew(IonSpew_Pools, "[%d] Too complicated; bailingp", id);
-                    this->fail_bail();
-                    
-                    for (int pi = poolIdx; pi < numPoolKinds; pi++)
-                        delete[] outcastEntries[pi];
-                    delete[] preservedEntries;
-                    return;
-                } else {
-                    preservedEntries[idx] = true;
-                }
-            }
-            
-            
-            unsigned int idxDest = 0;
-            
-            if (numSkips != 0) {
-                for (idx = 0; idx < p->numEntries; idx++) {
-                    if (preservedEntries[idx]) {
-                        if (idx != idxDest) {
-                            memcpy(&p->poolData[idxDest * p->immSize],
-                                   &p->poolData[idx * p->immSize],
-                                   p->immSize);
-                        }
-                        idxDest++;
-                    }
-                }
-                p->numEntries -= numSkips;
-            }
-            poolOffset += p->numEntries * p->immSize;
-            delete[] preservedEntries;
-            preservedEntries = nullptr;
-        }
-        
-        Pool **tmp = &perforatedNode->data;
-        *tmp = static_cast<Pool*>(this->LifoAlloc_.alloc(sizeof(Pool) * numPoolKinds));
+        Pool **tmp = &perforatedSlice->pool;
+        *tmp = static_cast<Pool *>(this->lifoAlloc_.alloc(sizeof(Pool)));
         if (tmp == nullptr) {
             this->fail_oom();
-            for (int pi = 0; pi < numPoolKinds; pi++)
-                delete[] outcastEntries[pi];
             return;
         }
-        
-        
-        newPoolInfo = getPoolData();
-        poolInfo[numDumps] = newPoolInfo;
-        poolSize += poolInfo[numDumps].size;
-        numDumps++;
-
-        memcpy(*tmp, pools, sizeof(Pool) * numPoolKinds);
+        mozilla::PodCopy(*tmp, &pool_, 1);
 
         
-        for (int poolIdx = 0; poolIdx < numPoolKinds; poolIdx++) {
-            if (!pools[poolIdx].reset(this->LifoAlloc_)) {
-                this->fail_oom();
-                for (int pi = 0; pi < numPoolKinds; pi++)
-                    delete[] outcastEntries[pi];
-                return;
-            }
-        }
-        new (&perforation) BufferOffset();
-        perforatedNode = nullptr;
-        inBackref = false;
-
-        
-        
-        
-        for (int poolIdx = 0; poolIdx < numPoolKinds; poolIdx++) {
-            
-            
-            
-            
-            
-            int idx = outcasts[poolIdx].length();
-            for (BufferOffset *iter = outcasts[poolIdx].end() - 1;
-                 iter != outcasts[poolIdx].begin() - 1;
-                 --iter, --idx) {
-                pools[poolIdx].updateLimiter(*iter);
-                Inst *inst = this->getInst(*iter);
-                Asm::InsertTokenIntoTag(pools[poolIdx].instSize, (uint8_t*)inst, outcasts[poolIdx].end() - 1 - iter);
-                pools[poolIdx].insertEntry(&outcastEntries[poolIdx][idx * pools[poolIdx].immSize], *iter, this->LifoAlloc_);
-            }
-            delete[] outcastEntries[poolIdx];
-        }
-        
-        
-        
-        
-        
-        poolOffset = this->size() + guardSize * 2;
-        poolOffset += headerSize;
-        for (int poolIdx = 0; poolIdx < numPoolKinds; poolIdx++) {
-            
-            
-            
-            
-            
-            poolOffset = pools[poolIdx].align(poolOffset);
-            if (pools[poolIdx].checkFull(poolOffset)) {
-                
-                dumpPool();
-                break;
-            }
-            poolOffset += pools[poolIdx].getPoolSize();
+        if (!pool_.reset(this->lifoAlloc_)) {
+            this->fail_oom();
+            return;
         }
     }
 
-    void dumpPool() {
-        JS_ASSERT(!inBackref);
-        IonSpew(IonSpew_Pools, "[%d] Attempting to dump the pool", id);
-        PoolInfo newPoolInfo = getPoolData();
-        if (newPoolInfo.size == 0) {
-            
-            inBackref = true;
-            IonSpew(IonSpew_Pools, "[%d]Abort, no pool data", id);
-            return;
-        }
-
-        IonSpew(IonSpew_Pools, "[%d] Dumping %d bytes", id, newPoolInfo.size);
-        if (!perforation.assigned()) {
-            JS_ASSERT(!canNotPlacePool);
-            IonSpew(IonSpew_Pools, "[%d] No Perforation point selected, generating a new one", id);
-            
-            
-            BufferOffset branch = this->nextOffset();
-            bool shouldMarkAsBranch = this->isNextBranch();
-            this->markNextAsBranch();
-            this->putBlob(guardSize, nullptr);
-            BufferOffset afterPool = this->nextOffset();
-            Asm::WritePoolGuard(branch, this->getInst(branch), afterPool);
-            markGuard();
-            perforatedNode->isNatural = false;
-            if (shouldMarkAsBranch)
-                this->markNextAsBranch();
-        }
-
-        
-        
-        int poolOffset = perforation.getOffset();
-        int magicAlign =  getInfo(numDumps-1).finalPos - getInfo(numDumps-1).offset;
-        poolOffset += magicAlign;
-        poolOffset += headerSize;
-        for (int poolIdx = 0; poolIdx < numPoolKinds; poolIdx++) {
-            mozilla::DebugOnly<bool> beforePool = true;
-            Pool *p = &pools[poolIdx];
-            
-            
-            
-            int idx = 0;
-            for (BufferOffset *iter = p->loadOffsets.begin();
-                 iter != p->loadOffsets.end(); ++iter, ++idx)
-            {
-                if (iter->getOffset() >= perforation.getOffset()) {
-                    IonSpew(IonSpew_Pools, "[%d] Pushing entry %d in pool %d into the backwards section.", id, idx, poolIdx);
-                    
-                    int offset = idx * p->immSize;
-                    p->other->insertEntry(&p->poolData[offset], BufferOffset(*iter), this->LifoAlloc_);
-                    
-                    p->other->updateLimiter(*iter);
-
-                    
-                    
-                    p->numEntries--;
-                    beforePool = false;
-                } else {
-                    JS_ASSERT(beforePool);
-                    
-                    
-                    
-                    
-                    poolOffset = p->align(poolOffset);
-                    IonSpew(IonSpew_Pools, "[%d] Entry %d in pool %d is before the pool.", id, idx, poolIdx);
-                    
-                    
-                    Inst *inst = this->getInst(*iter);
-                    
-                    
-                    int codeOffset = poolOffset - iter->getOffset();
-                    
-                    
-                    
-                    
-                    IonSpew(IonSpew_Pools, "[%d] Fixing offset to %d", id, codeOffset - magicAlign);
-                    Asm::PatchConstantPoolLoad(inst, (uint8_t*)inst + codeOffset - magicAlign);
-                }
-            }
-            
-            
-            
-            poolOffset += p->numEntries * p->immSize;
-        }
-        poolOffset = footerSize;
-        inBackref = true;
-        for (int poolIdx = numPoolKinds-1; poolIdx >= 0; poolIdx--) {
-            Pool *tmp = pools[poolIdx].other;
-            if (tmp->checkFullBackref(poolOffset, perforation.getOffset())) {
-                
-                
-                finishPool();
-                break;
-            }
-        }
-    }
-
+  public:
     void flushPool() {
         if (this->oom())
             return;
         IonSpew(IonSpew_Pools, "[%d] Requesting a pool flush", id);
-        if (!inBackref)
-            dumpPool();
         finishPool();
     }
+
+    void enterNoPool(size_t maxInst) {
+        
+        MOZ_ASSERT(!canNotPlacePool_);
+        insertNopFill();
+
+        
+        
+        
+        
+        size_t poolOffset = sizeExcludingCurrentPool() + (maxInst + guardSize_ + headerSize_) * InstSize;
+
+        if (pool_.checkFull(poolOffset)) {
+            IonSpew(IonSpew_Pools, "[%d] No-Pool instruction(%d) caused a spill.", id,
+                    sizeExcludingCurrentPool());
+            finishPool();
+        }
+
+#ifdef DEBUG
+        
+        
+        canNotPlacePoolStartOffset_ = this->nextOffset().getOffset();
+        canNotPlacePoolMaxInst_ = maxInst;
+#endif
+
+        canNotPlacePool_++;
+    }
+
+    void leaveNoPool() {
+        MOZ_ASSERT(canNotPlacePool_);
+        canNotPlacePool_ = false;
+
+        
+        MOZ_ASSERT(this->nextOffset().getOffset() - canNotPlacePoolStartOffset_ <= canNotPlacePoolMaxInst_ * InstSize);
+    }
+
+    ptrdiff_t poolSizeBefore(ptrdiff_t offset) const {
+        
+        
+        
+        
+        unsigned cur = 0;
+        while (cur < numDumps_ && poolInfo_[cur].offset <= offset)
+            cur++;
+        if (cur == 0)
+            return 0;
+        return poolInfo_[cur - 1].finalPos - poolInfo_[cur - 1].offset;
+    }
+
+    void align(unsigned alignment)
+    {
+        
+        MOZ_ASSERT(IsPowerOfTwo(alignment));
+
+        
+        insertNopFill();
+
+        
+        unsigned requiredFill = sizeExcludingCurrentPool() & (alignment - 1);
+        if (requiredFill == 0)
+            return;
+        requiredFill = alignment - requiredFill;
+
+        
+        
+        uint32_t poolOffset = sizeExcludingCurrentPool() + requiredFill
+                              + (1 + guardSize_ + headerSize_) * InstSize;
+        if (pool_.checkFull(poolOffset)) {
+            
+            IonSpew(IonSpew_Pools, "[%d] Alignment of %d at %d caused a spill.", id, alignment,
+                    sizeExcludingCurrentPool());
+            finishPool();
+        }
+
+        inhibitNops_ = true;
+        while (sizeExcludingCurrentPool() & (alignment - 1))
+            putInt(alignFillInst_);
+        inhibitNops_ = false;
+    }
+
+  private:
     void patchBranch(Inst *i, int curpool, BufferOffset branch) {
         const Inst *ci = i;
-        ptrdiff_t offset = Asm::getBranchOffset(ci);
+        ptrdiff_t offset = Asm::GetBranchOffset(ci);
         
         if (offset == 0)
             return;
         int destOffset = branch.getOffset() + offset;
         if (offset > 0) {
-
-            while (curpool < numDumps && poolInfo[curpool].offset <= destOffset) {
-                offset += poolInfo[curpool].size;
+            while (curpool < numDumps_ && poolInfo_[curpool].offset <= destOffset) {
+                offset += poolInfo_[curpool].size;
                 curpool++;
             }
         } else {
             
+            
             curpool--;
-            while (curpool >= 0 && poolInfo[curpool].offset > destOffset) {
-                offset -= poolInfo[curpool].size;
+            while (curpool >= 0 && poolInfo_[curpool].offset > destOffset) {
+                offset -= poolInfo_[curpool].size;
                 curpool--;
             }
+            
             
         }
         Asm::RetargetNearBranch(i, offset, false);
     }
 
-    
-    void markGuard() {
-        
-        
-        if (canNotPlacePool)
+  public:
+    void executableCopy(uint8_t *dest_) {
+        if (this->oom())
             return;
         
+        MOZ_ASSERT(pool_.numEntries() == 0);
         
-        if (inBackref)
-            return;
-        perforate();
-    }
-    void enterNoPool() {
-        insertNopFill();
-        if (!canNotPlacePool && !perforation.assigned()) {
-            
-            
-            
-            
-            
-            
-            
-            
+        MOZ_ASSERT(uintptr_t(dest_) == ((uintptr_t(dest_) + instBufferAlign_ - 1) & ~(instBufferAlign_ - 1)));
+        
+        static_assert(InstSize == sizeof(uint32_t), "Assuming instruction size is 4 bytes");
+        uint32_t *dest = (uint32_t *)dest_;
+        unsigned curIndex = 0;
+        size_t curInstOffset = 0;
+        for (BufferSlice *cur = getHead(); cur != nullptr; cur = cur->getNext()) {
+            uint32_t *src = (uint32_t *)&cur->instructions;
+            unsigned numInsts = cur->size() / InstSize;
+            for (unsigned idx = 0; idx < numInsts; idx++, curInstOffset += InstSize) {
+                
+                if (cur->isBranch(idx)) {
+                    
+                    patchBranch((Inst *)&src[idx], curIndex, BufferOffset(curInstOffset));
+                }
+                dest[idx] = src[idx];
+            }
+            dest += numInsts;
+            Pool *curPool = cur->pool;
+            if (curPool != nullptr) {
+                
+                curIndex++;
+                
+                uint8_t *poolDest = (uint8_t *)dest;
+                Asm::WritePoolHeader(poolDest, curPool, cur->isNatural);
+                poolDest += headerSize_ * InstSize;
 
-            
-            
-            
-            
+                memcpy(poolDest, curPool->poolData(), curPool->getPoolSize());
+                poolDest += curPool->getPoolSize();
 
-            
-            
-
-            
-            
-            
-            
-            
-
-            BufferOffset branch = this->nextOffset();
-            this->markNextAsBranch();
-            this->putBlob(guardSize, nullptr);
-            BufferOffset afterPool = this->nextOffset();
-            Asm::WritePoolGuard(branch, this->getInst(branch), afterPool);
-            markGuard();
-            if (perforatedNode != nullptr)
-                perforatedNode->isNatural = false;
-        }
-        canNotPlacePool++;
-    }
-    void leaveNoPool() {
-        canNotPlacePool--;
-    }
-    int size() const {
-        return uncheckedSize();
-    }
-    Pool *getPool(int idx) {
-        return &pools[idx];
-    }
-    void markNextAsBranch() {
-        
-        
-        this->ensureSpace(InstBaseSize);
-        JS_ASSERT(*this->getTail() != nullptr);
-        (*this->getTail())->markNextAsBranch();
-    }
-    bool isNextBranch() {
-        JS_ASSERT(*this->getTail() != nullptr);
-        return (*this->getTail())->isNextBranch();
-    }
-
-    int uncheckedSize() const {
-        PoolInfo pi = getPoolData();
-        int codeEnd = this->nextOffset().getOffset();
-        return (codeEnd - pi.offset) + pi.finalPos;
-    }
-    ptrdiff_t curDumpsite;
-    void resetCounter() {
-        curDumpsite = 0;
-    }
-    ptrdiff_t poolSizeBefore(ptrdiff_t offset) const {
-        int cur = 0;
-        while(cur < numDumps && poolInfo[cur].offset <= offset)
-            cur++;
-        
-        
-        if (cur == 0)
-            return 0;
-        return poolInfo[cur-1].finalPos - poolInfo[cur-1].offset;
-    }
-
-  private:
-    void getPEPool(PoolEntry pe, Pool **retP, int32_t * retOffset, int32_t *poolNum) const {
-        int poolKind = pe.poolKind();
-        Pool *p = nullptr;
-        uint32_t offset = pe.offset() * pools[poolKind].immSize;
-        int idx;
-        for (idx = 0; idx < numDumps; idx++) {
-            p = &poolInfo[idx].slice->data[poolKind];
-            if (p->getPoolSize() > offset)
-                break;
-            offset -= p->getPoolSize();
-            p = p->other;
-            if (p->getPoolSize() > offset)
-                break;
-            offset -= p->getPoolSize();
-            p = nullptr;
-        }
-        if (poolNum != nullptr)
-            *poolNum = idx;
-        
-        
-        
-        if (p == nullptr) {
-            p = &pools[poolKind];
-            if (offset >= p->getPoolSize()) {
-                p = p->other;
-                offset -= p->getPoolSize();
+                dest = (uint32_t *)poolDest;
             }
         }
-        JS_ASSERT(p != nullptr);
-        JS_ASSERT(offset < p->getPoolSize());
-        *retP = p;
-        *retOffset = offset;
-    }
-    uint8_t *getPoolEntry(PoolEntry pe) {
-        Pool *p;
-        int32_t offset;
-        getPEPool(pe, &p, &offset, nullptr);
-        return &p->poolData[offset];
-    }
-    size_t getPoolEntrySize(PoolEntry pe) {
-        int idx = pe.poolKind();
-        return pools[idx].immSize;
     }
 
   public:
-    uint32_t poolEntryOffset(PoolEntry pe) const {
-        Pool *realPool;
-        
-        int32_t offset;
-        int32_t poolNum;
-        getPEPool(pe, &realPool, &offset, &poolNum);
-        PoolInfo *pi = &poolInfo[poolNum];
-        Pool *poolGroup = pi->slice->data;
-        uint32_t start = pi->finalPos - pi->size + headerSize;
+    size_t poolEntryOffset(PoolEntry pe) const {
         
         
         
-        for (int idx = 0; idx < numPoolKinds; idx++) {
-            if (&poolGroup[idx] == realPool) {
-                return start + offset;
-            }
-            start = poolGroup[idx].addPoolSize(start);
-        }
-        for (int idx = numPoolKinds - 1; idx >= 0; idx--) {
-            if (poolGroup[idx].other == realPool) {
-                return start + offset;
-            }
-            start = poolGroup[idx].other->addPoolSize(start);
+        size_t offset = pe.index() * sizeof(PoolAllocUnit);
+        for (unsigned poolNum = 0; poolNum < numDumps_; poolNum++) {
+            PoolInfo *pi = &poolInfo_[poolNum];
+            unsigned size = pi->slice->pool->getPoolSize();
+            if (size > offset)
+                return pi->finalPos - pi->size + headerSize_ * InstSize + offset;
+            offset -= size;
         }
         MOZ_ASSUME_UNREACHABLE("Entry is not in a pool");
     }
-    void writePoolEntry(PoolEntry pe, uint8_t *buff) {
-        size_t size = getPoolEntrySize(pe);
-        uint8_t *entry = getPoolEntry(pe);
-        memcpy(entry, buff, size);
-    }
-    void readPoolEntry(PoolEntry pe, uint8_t *buff) {
-        size_t size = getPoolEntrySize(pe);
-        uint8_t *entry = getPoolEntry(pe);
-        memcpy(buff, entry, size);
-    }
-
 };
+
 } 
 } 
 #endif 
