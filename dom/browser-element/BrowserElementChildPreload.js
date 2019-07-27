@@ -625,6 +625,8 @@ BrowserElementChild.prototype = {
           
         } else if (e.states.indexOf('blur') == 0) {
           
+        } else if (e.states.indexOf('taponcaret') == 0) {
+          
         } else {
           return;
         }

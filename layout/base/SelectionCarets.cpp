@@ -609,7 +609,8 @@ SelectionCarets::SelectWord()
       
       
       
-      DispatchCustomEvent(NS_LITERAL_STRING("touchcarettap"));
+      DispatchSelectionStateChangedEvent(GetSelection(),
+                                         SelectionState::Taponcaret);
       return NS_OK;
     }
   } else {
