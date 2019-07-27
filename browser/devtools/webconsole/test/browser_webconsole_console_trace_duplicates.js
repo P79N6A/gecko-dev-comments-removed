@@ -13,12 +13,22 @@ function test() {
 
     content.location = TEST_URI;
 
+    
+    
+    
+    
     yield waitForMessages({
       webconsole: hud,
       messages: [{
         name: "console.trace output for foo1()",
         text: "foo1()",
-        repeats: 2,
+        consoleTrace: {
+          file: "test-bug_939783_console_trace_duplicates.html",
+          fn: "foo3()",
+        },
+      }, {
+        name: "console.trace output for foo1()",
+        text: "foo1()",
         consoleTrace: {
           file: "test-bug_939783_console_trace_duplicates.html",
           fn: "foo3()",
