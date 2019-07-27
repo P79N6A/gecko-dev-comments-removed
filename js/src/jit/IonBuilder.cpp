@@ -3423,10 +3423,48 @@ IonBuilder::improveTypesAtTest(MDefinition *ins, bool trueBranch, MTest *test)
       case MDefinition::Op_Compare:
         return improveTypesAtCompare(ins->toCompare(), trueBranch, test);
 
-      default:
-        break;
-    }
+      
+      
+      
+      default: {
+        
+        if (!ins->resultTypeSet() || ins->resultTypeSet()->unknown())
+            return true;
 
+        types::TemporaryTypeSet *type;
+
+        
+        if (trueBranch) {
+            
+            if (!ins->mightBeType(MIRType_Undefined) &&
+                !ins->mightBeType(MIRType_Null))
+            {
+                return true;
+            }
+            type = ins->resultTypeSet()->filter(alloc_->lifoAlloc(), true, true);
+        } else {
+            
+            
+            uint32_t flags = types::TYPE_FLAG_PRIMITIVE;
+
+            
+            if (!ins->resultTypeSet()->maybeEmulatesUndefined())
+                flags &= ~types::TYPE_FLAG_ANYOBJECT;
+
+            
+            if (!ins->resultTypeSet()->hasAnyFlag(~flags & types::TYPE_FLAG_BASE_MASK) &&
+                ins->resultTypeSet()->getObjectCount() == 0)
+            {
+                return true;
+            }
+
+            types::TemporaryTypeSet base(flags, static_cast<types::TypeObjectKey**>(nullptr));
+            type = types::TypeSet::intersectSets(&base, ins->resultTypeSet(), alloc_->lifoAlloc());
+            replaceTypeSet(ins, type, test);
+        }
+      }
+
+    }
     return true;
 }
 
