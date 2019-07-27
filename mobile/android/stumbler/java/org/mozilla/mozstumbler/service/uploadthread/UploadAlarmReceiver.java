@@ -40,10 +40,12 @@ public class UploadAlarmReceiver extends BroadcastReceiver {
 
         public UploadAlarmService(String name) {
             super(name);
+            
+            setIntentRedelivery(false);
         }
 
         public UploadAlarmService() {
-            super(LOG_TAG);
+            this(LOG_TAG);
         }
 
         @Override
