@@ -122,25 +122,25 @@ public:
   
   
   
-  nsresult ParseProperty(const nsCSSProperty aPropID,
-                         const nsAString&    aPropValue,
-                         nsIURI*             aSheetURL,
-                         nsIURI*             aBaseURL,
-                         nsIPrincipal*       aSheetPrincipal,
-                         mozilla::css::Declaration* aDeclaration,
-                         bool*               aChanged,
-                         bool                aIsImportant,
-                         bool                aIsSVGMode = false);
+  void ParseProperty(const nsCSSProperty aPropID,
+                     const nsAString&    aPropValue,
+                     nsIURI*             aSheetURL,
+                     nsIURI*             aBaseURL,
+                     nsIPrincipal*       aSheetPrincipal,
+                     mozilla::css::Declaration* aDeclaration,
+                     bool*               aChanged,
+                     bool                aIsImportant,
+                     bool                aIsSVGMode = false);
 
   
-  nsresult ParseVariable(const nsAString&    aVariableName,
-                         const nsAString&    aPropValue,
-                         nsIURI*             aSheetURL,
-                         nsIURI*             aBaseURL,
-                         nsIPrincipal*       aSheetPrincipal,
-                         mozilla::css::Declaration* aDeclaration,
-                         bool*               aChanged,
-                         bool                aIsImportant);
+  void ParseVariable(const nsAString&    aVariableName,
+                     const nsAString&    aPropValue,
+                     nsIURI*             aSheetURL,
+                     nsIURI*             aBaseURL,
+                     nsIPrincipal*       aSheetPrincipal,
+                     mozilla::css::Declaration* aDeclaration,
+                     bool*               aChanged,
+                     bool                aIsImportant);
   
 
 
