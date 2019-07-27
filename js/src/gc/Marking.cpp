@@ -999,13 +999,6 @@ js::gc::TraceManuallyBarrieredGenericPointerEdge(JSTracer* trc, Cell** thingp, c
         return;
     TraceManuallyBarrieredEdgeFunctor f;
     CallTyped(f, (*thingp)->getTraceKind(), trc, thingp, name);
-
-
-
-
-
-
-
 }
 
 
