@@ -178,7 +178,8 @@ public:
   
   
   
-  virtual uint32_t GetBufferingWait() { return 30; }
+  
+  virtual bool UseBufferingHeuristics() { return true; }
 
   
   

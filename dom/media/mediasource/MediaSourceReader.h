@@ -82,7 +82,7 @@ public:
   
   
   
-  virtual uint32_t GetBufferingWait() { return 0; }
+  bool UseBufferingHeuristics() MOZ_OVERRIDE { return false; }
 
   bool IsMediaSeekable() { return true; }
 
