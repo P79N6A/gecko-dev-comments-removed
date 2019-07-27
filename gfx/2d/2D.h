@@ -1099,10 +1099,12 @@ public:
 
 
 
+
   static TemporaryRef<DataSourceSurface>
     CreateDataSourceSurface(const IntSize &aSize, SurfaceFormat aFormat);
 
   
+
 
 
 

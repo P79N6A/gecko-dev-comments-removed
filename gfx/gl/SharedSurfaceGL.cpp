@@ -82,6 +82,11 @@ SharedSurface_Basic::SharedSurface_Basic(GLContext* gl,
 
     int32_t stride = gfx::GetAlignedStride<4>(size.width * BytesPerPixel(format));
     mData = gfx::Factory::CreateDataSourceSurfaceWithStride(size, format, stride);
+    
+    
+    if (NS_WARN_IF(!mData)) {
+        return;
+    }
 }
 
 SharedSurface_Basic::~SharedSurface_Basic()
@@ -98,6 +103,11 @@ SharedSurface_Basic::~SharedSurface_Basic()
 void
 SharedSurface_Basic::Fence()
 {
+    
+    if (NS_WARN_IF(!mData)) {
+        return;
+    }
+
     mGL->MakeCurrent();
     ScopedBindFramebuffer autoFB(mGL, mFB);
     ReadPixelsIntoDataSurface(mGL, mData);

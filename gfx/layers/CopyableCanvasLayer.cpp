@@ -143,6 +143,12 @@ CopyableCanvasLayer::UpdateTarget(DrawTarget* aDestTarget)
     } else {
       RefPtr<DataSourceSurface> data = GetTempSurface(readSize, format);
       
+      
+      if (NS_WARN_IF(!data)) {
+        return;
+      }
+
+      
       mGLContext->Screen()->Readback(sharedSurf, data);
       if (needsPremult) {
         gfxUtils::PremultiplyDataSurface(data, data);

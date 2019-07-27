@@ -35,6 +35,8 @@ public:
 
 private:
 
+  
+  
   void EnsureInitialized();
 
   RefPtr<Compositor> mCompositor;
