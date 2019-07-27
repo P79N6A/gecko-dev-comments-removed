@@ -86,7 +86,7 @@ const BackgroundPageThumbs = {
     
     
     PageThumbsStorage.fileExistsForURL(url).then(exists => {
-      if (exists.ok) {
+      if (exists) {
         if (options.onDone)
           options.onDone(url);
         return;

@@ -295,7 +295,7 @@ this.PageThumbs = {
   captureAndStoreIfStale: function PageThumbs_captureAndStoreIfStale(aBrowser, aCallback) {
     let url = aBrowser.currentURI.spec;
     PageThumbsStorage.isFileRecentForURL(url).then(recent => {
-      if (!recent.ok &&
+      if (!recent &&
           
           
           aBrowser.currentURI &&

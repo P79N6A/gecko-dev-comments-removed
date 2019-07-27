@@ -67,14 +67,15 @@ function simpleCaptureTest() {
     is(numNotifications, 1, "got notification of item being created.");
     
     
-    PageThumbs.captureAndStoreIfStale(browser);
-    is(numNotifications, 1, "still only 1 notification of item being created.");
+    PageThumbs.captureAndStoreIfStale(browser, function() {
+      is(numNotifications, 1, "still only 1 notification of item being created.");
 
-    ensureThumbnailStale(URL);
-    
-    PageThumbs.captureAndStoreIfStale(browser);
-    
-    
+      ensureThumbnailStale(URL);
+      
+      PageThumbs.captureAndStoreIfStale(browser);
+      
+      
+    });
   });
   yield undefined 
 }
