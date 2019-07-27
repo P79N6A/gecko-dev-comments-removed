@@ -26,10 +26,6 @@ public:
   WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   
-  static already_AddRefed<DOMMMIError>
-  Constructor(const GlobalObject& aGlobal, const nsAString& aServiceCode,
-              const nsAString& aName, const nsAString& aMessage,
-              const Nullable<int16_t>& aInfo, ErrorResult& aRv);
 
   void
   GetServiceCode(nsString& aServiceCode) const
