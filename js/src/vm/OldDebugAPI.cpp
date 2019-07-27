@@ -129,7 +129,10 @@ JS_GetFunctionScript(JSContext *cx, HandleFunction fun)
 JS_PUBLIC_API(const char *)
 JS_GetScriptFilename(JSScript *script)
 {
-    return script->filename();
+    
+    
+    
+    return script->maybeForwardedFilename();
 }
 
 JS_PUBLIC_API(const char16_t *)
