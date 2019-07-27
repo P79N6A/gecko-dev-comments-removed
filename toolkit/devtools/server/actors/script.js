@@ -1542,7 +1542,7 @@ ThreadActor.prototype = {
     
     
     
-    if (this.global && !this.global.toString().includes("Sandbox")) {
+    if (this.global && !this.global.toString().contains("Sandbox")) {
       let els = Cc["@mozilla.org/eventlistenerservice;1"]
                 .getService(Ci.nsIEventListenerService);
       els.removeListenerForAllEvents(this.global, this._allEventsListener, true);
@@ -1991,15 +1991,7 @@ ThreadActor.prototype = {
     
     this.scripts.addScripts(this.dbg.findScripts({ source: aScript.source }));
 
-    this._addScript(aScript);
-
-    
-    
-    
-    
-    for (let s of aScript.getChildScripts()) {
-      this._addScript(s);
-    }
+    this._addSource(aScript.source);
   },
 
   onNewSource: function (aSource) {
@@ -2018,8 +2010,8 @@ ThreadActor.prototype = {
       return;
     }
 
-    for (let s of this.scripts.getAllScripts()) {
-      this._addScript(s);
+    for (let s of this.scripts.getSources()) {
+      this._addSource(s);
     }
   },
 
@@ -2030,15 +2022,14 @@ ThreadActor.prototype = {
 
 
 
-  _addScript: function (aScript) {
-    if (!this.sources.allowSource(aScript.source)) {
+  _addSource: function (aSource) {
+    if (!this.sources.allowSource(aSource)) {
       return false;
     }
 
     
     let promises = [];
-    let sourceActor = this.sources.createNonSourceMappedActor(aScript.source);
-    let endLine = aScript.startLine + aScript.lineCount - 1;
+    let sourceActor = this.sources.createNonSourceMappedActor(aSource);
     for (let _actor of this.breakpointActorMap.findActors()) {
       
       
@@ -2050,10 +2041,7 @@ ThreadActor.prototype = {
       } else {
         promises.push(this.sources.getGeneratedLocation(actor.originalLocation)
                                   .then((generatedLocation) => {
-          
-          if (generatedLocation.generatedSourceActor.actorID === sourceActor.actorID &&
-              generatedLocation.generatedLine >= aScript.startLine &&
-              generatedLocation.generatedLine <= endLine) {
+          if (generatedLocation.generatedSourceActor.actorID === sourceActor.actorID) {
             sourceActor._setBreakpointAtGeneratedLocation(
               actor,
               generatedLocation
@@ -2070,7 +2058,7 @@ ThreadActor.prototype = {
     
     
     
-    this.sources.createSourceActors(aScript.source);
+    this.sources.createSourceActors(aSource);
 
     return true;
   },
