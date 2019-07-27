@@ -193,14 +193,14 @@ void
 MediaEngineTabVideoSource::NotifyPull(MediaStreamGraph*,
                                       SourceMediaStream* aSource,
                                       TrackID aID, StreamTime aDesiredTime,
-                                      TrackTicks& aLastEndTime)
+                                      StreamTime& aLastEndTime)
 {
   VideoSegment segment;
   MonitorAutoLock mon(mMonitor);
 
   
   nsRefPtr<layers::CairoImage> image = mImage;
-  TrackTicks delta = aDesiredTime - aLastEndTime;
+  StreamTime delta = aDesiredTime - aLastEndTime;
   if (delta > 0) {
     
     gfx::IntSize size = image ? image->GetSize() : IntSize(0, 0);

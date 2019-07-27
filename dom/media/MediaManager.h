@@ -239,8 +239,8 @@ private:
   nsRefPtr<MediaEngineSource> mAudioSource; 
   nsRefPtr<MediaEngineSource> mVideoSource; 
   nsRefPtr<SourceMediaStream> mStream; 
-  TrackTicks mLastEndTimeAudio;
-  TrackTicks mLastEndTimeVideo;
+  StreamTime mLastEndTimeAudio;
+  StreamTime mLastEndTimeVideo;
   bool mFinished;
 
   

@@ -39,7 +39,7 @@ public:
 
 
   virtual void NotifyQueuedTrackChanges(MediaStreamGraph* aGraph, TrackID aID,
-                                        TrackTicks aTrackOffset,
+                                        StreamTime aTrackOffset,
                                         uint32_t aTrackEvents,
                                         const MediaSegment& aQueuedMedia) = 0;
 
@@ -146,7 +146,7 @@ public:
   {}
 
   virtual void NotifyQueuedTrackChanges(MediaStreamGraph* aGraph, TrackID aID,
-                                        TrackTicks aTrackOffset,
+                                        StreamTime aTrackOffset,
                                         uint32_t aTrackEvents,
                                         const MediaSegment& aQueuedMedia) MOZ_OVERRIDE;
 
@@ -239,7 +239,7 @@ public:
 
 
   virtual void NotifyQueuedTrackChanges(MediaStreamGraph* aGraph, TrackID aID,
-                                        TrackTicks aTrackOffset,
+                                        StreamTime aTrackOffset,
                                         uint32_t aTrackEvents,
                                         const MediaSegment& aQueuedMedia) MOZ_OVERRIDE;
   
@@ -300,7 +300,7 @@ protected:
 
 
 
-  TrackTicks mTotalFrameDuration;
+  StreamTime mTotalFrameDuration;
 
   
 

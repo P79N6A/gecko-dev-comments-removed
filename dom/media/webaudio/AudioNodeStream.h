@@ -113,7 +113,7 @@ public:
 
 
   void ProduceOutputBeforeInput(GraphTime aFrom);
-  TrackTicks GetCurrentPosition();
+  StreamTime GetCurrentPosition();
   bool IsAudioParamStream() const
   {
     return mAudioParamStream;
@@ -148,14 +148,14 @@ public:
 
 
 
-  TrackTicks TicksFromDestinationTime(MediaStream* aDestination,
+  StreamTime TicksFromDestinationTime(MediaStream* aDestination,
                                       double aSeconds);
   
 
 
 
   double DestinationTimeFromTicks(AudioNodeStream* aDestination,
-                                  TrackTicks aPosition);
+                                  StreamTime aPosition);
 
   size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE;
   size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE;

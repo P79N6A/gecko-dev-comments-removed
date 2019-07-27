@@ -14,12 +14,6 @@ namespace mozilla {
 
 
 
-typedef MediaTime StreamTime;
-const StreamTime STREAM_TIME_MAX = MEDIA_TIME_MAX;
-
-
-
-
 
 
 typedef int32_t TrackID;
@@ -42,21 +36,6 @@ inline TrackTicks RateConvertTicksRoundUp(TrackRate aOutRate,
   NS_ASSERTION(0 < aInRate && aInRate <= TRACK_RATE_MAX, "Bad in rate");
   NS_ASSERTION(0 <= aTicks && aTicks <= TRACK_TICKS_MAX, "Bad ticks");
   return (aTicks * aOutRate + aInRate - 1) / aInRate;
-}
-
-inline TrackTicks SecondsToTicksRoundDown(TrackRate aRate, double aSeconds)
-{
-  NS_ASSERTION(0 < aRate && aRate <= TRACK_RATE_MAX, "Bad rate");
-  NS_ASSERTION(0 <= aSeconds && aSeconds <= TRACK_TICKS_MAX/TRACK_RATE_MAX,
-               "Bad seconds");
-  return aSeconds * aRate;
-}
-
-inline double TrackTicksToSeconds(TrackRate aRate, TrackTicks aTicks)
-{
-  NS_ASSERTION(0 < aRate && aRate <= TRACK_RATE_MAX, "Bad rate");
-  NS_ASSERTION(0 <= aTicks && aTicks <= TRACK_TICKS_MAX, "Bad ticks");
-  return static_cast<double>(aTicks)/aRate;
 }
 
 
@@ -85,7 +64,7 @@ public:
 
 
   class Track {
-    Track(TrackID aID, TrackTicks aStart, MediaSegment* aSegment, TrackRate aGraphRate)
+    Track(TrackID aID, StreamTime aStart, MediaSegment* aSegment, TrackRate aGraphRate)
       : mStart(aStart),
         mSegment(aSegment),
         mGraphRate(aGraphRate),
@@ -112,8 +91,8 @@ public:
     MediaSegment* GetSegment() const { return mSegment; }
     TrackID GetID() const { return mID; }
     bool IsEnded() const { return mEnded; }
-    TrackTicks GetStart() const { return mStart; }
-    TrackTicks GetEnd() const { return mSegment->GetDuration(); }
+    StreamTime GetStart() const { return mStart; }
+    StreamTime GetEnd() const { return mSegment->GetDuration(); }
     MediaSegment::Type GetType() const { return mSegment->GetType(); }
 
     void SetEnded() { mEnded = true; }
@@ -131,11 +110,11 @@ public:
     {
       return mSegment.forget();
     }
-    void ForgetUpTo(TrackTicks aTime)
+    void ForgetUpTo(StreamTime aTime)
     {
       mSegment->ForgetUpTo(aTime);
     }
-    void FlushAfter(TrackTicks aNewEnd)
+    void FlushAfter(StreamTime aNewEnd)
     {
       
       
@@ -155,7 +134,7 @@ public:
     friend class StreamBuffer;
 
     
-    TrackTicks mStart;
+    StreamTime mStart;
     
     
     nsAutoPtr<MediaSegment> mSegment;
@@ -223,7 +202,7 @@ public:
 
 
 
-  Track& AddTrack(TrackID aID, TrackTicks aStart, MediaSegment* aSegment)
+  Track& AddTrack(TrackID aID, StreamTime aStart, MediaSegment* aSegment)
   {
     NS_ASSERTION(!FindTrack(aID), "Track with this ID already exists");
 

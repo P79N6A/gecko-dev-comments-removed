@@ -136,7 +136,7 @@ public:
       
       
       
-      TrackTicks tick = mSource->GetCurrentPosition();
+      StreamTime tick = mSource->GetCurrentPosition();
       double computedDelay[WEBAUDIO_BLOCK_SIZE];
       for (size_t counter = 0; counter < WEBAUDIO_BLOCK_SIZE; ++counter) {
         double delayAtTick = mDelay.GetValueAtTime(tick, counter) * sampleRate;

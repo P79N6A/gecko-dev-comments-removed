@@ -38,7 +38,7 @@ protected:
   struct TrackMapEntry {
     
     
-    TrackTicks mEndOfConsumedInputTicks;
+    StreamTime mEndOfConsumedInputTicks;
     
     
     

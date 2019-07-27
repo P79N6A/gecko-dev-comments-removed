@@ -100,7 +100,7 @@ private:
 public:
   explicit SharedBuffers(float aSampleRate)
     : mOutputQueue("SharedBuffers::outputQueue")
-    , mDelaySoFar(TRACK_TICKS_MAX)
+    , mDelaySoFar(STREAM_TIME_MAX)
     , mSampleRate(aSampleRate)
     , mLatency(0.0)
     , mDroppingBuffers(false)
@@ -184,14 +184,14 @@ public:
     {
       MutexAutoLock lock(mOutputQueue.Lock());
       if (mOutputQueue.ReadyToConsume() > 0) {
-        if (mDelaySoFar == TRACK_TICKS_MAX) {
+        if (mDelaySoFar == STREAM_TIME_MAX) {
           mDelaySoFar = 0;
         }
         buffer = mOutputQueue.Consume();
       } else {
         
         buffer.SetNull(WEBAUDIO_BLOCK_SIZE);
-        if (mDelaySoFar != TRACK_TICKS_MAX) {
+        if (mDelaySoFar != STREAM_TIME_MAX) {
           
           mDelaySoFar += WEBAUDIO_BLOCK_SIZE;
         }
@@ -201,16 +201,16 @@ public:
     return buffer;
   }
 
-  TrackTicks DelaySoFar() const
+  StreamTime DelaySoFar() const
   {
     MOZ_ASSERT(!NS_IsMainThread());
-    return mDelaySoFar == TRACK_TICKS_MAX ? 0 : mDelaySoFar;
+    return mDelaySoFar == STREAM_TIME_MAX ? 0 : mDelaySoFar;
   }
 
   void Reset()
   {
     MOZ_ASSERT(!NS_IsMainThread());
-    mDelaySoFar = TRACK_TICKS_MAX;
+    mDelaySoFar = STREAM_TIME_MAX;
     mLatency = 0.0f;
     {
       MutexAutoLock lock(mOutputQueue.Lock());
@@ -224,7 +224,7 @@ private:
   
   
   
-  TrackTicks mDelaySoFar;
+  StreamTime mDelaySoFar;
   
   float mSampleRate;
   
@@ -352,7 +352,7 @@ private:
     MOZ_ASSERT(!NS_IsMainThread());
 
     
-    TrackTicks playbackTick = mSource->GetCurrentPosition();
+    StreamTime playbackTick = mSource->GetCurrentPosition();
     
     playbackTick += WEBAUDIO_BLOCK_SIZE;
     

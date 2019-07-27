@@ -43,15 +43,15 @@ protected:
 
 private:
   
-  TrackTicks CalculateEncodedDuration(TrackTicks aDurationCopied);
+  StreamTime CalculateEncodedDuration(StreamTime aDurationCopied);
 
   
-  TrackTicks CalculateRemainingTicks(TrackTicks aDurationCopied,
-                                     TrackTicks aEncodedDuration);
+  StreamTime CalculateRemainingTicks(StreamTime aDurationCopied,
+                                     StreamTime aEncodedDuration);
 
   
   EncodeOperation GetNextEncodeOperation(TimeDuration aTimeElapsed,
-                                         TrackTicks aProcessedDuration);
+                                         StreamTime aProcessedDuration);
 
   
   nsresult GetEncodedPartitions(EncodedFrameContainer& aData);
@@ -62,11 +62,11 @@ private:
   
   uint32_t mEncodedFrameRate;
   
-  TrackTicks mEncodedFrameDuration;
+  StreamTime mEncodedFrameDuration;
   
-  TrackTicks mEncodedTimestamp;
+  StreamTime mEncodedTimestamp;
   
-  TrackTicks mRemainingTicks;
+  StreamTime mRemainingTicks;
 
   
   nsRefPtr<layers::Image> mMuteFrame;
