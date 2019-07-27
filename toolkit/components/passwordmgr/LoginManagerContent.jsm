@@ -267,6 +267,7 @@ var LoginManagerContent = {
     let autofillForm = gAutofillForms && !PrivateBrowsingUtils.isContentWindowPrivate(doc.defaultView);
 
     this._fillForm(form, autofillForm, false, false, loginsFound);
+    Services.obs.notifyObservers(form, "passwordmgr-processed-form", null);
   },
 
   
@@ -310,6 +311,7 @@ var LoginManagerContent = {
       this._asyncFindLogins(acForm, { showMasterPassword: false })
           .then(({ form, loginsFound }) => {
               this._fillForm(form, true, true, true, loginsFound);
+              Services.obs.notifyObservers(form, "passwordmgr-processed-form", null);
           })
           .then(null, Cu.reportError);
     } else {
@@ -666,8 +668,6 @@ var LoginManagerContent = {
     }
 
     
-    
-    
     var didntFillReason = null;
 
     
@@ -679,8 +679,6 @@ var LoginManagerContent = {
     
     if (passwordField.value && !clobberPassword) {
       didntFillReason = "existingPassword";
-      this._notifyFoundLogins(didntFillReason, usernameField,
-                              passwordField, foundLogins, null);
       log("form not filled, the password field was already filled");
       recordAutofillResult(AUTOFILL_RESULT.EXISTING_PASSWORD);
       return;
@@ -777,9 +775,6 @@ var LoginManagerContent = {
       log("autocomplete=off but form can be filled; notified observers");
     }
 
-    this._notifyFoundLogins(didntFillReason, usernameField, passwordField,
-                            foundLogins, selectedLogin);
-
     if (didFillForm) {
       recordAutofillResult(AUTOFILL_RESULT.FILLED);
     } else {
@@ -801,61 +796,6 @@ var LoginManagerContent = {
       }
       recordAutofillResult(autofillResult);
     }
-  },
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _notifyFoundLogins : function (didntFillReason, usernameField,
-                                 passwordField, foundLogins, selectedLogin) {
-    
-    
-    
-    let formInfo = Cc["@mozilla.org/hash-property-bag;1"].
-                   createInstance(Ci.nsIWritablePropertyBag2).
-                   QueryInterface(Ci.nsIWritablePropertyBag);
-
-    formInfo.setPropertyAsACString("didntFillReason", didntFillReason);
-    formInfo.setPropertyAsInterface("usernameField", usernameField);
-    formInfo.setPropertyAsInterface("passwordField", passwordField);
-    formInfo.setProperty("foundLogins", foundLogins.concat());
-    formInfo.setPropertyAsInterface("selectedLogin", selectedLogin);
-
-    Services.obs.notifyObservers(formInfo, "passwordmgr-found-logins", null);
   },
 
 };
