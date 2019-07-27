@@ -126,6 +126,7 @@ class OMXOutputDrain : public nsRunnable
 {
 public:
   void Start() {
+    CODEC_LOGD("OMXOutputDrain starting");
     MonitorAutoLock lock(mMonitor);
     if (mThread == nullptr) {
       NS_NewNamedThread("OMXOutputDrain", getter_AddRefs(mThread));
@@ -342,57 +343,77 @@ public:
       return INVALID_OPERATION;
     }
 
-    size_t index;
-    status_t err = mCodec->dequeueInputBuffer(&index,
-      aIsFirstFrame ? START_DEQUEUE_BUFFER_TIMEOUT_US : DEQUEUE_BUFFER_TIMEOUT_US);
-    if (err != OK) {
-      if (err != -EAGAIN) {
-        CODEC_LOGE("decode dequeue input buffer error:%d", err);
-      } else {
-        CODEC_LOGE("decode dequeue 100ms without a buffer (EAGAIN)");
-      }
-      return err;
-    }
+    
+    
+    
+    const uint8_t* data = aEncoded._buffer;
+    size_t size = aEncoded._length;
+    const uint8_t* nalStart = nullptr;
+    size_t nalSize = 0;
+    status_t err = OK;
 
     
-    MOZ_ASSERT(memcmp(aEncoded._buffer, kNALStartCode, sizeof(kNALStartCode)) == 0);
-    const sp<ABuffer>& omxIn = mInputBuffers.itemAt(index);
-    MOZ_ASSERT(omxIn->capacity() >= aEncoded._length);
-    omxIn->setRange(0, aEncoded._length);
-    
-    
-    uint8_t* dst = omxIn->data();
-    memcpy(dst, aEncoded._buffer, aEncoded._length);
-    int64_t inputTimeUs = (aEncoded._timeStamp * 1000ll) / 90; 
-    
-    uint32_t flags;
-    int nalType = dst[sizeof(kNALStartCode)] & 0x1f;
-    switch (nalType) {
-      case kNALTypeSPS:
-      case kNALTypePPS:
-        flags = MediaCodec::BUFFER_FLAG_CODECCONFIG;
-        break;
-      case kNALTypeIDR:
-        flags = MediaCodec::BUFFER_FLAG_SYNCFRAME;
-        break;
-      default:
-        flags = 0;
-        break;
-    }
-    CODEC_LOGD("Decoder input: %d bytes (NAL 0x%02x), time %lld (%u), flags 0x%x",
-               aEncoded._length, dst[sizeof(kNALStartCode)], inputTimeUs, aEncoded._timeStamp, flags);
-    err = mCodec->queueInputBuffer(index, 0, aEncoded._length, inputTimeUs, flags);
-    if (err == OK && !(flags & MediaCodec::BUFFER_FLAG_CODECCONFIG)) {
-      if (mOutputDrain == nullptr) {
-        mOutputDrain = new OutputDrain(this);
-        mOutputDrain->Start();
+    while (getNextNALUnit(&data, &size, &nalStart, &nalSize, true) == OK) {
+      
+      webrtc::EncodedImage nalu(aEncoded);
+
+      nalu._buffer = const_cast<uint8_t*>(nalStart) - sizeof(kNALStartCode);
+      MOZ_ASSERT(nalu._buffer >= aEncoded._buffer);
+      nalu._length = nalSize + sizeof(kNALStartCode);
+      MOZ_ASSERT(nalu._buffer + nalu._length <= aEncoded._buffer + aEncoded._length);
+
+      size_t index;
+      err = mCodec->dequeueInputBuffer(&index,
+                                       aIsFirstFrame ? START_DEQUEUE_BUFFER_TIMEOUT_US : DEQUEUE_BUFFER_TIMEOUT_US);
+      if (err != OK) {
+        if (err != -EAGAIN) {
+          CODEC_LOGE("decode dequeue input buffer error:%d", err);
+        } else {
+          CODEC_LOGE("decode dequeue 100ms without a buffer (EAGAIN)");
+        }
+        return err;
       }
-      EncodedFrame frame;
-      frame.mWidth = mWidth;
-      frame.mHeight = mHeight;
-      frame.mTimestamp = aEncoded._timeStamp;
-      frame.mRenderTimeMs = aRenderTimeMs;
-      mOutputDrain->QueueInput(frame);
+
+      
+      MOZ_ASSERT(memcmp(nalu._buffer, kNALStartCode, sizeof(kNALStartCode)) == 0);
+      const sp<ABuffer>& omxIn = mInputBuffers.itemAt(index);
+      MOZ_ASSERT(omxIn->capacity() >= nalu._length);
+      omxIn->setRange(0, nalu._length);
+      
+      
+      uint8_t* dst = omxIn->data();
+      memcpy(dst, nalu._buffer, nalu._length);
+      int64_t inputTimeUs = (nalu._timeStamp * 1000ll) / 90; 
+      
+      uint32_t flags;
+      int nalType = dst[sizeof(kNALStartCode)] & 0x1f;
+      switch (nalType) {
+        case kNALTypeSPS:
+        case kNALTypePPS:
+          flags = MediaCodec::BUFFER_FLAG_CODECCONFIG;
+          break;
+        case kNALTypeIDR:
+          flags = MediaCodec::BUFFER_FLAG_SYNCFRAME;
+          break;
+        default:
+          flags = 0;
+          break;
+      }
+      CODEC_LOGD("Decoder input: %d bytes (NAL 0x%02x), time %lld (%u), flags 0x%x",
+                 nalu._length, dst[sizeof(kNALStartCode)], inputTimeUs, nalu._timeStamp, flags);
+      err = mCodec->queueInputBuffer(index, 0, nalu._length, inputTimeUs, flags);
+      if (err == OK && !(flags & MediaCodec::BUFFER_FLAG_CODECCONFIG)) {
+        if (mOutputDrain == nullptr) {
+          mOutputDrain = new OutputDrain(this);
+          mOutputDrain->Start();
+        }
+        EncodedFrame frame;
+        frame.mWidth = mWidth;
+        frame.mHeight = mHeight;
+        frame.mTimestamp = nalu._timeStamp;
+        frame.mRenderTimeMs = aRenderTimeMs;
+        mOutputDrain->QueueInput(frame);
+      }
     }
 
     return err;
