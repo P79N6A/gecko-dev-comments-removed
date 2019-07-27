@@ -501,13 +501,6 @@ public:
 
 
 
-#define NS_INIT_ISUPPORTS() ((void)0)
-
-
-
-
-
-
 
 
 #define NS_INLINE_DECL_REFCOUNTING(_class, ...)                               \
