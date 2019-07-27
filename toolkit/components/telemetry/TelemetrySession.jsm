@@ -829,8 +829,6 @@ let Impl = {
   _delayedInitTaskDeferred: null,
   
   _stateSaveSerializer: new SaveSerializer(),
-  
-  _abortedSessionSerializer: new SaveSerializer(),
 
   
 
@@ -1494,7 +1492,7 @@ let Impl = {
 
         if (IS_UNIFIED_TELEMETRY) {
           
-          yield this._checkAbortedSessionPing();
+          yield TelemetryController.checkAbortedSessionPing();
 
           
           
@@ -1840,8 +1838,7 @@ let Impl = {
           yield this._stateSaveSerializer.flushTasks();
 
           if (IS_UNIFIED_TELEMETRY) {
-            yield this._abortedSessionSerializer
-                      .enqueueTask(() => this._removeAbortedSessionPing());
+            yield TelemetryController.removeAbortedSessionPing();
           }
 
           reset();
@@ -1994,47 +1991,6 @@ let Impl = {
 
 
 
-  _removeAbortedSessionPing: function() {
-    const FILE_PATH = OS.Path.join(OS.Constants.Path.profileDir, DATAREPORTING_DIRECTORY,
-                                   ABORTED_SESSION_FILE_NAME);
-    try {
-      this._log.trace("_removeAbortedSessionPing - success");
-      return OS.File.remove(FILE_PATH);
-    } catch (ex if ex.becauseNoSuchFile) {
-      this._log.trace("_removeAbortedSessionPing - no such file");
-    } catch (ex) {
-      this._log.error("_removeAbortedSessionPing - error removing ping", ex)
-    }
-    return Promise.resolve();
-  },
-
-  
-
-
-
-  _checkAbortedSessionPing: Task.async(function* () {
-    
-    
-    
-    const ABORTED_SESSIONS_DIR =
-      OS.Path.join(OS.Constants.Path.profileDir, DATAREPORTING_DIRECTORY);
-    yield OS.File.makeDir(ABORTED_SESSIONS_DIR, { ignoreExisting: true });
-
-    const FILE_PATH = OS.Path.join(OS.Constants.Path.profileDir, DATAREPORTING_DIRECTORY,
-                                   ABORTED_SESSION_FILE_NAME);
-    let abortedExists = yield OS.File.exists(FILE_PATH);
-    if (abortedExists) {
-      this._log.trace("_checkAbortedSessionPing - aborted session found: " + FILE_PATH);
-      yield this._abortedSessionSerializer.enqueueTask(
-        () => TelemetryController.addAbortedSessionPing(FILE_PATH));
-    }
-  }),
-
-  
-
-
-
-
 
   _saveAbortedSessionPing: function(aProvidedPayload = null) {
     const FILE_PATH = OS.Path.join(OS.Constants.Path.profileDir, DATAREPORTING_DIRECTORY,
@@ -2050,13 +2006,6 @@ let Impl = {
       payload = this.getSessionPayload(REASON_ABORTED_SESSION, false);
     }
 
-    let options = {
-      retentionDays: RETENTION_DAYS,
-      addClientId: true,
-      addEnvironment: true,
-      overwrite: true,
-    };
-    return this._abortedSessionSerializer.enqueueTask(() =>
-      TelemetryController.savePing(getPingType(payload), payload, FILE_PATH, options));
+    return TelemetryController.saveAbortedSessionPing(payload);
   },
 };

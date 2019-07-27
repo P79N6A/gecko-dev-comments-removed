@@ -44,6 +44,7 @@ const PREF_UNIFIED = PREF_BRANCH + "unified";
 const IS_UNIFIED_TELEMETRY = Preferences.get(PREF_UNIFIED, false);
 
 const PING_FORMAT_VERSION = 4;
+const PING_TYPE_MAIN = "main";
 
 
 const TELEMETRY_DELAY = 60000;
@@ -270,8 +271,27 @@ this.TelemetryController = Object.freeze({
 
 
 
-  addAbortedSessionPing: function addAbortedSessionPing(aFilePath) {
-    return Impl.addAbortedSessionPing(aFilePath);
+  checkAbortedSessionPing: function() {
+    return Impl.checkAbortedSessionPing();
+  },
+
+  
+
+
+
+
+
+  saveAbortedSessionPing: function(aPayload) {
+    return Impl.saveAbortedSessionPing(aPayload);
+  },
+
+  
+
+
+
+
+  removeAbortedSessionPing: function() {
+    return Impl.removeAbortedSessionPing();
   },
 
   
@@ -701,20 +721,39 @@ let Impl = {
 
 
 
+  checkAbortedSessionPing: Task.async(function*() {
+    let ping = yield TelemetryStorage.loadAbortedSessionPing();
+    this._log.trace("checkAbortedSessionPing - found aborted-session ping: " + !!ping);
+    if (!ping) {
+      return;
+    }
 
-  addAbortedSessionPing: Task.async(function* addAbortedSessionPing(aFilePath) {
-    this._log.trace("addAbortedSessionPing");
-
-    let ping = yield TelemetryStorage.loadPingFile(aFilePath);
     try {
       yield TelemetryStorage.addPendingPing(ping);
       yield TelemetryArchive.promiseArchivePing(ping);
     } catch (e) {
-      this._log.error("addAbortedSessionPing - Unable to add the pending ping", e);
+      this._log.error("checkAbortedSessionPing - Unable to add the pending ping", e);
     } finally {
-      yield OS.File.remove(aFilePath);
+      yield TelemetryStorage.removeAbortedSessionPing();
     }
   }),
+
+  
+
+
+
+
+
+  saveAbortedSessionPing: function(aPayload) {
+    this._log.trace("saveAbortedSessionPing");
+    const options = {addClientId: true, addEnvironment: true};
+    const pingData = this.assemblePing(PING_TYPE_MAIN, aPayload, options);
+    return TelemetryStorage.saveAbortedSessionPing(pingData);
+  },
+
+  removeAbortedSessionPing: function() {
+    return TelemetryStorage.removeAbortedSessionPing();
+  },
 
   onPingRequestFinished: function(success, startTime, ping, isPersisted) {
     this._log.trace("onPingRequestFinished - success: " + success + ", persisted: " + isPersisted);
@@ -1036,6 +1075,9 @@ let Impl = {
 
       
       yield this._connectionsBarrier.wait();
+
+      
+      yield TelemetryStorage.shutdown();
     } finally {
       
       this._initialized = false;
