@@ -22,6 +22,7 @@
 #include "mozilla/Move.h"
 #include "mozilla/Scoped.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/MemoryChecking.h"
 
 #ifdef MOZ_THREADSTACKHELPER_NATIVE
 #include "google_breakpad/processor/call_stack.h"
@@ -770,6 +771,11 @@ ThreadStackHelper::FillThreadContext(void* aContext)
 
 #ifndef MOZ_ASAN
   memcpy(mContextToFill->mStack.get(), reinterpret_cast<void*>(sp), stackSize);
+  
+  
+  
+  
+  MOZ_MAKE_MEM_DEFINED(mContextToFill->mStack.get(), stackSize);
 #else
   
   
