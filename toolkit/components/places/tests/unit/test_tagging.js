@@ -156,6 +156,22 @@ function run_test() {
     } catch (ex) {
       do_check_eq(ex.name, "NS_ERROR_ILLEGAL_VALUE");
     }
+    
+    
+    try {
+    
+      
+      var n = Ci.nsITaggingService.MAX_TAG_LENGTH;
+      var someOos = new Array(n).join('o');
+      var longTagName = "l" + someOos + "ng_tag";
+      
+      tagssvc.tagURI(uri1, ["short_tag", longTagName]);
+      do_throw("Passing a bad tags array should throw");
+      
+    } catch (ex) {
+      do_check_eq(ex.name, "NS_ERROR_ILLEGAL_VALUE");
+    }
+    
   }
 
   
