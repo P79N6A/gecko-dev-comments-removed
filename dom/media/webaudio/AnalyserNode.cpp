@@ -122,7 +122,7 @@ AnalyserNode::SetFftSize(uint32_t aValue, ErrorResult& aRv)
 {
   
   if (aValue < 32 ||
-      aValue > 2048 ||
+      aValue > 32768 ||
       (aValue & (aValue - 1)) != 0) {
     aRv.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
     return;
