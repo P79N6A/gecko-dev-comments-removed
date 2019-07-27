@@ -227,7 +227,16 @@ this.TelemetryPing = Object.freeze({
 
   observe: function (aSubject, aTopic, aData) {
     return Impl.observe(aSubject, aTopic, aData);
-  }
+  },
+
+  
+
+
+
+
+   get clientID() {
+    return Impl.clientID;
+   },
 });
 
 let Impl = {
@@ -1146,5 +1155,9 @@ let Impl = {
       break;
 #endif
     }
+  },
+
+  get clientID() {
+    return this._clientID;
   },
 };
