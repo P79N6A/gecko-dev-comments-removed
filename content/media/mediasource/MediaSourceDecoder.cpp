@@ -93,8 +93,12 @@ MediaSourceDecoder::GetSeekable(dom::TimeRanges* aSeekable)
 void
 MediaSourceDecoder::Shutdown()
 {
+  MSE_DEBUG("MediaSourceDecoder(%p)::Shutdown", this);
   MediaDecoder::Shutdown();
 
+  if (mMediaSource) {
+    mMediaSource->Detach();
+  }
   
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
   mon.NotifyAll();
