@@ -889,5 +889,13 @@ FetchDriver::OnRedirectVerifyCallback(nsresult aResult)
   mRedirectCallback = nullptr;
   return NS_OK;
 }
+
+void
+FetchDriver::SetDocument(nsIDocument* aDocument)
+{
+  
+  MOZ_ASSERT(mFetchRecursionCount == 0);
+  mDocument = aDocument;
+}
 } 
 } 
