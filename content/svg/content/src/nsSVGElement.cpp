@@ -905,6 +905,12 @@ nsSVGElement::WalkContentStyleRules(nsRuleWalker* aRuleWalker)
     aRuleWalker->Forward(mContentStyleRule);
   }
 
+  return NS_OK;
+}
+
+void
+nsSVGElement::WalkAnimatedContentStyleRules(nsRuleWalker* aRuleWalker)
+{
   
   
   
@@ -933,8 +939,6 @@ nsSVGElement::WalkContentStyleRules(nsRuleWalker* aRuleWalker)
       aRuleWalker->Forward(animContentStyleRule);
     }
   }
-
-  return NS_OK;
 }
 
 NS_IMETHODIMP_(bool)
