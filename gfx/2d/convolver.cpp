@@ -26,6 +26,7 @@
 
 
 
+#include "2D.h"
 #include "convolver.h"
 
 #include <algorithm>
@@ -33,10 +34,11 @@
 #include "skia/SkTypes.h"
 
 
-
-#if defined(SIMD_SSE2)
-#include <emmintrin.h>  
+#if defined(USE_SSE2)
+#include "convolverSSE2.h"
 #endif
+
+using mozilla::gfx::Factory;
 
 #if defined(SK_CPU_LENDIAN)
 #define R_OFFSET_IDX 0
@@ -161,11 +163,11 @@ __attribute__((optimize("-O1")))
 #endif
 #endif
 void ConvolveHorizontally(const unsigned char* src_data,
+                          int begin, int end,
                           const ConvolutionFilter1D& filter,
                           unsigned char* out_row) {
   
-  int num_values = filter.num_values();
-  for (int out_x = 0; out_x < num_values; out_x++) {
+  for (int out_x = begin; out_x < end; out_x++) {
     
     int filter_offset, filter_length;
     const ConvolutionFilter1D::Fixed* filter_values =
@@ -213,11 +215,10 @@ template<bool has_alpha>
 void ConvolveVertically(const ConvolutionFilter1D::Fixed* filter_values,
                         int filter_length,
                         unsigned char* const* source_data_rows,
-                        int pixel_width,
-                        unsigned char* out_row) {
+                        int begin, int end, unsigned char* out_row) {
   
   
-  for (int out_x = 0; out_x < pixel_width; out_x++) {
+  for (int out_x = begin; out_x < end; out_x++) {
     
     
     int byte_offset = out_x * 4;
@@ -270,433 +271,6 @@ void ConvolveVertically(const ConvolutionFilter1D::Fixed* filter_values,
       out_row[byte_offset + A_OFFSET_IDX] = 0xff;
     }
   }
-}
-
-
-
-
-void ConvolveHorizontally_SSE2(const unsigned char* src_data,
-                               const ConvolutionFilter1D& filter,
-                               unsigned char* out_row) {
-#if defined(SIMD_SSE2)
-  int num_values = filter.num_values();
-
-  int filter_offset, filter_length;
-  __m128i zero = _mm_setzero_si128();
-  __m128i mask[4];
-  
-  
-  
-  mask[1] = _mm_set_epi16(0, 0, 0, 0, 0, 0, 0, -1);
-  mask[2] = _mm_set_epi16(0, 0, 0, 0, 0, 0, -1, -1);
-  mask[3] = _mm_set_epi16(0, 0, 0, 0, 0, -1, -1, -1);
-
-  
-  for (int out_x = 0; out_x < num_values; out_x++) {
-    const ConvolutionFilter1D::Fixed* filter_values =
-        filter.FilterForValue(out_x, &filter_offset, &filter_length);
-
-    __m128i accum = _mm_setzero_si128();
-
-    
-    
-    const __m128i* row_to_filter =
-        reinterpret_cast<const __m128i*>(&src_data[filter_offset << 2]);
-
-    
-    for (int filter_x = 0; filter_x < filter_length >> 2; filter_x++) {
-
-      
-      __m128i coeff, coeff16;
-      
-      coeff = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(filter_values));
-      
-      coeff16 = _mm_shufflelo_epi16(coeff, _MM_SHUFFLE(1, 1, 0, 0));
-      
-      coeff16 = _mm_unpacklo_epi16(coeff16, coeff16);
-
-      
-      
-      
-      __m128i src8 = _mm_loadu_si128(row_to_filter);
-      
-      __m128i src16 = _mm_unpacklo_epi8(src8, zero);
-      __m128i mul_hi = _mm_mulhi_epi16(src16, coeff16);
-      __m128i mul_lo = _mm_mullo_epi16(src16, coeff16);
-      
-      __m128i t = _mm_unpacklo_epi16(mul_lo, mul_hi);
-      accum = _mm_add_epi32(accum, t);
-      
-      t = _mm_unpackhi_epi16(mul_lo, mul_hi);
-      accum = _mm_add_epi32(accum, t);
-
-      
-      
-      
-      
-      coeff16 = _mm_shufflelo_epi16(coeff, _MM_SHUFFLE(3, 3, 2, 2));
-      
-      coeff16 = _mm_unpacklo_epi16(coeff16, coeff16);
-      
-      src16 = _mm_unpackhi_epi8(src8, zero);
-      mul_hi = _mm_mulhi_epi16(src16, coeff16);
-      mul_lo = _mm_mullo_epi16(src16, coeff16);
-      
-      t = _mm_unpacklo_epi16(mul_lo, mul_hi);
-      accum = _mm_add_epi32(accum, t);
-      
-      t = _mm_unpackhi_epi16(mul_lo, mul_hi);
-      accum = _mm_add_epi32(accum, t);
-
-      
-      row_to_filter += 1;
-      filter_values += 4;
-    }
-
-    
-    
-    
-    
-    int r = filter_length&3;
-    if (r) {
-      
-      __m128i coeff, coeff16;
-      coeff = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(filter_values));
-      
-      coeff = _mm_and_si128(coeff, mask[r]);
-      coeff16 = _mm_shufflelo_epi16(coeff, _MM_SHUFFLE(1, 1, 0, 0));
-      coeff16 = _mm_unpacklo_epi16(coeff16, coeff16);
-
-      
-      
-      __m128i src8 = _mm_loadu_si128(row_to_filter);
-      __m128i src16 = _mm_unpacklo_epi8(src8, zero);
-      __m128i mul_hi = _mm_mulhi_epi16(src16, coeff16);
-      __m128i mul_lo = _mm_mullo_epi16(src16, coeff16);
-      __m128i t = _mm_unpacklo_epi16(mul_lo, mul_hi);
-      accum = _mm_add_epi32(accum, t);
-      t = _mm_unpackhi_epi16(mul_lo, mul_hi);
-      accum = _mm_add_epi32(accum, t);
-
-      src16 = _mm_unpackhi_epi8(src8, zero);
-      coeff16 = _mm_shufflelo_epi16(coeff, _MM_SHUFFLE(3, 3, 2, 2));
-      coeff16 = _mm_unpacklo_epi16(coeff16, coeff16);
-      mul_hi = _mm_mulhi_epi16(src16, coeff16);
-      mul_lo = _mm_mullo_epi16(src16, coeff16);
-      t = _mm_unpacklo_epi16(mul_lo, mul_hi);
-      accum = _mm_add_epi32(accum, t);
-    }
-
-    
-    accum = _mm_srai_epi32(accum, ConvolutionFilter1D::kShiftBits);
-
-    
-    accum = _mm_packs_epi32(accum, zero);
-    
-    accum = _mm_packus_epi16(accum, zero);
-
-    
-    *(reinterpret_cast<int*>(out_row)) = _mm_cvtsi128_si32(accum);
-    out_row += 4;
-  }
-#endif
-}
-
-
-
-
-
-void ConvolveHorizontally4_SSE2(const unsigned char* src_data[4],
-                                const ConvolutionFilter1D& filter,
-                                unsigned char* out_row[4]) {
-#if defined(SIMD_SSE2)
-  int num_values = filter.num_values();
-
-  int filter_offset, filter_length;
-  __m128i zero = _mm_setzero_si128();
-  __m128i mask[4];
-  
-  
-  
-  mask[1] = _mm_set_epi16(0, 0, 0, 0, 0, 0, 0, -1);
-  mask[2] = _mm_set_epi16(0, 0, 0, 0, 0, 0, -1, -1);
-  mask[3] = _mm_set_epi16(0, 0, 0, 0, 0, -1, -1, -1);
-
-  
-  for (int out_x = 0; out_x < num_values; out_x++) {
-    const ConvolutionFilter1D::Fixed* filter_values =
-        filter.FilterForValue(out_x, &filter_offset, &filter_length);
-
-    
-    __m128i accum0 = _mm_setzero_si128();
-    __m128i accum1 = _mm_setzero_si128();
-    __m128i accum2 = _mm_setzero_si128();
-    __m128i accum3 = _mm_setzero_si128();
-    int start = (filter_offset<<2);
-    
-    for (int filter_x = 0; filter_x < (filter_length >> 2); filter_x++) {
-      __m128i coeff, coeff16lo, coeff16hi;
-      
-      coeff = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(filter_values));
-      
-      coeff16lo = _mm_shufflelo_epi16(coeff, _MM_SHUFFLE(1, 1, 0, 0));
-      
-      coeff16lo = _mm_unpacklo_epi16(coeff16lo, coeff16lo);
-      
-      coeff16hi = _mm_shufflelo_epi16(coeff, _MM_SHUFFLE(3, 3, 2, 2));
-      
-      coeff16hi = _mm_unpacklo_epi16(coeff16hi, coeff16hi);
-
-      __m128i src8, src16, mul_hi, mul_lo, t;
-
-#define ITERATION(src, accum)                                          \
-      src8 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src));   \
-      src16 = _mm_unpacklo_epi8(src8, zero);                           \
-      mul_hi = _mm_mulhi_epi16(src16, coeff16lo);                      \
-      mul_lo = _mm_mullo_epi16(src16, coeff16lo);                      \
-      t = _mm_unpacklo_epi16(mul_lo, mul_hi);                          \
-      accum = _mm_add_epi32(accum, t);                                 \
-      t = _mm_unpackhi_epi16(mul_lo, mul_hi);                          \
-      accum = _mm_add_epi32(accum, t);                                 \
-      src16 = _mm_unpackhi_epi8(src8, zero);                           \
-      mul_hi = _mm_mulhi_epi16(src16, coeff16hi);                      \
-      mul_lo = _mm_mullo_epi16(src16, coeff16hi);                      \
-      t = _mm_unpacklo_epi16(mul_lo, mul_hi);                          \
-      accum = _mm_add_epi32(accum, t);                                 \
-      t = _mm_unpackhi_epi16(mul_lo, mul_hi);                          \
-      accum = _mm_add_epi32(accum, t)
-
-      ITERATION(src_data[0] + start, accum0);
-      ITERATION(src_data[1] + start, accum1);
-      ITERATION(src_data[2] + start, accum2);
-      ITERATION(src_data[3] + start, accum3);
-
-      start += 16;
-      filter_values += 4;
-    }
-
-    int r = filter_length & 3;
-    if (r) {
-      
-      __m128i coeff;
-      coeff = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(filter_values));
-      
-      coeff = _mm_and_si128(coeff, mask[r]);
-
-      __m128i coeff16lo = _mm_shufflelo_epi16(coeff, _MM_SHUFFLE(1, 1, 0, 0));
-      
-      coeff16lo = _mm_unpacklo_epi16(coeff16lo, coeff16lo);
-      __m128i coeff16hi = _mm_shufflelo_epi16(coeff, _MM_SHUFFLE(3, 3, 2, 2));
-      coeff16hi = _mm_unpacklo_epi16(coeff16hi, coeff16hi);
-
-      __m128i src8, src16, mul_hi, mul_lo, t;
-
-      ITERATION(src_data[0] + start, accum0);
-      ITERATION(src_data[1] + start, accum1);
-      ITERATION(src_data[2] + start, accum2);
-      ITERATION(src_data[3] + start, accum3);
-    }
-
-    accum0 = _mm_srai_epi32(accum0, ConvolutionFilter1D::kShiftBits);
-    accum0 = _mm_packs_epi32(accum0, zero);
-    accum0 = _mm_packus_epi16(accum0, zero);
-    accum1 = _mm_srai_epi32(accum1, ConvolutionFilter1D::kShiftBits);
-    accum1 = _mm_packs_epi32(accum1, zero);
-    accum1 = _mm_packus_epi16(accum1, zero);
-    accum2 = _mm_srai_epi32(accum2, ConvolutionFilter1D::kShiftBits);
-    accum2 = _mm_packs_epi32(accum2, zero);
-    accum2 = _mm_packus_epi16(accum2, zero);
-    accum3 = _mm_srai_epi32(accum3, ConvolutionFilter1D::kShiftBits);
-    accum3 = _mm_packs_epi32(accum3, zero);
-    accum3 = _mm_packus_epi16(accum3, zero);
-
-    *(reinterpret_cast<int*>(out_row[0])) = _mm_cvtsi128_si32(accum0);
-    *(reinterpret_cast<int*>(out_row[1])) = _mm_cvtsi128_si32(accum1);
-    *(reinterpret_cast<int*>(out_row[2])) = _mm_cvtsi128_si32(accum2);
-    *(reinterpret_cast<int*>(out_row[3])) = _mm_cvtsi128_si32(accum3);
-
-    out_row[0] += 4;
-    out_row[1] += 4;
-    out_row[2] += 4;
-    out_row[3] += 4;
-  }
-#endif
-}
-
-
-
-
-
-
-
-template<bool has_alpha>
-void ConvolveVertically_SSE2(const ConvolutionFilter1D::Fixed* filter_values,
-                             int filter_length,
-                             unsigned char* const* source_data_rows,
-                             int pixel_width,
-                             unsigned char* out_row) {
-#if defined(SIMD_SSE2)
-  int width = pixel_width & ~3;
-
-  __m128i zero = _mm_setzero_si128();
-  __m128i accum0, accum1, accum2, accum3, coeff16;
-  const __m128i* src;
-  
-  for (int out_x = 0; out_x < width; out_x += 4) {
-
-    
-    accum0 = _mm_setzero_si128();
-    accum1 = _mm_setzero_si128();
-    accum2 = _mm_setzero_si128();
-    accum3 = _mm_setzero_si128();
-
-    
-    for (int filter_y = 0; filter_y < filter_length; filter_y++) {
-
-      
-      
-      coeff16 = _mm_set1_epi16(filter_values[filter_y]);
-
-      
-      
-      src = reinterpret_cast<const __m128i*>(
-          &source_data_rows[filter_y][out_x << 2]);
-      __m128i src8 = _mm_loadu_si128(src);
-
-      
-      
-      
-      __m128i src16 = _mm_unpacklo_epi8(src8, zero);
-      __m128i mul_hi = _mm_mulhi_epi16(src16, coeff16);
-      __m128i mul_lo = _mm_mullo_epi16(src16, coeff16);
-      
-      __m128i t = _mm_unpacklo_epi16(mul_lo, mul_hi);
-      accum0 = _mm_add_epi32(accum0, t);
-      
-      t = _mm_unpackhi_epi16(mul_lo, mul_hi);
-      accum1 = _mm_add_epi32(accum1, t);
-
-      
-      
-      
-      src16 = _mm_unpackhi_epi8(src8, zero);
-      mul_hi = _mm_mulhi_epi16(src16, coeff16);
-      mul_lo = _mm_mullo_epi16(src16, coeff16);
-      
-      t = _mm_unpacklo_epi16(mul_lo, mul_hi);
-      accum2 = _mm_add_epi32(accum2, t);
-      
-      t = _mm_unpackhi_epi16(mul_lo, mul_hi);
-      accum3 = _mm_add_epi32(accum3, t);
-    }
-
-    
-    accum0 = _mm_srai_epi32(accum0, ConvolutionFilter1D::kShiftBits);
-    accum1 = _mm_srai_epi32(accum1, ConvolutionFilter1D::kShiftBits);
-    accum2 = _mm_srai_epi32(accum2, ConvolutionFilter1D::kShiftBits);
-    accum3 = _mm_srai_epi32(accum3, ConvolutionFilter1D::kShiftBits);
-
-    
-    
-    accum0 = _mm_packs_epi32(accum0, accum1);
-    
-    accum2 = _mm_packs_epi32(accum2, accum3);
-
-    
-    
-    accum0 = _mm_packus_epi16(accum0, accum2);
-
-    if (has_alpha) {
-      
-      
-      __m128i a = _mm_srli_epi32(accum0, 8);
-      
-      __m128i b = _mm_max_epu8(a, accum0);  
-      
-      a = _mm_srli_epi32(accum0, 16);
-      
-      b = _mm_max_epu8(a, b);  
-      
-      b = _mm_slli_epi32(b, 24);
-
-      
-      
-      accum0 = _mm_max_epu8(b, accum0);
-    } else {
-      
-      __m128i mask = _mm_set1_epi32(0xff000000);
-      accum0 = _mm_or_si128(accum0, mask);
-    }
-
-    
-    _mm_storeu_si128(reinterpret_cast<__m128i*>(out_row), accum0);
-    out_row += 16;
-  }
-
-  
-  
-  if (pixel_width & 3) {
-    accum0 = _mm_setzero_si128();
-    accum1 = _mm_setzero_si128();
-    accum2 = _mm_setzero_si128();
-    for (int filter_y = 0; filter_y < filter_length; ++filter_y) {
-      coeff16 = _mm_set1_epi16(filter_values[filter_y]);
-      
-      src = reinterpret_cast<const __m128i*>(
-          &source_data_rows[filter_y][width<<2]);
-      __m128i src8 = _mm_loadu_si128(src);
-      
-      __m128i src16 = _mm_unpacklo_epi8(src8, zero);
-      __m128i mul_hi = _mm_mulhi_epi16(src16, coeff16);
-      __m128i mul_lo = _mm_mullo_epi16(src16, coeff16);
-      
-      __m128i t = _mm_unpacklo_epi16(mul_lo, mul_hi);
-      accum0 = _mm_add_epi32(accum0, t);
-      
-      t = _mm_unpackhi_epi16(mul_lo, mul_hi);
-      accum1 = _mm_add_epi32(accum1, t);
-      
-      src16 = _mm_unpackhi_epi8(src8, zero);
-      mul_hi = _mm_mulhi_epi16(src16, coeff16);
-      mul_lo = _mm_mullo_epi16(src16, coeff16);
-      
-      t = _mm_unpacklo_epi16(mul_lo, mul_hi);
-      accum2 = _mm_add_epi32(accum2, t);
-    }
-
-    accum0 = _mm_srai_epi32(accum0, ConvolutionFilter1D::kShiftBits);
-    accum1 = _mm_srai_epi32(accum1, ConvolutionFilter1D::kShiftBits);
-    accum2 = _mm_srai_epi32(accum2, ConvolutionFilter1D::kShiftBits);
-    
-    accum0 = _mm_packs_epi32(accum0, accum1);
-    
-    accum2 = _mm_packs_epi32(accum2, zero);
-    
-    accum0 = _mm_packus_epi16(accum0, accum2);
-    if (has_alpha) {
-      
-      __m128i a = _mm_srli_epi32(accum0, 8);
-      
-      __m128i b = _mm_max_epu8(a, accum0);  
-      
-      a = _mm_srli_epi32(accum0, 16);
-      
-      b = _mm_max_epu8(a, b);  
-      
-      b = _mm_slli_epi32(b, 24);
-      accum0 = _mm_max_epu8(b, accum0);
-    } else {
-      __m128i mask = _mm_set1_epi32(0xff000000);
-      accum0 = _mm_or_si128(accum0, mask);
-    }
-
-    for (int out_x = width; out_x < pixel_width; out_x++) {
-      *(reinterpret_cast<int*>(out_row)) = _mm_cvtsi128_si32(accum0);
-      accum0 = _mm_srli_si128(accum0, 4);
-      out_row += 4;
-    }
-  }
-#endif
 }
 
 }  
@@ -770,13 +344,15 @@ void BGRAConvolve2D(const unsigned char* source_data,
                     const ConvolutionFilter1D& filter_x,
                     const ConvolutionFilter1D& filter_y,
                     int output_byte_row_stride,
-                    unsigned char* output,
-                    bool use_sse2) {
-#if !defined(SIMD_SSE2)
+                    unsigned char* output) {
+  bool use_sse2 = Factory::HasSSE2();
+
+#if !defined(USE_SSE2)
   
   
   use_sse2 = false;
 #endif
+
 
   int max_y_filter_size = filter_y.max_filter();
 
@@ -810,6 +386,7 @@ void BGRAConvolve2D(const unsigned char* source_data,
   
   SkASSERT(output_byte_row_stride >= filter_x.num_values() * 4);
   int num_output_rows = filter_y.num_values();
+  int pixel_width = filter_x.num_values();
 
   
   
@@ -823,47 +400,56 @@ void BGRAConvolve2D(const unsigned char* source_data,
 
     
     if (use_sse2) {
+#if defined(USE_SSE2)
+      
+      
       while (next_x_row < filter_offset + filter_length) {
-        if (next_x_row + 3 < last_filter_offset + last_filter_length - 1) {
+        if (next_x_row + 3 < last_filter_offset + last_filter_length - 3) {
           const unsigned char* src[4];
           unsigned char* out_row[4];
           for (int i = 0; i < 4; ++i) {
             src[i] = &source_data[(next_x_row + i) * source_byte_row_stride];
             out_row[i] = row_buffer.AdvanceRow();
           }
-          ConvolveHorizontally4_SSE2(src, filter_x, out_row);
+          ConvolveHorizontally4_SSE2(src, 0, pixel_width, filter_x, out_row);
           next_x_row += 4;
         } else {
+          unsigned char* buffer = row_buffer.AdvanceRow();
+
           
           
-          if (next_x_row == last_filter_offset + last_filter_length - 1) {
+          int simd_width = pixel_width & ~3;
+          if (simd_width) {
+            ConvolveHorizontally_SSE2(
+                &source_data[next_x_row * source_byte_row_stride],
+                0, simd_width, filter_x, buffer);
+          }
+
+          if (pixel_width > simd_width) {
             if (source_has_alpha) {
               ConvolveHorizontally<true>(
                   &source_data[next_x_row * source_byte_row_stride],
-                  filter_x, row_buffer.AdvanceRow());
+                  simd_width, pixel_width, filter_x, buffer);
             } else {
               ConvolveHorizontally<false>(
                   &source_data[next_x_row * source_byte_row_stride],
-                  filter_x, row_buffer.AdvanceRow());
+                  simd_width, pixel_width, filter_x, buffer);
             }
-          } else {
-            ConvolveHorizontally_SSE2(
-                &source_data[next_x_row * source_byte_row_stride],
-                filter_x, row_buffer.AdvanceRow());
           }
           next_x_row++;
         }
       }
+#endif
     } else {
       while (next_x_row < filter_offset + filter_length) {
         if (source_has_alpha) {
           ConvolveHorizontally<true>(
               &source_data[next_x_row * source_byte_row_stride],
-              filter_x, row_buffer.AdvanceRow());
+              0, pixel_width, filter_x, row_buffer.AdvanceRow());
         } else {
           ConvolveHorizontally<false>(
               &source_data[next_x_row * source_byte_row_stride],
-              filter_x, row_buffer.AdvanceRow());
+              0, pixel_width, filter_x, row_buffer.AdvanceRow());
         }
         next_x_row++;
       }
@@ -882,26 +468,23 @@ void BGRAConvolve2D(const unsigned char* source_data,
     unsigned char* const* first_row_for_filter =
         &rows_to_convolve[filter_offset - first_row_in_circular_buffer];
 
+    int processed = 0;
+#if defined(USE_SSE2)
+    int simd_width = pixel_width & ~3;
+    if (use_sse2 && simd_width) {
+        ConvolveVertically_SSE2(filter_values, filter_length, first_row_for_filter,
+                                0, simd_width, cur_output_row, source_has_alpha);
+        processed = simd_width;
+    }
+#endif
     if (source_has_alpha) {
-      if (use_sse2) {
-        ConvolveVertically_SSE2<true>(filter_values, filter_length,
-                                      first_row_for_filter,
-                                      filter_x.num_values(), cur_output_row);
-      } else {
-        ConvolveVertically<true>(filter_values, filter_length,
-                                 first_row_for_filter,
-                                 filter_x.num_values(), cur_output_row);
-      }
+      ConvolveVertically<true>(filter_values, filter_length,
+                               first_row_for_filter,
+                               processed, pixel_width, cur_output_row);
     } else {
-      if (use_sse2) {
-        ConvolveVertically_SSE2<false>(filter_values, filter_length,
-                                       first_row_for_filter,
-                                       filter_x.num_values(), cur_output_row);
-      } else {
-        ConvolveVertically<false>(filter_values, filter_length,
-                                 first_row_for_filter,
-                                 filter_x.num_values(), cur_output_row);
-      }
+      ConvolveVertically<false>(filter_values, filter_length,
+                               first_row_for_filter,
+                               processed, pixel_width, cur_output_row);
     }
   }
 }

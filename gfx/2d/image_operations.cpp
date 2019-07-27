@@ -160,8 +160,7 @@ class ResizeFilter {
   
   void ComputeFilters(int src_size,
                       int dest_subset_lo, int dest_subset_size,
-                      float scale, float src_support,
-                      ConvolutionFilter1D* output);
+                      float scale, ConvolutionFilter1D* output);
 
   
   inline float ComputeFilter(float pos) {
@@ -180,11 +179,6 @@ class ResizeFilter {
   }
 
   ImageOperations::ResizeMethod method_;
-
-  
-  
-  float x_filter_support_;
-  float y_filter_support_;
 
   
   SkIRect out_bounds_;
@@ -210,17 +204,10 @@ ResizeFilter::ResizeFilter(ImageOperations::ResizeMethod method,
   float scale_y = static_cast<float>(dest_height) /
                   static_cast<float>(src_full_height);
 
-  x_filter_support_ = GetFilterSupport(scale_x);
-  y_filter_support_ = GetFilterSupport(scale_y);
-
-  
-  float src_x_support = x_filter_support_ / scale_x;
-  float src_y_support = y_filter_support_ / scale_y;
-
   ComputeFilters(src_full_width, dest_subset.fLeft, dest_subset.width(),
-                 scale_x, src_x_support, &x_filter_);
+                 scale_x, &x_filter_);
   ComputeFilters(src_full_height, dest_subset.fTop, dest_subset.height(),
-                 scale_y, src_y_support, &y_filter_);
+                 scale_y, &y_filter_);
 }
 
 
@@ -236,8 +223,7 @@ ResizeFilter::ResizeFilter(ImageOperations::ResizeMethod method,
 
 void ResizeFilter::ComputeFilters(int src_size,
                                   int dest_subset_lo, int dest_subset_size,
-                                  float scale, float src_support,
-                                  ConvolutionFilter1D* output) {
+                                  float scale, ConvolutionFilter1D* output) {
   int dest_subset_hi = dest_subset_lo + dest_subset_size;  
 
   
@@ -246,6 +232,8 @@ void ResizeFilter::ComputeFilters(int src_size,
   
   
   float clamped_scale = std::min(1.0f, scale);
+
+  float src_support = GetFilterSupport(clamped_scale) / clamped_scale;
 
   
   float inv_scale = 1.0f / scale;
@@ -536,8 +524,7 @@ SkBitmap ImageOperations::ResizeBasic(const SkBitmap& source,
   BGRAConvolve2D(source_subset, static_cast<int>(source.rowBytes()),
                  !source.isOpaque(), filter.x_filter(), filter.y_filter(),
                  static_cast<int>(result.rowBytes()),
-                 static_cast<unsigned char*>(result.getPixels()),
-                  false);
+                 static_cast<unsigned char*>(result.getPixels()));
 
   
   result.setAlphaType(source.alphaType());
