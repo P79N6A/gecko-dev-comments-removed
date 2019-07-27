@@ -67,11 +67,14 @@ let AboutReaderListener = {
 
         ReaderMode.parseDocument(content.document).then(article => {
           
-          
-          let currentURL = Services.io.newURI(content.document.documentURI, null, null).specIgnoringRef;
+          if (article === null || content === null) {
+            return;
+          }
 
           
-          if (article == null || (article.url != currentURL)) {
+          
+          let currentURL = Services.io.newURI(content.document.documentURI, null, null).specIgnoringRef;
+          if (article.url !== currentURL) {
             return;
           }
 
