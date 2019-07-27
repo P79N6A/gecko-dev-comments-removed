@@ -4,8 +4,8 @@
 
 
 
-#ifndef mozilla_dom_bluetooth_bluetoothutils_h__
-#define mozilla_dom_bluetooth_bluetoothutils_h__
+#ifndef mozilla_dom_bluetooth_bluetoothutils_h
+#define mozilla_dom_bluetooth_bluetoothutils_h
 
 #include "BluetoothCommon.h"
 #include "js/TypeDecls.h"
@@ -24,6 +24,10 @@ SetJsObject(JSContext* aContext,
 bool
 BroadcastSystemMessage(const nsAString& aType,
                        const BluetoothValue& aData);
+
+bool
+BroadcastSystemMessage(const nsAString& aType,
+                       const InfallibleTArray<BluetoothNamedValue>& aData);
 
 void
 DispatchBluetoothReply(BluetoothReplyRunnable* aRunnable,
