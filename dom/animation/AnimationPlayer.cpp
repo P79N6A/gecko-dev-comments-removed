@@ -588,7 +588,9 @@ AnimationPlayer::UpdateFinishedState(bool aSeekFlag)
     mFinished = nullptr;
   }
   mIsPreviousStateFinished = currentFinishedState;
-  mPreviousCurrentTime = currentTime;
+  
+  
+  mPreviousCurrentTime = GetCurrentTime();
 }
 
 void
