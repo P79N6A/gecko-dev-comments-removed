@@ -414,22 +414,22 @@ PruneDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
   aList->AppendToTop(&newList);
 }
 
-static void
+static nsresult
 BuildDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
                              nsPageFrame* aPage, nsIFrame* aExtraPage,
-                             const nsRect& aDirtyRect, nsDisplayList* aList)
+                             nsDisplayList* aList)
 {
-  
-  
-  
-  
-  if (!aExtraPage->HasAnyStateBits(NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO)) {
-    return;
-  }
   nsDisplayList list;
-  aExtraPage->BuildDisplayListForStackingContext(aBuilder, aDirtyRect, &list);
+  
+  
+  
+  
+  
+  
+  aExtraPage->BuildDisplayListForStackingContext(aBuilder, nsRect(), &list);
   PruneDisplayListForExtraPage(aBuilder, aPage, aExtraPage, &list);
   aList->AppendToTop(&list);
+  return NS_OK;
 }
 
 static nsIFrame*
@@ -506,8 +506,8 @@ nsPageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     clipState.Clear();
     clipState.ClipContainingBlockDescendants(clipRect, nullptr);
 
-    nsRect dirtyRect = child->GetVisualOverflowRectRelativeToSelf();
-    child->BuildDisplayListForStackingContext(aBuilder, dirtyRect, &content);
+    child->BuildDisplayListForStackingContext(aBuilder,
+      child->GetVisualOverflowRectRelativeToSelf(), &content);
 
     
     
@@ -518,15 +518,8 @@ nsPageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     nsIFrame* page = child;
     while ((page = GetNextPage(page)) != nullptr) {
-      BuildDisplayListForExtraPage(aBuilder, this, page,
-          dirtyRect + child->GetOffsetTo(page), &content);
+      BuildDisplayListForExtraPage(aBuilder, this, page, &content);
     }
-
-    
-    
-    
-    nsDisplayListBuilder::AutoBuildingDisplayList
-      building(aBuilder, child, dirtyRect, true);
 
     
     
@@ -537,8 +530,7 @@ nsPageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       *aBuilder, content, child, backgroundRect, NS_RGBA(0,0,0,0));
   }
 
-  content.AppendNewToTop(new (aBuilder) nsDisplayTransform(aBuilder, child,
-      &content, content.GetVisibleRect(), ::ComputePageTransform));
+  content.AppendNewToTop(new (aBuilder) nsDisplayTransform(aBuilder, child, &content, ::ComputePageTransform));
 
   set.Content()->AppendToTop(&content);
 

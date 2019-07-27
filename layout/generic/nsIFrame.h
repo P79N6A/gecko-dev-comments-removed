@@ -2274,15 +2274,6 @@ public:
 
 
 
-
-
-  nsRect GetVisualOverflowRectRelativeToParent() const;
-
-  
-
-
-
-
   nsRect GetPreEffectsVisualOverflowRect() const;
 
   

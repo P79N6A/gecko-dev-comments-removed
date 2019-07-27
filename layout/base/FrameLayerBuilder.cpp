@@ -23,7 +23,6 @@
 #include "ImageContainer.h"
 #include "ActiveLayerTracker.h"
 #include "gfx2DGlue.h"
-#include "mozilla/LookAndFeel.h"
 
 #include "GeckoProfiler.h"
 #include "mozilla/gfx/Tools.h"
@@ -36,6 +35,8 @@ using namespace mozilla::layers;
 using namespace mozilla::gfx;
 
 namespace mozilla {
+
+class ContainerState;
 
 FrameLayerBuilder::DisplayItemData::DisplayItemData(LayerManagerData* aParent, uint32_t aKey,
                                                     Layer* aLayer, LayerState aLayerState, uint32_t aGeneration)
@@ -242,10 +243,8 @@ public:
     mSingleItemFixedToViewport(false),
     mNeedComponentAlpha(false),
     mForceTransparentSurface(false),
-    mHideAllLayersBelow(false),
     mImage(nullptr),
     mCommonClipCount(-1),
-    mNewChildLayersIndex(-1),
     mAllDrawingAbove(false)
   {}
   
@@ -263,7 +262,6 @@ public:
 
   void Accumulate(ContainerState* aState,
                   nsDisplayItem* aItem,
-                  const nsIntRegion& aClippedOpaqueRegion,
                   const nsIntRect& aVisibleRect,
                   const nsIntRect& aDrawRect,
                   const DisplayItemClip& aClip);
@@ -293,7 +291,7 @@ public:
   {
     if (!mAllDrawingAbove) {
       mDrawAboveRegion.Or(mDrawAboveRegion, aAbove);
-      mDrawAboveRegion.SimplifyOutward(8);
+      mDrawAboveRegion.SimplifyOutward(4);
     }
   }
 
@@ -301,7 +299,7 @@ public:
   {
     if (!mAllDrawingAbove) {
       mVisibleAboveRegion.Or(mVisibleAboveRegion, aAbove);
-      mVisibleAboveRegion.SimplifyOutward(8);
+      mVisibleAboveRegion.SimplifyOutward(4);
     }
   }
 
@@ -312,11 +310,11 @@ public:
     } else {
       mVisibleAboveRegion.Or(mVisibleAboveRegion, aOther->mVisibleAboveRegion);
       mVisibleAboveRegion.Or(mVisibleAboveRegion, aOther->mVisibleRegion);
-      mVisibleAboveRegion.SimplifyOutward(8);
+      mVisibleAboveRegion.SimplifyOutward(4);
       mDrawAboveRegion.Or(mDrawAboveRegion, aOther->mDrawAboveRegion);
       mDrawAboveRegion.Or(mDrawAboveRegion, aOther->mDrawRegion);
-      mDrawAboveRegion.SimplifyOutward(8);
-    }
+      mDrawAboveRegion.SimplifyOutward(4);
+   }
   }
 
   void SetAllDrawingAbove()
@@ -424,10 +422,6 @@ public:
 
 
   bool mForceTransparentSurface;
-  
-
-
-  bool mHideAllLayersBelow;
 
   
 
@@ -450,10 +444,6 @@ public:
 
 
   int32_t mCommonClipCount;
-  
-
-
-  int32_t mNewChildLayersIndex;
   
 
 
@@ -487,39 +477,6 @@ private:
   bool mAllDrawingAbove;
 };
 
-struct NewLayerEntry {
-  NewLayerEntry()
-    : mAnimatedGeometryRoot(nullptr)
-    , mFixedPosFrameForLayerData(nullptr)
-    , mLayerContentsVisibleRect(0, 0, -1, -1)
-    , mHideAllLayersBelow(false)
-    , mOpaqueForAnimatedGeometryRootParent(false)
-  {}
-  
-  
-  nsRefPtr<Layer> mLayer;
-  const nsIFrame* mAnimatedGeometryRoot;
-  const nsIFrame* mFixedPosFrameForLayerData;
-  
-  
-  
-  nsIntRegion mVisibleRegion;
-  nsIntRegion mOpaqueRegion;
-  
-  
-  nsIntRect mLayerContentsVisibleRect;
-  bool mHideAllLayersBelow;
-  
-  
-  
-  
-  
-  
-  
-  
-  bool mOpaqueForAnimatedGeometryRootParent;
-};
-
 
 
 
@@ -531,14 +488,12 @@ public:
                  FrameLayerBuilder* aLayerBuilder,
                  nsIFrame* aContainerFrame,
                  nsDisplayItem* aContainerItem,
-                 const nsRect& aContainerBounds,
                  ContainerLayer* aContainerLayer,
                  const ContainerLayerParameters& aParameters) :
     mBuilder(aBuilder), mManager(aManager),
     mLayerBuilder(aLayerBuilder),
     mContainerFrame(aContainerFrame),
     mContainerLayer(aContainerLayer),
-    mContainerBounds(aContainerBounds),
     mParameters(aParameters),
     mNextFreeRecycledThebesLayer(0)
   {
@@ -550,10 +505,6 @@ public:
     mContainerAnimatedGeometryRoot = aContainerItem
       ? nsLayoutUtils::GetAnimatedGeometryRootFor(aContainerItem, aBuilder)
       : mContainerReferenceFrame;
-    NS_ASSERTION(!aContainerItem || !aContainerItem->ShouldFixToViewport(aBuilder),
-                 "Container items never return true for ShouldFixToViewport");
-    mContainerFixedPosFrame =
-        FindFixedPosFrameForLayerData(mContainerAnimatedGeometryRoot, false);
     
     
     
@@ -570,7 +521,7 @@ public:
 
 
 
-  void ProcessDisplayItems(nsDisplayList* aList, uint32_t aFlags);
+  void ProcessDisplayItems(const nsDisplayList& aList, uint32_t aFlags);
   
 
 
@@ -579,9 +530,9 @@ public:
 
 
 
-  void Finish(uint32_t *aTextContentFlags, LayerManagerData* aData,
-              const nsIntRect& aContainerPixelBounds,
-              nsDisplayList* aChildItems);
+  void Finish(uint32_t *aTextContentFlags, LayerManagerData* aData);
+
+  nsRect GetChildrenBounds() { return mBounds; }
 
   nscoord GetAppUnitsPerDevPixel() { return mAppUnitsPerDevPixel; }
 
@@ -629,18 +580,6 @@ public:
     return aRegion.ScaleToOutsidePixels(mParameters.mXScale, mParameters.mYScale,
                                         mAppUnitsPerDevPixel);
   }
-
-  nsIFrame* GetContainerFrame() const { return mContainerFrame; }
-
-  
-
-
-
-
-
-  void SetOuterVisibleRegionForLayer(Layer* aLayer,
-                                     const nsIntRegion& aOuterVisibleRegion,
-                                     const nsIntRect* aLayerContentsVisibleRect = nullptr) const;
 
 protected:
   friend class ThebesLayerData;
@@ -714,36 +653,6 @@ protected:
 
   void SetFixedPositionLayerData(Layer* aLayer,
                                  const nsIFrame* aFixedPosFrame);
-
-  
-
-
-
-  bool ItemCoversScrollableArea(nsDisplayItem* aItem, const nsRegion& aOpaque);
-
-  
-
-
-
-
-
-
-
-  void ApplyOcclusionCulling(nsIntRegion* aOpaqueRegionForContainer);
-
-  
-
-
-
-
-
-  nsIntRegion ComputeOpaqueRect(nsDisplayItem* aItem,
-                                const nsIFrame* aAnimatedGeometryRoot,
-                                const nsIFrame* aFixedPosFrame,
-                                const DisplayItemClip& aClip,
-                                nsDisplayList* aList,
-                                bool* aHideAllLayersBelow);
-
   
 
 
@@ -790,10 +699,7 @@ protected:
 
 
 
-
-
   void SetupMaskLayer(Layer *aLayer, const DisplayItemClip& aClip,
-                      const nsIntRegion& aLayerVisibleRegion,
                       uint32_t aRoundedRectClipCount = UINT32_MAX);
 
   bool ChooseAnimatedGeometryRoot(const nsDisplayList& aList,
@@ -805,27 +711,21 @@ protected:
   nsIFrame*                        mContainerFrame;
   nsIFrame*                        mContainerReferenceFrame;
   const nsIFrame*                  mContainerAnimatedGeometryRoot;
-  const nsIFrame*                  mContainerFixedPosFrame;
   ContainerLayer*                  mContainerLayer;
-  nsRect                           mContainerBounds;
-  DebugOnly<nsRect>                mAccumulatedChildBounds;
   ContainerLayerParameters         mParameters;
   
 
 
 
   nsIntRegion                      mInvalidThebesContent;
+  nsRect                           mBounds;
   nsAutoTArray<nsAutoPtr<ThebesLayerData>,1>  mThebesLayerDataStack;
   
 
 
 
 
-
-
-
-
-  typedef nsAutoTArray<NewLayerEntry,1> AutoLayersArray;
+  typedef nsAutoTArray<nsRefPtr<Layer>,1> AutoLayersArray;
   AutoLayersArray                  mNewChildLayers;
   nsTArray<nsRefPtr<ThebesLayer> > mRecycledThebesLayers;
   nsDataHashtable<nsPtrHashKey<Layer>, nsRefPtr<ImageLayer> >
@@ -1707,56 +1607,35 @@ AppUnitsPerDevPixel(nsDisplayItem* aItem)
 
 
 
+
+
+
 static void
-SetOuterVisibleRegion(Layer* aLayer, nsIntRegion* aOuterVisibleRegion,
-                      const nsIntRect* aLayerContentsVisibleRect = nullptr)
+SetVisibleRegionForLayer(Layer* aLayer, const nsIntRegion& aLayerVisibleRegion,
+                         const nsIntRect& aRestrictToRect)
 {
   gfx3DMatrix transform;
   To3DMatrix(aLayer->GetTransform(), transform);
-  gfxMatrix transform2D;
-  if (transform.Is2D(&transform2D) && !transform2D.HasNonIntegerTranslation()) {
-    aOuterVisibleRegion->MoveBy(-int(transform2D._31), -int(transform2D._32));
-    if (aLayerContentsVisibleRect) {
-      aOuterVisibleRegion->And(*aOuterVisibleRegion, *aLayerContentsVisibleRect);
-    }
+
+  
+  
+  gfxRect itemVisible(aRestrictToRect.x, aRestrictToRect.y,
+                      aRestrictToRect.width, aRestrictToRect.height);
+  nsIntRect childBounds = aLayerVisibleRegion.GetBounds();
+  gfxRect childGfxBounds(childBounds.x, childBounds.y,
+                         childBounds.width, childBounds.height);
+  gfxRect layerVisible = transform.Inverse().ProjectRectBounds(itemVisible);
+  layerVisible = layerVisible.Intersect(childGfxBounds);
+  layerVisible.RoundOut();
+
+  nsIntRect visibleRect;
+  if (!gfxUtils::GfxRectToIntRect(layerVisible, &visibleRect)) {
+    aLayer->SetVisibleRegion(nsIntRegion());
   } else {
-    nsIntRect outerRect = aOuterVisibleRegion->GetBounds();
-    
-    
-    gfxRect outerVisible(outerRect.x, outerRect.y, outerRect.width, outerRect.height);
-    gfxRect layerVisible = transform.Inverse().ProjectRectBounds(outerVisible);
-    if (aLayerContentsVisibleRect) {
-      NS_ASSERTION(aLayerContentsVisibleRect->width >= 0 &&
-                   aLayerContentsVisibleRect->height >= 0,
-                   "Bad layer contents rectangle");
-      
-      
-      
-      gfxRect layerContentsVisible(
-          aLayerContentsVisibleRect->x, aLayerContentsVisibleRect->y,
-          aLayerContentsVisibleRect->width, aLayerContentsVisibleRect->height);
-      layerVisible.IntersectRect(layerVisible, layerContentsVisible);
-    }
-    layerVisible.RoundOut();
-    nsIntRect visRect;
-    if (gfxUtils::GfxRectToIntRect(layerVisible, &visRect)) {
-      *aOuterVisibleRegion = visRect;
-    } else  {
-      aOuterVisibleRegion->SetEmpty();
-    }
+    nsIntRegion rgn;
+    rgn.And(aLayerVisibleRegion, visibleRect);
+    aLayer->SetVisibleRegion(rgn);
   }
-
-  aLayer->SetVisibleRegion(*aOuterVisibleRegion);
-}
-
-void
-ContainerState::SetOuterVisibleRegionForLayer(Layer* aLayer,
-                                              const nsIntRegion& aOuterVisibleRegion,
-                                              const nsIntRect* aLayerContentsVisibleRect) const
-{
-  nsIntRegion visRegion = aOuterVisibleRegion;
-  visRegion.MoveBy(mParameters.mOffset);
-  SetOuterVisibleRegion(aLayer, &visRegion, aLayerContentsVisibleRect);
 }
 
 nscolor
@@ -1965,7 +1844,8 @@ static bool
 CanOptimizeAwayThebesLayer(ThebesLayerData* aData,
                            FrameLayerBuilder* aLayerBuilder)
 {
-  if (!aLayerBuilder->IsBuildingRetainedLayers()) {
+  bool isRetained = aData->mLayer->Manager()->IsWidgetLayerManager();
+  if (!isRetained) {
     return false;
   }
 
@@ -1983,19 +1863,6 @@ CanOptimizeAwayThebesLayer(ThebesLayerData* aData,
   return aLayerBuilder->CheckInLayerTreeCompressionMode();
 }
 
-#ifdef DEBUG
-static int32_t FindIndexOfLayerIn(nsTArray<NewLayerEntry>& aArray,
-                                  Layer* aLayer)
-{
-  for (uint32_t i = 0; i < aArray.Length(); ++i) {
-    if (aArray[i].mLayer == aLayer) {
-      return i;
-    }
-  }
-  return -1;
-}
-#endif
-
 void
 ContainerState::PopThebesLayerData()
 {
@@ -2008,10 +1875,9 @@ ContainerState::PopThebesLayerData()
                                      data->mDrawRegion,
                                      &data->mVisibleRegion,
                                      &data->mIsSolidColorInVisibleRegion);
-
-  NewLayerEntry* newLayerEntry = &mNewChildLayers[data->mNewChildLayersIndex];
   nsRefPtr<Layer> layer;
   nsRefPtr<ImageContainer> imageContainer = data->CanOptimizeImageLayer(mBuilder);
+
   if ((data->mIsSolidColorInVisibleRegion || imageContainer) &&
       CanOptimizeAwayThebesLayer(data, mLayerBuilder)) {
     NS_ASSERTION(!(data->mIsSolidColorInVisibleRegion && imageContainer),
@@ -2047,16 +1913,10 @@ ContainerState::PopThebesLayerData()
       layer = colorLayer;
     }
 
-    NS_ASSERTION(FindIndexOfLayerIn(mNewChildLayers, layer) < 0,
-                 "Layer already in list???");
-    NS_ASSERTION(newLayerEntry->mLayer == data->mLayer,
-                 "Thebes layer at wrong index");
-    
-    newLayerEntry = &mNewChildLayers[data->mNewChildLayersIndex + 1];
-    NS_ASSERTION(!newLayerEntry->mLayer, "Slot already occupied?");
-    newLayerEntry->mLayer = layer;
-    newLayerEntry->mAnimatedGeometryRoot = data->mAnimatedGeometryRoot;
-    newLayerEntry->mFixedPosFrameForLayerData = data->mFixedPosFrameForLayerData;
+    NS_ASSERTION(!mNewChildLayers.Contains(layer), "Layer already in list???");
+    AutoLayersArray::index_type index = mNewChildLayers.IndexOf(data->mLayer);
+    NS_ASSERTION(index != AutoLayersArray::NoIndex, "Thebes layer not found?");
+    mNewChildLayers.InsertElementAt(index + 1, layer);
 
     
     
@@ -2070,18 +1930,20 @@ ContainerState::PopThebesLayerData()
     layer->SetClipRect(nullptr);
   }
 
-  if (mLayerBuilder->IsBuildingRetainedLayers()) {
-    newLayerEntry->mVisibleRegion = data->mVisibleRegion;
-    newLayerEntry->mOpaqueRegion = data->mOpaqueRegion;
-    newLayerEntry->mHideAllLayersBelow = data->mHideAllLayersBelow;
-    if (nsLayoutUtils::GetScrollableFrameFor(newLayerEntry->mAnimatedGeometryRoot) &&
-        !nsDisplayScrollLayer::IsConstructingScrollLayerForScrolledFrame(newLayerEntry->mAnimatedGeometryRoot)) {
-      
-      
-      newLayerEntry->mOpaqueForAnimatedGeometryRootParent = true;
-    }
-  } else {
-    SetOuterVisibleRegionForLayer(layer, data->mVisibleRegion);
+  Matrix transform;
+  if (!layer->GetTransform().Is2D(&transform)) {
+    NS_ERROR("Only 2D transformations currently supported");
+  }
+
+  
+  if (!imageContainer) {
+    NS_ASSERTION(!transform.HasNonIntegerTranslation(),
+                 "Matrix not just an integer translation?");
+    
+    
+    nsIntRegion rgn = data->mVisibleRegion;
+    rgn.MoveBy(-GetTranslationForThebesLayer(data->mLayer));
+    layer->SetVisibleRegion(rgn);
   }
 
   nsIntRegion transparentRegion;
@@ -2123,14 +1985,14 @@ ContainerState::PopThebesLayerData()
     
     
     int32_t commonClipCount = std::max(0, data->mCommonClipCount);
-    SetupMaskLayer(layer, data->mItemClip, data->mVisibleRegion, commonClipCount);
+    SetupMaskLayer(layer, data->mItemClip, commonClipCount);
     
     FrameLayerBuilder::ThebesLayerItemsEntry* entry = mLayerBuilder->
       GetThebesLayerItemsEntry(static_cast<ThebesLayer*>(layer.get()));
     entry->mCommonClipCount = commonClipCount;
   } else {
     
-    SetupMaskLayer(layer, data->mItemClip, data->mVisibleRegion);
+    SetupMaskLayer(layer, data->mItemClip);
   }
 
   uint32_t flags = 0;
@@ -2212,28 +2074,39 @@ ContainerState::PopThebesLayerData()
 }
 
 static bool
-IsItemAreaInWindowOpaqueRegion(nsDisplayListBuilder* aBuilder,
-                               nsDisplayItem* aItem,
-                               const nsRect& aComponentAlphaBounds)
+SuppressComponentAlpha(nsDisplayListBuilder* aBuilder,
+                       nsDisplayItem* aItem,
+                       const nsRect& aComponentAlphaBounds)
 {
-  if (!aItem->Frame()->PresContext()->IsChrome()) {
-    
-    return true;
-  }
-  if (aItem->ReferenceFrame() != aBuilder->RootReferenceFrame()) {
-    
-    
-    
-    
+  const nsRegion* windowTransparentRegion = aBuilder->GetFinalTransparentRegion();
+  if (!windowTransparentRegion || windowTransparentRegion->IsEmpty())
     return false;
+
+  
+  
+  nsIFrame* f = aItem->Frame();
+  nsIFrame* ref = aBuilder->RootReferenceFrame();
+  if (f->PresContext() != ref->PresContext())
+    return false;
+
+  for (nsIFrame* t = f; t; t = t->GetParent()) {
+    if (t->IsTransformed())
+      return false;
   }
-  return aBuilder->GetWindowOpaqueRegion().Contains(aComponentAlphaBounds);
+
+  return windowTransparentRegion->Intersects(aComponentAlphaBounds);
+}
+
+static bool
+WindowHasTransparency(nsDisplayListBuilder* aBuilder)
+{
+  const nsRegion* windowTransparentRegion = aBuilder->GetFinalTransparentRegion();
+  return windowTransparentRegion && !windowTransparentRegion->IsEmpty();
 }
 
 void
 ThebesLayerData::Accumulate(ContainerState* aState,
                             nsDisplayItem* aItem,
-                            const nsIntRegion& aClippedOpaqueRegion,
                             const nsIntRect& aVisibleRect,
                             const nsIntRect& aDrawRect,
                             const DisplayItemClip& aClip)
@@ -2314,9 +2187,19 @@ ThebesLayerData::Accumulate(ContainerState* aState,
     mDrawRegion.SimplifyOutward(4);
   }
 
-  if (!aClippedOpaqueRegion.IsEmpty()) {
-    nsIntRegionRectIterator iter(aClippedOpaqueRegion);
-    for (const nsIntRect* r = iter.Next(); r; r = iter.Next()) {
+  bool snap;
+  nsRegion opaque = aItem->GetOpaqueRegion(aState->mBuilder, &snap);
+  if (!opaque.IsEmpty()) {
+    nsRegion opaqueClipped;
+    nsRegionRectIterator iter(opaque);
+    for (const nsRect* r = iter.Next(); r; r = iter.Next()) {
+      opaqueClipped.Or(opaqueClipped, aClip.ApproximateIntersectInward(*r));
+    }
+
+    nsIntRegion opaquePixels = aState->ScaleRegionToInsidePixels(opaqueClipped, snap);
+
+    nsIntRegionRectIterator iter2(opaquePixels);
+    for (const nsIntRect* r = iter2.Next(); r; r = iter2.Next()) {
       
       
       
@@ -2327,7 +2210,9 @@ ThebesLayerData::Accumulate(ContainerState* aState,
        
        
        
-       if (tmp.GetNumRects() <= 4 || aItem->Frame()->PresContext()->IsChrome()) {
+       if (tmp.GetNumRects() <= 4 ||
+           (WindowHasTransparency(aState->mBuilder) &&
+            aItem->Frame()->PresContext()->IsChrome())) {
         mOpaqueRegion = tmp;
       }
     }
@@ -2339,11 +2224,10 @@ ThebesLayerData::Accumulate(ContainerState* aState,
       nsIntRect componentAlphaRect =
         aState->ScaleToOutsidePixels(componentAlpha, false).Intersect(aVisibleRect);
       if (!mOpaqueRegion.Contains(componentAlphaRect)) {
-        if (IsItemAreaInWindowOpaqueRegion(aState->mBuilder, aItem,
-              componentAlpha.Intersect(aItem->GetVisibleRect()))) {
-          mNeedComponentAlpha = true;
-        } else {
+        if (SuppressComponentAlpha(aState->mBuilder, aItem, componentAlpha)) {
           aItem->DisableComponentAlpha();
+        } else {
+          mNeedComponentAlpha = true;
         }
       }
     }
@@ -2420,18 +2304,8 @@ ContainerState::FindThebesLayerFor(nsDisplayItem* aItem,
     thebesLayerData->mReferenceFrame = aItem->ReferenceFrame();
     thebesLayerData->mSingleItemFixedToViewport = aShouldFixToViewport;
 
-    NS_ASSERTION(FindIndexOfLayerIn(mNewChildLayers, layer) < 0,
-                 "Layer already in list???");
-    thebesLayerData->mNewChildLayersIndex = mNewChildLayers.Length();
-    NewLayerEntry* newLayerEntry = mNewChildLayers.AppendElement();
-    newLayerEntry->mLayer = layer.forget();
-    newLayerEntry->mAnimatedGeometryRoot = aAnimatedGeometryRoot;
-    newLayerEntry->mFixedPosFrameForLayerData = thebesLayerData->mFixedPosFrameForLayerData;
-    
-    
-
-    
-    mNewChildLayers.AppendElement();
+    NS_ASSERTION(!mNewChildLayers.Contains(layer), "Layer already in list???");
+    *mNewChildLayers.AppendElement() = layer.forget();
   } else {
     thebesLayerData = mThebesLayerDataStack[lowestUsableLayerWithScrolledRoot];
   }
@@ -2539,86 +2413,6 @@ ContainerState::ChooseAnimatedGeometryRoot(const nsDisplayList& aList,
 
 
 
-static bool
-IsScrollLayerItemAndOverlayScrollbarForScrollFrame(
-  nsDisplayItem* aPotentialScrollItem, nsDisplayItem* aPotentialScrollbarItem)
-{
-  if (aPotentialScrollItem->GetType() == nsDisplayItem::TYPE_SCROLL_LAYER &&
-      aPotentialScrollbarItem &&
-      aPotentialScrollbarItem->GetType() == nsDisplayItem::TYPE_OWN_LAYER &&
-      LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars)) {
-    nsDisplayScrollLayer* scrollItem =
-      static_cast<nsDisplayScrollLayer*>(aPotentialScrollItem);
-    nsDisplayOwnLayer* layerItem =
-      static_cast<nsDisplayOwnLayer*>(aPotentialScrollbarItem);
-    if ((layerItem->GetFlags() &
-         (nsDisplayOwnLayer::VERTICAL_SCROLLBAR |
-          nsDisplayOwnLayer::HORIZONTAL_SCROLLBAR)) &&
-        layerItem->Frame()->GetParent() == scrollItem->GetScrollFrame()) {
-      return true;
-    }
-  }
-  return false;
-}
-
-bool
-ContainerState::ItemCoversScrollableArea(nsDisplayItem* aItem, const nsRegion& aOpaque)
-{
-  nsIPresShell* presShell = aItem->Frame()->PresContext()->PresShell();
-  nsIFrame* rootFrame = presShell->GetRootFrame();
-  if (mContainerFrame != rootFrame) {
-    return false;
-  }
-  nsRect scrollableArea;
-  if (presShell->IsScrollPositionClampingScrollPortSizeSet()) {
-    scrollableArea = nsRect(nsPoint(0, 0),
-      presShell->GetScrollPositionClampingScrollPortSize());
-  } else {
-    scrollableArea = rootFrame->GetRectRelativeToSelf();
-  }
-  return aOpaque.Contains(scrollableArea);
-}
-
-nsIntRegion
-ContainerState::ComputeOpaqueRect(nsDisplayItem* aItem,
-                                  const nsIFrame* aAnimatedGeometryRoot,
-                                  const nsIFrame* aFixedPosFrame,
-                                  const DisplayItemClip& aClip,
-                                  nsDisplayList* aList,
-                                  bool* aHideAllLayersBelow)
-{
-  bool snapOpaque;
-  nsRegion opaque = aItem->GetOpaqueRegion(mBuilder, &snapOpaque);
-  nsIntRegion opaquePixels;
-  if (!opaque.IsEmpty()) {
-    nsRegion opaqueClipped;
-    nsRegionRectIterator iter(opaque);
-    for (const nsRect* r = iter.Next(); r; r = iter.Next()) {
-      opaqueClipped.Or(opaqueClipped, aClip.ApproximateIntersectInward(*r));
-    }
-    if (aAnimatedGeometryRoot == mContainerAnimatedGeometryRoot &&
-        aFixedPosFrame == mContainerFixedPosFrame &&
-        !aList->IsOpaque() &&
-        opaqueClipped.Contains(mContainerBounds)) {
-      aList->SetIsOpaque();
-    }
-    
-    
-    
-    if (!mContainerLayer->GetParent()) {
-      mBuilder->AddWindowOpaqueRegion(opaqueClipped);
-    }
-    opaquePixels = ScaleRegionToInsidePixels(opaqueClipped, snapOpaque);
-    if (aFixedPosFrame && ItemCoversScrollableArea(aItem, opaque)) {
-      *aHideAllLayersBelow = true;
-    }
-  }
-  return opaquePixels;
-}
-
-
-
-
 
 
 
@@ -2631,7 +2425,7 @@ ContainerState::ComputeOpaqueRect(nsDisplayItem* aItem,
 
 
 void
-ContainerState::ProcessDisplayItems(nsDisplayList* aList,
+ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
                                     uint32_t aFlags)
 {
   PROFILER_LABEL("ContainerState", "ProcessDisplayItems",
@@ -2644,7 +2438,7 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList,
   
   
   if (aFlags & NO_COMPONENT_ALPHA) {
-    if (ChooseAnimatedGeometryRoot(*aList, &lastAnimatedGeometryRoot)) {
+    if (ChooseAnimatedGeometryRoot(aList, &lastAnimatedGeometryRoot)) {
       topLeft = lastAnimatedGeometryRoot->GetOffsetToCrossDoc(mContainerReferenceFrame);
     }
   }
@@ -2652,42 +2446,7 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList,
   int32_t maxLayers = nsDisplayItem::MaxActiveLayers();
   int layerCount = 0;
 
-  nsDisplayList savedItems;
-  nsDisplayItem* item;
-  while ((item = aList->RemoveBottom()) != nullptr) {
-    
-    
-    nsDisplayItem* aboveItem;
-    while ((aboveItem = aList->GetBottom()) != nullptr) {
-      if (aboveItem->TryMerge(mBuilder, item)) {
-        aList->RemoveBottom();
-        item->~nsDisplayItem();
-        item = aboveItem;
-      } else if (IsScrollLayerItemAndOverlayScrollbarForScrollFrame(aboveItem, item)) {
-        
-        
-        
-        
-        aList->RemoveBottom();
-        aList->AppendToBottom(item);
-        item = aboveItem;
-      } else {
-        break;
-      }
-    }
-
-    nsDisplayList* itemSameCoordinateSystemChildren
-      = item->GetSameCoordinateSystemChildren();
-    if (itemSameCoordinateSystemChildren) {
-      if (item->ShouldFlattenAway(mBuilder)) {
-        aList->AppendToBottom(itemSameCoordinateSystemChildren);
-        item->~nsDisplayItem();
-        continue;
-      }
-    }
-
-    savedItems.AppendToTop(item);
-
+  for (nsDisplayItem* item = aList.GetBottom(); item; item = item->GetAbove()) {
     NS_ASSERTION(mAppUnitsPerDevPixel == AppUnitsPerDevPixel(item),
       "items in a container layer should all have the same app units per dev pixel");
 
@@ -2705,9 +2464,7 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList,
       itemDrawRect.IntersectRect(itemDrawRect, clipRect);
       clipRect.MoveBy(mParameters.mOffset);
     }
-#ifdef DEBUG
-    ((nsRect&)mAccumulatedChildBounds).UnionRect(mAccumulatedChildBounds, itemContent);
-#endif
+    mBounds.UnionRect(mBounds, itemContent);
     itemVisibleRect.IntersectRect(itemVisibleRect, itemDrawRect);
 
     LayerState layerState = item->GetLayerState(mBuilder, mManager, mParameters);
@@ -2773,12 +2530,13 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList,
         continue;
       }
 
+      if (itemType == nsDisplayItem::TYPE_TRANSFORM) {
+        mParameters.mAncestorClipRect = itemClip.HasClip() ? &clipRect : nullptr;
+      } else {
+        mParameters.mAncestorClipRect = nullptr;
+      }
+
       
-      
-      
-      
-      nsIntRect layerContentsVisibleRect(0, 0, -1, -1);
-      mParameters.mLayerContentsVisibleRect = &layerContentsVisibleRect;
       nsRefPtr<Layer> ownLayer = item->BuildLayer(mBuilder, mManager, mParameters);
       if (!ownLayer) {
         continue;
@@ -2828,7 +2586,7 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList,
         
         
         
-        if (itemType == nsDisplayItem::TYPE_TRANSFORM &&
+        if (item->GetType() == nsDisplayItem::TYPE_TRANSFORM &&
             nsDisplayTransform::ShouldPrerenderTransformedContent(mBuilder,
                                                                   item->Frame(),
                                                                   false)) {
@@ -2853,45 +2611,25 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList,
           data->AddDrawAboveRegion(itemDrawRect);
         }
       }
+      itemVisibleRect.MoveBy(mParameters.mOffset);
+      if (item->SetVisibleRegionOnLayer()) {
+        SetVisibleRegionForLayer(ownLayer, ownLayer->GetVisibleRegion(), itemVisibleRect);
+      }
 
       
       
       if (itemClip.IsRectClippedByRoundedCorner(itemContent)) {
-        SetupMaskLayer(ownLayer, itemClip, itemVisibleRect);
+        SetupMaskLayer(ownLayer, itemClip);
       }
 
       ContainerLayer* oldContainer = ownLayer->GetParent();
       if (oldContainer && oldContainer != mContainerLayer) {
         oldContainer->RemoveChild(ownLayer);
       }
-      NS_ASSERTION(FindIndexOfLayerIn(mNewChildLayers, ownLayer) < 0,
+      NS_ASSERTION(!mNewChildLayers.Contains(ownLayer),
                    "Layer already in list???");
 
-      NewLayerEntry* newLayerEntry = mNewChildLayers.AppendElement();
-      newLayerEntry->mLayer = ownLayer;
-      newLayerEntry->mAnimatedGeometryRoot = animatedGeometryRoot;
-      newLayerEntry->mFixedPosFrameForLayerData = fixedPosFrame;
-      
-      
-      
-      NS_ASSERTION(itemType != nsDisplayItem::TYPE_TRANSFORM ||
-                   layerContentsVisibleRect.width >= 0,
-                   "Transform items must set layerContentsVisibleRect!");
-      if (mLayerBuilder->IsBuildingRetainedLayers()) {
-        newLayerEntry->mLayerContentsVisibleRect = layerContentsVisibleRect;
-        newLayerEntry->mVisibleRegion = itemVisibleRect;
-        newLayerEntry->mOpaqueRegion = ComputeOpaqueRect(item,
-          animatedGeometryRoot, fixedPosFrame, itemClip, aList,
-          &newLayerEntry->mHideAllLayersBelow);
-      } else {
-        SetOuterVisibleRegionForLayer(ownLayer, itemVisibleRect,
-            layerContentsVisibleRect.width >= 0 ? &layerContentsVisibleRect : nullptr);
-      }
-      if (itemType == nsDisplayItem::TYPE_SCROLL_LAYER) {
-        nsDisplayScrollLayer* scrollItem = static_cast<nsDisplayScrollLayer*>(item);
-        newLayerEntry->mOpaqueForAnimatedGeometryRootParent =
-            scrollItem->IsDisplayPortOpaque();
-      }
+      mNewChildLayers.AppendElement(ownLayer);
 
       
 
@@ -2903,42 +2641,32 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList,
                                          topLeft, nullptr,
                                          dummy);
     } else {
-      ThebesLayerData* thebesLayerData =
+      ThebesLayerData* data =
         FindThebesLayerFor(item, itemVisibleRect, animatedGeometryRoot, topLeft,
                            shouldFixToViewport);
 
       if (itemType == nsDisplayItem::TYPE_LAYER_EVENT_REGIONS) {
         nsDisplayLayerEventRegions* eventRegions =
             static_cast<nsDisplayLayerEventRegions*>(item);
-        thebesLayerData->AccumulateEventRegions(eventRegions->HitRegion(),
-                                                eventRegions->MaybeHitRegion(),
-                                                eventRegions->DispatchToContentHitRegion());
+        data->AccumulateEventRegions(eventRegions->HitRegion(),
+                                     eventRegions->MaybeHitRegion(),
+                                     eventRegions->DispatchToContentHitRegion());
       } else {
         
         
-        thebesLayerData->UpdateCommonClipCount(itemClip);
+        data->UpdateCommonClipCount(itemClip);
+        data->Accumulate(this, item, itemVisibleRect, itemDrawRect, itemClip);
 
         nsAutoPtr<nsDisplayItemGeometry> geometry(item->AllocateGeometry(mBuilder));
-        InvalidateForLayerChange(item, thebesLayerData->mLayer, itemClip, topLeft, geometry);
+        InvalidateForLayerChange(item, data->mLayer, itemClip, topLeft, geometry);
 
-        mLayerBuilder->AddThebesDisplayItem(thebesLayerData, item, itemClip, itemVisibleRect,
-                                            *this, layerState, topLeft, geometry);
-        nsIntRegion opaquePixels = ComputeOpaqueRect(item,
-            animatedGeometryRoot, thebesLayerData->mFixedPosFrameForLayerData,
-            itemClip, aList,
-            &thebesLayerData->mHideAllLayersBelow);
-        thebesLayerData->Accumulate(this, item, opaquePixels,
-            itemVisibleRect, itemDrawRect, itemClip);
+        mLayerBuilder->AddThebesDisplayItem(data, item, itemClip,
+                                            mContainerFrame,
+                                            layerState, topLeft,
+                                            geometry);
       }
     }
-
-    if (itemSameCoordinateSystemChildren &&
-        itemSameCoordinateSystemChildren->NeedsTransparentSurface()) {
-      aList->SetNeedsTransparentSurface();
-    }
   }
-
-  aList->AppendToTop(&savedItems);
 }
 
 void
@@ -3080,8 +2808,7 @@ void
 FrameLayerBuilder::AddThebesDisplayItem(ThebesLayerData* aLayerData,
                                         nsDisplayItem* aItem,
                                         const DisplayItemClip& aClip,
-                                        const nsIntRect& aItemVisibleRect,
-                                        const ContainerState& aContainerState,
+                                        nsIFrame* aContainerLayerFrame,
                                         LayerState aLayerState,
                                         const nsPoint& aTopLeft,
                                         nsAutoPtr<nsDisplayItemGeometry> aGeometry)
@@ -3121,7 +2848,7 @@ FrameLayerBuilder::AddThebesDisplayItem(ThebesLayerData* aLayerData,
 
   ThebesLayerItemsEntry* entry = mThebesLayerItems.PutEntry(layer);
   if (entry) {
-    entry->mContainerLayerFrame = aContainerState.GetContainerFrame();
+    entry->mContainerLayerFrame = aContainerLayerFrame;
     if (entry->mContainerLayerGeneration == 0) {
       entry->mContainerLayerGeneration = mContainerLayerGeneration;
     }
@@ -3144,12 +2871,6 @@ FrameLayerBuilder::AddThebesDisplayItem(ThebesLayerData* aLayerData,
         tempManager->SetUserData(&gLayerManagerLayerBuilder, nullptr);
         return;
       }
-
-      bool snap;
-      nsRect visibleRect =
-        aItem->GetVisibleRect().Intersect(aItem->GetBounds(mDisplayListBuilder, &snap));
-      nsIntRegion rgn = visibleRect.ToOutsidePixels(thebesData->mAppUnitsPerDevPixel);
-      SetOuterVisibleRegion(tmpLayer, &rgn);
 
       
       
@@ -3343,126 +3064,21 @@ ContainerState::CollectOldLayers()
   }
 }
 
-struct OpaqueRegionEntry {
-  const nsIFrame* mAnimatedGeometryRoot;
-  const nsIFrame* mFixedPosFrameForLayerData;
-  nsIntRegion mOpaqueRegion;
-};
-
-static OpaqueRegionEntry*
-FindOpaqueRegionEntry(nsTArray<OpaqueRegionEntry>& aEntries,
-                      const nsIFrame* aAnimatedGeometryRoot,
-                      const nsIFrame* aFixedPosFrameForLayerData)
-{
-  for (uint32_t i = 0; i < aEntries.Length(); ++i) {
-    OpaqueRegionEntry* d = &aEntries[i];
-    if (d->mAnimatedGeometryRoot == aAnimatedGeometryRoot &&
-        d->mFixedPosFrameForLayerData == aFixedPosFrameForLayerData) {
-      return d;
-    }
-  }
-  return nullptr;
-}
-
 void
-ContainerState::ApplyOcclusionCulling(nsIntRegion* aOpaqueRegionForContainer)
-{
-  nsAutoTArray<OpaqueRegionEntry,4> opaqueRegions;
-  bool hideAll = false;
-  int32_t opaqueRegionForContainer = -1;
-
-  for (int32_t i = mNewChildLayers.Length() - 1; i >= 0; --i) {
-    NewLayerEntry* e = &mNewChildLayers.ElementAt(i);
-    if (!e->mLayer) {
-      continue;
-    }
-
-    OpaqueRegionEntry* data = FindOpaqueRegionEntry(opaqueRegions,
-        e->mAnimatedGeometryRoot, e->mFixedPosFrameForLayerData);
-
-    if (hideAll) {
-      e->mVisibleRegion.SetEmpty();
-    } else if (data) {
-      e->mVisibleRegion.Sub(e->mVisibleRegion, data->mOpaqueRegion);
-    }
-
-    if (!e->mOpaqueRegion.IsEmpty()) {
-      const nsIFrame* animatedGeometryRootToCover = e->mAnimatedGeometryRoot;
-      if (e->mOpaqueForAnimatedGeometryRootParent &&
-          nsLayoutUtils::GetAnimatedGeometryRootForFrame(e->mAnimatedGeometryRoot->GetParent(),
-                                                         mContainerAnimatedGeometryRoot)
-            == mContainerAnimatedGeometryRoot) {
-        animatedGeometryRootToCover = mContainerAnimatedGeometryRoot;
-        data = FindOpaqueRegionEntry(opaqueRegions,
-            animatedGeometryRootToCover, e->mFixedPosFrameForLayerData);
-      }
-
-      if (!data) {
-        if (animatedGeometryRootToCover == mContainerAnimatedGeometryRoot &&
-            !e->mFixedPosFrameForLayerData) {
-          NS_ASSERTION(opaqueRegionForContainer == -1, "Already found it?");
-          opaqueRegionForContainer = opaqueRegions.Length();
-        }
-        data = opaqueRegions.AppendElement();
-        data->mAnimatedGeometryRoot = animatedGeometryRootToCover;
-        data->mFixedPosFrameForLayerData = e->mFixedPosFrameForLayerData;
-      }
-      data->mOpaqueRegion.Or(data->mOpaqueRegion, e->mOpaqueRegion);
-      if (e->mHideAllLayersBelow) {
-        hideAll = true;
-      }
-    }
-
-    SetOuterVisibleRegionForLayer(e->mLayer, e->mVisibleRegion,
-	  e->mLayerContentsVisibleRect.width >= 0 ? &e->mLayerContentsVisibleRect : nullptr);
-
-    if (e->mLayer->GetType() == Layer::TYPE_READBACK) {
-      
-      
-      
-      
-      opaqueRegions.Clear();
-      opaqueRegionForContainer = -1;
-    }
-  }
-
-  if (opaqueRegionForContainer >= 0) {
-    aOpaqueRegionForContainer->Or(*aOpaqueRegionForContainer,
-        opaqueRegions[opaqueRegionForContainer].mOpaqueRegion);
-  }
-}
-
-void
-ContainerState::Finish(uint32_t* aTextContentFlags, LayerManagerData* aData,
-                       const nsIntRect& aContainerPixelBounds,
-                       nsDisplayList* aChildItems)
+ContainerState::Finish(uint32_t* aTextContentFlags, LayerManagerData* aData)
 {
   while (!mThebesLayerDataStack.IsEmpty()) {
     PopThebesLayerData();
   }
 
-  NS_ASSERTION(mContainerBounds.IsEqualInterior(mAccumulatedChildBounds),
-               "Bounds computation mismatch");
   uint32_t textContentFlags = 0;
-
-  if (mLayerBuilder->IsBuildingRetainedLayers()) {
-    nsIntRegion containerOpaqueRegion;
-    ApplyOcclusionCulling(&containerOpaqueRegion);
-    if (containerOpaqueRegion.Contains(aContainerPixelBounds)) {
-      aChildItems->SetIsOpaque();
-    }
-  }
 
   
   
   Layer* layer = nullptr;
-  Layer* prevChild = nullptr;
-  for (uint32_t i = 0; i < mNewChildLayers.Length(); ++i, prevChild = layer) {
-    if (!mNewChildLayers[i].mLayer) {
-      continue;
-    }
-
-    layer = mNewChildLayers[i].mLayer;
+  for (uint32_t i = 0; i < mNewChildLayers.Length(); ++i) {
+    Layer* prevChild = i == 0 ? nullptr : mNewChildLayers[i - 1].get();
+    layer = mNewChildLayers[i];
 
     if (!layer->GetVisibleRegion().IsEmpty()) {
       textContentFlags |= layer->GetContentFlags() & Layer::CONTENT_COMPONENT_ALPHA;
@@ -3650,8 +3266,8 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
       aOutgoingScale.mInActiveTransformedSubtree = true;
     }
   }
-  if (aLayerBuilder->IsBuildingRetainedLayers() &&
-      (!canDraw2D || transform2d.HasNonIntegerTranslation())) {
+  bool isRetained = aLayer->Manager()->IsWidgetLayerManager();
+  if (isRetained && (!canDraw2D || transform2d.HasNonIntegerTranslation())) {
     aOutgoingScale.mDisableSubpixelAntialiasingInDescendants = true;
   }
   return true;
@@ -3697,7 +3313,7 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
                                           LayerManager* aManager,
                                           nsIFrame* aContainerFrame,
                                           nsDisplayItem* aContainerItem,
-                                          nsDisplayList* aChildren,
+                                          const nsDisplayList& aChildren,
                                           const ContainerLayerParameters& aParameters,
                                           const gfx3DMatrix* aTransform,
                                           uint32_t aFlags)
@@ -3761,19 +3377,13 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
     
     
     
-    NS_ASSERTION(aChildren->IsEmpty(), "Should have no children");
+    NS_ASSERTION(aChildren.IsEmpty(), "Should have no children");
     return containerLayer.forget();
   }
 
   ContainerLayerParameters scaleParameters;
-  nsRect bounds = aChildren->GetBounds(aBuilder);
-  nsRect childrenVisible =
-      aContainerItem ? aContainerItem->GetVisibleRectForChildren() :
-          aContainerFrame->GetVisualOverflowRectRelativeToSelf();
-  if (!ChooseScaleAndSetTransform(this, aBuilder, aContainerFrame,
-                                  bounds.Intersect(childrenVisible),
-                                  aTransform, aParameters,
-                                  containerLayer, state, scaleParameters)) {
+  if (!ChooseScaleAndSetTransform(this, aBuilder, aContainerFrame, aChildren.GetVisibleRect(),
+                                  aTransform, aParameters, containerLayer, state, scaleParameters)) {
     return nullptr;
   }
 
@@ -3792,8 +3402,9 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
   LayerManagerData* data = static_cast<LayerManagerData*>
     (aManager->GetUserData(&gLayerManagerUserData));
 
+  nsRect bounds;
   nsIntRect pixBounds;
-  nscoord appUnitsPerDevPixel;
+  int32_t appUnitsPerDevPixel;
   uint32_t stateFlags = 0;
   if ((aContainerFrame->GetStateBits() & NS_FRAME_NO_COMPONENT_ALPHA) &&
       mRetainingManager && !mRetainingManager->AreComponentAlphaLayersEnabled()) {
@@ -3802,7 +3413,7 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
   uint32_t flags;
   while (true) {
     ContainerState state(aBuilder, aManager, aManager->GetLayerBuilder(),
-                         aContainerFrame, aContainerItem, bounds,
+                         aContainerFrame, aContainerItem,
                          containerLayer, scaleParameters);
 
     state.ProcessDisplayItems(aChildren, stateFlags);
@@ -3810,9 +3421,10 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
     
     
     
+    state.Finish(&flags, data);
+    bounds = state.GetChildrenBounds();
     pixBounds = state.ScaleToOutsidePixels(bounds, false);
     appUnitsPerDevPixel = state.GetAppUnitsPerDevPixel();
-    state.Finish(&flags, data, pixBounds, aChildren);
 
     if ((flags & Layer::CONTENT_COMPONENT_ALPHA) &&
         mRetainingManager &&
@@ -3833,9 +3445,17 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
     break;
   }
 
+  NS_ASSERTION(bounds.IsEqualInterior(aChildren.GetBounds(aBuilder)), "Wrong bounds");
+  pixBounds.MoveBy(nsIntPoint(scaleParameters.mOffset.x, scaleParameters.mOffset.y));
+  if (aParameters.mAncestorClipRect && !(aFlags & CONTAINER_NOT_CLIPPED_BY_ANCESTORS)) {
+    SetVisibleRegionForLayer(containerLayer, nsIntRegion(pixBounds),
+                             *aParameters.mAncestorClipRect);
+  } else {
+    containerLayer->SetVisibleRegion(pixBounds);
+  }
   
   
-  if (aChildren->IsOpaque() && !aChildren->NeedsTransparentSurface()) {
+  if (aChildren.IsOpaque() && !aChildren.NeedsTransparentSurface()) {
     bounds.ScaleRoundIn(scaleParameters.mXScale, scaleParameters.mYScale);
     if (bounds.Contains(pixBounds.ToAppUnits(appUnitsPerDevPixel))) {
       
@@ -3843,14 +3463,6 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
     }
   }
   containerLayer->SetContentFlags(flags);
-  
-  
-  if (!aContainerItem) {
-    containerLayer->SetVisibleRegion(pixBounds);
-  }
-  if (aParameters.mLayerContentsVisibleRect) {
-    *aParameters.mLayerContentsVisibleRect = pixBounds + scaleParameters.mOffset;
-  }
 
   mContainerLayerGeneration = oldGeneration;
   nsPresContext::ClearNotifySubDocInvalidationData(containerLayer);
@@ -4032,6 +3644,9 @@ FrameLayerBuilder::RecomputeVisibilityForItems(nsTArray<ClippedDisplayItem>& aIt
                                                float aYScale)
 {
   uint32_t i;
+  
+  
+  
   
   
   nsRegion visible = aRegionToDraw.ToAppUnits(aAppUnitsPerDevPixel);
@@ -4264,17 +3879,13 @@ FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
   
   gfxContextMatrixAutoSaveRestore saveMatrix(aContext);
   nsIntPoint offset = GetTranslationForThebesLayer(aLayer);
-  nsPresContext* presContext = entry->mContainerLayerFrame->PresContext();
 
-  if (!layerBuilder->GetContainingThebesLayerData()) {
-    
-    
-    
-    int32_t appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
-    RecomputeVisibilityForItems(entry->mItems, builder, aRegionToDraw,
-                                offset, appUnitsPerDevPixel,
-                                userData->mXScale, userData->mYScale);
-  }
+  nsPresContext* presContext = entry->mContainerLayerFrame->PresContext();
+  int32_t appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
+
+  RecomputeVisibilityForItems(entry->mItems, builder, aRegionToDraw,
+                              offset, appUnitsPerDevPixel,
+                              userData->mXScale, userData->mYScale);
 
   nsRefPtr<nsRenderingContext> rc = new nsRenderingContext();
   rc->Init(presContext->DeviceContext(), aContext);
@@ -4378,9 +3989,7 @@ SetClipCount(ThebesDisplayItemLayerUserData* aThebesData,
 }
 
 void
-ContainerState::SetupMaskLayer(Layer *aLayer,
-                               const DisplayItemClip& aClip,
-                               const nsIntRegion& aLayerVisibleRegion,
+ContainerState::SetupMaskLayer(Layer *aLayer, const DisplayItemClip& aClip,
                                uint32_t aRoundedRectClipCount)
 {
   
@@ -4394,7 +4003,7 @@ ContainerState::SetupMaskLayer(Layer *aLayer,
   }
 
   
-  nsIntRect layerBounds = aLayerVisibleRegion.GetBounds();
+  nsIntRect layerBounds = aLayer->GetVisibleRegion().GetBounds();
   if (aClip.GetRoundedRectCount() == 0 ||
       aRoundedRectClipCount == 0 ||
       layerBounds.IsEmpty()) {
