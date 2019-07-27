@@ -97,13 +97,22 @@ class CodeGeneratorShared : public LInstructionVisitor
     js::Vector<CodeOffsetLabel, 0, SystemAllocPolicy> patchableTLScripts_;
 #endif
 
+  public:
     struct NativeToBytecode {
         CodeOffsetLabel nativeOffset;
         InlineScriptTree *tree;
         jsbytecode *pc;
     };
 
+  protected:
     js::Vector<NativeToBytecode, 0, SystemAllocPolicy> nativeToBytecodeList_;
+    uint8_t *nativeToBytecodeMap_;
+    uint32_t nativeToBytecodeMapSize_;
+    uint32_t nativeToBytecodeTableOffset_;
+    uint32_t nativeToBytecodeNumRegions_;
+
+    JSScript **nativeToBytecodeScriptList_;
+    uint32_t nativeToBytecodeScriptListLength_;
 
     
     
@@ -300,6 +309,11 @@ class CodeGeneratorShared : public LInstructionVisitor
     
     
     void encodeSafepoints();
+
+    
+    bool createNativeToBytecodeScriptList(JSContext *cx);
+    bool generateCompactNativeToBytecodeMap(JSContext *cx, JitCode *code);
+    void verifyCompactNativeToBytecodeMap(JitCode *code);
 
     
     

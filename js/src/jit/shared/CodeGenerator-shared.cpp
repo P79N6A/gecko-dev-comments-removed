@@ -8,9 +8,11 @@
 
 #include "mozilla/DebugOnly.h"
 
+#include "jit/CompactBuffer.h"
 #include "jit/IonCaches.h"
 #include "jit/IonMacroAssembler.h"
 #include "jit/IonSpewer.h"
+#include "jit/JitcodeMap.h"
 #include "jit/MIR.h"
 #include "jit/MIRGenerator.h"
 #include "jit/ParallelFunctions.h"
@@ -49,6 +51,12 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator *gen, LIRGraph *graph, Mac
     pushedArgs_(0),
 #endif
     lastOsiPointOffset_(0),
+    nativeToBytecodeMap_(nullptr),
+    nativeToBytecodeMapSize_(0),
+    nativeToBytecodeTableOffset_(0),
+    nativeToBytecodeNumRegions_(0),
+    nativeToBytecodeScriptList_(nullptr),
+    nativeToBytecodeScriptListLength_(0),
     sps_(&GetIonContext()->runtime->spsProfiler(), &lastNotInlinedPC_),
     osrEntryOffset_(0),
     skipArgCheckEntryOffset_(0),
@@ -242,7 +250,7 @@ CodeGeneratorShared::dumpNativeToBytecodeEntries()
 {
 #ifdef DEBUG
     InlineScriptTree *topTree = gen->info().inlineScriptTree();
-    IonSpewStart(IonSpew_Profiling, "Native To Bytecode Map for %s:%d\n",
+    IonSpewStart(IonSpew_Profiling, "Native To Bytecode Entries for %s:%d\n",
                  topTree->script()->filename(), topTree->script()->lineno());
     for (unsigned i = 0; i < nativeToBytecodeList_.length(); i++)
         dumpNativeToBytecodeEntry(i);
@@ -534,6 +542,203 @@ CodeGeneratorShared::encodeSafepoints()
 
         it->resolve();
     }
+}
+
+bool
+CodeGeneratorShared::createNativeToBytecodeScriptList(JSContext *cx)
+{
+    js::Vector<JSScript *, 0, SystemAllocPolicy> scriptList;
+    InlineScriptTree *tree = gen->info().inlineScriptTree();
+    for (;;) {
+        
+        bool found = false;
+        for (uint32_t i = 0; i < scriptList.length(); i++) {
+            if (scriptList[i] == tree->script()) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            if (!scriptList.append(tree->script()))
+                return false;
+        }
+
+        
+
+        
+        if (tree->hasChildren()) {
+            tree = tree->firstChild();
+            continue;
+        }
+
+        
+        
+        while (!tree->hasNextCallee() && tree->hasCaller())
+            tree = tree->caller();
+
+        
+        if (tree->hasNextCallee()) {
+            tree = tree->nextCallee();
+            continue;
+        }
+
+        
+        JS_ASSERT(tree->isOutermostCaller());
+        break;
+    }
+
+    
+    JSScript **data = (JSScript **) cx->malloc_(scriptList.length() * sizeof(JSScript **));
+    if (!data)
+        return false;
+
+    for (uint32_t i = 0; i < scriptList.length(); i++)
+        data[i] = scriptList[i];
+
+    
+    nativeToBytecodeScriptListLength_ = scriptList.length();
+    nativeToBytecodeScriptList_ = data;
+    return true;
+}
+
+bool
+CodeGeneratorShared::generateCompactNativeToBytecodeMap(JSContext *cx, JitCode *code)
+{
+    JS_ASSERT(nativeToBytecodeScriptListLength_ == 0);
+    JS_ASSERT(nativeToBytecodeScriptList_ == nullptr);
+    JS_ASSERT(nativeToBytecodeMap_ == nullptr);
+    JS_ASSERT(nativeToBytecodeMapSize_ == 0);
+    JS_ASSERT(nativeToBytecodeTableOffset_ == 0);
+    JS_ASSERT(nativeToBytecodeNumRegions_ == 0);
+
+    
+    for (unsigned i = 0; i < nativeToBytecodeList_.length(); i++) {
+        NativeToBytecode &entry = nativeToBytecodeList_[i];
+
+        
+        entry.nativeOffset = CodeOffsetLabel(masm.actualOffset(entry.nativeOffset.offset()));
+    }
+
+    if (!createNativeToBytecodeScriptList(cx))
+        return false;
+
+    JS_ASSERT(nativeToBytecodeScriptListLength_ > 0);
+    JS_ASSERT(nativeToBytecodeScriptList_ != nullptr);
+
+    CompactBufferWriter writer;
+    uint32_t tableOffset = 0;
+    uint32_t numRegions = 0;
+
+    if (!JitcodeMainTable::WriteMainTable(
+            writer, nativeToBytecodeScriptList_, nativeToBytecodeScriptListLength_,
+            &nativeToBytecodeList_[0],
+            &nativeToBytecodeList_[0] + nativeToBytecodeList_.length(),
+            &tableOffset, &numRegions))
+    {
+        return false;
+    }
+
+    JS_ASSERT(tableOffset > 0);
+    JS_ASSERT(numRegions > 0);
+
+    
+    uint8_t *data = (uint8_t *) cx->malloc_(writer.length());
+    if (!data)
+        return false;
+
+    memcpy(data, writer.buffer(), writer.length());
+    nativeToBytecodeMap_ = data;
+    nativeToBytecodeMapSize_ = writer.length();
+    nativeToBytecodeTableOffset_ = tableOffset;
+    nativeToBytecodeNumRegions_ = numRegions;
+
+    verifyCompactNativeToBytecodeMap(code);
+
+    return true;
+}
+
+void
+CodeGeneratorShared::verifyCompactNativeToBytecodeMap(JitCode *code)
+{
+#ifdef DEBUG
+    JS_ASSERT(nativeToBytecodeScriptListLength_ > 0);
+    JS_ASSERT(nativeToBytecodeScriptList_ != nullptr);
+    JS_ASSERT(nativeToBytecodeMap_ != nullptr);
+    JS_ASSERT(nativeToBytecodeMapSize_ > 0);
+    JS_ASSERT(nativeToBytecodeTableOffset_ > 0);
+    JS_ASSERT(nativeToBytecodeNumRegions_ > 0);
+
+    
+    const uint8_t *tablePtr = nativeToBytecodeMap_ + nativeToBytecodeTableOffset_;
+    JS_ASSERT(uintptr_t(tablePtr) % sizeof(uint32_t) == 0);
+
+    
+    const JitcodeMainTable *mainTable = reinterpret_cast<const JitcodeMainTable *>(tablePtr);
+    JS_ASSERT(mainTable->numRegions() == nativeToBytecodeNumRegions_);
+
+    
+    
+    
+    
+    JS_ASSERT(mainTable->regionOffset(0) == nativeToBytecodeTableOffset_);
+
+    
+    for (uint32_t i = 0; i < mainTable->numRegions(); i++) {
+        
+        JS_ASSERT(mainTable->regionOffset(i) <= nativeToBytecodeTableOffset_);
+
+        
+        
+        JS_ASSERT_IF(i > 0, mainTable->regionOffset(i) < mainTable->regionOffset(i - 1));
+
+        JitcodeRegionEntry entry = mainTable->regionEntry(i);
+
+        
+        JS_ASSERT(entry.nativeOffset() <= code->instructionsSize());
+
+        
+        JitcodeRegionEntry::ScriptPcIterator scriptPcIter = entry.scriptPcIterator();
+        while (scriptPcIter.hasMore()) {
+            uint32_t scriptIdx = 0, pcOffset = 0;
+            scriptPcIter.readNext(&scriptIdx, &pcOffset);
+
+            
+            JS_ASSERT(scriptIdx < nativeToBytecodeScriptListLength_);
+            JSScript *script = nativeToBytecodeScriptList_[scriptIdx];
+
+            
+            JS_ASSERT(pcOffset < script->length());
+        }
+
+        
+        uint32_t curNativeOffset = entry.nativeOffset();
+        JSScript *script = nullptr;
+        uint32_t curPcOffset = 0;
+        {
+            uint32_t scriptIdx = 0;
+            scriptPcIter.reset();
+            scriptPcIter.readNext(&scriptIdx, &curPcOffset);
+            script = nativeToBytecodeScriptList_[scriptIdx];
+        }
+
+        
+        JitcodeRegionEntry::DeltaIterator deltaIter = entry.deltaIterator();
+        while (deltaIter.hasMore()) {
+            uint32_t nativeDelta = 0;
+            int32_t pcDelta = 0;
+            deltaIter.readNext(&nativeDelta, &pcDelta);
+
+            curNativeOffset += nativeDelta;
+            curPcOffset = uint32_t(int32_t(curPcOffset) + pcDelta);
+
+            
+            JS_ASSERT(curNativeOffset <= code->instructionsSize());
+
+            
+            JS_ASSERT(curPcOffset < script->length());
+        }
+    }
+#endif 
 }
 
 bool

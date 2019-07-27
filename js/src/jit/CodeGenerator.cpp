@@ -6785,6 +6785,12 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
         return false;
     }
 
+    
+    if (cx->runtime()->spsProfiler.enabled()) {
+        if (!generateCompactNativeToBytecodeMap(cx, code))
+            return false;
+    }
+
     ionScript->setMethod(code);
     ionScript->setSkipArgCheckEntryOffset(getSkipArgCheckEntryOffset());
 
