@@ -9,7 +9,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,7 +44,6 @@ import org.mozilla.gecko.mozglue.GeckoLoader;
 import org.mozilla.gecko.preferences.ClearOnShutdownPref;
 import org.mozilla.gecko.preferences.GeckoPreferences;
 import org.mozilla.gecko.prompts.PromptService;
-import org.mozilla.gecko.SmsManager;
 import org.mozilla.gecko.updater.UpdateService;
 import org.mozilla.gecko.updater.UpdateServiceHelper;
 import org.mozilla.gecko.util.ActivityResultHandler;
@@ -1207,6 +1205,9 @@ public abstract class GeckoApp
         
         
         
+        
+        
+        
         if (BrowserLocaleManager.getInstance().systemLocaleDidChange()) {
             Log.i(LOGTAG, "System locale changed. Restarting.");
             doRestart();
@@ -1318,28 +1319,35 @@ public abstract class GeckoApp
                 final EventDispatcher dispatcher = EventDispatcher.getInstance();
 
                 
-                final String osLocale = Locale.getDefault().toString();
-                String appLocale = localeManager.getAndApplyPersistedLocale(GeckoApp.this);
-                Log.d(LOGTAG, "OS locale is " + osLocale + ", app locale is " + appLocale);
+                final Locale osLocale = Locale.getDefault();
 
-                if (appLocale == null) {
-                    appLocale = osLocale;
+                
+                final String osLocaleString = osLocale.toString();
+                String appLocaleString = localeManager.getAndApplyPersistedLocale(GeckoApp.this);
+                Log.d(LOGTAG, "OS locale is " + osLocaleString + ", app locale is " + appLocaleString);
+
+                if (appLocaleString == null) {
+                    appLocaleString = osLocaleString;
                 }
 
                 mHealthRecorder = GeckoApp.this.createHealthRecorder(GeckoApp.this,
                                                                      profilePath,
                                                                      dispatcher,
-                                                                     osLocale,
-                                                                     appLocale,
+                                                                     osLocaleString,
+                                                                     appLocaleString,
                                                                      previousSession);
 
-                final String uiLocale = appLocale;
+                final String uiLocale = appLocaleString;
                 ThreadUtils.postToUiThread(new Runnable() {
                     @Override
                     public void run() {
                         GeckoApp.this.onLocaleReady(uiLocale);
                     }
                 });
+
+                
+                
+                BrowserLocaleManager.storeAndNotifyOSLocale(GeckoSharedPrefs.forProfile(GeckoApp.this), osLocale);
             }
         });
 
