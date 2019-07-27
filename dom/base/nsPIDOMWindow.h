@@ -724,12 +724,24 @@ public:
   {
     return mMarkedCCGeneration;
   }
+
+  
+  
+  void SetRequestNotifyAfterRemotePaint()
+  {
+    mSendAfterRemotePaint = true;
+  }
+
+  
+  
+  void SendAfterRemotePaintIfRequested();
+
 protected:
   
   
   
   
-  explicit nsPIDOMWindow(nsPIDOMWindow *aOuterWindow);
+  nsPIDOMWindow(nsPIDOMWindow *aOuterWindow);
 
   ~nsPIDOMWindow();
 
@@ -815,6 +827,10 @@ protected:
   bool mHasNotifiedGlobalCreated;
 
   uint32_t mMarkedCCGeneration;
+
+  
+  
+  bool mSendAfterRemotePaint;
 };
 
 
@@ -842,7 +858,7 @@ class NS_AUTO_POPUP_STATE_PUSHER
 {
 public:
 #ifdef MOZILLA_INTERNAL_API
-  explicit NS_AUTO_POPUP_STATE_PUSHER(PopupControlState aState, bool aForce = false)
+  NS_AUTO_POPUP_STATE_PUSHER(PopupControlState aState, bool aForce = false)
     : mOldState(::PushPopupControlState(aState, aForce))
   {
   }
