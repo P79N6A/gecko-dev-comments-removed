@@ -4149,9 +4149,6 @@ pref("layers.force-active", false);
 pref("layers.gralloc.disable", false);
 
 
-pref("layers.compositor-lru-size", 0);
-
-
 pref("geo.enabled", true);
 
 

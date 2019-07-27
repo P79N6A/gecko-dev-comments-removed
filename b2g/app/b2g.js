@@ -1140,6 +1140,3 @@ pref("dom.activities.developer_mode_only", "import-app");
 
 
 pref("dom.serviceWorkers.enabled", false);
-
-
-pref("layers.compositor-lru-size", 10);
