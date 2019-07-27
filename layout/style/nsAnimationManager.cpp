@@ -868,9 +868,6 @@ nsAnimationManager::WillRefresh(mozilla::TimeStamp aTime)
 void
 nsAnimationManager::FlushAnimations(FlushFlags aFlags)
 {
-  
-  
-  
   TimeStamp now = mPresContext->RefreshDriver()->MostRecentRefresh();
   bool didThrottle = false;
   for (PRCList *l = PR_LIST_HEAD(&mElementCollections);
@@ -901,6 +898,8 @@ nsAnimationManager::FlushAnimations(FlushFlags aFlags)
   if (didThrottle) {
     mPresContext->Document()->SetNeedStyleFlush();
   }
+
+  MaybeStartOrStopObservingRefreshDriver();
 
   DispatchEvents(); 
 }
