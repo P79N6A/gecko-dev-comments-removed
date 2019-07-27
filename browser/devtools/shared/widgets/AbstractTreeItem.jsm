@@ -5,12 +5,16 @@
 
 "use strict";
 
-const Cu = Components.utils;
+const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
-Cu.import("resource://gre/modules/devtools/event-emitter.js");
-XPCOMUtils.defineLazyModuleGetter(this, "console", "resource://gre/modules/devtools/Console.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "EventEmitter",
+  "resource://gre/modules/devtools/event-emitter.js");
+
+XPCOMUtils.defineLazyModuleGetter(this, "console",
+  "resource://gre/modules/devtools/Console.jsm");
 
 this.EXPORTED_SYMBOLS = ["AbstractTreeItem"];
 
@@ -117,13 +121,12 @@ function AbstractTreeItem({ parent, level }) {
   this._parentItem = parent;
   this._level = level || 0;
   this._childTreeItems = [];
-  this._onArrowClick = this._onArrowClick.bind(this);
-  this._onClick = this._onClick.bind(this);
-  this._onDoubleClick = this._onDoubleClick.bind(this);
-  this._onKeyPress = this._onKeyPress.bind(this);
-  this._onFocus = this._onFocus.bind(this);
 
-  EventEmitter.decorate(this);
+  
+  
+  if (this == this._rootItem) {
+    EventEmitter.decorate(this);
+  }
 }
 
 AbstractTreeItem.prototype = {
@@ -150,7 +153,8 @@ AbstractTreeItem.prototype = {
 
 
   _displaySelf: function(document, arrowNode) {
-    throw "This method needs to be implemented by inheriting classes.";
+    throw new Error(
+      "The `_displaySelf` method needs to be implemented by inheriting classes.");
   },
 
   
@@ -162,7 +166,16 @@ AbstractTreeItem.prototype = {
 
 
   _populateSelf: function(children) {
-    throw "This method needs to be implemented by inheriting classes.";
+    throw new Error(
+      "The `_populateSelf` method needs to be implemented by inheriting classes.");
+  },
+
+  
+
+
+
+  get document() {
+    return this._containerNode.ownerDocument;
   },
 
   
@@ -225,14 +238,32 @@ AbstractTreeItem.prototype = {
 
 
 
+  get bounds() {
+    let win = this.document.defaultView;
+    let utils = win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+    return utils.getBoundsWithoutFlushing(this._containerNode);
+  },
+
+  
 
 
 
 
-  attachTo: function(containerNode, beforeNode = null) {
+
+
+
+
+
+
+  attachTo: function(containerNode, fragmentNode = containerNode, beforeNode = null) {
     this._containerNode = containerNode;
     this._constructTargetNode();
-    containerNode.insertBefore(this._targetNode, beforeNode);
+
+    if (beforeNode) {
+      fragmentNode.insertBefore(this._targetNode, beforeNode);
+    } else {
+      fragmentNode.appendChild(this._targetNode);
+    }
 
     if (this._level < this.autoExpandDepth) {
       this.expand();
@@ -265,6 +296,7 @@ AbstractTreeItem.prototype = {
     }
     this._expanded = true;
     this._arrowNode.setAttribute("open", "");
+    this._targetNode.setAttribute("expanded", "");
     this._toggleChildren(true);
     this._rootItem.emit("expand", this);
   },
@@ -278,6 +310,7 @@ AbstractTreeItem.prototype = {
     }
     this._expanded = false;
     this._arrowNode.removeAttribute("open");
+    this._targetNode.removeAttribute("expanded", "");
     this._toggleChildren(false);
     this._rootItem.emit("collapse", this);
   },
@@ -315,17 +348,16 @@ AbstractTreeItem.prototype = {
 
 
   _showChildren: function() {
-    let childTreeItems = this._childTreeItems;
-    let expandedChildTreeItems = childTreeItems.filter(e => e._expanded);
-    let nextNode = this._getSiblingAtDelta(1);
-
     
     
-    for (let item of childTreeItems) {
-      item.attachTo(this._containerNode, nextNode);
+    if (this == this._rootItem && this.autoExpandDepth == 0) {
+      this._appendChildrenBatch();
     }
-    for (let item of expandedChildTreeItems) {
-      item._showChildren();
+    
+    
+    
+    else {
+      this._appendChildrenSuccessive();
     }
   },
 
@@ -342,11 +374,52 @@ AbstractTreeItem.prototype = {
   
 
 
+
+  _appendChildrenBatch: function() {
+    if (this._fragment === undefined) {
+      this._fragment = this.document.createDocumentFragment();
+    }
+
+    let childTreeItems = this._childTreeItems;
+
+    for (let i = 0, len = childTreeItems.length; i < len; i++) {
+      childTreeItems[i].attachTo(this._containerNode, this._fragment);
+    }
+
+    this._containerNode.appendChild(this._fragment);
+  },
+
+  
+
+
+  _appendChildrenSuccessive: function() {
+    let childTreeItems = this._childTreeItems;
+    let expandedChildTreeItems = childTreeItems.filter(e => e._expanded);
+    let nextNode = this._getSiblingAtDelta(1);
+
+    for (let i = 0, len = childTreeItems.length; i < len; i++) {
+      childTreeItems[i].attachTo(this._containerNode, undefined, nextNode);
+    }
+    for (let i = 0, len = expandedChildTreeItems.length; i < len; i++) {
+      expandedChildTreeItems[i]._showChildren();
+    }
+  },
+
+  
+
+
   _constructTargetNode: function() {
     if (this._constructed) {
       return;
     }
-    let document = this._containerNode.ownerDocument;
+    this._onArrowClick = this._onArrowClick.bind(this);
+    this._onClick = this._onClick.bind(this);
+    this._onDoubleClick = this._onDoubleClick.bind(this);
+    this._onKeyPress = this._onKeyPress.bind(this);
+    this._onFocus = this._onFocus.bind(this);
+    this._onBlur = this._onBlur.bind(this);
+
+    let document = this.document;
 
     let arrowNode = this._arrowNode = document.createElement("hbox");
     arrowNode.className = "arrow theme-twisty";
@@ -359,6 +432,7 @@ AbstractTreeItem.prototype = {
     targetNode.addEventListener("dblclick", this._onDoubleClick);
     targetNode.addEventListener("keypress", this._onKeyPress);
     targetNode.addEventListener("focus", this._onFocus);
+    targetNode.addEventListener("blur", this._onBlur);
 
     this._constructed = true;
   },
@@ -434,7 +508,6 @@ AbstractTreeItem.prototype = {
     if (!e.target.classList.contains("arrow")) {
       this._onArrowClick(e);
     }
-
     this.focus();
   },
 
@@ -477,5 +550,12 @@ AbstractTreeItem.prototype = {
 
   _onFocus: function(e) {
     this._rootItem.emit("focus", this);
+  },
+
+  
+
+
+  _onBlur: function(e) {
+    this._rootItem.emit("blur", this);
   }
 };

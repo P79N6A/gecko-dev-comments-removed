@@ -8,7 +8,6 @@
 
 
 const { Cc, Ci, Cu, Cr } = require("chrome");
-let WebConsoleUtils = require("devtools/toolkit/webconsole/utils").Utils;
 
 loader.lazyRequireGetter(this, "EventEmitter",
   "devtools/toolkit/event-emitter");
@@ -29,23 +28,25 @@ loader.lazyRequireGetter(this, "MarkerUtils",
 
 function MarkerDetails(parent, splitter) {
   EventEmitter.decorate(this);
-  this._onClick = this._onClick.bind(this);
+
   this._document = parent.ownerDocument;
   this._parent = parent;
   this._splitter = splitter;
-  this._splitter.addEventListener("mouseup", () => this.emit("resize"));
+
+  this._onClick = this._onClick.bind(this);
+  this._onSplitterMouseUp = this._onSplitterMouseUp.bind(this);
+
   this._parent.addEventListener("click", this._onClick);
+  this._splitter.addEventListener("mouseup", this._onSplitterMouseUp);
 }
 
 MarkerDetails.prototype = {
   
 
 
-  destroy: function() {
-    this.empty();
-    this._parent.removeEventListener("click", this._onClick);
-    this._parent = null;
-    this._splitter = null;
+
+  set width(value) {
+    this._parent.setAttribute("width", value);
   },
 
   
@@ -69,7 +70,7 @@ MarkerDetails.prototype = {
     let elements = [];
     elements.push(MarkerUtils.DOM.buildTitle(this._document, marker));
     elements.push(MarkerUtils.DOM.buildDuration(this._document, marker));
-    MarkerUtils.DOM.buildFields(this._document, marker).forEach(field => elements.push(field));
+    MarkerUtils.DOM.buildFields(this._document, marker).forEach(f => elements.push(f));
 
     
     
@@ -98,6 +99,13 @@ MarkerDetails.prototype = {
       this.emit("view-source", data.url, data.line);
     }
   },
+
+  
+
+
+  _onSplitterMouseUp: function() {
+    this.emit("resize");
+  }
 };
 
 

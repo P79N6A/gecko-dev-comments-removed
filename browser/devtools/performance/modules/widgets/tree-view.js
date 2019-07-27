@@ -213,7 +213,7 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
 
 
   _createTimeCell: function(doc, duration, isSelf = false) {
-    let cell = doc.createElement("label");
+    let cell = doc.createElement("description");
     cell.className = "plain call-tree-cell";
     cell.setAttribute("type", isSelf ? "self-duration" : "duration");
     cell.setAttribute("crop", "end");
@@ -221,7 +221,7 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     return cell;
   },
   _createExecutionCell: function(doc, percentage, isSelf = false) {
-    let cell = doc.createElement("label");
+    let cell = doc.createElement("description");
     cell.className = "plain call-tree-cell";
     cell.setAttribute("type", isSelf ? "self-percentage" : "percentage");
     cell.setAttribute("crop", "end");
@@ -229,7 +229,7 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     return cell;
   },
   _createAllocationsCell: function(doc, count, isSelf = false) {
-    let cell = doc.createElement("label");
+    let cell = doc.createElement("description");
     cell.className = "plain call-tree-cell";
     cell.setAttribute("type", isSelf ? "self-allocations" : "allocations");
     cell.setAttribute("crop", "end");
@@ -237,7 +237,7 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     return cell;
   },
   _createSamplesCell: function(doc, count) {
-    let cell = doc.createElement("label");
+    let cell = doc.createElement("description");
     cell.className = "plain call-tree-cell";
     cell.setAttribute("type", "samples");
     cell.setAttribute("crop", "end");
@@ -254,7 +254,7 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     
     
     if (frameName) {
-      let nameNode = doc.createElement("label");
+      let nameNode = doc.createElement("description");
       nameNode.className = "plain call-tree-name";
       nameNode.setAttribute("flex", "1");
       nameNode.setAttribute("crop", "end");
@@ -277,7 +277,7 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
   },
   _appendFunctionDetailsCells: function(doc, cell, frameInfo) {
     if (frameInfo.fileName) {
-      let urlNode = doc.createElement("label");
+      let urlNode = doc.createElement("description");
       urlNode.className = "plain call-tree-url";
       urlNode.setAttribute("flex", "1");
       urlNode.setAttribute("crop", "end");
@@ -288,21 +288,21 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     }
 
     if (frameInfo.line) {
-      let lineNode = doc.createElement("label");
+      let lineNode = doc.createElement("description");
       lineNode.className = "plain call-tree-line";
       lineNode.setAttribute("value", ":" + frameInfo.line);
       cell.appendChild(lineNode);
     }
 
     if (frameInfo.column) {
-      let columnNode = doc.createElement("label");
+      let columnNode = doc.createElement("description");
       columnNode.className = "plain call-tree-column";
       columnNode.setAttribute("value", ":" + frameInfo.column);
       cell.appendChild(columnNode);
     }
 
     if (frameInfo.host) {
-      let hostNode = doc.createElement("label");
+      let hostNode = doc.createElement("description");
       hostNode.className = "plain call-tree-host";
       hostNode.setAttribute("value", frameInfo.host);
       cell.appendChild(hostNode);
@@ -313,7 +313,7 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     cell.appendChild(spacerNode);
 
     if (frameInfo.categoryData.label) {
-      let categoryNode = doc.createElement("label");
+      let categoryNode = doc.createElement("description");
       categoryNode.className = "plain call-tree-category";
       categoryNode.style.color = frameInfo.categoryData.color;
       categoryNode.setAttribute("value", frameInfo.categoryData.label);
