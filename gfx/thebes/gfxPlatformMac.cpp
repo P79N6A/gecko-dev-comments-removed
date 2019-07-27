@@ -448,6 +448,9 @@ public:
     virtual void EnableVsync() MOZ_OVERRIDE
     {
       MOZ_ASSERT(NS_IsMainThread());
+      if (IsVsyncEnabled()) {
+        return;
+      }
 
       
       
@@ -473,6 +476,9 @@ public:
     virtual void DisableVsync() MOZ_OVERRIDE
     {
       MOZ_ASSERT(NS_IsMainThread());
+      if (!IsVsyncEnabled()) {
+        return;
+      }
 
       
       if (mDisplayLink) {
