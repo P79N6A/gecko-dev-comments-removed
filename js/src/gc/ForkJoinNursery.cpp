@@ -361,8 +361,8 @@ ForkJoinNursery::shouldMoveObject(void **thingp)
     
     
     
-    Cell *cell = static_cast<Cell *>(*thingp);
-    return isInsideFromspace(cell) && !getForwardedPointer(thingp);
+    Cell **cellp = reinterpret_cast<Cell **>(thingp);
+    return isInsideFromspace(*cellp) && !getForwardedPointer(cellp);
 }
 
  void
@@ -791,7 +791,7 @@ ForkJoinNursery::moveObjectToTospace(JSObject *src)
 
     movedSize_ += copyObjectToTospace(dst, src, dstKind);
 
-    RelocationOverlay *overlay = reinterpret_cast<RelocationOverlay *>(src);
+    RelocationOverlay *overlay = RelocationOverlay::fromCell(src);
     overlay->forwardTo(dst);
     insertIntoFixupList(overlay);
 

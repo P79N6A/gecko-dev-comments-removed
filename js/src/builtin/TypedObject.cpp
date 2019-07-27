@@ -1660,6 +1660,8 @@ TypedObject::obj_trace(JSTracer *trace, JSObject *object)
 
     
     
+    
+    
     TypeDescr &descr = typedObj.maybeForwardedTypeDescr();
 
     if (descr.opaque()) {

@@ -50,39 +50,6 @@ class ICStubCompiler;
 class BaselineCompiler;
 }
 
-namespace gc {
-
-
-
-
-
-class RelocationOverlay
-{
-    friend class MinorCollectionTracer;
-    friend class ForkJoinNursery;
-
-    
-    static const uintptr_t Relocated = uintptr_t(0xbad0bad1);
-
-    
-    uintptr_t magic_;
-
-    
-    Cell *newLocation_;
-
-    
-    RelocationOverlay *next_;
-
-  public:
-    static inline RelocationOverlay *fromCell(Cell *cell);
-    inline bool isForwarded() const;
-    inline Cell *forwardingAddress() const;
-    inline void forwardTo(Cell *cell);
-    inline RelocationOverlay *next() const;
-};
-
-} 
-
 class Nursery
 {
   public:
@@ -188,6 +155,10 @@ class Nursery
 
     MOZ_ALWAYS_INLINE uintptr_t heapEnd() const {
         return heapEnd_;
+    }
+
+    static bool IsMinorCollectionTracer(JSTracer *trc) {
+        return trc->callback == MinorGCCallback;
     }
 
 #ifdef JS_GC_ZEAL

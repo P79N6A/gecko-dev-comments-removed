@@ -2095,21 +2095,6 @@ AutoDisableCompactingGC::~AutoDisableCompactingGC()
     gc.enableCompactingGC();
 }
 
-static void
-ForwardCell(TenuredCell *dest, TenuredCell *src)
-{
-    
-    
-    MOZ_ASSERT(src->zone() == dest->zone());
-
-    
-    
-    MOZ_ASSERT(ObjectImpl::offsetOfShape() == 0);
-    uintptr_t *ptr = reinterpret_cast<uintptr_t *>(src);
-    ptr[0] = reinterpret_cast<uintptr_t>(dest); 
-    ptr[1] = ForwardedCellMagicValue; 
-}
-
 static bool
 ArenaContainsGlobal(ArenaHeader *arena)
 {
@@ -2200,6 +2185,7 @@ static bool
 RelocateCell(Zone *zone, TenuredCell *src, AllocKind thingKind, size_t thingSize)
 {
     
+    MOZ_ASSERT(zone == src->zone());
     void *dstAlloc = zone->allocator.arenas.allocateFromFreeList(thingKind, thingSize);
     if (!dstAlloc)
         dstAlloc = js::gc::ArenaLists::refillFreeListInGC(zone, thingKind);
@@ -2230,7 +2216,8 @@ RelocateCell(Zone *zone, TenuredCell *src, AllocKind thingKind, size_t thingSize
     dst->copyMarkBitsFrom(src);
 
     
-    ForwardCell(dst, src);
+    RelocationOverlay* overlay = RelocationOverlay::fromCell(src);
+    overlay->forwardTo(dst);
 
     return true;
 }

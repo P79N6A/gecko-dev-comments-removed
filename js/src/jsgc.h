@@ -1175,23 +1175,67 @@ namespace gc {
 void
 MergeCompartments(JSCompartment *source, JSCompartment *target);
 
-#ifdef JSGC_COMPACTING
+#if defined(JSGC_GENERATIONAL) || defined(JSGC_COMPACTING)
 
 
 
-#ifdef JS_PUNBOX64
-const uintptr_t ForwardedCellMagicValue = 0xf1f1f1f1f1f1f1f1;
-#else
-const uintptr_t ForwardedCellMagicValue = 0xf1f1f1f1;
-#endif
+
+
+class RelocationOverlay
+{
+    friend class MinorCollectionTracer;
+    friend class ForkJoinNursery;
+
+    
+    static const uintptr_t Relocated = uintptr_t(0xbad0bad1);
+
+    
+    
+
+    
+    Cell *newLocation_;
+
+    
+    uintptr_t magic_;
+
+    
+    RelocationOverlay *next_;
+
+  public:
+    static RelocationOverlay *fromCell(Cell *cell) {
+        return reinterpret_cast<RelocationOverlay *>(cell);
+    }
+
+    bool isForwarded() const {
+        return magic_ == Relocated;
+    }
+
+    Cell *forwardingAddress() const {
+        JS_ASSERT(isForwarded());
+        return newLocation_;
+    }
+
+    void forwardTo(Cell *cell) {
+        MOZ_ASSERT(!isForwarded());
+        MOZ_ASSERT(ObjectImpl::offsetOfShape() == offsetof(RelocationOverlay, newLocation_));
+        newLocation_ = cell;
+        magic_ = Relocated;
+        next_ = nullptr;
+    }
+
+    RelocationOverlay *next() const {
+        return next_;
+    }
+};
+
+
 
 template <typename T>
 inline bool
 IsForwarded(T *t)
 {
-    static_assert(mozilla::IsBaseOf<Cell, T>::value, "T must be a subclass of Cell");
-    uintptr_t *ptr = reinterpret_cast<uintptr_t *>(t);
-    return ptr[1] == ForwardedCellMagicValue;
+    RelocationOverlay *overlay = RelocationOverlay::fromCell(t);
+    return overlay->isForwarded();
 }
 
 inline bool
@@ -1214,9 +1258,9 @@ template <typename T>
 inline T *
 Forwarded(T *t)
 {
-    JS_ASSERT(IsForwarded(t));
-    uintptr_t *ptr = reinterpret_cast<uintptr_t *>(t);
-    return reinterpret_cast<T *>(ptr[0]);
+    RelocationOverlay *overlay = RelocationOverlay::fromCell(t);
+    MOZ_ASSERT(overlay->isForwarded());
+    return reinterpret_cast<T*>(overlay->forwardingAddress());
 }
 
 inline Value
