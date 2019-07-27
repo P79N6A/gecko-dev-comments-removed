@@ -873,7 +873,6 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
     }
     static_cast<RefLayer*>(layer.get())->SetReferentId(id);
     nsIntPoint offset = GetContentRectLayerOffset(aFrame, aBuilder);
-    layer->SetVisibleRegion(aVisibleRect - offset);
     
     
     
@@ -926,7 +925,6 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
                               mBackgroundColor,
                               aManager, aFrame);
   }
-  mContainer->SetVisibleRegion(aVisibleRect);
 
   return nsRefPtr<Layer>(mContainer).forget();
 }
