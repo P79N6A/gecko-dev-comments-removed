@@ -8,13 +8,14 @@ function SetForEach(callbackfn, thisArg = undefined) {
     
     var S = this;
     if (!IsObject(S))
-        ThrowError(JSMSG_BAD_TYPE, typeof S);
+        ThrowError(JSMSG_INCOMPATIBLE_PROTO, "Set", "forEach", typeof S);
 
     
     try {
         callFunction(std_Set_has, S);
     } catch (e) {
-        ThrowError(JSMSG_BAD_TYPE, typeof S);
+        
+        ThrowError(JSMSG_INCOMPATIBLE_PROTO, "Set", "forEach", typeof S);
     }
 
     
