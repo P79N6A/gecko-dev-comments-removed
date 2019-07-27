@@ -51,6 +51,9 @@ public:
   
   
   
+  
+  
+  
   virtual void CancelOnInitiatingThread();
 
   

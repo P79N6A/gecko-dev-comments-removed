@@ -14,7 +14,9 @@ void
 Action::CancelOnInitiatingThread()
 {
   NS_ASSERT_OWNINGTHREAD(Action);
-  MOZ_ASSERT(!mCanceled);
+  
+  
+  
   mCanceled = true;
 }
 
