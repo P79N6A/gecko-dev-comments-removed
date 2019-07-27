@@ -486,16 +486,6 @@ nsTableCellFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     if (StyleVisibility()->IsVisible() &&
         (NS_STYLE_TABLE_EMPTY_CELLS_HIDE != emptyCellStyle)) {
-    
-    
-      bool isRoot = aBuilder->IsAtRootOfPseudoStackingContext();
-      if (!isRoot) {
-        nsDisplayTableItem* currentItem = aBuilder->GetCurrentTableItem();
-        if (currentItem) {
-          currentItem->UpdateForFrameBackground(this);
-        }
-      }
-    
       
       const nsStyleBorder* borderStyle = StyleBorder();
       bool hasBoxShadow = !!borderStyle->mBoxShadow;
@@ -506,15 +496,25 @@ nsTableCellFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
       
       if (aBuilder->IsForEventDelivery() ||
-          (((!tableFrame->IsBorderCollapse() || isRoot) &&
-          (!StyleBackground()->IsTransparent() || StyleDisplay()->mAppearance)))) {
-        
-        
-        
-        nsDisplayTableItem* item =
-          new (aBuilder) nsDisplayTableCellBackground(aBuilder, this);
-        aLists.BorderBackground()->AppendNewToTop(item);
-        item->UpdateForFrameBackground(this);
+          !StyleBackground()->IsTransparent() || StyleDisplay()->mAppearance) {
+        if (!tableFrame->IsBorderCollapse() ||
+            aBuilder->IsAtRootOfPseudoStackingContext() ||
+            aBuilder->IsForEventDelivery()) {
+          
+          
+          
+          nsDisplayTableItem* item =
+            new (aBuilder) nsDisplayTableCellBackground(aBuilder, this);
+          aLists.BorderBackground()->AppendNewToTop(item);
+          item->UpdateForFrameBackground(this);
+        } else {
+          
+          
+          nsDisplayTableItem* currentItem = aBuilder->GetCurrentTableItem();
+          if (currentItem) {
+            currentItem->UpdateForFrameBackground(this);
+          }
+        }
       }
     
       
