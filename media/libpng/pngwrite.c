@@ -647,8 +647,8 @@ png_do_write_intrapixel(png_row_infop row_info, png_bytep row)
 
          for (i = 0, rp = row; i < row_width; i++, rp += bytes_per_pixel)
          {
-            *(rp)     = (png_byte)((*rp       - *(rp + 1)) & 0xff);
-            *(rp + 2) = (png_byte)((*(rp + 2) - *(rp + 1)) & 0xff);
+            *(rp)     = (png_byte)(*rp       - *(rp + 1));
+            *(rp + 2) = (png_byte)(*(rp + 2) - *(rp + 1));
          }
       }
 
@@ -674,10 +674,10 @@ png_do_write_intrapixel(png_row_infop row_info, png_bytep row)
             png_uint_32 s2   = (*(rp + 4) << 8) | *(rp + 5);
             png_uint_32 red  = (png_uint_32)((s0 - s1) & 0xffffL);
             png_uint_32 blue = (png_uint_32)((s2 - s1) & 0xffffL);
-            *(rp    ) = (png_byte)((red >> 8) & 0xff);
-            *(rp + 1) = (png_byte)(red & 0xff);
-            *(rp + 4) = (png_byte)((blue >> 8) & 0xff);
-            *(rp + 5) = (png_byte)(blue & 0xff);
+            *(rp    ) = (png_byte)(red >> 8);
+            *(rp + 1) = (png_byte)red;
+            *(rp + 4) = (png_byte)(blue >> 8);
+            *(rp + 5) = (png_byte)blue;
          }
       }
 #endif 
@@ -1381,6 +1381,7 @@ png_set_filter_heuristics_fixed(png_structrp png_ptr, int heuristic_method,
 #endif 
 #endif 
 
+#ifdef PNG_WRITE_CUSTOMIZE_COMPRESSION_SUPPORTED
 void PNGAPI
 png_set_compression_level(png_structrp png_ptr, int level)
 {
@@ -1463,6 +1464,7 @@ png_set_compression_method(png_structrp png_ptr, int method)
 
    png_ptr->zlib_method = method;
 }
+#endif 
 
 
 #ifdef PNG_WRITE_CUSTOMIZE_ZTXT_COMPRESSION_SUPPORTED
@@ -2296,7 +2298,9 @@ png_image_write_main(png_voidp argument)
 
 
 
+#ifdef PNG_WRITE_CUSTOMIZE_COMPRESSION_SUPPORTED
       png_set_compression_level(png_ptr, 3);
+#endif
    }
 
    

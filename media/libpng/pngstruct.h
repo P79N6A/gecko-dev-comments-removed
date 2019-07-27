@@ -17,7 +17,6 @@
 
 
 
-
 #ifndef PNGSTRUCT_H
 #define PNGSTRUCT_H
 

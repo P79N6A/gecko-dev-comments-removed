@@ -17,30 +17,8 @@
 
 
 
-
-
 #ifndef PNGCONF_H
 #define PNGCONF_H
-
-
-#ifdef PNG_SAFE_LIMITS_SUPPORTED
-#  ifdef PNG_USER_WIDTH_MAX
-#    undef PNG_USER_WIDTH_MAX
-#    define PNG_USER_WIDTH_MAX 1000000L
-#  endif
-#  ifdef PNG_USER_HEIGHT_MAX
-#    undef PNG_USER_HEIGHT_MAX
-#    define PNG_USER_HEIGHT_MAX 1000000L
-#  endif
-#  ifdef PNG_USER_CHUNK_MALLOC_MAX
-#    undef PNG_USER_CHUNK_MALLOC_MAX
-#    define PNG_USER_CHUNK_MALLOC_MAX 4000000L
-#  endif
-#  ifdef PNG_USER_CHUNK_CACHE_MAX
-#    undef PNG_USER_CHUNK_CACHE_MAX
-#    define PNG_USER_CHUNK_CACHE_MAX 128
-#  endif
-#endif
 
 #ifndef PNG_BUILDING_SYMBOL_TABLE 
 

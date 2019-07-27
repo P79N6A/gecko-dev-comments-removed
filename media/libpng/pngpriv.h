@@ -20,8 +20,6 @@
 
 
 
-
-
 #ifndef PNGPRIV_H
 #define PNGPRIV_H
 
@@ -307,43 +305,6 @@
 
 
 
-#ifdef PNG_SAFE_LIMITS_SUPPORTED
-   
-#  ifndef PNG_USER_WIDTH_MAX
-#     define PNG_USER_WIDTH_MAX 1000000
-#  endif
-#  ifndef PNG_USER_HEIGHT_MAX
-#     define PNG_USER_HEIGHT_MAX 1000000
-#  endif
-#  ifndef PNG_USER_CHUNK_CACHE_MAX
-#     define PNG_USER_CHUNK_CACHE_MAX 128
-#  endif
-#  ifndef PNG_USER_CHUNK_MALLOC_MAX
-#     define PNG_USER_CHUNK_MALLOC_MAX 8000000
-#  endif
-#else
-   
-#  ifndef PNG_USER_WIDTH_MAX
-#     define PNG_USER_WIDTH_MAX 0x7fffffff
-#  endif
-#  ifndef PNG_USER_HEIGHT_MAX
-#     define PNG_USER_HEIGHT_MAX 0x7fffffff
-#  endif
-#  ifndef PNG_USER_CHUNK_CACHE_MAX
-#     define PNG_USER_CHUNK_CACHE_MAX 0
-#  endif
-#  ifndef PNG_USER_CHUNK_MALLOC_MAX
-#     define PNG_USER_CHUNK_MALLOC_MAX 0
-#  endif
-#endif
-
-
-
-
-
-
-
-
 
 
 
@@ -586,9 +547,9 @@
 #define PNG_RGB_TO_GRAY_WARN  0x400000
 #define PNG_RGB_TO_GRAY       0x600000 /* two bits, RGB_TO_GRAY_ERR|WARN */
 #define PNG_ENCODE_ALPHA      0x800000 /* Added to libpng-1.5.4 */
-#define PNG_ADD_ALPHA         0x1000000 /* Added to libpng-1.2.7 */
-#define PNG_EXPAND_tRNS       0x2000000 /* Added to libpng-1.2.9 */
-#define PNG_SCALE_16_TO_8     0x4000000 /* Added to libpng-1.5.4 */
+#define PNG_ADD_ALPHA        0x1000000 /* Added to libpng-1.2.7 */
+#define PNG_EXPAND_tRNS      0x2000000 /* Added to libpng-1.2.9 */
+#define PNG_SCALE_16_TO_8    0x4000000 /* Added to libpng-1.5.4 */
                        
                        
                        
@@ -794,15 +755,17 @@
 
 
 #define PNG_CHUNK_FROM_STRING(s)\
-   PNG_U32(0xff&(s)[0], 0xff&(s)[1], 0xff&(s)[2], 0xff&(s)[3])
+   PNG_U32(0xff & (s)[0], 0xff & (s)[1], 0xff & (s)[2], 0xff & (s)[3])
 
 
 
 
 
 #define PNG_STRING_FROM_CHUNK(s,c)\
-   (void)(((char*)(s))[0]=(char)((c)>>24), ((char*)(s))[1]=(char)((c)>>16),\
-   ((char*)(s))[2]=(char)((c)>>8), ((char*)(s))[3]=(char)((c)))
+   (void)(((char*)(s))[0]=(char)(((c)>>24) & 0xff), \
+   ((char*)(s))[1]=(char)(((c)>>16) & 0xff),\
+   ((char*)(s))[2]=(char)(((c)>>8) & 0xff), \
+   ((char*)(s))[3]=(char)((c & 0xff)))
 
 
 #define PNG_CSTRING_FROM_CHUNK(s,c)\
@@ -864,8 +827,9 @@ PNG_INTERNAL_DATA(const png_uint_16, png_sRGB_table, [256]);
 PNG_INTERNAL_DATA(const png_uint_16, png_sRGB_base, [512]);
 PNG_INTERNAL_DATA(const png_byte, png_sRGB_delta, [512]);
 
-#define PNG_sRGB_FROM_LINEAR(linear) ((png_byte)((png_sRGB_base[(linear)>>15] +\
-   ((((linear)&0x7fff)*png_sRGB_delta[(linear)>>15])>>12)) >> 8))
+#define PNG_sRGB_FROM_LINEAR(linear) \
+  ((png_byte)(0xff & ((png_sRGB_base[(linear)>>15] \
+   + ((((linear) & 0x7fff)*png_sRGB_delta[(linear)>>15])>>12)) >> 8)))
    
 
 

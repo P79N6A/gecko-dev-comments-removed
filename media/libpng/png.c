@@ -14,7 +14,7 @@
 #include "pngpriv.h"
 
 
-typedef png_libpng_version_1_6_16 Your_png_h_is_not_version_1_6_16;
+typedef png_libpng_version_1_6_17 Your_png_h_is_not_version_1_6_17;
 
 
 
@@ -34,7 +34,7 @@ png_set_sig_bytes(png_structrp png_ptr, int num_bytes)
    if (num_bytes > 8)
       png_error(png_ptr, "Too many bytes for PNG signature");
 
-   png_ptr->sig_bytes = (png_byte)(num_bytes < 0 ? 0 : num_bytes);
+   png_ptr->sig_bytes = (png_byte)((num_bytes < 0 ? 0 : num_bytes) & 0xff);
 }
 
 
@@ -140,8 +140,10 @@ png_calculate_crc(png_structrp png_ptr, png_const_bytep ptr, png_size_t length)
       do
       {
          uInt safe_length = (uInt)length;
+#ifndef __COVERITY__
          if (safe_length == 0)
             safe_length = (uInt)-1; 
+#endif
 
          crc = crc32(crc, ptr, safe_length);
 
@@ -476,9 +478,10 @@ png_free_data(png_const_structrp png_ptr, png_inforp info_ptr, png_uint_32 mask,
    
    if (((mask & PNG_FREE_TRNS) & info_ptr->free_me) != 0)
    {
+      info_ptr->valid &= ~PNG_INFO_tRNS;
       png_free(png_ptr, info_ptr->trans_alpha);
       info_ptr->trans_alpha = NULL;
-      info_ptr->valid &= ~PNG_INFO_tRNS;
+      info_ptr->num_trans = 0;
    }
 #endif
 
@@ -544,20 +547,17 @@ png_free_data(png_const_structrp png_ptr, png_inforp info_ptr, png_uint_32 mask,
 
       else
       {
-         if (info_ptr->splt_palettes_num != 0)
+         int i;
+
+         for (i = 0; i < info_ptr->splt_palettes_num; i++)
          {
-            int i;
-
-            for (i = 0; i < info_ptr->splt_palettes_num; i++)
-            {
-               png_free(png_ptr, info_ptr->splt_palettes[i].name);
-               png_free(png_ptr, info_ptr->splt_palettes[i].entries);
-            }
-
-            png_free(png_ptr, info_ptr->splt_palettes);
-            info_ptr->splt_palettes = NULL;
-            info_ptr->splt_palettes_num = 0;
+            png_free(png_ptr, info_ptr->splt_palettes[i].name);
+            png_free(png_ptr, info_ptr->splt_palettes[i].entries);
          }
+
+         png_free(png_ptr, info_ptr->splt_palettes);
+         info_ptr->splt_palettes = NULL;
+         info_ptr->splt_palettes_num = 0;
          info_ptr->valid &= ~PNG_INFO_sPLT;
       }
    }
@@ -577,15 +577,12 @@ png_free_data(png_const_structrp png_ptr, png_inforp info_ptr, png_uint_32 mask,
       {
          int i;
 
-         if (info_ptr->unknown_chunks_num != 0)
-         {
-            for (i = 0; i < info_ptr->unknown_chunks_num; i++)
-               png_free(png_ptr, info_ptr->unknown_chunks[i].data);
+         for (i = 0; i < info_ptr->unknown_chunks_num; i++)
+            png_free(png_ptr, info_ptr->unknown_chunks[i].data);
 
-            png_free(png_ptr, info_ptr->unknown_chunks);
-            info_ptr->unknown_chunks = NULL;
-            info_ptr->unknown_chunks_num = 0;
-         }
+         png_free(png_ptr, info_ptr->unknown_chunks);
+         info_ptr->unknown_chunks = NULL;
+         info_ptr->unknown_chunks_num = 0;
       }
    }
 #endif
@@ -666,7 +663,7 @@ png_init_io(png_structrp png_ptr, png_FILE_p fp)
 }
 #  endif
 
-#ifdef PNG_SAVE_INT_32_SUPPORTED
+#  ifdef PNG_SAVE_INT_32_SUPPORTED
 
 
 
@@ -681,7 +678,7 @@ png_save_int_32(png_bytep buf, png_int_32 i)
    buf[2] = (png_byte)((i >> 8) & 0xff);
    buf[3] = (png_byte)(i & 0xff);
 }
-#endif
+#  endif
 
 #  ifdef PNG_TIME_RFC1123_SUPPORTED
 
@@ -734,7 +731,7 @@ png_convert_to_rfc1123_buffer(char out[29], png_const_timep ptime)
    return 1;
 }
 
-#     if PNG_LIBPNG_VER < 10700
+#    if PNG_LIBPNG_VER < 10700
 
 
 
@@ -755,7 +752,7 @@ png_convert_to_rfc1123(png_structrp png_ptr, png_const_timep ptime)
 
    return NULL;
 }
-#     endif
+#    endif 
 #  endif 
 
 #endif 
@@ -769,14 +766,14 @@ png_get_copyright(png_const_structrp png_ptr)
 #else
 #  ifdef __STDC__
    return PNG_STRING_NEWLINE \
-     "libpng version 1.6.16 - December 22, 2014" PNG_STRING_NEWLINE \
-     "Copyright (c) 1998-2014 Glenn Randers-Pehrson" PNG_STRING_NEWLINE \
+     "libpng version 1.6.17 - March 25, 2015" PNG_STRING_NEWLINE \
+     "Copyright (c) 1998-2015 Glenn Randers-Pehrson" PNG_STRING_NEWLINE \
      "Copyright (c) 1996-1997 Andreas Dilger" PNG_STRING_NEWLINE \
      "Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc." \
      PNG_STRING_NEWLINE;
 #  else
-      return "libpng version 1.6.16 - December 22, 2014\
-      Copyright (c) 1998-2014 Glenn Randers-Pehrson\
+      return "libpng version 1.6.17 - March 25, 2015\
+      Copyright (c) 1998-2015 Glenn Randers-Pehrson\
       Copyright (c) 1996-1997 Andreas Dilger\
       Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc.";
 #  endif
@@ -872,9 +869,9 @@ png_build_grayscale_palette(int bit_depth, png_colorp palette)
 
    for (i = 0, v = 0; i < num_palette; i++, v += color_inc)
    {
-      palette[i].red = (png_byte)v;
-      palette[i].green = (png_byte)v;
-      palette[i].blue = (png_byte)v;
+      palette[i].red = (png_byte)(v & 0xff);
+      palette[i].green = (png_byte)(v & 0xff);
+      palette[i].blue = (png_byte)(v & 0xff);
    }
 }
 #endif
@@ -946,8 +943,6 @@ png_access_version_number(void)
    
    return((png_uint_32)PNG_LIBPNG_VER);
 }
-
-
 
 #if defined(PNG_READ_SUPPORTED) || defined(PNG_WRITE_SUPPORTED)
 
@@ -1181,7 +1176,7 @@ png_colorspace_sync(png_const_structrp png_ptr, png_inforp info_ptr)
    png_colorspace_sync_info(png_ptr, info_ptr);
 }
 #endif
-#endif
+#endif 
 
 #ifdef PNG_COLORSPACE_SUPPORTED
 
@@ -2166,7 +2161,8 @@ png_icc_check_tag_table(png_const_structrp png_ptr, png_colorspacerp colorspace,
    return 1; 
 }
 
-#if defined(PNG_sRGB_SUPPORTED) && PNG_sRGB_PROFILE_CHECKS >= 0
+#ifdef PNG_sRGB_SUPPORTED
+#if PNG_sRGB_PROFILE_CHECKS >= 0
 
 static const struct
 {
@@ -2324,8 +2320,8 @@ png_compare_ICC_profile_with_sRGB(png_const_structrp png_ptr,
 
                   else if (png_sRGB_checks[i].have_md5 == 0)
                   {
-                     png_chunk_report(png_ptr, "out-of-date sRGB profile with"
-                        " no signature",
+                     png_chunk_report(png_ptr,
+                        "out-of-date sRGB profile with no signature",
                         PNG_CHUNK_WARNING);
                   }
 
@@ -2338,8 +2334,8 @@ png_compare_ICC_profile_with_sRGB(png_const_structrp png_ptr,
 
 
 
-         png_chunk_report(png_ptr, "Not recognizing known sRGB profile that"
-             " has been edited", 
+         png_chunk_report(png_ptr,
+             "Not recognizing known sRGB profile that has been edited", 
              PNG_CHUNK_WARNING);
          break;
 # endif
@@ -2349,9 +2345,8 @@ png_compare_ICC_profile_with_sRGB(png_const_structrp png_ptr,
 
    return 0; 
 }
-#endif
+#endif 
 
-#ifdef PNG_sRGB_SUPPORTED
 void 
 png_icc_set_sRGB(png_const_structrp png_ptr,
    png_colorspacerp colorspace, png_const_bytep profile, uLong adler)
@@ -2457,7 +2452,7 @@ png_colorspace_set_rgb_coefficients(png_structrp png_ptr)
          png_error(png_ptr, "internal error handling cHRM->XYZ");
    }
 }
-#endif
+#endif 
 
 #endif 
 
@@ -2486,18 +2481,19 @@ png_check_IHDR(png_const_structrp png_ptr,
       png_warning(png_ptr, "Image width is zero in IHDR");
       error = 1;
    }
-   else if (width > PNG_UINT_31_MAX)
+
+   if (width > PNG_UINT_31_MAX)
    {
       png_warning(png_ptr, "Invalid image width in IHDR");
       error = 1;
    }
 
-   else if (png_gt(width,
-                   (PNG_SIZE_MAX >> 3) 
-                   - 48                
-                   - 1                 
-                   - 7*8               
-                   - 8))               
+   if (png_gt(((width + 7) & (~7)),
+       ((PNG_SIZE_MAX
+           - 48        
+           - 1)        
+           / 8)        
+           - 1))       
    {
       
 
@@ -2513,17 +2509,15 @@ png_check_IHDR(png_const_structrp png_ptr,
       png_warning(png_ptr, "Image width is too large for this architecture");
       error = 1;
    }
-   else
+
+#ifdef PNG_SET_USER_LIMITS_SUPPORTED
+   if (width > png_ptr->user_width_max)
+#else
+   if (width > PNG_USER_WIDTH_MAX)
+#endif
    {
-#     ifdef PNG_SET_USER_LIMITS_SUPPORTED
-      if (width > png_ptr->user_width_max)
-#     else
-      if (width > PNG_USER_WIDTH_MAX)
-#     endif
-      {
-         png_warning(png_ptr, "Image width exceeds user limit in IHDR");
-         error = 1;
-      }
+      png_warning(png_ptr, "Image width exceeds user limit in IHDR");
+      error = 1;
    }
 
    if (height == 0)
@@ -2531,22 +2525,21 @@ png_check_IHDR(png_const_structrp png_ptr,
       png_warning(png_ptr, "Image height is zero in IHDR");
       error = 1;
    }
-   else if (height > PNG_UINT_31_MAX)
+
+   if (height > PNG_UINT_31_MAX)
    {
       png_warning(png_ptr, "Invalid image height in IHDR");
       error = 1;
    }
-   else
+
+#ifdef PNG_SET_USER_LIMITS_SUPPORTED
+   if (height > png_ptr->user_height_max)
+#else
+   if (height > PNG_USER_HEIGHT_MAX)
+#endif
    {
-#     ifdef PNG_SET_USER_LIMITS_SUPPORTED
-      if (height > png_ptr->user_height_max)
-#     else
-      if (height > PNG_USER_HEIGHT_MAX)
-#     endif
-      {
-         png_warning(png_ptr, "Image height exceeds user limit in IHDR");
-         error = 1;
-      }
+      png_warning(png_ptr, "Image height exceeds user limit in IHDR");
+      error = 1;
    }
 
    
@@ -2585,7 +2578,7 @@ png_check_IHDR(png_const_structrp png_ptr,
       error = 1;
    }
 
-#  ifdef PNG_MNG_FEATURES_SUPPORTED
+#ifdef PNG_MNG_FEATURES_SUPPORTED
    
 
 
@@ -2618,13 +2611,13 @@ png_check_IHDR(png_const_structrp png_ptr,
       }
    }
 
-#  else
+#else
    if (filter_type != PNG_FILTER_TYPE_BASE)
    {
       png_warning(png_ptr, "Unknown filter method in IHDR");
       error = 1;
    }
-#  endif
+#endif
 
    if (error == 1)
       png_error(png_ptr, "Invalid IHDR data");
@@ -3224,7 +3217,7 @@ png_fixed(png_const_structrp png_ptr, double fp, png_const_charp text)
       png_fixed_error(png_ptr, text);
 
 #  ifndef PNG_ERROR_TEXT_SUPPORTED
-      PNG_UNUSED(text)
+   PNG_UNUSED(text)
 #  endif
 
    return (png_fixed_point)r;
@@ -3405,25 +3398,25 @@ png_gamma_significant(png_fixed_point gamma_val)
 #endif
 
 #ifdef PNG_READ_GAMMA_SUPPORTED
-#if defined(PNG_16BIT_SUPPORTED) || !defined(PNG_FLOATING_ARITHMETIC_SUPPORTED)
+#ifdef PNG_16BIT_SUPPORTED
 
 static png_fixed_point
 png_product2(png_fixed_point a, png_fixed_point b)
 {
    
-#    ifdef PNG_FLOATING_ARITHMETIC_SUPPORTED
+#ifdef PNG_FLOATING_ARITHMETIC_SUPPORTED
    double r = a * 1E-5;
    r *= b;
    r = floor(r+.5);
 
    if (r <= 2147483647. && r >= -2147483648.)
       return (png_fixed_point)r;
-#    else
+#else
    png_fixed_point res;
 
    if (png_muldiv(&res, a, b, 100000) != 0)
       return res;
-#    endif
+#endif
 
    return 0; 
 }
@@ -3435,12 +3428,15 @@ png_reciprocal2(png_fixed_point a, png_fixed_point b)
 {
    
 #ifdef PNG_FLOATING_ARITHMETIC_SUPPORTED
-   double r = 1E15/a;
-   r /= b;
-   r = floor(r+.5);
+   if (a != 0 && b != 0)
+   {
+      double r = 1E15/a;
+      r /= b;
+      r = floor(r+.5);
 
-   if (r <= 2147483647. && r >= -2147483648.)
-      return (png_fixed_point)r;
+      if (r <= 2147483647. && r >= -2147483648.)
+         return (png_fixed_point)r;
+   }
 #else
    
 
@@ -3731,7 +3727,7 @@ png_exp8bit(png_fixed_point lg2)
 
 
    x -= x >> 8;
-   return (png_byte)((x + 0x7fffffU) >> 24);
+   return (png_byte)(((x + 0x7fffffU) >> 24) & 0xff);
 }
 
 #ifdef PNG_16BIT_SUPPORTED
@@ -3792,7 +3788,7 @@ png_gamma_8bit_correct(unsigned int value, png_fixed_point gamma_val)
 #     endif
    }
 
-   return (png_byte)value;
+   return (png_byte)(value & 0xff);
 }
 
 #ifdef PNG_16BIT_SUPPORTED
@@ -4014,7 +4010,7 @@ png_build_8bit_table(png_structrp png_ptr, png_bytepp ptable,
 
    else
       for (i=0; i<256; ++i)
-         table[i] = (png_byte)i;
+         table[i] = (png_byte)(i & 0xff);
 }
 
 
@@ -4154,7 +4150,8 @@ png_build_gamma_table(png_structrp png_ptr, int bit_depth)
 
 
      if (sig_bit > 0 && sig_bit < 16U)
-        shift = (png_byte)(16U - sig_bit); 
+        
+        shift = (png_byte)((16U - sig_bit) & 0xff);
 
      else
         shift = 0; 
@@ -4223,7 +4220,7 @@ png_set_option(png_structrp png_ptr, int option, int onoff)
       int setting = (2 + (onoff != 0)) << option;
       int current = png_ptr->options;
 
-      png_ptr->options = (png_byte)((current & ~mask) | setting);
+      png_ptr->options = (png_byte)(((current & ~mask) | setting) & 0xff);
 
       return (current & mask) >> option;
    }

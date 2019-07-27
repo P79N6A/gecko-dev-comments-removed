@@ -799,14 +799,20 @@ png_get_IHDR(png_const_structrp png_ptr, png_const_inforp info_ptr,
 {
    png_debug1(1, "in %s retrieval function", "IHDR");
 
-   if (png_ptr == NULL || info_ptr == NULL || width == NULL ||
-       height == NULL || bit_depth == NULL || color_type == NULL)
+   if (png_ptr == NULL || info_ptr == NULL)
       return (0);
 
-   *width = info_ptr->width;
-   *height = info_ptr->height;
-   *bit_depth = info_ptr->bit_depth;
-   *color_type = info_ptr->color_type;
+   if (width != NULL)
+       *width = info_ptr->width;
+
+   if (height != NULL)
+       *height = info_ptr->height;
+
+   if (bit_depth != NULL)
+       *bit_depth = info_ptr->bit_depth;
+
+   if (color_type != NULL)
+       *color_type = info_ptr->color_type;
 
    if (compression_type != NULL)
       *compression_type = info_ptr->compression_type;
@@ -1135,21 +1141,21 @@ png_get_compression_buffer_size(png_const_structrp png_ptr)
    if (png_ptr == NULL)
       return 0;
 
-#  ifdef PNG_WRITE_SUPPORTED
+#ifdef PNG_WRITE_SUPPORTED
       if ((png_ptr->mode & PNG_IS_READ_STRUCT) != 0)
-#  endif
+#endif
    {
-#     ifdef PNG_SEQUENTIAL_READ_SUPPORTED
+#ifdef PNG_SEQUENTIAL_READ_SUPPORTED
          return png_ptr->IDAT_read_size;
-#     else
+#else
          return PNG_IDAT_READ_SIZE;
-#     endif
+#endif
    }
 
-#  ifdef PNG_WRITE_SUPPORTED
+#ifdef PNG_WRITE_SUPPORTED
       else
          return png_ptr->zbuffer_size;
-#  endif
+#endif
 }
 
 #ifdef PNG_SET_USER_LIMITS_SUPPORTED

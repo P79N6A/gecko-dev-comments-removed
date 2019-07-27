@@ -408,6 +408,10 @@
 
 
 
+
+
+
+
 #ifndef PNG_H
 #define PNG_H
 
@@ -423,9 +427,9 @@
 
 
 
-#define PNG_LIBPNG_VER_STRING "1.6.16"
+#define PNG_LIBPNG_VER_STRING "1.6.17"
 #define PNG_HEADER_VERSION_STRING \
-     " libpng version 1.6.16 - December 22, 2014\n"
+     " libpng version 1.6.17 - March 25, 2015\n"
 
 #define PNG_LIBPNG_VER_SONUM   16
 #define PNG_LIBPNG_VER_DLLNUM  16
@@ -433,7 +437,7 @@
 
 #define PNG_LIBPNG_VER_MAJOR   1
 #define PNG_LIBPNG_VER_MINOR   6
-#define PNG_LIBPNG_VER_RELEASE 16
+#define PNG_LIBPNG_VER_RELEASE 17
 
 
 
@@ -464,7 +468,7 @@
 
 
 
-#define PNG_LIBPNG_VER 10616 /* 1.6.16 */
+#define PNG_LIBPNG_VER 10617 /* 1.6.17 */
 
 
 
@@ -584,7 +588,7 @@ extern "C" {
 
 
 
-typedef char* png_libpng_version_1_6_16;
+typedef char* png_libpng_version_1_6_17;
 
 
 
@@ -1601,6 +1605,7 @@ PNG_EXPORT(66, void, png_set_crc_action, (png_structrp png_ptr, int crit_action,
 #define PNG_CRC_QUIET_USE     4  /* quiet/use data      quiet/use data    */
 #define PNG_CRC_NO_CHANGE     5  /* use current value   use current value */
 
+#ifdef PNG_WRITE_SUPPORTED
 
 
 
@@ -1614,6 +1619,7 @@ PNG_EXPORT(66, void, png_set_crc_action, (png_structrp png_ptr, int crit_action,
 
 PNG_EXPORT(67, void, png_set_filter, (png_structrp png_ptr, int method,
     int filters));
+#endif 
 
 
 
@@ -1639,6 +1645,7 @@ PNG_EXPORT(67, void, png_set_filter, (png_structrp png_ptr, int method,
 #define PNG_FILTER_VALUE_PAETH 4
 #define PNG_FILTER_VALUE_LAST  5
 
+#ifdef PNG_WRITE_SUPPORTED
 #ifdef PNG_WRITE_WEIGHTED_FILTER_SUPPORTED 
 
 
@@ -1685,7 +1692,6 @@ PNG_FIXED_EXPORT(209, void, png_set_filter_heuristics_fixed,
 #define PNG_FILTER_HEURISTIC_WEIGHTED   2  /* Experimental feature */
 #define PNG_FILTER_HEURISTIC_LAST       3  /* Not a valid value */
 
-#ifdef PNG_WRITE_SUPPORTED
 
 
 
@@ -1693,6 +1699,7 @@ PNG_FIXED_EXPORT(209, void, png_set_filter_heuristics_fixed,
 
 
 
+#ifdef PNG_WRITE_CUSTOMIZE_COMPRESSION_SUPPORTED
 PNG_EXPORT(69, void, png_set_compression_level, (png_structrp png_ptr,
     int level));
 
@@ -1710,7 +1717,7 @@ PNG_EXPORT(72, void, png_set_compression_window_bits, (png_structrp png_ptr,
 
 PNG_EXPORT(73, void, png_set_compression_method, (png_structrp png_ptr,
     int method));
-#endif
+#endif 
 
 #ifdef PNG_WRITE_CUSTOMIZE_ZTXT_COMPRESSION_SUPPORTED
 
@@ -1731,6 +1738,7 @@ PNG_EXPORT(225, void, png_set_text_compression_window_bits,
 
 PNG_EXPORT(226, void, png_set_text_compression_method, (png_structrp png_ptr,
     int method));
+#endif 
 #endif 
 
 
@@ -2687,26 +2695,28 @@ PNG_EXPORT(216, png_uint_32, png_get_io_chunk_type,
            * (png_uint_16)(alpha)                         \
            + (png_uint_16)(bg)*(png_uint_16)(255          \
            - (png_uint_16)(alpha)) + 128);                \
-       (composite) = (png_byte)((temp + (temp >> 8)) >> 8); }
+       (composite) = (png_byte)(((temp + (temp >> 8)) >> 8) & 0xff); }
 
 #  define png_composite_16(composite, fg, alpha, bg)       \
      { png_uint_32 temp = (png_uint_32)((png_uint_32)(fg)  \
            * (png_uint_32)(alpha)                          \
            + (png_uint_32)(bg)*(65535                      \
            - (png_uint_32)(alpha)) + 32768);               \
-       (composite) = (png_uint_16)((temp + (temp >> 16)) >> 16); }
+       (composite) = (png_uint_16)(0xffff & ((temp + (temp >> 16)) >> 16)); }
 
 #else  
 
-#  define png_composite(composite, fg, alpha, bg)                          \
-     (composite) = (png_byte)(((png_uint_16)(fg) * (png_uint_16)(alpha) +  \
-     (png_uint_16)(bg) * (png_uint_16)(255 - (png_uint_16)(alpha)) +       \
-     127) / 255)
+#  define png_composite(composite, fg, alpha, bg)                        \
+     (composite) =                                                       \
+         (png_byte)(0xff & (((png_uint_16)(fg) * (png_uint_16)(alpha) +  \
+         (png_uint_16)(bg) * (png_uint_16)(255 - (png_uint_16)(alpha)) + \
+         127) / 255))
 
 #  define png_composite_16(composite, fg, alpha, bg)                         \
-     (composite) = (png_uint_16)(((png_uint_32)(fg) * (png_uint_32)(alpha) + \
-     (png_uint_32)(bg)*(png_uint_32)(65535 - (png_uint_32)(alpha)) +         \
-     32767) / 65535)
+     (composite) =                                                           \
+         (png_uint_16)(0xffff & (((png_uint_32)(fg) * (png_uint_32)(alpha) + \
+         (png_uint_32)(bg)*(png_uint_32)(65535 - (png_uint_32)(alpha)) +     \
+         32767) / 65535))
 #endif 
 
 #ifdef PNG_READ_INT_FUNCTIONS_SUPPORTED
