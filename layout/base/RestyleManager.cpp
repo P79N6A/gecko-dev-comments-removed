@@ -1646,9 +1646,34 @@ RestyleManager::ProcessPendingRestyles()
   
   
   
-  if (mHavePendingNonAnimationRestyles || mDoRebuildAllStyleData) {
+  bool haveNonAnimation =
+    mHavePendingNonAnimationRestyles || mDoRebuildAllStyleData;
+  if (haveNonAnimation) {
     IncrementAnimationGeneration();
     UpdateOnlyAnimationStyles();
+  } else {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    mPresContext->TransitionManager()->SetInAnimationOnlyStyleUpdate(true);
   }
 
   
@@ -1681,6 +1706,10 @@ RestyleManager::ProcessPendingRestyles()
   MOZ_ASSERT(mIsProcessingAnimationStyleChange, "nesting forbidden");
   mIsProcessingAnimationStyleChange = false;
 
+  if (!haveNonAnimation) {
+    mPresContext->TransitionManager()->SetInAnimationOnlyStyleUpdate(false);
+  }
+
 #ifdef DEBUG
   mIsProcessingRestyles = false;
 #endif
@@ -1688,6 +1717,8 @@ RestyleManager::ProcessPendingRestyles()
                    "We should not have posted new non-animation restyles while "
                    "processing animation restyles");
 
+  NS_ASSERTION(haveNonAnimation || !mHavePendingNonAnimationRestyles,
+               "should not have added restyles");
   mHavePendingNonAnimationRestyles = false;
 
   if (mDoRebuildAllStyleData) {
