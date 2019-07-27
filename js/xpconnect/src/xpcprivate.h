@@ -2234,7 +2234,7 @@ private:
 
 private:
 
-    bool Init(JS::HandleObject parent, const XPCNativeScriptableCreateInfo* sci);
+    bool Init(const XPCNativeScriptableCreateInfo* sci);
     bool FinishInit();
 
     bool ExtendSet(XPCNativeInterface* aInterface);
@@ -3757,27 +3757,6 @@ JSObject* NewOutObject(JSContext* cx);
 bool IsOutObject(JSContext* cx, JSObject* obj);
 
 nsresult HasInstance(JSContext *cx, JS::HandleObject objArg, const nsID *iid, bool *bp);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-bool
-DOM_DefineQuickStubs(JSContext *cx, JSObject *proto, uint32_t flags,
-                     uint32_t interfaceCount, const nsIID **interfaceArray);
 
 nsIPrincipal *GetObjectPrincipal(JSObject *obj);
 
