@@ -321,9 +321,6 @@ public:
   
   mozilla::RefPtr<DtlsIdentity> const GetIdentity() const;
 
-  
-  nsresult CreateFakeMediaStream(uint32_t hint, mozilla::DOMMediaStream** retval);
-
   nsPIDOMWindow* GetWindow() const {
     PC_AUTO_ENTER_API_CALL_NO_CHECK();
     return mWindow;
