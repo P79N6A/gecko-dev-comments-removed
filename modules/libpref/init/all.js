@@ -491,6 +491,10 @@ pref("media.autoplay.enabled", true);
 pref("media.video-queue.default-size", 10);
 
 
+
+pref("media.video-queue.send-to-compositor-size", 9999);
+
+
 pref("media.video_stats.enabled", true);
 
 
