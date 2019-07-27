@@ -316,6 +316,14 @@ class FileCopier(FileRegistry):
         
 
         
+        for p, f in self:
+            destfile = os.path.normpath(os.path.join(destination, p))
+            if f.copy(destfile, skip_if_older):
+                result.updated_files.add(destfile)
+            else:
+                result.existing_files.add(destfile)
+
+        
         if remove_unaccounted:
             for f in existing_files - dest_files:
                 
@@ -326,14 +334,6 @@ class FileCopier(FileRegistry):
 
                 os.remove(f)
                 result.removed_files.add(f)
-
-        
-        for p, f in self:
-            destfile = os.path.normpath(os.path.join(destination, p))
-            if f.copy(destfile, skip_if_older):
-                result.updated_files.add(destfile)
-            else:
-                result.existing_files.add(destfile)
 
         if not remove_empty_directories:
             return result
