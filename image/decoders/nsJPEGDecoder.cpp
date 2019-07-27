@@ -85,7 +85,6 @@ METHODDEF(void) my_error_exit (j_common_ptr cinfo);
 
 #define MAX_JPEG_MARKER_LENGTH  (((uint32_t)1 << 16) - 1)
 
-
 nsJPEGDecoder::nsJPEGDecoder(RasterImage* aImage,
                              Decoder::DecodeStyle aDecodeStyle)
  : Decoder(aImage)
@@ -394,7 +393,6 @@ nsJPEGDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
           PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
                  ("} (unknown colorpsace (3))"));
           return;
-          break;
       }
     }
 
@@ -420,7 +418,6 @@ nsJPEGDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
         return;
       }
     }
-
 
     PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
            ("        JPEGDecoderAccounting: nsJPEGDecoder::"
@@ -450,7 +447,6 @@ nsJPEGDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
              ("} (I/O suspension after jpeg_start_decompress())"));
       return; 
     }
-
 
     
     mState = mInfo.buffered_image ?
@@ -736,7 +732,6 @@ nsJPEGDecoder::OutputScanlines(bool* suspend)
 }
 
 
-
 METHODDEF(void)
 my_error_exit (j_common_ptr cinfo)
 {
@@ -838,7 +833,6 @@ skip_input_data (j_decompress_ptr jd, long num_bytes)
     src->next_input_byte += num_bytes;
   }
 }
-
 
 
 
@@ -958,7 +952,6 @@ term_source (j_decompress_ptr jd)
 
 } 
 } 
-
 
 
 
