@@ -659,6 +659,18 @@ function getRuleViewSelector(view, selectorText) {
 
 
 
+function getRuleViewSelectorHighlighterIcon(view, selectorText) {
+  let rule = getRuleViewRule(view, selectorText);
+  return rule.querySelector(".ruleview-selectorhighlighter");
+}
+
+
+
+
+
+
+
+
 
 
 
