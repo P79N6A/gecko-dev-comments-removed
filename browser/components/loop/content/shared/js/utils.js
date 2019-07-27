@@ -33,26 +33,6 @@ loop.shared.utils = (function(mozL10n) {
 
 
 
-  function getTargetPlatform() {
-    var platform="unknown_platform";
-
-    if (navigator.platform.indexOf("Win") !== -1) {
-      platform = "windows";
-    }
-    if (navigator.platform.indexOf("Mac") !== -1) {
-      platform = "mac";
-    }
-    if (navigator.platform.indexOf("Linux") !== -1) {
-      platform = "linux";
-    }
-
-    return platform;
-  }
-
-  
-
-
-
 
 
 
@@ -133,7 +113,6 @@ loop.shared.utils = (function(mozL10n) {
     Helper: Helper,
     composeCallUrlEmail: composeCallUrlEmail,
     formatDate: formatDate,
-    getTargetPlatform: getTargetPlatform,
     getBoolPreference: getBoolPreference
   };
 })(document.mozL10n || navigator.mozL10n);

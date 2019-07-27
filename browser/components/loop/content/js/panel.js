@@ -751,7 +751,6 @@ loop.panel = (function(_, mozL10n) {
       dispatcher: dispatcher}
     ), document.querySelector("#main"));
 
-    document.body.classList.add(loop.shared.utils.getTargetPlatform());
     document.body.setAttribute("dir", mozL10n.getDirection());
 
     
