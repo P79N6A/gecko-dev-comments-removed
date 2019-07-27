@@ -133,12 +133,6 @@ class Decoder;
 class FrameAnimator;
 class SourceBuffer;
 
-enum class DecodeStrategy : uint8_t {
-  ASYNC,
-  SYNC_FOR_SMALL_IMAGES,
-  SYNC_IF_POSSIBLE
-};
-
 
 
 
@@ -341,9 +335,7 @@ private:
 
 
 
-  NS_IMETHOD Decode(DecodeStrategy aStrategy,
-                    const Maybe<nsIntSize>& aSize,
-                    uint32_t aFlags);
+  NS_IMETHOD Decode(const Maybe<nsIntSize>& aSize, uint32_t aFlags);
 
   
 
@@ -352,8 +344,6 @@ private:
 
   already_AddRefed<Decoder> CreateDecoder(const Maybe<nsIntSize>& aSize,
                                           uint32_t aFlags);
-
-  void WantDecodedFrames(const nsIntSize& aSize, uint32_t aFlags);
 
 private: 
   nsIntSize                  mSize;
@@ -482,4 +472,4 @@ inline NS_IMETHODIMP RasterImage::GetAnimationMode(uint16_t *aAnimationMode) {
 } 
 } 
 
-#endif
+#endif 
