@@ -135,6 +135,12 @@ public:
   void
   CancelPump();
 
+  void
+  SetBodyUsed()
+  {
+    mBodyUsed = true;
+  }
+
   
   workers::WorkerPrivate* mWorkerPrivate;
 
@@ -145,15 +151,7 @@ public:
 protected:
   FetchBody();
 
-  virtual ~FetchBody()
-  {
-  }
-
-  void
-  SetBodyUsed()
-  {
-    mBodyUsed = true;
-  }
+  virtual ~FetchBody();
 
   void
   SetMimeType(ErrorResult& aRv);
