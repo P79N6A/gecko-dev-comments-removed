@@ -599,11 +599,7 @@ pref("gfx.downloadable_fonts.fallback_delay", 3000);
 
 pref("gfx.downloadable_fonts.disable_cache", false);
 
-#ifdef RELEASE_BUILD
-pref("gfx.downloadable_fonts.woff2.enabled", false);
-#else
 pref("gfx.downloadable_fonts.woff2.enabled", true);
-#endif
 
 #ifdef ANDROID
 pref("gfx.bundled_fonts.enabled", true);
@@ -1031,8 +1027,6 @@ pref("privacy.popups.disable_from_plugins", 2);
 pref("privacy.donottrackheader.enabled",    false);
 
 pref("privacy.trackingprotection.enabled",  false);
-
-pref("privacy.trackingprotection.pbmode.enabled",  false);
 
 pref("dom.event.contextmenu.enabled",       true);
 pref("dom.event.clipboardevents.enabled",   true);
