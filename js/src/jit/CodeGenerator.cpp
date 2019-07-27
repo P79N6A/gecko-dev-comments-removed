@@ -1537,7 +1537,6 @@ CodeGenerator::visitMoveGroup(LMoveGroup *group)
         
         JS_ASSERT(*from != *to);
         JS_ASSERT(!from->isConstant());
-
         MoveOp::Type moveType;
         switch (type) {
           case LDefinition::OBJECT:
@@ -8548,12 +8547,22 @@ CodeGenerator::visitAsmJSCall(LAsmJSCall *ins)
 
 #if defined(JS_CODEGEN_ARM)
     if (!UseHardFpABI() && mir->callee().which() == MAsmJSCall::Callee::Builtin) {
+        
+        
+        
+        
+        
         for (unsigned i = 0, e = ins->numOperands(); i < e; i++) {
             LAllocation *a = ins->getOperand(i);
             if (a->isFloatReg()) {
                 FloatRegister fr = ToFloatRegister(a);
-                int srcId = fr.code() * 2;
-                masm.ma_vxfer(fr, Register::FromCode(srcId), Register::FromCode(srcId+1));
+                if (fr.isDouble()) {
+                    uint32_t srcId = fr.singleOverlay().id();
+                    masm.ma_vxfer(fr, Register::FromCode(srcId), Register::FromCode(srcId + 1));
+                } else {
+                    uint32_t srcId = fr.id();
+                    masm.ma_vxfer(fr, Register::FromCode(srcId));
+                }
             }
         }
     }

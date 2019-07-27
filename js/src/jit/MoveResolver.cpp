@@ -43,7 +43,7 @@ MoveResolver::findBlockingMove(const PendingMove *last)
     for (PendingMoveIterator iter = pending_.begin(); iter != pending_.end(); iter++) {
         PendingMove *other = *iter;
 
-        if (other->from() == last->to()) {
+        if (other->from().aliases(last->to())) {
             
             
             return other;

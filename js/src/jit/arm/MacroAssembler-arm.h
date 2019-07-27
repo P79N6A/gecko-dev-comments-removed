@@ -433,20 +433,25 @@ private:
     {
         JS_ASSERT(sign == 1 || sign == -1);
 
-        int32_t delta = sign * sizeof(double);
+        int32_t delta = sign * sizeof(float);
         int32_t offset = 0;
-        RegisterIterator iter(set);
+        
+        
+        
+        FloatRegisterSet mod = set.reduceSetForPush();
+
+        RegisterIterator iter(mod);
         while (iter.more()) {
             startFloatTransferM(ls, rm, mode, WriteBack);
-            int32_t reg = (*iter).code_;
+            int32_t reg = (*iter).code();
             do {
                 offset += delta;
+                if ((*iter).isDouble())
+                    offset += delta;
                 transferFloatReg(*iter);
-            } while ((++iter).more() && (*iter).code_ == (reg += sign));
+            } while ((++iter).more() && (*iter).code() == (reg += sign));
             finishFloatTransfer();
         }
-
-        JS_ASSERT(offset == static_cast<int32_t>(set.size() * sizeof(double)) * sign);
         return offset;
     }
 };
@@ -478,8 +483,8 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
 
     
     
-    mozilla::Array<MoveOperand, 2> floatArgsInGPR;
-    mozilla::Array<bool, 2> floatArgsInGPRValid;
+    mozilla::Array<MoveOperand, 4> floatArgsInGPR;
+    mozilla::Array<bool, 4> floatArgsInGPRValid;
 
     
     

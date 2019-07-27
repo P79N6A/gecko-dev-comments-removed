@@ -205,7 +205,7 @@ class LUse : public LAllocation
     static const uint32_t POLICY_BITS = 3;
     static const uint32_t POLICY_SHIFT = 0;
     static const uint32_t POLICY_MASK = (1 << POLICY_BITS) - 1;
-    static const uint32_t REG_BITS = 5;
+    static const uint32_t REG_BITS = 6;
     static const uint32_t REG_SHIFT = POLICY_SHIFT + POLICY_BITS;
     static const uint32_t REG_MASK = (1 << REG_BITS) - 1;
 
@@ -484,7 +484,7 @@ class LDefinition
     }
     bool isCompatibleReg(const AnyRegister &r) const {
         if (isFloatReg() && r.isFloat()) {
-#if defined(JS_CODEGEN_ARM) && defined(EVERYONE_KNOWS_ABOUT_ALIASING)
+#if defined(JS_CODEGEN_ARM)
             if (type() == FLOAT32)
                 return r.fpu().isSingle();
             return r.fpu().isDouble();

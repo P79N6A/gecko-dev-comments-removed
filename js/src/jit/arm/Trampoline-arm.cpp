@@ -25,14 +25,14 @@ using namespace js;
 using namespace js::jit;
 
 static const FloatRegisterSet NonVolatileFloatRegs =
-    FloatRegisterSet((1 << FloatRegisters::d8) |
-                     (1 << FloatRegisters::d9) |
-                     (1 << FloatRegisters::d10) |
-                     (1 << FloatRegisters::d11) |
-                     (1 << FloatRegisters::d12) |
-                     (1 << FloatRegisters::d13) |
-                     (1 << FloatRegisters::d14) |
-                     (1 << FloatRegisters::d15));
+    FloatRegisterSet((1ULL << FloatRegisters::d8) |
+                     (1ULL << FloatRegisters::d9) |
+                     (1ULL << FloatRegisters::d10) |
+                     (1ULL << FloatRegisters::d11) |
+                     (1ULL << FloatRegisters::d12) |
+                     (1ULL << FloatRegisters::d13) |
+                     (1ULL << FloatRegisters::d14) |
+                     (1ULL << FloatRegisters::d15));
 
 static void
 GenerateReturn(MacroAssembler &masm, int returnCode, SPSProfiler *prof)
@@ -356,7 +356,6 @@ JitRuntime::generateInvalidator(JSContext *cx)
     
     
     
-    
     masm.ma_and(Imm32(~7), sp, sp);
     masm.startDataTransferM(IsStore, sp, DB, WriteBack);
     
@@ -365,9 +364,17 @@ JitRuntime::generateInvalidator(JSContext *cx)
         masm.transferReg(Register::FromCode(i));
     masm.finishDataTransfer();
 
+    
+    
+    
+    if (FloatRegisters::ActualTotalPhys() != FloatRegisters::TotalPhys) {
+        int missingRegs = FloatRegisters::TotalPhys - FloatRegisters::ActualTotalPhys();
+        masm.ma_sub(Imm32(missingRegs * sizeof(double)), sp);
+    }
+
     masm.startFloatTransferM(IsStore, sp, DB, WriteBack);
-    for (uint32_t i = 0; i < FloatRegisters::Total; i++)
-        masm.transferFloatReg(FloatRegister::FromCode(i));
+    for (uint32_t i = 0; i < FloatRegisters::ActualTotalPhys(); i++)
+        masm.transferFloatReg(FloatRegister(i, FloatRegister::Double));
     masm.finishFloatTransfer();
 
     masm.ma_mov(sp, r0);
@@ -529,6 +536,7 @@ PushBailoutFrame(MacroAssembler &masm, uint32_t frameClass, Register spArg)
     
     
     
+
     masm.startDataTransferM(IsStore, sp, DB, WriteBack);
     
     
@@ -536,9 +544,16 @@ PushBailoutFrame(MacroAssembler &masm, uint32_t frameClass, Register spArg)
         masm.transferReg(Register::FromCode(i));
     masm.finishDataTransfer();
 
+    
+    
+    
+    if (FloatRegisters::ActualTotalPhys() != FloatRegisters::TotalPhys) {
+        int missingRegs = FloatRegisters::TotalPhys - FloatRegisters::ActualTotalPhys();
+        masm.ma_sub(Imm32(missingRegs * sizeof(double)), sp);
+    }
     masm.startFloatTransferM(IsStore, sp, DB, WriteBack);
-    for (uint32_t i = 0; i < FloatRegisters::Total; i++)
-        masm.transferFloatReg(FloatRegister::FromCode(i));
+    for (uint32_t i = 0; i < FloatRegisters::ActualTotalPhys(); i++)
+        masm.transferFloatReg(FloatRegister(i, FloatRegister::Double));
     masm.finishFloatTransfer();
 
     
@@ -591,7 +606,7 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
     masm.ma_add(sp, Imm32(sizeOfBailoutInfo), sp);
     
     uint32_t bailoutFrameSize = sizeof(void *) + 
-                              sizeof(double) * FloatRegisters::Total +
+                              sizeof(double) * FloatRegisters::TotalPhys +
                               sizeof(void *) * Registers::Total;
 
     if (frameClass == NO_FRAME_SIZE_CLASS_ID) {
@@ -893,7 +908,7 @@ JitRuntime::generatePreBarrier(JSContext *cx, MIRType type)
     RegisterSet save;
     if (cx->runtime()->jitSupportsFloatingPoint) {
         save = RegisterSet(GeneralRegisterSet(Registers::VolatileMask),
-                           FloatRegisterSet(FloatRegisters::VolatileMask));
+                           FloatRegisterSet(FloatRegisters::VolatileDoubleMask));
     } else {
         save = RegisterSet(GeneralRegisterSet(Registers::VolatileMask),
                            FloatRegisterSet());

@@ -284,7 +284,7 @@ CodeGeneratorARM::visitMinMaxD(LMinMaxD *ins)
 
     
     masm.bind(&equal);
-    masm.compareDouble(first, InvalidFloatReg);
+    masm.compareDouble(first, NoVFPRegister);
     
     masm.ma_b(&done, Assembler::VFP_NotEqualOrUnordered);
     
