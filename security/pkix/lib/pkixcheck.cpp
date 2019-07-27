@@ -349,9 +349,17 @@ CheckBasicConstraints(EndEntityOrCA endEntityOrCA,
     
     
     
-    if (endEntityOrCA == EndEntityOrCA::MustBeCA &&
-        trustLevel == TrustLevel::TrustAnchor && version == der::Version::v1) {
-      isCA = true;
+    
+    
+    
+    
+    
+    if (endEntityOrCA == EndEntityOrCA::MustBeCA && version == der::Version::v1) {
+      if (trustLevel == TrustLevel::TrustAnchor) {
+        isCA = true;
+      } else {
+        return Result::ERROR_V1_CERT_USED_AS_CA;
+      }
     }
   }
 
