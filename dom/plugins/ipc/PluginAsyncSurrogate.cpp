@@ -358,15 +358,33 @@ PluginAsyncSurrogate::PendingNewStreamCall::PendingNewStreamCall(
 {
 }
 
- bool
-PluginAsyncSurrogate::SetStreamType(NPStream* aStream, uint16_t aStreamType)
+ nsNPAPIPluginStreamListener*
+PluginAsyncSurrogate::GetStreamListener(NPStream* aStream)
 {
   nsNPAPIStreamWrapper* wrapper =
     reinterpret_cast<nsNPAPIStreamWrapper*>(aStream->ndata);
   if (!wrapper) {
-    return false;
+    return nullptr;
   }
-  nsNPAPIPluginStreamListener* streamListener = wrapper->GetStreamListener();
+  return wrapper->GetStreamListener();
+}
+
+void
+PluginAsyncSurrogate::DestroyAsyncStream(NPStream* aStream)
+{
+  MOZ_ASSERT(aStream);
+  nsNPAPIPluginStreamListener* streamListener = GetStreamListener(aStream);
+  MOZ_ASSERT(streamListener);
+  
+  
+  streamListener->ResumeRequest();
+  parent::_destroystream(mInstance, aStream, NPRES_DONE);
+}
+
+ bool
+PluginAsyncSurrogate::SetStreamType(NPStream* aStream, uint16_t aStreamType)
+{
+  nsNPAPIPluginStreamListener* streamListener = GetStreamListener(aStream);
   if (!streamListener) {
     return false;
   }
@@ -433,6 +451,12 @@ PluginAsyncSurrogate::WaitForInit()
     mozilla::ipc::MessageChannel* contentChannel = cp->GetIPCChannel();
     MOZ_ASSERT(contentChannel);
     while (!mParent->mNPInitialized) {
+      if (mParent->mShutdown) {
+        
+        
+        
+        return false;
+      }
       result = contentChannel->WaitForIncomingMessage();
       if (!result) {
         return result;
@@ -442,6 +466,12 @@ PluginAsyncSurrogate::WaitForInit()
   mozilla::ipc::MessageChannel* channel = mParent->GetIPCChannel();
   MOZ_ASSERT(channel);
   while (!mAcceptCalls) {
+    if (mInitCancelled) {
+      
+      
+      
+      return false;
+    }
     result = channel->WaitForIncomingMessage();
     if (!result) {
       break;
@@ -474,7 +504,7 @@ PluginAsyncSurrogate::NotifyAsyncInitFailed()
   
   for (uint32_t i = 0, len = mPendingNewStreamCalls.Length(); i < len; ++i) {
     PendingNewStreamCall& curPendingCall = mPendingNewStreamCalls[i];
-    parent::_destroystream(mInstance, curPendingCall.mStream, NPRES_DONE);
+    DestroyAsyncStream(curPendingCall.mStream);
   }
   mPendingNewStreamCalls.Clear();
 

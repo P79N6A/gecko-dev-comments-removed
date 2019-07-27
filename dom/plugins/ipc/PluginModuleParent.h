@@ -315,6 +315,10 @@ class PluginModuleContentParent : public PluginModuleParent
 
     virtual ~PluginModuleContentParent();
 
+#if defined(XP_WIN) || defined(XP_MACOSX)
+    nsresult NP_Initialize(NPNetscapeFuncs* bFuncs, NPError* error) MOZ_OVERRIDE;
+#endif
+
   private:
     virtual bool ShouldContinueFromReplyTimeout() MOZ_OVERRIDE;
     virtual void OnExitedSyncSend() MOZ_OVERRIDE;
@@ -341,6 +345,14 @@ class PluginModuleChromeParent
 
     static PluginLibrary* LoadModule(const char* aFilePath, uint32_t aPluginId,
                                      nsPluginTag* aPluginTag);
+
+    
+
+
+
+
+    static void ClearInstantiationFlag() { sInstantiated = false; }
+    static bool DidInstantiate() { return sInstantiated; }
 
     virtual ~PluginModuleChromeParent();
 
@@ -518,6 +530,7 @@ private:
     nsCOMPtr<nsIObserver> mOfflineObserver;
     bool mIsFlashPlugin;
     bool mIsBlocklisted;
+    static bool sInstantiated;
 };
 
 } 

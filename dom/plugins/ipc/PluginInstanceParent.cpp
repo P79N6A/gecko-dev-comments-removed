@@ -1704,14 +1704,10 @@ PluginInstanceParent::RecvAsyncNPP_NewResult(const NPError& aResult)
     }
 
     nsPluginInstanceOwner* owner = GetOwner();
-    if (!owner) {
-        
-        
-        return true;
-    }
-
-    if (aResult != NPERR_NO_ERROR) {
-        owner->NotifyHostAsyncInitFailed();
+    
+    
+    if (aResult != NPERR_NO_ERROR || !owner) {
+        mSurrogate->NotifyAsyncInitFailed();
         return true;
     }
 
