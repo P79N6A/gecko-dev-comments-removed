@@ -116,14 +116,22 @@ this.BrowserTestUtils = {
 
 
 
-  openNewBrowserWindow(options) {
+
+
+
+  openNewBrowserWindow(options={}) {
     let argString = Cc["@mozilla.org/supports-string;1"].
                     createInstance(Ci.nsISupportsString);
     argString.data = "";
     let features = "chrome,dialog=no,all";
 
-    if (options && options.private || false) {
+    if (options.private) {
       features += ",private";
+    }
+
+    if (options.hasOwnProperty("remote")) {
+      let remoteState = options.remote ? "remote" : "non-remote";
+      features += `,${remoteState}`;
     }
 
     let win = Services.ww.openWindow(
