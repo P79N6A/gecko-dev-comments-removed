@@ -630,12 +630,12 @@ void MediaPipelineTransmit::AttachToTrack(const std::string& track_id) {
 
   stream_->AddListener(listener_);
 
-  
-  
-  
-  if (domstream_->AddDirectListener(listener_)) {
-    listener_->direct_connect_ = true;
-  }
+ 
+ 
+ 
+ 
+ 
+ 
 
 #ifndef MOZILLA_INTERNAL_API
   
