@@ -540,3 +540,155 @@ function TypedArrayIncludes(searchElement, fromIndex = 0) {
     
     return false;
 }
+
+
+function TypedArrayStaticFrom(source, mapfn = undefined, thisArg = undefined) {
+    
+    var C = this;
+
+    
+    if (!IsConstructor(C))
+        ThrowError(JSMSG_NOT_CONSTRUCTOR, DecompileArg(1, C));
+
+    
+    var f = mapfn;
+
+    
+    if (f !== undefined && !IsCallable(f))
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(1, f));
+
+    
+    return TypedArrayFrom(C, undefined, source, f, thisArg);
+}
+
+
+function TypedArrayFrom(constructor, target, items, mapfn, thisArg) {
+    
+    var C = constructor;
+
+    
+    assert(C === undefined || target === undefined,
+           "Neither of 'constructor' and 'target' is undefined");
+
+    
+    assert(IsConstructor(C) || C === undefined,
+           "'constructor' is neither an constructor nor undefined");
+
+    
+    assert(target === undefined || IsTypedArray(target),
+           "'target' is neither a typed array nor undefined");
+
+    
+    assert(IsCallable(mapfn) || mapfn === undefined,
+           "'target' is neither a function nor undefined");
+
+    
+    var mapping = mapfn !== undefined;
+    var T = thisArg;
+
+    
+    var usingIterator = GetMethod(items, std_iterator);
+
+    
+    if (usingIterator !== undefined) {
+        
+        var iterator = GetIterator(items, usingIterator);
+
+        
+        var values = new List();
+
+        
+        while (true) {
+            
+            var next = iterator.next();
+            if (!IsObject(next))
+                ThrowError(JSMSG_NEXT_RETURNED_PRIMITIVE);
+
+            
+            if (next.done)
+                break;
+            values.push(next.value);
+        }
+
+        
+        var len = values.length;
+
+        
+        
+        
+        var targetObj = new C(len);
+
+        
+        for (var k = 0; k < len; k++) {
+            
+            var kValue = values[k];
+
+            
+            var mappedValue = mapping ? callFunction(mapfn, T, kValue, k) : kValue;
+
+            
+            targetObj[k] = mappedValue;
+        }
+
+        
+        
+        
+        
+
+        
+        return targetObj;
+    }
+
+    
+    
+
+    
+    var arrayLike = ToObject(items);
+
+    
+    var len = ToLength(arrayLike.length);
+
+    
+    
+    var targetObj = new C(len);
+
+    
+    for (var k = 0; k < len; k++) {
+        
+        var kValue = arrayLike[k];
+
+        
+        var mappedValue = mapping ? callFunction(mapfn, T, kValue, k) : kValue;
+
+        
+        targetObj[k] = mappedValue;
+    }
+
+    
+    return targetObj;
+}
+
+
+function TypedArrayStaticOf() {
+    
+    var len = arguments.length;
+
+    
+    var items = arguments;
+
+    
+    var C = this;
+
+    
+    if (!IsConstructor(C))
+        ThrowError(JSMSG_NOT_CONSTRUCTOR, typeof C);
+
+    var newObj = new C(len);
+
+    
+    for (var k = 0; k < len; k++)
+        newObj[k] = items[k]
+
+    
+    return newObj;
+}
