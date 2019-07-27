@@ -6,7 +6,7 @@ let gw = dbg.addDebuggee(g);
 
 function getSourceMapURL() {
     let fw = gw.makeDebuggeeValue(g.f);
-    return fw.script.sourceMapURL;
+    return fw.script.source.sourceMapURL;
 }
 
 
@@ -21,7 +21,7 @@ assertEq(getSourceMapURL(), 'file:///var/foo.js.map');
 let fired = false;
 dbg.onDebuggerStatement = function (frame) {
     fired = true;
-    assertEq(frame.script.sourceMapURL, 'file:///var/bar.js.map');
+    assertEq(frame.script.source.sourceMapURL, 'file:///var/bar.js.map');
 };
 g.evaluate('(function () { (function () { debugger; })(); })();',
            {sourceMapURL: 'file:///var/bar.js.map'});
