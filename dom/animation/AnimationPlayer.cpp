@@ -180,6 +180,27 @@ AnimationPlayer::StartNow()
   ResumeAt(mTimeline->GetCurrentTime().Value());
 }
 
+Nullable<TimeDuration>
+AnimationPlayer::GetCurrentOrPendingStartTime() const
+{
+  Nullable<TimeDuration> result;
+
+  if (!mStartTime.IsNull()) {
+    result = mStartTime;
+    return result;
+  }
+
+  if (mPendingReadyTime.IsNull() || mHoldTime.IsNull()) {
+    return result;
+  }
+
+  
+  
+  
+  result.SetValue(mPendingReadyTime.Value() - mHoldTime.Value());
+  return result;
+}
+
 void
 AnimationPlayer::Cancel()
 {

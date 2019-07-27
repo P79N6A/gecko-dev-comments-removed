@@ -149,6 +149,26 @@ public:
   
   void StartNow();
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  Nullable<TimeDuration> GetCurrentOrPendingStartTime() const;
+
   void Cancel();
 
   const nsString& Name() const {
