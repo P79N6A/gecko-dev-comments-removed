@@ -1909,7 +1909,8 @@ JS::ProfilingFrameIterator::extractStack(Frame *frames, uint32_t offset, uint32_
     
     
     if (false && entry.hasTrackedOptimizations()) {
-        mozilla::Maybe<uint8_t> index = entry.trackedOptimizationIndexAtAddr(returnAddr);
+        uint32_t dummy;
+        mozilla::Maybe<uint8_t> index = entry.trackedOptimizationIndexAtAddr(returnAddr, &dummy);
         frames[offset].hasTrackedOptimizations = index.isSome();
     }
 

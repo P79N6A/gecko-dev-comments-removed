@@ -316,7 +316,7 @@ class IonTrackedOptimizationsRegion
 
     
     
-    mozilla::Maybe<uint8_t> findIndex(uint32_t offset) const;
+    mozilla::Maybe<uint8_t> findIndex(uint32_t offset, uint32_t *entryOffsetOut) const;
 
     
     
