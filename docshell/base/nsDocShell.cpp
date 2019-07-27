@@ -838,6 +838,7 @@ nsDocShell::nsDocShell():
     mAllowKeywordFixup(false),
     mIsOffScreenBrowser(false),
     mIsActive(true),
+    mIsPrerendered(false),
     mIsAppTab(false),
     mUseGlobalHistory(false),
     mInPrivateBrowsing(false),
@@ -3385,6 +3386,11 @@ nsDocShell::SetDocLoaderParent(nsDocLoader * aParent)
         if (NS_SUCCEEDED(parentAsDocShell->GetIsActive(&value)))
         {
             SetIsActive(value);
+        }
+        if (NS_SUCCEEDED(parentAsDocShell->GetIsPrerendered(&value))) {
+            if (value) {
+                SetIsPrerendered(true);
+            }
         }
         if (NS_FAILED(parentAsDocShell->GetAllowDNSPrefetch(&value))) {
             value = false;
@@ -6049,6 +6055,22 @@ NS_IMETHODIMP
 nsDocShell::GetIsActive(bool *aIsActive)
 {
     *aIsActive = mIsActive;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocShell::SetIsPrerendered(bool aPrerendered)
+{
+    MOZ_ASSERT(!aPrerendered || !mIsPrerendered,
+               "SetIsPrerendered(true) called on already prerendered docshell");
+    mIsPrerendered = aPrerendered;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocShell::GetIsPrerendered(bool *aIsPrerendered)
+{
+    *aIsPrerendered = mIsPrerendered;
     return NS_OK;
 }
 
