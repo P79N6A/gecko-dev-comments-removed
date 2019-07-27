@@ -747,7 +747,7 @@ MessageChannel::SendAndWait(Message* aMsg, Message* aReply)
             MOZ_ASSERT(mRecvd->type() == replyType, "wrong reply type");
             MOZ_ASSERT(mRecvd->seqno() == replySeqno);
 
-            *aReply = *mRecvd;
+            *aReply = Move(*mRecvd);
             mRecvd = nullptr;
             return true;
         }
@@ -838,10 +838,10 @@ MessageChannel::Call(Message* aMsg, Message* aReply)
         if ((it = mOutOfTurnReplies.find(mInterruptStack.top().seqno()))
             != mOutOfTurnReplies.end())
         {
-            recvd = it->second;
+            recvd = Move(it->second);
             mOutOfTurnReplies.erase(it);
         } else if (!mPending.empty()) {
-            recvd = mPending.front();
+            recvd = Move(mPending.front());
             mPending.pop_front();
         } else {
             
@@ -882,7 +882,7 @@ MessageChannel::Call(Message* aMsg, Message* aReply)
                 if ((mSide == ChildSide && recvd.seqno() > outcall.seqno()) ||
                     (mSide != ChildSide && recvd.seqno() < outcall.seqno()))
                 {
-                    mOutOfTurnReplies[recvd.seqno()] = recvd;
+                    mOutOfTurnReplies[recvd.seqno()] = Move(recvd);
                     continue;
                 }
 
@@ -896,8 +896,9 @@ MessageChannel::Call(Message* aMsg, Message* aReply)
             
             mInterruptStack.pop();
 
-            if (!recvd.is_reply_error()) {
-                *aReply = recvd;
+            bool is_reply_error = recvd.is_reply_error();
+            if (!is_reply_error) {
+                *aReply = Move(recvd);
             }
 
             
@@ -906,7 +907,7 @@ MessageChannel::Call(Message* aMsg, Message* aReply)
                        "still have pending replies with no pending out-calls",
                        true);
 
-            return !recvd.is_reply_error();
+            return !is_reply_error;
         }
 
         
@@ -1017,7 +1018,7 @@ MessageChannel::OnMaybeDequeueOne()
     if (IsOnCxxStack() && recvd.is_interrupt() && recvd.is_reply()) {
         
         
-        mOutOfTurnReplies[recvd.seqno()] = recvd;
+        mOutOfTurnReplies[recvd.seqno()] = Move(recvd);
         return false;
     }
 
