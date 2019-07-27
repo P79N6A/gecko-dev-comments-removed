@@ -378,7 +378,7 @@ nsFirstLetterFrame::GetLogicalBaseline(WritingMode aWritingMode) const
   return mBaseline;
 }
 
-int
+nsIFrame::LogicalSides
 nsFirstLetterFrame::GetLogicalSkipSides(const nsHTMLReflowState* aReflowState) const
 {
   if (GetPrevContinuation()) {
@@ -387,7 +387,7 @@ nsFirstLetterFrame::GetLogicalSkipSides(const nsHTMLReflowState* aReflowState) c
     
     
     
-    return LOGICAL_SIDES_ALL;
+    return LogicalSides(LOGICAL_SIDES_ALL);
   }
-  return 0;  
+  return LogicalSides();  
 }

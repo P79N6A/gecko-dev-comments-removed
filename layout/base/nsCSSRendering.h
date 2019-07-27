@@ -279,6 +279,8 @@ struct nsBackgroundLayerState {
 };
 
 struct nsCSSRendering {
+  typedef nsIFrame::Sides Sides;
+
   
 
 
@@ -317,9 +319,10 @@ struct nsCSSRendering {
                           const nsRect& aDirtyRect,
                           const nsRect& aBorderArea,
                           nsStyleContext* aStyleContext,
-                          int aSkipSides = 0);
+                          Sides aSkipSides = Sides());
 
   
+
 
 
 
@@ -330,11 +333,10 @@ struct nsCSSRendering {
                                          const nsRect& aBorderArea,
                                          const nsStyleBorder& aBorderStyle,
                                          nsStyleContext* aStyleContext,
-                                         int aSkipSides = 0);
+                                         Sides aSkipSides = Sides());
 
 
   
-
 
 
 
