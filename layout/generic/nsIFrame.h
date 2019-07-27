@@ -160,14 +160,18 @@ enum nsSelectionAmount {
                         
                         
   eSelectWord      = 2,
-  eSelectLine      = 3, 
-  eSelectBeginLine = 4,
-  eSelectEndLine   = 5,
-  eSelectNoAmount  = 6, 
-  eSelectParagraph = 7,  
-  eSelectWordNoSpace = 8 
-                         
-                         
+  eSelectWordNoSpace = 3, 
+                          
+                          
+  eSelectLine      = 4, 
+  
+  
+  
+
+  eSelectBeginLine = 5,
+  eSelectEndLine   = 6,
+  eSelectNoAmount  = 7, 
+  eSelectParagraph = 8  
 };
 
 enum nsSpread {

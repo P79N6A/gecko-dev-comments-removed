@@ -598,7 +598,7 @@ private:
   void BidiLevelFromMove(nsIPresShell* aPresShell,
                          nsIContent *aNode,
                          uint32_t aContentOffset,
-                         uint32_t aKeycode,
+                         nsSelectionAmount aAmount,
                          CaretAssociateHint aHint);
   void BidiLevelFromClick(nsIContent *aNewFocus, uint32_t aContentOffset);
   nsPrevNextBidiLevels GetPrevNextBidiLevels(nsIContent *aNode,
@@ -633,11 +633,17 @@ private:
 
   void ResizeBuffer(uint32_t aNewBufSize);
 
-  nsresult     MoveCaret(uint32_t aKeycode, bool aContinueSelection,
-                         nsSelectionAmount aAmount);
-  nsresult     MoveCaret(uint32_t aKeycode, bool aContinueSelection,
+
+  
+  
+  enum CaretMovementStyle {
+    eLogical,
+    eVisual,
+    eUsePrefStyle
+  };
+  nsresult     MoveCaret(nsDirection aDirection, bool aContinueSelection,
                          nsSelectionAmount aAmount,
-                         bool aVisualMovement);
+                         CaretMovementStyle aMovementStyle);
 
   nsresult     FetchDesiredX(nscoord &aDesiredX); 
   void         InvalidateDesiredX(); 
