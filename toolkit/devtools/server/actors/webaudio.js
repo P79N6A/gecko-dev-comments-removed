@@ -162,6 +162,44 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
 
 
 
+  isBypassed: method(function () {
+    let node = this.node.get();
+    if (node === null) {
+      return false;
+    }
+
+    return node.passThrough;
+  }, {
+    response: { bypassed: RetVal("boolean") }
+  }),
+
+  
+
+
+
+
+
+
+
+  bypass: method(function (enable) {
+    let node = this.node.get();
+
+    if (node === null) {
+      return;
+    }
+
+    node.passThrough = enable;
+  }, {
+    request: { enable: Arg(0, "boolean") },
+    oneway: true
+  }),
+
+  
+
+
+
+
+
 
 
 
