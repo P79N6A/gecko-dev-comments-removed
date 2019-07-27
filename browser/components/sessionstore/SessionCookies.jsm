@@ -264,8 +264,47 @@ let SessionCookiesInternal = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+function* getPossibleSubdomainVariants(host) {
+  
+  yield "." + host;
+
+  
+  let parts = host.split(".");
+  if (parts.length < 3) {
+    return;
+  }
+
+  
+  let rest = parts.slice(1).join(".");
+
+  
+  yield* getPossibleSubdomainVariants(rest);
+}
+
+
+
+
+
 let CookieStore = {
   
+
+
+
+
+
 
 
 
@@ -297,14 +336,27 @@ let CookieStore = {
 
 
   getCookiesForHost: function (host) {
-    if (!this._hosts.has(host)) {
-      return [];
-    }
-
     let cookies = [];
 
-    for (let pathToNamesMap of this._hosts.get(host).values()) {
-      cookies.push(...pathToNamesMap.values());
+    let appendCookiesForHost = host => {
+      if (!this._hosts.has(host)) {
+        return;
+      }
+
+      for (let pathToNamesMap of this._hosts.get(host).values()) {
+        cookies.push(...pathToNamesMap.values());
+      }
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    for (let variant of [host, ...getPossibleSubdomainVariants(host)]) {
+      appendCookiesForHost(variant);
     }
 
     return cookies;
