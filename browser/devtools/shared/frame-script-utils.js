@@ -141,6 +141,36 @@ addMessageListener("devtools:test:setStyle", function(msg) {
 
 
 
+
+
+
+addMessageListener("devtools:test:getDomElementInfo", function(msg) {
+  let {selector} = msg.data;
+  let node = superQuerySelector(selector);
+
+  let info = null;
+  if (node) {
+    info = {
+      tagName: node.tagName,
+      namespaceURI: node.namespaceURI,
+      numChildren: node.children.length,
+      attributes: [...node.attributes].map(({name, value, namespaceURI}) => {
+        return {name, value, namespaceURI};
+      })
+    };
+  }
+
+  sendAsyncMessage("devtools:test:getDomElementInfo", info);
+});
+
+
+
+
+
+
+
+
+
 addMessageListener("devtools:test:setAttribute", function(msg) {
   let {selector, attributeName, attributeValue} = msg.data;
   let node = superQuerySelector(selector);

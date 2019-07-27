@@ -48,6 +48,7 @@ registerCleanupFunction(function*() {
 
 const TEST_URL_ROOT = "http://mochi.test:8888/browser/browser/devtools/markupview/test/";
 const CHROME_BASE = "chrome://mochitests/content/browser/browser/devtools/markupview/test/";
+const COMMON_FRAME_SCRIPT_URL = "chrome://browser/content/devtools/frame-script-utils.js";
 
 
 
@@ -65,6 +66,9 @@ function addTab(url) {
 
   let tab = window.gBrowser.selectedTab = window.gBrowser.addTab(url);
   let linkedBrowser = tab.linkedBrowser;
+
+  info("Loading the helper frame script " + COMMON_FRAME_SCRIPT_URL);
+  linkedBrowser.messageManager.loadFrameScript(COMMON_FRAME_SCRIPT_URL, false);
 
   linkedBrowser.addEventListener("load", function onload() {
     linkedBrowser.removeEventListener("load", onload, true);
@@ -122,6 +126,50 @@ function openInspector() {
   }).then(null, console.error);
 
   return def.promise;
+}
+
+
+
+
+
+
+
+
+function waitForContentMessage(name) {
+  info("Expecting message " + name + " from content");
+
+  let mm = gBrowser.selectedBrowser.messageManager;
+
+  let def = promise.defer();
+  mm.addMessageListener(name, function onMessage(msg) {
+    mm.removeMessageListener(name, onMessage);
+    def.resolve(msg.data);
+  });
+  return def.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function executeInContent(name, data={}, objects={}, expectResponse=true) {
+  info("Sending message " + name + " to content");
+  let mm = gBrowser.selectedBrowser.messageManager;
+
+  mm.sendAsyncMessage(name, data, objects);
+  if (expectResponse) {
+    return waitForContentMessage(name);
+  } else {
+    return promise.resolve();
+  }
 }
 
 
