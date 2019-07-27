@@ -97,7 +97,58 @@ loop.shared.mixins = (function() {
     }
   };
 
+  
+
+
+
+  var AudioMixin = {
+    audio: null,
+
+    _isLoopDesktop: function() {
+      return typeof rootObject.navigator.mozLoop === "object";
+    },
+
+    
+
+
+
+
+    play: function(filename, options) {
+      if (this._isLoopDesktop()) {
+        
+        return;
+      }
+
+      options = options || {};
+      options.loop = options.loop || false;
+
+      this._ensureAudioStopped();
+      this.audio = new Audio('shared/sounds/' + filename + ".ogg");
+      this.audio.loop = options.loop;
+      this.audio.play();
+    },
+
+    
+
+
+    _ensureAudioStopped: function() {
+      if (this.audio) {
+        this.audio.pause();
+        this.audio.removeAttribute("src");
+        delete this.audio;
+      }
+    },
+
+    
+
+
+    componentWillUnmount: function() {
+      this._ensureAudioStopped();
+    }
+  };
+
   return {
+    AudioMixin: AudioMixin,
     setRootObject: setRootObject,
     DropdownMenuMixin: DropdownMenuMixin,
     DocumentVisibilityMixin: DocumentVisibilityMixin
