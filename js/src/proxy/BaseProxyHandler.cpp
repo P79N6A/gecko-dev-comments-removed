@@ -61,7 +61,8 @@ BaseProxyHandler::get(JSContext *cx, HandleObject proxy, HandleObject receiver,
         return true;
     }
     if (desc.hasGetterObject())
-        return InvokeGetter(cx, receiver, ObjectValue(*desc.getterObject()), vp);
+        return InvokeGetterOrSetter(cx, receiver, ObjectValue(*desc.getterObject()),
+                                    0, nullptr, vp);
     if (!desc.isShared())
         vp.set(desc.value());
     else
@@ -71,8 +72,8 @@ BaseProxyHandler::get(JSContext *cx, HandleObject proxy, HandleObject receiver,
 }
 
 bool
-BaseProxyHandler::set(JSContext *cx, HandleObject proxy, HandleId id, HandleValue v,
-                      HandleValue receiver, ObjectOpResult &result) const
+BaseProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject receiver,
+                      HandleId id, MutableHandleValue vp, ObjectOpResult &result) const
 {
     assertEnteredPolicy(cx, proxy, id, SET);
 
@@ -87,16 +88,15 @@ BaseProxyHandler::set(JSContext *cx, HandleObject proxy, HandleId id, HandleValu
 
     
     
-    return SetPropertyIgnoringNamedGetter(cx, proxy, id, v, receiver, ownDesc, result);
+    return SetPropertyIgnoringNamedGetter(cx, proxy, id, vp, receiver, &ownDesc, result);
 }
 
 bool
-js::SetPropertyIgnoringNamedGetter(JSContext *cx, HandleObject obj, HandleId id, HandleValue v,
-                                   HandleValue receiver, Handle<PropertyDescriptor> ownDesc_,
+js::SetPropertyIgnoringNamedGetter(JSContext *cx, HandleObject obj, HandleId id,
+                                   MutableHandleValue vp, HandleObject receiver,
+                                   MutableHandle<PropertyDescriptor> ownDesc,
                                    ObjectOpResult &result)
 {
-    Rooted<PropertyDescriptor> ownDesc(cx, ownDesc_);
-
     
     if (!ownDesc.object()) {
         
@@ -105,33 +105,31 @@ js::SetPropertyIgnoringNamedGetter(JSContext *cx, HandleObject obj, HandleId id,
         if (!GetPrototype(cx, obj, &proto))
             return false;
         if (proto)
-            return SetProperty(cx, proto, id, v, receiver, result);
+            return SetProperty(cx, proto, receiver, id, vp, result);
 
         
-        ownDesc.setDataDescriptor(UndefinedHandleValue, JSPROP_ENUMERATE);
+        
+        ownDesc.clear();
+        ownDesc.setAttributes(JSPROP_ENUMERATE);
     }
 
     
     if (ownDesc.isDataDescriptor()) {
         
+        
         if (!ownDesc.writable())
             return result.fail(JSMSG_READ_ONLY);
-        if (!receiver.isObject())
-            return result.fail(JSMSG_SET_NON_OBJECT_RECEIVER);
-        RootedObject receiverObj(cx, &receiver.toObject());
 
         
         SetterOp setter = ownDesc.setter();
         MOZ_ASSERT(setter != JS_StrictPropertyStub);
-        if (setter && setter != JS_StrictPropertyStub) {
-            RootedValue valCopy(cx, v);
-            return CallJSSetterOp(cx, setter, receiverObj, id, &valCopy, result);
-        }
+        if (setter && setter != JS_StrictPropertyStub)
+            return CallSetter(cx, receiver, id, setter, ownDesc.attributes(), vp, result);
 
         
         
         bool existingDescriptor;
-        if (!HasOwnProperty(cx, receiverObj, id, &existingDescriptor))
+        if (!HasOwnProperty(cx, receiver, id, &existingDescriptor))
             return false;
 
         
@@ -142,10 +140,10 @@ js::SetPropertyIgnoringNamedGetter(JSContext *cx, HandleObject obj, HandleId id,
 
         
         
-        const Class *clasp = receiverObj->getClass();
+        const Class *clasp = receiver->getClass();
         MOZ_ASSERT(clasp->getProperty != JS_PropertyStub);
         MOZ_ASSERT(clasp->setProperty != JS_StrictPropertyStub);
-        return DefineProperty(cx, receiverObj, id, v, clasp->getProperty, clasp->setProperty,
+        return DefineProperty(cx, receiver, id, vp, clasp->getProperty, clasp->setProperty,
                               attrs, result);
     }
 
@@ -157,7 +155,7 @@ js::SetPropertyIgnoringNamedGetter(JSContext *cx, HandleObject obj, HandleId id,
     if (!setter)
         return result.fail(JSMSG_GETTER_ONLY);
     RootedValue setterValue(cx, ObjectValue(*setter));
-    if (!InvokeSetter(cx, receiver, setterValue, v))
+    if (!InvokeGetterOrSetter(cx, receiver, setterValue, 1, vp.address(), vp))
         return false;
     return result.succeed();
 }

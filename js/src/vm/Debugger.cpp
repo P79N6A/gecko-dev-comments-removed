@@ -7637,7 +7637,7 @@ DebuggerEnv_setVariable(JSContext *cx, unsigned argc, Value *vp)
         }
 
         
-        if (!SetProperty(cx, env, id, v))
+        if (!SetProperty(cx, env, env, id, &v))
             return false;
     }
 

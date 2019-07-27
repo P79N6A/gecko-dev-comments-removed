@@ -427,6 +427,14 @@ XPC_WN_OnlyIWrite_AddPropertyStub(JSContext *cx, HandleObject obj, HandleId id, 
 }
 
 static bool
+XPC_WN_OnlyIWrite_SetPropertyStub(JSContext *cx, HandleObject obj, HandleId id,
+                                  MutableHandleValue vp, ObjectOpResult &result)
+{
+    result.succeed();
+    return XPC_WN_OnlyIWrite_AddPropertyStub(cx, obj, id, vp);
+}
+
+static bool
 XPC_WN_CannotModifyPropertyStub(JSContext *cx, HandleObject obj, HandleId id,
                                 MutableHandleValue vp)
 {
@@ -644,7 +652,7 @@ const XPCWrappedNativeJSClass XPC_WN_NoHelper_JSClass = {
     XPC_WN_OnlyIWrite_AddPropertyStub, 
     XPC_WN_CantDeletePropertyStub,     
     nullptr,                           
-    nullptr,                           
+    XPC_WN_OnlyIWrite_SetPropertyStub, 
 
     XPC_WN_Shared_Enumerate,           
     XPC_WN_NoHelper_Resolve,           
@@ -1354,6 +1362,14 @@ XPC_WN_OnlyIWrite_Proto_AddPropertyStub(JSContext *cx, HandleObject obj, HandleI
 }
 
 static bool
+XPC_WN_OnlyIWrite_Proto_SetPropertyStub(JSContext *cx, HandleObject obj, HandleId id,
+                                        MutableHandleValue vp, ObjectOpResult &result)
+{
+    result.succeed();
+    return XPC_WN_OnlyIWrite_Proto_AddPropertyStub(cx, obj, id, vp);
+}
+
+static bool
 XPC_WN_NoMods_Proto_Resolve(JSContext *cx, HandleObject obj, HandleId id, bool *resolvedp)
 {
     MOZ_ASSERT(js::GetObjectClass(obj) == &XPC_WN_NoMods_WithCall_Proto_JSClass ||
@@ -1388,7 +1404,7 @@ const js::Class XPC_WN_NoMods_WithCall_Proto_JSClass = {
     XPC_WN_OnlyIWrite_Proto_AddPropertyStub,   
     XPC_WN_CantDeletePropertyStub,             
     nullptr,                                   
-    nullptr,                                   
+    XPC_WN_OnlyIWrite_Proto_SetPropertyStub,   
     XPC_WN_Shared_Proto_Enumerate,             
     XPC_WN_NoMods_Proto_Resolve,               
     nullptr,                                   
@@ -1413,7 +1429,7 @@ const js::Class XPC_WN_NoMods_NoCall_Proto_JSClass = {
     XPC_WN_OnlyIWrite_Proto_AddPropertyStub,   
     XPC_WN_CantDeletePropertyStub,             
     nullptr,                                   
-    nullptr,                                   
+    XPC_WN_OnlyIWrite_Proto_SetPropertyStub,   
     XPC_WN_Shared_Proto_Enumerate,             
     XPC_WN_NoMods_Proto_Resolve,               
     nullptr,                                   
@@ -1508,7 +1524,7 @@ const js::Class XPC_WN_Tearoff_JSClass = {
     XPC_WN_OnlyIWrite_AddPropertyStub,         
     XPC_WN_CantDeletePropertyStub,             
     nullptr,                                   
-    nullptr,                                   
+    XPC_WN_OnlyIWrite_SetPropertyStub,         
     XPC_WN_TearOff_Enumerate,                  
     XPC_WN_TearOff_Resolve,                    
     XPC_WN_Shared_Convert,                     

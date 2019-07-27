@@ -2168,7 +2168,7 @@ class MOZ_STACK_CLASS StringRegExpGuard
 
         
         RootedValue zero(cx, Int32Value(0));
-        return SetProperty(cx, obj_, cx->names().lastIndex, zero);
+        return SetProperty(cx, obj_, obj_, cx->names().lastIndex, &zero);
     }
 
     RegExpShared &regExp() { return *re_; }

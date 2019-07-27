@@ -1019,7 +1019,16 @@ class Shape : public gc::TenuredCell
         return (attrs & (JSPROP_SETTER | JSPROP_GETTER)) != 0;
     }
 
-    bool hasShadowable() const { return attrs & JSPROP_SHADOWABLE; }
+    
+
+
+
+
+
+    bool shadowable() const {
+        MOZ_ASSERT_IF(isDataDescriptor(), writable());
+        return hasSlot() || (attrs & JSPROP_SHADOWABLE);
+    }
 
     uint32_t entryCount() {
         if (hasTable())
