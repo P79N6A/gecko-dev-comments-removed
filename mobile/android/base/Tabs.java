@@ -831,7 +831,7 @@ public class Tabs implements GeckoEventListener {
         }
 
         
-        if (AboutPages.isBuiltinIconPage(url)) {
+        if (AboutPages.isDefaultIconPage(url)) {
             Log.d(LOGTAG, "Setting about: tab favicon inline.");
             added.updateFavicon(getAboutPageFavicon(url));
         }
