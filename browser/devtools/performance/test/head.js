@@ -517,3 +517,66 @@ function forceCC () {
   SpecialPowers.DOMWindowUtils.garbageCollect();
   SpecialPowers.DOMWindowUtils.garbageCollect();
 }
+
+
+
+
+function getInflatedStackLocations(thread, sample) {
+  let stackTable = thread.stackTable;
+  let frameTable = thread.frameTable;
+  let stringTable = thread.stringTable;
+  let SAMPLE_STACK_SLOT = thread.samples.schema.stack;
+  let STACK_PREFIX_SLOT = stackTable.schema.prefix;
+  let STACK_FRAME_SLOT = stackTable.schema.frame;
+  let FRAME_LOCATION_SLOT = frameTable.schema.location;
+
+  
+  
+  let stackIndex = sample[SAMPLE_STACK_SLOT];
+  let locations = [];
+  while (stackIndex !== null) {
+    let stackEntry = stackTable.data[stackIndex];
+    let frame = frameTable.data[stackEntry[STACK_FRAME_SLOT]];
+    locations.push(stringTable[frame[FRAME_LOCATION_SLOT]]);
+    stackIndex = stackEntry[STACK_PREFIX_SLOT];
+  }
+
+  
+  return locations.reverse();
+}
+
+
+
+
+function getFrameNodePath(root, path) {
+  let calls = root.calls;
+  let node;
+  for (let key of path.split(" > ")) {
+    node = calls.find((node) => node.key == key);
+    if (!node) {
+      break;
+    }
+    calls = node.calls;
+  }
+  return node;
+}
+
+
+
+
+function synthesizeProfileForTest(samples) {
+  const { RecordingUtils } = devtools.require("devtools/performance/recording-utils");
+
+  samples.unshift({
+    time: 0,
+    frames: [
+      { location: "(root)" }
+    ]
+  });
+
+  let uniqueStacks = new RecordingUtils.UniqueStacks();
+  return RecordingUtils.deflateThread({
+    samples: samples,
+    markers: []
+  }, uniqueStacks);
+}
