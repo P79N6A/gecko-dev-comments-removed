@@ -148,13 +148,7 @@ class IonBailoutIterator : public JitFrameIterator
         return JitFrameIterator::ionScript();
     }
 
-    IonBailoutIterator &operator++() {
-        JitFrameIterator::operator++();
-        
-        
-        topIonScript_ = nullptr;
-        return *this;
-    }
+    IonBailoutIterator &operator++() MOZ_DELETE;
 
     void dump() const;
 };

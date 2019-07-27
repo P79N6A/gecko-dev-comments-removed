@@ -1881,17 +1881,14 @@ ParallelBailoutRecord::reset()
     cause = ParallelBailoutNone;
 }
 
-template <class T>
-static void
-RematerializeFramesWithIter(ForkJoinContext *cx, T &frameIter,
-                            Vector<RematerializedFrame *> &frames)
+void
+ParallelBailoutRecord::rematerializeFrames(ForkJoinContext *cx, JitFrameIterator &frameIter)
 {
     
     
     
-    
 
-    MOZ_ASSERT(frames.empty());
+    MOZ_ASSERT(frames().empty());
 
     for (; !frameIter.done(); ++frameIter) {
         if (!frameIter.isIonJS())
@@ -1904,31 +1901,19 @@ RematerializeFramesWithIter(ForkJoinContext *cx, T &frameIter,
                                                             inlineIter, inlineFrames))
         {
             RematerializedFrame::FreeInVector(inlineFrames);
-            RematerializedFrame::FreeInVector(frames);
+            RematerializedFrame::FreeInVector(frames());
             return;
         }
 
         
         while (!inlineFrames.empty()) {
-            if (!frames.append(inlineFrames.popCopy())) {
+            if (!frames().append(inlineFrames.popCopy())) {
                 RematerializedFrame::FreeInVector(inlineFrames);
-                RematerializedFrame::FreeInVector(frames);
+                RematerializedFrame::FreeInVector(frames());
                 return;
             }
         }
     }
-}
-
-void
-ParallelBailoutRecord::rematerializeFrames(ForkJoinContext *cx, JitFrameIterator &frameIter)
-{
-    RematerializeFramesWithIter(cx, frameIter, frames());
-}
-
-void
-ParallelBailoutRecord::rematerializeFrames(ForkJoinContext *cx, IonBailoutIterator &frameIter)
-{
-    RematerializeFramesWithIter(cx, frameIter, frames());
 }
 
 
