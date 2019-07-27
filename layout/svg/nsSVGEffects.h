@@ -56,9 +56,6 @@ public:
     {}
 
   
-  NS_DECL_ISUPPORTS
-
-  
   NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
@@ -174,6 +171,8 @@ private:
 
 class nsSVGRenderingObserverProperty : public nsSVGIDRenderingObserver {
 public:
+  NS_DECL_ISUPPORTS
+
   nsSVGRenderingObserverProperty(nsIURI* aURI, nsIFrame *aFrame,
                                  bool aReferenceImage)
     : nsSVGIDRenderingObserver(aURI, aFrame->GetContent(), aReferenceImage)
@@ -181,6 +180,8 @@ public:
   {}
 
 protected:
+  virtual ~nsSVGRenderingObserverProperty() {}
+
   virtual void DoUpdate() override;
 
   nsSVGFrameReferenceFromProperty mFrameReference;
