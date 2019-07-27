@@ -4493,6 +4493,16 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
   switch (msg) {
     
     
+    case WM_SETCURSOR:
+      if (LOWORD(lParam) == HTCLIENT)
+      {
+        SetCursor(GetCursor());
+        result = true;
+      }
+      break;
+
+    
+    
     case WM_QUERYENDSESSION:
       if (sCanQuit == TRI_UNKNOWN)
       {
