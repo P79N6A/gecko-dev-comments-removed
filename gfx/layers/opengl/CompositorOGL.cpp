@@ -1059,7 +1059,12 @@ CompositorOGL::DrawQuad(const Rect& aRect,
     maskType = MaskType::MaskNone;
   }
 
-  mPixelsFilled += aRect.width * aRect.height;
+  {
+    
+    
+    const Rect destRect = aTransform.TransformBounds(aRect);
+    mPixelsFilled += destRect.width * destRect.height;
+  }
 
   
   
