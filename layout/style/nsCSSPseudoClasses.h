@@ -37,6 +37,15 @@ public:
 
   
   static void PseudoTypeToString(Type aType, nsAString& aString);
+
+private:
+  static uint32_t FlagsForPseudoClass(const Type aType);
+
+  
+  static bool PseudoClassHasFlags(const Type aType, uint32_t aFlags)
+  {
+    return (FlagsForPseudoClass(aType) & aFlags) == aFlags;
+  }
 };
 
 #endif 
