@@ -188,6 +188,27 @@ struct VMFunction
         return stackSlots;
     }
 
+    size_t doubleByRefArgs() const {
+        size_t count = 0;
+
+        
+        uint32_t n =
+            ((1 << (explicitArgs * 2)) - 1) 
+            & argumentProperties;
+
+        
+        
+        n = (n & 0x55555555) & (n >> 1);
+
+        
+        
+        while (n) {
+            count++;
+            n &= n - 1;
+        }
+        return count;
+    }
+
     VMFunction()
       : wrapped(nullptr),
         explicitArgs(0),
