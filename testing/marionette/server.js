@@ -57,20 +57,6 @@ this.MarionetteServer = function(port, forceLocal) {
 
 
 
-MarionetteServer.prototype.init = function() {
-  
-  Services.prefs.setBoolPref(SPECIAL_POWERS_PREF, true);
-  let specialpowers = {};
-  loader.loadSubScript(
-    "chrome://specialpowers/content/SpecialPowersObserver.js", specialpowers);
-  specialpowers.specialPowersObserver = new specialpowers.SpecialPowersObserver();
-  specialpowers.specialPowersObserver.init();
-};
-
-
-
-
-
 
 
 
@@ -115,7 +101,6 @@ MarionetteServer.prototype.start = function() {
   if (this.alive) {
     return;
   }
-  this.init();
   let flags = Ci.nsIServerSocket.KeepWhenOffline;
   if (this.forceLocal) {
     flags |= Ci.nsIServerSocket.LoopbackOnly;
