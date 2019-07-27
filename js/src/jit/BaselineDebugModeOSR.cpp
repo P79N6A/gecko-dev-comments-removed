@@ -338,6 +338,7 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
     
     
     
+    
 
     IonCommonFrameLayout *prev = nullptr;
     size_t entryIndex = *start;
@@ -420,7 +421,19 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
                 
                 
                 
-                pc += GetBytecodeLength(pc);
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                if (JSOp(*pc) != JSOP_THROW)
+                    pc += GetBytecodeLength(pc);
                 recompInfo->resumeAddr = bl->nativeCodeForPC(script, pc, &recompInfo->slotInfo);
                 popFrameReg = true;
                 break;
