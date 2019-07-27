@@ -10,7 +10,7 @@
 
 namespace mozilla {
 
-MOZ_BEGIN_ENUM_CLASS(ImageFormat)
+enum class ImageFormat {
   
 
 
@@ -84,15 +84,15 @@ MOZ_BEGIN_ENUM_CLASS(ImageFormat)
 
 
   OVERLAY_IMAGE
-MOZ_END_ENUM_CLASS(ImageFormat)
+};
 
-MOZ_BEGIN_ENUM_CLASS(StereoMode)
+enum class StereoMode {
   MONO,
   LEFT_RIGHT,
   RIGHT_LEFT,
   BOTTOM_TOP,
   TOP_BOTTOM
-MOZ_END_ENUM_CLASS(StereoMode)
+};
 
 } 
 

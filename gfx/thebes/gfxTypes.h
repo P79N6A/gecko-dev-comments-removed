@@ -39,26 +39,26 @@ typedef double gfxFloat;
 
 
 
-MOZ_BEGIN_ENUM_CLASS(gfxBreakPriority)
+enum class gfxBreakPriority {
   eNoBreak       = 0,
   eWordWrapBreak,
   eNormalBreak
-MOZ_END_ENUM_CLASS(gfxBreakPriority)
+};
 
 
 
 
 
-MOZ_BEGIN_ENUM_CLASS(gfxImageFormat)
+enum class gfxImageFormat {
   ARGB32, 
   RGB24,  
   A8,     
   A1,     
   RGB16_565,  
   Unknown
-MOZ_END_ENUM_CLASS(gfxImageFormat)
+};
 
-MOZ_BEGIN_ENUM_CLASS(gfxSurfaceType)
+enum class gfxSurfaceType {
   Image,
   PDF,
   PS,
@@ -85,24 +85,24 @@ MOZ_BEGIN_ENUM_CLASS(gfxSurfaceType)
   Subsurface,
   D2D,
   Max
-MOZ_END_ENUM_CLASS(gfxSurfaceType)
+};
 
-MOZ_BEGIN_ENUM_CLASS(gfxContentType)
+enum class gfxContentType {
   COLOR       = 0x1000,
   ALPHA       = 0x2000,
   COLOR_ALPHA = 0x3000,
   SENTINEL    = 0xffff
-MOZ_END_ENUM_CLASS(gfxContentType)
+};
 
 
 
 
 
 
-MOZ_BEGIN_ENUM_CLASS(gfxMemoryLocation)
+enum class gfxMemoryLocation {
   IN_PROCESS_HEAP,
   IN_PROCESS_NONHEAP,
   OUT_OF_PROCESS
-MOZ_END_ENUM_CLASS(gfxMemoryLocation)
+};
 
-#endif 
+#endif

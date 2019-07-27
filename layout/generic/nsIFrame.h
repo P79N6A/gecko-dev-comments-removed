@@ -316,10 +316,10 @@ void NS_MergeReflowStatusInto(nsReflowStatus* aPrimary,
 
 
 
-MOZ_BEGIN_ENUM_CLASS(nsDidReflowStatus, uint32_t)
+enum class nsDidReflowStatus : uint32_t {
   NOT_FINISHED,
   FINISHED
-MOZ_END_ENUM_CLASS(nsDidReflowStatus)
+};
 
 
 

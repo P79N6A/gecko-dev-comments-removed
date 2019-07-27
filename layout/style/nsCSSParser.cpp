@@ -74,14 +74,14 @@ nsCSSProps::kParserVariantTable[eCSSProperty_COUNT_no_shorthands] = {
 
 #define MASK_END_VALUE  (-1)
 
-MOZ_BEGIN_ENUM_CLASS(CSSParseResult, int32_t)
+enum class CSSParseResult : int32_t {
   
   Ok,
   
   NotFound,
   
   Error
-MOZ_END_ENUM_CLASS(CSSParseResult)
+};
 
 namespace {
 

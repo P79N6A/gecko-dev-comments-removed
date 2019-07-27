@@ -23,7 +23,7 @@ class ImageRegion;
 class DrawableFrameRef;
 class RawAccessFrameRef;
 
-MOZ_BEGIN_ENUM_CLASS(BlendMethod, int8_t)
+enum class BlendMethod : int8_t {
   
   
   SOURCE,
@@ -31,20 +31,20 @@ MOZ_BEGIN_ENUM_CLASS(BlendMethod, int8_t)
   
   
   OVER
-MOZ_END_ENUM_CLASS(BlendMethod)
+};
 
-MOZ_BEGIN_ENUM_CLASS(DisposalMethod, int8_t)
+enum class DisposalMethod : int8_t {
   CLEAR_ALL = -1,  
   NOT_SPECIFIED,   
   KEEP,            
   CLEAR,           
   RESTORE_PREVIOUS 
-MOZ_END_ENUM_CLASS(DisposalMethod)
+};
 
-MOZ_BEGIN_ENUM_CLASS(Opacity, uint8_t)
+enum class Opacity : uint8_t {
   OPAQUE,
   SOME_TRANSPARENCY
-MOZ_END_ENUM_CLASS(Opacity)
+};
 
 
 

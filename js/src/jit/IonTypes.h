@@ -632,7 +632,7 @@ enum ABIFunctionType
         (ArgType_General << (ArgType_Shift * 2))
 };
 
-MOZ_BEGIN_ENUM_CLASS(BarrierKind, uint32_t)
+enum class BarrierKind : uint32_t {
     
     NoBarrier,
 
@@ -643,7 +643,7 @@ MOZ_BEGIN_ENUM_CLASS(BarrierKind, uint32_t)
     
     
     TypeSet
-MOZ_END_ENUM_CLASS(BarrierKind)
+};
 
 } 
 } 

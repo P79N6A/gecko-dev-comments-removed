@@ -25,7 +25,7 @@ namespace layers {
 
 
 
-MOZ_BEGIN_ENUM_CLASS(TextureFlags, uint32_t)
+enum class TextureFlags : uint32_t {
   NO_FLAGS           = 0,
   
   USE_NEAREST_FILTER = 1 << 0,
@@ -67,7 +67,7 @@ MOZ_BEGIN_ENUM_CLASS(TextureFlags, uint32_t)
   ALL_BITS           = (1 << 10) - 1,
   
   DEFAULT = NO_FLAGS
-MOZ_END_ENUM_CLASS(TextureFlags)
+};
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(TextureFlags)
 
 static inline bool
@@ -83,14 +83,14 @@ TextureRequiresLocking(TextureFlags aFlags)
 
 
 
-MOZ_BEGIN_ENUM_CLASS(DiagnosticTypes, uint8_t)
+enum class DiagnosticTypes : uint8_t {
   NO_DIAGNOSTIC    = 0,
   TILE_BORDERS     = 1 << 0,
   LAYER_BORDERS    = 1 << 1,
   BIGIMAGE_BORDERS = 1 << 2,
   FLASH_BORDERS    = 1 << 3,
   ALL_BITS         = (1 << 4) - 1
-MOZ_END_ENUM_CLASS(DiagnosticTypes)
+};
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(DiagnosticTypes)
 
 #define DIAGNOSTIC_FLASH_COUNTER_MAX 100
@@ -98,7 +98,7 @@ MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(DiagnosticTypes)
 
 
 
-MOZ_BEGIN_ENUM_CLASS(DiagnosticFlags, uint16_t)
+enum class DiagnosticFlags : uint16_t {
   NO_DIAGNOSTIC   = 0,
   IMAGE           = 1 << 0,
   CONTENT         = 1 << 1,
@@ -109,13 +109,13 @@ MOZ_BEGIN_ENUM_CLASS(DiagnosticFlags, uint16_t)
   BIGIMAGE        = 1 << 6,
   COMPONENT_ALPHA = 1 << 7,
   REGION_RECT     = 1 << 8
-MOZ_END_ENUM_CLASS(DiagnosticFlags)
+};
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(DiagnosticFlags)
 
 
 
 
-MOZ_BEGIN_ENUM_CLASS(EffectTypes, uint8_t)
+enum class EffectTypes : uint8_t {
   MASK,
   BLEND_MODE,
   COLOR_MATRIX,
@@ -127,12 +127,12 @@ MOZ_BEGIN_ENUM_CLASS(EffectTypes, uint8_t)
   RENDER_TARGET,
   VR_DISTORTION,
   MAX  
-MOZ_END_ENUM_CLASS(EffectTypes)
+};
 
 
 
 
-MOZ_BEGIN_ENUM_CLASS(CompositableType, uint8_t)
+enum class CompositableType : uint8_t {
   UNKNOWN,
   CONTENT_INC,     
                    
@@ -143,26 +143,26 @@ MOZ_BEGIN_ENUM_CLASS(CompositableType, uint8_t)
   CONTENT_SINGLE,  
   CONTENT_DOUBLE,  
   COUNT
-MOZ_END_ENUM_CLASS(CompositableType)
+};
 
 
 
 
 
-MOZ_BEGIN_ENUM_CLASS(DeprecatedTextureHostFlags, uint8_t)
+enum class DeprecatedTextureHostFlags : uint8_t {
   DEFAULT = 0,       
   TILED = 1 << 0,    
   COPY_PREVIOUS = 1 << 1, 
                                       
   ALL_BITS = (1 << 2) - 1
-MOZ_END_ENUM_CLASS(DeprecatedTextureHostFlags)
+};
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(DeprecatedTextureHostFlags)
 
 #ifdef XP_WIN
 typedef void* SyncHandle;
 #else
 typedef uintptr_t SyncHandle;
-#endif
+#endif 
 
 
 
@@ -201,13 +201,13 @@ struct TextureFactoryIdentifier
 
 
 
-MOZ_BEGIN_ENUM_CLASS(TextureIdentifier, uint8_t)
+enum class TextureIdentifier : uint8_t {
   Front = 1,
   Back = 2,
   OnWhiteFront = 3,
   OnWhiteBack = 4,
   HighBound
-MOZ_END_ENUM_CLASS(TextureIdentifier)
+};
 
 
 
@@ -249,24 +249,24 @@ struct TextureInfo
 
 
 
-MOZ_BEGIN_ENUM_CLASS(OpenMode, uint8_t)
+enum class OpenMode : uint8_t {
   OPEN_NONE        = 0,
   OPEN_READ        = 0x1,
   OPEN_WRITE       = 0x2,
   OPEN_READ_WRITE  = OPEN_READ|OPEN_WRITE,
   OPEN_READ_ONLY   = OPEN_READ,
   OPEN_WRITE_ONLY  = OPEN_WRITE
-MOZ_END_ENUM_CLASS(OpenMode)
+};
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(OpenMode)
 
 
 
-MOZ_BEGIN_ENUM_CLASS(MaskType, uint8_t)
+enum class MaskType : uint8_t {
   MaskNone = 0,   
   Mask2d,         
   Mask3d,         
   NumMaskTypes
-MOZ_END_ENUM_CLASS(MaskType)
+};
 
 } 
 } 

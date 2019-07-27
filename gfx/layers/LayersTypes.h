@@ -46,7 +46,7 @@ class TextureHost;
 #undef NONE
 #undef OPAQUE
 
-MOZ_BEGIN_ENUM_CLASS(LayersBackend, int8_t)
+enum class LayersBackend : int8_t {
   LAYERS_NONE = 0,
   LAYERS_BASIC,
   LAYERS_OPENGL,
@@ -55,29 +55,29 @@ MOZ_BEGIN_ENUM_CLASS(LayersBackend, int8_t)
   LAYERS_D3D11,
   LAYERS_CLIENT,
   LAYERS_LAST
-MOZ_END_ENUM_CLASS(LayersBackend)
+};
 
-MOZ_BEGIN_ENUM_CLASS(BufferMode, int8_t)
+enum class BufferMode : int8_t {
   BUFFER_NONE,
   BUFFERED
-MOZ_END_ENUM_CLASS(BufferMode)
+};
 
-MOZ_BEGIN_ENUM_CLASS(DrawRegionClip, int8_t)
+enum class DrawRegionClip : int8_t {
   DRAW,
   NONE
-MOZ_END_ENUM_CLASS(DrawRegionClip)
+};
 
-MOZ_BEGIN_ENUM_CLASS(SurfaceMode, int8_t)
+enum class SurfaceMode : int8_t {
   SURFACE_NONE = 0,
   SURFACE_OPAQUE,
   SURFACE_SINGLE_CHANNEL_ALPHA,
   SURFACE_COMPONENT_ALPHA
-MOZ_END_ENUM_CLASS(SurfaceMode)
+};
 
 
 
 
-MOZ_BEGIN_ENUM_CLASS(LayerRenderStateFlags, int8_t)
+enum class LayerRenderStateFlags : int8_t {
   LAYER_RENDER_STATE_DEFAULT = 0,
   ORIGIN_BOTTOM_LEFT = 1 << 0,
   BUFFER_ROTATION = 1 << 1,
@@ -87,7 +87,7 @@ MOZ_BEGIN_ENUM_CLASS(LayerRenderStateFlags, int8_t)
   
   
   OPAQUE = 1 << 3
-MOZ_END_ENUM_CLASS(LayerRenderStateFlags)
+};
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(LayerRenderStateFlags)
 
 
@@ -151,12 +151,12 @@ struct LayerRenderState {
 #endif
 };
 
-MOZ_BEGIN_ENUM_CLASS(ScaleMode, int8_t)
+enum class ScaleMode : int8_t {
   SCALE_NONE,
   STRETCH,
   SENTINEL
 
-MOZ_END_ENUM_CLASS(ScaleMode)
+};
 
 struct EventRegions {
   nsIntRegion mHitRegion;
@@ -223,4 +223,4 @@ struct EventRegions {
 } 
 } 
 
-#endif 
+#endif

@@ -22,11 +22,11 @@ class nsIntRegion;
 
 namespace mozilla {
 
-MOZ_BEGIN_ENUM_CLASS(VibrancyType)
+enum class VibrancyType {
   LIGHT,
   DARK,
   TOOLTIP
-MOZ_END_ENUM_CLASS(VibrancyType)
+};
 
 
 
@@ -116,4 +116,4 @@ protected:
 
 }
 
-#endif 
+#endif

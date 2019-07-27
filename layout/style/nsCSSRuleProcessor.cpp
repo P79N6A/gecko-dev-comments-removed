@@ -1407,7 +1407,7 @@ struct NodeMatchContext {
 
 
 
-MOZ_BEGIN_ENUM_CLASS(SelectorMatchesFlags, uint8_t)
+enum class SelectorMatchesFlags : uint8_t {
   NONE = 0,
 
   
@@ -1424,7 +1424,7 @@ MOZ_BEGIN_ENUM_CLASS(SelectorMatchesFlags, uint8_t)
   
   
   IS_PSEUDO_CLASS_ARGUMENT = 1 << 2
-MOZ_END_ENUM_CLASS(SelectorMatchesFlags)
+};
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(SelectorMatchesFlags)
 
 static bool ValueIncludes(const nsSubstring& aValueList,

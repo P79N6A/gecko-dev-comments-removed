@@ -16,7 +16,7 @@ namespace gfx {
 
 typedef float Float;
 
-MOZ_BEGIN_ENUM_CLASS(SurfaceType, int8_t)
+enum class SurfaceType : int8_t {
   DATA, 
   D2D1_BITMAP, 
   D2D1_DRAWTARGET, 
@@ -29,9 +29,9 @@ MOZ_BEGIN_ENUM_CLASS(SurfaceType, int8_t)
   D2D1_1_IMAGE, 
   RECORDING, 
   TILED 
-MOZ_END_ENUM_CLASS(SurfaceType)
+};
 
-MOZ_BEGIN_ENUM_CLASS(SurfaceFormat, int8_t)
+enum class SurfaceFormat : int8_t {
   B8G8R8A8,
   B8G8R8X8,
   R8G8B8A8,
@@ -40,7 +40,7 @@ MOZ_BEGIN_ENUM_CLASS(SurfaceFormat, int8_t)
   A8,
   YUV,
   UNKNOWN
-MOZ_END_ENUM_CLASS(SurfaceFormat)
+};
 
 inline bool IsOpaque(SurfaceFormat aFormat)
 {
@@ -55,7 +55,7 @@ inline bool IsOpaque(SurfaceFormat aFormat)
   }
 }
 
-MOZ_BEGIN_ENUM_CLASS(FilterType, int8_t)
+enum class FilterType : int8_t {
   BLEND = 0,
   TRANSFORM,
   MORPHOLOGY,
@@ -82,15 +82,15 @@ MOZ_BEGIN_ENUM_CLASS(FilterType, int8_t)
   CROP,
   PREMULTIPLY,
   UNPREMULTIPLY
-MOZ_END_ENUM_CLASS(FilterType)
+};
 
-MOZ_BEGIN_ENUM_CLASS(DrawTargetType, int8_t)
+enum class DrawTargetType : int8_t {
   SOFTWARE_RASTER = 0,
   HARDWARE_RASTER,
   VECTOR
-MOZ_END_ENUM_CLASS(DrawTargetType)
+};
 
-MOZ_BEGIN_ENUM_CLASS(BackendType, int8_t)
+enum class BackendType : int8_t {
   NONE = 0,
   DIRECT2D,
   COREGRAPHICS,
@@ -99,49 +99,49 @@ MOZ_BEGIN_ENUM_CLASS(BackendType, int8_t)
   SKIA,
   RECORDING,
   DIRECT2D1_1
-MOZ_END_ENUM_CLASS(BackendType)
+};
 
-MOZ_BEGIN_ENUM_CLASS(FontType, int8_t)
+enum class FontType : int8_t {
   DWRITE,
   GDI,
   MAC,
   SKIA,
   CAIRO,
   COREGRAPHICS
-MOZ_END_ENUM_CLASS(FontType)
+};
 
-MOZ_BEGIN_ENUM_CLASS(NativeSurfaceType, int8_t)
+enum class NativeSurfaceType : int8_t {
   D3D10_TEXTURE,
   CAIRO_SURFACE,
   CAIRO_CONTEXT,
   CGCONTEXT,
   CGCONTEXT_ACCELERATED,
   OPENGL_TEXTURE
-MOZ_END_ENUM_CLASS(NativeSurfaceType)
+};
 
-MOZ_BEGIN_ENUM_CLASS(NativeFontType, int8_t)
+enum class NativeFontType : int8_t {
   DWRITE_FONT_FACE,
   GDI_FONT_FACE,
   MAC_FONT_FACE,
   SKIA_FONT_FACE,
   CAIRO_FONT_FACE
-MOZ_END_ENUM_CLASS(NativeFontType)
+};
 
-MOZ_BEGIN_ENUM_CLASS(FontStyle, int8_t)
+enum class FontStyle : int8_t {
   NORMAL,
   ITALIC,
   BOLD,
   BOLD_ITALIC
-MOZ_END_ENUM_CLASS(FontStyle)
+};
 
-MOZ_BEGIN_ENUM_CLASS(FontHinting, int8_t)
+enum class FontHinting : int8_t {
   NONE,
   LIGHT,
   NORMAL,
   FULL
-MOZ_END_ENUM_CLASS(FontHinting)
+};
 
-MOZ_BEGIN_ENUM_CLASS(CompositionOp, int8_t)
+enum class CompositionOp : int8_t {
   OP_OVER,
   OP_ADD,
   OP_ATOP,
@@ -169,58 +169,58 @@ MOZ_BEGIN_ENUM_CLASS(CompositionOp, int8_t)
   OP_COLOR,
   OP_LUMINOSITY,
   OP_COUNT
-MOZ_END_ENUM_CLASS(CompositionOp)
+};
 
-MOZ_BEGIN_ENUM_CLASS(ExtendMode, int8_t)
+enum class ExtendMode : int8_t {
   CLAMP,
   REPEAT,
   REFLECT
-MOZ_END_ENUM_CLASS(ExtendMode)
+};
 
-MOZ_BEGIN_ENUM_CLASS(FillRule, int8_t)
+enum class FillRule : int8_t {
   FILL_WINDING,
   FILL_EVEN_ODD
-MOZ_END_ENUM_CLASS(FillRule)
+};
 
-MOZ_BEGIN_ENUM_CLASS(AntialiasMode, int8_t)
+enum class AntialiasMode : int8_t {
   NONE,
   GRAY,
   SUBPIXEL,
   DEFAULT
-MOZ_END_ENUM_CLASS(AntialiasMode)
+};
 
-MOZ_BEGIN_ENUM_CLASS(Filter, int8_t)
+enum class Filter : int8_t {
   GOOD,
   LINEAR,
   POINT
-MOZ_END_ENUM_CLASS(Filter)
+};
 
-MOZ_BEGIN_ENUM_CLASS(PatternType, int8_t)
+enum class PatternType : int8_t {
   COLOR,
   SURFACE,
   LINEAR_GRADIENT,
   RADIAL_GRADIENT
-MOZ_END_ENUM_CLASS(PatternType)
+};
 
-MOZ_BEGIN_ENUM_CLASS(JoinStyle, int8_t)
+enum class JoinStyle : int8_t {
   BEVEL,
   ROUND,
   MITER, 
          
          
   MITER_OR_BEVEL 
-MOZ_END_ENUM_CLASS(JoinStyle)
+};
 
-MOZ_BEGIN_ENUM_CLASS(CapStyle, int8_t)
+enum class CapStyle : int8_t {
   BUTT,
   ROUND,
   SQUARE
-MOZ_END_ENUM_CLASS(CapStyle)
+};
 
-MOZ_BEGIN_ENUM_CLASS(SamplingBounds, int8_t)
+enum class SamplingBounds : int8_t {
   UNBOUNDED,
   BOUNDED
-MOZ_END_ENUM_CLASS(SamplingBounds)
+};
 
 
 struct Color
@@ -331,4 +331,4 @@ enum SideBits {
 #define NS_SIDE_BOTTOM mozilla::eSideBottom
 #define NS_SIDE_LEFT   mozilla::eSideLeft
 
-#endif 
+#endif

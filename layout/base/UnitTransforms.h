@@ -19,7 +19,7 @@ namespace mozilla {
 
 
 
-MOZ_BEGIN_ENUM_CLASS(PixelCastJustification, uint8_t)
+enum class PixelCastJustification : uint8_t {
   
   ScreenIsParentLayerForRoot,
   
@@ -31,7 +31,7 @@ MOZ_BEGIN_ENUM_CLASS(PixelCastJustification, uint8_t)
   
   
   TransformNotAvailable
-MOZ_END_ENUM_CLASS(PixelCastJustification)
+};
 
 template <class TargetUnits, class SourceUnits>
 gfx::SizeTyped<TargetUnits> ViewAs(const gfx::SizeTyped<SourceUnits>& aSize, PixelCastJustification) {

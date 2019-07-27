@@ -9,7 +9,7 @@
 #include "mozilla/TypedEnum.h"
 
 
-MOZ_BEGIN_ENUM_CLASS(DrawMode, int)
+enum class DrawMode : int {
   
   
   GLYPH_FILL = 1,
@@ -21,7 +21,7 @@ MOZ_BEGIN_ENUM_CLASS(DrawMode, int)
   
   
   GLYPH_STROKE_UNDERNEATH = 8
-MOZ_END_ENUM_CLASS(DrawMode)
+};
 
 #endif
 

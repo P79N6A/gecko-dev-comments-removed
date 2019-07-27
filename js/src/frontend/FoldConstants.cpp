@@ -252,7 +252,7 @@ Boolish(ParseNode *pn)
 
 
 
-MOZ_BEGIN_ENUM_CLASS(SyntacticContext, int)
+enum class SyntacticContext : int {
     
     
     
@@ -264,7 +264,7 @@ MOZ_BEGIN_ENUM_CLASS(SyntacticContext, int)
 
     
     Other
-MOZ_END_ENUM_CLASS(SyntacticContext)
+};
 
 static SyntacticContext
 condIf(const ParseNode *pn, ParseNodeKind kind)
