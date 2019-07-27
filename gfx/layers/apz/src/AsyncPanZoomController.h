@@ -577,6 +577,13 @@ protected:
 
 
 
+  APZCTreeManager* GetApzcTreeManager() const;
+
+  
+
+
+
+
 
   void FireAsyncScrollOnTimeout();
 
