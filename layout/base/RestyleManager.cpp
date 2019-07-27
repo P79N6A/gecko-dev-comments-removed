@@ -71,6 +71,7 @@ RestyleManager::RestyleManager(nsPresContext* aPresContext)
   , mSkipAnimationRules(false)
   , mPostAnimationRestyles(false)
   , mIsProcessingAnimationStyleChange(false)
+  , mHavePendingNonAnimationRestyles(false)
   , mHoverGeneration(0)
   , mRebuildAllExtraHint(nsChangeHint(0))
   , mRebuildAllRestyleHint(nsRestyleHint(0))
@@ -1688,6 +1689,8 @@ RestyleManager::ProcessPendingRestyles()
                    "We should not have posted new non-animation restyles while "
                    "processing animation restyles");
 
+  mHavePendingNonAnimationRestyles = false;
+
   if (mDoRebuildAllStyleData) {
     
     
@@ -1785,6 +1788,19 @@ RestyleManager::PostRestyleEventCommon(Element* aElement,
   RestyleTracker& tracker =
     aForAnimation ? mPendingAnimationRestyles : mPendingRestyles;
   tracker.AddPendingRestyle(aElement, aRestyleHint, aMinChangeHint);
+
+  
+  
+  
+  
+  
+  
+  
+  if (aRestyleHint & ~(eRestyle_CSSTransitions | eRestyle_CSSAnimations |
+                       eRestyle_ChangeAnimationPhase |
+                       eRestyle_SVGAttrAnimations)) {
+    mHavePendingNonAnimationRestyles = true;
+  }
 
   PostRestyleEventInternal(false);
 }
