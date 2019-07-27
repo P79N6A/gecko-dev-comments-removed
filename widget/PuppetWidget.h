@@ -92,14 +92,8 @@ public:
                     double aWidth,
                     double aHeight,
                     bool   aRepaint) MOZ_OVERRIDE
-  {
-    if (mBounds.x != aX || mBounds.y != aY) {
-      NotifyWindowMoved(aX, aY);
-    }
-    mBounds.x = aX;
-    mBounds.y = aY;
-    return Resize(aWidth, aHeight, aRepaint);
-  }
+  
+  { return Resize(aWidth, aHeight, aRepaint); }
 
   
   
@@ -129,8 +123,9 @@ public:
   NS_IMETHOD SetTitle(const nsAString& aTitle) MOZ_OVERRIDE
   { return NS_ERROR_UNEXPECTED; }
   
+  
   virtual mozilla::LayoutDeviceIntPoint WidgetToScreenOffset() MOZ_OVERRIDE
-  { return GetWindowPosition() + GetChromeDimensions(); }
+  { return mozilla::LayoutDeviceIntPoint(0, 0); }
 
   void InitEvent(WidgetGUIEvent& aEvent, nsIntPoint* aPoint = nullptr);
 
@@ -202,8 +197,6 @@ public:
 
   
   nsIntPoint GetWindowPosition();
-
-  NS_IMETHOD GetScreenBounds(nsIntRect &aRect) MOZ_OVERRIDE;
 
 protected:
   bool mEnabled;
