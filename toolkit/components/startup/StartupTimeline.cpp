@@ -16,41 +16,10 @@ const char *StartupTimeline::sStartupTimelineDesc[StartupTimeline::MAX_EVENT_ID]
 #undef mozilla_StartupTimeline_Event
 };
 
-
-
-
-
-
-
-void
-StartupTimelineRecordExternal(int aEvent, uint64_t aWhen)
-{
-#if XP_WIN
-  TimeStamp ts = TimeStampValue(aWhen, 0, 0);
-#else
-  TimeStamp ts = TimeStampValue(aWhen);
-#endif
-  bool error = false;
-
-  
-  
-  if (ts < TimeStamp::ProcessCreation(error)) {
-    Telemetry::Accumulate(Telemetry::STARTUP_MEASUREMENT_ERRORS,
-      (StartupTimeline::Event)aEvent);
-  } else {
-    StartupTimeline::Record((StartupTimeline::Event)aEvent, ts);
-  }
-}
-
 } 
 
-
-
-
-
-
-
-
+using mozilla::StartupTimeline;
+using mozilla::TimeStamp;
 
 
 
@@ -61,7 +30,7 @@ StartupTimelineRecordExternal(int aEvent, uint64_t aWhen)
 
 
 void
-XRE_StartupTimelineRecord(int aEvent, PRTime aWhen)
+XRE_StartupTimelineRecord(int aEvent, TimeStamp aWhen)
 {
-  mozilla::StartupTimelineRecordExternal(aEvent, aWhen);
+  StartupTimeline::Record((StartupTimeline::Event)aEvent, aWhen);
 }

@@ -14,12 +14,10 @@
 #include <fcntl.h>
 #elif defined(XP_UNIX)
 #include <sys/resource.h>
-#include <time.h>
 #include <unistd.h>
 #endif
 
 #ifdef XP_MACOSX
-#include <mach/mach_time.h>
 #include "MacQuirks.h"
 #endif
 
@@ -214,83 +212,6 @@ static int do_main(int argc, char* argv[], nsIFile *xreDirectory)
   return XRE_main(argc, argv, &appData, mainFlags);
 }
 
-#ifdef XP_WIN
-
-
-
-
-
-static DWORD sLastGTCResult = 0;
-
-
-
-
-
-static DWORD sLastGTCRollover = 0;
-
-
-
-
-
-
-
-
-static ULONGLONG WINAPI
-MozGetTickCount64()
-{
-  DWORD GTC = ::GetTickCount();
-
-  
-
-  if ((sLastGTCResult > GTC) && ((sLastGTCResult - GTC) > (1UL << 30)))
-    ++sLastGTCRollover;
-
-  sLastGTCResult = GTC;
-  return (ULONGLONG)sLastGTCRollover << 32 | sLastGTCResult;
-}
-
-typedef ULONGLONG (WINAPI* GetTickCount64_t)();
-static GetTickCount64_t sGetTickCount64 = nullptr;
-
-#endif
-
-
-
-
-
-static uint64_t
-TimeStamp_Now()
-{
-#ifdef XP_WIN
-  LARGE_INTEGER freq;
-  ::QueryPerformanceFrequency(&freq);
-
-  HMODULE kernelDLL = GetModuleHandleW(L"kernel32.dll");
-  sGetTickCount64 = reinterpret_cast<GetTickCount64_t>
-    (GetProcAddress(kernelDLL, "GetTickCount64"));
-
-  if (!sGetTickCount64) {
-    
-
-    sGetTickCount64 = MozGetTickCount64;
-  }
-
-  return sGetTickCount64() * freq.QuadPart;
-#elif defined(XP_MACOSX)
-  return mach_absolute_time();
-#elif defined(HAVE_CLOCK_MONOTONIC)
-  struct timespec ts;
-  int rv = clock_gettime(CLOCK_MONOTONIC, &ts);
-
-  if (rv != 0) {
-    return 0;
-  }
-
-  uint64_t baseNs = (uint64_t)ts.tv_sec * 1000000000;
-  return baseNs + (uint64_t)ts.tv_nsec;
-#endif
-}
-
 static bool
 FileExists(const char *path)
 {
@@ -411,7 +332,7 @@ InitXPCOMGlue(const char *argv0, nsIFile **xreDirectory)
 
 int main(int argc, char* argv[])
 {
-  uint64_t start = TimeStamp_Now();
+  mozilla::TimeStamp start = mozilla::TimeStamp::Now();
 
 #ifdef XP_MACOSX
   TriggerQuirks();
