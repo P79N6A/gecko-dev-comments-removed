@@ -2,6 +2,52 @@ XPCOMUtils.defineLazyModuleGetter(this, "Promise",
   "resource://gre/modules/Promise.jsm");
 Components.utils.import("resource://gre/modules/Timer.jsm", this);
 
+
+
+
+
+
+add_task(function* test_hotkey_event_propagation() {
+  info("Ensure hotkeys are not affected by stopPropagation.");
+
+  
+  let tab = yield promiseTestPageLoad();
+  let browser = gBrowser.getBrowserForTab(tab);
+  let findbar = gBrowser.getFindBar();
+
+  
+  const HOTKEYS = ["/", "'"];
+
+  
+  for (let key of HOTKEYS) {
+    is(findbar.hidden, true, "Findbar is hidden now.");
+    gBrowser.selectedTab = tab;
+    yield promiseFocus();
+    EventUtils.sendChar(key, browser.contentWindow);
+    is(findbar.hidden, false, "Findbar should not be hidden.");
+    yield closeFindbarAndWait(findbar);
+  }
+
+  
+  let window = browser.contentWindow;
+  let stopPropagation = function(e) { e.stopImmediatePropagation(); };
+  window.addEventListener("keydown", stopPropagation, true);
+  window.addEventListener("keypress", stopPropagation, true);
+  window.addEventListener("keyup", stopPropagation, true);
+
+  
+  for (let key of HOTKEYS) {
+    is(findbar.hidden, true, "Findbar is hidden now.");
+    gBrowser.selectedTab = tab;
+    yield promiseFocus();
+    EventUtils.sendChar(key, browser.contentWindow);
+    is(findbar.hidden, false, "Findbar should not be hidden.");
+    yield closeFindbarAndWait(findbar);
+  }
+
+  gBrowser.removeTab(tab);
+});
+
 add_task(function* test_not_found() {
   info("Check correct 'Phrase not found' on new tab");
 
@@ -102,4 +148,15 @@ function promiseFindFinished(searchText, highlightOn) {
   });
 
   return deferred.promise;
+}
+
+
+
+
+function promiseFocus() {
+  return new Promise((resolve) => {
+    waitForFocus(function(){
+      resolve();
+    }, content);
+  });
 }
