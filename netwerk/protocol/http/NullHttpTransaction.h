@@ -15,6 +15,8 @@
 
 
 
+class nsIHttpActivityObserver;
+
 namespace mozilla { namespace net {
 
 class nsAHttpConnection;
@@ -65,6 +67,7 @@ protected:
   nsRefPtr<nsAHttpConnection> mConnection;
   nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
   nsRefPtr<nsHttpConnectionInfo> mConnectionInfo;
+  nsCOMPtr<nsIHttpActivityObserver> mActivityDistributor;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(NullHttpTransaction, NS_NULLHTTPTRANSACTION_IID)
