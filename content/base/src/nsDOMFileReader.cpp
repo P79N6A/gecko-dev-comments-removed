@@ -294,8 +294,22 @@ nsDOMFileReader::DoOnLoadEnd(nsresult aStatus,
 
   nsresult rv = NS_OK;
   switch (mDataFormat) {
-    case FILE_AS_ARRAYBUFFER:
-      break; 
+    case FILE_AS_ARRAYBUFFER: {
+      AutoJSAPI jsapi;
+      if (NS_WARN_IF(!jsapi.Init(mozilla::DOMEventTargetHelper::GetParentObject()))) {
+        return NS_ERROR_FAILURE;
+      }
+
+      RootResultArrayBuffer();
+      mResultArrayBuffer = JS_NewArrayBufferWithContents(jsapi.cx(), mTotal, mFileData);
+      if (!mResultArrayBuffer) {
+        JS_ClearPendingException(jsapi.cx());
+        rv = NS_ERROR_OUT_OF_MEMORY;
+      } else {
+        mFileData = nullptr; 
+      }
+      break;
+    }
     case FILE_AS_BINARY:
       break; 
     case FILE_AS_TEXT:
@@ -342,20 +356,16 @@ nsDOMFileReader::DoReadData(nsIAsyncInputStream* aStream, uint64_t aCount)
                           &bytesRead);
     NS_ASSERTION(bytesRead == aCount, "failed to read data");
   }
-  else if (mDataFormat == FILE_AS_ARRAYBUFFER) {
-    uint32_t bytesRead = 0;
-    aStream->Read((char*) JS_GetArrayBufferData(mResultArrayBuffer) + mDataLen,
-                  aCount, &bytesRead);
-    NS_ASSERTION(bytesRead == aCount, "failed to read data");
-  }
   else {
     
     if (mDataLen + aCount > UINT32_MAX) {
       
       return NS_ERROR_OUT_OF_MEMORY;
     }
-    mFileData = (char *) moz_realloc(mFileData, mDataLen + aCount);
-    NS_ENSURE_TRUE(mFileData, NS_ERROR_OUT_OF_MEMORY);
+    if (mDataFormat != FILE_AS_ARRAYBUFFER) {
+      mFileData = (char *) moz_realloc(mFileData, mDataLen + aCount);
+      NS_ENSURE_TRUE(mFileData, NS_ERROR_OUT_OF_MEMORY);
+    }
 
     uint32_t bytesRead = 0;
     aStream->Read(mFileData + mDataLen, aCount, &bytesRead);
@@ -369,8 +379,7 @@ nsDOMFileReader::DoReadData(nsIAsyncInputStream* aStream, uint64_t aCount)
 
 
 void
-nsDOMFileReader::ReadFileContent(JSContext* aCx,
-                                 File& aFile,
+nsDOMFileReader::ReadFileContent(File& aFile,
                                  const nsAString &aCharset,
                                  eDataFormat aDataFormat,
                                  ErrorResult& aRv)
@@ -443,11 +452,10 @@ nsDOMFileReader::ReadFileContent(JSContext* aCx,
   DispatchProgressEvent(NS_LITERAL_STRING(LOADSTART_STR));
 
   if (mDataFormat == FILE_AS_ARRAYBUFFER) {
-    RootResultArrayBuffer();
-    mResultArrayBuffer = JS_NewArrayBuffer(aCx, mTotal);
-    if (!mResultArrayBuffer) {
-      NS_WARNING("Failed to create JS array buffer");
-      aRv.Throw(NS_ERROR_FAILURE);
+    mFileData = js_pod_malloc<char>(mTotal);
+    if (!mFileData) {
+      NS_WARNING("Preallocation failed for ReadFileData");
+      aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     }
   }
 }

@@ -28,8 +28,7 @@ public:
 
 private:
   virtual ~ArrayBufferInputStream() {}
-  mozilla::Maybe<JS::PersistentRooted<JS::Value> > mArrayBuffer;
-  uint8_t* mBuffer; 
+  mozilla::Maybe<JS::PersistentRooted<JSObject*> > mArrayBuffer;
   uint32_t mBufferLength; 
   uint32_t mOffset; 
   uint32_t mPos; 

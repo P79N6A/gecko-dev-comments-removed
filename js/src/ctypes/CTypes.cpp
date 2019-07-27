@@ -2464,20 +2464,31 @@ ImplicitConvert(JSContext* cx,
       
       
       
-      void* p = JS_GetStableArrayBufferData(cx, valObj);
-      if (!p)
-          return false;
-      *static_cast<void**>(buffer) = p;
+      void* ptr;
+      {
+          JS::AutoCheckCannotGC nogc;
+          ptr = JS_GetArrayBufferData(valObj, nogc);
+      }
+      if (!ptr) {
+        return TypeError(cx, "arraybuffer pointer", val);
+      }
+      *static_cast<void**>(buffer) = ptr;
       break;
     } if (val.isObject() && JS_IsTypedArrayObject(valObj)) {
+      
+      
       if(!CanConvertTypedArrayItemTo(baseType, valObj, cx)) {
         return TypeError(cx, "typed array with the appropriate type", val);
       }
-
-      
-      
-      
-      *static_cast<void**>(buffer) = JS_GetArrayBufferViewData(valObj);
+      void* ptr;
+      {
+          JS::AutoCheckCannotGC nogc;
+          ptr = JS_GetArrayBufferViewData(valObj, nogc);
+      }
+      if (!ptr) {
+        return TypeError(cx, "typed array pointer", val);
+      }
+      *static_cast<void**>(buffer) = ptr;
       break;
     }
     return TypeError(cx, "pointer", val);
@@ -2583,7 +2594,8 @@ ImplicitConvert(JSContext* cx,
         JS_ReportError(cx, "ArrayType length does not match source ArrayBuffer length");
         return false;
       }
-      memcpy(buffer, JS_GetArrayBufferData(valObj), sourceLength);
+      JS::AutoCheckCannotGC nogc;
+      memcpy(buffer, JS_GetArrayBufferData(valObj, nogc), sourceLength);
       break;
     } else if (val.isObject() && JS_IsTypedArrayObject(valObj)) {
       
@@ -2599,7 +2611,8 @@ ImplicitConvert(JSContext* cx,
         JS_ReportError(cx, "typed array length does not match source TypedArray length");
         return false;
       }
-      memcpy(buffer, JS_GetArrayBufferViewData(valObj), sourceLength);
+      JS::AutoCheckCannotGC nogc;
+      memcpy(buffer, JS_GetArrayBufferViewData(valObj, nogc), sourceLength);
       break;
     } else {
       
