@@ -234,6 +234,10 @@ WMFVideoMFTManager::Init()
 HRESULT
 WMFVideoMFTManager::Input(mp4_demuxer::MP4Sample* aSample)
 {
+  if (!mDecoder) {
+    
+    return E_FAIL;
+  }
   if (mStreamType != VP8 && mStreamType != VP9) {
     
     if (!mp4_demuxer::AnnexB::ConvertSampleToAnnexB(aSample)) {
