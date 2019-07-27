@@ -15,7 +15,7 @@ BEGIN_TEST(testIsInsideNursery)
 
     JS_GC(rt);
 
-    JS::RootedObject object(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
+    JS::RootedObject object(cx, JS_NewPlainObject(cx));
 
     
     CHECK(js::gc::IsInsideNursery(object));

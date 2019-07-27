@@ -53,7 +53,7 @@ BEGIN_TEST(testTracingIncomingCCWs)
 
     
 
-    JS::RootedObject obj(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
+    JS::RootedObject obj(cx, JS_NewPlainObject(cx));
     CHECK(obj->zone() == global1->zone());
 
     JSAutoCompartment ac(cx, global2);
