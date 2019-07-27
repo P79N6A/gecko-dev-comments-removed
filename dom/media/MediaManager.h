@@ -71,6 +71,7 @@ public:
 
   ~GetUserMediaCallbackMediaStreamListener()
   {
+    unused << mMediaThread;
     
     
   }
@@ -514,7 +515,7 @@ public:
   
   static MediaManager* Get();
   static MediaManager* GetIfExists();
-  static MessageLoop* GetMessageLoop();
+  static void PostTask(const tracked_objects::Location& from_here, Task* task);
 #ifdef DEBUG
   static bool IsInMediaThread();
 #endif
