@@ -20,6 +20,7 @@
 #include "MainThreadUtils.h"
 #include "prprf.h"
 #include "prenv.h"
+#include "nsXPCOMPrivate.h"
 
 #include "nsExceptionHandler.h"
 
@@ -39,6 +40,7 @@
 #include "nsTArray.h"
 #include "nsClassHashtable.h"
 #include "nsHashKeys.h"
+#include "nsNativeCharsetUtils.h"
 
 using mozilla::MonitorAutoLock;
 using mozilla::ipc::GeckoChildProcessHost;
@@ -59,8 +61,6 @@ static const bool kLowRightsSubprocesses =
   false
 #endif
   ;
-
-mozilla::StaticRefPtr<nsIFile> GeckoChildProcessHost::sGreDir;
 
 static bool
 ShouldHaveDirectoryService()
@@ -124,22 +124,19 @@ void
 GeckoChildProcessHost::GetPathToBinary(FilePath& exePath)
 {
   if (ShouldHaveDirectoryService()) {
-    MOZ_ASSERT(sGreDir);
-    if (sGreDir) {
+    MOZ_ASSERT(gGREPath);
 #ifdef OS_WIN
-      nsString path;
-      MOZ_ALWAYS_TRUE(NS_SUCCEEDED(sGreDir->GetPath(path)));
+    exePath = FilePath(gGREPath);
 #else
-      nsCString path;
-      MOZ_ALWAYS_TRUE(NS_SUCCEEDED(sGreDir->GetNativePath(path)));
+    nsCString path;
+    NS_CopyUnicodeToNative(nsDependentString(gGREPath), path);
+    exePath = FilePath(path.get());
 #endif
-      exePath = FilePath(path.get());
 #ifdef MOZ_WIDGET_COCOA
-      
-      
-      exePath = exePath.AppendASCII(MOZ_CHILD_PROCESS_BUNDLE);
+    
+    
+    exePath = exePath.AppendASCII(MOZ_CHILD_PROCESS_BUNDLE);
 #endif
-    }
   }
 
   if (exePath.empty()) {
@@ -226,7 +223,6 @@ uint32_t GeckoChildProcessHost::GetSupportedArchitecturesForProcessType(GeckoPro
     
     static uint32_t pluginContainerArchs = 0;
     if (pluginContainerArchs == 0) {
-      CacheGreDir();
       FilePath exePath;
       GetPathToBinary(exePath);
       nsresult rv = GetArchitecturesForBinary(exePath.value().c_str(), &pluginContainerArchs);
@@ -252,42 +248,10 @@ GeckoChildProcessHost::PrepareLaunch()
 #endif
 
 #ifdef XP_WIN
-  InitWindowsGroupID();
-#endif
-  CacheGreDir();
-}
-
-
-void
-GeckoChildProcessHost::CacheGreDir()
-{
-  if (sGreDir) {
-    return;
+  if (mProcessType == GeckoProcessType_Plugin) {
+    InitWindowsGroupID();
   }
-
-#ifdef MOZ_WIDGET_GONK
-  
-  
-
-  
-  
-  MOZ_ASSERT(NS_IsMainThread());
 #endif
-
-  if (ShouldHaveDirectoryService()) {
-    nsCOMPtr<nsIProperties> directoryService(do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID));
-    MOZ_ASSERT(directoryService, "Expected XPCOM to be available");
-    if (directoryService) {
-      
-      
-      nsCOMPtr<nsIFile> greDir;
-      nsresult rv = directoryService->Get(NS_GRE_DIR, NS_GET_IID(nsIFile), getter_AddRefs(greDir));
-      if (NS_SUCCEEDED(rv)) {
-        sGreDir = greDir;
-        mozilla::ClearOnShutdown(&sGreDir);
-      }
-    }
-  }
 }
 
 #ifdef XP_WIN
@@ -551,65 +515,63 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
   
   
   if (ShouldHaveDirectoryService()) {
-    MOZ_ASSERT(sGreDir);
-    if (sGreDir) {
-      nsCString path;
-      MOZ_ALWAYS_TRUE(NS_SUCCEEDED(sGreDir->GetNativePath(path)));
+    MOZ_ASSERT(gGREPath);
+    nsCString path;
+    NS_CopyUnicodeToNative(nsDependentString(gGREPath), path);
 # if defined(OS_LINUX) || defined(OS_BSD)
 #  if defined(MOZ_WIDGET_ANDROID)
-      path += "/lib";
+    path += "/lib";
 #  endif  
-      const char *ld_library_path = PR_GetEnv("LD_LIBRARY_PATH");
-      nsCString new_ld_lib_path;
-      if (ld_library_path && *ld_library_path) {
-          new_ld_lib_path.Assign(path.get());
-          new_ld_lib_path.Append(':');
-          new_ld_lib_path.Append(ld_library_path);
-          newEnvVars["LD_LIBRARY_PATH"] = new_ld_lib_path.get();
-      } else {
-          newEnvVars["LD_LIBRARY_PATH"] = path.get();
-      }
+    const char *ld_library_path = PR_GetEnv("LD_LIBRARY_PATH");
+    nsCString new_ld_lib_path;
+    if (ld_library_path && *ld_library_path) {
+      new_ld_lib_path.Assign(path.get());
+      new_ld_lib_path.Append(':');
+      new_ld_lib_path.Append(ld_library_path);
+      newEnvVars["LD_LIBRARY_PATH"] = new_ld_lib_path.get();
+    } else {
+      newEnvVars["LD_LIBRARY_PATH"] = path.get();
+    }
 
 #  if (MOZ_WIDGET_GTK == 3)
-      if (mProcessType == GeckoProcessType_Plugin) {
-          const char *ld_preload = PR_GetEnv("LD_PRELOAD");
-          nsCString new_ld_preload;
+    if (mProcessType == GeckoProcessType_Plugin) {
+      const char *ld_preload = PR_GetEnv("LD_PRELOAD");
+      nsCString new_ld_preload;
 
-          new_ld_preload.Assign(path.get());
-          new_ld_preload.AppendLiteral("/" DLL_PREFIX "mozgtk2" DLL_SUFFIX);
+      new_ld_preload.Assign(path.get());
+      new_ld_preload.AppendLiteral("/" DLL_PREFIX "mozgtk2" DLL_SUFFIX);
 
-          if (ld_preload && *ld_preload) {
-              new_ld_preload.AppendLiteral(":");
-              new_ld_preload.Append(ld_preload);
-          }
-          newEnvVars["LD_PRELOAD"] = new_ld_preload.get();
+      if (ld_preload && *ld_preload) {
+        new_ld_preload.AppendLiteral(":");
+        new_ld_preload.Append(ld_preload);
       }
+      newEnvVars["LD_PRELOAD"] = new_ld_preload.get();
+    }
 #  endif 
 
 
 # elif OS_MACOSX
-      newEnvVars["DYLD_LIBRARY_PATH"] = path.get();
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      const char* prevInterpose = PR_GetEnv("DYLD_INSERT_LIBRARIES");
-      nsCString interpose;
-      if (prevInterpose) {
-        interpose.Assign(prevInterpose);
-        interpose.Append(':');
-      }
-      interpose.Append(path.get());
-      interpose.AppendLiteral("/libplugin_child_interpose.dylib");
-      newEnvVars["DYLD_INSERT_LIBRARIES"] = interpose.get();
-# endif  
+    newEnvVars["DYLD_LIBRARY_PATH"] = path.get();
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    const char* prevInterpose = PR_GetEnv("DYLD_INSERT_LIBRARIES");
+    nsCString interpose;
+    if (prevInterpose) {
+      interpose.Assign(prevInterpose);
+      interpose.Append(':');
     }
+    interpose.Append(path.get());
+    interpose.AppendLiteral("/libplugin_child_interpose.dylib");
+    newEnvVars["DYLD_INSERT_LIBRARIES"] = interpose.get();
+# endif  
   }
 #endif  
 

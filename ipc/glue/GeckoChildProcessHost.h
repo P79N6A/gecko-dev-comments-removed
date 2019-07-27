@@ -135,8 +135,6 @@ public:
   
   void SetAlreadyDead();
 
-  static void CacheGreDir();
-
 protected:
   GeckoProcessType mProcessType;
   ChildPrivileges mPrivileges;
@@ -203,9 +201,6 @@ private:
   
   
   std::queue<IPC::Message> mQueue;
-
-  static StaticRefPtr<nsIFile> sGreDir;
-  static DebugOnly<bool> sGreDirCached;
 };
 
 #ifdef MOZ_NUWA_PROCESS
