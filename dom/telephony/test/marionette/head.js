@@ -36,25 +36,29 @@ let emulator = (function() {
     throw "Use emulator.runShellCmd(cmd, callback) instead of runEmulatorShell";
   };
 
+  
+
+
   function runCmd(cmd) {
-    let deferred = Promise.defer();
-
-    pendingCmdCount++;
-    originalRunEmulatorCmd(cmd, function(result) {
-      pendingCmdCount--;
-      if (result[result.length - 1] === "OK") {
-        deferred.resolve(result);
-      } else {
-        is(result[result.length - 1], "OK", "emulator command result.");
-        deferred.reject();
-      }
+    return new Promise(function(resolve, reject) {
+      pendingCmdCount++;
+      originalRunEmulatorCmd(cmd, function(result) {
+        pendingCmdCount--;
+        if (result[result.length - 1] === "OK") {
+          resolve(result);
+        } else {
+          is(result[result.length - 1], "OK", "emulator command result.");
+          reject();
+        }
+      });
     });
-
-    return deferred.promise;
   }
 
+  
+
+
   function runCmdWithCallback(cmd, callback) {
-    runCmd(cmd).then(result => {
+    return runCmd(cmd).then(result => {
       if (callback && typeof callback === "function") {
         callback(result);
       }
@@ -65,30 +69,26 @@ let emulator = (function() {
 
 
   function runShellCmd(aCommands) {
-    let deferred = Promise.defer();
-
-    ++pendingShellCount;
-    originalRunEmulatorShell(aCommands, function(aResult) {
-      --pendingShellCount;
-      deferred.resolve(aResult);
+    return new Promise(function(resolve, reject) {
+      ++pendingShellCount;
+      originalRunEmulatorShell(aCommands, function(aResult) {
+        --pendingShellCount;
+        resolve(aResult);
+      });
     });
-
-    return deferred.promise;
   }
 
   
 
 
   function waitFinish() {
-    let deferred = Promise.defer();
-
-    waitFor(function() {
-      deferred.resolve();
-    }, function() {
-      return pendingCmdCount === 0 && pendingShellCount === 0;
+    return new Promise(function(resolve, reject) {
+      waitFor(function() {
+        resolve();
+      }, function() {
+        return pendingCmdCount === 0 && pendingShellCount === 0;
+      });
     });
-
-    return deferred.promise;
   }
 
   return {
@@ -107,32 +107,130 @@ let emulator = (function() {
 
 
   function delay(ms) {
-    let deferred = Promise.defer();
-
-    let startTime = Date.now();
-    waitFor(function() {
-      deferred.resolve();
-    },function() {
-      let duration = Date.now() - startTime;
-      return (duration >= ms);
+    return new Promise(function(resolve, reject) {
+      let startTime = Date.now();
+      waitFor(function() {
+        resolve();
+      },function() {
+        let duration = Date.now() - startTime;
+        return (duration >= ms);
+      });
     });
+  }
 
-    return deferred.promise;
+  
+
+
+
+
+
+
+
+
+
+
+
+  function waitForEvent(aTarget, aEventName, aPredicate) {
+    return new Promise(function(resolve, reject) {
+      aTarget.addEventListener(aEventName, function onevent(aEvent) {
+        if (aPredicate === undefined || aPredicate(aEvent)) {
+          aTarget.removeEventListener(aEventName, onevent);
+
+          let label = "X";
+          if (aTarget instanceof TelephonyCall) {
+            label = "Call (" + aTarget.id.number + ")";
+          } else if (aTarget instanceof TelephonyCallGroup) {
+            label = "Conference";
+          } else if (aTarget instanceof Telephony) {
+            label = "Telephony";
+          }
+
+          log(label + " received event '" + aEventName + "'");
+          resolve(aEvent);
+        }
+      });
+    });
+  }
+
+  
+
+
+
+
+
+
+
+
+  function waitForCallsChangedEvent(aTarget, aExpectedCall) {
+    return waitForEvent(aTarget, "callschanged",
+                        event => event.call == aExpectedCall);
+  }
+
+  
+
+
+
+
+
+
+
+
+  function waitForNamedStateEvent(aTarget, aState) {
+    return waitForEvent(aTarget, aState)
+      .then(event => {
+        if (aTarget instanceof TelephonyCall) {
+          is(aTarget, event.call, "event.call");
+        }
+        is(aTarget.state, aState, "check state");
+        return aTarget;
+      });
+  }
+
+  
+
+
+
+
+
+
+
+
+  function waitForGroupChangeEvent(aCall, aGroup) {
+    return waitForEvent(aCall, "groupchange")
+      .then(() => {
+        is(aCall.group, aGroup, "call group");
+        return aCall;
+      });
+  }
+
+  
+
+
+
+
+
+
+
+
+  function waitForStateChangeEvent(aTarget, aState) {
+    return waitForEvent(aTarget, "statechange")
+      .then(() => {
+        is(aTarget.state, aState);
+        return aTarget;
+      });
   }
 
   
 
 
   function waitForNoCall() {
-    let deferred = Promise.defer();
-
-    waitFor(function() {
-      deferred.resolve();
-    }, function() {
-      return telephony.calls.length === 0;
+    return new Promise(function(resolve, reject) {
+      waitFor(function() {
+        resolve();
+      }, function() {
+        return telephony.calls.length === 0;
+      });
     });
-
-    return deferred.promise;
   }
 
   
@@ -214,154 +312,23 @@ let emulator = (function() {
   function checkInitialState() {
     log("Verify initial state.");
     ok(telephony.calls, 'telephony.call');
-    checkTelephonyActiveAndCalls(null, []);
     ok(conference.calls, 'conference.calls');
-    checkConferenceStateAndCalls('', []);
+    checkState(null, [], "", []);
   }
 
   
-
-
-  function checkEventCallState(event, call, state) {
-    is(call, event.call, "event.call");
-    is(call.state, state, "call state");
-  }
-
-  
-
 
 
   function checkCalls(actualCalls, expectedCalls) {
-    if (actualCalls.length == expectedCalls.length) {
-      let expectedSet = new Set(expectedCalls);
-      for (let i = 0; i < actualCalls.length; ++i) {
-        ok(expectedSet.has(actualCalls[i]), "should contain the call");
-      }
+    if (actualCalls.length != expectedCalls.length) {
+      ok(false, "check calls.length");
+      return;
     }
-  }
 
-  
-
-
-  function checkTelephonyActiveAndCalls(active, calls) {
-    is(telephony.active, active, "telephony.active");
-    is(telephony.calls.length, calls.length, "telephony.calls");
-    checkCalls(telephony.calls, calls);
-  }
-
-  
-
-
-
-  function checkConferenceStateAndCalls(state, calls) {
-    is(conference.state, state, "conference.state");
-    is(conference.calls.length, calls.length, "conference.calls");
-    checkCalls(conference.calls, calls);
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  function check_oncallschanged(container, containerName, expectedCalls,
-                                callback) {
-    container.oncallschanged = function(event) {
-      log("Received 'callschanged' event for the " + containerName);
-
-      ok(event.call);
-
-      let index = expectedCalls.indexOf(event.call);
-      ok(index != -1);
-      expectedCalls.splice(index, 1);
-
-      if (expectedCalls.length === 0) {
-        container.oncallschanged = null;
-        callback();
-      }
-    };
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  function check_ongroupchange(call, callName, group, callback) {
-    call.ongroupchange = function(event) {
-      log("Received 'groupchange' event for the " + callName);
-      call.ongroupchange = null;
-
-      is(call.group, group);
-      callback();
-    };
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  function check_onstatechange(container, containerName, state, callback) {
-    container.onstatechange = function(event) {
-      log("Received 'statechange' event for the " + containerName);
-      container.onstatechange = null;
-
-      is(container.state, state);
-      callback();
-    };
-  }
-
-  
-
-
-
-
-
-
-
-  function StateEventChecker(state, previousEvent) {
-    let event = 'on' + state;
-
-    return function(call, callName, callback) {
-      call[event] = function() {
-        log("Received '" + state + "' event for the " + callName);
-        call[event] = null;
-
-        if (previousEvent) {
-          
-          
-          
-          ok(!call[previousEvent]);
-        }
-        is(call.state, state);
-        callback();
-      };
-    };
+    let expectedSet = new Set(expectedCalls);
+    for (let i = 0; i < actualCalls.length; ++i) {
+      ok(expectedSet.has(actualCalls[i]), "should contain the call");
+    }
   }
 
   
@@ -428,8 +395,10 @@ let emulator = (function() {
 
 
   function checkState(active, calls, conferenceState, conferenceCalls) {
-    checkTelephonyActiveAndCalls(active, calls);
-    checkConferenceStateAndCalls(conferenceState, conferenceCalls);
+    is(telephony.active, active, "telephony.active");
+    checkCalls(telephony.calls, calls);
+    is(conference.state, conferenceState, "conference.state");
+    checkCalls(conference.calls, conferenceCalls);
   }
 
   
@@ -468,49 +437,19 @@ let emulator = (function() {
 
 
 
-
-  function receivedPending(received, pending, nextAction) {
-    let index = pending.indexOf(received);
-    if (index != -1) {
-      pending.splice(index, 1);
-    }
-    if (pending.length === 0) {
-      nextAction();
-    }
-  }
-
-  
-
-
-
-
-
-
-
-
   function dial(number, serviceId) {
     serviceId = typeof serviceId !== "undefined" ? serviceId : 0;
     log("Make an outgoing call: " + number + ", serviceId: " + serviceId);
 
-    let deferred = Promise.defer();
+    return telephony.dial(number, serviceId)
+      .then(call => {
+        ok(call);
+        is(call.id.number, number);
+        is(call.state, "dialing");
+        is(call.serviceId, serviceId);
 
-    telephony.dial(number, serviceId).then(call => {
-      ok(call);
-      is(call.id.number, number);
-      is(call.state, "dialing");
-      is(call.serviceId, serviceId);
-
-      call.onalerting = function onalerting(event) {
-        call.onalerting = null;
-        log("Received 'onalerting' call event.");
-        checkEventCallState(event, call, "alerting");
-        deferred.resolve(call);
-      };
-    }, cause => {
-      deferred.reject(cause);
-    });
-
-    return deferred.promise;
+        return waitForNamedStateEvent(call, "alerting");
+      });
   }
 
   
@@ -523,24 +462,14 @@ let emulator = (function() {
   function dialEmergency(number) {
     log("Make an outgoing emergency call: " + number);
 
-    let deferred = Promise.defer();
+    return telephony.dialEmergency(number)
+      .then(call => {
+        ok(call);
+        is(call.id.number, number);
+        is(call.state, "dialing");
 
-    telephony.dialEmergency(number).then(call => {
-      ok(call);
-      is(call.id.number, number);
-      is(call.state, "dialing");
-
-      call.onalerting = function onalerting(event) {
-        call.onalerting = null;
-        log("Received 'onalerting' call event.");
-        checkEventCallState(event, call, "alerting");
-        deferred.resolve(call);
-      };
-    }, cause => {
-      deferred.reject(cause);
-    });
-
-    return deferred.promise;
+        return waitForNamedStateEvent(call, "alerting");
+      });
   }
 
   
@@ -556,45 +485,30 @@ let emulator = (function() {
   function answer(call, conferenceStateChangeCallback) {
     log("Answering the incoming call.");
 
-    let deferred = Promise.defer();
-    let done = function() {
-      deferred.resolve(call);
-    };
+    let promises = [];
 
-    let pending = ["call.onconnected"];
-    let receive = function(name) {
-      receivedPending(name, pending, done);
-    };
+    let promise = waitForNamedStateEvent(call, "connecting")
+      .then(() => waitForNamedStateEvent(call, "connected"));
+
+    promises.push(promise);
 
     
     
     
     if (conference.state === "connected") {
-      pending.push("conference.onstatechange");
-      check_onstatechange(conference, "conference", "held", function() {
-        if (typeof conferenceStateChangeCallback === "function") {
-          conferenceStateChangeCallback();
-        }
-        receive("conference.onstatechange");
-      });
+      let promise = waitForStateChangeEvent(conference, "held")
+        .then(() => {
+          if (typeof conferenceStateChangeCallback === "function") {
+            conferenceStateChangeCallback();
+          }
+        });
+
+      promises.push(promise);
     }
 
-    call.onconnecting = function onconnectingIn(event) {
-      log("Received 'connecting' call event for incoming call.");
-      call.onconnecting = null;
-      checkEventCallState(event, call, "connecting");
-    };
-
-    call.onconnected = function onconnectedIn(event) {
-      log("Received 'connected' call event for incoming call.");
-      call.onconnected = null;
-      checkEventCallState(event, call, "connected");
-      ok(!call.onconnecting);
-      receive("call.onconnected");
-    };
     call.answer();
 
-    return deferred.promise;
+    return Promise.all(promises).then(() => call);
   }
 
   
@@ -607,26 +521,12 @@ let emulator = (function() {
   function hold(call) {
     log("Putting the call on hold.");
 
-    let deferred = Promise.defer();
+    let promise = waitForNamedStateEvent(call, "holding")
+      .then(() => waitForNamedStateEvent(call, "held"));
 
-    let gotHolding = false;
-    call.onholding = function onholding(event) {
-      log("Received 'holding' call event");
-      call.onholding = null;
-      checkEventCallState(event, call, "holding");
-      gotHolding = true;
-    };
-
-    call.onheld = function onheld(event) {
-      log("Received 'held' call event");
-      call.onheld = null;
-      checkEventCallState(event, call, "held");
-      ok(gotHolding);
-      deferred.resolve(call);
-    };
     call.hold();
 
-    return deferred.promise;
+    return promise;
   }
 
   
@@ -639,26 +539,12 @@ let emulator = (function() {
   function resume(call) {
     log("Resuming the held call.");
 
-    let deferred = Promise.defer();
+    let promise = waitForNamedStateEvent(call, "resuming")
+      .then(() => waitForNamedStateEvent(call, "connected"));
 
-    let gotResuming = false;
-    call.onresuming = function onresuming(event) {
-      log("Received 'resuming' call event");
-      call.onresuming = null;
-      checkEventCallState(event, call, "resuming");
-      gotResuming = true;
-    };
-
-    call.onconnected = function onconnected(event) {
-      log("Received 'connected' call event");
-      call.onconnected = null;
-      checkEventCallState(event, call, "connected");
-      ok(gotResuming);
-      deferred.resolve(call);
-    };
     call.resume();
 
-    return deferred.promise;
+    return promise;
   }
 
   
@@ -669,17 +555,14 @@ let emulator = (function() {
 
 
   function hangUp(call) {
-    let deferred = Promise.defer();
+    log("Local hanging up the call: " + call.id.number);
 
-    call.ondisconnected = function(event) {
-      log("Received 'disconnected' call event");
-      call.ondisconnected = null;
-      checkEventCallState(event, call, "disconnected");
-      deferred.resolve(call);
-    };
+    let promise = waitForNamedStateEvent(call, "disconnecting")
+      .then(() => waitForNamedStateEvent(call, "disconnected"));
+
     call.hangUp();
 
-    return deferred.promise;
+    return promise;
   }
 
   
@@ -698,27 +581,23 @@ let emulator = (function() {
   function remoteDial(number, numberPresentation, name, namePresentation) {
     log("Simulating an incoming call.");
 
-    let deferred = Promise.defer();
-
-    telephony.onincoming = function onincoming(event) {
-      log("Received 'incoming' call event.");
-      telephony.onincoming = null;
-
-      let call = event.call;
-
-      ok(call);
-      is(call.state, "incoming");
-      checkCallId(number, numberPresentation, name, namePresentation,
-                  call.id.number, call.id.name);
-      deferred.resolve(call);
-    };
-
     numberPresentation = numberPresentation || "";
     name = name || "";
     namePresentation = namePresentation || "";
     emulator.runCmd("gsm call " + number + "," + numberPresentation + "," + name +
                  "," + namePresentation);
-    return deferred.promise;
+
+    return waitForEvent(telephony, "incoming")
+      .then(event => {
+        let call = event.call;
+
+        ok(call);
+        is(call.state, "incoming");
+        checkCallId(number, numberPresentation, name, namePresentation,
+                    call.id.number, call.id.name);
+
+        return call;
+      });
   }
 
   
@@ -729,19 +608,11 @@ let emulator = (function() {
 
 
   function remoteAnswer(call) {
-    log("Remote answering the call.");
+    log("Remote answering the call: " + call.id.number);
 
-    let deferred = Promise.defer();
-
-    call.onconnected = function onconnected(event) {
-      log("Received 'connected' call event.");
-      call.onconnected = null;
-      checkEventCallState(event, call, "connected");
-      deferred.resolve(call);
-    };
     emulator.runCmd("gsm accept " + call.id.number);
 
-    return deferred.promise;
+    return waitForNamedStateEvent(call, "connected");
   }
 
   
@@ -752,19 +623,11 @@ let emulator = (function() {
 
 
   function remoteHangUp(call) {
-    log("Remote hanging up the call.");
+    log("Remote hanging up the call: " + call.id.number);
 
-    let deferred = Promise.defer();
-
-    call.ondisconnected = function ondisconnected(event) {
-      log("Received 'disconnected' call event.");
-      call.ondisconnected = null;
-      checkEventCallState(event, call, "disconnected");
-      deferred.resolve(call);
-    };
     emulator.runCmd("gsm cancel " + call.id.number);
 
-    return deferred.promise;
+    return waitForNamedStateEvent(call, "disconnected");
   }
 
   
@@ -775,13 +638,8 @@ let emulator = (function() {
 
 
   function remoteHangUpCalls(calls) {
-    let promise = Promise.resolve();
-
-    for (let call of calls) {
-      promise = promise.then(remoteHangUp.bind(null, call));
-    }
-
-    return promise;
+    let promises = calls.map(remoteHangUp);
+    return Promise.all(promises);
   }
 
   
@@ -800,42 +658,22 @@ let emulator = (function() {
   function addCallsToConference(callsToAdd, connectedCallback, twice) {
     log("Add " + callsToAdd.length + " calls into conference.");
 
-    let deferred = Promise.defer();
-    let done = function() {
-      deferred.resolve();
-    };
-
-    let pending = ["conference.oncallschanged", "conference.onconnected"];
-    let receive = function(name) {
-      receivedPending(name, pending, done);
-    };
-
-    let check_onconnected  = StateEventChecker('connected', 'onresuming');
+    let promises = [];
 
     for (let call of callsToAdd) {
-      let callName = "callToAdd (" + call.id.number + ')';
-
-      let ongroupchange = callName + ".ongroupchange";
-      pending.push(ongroupchange);
-      check_ongroupchange(call, callName, conference,
-                          receive.bind(null, ongroupchange));
-
-      let onstatechange = callName + ".onstatechange";
-      pending.push(onstatechange);
-      check_onstatechange(call, callName, 'connected',
-                          receive.bind(null, onstatechange));
+      promises.push(waitForCallsChangedEvent(conference, call));
+      promises.push(waitForGroupChangeEvent(call, conference));
+      promises.push(waitForNamedStateEvent(call, "connected"));
+      promises.push(waitForStateChangeEvent(call, "connected"));
     }
 
-    check_oncallschanged(conference, 'conference', callsToAdd,
-                         receive.bind(null, "conference.oncallschanged"));
-
-    check_onconnected(conference, "conference", function() {
-      ok(!conference.oncallschanged);
-      if (typeof connectedCallback === 'function') {
-        connectedCallback();
-      }
-      receive("conference.onconnected");
-    });
+    let promise = waitForNamedStateEvent(conference, "connected")
+      .then(() => {
+        if (typeof connectedCallback === "function") {
+          connectedCallback();
+        }
+      });
+    promises.push(promise);
 
     
     let requestCount = twice ? 2 : 1;
@@ -847,7 +685,7 @@ let emulator = (function() {
       }
     }
 
-    return deferred.promise;
+    return Promise.all(promises).then(() => conference.calls);
   }
 
   
@@ -860,47 +698,29 @@ let emulator = (function() {
 
 
 
-  function holdConference(calls, heldCallback) {
+  function holdConference(callsInConference, heldCallback) {
     log("Holding the conference call.");
 
-    let deferred = Promise.defer();
-    let done = function() {
-      deferred.resolve();
-    };
+    let promises = [];
 
-    let pending = ["conference.onholding", "conference.onheld"];
-    let receive = function(name) {
-      receivedPending(name, pending, done);
-    };
-
-    let check_onholding = StateEventChecker('holding', null);
-    let check_onheld = StateEventChecker('held', 'onholding');
-
-    for (let call of calls) {
-      let callName = "call (" + call.id.number + ')';
-
-      let onholding = callName + ".onholding";
-      pending.push(onholding);
-      check_onholding(call, callName, receive.bind(null, onholding));
-
-      let onheld = callName + ".onheld";
-      pending.push(onheld);
-      check_onheld(call, callName, receive.bind(null, onheld));
+    for (let call of callsInConference) {
+      let promise = waitForNamedStateEvent(call, "holding")
+        .then(() => waitForNamedStateEvent(call, "held"));
+      promises.push(promise);
     }
 
-    check_onholding(conference, "conference",
-                    receive.bind(null, "conference.onholding"));
-
-    check_onheld(conference, "conference", function() {
-      if (typeof heldCallback === 'function') {
-        heldCallback();
-      }
-      receive("conference.onheld");
-    });
+    let promise = waitForNamedStateEvent(conference, "holding")
+      .then(() => waitForNamedStateEvent(conference, "held"))
+      .then(() => {
+        if (typeof heldCallback === "function") {
+          heldCallback();
+        }
+      });
+    promises.push(promise);
 
     conference.hold();
 
-    return deferred.promise;
+    return Promise.all(promises).then(() => conference.calls);
   }
 
   
@@ -913,47 +733,29 @@ let emulator = (function() {
 
 
 
-  function resumeConference(calls, connectedCallback) {
+  function resumeConference(callsInConference, connectedCallback) {
     log("Resuming the held conference call.");
 
-    let deferred = Promise.defer();
-    let done = function() {
-      deferred.resolve();
-    };
+    let promises = [];
 
-    let pending = ["conference.onresuming", "conference.onconnected"];
-    let receive = function(name) {
-      receivedPending(name, pending, done);
-    };
-
-    let check_onresuming   = StateEventChecker('resuming', null);
-    let check_onconnected  = StateEventChecker('connected', 'onresuming');
-
-    for (let call of calls) {
-      let callName = "call (" + call.id.number + ')';
-
-      let onresuming = callName + ".onresuming";
-      pending.push(onresuming);
-      check_onresuming(call, callName, receive.bind(null, onresuming));
-
-      let onconnected = callName + ".onconnected";
-      pending.push(onconnected);
-      check_onconnected(call, callName, receive.bind(null, onconnected));
+    for (let call of callsInConference) {
+      let promise = waitForNamedStateEvent(call, "resuming")
+        .then(() => waitForNamedStateEvent(call, "connected"));
+      promises.push(promise);
     }
 
-    check_onresuming(conference, "conference",
-                     receive.bind(null, "conference.onresuming"));
-
-    check_onconnected(conference, "conference", function() {
-      if (typeof connectedCallback === 'function') {
-        connectedCallback();
-      }
-      receive("conference.onconnected");
-    });
+    let promise = waitForNamedStateEvent(conference, "resuming")
+      .then(() => waitForNamedStateEvent(conference, "connected"))
+      .then(() => {
+        if (typeof connectedCallback === "function") {
+          connectedCallback();
+        }
+      });
+    promises.push(promise);
 
     conference.resume();
 
-    return deferred.promise;
+    return Promise.all(promises).then(() => conference.calls);
   }
 
   
@@ -976,70 +778,43 @@ let emulator = (function() {
 
     is(conference.state, 'connected');
 
-    let deferred = Promise.defer();
-    let done = function() {
-      deferred.resolve();
-    };
-
-    let pending = ["callToRemove.ongroupchange", "telephony.oncallschanged",
-                   "conference.oncallschanged", "conference.onstatechange"];
-    let receive = function(name) {
-      receivedPending(name, pending, done);
-    };
+    let promises = [];
 
     
-    for (let call of remainedCalls) {
-      let callName = "remainedCall (" + call.id.number + ')';
-
-      let onstatechange = callName + ".onstatechange";
-      pending.push(onstatechange);
-      check_onstatechange(call, callName, 'held',
-                          receive.bind(null, onstatechange));
-    }
+    promises.push(waitForCallsChangedEvent(telephony, callToRemove));
+    promises.push(waitForCallsChangedEvent(conference, callToRemove));
+    promises.push(waitForGroupChangeEvent(callToRemove, null).then(() => {
+      is(callToRemove.state, 'connected');
+    }));
 
     
     
     for (let call of autoRemovedCalls) {
-      let callName = "autoRemovedCall (" + call.id.number + ')';
-
-      let ongroupchange = callName + ".ongroupchange";
-      pending.push(ongroupchange);
-      check_ongroupchange(call, callName, null,
-                          receive.bind(null, ongroupchange));
-
-      let onstatechange = callName + ".onstatechange";
-      pending.push(onstatechange);
-      check_onstatechange(call, callName, 'held',
-                          receive.bind(null, onstatechange));
+      promises.push(waitForCallsChangedEvent(telephony, call));
+      promises.push(waitForCallsChangedEvent(conference, call));
+      promises.push(waitForGroupChangeEvent(call, null));
+      promises.push(waitForStateChangeEvent(call, "held"));
     }
 
-    check_ongroupchange(callToRemove, "callToRemove", null, function() {
-      is(callToRemove.state, 'connected');
-      receive("callToRemove.ongroupchange");
-    });
+    
+    for (let call of remainedCalls) {
+      promises.push(waitForStateChangeEvent(call, "held"));
+    }
 
-    check_oncallschanged(telephony, 'telephony',
-                         autoRemovedCalls.concat(callToRemove),
-                         receive.bind(null, "telephony.oncallschanged"));
-
-    check_oncallschanged(conference, 'conference',
-                         autoRemovedCalls.concat(callToRemove), function() {
-      is(conference.calls.length, remainedCalls.length);
-      receive("conference.oncallschanged");
-    });
-
-    check_onstatechange(conference, 'conference',
-                        (remainedCalls.length ? 'held' : ''), function() {
-      ok(!conference.oncallschanged);
-      if (typeof statechangeCallback === 'function') {
-        statechangeCallback();
-      }
-      receive("conference.onstatechange");
-    });
+    let finalConferenceState = remainedCalls.length ? "held" : "";
+    let promise = waitForStateChangeEvent(conference, finalConferenceState)
+      .then(() => {
+        if (typeof statechangeCallback === 'function') {
+          statechangeCallback();
+        }
+      });
+    promises.push(promise);
 
     conference.remove(callToRemove);
 
-    return deferred.promise;
+    return Promise.all(promises)
+      .then(() => checkCalls(conference.calls, remainedCalls))
+      .then(() => conference.calls);
   }
 
   
@@ -1060,55 +835,34 @@ let emulator = (function() {
                                   statechangeCallback) {
     log("Release one call in conference.");
 
-    let deferred = Promise.defer();
-    let done = function() {
-      deferred.resolve();
-    };
+    let promises = [];
 
-    let pending = ["conference.oncallschanged", "remoteHangUp"];
-    let receive = function(name) {
-      receivedPending(name, pending, done);
-    };
+    
+    promises.push(waitForCallsChangedEvent(conference, callToHangUp));
 
     
     
     for (let call of autoRemovedCalls) {
-      let callName = "autoRemovedCall (" + call.id.number + ')';
-
-      let ongroupchange = callName + ".ongroupchange";
-      pending.push(ongroupchange);
-      check_ongroupchange(call, callName, null,
-                          receive.bind(null, ongroupchange));
+      promises.push(waitForCallsChangedEvent(telephony, call));
+      promises.push(waitForCallsChangedEvent(conference, call));
+      promises.push(waitForGroupChangeEvent(call, null));
     }
-
-    if (autoRemovedCalls.length) {
-      pending.push("telephony.oncallschanged");
-      check_oncallschanged(telephony, 'telephony',
-                           autoRemovedCalls,
-                           receive.bind(null, "telephony.oncallschanged"));
-    }
-
-    check_oncallschanged(conference, 'conference',
-                         autoRemovedCalls.concat(callToHangUp), function() {
-      is(conference.calls.length, remainedCalls.length);
-      receive("conference.oncallschanged");
-    });
 
     if (remainedCalls.length === 0) {
-      pending.push("conference.onstatechange");
-      check_onstatechange(conference, 'conference', '', function() {
-        ok(!conference.oncallschanged);
-        if (typeof statechangeCallback === 'function') {
-          statechangeCallback();
-        }
-        receive("conference.onstatechange");
-      });
+      let promise = waitForStateChangeEvent(conference, "")
+        .then(() => {
+          if (typeof statechangeCallback === 'function') {
+            statechangeCallback();
+          }
+        });
+      promises.push(promise);
     }
 
-    remoteHangUp(callToHangUp)
-      .then(receive.bind(null, "remoteHangUp"));
+    promises.push(remoteHangUp(callToHangUp));
 
-    return deferred.promise;
+    return Promise.all(promises)
+      .then(() => checkCalls(conference.calls, remainedCalls))
+      .then(() => conference.calls);
   }
 
   
@@ -1119,34 +873,17 @@ let emulator = (function() {
   function hangUpConference() {
     log("Hangup conference.");
 
-    let deferred = Promise.defer();
-    let done = function() {
-      deferred.resolve();
-    };
+    let promises = [];
 
-    let pending = ["conference.hangUp", "conference.onstatechange"];
-    let receive = function(name) {
-      receivedPending(name, pending, done);
-    };
+    promises.push(waitForStateChangeEvent(conference, ""));
 
     for (let call of conference.calls) {
-      let callName = "Call (" + call.id.number + ')';
-
-      let onstatechange = callName + ".onstatechange";
-      pending.push(onstatechange);
-      check_onstatechange(call, callName, 'disconnected',
-                          receive.bind(null, onstatechange));
+      promises.push(waitForNamedStateEvent(call, "disconnected"));
     }
 
-    check_onstatechange(conference, 'conference', '', function() {
-      receive("conference.onstatechange");
+    return conference.hangUp().then(() => {
+      return Promise.all(promises);
     });
-
-    conference.hangUp().then(() => {
-      receive("conference.hangUp");
-    });
-
-    return deferred.promise;
   }
 
   
@@ -1287,6 +1024,7 @@ let emulator = (function() {
 
 
   this.gDelay = delay;
+  this.gWaitForEvent = waitForEvent;
   this.gCheckInitialState = checkInitialState;
   this.gClearCalls = clearCalls;
   this.gOutCallStrPool = outCallStrPool;
@@ -1311,7 +1049,6 @@ let emulator = (function() {
   this.gHangUpCallInConference = hangUpCallInConference;
   this.gHangUpConference = hangUpConference;
   this.gSetupConference = setupConference;
-  this.gReceivedPending = receivedPending;
 }());
 
 function _startTest(permissions, test) {
@@ -1371,18 +1108,11 @@ function _startTest(permissions, test) {
     return tearDown.bind(this);
   }());
 
-  function mainTest() {
-    setUp()
-      .then(function onSuccess() {
-        log("== Test Start ==");
-        test();
-      }, function onError(error) {
-        SpecialPowers.Cu.reportError(error);
-        ok(false, "SetUp error");
-      });
-  }
-
-  mainTest();
+  setUp().then(() => {
+    log("== Test Start ==");
+    test();
+  })
+  .catch(error => ok(false, error));
 }
 
 function startTest(test) {
