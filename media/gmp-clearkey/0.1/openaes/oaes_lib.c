@@ -34,7 +34,6 @@ static const char _NR[] = {
 #include <stdlib.h>
 #include <stddef.h>
 #include <time.h> 
-#include <sys/timeb.h>
 #include <string.h>
 
 #ifdef WIN32
@@ -480,45 +479,47 @@ OAES_RET oaes_sprintf(
 	return OAES_RET_SUCCESS;
 }
 
-#ifdef OAES_HAVE_ISAAC
-static void oaes_get_seed( char buf[RANDSIZ + 1] )
-{
-	struct timeb timer;
-	struct tm *gmTimer;
-	char * _test = NULL;
-	
-	ftime (&timer);
-	gmTimer = gmtime( &timer.time );
-	_test = (char *) calloc( sizeof( char ), timer.millitm );
-	sprintf( buf, "%04d%02d%02d%02d%02d%02d%03d%p%d",
-		gmTimer->tm_year + 1900, gmTimer->tm_mon + 1, gmTimer->tm_mday,
-		gmTimer->tm_hour, gmTimer->tm_min, gmTimer->tm_sec, timer.millitm,
-		_test + timer.millitm, getpid() );
-	
-	if( _test )
-		free( _test );
-}
-#else
-static uint32_t oaes_get_seed()
-{
-	struct timeb timer;
-	struct tm *gmTimer;
-	char * _test = NULL;
-	uint32_t _ret = 0;
-	
-	ftime (&timer);
-	gmTimer = gmtime( &timer.time );
-	_test = (char *) calloc( sizeof( char ), timer.millitm );
-	_ret = gmTimer->tm_year + 1900 + gmTimer->tm_mon + 1 + gmTimer->tm_mday +
-			gmTimer->tm_hour + gmTimer->tm_min + gmTimer->tm_sec + timer.millitm +
-			(uint32_t) ( _test + timer.millitm ) + getpid();
 
-	if( _test )
-		free( _test );
-	
-	return _ret;
-}
-#endif 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 static OAES_RET oaes_key_destroy( oaes_key ** key )
 {
