@@ -319,8 +319,6 @@ class RegisterAllocator
 #elif defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
             allRegisters_.take(AnyRegister(HeapReg));
             allRegisters_.take(AnyRegister(GlobalReg));
-            
-            allRegisters_.takeAllAliasedUnchecked(AnyRegister(NANReg));
 #endif
         } else {
             if (FramePointer != InvalidReg && mir->instrumentedProfiling())

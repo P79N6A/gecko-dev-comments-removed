@@ -662,6 +662,8 @@ static const uint32_t AsmJSFrameBytesAfterReturnAddress = sizeof(void*);
 
 
 static const unsigned AsmJSActivationGlobalDataOffset = 0;
+static const unsigned AsmJSNaN64GlobalDataOffset = 2 * sizeof(void*);
+static const unsigned AsmJSNaN32GlobalDataOffset = 2 * sizeof(void*) + sizeof(double);
 
 
 

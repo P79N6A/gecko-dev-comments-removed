@@ -33,11 +33,14 @@
 # include "jit/PerfSpewer.h"
 #endif
 #include "jit/RegisterSets.h"
+#include "jit/shared/Assembler-shared.h"
 #include "vm/TypedArrayObject.h"
 
 namespace js {
 
 namespace frontend { class TokenStream; }
+
+using JS::GenericNaN;
 
 
 enum AsmJSCoercion
@@ -1046,6 +1049,8 @@ class AsmJSModule
     
     
     
+    
+    
     size_t offsetOfGlobalData() const {
         JS_ASSERT(isFinished());
         return pod.codeBytes_;
@@ -1057,6 +1062,8 @@ class AsmJSModule
     size_t globalDataBytes() const {
         return sizeof(void*) +
                sizeof(void*) +
+               sizeof(double) +
+               sizeof(double) +
                pod.numGlobalVars_ * sizeof(uint64_t) +
                pod.funcPtrTableAndExitBytes_;
     }
@@ -1077,9 +1084,26 @@ class AsmJSModule
         JS_ASSERT(isFinished());
         return *(uint8_t**)(globalData() + heapGlobalDataOffset());
     }
+    static unsigned nan64GlobalDataOffset() {
+        static_assert(jit::AsmJSNaN64GlobalDataOffset % sizeof(double) == 0,
+                      "Global data NaN should be aligned");
+        return heapGlobalDataOffset() + sizeof(void*);
+    }
+    static unsigned nan32GlobalDataOffset() {
+        static_assert(jit::AsmJSNaN32GlobalDataOffset % sizeof(double) == 0,
+                      "Global data NaN should be aligned");
+        return nan64GlobalDataOffset() + sizeof(double);
+    }
+    void initGlobalNaN() {
+        MOZ_ASSERT(jit::AsmJSNaN64GlobalDataOffset == nan64GlobalDataOffset());
+        MOZ_ASSERT(jit::AsmJSNaN32GlobalDataOffset == nan32GlobalDataOffset());
+        *(double *)(globalData() + nan64GlobalDataOffset()) = GenericNaN();
+        *(float *)(globalData() + nan32GlobalDataOffset()) = GenericNaN();
+    }
     unsigned globalVariableOffset() const {
-        static_assert((2 * sizeof(void*)) % sizeof(double) == 0, "Global data should be aligned");
-        return 2 * sizeof(void*);
+        static_assert((2 * sizeof(void*) + 2 * sizeof(double)) % sizeof(double) == 0,
+                      "Global data should be aligned");
+        return 2 * sizeof(void*) + 2 * sizeof(double);
     }
     unsigned globalVarIndexToGlobalDataOffset(unsigned i) const {
         JS_ASSERT(isFinishedWithModulePrologue());

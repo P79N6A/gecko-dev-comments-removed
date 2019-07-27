@@ -5986,10 +5986,8 @@ GenerateEntry(ModuleCompiler &m, unsigned exportIndex)
 
     
     
-    
 #if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
     masm.movePtr(IntArgReg1, GlobalReg);
-    masm.loadConstantDouble(GenericNaN(), NANReg);
 #endif
 
     
