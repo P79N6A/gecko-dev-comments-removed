@@ -808,6 +808,22 @@ SheetLoadData::OnStreamComplete(nsIUnicharStreamLoader* aLoader,
 
   if (NS_FAILED(aStatus)) {
     LOG_WARN(("  Load failed: status 0x%x", aStatus));
+    
+    
+    
+    
+    
+    
+    if (aStatus == NS_ERROR_TRACKING_URI) {
+      nsIDocument* doc = mLoader->GetDocument();
+      if (doc) {
+        for (SheetLoadData* data = this; data; data = data->mNext) {
+          
+          nsCOMPtr<nsIContent> content = do_QueryInterface(data->mOwningElement);
+          doc->AddBlockedTrackingNode(content);
+        }
+      }
+    }
     mLoader->SheetComplete(this, aStatus);
     return NS_OK;
   }
