@@ -18,13 +18,13 @@ class nsINode;
 namespace mozilla {
 
 namespace net {
-class LoadInfoArgs;
+class OptionalLoadInfoArgs;
 } 
 
 namespace ipc {
 
 nsresult
-LoadInfoArgsToLoadInfo(const mozilla::net::LoadInfoArgs& aLoadInfoArgs,
+LoadInfoArgsToLoadInfo(const mozilla::net::OptionalLoadInfoArgs& aLoadInfoArgs,
                        nsILoadInfo** outLoadInfo);
 } 
 
@@ -64,8 +64,9 @@ private:
            uint64_t aParentOuterWindowID);
 
   friend nsresult
-  mozilla::ipc::LoadInfoArgsToLoadInfo(const mozilla::net::LoadInfoArgs& aLoadInfoArgs,
-                                       nsILoadInfo** outLoadInfo);
+  mozilla::ipc::LoadInfoArgsToLoadInfo(
+    const mozilla::net::OptionalLoadInfoArgs& aLoadInfoArgs,
+    nsILoadInfo** outLoadInfo);
 
   ~LoadInfo();
 
