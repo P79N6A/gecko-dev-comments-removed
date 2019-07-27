@@ -9,13 +9,16 @@
 
 #include "mozilla/DebugOnly.h"
 
+#include "gc/Heap.h"
 #include "js/GCAPI.h"
 #include "js/SliceBudget.h"
 #include "js/TracingAPI.h"
 
 namespace js {
-class NativeObject;
+class BaseShape;
 class GCMarker;
+class LazyScript;
+class NativeObject;
 class ObjectGroup;
 namespace gc {
 struct ArenaHeader;
@@ -124,6 +127,23 @@ class MarkStack
     size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 };
 
+#ifdef DEBUG
+namespace gc {
+
+template <typename T>
+extern bool
+ZoneIsGCMarking(T *thing);
+
+template <typename T>
+extern bool
+ZoneIsAtomsZoneForString(JSRuntime *rt, T *thing);
+
+} 
+#endif
+
+#define JS_COMPARTMENT_ASSERT(rt, thing) \
+    MOZ_ASSERT(gc::ZoneIsGCMarking((thing)) || gc::ZoneIsAtomsZoneForString((rt), (thing)))
+
 class GCMarker : public JSTracer
 {
   public:
@@ -137,21 +157,16 @@ class GCMarker : public JSTracer
     void stop();
     void reset();
 
-    void pushObject(JSObject *obj) {
-        pushTaggedPtr(ObjectTag, obj);
-    }
-
-    void pushType(ObjectGroup *group) {
-        pushTaggedPtr(GroupTag, group);
-    }
-
-    void pushJitCode(jit::JitCode *code) {
-        pushTaggedPtr(JitCodeTag, code);
-    }
-
-    uint32_t getMarkColor() const {
-        return color;
-    }
+    
+    void traverse(JSObject *thing) { markAndPush(ObjectTag, thing); }
+    void traverse(ObjectGroup *thing) { markAndPush(GroupTag, thing); }
+    void traverse(jit::JitCode *thing) { markAndPush(JitCodeTag, thing); }
+    
+    void traverse(JSScript *thing) { markAndTraverse(thing); }
+    void traverse(LazyScript *thing) { markAndTraverse(thing); }
+    
+    
+    
 
     
 
@@ -165,12 +180,12 @@ class GCMarker : public JSTracer
         MOZ_ASSERT(color == gc::BLACK);
         color = gc::GRAY;
     }
-
     void setMarkColorBlack() {
         MOZ_ASSERT(isDrained());
         MOZ_ASSERT(color == gc::GRAY);
         color = gc::BLACK;
     }
+    uint32_t markColor() const { return color; }
 
     inline void delayMarkingArena(gc::ArenaHeader *aheader);
     void delayMarkingChildren(const void *thing);
@@ -230,7 +245,6 @@ class GCMarker : public JSTracer
         ValueArrayTag,
         ObjectTag,
         GroupTag,
-        XmlTag,
         SavedValueArrayTag,
         JitCodeTag,
         LastTag = JitCodeTag
@@ -239,6 +253,37 @@ class GCMarker : public JSTracer
     static const uintptr_t StackTagMask = 7;
     static_assert(StackTagMask >= uintptr_t(LastTag), "The tag mask must subsume the tags.");
     static_assert(StackTagMask <= gc::CellMask, "The tag mask must be embeddable in a Cell*.");
+
+    
+    
+    void repush(JSObject *obj) {
+        MOZ_ASSERT(gc::TenuredCell::fromPointer(obj)->isMarked(markColor()));
+        pushTaggedPtr(ObjectTag, obj);
+    }
+
+    template <typename T>
+    void markAndPush(StackTag tag, T *thing) {
+        if (mark(thing))
+            pushTaggedPtr(tag, thing);
+    }
+
+    template <typename T>
+    void markAndTraverse(T *thing) {
+        if (mark(thing))
+            markChildren(thing);
+    }
+
+    template <typename T>
+    void markChildren(T *thing);
+
+    
+    
+    template <typename T>
+    bool mark(T *thing) {
+        JS_COMPARTMENT_ASSERT(runtime(), thing);
+        MOZ_ASSERT(!IsInsideNursery(gc::TenuredCell::fromPointer(thing)));
+        return gc::TenuredCell::fromPointer(thing)->markIfUnmarked(markColor());
+    }
 
     void pushTaggedPtr(StackTag tag, void *ptr) {
         checkZone(ptr);

@@ -254,13 +254,6 @@ MarkCrossCompartmentSlot(JSTracer *trc, JSObject *src, HeapValue *dst_slot, cons
 
 
 
-void
-MarkChildren(JSTracer *trc, JSObject *obj);
-
-
-
-
-
 
 void
 MarkCycleCollectorChildren(JSTracer *trc, Shape *shape);
