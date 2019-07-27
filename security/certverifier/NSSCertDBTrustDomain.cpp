@@ -210,6 +210,28 @@ NSSCertDBTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
   }
 
   
+  if (!mCertBlocklist) {
+    return Result::FATAL_ERROR_LIBRARY_FAILURE;
+  }
+
+  bool isCertRevoked;
+  nsresult nsrv = mCertBlocklist->IsCertRevoked(
+                    candidateCert->derIssuer.data,
+                    candidateCert->derIssuer.len,
+                    candidateCert->serialNumber.data,
+                    candidateCert->serialNumber.len,
+                    &isCertRevoked);
+  if (NS_FAILED(nsrv)) {
+    return Result::FATAL_ERROR_LIBRARY_FAILURE;
+  }
+
+  if (isCertRevoked) {
+    PR_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+           ("NSSCertDBTrustDomain: certificate is in blocklist"));
+    return Result::ERROR_REVOKED_CERTIFICATE;
+  }
+
+  
   
   
   
@@ -355,27 +377,6 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
   uint16_t maxOCSPLifetimeInDays = 10;
   if (endEntityOrCA == EndEntityOrCA::MustBeCA) {
     maxOCSPLifetimeInDays = 365;
-  }
-
-  if (!mCertBlocklist) {
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
-  }
-
-  bool isCertRevoked;
-  nsresult nsrv = mCertBlocklist->IsCertRevoked(
-                    certID.issuer.UnsafeGetData(),
-                    certID.issuer.GetLength(),
-                    certID.serialNumber.UnsafeGetData(),
-                    certID.serialNumber.GetLength(),
-                    &isCertRevoked);
-  if (NS_FAILED(nsrv)) {
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
-  }
-
-  if (isCertRevoked) {
-    PR_LOG(gCertVerifierLog, PR_LOG_DEBUG,
-           ("NSSCertDBTrustDomain: certificate is in blocklist"));
-    return Result::ERROR_REVOKED_CERTIFICATE;
   }
 
   
