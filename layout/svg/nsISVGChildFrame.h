@@ -9,9 +9,9 @@
 #include "gfxRect.h"
 #include "nsQueryFrame.h"
 
+class gfxContext;
 class gfxMatrix;
 class nsIFrame;
-class nsRenderingContext;
 class SVGBBox;
 
 struct nsPoint;
@@ -75,7 +75,7 @@ public:
 
 
 
-  virtual nsresult PaintSVG(nsRenderingContext* aContext,
+  virtual nsresult PaintSVG(gfxContext& aContext,
                             const gfxMatrix& aTransform,
                             const nsIntRect* aDirtyRect = nullptr) = 0;
 
