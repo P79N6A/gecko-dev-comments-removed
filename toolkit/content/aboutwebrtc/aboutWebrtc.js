@@ -111,6 +111,9 @@ var PeerConnections = React.createClass({displayName: 'PeerConnections',
 
 var PeerConnection = React.createClass({displayName: 'PeerConnection',
   getPCInfo: function(report) {
+    
+    
+    
     var idmatch = report.pcid.match(/id=(\S+)/);
     var urlmatch = report.pcid.match(/url=([^)]+)/);
     return {
@@ -118,6 +121,17 @@ var PeerConnection = React.createClass({displayName: 'PeerConnection',
       url: (urlmatch? urlmatch[1] : ""),
       closed: report.closed
     };
+  },
+  getPCId: function(report) {
+    
+    
+    
+    
+    
+
+    
+    return report.pcid.replace(/id=\S+/, "").replace(/url=[^)]+/, "")
+        .replace(/\s+[)]/, ")").replace(" ()", "");
   },
 
   getIceCandidatePairs: function(report) {
@@ -185,7 +199,7 @@ var PeerConnection = React.createClass({displayName: 'PeerConnection',
   body: function(report, pairs) {
     return (
       React.DOM.div(null, 
-        React.DOM.p({className: "pcid"}, "PeerConnection ID: ", report.pcid), 
+        React.DOM.p({className: "pcid"}, "PeerConnection ID: ", this.getPCId(report)),
         Tabs(null, 
           Tab({title: "Ice Stats"}, 
             IceStats({pairs: pairs})
