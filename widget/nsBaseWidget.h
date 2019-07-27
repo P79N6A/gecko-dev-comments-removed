@@ -441,6 +441,7 @@ protected:
 
 
   void DestroyCompositor();
+  void DestroyLayerManager();
 
   nsIWidgetListener* mWidgetListener;
   nsIWidgetListener* mAttachedWidgetListener;
