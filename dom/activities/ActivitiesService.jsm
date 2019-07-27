@@ -34,7 +34,7 @@ function debug(aMsg) {
 }
 
 const DB_NAME    = "activities";
-const DB_VERSION = 2;
+const DB_VERSION = 1;
 const STORE_NAME = "activities";
 
 function ActivitiesDb() {
@@ -63,25 +63,6 @@ ActivitiesDb.prototype = {
 
   upgradeSchema: function actdb_upgradeSchema(aTransaction, aDb, aOldVersion, aNewVersion) {
     debug("Upgrade schema " + aOldVersion + " -> " + aNewVersion);
-
-    let self = this;
-
-    function upgrade(currentVersion) {
-      let next = upgrade.bind(self, currentVersion + 1);
-      switch (currentVersion) {
-        case 0:
-          self.createSchema(aDb, next);
-          break;
-        case 1:
-          self.upgradeSchemaVersion2(aDb, aTransaction, next);
-          break;
-      }
-    }
-
-    upgrade(aOldVersion);
-  },
-
-  createSchema: function(aDb, aNext) {
     let objectStore = aDb.createObjectStore(STORE_NAME, { keyPath: "id" });
 
     
@@ -89,49 +70,6 @@ ActivitiesDb.prototype = {
     objectStore.createIndex("manifest", "manifest", { unique: false });
 
     debug("Created object stores and indexes");
-
-    aNext();
-  },
-
-  upgradeSchemaVersion2: function(aDb, aTransaction, aNext) {
-    debug("Upgrading DB to version 2");
-
-    
-    
-    
-    
-    
-    
-    
-
-    let activities = [];
-    let objectStore = aTransaction.objectStore(STORE_NAME);
-    objectStore.openCursor().onsuccess = (event) => {
-      let cursor = event.target.result;
-      if (!cursor) {
-        aDb.deleteObjectStore(STORE_NAME);
-
-        let objectStore = aDb.createObjectStore(STORE_NAME, { keyPath: "id" });
-
-        
-        objectStore.createIndex("name", "name", { unique: false });
-        objectStore.createIndex("manifest", "manifest", { unique: false });
-
-        this.add(activities, () => {
-          debug("DB upgraded to version 2");
-          aNext();
-        }, () => {
-          dump("Error upgrading DB to version 2 " + error + "\n");
-        });
-        return;
-      }
-
-      let activity = cursor.value;
-      debug("Upgrading activity " + JSON.stringify(activity));
-      activity.id = this.createId(activity);
-      activities.push(activity);
-      cursor.continue();
-    };
   },
 
   
@@ -145,17 +83,8 @@ ActivitiesDb.prototype = {
     hasher.init(hasher.SHA1);
 
     
-    ["manifest", "name", "description"].forEach(function(aProp) {
-      if (!aObject[aProp]) {
-        return;
-      }
-
-      let property = aObject[aProp];
-      if (aProp == "description") {
-        property = JSON.stringify(aObject[aProp]);
-      }
-
-      let data = converter.convertToByteArray(property, {});
+    ["manifest", "name"].forEach(function(aProp) {
+      let data = converter.convertToByteArray(aObject[aProp], {});
       hasher.update(data, data.length);
     });
 
@@ -181,17 +110,16 @@ ActivitiesDb.prototype = {
 
   
   remove: function actdb_remove(aObjects) {
-    this.newTxn("readwrite", STORE_NAME, (txn, store) => {
-      aObjects.forEach((aObject) => {
+    this.newTxn("readwrite", STORE_NAME, function (txn, store) {
+      aObjects.forEach(function (aObject) {
         let object = {
           manifest: aObject.manifest,
-          name: aObject.name,
-          description: aObject.description
+          name: aObject.name
         };
         debug("Going to remove " + JSON.stringify(object));
         store.delete(this.createId(object));
-      });
-    }, function() {}, function() {});
+      }, this);
+    }.bind(this), function() {}, function() {});
   },
 
   
