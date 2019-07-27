@@ -246,7 +246,6 @@ public:
                                        bool aLastPart) override;
 
   void NotifyForLoadEvent(Progress aProgress);
-  void NotifyForDecodeOnlyOnDraw();
 
   
 

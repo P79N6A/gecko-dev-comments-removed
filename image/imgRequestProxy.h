@@ -107,7 +107,6 @@ public:
 
   
   virtual void SetHasImage() override;
-  virtual void OnStartDecode() override;
 
   
   

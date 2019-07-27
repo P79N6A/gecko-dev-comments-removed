@@ -804,21 +804,6 @@ imgRequestProxy::GetHasTransferredData(bool* hasData)
   return NS_OK;
 }
 
-void
-imgRequestProxy::OnStartDecode()
-{
-  
-  
-  if (GetOwner()) {
-    
-    
-    
-    
-    
-    GetOwner()->ResetCacheEntry();
-  }
-}
-
 static const char*
 NotificationTypeToString(int32_t aType)
 {

@@ -1239,11 +1239,7 @@ RasterImage::NotifyForLoadEvent(Progress aProgress)
     
     
     
-    
-    
-    aProgress |= FLAG_DECODE_STARTED |
-                 FLAG_FRAME_COMPLETE |
-                 FLAG_DECODE_COMPLETE;
+    aProgress |= FLAG_FRAME_COMPLETE | FLAG_DECODE_COMPLETE;
   }
 
   
@@ -1255,19 +1251,6 @@ RasterImage::NotifyForLoadEvent(Progress aProgress)
   NotifyProgress(aProgress);
 }
 
-void
-RasterImage::NotifyForDecodeOnlyOnDraw()
-{
-  if (!NS_IsMainThread()) {
-    nsCOMPtr<nsIRunnable> runnable =
-      NS_NewRunnableMethod(this, &RasterImage::NotifyForDecodeOnlyOnDraw);
-    NS_DispatchToMainThread(runnable);
-    return;
-  }
-
-  NotifyProgress(FLAG_DECODE_STARTED);
-}
-
 nsresult
 RasterImage::OnImageDataAvailable(nsIRequest*,
                                   nsISupports*,
@@ -1276,12 +1259,6 @@ RasterImage::OnImageDataAvailable(nsIRequest*,
                                   uint32_t aCount)
 {
   nsresult rv;
-
-  if (MOZ_UNLIKELY(mDecodeOnlyOnDraw && aOffset == 0)) {
-    
-    
-    NotifyForDecodeOnlyOnDraw();
-  }
 
   
   
@@ -1633,14 +1610,6 @@ RasterImage::Decode(const Maybe<IntSize>& aSize, uint32_t aFlags)
   nsRefPtr<Decoder> decoder = CreateDecoder(aSize, aFlags);
   if (!decoder) {
     return NS_ERROR_FAILURE;
-  }
-
-  if (aSize) {
-    
-    
-    NotifyProgress(decoder->TakeProgress(),
-                   decoder->TakeInvalidRect(),
-                   decoder->GetDecodeFlags());
   }
 
   if (mHasSourceData) {

@@ -1097,10 +1097,8 @@ VectorImage::OnStartRequest(nsIRequest* aRequest, nsISupports* aCtxt)
 
   
   
-  
   if (mProgressTracker) {
-    mProgressTracker->SyncNotifyProgress(FLAG_DECODE_STARTED |
-                                         FLAG_ONLOAD_BLOCKED);
+    mProgressTracker->SyncNotifyProgress(FLAG_ONLOAD_BLOCKED);
   }
 
   
