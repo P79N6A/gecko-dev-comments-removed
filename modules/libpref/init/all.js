@@ -3958,12 +3958,6 @@ pref("dom.sms.requestStatusReport", true);
 pref("dom.sms.defaultServiceId", 0);
 
 
-
-
-
-pref("dom.sms.maxReadAheadEntries", 0);
-
-
 pref("dom.mozContacts.enabled", false);
 
 
@@ -3987,6 +3981,9 @@ pref("dom.w3c_touch_events.enabled", 2);
 
 
 pref("dom.w3c_pointer_events.enabled", false);
+
+
+pref("dom.imagecapture.enabled", false);
 
 
 pref("layout.css.touch_action.enabled", false);
