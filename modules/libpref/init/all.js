@@ -4467,6 +4467,12 @@ pref("dom.mozSettings.SettingsService.verbose.enabled", false);
 pref("dom.mozSettings.allowForceReadOnly", false);
 
 
+pref("browser.addon-watch.interval", 120000);
+pref("browser.addon-watch.ignore", "[\"mochikit@mozilla.org\",\"special-powers@mozilla.org\"]");
+
+pref("browser.addon-watch.percentage-limit", 1);
+
+
 pref("dom.requestSync.enabled", false);
 
 
