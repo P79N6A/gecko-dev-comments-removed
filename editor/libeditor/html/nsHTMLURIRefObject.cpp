@@ -77,6 +77,7 @@
 #include "nsIDOMNode.h"
 #include "nsISupportsUtils.h"
 #include "nsString.h"
+#include "nsAutoPtr.h"
 
 
 
