@@ -992,7 +992,7 @@ public:
   inline void ConcatTransform(const Matrix &aTransform)
     { SetTransform(aTransform * Matrix(GetTransform())); }
 
-  SurfaceFormat GetFormat() { return mFormat; }
+  SurfaceFormat GetFormat() const { return mFormat; }
 
   
 
