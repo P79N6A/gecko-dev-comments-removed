@@ -7,7 +7,6 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/ContentEvents.h"
 #include "mozilla/EventDispatcher.h"
-#include "mozilla/FloatingPoint.h"
 #include "mozilla/Likely.h"
 
 #include "nsGkAtoms.h"
@@ -1248,30 +1247,32 @@ SVGSVGElement::ClearTransformProperty()
   return UnsetProperty(nsGkAtoms::transform);
 }
 
-float
+int32_t
 SVGSVGElement::GetIntrinsicWidth()
 {
   if (mLengthAttributes[ATTR_WIDTH].IsPercentage()) {
-    return UnspecifiedNaN<float>();
+    return -1;
   }
   
   
   
   
-  return std::max(mLengthAttributes[ATTR_WIDTH].GetAnimValue(this), 0.f);
+  float width = mLengthAttributes[ATTR_WIDTH].GetAnimValue(this);
+  return nsSVGUtils::ClampToInt(width);
 }
 
-float
+int32_t
 SVGSVGElement::GetIntrinsicHeight()
 {
   if (mLengthAttributes[ATTR_HEIGHT].IsPercentage()) {
-    return UnspecifiedNaN<float>();
+    return -1;
   }
   
   
   
   
-  return std::max(mLengthAttributes[ATTR_HEIGHT].GetAnimValue(this), 0.f);
+  float height = mLengthAttributes[ATTR_HEIGHT].GetAnimValue(this);
+  return nsSVGUtils::ClampToInt(height);
 }
 
 } 

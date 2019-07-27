@@ -152,8 +152,9 @@ public:
 
 
 
-  float GetIntrinsicWidth();
-  float GetIntrinsicHeight();
+
+  int32_t GetIntrinsicWidth();
+  int32_t GetIntrinsicHeight();
 
   
 
