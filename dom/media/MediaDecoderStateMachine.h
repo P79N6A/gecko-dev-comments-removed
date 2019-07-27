@@ -172,8 +172,7 @@ private:
   
   
   
-  
-  void RecreateDecodedStream(int64_t aInitialTime, MediaStreamGraph* aGraph);
+  void RecreateDecodedStream(MediaStreamGraph* aGraph);
 
   void Shutdown();
 public:
@@ -548,6 +547,8 @@ protected:
   
   
   int64_t GetAudioClock() const;
+
+  int64_t GetStreamClock() const;
 
   
   
@@ -999,6 +1000,9 @@ protected:
 public:
   AbstractCanonical<int64_t>* CanonicalCurrentPosition() { return &mCurrentPosition; }
 protected:
+  
+  
+  int64_t mStreamStartTime;
 
   
   

@@ -37,19 +37,16 @@ class Image;
 
 class DecodedStreamData {
 public:
-  DecodedStreamData(int64_t aInitialTime, SourceMediaStream* aStream);
+  explicit DecodedStreamData(SourceMediaStream* aStream);
   ~DecodedStreamData();
   bool IsFinished() const;
-  int64_t GetClock() const;
+  int64_t GetPosition() const;
 
   
 
 
   
   int64_t mAudioFramesWritten;
-  
-  
-  const int64_t mInitialTime; 
   
   
   
@@ -95,7 +92,7 @@ public:
   explicit DecodedStream(ReentrantMonitor& aMonitor);
   DecodedStreamData* GetData() const;
   void DestroyData();
-  void RecreateData(int64_t aInitialTime, MediaStreamGraph* aGraph);
+  void RecreateData(MediaStreamGraph* aGraph);
   nsTArray<OutputStreamData>& OutputStreams();
   ReentrantMonitor& GetReentrantMonitor() const;
   void Connect(ProcessedMediaStream* aStream, bool aFinishWhenEnded);
