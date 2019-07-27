@@ -5,6 +5,8 @@
 
 package org.mozilla.gecko;
 
+import android.os.Bundle;
+
 public class GeckoViewChrome implements GeckoView.ChromeDelegate {
     
 
@@ -62,5 +64,18 @@ public class GeckoViewChrome implements GeckoView.ChromeDelegate {
     @Override
     public void onDebugRequest(GeckoView view, GeckoView.PromptResult result) {
         result.cancel();
+    }
+
+    
+
+
+
+
+
+
+    public void onScriptMessage(GeckoView view, Bundle data, GeckoView.MessageResult result) {
+        if (result) {
+            result.failure(null);
+        }
     }
 }
