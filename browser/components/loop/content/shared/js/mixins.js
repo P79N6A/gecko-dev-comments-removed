@@ -245,6 +245,18 @@ loop.shared.mixins = (function() {
 
 
 
+    resetDimensionsCache: function() {
+      this._videoDimensionsCache = {
+        local: {},
+        remote: {}
+      };
+    },
+
+    
+
+
+
+
 
 
 

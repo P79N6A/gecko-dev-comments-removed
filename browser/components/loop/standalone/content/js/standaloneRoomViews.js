@@ -383,6 +383,12 @@ loop.standaloneRoomViews = (function(mozL10n) {
         this.updateVideoContainer();
       }
 
+      if (nextState.roomState === ROOM_STATES.INIT ||
+          nextState.roomState === ROOM_STATES.GATHER ||
+          nextState.roomState === ROOM_STATES.READY) {
+        this.resetDimensionsCache();
+      }
+
       
       if (this.state.receivingScreenShare && !nextState.receivingScreenShare) {
         
