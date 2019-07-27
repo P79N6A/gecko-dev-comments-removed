@@ -66,7 +66,7 @@ do {                             \
   return NS_ERROR_ILLEGAL_VALUE; \
   } while (0)
 
-Http2Session::Http2Session(nsISocketTransport *aSocketTransport)
+Http2Session::Http2Session(nsISocketTransport *aSocketTransport, uint32_t version)
   : mSocketTransport(aSocketTransport)
   , mSegmentReader(nullptr)
   , mSegmentWriter(nullptr)
@@ -104,6 +104,7 @@ Http2Session::Http2Session(nsISocketTransport *aSocketTransport)
   , mWaitingForSettingsAck(false)
   , mGoAwayOnPush(false)
   , mUseH2Deps(false)
+  , mVersion(version)
 {
   MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
 
@@ -126,7 +127,7 @@ Http2Session::Http2Session(nsISocketTransport *aSocketTransport)
 
   mPingThreshold = gHttpHandler->SpdyPingThreshold();
 
-  mNegotiatedToken.AssignLiteral(NS_HTTP2_DRAFT_TOKEN);
+  mNegotiatedToken.AssignLiteral(HTTP2_DRAFT_LATEST_TOKEN);
 }
 
 
@@ -876,7 +877,11 @@ Http2Session::SendHello()
     LogIO(this, nullptr, "Session Window Bump ", packet, kFrameHeaderBytes + 4);
   }
 
-  if (gHttpHandler->UseH2Deps() && gHttpHandler->CriticalRequestPrioritization()) {
+  
+  
+  
+  if ((mVersion != HTTP_VERSION_2_DRAFT_15) &&
+      gHttpHandler->UseH2Deps() && gHttpHandler->CriticalRequestPrioritization()) {
     mUseH2Deps = true;
     MOZ_ASSERT(mNextStreamID == kLeaderGroupID);
     CreatePriorityNode(kLeaderGroupID, 0, 200, "leader");
@@ -3361,7 +3366,7 @@ Http2Session::ConfirmTLSProfile()
     
     LOG3(("Http2Session::ConfirmTLSProfile %p could not get negotiated token. "
           "Falling back to draft token.", this));
-    mNegotiatedToken.AssignLiteral(NS_HTTP2_DRAFT_TOKEN);
+    mNegotiatedToken.AssignLiteral(HTTP2_DRAFT_LATEST_TOKEN);
   }
 
   mTLSProfileConfirmed = true;
