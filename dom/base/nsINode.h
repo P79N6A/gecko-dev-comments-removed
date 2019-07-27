@@ -1971,7 +1971,10 @@ protected:
 
   nsRefPtr<mozilla::dom::NodeInfo> mNodeInfo;
 
-  nsINode* mParent;
+  
+  
+  
+  nsINode* MOZ_OWNING_REF mParent;
 
 private:
   
