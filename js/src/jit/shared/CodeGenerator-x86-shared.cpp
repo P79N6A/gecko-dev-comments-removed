@@ -1562,73 +1562,59 @@ CodeGeneratorX86Shared::visitFloor(LFloor *lir)
     FloatRegister input = ToFloatRegister(lir->input());
     FloatRegister scratch = ScratchDoubleReg;
     Register output = ToRegister(lir->output());
-    bool canSkipZeroChecks = lir->mir()->canSkipZeroChecks();
-    bool canSkipNegativeCase = lir->mir()->canSkipNegativeCase();
+
     Label bailout;
 
     if (AssemblerX86Shared::HasSSE41()) {
+        
+        masm.branchNegativeZero(input, output, &bailout);
+        if (!bailoutFrom(&bailout, lir->snapshot()))
+            return false;
 
-        if (!canSkipZeroChecks) {
-            
-            masm.branchNegativeZero(input, output, &bailout);
-            if (!bailoutFrom(&bailout, lir->snapshot()))
-                return false;
-        }
-
-        if (!canSkipNegativeCase) {
-            
-            masm.roundsd(input, scratch, JSC::X86Assembler::RoundDown);
-        }
+        
+        masm.roundsd(input, scratch, JSC::X86Assembler::RoundDown);
 
         if (!bailoutCvttsd2si(scratch, output, lir->snapshot()))
             return false;
     } else {
         Label negative, end;
 
-        if (!canSkipZeroChecks) {
-            
-            masm.branchNegativeZero(input, output, &bailout);
-            if (!bailoutFrom(&bailout, lir->snapshot()))
-                return false;
-        }
+        
+        masm.xorpd(scratch, scratch);
+        masm.branchDouble(Assembler::DoubleLessThan, input, scratch, &negative);
 
-        if (!canSkipNegativeCase) {
-            
-            masm.xorpd(scratch, scratch);
-            masm.branchDouble(Assembler::DoubleLessThan, input, scratch, &negative);
-        }
+        
+        masm.branchNegativeZero(input, output, &bailout);
+        if (!bailoutFrom(&bailout, lir->snapshot()))
+            return false;
 
         
         if (!bailoutCvttsd2si(input, output, lir->snapshot()))
             return false;
 
+        masm.jump(&end);
 
-        if (!canSkipNegativeCase) {
-            masm.jump(&end);
+        
+        
+        
+        masm.bind(&negative);
+        {
             
             
+            if (!bailoutCvttsd2si(input, output, lir->snapshot()))
+                return false;
+
             
-            masm.bind(&negative);
-            {
-                
-                
-                if (!bailoutCvttsd2si(input, output, lir->snapshot()))
-                    return false;
+            masm.convertInt32ToDouble(output, scratch);
+            masm.branchDouble(Assembler::DoubleEqualOrUnordered, input, scratch, &end);
 
-                
-                masm.convertInt32ToDouble(output, scratch);
-                masm.branchDouble(Assembler::DoubleEqualOrUnordered,
-                                  input,
-                                  scratch,
-                                  &end);
-
-                
-                
-                masm.subl(Imm32(1), output);
-                
-            }
-            masm.bind(&end);
+            
+            
+            masm.subl(Imm32(1), output);
+            
         }
+
+        masm.bind(&end);
     }
     return true;
 }
