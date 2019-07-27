@@ -136,15 +136,22 @@ FontFaceSet::WrapObject(JSContext* aContext, JS::Handle<JSObject*> aGivenProto)
 void
 FontFaceSet::Disconnect()
 {
+  RemoveDOMContentLoadedListener();
+
+  if (mDocument && mDocument->CSSLoader()) {
+    
+    
+    
+    mDocument->CSSLoader()->RemoveObserver(this);
+  }
+}
+
+void
+FontFaceSet::RemoveDOMContentLoadedListener()
+{
   if (mDocument) {
     mDocument->RemoveSystemEventListener(NS_LITERAL_STRING("DOMContentLoaded"),
                                          this, false);
-    
-    
-    
-    if (mDocument->CSSLoader()) {
-      mDocument->CSSLoader()->RemoveObserver(this);
-    }
   }
 }
 
@@ -1557,7 +1564,7 @@ FontFaceSet::HandleEvent(nsIDOMEvent* aEvent)
     return NS_ERROR_FAILURE;
   }
 
-  Disconnect();
+  RemoveDOMContentLoadedListener();
   CheckLoadingFinished();
 
   return NS_OK;

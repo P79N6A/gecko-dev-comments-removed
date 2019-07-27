@@ -197,6 +197,8 @@ private:
 
   void Disconnect();
 
+  void RemoveDOMContentLoadedListener();
+
   
 
 
