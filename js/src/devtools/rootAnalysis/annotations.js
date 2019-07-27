@@ -66,6 +66,7 @@ var ignoreClasses = {
     "XPCOMFunctions" : true, 
     "_MD_IOVector" : true,
     "malloc_table_t": true, 
+    "malloc_hook_table_t": true, 
 };
 
 
