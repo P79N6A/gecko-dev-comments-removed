@@ -105,6 +105,9 @@ XPCWrappedNative::Suspect(nsCycleCollectionNoteRootCallback& cb)
 
     
     
+    
+    
+    
     JSObject* obj = GetFlatJSObjectPreserveColor();
     if (JS::ObjectIsMarkedGray(obj) || cb.WantAllTraces())
         cb.NoteJSRoot(obj);
