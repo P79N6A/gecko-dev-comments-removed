@@ -62,12 +62,12 @@ TraceManuallyBarrieredEdge(JSTracer* trc, T* thingp, const char* name);
 
 template <typename T>
 void
-TraceRange(JSTracer* trc, size_t len, BarrieredBase<T>* thingp, const char* name);
+TraceRange(JSTracer* trc, size_t len, BarrieredBase<T>* vec, const char* name);
 
 
 template <typename T>
 void
-TraceRootRange(JSTracer* trc, size_t len, T* thingp, const char* name);
+TraceRootRange(JSTracer* trc, size_t len, T* vec, const char* name);
 
 
 
