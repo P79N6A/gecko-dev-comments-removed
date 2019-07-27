@@ -227,7 +227,10 @@ class OTS_API OTSContext {
     bool Process(OTSStream *output, const uint8_t *input, size_t length);
 
     
-    virtual void Message(const char *format, ...) MSGFUNC_FMT_ATTR {}
+    
+    
+    
+    virtual void Message(int level, const char *format, ...) MSGFUNC_FMT_ATTR {}
 
     
     
@@ -235,6 +238,9 @@ class OTS_API OTSContext {
     
     virtual TableAction GetTableAction(uint32_t tag) { return ots::TABLE_ACTION_DEFAULT; }
 };
+
+
+bool Process(OTSStream *output, const uint8_t *input, size_t length);
 
 
 

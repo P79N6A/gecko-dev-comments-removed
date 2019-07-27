@@ -127,6 +127,8 @@ bool ParseMetricsTable(const ots::OpenTypeFile *file,
     }
 
     
+#if 0
+    
     
     
     if (adv > header->adv_width_max) {
@@ -138,6 +140,7 @@ bool ParseMetricsTable(const ots::OpenTypeFile *file,
       OTS_WARNING("bad sb: %d < %d", sb, header->min_sb1);
       sb = header->min_sb1;
     }
+#endif
 
     metrics->entries.push_back(std::make_pair(adv, sb));
   }
@@ -150,12 +153,15 @@ bool ParseMetricsTable(const ots::OpenTypeFile *file,
       return OTS_FAILURE_MSG("Failed to read side bearing %d", i + num_metrics);
     }
 
+    
+#if 0
     if (sb < header->min_sb1) {
       
       
       OTS_WARNING("bad lsb: %d < %d", sb, header->min_sb1);
       sb = header->min_sb1;
     }
+#endif
 
     metrics->sbs.push_back(sb);
   }
