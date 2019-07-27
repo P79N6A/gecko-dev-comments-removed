@@ -822,16 +822,8 @@ nsAnimationManager::UpdateAllThrottledStyles()
 {
   if (PR_CLIST_IS_EMPTY(&mElementCollections)) {
     
-    mPresContext->TickLastUpdateThrottledAnimationStyle();
     return;
   }
-
-  if (mPresContext->ThrottledAnimationStyleIsUpToDate()) {
-    
-    return;
-  }
-
-  mPresContext->TickLastUpdateThrottledAnimationStyle();
 
   UpdateAllThrottledStylesInternal();
 }

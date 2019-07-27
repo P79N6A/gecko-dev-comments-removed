@@ -118,16 +118,9 @@ nsTransitionManager::UpdateAllThrottledStyles()
 {
   if (PR_CLIST_IS_EMPTY(&mElementCollections)) {
     
-    mPresContext->TickLastUpdateThrottledTransitionStyle();
     return;
   }
 
-  if (mPresContext->ThrottledTransitionStyleIsUpToDate()) {
-    
-    return;
-  }
-
-  mPresContext->TickLastUpdateThrottledTransitionStyle();
   UpdateAllThrottledStylesInternal();
 }
 
@@ -223,7 +216,8 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
   }
 
   NS_WARN_IF_FALSE(!nsLayoutUtils::AreAsyncAnimationsEnabled() ||
-                     mPresContext->ThrottledTransitionStyleIsUpToDate(),
+                     mPresContext->RestyleManager()->
+                       ThrottledAnimationStyleIsUpToDate(),
                    "throttled animations not up to date");
 
   

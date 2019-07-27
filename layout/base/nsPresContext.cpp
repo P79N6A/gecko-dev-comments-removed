@@ -970,8 +970,7 @@ nsPresContext::Init(nsDeviceContext* aDeviceContext)
 
   
   
-  mRestyleManager = new mozilla::RestyleManager(this);
-
+  
   mCounterStyleManager = new mozilla::CounterStyleManager(this);
 
   if (mDocument->GetDisplayDocument()) {
@@ -1017,9 +1016,13 @@ nsPresContext::Init(nsDeviceContext* aDeviceContext)
   }
 
   
-  mLastStyleUpdateForAllAnimations =
-    mLastUpdateThrottledAnimationStyle =
-    mLastUpdateThrottledTransitionStyle = mRefreshDriver->MostRecentRefresh();
+  mLastStyleUpdateForAllAnimations = mRefreshDriver->MostRecentRefresh();
+
+  
+  
+  
+  
+  mRestyleManager = new mozilla::RestyleManager(this);
 
   mLangService = do_GetService(NS_LANGUAGEATOMSERVICE_CONTRACTID);
 
@@ -1549,32 +1552,6 @@ nsPresContext::Detach()
   if (mShell) {
     mShell->CancelInvalidatePresShellIfHidden();
   }
-}
-
-bool
-nsPresContext::ThrottledTransitionStyleIsUpToDate() const
-{
-  return
-    mLastUpdateThrottledTransitionStyle == mRefreshDriver->MostRecentRefresh();
-}
-
-void
-nsPresContext::TickLastUpdateThrottledTransitionStyle()
-{
-  mLastUpdateThrottledTransitionStyle = mRefreshDriver->MostRecentRefresh();
-}
-
-bool
-nsPresContext::ThrottledAnimationStyleIsUpToDate() const
-{
-  return
-    mLastUpdateThrottledAnimationStyle == mRefreshDriver->MostRecentRefresh();
-}
-
-void
-nsPresContext::TickLastUpdateThrottledAnimationStyle()
-{
-  mLastUpdateThrottledAnimationStyle = mRefreshDriver->MostRecentRefresh();
 }
 
 bool

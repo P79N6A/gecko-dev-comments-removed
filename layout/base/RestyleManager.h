@@ -15,9 +15,9 @@
 #include "nsChangeHint.h"
 #include "RestyleTracker.h"
 #include "nsPresContext.h"
+#include "nsRefreshDriver.h"
 
 class nsIFrame;
-class nsRefreshDriver;
 class nsStyleChangeList;
 struct TreeMatchContext;
 
@@ -166,6 +166,11 @@ public:
   
   void UpdateOnlyAnimationStyles();
 
+  bool ThrottledAnimationStyleIsUpToDate() const {
+    return mLastUpdateForThrottledAnimations ==
+             mPresContext->RefreshDriver()->MostRecentRefresh();
+  }
+
   
   
   
@@ -269,6 +274,8 @@ private:
   bool mInStyleRefresh : 1;
   uint32_t mHoverGeneration;
   nsChangeHint mRebuildAllExtraHint;
+
+  mozilla::TimeStamp mLastUpdateForThrottledAnimations;
 
   OverflowChangedTracker mOverflowChangedTracker;
 
