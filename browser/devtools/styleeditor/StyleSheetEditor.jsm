@@ -364,6 +364,11 @@ StyleSheetEditor.prototype = {
 
 
   load: function(inputElement) {
+    if (this._isDestroyed) {
+      return promise.reject("Won't load source editor as the style sheet has " +
+                            "already been removed from Style Editor.");
+    }
+
     this._inputElement = inputElement;
 
     let config = {
