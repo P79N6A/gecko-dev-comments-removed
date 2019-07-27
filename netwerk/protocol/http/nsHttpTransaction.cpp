@@ -1759,6 +1759,14 @@ nsHttpTransaction::CancelPipeline(uint32_t reason)
 }
 
 
+void
+nsHttpTransaction::SetLoadGroupConnectionInfo(nsILoadGroupConnectionInfo *aLoadGroupCI)
+{
+    LOG(("nsHttpTransaction %p SetLoadGroupConnectionInfo %p\n", this, aLoadGroupCI));
+    mLoadGroupCI = aLoadGroupCI;
+}
+
+
 
 
 
@@ -1773,7 +1781,7 @@ nsHttpTransaction::DispatchedAsBlocking()
     if (!mLoadGroupCI)
         return;
 
-    LOG(("nsHttpTransaction adding blocking channel %p from "
+    LOG(("nsHttpTransaction adding blocking transaction %p from "
          "loadgroup %p\n", this, mLoadGroupCI.get()));
 
     mLoadGroupCI->AddBlockingTransaction();
@@ -1789,13 +1797,13 @@ nsHttpTransaction::RemoveDispatchedAsBlocking()
     uint32_t blockers = 0;
     nsresult rv = mLoadGroupCI->RemoveBlockingTransaction(&blockers);
 
-    LOG(("nsHttpTransaction removing blocking channel %p from "
+    LOG(("nsHttpTransaction removing blocking transaction %p from "
          "loadgroup %p. %d blockers remain.\n", this,
          mLoadGroupCI.get(), blockers));
 
     if (NS_SUCCEEDED(rv) && !blockers) {
-        LOG(("nsHttpTransaction %p triggering release of blocked channels.\n",
-             this));
+        LOG(("nsHttpTransaction %p triggering release of blocked channels "
+             " with loadgroupci=%p\n", this, mLoadGroupCI.get()));
         gHttpHandler->ConnMgr()->ProcessPendingQ();
     }
 
@@ -1806,6 +1814,8 @@ void
 nsHttpTransaction::ReleaseBlockingTransaction()
 {
     RemoveDispatchedAsBlocking();
+    LOG(("nsHttpTransaction %p loadgroupci set to null "
+         "in ReleaseBlockingTransaction() - was %p\n", this, mLoadGroupCI.get()));
     mLoadGroupCI = nullptr;
 }
 
