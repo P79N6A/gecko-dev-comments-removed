@@ -1542,7 +1542,6 @@ let Impl = {
      }
 
     
-    this._delayedInitTask.disarm();
     return this._delayedInitTask.finalize().then(cleanup);
    },
 
