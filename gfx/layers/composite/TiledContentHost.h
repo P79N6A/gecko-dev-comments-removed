@@ -106,6 +106,11 @@ public:
     }
   }
 
+  void DumpTexture(std::stringstream& aStream) {
+    
+    CompositableHost::DumpTextureHost(aStream, mTextureHost);
+  }
+
   RefPtr<gfxSharedReadLock> mSharedLock;
   CompositableTextureHostRef mTextureHost;
   CompositableTextureHostRef mTextureHostOnWhite;

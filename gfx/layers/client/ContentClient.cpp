@@ -118,6 +118,20 @@ ContentClient::EndPaint(nsTArray<ReadbackProcessor::Update>* aReadbackUpdates)
   OnTransaction();
 }
 
+void
+ContentClient::PrintInfo(std::stringstream& aStream, const char* aPrefix)
+{
+  aStream << aPrefix;
+  aStream << nsPrintfCString("ContentClient (0x%p)", this).get();
+
+  if (profiler_feature_active("displaylistdump")) {
+    nsAutoCString pfx(aPrefix);
+    pfx += "  ";
+
+    Dump(aStream, pfx.get(), false);
+  }
+}
+
 
 
 ContentClientBasic::ContentClientBasic()
@@ -399,6 +413,15 @@ void
 ContentClientRemoteBuffer::SwapBuffers(const nsIntRegion& aFrontUpdatedRegion)
 {
   mFrontAndBackBufferDiffer = true;
+}
+
+void
+ContentClientRemoteBuffer::Dump(std::stringstream& aStream,
+                                const char* aPrefix,
+                                bool aDumpHtml)
+{
+  
+  CompositableClient::DumpTextureClient(aStream, mTextureClient);
 }
 
 void

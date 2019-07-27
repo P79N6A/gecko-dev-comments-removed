@@ -218,6 +218,11 @@ struct TileClient
 
   void Flip();
 
+  void DumpTexture(std::stringstream& aStream) {
+    
+    CompositableClient::DumpTextureClient(aStream, mFrontBuffer);
+  }
+
   
 
 
@@ -526,6 +531,12 @@ protected:
     mTiledBuffer.Release();
     mLowPrecisionTiledBuffer.Release();
   }
+
+  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix);
+
+  virtual void Dump(std::stringstream& aStream,
+                    const char* aPrefix="",
+                    bool aDumpHtml=false);
 
 public:
   virtual TextureInfo GetTextureInfo() const MOZ_OVERRIDE

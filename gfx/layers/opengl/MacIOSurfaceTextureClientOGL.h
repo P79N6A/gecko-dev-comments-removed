@@ -36,6 +36,8 @@ public:
 
   virtual bool HasInternalBuffer() const MOZ_OVERRIDE { return false; }
 
+  virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() MOZ_OVERRIDE;
+
   
   
   

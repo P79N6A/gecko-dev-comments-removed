@@ -47,6 +47,8 @@ public:
 protected:
   ~ClientTiledPaintedLayer();
 
+  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix) MOZ_OVERRIDE;
+
 public:
   
   virtual const char* Name() const { return "TiledPaintedLayer"; }
