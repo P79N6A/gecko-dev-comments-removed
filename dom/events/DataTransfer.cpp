@@ -381,10 +381,7 @@ DataTransfer::GetData(const nsAString& aFormat, nsAString& aData,
     
     
     nsAutoString lowercaseFormat;
-    aRv = nsContentUtils::ASCIIToLower(aFormat, lowercaseFormat);
-    if (aRv.Failed()) {
-      return;
-    }
+    nsContentUtils::ASCIIToLower(aFormat, lowercaseFormat);
 
     if (lowercaseFormat.EqualsLiteral("url")) {
       int32_t lastidx = 0, idx;
