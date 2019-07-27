@@ -13,10 +13,8 @@
 #include "Latency.h"
 #include "mozilla/dom/AudioChannelBinding.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/StaticMutex.h"
 #include "mozilla/UniquePtr.h"
-
-#include "cubeb/cubeb.h"
+#include "CubebUtils.h"
 
 namespace soundtouch {
 class SoundTouch;
@@ -186,24 +184,6 @@ class AudioStream MOZ_FINAL
   virtual ~AudioStream();
 
 public:
-  
-  
-  static void InitLibrary();
-
-  
-  
-  static void ShutdownLibrary();
-
-  
-  static int MaxNumberOfChannels();
-
-  
-  
-  
-  static void InitPreferredSampleRate();
-  
-  static int PreferredSampleRate();
-
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AudioStream)
   AudioStream();
 
@@ -304,14 +284,6 @@ private:
   void AudioInitTaskFinished();
 
   void CheckForStart();
-
-  static void PrefChanged(const char* aPref, void* aClosure);
-  static double GetVolumeScale();
-  static bool GetFirstStream();
-  static cubeb* GetCubebContext();
-  static cubeb* GetCubebContextUnlocked();
-  static uint32_t GetCubebLatency();
-  static bool CubebLatencyPrefSet();
 
   static long DataCallback_S(cubeb_stream*, void* aThis, void* aBuffer, long aFrames)
   {
@@ -430,18 +402,6 @@ private:
   
   
   bool mPendingAudioInitTask;
-
-  
-  static StaticMutex sMutex;
-  static cubeb* sCubebContext;
-
-  
-  
-  static uint32_t sPreferredSampleRate;
-
-  static double sVolumeScale;
-  static uint32_t sCubebLatency;
-  static bool sCubebLatencyPrefSet;
 };
 
 class AudioInitTask : public nsRunnable
