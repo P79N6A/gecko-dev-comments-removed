@@ -5941,14 +5941,13 @@ struct BackgroundItemComputer<nsCSSValueList, nsStyleImage>
 
 
 
-
 typedef nsStyleBackground::Position::PositionCoord PositionCoord;
 static void
-ComputeBackgroundPositionCoord(nsStyleContext* aStyleContext,
-                               const nsCSSValue& aEdge,
-                               const nsCSSValue& aOffset,
-                               PositionCoord* aResult,
-                               bool& aCanStoreInRuleTree)
+ComputePositionCoord(nsStyleContext* aStyleContext,
+                     const nsCSSValue& aEdge,
+                     const nsCSSValue& aOffset,
+                     PositionCoord* aResult,
+                     bool& aCanStoreInRuleTree)
 {
   if (eCSSUnit_Percent == aOffset.GetUnit()) {
     aResult->mLength = 0;
@@ -5992,6 +5991,40 @@ ComputeBackgroundPositionCoord(nsStyleContext* aStyleContext,
   }
 }
 
+
+
+static void
+ComputePositionValue(nsStyleContext* aStyleContext,
+                     const nsCSSValue& aValue,
+                     nsStyleBackground::Position& aComputedValue,
+                     bool& aCanStoreInRuleTree)
+{
+  NS_ASSERTION(aValue.GetUnit() == eCSSUnit_Array,
+               "unexpected unit for CSS <position> value");
+
+  nsRefPtr<nsCSSValue::Array> positionArray = aValue.GetArrayValue();
+  const nsCSSValue &xEdge   = positionArray->Item(0);
+  const nsCSSValue &xOffset = positionArray->Item(1);
+  const nsCSSValue &yEdge   = positionArray->Item(2);
+  const nsCSSValue &yOffset = positionArray->Item(3);
+
+  NS_ASSERTION((eCSSUnit_Enumerated == xEdge.GetUnit()  ||
+                eCSSUnit_Null       == xEdge.GetUnit()) &&
+               (eCSSUnit_Enumerated == yEdge.GetUnit()  ||
+                eCSSUnit_Null       == yEdge.GetUnit()) &&
+               eCSSUnit_Enumerated != xOffset.GetUnit()  &&
+               eCSSUnit_Enumerated != yOffset.GetUnit(),
+               "Invalid background position");
+
+  ComputePositionCoord(aStyleContext, xEdge, xOffset,
+                       &aComputedValue.mXPosition,
+                       aCanStoreInRuleTree);
+
+  ComputePositionCoord(aStyleContext, yEdge, yOffset,
+                       &aComputedValue.mYPosition,
+                       aCanStoreInRuleTree);
+}
+
 template <>
 struct BackgroundItemComputer<nsCSSValueList, nsStyleBackground::Position>
 {
@@ -6000,30 +6033,8 @@ struct BackgroundItemComputer<nsCSSValueList, nsStyleBackground::Position>
                            nsStyleBackground::Position& aComputedValue,
                            bool& aCanStoreInRuleTree)
   {
-    NS_ASSERTION(aSpecifiedValue->mValue.GetUnit() == eCSSUnit_Array, "bg-position not an array");
-
-    nsRefPtr<nsCSSValue::Array> bgPositionArray =
-                                  aSpecifiedValue->mValue.GetArrayValue();
-    const nsCSSValue &xEdge   = bgPositionArray->Item(0);
-    const nsCSSValue &xOffset = bgPositionArray->Item(1);
-    const nsCSSValue &yEdge   = bgPositionArray->Item(2);
-    const nsCSSValue &yOffset = bgPositionArray->Item(3);
-
-    NS_ASSERTION((eCSSUnit_Enumerated == xEdge.GetUnit()  ||
-                  eCSSUnit_Null       == xEdge.GetUnit()) &&
-                 (eCSSUnit_Enumerated == yEdge.GetUnit()  ||
-                  eCSSUnit_Null       == yEdge.GetUnit()) &&
-                  eCSSUnit_Enumerated != xOffset.GetUnit()  &&
-                  eCSSUnit_Enumerated != yOffset.GetUnit(),
-                  "Invalid background position");
-
-    ComputeBackgroundPositionCoord(aStyleContext, xEdge, xOffset,
-                                   &aComputedValue.mXPosition,
-                                   aCanStoreInRuleTree);
-
-    ComputeBackgroundPositionCoord(aStyleContext, yEdge, yOffset,
-                                   &aComputedValue.mYPosition,
-                                   aCanStoreInRuleTree);
+    ComputePositionValue(aStyleContext, aSpecifiedValue->mValue,
+                         aComputedValue, aCanStoreInRuleTree);
   }
 };
 
