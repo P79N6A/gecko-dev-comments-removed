@@ -39,7 +39,7 @@ public:
   bool HasGrayCallable() const
   {
     
-    return mCallback && xpc_IsGrayGCThing(mCallback);
+    return mCallback && JS::ObjectIsMarkedGray(mCallback);
   }
 
 protected:

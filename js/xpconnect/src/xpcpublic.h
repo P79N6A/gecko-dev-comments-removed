@@ -176,15 +176,6 @@ xpc_FastGetCachedWrapper(JSContext *cx, nsWrapperCache *cache, JS::MutableHandle
     return nullptr;
 }
 
-
-
-
-inline bool
-xpc_IsGrayGCThing(void *thing)
-{
-    return JS::GCThingIsMarkedGray(thing);
-}
-
 inline JSScript *
 xpc_UnmarkGrayScript(JSScript *script)
 {

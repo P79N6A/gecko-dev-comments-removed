@@ -65,7 +65,7 @@ nsXPCWrappedJS::CanSkip()
 
     
     JSObject *obj = GetJSObjectPreserveColor();
-    if (obj && xpc_IsGrayGCThing(obj))
+    if (obj && JS::ObjectIsMarkedGray(obj))
         return false;
 
     

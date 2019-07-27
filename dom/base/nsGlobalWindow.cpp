@@ -1913,7 +1913,8 @@ nsGlobalWindow::UnmarkGrayTimers()
       if (f) {
         
         DebugOnly<JS::Handle<JSObject*> > o = f->Callable();
-        MOZ_ASSERT(!xpc_IsGrayGCThing(o.value), "Should have been unmarked");
+        MOZ_ASSERT(!JS::ObjectIsMarkedGray(o.value),
+                   "Should have been unmarked");
       }
     }
   }
