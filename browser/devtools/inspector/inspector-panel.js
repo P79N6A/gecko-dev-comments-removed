@@ -51,6 +51,12 @@ const LAYOUT_CHANGE_TIMER = 250;
 
 
 
+
+
+
+
+
+
 function InspectorPanel(iframeWindow, toolbox) {
   this._toolbox = toolbox;
   this._target = toolbox._target;

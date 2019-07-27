@@ -791,6 +791,23 @@ function getComputedViewProperty(view, name) {
 
 
 
+function getComputedViewPropertyView(view, name) {
+  let propView;
+  for (let propertyView of view.propertyViews) {
+    if (propertyView._propertyInfo.name === name) {
+      propView = propertyView;
+      break;
+    }
+  }
+  return propView;
+}
+
+
+
+
+
+
+
 
 
 

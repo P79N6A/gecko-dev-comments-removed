@@ -26,16 +26,26 @@ add_task(function*() {
   yield expandComputedViewPropertyByIndex(view, 0);
 
   info("Verifying the link text");
-  yield verifyLinkText(view, SCSS_LOC);
+  
+  
+  
+  
+  let propertyView = getComputedViewPropertyView(view, "color");
+  yield propertyView.matchedSelectorViews[0].updateSourceLink();
+  verifyLinkText(view, SCSS_LOC);
 
   info("Toggling the pref");
+  let onLinksUpdated = inspector.once("computed-view-sourcelinks-updated");
   Services.prefs.setBoolPref(PREF, false);
+  yield onLinksUpdated;
 
   info("Verifying that the link text has changed after the pref change");
   yield verifyLinkText(view, CSS_LOC);
 
   info("Toggling the pref again");
+  onLinksUpdated = inspector.once("computed-view-sourcelinks-updated");
   Services.prefs.setBoolPref(PREF, true);
+  yield onLinksUpdated;
 
   info("Testing that clicking on the link works");
   yield testClickingLink(toolbox, view);
@@ -60,9 +70,5 @@ function* testClickingLink(toolbox, view) {
 
 function verifyLinkText(view, text) {
   let link = getComputedViewLinkByIndex(view, 0);
-
-  return waitForSuccess(
-    () => link.textContent == text,
-    "link text changed to display correct location: " + text
-  );
+  is(link.textContent, text, "Linked text changed to display the correct location");
 }
