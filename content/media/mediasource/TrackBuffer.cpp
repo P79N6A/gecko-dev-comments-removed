@@ -72,10 +72,6 @@ TrackBuffer::Shutdown()
 {
   
   
-  DiscardDecoder();
-
-  
-  
   
   mParentDecoder->GetReentrantMonitor().AssertNotCurrentThreadIn();
   mTaskQueue->Shutdown();
