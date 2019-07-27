@@ -143,6 +143,12 @@ extern nsresult nsStringInputStreamConstructor(nsISupports*, REFNSIID, void**);
 
 #include "ogg/ogg.h"
 #if defined(MOZ_VPX) && !defined(MOZ_VPX_NO_MEM_REPORTING)
+#if defined(HAVE_STDINT_H)
+
+
+
+#undef HAVE_STDINT_H
+#endif
 #include "vpx_mem/vpx_mem.h"
 #endif
 #ifdef MOZ_WEBM
