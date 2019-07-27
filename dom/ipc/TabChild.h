@@ -480,8 +480,6 @@ public:
 
     virtual bool RecvUIResolutionChanged() override;
 
-    virtual bool RecvThemeChanged(nsTArray<LookAndFeelInt>&& aLookAndFeelIntCache) override;
-
     
 
 
