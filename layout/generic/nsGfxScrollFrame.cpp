@@ -3072,6 +3072,22 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     }
 
     mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, scrolledContent);
+
+    if (idSetter.ShouldForceLayerForScrollParent() &&
+        !gfxPrefs::LayoutUseContainersForRootFrames())
+    {
+      
+      
+      
+      
+      
+      MOZ_ASSERT(shouldBuildLayer && mScrolledFrame->GetContent());
+      mShouldBuildScrollableLayer = true;
+    }
+  }
+
+  if (mShouldBuildScrollableLayer && !gfxPrefs::LayoutUseContainersForRootFrames()) {
+    aBuilder->ForceLayerForScrollParent();
   }
 
   if (MOZ_UNLIKELY(mOuter->StyleDisplay()->mOverflowClipBox ==

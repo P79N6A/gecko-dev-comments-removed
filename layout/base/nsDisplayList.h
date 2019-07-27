@@ -257,6 +257,13 @@ public:
 
 
 
+
+
+  void ForceLayerForScrollParent() { mForceLayerForScrollParent = true; }
+  
+
+
+
   void GetScrollbarInfo(ViewID* aOutScrollbarTarget, uint32_t* aOutScrollbarFlags)
   {
     *aOutScrollbarTarget = mCurrentScrollbarTarget;
@@ -660,15 +667,41 @@ public:
   class AutoCurrentScrollParentIdSetter {
   public:
     AutoCurrentScrollParentIdSetter(nsDisplayListBuilder* aBuilder, ViewID aScrollId)
-      : mBuilder(aBuilder), mOldValue(aBuilder->mCurrentScrollParentId) {
+      : mBuilder(aBuilder)
+      , mOldValue(aBuilder->mCurrentScrollParentId)
+      , mOldForceLayer(aBuilder->mForceLayerForScrollParent) {
+      
+      
+      
+      
+      mCanBeScrollParent = (mOldValue != aScrollId);
       aBuilder->mCurrentScrollParentId = aScrollId;
+      aBuilder->mForceLayerForScrollParent = false;
     }
+    bool ShouldForceLayerForScrollParent() const {
+      
+      
+      return mCanBeScrollParent && mBuilder->mForceLayerForScrollParent;
+    };
     ~AutoCurrentScrollParentIdSetter() {
       mBuilder->mCurrentScrollParentId = mOldValue;
+      if (mCanBeScrollParent) {
+        
+        
+        
+        mBuilder->mForceLayerForScrollParent = mOldForceLayer;
+      } else {
+        
+        
+        
+        mBuilder->mForceLayerForScrollParent |= mOldForceLayer;
+      }
     }
   private:
     nsDisplayListBuilder* mBuilder;
     ViewID                mOldValue;
+    bool                  mOldForceLayer;
+    bool                  mCanBeScrollParent;
   };
 
   
@@ -919,6 +952,7 @@ private:
   bool                           mHaveScrollableDisplayPort;
   bool                           mWindowDraggingAllowed;
   bool                           mIsBuildingForPopup;
+  bool                           mForceLayerForScrollParent;
 };
 
 class nsDisplayItem;
