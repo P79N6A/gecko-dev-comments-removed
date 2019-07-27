@@ -736,19 +736,37 @@ public:
   
 
 
+
+
   void SetSize(const mozilla::LogicalSize& aSize) {
     SetSize(GetWritingMode(), aSize);
   }
   
 
 
+
+
   void SetSize(mozilla::WritingMode aWritingMode,
-               const mozilla::LogicalSize& aSize) {
-    SetSize(aSize.GetPhysicalSize(aWritingMode));
+               const mozilla::LogicalSize& aSize)
+  {
+    if ((!aWritingMode.IsVertical() && !aWritingMode.IsBidiLTR()) ||
+        aWritingMode.IsVerticalRL()) {
+      nscoord oldWidth = mRect.width;
+      SetSize(aSize.GetPhysicalSize(aWritingMode));
+      mRect.x -= mRect.width - oldWidth;
+    } else {
+      SetSize(aSize.GetPhysicalSize(aWritingMode));
+    }
   }
+
+  
+
+
+
   void SetSize(const nsSize& aSize) {
     SetRect(nsRect(mRect.TopLeft(), aSize));
   }
+
   void SetPosition(const nsPoint& aPt) { mRect.MoveTo(aPt); }
   void SetPosition(mozilla::WritingMode aWritingMode,
                    const mozilla::LogicalPoint& aPt,
