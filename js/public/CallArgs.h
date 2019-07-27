@@ -362,6 +362,13 @@ class MOZ_STACK_CLASS CallArgs : public detail::CallArgsBase<detail::IncludeUsed
         return args;
     }
 
+  public:
+    
+
+
+
+    bool requireAtLeast(JSContext *cx, const char *fnname, unsigned required);
+
 };
 
 MOZ_ALWAYS_INLINE CallArgs

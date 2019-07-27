@@ -158,6 +158,7 @@ typedef JSObject Env;
 class Debugger : private mozilla::LinkedListElement<Debugger>
 {
     friend class Breakpoint;
+    friend class DebuggerMemory;
     friend class mozilla::LinkedListElement<Debugger>;
     friend bool (::JS_DefineDebuggerObject)(JSContext *cx, JS::HandleObject obj);
 
@@ -189,6 +190,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     GlobalObjectSet debuggees;          
     js::HeapPtrObject uncaughtExceptionHook; 
     bool enabled;
+    bool trackingAllocationSites;
     JSCList breakpoints;                
 
     
@@ -243,10 +245,10 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
                                             AutoDebugModeInvalidation &invalidate,
                                             GlobalObjectSet::Enum *compartmentEnum,
                                             GlobalObjectSet::Enum *debugEnu);
-    bool removeDebuggeeGlobal(JSContext *cx, GlobalObject *global,
+    bool removeDebuggeeGlobal(JSContext *cx, Handle<GlobalObject *> global,
                               GlobalObjectSet::Enum *compartmentEnum,
                               GlobalObjectSet::Enum *debugEnum);
-    bool removeDebuggeeGlobal(JSContext *cx, GlobalObject *global,
+    bool removeDebuggeeGlobal(JSContext *cx, Handle<GlobalObject *> global,
                               AutoDebugModeInvalidation &invalidate,
                               GlobalObjectSet::Enum *compartmentEnum,
                               GlobalObjectSet::Enum *debugEnum);
@@ -766,6 +768,8 @@ EvaluateInEnv(JSContext *cx, Handle<Env*> env, HandleValue thisv, AbstractFrameP
               mozilla::Range<const jschar> chars, const char *filename, unsigned lineno,
               MutableHandleValue rval);
 
-}
+bool ReportObjectRequired(JSContext *cx);
+
+} 
 
 #endif 
