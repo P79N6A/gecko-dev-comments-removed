@@ -104,6 +104,7 @@ class Console;
 class External;
 class Function;
 class Gamepad;
+class VRDevice;
 class MediaQueryList;
 class MozSelfSupport;
 class Navigator;
@@ -117,6 +118,9 @@ class WakeLock;
 namespace indexedDB {
 class IDBFactory;
 } 
+} 
+namespace gfx {
+class VRHMDInfo;
 } 
 } 
 
@@ -734,6 +738,8 @@ public:
   void EnableGamepadUpdates();
   void DisableGamepadUpdates();
 
+  
+  bool GetVRDevices(nsTArray<nsRefPtr<mozilla::dom::VRDevice>>& aDevices);
 
 #define EVENT(name_, id_, type_, struct_)                                     \
   mozilla::dom::EventHandlerNonNull* GetOn##name_()                           \
@@ -1629,6 +1635,13 @@ protected:
 
   
   uint32_t mCanSkipCCGeneration;
+
+  
+  bool                                       mVRDevicesInitialized;
+  
+  nsTArray<nsRefPtr<mozilla::dom::VRDevice>> mVRDevices;
+  
+  nsRefPtr<mozilla::gfx::VRHMDInfo>          mVRHMDInfo;
 
   friend class nsDOMScriptableHelper;
   friend class nsDOMWindowUtils;
