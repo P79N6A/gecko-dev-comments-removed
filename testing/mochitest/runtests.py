@@ -1132,6 +1132,19 @@ class Mochitest(MochitestUtilsMixin):
 
     return manifest
 
+  def getGMPPluginPath(self, options):
+    
+    gmp_path = os.path.join(options.xrePath, 'gmp-fake')
+    if os.path.isdir(gmp_path):
+      return gmp_path
+
+    
+    gmp_path = os.path.join(self.profile.profile, 'plugins', 'gmp-fake')
+    if os.path.isdir(gmp_path):
+      return gmp_path
+    
+    raise EnvironmentError('Could not find gmp-fake')
+
   def buildBrowserEnv(self, options, debugger=False):
     """build the environment variables for the specific test and operating system"""
     if mozinfo.info["asan"]:
@@ -1151,13 +1164,17 @@ class Mochitest(MochitestUtilsMixin):
       browserEnv.update(dict(parseKeyValue(options.environment, context='--setenv')))
     except KeyValueParseError, e:
       log.error(str(e))
-      return
+      return None
 
     browserEnv["XPCOM_MEM_BLOAT_LOG"] = self.leak_report_file
 
-    
-    
-    browserEnv["MOZ_GMP_PATH"] = options.xrePath + "/gmp-fake"
+    try:
+      gmp_path = self.getGMPPluginPath(options)
+      if gmp_path is not None:
+          browserEnv["MOZ_GMP_PATH"] = gmp_path
+    except EnvironmentError:
+      log.error('Could not find path to gmp-fake plugin!')
+      return None
 
     if options.fatalAssertions:
       browserEnv["XPCOM_DEBUG_BREAK"] = "stack-and-abort"
