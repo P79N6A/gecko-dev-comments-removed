@@ -320,6 +320,11 @@ pref("media.fragmented-mp4.gonk.enabled", true);
 #endif
 
 
+pref("media.eme.enabled", true);
+pref("media.eme.apiVisible", true);
+
+
+
 pref("media.video-queue.default-size", 3);
 
 
