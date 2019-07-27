@@ -601,6 +601,30 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
+  copyRequestHeaders: function() {
+    let selected = this.selectedItem.attachment;
+    let rawHeaders = selected.requestHeaders.rawHeaders.trim();
+    if (Services.appinfo.OS !== "WINNT") {
+      rawHeaders = rawHeaders.replace(/\r/g, "");
+    }
+    clipboardHelper.copyString(rawHeaders, document);
+  },
+
+  
+
+
+  copyResponseHeaders: function() {
+    let selected = this.selectedItem.attachment;
+    let rawHeaders = selected.responseHeaders.rawHeaders.trim();
+    if (Services.appinfo.OS !== "WINNT") {
+      rawHeaders = rawHeaders.replace(/\r/g, "");
+    }
+    clipboardHelper.copyString(rawHeaders, document);
+  },
+
+  
+
+
   copyImageAsDataUri: function() {
     let selected = this.selectedItem.attachment;
     let { mimeType, text, encoding } = selected.responseContent.content;
@@ -1808,6 +1832,12 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
     let copyAsCurlElement = $("#request-menu-context-copy-as-curl");
     copyAsCurlElement.hidden = !selectedItem || !selectedItem.attachment.responseContent;
+
+    let copyRequestHeadersElement = $("#request-menu-context-copy-request-headers");
+    copyRequestHeadersElement.hidden = !selectedItem || !selectedItem.attachment.requestHeaders;
+
+    let copyResponseHeadersElement = $("#response-menu-context-copy-response-headers");
+    copyResponseHeadersElement.hidden = !selectedItem || !selectedItem.attachment.responseHeaders;
 
     let copyResponse = $("#request-menu-context-copy-response");
     copyResponse.hidden = !selectedItem ||
