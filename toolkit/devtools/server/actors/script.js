@@ -2807,27 +2807,126 @@ SourceActor.prototype = {
 
 
 
-
-
-
-
-
   _setBreakpointForActor: function (actor) {
+    let { originalLocation } = actor;
+
     if (this.isSourceMapped) {
-      return this.threadActor.sources.getGeneratedLocation(
-        actor.originalLocation
-      ).then((generatedLocation) => {
+      
+      return this.threadActor.sources.getGeneratedLocation(originalLocation)
+                                     .then((generatedLocation) => {
         return generatedLocation.generatedSourceActor
-                                ._setBreakpointForActorAtLocation(
+                                ._setBreakpointForActorAtLocationWithSliding(
           actor,
           generatedLocation
         );
       });
     } else {
-      return Promise.resolve(this._setBreakpointForActorAtLocation(
-        actor,
-        GeneratedLocation.fromOriginalLocation(actor.originalLocation)
-      ));
+      
+      
+      let generatedLocation = GeneratedLocation.fromOriginalLocation(originalLocation);
+      let { generatedColumn } = generatedLocation;
+
+      
+      
+      
+      if (this._setBreakpointForActorAtLocation(actor, generatedLocation)) {
+        return Promise.resolve(actor);
+      }
+
+      
+      
+      if (generatedColumn === undefined) {
+        
+        
+        
+        
+        
+        let lineToEntryPointsMap = [];
+
+        
+        let scripts = this.scripts.getScriptsBySourceActor(this);
+        for (let script of scripts) {
+          
+          
+          
+          let lineToOffsetsMap = script.getAllOffsets();
+
+          
+          
+          
+          
+          for (let line = 0; line < lineToOffsetsMap.length; ++line) {
+            let offsets = lineToOffsetsMap[line];
+            if (offsets) {
+              let entryPoints = lineToEntryPointsMap[line];
+              if (!entryPoints) {
+                
+                
+                entryPoints = [];
+                lineToEntryPointsMap[line] = entryPoints;
+              }
+              entryPoints.push({ script, offsets });
+            }
+          }
+        }
+
+        let {
+          originalSourceActor,
+          originalLine,
+          originalColumn
+        } = originalLocation;
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        let actualLine = originalLine;
+        while (actualLine < lineToEntryPointsMap.length) {
+          let entryPoints = lineToEntryPointsMap[actualLine];
+          if (entryPoints) {
+            setBreakpointForActorAtEntryPoints(actor, entryPoints);
+            break;
+          }
+          ++actualLine;
+        }
+        if (actualLine === lineToEntryPointsMap.length) {
+          
+          
+          
+          
+          return Promise.resolve(actor);
+        }
+
+        
+        
+        
+        if (actualLine !== originalLine) {
+          let actualLocation = new OriginalLocation(
+            originalSourceActor,
+            actualLine
+          );
+          let existingActor = this.breakpointActorMap.getActor(actualLocation);
+          if (existingActor) {
+            actor.onDelete();
+            this.breakpointActorMap.deleteActor(originalLocation);
+            actor = existingActor;
+          } else {
+            this.breakpointActorMap.deleteActor(originalLocation);
+            actor.originalLocation = actualLocation;
+            this.breakpointActorMap.setActor(actualLocation, actor);
+          }
+        }
+
+        return Promise.resolve(actor);
+      } else {
+        
+        return Promise.resolve(actor);
+      }
     }
   },
 
@@ -2842,7 +2941,78 @@ SourceActor.prototype = {
 
 
 
+
+
+
   _setBreakpointForActorAtLocation: function (actor, generatedLocation) {
+    let { generatedLine, generatedColumn } = generatedLocation;
+
+    
+    let scripts = this.scripts.getScriptsBySourceActorAndLine(
+      this,
+      generatedLine
+    ).filter((script) => !actor.hasScript(script));
+
+    
+    let entryPoints = [];
+    if (generatedColumn === undefined) {
+      
+      
+      for (let script of scripts) {
+        let offsets = script.getLineOffsets(generatedLine);
+        if (offsets.length > 0) {
+          entryPoints.push({ script, offsets });
+        }
+      }
+    } else {
+      
+      
+      for (let script of scripts) {
+        let columnToOffsetMap = script.getAllColumnOffsets()
+                                      .filter(({ lineNumber }) => {
+          return lineNumber === generatedLine;
+        });
+        for (let { columnNumber: column, offset } of columnToOffsetMap) {
+          
+          
+          if (column == generatedColumn) {
+            entryPoints.push({ script, offsets: [offset] });
+          }
+        }
+      }
+    }
+
+    if (entryPoints.length === 0) {
+      return false;
+    }
+    setBreakpointForActorAtEntryPoints(actor, entryPoints);
+    return true;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _setBreakpointForActorAtLocationWithSliding: function (actor, generatedLocation) {
     let originalLocation = actor.originalLocation;
     let { generatedLine, generatedColumn } = generatedLocation;
 
@@ -2967,10 +3137,6 @@ SourceActor.prototype = {
       }
       actor.addScript(script, this.threadActor);
     }
-
-    return {
-      actor: actor.actorID
-    };
   },
 
   
