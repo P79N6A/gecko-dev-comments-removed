@@ -9838,7 +9838,18 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             return NS_OK;
         }
     }
+
     
+    
+    nsCOMPtr<nsIWebBrowserChrome3> browserChrome3 = do_GetInterface(mTreeOwner);
+    if (browserChrome3) {
+        bool shouldLoad;
+        rv = browserChrome3->ShouldLoadURI(this, aURI, aReferrer, &shouldLoad);
+        if (NS_SUCCEEDED(rv) && !shouldLoad) {
+            return NS_OK;
+        }
+    }
+
     
     
     

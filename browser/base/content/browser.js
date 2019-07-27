@@ -13,6 +13,8 @@ Cu.import("resource://gre/modules/WindowsPrefSync.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "BrowserUITelemetry",
                                   "resource:///modules/BrowserUITelemetry.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "E10SUtils",
+                                  "resource:///modules/E10SUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "BrowserUtils",
                                   "resource://gre/modules/BrowserUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
@@ -165,6 +167,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "SitePermissions",
 
 XPCOMUtils.defineLazyModuleGetter(this, "SessionStore",
   "resource:///modules/sessionstore/SessionStore.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "TabState",
+  "resource:///modules/sessionstore/TabState.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "fxAccounts",
   "resource://gre/modules/FxAccounts.jsm");
@@ -766,6 +771,36 @@ function gKeywordURIFixup({ target: browser, data: fixupInfo }) {
   gDNSService.asyncResolve(hostName, 0, onLookupComplete, Services.tm.mainThread);
 }
 
+
+
+function RedirectLoad({ target: browser, data }) {
+  let tab = gBrowser._getTabForBrowser(browser);
+  
+  TabState.flush(browser);
+  let tabState = JSON.parse(SessionStore.getTabState(tab));
+
+  if (data.historyIndex < 0) {
+    
+    let newEntry = {
+      url: data.uri,
+      referrer: data.referrer,
+    };
+
+    tabState.entries = tabState.entries.slice(0, tabState.index);
+    tabState.entries.push(newEntry);
+    tabState.index++;
+    tabState.userTypedValue = null;
+  }
+  else {
+    
+    tabState.index = data.historyIndex + 1;
+  }
+
+  
+  
+  SessionStore.setTabState(tab, JSON.stringify(tabState));
+}
+
 var gBrowserInit = {
   delayedStartupFinished: false,
 
@@ -1064,6 +1099,7 @@ var gBrowserInit = {
     Services.obs.addObserver(gXPInstallObserver, "addon-install-failed", false);
     Services.obs.addObserver(gXPInstallObserver, "addon-install-complete", false);
     window.messageManager.addMessageListener("Browser:URIFixup", gKeywordURIFixup);
+    window.messageManager.addMessageListener("Browser:LoadURI", RedirectLoad);
 
     BrowserOffline.init();
     OfflineApps.init();
@@ -1372,6 +1408,7 @@ var gBrowserInit = {
       Services.obs.removeObserver(gXPInstallObserver, "addon-install-failed");
       Services.obs.removeObserver(gXPInstallObserver, "addon-install-complete");
       window.messageManager.removeMessageListener("Browser:URIFixup", gKeywordURIFixup);
+      window.messageManager.removeMessageListener("Browser:LoadURI", RedirectLoad);
 
       try {
         gPrefService.removeObserver(gHomeButton.prefDomain, gHomeButton);
@@ -3549,6 +3586,28 @@ var XULBrowserWindow = {
     let target = BrowserUtils.onBeforeLinkTraversal(originalTarget, linkURI, linkNode, isAppTab);
     SocialUI.closeSocialPanelForLinkTraversal(target, linkNode);
     return target;
+  },
+
+  
+  shouldLoadURI: function(aDocShell, aURI, aReferrer) {
+    if (!gMultiProcessBrowser)
+      return true;
+
+    let browser = aDocShell.QueryInterface(Ci.nsIDocShellTreeItem)
+                           .sameTypeRootTreeItem
+                           .QueryInterface(Ci.nsIDocShell)
+                           .chromeEventHandler;
+
+    
+    if (browser.localName != "browser" || browser.getTabBrowser() != gBrowser)
+      return true;
+
+    if (!E10SUtils.shouldLoadURI(aDocShell, aURI, aReferrer)) {
+      E10SUtils.redirectLoad(aDocShell, aURI, aReferrer);
+      return false;
+    }
+
+    return true;
   },
 
   onProgressChange: function (aWebProgress, aRequest,
