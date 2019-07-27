@@ -142,7 +142,6 @@ function PreviewController(win, tab) {
   this.preview = this.win.createTabPreview(this);
 
   this.linkedBrowser.addEventListener("MozAfterPaint", this, false);
-  this.linkedBrowser.addEventListener("resize", this, false);
   this.tab.addEventListener("TabAttrModified", this, false);
 
   XPCOMUtils.defineLazyGetter(this, "canvasPreview", function () {
@@ -172,7 +171,6 @@ PreviewController.prototype = {
                                          Ci.nsIDOMEventListener]),
   destroy: function () {
     this.tab.removeEventListener("TabAttrModified", this, false);
-    this.linkedBrowser.removeEventListener("resize", this, false);
     this.linkedBrowser.removeEventListener("MozAfterPaint", this, false);
 
     
@@ -203,17 +201,9 @@ PreviewController.prototype = {
   
   
   
-  resetCanvasPreview: function () this.resizeCanvasPreview(0, 0),
-
-  resizeCanvasPreview: function (width, height) {
-    this.canvasPreview.width = width;
-    this.canvasPreview.height = height;
-  },
-
-  get wasResizedSinceLastPreview () {
-    let bx = this.linkedBrowser.boxObject;
-    return bx.width != this.canvasPreview.width ||
-           bx.height != this.canvasPreview.height;
+  resetCanvasPreview: function () {
+    this.canvasPreview.width = 0;
+    this.canvasPreview.height = 0;
   },
 
   get zoom() {
@@ -230,14 +220,12 @@ PreviewController.prototype = {
     let win = this.linkedBrowser.contentWindow;
     let bx = this.linkedBrowser.boxObject;
     
-    
-    
-    let flushLayout = this.wasResizedSinceLastPreview;
-    
-    if (flushLayout) {
+    if (bx.width != this.canvasPreview.width ||
+        bx.height != this.canvasPreview.height) {
       
       this.onTabPaint({left:0, top:0, right:win.innerWidth, bottom:win.innerHeight});
-      this.resizeCanvasPreview(bx.width, bx.height);
+      this.canvasPreview.width = bx.width;
+      this.canvasPreview.height = bx.height;
     }
 
     
@@ -245,9 +233,6 @@ PreviewController.prototype = {
     let scale = this.zoom;
 
     let flags = this.canvasPreviewFlags;
-    if (flushLayout)
-      flags &= ~Ci.nsIDOMCanvasRenderingContext2D.DRAWWINDOW_DO_NOT_FLUSH;
-
     
     
     this.dirtyRegion.intersectRect(0, 0, win.innerWidth, win.innerHeight);
@@ -386,19 +371,6 @@ PreviewController.prototype = {
         break;
       case "TabAttrModified":
         this.updateTitleAndTooltip();
-        break;
-      case "resize":
-        
-        
-        
-        
-        this.win.previews.forEach(function (p) {
-          let controller = p.controller.wrappedJSObject;
-          if (controller.wasResizedSinceLastPreview) {
-            controller.resetCanvasPreview();
-            p.invalidate();
-          }
-        });
         break;
     }
   }
