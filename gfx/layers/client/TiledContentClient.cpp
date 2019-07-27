@@ -1282,8 +1282,8 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
     nsIntRect(aTileOrigin.x, aTileOrigin.y,
               GetScaledTileSize().width, GetScaledTileSize().height);
   
-  tileRegion = tileRegion.Sub(tileRegion, GetValidRegion());
-  tileRegion = tileRegion.Sub(tileRegion, aDirtyRegion); 
+  tileRegion.SubOut(GetValidRegion());
+  tileRegion.SubOut(aDirtyRegion); 
 
   backBuffer->SetWaste(tileRegion.Area() * mResolution * mResolution);
   backBuffer->Unlock();
