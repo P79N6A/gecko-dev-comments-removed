@@ -8,10 +8,22 @@
 #define _NSSYSTEMINFO_H_
 
 #include "nsHashPropertyBag.h"
+#if defined(XP_WIN)
+#include "nsIObserver.h"
+#endif 
 
-class nsSystemInfo : public nsHashPropertyBag
+class nsSystemInfo
+  : public nsHashPropertyBag
+#if defined(XP_WIN)
+  , public nsIObserver
+#endif 
 {
 public:
+#if defined(XP_WIN)
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_NSIOBSERVER
+#endif 
+
   nsSystemInfo();
 
   nsresult Init();
@@ -30,6 +42,10 @@ protected:
 
 private:
   ~nsSystemInfo();
+
+#if defined(XP_WIN)
+  nsresult GetProfileHDDInfo();
+#endif 
 };
 
 #define NS_SYSTEMINFO_CONTRACTID "@mozilla.org/system-info;1"
