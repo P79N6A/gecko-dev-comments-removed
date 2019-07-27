@@ -426,9 +426,48 @@ XPCOMGlueEnablePreload()
   do_preload = true;
 }
 
+#ifdef MOZ_WIDGET_GTK
+#include <glib.h>
+
+class GSliceInit {
+#if defined(MOZ_MEMORY) || defined(__FreeBSD__) || defined(__NetBSD__)
+public:
+  GSliceInit() {
+    mHadGSlice = bool(getenv("G_SLICE"));
+    if (!mHadGSlice) {
+      
+      
+      
+      setenv("G_SLICE", "always-malloc", 1);
+    }
+  }
+
+  ~GSliceInit() {
+    if (mHadGSlice) {
+      return;
+    }
+    if (sTop) {
+      auto g_thread_init = (void (*)(void*)) GetSymbol(sTop->libHandle,
+        "g_thread_init");
+      auto g_type_init = (void (*)()) GetSymbol(sTop->libHandle, "g_type_init");
+      g_thread_init(nullptr); 
+      g_type_init(); 
+    }
+    unsetenv("G_SLICE");
+  }
+
+private:
+  bool mHadGSlice;
+#endif
+};
+#endif
+
 nsresult
 XPCOMGlueStartup(const char* aXPCOMFile)
 {
+#ifdef MOZ_WIDGET_GTK
+  GSliceInit gSliceInit;
+#endif
   xpcomFunctions.version = XPCOM_GLUE_VERSION;
   xpcomFunctions.size    = sizeof(XPCOMFunctions);
 
