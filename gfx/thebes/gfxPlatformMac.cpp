@@ -26,6 +26,8 @@
 #include <CoreVideo/CoreVideo.h>
 
 #include "nsCocoaFeatures.h"
+#include "mozilla/layers/CompositorParent.h"
+#include "VsyncSource.h"
 
 using namespace mozilla;
 using namespace mozilla::gfx;
@@ -38,7 +40,7 @@ typedef uint32_t AutoActivationSetting;
 
 
 
-static void 
+static void
 DisableFontActivation()
 {
     
@@ -429,81 +431,98 @@ static CVReturn VsyncCallback(CVDisplayLinkRef aDisplayLink,
                               CVOptionFlags* aFlagsOut,
                               void* aDisplayLinkContext)
 {
-  mozilla::VsyncSource* vsyncSource = (mozilla::VsyncSource*) aDisplayLinkContext;
-  if (vsyncSource->IsVsyncEnabled()) {
-    
-    
-    
-    int64_t timestamp = aOutputTime->hostTime;
-    mozilla::TimeStamp vsyncTime = mozilla::TimeStamp::FromSystemTime(timestamp);
-    mozilla::VsyncDispatcher::GetInstance()->NotifyVsync(vsyncTime);
-    return kCVReturnSuccess;
-  } else {
-    return kCVReturnDisplayLinkNotRunning;
-  }
+  VsyncSource::Display* display = (VsyncSource::Display*) aDisplayLinkContext;
+  int64_t timestamp = aOutputTime->hostTime;
+  mozilla::TimeStamp vsyncTime = mozilla::TimeStamp::FromSystemTime(timestamp);
+  display->NotifyVsync(vsyncTime);
+  return kCVReturnSuccess;
 }
 
-class OSXVsyncSource MOZ_FINAL : public mozilla::VsyncSource
+class OSXVsyncSource MOZ_FINAL : public VsyncSource
 {
 public:
   OSXVsyncSource()
   {
-    EnableVsync();
   }
 
-  virtual void EnableVsync() MOZ_OVERRIDE
+  virtual Display& GetGlobalDisplay() MOZ_OVERRIDE
   {
-    
-    
-    
-    
-    if (CVDisplayLinkCreateWithActiveCGDisplays(&mDisplayLink) != kCVReturnSuccess) {
-      NS_WARNING("Could not create a display link, returning");
-      return;
-    }
-
-    
-    if (CVDisplayLinkSetOutputCallback(mDisplayLink, &VsyncCallback, this) != kCVReturnSuccess) {
-      NS_WARNING("Could not set displaylink output callback");
-      return;
-    }
-
-    
-    if (CVDisplayLinkStart(mDisplayLink) != kCVReturnSuccess) {
-      NS_WARNING("Could not activate the display link");
-      mDisplayLink = nullptr;
-    }
+    return mGlobalDisplay;
   }
 
-  virtual void DisableVsync() MOZ_OVERRIDE
+protected:
+  class OSXDisplay MOZ_FINAL : public VsyncSource::Display
   {
-    
-    if (mDisplayLink) {
-      CVDisplayLinkRelease(mDisplayLink);
-      mDisplayLink = nullptr;
+  public:
+    OSXDisplay()
+    {
+      EnableVsync();
     }
-  }
 
-  virtual bool IsVsyncEnabled() MOZ_OVERRIDE
-  {
-    return mDisplayLink != nullptr;
-  }
+    ~OSXDisplay()
+    {
+      DisableVsync();
+    }
+
+    virtual void EnableVsync() MOZ_OVERRIDE
+    {
+      MOZ_ASSERT(NS_IsMainThread());
+
+      
+      
+      
+      
+      if (CVDisplayLinkCreateWithActiveCGDisplays(&mDisplayLink) != kCVReturnSuccess) {
+        NS_WARNING("Could not create a display link, returning");
+        return;
+      }
+
+      if (CVDisplayLinkSetOutputCallback(mDisplayLink, &VsyncCallback, this) != kCVReturnSuccess) {
+        NS_WARNING("Could not set displaylink output callback");
+        return;
+      }
+
+      if (CVDisplayLinkStart(mDisplayLink) != kCVReturnSuccess) {
+        NS_WARNING("Could not activate the display link");
+        mDisplayLink = nullptr;
+      }
+    }
+
+    virtual void DisableVsync() MOZ_OVERRIDE
+    {
+      MOZ_ASSERT(NS_IsMainThread());
+
+      
+      if (mDisplayLink) {
+        CVDisplayLinkRelease(mDisplayLink);
+        mDisplayLink = nullptr;
+      }
+    }
+
+    virtual bool IsVsyncEnabled() MOZ_OVERRIDE
+    {
+      MOZ_ASSERT(NS_IsMainThread());
+      return mDisplayLink != nullptr;
+    }
+
+  private:
+    
+    CVDisplayLinkRef   mDisplayLink;
+  }; 
 
 private:
   virtual ~OSXVsyncSource()
   {
-    DisableVsync();
   }
 
-  
-  CVDisplayLinkRef   mDisplayLink;
+  OSXDisplay mGlobalDisplay;
 }; 
 
-void
-gfxPlatformMac::InitHardwareVsync()
+already_AddRefed<mozilla::gfx::VsyncSource>
+gfxPlatformMac::CreateHardwareVsyncSource()
 {
   nsRefPtr<VsyncSource> osxVsyncSource = new OSXVsyncSource();
-  mozilla::VsyncDispatcher::GetInstance()->SetVsyncSource(osxVsyncSource);
+  return osxVsyncSource.forget();
 }
 
 void
