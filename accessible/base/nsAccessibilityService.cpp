@@ -34,6 +34,7 @@
 #include "States.h"
 #include "Statistics.h"
 #include "TextLeafAccessibleWrap.h"
+#include "TreeWalker.h"
 
 #ifdef MOZ_ACCESSIBILITY_ATK
 #include "AtkSocketAccessible.h"
@@ -391,22 +392,44 @@ nsAccessibilityService::ContentRangeInserted(nsIPresShell* aPresShell,
 
 void
 nsAccessibilityService::ContentRemoved(nsIPresShell* aPresShell,
-                                       nsIContent* aContainer,
-                                       nsIContent* aChild)
+                                       nsIContent* aChildNode)
 {
 #ifdef A11Y_LOG
   if (logging::IsEnabled(logging::eTree)) {
     logging::MsgBegin("TREE", "content removed");
-    logging::Node("container", aContainer);
-    logging::Node("content", aChild);
+    logging::Node("container", aChildNode->GetFlattenedTreeParent());
+    logging::Node("content", aChildNode);
+  }
+#endif
+
+  DocAccessible* document = GetDocAccessible(aPresShell);
+  if (document) {
+    
+    
+    
+    
+    Accessible* child = document->GetAccessible(aChildNode);
+    if (!child) {
+      a11y::TreeWalker walker(document->GetContainerAccessible(aChildNode),
+                              aChildNode, a11y::TreeWalker::eWalkCache);
+      child = walker.NextChild();
+    }
+
+    if (child) {
+      document->ContentRemoved(child->Parent(), aChildNode);
+#ifdef A11Y_LOG
+      if (logging::IsEnabled(logging::eTree))
+        logging::AccessibleNNode("real container", child->Parent());
+#endif
+    }
+  }
+
+#ifdef A11Y_LOG
+  if (logging::IsEnabled(logging::eTree)) {
     logging::MsgEnd();
     logging::Stack();
   }
 #endif
-
-  DocAccessible* docAccessible = GetDocAccessible(aPresShell);
-  if (docAccessible)
-    docAccessible->ContentRemoved(aContainer, aChild);
 }
 
 void

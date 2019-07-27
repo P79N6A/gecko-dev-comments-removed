@@ -296,7 +296,16 @@ public:
   
 
 
-  void ContentRemoved(nsIContent* aContainerNode, nsIContent* aChildNode);
+  void ContentRemoved(Accessible* aContainer, nsIContent* aChildNode)
+  {
+    
+    
+    UpdateTree((aContainer ? aContainer : this), aChildNode, false);
+  }
+  void ContentRemoved(nsIContent* aContainerNode, nsIContent* aChildNode)
+  {
+    ContentRemoved(GetAccessibleOrContainer(aContainerNode), aChildNode);
+  }
 
   
 
