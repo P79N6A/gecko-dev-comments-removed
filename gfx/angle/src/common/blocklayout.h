@@ -11,14 +11,12 @@
 #define COMMON_BLOCKLAYOUT_H_
 
 #include <vector>
-#include <GLES3/gl3.h>
-#include <GLES2/gl2.h>
+#include "angle_gl.h"
 #include <GLSLANG/ShaderLang.h>
 #include <cstddef>
 
-namespace gl
+namespace sh
 {
-
 struct ShaderVariable;
 struct InterfaceBlockField;
 struct BlockMemberInfo;
