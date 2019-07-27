@@ -46,6 +46,13 @@ IonBuilder::inlineNativeCall(CallInfo& callInfo, JSFunction* target)
     
     trackOptimizationOutcome(TrackedOutcome::CantInlineNativeBadType);
 
+    if (shouldAbortOnPreliminaryGroups(callInfo.thisArg()))
+        return InliningStatus_NotInlined;
+    for (size_t i = 0; i < callInfo.argc(); i++) {
+        if (shouldAbortOnPreliminaryGroups(callInfo.getArg(i)))
+            return InliningStatus_NotInlined;
+    }
+
     
     if (native == atomics_compareExchange)
         return inlineAtomicsCompareExchange(callInfo);

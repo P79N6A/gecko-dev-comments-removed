@@ -899,8 +899,7 @@ IonBuilder::build()
     if (!processIterators())
         return false;
 
-    if (!abortedPreliminaryGroups().empty()) {
-        MOZ_ASSERT(!info().isAnalysis());
+    if (!info().isAnalysis() && !abortedPreliminaryGroups().empty()) {
         abortReason_ = AbortReason_PreliminaryObjects;
         return false;
     }
@@ -1057,8 +1056,7 @@ IonBuilder::buildInline(IonBuilder* callerBuilder, MResumePoint* callerResumePoi
     
     replaceMaybeFallbackFunctionGetter(nullptr);
 
-    if (!abortedPreliminaryGroups().empty()) {
-        MOZ_ASSERT(!info().isAnalysis());
+    if (!info().isAnalysis() && !abortedPreliminaryGroups().empty()) {
         abortReason_ = AbortReason_PreliminaryObjects;
         return false;
     }
@@ -6583,7 +6581,7 @@ IonBuilder::jsop_initelem_array()
     
     
     bool needStub = false;
-    if (obj->isUnknownValue()) {
+    if (obj->isUnknownValue() || shouldAbortOnPreliminaryGroups(obj)) {
         needStub = true;
     } else {
         TypeSet::ObjectKey* initializer = obj->resultTypeSet()->getObject(0);
@@ -7710,7 +7708,7 @@ IonBuilder::jsop_getelem()
 
     
     
-    if (info().isAnalysis()) {
+    if (info().isAnalysis() || shouldAbortOnPreliminaryGroups(obj)) {
         MInstruction* ins = MCallGetElement::New(alloc(), obj, index);
 
         current->add(ins);
@@ -8761,6 +8759,13 @@ IonBuilder::jsop_setelem()
     trackTypeInfo(TrackedTypeSite::Index, index->type(), index->resultTypeSet());
     trackTypeInfo(TrackedTypeSite::Value, value->type(), value->resultTypeSet());
 
+    if (shouldAbortOnPreliminaryGroups(object)) {
+        MInstruction* ins = MCallSetElement::New(alloc(), object, index, value, IsStrictSetPC(pc));
+        current->add(ins);
+        current->push(value);
+        return resumeAfter(ins);
+    }
+
     trackOptimizationAttempt(TrackedStrategy::SetElem_TypedObject);
     if (!setElemTryTypedObject(&emitted, object, index, value) || emitted)
         return emitted;
@@ -9448,37 +9453,6 @@ IonBuilder::getDefiniteSlot(TemporaryTypeSet* types, PropertyName* name, uint32_
         return UINT32_MAX;
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    for (size_t i = 0; i < types->getObjectCount(); i++) {
-        TypeSet::ObjectKey* key = types->getObject(i);
-        if (!key)
-            continue;
-
-        if (ObjectGroup* group = key->maybeGroup()) {
-            if (group->newScript() && !group->newScript()->analyzed()) {
-                addAbortedPreliminaryGroup(group);
-                trackOptimizationOutcome(TrackedOutcome::NoAnalysisInfo);
-                return UINT32_MAX;
-            }
-            if (group->maybePreliminaryObjects()) {
-                addAbortedPreliminaryGroup(group);
-                trackOptimizationOutcome(TrackedOutcome::NoAnalysisInfo);
-                return UINT32_MAX;
-            }
-        }
-    }
-
     uint32_t slot = UINT32_MAX;
 
     for (size_t i = 0; i < types->getObjectCount(); i++) {
@@ -9949,6 +9923,37 @@ IonBuilder::storeSlot(MDefinition* obj, Shape* shape, MDefinition* value, bool n
 }
 
 bool
+IonBuilder::shouldAbortOnPreliminaryGroups(MDefinition *obj)
+{
+    
+    
+    
+    
+    
+    
+    
+    TemporaryTypeSet *types = obj->resultTypeSet();
+    if (!types || types->unknownObject())
+        return false;
+
+    bool preliminary = false;
+    for (size_t i = 0; i < types->getObjectCount(); i++) {
+        TypeSet::ObjectKey* key = types->getObject(i);
+        if (!key)
+            continue;
+
+        if (ObjectGroup* group = key->maybeGroup()) {
+            if (group->hasUnanalyzedPreliminaryObjects()) {
+                addAbortedPreliminaryGroup(group);
+                preliminary = true;
+            }
+        }
+    }
+
+    return preliminary;
+}
+
+bool
 IonBuilder::jsop_getprop(PropertyName* name)
 {
     bool emitted = false;
@@ -9989,7 +9994,7 @@ IonBuilder::jsop_getprop(PropertyName* name)
     
     
     
-    if (info().isAnalysis() || types->empty()) {
+    if (info().isAnalysis() || types->empty() || shouldAbortOnPreliminaryGroups(obj)) {
         if (types->empty()) {
             
             
@@ -11096,7 +11101,7 @@ IonBuilder::jsop_setprop(PropertyName* name)
 
     
     
-    if (info().isAnalysis()) {
+    if (info().isAnalysis() || shouldAbortOnPreliminaryGroups(obj)) {
         bool strict = IsStrictSetPC(pc);
         MInstruction* ins = MCallSetProperty::New(alloc(), obj, value, name, strict);
         current->add(ins);
@@ -12235,7 +12240,8 @@ IonBuilder::jsop_in()
     MDefinition* obj = current->peek(-1);
     MDefinition* id = current->peek(-2);
 
-    if (ElementAccessIsDenseNative(constraints(), obj, id) &&
+    if (!shouldAbortOnPreliminaryGroups(obj) &&
+        ElementAccessIsDenseNative(constraints(), obj, id) &&
         !ElementAccessHasExtraIndexedProperty(constraints(), obj))
     {
         return jsop_in_dense();
