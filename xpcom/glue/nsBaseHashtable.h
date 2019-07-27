@@ -240,12 +240,12 @@ public:
     Iterator(Iterator&& aOther) : Base(aOther.mTable) {}
     ~Iterator() {}
 
-    KeyType GetKey() const { return static_cast<EntryType*>(Get())->GetKey(); }
-    UserDataType GetUserData() const
+    KeyType Key() const { return static_cast<EntryType*>(Get())->GetKey(); }
+    UserDataType UserData() const
     {
       return static_cast<EntryType*>(Get())->mData;
     }
-    DataType& GetData() const { return static_cast<EntryType*>(Get())->mData; }
+    DataType& Data() const { return static_cast<EntryType*>(Get())->mData; }
 
   private:
     Iterator() = delete;
