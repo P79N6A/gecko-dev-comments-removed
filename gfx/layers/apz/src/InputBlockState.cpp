@@ -265,8 +265,9 @@ WheelBlockState::ShouldAcceptNewEvent() const
     
     return false;
   }
+
   nsRefPtr<AsyncPanZoomController> apzc = GetTargetApzc();
-  if (!apzc || apzc->IsDestroyed()) {
+  if (apzc->IsDestroyed()) {
     return false;
   }
 
@@ -276,6 +277,8 @@ WheelBlockState::ShouldAcceptNewEvent() const
 bool
 WheelBlockState::MaybeTimeout(const ScrollWheelInput& aEvent)
 {
+  MOZ_ASSERT(InTransaction());
+
   if (MaybeTimeout(aEvent.mTimeStamp)) {
     return true;
   }
@@ -296,6 +299,8 @@ WheelBlockState::MaybeTimeout(const ScrollWheelInput& aEvent)
 bool
 WheelBlockState::MaybeTimeout(const TimeStamp& aTimeStamp)
 {
+  MOZ_ASSERT(InTransaction());
+
   
   
   TimeDuration duration = aTimeStamp - mLastEventTime;
@@ -317,6 +322,8 @@ WheelBlockState::MaybeTimeout(const TimeStamp& aTimeStamp)
 void
 WheelBlockState::OnMouseMove(const ScreenIntPoint& aPoint)
 {
+  MOZ_ASSERT(InTransaction());
+
   if (!GetTargetApzc()->Contains(aPoint)) {
     EndTransaction();
     return;
@@ -334,6 +341,17 @@ WheelBlockState::OnMouseMove(const ScreenIntPoint& aPoint)
   }
 }
 
+void
+WheelBlockState::UpdateTargetApzc(const nsRefPtr<AsyncPanZoomController>& aTargetApzc)
+{
+  InputBlockState::UpdateTargetApzc(aTargetApzc);
+
+  
+  if (!GetTargetApzc()) {
+    EndTransaction();
+  }
+}
+
 bool
 WheelBlockState::InTransaction() const
 {
@@ -342,7 +360,13 @@ WheelBlockState::InTransaction() const
   if (GetBlockId() != sLastWheelBlockId) {
     return false;
   }
-  return !mTransactionEnded;
+
+  if (mTransactionEnded) {
+    return false;
+  }
+
+  MOZ_ASSERT(GetTargetApzc());
+  return true;
 }
 
 bool
