@@ -6593,7 +6593,7 @@ nsWindow::GetPreferredCompositorBackends(nsTArray<LayersBackend>& aHints)
   
   if (!(prefs.mDisableAcceleration ||
         mTransparencyMode == eTransparencyTransparent ||
-        IsPopup())) {
+        (IsPopup() && gfxWindowsPlatform::GetPlatform()->IsWARP()))) {
     
     
     
