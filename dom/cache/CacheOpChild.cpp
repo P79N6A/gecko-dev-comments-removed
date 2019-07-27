@@ -97,7 +97,7 @@ CacheOpChild::Recv__delete__(const ErrorResult& aRv,
 {
   NS_ASSERT_OWNINGTHREAD(CacheOpChild);
 
-  if (aRv.Failed()) {
+  if (NS_WARN_IF(aRv.Failed())) {
     MOZ_ASSERT(aResult.type() == CacheOpResult::Tvoid_t);
     
     

@@ -164,7 +164,7 @@ CacheOpParent::OnOpComplete(ErrorResult&& aRv, const CacheOpResult& aResult,
 
   
   
-  if (aRv.Failed()) {
+  if (NS_WARN_IF(aRv.Failed())) {
     unused << Send__delete__(this, aRv, void_t());
     aRv.SuppressException(); 
     return;
