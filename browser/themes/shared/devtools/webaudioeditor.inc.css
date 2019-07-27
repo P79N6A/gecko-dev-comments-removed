@@ -107,7 +107,7 @@ g.edgePath.param-connection {
 
 
 text {
-  cursor: pointer;
+  cursor: default; 
   font-weight: 300;
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
   font-size: 14px;
@@ -121,6 +121,10 @@ text {
 }
 .theme-light g.selected text {
   fill: #f0f1f2; 
+}
+
+.nodes text {
+  cursor: pointer;
 }
 
 
