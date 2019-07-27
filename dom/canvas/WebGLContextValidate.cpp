@@ -228,6 +228,50 @@ WebGLContext::ValidateBlendFuncEnumsCompatibility(GLenum sfactor,
 }
 
 bool
+WebGLContext::ValidateDataOffsetSize(WebGLintptr offset, WebGLsizeiptr size, WebGLsizeiptr bufferSize, const char* info)
+{
+    if (offset < 0) {
+        ErrorInvalidValue("%s: offset must be positive", info);
+        return false;
+    }
+
+    if (size < 0) {
+        ErrorInvalidValue("%s: size must be positive", info);
+        return false;
+    }
+
+    
+    
+    CheckedInt<GLsizeiptr> neededBytes = CheckedInt<GLsizeiptr>(offset) + size;
+    if (!neededBytes.isValid() || neededBytes.value() > bufferSize) {
+        ErrorInvalidValue("%s: invalid range", info);
+        return false;
+    }
+
+    return true;
+}
+
+
+
+
+
+
+
+
+bool
+WebGLContext::ValidateDataRanges(WebGLintptr readOffset, WebGLintptr writeOffset, WebGLsizeiptr size, const char* info)
+{
+    MOZ_ASSERT((CheckedInt<WebGLsizeiptr>(readOffset) + size).isValid());
+    MOZ_ASSERT((CheckedInt<WebGLsizeiptr>(writeOffset) + size).isValid());
+
+    bool separate = (readOffset + size < writeOffset || writeOffset + size < readOffset);
+    if (!separate)
+        ErrorInvalidValue("%s: ranges [readOffset, readOffset + size) and [writeOffset, writeOffset + size) overlap");
+
+    return separate;
+}
+
+bool
 WebGLContext::ValidateTextureTargetEnum(GLenum target, const char* info)
 {
     switch (target) {
