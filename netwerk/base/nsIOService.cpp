@@ -1386,9 +1386,6 @@ nsIOService::Observe(nsISupports *subject,
             mNetworkLinkServiceInitialized = true;
 
             
-            SetOffline(false);
-
-            
             nsCOMPtr<nsIPrefBranch> prefBranch;
             GetPrefBranch(getter_AddRefs(prefBranch));
             PrefsChanged(prefBranch, MANAGE_OFFLINE_STATUS_PREF);
