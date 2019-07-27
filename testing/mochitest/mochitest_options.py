@@ -668,7 +668,7 @@ class MochitestOptions(optparse.OptionParser):
 
         
         if mozinfo.isMac:
-            options.leakThresholds["tab"] = 50000
+            options.leakThresholds["tab"] = 100000
 
         return options
 
