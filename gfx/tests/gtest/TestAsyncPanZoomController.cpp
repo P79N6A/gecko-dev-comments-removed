@@ -13,6 +13,7 @@
 #include "mozilla/layers/GeckoContentController.h"
 #include "mozilla/layers/CompositorParent.h"
 #include "mozilla/layers/APZCTreeManager.h"
+#include "mozilla/Preferences.h"
 #include "base/task.h"
 #include "Layers.h"
 #include "TestLayers.h"
@@ -56,6 +57,24 @@ public:
   MOCK_METHOD3(HandleLongTapUp, void(const CSSPoint&, int32_t, const ScrollableLayerGuid&));
   MOCK_METHOD3(SendAsyncScrollDOMEvent, void(bool aIsRoot, const CSSRect &aContentRect, const CSSSize &aScrollableSize));
   MOCK_METHOD2(PostDelayedTask, void(Task* aTask, int aDelayMs));
+};
+
+class TestScopedBoolPref {
+public:
+  TestScopedBoolPref(const char* aPref, bool aVal)
+    : mPref(aPref)
+  {
+    mOldVal = Preferences::GetBool(aPref);
+    Preferences::SetBool(aPref, aVal);
+  }
+
+  ~TestScopedBoolPref() {
+    Preferences::SetBool(mPref, mOldVal);
+  }
+
+private:
+  const char* mPref;
+  bool mOldVal;
 };
 
 class MockContentControllerDelayed : public MockContentController {
@@ -884,6 +903,8 @@ TEST_F(AsyncPanZoomControllerTester, FlingStopTap) {
 }
 
 TEST_F(AsyncPanZoomControllerTester, OverScrollPanning) {
+  TestScopedBoolPref overscrollEnabledPref("apz.overscroll.enabled", true);
+
   TimeStamp testStartTime = TimeStamp::Now();
   AsyncPanZoomController::SetFrameTime(testStartTime);
 
@@ -894,21 +915,41 @@ TEST_F(AsyncPanZoomControllerTester, OverScrollPanning) {
   apzc->SetFrameMetrics(TestFrameMetrics());
   apzc->NotifyLayersUpdated(TestFrameMetrics(), true);
 
-  EXPECT_CALL(*mcc, SendAsyncScrollDOMEvent(_,_,_)).Times(AtLeast(1));
-  EXPECT_CALL(*mcc, RequestContentRepaint(_)).Times(1);
-
   
   int time = 0;
   int touchStart = 500;
   int touchEnd = 10;
+  ApzcPan(apzc, tm, time, touchStart, touchEnd);
+  EXPECT_TRUE(apzc->IsOverscrolled());
+
+  
+  
+  
+  
+  
+  
+
   ScreenPoint pointOut;
   ViewTransform viewTransformOut;
 
   
-  ApzcPan(apzc, tm, time, touchStart, touchEnd);
-  apzc->SampleContentTransformForFrame(testStartTime+TimeDuration::FromMilliseconds(1000), &viewTransformOut, pointOut);
+  
+  apzc->SampleContentTransformForFrame(testStartTime + TimeDuration::FromMilliseconds(10000), &viewTransformOut, pointOut);
   EXPECT_EQ(ScreenPoint(0, 90), pointOut);
+  EXPECT_TRUE(apzc->IsOverscrolled());
 
+  
+  
+  apzc->SampleContentTransformForFrame(testStartTime + TimeDuration::FromMilliseconds(20000), &viewTransformOut, pointOut);
+  EXPECT_EQ(ScreenPoint(0, 90), pointOut);
+  EXPECT_TRUE(apzc->IsOverscrolled());
+
+  
+  apzc->SampleContentTransformForFrame(testStartTime + TimeDuration::FromMilliseconds(30000), &viewTransformOut, pointOut);
+  EXPECT_EQ(ScreenPoint(0, 90), pointOut);
+  EXPECT_FALSE(apzc->IsOverscrolled());
+
+  apzc->AssertStateIsReset();
   apzc->Destroy();
 }
 
