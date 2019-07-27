@@ -11,7 +11,7 @@
 const TEST_URL = TEST_URL_ROOT + "doc_markup_search.html";
 
 add_task(function*() {
-  let {inspector, toolbox} = yield addTab(TEST_URL).then(openInspector);
+  let {inspector} = yield addTab(TEST_URL).then(openInspector);
 
   let container = yield getContainerForSelector("em", inspector);
   ok(!container, "The <em> tag isn't present yet in the markup-view");
@@ -20,10 +20,9 @@ add_task(function*() {
   
   
   
+  
   info("searching for the innermost child: <em>");
-  let updated = inspector.once("inspector-updated");
-  searchUsingSelectorSearch("em", inspector);
-  yield updated;
+  yield searchFor("em", inspector);
 
   container = yield getContainerForSelector("em", inspector);
   ok(container, "The <em> tag is now imported in the markup-view");
@@ -34,12 +33,19 @@ add_task(function*() {
 
   info("searching for other nodes too");
   for (let node of ["span", "li", "ul"]) {
-    let updated = inspector.once("inspector-updated");
-    searchUsingSelectorSearch(node, inspector);
-    yield updated;
+    yield searchFor(node, inspector);
 
     nodeFront = yield getNodeFront(node, inspector);
     is(inspector.selection.nodeFront, nodeFront,
       "The <" + node + "> tag is the currently selected node");
   }
 });
+
+function* searchFor(selector, inspector) {
+  let onNewNodeFront = inspector.selection.once("new-node-front");
+
+  searchUsingSelectorSearch(selector, inspector);
+
+  yield onNewNodeFront;
+  yield inspector.once("inspector-updated");
+}
