@@ -13,6 +13,7 @@
 #include "jsnum.h"
 
 #include "gc/Marking.h"
+#include "js/Vector.h"
 #include "vm/GlobalObject.h"
 #include "vm/StringBuffer.h"
 
@@ -25,21 +26,21 @@ using mozilla::HashString;
 namespace js {
 
 struct SavedFrame::Lookup {
-    Lookup(JSAtom *source, size_t line, size_t column, JSAtom *functionDisplayName,
+    Lookup(JSAtom *source, uint32_t line, uint32_t column, JSAtom *functionDisplayName,
            SavedFrame *parent, JSPrincipals *principals)
-        : source(source),
-          line(line),
-          column(column),
-          functionDisplayName(functionDisplayName),
-          parent(parent),
-          principals(principals)
+      : source(source),
+        line(line),
+        column(column),
+        functionDisplayName(functionDisplayName),
+        parent(parent),
+        principals(principals)
     {
         JS_ASSERT(source);
     }
 
     JSAtom       *source;
-    size_t       line;
-    size_t       column;
+    uint32_t     line;
+    uint32_t     column;
     JSAtom       *functionDisplayName;
     SavedFrame   *parent;
     JSPrincipals *principals;
@@ -48,12 +49,13 @@ struct SavedFrame::Lookup {
 class SavedFrame::AutoLookupRooter : public JS::CustomAutoRooter
 {
   public:
-    AutoLookupRooter(JSContext *cx, JSAtom *source, size_t line, size_t column,
+    AutoLookupRooter(JSContext *cx, JSAtom *source, uint32_t line, uint32_t column,
                      JSAtom *functionDisplayName, SavedFrame *parent, JSPrincipals *principals)
       : JS::CustomAutoRooter(cx),
         value(source, line, column, functionDisplayName, parent, principals) {}
 
     operator const SavedFrame::Lookup&() const { return value; }
+    SavedFrame::Lookup &get() { return value; }
 
   private:
     virtual void trace(JSTracer *trc) {
@@ -67,6 +69,16 @@ class SavedFrame::AutoLookupRooter : public JS::CustomAutoRooter
     }
 
     SavedFrame::Lookup value;
+};
+
+class SavedFrame::HandleLookup
+{
+  public:
+    HandleLookup(SavedFrame::AutoLookupRooter &lookup) : ref(lookup) { }
+    SavedFrame::Lookup *operator->() { return &ref.get(); }
+    operator const SavedFrame::Lookup&() const { return ref; }
+  private:
+    SavedFrame::AutoLookupRooter &ref;
 };
 
  HashNumber
@@ -150,14 +162,14 @@ SavedFrame::getSource()
     return &s->asAtom();
 }
 
-size_t
+uint32_t
 SavedFrame::getLine()
 {
     const Value &v = getReservedSlot(JSSLOT_LINE);
     return v.toInt32();
 }
 
-size_t
+uint32_t
 SavedFrame::getColumn()
 {
     const Value &v = getReservedSlot(JSSLOT_COLUMN);
@@ -191,25 +203,25 @@ SavedFrame::getPrincipals()
 }
 
 void
-SavedFrame::initFromLookup(const Lookup &lookup)
+SavedFrame::initFromLookup(SavedFrame::HandleLookup lookup)
 {
-    JS_ASSERT(lookup.source);
+    JS_ASSERT(lookup->source);
     JS_ASSERT(getReservedSlot(JSSLOT_SOURCE).isUndefined());
-    setReservedSlot(JSSLOT_SOURCE, StringValue(lookup.source));
+    setReservedSlot(JSSLOT_SOURCE, StringValue(lookup->source));
 
-    setReservedSlot(JSSLOT_LINE, NumberValue(lookup.line));
-    setReservedSlot(JSSLOT_COLUMN, NumberValue(lookup.column));
+    setReservedSlot(JSSLOT_LINE, NumberValue(lookup->line));
+    setReservedSlot(JSSLOT_COLUMN, NumberValue(lookup->column));
     setReservedSlot(JSSLOT_FUNCTIONDISPLAYNAME,
-                    lookup.functionDisplayName
-                        ? StringValue(lookup.functionDisplayName)
+                    lookup->functionDisplayName
+                        ? StringValue(lookup->functionDisplayName)
                         : NullValue());
-    setReservedSlot(JSSLOT_PARENT, ObjectOrNullValue(lookup.parent));
-    setReservedSlot(JSSLOT_PRIVATE_PARENT, PrivateValue(lookup.parent));
+    setReservedSlot(JSSLOT_PARENT, ObjectOrNullValue(lookup->parent));
+    setReservedSlot(JSSLOT_PRIVATE_PARENT, PrivateValue(lookup->parent));
 
     JS_ASSERT(getReservedSlot(JSSLOT_PRINCIPALS).isUndefined());
-    if (lookup.principals)
-        JS_HoldPrincipals(lookup.principals);
-    setReservedSlot(JSSLOT_PRINCIPALS, PrivateValue(lookup.principals));
+    if (lookup->principals)
+        JS_HoldPrincipals(lookup->principals);
+    setReservedSlot(JSSLOT_PRINCIPALS, PrivateValue(lookup->principals));
 }
 
 bool
@@ -480,78 +492,74 @@ bool
 SavedStacks::insertFrames(JSContext *cx, FrameIter &iter, MutableHandleSavedFrame frame,
                           unsigned maxFrameCount)
 {
-    if (iter.done()) {
-        frame.set(nullptr);
-        return true;
-    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     
-    
-    
-    
-    
-    
-    JS_CHECK_RECURSION_DONT_REPORT(cx, return false);
+    AutoFrameStateVector stackState(cx);
+    while (!iter.done()) {
+        AutoLocationValueRooter location(cx);
 
-    JSPrincipals* principals = iter.compartment()->principals;
-    RootedAtom name(cx, iter.isNonEvalFunctionFrame() ? iter.functionDisplayAtom() : nullptr);
-
-    
-    
-    
-    
-    
-    AutoLocationValueRooter location(cx);
-    if (iter.hasScript()) {
-        JSScript *script = iter.script();
-        jsbytecode *pc = iter.pc();
         {
             AutoCompartment ac(cx, iter.compartment());
-            if (!cx->compartment()->savedStacks().getLocation(cx, script, pc, &location))
+            if (!cx->compartment()->savedStacks().getLocation(cx, iter, &location))
                 return false;
         }
-    } else {
-        const char *filename = iter.scriptFilename();
-        if (!filename)
-            filename = "";
-        location.get().source = Atomize(cx, filename, strlen(filename));
-        if (!location.get().source)
-            return false;
-        uint32_t column;
-        location.get().line = iter.computeLine(&column);
-        location.get().column = column;
-    }
 
-    RootedSavedFrame parentFrame(cx);
+        {
+            FrameState frameState(iter);
+            frameState.location = location.get();
+            if (!stackState->append(frameState))
+                return false;
+        }
+
+        ++iter;
+
+        if (maxFrameCount == 0) {
+            
+            
+            continue;
+        } else if (maxFrameCount == 1) {
+            
+            
+            break;
+        } else {
+            maxFrameCount--;
+        }
+    }
 
     
-    if (maxFrameCount == 0) {
-        if (!insertFrames(cx, ++iter, &parentFrame, 0))
-            return false;
-    } else if (maxFrameCount == 1) {
-        
-        
-        
-        parentFrame = nullptr;
-    } else {
-        if (!insertFrames(cx, ++iter, &parentFrame, maxFrameCount - 1))
+    
+    RootedSavedFrame parentFrame(cx, nullptr);
+    for (size_t i = stackState->length(); i != 0; i--) {
+        SavedFrame::AutoLookupRooter lookup(cx,
+                                            stackState[i-1].location.source,
+                                            stackState[i-1].location.line,
+                                            stackState[i-1].location.column,
+                                            stackState[i-1].name,
+                                            parentFrame,
+                                            stackState[i-1].principals);
+        parentFrame.set(getOrCreateSavedFrame(cx, lookup));
+        if (!parentFrame)
             return false;
     }
 
-    SavedFrame::AutoLookupRooter lookup(cx,
-                                        location.get().source,
-                                        location.get().line,
-                                        location.get().column,
-                                        name,
-                                        parentFrame,
-                                        principals);
-
-    frame.set(getOrCreateSavedFrame(cx, lookup));
-    return frame.get() != nullptr;
+    frame.set(parentFrame);
+    return true;
 }
 
 SavedFrame *
-SavedStacks::getOrCreateSavedFrame(JSContext *cx, const SavedFrame::Lookup &lookup)
+SavedStacks::getOrCreateSavedFrame(JSContext *cx, SavedFrame::HandleLookup lookup)
 {
     SavedFrame::Set::AddPtr p = frames.lookupForAdd(lookup);
     if (p)
@@ -594,7 +602,7 @@ SavedStacks::getOrCreateSavedFramePrototype(JSContext *cx)
 }
 
 SavedFrame *
-SavedStacks::createFrameFromLookup(JSContext *cx, const SavedFrame::Lookup &lookup)
+SavedStacks::createFrameFromLookup(JSContext *cx, SavedFrame::HandleLookup lookup)
 {
     RootedObject proto(cx, getOrCreateSavedFramePrototype(cx));
     if (!proto)
@@ -640,14 +648,33 @@ SavedStacks::sweepPCLocationMap()
 }
 
 bool
-SavedStacks::getLocation(JSContext *cx, JSScript *script, jsbytecode *pc,
-                         MutableHandleLocationValue locationp)
+SavedStacks::getLocation(JSContext *cx, const FrameIter &iter, MutableHandleLocationValue locationp)
 {
     
     
     
     
-    assertSameCompartment(cx, this, script);
+    assertSameCompartment(cx, this, iter.compartment());
+
+    
+    
+    
+    
+
+    if (!iter.hasScript()) {
+        const char *filename = iter.scriptFilename();
+        if (!filename)
+            filename = "";
+        locationp->source = Atomize(cx, filename, strlen(filename));
+        if (!locationp->source)
+            return false;
+
+        locationp->line = iter.computeLine(&locationp->column);
+        return true;
+    }
+
+    RootedScript script(cx, iter.script());
+    jsbytecode *pc = iter.pc();
 
     PCKey key(script, pc);
     PCLocationMap::AddPtr p = pcLocationMap.lookupForAdd(key);
@@ -668,6 +695,36 @@ SavedStacks::getLocation(JSContext *cx, JSScript *script, jsbytecode *pc,
 
     locationp.set(p->value());
     return true;
+}
+
+SavedStacks::FrameState::FrameState(const FrameIter &iter)
+    : principals(iter.compartment()->principals),
+      name(iter.isNonEvalFunctionFrame() ? iter.functionDisplayAtom() : nullptr),
+      location()
+{
+    if (principals)
+        JS_HoldPrincipals(principals);
+}
+
+SavedStacks::FrameState::FrameState(const FrameState &fs)
+    : principals(fs.principals),
+      name(fs.name),
+      location(fs.location)
+{
+    if (principals)
+        JS_HoldPrincipals(principals);
+}
+
+SavedStacks::FrameState::~FrameState() {
+    if (principals)
+        JS_DropPrincipals(TlsPerThreadData.get()->runtimeFromMainThread(), principals);
+}
+
+void
+SavedStacks::FrameState::trace(JSTracer *trc) {
+    if (name)
+        gc::MarkStringUnbarriered(trc, &name, "SavedStacks::FrameState::name");
+    location.trace(trc);
 }
 
 bool
