@@ -274,10 +274,9 @@ MediaEngineWebRTC::EnumerateVideoDevices(dom::MediaSourceEnum aMediaSource,
     }
   }
 
-  if (mHasTabVideoSource || dom::MediaSourceEnum::Browser == aMediaSource)
+  if (mHasTabVideoSource || dom::MediaSourceEnum::Browser == aMediaSource) {
     aVSources->AppendElement(new MediaEngineTabVideoSource());
-
-  return;
+  }
 #endif
 }
 
@@ -372,15 +371,43 @@ MediaEngineWebRTC::EnumerateAudioDevices(dom::MediaSourceEnum aMediaSource,
   }
 }
 
+static PLDHashOperator
+ClearVideoSource (const nsAString&, 
+                  MediaEngineVideoSource* aData,
+                  void *userArg)
+{
+  if (aData) {
+    aData->Shutdown();
+  }
+  return PL_DHASH_NEXT;
+}
+
+static PLDHashOperator
+ClearAudioSource (const nsAString&, 
+                  MediaEngineWebRTCAudioSource* aData,
+                  void *userArg)
+{
+  if (aData) {
+    aData->Shutdown();
+  }
+  return PL_DHASH_NEXT;
+}
+
 void
 MediaEngineWebRTC::Shutdown()
 {
   
   MutexAutoLock lock(mMutex);
 
+  LOG(("%s", __FUNCTION__));
   
+  
+  mVideoSources.EnumerateRead(ClearVideoSource, nullptr);
+  mAudioSources.EnumerateRead(ClearAudioSource, nullptr);
   mVideoSources.Clear();
   mAudioSources.Clear();
+
+  
   if (mVideoEngine) {
     mVideoEngine->SetTraceCallback(nullptr);
     webrtc::VideoEngine::Delete(mVideoEngine);
