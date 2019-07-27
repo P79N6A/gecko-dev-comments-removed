@@ -228,6 +228,7 @@ private:
   bool IsSeeking() { return mPendingSeekTime != -1; }
 
   bool IsNearEnd(MediaData::Type aType, int64_t aTime );
+  int64_t LastSampleTime(MediaData::Type aType);
 
   nsRefPtr<SourceBufferDecoder> mAudioSourceDecoder;
   nsRefPtr<SourceBufferDecoder> mVideoSourceDecoder;
@@ -267,6 +268,7 @@ private:
   
   int64_t mPendingSeekTime;
   bool mWaitingForSeekData;
+  bool mSeekToEnd;
 
   int64_t mTimeThreshold;
   bool mDropAudioBeforeThreshold;
