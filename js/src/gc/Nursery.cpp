@@ -825,7 +825,7 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList 
 
     
     TIME_START(updateJitActivations);
-    js::jit::UpdateJitActivationsForMinorGC<Nursery>(&rt->mainThread, &trc);
+    js::jit::UpdateJitActivationsForMinorGC(&rt->mainThread, &trc);
     forwardedBuffers.finish();
     TIME_END(updateJitActivations);
 
