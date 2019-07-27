@@ -198,29 +198,6 @@ nsContextMenu.prototype = {
                               (targetURI.schemeIs("about") && ReaderMode.getOriginalUrl(targetURI.spec)));
     canPocket = canPocket && window.gBrowser && this.browser.getTabBrowser() == window.gBrowser;
 
-    if (canPocket) {
-      let locale = Cc["@mozilla.org/chrome/chrome-registry;1"].
-                   getService(Ci.nsIXULChromeRegistry).
-                   getSelectedLocale("browser");
-      if (locale != "en-US") {
-        if (locale == "ja-JP-mac")
-          locale = "ja";
-        let url = "chrome://browser/content/browser-pocket-" + locale + ".properties";
-        let bundle = Services.strings.createBundle(url);
-        let saveToPocketItem = document.getElementById("context-pocket");
-        let saveLinkToPocketItem = document.getElementById("context-savelinktopocket");
-        try {
-          saveToPocketItem.setAttribute("label", bundle.GetStringFromName("saveToPocketCmd.label"));
-          saveToPocketItem.setAttribute("accesskey", bundle.GetStringFromName("saveToPocketCmd.accesskey"));
-          saveLinkToPocketItem.setAttribute("label", bundle.GetStringFromName("saveLinkToPocketCmd.label"));
-          saveLinkToPocketItem.setAttribute("accesskey", bundle.GetStringFromName("saveLinkToPocketCmd.accesskey"));
-        } catch (err) {
-          
-          
-          
-        }
-      }
-    }
     this.showItem("context-pocket", canPocket && showSaveCurrentPageToPocket);
     let showSaveLinkToPocket = canPocket && !showSaveCurrentPageToPocket &&
                                (this.onSaveableLink || this.onPlainTextLink);
