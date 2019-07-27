@@ -201,6 +201,8 @@ protected:
     ThreadsafeAutoJSContext cx;
     JS::Rooted<JSObject*> wrapper(cx, mPromise->GetWrapper());
     MOZ_ASSERT(wrapper); 
+    
+    
     JSAutoCompartment ac(cx, wrapper);
 
     JS::Rooted<JSObject*> resolveFunc(cx,
@@ -269,6 +271,48 @@ private:
   JS::PersistentRooted<JSObject*> mThenable;
   nsRefPtr<PromiseInit> mThen;
   NS_DECL_OWNINGTHREAD;
+};
+
+
+
+
+
+class FastThenableResolverTask final : public nsRunnable
+{
+public:
+  FastThenableResolverTask(PromiseCallback* aResolveCallback,
+                           PromiseCallback* aRejectCallback,
+                           Promise* aNextPromise)
+    : mResolveCallback(aResolveCallback)
+    , mRejectCallback(aRejectCallback)
+    , mNextPromise(aNextPromise)
+  {
+    MOZ_ASSERT(aResolveCallback);
+    MOZ_ASSERT(aRejectCallback);
+    MOZ_ASSERT(aNextPromise);
+    MOZ_COUNT_CTOR(FastThenableResolverTask);
+  }
+
+  virtual
+  ~FastThenableResolverTask()
+  {
+    NS_ASSERT_OWNINGTHREAD(FastThenableResolverTask);
+    MOZ_COUNT_DTOR(FastThenableResolverTask);
+  }
+
+protected:
+  NS_IMETHOD
+  Run() override
+  {
+    NS_ASSERT_OWNINGTHREAD(FastThenableResolverTask);
+    mNextPromise->AppendCallbacks(mResolveCallback, mRejectCallback);
+    return NS_OK;
+  }
+
+private:
+  nsRefPtr<PromiseCallback> mResolveCallback;
+  nsRefPtr<PromiseCallback> mRejectCallback;
+  nsRefPtr<Promise> mNextPromise;
 };
 
 
@@ -1198,6 +1242,37 @@ Promise::ResolveInternal(JSContext* aCx,
     if (then.isObject() && JS::IsCallable(&then.toObject())) {
       
       JS::Rooted<JSObject*> thenObj(aCx, &then.toObject());
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      Promise* nextPromise;
+      if (PromiseBinding::IsThenMethod(thenObj) &&
+          NS_SUCCEEDED(UNWRAP_OBJECT(Promise, valueObj, nextPromise))) {
+        
+        
+        
+        
+        
+        
+        
+        
+        JS::Rooted<JSObject*> glob(aCx, GlobalJSObject());
+        nsRefPtr<PromiseCallback> resolveCb = new ResolvePromiseCallback(this, glob);
+        nsRefPtr<PromiseCallback> rejectCb = new RejectPromiseCallback(this, glob);
+        nsRefPtr<FastThenableResolverTask> task =
+          new FastThenableResolverTask(resolveCb, rejectCb, nextPromise);
+        DispatchToMicroTask(task);
+        return;
+      }
+
       nsRefPtr<PromiseInit> thenCallback =
         new PromiseInit(thenObj, mozilla::dom::GetIncumbentGlobal());
       nsRefPtr<ThenableResolverTask> task =
