@@ -97,6 +97,7 @@ enum JitSpewChannel {
 };
 
 class MIRGenerator;
+class TempAllocator;
 
 
 
