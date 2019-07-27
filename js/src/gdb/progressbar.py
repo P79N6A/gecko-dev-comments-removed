@@ -4,7 +4,7 @@
 
 
 
-import sys, datetime
+import sys, datetime, time
 
 class ProgressBar(object):
     def __init__(self, label, limit, label_width=12):
