@@ -14,7 +14,7 @@ run_fragment('Root.HeapSlot')
 
 
 
-assert_pretty('array->elements[0]', '$jsval("plinth")')
+assert_pretty('((js::NativeObject *) array.get())->elements_[0]', '$jsval("plinth")')
 
 run_fragment('Root.barriers');
 
