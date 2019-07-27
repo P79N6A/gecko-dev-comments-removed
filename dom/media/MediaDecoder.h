@@ -560,16 +560,20 @@ public:
 
   
   
-  virtual void NotifyPlaybackStarted() {
-    GetReentrantMonitor().AssertCurrentThreadIn();
-    mPlaybackStatistics->Start();
+  void DispatchPlaybackStarted() {
+    nsRefPtr<MediaDecoder> self = this;
+    nsCOMPtr<nsIRunnable> r =
+      NS_NewRunnableFunction([self] () { self->mPlaybackStatistics->Start(); });
+    AbstractThread::MainThread()->Dispatch(r.forget());
   }
 
   
   
-  virtual void NotifyPlaybackStopped() {
-    GetReentrantMonitor().AssertCurrentThreadIn();
-    mPlaybackStatistics->Stop();
+  void DispatchPlaybackStopped() {
+    nsRefPtr<MediaDecoder> self = this;
+    nsCOMPtr<nsIRunnable> r =
+      NS_NewRunnableFunction([self] () { self->mPlaybackStatistics->Stop(); });
+    AbstractThread::MainThread()->Dispatch(r.forget());
   }
 
   
