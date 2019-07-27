@@ -430,21 +430,21 @@ nsCaret::SetCaretPosition(nsIDOMNode* aNode, int32_t aOffset)
 void
 nsCaret::CheckSelectionLanguageChange()
 {
-  
+  if (!IsBidiUI()) {
+    return;
+  }
+
   bool isKeyboardRTL = false;
   nsIBidiKeyboard* bidiKeyboard = nsContentUtils::GetBidiKeyboard();
+  if (bidiKeyboard) {
+    bidiKeyboard->IsLangRTL(&isKeyboardRTL);
+  }
   
   
   
-  if (bidiKeyboard && NS_SUCCEEDED(bidiKeyboard->IsLangRTL(&isKeyboardRTL)) &&
-      IsBidiUI()) {
-    
-    
-    
-    Selection* selection = GetSelectionInternal();
-    if (selection) {
-      selection->SelectionLanguageChange(isKeyboardRTL);
-    }
+  Selection* selection = GetSelectionInternal();
+  if (selection) {
+    selection->SelectionLanguageChange(isKeyboardRTL);
   }
 }
 
@@ -831,12 +831,18 @@ nsCaret::ComputeCaretRects(nsIFrame* aFrame, int32_t aFrameOffset,
     aCaretRect->x -= aCaretRect->width;
   }
 
+  
   aHookRect->SetEmpty();
+  if (!IsBidiUI()) {
+    return;
+  }
 
   bool isCaretRTL;
   nsIBidiKeyboard* bidiKeyboard = nsContentUtils::GetBidiKeyboard();
-  if (bidiKeyboard && NS_SUCCEEDED(bidiKeyboard->IsLangRTL(&isCaretRTL)) &&
-      IsBidiUI()) {
+  
+  
+  
+  if (bidiKeyboard && NS_SUCCEEDED(bidiKeyboard->IsLangRTL(&isCaretRTL))) {
     
     
     
