@@ -302,6 +302,16 @@ struct ForEachTrackedOptimizationTypeInfoOp
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     virtual void readType(const char *keyedBy, const char *name,
                           const char *location, unsigned lineno) = 0;
 
