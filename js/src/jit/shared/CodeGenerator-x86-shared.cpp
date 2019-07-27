@@ -2531,6 +2531,54 @@ CodeGeneratorX86Shared::visitSimdBinaryBitwiseX4(LSimdBinaryBitwiseX4 *ins)
 }
 
 bool
+CodeGeneratorX86Shared::visitSimdShift(LSimdShift *ins)
+{
+    FloatRegister vec = ToFloatRegister(ins->vector());
+    FloatRegister out = ToFloatRegister(ins->output());
+    MOZ_ASSERT(vec == out); 
+
+    
+    
+    
+    
+    
+    
+    const LAllocation *val = ins->value();
+    if (val->isConstant()) {
+        Imm32 count(ToInt32(val));
+        switch (ins->operation()) {
+          case MSimdShift::lsh:
+            masm.packedLeftShiftByScalar(count, out);
+            return true;
+          case MSimdShift::rsh:
+            masm.packedRightShiftByScalar(count, out);
+            return true;
+          case MSimdShift::ursh:
+            masm.packedUnsignedRightShiftByScalar(count, out);
+            return true;
+        }
+        MOZ_CRASH("unexpected SIMD bitwise op");
+    }
+
+    MOZ_ASSERT(val->isRegister());
+    FloatRegister tmp = ScratchFloat32Reg;
+    masm.movd(ToRegister(val), tmp);
+
+    switch (ins->operation()) {
+      case MSimdShift::lsh:
+        masm.packedLeftShiftByScalar(tmp, out);
+        return true;
+      case MSimdShift::rsh:
+        masm.packedRightShiftByScalar(tmp, out);
+        return true;
+      case MSimdShift::ursh:
+        masm.packedUnsignedRightShiftByScalar(tmp, out);
+        return true;
+    }
+    MOZ_CRASH("unexpected SIMD bitwise op");
+}
+
+bool
 CodeGeneratorX86Shared::visitSimdSelect(LSimdSelect *ins)
 {
     FloatRegister mask = ToFloatRegister(ins->mask());
