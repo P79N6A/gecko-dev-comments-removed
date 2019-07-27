@@ -349,10 +349,6 @@ add_task(function test_bookmarks() {
   do_check_eq("bar", k);
 
   
-  k = bs.getKeywordForURI(uri("http://keywordtest.com/"));
-  do_check_eq("bar", k);
-
-  
   let u = bs.getURIForKeyword("bar");
   do_check_eq("http://keywordtest.com/", u.spec);
 
