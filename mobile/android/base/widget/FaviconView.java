@@ -11,6 +11,7 @@ import org.mozilla.gecko.favicons.Favicons;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
@@ -22,6 +23,8 @@ import android.widget.ImageView;
 
 
 public class FaviconView extends ImageView {
+    private static String DEFAULT_FAVICON_KEY = FaviconView.class.getSimpleName() + "DefaultFavicon";
+
     private Bitmap mIconBitmap;
 
     
@@ -214,8 +217,13 @@ public class FaviconView extends ImageView {
     }
 
     public void showDefaultFavicon() {
-        setImageResource(R.drawable.favicon_globe);
-        mDominantColor = 0;
+        
+        
+        
+        
+        final Bitmap defaultFaviconBitmap = BitmapFactory.decodeResource(getResources(),
+                R.drawable.favicon_globe);
+        updateAndScaleImage(defaultFaviconBitmap, DEFAULT_FAVICON_KEY);
     }
 
     private void showNoImage() {
