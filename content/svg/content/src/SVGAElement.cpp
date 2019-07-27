@@ -134,8 +134,9 @@ SVGAElement::BindToTree(nsIDocument *aDocument, nsIContent *aParent,
                                             aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (aDocument) {
-    aDocument->RegisterPendingLinkUpdate(this);
+  nsIDocument* doc = GetComposedDoc();
+  if (doc) {
+    doc->RegisterPendingLinkUpdate(this);
   }
 
   return NS_OK;
@@ -148,7 +149,9 @@ SVGAElement::UnbindFromTree(bool aDeep, bool aNullParent)
   
   Link::ResetLinkState(false, Link::ElementHasHref());
 
-  nsIDocument* doc = GetCurrentDoc();
+  
+  
+  nsIDocument* doc = OwnerDoc();
   if (doc) {
     doc->UnregisterPendingLinkUpdate(this);
   }

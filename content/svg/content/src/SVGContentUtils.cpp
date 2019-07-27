@@ -426,7 +426,7 @@ GetCTMInternal(nsSVGElement *aElement, bool aScreenCTM, bool aHaveRecursed)
 
   
   
-  nsIDocument* currentDoc = aElement->GetCurrentDoc();
+  nsIDocument* currentDoc = aElement->GetComposedDoc();
   float x = 0.0f, y = 0.0f;
   if (currentDoc && element->NodeInfo()->Equals(nsGkAtoms::svg, kNameSpaceID_SVG)) {
     nsIPresShell *presShell = currentDoc->GetShell();
