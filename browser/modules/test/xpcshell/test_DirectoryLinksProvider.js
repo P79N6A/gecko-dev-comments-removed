@@ -1305,14 +1305,16 @@ add_task(function test_timeSensetiveSuggestedTiles() {
         if (!deleteFlag) {
           
           
-          do_check_true(timeDelta >= 1000);
+          do_print("TESTING START timeDelta: " + timeDelta);
+          do_check_true(timeDelta >= 1000 / 2); 
           do_check_eq(link.targetedSite, "hrblock.com");
           do_check_true(DirectoryLinksProvider._campaignTimeoutID);
         }
         else {
           
           
-          do_check_true(timeDelta >= 3000);
+          do_print("TESTING END timeDelta: " + timeDelta);
+          do_check_true(timeDelta >= 3000 / 2); 
           do_check_false(link.targetedSite);
           do_check_false(DirectoryLinksProvider._campaignTimeoutID);
           resolve();
