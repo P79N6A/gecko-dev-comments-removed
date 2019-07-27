@@ -175,6 +175,8 @@
 
 #include <d3d11.h>
 
+#include "InkCollector.h"
+
 #if !defined(SM_CONVERTIBLESLATEMODE)
 #define SM_CONVERTIBLESLATEMODE 0x2003
 #endif
@@ -395,6 +397,7 @@ nsWindow::nsWindow() : nsWindowBase()
     
     nsUXThemeData::UpdateNativeThemeInfo();
     RedirectedKeyDownMessageManager::Forget();
+    InkCollector::sInkCollector = new InkCollector();
 
     Preferences::AddBoolVarCache(&gIsPointerEventsEnabled,
                                  "dom.w3c_pointer_events.enabled",
@@ -428,6 +431,8 @@ nsWindow::~nsWindow()
 
   
   if (sInstanceCount == 0) {
+    InkCollector::sInkCollector->Shutdown();
+    InkCollector::sInkCollector = nullptr;
     IMEHandler::Terminate();
     NS_IF_RELEASE(sCursorImgContainer);
     if (sIsOleInitialized) {
@@ -650,6 +655,7 @@ nsWindow::Create(nsIWidget *aParent,
        !nsUXThemeData::sTitlebarInfoPopulatedAero)) {
     nsUXThemeData::UpdateTitlebarInfo(mWnd);
   }
+
   return NS_OK;
 }
 
@@ -3774,6 +3780,20 @@ bool nsWindow::DispatchMouseEvent(uint32_t aEventType, WPARAM wParam,
     return result;
   }
 
+  
+  if (NS_MOUSE_MOVE != aEventType
+      
+      
+      && nsIDOMMouseEvent::MOZ_SOURCE_PEN == aInputSource
+      
+      && nsWindowType::eWindowType_toplevel == mWindowType
+      
+      && gfxPrefs::PointerEventsEnabled()
+      
+      && NS_MOUSE_EXIT != aEventType) {
+    InkCollector::sInkCollector->SetTarget(mWnd);
+  }
+
   switch (aEventType) {
     case NS_MOUSE_BUTTON_DOWN:
       CaptureMouse(true);
@@ -4892,6 +4912,15 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
       LPARAM pos = lParamToClient(::GetMessagePos());
       DispatchMouseEvent(NS_MOUSE_EXIT, mouseState, pos, false,
                          WidgetMouseEvent::eLeftButton, MOUSE_INPUT_SOURCE());
+    }
+    break;
+
+    case MOZ_WM_PEN_LEAVES_HOVER_OF_DIGITIZER:
+    {
+      LPARAM pos = lParamToClient(::GetMessagePos());
+      DispatchMouseEvent(NS_MOUSE_EXIT, wParam, pos, false,
+                         WidgetMouseEvent::eLeftButton,
+                         nsIDOMMouseEvent::MOZ_SOURCE_PEN);
     }
     break;
 
