@@ -2583,6 +2583,27 @@ public:
 
   static float GetResolution(nsIPresShell* aPresShell);
 
+  
+
+
+
+
+  static void SetResolutionAndScaleTo(nsIPresShell* aPresShell, float aResolution);
+
+  
+
+
+
+
+  static void SetScrollPositionClampingScrollPortSize(nsIPresShell* aPresShell,
+                                                      CSSSize aSize);
+
+  
+
+
+
+  static void SetCSSViewport(nsIPresShell* aPresShell, CSSSize aSize);
+
 private:
   static uint32_t sFontSizeInflationEmPerLine;
   static uint32_t sFontSizeInflationMinTwips;
