@@ -15,7 +15,6 @@
 #include "nsStyleConsts.h"
 
 class gfxContext;
-class gfxPattern;
 struct gfxRGBA;
 struct nsBorderColors;
 
@@ -190,12 +189,6 @@ struct nsCSSBorderRenderer {
   
   
   bool AllBordersSolid(bool *aHasCompositeColors);
-
-  
-  
-  already_AddRefed<gfxPattern> CreateCornerGradient(mozilla::css::Corner aCorner,
-                                                    const gfxRGBA &aFirstColor,
-                                                    const gfxRGBA &aSecondColor);
 
   
   mozilla::TemporaryRef<mozilla::gfx::GradientStops>
