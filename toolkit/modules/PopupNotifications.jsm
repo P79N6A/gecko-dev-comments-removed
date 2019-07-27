@@ -617,8 +617,12 @@ PopupNotifications.prototype = {
 
     this._refreshPanel(notificationsToShow);
 
-    if (this.isPanelOpen && this._currentAnchorElement == anchorElement)
+    if (this.isPanelOpen && this._currentAnchorElement == anchorElement) {
+      notificationsToShow.forEach(function (n) {
+        this._fireCallback(n, NOTIFICATION_EVENT_SHOWN);
+      }, this);
       return;
+    }
 
     
     

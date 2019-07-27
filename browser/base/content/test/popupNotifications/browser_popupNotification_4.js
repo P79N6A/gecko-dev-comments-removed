@@ -1,7 +1,7 @@
 
 
 
- 
+
 function test() {
   waitForExplicitFinish();
 
@@ -206,5 +206,28 @@ let tests = [
       notification.remove();
       goNext();
     }
+  },
+  
+  { id: "Test#11",
+    run: function() {
+      this.notifyObj = new BasicNotification(this.id);
+      this.notification = showNotification(this.notifyObj);
+    },
+    onShown: function (popup) {
+      checkPopup(popup, this.notifyObj);
+
+      this.notifyObj.showingCallbackTriggered = false;
+      this.notifyObj.shownCallbackTriggered = false;
+
+      
+      
+      
+      PopupNotifications._update();
+
+      checkPopup(popup, this.notifyObj);
+
+      this.notification.remove();
+    },
+    onHidden: function() { }
   }
 ];
