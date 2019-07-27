@@ -202,7 +202,7 @@ let DirectoryLinksProvider = {
   },
 
   _cacheRelatedLinks: function(link) {
-    for (let relatedSite of link.related) {
+    for (let relatedSite of link.suggested) {
       let relatedMap = this._relatedLinks.get(relatedSite) || new Map();
       relatedMap.set(link.url, link);
       this._relatedLinks.set(relatedSite, relatedMap);
@@ -430,7 +430,7 @@ let DirectoryLinksProvider = {
 
         
         
-        if ("related" == link.type) {
+        if ("suggested" == link.type) {
           this._cacheRelatedLinks(link);
           return;
         }
@@ -542,12 +542,12 @@ let DirectoryLinksProvider = {
     this.maxNumLinks = initialLength;
     if (initialLength) {
       let mostFrecentLink = sortedLinks[0];
-      if ("related" == mostFrecentLink.type) {
+      if ("suggested" == mostFrecentLink.type) {
         this._callObservers("onLinkChanged", {
           url: mostFrecentLink.url,
           frecency: 0,
           lastVisitDate: mostFrecentLink.lastVisitDate,
-          type: "related",
+          type: "suggested",
         }, 0, true);
       }
     }
@@ -589,7 +589,7 @@ let DirectoryLinksProvider = {
       title: chosenRelatedLink.title,
       frecency: RELATED_FRECENCY,
       lastVisitDate: chosenRelatedLink.lastVisitDate,
-      type: "related",
+      type: "suggested",
 
       
       
