@@ -62,16 +62,6 @@ using std::ceil;
 using std::min;
 
 
-#define DECODE_FLAGS_MASK (imgIContainer::FLAG_DECODE_NO_PREMULTIPLY_ALPHA | imgIContainer::FLAG_DECODE_NO_COLORSPACE_CONVERSION)
-#define DECODE_FLAGS_DEFAULT 0
-
-static uint32_t
-DecodeFlags(uint32_t aFlags)
-{
-  return aFlags & DECODE_FLAGS_MASK;
-}
-
-
 
 static int32_t sMaxDecodeCount = 0;
 
@@ -1359,7 +1349,7 @@ RasterImage::CreateDecoder(const Maybe<nsIntSize>& aSize, uint32_t aFlags)
   decoder->SetSizeDecode(!aSize);
   decoder->SetSendPartialInvalidations(!mHasBeenDecoded);
   decoder->SetImageIsTransient(mTransient);
-  decoder->SetDecodeFlags(DecodeFlags(aFlags));
+  decoder->SetFlags(aFlags);
 
   if (!mHasBeenDecoded && aSize) {
     
@@ -1783,7 +1773,7 @@ RasterImage::Draw(gfxContext* aContext,
   
   
   
-  if ((aFlags & DECODE_FLAGS_MASK) != DECODE_FLAGS_DEFAULT)
+  if (DecodeFlags(aFlags) != DECODE_FLAGS_DEFAULT)
     return NS_ERROR_FAILURE;
 
   NS_ENSURE_ARG_POINTER(aContext);
