@@ -22,5 +22,10 @@ navigator.mozL10n = document.mozL10n = {
     }).replace(/_/g, " ");  
 
     return "" + readableStringId + (vars ? ";" + JSON.stringify(vars) : "");
+  },
+
+  
+  language: {
+    code: "en-US"
   }
 };
