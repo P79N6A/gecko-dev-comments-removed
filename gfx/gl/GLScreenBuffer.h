@@ -127,11 +127,11 @@ protected:
 public:
     const SurfaceCaps mCaps;
 protected:
-    SurfaceFactory* mFactory; 
+    UniquePtr<SurfaceFactory> mFactory;
     RefPtr<SurfaceStream> mStream;
 
-    UniquePtr<DrawBuffer> mDraw; 
-    UniquePtr<ReadBuffer> mRead; 
+    UniquePtr<DrawBuffer> mDraw;
+    UniquePtr<ReadBuffer> mRead;
 
     bool mNeedsBlit;
 
@@ -148,11 +148,11 @@ protected:
 
     GLScreenBuffer(GLContext* gl,
                    const SurfaceCaps& caps,
-                   SurfaceFactory* factory,
+                   UniquePtr<SurfaceFactory> factory,
                    const RefPtr<SurfaceStream>& stream)
         : mGL(gl)
         , mCaps(caps)
-        , mFactory(factory)
+        , mFactory(Move(factory))
         , mStream(stream)
         , mDraw(nullptr)
         , mRead(nullptr)
@@ -175,7 +175,7 @@ public:
     }
 
     SurfaceFactory* Factory() const {
-        return mFactory;
+        return mFactory.get();
     }
 
     SharedSurface* SharedSurf() const {
@@ -235,7 +235,8 @@ public:
 
 
 
-    void Morph(SurfaceFactory* newFactory, SurfaceStreamType streamType);
+    void Morph(UniquePtr<SurfaceFactory> newFactory,
+               SurfaceStreamType streamType);
 
 protected:
     

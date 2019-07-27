@@ -17,7 +17,7 @@ namespace gl {
 using gfx::IntSize;
 using gfx::SurfaceFormat;
 
-SharedSurface_Basic*
+ UniquePtr<SharedSurface_Basic>
 SharedSurface_Basic::Create(GLContext* gl,
                             const GLFormats& formats,
                             const IntSize& size,
@@ -45,7 +45,9 @@ SharedSurface_Basic::Create(GLContext* gl,
     default:
         MOZ_CRASH("Unhandled Tex format.");
     }
-    return new SharedSurface_Basic(gl, size, hasAlpha, format, tex);
+
+    typedef SharedSurface_Basic ptrT;
+    return UniquePtr<ptrT>( new ptrT(gl, size, hasAlpha, format, tex) );
 }
 
 SharedSurface_Basic::SharedSurface_Basic(GLContext* gl,
@@ -102,7 +104,8 @@ SharedSurface_Basic::Fence()
 
 
 
-SharedSurface_GLTexture*
+
+ UniquePtr<SharedSurface_GLTexture>
 SharedSurface_GLTexture::Create(GLContext* prodGL,
                                 GLContext* consGL,
                                 const GLFormats& formats,
@@ -124,7 +127,9 @@ SharedSurface_GLTexture::Create(GLContext* prodGL,
       ownsTex = true;
     }
 
-    return new SharedSurface_GLTexture(prodGL, consGL, size, hasAlpha, tex, ownsTex);
+    typedef SharedSurface_GLTexture ptrT;
+    return UniquePtr<ptrT>( new ptrT(prodGL, consGL, size, hasAlpha,
+                                     tex, ownsTex) );
 }
 
 SharedSurface_GLTexture::~SharedSurface_GLTexture()
