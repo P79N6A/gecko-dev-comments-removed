@@ -4,13 +4,13 @@
 
 
 
-#ifndef security_sandbox_wosTypes_h__
-#define security_sandbox_wosTypes_h__
+#ifndef security_sandbox_loggingTypes_h__
+#define security_sandbox_loggingTypes_h__
 
 #include <stdint.h>
 
 namespace mozilla {
-namespace warnonlysandbox {
+namespace sandboxing {
 
 
 

@@ -75,9 +75,9 @@
 
 #include "GeckoProfiler.h"
 
-#if defined(MOZ_CONTENT_SANDBOX) && defined(XP_WIN)
+#if defined(MOZ_SANDBOX) && defined(XP_WIN)
 #define TARGET_SANDBOX_EXPORTS
-#include "mozilla/warnonlysandbox/wosCallbacks.h"
+#include "mozilla/sandboxing/loggingCallbacks.h"
 #endif
 
 #ifdef MOZ_IPDL_TESTS
@@ -558,10 +558,10 @@ XRE_InitChildProcess(int aArgc,
         return NS_ERROR_FAILURE;
       }
 
-#if defined(MOZ_CONTENT_SANDBOX) && defined(XP_WIN)
+#if defined(MOZ_SANDBOX) && defined(XP_WIN)
       
       
-      mozilla::warnonlysandbox::InitIfRequired();
+      mozilla::sandboxing::InitLoggingIfRequired();
 #endif
 
       

@@ -1203,20 +1203,25 @@ pref("dom.ipc.plugins.enabled", true);
 pref("browser.tabs.remote.autostart", false);
 pref("browser.tabs.remote.desktopbehavior", true);
 
-#if defined(MOZ_CONTENT_SANDBOX) && defined(XP_WIN)
+#if defined(XP_WIN) && defined(MOZ_SANDBOX)
 
 
 
 
+pref("security.sandbox.windows.log", false);
+
+#if defined(MOZ_CONTENT_SANDBOX)
 
 
-pref("browser.tabs.remote.sandbox", "off");
+pref("security.sandbox.windows.content.moreStrict", false);
 
 #if defined(MOZ_STACKWALKING)
 
 
 
-pref("browser.tabs.remote.sandbox.warnOnlyStackTraceDepth", 0);
+
+pref("security.sandbox.windows.log.stackTraceDepth", 0);
+#endif
 #endif
 #endif
 

@@ -8,9 +8,7 @@
 #include "sandbox/win/src/sandbox.h"
 #include "sandbox/win/src/sandbox_factory.h"
 #include "sandbox/win/src/security_level.h"
-#if defined(MOZ_CONTENT_SANDBOX)
-#include "mozilla/warnonlysandbox/warnOnlySandbox.h"
-#endif
+#include "mozilla/sandboxing/sandboxLogging.h"
 
 namespace mozilla
 {
@@ -37,6 +35,7 @@ SandboxBroker::SandboxBroker()
 bool
 SandboxBroker::LaunchApp(const wchar_t *aPath,
                          const wchar_t *aArguments,
+                         const bool aEnableLogging,
                          void **aProcessHandle)
 {
   if (!sBrokerService || !mPolicy) {
@@ -46,6 +45,11 @@ SandboxBroker::LaunchApp(const wchar_t *aPath,
   
   mPolicy->SetStdoutHandle(::GetStdHandle(STD_OUTPUT_HANDLE));
   mPolicy->SetStderrHandle(::GetStdHandle(STD_ERROR_HANDLE));
+
+  
+  if (aEnableLogging) {
+    mozilla::sandboxing::ApplyLoggingPolicy(*mPolicy);
+  }
 
   
   PROCESS_INFORMATION targetInfo;
@@ -65,26 +69,40 @@ SandboxBroker::LaunchApp(const wchar_t *aPath,
 
 #if defined(MOZ_CONTENT_SANDBOX)
 bool
-SandboxBroker::SetSecurityLevelForContentProcess(bool inWarnOnlyMode)
+SandboxBroker::SetSecurityLevelForContentProcess(bool aMoreStrict)
 {
   if (!mPolicy) {
     return false;
   }
 
-  auto result = mPolicy->SetJobLevel(sandbox::JOB_NONE, 0);
-  bool ret = (sandbox::SBOX_ALL_OK == result);
+  sandbox::ResultCode result;
+  bool ret;
+  if (aMoreStrict) {
+    result = mPolicy->SetJobLevel(sandbox::JOB_INTERACTIVE, 0);
+    ret = (sandbox::SBOX_ALL_OK == result);
 
-  result = mPolicy->SetTokenLevel(sandbox::USER_RESTRICTED_SAME_ACCESS,
-                                  sandbox::USER_RESTRICTED_SAME_ACCESS);
-  ret = ret && (sandbox::SBOX_ALL_OK == result);
+    result = mPolicy->SetTokenLevel(sandbox::USER_RESTRICTED_SAME_ACCESS,
+                                    sandbox::USER_INTERACTIVE);
+    ret = ret && (sandbox::SBOX_ALL_OK == result);
 
-  
-  
-  result = mPolicy->SetDelayedIntegrityLevel(sandbox::INTEGRITY_LEVEL_LOW);
-  ret = ret && (sandbox::SBOX_ALL_OK == result);
+    
+    
+    result = mPolicy->SetDelayedIntegrityLevel(sandbox::INTEGRITY_LEVEL_LOW);
+    ret = ret && (sandbox::SBOX_ALL_OK == result);
 
-  result = mPolicy->SetAlternateDesktop(true);
-  ret = ret && (sandbox::SBOX_ALL_OK == result);
+    result = mPolicy->SetAlternateDesktop(true);
+    ret = ret && (sandbox::SBOX_ALL_OK == result);
+  } else {
+    result = mPolicy->SetJobLevel(sandbox::JOB_NONE, 0);
+    bool ret = (sandbox::SBOX_ALL_OK == result);
+
+    result = mPolicy->SetTokenLevel(sandbox::USER_RESTRICTED_SAME_ACCESS,
+                                    sandbox::USER_RESTRICTED_SAME_ACCESS);
+    ret = ret && (sandbox::SBOX_ALL_OK == result);
+
+    result = mPolicy->SetDelayedIntegrityLevel(sandbox::INTEGRITY_LEVEL_MEDIUM);
+    ret = ret && (sandbox::SBOX_ALL_OK == result);
+  }
 
   
   
@@ -94,9 +112,6 @@ SandboxBroker::SetSecurityLevelForContentProcess(bool inWarnOnlyMode)
                             L"\\??\\pipe\\chrome.*");
   ret = ret && (sandbox::SBOX_ALL_OK == result);
 
-  if (inWarnOnlyMode) {
-    mozilla::warnonlysandbox::ApplyWarnOnlyPolicy(*mPolicy);
-  }
   return ret;
 }
 #endif

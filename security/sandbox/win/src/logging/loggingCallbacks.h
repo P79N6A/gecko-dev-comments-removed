@@ -4,11 +4,11 @@
 
 
 
-#ifndef security_sandbox_wosEnableCallbacks_h__
-#define security_sandbox_wosEnableCallbacks_h__
+#ifndef security_sandbox_loggingCallbacks_h__
+#define security_sandbox_loggingCallbacks_h__
 
-#include "mozilla/warnonlysandbox/wosTypes.h"
-#include "mozilla/warnonlysandbox/warnOnlySandbox.h"
+#include "mozilla/sandboxing/loggingTypes.h"
+#include "mozilla/sandboxing/sandboxLogging.h"
 
 #ifdef TARGET_SANDBOX_EXPORTS
 #include <sstream>
@@ -27,7 +27,7 @@
 #endif
 
 namespace mozilla {
-namespace warnonlysandbox {
+namespace sandboxing {
 
 
 
@@ -40,7 +40,7 @@ SetProvideLogFunctionCb(ProvideLogFunctionCb aProvideLogFunctionCb);
 
 
 static void
-PrepareForInit()
+PrepareForLogging()
 {
   SetProvideLogFunctionCb(ProvideLogFunction);
 }
@@ -67,7 +67,7 @@ StackFrameToOStringStream(uint32_t aFrameNumber, void* aPC, void* aSP,
   char buf[1024];
   NS_DescribeCodeAddress(aPC, &details);
   NS_FormatCodeAddressDetails(buf, sizeof(buf), aFrameNumber, aPC, &details);
-  *stream << "--" << buf << '\n';
+  *stream << std::endl << "--" << buf;
   stream->flush();
 }
 #endif
@@ -85,12 +85,11 @@ Log(const char* aMessageType,
   if (aContext) {
     msgStream << " for : " << aContext;
   }
-  msgStream << std::endl;
 
 #ifdef MOZ_STACKWALKING
   if (aShouldLogStackTrace) {
     if (sStackTraceDepth) {
-      msgStream << "Stack Trace:" << std::endl;
+      msgStream << std::endl << "Stack Trace:";
       NS_StackWalk(StackFrameToOStringStream, aFramesToSkip, sStackTraceDepth,
                    &msgStream, 0, nullptr);
     }
@@ -98,8 +97,10 @@ Log(const char* aMessageType,
 #endif
 
   std::string msg = msgStream.str();
-#ifdef DEBUG
-  std::cerr << msg;
+#if defined(DEBUG)
+  
+  
+  NS_DebugBreak(NS_DEBUG_WARNING, nullptr, msg.c_str(), nullptr, -1);
 #endif
 
   nsContentUtils::LogMessageToConsole(msg.c_str());
@@ -107,16 +108,24 @@ Log(const char* aMessageType,
 
 
 static void
-InitIfRequired()
+InitLoggingIfRequired()
 {
-  if (XRE_GetProcessType() == GeckoProcessType_Content
-      && Preferences::GetString("browser.tabs.remote.sandbox").EqualsLiteral("warn")
-      && sProvideLogFunctionCb) {
-#ifdef MOZ_STACKWALKING
-    Preferences::AddUintVarCache(&sStackTraceDepth,
-      "browser.tabs.remote.sandbox.warnOnlyStackTraceDepth");
-#endif
+  if (!sProvideLogFunctionCb) {
+    return;
+  }
+
+  if (Preferences::GetBool("security.sandbox.windows.log") ||
+      PR_GetEnv("MOZ_WIN_SANDBOX_LOGGING")) {
     sProvideLogFunctionCb(Log);
+
+#if defined(MOZ_CONTENT_SANDBOX) && defined(MOZ_STACKWALKING)
+    
+    
+    if (XRE_GetProcessType() == GeckoProcessType_Content) {
+      Preferences::AddUintVarCache(&sStackTraceDepth,
+        "security.sandbox.windows.log.stackTraceDepth");
+    }
+#endif
   }
 }
 #endif

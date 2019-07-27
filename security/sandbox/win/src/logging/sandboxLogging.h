@@ -8,12 +8,10 @@
 
 
 
+#ifndef security_sandbox_sandboxLogging_h__
+#define security_sandbox_sandboxLogging_h__
 
-
-#ifndef security_sandbox_warnOnlySandbox_h__
-#define security_sandbox_warnOnlySandbox_h__
-
-#include "wosTypes.h"
+#include "loggingTypes.h"
 
 #ifdef SANDBOX_EXPORTS
 #define SANDBOX_EXPORT __declspec(dllexport)
@@ -26,14 +24,14 @@ class TargetPolicy;
 }
 
 namespace mozilla {
-namespace warnonlysandbox {
+namespace sandboxing {
 
 
 
 void SANDBOX_EXPORT ProvideLogFunction(LogFunction aLogFunction);
 
 
-void ApplyWarnOnlyPolicy(sandbox::TargetPolicy& aPolicy);
+void ApplyLoggingPolicy(sandbox::TargetPolicy& aPolicy);
 
 
 
