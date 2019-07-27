@@ -151,7 +151,20 @@ var FindHelper = {
       }
     } else {
       
+      const spacingFactor = 6;
+
       
+      
+      let x = aData.rect.x + (aData.rect.width * (1 - spacingFactor)) / 2;
+      let y = aData.rect.y + (aData.rect.height * (1 - spacingFactor)) / 2;
+
+      let rect = new Rect(Math.max(x, 0),
+                          Math.max(y, 0),
+                          
+                          aData.rect.width * spacingFactor,
+                          aData.rect.height * spacingFactor);
+
+      ZoomHelper.zoomToRect(rect);
       this._viewportChanged = true;
     }
   }

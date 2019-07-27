@@ -123,6 +123,11 @@ var ZoomHelper = {
 
 
   zoomToRect: function(aRect, aClickY = -1) {
+    if(aRect.isEmpty()) {
+      
+      return;
+    }
+
     let viewport = BrowserApp.selectedTab.getViewport();
 
     let rect = {
