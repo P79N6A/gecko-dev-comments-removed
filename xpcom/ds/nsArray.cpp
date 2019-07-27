@@ -10,9 +10,10 @@
 #include "nsThreadUtils.h"
 
 
-struct findIndexOfClosure
+struct MOZ_STACK_CLASS findIndexOfClosure
 {
-  nsISupports* targetElement;
+  
+  void* targetElement;
   uint32_t startIndex;
   uint32_t resultIndex;
 };
