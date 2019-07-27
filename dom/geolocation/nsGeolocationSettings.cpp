@@ -224,6 +224,8 @@ nsGeolocationSettings::HandleGeolocationAlaEnabledChange(const JS::Value& aVal)
 void
 nsGeolocationSettings::HandleGeolocationPerOriginSettingsChange(const JS::Value& aVal)
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   if (!aVal.isObject()) {
     return;
   }
@@ -232,10 +234,16 @@ nsGeolocationSettings::HandleGeolocationPerOriginSettingsChange(const JS::Value&
   mPerOriginSettings.Clear();
 
   
-  AutoJSAPI jsapi;
-  jsapi.Init();
-  JSContext* cx = jsapi.cx();
-  JS::Rooted<JSObject*> obj(cx, &aVal.toObject());
+  JS::Rooted<JSObject*> obj(nsContentUtils::RootingCx(), &aVal.toObject());
+  MOZ_ASSERT(obj);
+  nsIGlobalObject* global = xpc::NativeGlobal(obj);
+  NS_ENSURE_TRUE_VOID(global && global->GetGlobalJSObject());
+
+  
+  
+  AutoEntryScript aes(global);
+  aes.TakeOwnershipOfErrorReporting();
+  JSContext *cx = aes.cx();
   JS::AutoIdArray ids(cx, JS_Enumerate(cx, obj));
 
   
