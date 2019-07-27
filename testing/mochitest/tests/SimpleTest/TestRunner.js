@@ -687,7 +687,7 @@ TestRunner.testFinished = function(tests) {
 
     
     
-    MemoryStats.dump(TestRunner.structuredLogger, TestRunner._currentTest,
+    MemoryStats.dump(TestRunner._currentTest,
                      TestRunner.currentTestURL,
                      TestRunner.dumpOutputDirectory,
                      TestRunner.dumpAboutMemoryAfterTest,
