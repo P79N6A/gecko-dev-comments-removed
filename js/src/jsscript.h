@@ -253,9 +253,6 @@ class Bindings
                                          Binding* bindingArray);
 
     
-    bool initTrivial(ExclusiveContext* cx);
-
-    
     
     
     
