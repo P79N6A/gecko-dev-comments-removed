@@ -9,7 +9,7 @@
 
 
 
-const { Cu } = require("chrome");
+const { Ci, Cu } = require("chrome");
 const { NetUtil } = Cu.import("resource://gre/modules/NetUtil.jsm", {});
 loader.lazyRequireGetter(this, "Services");
 loader.lazyImporter(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm");
@@ -25,7 +25,15 @@ const cachedThemes = {};
 
 
 function readURI (uri) {
-  let stream = NetUtil.newChannel(uri, "UTF-8", null).open();
+  let stream = NetUtil.newChannel2(uri,
+                                   "UTF-8",
+                                   null,
+                                   null,      
+                                   Services.scriptSecurityManager.getSystemPrincipal(),
+                                   null,      
+                                   Ci.nsILoadInfo.SEC_NORMAL,
+                                   Ci.nsIContentPolicy.TYPE_OTHER).open();
+
   let count = stream.available();
   let data = NetUtil.readInputStreamToString(stream, count, { charset: "UTF-8" });
   stream.close();
