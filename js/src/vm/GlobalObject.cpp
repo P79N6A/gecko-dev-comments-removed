@@ -59,7 +59,7 @@ JS_FOR_EACH_PROTOTYPE(DECLARE_PROTOTYPE_CLASS_INIT)
 JSObject *
 js::InitViaClassSpec(JSContext *cx, Handle<JSObject*> obj)
 {
-    MOZ_CRASH("js_InitViaClassSpec() should not be called.");
+    MOZ_CRASH("InitViaClassSpec() should not be called.");
 }
 
 static const ProtoTableEntry protoTable[JSProto_LIMIT] = {

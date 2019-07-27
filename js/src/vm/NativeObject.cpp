@@ -1404,6 +1404,7 @@ js::NativeDefineProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId 
         
         
         
+        
         NativeLookupOwnPropertyNoResolve(cx, obj, id, &shape);
 
         if (shape) {
