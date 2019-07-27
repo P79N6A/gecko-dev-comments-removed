@@ -1167,6 +1167,13 @@ ContentPrefService.prototype = {
   },
 
   _dbMigrate: function ContentPrefService__dbMigrate(aDBConnection, aOldVersion, aNewVersion) {
+    
+
+
+
+
+
+
     aDBConnection.beginTransaction();
 
     try {
@@ -1213,7 +1220,14 @@ ContentPrefService.prototype = {
   },
 
   _dbMigrate3To4: function ContentPrefService__dbMigrate3To4(aDBConnection) {
-    aDBConnection.executeSimpleSQL("ALTER TABLE prefs ADD COLUMN timestamp INTEGER NOT NULL DEFAULT 0");
+    
+    try {
+      let stmt = aDBConnection.createStatement("SELECT timestamp FROM prefs");
+      stmt.finalize();
+    } catch (e) {
+      aDBConnection.executeSimpleSQL("ALTER TABLE prefs ADD COLUMN timestamp INTEGER NOT NULL DEFAULT 0");
+    }
+
     
     aDBConnection.executeSimpleSQL("DROP INDEX IF EXISTS prefs_idx");
     this._dbCreateIndices(aDBConnection);
