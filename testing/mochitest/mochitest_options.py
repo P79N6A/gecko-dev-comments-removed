@@ -656,7 +656,9 @@ class MochitestArguments(ArgumentContainer):
                     options.testingModulesDir = possible
 
         if build_obj:
-            options.extraProfileFiles.append(os.path.join(build_obj.distdir, 'plugins'))
+            plugins_dir = os.path.join(build_obj.distdir, 'plugins')
+            if plugins_dir not in options.extraProfileFiles:
+                options.extraProfileFiles.append(plugins_dir)
 
         
         
