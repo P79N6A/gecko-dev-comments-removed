@@ -24,9 +24,9 @@
 namespace mozilla {
 namespace image {
 
+class DrawableFrameRef;
 class Image;
 class imgFrame;
-class LookupResult;
 struct SurfaceMemoryCounter;
 
 
@@ -194,9 +194,10 @@ struct SurfaceCache
 
 
 
-  static LookupResult Lookup(const ImageKey    aImageKey,
-                             const SurfaceKey& aSurfaceKey,
-                             const Maybe<uint32_t>& aAlternateFlags = Nothing());
+  static DrawableFrameRef Lookup(const ImageKey    aImageKey,
+                                 const SurfaceKey& aSurfaceKey,
+                                 const Maybe<uint32_t>& aAlternateFlags
+                                   = Nothing());
 
   
 
@@ -218,14 +219,10 @@ struct SurfaceCache
 
 
 
-
-
-
-
-  static LookupResult LookupBestMatch(const ImageKey    aImageKey,
-                                      const SurfaceKey& aSurfaceKey,
-                                      const Maybe<uint32_t>& aAlternateFlags
-                                        = Nothing());
+  static DrawableFrameRef LookupBestMatch(const ImageKey    aImageKey,
+                                          const SurfaceKey& aSurfaceKey,
+                                          const Maybe<uint32_t>& aAlternateFlags
+                                            = Nothing());
 
   
 

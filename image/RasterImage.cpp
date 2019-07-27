@@ -20,7 +20,6 @@
 #include "ImageContainer.h"
 #include "ImageRegion.h"
 #include "Layers.h"
-#include "LookupResult.h"
 #include "nsPresContext.h"
 #include "SourceBuffer.h"
 #include "SurfaceCache.h"
@@ -457,7 +456,7 @@ RasterImage::GetType(uint16_t* aType)
   return NS_OK;
 }
 
-LookupResult
+DrawableFrameRef
 RasterImage::LookupFrameInternal(uint32_t aFrameNum,
                                  const IntSize& aSize,
                                  uint32_t aFlags)
@@ -510,14 +509,14 @@ RasterImage::LookupFrame(uint32_t aFrameNum,
   IntSize requestedSize = CanDownscaleDuringDecode(aSize, aFlags)
                         ? aSize : mSize;
 
-  LookupResult result = LookupFrameInternal(aFrameNum, requestedSize, aFlags);
+  DrawableFrameRef ref = LookupFrameInternal(aFrameNum, requestedSize, aFlags);
 
-  if (!result && !mHasSize) {
+  if (!ref && !mHasSize) {
     
     return DrawableFrameRef();
   }
 
-  if (!result || !result.IsExactMatch()) {
+  if (!ref || ref->GetImageSize() != requestedSize) {
     
     MOZ_ASSERT(!mAnim, "Animated frames should be locked");
 
@@ -525,30 +524,29 @@ RasterImage::LookupFrame(uint32_t aFrameNum,
 
     
     if (aFlags & FLAG_SYNC_DECODE) {
-      result = LookupFrameInternal(aFrameNum, requestedSize, aFlags);
+      ref = LookupFrameInternal(aFrameNum, requestedSize, aFlags);
     }
   }
 
-  if (!result) {
+  if (!ref) {
     
     return DrawableFrameRef();
   }
 
-  if (result.DrawableRef()->GetCompositingFailed()) {
+  if (ref->GetCompositingFailed()) {
     return DrawableFrameRef();
   }
 
-  MOZ_ASSERT(!result.DrawableRef()->GetIsPaletted(),
-             "Should not have a paletted frame");
+  MOZ_ASSERT(!ref || !ref->GetIsPaletted(), "Should not have paletted frame");
 
   
   
   
-  if (mHasSourceData && (aFlags & FLAG_SYNC_DECODE)) {
-    result.DrawableRef()->WaitUntilComplete();
+  if (ref && mHasSourceData && (aFlags & FLAG_SYNC_DECODE)) {
+    ref->WaitUntilComplete();
   }
 
-  return Move(result.DrawableRef());
+  return ref;
 }
 
 uint32_t
@@ -1753,19 +1751,19 @@ RasterImage::DrawWithPreDownscaleIfNeeded(DrawableFrameRef&& aFrameRef,
   DrawableFrameRef frameRef;
 
   if (CanScale(aFilter, aSize, aFlags)) {
-    LookupResult result =
+    frameRef =
       SurfaceCache::Lookup(ImageKey(this),
                            RasterSurfaceKey(aSize,
                                             DecodeFlags(aFlags),
                                             0));
-    if (!result) {
+    if (!frameRef) {
       
       
       
       RequestScale(aFrameRef.get(), aFlags, aSize);
     }
-    if (result && result.DrawableRef()->IsImageComplete()) {
-      frameRef = Move(result.DrawableRef());  
+    if (frameRef && !frameRef->IsImageComplete()) {
+      frameRef.reset();  
     }
   }
 
@@ -2158,21 +2156,21 @@ RasterImage::OptimalImageSizeForDest(const gfxSize& aDest, uint32_t aWhichFrame,
       CanDownscaleDuringDecode(destSize, aFlags)) {
     return destSize;
   } else if (CanScale(aFilter, destSize, aFlags)) {
-    LookupResult result =
+    DrawableFrameRef frameRef =
       SurfaceCache::Lookup(ImageKey(this),
                            RasterSurfaceKey(destSize,
                                             DecodeFlags(aFlags),
                                             0));
 
-    if (result && result.DrawableRef()->IsImageComplete()) {
-      return destSize;  
+    if (frameRef && frameRef->IsImageComplete()) {
+        return destSize;  
     }
-    if (!result) {
+    if (!frameRef) {
       
-      DrawableFrameRef ref = LookupFrame(GetRequestedFrameIndex(aWhichFrame),
-                                         mSize, aFlags);
-      if (ref) {
-        RequestScale(ref.get(), aFlags, destSize);
+      frameRef = LookupFrame(GetRequestedFrameIndex(aWhichFrame),
+                             mSize, aFlags);
+      if (frameRef) {
+        RequestScale(frameRef.get(), aFlags, destSize);
       }
     }
   }

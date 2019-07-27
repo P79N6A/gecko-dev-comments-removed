@@ -25,7 +25,6 @@
 #include "gfxPrefs.h"
 #include "imgFrame.h"
 #include "Image.h"
-#include "LookupResult.h"
 #include "nsAutoPtr.h"
 #include "nsExpirationTracker.h"
 #include "nsHashKeys.h"
@@ -544,17 +543,17 @@ public:
                "More available cost than we started with");
   }
 
-  LookupResult Lookup(const ImageKey    aImageKey,
-                      const SurfaceKey& aSurfaceKey)
+  DrawableFrameRef Lookup(const ImageKey    aImageKey,
+                          const SurfaceKey& aSurfaceKey)
   {
     nsRefPtr<ImageSurfaceCache> cache = GetImageCache(aImageKey);
     if (!cache) {
-      return LookupResult();  
+      return DrawableFrameRef();  
     }
 
     nsRefPtr<CachedSurface> surface = cache->Lookup(aSurfaceKey);
     if (!surface) {
-      return LookupResult();  
+      return DrawableFrameRef();  
     }
 
     DrawableFrameRef ref = surface->DrawableRef();
@@ -562,7 +561,7 @@ public:
       
       
       Remove(surface);
-      return LookupResult();
+      return DrawableFrameRef();
     }
 
     if (cache->IsLocked()) {
@@ -571,16 +570,16 @@ public:
       mExpirationTracker.MarkUsed(surface);
     }
 
-    return LookupResult(Move(ref),  true);
+    return ref;
   }
 
-  LookupResult LookupBestMatch(const ImageKey         aImageKey,
-                               const SurfaceKey&      aSurfaceKey,
-                               const Maybe<uint32_t>& aAlternateFlags)
+  DrawableFrameRef LookupBestMatch(const ImageKey         aImageKey,
+                                   const SurfaceKey&      aSurfaceKey,
+                                   const Maybe<uint32_t>& aAlternateFlags)
   {
     nsRefPtr<ImageSurfaceCache> cache = GetImageCache(aImageKey);
     if (!cache) {
-      return LookupResult();  
+      return DrawableFrameRef();  
     }
 
     
@@ -594,7 +593,7 @@ public:
     while (true) {
       surface = cache->LookupBestMatch(aSurfaceKey, aAlternateFlags);
       if (!surface) {
-        return LookupResult();  
+        return DrawableFrameRef();  
       }
 
       ref = surface->DrawableRef();
@@ -613,15 +612,7 @@ public:
       mExpirationTracker.MarkUsed(surface);
     }
 
-    SurfaceKey key = surface->GetSurfaceKey();
-    const bool isExactMatch = key.Size() == aSurfaceKey.Size();
-
-    MOZ_ASSERT(isExactMatch ==
-      (key == aSurfaceKey ||
-         (aAlternateFlags && key == aSurfaceKey.WithNewFlags(*aAlternateFlags))),
-      "Result differs in a way other than size or alternate flags");
-
-    return LookupResult(Move(ref), isExactMatch);
+    return ref;
   }
 
   void RemoveSurface(const ImageKey    aImageKey,
@@ -979,34 +970,34 @@ SurfaceCache::Shutdown()
   sInstance = nullptr;
 }
 
- LookupResult
+ DrawableFrameRef
 SurfaceCache::Lookup(const ImageKey         aImageKey,
                      const SurfaceKey&      aSurfaceKey,
                      const Maybe<uint32_t>& aAlternateFlags )
 {
   if (!sInstance) {
-    return LookupResult();
+    return DrawableFrameRef();
   }
 
   MutexAutoLock lock(sInstance->GetMutex());
 
-  LookupResult result = sInstance->Lookup(aImageKey, aSurfaceKey);
-  if (!result && aAlternateFlags) {
-    result = sInstance->Lookup(aImageKey,
-                               aSurfaceKey.WithNewFlags(*aAlternateFlags));
+  DrawableFrameRef ref = sInstance->Lookup(aImageKey, aSurfaceKey);
+  if (!ref && aAlternateFlags) {
+    ref = sInstance->Lookup(aImageKey,
+                            aSurfaceKey.WithNewFlags(*aAlternateFlags));
   }
 
-  return result;
+  return ref;
 }
 
- LookupResult
+ DrawableFrameRef
 SurfaceCache::LookupBestMatch(const ImageKey         aImageKey,
                               const SurfaceKey&      aSurfaceKey,
                               const Maybe<uint32_t>& aAlternateFlags
                                 )
 {
   if (!sInstance) {
-    return LookupResult();
+    return DrawableFrameRef();
   }
 
   MutexAutoLock lock(sInstance->GetMutex());
