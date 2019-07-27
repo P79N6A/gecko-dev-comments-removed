@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_KeyAlgorithm_h
 #define mozilla_dom_KeyAlgorithm_h
@@ -24,7 +24,6 @@ class KeyAlgorithm;
 enum KeyAlgorithmStructuredCloneTags {
   SCTAG_KEYALG,
   SCTAG_AESKEYALG,
-  SCTAG_ECKEYALG,
   SCTAG_HMACKEYALG,
   SCTAG_RSAKEYALG,
   SCTAG_RSAHASHEDKEYALG
@@ -55,13 +54,13 @@ public:
 
   virtual nsString ToJwkAlg() const;
 
-  
+  // Structured clone support methods
   virtual bool WriteStructuredClone(JSStructuredCloneWriter* aWriter) const;
   static KeyAlgorithm* Create(nsIGlobalObject* aGlobal,
                               JSStructuredCloneReader* aReader);
 
-  
-  
+  // Helper method to look up NSS methods
+  // Sub-classes should assign mMechanism on constructor
   CK_MECHANISM_TYPE Mechanism() const {
     return mMechanism;
   }
@@ -74,7 +73,7 @@ protected:
   CK_MECHANISM_TYPE mMechanism;
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
-#endif 
+#endif // mozilla_dom_KeyAlgorithm_h
