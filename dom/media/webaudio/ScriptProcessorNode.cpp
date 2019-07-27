@@ -54,8 +54,8 @@ private:
 
     size_t ReadyToConsume() const
     {
+      
       mMutex.AssertCurrentThreadOwns();
-      MOZ_ASSERT(!NS_IsMainThread());
       return mBufferList.size();
     }
 
@@ -144,20 +144,20 @@ public:
       float bufferDuration = aBufferSize / mSampleRate;
       mLatency += latency - bufferDuration;
       mLastEventTime = now;
-      if (mLatency > MAX_LATENCY_S ||
-          (mDroppingBuffers && mLatency > 0.0 &&
-           fabs(latency - bufferDuration) < bufferDuration)) {
+      if (fabs(mLatency) > MAX_LATENCY_S) {
         mDroppingBuffers = true;
-        return;
-      } else {
-        if (mDroppingBuffers) {
-          mLatency = 0;
-        }
-        mDroppingBuffers = false;
       }
     }
 
     MutexAutoLock lock(mOutputQueue.Lock());
+    if (mDroppingBuffers) {
+      if (mOutputQueue.ReadyToConsume()) {
+        return;
+      }
+      mDroppingBuffers = false;
+      mLatency = 0;
+    }
+
     for (uint32_t offset = 0; offset < aBufferSize; offset += WEBAUDIO_BLOCK_SIZE) {
       AudioChunk& chunk = mOutputQueue.Produce();
       if (aBuffer) {
