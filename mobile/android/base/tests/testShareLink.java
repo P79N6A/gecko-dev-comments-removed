@@ -26,10 +26,10 @@ import com.jayway.android.robotium.solo.Condition;
 
 public class testShareLink extends AboutHomeTest {
     String url;
-    String urlTitle = "Big Link";
+    String urlTitle = StringHelper.ROBOCOP_BIG_LINK_TITLE;
 
     public void testShareLink() {
-        url = getAbsoluteUrl("/robocop/robocop_big_link.html");
+        url = getAbsoluteUrl(StringHelper.ROBOCOP_BIG_LINK_URL);
         ArrayList<String> shareOptions;
         blockForGeckoReady();
 
@@ -39,7 +39,7 @@ public class testShareLink extends AboutHomeTest {
         inputAndLoadUrl(url);
         verifyPageTitle(urlTitle); 
 
-        selectMenuItem("Share");
+        selectMenuItem(StringHelper.SHARE_LABEL);
         if (Build.VERSION.SDK_INT >= 14) {
             
             waitForText("Sync$");
@@ -94,16 +94,16 @@ public class testShareLink extends AboutHomeTest {
 
         
         
-        inputAndLoadUrl(getAbsoluteUrl("/robocop/robocop_blank_01.html"));
-        inputAndLoadUrl(getAbsoluteUrl("/robocop/robocop_blank_02.html"));
-        inputAndLoadUrl(getAbsoluteUrl("/robocop/robocop_blank_03.html"));
-        inputAndLoadUrl(getAbsoluteUrl("/robocop/robocop_blank_04.html"));
+        inputAndLoadUrl(getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL));
+        inputAndLoadUrl(getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_02_URL));
+        inputAndLoadUrl(getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_03_URL));
+        inputAndLoadUrl(getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_04_URL));
         if (mDevice.type.equals("tablet")) {
             
-            inputAndLoadUrl(getAbsoluteUrl("/robocop/robocop_blank_05.html"));
-            inputAndLoadUrl(getAbsoluteUrl("/robocop/robocop_boxes.html"));
-            inputAndLoadUrl(getAbsoluteUrl("/robocop/robocop_search.html"));
-            inputAndLoadUrl(getAbsoluteUrl("/robocop/robocop_text_page.html"));
+            inputAndLoadUrl(getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_05_URL));
+            inputAndLoadUrl(getAbsoluteUrl(StringHelper.ROBOCOP_BOXES_URL));
+            inputAndLoadUrl(getAbsoluteUrl(StringHelper.ROBOCOP_SEARCH_URL));
+            inputAndLoadUrl(getAbsoluteUrl(StringHelper.ROBOCOP_TEXT_PAGE_URL));
         }
 
         

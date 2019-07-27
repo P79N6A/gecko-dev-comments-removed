@@ -22,20 +22,20 @@ public class testAboutPage extends PixelTest {
         String url = "about:";
         loadAndPaint(url);
 
-        ensureTitleMatches("About (Fennec|Nightly|Aurora|Firefox|Firefox Beta)");
+        ensureTitleMatches(StringHelper.ABOUT_LABEL);
 
         
-        url = getAbsoluteUrl("/robocop/robocop_blank_01.html");
+        url = getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
         inputAndLoadUrl(url);
 
         
-        ensureTitleMatches("Browser Blank Page 01");
+        ensureTitleMatches(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE);
 
         
         Actions.EventExpecter tabEventExpecter = mActions.expectGeckoEvent("Tab:Added");
         Actions.EventExpecter contentEventExpecter = mActions.expectGeckoEvent("DOMContentLoaded");
 
-        selectSettingsItem("Mozilla", "About (Fennec|Nightly|Aurora|Firefox|Firefox Beta)");
+        selectSettingsItem(StringHelper.MOZILLA_SECTION_LABEL, StringHelper.ABOUT_LABEL);
 
         
         tabEventExpecter.blockForEvent();
@@ -45,6 +45,6 @@ public class testAboutPage extends PixelTest {
         contentEventExpecter.unregisterListener();
 
         
-        ensureTitleMatches("About (Fennec|Nightly|Aurora|Firefox|Firefox Beta)");
+        ensureTitleMatches(StringHelper.ABOUT_LABEL);
     }
 }

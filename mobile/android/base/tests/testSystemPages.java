@@ -12,21 +12,25 @@ public class testSystemPages extends PixelTest {
     public void testSystemPages() {
         blockForGeckoReady();
 
-        String urls [] = { "about:firefox", "about:rights", "about:addons", "about:downloads", "about:buildconfig", "about:feedback", "about:healthreport", "about:" };
+        final String urls [] = { StringHelper.ABOUT_FIREFOX_URL, StringHelper.ABOUT_RIGHTS_URL,
+                StringHelper.ABOUT_ADDONS_URL, StringHelper.ABOUT_DOWNLOADS_URL,
+                StringHelper.ABOUT_BUILDCONFIG_URL, StringHelper.ABOUT_FEEDBACK_URL,
+                StringHelper.ABOUT_HEALTHREPORT_URL, StringHelper.ABOUT_SCHEME
+        };
         
-        String menuItems [][][] = {{{ "Apps" }, { "about:apps" }},
-                                  {{ "Downloads" }, { "about:downloads" }},
-                                  {{ "Add-ons" }, { "about:addons" }},
-                                  {{ "Settings", "Mozilla", "About (Fennec|Nightly|Aurora|Firefox|Firefox Beta)" }, { "about:" }},
-                                  {{ "Settings", "Mozilla", "Give feedback" }, { "about:feedback" }},
-                                  {{ "Settings", "Mozilla", "View my Health Report" }, { "about:healthreport" }}};
+        String menuItems [][][] = {{{ StringHelper.APPS_LABEL }, { StringHelper.ABOUT_APPS_URL }},
+                                  {{ StringHelper.DOWNLOADS_LABEL }, { StringHelper.ABOUT_DOWNLOADS_URL}},
+                                  {{ StringHelper.ADDONS_LABEL }, { StringHelper.ABOUT_ADDONS_URL }},
+                                  {{ StringHelper.SETTINGS_LABEL, StringHelper.MOZILLA_SECTION_LABEL, StringHelper.ABOUT_LABEL }, { StringHelper.ABOUT_SCHEME }},
+                                  {{ StringHelper.SETTINGS_LABEL, StringHelper.MOZILLA_SECTION_LABEL, StringHelper.FEEDBACK_LABEL }, { StringHelper.ABOUT_FEEDBACK_URL }},
+                                  {{ StringHelper.SETTINGS_LABEL, StringHelper.MOZILLA_SECTION_LABEL, StringHelper.MY_HEALTH_REPORT_LABEL }, { StringHelper.ABOUT_HEALTHREPORT_URL }}};
 
         
         checkUrl(urls);
 
         
 
-        loadAndPaint("about:about");
+        loadAndPaint(StringHelper.ABOUT_ABOUT_URL);
 
         
         mActions.sendSpecialKey(Actions.SpecialKey.BACK);
@@ -34,8 +38,8 @@ public class testSystemPages extends PixelTest {
         mSolo.sleep(AFTER_BACK_SLEEP_MS);
 
         
-        loadAndPaint("about:");
-        verifyUrl("about:"); 
+        loadAndPaint(StringHelper.ABOUT_SCHEME);
+        verifyUrl(StringHelper.ABOUT_SCHEME); 
 
         
         loadItemsByLevel(menuItems);
@@ -68,7 +72,7 @@ public class testSystemPages extends PixelTest {
             selectMenuItemByPath(pathToItem);
 
             
-            if ("about:".equals(expectedUrl)) {
+            if (StringHelper.ABOUT_SCHEME.equals(expectedUrl)) {
                 waitForPaint(paintExpecter); 
                 paintExpecter.unregisterListener();
             } else {
@@ -79,7 +83,7 @@ public class testSystemPages extends PixelTest {
             contentEventExpecter.unregisterListener();
 
             verifyUrl(expectedUrl);
-            if ("about:".equals(expectedUrl)) {
+            if (StringHelper.ABOUT_SCHEME.equals(expectedUrl)) {
                 
                 expectedTabCount--;
             }

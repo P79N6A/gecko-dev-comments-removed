@@ -22,7 +22,7 @@ public class testMasterPassword extends PixelTest {
     public void enableMasterPassword(String password, String badPassword) {
 
         
-        selectSettingsItem("Privacy", "Use master password");
+        selectSettingsItem(StringHelper.PRIVACY_SECTION_LABEL, StringHelper.MASTER_PASSWORD_LABEL);
         waitForText("^Create Master Password$");
 
         
@@ -49,8 +49,8 @@ public class testMasterPassword extends PixelTest {
         mActions.sendKeys(password);
         waitForText("^Cancel$");
         mSolo.clickOnText("^Cancel$");
-        waitForText("^Use master password$");
-        mSolo.clickOnText("^Use master password$");
+        waitForText("^" + StringHelper.MASTER_PASSWORD_LABEL + "$");
+        mSolo.clickOnText("^" + StringHelper.MASTER_PASSWORD_LABEL + "$");
         mAsserter.ok(mSolo.waitForText("^Create Master Password$"), "Checking if no password was set if the action was canceled", "No password was set");
 
         
@@ -75,14 +75,14 @@ public class testMasterPassword extends PixelTest {
             waitForText("Use master password");
             mActions.sendSpecialKey(Actions.SpecialKey.BACK);
         }
-        waitForText("Settings");
+        waitForText(StringHelper.SETTINGS_LABEL);
         mActions.sendSpecialKey(Actions.SpecialKey.BACK);
     }
 
     public void disableMasterPassword(String password, String badPassword) {
 
         
-        selectSettingsItem("Privacy", "Use master password");
+        selectSettingsItem(StringHelper.PRIVACY_SECTION_LABEL, StringHelper.MASTER_PASSWORD_LABEL);
         waitForText("^Remove Master Password$");
 
         
@@ -139,7 +139,7 @@ public class testMasterPassword extends PixelTest {
     public void clearPrivateData() {
 
         
-        selectSettingsItem("Privacy", "Clear private data");
+        selectSettingsItem(StringHelper.PRIVACY_SECTION_LABEL, StringHelper.CLEAR_PRIVATE_DATA_LABEL);
 
         waitForText("Browsing history"); 
         Actions.EventExpecter clearPrivateDataEventExpecter = mActions.expectGeckoEvent("Sanitize:Finished");
@@ -168,7 +168,7 @@ public class testMasterPassword extends PixelTest {
             waitForText("Use master password");
             mActions.sendSpecialKey(Actions.SpecialKey.BACK);
         }
-        waitForText("Settings");
+        waitForText(StringHelper.SETTINGS_LABEL);
         mActions.sendSpecialKey(Actions.SpecialKey.BACK);
         
         mAsserter.ok(mSolo.waitForText("Browser Blank Page 01"), "Waiting for blank browser page after exiting settings", "Blank browser page present");

@@ -152,7 +152,7 @@ public class testImportFromAndroid extends AboutHomeTest {
             waitForText(StringHelper.IMPORT_FROM_ANDROID_LABEL);
             mActions.sendSpecialKey(Actions.SpecialKey.BACK);
         }
-        waitForText("Privacy"); 
+        waitForText(StringHelper.PRIVACY_SECTION_LABEL); 
         mActions.sendSpecialKey(Actions.SpecialKey.BACK); 
         
         mAsserter.ok(mSolo.waitForText(StringHelper.TITLE_PLACE_HOLDER), "Waiting for search bar", "Search bar found");

@@ -41,7 +41,7 @@ public class testHomeBanner extends UITest {
         
         Actions.EventExpecter eventExpecter = getActions().expectGeckoEvent("TestHomeBanner:MessageShown");
         addBannerMessage();
-        NavigationHelper.enterAndLoadUrl("about:home");
+        NavigationHelper.enterAndLoadUrl(StringHelper.ABOUT_HOME_URL);
         eventExpecter.blockForEvent();
 
         
@@ -53,7 +53,7 @@ public class testHomeBanner extends UITest {
         eventExpecter.blockForEvent();
 
         
-        NavigationHelper.enterAndLoadUrl("about:firefox");
+        NavigationHelper.enterAndLoadUrl(StringHelper.ABOUT_FIREFOX_URL);
 
         mAboutHome.assertBannerNotVisible();
     }
@@ -68,7 +68,7 @@ public class testHomeBanner extends UITest {
         removeBannerMessage();
 
         
-        NavigationHelper.enterAndLoadUrl("about:home");
+        NavigationHelper.enterAndLoadUrl(StringHelper.ABOUT_HOME_URL);
         mAboutHome.assertVisible()
                   .assertBannerNotVisible();
     }
@@ -83,7 +83,7 @@ public class testHomeBanner extends UITest {
         
         addBannerMessage();
 
-        NavigationHelper.enterAndLoadUrl("about:home");
+        NavigationHelper.enterAndLoadUrl(StringHelper.ABOUT_HOME_URL);
         mAboutHome.assertVisible();
 
         
@@ -95,7 +95,7 @@ public class testHomeBanner extends UITest {
     }
 
     private void hideOnToolbarFocusTest() {
-        NavigationHelper.enterAndLoadUrl("about:home");
+        NavigationHelper.enterAndLoadUrl(StringHelper.ABOUT_HOME_URL);
         mAboutHome.assertVisible()
                   .assertBannerVisible();
 

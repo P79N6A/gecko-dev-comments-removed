@@ -132,7 +132,7 @@ public abstract class SessionTest extends BaseTest {
     protected void loadSessionTabs(Session session) {
         
         verifyTabCount(1);
-        verifyUrl("about:home");
+        verifyUrl(StringHelper.ABOUT_HOME_URL);
 
         SessionTab[] tabs = session.getItems();
         for (int i = 0; i < tabs.length; i++) {
@@ -141,7 +141,8 @@ public abstract class SessionTest extends BaseTest {
 
             
             
-            mAsserter.is(pages[0].url, "about:home", "first page in tab is about:home");
+            mAsserter.is(pages[0].url, StringHelper.ABOUT_HOME_URL, "first page in tab is " +
+                    StringHelper.ABOUT_HOME_URL);
 
             
             
@@ -191,7 +192,7 @@ public abstract class SessionTest extends BaseTest {
                 (new NavigationWalker<PageInfo>(tab) {
                     @Override
                     public void onItem(PageInfo page, int currentIndex) {
-                        if (page.url.equals("about:home")) {
+                        if (page.url.equals(StringHelper.ABOUT_HOME_URL)) {
                             waitForText("Enter Search or Address");
                             verifyUrl(page.url);
                         } else {

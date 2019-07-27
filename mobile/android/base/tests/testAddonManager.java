@@ -15,12 +15,12 @@ public class testAddonManager extends PixelTest  {
     public void testAddonManager() {
         Actions.EventExpecter tabEventExpecter;
         Actions.EventExpecter contentEventExpecter;
-        String url = "about:addons";
+        String url = StringHelper.ABOUT_ADDONS_URL;
 
         blockForGeckoReady();
 
         
-        selectMenuItem("Add-ons");
+        selectMenuItem(StringHelper.ADDONS_LABEL);
 
         
         tabEventExpecter = mActions.expectGeckoEvent("Tab:Added");
@@ -34,21 +34,21 @@ public class testAddonManager extends PixelTest  {
         contentEventExpecter.unregisterListener();
 
         
-        verifyPageTitle("Add-ons");
+        verifyPageTitle(StringHelper.ADDONS_LABEL);
 
         
         mActions.sendSpecialKey(Actions.SpecialKey.BACK);
 
         
         loadAndPaint(url);
-        verifyPageTitle("Add-ons");
+        verifyPageTitle(StringHelper.ADDONS_LABEL);
 
         
         JSONObject jsonPref = new JSONObject();
         try {
             jsonPref.put("name", "extensions.getAddons.browseAddons");
             jsonPref.put("type", "string");
-            jsonPref.put("value", getAbsoluteUrl("/robocop/robocop_blank_01.html"));
+            jsonPref.put("value", getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL));
             setPreferenceAndWaitForChange(jsonPref);
 
         } catch (Exception ex) { 
@@ -83,10 +83,10 @@ public class testAddonManager extends PixelTest  {
         verifyTabCount(2);
 
         
-        verifyPageTitle("Browser Blank Page 01");
+        verifyPageTitle(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE);
 
         
-        selectMenuItem("Add-ons");        
+        selectMenuItem(StringHelper.ADDONS_LABEL);
 
         
         verifyTabCount(2);
