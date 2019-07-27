@@ -1,4 +1,3 @@
-
 from tools.serve import serve
 
 def main():
