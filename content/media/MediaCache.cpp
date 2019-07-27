@@ -1857,7 +1857,11 @@ MediaCacheStream::NotifyDataEnded(nsresult aStatus)
     mResourceID = gMediaCache->AllocateResourceID();
   }
 
+  
+  
   FlushPartialBlockInternal(true);
+  mChannelEnded = true;
+  gMediaCache->QueueUpdate();
 
   MediaCache::ResourceStreamIterator iter(mResourceID);
   while (MediaCacheStream* stream = iter.Next()) {
@@ -1871,9 +1875,6 @@ MediaCacheStream::NotifyDataEnded(nsresult aStatus)
       stream->mClient->CacheClientNotifyDataEnded(aStatus);
     }
   }
-
-  mChannelEnded = true;
-  gMediaCache->QueueUpdate();
 }
 
 void
