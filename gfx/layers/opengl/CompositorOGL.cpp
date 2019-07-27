@@ -432,6 +432,7 @@ CompositorOGL::BindAndDrawQuadWithTextureRect(ShaderProgramOGL *aProg,
                                             aTexCoordRect,
                                             &layerRects,
                                             &textureRects);
+
   BindAndDrawQuads(aProg, rects, layerRects, textureRects);
 }
 
@@ -919,6 +920,7 @@ CompositorOGL::DrawQuad(const Rect& aRect,
     DrawVRDistortion(aRect, aClipRect, aEffectChain, aOpacity, aTransform);
     return;
   }
+  LayerScope::DrawBegin();
 
   Rect clipRect = aClipRect;
   
@@ -933,9 +935,6 @@ CompositorOGL::DrawQuad(const Rect& aRect,
 
   gl()->fScissor(intClipRect.x, FlipY(intClipRect.y + intClipRect.height),
                  intClipRect.width, intClipRect.height);
-
-  LayerScope::SendEffectChain(mGLContext, aEffectChain,
-                              aRect.width, aRect.height);
 
   MaskType maskType;
   EffectMask* effectMask;
@@ -1009,7 +1008,7 @@ CompositorOGL::DrawQuad(const Rect& aRect,
   ActivateProgram(program);
   program->SetProjectionMatrix(mProjMatrix);
   program->SetLayerTransform(aTransform);
-
+  LayerScope::SetLayerTransform(aTransform);
   if (colorMatrix) {
       EffectColorMatrix* effectColorMatrix =
         static_cast<EffectColorMatrix*>(aEffectChain.mSecondaryEffects[EffectTypes::COLOR_MATRIX].get());
@@ -1018,6 +1017,8 @@ CompositorOGL::DrawQuad(const Rect& aRect,
 
   IntPoint offset = mCurrentRenderTarget->GetOrigin();
   program->SetRenderOffset(offset.x, offset.y);
+  LayerScope::SetRenderOffset(offset.x, offset.y);
+
   if (aOpacity != 1.f)
     program->SetLayerOpacity(aOpacity);
   if (config.mFeatures & ENABLE_TEXTURE_RECT) {
@@ -1216,6 +1217,7 @@ CompositorOGL::DrawQuad(const Rect& aRect,
 
   
   MakeCurrent();
+  LayerScope::DrawEnd(mGLContext, aEffectChain, aRect.width, aRect.height);
 }
 
 void
@@ -1477,6 +1479,7 @@ CompositorOGL::BindAndDrawQuads(ShaderProgramOGL *aProg,
   
   
   mGLContext->fDrawArrays(LOCAL_GL_TRIANGLES, 0, 6 * aQuads);
+  LayerScope::SetLayerRects(aQuads, aLayerRects);
 }
 
 GLBlitTextureImageHelper*
