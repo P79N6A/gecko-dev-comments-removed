@@ -317,14 +317,16 @@ MarkupView.prototype = {
   },
 
   _briefBoxModelTimer: null,
-  _brieflyShowBoxModel: function(nodeFront) {
-    let win = this._frame.contentWindow;
 
+  _clearBriefBoxModelTimer: function() {
     if (this._briefBoxModelTimer) {
       clearTimeout(this._briefBoxModelTimer);
       this._briefBoxModelTimer = null;
     }
+  },
 
+  _brieflyShowBoxModel: function(nodeFront) {
+    this._clearBriefBoxModelTimer();
     this._showBoxModel(nodeFront);
 
     this._briefBoxModelTimer = setTimeout(() => {
@@ -1379,6 +1381,7 @@ MarkupView.prototype = {
     
     
     this._hideBoxModel();
+    this._clearBriefBoxModelTimer();
 
     this._elt.removeEventListener("click", this._onMouseClick, false);
 
