@@ -2826,12 +2826,6 @@ MakeSingletonTypeSet(CompilerConstraintList *constraints, JSObject *obj);
 bool
 MergeTypes(MIRType *ptype, TemporaryTypeSet **ptypeSet,
            MIRType newType, TemporaryTypeSet *newTypeSet);
-bool
-TypeSetIncludes(TypeSet *types, MIRType input, TypeSet *inputTypes);
-
-bool
-EqualTypes(MIRType type1, TemporaryTypeSet *typeset1,
-           MIRType type2, TemporaryTypeSet *typeset2);
 
 
 
