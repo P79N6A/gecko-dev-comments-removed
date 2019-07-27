@@ -297,14 +297,6 @@ RasterImage::~RasterImage()
   SurfaceCache::RemoveImage(ImageKey(this));
 }
 
- void
-RasterImage::Initialize()
-{
-  
-  
-  DecodePool::Singleton();
-}
-
 nsresult
 RasterImage::Init(const char* aMimeType,
                   uint32_t aFlags)

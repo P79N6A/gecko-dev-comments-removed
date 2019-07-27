@@ -17,6 +17,7 @@
 #include "nsIEventTarget.h"
 #include "nsIObserver.h"
 
+class nsIThread;
 class nsIThreadPool;
 
 namespace mozilla {
@@ -41,6 +42,10 @@ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
+  
+  static void Initialize();
+
+  
   static DecodePool* Singleton();
 
   
@@ -76,6 +81,15 @@ public:
 
 
 
+  already_AddRefed<nsIEventTarget> GetIOEventTarget();
+
+  
+
+
+
+
+
+
   already_AddRefed<nsIRunnable> CreateDecodeWorker(Decoder* aDecoder);
 
 private:
@@ -92,10 +106,9 @@ private:
   static StaticRefPtr<DecodePool> sSingleton;
 
   
-  
-  
-  Mutex                     mThreadPoolMutex;
+  Mutex                     mMutex;
   nsCOMPtr<nsIThreadPool>   mThreadPool;
+  nsCOMPtr<nsIThread>       mIOThread;
 };
 
 } 
