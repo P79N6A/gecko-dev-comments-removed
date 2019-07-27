@@ -134,21 +134,37 @@ WebGLProgram::UpperBoundNumSamplerUniforms() {
 }
 
 void
-WebGLProgram::MapIdentifier(const nsACString& name, nsCString *mappedName) {
-    if (!mIdentifierMap) {
-        
+WebGLProgram::InitializeUniformAndAttributeMaps()
+{
+    if (mIdentifierMap) {
+        mIdentifierMap->Clear();
+    } else {
         mIdentifierMap = new CStringMap;
-        for (size_t i = 0; i < mAttachedShaders.Length(); i++) {
-            for (size_t j = 0; j < mAttachedShaders[i]->mAttributes.Length(); j++) {
-                const WebGLMappedIdentifier& attrib = mAttachedShaders[i]->mAttributes[j];
-                mIdentifierMap->Put(attrib.original, attrib.mapped);
-            }
-            for (size_t j = 0; j < mAttachedShaders[i]->mUniforms.Length(); j++) {
-                const WebGLMappedIdentifier& uniform = mAttachedShaders[i]->mUniforms[j];
-                mIdentifierMap->Put(uniform.original, uniform.mapped);
-            }
+    }
+
+    if (mIdentifierReverseMap) {
+        mIdentifierReverseMap->Clear();
+    } else {
+        mIdentifierReverseMap = new CStringMap;
+    }
+
+    for (size_t i = 0; i < mAttachedShaders.Length(); i++) {
+        for (size_t j = 0; j < mAttachedShaders[i]->mAttributes.Length(); j++) {
+            const WebGLMappedIdentifier& attrib = mAttachedShaders[i]->mAttributes[j];
+            mIdentifierMap->Put(attrib.original, attrib.mapped);
+            mIdentifierReverseMap->Put(attrib.mapped, attrib.original);
+        }
+        for (size_t j = 0; j < mAttachedShaders[i]->mUniforms.Length(); j++) {
+            const WebGLMappedIdentifier& uniform = mAttachedShaders[i]->mUniforms[j];
+            mIdentifierMap->Put(uniform.original, uniform.mapped);
+            mIdentifierReverseMap->Put(uniform.mapped, uniform.original);
         }
     }
+}
+
+void
+WebGLProgram::MapIdentifier(const nsACString& name, nsCString *mappedName) {
+    MOZ_ASSERT(mIdentifierMap);
 
     nsCString mutableName(name);
     nsCString bracketPart;
@@ -180,20 +196,7 @@ WebGLProgram::MapIdentifier(const nsACString& name, nsCString *mappedName) {
 
 void
 WebGLProgram::ReverseMapIdentifier(const nsACString& name, nsCString *reverseMappedName) {
-    if (!mIdentifierReverseMap) {
-        
-        mIdentifierReverseMap = new CStringMap;
-        for (size_t i = 0; i < mAttachedShaders.Length(); i++) {
-            for (size_t j = 0; j < mAttachedShaders[i]->mAttributes.Length(); j++) {
-                const WebGLMappedIdentifier& attrib = mAttachedShaders[i]->mAttributes[j];
-                mIdentifierReverseMap->Put(attrib.mapped, attrib.original);
-            }
-            for (size_t j = 0; j < mAttachedShaders[i]->mUniforms.Length(); j++) {
-                const WebGLMappedIdentifier& uniform = mAttachedShaders[i]->mUniforms[j];
-                mIdentifierReverseMap->Put(uniform.mapped, uniform.original);
-            }
-        }
-    }
+    MOZ_ASSERT(mIdentifierReverseMap);
 
     nsCString mutableName(name);
     nsCString bracketPart;
