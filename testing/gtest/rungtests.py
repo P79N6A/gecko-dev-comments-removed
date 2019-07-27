@@ -86,6 +86,19 @@ class GTests(object):
                 env[pathvar] = "%s%s%s" % (self.xre_path, os.pathsep, env[pathvar])
             else:
                 env[pathvar] = self.xre_path
+
+        
+        
+        if mozinfo.isLinux or mozinfo.isMac:
+            
+            llvmsym = os.path.join(self.xre_path, "llvm-symbolizer")
+            if os.path.isfile(llvmsym):
+                env["ASAN_SYMBOLIZER_PATH"] = llvmsym
+                log.info("gtest | ASan using symbolizer at %s", llvmsym)
+            else:
+                
+                log.info("gtest | Failed to find ASan symbolizer at %s", llvmsym)
+
         return env
 
 class gtestOptions(OptionParser):
