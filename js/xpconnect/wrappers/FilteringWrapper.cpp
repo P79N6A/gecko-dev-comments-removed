@@ -189,6 +189,13 @@ CrossOriginXrayWrapper::getPropertyDescriptor(JSContext *cx,
     if (desc.object()) {
         
         desc.object().set(wrapper);
+
+        
+        
+        desc.attributesRef() &= ~JSPROP_ENUMERATE;
+        desc.attributesRef() &= ~JSPROP_PERMANENT;
+        if (!desc.getter() && !desc.setter())
+            desc.attributesRef() |= JSPROP_READONLY;
     }
     return true;
 }
