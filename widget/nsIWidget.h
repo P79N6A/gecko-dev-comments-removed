@@ -1645,9 +1645,6 @@ class nsIWidget : public nsISupports {
     virtual void FreeNativeData(void * data, uint32_t aDataType) = 0;
 
     
-    virtual nsDeviceContext* GetDeviceContext() = 0;
-
-    
 
     
 
