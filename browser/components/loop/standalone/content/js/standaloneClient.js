@@ -75,6 +75,27 @@ loop.StandaloneClient = (function($) {
       cb(err);
     },
 
+   
+
+
+
+
+
+
+    requestCallUrlInfo: function(loopToken, cb) {
+      if (!loopToken) {
+        throw new Error("Missing required parameter loopToken");
+      }
+      if (!cb) {
+        throw new Error("Missing required callback function");
+      }
+
+      $.get(this.settings.baseServerUrl + "/calls/" + loopToken)
+        .done(function(callUrlInfo) {
+          cb(null, callUrlInfo);
+        }).fail(this._failureHandler.bind(this, cb));
+    },
+
     
 
 

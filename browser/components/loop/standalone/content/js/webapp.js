@@ -82,23 +82,56 @@ loop.webapp = (function($, _, OT, webL10n) {
     }
   });
 
+  var ConversationHeader = React.createClass({displayName: 'ConversationHeader',
+    render: function() {
+      var cx = React.addons.classSet;
+      var conversationUrl = location.href;
+
+      var urlCreationDateClasses = cx({
+        "light-color-font": true,
+        "call-url-date": true, 
+        
+        "hide": !this.props.urlCreationDateString.length
+      });
+
+      var callUrlCreationDateString = __("call_url_creation_date_label", {
+        "call_url_creation_date": this.props.urlCreationDateString
+      });
+
+      return (
+        
+        React.DOM.header({className: "container-box"}, 
+          React.DOM.h1({className: "light-weight-font"}, 
+            React.DOM.strong(null, __("brandShortname")), " ", __("clientShortname")
+          ), 
+          React.DOM.div({className: "loop-logo", title: "Firefox WebRTC! logo"}), 
+          React.DOM.h3({className: "call-url"}, 
+            conversationUrl
+          ), 
+          React.DOM.h4({className: urlCreationDateClasses}, 
+            callUrlCreationDateString
+          )
+        )
+        
+      );
+    }
+  });
+
+  var ConversationFooter = React.createClass({displayName: 'ConversationFooter',
+    render: function() {
+      return (
+        React.DOM.div({className: "footer container-box"}, 
+          React.DOM.div({title: "Mozilla Logo", className: "footer-logo"})
+        )
+      );
+    }
+  });
+
   
 
 
 
-  var ConversationFormView = sharedViews.BaseView.extend({
-    template: _.template([
-      '<form>',
-      '  <p>',
-      '    <button class="btn btn-success" data-l10n-id="start_call"></button>',
-      '  </p>',
-      '</form>'
-    ].join("")),
-
-    events: {
-      "submit": "initiate"
-    },
-
+  var ConversationFormView = React.createClass({displayName: 'ConversationFormView',
     
 
 
@@ -108,53 +141,113 @@ loop.webapp = (function($, _, OT, webL10n) {
 
 
 
-    initialize: function(options) {
-      options = options || {};
+    getInitialState: function() {
+      return {
+        urlCreationDateString: '',
+        disableCallButton: false
+      };
+    },
 
-      if (!options.model) {
-        throw new Error("missing required model");
-      }
-      this.model = options.model;
+    propTypes: {
+      model: React.PropTypes.instanceOf(sharedModels.ConversationModel)
+                                       .isRequired,
+      
+      notifier: React.PropTypes.object.isRequired,
+      client: React.PropTypes.object.isRequired
+    },
 
-      if (!options.notifier) {
-        throw new Error("missing required notifier");
-      }
-      this.notifier = options.notifier;
-
-      this.listenTo(this.model, "session:error", this._onSessionError);
+    componentDidMount: function() {
+      this.props.model.listenTo(this.props.model, "session:error",
+                                this._onSessionError);
+      this.props.client.requestCallUrlInfo(this.props.model.get("loopToken"),
+                                           this._setConversationTimestamp);
+      
+      
+      this.props.notifier.$el = $("#messages");
     },
 
     _onSessionError: function(error) {
       console.error(error);
-      this.notifier.errorL10n("unable_retrieve_call_info");
+      this.props.notifier.errorL10n("unable_retrieve_call_info");
     },
 
     
 
 
-
-
-    disableForm: function() {
-      this.$("button").attr("disabled", "disabled");
-    },
-
-    
-
-
-
-
-    initiate: function(event) {
-      event.preventDefault();
-      this.model.initiate({
+    _initiate: function() {
+      this.props.model.initiate({
         client: new loop.StandaloneClient({
           baseServerUrl: baseServerUrl
         }),
         outgoing: true,
         
         
-        callType: "audio-video"
+        callType: "audio-video",
+        loopServer: loop.config.serverUrl
       });
-      this.disableForm();
+
+      this.setState({disableCallButton: true});
+    },
+
+    _setConversationTimestamp: function(err, callUrlInfo) {
+      if (err) {
+        this.props.notifier.errorL10n("unable_retrieve_call_info");
+      } else {
+        var date = (new Date(callUrlInfo.urlCreationDate * 1000));
+        var options = {year: "numeric", month: "long", day: "numeric"};
+        var timestamp = date.toLocaleDateString(navigator.language, options);
+
+        this.setState({urlCreationDateString: timestamp});
+      }
+    },
+
+    render: function() {
+      var tos_link_name = __("terms_of_use_link_text");
+      var privacy_notice_name = __("privacy_notice_link_text");
+
+      var tosHTML = __("legal_text_and_links", {
+        "terms_of_use_url": "<a target=_blank href='" +
+          "https://accounts.firefox.com/legal/terms'>" + tos_link_name + "</a>",
+        "privacy_notice_url": "<a target=_blank href='" +
+          "https://www.mozilla.org/privacy/'>" + privacy_notice_name + "</a>"
+      });
+
+      var callButtonClasses = "btn btn-success btn-large " +
+                              loop.shared.utils.getTargetPlatform();
+
+      return (
+        
+        React.DOM.div({className: "container"}, 
+          React.DOM.div({className: "container-box"}, 
+
+            ConversationHeader({
+              urlCreationDateString: this.state.urlCreationDateString}), 
+
+            React.DOM.p({className: "large-font light-weight-font"}, 
+              __("initiate_call_button_label")
+            ), 
+
+            React.DOM.div({id: "messages"}), 
+
+            React.DOM.div({className: "button-group"}, 
+              React.DOM.div({className: "flex-padding-1"}), 
+              React.DOM.button({ref: "submitButton", onClick: this._initiate, 
+                className: callButtonClasses, 
+                disabled: this.state.disableCallButton}, 
+                __("initiate_call_button"), 
+                React.DOM.i({className: "icon icon-video"})
+              ), 
+              React.DOM.div({className: "flex-padding-1"})
+            ), 
+
+            React.DOM.p({className: "terms-service", 
+               dangerouslySetInnerHTML: {__html: tosHTML}})
+          ), 
+
+          ConversationFooter(null)
+        )
+        
+      );
     }
   });
 
@@ -250,9 +343,12 @@ loop.webapp = (function($, _, OT, webL10n) {
         this._conversation.endSession();
       }
       this._conversation.set("loopToken", loopToken);
-      this.loadView(new ConversationFormView({
+      this.loadReactComponent(ConversationFormView({
         model: this._conversation,
-        notifier: this._notifier
+        notifier: this._notifier,
+        client: new loop.StandaloneClient({
+          baseServerUrl: loop.config.serverUrl
+        })
       }));
     },
 
@@ -308,6 +404,9 @@ loop.webapp = (function($, _, OT, webL10n) {
     } else if (!OT.checkSystemRequirements()) {
       router.navigate("unsupportedBrowser", {trigger: true});
     }
+    
+    document.documentElement.lang = document.webL10n.getLanguage();
+    document.documentElement.dir = document.webL10n.getDirection();
   }
 
   return {
