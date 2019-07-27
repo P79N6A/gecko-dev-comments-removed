@@ -7454,9 +7454,6 @@ nsRuleNode::ComputePositionData(void* aStartStruct,
            aContext, mPresContext, canStoreInRuleTree);
 
   
-  if (pos->mMinWidth.GetUnit() == eStyleUnit_Auto) {
-    pos->mMinWidth.SetCoordValue(0);
-  }
   if (pos->mMinHeight.GetUnit() == eStyleUnit_Auto) {
     pos->mMinHeight.SetCoordValue(0);
   }

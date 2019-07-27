@@ -4112,7 +4112,17 @@ CSSValue*
 nsComputedDOMStyle::DoGetMinWidth()
 {
   nsROCSSPrimitiveValue *val = new nsROCSSPrimitiveValue;
-  SetValueToCoord(val, StylePosition()->mMinWidth, true,
+
+  nsStyleCoord minWidth = StylePosition()->mMinWidth;
+
+  if (eStyleUnit_Auto == minWidth.GetUnit()) {
+    
+    
+    
+    minWidth.SetCoordValue(0);
+  }
+
+  SetValueToCoord(val, minWidth, true,
                   &nsComputedDOMStyle::GetCBContentWidth,
                   nsCSSProps::kWidthKTable);
   return val;

@@ -3706,7 +3706,19 @@ nsLayoutUtils::IntrinsicForContainer(nsRenderingContext *aRenderingContext,
   nscoord maxw;
   bool haveFixedMaxWidth = GetAbsoluteCoord(styleMaxWidth, maxw);
   nscoord minw;
-  bool haveFixedMinWidth = GetAbsoluteCoord(styleMinWidth, minw);
+
+  
+  bool haveFixedMinWidth;
+  if (eStyleUnit_Auto == styleMinWidth.GetUnit()) {
+    
+    
+    
+    
+    minw = 0;
+    haveFixedMinWidth = true;
+  } else {
+    haveFixedMinWidth = GetAbsoluteCoord(styleMinWidth, minw);
+  }
 
   
   
@@ -4161,17 +4173,20 @@ nsLayoutUtils::ComputeSizeWithIntrinsicDimensions(
                  aFrame, aCBSize.width, boxSizingAdjust.width,
                  boxSizingToMarginEdgeWidth, stylePos->mMaxWidth);
   } else {
-    
-    
-    
     maxWidth = nscoord_MAX;
   }
 
-  if (!(isFlexItem && isHorizontalFlexItem)) {
+  
+  
+  
+  if (stylePos->mMinWidth.GetUnit() != eStyleUnit_Auto &&
+      !(isFlexItem && isHorizontalFlexItem)) {
     minWidth = nsLayoutUtils::ComputeWidthValue(aRenderingContext,
                  aFrame, aCBSize.width, boxSizingAdjust.width,
                  boxSizingToMarginEdgeWidth, stylePos->mMinWidth);
   } else {
+    
+    
     
     
     

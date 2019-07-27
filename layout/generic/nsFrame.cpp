@@ -4102,12 +4102,18 @@ nsFrame::ComputeSize(nsRenderingContext *aRenderingContext,
   }
 
   nscoord minWidth;
-  if (!(isFlexItem && isHorizontalFlexItem)) {
+  if (stylePos->mMinWidth.GetUnit() != eStyleUnit_Auto &&
+      !(isFlexItem && isHorizontalFlexItem)) {
     minWidth =
       nsLayoutUtils::ComputeWidthValue(aRenderingContext, this,
         aCBSize.width, boxSizingAdjust.width, boxSizingToMarginEdgeWidth,
         stylePos->mMinWidth);
   } else {
+    
+    
+    
+    
+    
     minWidth = 0;
   }
   result.width = std::max(minWidth, result.width);

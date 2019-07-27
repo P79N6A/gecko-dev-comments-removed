@@ -1356,7 +1356,19 @@ struct nsStylePosition {
   nsStyleGridLine mGridRowEnd;
 
   bool WidthDependsOnContainer() const
-    { return WidthCoordDependsOnContainer(mWidth); }
+    {
+      return mWidth.GetUnit() == eStyleUnit_Auto ||
+        WidthCoordDependsOnContainer(mWidth);
+    }
+
+  
+  
+  
+  
+  
+  
+  
+  
   bool MinWidthDependsOnContainer() const
     { return WidthCoordDependsOnContainer(mMinWidth); }
   bool MaxWidthDependsOnContainer() const
