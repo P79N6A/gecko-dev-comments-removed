@@ -454,10 +454,6 @@ class MochiRemote(Mochitest):
         if 'profileDir' not in kwargs and 'profile' in kwargs:
             kwargs['profileDir'] = kwargs.pop('profile').profile
 
-        
-        
-        kwargs['runSSLTunnel'] = False
-
         if 'quiet' in kwargs:
             kwargs.pop('quiet')
 

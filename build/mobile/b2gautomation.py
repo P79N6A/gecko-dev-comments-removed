@@ -14,6 +14,7 @@ import signal
 import tempfile
 import time
 import traceback
+import zipfile
 
 from automation import Automation
 from mozlog.structured import get_default_logger
@@ -73,10 +74,81 @@ class B2GRemoteAutomation(Automation):
     def setRemoteLog(self, logfile):
         self._remoteLog = logfile
 
+    def getExtensionIDFromRDF(self, rdfSource):
+        """
+        Retrieves the extension id from an install.rdf file (or string).
+        """
+        from xml.dom.minidom import parse, parseString, Node
+
+        if isinstance(rdfSource, file):
+            document = parse(rdfSource)
+        else:
+            document = parseString(rdfSource)
+
+        
+        
+        for rdfChild in document.documentElement.childNodes:
+            if rdfChild.nodeType == Node.ELEMENT_NODE and rdfChild.tagName == "Description":
+                for descChild in rdfChild.childNodes:
+                    if descChild.nodeType == Node.ELEMENT_NODE and descChild.tagName == "em:id":
+                        return descChild.childNodes[0].data
+        return None
+
     def installExtension(self, extensionSource, profileDir, extensionID=None):
         
         if extensionID != "special-powers@mozilla.org":
-            Automation.installExtension(self, extensionSource, profileDir, extensionID)
+            if not os.path.isdir(profileDir):
+              self.log.info("INFO | automation.py | Cannot install extension, invalid profileDir at: %s", profileDir)
+              return
+
+            installRDFFilename = "install.rdf"
+
+            extensionsRootDir = os.path.join(profileDir, "extensions", "staged")
+            if not os.path.isdir(extensionsRootDir):
+              os.makedirs(extensionsRootDir)
+
+            if os.path.isfile(extensionSource):
+              reader = zipfile.ZipFile(extensionSource, "r")
+
+              for filename in reader.namelist():
+                
+                if os.path.isabs(filename):
+                  self.log.info("INFO | automation.py | Cannot install extension, bad files in xpi")
+                  return
+
+                
+                if extensionID is None and filename == installRDFFilename:
+                  extensionID = self.getExtensionIDFromRDF(reader.read(filename))
+
+              
+              if extensionID is None:
+                self.log.info("INFO | automation.py | Cannot install extension, missing extensionID")
+                return
+
+              
+              extensionDir = os.path.join(extensionsRootDir, extensionID)
+              os.mkdir(extensionDir)
+
+              
+              reader.extractall(extensionDir)
+
+            elif os.path.isdir(extensionSource):
+              if extensionID is None:
+                filename = os.path.join(extensionSource, installRDFFilename)
+                if os.path.isfile(filename):
+                  with open(filename, "r") as installRDF:
+                    extensionID = self.getExtensionIDFromRDF(installRDF)
+
+                if extensionID is None:
+                  self.log.info("INFO | automation.py | Cannot install extension, missing extensionID")
+                  return
+
+              
+              
+              shutil.copytree(extensionSource, os.path.join(extensionsRootDir, extensionID))
+
+            else:
+              self.log.info("INFO | automation.py | Cannot install extension, invalid extensionSource at: %s", extensionSource)
 
     
     def environment(self, env=None, xrePath=None, crashreporter=True, debugger=False):
