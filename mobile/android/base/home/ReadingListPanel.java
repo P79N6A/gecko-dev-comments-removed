@@ -18,6 +18,7 @@ import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.db.ReadingListAccessor;
 import org.mozilla.gecko.home.HomeContextMenuInfo.RemoveItemType;
 import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
+import org.mozilla.gecko.util.HardwareUtils;
 
 import android.content.Context;
 import android.database.Cursor;
@@ -139,22 +140,26 @@ public class ReadingListPanel extends HomeFragment {
             mEmptyView = emptyViewStub.inflate();
 
             final TextView emptyHint = (TextView) mEmptyView.findViewById(R.id.home_empty_hint);
-            String readingListHint = emptyHint.getText().toString();
-
-            
-            int imageSpanIndex = readingListHint.indexOf(MATCH_STRING);
-            if (imageSpanIndex != -1) {
-                final ImageSpan readingListIcon = new ImageSpan(getActivity(), R.drawable.reader_cropped, ImageSpan.ALIGN_BOTTOM);
-                final SpannableStringBuilder hintBuilder = new SpannableStringBuilder(readingListHint);
+            if (HardwareUtils.isLowMemoryPlatform()) {
+                emptyHint.setVisibility(View.GONE);
+            } else {
+                String readingListHint = emptyHint.getText().toString();
 
                 
-                hintBuilder.insert(imageSpanIndex + MATCH_STRING.length(), " ");
-                hintBuilder.insert(imageSpanIndex, " ");
+                int imageSpanIndex = readingListHint.indexOf(MATCH_STRING);
+                if (imageSpanIndex != -1) {
+                    final ImageSpan readingListIcon = new ImageSpan(getActivity(), R.drawable.reader_cropped, ImageSpan.ALIGN_BOTTOM);
+                    final SpannableStringBuilder hintBuilder = new SpannableStringBuilder(readingListHint);
 
-                
-                hintBuilder.setSpan(readingListIcon, imageSpanIndex + 1, imageSpanIndex + MATCH_STRING.length() + 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                    
+                    hintBuilder.insert(imageSpanIndex + MATCH_STRING.length(), " ");
+                    hintBuilder.insert(imageSpanIndex, " ");
 
-                emptyHint.setText(hintBuilder, TextView.BufferType.SPANNABLE);
+                    
+                    hintBuilder.setSpan(readingListIcon, imageSpanIndex + 1, imageSpanIndex + MATCH_STRING.length() + 1, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+
+                    emptyHint.setText(hintBuilder, TextView.BufferType.SPANNABLE);
+                }
             }
 
             mList.setEmptyView(mEmptyView);
