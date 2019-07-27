@@ -165,8 +165,7 @@ class JS_FRIEND_API(BaseProxyHandler)
         GET       = 0x01,
         SET       = 0x02,
         CALL      = 0x04,
-        ENUMERATE = 0x08,
-        GET_PROPERTY_DESCRIPTOR = 0x10
+        ENUMERATE = 0x08
     };
 
     virtual bool enter(JSContext *cx, HandleObject wrapper, HandleId id, Action act,

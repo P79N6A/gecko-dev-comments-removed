@@ -9,7 +9,6 @@
 #include "AccessCheck.h"
 #include "xpcprivate.h"
 #include "jsapi.h"
-#include "jswrapper.h"
 
 using namespace JS;
 
@@ -53,7 +52,6 @@ PropIsFromStandardPrototype(JSContext *cx, JS::MutableHandle<JSPropertyDescripto
 
 
 
-
 static bool
 PropIsFromStandardPrototype(JSContext *cx, HandleObject wrapper,
                             HandleId id)
@@ -62,8 +60,8 @@ PropIsFromStandardPrototype(JSContext *cx, HandleObject wrapper,
                &ChromeObjectWrapper::singleton);
     Rooted<JSPropertyDescriptor> desc(cx);
     const ChromeObjectWrapper *handler = &ChromeObjectWrapper::singleton;
-    if (!handler->js::CrossCompartmentSecurityWrapper::getPropertyDescriptor(cx, wrapper, id,
-                                                                             &desc) ||
+    if (!handler->ChromeObjectWrapperBase::getPropertyDescriptor(cx, wrapper, id,
+                                                                 &desc) ||
         !desc.object())
     {
         return false;
@@ -77,7 +75,7 @@ ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx,
                                            HandleId id,
                                            JS::MutableHandle<JSPropertyDescriptor> desc) const
 {
-    assertEnteredPolicy(cx, wrapper, id, GET | SET | GET_PROPERTY_DESCRIPTOR);
+    assertEnteredPolicy(cx, wrapper, id, GET | SET);
     
     desc.object().set(nullptr);
     if (AllowedByBase(cx, wrapper, id, Wrapper::GET) &&
@@ -274,8 +272,7 @@ ChromeObjectWrapper::enter(JSContext *cx, HandleObject wrapper,
         return true;
     
     
-    *bp = act == Wrapper::GET || act == Wrapper::ENUMERATE ||
-          act == Wrapper::GET_PROPERTY_DESCRIPTOR;
+    *bp = act == Wrapper::GET || act == Wrapper::ENUMERATE;
     if (!*bp || id == JSID_VOID)
         return false;
 

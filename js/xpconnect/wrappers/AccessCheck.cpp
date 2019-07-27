@@ -154,19 +154,14 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, JSObject *wrapperArg, j
     if (act == Wrapper::CALL)
         return false;
 
-    if (act == Wrapper::ENUMERATE)
-        return true;
-
-    
-    
-    if (act == Wrapper::GET_PROPERTY_DESCRIPTOR) {
-        return isCrossOriginAccessPermitted(cx, wrapperArg, idArg, Wrapper::GET) ||
-               isCrossOriginAccessPermitted(cx, wrapperArg, idArg, Wrapper::SET);
-    }
-
     RootedId id(cx, idArg);
     RootedObject wrapper(cx, wrapperArg);
     RootedObject obj(cx, Wrapper::wrappedObject(wrapper));
+
+    
+    
+    if (act == Wrapper::ENUMERATE)
+        return false;
 
     const char *name;
     const js::Class *clasp = js::GetObjectClass(obj);
@@ -192,19 +187,6 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, JSObject *wrapperArg, j
             if (!XrayUtils::HasNativeProperty(cx, wrapper, id, &wouldShadow) ||
                 wouldShadow)
             {
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                JS_ClearPendingException(cx);
                 return false;
             }
         }
@@ -231,14 +213,6 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapperArg, jsid idArg, Wr
 
     if (act == Wrapper::CALL)
         return true;
-
-
-    
-    
-    if (act == Wrapper::GET_PROPERTY_DESCRIPTOR) {
-        return check(cx, wrapperArg, idArg, Wrapper::GET) ||
-               check(cx, wrapperArg, idArg, Wrapper::SET);
-    }
 
     RootedId exposedPropsId(cx, GetRTIdByIndex(cx, XPCJSRuntime::IDX_EXPOSEDPROPS));
 

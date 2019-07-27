@@ -1913,17 +1913,15 @@ XPCWrappedNativeXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, 
     }
 
     
-    
-    
-    MOZ_ASSERT(!JS_IsExceptionPending(cx));
     if (!props.reserve(wnProps.length()))
         return false;
     for (size_t n = 0; n < wnProps.length(); ++n) {
         RootedId id(cx, wnProps[n]);
         bool hasProp;
-        if (JS_HasPropertyById(cx, wrapper, id, &hasProp) && hasProp)
+        if (!JS_HasPropertyById(cx, wrapper, id, &hasProp))
+            return false;
+        if (hasProp)
             props.infallibleAppend(id);
-        JS_ClearPendingException(cx);
     }
     return true;
 }
@@ -2364,8 +2362,7 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, HandleObject wra
                                                  JS::MutableHandle<JSPropertyDescriptor> desc)
                                                  const
 {
-    assertEnteredPolicy(cx, wrapper, id, BaseProxyHandler::GET | BaseProxyHandler::SET |
-                                         BaseProxyHandler::GET_PROPERTY_DESCRIPTOR);
+    assertEnteredPolicy(cx, wrapper, id, BaseProxyHandler::GET | BaseProxyHandler::SET);
     RootedObject holder(cx, Traits::singleton.ensureHolder(cx, wrapper));
     if (Traits::isResolving(cx, holder, id)) {
         desc.object().set(nullptr);
@@ -2497,8 +2494,7 @@ XrayWrapper<Base, Traits>::getOwnPropertyDescriptor(JSContext *cx, HandleObject 
                                                     JS::MutableHandle<JSPropertyDescriptor> desc)
                                                     const
 {
-    assertEnteredPolicy(cx, wrapper, id, BaseProxyHandler::GET | BaseProxyHandler::SET |
-                                         BaseProxyHandler::GET_PROPERTY_DESCRIPTOR);
+    assertEnteredPolicy(cx, wrapper, id, BaseProxyHandler::GET | BaseProxyHandler::SET);
     RootedObject holder(cx, Traits::singleton.ensureHolder(cx, wrapper));
     if (Traits::isResolving(cx, holder, id)) {
         desc.object().set(nullptr);
@@ -2673,6 +2669,10 @@ XrayWrapper<Base, Traits>::enumerate(JSContext *cx, HandleObject wrapper, unsign
                                      AutoIdVector &props) const
 {
     assertEnteredPolicy(cx, wrapper, JSID_VOID, BaseProxyHandler::ENUMERATE);
+    if (!AccessCheck::wrapperSubsumes(wrapper)) {
+        JS_ReportError(cx, "Not allowed to enumerate cross origin objects");
+        return false;
+    }
 
     
     

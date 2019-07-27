@@ -80,8 +80,7 @@ struct ExposedPropertiesOnly : public Policy {
 
     static bool deny(js::Wrapper::Action act, JS::HandleId id) {
         
-        return act == js::Wrapper::GET || act == js::Wrapper::ENUMERATE ||
-               act == js::Wrapper::GET_PROPERTY_DESCRIPTOR;
+        return act == js::Wrapper::GET || act == js::Wrapper::ENUMERATE;
     }
     static bool allowNativeCall(JSContext *cx, JS::IsAcceptableThis test, JS::NativeImpl impl) {
         return false;
