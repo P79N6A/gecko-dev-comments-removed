@@ -32,8 +32,19 @@ public:
   { MOZ_COUNT_CTOR(DocAccessibleChild); }
   ~DocAccessibleChild()
   {
-    mDoc->SetIPCDoc(nullptr);
+    
+    
+    MOZ_ASSERT(!mDoc);
+    if (mDoc)
+      mDoc->SetIPCDoc(nullptr);
     MOZ_COUNT_DTOR(DocAccessibleChild);
+  }
+
+  void Shutdown()
+  {
+    mDoc->SetIPCDoc(nullptr);
+    mDoc = nullptr;
+    SendShutdown();
   }
 
   void ShowEvent(AccShowEvent* aShowEvent);
