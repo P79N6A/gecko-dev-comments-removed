@@ -56,6 +56,12 @@ APZThreadUtils::RunOnControllerThread(Task* aTask)
   
   
   MessageLoop* loop = CompositorParent::CompositorLoop();
+  if (!loop) {
+    
+    NS_WARNING("Dropping task posted to controller thread\n");
+    delete aTask;
+    return;
+  }
   MOZ_ASSERT(MessageLoop::current() != loop);
   loop->PostTask(FROM_HERE, aTask);
 #else
