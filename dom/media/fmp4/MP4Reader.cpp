@@ -545,6 +545,10 @@ MP4Reader::Update(TrackType aTrack)
 {
   MOZ_ASSERT(GetTaskQueue()->IsCurrentThreadIn());
 
+  if (mShutdown) {
+    return;
+  }
+
   
   
   uint32_t parsed = 0, decoded = 0;

@@ -300,6 +300,7 @@ protected:
   
   
   bool mHitAudioDecodeError;
+  bool mShutdown;
 
 private:
   
@@ -314,7 +315,6 @@ private:
   
   bool mAudioDiscontinuity;
   bool mVideoDiscontinuity;
-  bool mShutdown;
 };
 
 } 
