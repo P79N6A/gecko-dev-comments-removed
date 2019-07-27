@@ -53,7 +53,7 @@ function run_test() {
     
     Task.spawn(function() {
       yield validate();
-      yield promiseAsyncUpdates();
+      yield PlacesTestUtils.promiseAsyncUpdates();
       
       
       
@@ -73,7 +73,7 @@ function run_test() {
       yield validate();
       LOG("validated import");
   
-      yield promiseAsyncUpdates();
+      yield PlacesTestUtils.promiseAsyncUpdates();
       do_test_finished();
     });
   }

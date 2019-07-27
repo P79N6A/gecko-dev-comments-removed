@@ -101,7 +101,7 @@ function* check_autocomplete(test) {
   
   
   
-  yield promiseAsyncUpdates();
+  yield PlacesTestUtils.promiseAsyncUpdates();
 
   
   let input = new AutoCompleteInput(["unifiedcomplete"]);

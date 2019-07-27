@@ -604,42 +604,6 @@ function is_time_ordered(before, after) {
 
 
 
-
-
-
-
-
-
-
-function promiseAsyncUpdates()
-{
-  let deferred = Promise.defer();
-
-  let db = DBConn();
-  let begin = db.createAsyncStatement("BEGIN EXCLUSIVE");
-  begin.executeAsync();
-  begin.finalize();
-
-  let commit = db.createAsyncStatement("COMMIT");
-  commit.executeAsync({
-    handleResult: function () {},
-    handleError: function () {},
-    handleCompletion: function(aReason)
-    {
-      deferred.resolve();
-    }
-  });
-  commit.finalize();
-
-  return deferred.promise;
-}
-
-
-
-
-
-
-
 function waitForConnectionClosed(aCallback)
 {
   Services.obs.addObserver(function WFCCCallback() {

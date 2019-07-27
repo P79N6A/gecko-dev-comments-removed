@@ -12,7 +12,7 @@
 const T_URI = NetUtil.newURI("https://www.mozilla.org/firefox/nightly/firstrun/");
 
 function* getForeignCountForURL(conn, url) {
-  yield promiseAsyncUpdates();
+  yield PlacesTestUtils.promiseAsyncUpdates();
   url = url instanceof Ci.nsIURI ? url.spec : url;
   let rows = yield conn.executeCached(
       "SELECT foreign_count FROM moz_places WHERE url = :t_url ", { t_url: url });

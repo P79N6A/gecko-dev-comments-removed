@@ -91,5 +91,39 @@ this.PlacesTestUtils = Object.freeze({
     });
 
     return Promise.all([expirationFinished, PlacesUtils.history.clear()]);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  promiseAsyncUpdates() {
+    return new Promise(resolve => {
+      let db = PlacesUtils.history.DBConnection;
+      let begin = db.createAsyncStatement("BEGIN EXCLUSIVE");
+      begin.executeAsync();
+      begin.finalize();
+
+      let commit = db.createAsyncStatement("COMMIT");
+      commit.executeAsync({
+        handleResult: function () {},
+        handleError: function () {},
+        handleCompletion: function(aReason)
+        {
+          resolve();
+        }
+      });
+      commit.finalize();
+    });
   }
+
 });

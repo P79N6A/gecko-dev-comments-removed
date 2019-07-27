@@ -277,7 +277,7 @@ function run_test() {
     
     
     
-    yield promiseAsyncUpdates();
+    yield PlacesTestUtils.promiseAsyncUpdates();
 
   }).then(function () ensure_results(search, expected),
           do_report_unexpected_exception);

@@ -166,8 +166,8 @@ function run_test() {
       
       
       
-      promiseAsyncUpdates().then(function () ensure_results(searchString,
-                                                            expectedValue));
+      PlacesTestUtils.promiseAsyncUpdates()
+                     .then(() => ensure_results(searchString, expectedValue));
     })
   }, this);
 

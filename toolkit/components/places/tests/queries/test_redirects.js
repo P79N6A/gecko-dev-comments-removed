@@ -283,7 +283,7 @@ add_task(function test_add_visits_to_database()
 add_task(function test_redirects()
 {
   
-  yield promiseAsyncUpdates();
+  yield PlacesTestUtils.promiseAsyncUpdates();
 
   
   

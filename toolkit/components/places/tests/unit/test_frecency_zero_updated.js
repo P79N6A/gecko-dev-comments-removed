@@ -15,13 +15,13 @@ add_task(function ()
                                                 TEST_URI,
                                                 PlacesUtils.bookmarks.DEFAULT_INDEX,
                                                 "A title");
-  yield promiseAsyncUpdates();
+  yield PlacesTestUtils.promiseAsyncUpdates();
   do_check_true(frecencyForUrl(TEST_URI) > 0);
 
   
   
   PlacesUtils.bookmarks.removeItem(id);
-  yield promiseAsyncUpdates();
+  yield PlacesTestUtils.promiseAsyncUpdates();
   do_check_eq(frecencyForUrl(TEST_URI), 0);
 
   

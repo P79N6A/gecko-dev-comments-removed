@@ -272,42 +272,6 @@ function promiseIsURIVisited(aURI) {
   return deferred.promise;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-function promiseAsyncUpdates()
-{
-  let deferred = Promise.defer();
-
-  let db = DBConn();
-  let begin = db.createAsyncStatement("BEGIN EXCLUSIVE");
-  begin.executeAsync();
-  begin.finalize();
-
-  let commit = db.createAsyncStatement("COMMIT");
-  commit.executeAsync({
-    handleResult: function () {},
-    handleError: function () {},
-    handleCompletion: function(aReason)
-    {
-      deferred.resolve();
-    }
-  });
-  commit.finalize();
-
-  return deferred.promise;
-}
-
 function promiseBookmarksNotification(notification, conditionFn) {
   info(`Waiting for ${notification}`);
   return new Promise((resolve, reject) => {

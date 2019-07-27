@@ -20,7 +20,7 @@ add_task(function* test_moz_hosts() {
   yield db.execute("SELECT host, frecency, typed, prefix FROM moz_hosts");
 
   
-  yield promiseAsyncUpdates();
+  yield PlacesTestUtils.promiseAsyncUpdates();
 
   
   
