@@ -201,8 +201,8 @@ SpeakerManager::HandleEvent(nsIDOMEvent* aEvent)
   
   
   if (!mVisible && mForcespeaker) {
-    AudioChannelService* audioChannelService =
-      AudioChannelService::GetOrCreateAudioChannelService();
+    nsRefPtr<AudioChannelService> audioChannelService =
+      AudioChannelService::GetOrCreate();
     if (audioChannelService && !audioChannelService->AnyAudioChannelIsActive()) {
       service->ForceSpeaker(false, mVisible);
     }
