@@ -1884,8 +1884,7 @@ public:
 
 
   static bool HasCurrentAnimations(nsIContent* aContent,
-                                   nsIAtom* aAnimationProperty,
-                                   nsPresContext* aPresContext);
+                                   nsIAtom* aAnimationProperty);
 
   
 
