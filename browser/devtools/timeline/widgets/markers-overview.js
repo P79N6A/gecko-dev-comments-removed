@@ -14,34 +14,29 @@ const {Cc, Ci, Cu, Cr} = require("chrome");
 Cu.import("resource:///modules/devtools/Graphs.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 
+const { colorUtils: { setAlpha }} = require("devtools/css-color");
+const { getColor } = require("devtools/shared/theme");
+
 loader.lazyRequireGetter(this, "L10N",
   "devtools/timeline/global", true);
-
-const HTML_NS = "http://www.w3.org/1999/xhtml";
 
 const OVERVIEW_HEADER_HEIGHT = 14; 
 const OVERVIEW_ROW_HEIGHT = 11; 
 
-const OVERVIEW_BACKGROUND_COLOR = "#fff";
-const OVERVIEW_CLIPHEAD_LINE_COLOR = "#666";
-const OVERVIEW_SELECTION_LINE_COLOR = "#555";
-const OVERVIEW_SELECTION_BACKGROUND_COLOR = "rgba(76,158,217,0.25)";
-const OVERVIEW_SELECTION_STRIPES_COLOR = "rgba(255,255,255,0.1)";
+const OVERVIEW_BODY_HEIGHT = 55; 
+const OVERVIEW_SELECTION_LINE_COLOR = "#666";
+const OVERVIEW_CLIPHEAD_LINE_COLOR = "#555";
 
 const OVERVIEW_HEADER_TICKS_MULTIPLE = 100; 
 const OVERVIEW_HEADER_TICKS_SPACING_MIN = 75; 
 const OVERVIEW_HEADER_SAFE_BOUNDS = 50; 
-const OVERVIEW_HEADER_BACKGROUND = "#fff";
-const OVERVIEW_HEADER_TEXT_COLOR = "#18191a";
 const OVERVIEW_HEADER_TEXT_FONT_SIZE = 9; 
 const OVERVIEW_HEADER_TEXT_FONT_FAMILY = "sans-serif";
 const OVERVIEW_HEADER_TEXT_PADDING_LEFT = 6; 
 const OVERVIEW_HEADER_TEXT_PADDING_TOP = 1; 
-const OVERVIEW_TIMELINE_STROKES = "#ccc";
 const OVERVIEW_MARKERS_COLOR_STOPS = [0, 0.1, 0.75, 1];
 const OVERVIEW_MARKER_DURATION_MIN = 4; 
 const OVERVIEW_GROUP_VERTICAL_PADDING = 5; 
-const OVERVIEW_GROUP_ALTERNATING_BACKGROUND = "rgba(0,0,0,0.05)";
 
 
 
@@ -53,6 +48,8 @@ const OVERVIEW_GROUP_ALTERNATING_BACKGROUND = "rgba(0,0,0,0.05)";
 
 function MarkersOverview(parent, blueprint, ...args) {
   AbstractCanvasGraph.apply(this, [parent, "markers-overview", ...args]);
+
+  this.setTheme();
 
   
   this.setBlueprint(blueprint);
@@ -66,8 +63,6 @@ function MarkersOverview(parent, blueprint, ...args) {
 MarkersOverview.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
   clipheadLineColor: OVERVIEW_CLIPHEAD_LINE_COLOR,
   selectionLineColor: OVERVIEW_SELECTION_LINE_COLOR,
-  selectionBackgroundColor: OVERVIEW_SELECTION_BACKGROUND_COLOR,
-  selectionStripesColor: OVERVIEW_SELECTION_STRIPES_COLOR,
   headerHeight: OVERVIEW_HEADER_HEIGHT,
   rowHeight: OVERVIEW_ROW_HEIGHT,
   groupPadding: OVERVIEW_GROUP_VERTICAL_PADDING,
@@ -138,15 +133,15 @@ MarkersOverview.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
     
 
-    ctx.fillStyle = OVERVIEW_HEADER_BACKGROUND;
+    ctx.fillStyle = this.headerBackgroundColor;
     ctx.fillRect(0, 0, canvasWidth, headerHeight);
 
-    ctx.fillStyle = OVERVIEW_BACKGROUND_COLOR;
+    ctx.fillStyle = this.backgroundColor;
     ctx.fillRect(0, headerHeight, canvasWidth, canvasHeight);
 
     
 
-    ctx.fillStyle = OVERVIEW_GROUP_ALTERNATING_BACKGROUND;
+    ctx.fillStyle = this.alternatingBackgroundColor;
     ctx.beginPath();
 
     for (let i = 0; i < totalGroups; i += 2) {
@@ -166,8 +161,8 @@ MarkersOverview.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
     ctx.textBaseline = "middle";
     ctx.font = fontSize + "px " + fontFamily;
-    ctx.fillStyle = OVERVIEW_HEADER_TEXT_COLOR;
-    ctx.strokeStyle = OVERVIEW_TIMELINE_STROKES;
+    ctx.fillStyle = this.headerTextColor;
+    ctx.strokeStyle = this.headerTimelineStrokeColor;
     ctx.beginPath();
 
     for (let x = 0; x < availableWidth; x += tickInterval) {
@@ -232,6 +227,22 @@ MarkersOverview.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
       }
       return scaledStep;
     }
+  },
+
+  
+
+
+
+
+  setTheme: function (theme) {
+    theme = theme || "light";
+    this.backgroundColor = getColor("body-background", theme);
+    this.selectionBackgroundColor = setAlpha(getColor("selection-background", theme), 0.25);
+    this.selectionStripesColor = setAlpha("#fff", 0.1);
+    this.headerBackgroundColor = getColor("body-background", theme);
+    this.headerTextColor = getColor("body-color", theme);
+    this.headerTimelineStrokeColor = setAlpha(getColor("body-color-alt", theme), 0.1);
+    this.alternatingBackgroundColor = setAlpha(getColor("body-color", theme), 0.05);
   }
 });
 

@@ -79,7 +79,8 @@ function CssColor(colorValue) {
 module.exports.colorUtils = {
   CssColor: CssColor,
   processCSSString: processCSSString,
-  rgbToHsl: rgbToHsl
+  rgbToHsl: rgbToHsl,
+  setAlpha: setAlpha
 };
 
 
@@ -401,6 +402,35 @@ function rgbToHsl([r,g,b]) {
   }
 
   return [Math.round(h), Math.round(s * 100), Math.round(l * 100)];
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function setAlpha(colorValue, alpha) {
+  let color = new CssColor(colorValue);
+
+  
+  if (!color.valid) {
+    throw new Error("Invalid color.");
+  }
+
+  
+  if (!(alpha >= 0 && alpha <= 1)) {
+    alpha = 1;
+  }
+
+  let { r, g, b } = color._getRGBATuple();
+  return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")";
 }
 
 loader.lazyGetter(this, "DOMUtils", function () {
