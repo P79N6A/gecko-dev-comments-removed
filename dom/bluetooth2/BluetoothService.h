@@ -98,9 +98,27 @@ public:
 
 
 
+  void
+  DistributeSignal(const nsAString& aName, const nsAString& aPath);
+
+  
+
+
+
+
+
 
   void
-  DistributeSignal(const BluetoothSignal& aEvent);
+  DistributeSignal(const nsAString& aName, const nsAString& aPath,
+                   const BluetoothValue& aValue);
+
+  
+
+
+
+
+  void
+  DistributeSignal(const BluetoothSignal& aSignal);
 
   
 

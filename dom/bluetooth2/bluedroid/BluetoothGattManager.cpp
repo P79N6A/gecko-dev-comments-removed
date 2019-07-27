@@ -261,11 +261,10 @@ public:
     NS_ENSURE_TRUE_VOID(bs);
 
     
-    BluetoothSignal signal(
+    bs->DistributeSignal(
       NS_LITERAL_STRING(GATT_CONNECTION_STATE_CHANGED_ID),
       mClient->mAppUuid,
       BluetoothValue(false)); 
-    bs->DistributeSignal(signal);
 
     
     if (mClient->mConnectRunnable) {
@@ -298,11 +297,10 @@ public:
     NS_ENSURE_TRUE_VOID(bs);
 
     
-    BluetoothSignal signal(
+    bs->DistributeSignal(
       NS_LITERAL_STRING("ClientUnregistered"),
       mClient->mAppUuid,
       BluetoothValue(true));
-    bs->DistributeSignal(signal);
 
     
     DispatchReplySuccess(mClient->mUnregisterClientRunnable);
@@ -374,11 +372,10 @@ public:
     NS_ENSURE_TRUE_VOID(bs);
 
     
-    BluetoothSignal signal(
+    bs->DistributeSignal(
       NS_LITERAL_STRING(GATT_CONNECTION_STATE_CHANGED_ID),
       mClient->mAppUuid,
       BluetoothValue(false)); 
-    bs->DistributeSignal(signal);
 
     
     DispatchReplyError(mClient->mConnectRunnable,
@@ -444,11 +441,10 @@ public:
     NS_ENSURE_TRUE_VOID(bs);
 
     
-    BluetoothSignal signal(
+    bs->DistributeSignal(
       NS_LITERAL_STRING(GATT_CONNECTION_STATE_CHANGED_ID),
       mClient->mAppUuid,
       BluetoothValue(true)); 
-    bs->DistributeSignal(signal);
 
     
     DispatchReplyError(mClient->mDisconnectRunnable,
@@ -515,10 +511,9 @@ BluetoothGattManager::RegisterClientNotification(int aStatus,
       aClientIf, aStatus, NS_ConvertUTF16toUTF8(uuid).get());
 
     
-    BluetoothSignal signal(
+    bs->DistributeSignal(
       NS_LITERAL_STRING(GATT_CONNECTION_STATE_CHANGED_ID),
       uuid, BluetoothValue(false)); 
-    bs->DistributeSignal(signal);
 
     
     if (client->mConnectRunnable) {
@@ -535,10 +530,9 @@ BluetoothGattManager::RegisterClientNotification(int aStatus,
   client->mClientIf = aClientIf;
 
   
-  BluetoothSignal signal(
+  bs->DistributeSignal(
     NS_LITERAL_STRING("ClientRegistered"),
     uuid, BluetoothValue(uint32_t(aClientIf)));
-  bs->DistributeSignal(signal);
 
   
   if (client->mConnectRunnable) {
@@ -576,11 +570,10 @@ BluetoothGattManager::ConnectNotification(int aConnId,
                  aClientIf, aConnId, aStatus);
 
     
-    BluetoothSignal signal(
+    bs->DistributeSignal(
       NS_LITERAL_STRING(GATT_CONNECTION_STATE_CHANGED_ID),
       client->mAppUuid,
       BluetoothValue(false)); 
-    bs->DistributeSignal(signal);
 
     
     if (client->mConnectRunnable) {
@@ -595,11 +588,10 @@ BluetoothGattManager::ConnectNotification(int aConnId,
   client->mConnId = aConnId;
 
   
-  BluetoothSignal signal(
+  bs->DistributeSignal(
     NS_LITERAL_STRING(GATT_CONNECTION_STATE_CHANGED_ID),
     client->mAppUuid,
     BluetoothValue(true)); 
-  bs->DistributeSignal(signal);
 
   
   if (client->mConnectRunnable) {
@@ -627,11 +619,10 @@ BluetoothGattManager::DisconnectNotification(int aConnId,
 
   if (aStatus) { 
     
-    BluetoothSignal signal(
+    bs->DistributeSignal(
       NS_LITERAL_STRING(GATT_CONNECTION_STATE_CHANGED_ID),
       client->mAppUuid,
       BluetoothValue(true)); 
-    bs->DistributeSignal(signal);
 
     
     if (client->mDisconnectRunnable) {
@@ -646,11 +637,10 @@ BluetoothGattManager::DisconnectNotification(int aConnId,
   client->mConnId = 0;
 
   
-  BluetoothSignal signal(
+  bs->DistributeSignal(
     NS_LITERAL_STRING(GATT_CONNECTION_STATE_CHANGED_ID),
     client->mAppUuid,
     BluetoothValue(false)); 
-  bs->DistributeSignal(signal);
 
   
   if (client->mDisconnectRunnable) {
