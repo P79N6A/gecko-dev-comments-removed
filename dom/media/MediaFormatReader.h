@@ -99,6 +99,11 @@ public:
 
   int64_t ComputeStartTime(const VideoData* aVideo, const AudioData* aAudio) override;
 
+  bool UseBufferingHeuristics() override
+  {
+    return mTrackDemuxersMayBlock;
+  }
+
 private:
   bool InitDemuxer();
   
@@ -365,6 +370,9 @@ private:
   
   
   bool mIsEncrypted;
+
+  
+  bool mTrackDemuxersMayBlock;
 
   
   bool IsSeeking() const { return mPendingSeekTime.isSome(); }

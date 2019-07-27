@@ -160,6 +160,15 @@ public:
   
   
   
+  virtual bool GetSamplesMayBlock() const
+  {
+    return true;
+  }
+
+  
+  
+  
+  
   virtual void Reset() = 0;
 
   
