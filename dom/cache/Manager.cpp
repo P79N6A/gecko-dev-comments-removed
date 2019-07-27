@@ -30,15 +30,12 @@
 #include "nsThreadUtils.h"
 #include "nsTObserverArray.h"
 
-namespace {
 
-using mozilla::unused;
-using mozilla::dom::cache::Action;
-using mozilla::dom::cache::BodyCreateDir;
-using mozilla::dom::cache::BodyDeleteFiles;
-using mozilla::dom::cache::QuotaInfo;
-using mozilla::dom::cache::SyncDBAction;
-using mozilla::dom::cache::db::CreateSchema;
+namespace mozilla {
+namespace dom {
+namespace cache {
+
+namespace {
 
 
 
@@ -54,23 +51,56 @@ public:
   RunSyncWithDBOnTarget(const QuotaInfo& aQuotaInfo, nsIFile* aDBDir,
                         mozIStorageConnection* aConn) override
   {
-    
-    
-    
-    
-    
-
     nsresult rv = BodyCreateDir(aDBDir);
     if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
-    mozStorageTransaction trans(aConn, false,
-                                mozIStorageConnection::TRANSACTION_IMMEDIATE);
+    {
+      mozStorageTransaction trans(aConn, false,
+                                  mozIStorageConnection::TRANSACTION_IMMEDIATE);
 
-    rv = CreateSchema(aConn);
-    if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+      rv = db::CreateSchema(aConn);
+      if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
-    rv = trans.Commit();
-    if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+      rv = trans.Commit();
+      if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (MarkerFileExists(aQuotaInfo)) {
+      NS_WARNING("Cache not shutdown cleanly! Cleaning up stale data...");
+      mozStorageTransaction trans(aConn, false,
+                                  mozIStorageConnection::TRANSACTION_IMMEDIATE);
+
+      
+      nsAutoTArray<CacheId, 8> orphanedCacheIdList;
+      nsresult rv = db::FindOrphanedCacheIds(aConn, orphanedCacheIdList);
+      if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+      for (uint32_t i = 0; i < orphanedCacheIdList.Length(); ++i) {
+        nsAutoTArray<nsID, 16> deletedBodyIdList;
+        rv = db::DeleteCacheId(aConn, orphanedCacheIdList[i], deletedBodyIdList);
+        if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+        rv = BodyDeleteFiles(aDBDir, deletedBodyIdList);
+        if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+      }
+
+      
+      nsAutoTArray<nsID, 64> knownBodyIdList;
+      rv = db::GetKnownBodyIds(aConn, knownBodyIdList);
+
+      rv = BodyDeleteOrphanedFiles(aDBDir, knownBodyIdList);
+      if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+    }
 
     return rv;
   }
@@ -123,14 +153,6 @@ public:
 private:
   nsTArray<nsID> mDeletedBodyIdList;
 };
-
-} 
-
-namespace mozilla {
-namespace dom {
-namespace cache {
-
-namespace {
 
 bool IsHeadRequest(CacheRequest aRequest, CacheQueryParams aParams)
 {
