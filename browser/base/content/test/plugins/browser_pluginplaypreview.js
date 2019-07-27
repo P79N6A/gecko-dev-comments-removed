@@ -100,7 +100,14 @@ function registerPlayPreview(mimeType, targetUrl) {
 
       
       var ioService = Services.io;
-      var channel = ioService.newChannel(targetUrl, null, null);
+      var channel = ioService.newChannel2(targetUrl,
+                                          null,
+                                          null,
+                                          null,      
+                                          Services.scriptSecurityManager.getSystemPrincipal(),
+                                          null,      
+                                          Ci.nsILoadInfo.SEC_NORMAL,
+                                          Ci.nsIContentPolicy.TYPE_OTHER);
       channel.asyncOpen(this.listener, aContext);
     },
 
