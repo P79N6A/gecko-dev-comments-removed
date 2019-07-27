@@ -31,7 +31,8 @@ class AbstractMediaDecoder;
 class MediaOmxReader : public MediaOmxCommonReader
 {
   
-  Mutex mMutex;
+  
+  Mutex mShutdownMutex;
   nsCString mType;
   bool mHasVideo;
   bool mHasAudio;
@@ -42,6 +43,8 @@ class MediaOmxReader : public MediaOmxCommonReader
   int64_t mLastParserDuration;
   int32_t mSkipCount;
   bool mUseParserDuration;
+  
+  
   bool mIsShutdown;
 protected:
   android::sp<android::OmxDecoder> mOmxDecoder;
@@ -108,7 +111,7 @@ public:
   virtual nsRefPtr<ShutdownPromise> Shutdown() MOZ_OVERRIDE;
 
   bool IsShutdown() {
-    MutexAutoLock lock(mMutex);
+    MutexAutoLock lock(mShutdownMutex);
     return mIsShutdown;
   }
 
@@ -116,9 +119,10 @@ public:
 
   int64_t ProcessCachedData(int64_t aOffset, bool aWaitForCompletion);
 
-  void CancelProcessCachedData();
-
   android::sp<android::MediaSource> GetAudioOffloadTrack();
+
+private:
+  already_AddRefed<AbstractMediaDecoder> SafeGetDecoder();
 };
 
 } 
