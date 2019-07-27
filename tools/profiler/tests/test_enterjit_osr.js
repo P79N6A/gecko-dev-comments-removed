@@ -17,16 +17,28 @@ function run_test() {
 
     const ms = 5;
     p.StartProfiler(100, ms, ["js"], 1);
-    let profile = (function arbitrary_name(){
-	
-	let then = Date.now();
-	do {
-	    let n = 10000;
-	    while (--n); 
-	    
-	} while (Date.now() - then < ms * 2.5);
-	return p.getProfileData().threads[0].samples;
-    })();
+
+    function arbitrary_name(){
+        
+        
+        var delayMS = 5;
+        while (1) {
+            do_print("loop: ms = " + delayMS);
+	    let then = Date.now();
+	    do {
+	        let n = 10000;
+	        while (--n); 
+	        
+	    } while (Date.now() - then < delayMS);
+            let pr = p.getProfileData().threads[0].samples;
+            if (pr.length > 0 || delayMS > 30000)
+                return pr;
+            delayMS *= 2;
+        }
+    };
+
+    var profile = arbitrary_name();
+
     do_check_neq(profile.length, 0);
     let stack = profile[profile.length - 1].frames.map(f => f.location);
     stack = stack.slice(stack.lastIndexOf("js::RunScript") + 1);
