@@ -734,31 +734,44 @@ nsBidiPresUtils::ResolveParagraph(nsBlockFrame* aBlockFrame,
 #endif
 #endif
 
-  if (runCount == 1 && frameCount == 1 &&
+  bool isNonBidi = false;
+
+  nsIFrame* frame0 = frameCount > 0 ? aBpd->FrameAt(0) : nullptr;
+  nsIFrame* frame1 = frameCount > 1 ? aBpd->FrameAt(1) : nullptr;
+
+  
+  if (runCount == 1 && (frameCount == 1 || frameCount == 2) &&
       aBpd->mParagraphDepth == 0 && aBpd->GetDirection() == NSBIDI_LTR &&
-      aBpd->GetParaLevel() == 0) {
+      aBpd->GetParaLevel() == 0 &&
+      frame0 != NS_BIDI_CONTROL_FRAME &&
+      !frame0->Properties().Get(nsIFrame::EmbeddingLevelProperty()) &&
+      !frame0->Properties().Get(nsIFrame::BaseLevelProperty())) {
     
     
     
     
     
-    nsIFrame* frame = aBpd->FrameAt(0);
-    if (frame != NS_BIDI_CONTROL_FRAME &&
-        !frame->Properties().Get(nsIFrame::EmbeddingLevelProperty()) &&
-        !frame->Properties().Get(nsIFrame::BaseLevelProperty())) {
+    
+    
+    if (!frame1 || (frame1 != NS_BIDI_CONTROL_FRAME &&
+                    frame1->GetType() == nsGkAtoms::brFrame)) {
+      isNonBidi = true;
+    }
+  }
+
+  if (isNonBidi) {
 #ifdef DEBUG
 #ifdef NOISY_BIDI
-      printf("early return for single direction frame %p\n", (void*)frame);
+    printf("early return for single direction frame %p\n", (void*)frame);
 #endif
 #endif
-      frame->AddStateBits(NS_FRAME_IS_BIDI);
-      return NS_OK;
-    }
+    return NS_OK;
   }
 
   nsIFrame* firstFrame = nullptr;
   nsIFrame* lastFrame = nullptr;
 
+  
   for (; ;) {
     if (fragmentLength <= 0) {
       
