@@ -46,6 +46,7 @@ EnsureBluetoothSocketHalLoad()
 }
 
 class mozilla::dom::bluetooth::DroidSocketImpl : public ipc::UnixFdWatcher
+                                               , protected SocketIOBase
 {
 public:
   
@@ -77,6 +78,7 @@ public:
 
   DroidSocketImpl(MessageLoop* aIOLoop, BluetoothSocket* aConsumer)
     : ipc::UnixFdWatcher(aIOLoop)
+    , SocketIOBase(MAX_READ_SIZE)
     , mConsumer(aConsumer)
     , mShuttingDownOnIOThread(false)
     , mConnectionStatus(SOCKET_IS_DISCONNECTED)
@@ -87,10 +89,10 @@ public:
     MOZ_ASSERT(NS_IsMainThread());
   }
 
-  void QueueWriteData(UnixSocketRawData* aData)
+  void Send(UnixSocketRawData* aData)
   {
-    mOutgoingQ.AppendElement(aData);
-    OnFileCanWriteWithoutBlocking(GetFd());
+    EnqueueData(aData);
+    AddWatchers(WRITE_WATCHER, false);
   }
 
   bool IsShutdownOnMainThread()
@@ -173,12 +175,6 @@ private:
   
 
 
-  typedef nsTArray<UnixSocketRawData* > UnixSocketRawDataQueue;
-  UnixSocketRawDataQueue mOutgoingQ;
-
-  
-
-
   bool mShuttingDownOnIOThread;
 
   ConnectionStatus mConnectionStatus;
@@ -228,7 +224,7 @@ public:
     MOZ_ASSERT(!NS_IsMainThread());
     MOZ_ASSERT(!mImpl->IsShutdownOnIOThread());
 
-    mImpl->QueueWriteData(mData);
+    mImpl->Send(mData);
   }
 
 private:
@@ -374,7 +370,7 @@ DroidSocketImpl::Accept(int aFd)
   NS_DispatchToMainThread(r);
 
   AddWatchers(READ_WATCHER, true);
-  if (!mOutgoingQ.IsEmpty()) {
+  if (HasPendingData()) {
     AddWatchers(WRITE_WATCHER, false);
   }
 }
@@ -397,47 +393,11 @@ DroidSocketImpl::OnSocketCanReceiveWithoutBlocking(int aFd)
   MOZ_ASSERT(!NS_IsMainThread());
   MOZ_ASSERT(!mShuttingDownOnIOThread);
 
-  
-  while (true) {
-    nsAutoPtr<UnixSocketRawData> incoming(new UnixSocketRawData(MAX_READ_SIZE));
-
-    ssize_t ret = read(aFd, incoming->mData, incoming->mSize);
-
-    if (ret <= 0) {
-      if (ret == -1) {
-        if (errno == EINTR) {
-          continue; 
-        }
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-          return; 
-        }
-
-        BT_WARNING("Cannot read from network");
-        
-      }
-
-      
-      
-      RemoveWatchers(READ_WATCHER | WRITE_WATCHER);
-      nsRefPtr<nsRunnable> r =
-        new SocketIORequestClosingRunnable<DroidSocketImpl>(this);
-      NS_DispatchToMainThread(r);
-      return;
-    }
-
-    incoming->mSize = ret;
-    nsRefPtr<nsRunnable> r =
-      new SocketIOReceiveRunnable<DroidSocketImpl>(this, incoming.forget());
-    NS_DispatchToMainThread(r);
-
-    
-    
-    if (ret < ssize_t(MAX_READ_SIZE)) {
-      return;
-    }
+  nsresult rv = ReceiveData(aFd, this);
+  if (NS_FAILED(rv)) {
+    RemoveWatchers(READ_WATCHER|WRITE_WATCHER);
+    return;
   }
-
-  MOZ_CRASH("We returned early");
 }
 
 class AcceptTask MOZ_FINAL : public DroidSocketImplTask
@@ -549,39 +509,13 @@ DroidSocketImpl::OnSocketCanSendWithoutBlocking(int aFd)
   MOZ_ASSERT(!mShuttingDownOnIOThread);
   MOZ_ASSERT(aFd >= 0);
 
-  
-  
-  
-  
-  
-  
-  while (true) {
-    UnixSocketRawData* data;
-    if (mOutgoingQ.IsEmpty()) {
-      return;
-    }
-    data = mOutgoingQ.ElementAt(0);
-    const uint8_t *toWrite;
-    toWrite = data->mData;
+  nsresult rv = SendPendingData(aFd, this);
+  if (NS_FAILED(rv)) {
+    return;
+  }
 
-    while (data->mCurrentWriteOffset < data->mSize) {
-      ssize_t write_amount = data->mSize - data->mCurrentWriteOffset;
-      ssize_t written;
-      written = write (aFd, toWrite + data->mCurrentWriteOffset,
-                       write_amount);
-      if (written > 0) {
-        data->mCurrentWriteOffset += written;
-      }
-      if (written != write_amount) {
-        break;
-      }
-    }
-
-    if (data->mCurrentWriteOffset != data->mSize) {
-      AddWatchers(WRITE_WATCHER, false);
-    }
-    mOutgoingQ.RemoveElementAt(0);
-    delete data;
+  if (HasPendingData()) {
+    AddWatchers(WRITE_WATCHER, false);
   }
 }
 
@@ -603,7 +537,7 @@ DroidSocketImpl::OnSocketCanConnectWithoutBlocking(int aFd)
   NS_DispatchToMainThread(r);
 
   AddWatchers(READ_WATCHER, true);
-  if (!mOutgoingQ.IsEmpty()) {
+  if (HasPendingData()) {
     AddWatchers(WRITE_WATCHER, false);
   }
 }
