@@ -633,17 +633,24 @@ struct nsCSSRendering {
 
 
 
+
+
+
+
+
+
   static void PaintDecorationLine(nsIFrame* aFrame,
                                   gfxContext* aGfxContext,
                                   const gfxRect& aDirtyRect,
                                   const nscolor aColor,
                                   const gfxPoint& aPt,
-                                  const gfxFloat aXInFrame,
+                                  const gfxFloat aICoordInFrame,
                                   const gfxSize& aLineSize,
                                   const gfxFloat aAscent,
                                   const gfxFloat aOffset,
                                   const uint8_t aDecoration,
                                   const uint8_t aStyle,
+                                  bool aVertical,
                                   const gfxFloat aDescentLimit = -1.0);
 
   
@@ -658,12 +665,13 @@ struct nsCSSRendering {
                                    const gfxRect& aDirtyRect,
                                    const nscolor aColor,
                                    const gfxPoint& aPt,
-                                   const gfxFloat aXInFrame,
+                                   const gfxFloat aICoordInFrame,
                                    const gfxSize& aLineSize,
                                    const gfxFloat aAscent,
                                    const gfxFloat aOffset,
                                    const uint8_t aDecoration,
                                    const uint8_t aStyle,
+                                   bool aVertical,
                                    const gfxFloat aDescentLimit = -1.0);
 
   
@@ -705,6 +713,7 @@ struct nsCSSRendering {
                                       const gfxFloat aOffset,
                                       const uint8_t aDecoration,
                                       const uint8_t aStyle,
+                                      bool aVertical,
                                       const gfxFloat aDescentLimit = -1.0);
 
   static gfxContext::GraphicsOperator GetGFXBlendMode(uint8_t mBlendMode) {
@@ -738,7 +747,8 @@ protected:
                                                const gfxFloat aOffset,
                                                const uint8_t aDecoration,
                                                const uint8_t aStyle,
-                                               const gfxFloat aDscentLimit);
+                                               bool aVertical,
+                                               const gfxFloat aDescentLimit);
 
   
 
@@ -763,8 +773,9 @@ protected:
                    nsIFrame* aFrame,
                    const uint8_t aStyle,
                    const gfxRect &aClippedRect,
-                   const gfxFloat aXInFrame,
-                   const gfxFloat aCycleLength);
+                   const gfxFloat aICoordInFrame,
+                   const gfxFloat aCycleLength,
+                   bool aVertical);
 };
 
 
