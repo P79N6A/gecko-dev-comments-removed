@@ -47,6 +47,8 @@ public:
 
   nsresult Check(const nsACString& aSpec,
                  const nsACString& tables,
+                 uint32_t aFreshnessGuarantee,
+                 nsICryptoHash* aCryptoHash,
                  LookupResultArray& aResults);
 
   
@@ -61,7 +63,6 @@ public:
   nsresult MarkSpoiled(nsTArray<nsCString>& aTables);
   nsresult CacheCompletions(const CacheResultArray& aResults);
   uint32_t GetHashKey(void) { return mHashKey; }
-  void SetFreshTime(uint32_t aTime) { mFreshTime = aTime; }
   
 
 
@@ -102,7 +103,6 @@ private:
   uint32_t mHashKey;
   
   nsDataHashtable<nsCStringHashKey, int64_t> mTableFreshness;
-  uint32_t mFreshTime;
 };
 
 }

@@ -33,6 +33,7 @@
 #define COMPLETE_LENGTH 32
 
 class nsUrlClassifierDBServiceWorker;
+class nsICryptoHash;
 class nsIThread;
 class nsIURI;
 
@@ -117,6 +118,10 @@ private:
 
   
   static nsIThread* gDbBackgroundThread;
+
+  
+  
+  nsCOMPtr<nsICryptoHash> mCryptoHashMain;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsUrlClassifierDBService, NS_URLCLASSIFIERDBSERVICE_CID)

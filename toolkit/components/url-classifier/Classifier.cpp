@@ -11,6 +11,7 @@
 #include "nsIInputStream.h"
 #include "nsISeekableStream.h"
 #include "nsIFile.h"
+#include "nsThreadUtils.h"
 #include "mozilla/Telemetry.h"
 #include "prlog.h"
 
@@ -54,7 +55,6 @@ Classifier::SplitTables(const nsACString& str, nsTArray<nsCString>& tables)
 }
 
 Classifier::Classifier()
-  : mFreshTime(45 * 60)
 {
 }
 
@@ -144,6 +144,9 @@ Classifier::Open(nsIFile& aCacheDirectory)
   rv = CreateStoreDirectory();
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  
   mCryptoHash = do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -216,8 +219,15 @@ Classifier::TableRequest(nsACString& aResult)
 nsresult
 Classifier::Check(const nsACString& aSpec,
                   const nsACString& aTables,
+                  uint32_t aFreshnessGuarantee,
+                  nsICryptoHash* aCryptoHash,
                   LookupResultArray& aResults)
 {
+  nsCOMPtr<nsICryptoHash> cryptoHash = aCryptoHash;
+  if (!aCryptoHash) {
+    MOZ_ASSERT(!NS_IsMainThread(), "mCryptoHash must be used on worker thread");
+    cryptoHash = mCryptoHash;
+  }
   Telemetry::AutoTimer<Telemetry::URLCLASSIFIER_CL_CHECK_TIME> timer;
 
   
@@ -244,11 +254,11 @@ Classifier::Check(const nsACString& aSpec,
   
   for (uint32_t i = 0; i < fragments.Length(); i++) {
     Completion lookupHash;
-    lookupHash.FromPlaintext(fragments[i], mCryptoHash);
+    lookupHash.FromPlaintext(fragments[i], cryptoHash);
 
     
     Completion hostKey;
-    rv = LookupCache::GetKey(fragments[i], &hostKey, mCryptoHash);
+    rv = LookupCache::GetKey(fragments[i], &hostKey, cryptoHash);
     if (NS_FAILED(rv)) {
       
       continue;
@@ -288,7 +298,7 @@ Classifier::Check(const nsACString& aSpec,
 
         result->hash.complete = lookupHash;
         result->mComplete = complete;
-        result->mFresh = (age < mFreshTime);
+        result->mFresh = (age < aFreshnessGuarantee);
         result->mTableName.Assign(cache->TableName());
       }
     }
