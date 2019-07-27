@@ -114,6 +114,12 @@ CSSStyleSheet*
 nsLayoutStylesheetCache::UASheet()
 {
   EnsureGlobal();
+
+  if (!gStyleCache->mUASheet) {
+    LoadSheetURL("resource://gre-resources/ua.css",
+                 gStyleCache->mUASheet, true);
+  }
+
   return gStyleCache->mUASheet;
 }
 
@@ -258,11 +264,10 @@ nsLayoutStylesheetCache::nsLayoutStylesheetCache()
                mQuirkSheet, true);
   LoadSheetURL("resource://gre/res/svg.css",
                mSVGSheet, true);
-  LoadSheetURL("resource://gre-resources/ua.css",
-               mUASheet, true);
   LoadSheetURL("chrome://global/content/xul.css",
                mXULSheet, true);
 
+  
   
   
 }
@@ -297,8 +302,8 @@ nsLayoutStylesheetCache::EnsureGlobal()
   
   
   
-  
-  
+  Preferences::RegisterCallback(&DependentPrefChanged,
+                                "layout.css.ruby.enabled");
 }
 
 void
@@ -417,7 +422,9 @@ nsLayoutStylesheetCache::DependentPrefChanged(const char* aPref, void* aData)
   
   
   
+
   
+  InvalidateSheet(gStyleCache->mUASheet);
 }
 
 mozilla::StaticRefPtr<nsLayoutStylesheetCache>
