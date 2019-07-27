@@ -177,6 +177,7 @@ SandboxFilterImplContent::Build() {
 #else
   Allow(SYSCALL(select));
 #endif
+  Allow(SYSCALL(pselect6));
   
 #if SYSCALL_EXISTS(getuid32)
   Allow(SYSCALL(getuid32));
