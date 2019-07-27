@@ -2,12 +2,10 @@
 
 
 
-#ifndef mozilla_plugins_TaskFactory_h
-#define mozilla_plugins_TaskFactory_h
+#ifndef mozilla_plugins_ScopedMethodFactory_h
+#define mozilla_plugins_ScopedMethodFactory_h
 
 #include <base/task.h>
-
-
 
 
 
@@ -20,7 +18,7 @@ namespace mozilla {
 namespace plugins {
 
 template<class T>
-class TaskFactory : public RevocableStore
+class ScopedMethodFactory : public RevocableStore
 {
 private:
   template<class TaskType>
@@ -39,15 +37,7 @@ private:
   };
 
 public:
-  explicit TaskFactory(T* object) : object_(object) { }
-
-  template <class TaskParamType>
-  inline TaskParamType* NewTask()
-  {
-    typedef TaskWrapper<TaskParamType> TaskWrapper;
-    TaskWrapper* task = new TaskWrapper(this);
-    return task;
-  }
+  explicit ScopedMethodFactory(T* object) : object_(object) { }
 
   template <class Method>
   inline Task* NewRunnableMethod(Method method) {
