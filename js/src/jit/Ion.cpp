@@ -464,8 +464,10 @@ jit::FinishOffThreadBuilder(JSContext* cx, IonBuilder* builder)
     
     if (builder->script()->hasIonScript() && builder->script()->pendingIonBuilder() == builder)
         builder->script()->setPendingIonBuilder(cx, nullptr);
+
+    
     if (builder->isInList())
-        builder->remove();
+        builder->removeFrom(HelperThreadState().ionLazyLinkList());
 
     
     
@@ -579,7 +581,7 @@ jit::LazyLinkTopActivation(JSContext* cx)
     OnIonCompilationInfo info(builder->alloc().lifoAlloc());
 
     
-    builder->remove();
+    builder->removeFrom(HelperThreadState().ionLazyLinkList());
 
     {
         AutoEnterAnalysis enterTypes(cx);
