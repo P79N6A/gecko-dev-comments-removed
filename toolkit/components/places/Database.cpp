@@ -269,7 +269,7 @@ CreateRoot(nsCOMPtr<mozIStorageConnection>& aDBConn,
   
   static PRTime timestamp = 0;
   if (!timestamp)
-    timestamp = PR_Now();
+    timestamp = RoundedPRNow();
 
   
   nsCOMPtr<mozIStorageStatement> stmt;
@@ -723,6 +723,13 @@ Database::InitSchema(bool* aDatabaseMigrated)
 
       if (currentSchemaVersion < 25) {
         rv = MigrateV25Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      
+
+      if (currentSchemaVersion < 26) {
+        rv = MigrateV26Up();
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
@@ -1467,6 +1474,19 @@ Database::MigrateV25Up()
   return NS_OK;
 }
 
+nsresult
+Database::MigrateV26Up() {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+  nsresult rv = mMainConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+    "UPDATE moz_bookmarks SET dateAdded = dateAdded - dateAdded % 1000, "
+    "                         lastModified = lastModified - lastModified % 1000"));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
 void
 Database::Shutdown()
 {
@@ -1579,6 +1599,22 @@ Database::Observe(nsISupports *aSubject,
       rv = stmt->ExecuteStep(&haveNullGuids);
       NS_ENSURE_SUCCESS(rv, rv);
       MOZ_ASSERT(!haveNullGuids && "Found a favicon without a GUID!");
+    }
+
+    { 
+      
+      bool hasUnroundedDates = false;
+      nsCOMPtr<mozIStorageStatement> stmt;
+
+      nsresult rv = mMainConn->CreateStatement(NS_LITERAL_CSTRING(
+        "SELECT 1 "
+        "FROM moz_bookmarks "
+        "WHERE dateAdded % 1000 > 0 OR lastModified % 1000 > 0 LIMIT 1"
+      ), getter_AddRefs(stmt));
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = stmt->ExecuteStep(&hasUnroundedDates);
+      NS_ENSURE_SUCCESS(rv, rv);
+      MOZ_ASSERT(!hasUnroundedDates && "Found unrounded dates!");
     }
 #endif
 

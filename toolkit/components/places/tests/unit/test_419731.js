@@ -38,7 +38,7 @@ function run_test() {
 
   
   let bookmark2LastMod = PlacesUtils.bookmarks.getItemLastModified(bookmark2id);
-  PlacesUtils.bookmarks.setItemLastModified(bookmark1id, bookmark2LastMod + 1);
+  PlacesUtils.bookmarks.setItemLastModified(bookmark1id, bookmark2LastMod + 1000);
 
   
   options = PlacesUtils.history.getNewQueryOptions();
@@ -76,7 +76,7 @@ function run_test() {
 
   
   let bookmark1LastMod = PlacesUtils.bookmarks.getItemLastModified(bookmark1id);
-  PlacesUtils.bookmarks.setItemLastModified(bookmark2id, bookmark1LastMod + 1);
+  PlacesUtils.bookmarks.setItemLastModified(bookmark2id, bookmark1LastMod + 1000);
 
   
   options = PlacesUtils.history.getNewQueryOptions();
