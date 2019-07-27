@@ -6,6 +6,8 @@
 #include "PendingPlayerTracker.h"
 
 #include "mozilla/dom/AnimationTimeline.h"
+#include "nsIFrame.h"
+#include "nsIPresShell.h"
 
 using namespace mozilla;
 
@@ -20,6 +22,11 @@ void
 PendingPlayerTracker::AddPlayPending(dom::AnimationPlayer& aPlayer)
 {
   mPlayPendingSet.PutEntry(&aPlayer);
+
+  
+  
+  
+  EnsurePaintIsScheduled();
 }
 
 void
@@ -64,6 +71,26 @@ PendingPlayerTracker::StartPendingPlayers(const TimeStamp& aReadyTime)
   mPlayPendingSet.EnumerateEntries(StartPlayerAtTime,
                                    const_cast<TimeStamp*>(&aReadyTime));
   mPlayPendingSet.Clear();
+}
+
+void
+PendingPlayerTracker::EnsurePaintIsScheduled()
+{
+  if (!mDocument) {
+    return;
+  }
+
+  nsIPresShell* presShell = mDocument->GetShell();
+  if (!presShell) {
+    return;
+  }
+
+  nsIFrame* rootFrame = presShell->GetRootFrame();
+  if (!rootFrame) {
+    return;
+  }
+
+  rootFrame->SchedulePaint();
 }
 
 } 
