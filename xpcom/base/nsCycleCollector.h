@@ -18,19 +18,7 @@ template<class T> struct already_AddRefed;
 #include "js/SliceBudget.h"
 
 namespace mozilla {
-
 class CycleCollectedJSRuntime;
-
-
-
-
-typedef void* (*DeferredFinalizeAppendFunction)(void* aPointers, void* aThing);
-
-
-
-
-typedef bool (*DeferredFinalizeFunction)(uint32_t aSlice, void* aData);
-
 }
 
 bool nsCycleCollector_init();
@@ -76,14 +64,5 @@ extern nsresult
 nsCycleCollectorLoggerConstructor(nsISupports* aOuter,
                                   const nsIID& aIID,
                                   void** aInstancePtr);
-
-namespace mozilla {
-
-void DeferredFinalize(DeferredFinalizeAppendFunction aAppendFunc,
-                      DeferredFinalizeFunction aFunc,
-                      void* aThing);
-void DeferredFinalize(nsISupports* aSupports);
-
-} 
 
 #endif 

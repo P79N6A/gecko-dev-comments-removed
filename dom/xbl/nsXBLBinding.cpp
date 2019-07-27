@@ -50,12 +50,12 @@
 #include "prprf.h"
 #include "nsNodeUtils.h"
 #include "nsJSUtils.h"
-#include "nsCycleCollector.h"
 
 
 
 #include "nsDOMClassInfo.h"
 
+#include "mozilla/DeferredFinalize.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/ShadowRoot.h"
