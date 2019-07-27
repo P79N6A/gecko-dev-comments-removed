@@ -165,7 +165,7 @@ static_assert(QUICK_BUFFERING_LOW_DATA_USECS <= AMPLE_AUDIO_USECS,
 static const int64_t ESTIMATED_DURATION_FUZZ_FACTOR_USECS = USECS_PER_S / 2;
 
 static TimeDuration UsecsToDuration(int64_t aUsecs) {
-  return TimeDuration::FromMilliseconds(static_cast<double>(aUsecs) / USECS_PER_MS);
+  return TimeDuration::FromMicroseconds(aUsecs);
 }
 
 static int64_t DurationToUsecs(TimeDuration aDuration) {
@@ -2569,6 +2569,7 @@ void MediaDecoderStateMachine::RenderVideoFrame(VideoData* aData,
   if (container) {
     container->SetCurrentFrame(ThebesIntSize(aData->mDisplay), aData->mImage,
                                aTarget);
+    MOZ_ASSERT(container->GetFrameDelay() >= 0 || mScheduler->IsRealTime());
   }
 }
 
@@ -2655,6 +2656,7 @@ void MediaDecoderStateMachine::AdvanceFrame()
   }
 
   int64_t clock_time = GetClock();
+  TimeStamp nowTime = TimeStamp::Now();
   
   
   int64_t remainingTime = AUDIO_DURATION_USECS;
@@ -2721,8 +2723,8 @@ void MediaDecoderStateMachine::AdvanceFrame()
 
   if (currentFrame) {
     
-    TimeStamp presTime = mPlayStartTime - UsecsToDuration(mPlayDuration) +
-                          UsecsToDuration(currentFrame->mTime - mStartTime);
+    int64_t delta = currentFrame->mTime - clock_time;
+    TimeStamp presTime = nowTime + TimeDuration::FromMicroseconds(delta / mPlaybackRate);
     NS_ASSERTION(currentFrame->mTime >= mStartTime, "Should have positive frame time");
     
     
@@ -2768,7 +2770,7 @@ void MediaDecoderStateMachine::AdvanceFrame()
   
   UpdateReadyState();
 
-  ScheduleStateMachine(remainingTime);
+  ScheduleStateMachine(remainingTime / mPlaybackRate);
 }
 
 nsresult
