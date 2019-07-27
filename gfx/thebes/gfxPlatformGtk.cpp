@@ -93,7 +93,9 @@ gfxPlatformGtk::CreateOffscreenSurface(const IntSize& size,
     
     GdkScreen *gdkScreen = gdk_screen_get_default();
     if (gdkScreen) {
-        if (UseXRender()) {
+        
+        
+        if (UseXRender() && !UseImageOffscreenSurfaces()) {
             Screen *screen = gdk_x11_screen_get_xscreen(gdkScreen);
             XRenderPictFormat* xrenderFormat =
                 gfxXlibSurface::FindRenderFormat(DisplayOfScreen(screen),
