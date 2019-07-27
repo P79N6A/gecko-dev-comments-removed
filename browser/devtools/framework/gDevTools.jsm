@@ -29,6 +29,13 @@ const MAX_ORDINAL = 99;
 
 
 
+const JS_HAS_SYMBOLS = typeof Symbol === "function";
+const ITERATOR_SYMBOL = JS_HAS_SYMBOLS ? Symbol.iterator : "@@iterator";
+
+
+
+
+
 this.DevTools = function DevTools() {
   this._tools = new Map();     
   this._themes = new Map();    
@@ -486,7 +493,7 @@ DevTools.prototype = {
   
 
 
-  '@@iterator': function*() {
+  *[ITERATOR_SYMBOL]() {
     for (let toolbox of this._toolboxes) {
       yield toolbox;
     }

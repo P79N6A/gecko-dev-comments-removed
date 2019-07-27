@@ -2563,6 +2563,7 @@ struct JSFunctionSpec {
 
 
 
+
 #define JS_FS(name,call,nargs,flags)                                          \
     JS_FNSPEC(name, call, nullptr, nargs, flags, nullptr)
 #define JS_FN(name,call,nargs,flags)                                          \
@@ -2575,10 +2576,17 @@ struct JSFunctionSpec {
     JS_FNSPEC(name, nullptr, nullptr, nargs, flags, selfHostedName)
 #define JS_SELF_HOSTED_SYM_FN(symbol, selfHostedName, nargs, flags)           \
     JS_SYM_FNSPEC(symbol, nullptr, nullptr, nargs, flags, selfHostedName)
+
+#ifdef JS_HAS_SYMBOLS
 #define JS_SYM_FNSPEC(symbol, call, info, nargs, flags, selfHostedName)       \
     JS_FNSPEC(reinterpret_cast<const char *>(                                 \
                   uint32_t(::JS::SymbolCode::symbol) + 1),                    \
               call, info, nargs, flags, selfHostedName)
+#else
+#define JS_SYM_FNSPEC(symbol, call, info, nargs, flags, selfHostedName)       \
+    JS_FNSPEC("@@" #symbol, call, info, nargs, flags, selfHostedName)
+#endif
+
 #define JS_FNSPEC(name,call,info,nargs,flags,selfHostedName)                  \
     {name, {call, info}, nargs, flags, selfHostedName}
 

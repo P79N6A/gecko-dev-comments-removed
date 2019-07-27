@@ -18,8 +18,6 @@ var GeneratorFunctionPrototype = Object.getPrototypeOf(g);
 var GeneratorFunction = GeneratorFunctionPrototype.constructor;
 var GeneratorObjectPrototype = GeneratorFunctionPrototype.prototype;
 
-var std_iterator = "@@iterator";
-
 
 
 
@@ -66,7 +64,9 @@ function TestGeneratorObjectPrototype() {
     assertEq(Object.getPrototypeOf((function*(){yield 1}).prototype),
                GeneratorObjectPrototype);
 
-    var expected_property_names = ["next", "throw", "constructor", std_iterator];
+    var expected_property_names = ["next", "throw", "constructor"];
+    if (!JS_HAS_SYMBOLS)
+        expected_property_names.push(std_iterator);
     var found_property_names =
         Object.getOwnPropertyNames(GeneratorObjectPrototype);
 

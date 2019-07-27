@@ -13,6 +13,13 @@ const PANE_APPEARANCE_DELAY = 50;
 const PAGE_SIZE_ITEM_COUNT_RATIO = 5;
 const WIDGET_FOCUSABLE_NODES = new Set(["vbox", "hbox"]);
 
+
+
+
+
+const JS_HAS_SYMBOLS = typeof Symbol === "function";
+const ITERATOR_SYMBOL = JS_HAS_SYMBOLS ? Symbol.iterator : "@@iterator";
+
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
@@ -1729,7 +1736,7 @@ this.WidgetMethods = {
 
 
 
-Item.prototype["@@iterator"] =
-WidgetMethods["@@iterator"] = function*() {
+Item.prototype[ITERATOR_SYMBOL] =
+WidgetMethods[ITERATOR_SYMBOL] = function*() {
   yield* this._itemsByElement.values();
 };

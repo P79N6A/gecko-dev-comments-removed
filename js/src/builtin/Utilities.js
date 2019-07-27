@@ -31,7 +31,6 @@
 
 
 
-var std_iterator = '@@iterator'; 
 var std_Array_indexOf = ArrayIndexOf;
 
 var std_WeakMap = WeakMap;

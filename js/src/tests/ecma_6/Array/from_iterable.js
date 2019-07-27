@@ -8,7 +8,7 @@
 
 
 var a = ['a', 'e', 'i', 'o', 'u'];
-a["@@iterator"] = function* () {
+a[std_iterator] = function* () {
     for (var i = 5; i--; )
         yield this[i];
 };

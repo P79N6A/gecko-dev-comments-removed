@@ -10,17 +10,8 @@ module.metadata = {
 
 
 
-const iteratorSymbol = (function() {
-  try {
-    for (var _ of Proxy.create({get: function(_, name) { throw name; } }))
-      break;
-  } catch (name) {
-    return name;
-  }
-  throw new TypeError;
-})();
-
-exports.iteratorSymbol = iteratorSymbol;
+const JS_HAS_SYMBOLS = typeof Symbol === "function";
+exports.iteratorSymbol = JS_HAS_SYMBOLS ? Symbol.iterator : "@@iterator";
 
 
 

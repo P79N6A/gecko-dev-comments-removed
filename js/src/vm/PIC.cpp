@@ -18,6 +18,12 @@
 using namespace js;
 using namespace js::gc;
 
+#ifdef JS_HAS_SYMBOLS
+#define STD_ITERATOR_ID  SYMBOL_TO_JSID(cx->wellKnownSymbols().iterator)
+#else
+#define STD_ITERATOR_ID  ::js::NameToId(cx->names().std_iterator)
+#endif
+
 bool
 js::ForOfPIC::Chain::initialize(JSContext *cx)
 {
@@ -45,7 +51,7 @@ js::ForOfPIC::Chain::initialize(JSContext *cx)
     disabled_ = true;
 
     
-    Shape *iterShape = arrayProto->lookup(cx, cx->names().std_iterator);
+    Shape *iterShape = arrayProto->lookup(cx, STD_ITERATOR_ID);
     if (!iterShape || !iterShape->hasSlot() || !iterShape->hasDefaultGetter())
         return true;
 
@@ -144,7 +150,7 @@ js::ForOfPIC::Chain::tryOptimizeArray(JSContext *cx, HandleArrayObject array, bo
         return true;
 
     
-    if (array->lookup(cx, cx->names().std_iterator))
+    if (array->lookup(cx, STD_ITERATOR_ID))
         return true;
 
     

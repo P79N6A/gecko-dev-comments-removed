@@ -28,7 +28,20 @@ namespace js {
 
 
 
-static const uint32_t XDR_BYTECODE_VERSION = uint32_t(0xb973c0de - 188);
+
+
+
+
+
+
+static const uint32_t XDR_BYTECODE_VERSION_SUBTRAHEND = 190;
+static_assert(XDR_BYTECODE_VERSION_SUBTRAHEND % 2 == 0, "see the comment above");
+static const uint32_t XDR_BYTECODE_VERSION =
+    uint32_t(0xb973c0de - (XDR_BYTECODE_VERSION_SUBTRAHEND
+#ifdef JS_HAS_SYMBOLS
+                                                           + 1
+#endif
+                                                              ));
 
 class XDRBuffer {
   public:
