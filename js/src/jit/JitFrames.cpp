@@ -1495,10 +1495,11 @@ GetPcScript(JSContext *cx, JSScript **scriptRes, jsbytecode **pcRes)
         return;
 
     
-    ++it; 
+    if (!it.isBailoutJS())
+        ++it; 
     jsbytecode *pc = nullptr;
 
-    if (it.isIonJS()) {
+    if (it.isIonJS() || it.isBailoutJS()) {
         InlineFrameIterator ifi(cx, &it);
         *scriptRes = ifi.script();
         pc = ifi.pc();
