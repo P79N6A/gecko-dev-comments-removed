@@ -116,6 +116,7 @@ nsGtkIMModule::nsGtkIMModule(nsWindow* aOwnerWindow)
     , mIsIMFocused(false)
     , mIsDeletingSurrounding(false)
     , mLayoutChanged(false)
+    , mSetCursorPositionOnKeyEvent(true)
 {
     if (!gGtkIMLog) {
         gGtkIMLog = PR_NewLogModule("nsGtkIMModuleWidgets");
@@ -383,6 +384,11 @@ nsGtkIMModule::OnKeyEvent(nsWindow* aCaller, GdkEventKey* aEvent,
         return false;
     }
 
+    if (mSetCursorPositionOnKeyEvent) {
+        SetCursorPosition(currentContext);
+        mSetCursorPositionOnKeyEvent = false;
+    }
+
     mKeyDownEventWasSent = aKeyDownEventWasSent;
     mFilterKeyEvent = true;
     mProcessingKeyEvent = aEvent;
@@ -536,7 +542,13 @@ nsGtkIMModule::OnLayoutChange()
         return;
     }
 
-    SetCursorPosition(GetActiveContext());
+    if (IsComposing()) {
+        SetCursorPosition(GetActiveContext());
+    } else {
+        
+        
+        mSetCursorPositionOnKeyEvent = true;
+    }
     mLayoutChanged = true;
 }
 
@@ -552,7 +564,7 @@ nsGtkIMModule::OnUpdateComposition()
         
         mSelection.Clear();
         EnsureToCacheSelection();
-        mLayoutChanged = false;
+        mSetCursorPositionOnKeyEvent = true;
     }
 
     
@@ -730,6 +742,7 @@ nsGtkIMModule::Focus()
 
     gtk_im_context_focus_in(currentContext);
     mIsIMFocused = true;
+    mSetCursorPositionOnKeyEvent = true;
 
     if (!IsEnabled()) {
         
@@ -787,7 +800,7 @@ nsGtkIMModule::OnSelectionChange(nsWindow* aCaller,
     if (!IsComposing()) {
         
         
-        SetCursorPosition(GetActiveContext());
+        mSetCursorPositionOnKeyEvent = true;
     }
 
     

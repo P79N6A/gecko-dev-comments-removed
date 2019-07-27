@@ -259,6 +259,10 @@ protected:
     
     
     bool mLayoutChanged;
+    
+    
+    
+    bool mSetCursorPositionOnKeyEvent;
 
     
     
