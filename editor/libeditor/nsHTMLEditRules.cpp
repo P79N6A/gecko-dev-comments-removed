@@ -3145,8 +3145,7 @@ nsHTMLEditRules::WillMakeList(Selection* aSelection,
   if (!aSelection || !aListType || !aCancel || !aHandled) {
     return NS_ERROR_NULL_POINTER;
   }
-  nsCOMPtr<nsIAtom> listTypeAtom = do_GetAtom(*aListType);
-  NS_ENSURE_TRUE(listTypeAtom, NS_ERROR_OUT_OF_MEMORY);
+  nsCOMPtr<nsIAtom> listType = do_GetAtom(*aListType);
 
   nsresult res = WillInsert(aSelection, aCancel);
   NS_ENSURE_SUCCESS(res, res);
@@ -3161,7 +3160,7 @@ nsHTMLEditRules::WillMakeList(Selection* aSelection,
   if (aItemType) { 
     itemType = do_GetAtom(*aItemType);
     NS_ENSURE_TRUE(itemType, NS_ERROR_OUT_OF_MEMORY);
-  } else if (listTypeAtom == nsGkAtoms::dl) {
+  } else if (listType == nsGkAtoms::dl) {
     itemType = nsGkAtoms::dd;
   } else {
     itemType = nsGkAtoms::li;
@@ -3199,9 +3198,6 @@ nsHTMLEditRules::WillMakeList(Selection* aSelection,
   
   
   if (!listCount || bOnlyBreaks) {
-    nsCOMPtr<nsIDOMNode> parent, theList, theListItem;
-    int32_t offset;
-
     
     if (bOnlyBreaks) {
       for (int32_t j = 0; j < (int32_t)listCount; j++) {
@@ -3212,29 +3208,31 @@ nsHTMLEditRules::WillMakeList(Selection* aSelection,
     }
 
     
-    NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->GetStartNodeAndOffset(aSelection,
-                                             getter_AddRefs(parent), &offset);
-    NS_ENSURE_SUCCESS(res, res);
+    NS_ENSURE_STATE(aSelection->RangeCount());
+    nsCOMPtr<nsINode> parent = aSelection->GetRangeAt(0)->GetStartParent();
+    int32_t offset = aSelection->GetRangeAt(0)->StartOffset();
+    NS_ENSURE_STATE(parent);
 
     
     NS_ENSURE_STATE(mHTMLEditor);
-    if (!mHTMLEditor->CanContainTag(parent, listTypeAtom)) {
+    if (!mHTMLEditor->CanContainTag(parent->AsDOMNode(), listType)) {
       *aCancel = true;
       return NS_OK;
     }
-    res = SplitAsNeeded(aListType, address_of(parent), &offset);
+    res = SplitAsNeeded(*listType, parent, offset);
     NS_ENSURE_SUCCESS(res, res);
     NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->CreateNode(*aListType, parent, offset,
-                                  getter_AddRefs(theList));
-    NS_ENSURE_SUCCESS(res, res);
+    nsCOMPtr<Element> theList =
+      mHTMLEditor->CreateNode(listType, parent, offset);
+    NS_ENSURE_STATE(theList);
+
     NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->CreateNode(nsDependentAtomString(itemType), theList, 0,
-                                  getter_AddRefs(theListItem));
-    NS_ENSURE_SUCCESS(res, res);
+    nsCOMPtr<Element> theListItem =
+      mHTMLEditor->CreateNode(itemType, theList, 0);
+    NS_ENSURE_STATE(theListItem);
+
     
-    mNewBlock = theListItem;
+    mNewBlock = GetAsDOMNode(theListItem);
     
     res = aSelection->Collapse(theListItem, 0);
     
@@ -3253,18 +3251,14 @@ nsHTMLEditRules::WillMakeList(Selection* aSelection,
   
 
   listCount = arrayOfNodes.Count();
-  nsCOMPtr<nsIDOMNode> curParent;
-  nsCOMPtr<nsIDOMNode> curList;
-  nsCOMPtr<nsIContent> curListAsContent;
-  nsCOMPtr<Element> prevListItem;
+  nsCOMPtr<nsINode> curParent;
+  nsCOMPtr<Element> curList, prevListItem;
 
   for (int32_t i = 0; i < listCount; i++) {
     
     nsCOMPtr<nsIDOMNode> newBlock;
-    nsCOMPtr<nsIDOMNode> curNode = arrayOfNodes[i];
-    nsCOMPtr<nsIContent> curNodeAsContent = do_QueryInterface(curNode);
-    nsCOMPtr<Element> curNodeAsElement = curNodeAsContent->IsElement()
-      ? curNodeAsContent->AsElement() : nullptr;
+    nsCOMPtr<nsIContent> curNode = do_QueryInterface(arrayOfNodes[i]);
+    NS_ENSURE_STATE(curNode);
     int32_t offset;
     curParent = nsEditor::GetNodeLocation(curNode, &offset);
 
@@ -3274,9 +3268,6 @@ nsHTMLEditRules::WillMakeList(Selection* aSelection,
       curList = nullptr;
     }
 
-    curListAsContent = do_QueryInterface(curList);
-    NS_ENSURE_STATE(curListAsContent || !curList);
-
     
     if (nsTextEditUtils::IsBreak(curNode)) {
       NS_ENSURE_STATE(mHTMLEditor);
@@ -3284,7 +3275,7 @@ nsHTMLEditRules::WillMakeList(Selection* aSelection,
       NS_ENSURE_SUCCESS(res, res);
       prevListItem = 0;
       continue;
-    } else if (IsEmptyInline(curNode)) {
+    } else if (IsEmptyInline(GetAsDOMNode(curNode))) {
       
       NS_ENSURE_STATE(mHTMLEditor);
       res = mHTMLEditor->DeleteNode(curNode);
@@ -3300,21 +3291,20 @@ nsHTMLEditRules::WillMakeList(Selection* aSelection,
         
         
         NS_ENSURE_STATE(mHTMLEditor);
-        res = mHTMLEditor->MoveNode(curNodeAsContent, curListAsContent, -1);
+        res = mHTMLEditor->MoveNode(curNode, curList, -1);
         NS_ENSURE_SUCCESS(res, res);
-        res = ConvertListType(curNode, address_of(newBlock), listTypeAtom,
-                              itemType);
+        res = ConvertListType(GetAsDOMNode(curNode), address_of(newBlock),
+                              listType, itemType);
         NS_ENSURE_SUCCESS(res, res);
         NS_ENSURE_STATE(mHTMLEditor);
         res = mHTMLEditor->RemoveBlockContainer(newBlock);
         NS_ENSURE_SUCCESS(res, res);
       } else {
         
-        res = ConvertListType(curNode, address_of(newBlock), listTypeAtom,
-                              itemType);
+        res = ConvertListType(GetAsDOMNode(curNode), address_of(newBlock),
+                              listType, itemType);
         NS_ENSURE_SUCCESS(res, res);
-        curList = newBlock;
-        curListAsContent = do_QueryInterface(curList);
+        curList = do_QueryInterface(newBlock);
       }
       prevListItem = 0;
       continue;
@@ -3322,53 +3312,51 @@ nsHTMLEditRules::WillMakeList(Selection* aSelection,
 
     if (nsHTMLEditUtils::IsListItem(curNode)) {
       NS_ENSURE_STATE(mHTMLEditor);
-      if (mHTMLEditor->GetTag(curParent) != listTypeAtom) {
+      if (curParent->Tag() != listType) {
         
         
         if (!curList || nsEditorUtils::IsDescendantOf(curNode, curList)) {
           NS_ENSURE_STATE(mHTMLEditor);
-          res = mHTMLEditor->SplitNode(curParent, offset,
+          res = mHTMLEditor->SplitNode(curParent->AsDOMNode(), offset,
                                        getter_AddRefs(newBlock));
           NS_ENSURE_SUCCESS(res, res);
           int32_t offset;
-          nsCOMPtr<nsIDOMNode> parent = nsEditor::GetNodeLocation(curParent, &offset);
+          nsCOMPtr<nsINode> parent = nsEditor::GetNodeLocation(curParent,
+                                                               &offset);
           NS_ENSURE_STATE(mHTMLEditor);
-          res = mHTMLEditor->CreateNode(*aListType, parent, offset,
-                                        getter_AddRefs(curList));
-          NS_ENSURE_SUCCESS(res, res);
-          curListAsContent = do_QueryInterface(curList);
+          curList = mHTMLEditor->CreateNode(listType, parent, offset);
+          NS_ENSURE_STATE(curList);
         }
         
         NS_ENSURE_STATE(mHTMLEditor);
-        res = mHTMLEditor->MoveNode(curNodeAsContent, curListAsContent, -1);
+        res = mHTMLEditor->MoveNode(curNode, curList, -1);
         NS_ENSURE_SUCCESS(res, res);
         
         NS_ENSURE_STATE(mHTMLEditor);
-        if (!mHTMLEditor->NodeIsType(curNode, itemType)) {
+        if (curNode->Tag() != itemType) {
           NS_ENSURE_STATE(mHTMLEditor);
-          NS_ENSURE_STATE(curNodeAsElement);
           newBlock = dont_AddRef(GetAsDOMNode(
-            mHTMLEditor->ReplaceContainer(curNodeAsElement, itemType).take()));
+            mHTMLEditor->ReplaceContainer(curNode->AsElement(),
+                                          itemType).take()));
           NS_ENSURE_STATE(newBlock);
         }
       } else {
         
         
         if (!curList) {
-          curList = curParent;
-          curListAsContent = do_QueryInterface(curList);
+          curList = curParent->AsElement();
         } else if (curParent != curList) {
           
           NS_ENSURE_STATE(mHTMLEditor);
-          res = mHTMLEditor->MoveNode(curNodeAsContent, curListAsContent, -1);
+          res = mHTMLEditor->MoveNode(curNode, curList, -1);
           NS_ENSURE_SUCCESS(res, res);
         }
         NS_ENSURE_STATE(mHTMLEditor);
-        if (!mHTMLEditor->NodeIsType(curNode, itemType)) {
+        if (curNode->Tag() != itemType) {
           NS_ENSURE_STATE(mHTMLEditor);
-          NS_ENSURE_STATE(curNodeAsElement);
           newBlock = dont_AddRef(GetAsDOMNode(
-            mHTMLEditor->ReplaceContainer(curNodeAsElement, itemType).take()));
+            mHTMLEditor->ReplaceContainer(curNode->AsElement(),
+                                          itemType).take()));
           NS_ENSURE_STATE(newBlock);
         }
       }
@@ -3387,14 +3375,13 @@ nsHTMLEditRules::WillMakeList(Selection* aSelection,
 
     
     
-    if (nsHTMLEditUtils::IsDiv(curNode)) {
+    if (curNode->Tag() == nsGkAtoms::div) {
       prevListItem = nullptr;
       int32_t j = i + 1;
-      res = GetInnerContent(curNode, arrayOfNodes, &j);
+      res = GetInnerContent(curNode->AsDOMNode(), arrayOfNodes, &j);
       NS_ENSURE_SUCCESS(res, res);
       NS_ENSURE_STATE(mHTMLEditor);
-      NS_ENSURE_STATE(curNodeAsElement);
-      res = mHTMLEditor->RemoveContainer(curNodeAsElement);
+      res = mHTMLEditor->RemoveContainer(curNode);
       NS_ENSURE_SUCCESS(res, res);
       listCount = arrayOfNodes.Count();
       continue;
@@ -3402,15 +3389,13 @@ nsHTMLEditRules::WillMakeList(Selection* aSelection,
 
     
     if (!curList) {
-      res = SplitAsNeeded(aListType, address_of(curParent), &offset);
+      res = SplitAsNeeded(*listType, curParent, offset);
       NS_ENSURE_SUCCESS(res, res);
       NS_ENSURE_STATE(mHTMLEditor);
-      res = mHTMLEditor->CreateNode(*aListType, curParent, offset,
-                                    getter_AddRefs(curList));
+      curList = mHTMLEditor->CreateNode(listType, curParent, offset);
       NS_ENSURE_SUCCESS(res, res);
-      curListAsContent = do_QueryInterface(curList);
       
-      mNewBlock = curList;
+      mNewBlock = GetAsDOMNode(curList);
       
       prevListItem = 0;
     }
@@ -3418,43 +3403,39 @@ nsHTMLEditRules::WillMakeList(Selection* aSelection,
     
     nsCOMPtr<Element> listItem;
     if (!nsHTMLEditUtils::IsListItem(curNode)) {
-      if (IsInlineNode(curNode) && prevListItem) {
+      if (IsInlineNode(GetAsDOMNode(curNode)) && prevListItem) {
         
         
         NS_ENSURE_STATE(mHTMLEditor);
-        res = mHTMLEditor->MoveNode(curNodeAsContent, prevListItem, -1);
+        res = mHTMLEditor->MoveNode(curNode, prevListItem, -1);
         NS_ENSURE_SUCCESS(res, res);
       } else {
         
-        if (nsHTMLEditUtils::IsParagraph(curNode)) {
+        if (curNode->Tag() == nsGkAtoms::p) {
           NS_ENSURE_STATE(mHTMLEditor);
-          NS_ENSURE_STATE(curNodeAsElement);
-          listItem = mHTMLEditor->ReplaceContainer(curNodeAsElement, itemType);
+          listItem = mHTMLEditor->ReplaceContainer(curNode->AsElement(),
+                                                   itemType);
           NS_ENSURE_STATE(listItem);
         } else {
           NS_ENSURE_STATE(mHTMLEditor);
-          NS_ENSURE_STATE(curNodeAsContent);
-          listItem = mHTMLEditor->InsertContainerAbove(curNodeAsContent,
-                                                       itemType);
+          listItem = mHTMLEditor->InsertContainerAbove(curNode, itemType);
           NS_ENSURE_STATE(listItem);
         }
-        if (IsInlineNode(curNode)) {
+        if (IsInlineNode(GetAsDOMNode(curNode))) {
           prevListItem = listItem;
         } else {
           prevListItem = nullptr;
         }
       }
     } else {
-      listItem = curNodeAsElement;
+      listItem = curNode->AsElement();
     }
 
     if (listItem) {
       
       
       NS_ENSURE_STATE(mHTMLEditor);
-      nsCOMPtr<nsINode> curList_ = do_QueryInterface(curList);
-      NS_ENSURE_STATE(curList_);
-      res = mHTMLEditor->MoveNode(listItem, curList_, -1);
+      res = mHTMLEditor->MoveNode(listItem, curList, -1);
       NS_ENSURE_SUCCESS(res, res);
     }
   }
@@ -3550,6 +3531,7 @@ nsHTMLEditRules::WillMakeBasicBlock(Selection* aSelection,
                                     bool *aCancel,
                                     bool *aHandled)
 {
+  nsCOMPtr<nsIAtom> blockType = do_GetAtom(*aBlockType);
   if (!aSelection || !aCancel || !aHandled) { return NS_ERROR_NULL_POINTER; }
   
   *aCancel = false;
@@ -3593,20 +3575,21 @@ nsHTMLEditRules::WillMakeBasicBlock(Selection* aSelection,
   
   if (ListIsEmptyLine(arrayOfNodes))
   {
-    nsCOMPtr<nsIDOMNode> parent, theBlock;
-    int32_t offset;
+    nsCOMPtr<nsIDOMNode> theBlock;
     
     
-    NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->GetStartNodeAndOffset(aSelection, getter_AddRefs(parent), &offset);
-    NS_ENSURE_SUCCESS(res, res);
+    NS_ENSURE_STATE(aSelection->RangeCount());
+    nsCOMPtr<nsINode> parent = aSelection->GetRangeAt(0)->GetStartParent();
+    int32_t offset = aSelection->GetRangeAt(0)->StartOffset();
+    NS_ENSURE_STATE(parent);
     if (tString.EqualsLiteral("normal") ||
         tString.IsEmpty() ) 
     {
-      nsCOMPtr<nsIDOMNode> curBlock = parent;
+      nsCOMPtr<nsIDOMNode> curBlock = parent->AsDOMNode();
       if (!IsBlockNode(curBlock)) {
         NS_ENSURE_STATE(mHTMLEditor);
-        curBlock = mHTMLEditor->GetBlockNodeParent(parent);
+        curBlock = dont_AddRef(GetAsDOMNode(
+          mHTMLEditor->GetBlockNodeParent(parent).take()));
       }
       nsCOMPtr<nsIDOMNode> curBlockPar;
       NS_ENSURE_TRUE(curBlock, NS_ERROR_NULL_POINTER);
@@ -3617,7 +3600,8 @@ nsHTMLEditRules::WillMakeBasicBlock(Selection* aSelection,
         
         nsCOMPtr<nsIDOMNode> brNode;
         NS_ENSURE_STATE(mHTMLEditor);
-        res = mHTMLEditor->GetNextHTMLNode(parent, offset, address_of(brNode));
+        res = mHTMLEditor->GetNextHTMLNode(parent->AsDOMNode(), offset,
+                                           address_of(brNode));
         NS_ENSURE_SUCCESS(res, res);        
         if (brNode && nsTextEditUtils::IsBreak(brNode))
         {
@@ -3627,7 +3611,8 @@ nsHTMLEditRules::WillMakeBasicBlock(Selection* aSelection,
         }
         
         NS_ENSURE_STATE(mHTMLEditor);
-        res = mHTMLEditor->SplitNodeDeep(curBlock, parent, offset, &offset, true);
+        res = mHTMLEditor->SplitNodeDeep(curBlock, parent->AsDOMNode(), offset,
+                                         &offset, true);
         NS_ENSURE_SUCCESS(res, res);
         
         NS_ENSURE_STATE(mHTMLEditor);
@@ -3645,7 +3630,8 @@ nsHTMLEditRules::WillMakeBasicBlock(Selection* aSelection,
       
       nsCOMPtr<nsIDOMNode> brNode;
       NS_ENSURE_STATE(mHTMLEditor);
-      res = mHTMLEditor->GetNextHTMLNode(parent, offset, address_of(brNode), true);
+      res = mHTMLEditor->GetNextHTMLNode(parent->AsDOMNode(), offset,
+                                         address_of(brNode), true);
       NS_ENSURE_SUCCESS(res, res);
       if (brNode && nsTextEditUtils::IsBreak(brNode))
       {
@@ -3656,11 +3642,12 @@ nsHTMLEditRules::WillMakeBasicBlock(Selection* aSelection,
         arrayOfNodes.RemoveObject(brNode);
       }
       
-      res = SplitAsNeeded(aBlockType, address_of(parent), &offset);
+      res = SplitAsNeeded(*blockType, parent, offset);
       NS_ENSURE_SUCCESS(res, res);
       NS_ENSURE_STATE(mHTMLEditor);
-      res = mHTMLEditor->CreateNode(*aBlockType, parent, offset, getter_AddRefs(theBlock));
-      NS_ENSURE_SUCCESS(res, res);
+      theBlock = dont_AddRef(GetAsDOMNode(
+        mHTMLEditor->CreateNode(blockType, parent, offset).take()));
+      NS_ENSURE_STATE(theBlock);
       
       mNewBlock = theBlock;
       
@@ -3784,26 +3771,25 @@ nsHTMLEditRules::WillCSSIndent(Selection* aSelection,
     NS_ENSURE_SUCCESS(res, res);
   }
   
-  NS_NAMED_LITERAL_STRING(quoteType, "blockquote");
   
   if (ListIsEmptyLine(arrayOfNodes))
   {
-    nsCOMPtr<nsIDOMNode> parent, theBlock;
-    int32_t offset;
-    nsAutoString quoteType(NS_LITERAL_STRING("div"));
     
+    NS_ENSURE_STATE(aSelection->RangeCount());
+    nsCOMPtr<nsINode> parent = aSelection->GetRangeAt(0)->GetStartParent();
+    int32_t offset = aSelection->GetRangeAt(0)->StartOffset();
+    NS_ENSURE_STATE(parent);
+
+    
+    res = SplitAsNeeded(*nsGkAtoms::div, parent, offset);
+    NS_ENSURE_SUCCESS(res, res);
     NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->GetStartNodeAndOffset(aSelection, getter_AddRefs(parent), &offset);
-    NS_ENSURE_SUCCESS(res, res);
+    nsCOMPtr<Element> theBlock = mHTMLEditor->CreateNode(nsGkAtoms::div,
+                                                         parent, offset);
+    NS_ENSURE_STATE(theBlock);
     
-    res = SplitAsNeeded(&quoteType, address_of(parent), &offset);
-    NS_ENSURE_SUCCESS(res, res);
-    NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->CreateNode(quoteType, parent, offset, getter_AddRefs(theBlock));
-    NS_ENSURE_SUCCESS(res, res);
-    
-    mNewBlock = theBlock;
-    RelativeChangeIndentationOfElementNode(theBlock, +1);
+    mNewBlock = theBlock->AsDOMNode();
+    RelativeChangeIndentationOfElementNode(theBlock->AsDOMNode(), +1);
     
     for (int32_t j = arrayOfNodes.Count() - 1; j >= 0; --j) 
     {
@@ -3883,14 +3869,9 @@ nsHTMLEditRules::WillCSSIndent(Selection* aSelection,
       }
 
       if (!curList || (sibling && sibling != curList)) {
-        nsAutoString listTag;
-        curParent->Tag()->ToString(listTag);
-        ToLowerCase(listTag);
         
-        nsCOMPtr<nsIDOMNode> curParentDOM = curParent->AsDOMNode();
-        res = SplitAsNeeded(&listTag, address_of(curParentDOM), &offset);
+        res = SplitAsNeeded(*curParent->Tag(), curParent, offset);
         NS_ENSURE_SUCCESS(res, res);
-        curParent = do_QueryInterface(curParentDOM);
         NS_ENSURE_STATE(mHTMLEditor);
         curList = mHTMLEditor->CreateNode(curParent->Tag(), curParent, offset);
         NS_ENSURE_STATE(curList);
@@ -3920,11 +3901,8 @@ nsHTMLEditRules::WillCSSIndent(Selection* aSelection,
             return NS_OK; 
           }
 
-          nsCOMPtr<nsIDOMNode> curParentDOM = curParent->AsDOMNode();
-          res = SplitAsNeeded(&NS_LITERAL_STRING("div"),
-                              address_of(curParentDOM), &offset);
+          res = SplitAsNeeded(*nsGkAtoms::div, curParent, offset);
           NS_ENSURE_SUCCESS(res, res);
-          curParent = do_QueryInterface(curParentDOM);
           NS_ENSURE_STATE(mHTMLEditor);
           curQuote = mHTMLEditor->CreateNode(nsGkAtoms::div, curParent,
                                              offset);
@@ -3978,26 +3956,24 @@ nsHTMLEditRules::WillHTMLIndent(Selection* aSelection,
   res = GetNodesForOperation(arrayOfRanges, arrayOfNodes, EditAction::indent);
   NS_ENSURE_SUCCESS(res, res);                                 
                                      
-  NS_NAMED_LITERAL_STRING(quoteType, "blockquote");
-
   
   if (ListIsEmptyLine(arrayOfNodes))
   {
-    nsCOMPtr<nsIDOMNode> parent, theBlock;
-    int32_t offset;
     
+    NS_ENSURE_STATE(aSelection->RangeCount());
+    nsCOMPtr<nsINode> parent = aSelection->GetRangeAt(0)->GetStartParent();
+    int32_t offset = aSelection->GetRangeAt(0)->StartOffset();
+    NS_ENSURE_STATE(parent);
+
     
+    res = SplitAsNeeded(*nsGkAtoms::blockquote, parent, offset);
+    NS_ENSURE_SUCCESS(res, res);
     NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->GetStartNodeAndOffset(aSelection, getter_AddRefs(parent), &offset);
-    NS_ENSURE_SUCCESS(res, res);
+    nsCOMPtr<Element> theBlock = mHTMLEditor->CreateNode(nsGkAtoms::blockquote,
+                                                         parent, offset);
+    NS_ENSURE_STATE(theBlock);
     
-    res = SplitAsNeeded(&quoteType, address_of(parent), &offset);
-    NS_ENSURE_SUCCESS(res, res);
-    NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->CreateNode(quoteType, parent, offset, getter_AddRefs(theBlock));
-    NS_ENSURE_SUCCESS(res, res);
-    
-    mNewBlock = theBlock;
+    mNewBlock = theBlock->AsDOMNode();
     
     for (int32_t j = arrayOfNodes.Count() - 1; j >= 0; --j) 
     {
@@ -4076,14 +4052,9 @@ nsHTMLEditRules::WillHTMLIndent(Selection* aSelection,
 
       if (!curList || (sibling && sibling != curList) )
       {
-        nsAutoString listTag;
-        curParent->Tag()->ToString(listTag);
-        ToLowerCase(listTag);
         
-        nsCOMPtr<nsIDOMNode> curParentDOM = curParent->AsDOMNode();
-        res = SplitAsNeeded(&listTag, address_of(curParentDOM), &offset);
+        res = SplitAsNeeded(*curParent->Tag(), curParent, offset);
         NS_ENSURE_SUCCESS(res, res);
-        curParent = do_QueryInterface(curParentDOM);
         NS_ENSURE_STATE(mHTMLEditor);
         curList = mHTMLEditor->CreateNode(curParent->Tag(), curParent, offset);
         NS_ENSURE_STATE(curList);
@@ -4126,14 +4097,9 @@ nsHTMLEditRules::WillHTMLIndent(Selection* aSelection,
          
         if (!curList || (sibling && sibling != curList) )
         {
-          nsAutoString listTag;
-          curParent->Tag()->ToString(listTag);
-          ToLowerCase(listTag);
           
-          nsCOMPtr<nsIDOMNode> curParentDOM = curParent->AsDOMNode();
-          res = SplitAsNeeded(&listTag, address_of(curParentDOM), &offset);
+          res = SplitAsNeeded(*curParent->Tag(), curParent, offset);
           NS_ENSURE_SUCCESS(res, res);
-          curParent = do_QueryInterface(curParentDOM);
           NS_ENSURE_STATE(mHTMLEditor);
           curList = mHTMLEditor->CreateNode(curParent->Tag(), curParent,
                                             offset);
@@ -4164,10 +4130,8 @@ nsHTMLEditRules::WillHTMLIndent(Selection* aSelection,
             return NS_OK; 
           }
 
-          nsCOMPtr<nsIDOMNode> curParentDOM = GetAsDOMNode(curParent);
-          res = SplitAsNeeded(&quoteType, address_of(curParentDOM), &offset);
+          res = SplitAsNeeded(*nsGkAtoms::blockquote, curParent, offset);
           NS_ENSURE_SUCCESS(res, res);
-          curParent = do_QueryInterface(curParentDOM);
           NS_ENSURE_STATE(mHTMLEditor);
           curQuote = mHTMLEditor->CreateNode(nsGkAtoms::blockquote, curParent,
                                              offset);
@@ -4868,18 +4832,21 @@ nsHTMLEditRules::WillAlign(Selection* aSelection,
   }
   if (emptyDiv)
   {
-    int32_t offset;
-    nsCOMPtr<nsIDOMNode> brNode, parent, theDiv, sib;
+    nsCOMPtr<nsIDOMNode> brNode, sib;
     NS_NAMED_LITERAL_STRING(divType, "div");
-    NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->GetStartNodeAndOffset(aSelection, getter_AddRefs(parent), &offset);
-    NS_ENSURE_SUCCESS(res, res);
-    res = SplitAsNeeded(&divType, address_of(parent), &offset);
+
+    NS_ENSURE_STATE(aSelection->GetRangeAt(0));
+    nsCOMPtr<nsINode> parent = aSelection->GetRangeAt(0)->GetStartParent();
+    int32_t offset = aSelection->GetRangeAt(0)->StartOffset();
+    NS_ENSURE_STATE(parent);
+
+    res = SplitAsNeeded(*nsGkAtoms::div, parent, offset);
     NS_ENSURE_SUCCESS(res, res);
     
     
     NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->GetNextHTMLNode(parent, offset, address_of(brNode));
+    res = mHTMLEditor->GetNextHTMLNode(parent->AsDOMNode(), offset,
+                                       address_of(brNode));
     NS_ENSURE_SUCCESS(res, res);
     if (brNode && nsTextEditUtils::IsBreak(brNode))
     {
@@ -4887,7 +4854,8 @@ nsHTMLEditRules::WillAlign(Selection* aSelection,
       
       
       NS_ENSURE_STATE(mHTMLEditor);
-      res = mHTMLEditor->GetNextHTMLSibling(parent, offset, address_of(sib));
+      res = mHTMLEditor->GetNextHTMLSibling(parent->AsDOMNode(), offset,
+                                            address_of(sib));
       NS_ENSURE_SUCCESS(res, res);
       if (!IsBlockNode(sib))
       {
@@ -4897,17 +4865,18 @@ nsHTMLEditRules::WillAlign(Selection* aSelection,
       }
     }
     NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->CreateNode(divType, parent, offset, getter_AddRefs(theDiv));
-    NS_ENSURE_SUCCESS(res, res);
+    nsCOMPtr<Element> theDiv = mHTMLEditor->CreateNode(nsGkAtoms::div, parent,
+                                                       offset);
+    NS_ENSURE_STATE(theDiv);
     
-    mNewBlock = theDiv;
+    mNewBlock = theDiv->AsDOMNode();
     
     nsCOMPtr<nsIDOMElement> divElem = do_QueryInterface(theDiv);
     res = AlignBlock(divElem, alignType, true);
     NS_ENSURE_SUCCESS(res, res);
     *aHandled = true;
     
-    res = CreateMozBR(theDiv, 0);
+    res = CreateMozBR(theDiv->AsDOMNode(), 0);
     NS_ENSURE_SUCCESS(res, res);
     res = aSelection->Collapse(theDiv, 0);
     selectionResetter.Abort();  
@@ -5001,11 +4970,8 @@ nsHTMLEditRules::WillAlign(Selection* aSelection,
         return NS_OK; 
       }
 
-      nsCOMPtr<nsIDOMNode> curParentDOM = GetAsDOMNode(curParent);
-      res = SplitAsNeeded(&NS_LITERAL_STRING("div"), address_of(curParentDOM),
-                          &offset);
+      res = SplitAsNeeded(*nsGkAtoms::div, curParent, offset);
       NS_ENSURE_SUCCESS(res, res);
-      curParent = do_QueryInterface(curParentDOM);
       NS_ENSURE_STATE(mHTMLEditor);
       curDiv = mHTMLEditor->CreateNode(nsGkAtoms::div, curParent, offset);
       NS_ENSURE_STATE(curDiv);
@@ -7178,11 +7144,8 @@ nsHTMLEditRules::MakeBlockquote(nsCOMArray<nsIDOMNode>& arrayOfNodes)
     
     if (!curBlock)
     {
-      nsCOMPtr<nsIDOMNode> curParentDOM = GetAsDOMNode(curParent);
-      res = SplitAsNeeded(&NS_LITERAL_STRING("blockquote"),
-                          address_of(curParentDOM), &offset);
+      res = SplitAsNeeded(*nsGkAtoms::blockquote, curParent, offset);
       NS_ENSURE_SUCCESS(res, res);
-      curParent = do_QueryInterface(curParentDOM);
       NS_ENSURE_STATE(mHTMLEditor);
       curBlock = mHTMLEditor->CreateNode(nsGkAtoms::blockquote, curParent,
                                          offset);
@@ -7400,17 +7363,14 @@ nsHTMLEditRules::ApplyBlockStyle(nsCOMArray<nsIDOMNode>& arrayOfNodes, const nsA
       else
       {
         
-        nsCOMPtr<nsIDOMNode> curParentDOM = GetAsDOMNode(curParent);
-        res = SplitAsNeeded(aBlockTag, address_of(curParentDOM), &offset);
+        res = SplitAsNeeded(*blockTag, curParent, offset);
         NS_ENSURE_SUCCESS(res, res);
-        curParent = do_QueryInterface(curParentDOM);
-        nsCOMPtr<nsIDOMNode> theBlock;
         NS_ENSURE_STATE(mHTMLEditor);
-        res = mHTMLEditor->CreateNode(*aBlockTag, GetAsDOMNode(curParent),
-                                      offset, getter_AddRefs(theBlock));
-        NS_ENSURE_SUCCESS(res, res);
+        nsCOMPtr<Element> theBlock =
+          mHTMLEditor->CreateNode(blockTag, curParent, offset);
+        NS_ENSURE_STATE(theBlock);
         
-        mNewBlock = theBlock;
+        mNewBlock = theBlock->AsDOMNode();
       }
     }
     
@@ -7428,10 +7388,8 @@ nsHTMLEditRules::ApplyBlockStyle(nsCOMArray<nsIDOMNode>& arrayOfNodes, const nsA
       {
         
         
-        nsCOMPtr<nsIDOMNode> curParentDOM = GetAsDOMNode(curParent);
-        res = SplitAsNeeded(aBlockTag, address_of(curParentDOM), &offset);
+        res = SplitAsNeeded(*blockTag, curParent, offset);
         NS_ENSURE_SUCCESS(res, res);
-        curParent = do_QueryInterface(curParentDOM);
         NS_ENSURE_STATE(mHTMLEditor);
         curBlock = mHTMLEditor->CreateNode(blockTag, curParent, offset);
         NS_ENSURE_STATE(curBlock);
@@ -7461,10 +7419,8 @@ nsHTMLEditRules::ApplyBlockStyle(nsCOMArray<nsIDOMNode>& arrayOfNodes, const nsA
       
       if (!curBlock)
       {
-        nsCOMPtr<nsIDOMNode> curParentDOM = GetAsDOMNode(curParent);
-        res = SplitAsNeeded(aBlockTag, address_of(curParentDOM), &offset);
+        res = SplitAsNeeded(*blockTag, curParent, offset);
         NS_ENSURE_SUCCESS(res, res);
-        curParent = do_QueryInterface(curParentDOM);
         NS_ENSURE_STATE(mHTMLEditor);
         curBlock = mHTMLEditor->CreateNode(blockTag, curParent, offset);
         NS_ENSURE_STATE(curBlock);
@@ -7491,56 +7447,52 @@ nsHTMLEditRules::ApplyBlockStyle(nsCOMArray<nsIDOMNode>& arrayOfNodes, const nsA
 
 
 
-nsresult 
-nsHTMLEditRules::SplitAsNeeded(const nsAString *aTag, 
-                               nsCOMPtr<nsIDOMNode> *inOutParent,
-                               int32_t *inOutOffset)
+nsresult
+nsHTMLEditRules::SplitAsNeeded(nsIAtom& aTag,
+                               nsCOMPtr<nsINode>& inOutParent,
+                               int32_t& inOutOffset)
 {
-  NS_ENSURE_TRUE(aTag && inOutParent && inOutOffset, NS_ERROR_NULL_POINTER);
-  NS_ENSURE_TRUE(*inOutParent, NS_ERROR_NULL_POINTER);
-  nsCOMPtr<nsIDOMNode> tagParent, temp, splitNode, parent = *inOutParent;
-  nsresult res = NS_OK;
-  nsCOMPtr<nsIAtom> tagAtom = do_GetAtom(*aTag);
-   
+  NS_ENSURE_TRUE(inOutParent, NS_ERROR_NULL_POINTER);
+
   
-  while (!tagParent)
-  {
+  nsCOMPtr<nsINode> tagParent, splitNode;
+  for (nsCOMPtr<nsINode> parent = inOutParent; parent;
+       parent = parent->GetParentNode()) {
     
-    
-    if (!parent) break;
+
     
     NS_ENSURE_STATE(mHTMLEditor);
     if (!mHTMLEditor->IsDescendantOfEditorRoot(parent)) {
-      nsCOMPtr<nsIContent> parentContent = do_QueryInterface(parent);
       NS_ENSURE_STATE(mHTMLEditor);
-      if (parentContent != mHTMLEditor->GetActiveEditingHost()) {
-        break;
+      if (parent != mHTMLEditor->GetActiveEditingHost()) {
+        return NS_ERROR_FAILURE;
       }
     }
+
     NS_ENSURE_STATE(mHTMLEditor);
-    if (mHTMLEditor->CanContainTag(parent, tagAtom)) {
+    if (mHTMLEditor->CanContainTag(parent->AsDOMNode(), &aTag)) {
+      
       tagParent = parent;
       break;
     }
+
     splitNode = parent;
-    parent->GetParentNode(getter_AddRefs(temp));
-    parent = temp;
   }
-  if (!tagParent)
-  {
+  if (!tagParent) {
     
     return NS_ERROR_FAILURE;
   }
-  if (splitNode)
-  {
+  if (splitNode) {
     
     NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->SplitNodeDeep(splitNode, *inOutParent, *inOutOffset, inOutOffset);
+    nsresult res = mHTMLEditor->SplitNodeDeep(splitNode->AsDOMNode(),
+                                              inOutParent->AsDOMNode(),
+                                              inOutOffset, &inOutOffset);
     NS_ENSURE_SUCCESS(res, res);
-    *inOutParent = tagParent;
+    inOutParent = tagParent;
   }
-  return res;
-}      
+  return NS_OK;
+}
 
 
 
@@ -9244,27 +9196,24 @@ nsHTMLEditRules::WillAbsolutePosition(Selection* aSelection,
                              EditAction::setAbsolutePosition);
   NS_ENSURE_SUCCESS(res, res);                                 
                                      
-  NS_NAMED_LITERAL_STRING(divType, "div");
-
-
   
   if (ListIsEmptyLine(arrayOfNodes))
   {
-    nsCOMPtr<nsIDOMNode> parent, thePositionedDiv;
-    int32_t offset;
     
+    NS_ENSURE_STATE(aSelection->RangeCount());
+    nsCOMPtr<nsINode> parent = aSelection->GetRangeAt(0)->GetStartParent();
+    int32_t offset = aSelection->GetRangeAt(0)->StartOffset();
+    NS_ENSURE_STATE(parent);
+
     
+    res = SplitAsNeeded(*nsGkAtoms::div, parent, offset);
+    NS_ENSURE_SUCCESS(res, res);
     NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->GetStartNodeAndOffset(aSelection, getter_AddRefs(parent), &offset);
-    NS_ENSURE_SUCCESS(res, res);
+    nsCOMPtr<Element> thePositionedDiv =
+      mHTMLEditor->CreateNode(nsGkAtoms::div, parent, offset);
+    NS_ENSURE_STATE(thePositionedDiv);
     
-    res = SplitAsNeeded(&divType, address_of(parent), &offset);
-    NS_ENSURE_SUCCESS(res, res);
-    NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->CreateNode(divType, parent, offset, getter_AddRefs(thePositionedDiv));
-    NS_ENSURE_SUCCESS(res, res);
-    
-    mNewBlock = thePositionedDiv;
+    mNewBlock = thePositionedDiv->AsDOMNode();
     
     for (int32_t j = arrayOfNodes.Count() - 1; j >= 0; --j) 
     {
@@ -9313,14 +9262,9 @@ nsHTMLEditRules::WillAbsolutePosition(Selection* aSelection,
       }
       
       if (!curList || (sibling && sibling != GetAsDOMNode(curList))) {
-        nsAutoString listTag;
-        curParent->Tag()->ToString(listTag);
-        ToLowerCase(listTag);
         
-        nsCOMPtr<nsIDOMNode> curParentDOM = curParent->AsDOMNode();
-        res = SplitAsNeeded(&listTag, address_of(curParentDOM), &offset);
+        res = SplitAsNeeded(*curParent->Tag(), curParent, offset);
         NS_ENSURE_SUCCESS(res, res);
-        curParent = do_QueryInterface(curParentDOM);
         if (!curPositionedDiv) {
           nsCOMPtr<nsINode> curParentParent = curParent->GetParentNode();
           int32_t parentOffset = curParentParent
@@ -9371,14 +9315,9 @@ nsHTMLEditRules::WillAbsolutePosition(Selection* aSelection,
         }
          
         if (!curList || (sibling && sibling != GetAsDOMNode(curList))) {
-          nsAutoString listTag;
-          curParent->Tag()->ToString(listTag);
-          ToLowerCase(listTag);
           
-          nsCOMPtr<nsIDOMNode> curParentDOM = curParent->AsDOMNode();
-          res = SplitAsNeeded(&listTag, address_of(curParentDOM), &offset);
+          res = SplitAsNeeded(*curParent->Tag(), curParent, offset);
           NS_ENSURE_SUCCESS(res, res);
-          curParent = do_QueryInterface(curParentDOM);
           if (!curPositionedDiv) {
             nsCOMPtr<nsINode> curParentParent = curParent->GetParentNode();
             int32_t parentOffset = curParentParent ?
@@ -9413,10 +9352,8 @@ nsHTMLEditRules::WillAbsolutePosition(Selection* aSelection,
             curList = nullptr;
             continue;
           }
-          nsCOMPtr<nsIDOMNode> curParentDOM = GetAsDOMNode(curParent);
-          res = SplitAsNeeded(&divType, address_of(curParentDOM), &offset);
+          res = SplitAsNeeded(*nsGkAtoms::div, curParent, offset);
           NS_ENSURE_SUCCESS(res, res);
-          curParent = do_QueryInterface(curParentDOM);
           NS_ENSURE_STATE(mHTMLEditor);
           curPositionedDiv = mHTMLEditor->CreateNode(nsGkAtoms::div, curParent,
                                                      offset);
