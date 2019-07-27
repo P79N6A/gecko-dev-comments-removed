@@ -170,6 +170,11 @@ public:
   
 
 
+  void shutdownAsyncThread(nsIThread *aAsyncThread);
+
+  
+
+
   nsCString getFilename();
 
   
@@ -305,6 +310,12 @@ private:
 
 
   bool mAsyncExecutionThreadShuttingDown;
+
+  
+
+
+
+  DebugOnly<bool> mAsyncExecutionThreadIsAlive;
 
   
 
