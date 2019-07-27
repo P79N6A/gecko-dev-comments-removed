@@ -4,6 +4,10 @@
 
 
 #include "nsMathMLmencloseFrame.h"
+
+#include "gfx2DGlue.h"
+#include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/PathHelpers.h"
 #include "nsPresContext.h"
 #include "nsRenderingContext.h"
 #include "nsWhitespaceTokenizer.h"
@@ -12,6 +16,9 @@
 #include "gfxContext.h"
 #include "nsMathMLChar.h"
 #include <algorithm>
+
+using namespace mozilla;
+using namespace mozilla::gfx;
 
 
 
@@ -764,7 +771,11 @@ void nsDisplayNotation::Paint(nsDisplayListBuilder* aBuilder,
   gfxRect rect = presContext->AppUnitsToGfxUnits(mRect + ToReferenceFrame());
 
   
-  aCtx->SetColor(mFrame->GetVisitedDependentColor(eCSSProperty_color));
+  nscolor col = mFrame->GetVisitedDependentColor(eCSSProperty_color);
+  ColorPattern color(nsLayoutUtils::NSColorToColor(col));
+  aCtx->SetColor(col);
+
+  DrawTarget* drawTarget = aCtx->GetDrawTarget();
 
   
   gfxContext *gfxCtx = aCtx->ThebesContext();
@@ -775,12 +786,14 @@ void nsDisplayNotation::Paint(nsDisplayListBuilder* aBuilder,
   rect.Deflate(e / 2.0);
 
   switch(mType)
-    {
-    case NOTATION_CIRCLE:
-      gfxCtx->NewPath();
-      gfxCtx->Ellipse(rect.Center(), rect.Size());
-      gfxCtx->Stroke();
+  {
+    case NOTATION_CIRCLE: {
+      RefPtr<PathBuilder> builder = drawTarget->CreatePathBuilder();
+      AppendEllipseToPath(builder, ToPoint(rect.Center()), ToSize(rect.Size()));
+      RefPtr<Path> ellipse = builder->Finish();
+      drawTarget->Stroke(ellipse, color);
       break;
+    }
 
     case NOTATION_ROUNDEDBOX:
       gfxCtx->NewPath();
@@ -844,7 +857,7 @@ void nsDisplayNotation::Paint(nsDisplayListBuilder* aBuilder,
     default:
       NS_NOTREACHED("This notation can not be drawn using nsDisplayNotation");
       break;
-    }
+  }
 
   gfxCtx->Restore();
 }

@@ -12,6 +12,7 @@
 #include "mozilla/EventStates.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Helpers.h"
+#include "mozilla/gfx/PathHelpers.h"
 #include "mozilla/MouseEvents.h"
 
 #include "nsCOMPtr.h"
@@ -73,7 +74,9 @@
 #include "mozilla/dom/Link.h"
 
 using namespace mozilla;
+using namespace mozilla::dom;
 using namespace mozilla::gfx;
+using namespace mozilla::layers;
 
 
 #define ICON_SIZE        (16)
@@ -81,15 +84,10 @@ using namespace mozilla::gfx;
 #define ALT_BORDER_WIDTH (1)
 
 
-
 #define IMAGE_EDITOR_CHECK 1
 
 
 #define ALIGN_UNSET uint8_t(-1)
-
-using namespace mozilla::layers;
-using namespace mozilla::dom;
-using namespace mozilla::gfx;
 
 
 nsImageFrame::IconLoad* nsImageFrame::gIconLoad = nullptr;
@@ -1261,15 +1259,28 @@ nsImageFrame::DisplayAltFeedback(nsRenderingContext& aRenderingContext,
     
     
     if (!iconUsed) {
+      ColorPattern color(Color(1.f, 0.f, 0.f, 1.f));
+      DrawTarget* drawTarget = aRenderingContext.GetDrawTarget();
+
       nscoord iconXPos = (vis->mDirection ==   NS_STYLE_DIRECTION_RTL) ?
                          inner.XMost() - size : inner.x;
+
+      
+      nsRect rect(iconXPos, inner.y, size, size);
+      Rect devPxRect =
+        ToRect(nsLayoutUtils::RectToGfxRect(rect, PresContext()->AppUnitsPerDevPixel()));
+      drawTarget->StrokeRect(devPxRect, color);
+
+      
       nscoord twoPX = nsPresContext::CSSPixelsToAppUnits(2);
-      aRenderingContext.DrawRect(iconXPos, inner.y,size,size);
-      aRenderingContext.ThebesContext()->Save();
-      aRenderingContext.SetColor(NS_RGB(0xFF,0,0));
-      aRenderingContext.FillEllipse(size/2 + iconXPos, size/2 + inner.y,
-                                    size/2 - twoPX, size/2 - twoPX);
-      aRenderingContext.ThebesContext()->Restore();
+      rect = nsRect(iconXPos + size/2, inner.y + size/2,
+                    size/2 - twoPX, size/2 - twoPX);
+      devPxRect =
+        ToRect(nsLayoutUtils::RectToGfxRect(rect, PresContext()->AppUnitsPerDevPixel()));
+      RefPtr<PathBuilder> builder = drawTarget->CreatePathBuilder();
+      AppendEllipseToPath(builder, devPxRect.Center(), devPxRect.Size());
+      RefPtr<Path> ellipse = builder->Finish();
+      drawTarget->Fill(ellipse, color);
     }
 
     

@@ -208,14 +208,6 @@ public:
     
 
 
-
-
-
-    void Ellipse(const gfxPoint& center, const gfxSize& dimensions);
-
-    
-
-
     void Polygon(const gfxPoint *points, uint32_t numPoints);
 
     
