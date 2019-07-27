@@ -4651,8 +4651,7 @@ nsDocShell::IsNavigationAllowed(bool aDisplayPrintErrorDialog,
                                 bool aCheckIfUnloadFired)
 {
   bool isAllowed = !IsPrintingOrPP(aDisplayPrintErrorDialog) &&
-                   (!aCheckIfUnloadFired || !mFiredUnloadEvent) &&
-                   !mBlockNavigation;
+                   (!aCheckIfUnloadFired || !mFiredUnloadEvent);
   if (!isAllowed) {
     return false;
   }
@@ -9563,8 +9562,6 @@ nsDocShell::InternalLoad(nsIURI* aURI,
                          nsIDocShell** aDocShell,
                          nsIRequest** aRequest)
 {
-  MOZ_RELEASE_ASSERT(!mBlockNavigation);
-
   nsresult rv = NS_OK;
   mOriginalUriString.Truncate();
 
@@ -10020,19 +10017,6 @@ nsDocShell::InternalLoad(nsIURI* aURI,
       GetCurScrollPos(ScrollOrientation_X, &cx);
       GetCurScrollPos(ScrollOrientation_Y, &cy);
 
-      {
-        AutoRestore<bool> scrollingToAnchor(mBlockNavigation);
-        mBlockNavigation = true;
-
-        
-        
-        
-        
-        
-        rv = ScrollToAnchor(curHash, newHash, aLoadType);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
-
       
       
       
@@ -10125,16 +10109,6 @@ nsDocShell::InternalLoad(nsIURI* aURI,
       
 
 
-      if (mOSHE && (aLoadType == LOAD_HISTORY ||
-                    aLoadType == LOAD_RELOAD_NORMAL)) {
-        nscoord bx, by;
-        mOSHE->GetScrollPosition(&bx, &by);
-        SetCurScrollPosEx(bx, by);
-      }
-
-      
-
-
       SetHistoryEntry(&mLSHE, oldLSHE);
       
 
@@ -10168,10 +10142,34 @@ nsDocShell::InternalLoad(nsIURI* aURI,
 
       
       
+      CopyFavicon(currentURI, aURI, mInPrivateBrowsing);
+
+      nsRefPtr<nsGlobalWindow> win = mScriptGlobal ?
+        mScriptGlobal->GetCurrentInnerWindowInternal() : nullptr;
+
       
       
       
-      nsRefPtr<nsGlobalWindow> win = mScriptGlobal;
+      
+      
+      rv = ScrollToAnchor(curHash, newHash, aLoadType);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+
+
+      if (mOSHE && (aLoadType == LOAD_HISTORY ||
+                    aLoadType == LOAD_RELOAD_NORMAL)) {
+        nscoord bx, by;
+        mOSHE->GetScrollPosition(&bx, &by);
+        SetCurScrollPosEx(bx, by);
+      }
+
+      
+      
+      
+      
+      
       if (win) {
         
         bool doHashchange = sameExceptHashes && !curHash.Equals(newHash);
@@ -10186,10 +10184,6 @@ nsDocShell::InternalLoad(nsIURI* aURI,
           win->DispatchAsyncHashchange(currentURI, aURI);
         }
       }
-
-      
-      
-      CopyFavicon(currentURI, aURI, mInPrivateBrowsing);
 
       return NS_OK;
     }
