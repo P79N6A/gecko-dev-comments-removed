@@ -13,16 +13,12 @@
 #include "nsTArray.h"
 #include "mozilla/Attributes.h"
 
+struct AutoCompleteSimpleResultMatch;
+
 class nsAutoCompleteSimpleResult final : public nsIAutoCompleteSimpleResult
 {
 public:
   nsAutoCompleteSimpleResult();
-  inline void CheckInvariants() {
-    NS_ASSERTION(mValues.Length() == mComments.Length(), "Arrays out of sync");
-    NS_ASSERTION(mValues.Length() == mImages.Length(),   "Arrays out of sync");
-    NS_ASSERTION(mValues.Length() == mStyles.Length(),   "Arrays out of sync");
-    NS_ASSERTION(mValues.Length() == mFinalCompleteValues.Length(), "Arrays out of sync");
-  }
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIAUTOCOMPLETERESULT
@@ -32,15 +28,8 @@ private:
   ~nsAutoCompleteSimpleResult() {}
 
 protected:
-
-  
-  
-  
-  nsTArray<nsString> mValues;
-  nsTArray<nsString> mComments;
-  nsTArray<nsString> mImages;
-  nsTArray<nsString> mStyles;
-  nsTArray<nsString> mFinalCompleteValues;
+  typedef nsTArray<AutoCompleteSimpleResultMatch> MatchesArray;
+   MatchesArray mMatches;
 
   nsString mSearchString;
   nsString mErrorDescription;
