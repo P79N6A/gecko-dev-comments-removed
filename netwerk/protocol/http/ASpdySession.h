@@ -61,6 +61,8 @@ public:
   }
 };
 
+typedef bool (*ALPNCallback) (nsISupports *); 
+
 
 
 
@@ -73,14 +75,21 @@ public:
   static const uint32_t kCount = 3;
 
   
-  bool ProtocolEnabled(uint32_t index);
+  
+  nsresult GetNPNIndex(const nsACString &npnString, uint32_t *result) const;
+
+  
+  bool ProtocolEnabled(uint32_t index) const;
+
+  uint8_t   Version[kCount]; 
+  nsCString VersionString[kCount]; 
 
   
   
-  nsresult GetNPNVersionIndex(const nsACString &npnString, uint8_t *result);
-
-  uint8_t   Version[kCount];
-  nsCString VersionString[kCount];
+  
+  
+  
+  ALPNCallback ALPNCallbacks[kCount];
 };
 
 }} 
