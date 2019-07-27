@@ -34,7 +34,7 @@
 #include "mozilla/ReentrantMonitor.h"   
 #include "mozilla/StaticPtr.h"          
 #include "mozilla/TimeStamp.h"          
-#include "mozilla/dom/AnimationPlayer.h" 
+#include "mozilla/dom/KeyframeEffect.h" 
 #include "mozilla/dom/Touch.h"          
 #include "mozilla/gfx/BasePoint.h"      
 #include "mozilla/gfx/BaseRect.h"       

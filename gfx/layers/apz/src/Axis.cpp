@@ -8,7 +8,7 @@
 #include <math.h>                       
 #include <algorithm>                    
 #include "AsyncPanZoomController.h"     
-#include "mozilla/dom/AnimationPlayer.h" 
+#include "mozilla/dom/KeyframeEffect.h" 
 #include "mozilla/layers/APZCTreeManager.h" 
 #include "mozilla/layers/APZThreadUtils.h" 
 #include "FrameMetrics.h"               

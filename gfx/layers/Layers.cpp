@@ -21,7 +21,7 @@
 #include "gfx2DGlue.h"
 #include "mozilla/DebugOnly.h"          
 #include "mozilla/Telemetry.h"          
-#include "mozilla/dom/AnimationPlayer.h" 
+#include "mozilla/dom/Animation.h"      
 #include "mozilla/gfx/2D.h"             
 #include "mozilla/gfx/BaseSize.h"       
 #include "mozilla/gfx/Matrix.h"         

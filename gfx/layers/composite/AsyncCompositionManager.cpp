@@ -13,7 +13,6 @@
 #include "gfxPoint.h"                   
 #include "mozilla/StyleAnimationValue.h" 
 #include "mozilla/WidgetUtils.h"        
-#include "mozilla/dom/AnimationPlayer.h" 
 #include "mozilla/dom/KeyframeEffect.h" 
 #include "mozilla/gfx/BaseRect.h"       
 #include "mozilla/gfx/Point.h"          

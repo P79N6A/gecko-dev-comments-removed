@@ -3,14 +3,14 @@
 
 
 
-#ifndef mozilla_dom_AnimationPlayer_h
-#define mozilla_dom_AnimationPlayer_h
+#ifndef mozilla_dom_Animation_h
+#define mozilla_dom_Animation_h
 
 #include "nsWrapperCache.h"
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/TimeStamp.h" 
-#include "mozilla/dom/AnimationPlayerBinding.h" 
+#include "mozilla/dom/AnimationBinding.h" 
 #include "mozilla/dom/DocumentTimeline.h" 
 #include "mozilla/dom/KeyframeEffect.h" 
 #include "mozilla/dom/Promise.h" 
@@ -44,14 +44,15 @@ class CSSTransitionPlayer;
 
 namespace dom {
 
-class AnimationPlayer : public nsISupports,
-                        public nsWrapperCache
+class Animation
+  : public nsISupports
+  , public nsWrapperCache
 {
 protected:
-  virtual ~AnimationPlayer() {}
+  virtual ~Animation() {}
 
 public:
-  explicit AnimationPlayer(DocumentTimeline* aTimeline)
+  explicit Animation(DocumentTimeline* aTimeline)
     : mTimeline(aTimeline)
     , mPlaybackRate(1.0)
     , mPendingState(PendingState::NotPending)
@@ -63,7 +64,7 @@ public:
   }
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(AnimationPlayer)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(Animation)
 
   DocumentTimeline* GetParentObject() const { return mTimeline; }
   virtual JSObject* WrapObject(JSContext* aCx,

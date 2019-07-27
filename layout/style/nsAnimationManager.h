@@ -9,7 +9,7 @@
 #include "mozilla/ContentEvents.h"
 #include "AnimationCommon.h"
 #include "nsCSSPseudoElements.h"
-#include "mozilla/dom/AnimationPlayer.h"
+#include "mozilla/dom/Animation.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/TimeStamp.h"
 
@@ -52,11 +52,11 @@ struct AnimationEventInfo {
 
 typedef InfallibleTArray<AnimationEventInfo> EventArray;
 
-class CSSAnimationPlayer final : public dom::AnimationPlayer
+class CSSAnimationPlayer final : public dom::Animation
 {
 public:
  explicit CSSAnimationPlayer(dom::DocumentTimeline* aTimeline)
-    : dom::AnimationPlayer(aTimeline)
+    : dom::Animation(aTimeline)
     , mIsStylePaused(false)
     , mPauseShouldStick(false)
     , mPreviousPhaseOrIteration(PREVIOUS_PHASE_BEFORE)

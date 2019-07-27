@@ -24,7 +24,7 @@
 
 using namespace mozilla;
 using namespace mozilla::css;
-using mozilla::dom::AnimationPlayer;
+using mozilla::dom::Animation;
 using mozilla::dom::KeyframeEffectReadonly;
 using mozilla::CSSAnimationPlayer;
 
@@ -32,21 +32,21 @@ mozilla::dom::Promise*
 CSSAnimationPlayer::GetReady(ErrorResult& aRv)
 {
   FlushStyle();
-  return AnimationPlayer::GetReady(aRv);
+  return Animation::GetReady(aRv);
 }
 
 void
 CSSAnimationPlayer::Play(LimitBehavior aLimitBehavior)
 {
   mPauseShouldStick = false;
-  AnimationPlayer::Play(aLimitBehavior);
+  Animation::Play(aLimitBehavior);
 }
 
 void
 CSSAnimationPlayer::Pause()
 {
   mPauseShouldStick = true;
-  AnimationPlayer::Pause();
+  Animation::Pause();
 }
 
 mozilla::dom::AnimationPlayState
@@ -55,7 +55,7 @@ CSSAnimationPlayer::PlayStateFromJS() const
   
   
   FlushStyle();
-  return AnimationPlayer::PlayStateFromJS();
+  return Animation::PlayStateFromJS();
 }
 
 void
@@ -64,7 +64,7 @@ CSSAnimationPlayer::PlayFromJS()
   
   
   FlushStyle();
-  AnimationPlayer::PlayFromJS();
+  Animation::PlayFromJS();
 }
 
 void
@@ -72,7 +72,7 @@ CSSAnimationPlayer::PlayFromStyle()
 {
   mIsStylePaused = false;
   if (!mPauseShouldStick) {
-    DoPlay(AnimationPlayer::LimitBehavior::Continue);
+    DoPlay(Animation::LimitBehavior::Continue);
   }
 }
 
@@ -327,7 +327,7 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
     if (!collection->mPlayers.IsEmpty()) {
 
       for (size_t newIdx = newPlayers.Length(); newIdx-- != 0;) {
-        AnimationPlayer* newPlayer = newPlayers[newIdx];
+        Animation* newPlayer = newPlayers[newIdx];
 
         
         
@@ -753,7 +753,7 @@ nsAnimationManager::UpdateCascadeResults(
 
     for (size_t playerIdx = aElementAnimations->mPlayers.Length();
          playerIdx-- != 0; ) {
-      const AnimationPlayer* player = aElementAnimations->mPlayers[playerIdx];
+      const Animation* player = aElementAnimations->mPlayers[playerIdx];
       const KeyframeEffectReadonly* effect = player->GetEffect();
       if (!effect) {
         continue;
