@@ -448,17 +448,33 @@ CanvasFrameAnonymousContentHelper.prototype = {
   _insert: function() {
     
     
-    if (!isXUL(this.tabActor)) {
-      
-      
-      
-      
-      installHelperSheet(this.tabActor.window,
-        "@import url('" + HIGHLIGHTER_STYLESHEET_URI + "');");
-      let node = this.nodeBuilder();
-      let doc = this.tabActor.window.document;
-      this._content = doc.insertAnonymousContent(node);
+    if (isXUL(this.tabActor)) {
+      return;
     }
+    let doc = this.tabActor.window.document;
+
+    
+    
+    
+    if (doc.hidden) {
+      
+      
+      let onVisibilityChange = () => {
+        doc.removeEventListener("visibilitychange", onVisibilityChange);
+        this._insert();
+      };
+      doc.addEventListener("visibilitychange", onVisibilityChange);
+      return;
+    }
+
+    
+    
+    
+    
+    installHelperSheet(this.tabActor.window,
+      "@import url('" + HIGHLIGHTER_STYLESHEET_URI + "');");
+    let node = this.nodeBuilder();
+    this._content = doc.insertAnonymousContent(node);
   },
 
   _onNavigate: function({isTopLevel}) {
@@ -500,7 +516,7 @@ CanvasFrameAnonymousContentHelper.prototype = {
   },
 
   get content() {
-    if (Cu.isDeadWrapper(this._content)) {
+    if (!this._content || Cu.isDeadWrapper(this._content)) {
       return null;
     }
     return this._content;
