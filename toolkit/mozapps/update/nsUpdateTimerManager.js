@@ -140,6 +140,7 @@ TimerManager.prototype = {
     var callbackToFire = null;
     var earliestIntendedTime = null;
     var skippedFirings = false;
+    var lastUpdateTime = null;
     function tryFire(callback, intendedTime) {
       var selected = false;
       if (intendedTime <= now) {
@@ -184,7 +185,7 @@ TimerManager.prototype = {
                                                                       timerID);
       
       
-      let lastUpdateTime = getPref("getIntPref", prefLastUpdate, 0);
+      lastUpdateTime = getPref("getIntPref", prefLastUpdate, 0);
 
       
       
