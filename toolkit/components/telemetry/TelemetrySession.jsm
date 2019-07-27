@@ -39,7 +39,6 @@ const RETENTION_DAYS = 14;
 const REASON_ABORTED_SESSION = "aborted-session";
 const REASON_DAILY = "daily";
 const REASON_SAVED_SESSION = "saved-session";
-const REASON_IDLE_DAILY = "idle-daily";
 const REASON_GATHER_PAYLOAD = "gather-payload";
 const REASON_TEST_PING = "test-ping";
 const REASON_ENVIRONMENT_CHANGE = "environment-change";
@@ -1463,10 +1462,6 @@ let Impl = {
       return;
     Services.obs.removeObserver(this, "idle-daily");
     Services.obs.removeObserver(this, "cycle-collector-begin");
-    if (this._isIdleObserver) {
-      idleService.removeIdleObserver(this, IDLE_TIMEOUT_SECONDS);
-      this._isIdleObserver = false;
-    }
   },
 
   
@@ -1790,21 +1785,8 @@ let Impl = {
     this._addons = aAddOns;
   },
 
-  sendIdlePing: function sendIdlePing(aTest) {
-    this._log.trace("sendIdlePing");
-    if (this._isIdleObserver) {
-      idleService.removeIdleObserver(this, IDLE_TIMEOUT_SECONDS);
-      this._isIdleObserver = false;
-    }
-    if (aTest) {
-      return this.send(REASON_TEST_PING);
-    } else if (Telemetry.isOfficialTelemetry) {
-      return this.send(REASON_IDLE_DAILY);
-    }
-  },
-
   testPing: function testPing() {
-    return this.sendIdlePing(true);
+    return this.send(REASON_TEST_PING);
   },
 
   
@@ -1858,19 +1840,18 @@ let Impl = {
       gWasDebuggerAttached = debugService.isDebuggerAttached;
       this.gatherStartup();
       break;
-    case REASON_IDLE_DAILY:
+    case "idle-daily":
       
       
       Services.tm.mainThread.dispatch((function() {
         
-        Services.obs.notifyObservers(null, "gather-telemetry", null);
         
-        idleService.addIdleObserver(this, IDLE_TIMEOUT_SECONDS);
-        this._isIdleObserver = true;
+        
+        Services.obs.notifyObservers(null, "gather-telemetry", null);
       }).bind(this), Ci.nsIThread.DISPATCH_NORMAL);
-      break;
-    case "idle":
-      this.sendIdlePing(false, this._server);
+      
+      
+      TelemetryPing.sendPersistedPings();
       break;
 
 #ifdef MOZ_WIDGET_ANDROID
@@ -2062,7 +2043,6 @@ let Impl = {
   _isClassicReason: function(reason) {
     const classicReasons = [
       REASON_SAVED_SESSION,
-      REASON_IDLE_DAILY,
       REASON_GATHER_PAYLOAD,
       REASON_TEST_PING,
     ];

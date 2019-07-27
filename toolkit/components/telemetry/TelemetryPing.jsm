@@ -254,6 +254,15 @@ this.TelemetryPing = Object.freeze({
 
 
 
+  sendPersistedPings: function() {
+    return Impl.sendPersistedPings();
+  },
+
+  
+
+
+
+
    get clientID() {
     return Impl.clientID;
    },
