@@ -55,32 +55,11 @@ private:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class TouchBlockState : public InputBlockState
+class CancelableBlockState : public InputBlockState
 {
 public:
-  typedef uint32_t TouchBehaviorFlags;
-
-  explicit TouchBlockState(const nsRefPtr<AsyncPanZoomController>& aTargetApzc,
-                           bool aTargetConfirmed);
+  CancelableBlockState(const nsRefPtr<AsyncPanZoomController>& aTargetApzc,
+                       bool aTargetConfirmed);
 
   
 
@@ -89,11 +68,60 @@ public:
 
 
   bool SetContentResponse(bool aPreventDefault);
+
   
 
 
 
   bool TimeoutContentResponse();
+
+  
+
+
+  bool IsDefaultPrevented() const;
+
+  
+
+
+  virtual bool IsReadyForHandling() const;
+
+private:
+  bool mPreventDefault;
+  bool mContentResponded;
+  bool mContentResponseTimerExpired;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class TouchBlockState : public CancelableBlockState
+{
+public:
+  typedef uint32_t TouchBehaviorFlags;
+
+  explicit TouchBlockState(const nsRefPtr<AsyncPanZoomController>& aTargetApzc,
+                           bool aTargetConfirmed);
+
   
 
 
@@ -109,11 +137,7 @@ public:
 
 
 
-  bool IsReadyForHandling() const;
-  
-
-
-  bool IsDefaultPrevented() const;
+  bool IsReadyForHandling() const MOZ_OVERRIDE;
 
   
 
@@ -176,9 +200,6 @@ public:
 private:
   nsTArray<TouchBehaviorFlags> mAllowedTouchBehaviors;
   bool mAllowedTouchBehaviorSet;
-  bool mPreventDefault;
-  bool mContentResponded;
-  bool mContentResponseTimerExpired;
   bool mDuringFastMotion;
   bool mSingleTapOccurred;
   nsTArray<MultiTouchInput> mEvents;
