@@ -37,7 +37,7 @@ function test()
   print('see bug 256617');
   code = '(function() { throw \n x++; })';
 
-  expect = 'SyntaxError: syntax error';
+  expect = 'SyntaxError: no line break is allowed between \'throw\' and its expression';
   try { uneval(eval(code)); } catch(ex) { actual = ex + ''; };
 
   reportCompare(expect, actual, summary + ': ' + code);
