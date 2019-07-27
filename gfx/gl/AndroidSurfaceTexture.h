@@ -41,14 +41,14 @@ public:
   
   
   static bool Check();
-  
-  ~AndroidSurfaceTexture();
 
   
   void UpdateTexImage();
 
   bool GetTransformMatrix(mozilla::gfx::Matrix4x4& aMatrix);
   int ID() { return mID; }
+
+  void SetDefaultSize(mozilla::gfx::IntSize size);
 
   
   
@@ -59,8 +59,10 @@ public:
   void NotifyFrameAvailable();
 
   GLuint Texture() { return mTexture; }
+  jobject JavaSurface() { return mSurface; }
 private:
   AndroidSurfaceTexture();
+  ~AndroidSurfaceTexture();
 
   bool Init(GLuint aTexture);
 
