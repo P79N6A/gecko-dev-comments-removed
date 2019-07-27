@@ -394,15 +394,29 @@ Sanitizer.prototype = {
       clear: function ()
       {
         
+        
+        
+        let startDateMS = this.range == null ? null : this.range[0] / 1000;
         var pm = Components.classes["@mozilla.org/permissionmanager;1"]
                            .getService(Components.interfaces.nsIPermissionManager);
-        pm.removeAll();
+        if (startDateMS == null) {
+          pm.removeAll();
+        } else {
+          pm.removeAllSince(startDateMS);
+        }
 
         
         var cps = Components.classes["@mozilla.org/content-pref/service;1"]
                             .getService(Components.interfaces.nsIContentPrefService2);
-        cps.removeAllDomains(null);
+        if (startDateMS == null) {
+          cps.removeAllDomains(null);
+        } else {
+          cps.removeAllDomainsSince(startDateMS, null);
+        }
 
+        
+        
+        
         
         
         var pwmgr = Components.classes["@mozilla.org/login-manager;1"]
@@ -412,6 +426,7 @@ Sanitizer.prototype = {
           pwmgr.setLoginSavingEnabled(host, true);
         }
 
+        
         
         var sss = Cc["@mozilla.org/ssservice;1"]
                     .getService(Ci.nsISiteSecurityService);
