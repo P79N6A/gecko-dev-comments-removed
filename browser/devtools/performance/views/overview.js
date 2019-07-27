@@ -97,7 +97,10 @@ let OverviewView = {
 
 
   _onGraphMouseUp: function () {
-    this._onSelectionChange();
+    
+    if (this.framerateGraph.selectionEnabled) {
+      this._onSelectionChange();
+    }
   },
 
   
@@ -116,7 +119,6 @@ let OverviewView = {
   _initializeFramerateGraph: Task.async(function *() {
     let graph = new LineGraphWidget(this._framerateEl, L10N.getStr("graphs.fps"));
     graph.fixedHeight = FRAMERATE_GRAPH_HEIGHT;
-    graph.selectionEnabled = false;
     this.framerateGraph = graph;
 
     yield graph.ready();
@@ -140,6 +142,7 @@ let OverviewView = {
   _start: function () {
     this._timeoutId = setTimeout(this._onRecordingTick, OVERVIEW_UPDATE_INTERVAL);
     this.framerateGraph.dropSelection();
+    this.framerateGraph.selectionEnabled = false;
   },
 
   _stop: function () {
