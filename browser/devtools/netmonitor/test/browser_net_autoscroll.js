@@ -5,6 +5,13 @@
 
 
 
+
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: aValue.content is undefined");
+
+
+
+
+
 function test() {
   requestLongerTimeout(2);
   let monitor, debuggee, requestsContainer, scrollTop;
