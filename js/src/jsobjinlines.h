@@ -637,8 +637,16 @@ JSObject::finish(js::FreeOp *fop)
 
     if (hasDynamicElements()) {
         js::ObjectElements *elements = getElementsHeader();
-        if (!elements->isCopyOnWrite() || elements->ownerObject() == this)
+        if (elements->isCopyOnWrite()) {
+            if (elements->ownerObject() == this) {
+                
+                
+                
+                fop->freeLater(elements);
+            }
+        } else {
             fop->free_(elements);
+        }
     }
 }
 
