@@ -8005,10 +8005,10 @@ CSSParserImpl::ParseGridAutoFlow()
 CSSParseResult
 CSSParserImpl::ParseGridLineNames(nsCSSValue& aValue)
 {
-  if (!ExpectSymbol('(', true)) {
+  if (!ExpectSymbol('[', true)) {
     return CSSParseResult::NotFound;
   }
-  if (!GetToken(true) || mToken.IsSymbol(')')) {
+  if (!GetToken(true) || mToken.IsSymbol(']')) {
     return CSSParseResult::Ok;
   }
   
@@ -8035,10 +8035,10 @@ CSSParserImpl::ParseGridLineNames(nsCSSValue& aValue)
     if (!(eCSSToken_Ident == mToken.mType &&
           ParseCustomIdent(item->mValue, mToken.mIdent))) {
       UngetToken();
-      SkipUntil(')');
+      SkipUntil(']');
       return CSSParseResult::Error;
     }
-    if (!GetToken(true) || mToken.IsSymbol(')')) {
+    if (!GetToken(true) || mToken.IsSymbol(']')) {
       return CSSParseResult::Ok;
     }
     item->mNext = new nsCSSValueList;
