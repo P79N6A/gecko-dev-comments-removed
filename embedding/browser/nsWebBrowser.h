@@ -45,19 +45,20 @@ class nsWebBrowserInitInfo
 {
 public:
   
-  int32_t                 x;
-  int32_t                 y;
-  int32_t                 cx;
-  int32_t                 cy;
-  bool                    visible;
-  nsCOMPtr<nsISHistory>   sessionHistory;
-  nsString                name;
+  int32_t x;
+  int32_t y;
+  int32_t cx;
+  int32_t cy;
+  bool visible;
+  nsCOMPtr<nsISHistory> sessionHistory;
+  nsString name;
 };
 
 class nsWebBrowserListenerState
 {
 public:
-  bool Equals(nsIWeakReference *aListener, const nsIID& aID) {
+  bool Equals(nsIWeakReference* aListener, const nsIID& aID)
+  {
     return mWeakPtr.get() == aListener && mID.Equals(aID);
   }
 
@@ -67,7 +68,7 @@ public:
 
 
 #define NS_WEBBROWSER_CID \
-{0xcda5863a, 0xaa9c, 0x411e, { 0xbe, 0x49, 0xea, 0x0d, 0x52, 0x5a, 0xb4, 0xb5 }}
+  { 0xcda5863a, 0xaa9c, 0x411e, { 0xbe, 0x49, 0xea, 0x0d, 0x52, 0x5a, 0xb4, 0xb5 } }
 
 
 class nsWebBrowser final : public nsIWebBrowser,
@@ -86,6 +87,7 @@ class nsWebBrowser final : public nsIWebBrowser,
                            public nsSupportsWeakReference
 {
   friend class nsDocShellTreeOwner;
+
 public:
   nsWebBrowser();
 
@@ -112,9 +114,9 @@ protected:
   
   NS_IMETHOD SetDocShell(nsIDocShell* aDocShell);
   NS_IMETHOD EnsureDocShellTreeOwner();
-  NS_IMETHOD GetPrimaryContentWindow(nsIDOMWindow **aDomWindow);
-  NS_IMETHOD BindListener(nsISupports *aListener, const nsIID& aIID);
-  NS_IMETHOD UnBindListener(nsISupports *aListener, const nsIID& aIID);
+  NS_IMETHOD GetPrimaryContentWindow(nsIDOMWindow** aDomWindow);
+  NS_IMETHOD BindListener(nsISupports* aListener, const nsIID& aIID);
+  NS_IMETHOD UnBindListener(nsISupports* aListener, const nsIID& aIID);
   NS_IMETHOD EnableGlobalHistory(bool aEnable);
 
   
@@ -124,40 +126,41 @@ protected:
 
 protected:
   nsRefPtr<nsDocShellTreeOwner> mDocShellTreeOwner;
-  nsCOMPtr<nsIDocShell>      mDocShell;
+  nsCOMPtr<nsIDocShell> mDocShell;
   nsCOMPtr<nsIInterfaceRequestor> mDocShellAsReq;
-  nsCOMPtr<nsIBaseWindow>    mDocShellAsWin;
+  nsCOMPtr<nsIBaseWindow> mDocShellAsWin;
   nsCOMPtr<nsIWebNavigation> mDocShellAsNav;
-  nsCOMPtr<nsIScrollable>    mDocShellAsScrollable;
-  nsCOMPtr<nsITextScroll>    mDocShellAsTextScroll;
-  nsCOMPtr<nsIWidget>        mInternalWidget;
+  nsCOMPtr<nsIScrollable> mDocShellAsScrollable;
+  nsCOMPtr<nsITextScroll> mDocShellAsTextScroll;
+
+  nsCOMPtr<nsIWidget> mInternalWidget;
   nsCOMPtr<nsIWindowWatcher> mWWatch;
   nsAutoPtr<nsWebBrowserInitInfo> mInitInfo;
-  uint32_t                   mContentType;
-  bool                       mActivating;
-  bool                       mShouldEnableHistory;
-  bool                       mIsActive;
-  nativeWindow               mParentNativeWindow;
-  nsIWebProgressListener    *mProgressListener;
-  nsCOMPtr<nsIWebProgress>      mWebProgress;
+  uint32_t mContentType;
+  bool mActivating;
+  bool mShouldEnableHistory;
+  bool mIsActive;
+  nativeWindow mParentNativeWindow;
+  nsIWebProgressListener* mProgressListener;
+  nsCOMPtr<nsIWebProgress> mWebProgress;
 
   nsCOMPtr<nsIPrintSettings> mPrintSettings;
 
   
-  nscolor                       mBackgroundColor;
+  nscolor mBackgroundColor;
 
   
   nsCOMPtr<nsIWebBrowserPersist> mPersist;
-  uint32_t                       mPersistCurrentState;
-  nsresult                       mPersistResult;
-  uint32_t                       mPersistFlags;
+  uint32_t mPersistCurrentState;
+  nsresult mPersistResult;
+  uint32_t mPersistFlags;
 
   
-  nsRefPtr<nsEmbedStream>        mStream;
+  nsRefPtr<nsEmbedStream> mStream;
 
   
-  nsIWidget*                            mParentWidget;
-  nsAutoPtr<nsTArray<nsWebBrowserListenerState>> mListenerArray;
+  nsIWidget* mParentWidget;
+  nsAutoPtr<nsTArray<nsWebBrowserListenerState> > mListenerArray;
 };
 
 #endif 

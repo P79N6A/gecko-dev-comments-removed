@@ -18,50 +18,37 @@ class ChromeContextMenuListener;
 class imgRequestProxy;
 
 
-
-
-
-
- 
 class nsContextMenuInfo : public nsIContextMenuInfo
 {
   friend class ChromeContextMenuListener;
-  
-public:    
-                    nsContextMenuInfo();
+
+public:
+  nsContextMenuInfo();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSICONTEXTMENUINFO
-  
+
 private:
-  virtual           ~nsContextMenuInfo();
+  virtual ~nsContextMenuInfo();
 
-  void              SetMouseEvent(nsIDOMEvent *aEvent)
-                    { mMouseEvent = aEvent; }
+  void SetMouseEvent(nsIDOMEvent* aEvent) { mMouseEvent = aEvent; }
+  void SetDOMNode(nsIDOMNode* aNode) { mDOMNode = aNode; }
+  void SetAssociatedLink(nsIDOMNode* aLink) { mAssociatedLink = aLink; }
 
-  void              SetDOMNode(nsIDOMNode *aNode)
-                    { mDOMNode = aNode; }
-                    
-  void              SetAssociatedLink(nsIDOMNode *aLink)
-                    { mAssociatedLink = aLink; }
+  nsresult GetImageRequest(nsIDOMNode* aDOMNode, imgIRequest** aRequest);
 
-  nsresult          GetImageRequest(nsIDOMNode *aDOMNode,
-                                    imgIRequest **aRequest);
+  bool HasBackgroundImage(nsIDOMNode* aDOMNode);
 
-  bool              HasBackgroundImage(nsIDOMNode *aDOMNode);
+  nsresult GetBackgroundImageRequest(nsIDOMNode* aDOMNode,
+                                     imgRequestProxy** aRequest);
 
-  nsresult          GetBackgroundImageRequest(nsIDOMNode *aDOMNode,
-                                              imgRequestProxy **aRequest);
+  nsresult GetBackgroundImageRequestInternal(nsIDOMNode* aDOMNode,
+                                             imgRequestProxy** aRequest);
 
-  nsresult          GetBackgroundImageRequestInternal(nsIDOMNode *aDOMNode,
-                                                      imgRequestProxy **aRequest);
-  
 private:
-  nsCOMPtr<nsIDOMEvent>   mMouseEvent;
-  nsCOMPtr<nsIDOMNode>    mDOMNode;  
-  nsCOMPtr<nsIDOMNode>    mAssociatedLink;
-
-}; 
-
+  nsCOMPtr<nsIDOMEvent> mMouseEvent;
+  nsCOMPtr<nsIDOMNode> mDOMNode;
+  nsCOMPtr<nsIDOMNode> mAssociatedLink;
+};
 
 #endif 
