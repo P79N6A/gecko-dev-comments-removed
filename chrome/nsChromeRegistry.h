@@ -53,10 +53,6 @@ public:
                                     bool* _retval) MOZ_OVERRIDE;
   NS_IMETHOD AllowContentToAccess(nsIURI* url,
                                   bool* _retval) MOZ_OVERRIDE;
-  NS_IMETHOD CanLoadURLRemotely(nsIURI* url,
-                                bool* _retval) MOZ_OVERRIDE;
-  NS_IMETHOD MustLoadURLRemotely(nsIURI* url,
-                                 bool* _retval) MOZ_OVERRIDE;
 
   
   NS_IMETHOD_(bool) WrappersEnabled(nsIURI *aURI) MOZ_OVERRIDE;
@@ -124,19 +120,26 @@ public:
   };
 
   virtual void ManifestContent(ManifestProcessingContext& cx, int lineno,
-                               char *const * argv, int flags) = 0;
+                               char *const * argv, bool platform,
+                               bool contentaccessible) = 0;
   virtual void ManifestLocale(ManifestProcessingContext& cx, int lineno,
-                              char *const * argv, int flags) = 0;
+                              char *const * argv, bool platform,
+                              bool contentaccessible) = 0;
   virtual void ManifestSkin(ManifestProcessingContext& cx, int lineno,
-                            char *const * argv, int flags) = 0;
+                            char *const * argv, bool platform,
+                            bool contentaccessible) = 0;
   virtual void ManifestOverlay(ManifestProcessingContext& cx, int lineno,
-                               char *const * argv, int flags) = 0;
+                               char *const * argv, bool platform,
+                               bool contentaccessible) = 0;
   virtual void ManifestStyle(ManifestProcessingContext& cx, int lineno,
-                             char *const * argv, int flags) = 0;
+                             char *const * argv, bool platform,
+                             bool contentaccessible) = 0;
   virtual void ManifestOverride(ManifestProcessingContext& cx, int lineno,
-                                char *const * argv, int flags) = 0;
+                                char *const * argv, bool platform,
+                                bool contentaccessible) = 0;
   virtual void ManifestResource(ManifestProcessingContext& cx, int lineno,
-                                char *const * argv, int flags) = 0;
+                                char *const * argv, bool platform,
+                                bool contentaccessible) = 0;
 
   
   enum {
@@ -150,13 +153,7 @@ public:
     XPCNATIVEWRAPPERS = 1 << 1,
 
     
-    CONTENT_ACCESSIBLE = 1 << 2,
-
-    
-    REMOTE_ALLOWED = 1 << 3,
-
-    
-    REMOTE_REQUIRED = 1 << 4,
+    CONTENT_ACCESSIBLE = 1 << 2
   };
 
   bool mInitialized;

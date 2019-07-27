@@ -220,7 +220,7 @@ let gTests = [
     
     
     
-    let tab = yield promiseNewTabLoadEvent("about:robots");
+    let tab = yield promiseNewTabLoadEvent("about:blank?");
     let readyPromise = promiseOneMessage(tab, "test:load-with-mocked-profile-path-response");
 
     let mm = tab.linkedBrowser.messageManager;
@@ -261,7 +261,7 @@ let gTests = [
     mockDir.createUnique(Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
     
 
-    let tab = yield promiseNewTabLoadEvent("about:robots");
+    let tab = yield promiseNewTabLoadEvent("about:blank?");
     let readyPromise = promiseOneMessage(tab, "test:load-with-mocked-profile-path-response");
 
     let mm = tab.linkedBrowser.messageManager;
