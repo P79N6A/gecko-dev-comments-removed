@@ -1,16 +1,13 @@
+load(libdir + "asserts.js");
 
 
-
-
-var target = {};
 var called = false;
-var handler = {
-    getOwnPropertyDescriptor: function (target1, name) {
-        assertEq(this, handler);
-        assertEq(target1, target);
-        assertEq(name, 'foo');
-        called = true;
-    }
-};
-Object.getOwnPropertyDescriptor(new Proxy(target, handler), 'foo');
-assertEq(called, true);
+var target = {};
+var handler = { getOwnPropertyDescriptor: () => called = true };
+var holder = Proxy.revocable(target, handler);
+
+holder.revoke();
+
+var test = function () { Object.getOwnPropertyDescriptor(holder.proxy, 'foo'); }
+assertThrowsInstanceOf(test, TypeError);
+assertEq(called, false);

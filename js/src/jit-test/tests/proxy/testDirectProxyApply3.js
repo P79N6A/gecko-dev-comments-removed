@@ -1,8 +1,10 @@
 
-assertEq(new Proxy(function (x, y) {
+
+function justAdd(x, y) {
     return x + y;
-}, {
-    apply: function (target, receiver, args) {
-        return args[0] * args[1];
-    }
-})(2, 3), 6);
+}
+
+var handler = { apply : function (target, receiver, args) { return args[0] * args[1]; } };
+
+for (let p of [new Proxy(justAdd, handler), Proxy.revocable(justAdd, handler).proxy])
+    assertEq(p(2,3), 6);

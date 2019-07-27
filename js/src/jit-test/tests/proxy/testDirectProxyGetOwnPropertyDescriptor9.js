@@ -4,12 +4,6 @@ load(libdir + "asserts.js");
 
 
 
-assertThrowsInstanceOf(function () {
-    Object.getOwnPropertyDescriptor(new Proxy({}, {
-        getOwnPropertyDescriptor: function (target, name) {
-            return {
-                configurable: false
-            };
-        }
-    }), 'foo');
-}, TypeError);
+var handler = { getOwnPropertyDescriptor: () => ({ configurable: false }) };
+for (let p of [new Proxy({}, handler), Proxy.revocable({}, handler).proxy])
+    assertThrowsInstanceOf(() => Object.getOwnPropertyDescriptor(p, 'foo'), TypeError);

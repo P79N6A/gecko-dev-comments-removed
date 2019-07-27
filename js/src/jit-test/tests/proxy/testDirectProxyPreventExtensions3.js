@@ -1,10 +1,7 @@
 load(libdir + "asserts.js");
 
 
-assertThrowsInstanceOf(function () {
-    Object.preventExtensions(new Proxy({}, {
-        preventExtensions: function () {
-            return true;
-        }
-    }));
-}, TypeError);
+
+var handler = { preventExtensions: () => true };
+for (let p of [new Proxy({}, handler), Proxy.revocable({}, handler).proxy])
+    assertThrowsInstanceOf(() => Object.preventExtensions(p), TypeError);
