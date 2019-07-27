@@ -219,6 +219,12 @@ ClientTiledPaintedLayer::IsScrollingOnCompositor(const FrameMetrics& aParentMetr
 bool
 ClientTiledPaintedLayer::UseFastPath()
 {
+  
+  
+  if (gfxPrefs::UseLowPrecisionBuffer()) {
+    return false;
+  }
+
   LayerMetricsWrapper scrollAncestor;
   GetAncestorLayers(&scrollAncestor, nullptr);
   if (!scrollAncestor) {
@@ -227,16 +233,35 @@ ClientTiledPaintedLayer::UseFastPath()
   const FrameMetrics& parentMetrics = scrollAncestor.Metrics();
 
   bool multipleTransactionsNeeded = gfxPlatform::GetPlatform()->UseProgressivePaint()
-                                 || gfxPrefs::UseLowPrecisionBuffer()
                                  || !parentMetrics.GetCriticalDisplayPort().IsEmpty();
   bool isFixed = GetIsFixedPosition() || GetParent()->GetIsFixedPosition();
   bool isScrollable = parentMetrics.IsScrollable();
 
-  return !multipleTransactionsNeeded || isFixed || !isScrollable
-#if !defined(MOZ_WIDGET_ANDROID) || defined(MOZ_ANDROID_APZ)
-         || !IsScrollingOnCompositor(parentMetrics)
+  return !multipleTransactionsNeeded || isFixed || !isScrollable;
+}
+
+bool
+ClientTiledPaintedLayer::UseProgressiveDraw() {
+  
+  if (!gfxPlatform::GetPlatform()->UseProgressivePaint() || ClientManager()->HasShadowTarget()) {
+    return false;
+  }
+
+  
+  
+
+#if 0 
+  LayerMetricsWrapper scrollAncestor;
+  GetAncestorLayers(&scrollAncestor, nullptr);
+  if (!scrollAncestor) {
+    return true;
+  }
+  const FrameMetrics& parentMetrics = scrollAncestor.Metrics();
+
+  return !IsScrollingOnCompositor(parentMetrics);
+#else
+  return true;
 #endif
-         ;
 }
 
 bool
@@ -252,9 +277,7 @@ ClientTiledPaintedLayer::RenderHighPrecision(nsIntRegion& aInvalidRegion,
   }
 
   
-  
-  if (gfxPlatform::GetPlatform()->UseProgressivePaint() &&
-      !ClientManager()->HasShadowTarget() &&
+  if (UseProgressiveDraw() &&
       mContentClient->mTiledBuffer.GetFrameResolution() == mPaintData.mResolution) {
     
     
@@ -419,35 +442,19 @@ ClientTiledPaintedLayer::RenderLayer()
     }
 
     
-    
-    BeginPaint();
-    if (mPaintData.mPaintFinished) {
+    if (UseFastPath()) {
+      TILING_LOG("TILING %p: Taking fast-path\n", this);
+      mValidRegion = neededRegion;
+      mContentClient->mTiledBuffer.PaintThebes(mValidRegion, invalidRegion, callback, data);
+      ClientManager()->Hold(this);
+      mContentClient->UseTiledLayerBuffer(TiledContentClient::TILED_BUFFER);
       return;
     }
 
     
-    if (UseFastPath()) {
-      TILING_LOG("TILING %p: Taking fast-path\n", this);
-      mValidRegion = neededRegion;
-
-      
-      
-      
-      if (!mPaintData.mCriticalDisplayPort.IsEmpty()) {
-        mValidRegion.And(mValidRegion, LayerIntRect::ToUntyped(mPaintData.mCriticalDisplayPort));
-        invalidRegion.And(invalidRegion, LayerIntRect::ToUntyped(mPaintData.mCriticalDisplayPort));
-      }
-
-      if (invalidRegion.IsEmpty()) {
-        EndPaint();
-        return;
-      }
-
-      mContentClient->mTiledBuffer.SetFrameResolution(mPaintData.mResolution);
-      mContentClient->mTiledBuffer.PaintThebes(mValidRegion, invalidRegion, callback, data);
-      ClientManager()->Hold(this);
-      mContentClient->UseTiledLayerBuffer(TiledContentClient::TILED_BUFFER);
-      EndPaint();
+    
+    BeginPaint();
+    if (mPaintData.mPaintFinished) {
       return;
     }
 
