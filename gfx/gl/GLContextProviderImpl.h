@@ -58,11 +58,12 @@ public:
 
     static already_AddRefed<GLContext>
     CreateOffscreen(const gfxIntSize& size,
-                    const SurfaceCaps& caps);
+                    const SurfaceCaps& caps,
+                    bool requireCompatProfile);
 
     
     static already_AddRefed<GLContext>
-    CreateHeadless();
+    CreateHeadless(bool requireCompatProfile);
 
     
 

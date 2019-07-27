@@ -43,19 +43,6 @@ struct GLFormats
     GLsizei samples;
 };
 
-struct PixelBufferFormat
-{
-    
-    PixelBufferFormat();
-
-    int red, green, blue;
-    int alpha;
-    int depth, stencil;
-    int samples;
-
-    int ColorBits() const { return red + green + blue; }
-};
-
 } 
 } 
 

@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <vector>
 
 #include "GLContext.h"
 #include "GLBlitHelper.h"
@@ -156,8 +157,7 @@ static const char *sExtensionNames[] = {
     "GL_OES_texture_half_float",
     "GL_OES_texture_half_float_linear",
     "GL_OES_texture_npot",
-    "GL_OES_vertex_array_object",
-    nullptr
+    "GL_OES_vertex_array_object"
 };
 
 static bool
@@ -501,6 +501,8 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
     mInitialized = LoadSymbols(&symbols[0], trygl, prefix);
     MakeCurrent();
     if (mInitialized) {
+        MOZ_ASSERT(mProfile != ContextProfile::Unknown);
+
         uint32_t version = 0;
         ParseGLVersion(this, &version);
 
@@ -656,6 +658,15 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
             }
         }
 
+        if (IsFeatureProvidedByCoreSymbols(GLFeature::get_string_indexed)) {
+            SymLoadStruct moreSymbols[] = {
+                { (PRFuncPtr*) &mSymbols.fGetStringi,    { "GetStringi", nullptr } },
+                END_SYMBOLS
+            };
+
+            MOZ_ALWAYS_TRUE(LoadSymbols(moreSymbols, trygl, prefix));
+        }
+
         InitExtensions();
         InitFeatures();
 
@@ -668,12 +679,6 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
             if (Vendor() == GLVendor::Vivante) {
                 
                 MarkUnsupported(GLFeature::standard_derivatives);
-            }
-
-            if (Vendor() == GLVendor::Imagination &&
-                Renderer() == GLRenderer::SGX540) {
-                
-                MarkExtensionUnsupported(OES_EGL_sync);
             }
 
             if (Renderer() == GLRenderer::MicrosoftBasicRenderDriver) {
@@ -1468,10 +1473,13 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
         
         fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, 0);
 
-        if (mCaps.any)
-            DetermineCaps();
+        
+        if (mCaps.any) {
+            mCaps.any = false;
+            mCaps.color = true;
+            mCaps.alpha = false;
+        }
 
-        UpdatePixelFormat();
         UpdateGLFormats(mCaps);
 
         mTexGarbageBin = new TextureGarbageBin(this);
@@ -1593,61 +1601,105 @@ GLContext::DebugCallback(GLenum source,
 void
 GLContext::InitExtensions()
 {
-    MakeCurrent();
-    const char* extensions = (const char*)fGetString(LOCAL_GL_EXTENSIONS);
-    if (!extensions)
-        return;
+    MOZ_ASSERT(IsCurrent());
 
-    InitializeExtensionsBitSet(mAvailableExtensions, extensions,
-                               sExtensionNames);
+    std::vector<nsCString> driverExtensionList;
 
-    if (WorkAroundDriverBugs() &&
-        Vendor() == GLVendor::Qualcomm) {
+    if (IsFeatureProvidedByCoreSymbols(GLFeature::get_string_indexed)) {
+        GLuint count = 0;
+        GetUIntegerv(LOCAL_GL_NUM_EXTENSIONS, &count);
+        for (GLuint i = 0; i < count; i++) {
+            
+            const char* rawExt = (const char*)fGetStringi(LOCAL_GL_EXTENSIONS, i);
 
-        
-        MarkExtensionSupported(OES_EGL_sync);
+            
+            
+            
+            driverExtensionList.push_back(nsCString(rawExt));
+        }
+    } else {
+        MOZ_ALWAYS_TRUE(!fGetError());
+        const char* rawExts = (const char*)fGetString(LOCAL_GL_EXTENSIONS);
+        MOZ_ALWAYS_TRUE(!fGetError());
+
+        if (rawExts) {
+            nsDependentCString exts(rawExts);
+            SplitByChar(exts, ' ', &driverExtensionList);
+        }
     }
 
-    if (WorkAroundDriverBugs() &&
-        Renderer() == GLRenderer::AndroidEmulator) {
-        
-        
-        
-        MarkExtensionSupported(OES_rgb8_rgba8);
+    const bool shouldDumpExts = ShouldDumpExts();
+    if (shouldDumpExts) {
+        printf_stderr("%i GL driver extensions: (*: recognized)\n",
+                      (uint32_t)driverExtensionList.size());
     }
 
-    if (WorkAroundDriverBugs() &&
-        Vendor() == GLVendor::VMware &&
-        Renderer() == GLRenderer::GalliumLlvmpipe)
-    {
-        
-        
-        
-        MarkExtensionUnsupported(EXT_texture_compression_s3tc);
-        MarkExtensionUnsupported(EXT_texture_compression_dxt1);
-        MarkExtensionUnsupported(ANGLE_texture_compression_dxt3);
-        MarkExtensionUnsupported(ANGLE_texture_compression_dxt5);
-    }
+    MarkBitfieldByStrings(driverExtensionList, shouldDumpExts, sExtensionNames,
+                          &mAvailableExtensions);
+
+    if (WorkAroundDriverBugs()) {
+        if (Vendor() == GLVendor::Qualcomm) {
+            
+            MarkExtensionSupported(OES_EGL_sync);
+        }
+
+        if (Vendor() == GLVendor::Imagination &&
+            Renderer() == GLRenderer::SGX540)
+        {
+            
+            MarkExtensionUnsupported(OES_EGL_sync);
+        }
+
+        if (Renderer() == GLRenderer::AndroidEmulator) {
+            
+            
+            
+            MarkExtensionSupported(OES_rgb8_rgba8);
+        }
+
+        if (Vendor() == GLVendor::VMware &&
+            Renderer() == GLRenderer::GalliumLlvmpipe)
+        {
+            
+            
+            
+            MarkExtensionUnsupported(EXT_texture_compression_s3tc);
+            MarkExtensionUnsupported(EXT_texture_compression_dxt1);
+            MarkExtensionUnsupported(ANGLE_texture_compression_dxt3);
+            MarkExtensionUnsupported(ANGLE_texture_compression_dxt5);
+        }
 
 #ifdef XP_MACOSX
-    
-    
-    
-    
-    if (WorkAroundDriverBugs() &&
-        nsCocoaFeatures::OSXVersionMajor() == 10 &&
-        nsCocoaFeatures::OSXVersionMinor() == 9 &&
-        Renderer() == GLRenderer::IntelHD3000)
-    {
-        MarkExtensionUnsupported(EXT_texture_compression_s3tc);
-    }
+        
+        
+        
+        
+        if (nsCocoaFeatures::OSXVersionMajor() == 10 &&
+            nsCocoaFeatures::OSXVersionMinor() == 9 &&
+            Renderer() == GLRenderer::IntelHD3000)
+        {
+            MarkExtensionUnsupported(EXT_texture_compression_s3tc);
+        }
 #endif
+    }
+
+    if (shouldDumpExts) {
+        printf_stderr("\nActivated extensions:\n");
+
+        for (size_t i = 0; i < mAvailableExtensions.size(); i++) {
+            if (!mAvailableExtensions[i])
+                continue;
+
+            const char* ext = sExtensionNames[i];
+            printf_stderr("[%i] %s\n", (uint32_t)i, ext);
+        }
+    }
 }
 
 void
 GLContext::PlatformStartup()
 {
-  RegisterStrongMemoryReporter(new GfxTexturesReporter());
+    RegisterStrongMemoryReporter(new GfxTexturesReporter());
 }
 
 
@@ -1686,66 +1738,6 @@ GLContext::ListHasExtension(const GLubyte *extensions, const char *extension)
         start = terminator;
     }
     return false;
-}
-
-void
-GLContext::DetermineCaps()
-{
-    PixelBufferFormat format = QueryPixelFormat();
-
-    SurfaceCaps caps;
-    caps.color = !!format.red && !!format.green && !!format.blue;
-    caps.bpp16 = caps.color && format.ColorBits() == 16;
-    caps.alpha = !!format.alpha;
-    caps.depth = !!format.depth;
-    caps.stencil = !!format.stencil;
-    caps.antialias = format.samples > 1;
-    caps.preserve = true;
-
-    mCaps = caps;
-}
-
-PixelBufferFormat
-GLContext::QueryPixelFormat()
-{
-    PixelBufferFormat format;
-
-    ScopedBindFramebuffer autoFB(this, 0);
-
-    fGetIntegerv(LOCAL_GL_RED_BITS  , &format.red  );
-    fGetIntegerv(LOCAL_GL_GREEN_BITS, &format.green);
-    fGetIntegerv(LOCAL_GL_BLUE_BITS , &format.blue );
-    fGetIntegerv(LOCAL_GL_ALPHA_BITS, &format.alpha);
-
-    fGetIntegerv(LOCAL_GL_DEPTH_BITS, &format.depth);
-    fGetIntegerv(LOCAL_GL_STENCIL_BITS, &format.stencil);
-
-    fGetIntegerv(LOCAL_GL_SAMPLES, &format.samples);
-
-    return format;
-}
-
-void
-GLContext::UpdatePixelFormat()
-{
-    PixelBufferFormat format = QueryPixelFormat();
-#ifdef MOZ_GL_DEBUG
-    const SurfaceCaps& caps = Caps();
-    MOZ_ASSERT(!caps.any, "Did you forget to DetermineCaps()?");
-
-    MOZ_ASSERT(caps.color == !!format.red);
-    MOZ_ASSERT(caps.color == !!format.green);
-    MOZ_ASSERT(caps.color == !!format.blue);
-
-    
-    
-    MOZ_ASSERT(caps.alpha == !!format.alpha || !caps.alpha);
-    MOZ_ASSERT(caps.depth == !!format.depth || !caps.depth);
-    MOZ_ASSERT(caps.stencil == !!format.stencil || !caps.stencil);
-
-    MOZ_ASSERT(caps.antialias == (format.samples > 1));
-#endif
-    mPixelFormat = new PixelBufferFormat(format);
 }
 
 GLFormats
@@ -2417,6 +2409,13 @@ GLContext::FlushIfHeavyGLCallsSinceLastFlush()
     fFlush();
 }
 
+ bool
+GLContext::ShouldDumpExts()
+{
+    static bool ret = PR_GetEnv("MOZ_GL_DUMP_EXTS");
+    return ret;
+}
+
 bool
 DoesStringMatch(const char* aString, const char *aWantedString)
 {
@@ -2444,8 +2443,29 @@ DoesStringMatch(const char* aString, const char *aWantedString)
  bool
 GLContext::ShouldSpew()
 {
-    static bool spew = PR_GetEnv("MOZ_GL_SPEW");
-    return spew;
+    static bool ret = PR_GetEnv("MOZ_GL_SPEW");
+    return ret;
+}
+
+void
+SplitByChar(const nsACString& str, const char delim, std::vector<nsCString>* const out)
+{
+    uint32_t start = 0;
+    while (true) {
+        int32_t end = str.FindChar(' ', start);
+        if (end == -1)
+            break;
+
+        uint32_t len = (uint32_t)end - start;
+        nsDependentCSubstring substr(str, start, len);
+        out->push_back(nsCString(substr));
+
+        start = end + 1;
+        continue;
+    }
+
+    nsDependentCSubstring substr(str, start);
+    out->push_back(nsCString(substr));
 }
 
 } 
