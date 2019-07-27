@@ -343,8 +343,8 @@ ImportLoader::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
   if (nsContentUtils::IsSystemPrincipal(principal)) {
     
     nsCOMPtr<nsIPrincipal> channelPrincipal;
-    nsContentUtils::GetSecurityManager()->GetChannelPrincipal(channel,
-                                                              getter_AddRefs(channelPrincipal));
+    nsContentUtils::GetSecurityManager()->GetChannelResultPrincipal(channel,
+                                                                    getter_AddRefs(channelPrincipal));
     if (!nsContentUtils::IsSystemPrincipal(channelPrincipal)) {
       return NS_ERROR_FAILURE;
     }

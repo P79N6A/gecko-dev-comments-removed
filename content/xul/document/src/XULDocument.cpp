@@ -2004,7 +2004,7 @@ XULDocument::PrepareToLoad(nsISupports* aContainer,
     
     nsCOMPtr<nsIPrincipal> principal;
     nsContentUtils::GetSecurityManager()->
-        GetChannelPrincipal(aChannel, getter_AddRefs(principal));
+        GetChannelResultPrincipal(aChannel, getter_AddRefs(principal));
     return PrepareToLoadPrototype(mDocumentURI, aCommand, principal, aResult);
 }
 
@@ -4516,7 +4516,7 @@ XULDocument::ParserObserver::OnStartRequest(nsIRequest *request,
         nsIScriptSecurityManager* secMan = nsContentUtils::GetSecurityManager();
         if (channel && secMan) {
             nsCOMPtr<nsIPrincipal> principal;
-            secMan->GetChannelPrincipal(channel, getter_AddRefs(principal));
+            secMan->GetChannelResultPrincipal(channel, getter_AddRefs(principal));
 
             
             mPrototype->SetDocumentPrincipal(principal);

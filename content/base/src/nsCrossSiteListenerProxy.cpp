@@ -683,12 +683,14 @@ nsCORSListenerProxy::AsyncOnChannelRedirect(nsIChannel *aOldChannel,
     if (mHasBeenCrossSite) {
       
       
+      
+      
       nsCOMPtr<nsIPrincipal> oldChannelPrincipal;
       nsContentUtils::GetSecurityManager()->
-        GetChannelPrincipal(aOldChannel, getter_AddRefs(oldChannelPrincipal));
+        GetChannelURIPrincipal(aOldChannel, getter_AddRefs(oldChannelPrincipal));
       nsCOMPtr<nsIPrincipal> newChannelPrincipal;
       nsContentUtils::GetSecurityManager()->
-        GetChannelPrincipal(aNewChannel, getter_AddRefs(newChannelPrincipal));
+        GetChannelURIPrincipal(aNewChannel, getter_AddRefs(newChannelPrincipal));
       if (!oldChannelPrincipal || !newChannelPrincipal) {
         rv = NS_ERROR_OUT_OF_MEMORY;
       }
