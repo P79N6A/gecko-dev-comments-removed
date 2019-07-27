@@ -334,7 +334,6 @@ LoginManager.prototype = {
     return this._storage.addLogin(login);
   },
 
-
   
 
 
@@ -526,54 +525,6 @@ LoginManager.prototype = {
                          aCallback.onSearchCompletion(results);
                        })
                        .then(null, Cu.reportError);
-  },
-
-
-  
-
-
-  
-
-
-
-
-  _getPasswordOrigin : function (uriString, allowJS) {
-    var realm = "";
-    try {
-      var uri = Services.io.newURI(uriString, null, null);
-
-      if (allowJS && uri.scheme == "javascript")
-        return "javascript:"
-
-      realm = uri.scheme + "://" + uri.host;
-
-      
-      
-      var port = uri.port;
-      if (port != -1) {
-        var handler = Services.io.getProtocolHandler(uri.scheme);
-        if (port != handler.defaultPort)
-          realm += ":" + port;
-      }
-
-    } catch (e) {
-      
-      
-      log("Couldn't parse origin for", uriString);
-      realm = null;
-    }
-
-    return realm;
-  },
-
-  _getActionOrigin : function (form) {
-    var uriString = form.action;
-
-    
-    if (uriString == "")
-      uriString = form.baseURI; 
-
-    return this._getPasswordOrigin(uriString, true);
   },
 }; 
 
