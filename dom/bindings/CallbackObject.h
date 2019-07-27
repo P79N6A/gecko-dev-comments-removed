@@ -89,6 +89,9 @@ public:
     
     eRethrowContentExceptions,
     
+    
+    
+    
     eRethrowExceptions
   };
 
@@ -166,6 +169,11 @@ protected:
 
 
   public:
+    
+    
+    
+    
+    
     
     
     CallSetup(CallbackObject* aCallback, ErrorResult& aRv,

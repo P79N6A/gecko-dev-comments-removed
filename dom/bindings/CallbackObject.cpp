@@ -21,6 +21,8 @@
 #include "WorkerPrivate.h"
 #include "nsGlobalWindow.h"
 #include "WorkerScope.h"
+#include "jsapi.h"
+#include "nsJSPrincipals.h"
 
 namespace mozilla {
 namespace dom {
@@ -186,10 +188,32 @@ bool
 CallbackObject::CallSetup::ShouldRethrowException(JS::Handle<JS::Value> aException)
 {
   if (mExceptionHandling == eRethrowExceptions) {
-    return true;
+    if (!mCompartment) {
+      
+      return true;
+    }
+
+    
+    
+    
+    if (mCompartment == js::GetContextCompartment(mCx)) {
+      return true;
+    }
+
+    MOZ_ASSERT(NS_IsMainThread());
+
+    
+    
+    
+    nsIPrincipal* callerPrincipal =
+      nsJSPrincipals::get(JS_GetCompartmentPrincipals(mCompartment));
+    nsIPrincipal* calleePrincipal = nsContentUtils::SubjectPrincipal();
+    if (callerPrincipal->SubsumesConsideringDomain(calleePrincipal)) {
+      return true;
+    }
   }
 
-  MOZ_ASSERT(mExceptionHandling == eRethrowContentExceptions);
+  MOZ_ASSERT(mCompartment);
 
   
   
