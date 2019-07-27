@@ -412,10 +412,47 @@ PossiblyFail()
     return true;
 }
 
+static inline bool
+GCIfNeeded(ExclusiveContext *cx)
+{
+    if (cx->isJSContext()) {
+        JSContext *ncx = cx->asJSContext();
+        JSRuntime *rt = ncx->runtime();
+
+#ifdef JS_GC_ZEAL
+        if (rt->gc.needZealousGC())
+            rt->gc.runDebugGC();
+#endif
+
+        
+        
+        if (rt->hasPendingInterrupt())
+            rt->gc.gcIfRequested(ncx);
+
+        
+        
+        
+        if (rt->gc.isIncrementalGCInProgress() &&
+            cx->zone()->usage.gcBytes() > cx->zone()->threshold.gcTriggerBytes())
+        {
+            PrepareZoneForGC(cx->zone());
+            AutoKeepAtoms keepAtoms(cx->perThreadData);
+            rt->gc.gc(GC_NORMAL, JS::gcreason::INCREMENTAL_TOO_SLOW);
+        }
+    }
+
+    return true;
+}
+
 template <AllowGC allowGC>
 static inline bool
 CheckAllocatorState(ExclusiveContext *cx, AllocKind kind)
 {
+    if (allowGC) {
+        if (!GCIfNeeded(cx))
+            return false;
+    }
+
     if (!cx->isJSContext())
         return true;
 
@@ -439,29 +476,6 @@ CheckAllocatorState(ExclusiveContext *cx, AllocKind kind)
     if (!PossiblyFail()) {
         js_ReportOutOfMemory(ncx);
         return false;
-    }
-
-    if (allowGC) {
-#ifdef JS_GC_ZEAL
-        if (rt->gc.needZealousGC())
-            rt->gc.runDebugGC();
-#endif
-        if (rt->hasPendingInterrupt()) {
-            
-            
-            rt->gc.gcIfRequested(ncx);
-        }
-
-        
-        
-        
-        if (rt->gc.isIncrementalGCInProgress() &&
-            ncx->zone()->usage.gcBytes() > ncx->zone()->threshold.gcTriggerBytes())
-        {
-            PrepareZoneForGC(ncx->zone());
-            AutoKeepAtoms keepAtoms(cx->perThreadData);
-            rt->gc.gc(GC_NORMAL, JS::gcreason::INCREMENTAL_TOO_SLOW);
-        }
     }
 
     return true;
