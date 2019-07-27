@@ -417,21 +417,25 @@ namespace detail {
 
 template<typename T,
          bool = IsFloatingPoint<T>::value,
+         bool = IsIntegral<T>::value,
          typename NoCV = typename RemoveCV<T>::Type>
 struct IsSignedHelper;
 
-template<typename T, typename NoCV>
-struct IsSignedHelper<T, true, NoCV> : TrueType {};
 
 template<typename T, typename NoCV>
-struct IsSignedHelper<T, false, NoCV>
-  : IntegralConstant<bool, IsArithmetic<T>::value && NoCV(-1) < NoCV(1)>
+struct IsSignedHelper<T, true, false, NoCV> : TrueType {};
+
+
+template<typename T, typename NoCV>
+struct IsSignedHelper<T, false, true, NoCV>
+  : IntegralConstant<bool, bool(NoCV(-1) < NoCV(1))>
 {};
 
+
+template<typename T, typename NoCV>
+struct IsSignedHelper<T, false, false, NoCV> : FalseType {};
+
 } 
-
-
-
 
 
 
@@ -449,23 +453,26 @@ namespace detail {
 
 template<typename T,
          bool = IsFloatingPoint<T>::value,
+         bool = IsIntegral<T>::value,
          typename NoCV = typename RemoveCV<T>::Type>
 struct IsUnsignedHelper;
 
-template<typename T, typename NoCV>
-struct IsUnsignedHelper<T, true, NoCV> : FalseType {};
 
 template<typename T, typename NoCV>
-struct IsUnsignedHelper<T, false, NoCV>
+struct IsUnsignedHelper<T, true, false, NoCV> : FalseType {};
+
+
+template<typename T, typename NoCV>
+struct IsUnsignedHelper<T, false, true, NoCV>
   : IntegralConstant<bool,
-                     IsArithmetic<T>::value &&
-                     (IsSame<NoCV, bool>::value || NoCV(1) < NoCV(-1))>
+                     (IsSame<NoCV, bool>::value || bool(NoCV(1) < NoCV(-1)))>
 {};
 
+
+template<typename T, typename NoCV>
+struct IsUnsignedHelper<T, false, false, NoCV> : FalseType {};
+
 } 
-
-
-
 
 
 
