@@ -21,9 +21,8 @@ function run_test() {
   });
 
   
-  
-  
-  let url = "https://nocert.example.com:443";
+  let url = "http://localhost:111111111";
+
   Services.prefs.setCharPref("browser.search.geoip.url", url);
   Services.search.init(() => {
     try {
