@@ -251,108 +251,106 @@ AsyncCompositionManager::AlignFixedAndStickyLayers(Layer* aLayer,
   bool isStickyForSubtree = aLayer->GetIsStickyPosition() &&
     aLayer->GetStickyScrollContainerId() ==
       aTransformedSubtreeRoot->GetFrameMetrics().GetScrollId();
-  if (aLayer != aTransformedSubtreeRoot && (isRootFixed || isStickyForSubtree)) {
-    
-    
-    
+  bool isFixedOrSticky = (isRootFixed || isStickyForSubtree);
 
+  
+  
+  
+  
+  if (aLayer == aTransformedSubtreeRoot || !isFixedOrSticky) {
     
-    Matrix ancestorTransform;
-    if (!AccumulateLayerTransforms2D(aLayer->GetParent(), aTransformedSubtreeRoot,
-                                     ancestorTransform)) {
-      return;
+    
+    
+    if (aLayer == aTransformedSubtreeRoot || !aLayer->GetFrameMetrics().IsScrollable()) {
+      for (Layer* child = aLayer->GetFirstChild(); child; child = child->GetNextSibling()) {
+        AlignFixedAndStickyLayers(child, aTransformedSubtreeRoot,
+                                  aPreviousTransformForRoot,
+                                  aCurrentTransformForRoot, aFixedLayerMargins);
+      }
     }
-
-    Matrix oldRootTransform;
-    Matrix newRootTransform;
-    if (!aPreviousTransformForRoot.Is2D(&oldRootTransform) ||
-        !aCurrentTransformForRoot.Is2D(&newRootTransform)) {
-      return;
-    }
-
-    
-    
-    Matrix oldCumulativeTransform = ancestorTransform * oldRootTransform;
-    Matrix newCumulativeTransform = ancestorTransform * newRootTransform;
-    if (newCumulativeTransform.IsSingular()) {
-      return;
-    }
-    Matrix newCumulativeTransformInverse = newCumulativeTransform;
-    newCumulativeTransformInverse.Invert();
-
-    
-    
-    Matrix layerTransform;
-    if (!GetBaseTransform2D(aLayer, &layerTransform)) {
-      return;
-    }
-
-    
-    
-    
-    LayerPoint offsetInOldSubtreeLayerSpace = GetLayerFixedMarginsOffset(aLayer, aFixedLayerMargins);
-
-    
-    
-    const LayerPoint& anchorInOldSubtreeLayerSpace = aLayer->GetFixedPositionAnchor();
-    LayerPoint offsetAnchorInOldSubtreeLayerSpace = anchorInOldSubtreeLayerSpace + offsetInOldSubtreeLayerSpace;
-
-    
-    
-    Point anchor(anchorInOldSubtreeLayerSpace.x, anchorInOldSubtreeLayerSpace.y);
-    Point offsetAnchor(offsetAnchorInOldSubtreeLayerSpace.x, offsetAnchorInOldSubtreeLayerSpace.y);
-    Point locallyTransformedAnchor = layerTransform * anchor;
-    Point locallyTransformedOffsetAnchor = layerTransform * offsetAnchor;
-
-    
-    
-    
-    
-    
-    
-    
-    Point oldAnchorPositionInNewSpace =
-      newCumulativeTransformInverse * (oldCumulativeTransform * locallyTransformedOffsetAnchor);
-    Point translation = oldAnchorPositionInNewSpace - locallyTransformedAnchor;
-
-    if (aLayer->GetIsStickyPosition()) {
-      
-      
-      
-      
-      
-      const LayerRect& stickyOuter = aLayer->GetStickyScrollRangeOuter();
-      const LayerRect& stickyInner = aLayer->GetStickyScrollRangeInner();
-
-      translation.y = IntervalOverlap(translation.y, stickyOuter.y, stickyOuter.YMost()) -
-                      IntervalOverlap(translation.y, stickyInner.y, stickyInner.YMost());
-      translation.x = IntervalOverlap(translation.x, stickyOuter.x, stickyOuter.XMost()) -
-                      IntervalOverlap(translation.x, stickyInner.x, stickyInner.XMost());
-    }
-
-    
-    TranslateShadowLayer2D(aLayer, ThebesPoint(translation));
-
-    
-    
     return;
   }
 
   
   
   
+
   
-  if (aLayer->GetFrameMetrics().IsScrollable() &&
-      aLayer != aTransformedSubtreeRoot) {
+  Matrix ancestorTransform;
+  if (!AccumulateLayerTransforms2D(aLayer->GetParent(), aTransformedSubtreeRoot,
+                                   ancestorTransform)) {
     return;
   }
 
-  for (Layer* child = aLayer->GetFirstChild();
-       child; child = child->GetNextSibling()) {
-    AlignFixedAndStickyLayers(child, aTransformedSubtreeRoot,
-                              aPreviousTransformForRoot,
-                              aCurrentTransformForRoot, aFixedLayerMargins);
+  Matrix oldRootTransform;
+  Matrix newRootTransform;
+  if (!aPreviousTransformForRoot.Is2D(&oldRootTransform) ||
+      !aCurrentTransformForRoot.Is2D(&newRootTransform)) {
+    return;
   }
+
+  
+  
+  Matrix oldCumulativeTransform = ancestorTransform * oldRootTransform;
+  Matrix newCumulativeTransform = ancestorTransform * newRootTransform;
+  if (newCumulativeTransform.IsSingular()) {
+    return;
+  }
+  Matrix newCumulativeTransformInverse = newCumulativeTransform;
+  newCumulativeTransformInverse.Invert();
+
+  
+  
+  Matrix layerTransform;
+  if (!GetBaseTransform2D(aLayer, &layerTransform)) {
+    return;
+  }
+
+  
+  
+  
+  LayerPoint offsetInOldSubtreeLayerSpace = GetLayerFixedMarginsOffset(aLayer, aFixedLayerMargins);
+
+  
+  
+  const LayerPoint& anchorInOldSubtreeLayerSpace = aLayer->GetFixedPositionAnchor();
+  LayerPoint offsetAnchorInOldSubtreeLayerSpace = anchorInOldSubtreeLayerSpace + offsetInOldSubtreeLayerSpace;
+
+  
+  
+  Point anchor(anchorInOldSubtreeLayerSpace.x, anchorInOldSubtreeLayerSpace.y);
+  Point offsetAnchor(offsetAnchorInOldSubtreeLayerSpace.x, offsetAnchorInOldSubtreeLayerSpace.y);
+  Point locallyTransformedAnchor = layerTransform * anchor;
+  Point locallyTransformedOffsetAnchor = layerTransform * offsetAnchor;
+
+  
+  
+  
+  
+  
+  
+  
+  Point oldAnchorPositionInNewSpace =
+    newCumulativeTransformInverse * (oldCumulativeTransform * locallyTransformedOffsetAnchor);
+  Point translation = oldAnchorPositionInNewSpace - locallyTransformedAnchor;
+
+  if (aLayer->GetIsStickyPosition()) {
+    
+    
+    
+    
+    
+    const LayerRect& stickyOuter = aLayer->GetStickyScrollRangeOuter();
+    const LayerRect& stickyInner = aLayer->GetStickyScrollRangeInner();
+
+    translation.y = IntervalOverlap(translation.y, stickyOuter.y, stickyOuter.YMost()) -
+                    IntervalOverlap(translation.y, stickyInner.y, stickyInner.YMost());
+    translation.x = IntervalOverlap(translation.x, stickyOuter.x, stickyOuter.XMost()) -
+                    IntervalOverlap(translation.x, stickyInner.x, stickyInner.XMost());
+  }
+
+  
+  TranslateShadowLayer2D(aLayer, ThebesPoint(translation));
 }
 
 static void
