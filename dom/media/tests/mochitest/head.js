@@ -6,7 +6,6 @@
 
 var Cc = SpecialPowers.Cc;
 var Ci = SpecialPowers.Ci;
-var Cr = SpecialPowers.Cr;
 
 
 var FAKE_ENABLED = true;
@@ -34,7 +33,7 @@ try {
 
 
 
-function createHTML(meta) {
+function realCreateHTML(meta) {
   var test = document.getElementById('test');
 
   
@@ -48,13 +47,13 @@ function createHTML(meta) {
 
   
   var anchor = document.createElement('a');
-  anchor.setAttribute('target', '_blank');
-
+  anchor.textContent = meta.title;
   if (meta.bug) {
     anchor.setAttribute('href', 'https://bugzilla.mozilla.org/show_bug.cgi?id=' + meta.bug);
+  } else {
+    anchor.setAttribute('target', '_blank');
   }
 
-  anchor.textContent = meta.title;
   document.body.insertBefore(anchor, test);
 
   var display = document.createElement('p');
@@ -83,14 +82,16 @@ function createMediaElement(type, label) {
   var element = document.getElementById(id);
 
   
-  if (element)
+  if (element) {
     return element;
+  }
 
   element = document.createElement(type === 'audio' ? 'audio' : 'video');
   element.setAttribute('id', id);
   element.setAttribute('height', 100);
   element.setAttribute('width', 150);
   element.setAttribute('controls', 'controls');
+  element.setAttribute('autoplay', 'autoplay');
   document.getElementById('content').appendChild(element);
 
   return element;
@@ -122,7 +123,7 @@ function getUserMedia(constraints) {
 
 
 
-function runTest(aCallback) {
+function realRunTest(aCallback) {
   if (window.SimpleTest) {
     
     SimpleTest.waitForExplicitFinish();
@@ -169,10 +170,10 @@ function runTest(aCallback) {
 
 
 function checkMediaStreamTracksByType(constraints, type, mediaStreamTracks) {
-  if(constraints[type]) {
+  if (constraints[type]) {
     is(mediaStreamTracks.length, 1, 'One ' + type + ' track shall be present');
 
-    if(mediaStreamTracks.length) {
+    if (mediaStreamTracks.length) {
       is(mediaStreamTracks[0].kind, type, 'Track kind should be ' + type);
       ok(mediaStreamTracks[0].id, 'Track id should be defined');
     }
@@ -512,7 +513,7 @@ function IsMacOSX10_6orOlder() {
 
     if (navigator.platform.indexOf("Mac") == 0) {
         var version = Cc["@mozilla.org/system-info;1"]
-                        .getService(SpecialPowers.Ci.nsIPropertyBag2)
+                        .getService(Ci.nsIPropertyBag2)
                         .getProperty("version");
         
         
@@ -521,3 +522,11 @@ function IsMacOSX10_6orOlder() {
     }
     return is106orOlder;
 }
+
+(function(){
+  var el = document.createElement("link");
+  el.rel = "stylesheet";
+  el.type = "text/css";
+  el.href= "/tests/SimpleTest/test.css";
+  document.head.appendChild(el);
+}());
