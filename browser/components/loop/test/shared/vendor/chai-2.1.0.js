@@ -1,3 +1,4 @@
+
 ;(function(){
 
 
@@ -8,36 +9,100 @@
 
 
 
-function require(path, parent, orig) {
-  var resolved = require.resolve(path);
+function require(name) {
+  var module = require.modules[name];
+  if (!module) throw new Error('failed to require "' + name + '"');
 
-  
-  if (null == resolved) {
-    orig = orig || path;
-    parent = parent || 'root';
-    var err = new Error('Failed to require "' + orig + '" from "' + parent + '"');
-    err.path = orig;
-    err.parent = parent;
-    err.require = true;
-    throw err;
-  }
-
-  var module = require.modules[resolved];
-
-  
-  
-  
-  if (!module._resolving && !module.exports) {
-    var mod = {};
-    mod.exports = {};
-    mod.client = mod.component = true;
-    module._resolving = true;
-    module.call(this, mod.exports, require.relative(resolved), mod);
-    delete module._resolving;
-    module.exports = mod.exports;
+  if (!('exports' in module) && typeof module.definition === 'function') {
+    module.client = module.component = true;
+    module.definition.call(this, module.exports = {}, module);
+    delete module.definition;
   }
 
   return module.exports;
+}
+
+
+
+
+
+require.loader = 'component';
+
+
+
+
+require.helper = {};
+require.helper.semVerSort = function(a, b) {
+  var aArray = a.version.split('.');
+  var bArray = b.version.split('.');
+  for (var i=0; i<aArray.length; ++i) {
+    var aInt = parseInt(aArray[i], 10);
+    var bInt = parseInt(bArray[i], 10);
+    if (aInt === bInt) {
+      var aLex = aArray[i].substr((""+aInt).length);
+      var bLex = bArray[i].substr((""+bInt).length);
+      if (aLex === '' && bLex !== '') return 1;
+      if (aLex !== '' && bLex === '') return -1;
+      if (aLex !== '' && bLex !== '') return aLex > bLex ? 1 : -1;
+      continue;
+    } else if (aInt > bInt) {
+      return 1;
+    } else {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+
+
+
+
+
+
+
+
+
+require.latest = function (name, returnPath) {
+  function showError(name) {
+    throw new Error('failed to find latest module of "' + name + '"');
+  }
+  
+  var versionRegexp = /(.*)~(.*)@v?(\d+\.\d+\.\d+[^\/]*)$/;
+  var remoteRegexp = /(.*)~(.*)/;
+  if (!remoteRegexp.test(name)) showError(name);
+  var moduleNames = Object.keys(require.modules);
+  var semVerCandidates = [];
+  var otherCandidates = []; 
+  for (var i=0; i<moduleNames.length; i++) {
+    var moduleName = moduleNames[i];
+    if (new RegExp(name + '@').test(moduleName)) {
+        var version = moduleName.substr(name.length+1);
+        var semVerMatch = versionRegexp.exec(moduleName);
+        if (semVerMatch != null) {
+          semVerCandidates.push({version: version, name: moduleName});
+        } else {
+          otherCandidates.push({version: version, name: moduleName});
+        } 
+    }
+  }
+  if (semVerCandidates.concat(otherCandidates).length === 0) {
+    showError(name);
+  }
+  if (semVerCandidates.length > 0) {
+    var module = semVerCandidates.sort(require.helper.semVerSort).pop().name;
+    if (returnPath === true) {
+      return module;
+    }
+    return require(module);
+  }
+  
+  
+  var module = otherCandidates.sort(function(a, b) {return a.name > b.name})[0].name;
+  if (returnPath === true) {
+    return module;
+  }
+  return require(module);
 }
 
 
@@ -50,157 +115,30 @@ require.modules = {};
 
 
 
-require.aliases = {};
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-require.resolve = function(path) {
-  if (path.charAt(0) === '/') path = path.slice(1);
-
-  var paths = [
-    path,
-    path + '.js',
-    path + '.json',
-    path + '/index.js',
-    path + '/index.json'
-  ];
-
-  for (var i = 0; i < paths.length; i++) {
-    var path = paths[i];
-    if (require.modules.hasOwnProperty(path)) return path;
-    if (require.aliases.hasOwnProperty(path)) return require.aliases[path];
-  }
-};
-
-
-
-
-
-
-
-
-
-
-require.normalize = function(curr, path) {
-  var segs = [];
-
-  if ('.' != path.charAt(0)) return path;
-
-  curr = curr.split('/');
-  path = path.split('/');
-
-  for (var i = 0; i < path.length; ++i) {
-    if ('..' == path[i]) {
-      curr.pop();
-    } else if ('.' != path[i] && '' != path[i]) {
-      segs.push(path[i]);
-    }
-  }
-
-  return curr.concat(segs).join('/');
-};
-
-
-
-
-
-
-
-
-
-require.register = function(path, definition) {
-  require.modules[path] = definition;
-};
-
-
-
-
-
-
-
-
-
-require.alias = function(from, to) {
-  if (!require.modules.hasOwnProperty(from)) {
-    throw new Error('Failed to alias "' + from + '", it does not exist');
-  }
-  require.aliases[to] = from;
-};
-
-
-
-
-
-
-
-
-
-require.relative = function(parent) {
-  var p = require.normalize(parent, '..');
-
-  
-
-
-
-  function lastIndexOf(arr, obj) {
-    var i = arr.length;
-    while (i--) {
-      if (arr[i] === obj) return i;
-    }
-    return -1;
-  }
-
-  
-
-
-
-  function localRequire(path) {
-    var resolved = localRequire.resolve(path);
-    return require(resolved, parent, path);
-  }
-
-  
-
-
-
-  localRequire.resolve = function(path) {
-    var c = path.charAt(0);
-    if ('/' == c) return path.slice(1);
-    if ('.' == c) return require.normalize(p, path);
-
-    
-    
-    
-    var segs = parent.split('/');
-    var i = lastIndexOf(segs, 'deps') + 1;
-    if (!i) i = 0;
-    path = segs.slice(0, i + 1).join('/') + '/deps/' + path;
-    return path;
+require.register = function (name, definition) {
+  require.modules[name] = {
+    definition: definition
   };
-
-  
-
-
-
-  localRequire.exists = function(path) {
-    return require.modules.hasOwnProperty(localRequire.resolve(path));
-  };
-
-  return localRequire;
 };
-require.register("chaijs-assertion-error/index.js", function(exports, require, module){
+
+
+
+
+
+
+
+
+
+require.define = function (name, exports) {
+  require.modules[name] = {
+    exports: exports
+  };
+};
+require.register("chaijs~assertion-error@1.0.0", function (exports, module) {
 
 
 
@@ -313,7 +251,8 @@ AssertionError.prototype.toJSON = function (stack) {
 };
 
 });
-require.register("chaijs-type-detect/lib/type.js", function(exports, require, module){
+
+require.register("chaijs~type-detect@0.1.1", function (exports, module) {
 
 
 
@@ -458,7 +397,8 @@ Library.prototype.test = function (obj, type) {
 };
 
 });
-require.register("chaijs-deep-eql/lib/eql.js", function(exports, require, module){
+
+require.register("chaijs~deep-eql@0.1.3", function (exports, module) {
 
 
 
@@ -469,7 +409,7 @@ require.register("chaijs-deep-eql/lib/eql.js", function(exports, require, module
 
 
 
-var type = require('type-detect');
+var type = require('chaijs~type-detect@0.1.1');
 
 
 
@@ -718,11 +658,13 @@ function objectEqual(a, b, m) {
 }
 
 });
-require.register("chai/index.js", function(exports, require, module){
-module.exports = require('./lib/chai');
+
+require.register("chai", function (exports, module) {
+module.exports = require('chai/lib/chai.js');
 
 });
-require.register("chai/lib/chai.js", function(exports, require, module){
+
+require.register("chai/lib/chai.js", function (exports, module) {
 
 
 
@@ -736,19 +678,19 @@ var used = []
 
 
 
-exports.version = '1.8.1';
+exports.version = '2.1.0';
 
 
 
 
 
-exports.AssertionError = require('assertion-error');
+exports.AssertionError = require('chaijs~assertion-error@1.0.0');
 
 
 
 
 
-var util = require('./chai/utils');
+var util = require('chai/lib/chai/utils/index.js');
 
 
 
@@ -773,45 +715,61 @@ exports.use = function (fn) {
 
 
 
-var assertion = require('./chai/assertion');
+exports.util = util;
+
+
+
+
+
+var config = require('chai/lib/chai/config.js');
+exports.config = config;
+
+
+
+
+
+var assertion = require('chai/lib/chai/assertion.js');
 exports.use(assertion);
 
 
 
 
 
-var core = require('./chai/core/assertions');
+var core = require('chai/lib/chai/core/assertions.js');
 exports.use(core);
 
 
 
 
 
-var expect = require('./chai/interface/expect');
+var expect = require('chai/lib/chai/interface/expect.js');
 exports.use(expect);
 
 
 
 
 
-var should = require('./chai/interface/should');
+var should = require('chai/lib/chai/interface/should.js');
 exports.use(should);
 
 
 
 
 
-var assert = require('./chai/interface/assert');
+var assert = require('chai/lib/chai/interface/assert.js');
 exports.use(assert);
 
 });
-require.register("chai/lib/chai/assertion.js", function(exports, require, module){
+
+require.register("chai/lib/chai/assertion.js", function (exports, module) {
 
 
 
 
 
 
+
+var config = require('chai/lib/chai/config.js');
 
 module.exports = function (_chai, util) {
   
@@ -841,33 +799,27 @@ module.exports = function (_chai, util) {
     flag(this, 'message', msg);
   }
 
-  
+  Object.defineProperty(Assertion, 'includeStack', {
+    get: function() {
+      console.warn('Assertion.includeStack is deprecated, use chai.config.includeStack instead.');
+      return config.includeStack;
+    },
+    set: function(value) {
+      console.warn('Assertion.includeStack is deprecated, use chai.config.includeStack instead.');
+      config.includeStack = value;
+    }
+  });
 
-
-
-
-
-
-
-
-
-
-
-  Assertion.includeStack = false;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  Assertion.showDiff = true;
+  Object.defineProperty(Assertion, 'showDiff', {
+    get: function() {
+      console.warn('Assertion.showDiff is deprecated, use chai.config.showDiff instead.');
+      return config.showDiff;
+    },
+    set: function(value) {
+      console.warn('Assertion.showDiff is deprecated, use chai.config.showDiff instead.');
+      config.showDiff = value;
+    }
+  });
 
   Assertion.addProperty = function (name, fn) {
     util.addProperty(this.prototype, name, fn);
@@ -910,7 +862,7 @@ module.exports = function (_chai, util) {
   Assertion.prototype.assert = function (expr, msg, negateMsg, expected, _actual, showDiff) {
     var ok = util.test(this, arguments);
     if (true !== showDiff) showDiff = false;
-    if (true !== Assertion.showDiff) showDiff = false;
+    if (true !== config.showDiff) showDiff = false;
 
     if (!ok) {
       var msg = util.getMessage(this, arguments)
@@ -919,7 +871,7 @@ module.exports = function (_chai, util) {
           actual: actual
         , expected: expected
         , showDiff: showDiff
-      }, (Assertion.includeStack) ? this.assert : flag(this, 'ssfi'));
+      }, (config.includeStack) ? this.assert : flag(this, 'ssfi'));
     }
   };
 
@@ -942,7 +894,62 @@ module.exports = function (_chai, util) {
 };
 
 });
-require.register("chai/lib/chai/core/assertions.js", function(exports, require, module){
+
+require.register("chai/lib/chai/config.js", function (exports, module) {
+module.exports = {
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+   includeStack: false,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  showDiff: true,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  truncateThreshold: 40
+
+};
+
+});
+
+require.register("chai/lib/chai/core/assertions.js", function (exports, module) {
 
 
 
@@ -982,9 +989,10 @@ module.exports = function (chai, _) {
 
 
 
+
   [ 'to', 'be', 'been'
   , 'is', 'and', 'has', 'have'
-  , 'with', 'that', 'at'
+  , 'with', 'that', 'which', 'at'
   , 'of', 'same' ].forEach(function (chain) {
     Assertion.addProperty(chain, function () {
       return this;
@@ -1025,6 +1033,41 @@ module.exports = function (chai, _) {
 
   Assertion.addProperty('deep', function () {
     flag(this, 'deep', true);
+  });
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  Assertion.addProperty('any', function () {
+    flag(this, 'any', true);
+    flag(this, 'all', false)
+  });
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  Assertion.addProperty('all', function () {
+    flag(this, 'all', true);
+    flag(this, 'any', false);
   });
 
   
@@ -1085,6 +1128,8 @@ module.exports = function (chai, _) {
 
 
 
+
+
   function includeChainingBehavior () {
     flag(this, 'contains', true);
   }
@@ -1092,17 +1137,24 @@ module.exports = function (chai, _) {
   function include (val, msg) {
     if (msg) flag(this, 'message', msg);
     var obj = flag(this, 'object');
-
-    if (_.type(val) === 'object') {
+    var expected = false;
+    if (_.type(obj) === 'array' && _.type(val) === 'object') {
+      for (var i in obj) {
+        if (_.eql(obj[i], val)) {
+          expected = true;
+          break;
+        }
+      }
+    } else if (_.type(val) === 'object') {
       if (!flag(this, 'negate')) {
         for (var k in val) new Assertion(obj).property(k, val[k]);
         return;
       }
-      var subset = {}
-      for (var k in val) subset[k] = obj[k]
-      var expected = _.eql(subset, val);
+      var subset = {};
+      for (var k in val) subset[k] = obj[k];
+      expected = _.eql(subset, val);
     } else {
-      var expected = obj && ~obj.indexOf(val)
+      expected = obj && ~obj.indexOf(val);
     }
     this.assert(
         expected
@@ -1112,6 +1164,8 @@ module.exports = function (chai, _) {
 
   Assertion.addChainableMethod('include', include, includeChainingBehavior);
   Assertion.addChainableMethod('contain', include, includeChainingBehavior);
+  Assertion.addChainableMethod('contains', include, includeChainingBehavior);
+  Assertion.addChainableMethod('includes', include, includeChainingBehavior);
 
   
 
@@ -1703,11 +1757,16 @@ module.exports = function (chai, _) {
   Assertion.addMethod('property', function (name, val, msg) {
     if (msg) flag(this, 'message', msg);
 
-    var descriptor = flag(this, 'deep') ? 'deep property ' : 'property '
+    var isDeep = !!flag(this, 'deep')
+      , descriptor = isDeep ? 'deep property ' : 'property '
       , negate = flag(this, 'negate')
       , obj = flag(this, 'object')
-      , value = flag(this, 'deep')
-        ? _.getPathValue(name, obj)
+      , pathInfo = isDeep ? _.getPathInfo(name, obj) : null
+      , hasProperty = isDeep
+        ? pathInfo.exists
+        : _.hasProperty(name, obj)
+      , value = isDeep
+        ? pathInfo.value
         : obj[name];
 
     if (negate && undefined !== val) {
@@ -1717,7 +1776,7 @@ module.exports = function (chai, _) {
       }
     } else {
       this.assert(
-          undefined !== value
+          hasProperty
         , 'expected #{this} to have a ' + descriptor + _.inspect(name)
         , 'expected #{this} to not have ' + descriptor + _.inspect(name));
     }
@@ -1809,7 +1868,7 @@ module.exports = function (chai, _) {
   }
 
   Assertion.addChainableMethod('length', assertLength, assertLengthChain);
-  Assertion.addMethod('lengthOf', assertLength, assertLengthChain);
+  Assertion.addMethod('lengthOf', assertLength);
 
   
 
@@ -1876,28 +1935,74 @@ module.exports = function (chai, _) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   function assertKeys (keys) {
     var obj = flag(this, 'object')
       , str
-      , ok = true;
+      , ok = true
+      , mixedArgsMsg = 'keys must be given single argument of Array|Object|String, or multiple String arguments';
 
-    keys = keys instanceof Array
-      ? keys
-      : Array.prototype.slice.call(arguments);
+    switch (_.type(keys)) {
+      case "array":
+        if (arguments.length > 1) throw (new Error(mixedArgsMsg));
+        break;
+      case "object":
+        if (arguments.length > 1) throw (new Error(mixedArgsMsg));
+        keys = Object.keys(keys);
+        break;
+      default:
+        keys = Array.prototype.slice.call(arguments);
+    }
 
     if (!keys.length) throw new Error('keys required');
 
     var actual = Object.keys(obj)
-      , len = keys.length;
+      , expected = keys
+      , len = keys.length
+      , any = flag(this, 'any')
+      , all = flag(this, 'all');
+
+    if (!any && !all) {
+      all = true;
+    }
 
     
-    ok = keys.every(function(key){
-      return ~actual.indexOf(key);
-    });
+    if (any) {
+      var intersection = expected.filter(function(key) {
+        return ~actual.indexOf(key);
+      });
+      ok = intersection.length > 0;
+    }
 
     
-    if (!flag(this, 'negate') && !flag(this, 'contains')) {
-      ok = ok && keys.length == actual.length;
+    if (all) {
+      ok = keys.every(function(key){
+        return ~actual.indexOf(key);
+      });
+      if (!flag(this, 'negate') && !flag(this, 'contains')) {
+        ok = ok && keys.length == actual.length;
+      }
     }
 
     
@@ -1906,7 +2011,12 @@ module.exports = function (chai, _) {
         return _.inspect(key);
       });
       var last = keys.pop();
-      str = keys.join(', ') + ', and ' + last;
+      if (all) {
+        str = keys.join(', ') + ', and ' + last;
+      }
+      if (any) {
+        str = keys.join(', ') + ', or ' + last;
+      }
     } else {
       str = _.inspect(keys[0]);
     }
@@ -1922,6 +2032,9 @@ module.exports = function (chai, _) {
         ok
       , 'expected #{this} to ' + str
       , 'expected #{this} to not ' + str
+      , expected.slice(0).sort()
+      , actual.sort()
+      , true
     );
   }
 
@@ -2157,12 +2270,13 @@ module.exports = function (chai, _) {
   Assertion.addMethod('satisfy', function (matcher, msg) {
     if (msg) flag(this, 'message', msg);
     var obj = flag(this, 'object');
+    var result = matcher(obj);
     this.assert(
-        matcher(obj)
+        result
       , 'expected #{this} to satisfy ' + _.objDisplay(matcher)
       , 'expected #{this} to not satisfy' + _.objDisplay(matcher)
       , this.negate ? false : true
-      , matcher(obj)
+      , result
     );
   });
 
@@ -2183,6 +2297,12 @@ module.exports = function (chai, _) {
   Assertion.addMethod('closeTo', function (expected, delta, msg) {
     if (msg) flag(this, 'message', msg);
     var obj = flag(this, 'object');
+
+    new Assertion(obj, msg).is.a('number');
+    if (_.type(expected) !== 'number' || _.type(delta) !== 'number') {
+      throw new Error('the arguments to closeTo must be numbers');
+    }
+
     this.assert(
         Math.abs(obj - expected) <= delta
       , 'expected #{this} to be close to ' + expected + ' +/- ' + delta
@@ -2190,13 +2310,21 @@ module.exports = function (chai, _) {
     );
   });
 
-  function isSubsetOf(subset, superset) {
+  function isSubsetOf(subset, superset, cmp) {
     return subset.every(function(elem) {
-      return superset.indexOf(elem) !== -1;
+      if (!cmp) return superset.indexOf(elem) !== -1;
+
+      return superset.some(function(elem2) {
+        return cmp(elem, elem2);
+      });
     })
   }
 
   
+
+
+
+
 
 
 
@@ -2221,9 +2349,11 @@ module.exports = function (chai, _) {
     new Assertion(obj).to.be.an('array');
     new Assertion(subset).to.be.an('array');
 
+    var cmp = flag(this, 'deep') ? _.eql : undefined;
+
     if (flag(this, 'contains')) {
       return this.assert(
-          isSubsetOf(subset, obj)
+          isSubsetOf(subset, obj, cmp)
         , 'expected #{this} to be a superset of #{act}'
         , 'expected #{this} to not be a superset of #{act}'
         , obj
@@ -2232,17 +2362,132 @@ module.exports = function (chai, _) {
     }
 
     this.assert(
-        isSubsetOf(obj, subset) && isSubsetOf(subset, obj)
+        isSubsetOf(obj, subset, cmp) && isSubsetOf(subset, obj, cmp)
         , 'expected #{this} to have the same members as #{act}'
         , 'expected #{this} to not have the same members as #{act}'
         , obj
         , subset
     );
   });
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  function assertChanges (object, prop, msg) {
+    if (msg) flag(this, 'message', msg);
+    var fn = flag(this, 'object');
+    new Assertion(object, msg).to.have.property(prop);
+    new Assertion(fn).is.a('function');
+
+    var initial = object[prop];
+    fn();
+
+    this.assert(
+      initial !== object[prop]
+      , 'expected .' + prop + ' to change'
+      , 'expected .' + prop + ' to not change'
+    );
+  }
+
+  Assertion.addChainableMethod('change', assertChanges);
+  Assertion.addChainableMethod('changes', assertChanges);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  function assertIncreases (object, prop, msg) {
+    if (msg) flag(this, 'message', msg);
+    var fn = flag(this, 'object');
+    new Assertion(object, msg).to.have.property(prop);
+    new Assertion(fn).is.a('function');
+
+    var initial = object[prop];
+    fn();
+
+    this.assert(
+      object[prop] - initial > 0
+      , 'expected .' + prop + ' to increase'
+      , 'expected .' + prop + ' to not increase'
+    );
+  }
+
+  Assertion.addChainableMethod('increase', assertIncreases);
+  Assertion.addChainableMethod('increases', assertIncreases);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  function assertDecreases (object, prop, msg) {
+    if (msg) flag(this, 'message', msg);
+    var fn = flag(this, 'object');
+    new Assertion(object, msg).to.have.property(prop);
+    new Assertion(fn).is.a('function');
+
+    var initial = object[prop];
+    fn();
+
+    this.assert(
+      object[prop] - initial < 0
+      , 'expected .' + prop + ' to decrease'
+      , 'expected .' + prop + ' to not decrease'
+    );
+  }
+
+  Assertion.addChainableMethod('decrease', assertDecreases);
+  Assertion.addChainableMethod('decreases', assertDecreases);
+
 };
 
 });
-require.register("chai/lib/chai/interface/assert.js", function(exports, require, module){
+
+require.register("chai/lib/chai/interface/assert.js", function (exports, module) {
 
 
 
@@ -2278,7 +2523,7 @@ module.exports = function (chai, util) {
 
 
   var assert = chai.assert = function (express, errmsg) {
-    var test = new Assertion(null);
+    var test = new Assertion(null, null, chai.assert);
     test.assert(
         express
       , errmsg
@@ -2359,7 +2604,7 @@ module.exports = function (chai, util) {
 
 
   assert.equal = function (act, exp, msg) {
-    var test = new Assertion(act, msg);
+    var test = new Assertion(act, msg, assert.equal);
 
     test.assert(
         exp == flag(test, 'object')
@@ -2385,7 +2630,7 @@ module.exports = function (chai, util) {
 
 
   assert.notEqual = function (act, exp, msg) {
-    var test = new Assertion(act, msg);
+    var test = new Assertion(act, msg, assert.notEqual);
 
     test.assert(
         exp != flag(test, 'object')
@@ -2469,6 +2714,42 @@ module.exports = function (chai, util) {
   };
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+  assert.isAbove = function (val, abv, msg) {
+    new Assertion(val, msg).to.be.above(abv);
+  };
+
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+  assert.isBelow = function (val, blw, msg) {
+    new Assertion(val, msg).to.be.below(blw);
+  };
+
+   
 
 
 
@@ -2901,7 +3182,7 @@ module.exports = function (chai, util) {
 
 
   assert.include = function (exp, inc, msg) {
-    new Assertion(exp, msg).include(inc);
+    new Assertion(exp, msg, assert.include).include(inc);
   };
 
   
@@ -2921,7 +3202,7 @@ module.exports = function (chai, util) {
 
 
   assert.notInclude = function (exp, inc, msg) {
-    new Assertion(exp, msg).not.include(inc);
+    new Assertion(exp, msg, assert.notInclude).not.include(inc);
   };
 
   
@@ -3276,8 +3557,153 @@ module.exports = function (chai, util) {
 
 
 
+  assert.sameDeepMembers = function (set1, set2, msg) {
+    new Assertion(set1, msg).to.have.same.deep.members(set2);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   assert.includeMembers = function (superset, subset, msg) {
     new Assertion(superset, msg).to.include.members(subset);
+  }
+
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  assert.changes = function (fn, obj, prop) {
+    new Assertion(fn).to.change(obj, prop);
+  }
+
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  assert.doesNotChange = function (fn, obj, prop) {
+    new Assertion(fn).to.not.change(obj, prop);
+  }
+
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  assert.increases = function (fn, obj, prop) {
+    new Assertion(fn).to.increase(obj, prop);
+  }
+
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  assert.doesNotIncrease = function (fn, obj, prop) {
+    new Assertion(fn).to.not.increase(obj, prop);
+  }
+
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  assert.decreases = function (fn, obj, prop) {
+    new Assertion(fn).to.decrease(obj, prop);
+  }
+
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  assert.doesNotDecrease = function (fn, obj, prop) {
+    new Assertion(fn).to.not.decrease(obj, prop);
   }
 
   
@@ -3301,7 +3727,8 @@ module.exports = function (chai, util) {
 };
 
 });
-require.register("chai/lib/chai/interface/expect.js", function(exports, require, module){
+
+require.register("chai/lib/chai/interface/expect.js", function (exports, module) {
 
 
 
@@ -3312,11 +3739,33 @@ module.exports = function (chai, util) {
   chai.expect = function (val, message) {
     return new chai.Assertion(val, message);
   };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  chai.expect.fail = function (actual, expected, message, operator) {
+    message = message || 'expect.fail()';
+    throw new chai.AssertionError(message, {
+        actual: actual
+      , expected: expected
+      , operator: operator
+    }, chai.expect.fail);
+  };
 };
 
-
 });
-require.register("chai/lib/chai/interface/should.js", function(exports, require, module){
+
+require.register("chai/lib/chai/interface/should.js", function (exports, module) {
 
 
 
@@ -3328,34 +3777,58 @@ module.exports = function (chai, util) {
 
   function loadShould () {
     
-    Object.defineProperty(Object.prototype, 'should',
-      {
-        set: function (value) {
-          
-          
-          
-          
-          
-          
-          Object.defineProperty(this, 'should', {
-            value: value,
-            enumerable: true,
-            configurable: true,
-            writable: true
-          });
-        }
-      , get: function(){
-          if (this instanceof String || this instanceof Number) {
-            return new Assertion(this.constructor(this));
-          } else if (this instanceof Boolean) {
-            return new Assertion(this == true);
-          }
-          return new Assertion(this);
-        }
+    function shouldGetter() {
+      if (this instanceof String || this instanceof Number) {
+        return new Assertion(this.constructor(this), null, shouldGetter);
+      } else if (this instanceof Boolean) {
+        return new Assertion(this == true, null, shouldGetter);
+      }
+      return new Assertion(this, null, shouldGetter);
+    }
+    function shouldSetter(value) {
+      
+      
+      
+      
+      
+      
+      Object.defineProperty(this, 'should', {
+        value: value,
+        enumerable: true,
+        configurable: true,
+        writable: true
+      });
+    }
+    
+    Object.defineProperty(Object.prototype, 'should', {
+      set: shouldSetter
+      , get: shouldGetter
       , configurable: true
     });
 
     var should = {};
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    should.fail = function (actual, expected, message, operator) {
+      message = message || 'should.fail()';
+      throw new chai.AssertionError(message, {
+          actual: actual
+        , expected: expected
+        , operator: operator
+      }, should.fail);
+    };
 
     should.equal = function (val1, val2, msg) {
       new Assertion(val1, msg).to.equal(val2);
@@ -3395,7 +3868,8 @@ module.exports = function (chai, util) {
 };
 
 });
-require.register("chai/lib/chai/utils/addChainableMethod.js", function(exports, require, module){
+
+require.register("chai/lib/chai/utils/addChainableMethod.js", function (exports, module) {
 
 
 
@@ -3406,7 +3880,9 @@ require.register("chai/lib/chai/utils/addChainableMethod.js", function(exports, 
 
 
 
-var transferFlags = require('./transferFlags');
+var transferFlags = require('chai/lib/chai/utils/transferFlags.js');
+var flag = require('chai/lib/chai/utils/flag.js');
+var config = require('chai/lib/chai/config.js');
 
 
 
@@ -3472,7 +3948,10 @@ module.exports = function (ctx, name, method, chainingBehavior) {
     { get: function () {
         chainableBehavior.chainingBehavior.call(this);
 
-        var assert = function () {
+        var assert = function assert() {
+          var old_ssfi = flag(this, 'ssfi');
+          if (old_ssfi && config.includeStack === false)
+            flag(this, 'ssfi', assert);
           var result = chainableBehavior.method.apply(this, arguments);
           return result === undefined ? this : result;
         };
@@ -3504,7 +3983,15 @@ module.exports = function (ctx, name, method, chainingBehavior) {
 };
 
 });
-require.register("chai/lib/chai/utils/addMethod.js", function(exports, require, module){
+
+require.register("chai/lib/chai/utils/addMethod.js", function (exports, module) {
+
+
+
+
+
+
+var config = require('chai/lib/chai/config.js');
 
 
 
@@ -3530,21 +4017,21 @@ require.register("chai/lib/chai/utils/addMethod.js", function(exports, require, 
 
 
 
-
-
-
-
-
+var flag = require('chai/lib/chai/utils/flag.js');
 
 module.exports = function (ctx, name, method) {
   ctx[name] = function () {
+    var old_ssfi = flag(this, 'ssfi');
+    if (old_ssfi && config.includeStack === false)
+      flag(this, 'ssfi', ctx[name]);
     var result = method.apply(this, arguments);
     return result === undefined ? this : result;
   };
 };
 
 });
-require.register("chai/lib/chai/utils/addProperty.js", function(exports, require, module){
+
+require.register("chai/lib/chai/utils/addProperty.js", function (exports, module) {
 
 
 
@@ -3587,7 +4074,8 @@ module.exports = function (ctx, name, getter) {
 };
 
 });
-require.register("chai/lib/chai/utils/flag.js", function(exports, require, module){
+
+require.register("chai/lib/chai/utils/flag.js", function (exports, module) {
 
 
 
@@ -3622,7 +4110,8 @@ module.exports = function (obj, key, value) {
 };
 
 });
-require.register("chai/lib/chai/utils/getActual.js", function(exports, require, module){
+
+require.register("chai/lib/chai/utils/getActual.js", function (exports, module) {
 
 
 
@@ -3639,12 +4128,12 @@ require.register("chai/lib/chai/utils/getActual.js", function(exports, require, 
 
 
 module.exports = function (obj, args) {
-  var actual = args[4];
-  return 'undefined' !== typeof actual ? actual : obj._obj;
+  return args.length > 4 ? args[4] : obj._obj;
 };
 
 });
-require.register("chai/lib/chai/utils/getEnumerableProperties.js", function(exports, require, module){
+
+require.register("chai/lib/chai/utils/getEnumerableProperties.js", function (exports, module) {
 
 
 
@@ -3672,7 +4161,8 @@ module.exports = function getEnumerableProperties(object) {
 };
 
 });
-require.register("chai/lib/chai/utils/getMessage.js", function(exports, require, module){
+
+require.register("chai/lib/chai/utils/getMessage.js", function (exports, module) {
 
 
 
@@ -3683,10 +4173,10 @@ require.register("chai/lib/chai/utils/getMessage.js", function(exports, require,
 
 
 
-var flag = require('./flag')
-  , getActual = require('./getActual')
-  , inspect = require('./inspect')
-  , objDisplay = require('./objDisplay');
+var flag = require('chai/lib/chai/utils/flag.js')
+  , getActual = require('chai/lib/chai/utils/getActual.js')
+  , inspect = require('chai/lib/chai/utils/inspect.js')
+  , objDisplay = require('chai/lib/chai/utils/objDisplay.js');
 
 
 
@@ -3714,6 +4204,7 @@ module.exports = function (obj, args) {
     , msg = negate ? args[2] : args[1]
     , flagMsg = flag(obj, 'message');
 
+  if(typeof msg === "function") msg = msg();
   msg = msg || '';
   msg = msg
     .replace(/#{this}/g, objDisplay(val))
@@ -3724,7 +4215,8 @@ module.exports = function (obj, args) {
 };
 
 });
-require.register("chai/lib/chai/utils/getName.js", function(exports, require, module){
+
+require.register("chai/lib/chai/utils/getName.js", function (exports, module) {
 
 
 
@@ -3747,7 +4239,16 @@ module.exports = function (func) {
 };
 
 });
-require.register("chai/lib/chai/utils/getPathValue.js", function(exports, require, module){
+
+require.register("chai/lib/chai/utils/getPathValue.js", function (exports, module) {
+
+
+
+
+
+
+
+var getPathInfo = require('chai/lib/chai/utils/getPathInfo.js');
 
 
 
@@ -3778,6 +4279,21 @@ require.register("chai/lib/chai/utils/getPathValue.js", function(exports, requir
 
 
 
+module.exports = function(path, obj) {
+  var info = getPathInfo(path, obj);
+  return info.value;
+}; 
+
+});
+
+require.register("chai/lib/chai/utils/getPathInfo.js", function (exports, module) {
+
+
+
+
+
+
+var hasProperty = require('chai/lib/chai/utils/hasProperty.js');
 
 
 
@@ -3785,10 +4301,35 @@ require.register("chai/lib/chai/utils/getPathValue.js", function(exports, requir
 
 
 
-var getPathValue = module.exports = function (path, obj) {
-  var parsed = parsePath(path);
-  return _getPathValue(parsed, obj);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+module.exports = function getPathInfo(path, obj) {
+  var parsed = parsePath(path),
+      last = parsed[parsed.length - 1];
+
+  var info = {
+    parent: _getPathValue(parsed, obj, parsed.length - 1),
+    name: last.p || last.i,
+    value: _getPathValue(parsed, obj),
+  };
+  info.exists = hasProperty(info.name, info.parent);
+
+  return info;
 };
+
 
 
 
@@ -3813,11 +4354,11 @@ function parsePath (path) {
     , parts = str.match(/(\\\.|[^.]+?)+/g);
   return parts.map(function (value) {
     var re = /\[(\d+)\]$/
-      , mArr = re.exec(value)
+      , mArr = re.exec(value);
     if (mArr) return { i: parseFloat(mArr[1]) };
     else return { p: value };
   });
-};
+}
 
 
 
@@ -3833,10 +4374,15 @@ function parsePath (path) {
 
 
 
-function _getPathValue (parsed, obj) {
+
+
+function _getPathValue (parsed, obj, index) {
   var tmp = obj
     , res;
-  for (var i = 0, l = parsed.length; i < l; i++) {
+
+  index = (index === undefined ? parsed.length : index);
+
+  for (var i = 0, l = index; i < l; i++) {
     var part = parsed[i];
     if (tmp) {
       if ('undefined' !== typeof part.p)
@@ -3849,10 +4395,78 @@ function _getPathValue (parsed, obj) {
     }
   }
   return res;
+}
+
+});
+
+require.register("chai/lib/chai/utils/hasProperty.js", function (exports, module) {
+
+
+
+
+
+
+var type = require('chai/lib/chai/utils/type.js');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var literals = {
+    'number': Number
+  , 'string': String
+};
+
+module.exports = function hasProperty(name, obj) {
+  var ot = type(obj);
+
+  
+  if(ot === 'null' || ot === 'undefined')
+    return false;
+
+  
+  
+  if(literals[ot] && typeof obj !== 'object')
+    obj = new literals[ot](obj);
+
+  return name in obj;
 };
 
 });
-require.register("chai/lib/chai/utils/getProperties.js", function(exports, require, module){
+
+require.register("chai/lib/chai/utils/getProperties.js", function (exports, module) {
 
 
 
@@ -3890,7 +4504,8 @@ module.exports = function getProperties(object) {
 };
 
 });
-require.register("chai/lib/chai/utils/index.js", function(exports, require, module){
+
+require.register("chai/lib/chai/utils/index.js", function (exports, module) {
 
 
 
@@ -3907,113 +4522,126 @@ var exports = module.exports = {};
 
 
 
-exports.test = require('./test');
+exports.test = require('chai/lib/chai/utils/test.js');
 
 
 
 
 
-exports.type = require('./type');
+exports.type = require('chai/lib/chai/utils/type.js');
 
 
 
 
 
-exports.getMessage = require('./getMessage');
+exports.getMessage = require('chai/lib/chai/utils/getMessage.js');
 
 
 
 
 
-exports.getActual = require('./getActual');
+exports.getActual = require('chai/lib/chai/utils/getActual.js');
 
 
 
 
 
-exports.inspect = require('./inspect');
+exports.inspect = require('chai/lib/chai/utils/inspect.js');
 
 
 
 
 
-exports.objDisplay = require('./objDisplay');
+exports.objDisplay = require('chai/lib/chai/utils/objDisplay.js');
 
 
 
 
 
-exports.flag = require('./flag');
+exports.flag = require('chai/lib/chai/utils/flag.js');
 
 
 
 
 
-exports.transferFlags = require('./transferFlags');
+exports.transferFlags = require('chai/lib/chai/utils/transferFlags.js');
 
 
 
 
 
-exports.eql = require('deep-eql');
+exports.eql = require('chaijs~deep-eql@0.1.3');
 
 
 
 
 
-exports.getPathValue = require('./getPathValue');
+exports.getPathValue = require('chai/lib/chai/utils/getPathValue.js');
 
 
 
 
 
-exports.getName = require('./getName');
+exports.getPathInfo = require('chai/lib/chai/utils/getPathInfo.js');
 
 
 
 
 
-exports.addProperty = require('./addProperty');
+exports.hasProperty = require('chai/lib/chai/utils/hasProperty.js');
 
 
 
 
 
-exports.addMethod = require('./addMethod');
+exports.getName = require('chai/lib/chai/utils/getName.js');
 
 
 
 
 
-exports.overwriteProperty = require('./overwriteProperty');
+exports.addProperty = require('chai/lib/chai/utils/addProperty.js');
 
 
 
 
 
-exports.overwriteMethod = require('./overwriteMethod');
+exports.addMethod = require('chai/lib/chai/utils/addMethod.js');
 
 
 
 
 
-exports.addChainableMethod = require('./addChainableMethod');
+exports.overwriteProperty = require('chai/lib/chai/utils/overwriteProperty.js');
 
 
 
 
 
-exports.overwriteChainableMethod = require('./overwriteChainableMethod');
+exports.overwriteMethod = require('chai/lib/chai/utils/overwriteMethod.js');
+
+
+
+
+
+exports.addChainableMethod = require('chai/lib/chai/utils/addChainableMethod.js');
+
+
+
+
+
+exports.overwriteChainableMethod = require('chai/lib/chai/utils/overwriteChainableMethod.js');
 
 
 });
-require.register("chai/lib/chai/utils/inspect.js", function(exports, require, module){
+
+require.register("chai/lib/chai/utils/inspect.js", function (exports, module) {
 
 
 
-var getName = require('./getName');
-var getProperties = require('./getProperties');
-var getEnumerableProperties = require('./getEnumerableProperties');
+var getName = require('chai/lib/chai/utils/getName.js');
+var getProperties = require('chai/lib/chai/utils/getProperties.js');
+var getEnumerableProperties = require('chai/lib/chai/utils/getEnumerableProperties.js');
 
 module.exports = inspect;
 
@@ -4036,24 +4664,6 @@ function inspect(obj, showHidden, depth, colors) {
   };
   return formatValue(ctx, obj, (typeof depth === 'undefined' ? 2 : depth));
 }
-
-
-var getOuterHTML = function(element) {
-  if ('outerHTML' in element) return element.outerHTML;
-  var ns = "http://www.w3.org/1999/xhtml";
-  var container = document.createElementNS(ns, '_');
-  var elemProto = (window.HTMLElement || window.Element).prototype;
-  var xmlSerializer = new XMLSerializer();
-  var html;
-  if (document.xmlVersion) {
-    return xmlSerializer.serializeToString(element);
-  } else {
-    container.appendChild(element.cloneNode(false));
-    html = container.innerHTML.replace('><', '>' + element.innerHTML + '<');
-    container.innerHTML = '';
-    return html;
-  }
-};
 
 
 var isDOMElement = function (object) {
@@ -4090,7 +4700,35 @@ function formatValue(ctx, value, recurseTimes) {
 
   
   if (isDOMElement(value)) {
-    return getOuterHTML(value);
+    if ('outerHTML' in value) {
+      return value.outerHTML;
+      
+      
+    } else {
+      
+      try {
+        if (document.xmlVersion) {
+          var xmlSerializer = new XMLSerializer();
+          return xmlSerializer.serializeToString(value);
+        } else {
+          
+          
+          
+          var ns = "http://www.w3.org/1999/xhtml";
+          var container = document.createElementNS(ns, '_');
+
+          container.appendChild(value.cloneNode(false));
+          html = container.innerHTML
+            .replace('><', '>' + value.innerHTML + '<');
+          container.innerHTML = '';
+          return html;
+        }
+      } catch (err) {
+        
+        
+        
+      }
+    }
   }
 
   
@@ -4191,6 +4829,9 @@ function formatPrimitive(ctx, value) {
       return ctx.stylize(simple, 'string');
 
     case 'number':
+      if (value === 0 && (1/value) === -Infinity) {
+        return ctx.stylize('-0', 'number');
+      }
       return ctx.stylize('' + value, 'number');
 
     case 'boolean':
@@ -4330,7 +4971,8 @@ function objectToString(o) {
 }
 
 });
-require.register("chai/lib/chai/utils/objDisplay.js", function(exports, require, module){
+
+require.register("chai/lib/chai/utils/objDisplay.js", function (exports, module) {
 
 
 
@@ -4341,7 +4983,8 @@ require.register("chai/lib/chai/utils/objDisplay.js", function(exports, require,
 
 
 
-var inspect = require('./inspect');
+var inspect = require('chai/lib/chai/utils/inspect.js');
+var config = require('chai/lib/chai/config.js');
 
 
 
@@ -4359,7 +5002,7 @@ module.exports = function (obj) {
   var str = inspect(obj)
     , type = Object.prototype.toString.call(obj);
 
-  if (str.length >= 40) {
+  if (config.truncateThreshold && str.length >= config.truncateThreshold) {
     if (type === '[object Function]') {
       return !obj.name || obj.name === ''
         ? '[Function]'
@@ -4381,7 +5024,8 @@ module.exports = function (obj) {
 };
 
 });
-require.register("chai/lib/chai/utils/overwriteMethod.js", function(exports, require, module){
+
+require.register("chai/lib/chai/utils/overwriteMethod.js", function (exports, module) {
 
 
 
@@ -4435,7 +5079,8 @@ module.exports = function (ctx, name, method) {
 };
 
 });
-require.register("chai/lib/chai/utils/overwriteProperty.js", function(exports, require, module){
+
+require.register("chai/lib/chai/utils/overwriteProperty.js", function (exports, module) {
 
 
 
@@ -4492,7 +5137,8 @@ module.exports = function (ctx, name, getter) {
 };
 
 });
-require.register("chai/lib/chai/utils/overwriteChainableMethod.js", function(exports, require, module){
+
+require.register("chai/lib/chai/utils/overwriteChainableMethod.js", function (exports, module) {
 
 
 
@@ -4548,7 +5194,8 @@ module.exports = function (ctx, name, method, chainingBehavior) {
 };
 
 });
-require.register("chai/lib/chai/utils/test.js", function(exports, require, module){
+
+require.register("chai/lib/chai/utils/test.js", function (exports, module) {
 
 
 
@@ -4559,7 +5206,7 @@ require.register("chai/lib/chai/utils/test.js", function(exports, require, modul
 
 
 
-var flag = require('./flag');
+var flag = require('chai/lib/chai/utils/flag.js');
 
 
 
@@ -4577,7 +5224,8 @@ module.exports = function (obj, args) {
 };
 
 });
-require.register("chai/lib/chai/utils/transferFlags.js", function(exports, require, module){
+
+require.register("chai/lib/chai/utils/transferFlags.js", function (exports, module) {
 
 
 
@@ -4624,7 +5272,8 @@ module.exports = function (assertion, object, includeAll) {
 };
 
 });
-require.register("chai/lib/chai/utils/type.js", function(exports, require, module){
+
+require.register("chai/lib/chai/utils/type.js", function (exports, module) {
 
 
 
@@ -4673,24 +5322,11 @@ module.exports = function (obj) {
 
 });
 
-
-
-
-require.alias("chaijs-assertion-error/index.js", "chai/deps/assertion-error/index.js");
-require.alias("chaijs-assertion-error/index.js", "chai/deps/assertion-error/index.js");
-require.alias("chaijs-assertion-error/index.js", "assertion-error/index.js");
-require.alias("chaijs-assertion-error/index.js", "chaijs-assertion-error/index.js");
-require.alias("chaijs-deep-eql/lib/eql.js", "chai/deps/deep-eql/lib/eql.js");
-require.alias("chaijs-deep-eql/lib/eql.js", "chai/deps/deep-eql/index.js");
-require.alias("chaijs-deep-eql/lib/eql.js", "deep-eql/index.js");
-require.alias("chaijs-type-detect/lib/type.js", "chaijs-deep-eql/deps/type-detect/lib/type.js");
-require.alias("chaijs-type-detect/lib/type.js", "chaijs-deep-eql/deps/type-detect/index.js");
-require.alias("chaijs-type-detect/lib/type.js", "chaijs-type-detect/index.js");
-require.alias("chaijs-deep-eql/lib/eql.js", "chaijs-deep-eql/index.js");
-require.alias("chai/index.js", "chai/index.js");if (typeof exports == "object") {
+if (typeof exports == "object") {
   module.exports = require("chai");
 } else if (typeof define == "function" && define.amd) {
-  define([], function(){ return require("chai"); });
+  define("chai", [], function(){ return require("chai"); });
 } else {
-  this["chai"] = require("chai");
-}})();
+  (this || window)["chai"] = require("chai");
+}
+})()
