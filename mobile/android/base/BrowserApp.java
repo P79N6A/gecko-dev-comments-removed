@@ -2932,15 +2932,13 @@ public class BrowserApp extends GeckoApp
             GeckoAppShell.sendEventToGecko(GeckoEvent.createURILoadEvent(uri));
         }
 
-        if (!mInitialized) {
-            return;
+        
+        if (GuestSession.NOTIFICATION_INTENT.equals(action)) {
+            GuestSession.handleIntent(this, intent);
         }
 
-        
-        if (!Intent.ACTION_MAIN.equals(action)) {
+        if (!mInitialized || !Intent.ACTION_MAIN.equals(action)) {
             return;
-        } else if (GuestSession.NOTIFICATION_INTENT.equals(action)) {
-            GuestSession.handleIntent(this, intent);
         }
 
         
