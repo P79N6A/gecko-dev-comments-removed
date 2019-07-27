@@ -596,6 +596,10 @@ this.UtteranceGenerator = {
       aOutput.push({string: 'stateUnavailable'});
     }
 
+    if (aState.contains(States.READONLY)) {
+      aOutput.push({string: 'stateReadonly'});
+    }
+
     
     
     
