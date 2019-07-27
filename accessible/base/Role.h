@@ -716,17 +716,17 @@ enum Role {
 
 
   IMAGE_MAP = 116,
-  
+
   
 
 
   OPTION = 117,
-  
+
   
 
 
   RICH_OPTION = 118,
-  
+
   
 
 
@@ -736,7 +736,7 @@ enum Role {
 
 
   FLAT_EQUATION = 120,
-  
+
   
 
 
@@ -790,7 +790,193 @@ enum Role {
 
   SWITCH = 130,
 
-  LAST_ROLE = SWITCH
+  
+
+
+  MATHML_MATH = 131,
+
+  
+
+
+  MATHML_IDENTIFIER = 132,
+
+  
+
+
+  MATHML_NUMBER = 133,
+
+  
+
+
+  MATHML_OPERATOR = 134,
+
+  
+
+
+  MATHML_TEXT = 135,
+
+  
+
+
+  MATHML_STRING_LITERAL = 136,
+
+  
+
+
+  MATHML_GLYPH = 137,
+
+  
+
+
+  MATHML_ROW = 138,
+
+  
+
+
+  MATHML_FRACTION = 139,
+
+  
+
+
+  MATHML_SQUARE_ROOT = 140,
+
+  
+
+
+  MATHML_ROOT = 141,
+
+  
+
+
+  MATHML_FENCED = 142,
+
+  
+
+
+  MATHML_ENCLOSED = 143,
+
+  
+
+
+  MATHML_STYLE = 144,
+
+  
+
+
+  MATHML_SUB = 145,
+
+  
+
+
+  MATHML_SUP = 146,
+
+  
+
+
+  MATHML_SUB_SUP = 147,
+
+  
+
+
+  MATHML_UNDER = 148,
+
+  
+
+
+  MATHML_OVER = 149,
+
+  
+
+
+  MATHML_UNDER_OVER = 150,
+
+  
+
+
+
+  MATHML_MULTISCRIPTS = 151,
+
+  
+
+
+  MATHML_TABLE = 152,
+
+  
+
+
+  MATHML_LABELED_ROW = 153,
+
+  
+
+
+  MATHML_TABLE_ROW = 154,
+
+  
+
+
+  MATHML_CELL = 155,
+
+  
+
+
+  MATHML_ACTION = 156,
+
+  
+
+
+  MATHML_ERROR = 157,
+
+  
+
+
+  MATHML_SEMANTICS = 158,
+
+  
+
+
+  MATHML_ANNOTATION = 159,
+
+  
+
+
+  MATHML_XML_ANNOTATION = 160,
+
+  
+
+
+  MATHML_STACK = 161,
+
+  
+
+
+  MATHML_LONG_DIVISION = 162,
+
+  
+
+
+  MATHML_STACK_GROUP = 163,
+
+  
+
+
+  MATHML_STACK_ROW = 164,
+
+  
+
+
+  MATHML_STACK_CARRIES = 165,
+
+  
+
+
+  MATHML_STACK_CARRY = 166,
+
+  
+
+
+  MATHML_STACK_LINE = 167,
+
+  LAST_ROLE = MATHML_STACK_LINE
 };
 
 } 
