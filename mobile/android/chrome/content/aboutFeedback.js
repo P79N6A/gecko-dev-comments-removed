@@ -147,6 +147,15 @@ function sendFeedback(aEvent) {
   data["locale"] = Services.locale.getSystemLocale().getCategory("NSILOCALE_CTYPE");
   data["channel"] = UpdateChannel.get();
 
+  
+  let getParam = window.location.href.split("?");
+  if (getParam.length > 1) {
+    let urlParam = new URLSearchParams(getParam[1]);
+    if(urlParam.get("source")) {
+      data["source"] = urlParam.get("source");
+    }
+  }
+
   let req = new XMLHttpRequest();
   req.addEventListener("error", function() {
 	Cu.reportError("Error sending feedback to input.mozilla.org: " + req.statusText);
