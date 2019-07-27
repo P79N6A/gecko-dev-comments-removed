@@ -5906,6 +5906,13 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
               NS_STYLE_TRANSFORM_STYLE_FLAT, 0, 0, 0, 0);
 
   
+  SetDiscrete(*aRuleData->ValueForTransformBox(),
+              display->mTransformBox, canStoreInRuleTree,
+              SETDSC_ENUMERATED | SETDSC_UNSET_INITIAL,
+              parentDisplay->mTransformBox,
+              NS_STYLE_TRANSFORM_BOX_BORDER_BOX, 0, 0, 0, 0);
+
+  
   SetDiscrete(*aRuleData->ValueForOrient(),
               display->mOrient, canStoreInRuleTree,
               SETDSC_ENUMERATED | SETDSC_UNSET_INITIAL,
