@@ -341,12 +341,6 @@ protected:
     bool                mIsDestroyed;
 
     
-    
-    bool                mNeedsResize;
-    
-    
-    bool                mNeedsMove;
-    
     bool                mListenForResizes;
     
     bool                mIsShown;

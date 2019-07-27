@@ -329,8 +329,6 @@ nsWindow::nsWindow()
 {
     mIsTopLevel       = false;
     mIsDestroyed      = false;
-    mNeedsResize      = false;
-    mNeedsMove        = false;
     mListenForResizes = false;
     mIsShown          = false;
     mNeedsShow        = false;
@@ -969,16 +967,6 @@ nsWindow::Show(bool aState)
     if (!aState)
         mNeedsShow = false;
 
-    
-    
-    if (aState) {
-        if (mNeedsMove) {
-            NativeResize(mBounds.x, mBounds.y, mBounds.width, mBounds.height);
-        } else if (mNeedsResize) {
-            NativeResize(mBounds.width, mBounds.height);
-        }
-    }
-
 #ifdef ACCESSIBILITY
     if (aState && a11y::ShouldA11yBeEnabled())
         CreateRootAccessible();
@@ -1007,57 +995,7 @@ nsWindow::Resize(double aWidth, double aHeight, bool aRepaint)
     if (!mCreated)
         return NS_OK;
 
-    
-    
-    
-
-    
-    if (mIsShown) {
-        
-        if (AreBoundsSane()) {
-            
-            
-
-            
-            
-            
-            
-            if (mNeedsMove)
-                NativeResize(mBounds.x, mBounds.y,
-                             mBounds.width, mBounds.height);
-            else
-                NativeResize(mBounds.width, mBounds.height);
-
-            
-            if (mNeedsShow)
-                NativeShow(true);
-        }
-        else {
-            
-            
-            
-            
-            
-            
-            if (!mNeedsShow) {
-                mNeedsShow = true;
-                NativeShow(false);
-            }
-        }
-    }
-    
-    
-    else {
-        if (AreBoundsSane() && mListenForResizes) {
-            
-            
-            
-            NativeResize(width, height);
-        }
-        else {
-            mNeedsResize = true;
-        }
-    }
+    NativeResize(width, height);
 
     NotifyRollupGeometryChange();
     ResizePluginSocketWidget();
@@ -1086,51 +1024,10 @@ nsWindow::Resize(double aX, double aY, double aWidth, double aHeight,
     mBounds.y = y;
     mBounds.SizeTo(width, height);
 
-    mNeedsMove = true;
-
     if (!mCreated)
         return NS_OK;
 
-    
-    
-    
-
-    
-    if (mIsShown) {
-        
-        if (AreBoundsSane()) {
-            
-            NativeResize(x, y, width, height);
-            
-            if (mNeedsShow)
-                NativeShow(true);
-        }
-        else {
-            
-            
-            
-            
-            
-            
-            if (!mNeedsShow) {
-                mNeedsShow = true;
-                NativeShow(false);
-            }
-        }
-    }
-    
-    
-    else {
-        if (AreBoundsSane() && mListenForResizes){
-            
-            
-            
-            NativeResize(x, y, width, height);
-        }
-        else {
-            mNeedsResize = true;
-        }
-    }
+    NativeResize(x, y, width, height);
 
     NotifyRollupGeometryChange();
     ResizePluginSocketWidget();
@@ -1216,8 +1113,6 @@ nsWindow::Move(double aX, double aY)
 void
 nsWindow::NativeMove()
 {
-    mNeedsMove = false;
-
     GdkPoint point = DevicePixelsToGdkPointRoundDown(mBounds.TopLeft());
 
     if (mIsTopLevel) {
@@ -3484,10 +3379,18 @@ nsWindow::Create(nsIWidget        *aParent,
         
         
         
-        mNeedsResize = true;
+        
+        GtkWindowType type =
+            mWindowType != eWindowType_popup || aInitData->mNoAutoHide ?
+              GTK_WINDOW_TOPLEVEL : GTK_WINDOW_POPUP;
+        mShell = gtk_window_new(type);
+
+        
+        
+        
+        NativeResize(mBounds.width, mBounds.height);
 
         if (mWindowType == eWindowType_dialog) {
-            mShell = gtk_window_new(GTK_WINDOW_TOPLEVEL);
             SetDefaultIcon();
             gtk_window_set_wmclass(GTK_WINDOW(mShell), "Dialog", 
                                    gdk_get_program_class());
@@ -3500,18 +3403,8 @@ nsWindow::Create(nsIWidget        *aParent,
             
             
             
-            mNeedsMove = true;
+            NativeMove();
 
-            
-            
-            
-            
-            
-            
-            
-            GtkWindowType type = aInitData->mNoAutoHide ?
-                                     GTK_WINDOW_TOPLEVEL : GTK_WINDOW_POPUP;
-            mShell = gtk_window_new(type);
             gtk_window_set_wmclass(GTK_WINDOW(mShell), "Popup",
                                    gdk_get_program_class());
 
@@ -3584,7 +3477,6 @@ nsWindow::Create(nsIWidget        *aParent,
             }
         }
         else { 
-            mShell = gtk_window_new(GTK_WINDOW_TOPLEVEL);
             SetDefaultIcon();
             gtk_window_set_wmclass(GTK_WINDOW(mShell), "Toplevel", 
                                    gdk_get_program_class());
@@ -3881,14 +3773,25 @@ nsWindow::SetWindowClass(const nsAString &xulWinType)
 void
 nsWindow::NativeResize(int32_t aWidth, int32_t aHeight)
 {
+    if (!AreBoundsSane()) {
+        
+        
+        
+        
+        
+        
+        if (!mNeedsShow && mIsShown) {
+            mNeedsShow = true;
+            NativeShow(false);
+        }
+        return;
+    }
+
     gint width = DevicePixelsToGdkCoordRoundUp(aWidth);
     gint height = DevicePixelsToGdkCoordRoundUp(aHeight);
     
     LOG(("nsWindow::NativeResize [%p] %d %d\n", (void *)this,
          width, height));
-
-    
-    mNeedsResize = false;
 
     if (mIsTopLevel) {
         gtk_window_resize(GTK_WINDOW(mShell), width, height);
@@ -3906,19 +3809,35 @@ nsWindow::NativeResize(int32_t aWidth, int32_t aHeight)
     else if (mGdkWindow) {
         gdk_window_resize(mGdkWindow, width, height);
     }
+
+    
+    if (mNeedsShow && mIsShown) {
+        NativeShow(true);
+    }
 }
 
 void
 nsWindow::NativeResize(int32_t aX, int32_t aY,
                        int32_t aWidth, int32_t aHeight)
 {
+    if (!AreBoundsSane()) {
+        
+        
+        
+        
+        
+        
+        if (!mNeedsShow && mIsShown) {
+            mNeedsShow = true;
+            NativeShow(false);
+        }
+        NativeMove();
+    }
+
     gint width = DevicePixelsToGdkCoordRoundUp(aWidth);
     gint height = DevicePixelsToGdkCoordRoundUp(aHeight);
     gint x = DevicePixelsToGdkCoordRoundDown(aX);
     gint y = DevicePixelsToGdkCoordRoundDown(aY);
-
-    mNeedsResize = false;
-    mNeedsMove = false;
 
     LOG(("nsWindow::NativeResize [%p] %d %d %d %d\n", (void *)this,
          x, y, width, height));
@@ -3939,6 +3858,11 @@ nsWindow::NativeResize(int32_t aX, int32_t aY,
     }
     else if (mGdkWindow) {
         gdk_window_move_resize(mGdkWindow, x, y, width, height);
+    }
+
+    
+    if (mNeedsShow && mIsShown) {
+        NativeShow(true);
     }
 }
 
