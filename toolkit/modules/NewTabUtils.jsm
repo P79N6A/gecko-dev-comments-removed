@@ -44,6 +44,7 @@ XPCOMUtils.defineLazyGetter(this, "gUnicodeConverter", function () {
 
 
 const PREF_NEWTAB_ENABLED = "browser.newtabpage.enabled";
+const PREF_NEWTAB_ENHANCED = "browser.newtabpage.enhanced";
 
 
 const PREF_NEWTAB_ROWS = "browser.newtabpage.rows";
@@ -212,6 +213,11 @@ let AllPages = {
   
 
 
+  _enhanced: null,
+
+  
+
+
 
   register: function AllPages_register(aPage) {
     this._pages.push(aPage);
@@ -244,6 +250,24 @@ let AllPages = {
   set enabled(aEnabled) {
     if (this.enabled != aEnabled)
       Services.prefs.setBoolPref(PREF_NEWTAB_ENABLED, !!aEnabled);
+  },
+
+  
+
+
+  get enhanced() {
+    if (this._enhanced === null)
+      this._enhanced = Services.prefs.getBoolPref(PREF_NEWTAB_ENHANCED);
+
+    return this._enhanced;
+  },
+
+  
+
+
+  set enhanced(aEnhanced) {
+    if (this.enhanced != aEnhanced)
+      Services.prefs.setBoolPref(PREF_NEWTAB_ENHANCED, !!aEnhanced);
   },
 
   
@@ -288,7 +312,14 @@ let AllPages = {
   observe: function AllPages_observe(aSubject, aTopic, aData) {
     if (aTopic == "nsPref:changed") {
       
-      this._enabled = null;
+      switch (aData) {
+        case PREF_NEWTAB_ENABLED:
+          this._enabled = null;
+          break;
+        case PREF_NEWTAB_ENHANCED:
+          this._enhanced = null;
+          break;
+      }
     }
     
     this._pages.forEach(function (aPage) {
@@ -302,6 +333,7 @@ let AllPages = {
 
   _addObserver: function AllPages_addObserver() {
     Services.prefs.addObserver(PREF_NEWTAB_ENABLED, this, true);
+    Services.prefs.addObserver(PREF_NEWTAB_ENHANCED, this, true);
     Services.obs.addObserver(this, "page-thumbnail:create", true);
     this._addObserver = function () {};
   },

@@ -52,6 +52,11 @@ let gPage = {
       this._updateAttributes(enabled);
 
       
+      if (aData == "browser.newtabpage.enhanced") {
+        this.update();
+      }
+
+      
       if (enabled) {
         this._init();
       } else {

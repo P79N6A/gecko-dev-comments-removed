@@ -153,7 +153,9 @@ Site.prototype = {
 
 
   refreshThumbnail: function Site_refreshThumbnail() {
-    let link = DirectoryLinksProvider.getEnhancedLink(this.link) || this.link;
+    
+    let link = gAllPages.enhanced && DirectoryLinksProvider.getEnhancedLink(this.link) ||
+               this.link;
 
     let thumbnail = this._querySelector(".newtab-thumbnail");
     if (link.bgColor) {

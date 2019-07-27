@@ -1480,6 +1480,9 @@ pref("browser.newtab.preload", true);
 pref("browser.newtabpage.enabled", true);
 
 
+pref("browser.newtabpage.enhanced", false);
+
+
 pref("browser.newtabpage.rows", 3);
 
 
