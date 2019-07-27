@@ -56,7 +56,7 @@ var StarUI = {
   },
 
   
-  handleEvent: function SU_handleEvent(aEvent) {
+  handleEvent(aEvent) {
     switch (aEvent.type) {
       case "popuphidden":
         if (aEvent.originalTarget == this.panel) {
@@ -69,26 +69,32 @@ var StarUI = {
           }
           this._restoreCommandsState();
           this._itemId = -1;
-          if (this._batching) {
-            PlacesUtils.transactionManager.endBatch(false);
-            this._batching = false;
-          }
+          if (this._batching)
+            this.endBatch();
 
           switch (this._actionOnHide) {
             case "cancel": {
-              PlacesUtils.transactionManager.undoTransaction();
+              if (!PlacesUIUtils.useAsyncTransactions) {
+                PlacesUtils.transactionManager.undoTransaction();
+                break;
+              }
+              PlacesTransactions.undo().catch(Cu.reportError);
               break;
             }
             case "remove": {
               
               
-              PlacesUtils.transactionManager.beginBatch(null);
-              let itemIds = PlacesUtils.getBookmarksForURI(this._uriForRemoval);
-              for (let i = 0; i < itemIds.length; i++) {
-                let txn = new PlacesRemoveItemTransaction(itemIds[i]);
-                PlacesUtils.transactionManager.doTransaction(txn);
+              if (!PlacesUIUtils.useAsyncTransactions) {
+                let itemIds = PlacesUtils.getBookmarksForURI(this._uriForRemoval);
+                for (let itemId of itemIds) {
+                  let txn = new PlacesRemoveItemTransaction(itemId);
+                  PlacesUtils.transactionManager.doTransaction(txn);
+                }
+                break;
               }
-              PlacesUtils.transactionManager.endBatch(false);
+
+              PlacesTransactions.RemoveBookmarksForUrls(this._uriForRemoval)
+                                .transact().catch(Cu.reportError);
               break;
             }
           }
@@ -122,15 +128,30 @@ var StarUI = {
 
   _overlayLoaded: false,
   _overlayLoading: false,
-  showEditBookmarkPopup:
-  function SU_showEditBookmarkPopup(aItemId, aAnchorElement, aPosition) {
+  showEditBookmarkPopup: Task.async(function* (aNode, aAnchorElement, aPosition) {
+    
+    
+    
+    
+    if (typeof(aNode) == "number") {
+      let itemId = aNode;
+      if (PlacesUIUtils.useAsyncTransactions) {
+        let guid = yield PlacesUtils.promiseItemGuid(itemId);
+        aNode = yield PlacesUIUtils.promiseNodeLike(guid);
+      }
+      else {
+        aNode = { itemId };
+        yield PlacesUIUtils.completeNodeLikeObjectForItemId(aNode);
+      }
+    }
+
     
     
     if (this._overlayLoading)
       return;
 
     if (this._overlayLoaded) {
-      this._doShowEditBookmarkPanel(aItemId, aAnchorElement, aPosition);
+      this._doShowEditBookmarkPanel(aNode, aAnchorElement, aPosition);
       return;
     }
 
@@ -147,13 +168,12 @@ var StarUI = {
 
         this._overlayLoading = false;
         this._overlayLoaded = true;
-        this._doShowEditBookmarkPanel(aItemId, aAnchorElement, aPosition);
+        this._doShowEditBookmarkPanel(aNode, aAnchorElement, aPosition);
       }).bind(this)
     );
-  },
+  }),
 
-  _doShowEditBookmarkPanel:
-  function SU__doShowEditBookmarkPanel(aItemId, aAnchorElement, aPosition) {
+  _doShowEditBookmarkPanel: Task.async(function* (aNode, aAnchorElement, aPosition) {
     if (this.panel.state != "closed")
       return;
 
@@ -179,15 +199,15 @@ var StarUI = {
 
     
     
-    var bookmarks = PlacesUtils.getBookmarksForURI(gBrowser.currentURI);
-    var forms = gNavigatorBundle.getString("editBookmark.removeBookmarks.label");
-    var label = PluralForm.get(bookmarks.length, forms).replace("#1", bookmarks.length);
+    let bookmarks = PlacesUtils.getBookmarksForURI(gBrowser.currentURI);
+    let forms = gNavigatorBundle.getString("editBookmark.removeBookmarks.label");
+    let label = PluralForm.get(bookmarks.length, forms).replace("#1", bookmarks.length);
     this._element("editBookmarkPanelRemoveButton").label = label;
 
     
     this._element("editBookmarkPanelStarIcon").removeAttribute("unstarred");
 
-    this._itemId = aItemId !== undefined ? aItemId : this._itemId;
+    this._itemId = aNode.itemId;
     this.beginBatch();
 
     if (aAnchorElement) {
@@ -207,10 +227,10 @@ var StarUI = {
     }
     this.panel.openPopup(aAnchorElement, aPosition);
 
-    gEditItemOverlay.initPanel(this._itemId,
-                               { hiddenRows: ["description", "location",
+    gEditItemOverlay.initPanel({ node: aNode
+                               , hiddenRows: ["description", "location",
                                               "loadInSidebar", "keyword"] });
-  },
+  }),
 
   panelShown:
   function SU_panelShown(aEvent) {
@@ -247,13 +267,46 @@ var StarUI = {
     this.panel.hidePopup();
   },
 
-  beginBatch: function SU_beginBatch() {
-    if (!this._batching) {
-      PlacesUtils.transactionManager.beginBatch(null);
-      this._batching = true;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  _batchBlockingDeferred: null,
+  beginBatch() {
+    if (this._batching)
+      return;
+    if (PlacesUIUtils.useAsyncTransactions) {
+      this._batchBlockingDeferred = PromiseUtils.defer();
+      PlacesTransactions.batch(function* () {
+        yield this._batchBlockingDeferred.promise;
+      }.bind(this));
     }
+    else {
+      PlacesUtils.transactionManager.beginBatch(null);
+    }
+    this._batching = true;
+  },
+
+  endBatch() {
+    if (!this._batching)
+      return;
+
+    if (PlacesUIUtils.useAsyncTransactions) {
+      this._batchBlockingDeferred.resolve();
+      this._batchBlockingDeferred = null;
+    }
+    else {
+      PlacesUtils.transactionManager.endBatch(false);
+    }
+    this._batching = false;
   }
-}
+};
 
 
 
@@ -269,8 +322,11 @@ var PlacesCommandHook = {
 
 
 
-  
-  bookmarkPage: function PCH_bookmarkPage(aBrowser, aParent, aShowEditUI) {
+
+  bookmarkPage: Task.async(function* (aBrowser, aParent, aShowEditUI) {
+    if (PlacesUIUtils.useAsyncTransactions)
+      return (yield this._bookmarkPagePT(aBrowser, aParent, aShowEditUI));
+
     var uri = aBrowser.currentURI;
     var itemId = PlacesUtils.getMostRecentBookmarkForURI(uri);
     if (itemId == -1) {
@@ -296,7 +352,7 @@ var PlacesCommandHook = {
         StarUI.beginBatch();
       }
 
-      var parent = aParent != undefined ?
+      var parent = aParent !== undefined ?
                    aParent : PlacesUtils.unfiledBookmarksFolderId;
       var descAnno = { name: PlacesUIUtils.DESCRIPTION_ANNO, value: description };
       var txn = new PlacesCreateBookmarkTransaction(uri, parent, 
@@ -334,7 +390,82 @@ var PlacesCommandHook = {
     } else {
       StarUI.showEditBookmarkPopup(itemId, aBrowser, "overlap");
     }
-  },
+  }),
+
+  
+  
+  _bookmarkPagePT: Task.async(function* (aBrowser, aParentId, aShowEditUI) {
+    let url = new URL(aBrowser.currentURI.spec);
+    let info = yield PlacesUtils.bookmarks.fetch({ url });
+    if (!info) {
+      let parentGuid = aParentId !== undefined ?
+                         yield PlacesUtils.promiseItemGuid(aParentId) :
+                         PlacesUtils.bookmarks.unfiledGuid;
+      info = { url, parentGuid };
+      
+      let description = null;
+      let charset = null;
+      try {
+        let isErrorPage = /^about:(neterror|certerror|blocked)/
+                          .test(aBrowser.contentDocumentAsCPOW.documentURI);
+        info.title = isErrorPage ?
+          (yield PlacesUtils.promisePlaceInfo(aBrowser.currentURI)).title :
+          aBrowser.contentTitle;
+        info.title = info.title || url.href;
+        description = PlacesUIUtils.getDescriptionFromDocument(aBrowser.contentDocumentAsCPOW);
+        charset = aBrowser.characterSet;
+      }
+      catch (e) {
+      	Components.utils.reportError(e);
+      }
+
+      if (aShowEditUI) {
+        
+        
+        
+        StarUI.beginBatch();
+      }
+
+      if (description) {
+        info.annotations = [{ name: PlacesUIUtils.DESCRIPTION_ANNO
+                            , value: description }];
+      }
+
+      info.guid = yield PlacesTransactions.NewBookmark(info).transact();
+
+      
+      if (charset && !PrivateBrowsingUtils.isBrowserPrivate(aBrowser))
+      	 PlacesUtils.setCharsetForURI(makeURI(url.href), charset);
+    }
+
+    
+    if (gURLBar)
+      gURLBar.handleRevert();
+
+    
+    if (!aShowEditUI)
+      return;
+
+    let node = yield PlacesUIUtils.promiseNodeLikeFromFetchInfo(info);
+
+    
+    
+    
+    
+    if (BookmarkingUI.anchor) {
+      StarUI.showEditBookmarkPopup(node, BookmarkingUI.anchor,
+                                   "bottomcenter topright");
+      return;
+    }
+
+    let pageProxyFavicon = document.getElementById("page-proxy-favicon");
+    if (isElementVisible(pageProxyFavicon)) {
+      StarUI.showEditBookmarkPopup(node, pageProxyFavicon,
+                                   "bottomcenter topright");
+    } else {
+      StarUI.showEditBookmarkPopup(node, aBrowser, "overlap");
+    }
+  }),
 
   
 
@@ -353,10 +484,27 @@ var PlacesCommandHook = {
 
 
 
-  bookmarkLink: function PCH_bookmarkLink(aParent, aURL, aTitle) {
-    var linkURI = makeURI(aURL);
-    var itemId = PlacesUtils.getMostRecentBookmarkForURI(linkURI);
-    if (itemId == -1) {
+  bookmarkLink: Task.async(function* (aParentId, aURL, aTitle) {
+    let node = null;
+    if (PlacesUIUtils.useAsyncTransactions) {
+      node = yield PlacesUIUtils.fetchNodeLike({ url: aURL });
+    }
+    else {
+      let linkURI = makeURI(aURL);
+      let itemId = PlacesUtils.getMostRecentBookmarkForURI(linkURI);
+      if (itemId != -1) {
+        node = { itemId, uri: aURL };
+        PlacesUIUtils.completeNodeLikeObjectForItemId(node);
+      }
+    }
+
+    if (node) {
+      PlacesUIUtils.showBookmarkDialog({ action: "edit"
+                                       , type: "bookmark"
+                                       , node
+                                       }, window);
+    }
+    else {
       PlacesUIUtils.showBookmarkDialog({ action: "add"
                                        , type: "bookmark"
                                        , uri: linkURI
@@ -367,13 +515,7 @@ var PlacesCommandHook = {
                                                      , "keyword" ]
                                        }, window);
     }
-    else {
-      PlacesUIUtils.showBookmarkDialog({ action: "edit"
-                                       , type: "bookmark"
-                                       , itemId: itemId
-                                       }, window);
-    }
-  },
+  }),
 
   
 
