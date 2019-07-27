@@ -13,6 +13,7 @@
 #include "nsIIOService.h"
 #include "nsIProtocolHandler.h"
 #include "nsIScriptSecurityManager.h"
+#include "nsISerializable.h"
 #include "nsIStreamLoader.h"
 #include "nsIStreamListenerTee.h"
 #include "nsIThreadRetargetableRequest.h"
@@ -916,6 +917,20 @@ private:
     if (IsMainWorkerScript()) {
       
       mWorkerPrivate->SetBaseURI(finalURI);
+
+      
+      if (mWorkerPrivate->IsServiceWorker()) {
+        nsCOMPtr<nsISupports> infoObj;
+        channel->GetSecurityInfo(getter_AddRefs(infoObj));
+        if (infoObj) {
+          nsCOMPtr<nsISerializable> serializable = do_QueryInterface(infoObj);
+          if (serializable) {
+            mWorkerPrivate->SetSecurityInfo(serializable);
+          } else {
+            NS_WARNING("A non-serializable object was obtained from nsIChannel::GetSecurityInfo()!");
+          }
+        }
+      }
 
       
       WorkerPrivate* parent = mWorkerPrivate->GetParent();
