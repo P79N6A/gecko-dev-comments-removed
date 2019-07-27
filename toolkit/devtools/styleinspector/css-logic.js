@@ -818,42 +818,6 @@ CssLogic.shortSource = function CssLogic_shortSource(aSheet)
 
 
 
-
-
-
-
-
-CssLogic.getBackgroundImageUriFromProperty = function(aProperty, aSheetHref) {
-  let startToken = "url(", start = aProperty.indexOf(startToken), end;
-  if (start === -1) {
-    return null;
-  }
-
-  aProperty = aProperty.substring(start + startToken.length).trim();
-  let quote = aProperty.substring(0, 1);
-  if (quote === "'" || quote === '"') {
-    end = aProperty.search(new RegExp(quote + "\\s*\\)"));
-    start = 1;
-  } else {
-    end = aProperty.indexOf(")");
-    start = 0;
-  }
-
-  let uri = aProperty.substring(start, end).trim();
-  if (aSheetHref) {
-    let IOService = Cc["@mozilla.org/network/io-service;1"]
-      .getService(Ci.nsIIOService);
-    let sheetUri = IOService.newURI(aSheetHref, null, null);
-    uri = sheetUri.resolve(uri);
-  }
-
-  return uri;
-}
-
-
-
-
-
 function positionInNodeList(element, nodeList) {
   for (var i = 0; i < nodeList.length; i++) {
     if (element === nodeList[i]) {
