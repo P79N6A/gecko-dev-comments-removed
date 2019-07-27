@@ -427,7 +427,7 @@ SourceBuffer::CheckEndTime()
 {
   MOZ_ASSERT(NS_IsMainThread());
   
-  double endTime = GetBufferedEnd();
+  double endTime = mContentManager->GroupEndTimestamp().ToSeconds();
   double duration = mMediaSource->Duration();
   if (endTime > duration) {
     mMediaSource->SetDuration(endTime, MSRangeRemovalAction::SKIP);

@@ -68,6 +68,12 @@ public:
 
   void Detach() override;
 
+  TimeUnit GroupEndTimestamp() override
+  {
+    return Buffered().GetEnd();
+  }
+
+
   
   
   void DiscardCurrentDecoder();

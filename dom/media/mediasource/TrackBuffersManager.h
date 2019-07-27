@@ -71,6 +71,7 @@ public:
 
   void SetGroupStartTimestamp(const TimeUnit& aGroupStartTimestamp) override;
   void RestartGroupStartTimestamp() override;
+  TimeUnit GroupEndTimestamp() override;
 
   
   MediaInfo GetMetadata();
@@ -318,6 +319,7 @@ private:
   
   TimeIntervals mVideoBufferedRanges;
   TimeIntervals mAudioBufferedRanges;
+  TimeUnit mOfficialGroupEndTimestamp;
   
   MediaInfo mInfo;
 };
