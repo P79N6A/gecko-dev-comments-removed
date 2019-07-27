@@ -24,7 +24,8 @@ self.addEventListener("fetch", function(event) {
       event.respondWith(fetch("realaudio.ogg"));
     }
   } else if (event.request.url.indexOf("video.ogg") >= 0) {
-    if (event.request.context == "video") {
+    
+    if (event.request.context == "audio") {
       event.respondWith(fetch("realaudio.ogg"));
     }
   } else if (event.request.url.indexOf("beacon.sjs") >= 0) {
