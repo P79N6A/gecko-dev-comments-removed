@@ -1,0 +1,33 @@
+
+
+
+
+
+#ifndef GMPVideoDecoderProxy_h_
+#define GMPVideoDecoderProxy_h_
+
+#include "nsTArray.h"
+#include "gmp-video-decode.h"
+#include "gmp-video-frame-i420.h"
+#include "gmp-video-frame-encoded.h"
+
+
+
+
+
+class GMPVideoDecoderProxy {
+public:
+  virtual nsresult InitDecode(const GMPVideoCodec& aCodecSettings,
+                              const nsTArray<uint8_t>& aCodecSpecific,
+                              GMPVideoDecoderCallback* aCallback,
+                              int32_t aCoreCount) = 0;
+  virtual nsresult Decode(GMPVideoEncodedFrame* aInputFrame,
+                          bool aMissingFrames,
+                          const GMPCodecSpecificInfo& aCodecSpecificInfo,
+                          int64_t aRenderTimeMs = -1) = 0;
+  virtual nsresult Reset() = 0;
+  virtual nsresult Drain() = 0;
+  virtual nsresult DecodingComplete() = 0;
+};
+
+#endif
