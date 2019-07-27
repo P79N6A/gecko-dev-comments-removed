@@ -308,20 +308,12 @@ public:
 
   bool IsSnappingEffectiveTransforms() { return mSnapEffectiveTransforms; }
 
-
   
 
 
 
 
-  virtual bool ShouldAvoidComponentAlphaLayers() { return false; }
-
-  
-
-
-
-
-  virtual bool AreComponentAlphaLayersEnabled();
+  virtual bool AreComponentAlphaLayersEnabled() { return true; }
 
   
 
