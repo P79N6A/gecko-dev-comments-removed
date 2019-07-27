@@ -59,6 +59,7 @@ public:
   void OnNuwaReady();
   bool PreallocatedProcessReady();
   already_AddRefed<ContentParent> GetSpareProcess();
+  already_AddRefed<ContentParent> BlockForNewProcess(const nsAString& aManifestURL);
 
 private:
   void NuwaFork();
@@ -72,6 +73,7 @@ private:
 
   
   bool mIsNuwaReady;
+  nsTArray<nsString> mWaitingList;
 #endif
 
 private:
@@ -283,6 +285,44 @@ PreallocatedProcessManagerImpl::GetSpareProcess()
   return process.forget();
 }
 
+already_AddRefed<ContentParent>
+PreallocatedProcessManagerImpl::BlockForNewProcess(const nsAString& aManifestURL)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  if (!mEnabled || !IsNuwaReady()) {
+    
+    return nullptr;
+  }
+
+  if (mSpareProcesses.IsEmpty()) {
+    
+    if (aManifestURL.Length() == 0) {
+      
+      NuwaFork();
+    } else if (mWaitingList.IndexOf(aManifestURL) == nsTArray<nsString>::NoIndex) {
+      
+      
+      NuwaFork();
+      mWaitingList.AppendElement(aManifestURL);
+    }
+    while (mSpareProcesses.IsEmpty() &&
+           (aManifestURL.Length() != 0 &&
+            mWaitingList.IndexOf(aManifestURL) != nsTArray<nsString>::NoIndex)) {
+      NS_ProcessNextEvent();
+    }
+    
+    
+    if (aManifestURL.Length() != 0 &&
+        mWaitingList.IndexOf(aManifestURL) == nsTArray<nsString>::NoIndex) {
+      return nullptr;
+    }
+    mWaitingList.RemoveElement(aManifestURL);
+  }
+
+  return GetSpareProcess();
+}
+
+
 
 
 
@@ -482,6 +522,12 @@ PreallocatedProcessManager::IsNuwaReady()
 PreallocatedProcessManager::PreallocatedProcessReady()
 {
   return GetPPMImpl()->PreallocatedProcessReady();
+}
+
+ already_AddRefed<ContentParent>
+PreallocatedProcessManager::BlockForNewProcess(const nsAString& aManifestURL)
+{
+  return GetPPMImpl()->BlockForNewProcess(aManifestURL);
 }
 
 #endif
