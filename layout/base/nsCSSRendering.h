@@ -144,6 +144,29 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+  static void ComputeObjectAnchorPoint(const nsStyleBackground::Position& aPos,
+                                       const nsSize& aOriginBounds,
+                                       const nsSize& aImageSize,
+                                       nsPoint* aTopLeft,
+                                       nsPoint* aAnchorPoint);
+
+  
+
+
+
+
+
   static nsSize ComputeConstrainedSize(const nsSize& aConstrainingSize,
                                        const nsSize& aIntrinsicRatio,
                                        FitType aFitType);
