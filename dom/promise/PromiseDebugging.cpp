@@ -36,5 +36,26 @@ PromiseDebugging::GetState(GlobalObject&, Promise& aPromise,
   }
 }
 
+ void
+PromiseDebugging::GetAllocationStack(GlobalObject&, Promise& aPromise,
+                                     JS::MutableHandle<JSObject*> aStack)
+{
+  aStack.set(aPromise.mAllocationStack);
+}
+
+ void
+PromiseDebugging::GetRejectionStack(GlobalObject&, Promise& aPromise,
+                                    JS::MutableHandle<JSObject*> aStack)
+{
+  aStack.set(aPromise.mRejectionStack);
+}
+
+ void
+PromiseDebugging::GetFullfillmentStack(GlobalObject&, Promise& aPromise,
+                                       JS::MutableHandle<JSObject*> aStack)
+{
+  aStack.set(aPromise.mFullfillmentStack);
+}
+
 } 
 } 
