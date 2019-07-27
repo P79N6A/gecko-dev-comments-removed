@@ -1774,7 +1774,8 @@ nsPlainTextSerializer::IsElementPreformatted(Element* aElement)
     const nsStyleText* textStyle = styleContext->StyleText();
     return textStyle->WhiteSpaceOrNewlineIsSignificant();
   }
-  return false;
+  
+  return GetIdForContent(aElement) == nsGkAtoms::pre;
 }
 
 
