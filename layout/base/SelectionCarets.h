@@ -150,13 +150,13 @@ private:
 
 
 
-  void SetStartFramePos(const nsPoint& aPosition);
+  void SetStartFramePos(const nsRect& aCaretRect);
 
   
 
 
 
-  void SetEndFramePos(const nsPoint& aPosition);
+  void SetEndFramePos(const nsRect& aCaretRect);
 
   
 
