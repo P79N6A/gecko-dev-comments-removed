@@ -561,3 +561,16 @@ function checkFocusedAttribute(attrName, editMode) {
     editMode ? "input": "span",
     editMode ? attrName + " is in edit mode" : attrName + " is not in edit mode");
 }
+
+
+
+
+function* waitForMultipleChildrenUpdates(inspector) {
+  
+  
+  if (inspector.markup._queuedChildUpdates &&
+      inspector.markup._queuedChildUpdates.size) {
+    yield waitForChildrenUpdated(inspector);
+    return yield waitForMultipleChildrenUpdates(inspector);
+  }
+}

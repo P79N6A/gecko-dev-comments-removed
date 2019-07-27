@@ -31,15 +31,3 @@ add_task(function*() {
 
   yield inspector.once("inspector-updated");
 });
-
-
-
-function* waitForMultipleChildrenUpdates(inspector) {
-  
-  
-  if (inspector.markup._queuedChildUpdates &&
-      inspector.markup._queuedChildUpdates.size) {
-    yield waitForChildrenUpdated(inspector);
-    return yield waitForMultipleChildrenUpdates(inspector);
-  }
-}

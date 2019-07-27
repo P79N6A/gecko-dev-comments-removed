@@ -14,6 +14,10 @@ const COLLAPSE_ATTRIBUTE_LENGTH = 120;
 const COLLAPSE_DATA_URL_REGEX = /^data.+base64/;
 const COLLAPSE_DATA_URL_LENGTH = 60;
 const NEW_SELECTION_HIGHLIGHTER_TIMER = 1000;
+const GRAB_DELAY = 400;
+const DRAG_DROP_AUTOSCROLL_EDGE_DISTANCE = 50;
+const DRAG_DROP_MIN_AUTOSCROLL_SPEED = 5;
+const DRAG_DROP_MAX_AUTOSCROLL_SPEED = 15;
 
 const {UndoStack} = require("devtools/shared/undo");
 const {editableField, InplaceEditor} = require("devtools/shared/inplace-editor");
@@ -62,6 +66,7 @@ function MarkupView(aInspector, aFrame, aControllerWindow) {
   this._inspector = aInspector;
   this.walker = this._inspector.walker;
   this._frame = aFrame;
+  this.win = this._frame.contentWindow;
   this.doc = this._frame.contentDocument;
   this._elt = this.doc.querySelector("#root");
   this.htmlEditor = new HTMLEditor(this.doc);
@@ -93,6 +98,9 @@ function MarkupView(aInspector, aFrame, aControllerWindow) {
   this.walker.on("display-change", this._boundOnDisplayChange);
 
   this._onMouseClick = this._onMouseClick.bind(this);
+
+  this._onMouseUp = this._onMouseUp.bind(this);
+  this.doc.body.addEventListener("mouseup", this._onMouseUp);
 
   this._boundOnNewSelection = this._onNewSelection.bind(this);
   this._inspector.selection.on("new-node-front", this._boundOnNewSelection);
@@ -156,7 +164,49 @@ MarkupView.prototype = {
     }
   },
 
+  isDragging: false,
+
   _onMouseMove: function(event) {
+    if (this.isDragging) {
+      event.preventDefault();
+      this._dragStartEl = event.target;
+
+      let docEl = this.doc.documentElement;
+
+      if (this._scrollInterval) {
+        this.win.clearInterval(this._scrollInterval);
+      }
+
+      
+      let distanceFromBottom = docEl.clientHeight - event.pageY + this.win.scrollY,
+          distanceFromTop = event.pageY - this.win.scrollY;
+
+      if (distanceFromBottom <= DRAG_DROP_AUTOSCROLL_EDGE_DISTANCE) {
+        
+        
+        let speed = map(distanceFromBottom, 0, DRAG_DROP_AUTOSCROLL_EDGE_DISTANCE,
+                        DRAG_DROP_MIN_AUTOSCROLL_SPEED, DRAG_DROP_MAX_AUTOSCROLL_SPEED);
+        
+        
+        
+        this._scrollInterval = this.win.setInterval(() => {
+          docEl.scrollTop -= speed - DRAG_DROP_MAX_AUTOSCROLL_SPEED;
+        }, 0);
+      }
+
+      if (distanceFromTop <= DRAG_DROP_AUTOSCROLL_EDGE_DISTANCE) {
+        
+        let speed = map(distanceFromTop, 0, DRAG_DROP_AUTOSCROLL_EDGE_DISTANCE,
+                        DRAG_DROP_MIN_AUTOSCROLL_SPEED, DRAG_DROP_MAX_AUTOSCROLL_SPEED);
+
+        this._scrollInterval = this.win.setInterval(() => {
+          docEl.scrollTop += speed - DRAG_DROP_MAX_AUTOSCROLL_SPEED;
+        }, 0);
+      }
+
+      return;
+    };
+
     let target = event.target;
 
     
@@ -198,6 +248,18 @@ MarkupView.prototype = {
     }
   },
 
+  _onMouseUp: function() {
+    if (this._lastDropTarget) {
+      this.indicateDropTarget(null);
+    }
+    if (this._lastDragTarget) {
+      this.indicateDragTarget(null);
+    }
+    if (this._scrollInterval) {
+      this.win.clearInterval(this._scrollInterval);
+    }
+  },
+
   _hoveredNode: null,
 
   
@@ -218,6 +280,11 @@ MarkupView.prototype = {
   },
 
   _onMouseLeave: function() {
+    if (this._scrollInterval) {
+      this.win.clearInterval(this._scrollInterval);
+    }
+    if (this.isDragging) return;
+
     this._hideBoxModel(true);
     if (this._hoveredNode) {
       this.getContainer(this._hoveredNode).hovered = false;
@@ -790,6 +857,10 @@ MarkupView.prototype = {
 
   _expandContainer: function(aContainer) {
     return this._updateChildren(aContainer, {expand: true}).then(() => {
+      if (this._destroyer) {
+        console.warn("Could not expand the node, the markup-view was destroyed");
+        return;
+      } 
       aContainer.expanded = true;
     });
   },
@@ -1361,6 +1432,12 @@ MarkupView.prototype = {
     this.tooltip.destroy();
     this.tooltip = null;
 
+    this.win = null;
+    this.doc = null;
+
+    this._lastDropTarget = null;
+    this._lastDragTarget = null;
+
     return this._destroyer;
   },
 
@@ -1448,6 +1525,80 @@ MarkupView.prototype = {
       this._updatePreview();
       this._previewBar.classList.remove("hide");
     }, 1000);
+  },
+
+  
+
+
+
+  indicateDropTarget: function(el) {
+    if (this._lastDropTarget) {
+      this._lastDropTarget.classList.remove("drop-target");
+    }
+
+    if (!el) return;
+
+    let target = el.classList.contains("tag-line") ?
+                 el : el.querySelector(".tag-line") || el.closest(".tag-line");
+    if (!target) return;
+
+    target.classList.add("drop-target");
+    this._lastDropTarget = target;
+  },
+
+  
+
+
+  indicateDragTarget: function(el) {
+    if (this._lastDragTarget) {
+      this._lastDragTarget.classList.remove("drag-target");
+    }
+
+    if (!el) return;
+
+    let target = el.classList.contains("tag-line") ?
+                 el : el.querySelector(".tag-line") || el.closest(".tag-line");
+
+    if (!target) return;
+
+    target.classList.add("drag-target");
+    this._lastDragTarget = target;
+  },
+
+  
+
+
+  get dropTargetNodes() {
+    let target = this._lastDropTarget;
+
+    if (!target) {
+      return null;
+    }
+
+    let parent, nextSibling;
+
+    if (this._lastDropTarget.previousElementSibling &&
+        this._lastDropTarget.previousElementSibling.nodeName.toLowerCase() === "ul") {
+      parent = target.parentNode.container.node;
+      nextSibling = null;
+    } else {
+      parent = target.parentNode.container.node.parentNode();
+      nextSibling = target.parentNode.container.node;
+    }
+
+    if (nextSibling && nextSibling.isBeforePseudoElement) {
+      nextSibling = target.parentNode.parentNode.children[1].container.node;
+    }
+    if (nextSibling && nextSibling.isAfterPseudoElement) {
+      parent = target.parentNode.container.node.parentNode();
+      nextSibling = null;
+    }
+
+    if (parent.nodeType !== Ci.nsIDOMNode.ELEMENT_NODE) {
+      return null;
+    }
+
+    return {parent, nextSibling};
   }
 };
 
@@ -1481,6 +1632,7 @@ MarkupContainer.prototype = {
     this.markup = markupView;
     this.node = node;
     this.undo = this.markup.undo;
+    this.win = this.markup._frame.contentWindow;
 
     
     this.elt = null;
@@ -1491,15 +1643,16 @@ MarkupContainer.prototype = {
     this.markup.template(templateID, this);
     this.elt.container = this;
 
-    
     this._onMouseDown = this._onMouseDown.bind(this);
-    this.elt.addEventListener("mousedown", this._onMouseDown, false);
-
     this._onToggle = this._onToggle.bind(this);
+    this._onMouseUp = this._onMouseUp.bind(this);
+    this._onMouseMove = this._onMouseMove.bind(this);
 
     
+    this.elt.addEventListener("mousedown", this._onMouseDown, false);
+    this.markup.doc.body.addEventListener("mouseup", this._onMouseUp, true);
+    this.markup.doc.body.addEventListener("mousemove", this._onMouseMove, true);
     this.elt.addEventListener("dblclick", this._onToggle, false);
-
     if (this.expander) {
       this.expander.addEventListener("click", this._onToggle, false);
     }
@@ -1618,8 +1771,34 @@ MarkupContainer.prototype = {
     return this.elt.parentNode ? this.elt.parentNode.container : null;
   },
 
+  _isMouseDown: false,
+  _isDragging: false,
+  _dragStartY: 0,
+
+  set isDragging(isDragging) {
+    this._isDragging = isDragging;
+    this.markup.isDragging = isDragging;
+
+    if (isDragging) {
+      this.elt.classList.add("dragging");
+      this.markup.doc.body.classList.add("dragging");
+    } else {
+      this.elt.classList.remove("dragging");
+      this.markup.doc.body.classList.remove("dragging");
+    }
+  },
+
+  get isDragging() {
+    return this._isDragging;
+  },
+
   _onMouseDown: function(event) {
     let target = event.target;
+
+    
+    if (target.nodeName === "button") {
+      return;
+    }
 
     
     if (target.nodeName === "a") {
@@ -1628,14 +1807,73 @@ MarkupContainer.prototype = {
       let browserWin = this.markup._inspector.target
                            .tab.ownerDocument.defaultView;
       browserWin.openUILinkIn(target.href, "tab");
+      return;
     }
+
     
+    this._isMouseDown = true;
+    this.hovered = false;
+    this.markup.navigate(this);
+    event.stopPropagation();
+
     
-    else if (target.nodeName !== "button") {
-      this.hovered = false;
-      this.markup.navigate(this);
-      event.stopPropagation();
+    this.markup._dragStartEl = target;
+    this.win.setTimeout(() => {
+      
+      if (!this._isMouseDown || this.markup._dragStartEl !== target ||
+          this.node.isPseudoElement || this.node.isAnonymous ||
+          !this.win.getSelection().isCollapsed) {
+        return;
+      }
+      this.isDragging = true;
+
+      this._dragStartY = event.pageY;
+      this.markup.indicateDropTarget(this.elt);
+
+      
+      this.markup.indicateDragTarget(this.elt.nextElementSibling ||
+                                     this.markup.getContainer(this.node.parentNode()).closeTagLine);
+    }, GRAB_DELAY);
+  },
+
+  
+
+
+  _onMouseUp: function(event) {
+    this._isMouseDown = false;
+
+    if (!this.isDragging) {
+      return;
     }
+
+    this.isDragging = false;
+    this.elt.style.removeProperty("top");
+
+    let dropTargetNodes = this.markup.dropTargetNodes;
+
+    if(!dropTargetNodes) {
+      return;
+    }
+
+    this.markup.walker.insertBefore(this.node, dropTargetNodes.parent,
+                                    dropTargetNodes.nextSibling);
+  },
+
+  
+
+
+  _onMouseMove: function(event) {
+    if (!this.isDragging) {
+      return;
+    }
+
+    let diff = event.pageY - this._dragStartY;
+    this.elt.style.top = diff + "px";
+
+    let el = this.markup.doc.elementFromPoint(event.pageX - this.win.scrollX,
+                                              event.pageY - this.win.scrollY);
+
+    this.markup.indicateDropTarget(el);
   },
 
   
@@ -1644,7 +1882,7 @@ MarkupContainer.prototype = {
 
   flashMutation: function() {
     if (!this.selected) {
-      let contentWin = this.markup._frame.contentWindow;
+      let contentWin = this.win;
       this.flashed = true;
       if (this._flashMutationTimer) {
         contentWin.clearTimeout(this._flashMutationTimer);
@@ -1777,6 +2015,10 @@ MarkupContainer.prototype = {
     
     this.elt.removeEventListener("mousedown", this._onMouseDown, false);
     this.elt.removeEventListener("dblclick", this._onToggle, false);
+    this.markup.doc.body.removeEventListener("mouseup", this._onMouseUp, true);
+    this.markup.doc.body.removeEventListener("mousemove", this._onMouseMove, true);
+
+    this.win = null;
 
     if (this.expander) {
       this.expander.removeEventListener("click", this._onToggle, false);
@@ -2513,6 +2755,17 @@ function parseAttributeValues(attr, doc) {
 
   
   return attributes.reverse();
+}
+
+
+
+
+function map(value, oldMin, oldMax, newMin, newMax) {
+  let ratio = oldMax - oldMin;
+  if (ratio == 0) {
+    return value;
+  }
+  return newMin + (newMax - newMin) * ((value - oldMin) / ratio);
 }
 
 loader.lazyGetter(MarkupView.prototype, "strings", () => Services.strings.createBundle(

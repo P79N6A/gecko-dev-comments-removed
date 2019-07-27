@@ -33,15 +33,3 @@ add_task(function*() {
       "Container for node " + nodeFront.tagName + " is expanded");
   }
 });
-
-
-
-function* waitForMultipleChildrenUpdates(inspector) {
-  
-  
-  if (inspector.markup._queuedChildUpdates &&
-      inspector.markup._queuedChildUpdates.size) {
-    yield waitForChildrenUpdated(inspector);
-    return yield waitForMultipleChildrenUpdates(inspector);
-  }
-}
