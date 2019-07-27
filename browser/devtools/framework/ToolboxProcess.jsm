@@ -8,7 +8,7 @@
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 const DBG_XUL = "chrome://browser/content/devtools/framework/toolbox-process-window.xul";
-const CHROME_DEBUGGER_PROFILE_NAME = "chrome_debugger_profile";
+const CHROME_DEBUGGER_PROFILE_NAME = "-chrome-debugger";
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm")
@@ -154,33 +154,54 @@ BrowserToolboxProcess.prototype = {
   _initProfile: function() {
     dumpn("Initializing the chrome toolbox user profile.");
 
-    let debuggingProfileDir = Services.dirsvc.get("ProfLD", Ci.nsIFile);
-    debuggingProfileDir.append(CHROME_DEBUGGER_PROFILE_NAME);
+    let profileService = Cc["@mozilla.org/toolkit/profile-service;1"]
+      .createInstance(Ci.nsIToolkitProfileService);
+
+    let profileName;
     try {
-      debuggingProfileDir.create(Ci.nsIFile.DIRECTORY_TYPE, 0o755);
-    } catch (ex) {
-      if (ex.result !== Cr.NS_ERROR_FILE_ALREADY_EXISTS) {
-        dumpn("Error trying to create a profile directory, failing.");
-        dumpn("Error: " + (ex.message || ex));
-        return;
-      }
+      
+      profileName = profileService.selectedProfile.name + CHROME_DEBUGGER_PROFILE_NAME;
+      dumpn("Using chrome toolbox profile name: " + profileName);
+    } catch (e) {
+      
+      profileName = CHROME_DEBUGGER_PROFILE_NAME;
+      let msg = "Querying the current profile failed. " + e.name + ": " + e.message;
+      dumpn(msg);
+      Cu.reportError(msg);
     }
 
-    this._dbgProfilePath = debuggingProfileDir.path;
+    let profileObject;
+    try {
+      
+      profileObject = profileService.getProfileByName(profileName);
+      dumpn("Using chrome toolbox profile object: " + profileObject);
+
+      
+      var enumerator = Services.dirsvc.get("ProfD", Ci.nsIFile).parent.directoryEntries;
+      while (enumerator.hasMoreElements()) {
+        let profileDir = enumerator.getNext().QueryInterface(Ci.nsIFile);
+        if (profileDir.leafName.contains(profileName)) {
+          
+          this._dbgProfile = profileObject;
+          return;
+        }
+      }
+      
+      profileObject.remove(true);
+      dumpn("The already existing chrome toolbox profile was invalid.");
+    } catch (e) {
+      
+      let msg = "Creating a profile failed. " + e.name + ": " + e.message;
+      dumpn(msg);
+      Cu.reportError(msg);
+    }
 
     
-    let prefsFile = debuggingProfileDir.clone();
-    prefsFile.append("prefs.js");
-    
-    
-    
-    
-    
-    
-    
-    Services.prefs.savePrefFile(prefsFile);
+    this._dbgProfile = profileService.createProfile(null, profileName);
+    profileService.flush();
 
-    dumpn("Finished creating the chrome toolbox user profile at: " + this._dbgProfilePath);
+    dumpn("Finished creating the chrome toolbox user profile.");
+    dumpn("Flushed profile service with: " + profileName);
   },
 
   
@@ -198,7 +219,7 @@ BrowserToolboxProcess.prototype = {
     }
 
     dumpn("Running chrome debugging process.");
-    let args = ["-no-remote", "-foreground", "-profile", this._dbgProfilePath, "-chrome", xulURI];
+    let args = ["-no-remote", "-foreground", "-P", this._dbgProfile.name, "-chrome", xulURI];
 
     process.runwAsync(args, args.length, { observe: () => this.close() });
 
