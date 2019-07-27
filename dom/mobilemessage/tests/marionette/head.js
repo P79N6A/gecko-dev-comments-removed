@@ -249,11 +249,12 @@ function getMessage(aId) {
 
 
 
-
-
 function getMessages(aFilter, aReverse) {
   let deferred = Promise.defer();
 
+  if (!aFilter) {
+    aFilter = new MozSmsFilter;
+  }
   let messages = [];
   let cursor = manager.getMessages(aFilter, aReverse || false);
   cursor.onsuccess = function(aEvent) {
