@@ -17,6 +17,7 @@
 #include "base/win_util.h"
 
 #include <algorithm>
+#include "prenv.h"
 
 namespace {
 
@@ -278,7 +279,6 @@ bool LaunchApp(const std::wstring& cmdline,
   
   
   
-  
   DWORD dwCreationFlags = 0;
   BOOL bInheritHandles = FALSE;
   
@@ -305,21 +305,30 @@ bool LaunchApp(const std::wstring& cmdline,
     if (stdErr != stdOut && IsInheritableHandle(stdErr))
       handlesToInherit[handleCount++] = stdErr;
 
-    if (handleCount)
+    if (handleCount) {
       lpAttributeList = CreateThreadAttributeList(handlesToInherit, handleCount);
-  }
-
-  if (lpAttributeList) {
+      if (lpAttributeList) {
+        
+        startup_info.cb = sizeof(startup_info_ex);
+        startup_info.dwFlags |= STARTF_USESTDHANDLES;
+        startup_info.hStdOutput = stdOut;
+        startup_info.hStdError = stdErr;
+        startup_info.hStdInput = INVALID_HANDLE_VALUE;
+        startup_info_ex.lpAttributeList = lpAttributeList;
+        dwCreationFlags |= EXTENDED_STARTUPINFO_PRESENT;
+        bInheritHandles = TRUE;
+      }
+    }
+  } else if (PR_GetEnv("MOZ_WIN_INHERIT_STD_HANDLES_PRE_VISTA")) {
     
-    startup_info.cb = sizeof(startup_info_ex);
+    
     startup_info.dwFlags |= STARTF_USESTDHANDLES;
     startup_info.hStdOutput = ::GetStdHandle(STD_OUTPUT_HANDLE);
     startup_info.hStdError = ::GetStdHandle(STD_ERROR_HANDLE);
     startup_info.hStdInput = INVALID_HANDLE_VALUE;
-    startup_info_ex.lpAttributeList = lpAttributeList;
-    dwCreationFlags |= EXTENDED_STARTUPINFO_PRESENT;
     bInheritHandles = TRUE;
   }
+
   PROCESS_INFORMATION process_info;
   BOOL createdOK = CreateProcess(NULL,
                      const_cast<wchar_t*>(cmdline.c_str()), NULL, NULL,
