@@ -3,6 +3,7 @@
 # file, You can obtain one at http:
 
 let TrackingProtection = {
+  MAX_INTROS: 0,
   PREF_ENABLED_GLOBALLY: "privacy.trackingprotection.enabled",
   PREF_ENABLED_IN_PRIVATE_WINDOWS: "privacy.trackingprotection.pbmode.enabled",
   enabledGlobally: false,
@@ -71,6 +72,16 @@ let TrackingProtection = {
       }
     }
 
+    if (state & STATE_BLOCKED_TRACKING_CONTENT) {
+      
+      let introCount = gPrefService.getIntPref("privacy.trackingprotection.introCount");
+      if (introCount < TrackingProtection.MAX_INTROS) {
+        gPrefService.setIntPref("privacy.trackingprotection.introCount", ++introCount);
+        gPrefService.savePrefFile(null);
+        this.showIntroPanel();
+      }
+    }
+
     
     this.eventsHistogram.add(0);
   },
@@ -111,4 +122,47 @@ let TrackingProtection = {
 
     BrowserReload();
   },
+
+  showIntroPanel: Task.async(function*() {
+    let mm = gBrowser.selectedBrowser.messageManager;
+    let brandBundle = document.getElementById("bundle_brand");
+    let brandShortName = brandBundle.getString("brandShortName");
+
+    let openStep2 = () => {
+      
+      
+      gPrefService.setIntPref("privacy.trackingprotection.introCount",
+                              this.MAX_INTROS);
+      gPrefService.savePrefFile(null);
+
+      let nextURL = Services.urlFormatter.formatURLPref("privacy.trackingprotection.introURL") +
+                    "#step2";
+      switchToTabHavingURI(nextURL, true, {
+        
+        
+        
+        ignoreFragment: true,
+      });
+    };
+
+    let buttons = [
+      {
+        label: gNavigatorBundle.getString("trackingProtection.intro.step1of3"),
+        style: "text",
+      },
+      {
+        callback: openStep2,
+        label: gNavigatorBundle.getString("trackingProtection.intro.nextButton.label"),
+        style: "primary",
+      },
+    ];
+
+    let panelTarget = yield UITour.getTarget(window, "trackingProtection");
+    UITour.initForBrowser(gBrowser.selectedBrowser);
+    UITour.showInfo(window, mm, panelTarget,
+                    gNavigatorBundle.getString("trackingProtection.intro.title"),
+                    gNavigatorBundle.getFormattedString("trackingProtection.intro.description",
+                                                        [brandShortName]),
+                    undefined, buttons);
+  }),
 };
