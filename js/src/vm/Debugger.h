@@ -7,6 +7,7 @@
 #ifndef vm_Debugger_h
 #define vm_Debugger_h
 
+#include "mozilla/GuardObjects.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/Range.h"
 
@@ -241,6 +242,10 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     
     bool isDebuggee(const JSCompartment *compartment) const;
 
+    
+    
+    void debuggeeIsBeingCollected() { debuggeeWasCollected = true; }
+
   private:
     HeapPtrNativeObject object;         
     WeakGlobalObjectSet debuggees;      
@@ -259,6 +264,37 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     typedef mozilla::LinkedList<AllocationSite> AllocationSiteList;
 
     bool allowUnobservedAsmJS;
+
+    
+    
+    bool debuggeeWasCollected;
+
+    
+    
+    
+    
+    bool inOnGCHook;
+
+    
+    
+    class MOZ_STACK_CLASS AutoOnGCHookReentrancyGuard {
+        MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER;
+        Debugger &dbg;
+
+    public:
+        explicit AutoOnGCHookReentrancyGuard(Debugger &dbg MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+            : dbg(dbg)
+        {
+            MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+            MOZ_ASSERT(!dbg.inOnGCHook);
+            dbg.inOnGCHook = true;
+        }
+
+        ~AutoOnGCHookReentrancyGuard() {
+            MOZ_ASSERT(dbg.inOnGCHook);
+            dbg.inOnGCHook = false;
+        }
+    };
 
     bool trackingAllocationSites;
     double allocationSamplingProbability;
@@ -513,6 +549,12 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
+    void fireOnGarbageCollectionHook(JSRuntime *rt, const gcstats::Statistics &stats);
+
+    
+
+
+
     bool getScriptFrameWithIter(JSContext *cx, AbstractFramePtr frame,
                                 const ScriptFrameIter *maybeIter, MutableHandleValue vp);
 
@@ -625,6 +667,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     static inline void onNewScript(JSContext *cx, HandleScript script);
     static inline void onNewGlobalObject(JSContext *cx, Handle<GlobalObject *> global);
     static inline bool onLogAllocationSite(JSContext *cx, HandleSavedFrame frame, int64_t when);
+    static inline void onGarbageCollection(JSRuntime *rt, const gcstats::Statistics &stats);
     static JSTrapStatus onTrap(JSContext *cx, MutableHandleValue vp);
     static JSTrapStatus onSingleStep(JSContext *cx, MutableHandleValue vp);
     static bool handleBaselineOsr(JSContext *cx, InterpreterFrame *from, jit::BaselineFrame *to);
@@ -672,6 +715,13 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
     bool wrapDebuggeeValue(JSContext *cx, MutableHandleValue vp);
+
+    
+
+
+
+
+    JSObject *translateGCStatistics(JSContext *cx, const gcstats::Statistics &stats);
 
     
 
@@ -931,6 +981,16 @@ Debugger::onLogAllocationSite(JSContext *cx, HandleSavedFrame frame, int64_t whe
     if (!dbgs || dbgs->empty())
         return true;
     return Debugger::slowPathOnLogAllocationSite(cx, frame, when, *dbgs);
+}
+
+ void
+Debugger::onGarbageCollection(JSRuntime *rt, const gcstats::Statistics &stats)
+{
+    for (Debugger *dbg = rt->debuggerList.getFirst(); dbg; dbg = dbg->getNext()) {
+        if (dbg->debuggeeWasCollected && dbg->getHook(OnGarbageCollection)) {
+            dbg->fireOnGarbageCollectionHook(rt, stats);
+        }
+    }
 }
 
 bool ReportObjectRequired(JSContext *cx);
