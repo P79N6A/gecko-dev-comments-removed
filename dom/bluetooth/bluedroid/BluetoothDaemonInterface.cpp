@@ -6,6 +6,7 @@
 
 #include "BluetoothDaemonInterface.h"
 #include "BluetoothDaemonA2dpInterface.h"
+#include "BluetoothDaemonAvrcpInterface.h"
 #include "BluetoothDaemonHandsfreeInterface.h"
 #include "BluetoothDaemonHelpers.h"
 #include "BluetoothDaemonSetupInterface.h"
@@ -1356,6 +1357,54 @@ private:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class BluetoothDaemonProtocol MOZ_FINAL
   : public BluetoothDaemonPDUConsumer
   , public BluetoothDaemonSetupModule
@@ -1363,6 +1412,7 @@ class BluetoothDaemonProtocol MOZ_FINAL
   , public BluetoothDaemonSocketModule
   , public BluetoothDaemonHandsfreeModule
   , public BluetoothDaemonA2dpModule
+  , public BluetoothDaemonAvrcpModule
 {
 public:
   BluetoothDaemonProtocol(BluetoothDaemonConnection* aConnection);
@@ -1398,6 +1448,8 @@ private:
                           BluetoothDaemonPDU& aPDU, void* aUserData);
   void HandleA2dpSvc(const BluetoothDaemonPDUHeader& aHeader,
                      BluetoothDaemonPDU& aPDU, void* aUserData);
+  void HandleAvrcpSvc(const BluetoothDaemonPDUHeader& aHeader,
+                      BluetoothDaemonPDU& aPDU, void* aUserData);
 
   BluetoothDaemonConnection* mConnection;
   nsTArray<void*> mUserDataQ;
@@ -1475,6 +1527,14 @@ BluetoothDaemonProtocol::HandleA2dpSvc(
 }
 
 void
+BluetoothDaemonProtocol::HandleAvrcpSvc(
+  const BluetoothDaemonPDUHeader& aHeader, BluetoothDaemonPDU& aPDU,
+  void* aUserData)
+{
+  BluetoothDaemonAvrcpModule::HandleSvc(aHeader, aPDU, aUserData);
+}
+
+void
 BluetoothDaemonProtocol::Handle(BluetoothDaemonPDU& aPDU)
 {
   static void (BluetoothDaemonProtocol::* const HandleSvc[])(
@@ -1487,7 +1547,10 @@ BluetoothDaemonProtocol::Handle(BluetoothDaemonPDU& aPDU)
     INIT_ARRAY_AT(BluetoothDaemonHandsfreeModule::SERVICE_ID,
       &BluetoothDaemonProtocol::HandleHandsfreeSvc),
     INIT_ARRAY_AT(BluetoothDaemonA2dpModule::SERVICE_ID,
-      &BluetoothDaemonProtocol::HandleA2dpSvc)
+      &BluetoothDaemonProtocol::HandleA2dpSvc),
+    INIT_ARRAY_AT(0x07, nullptr), 
+    INIT_ARRAY_AT(BluetoothDaemonAvrcpModule::SERVICE_ID,
+      &BluetoothDaemonProtocol::HandleAvrcpSvc)
   };
 
   BluetoothDaemonPDUHeader header;
@@ -2079,7 +2142,13 @@ BluetoothDaemonInterface::GetBluetoothA2dpInterface()
 BluetoothAvrcpInterface*
 BluetoothDaemonInterface::GetBluetoothAvrcpInterface()
 {
-  return nullptr;
+  if (mAvrcpInterface) {
+    return mAvrcpInterface;
+  }
+
+  mAvrcpInterface = new BluetoothDaemonAvrcpInterface(mProtocol);
+
+  return mAvrcpInterface;
 }
 
 END_BLUETOOTH_NAMESPACE
