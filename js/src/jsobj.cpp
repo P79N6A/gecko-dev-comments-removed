@@ -3146,12 +3146,15 @@ LookupPropertyPureInline(ThreadSafeContext *cx, JSObject *obj, jsid id, NativeOb
 
         
         
+        
         do {
             const Class *clasp = current->getClass();
             MOZ_ASSERT(clasp->resolve);
             if (clasp->resolve == JS_ResolveStub)
                 break;
             if (clasp->resolve == fun_resolve && !FunctionHasResolveHook(cx->names(), id))
+                break;
+            if (clasp->resolve == str_resolve && !JSID_IS_INT(id))
                 break;
             return false;
         } while (0);
@@ -4106,7 +4109,7 @@ JSObject::hasIdempotentProtoChain() const
             return false;
 
         JSResolveOp resolve = obj->getClass()->resolve;
-        if (resolve != JS_ResolveStub && resolve != js::fun_resolve)
+        if (resolve != JS_ResolveStub && resolve != js::fun_resolve && resolve != js::str_resolve)
             return false;
 
         if (obj->getOps()->lookupProperty || obj->getOps()->lookupGeneric || obj->getOps()->lookupElement)
