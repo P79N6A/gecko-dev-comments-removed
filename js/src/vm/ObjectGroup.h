@@ -125,10 +125,6 @@ enum : uint32_t {
 
     
 
-
-
-    OBJECT_FLAG_NURSERY_PROTO         = 0x2,
-
     
     OBJECT_FLAG_PROPERTY_COUNT_MASK   = 0xfff8,
     OBJECT_FLAG_PROPERTY_COUNT_SHIFT  = 3,
@@ -255,7 +251,7 @@ class ObjectGroup : public gc::TenuredCell
     HeapPtrObject &protoRaw() { return proto_; }
     HeapPtrObject &singletonRaw() { return singleton_; }
 
-    void setProto(JSContext *cx, TaggedProto proto);
+    void setProto(TaggedProto proto);
     void setProtoUnchecked(TaggedProto proto);
 
     void initSingleton(JSObject *singleton) {
@@ -417,10 +413,6 @@ class ObjectGroup : public gc::TenuredCell
 
     bool shouldPreTenure() {
         return hasAnyFlags(OBJECT_FLAG_PRE_TENURE) && !unknownProperties();
-    }
-
-    bool hasTenuredProto() {
-        return !(flags() & OBJECT_FLAG_NURSERY_PROTO);
     }
 
     gc::InitialHeap initialHeap(types::CompilerConstraintList *constraints);
