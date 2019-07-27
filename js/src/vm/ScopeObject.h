@@ -281,6 +281,7 @@ class CallObject : public ScopeObject
 
     static CallObject *createForFunction(JSContext *cx, AbstractFramePtr frame);
     static CallObject *createForStrictEval(JSContext *cx, AbstractFramePtr frame);
+    static CallObject *createHollowForDebug(JSContext *cx, HandleFunction callee);
 
     
     bool isForEval() const {
@@ -633,9 +634,15 @@ class StaticBlockObject : public BlockObject
 
 class ClonedBlockObject : public BlockObject
 {
+    static ClonedBlockObject *create(JSContext *cx, Handle<StaticBlockObject *> block,
+                                     HandleObject enclosing);
+
   public:
     static ClonedBlockObject *create(JSContext *cx, Handle<StaticBlockObject *> block,
                                      AbstractFramePtr frame);
+
+    static ClonedBlockObject *createHollowForDebug(JSContext *cx,
+                                                   Handle<StaticBlockObject *> block);
 
     
     StaticBlockObject &staticBlock() const {
@@ -760,6 +767,16 @@ class ScopeIter
 
 
 
+
+
+
+
+
+
+
+
+
+
 class MissingScopeKey
 {
     friend class LiveScopeVal;
@@ -786,7 +803,7 @@ class MissingScopeKey
     bool operator!=(const MissingScopeKey &other) const {
         return frame_ != other.frame_ || staticScope_ != other.staticScope_;
     }
-    static void rekey(MissingScopeKey &k, const MissingScopeKey& newKey) {
+    static void rekey(MissingScopeKey &k, const MissingScopeKey &newKey) {
         k = newKey;
     }
 };
@@ -879,6 +896,10 @@ class DebugScopeObject : public ProxyObject
     
     
     bool getMaybeSentinelValue(JSContext *cx, HandleId id, MutableHandleValue vp);
+
+    
+    
+    bool isOptimizedOut() const;
 };
 
 
