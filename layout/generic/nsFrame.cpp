@@ -2064,7 +2064,8 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   
   
   
-  set.PositionedDescendants()->SortByZOrder(aBuilder, GetContent());
+  
+  set.PositionedDescendants()->SortByZOrder(aBuilder);
 
   nsDisplayList resultList;
   

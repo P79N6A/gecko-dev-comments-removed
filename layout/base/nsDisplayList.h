@@ -1671,11 +1671,7 @@ public:
 
 
 
-
-
-
-
-  void SortByZOrder(nsDisplayListBuilder* aBuilder, nsIContent* aCommonAncestor);
+  void SortByZOrder(nsDisplayListBuilder* aBuilder);
   
 
 
