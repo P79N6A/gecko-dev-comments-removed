@@ -269,6 +269,10 @@ public:
   static void MarkUserData(void* aObject, nsIAtom* aKey, void* aChild,
                            void *aData);
 
+  
+
+
+  static bool IsHTMLVoid(nsIAtom* aLocalName);
 protected:
   virtual ~FragmentOrElement();
 
