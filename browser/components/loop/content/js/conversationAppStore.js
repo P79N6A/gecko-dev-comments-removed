@@ -69,12 +69,7 @@ loop.store.ConversationAppStore = (function() {
         return;
       }
 
-      
-      
-      this.setStoreState({
-        windowType: windowData.type,
-        windowData: windowData
-      });
+      this.setStoreState({windowType: windowData.type});
 
       this._dispatcher.dispatch(new loop.shared.actions.SetupWindowData(_.extend({
         windowId: actionData.windowId}, windowData)));

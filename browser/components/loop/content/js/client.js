@@ -86,37 +86,6 @@ loop.Client = (function($) {
 
 
 
-    deleteCallUrl: function(token, sessionType, cb) {
-      function deleteRequestCallback(error, responseText) {
-        if (error) {
-          this._failureHandler(cb, error);
-          return;
-        }
-
-        try {
-          cb(null);
-        } catch (err) {
-          console.log("Error deleting call info", err);
-          cb(err);
-        }
-      }
-
-      this.mozLoop.hawkRequest(sessionType,
-                               "/call-url/" + token, "DELETE", null,
-                               deleteRequestCallback.bind(this));
-    },
-
-    
-
-
-
-
-
-
-
-
-
-
     setupOutgoingCall: function(calleeIds, callType, cb) {
       
       
