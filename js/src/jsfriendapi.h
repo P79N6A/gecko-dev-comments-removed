@@ -481,6 +481,8 @@ struct WeakMapTracer;
 
 
 
+
+
 typedef void
 (* WeakMapTraceCallback)(WeakMapTracer *trc, JSObject *m, JS::GCCellPtr key, JS::GCCellPtr value);
 
