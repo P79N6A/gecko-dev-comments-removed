@@ -385,9 +385,9 @@ protected:
     nsOverflowAreas mOverflowAreas;
 
     
-    mozilla::LogicalMargin mMargin;
-    mozilla::LogicalMargin mBorderPadding;
-    mozilla::LogicalMargin mOffsets;
+    mozilla::LogicalMargin mMargin;        
+    mozilla::LogicalMargin mBorderPadding; 
+    mozilla::LogicalMargin mOffsets;       
 
     
     mozilla::JustificationInfo mJustificationInfo;
