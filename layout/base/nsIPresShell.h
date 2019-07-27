@@ -141,8 +141,8 @@ typedef struct CapturingContentInfo {
 
 
 #define NS_IPRESSHELL_IID \
-  { 0x9d010f90, 0x2d90, 0x471c, \
-    { 0xb6, 0x40, 0x03, 0x8c, 0xc3, 0x50, 0xc1, 0x87 } }
+  { 0xd910f009, 0xd209, 0x74c1, \
+    { 0x6b, 0x04, 0x30, 0xc8, 0x3c, 0x05, 0x1c, 0x78 } }
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -1439,7 +1439,8 @@ public:
   virtual nsresult HandleEvent(nsIFrame* aFrame,
                                mozilla::WidgetGUIEvent* aEvent,
                                bool aDontRetargetEvents,
-                               nsEventStatus* aEventStatus) = 0;
+                               nsEventStatus* aEventStatus,
+                               nsIContent** aTargetContent = nullptr) = 0;
   virtual bool ShouldIgnoreInvalidation() = 0;
   
 

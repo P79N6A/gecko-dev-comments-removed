@@ -215,7 +215,8 @@ public:
   virtual nsresult HandleEvent(nsIFrame* aFrame,
                                mozilla::WidgetGUIEvent* aEvent,
                                bool aDontRetargetEvents,
-                               nsEventStatus* aEventStatus) override;
+                               nsEventStatus* aEventStatus,
+                               nsIContent** aTargetContent) override;
   virtual nsresult HandleDOMEventWithTarget(
                                  nsIContent* aTargetContent,
                                  mozilla::WidgetEvent* aEvent,
@@ -834,6 +835,11 @@ protected:
   nsCOMPtr<nsIContent>      mContentToScrollTo;
 
   nscoord                   mLastAnchorScrollPositionY;
+
+  
+  
+  
+  nsCOMPtr<nsIContent>      mPointerEventTarget;
 
   
   
