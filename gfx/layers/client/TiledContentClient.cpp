@@ -257,9 +257,9 @@ SharedFrameMetricsHelper::AboutToCheckerboard(const FrameMetrics& aContentMetric
   
   
   
-  CSSRect painted = (aContentMetrics.mCriticalDisplayPort.IsEmpty()
+  CSSRect painted = (aContentMetrics.GetCriticalDisplayPort().IsEmpty()
                       ? aContentMetrics.GetDisplayPort()
-                      : aContentMetrics.mCriticalDisplayPort)
+                      : aContentMetrics.GetCriticalDisplayPort())
                     + aContentMetrics.GetScrollOffset();
   painted.Inflate(CSSMargin::FromAppUnits(nsMargin(1, 1, 1, 1)));
 

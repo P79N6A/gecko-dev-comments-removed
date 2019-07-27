@@ -928,10 +928,10 @@ LayerManagerComposite::ComputeRenderIntegrity()
 
     
     bool hasLowPrecision = false;
-    if (!metrics.mCriticalDisplayPort.IsEmpty()) {
+    if (!metrics.GetCriticalDisplayPort().IsEmpty()) {
       hasLowPrecision = true;
       highPrecisionMultiplier =
-        GetDisplayportCoverage(metrics.mCriticalDisplayPort, transform, screenRect);
+        GetDisplayportCoverage(metrics.GetCriticalDisplayPort(), transform, screenRect);
     }
 
     
