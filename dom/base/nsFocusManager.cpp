@@ -2629,6 +2629,29 @@ nsFocusManager::DetermineElementToMoveFocus(nsPIDOMWindow* aWindow,
     }
   }
 
+  
+  
+  
+  
+  
+  if (forDocumentNavigation && doc->IsXULDocument()) {
+    nsAutoString retarget;
+
+    if (rootContent->GetAttr(kNameSpaceID_None,
+                             nsGkAtoms::retargetdocumentfocus, retarget)) {
+      nsIContent* retargetElement = doc->GetElementById(retarget);
+      
+      
+      
+      
+      if (retargetElement && (retargetElement == startContent ||
+                              (!retargetElement->Contains(startContent) &&
+                              nsContentUtils::ContentIsDescendantOf(startContent, retargetElement)))) {
+        startContent = rootContent;
+      }
+    }
+  }
+
   NS_ASSERTION(startContent, "starting content not set");
 
   
@@ -3190,6 +3213,23 @@ nsFocusManager::FocusFirst(nsIContent* aRootContent, nsIContent** aNextContent)
 
   nsIDocument* doc = aRootContent->GetComposedDoc();
   if (doc) {
+    if (doc->IsXULDocument()) {
+      
+      
+      
+      nsAutoString retarget;
+
+      if (aRootContent->GetAttr(kNameSpaceID_None,
+                               nsGkAtoms::retargetdocumentfocus, retarget)) {
+        nsCOMPtr<nsIContent> retargetElement =
+          CheckIfFocusable(doc->GetElementById(retarget), 0);
+        if (retargetElement) {
+          retargetElement.forget(aNextContent);
+          return NS_OK;
+        }
+      }
+    }
+
     nsCOMPtr<nsIDocShell> docShell = doc->GetDocShell();
     if (docShell->ItemType() == nsIDocShellTreeItem::typeChrome) {
       
