@@ -122,7 +122,7 @@ let TRANSITIONS = [
 
 function* loadURI(browser, uri) {
   info("Calling browser.loadURI");
-  browser.loadURI(uri);
+  yield BrowserTestUtils.loadURI(browser, uri);
   return true;
 },
 
