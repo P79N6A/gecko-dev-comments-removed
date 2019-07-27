@@ -749,8 +749,6 @@ bool
 WebGLContext::ResizeBackbuffer(uint32_t requestedWidth,
                                uint32_t requestedHeight)
 {
-    MOZ_ASSERT(!IsContextLost());
-
     uint32_t width = requestedWidth;
     uint32_t height = requestedHeight;
 
@@ -828,11 +826,6 @@ WebGLContext::SetDimensions(int32_t signedWidth, int32_t signedHeight)
 
         
         PresentScreenBuffer();
-
-        if (IsContextLost()) {
-            GenerateWarning("WebGL context was lost due to swap failure.");
-            return NS_OK;
-        }
 
         
         if (!ResizeBackbuffer(width, height)) {
