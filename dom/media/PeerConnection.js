@@ -679,16 +679,19 @@ RTCPeerConnection.prototype = {
     let idpComplete = false;
     let setRemoteComplete = false;
     let idpError = null;
+    let isDone = false;
 
     
     
     
     let allDone = () => {
-      if (!setRemoteComplete || !idpComplete || !onSuccess) {
+      if (!setRemoteComplete || !idpComplete || isDone) {
         return;
       }
+      
+      
       this.callCB(onSuccess);
-      onSuccess = null;
+      isDone = true;
       this._executeNext();
     };
 
