@@ -56,6 +56,7 @@ class nsICSSPseudoComparator;
 struct nsStyleBackground;
 struct nsStyleBorder;
 class nsIRunnable;
+class gfxUserFontEntry;
 class gfxUserFontSet;
 class gfxTextPerfMetrics;
 struct nsFontFaceRuleContainer;
@@ -890,7 +891,7 @@ public:
   
   
   
-  void UserFontSetUpdated();
+  void UserFontSetUpdated(gfxUserFontEntry* aUpdatedFont = nullptr);
 
   gfxMissingFontRecorder *MissingFontRecorder() { return mMissingFonts; }
   void NotifyMissingFonts();

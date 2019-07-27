@@ -66,6 +66,7 @@
 #include "nsPIWindowRoot.h"
 #include "mozilla/Preferences.h"
 #include "gfxTextRun.h"
+#include "nsFontFaceUtils.h"
 
 
 #include "imgIContainer.h"
@@ -2145,11 +2146,16 @@ nsPresContext::RebuildUserFontSet()
 }
 
 void
-nsPresContext::UserFontSetUpdated()
+nsPresContext::UserFontSetUpdated(gfxUserFontEntry* aUpdatedFont)
 {
   if (!mShell)
     return;
 
+  bool usePlatformFontList = true;
+#if defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_QT)
+  usePlatformFontList = false;
+#endif
+
   
   
   
@@ -2157,12 +2163,30 @@ nsPresContext::UserFontSetUpdated()
   
   
   
+  if (!usePlatformFontList || !aUpdatedFont) {
+    PostRebuildAllStyleDataEvent(NS_STYLE_HINT_REFLOW, eRestyle_ForceDescendants);
+    return;
+  }
+
   
   
   
   
 
-  PostRebuildAllStyleDataEvent(NS_STYLE_HINT_REFLOW, eRestyle_ForceDescendants);
+  if (UsesExChUnits()) {
+    
+    
+    PostRebuildAllStyleDataEvent(NS_STYLE_HINT_REFLOW, eRestyle_ForceDescendants);
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  nsFontFaceUtils::MarkDirtyForFontChange(mShell->GetRootFrame(), aUpdatedFont);
 }
 
 FontFaceSet*

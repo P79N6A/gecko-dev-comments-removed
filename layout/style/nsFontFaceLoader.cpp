@@ -121,7 +121,7 @@ nsFontFaceLoader::LoadTimerCallback(nsITimer* aTimer, void* aClosure)
     NS_ASSERTION(ctx, "userfontset doesn't have a presContext?");
     if (ctx) {
       loader->mFontFaceSet->IncrementGeneration();
-      ctx->UserFontSetUpdated();
+      ctx->UserFontSetUpdated(loader->GetUserFontEntry());
       LOG(("userfonts (%p) timeout reflow\n", loader));
     }
   }
@@ -193,7 +193,7 @@ nsFontFaceLoader::OnStreamComplete(nsIStreamLoader* aLoader,
   if (fontUpdate) {
     
     
-    ctx->UserFontSetUpdated();
+    ctx->UserFontSetUpdated(mUserFontEntry);
     LOG(("userfonts (%p) reflow\n", this));
   }
 
