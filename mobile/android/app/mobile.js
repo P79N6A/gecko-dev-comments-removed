@@ -664,6 +664,10 @@ pref("ui.scrolling.negate_wheel_scrollY", true);
 pref("ui.scrolling.gamepad_dead_zone", 115);
 
 
+pref("ui.scrolling.fling_accel_interval", 500);
+pref("ui.scrolling.fling_accel_base_multiplier", "1.0");
+pref("ui.scrolling.fling_accel_supplemental_multiplier", "1.0");
+
 
 pref("accessibility.accessfu.activate", 2);
 pref("accessibility.accessfu.quicknav_modes", "Link,Heading,FormElement,Landmark,ListItem");
