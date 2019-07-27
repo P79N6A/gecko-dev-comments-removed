@@ -11,6 +11,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Attributes.h"
 
+class nsINode;
 class nsXULTemplateResultXML;
 class nsXMLBindingValues;
 namespace mozilla {
@@ -44,6 +45,28 @@ struct nsXMLBinding {
   }
 };
 
+inline void
+ImplCycleCollectionUnlink(nsXMLBinding* aBinding)
+{
+  while (aBinding) {
+    aBinding->mExpr = nullptr;
+    aBinding = aBinding->mNext;
+  }
+}
+
+inline void
+ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
+                            nsXMLBinding* aBinding,
+                            const char* aName,
+                            uint32_t aFlags = 0)
+{
+  while (aBinding) {
+    CycleCollectionNoteChild(aCallback, aBinding->mExpr.get(),
+                             "nsXMLBinding::mExpr", aFlags);
+    aBinding = aBinding->mNext;
+  }
+}
+
 
 
 
@@ -71,7 +94,7 @@ public:
   
 
 
-  nsresult
+  void
   AddBinding(nsIAtom* aVar, nsIDOMXPathExpression* aExpr);
 
   
@@ -131,11 +154,10 @@ public:
                    int32_t idx,
                    uint16_t type);
 
-  void
+  nsINode*
   GetNodeAssignmentFor(nsXULTemplateResultXML* aResult,
                        nsXMLBinding* aBinding,
-                       int32_t idx,
-                       nsIDOMNode** aValue);
+                       int32_t idx);
 
   void
   GetStringAssignmentFor(nsXULTemplateResultXML* aResult,
