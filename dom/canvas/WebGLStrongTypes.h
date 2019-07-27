@@ -77,76 +77,125 @@
 
 
 
-#ifdef DEBUG
 
-template<size_t N>
-static bool
-IsValueInArr(GLenum value, const GLenum (&arr)[N])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename Details>
+class StrongGLenum MOZ_FINAL
 {
-    for (size_t i = 0; i < N; ++i) {
-        if (value == arr[i])
-            return true;
+private:
+    static const GLenum NonexistantGLenum = 0xdeaddead;
+
+    GLenum mValue;
+
+    static void AssertOnceThatEnumValuesAreSorted()
+    {
+#ifdef DEBUG
+        static bool alreadyChecked = false;
+        if (alreadyChecked) {
+            return;
+        }
+        for (size_t i = 1; i < Details::valuesCount(); i++) {
+            MOZ_ASSERT(Details::values()[i] > Details::values()[i - 1],
+                       "GLenum values should be sorted in ascending order");
+        }
+        alreadyChecked = true;
+#endif
     }
 
-    return false;
-}
+public:
+    StrongGLenum(const StrongGLenum& other)
+        : mValue(other.mValue)
+    {
+        AssertOnceThatEnumValuesAreSorted();
+    }
 
+    StrongGLenum()
+#ifdef DEBUG
+        : mValue(NonexistantGLenum)
 #endif
+    {
+        AssertOnceThatEnumValuesAreSorted();
+    }
+
+    StrongGLenum(GLenum val)
+        : mValue(val)
+    {
+        AssertOnceThatEnumValuesAreSorted();
+        MOZ_ASSERT(IsValueLegal(mValue));
+    }
+
+    GLenum get() const {
+        MOZ_ASSERT(mValue != NonexistantGLenum);
+        return mValue;
+    }
+
+    bool operator==(const StrongGLenum& other) const {
+        return get() == other.get();
+    }
+
+    bool operator!=(const StrongGLenum& other) const {
+        return get() != other.get();
+    }
+
+    static bool IsValueLegal(GLenum value) {
+        if (value > UINT16_MAX) {
+            return false;
+        }
+        return std::binary_search(Details::values(),
+                                  Details::values() + Details::valuesCount(),
+                                  uint16_t(value));
+    }
+};
 
 #define STRONG_GLENUM_BEGIN(NAME)                  \
-    class NAME {                                   \
-    private:                                       \
-        GLenum mValue;                             \
-    public:                                        \
-        MOZ_CONSTEXPR NAME(const NAME& other)      \
-            : mValue(other.mValue) { }             \
-                                                   \
-        bool operator==(const NAME& other) const { \
-            return mValue == other.mValue;         \
-        }                                          \
-                                                   \
-        bool operator!=(const NAME& other) const { \
-            return mValue != other.mValue;         \
-        }                                          \
-                                                   \
-        GLenum get() const {                       \
-            MOZ_ASSERT(mValue != LOCAL_GL_NONE);   \
-            return mValue;                         \
-        }                                          \
-                                                   \
-        NAME(GLenum val)                           \
-            : mValue(val)                          \
-        {                                          \
-            const GLenum validValues[] = {
+    const uint16_t NAME##Values[] = {
 
-#define STRONG_GLENUM_END()                        \
-            };                                     \
-            (void)validValues;                     \
-            MOZ_ASSERT(IsValueInArr(mValue, validValues)); \
-        }                                          \
-    };
+#define STRONG_GLENUM_VALUE(VALUE) LOCAL_GL_##VALUE
+
+#define STRONG_GLENUM_END(NAME)                        \
+    };                                     \
+    struct NAME##Details { \
+        static size_t valuesCount() { return MOZ_ARRAY_LENGTH(NAME##Values); } \
+        static const uint16_t* values() { return NAME##Values; } \
+    }; \
+    typedef StrongGLenum<NAME##Details> NAME;
 
 
 
 
 
 STRONG_GLENUM_BEGIN(TexImageTarget)
-    LOCAL_GL_NONE,
-    LOCAL_GL_TEXTURE_2D,
-    LOCAL_GL_TEXTURE_3D,
-    LOCAL_GL_TEXTURE_CUBE_MAP_POSITIVE_X,
-    LOCAL_GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
-    LOCAL_GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
-    LOCAL_GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
-    LOCAL_GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
-    LOCAL_GL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
-STRONG_GLENUM_END()
+    STRONG_GLENUM_VALUE(NONE),
+    STRONG_GLENUM_VALUE(TEXTURE_2D),
+    STRONG_GLENUM_VALUE(TEXTURE_3D),
+    STRONG_GLENUM_VALUE(TEXTURE_CUBE_MAP_POSITIVE_X),
+    STRONG_GLENUM_VALUE(TEXTURE_CUBE_MAP_NEGATIVE_X),
+    STRONG_GLENUM_VALUE(TEXTURE_CUBE_MAP_POSITIVE_Y),
+    STRONG_GLENUM_VALUE(TEXTURE_CUBE_MAP_NEGATIVE_Y),
+    STRONG_GLENUM_VALUE(TEXTURE_CUBE_MAP_POSITIVE_Z),
+    STRONG_GLENUM_VALUE(TEXTURE_CUBE_MAP_NEGATIVE_Z),
+STRONG_GLENUM_END(TexImageTarget)
 
 STRONG_GLENUM_BEGIN(TexTarget)
-    LOCAL_GL_NONE,
-    LOCAL_GL_TEXTURE_2D,
-    LOCAL_GL_TEXTURE_3D,
-    LOCAL_GL_TEXTURE_CUBE_MAP,
-STRONG_GLENUM_END()
+    STRONG_GLENUM_VALUE(NONE),
+    STRONG_GLENUM_VALUE(TEXTURE_2D),
+    STRONG_GLENUM_VALUE(TEXTURE_3D),
+    STRONG_GLENUM_VALUE(TEXTURE_CUBE_MAP),
+STRONG_GLENUM_END(TexTarget)
 
 #endif
