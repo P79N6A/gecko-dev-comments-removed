@@ -351,17 +351,49 @@ APZCCallbackHelper::AcknowledgeScrollUpdate(const FrameMetrics::ViewID& aScrollI
     }
 }
 
+static nsIPresShell*
+GetRootContentDocumentPresShellForContent(nsIContent* aContent)
+{
+    nsIDocument* doc = aContent->GetComposedDoc();
+    if (!doc) {
+        return nullptr;
+    }
+    nsIPresShell* shell = doc->GetShell();
+    if (!shell) {
+        return nullptr;
+    }
+    nsPresContext* context = shell->GetPresContext();
+    if (!context) {
+        return nullptr;
+    }
+    context = context->GetToplevelContentDocumentPresContext();
+    if (!context) {
+        return nullptr;
+    }
+    return context->PresShell();
+}
+
 CSSPoint
 APZCCallbackHelper::ApplyCallbackTransform(const CSSPoint& aInput,
-                                           const ScrollableLayerGuid& aGuid,
-                                           float aPresShellResolution)
+                                           const ScrollableLayerGuid& aGuid)
 {
+    CSSPoint input = aInput;
+    if (aGuid.mScrollId == FrameMetrics::NULL_SCROLL_ID) {
+        return input;
+    }
+    nsCOMPtr<nsIContent> content = nsLayoutUtils::FindContentFor(aGuid.mScrollId);
+    if (!content) {
+        return input;
+    }
+
     
     
     
     
     
-    CSSPoint input = aInput / aPresShellResolution;
+    if (nsIPresShell* shell = GetRootContentDocumentPresShellForContent(content)) {
+        input = input / shell->GetResolution();
+    }
 
     
     
@@ -374,16 +406,10 @@ APZCCallbackHelper::ApplyCallbackTransform(const CSSPoint& aInput,
     
     
     
-
-    if (aGuid.mScrollId != FrameMetrics::NULL_SCROLL_ID) {
-        nsCOMPtr<nsIContent> content = nsLayoutUtils::FindContentFor(aGuid.mScrollId);
-        if (content) {
-            void* property = content->GetProperty(nsGkAtoms::apzCallbackTransform);
-            if (property) {
-                CSSPoint delta = (*static_cast<CSSPoint*>(property));
-                return input + delta;
-            }
-        }
+    void* property = content->GetProperty(nsGkAtoms::apzCallbackTransform);
+    if (property) {
+        CSSPoint delta = (*static_cast<CSSPoint*>(property));
+        input += delta;
     }
     return input;
 }
@@ -391,23 +417,21 @@ APZCCallbackHelper::ApplyCallbackTransform(const CSSPoint& aInput,
 LayoutDeviceIntPoint
 APZCCallbackHelper::ApplyCallbackTransform(const LayoutDeviceIntPoint& aPoint,
                                            const ScrollableLayerGuid& aGuid,
-                                           const CSSToLayoutDeviceScale& aScale,
-                                           float aPresShellResolution)
+                                           const CSSToLayoutDeviceScale& aScale)
 {
     LayoutDevicePoint point = LayoutDevicePoint(aPoint.x, aPoint.y);
-    point = ApplyCallbackTransform(point / aScale, aGuid, aPresShellResolution) * aScale;
+    point = ApplyCallbackTransform(point / aScale, aGuid) * aScale;
     return gfx::RoundedToInt(point);
 }
 
 void
 APZCCallbackHelper::ApplyCallbackTransform(WidgetTouchEvent& aEvent,
                                            const ScrollableLayerGuid& aGuid,
-                                           const CSSToLayoutDeviceScale& aScale,
-                                           float aPresShellResolution)
+                                           const CSSToLayoutDeviceScale& aScale)
 {
   for (size_t i = 0; i < aEvent.touches.Length(); i++) {
     aEvent.touches[i]->mRefPoint = ApplyCallbackTransform(
-        aEvent.touches[i]->mRefPoint, aGuid, aScale, aPresShellResolution);
+        aEvent.touches[i]->mRefPoint, aGuid, aScale);
   }
 }
 

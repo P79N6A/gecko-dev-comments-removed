@@ -86,8 +86,7 @@ public:
 
 
     static CSSPoint ApplyCallbackTransform(const CSSPoint& aInput,
-                                           const ScrollableLayerGuid& aGuid,
-                                           float aPresShellResolution);
+                                           const ScrollableLayerGuid& aGuid);
 
     
 
@@ -95,15 +94,13 @@ public:
     static mozilla::LayoutDeviceIntPoint
     ApplyCallbackTransform(const LayoutDeviceIntPoint& aPoint,
                            const ScrollableLayerGuid& aGuid,
-                           const CSSToLayoutDeviceScale& aScale,
-                           float aPresShellResolution);
+                           const CSSToLayoutDeviceScale& aScale);
 
     
 
     static void ApplyCallbackTransform(WidgetTouchEvent& aEvent,
                                        const ScrollableLayerGuid& aGuid,
-                                       const CSSToLayoutDeviceScale& aScale,
-                                       float aPresShellResolution);
+                                       const CSSToLayoutDeviceScale& aScale);
 
     
 

@@ -1047,7 +1047,7 @@ nsBaseWidget::ProcessUntransformedAPZEvent(WidgetInputEvent* aEvent,
   
   if (aEvent->AsTouchEvent() && aGuid.mLayersId == mCompositorParent->RootLayerTreeId()) {
     APZCCallbackHelper::ApplyCallbackTransform(*aEvent->AsTouchEvent(), aGuid,
-        GetDefaultScale(), 1.0f);
+        GetDefaultScale());
   }
 
   nsEventStatus status;

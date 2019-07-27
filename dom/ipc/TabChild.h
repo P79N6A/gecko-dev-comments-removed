@@ -599,9 +599,6 @@ private:
 
     bool HasValidInnerSize();
 
-    
-    float GetPresShellResolution() const;
-
     void SetTabId(const TabId& aTabId);
 
     ScreenIntRect GetOuterRect();
