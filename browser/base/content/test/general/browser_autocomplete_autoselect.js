@@ -16,6 +16,12 @@ function is_selected(index) {
 }
 
 add_task(function*() {
+  
+  if (!Services.prefs.getBoolPref("browser.urlbar.unifiedcomplete")) {
+    todo(false, "Stop supporting old autocomplete components.");
+    return;
+  }
+
   registerCleanupFunction(promiseClearHistory);
 
   let visits = [];
