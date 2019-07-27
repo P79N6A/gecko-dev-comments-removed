@@ -6733,10 +6733,21 @@ nsWindow::GetPreferredCompositorBackends(nsTArray<LayersBackend>& aHints)
     if (prefs.mPreferOpenGL) {
       aHints.AppendElement(LayersBackend::LAYERS_OPENGL);
     }
-    if (!prefs.mPreferD3D9) {
-      aHints.AppendElement(LayersBackend::LAYERS_D3D11);
+
+    ID3D11Device* device = gfxWindowsPlatform::GetPlatform()->GetD3D11Device();
+    if (device && !DoesD3D11DeviceSupportResourceSharing(device)) {
+      
+      
+      
+      
+      NS_ERROR("Can't use Direct3D 11 because of a driver bug "
+        "causing resource sharing to fail");
+    } else {
+      if (!prefs.mPreferD3D9) {
+        aHints.AppendElement(LayersBackend::LAYERS_D3D11);
+      }
+      aHints.AppendElement(LayersBackend::LAYERS_D3D9);
     }
-    aHints.AppendElement(LayersBackend::LAYERS_D3D9);
   }
   aHints.AppendElement(LayersBackend::LAYERS_BASIC);
 }
