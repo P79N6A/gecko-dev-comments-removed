@@ -1011,9 +1011,8 @@ class MacroAssemblerX86Shared : public Assembler
         
         
         
-        if (src != dest)
-            moveFloat32x4(src, dest);
-        vshufps(mask, dest, dest, dest);
+        FloatRegister srcCopy = reusedInputFloat32x4(src, dest);
+        vshufps(mask, srcCopy, srcCopy, dest);
     }
     void shuffleMix(uint32_t mask, const Operand &src, FloatRegister dest) {
         
