@@ -817,33 +817,6 @@ pref("plugin.state.f5 sam inspection host plugin", 2);
 #endif
 
 
-#ifdef XP_WIN
-pref("plugin.state.nprobloxproxy", 2);
-#endif
-#ifdef XP_MACOSX
-pref("plugins.state.nproblox", 2);
-#endif
-
-
-#ifdef XP_WIN
-pref("plugins.state.npboxedit", 2);
-#endif
-#ifdef XP_MACOSX
-pref("plugins.state.box edit", 2);
-#endif
-
-
-#ifdef XP_WIN
-pref("plugins.state.np_prsnl", 2);
-#endif
-#ifdef XP_MACOSX
-pref("plugins.state.personalplugin", 2);
-#endif
-#ifdef UNIX_BUT_NOT_MAC
-pref("plugins.state.libplugins", 2);
-#endif
-
-
 pref("plugins.notifyMissingFlash", true);
 
 #ifdef XP_MACOSX
