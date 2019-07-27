@@ -1057,6 +1057,9 @@ protected:
 
   virtual void CallSeek(const SeekTarget& aTarget);
 
+  
+  bool IsHeuristicDormantSupported() const;
+
   MediaPromiseRequestHolder<SeekPromise> mSeekRequest;
 
   
