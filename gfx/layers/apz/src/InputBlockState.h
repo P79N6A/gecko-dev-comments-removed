@@ -92,7 +92,7 @@ public:
 
 
 
-  bool SetContentResponse(bool aPreventDefault);
+  virtual bool SetContentResponse(bool aPreventDefault);
 
   
 
@@ -161,6 +161,7 @@ public:
                   bool aTargetConfirmed,
                   const ScrollWheelInput& aEvent);
 
+  bool SetContentResponse(bool aPreventDefault) override;
   bool IsReadyForHandling() const override;
   bool HasEvents() const override;
   void DropEvents() override;

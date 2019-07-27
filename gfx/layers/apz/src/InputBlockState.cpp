@@ -182,6 +182,15 @@ WheelBlockState::WheelBlockState(const nsRefPtr<AsyncPanZoomController>& aTarget
 }
 
 bool
+WheelBlockState::SetContentResponse(bool aPreventDefault)
+{
+  if (aPreventDefault) {
+    EndTransaction();
+  }
+  return CancelableBlockState::SetContentResponse(aPreventDefault);
+}
+
+bool
 WheelBlockState::SetConfirmedTargetApzc(const nsRefPtr<AsyncPanZoomController>& aTargetApzc)
 {
   
