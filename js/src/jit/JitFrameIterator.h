@@ -57,13 +57,7 @@ enum FrameType
     
     
     
-    JitFrame_Exit,
-
-    
-    
-    
-    
-    JitFrame_Bailout
+    JitFrame_Exit
 };
 
 enum ReadFrameArgsBehavior {
@@ -80,6 +74,7 @@ enum ReadFrameArgsBehavior {
 class IonCommonFrameLayout;
 class IonJSFrameLayout;
 class IonExitFrameLayout;
+class IonBailoutIterator;
 
 class BaselineFrame;
 
@@ -93,6 +88,10 @@ class JitFrameIterator
     uint8_t *returnAddressToFp_;
     size_t frameSize_;
     ExecutionMode mode_;
+    enum Kind {
+        Kind_FrameIterator,
+        Kind_BailoutIterator
+    } kind_;
 
   private:
     mutable const SafepointIndex *cachedSafepointIndex_;
@@ -101,9 +100,26 @@ class JitFrameIterator
     void dumpBaseline() const;
 
   public:
-    explicit JitFrameIterator();
+    explicit JitFrameIterator(uint8_t *top, ExecutionMode mode)
+      : current_(top),
+        type_(JitFrame_Exit),
+        returnAddressToFp_(nullptr),
+        frameSize_(0),
+        mode_(mode),
+        kind_(Kind_FrameIterator),
+        cachedSafepointIndex_(nullptr),
+        activation_(nullptr)
+    { }
+
     explicit JitFrameIterator(ThreadSafeContext *cx);
     explicit JitFrameIterator(const ActivationIterator &activations);
+    explicit JitFrameIterator(IonJSFrameLayout *fp, ExecutionMode mode);
+
+    bool isBailoutIterator() const {
+        return kind_ == Kind_BailoutIterator;
+    }
+    IonBailoutIterator *asBailoutIterator();
+    const IonBailoutIterator *asBailoutIterator() const;
 
     
     FrameType type() const {
@@ -122,9 +138,10 @@ class JitFrameIterator
 
     inline uint8_t *returnAddress() const;
 
-    
-    
-    IonJSFrameLayout *jsFrame() const;
+    IonJSFrameLayout *jsFrame() const {
+        MOZ_ASSERT(isScripted());
+        return (IonJSFrameLayout *) fp();
+    }
 
     
     inline bool isFakeExitFrame() const;
@@ -137,19 +154,13 @@ class JitFrameIterator
     bool checkInvalidation() const;
 
     bool isScripted() const {
-        return type_ == JitFrame_BaselineJS || type_ == JitFrame_IonJS || type_ == JitFrame_Bailout;
+        return type_ == JitFrame_BaselineJS || type_ == JitFrame_IonJS;
     }
     bool isBaselineJS() const {
         return type_ == JitFrame_BaselineJS;
     }
-    bool isIonScripted() const {
-        return type_ == JitFrame_IonJS || type_ == JitFrame_Bailout;
-    }
     bool isIonJS() const {
         return type_ == JitFrame_IonJS;
-    }
-    bool isBailoutJS() const {
-        return type_ == JitFrame_Bailout;
     }
     bool isBaselineStub() const {
         return type_ == JitFrame_BaselineStub;
@@ -215,10 +226,6 @@ class JitFrameIterator
     
     
     const OsiIndex *osiIndex() const;
-
-    
-    
-    SnapshotOffset snapshotOffset() const;
 
     uintptr_t *spillBase() const;
     MachineState machineState() const;
@@ -469,6 +476,7 @@ class SnapshotIterator
     SnapshotIterator(IonScript *ionScript, SnapshotOffset snapshotOffset,
                      IonJSFrameLayout *fp, const MachineState &machine);
     explicit SnapshotIterator(const JitFrameIterator &iter);
+    explicit SnapshotIterator(const IonBailoutIterator &iter);
     SnapshotIterator();
 
     Value read() {
@@ -583,6 +591,7 @@ class InlineFrameIterator
   public:
     InlineFrameIterator(ThreadSafeContext *cx, const JitFrameIterator *iter);
     InlineFrameIterator(JSRuntime *rt, const JitFrameIterator *iter);
+    InlineFrameIterator(ThreadSafeContext *cx, const IonBailoutIterator *iter);
     InlineFrameIterator(ThreadSafeContext *cx, const InlineFrameIterator *iter);
 
     bool more() const {

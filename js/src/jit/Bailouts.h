@@ -116,41 +116,47 @@ class InvalidationBailoutStack;
 
 
 
-class BailoutFrameInfo
+class IonBailoutIterator : public JitFrameIterator
 {
     MachineState machine_;
-    uint8_t *framePointer_;
+    uint32_t snapshotOffset_;
     size_t topFrameSize_;
     IonScript *topIonScript_;
-    uint32_t snapshotOffset_;
-    JitActivation *activation_;
-
-    void attachOnJitActivation(const JitActivationIterator &activations);
 
   public:
-    BailoutFrameInfo(const JitActivationIterator &activations, BailoutStack *sp);
-    BailoutFrameInfo(const JitActivationIterator &activations, InvalidationBailoutStack *sp);
-    BailoutFrameInfo(const JitActivationIterator &activations, const JitFrameIterator &frame);
-    ~BailoutFrameInfo();
+    IonBailoutIterator(const JitActivationIterator &activations, BailoutStack *sp);
+    IonBailoutIterator(const JitActivationIterator &activations, InvalidationBailoutStack *sp);
+    IonBailoutIterator(const JitActivationIterator &activations, const JitFrameIterator &frame);
 
-    uint8_t *fp() const {
-        return framePointer_;
-    }
     SnapshotOffset snapshotOffset() const {
-        return snapshotOffset_;
+        if (topIonScript_)
+            return snapshotOffset_;
+        return osiIndex()->snapshotOffset();
     }
     const MachineState machineState() const {
-        return machine_;
+        if (topIonScript_)
+            return machine_;
+        return JitFrameIterator::machineState();
     }
     size_t topFrameSize() const {
+        MOZ_ASSERT(topIonScript_);
         return topFrameSize_;
     }
     IonScript *ionScript() const {
-        return topIonScript_;
+        if (topIonScript_)
+            return topIonScript_;
+        return JitFrameIterator::ionScript();
     }
-    JitActivation *activation() const {
-        return activation_;
+
+    IonBailoutIterator &operator++() {
+        JitFrameIterator::operator++();
+        
+        
+        topIonScript_ = nullptr;
+        return *this;
     }
+
+    void dump() const;
 };
 
 bool EnsureHasScopeObjects(JSContext *cx, AbstractFramePtr fp);

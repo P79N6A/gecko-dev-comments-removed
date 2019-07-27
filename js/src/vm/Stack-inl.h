@@ -351,15 +351,6 @@ FrameIter::unaliasedForEachActual(JSContext *cx, Op op)
         if (data_.jitFrames_.isIonJS()) {
             jit::MaybeReadFallback recover(cx, activation()->asJit(), &data_.jitFrames_);
             ionInlineFrames_.unaliasedForEachActual(cx, op, jit::ReadFrame_Actuals, recover);
-        } else if (data_.jitFrames_.isBailoutJS()) {
-            
-            
-            
-            
-            
-            
-            jit::MaybeReadFallback fallback;
-            ionInlineFrames_.unaliasedForEachActual(cx, op, jit::ReadFrame_Actuals, fallback);
         } else {
             MOZ_ASSERT(data_.jitFrames_.isBaselineJS());
             data_.jitFrames_.unaliasedForEachActual(op, jit::ReadFrame_Actuals);
