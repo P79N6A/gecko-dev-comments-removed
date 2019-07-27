@@ -361,6 +361,15 @@ ProgressTracker::SyncNotifyProgress(Progress aProgress,
   }
 
   
+  
+  
+  if ((aProgress & FLAG_DECODE_COMPLETE) &&
+      (mProgress & FLAG_ONLOAD_BLOCKED) &&
+      (mProgress & FLAG_ONLOAD_UNBLOCKED)) {
+    progress |= FLAG_ONLOAD_BLOCKED | FLAG_ONLOAD_UNBLOCKED;
+  }
+
+  
   mProgress |= progress;
 
   CheckProgressConsistency(mProgress);
