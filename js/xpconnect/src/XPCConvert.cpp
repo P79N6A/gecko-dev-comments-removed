@@ -852,10 +852,6 @@ XPCConvert::NativeInterface2JSObject(MutableHandleValue d,
     }
 
     
-    
-    
-    
-    
     AutoMarkingNativeInterfacePtr iface(cx);
     if (iid) {
         if (Interface)
@@ -871,32 +867,9 @@ XPCConvert::NativeInterface2JSObject(MutableHandleValue d,
         }
     }
 
-    MOZ_ASSERT(!flat || IS_WN_REFLECTOR(flat), "What kind of wrapper is this?");
-
-    nsresult rv;
-    XPCWrappedNative* wrapper;
-    nsRefPtr<XPCWrappedNative> strongWrapper;
-    if (!flat) {
-        rv = XPCWrappedNative::GetNewOrUsed(aHelper, xpcscope, iface,
-                                            getter_AddRefs(strongWrapper));
-
-        wrapper = strongWrapper;
-    } else {
-        MOZ_ASSERT(IS_WN_REFLECTOR(flat));
-
-        wrapper = XPCWrappedNative::Get(flat);
-
-        
-        
-        
-        if (dest)
-            strongWrapper = wrapper;
-        if (iface)
-            wrapper->FindTearOff(iface, false, &rv);
-        else
-            rv = NS_OK;
-    }
-
+    nsRefPtr<XPCWrappedNative> wrapper;
+    nsresult rv = XPCWrappedNative::GetNewOrUsed(aHelper, xpcscope, iface,
+                                                 getter_AddRefs(wrapper));
     if (NS_FAILED(rv) && pErr)
         *pErr = rv;
 
@@ -911,7 +884,7 @@ XPCConvert::NativeInterface2JSObject(MutableHandleValue d,
     if (!allowNativeWrapper) {
         d.set(v);
         if (dest)
-            strongWrapper.forget(dest);
+            wrapper.forget(dest);
         if (pErr)
             *pErr = NS_OK;
         return true;
@@ -928,7 +901,7 @@ XPCConvert::NativeInterface2JSObject(MutableHandleValue d,
     if (dest) {
         
         if (flat == original) {
-            strongWrapper.forget(dest);
+            wrapper.forget(dest);
         } else {
             nsRefPtr<XPCJSObjectHolder> objHolder =
                 XPCJSObjectHolder::newHolder(flat);
