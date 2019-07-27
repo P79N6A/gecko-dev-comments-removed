@@ -4,6 +4,8 @@
 
 
 
+#include <errno.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include "base/message_loop.h"
 #include "BluetoothInterface.h"
