@@ -123,7 +123,7 @@ def get_debugger_info(debugger, debuggerArgs = None, debuggerInteractive = False
     
     if debuggerArgs:
         
-        debugger_arguments += [debuggerArgs];
+        debugger_arguments += debuggerArgs.split()
 
     
     debugger_interactive = get_debugger_info('interactive', False)
