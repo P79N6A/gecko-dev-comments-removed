@@ -588,7 +588,8 @@ bool ValidateBlitFramebufferParameters(gl::Context *context, GLint srcX0, GLint 
                             return false;
                         }
 
-                        if (attachment->getActualFormat() != readColorBuffer->getActualFormat())
+                        
+                        if (attachment->getInternalFormat() != readColorBuffer->getInternalFormat())
                         {
                             context->recordError(Error(GL_INVALID_OPERATION));
                             return false;

@@ -52,6 +52,21 @@ struct COMPILER_EXPORT ShaderVariable
     unsigned int elementCount() const { return std::max(1u, arraySize); }
     bool isStruct() const { return !fields.empty(); }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool findInfoByMappedName(const std::string &mappedFullName,
+                              const ShaderVariable **leafVar,
+                              std::string* originalFullName) const;
+
     GLenum type;
     GLenum precision;
     std::string name;
@@ -60,6 +75,16 @@ struct COMPILER_EXPORT ShaderVariable
     bool staticUse;
     std::vector<ShaderVariable> fields;
     std::string structName;
+
+  protected:
+    bool isSameVariableAtLinkTime(const ShaderVariable &other,
+                                  bool matchPrecision) const;
+
+    bool operator==(const ShaderVariable &other) const;
+    bool operator!=(const ShaderVariable &other) const
+    {
+        return !operator==(other);
+    }
 };
 
 struct COMPILER_EXPORT Uniform : public ShaderVariable
@@ -68,6 +93,16 @@ struct COMPILER_EXPORT Uniform : public ShaderVariable
     ~Uniform();
     Uniform(const Uniform &other);
     Uniform &operator=(const Uniform &other);
+    bool operator==(const Uniform &other) const;
+    bool operator!=(const Uniform &other) const
+    {
+        return !operator==(other);
+    }
+
+    
+    
+    
+    bool isSameUniformAtLinkTime(const Uniform &other) const;
 };
 
 struct COMPILER_EXPORT Attribute : public ShaderVariable
@@ -76,6 +111,11 @@ struct COMPILER_EXPORT Attribute : public ShaderVariable
     ~Attribute();
     Attribute(const Attribute &other);
     Attribute &operator=(const Attribute &other);
+    bool operator==(const Attribute &other) const;
+    bool operator!=(const Attribute &other) const
+    {
+        return !operator==(other);
+    }
 
     int location;
 };
@@ -86,6 +126,18 @@ struct COMPILER_EXPORT InterfaceBlockField : public ShaderVariable
     ~InterfaceBlockField();
     InterfaceBlockField(const InterfaceBlockField &other);
     InterfaceBlockField &operator=(const InterfaceBlockField &other);
+    bool operator==(const InterfaceBlockField &other) const;
+    bool operator!=(const InterfaceBlockField &other) const
+    {
+        return !operator==(other);
+    }
+
+    
+    
+    
+    
+    bool isSameInterfaceBlockFieldAtLinkTime(
+        const InterfaceBlockField &other) const;
 
     bool isRowMajorLayout;
 };
@@ -94,8 +146,18 @@ struct COMPILER_EXPORT Varying : public ShaderVariable
 {
     Varying();
     ~Varying();
-    Varying(const Varying &other);
+    Varying(const Varying &otherg);
     Varying &operator=(const Varying &other);
+    bool operator==(const Varying &other) const;
+    bool operator!=(const Varying &other) const
+    {
+        return !operator==(other);
+    }
+
+    
+    
+    
+    bool isSameVaryingAtLinkTime(const Varying &other) const;
 
     InterpolationType interpolation;
     bool isInvariant;

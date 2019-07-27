@@ -248,6 +248,12 @@ typedef struct
 
     
     
+    
+    
+    int NV_draw_buffers;
+
+    
+    
     int FragmentPrecisionHigh;
 
     
