@@ -99,6 +99,38 @@ nsMathMLSelectedFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 }
 
 
+LogicalSize
+nsMathMLSelectedFrame::ComputeSize(nsRenderingContext *aRenderingContext,
+                                   WritingMode aWM,
+                                   const LogicalSize& aCBSize,
+                                   nscoord aAvailableISize,
+                                   const LogicalSize& aMargin,
+                                   const LogicalSize& aBorder,
+                                   const LogicalSize& aPadding,
+                                   ComputeSizeFlags aFlags)
+{
+  nsIFrame* childFrame = GetSelectedFrame();
+  if (childFrame) {
+    
+    
+    
+    nscoord availableISize = aAvailableISize - aBorder.ISize(aWM) -
+        aPadding.ISize(aWM) - aMargin.ISize(aWM);
+    LogicalSize cbSize = aCBSize - aBorder - aPadding - aMargin;
+    nsCSSOffsetState offsetState(childFrame, aRenderingContext, availableISize);
+    LogicalSize size =
+        childFrame->ComputeSize(aRenderingContext, aWM, cbSize,
+            availableISize, offsetState.ComputedLogicalMargin().Size(aWM),
+            offsetState.ComputedLogicalBorderPadding().Size(aWM) -
+            offsetState.ComputedLogicalPadding().Size(aWM),
+            offsetState.ComputedLogicalPadding().Size(aWM),
+            aFlags);
+    return size + offsetState.ComputedLogicalBorderPadding().Size(aWM);
+  }
+  return LogicalSize(aWM);
+}
+
+
 void
 nsMathMLSelectedFrame::Reflow(nsPresContext*          aPresContext,
                               nsHTMLReflowMetrics&     aDesiredSize,
