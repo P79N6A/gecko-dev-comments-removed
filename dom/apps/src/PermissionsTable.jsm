@@ -12,8 +12,7 @@ this.EXPORTED_SYMBOLS = [
   "PermissionsReverseTable",
   "expandPermissions",
   "appendAccessToPermName",
-  "isExplicitInPermissionsTable",
-  "AllPossiblePermissions"
+  "isExplicitInPermissionsTable"
 ];
 
 
@@ -145,7 +144,7 @@ this.PermissionsTable =  { geolocation: {
                              privileged: DENY_ACTION,
                              certified: ALLOW_ACTION,
                              access: ["read", "write"],
-                             additional: ["indexedDB-chrome-settings", "settings-api"]
+                             additional: ["indexedDB-chrome-settings"]
                            },
                            permissions: {
                              app: DENY_ACTION,
@@ -492,20 +491,16 @@ this.expandPermissions = function expandPermissions(aPermName, aAccess) {
   return expandedPermNames;
 };
 
-this.PermissionsReverseTable = {};
-this.AllPossiblePermissions = [];
+this.PermissionsReverseTable = (function () {
+  
+  
+  
+  
+  
+  
+  
+  let reverseTable = {};
 
-(function () {
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   for (let permName in PermissionsTable) {
     let permAliases;
     if (PermissionsTable[permName].access) {
@@ -514,12 +509,12 @@ this.AllPossiblePermissions = [];
       permAliases = expandPermissions(permName);
     }
     for (let i = 0; i < permAliases.length; i++) {
-      PermissionsReverseTable[permAliases[i]] = permName;
-      AllPossiblePermissions.push(permAliases[i]);
+      reverseTable[permAliases[i]] = permName;
     }
   }
-  AllPossiblePermissions =
-    AllPossiblePermissions.concat(["offline-app", "pin-app"]);
+
+  return reverseTable;
+
 })();
 
 this.isExplicitInPermissionsTable = function(aPermName, aIntStatus) {
