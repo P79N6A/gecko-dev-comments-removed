@@ -6,11 +6,13 @@
 
 "use strict";
 
-let { Ci } = require("chrome");
+let { Ci, Cc } = require("chrome");
 let Services = require("Services");
 let promise = require("promise");
 loader.lazyRequireGetter(this, "prompt",
   "devtools/toolkit/security/prompt");
+loader.lazyRequireGetter(this, "cert",
+  "devtools/toolkit/security/cert");
 
 
 
@@ -247,17 +249,94 @@ OOBCert.Client.prototype = {
 
 
 
-  authenticate({ transport }) {
+
+
+  authenticate({ host, port, cert, transport }) {
     let deferred = promise.defer();
+    let oobData;
+
+    let activeSendDialog;
+    let closeDialog = () => {
+      
+      
+      if (activeSendDialog && activeSendDialog.close) {
+        activeSendDialog.close();
+        activeSendDialog = null;
+      }
+    };
+
     transport.hooks = {
-      onPacket(packet) {
+      onPacket: Task.async(function*(packet) {
+        closeDialog();
         let { authResult } = packet;
+        switch (authResult) {
+          case AuthenticationResult.PENDING:
+            
+            
+            oobData = yield this._createOOB();
+            activeSendDialog = this.sendOOB({
+              host,
+              port,
+              cert,
+              authResult,
+              oob: oobData
+            });
+            break;
+          default:
+            transport.close(new Error("Invalid auth result: " + authResult));
+            return;
+        }
+      }.bind(this)),
+      onClosed(reason) {
+        closeDialog();
         
+        transport.hooks = null;
+        deferred.reject(reason);
       }
     };
     transport.ready();
     return deferred.promise;
   },
+
+  
+
+
+
+  _createOOB: Task.async(function*() {
+    let clientCert = yield cert.local.getOrCreate();
+    return {
+      sha256: clientCert.sha256Fingerprint,
+      k: this._createRandom()
+    };
+  }),
+
+  _createRandom() {
+    const length = 16; 
+    let rng = Cc["@mozilla.org/security/random-generator;1"]
+              .createInstance(Ci.nsIRandomGenerator);
+    let bytes = rng.generateRandomBytes(length);
+    return [for (byte of bytes) byte.toString(16)].join("");
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  sendOOB: prompt.Client.defaultSendOOB,
 
 };
 

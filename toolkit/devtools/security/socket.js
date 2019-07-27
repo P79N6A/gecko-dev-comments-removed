@@ -6,7 +6,7 @@
 
 "use strict";
 
-let { Ci, Cc, CC, Cr } = require("chrome");
+let { Ci, Cc, CC, Cr, Cu } = require("chrome");
 
 
 Cc["@mozilla.org/psm;1"].getService(Ci.nsISupports);
@@ -69,8 +69,10 @@ let DebuggerSocket = {};
 
 
 
+
+
 DebuggerSocket.connect = Task.async(function*(settings) {
-  let { host, port, encryption, authenticator } = settings;
+  let { host, port, encryption, authenticator, cert } = settings;
   let transport = yield _getTransport(settings);
 
   
@@ -80,6 +82,7 @@ DebuggerSocket.connect = Task.async(function*(settings) {
     host,
     port,
     encryption,
+    cert,
     transport
   });
   return transport;
