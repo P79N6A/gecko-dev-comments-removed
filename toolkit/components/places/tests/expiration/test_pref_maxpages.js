@@ -116,9 +116,9 @@ add_task(function test_pref_maxpages() {
                 currentTest.expectedNotifications);
 
     
-    yield promiseClearHistory();
+    yield PlacesTestUtils.clearHistory();
   }
 
   clearMaxPages();
-  yield promiseClearHistory();
+  yield PlacesTestUtils.clearHistory();
 });

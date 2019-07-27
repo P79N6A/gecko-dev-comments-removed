@@ -27,7 +27,7 @@ add_task(function () {
     });
   });
 
-  yield promiseClearHistory();
+  yield PlacesTestUtils.clearHistory();
 
    
   let bookmarksDeferred = Promise.defer();

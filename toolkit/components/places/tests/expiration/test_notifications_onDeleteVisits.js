@@ -126,10 +126,10 @@ add_task(function test_notifications_onDeleteVisits() {
 
     
     bs.removeFolderChildren(bs.unfiledBookmarksFolder);
-    yield promiseClearHistory();
+    yield PlacesTestUtils.clearHistory();
   }
 
   clearMaxPages();
   bs.removeFolderChildren(bs.unfiledBookmarksFolder);
-  yield promiseClearHistory();
+  yield PlacesTestUtils.clearHistory();
 });

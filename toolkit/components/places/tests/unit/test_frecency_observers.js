@@ -44,8 +44,7 @@ add_task(function test_nsNavHistory_invalidateFrecencies_somePages() {
 
 
 add_task(function test_nsNavHistory_invalidateFrecencies_allPages() {
-  PlacesUtils.history.removeAllPages();
-  yield onManyFrecenciesChanged();
+  yield Promise.all([onManyFrecenciesChanged(), PlacesTestUtils.clearHistory()]);
 });
 
 

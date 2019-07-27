@@ -76,7 +76,7 @@ function test() {
       
       testOnWindow({}, function(aWin) {
         doTest(false, aWin, finalURL, function () {
-          promiseClearHistory().then(finish);
+          PlacesTestUtils.clearHistory().then(finish);
         });
       });
     });

@@ -82,7 +82,7 @@ function run_test() {
   run_next_test();
 }
 
-add_task(function test_removeAllPages() {
+add_task(function test_historyClear() {
   
   setInterval(3600); 
 
@@ -126,12 +126,7 @@ add_task(function test_removeAllPages() {
   }
 
   
-  
-  
-  let promise =
-      promiseTopicObserved(PlacesUtils.TOPIC_EXPIRATION_FINISHED);
-  hs.QueryInterface(Ci.nsIBrowserHistory).removeAllPages();
-  yield promise;
+  yield PlacesUtils.history.clear();
 
   ["expire_days", "expire_weeks", "expire_months", "expire_session",
    "expire"].forEach(function(aAnno) {

@@ -45,7 +45,7 @@ add_task(function test_execute()
   
   do_check_eq((yield PlacesUtils.getCharsetForURI(TEST_BOOKMARKED_URI)), charset);
 
-  yield promiseClearHistory();
+  yield PlacesTestUtils.clearHistory();
 
   
   do_check_neq((yield PlacesUtils.getCharsetForURI(TEST_URI)), charset);
