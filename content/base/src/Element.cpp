@@ -963,6 +963,16 @@ Element::CreateShadowRoot(ErrorResult& aError)
     return nullptr;
   }
 
+  nsIDocument* doc = GetCrossShadowCurrentDoc();
+  nsIContent* destroyedFramesFor = nullptr;
+  if (doc) {
+    nsIPresShell* shell = doc->GetShell();
+    if (shell) {
+      shell->DestroyFramesFor(this, &destroyedFramesFor);
+    }
+  }
+  MOZ_ASSERT(!GetPrimaryFrame());
+
   
   protoBinding->SetInheritsStyle(false);
 
@@ -998,11 +1008,11 @@ Element::CreateShadowRoot(ErrorResult& aError)
 
   
   
-  nsIDocument* doc = GetCrossShadowCurrentDoc();
   if (doc) {
-    nsIPresShell *shell = doc->GetShell();
+    MOZ_ASSERT(doc == GetCrossShadowCurrentDoc());
+    nsIPresShell* shell = doc->GetShell();
     if (shell) {
-      shell->RecreateFramesFor(this);
+      shell->CreateFramesFor(destroyedFramesFor);
     }
   }
 
