@@ -35,7 +35,7 @@
 
 #include <atlcomcli.h>
 
-#include <hash_map>
+#include <unordered_map>
 #include <string>
 
 struct IDiaEnumLineNumbers;
@@ -45,7 +45,7 @@ struct IDiaSymbol;
 namespace google_breakpad {
 
 using std::wstring;
-using stdext::hash_map;
+using std::unordered_map;
 
 
 struct PDBModuleInfo {
@@ -176,7 +176,7 @@ class PDBSourceLineWriter {
 
   
   void StoreDuplicateFileID(const wstring &file, DWORD id) {
-    hash_map<wstring, DWORD>::iterator iter = unique_files_.find(file);
+    unordered_map<wstring, DWORD>::iterator iter = unique_files_.find(file);
     if (iter != unique_files_.end()) {
       
       file_ids_[id] = iter->second;
@@ -188,7 +188,7 @@ class PDBSourceLineWriter {
   
   
   DWORD GetRealFileID(DWORD id) {
-    hash_map<DWORD, DWORD>::iterator iter = file_ids_.find(id);
+    unordered_map<DWORD, DWORD>::iterator iter = file_ids_.find(id);
     if (iter == file_ids_.end())
       return id;
     return iter->second;
@@ -224,9 +224,9 @@ class PDBSourceLineWriter {
   
   
   
-  hash_map<DWORD, DWORD> file_ids_;
+  unordered_map<DWORD, DWORD> file_ids_;
   
-  hash_map<wstring, DWORD> unique_files_;
+  unordered_map<wstring, DWORD> unique_files_;
 
   
   PDBSourceLineWriter(const PDBSourceLineWriter&);
