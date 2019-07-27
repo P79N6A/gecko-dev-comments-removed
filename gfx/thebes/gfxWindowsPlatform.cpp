@@ -1895,6 +1895,17 @@ gfxWindowsPlatform::InitD3D11Devices()
           return;
         }
 
+        if (!IsWin8OrLater()) {
+            
+            nsString driver;
+            gfxInfo->GetAdapterDriver(driver);
+            
+            if (driver.Find("framebuf vga256 vga64k") != kNotFound) {
+                gfxCriticalError(CriticalLog::DefaultOptions(false)) << "Disabling WARP on builtin vga driver";
+                return;
+            }
+        }
+
         useWARP = true;
       }
     }
