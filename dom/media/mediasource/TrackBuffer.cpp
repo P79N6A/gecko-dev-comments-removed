@@ -986,31 +986,52 @@ TrackBuffer::RangeRemoval(int64_t aStart, int64_t aEnd)
     
     return false;
   }
-  if (aEnd < bufferedEnd) {
+
+  if (aStart > bufferedStart && aEnd < bufferedEnd) {
     
     NS_WARNING("RangeRemoval unsupported arguments. "
-               "Can only handle trimming");
+               "Can only handle trimming (trim left or trim right");
     return false;
   }
 
   nsTArray<SourceBufferDecoder*> decoders;
   decoders.AppendElements(mInitializedDecoders);
 
-  
-  for (size_t i = 0; i < decoders.Length(); ++i) {
-    decoders[i]->Trim(aStart);
-    if (aStart <= buffered->GetStartTime()) {
-      
-      int64_t size = decoders[i]->GetResource()->GetSize();
-      decoders[i]->GetResource()->EvictData(size, size);
-      if (decoders[i] == mCurrentDecoder ||
-          mParentDecoder->IsActiveReader(decoders[i]->GetReader())) {
-        continue;
+  if (aStart <= bufferedStart && aEnd < bufferedEnd) {
+    
+    for (size_t i = 0; i < decoders.Length(); ++i) {
+      nsRefPtr<dom::TimeRanges> buffered = new dom::TimeRanges();
+      decoders[i]->GetBuffered(buffered);
+      if (buffered->GetEndTime() < aEnd) {
+        
+        MSE_DEBUG("remove all bufferedEnd=%f time=%f, size=%lld",
+                  buffered->GetEndTime(), time,
+                  decoders[i]->GetResource()->GetSize());
+        decoders[i]->GetResource()->EvictAll();
+      } else {
+        int64_t offset = decoders[i]->ConvertToByteOffset(aEnd);
+        MSE_DEBUG("removing some bufferedEnd=%f offset=%lld size=%lld",
+                  buffered->GetEndTime(), offset,
+                  decoders[i]->GetResource()->GetSize());
+        if (offset > 0) {
+          decoders[i]->GetResource()->EvictData(offset, offset);
+        }
       }
-      MSE_DEBUG("remove empty decoders=%d", i);
-      RemoveDecoder(decoders[i]);
+    }
+  } else {
+    
+    for (size_t i = 0; i < decoders.Length(); ++i) {
+      if (aStart <= buffered->GetStartTime()) {
+        
+        decoders[i]->GetResource()->EvictAll();
+      } else {
+        decoders[i]->Trim(aStart);
+      }
     }
   }
+
+  RemoveEmptyDecoders(decoders);
+
   return true;
 }
 
