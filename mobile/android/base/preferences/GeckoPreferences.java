@@ -661,7 +661,7 @@ OnSharedPreferenceChangeListener
                     preferences.removePreference(pref);
                     i--;
                     continue;
-                } else if (AppConstants.RELEASE_BUILD &&
+                } else if ((AppConstants.RELEASE_BUILD || !HardwareUtils.isTablet()) &&
                            PREFS_NEW_TABLET_UI.equals(key)) {
                     
                     preferences.removePreference(pref);

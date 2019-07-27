@@ -160,8 +160,10 @@ public class testSettingsMenuItems extends PixelTest {
             settingsMap.get(PATH_DISPLAY).add(textReflowUi);
 
             
-            String[] newTabletUi = { StringHelper.NEW_TABLET_UI };
-            settingsMap.get(PATH_DISPLAY).add(newTabletUi);
+            if (HardwareUtils.isTablet()) {
+                String[] newTabletUi = { StringHelper.NEW_TABLET_UI };
+                settingsMap.get(PATH_DISPLAY).add(newTabletUi);
+            }
 
             
             if (NewTabletUI.isEnabled(getActivity())) {
