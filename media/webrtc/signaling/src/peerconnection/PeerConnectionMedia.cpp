@@ -43,12 +43,24 @@ LocalSourceStreamInfo::ExpectAudio(const mozilla::TrackID aID)
   mAudioTracks.AppendElement(aID);
 }
 
+void
+LocalSourceStreamInfo::RemoveAudio(const mozilla::TrackID aID)
+{
+  mAudioTracks.RemoveElement(aID);
+}
+
 
 
 void
 LocalSourceStreamInfo::ExpectVideo(const mozilla::TrackID aID)
 {
   mVideoTracks.AppendElement(aID);
+}
+
+void
+LocalSourceStreamInfo::RemoveVideo(const mozilla::TrackID aID)
+{
+  mVideoTracks.RemoveElement(aID);
 }
 
 unsigned
@@ -234,7 +246,9 @@ nsresult PeerConnectionMedia::Init(const std::vector<NrIceStunServer>& stun_serv
 }
 
 nsresult
-PeerConnectionMedia::AddStream(nsIDOMMediaStream* aMediaStream, uint32_t *stream_id)
+PeerConnectionMedia::AddStream(nsIDOMMediaStream* aMediaStream,
+                               uint32_t hints,
+                               uint32_t *stream_id)
 {
   ASSERT_ON_THREAD(mMainThread);
 
@@ -245,11 +259,9 @@ PeerConnectionMedia::AddStream(nsIDOMMediaStream* aMediaStream, uint32_t *stream
 
   DOMMediaStream* stream = static_cast<DOMMediaStream*>(aMediaStream);
 
-  CSFLogDebug(logTag, "%s: MediaStream: %p",
-    __FUNCTION__, aMediaStream);
+  CSFLogDebug(logTag, "%s: MediaStream: %p", __FUNCTION__, aMediaStream);
 
   
-  uint32_t hints = stream->GetHintContents();
 #ifdef MOZILLA_INTERNAL_API
   if (!Preferences::GetBool("media.peerconnection.video.enabled", true)) {
     hints &= ~(DOMMediaStream::HINT_CONTENTS_VIDEO);
@@ -266,19 +278,26 @@ PeerConnectionMedia::AddStream(nsIDOMMediaStream* aMediaStream, uint32_t *stream
   
   
   
-  for (uint32_t u = 0; u < mLocalSourceStreams.Length(); u++) {
-    nsRefPtr<LocalSourceStreamInfo> localSourceStream = mLocalSourceStreams[u];
+  nsRefPtr<LocalSourceStreamInfo> localSourceStream = nullptr;
 
-    if (localSourceStream->GetMediaStream()->GetHintContents() & hints) {
+  for (uint32_t u = 0; u < mLocalSourceStreams.Length(); u++) {
+    auto& lss = mLocalSourceStreams[u];
+    if (((hints & DOMMediaStream::HINT_CONTENTS_AUDIO) && lss->AudioTrackCount()) ||
+        ((hints & DOMMediaStream::HINT_CONTENTS_VIDEO) && lss->VideoTrackCount())) {
       CSFLogError(logTag, "Only one stream of any given type allowed");
       return NS_ERROR_FAILURE;
     }
+    if (stream == lss->GetMediaStream()) {
+      localSourceStream = lss;
+      *stream_id = u;
+      break;
+    }
   }
-
-  
-  nsRefPtr<LocalSourceStreamInfo> localSourceStream =
-      new LocalSourceStreamInfo(stream, this);
-  *stream_id = mLocalSourceStreams.Length();
+  if (!localSourceStream) {
+    localSourceStream = new LocalSourceStreamInfo(stream, this);
+    mLocalSourceStreams.AppendElement(localSourceStream);
+    *stream_id = mLocalSourceStreams.Length() - 1;
+  }
 
   if (hints & DOMMediaStream::HINT_CONTENTS_AUDIO) {
     localSourceStream->ExpectAudio(TRACK_AUDIO);
@@ -287,14 +306,13 @@ PeerConnectionMedia::AddStream(nsIDOMMediaStream* aMediaStream, uint32_t *stream
   if (hints & DOMMediaStream::HINT_CONTENTS_VIDEO) {
     localSourceStream->ExpectVideo(TRACK_VIDEO);
   }
-
-  mLocalSourceStreams.AppendElement(localSourceStream);
-
   return NS_OK;
 }
 
 nsresult
-PeerConnectionMedia::RemoveStream(nsIDOMMediaStream* aMediaStream, uint32_t *stream_id)
+PeerConnectionMedia::RemoveStream(nsIDOMMediaStream* aMediaStream,
+                                  uint32_t hints,
+                                  uint32_t *stream_id)
 {
   MOZ_ASSERT(aMediaStream);
   ASSERT_ON_THREAD(mMainThread);
@@ -308,6 +326,17 @@ PeerConnectionMedia::RemoveStream(nsIDOMMediaStream* aMediaStream, uint32_t *str
     nsRefPtr<LocalSourceStreamInfo> localSourceStream = mLocalSourceStreams[u];
     if (localSourceStream->GetMediaStream() == stream) {
       *stream_id = u;
+
+      if (hints & DOMMediaStream::HINT_CONTENTS_AUDIO) {
+        localSourceStream->RemoveAudio(TRACK_AUDIO);
+      }
+      if (hints & DOMMediaStream::HINT_CONTENTS_VIDEO) {
+        localSourceStream->RemoveAudio(TRACK_VIDEO);
+      }
+      if (!(localSourceStream->AudioTrackCount() +
+            localSourceStream->VideoTrackCount())) {
+        mLocalSourceStreams.RemoveElementAt(u);
+      }
       return NS_OK;
     }
   }
