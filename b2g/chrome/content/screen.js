@@ -7,6 +7,7 @@
 
 let browserWindow = Services.wm.getMostRecentWindow("navigator:browser");
 let isMulet = "ResponsiveUI" in browserWindow;
+Cu.import("resource://gre/modules/GlobalSimulatorScreen.jsm");
 
 
 window.addEventListener('ContentStart', function() {
@@ -98,26 +99,18 @@ window.addEventListener('ContentStart', function() {
     return;
   } 
 
-  let rescale = false;
-
-  
-  if (screenarg[screenarg.length - 1] === '!') {
-    rescale = true;
-    screenarg = screenarg.substring(0, screenarg.length-1);
-  }
-
-  let width, height, dpi;
+  let width, height, ratio = 1.0;
 
   if (screenarg in screens) {
     
     let screen = screens[screenarg];
     width = screen.width;
     height = screen.height;
-    dpi = screen.dpi;
+    ratio = screen.ratio;
   } else {
     
     
-    let match = screenarg.match(/^(\d+)x(\d+)(@(\d+))?$/);
+    let match = screenarg.match(/^(\d+)x(\d+)(@(\d+(\.\d+)?))?$/);
     
     
     if (match == null)
@@ -127,17 +120,15 @@ window.addEventListener('ContentStart', function() {
     width = parseInt(match[1], 10);
     height = parseInt(match[2], 10);
     if (match[4])
-      dpi = parseInt(match[4], 10);
-    else    
-      dpi = hostDPI;
+      ratio = parseFloat(match[4], 10);
 
     
-    if (!width || !height || !dpi)
+    if (!width || !height || !ratio) {
       usage();
+    }
   }
 
-  Cu.import("resource://gre/modules/GlobalSimulatorScreen.jsm");
-  function resize(width, height, dpi, shouldFlip) {
+  function resize(width, height, ratio, shouldFlip) {
     GlobalSimulatorScreen.width = width;
     GlobalSimulatorScreen.height = height;
 
@@ -145,7 +136,7 @@ window.addEventListener('ContentStart', function() {
     
     
     
-    let scale = rescale ? hostDPI / dpi : 1;
+    let scale = 1.0;
 
     
     
@@ -158,7 +149,7 @@ window.addEventListener('ContentStart', function() {
     let chromeheight = window.outerHeight - window.innerHeight + controlsHeight;
     if (isMulet) {
       let responsive = browserWindow.gBrowser.selectedTab.__responsiveUI;
-      responsive.setSize((Math.round(width * scale) + 14*2),
+      responsive.setSize((Math.round(width * scale) + 16*2),
                         (Math.round(height * scale) + controlsHeight + 61));
     } else {
       window.resizeTo(Math.round(width * scale) + chromewidth,
@@ -173,20 +164,9 @@ window.addEventListener('ContentStart', function() {
 
     
     let style = browser.style;
-    style.width = style.minWidth = style.maxWidth =
-      frameWidth + 'px';
-    style.height = style.minHeight = style.maxHeight =
-      frameHeight + 'px';
-    browser.setAttribute('flex', '0');  
-
-    style.transformOrigin = '';
     style.transform = '';
-
-    
-    if (scale !== 1) {
-      style.transformOrigin = 'top left';
-      style.transform += ' scale(' + scale + ',' + scale + ')';
-    }
+    style.height = 'calc(100% - ' + controlsHeight + 'px)';
+    style.bottom = controlsHeight;
 
     if (shouldFlip) {
       
@@ -195,16 +175,26 @@ window.addEventListener('ContentStart', function() {
         ' rotate(0.25turn) translate(-' + shift + 'px, -' + shift + 'px)';
     }
 
-    
-    
-    
-    Services.prefs.setIntPref('layout.css.dpi', dpi);
+    Services.prefs.setCharPref('layout.css.devPixelsPerPx', ratio);
   }
 
   
-  resize(width, height, dpi, false);
+  resize(width, height, ratio, false);
 
   let defaultOrientation = width < height ? 'portrait' : 'landscape';
+  GlobalSimulatorScreen.mozOrientation = GlobalSimulatorScreen.screenOrientation = defaultOrientation;
+
+  
+  window.onresize = function() {
+    width = browser.clientWidth;
+    height = browser.clientHeight;
+    if ((defaultOrientation == 'portrait' && width > height) ||
+        (defaultOrientation == 'landscape' && width < height)) {
+      let w = width;
+      width = height;
+      height = w;
+    }
+  };
 
   
   
@@ -226,7 +216,7 @@ window.addEventListener('ContentStart', function() {
     
     let shouldFlip = mozOrientation != screenOrientation;
 
-    resize(newWidth, newHeight, dpi, shouldFlip);
+    resize(newWidth, newHeight, ratio, shouldFlip);
   }, 'simulator-adjust-window-size', false);
 
   
@@ -256,12 +246,6 @@ window.addEventListener('ContentStart', function() {
       '\nYou can also specify certain device names:\n';
     for(let p in screens)
       msg += '\t--screen=' + p + '\t// ' + screens[p].name + '\n';
-    msg += 
-      '\nAdd a ! to the end of a screen specification to rescale the\n' +
-      'screen so that it is shown at actual size on your monitor:\n' +
-      '\t--screen=nexus_s!\n' +
-      '\t--screen=320x480@200!\n'
-    ;
 
     
     print(msg);

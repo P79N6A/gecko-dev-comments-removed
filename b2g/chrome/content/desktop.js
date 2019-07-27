@@ -125,6 +125,9 @@ function initResponsiveDesign() {
       return;
     }
 
+    
+    responsive.transitionsEnabled = false;
+
     responsive.buildPhoneUI();
 
     responsive.rotatebutton.addEventListener('command', function (evt) {
