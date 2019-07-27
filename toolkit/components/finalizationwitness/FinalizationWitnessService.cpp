@@ -108,7 +108,10 @@ void Finalize(JSFreeOp *fop, JSObject *objSelf)
 
   
   
-  (void)NS_DispatchToMainThread(event);
+  nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+  if (mainThread) {
+    mainThread->Dispatch(event.forget(), NS_DISPATCH_NORMAL);
+  }
   
   
 }

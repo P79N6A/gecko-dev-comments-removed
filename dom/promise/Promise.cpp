@@ -1216,12 +1216,15 @@ Promise::MaybeReportRejected()
   
   
   
-  nsRefPtr<AsyncErrorReporter> r =
-    new AsyncErrorReporter(CycleCollectedJSRuntime::Get()->Runtime(), xpcReport);
-  nsRefPtr<AsyncErrorReporter> sacrifice = r;
-  
-  if (NS_FAILED(NS_DispatchToMainThread(sacrifice.forget()))) {
-    r->Release();
+  nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+  if (NS_WARN_IF(!mainThread)) {
+    
+    NS_WARNING("!!! Trying to report rejected Promise after MainThread shutdown");
+  }
+  if (mainThread) {
+    nsRefPtr<AsyncErrorReporter> r =
+      new AsyncErrorReporter(CycleCollectedJSRuntime::Get()->Runtime(), xpcReport);
+    mainThread->Dispatch(r.forget(), NS_DISPATCH_NORMAL);
   }
 }
 #endif 
