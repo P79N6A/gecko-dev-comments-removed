@@ -32,7 +32,7 @@ public:
     gfxXlibSurface(Screen *screen, Drawable drawable, XRenderPictFormat *format,
                    const gfxIntSize& size);
 
-    gfxXlibSurface(cairo_surface_t *csurf);
+    explicit gfxXlibSurface(cairo_surface_t *csurf);
 
     
     

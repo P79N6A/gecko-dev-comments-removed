@@ -173,7 +173,7 @@ public:
         
         
         
-        DepFcStrEntry(KeyTypePointer aName)
+        explicit DepFcStrEntry(KeyTypePointer aName)
             : mKey(nullptr) { }
 
         DepFcStrEntry(const DepFcStrEntry& toCopy)
@@ -195,7 +195,7 @@ public:
         
         
         
-        CopiedFcStrEntry(KeyTypePointer aName) {
+        explicit CopiedFcStrEntry(KeyTypePointer aName) {
             mKey.SetIsVoid(true);
         }
 
@@ -216,7 +216,7 @@ public:
 protected:
     class FontsByFcStrEntry : public DepFcStrEntry {
     public:
-        FontsByFcStrEntry(KeyTypePointer aName)
+        explicit FontsByFcStrEntry(KeyTypePointer aName)
             : DepFcStrEntry(aName) { }
 
         FontsByFcStrEntry(const FontsByFcStrEntry& toCopy)
@@ -245,7 +245,7 @@ protected:
         
         
         
-        FontsByFullnameEntry(KeyTypePointer aName)
+        explicit FontsByFullnameEntry(KeyTypePointer aName)
             : DepFcStrEntry(aName) { }
 
         FontsByFullnameEntry(const FontsByFullnameEntry& toCopy)
@@ -269,7 +269,7 @@ protected:
 
     class LangSupportEntry : public CopiedFcStrEntry {
     public:
-        LangSupportEntry(KeyTypePointer aName)
+        explicit LangSupportEntry(KeyTypePointer aName)
             : CopiedFcStrEntry(aName) { }
 
         LangSupportEntry(const LangSupportEntry& toCopy)
