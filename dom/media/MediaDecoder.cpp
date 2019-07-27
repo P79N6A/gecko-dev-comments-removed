@@ -437,7 +437,7 @@ MediaDecoder::MediaDecoder() :
   mReentrantMonitor("media.decoder"),
   mIsDormant(false),
   mIsExitingDormant(false),
-  mPlayState(PLAY_STATE_LOADING),
+  mPlayState(PLAY_STATE_PAUSED),
   mNextState(PLAY_STATE_PAUSED),
   mIgnoreProgressData(false),
   mInfiniteStream(false),
@@ -561,6 +561,8 @@ nsresult MediaDecoder::InitializeStateMachine(MediaDecoder* aCloneDonor)
   
   
   SetStateMachineParameters();
+
+  ChangeState(PLAY_STATE_LOADING);
 
   return ScheduleStateMachineThread();
 }
