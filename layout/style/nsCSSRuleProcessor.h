@@ -183,7 +183,6 @@ public:
     mInRuleProcessorCache = aVal;
   }
   bool IsInRuleProcessorCache() const { return mInRuleProcessorCache; }
-  bool IsUsedByMultipleStyleSets() const { return mStyleSetRefCnt > 1; }
 
 #ifdef XP_WIN
   

@@ -1571,15 +1571,6 @@ public:
   
 
 
-
-
-
-  nsresult HasRuleProcessorUsedByMultipleStyleSets(uint32_t aSheetType,
-                                                   bool* aRetVal);
-
-  
-
-
 protected:
   virtual bool AddRefreshObserverExternal(nsARefreshObserver* aObserver,
                                           mozFlushType aFlushType);
