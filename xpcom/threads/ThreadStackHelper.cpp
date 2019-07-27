@@ -541,6 +541,16 @@ IsChromeJSScript(JSScript* aScript)
   return secman->IsSystemPrincipal(nsJSPrincipals::get(principals));
 }
 
+template <size_t LEN>
+const char*
+GetFullPathForScheme(const char* filename, const char (&scheme)[LEN]) {
+  
+  if (!strncmp(filename, scheme, LEN - 1)) {
+    return filename + LEN - 1;
+  }
+  return nullptr;
+}
+
 } 
 
 const char*
@@ -561,9 +571,19 @@ ThreadStackHelper::AppendJSEntry(const volatile StackEntry* aEntry,
     MOZ_ASSERT(filename);
 
     char buffer[64]; 
-    const char* const basename = strrchr(filename, '/');
-    size_t len = PR_snprintf(buffer, sizeof(buffer), "%s:%u",
-                             basename ? basename + 1 : filename, lineno);
+    const char* basename;
+
+    basename = GetFullPathForScheme(filename, "chrome://");
+    if (!basename) {
+      basename = GetFullPathForScheme(filename, "resource://");
+    }
+    if (!basename) {
+      
+      basename = strrchr(filename, '/');
+      basename = basename ? basename + 1 : filename;
+    }
+
+    size_t len = PR_snprintf(buffer, sizeof(buffer), "%s:%u", basename, lineno);
     if (len < sizeof(buffer)) {
       if (mStackToFill->IsSameAsEntry(aPrevLabel, buffer)) {
         return aPrevLabel;
