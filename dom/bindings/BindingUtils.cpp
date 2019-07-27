@@ -378,6 +378,24 @@ ErrorResult::operator=(ErrorResult&& aRHS)
   return *this;
 }
 
+void
+ErrorResult::SuppressException()
+{
+  WouldReportJSException();
+  if (IsErrorWithMessage()) {
+    ClearMessage();
+  } else if (IsJSException()) {
+    JSContext* cx = nsContentUtils::GetDefaultJSContextForThread();
+    
+    
+    JS::Rooted<JS::Value> temp(cx);
+    StealJSException(cx, &temp);
+  }
+  
+  
+  mResult = NS_OK;
+}
+
 namespace dom {
 
 bool

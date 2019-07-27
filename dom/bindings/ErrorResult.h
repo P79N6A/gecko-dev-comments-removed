@@ -77,6 +77,20 @@ public:
     AssignErrorCode(rv);
   }
 
+  
+  
+  
+  void SuppressException();
+
+  
+  
+  
+  nsresult StealNSResult() {
+    nsresult rv = ErrorCode();
+    SuppressException();
+    return rv;
+  }
+
   void ThrowTypeError(const dom::ErrNum errorNumber, ...);
   void ThrowRangeError(const dom::ErrNum errorNumber, ...);
   void ReportErrorWithMessage(JSContext* cx);
