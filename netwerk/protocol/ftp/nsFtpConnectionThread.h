@@ -3,8 +3,8 @@
 
 
 
-#ifndef __nsFtpState__h_
-#define __nsFtpState__h_
+#ifndef __nsFtpConnectionThread__h_
+#define __nsFtpConnectionThread__h_
 
 #include "nsBaseContentStream.h"
 
@@ -202,8 +202,6 @@ private:
     bool                    mAddressChecked;
     bool                    mServerIsIPv6;
     bool                    mUseUTF8;
-
-    static uint32_t         mSessionStartTime;
 
     mozilla::net::NetAddr   mServerAddress;
 
