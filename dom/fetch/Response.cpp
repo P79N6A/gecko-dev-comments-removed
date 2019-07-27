@@ -190,19 +190,23 @@ Response::Constructor(const GlobalObject& aGlobal,
   return r.forget();
 }
 
-
 already_AddRefed<Response>
-Response::Clone()
+Response::Clone(ErrorResult& aRv) const
 {
-  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(mOwner);
-  nsRefPtr<Response> response = new Response(global, mInternalResponse);
+  if (BodyUsed()) {
+    aRv.ThrowTypeError(MSG_FETCH_BODY_CONSUMED_ERROR);
+    return nullptr;
+  }
+
+  nsRefPtr<InternalResponse> ir = mInternalResponse->Clone();
+  nsRefPtr<Response> response = new Response(mOwner, ir);
   return response.forget();
 }
 
 void
 Response::SetBody(nsIInputStream* aBody)
 {
-  
+  MOZ_ASSERT(!BodyUsed());
   mInternalResponse->SetBody(aBody);
 }
 
