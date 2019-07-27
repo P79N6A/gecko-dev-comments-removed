@@ -27,30 +27,17 @@ outputVersion = 3
 
 
 allocatorFns = [
-    'replace_malloc',
-    'replace_calloc',
-    'replace_realloc',
-    'replace_memalign',
-    'replace_posix_memalign',
-    'moz_xmalloc',
-    'moz_xcalloc',
-    'moz_xrealloc',
+    
+    'malloc',
+    
+    'calloc',
+    
+    'realloc',
+    
+    'memalign',
     'operator new(',
     'operator new[](',
-    'g_malloc',
     'g_slice_alloc',
-    'callocCanGC',
-    'reallocCanGC',
-    'vpx_malloc',
-    'vpx_calloc',
-    'vpx_realloc',
-    'vpx_memalign',
-    'js_malloc',
-    'js_calloc',
-    'js_realloc',
-    'pod_malloc',
-    'pod_calloc',
-    'pod_realloc',
     
     
     
