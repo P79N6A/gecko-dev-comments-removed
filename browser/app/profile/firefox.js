@@ -1372,6 +1372,7 @@ pref("devtools.debugger.ui.variables-searchbox-visible", false);
 
 
 pref("devtools.profiler.enabled", true);
+pref("devtools.timeline.enabled", false);
 
 
 pref("devtools.profiler.ui.show-platform-data", false);
