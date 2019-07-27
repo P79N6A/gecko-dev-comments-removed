@@ -170,8 +170,6 @@ pref("dom.undo_manager.enabled", false);
 
 pref("dom.url.encode_decode_hash", true);
 
-pref("dom.url.getters_decode_hash", false);
-
 
 
 
