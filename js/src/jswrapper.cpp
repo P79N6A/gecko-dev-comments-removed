@@ -88,6 +88,11 @@ js::UncheckedUnwrap(JSObject *wrapped, bool stopAtOuter, unsigned *flagsp)
         }
         flags |= Wrapper::wrapperHandler(wrapped)->flags();
         wrapped = wrapped->as<ProxyObject>().private_().toObjectOrNull();
+
+        
+        
+        if (wrapped)
+            wrapped = MaybeForwarded(wrapped);
     }
     if (flagsp)
         *flagsp = flags;

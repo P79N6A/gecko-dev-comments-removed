@@ -944,6 +944,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     bool isHeapMajorCollecting() { return gc.isHeapMajorCollecting(); }
     bool isHeapMinorCollecting() { return gc.isHeapMinorCollecting(); }
     bool isHeapCollecting() { return gc.isHeapCollecting(); }
+    bool isHeapCompacting() { return gc.isHeapCompacting(); }
 
     bool isFJMinorCollecting() { return gc.isFJMinorCollecting(); }
 
