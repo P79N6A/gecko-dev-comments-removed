@@ -21,6 +21,11 @@ function onUnload() {
 
 function test() {
   waitForExplicitFinish();
+
+  
+  
+  ok(true, "Each test requires at least one pass, fail or todo so here is a pass.");
+
   gBugWindow = window.openDialog("chrome://pippki/content/certManager.xul");
   gBugWindow.addEventListener("load", onLoad);
 }
