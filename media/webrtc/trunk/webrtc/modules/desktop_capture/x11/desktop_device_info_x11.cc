@@ -88,6 +88,13 @@ void DesktopDeviceInfoX11::InitializeApplicationList() {
       }
 
       
+      DesktopApplicationList::iterator itr = desktop_application_list_.find(processId);
+      if (itr != desktop_application_list_.end()) {
+        itr->second->setWindowCount(itr->second->getWindowCount() + 1);
+        continue;
+      }
+
+      
       DesktopApplication *pDesktopApplication = new DesktopApplication;
       if (!pDesktopApplication) {
         continue;
@@ -95,6 +102,8 @@ void DesktopDeviceInfoX11::InitializeApplicationList() {
 
       
       pDesktopApplication->setProcessId(processId);
+      
+      pDesktopApplication->setWindowCount(1);
 
       
       pDesktopApplication->setProcessPathName("");
@@ -109,6 +118,17 @@ void DesktopDeviceInfoX11::InitializeApplicationList() {
       snprintf(idStr, sizeof(idStr), "%ld", pDesktopApplication->getProcessId());
       pDesktopApplication->setUniqueIdName(idStr);
       desktop_application_list_[processId] = pDesktopApplication;
+    }
+
+    
+    DesktopApplicationList::iterator itr;
+    for (itr = desktop_application_list_.begin(); itr != desktop_application_list_.end(); itr++) {
+      DesktopApplication *pApp = itr->second;
+      
+      char nameStr[BUFSIZ];
+      snprintf(nameStr, sizeof(nameStr), "%d\x1e%s",
+               pApp->getWindowCount(), pApp->getProcessAppName());
+      pApp->setProcessAppName(nameStr);
     }
 
     if (children) {
