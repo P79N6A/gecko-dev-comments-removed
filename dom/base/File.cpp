@@ -718,7 +718,7 @@ FileImpl::Slice(const Optional<int64_t>& aStart,
 
 
 
-NS_IMPL_ISUPPORTS(FileImpl, PIFileImpl)
+NS_IMPL_ISUPPORTS(FileImpl, FileImpl)
 
 
 
