@@ -2703,13 +2703,13 @@ DataCall.prototype = {
     if (this.state == RIL.GECKO_NETWORK_STATE_CONNECTED) {
       
       
-      Services.tm.currentThread.dispatch(function(state) {
+      Services.tm.currentThread.dispatch(() => {
         
         
-        if (networkInterface.state == state) {
+        if (networkInterface.state == RIL.GECKO_NETWORK_STATE_CONNECTED) {
           networkInterface.notifyRILNetworkInterface();
         }
-      }.bind(null, RIL.GECKO_NETWORK_STATE_CONNECTED), Ci.nsIEventTarget.DISPATCH_NORMAL);
+      }, Ci.nsIEventTarget.DISPATCH_NORMAL);
       return;
     }
 
@@ -2829,13 +2829,15 @@ DataCall.prototype = {
       
       
       
-      Services.tm.currentThread.dispatch(function(state) {
+      Services.tm.currentThread.dispatch(() => {
         
         
-        if (networkInterface.state == state) {
+        if (networkInterface.state == RIL.GECKO_NETWORK_STATE_DISCONNECTED) {
           networkInterface.notifyRILNetworkInterface();
+          
+          this.resetLinkInfo();
         }
-      }.bind(null, RIL.GECKO_NETWORK_STATE_DISCONNECTED), Ci.nsIEventTarget.DISPATCH_NORMAL);
+      }, Ci.nsIEventTarget.DISPATCH_NORMAL);
     }
 
     
@@ -2861,7 +2863,6 @@ DataCall.prototype = {
     }, this.onDeactivateDataCallResult.bind(this));
 
     this.state = RIL.GECKO_NETWORK_STATE_DISCONNECTING;
-    this.resetLinkInfo();
   },
 
   

@@ -85,6 +85,46 @@ function defineLazyRegExp(obj, name, pattern) {
   });
 }
 
+function NetworkInterface(aNetwork) {
+  let ips = {};
+  let prefixLengths = {};
+  aNetwork.getAddresses(ips, prefixLengths);
+
+  this.state = aNetwork.state;
+  this.type = aNetwork.type;
+  this.name = aNetwork.name;
+  this.ips = ips.value;
+  this.prefixLengths = prefixLengths.value;
+  this.gateways = aNetwork.getGateways();
+  this.dnses = aNetwork.getDnses();
+  this.httpProxyHost = aNetwork.httpProxyHost;
+  this.httpProxyPort = aNetwork.httpProxyPort;
+}
+NetworkInterface.prototype = {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsINetworkInterface]),
+
+  getAddresses: function(aIps, aPrefixLengths) {
+    aIps.value = this.ips.slice();
+    aPrefixLengths.value = this.prefixLengths.slice();
+
+    return this.ips.length;
+  },
+
+  getGateways: function(aCount) {
+    if (aCount) {
+      aCount.value = this.gateways.length;
+    }
+    return this.gateways.slice();
+  },
+
+  getDnses: function(aCount) {
+    if (aCount) {
+      aCount.value = this.dnses.length;
+    }
+    return this.dnses.slice();
+  }
+};
+
 function NetworkInterfaceLinks()
 {
   this.resetLinks();
@@ -254,14 +294,19 @@ NetworkManager.prototype = {
     let ips = {};
     let prefixLengths = {};
     let length = network.getAddresses(ips, prefixLengths);
+    let promises = [];
+
     for (let i = 0; i < length; i++) {
       debug('Adding subnet routes: ' + ips.value[i] + '/' + prefixLengths.value[i]);
-      gNetworkService.modifyRoute(Ci.nsINetworkService.MODIFY_ROUTE_ADD,
-                                  network.name, ips.value[i], prefixLengths.value[i])
-        .catch((aError) => {
+      promises.push(
+        gNetworkService.modifyRoute(Ci.nsINetworkService.MODIFY_ROUTE_ADD,
+                                    network.name, ips.value[i], prefixLengths.value[i])
+        .catch(aError => {
           debug("_addSubnetRoutes error: " + aError);
-        });
+        }));
     }
+
+    return Promise.all(promises);
   },
 
   updateNetworkInterface: function(network) {
@@ -278,45 +323,56 @@ NetworkManager.prototype = {
           " changed state to " + network.state);
 
     
+    let networkInterface = new NetworkInterface(network);
+
+    
     
     
 
-    switch (network.state) {
+    switch (networkInterface.state) {
       case Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED:
-        gNetworkService.createNetwork(network.name, () => {
 
+        this._createNetwork(networkInterface.name)
           
           
-          gNetworkService.removeDefaultRoute(network);
-
+          .then(() => this._removeDefaultRoute(networkInterface))
           
           
-          gNetworkService.setDNS(network, () => {
+          .then(() => this._setDNS(networkInterface))
+          .then(() => {
             
-            if (this.isNetworkTypeMobile(network.type)) {
-              let currentInterfaceLinks = this.networkInterfaceLinks[networkId];
-              let newLinkRoutes = network.getDnses().concat(network.httpProxyHost);
-              
-              this._handleGateways(networkId, network.getGateways())
-                .then(() => this._updateRoutes(currentInterfaceLinks.linkRoutes,
-                                               newLinkRoutes,
-                                               network.getGateways(), network.name))
-                .then(() => currentInterfaceLinks.setLinks(newLinkRoutes,
-                                                           network.getGateways(),
-                                                           network.name));
+            if (!this.isNetworkTypeMobile(networkInterface.type)) {
+              return;
             }
 
+            let currentInterfaceLinks = this.networkInterfaceLinks[networkId];
+            let newLinkRoutes = networkInterface.getDnses().concat(
+              networkInterface.httpProxyHost);
             
-            
-            if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_DUN) {
-              this.setSecondaryDefaultRoute(network);
+            return this._handleGateways(networkId, networkInterface.getGateways())
+              .then(() => this._updateRoutes(currentInterfaceLinks.linkRoutes,
+                                             newLinkRoutes,
+                                             networkInterface.getGateways(),
+                                             networkInterface.name))
+              .then(() => currentInterfaceLinks.setLinks(newLinkRoutes,
+                                                         networkInterface.getGateways(),
+                                                         networkInterface.name));
+          })
+          .then(() => {
+            if (networkInterface.type !=
+                Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_DUN) {
+              return;
             }
-
-            this._addSubnetRoutes(network);
-            this.setAndConfigureActive();
-
             
-            if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_WIFI && this.mRil) {
+            
+            return this.setSecondaryDefaultRoute(networkInterface);
+          })
+          .then(() => this._addSubnetRoutes(networkInterface))
+          .then(() => this.setAndConfigureActive())
+          .then(() => {
+            
+            if (networkInterface.type ==
+                Ci.nsINetworkInterface.NETWORK_TYPE_WIFI && this.mRil) {
               for (let i = 0; i < this.mRil.numRadioInterfaces; i++) {
                 this.mRil.getRadioInterface(i).updateRILNetworkInterface();
               }
@@ -325,53 +381,73 @@ NetworkManager.prototype = {
             
             CaptivePortalDetectionHelper
               .notify(CaptivePortalDetectionHelper.EVENT_CONNECT, this.active);
-
+          })
+          .then(() => {
             
             
             Services.obs.notifyObservers(network, TOPIC_CONNECTION_STATE_CHANGED,
                                          this.convertConnectionType(network));
+          })
+          .catch(aError => {
+            debug("updateNetworkInterface error: " + aError);
           });
-        });
-
         break;
       case Ci.nsINetworkInterface.NETWORK_STATE_DISCONNECTED:
-        
-        if (this.isNetworkTypeMobile(network.type)) {
-          this._cleanupAllHostRoutes(networkId);
-        }
-        
-        if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_DUN) {
-          this.removeSecondaryDefaultRoute(network);
-        }
-        
-        if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_WIFI) {
-          gNetworkService.resetRoutingTable(network);
-        } else if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE) {
-          gNetworkService.removeDefaultRoute(network);
-        }
-        
-        if (this.active && network.type == this.active.type) {
-          this.clearNetworkProxy();
-        }
+        Promise.resolve()
+          .then(() => {
+            if (!this.isNetworkTypeMobile(networkInterface.type)) {
+              return;
+            }
+            
+            return this._cleanupAllHostRoutes(networkId);
+          })
+          .then(() => {
+            if (networkInterface.type !=
+                Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_DUN) {
+              return;
+            }
+            
+            return this.removeSecondaryDefaultRoute(networkInterface);
+          })
+          .then(() => {
+            if (networkInterface.type == Ci.nsINetworkInterface.NETWORK_TYPE_WIFI) {
+              
+              return this._resetRoutingTable(networkInterface);
+            }
+            if (networkInterface.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE) {
+              return this._removeDefaultRoute(networkInterface)
+            }
+          })
+          .then(() => {
+            
+            if (this.active && networkInterface.type == this.active.type) {
+              this.clearNetworkProxy();
+            }
 
-        
-        CaptivePortalDetectionHelper
-          .notify(CaptivePortalDetectionHelper.EVENT_DISCONNECT, network);
-        this.setAndConfigureActive();
-
-        
-        if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_WIFI && this.mRil) {
-          for (let i = 0; i < this.mRil.numRadioInterfaces; i++) {
-            this.mRil.getRadioInterface(i).updateRILNetworkInterface();
-          }
-        }
-
-        gNetworkService.destroyNetwork(network.name, () => {
-          
-          
-          Services.obs.notifyObservers(network, TOPIC_CONNECTION_STATE_CHANGED,
-                                       this.convertConnectionType(network));
-        });
+            
+            CaptivePortalDetectionHelper
+              .notify(CaptivePortalDetectionHelper.EVENT_DISCONNECT, networkInterface);
+          })
+          .then(() => this.setAndConfigureActive())
+          .then(() => {
+            
+            if (networkInterface.type ==
+                Ci.nsINetworkInterface.NETWORK_TYPE_WIFI && this.mRil) {
+              for (let i = 0; i < this.mRil.numRadioInterfaces; i++) {
+                this.mRil.getRadioInterface(i).updateRILNetworkInterface();
+              }
+            }
+          })
+          .then(() => this._destroyNetwork(networkInterface.name))
+          .then(() => {
+            
+            
+            Services.obs.notifyObservers(network, TOPIC_CONNECTION_STATE_CHANGED,
+                                         this.convertConnectionType(network));
+          })
+          .catch(aError => {
+            debug("updateNetworkInterface error: " + aError);
+          });
         break;
     }
   },
@@ -599,45 +675,86 @@ NetworkManager.prototype = {
     return null;
   },
 
+  _setSecondaryRoute: function(aDoAdd, aInterfaceName, aRoute) {
+    return new Promise((aResolve, aReject) => {
+      if (aDoAdd) {
+        gNetworkService.addSecondaryRoute(aInterfaceName, aRoute,
+          (aSuccess) => {
+            if (!aSuccess) {
+              aReject("addSecondaryRoute failed");
+              return;
+            }
+            aResolve();
+        });
+      } else {
+        gNetworkService.removeSecondaryRoute(aInterfaceName, aRoute,
+          (aSuccess) => {
+            if (!aSuccess) {
+              debug("removeSecondaryRoute failed")
+            }
+            
+            aResolve();
+        });
+      }
+    });
+  },
+
   setSecondaryDefaultRoute: function(network) {
     let gateways = network.getGateways();
+    let promises = [];
+
     for (let i = 0; i < gateways.length; i++) {
       let isIPv6 = (gateways[i].indexOf(":") != -1) ? true : false;
       
       
       
-      let route = {
+      let hostRoute = {
         ip: gateways[i],
         prefix: isIPv6 ? IPV6_MAX_PREFIX_LENGTH : IPV4_MAX_PREFIX_LENGTH,
         gateway: isIPv6 ? IPV6_ADDRESS_ANY : IPV4_ADDRESS_ANY
       };
-      gNetworkService.addSecondaryRoute(network.name, route);
       
       
-      route.ip = isIPv6 ? IPV6_ADDRESS_ANY : IPV4_ADDRESS_ANY;
-      route.prefix = 0;
-      route.gateway = gateways[i];
-      gNetworkService.addSecondaryRoute(network.name, route);
-    }
-  },
-
-  removeSecondaryDefaultRoute: function(network) {
-    let gateways = network.getGateways();
-    for (let i = 0; i < gateways.length; i++) {
-      let isIPv6 = (gateways[i].indexOf(":") != -1) ? true : false;
-      
-      let route = {
+      let defaultRoute = {
         ip: isIPv6 ? IPV6_ADDRESS_ANY : IPV4_ADDRESS_ANY,
         prefix: 0,
         gateway: gateways[i]
       };
-      gNetworkService.removeSecondaryRoute(network.name, route);
 
-      route.ip = gateways[i];
-      route.prefix = isIPv6 ? IPV6_MAX_PREFIX_LENGTH : IPV4_MAX_PREFIX_LENGTH;
-      route.gateway = isIPv6 ? IPV6_ADDRESS_ANY : IPV4_ADDRESS_ANY;
-      gNetworkService.removeSecondaryRoute(network.name, route);
+      let promise = this._setSecondaryRoute(true, network.name, hostRoute)
+        .then(() => this._setSecondaryRoute(true, network.name, defaultRoute));
+
+      promises.push(promise);
     }
+
+    return Promise.all(promises);
+  },
+
+  removeSecondaryDefaultRoute: function(network) {
+    let gateways = network.getGateways();
+    let promises = [];
+
+    for (let i = 0; i < gateways.length; i++) {
+      let isIPv6 = (gateways[i].indexOf(":") != -1) ? true : false;
+      
+      let defaultRoute = {
+        ip: isIPv6 ? IPV6_ADDRESS_ANY : IPV4_ADDRESS_ANY,
+        prefix: 0,
+        gateway: gateways[i]
+      };
+      let hostRoute = {
+        ip: gateways[i],
+        prefix: isIPv6 ? IPV6_MAX_PREFIX_LENGTH : IPV4_MAX_PREFIX_LENGTH,
+        gateway: isIPv6 ? IPV6_ADDRESS_ANY : IPV4_ADDRESS_ANY
+      };
+
+      let promise = this._setSecondaryRoute(false, network.name, defaultRoute)
+        .then(() => this._setSecondaryRoute(false, network.name, hostRoute));
+
+      promises.push(promise);
+    }
+
+    return Promise.all(promises);
   },
 
   
@@ -664,8 +781,7 @@ NetworkManager.prototype = {
         this.active.state == Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED &&
         this.active.type == this._preferredNetworkType) {
       debug("Active network is already our preferred type.");
-      this._setDefaultRouteAndProxy(this.active, oldActive);
-      return;
+      return this._setDefaultRouteAndProxy(this.active, oldActive);
     }
 
     
@@ -688,28 +804,33 @@ NetworkManager.prototype = {
       }
     }
 
-    if (this.active) {
-      
-      
-      
-      if (defaultDataNetwork &&
-          this.isNetworkTypeSecondaryMobile(this.active.type) &&
-          this.active.type != this.preferredNetworkType) {
-        this.active = defaultDataNetwork;
-      }
-      
-      if (!this.isNetworkTypeSecondaryMobile(this.active.type)) {
-        this._setDefaultRouteAndProxy(this.active, oldActive);
-      }
+    
+    
+    
+    if (this.active && defaultDataNetwork &&
+        this.isNetworkTypeSecondaryMobile(this.active.type) &&
+        this.active.type != this.preferredNetworkType) {
+      this.active = defaultDataNetwork;
     }
 
-    if (this.active != oldActive) {
-      Services.obs.notifyObservers(this.active, TOPIC_ACTIVE_CHANGED, null);
-    }
+    return Promise.resolve()
+      .then(() => {
+        
+        if (!this.active || this.isNetworkTypeSecondaryMobile(this.active.type)) {
+          return Promise.resolve();
+        }
 
-    if (this._manageOfflineStatus) {
-      Services.io.offline = !this.active;
-    }
+        return this._setDefaultRouteAndProxy(this.active, oldActive);
+      })
+      .then(() => {
+        if (this.active != oldActive) {
+          Services.obs.notifyObservers(this.active, TOPIC_ACTIVE_CHANGED, null);
+        }
+
+        if (this._manageOfflineStatus) {
+          Services.io.offline = !this.active;
+        }
+      });
   },
 
   resolveHostname: function(network, hostname) {
@@ -788,13 +909,78 @@ NetworkManager.prototype = {
     }
   },
 
-  _setDefaultRouteAndProxy: function(network, oldInterface) {
-    gNetworkService.setDefaultRoute(network, oldInterface, (success) => {
-      if (!success) {
-        gNetworkService.destroyNetwork(network, function() {});
-        return;
-      }
-      this.setNetworkProxy(network);
+  _setDNS: function(aNetwork) {
+    return new Promise((aResolve, aReject) => {
+      gNetworkService.setDNS(aNetwork, (aError) => {
+        if (aError) {
+          aReject("setDNS failed");
+          return;
+        }
+        aResolve();
+      });
+    });
+  },
+
+  _createNetwork: function(aInterfaceName) {
+    return new Promise((aResolve, aReject) => {
+      gNetworkService.createNetwork(aInterfaceName, (aSuccess) => {
+        if (!aSuccess) {
+          aReject("createNetwork failed");
+          return;
+        }
+        aResolve();
+      });
+    });
+  },
+
+  _destroyNetwork: function(aInterfaceName) {
+    return new Promise((aResolve, aReject) => {
+      gNetworkService.destroyNetwork(aInterfaceName, (aSuccess) => {
+        if (!aSuccess) {
+          debug("destroyNetwork failed")
+        }
+        
+        aResolve();
+      });
+    });
+  },
+
+  _resetRoutingTable: function(aNetwork) {
+    return new Promise((aResolve, aReject) => {
+      gNetworkService.resetRoutingTable(aNetwork, (aSuccess) => {
+        if (!aSuccess) {
+          debug("resetRoutingTable failed");
+        }
+        
+        aResolve();
+      });
+    });
+  },
+
+  _removeDefaultRoute: function(aNetwork) {
+    return new Promise((aResolve, aReject) => {
+      gNetworkService.removeDefaultRoute(aNetwork, (aSuccess) => {
+        if (!aSuccess) {
+          debug("removeDefaultRoute failed");
+        }
+        
+        aResolve();
+      });
+    });
+  },
+
+  _setDefaultRouteAndProxy: function(aNetwork, aOldInterface) {
+    return new Promise((aResolve, aReject) => {
+      gNetworkService.setDefaultRoute(aNetwork, aOldInterface, (aSuccess) => {
+        if (!aSuccess) {
+          gNetworkService.destroyNetwork(aNetwork, function() {
+            aReject("setDefaultRoute failed");
+          });
+          return;
+        }
+        this.setNetworkProxy(aNetwork);
+        aResolve();
+      });
     });
   },
 
