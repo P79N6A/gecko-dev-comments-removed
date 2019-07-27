@@ -437,37 +437,53 @@ class JS_PUBLIC_API(AutoCheckCannotGC) : public AutoAssertOnGC
 extern JS_FRIEND_API(bool)
 UnmarkGrayGCThingRecursively(void *thing, JSGCTraceKind kind);
 
+} 
 
-
-
-
-
+namespace js {
+namespace gc {
 
 static MOZ_ALWAYS_INLINE void
 ExposeGCThingToActiveJS(void *thing, JSGCTraceKind kind)
 {
     MOZ_ASSERT(kind != JSTRACE_SHAPE);
 
-    shadow::Runtime *rt = js::gc::GetGCThingRuntime(thing);
+    JS::shadow::Runtime *rt = GetGCThingRuntime(thing);
 #ifdef JSGC_GENERATIONAL
     
 
 
 
 
-    if (js::gc::IsInsideNursery((js::gc::Cell *)thing))
+    if (IsInsideNursery((Cell *)thing))
         return;
 #endif
-    if (IsIncrementalBarrierNeededOnTenuredGCThing(rt, thing, kind))
-        IncrementalReferenceBarrier(thing, kind);
-    else if (GCThingIsMarkedGray(thing))
-        UnmarkGrayGCThingRecursively(thing, kind);
+    if (JS::IsIncrementalBarrierNeededOnTenuredGCThing(rt, thing, kind))
+        JS::IncrementalReferenceBarrier(thing, kind);
+    else if (JS::GCThingIsMarkedGray(thing))
+        JS::UnmarkGrayGCThingRecursively(thing, kind);
 }
+
+} 
+} 
+
+namespace JS {
+
+
+
+
+
+
 
 static MOZ_ALWAYS_INLINE void
 ExposeObjectToActiveJS(JSObject *obj)
 {
-    ExposeGCThingToActiveJS(obj, JSTRACE_OBJECT);
+    js::gc::ExposeGCThingToActiveJS(obj, JSTRACE_OBJECT);
+}
+
+static MOZ_ALWAYS_INLINE void
+ExposeScriptToActiveJS(JSScript *script)
+{
+    js::gc::ExposeGCThingToActiveJS(script, JSTRACE_SCRIPT);
 }
 
 
