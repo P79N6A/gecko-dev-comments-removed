@@ -2358,6 +2358,12 @@ public:
   }
 };
 
+template<class E, size_t N>
+struct nsTArray_CopyChooser<nsAutoTArray<E, N>>
+{
+  typedef nsTArray_CopyWithConstructors<nsAutoTArray<E, N>> Type;
+};
+
 
 
 
