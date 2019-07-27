@@ -1176,11 +1176,9 @@ JsepSessionImpl::CreateAnswerMSection(const JsepAnswerOptions& options,
   PtrVector<JsepCodecDescription> matchingCodecs(
       GetCommonCodecs(remoteMsection));
 
-  for (const JsepCodecDescription* codec : matchingCodecs.values) {
-    UniquePtr<JsepCodecDescription> negotiated(
-        codec->MakeNegotiatedCodec(remoteMsection));
-    if (negotiated) {
-      negotiated->AddToMediaSection(msection);
+  for (JsepCodecDescription* codec : matchingCodecs.values) {
+    if (codec->Negotiate(remoteMsection)) {
+      codec->AddToMediaSection(msection);
       
       
       break;
@@ -1721,7 +1719,7 @@ JsepSessionImpl::NegotiateTrack(const SdpMediaSection& remoteMsection,
   PtrVector<JsepCodecDescription> commonCodecs(
       GetCommonCodecs(remoteMsection));
 
-  for (const JsepCodecDescription* codec : commonCodecs.values) {
+  for (JsepCodecDescription* codec : commonCodecs.values) {
     bool sending = (direction == JsepTrack::kJsepTrackSending);
 
     
@@ -1731,24 +1729,21 @@ JsepSessionImpl::NegotiateTrack(const SdpMediaSection& remoteMsection,
     
     
     
-    
-    UniquePtr<JsepCodecDescription> sendOrReceiveCodec;
-
     if (sending) {
-      sendOrReceiveCodec = Move(codec->MakeSendCodec(remoteMsection));
+      if (!codec->LoadSendParameters(remoteMsection)) {
+        continue;
+      }
     } else {
-      sendOrReceiveCodec = Move(codec->MakeRecvCodec(remoteMsection));
-    }
-
-    if (!sendOrReceiveCodec) {
-      continue;
+      if (!codec->LoadRecvParameters(remoteMsection)) {
+        continue;
+      }
     }
 
     if (remoteMsection.GetMediaType() == SdpMediaSection::kAudio ||
         remoteMsection.GetMediaType() == SdpMediaSection::kVideo) {
       
       uint16_t payloadType;
-      if (!sendOrReceiveCodec->GetPtAsInt(&payloadType) ||
+      if (!codec->GetPtAsInt(&payloadType) ||
           payloadType > UINT8_MAX) {
         JSEP_SET_ERROR("audio/video payload type is not an 8 bit unsigned int: "
                        << codec->mDefaultPt);
@@ -1756,7 +1751,7 @@ JsepSessionImpl::NegotiateTrack(const SdpMediaSection& remoteMsection,
       }
     }
 
-    negotiatedDetails->mCodecs.values.push_back(sendOrReceiveCodec.release());
+    negotiatedDetails->mCodecs.values.push_back(codec->Clone());
     break;
   }
 
