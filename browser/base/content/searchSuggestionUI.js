@@ -145,9 +145,8 @@ SearchSuggestionUIController.prototype = {
     this["_on" + event.type[0].toUpperCase() + event.type.substr(1)](event);
   },
 
-  _onInput: function () {
+  _onInput: function (event) {
     if (this._ignoreInputEvent) {
-      this._ignoreInputEvent = false;
       return;
     }
     if (this.input.value) {
@@ -157,7 +156,7 @@ SearchSuggestionUIController.prototype = {
       this._stickyInputValue = "";
       this._hideSuggestions();
     }
-    this.selectAndUpdateInput(-1);
+    this.selectedIndex = -1;
   },
 
   _onKeypress: function (event) {
@@ -246,11 +245,8 @@ SearchSuggestionUIController.prototype = {
     
     
     this._ignoreInputEvent = true;
-    this.input.blur();
-    this.input.focus();
-    this._ignoreInputEvent = false;
-
     this.input.value = suggestion;
+    this._ignoreInputEvent = false;
     this.input.setAttribute("selection-index", idx);
     this.input.setAttribute("selection-kind", "mouse");
     this._hideSuggestions();
