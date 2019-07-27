@@ -368,7 +368,7 @@ void CleanupOSFileConstants()
 
 
 #define UINT_CONSTANT(name)      \
-  { #name, UINT_TO_JSVAL((name)) }
+  { #name, JS::NumberValue(name) }
 
 
 
@@ -931,7 +931,7 @@ bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global)
   }
 
   dom::ConstantSpec umask_cs[] = {
-    { "umask", UINT_TO_JSVAL(gUserUmask) },
+    { "umask", JS::NumberValue(gUserUmask) },
     PROP_END
   };
   if (!dom::DefineConstants(cx, objSys, umask_cs)) {
