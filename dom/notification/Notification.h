@@ -8,7 +8,9 @@
 #define mozilla_dom_notification_h__
 
 #include "mozilla/DOMEventTargetHelper.h"
+#include "mozilla/UniquePtr.h"
 #include "mozilla/dom/NotificationBinding.h"
+#include "mozilla/dom/workers/bindings/WorkerFeature.h"
 
 #include "nsIObserver.h"
 
@@ -21,16 +23,92 @@ class nsIVariant;
 namespace mozilla {
 namespace dom {
 
-
-class NotificationObserver;
+class NotificationRef;
+class WorkerNotificationObserver;
 class Promise;
+
+namespace workers {
+  class WorkerPrivate;
+} 
+
+class Notification;
+class NotificationFeature final : public workers::WorkerFeature
+{
+  
+  
+  Notification* mNotification;
+
+public:
+  explicit NotificationFeature(Notification* aNotification);
+
+  bool
+  Notify(JSContext* aCx, workers::Status aStatus) override;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class Notification : public DOMEventTargetHelper
 {
+  friend class CloseNotificationRunnable;
   friend class NotificationTask;
   friend class NotificationPermissionRequest;
   friend class NotificationObserver;
   friend class NotificationStorageCallback;
+  friend class WorkerNotificationObserver;
 
 public:
   IMPL_EVENT_HANDLER(click)
@@ -40,6 +118,10 @@ public:
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(Notification, DOMEventTargetHelper)
+
+  static bool PrefEnabled(JSContext* aCx, JSObject* aObj);
+  
+  static bool IsGetEnabled(JSContext* aCx, JSObject* aObj);
 
   static already_AddRefed<Notification> Constructor(const GlobalObject& aGlobal,
                                                     const nsAString& aTitle,
@@ -91,6 +173,8 @@ public:
 
   nsIStructuredCloneContainer* GetDataCloneContainer();
 
+  static bool RequestPermissionEnabledForScope(JSContext* aCx, JSObject* );
+
   static void RequestPermission(const GlobalObject& aGlobal,
                                 const Optional<OwningNonNull<NotificationPermissionCallback> >& aCallback,
                                 ErrorResult& aRv);
@@ -117,13 +201,36 @@ public:
 
   void InitFromBase64(JSContext* aCx, const nsAString& aData, ErrorResult& aRv);
 
+  void AssertIsOnTargetThread() const
+  {
+    MOZ_ASSERT(IsTargetThread());
+  }
+
+  workers::WorkerPrivate* mWorkerPrivate;
+  
+  WorkerNotificationObserver* mObserver;
+
+  
+  
+  
+  
+  
+  UniquePtr<NotificationRef> mTempRef;
+
+  void AddRefObject();
+  void ReleaseObject();
+
+  static NotificationPermission GetPermissionInternal(nsIPrincipal* aPrincipal,
+                                                      ErrorResult& rv);
+
+  bool DispatchClickEvent();
 protected:
   Notification(const nsAString& aID, const nsAString& aTitle, const nsAString& aBody,
                NotificationDirection aDir, const nsAString& aLang,
                const nsAString& aTag, const nsAString& aIconUrl,
-               const NotificationBehavior& aBehavior, nsPIDOMWindow* aWindow);
+               const NotificationBehavior& aBehavior, nsIGlobalObject* aGlobal);
 
-  static already_AddRefed<Notification> CreateInternal(nsPIDOMWindow* aWindow,
+  static already_AddRefed<Notification> CreateInternal(nsIGlobalObject* aGlobal,
                                                        const nsAString& aID,
                                                        const nsAString& aTitle,
                                                        const NotificationOptions& aOptions);
@@ -158,27 +265,29 @@ protected:
   }
 
   static nsresult GetOrigin(nsPIDOMWindow* aWindow, nsString& aOrigin);
+  nsresult GetOriginWorker(nsString& aOrigin);
 
   void GetAlertName(nsAString& aRetval)
   {
     aRetval = mAlertName;
   }
 
-  nsString mID;
-  nsString mTitle;
-  nsString mBody;
-  NotificationDirection mDir;
-  nsString mLang;
-  nsString mTag;
-  nsString mIconUrl;
+  const nsString mID;
+  const nsString mTitle;
+  const nsString mBody;
+  const NotificationDirection mDir;
+  const nsString mLang;
+  const nsString mTag;
+  const nsString mIconUrl;
   nsCOMPtr<nsIStructuredCloneContainer> mDataObjectContainer;
-  NotificationBehavior mBehavior;
+  const NotificationBehavior mBehavior;
 
   
   nsCOMPtr<nsIVariant> mData;
 
   nsString mAlertName;
 
+  
   bool mIsClosed;
 
   
@@ -193,6 +302,22 @@ private:
   virtual ~Notification();
 
   nsIPrincipal* GetPrincipal();
+
+  nsresult PersistNotification();
+  void UnpersistNotification();
+
+  bool IsTargetThread() const
+  {
+    return NS_IsMainThread() == !mWorkerPrivate;
+  }
+
+  void RegisterFeature();
+  void UnregisterFeature();
+
+  nsresult ResolveIconAndSoundURL(nsString&, nsString&);
+
+  UniquePtr<NotificationFeature> mFeature;
+  uint32_t mTaskCount;
 };
 
 } 

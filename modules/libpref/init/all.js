@@ -4323,6 +4323,7 @@ pref("notification.feature.enabled", false);
 
 
 pref("dom.webnotifications.enabled", true);
+pref("dom.webnotifications.workers.enabled", false);
 
 
 pref("alerts.disableSlidingEffect", false);
