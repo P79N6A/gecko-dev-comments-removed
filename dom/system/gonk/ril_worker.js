@@ -2954,7 +2954,7 @@ RilObject.prototype = {
     GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_COMMAND_DETAILS |
                                COMPREHENSIONTLV_FLAG_CR);
     GsmPDUHelper.writeHexOctet(3);
-    if (response.command) {
+    if (command) {
       GsmPDUHelper.writeHexOctet(command.commandNumber);
       GsmPDUHelper.writeHexOctet(command.typeOfCommand);
       GsmPDUHelper.writeHexOctet(command.commandQualifier);
@@ -3032,6 +3032,24 @@ RilObject.prototype = {
         if (response.input !== undefined) {
             ComprehensionTlvHelper.writeTextStringTlv(response.input, coding);
         }
+      }
+    }
+
+    
+    if (response.resultCode === STK_RESULT_NO_RESPONSE_FROM_USER) {
+      
+      
+      
+      
+      
+      
+      
+      let duration = command && command.options && command.options.duration;
+      if (duration) {
+        GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_DURATION);
+        GsmPDUHelper.writeHexOctet(2);
+        GsmPDUHelper.writeHexOctet(duration.timeUnit);
+        GsmPDUHelper.writeHexOctet(duration.timeInterval);
       }
     }
 
