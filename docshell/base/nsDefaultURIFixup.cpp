@@ -160,7 +160,10 @@ nsDefaultURIFixup::GetFixupURIInfo(const nsACString& aStringURI,
 
   if (scheme.LowerCaseEqualsLiteral("view-source")) {
     nsCOMPtr<nsIURIFixupInfo> uriInfo;
-    uint32_t newFixupFlags = aFixupFlags & ~FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP;
+    
+    
+    uint32_t newFixupFlags = aFixupFlags & ~FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP
+                                         & ~FIXUP_FLAGS_MAKE_ALTERNATE_URI;
 
     rv = GetFixupURIInfo(Substring(uriString,
                                    sizeof("view-source:") - 1,
