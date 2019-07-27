@@ -211,6 +211,47 @@ WrappedVerifySignedData(TrustDomain& trustDomain,
   return trustDomain.VerifySignedData(signedData, subjectPublicKeyInfo);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if defined(__clang__) && (__clang_major__ == 3 && __clang_minor__ < 5)
+  
+  
+  
+  
+# define MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM
+#elif defined(__GNUC__) || defined(__clang__)
+  
+  
+# define MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM \
+         default: assert(false); __builtin_unreachable();
+#elif defined(_MSC_VER)
+  
+  
+# define MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM \
+         default: assert(false); __assume(0);
+#else
+# error Unsupported compiler for MOZILLA_PKIX_UNREACHABLE_DEFAULT.
+#endif
+
 } } 
 
 #endif 
