@@ -11515,6 +11515,11 @@ nsGlobalWindow::Observe(nsISupports* aSubject, const char* aTopic,
       NavigatorBinding::ClearCachedLanguagesValue(mNavigator);
     }
 
+    
+    if (!IsCurrentInnerWindow()) {
+      return NS_OK;
+    }
+
     nsCOMPtr<nsIDOMEvent> event;
     NS_NewDOMEvent(getter_AddRefs(event), this, nullptr, nullptr);
     nsresult rv = event->InitEvent(NS_LITERAL_STRING("languagechange"), false, false);
