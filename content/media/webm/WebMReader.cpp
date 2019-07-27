@@ -39,6 +39,7 @@ using namespace layers;
 
 
 #ifdef PR_LOGGING
+#include "prprf.h"
 extern PRLogModuleInfo* gMediaDecoderLog;
 PRLogModuleInfo* gNesteggLog;
 #define LOG(type, msg) PR_LOG(gMediaDecoderLog, type, msg)
