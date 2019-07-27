@@ -206,6 +206,19 @@ function safePrefGetter(aPrefBranch, aName, aDefault) {
 
 
 
+function isUnifiedCompleteInstantiated() {
+  try {
+    return Components.manager.QueryInterface(Ci.nsIServiceManager)
+                     .isServiceInstantiated(Cc["@mozilla.org/autocomplete/search;1?name=unifiedcomplete"],
+                                            Ci.mozIPlacesAutoComplete);
+  } catch (ex) {
+    return false;
+  }
+}
+
+
+
+
 
 
 
@@ -464,7 +477,7 @@ function nsPlacesAutoComplete()
   this._prefs = Cc["@mozilla.org/preferences-service;1"].
                 getService(Ci.nsIPrefService).
                 getBranch(kBrowserUrlbarBranch);
-  this._syncEnabledPref(true);
+  this._syncEnabledPref();
   this._loadPrefs(true);
 
   
@@ -696,7 +709,12 @@ nsPlacesAutoComplete.prototype = {
       }
     }
     else if (aTopic == kPrefChanged) {
-      this._loadPrefs(aSubject, aTopic, aData);
+      
+      if (this._ignoreNotifications)
+        return;
+      this._ignoreNotifications = true;
+      this._loadPrefs(false, aTopic, aData);
+      this._ignoreNotifications = false;
     }
   },
 
@@ -807,20 +825,16 @@ nsPlacesAutoComplete.prototype = {
   
 
 
-  _syncEnabledPref: function PAC_syncEnabledPref(init = false)
+  _syncEnabledPref: function PAC_syncEnabledPref()
   {
     let suggestPrefs = ["suggest.history", "suggest.bookmark", "suggest.openpage"];
-    let types = ["History", "Bookmark", "Openpage", "Typed"];
+    let types = ["History", "Bookmark", "Openpage"];
 
-    if (init) {
-      
-      this._enabled = safePrefGetter(this._prefs, kBrowserUrlbarAutocompleteEnabledPref,
-                                     true);
-      this._suggestHistory = safePrefGetter(this._prefs, "suggest.history", true);
-      this._suggestBookmark = safePrefGetter(this._prefs, "suggest.bookmark", true);
-      this._suggestOpenpage = safePrefGetter(this._prefs, "suggest.openpage", true);
-      this._suggestTyped = safePrefGetter(this._prefs, "suggest.history.onlyTyped", false);
-    }
+    this._enabled = safePrefGetter(this._prefs, kBrowserUrlbarAutocompleteEnabledPref,
+                                   true);
+    this._suggestHistory = safePrefGetter(this._prefs, "suggest.history", true);
+    this._suggestBookmark = safePrefGetter(this._prefs, "suggest.bookmark", true);
+    this._suggestOpenpage = safePrefGetter(this._prefs, "suggest.openpage", true);
 
     if (this._enabled) {
       
@@ -851,6 +865,18 @@ nsPlacesAutoComplete.prototype = {
 
   _loadPrefs: function PAC_loadPrefs(aRegisterObserver, aTopic, aData)
   {
+    
+    if (aData && !isUnifiedCompleteInstantiated()) {
+      
+      if (aData == kBrowserUrlbarAutocompleteEnabledPref) {
+        this._syncEnabledPref();
+      } else if (aData.startsWith("suggest.")) {
+        let suggestPrefs = ["suggest.history", "suggest.bookmark", "suggest.openpage"];
+        this._prefs.setBoolPref(kBrowserUrlbarAutocompleteEnabledPref,
+                                suggestPrefs.some(pref => safePrefGetter(this._prefs, pref, true)));
+      }
+    }
+
     this._enabled = safePrefGetter(this._prefs,
                                    kBrowserUrlbarAutocompleteEnabledPref,
                                    true);
@@ -909,12 +935,6 @@ nsPlacesAutoComplete.prototype = {
     
     if (aRegisterObserver) {
       this._prefs.addObserver("", this, false);
-    }
-
-    
-    
-    if (aData == kBrowserUrlbarAutocompleteEnabledPref) {
-      this._syncEnabledPref();
     }
   },
 
