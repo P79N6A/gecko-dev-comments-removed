@@ -591,10 +591,7 @@ js::gc::GCRuntime::bufferGrayRoots()
 }
 
 struct SetMaybeAliveFunctor {
-    template <typename T>
-    void operator()(Cell* cell) {
-        SetMaybeAliveFlag<T>(static_cast<T*>(cell));
-    }
+    template <typename T> void operator()(T* t) { SetMaybeAliveFlag(t); }
 };
 
 void
@@ -611,7 +608,7 @@ BufferGrayRootsTracer::appendGrayRoot(TenuredCell* thing, JSGCTraceKind kind)
         
         
         
-        CallTyped(SetMaybeAliveFunctor(), kind, thing);
+        CallTyped(SetMaybeAliveFunctor(), thing, kind);
 
         if (!zone->gcGrayRoots.append(thing))
             bufferingGrayRootsFailed = true;
