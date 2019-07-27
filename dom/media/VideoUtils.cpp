@@ -261,7 +261,7 @@ ExtractH264CodecDetails(const nsAString& aCodec,
 }
 
 nsresult
-GenerateRandomPathName(nsCString& aOutSalt, uint32_t aLength)
+GenerateRandomName(nsCString& aOutSalt, uint32_t aLength)
 {
   nsresult rv;
   nsCOMPtr<nsIRandomGenerator> rg =
@@ -269,10 +269,8 @@ GenerateRandomPathName(nsCString& aOutSalt, uint32_t aLength)
   if (NS_FAILED(rv)) return rv;
 
   
-  
-  
   const uint32_t requiredBytesLength =
-    static_cast<uint32_t>((aLength + 1) / 4 * 3);
+    static_cast<uint32_t>((aLength + 3) / 4 * 3);
 
   uint8_t* buffer;
   rv = rg->GenerateRandomBytes(requiredBytesLength, &buffer);
@@ -286,14 +284,19 @@ GenerateRandomPathName(nsCString& aOutSalt, uint32_t aLength)
   buffer = nullptr;
   if (NS_FAILED (rv)) return rv;
 
-  temp.Truncate(aLength);
-
-  
-  
-  temp.ReplaceChar(FILE_PATH_SEPARATOR FILE_ILLEGAL_CHARACTERS, '_');
-
   aOutSalt = temp;
+  return NS_OK;
+}
 
+nsresult
+GenerateRandomPathName(nsCString& aOutSalt, uint32_t aLength)
+{
+  nsresult rv = GenerateRandomName(aOutSalt, aLength);
+  if (NS_FAILED(rv)) return rv;
+
+  
+  
+  aOutSalt.ReplaceChar(FILE_PATH_SEPARATOR FILE_ILLEGAL_CHARACTERS, '_');
   return NS_OK;
 }
 
