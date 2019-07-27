@@ -45,6 +45,8 @@ const DEFAULT_RETENTION_DAYS = 14;
 
 const PING_SUBMIT_TIMEOUT_MS = 2 * 60 * 1000;
 
+XPCOMUtils.defineLazyModuleGetter(this, "ClientID",
+                                  "resource://gre/modules/ClientID.jsm");
 XPCOMUtils.defineLazyServiceGetter(this, "Telemetry",
                                    "@mozilla.org/base/telemetry;1",
                                    "nsITelemetry");
@@ -782,17 +784,9 @@ let Impl = {
           yield this.sendPersistedPings();
         }
 
-        if ("@mozilla.org/datareporting/service;1" in Cc) {
-          let drs = Cc["@mozilla.org/datareporting/service;1"]
-                      .getService(Ci.nsISupports)
-                      .wrappedJSObject;
-          this._clientID = yield drs.getClientID();
-          
-          Preferences.set(PREF_CACHED_CLIENTID, this._clientID);
-        } else {
-          
-          Preferences.reset(PREF_CACHED_CLIENTID);
-        }
+        
+        this._clientID = yield ClientID.getClientID();
+        Preferences.set(PREF_CACHED_CLIENTID, this._clientID);
 
         Telemetry.asyncFetchTelemetryData(function () {});
         this._delayedInitTaskDeferred.resolve();
