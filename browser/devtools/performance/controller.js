@@ -17,6 +17,17 @@ devtools.lazyRequireGetter(this, "DevToolsUtils",
   "devtools/toolkit/DevToolsUtils");
 
 
+const EVENTS = {
+  
+  RECORDING_STARTED: "Performance:RecordingStarted",
+  RECORDING_STOPPED: "Performance:RecordingStopped",
+
+  
+  UI_START_RECORDING: "Performance:UI:StartRecording",
+  UI_STOP_RECORDING: "Performance:UI:StopRecording"
+};
+
+
 
 
 let gToolbox, gTarget, gFront;
@@ -27,7 +38,8 @@ let gToolbox, gTarget, gFront;
 let startupPerformance = Task.async(function*() {
   yield promise.all([
     PrefObserver.register(),
-    EventsHandler.initialize()
+    PerformanceController.initialize(),
+    PerformanceView.initialize()
   ]);
 });
 
@@ -37,7 +49,8 @@ let startupPerformance = Task.async(function*() {
 let shutdownPerformance = Task.async(function*() {
   yield promise.all([
     PrefObserver.unregister(),
-    EventsHandler.destroy()
+    PerformanceController.destroy(),
+    PerformanceView.destroy()
   ]);
 });
 
@@ -61,30 +74,57 @@ let PrefObserver = {
 
 
 
-let EventsHandler = {
+
+let PerformanceController = {
   
 
 
+
   initialize: function() {
+    this.startRecording = this.startRecording.bind(this);
+    this.stopRecording = this.stopRecording.bind(this);
+
+    PerformanceView.on(EVENTS.UI_START_RECORDING, this.startRecording);
+    PerformanceView.on(EVENTS.UI_STOP_RECORDING, this.stopRecording);
   },
 
   
 
 
   destroy: function() {
-  }
+    PerformanceView.off(EVENTS.UI_START_RECORDING, this.startRecording);
+    PerformanceView.off(EVENTS.UI_STOP_RECORDING, this.stopRecording);
+  },
+
+  
+
+
+
+  startRecording: Task.async(function *() {
+    yield gFront.startRecording();
+    this.emit(EVENTS.RECORDING_STARTED);
+  }),
+
+  
+
+
+
+  stopRecording: Task.async(function *() {
+    let results = yield gFront.stopRecording();
+    this.emit(EVENTS.RECORDING_STOPPED, results);
+  })
 };
+
+
+
+
+EventEmitter.decorate(PerformanceController);
 
 
 
 
 const Prefs = new ViewHelpers.Prefs("devtools.profiler", {
 });
-
-
-
-
-EventEmitter.decorate(this);
 
 
 
