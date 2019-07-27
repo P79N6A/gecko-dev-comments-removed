@@ -488,6 +488,8 @@ public:
 
 
 
+
+
   virtual nsresult SetFullScreenInternal(bool aIsFullScreen, bool aRequireTrust) = 0;
 
   

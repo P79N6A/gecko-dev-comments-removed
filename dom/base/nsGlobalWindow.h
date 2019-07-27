@@ -495,9 +495,8 @@ public:
   
   virtual void RefreshCompartmentPrincipal();
 
-  virtual nsresult SetFullScreenInternal(bool aIsFullScreen, bool aRequireTrust);
-
   
+  virtual nsresult SetFullScreenInternal(bool aIsFullScreen, bool aRequireTrust);
   bool FullScreen() const;
 
   virtual void SetHasGamepadEventListener(bool aHasGamepad = true);
