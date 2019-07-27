@@ -262,6 +262,14 @@ ToJSValue(JSContext* aCx,
           JS::MutableHandle<JS::Value> aValue);
 
 
+
+
+bool
+ToJSValue(JSContext* aCx,
+          ErrorResult& aArgument,
+          JS::MutableHandle<JS::Value> aValue);
+
+
 template <typename T>
 typename EnableIf<IsPointer<T>::value, bool>::Type
 ToJSValue(JSContext* aCx,
