@@ -3539,8 +3539,10 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   
   nscoord availableBSizeForContent = aReflowState.AvailableBSize();
   if (availableBSizeForContent != NS_UNCONSTRAINEDSIZE &&
-      !GetSkipSides().Top()) {
-    availableBSizeForContent -= aReflowState.ComputedPhysicalBorderPadding().top;
+      !(GetLogicalSkipSides(&aReflowState).BStart())) {
+    WritingMode wm = aReflowState.GetWritingMode();
+    availableBSizeForContent -=
+      aReflowState.ComputedLogicalBorderPadding().BStart(wm);
     
     availableBSizeForContent = std::max(availableBSizeForContent, 0);
   }
