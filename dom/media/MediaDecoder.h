@@ -510,10 +510,6 @@ public:
   
   MediaDecoderOwner* GetMediaOwner() const;
 
-  
-  
-  void DurationChanged();
-
   bool OnStateMachineTaskQueue() const override;
 
   bool OnDecodeTaskQueue() const override;
@@ -886,6 +882,10 @@ protected:
 
   
   bool IsEnded() const;
+
+  
+  
+  void DurationChanged();
 
   
   WatchManager<MediaDecoder> mWatchManager;

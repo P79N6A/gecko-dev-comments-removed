@@ -384,6 +384,9 @@ MediaDecoder::MediaDecoder() :
   
 
   
+  mWatchManager.Watch(mStateMachineDuration, &MediaDecoder::DurationChanged);
+
+  
   mWatchManager.Watch(mPlayState, &MediaDecoder::UpdateReadyState);
   mWatchManager.Watch(mNextFrameStatus, &MediaDecoder::UpdateReadyState);
 
@@ -646,18 +649,6 @@ void MediaDecoder::MetadataLoaded(nsAutoPtr<MediaInfo> aInfo,
   DECODER_LOG("MetadataLoaded, channels=%u rate=%u hasAudio=%d hasVideo=%d",
               aInfo->mAudio.mChannels, aInfo->mAudio.mRate,
               aInfo->HasAudio(), aInfo->HasVideo());
-
-  {
-    ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-    if (mStateMachineDuration.Ref().isNothing() && mStateMachineDuration.Ref().ref().IsInfinite()) {
-      SetInfinite(true);
-    } else {
-      mDuration = mStateMachineDuration.Ref().ref().ToSeconds();
-    }
-
-    
-    UpdatePlaybackRate();
-  }
 
   mInfo = aInfo.forget();
   ConstructMediaTracks();
