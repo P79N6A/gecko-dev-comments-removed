@@ -30,6 +30,7 @@
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeOwner.h"
 #include "nsIDocShellLoadInfo.h"
+#include "nsIDOMApplicationRegistry.h"
 #include "nsIBaseWindow.h"
 #include "nsContentUtils.h"
 #include "nsIXPConnect.h"
@@ -1470,6 +1471,22 @@ NS_IMETHODIMP
 nsFrameLoader::GetOwnerIsBrowserOrAppFrame(bool* aResult)
 {
   *aResult = OwnerIsBrowserOrAppFrame();
+  return NS_OK;
+}
+
+bool
+nsFrameLoader::OwnerIsWidget()
+{
+  nsCOMPtr<nsIMozBrowserFrame> browserFrame = do_QueryInterface(mOwnerContent);
+  return browserFrame ? browserFrame->GetReallyIsWidget() : false;
+}
+
+
+
+NS_IMETHODIMP
+nsFrameLoader::GetOwnerIsWidget(bool* aResult)
+{
+  *aResult = OwnerIsWidget();
   return NS_OK;
 }
 
