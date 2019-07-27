@@ -82,7 +82,11 @@ MOZ_BEGIN_ENUM_CLASS(LayerRenderStateFlags, int8_t)
   Y_FLIPPED = 1 << 0,
   BUFFER_ROTATION = 1 << 1,
   
-  FORMAT_RB_SWAP = 1 << 2
+  FORMAT_RB_SWAP = 1 << 2,
+  
+  
+  
+  OPAQUE = 1 << 3
 MOZ_END_ENUM_CLASS(LayerRenderStateFlags)
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(LayerRenderStateFlags)
 
