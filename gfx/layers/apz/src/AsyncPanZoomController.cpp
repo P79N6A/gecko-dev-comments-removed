@@ -319,11 +319,6 @@ typedef mozilla::gfx::Matrix4x4 Matrix4x4;
 
 
 
-
-
-
-
-
 static const double AXIS_LOCK_ANGLE = M_PI / 6.0; 
 
 
@@ -2188,86 +2183,39 @@ void AsyncPanZoomController::GetOverscrollTransform(Matrix4x4* aTransform) const
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 
   
   
-  const float kClamping = gfxPrefs::APZOverscrollClamping();
+  const float kStretchFactor = gfxPrefs::APZOverscrollStretchFactor();
+
+  
+  
+  CSSSize compositionSize(mX.GetCompositionLength(), mY.GetCompositionLength());
+  float scaleX = 1 + kStretchFactor * fabsf(mX.GetOverscroll()) / mX.GetCompositionLength();
+  float scaleY = 1 + kStretchFactor * fabsf(mY.GetOverscroll()) / mY.GetCompositionLength();
 
   
   
   
   
   
-  float spacePropX = kClamping * fabsf(mX.GetOverscroll()) / mX.GetCompositionLength();
-  float spacePropY = kClamping * fabsf(mY.GetOverscroll()) / mY.GetCompositionLength();
-
-  
-  
-  
-  
-  const float kZEffect = gfxPrefs::APZOverscrollZEffect();
-
-  
-  CSSPoint translationX;
-  if (mX.IsOverscrolled()) {
+  CSSPoint translation;
+  if (mX.IsOverscrolled() && mX.GetOverscroll() > 0) {
     
-    translationX.y = (spacePropX * kZEffect * mY.GetCompositionLength()) / 2;
-
-    if (mX.GetOverscroll() < 0) {
-      
-      translationX.x = spacePropX * mX.GetCompositionLength();
-    } else {
-      
-      
-      
-      
-      translationX.x = - (spacePropX * (1 - kZEffect) * mX.GetCompositionLength());
-    }
+    CSSCoord overscrolledCompositionWidth = scaleX * compositionSize.width;
+    CSSCoord extraCompositionWidth = overscrolledCompositionWidth - compositionSize.width;
+    translation.x = -extraCompositionWidth;
   }
-
-  
-  CSSPoint translationY;
-  if (mY.IsOverscrolled()) {
+  if (mY.IsOverscrolled() && mY.GetOverscroll() > 0) {
     
-    translationY.x = (spacePropY * kZEffect * mX.GetCompositionLength()) / 2;
-
-    if (mY.GetOverscroll() < 0) {
-      
-      translationY.y = spacePropY * mY.GetCompositionLength();
-    } else {
-      
-      
-      
-      
-      translationY.y = - (spacePropY * (1 - kZEffect) * mY.GetCompositionLength());
-    }
+    CSSCoord overscrolledCompositionHeight = scaleY * compositionSize.height;
+    CSSCoord extraCompositionHeight = overscrolledCompositionHeight - compositionSize.height;
+    translation.y = -extraCompositionHeight;
   }
-
-  
-  float spaceProp = sqrtf(spacePropX * spacePropX + spacePropY * spacePropY);
-  CSSPoint translation = translationX + translationY;
-
-  float scale = 1 - (kZEffect * spaceProp);
 
   
   ScreenPoint screenTranslation = translation * mFrameMetrics.GetZoom();
-  *aTransform = Matrix4x4().Scale(scale, scale, 1)
+  *aTransform = Matrix4x4().Scale(scaleX, scaleY, 1)
                            .PostTranslate(screenTranslation.x, screenTranslation.y, 0);
 }
 
