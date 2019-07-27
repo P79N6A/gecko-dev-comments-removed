@@ -63,22 +63,22 @@ import static org.mozilla.gecko.util.IOUtils.ConsumedInputStream;
 import static org.mozilla.gecko.favicons.LoadFaviconTask.DEFAULT_FAVICON_BUFFER_SIZE;
 
 public class LocalBrowserDB implements BrowserDB {
-    
-    
     private static final String LOGTAG = "GeckoLocalBrowserDB";
 
     
-    private static final int FAVICON_ID_NOT_FOUND = Integer.MIN_VALUE;
-
     
-    private static final long FOLDER_NOT_FOUND = -1L;
-
     private static final boolean logDebug = Log.isLoggable(LOGTAG, Log.DEBUG);
     protected static void debug(String message) {
         if (logDebug) {
             Log.d(LOGTAG, message);
         }
     }
+
+    
+    private static final int FAVICON_ID_NOT_FOUND = Integer.MIN_VALUE;
+
+    
+    private static final long FOLDER_NOT_FOUND = -1L;
 
     private final String mProfile;
 
