@@ -49,10 +49,7 @@ public:
   
   
   
-  virtual void MetadataLoaded(int aChannels,
-                              int aRate,
-                              bool aHasAudio,
-                              bool aHasVideo,
+  virtual void MetadataLoaded(const MediaInfo* aInfo,
                               const MetadataTags* aTags) = 0;
 
   

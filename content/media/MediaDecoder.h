@@ -751,10 +751,7 @@ public:
   
   
   void QueueMetadata(int64_t aPublishTime,
-                     int aChannels,
-                     int aRate,
-                     bool aHasAudio,
-                     bool aHasVideo,
+                     MediaInfo* aInfo,
                      MetadataTags* aTags);
 
   
@@ -777,10 +774,7 @@ public:
 
   
   
-  virtual void MetadataLoaded(int aChannels,
-                              int aRate,
-                              bool aHasAudio,
-                              bool aHasVideo,
+  virtual void MetadataLoaded(MediaInfo* aInfo,
                               MetadataTags* aTags);
 
   
