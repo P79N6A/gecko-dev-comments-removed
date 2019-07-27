@@ -1959,7 +1959,8 @@ IonBuilder::processCfgEntry(CFGState &state)
 IonBuilder::ControlStatus
 IonBuilder::processIfEnd(CFGState &state)
 {
-    if (current) {
+    bool thenBranchTerminated = !current;
+    if (!thenBranchTerminated) {
         
         
         
@@ -1973,6 +1974,15 @@ IonBuilder::processIfEnd(CFGState &state)
         return ControlStatus_Error;
     graph().moveBlockToEnd(current);
     pc = current->pc();
+
+    if (thenBranchTerminated) {
+        
+        
+        MTest *test = state.branch.test;
+        if (!improveTypesAtTest(test->getOperand(0), test->ifTrue() == current, test))
+            return ControlStatus_Error;
+    }
+
     return ControlStatus_Joined;
 }
 
@@ -1989,11 +1999,9 @@ IonBuilder::processIfElseTrueEnd(CFGState &state)
         return ControlStatus_Error;
     graph().moveBlockToEnd(current);
 
-    if (state.branch.test) {
-        MTest *test = state.branch.test;
-        if (!improveTypesAtTest(test->getOperand(0), test->ifTrue() == current, test))
-            return ControlStatus_Error;
-    }
+    MTest *test = state.branch.test;
+    if (!improveTypesAtTest(test->getOperand(0), test->ifTrue() == current, test))
+        return ControlStatus_Error;
 
     return ControlStatus_Jumped;
 }
@@ -2286,6 +2294,10 @@ IonBuilder::processWhileCondEnd(CFGState &state)
     state.stopAt = state.loop.bodyEnd;
     pc = state.loop.bodyStart;
     if (!setCurrentAndSpecializePhis(body))
+        return ControlStatus_Error;
+
+    
+    if (!improveTypesAtTest(test->getOperand(0), test->ifTrue() == current, test))
         return ControlStatus_Error;
 
     
@@ -3364,8 +3376,6 @@ IonBuilder::improveTypesAtTest(MDefinition *ins, bool trueBranch, MTest *test)
 {
     
     
-    if (!ins)
-        return true;
 
     
     
