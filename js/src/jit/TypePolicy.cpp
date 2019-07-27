@@ -868,8 +868,14 @@ FilterTypeSetPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
 
     
     
-    if (inputType != MIRType_Value)
-        MOZ_CRASH("Types should be in accordance.");
+    
+    if (inputType != MIRType_Value) {
+        MBail *bail = MBail::New(alloc);
+        ins->block()->insertBefore(ins, bail);
+        bail->setDependency(ins->dependency());
+        ins->setDependency(bail);
+        ins->replaceOperand(0, boxAt(alloc, ins, ins->getOperand(0)));
+    }
 
     
     
