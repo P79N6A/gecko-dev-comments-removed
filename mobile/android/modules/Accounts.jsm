@@ -35,7 +35,7 @@ let Accounts = Object.freeze({
   _accountsExist: function (kind) {
     return Messaging.sendRequestForResult({
       type: "Accounts:Exist",
-      kind: kind,
+      kind: kind
     }).then(data => data.exists);
   },
 
@@ -64,7 +64,23 @@ let Accounts = Object.freeze({
   launchSetup: function (extras) {
     Messaging.sendRequest({
       type: "Accounts:Create",
-      extras: extras,
+      extras: extras
     });
   },
+
+  
+
+
+
+
+
+
+
+
+  createFirefoxAccountFromJSON: function (json) {
+    return Messaging.sendRequestForResponse({
+      type: "Accounts:CreateFirefoxAccountFromJSON",
+      json: json
+    });
+  }
 });
