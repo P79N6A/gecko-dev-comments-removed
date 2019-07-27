@@ -7328,7 +7328,7 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
         
         if (isOptimizationTrackingEnabled()) {
             
-            types::TypeSet::TypeList *allTypes = cx->new_<types::TypeSet::TypeList>();
+            IonTrackedTypeVector *allTypes = cx->new_<IonTrackedTypeVector>();
             if (allTypes && generateCompactTrackedOptimizationsMap(cx, code, allTypes)) {
                 const uint8_t *optsRegionTableAddr = trackedOptimizationsMap_ +
                                                      trackedOptimizationsRegionTableOffset_;
