@@ -112,14 +112,6 @@ class nsCaret : public nsISelectionListener
 
 
 
-    nsIFrame* GetCaretFrame(int32_t *aOffset = nullptr);
-    
-
-
-
-
-
-
     nsIFrame* GetPaintGeometry(nsRect* aRect);
     
 
