@@ -146,6 +146,9 @@ PluginContent.prototype = {
   makeNicePluginName : function (aName) {
     if (aName == "Shockwave Flash")
       return "Adobe Flash";
+    
+    if (/^Java\W/.exec(aName))
+      return "Java";
 
     
     
