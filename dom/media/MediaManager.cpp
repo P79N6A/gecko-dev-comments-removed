@@ -388,13 +388,27 @@ VideoDevice::VideoDevice(MediaEngineVideoSource* aSource)
     mFacingMode = dom::VideoFacingModeEnum::User;
   }
 #endif 
+#if defined(ANDROID) && !defined(MOZ_WIDGET_GONK)
+  
+  
+  
+  
 
+  if (mName.Find(NS_LITERAL_STRING("Facing back")) != kNotFound) {
+    mHasFacingMode = true;
+    mFacingMode = dom::VideoFacingModeEnum::Environment;
+  } else if (mName.Find(NS_LITERAL_STRING("Facing front")) != kNotFound) {
+    mHasFacingMode = true;
+    mFacingMode = dom::VideoFacingModeEnum::User;
+  }
+#endif 
+#ifdef XP_MACOSX
   
   if (mName.Find(NS_LITERAL_STRING("Face")) != -1) {
     mHasFacingMode = true;
     mFacingMode = dom::VideoFacingModeEnum::User;
   }
-
+#endif
   mMediaSource = aSource->GetMediaSource();
 }
 
