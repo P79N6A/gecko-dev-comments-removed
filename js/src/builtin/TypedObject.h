@@ -136,28 +136,10 @@ class TypedProto;
 
 
 
-
-
 class TypedProto : public NativeObject
 {
   public:
     static const Class class_;
-
-    inline void initTypeDescrSlot(TypeDescr &descr);
-
-    TypeDescr &typeDescr() const {
-        return getReservedSlot(JS_TYPROTO_SLOT_DESCR).toObject().as<TypeDescr>();
-    }
-
-    TypeDescr &maybeForwardedTypeDescr() const {
-        return MaybeForwarded(&getReservedSlot(JS_TYPROTO_SLOT_DESCR).toObject())->as<TypeDescr>();
-    }
-
-    inline type::Kind kind() const;
-
-    static int32_t offsetOfTypeDescr() {
-        return getFixedSlotOffset(JS_TYPROTO_SLOT_DESCR);
-    }
 };
 
 class TypeDescr : public NativeObject
@@ -594,11 +576,11 @@ class TypedObject : public JSObject
     }
 
     TypeDescr &typeDescr() const {
-        return typedProto().typeDescr();
+        return type()->typeDescr();
     }
 
     TypeDescr &maybeForwardedTypeDescr() const {
-        return maybeForwardedTypedProto().maybeForwardedTypeDescr();
+        return MaybeForwarded(&typeDescr())->as<TypeDescr>();
     }
 
     int32_t offset() const;
@@ -876,6 +858,14 @@ extern const JSJitInfo TypedObjectIsAttachedJitInfo;
 
 
 
+bool TypedObjectTypeDescr(ThreadSafeContext *cx, unsigned argc, Value *vp);
+extern const JSJitInfo TypedObjectTypeDescrJitInfo;
+
+
+
+
+
+
 bool ClampToUint8(ThreadSafeContext *cx, unsigned argc, Value *vp);
 extern const JSJitInfo ClampToUint8JitInfo;
 
@@ -1128,19 +1118,6 @@ JSObject::is<js::InlineTypedObject>() const
 {
     return getClass() == &js::InlineTransparentTypedObject::class_ ||
            getClass() == &js::InlineOpaqueTypedObject::class_;
-}
-
-inline void
-js::TypedProto::initTypeDescrSlot(TypeDescr &descr)
-{
-    initReservedSlot(JS_TYPROTO_SLOT_DESCR, ObjectValue(descr));
-}
-
-inline js::type::Kind
-js::TypedProto::kind() const {
-    
-    
-    return typeDescr().kind();
 }
 
 #endif

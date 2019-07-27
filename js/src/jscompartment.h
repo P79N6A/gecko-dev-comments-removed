@@ -9,7 +9,6 @@
 
 #include "mozilla/MemoryReporting.h"
 
-#include "prmjtime.h"
 #include "builtin/RegExp.h"
 #include "gc/Zone.h"
 #include "vm/GlobalObject.h"
@@ -167,22 +166,10 @@ struct JSCompartment
     js::ReadBarrieredGlobalObject global_;
 
     unsigned                     enterCompartmentDepth;
-    int64_t                      startInterval;
 
   public:
-    int64_t                      totalTime;
-    void enter() {
-        if (addonId && !enterCompartmentDepth) {
-            startInterval = PRMJ_Now();
-        }
-        enterCompartmentDepth++;
-    }
-    void leave() {
-        enterCompartmentDepth--;
-        if (addonId && !enterCompartmentDepth) {
-            totalTime += (PRMJ_Now() - startInterval);
-        }
-    }
+    void enter() { enterCompartmentDepth++; }
+    void leave() { enterCompartmentDepth--; }
     bool hasBeenEntered() { return !!enterCompartmentDepth; }
 
     JS::Zone *zone() { return zone_; }
@@ -284,13 +271,13 @@ struct JSCompartment
     void sweepInitialShapeTable();
 
     
-    js::types::TypeObjectWithNewScriptSet newTypeObjects;
-    js::types::TypeObjectWithNewScriptSet lazyTypeObjects;
-    void sweepNewTypeObjectTable(js::types::TypeObjectWithNewScriptSet &table);
+    js::types::NewTypeObjectTable newTypeObjects;
+    js::types::NewTypeObjectTable lazyTypeObjects;
+    void sweepNewTypeObjectTable(js::types::NewTypeObjectTable &table);
 
 #ifdef JSGC_HASH_TABLE_CHECKS
     void checkTypeObjectTablesAfterMovingGC();
-    void checkTypeObjectTableAfterMovingGC(js::types::TypeObjectWithNewScriptSet &table);
+    void checkTypeObjectTableAfterMovingGC(js::types::NewTypeObjectTable &table);
     void checkInitialShapesTableAfterMovingGC();
     void checkWrapperMapAfterMovingGC();
 #endif
@@ -407,7 +394,7 @@ struct JSCompartment
 
 #ifdef JSGC_COMPACTING
     void fixupInitialShapeTable();
-    void fixupNewTypeObjectTable(js::types::TypeObjectWithNewScriptSet &table);
+    void fixupNewTypeObjectTable(js::types::NewTypeObjectTable &table);
     void fixupAfterMovingGC();
     void fixupGlobal();
 #endif
