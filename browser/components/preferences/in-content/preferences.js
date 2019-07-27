@@ -69,6 +69,8 @@ function init_all() {
   window.addEventListener("hashchange", onHashChange);
   gotoPref();
 
+  init_dynamic_padding();
+
   var initFinished = new CustomEvent("Initialized", {
     'bubbles': true,
     'cancelable': true
@@ -79,6 +81,17 @@ function init_all() {
   helpCmd.addEventListener("command", helpButtonCommand);
 
   
+  
+  Services.obs.notifyObservers(window, "advanced-pane-loaded", null);
+}
+
+window.addEventListener("unload", function onUnload() {
+  gSubDialog.uninit();
+});
+
+
+function init_dynamic_padding() {
+  let categories = document.getElementById("categories");
   let catPadding = Number.parseInt(getComputedStyle(categories)
                                      .getPropertyValue('padding-top'));
   let fullHeight = categories.lastElementChild.getBoundingClientRect().bottom;
@@ -93,15 +106,7 @@ function init_all() {
   mediaStyle.setAttribute('type', 'text/css');
   mediaStyle.appendChild(document.createCDATASection(mediaRule));
   document.documentElement.appendChild(mediaStyle);
-
-  
-  
-  Services.obs.notifyObservers(window, "advanced-pane-loaded", null);
 }
-
-window.addEventListener("unload", function onUnload() {
-  gSubDialog.uninit();
-});
 
 function onHashChange() {
   gotoPref();
