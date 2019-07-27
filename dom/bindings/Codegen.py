@@ -255,7 +255,7 @@ class CGNativePropertyHooks(CGThing):
         self.properties = properties
 
     def declare(self):
-        if self.descriptor.workers:
+        if not self.descriptor.wantsXrays:
             return ""
         return dedent("""
             // We declare this as an array so that retrieving a pointer to this
@@ -269,7 +269,7 @@ class CGNativePropertyHooks(CGThing):
             """)
 
     def define(self):
-        if self.descriptor.workers:
+        if not self.descriptor.wantsXrays:
             return ""
         if self.descriptor.concrete and self.descriptor.proxy:
             resolveOwnProperty = "ResolveOwnProperty"
@@ -323,7 +323,7 @@ class CGNativePropertyHooks(CGThing):
 
 
 def NativePropertyHooks(descriptor):
-    return "&sWorkerNativePropertyHooks" if descriptor.workers else "sNativePropertyHooks"
+    return "&sEmptyNativePropertyHooks" if not descriptor.wantsXrays else "sNativePropertyHooks"
 
 
 def DOMClass(descriptor):
@@ -1896,8 +1896,7 @@ class PropertyDefiner:
         return "nullptr"
 
     def usedForXrays(self):
-        
-        return not self.descriptor.workers
+        return self.descriptor.wantsXrays
 
     def __str__(self):
         
@@ -2558,8 +2557,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 
         idsToInit = []
         
-        
-        if not self.descriptor.workers:
+        if self.descriptor.wantsXrays:
             for var in self.properties.arrayNames():
                 props = getattr(self.properties, var)
                 
@@ -11015,13 +11013,13 @@ class CGDescriptor(CGThing):
         cgThings.append(CGNativeProperties(descriptor, properties))
 
         
-        
-        if not descriptor.workers and descriptor.concrete and descriptor.proxy:
-            cgThings.append(CGResolveOwnProperty(descriptor))
-            cgThings.append(CGEnumerateOwnProperties(descriptor))
-        elif descriptor.needsXrayResolveHooks():
-            cgThings.append(CGResolveOwnPropertyViaResolve(descriptor))
-            cgThings.append(CGEnumerateOwnPropertiesViaGetOwnPropertyNames(descriptor))
+        if descriptor.wantsXrays:
+            if descriptor.concrete and descriptor.proxy:
+                cgThings.append(CGResolveOwnProperty(descriptor))
+                cgThings.append(CGEnumerateOwnProperties(descriptor))
+            elif descriptor.needsXrayResolveHooks():
+                cgThings.append(CGResolveOwnPropertyViaResolve(descriptor))
+                cgThings.append(CGEnumerateOwnPropertiesViaGetOwnPropertyNames(descriptor))
 
         
         
