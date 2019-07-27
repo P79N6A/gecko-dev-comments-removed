@@ -394,15 +394,6 @@ treechildren::-moz-tree-cell-text(selected, editing) {
     width: 9px;
   }
 
-  
-
-
-
-
-
-
-
-
   treechildren::-moz-tree-twisty(hover) {
     list-style-image: url("chrome://global/skin/tree/twisty-clsd-hover.png");
   }
