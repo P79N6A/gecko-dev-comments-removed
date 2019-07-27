@@ -173,3 +173,62 @@ add_test(function test_signal_not_present() {
 
   run_next_test();
 });
+
+
+
+
+add_test(function test_line_control() {
+  let worker = newWorkerWithParcel([
+                0x01,   
+                0x06,   
+                0x01,   
+                0x00,   
+                0x01,   
+                0xFF]); 
+  let context = worker.ContextPool._contexts[0];
+  let helper = context.CdmaPDUHelper;
+  let records = helper.decodeInformationRecord();
+
+  do_check_eq(records[0].lineControl.polarityIncluded, 1);
+  do_check_eq(records[0].lineControl.toggle, 0);
+  do_check_eq(records[0].lineControl.reverse, 1);
+  do_check_eq(records[0].lineControl.powerDenial, 255);
+
+  run_next_test();
+});
+
+
+
+
+add_test(function test_clir() {
+  let worker = newWorkerWithParcel([
+                0x01,   
+                0x08,   
+                0x01]); 
+  let context = worker.ContextPool._contexts[0];
+  let helper = context.CdmaPDUHelper;
+  let records = helper.decodeInformationRecord();
+
+  do_check_eq(records[0].clirCause, 1);
+
+  run_next_test();
+});
+
+
+
+
+add_test(function test_clir() {
+  let worker = newWorkerWithParcel([
+                0x01,   
+                0x0A,   
+                0x01,   
+                0xFF]); 
+  let context = worker.ContextPool._contexts[0];
+  let helper = context.CdmaPDUHelper;
+  let records = helper.decodeInformationRecord();
+
+  do_check_eq(records[0].audioControl.upLink, 1);
+  do_check_eq(records[0].audioControl.downLink, 255);
+
+  run_next_test();
+});
