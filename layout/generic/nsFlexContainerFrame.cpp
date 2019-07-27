@@ -164,8 +164,15 @@ public:
   AxisOrientationType GetMainAxis() const  { return mMainAxis;  }
   AxisOrientationType GetCrossAxis() const { return mCrossAxis; }
 
-  bool IsMainAxisHorizontal() const { return IsAxisHorizontal(mMainAxis); }
-  bool IsCrossAxisHorizontal() const { return IsAxisHorizontal(mCrossAxis); }
+  bool IsMainAxisHorizontal() const {
+    
+    
+    
+    return mIsRowOriented != mWM.IsVertical();
+  }
+  bool IsCrossAxisHorizontal() const {
+    return !IsMainAxisHorizontal();
+  }
   
 
   
@@ -271,13 +278,6 @@ private:
   FlexboxAxisTracker& operator=(const FlexboxAxisTracker&) = delete;
 
   
-  
-  
-  
-  
-  static inline bool IsAxisHorizontal(AxisOrientationType aAxis) {
-    return eAxis_LR == aAxis || eAxis_RL == aAxis;
-  }
   AxisOrientationType mMainAxis;
   AxisOrientationType mCrossAxis;
   
@@ -3032,9 +3032,6 @@ FlexboxAxisTracker::FlexboxAxisTracker(const nsStylePosition* aStylePosition,
       mIsCrossAxisReversed = !mIsCrossAxisReversed;
     }
   }
-
-  MOZ_ASSERT(IsMainAxisHorizontal() != IsCrossAxisHorizontal(),
-             "main & cross axes should be in different dimensions");
 }
 
 
