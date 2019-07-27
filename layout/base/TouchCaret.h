@@ -212,11 +212,6 @@ private:
   
 
 
-  void DispatchTapEvent();
-
-  
-
-
   TouchCaretState mState;
 
   
@@ -254,8 +249,6 @@ private:
 
   
   bool mVisible;
-  
-  bool mIsValidTap;
   
   nsCOMPtr<nsITimer> mTouchCaretExpirationTimer;
 
