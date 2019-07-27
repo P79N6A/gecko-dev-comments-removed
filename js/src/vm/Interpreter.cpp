@@ -409,7 +409,8 @@ struct AutoStopwatch final
     
     
     explicit inline AutoStopwatch(JSContext* cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : cx_(cx)
+      : compartment_(nullptr)
+      , runtime_(nullptr)
       , iteration_(0)
       , isActive_(false)
       , isTop_(false)
@@ -418,17 +419,16 @@ struct AutoStopwatch final
       , CPOWTimeStart_(0)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-
-        JSRuntime* runtime = JS_GetRuntime(cx_);
-        if (!runtime->stopwatch.isActive())
+        runtime_ = cx->runtime();
+        if (!runtime_->stopwatch.isActive())
             return;
-
-        JSCompartment* compartment = cx_->compartment();
-        if (compartment->scheduledForDestruction)
+        compartment_ = cx->compartment();
+        MOZ_ASSERT(compartment_);
+        if (compartment_->scheduledForDestruction)
             return;
-        iteration_ = runtime->stopwatch.iteration;
+        iteration_ = runtime_->stopwatch.iteration;
 
-        PerformanceGroup *group = compartment->performanceMonitoring.getGroup(cx);
+        PerformanceGroup* group = compartment_->performanceMonitoring.getGroup();
         MOZ_ASSERT(group);
 
         if (group->hasStopwatch(iteration_)) {
@@ -438,22 +438,22 @@ struct AutoStopwatch final
         }
 
         
-        if (!this->getTimes(runtime, &userTimeStart_, &systemTimeStart_))
+        if (!this->getTimes(&userTimeStart_, &systemTimeStart_))
             return;
         isActive_ = true;
-        CPOWTimeStart_ = runtime->stopwatch.performance.totalCPOWTime;
+        CPOWTimeStart_ = runtime_->stopwatch.performance.totalCPOWTime;
 
         
         
         
         group->acquireStopwatch(iteration_, this);
 
-        if (runtime->stopwatch.isEmpty) {
+        if (runtime_->stopwatch.isEmpty) {
             
             
             
-            runtime->stopwatch.isEmpty = false;
-            runtime->stopwatch.performance.ticks++;
+            runtime_->stopwatch.isEmpty = false;
+            runtime_->stopwatch.performance.ticks++;
             isTop_ = true;
         }
     }
@@ -463,35 +463,32 @@ struct AutoStopwatch final
             return;
         }
 
-        JSRuntime* runtime = JS_GetRuntime(cx_);
-        JSCompartment* compartment = cx_->compartment();
+        MOZ_ASSERT(!compartment_->scheduledForDestruction);
 
-        MOZ_ASSERT(!compartment->scheduledForDestruction);
-
-        if (!runtime->stopwatch.isActive()) {
+        if (!runtime_->stopwatch.isActive()) {
             
             
             return;
         }
 
-        if (iteration_ != runtime->stopwatch.iteration) {
+        if (iteration_ != runtime_->stopwatch.iteration) {
             
             
             return;
         }
 
-        PerformanceGroup *group = compartment->performanceMonitoring.getGroup(cx_);
+        PerformanceGroup* group = compartment_->performanceMonitoring.getGroup();
         MOZ_ASSERT(group);
 
         
         group->releaseStopwatch(iteration_, this);
         uint64_t userTimeEnd, systemTimeEnd;
-        if (!this->getTimes(runtime, &userTimeEnd, &systemTimeEnd))
+        if (!this->getTimes(&userTimeEnd, &systemTimeEnd))
             return;
 
         uint64_t userTimeDelta = userTimeEnd - userTimeStart_;
         uint64_t systemTimeDelta = systemTimeEnd - systemTimeStart_;
-        uint64_t CPOWTimeDelta = runtime->stopwatch.performance.totalCPOWTime - CPOWTimeStart_;
+        uint64_t CPOWTimeDelta = runtime_->stopwatch.performance.totalCPOWTime - CPOWTimeStart_;
         group->data.totalUserTime += userTimeDelta;
         group->data.totalSystemTime += systemTimeDelta;
         group->data.totalCPOWTime += CPOWTimeDelta;
@@ -503,10 +500,10 @@ struct AutoStopwatch final
         if (isTop_) {
             
             
-            runtime->stopwatch.performance.totalUserTime = userTimeEnd;
-            runtime->stopwatch.performance.totalSystemTime = systemTimeEnd;
-            updateDurations(totalTimeDelta, runtime->stopwatch.performance.durations);
-            runtime->stopwatch.isEmpty = true;
+            runtime_->stopwatch.performance.totalUserTime = userTimeEnd;
+            runtime_->stopwatch.performance.totalSystemTime = systemTimeEnd;
+            updateDurations(totalTimeDelta, runtime_->stopwatch.performance.durations);
+            runtime_->stopwatch.isEmpty = true;
         }
     }
 
@@ -530,7 +527,7 @@ struct AutoStopwatch final
     
     
     
-    bool getTimes(JSRuntime* runtime, uint64_t* userTime, uint64_t* systemTime) const {
+    bool getTimes(uint64_t* userTime, uint64_t* systemTime) const {
         MOZ_ASSERT(userTime);
         MOZ_ASSERT(systemTime);
 
@@ -594,12 +591,12 @@ struct AutoStopwatch final
         kernelTimeInt.LowPart = kernelFileTime.dwLowDateTime;
         kernelTimeInt.HighPart = kernelFileTime.dwHighDateTime;
         
-        *systemTime = runtime->stopwatch.systemTimeFix.monotonize(kernelTimeInt.QuadPart / 10);
+        *systemTime = runtime_-> stopwatch.systemTimeFix.monotonize(kernelTimeInt.QuadPart / 10);
 
         userTimeInt.LowPart = userFileTime.dwLowDateTime;
         userTimeInt.HighPart = userFileTime.dwHighDateTime;
         
-        *userTime = runtime->stopwatch.userTimeFix.monotonize(userTimeInt.QuadPart / 10);
+        *userTime = runtime_-> stopwatch.userTimeFix.monotonize(userTimeInt.QuadPart / 10);
 
 #endif 
 
@@ -609,7 +606,11 @@ struct AutoStopwatch final
   private:
     
     
-    JSContext* const cx_;
+    JSCompartment* compartment_;
+
+    
+    
+    JSRuntime* runtime_;
 
     
     

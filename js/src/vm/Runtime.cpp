@@ -897,14 +897,15 @@ js::PerformanceGroupHolder::~PerformanceGroupHolder()
 }
 
 void*
-js::PerformanceGroupHolder::getHashKey(JSContext* cx)
+js::PerformanceGroupHolder::getHashKey()
 {
-    if (runtime_->stopwatch.currentPerfGroupCallback) {
-        return (*runtime_->stopwatch.currentPerfGroupCallback)(cx);
-    }
-
+    return compartment_->isSystem() ?
+        (void*)compartment_->addonId :
+        (void*)JS_GetCompartmentPrincipals(compartment_);
     
-    return nullptr;
+    
+    
+    
 }
 
 void
@@ -925,26 +926,26 @@ js::PerformanceGroupHolder::unlink()
 
 
     JSRuntime::Stopwatch::Groups::Ptr ptr =
-        runtime_->stopwatch.groups_.lookup(group->key_);
+        runtime_->stopwatch.groups_.lookup(getHashKey());
     MOZ_ASSERT(ptr);
     runtime_->stopwatch.groups_.remove(ptr);
     js_delete(group);
 }
 
 PerformanceGroup*
-js::PerformanceGroupHolder::getGroup(JSContext* cx)
+js::PerformanceGroupHolder::getGroup()
 {
     if (group_)
         return group_;
 
-    void* key = getHashKey(cx);
+    void* key = getHashKey();
     JSRuntime::Stopwatch::Groups::AddPtr ptr =
         runtime_->stopwatch.groups_.lookupForAdd(key);
     if (ptr) {
         group_ = ptr->value();
         MOZ_ASSERT(group_);
     } else {
-        group_ = runtime_->new_<PerformanceGroup>(key);
+        group_ = runtime_->new_<PerformanceGroup>();
         runtime_->stopwatch.groups_.add(ptr, key, group_);
     }
 
@@ -957,10 +958,4 @@ PerformanceData*
 js::GetPerformanceData(JSRuntime* rt)
 {
     return &rt->stopwatch.performance;
-}
-
-void
-JS_SetCurrentPerfGroupCallback(JSRuntime *rt, JSCurrentPerfGroupCallback cb)
-{
-    rt->stopwatch.currentPerfGroupCallback = cb;
 }
