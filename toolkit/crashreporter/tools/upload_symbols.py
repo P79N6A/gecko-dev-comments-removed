@@ -19,16 +19,9 @@ import redo
 import requests
 import sys
 
-try:
-    from buildconfig import substs
-except ImportError:
-    
-    from os import environ as substs
+from buildconfig import substs
 
 url = 'https://crash-stats.mozilla.com/symbols/upload'
-
-if 'SOCORRO_SYMBOL_UPLOAD_URL' in os.environ:
-    url = os.environ['SOCORRO_SYMBOL_UPLOAD_URL']
 MAX_RETRIES = 5
 
 def print_error(r):

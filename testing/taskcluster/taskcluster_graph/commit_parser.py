@@ -260,17 +260,8 @@ def parse_commit(message, jobs):
                 additional_parameters = {}
 
             
-            post_build_jobs = []
-            for job_flag in jobs['flags']['post-build']:
-                job = jobs['post-build'][job_flag]
-                if 'allowed_build_tasks' in job and build_task not in job['allowed_build_tasks']:
-                    continue
-                post_build_jobs.append(copy.deepcopy(job))
-
-            
             result.append({
                 'task': build_task,
-                'post-build': post_build_jobs,
                 'dependents': extract_tests_from_platform(
                     jobs['tests'], platform_builds, build_task, tests
                 ),
