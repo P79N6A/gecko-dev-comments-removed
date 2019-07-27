@@ -337,6 +337,13 @@ loop.shared.mixins = (function() {
           cache[videoType].aspectRatio = this.getAspectRatio(cache[videoType]);
         }
       }, this);
+      
+      cacheKeys.forEach(function(videoType) {
+        if (!(videoType in newDimensions)) {
+          delete cache[videoType];
+          changed = true;
+        }
+      });
       return changed;
     },
 

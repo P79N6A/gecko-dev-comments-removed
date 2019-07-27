@@ -571,7 +571,19 @@ loop.store.ActiveRoomStore = (function() {
 
 
     receivingScreenShare: function(actionData) {
-      this.setStoreState({receivingScreenShare: actionData.receiving});
+      if (!actionData.receiving &&
+          this.getStoreState().remoteVideoDimensions.screen) {
+        
+        
+        var newDimensions = _.extend(this.getStoreState().remoteVideoDimensions);
+        delete newDimensions.screen;
+        this.setStoreState({
+          receivingScreenShare: actionData.receiving,
+          remoteVideoDimensions: newDimensions
+        });
+      } else {
+        this.setStoreState({receivingScreenShare: actionData.receiving});
+      }
     },
 
     
