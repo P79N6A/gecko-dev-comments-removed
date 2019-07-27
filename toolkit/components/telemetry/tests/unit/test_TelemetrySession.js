@@ -136,6 +136,11 @@ function fakeGenerateUUID(sessionFunc, subsessionFunc) {
   session.Policy.generateSubsessionUUID = subsessionFunc;
 }
 
+function fakeIdleNotification(topic) {
+  let session = Cu.import("resource://gre/modules/TelemetrySession.jsm");
+  session.TelemetryScheduler.observe(null, topic, null);
+}
+
 function registerPingHandler(handler) {
   gHttpServer.registerPrefixHandler("/submit/telemetry/",
 				   wrapWithExceptionHandler(handler));
@@ -1612,6 +1617,39 @@ add_task(function* test_pingExtendedStats() {
             "addonManager must be sent if the extended set is on.");
   Assert.ok("UITelemetry" in ping.payload.simpleMeasurements,
             "UITelemetry must be sent if the extended set is on.");
+});
+
+add_task(function* test_schedulerUserIdle() {
+  if (gIsAndroid || gIsGonk) {
+    
+    return;
+  }
+
+  const SCHEDULER_TICK_INTERVAL_MS = 5 * 60 * 1000;
+  const SCHEDULER_TICK_IDLE_INTERVAL_MS = 60 * 60 * 1000;
+
+  let schedulerTimeout = 0;
+  fakeSchedulerTimer((callback, timeout) => {
+    schedulerTimeout = timeout;
+  }, () => {});
+  yield TelemetrySession.reset();
+
+  
+  Assert.equal(schedulerTimeout, SCHEDULER_TICK_INTERVAL_MS);
+
+  
+  fakeIdleNotification("idle");
+
+  
+  Assert.equal(schedulerTimeout, SCHEDULER_TICK_IDLE_INTERVAL_MS);
+
+  
+  fakeIdleNotification("active");
+
+  
+  Assert.equal(schedulerTimeout, SCHEDULER_TICK_INTERVAL_MS);
+
+  yield TelemetrySession.shutdown();
 });
 
 add_task(function* stopServer(){
