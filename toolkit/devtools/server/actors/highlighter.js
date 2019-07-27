@@ -7,7 +7,7 @@
 const {Cu, Cc, Ci} = require("chrome");
 const Services = require("Services");
 const protocol = require("devtools/server/protocol");
-const {Arg, Option, method} = protocol;
+const {Arg, Option, method, RetVal} = protocol;
 const events = require("sdk/event/core");
 const Heritage = require("sdk/core/heritage");
 const {CssLogic} = require("devtools/styleinspector/css-logic");
@@ -456,16 +456,20 @@ let CustomHighlighterActor = exports.CustomHighlighterActor = protocol.ActorClas
 
 
 
+
   show: method(function(node, options) {
     if (!node || !isNodeValid(node.rawNode) || !this._highlighter) {
-      return;
+      return false;
     }
 
-    this._highlighter.show(node.rawNode, options);
+    return this._highlighter.show(node.rawNode, options);
   }, {
     request: {
       node: Arg(0, "domnode"),
       options: Arg(1, "nullable:json")
+    },
+    response: {
+      value: RetVal("nullable:boolean")
     }
   }),
 
@@ -849,7 +853,7 @@ AutoRefreshHighlighter.prototype = {
     let isSameOptions = this._isSameOptions(options);
 
     if (!isNodeValid(node) || (isSameNode && isSameOptions)) {
-      return;
+      return false;
     }
 
     this.options = options;
@@ -858,9 +862,12 @@ AutoRefreshHighlighter.prototype = {
     this.currentNode = node;
     this._updateAdjustedQuads();
     this._startRefreshLoop();
-    this._show();
 
-    this.emit("shown");
+    let shown = this._show();
+    if (shown) {
+      this.emit("shown");
+    }
+    return shown;
   },
 
   
@@ -942,6 +949,7 @@ AutoRefreshHighlighter.prototype = {
     
     
     
+    throw new Error("Custom highlighter class had to implement _show method");
   },
 
   _update: function() {
@@ -949,11 +957,13 @@ AutoRefreshHighlighter.prototype = {
     
     
     
+    throw new Error("Custom highlighter class had to implement _update method");
   },
 
   _hide: function() {
     
     
+    throw new Error("Custom highlighter class had to implement _hide method");
   },
 
   _startRefreshLoop: function() {
@@ -1229,9 +1239,10 @@ BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype
       this.options.region = "content";
     }
 
-    this._update();
+    let shown = this._update();
     this._trackMutations();
     this.emit("ready");
+    return shown;
   },
 
   
@@ -1259,6 +1270,7 @@ BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype
 
 
   _update: function() {
+    let shown = false;
     setIgnoreLayoutChanges(true);
 
     if (this._updateBoxModel()) {
@@ -1268,12 +1280,15 @@ BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype
         this._hideInfobar();
       }
       this._showBoxModel();
+      shown = true;
     } else {
       
       this._hide();
     }
 
     setIgnoreLayoutChanges(false, this.currentNode.ownerDocument.documentElement);
+
+    return shown;
   },
 
   
@@ -1776,14 +1791,13 @@ CssTransformHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.proto
   
 
 
-
   _show: function() {
     if (!this._isTransformed(this.currentNode)) {
       this.hide();
-      return;
+      return false;
     }
 
-    this._update();
+    return this._update();
   },
 
   
@@ -1830,7 +1844,7 @@ CssTransformHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.proto
     if (!quads.length ||
         quads[0].bounds.width <= 0 || quads[0].bounds.height <= 0) {
       this._hideShapes();
-      return null;
+      return false;
     }
 
     let [quad] = quads;
@@ -1850,6 +1864,7 @@ CssTransformHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.proto
     this._showShapes();
 
     setIgnoreLayoutChanges(false, this.currentNode.ownerDocument.documentElement);
+    return true;
   },
 
   
@@ -1898,7 +1913,7 @@ SelectorHighlighter.prototype = {
     this.hide();
 
     if (!isNodeValid(node) || !options.selector) {
-      return;
+      return false;
     }
 
     let nodes = [];
@@ -1922,6 +1937,8 @@ SelectorHighlighter.prototype = {
       this._highlighters.push(highlighter);
       i ++;
     }
+
+    return true;
   },
 
   hide: function() {
@@ -1998,7 +2015,7 @@ RectHighlighter.prototype = {
   show: function(node, options) {
     if (!this._hasValidOptions(options) || !node || !node.ownerDocument) {
       this.hide();
-      return;
+      return false;
     }
 
     let contextNode = node.ownerDocument.documentElement;
@@ -2007,7 +2024,7 @@ RectHighlighter.prototype = {
     let quads = this.layoutHelpers.getAdjustedQuads(contextNode);
     if (!quads.length) {
       this.hide();
-      return;
+      return false;
     }
 
     let {bounds} = quads[0];
@@ -2025,6 +2042,8 @@ RectHighlighter.prototype = {
     let rect = this.getElement("highlighted-rect");
     rect.setAttribute("style", style);
     rect.removeAttribute("hidden");
+
+    return true;
   },
 
   hide: function() {
@@ -2366,13 +2385,15 @@ GeometryEditorHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.pro
     
     if (pos === "sticky") {
       this.hide();
-      return;
+      return false;
     }
 
     let hasUpdated = this._update();
     if (!hasUpdated) {
       this.hide();
+      return false;
     }
+    return true;
   },
 
   _update: function() {
@@ -2832,6 +2853,7 @@ RulersHighlighter.prototype =  {
   show: function() {
     this.markup.removeAttributeForElement(this.ID_CLASS_PREFIX + "elements",
       "hidden");
+    return true;
   },
 
   hide: function() {
@@ -2874,6 +2896,7 @@ SimpleOutlineHighlighter.prototype = {
       installHelperSheet(getWindow(node), SIMPLE_OUTLINE_SHEET);
       DOMUtils.addPseudoClassLock(node, HIGHLIGHTED_PSEUDO_CLASS);
     }
+    return true;
   },
 
   
