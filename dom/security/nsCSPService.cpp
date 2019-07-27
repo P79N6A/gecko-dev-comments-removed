@@ -145,6 +145,60 @@ CSPService::ShouldLoad(uint32_t aContentType,
 
   
   
+
+  
+  uint16_t status = nsIPrincipal::APP_STATUS_NOT_INSTALLED;
+  nsAutoCString contentOrigin;
+  aContentLocation->GetPrePath(contentOrigin);
+  if (aRequestPrincipal && !mAppStatusCache.Get(contentOrigin, &status)) {
+    aRequestPrincipal->GetAppStatus(&status);
+    mAppStatusCache.Put(contentOrigin, status);
+  }
+
+  if (status == nsIPrincipal::APP_STATUS_CERTIFIED) {
+    
+    
+    
+    
+    
+    
+    
+
+    switch (aContentType) {
+      case nsIContentPolicy::TYPE_SCRIPT:
+      case nsIContentPolicy::TYPE_STYLESHEET:
+        {
+          
+          auto themeOrigin = Preferences::GetCString("b2g.theme.origin");
+          nsAutoCString sourceOrigin;
+          aRequestOrigin->GetPrePath(sourceOrigin);
+
+          if (!(sourceOrigin.Equals(contentOrigin) ||
+                (themeOrigin && themeOrigin.Equals(contentOrigin)))) {
+            *aDecision = nsIContentPolicy::REJECT_SERVER;
+          }
+        }
+        break;
+
+      case nsIContentPolicy::TYPE_OBJECT:
+        *aDecision = nsIContentPolicy::REJECT_SERVER;
+        break;
+
+      default:
+        *aDecision = nsIContentPolicy::ACCEPT;
+    }
+
+    
+    
+    if (*aDecision == nsIContentPolicy::ACCEPT) {
+      return NS_OK;
+    }
+  }
+
+  
+
+  
+  
   nsCOMPtr<nsINode> node(do_QueryInterface(aRequestContext));
   nsCOMPtr<nsIPrincipal> principal;
   nsCOMPtr<nsIContentSecurityPolicy> csp;
