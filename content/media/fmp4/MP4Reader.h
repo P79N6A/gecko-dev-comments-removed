@@ -189,6 +189,9 @@ private:
 
   
   bool mIsEncrypted;
+
+  bool mIndexReady;
+  Monitor mIndexMonitor;
 };
 
 } 
