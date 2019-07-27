@@ -35,6 +35,7 @@ class systemMessageCallback;
 struct MediaStreamConstraints;
 class WakeLock;
 class ArrayBufferViewOrBlobOrStringOrFormData;
+struct MobileIdOptions;
 }
 }
 
@@ -214,7 +215,8 @@ public:
                             ErrorResult& aRv);
   bool MozHasPendingMessage(const nsAString& aType, ErrorResult& aRv);
 #ifdef MOZ_B2G
-  already_AddRefed<Promise> GetMobileIdAssertion(ErrorResult& aRv);
+  already_AddRefed<Promise> GetMobileIdAssertion(const MobileIdOptions& options,
+                                                 ErrorResult& aRv);
 #endif
 #ifdef MOZ_B2G_RIL
   MobileConnectionArray* GetMozMobileConnections(ErrorResult& aRv);

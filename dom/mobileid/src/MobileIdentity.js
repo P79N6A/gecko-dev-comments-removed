@@ -31,7 +31,7 @@ MobileIdentityService.prototype = {
   
   _windows: {},
 
-  getMobileIdAssertion: function(aWindow) {
+  getMobileIdAssertion: function(aWindow, aOptions) {
     log.debug("getMobileIdAssertion");
 
     if (!this.init) {
@@ -49,7 +49,8 @@ MobileIdentityService.prototype = {
         this._windows[promiseId] = aWindow;
 
         cpmm.sendAsyncMessage("MobileId:GetAssertion", {
-          promiseId: promiseId
+          promiseId: promiseId,
+          options: aOptions
         }, null, aWindow.document.nodePrincipal);
       }
     );
