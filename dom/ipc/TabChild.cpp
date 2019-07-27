@@ -135,9 +135,9 @@ TabChildBase::InitializeRootMetrics()
   
   
   mLastRootMetrics.mViewport = CSSRect(CSSPoint(), kDefaultViewportSize);
-  mLastRootMetrics.mCompositionBounds = ParentLayerRect(
-      ParentLayerPoint(),
-      ParentLayerSize(ViewAs<ParentLayerPixel>(mInnerSize, PixelCastJustification::ScreenToParentLayerForRoot)));
+  mLastRootMetrics.mCompositionBounds = ParentLayerIntRect(
+      ParentLayerIntPoint(),
+      ViewAs<ParentLayerPixel>(mInnerSize, PixelCastJustification::ScreenToParentLayerForRoot));
   mLastRootMetrics.SetZoom(mLastRootMetrics.CalculateIntrinsicScale());
   mLastRootMetrics.mDevPixelsPerCSSPixel = WebWidget()->GetDefaultScale();
   
@@ -244,7 +244,7 @@ TabChildBase::HandlePossibleViewportChange()
   }
 
   ScreenIntSize oldScreenSize = ViewAs<ScreenPixel>(
-      RoundedToInt(mLastRootMetrics.mCompositionBounds).Size(),
+      mLastRootMetrics.mCompositionBounds.Size(),
       PixelCastJustification::ScreenToParentLayerForRoot);
   if (oldScreenSize == ScreenIntSize()) {
     oldScreenSize = mInnerSize;
@@ -252,9 +252,9 @@ TabChildBase::HandlePossibleViewportChange()
 
   FrameMetrics metrics(mLastRootMetrics);
   metrics.mViewport = CSSRect(CSSPoint(), viewport);
-  metrics.mCompositionBounds = ParentLayerRect(
-      ParentLayerPoint(),
-      ParentLayerSize(ViewAs<ParentLayerPixel>(mInnerSize, PixelCastJustification::ScreenToParentLayerForRoot)));
+  metrics.mCompositionBounds = ParentLayerIntRect(
+      ParentLayerIntPoint(),
+      ViewAs<ParentLayerPixel>(mInnerSize, PixelCastJustification::ScreenToParentLayerForRoot));
   metrics.SetRootCompositionSize(
       ScreenSize(mInnerSize) * ScreenToLayoutDeviceScale(1.0f) / metrics.mDevPixelsPerCSSPixel);
 
@@ -763,11 +763,6 @@ TabChild::Observe(nsISupports *aSubject,
         utils->SetIsFirstPaint(true);
 
         mContentDocumentIsDisplayed = true;
-
-        
-        
-        
-        SetCSSViewport(kDefaultViewportSize);
 
         
         
