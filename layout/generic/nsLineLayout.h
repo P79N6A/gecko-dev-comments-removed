@@ -548,10 +548,11 @@ protected:
   
   
   
-  nscoord ContainerWidthForSpan(PerSpanData* aPSD) {
+  nsSize ContainerSizeForSpan(PerSpanData* aPSD) {
     return (aPSD == mRootSpan)
-      ? ContainerWidth()
-      : aPSD->mFrame->mBounds.Width(mRootSpan->mWritingMode);
+      ? mContainerSize
+      : aPSD->mFrame->mBounds.Size(mRootSpan->mWritingMode).
+        GetPhysicalSize(mRootSpan->mWritingMode);
   }
 
   gfxBreakPriority mLastOptionalBreakPriority;
@@ -587,8 +588,7 @@ protected:
 
   
   nsSize mContainerSize;
-  nscoord ContainerWidth() const { return mContainerSize.width; }
-  nscoord ContainerHeight() const { return mContainerSize.height; }
+  const nsSize& ContainerSize() const { return mContainerSize; }
 
   bool mFirstLetterStyleOK      : 1;
   bool mIsTopOfPage             : 1;
@@ -686,7 +686,7 @@ protected:
                                     JustificationComputationState& aState);
 
   void AdvanceAnnotationInlineBounds(PerFrameData* aPFD,
-                                     nscoord aContainerWidth,
+                                     const nsSize& aContainerSize,
                                      nscoord aDeltaICoord,
                                      nscoord aDeltaISize);
 
@@ -700,10 +700,10 @@ protected:
       PerSpanData* aPSD, mozilla::JustificationApplicationState& aState);
 
   void ExpandRubyBox(PerFrameData* aFrame, nscoord aReservedISize,
-                     nscoord aContainerWidth);
+                     const nsSize& aContainerSize);
 
   void ExpandRubyBoxWithAnnotations(PerFrameData* aFrame,
-                                    nscoord aContainerWidth);
+                                    const nsSize& aContainerSize);
 
   void ExpandInlineRubyBoxes(PerSpanData* aSpan);
 

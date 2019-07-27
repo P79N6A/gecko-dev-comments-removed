@@ -55,13 +55,13 @@ nsFieldSetFrame::VisualBorderRectRelativeToSelf() const
   css::Side legendSide = wm.PhysicalSide(eLogicalSideBStart);
   nscoord legendBorder = StyleBorder()->GetComputedBorderWidth(legendSide);
   LogicalRect r(wm, LogicalPoint(wm, 0, 0), GetLogicalSize(wm));
-  nscoord containerWidth = r.Width(wm);
+  nsSize containerSize = r.Size(wm).GetPhysicalSize(wm);
   if (legendBorder < mLegendRect.BSize(wm)) {
     nscoord off = (mLegendRect.BSize(wm) - legendBorder) / 2;
     r.BStart(wm) += off;
     r.BSize(wm) -= off;
   }
-  return r.GetPhysicalRect(wm, containerWidth);
+  return r.GetPhysicalRect(wm, containerSize);
 }
 
 nsIFrame*
@@ -237,11 +237,11 @@ nsFieldSetFrame::PaintBorderBackground(nsRenderingContext& aRenderingContext,
 
     
     
-    LogicalRect legendRect(wm, legend->GetRect() + aPt, rect.width);
+    LogicalRect legendRect(wm, legend->GetRect() + aPt, rect.Size());
 
     
     
-    LogicalRect clipRect = LogicalRect(wm, rect, rect.width);
+    LogicalRect clipRect = LogicalRect(wm, rect, rect.Size());
     DrawTarget* drawTarget = aRenderingContext.GetDrawTarget();
     gfxContext* gfx = aRenderingContext.ThebesContext();
     int32_t appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
@@ -251,33 +251,32 @@ nsFieldSetFrame::PaintBorderBackground(nsRenderingContext& aRenderingContext,
     clipRect.BSize(wm) = legendBorderWidth;
 
     gfx->Save();
-    gfx->Clip(NSRectToSnappedRect(clipRect.GetPhysicalRect(wm, rect.width),
+    gfx->Clip(NSRectToSnappedRect(clipRect.GetPhysicalRect(wm, rect.Size()),
                                   appUnitsPerDevPixel, *drawTarget));
     nsCSSRendering::PaintBorder(presContext, aRenderingContext, this,
                                 aDirtyRect, rect, mStyleContext);
     gfx->Restore();
 
     
-    clipRect = LogicalRect(wm, rect, rect.width);
+    clipRect = LogicalRect(wm, rect, rect.Size());
     clipRect.ISize(wm) = clipRect.IEnd(wm) - legendRect.IEnd(wm);
     clipRect.IStart(wm) = legendRect.IEnd(wm);
     clipRect.BSize(wm) = legendBorderWidth;
 
     gfx->Save();
-    gfx->Clip(NSRectToSnappedRect(clipRect.GetPhysicalRect(wm, rect.width),
+    gfx->Clip(NSRectToSnappedRect(clipRect.GetPhysicalRect(wm, rect.Size()),
                                   appUnitsPerDevPixel, *drawTarget));
     nsCSSRendering::PaintBorder(presContext, aRenderingContext, this,
                                 aDirtyRect, rect, mStyleContext);
     gfx->Restore();
 
     
-    clipRect = LogicalRect(wm, rect, rect.width);
+    clipRect = LogicalRect(wm, rect, rect.Size());
     clipRect.BStart(wm) += legendBorderWidth;
-    clipRect.BSize(wm) =
-      GetLogicalRect(rect.width).BSize(wm) - (off + legendBorderWidth);
+    clipRect.BSize(wm) = BSize(wm) - (off + legendBorderWidth);
 
     gfx->Save();
-    gfx->Clip(NSRectToSnappedRect(clipRect.GetPhysicalRect(wm, rect.width),
+    gfx->Clip(NSRectToSnappedRect(clipRect.GetPhysicalRect(wm, rect.Size()),
                                   appUnitsPerDevPixel, *drawTarget));
     nsCSSRendering::PaintBorder(presContext, aRenderingContext, this,
                                 aDirtyRect, rect, mStyleContext);
@@ -449,8 +448,12 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
   if (reflowLegend) {
     nsHTMLReflowMetrics legendDesiredSize(aReflowState);
 
+    
+    
+    const nsSize dummyContainerSize;
     ReflowChild(legend, aPresContext, legendDesiredSize, *legendReflowState,
-                wm, LogicalPoint(wm), 0, NS_FRAME_NO_MOVE_FRAME, aStatus);
+                wm, LogicalPoint(wm), dummyContainerSize,
+                NS_FRAME_NO_MOVE_FRAME, aStatus);
 #ifdef NOISY_REFLOW
     printf("  returned (%d, %d)\n",
            legendDesiredSize.Width(), legendDesiredSize.Height());
@@ -477,10 +480,9 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
       reflowInner = true;
     }
 
-    
     FinishReflowChild(legend, aPresContext, legendDesiredSize,
-                      legendReflowState.ptr(), wm, LogicalPoint(wm), 0,
-                      NS_FRAME_NO_MOVE_FRAME);
+                      legendReflowState.ptr(), wm, LogicalPoint(wm),
+                      dummyContainerSize, NS_FRAME_NO_MOVE_FRAME);
   } else if (!legend) {
     mLegendRect.SetEmpty();
     mLegendSpace = 0;
@@ -490,8 +492,10 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
     legendMargin = legend->GetLogicalUsedMargin(wm);
   }
 
-  nscoord containerWidth = (wm.IsVertical() ? mLegendSpace : 0) +
-                            border.LeftRight(wm);
+  
+  
+  nsSize containerSize = (LogicalSize(wm, 0, mLegendSpace) +
+                          border.Size(wm)).GetPhysicalSize(wm);
   
   if (reflowInner) {
     nsHTMLReflowState kidReflowState(aPresContext, aReflowState, inner,
@@ -525,18 +529,23 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
                  "Margins on anonymous fieldset child not supported!");
     LogicalPoint pt(wm, border.IStart(wm), border.BStart(wm) + mLegendSpace);
 
+    
+    
+    
+    const nsSize dummyContainerSize;
     ReflowChild(inner, aPresContext, kidDesiredSize, kidReflowState,
-                wm, pt, containerWidth, 0, aStatus);
+                wm, pt, dummyContainerSize, 0, aStatus);
 
     
+    
+    containerSize += kidDesiredSize.PhysicalSize();
     FinishReflowChild(inner, aPresContext, kidDesiredSize,
-                      &kidReflowState, wm, pt,
-                      containerWidth + kidDesiredSize.Width(), 0);
+                      &kidReflowState, wm, pt, containerSize, 0);
     NS_FRAME_TRACE_REFLOW_OUT("FieldSet::Reflow", aStatus);
-  }
-
-  if (inner) {
-    containerWidth += inner->GetSize().width;
+  } else if (inner) {
+    
+    
+    containerSize += inner->GetSize();
   }
 
   LogicalRect contentRect(wm);
@@ -544,7 +553,7 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
     
     
     
-    contentRect = inner->GetLogicalRect(wm, containerWidth);
+    contentRect = inner->GetLogicalRect(wm, containerSize);
   }
 
   
@@ -607,9 +616,9 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
         ConvertTo(wm, legendReflowState->GetWritingMode());
     nsHTMLReflowState::ApplyRelativePositioning(legend, wm, offsets,
                                                 &actualLegendPos,
-                                                containerWidth);
+                                                containerSize);
 
-    legend->SetPosition(wm, actualLegendPos, containerWidth);
+    legend->SetPosition(wm, actualLegendPos, containerSize);
     nsContainerFrame::PositionFrameView(legend);
     nsContainerFrame::PositionChildViews(legend);
   }
@@ -682,6 +691,6 @@ nscoord
 nsFieldSetFrame::GetLogicalBaseline(WritingMode aWritingMode) const
 {
   nsIFrame* inner = GetInner();
-  return inner->BStart(aWritingMode, GetParent()->GetSize().width) +
+  return inner->BStart(aWritingMode, GetParent()->GetSize()) +
     inner->GetLogicalBaseline(aWritingMode);
 }

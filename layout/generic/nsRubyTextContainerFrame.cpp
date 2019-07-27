@@ -135,11 +135,14 @@ nsRubyTextContainerFrame::Reflow(nsPresContext* aPresContext,
 
   nscoord minBCoord = nscoord_MAX;
   nscoord maxBCoord = nscoord_MIN;
+  
+  
+  
+  const nsSize dummyContainerSize;
   for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
     nsIFrame* child = e.get();
     MOZ_ASSERT(child->GetType() == nsGkAtoms::rubyTextFrame);
-    
-    LogicalRect rect = child->GetLogicalRect(lineWM, 0);
+    LogicalRect rect = child->GetLogicalRect(lineWM, dummyContainerSize);
     LogicalMargin margin = child->GetLogicalUsedMargin(lineWM);
     nscoord blockStart = rect.BStart(lineWM) - margin.BStart(lineWM);
     minBCoord = std::min(minBCoord, blockStart);
@@ -155,18 +158,18 @@ nsRubyTextContainerFrame::Reflow(nsPresContext* aPresContext,
       minBCoord = maxBCoord = 0;
     }
     size.BSize(lineWM) = maxBCoord - minBCoord;
-    nscoord containerWidth = size.Width(lineWM);
+    nsSize containerSize = size.GetPhysicalSize(lineWM);
     for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
       nsIFrame* child = e.get();
       
       
-      LogicalPoint pos = child->GetLogicalPosition(lineWM, 0);
+      LogicalPoint pos = child->GetLogicalPosition(lineWM, dummyContainerSize);
       
       
       pos.B(lineWM) -= minBCoord;
       
       
-      child->SetPosition(lineWM, pos, containerWidth);
+      child->SetPosition(lineWM, pos, containerSize);
       nsContainerFrame::PlaceFrameView(child);
     }
   }

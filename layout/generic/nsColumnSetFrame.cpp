@@ -360,13 +360,13 @@ nsColumnSetFrame::ReflowColumns(nsHTMLReflowMetrics& aDesiredSize,
 }
 
 static void MoveChildTo(nsIFrame* aChild, LogicalPoint aOrigin,
-                        WritingMode aWM, nscoord aContainerWidth)
+                        WritingMode aWM, const nsSize& aContainerSize)
 {
-  if (aChild->GetLogicalPosition(aWM, aContainerWidth) == aOrigin) {
+  if (aChild->GetLogicalPosition(aWM, aContainerSize) == aOrigin) {
     return;
   }
 
-  aChild->SetPosition(aWM, aOrigin, aContainerWidth);
+  aChild->SetPosition(aWM, aOrigin, aContainerSize);
   nsContainerFrame::PlaceFrameView(aChild);
 }
 
@@ -491,7 +491,8 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
   
   
   
-  nscoord containerWidth = wm.IsVerticalRL() ? 0 : aReflowState.ComputedWidth();
+  
+  nsSize containerSize = aReflowState.ComputedSizeAsContainerIfConstrained();
 
   
   
@@ -506,7 +507,8 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
       availISize = aReflowState.ComputedISize();
     }
     if (availISize != NS_INTRINSICSIZE) {
-      childOrigin.I(wm) = containerWidth - borderPadding.Left(wm) - availISize;
+      childOrigin.I(wm) = containerSize.width - borderPadding.Left(wm) -
+                          availISize;
 #ifdef DEBUG_roc
       printf("*** childOrigin.iCoord = %d\n", childOrigin.I(wm));
 #endif
@@ -567,7 +569,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
     nscoord childContentBEnd = 0;
     if (!reflowNext && (skipIncremental || skipResizeBSizeShrink)) {
       
-      MoveChildTo(child, childOrigin, wm, containerWidth);
+      MoveChildTo(child, childOrigin, wm, containerSize);
 
       
       nsIFrame* kidNext = child->GetNextSibling();
@@ -634,7 +636,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
                           childOrigin.B(wm) +
                           kidReflowState.ComputedLogicalMargin().BStart(wm));
       ReflowChild(child, PresContext(), kidDesiredSize, kidReflowState,
-                  wm, origin, containerWidth, 0, aStatus);
+                  wm, origin, containerSize, 0, aStatus);
 
       reflowNext = (aStatus & NS_FRAME_REFLOW_NEXTINFLOW) != 0;
 
@@ -649,7 +651,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
       *aCarriedOutBEndMargin = kidDesiredSize.mCarriedOutBEndMargin;
 
       FinishReflowChild(child, PresContext(), kidDesiredSize,
-                        &kidReflowState, wm, childOrigin, containerWidth, 0);
+                        &kidReflowState, wm, childOrigin, containerSize, 0);
 
       childContentBEnd = nsLayoutUtils::CalculateContentBEnd(wm, child);
       if (childContentBEnd > aConfig.mColMaxBSize) {
@@ -803,15 +805,15 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
 
   
   
-  if (wm.IsVerticalRL()) {
-    child = mFrames.FirstChild();
-    while (child) {
+  
+  
+  if (wm.IsVerticalRL() && containerSize.width != contentSize.Width(wm)) {
+    const nsSize finalContainerSize = aDesiredSize.PhysicalSize();
+    for (nsIFrame* child : mFrames) {
       
       
-      
-      child->SetPosition(wm, child->GetLogicalPosition(wm, 0),
-                         contentSize.BSize(wm));
-      child = child->GetNextSibling();
+      child->SetPosition(wm, child->GetLogicalPosition(wm, containerSize),
+                         finalContainerSize);
     }
   }
 

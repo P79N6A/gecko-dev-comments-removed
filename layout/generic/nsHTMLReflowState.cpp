@@ -1265,11 +1265,11 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
   
   
   WritingMode cbwm = cbrs->GetWritingMode();
-  nscoord containerWidth = containingBlock->GetStateBits() & NS_FRAME_IN_REFLOW
-    ? cbrs->ComputedSizeAsContainerIfConstrained().width
-    : containingBlock->GetSize().width;
+  nsSize containerSize = containingBlock->GetStateBits() & NS_FRAME_IN_REFLOW
+    ? cbrs->ComputedSizeAsContainerIfConstrained()
+    : containingBlock->GetSize();
   LogicalPoint placeholderOffset(wm, aPlaceholderFrame->GetOffsetTo(containingBlock),
-                                 containerWidth);
+                                 containerSize);
 
   
   if (wm.IsVertical() && !wm.IsBidiLTR()) {
@@ -1285,7 +1285,11 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
   nsBlockFrame* blockFrame =
     nsLayoutUtils::GetAsBlock(containingBlock->GetContentInsertionFrame());
   if (blockFrame) {
-    LogicalPoint blockOffset(wm, blockFrame->GetOffsetTo(containingBlock), 0);
+    
+    
+    const nsSize nullContainerSize;
+    LogicalPoint blockOffset(wm, blockFrame->GetOffsetTo(containingBlock),
+                             nullContainerSize);
     bool isValid;
     nsBlockInFlowLineIterator iter(blockFrame, aPlaceholderFrame, &isValid);
     if (!isValid) {
@@ -1301,7 +1305,7 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
       
       LogicalRect lineBounds =
         lineBox->GetBounds().ConvertTo(wm, lineBox->mWritingMode,
-                                       lineBox->mContainerWidth);
+                                       lineBox->mContainerSize);
       if (mStyleDisplay->IsOriginalDisplayInlineOutsideStyle()) {
         
         
@@ -1414,9 +1418,10 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
     
     cbOffset = containingBlock->GetOffsetTo(cbrs->frame);
   }
-  nscoord cbrsWidth = cbrs->ComputedWidth() +
-                        cbrs->ComputedLogicalBorderPadding().LeftRight(cbwm);
-  LogicalPoint logCBOffs(wm, cbOffset, cbrsWidth - containerWidth);
+  nsSize cbrsSize =
+    cbrs->ComputedPhysicalSize() +
+    cbrs->ComputedLogicalBorderPadding().Size(cbwm).GetPhysicalSize(cbwm);
+  LogicalPoint logCBOffs(wm, cbOffset, cbrsSize - containerSize);
   aHypotheticalBox.mIStart += logCBOffs.I(wm);
   aHypotheticalBox.mIEnd += logCBOffs.I(wm);
   aHypotheticalBox.mBStart += logCBOffs.B(wm);

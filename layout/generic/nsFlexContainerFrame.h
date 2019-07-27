@@ -189,7 +189,7 @@ protected:
   void MoveFlexItemToFinalPosition(const nsHTMLReflowState& aReflowState,
                                    const FlexItem& aItem,
                                    mozilla::LogicalPoint& aFramePos,
-                                   nscoord aContainerWidth);
+                                   const nsSize& aContainerSize);
   
 
 
@@ -208,7 +208,7 @@ protected:
                       const nsHTMLReflowState& aReflowState,
                       const FlexItem& aItem,
                       mozilla::LogicalPoint& aFramePos,
-                      nscoord aContainerWidth);
+                      const nsSize& aContainerSize);
 
   bool mChildrenHaveBeenReordered; 
                                    

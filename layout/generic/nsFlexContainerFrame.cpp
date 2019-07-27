@@ -3824,9 +3824,11 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
                                                containerBP.IStart(flexWM),
                                                containerBP.BStart(flexWM));
 
-  nscoord containerWidth = aAxisTracker.IsMainAxisHorizontal() ?
-                             aContentBoxMainSize : contentBoxCrossSize;
-  containerWidth += aReflowState.ComputedPhysicalBorderPadding().LeftRight();
+  nsSize containerSize;
+  containerSize.width = aAxisTracker.IsMainAxisHorizontal() ?
+                          aContentBoxMainSize : contentBoxCrossSize;
+  containerSize.width +=
+    aReflowState.ComputedPhysicalBorderPadding().LeftRight();
 
   
   
@@ -3869,13 +3871,13 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
             
             itemNeedsReflow = false;
             MoveFlexItemToFinalPosition(aReflowState, *item, framePos,
-                                        containerWidth);
+                                        containerSize);
           }
         }
       }
       if (itemNeedsReflow) {
         ReflowFlexItem(aPresContext, aAxisTracker, aReflowState,
-                       *item, framePos, containerWidth);
+                       *item, framePos, containerSize);
       }
 
       
@@ -3960,7 +3962,7 @@ nsFlexContainerFrame::MoveFlexItemToFinalPosition(
   const nsHTMLReflowState& aReflowState,
   const FlexItem& aItem,
   LogicalPoint& aFramePos,
-  nscoord aContainerWidth)
+  const nsSize& aContainerSize)
 {
   WritingMode outerWM = aReflowState.GetWritingMode();
 
@@ -3976,8 +3978,8 @@ nsFlexContainerFrame::MoveFlexItemToFinalPosition(
   }
   nsHTMLReflowState::ApplyRelativePositioning(aItem.Frame(), outerWM,
                                               logicalOffsets, &aFramePos,
-                                              aContainerWidth);
-  aItem.Frame()->SetPosition(outerWM, aFramePos, aContainerWidth);
+                                              aContainerSize);
+  aItem.Frame()->SetPosition(outerWM, aFramePos, aContainerSize);
   PositionChildViews(aItem.Frame());
 }
 
@@ -3987,7 +3989,7 @@ nsFlexContainerFrame::ReflowFlexItem(nsPresContext* aPresContext,
                                      const nsHTMLReflowState& aReflowState,
                                      const FlexItem& aItem,
                                      LogicalPoint& aFramePos,
-                                     nscoord aContainerWidth)
+                                     const nsSize& aContainerSize)
 {
   WritingMode outerWM = aReflowState.GetWritingMode();
   WritingMode wm = aItem.Frame()->GetWritingMode();
@@ -4052,7 +4054,7 @@ nsFlexContainerFrame::ReflowFlexItem(nsPresContext* aPresContext,
   nsReflowStatus childReflowStatus;
   ReflowChild(aItem.Frame(), aPresContext,
               childDesiredSize, childReflowState,
-              outerWM, aFramePos, aContainerWidth,
+              outerWM, aFramePos, aContainerSize,
               0, childReflowStatus);
 
   
@@ -4067,11 +4069,11 @@ nsFlexContainerFrame::ReflowFlexItem(nsPresContext* aPresContext,
     childReflowState.ComputedLogicalOffsets().ConvertTo(outerWM, wm);
   nsHTMLReflowState::ApplyRelativePositioning(aItem.Frame(), outerWM,
                                               offsets, &aFramePos,
-                                              aContainerWidth);
+                                              aContainerSize);
 
   FinishReflowChild(aItem.Frame(), aPresContext,
                     childDesiredSize, &childReflowState,
-                    outerWM, aFramePos, aContainerWidth, 0);
+                    outerWM, aFramePos, aContainerSize, 0);
 
   
   if (aItem.Frame() == mFrames.FirstChild()) {

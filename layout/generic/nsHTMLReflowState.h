@@ -436,6 +436,11 @@ struct nsHTMLReflowState : public nsCSSOffsetState {
                                                            GetWritingMode());
   }
 
+  nsSize
+  ComputedPhysicalSize() const {
+    return nsSize(ComputedWidth(), ComputedHeight());
+  }
+
   
   
   const nsMargin& ComputedPhysicalOffsets() const { return mComputedOffsets; }
@@ -850,27 +855,27 @@ public:
                            mozilla::WritingMode aWritingMode,
                            const mozilla::LogicalMargin& aComputedOffsets,
                            mozilla::LogicalPoint* aPosition,
-                           nscoord aContainerWidth) {
+                           const nsSize& aContainerSize) {
     
     
     
     
     
-    nscoord frameWidth = aFrame->GetSize().width;
+    nsSize frameSize = aFrame->GetSize();
     nsPoint pos = aPosition->GetPhysicalPoint(aWritingMode,
-                                              aContainerWidth - frameWidth);
+                                              aContainerSize - frameSize);
     ApplyRelativePositioning(aFrame,
                              aComputedOffsets.GetPhysicalMargin(aWritingMode),
                              &pos);
     *aPosition = mozilla::LogicalPoint(aWritingMode, pos,
-                                       aContainerWidth - frameWidth);
+                                       aContainerSize - frameSize);
   }
 
   void ApplyRelativePositioning(mozilla::LogicalPoint* aPosition,
-                                nscoord aContainerWidth) const {
+                                const nsSize& aContainerSize) const {
     ApplyRelativePositioning(frame, mWritingMode,
                              ComputedLogicalOffsets(), aPosition,
-                             aContainerWidth);
+                             aContainerSize);
   }
 
 #ifdef DEBUG

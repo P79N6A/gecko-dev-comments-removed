@@ -322,7 +322,7 @@ nsBlockReflowState::GetFloatAvailableSpaceWithState(
   nsFlowAreaRect result =
     mFloatManager->GetFlowArea(wm, aBCoord, nsFloatManager::BAND_FROM_POINT,
                                blockSize, mContentArea, aState,
-                               ContainerWidth());
+                               ContainerSize());
   
   if (result.mRect.ISize(wm) < 0) {
     result.mRect.ISize(wm) = 0;
@@ -355,7 +355,7 @@ nsBlockReflowState::GetFloatAvailableSpaceForBSize(
 #endif
   nsFlowAreaRect result =
     mFloatManager->GetFlowArea(wm, aBCoord, nsFloatManager::WIDTH_WITHIN_HEIGHT,
-                               aBSize, mContentArea, aState, ContainerWidth());
+                               aBSize, mContentArea, aState, ContainerSize());
   
   if (result.mRect.ISize(wm) < 0) {
     result.mRect.ISize(wm) = 0;
@@ -479,7 +479,7 @@ nsBlockReflowState::RecoverFloats(nsLineList::iterator aLine,
                tI, tB, mFloatManagerI, mFloatManagerB);
         nsFrame::ListTag(stdout, floatFrame);
         LogicalRect region = nsFloatManager::GetRegionFor(wm, floatFrame,
-                                                          ContainerWidth());
+                                                          ContainerSize());
         printf(" aDeltaBCoord=%d region={%d,%d,%d,%d}\n",
                aDeltaBCoord, region.IStart(wm), region.BStart(wm),
                region.ISize(wm), region.BSize(wm));
@@ -487,13 +487,13 @@ nsBlockReflowState::RecoverFloats(nsLineList::iterator aLine,
 #endif
       mFloatManager->AddFloat(floatFrame,
                               nsFloatManager::GetRegionFor(wm, floatFrame,
-                                                           ContainerWidth()),
-                              wm, ContainerWidth());
+                                                           ContainerSize()),
+                              wm, ContainerSize());
       fc = fc->Next();
     }
   } else if (aLine->IsBlock()) {
     nsBlockFrame::RecoverFloatsFor(aLine->mFirstChild, *mFloatManager, wm,
-                                   ContainerWidth());
+                                   ContainerSize());
   }
 }
 
@@ -700,7 +700,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
 
   
   LogicalRect oldRegion = nsFloatManager::GetRegionFor(wm, aFloat,
-                                                       ContainerWidth());
+                                                       ContainerSize());
 
   
   
@@ -857,9 +857,10 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
     
     
     
-    floatPos.I(wm) = leftFloat
-                      ? floatAvailableSpace.mRect.Y(wm)
-                      : floatAvailableSpace.mRect.YMost(wm) - floatMarginISize;
+    floatPos.I(wm) =
+      leftFloat ? floatAvailableSpace.mRect.Y(wm, ContainerSize().height)
+                : floatAvailableSpace.mRect.YMost(wm, ContainerSize().height) -
+                  floatMarginISize;
   } else if (leftFloat == wm.IsBidiLTR()) {
     floatPos.I(wm) = floatAvailableSpace.mRect.IStart(wm);
   }
@@ -935,14 +936,14 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
 
   
   nsHTMLReflowState::ApplyRelativePositioning(aFloat, wm, floatOffsets,
-                                              &origin, ContainerWidth());
+                                              &origin, ContainerSize());
 
   
   
   
-  bool moved = aFloat->GetLogicalPosition(wm, ContainerWidth()) != origin;
+  bool moved = aFloat->GetLogicalPosition(wm, ContainerSize()) != origin;
   if (moved) {
-    aFloat->SetPosition(wm, origin, ContainerWidth());
+    aFloat->SetPosition(wm, origin, ContainerSize());
     nsContainerFrame::PositionFrameView(aFloat);
     nsContainerFrame::PositionChildViews(aFloat);
   }
@@ -956,7 +957,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   
   LogicalRect region =
     nsFloatManager::CalculateRegionFor(wm, aFloat, floatMargin,
-                                       ContainerWidth());
+                                       ContainerSize());
   
   if (NS_FRAME_IS_NOT_COMPLETE(reflowStatus) &&
       (NS_UNCONSTRAINEDSIZE != ContentBSize())) {
@@ -964,10 +965,10 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
                                 ContentBSize() - floatPos.B(wm));
   }
   DebugOnly<nsresult> rv = mFloatManager->AddFloat(aFloat, region, wm,
-                                                   ContainerWidth());
+                                                   ContainerSize());
   MOZ_ASSERT(NS_SUCCEEDED(rv), "bad float placement");
   
-  nsFloatManager::StoreRegionFor(wm, aFloat, region, ContainerWidth());
+  nsFloatManager::StoreRegionFor(wm, aFloat, region, ContainerSize());
 
   
   

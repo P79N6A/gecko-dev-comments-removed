@@ -820,10 +820,11 @@ nsMathMLmtableOuterFrame::Reflow(nsPresContext*          aPresContext,
     if (rowFrame) {
       
       nsIFrame* frame = rowFrame;
-      LogicalRect frameRect(wm, frame->GetRect(), aReflowState.ComputedWidth());
-      blockSize = frameRect.BSize(wm);
+      LogicalRect rect(wm, frame->GetRect(),
+                       aReflowState.ComputedSizeAsContainerIfConstrained());
+      blockSize = rect.BSize(wm);
       do {
-        dy += frameRect.BStart(wm);
+        dy += rect.BStart(wm);
         frame = frame->GetParent();
       } while (frame != this);
     }

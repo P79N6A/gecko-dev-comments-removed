@@ -255,7 +255,7 @@ public:
                    const nsHTMLReflowState&       aReflowState,
                    const mozilla::WritingMode&    aWM,
                    const mozilla::LogicalPoint&   aPos,
-                   nscoord                        aContainerWidth,
+                   const nsSize&                  aContainerSize,
                    uint32_t                       aFlags,
                    nsReflowStatus&                aStatus,
                    nsOverflowContinuationTracker* aTracker = nullptr);
@@ -285,7 +285,7 @@ public:
                                 const nsHTMLReflowState*     aReflowState,
                                 const mozilla::WritingMode&  aWM,
                                 const mozilla::LogicalPoint& aPos,
-                                nscoord                      aContainerWidth,
+                                const nsSize&                aContainerSize,
                                 uint32_t                     aFlags);
 
   

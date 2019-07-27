@@ -39,7 +39,7 @@ nsTableOuterFrame::GetLogicalBaseline(WritingMode aWritingMode) const
   }
 
   return kid->GetLogicalBaseline(aWritingMode) +
-         kid->BStart(aWritingMode, mRect.width);
+         kid->BStart(aWritingMode, mRect.Size());
 }
 
 nsTableOuterFrame::nsTableOuterFrame(nsStyleContext* aContext):
@@ -790,11 +790,11 @@ nsTableOuterFrame::OuterDoReflowChild(nsPresContext*             aPresContext,
   
   
   
-  const nscoord zeroCWidth = 0;
+  const nsSize zeroCSize;
   WritingMode wm = aChildRS.GetWritingMode();
 
   
-  LogicalPoint childPt = aChildFrame->GetLogicalPosition(wm, zeroCWidth);
+  LogicalPoint childPt = aChildFrame->GetLogicalPosition(wm, zeroCSize);
   uint32_t flags = NS_FRAME_NO_MOVE_FRAME;
 
   
@@ -807,7 +807,7 @@ nsTableOuterFrame::OuterDoReflowChild(nsPresContext*             aPresContext,
   }
 
   ReflowChild(aChildFrame, aPresContext, aMetrics, aChildRS,
-              wm, childPt, zeroCWidth, flags, aStatus);
+              wm, childPt, zeroCSize, flags, aStatus);
 }
 
 void 
@@ -967,7 +967,7 @@ nsTableOuterFrame::Reflow(nsPresContext*           aPresContext,
                  innerMargin, captionMargin,
                  desiredSize.ISize(wm), desiredSize.BSize(wm), wm);
   aDesiredSize.SetSize(wm, desiredSize);
-  nscoord containerWidth = aDesiredSize.Width();
+  nsSize containerSize = aDesiredSize.PhysicalSize();
   
   
 
@@ -976,8 +976,7 @@ nsTableOuterFrame::Reflow(nsPresContext*           aPresContext,
     GetCaptionOrigin(captionSide, containSize, innerSize, innerMargin,
                      captionSize, captionMargin, captionOrigin, wm);
     FinishReflowChild(mCaptionFrames.FirstChild(), aPresContext, *captionMet,
-                      captionRS.ptr(), wm, captionOrigin, containerWidth,
-                      0);
+                      captionRS.ptr(), wm, captionOrigin, containerSize, 0);
     captionRS.reset();
   }
   
@@ -987,7 +986,7 @@ nsTableOuterFrame::Reflow(nsPresContext*           aPresContext,
   GetInnerOrigin(captionSide, containSize, captionSize, captionMargin,
                  innerSize, innerMargin, innerOrigin, wm);
   FinishReflowChild(InnerTableFrame(), aPresContext, innerMet, innerRS.ptr(),
-                    wm, innerOrigin, containerWidth, 0);
+                    wm, innerOrigin, containerSize, 0);
   innerRS.reset();
 
   nsTableFrame::InvalidateTableFrame(InnerTableFrame(), origInnerRect,

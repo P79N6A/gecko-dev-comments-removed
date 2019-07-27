@@ -659,39 +659,39 @@ public:
 
 
 
-  mozilla::LogicalRect GetLogicalRect(nscoord aContainerWidth) const {
-    return GetLogicalRect(GetWritingMode(), aContainerWidth);
+  mozilla::LogicalRect GetLogicalRect(const nsSize& aContainerSize) const {
+    return GetLogicalRect(GetWritingMode(), aContainerSize);
   }
-  mozilla::LogicalPoint GetLogicalPosition(nscoord aContainerWidth) const {
-    return GetLogicalPosition(GetWritingMode(), aContainerWidth);
+  mozilla::LogicalPoint GetLogicalPosition(const nsSize& aContainerSize) const {
+    return GetLogicalPosition(GetWritingMode(), aContainerSize);
   }
   mozilla::LogicalSize GetLogicalSize() const {
     return GetLogicalSize(GetWritingMode());
   }
   mozilla::LogicalRect GetLogicalRect(mozilla::WritingMode aWritingMode,
-                                      nscoord aContainerWidth) const {
-    return mozilla::LogicalRect(aWritingMode, GetRect(), aContainerWidth);
+                                      const nsSize& aContainerSize) const {
+    return mozilla::LogicalRect(aWritingMode, GetRect(), aContainerSize);
   }
   mozilla::LogicalPoint GetLogicalPosition(mozilla::WritingMode aWritingMode,
-                                           nscoord aContainerWidth) const {
-    return GetLogicalRect(aWritingMode, aContainerWidth).Origin(aWritingMode);
+                                           const nsSize& aContainerSize) const {
+    return GetLogicalRect(aWritingMode, aContainerSize).Origin(aWritingMode);
   }
   mozilla::LogicalSize GetLogicalSize(mozilla::WritingMode aWritingMode) const {
     return mozilla::LogicalSize(aWritingMode, GetSize());
   }
-  nscoord IStart(nscoord aContainerWidth) const {
-    return IStart(GetWritingMode(), aContainerWidth);
+  nscoord IStart(const nsSize& aContainerSize) const {
+    return IStart(GetWritingMode(), aContainerSize);
   }
   nscoord IStart(mozilla::WritingMode aWritingMode,
-                 nscoord aContainerWidth) const {
-    return GetLogicalPosition(aWritingMode, aContainerWidth).I(aWritingMode);
+                 const nsSize& aContainerSize) const {
+    return GetLogicalPosition(aWritingMode, aContainerSize).I(aWritingMode);
   }
-  nscoord BStart(nscoord aContainerWidth) const {
-    return BStart(GetWritingMode(), aContainerWidth);
+  nscoord BStart(const nsSize& aContainerSize) const {
+    return BStart(GetWritingMode(), aContainerSize);
   }
   nscoord BStart(mozilla::WritingMode aWritingMode,
-                 nscoord aContainerWidth) const {
-    return GetLogicalPosition(aWritingMode, aContainerWidth).B(aWritingMode);
+                 const nsSize& aContainerSize) const {
+    return GetLogicalPosition(aWritingMode, aContainerSize).B(aWritingMode);
   }
   nscoord ISize() const { return ISize(GetWritingMode()); }
   nscoord ISize(mozilla::WritingMode aWritingMode) const {
@@ -721,8 +721,9 @@ public:
   
 
 
-  void SetRect(const mozilla::LogicalRect& aRect, nscoord aContainerWidth) {
-    SetRect(GetWritingMode(), aRect, aContainerWidth);
+  void SetRect(const mozilla::LogicalRect& aRect,
+               const nsSize& aContainerSize) {
+    SetRect(GetWritingMode(), aRect, aContainerSize);
   }
   
 
@@ -730,8 +731,8 @@ public:
 
   void SetRect(mozilla::WritingMode aWritingMode,
                const mozilla::LogicalRect& aRect,
-               nscoord aContainerWidth) {
-    SetRect(aRect.GetPhysicalRect(aWritingMode, aContainerWidth));
+               const nsSize& aContainerSize) {
+    SetRect(aRect.GetPhysicalRect(aWritingMode, aContainerSize));
   }
 
   
@@ -771,12 +772,12 @@ public:
   void SetPosition(const nsPoint& aPt) { mRect.MoveTo(aPt); }
   void SetPosition(mozilla::WritingMode aWritingMode,
                    const mozilla::LogicalPoint& aPt,
-                   nscoord aContainerWidth) {
+                   const nsSize& aContainerSize) {
     
     
     
     mRect.MoveTo(aPt.GetPhysicalPoint(aWritingMode,
-                                      aContainerWidth - mRect.width));
+                                      aContainerSize - mRect.Size()));
   }
 
   
@@ -798,7 +799,12 @@ public:
   void MovePositionBy(mozilla::WritingMode aWritingMode,
                       const mozilla::LogicalPoint& aTranslation)
   {
-    MovePositionBy(aTranslation.GetPhysicalPoint(aWritingMode, 0));
+    
+    
+    
+    const nsSize nullContainerSize;
+    MovePositionBy(aTranslation.GetPhysicalPoint(aWritingMode,
+                                                 nullContainerSize));
   }
 
   
@@ -812,14 +818,14 @@ public:
   nsPoint GetNormalPosition() const;
   mozilla::LogicalPoint
   GetLogicalNormalPosition(mozilla::WritingMode aWritingMode,
-                           nscoord aContainerWidth) const
+                           const nsSize& aContainerSize) const
   {
     
     
     
     return mozilla::LogicalPoint(aWritingMode,
                                  GetNormalPosition(),
-                                 aContainerWidth - mRect.width);
+                                 aContainerSize - mRect.Size());
   }
 
   virtual nsPoint GetPositionOfChildIgnoringScrolling(nsIFrame* aChild)

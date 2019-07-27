@@ -467,15 +467,16 @@ nsComboboxControlFrame::ReflowDropdown(nsPresContext*  aPresContext,
   
   
   WritingMode outerWM = GetWritingMode();
+  const nsSize dummyContainerSize;
   nsHTMLReflowMetrics desiredSize(aReflowState);
   nsReflowStatus ignoredStatus;
   ReflowChild(mDropdownFrame, aPresContext, desiredSize,
-              kidReflowState, outerWM, LogicalPoint(outerWM), 0,
-              flags, ignoredStatus);
+              kidReflowState, outerWM, LogicalPoint(outerWM),
+              dummyContainerSize, flags, ignoredStatus);
 
    
   FinishReflowChild(mDropdownFrame, aPresContext, desiredSize, &kidReflowState,
-                    outerWM, LogicalPoint(outerWM), 0, flags);
+                    outerWM, LogicalPoint(outerWM), dummyContainerSize, flags);
 }
 
 nsPoint
@@ -575,16 +576,19 @@ nsComboboxControlFrame::GetAvailableDropdownSpace(WritingMode aWM,
   
   
   
-  *aTranslation = LogicalPoint(aWM, GetCSSTransformTranslation(), 0);
+  
+  const nsSize nullContainerSize;
+  *aTranslation = LogicalPoint(aWM, GetCSSTransformTranslation(),
+                               nullContainerSize);
   *aBefore = 0;
   *aAfter = 0;
 
   nsRect screen = nsFormControlFrame::GetUsableScreenRect(PresContext());
-  nscoord containerWidth = screen.width;
-  LogicalRect logicalScreen(aWM, screen, containerWidth);
+  nsSize containerSize = screen.Size();
+  LogicalRect logicalScreen(aWM, screen, containerSize);
   if (mLastDropDownAfterScreenBCoord == nscoord_MIN) {
     LogicalRect thisScreenRect(aWM, GetScreenRectInAppUnits(),
-                               containerWidth);
+                               containerSize);
     mLastDropDownAfterScreenBCoord = thisScreenRect.BEnd(aWM) +
                                      aTranslation->B(aWM);
     mLastDropDownBeforeScreenBCoord = thisScreenRect.BEnd(aWM) +
@@ -597,7 +601,7 @@ nsComboboxControlFrame::GetAvailableDropdownSpace(WritingMode aWM,
   if (root) {
     minBCoord = LogicalRect(aWM,
                             root->GetScreenRectInAppUnits(),
-                            containerWidth).BStart(aWM);
+                            containerSize).BStart(aWM);
     if (mLastDropDownAfterScreenBCoord < minBCoord) {
       
       return;
@@ -669,12 +673,12 @@ nsComboboxControlFrame::AbsolutelyPositionDropDown()
 
   
   
-  nscoord containerWidth = GetRect().width;
+  nsSize containerSize = GetSize();
   const LogicalPoint currentPos =
-    mDropdownFrame->GetLogicalPosition(containerWidth);
+    mDropdownFrame->GetLogicalPosition(containerSize);
   const LogicalPoint newPos = dropdownPosition + translation;
   if (currentPos != newPos) {
-    mDropdownFrame->SetPosition(wm, newPos, containerWidth);
+    mDropdownFrame->SetPosition(wm, newPos, containerSize);
     nsContainerFrame::PositionFrameView(mDropdownFrame);
   }
   return eDropDownPositionFinal;
@@ -866,9 +870,8 @@ nsComboboxControlFrame::Reflow(nsPresContext*          aPresContext,
 
   
   WritingMode wm = aReflowState.GetWritingMode();
-  nscoord containerWidth =
-    aReflowState.ComputedSizeAsContainerIfConstrained().width;
-  LogicalRect buttonRect = mButtonFrame->GetLogicalRect(containerWidth);
+  nsSize containerSize = aReflowState.ComputedSizeAsContainerIfConstrained();
+  LogicalRect buttonRect = mButtonFrame->GetLogicalRect(containerSize);
 
   buttonRect.IStart(wm) =
     aReflowState.ComputedLogicalBorderPadding().IStartEnd(wm) +
@@ -881,7 +884,7 @@ nsComboboxControlFrame::Reflow(nsPresContext*          aPresContext,
   buttonRect.BSize(wm) = mDisplayFrame->BSize(wm) +
                          this->GetLogicalUsedPadding(wm).BStartEnd(wm);
 
-  mButtonFrame->SetRect(buttonRect, containerWidth);
+  mButtonFrame->SetRect(buttonRect, containerSize);
 
   if (!NS_INLINE_IS_BREAK_BEFORE(aStatus) &&
       !NS_FRAME_IS_FULLY_COMPLETE(aStatus)) {

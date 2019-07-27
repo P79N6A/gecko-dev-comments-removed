@@ -326,7 +326,7 @@ nsTableRowFrame::DidResize()
   desiredSize.SetSize(wm, GetLogicalSize(wm));
   desiredSize.SetOverflowAreasToDesiredBounds();
 
-  nscoord containerWidth = mRect.width;
+  nsSize containerSize = mRect.Size();
 
   for (nsIFrame* childFrame : mFrames) {
     nsTableCellFrame *cellFrame = do_QueryFrame(childFrame);
@@ -347,7 +347,7 @@ nsTableRowFrame::DidResize()
           
           
           LogicalPoint oldPos =
-            cellFrame->GetLogicalPosition(wm, containerWidth);
+            cellFrame->GetLogicalPosition(wm, containerSize);
 
           
           
@@ -359,7 +359,7 @@ nsTableRowFrame::DidResize()
             
             
             LogicalPoint oldNormalPos =
-              cellFrame->GetLogicalNormalPosition(wm, containerWidth);
+              cellFrame->GetLogicalNormalPosition(wm, containerSize);
             
             
             
@@ -367,7 +367,7 @@ nsTableRowFrame::DidResize()
           }
 
           if (oldPos != newPos) {
-            cellFrame->SetPosition(wm, newPos, containerWidth);
+            cellFrame->SetPosition(wm, newPos, containerSize);
             nsTableFrame::RePositionViews(cellFrame);
           }
         }
@@ -432,13 +432,13 @@ nscoord nsTableRowFrame::GetRowBaseline(WritingMode aWM)
   
 
   nscoord ascent = 0;
-  nscoord containerWidth = GetRect().width;
+  nsSize containerSize = GetSize();
   for (nsIFrame* childFrame : mFrames) {
     if (IS_TABLE_CELL(childFrame->GetType())) {
       nsIFrame* firstKid = childFrame->GetFirstPrincipalChild();
       ascent = std::max(ascent,
                         LogicalRect(aWM, firstKid->GetNormalRect(),
-                                    containerWidth).BEnd(aWM));
+                                    containerSize).BEnd(aWM));
     }
   }
   return ascent;
@@ -817,8 +817,8 @@ nsTableRowFrame::ReflowChildren(nsPresContext*           aPresContext,
 
   
   WritingMode wm = aReflowState.GetWritingMode();
-  nscoord containerWidth =
-    aReflowState.ComputedSizeAsContainerIfConstrained().width;
+  nsSize containerSize =
+    aReflowState.ComputedSizeAsContainerIfConstrained();
 
   for (nsIFrame* kidFrame : mFrames) {
     nsTableCellFrame *cellFrame = do_QueryFrame(kidFrame);
@@ -878,7 +878,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*           aPresContext,
     
     nsRect kidRect = kidFrame->GetRect();
     LogicalPoint origKidNormalPosition =
-      kidFrame->GetLogicalNormalPosition(wm, containerWidth);
+      kidFrame->GetLogicalNormalPosition(wm, containerSize);
     
     
     
@@ -929,7 +929,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*           aPresContext,
 
         nsReflowStatus status;
         ReflowChild(kidFrame, aPresContext, desiredSize, *kidReflowState,
-                    wm, kidPosition, containerWidth, 0, status);
+                    wm, kidPosition, containerSize, 0, status);
 
         
         
@@ -982,7 +982,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*           aPresContext,
 
       if (kidReflowState) {
         
-        kidReflowState->ApplyRelativePositioning(&kidPosition, containerWidth);
+        kidReflowState->ApplyRelativePositioning(&kidPosition, containerSize);
       } else if (kidFrame->IsRelativelyPositioned()) {
         
         
@@ -990,20 +990,14 @@ nsTableRowFrame::ReflowChildren(nsPresContext*           aPresContext,
         LogicalMargin computedOffsets(wm, *static_cast<nsMargin*>
           (kidFrame->Properties().Get(nsIFrame::ComputedOffsetProperty())));
         nsHTMLReflowState::ApplyRelativePositioning(kidFrame, wm, computedOffsets,
-                                                    &kidPosition, containerWidth);
+                                                    &kidPosition, containerSize);
       }
 
       
       
       
-      
-      
       FinishReflowChild(kidFrame, aPresContext, desiredSize, nullptr,
-                        wm, kidPosition,
-                        wm.IsVerticalRL() && containerWidth == 0
-                          ? desiredSize.Width()
-                          : containerWidth,
-                        0);
+                        wm, kidPosition, containerSize, 0);
 
       nsTableFrame::InvalidateTableFrame(kidFrame, kidRect, kidVisualOverflow,
                                          firstReflow);
@@ -1158,8 +1152,8 @@ nsTableRowFrame::ReflowCellFrame(nsPresContext*           aPresContext,
   WritingMode wm = aReflowState.GetWritingMode();
 
   
-  nscoord containerWidth = aCellFrame->GetSize().width;
-  LogicalRect cellRect = aCellFrame->GetLogicalRect(wm, containerWidth);
+  nsSize containerSize = aCellFrame->GetSize();
+  LogicalRect cellRect = aCellFrame->GetLogicalRect(wm, containerSize);
   nsRect cellVisualOverflow = aCellFrame->GetVisualOverflowRect();
 
   LogicalSize cellSize = cellRect.Size(wm);
@@ -1192,7 +1186,7 @@ nsTableRowFrame::ReflowCellFrame(nsPresContext*           aPresContext,
   }
 
   nsTableFrame::InvalidateTableFrame(aCellFrame,
-                                     cellRect.GetPhysicalRect(wm, containerWidth),
+                                     cellRect.GetPhysicalRect(wm, containerSize),
                                      cellVisualOverflow,
                                      aCellFrame->
                                        HasAnyStateBits(NS_FRAME_FIRST_REFLOW));
@@ -1223,8 +1217,8 @@ nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
 
   WritingMode wm = GetWritingMode();
 
-  nscoord parentWidth = GetParent()->GetRect().width;
-  LogicalRect rowRect = GetLogicalRect(wm, parentWidth);
+  nsSize parentSize = GetParent()->GetSize();
+  LogicalRect rowRect = GetLogicalRect(wm, parentSize);
   nsRect oldRect = mRect;
   nsRect oldVisualOverflow = GetVisualOverflowRect();
 
@@ -1232,7 +1226,7 @@ nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
   rowRect.ISize(wm)  = aISize;
   nsOverflowAreas overflow;
   nscoord shift = 0;
-  nscoord containerWidth = mRect.width;
+  nsSize containerSize = mRect.Size();
 
   if (aCollapseGroup || collapseRow) {
     aDidCollapse = true;
@@ -1243,7 +1237,7 @@ nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
       cellFrame->GetRowIndex(rowIndex);
       shift += tableFrame->GetRowSpacing(rowIndex);
       while (cellFrame) {
-        LogicalRect cRect = cellFrame->GetLogicalRect(wm, containerWidth);
+        LogicalRect cRect = cellFrame->GetLogicalRect(wm, containerSize);
         
         
         
@@ -1252,7 +1246,7 @@ nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
           InvalidateFrame();
         }
         cRect.BSize(wm) = 0;
-        cellFrame->SetRect(wm, cRect, containerWidth);
+        cellFrame->SetRect(wm, cRect, containerSize);
         cellFrame = cellFrame->GetNextCell();
       }
     } else {
@@ -1326,7 +1320,7 @@ nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
                                     nextRowVis->mVisible);
           if (!collapseNextRow) {
             LogicalRect nextRect = rowFrame->GetLogicalRect(wm,
-                                                            containerWidth);
+                                                            containerSize);
             cRect.BSize(wm) +=
               nextRect.BSize(wm) +
               tableFrame->GetRowSpacing(rowFrame->GetRowIndex());
@@ -1336,7 +1330,7 @@ nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
 
         nsRect oldCellRect = cellFrame->GetRect();
         LogicalPoint oldCellNormalPos =
-          cellFrame->GetLogicalNormalPosition(wm, containerWidth);
+          cellFrame->GetLogicalNormalPosition(wm, containerSize);
 
         nsRect oldCellVisualOverflow = cellFrame->GetVisualOverflowRect();
 
@@ -1352,7 +1346,7 @@ nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
         
         LogicalRect cellBounds(wm, 0, 0, cRect.ISize(wm), cRect.BSize(wm));
         nsRect cellPhysicalBounds =
-          cellBounds.GetPhysicalRect(wm, containerWidth);
+          cellBounds.GetPhysicalRect(wm, containerSize);
         nsOverflowAreas cellOverflow(cellPhysicalBounds, cellPhysicalBounds);
         cellFrame->FinishAndStoreOverflow(cellOverflow,
                                           cRect.Size(wm).GetPhysicalSize(wm));
@@ -1367,7 +1361,7 @@ nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
     }
   }
 
-  SetRect(wm, rowRect, containerWidth);
+  SetRect(wm, rowRect, containerSize);
   overflow.UnionAllWith(nsRect(0, 0, rowRect.Width(wm), rowRect.Height(wm)));
   FinishAndStoreOverflow(overflow, rowRect.Size(wm).GetPhysicalSize(wm));
 

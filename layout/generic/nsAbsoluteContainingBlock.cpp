@@ -408,7 +408,7 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
        
     && (aDelegatingFrame->GetType() != nsGkAtoms::inlineFrame)
        
-    && (aKidFrame->GetLogicalRect(aContainingBlock.width).BStart(wm) <=
+    && (aKidFrame->GetLogicalRect(aContainingBlock.Size()).BStart(wm) <=
         aReflowState.AvailableBSize());
        
        
@@ -468,8 +468,8 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
                      margin.BStart(outerWM),
                    kidSize.ISize(outerWM), kidSize.BSize(outerWM));
   nsRect r =
-    rect.GetPhysicalRect(outerWM, logicalCBSize.Width(wm) +
-                                  border.LeftRight(outerWM));
+    rect.GetPhysicalRect(outerWM, logicalCBSize.GetPhysicalSize(wm) +
+                         border.Size(outerWM).GetPhysicalSize(outerWM));
   
   if (outerWM.IsVertical() && !outerWM.IsBidiLTR()) {
     r.y = logicalCBSize.Height(wm) + border.TopBottom(outerWM) - r.YMost();

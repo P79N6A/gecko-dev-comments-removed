@@ -1466,10 +1466,11 @@ nsBidiPresUtils::RepositionRubyContentFrame(
 
   
   
+  const nsSize dummyContainerSize;
   for (nsIFrame* child : childList) {
-    LogicalRect rect = child->GetLogicalRect(aFrameWM, 0);
+    LogicalRect rect = child->GetLogicalRect(aFrameWM, dummyContainerSize);
     rect.IStart(aFrameWM) += residualISize / 2;
-    child->SetRect(aFrameWM, rect, 0);
+    child->SetRect(aFrameWM, rect, dummyContainerSize);
   }
 }
 

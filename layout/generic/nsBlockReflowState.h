@@ -207,8 +207,7 @@ public:
 
   
   nsSize mContainerSize;
-  nscoord ContainerWidth() const { return mContainerSize.width; }
-  nscoord ContainerHeight() const { return mContainerSize.height; }
+  const nsSize& ContainerSize() const { return mContainerSize; }
 
   
   

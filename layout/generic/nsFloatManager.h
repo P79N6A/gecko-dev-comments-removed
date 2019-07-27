@@ -59,7 +59,7 @@ public:
 
   static mozilla::LogicalRect GetRegionFor(mozilla::WritingMode aWM,
                                            nsIFrame* aFloatFrame,
-                                           nscoord aContainerWidth);
+                                           const nsSize& aContainerSize);
   
 
 
@@ -71,7 +71,7 @@ public:
                                 mozilla::WritingMode aWM,
                                 nsIFrame* aFloatFrame,
                                 const mozilla::LogicalMargin& aMargin,
-                                nscoord aContainerWidth);
+                                const nsSize& aContainerSize);
   
 
 
@@ -80,7 +80,7 @@ public:
   static void StoreRegionFor(mozilla::WritingMode aWM,
                              nsIFrame* aFloat,
                              const mozilla::LogicalRect& aRegion,
-                             nscoord aContainerWidth);
+                             const nsSize& aContainerSize);
 
   
   
@@ -162,7 +162,8 @@ public:
   nsFlowAreaRect GetFlowArea(mozilla::WritingMode aWM,
                              nscoord aBCoord, BandInfoType aInfoType,
                              nscoord aBSize, mozilla::LogicalRect aContentArea,
-                             SavedState* aState, nscoord mContainerWidth) const;
+                             SavedState* aState,
+                             const nsSize& aContainerSize) const;
 
   
 
@@ -174,7 +175,7 @@ public:
 
   nsresult AddFloat(nsIFrame* aFloatFrame,
                     const mozilla::LogicalRect& aMarginRect,
-                    mozilla::WritingMode aWM, nscoord aContainerWidth);
+                    mozilla::WritingMode aWM, const nsSize& aContainerSize);
 
   
 

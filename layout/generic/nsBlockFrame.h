@@ -413,8 +413,8 @@ protected:
   void SlideLine(nsBlockReflowState& aState,
                  nsLineBox* aLine, nscoord aDeltaBCoord);
 
-  void UpdateLineContainerWidth(nsLineBox* aLine,
-                                nscoord aNewContainerWidth);
+  void UpdateLineContainerSize(nsLineBox* aLine,
+                               const nsSize& aNewContainerSize);
 
   
   void MoveChildFramesOfLine(nsLineBox* aLine, nscoord aDeltaBCoord);
@@ -484,7 +484,7 @@ public:
   static void RecoverFloatsFor(nsIFrame*            aFrame,
                                nsFloatManager&      aFloatManager,
                                mozilla::WritingMode aWM,
-                               nscoord              aContainerWidth);
+                               const nsSize&        aContainerSize);
 
   
 
@@ -556,7 +556,7 @@ protected:
 
   void RecoverFloats(nsFloatManager&      aFloatManager,
                      mozilla::WritingMode aWM,
-                     nscoord              aContainerWidth);
+                     const nsSize&        aContainerSize);
 
   
 
