@@ -108,8 +108,18 @@ public:
   
 
 
+  void StartOverscrollAnimation(float aVelocity);
+
+  
+
+
 
   bool SampleOverscrollAnimation(const TimeDuration& aDelta);
+
+  
+
+
+  void EndOverscrollAnimation();
 
   
 
@@ -276,8 +286,7 @@ protected:
   ParentLayerCoord ApplyResistance(ParentLayerCoord aOverscroll) const;
 
   
-  
-  void StopSamplingOverscrollAnimation();
+  void ClearOverscrollAnimationState();
 
   
   void StepOverscrollAnimation(double aStepDurationMilliseconds);
