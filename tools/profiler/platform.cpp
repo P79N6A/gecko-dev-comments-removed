@@ -48,6 +48,7 @@ static bool sIsProfiling = false;
 static bool sIsGPUProfiling = false; 
 static bool sIsLayersDump = false; 
 static bool sIsDisplayListDump = false; 
+static bool sIsRestyleProfiling = false; 
 
 
 const char* PROFILER_MODE = "MOZ_PROFILER_MODE";
@@ -763,6 +764,7 @@ void mozilla_sampler_start(int aProfileEntries, double aInterval,
   sIsGPUProfiling = t->ProfileGPU();
   sIsLayersDump = t->LayersDump();
   sIsDisplayListDump = t->DisplayListDump();
+  sIsRestyleProfiling = t->ProfileRestyle();
 
   if (Sampler::CanNotifyObservers()) {
     nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
@@ -835,6 +837,7 @@ void mozilla_sampler_stop()
   sIsGPUProfiling = false;
   sIsLayersDump = false;
   sIsDisplayListDump = false;
+  sIsRestyleProfiling = false;
 
   if (Sampler::CanNotifyObservers()) {
     nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
@@ -881,6 +884,10 @@ bool mozilla_sampler_feature_active(const char* aName)
 
   if (strcmp(aName, "displaylistdump") == 0) {
     return sIsDisplayListDump;
+  }
+
+  if (strcmp(aName, "restyle") == 0) {
+    return sIsRestyleProfiling;
   }
 
   return false;
