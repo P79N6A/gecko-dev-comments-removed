@@ -751,17 +751,24 @@ CreateLazyScriptsForCompartment(JSContext* cx)
     
     
     
-    for (gc::ZoneCellIter i(cx->zone(), gc::AllocKind::LAZY_SCRIPT); !i.done(); i.next()) {
-        LazyScript* lazy = i.get<LazyScript>();
-        JSFunction* fun = lazy->functionNonDelazifying();
-        if (fun->compartment() == cx->compartment() &&
-            lazy->sourceObject() && !lazy->maybeScript() &&
-            !lazy->hasUncompiledEnclosingScript())
-        {
-            MOZ_ASSERT(fun->isInterpretedLazy());
-            MOZ_ASSERT(lazy == fun->lazyScriptOrNull());
-            if (!lazyFunctions.append(fun))
-                return false;
+    
+    
+    
+    
+    
+    for (gc::ZoneCellIter i(cx->zone(), JSFunction::FinalizeKind); !i.done(); i.next()) {
+        JSObject* obj = i.get<JSObject>();
+        if (obj->compartment() == cx->compartment() && obj->is<JSFunction>()) {
+            JSFunction* fun = &obj->as<JSFunction>();
+            if (fun->isInterpretedLazy()) {
+                LazyScript* lazy = fun->lazyScriptOrNull();
+                if (lazy && lazy->sourceObject() && !lazy->maybeScript() &&
+                    !lazy->hasUncompiledEnclosingScript())
+                {
+                    if (!lazyFunctions.append(fun))
+                        return false;
+                }
+            }
         }
     }
 
@@ -776,10 +783,13 @@ CreateLazyScriptsForCompartment(JSContext* cx)
         if (!fun->isInterpretedLazy())
             continue;
 
+        LazyScript* lazy = fun->lazyScript();
+        bool lazyScriptHadNoScript = !lazy->maybeScript();
+
         JSScript* script = fun->getOrCreateScript(cx);
         if (!script)
             return false;
-        if (!AddInnerLazyFunctionsFromScript(script, lazyFunctions))
+        if (lazyScriptHadNoScript && !AddInnerLazyFunctionsFromScript(script, lazyFunctions))
             return false;
     }
 
