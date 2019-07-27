@@ -3,7 +3,6 @@
 
 
 
-
 #include "GLContext.h"
 #include "nsPrintfCString.h"
 
@@ -451,12 +450,24 @@ static const FeatureInfo sFeatureInfoArr[] = {
         }
     },
     {
-        "sRGB",
+        "sRGB_framebuffer",
         GLVersion::GL3,
+        GLESVersion::ES3,
+        GLContext::ARB_framebuffer_sRGB,
+        {
+            GLContext::EXT_framebuffer_sRGB,
+            GLContext::EXT_sRGB_write_control,
+            GLContext::Extensions_End
+        }
+    },
+    {
+        "sRGB_texture",
+        GLVersion::GL2_1,
         GLESVersion::ES3,
         GLContext::Extension_None,
         {
             GLContext::EXT_sRGB,
+            GLContext::EXT_texture_sRGB,
             GLContext::Extensions_End
         }
     },
@@ -653,11 +664,10 @@ ProfileVersionForFeature(GLFeature feature, ContextProfile profile)
 
     const FeatureInfo& featureInfo = GetFeatureInfo(feature);
 
-    if (profile == ContextProfile::OpenGLES) {
-        return (uint32_t) featureInfo.mOpenGLESVersion;
-    }
+    if (profile == ContextProfile::OpenGLES)
+        return (uint32_t)featureInfo.mOpenGLESVersion;
 
-    return (uint32_t) featureInfo.mOpenGLVersion;
+    return (uint32_t)featureInfo.mOpenGLVersion;
 }
 
 bool
@@ -691,72 +701,49 @@ GLContext::GetFeatureName(GLFeature feature)
     return GetFeatureInfo(feature).mName;
 }
 
-static bool
-CanReadSRGBFromFBOTexture(GLContext* gl)
-{
-    if (!gl->WorkAroundDriverBugs())
-        return true;
-
-#ifdef XP_MACOSX
-    
-    
-    
-    
-    if (!nsCocoaFeatures::OnLionOrLater()) {
-        return false;
-    }
-#endif 
-    return true;
-}
-
 void
 GLContext::InitFeatures()
 {
-    for (size_t feature_index = 0; feature_index < size_t(GLFeature::EnumMax); feature_index++)
-    {
-        GLFeature feature = GLFeature(feature_index);
+    for (size_t featureId = 0; featureId < size_t(GLFeature::EnumMax); featureId++) {
+        GLFeature feature = GLFeature(featureId);
 
         if (IsFeaturePartOfProfileVersion(feature, mProfile, mVersion)) {
-            mAvailableFeatures[feature_index] = true;
+            mAvailableFeatures[featureId] = true;
             continue;
         }
 
-        mAvailableFeatures[feature_index] = false;
+        mAvailableFeatures[featureId] = false;
 
         const FeatureInfo& featureInfo = GetFeatureInfo(feature);
 
-        if (IsExtensionSupported(featureInfo.mARBExtensionWithoutARBSuffix))
-        {
-            mAvailableFeatures[feature_index] = true;
+        if (IsExtensionSupported(featureInfo.mARBExtensionWithoutARBSuffix)) {
+            mAvailableFeatures[featureId] = true;
             continue;
         }
 
-        for (size_t j = 0; true; j++)
-        {
-            MOZ_ASSERT(j < kMAX_EXTENSION_GROUP_SIZE, "kMAX_EXTENSION_GROUP_SIZE too small");
+        for (size_t j = 0; true; j++) {
+            MOZ_ASSERT(j < kMAX_EXTENSION_GROUP_SIZE,
+                       "kMAX_EXTENSION_GROUP_SIZE too small");
 
-            if (featureInfo.mExtensions[j] == GLContext::Extensions_End) {
+            if (featureInfo.mExtensions[j] == GLContext::Extensions_End)
                 break;
-            }
 
             if (IsExtensionSupported(featureInfo.mExtensions[j])) {
-                mAvailableFeatures[feature_index] = true;
+                mAvailableFeatures[featureId] = true;
                 break;
             }
         }
     }
 
-    
-    
-    
-    const bool aresRGBExtensionsAvailable =
-        IsExtensionSupported(EXT_texture_sRGB) &&
-        (IsExtensionSupported(ARB_framebuffer_sRGB) ||
-         IsExtensionSupported(EXT_framebuffer_sRGB));
-
-    mAvailableFeatures[size_t(GLFeature::sRGB)] =
-        aresRGBExtensionsAvailable &&
-        CanReadSRGBFromFBOTexture(this);
+    if (WorkAroundDriverBugs()) {
+#ifdef XP_MACOSX
+        
+        
+        
+        if (!nsCocoaFeatures::OnLionOrLater())
+            MarkUnsupported(GLFeature::sRGB_framebuffer);
+#endif 
+    }
 }
 
 void
@@ -766,20 +753,19 @@ GLContext::MarkUnsupported(GLFeature feature)
 
     const FeatureInfo& featureInfo = GetFeatureInfo(feature);
 
-    for (size_t i = 0; true; i++)
-    {
+    for (size_t i = 0; true; i++) {
         MOZ_ASSERT(i < kMAX_EXTENSION_GROUP_SIZE, "kMAX_EXTENSION_GROUP_SIZE too small");
 
-        if (featureInfo.mExtensions[i] == GLContext::Extensions_End) {
+        if (featureInfo.mExtensions[i] == GLContext::Extensions_End)
             break;
-        }
 
         MarkExtensionUnsupported(featureInfo.mExtensions[i]);
     }
 
     MOZ_ASSERT(!IsSupported(feature), "GLContext::MarkUnsupported has failed!");
 
-    NS_WARNING(nsPrintfCString("%s marked as unsupported", GetFeatureName(feature)).get());
+    NS_WARNING(nsPrintfCString("%s marked as unsupported",
+                               GetFeatureName(feature)).get());
 }
 
 } 
