@@ -19,7 +19,7 @@ function test() {
     gSources = gDebugger.DebuggerView.Sources;
     gControllerSources = gDebugger.DebuggerController.SourceScripts;
 
-    Task.spawn(function*() {
+    Task.spawn(function() {
       yield waitForSourceShown(gPanel, TAB_URL);
 
       

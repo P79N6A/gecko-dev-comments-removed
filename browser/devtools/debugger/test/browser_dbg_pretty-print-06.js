@@ -35,7 +35,7 @@ function test() {
       };
     }(gClient.request));
 
-    Task.spawn(function*() {
+    Task.spawn(function() {
       yield waitForSourceShown(gPanel, JS_URL);
 
       

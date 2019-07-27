@@ -107,7 +107,7 @@ WatchExpressionsView.prototype = Heritage.extend(WidgetMethods, {
 
   switchExpression: function(aVar, aExpression) {
     let expressionItem =
-      [...this].filter(i => i.attachment.currentExpression == aVar.name)[0];
+      [i for (i of this) if (i.attachment.currentExpression == aVar.name)][0];
 
     
     if (!aExpression || this.getAllStrings().indexOf(aExpression) != -1) {
@@ -133,7 +133,7 @@ WatchExpressionsView.prototype = Heritage.extend(WidgetMethods, {
 
   deleteExpression: function(aVar) {
     let expressionItem =
-      [...this].filter(i => i.attachment.currentExpression == aVar.name)[0];
+      [i for (i of this) if (i.attachment.currentExpression == aVar.name)][0];
 
     
     this.remove(expressionItem);

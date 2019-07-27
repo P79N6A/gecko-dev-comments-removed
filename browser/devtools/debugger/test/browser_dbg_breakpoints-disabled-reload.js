@@ -16,7 +16,7 @@ function test() {
     let gSources = gDebugger.DebuggerView.Sources;
     let gBreakpoints = gDebugger.DebuggerController.Breakpoints;
     let gBreakpointLocation;
-    Task.spawn(function*() {
+    Task.spawn(function() {
       yield waitForSourceShown(aPanel, "-01.js");
       gBreakpointLocation = { actor: getSourceActor(gSources, EXAMPLE_URL + "code_script-switching-01.js"),
                               line: 5 };
@@ -41,7 +41,7 @@ function test() {
     });
 
     function verifyView({ disabled, visible }) {
-      return Task.spawn(function*() {
+      return Task.spawn(function() {
         
         
         yield waitForTick();
@@ -65,7 +65,7 @@ function test() {
     
 
     function testWhenBreakpointEnabledAndFirstSourceShown() {
-      return Task.spawn(function*() {
+      return Task.spawn(function() {
         yield ensureSourceIs(aPanel, "-01.js");
         yield verifyView({ disabled: false, visible: true });
 
@@ -82,7 +82,7 @@ function test() {
     }
 
     function testWhenBreakpointEnabledAndSecondSourceShown() {
-      return Task.spawn(function*() {
+      return Task.spawn(function() {
         yield ensureSourceIs(aPanel, "-02.js", true);
         yield verifyView({ disabled: false, visible: false });
 
@@ -97,7 +97,7 @@ function test() {
     }
 
     function testWhenBreakpointDisabledAndSecondSourceShown() {
-      return Task.spawn(function*() {
+      return Task.spawn(function() {
         yield ensureSourceIs(aPanel, "-02.js", true);
         yield verifyView({ disabled: true, visible: false });
 

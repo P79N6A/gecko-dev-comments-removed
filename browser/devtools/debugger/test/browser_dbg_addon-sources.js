@@ -8,7 +8,7 @@ const ADDON_URL = EXAMPLE_URL + "addon3.xpi";
 let gClient;
 
 function test() {
-  Task.spawn(function*() {
+  Task.spawn(function () {
     let addon = yield addAddon(ADDON_URL);
     let addonDebugger = yield initAddonDebugger(ADDON_URL);
 
