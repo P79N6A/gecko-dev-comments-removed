@@ -6414,10 +6414,9 @@ RilObject.prototype[REQUEST_SIM_OPEN_CHANNEL] = function REQUEST_SIM_OPEN_CHANNE
     return;
   }
 
-  options.channel = this.context.Buf.readInt32();
-  if (DEBUG) {
-    this.context.debug("Setting channel number in options: " + options.channel);
-  }
+  options.channel = this.context.Buf.readInt32List()[0];
+  
+  
   this.sendChromeMessage(options);
 };
 RilObject.prototype[REQUEST_SIM_CLOSE_CHANNEL] = function REQUEST_SIM_CLOSE_CHANNEL(length, options) {
