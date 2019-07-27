@@ -123,8 +123,7 @@ static const uint32_t LOW_VIDEO_FRAMES = 1;
 
 
 
-
-static const int32_t LOW_VIDEO_THRESHOLD_USECS = 16000;
+static const int32_t LOW_VIDEO_THRESHOLD_USECS = 60000;
 
 
 static const int AUDIO_DURATION_USECS = 40000;
@@ -654,9 +653,10 @@ MediaDecoderStateMachine::NeedToSkipToNextKeyframe()
                              (GetDecodedAudioDuration() <
                               mLowAudioThresholdUsecs * mPlaybackRate);
   bool isLowOnDecodedVideo = !mIsVideoPrerolling &&
-                             (mDecodedVideoEndTime - GetClock() <
-                              LOW_VIDEO_THRESHOLD_USECS * mPlaybackRate);
+                             ((GetClock() - mDecodedVideoEndTime) * mPlaybackRate >
+                              LOW_VIDEO_THRESHOLD_USECS);
   bool lowUndecoded = HasLowUndecodedData();
+
   if ((isLowOnDecodedAudio || isLowOnDecodedVideo) && !lowUndecoded) {
     DECODER_LOG("Skipping video decode to the next keyframe lowAudio=%d lowVideo=%d lowUndecoded=%d async=%d",
                 isLowOnDecodedAudio, isLowOnDecodedVideo, lowUndecoded, mReader->IsAsync());
