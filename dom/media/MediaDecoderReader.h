@@ -334,38 +334,6 @@ protected:
   virtual ~RequestSampleCallback() {}
 };
 
-
-
-
-
-class AudioDecodeRendezvous {
-public:
-  AudioDecodeRendezvous(MediaDecoderReader *aReader);
-
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AudioDecodeRendezvous)
-
-  void OnAudioDecoded(AudioData* aSample);
-  void OnAudioNotDecoded(MediaDecoderReader::NotDecodedReason aReason);
-  void Reset();
-
-  
-  
-  nsresult RequestAndWait(nsRefPtr<AudioData>& aSample);
-
-  
-  void Cancel();
-
-protected:
-  ~AudioDecodeRendezvous();
-
-private:
-  nsRefPtr<MediaDecoderReader> mReader;
-  Monitor mMonitor;
-  nsresult mStatus;
-  nsRefPtr<AudioData> mSample;
-  bool mHaveResult;
-};
-
 } 
 
 #endif

@@ -9,7 +9,6 @@
 
 #include "nsWrapperCache.h"
 #include "nsCOMPtr.h"
-#include "nsIThreadPool.h"
 #include "nsString.h"
 #include "nsTArray.h"
 #include "mozilla/dom/TypedArray.h"
@@ -70,32 +69,8 @@ private:
   ~WebAudioDecodeJob();
 };
 
-
-
-
-
-
-
-class MediaBufferDecoder
-{
-public:
-  void AsyncDecodeMedia(const char* aContentType, uint8_t* aBuffer,
-                        uint32_t aLength, WebAudioDecodeJob& aDecodeJob);
-
-  ~MediaBufferDecoder() { Shutdown(); }
-  void Shutdown();
-
-  size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
-  {
-    return 0;
-  }
-
-private:
-  bool EnsureThreadPoolInitialized();
-
-private:
-  nsCOMPtr<nsIThreadPool> mThreadPool;
-};
+void AsyncDecodeWebAudio(const char* aContentType, uint8_t* aBuffer,
+                         uint32_t aLength, WebAudioDecodeJob& aDecodeJob);
 
 }
 
