@@ -7,6 +7,7 @@ package org.mozilla.gecko.toolbar;
 
 import java.util.Arrays;
 
+import org.mozilla.gecko.NewTabletUI;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
@@ -103,10 +104,17 @@ abstract class BrowserToolbarTabletBase extends BrowserToolbar {
         setButtonEnabled(backButton, canDoBack(tab));
 
         final boolean isForwardEnabled = canDoForward(tab);
-        if (forwardButton.isEnabled() != isForwardEnabled) {
+        if (!NewTabletUI.isEnabled(getContext())) {
+            if (forwardButton.isEnabled() != isForwardEnabled) {
+                
+                
+                setButtonEnabled(forwardButton, isForwardEnabled);
+                animateForwardButton(
+                        isForwardEnabled ? ForwardButtonAnimation.SHOW : ForwardButtonAnimation.HIDE);
+            }
+        } else {
             
             
-            setButtonEnabled(forwardButton, isForwardEnabled);
             animateForwardButton(
                     isForwardEnabled ? ForwardButtonAnimation.SHOW : ForwardButtonAnimation.HIDE);
         }

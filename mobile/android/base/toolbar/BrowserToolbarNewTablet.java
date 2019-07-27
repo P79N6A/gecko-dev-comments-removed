@@ -10,6 +10,7 @@ import org.mozilla.gecko.animation.PropertyAnimator;
 import org.mozilla.gecko.animation.ViewHelper;
 
 import android.content.Context;
+import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 
 
@@ -20,7 +21,17 @@ class BrowserToolbarNewTablet extends BrowserToolbarTabletBase {
 
     private static final int FORWARD_ANIMATION_DURATION = 450;
 
+    private enum ForwardButtonState {
+        HIDDEN,
+        DISPLAYED,
+        TRANSITIONING,
+    }
+
     private final int forwardButtonTranslationWidth;
+
+    private ForwardButtonState forwardButtonState;
+
+    private boolean backButtonWasEnabledOnStartEditing;
 
     public BrowserToolbarNewTablet(final Context context, final AttributeSet attrs) {
         super(context, attrs);
@@ -32,6 +43,19 @@ class BrowserToolbarNewTablet extends BrowserToolbarTabletBase {
         
         
         ViewHelper.setTranslationX(forwardButton, -forwardButtonTranslationWidth);
+
+        
+        
+        
+        
+        setButtonEnabled(forwardButton, true);
+
+        updateForwardButtonState(ForwardButtonState.HIDDEN);
+    }
+
+    private void updateForwardButtonState(final ForwardButtonState state) {
+        forwardButtonState = state;
+        forwardButton.setEnabled(forwardButtonState == ForwardButtonState.DISPLAYED);
     }
 
     @Override
@@ -52,14 +76,11 @@ class BrowserToolbarNewTablet extends BrowserToolbarTabletBase {
     @Override
     protected void animateForwardButton(final ForwardButtonAnimation animation) {
         final boolean willShowForward = (animation == ForwardButtonAnimation.SHOW);
-
-        
-        
-        final float forwardOffset = ViewHelper.getTranslationX(forwardButton);
-        if ((forwardOffset >= 0 && willShowForward) ||
-                forwardOffset < 0 && !willShowForward) {
+        if ((forwardButtonState != ForwardButtonState.HIDDEN && willShowForward) ||
+                (forwardButtonState != ForwardButtonState.DISPLAYED && !willShowForward)) {
             return;
         }
+        updateForwardButtonState(ForwardButtonState.TRANSITIONING);
 
         
         final PropertyAnimator forwardAnim =
@@ -88,6 +109,7 @@ class BrowserToolbarNewTablet extends BrowserToolbarTabletBase {
 
             @Override
             public void onPropertyAnimationEnd() {
+                final ForwardButtonState newForwardButtonState;
                 if (willShowForward) {
                     
                     MarginLayoutParams layoutParams =
@@ -96,9 +118,14 @@ class BrowserToolbarNewTablet extends BrowserToolbarTabletBase {
 
                     layoutParams = (MarginLayoutParams) urlEditLayout.getLayoutParams();
                     layoutParams.leftMargin = forwardButtonTranslationWidth;
+
+                    newForwardButtonState = ForwardButtonState.DISPLAYED;
+                } else {
+                    newForwardButtonState = ForwardButtonState.HIDDEN;
                 }
 
                 urlDisplayLayout.finishForwardAnimation();
+                updateForwardButtonState(newForwardButtonState);
 
                 requestLayout();
             }
@@ -132,5 +159,39 @@ class BrowserToolbarNewTablet extends BrowserToolbarTabletBase {
     @Override
     public void triggerTabsPanelTransition(final PropertyAnimator animator, final boolean areTabsShown) {
         
+    }
+
+    @Override
+    public void startEditing(final String url, final PropertyAnimator animator) {
+        
+        backButtonWasEnabledOnStartEditing = backButton.isEnabled();
+
+        setButtonEnabled(backButton, false);
+        setButtonEnabled(forwardButton, false);
+
+        super.startEditing(url, animator);
+    }
+
+    @Override
+    public String commitEdit() {
+        stopEditingNewTablet();
+        return super.commitEdit();
+    }
+
+    @Override
+    public String cancelEdit() {
+        stopEditingNewTablet();
+
+        setButtonEnabled(backButton, backButtonWasEnabledOnStartEditing);
+        updateForwardButtonState(forwardButtonState);
+
+        return super.cancelEdit();
+    }
+
+    private void stopEditingNewTablet() {
+        
+        
+        
+        setButtonEnabled(forwardButton, true);
     }
 }
