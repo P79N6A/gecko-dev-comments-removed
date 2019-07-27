@@ -60,6 +60,12 @@ static const js::Class NurseryClass = {
 
 BEGIN_TEST(testGCNurseryFinalizer)
 {
+#ifdef JS_GC_ZEAL
+    
+    
+    AutoLeaveZeal nozeal(cx);
+#endif 
+
     JS::RootedObject obj(cx);
 
     obj = JS_NewObject(cx, Jsvalify(&TenuredClass), JS::NullPtr(), JS::NullPtr());
