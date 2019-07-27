@@ -26,9 +26,11 @@ let librecovery = (function() {
     log("Unable to open librecovery.so");
     throw Cr.NS_ERROR_FAILURE;
   }
+  
+  
   let FotaUpdateStatus = new ctypes.StructType("FotaUpdateStatus", [
                                                 { result: ctypes.int },
-                                                { updatePath: ctypes.char.ptr }
+                                                { updatePath: ctypes.char.array(4096) }
                                               ]);
 
   return {
