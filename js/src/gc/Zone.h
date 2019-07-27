@@ -106,7 +106,6 @@ struct Zone : public JS::shadow::Zone,
                                 size_t *baselineStubsOptimized);
 
     void setGCLastBytes(size_t lastBytes, js::JSGCInvocationKind gckind);
-    void reduceGCTriggerBytes(size_t amount);
 
     void resetGCMallocBytes();
     void setGCMaxMallocBytes(size_t value);
@@ -249,7 +248,11 @@ struct Zone : public JS::shadow::Zone,
     mozilla::Atomic<size_t, mozilla::ReleaseAcquire> gcBytes;
 
     
-    size_t gcTriggerBytes;
+    size_t gcBytesAfterGC;
+
+    
+    
+    mozilla::Atomic<size_t, mozilla::ReleaseAcquire> gcTriggerBytes;
 
     
     void *data;
