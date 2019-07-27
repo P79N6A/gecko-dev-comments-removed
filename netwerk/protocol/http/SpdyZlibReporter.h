@@ -6,6 +6,9 @@
 
 
 
+#ifndef mozilla_net_SpdyZlibReporter_h
+#define mozilla_net_SpdyZlibReporter_h
+
 #include "mozilla/Assertions.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
@@ -51,3 +54,5 @@ private:
 };
 
 } 
+
+#endif 
