@@ -7,6 +7,8 @@
 #include "gfxGlyphExtents.h"
 #include "gfxPlatformFontList.h"
 #include "gfxUserFontSet.h"
+#include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/PathHelpers.h"
 #include "nsGkAtoms.h"
 #include "nsILanguageAtomService.h"
 #include "nsServiceManagerUtils.h"
@@ -24,6 +26,7 @@
 #include "cairo.h"
 
 using namespace mozilla;
+using namespace mozilla::gfx;
 using namespace mozilla::unicode;
 
 static const char16_t kEllipsisChar[] = { 0x2026, 0x0 };
@@ -457,27 +460,15 @@ gfxTextRun::DrawPartialLigature(gfxFont *aFont, uint32_t aStart, uint32_t aEnd,
       
       
       
-      gfxContextPathAutoSaveRestore savePath(aParams.context);
+      Rect clipRect = aParams.isVerticalRun ?
+          Rect(clipExtents.X(), start / mAppUnitsPerDevUnit,
+               clipExtents.Width(), (end - start) / mAppUnitsPerDevUnit) :
+          Rect(start / mAppUnitsPerDevUnit, clipExtents.Y(),
+               (end - start) / mAppUnitsPerDevUnit, clipExtents.Height());
+      MaybeSnapToDevicePixels(clipRect, *aParams.dt, true);
 
-      
-      
-      
       aParams.context->Save();
-      aParams.context->NewPath();
-      if (aParams.isVerticalRun) {
-          aParams.context->Rectangle(gfxRect(clipExtents.X(),
-                                             start / mAppUnitsPerDevUnit,
-                                             clipExtents.Width(),
-                                             (end - start) / mAppUnitsPerDevUnit),
-                                     true);
-      } else {
-          aParams.context->Rectangle(gfxRect(start / mAppUnitsPerDevUnit,
-                                             clipExtents.Y(),
-                                             (end - start) / mAppUnitsPerDevUnit,
-                                             clipExtents.Height()),
-                                     true);
-      }
-      aParams.context->Clip();
+      aParams.context->Clip(clipRect);
     }
 
     gfxPoint pt;

@@ -715,67 +715,6 @@ private:
 
 
 
-
-
-class gfxContextPathAutoSaveRestore
-{
-    typedef mozilla::gfx::Path Path;
-
-public:
-    gfxContextPathAutoSaveRestore() : mContext(nullptr) {}
-
-    explicit gfxContextPathAutoSaveRestore(gfxContext *aContext, bool aSave = true) : mContext(aContext)
-    {
-        if (aSave)
-            Save();       
-    }
-
-    ~gfxContextPathAutoSaveRestore()
-    {
-        Restore();
-    }
-
-    void SetContext(gfxContext *aContext, bool aSave = true)
-    {
-        mContext = aContext;
-        if (aSave)
-            Save();
-    }
-
-    
-
-
-
-    void Save()
-    {
-        if (!mPath && mContext) {
-            mPath = mContext->GetPath();
-        }
-    }
-
-    
-
-
-
-    void Restore()
-    {
-        if (mPath) {
-            mContext->SetPath(mPath);
-            mPath = nullptr;
-        }
-    }
-
-private:
-    gfxContext *mContext;
-
-    mozilla::RefPtr<Path> mPath;
-};
-
-
-
-
-
-
 class gfxContextMatrixAutoSaveRestore
 {
 public:
