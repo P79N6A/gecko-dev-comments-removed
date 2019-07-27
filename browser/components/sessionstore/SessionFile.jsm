@@ -175,6 +175,10 @@ let SessionFileInternal = {
 
   
   
+  _hasWriteEverSucceeded: false,
+
+  
+  
   get latestUpgradeBackupID() {
     try {
       return Services.prefs.getCharPref(PREF_UPGRADE_BACKUP);
@@ -275,7 +279,7 @@ let SessionFileInternal = {
     promise = promise.then(msg => {
       
       this._recordTelemetry(msg.telemetry);
-
+      this._hasWriteEverSucceeded = true;
       if (msg.result.upgradeBackup) {
         
         
@@ -293,7 +297,14 @@ let SessionFileInternal = {
     
     
     AsyncShutdown.profileBeforeChange.addBlocker(
-      "SessionFile: Finish writing Session Restore data", promise);
+      "SessionFile: Finish writing Session Restore data",
+      promise,
+      {
+        fetchState: () => ({
+          options,
+          hasEverSucceeded: this._hasWriteEverSucceeded
+        })
+      });
 
     
     
