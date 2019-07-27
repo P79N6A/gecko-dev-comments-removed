@@ -233,8 +233,10 @@ Tools.canvasDebugger = {
   label: l10n("ToolboxCanvasDebugger.label", canvasDebuggerStrings),
   panelLabel: l10n("ToolboxCanvasDebugger.panelLabel", canvasDebuggerStrings),
   tooltip: l10n("ToolboxCanvasDebugger.tooltip", canvasDebuggerStrings),
+  
+  
   isTargetSupported: function(target) {
-    return !target.isAddon;
+    return !target.isAddon && !target.chrome;
   },
   build: function (iframeWindow, toolbox) {
     let panel = new CanvasDebuggerPanel(iframeWindow, toolbox);
