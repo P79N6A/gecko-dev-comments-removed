@@ -82,7 +82,11 @@ private:
   void AppendDefaultCandidate(nsIURI *aURL);
 
   
-  int GetBestCandidateIndex();
+  int GetSelectedCandidateIndex();
+
+  
+  
+  void ClearSelectedCandidate();
 
   
   
@@ -95,7 +99,7 @@ private:
   
   
   nsTArray<ResponsiveImageCandidate> mCandidates;
-  int mBestCandidateIndex;
+  int mSelectedCandidateIndex;
 
   nsTArray< nsAutoPtr<nsMediaQuery> > mSizeQueries;
   nsTArray<nsCSSValue> mSizeValues;
