@@ -805,21 +805,19 @@ nsHttpConnectionMgr::GetSpdyPreferredEnt(nsConnectionEntry *aOriginalEntry)
         return nullptr;
     }
 
-    if (gHttpHandler->SpdyInfo()->ProtocolEnabled(0))
-        rv = sslSocketControl->JoinConnection(gHttpHandler->SpdyInfo()->VersionString[0],
-                                              aOriginalEntry->mConnInfo->GetHost(),
-                                              aOriginalEntry->mConnInfo->Port(),
-                                              &isJoined);
-    else
-        rv = NS_OK;                               
-
     
-    
-    if (NS_SUCCEEDED(rv) && !isJoined && gHttpHandler->SpdyInfo()->ProtocolEnabled(1)) {
-        rv = sslSocketControl->JoinConnection(gHttpHandler->SpdyInfo()->VersionString[1],
-                                              aOriginalEntry->mConnInfo->GetHost(),
-                                              aOriginalEntry->mConnInfo->Port(),
-                                              &isJoined);
+    const SpdyInformation *info = gHttpHandler->SpdyInfo();
+    for (uint32_t index = SpdyInformation::kCount;
+         NS_SUCCEEDED(rv) && index > 0; --index) {
+        if (info->ProtocolEnabled(index - 1)) {
+            rv = sslSocketControl->JoinConnection(info->VersionString[index - 1],
+                                                  aOriginalEntry->mConnInfo->GetHost(),
+                                                  aOriginalEntry->mConnInfo->Port(),
+                                                  &isJoined);
+            if (NS_SUCCEEDED(rv) && isJoined) {
+                break;
+            }
+        }
     }
 
     if (NS_FAILED(rv) || !isJoined) {
