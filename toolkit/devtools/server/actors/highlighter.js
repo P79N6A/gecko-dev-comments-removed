@@ -170,7 +170,9 @@ let HighlighterActor = exports.HighlighterActor = protocol.ActorClass({
   },
 
   _onNavigate: function({isTopLevel}) {
-    if (!isTopLevel) {
+    
+    
+    if (!isTopLevel || !this._tabActor.window.document.documentElement) {
       return;
     }
 
@@ -549,7 +551,8 @@ CanvasFrameAnonymousContentHelper.prototype = {
   _insert: function() {
     
     
-    if (isXUL(this.tabActor)) {
+    if (!this.tabActor.window.document.documentElement ||
+        isXUL(this.tabActor)) {
       return;
     }
     let doc = this.tabActor.window.document;

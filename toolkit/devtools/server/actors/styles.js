@@ -487,6 +487,10 @@ var PageStyleActor = protocol.ActorClass({
 
 
   getApplied: method(function(node, options) {
+    if (!node) {
+      return {entries: [], rules: [], sheets: []};
+    }
+
     this.cssLogic.highlight(node.rawNode);
     let entries = [];
     entries = entries.concat(this._getAllElementRules(node, undefined, options));
