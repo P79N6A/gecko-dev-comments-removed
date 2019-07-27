@@ -63,6 +63,10 @@ public:
   
   void PrepareReaderInitialization();
 
+#ifdef MOZ_EME
+  virtual nsresult SetCDMProxy(CDMProxy* aProxy) MOZ_OVERRIDE;
+#endif
+
 private:
   
   

@@ -40,6 +40,9 @@ public:
   
   virtual bool IsWaitingMediaResources() { return false; }
   
+  
+  virtual bool IsWaitingOnCDMResource() { return false; }
+  
   virtual bool IsDormantNeeded() { return false; }
   
   

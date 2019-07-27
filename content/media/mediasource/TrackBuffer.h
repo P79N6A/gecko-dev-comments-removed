@@ -73,6 +73,10 @@ public:
   
   const nsTArray<nsRefPtr<SourceBufferDecoder>>& Decoders();
 
+#ifdef MOZ_EME
+  nsresult SetCDMProxy(CDMProxy* aProxy);
+#endif
+
 #if defined(DEBUG)
   void Dump(const char* aPath);
 #endif
@@ -126,6 +130,10 @@ private:
   
   
   nsTArray<nsRefPtr<SourceBufferDecoder>> mInitializedDecoders;
+
+  
+  
+  nsTArray<nsRefPtr<SourceBufferDecoder>> mWaitingDecoders;
 
   
   nsRefPtr<SourceBufferDecoder> mCurrentDecoder;
