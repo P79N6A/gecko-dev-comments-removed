@@ -4022,14 +4022,43 @@ js::StringConstructor(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
+static bool
+str_fromCharCode_few_args(JSContext *cx, const CallArgs &args)
+{
+    MOZ_ASSERT(args.length() <= JSFatInlineString::MAX_LENGTH_TWO_BYTE);
+
+    char16_t chars[JSFatInlineString::MAX_LENGTH_TWO_BYTE];
+    for (unsigned i = 0; i < args.length(); i++) {
+        uint16_t code;
+        if (!ToUint16(cx, args[i], &code))
+            return false;
+        chars[i] = char16_t(code);
+    }
+    JSString *str = NewStringCopyN<CanGC>(cx, chars, args.length());
+    if (!str)
+        return false;
+    args.rval().setString(str);
+    return true;
+}
+
 bool
 js::str_fromCharCode(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
     MOZ_ASSERT(args.length() <= ARGS_LENGTH_MAX);
+
+    
     if (args.length() == 1)
         return str_fromCharCode_one_arg(cx, args[0], args.rval());
+
+    
+    
+    
+    
+    
+    if (args.length() <= JSFatInlineString::MAX_LENGTH_TWO_BYTE)
+        return str_fromCharCode_few_args(cx, args);
 
     char16_t *chars = cx->pod_malloc<char16_t>(args.length() + 1);
     if (!chars)
