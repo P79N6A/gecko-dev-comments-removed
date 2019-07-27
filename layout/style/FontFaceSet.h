@@ -114,18 +114,6 @@ public:
 
   
 
-
-
-  FontFace* FindFontFaceForEntry(gfxUserFontEntry* aUserFontEntry);
-
-  
-
-
-
-  gfxUserFontEntry* FindUserFontEntryForFontFace(FontFace* aFontFace);
-
-  
-
   IMPL_EVENT_HANDLER(loading)
   IMPL_EVENT_HANDLER(loadingdone)
   IMPL_EVENT_HANDLER(loadingerror)
@@ -151,22 +139,14 @@ private:
   
   
   
-  
-  
-  
-  
   struct FontFaceRecord {
-    nsRefPtr<gfxUserFontEntry> mUserFontEntry;
     nsRefPtr<FontFace> mFontFace;
-  };
-
-  struct ConnectedFontFaceRecord : public FontFaceRecord {
     uint8_t mSheetType;
   };
 
   FontFace* FontFaceForRule(nsCSSFontFaceRule* aRule);
   void InsertRule(nsCSSFontFaceRule* aRule, uint8_t aSheetType,
-                  nsTArray<ConnectedFontFaceRecord>& aOldRecords,
+                  nsTArray<FontFaceRecord>& aOldRecords,
                   bool& aFontSetModified);
 
   already_AddRefed<gfxUserFontEntry> FindOrCreateUserFontEntryFromRule(
@@ -207,8 +187,7 @@ private:
   nsTHashtable< nsPtrHashKey<nsFontFaceLoader> > mLoaders;
 
   
-  
-  nsTArray<ConnectedFontFaceRecord> mConnectedFaces;
+  nsTArray<FontFaceRecord> mConnectedFaces;
 };
 
 } 

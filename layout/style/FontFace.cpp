@@ -47,6 +47,8 @@ FontFace::FontFace(nsISupports* aParent, nsPresContext* aPresContext)
 FontFace::~FontFace()
 {
   MOZ_COUNT_DTOR(FontFace);
+
+  SetUserFontEntry(nullptr);
 }
 
 JSObject*
@@ -82,14 +84,7 @@ FontFace::CreateForRule(nsISupports* aGlobal,
 
   nsRefPtr<FontFace> obj = new FontFace(aGlobal, aPresContext);
   obj->mRule = aRule;
-  if (aUserFontEntry) {
-    
-    
-    
-    
-    
-    obj->SetStatus(LoadStateToStatus(aUserFontEntry->LoadState()));
-  }
+  obj->SetUserFontEntry(aUserFontEntry);
   return obj.forget();
 }
 
@@ -266,11 +261,7 @@ FontFace::Load(ErrorResult& aRv)
 
   SetStatus(FontFaceLoadStatus::Loading);
 
-  gfxUserFontEntry* entry =
-    mPresContext->Fonts()->FindUserFontEntryForFontFace(this);
-  if (entry) {
-    entry->Load();
-  }
+  mUserFontEntry->Load();
   return mLoaded;
 }
 
@@ -291,6 +282,15 @@ void
 FontFace::SetStatus(FontFaceLoadStatus aStatus)
 {
   if (mStatus == aStatus) {
+    return;
+  }
+
+  if (aStatus < mStatus) {
+    
+    
+    
+    
+    
     return;
   }
 
@@ -389,6 +389,35 @@ FontFace::GetDesc(nsCSSFontDesc aDescID,
   }
 }
 
+void
+FontFace::SetUserFontEntry(gfxUserFontEntry* aEntry)
+{
+  if (mUserFontEntry) {
+    mUserFontEntry->mFontFaces.RemoveElement(this);
+  }
+
+  mUserFontEntry = static_cast<Entry*>(aEntry);
+  if (mUserFontEntry) {
+    mUserFontEntry->mFontFaces.AppendElement(this);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    FontFaceLoadStatus newStatus =
+      LoadStateToStatus(mUserFontEntry->LoadState());
+    if (newStatus > mStatus) {
+      SetStatus(newStatus);
+    }
+  }
+}
+
 
 
  void
@@ -396,20 +425,7 @@ FontFace::Entry::SetLoadState(UserFontLoadState aLoadState)
 {
   gfxUserFontEntry::SetLoadState(aLoadState);
 
-  FontFace* face = GetFontFace();
-  if (face) {
-    face->SetStatus(LoadStateToStatus(aLoadState));
+  for (size_t i = 0; i < mFontFaces.Length(); i++) {
+    mFontFaces[i]->SetStatus(LoadStateToStatus(aLoadState));
   }
-}
-
-FontFace*
-FontFace::Entry::GetFontFace()
-{
-  FontFaceSet* fontFaceSet =
-    static_cast<FontFaceSet::UserFontSet*>(mFontSet)->GetFontFaceSet();
-  if (!fontFaceSet) {
-    return nullptr;
-  }
-
-  return fontFaceSet->FindFontFaceForEntry(this);
 }

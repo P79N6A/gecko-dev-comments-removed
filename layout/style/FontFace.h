@@ -34,6 +34,8 @@ class FontFace MOZ_FINAL : public nsISupports,
 
 public:
   class Entry MOZ_FINAL : public gfxUserFontEntry {
+    friend class FontFace;
+
   public:
     Entry(gfxUserFontSet* aFontSet,
           const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
@@ -52,7 +54,9 @@ public:
   protected:
     
     
-    FontFace* GetFontFace();
+    
+    
+    nsAutoTArray<FontFace*,1> mFontFaces;
   };
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -70,6 +74,9 @@ public:
   nsCSSFontFaceRule* GetRule() { return mRule; }
 
   void GetDesc(nsCSSFontDesc aDescID, nsCSSValue& aResult) const;
+
+  gfxUserFontEntry* GetUserFontEntry() const { return mUserFontEntry; }
+  void SetUserFontEntry(gfxUserFontEntry* aEntry);
 
   
   static already_AddRefed<FontFace>
@@ -133,6 +140,10 @@ private:
   
   
   nsRefPtr<nsCSSFontFaceRule> mRule;
+
+  
+  
+  nsRefPtr<Entry> mUserFontEntry;
 
   
   
