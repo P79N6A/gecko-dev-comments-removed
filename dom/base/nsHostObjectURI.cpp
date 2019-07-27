@@ -2,12 +2,16 @@
 
 
 
+
 #include "nsHostObjectURI.h"
 
 #include "nsAutoPtr.h"
 #include "nsIObjectInputStream.h"
 #include "nsIObjectOutputStream.h"
 #include "nsIProgrammingLanguage.h"
+
+#include "mozilla/ipc/BackgroundUtils.h"
+#include "mozilla/ipc/URIUtils.h"
 
 static NS_DEFINE_CID(kHOSTOBJECTURICID, NS_HOSTOBJECTURI_CID);
 
@@ -79,6 +83,56 @@ nsHostObjectURI::Write(nsIObjectOutputStream* aStream)
   return NS_WriteOptionalCompoundObject(aStream, mPrincipal,
                                         NS_GET_IID(nsIPrincipal),
                                         true);
+}
+
+
+void
+nsHostObjectURI::Serialize(mozilla::ipc::URIParams& aParams)
+{
+  using namespace mozilla::ipc;
+
+  HostObjectURIParams hostParams;
+  URIParams simpleParams;
+
+  nsSimpleURI::Serialize(simpleParams);
+  hostParams.simpleParams() = simpleParams;
+
+  if (mPrincipal) {
+    PrincipalInfo info;
+    nsresult rv = PrincipalToPrincipalInfo(mPrincipal, &info);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return;
+    }
+
+    hostParams.principal() = info;
+  } else {
+    hostParams.principal() = void_t();
+  }
+
+  aParams = hostParams;
+}
+
+bool
+nsHostObjectURI::Deserialize(const mozilla::ipc::URIParams& aParams)
+{
+  using namespace mozilla::ipc;
+
+  if (aParams.type() != URIParams::THostObjectURIParams) {
+      NS_ERROR("Received unknown parameters from the other process!");
+      return false;
+  }
+
+  const HostObjectURIParams& hostParams = aParams.get_HostObjectURIParams();
+
+  if (!nsSimpleURI::Deserialize(hostParams.simpleParams())) {
+    return false;
+  }
+  if (hostParams.principal().type() == OptionalPrincipalInfo::Tvoid_t) {
+    return true;
+  }
+
+  mPrincipal = PrincipalInfoToPrincipal(hostParams.principal().get_PrincipalInfo());
+  return mPrincipal != nullptr;
 }
 
 
