@@ -89,6 +89,7 @@ enum AsmJSSimdOperation
     AsmJSSimdOperation_and,
     AsmJSSimdOperation_or,
     AsmJSSimdOperation_xor,
+    AsmJSSimdOperation_select,
 };
 
 
