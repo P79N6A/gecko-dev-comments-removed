@@ -60,7 +60,8 @@ function* runEditOuterHTMLTest(test, inspector) {
     yield test.validate(pageNode, pageNodeFront, selectedNodeFront, inspector);
   } else {
     is(pageNodeFront, selectedNodeFront, "Original node (grabbed by selector) is selected");
-    is(pageNode.outerHTML, test.newHTML, "Outer HTML has been updated");
+    let {outerHTML} = yield getNodeInfo(test.selector);
+    is(outerHTML, test.newHTML, "Outer HTML has been updated");
   }
 
   

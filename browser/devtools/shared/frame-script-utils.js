@@ -144,6 +144,9 @@ addMessageListener("devtools:test:setStyle", function(msg) {
 
 
 
+
+
+
 addMessageListener("devtools:test:getDomElementInfo", function(msg) {
   let {selector} = msg.data;
   let node = superQuerySelector(selector);
@@ -156,7 +159,10 @@ addMessageListener("devtools:test:getDomElementInfo", function(msg) {
       numChildren: node.children.length,
       attributes: [...node.attributes].map(({name, value, namespaceURI}) => {
         return {name, value, namespaceURI};
-      })
+      }),
+      outerHTML: node.outerHTML,
+      innerHTML: node.innerHTML,
+      textContent: node.textContent
     };
   }
 
