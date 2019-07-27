@@ -225,11 +225,8 @@ MmsConnection.prototype = {
   mmsPort:  -1,
 
   setApnSetting: function(network) {
-    
-    this.mmsc =
-      (network.mmsc === "undefined") ? undefined : network.mmsc;
-    this.mmsProxy =
-      (network.mmsProxy === "undefined") ? undefined : network.mmsProxy;
+    this.mmsc = network.mmsc;
+    this.mmsProxy = network.mmsProxy;
     this.mmsPort = network.mmsPort;
   },
 
@@ -366,12 +363,6 @@ MmsConnection.prototype = {
       return null;
     }
 
-    
-    
-    if (number === undefined || number === "undefined") {
-      return null;
-    }
-
     return number;
   },
 
@@ -385,15 +376,7 @@ MmsConnection.prototype = {
       return null;
     }
 
-    let iccId = iccInfo.iccid;
-
-    
-    
-    if (iccId === undefined || iccId === "undefined") {
-      return null;
-    }
-
-    return iccId;
+    return iccInfo.iccid;
   },
 
   
