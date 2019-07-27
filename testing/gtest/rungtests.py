@@ -5,9 +5,15 @@
 
 
 from __future__ import with_statement
-import sys, os
+
 from optparse import OptionParser
-import mozprocess, mozinfo, mozlog, mozcrash
+import os
+import sys
+
+import mozcrash
+import mozinfo
+import mozlog
+import mozprocess
 
 log = mozlog.getLogger('gtest')
 
@@ -17,7 +23,7 @@ class GTests(object):
     
     TEST_PROC_NO_OUTPUT_TIMEOUT = 300
 
-    def run_gtest(self, prog, xre_path, symbols_path=None):
+    def run_gtest(self, prog, xre_path, symbols_path=None, cwd=None):
         """
         Run a single C++ unit test program.
 
@@ -32,8 +38,12 @@ class GTests(object):
         self.xre_path = xre_path
         env = self.build_environment()
         log.info("Running gtest")
+
+        if cwd and not os.path.isdir(cwd):
+            os.makedirs(cwd)
+
         proc = mozprocess.ProcessHandler([prog, "-unittest"],
-                                         cwd=os.getcwd(),
+                                         cwd=cwd,
                                          env=env)
         
         
@@ -104,14 +114,18 @@ class GTests(object):
 class gtestOptions(OptionParser):
     def __init__(self):
         OptionParser.__init__(self)
+        self.add_option("--cwd",
+                        dest="cwd",
+                        default=os.getcwd(),
+                        help="absolute path to directory from which to run the binary")
         self.add_option("--xre-path",
-                        action = "store", type = "string", dest = "xre_path",
-                        default = None,
-                        help = "absolute path to directory containing XRE (probably xulrunner)")
+                        dest="xre_path",
+                        default=None,
+                        help="absolute path to directory containing XRE (probably xulrunner)")
         self.add_option("--symbols-path",
-                        action = "store", type = "string", dest = "symbols_path",
-                        default = None,
-                        help = "absolute path to directory containing breakpad symbols, or the URL of a zip file containing symbols")
+                        dest="symbols_path",
+                        default=None,
+                        help="absolute path to directory containing breakpad symbols, or the URL of a zip file containing symbols")
 
 def main():
     parser = gtestOptions()
@@ -126,7 +140,9 @@ def main():
     options.xre_path = os.path.abspath(options.xre_path)
     tester = GTests()
     try:
-        result = tester.run_gtest(prog, options.xre_path, options.symbols_path)
+        result = tester.run_gtest(prog, options.xre_path,
+                                  symbols_path=options.symbols_path,
+                                  cwd=options.cwd)
     except Exception, e:
         log.error(str(e))
         result = False
