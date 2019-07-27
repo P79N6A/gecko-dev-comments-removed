@@ -300,6 +300,13 @@ let CustomizableUIInternal = {
     
     
     if (!gSavedState) {
+      
+      for (let [id, widget] of gPalette) {
+        if (widget.defaultArea && widget._introducedInVersion === "pref") {
+          let prefId = "browser.toolbarbuttons.introduced." + widget.id;
+          Services.prefs.setBoolPref(prefId, true);
+        }
+      }
       return;
     }
 
