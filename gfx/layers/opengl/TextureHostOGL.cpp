@@ -184,7 +184,21 @@ TextureHostOGL::SetReleaseFence(const android::sp<android::Fence>& aReleaseFence
     return false;
   }
 
-  mReleaseFence = aReleaseFence;
+  if (!mReleaseFence.get()) {
+    mReleaseFence = aReleaseFence;
+  } else {
+    android::sp<android::Fence> mergedFence = android::Fence::merge(
+                  android::String8::format("TextureHostOGL"),
+                  mReleaseFence, aReleaseFence);
+    if (!mergedFence.get()) {
+      
+      
+      
+      mReleaseFence = aReleaseFence;
+      return false;
+    }
+    mReleaseFence = mergedFence;
+  }
   return true;
 }
 
