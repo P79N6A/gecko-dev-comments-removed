@@ -36,6 +36,7 @@ class   nsIntRegion;
 class   nsIScreen;
 
 namespace mozilla {
+class VsyncDispatcher;
 namespace dom {
 class TabChild;
 }
@@ -691,6 +692,7 @@ class nsIWidget : public nsISupports {
     typedef mozilla::widget::InputContext InputContext;
     typedef mozilla::widget::InputContextAction InputContextAction;
     typedef mozilla::widget::SizeConstraints SizeConstraints;
+    typedef mozilla::VsyncDispatcher VsyncDispatcher;
 
     
     struct ThemeGeometry {
@@ -868,6 +870,11 @@ class nsIWidget : public nsISupports {
 
 
     virtual float GetDPI() = 0;
+
+    
+
+
+    virtual VsyncDispatcher* GetVsyncDispatcher() = 0;
 
     
 

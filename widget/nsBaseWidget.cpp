@@ -43,6 +43,7 @@
 #include "mozilla/MouseEvents.h"
 #include "GLConsts.h"
 #include "mozilla/unused.h"
+#include "mozilla/VsyncDispatcher.h"
 #include "mozilla/layers/APZCTreeManager.h"
 #include "mozilla/layers/ChromeProcessController.h"
 
@@ -111,6 +112,7 @@ nsBaseWidget::nsBaseWidget()
 : mWidgetListener(nullptr)
 , mAttachedWidgetListener(nullptr)
 , mContext(nullptr)
+, mVsyncDispatcher(nullptr)
 , mCursor(eCursor_standard)
 , mUpdateCursor(true)
 , mBorderStyle(eBorderStyle_none)
@@ -229,8 +231,12 @@ nsBaseWidget::~nsBaseWidget()
 
   NS_IF_RELEASE(mContext);
   delete mOriginalBounds;
-}
 
+  
+  if (mVsyncDispatcher) {
+    mVsyncDispatcher->Shutdown();
+  }
+}
 
 
 
@@ -944,6 +950,24 @@ nsBaseWidget::GetPreferredCompositorBackends(nsTArray<LayersBackend>& aHints)
   aHints.AppendElement(LayersBackend::LAYERS_BASIC);
 }
 
+void nsBaseWidget::CreateVsyncDispatcher()
+{
+  if (gfxPrefs::HardwareVsyncEnabled()) {
+    
+    
+    
+    if (XRE_IsParentProcess()) {
+      mVsyncDispatcher = new VsyncDispatcher();
+    }
+  }
+}
+
+VsyncDispatcher*
+nsBaseWidget::GetVsyncDispatcher()
+{
+  return mVsyncDispatcher;
+}
+
 void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
 {
   
@@ -961,6 +985,7 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
     return;
   }
 
+  CreateVsyncDispatcher();
   mCompositorParent = NewCompositorParent(aWidth, aHeight);
   MessageChannel *parentChannel = mCompositorParent->GetIPCChannel();
   nsRefPtr<ClientLayerManager> lm = new ClientLayerManager(this);
