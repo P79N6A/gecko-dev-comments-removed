@@ -26,7 +26,7 @@ for (constructor of constructors) {
   Object.seal(a);
 
   
-  assertThrowsInstanceOf(() => Object.freeze(a), InternalError);
+  assertThrowsInstanceOf(() => Object.freeze(a), TypeError);
 }
 
 print();

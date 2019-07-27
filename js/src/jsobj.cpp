@@ -1038,24 +1038,40 @@ js::SetIntegrityLevel(JSContext *cx, HandleObject obj, IntegrityLevel level)
     } else {
         RootedId id(cx);
         Rooted<PropertyDescriptor> desc(cx);
+
+        const unsigned AllowConfigure = JSPROP_IGNORE_ENUMERATE | JSPROP_IGNORE_READONLY |
+                                        JSPROP_IGNORE_VALUE;
+        const unsigned AllowConfigureAndWritable = AllowConfigure & ~JSPROP_IGNORE_READONLY;
+
+        
         for (size_t i = 0; i < keys.length(); i++) {
             id = keys[i];
 
-            if (!GetOwnPropertyDescriptor(cx, obj, id, &desc))
-                return false;
+            if (level == IntegrityLevel::Sealed) {
+                
+                desc.setAttributes(AllowConfigure | JSPROP_PERMANENT);
+            } else {
+                
+                Rooted<PropertyDescriptor> currentDesc(cx);
+                if (!GetOwnPropertyDescriptor(cx, obj, id, &currentDesc))
+                    return false;
 
-            if (!desc.object())
-                continue;
+                
+                if (!currentDesc.object())
+                    continue;
 
-            unsigned attrs = desc.attributes();
-            unsigned new_attrs = GetSealedOrFrozenAttributes(attrs, level);
+                
+                if (currentDesc.isAccessorDescriptor())
+                    desc.setAttributes(AllowConfigure | JSPROP_PERMANENT);
+                else
+                    desc.setAttributes(AllowConfigureAndWritable | JSPROP_PERMANENT | JSPROP_READONLY);
+            }
+
+            desc.object().set(obj);
 
             
-            if ((attrs | new_attrs) == attrs)
-                continue;
-
-            attrs |= new_attrs;
-            if (!SetPropertyAttributes(cx, obj, id, &attrs))
+            bool result;
+            if (!StandardDefineProperty(cx, obj, id, desc, &result))
                 return false;
         }
     }

@@ -228,7 +228,6 @@ const static js::Class sNPObjectJSWrapperClass =
         nullptr, 
         nullptr, 
         nullptr, 
-        nullptr, 
         nullptr, nullptr, 
         nullptr, 
         NPObjWrapper_Enumerate,
