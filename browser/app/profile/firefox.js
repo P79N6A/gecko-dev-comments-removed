@@ -1580,7 +1580,7 @@ pref("shumway.disabled", true);
 pref("image.mem.max_decoded_image_kb", 256000);
 
 
-#ifndef RELEASE_BUILD
+#ifdef EARLY_BETA_OR_EARLIER
 pref("loop.enabled", true);
 pref("loop.throttled", false);
 #else
