@@ -125,7 +125,7 @@ void UIShowDefaultUI();
 
 
 
-bool UIShowCrashUI(const std::string& dumpfile,
+bool UIShowCrashUI(const StringTable& files,
                    const StringTable& queryParameters,
                    const std::string& sendURL,
                    const std::vector<std::string>& restartArgs);
