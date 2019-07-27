@@ -139,6 +139,7 @@ SyncImpl.prototype = {
 
   _start: Task.async(function* () {
     log.info("Starting sync");
+    yield this._logDiagnostics();
     yield this._uploadStatusChanges();
     yield this._uploadNewItems();
     yield this._uploadDeletedItems();
@@ -148,6 +149,43 @@ SyncImpl.prototype = {
     yield this._uploadMaterialChanges();
 
     log.info("Sync done");
+  }),
+
+  
+
+
+
+
+
+
+  _logDiagnostics: Task.async(function* () {
+    
+    
+    let smallestLevel = log.appenders.reduce(
+      (prev, appender) => Math.min(prev, appender.level),
+      Log.Level.Error);
+
+    if (smallestLevel > Log.Level.Trace) {
+      return;
+    }
+
+    let localItems = [];
+    yield this.list.forEachItem(localItem => localItems.push(localItem));
+    log.trace("Have " + localItems.length + " local item(s)");
+    for (let localItem of localItems) {
+      
+      let record = localItem._record;
+      let redacted = {};
+      for (let attr of ["guid", "url", "resolvedURL", "serverLastModified", "syncStatus"]) {
+        redacted[attr] = record[attr];
+      }
+      log.trace(JSON.stringify(redacted));
+    }
+    
+    let deletedGuids = []
+    yield this.list.forEachSyncedDeletedGUID(guid => deletedGuids.push(guid));
+    
+    log.trace("Have ${num} deleted item(s): ${deletedGuids}", {num: deletedGuids.length, deletedGuids});
   }),
 
   
