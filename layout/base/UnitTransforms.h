@@ -145,6 +145,45 @@ static gfx::PointTyped<TargetUnits> TransformVector(const gfx::Matrix4x4& aTrans
   return transformedEnd - transformedStart;
 }
 
+
+
+
+
+
+
+
+template <typename TargetUnits, typename SourceUnits>
+static Maybe<gfx::PointTyped<TargetUnits>> UntransformTo(const gfx::Matrix4x4& aTransform,
+                                                const gfx::PointTyped<SourceUnits>& aPoint)
+{
+  gfx::Point4D point = aTransform.ProjectPoint(aPoint.ToUnknownPoint());
+  if (!point.HasPositiveWCoord()) {
+    return Nothing();
+  }
+  return Some(ViewAs<TargetUnits>(point.As2DPoint()));
+}
+template <typename TargetUnits, typename SourceUnits>
+static Maybe<gfx::IntPointTyped<TargetUnits>> UntransformTo(const gfx::Matrix4x4& aTransform,
+                                                const gfx::IntPointTyped<SourceUnits>& aPoint)
+{
+  gfx::Point4D point = aTransform.ProjectPoint(aPoint.ToUnknownPoint());
+  if (!point.HasPositiveWCoord()) {
+    return Nothing();
+  }
+  return Some(RoundedToInt(ViewAs<TargetUnits>(point.As2DPoint())));
+}
+template <typename TargetUnits, typename SourceUnits>
+static Maybe<gfx::PointTyped<TargetUnits>> UntransformVector(const gfx::Matrix4x4& aTransform,
+                                                    const gfx::PointTyped<SourceUnits>& aVector,
+                                                    const gfx::PointTyped<SourceUnits>& aAnchor) {
+  gfx::Point4D point = aTransform.ProjectPoint(aAnchor.ToUnknownPoint() + aVector.ToUnknownPoint()) 
+    - aTransform.ProjectPoint(aAnchor.ToUnknownPoint());
+  if (!point.HasPositiveWCoord()){
+    return Nothing();
+  }
+  return Some(ViewAs<TargetUnits>(point.As2DPoint()));
+}
+
 }
 
 #endif
