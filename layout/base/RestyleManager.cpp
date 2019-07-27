@@ -2671,6 +2671,20 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
 void
 ElementRestyler::RestyleChildren(nsRestyleHint aChildRestyleHint)
 {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool mightReframePseudos = aChildRestyleHint & eRestyle_Subtree;
+
   RestyleUndisplayedChildren(aChildRestyleHint);
 
   
@@ -2681,7 +2695,7 @@ ElementRestyler::RestyleChildren(nsRestyleHint aChildRestyleHint)
   
   
   if (!(mHintsHandled & nsChangeHint_ReconstructFrame) &&
-      aChildRestyleHint) {
+      mightReframePseudos) {
     RestyleBeforePseudo();
   }
 
@@ -2710,7 +2724,7 @@ ElementRestyler::RestyleChildren(nsRestyleHint aChildRestyleHint)
   
   
   if (!(mHintsHandled & nsChangeHint_ReconstructFrame) &&
-      aChildRestyleHint) {
+      mightReframePseudos) {
     RestyleAfterPseudo(lastContinuation);
   }
 }
