@@ -59,26 +59,15 @@ NewObjectCache::newObjectFromHit(JSContext *cx, EntryIndex entryIndex, gc::Initi
     if (cx->runtime()->gc.upcomingZealousGC())
         return nullptr;
 
-    NativeObject *obj = gc::AllocateObjectForCacheHit<NoGC>(cx, entry->kind, heap, group->clasp());
-    if (obj) {
-        copyCachedToObject(obj, templateObj, entry->kind);
-        probes::CreateObject(cx, obj);
-        gc::TraceCreateObject(obj);
-        return obj;
-    }
+    NativeObject *obj = static_cast<NativeObject *>(Allocate<JSObject, NoGC>(cx, entry->kind, 0,
+                                                                             heap, group->clasp()));
+    if (!obj)
+        return nullptr;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    mozilla::DebugOnly<JSObject *> obj2 =
-        gc::AllocateObjectForCacheHit<CanGC>(cx, entry->kind, heap, group->clasp());
-    MOZ_ASSERT(!obj2);
-    return nullptr;
+    copyCachedToObject(obj, templateObj, entry->kind);
+    probes::CreateObject(cx, obj);
+    gc::TraceCreateObject(obj);
+    return obj;
 }
 
 }  
