@@ -393,12 +393,16 @@ public:
     PLDHashTable* mTable;             
 
   private:
-    char* mCurrent;                   
+    char* mStart;                     
     char* mLimit;                     
+    char* mCurrent;                   
+    uint32_t mNexts;                  
+    uint32_t mNextsLimit;             
 
     bool mHaveRemoved;                
 
     bool IsOnNonLiveEntry() const;
+    void MoveToNextEntry();
 
     Iterator() = delete;
     Iterator(const Iterator&) = delete;
