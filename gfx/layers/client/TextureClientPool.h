@@ -75,10 +75,7 @@ public:
 
 
 
-  void ReportClientLost() {
-    MOZ_ASSERT(mOutstandingClients > mTextureClientsDeferred.size());
-    mOutstandingClients--;
-  }
+  void ReportClientLost();
 
   
 
