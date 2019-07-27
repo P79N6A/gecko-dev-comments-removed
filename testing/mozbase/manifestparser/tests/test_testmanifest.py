@@ -4,7 +4,7 @@ import os
 import shutil
 import tempfile
 import unittest
-from manifestparser import TestManifest
+from manifestparser import TestManifest, ParseError
 
 here = os.path.dirname(os.path.abspath(__file__))
 
@@ -57,6 +57,51 @@ class TestTestManifest(unittest.TestCase):
         names = [i['name'] for i in manifest.tests]
         self.assertFalse('test_0202_app_launch_apply_update_dirlocked.js' in names)
 
+    def test_manifest_subsuites(self):
+        """
+        test subsuites and conditional subsuites
+        """
+        class AttributeDict(dict):
+            def __getattr__(self, attr):
+                return self[attr]
+            def __setattr__(self, attr, value):
+                self[attr] = value
+
+        relative_path = os.path.join(here, 'subsuite.ini')
+        manifest = TestManifest(manifests=(relative_path,))
+        info = {'foo': 'bar'}
+        options = {'subsuite': 'bar'}
+
+        
+        self.assertEquals(len(manifest.active_tests(exists=False, **info)), 6)
+
+        
+        self.assertEquals(len(manifest.active_tests(exists=False,
+                                                    options=AttributeDict(options),
+                                                    **info)), 3)
+
+        options = {'subsuite': 'baz'}
+        other = {'something': 'else'}
+        
+        self.assertEquals(len(manifest.active_tests(exists=False,
+                                                    options=AttributeDict(options),
+                                                    **info)), 1)
+        self.assertEquals(len(manifest.active_tests(exists=False,
+                                                    options=AttributeDict(options),
+                                                    **other)), 1)
+
+        
+        
+        info = {'foo': 'blah'}
+        options = {'subsuite': None}
+        self.assertEquals(len(manifest.active_tests(exists=False,
+                                                    options=AttributeDict(options),
+                                                    **info)), 5)
+
+        
+        manifest.tests[0]['subsuite'] = 'subsuite=bar,foo=="bar",type="nothing"'
+        self.assertRaises(ParseError, manifest.active_tests, exists=False,
+                          options=AttributeDict(options), **info)
 
 if __name__ == '__main__':
     unittest.main()

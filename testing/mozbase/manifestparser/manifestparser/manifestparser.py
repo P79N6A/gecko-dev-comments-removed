@@ -1105,9 +1105,33 @@ class TestManifest(ManifestParser):
         """
         - exists : return only existing tests
         - disabled : whether to return disabled tests
-        - tags : keys and values to filter on (e.g. `os = linux mac`)
+        - options: an optparse or argparse options object, used for subsuites
+        - values : keys and values to filter on (e.g. `os = linux mac`)
         """
         tests = [i.copy() for i in self.tests] 
+
+        
+        
+        
+        
+        
+        
+        
+        
+        for test in tests:
+            subsuite = test.get('subsuite')
+            if ',' in subsuite:
+                try:
+                    subsuite, condition = subsuite.split(',')
+                except ValueError:
+                    raise ParseError("subsuite condition can't contain commas")
+                
+                condition = condition.split('#')[0]
+                matched = parse(condition, **values)
+                if matched:
+                    test['subsuite'] = subsuite
+                else:
+                    test['subsuite'] = ''
 
         
         if options:
