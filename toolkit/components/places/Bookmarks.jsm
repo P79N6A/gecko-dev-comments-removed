@@ -58,8 +58,6 @@
 
 
 
-
-
 this.EXPORTED_SYMBOLS = [ "Bookmarks" ];
 
 const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
@@ -147,9 +145,6 @@ let Bookmarks = Object.freeze({
       , url: { requiredIf: b => b.type == this.TYPE_BOOKMARK
              , validIf: b => b.type == this.TYPE_BOOKMARK }
       , parentGuid: { required: true }
-      , keyword: { validIf: b => b.keyword &&
-                            b.keyword.length > 0 &&
-                            b.type == this.TYPE_BOOKMARK }
       , title: { validIf: b => [ this.TYPE_BOOKMARK
                                , this.TYPE_FOLDER ].indexOf(b.type) != -1 }
       , dateAdded: { defaultValue: time
@@ -186,15 +181,6 @@ let Bookmarks = Object.freeze({
                                          item.parentGuid ]);
 
       
-      if (item.keyword) {
-        notify(observers, "onItemChanged", [ itemId, "keyword", false,
-                                             item.keyword,
-                                             toPRTime(item.lastModified),
-                                             item.type, parent._id, item.guid,
-                                             item.parentGuid ]);
-      }
-
-      
       let isTagging = parent._parentId == PlacesUtils.tagsFolderId;
       if (isTagging) {
         for (let entry of (yield fetchBookmarksByURL(item))) {
@@ -211,8 +197,6 @@ let Bookmarks = Object.freeze({
   },
 
   
-
-
 
 
 
@@ -268,7 +252,6 @@ let Bookmarks = Object.freeze({
       let time = (updateInfo && updateInfo.dateAdded) || new Date();
       updateInfo = validateBookmarkObject(updateInfo,
         { url: { validIf: () => item.type == this.TYPE_BOOKMARK }
-        , keyword: { validIf: () => item.type == this.TYPE_BOOKMARK }
         , title: { validIf: () => [ this.TYPE_BOOKMARK
                                   , this.TYPE_FOLDER ].indexOf(item.type) != -1 }
         , lastModified: { defaultValue: new Date()
@@ -355,18 +338,6 @@ let Bookmarks = Object.freeze({
       if (updateInfo.hasOwnProperty("url")) {
         notify(observers, "onItemChanged", [ updatedItem._id, "uri",
                                              false, updatedItem.url.href,
-                                             toPRTime(updatedItem.lastModified),
-                                             updatedItem.type,
-                                             updatedItem._parentId,
-                                             updatedItem.guid,
-                                             updatedItem.parentGuid ]);
-      }
-      if (updateInfo.hasOwnProperty("keyword")) {
-        
-        let keyword = updatedItem.hasOwnProperty("keyword") ?
-                        updatedItem.keyword : "";
-        notify(observers, "onItemChanged", [ updatedItem._id, "keyword",
-                                             false, keyword,
                                              toPRTime(updatedItem.lastModified),
                                              updatedItem.type,
                                              updatedItem._parentId,
@@ -504,10 +475,6 @@ let Bookmarks = Object.freeze({
 
 
 
-
-
-
-
   fetch(guidOrInfo, onResult=null) {
     if (onResult && typeof onResult != "function")
       throw new Error("onResult callback must be a valid function");
@@ -521,8 +488,7 @@ let Bookmarks = Object.freeze({
     let conditionsCount = [
       v => v.hasOwnProperty("guid"),
       v => v.hasOwnProperty("parentGuid") && v.hasOwnProperty("index"),
-      v => v.hasOwnProperty("url"),
-      v => v.hasOwnProperty("keyword")
+      v => v.hasOwnProperty("url")
     ].reduce((old, fn) => old + fn(info)|0, 0);
     if (conditionsCount != 1)
       throw new Error(`Unexpected number of conditions provided: ${conditionsCount}`);
@@ -534,8 +500,6 @@ let Bookmarks = Object.freeze({
       , index: { requiredIf: b => b.hasOwnProperty("parentGuid")
                , validIf: b => typeof(b.index) == "number" &&
                                b.index >= 0 || b.index == this.DEFAULT_INDEX }
-      , keyword: { validIf: b => typeof(b.keyword) == "string" &&
-                                 b.keyword.length > 0 }
       });
 
     return Task.spawn(function* () {
@@ -546,8 +510,6 @@ let Bookmarks = Object.freeze({
         results = yield fetchBookmarkByPosition(fetchInfo);
       else if (fetchInfo.hasOwnProperty("url"))
         results = yield fetchBookmarksByURL(fetchInfo);
-      else if (fetchInfo.hasOwnProperty("keyword"))
-        results = yield fetchBookmarksByKeyword(fetchInfo);
 
       if (!results)
         return null;
@@ -739,17 +701,6 @@ function* updateBookmark(info, item, newParent) {
     tuples.set("title", { value: info.title });
 
   yield db.executeTransaction(function* () {
-    if (info.hasOwnProperty("keyword")) {
-      if (info.keyword.length > 0) {
-        yield maybeCreateKeyword(db, info.keyword);
-        tuples.set("keyword",
-                   { value: info.keyword
-                   , fragment: "keyword_id = (SELECT id FROM moz_keywords WHERE keyword = :keyword)" });
-      } else {
-        tuples.set("keyword_id", { value: null });
-      }
-    }
-
     if (info.hasOwnProperty("url")) {
       
       yield db.executeCached(
@@ -804,10 +755,6 @@ function* updateBookmark(info, item, newParent) {
        WHERE guid = :guid
       `, Object.assign({ guid: info.guid },
                        [...tuples.entries()].reduce((p, c) => { p[c[0]] = c[1].value; return p; }, {})));
-
-
-    if (info.hasOwnProperty("keyword") && info.keyword === "")
-      yield removeOrphanKeywords(db);
   });
 
   
@@ -824,8 +771,6 @@ function* updateBookmark(info, item, newParent) {
   
   if (updatedItem.hasOwnProperty("title") && updatedItem.title === null)
     delete updatedItem.title;
-  if (updatedItem.hasOwnProperty("keyword") && updatedItem.keyword === "")
-    delete updatedItem.keyword;
 
   return updatedItem;
 }
@@ -859,21 +804,15 @@ function* insertBookmark(item, parent) {
       `, { parent: parent._id, index: item.index });
 
     
-    if (item.hasOwnProperty("keyword"))
-      yield maybeCreateKeyword(db, item.keyword);
-
-    
     yield db.executeCached(
       `INSERT INTO moz_bookmarks (fk, type, parent, position, title,
-                                  dateAdded, lastModified, guid, keyword_id)
+                                  dateAdded, lastModified, guid)
        VALUES ((SELECT id FROM moz_places WHERE url = :url), :type, :parent,
-               :index, :title, :date_added, :last_modified, :guid,
-               (SELECT id FROM moz_keywords WHERE keyword = :keyword))
+               :index, :title, :date_added, :last_modified, :guid)
       `, { url: item.hasOwnProperty("url") ? item.url.href : "nonexistent",
            type: item.type, parent: parent._id, index: item.index,
            title: item.title, date_added: toPRTime(item.dateAdded),
-           last_modified: toPRTime(item.lastModified), guid: item.guid,
-           keyword: item.keyword || "" });
+           last_modified: toPRTime(item.lastModified), guid: item.guid });
 
     yield setAncestorsLastModified(db, item.parentGuid, item.dateAdded);
   });
@@ -900,12 +839,11 @@ function* fetchBookmark(info) {
   let rows = yield db.executeCached(
     `SELECT b.guid, IFNULL(p.guid, "") AS parentGuid, b.position AS 'index',
             b.dateAdded, b.lastModified, b.type, b.title, h.url AS url,
-            keyword, b.id AS _id, b.parent AS _parentId,
+            b.id AS _id, b.parent AS _parentId,
             (SELECT count(*) FROM moz_bookmarks WHERE parent = b.id) AS _childCount,
             p.parent AS _grandParentId
      FROM moz_bookmarks b
      LEFT JOIN moz_bookmarks p ON p.id = b.parent
-     LEFT JOIN moz_keywords k ON k.id = b.keyword_id
      LEFT JOIN moz_places h ON h.id = b.fk
      WHERE b.guid = :guid
     `, { guid: info.guid });
@@ -920,12 +858,11 @@ function* fetchBookmarkByPosition(info) {
   let rows = yield db.executeCached(
     `SELECT b.guid, IFNULL(p.guid, "") AS parentGuid, b.position AS 'index',
             b.dateAdded, b.lastModified, b.type, b.title, h.url AS url,
-            keyword, b.id AS _id, b.parent AS _parentId,
+            b.id AS _id, b.parent AS _parentId,
             (SELECT count(*) FROM moz_bookmarks WHERE parent = b.id) AS _childCount,
             p.parent AS _grandParentId
      FROM moz_bookmarks b
      LEFT JOIN moz_bookmarks p ON p.id = b.parent
-     LEFT JOIN moz_keywords k ON k.id = b.keyword_id
      LEFT JOIN moz_places h ON h.id = b.fk
      WHERE p.guid = :parentGuid
      AND b.position = IFNULL(:index, (SELECT count(*) - 1
@@ -942,12 +879,11 @@ function* fetchBookmarksByURL(info) {
   let rows = yield db.executeCached(
     `SELECT b.guid, IFNULL(p.guid, "") AS parentGuid, b.position AS 'index',
             b.dateAdded, b.lastModified, b.type, b.title, h.url AS url,
-            keyword, b.id AS _id, b.parent AS _parentId,
+            b.id AS _id, b.parent AS _parentId,
             (SELECT count(*) FROM moz_bookmarks WHERE parent = b.id) AS _childCount,
             p.parent AS _grandParentId
      FROM moz_bookmarks b
      LEFT JOIN moz_bookmarks p ON p.id = b.parent
-     LEFT JOIN moz_keywords k ON k.id = b.keyword_id
      LEFT JOIN moz_places h ON h.id = b.fk
      WHERE h.url = :url
      AND _grandParentId <> :tags_folder
@@ -958,38 +894,17 @@ function* fetchBookmarksByURL(info) {
   return rows.length ? rowsToItemsArray(rows) : null;
 }
 
-function* fetchBookmarksByKeyword(info) {
-  let db = yield DBConnPromised;
-
-  let rows = yield db.executeCached(
-    `SELECT b.guid, IFNULL(p.guid, "") AS parentGuid, b.position AS 'index',
-            b.dateAdded, b.lastModified, b.type, b.title, h.url AS url,
-            keyword, b.id AS _id, b.parent AS _parentId,
-            (SELECT count(*) FROM moz_bookmarks WHERE parent = b.id) AS _childCount,
-            p.parent AS _grandParentId
-     FROM moz_bookmarks b
-     LEFT JOIN moz_bookmarks p ON p.id = b.parent
-     LEFT JOIN moz_keywords k ON k.id = b.keyword_id
-     LEFT JOIN moz_places h ON h.id = b.fk
-     WHERE keyword = :keyword
-     ORDER BY b.lastModified DESC
-    `, { keyword: info.keyword });
-
-  return rows.length ? rowsToItemsArray(rows) : null;
-}
-
 function* fetchBookmarksByParent(info) {
   let db = yield DBConnPromised;
 
   let rows = yield db.executeCached(
     `SELECT b.guid, IFNULL(p.guid, "") AS parentGuid, b.position AS 'index',
             b.dateAdded, b.lastModified, b.type, b.title, h.url AS url,
-            keyword, b.id AS _id, b.parent AS _parentId,
+            b.id AS _id, b.parent AS _parentId,
             (SELECT count(*) FROM moz_bookmarks WHERE parent = b.id) AS _childCount,
             p.parent AS _grandParentId
      FROM moz_bookmarks b
      LEFT JOIN moz_bookmarks p ON p.id = b.parent
-     LEFT JOIN moz_keywords k ON k.id = b.keyword_id
      LEFT JOIN moz_places h ON h.id = b.fk
      WHERE p.guid = :parentGuid
      ORDER BY b.position ASC
@@ -1030,10 +945,6 @@ function* removeBookmark(item) {
       `, { parentId: item._parentId, index: item.index });
 
     yield setAncestorsLastModified(db, item.parentGuid, new Date());
-
-    
-    if (item.keyword)
-      removeOrphanKeywords(db);
   });
 
   
@@ -1157,10 +1068,6 @@ function removeSameValueProperties(dest, src) {
       case "url":
         remove = src.hasOwnProperty(prop) && dest[prop].href == src[prop].href;
         break;
-      case "keyword":
-        remove = (dest.keyword == "" && !src.hasOwnProperty("keyword")) ||
-                 dest[prop] == src[prop];
-        break;
       default:
         remove = dest[prop] == src[prop];
     }
@@ -1212,7 +1119,7 @@ function rowsToItemsArray(rows) {
     for (let prop of ["dateAdded", "lastModified"]) {
       item[prop] = toDate(row.getResultByName(prop));
     }
-    for (let prop of ["title", "keyword", "parentGuid", "url" ]) {
+    for (let prop of ["title", "parentGuid", "url" ]) {
       let val = row.getResultByName(prop);
       if (val)
         item[prop] = prop === "url" ? new URL(val) : val;
@@ -1283,12 +1190,6 @@ const VALIDATORS = Object.freeze({
     if (v instanceof Ci.nsIURI)
       return new URL(v.spec);
     return v;
-  },
-  keyword: v => {
-    simpleValidateFunc(val => typeof(val) == "string" && /^\S*$/.test(val))
-                      .call(this, v);
-    
-    return v.toLowerCase();
   }
 });
 
@@ -1370,34 +1271,6 @@ let updateFrecency = Task.async(function* (db, urls) {
      WHERE url IN ( ${urls.map(url => JSON.stringify(url.href)).join(", ")} )
        AND frecency <> 0
     `);
-});
-
-
-
-
-
-
-
-
-
-let maybeCreateKeyword = Task.async(function* (db, keyword) {
-  yield db.executeCached(
-    `INSERT OR IGNORE INTO moz_keywords (keyword)
-     VALUES (:keyword)
-    `, { keyword: keyword });
-});
-
-
-
-
-
-
-
-let removeOrphanKeywords = Task.async(function* (db) {
-  yield db.executeCached(
-    `DELETE FROM moz_keywords
-     WHERE NOT EXISTS(SELECT 1 FROM moz_bookmarks
-                      WHERE keyword_id = moz_keywords.id)`);
 });
 
 
@@ -1496,7 +1369,7 @@ Task.async(function* (db, folderGuids) {
        SELECT b.id AS _id, b.parent AS _parentId, b.position AS 'index',
               b.type, url, b.guid, p.guid AS parentGuid, b.dateAdded,
               b.lastModified, b.title, p.parent AS _grandParentId,
-              NULL AS _childCount, NULL AS keyword
+              NULL AS _childCount
        FROM moz_bookmarks b
        JOIN moz_bookmarks p ON p.id = b.parent
        LEFT JOIN moz_places h ON b.fk = h.id
@@ -1519,7 +1392,6 @@ Task.async(function* (db, folderGuids) {
 
   
   yield removeOrphanAnnotations(db);
-  yield removeOrphanKeywords(db);
 
   
 

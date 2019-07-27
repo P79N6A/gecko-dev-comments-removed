@@ -13,8 +13,7 @@ add_task(function* test_eraseEverything() {
   checkBookmarkObject(unfiledFolder);
   let unfiledBookmark = yield PlacesUtils.bookmarks.insert({ parentGuid: PlacesUtils.bookmarks.unfiledGuid,
                                                              type: PlacesUtils.bookmarks.TYPE_BOOKMARK,
-                                                             url: "http://example.com/",
-                                                             keyword: "kw1" });
+                                                             url: "http://example.com/" });
   checkBookmarkObject(unfiledBookmark);
   let unfiledBookmarkInFolder =
     yield PlacesUtils.bookmarks.insert({ parentGuid: unfiledFolder.guid,
@@ -29,8 +28,7 @@ add_task(function* test_eraseEverything() {
   checkBookmarkObject(menuFolder);
   let menuBookmark = yield PlacesUtils.bookmarks.insert({ parentGuid: PlacesUtils.bookmarks.menuGuid,
                                                           type: PlacesUtils.bookmarks.TYPE_BOOKMARK,
-                                                          url: "http://example.com/",
-                                                          keyword: "kw2" });
+                                                          url: "http://example.com/" });
   checkBookmarkObject(unfiledBookmark);
   let menuBookmarkInFolder =
     yield PlacesUtils.bookmarks.insert({ parentGuid: menuFolder.guid,
@@ -45,8 +43,7 @@ add_task(function* test_eraseEverything() {
   checkBookmarkObject(toolbarFolder);
   let toolbarBookmark = yield PlacesUtils.bookmarks.insert({ parentGuid: PlacesUtils.bookmarks.toolbarGuid,
                                                              type: PlacesUtils.bookmarks.TYPE_BOOKMARK,
-                                                             url: "http://example.com/",
-                                                             keyword: "kw3" });
+                                                             url: "http://example.com/" });
   checkBookmarkObject(toolbarBookmark);
   let toolbarBookmarkInFolder =
     yield PlacesUtils.bookmarks.insert({ parentGuid: toolbarFolder.guid,
@@ -67,9 +64,7 @@ add_task(function* test_eraseEverything() {
 
   
   let conn = yield PlacesUtils.promiseDBConnection();
-  let rows = yield conn.execute(`SELECT * FROM moz_keywords`);
-  Assert.equal(rows.length, 0);
-  rows = yield conn.execute(`SELECT * FROM moz_items_annos`);
+  let rows = yield conn.execute(`SELECT * FROM moz_items_annos`);
   Assert.equal(rows.length, 0);
   rows = yield conn.execute(`SELECT * FROM moz_anno_attributes`);
   Assert.equal(rows.length, 0);
