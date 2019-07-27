@@ -58,9 +58,15 @@ const INTERESTING_CALLS = [
 
 
 
-protocol.types.addType("uint32-array", {
+
+
+
+
+
+
+protocol.types.addType("array-buffer-view", {
   write: (v) => "[" + Array.join(v, ",") + "]",
-  read: (v) => new Uint32Array(JSON.parse(v))
+  read: (v) => JSON.parse(v)
 });
 
 
@@ -72,7 +78,7 @@ protocol.types.addDictType("snapshot-image", {
   height: "number",
   scaling: "number",
   flipped: "boolean",
-  pixels: "uint32-array"
+  pixels: "array-buffer-view"
 });
 
 
@@ -363,14 +369,14 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
     let width = this._lastContentCanvasWidth;
     let height = this._lastContentCanvasHeight;
     let flipped = !!this._lastThumbnailFlipped; 
-    let pixels = ContextUtils.getPixelStorage()["32bit"];
+    let pixels = ContextUtils.getPixelStorage()["8bit"];
     let animationFrameEndScreenshot = {
       index: index,
       width: width,
       height: height,
       scaling: 1,
       flipped: flipped,
-      pixels: pixels.subarray(0, width * height)
+      pixels: pixels.subarray(0, width * height * 4)
     };
 
     
@@ -463,6 +469,7 @@ let ContextUtils = {
 
 
 
+
   getPixelsForWebGL: function(gl,
     srcX = 0, srcY = 0,
     srcWidth = gl.canvas.width,
@@ -476,6 +483,7 @@ let ContextUtils = {
   },
 
   
+
 
 
 
@@ -520,12 +528,11 @@ let ContextUtils = {
 
 
 
+
   resizePixels: function(srcPixels, srcWidth, srcHeight, dstHeight) {
     let screenshotRatio = dstHeight / srcHeight;
     let dstWidth = (srcWidth * screenshotRatio) | 0;
-
-    
-    let dstPixels = new Array(dstWidth * dstHeight);
+    let dstPixels = new Uint32Array(dstWidth * dstHeight);
 
     
     
@@ -547,7 +554,7 @@ let ContextUtils = {
     return {
       width: dstWidth,
       height: dstHeight,
-      pixels: isTransparent ? [] : dstPixels
+      pixels: isTransparent ? [] : new Uint8Array(dstPixels.buffer)
     };
   },
 

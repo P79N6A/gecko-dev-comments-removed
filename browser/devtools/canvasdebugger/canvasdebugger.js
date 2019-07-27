@@ -441,14 +441,6 @@ let SnapshotsListView = Heritage.extend(WidgetMethods, {
       snapshotItem.isLoadedFromDisk = true;
       data.calls.forEach(e => e.isLoadedFromDisk = true);
 
-      
-      for (let thumbnail of data.thumbnails) {
-        let thumbnailPixelsArray = thumbnail.pixels.split(",");
-        thumbnail.pixels = new Uint32Array(thumbnailPixelsArray);
-      }
-      let screenshotPixelsArray = data.screenshot.pixels.split(",");
-      data.screenshot.pixels = new Uint32Array(screenshotPixelsArray);
-
       this.customizeSnapshot(snapshotItem, data.calls, data);
     });
   },
@@ -498,24 +490,12 @@ let SnapshotsListView = Heritage.extend(WidgetMethods, {
       
       yield DevToolsUtils.yieldingEach(thumbnails, (thumbnail, i) => {
         let { index, width, height, flipped, pixels } = thumbnail;
-        data.thumbnails.push({
-          index: index,
-          width: width,
-          height: height,
-          flipped: flipped,
-          pixels: Array.join(pixels, ",")
-        });
+        data.thumbnails.push({ index, width, height, flipped, pixels });
       });
 
       
       let { index, width, height, flipped, pixels } = screenshot;
-      data.screenshot = {
-        index: index,
-        width: width,
-        height: height,
-        flipped: flipped,
-        pixels: Array.join(pixels, ",")
-      };
+      data.screenshot = { index, width, height, flipped, pixels };
 
       let string = JSON.stringify(data);
       let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
@@ -1165,9 +1145,8 @@ function drawImage(canvas, width, height, pixels, options = {}) {
     return;
   }
 
-  let arrayBuffer = new Uint8Array(pixels.buffer);
   let imageData = getImageDataStorage(ctx, width, height);
-  imageData.data.set(arrayBuffer);
+  imageData.data.set(pixels);
 
   if (options.centered) {
     let left = (canvas.width - width) / 2;
