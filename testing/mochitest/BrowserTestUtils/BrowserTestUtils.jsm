@@ -255,24 +255,26 @@ this.BrowserTestUtils = {
 
 
 
-  waitForEvent(subject, eventName, checkFn) {
+
+
+  waitForEvent(subject, eventName, capture, checkFn) {
     return new Promise((resolve, reject) => {
       subject.addEventListener(eventName, function listener(event) {
         try {
           if (checkFn && !checkFn(event)) {
             return;
           }
-          subject.removeEventListener(eventName, listener);
+          subject.removeEventListener(eventName, listener, capture);
           resolve(event);
         } catch (ex) {
           try {
-            subject.removeEventListener(eventName, listener);
+            subject.removeEventListener(eventName, listener, capture);
           } catch (ex2) {
             
           }
           reject(ex);
         }
-      });
+      }, capture);
     });
   },
 
