@@ -1,3 +1,7 @@
+
+
+
+
 package org.mozilla.gecko.tests;
 
 public class testAwesomebar extends BaseTest {
