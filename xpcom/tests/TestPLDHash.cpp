@@ -64,14 +64,11 @@ static bool test_pldhash_lazy_storage()
   
   PL_DHashTableRemove(&t, (const void*)2);
 
-  
-  
-  PLDHashEnumerator enumerator = nullptr;
-  if (PL_DHashTableEnumerate(&t, enumerator, nullptr) != 0) {
-    return false;   
+  for (auto iter = t.Iter(); !iter.Done(); iter.Next()) {
+    return false; 
   }
 
-  for (auto iter = t.Iter(); !iter.Done(); iter.Get()) {
+  for (auto iter = t.RemovingIter(); !iter.Done(); iter.Next()) {
     return false; 
   }
 
