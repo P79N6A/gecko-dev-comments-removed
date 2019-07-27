@@ -977,10 +977,6 @@ nsCSPContext::AsyncReportViolation(nsISupports* aBlockedContentSource,
 
 
 
-
-
-
-
 NS_IMETHODIMP
 nsCSPContext::PermitsAncestry(nsIDocShell* aDocShell, bool* outPermitsAncestry)
 {
@@ -999,21 +995,18 @@ nsCSPContext::PermitsAncestry(nsIDocShell* aDocShell, bool* outPermitsAncestry)
   nsCOMPtr<nsIInterfaceRequestor> ir(do_QueryInterface(aDocShell));
   nsCOMPtr<nsIDocShellTreeItem> treeItem(do_GetInterface(ir));
   nsCOMPtr<nsIDocShellTreeItem> parentTreeItem;
-  nsCOMPtr<nsIWebNavigation> webNav;
   nsCOMPtr<nsIURI> currentURI;
   nsCOMPtr<nsIURI> uriClone;
 
   
   while (NS_SUCCEEDED(treeItem->GetParent(getter_AddRefs(parentTreeItem))) &&
          parentTreeItem != nullptr) {
-    ir     = do_QueryInterface(parentTreeItem);
-    NS_ASSERTION(ir, "Could not QI docShellTreeItem to nsIInterfaceRequestor");
 
-    webNav = do_GetInterface(ir);
-    NS_ENSURE_TRUE(webNav, NS_ERROR_FAILURE);
+    nsIDocument* doc = parentTreeItem->GetDocument();
+    NS_ASSERTION(doc, "Could not get nsIDocument from nsIDocShellTreeItem in nsCSPContext::PermitsAncestry");
+    NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
 
-    rv = webNav->GetCurrentURI(getter_AddRefs(currentURI));
-    NS_ENSURE_SUCCESS(rv, rv);
+    currentURI = doc->GetDocumentURI();
 
     if (currentURI) {
       
@@ -1025,8 +1018,11 @@ nsCSPContext::PermitsAncestry(nsIDocShell* aDocShell, bool* outPermitsAncestry)
       
       rv = currentURI->CloneIgnoringRef(getter_AddRefs(uriClone));
       NS_ENSURE_SUCCESS(rv, rv);
-      rv = uriClone->SetUserPass(EmptyCString());
-      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      
+      uriClone->SetUserPass(EmptyCString());
+
 #ifdef PR_LOGGING
       {
       nsAutoCString spec;
