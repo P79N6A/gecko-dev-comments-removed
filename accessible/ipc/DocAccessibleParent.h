@@ -82,6 +82,15 @@ public:
     mAccessibles.RemoveEntry(aAccessible->ID());
   }
 
+  
+
+
+  ProxyAccessible* GetAccessible(uintptr_t aID) const
+  {
+    ProxyEntry* e = mAccessibles.GetEntry(aID);
+    return e ? e->mProxy : nullptr;
+  }
+
 private:
 
   class ProxyEntry : public PLDHashEntryHdr

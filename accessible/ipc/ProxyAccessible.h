@@ -17,6 +17,7 @@ namespace a11y {
 
 class Attribute;
 class DocAccessibleParent;
+enum class RelationType;
 
 class ProxyAccessible
 {
@@ -86,6 +87,17 @@ public:
 
 
   void Attributes(nsTArray<Attribute> *aAttrs) const;
+
+  
+
+
+  nsTArray<ProxyAccessible*> RelationByType(RelationType aType) const;
+
+  
+
+
+  void Relations(nsTArray<RelationType>* aTypes,
+                 nsTArray<nsTArray<ProxyAccessible*>>* aTargetSets) const;
 
   
 
