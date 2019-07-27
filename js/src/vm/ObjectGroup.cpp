@@ -44,6 +44,7 @@ ObjectGroup::finalize(FreeOp *fop)
 {
     fop->delete_(newScriptDontCheckGeneration());
     fop->delete_(maybeUnboxedLayoutDontCheckGeneration());
+    fop->delete_(maybePreliminaryObjectsDontCheckGeneration());
 }
 
 void
@@ -80,10 +81,18 @@ ObjectGroup::setAddendum(AddendumKind kind, void *addendum, bool writeBarrier )
     if (writeBarrier) {
         
         
-        if (newScript())
+        switch (addendumKind()) {
+          case Addendum_PreliminaryObjects:
+            PreliminaryObjectArrayWithTemplate::writeBarrierPre(maybePreliminaryObjects());
+            break;
+          case Addendum_NewScript:
             TypeNewScript::writeBarrierPre(newScript());
-        else
-            MOZ_ASSERT(addendumKind() == Addendum_None || addendumKind() == kind);
+            break;
+          case Addendum_None:
+            break;
+          default:
+            MOZ_ASSERT(addendumKind() == kind);
+        }
     }
 
     flags_ &= ~OBJECT_FLAG_ADDENDUM_MASK;
@@ -1141,10 +1150,15 @@ ObjectGroup::allocationSiteGroup(JSContext *cx, JSScript *script, jsbytecode *pc
     if (JSOp(*pc) == JSOP_NEWOBJECT) {
         
         
-        
-        JSObject *baseobj = script->getObject(GET_UINT32_INDEX(pc));
-        if (!res->addDefiniteProperties(cx, baseobj->lastProperty()))
-            return nullptr;
+        Shape *shape = script->getObject(pc)->lastProperty();
+        if (!shape->isEmptyShape()) {
+            PreliminaryObjectArrayWithTemplate *preliminaryObjects =
+                cx->new_<PreliminaryObjectArrayWithTemplate>(shape);
+            if (preliminaryObjects)
+                res->setPreliminaryObjects(preliminaryObjects);
+            else
+                cx->recoverFromOutOfMemory();
+        }
     }
 
     if (!table->add(p, key, res))

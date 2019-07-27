@@ -2872,10 +2872,10 @@ class MNewObject
         initialHeap_(initialHeap),
         mode_(mode)
     {
-        PlainObject *obj = templateObject();
         MOZ_ASSERT_IF(mode != ObjectLiteral, !shouldUseVM());
         setResultType(MIRType_Object);
-        if (!obj->isSingleton())
+
+        if (JSObject *obj = templateObject())
             setResultTypeSet(MakeSingletonTypeSet(constraints, obj));
 
         
@@ -2883,7 +2883,8 @@ class MNewObject
         
         
         
-        templateConst->setEmittedAtUses();
+        if (templateConst->toConstant()->value().isObject())
+            templateConst->setEmittedAtUses();
     }
 
   public:
@@ -2904,8 +2905,8 @@ class MNewObject
         return mode_;
     }
 
-    PlainObject *templateObject() const {
-        return &getOperand(0)->toConstant()->value().toObject().as<PlainObject>();
+    JSObject *templateObject() const {
+        return getOperand(0)->toConstant()->value().toObjectOrNull();
     }
 
     gc::InitialHeap initialHeap() const {

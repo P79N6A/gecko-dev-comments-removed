@@ -19,6 +19,7 @@ namespace js {
 class TypeDescr;
 class UnboxedLayout;
 
+class PreliminaryObjectArrayWithTemplate;
 class TypeNewScript;
 class HeapTypeSet;
 class AutoClearTypeInferenceStateOnOOM;
@@ -215,6 +216,9 @@ class ObjectGroup : public gc::TenuredCell
         Addendum_NewScript,
 
         
+        Addendum_PreliminaryObjects,
+
+        
         
         
         Addendum_UnboxedLayout,
@@ -282,6 +286,26 @@ class ObjectGroup : public gc::TenuredCell
 
     void setNewScript(TypeNewScript *newScript) {
         setAddendum(Addendum_NewScript, newScript);
+    }
+
+    PreliminaryObjectArrayWithTemplate *maybePreliminaryObjects() {
+        maybeSweep(nullptr);
+        return maybePreliminaryObjectsDontCheckGeneration();
+    }
+
+    PreliminaryObjectArrayWithTemplate *maybePreliminaryObjectsDontCheckGeneration() {
+        if (addendumKind() == Addendum_PreliminaryObjects)
+            return reinterpret_cast<PreliminaryObjectArrayWithTemplate *>(addendum_);
+        return nullptr;
+    }
+
+    void setPreliminaryObjects(PreliminaryObjectArrayWithTemplate *preliminaryObjects) {
+        setAddendum(Addendum_PreliminaryObjects, preliminaryObjects);
+    }
+
+    void detachPreliminaryObjects() {
+        MOZ_ASSERT(maybePreliminaryObjects());
+        setAddendum(Addendum_None, nullptr);
     }
 
     UnboxedLayout *maybeUnboxedLayout() {

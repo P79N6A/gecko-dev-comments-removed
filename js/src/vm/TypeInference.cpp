@@ -3260,6 +3260,107 @@ PreliminaryObjectArray::sweep()
     }
 }
 
+void
+PreliminaryObjectArrayWithTemplate::trace(JSTracer *trc)
+{
+    MarkShape(trc, &shape_, "PreliminaryObjectArrayWithTemplate_shape");
+}
+
+ void
+PreliminaryObjectArrayWithTemplate::writeBarrierPre(PreliminaryObjectArrayWithTemplate *objects)
+{
+    if (!objects->shape()->runtimeFromAnyThread()->needsIncrementalBarrier())
+        return;
+
+    JS::Zone *zone = objects->shape()->zoneFromAnyThread();
+    if (zone->needsIncrementalBarrier())
+        objects->trace(zone->barrierTracer());
+}
+
+
+static bool
+OnlyHasDataProperties(Shape *shape)
+{
+    MOZ_ASSERT(!shape->inDictionary());
+
+    while (!shape->isEmptyShape()) {
+        if (!shape->isDataDescriptor() ||
+            !shape->configurable() ||
+            !shape->enumerable() ||
+            !shape->writable() ||
+            !shape->hasSlot())
+        {
+            return false;
+        }
+        shape = shape->previous();
+    }
+
+    return true;
+}
+
+
+
+static Shape *
+CommonPrefix(Shape *first, Shape *second)
+{
+    MOZ_ASSERT(OnlyHasDataProperties(first));
+    MOZ_ASSERT(OnlyHasDataProperties(second));
+
+    while (first->slotSpan() > second->slotSpan())
+        first = first->previous();
+    while (second->slotSpan() > first->slotSpan())
+        second = second->previous();
+
+    while (first != second && !first->isEmptyShape()) {
+        first = first->previous();
+        second = second->previous();
+    }
+
+    return first;
+}
+
+void
+PreliminaryObjectArrayWithTemplate::maybeAnalyze(JSContext *cx, ObjectGroup *group, bool force)
+{
+    
+    
+    if (!force && !full())
+        return;
+
+    AutoEnterAnalysis enter(cx);
+
+    ScopedJSDeletePtr<PreliminaryObjectArrayWithTemplate> preliminaryObjects(this);
+    group->detachPreliminaryObjects();
+
+    MOZ_ASSERT(shape()->slotSpan() != 0);
+    MOZ_ASSERT(OnlyHasDataProperties(shape()));
+
+    
+    
+    for (size_t i = 0; i < PreliminaryObjectArray::COUNT; i++) {
+        JSObject *objBase = preliminaryObjects->get(i);
+        if (!objBase)
+            continue;
+        PlainObject *obj = &objBase->as<PlainObject>();
+
+        if (obj->inDictionaryMode() || !OnlyHasDataProperties(obj->lastProperty()))
+            return;
+
+        if (CommonPrefix(obj->lastProperty(), shape()) != shape())
+            return;
+    }
+
+    TryConvertToUnboxedLayout(cx, shape(), group, preliminaryObjects);
+    if (group->maybeUnboxedLayout())
+        return;
+
+    
+    
+    
+    
+    group->addDefiniteProperties(cx, shape());
+}
+
 
 
 
@@ -3338,48 +3439,6 @@ TypeNewScript::registerNewObject(PlainObject *res)
     MOZ_ASSERT(res->numFixedSlots() == NativeObject::MAX_FIXED_SLOTS);
 
     preliminaryObjects->registerNewObject(res);
-}
-
-
-static bool
-OnlyHasDataProperties(Shape *shape)
-{
-    MOZ_ASSERT(!shape->inDictionary());
-
-    while (!shape->isEmptyShape()) {
-        if (!shape->isDataDescriptor() ||
-            !shape->configurable() ||
-            !shape->enumerable() ||
-            !shape->writable() ||
-            !shape->hasSlot())
-        {
-            return false;
-        }
-        shape = shape->previous();
-    }
-
-    return true;
-}
-
-
-
-static Shape *
-CommonPrefix(Shape *first, Shape *second)
-{
-    MOZ_ASSERT(OnlyHasDataProperties(first));
-    MOZ_ASSERT(OnlyHasDataProperties(second));
-
-    while (first->slotSpan() > second->slotSpan())
-        first = first->previous();
-    while (second->slotSpan() > first->slotSpan())
-        second = second->previous();
-
-    while (first != second && !first->isEmptyShape()) {
-        first = first->previous();
-        second = second->previous();
-    }
-
-    return first;
 }
 
 static bool
@@ -3760,6 +3819,17 @@ TypeNewScript::trace(JSTracer *trc)
         MarkObjectGroup(trc, &initializedGroup_, "TypeNewScript_initializedGroup");
 }
 
+ void
+TypeNewScript::writeBarrierPre(TypeNewScript *newScript)
+{
+    if (!newScript->function()->runtimeFromAnyThread()->needsIncrementalBarrier())
+        return;
+
+    JS::Zone *zone = newScript->function()->zoneFromAnyThread();
+    if (zone->needsIncrementalBarrier())
+        newScript->trace(zone->barrierTracer());
+}
+
 void
 TypeNewScript::sweep()
 {
@@ -3917,6 +3987,9 @@ ObjectGroup::maybeSweep(AutoClearTypeInferenceStateOnOOM *oom)
 
     if (maybeUnboxedLayout() && unboxedLayout().newScript())
         unboxedLayout().newScript()->sweep();
+
+    if (maybePreliminaryObjects())
+        maybePreliminaryObjects()->sweep();
 
     if (newScript())
         newScript()->sweep();

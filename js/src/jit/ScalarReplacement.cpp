@@ -113,6 +113,9 @@ IsObjectEscaped(MInstruction *ins, JSObject *objDefault = nullptr)
     else
         obj = objDefault;
 
+    if (!obj)
+        return true;
+
     
     if (obj->is<UnboxedPlainObject>())
         return true;

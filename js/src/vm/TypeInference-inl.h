@@ -1003,21 +1003,6 @@ TypeSet::getObjectClass(unsigned i) const
 
 
 
-inline void
-TypeNewScript::writeBarrierPre(TypeNewScript *newScript)
-{
-    if (!newScript->function()->runtimeFromAnyThread()->needsIncrementalBarrier())
-        return;
-
-    JS::Zone *zone = newScript->function()->zoneFromAnyThread();
-    if (zone->needsIncrementalBarrier())
-        newScript->trace(zone->barrierTracer());
-}
-
-
-
-
-
 inline uint32_t
 ObjectGroup::basePropertyCount()
 {

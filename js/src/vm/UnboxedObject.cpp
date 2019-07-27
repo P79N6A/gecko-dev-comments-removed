@@ -576,8 +576,11 @@ js::TryConvertToUnboxedLayout(JSContext *cx, Shape *templateShape,
         
         
         
-        MOZ_ASSERT(gc::GetGCKindSlots(obj->asTenured().getAllocKind()) ==
-                   NativeObject::MAX_FIXED_SLOTS);
+        
+        
+        
+        MOZ_ASSERT(gc::GetGCKindSlots(obj->asTenured().getAllocKind()) >=
+                   Min(NativeObject::MAX_FIXED_SLOTS, templateShape->slotSpan()));
 
         if (obj->as<PlainObject>().lastProperty() != templateShape ||
             obj->as<PlainObject>().hasDynamicElements())

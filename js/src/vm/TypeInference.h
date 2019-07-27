@@ -784,6 +784,26 @@ class PreliminaryObjectArray
     void sweep();
 };
 
+class PreliminaryObjectArrayWithTemplate : public PreliminaryObjectArray
+{
+    HeapPtrShape shape_;
+
+  public:
+    explicit PreliminaryObjectArrayWithTemplate(Shape *shape)
+      : shape_(shape)
+    {}
+
+    Shape *shape() {
+        return shape_;
+    }
+
+    void maybeAnalyze(JSContext *cx, ObjectGroup *group, bool force = false);
+
+    void trace(JSTracer *trc);
+
+    static void writeBarrierPre(PreliminaryObjectArrayWithTemplate *preliminaryObjects);
+};
+
 
 
 
@@ -881,7 +901,7 @@ class TypeNewScript
         js_free(initializerList);
     }
 
-    static inline void writeBarrierPre(TypeNewScript *newScript);
+    static void writeBarrierPre(TypeNewScript *newScript);
 
     bool analyzed() const {
         return preliminaryObjects == nullptr;

@@ -159,8 +159,8 @@ class MIRGenerator
 
     
     
-    const ObjectGroupVector &abortedNewScriptPropertiesGroups() const {
-        return abortedNewScriptPropertiesGroups_;
+    const ObjectGroupVector &abortedPreliminaryGroups() const {
+        return abortedPreliminaryGroups_;
     }
 
   public:
@@ -175,7 +175,7 @@ class MIRGenerator
     MIRGraph *graph_;
     AbortReason abortReason_;
     bool shouldForceAbort_; 
-    ObjectGroupVector abortedNewScriptPropertiesGroups_;
+    ObjectGroupVector abortedPreliminaryGroups_;
     bool error_;
     mozilla::Atomic<bool, mozilla::Relaxed> *pauseBuild_;
     mozilla::Atomic<bool, mozilla::Relaxed> cancelBuild_;
@@ -200,10 +200,11 @@ class MIRGenerator
     
     ObjectVector nurseryObjects_;
 
+    void addAbortedPreliminaryGroup(ObjectGroup *group);
+
     Label *outOfBoundsLabel_;
     bool usesSignalHandlersForAsmJSOOB_;
 
-    void addAbortedNewScriptPropertiesGroup(ObjectGroup *type);
     void setForceAbort() {
         shouldForceAbort_ = true;
     }
