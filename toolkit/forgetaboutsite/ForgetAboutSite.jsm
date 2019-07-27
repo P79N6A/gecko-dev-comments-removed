@@ -81,6 +81,12 @@ this.ForgetAboutSite = {
     }
 
     
+    let (mps = Cc["@mozilla.org/gecko-media-plugin-service;1"].
+               getService(Ci.mozIGeckoMediaPluginService)) {
+      mps.forgetThisSite(aDomain);
+    }
+
+    
     const phInterface = Ci.nsIPluginHost;
     const FLAG_CLEAR_ALL = phInterface.FLAG_CLEAR_ALL;
     let ph = Cc["@mozilla.org/plugin/host;1"].getService(phInterface);

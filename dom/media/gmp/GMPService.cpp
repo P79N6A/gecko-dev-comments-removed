@@ -32,6 +32,7 @@
 #include "nsDirectoryServiceDefs.h"
 #include "nsHashKeys.h"
 #include "nsIFile.h"
+#include "nsISimpleEnumerator.h"
 
 namespace mozilla {
 
@@ -63,6 +64,7 @@ GetGMPLog()
 
 namespace gmp {
 
+static const uint32_t NodeIdSaltLength = 32;
 static StaticRefPtr<GeckoMediaPluginService> sSingletonService;
 
 class GMPServiceCreateHelper MOZ_FINAL : public nsRunnable
@@ -323,16 +325,23 @@ GeckoMediaPluginService::Observe(nsISupports* aSubject,
     
     mTempNodeIds.Clear();
   } else if (!strcmp("gmp-clear-storage", aTopic)) {
-    nsCOMPtr<nsIThread> thread;
-    nsresult rv = GetThread(getter_AddRefs(thread));
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-    thread->Dispatch(
-      NS_NewRunnableMethod(this, &GeckoMediaPluginService::ClearStorage),
-      NS_DISPATCH_NORMAL);
+    nsresult rv = GMPDispatch(
+      NS_NewRunnableMethod(this, &GeckoMediaPluginService::ClearStorage));
+    NS_ENSURE_SUCCESS(rv, rv);
   }
   return NS_OK;
+}
+
+nsresult
+GeckoMediaPluginService::GMPDispatch(nsIRunnable* event, uint32_t flags)
+{
+  nsCOMPtr<nsIRunnable> r(event);
+  nsCOMPtr<nsIThread> thread;
+  nsresult rv = GetThread(getter_AddRefs(thread));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  return thread->Dispatch(r, flags);
 }
 
 
@@ -631,28 +640,14 @@ NS_IMETHODIMP
 GeckoMediaPluginService::AddPluginDirectory(const nsAString& aDirectory)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  nsCOMPtr<nsIThread> thread;
-  nsresult rv = GetThread(getter_AddRefs(thread));
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  nsCOMPtr<nsIRunnable> r = new PathRunnable(this, aDirectory, true);
-  thread->Dispatch(r, NS_DISPATCH_NORMAL);
-  return NS_OK;
+  return GMPDispatch(new PathRunnable(this, aDirectory, true));
 }
 
 NS_IMETHODIMP
 GeckoMediaPluginService::RemovePluginDirectory(const nsAString& aDirectory)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  nsCOMPtr<nsIThread> thread;
-  nsresult rv = GetThread(getter_AddRefs(thread));
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  nsCOMPtr<nsIRunnable> r = new PathRunnable(this, aDirectory, false);
-  thread->Dispatch(r, NS_DISPATCH_NORMAL);
-  return NS_OK;
+  return GMPDispatch(new PathRunnable(this, aDirectory, false));
 }
 
 class DummyRunnable : public nsRunnable {
@@ -676,12 +671,8 @@ GeckoMediaPluginService::HasPluginForAPI(const nsACString& aAPI,
     
     
     
-    nsCOMPtr<nsIThread> thread;
-    nsresult rv = GetThread(getter_AddRefs(thread));
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-    thread->Dispatch(new DummyRunnable(), NS_DISPATCH_SYNC);
+    nsresult rv = GMPDispatch(new DummyRunnable(), NS_DISPATCH_SYNC);
+    NS_ENSURE_SUCCESS(rv, rv);
     MOZ_ASSERT(mScannedPluginOnDisk, "Should have scanned MOZ_GMP_PATH by now");
   }
 
@@ -979,6 +970,14 @@ ReadFromFile(nsIFile* aPath,
   return NS_OK;
 }
 
+static nsresult
+ReadSalt(nsIFile* aPath, nsCString& aOutData)
+{
+  return ReadFromFile(aPath, NS_LITERAL_CSTRING("salt"),
+                      aOutData, NodeIdSaltLength);
+
+}
+
 NS_IMETHODIMP
 GeckoMediaPluginService::IsPersistentStorageAllowed(const nsACString& aNodeId,
                                                     bool* aOutAllowed)
@@ -1007,7 +1006,6 @@ GeckoMediaPluginService::GetNodeId(const nsAString& aOrigin,
 #endif
 
   nsresult rv;
-  const uint32_t NodeIdSaltLength = 32;
 
   if (aOrigin.EqualsLiteral("null") ||
       aOrigin.IsEmpty() ||
@@ -1131,10 +1129,7 @@ GeckoMediaPluginService::GetNodeId(const nsAString& aOrigin,
     }
 
   } else {
-    rv = ReadFromFile(path,
-                      NS_LITERAL_CSTRING("salt"),
-                      salt,
-                      NodeIdSaltLength);
+    rv = ReadSalt(path, salt);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
@@ -1144,6 +1139,97 @@ GeckoMediaPluginService::GetNodeId(const nsAString& aOrigin,
   mPersistentStorageAllowed.Put(salt, true);
 
   return NS_OK;
+}
+
+static bool
+MatchOrigin(nsIFile* aPath, const nsACString& aMatch)
+{
+  
+  static const uint32_t MaxDomainLength = 253;
+
+  nsresult rv;
+  nsCString str;
+  rv = ReadFromFile(aPath, NS_LITERAL_CSTRING("origin"), str, MaxDomainLength);
+  if (NS_SUCCEEDED(rv) && aMatch.Equals(str)) {
+    return true;
+  }
+  rv = ReadFromFile(aPath, NS_LITERAL_CSTRING("topLevelOrigin"), str, MaxDomainLength);
+  if (NS_SUCCEEDED(rv) && aMatch.Equals(str)) {
+    return true;
+  }
+  return false;
+}
+
+void
+GeckoMediaPluginService::ForgetThisSiteOnGMPThread(const nsACString& aOrigin)
+{
+#define ERR_RET(x) NS_ENSURE_SUCCESS_VOID(x)
+#define ERR_CONT(x) if (NS_FAILED(x)) { continue; }
+
+  MOZ_ASSERT(NS_GetCurrentThread() == mGMPThread);
+  LOGD(("%s::%s: origin=%s", __CLASS__, __FUNCTION__, aOrigin.Data()));
+
+  nsresult rv;
+  nsCOMPtr<nsIFile> path;
+
+  
+  ERR_RET(GetStorageDir(getter_AddRefs(path)));
+
+  
+  ERR_RET(path->AppendNative(NS_LITERAL_CSTRING("id")));
+
+  
+  nsCOMPtr<nsISimpleEnumerator> iter;
+  ERR_RET(path->GetDirectoryEntries(getter_AddRefs(iter)));
+
+  bool hasMore = false;
+  nsTArray<nsCString> nodeIDsToClear;
+  while (NS_SUCCEEDED(iter->HasMoreElements(&hasMore)) && hasMore) {
+    nsCOMPtr<nsISupports> supports;
+    ERR_CONT(iter->GetNext(getter_AddRefs(supports)));
+
+    
+    nsCOMPtr<nsIFile> dirEntry(do_QueryInterface(supports, &rv));
+    ERR_CONT(rv);
+
+    
+    bool isDirectory = false;
+    ERR_CONT(dirEntry->IsDirectory(&isDirectory));
+    if (!isDirectory) {
+      continue;
+    }
+
+    
+    if (!MatchOrigin(dirEntry, aOrigin)) {
+      continue;
+    }
+
+    
+    nsAutoCString salt;
+    if (NS_SUCCEEDED(ReadSalt(dirEntry, salt))) {
+      nodeIDsToClear.AppendElement(salt);
+    }
+    
+    if (NS_FAILED(dirEntry->Remove(true))) {
+      NS_WARNING("Failed to delete the directory for the origin pair");
+    }
+  }
+
+  
+  
+  nodeIDsToClear.Clear();
+
+#undef ERR_RET
+#undef ERR_CONT
+}
+
+NS_IMETHODIMP
+GeckoMediaPluginService::ForgetThisSite(const nsAString& aOrigin)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  return GMPDispatch(NS_NewRunnableMethodWithArg<nsCString>(
+      this, &GeckoMediaPluginService::ForgetThisSiteOnGMPThread,
+      NS_ConvertUTF16toUTF8(aOrigin)));
 }
 
 class StorageClearedTask : public nsRunnable {
