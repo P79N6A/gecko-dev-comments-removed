@@ -1932,15 +1932,29 @@ MaybeReportUndeclaredVarAssignment(JSContext *cx, JSString *propname)
 template <ExecutionMode mode>
 static bool
 SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
-                      HandleObject receiver, HandleId id, HandleValue v, bool strict)
+                      HandleNativeObject obj, HandleObject receiver, HandleId id,
+                      HandleValue v, bool strict, bool objHasOwn)
 {
     
     
     
     
-    
     bool existing;
-    if (mode == ParallelExecution) {
+    if (receiver == obj) {
+        
+        
+#ifdef DEBUG
+        
+        
+        
+        if (mode == SequentialExecution) {
+            if (!HasOwnProperty(cxArg->asJSContext(), receiver, id, &existing))
+                return false;
+            MOZ_ASSERT(existing == objHasOwn);
+        }
+#endif
+        existing = objHasOwn;
+    } else if (mode == ParallelExecution) {
         
         
         NativeObject *npobj;
@@ -2026,8 +2040,8 @@ SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
 template <ExecutionMode mode>
 static bool
 SetNonexistentProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
-                       HandleObject receiver, HandleId id, baseops::QualifiedBool qualified,
-                       HandleValue v, bool strict)
+                       HandleNativeObject obj, HandleObject receiver, HandleId id,
+                       baseops::QualifiedBool qualified, HandleValue v, bool strict)
 {
     
     MOZ_ASSERT(!receiver->is<BlockObject>());
@@ -2040,7 +2054,7 @@ SetNonexistentProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
             return false;
     }
 
-    return SetPropertyByDefining<mode>(cxArg, receiver, id, v, strict);
+    return SetPropertyByDefining<mode>(cxArg, obj, receiver, id, v, strict, false);
 }
 
 
@@ -2238,7 +2252,7 @@ SetExistingProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
     }
 
     
-    return SetPropertyByDefining<mode>(cxArg, receiver, id, vp, strict);
+    return SetPropertyByDefining<mode>(cxArg, obj, receiver, id, vp, strict, obj == pobj);
 }
 
 template <ExecutionMode mode>
@@ -2309,7 +2323,7 @@ baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg
         RootedObject proto(cxArg, done ? nullptr : pobj->getProto());
         if (!proto) {
             
-            return SetNonexistentProperty<mode>(cxArg, receiver, id, qualified, vp, strict);
+            return SetNonexistentProperty<mode>(cxArg, obj, receiver, id, qualified, vp, strict);
         }
 
         
@@ -2329,7 +2343,7 @@ baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg
                 if (!JSObject::lookupGeneric(cxArg->asJSContext(), proto, id, &pobj, &shape))
                     return false;
                 if (!shape) {
-                    return SetNonexistentProperty<mode>(cxArg, receiver, id, qualified, vp,
+                    return SetNonexistentProperty<mode>(cxArg, obj, receiver, id, qualified, vp,
                                                         strict);
                 }
             }
