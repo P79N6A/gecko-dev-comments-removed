@@ -1292,19 +1292,19 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
   if ( aFE.cfFormat == CF_TEXT ) {
     
     
-    char* plainTextData = nullptr;
+    size_t bufferSize = sizeof(char)*(len + 2);
+    char* plainTextData = static_cast<char*>(nsMemory::Alloc(bufferSize));
     char16_t* castedUnicode = reinterpret_cast<char16_t*>(data);
-    int32_t plainTextLen = 0;
-    nsPrimitiveHelpers::ConvertUnicodeToPlatformPlainText ( castedUnicode, len / 2, &plainTextData, &plainTextLen );
-   
+    int32_t plainTextLen = WideCharToMultiByte(CP_ACP, 0, (LPCWSTR)castedUnicode, len / 2 + 1, plainTextData, bufferSize, NULL, NULL);
     
     
     nsMemory::Free(data);
-    if ( plainTextData ) {
+    if ( plainTextLen ) {
       data = plainTextData;
-      allocLen = plainTextLen + sizeof(char);
+      allocLen = plainTextLen;
     }
     else {
+      nsMemory::Free(plainTextData);
       NS_WARNING ( "Oh no, couldn't convert unicode to plain text" );
       return S_OK;
     }
