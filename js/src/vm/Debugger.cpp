@@ -1750,20 +1750,6 @@ Debugger::sweepAll(FreeOp *fop)
             }
         }
     }
-
-    for (gc::GCCompartmentGroupIter comp(rt); !comp.done(); comp.next()) {
-        
-        GlobalObjectSet &debuggees = comp->getDebuggees();
-        for (GlobalObjectSet::Enum e(debuggees); !e.empty(); e.popFront()) {
-            GlobalObject *global = e.front();
-            if (IsObjectAboutToBeFinalized(&global)) {
-                
-                detachAllDebuggersFromGlobal(fop, global, &e);
-            } else if (global != e.front()) {
-                e.rekeyFront(global);
-            }
-        }
-    }
 }
 
 void

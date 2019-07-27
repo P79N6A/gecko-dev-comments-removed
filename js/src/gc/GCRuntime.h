@@ -396,6 +396,11 @@ class GCRuntime
     void disableGenerationalGC();
     void enableGenerationalGC();
 
+#ifdef JSGC_COMPACTING
+    void disableCompactingGC();
+    void enableCompactingGC();
+#endif
+
     void setGrayRootsTracer(JSTraceDataOp traceOp, void *data);
     bool addBlackRootsTracer(JSTraceDataOp traceOp, void *data);
     void removeBlackRootsTracer(JSTraceDataOp traceOp, void *data);
@@ -712,6 +717,15 @@ class GCRuntime
 
 
     unsigned              generationalDisabled;
+
+#ifdef JSGC_COMPACTING
+    
+
+
+
+
+    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> compactingDisabled;
+#endif
 
     
 

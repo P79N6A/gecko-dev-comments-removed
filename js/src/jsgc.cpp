@@ -1158,6 +1158,9 @@ GCRuntime::GCRuntime(JSRuntime *rt) :
     sliceBudget(SliceBudget::Unlimited),
     incrementalAllowed(true),
     generationalDisabled(0),
+#ifdef JSGC_COMPACTING
+    compactingDisabled(0),
+#endif
     manipulatingDeadZones(false),
     objectsMarkedInDeadZones(0),
     poked(false),
@@ -2004,13 +2007,37 @@ bool
 GCRuntime::shouldCompact()
 {
 #ifdef JSGC_COMPACTING
-    return invocationKind == GC_SHRINK;
+    return invocationKind == GC_SHRINK && !compactingDisabled;
 #else
     return false;
 #endif
 }
 
 #ifdef JSGC_COMPACTING
+
+void
+GCRuntime::disableCompactingGC()
+{
+    ++rt->gc.compactingDisabled;
+}
+
+void
+GCRuntime::enableCompactingGC()
+{
+    JS_ASSERT(compactingDisabled > 0);
+    --compactingDisabled;
+}
+
+AutoDisableCompactingGC::AutoDisableCompactingGC(JSRuntime *rt)
+  : gc(rt->gc)
+{
+    gc.disableCompactingGC();
+}
+
+AutoDisableCompactingGC::~AutoDisableCompactingGC()
+{
+    gc.enableCompactingGC();
+}
 
 static void
 ForwardCell(Cell *dest, Cell *src)
@@ -2050,7 +2077,9 @@ CanRelocateArena(ArenaHeader *arena)
 
 
 
-    return arena->getAllocKind() <= FINALIZE_OBJECT_LAST && !ArenaContainsGlobal(arena);
+    JSRuntime *rt = arena->zone->runtimeFromMainThread();
+    return arena->getAllocKind() <= FINALIZE_OBJECT_LAST &&
+        ((!rt->options().baseline() && !rt->options().ion()) || !ArenaContainsGlobal(arena));
 }
 
 static bool
@@ -2103,6 +2132,14 @@ ArenaList::pickArenasToRelocate()
     return head;
 }
 
+#ifdef DEBUG
+inline bool
+PtrIsInRange(void *ptr, void *start, size_t length)
+{
+    return uintptr_t(ptr) - uintptr_t(start) < length;
+}
+#endif
+
 static bool
 RelocateCell(Zone *zone, Cell *src, AllocKind thingKind, size_t thingSize)
 {
@@ -2117,20 +2154,36 @@ RelocateCell(Zone *zone, Cell *src, AllocKind thingKind, size_t thingSize)
     memcpy(dst, src, thingSize);
 
     
-    ForwardCell(static_cast<Cell *>(dst), src);
-
-    
     if (thingKind <= FINALIZE_OBJECT_LAST) {
         JSObject *srcObj = static_cast<JSObject *>(src);
         JSObject *dstObj = static_cast<JSObject *>(dst);
         if (srcObj->hasFixedElements())
             dstObj->setFixedElements();
-        JS_ASSERT(
-            uintptr_t((HeapSlot*)dstObj->getElementsHeader()) - uintptr_t(srcObj) >= thingSize);
+
+        if (srcObj->is<ArrayBufferObject>()) {
+            
+            
+            ArrayBufferObject::fixupDataPointerAfterMovingGC(
+                srcObj->as<ArrayBufferObject>(), dstObj->as<ArrayBufferObject>());
+        } else if (srcObj->is<TypedArrayObject>()) {
+            TypedArrayObject &typedArray = srcObj->as<TypedArrayObject>();
+            if (!typedArray.hasBuffer()) {
+                JS_ASSERT(srcObj->getPrivate() ==
+                          srcObj->fixedData(TypedArrayObject::FIXED_DATA_START));
+                dstObj->setPrivate(dstObj->fixedData(TypedArrayObject::FIXED_DATA_START));
+            }
+        }
+
+
+        JS_ASSERT_IF(dstObj->isNative(),
+                     !PtrIsInRange((HeapSlot*)dstObj->getDenseElements(), src, thingSize));
     }
 
     
     static_cast<Cell *>(dst)->copyMarkBitsFrom(src);
+
+    
+    ForwardCell(static_cast<Cell *>(dst), src);
 
     return true;
 }
@@ -2251,10 +2304,12 @@ void
 MovingTracer::Visit(JSTracer *jstrc, void **thingp, JSGCTraceKind kind)
 {
     Cell *thing = static_cast<Cell *>(*thingp);
-    if (!thing->tenuredZone()->isGCCompacting()) {
+    Zone *zone = thing->tenuredZoneFromAnyThread();
+    if (!zone->isGCCompacting()) {
         JS_ASSERT(!IsForwarded(thing));
         return;
     }
+    JS_ASSERT(CurrentThreadCanAccessZone(zone));
 
     if (IsForwarded(thing)) {
         Cell *dst = Forwarded(thing);
@@ -2280,7 +2335,6 @@ MovingTracer::Sweep(JSTracer *jstrc)
 
             for (CompartmentsInZoneIter c(zone); !c.done(); c.next()) {
                 c->sweep(fop, false);
-                ArrayBufferObject::sweep(c);
             }
         } else {
             
@@ -2291,6 +2345,9 @@ MovingTracer::Sweep(JSTracer *jstrc)
 
     
     rt->freeLifoAlloc.freeAll();
+
+    
+    rt->newObjectCache.purge();
 }
 
 
@@ -2359,12 +2416,15 @@ GCRuntime::updatePointersToRelocatedCells()
     Debugger::markCrossCompartmentDebuggerObjectReferents(&trc);
 
     for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
+        WeakMapBase::markAll(c, &trc);
         if (c->watchpointMap)
             c->watchpointMap->markAll(&trc);
     }
 
+    
+    
+    marker.resetBufferedGrayRoots();
     markAllGrayReferences(gcstats::PHASE_COMPACT_UPDATE_GRAY);
-    markAllWeakReferences(gcstats::PHASE_COMPACT_UPDATE_GRAY);
 
     MovingTracer::Sweep(&trc);
 }
