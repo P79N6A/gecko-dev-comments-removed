@@ -651,6 +651,9 @@ function BuildConditionSandbox(aURL) {
     sandbox.qtWidget = xr.widgetToolkit == "qt";
     sandbox.winWidget = xr.widgetToolkit == "windows";
 
+    
+    sandbox.transparentScrollbars = xr.widgetToolkit == "gtk3";
+
     if (sandbox.Android) {
         var sysInfo = CC["@mozilla.org/system-info;1"].getService(CI.nsIPropertyBag2);
 
