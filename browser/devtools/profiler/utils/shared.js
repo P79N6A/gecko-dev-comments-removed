@@ -121,7 +121,7 @@ ProfilerConnection.prototype = {
     
     
     if (this._target.form && this._target.form.framerateActor) {
-    this._framerate = new FramerateFront(this._target.client, this._target.form);
+      this._framerate = new FramerateFront(this._target.client, this._target.form);
     } else {
       this._framerate = {
         startRecording: () => {},
