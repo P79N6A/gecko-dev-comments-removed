@@ -1226,7 +1226,7 @@ public abstract class GeckoApp
             
             
             mIsRestoringActivity = true;
-            Telemetry.HistogramAdd("FENNEC_RESTORING_ACTIVITY", 1);
+            Telemetry.addToHistogram("FENNEC_RESTORING_ACTIVITY", 1);
 
         } else {
             final String uri = getURIFromIntent(intent);
@@ -1289,7 +1289,7 @@ public abstract class GeckoApp
             
             
             if (!wasInBackground && !mIsRestoringActivity) {
-                Telemetry.HistogramAdd("FENNEC_WAS_KILLED", 1);
+                Telemetry.addToHistogram("FENNEC_WAS_KILLED", 1);
             }
 
             mPrivateBrowsingSession = savedInstanceState.getString(SAVED_STATE_PRIVATE_SESSION);
@@ -1308,7 +1308,7 @@ public abstract class GeckoApp
 
                 SessionInformation previousSession = SessionInformation.fromSharedPrefs(prefs);
                 if (previousSession.wasKilled()) {
-                    Telemetry.HistogramAdd("FENNEC_WAS_KILLED", 1);
+                    Telemetry.addToHistogram("FENNEC_WAS_KILLED", 1);
                 }
 
                 SharedPreferences.Editor editor = prefs.edit();
@@ -1531,7 +1531,7 @@ public abstract class GeckoApp
             getProfile().moveSessionFile();
         }
 
-        Telemetry.HistogramAdd("FENNEC_STARTUP_GECKOAPP_ACTION", startupAction.ordinal());
+        Telemetry.addToHistogram("FENNEC_STARTUP_GECKOAPP_ACTION", startupAction.ordinal());
 
         
         if (ACTION_LAUNCH_SETTINGS.equals(action)) {
