@@ -76,6 +76,7 @@ class nsIParser;
 class nsIParserService;
 class nsIPresShell;
 class nsIPrincipal;
+class nsIRequest;
 class nsIRunnable;
 class nsIScriptContext;
 class nsIScriptGlobalObject;
@@ -2172,6 +2173,11 @@ public:
 
 
   static bool IsForbiddenResponseHeader(const nsACString& aHeader);
+
+  
+
+
+  static uint64_t GetInnerWindowID(nsIRequest* aRequest);
 
 private:
   static bool InitializeEventTable();
