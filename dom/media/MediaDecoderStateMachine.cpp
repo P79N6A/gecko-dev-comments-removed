@@ -358,8 +358,8 @@ int64_t MediaDecoderStateMachine::GetDecodedAudioDuration()
   MOZ_ASSERT(OnTaskQueue());
   AssertCurrentThreadInMonitor();
   int64_t audioDecoded = AudioQueue().Duration();
-  if (mAudioEndTime != -1) {
-    audioDecoded += mAudioEndTime - GetMediaTime();
+  if (AudioEndTime() != -1) {
+    audioDecoded += AudioEndTime() - GetMediaTime();
   }
   return audioDecoded;
 }
@@ -1776,7 +1776,7 @@ int64_t MediaDecoderStateMachine::AudioDecodedUsecs()
   
   
   
-  int64_t pushed = (mAudioEndTime != -1) ? (mAudioEndTime - GetMediaTime()) : 0;
+  int64_t pushed = (AudioEndTime() != -1) ? (AudioEndTime() - GetMediaTime()) : 0;
 
   
   
@@ -2428,7 +2428,7 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
       if (mPlayState == MediaDecoder::PLAY_STATE_PLAYING &&
           !mSentPlaybackEndedEvent)
       {
-        int64_t clockTime = std::max(mAudioEndTime, mVideoFrameEndTime);
+        int64_t clockTime = std::max(AudioEndTime(), mVideoFrameEndTime);
         clockTime = std::max(int64_t(0), std::max(clockTime, Duration().ToMicroseconds()));
         UpdatePlaybackPosition(clockTime);
 
@@ -2733,9 +2733,9 @@ void MediaDecoderStateMachine::UpdateRenderedVideoFrames()
   
   
   
-  if (mVideoFrameEndTime != -1 || mAudioEndTime != -1) {
+  if (mVideoFrameEndTime != -1 || AudioEndTime() != -1) {
     
-    int64_t t = std::min(clockTime, std::max(mVideoFrameEndTime, mAudioEndTime));
+    int64_t t = std::min(clockTime, std::max(mVideoFrameEndTime, AudioEndTime()));
     
     
     if (t > GetMediaTime()) {
@@ -3070,11 +3070,19 @@ void MediaDecoderStateMachine::QueueMetadata(int64_t aPublishTime,
   mMetadataManager.QueueMetadata(metadata);
 }
 
+int64_t
+MediaDecoderStateMachine::AudioEndTime() const
+{
+  MOZ_ASSERT(OnTaskQueue());
+  AssertCurrentThreadInMonitor();
+  return mAudioEndTime;
+}
+
 void MediaDecoderStateMachine::OnAudioEndTimeUpdate(int64_t aAudioEndTime)
 {
   MOZ_ASSERT(OnTaskQueue());
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-  MOZ_ASSERT(aAudioEndTime >= mAudioEndTime);
+  MOZ_ASSERT(aAudioEndTime >= AudioEndTime());
   mAudioEndTime = aAudioEndTime;
 }
 
