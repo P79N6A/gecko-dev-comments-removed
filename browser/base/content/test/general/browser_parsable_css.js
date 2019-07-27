@@ -14,7 +14,7 @@ const kWhitelist = [
   {sourceName: /codemirror\.css/i}, 
   {sourceName: /web\/viewer\.css/i, errorMessage: /Unknown pseudo-class.*(fullscreen|selection)/i }, 
   {sourceName: /aboutaccounts\/(main|normalize)\.css/i}, 
-  {sourceName: /loop\/.*\/sdk-content\/.*\.css$/i }
+  {sourceName: /loop\/.*sdk-content\/.*\.css$/i }
 ];
 
 
