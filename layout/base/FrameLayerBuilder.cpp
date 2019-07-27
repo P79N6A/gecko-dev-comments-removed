@@ -26,7 +26,6 @@
 #include "mozilla/LookAndFeel.h"
 #include "nsDocShell.h"
 #include "nsImageFrame.h"
-#include "mozilla/dom/ProfileTimelineMarkerBinding.h"
 
 #include "GeckoProfiler.h"
 #include "mozilla/gfx/Tools.h"
@@ -511,7 +510,7 @@ public:
   
 
 
-  nsIntRegion mBounds;
+  nsIntRect mBounds;
 
 private:
   
@@ -2184,7 +2183,7 @@ ContainerState::PopPaintedLayerData()
     SetOuterVisibleRegionForLayer(layer, data->mVisibleRegion);
   }
 
-  nsIntRect layerBounds = data->mBounds.GetBounds();
+  nsIntRect layerBounds = data->mBounds;
   layerBounds.MoveBy(-GetTranslationForPaintedLayer(data->mLayer));
   layer->SetLayerBounds(layerBounds);
 
@@ -2352,7 +2351,7 @@ PaintedLayerData::Accumulate(ContainerState* aState,
 
   bool snap;
   nsRect itemBounds = aItem->GetBounds(aState->mBuilder, &snap);
-  mBounds.OrWith(aState->ScaleToOutsidePixels(itemBounds, snap));
+  mBounds = mBounds.Union(aState->ScaleToOutsidePixels(itemBounds, snap));
 
   if (aState->mBuilder->NeedToForceTransparentSurfaceForItem(aItem)) {
     mForceTransparentSurface = true;
@@ -4420,36 +4419,6 @@ static void DrawForcedBackgroundColor(DrawTarget& aDrawTarget,
   }
 }
 
-class LayerTimelineMarker : public nsDocShell::TimelineMarker
-{
-public:
-  LayerTimelineMarker(nsDocShell* aDocShell, const nsIntRegion& aRegion)
-    : nsDocShell::TimelineMarker(aDocShell, "Layer", TRACING_EVENT)
-    , mRegion(aRegion)
-  {
-  }
-
-  ~LayerTimelineMarker()
-  {
-  }
-
-  virtual void AddLayerRectangles(mozilla::dom::Sequence<mozilla::dom::ProfileTimelineLayerRect>& aRectangles)
-  {
-    nsIntRegionRectIterator it(mRegion);
-    while (const nsIntRect* iterRect = it.Next()) {
-      mozilla::dom::ProfileTimelineLayerRect rect;
-      rect.mX = iterRect->X();
-      rect.mY = iterRect->Y();
-      rect.mWidth = iterRect->Width();
-      rect.mHeight = iterRect->Height();
-      aRectangles.AppendElement(rect);
-    }
-  }
-
-private:
-  nsIntRegion mRegion;
-};
-
 
 
 
@@ -4599,13 +4568,7 @@ FrameLayerBuilder::DrawPaintedLayer(PaintedLayer* aLayer,
 
   if (presContext && presContext->GetDocShell() && isActiveLayerManager) {
     nsDocShell* docShell = static_cast<nsDocShell*>(presContext->GetDocShell());
-    bool isRecording;
-    docShell->GetRecordProfileTimelineMarkers(&isRecording);
-    if (isRecording) {
-      mozilla::UniquePtr<nsDocShell::TimelineMarker> marker =
-        MakeUnique<LayerTimelineMarker>(docShell, aRegionToDraw);
-      docShell->AddProfileTimelineMarker(marker);
-    }
+    docShell->AddProfileTimelineMarker("Layer", TRACING_EVENT);
   }
 
   if (!aRegionToInvalidate.IsEmpty()) {
