@@ -2780,8 +2780,9 @@ ServiceWorkerManager::InvalidateServiceWorkerRegistrationWorker(ServiceWorkerReg
 }
 
 NS_IMETHODIMP
-ServiceWorkerManager::Update(const nsAString& aScope)
+ServiceWorkerManager::SoftUpdate(const nsAString& aScope)
 {
+  AssertIsOnMainThread();
   NS_ConvertUTF16toUTF8 scope(aScope);
 
   nsRefPtr<ServiceWorkerRegistrationInfo> registration;
@@ -2795,9 +2796,21 @@ ServiceWorkerManager::Update(const nsAString& aScope)
     return NS_OK;
   }
 
+  
   if (registration->mInstallingWorker) {
     return NS_OK;
   }
+
+  
+  
+  
+  nsRefPtr<ServiceWorkerInfo> newest = registration->Newest();
+  if (!newest) {
+    return NS_OK;
+  }
+
+  
+  registration->mScriptSpec = newest->ScriptSpec();
 
   ServiceWorkerJobQueue* queue = GetOrCreateJobQueue(scope);
   MOZ_ASSERT(queue);
@@ -2805,6 +2818,8 @@ ServiceWorkerManager::Update(const nsAString& aScope)
   nsRefPtr<ServiceWorkerUpdateFinishCallback> cb =
     new ServiceWorkerUpdateFinishCallback();
 
+  
+  
   nsRefPtr<ServiceWorkerRegisterJob> job =
     new ServiceWorkerRegisterJob(queue, registration, cb);
   queue->Append(job);
@@ -3103,7 +3118,7 @@ UpdateEachRegistration(const nsACString& aKey,
                        void* aUserArg) {
   auto This = static_cast<ServiceWorkerManager*>(aUserArg);
   MOZ_ASSERT(!aInfo->mScope.IsEmpty());
-  nsresult res = This->Update(NS_ConvertUTF8toUTF16(aInfo->mScope));
+  nsresult res = This->SoftUpdate(NS_ConvertUTF8toUTF16(aInfo->mScope));
   unused << NS_WARN_IF(NS_FAILED(res));
 
   return PL_DHASH_NEXT;

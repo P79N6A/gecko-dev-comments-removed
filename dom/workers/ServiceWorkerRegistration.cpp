@@ -158,6 +158,16 @@ NS_IMPL_ISUPPORTS(UnregisterCallback, nsIServiceWorkerUnregisterCallback)
 
 } 
 
+void
+ServiceWorkerRegistration::Update()
+{
+  nsCOMPtr<nsIServiceWorkerManager> swm =
+    mozilla::services::GetServiceWorkerManager();
+  MOZ_ASSERT(swm);
+  
+  swm->SoftUpdate(mScope);
+}
+
 already_AddRefed<Promise>
 ServiceWorkerRegistration::Unregister(ErrorResult& aRv)
 {
