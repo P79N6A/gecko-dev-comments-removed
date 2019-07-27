@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsproxy_h
-#define jsproxy_h
+#ifndef proxy_jsproxy_h
+#define proxy_jsproxy_h
 
 #include "mozilla/Maybe.h"
 
