@@ -243,6 +243,26 @@ var SimpleServiceDiscovery = {
     }
   },
 
+  getSupportedExtensions: function() {
+    let extensions = [];
+    this._targets.forEach(function(target) {
+        extensions = extensions.concat(target.extensions);
+      }, this);
+    return extensions.filter(function(extension, pos) {
+      return extensions.indexOf(extension) == pos;
+    });
+  },
+
+  getSupportedMimeTypes: function() {
+    let types = [];
+    this._targets.forEach(function(target) {
+        types = types.concat(target.types);
+      }, this);
+    return types.filter(function(type, pos) {
+      return types.indexOf(type) == pos;
+    });
+  },
+
   registerTarget: function registerTarget(aTarget) {
     
     if (!("target" in aTarget) || !("factory" in aTarget)) {
@@ -291,6 +311,9 @@ var SimpleServiceDiscovery = {
   get services() {
     let array = [];
     for (let [key, service] of this._services) {
+      let target = this._targets.get(service.target);
+      service.extensions = target.extensions;
+      service.types = target.types;
       array.push(service);
     }
     return array;

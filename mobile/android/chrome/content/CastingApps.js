@@ -1,6 +1,7 @@
 
 
 
+
 "use strict";
 
 
@@ -10,7 +11,9 @@ var rokuTarget = {
   factory: function(aService) {
     Cu.import("resource://gre/modules/RokuApp.jsm");
     return new RokuApp(aService);
-  }
+  },
+  types: ["video/mp4"],
+  extensions: ["mp4"]
 };
 
 var fireflyTarget = {
@@ -22,7 +25,9 @@ var fireflyTarget = {
   factory: function(aService) {
     Cu.import("resource://gre/modules/FireflyApp.jsm");
     return new FireflyApp(aService);
-  }
+  },
+  types: ["video/mp4", "video/webm"],
+  extensions: ["mp4", "webm"]
 };
 
 var mediaPlayerTarget = {
@@ -30,7 +35,9 @@ var mediaPlayerTarget = {
   factory: function(aService) {
     Cu.import("resource://gre/modules/MediaPlayerApp.jsm");
     return new MediaPlayerApp(aService);
-  }
+  },
+  types: ["video/mp4", "video/webm", "application/x-mpegurl"],
+  extensions: ["mp4", "webm", "m3u", "m3u8"]
 };
 
 var CastingApps = {
@@ -173,8 +180,11 @@ var CastingApps = {
   },
 
   getVideo: function(aElement, aX, aY) {
+    let extensions = SimpleServiceDiscovery.getSupportedExtensions();
+    let types = SimpleServiceDiscovery.getSupportedMimeTypes();
+
     
-    let video = this._getVideo(aElement);
+    let video = this._getVideo(aElement, types, extensions);
     if (video) {
       return video;
     }
@@ -189,7 +199,7 @@ var CastingApps = {
         
         let rect = element.getBoundingClientRect();
         if (aY >= rect.top && aX >= rect.left && aY <= rect.bottom && aX <= rect.right) {
-          video = this._getVideo(element);
+          video = this._getVideo(element, types, extensions);
           if (video) {
             break;
           }
@@ -201,18 +211,11 @@ var CastingApps = {
     return video;
   },
 
-  _getVideo: function(aElement) {
+  _getVideo: function(aElement, aTypes, aExtensions) {
     if (!(aElement instanceof HTMLVideoElement)) {
       return null;
     }
 
-    
-    function allowableExtension(aURI) {
-      if (aURI && aURI instanceof Ci.nsIURL) {
-        return (aURI.fileExtension == "mp4");
-      }
-      return false;
-    }
 
     
     let posterURL = aElement.poster;
@@ -228,8 +231,8 @@ var CastingApps = {
     if (sourceURL) {
       
       let sourceURI = this.makeURI(sourceURL, null, this.makeURI(aElement.baseURI));
-      if (allowableExtension(sourceURI)) {
-        return { element: aElement, source: sourceURI.spec, poster: posterURL };
+      if (this.allowableExtension(sourceURI, aExtensions)) {
+        return { element: aElement, source: sourceURI.spec, poster: posterURL, sourceURI: sourceURI};
       }
     }
 
@@ -241,8 +244,8 @@ var CastingApps = {
 
       
       
-      if (sourceNode.type == "video/mp4" || allowableExtension(sourceURI)) {
-        return { element: aElement, source: sourceURI.spec, poster: posterURL };
+      if (this.allowableMimeType(sourceNode.type, aTypes) || this.allowableExtension(sourceURI, aExtensions)) {
+        return { element: aElement, source: sourceURI.spec, poster: posterURL, sourceURI: sourceURI, type: sourceNode.type };
       }
     }
 
@@ -361,21 +364,25 @@ var CastingApps = {
     }
   },
 
-  prompt: function(aCallback) {
+  prompt: function(aCallback, aFilterFunc) {
     let items = [];
+    let filteredServices = [];
     SimpleServiceDiscovery.services.forEach(function(aService) {
       let item = {
         label: aService.friendlyName,
         selected: false
       };
-      items.push(item);
+      if (!aFilterFunc || aFilterFunc(aService)) {
+        filteredServices.push(aService);
+        items.push(item);
+      }
     });
 
     let prompt = new Prompt({
       title: Strings.browser.GetStringFromName("casting.prompt")
     }).setSingleChoiceItems(items).show(function(data) {
       let selected = data.button;
-      let service = selected == -1 ? null : SimpleServiceDiscovery.services[selected];
+      let service = selected == -1 ? null : filteredServices[selected];
       if (aCallback)
         aCallback(service);
     });
@@ -392,6 +399,10 @@ var CastingApps = {
     let video = this.getVideo(aElement, aX, aY);
     if (!video) {
       return;
+    }
+
+    function filterFunc(service) {
+      return this.allowableExtension(video.sourceURI, service.extensions) || this.allowableMimeType(video.type, service.types);
     }
 
     this.prompt(function(aService) {
@@ -438,7 +449,7 @@ var CastingApps = {
           }.bind(this), this);
         }.bind(this));
       }.bind(this));
-    }.bind(this));
+    }.bind(this), filterFunc.bind(this));
   },
 
   closeExternal: function() {
@@ -487,5 +498,21 @@ var CastingApps = {
     if (status == "completed") {
       this.closeExternal();
     }
+  },
+
+  allowableExtension: function(aURI, aExtensions) {
+    if (aURI && aURI instanceof Ci.nsIURL) {
+      for (let x in aExtensions) {
+        if (aURI.fileExtension == aExtensions[x]) return true;
+      }
+    }
+    return false;
+  },
+
+  allowableMimeType: function(aType, aTypes) {
+    for (let x in aTypes) {
+      if (aType == aTypes[x]) return true;
+    }
+    return false;
   }
 };
