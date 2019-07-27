@@ -1631,6 +1631,26 @@ gfxPlatform::TransformPixel(const gfxRGBA& in, gfxRGBA& out, qcms_transform *tra
         out = in;
 }
 
+Color
+gfxPlatform::MaybeTransformColor(const gfxRGBA& aColor)
+{
+    
+    Color color;
+    if (GetCMSMode() == eCMSMode_All) {
+        gfxRGBA cms;
+        qcms_transform *transform = GetCMSRGBTransform();
+        if (transform) {
+            TransformPixel(aColor, cms, transform);
+            
+            
+            color = ToColor(cms);
+            return color;
+        }
+    }
+    color = ToColor(aColor);
+    return color;
+}
+
 void
 gfxPlatform::GetPlatformCMSOutputProfile(void *&mem, size_t &size)
 {

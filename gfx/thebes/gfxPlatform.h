@@ -7,6 +7,7 @@
 #define GFX_PLATFORM_H
 
 #include "prlog.h"
+#include "mozilla/gfx/Types.h"
 #include "nsTArray.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
@@ -158,6 +159,7 @@ GetBackendName(mozilla::gfx::BackendType aBackend)
 
 class gfxPlatform {
 public:
+    typedef mozilla::gfx::Color Color;
     typedef mozilla::gfx::DataSourceSurface DataSourceSurface;
     typedef mozilla::gfx::DrawTarget DrawTarget;
     typedef mozilla::gfx::IntSize IntSize;
@@ -492,6 +494,12 @@ public:
 
 
     static void TransformPixel(const gfxRGBA& in, gfxRGBA& out, qcms_transform *transform);
+
+    
+
+
+
+    static Color MaybeTransformColor(const gfxRGBA& aColor);
 
     
 
