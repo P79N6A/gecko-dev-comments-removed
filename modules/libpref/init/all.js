@@ -2300,11 +2300,7 @@ pref("layout.frame_rate.precise", false);
 pref("layout.spammy_warnings.enabled", true);
 
 
-#ifdef RELEASE_BUILD
-pref("layout.float-fragments-inside-column.enabled", false);
-#else
 pref("layout.float-fragments-inside-column.enabled", true);
-#endif
 
 
 #ifdef RELEASE_BUILD
