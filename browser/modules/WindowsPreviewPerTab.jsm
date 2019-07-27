@@ -98,7 +98,7 @@ function _imageFromURI(doc, uri, privateMode, callback) {
       
       let defaultURI = faviconSvc.defaultFavicon;
       if (!defaultURI.equals(uri))
-        _imageFromURI(defaultURI, callback);
+        _imageFromURI(doc, defaultURI, privateMode, callback);
     }
   });
 }
