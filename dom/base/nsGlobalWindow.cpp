@@ -2677,13 +2677,13 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   if (!aState) {
     if (reUseInnerWindow) {
 
-      
-      
-      newInnerWindow->mLocalStorage = nullptr;
-      newInnerWindow->mSessionStorage = nullptr;
-
       if (newInnerWindow->mDoc != aDocument) {
         newInnerWindow->mDoc = aDocument;
+
+        
+        
+        newInnerWindow->mLocalStorage = nullptr;
+        newInnerWindow->mSessionStorage = nullptr;
 
         if (newInnerWindow->IsDOMBinding()) {
           WindowBinding::ClearCachedDocumentValue(cx, newInnerWindow);
