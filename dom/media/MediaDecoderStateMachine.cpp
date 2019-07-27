@@ -2174,10 +2174,18 @@ MediaDecoderStateMachine::OnMetadataRead(MetadataHolder* aMetadata)
   mStartTimeRendezvous = new StartTimeRendezvous(TaskQueue(), HasAudio(), HasVideo(),
                                                  mReader->ForceZeroStartTime() || IsRealTime());
 
+  nsRefPtr<MediaDecoderStateMachine> self = this;
+  mStartTimeRendezvous->AwaitStartTime()->Then(TaskQueue(), __func__,
+    [self] () -> void {
+      ReentrantMonitorAutoEnter mon(self->mDecoder->GetReentrantMonitor());
+      self->mReader->SetStartTime(self->StartTime());
+    },
+    [] () -> void { NS_WARNING("Setting start time on reader failed"); }
+  );
+
   if (mInfo.mMetadataDuration.isSome()) {
     RecomputeDuration();
   } else if (mInfo.mUnadjustedMetadataEndTime.isSome()) {
-    nsRefPtr<MediaDecoderStateMachine> self = this;
     mStartTimeRendezvous->AwaitStartTime()->Then(TaskQueue(), __func__,
       [self] () -> void {
         TimeUnit unadjusted = self->mInfo.mUnadjustedMetadataEndTime.ref();
@@ -3174,10 +3182,6 @@ void MediaDecoderStateMachine::SetStartTime(int64_t aStartTimeUsecs)
       mEndTime = mStartTime + mEndTime;
     }
   }
-
-  
-  
-  mReader->SetStartTime(mStartTime);
 
   
   
