@@ -65,9 +65,10 @@ public:
   
   void FastForward(const TimeStamp& aTimeStamp);
 
+  nsRefreshDriver* GetRefreshDriver() const;
+
 protected:
   TimeStamp GetCurrentTimeStamp() const;
-  nsRefreshDriver* GetRefreshDriver() const;
 
   nsCOMPtr<nsIDocument> mDocument;
 

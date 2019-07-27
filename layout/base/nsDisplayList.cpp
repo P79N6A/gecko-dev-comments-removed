@@ -424,6 +424,23 @@ AddAnimationsForProperty(nsIFrame* aFrame, nsCSSProperty aProperty,
           player->IsRunning())) {
       continue;
     }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (player->PlayState() == AnimationPlayState::Pending) {
+      nsRefreshDriver* driver = player->Timeline()->GetRefreshDriver();
+      if (driver && driver->IsTestControllingRefreshesEnabled()) {
+        continue;
+      }
+    }
+
     AddAnimationForProperty(aFrame, aProperty, player, aLayer, aData, aPending);
     player->SetIsRunningOnCompositor();
   }
