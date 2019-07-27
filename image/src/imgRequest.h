@@ -130,6 +130,9 @@ public:
   already_AddRefed<ProgressTracker> GetProgressTracker();
 
   
+  already_AddRefed<Image> GetImage() const;
+
+  
   inline nsIPrincipal* GetPrincipal() const { return mPrincipal.get(); }
 
   
@@ -141,9 +144,26 @@ public:
 
   nsresult GetImageErrorCode(void);
 
+  
+  bool HasTransferredData() const;
+
+  
+  const char* GetMimeType() const { return mContentType.get(); }
+
+  
+  
+  int32_t Priority() const;
+
+  
+  
+  void AdjustPriority(imgRequestProxy* aProxy, int32_t aDelta);
+
+  nsITimedChannel* GetTimedChannel() const { return mTimedChannel; }
+
+  nsresult GetSecurityInfo(nsISupports** aSecurityInfoOut);
+
 private:
   friend class imgCacheEntry;
-  friend class imgRequestProxy;
   friend class imgLoader;
   friend class imgCacheValidator;
   friend class imgCacheExpirationTracker;
@@ -156,11 +176,6 @@ private:
   void EvictFromCache();
   void RemoveFromCache();
 
-  nsresult GetSecurityInfo(nsISupports **aSecurityInfo);
-
-  inline const char *GetMimeType() const {
-    return mContentType.get();
-  }
   inline nsIProperties *Properties() {
     return mProperties;
   }
@@ -175,17 +190,6 @@ private:
 
   
   void UpdateCacheEntrySize();
-
-  
-  
-  int32_t Priority() const;
-
-  
-  
-  void AdjustPriority(imgRequestProxy *aProxy, int32_t aDelta);
-
-  
-  bool HasTransferredData() const;
 
   
   
@@ -212,8 +216,6 @@ public:
 private:
   friend class imgMemoryReporter;
   friend class FinishPreparingForNewPartRunnable;
-
-  already_AddRefed<Image> GetImage() const;
 
   void FinishPreparingForNewPart(const NewPartResult& aResult);
 
