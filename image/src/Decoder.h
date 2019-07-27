@@ -189,6 +189,9 @@ protected:
                 Orientation aOrientation = Orientation());
 
   
+  void PostHasTransparency();
+
+  
   
   void PostFrameStart();
 

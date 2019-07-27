@@ -164,14 +164,15 @@ nsGIFDecoder2::BeginGIF()
 void
 nsGIFDecoder2::BeginImageFrame(uint16_t aDepth)
 {
+  MOZ_ASSERT(HasSize());
+
   gfx::SurfaceFormat format;
   if (mGIFStruct.is_transparent) {
     format = gfx::SurfaceFormat::B8G8R8A8;
+    PostHasTransparency();
   } else {
     format = gfx::SurfaceFormat::B8G8R8X8;
   }
-
-  MOZ_ASSERT(HasSize());
 
   
   
@@ -189,6 +190,11 @@ nsGIFDecoder2::BeginImageFrame(uint16_t aDepth)
                                                         mGIFStruct.y_offset,
                                                         mGIFStruct.width,
                                                         mGIFStruct.height))) {
+
+      
+      
+      PostHasTransparency();
+
       
       NeedNewFrame(mGIFStruct.images_decoded, mGIFStruct.x_offset,
                    mGIFStruct.y_offset, mGIFStruct.width, mGIFStruct.height,
