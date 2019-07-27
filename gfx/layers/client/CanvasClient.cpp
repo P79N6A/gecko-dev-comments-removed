@@ -134,7 +134,7 @@ CanvasClient2D::CreateTextureClientForCanvas(gfx::SurfaceFormat aFormat,
   
   
   return TextureClient::CreateForRawBufferAccess(GetForwarder(),
-                                                 aFormat, aSize, BackendType::CAIRO,
+                                                 aFormat, aSize, backend,
                                                  mTextureInfo.mTextureFlags | aFlags);
 #endif
 }
