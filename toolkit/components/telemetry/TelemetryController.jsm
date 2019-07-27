@@ -721,10 +721,10 @@ let Impl = {
     
     try {
       
-      yield this._shutdownBarrier.wait();
+      yield TelemetrySend.shutdown();
 
       
-      yield TelemetrySend.shutdown();
+      yield this._shutdownBarrier.wait();
 
       
       yield this._connectionsBarrier.wait();

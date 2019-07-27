@@ -264,11 +264,19 @@ let TelemetrySendImpl = {
 
     
     
-    yield this._sendPersistedPings();
+    this._sendPersistedPings();
 
     
-    yield this._checkPendingPings();
+    let haveOverduePings = yield this._checkPendingPings();
+    if (haveOverduePings) {
+      
+      this._sendPersistedPings();
+    }
   }),
+
+  
+
+
 
   _checkPendingPings: Task.async(function*() {
     
@@ -319,13 +327,14 @@ let TelemetrySendImpl = {
       (now.getTime() - info.lastModificationDate) > OVERDUE_PING_FILE_AGE);
     this._overduePingCount = overduePings.length;
 
-
     if (overduePings.length > 0) {
       this._log.trace("_checkForOverduePings - Have " + overduePings.length +
-                       " overdue pending pings, sending " + infos.length +
+                       " overdue pending pings, ready to send " + infos.length +
                        " pings now.");
-      yield this._sendPersistedPings();
+      return true;
     }
+
+    return false;
    }),
 
   shutdown: Task.async(function*() {
