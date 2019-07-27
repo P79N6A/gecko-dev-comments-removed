@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import android.graphics.Bitmap;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -30,6 +29,7 @@ import android.accounts.OnAccountsUpdateListener;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.ContentObserver;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Handler;
@@ -505,20 +505,8 @@ public class Tabs implements GeckoEventListener {
             } else if (event.equals("DOMTitleChanged")) {
                 tab.updateTitle(message.getString("title"));
             } else if (event.equals("Link:Favicon")) {
-                
-                if (!Favicons.canDecodeType(message.getString("mime"))) {
-                    return;
-                }
-
-                
-                tab.addFavicon(message.getString("href"), message.getInt("size"), message.getString("mime"));
-
-                
-                
-                
-                if (tab.getState() != Tab.STATE_LOADING) {
-                    tab.loadFavicon();
-                }
+                tab.updateFaviconURL(message.getString("href"), message.getInt("size"));
+                notifyListeners(tab, TabEvents.LINK_FAVICON);
             } else if (event.equals("Link:Feed")) {
                 tab.setHasFeeds(true);
                 notifyListeners(tab, TabEvents.LINK_FEED);
@@ -544,6 +532,24 @@ public class Tabs implements GeckoEventListener {
 
         } catch (Exception e) {
             Log.w(LOGTAG, "handleMessage threw for " + event, e);
+        }
+    }
+
+    
+
+
+    public void updateFaviconForURL(String pageURL, Bitmap favicon) {
+        
+        
+        
+        for (Tab tab : mOrder) {
+            String tabURL = tab.getURL();
+            if (pageURL.equals(tabURL)) {
+                tab.setFaviconLoadId(Favicons.NOT_LOADING);
+                if (tab.updateFavicon(favicon)) {
+                    notifyListeners(tab, TabEvents.FAVICON);
+                }
+            }
         }
     }
 
@@ -589,6 +595,7 @@ public class Tabs implements GeckoEventListener {
         LOCATION_CHANGE,
         MENU_UPDATED,
         PAGE_SHOW,
+        LINK_FAVICON,
         LINK_FEED,
         SECURITY_CHANGE,
         READER_ENABLED,
@@ -832,8 +839,7 @@ public class Tabs implements GeckoEventListener {
         
         if (AboutPages.isBuiltinIconPage(url)) {
             Log.d(LOGTAG, "Setting about: tab favicon inline.");
-            added.addFavicon(url, Favicons.browserToolbarFaviconSize, "");
-            added.loadFavicon();
+            added.updateFavicon(getAboutPageFavicon(url));
         }
 
         return added;
@@ -845,6 +851,17 @@ public class Tabs implements GeckoEventListener {
 
     public Tab addPrivateTab() {
         return loadUrl(AboutPages.PRIVATEBROWSING, Tabs.LOADURL_NEW_TAB | Tabs.LOADURL_PRIVATE);
+    }
+
+    
+
+
+
+
+
+    private Bitmap getAboutPageFavicon(final String url) {
+        int faviconSize = Math.round(mAppContext.getResources().getDimension(R.dimen.browser_toolbar_favicon_size));
+        return Favicons.getSizedFaviconForPageFromCache(url, faviconSize);
     }
 
     

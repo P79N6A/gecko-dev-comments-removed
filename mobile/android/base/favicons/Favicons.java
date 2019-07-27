@@ -32,7 +32,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -67,9 +66,6 @@ public class Favicons {
     public static int largestFaviconSize;
 
     
-    public static int browserToolbarFaviconSize;
-
-    
     public static final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     
@@ -80,57 +76,6 @@ public class Favicons {
     
     
     private static final NonEvictingLruCache<String, String> pageURLMappings = new NonEvictingLruCache<>(NUM_PAGE_URL_MAPPINGS_TO_STORE);
-
-    
-    private static final HashSet<String> sDecodableMimeTypes = new HashSet<>();
-
-    
-    
-    private static final HashSet<String> sContainerMimeTypes = new HashSet<>();
-    static {
-        
-        
-        
-        sContainerMimeTypes.add("image/vnd.microsoft.icon");
-        sContainerMimeTypes.add("image/ico");
-        sContainerMimeTypes.add("image/icon");
-        sContainerMimeTypes.add("image/x-icon");
-        sContainerMimeTypes.add("text/ico");
-        sContainerMimeTypes.add("application/ico");
-
-        
-        sDecodableMimeTypes.addAll(sContainerMimeTypes);
-
-        
-        sDecodableMimeTypes.add("image/png");
-        sDecodableMimeTypes.add("application/png");
-        sDecodableMimeTypes.add("application/x-png");
-
-        
-        sDecodableMimeTypes.add("image/gif");
-
-        
-        sDecodableMimeTypes.add("image/jpeg");
-        sDecodableMimeTypes.add("image/jpg");
-        sDecodableMimeTypes.add("image/pipeg");
-        sDecodableMimeTypes.add("image/vnd.swiftview-jpeg");
-        sDecodableMimeTypes.add("application/jpg");
-        sDecodableMimeTypes.add("application/x-jpg");
-
-        
-        sDecodableMimeTypes.add("application/bmp");
-        sDecodableMimeTypes.add("application/x-bmp");
-        sDecodableMimeTypes.add("application/x-win-bitmap");
-        sDecodableMimeTypes.add("image/bmp");
-        sDecodableMimeTypes.add("image/x-bmp");
-        sDecodableMimeTypes.add("image/x-bitmap");
-        sDecodableMimeTypes.add("image/x-xbitmap");
-        sDecodableMimeTypes.add("image/x-win-bitmap");
-        sDecodableMimeTypes.add("image/x-windows-bitmap");
-        sDecodableMimeTypes.add("image/x-ms-bitmap");
-        sDecodableMimeTypes.add("image/x-ms-bmp");
-        sDecodableMimeTypes.add("image/ms-bmp");
-    }
 
     public static String getFaviconURLForPageURLFromCache(String pageURL) {
         return pageURLMappings.get(pageURL);
@@ -477,7 +422,6 @@ public class Favicons {
         
         final int browserToolbarFaviconSizeDimenID = NewTabletUI.isEnabled(context) ?
                 R.dimen.new_tablet_tab_strip_favicon_size : R.dimen.browser_toolbar_favicon_size;
-        browserToolbarFaviconSize = res.getDimensionPixelSize(browserToolbarFaviconSizeDimenID);
 
         faviconsCache = new FaviconCache(FAVICON_CACHE_SIZE_BYTES, largestFaviconSize);
 
@@ -544,25 +488,6 @@ public class Favicons {
             Log.e(LOGTAG, "URISyntaxException getting default favicon URL", e);
             return null;
         }
-    }
-
-    
-
-
-
-
-    public static boolean canDecodeType(String imgType) {
-        return "".equals(imgType) || sDecodableMimeTypes.contains(imgType);
-    }
-
-    
-
-
-
-
-
-    public static boolean isContainerType(String mimeType) {
-        return sDecodableMimeTypes.contains(mimeType);
     }
 
     public static void removeLoadTask(int taskId) {
