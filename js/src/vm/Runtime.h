@@ -566,6 +566,7 @@ class PerThreadData : public PerThreadDataFriendFields
 
 class AutoLockForExclusiveAccess;
 
+struct AutoStopwatch;
 } 
 
 struct JSRuntime : public JS::shadow::Runtime,
@@ -1420,6 +1421,53 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     
     int64_t lastAnimationTime;
+
+  public:
+
+    
+
+
+    struct Stopwatch {
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        js::AutoStopwatch *owner;
+
+        
+
+
+        bool isActive;
+
+        Stopwatch()
+            : owner(nullptr)
+            , isActive(false)
+        { }
+
+        
+
+
+
+
+
+
+        void reset() {
+            owner = nullptr;
+        }
+    };
+    Stopwatch stopwatch;
 };
 
 namespace js {

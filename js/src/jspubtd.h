@@ -479,6 +479,60 @@ struct PerThreadDataFriendFields
     template <typename T> friend class JS::Rooted;
 };
 
+
+struct PerformanceData {
+    
+    
+    
+    
+    
+    uint64_t missedFrames[8];
+
+    
+    
+    uint64_t totalUserTime;
+    uint64_t totalSystemTime;
+    uint64_t ownUserTime;
+    uint64_t ownSystemTime;
+    uint64_t cpowTime;
+
+    
+    
+    uint64_t visits;
+
+    PerformanceData()
+        : totalUserTime(0)
+        , totalSystemTime(0)
+        , ownUserTime(0)
+        , ownSystemTime(0)
+        , cpowTime(0)
+        , visits(0)
+    {
+        memset(missedFrames, 0, sizeof(missedFrames));
+    }
+    PerformanceData(const PerformanceData& from)
+        : totalUserTime(from.totalUserTime)
+        , totalSystemTime(from.totalSystemTime)
+        , ownUserTime(from.ownUserTime)
+        , ownSystemTime(from.ownSystemTime)
+        , cpowTime(from.cpowTime)
+        , visits(from.visits)
+    {
+        memcpy(missedFrames, from.missedFrames, sizeof(missedFrames));
+    }
+    PerformanceData& operator=(const PerformanceData& from)
+    {
+        memcpy(missedFrames, from.missedFrames, sizeof(missedFrames));
+        totalUserTime = from.totalUserTime;
+        totalSystemTime = from.totalSystemTime;
+        ownUserTime = from.ownUserTime;
+        ownSystemTime = from.ownSystemTime;
+        cpowTime = from.cpowTime;
+        visits = from.visits;
+        return *this;
+    }
+};
+
 } 
 
 #endif 
