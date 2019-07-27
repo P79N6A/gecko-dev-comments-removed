@@ -21,6 +21,69 @@ struct JSContext;
 
 namespace mozilla {
 
+
+
+
+
+
+
+
+struct AnimationTiming
+{
+  TimeDuration mIterationDuration;
+  TimeDuration mDelay;
+  float mIterationCount; 
+  uint8_t mDirection;
+  uint8_t mFillMode;
+
+  bool FillsForwards() const {
+    return mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BOTH ||
+           mFillMode == NS_STYLE_ANIMATION_FILL_MODE_FORWARDS;
+  }
+  bool FillsBackwards() const {
+    return mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BOTH ||
+           mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BACKWARDS;
+  }
+};
+
+
+
+
+
+struct ComputedTiming
+{
+  ComputedTiming()
+    : mTimeFraction(kNullTimeFraction)
+    , mCurrentIteration(0)
+    , mPhase(AnimationPhase_Null)
+  { }
+
+  static const double kNullTimeFraction;
+
+  
+  
+  TimeDuration mActiveDuration;
+
+  
+  
+  double mTimeFraction;
+
+  
+  
+  uint64_t mCurrentIteration;
+
+  enum {
+    
+    AnimationPhase_Null,
+    
+    AnimationPhase_Before,
+    
+    AnimationPhase_Active,
+    
+    AnimationPhase_After
+  } mPhase;
+};
+
 class ComputedTimingFunction
 {
 public:
@@ -58,8 +121,9 @@ namespace dom {
 class Animation MOZ_FINAL : public nsWrapperCache
 {
 public:
-  explicit Animation(nsIDocument* aDocument)
+  Animation(nsIDocument* aDocument, const AnimationTiming &aTiming)
     : mDocument(aDocument)
+    , mTiming(aTiming)
   {
     SetIsDOMBinding();
   }
@@ -71,6 +135,57 @@ public:
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   void SetParentTime(Nullable<TimeDuration> aParentTime);
+
+  const AnimationTiming& Timing() const {
+    return mTiming;
+  }
+  AnimationTiming& Timing() {
+    return mTiming;
+  }
+
+  
+  
+  
+  
+  TimeDuration InitialAdvance() const {
+    return std::max(TimeDuration(), mTiming.mDelay * -1);
+  }
+
+  Nullable<TimeDuration> GetLocalTime() const {
+    
+    
+    return mParentTime;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  static ComputedTiming
+  GetComputedTimingAt(const Nullable<TimeDuration>& aLocalTime,
+                      const AnimationTiming& aTiming);
+
+  
+  
+  ComputedTiming GetComputedTiming(const AnimationTiming* aTiming
+                                     = nullptr) const {
+    return GetComputedTimingAt(GetLocalTime(), aTiming ? *aTiming : mTiming);
+  }
+
+  
+  static TimeDuration ActiveDuration(const AnimationTiming& aTiming);
+
+  bool IsCurrent() const {
+    ComputedTiming computedTiming = GetComputedTiming();
+    return computedTiming.mPhase == ComputedTiming::AnimationPhase_Before ||
+           computedTiming.mPhase == ComputedTiming::AnimationPhase_Active;
+  }
 
   bool HasAnimationOfProperty(nsCSSProperty aProperty) const;
   const InfallibleTArray<AnimationProperty>& Properties() const {
@@ -88,6 +203,7 @@ protected:
   nsRefPtr<nsIDocument> mDocument;
   Nullable<TimeDuration> mParentTime;
 
+  AnimationTiming mTiming;
   InfallibleTArray<AnimationProperty> mProperties;
 };
 

@@ -487,8 +487,7 @@ AnimationPlayerCollection::EnsureStyleRuleFor(TimeStamp aRefreshTime,
 
       
       
-      ComputedTiming computedTiming =
-        player->GetComputedTiming(player->mTiming);
+      ComputedTiming computedTiming = player->GetSource()->GetComputedTiming();
 
       
       
@@ -524,14 +523,13 @@ AnimationPlayerCollection::EnsureStyleRuleFor(TimeStamp aRefreshTime,
     for (size_t playerIdx = mPlayers.Length(); playerIdx-- != 0; ) {
       AnimationPlayer* player = mPlayers[playerIdx];
 
-      if (player->IsFinishedTransition()) {
+      if (!player->GetSource() || player->IsFinishedTransition()) {
         continue;
       }
 
       
       
-      ComputedTiming computedTiming =
-        player->GetComputedTiming(player->mTiming);
+      ComputedTiming computedTiming = player->GetSource()->GetComputedTiming();
 
       if ((computedTiming.mPhase == ComputedTiming::AnimationPhase_Before ||
            computedTiming.mPhase == ComputedTiming::AnimationPhase_Active) &&
@@ -542,8 +540,7 @@ AnimationPlayerCollection::EnsureStyleRuleFor(TimeStamp aRefreshTime,
       
       
       
-      if (computedTiming.mTimeFraction == ComputedTiming::kNullTimeFraction ||
-          !player->GetSource()) {
+      if (computedTiming.mTimeFraction == ComputedTiming::kNullTimeFraction) {
         continue;
       }
 

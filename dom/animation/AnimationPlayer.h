@@ -26,69 +26,6 @@ namespace mozilla {
 
 struct ElementPropertyTransition;
 
-
-
-
-
-
-
-
-struct AnimationTiming
-{
-  TimeDuration mIterationDuration;
-  TimeDuration mDelay;
-  float mIterationCount; 
-  uint8_t mDirection;
-  uint8_t mFillMode;
-
-  bool FillsForwards() const {
-    return mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BOTH ||
-           mFillMode == NS_STYLE_ANIMATION_FILL_MODE_FORWARDS;
-  }
-  bool FillsBackwards() const {
-    return mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BOTH ||
-           mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BACKWARDS;
-  }
-};
-
-
-
-
-
-struct ComputedTiming
-{
-  ComputedTiming()
-  : mTimeFraction(kNullTimeFraction)
-  , mCurrentIteration(0)
-  , mPhase(AnimationPhase_Null)
-  { }
-
-  static const double kNullTimeFraction;
-
-  
-  
-  TimeDuration mActiveDuration;
-
-  
-  
-  double mTimeFraction;
-
-  
-  
-  uint64_t mCurrentIteration;
-
-  enum {
-    
-    AnimationPhase_Null,
-    
-    AnimationPhase_Before,
-    
-    AnimationPhase_Active,
-    
-    AnimationPhase_After
-  } mPhase;
-};
-
 namespace dom {
 
 class AnimationPlayer : public nsWrapperCache
@@ -153,7 +90,7 @@ public:
   
   
   
-  Nullable<TimeDuration> GetLocalTime() const {
+  Nullable<TimeDuration> GetCurrentTimeDuration() const {
     const TimeStamp& timelineTime = mTimeline->GetCurrentTimeStamp();
     
     
@@ -169,39 +106,7 @@ public:
     return result;
   }
 
-  
-  
-  
-  
-  TimeDuration InitialAdvance() const {
-    return std::max(TimeDuration(), mTiming.mDelay * -1);
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  static ComputedTiming
-  GetComputedTimingAt(const Nullable<TimeDuration>& aLocalTime,
-                      const AnimationTiming& aTiming);
-
-  
-  
-  ComputedTiming GetComputedTiming(const AnimationTiming& aTiming) const {
-    return GetComputedTimingAt(GetLocalTime(), aTiming);
-  }
-
-  
-  static TimeDuration ActiveDuration(const AnimationTiming& aTiming);
-
   nsString mName;
-  AnimationTiming mTiming;
   
   TimeStamp mStartTime;
   TimeStamp mPauseStart;
