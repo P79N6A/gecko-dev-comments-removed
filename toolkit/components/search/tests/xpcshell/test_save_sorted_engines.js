@@ -39,7 +39,7 @@ add_task(function* test_save_sorted_engines() {
   search.moveEngine(engine2, 1);
 
   
-  yield new Promise(resolve => afterCommit(resolve));
+  yield promiseAfterCommit();
   do_print("Commit complete after moveEngine");
 
   
@@ -49,7 +49,7 @@ add_task(function* test_save_sorted_engines() {
 
   
   search.removeEngine(engine1);
-  yield new Promise(resolve => afterCommit(resolve));
+  yield promiseAfterCommit();
   do_print("Commit complete after removeEngine");
 
   
@@ -59,7 +59,7 @@ add_task(function* test_save_sorted_engines() {
   
   search.addEngineWithDetails("foo", "", "foo", "", "GET",
                               "http://searchget/?search={searchTerms}");
-  yield new Promise(resolve => afterCommit(resolve));
+  yield promiseAfterCommit();
   do_print("Commit complete after addEngineWithDetails");
 
   json = getSearchMetadata();
