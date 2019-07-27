@@ -1318,6 +1318,16 @@ class JitActivation : public Activation
     typedef HashMap<uint8_t *, RematerializedFrameVector> RematerializedFrameTable;
     RematerializedFrameTable *rematerializedFrames_;
 
+    
+    
+    
+    
+    
+    
+    
+    typedef Vector<RInstructionResults, 1> IonRecoveryMap;
+    IonRecoveryMap ionRecovery_;
+
     void clearRematerializedFrames();
 
 #ifdef CHECK_OSIPOINT_REGISTERS
@@ -1392,6 +1402,20 @@ class JitActivation : public Activation
     void removeRematerializedFrame(uint8_t *top);
 
     void markRematerializedFrames(JSTracer *trc);
+
+
+    
+    bool registerIonFrameRecovery(IonJSFrameLayout *fp, RInstructionResults&& results);
+
+    
+    RInstructionResults *maybeIonFrameRecovery(IonJSFrameLayout *fp);
+
+    
+    
+    
+    void maybeTakeIonFrameRecovery(IonJSFrameLayout *fp, RInstructionResults *results);
+
+    void markIonRecovery(JSTracer *trc);
 };
 
 
