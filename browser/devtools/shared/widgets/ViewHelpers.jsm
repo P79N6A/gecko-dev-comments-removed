@@ -369,10 +369,6 @@ ViewHelpers.L10N.prototype = {
     if (isNaN(aNumber) || aNumber == null) {
       return "0";
     }
-    
-    
-    
-    
     let localized = aNumber.toLocaleString(); 
 
     
@@ -381,9 +377,10 @@ ViewHelpers.L10N.prototype = {
       return localized;
     }
 
-    let padded = localized + new Array(aDecimals).join("0"); 
-    let match = padded.match("([^]*?\\d{" + aDecimals + "})\\d*$");
-    return match.pop();
+    return aNumber.toLocaleString(undefined, {
+      maximumFractionDigits: aDecimals,
+      minimumFractionDigits: aDecimals
+    });
   }
 };
 
