@@ -367,6 +367,7 @@ pref("media.navigator.enabled", true);
 
 
 pref("media.getusermedia.screensharing.enabled", false);
+pref("media.getusermedia.screensharing.allowed_domains", "");
 
 
 pref("media.webvtt.enabled", true);
