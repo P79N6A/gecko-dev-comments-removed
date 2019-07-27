@@ -179,13 +179,13 @@ MediaDecoderReader::ComputeStartTime(const VideoData* aVideo, const AudioData* a
 }
 
 nsRefPtr<MediaDecoderReader::MetadataPromise>
-MediaDecoderReader::CallReadMetadata()
+MediaDecoderReader::AsyncReadMetadata()
 {
   typedef ReadMetadataFailureReason Reason;
 
   MOZ_ASSERT(OnTaskQueue());
   mDecoder->GetReentrantMonitor().AssertNotCurrentThreadIn();
-  DECODER_LOG("MediaDecoderReader::CallReadMetadata");
+  DECODER_LOG("MediaDecoderReader::AsyncReadMetadata");
 
   
   
