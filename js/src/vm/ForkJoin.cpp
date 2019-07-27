@@ -1875,41 +1875,6 @@ ParallelBailoutRecord::reset()
     cause = ParallelBailoutNone;
 }
 
-void
-ParallelBailoutRecord::rematerializeFrames(ForkJoinContext *cx, JitFrameIterator &frameIter)
-{
-    
-    
-    
-
-    MOZ_ASSERT(frames().empty());
-
-    for (; !frameIter.done(); ++frameIter) {
-        if (!frameIter.isIonJS())
-            continue;
-
-        InlineFrameIterator inlineIter(cx, &frameIter);
-        Vector<RematerializedFrame *> inlineFrames(cx);
-
-        if (!RematerializedFrame::RematerializeInlineFrames(cx, frameIter.fp(),
-                                                            inlineIter, inlineFrames))
-        {
-            RematerializedFrame::FreeInVector(inlineFrames);
-            RematerializedFrame::FreeInVector(frames());
-            return;
-        }
-
-        
-        while (!inlineFrames.empty()) {
-            if (!frames().append(inlineFrames.popCopy())) {
-                RematerializedFrame::FreeInVector(inlineFrames);
-                RematerializedFrame::FreeInVector(frames());
-                return;
-            }
-        }
-    }
-}
-
 
 
 

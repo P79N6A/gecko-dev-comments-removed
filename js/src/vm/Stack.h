@@ -1330,7 +1330,7 @@ class JitActivation : public Activation
     
     
     
-    RematerializedFrame *getRematerializedFrame(ThreadSafeContext *cx, const JitFrameIterator &iter,
+    RematerializedFrame *getRematerializedFrame(JSContext *cx, const JitFrameIterator &iter,
                                                 size_t inlineDepth = 0);
 
     
@@ -1636,7 +1636,7 @@ class FrameIter
 
     
     
-    bool ensureHasRematerializedFrame(ThreadSafeContext *cx);
+    bool ensureHasRematerializedFrame(JSContext *cx);
 
     
     
