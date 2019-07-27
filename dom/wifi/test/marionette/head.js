@@ -258,12 +258,12 @@ let gTestSuite = (function() {
 
 
 
-  function ensureWifiEnabled(aEnabled) {
+  function ensureWifiEnabled(aEnabled, useAPI) {
     if (wifiManager.enabled === aEnabled) {
       log('Already ' + (aEnabled ? 'enabled' : 'disabled'));
       return Promise.resolve();
     }
-    return requestWifiEnabled(aEnabled);
+    return requestWifiEnabled(aEnabled, useAPI);
   }
 
   
@@ -277,10 +277,20 @@ let gTestSuite = (function() {
 
 
 
-  function requestWifiEnabled(aEnabled) {
+
+
+
+
+
+
+
+
+  function requestWifiEnabled(aEnabled, useAPI) {
     return Promise.all([
       waitForWifiManagerEventOnce(aEnabled ? 'enabled' : 'disabled'),
-      setSettings({ 'wifi.enabled': aEnabled }),
+      useAPI ?
+        wrapDomRequestAsPromise(wifiManager.setWifiEnabled(aEnabled)) :
+        setSettings({ 'wifi.enabled': aEnabled }),
     ]);
   }
 
