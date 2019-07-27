@@ -1190,7 +1190,7 @@ CheckAccessorRedefinition(ExclusiveContext* cx, HandleObject obj, HandleShape sh
 }
 
 static bool
-AddOrChangeProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId id,
+AddOrChangeProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId id,
                     Handle<PropertyDescriptor> desc)
 {
     desc.assertComplete();
@@ -1369,6 +1369,12 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
         if (desc.hasEnumerable() && desc.enumerable() != IsEnumerable(shapeAttrs))
             return result.fail(JSMSG_CANT_REDEFINE_PROP);
     }
+
+    
+    if (!desc.hasConfigurable())
+        desc.setConfigurable(IsConfigurable(shapeAttrs));
+    if (!desc.hasEnumerable())
+        desc.setEnumerable(IsEnumerable(shapeAttrs));
 
     
     
