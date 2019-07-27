@@ -49,6 +49,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 
 
 
+
 function DownloadElementShell() {}
 
 DownloadElementShell.prototype = {
@@ -56,17 +57,6 @@ DownloadElementShell.prototype = {
 
 
   element: null,
-
-  
-
-
-  dataItem: null,
-
-  
-
-
-
-  get download() this.dataItem.download,
 
   
 

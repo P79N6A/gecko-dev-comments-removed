@@ -654,7 +654,7 @@ const DownloadsView = {
 
 
 
-  _dataItems: [],
+  _downloads: [],
 
   
 
@@ -668,8 +668,8 @@ const DownloadsView = {
 
   _itemCountChanged() {
     DownloadsCommon.log("The downloads item count has changed - we are tracking",
-                        this._dataItems.length, "downloads in total.");
-    let count = this._dataItems.length;
+                        this._downloads.length, "downloads in total.");
+    let count = this._downloads.length;
     let hiddenCount = count - this.kItemCountLimit;
 
     if (count > 0) {
@@ -743,27 +743,27 @@ const DownloadsView = {
 
 
 
-  onDataItemAdded(aDataItem, aNewest) {
+  onDownloadAdded(download, aNewest) {
     DownloadsCommon.log("A new download data item was added - aNewest =",
                         aNewest);
 
     if (aNewest) {
-      this._dataItems.unshift(aDataItem);
+      this._downloads.unshift(download);
     } else {
-      this._dataItems.push(aDataItem);
+      this._downloads.push(download);
     }
 
-    let itemsNowOverflow = this._dataItems.length > this.kItemCountLimit;
+    let itemsNowOverflow = this._downloads.length > this.kItemCountLimit;
     if (aNewest || !itemsNowOverflow) {
       
       
       
-      this._addViewItem(aDataItem, aNewest);
+      this._addViewItem(download, aNewest);
     }
     if (aNewest && itemsNowOverflow) {
       
       
-      this._removeViewItem(this._dataItems[this.kItemCountLimit]);
+      this._removeViewItem(this._downloads[this.kItemCountLimit]);
     }
 
     
@@ -773,45 +773,43 @@ const DownloadsView = {
     }
   },
 
-  
-
-
-
-
-
-
-  onDataItemRemoved(aDataItem) {
-    DownloadsCommon.log("A download data item was removed.");
-
-    let itemIndex = this._dataItems.indexOf(aDataItem);
-    this._dataItems.splice(itemIndex, 1);
-
-    if (itemIndex < this.kItemCountLimit) {
-      
-      this._removeViewItem(aDataItem);
-      if (this._dataItems.length >= this.kItemCountLimit) {
-        
-        this._addViewItem(this._dataItems[this.kItemCountLimit - 1], false);
-      }
-    }
-
-    this._itemCountChanged();
-  },
-
-  
-  onDataItemStateChanged(aDataItem) {
-    let viewItem = this._visibleViewItems.get(aDataItem);
+  onDownloadStateChanged(download) {
+    let viewItem = this._visibleViewItems.get(download);
     if (viewItem) {
       viewItem.onStateChanged();
     }
   },
 
-  
-  onDataItemChanged(aDataItem) {
-    let viewItem = this._visibleViewItems.get(aDataItem);
+  onDownloadChanged(download) {
+    let viewItem = this._visibleViewItems.get(download);
     if (viewItem) {
       viewItem.onChanged();
     }
+  },
+
+  
+
+
+
+
+
+
+  onDownloadRemoved(download) {
+    DownloadsCommon.log("A download data item was removed.");
+
+    let itemIndex = this._downloads.indexOf(download);
+    this._downloads.splice(itemIndex, 1);
+
+    if (itemIndex < this.kItemCountLimit) {
+      
+      this._removeViewItem(download);
+      if (this._downloads.length >= this.kItemCountLimit) {
+        
+        this._addViewItem(this._downloads[this.kItemCountLimit - 1], false);
+      }
+    }
+
+    this._itemCountChanged();
   },
 
   
@@ -828,15 +826,15 @@ const DownloadsView = {
 
 
 
-  _addViewItem(aDataItem, aNewest)
+  _addViewItem(download, aNewest)
   {
     DownloadsCommon.log("Adding a new DownloadsViewItem to the downloads list.",
                         "aNewest =", aNewest);
 
     let element = document.createElement("richlistitem");
-    let viewItem = new DownloadsViewItem(aDataItem, element);
-    this._visibleViewItems.set(aDataItem, viewItem);
-    let viewItemController = new DownloadsViewItemController(aDataItem);
+    let viewItem = new DownloadsViewItem(download, element);
+    this._visibleViewItems.set(download, viewItem);
+    let viewItemController = new DownloadsViewItemController(download);
     this._controllersForElements.set(element, viewItemController);
     if (aNewest) {
       this.richListBox.insertBefore(element, this.richListBox.firstChild);
@@ -848,16 +846,16 @@ const DownloadsView = {
   
 
 
-  _removeViewItem(aDataItem) {
+  _removeViewItem(download) {
     DownloadsCommon.log("Removing a DownloadsViewItem from the downloads list.");
-    let element = this._visibleViewItems.get(aDataItem).element;
+    let element = this._visibleViewItems.get(download).element;
     let previousSelectedIndex = this.richListBox.selectedIndex;
     this.richListBox.removeChild(element);
     if (previousSelectedIndex != -1) {
       this.richListBox.selectedIndex = Math.min(previousSelectedIndex,
                                                 this.richListBox.itemCount - 1);
     }
-    this._visibleViewItems.delete(aDataItem);
+    this._visibleViewItems.delete(download);
     this._controllersForElements.delete(element);
   },
 
@@ -984,8 +982,8 @@ const DownloadsView = {
 
 
 
-function DownloadsViewItem(aDataItem, aElement) {
-  this.dataItem = aDataItem;
+function DownloadsViewItem(download, aElement) {
+  this.download = download;
   this.element = aElement;
   this.element._shell = this;
 
@@ -998,11 +996,6 @@ function DownloadsViewItem(aDataItem, aElement) {
 
 DownloadsViewItem.prototype = {
   __proto__: DownloadElementShell.prototype,
-
-  
-
-
-  dataItem: null,
 
   
 
@@ -1148,21 +1141,11 @@ const DownloadsViewController = {
 
 
 
-function DownloadsViewItemController(aDataItem) {
-  this.dataItem = aDataItem;
+function DownloadsViewItemController(download) {
+  this.download = download;
 }
 
 DownloadsViewItemController.prototype = {
-  
-  
-
-  
-
-
-  dataItem: null,
-
-  get download() this.dataItem.download,
-
   isCommandEnabled(aCommand) {
     switch (aCommand) {
       case "downloadsCmd_open": {

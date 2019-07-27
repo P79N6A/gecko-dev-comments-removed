@@ -2,8 +2,6 @@
 
 
 
-XPCOMUtils.defineLazyModuleGetter(this, "DownloadsDataItem",
-                                  "resource:///modules/DownloadsCommon.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
                                   "resource:///modules/RecentWindow.jsm");
 
@@ -134,13 +132,6 @@ HistoryDownload.prototype = {
 
 
 
-function DownloadsHistoryDataItem(aPlacesNode) {
-  this.download = new HistoryDownload(aPlacesNode);
-}
-
-DownloadsHistoryDataItem.prototype = {
-  __proto__: DownloadsDataItem.prototype,
-};
 
 
 
@@ -154,26 +145,18 @@ DownloadsHistoryDataItem.prototype = {
 
 
 
-
-
-
-
-
-
-
-
-function HistoryDownloadElementShell(aSessionDataItem, aHistoryDataItem) {
+function HistoryDownloadElementShell(aSessionDownload, aHistoryDownload) {
   this.element = document.createElement("richlistitem");
   this.element._shell = this;
 
   this.element.classList.add("download");
   this.element.classList.add("download-state");
 
-  if (aSessionDataItem) {
-    this.sessionDataItem = aSessionDataItem;
+  if (aSessionDownload) {
+    this.sessionDownload = aSessionDownload;
   }
-  if (aHistoryDataItem) {
-    this.historyDataItem = aHistoryDataItem;
+  if (aHistoryDownload) {
+    this.historyDownload = aHistoryDownload;
   }
 }
 
@@ -199,17 +182,17 @@ HistoryDownloadElementShell.prototype = {
 
 
 
-  get dataItem() this._sessionDataItem || this._historyDataItem,
+  get download() this._sessionDownload || this._historyDownload,
 
-  _sessionDataItem: null,
-  get sessionDataItem() this._sessionDataItem,
-  set sessionDataItem(aValue) {
-    if (this._sessionDataItem != aValue) {
-      if (!aValue && !this._historyDataItem) {
-        throw new Error("Should always have either a dataItem or a historyDataItem");
+  _sessionDownload: null,
+  get sessionDownload() this._sessionDownload,
+  set sessionDownload(aValue) {
+    if (this._sessionDownload != aValue) {
+      if (!aValue && !this._historyDownload) {
+        throw new Error("Should always have either a Download or a HistoryDownload");
       }
 
-      this._sessionDataItem = aValue;
+      this._sessionDownload = aValue;
 
       this.ensureActive();
       this._updateUI();
@@ -217,19 +200,19 @@ HistoryDownloadElementShell.prototype = {
     return aValue;
   },
 
-  _historyDataItem: null,
-  get historyDataItem() this._historyDataItem,
-  set historyDataItem(aValue) {
-    if (this._historyDataItem != aValue) {
-      if (!aValue && !this._sessionDataItem) {
-        throw new Error("Should always have either a dataItem or a historyDataItem");
+  _historyDownload: null,
+  get historyDownload() this._historyDownload,
+  set historyDownload(aValue) {
+    if (this._historyDownload != aValue) {
+      if (!aValue && !this._sessionDownload) {
+        throw new Error("Should always have either a Download or a HistoryDownload");
       }
 
-      this._historyDataItem = aValue;
+      this._historyDownload = aValue;
 
       
       
-      if (!this._sessionDataItem) {
+      if (!this._sessionDownload) {
         this._updateUI();
       }
     }
@@ -288,7 +271,7 @@ HistoryDownloadElementShell.prototype = {
         
         
         
-        if (this._sessionDataItem && !this.download.succeeded) {
+        if (this._sessionDownload && !this.download.succeeded) {
           return false;
         }
 
@@ -301,7 +284,7 @@ HistoryDownloadElementShell.prototype = {
         return this.download.succeeded;
       case "downloadsCmd_show":
         
-        if (this._sessionDataItem && this.download.target.partFilePath) {
+        if (this._sessionDownload && this.download.target.partFilePath) {
           let partFile = new FileUtils.File(this.download.target.partFilePath);
           if (partFile.exists()) {
             return true;
@@ -325,7 +308,7 @@ HistoryDownloadElementShell.prototype = {
         
         return this.download.stopped;
       case "downloadsCmd_cancel":
-        return !!this._sessionDataItem;
+        return !!this._sessionDownload;
     }
     return false;
   },
@@ -353,13 +336,13 @@ HistoryDownloadElementShell.prototype = {
         break;
       }
       case "cmd_delete": {
-        if (this._sessionDataItem) {
+        if (this._sessionDownload) {
           Downloads.getList(Downloads.ALL)
                    .then(list => list.remove(this.download))
                    .then(() => this.download.finalize(true))
                    .catch(Cu.reportError);
         }
-        if (this._historyDataItem) {
+        if (this._historyDownload) {
           let uri = NetUtil.newURI(this.download.source.url);
           PlacesUtils.bhistory.removePage(uri);
         }
@@ -485,7 +468,7 @@ function DownloadsPlacesView(aRichListBox, aActive = true) {
   this._downloadElementsShellsForURI = new Map();
 
   
-  this._viewItemsForDataItems = new WeakMap();
+  this._viewItemsForDownloads = new WeakMap();
 
   
   
@@ -644,11 +627,8 @@ DownloadsPlacesView.prototype = {
 
 
 
-
-
-  _addDownloadData(aDataItem, aPlacesNode, aNewest = false,
+  _addDownloadData(sessionDownload, aPlacesNode, aNewest = false,
                    aDocumentFragment = null) {
-    let sessionDownload = aDataItem && aDataItem.download;
     let downloadURI = aPlacesNode ? aPlacesNode.uri
                                   : sessionDownload.source.url;
     let shellsForURI = this._downloadElementsShellsForURI.get(downloadURI);
@@ -678,17 +658,17 @@ DownloadsPlacesView.prototype = {
     
     
     if (!shouldCreateShell &&
-        aDataItem && !this._viewItemsForDataItems.has(aDataItem)) {
+        sessionDownload && !this._viewItemsForDownloads.has(sessionDownload)) {
       
       
       
       shouldCreateShell = true;
       for (let shell of shellsForURI) {
-        if (!shell.sessionDataItem) {
+        if (!shell.sessionDownload) {
           shouldCreateShell = false;
-          shell.sessionDataItem = aDataItem;
+          shell.sessionDownload = sessionDownload;
           newOrUpdatedShell = shell;
-          this._viewItemsForDataItems.set(aDataItem, shell);
+          this._viewItemsForDownloads.set(sessionDownload, shell);
           break;
         }
       }
@@ -698,18 +678,19 @@ DownloadsPlacesView.prototype = {
       
       
       
-      let historyDataItem = null;
+      let historyDownload = null;
       if (aPlacesNode) {
         let metaData = this._getCachedPlacesMetaDataFor(aPlacesNode.uri);
-        historyDataItem = new DownloadsHistoryDataItem(aPlacesNode);
-        historyDataItem.download.updateFromMetaData(metaData);
+        historyDownload = new HistoryDownload(aPlacesNode);
+        historyDownload.updateFromMetaData(metaData);
       }
-      let shell = new HistoryDownloadElementShell(aDataItem, historyDataItem);
+      let shell = new HistoryDownloadElementShell(sessionDownload,
+                                                  historyDownload);
       shell.element._placesNode = aPlacesNode;
       newOrUpdatedShell = shell;
       shellsForURI.add(shell);
-      if (aDataItem) {
-        this._viewItemsForDataItems.set(aDataItem, shell);
+      if (sessionDownload) {
+        this._viewItemsForDownloads.set(sessionDownload, shell);
       }
     } else if (aPlacesNode) {
       
@@ -724,9 +705,9 @@ DownloadsPlacesView.prototype = {
       
       
       for (let shell of shellsForURI) {
-        if (!shell.historyDataItem) {
+        if (!shell.historyDownload) {
           
-          shell.historyDataItem = new DownloadsHistoryDataItem(aPlacesNode);
+          shell.historyDownload = new HistoryDownload(aPlacesNode);
         }
         shell.element._placesNode = aPlacesNode;
       }
@@ -743,7 +724,7 @@ DownloadsPlacesView.prototype = {
         
         
         this._richlistbox.ensureElementIsVisible(newOrUpdatedShell.element);
-      } else if (aDataItem) {
+      } else if (sessionDownload) {
         let before = this._lastSessionDownloadElement ?
           this._lastSessionDownloadElement.nextSibling : this._richlistbox.firstChild;
         this._richlistbox.insertBefore(newOrUpdatedShell.element, before);
@@ -793,8 +774,8 @@ DownloadsPlacesView.prototype = {
     let shellsForURI = this._downloadElementsShellsForURI.get(downloadURI);
     if (shellsForURI) {
       for (let shell of shellsForURI) {
-        if (shell.sessionDataItem) {
-          shell.historyDataItem = null;
+        if (shell.sessionDownload) {
+          shell.historyDownload = null;
         } else {
           this._removeElement(shell.element);
           shellsForURI.delete(shell);
@@ -805,15 +786,14 @@ DownloadsPlacesView.prototype = {
     }
   },
 
-  _removeSessionDownloadFromView(aDataItem) {
-    let download = aDataItem.download;
+  _removeSessionDownloadFromView(download) {
     let shells = this._downloadElementsShellsForURI
                      .get(download.source.url);
     if (shells.size == 0) {
       throw new Error("Should have had at leaat one shell for this uri");
     }
 
-    let shell = this._viewItemsForDataItems.get(aDataItem);
+    let shell = this._viewItemsForDownloads.get(download);
     if (!shells.has(shell)) {
       throw new Error("Missing download element shell in shells list for url");
     }
@@ -822,7 +802,7 @@ DownloadsPlacesView.prototype = {
     
     
     
-    if (shells.size > 1 || !shell.historyDataItem) {
+    if (shells.size > 1 || !shell.historyDownload) {
       this._removeElement(shell.element);
       shells.delete(shell);
       if (shells.size == 0) {
@@ -834,10 +814,10 @@ DownloadsPlacesView.prototype = {
       
       
       
-      let url = shell.historyDataItem.download.source.url;
+      let url = shell.historyDownload.source.url;
       let metaData = this._getPlacesMetaDataFor(url);
-      shell.historyDataItem.download.updateFromMetaData(metaData);
-      shell.sessionDataItem = null;
+      shell.historyDownload.updateFromMetaData(metaData);
+      shell.sessionDownload = null;
       
       if (this._lastSessionDownloadElement == shell.element) {
         this._lastSessionDownloadElement = shell.element.previousSibling;
@@ -1113,22 +1093,20 @@ DownloadsPlacesView.prototype = {
     this._ensureInitialSelection();
   },
 
-  onDataItemAdded(aDataItem, aNewest) {
-    this._addDownloadData(aDataItem, null, aNewest);
+  onDownloadAdded(download, newest) {
+    this._addDownloadData(download, null, newest);
   },
 
-  onDataItemRemoved(aDataItem) {
-    this._removeSessionDownloadFromView(aDataItem);
+  onDownloadStateChanged(download) {
+    this._viewItemsForDownloads.get(download).onStateChanged();
   },
 
-  
-  onDataItemStateChanged(aDataItem) {
-    this._viewItemsForDataItems.get(aDataItem).onStateChanged();
+  onDownloadChanged(download) {
+    this._viewItemsForDownloads.get(download).onChanged();
   },
 
-  
-  onDataItemChanged(aDataItem) {
-    this._viewItemsForDataItems.get(aDataItem).onChanged();
+  onDownloadRemoved(download) {
+    this._removeSessionDownloadFromView(download);
   },
 
   supportsCommand(aCommand) {

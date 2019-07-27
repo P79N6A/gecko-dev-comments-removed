@@ -8,13 +8,7 @@
 
 this.EXPORTED_SYMBOLS = [
   "DownloadsCommon",
-  "DownloadsDataItem",
 ];
-
-
-
-
-
 
 
 
@@ -370,7 +364,7 @@ this.DownloadsCommon = {
 
 
 
-  summarizeDownloads(aDataItems) {
+  summarizeDownloads(downloads) {
     let summary = {
       numActive: 0,
       numPaused: 0,
@@ -387,8 +381,7 @@ this.DownloadsCommon = {
       percentComplete: -1
     }
 
-    for (let dataItem of aDataItems) {
-      let download = dataItem.download;
+    for (let download of downloads) {
       let state = DownloadsCommon.stateOfDownload(download);
       let maxBytes = DownloadsCommon.maxBytesOfDownload(download);
 
@@ -660,15 +653,11 @@ function DownloadsDataCtor(aPrivate) {
   this._isPrivate = aPrivate;
 
   
-  this.dataItems = new Set();
   this.oldDownloadStates = new Map();
 
   
   
   this._views = [];
-
-  
-  this._downloadToDataItemMap = new Map();
 }
 
 DownloadsDataCtor.prototype = {
@@ -688,9 +677,14 @@ DownloadsDataCtor.prototype = {
   
 
 
+
+  get downloads() this.oldDownloadStates.keys(),
+
+  
+
+
   get canRemoveFinished() {
-    for (let dataItem of this.dataItems) {
-      let download = dataItem.download;
+    for (let download of this.oldDownloadStates.keys()) {
       
       if (download.stopped && !(download.canceled && download.hasPartialData)) {
         return true;
@@ -712,35 +706,32 @@ DownloadsDataCtor.prototype = {
   
   
 
-  onDownloadAdded(aDownload) {
-    let dataItem = new DownloadsDataItem(aDownload);
-    this._downloadToDataItemMap.set(aDownload, dataItem);
-    this.dataItems.add(dataItem);
-    this.oldDownloadStates.set(aDownload,
-                               DownloadsCommon.stateOfDownload(aDownload));
+  onDownloadAdded(download) {
+    
+    
+    
+    
+    download.endTime = Date.now();
+
+    this.oldDownloadStates.set(download,
+                               DownloadsCommon.stateOfDownload(download));
 
     for (let view of this._views) {
-      view.onDataItemAdded(dataItem, true);
+      view.onDownloadAdded(download, true);
     }
   },
 
-  onDownloadChanged(aDownload) {
-    let aDataItem = this._downloadToDataItemMap.get(aDownload);
-    if (!aDataItem) {
-      Cu.reportError("Download doesn't exist.");
-      return;
-    }
-
-    let oldState = this.oldDownloadStates.get(aDownload);
-    let newState = DownloadsCommon.stateOfDownload(aDownload);
-    this.oldDownloadStates.set(aDownload, newState);
+  onDownloadChanged(download) {
+    let oldState = this.oldDownloadStates.get(download);
+    let newState = DownloadsCommon.stateOfDownload(download);
+    this.oldDownloadStates.set(download, newState);
 
     if (oldState != newState) {
-      if (aDownload.succeeded ||
-          (aDownload.canceled && !aDownload.hasPartialData) ||
-          aDownload.error) {
+      if (download.succeeded ||
+          (download.canceled && !download.hasPartialData) ||
+          download.error) {
         
-        aDownload.endTime = Date.now();
+        download.endTime = Date.now();
 
         
         
@@ -749,17 +740,17 @@ DownloadsDataCtor.prototype = {
         if (!this._isPrivate) {
           try {
             let downloadMetaData = {
-              state: DownloadsCommon.stateOfDownload(aDownload),
-              endTime: aDownload.endTime,
+              state: DownloadsCommon.stateOfDownload(download),
+              endTime: download.endTime,
             };
-            if (aDownload.succeeded ||
-                (aDownload.error && aDownload.error.becauseBlocked)) {
+            if (download.succeeded ||
+                (download.error && download.error.becauseBlocked)) {
               downloadMetaData.fileSize =
-                DownloadsCommon.maxBytesOfDownload(aDataItem.download);
+                DownloadsCommon.maxBytesOfDownload(download);
             }
   
             PlacesUtils.annotations.setPageAnnotation(
-                          NetUtil.newURI(aDownload.source.url),
+                          NetUtil.newURI(download.source.url),
                           "downloads/metaData",
                           JSON.stringify(downloadMetaData), 0,
                           PlacesUtils.annotations.EXPIRE_WITH_HISTORY);
@@ -771,40 +762,33 @@ DownloadsDataCtor.prototype = {
 
       for (let view of this._views) {
         try {
-          view.onDataItemStateChanged(aDataItem);
+          view.onDownloadStateChanged(download);
         } catch (ex) {
           Cu.reportError(ex);
         }
       }
 
-      if (aDownload.succeeded ||
-          (aDownload.error && aDownload.error.becauseBlocked)) {
+      if (download.succeeded ||
+          (download.error && download.error.becauseBlocked)) {
         this._notifyDownloadEvent("finish");
       }
     }
 
-    if (!aDownload.newDownloadNotified) {
-      aDownload.newDownloadNotified = true;
+    if (!download.newDownloadNotified) {
+      download.newDownloadNotified = true;
       this._notifyDownloadEvent("start");
     }
 
     for (let view of this._views) {
-      view.onDataItemChanged(aDataItem);
+      view.onDownloadChanged(download);
     }
   },
 
-  onDownloadRemoved(aDownload) {
-    let dataItem = this._downloadToDataItemMap.get(aDownload);
-    if (!dataItem) {
-      Cu.reportError("Download doesn't exist.");
-      return;
-    }
+  onDownloadRemoved(download) {
+    this.oldDownloadStates.delete(download);
 
-    this._downloadToDataItemMap.delete(aDownload);
-    this.dataItems.delete(dataItem);
-    this.oldDownloadStates.delete(aDownload);
     for (let view of this._views) {
-      view.onDataItemRemoved(dataItem);
+      view.onDownloadRemoved(download);
     }
   },
 
@@ -849,9 +833,9 @@ DownloadsDataCtor.prototype = {
 
     
     
-    let loadedItemsArray = [...this.dataItems];
-    loadedItemsArray.sort((a, b) => b.download.startTime - a.download.startTime);
-    loadedItemsArray.forEach(dataItem => aView.onDataItemAdded(dataItem, false));
+    let downloadsArray = [...this.oldDownloadStates.keys()];
+    downloadsArray.sort((a, b) => b.startTime - a.startTime);
+    downloadsArray.forEach(download => aView.onDownloadAdded(download, false));
 
     
     aView.onDataLoadCompleted();
@@ -912,106 +896,6 @@ XPCOMUtils.defineLazyGetter(this, "PrivateDownloadsData", function() {
 XPCOMUtils.defineLazyGetter(this, "DownloadsData", function() {
   return new DownloadsDataCtor(false);
 });
-
-
-
-
-
-
-
-
-
-
-
-
-function DownloadsDataItem(aDownload) {
-  this.download = aDownload;
-  this.download.endTime = Date.now();
-}
-
-DownloadsDataItem.prototype = {
-  get state() DownloadsCommon.stateOfDownload(this.download),
-
-  
-
-
-
-
-  get inProgress() {
-    return [
-      nsIDM.DOWNLOAD_NOTSTARTED,
-      nsIDM.DOWNLOAD_QUEUED,
-      nsIDM.DOWNLOAD_DOWNLOADING,
-      nsIDM.DOWNLOAD_PAUSED,
-      nsIDM.DOWNLOAD_SCANNING,
-    ].indexOf(this.state) != -1;
-  },
-
-  
-
-
-
-  get starting() {
-    return this.state == nsIDM.DOWNLOAD_NOTSTARTED ||
-           this.state == nsIDM.DOWNLOAD_QUEUED;
-  },
-
-  
-
-
-  get paused() {
-    return this.state == nsIDM.DOWNLOAD_PAUSED;
-  },
-
-  
-
-
-
-  get done() {
-    return [
-      nsIDM.DOWNLOAD_FINISHED,
-      nsIDM.DOWNLOAD_BLOCKED_PARENTAL,
-      nsIDM.DOWNLOAD_BLOCKED_POLICY,
-      nsIDM.DOWNLOAD_DIRTY,
-    ].indexOf(this.state) != -1;
-  },
-
-  
-
-
-
-  get canRetry() {
-    return this.state == nsIDM.DOWNLOAD_CANCELED ||
-           this.state == nsIDM.DOWNLOAD_FAILED;
-  },
-
-  
-
-
-
-
-
-
-
-
-  get localFile() {
-    
-    return new FileUtils.File(this.download.target.path);
-  },
-
-  
-
-
-
-
-
-
-
-
-  get partFile() {
-    return new FileUtils.File(this.download.target.path + kPartialDownloadSuffix);
-  },
-};
 
 
 
@@ -1134,7 +1018,7 @@ const DownloadsViewPrototype = {
 
 
 
-  onDataItemAdded(aDataItem, aNewest) {
+  onDownloadAdded(download, newest) {
     throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
   },
 
@@ -1147,18 +1031,7 @@ const DownloadsViewPrototype = {
 
 
 
-  onDataItemRemoved(aDataItem) {
-    throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
-  },
-
-  
-
-
-
-
-
-
-  onDataItemStateChanged(aDataItem) {
+  onDownloadStateChanged(download) {
     throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
   },
 
@@ -1171,7 +1044,20 @@ const DownloadsViewPrototype = {
 
 
 
-  onDataItemChanged(aDataItem) {
+  onDownloadChanged(download) {
+    throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+  },
+
+  
+
+
+
+
+
+
+
+
+  onDownloadRemoved(download) {
     throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
   },
 
@@ -1232,48 +1118,17 @@ DownloadsIndicatorDataCtor.prototype = {
   
   
 
-  
-
-
   onDataLoadCompleted() {
     DownloadsViewPrototype.onDataLoadCompleted.call(this);
     this._updateViews();
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  onDataItemAdded(aDataItem, aNewest) {
+  onDownloadAdded(download, newest) {
     this._itemCount++;
     this._updateViews();
   },
 
-  
-
-
-
-
-
-
-  onDataItemRemoved(aDataItem) {
-    this._itemCount--;
-    this._updateViews();
-  },
-
-  
-  onDataItemStateChanged(aDataItem) {
-    let download = aDataItem.download;
-
+  onDownloadStateChanged(download) {
     if (download.succeeded || download.error) {
       this.attention = true;
     }
@@ -1283,8 +1138,12 @@ DownloadsIndicatorDataCtor.prototype = {
     this._lastTimeLeft = -1;
   },
 
-  
-  onDataItemChanged() {
+  onDownloadChanged(download) {
+    this._updateViews();
+  },
+
+  onDownloadRemoved(download) {
+    this._itemCount--;
     this._updateViews();
   },
 
@@ -1377,16 +1236,12 @@ DownloadsIndicatorDataCtor.prototype = {
 
 
 
-  _activeDataItems() {
-    let dataItems = this._isPrivate ? PrivateDownloadsData.dataItems
-                                    : DownloadsData.dataItems;
-    for (let dataItem of dataItems) {
-      if (!dataItem) {
-        continue;
-      }
-      let download = dataItem.download;
+  _activeDownloads() {
+    let downloads = this._isPrivate ? PrivateDownloadsData.downloads
+                                    : DownloadsData.downloads;
+    for (let download of downloads) {
       if (!download.stopped || (download.canceled && download.hasPartialData)) {
-        yield dataItem;
+        yield download;
       }
     }
   },
@@ -1396,7 +1251,7 @@ DownloadsIndicatorDataCtor.prototype = {
 
   _refreshProperties() {
     let summary =
-      DownloadsCommon.summarizeDownloads(this._activeDataItems());
+      DownloadsCommon.summarizeDownloads(this._activeDownloads());
 
     
     this._hasDownloads = (this._itemCount > 0);
@@ -1457,7 +1312,7 @@ function DownloadsSummaryData(aIsPrivate, aNumToExclude) {
   
   this._loading = false;
 
-  this._dataItems = [];
+  this._downloads = [];
 
   
   
@@ -1498,7 +1353,7 @@ DownloadsSummaryData.prototype = {
     if (this._views.length == 0) {
       
       
-      this._dataItems = [];
+      this._downloads = [];
     }
   },
 
@@ -1512,31 +1367,29 @@ DownloadsSummaryData.prototype = {
     this._updateViews();
   },
 
-  onDataItemAdded(aDataItem, aNewest) {
-    if (aNewest) {
-      this._dataItems.unshift(aDataItem);
+  onDownloadAdded(download, newest) {
+    if (newest) {
+      this._downloads.unshift(download);
     } else {
-      this._dataItems.push(aDataItem);
+      this._downloads.push(download);
     }
 
     this._updateViews();
   },
 
-  onDataItemRemoved(aDataItem) {
-    let itemIndex = this._dataItems.indexOf(aDataItem);
-    this._dataItems.splice(itemIndex, 1);
-    this._updateViews();
-  },
-
-  
-  onDataItemStateChanged() {
+  onDownloadStateChanged() {
     
     this._lastRawTimeLeft = -1;
     this._lastTimeLeft = -1;
   },
 
-  
-  onDataItemChanged() {
+  onDownloadChanged() {
+    this._updateViews();
+  },
+
+  onDownloadRemoved(download) {
+    let itemIndex = this._downloads.indexOf(download);
+    this._downloads.splice(itemIndex, 1);
     this._updateViews();
   },
 
@@ -1579,10 +1432,10 @@ DownloadsSummaryData.prototype = {
 
 
 
-  _dataItemsForSummary() {
-    if (this._dataItems.length > 0) {
-      for (let i = this._numToExclude; i < this._dataItems.length; ++i) {
-        yield this._dataItems[i];
+  _downloadsForSummary() {
+    if (this._downloads.length > 0) {
+      for (let i = this._numToExclude; i < this._downloads.length; ++i) {
+        yield this._downloads[i];
       }
     }
   },
@@ -1593,7 +1446,7 @@ DownloadsSummaryData.prototype = {
   _refreshProperties() {
     
     let summary =
-      DownloadsCommon.summarizeDownloads(this._dataItemsForSummary());
+      DownloadsCommon.summarizeDownloads(this._downloadsForSummary());
 
     this._description = DownloadsCommon.strings
                                        .otherDownloads2(summary.numActive);
