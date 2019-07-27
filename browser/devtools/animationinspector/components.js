@@ -4,6 +4,7 @@
 
 
 
+
 "use strict";
 
 
@@ -19,11 +20,19 @@
 
 
 
-const {Cu} = require('chrome');
+const {Cu} = require("chrome");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
+const {
+  createNode,
+  drawGraphElementBackground,
+  findOptimalTimeInterval
+} = require("devtools/animationinspector/utils");
 
 const STRINGS_URI = "chrome://browser/locale/devtools/animationinspector.properties";
 const L10N = new ViewHelpers.L10N(STRINGS_URI);
+const MILLIS_TIME_FORMAT_MAX_DURATION = 4000;
+
+const TIME_GRADUATION_MIN_SPACING = 40;
 
 
 
@@ -75,9 +84,9 @@ PlayerMetaDataHeader.prototype = {
     
     this.durationLabel = createNode({
       parent: metaData,
-      nodeType: "span"
+      nodeType: "span",
+      textContent: L10N.getStr("player.animationDurationLabel")
     });
-    this.durationLabel.textContent = L10N.getStr("player.animationDurationLabel");
 
     this.durationValue = createNode({
       parent: metaData,
@@ -90,9 +99,9 @@ PlayerMetaDataHeader.prototype = {
       nodeType: "span",
       attributes: {
         "style": "display:none;"
-      }
+      },
+      textContent: L10N.getStr("player.animationDelayLabel")
     });
-    this.delayLabel.textContent = L10N.getStr("player.animationDelayLabel");
 
     this.delayValue = createNode({
       parent: metaData,
@@ -106,9 +115,9 @@ PlayerMetaDataHeader.prototype = {
       nodeType: "span",
       attributes: {
         "style": "display:none;"
-      }
+      },
+      textContent: L10N.getStr("player.animationIterationCountLabel")
     });
-    this.iterationLabel.textContent = L10N.getStr("player.animationIterationCountLabel");
 
     this.iterationValue = createNode({
       parent: metaData,
@@ -224,7 +233,7 @@ PlaybackRateSelector.prototype = {
 
 
   getCurrentPresets: function({playbackRate}) {
-    return [...new Set([...this.PRESETS, playbackRate])].sort((a,b) => a > b);
+    return [...new Set([...this.PRESETS, playbackRate])].sort((a, b) => a > b);
   },
 
   render: function(state) {
@@ -248,9 +257,9 @@ PlaybackRateSelector.prototype = {
         nodeType: "option",
         attributes: {
           value: preset,
-        }
+        },
+        textContent: L10N.getFormatStr("player.playbackRateLabel", preset)
       });
-      option.textContent = L10N.getFormatStr("player.playbackRateLabel", preset);
       if (preset === state.playbackRate) {
         option.setAttribute("selected", "");
       }
@@ -261,7 +270,7 @@ PlaybackRateSelector.prototype = {
     this.currentRate = state.playbackRate;
   },
 
-  onSelectionChanged: function(e) {
+  onSelectionChanged: function() {
     this.emit("rate-changed", parseFloat(this.el.value));
   }
 };
@@ -273,8 +282,12 @@ PlaybackRateSelector.prototype = {
 
 
 
-function AnimationTargetNode(inspector) {
+
+
+
+function AnimationTargetNode(inspector, options={}) {
   this.inspector = inspector;
+  this.options = options;
 
   this.onPreviewMouseOver = this.onPreviewMouseOver.bind(this);
   this.onPreviewMouseOut = this.onPreviewMouseOut.bind(this);
@@ -313,7 +326,9 @@ AnimationTargetNode.prototype = {
       nodeType: "span"
     });
 
-    this.previewEl.appendChild(document.createTextNode("<"));
+    if (!this.options.compact) {
+      this.previewEl.appendChild(document.createTextNode("<"));
+    }
 
     
     this.tagNameEl = createNode({
@@ -330,15 +345,26 @@ AnimationTargetNode.prototype = {
       nodeType: "span"
     });
 
-    createNode({
-      parent: this.idEl,
-      nodeType: "span",
-      attributes: {
-        "class": "attribute-name theme-fg-color2"
-      }
-    }).textContent = "id";
-
-    this.idEl.appendChild(document.createTextNode("=\""));
+    if (!this.options.compact) {
+      createNode({
+        parent: this.idEl,
+        nodeType: "span",
+        attributes: {
+          "class": "attribute-name theme-fg-color2"
+        },
+        textContent: "id"
+      });
+      this.idEl.appendChild(document.createTextNode("=\""));
+    } else {
+      createNode({
+        parent: this.idEl,
+        nodeType: "span",
+        attributes: {
+          "class": "theme-fg-color2"
+        },
+        textContent: "#"
+      });
+    }
 
     createNode({
       parent: this.idEl,
@@ -348,7 +374,9 @@ AnimationTargetNode.prototype = {
       }
     });
 
-    this.idEl.appendChild(document.createTextNode("\""));
+    if (!this.options.compact) {
+      this.idEl.appendChild(document.createTextNode("\""));
+    }
 
     
     this.classEl = createNode({
@@ -356,15 +384,26 @@ AnimationTargetNode.prototype = {
       nodeType: "span"
     });
 
-    createNode({
-      parent: this.classEl,
-      nodeType: "span",
-      attributes: {
-        "class": "attribute-name theme-fg-color2"
-      }
-    }).textContent = "class";
-
-    this.classEl.appendChild(document.createTextNode("=\""));
+    if (!this.options.compact) {
+      createNode({
+        parent: this.classEl,
+        nodeType: "span",
+        attributes: {
+          "class": "attribute-name theme-fg-color2"
+        },
+        textContent: "class"
+      });
+      this.classEl.appendChild(document.createTextNode("=\""));
+    } else {
+      createNode({
+        parent: this.classEl,
+        nodeType: "span",
+        attributes: {
+          "class": "theme-fg-color6"
+        },
+        textContent: "."
+      });
+    }
 
     createNode({
       parent: this.classEl,
@@ -374,9 +413,10 @@ AnimationTargetNode.prototype = {
       }
     });
 
-    this.classEl.appendChild(document.createTextNode("\""));
-
-    this.previewEl.appendChild(document.createTextNode(">"));
+    if (!this.options.compact) {
+      this.classEl.appendChild(document.createTextNode("\""));
+      this.previewEl.appendChild(document.createTextNode(">"));
+    }
 
     
     this.previewEl.addEventListener("mouseover", this.onPreviewMouseOver);
@@ -430,46 +470,152 @@ AnimationTargetNode.prototype = {
     }
   },
 
-  render: function(playerFront) {
+  render: Task.async(function*(playerFront) {
     this.playerFront = playerFront;
-    this.inspector.walker.getNodeFromActor(playerFront.actorID, ["node"]).then(nodeFront => {
+    this.nodeFront = undefined;
+
+    try {
+      this.nodeFront = yield this.inspector.walker.getNodeFromActor(
+                             playerFront.actorID, ["node"]);
+    } catch (e) {
       
-      if (!this.el || !nodeFront) {
-        return;
-      }
-
-      this.nodeFront = nodeFront;
-      let {tagName, attributes} = nodeFront;
-
-      this.tagNameEl.textContent = tagName.toLowerCase();
-
-      let idIndex = attributes.findIndex(({name}) => name === "id");
-      if (idIndex > -1 && attributes[idIndex].value) {
-        this.idEl.querySelector(".attribute-value").textContent =
-          attributes[idIndex].value;
-        this.idEl.style.display = "inline";
-      } else {
-        this.idEl.style.display = "none";
-      }
-
-      let classIndex = attributes.findIndex(({name}) => name === "class");
-      if (classIndex > -1 && attributes[classIndex].value) {
-        this.classEl.querySelector(".attribute-value").textContent =
-          attributes[classIndex].value;
-        this.classEl.style.display = "inline";
-      } else {
-        this.classEl.style.display = "none";
-      }
-
-      this.emit("target-retrieved");
-    }, e => {
-      this.nodeFront = null;
+      
       if (!this.el) {
-        console.warn("Cound't retrieve the animation target node, widget destroyed");
-      } else {
-        console.error(e);
+        console.warn("Cound't retrieve the animation target node, widget " +
+                     "destroyed");
       }
-    });
+      console.error(e);
+      return;
+    }
+
+    if (!this.nodeFront || !this.el) {
+      return;
+    }
+
+    let {tagName, attributes} = this.nodeFront;
+
+    this.tagNameEl.textContent = tagName.toLowerCase();
+
+    let idIndex = attributes.findIndex(({name}) => name === "id");
+    if (idIndex > -1 && attributes[idIndex].value) {
+      this.idEl.querySelector(".attribute-value").textContent =
+        attributes[idIndex].value;
+      this.idEl.style.display = "inline";
+    } else {
+      this.idEl.style.display = "none";
+    }
+
+    let classIndex = attributes.findIndex(({name}) => name === "class");
+    if (classIndex > -1 && attributes[classIndex].value) {
+      let value = attributes[classIndex].value;
+      if (this.options.compact) {
+        value = value.split(" ").join(".");
+      }
+
+      this.classEl.querySelector(".attribute-value").textContent = value;
+      this.classEl.style.display = "inline";
+    } else {
+      this.classEl.style.display = "none";
+    }
+
+    this.emit("target-retrieved");
+  })
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+let TimeScale = {
+  minStartTime: Infinity,
+  maxEndTime: 0,
+
+  
+
+
+
+  addAnimation: function({startTime, delay, duration, iterationCount}) {
+    this.minStartTime = Math.min(this.minStartTime, startTime);
+    let length = delay + (duration * (!iterationCount ? 1 : iterationCount));
+    this.maxEndTime = Math.max(this.maxEndTime, startTime + length);
+  },
+
+  
+
+
+  reset: function() {
+    this.minStartTime = Infinity;
+    this.maxEndTime = 0;
+  },
+
+  
+
+
+
+
+
+  startTimeToDistance: function(time, containerWidth) {
+    time -= this.minStartTime;
+    return this.durationToDistance(time, containerWidth);
+  },
+
+  
+
+
+
+
+
+  durationToDistance: function(duration, containerWidth) {
+    return containerWidth * duration / (this.maxEndTime - this.minStartTime);
+  },
+
+  
+
+
+
+
+
+  distanceToTime: function(distance, containerWidth) {
+    return this.minStartTime +
+      ((this.maxEndTime - this.minStartTime) * distance / containerWidth);
+  },
+
+  
+
+
+
+
+
+
+  distanceToRelativeTime: function(distance, containerWidth) {
+    let time = this.distanceToTime(distance, containerWidth);
+    return time - this.minStartTime;
+  },
+
+  
+
+
+
+
+
+  formatTime: function(time) {
+    let duration = this.maxEndTime - this.minStartTime;
+
+    
+    if (duration <= MILLIS_TIME_FORMAT_MAX_DURATION) {
+      return L10N.getFormatStr("timeline.timeGraduationLabel", time.toFixed(0));
+    }
+
+    
+    return L10N.getFormatStr("player.timeLabel", (time / 1000).toFixed(1));
   }
 };
 
@@ -482,21 +628,199 @@ AnimationTargetNode.prototype = {
 
 
 
-function createNode(options) {
-  if (!options.parent) {
-    throw new Error("Missing parent DOMNode to create new node");
-  }
+function AnimationsTimeline(inspector) {
+  this.animations = [];
+  this.targetNodes = [];
+  this.inspector = inspector;
 
-  let type = options.nodeType || "div";
-  let node = options.parent.ownerDocument.createElement(type);
-
-  for (let name in options.attributes || {}) {
-    let value = options.attributes[name];
-    node.setAttribute(name, value);
-  }
-
-  options.parent.appendChild(node);
-  return node;
+  this.onAnimationStateChanged = this.onAnimationStateChanged.bind(this);
 }
 
-exports.createNode = createNode;
+exports.AnimationsTimeline = AnimationsTimeline;
+
+AnimationsTimeline.prototype = {
+  init: function(containerEl) {
+    this.win = containerEl.ownerDocument.defaultView;
+
+    this.rootWrapperEl = createNode({
+      parent: containerEl,
+      attributes: {
+        "class": "animation-timeline"
+      }
+    });
+
+    this.timeHeaderEl = createNode({
+      parent: this.rootWrapperEl,
+      attributes: {
+        "class": "time-header"
+      }
+    });
+
+    this.animationsEl = createNode({
+      parent: this.rootWrapperEl,
+      nodeType: "ul",
+      attributes: {
+        "class": "animations"
+      }
+    });
+  },
+
+  destroy: function() {
+    this.unrender();
+
+    this.rootWrapperEl.remove();
+    this.animations = [];
+
+    this.rootWrapperEl = null;
+    this.timeHeaderEl = null;
+    this.animationsEl = null;
+    this.win = null;
+    this.inspector = null;
+  },
+
+  destroyTargetNodes: function() {
+    for (let targetNode of this.targetNodes) {
+      targetNode.destroy();
+    }
+    this.targetNodes = [];
+  },
+
+  unrender: function() {
+    for (let animation of this.animations) {
+      animation.off("changed", this.onAnimationStateChanged);
+    }
+
+    TimeScale.reset();
+    this.destroyTargetNodes();
+    this.animationsEl.innerHTML = "";
+  },
+
+  render: function(animations) {
+    this.unrender();
+
+    this.animations = animations;
+    if (!this.animations.length) {
+      return;
+    }
+
+    
+    for (let {state} of animations) {
+      TimeScale.addAnimation(state);
+    }
+
+    this.drawHeaderAndBackground();
+
+    for (let animation of this.animations) {
+      animation.on("changed", this.onAnimationStateChanged);
+
+      
+      
+      let animationEl = createNode({
+        parent: this.animationsEl,
+        nodeType: "li",
+        attributes: {
+          "class": "animation"
+        }
+      });
+
+      
+      let animatedNodeEl = createNode({
+        parent: animationEl,
+        attributes: {
+          "class": "target"
+        }
+      });
+
+      let timeBlockEl = createNode({
+        parent: animationEl,
+        attributes: {
+          "class": "time-block"
+        }
+      });
+
+      this.drawTimeBlock(animation, timeBlockEl);
+
+      
+      let targetNode = new AnimationTargetNode(this.inspector, {compact: true});
+      targetNode.init(animatedNodeEl);
+      targetNode.render(animation);
+
+      
+      this.targetNodes.push(targetNode);
+    }
+  },
+
+  onAnimationStateChanged: function() {
+    
+    
+    this.render(this.animations);
+  },
+
+  drawHeaderAndBackground: function() {
+    let width = this.timeHeaderEl.offsetWidth;
+    let scale = width / (TimeScale.maxEndTime - TimeScale.minStartTime);
+    drawGraphElementBackground(this.win.document, "time-graduations", width, scale);
+
+    
+    this.timeHeaderEl.innerHTML = "";
+    let interval = findOptimalTimeInterval(scale, TIME_GRADUATION_MIN_SPACING);
+    for (let i = 0; i < width; i += interval) {
+      createNode({
+        parent: this.timeHeaderEl,
+        nodeType: "span",
+        attributes: {
+          "class": "time-tick",
+          "style": `left:${i}px`
+        },
+        textContent: TimeScale.formatTime(
+          TimeScale.distanceToRelativeTime(i, width))
+      });
+    }
+  },
+
+  drawTimeBlock: function({state}, el) {
+    let width = el.offsetWidth;
+
+    
+    
+    let x = TimeScale.startTimeToDistance(state.startTime + (state.delay || 0),
+                                          width);
+    
+    let count = state.iterationCount || 1;
+    let w = TimeScale.durationToDistance(state.duration, width);
+
+    let iterations = createNode({
+      parent: el,
+      attributes: {
+        "class": "iterations" + (state.iterationCount ? "" : " infinite"),
+        
+        
+        "style": `left:${x}px;
+                  width:${w * count}px;
+                  background-size:${Math.max(w, 2)}px 100%;`
+      }
+    });
+
+    
+    createNode({
+      parent: iterations,
+      attributes: {
+        "class": "name"
+      },
+      textContent: state.name
+    });
+
+    
+    if (state.delay) {
+      let delay = TimeScale.durationToDistance(state.delay, width);
+      createNode({
+        parent: iterations,
+        attributes: {
+          "class": "delay",
+          "style": `left:-${delay}px;
+                    width:${delay}px;`
+        }
+      });
+    }
+  }
+};

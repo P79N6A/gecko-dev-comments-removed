@@ -9,7 +9,7 @@ const {gDevTools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
 const {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const TargetFactory = devtools.TargetFactory;
-const {console} = Components.utils.import("resource://gre/modules/devtools/Console.jsm", {});
+const {console} = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
 const {ViewHelpers} = Cu.import("resource:///modules/devtools/ViewHelpers.jsm", {});
 
 
@@ -19,16 +19,19 @@ const TEST_URL_ROOT = "http://example.com/browser/browser/devtools/animationinsp
 const ROOT_TEST_DIR = getRootDirectory(gTestPath);
 const FRAME_SCRIPT_URL = ROOT_TEST_DIR + "doc_frame_script.js";
 const COMMON_FRAME_SCRIPT_URL = "chrome://browser/content/devtools/frame-script-utils.js";
+const NEW_UI_PREF = "devtools.inspector.animationInspectorV3";
 
 
 registerCleanupFunction(function*() {
-  let target = TargetFactory.forTab(gBrowser.selectedTab);
-  yield gDevTools.closeToolbox(target);
+  yield closeAnimationInspector();
 
   while (gBrowser.tabs.length > 1) {
     gBrowser.removeCurrentTab();
   }
 });
+
+
+Services.prefs.setBoolPref(NEW_UI_PREF, false);
 
 
 
@@ -45,6 +48,7 @@ registerCleanupFunction(() => gDevTools.testing = false);
 registerCleanupFunction(() => {
   Services.prefs.clearUserPref("devtools.dump.emit");
   Services.prefs.clearUserPref("devtools.debugger.log");
+  Services.prefs.clearUserPref(NEW_UI_PREF);
 });
 
 
@@ -75,6 +79,13 @@ function addTab(url) {
   }, true);
 
   return def.promise;
+}
+
+
+
+
+function enableNewUI() {
+  Services.prefs.setBoolPref(NEW_UI_PREF, true);
 }
 
 
@@ -126,12 +137,30 @@ let selectNode = Task.async(function*(data, inspector, reason="test") {
 
 
 
+function assertAnimationsDisplayed(panel, nbAnimations, msg="") {
+  let isNewUI = Services.prefs.getBoolPref(NEW_UI_PREF);
+  msg = msg || `There are ${nbAnimations} animations in the panel`;
+  if (isNewUI) {
+    is(panel.animationsTimelineComponent.animationsEl.childNodes.length,
+       nbAnimations, msg);
+  } else {
+    is(panel.playersEl.querySelectorAll(".player-widget").length,
+       nbAnimations, msg);
+  }
+}
+
+
+
+
+
+
+
+
 
 let waitForAnimationInspectorReady = Task.async(function*(inspector) {
   let win = inspector.sidebar.getWindowForTab("animationinspector");
   let updated = inspector.once("inspector-updated");
 
-  
   
   
   
@@ -184,6 +213,35 @@ let openAnimationInspector = Task.async(function*() {
     window: win
   };
 });
+
+
+
+
+
+let closeAnimationInspector = Task.async(function*() {
+  let target = TargetFactory.forTab(gBrowser.selectedTab);
+  yield gDevTools.closeToolbox(target);
+});
+
+
+
+
+
+
+
+
+
+
+let closeAnimationInspectorAndRestartWithNewUI = Task.async(function*(reload) {
+  info("Close the toolbox and test again with the new UI");
+  yield closeAnimationInspector();
+  if (reload) {
+    yield reloadTab();
+  }
+  enableNewUI();
+  return yield openAnimationInspector();
+});
+
 
 
 
@@ -278,9 +336,9 @@ function executeInContent(name, data={}, objects={}, expectResponse=true) {
   mm.sendAsyncMessage(name, data, objects);
   if (expectResponse) {
     return waitForContentMessage(name);
-  } else {
-    return promise.resolve();
   }
+
+  return promise.resolve();
 }
 
 function onceNextPlayerRefresh(player) {
@@ -293,7 +351,9 @@ function onceNextPlayerRefresh(player) {
 
 
 let togglePlayPauseButton = Task.async(function*(widget) {
-  let nextState = widget.player.state.playState === "running" ? "paused" : "running";
+  let nextState = widget.player.state.playState === "running"
+                  ? "paused"
+                  : "running";
 
   
   
@@ -338,6 +398,7 @@ let waitForStateCondition = Task.async(function*(player, conditionCheck, desc=""
   });
   return def.promise;
 });
+
 
 
 
