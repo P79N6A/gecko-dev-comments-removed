@@ -264,7 +264,14 @@ public:
 
   void AppendImageCompositeNotification(const ImageCompositeNotification& aNotification)
   {
-    mImageCompositeNotifications.AppendElement(aNotification);
+    
+    
+    
+    
+    
+    if (!mCompositor->GetTargetContext()) {
+      mImageCompositeNotifications.AppendElement(aNotification);
+    }
   }
   void ExtractImageCompositeNotifications(nsTArray<ImageCompositeNotification>* aNotifications)
   {
