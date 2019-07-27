@@ -212,6 +212,7 @@ IndexedDatabaseManager::~IndexedDatabaseManager()
 }
 
 bool IndexedDatabaseManager::sIsMainProcess = false;
+bool IndexedDatabaseManager::sFullSynchronousMode = false;
 mozilla::Atomic<bool> IndexedDatabaseManager::sLowDiskSpaceMode(false);
 
 
@@ -298,6 +299,14 @@ IndexedDatabaseManager::Init()
 
   Preferences::RegisterCallbackAndCall(TestingPrefChangedCallback,
                                        kTestingPref);
+
+  
+  
+  
+  
+  
+  
+  sFullSynchronousMode = Preferences::GetBool("dom.indexedDB.fullSynchronous");
 
   return NS_OK;
 }
@@ -500,6 +509,16 @@ IndexedDatabaseManager::InTestingMode()
              "InTestingMode() called before indexedDB has been initialized!");
 
   return gTestingMode;
+}
+
+
+bool
+IndexedDatabaseManager::FullSynchronous()
+{
+  MOZ_ASSERT(gDBManager,
+             "FullSynchronous() called before indexedDB has been initialized!");
+
+  return sFullSynchronousMode;
 }
 
 already_AddRefed<FileManager>
