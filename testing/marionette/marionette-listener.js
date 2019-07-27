@@ -892,14 +892,20 @@ function generateEvents(type, x, y, touchId, target) {
       break;
     case 'contextmenu':
       isTap = false;
-      let event = curFrame.document.createEvent('HTMLEvents');
-      event.initEvent('contextmenu', true, true);
+      let event = curFrame.document.createEvent('MouseEvents');
       if (mouseEventsOnly) {
         target = doc.elementFromPoint(lastCoordinates[0], lastCoordinates[1]);
       }
       else {
         target = touchIds[touchId].target;
       }
+      let [ clientX, clientY,
+            pageX, pageY,
+            screenX, screenY ] = getCoordinateInfo(target, x, y);
+      event.initMouseEvent('contextmenu', true, true,
+                           target.ownerDocument.defaultView, 1,
+                           screenX, screenY, clientX, clientY,
+                           false, false, false, false, 0, null);
       target.dispatchEvent(event);
       break;
     default:
@@ -948,15 +954,26 @@ function singleTap(msg) {
 
 
 
+function getCoordinateInfo(el, corx, cory) {
+  let win = el.ownerDocument.defaultView;
+  return [ corx, 
+           cory, 
+           corx + win.pageXOffset, 
+           cory + win.pageYOffset, 
+           corx + win.mozInnerScreenX, 
+           cory + win.mozInnerScreenY 
+         ];
+}
+
+
+
+
+
 function createATouch(el, corx, cory, touchId) {
   let doc = el.ownerDocument;
   let win = doc.defaultView;
-  let clientX = corx;
-  let clientY = cory;
-  let pageX = clientX + win.pageXOffset,
-      pageY = clientY + win.pageYOffset;
-  let screenX = clientX + win.mozInnerScreenX,
-      screenY = clientY + win.mozInnerScreenY;
+  let [clientX, clientY, pageX, pageY, screenX, screenY] =
+    getCoordinateInfo(el, corx, cory);
   let atouch = doc.createTouch(win, el, touchId, pageX, pageY, screenX, screenY, clientX, clientY);
   return atouch;
 }
