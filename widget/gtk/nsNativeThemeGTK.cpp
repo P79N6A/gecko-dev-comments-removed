@@ -1528,9 +1528,15 @@ nsNativeThemeGTK::GetWidgetTransparency(nsIFrame* aFrame, uint8_t aWidgetType)
   case NS_THEME_MENUPOPUP:
   case NS_THEME_WINDOW:
   case NS_THEME_DIALOG:
+    return eOpaque;
+  
   
   case NS_THEME_TOOLTIP:
+#if (MOZ_WIDGET_GTK == 2)
     return eOpaque;
+#else
+    return eTransparent;
+#endif
   }
 
   return eUnknownTransparency;
