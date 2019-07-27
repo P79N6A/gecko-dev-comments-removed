@@ -13,7 +13,6 @@ thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: this.doc is undefine
 
 
 
-const Cu = Components.utils;
 const toolId1 = "test-tool-1";
 const toolId2 = "test-tool-2";
 

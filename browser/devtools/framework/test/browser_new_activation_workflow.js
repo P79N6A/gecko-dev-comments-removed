@@ -3,8 +3,6 @@
 
 
 
-const Cu = Components.utils;
-
 let toolbox, target;
 
 let tempScope = {};

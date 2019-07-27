@@ -4,7 +4,6 @@
 
 
 
-const Cu = Components.utils;
 const {ToolSidebar} = devtools.require("devtools/framework/sidebar");
 
 const testToolURL = "data:text/xml;charset=utf8,<?xml version='1.0'?>" +

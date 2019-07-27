@@ -4,53 +4,10 @@
 
 "use strict";
 
-const Cu = Components.utils;
-const Ci = Components.interfaces;
-const Cc = Components.classes;
 
-const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
-
-let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
-let TargetFactory = devtools.TargetFactory;
-const DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils");
+Services.scriptloader.loadSubScript("chrome://mochitests/content/browser/browser/devtools/framework/test/shared-head.js", this);
 
 const BASE_URI = "http://mochi.test:8888/browser/browser/devtools/fontinspector/test/"
-
-
-waitForExplicitFinish();
-
-DevToolsUtils.testing = true;
-SimpleTest.registerCleanupFunction(() => {
-  DevToolsUtils.testing = false;
-});
-
-registerCleanupFunction(function*() {
-  let target = TargetFactory.forTab(gBrowser.selectedTab);
-  yield gDevTools.closeToolbox(target);
-
-  while (gBrowser.tabs.length > 1) {
-    gBrowser.removeCurrentTab();
-  }
-});
-
-
-
-
-
-
-function loadTab(url) {
-  let deferred = promise.defer();
-
-  let tab = gBrowser.selectedTab = gBrowser.addTab(url);
-  let browser = gBrowser.getBrowserForTab(tab);
-
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
-    deferred.resolve({tab: tab, browser: browser});
-  }, true);
-
-  return deferred.promise;
-}
 
 
 
@@ -114,7 +71,7 @@ let openInspector = Task.async(function*(cb) {
 
 let openFontInspectorForURL = Task.async(function* (url) {
   info("Opening tab " + url);
-  yield loadTab(url);
+  yield addTab(url);
 
   let { toolbox, inspector } = yield openInspector();
 
