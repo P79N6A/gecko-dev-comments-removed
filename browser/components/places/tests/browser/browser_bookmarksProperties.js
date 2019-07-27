@@ -250,62 +250,61 @@ gTests.push({
 
 
 
+gTests.push({
+  desc: "Bug 475529 - Add button in new folder dialog not default anymore",
+  sidebar: SIDEBAR_BOOKMARKS_ID,
+  action: ACTION_ADD,
+  itemType: TYPE_FOLDER,
+  window: null,
+  _itemId: null,
 
+  setup: function(aCallback) {
+    
+    aCallback();
+  },
 
+  selectNode: function(tree) {
+    
+    var itemId = PlacesUIUtils.leftPaneQueries["UnfiledBookmarks"];
+    tree.selectItems([itemId]);
+    this.selectedNode = tree.selectedNode;
+  },
 
+  run: function() {
+    this._itemId = this.window.gEditItemOverlay._paneInfo.itemId;
+    
+    var namePicker = this.window.document.getElementById("editBMPanel_namePicker");
+    var self = this;
 
+    this.window.addEventListener("unload", function(event) {
+      self.window.removeEventListener("unload", arguments.callee, false);
+      executeSoon(function () {
+        self.finish();
+      });
+    }, false);
 
+    info("About to focus the namePicker field");
+    namePicker.focus();
+    namePicker.select();
+    EventUtils.synthesizeKey("n", {}, this.window);
+    EventUtils.synthesizeKey("VK_RETURN", {}, this.window);
+  },
 
+  finish: function() {
+    
+    SidebarUI.hide();
+    runNextTest();
+  },
 
+  cleanup: function() {
+    
+    is(PlacesUtils.bookmarks.getItemTitle(this._itemId), "n",
+       "Folder name has been edited");
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
+    PlacesUtils.bookmarks.removeItem(this._itemId);
+  }
+});
 
 
 
