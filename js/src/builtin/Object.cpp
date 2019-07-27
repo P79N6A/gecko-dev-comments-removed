@@ -813,16 +813,23 @@ js::obj_create(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
+
 bool
 js::obj_getOwnPropertyDescriptor(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-    RootedObject obj(cx);
-    if (!GetFirstArgumentAsObject(cx, args, "Object.getOwnPropertyDescriptor", &obj))
+
+    
+    RootedObject obj(cx, ToObject(cx, args.get(0)));
+    if (!obj)
         return false;
+
+    
     RootedId id(cx);
     if (!ValueToId<CanGC>(cx, args.get(1), &id))
         return false;
+
+    
     return GetOwnPropertyDescriptor(cx, obj, id, args.rval());
 }
 
