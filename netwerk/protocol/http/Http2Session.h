@@ -213,6 +213,8 @@ public:
   void DecrementServerSessionWindow (uint32_t bytes) { mServerSessionWindow -= bytes; }
   void GetNegotiatedToken(nsACString &s) { s.Assign(mNegotiatedToken); }
 
+  void SendPing() MOZ_OVERRIDE;
+
 private:
 
   
@@ -441,6 +443,9 @@ private:
   PRIntervalTime       mLastReadEpoch;     
   PRIntervalTime       mLastDataReadEpoch; 
   PRIntervalTime       mPingSentEpoch;
+
+  PRIntervalTime       mPreviousPingThreshold; 
+  bool                 mPreviousUsed;          
 
   
   nsDeque  mGoAwayStreamsToRestart;
