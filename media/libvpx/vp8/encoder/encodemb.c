@@ -258,6 +258,13 @@ static void optimize_b(MACROBLOCK *mb, int ib, int type,
     b = &mb->block[ib];
     d = &mb->e_mbd.block[ib];
 
+    
+
+
+#if 0
+    vp8_strict_quantize_b(b, d);
+#endif
+
     dequant_ptr = d->dequant;
     coeff_ptr = b->coeff;
     qcoeff_ptr = d->qcoeff;

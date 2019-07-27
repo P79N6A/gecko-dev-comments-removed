@@ -89,7 +89,7 @@ struct VP9LfSyncData;
 
 void vp9_setup_mask(struct VP9Common *const cm,
                     const int mi_row, const int mi_col,
-                    MODE_INFO *mi_8x8, const int mode_info_stride,
+                    MODE_INFO **mi_8x8, const int mode_info_stride,
                     LOOP_FILTER_MASK *lfm);
 
 void vp9_filter_block_plane(struct VP9Common *const cm,
@@ -104,23 +104,22 @@ void vp9_loop_filter_init(struct VP9Common *cm);
 
 void vp9_loop_filter_frame_init(struct VP9Common *cm, int default_filt_lvl);
 
-void vp9_loop_filter_frame(YV12_BUFFER_CONFIG *frame,
-                           struct VP9Common *cm,
+void vp9_loop_filter_frame(struct VP9Common *cm,
                            struct macroblockd *mbd,
                            int filter_level,
                            int y_only, int partial_frame);
 
 
-void vp9_loop_filter_rows(YV12_BUFFER_CONFIG *frame_buffer,
-                          struct VP9Common *cm,
-                          struct macroblockd_plane planes[MAX_MB_PLANE],
+void vp9_loop_filter_rows(const YV12_BUFFER_CONFIG *frame_buffer,
+                          struct VP9Common *cm, struct macroblockd *xd,
                           int start, int stop, int y_only);
 
 typedef struct LoopFilterWorkerData {
-  YV12_BUFFER_CONFIG *frame_buffer;
+  const YV12_BUFFER_CONFIG *frame_buffer;
   struct VP9Common *cm;
-  struct macroblockd_plane planes[MAX_MB_PLANE];
-
+  struct macroblockd xd;  
+                          
+                          
   int start;
   int stop;
   int y_only;
@@ -130,7 +129,7 @@ typedef struct LoopFilterWorkerData {
 } LFWorkerData;
 
 
-int vp9_loop_filter_worker(LFWorkerData *const lf_data, void *unused);
+int vp9_loop_filter_worker(void *arg1, void *arg2);
 #ifdef __cplusplus
 }  
 #endif

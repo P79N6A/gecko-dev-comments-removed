@@ -49,7 +49,7 @@ extern "C" {
 #define VPX_SS_MAX_LAYERS       5
 
 
-#define VPX_SS_DEFAULT_LAYERS       1
+#define VPX_SS_DEFAULT_LAYERS       3
 
   
 
@@ -81,9 +81,6 @@ extern "C" {
 #define VPX_CODEC_CAP_OUTPUT_PARTITION  0x20000
 
 
-
-#define VPX_CODEC_CAP_HIGHBITDEPTH  0x40000
-
   
 
 
@@ -94,7 +91,6 @@ extern "C" {
 #define VPX_CODEC_USE_PSNR  0x10000 /**< Calculate PSNR on each frame */
 #define VPX_CODEC_USE_OUTPUT_PARTITION  0x20000 /**< Make the encoder output one
   partition at a time. */
-#define VPX_CODEC_USE_HIGHBITDEPTH 0x40000 /**< Use high bitdepth */
 
 
   
@@ -159,12 +155,7 @@ extern "C" {
   enum vpx_codec_cx_pkt_kind {
     VPX_CODEC_CX_FRAME_PKT,    
     VPX_CODEC_STATS_PKT,       
-    VPX_CODEC_FPMB_STATS_PKT,  
     VPX_CODEC_PSNR_PKT,        
-#if CONFIG_SPATIAL_SVC
-    VPX_CODEC_SPATIAL_SVC_LAYER_SIZES, 
-    VPX_CODEC_SPATIAL_SVC_LAYER_PSNR, 
-#endif
     VPX_CODEC_CUSTOM_PKT = 256 
   };
 
@@ -193,18 +184,13 @@ extern "C" {
 
 
       } frame;  
-      vpx_fixed_buf_t twopass_stats;  
-      vpx_fixed_buf_t firstpass_mb_stats; 
+      struct vpx_fixed_buf twopass_stats;  
       struct vpx_psnr_pkt {
         unsigned int samples[4];  
         uint64_t     sse[4];      
         double       psnr[4];     
       } psnr;                       
-      vpx_fixed_buf_t raw;     
-#if CONFIG_SPATIAL_SVC
-      size_t layer_sizes[VPX_SS_MAX_LAYERS];
-      struct vpx_psnr_pkt layer_psnr[VPX_SS_MAX_LAYERS];
-#endif
+      struct vpx_fixed_buf raw;     
 
       
 
@@ -330,21 +316,6 @@ extern "C" {
 
     unsigned int           g_h;
 
-    
-
-
-
-
-
-    vpx_bit_depth_t        g_bit_depth;
-
-    
-
-
-
-
-
-    unsigned int           g_input_bit_depth;
 
     
 
@@ -425,19 +396,6 @@ extern "C" {
 
     unsigned int           rc_resize_allowed;
 
-    
-
-
-
-
-    unsigned int           rc_scaled_width;
-
-    
-
-
-
-
-    unsigned int           rc_scaled_height;
 
     
 
@@ -473,14 +431,8 @@ extern "C" {
 
 
 
-    vpx_fixed_buf_t   rc_twopass_stats_in;
+    struct vpx_fixed_buf   rc_twopass_stats_in;
 
-    
-
-
-
-
-    vpx_fixed_buf_t   rc_firstpass_mb_stats_in;
 
     
 
@@ -662,20 +614,6 @@ extern "C" {
 
 
 
-
-    int                    ss_enable_auto_alt_ref[VPX_SS_MAX_LAYERS];
-
-    
-
-
-
-
-    unsigned int           ss_target_bitrate[VPX_SS_MAX_LAYERS];
-
-    
-
-
-
     unsigned int           ts_number_layers;
 
     
@@ -711,20 +649,12 @@ extern "C" {
     unsigned int           ts_layer_id[VPX_TS_MAX_PERIODICITY];
   } vpx_codec_enc_cfg_t; 
 
-  
-
-
-
-
-  typedef struct vpx_svc_parameters {
-    int max_quantizers[VPX_SS_MAX_LAYERS];
-    int min_quantizers[VPX_SS_MAX_LAYERS];
-    int scaling_factor_num[VPX_SS_MAX_LAYERS];
-    int scaling_factor_den[VPX_SS_MAX_LAYERS];
-  } vpx_svc_extra_cfg_t;
-
 
   
+
+
+
+
 
 
 
@@ -748,7 +678,7 @@ extern "C" {
 
   vpx_codec_err_t vpx_codec_enc_init_ver(vpx_codec_ctx_t      *ctx,
                                          vpx_codec_iface_t    *iface,
-                                         const vpx_codec_enc_cfg_t *cfg,
+                                         vpx_codec_enc_cfg_t  *cfg,
                                          vpx_codec_flags_t     flags,
                                          int                   ver);
 
@@ -762,6 +692,10 @@ extern "C" {
 
 
   
+
+
+
+
 
 
 

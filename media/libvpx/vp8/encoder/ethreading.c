@@ -206,21 +206,6 @@ THREAD_FUNCTION thread_encoding_proc(void *p_data)
                         }
 
 #endif
-                        
-                        
-                        
-                        if (cpi->current_layer == 0) {
-                          if (xd->mode_info_context->mbmi.mode == ZEROMV &&
-                              xd->mode_info_context->mbmi.ref_frame ==
-                                  LAST_FRAME) {
-                            
-                            if (cpi->consec_zero_last[map_index+mb_col] < 255)
-                              cpi->consec_zero_last[map_index+mb_col] +=
-                                  1;
-                          } else {
-                            cpi->consec_zero_last[map_index+mb_col] = 0;
-                          }
-                        }
 
                         
 

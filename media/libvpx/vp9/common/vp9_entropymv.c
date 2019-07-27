@@ -8,6 +8,7 @@
 
 
 
+
 #include "vp9/common/vp9_onyxc_int.h"
 #include "vp9/common/vp9_entropymv.h"
 
@@ -48,8 +49,8 @@ const vp9_tree_index vp9_mv_fp_tree[TREE_SIZE(MV_FP_SIZE)] = {
 
 static const nmv_context default_nmv_context = {
   {32, 64, 96},
-  {
-    { 
+  { 
+    {  
       128,                                                  
       {224, 144, 192, 168, 192, 176, 192, 198, 198, 245},   
       {216},                                                
@@ -59,7 +60,7 @@ static const nmv_context default_nmv_context = {
       160,                                                  
       128,                                                  
     },
-    { 
+    {  
       128,                                                  
       {216, 128, 176, 160, 176, 176, 192, 198, 198, 208},   
       {208},                                                
@@ -71,6 +72,8 @@ static const nmv_context default_nmv_context = {
     }
   },
 };
+
+#define mv_class_base(c) ((c) ? (CLASS0_SIZE << (c + 2)) : 0)
 
 static const uint8_t log_in_base_2[] = {
   0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
@@ -118,13 +121,13 @@ static const uint8_t log_in_base_2[] = {
   9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 10
 };
 
-static INLINE int mv_class_base(MV_CLASS_TYPE c) {
-  return c ? CLASS0_SIZE << (c + 2) : 0;
-}
-
 MV_CLASS_TYPE vp9_get_mv_class(int z, int *offset) {
-  const MV_CLASS_TYPE c = (z >= CLASS0_SIZE * 4096) ?
-      MV_CLASS_10 : (MV_CLASS_TYPE)log_in_base_2[z >> 3];
+  MV_CLASS_TYPE c = MV_CLASS_0;
+  if (z >= CLASS0_SIZE * 4096)
+    c = MV_CLASS_10;
+  else
+    c = log_in_base_2[z >> 3];
+
   if (offset)
     *offset = z - mv_class_base(c);
   return c;

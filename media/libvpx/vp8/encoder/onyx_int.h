@@ -61,6 +61,9 @@ extern "C" {
 #define VP8_TEMPORAL_ALT_REF 1
 #endif
 
+#define MAX(x,y) (((x)>(y))?(x):(y))
+#define MIN(x,y) (((x)<(y))?(x):(y))
+
 typedef struct
 {
     int kf_indicated;
@@ -511,8 +514,6 @@ typedef struct VP8_COMP
     int cyclic_refresh_mode_index;
     int cyclic_refresh_q;
     signed char *cyclic_refresh_map;
-    
-    unsigned char *consec_zero_last;
 
     
     
@@ -684,10 +685,9 @@ typedef struct VP8_COMP
     int    mr_low_res_mb_cols;
     
     unsigned char  mr_low_res_mv_avail;
-#endif
     
     unsigned int current_ref_frames[MAX_REF_FRAMES];
-    MV_REFERENCE_FRAME closest_reference_frame;
+#endif
 
     struct rd_costs_struct
     {

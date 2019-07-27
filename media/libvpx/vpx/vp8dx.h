@@ -69,14 +69,10 @@ enum vp8_dec_control_id {
 
 
 
-  VPXD_SET_DECRYPTOR,
-  VP8D_SET_DECRYPTOR = VPXD_SET_DECRYPTOR,
+  VP8D_SET_DECRYPTOR,
 
   
   VP9D_GET_DISPLAY_SIZE,
-
-  
-  VP9D_GET_BIT_DEPTH,
 
   
   VP9_INVERT_TILE_DECODE_ORDER,
@@ -87,24 +83,16 @@ enum vp8_dec_control_id {
 
 
 
-typedef void (*vpx_decrypt_cb)(void *decrypt_state, const unsigned char *input,
-                               unsigned char *output, int count);
 
-
-
-
-
-typedef struct vpx_decrypt_init {
+typedef struct vp8_decrypt_init {
     
-    vpx_decrypt_cb decrypt_cb;
 
+
+    void (*decrypt_cb)(void *decrypt_state, const unsigned char *input,
+                       unsigned char *output, int count);
     
     void *decrypt_state;
-} vpx_decrypt_init;
-
-
-
-typedef vpx_decrypt_init vp8_decrypt_init;
+} vp8_decrypt_init;
 
 
 
@@ -114,14 +102,11 @@ typedef vpx_decrypt_init vp8_decrypt_init;
 
 
 
-
-VPX_CTRL_USE_TYPE(VP8D_GET_LAST_REF_UPDATES,    int *)
-VPX_CTRL_USE_TYPE(VP8D_GET_FRAME_CORRUPTED,     int *)
-VPX_CTRL_USE_TYPE(VP8D_GET_LAST_REF_USED,       int *)
-VPX_CTRL_USE_TYPE(VPXD_SET_DECRYPTOR,           vpx_decrypt_init *)
-VPX_CTRL_USE_TYPE(VP8D_SET_DECRYPTOR,           vpx_decrypt_init *)
-VPX_CTRL_USE_TYPE(VP9D_GET_DISPLAY_SIZE,        int *)
-VPX_CTRL_USE_TYPE(VP9D_GET_BIT_DEPTH,           unsigned int *)
+VPX_CTRL_USE_TYPE(VP8D_GET_LAST_REF_UPDATES,   int *)
+VPX_CTRL_USE_TYPE(VP8D_GET_FRAME_CORRUPTED,    int *)
+VPX_CTRL_USE_TYPE(VP8D_GET_LAST_REF_USED,      int *)
+VPX_CTRL_USE_TYPE(VP8D_SET_DECRYPTOR,          vp8_decrypt_init *)
+VPX_CTRL_USE_TYPE(VP9D_GET_DISPLAY_SIZE,       int *)
 VPX_CTRL_USE_TYPE(VP9_INVERT_TILE_DECODE_ORDER, int)
 
 

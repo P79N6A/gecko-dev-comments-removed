@@ -522,19 +522,6 @@ void encode_mb_row(VP8_COMP *cpi,
             }
 
 #endif
-            
-            
-            
-            if (cpi->current_layer == 0) {
-              if (xd->mode_info_context->mbmi.mode == ZEROMV &&
-                  xd->mode_info_context->mbmi.ref_frame == LAST_FRAME) {
-                
-                if (cpi->consec_zero_last[map_index+mb_col] < 255)
-                  cpi->consec_zero_last[map_index+mb_col] += 1;
-              } else {
-                cpi->consec_zero_last[map_index+mb_col] = 0;
-              }
-            }
 
             
 
@@ -1259,7 +1246,7 @@ int vp8cx_encode_inter_macroblock
             x->zbin_mode_boost_enabled = 0;
         }
         vp8_rd_pick_inter_mode(cpi, x, recon_yoffset, recon_uvoffset, &rate,
-                               &distortion, &intra_error, mb_row, mb_col);
+                               &distortion, &intra_error);
 
         
         if (cpi->sf.improved_quant)

@@ -73,33 +73,6 @@ static void once(void (*func)(void))
 }
 
 
-#elif CONFIG_MULTITHREAD && defined(__OS2__)
-#define INCL_DOS
-#include <os2.h>
-static void once(void (*func)(void))
-{
-    static int done;
-
-    
-    if(done)
-        return;
-
-    
-
-
-    DosEnterCritSec();
-
-    if (!done)
-    {
-        func();
-        done = 1;
-    }
-
-    
-    DosExitCritSec();
-}
-
-
 #elif CONFIG_MULTITHREAD && HAVE_PTHREAD_H
 #include <pthread.h>
 static void once(void (*func)(void))

@@ -153,6 +153,7 @@ extern "C" {
   typedef long vpx_codec_caps_t;
 #define VPX_CODEC_CAP_DECODER 0x1 /**< Is a decoder */
 #define VPX_CODEC_CAP_ENCODER 0x2 /**< Is an encoder */
+#define VPX_CODEC_CAP_XMA     0x4 /**< Supports eXternal Memory Allocation */
 
 
   
@@ -163,6 +164,7 @@ extern "C" {
 
 
   typedef long vpx_codec_flags_t;
+#define VPX_CODEC_USE_XMA 0x00000001    /**< Use eXternal Memory Allocation mode */
 
 
   
@@ -203,24 +205,13 @@ extern "C" {
     const char              *err_detail;  
     vpx_codec_flags_t        init_flags;  
     union {
-      
-      const struct vpx_codec_dec_cfg *dec;
-      
-      const struct vpx_codec_enc_cfg *enc;
-      const void                     *raw;
+      struct vpx_codec_dec_cfg  *dec;   
+      struct vpx_codec_enc_cfg  *enc;   
+      void                      *raw;
     }                        config;      
     vpx_codec_priv_t        *priv;        
   } vpx_codec_ctx_t;
 
-  
-
-
-
-  typedef enum vpx_bit_depth {
-    VPX_BITS_8  =  8,  
-    VPX_BITS_10 = 10,  
-    VPX_BITS_12 = 12,  
-  } vpx_bit_depth_t;
 
   
 
@@ -471,6 +462,94 @@ extern "C" {
 
 #endif
 
+
+  
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  typedef struct vpx_codec_mmap {
+    
+
+
+    unsigned int   id;     
+    unsigned long  sz;     
+    unsigned int   align;  
+    unsigned int   flags;  
+#define VPX_CODEC_MEM_ZERO     0x1  /**< Segment must be zeroed by allocation */
+#define VPX_CODEC_MEM_WRONLY   0x2  /**< Segment need not be readable */
+#define VPX_CODEC_MEM_FAST     0x4  /**< Place in fast memory, if available */
+
+    
+    void          *base;   
+    void (*dtor)(struct vpx_codec_mmap *map);         
+    void          *priv;   
+  } vpx_codec_mmap_t; 
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  vpx_codec_err_t vpx_codec_get_mem_map(vpx_codec_ctx_t                *ctx,
+                                        vpx_codec_mmap_t               *mmap,
+                                        vpx_codec_iter_t               *iter);
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  vpx_codec_err_t  vpx_codec_set_mem_map(vpx_codec_ctx_t   *ctx,
+                                         vpx_codec_mmap_t  *mmaps,
+                                         unsigned int       num_maps);
+
+  
   
 #ifdef __cplusplus
 }
