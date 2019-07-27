@@ -358,7 +358,7 @@ StatsArenaCallback(JSRuntime *rt, void *data, gc::Arena *arena,
     
     
     
-    rtStats->currZoneStats->unusedGCThings.addToKind(traceKind, allocationSpace);
+    rtStats->currZoneStats->unusedGCThings += allocationSpace;
 }
 
 static CompartmentStats *
@@ -561,7 +561,7 @@ StatsCellCallback(JSRuntime *rt, void *data, void *thing, JSGCTraceKind traceKin
     }
 
     
-    zStats->unusedGCThings.addToKind(traceKind, -thingSize);
+    zStats->unusedGCThings -= thingSize;
 }
 
 bool
@@ -763,7 +763,7 @@ JS::CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats, ObjectPrivateVisit
 #ifdef DEBUG
     
     size_t totalArenaSize = rtStats->zTotals.gcHeapArenaAdmin +
-                            rtStats->zTotals.unusedGCThings.totalSize() +
+                            rtStats->zTotals.unusedGCThings +
                             rtStats->gcHeapGCThings;
     MOZ_ASSERT(totalArenaSize % gc::ArenaSize == 0);
 #endif
@@ -782,7 +782,7 @@ JS::CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats, ObjectPrivateVisit
     rtStats->gcHeapUnusedArenas = rtStats->gcHeapChunkTotal -
                                   rtStats->gcHeapDecommittedArenas -
                                   rtStats->gcHeapUnusedChunks -
-                                  rtStats->zTotals.unusedGCThings.totalSize() -
+                                  rtStats->zTotals.unusedGCThings -
                                   rtStats->gcHeapChunkAdmin -
                                   rtStats->zTotals.gcHeapArenaAdmin -
                                   rtStats->gcHeapGCThings;
