@@ -41,6 +41,11 @@ nsPerformanceTiming::nsPerformanceTiming(nsPerformance* aPerformance,
 {
   MOZ_ASSERT(aPerformance, "Parent performance object should be provided");
   SetIsDOMBinding();
+
+  if (!nsContentUtils::IsPerformanceTimingEnabled()) {
+    mZeroTime = 0;
+  }
+
   
   
   
