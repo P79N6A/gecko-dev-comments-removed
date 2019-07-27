@@ -21,11 +21,11 @@
 #include "jsutil.h"
 
 #ifdef XP_WIN
+#include <crtdbg.h>   
+#include <mmsystem.h> 
+#include <stdlib.h>   
 #include <windef.h>
 #include <winbase.h>
-#include <mmsystem.h> 
-#include <crtdbg.h>   
-#include <stdlib.h>   
 
 #include "prinit.h"
 
