@@ -2730,17 +2730,23 @@ static void MOZ_gdk_display_close(GdkDisplay *display)
 #if CLEANUP_MEMORY
   
   
-  bool theme_is_qt = false;
+  bool skip_display_close = false;
   GtkSettings* settings =
     gtk_settings_get_for_screen(gdk_display_get_default_screen(display));
   gchar *theme_name;
   g_object_get(settings, "gtk-theme-name", &theme_name, nullptr);
   if (theme_name) {
-    theme_is_qt = strcmp(theme_name, "Qt") == 0;
-    if (theme_is_qt)
+    skip_display_close = strcmp(theme_name, "Qt") == 0;
+    if (skip_display_close)
       NS_WARNING("wallpaper bug 417163 for Qt theme");
     g_free(theme_name);
   }
+
+#if (MOZ_WIDGET_GTK == 3)
+  
+  if (gtk_check_version(3,9,8) != NULL)
+    skip_display_close = true;
+#endif
 
   
   
@@ -2754,7 +2760,7 @@ static void MOZ_gdk_display_close(GdkDisplay *display)
     
     
     
-    if (!theme_is_qt)
+    if (!skip_display_close)
       gdk_display_close(display);
   }
 
@@ -2791,7 +2797,7 @@ static void MOZ_gdk_display_close(GdkDisplay *display)
   FcFini();
 
   if (buggyCairoShutdown) {
-    if (!theme_is_qt)
+    if (!skip_display_close)
       gdk_display_close(display);
   }
 #else 
