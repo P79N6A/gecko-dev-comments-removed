@@ -503,7 +503,9 @@ function reflectInt(aParameters)
       var resultInt = parseInt(result[1], 10);
       if ((nonNegative ? 0 : -0x80000000) <= resultInt && resultInt <= 0x7FFFFFFF) {
         
-        return resultInt;
+        
+        
+        return resultInt + 0;
       }
     }
     return defaultValue;
