@@ -7,6 +7,28 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef WEBRTC_VOICE_ENGINE_VOE_EXTERNAL_MEDIA_H
 #define WEBRTC_VOICE_ENGINE_VOE_EXTERNAL_MEDIA_H
 
@@ -62,21 +84,18 @@ public:
         int channel, ProcessingTypes type) = 0;
 
     
-    
-    
-    
-    virtual int GetAudioFrame(int channel, int desired_sample_rate_hz,
-                              AudioFrame* frame) = 0;
+    virtual int SetExternalRecordingStatus(bool enable) = 0;
 
     
-    virtual int SetExternalMixing(int channel, bool enable) = 0;
+    virtual int SetExternalPlayoutStatus(bool enable) = 0;
 
     
-    virtual int SetExternalRecordingStatus(bool enable) { return -1; }
-    virtual int SetExternalPlayoutStatus(bool enable) { return -1; }
+    
+    
     virtual int ExternalRecordingInsertData(
         const int16_t speechData10ms[], int lengthSamples,
-        int samplingFreqHz, int current_delay_ms) { return -1; }
+        int samplingFreqHz, int current_delay_ms) = 0;
+
 
     
     
@@ -86,9 +105,24 @@ public:
         int16_t speechData10ms[], int samplingFreqHz, int num_channels,
         int current_delay_ms, int& lengthSamples) = 0;
 
+    
+    
+    
+    
+    
     virtual int ExternalPlayoutGetData(
         int16_t speechData10ms[], int samplingFreqHz,
-        int current_delay_ms, int& lengthSamples) { return -1; }
+        int current_delay_ms, int& lengthSamples) = 0;
+
+    
+    
+    
+    
+    virtual int GetAudioFrame(int channel, int desired_sample_rate_hz,
+                              AudioFrame* frame) = 0;
+
+    
+    virtual int SetExternalMixing(int channel, bool enable) = 0;
 
 protected:
     VoEExternalMedia() {}
