@@ -124,6 +124,9 @@ class TabsGridLayout extends GridView
         for (int x = 1, i = (removedPosition - firstPosition) + 1; i < childCount; i++, x++) {
             final View child = getChildAt(i);
             if (child != null) {
+                
+                
+                resetTransforms(child);
                 mTabLocations.append(x, new PointF(child.getX(), child.getY()));
             }
         }
