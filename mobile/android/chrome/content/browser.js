@@ -1413,7 +1413,7 @@ var BrowserApp = {
     });
   },
 
-  setPreferences: function setPreferences(aPref) {
+  setPreferences: function (aPref) {
     let json = JSON.parse(aPref);
 
     switch (json.name) {
@@ -1469,6 +1469,13 @@ var BrowserApp = {
         Services.prefs.setComplexValue(json.name, Ci.nsISupportsString, pref);
         break;
       }
+    }
+
+    
+    
+    
+    if (json.flush) {
+      Services.prefs.savePrefFile(null);
     }
   },
 
