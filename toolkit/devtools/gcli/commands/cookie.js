@@ -11,6 +11,19 @@ const cookieMgr = Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieMana
 
 
 
+
+
+
+function sanitizeHost(host) {
+  if (host == null || host == "") {
+    throw new Error(gcli.lookup("cookieListOutNonePage"));
+  }
+  return host.split(':')[0];
+}
+
+
+
+
 function translateExpires(expires) {
   if (expires == 0) {
     return gcli.lookup("cookieListOutSession");
@@ -45,10 +58,7 @@ exports.items = [
     manual: gcli.lookup("cookieListManual"),
     returnType: "cookies",
     exec: function(args, context) {
-      let host = context.environment.document.location.host;
-      if (host == null || host == "") {
-        throw new Error(gcli.lookup("cookieListOutNonePage"));
-      }
+      let host = sanitizeHost(context.environment.document.location.host);
 
       let enm = cookieMgr.getCookiesFromHost(host);
 
@@ -84,7 +94,7 @@ exports.items = [
       }
     ],
     exec: function(args, context) {
-      let host = context.environment.document.location.host;
+      let host = sanitizeHost(context.environment.document.location.host);
       let enm = cookieMgr.getCookiesFromHost(host);
 
       let cookies = [];
@@ -104,7 +114,7 @@ exports.items = [
     to: "view",
     exec: function(cookies, context) {
       if (cookies.length == 0) {
-        let host = context.environment.document.location.host;
+        let host = sanitizeHost(context.environment.document.location.host);
         let msg = gcli.lookupFormat("cookieListOutNoneHost", [ host ]);
         return context.createView({ html: "<span>" + msg + "</span>" });
       }
@@ -217,7 +227,7 @@ exports.items = [
       }
     ],
     exec: function(args, context) {
-      let host = context.environment.document.location.host;
+      let host = sanitizeHost(context.environment.document.location.host);
       let time = Date.parse(args.expires) / 1000;
 
       cookieMgr.add(args.domain ? "." + args.domain : host,
