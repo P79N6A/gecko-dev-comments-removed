@@ -170,10 +170,6 @@ IdlArray.prototype.internal_add_idls = function(parsed_idls)
                 new IdlInterface(parsed_idl,  false);
             break;
 
-        case "exception":
-            this.members[parsed_idl.name] = new IdlException(parsed_idl);
-            break;
-
         case "dictionary":
             
             
@@ -533,10 +529,7 @@ function IdlDictionary(obj)
 IdlDictionary.prototype = Object.create(IdlObject.prototype);
 
 
-
-function IdlExceptionOrInterface(obj)
-
-{
+function IdlInterface(obj, is_callback) {
     
 
 
@@ -566,11 +559,37 @@ function IdlExceptionOrInterface(obj)
 
 
     this.base = obj.inheritance;
-}
- 
 
-IdlExceptionOrInterface.prototype = Object.create(IdlObject.prototype);
-IdlExceptionOrInterface.prototype.test = function()
+    this._is_callback = is_callback;
+}
+IdlInterface.prototype = Object.create(IdlObject.prototype);
+IdlInterface.prototype.is_callback = function()
+
+{
+    return this._is_callback;
+};
+
+
+IdlInterface.prototype.has_constants = function()
+
+{
+    return this.members.some(function(member) {
+        return member.type === "const";
+    });
+};
+
+
+IdlInterface.prototype.is_global = function()
+
+{
+    return this.extAttrs.some(function(attribute) {
+        return attribute.name === "Global" ||
+               attribute.name === "PrimaryGlobal";
+    });
+};
+
+
+IdlInterface.prototype.test = function()
 
 {
     if (this.has_extended_attribute("NoInterfaceObject"))
@@ -595,369 +614,6 @@ IdlExceptionOrInterface.prototype.test = function()
     
     
     this.test_members();
-};
-
-
-
-
-function IdlException(obj) { IdlExceptionOrInterface.call(this, obj); }
-IdlException.prototype = Object.create(IdlExceptionOrInterface.prototype);
-IdlException.prototype.test_self = function()
-
-{
-    test(function()
-    {
-        
-        
-        
-        
-        
-        
-        
-        
-        assert_own_property(self, this.name,
-                            "self does not have own property " + format_value(this.name));
-        var desc = Object.getOwnPropertyDescriptor(self, this.name);
-        assert_false("get" in desc, "self's property " + format_value(this.name) + " has getter");
-        assert_false("set" in desc, "self's property " + format_value(this.name) + " has setter");
-        assert_true(desc.writable, "self's property " + format_value(this.name) + " is not writable");
-        assert_false(desc.enumerable, "self's property " + format_value(this.name) + " is enumerable");
-        assert_true(desc.configurable, "self's property " + format_value(this.name) + " is not configurable");
-
-        
-        
-        
-        
-        
-        
-        
-        
-        assert_equals(Object.getPrototypeOf(self[this.name]), Function.prototype,
-                      "prototype of self's property " + format_value(this.name) + " is not Function.prototype");
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        assert_class_string(self[this.name], "Function",
-                            "class string of " + this.name);
-
-        
-        
-        
-    }.bind(this), this.name + " exception: existence and properties of exception interface object");
-
-    test(function()
-    {
-        assert_own_property(self, this.name,
-                            "self does not have own property " + format_value(this.name));
-
-        
-        
-        
-        
-        
-        assert_own_property(self[this.name], "prototype",
-                            'exception "' + this.name + '" does not have own property "prototype"');
-        var desc = Object.getOwnPropertyDescriptor(self[this.name], "prototype");
-        assert_false("get" in desc, this.name + ".prototype has getter");
-        assert_false("set" in desc, this.name + ".prototype has setter");
-        assert_false(desc.writable, this.name + ".prototype is writable");
-        assert_false(desc.enumerable, this.name + ".prototype is enumerable");
-        assert_false(desc.configurable, this.name + ".prototype is configurable");
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        var inherit_exception = this.base ? this.base : "Error";
-        assert_own_property(self, inherit_exception,
-                            'should inherit from ' + inherit_exception + ', but self has no such property');
-        assert_own_property(self[inherit_exception], "prototype",
-                            'should inherit from ' + inherit_exception + ', but that object has no "prototype" property');
-        assert_equals(Object.getPrototypeOf(self[this.name].prototype),
-                      self[inherit_exception].prototype,
-                      'prototype of ' + this.name + '.prototype is not ' + inherit_exception + '.prototype');
-
-        
-        
-        
-        assert_class_string(self[this.name].prototype, this.name + "Prototype",
-                            "class string of " + this.name + ".prototype");
-        
-        
-    }.bind(this), this.name + " exception: existence and properties of exception interface prototype object");
-
-    test(function()
-    {
-        assert_own_property(self, this.name,
-                            "self does not have own property " + format_value(this.name));
-        assert_own_property(self[this.name], "prototype",
-                            'interface "' + this.name + '" does not have own property "prototype"');
-
-        
-        
-        
-        
-        assert_own_property(self[this.name].prototype, "name",
-                'prototype object does not have own property "name"');
-        var desc = Object.getOwnPropertyDescriptor(self[this.name].prototype, "name");
-        assert_false("get" in desc, this.name + ".prototype.name has getter");
-        assert_false("set" in desc, this.name + ".prototype.name has setter");
-        assert_true(desc.writable, this.name + ".prototype.name is not writable");
-        assert_false(desc.enumerable, this.name + ".prototype.name is enumerable");
-        assert_true(desc.configurable, this.name + ".prototype.name is not configurable");
-        assert_equals(desc.value, this.name, this.name + ".prototype.name has incorrect value");
-    }.bind(this), this.name + " exception: existence and properties of exception interface prototype object's \"name\" property");
-
-    test(function()
-    {
-        assert_own_property(self, this.name,
-                            "self does not have own property " + format_value(this.name));
-        assert_own_property(self[this.name], "prototype",
-                            'interface "' + this.name + '" does not have own property "prototype"');
-
-        
-        
-        
-        
-        
-        
-        assert_own_property(self[this.name].prototype, "constructor",
-                            this.name + '.prototype does not have own property "constructor"');
-        var desc = Object.getOwnPropertyDescriptor(self[this.name].prototype, "constructor");
-        assert_false("get" in desc, this.name + ".prototype.constructor has getter");
-        assert_false("set" in desc, this.name + ".prototype.constructor has setter");
-        assert_true(desc.writable, this.name + ".prototype.constructor is not writable");
-        assert_false(desc.enumerable, this.name + ".prototype.constructor is enumerable");
-        assert_true(desc.configurable, this.name + ".prototype.constructor in not configurable");
-        assert_equals(self[this.name].prototype.constructor, self[this.name],
-                      this.name + '.prototype.constructor is not the same object as ' + this.name);
-    }.bind(this), this.name + " exception: existence and properties of exception interface prototype object's \"constructor\" property");
-};
-
-
-IdlException.prototype.test_members = function()
-
-{
-    for (var i = 0; i < this.members.length; i++)
-    {
-        var member = this.members[i];
-        if (member.untested)
-        {
-            continue;
-        }
-        if (member.type == "const" && member.name != "prototype")
-        {
-            test(function()
-            {
-                assert_own_property(self, this.name,
-                                    "self does not have own property " + format_value(this.name));
-
-                
-                
-                
-                
-                assert_own_property(self[this.name], member.name);
-                
-                
-                
-                assert_equals(self[this.name][member.name], constValue(member.value),
-                              "property has wrong value");
-                
-                
-                var desc = Object.getOwnPropertyDescriptor(self[this.name], member.name);
-                assert_false("get" in desc, "property has getter");
-                assert_false("set" in desc, "property has setter");
-                assert_false(desc.writable, "property is writable");
-                assert_true(desc.enumerable, "property is not enumerable");
-                assert_false(desc.configurable, "property is configurable");
-            }.bind(this), this.name + " exception: constant " + member.name + " on exception interface object");
-            
-            
-            test(function()
-            {
-                assert_own_property(self, this.name,
-                                    "self does not have own property " + format_value(this.name));
-                assert_own_property(self[this.name], "prototype",
-                                    'exception "' + this.name + '" does not have own property "prototype"');
-
-                assert_own_property(self[this.name].prototype, member.name);
-                assert_equals(self[this.name].prototype[member.name], constValue(member.value),
-                              "property has wrong value");
-                var desc = Object.getOwnPropertyDescriptor(self[this.name].prototype, member.name);
-                assert_false("get" in desc, "property has getter");
-                assert_false("set" in desc, "property has setter");
-                assert_false(desc.writable, "property is writable");
-                assert_true(desc.enumerable, "property is not enumerable");
-                assert_false(desc.configurable, "property is configurable");
-            }.bind(this), this.name + " exception: constant " + member.name + " on exception interface prototype object");
-        }
-        else if (member.type == "field")
-        {
-            test(function()
-            {
-                assert_own_property(self, this.name,
-                                    "self does not have own property " + format_value(this.name));
-                assert_own_property(self[this.name], "prototype",
-                                    'exception "' + this.name + '" does not have own property "prototype"');
-
-                
-                
-                
-                
-                
-                assert_own_property(self[this.name].prototype, member.name);
-                
-                
-                
-                var desc = Object.getOwnPropertyDescriptor(self[this.name].prototype, member.name);
-                assert_false("value" in desc, "property descriptor has value but is supposed to be accessor");
-                assert_false("writable" in desc, 'property descriptor has "writable" field but is supposed to be accessor');
-                
-                
-                assert_true(desc.enumerable, "property is not enumerable");
-                assert_true(desc.configurable, "property is not configurable");
-                
-                
-                assert_equals(typeof desc.get, "function", "typeof getter");
-                
-                
-                
-                
-                assert_equals(desc.get.length, 0, "getter length");
-                
-                
-                
-                
-                
-                assert_throws(new TypeError(), function()
-                {
-                    self[this.name].prototype[member.name];
-                }.bind(this), "getting property on prototype object must throw TypeError");
-                assert_throws(new TypeError(), function()
-                {
-                    desc.get.call({});
-                }.bind(this), "calling getter on wrong object type must throw TypeError");
-            }.bind(this), this.name + " exception: field " + member.name + " on exception interface prototype object");
-        }
-    }
-};
-
-
-IdlException.prototype.test_object = function(desc)
-
-{
-    var obj, exception = null;
-    try
-    {
-        obj = eval(desc);
-    }
-    catch(e)
-    {
-        exception = e;
-    }
-
-    test(function()
-    {
-        assert_equals(exception, null, "Unexpected exception when evaluating object");
-        assert_equals(typeof obj, "object", "wrong typeof object");
-
-        
-        
-        
-        
-        
-        if (!this.has_extended_attribute("NoInterfaceObject")
-        && (typeof obj != "object" || obj instanceof Object))
-        {
-            assert_own_property(self, this.name,
-                                "self does not have own property " + format_value(this.name));
-            assert_own_property(self[this.name], "prototype",
-                                'exception "' + this.name + '" does not have own property "prototype"');
-
-            
-            
-            
-            
-            assert_equals(Object.getPrototypeOf(obj),
-                          self[this.name].prototype,
-                          desc + "'s prototype is not " + this.name + ".prototype");
-        }
-
-        
-        
-        assert_class_string(obj, this.name, "class string of " + desc);
-        
-        
-    }.bind(this), this.name + " must be represented by " + desc);
-
-    for (var i = 0; i < this.members.length; i++)
-    {
-        var member = this.members[i];
-        test(function()
-        {
-            assert_equals(exception, null, "Unexpected exception when evaluating object");
-            assert_equals(typeof obj, "object", "wrong typeof object");
-            assert_inherits(obj, member.name);
-            if (member.type == "const")
-            {
-                assert_equals(obj[member.name], constValue(member.value));
-            }
-            if (member.type == "field")
-            {
-                this.array.assert_type_is(obj[member.name], member.idlType);
-            }
-        }.bind(this), this.name + " exception: " + desc + ' must inherit property "' + member.name + '" with the proper type');
-    }
-};
-
-
-
-function IdlInterface(obj, is_callback) {
-    IdlExceptionOrInterface.call(this, obj);
-
-    this._is_callback = is_callback;
-}
-IdlInterface.prototype = Object.create(IdlExceptionOrInterface.prototype);
-IdlInterface.prototype.is_callback = function()
-
-{
-    return this._is_callback;
-};
-
-
-IdlInterface.prototype.has_constants = function()
-
-{
-    return this.members.some(function(member) {
-        return member.type === "const";
-    });
-};
-
-
-IdlInterface.prototype.is_global = function()
-
-{
-    return this.extAttrs.some(function(attribute) {
-        return attribute.name === "Global" ||
-               attribute.name === "PrimaryGlobal";
-    });
 };
 
 
