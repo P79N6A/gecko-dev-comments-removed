@@ -10,7 +10,6 @@
 #include "nsIDOMCanvasRenderingContext2D.h"
 #include "nsICanvasRenderingContextInternal.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/Monitor.h"
 #include "nsColor.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "mozilla/dom/HTMLVideoElement.h"
@@ -28,7 +27,6 @@
 #include "mozilla/EnumeratedArray.h"
 #include "FilterSupport.h"
 #include "nsSVGEffects.h"
-#include "MediaTaskQueue.h"
 
 class nsGlobalWindow;
 class nsXULElement;
@@ -54,7 +52,6 @@ template<typename T> class Optional;
 struct CanvasBidiProcessor;
 class CanvasRenderingContext2DUserData;
 class CanvasDrawObserver;
-class CanvasShutdownObserver;
 
 
 
@@ -445,7 +442,14 @@ public:
                             const char16_t* aEncoderOptions,
                             nsIInputStream **aStream) override;
 
-  mozilla::TemporaryRef<mozilla::gfx::SourceSurface> GetSurfaceSnapshot(bool* aPremultAlpha = nullptr) override;
+  mozilla::TemporaryRef<mozilla::gfx::SourceSurface> GetSurfaceSnapshot(bool* aPremultAlpha = nullptr) override
+  {
+    EnsureTarget();
+    if (aPremultAlpha) {
+      *aPremultAlpha = true;
+    }
+    return mTarget->Snapshot();
+  }
 
   NS_IMETHOD SetIsOpaque(bool isOpaque) override;
   bool GetIsOpaque() override { return mOpaque; }
@@ -517,7 +521,6 @@ public:
   }
 
   friend class CanvasRenderingContext2DUserData;
-  friend class CanvasShutdownObserver;
 
   virtual void GetImageBuffer(uint8_t** aImageBuffer, int32_t* aFormat) override;
 
@@ -528,21 +531,6 @@ public:
 
   
   bool GetHitRegionRect(Element* aElement, nsRect& aRect) override;
-
-  
-
-
-
-  
-
-
-
-
-  void StableStateReached()
-  {
-    mScheduledFlush = false;
-    FlushDelayedTarget();
-  }
 
 protected:
   nsresult GetImageDataArray(JSContext* aCx, int32_t aX, int32_t aY,
@@ -561,8 +549,6 @@ protected:
 
   nsresult InitializeWithTarget(mozilla::gfx::DrawTarget *surface,
                                 int32_t width, int32_t height);
-
-  void ShutdownTaskQueue();
 
   
 
@@ -726,54 +712,6 @@ protected:
   
   
   mozilla::RefPtr<mozilla::gfx::DrawTarget> mTarget;
-
-  
-
-
-
-  
-  
-  mozilla::RefPtr<mozilla::gfx::DrawTargetCapture> mDelayedTarget;
-
-  
-  
-  mozilla::RefPtr<mozilla::gfx::DrawTarget> mFinalTarget;
-
-  
-
-
-
-
-  void FlushDelayedTarget();
-
-  
-
-
-
-
-  void FinishDelayedRendering();
-
-  
-
-
-
-
-
-
-
-  void RecordCommand();
-
-  
-  
-  uint32_t mPendingCommands;
-
-  
-  
-  bool mScheduledFlush;
-
-  nsRefPtr<MediaTaskQueue> mTaskQueue;
-
-  nsRefPtr<CanvasShutdownObserver> mShutdownObserver;
 
   uint32_t SkiaGLTex() const;
 
