@@ -488,9 +488,15 @@ PopupNotifications.prototype = {
 
 
   _hidePanel: function PopupNotifications_hide() {
+    
+    
+    
+    let transitionsEnabled = this.transitionsEnabled;
+    this.transitionsEnabled = false;
     this._ignoreDismissal = true;
     this.panel.hidePopup();
     this._ignoreDismissal = false;
+    this.transitionsEnabled = transitionsEnabled;
   },
 
   
