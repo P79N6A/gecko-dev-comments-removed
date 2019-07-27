@@ -200,22 +200,10 @@ let PerformanceController = {
 
     
     this._e10s = Services.appinfo.browserTabsRemoteAutostart;
-
     this._setMultiprocessAttributes();
 
-    
-    
-    
-    this._nonBooleanPrefs = new ViewHelpers.Prefs("devtools.performance", {
-      "hidden-markers": ["Json", "timeline.hidden-markers"],
-      "memory-sample-probability": ["Float", "memory.sample-probability"],
-      "memory-max-log-length": ["Int", "memory.max-log-length"],
-      "profiler-buffer-size": ["Int", "profiler.buffer-size"],
-      "profiler-sample-frequency": ["Int", "profiler.sample-frequency-khz"],
-    });
-
-    this._nonBooleanPrefs.registerObserver();
-    this._nonBooleanPrefs.on("pref-changed", this._onPrefChanged);
+    this._prefs = require("devtools/performance/global").PREFS;
+    this._prefs.on("pref-changed", this._onPrefChanged);
 
     gFront.on("recording-starting", this._onRecordingStateChange);
     gFront.on("recording-started", this._onRecordingStateChange);
@@ -237,8 +225,7 @@ let PerformanceController = {
 
 
   destroy: function() {
-    this._nonBooleanPrefs.unregisterObserver();
-    this._nonBooleanPrefs.off("pref-changed", this._onPrefChanged);
+    this._prefs.off("pref-changed", this._onPrefChanged);
 
     gFront.off("recording-starting", this._onRecordingStateChange);
     gFront.off("recording-started", this._onRecordingStateChange);
@@ -270,6 +257,7 @@ let PerformanceController = {
 
 
 
+
   getOption: function (prefName) {
     return ToolbarView.optionsView.getPref(prefName);
   },
@@ -279,8 +267,10 @@ let PerformanceController = {
 
 
 
+
+
   getPref: function (prefName) {
-    return this._nonBooleanPrefs[prefName];
+    return this._prefs[prefName];
   },
 
   
@@ -288,8 +278,10 @@ let PerformanceController = {
 
 
 
+
+
   setPref: function (prefName, prefValue) {
-    this._nonBooleanPrefs[prefName] = prefValue;
+    this._prefs[prefName] = prefValue;
   },
 
   
