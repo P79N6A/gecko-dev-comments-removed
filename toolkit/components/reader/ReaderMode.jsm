@@ -132,20 +132,11 @@ this.ReaderMode = {
     
     
     
-    
-    
-    this._needFlushForVisibilityCheck = true;
     return new Readability(uri, doc).isProbablyReaderable(this.isNodeVisible.bind(this, utils));
   },
 
   isNodeVisible: function(utils, node) {
-    let bounds;
-    if (this._needFlushForVisibilityCheck) {
-      bounds = node.getBoundingClientRect();
-      this._needFlushForVisibilityCheck = false;
-    } else {
-      bounds = utils.getBoundsWithoutFlushing(node);
-    }
+    let bounds = utils.getBoundsWithoutFlushing(node);
     return bounds.height > 0 && bounds.width > 0;
   },
 

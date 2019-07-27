@@ -337,6 +337,7 @@ let AboutReaderListener = {
         break;
 
       case "pagehide":
+        this.cancelPotentialPendingReadabilityCheck();
         sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: false });
         break;
 
@@ -353,12 +354,42 @@ let AboutReaderListener = {
 
     }
   },
+
+  
+
+
+
+
+
   updateReaderButton: function(forceNonArticle) {
     if (!ReaderMode.isEnabledForParseOnLoad || this.isAboutReader ||
         !(content.document instanceof content.HTMLDocument) ||
         content.document.mozSyntheticDocument) {
       return;
     }
+
+    this.scheduleReadabilityCheckPostPaint(forceNonArticle);
+  },
+
+  cancelPotentialPendingReadabilityCheck: function() {
+    if (this._pendingReadabilityCheck) {
+      removeEventListener("MozAfterPaint", this._pendingReadabilityCheck);
+      delete this._pendingReadabilityCheck;
+    }
+  },
+
+  scheduleReadabilityCheckPostPaint: function(forceNonArticle) {
+    if (this._pendingReadabilityCheck) {
+      
+      
+      this.cancelPotentialPendingReadabilityCheck();
+    }
+    this._pendingReadabilityCheck = this.onPaintWhenWaitedFor.bind(this, forceNonArticle);
+    addEventListener("MozAfterPaint", this._pendingReadabilityCheck);
+  },
+
+  onPaintWhenWaitedFor: function(forceNonArticle) {
+    this.cancelPotentialPendingReadabilityCheck();
     
     
     if (ReaderMode.isProbablyReaderable(content.document)) {
