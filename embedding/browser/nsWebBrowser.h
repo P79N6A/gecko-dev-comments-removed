@@ -156,8 +156,7 @@ protected:
    uint32_t                       mPersistFlags;
 
    
-   nsEmbedStream                 *mStream;
-   nsCOMPtr<nsISupports>          mStreamGuard;
+   nsRefPtr<nsEmbedStream>        mStream;
 
    
    nsIWidget*                            mParentWidget;
