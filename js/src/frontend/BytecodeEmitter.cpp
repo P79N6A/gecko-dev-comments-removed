@@ -3229,10 +3229,10 @@ EmitDestructuringOpsArrayHelper(ExclusiveContext *cx, BytecodeEmitter *bce, Pars
 
 
     if (emitOption == InitializeVars) {
-        if (Emit1(cx, bce, JSOP_DUP) < 0)                      
+        if (Emit1(cx, bce, JSOP_DUP) < 0)                              
             return false;
     }
-    if (!EmitIterator(cx, bce))                                
+    if (!EmitIterator(cx, bce))                                        
         return false;
     bool needToPopIterator = true;
 
@@ -3303,7 +3303,7 @@ EmitDestructuringOpsArrayHelper(ExclusiveContext *cx, BytecodeEmitter *bce, Pars
         ParseNode *subpattern = member;
         if (subpattern->isKind(PNK_ELISION)) {
             
-            if (Emit1(cx, bce, JSOP_POP) < 0)
+            if (Emit1(cx, bce, JSOP_POP) < 0)                          
                 return false;
         } else {
             int32_t depthBefore = bce->stackDepth;
