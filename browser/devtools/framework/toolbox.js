@@ -137,9 +137,6 @@ function Toolbox(target, selectedTool, hostType, hostOptions) {
   if (!selectedTool) {
     selectedTool = Services.prefs.getCharPref(this._prefs.LAST_TOOL);
   }
-  if (!gDevTools.getToolDefinition(selectedTool)) {
-    selectedTool = "webconsole";
-  }
   this._defaultToolId = selectedTool;
 
   this._hostOptions = hostOptions;
@@ -369,6 +366,14 @@ Toolbox.prototype = {
       let buttonsPromise = this._buildButtons();
 
       this._pingTelemetry();
+
+      
+      
+      
+      let toolDef = gDevTools.getToolDefinition(this._defaultToolId);
+      if (!toolDef || !toolDef.isTargetSupported(this._target)) {
+        this._defaultToolId = "webconsole";
+      }
 
       yield this.selectTool(this._defaultToolId);
 
