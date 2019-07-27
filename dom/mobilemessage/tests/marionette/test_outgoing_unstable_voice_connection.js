@@ -127,10 +127,56 @@ function turnOnVoiceDeleteMessagesAndVerify(aMessageIdsToDelete,
   return Promise.all(promises);
 }
 
+
+
+
+
+
+
+function sendMessagesOnSecondSIM() {
+  return new Promise(function(resolve, reject) {
+    try {
+      let eventCount = 0;
+      let now = Date.now();
+      let messageIds = [];
+      manager.addEventListener("sent", function onevent(aEvent) {
+        log("onsent event received.");
+
+        let message = aEvent.message;
+        let expectedBody = MESSAGES[eventCount++];
+        messageIds.push(message.id);
+        is(message.delivery, "sent", "message.delivery");
+        is(message.receiver, RECEIVER, "message.receiver");
+        is(message.body, expectedBody, "message.body: expected '" + expectedBody
+          + "'' but got '" + message.body + "'");
+
+        
+        ok(Math.floor(message.timestamp / 1000) >= Math.floor(now / 1000),
+           "expected " + message.timestamp + " >= " + now);
+
+        
+        if (eventCount == MESSAGES.length) {
+          manager.removeEventListener("sent", onevent);
+          resolve(messageIds);
+        }
+      });
+
+      
+      for (let body of MESSAGES) {
+        manager.send(RECEIVER, body, { serviceId: 1 });
+      }
+    } catch (err) {
+      log("Error: " + err);
+      reject(err);
+    }
+  });
+}
+
 startTestCommon(function testCaseMain() {
   return pushPrefEnv({ set: [['dom.sms.requestStatusReport', true]] })
     .then(() => ensureMobileConnection())
     .then(() => setEmulatorVoiceStateAndWait("unregistered"))
+    .then(() => runIfMultiSIM(() => sendMessagesOnSecondSIM()))
     .then(() => sendMessagesAndVerifySending())
     
     .then((aMessageIds) => turnOnVoiceDeleteMessagesAndVerify([aMessageIds[0]],
