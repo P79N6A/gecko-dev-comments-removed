@@ -2071,6 +2071,9 @@ XPCOMUtils.defineLazyGetter(this, "gAsyncDBConnPromised",
         Sqlite.shutdown.addBlocker(
           "PlacesUtils read-only connection closing",
           conn.close.bind(conn));
+        PlacesUtils.history.shutdownClient.jsclient.addBlocker(
+          "PlacesUtils read-only connection closing",
+          conn.close.bind(conn));
       } catch(ex) {
         
         conn.close();
@@ -2090,12 +2093,9 @@ XPCOMUtils.defineLazyGetter(this, "gAsyncDBWrapperPromised",
         Sqlite.shutdown.addBlocker(
           "PlacesUtils wrapped connection closing",
           conn.close.bind(conn));
-
-        
-        Services.obs.addObserver(function observe() {
-          Services.obs.removeObserver(observe, "places-will-close-connection");
-          conn.close();
-        }, "places-will-close-connection", false);
+        PlacesUtils.history.shutdownClient.jsclient.addBlocker(
+          "PlacesUtils wrapped connection closing",
+          conn.close.bind(conn));
       } catch(ex) {
         
         conn.close();
