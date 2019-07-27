@@ -3175,7 +3175,12 @@ ScrollFrameHelper::ComputeFrameMetrics(Layer* aLayer,
 {
   nsPoint toReferenceFrame = mOuter->GetOffsetToCrossDoc(aContainerReferenceFrame);
   nsRect scrollport = mScrollPort + toReferenceFrame;
-  if (!gfxPrefs::LayoutUseContainersForRootFrames() || mAddClipRectToLayer) {
+  
+  
+  
+  
+  bool omitClip = gfxPrefs::AsyncPanZoomEnabled() && aOutput->Length() > 0;
+  if (!omitClip && (!gfxPrefs::LayoutUseContainersForRootFrames() || mAddClipRectToLayer)) {
     
     
     *aClipRect = scrollport;
