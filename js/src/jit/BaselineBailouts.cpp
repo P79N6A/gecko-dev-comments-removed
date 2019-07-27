@@ -976,6 +976,8 @@ InitFromBailout(JSContext* cx, HandleScript caller, jsbytecode* callerPC,
             BailoutKindString(bailoutKind));
 #endif
 
+    bool pushedNewTarget = op == JSOP_NEW;
+    
     
     
     if (!iter.moreFrames() || catchingException) {
@@ -1032,11 +1034,14 @@ InitFromBailout(JSContext* cx, HandleScript caller, jsbytecode* callerPC,
                 builder.writeValue(UndefinedValue(), "CallOp FillerThis");
                 for (uint32_t i = 0; i < numCallArgs; i++)
                     builder.writeValue(UndefinedValue(), "CallOp FillerArg");
+                if (pushedNewTarget)
+                    builder.writeValue(UndefinedValue(), "CallOp FillerNewTarget");
 
-                frameSize += (numCallArgs + 2) * sizeof(Value);
+                frameSize += (numCallArgs + 2 + pushedNewTarget) * sizeof(Value);
                 blFrame->setFrameSize(frameSize);
                 JitSpew(JitSpew_BaselineBailouts, "      Adjusted framesize += %d: %d",
-                                (int) ((numCallArgs + 2) * sizeof(Value)), (int) frameSize);
+                                (int) ((numCallArgs + 2 + pushedNewTarget) * sizeof(Value)),
+                                (int) frameSize);
             }
 
             
@@ -1228,12 +1233,13 @@ InitFromBailout(JSContext* cx, HandleScript caller, jsbytecode* callerPC,
         }
 
         
-        size_t afterFrameSize = (actualArgc + 1) * sizeof(Value) + JitFrameLayout::Size();
+        size_t afterFrameSize = (actualArgc + 1 + pushedNewTarget) * sizeof(Value) +
+                                JitFrameLayout::Size();
         if (!builder.maybeWritePadding(JitStackAlignment, afterFrameSize, "Padding"))
             return false;
 
-        MOZ_ASSERT(actualArgc + 2 <= exprStackSlots);
-        for (unsigned i = 0; i < actualArgc + 1; i++) {
+        MOZ_ASSERT(actualArgc + 2 + pushedNewTarget <= exprStackSlots);
+        for (unsigned i = 0; i < actualArgc + 1 + pushedNewTarget; i++) {
             size_t argSlot = (script->nfixed() + exprStackSlots) - (i + 1);
             if (!builder.writeValue(*blFrame->valueSlot(argSlot), "ArgVal"))
                 return false;
@@ -1260,7 +1266,7 @@ InitFromBailout(JSContext* cx, HandleScript caller, jsbytecode* callerPC,
         
         callee = savedCallerArgs[0];
     } else {
-        uint32_t calleeStackSlot = exprStackSlots - uint32_t(actualArgc + 2);
+        uint32_t calleeStackSlot = exprStackSlots - uint32_t(actualArgc + 2 + pushedNewTarget);
         size_t calleeOffset = (builder.framePushed() - endOfBaselineJSFrameStack)
             + ((exprStackSlots - (calleeStackSlot + 1)) * sizeof(Value));
         callee = *builder.valuePointerAtStackOffset(calleeOffset);
@@ -1331,9 +1337,17 @@ InitFromBailout(JSContext* cx, HandleScript caller, jsbytecode* callerPC,
 #endif
 
     
-    size_t afterFrameSize = (calleeFun->nargs() + 1) * sizeof(Value) + RectifierFrameLayout::Size();
+    size_t afterFrameSize = (calleeFun->nargs() + 1 + pushedNewTarget) * sizeof(Value) +
+                            RectifierFrameLayout::Size();
     if (!builder.maybeWritePadding(JitStackAlignment, afterFrameSize, "Padding"))
         return false;
+
+    
+    if (pushedNewTarget) {
+        size_t newTargetOffset = (builder.framePushed() - endOfBaselineStubArgs) +
+                                 (actualArgc + 1) * sizeof(Value);
+        builder.writeValue(*builder.valuePointerAtStackOffset(newTargetOffset), "CopiedNewTarget");
+    }
 
     
     for (unsigned i = 0; i < (calleeFun->nargs() - actualArgc); i++) {

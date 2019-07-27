@@ -746,13 +746,14 @@ class InlineFrameIterator
                     InlineFrameIterator it(cx, this);
                     ++it;
                     unsigned argsObjAdj = it.script()->argumentsHasVarBinding() ? 1 : 0;
+                    bool hasNewTarget = isConstructing();
                     SnapshotIterator parent_s(it.snapshotIterator());
 
                     
                     
                     
-                    MOZ_ASSERT(parent_s.numAllocations() >= nactual + 3 + argsObjAdj);
-                    unsigned skip = parent_s.numAllocations() - nactual - 3 - argsObjAdj;
+                    MOZ_ASSERT(parent_s.numAllocations() >= nactual + 3 + argsObjAdj + hasNewTarget);
+                    unsigned skip = parent_s.numAllocations() - nactual - 3 - argsObjAdj - hasNewTarget;
                     for (unsigned j = 0; j < skip; j++)
                         parent_s.skip();
 

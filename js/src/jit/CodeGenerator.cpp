@@ -2932,12 +2932,12 @@ CodeGenerator::visitCallGetIntrinsicValue(LCallGetIntrinsicValue* lir)
     callVM(GetIntrinsicValueInfo, lir);
 }
 
-typedef bool (*InvokeFunctionFn)(JSContext*, HandleObject, uint32_t, Value*, Value*);
+typedef bool (*InvokeFunctionFn)(JSContext*, HandleObject, bool, uint32_t, Value*, Value*);
 static const VMFunction InvokeFunctionInfo = FunctionInfo<InvokeFunctionFn>(InvokeFunction);
 
 void
 CodeGenerator::emitCallInvokeFunction(LInstruction* call, Register calleereg,
-                                      uint32_t argc, uint32_t unusedStack)
+                                      bool constructing, uint32_t argc, uint32_t unusedStack)
 {
     
     
@@ -2945,6 +2945,7 @@ CodeGenerator::emitCallInvokeFunction(LInstruction* call, Register calleereg,
 
     pushArg(masm.getStackPointer()); 
     pushArg(Imm32(argc));            
+    pushArg(Imm32(constructing));    
     pushArg(calleereg);              
 
     callVM(InvokeFunctionInfo, call);
@@ -2999,7 +3000,8 @@ CodeGenerator::visitCallGeneric(LCallGeneric* call)
     
     
     
-    MOZ_ASSERT(call->numActualArgs() == call->mir()->numStackArgs() - 1);
+    DebugOnly<unsigned> numNonArgsOnStack = 1 + call->isConstructing();
+    MOZ_ASSERT(call->numActualArgs() == call->mir()->numStackArgs() - numNonArgsOnStack);
     masm.load16ZeroExtend(Address(calleereg, JSFunction::offsetOfNargs()), nargsreg);
     masm.branch32(Assembler::Above, nargsreg, Imm32(call->numActualArgs()), &thunk);
     masm.jump(&makeCall);
@@ -3026,7 +3028,8 @@ CodeGenerator::visitCallGeneric(LCallGeneric* call)
 
     
     masm.bind(&invoke);
-    emitCallInvokeFunction(call, calleereg, call->numActualArgs(), unusedStack);
+    emitCallInvokeFunction(call, calleereg, call->isConstructing(), call->numActualArgs(),
+                           unusedStack);
 
     masm.bind(&end);
 
@@ -3038,6 +3041,26 @@ CodeGenerator::visitCallGeneric(LCallGeneric* call)
         masm.loadValue(Address(masm.getStackPointer(), unusedStack), JSReturnOperand);
         masm.bind(&notPrimitive);
     }
+}
+
+typedef bool (*InvokeFunctionShuffleFn)(JSContext*, HandleObject, uint32_t, uint32_t, Value*,
+                                        Value*);
+static const VMFunction InvokeFunctionShuffleInfo =
+    FunctionInfo<InvokeFunctionShuffleFn>(InvokeFunctionShuffleNewTarget);
+void
+CodeGenerator::emitCallInvokeFunctionShuffleNewTarget(LCallKnown* call, Register calleeReg,
+                                                      uint32_t numFormals, uint32_t unusedStack)
+{
+    masm.freeStack(unusedStack);
+
+    pushArg(masm.getStackPointer());
+    pushArg(Imm32(numFormals));
+    pushArg(Imm32(call->numActualArgs()));
+    pushArg(calleeReg);
+
+    callVM(InvokeFunctionShuffleInfo, call);
+
+    masm.reserveStack(unusedStack);
 }
 
 void
@@ -3052,7 +3075,8 @@ CodeGenerator::visitCallKnown(LCallKnown* call)
     
     MOZ_ASSERT(!target->isNative());
     
-    MOZ_ASSERT(target->nargs() <= call->mir()->numStackArgs() - 1);
+    DebugOnly<unsigned> numNonArgsOnStack = 1 + call->isConstructing();
+    MOZ_ASSERT(target->nargs() <= call->mir()->numStackArgs() - numNonArgsOnStack);
 
     MOZ_ASSERT_IF(call->mir()->isConstructing(), target->isConstructor());
 
@@ -3092,7 +3116,10 @@ CodeGenerator::visitCallKnown(LCallKnown* call)
 
     
     masm.bind(&uncompiled);
-    emitCallInvokeFunction(call, calleereg, call->numActualArgs(), unusedStack);
+    if (call->isConstructing() && target->nargs() > call->numActualArgs())
+        emitCallInvokeFunctionShuffleNewTarget(call, calleereg, target->nargs(), unusedStack);
+    else
+        emitCallInvokeFunction(call, calleereg, call->isConstructing(), call->numActualArgs(), unusedStack);
 
     masm.bind(&end);
 
@@ -3118,6 +3145,7 @@ CodeGenerator::emitCallInvokeFunction(LApplyArgsGeneric* apply, Register extraSt
 
     pushArg(objreg);                           
     pushArg(ToRegister(apply->getArgc()));     
+    pushArg(Imm32(false));                     
     pushArg(ToRegister(apply->getFunction())); 
 
     

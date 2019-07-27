@@ -1035,7 +1035,8 @@ MarkThisAndArguments(JSTracer* trc, JitFrameLayout* layout)
     TraceRoot(trc, argv, "ion-thisv");
 
     
-    for (size_t i = nformals + 1; i < nargs + 1; i++)
+    bool constructing = CalleeTokenIsConstructing(layout->calleeToken());
+    for (size_t i = nformals + 1; i < nargs + 1 + constructing; i++)
         TraceRoot(trc, &argv[i], "ion-argv");
 }
 
@@ -2445,7 +2446,8 @@ InlineFrameIterator::findNextFrame()
             MOZ_CRASH("Couldn't deduce the number of arguments of an ionmonkey frame");
 
         
-        unsigned skipCount = (si_.numAllocations() - 1) - numActualArgs_ - 1;
+        bool skipNewTarget = JSOp(*pc_) == JSOP_NEW;
+        unsigned skipCount = (si_.numAllocations() - 1) - numActualArgs_ - 1 - skipNewTarget;
         for (unsigned j = 0; j < skipCount; j++)
             si_.skip();
 
