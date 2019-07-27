@@ -54,9 +54,6 @@ VorbisTrackEncoder::Init(int aChannels, int aSamplingRate)
     return NS_ERROR_INVALID_ARG;
   }
 
-  MOZ_ASSERT(aSamplingRate >= 8000 && aSamplingRate <= 192000,
-      "Unreasonable sample rate for audio data.");
-
   
   
   ReentrantMonitorAutoEnter mon(mReentrantMonitor);
