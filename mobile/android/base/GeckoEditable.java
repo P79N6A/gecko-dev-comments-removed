@@ -735,7 +735,7 @@ final class GeckoEditable
         }
         if (type == NOTIFY_IME_REPLY_EVENT) {
             try {
-                if (mFocused) {
+                if (mGeckoFocused) {
                     
                     
                     geckoActionReply();
@@ -752,18 +752,23 @@ final class GeckoEditable
         geckoPostToIc(new Runnable() {
             @Override
             public void run() {
-                if (type == NOTIFY_IME_OF_BLUR) {
-                    mFocused = false;
-                } else if (type == NOTIFY_IME_OF_FOCUS) {
+                if (type == NOTIFY_IME_OF_FOCUS) {
                     mFocused = true;
                     
                     mActionQueue.offer(new Action(Action.TYPE_ACKNOWLEDGE_FOCUS));
                 }
+
                 
                 
                 
                 mActionQueue.syncWithGecko();
                 mListener.notifyIME(type);
+
+                
+                
+                if (type == NOTIFY_IME_OF_BLUR) {
+                    mFocused = false;
+                }
             }
         });
 
