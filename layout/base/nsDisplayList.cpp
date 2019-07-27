@@ -364,6 +364,11 @@ AddAnimationForProperty(nsIFrame* aFrame, const AnimationProperty& aProperty,
   MOZ_ASSERT(aLayer->AsContainerLayer(), "Should only animate ContainerLayer");
   MOZ_ASSERT(aAnimation->GetEffect(),
              "Should not be adding an animation without an effect");
+  MOZ_ASSERT(!aAnimation->GetCurrentOrPendingStartTime().IsNull() ||
+             (aAnimation->Timeline() &&
+              aAnimation->Timeline()->TracksWallclockTime()),
+             "Animation should either have a resolved start time or "
+             "a timeline that tracks wallclock time");
   nsStyleContext* styleContext = aFrame->StyleContext();
   nsPresContext* presContext = aFrame->PresContext();
   TransformReferenceBox refBox(aFrame);
@@ -462,7 +467,8 @@ AddAnimationsForProperty(nsIFrame* aFrame, nsCSSProperty aProperty,
     
     
     if (anim->PlayState() == AnimationPlayState::Pending &&
-        !anim->Timeline()->TracksWallclockTime()) {
+        (!anim->Timeline() ||
+         !anim->Timeline()->TracksWallclockTime())) {
       continue;
     }
 

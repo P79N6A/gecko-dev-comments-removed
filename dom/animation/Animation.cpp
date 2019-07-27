@@ -58,13 +58,7 @@ Animation::SetEffect(KeyframeEffectReadOnly* aEffect)
 void
 Animation::SetStartTime(const Nullable<TimeDuration>& aNewStartTime)
 {
-#if 1
-  
-  
-  MOZ_ASSERT(mTimeline && !mTimeline->GetCurrentTime().IsNull(),
-             "We don't support inactive/missing timelines yet");
-#else
-  Nullable<TimeDuration> timelineTime = mTimeline->GetCurrentTime();
+  Nullable<TimeDuration> timelineTime;
   if (mTimeline) {
     
     
@@ -74,7 +68,7 @@ Animation::SetStartTime(const Nullable<TimeDuration>& aNewStartTime)
   if (timelineTime.IsNull() && !aNewStartTime.IsNull()) {
     mHoldTime.SetNull();
   }
-#endif
+
   Nullable<TimeDuration> previousCurrentTime = GetCurrentTime();
   mStartTime = aNewStartTime;
   if (!aNewStartTime.IsNull()) {
@@ -106,7 +100,7 @@ Animation::GetCurrentTime() const
     return result;
   }
 
-  if (!mStartTime.IsNull()) {
+  if (mTimeline && !mStartTime.IsNull()) {
     Nullable<TimeDuration> timelineTime = mTimeline->GetCurrentTime();
     if (!timelineTime.IsNull()) {
       result.SetValue((timelineTime.Value() - mStartTime.Value())
@@ -315,6 +309,8 @@ Animation::Tick()
   
   if (mPendingState != PendingState::NotPending &&
       !mPendingReadyTime.IsNull() &&
+      mTimeline &&
+      !mTimeline->GetCurrentTime().IsNull() &&
       mPendingReadyTime.Value() <= mTimeline->GetCurrentTime().Value()) {
     FinishPendingAt(mPendingReadyTime.Value());
     mPendingReadyTime.SetNull();
@@ -355,8 +351,15 @@ Animation::TriggerNow()
   if (PlayState() != AnimationPlayState::Pending) {
     return;
   }
-  MOZ_ASSERT(mTimeline && !mTimeline->GetCurrentTime().IsNull(),
-             "Expected an active timeline");
+
+  
+  
+  
+  
+  if (!mTimeline || mTimeline->GetCurrentTime().IsNull()) {
+    NS_WARNING("Failed to trigger an animation with an active timeline");
+    return;
+  }
 
   FinishPendingAt(mTimeline->GetCurrentTime().Value());
 }
@@ -797,10 +800,12 @@ Animation::UpdateFinishedState(SeekFlag aSeekFlag)
         mHoldTime.SetValue(0);
       }
     } else if (mPlaybackRate != 0.0 &&
-               !currentTime.IsNull()) {
+               !currentTime.IsNull() &&
+               mTimeline &&
+               !mTimeline->GetCurrentTime().IsNull()) {
       if (aSeekFlag == SeekFlag::DidSeek && !mHoldTime.IsNull()) {
         mStartTime.SetValue(mTimeline->GetCurrentTime().Value() -
-                              (mHoldTime.Value().MultDouble(1 / mPlaybackRate)));
+                             (mHoldTime.Value().MultDouble(1 / mPlaybackRate)));
       }
       mHoldTime.SetNull();
     }

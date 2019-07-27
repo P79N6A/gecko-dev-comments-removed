@@ -58,6 +58,13 @@ TriggerAnimationAtTime(nsRefPtrHashKey<dom::Animation>* aKey,
   
   
   
+  if (!timeline) {
+    return PL_DHASH_REMOVE;
+  }
+
+  
+  
+  
   
   
   if (!timeline->TracksWallclockTime()) {
