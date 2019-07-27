@@ -421,20 +421,12 @@ var LoginManagerParent = {
                    (usernameField ? usernameField.name  : ""),
                    newPasswordField.name);
 
+    let logins = Services.logins.findLogins({}, hostname, formSubmitURL, null);
+
     
     
     
-    if (!usernameField && oldPasswordField) {
-
-      var logins = Services.logins.findLogins({}, hostname, formSubmitURL, null);
-
-      if (logins.length == 0) {
-        
-        
-        log("(no logins for this host -- pwchange ignored)");
-        return;
-      }
-
+    if (!usernameField && oldPasswordField && logins.length > 0) {
       var prompter = getPrompter();
 
       if (logins.length == 1) {
@@ -452,10 +444,8 @@ var LoginManagerParent = {
     }
 
 
-    
     var existingLogin = null;
-    var logins = Services.logins.findLogins({}, hostname, formSubmitURL, null);
-
+    
     for (var i = 0; i < logins.length; i++) {
       var same, login = logins[i];
 
