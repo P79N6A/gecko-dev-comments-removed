@@ -34,21 +34,9 @@ DBSchema::CreateSchema(mozIStorageConnection* aConn)
   MOZ_ASSERT(aConn);
 
   nsAutoCString pragmas(
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
-    
-    
-    
-    "PRAGMA journal_mode = TRUNCATE; "
-#endif
-    "PRAGMA foreign_keys = ON; "
     
     
     "PRAGMA auto_vacuum = INCREMENTAL; "
-
-    
-    
-    
-    
   );
 
   nsresult rv = aConn->ExecuteSimpleSQL(pragmas);
@@ -173,6 +161,37 @@ DBSchema::CreateSchema(mozIStorageConnection* aConn)
   }
 
   return rv;
+}
+
+
+nsresult
+DBSchema::InitializeConnection(mozIStorageConnection* aConn)
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+  MOZ_ASSERT(aConn);
+
+  
+  
+
+  nsAutoCString pragmas(
+#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
+    
+    
+    
+    "PRAGMA journal_mode = TRUNCATE; "
+#endif
+    "PRAGMA foreign_keys = ON; "
+
+    
+    
+    
+    
+  );
+
+  nsresult rv = aConn->ExecuteSimpleSQL(pragmas);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  return NS_OK;
 }
 
 
