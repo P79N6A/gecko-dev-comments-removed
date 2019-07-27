@@ -3,17 +3,21 @@
 
 
 
+const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
 
-Components.utils.import("resource://testing-common/httpd.js");
+
+
+Cu.import("resource://testing-common/httpd.js");
 
 var gTestserver = new HttpServer();
 gTestserver.start(-1);
 gPort = gTestserver.identity.primaryPort;
+mapFile("/data/test_gfxBlacklist_OSVersion.xml", gTestserver);
 
 function get_platform() {
-  var xulRuntime = Components.classes["@mozilla.org/xre/app-info;1"]
-                             .getService(Components.interfaces.nsIXULRuntime);
+  var xulRuntime = Cc["@mozilla.org/xre/app-info;1"]
+                             .getService(Ci.nsIXULRuntime);
   return xulRuntime.OS;
 }
 
@@ -27,12 +31,7 @@ function load_blocklist(file) {
 
 
 function run_test() {
-  try {
-    var gfxInfo = Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo);
-  } catch (e) {
-    do_test_finished();
-    return;
-  }
+  var gfxInfo = Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo);
 
   
   if (!(gfxInfo instanceof Ci.nsIGfxInfoDebug)) {
@@ -92,5 +91,5 @@ function run_test() {
     do_execute_soon(checkBlacklist);
   }, "blocklist-data-gfxItems", false);
 
-  load_blocklist("test_gfxBlacklist_OS.xml");
+  load_blocklist("test_gfxBlacklist_OSVersion.xml");
 }
