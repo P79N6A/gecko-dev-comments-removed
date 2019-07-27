@@ -413,7 +413,7 @@ BluetoothAdapter::SetDiscoveryHandleInUse(
 }
 
 already_AddRefed<Promise>
-BluetoothAdapter::StartStopDiscovery(bool aStart, ErrorResult& aRv)
+BluetoothAdapter::StartDiscovery(ErrorResult& aRv)
 {
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(GetOwner());
   if (!global) {
@@ -429,44 +429,55 @@ BluetoothAdapter::StartStopDiscovery(bool aStart, ErrorResult& aRv)
 
 
 
-
-  BT_ENSURE_TRUE_REJECT(mDiscovering != aStart,
-                        NS_ERROR_DOM_INVALID_STATE_ERR);
+  BT_ENSURE_TRUE_REJECT(!mDiscovering, NS_ERROR_DOM_INVALID_STATE_ERR);
   BT_ENSURE_TRUE_REJECT(mState == BluetoothAdapterState::Enabled,
                         NS_ERROR_DOM_INVALID_STATE_ERR);
   BluetoothService* bs = BluetoothService::Get();
   BT_ENSURE_TRUE_REJECT(bs, NS_ERROR_NOT_AVAILABLE);
 
-  BT_API2_LOGR("aStart %d", aStart);
-  nsresult rv;
-  if (aStart) {
-    
-    nsRefPtr<BluetoothReplyRunnable> result =
-      new StartDiscoveryTask(this, promise);
-    rv = bs->StartDiscoveryInternal(result);
-  } else {
-    
-    nsRefPtr<BluetoothReplyRunnable> result =
-      new BluetoothVoidReplyRunnable(nullptr ,
-                                     promise,
-                                     NS_LITERAL_STRING("StopDiscovery"));
-    rv = bs->StopDiscoveryInternal(result);
-  }
-  BT_ENSURE_TRUE_REJECT(NS_SUCCEEDED(rv), NS_ERROR_DOM_OPERATION_ERR);
+  BT_API2_LOGR();
+
+  
+  nsRefPtr<BluetoothReplyRunnable> result =
+    new StartDiscoveryTask(this, promise);
+  BT_ENSURE_TRUE_REJECT(NS_SUCCEEDED(bs->StartDiscoveryInternal(result)),
+                        NS_ERROR_DOM_OPERATION_ERR);
 
   return promise.forget();
 }
 
 already_AddRefed<Promise>
-BluetoothAdapter::StartDiscovery(ErrorResult& aRv)
-{
-  return StartStopDiscovery(true, aRv);
-}
-
-already_AddRefed<Promise>
 BluetoothAdapter::StopDiscovery(ErrorResult& aRv)
 {
-  return StartStopDiscovery(false, aRv);
+  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(GetOwner());
+  if (!global) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
+  nsRefPtr<Promise> promise = new Promise(global);
+
+  
+
+
+
+
+
+  BT_ENSURE_TRUE_RESOLVE(mDiscovering, JS::UndefinedHandleValue);
+  BT_ENSURE_TRUE_REJECT(mState == BluetoothAdapterState::Enabled,
+                        NS_ERROR_DOM_INVALID_STATE_ERR);
+  BluetoothService* bs = BluetoothService::Get();
+  BT_ENSURE_TRUE_REJECT(bs, NS_ERROR_NOT_AVAILABLE);
+
+  BT_API2_LOGR();
+
+  nsRefPtr<BluetoothReplyRunnable> result =
+    new BluetoothVoidReplyRunnable(nullptr ,
+                                   promise,
+                                   NS_LITERAL_STRING("StopDiscovery"));
+  BT_ENSURE_TRUE_REJECT(NS_SUCCEEDED(bs->StopDiscoveryInternal(result)),
+                        NS_ERROR_DOM_OPERATION_ERR);
+
+  return promise.forget();
 }
 
 void
