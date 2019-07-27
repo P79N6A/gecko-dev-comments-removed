@@ -12,7 +12,7 @@
 #include "mozilla/TimeStamp.h"          
 #include "mozilla/RollingMean.h"        
 #include "mozilla/mozalloc.h"           
-#include "nsAutoPtr.h"                  
+#include "mozilla/UniquePtr.h"          
 #include "nsTArray.h"                   
 
 namespace tracked_objects {
@@ -47,7 +47,7 @@ public:
 
 
   void PostTask(const tracked_objects::Location& aLocation,
-                CancelableTask* aTask, const TimeStamp& aTimeStamp);
+                UniquePtr<CancelableTask> aTask, const TimeStamp& aTimeStamp);
   
 
 
@@ -90,7 +90,7 @@ public:
 
 private:
   bool mOutstanding;
-  nsAutoPtr<CancelableTask> mQueuedTask;
+  UniquePtr<CancelableTask> mQueuedTask;
   TimeStamp mStartTime;
   RollingMean<TimeDuration, TimeDuration> mMean;
 };
