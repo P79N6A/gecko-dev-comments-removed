@@ -1281,7 +1281,7 @@ pref("devtools.appmanager.lastTab", "help");
 pref("devtools.appmanager.manifestEditor.enabled", true);
 
 
-pref("devtools.webide.enabled", true);
+pref("devtools.webide.enabled", false);
 
 
 pref("devtools.toolbox.footer.height", 250);
