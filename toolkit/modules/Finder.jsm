@@ -2,7 +2,8 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["Finder"];
+
+this.EXPORTED_SYMBOLS = ["Finder","GetClipboardSearchString"];
 
 const Ci = Components.interfaces;
 const Cc = Components.classes;
@@ -24,6 +25,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "ClipboardHelper",
                                          "nsIClipboardHelper");
 
 const kHighlightIterationSizeMax = 100;
+const kSelectionMaxLen = 150;
 
 function Finder(docShell) {
   this._fastFind = Cc["@mozilla.org/typeaheadfind;1"].createInstance(Ci.nsITypeAheadFind);
@@ -90,31 +92,10 @@ Finder.prototype = {
   },
 
   get clipboardSearchString() {
-    let searchString = "";
-    if (!Clipboard.supportsFindClipboard())
-      return searchString;
-
-    try {
-      let trans = Cc["@mozilla.org/widget/transferable;1"]
-                    .createInstance(Ci.nsITransferable);
-      trans.init(this._getWindow()
-                     .QueryInterface(Ci.nsIInterfaceRequestor)
-                     .getInterface(Ci.nsIWebNavigation)
-                     .QueryInterface(Ci.nsILoadContext));
-      trans.addDataFlavor("text/unicode");
-
-      Clipboard.getData(trans, Ci.nsIClipboard.kFindClipboard);
-
-      let data = {};
-      let dataLen = {};
-      trans.getTransferData("text/unicode", data, dataLen);
-      if (data.value) {
-        data = data.value.QueryInterface(Ci.nsISupportsString);
-        searchString = data.toString();
-      }
-    } catch (ex) {}
-
-    return searchString;
+    return GetClipboardSearchString(this._getWindow()
+                                        .QueryInterface(Ci.nsIInterfaceRequestor)
+                                        .getInterface(Ci.nsIWebNavigation)
+                                        .QueryInterface(Ci.nsILoadContext));
   },
 
   set clipboardSearchString(aSearchString) {
@@ -165,12 +146,8 @@ Finder.prototype = {
 
 
   setSearchStringToSelection: function() {
-    
-    let selection = this._getWindow().getSelection();
-    
-    if (!selection.rangeCount)
-      return null;
-    let searchString = (selection.toString() || "").trim();
+    let searchString = this.getActiveSelectionText();
+
     
     if (!searchString.length)
       return null;
@@ -200,6 +177,44 @@ Finder.prototype = {
       this._notify(aWord, result, false, false, false);
     }
   }),
+
+  getInitialSelection: function() {
+    this._getWindow().setTimeout(() => {
+      let initialSelection = this.getActiveSelectionText();
+      for (let l of this._listeners) {
+        try {
+          l.onCurrentSelection(initialSelection, true);
+        } catch (ex) {}
+      }
+    }, 0);
+  },
+
+  getActiveSelectionText: function() {
+    let focusedWindow = {};
+    let focusedElement =
+      Services.focus.getFocusedElementForWindow(this._getWindow(), true,
+                                                focusedWindow);
+    focusedWindow = focusedWindow.value;
+
+    let selText;
+
+    if (focusedElement instanceof Ci.nsIDOMNSEditableElement &&
+        focusedElement.editor) {
+      
+      selText = focusedElement.editor.selectionController
+        .getSelection(Ci.nsISelectionController.SELECTION_NORMAL)
+        .toString();
+    } else {
+      
+      selText = focusedWindow.getSelection().toString();
+    }
+
+    if (!selText)
+      return "";
+
+    
+    return selText.trim().replace(/\s+/g, " ").substr(0, kSelectionMaxLen);
+  },
 
   enableSelection: function() {
     this._fastFind.setSelectionModeAndRepaint(Ci.nsISelectionController.SELECTION_ON);
@@ -647,8 +662,14 @@ Finder.prototype = {
 
   _getSelectionController: function(aWindow) {
     
-    if (!aWindow.innerWidth || !aWindow.innerHeight)
+    try {
+      if (!aWindow.innerWidth || !aWindow.innerHeight)
+        return null;
+    } catch (e) {
+      
+      
       return null;
+    }
 
     
     let docShell = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -1002,3 +1023,28 @@ Finder.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
                                          Ci.nsISupportsWeakReference])
 };
+
+function GetClipboardSearchString(aLoadContext) {
+  let searchString = "";
+  if (!Clipboard.supportsFindClipboard())
+    return searchString;
+
+  try {
+    let trans = Cc["@mozilla.org/widget/transferable;1"]
+                  .createInstance(Ci.nsITransferable);
+    trans.init(aLoadContext);
+    trans.addDataFlavor("text/unicode");
+
+    Clipboard.getData(trans, Ci.nsIClipboard.kFindClipboard);
+
+    let data = {};
+    let dataLen = {};
+    trans.getTransferData("text/unicode", data, dataLen);
+    if (data.value) {
+      data = data.value.QueryInterface(Ci.nsISupportsString);
+      searchString = data.toString();
+    }
+  } catch (ex) {}
+
+  return searchString;
+}
