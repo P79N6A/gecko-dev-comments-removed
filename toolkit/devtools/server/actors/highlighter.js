@@ -45,6 +45,9 @@ const SIMPLE_OUTLINE_SHEET = ".__fx-devtools-hide-shortcut__ {" +
                              "  outline-offset: -2px!important;" +
                              "}";
 
+const GEOMETRY_SIZE_ARROW_OFFSET = .25; 
+const GEOMETRY_LABEL_SIZE = 6;
+
 
 
 
@@ -275,25 +278,8 @@ let HighlighterActor = exports.HighlighterActor = protocol.ActorClass({
     return this._walker.attachElement(node);
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-  _getPickerListenerTarget: function() {
-    let actor = this._tabActor;
-    return actor.isRootActor ? actor.window : actor.chromeEventHandler;
-  },
-
   _startPickerListeners: function() {
-    let target = this._getPickerListenerTarget();
+    let target = getPageListenerTarget(this._tabActor);
     target.addEventListener("mousemove", this._onHovered, true);
     target.addEventListener("click", this._onPick, true);
     target.addEventListener("mousedown", this._preventContentEvent, true);
@@ -302,7 +288,7 @@ let HighlighterActor = exports.HighlighterActor = protocol.ActorClass({
   },
 
   _stopPickerListeners: function() {
-    let target = this._getPickerListenerTarget();
+    let target = getPageListenerTarget(this._tabActor);
     target.removeEventListener("mousemove", this._onHovered, true);
     target.removeEventListener("click", this._onPick, true);
     target.removeEventListener("mousedown", this._preventContentEvent, true);
@@ -544,6 +530,17 @@ CanvasFrameAnonymousContentHelper.prototype = {
     }
   },
 
+  getElement: function(id) {
+    let self = this;
+    return {
+      getTextContent: () => self.getTextContentForElement(id),
+      setTextContent: text => self.setTextContentForElement(id, text),
+      setAttribute: (name, value) => self.setAttributeForElement(id, name, value),
+      getAttribute: name => self.getAttributeForElement(id, name),
+      removeAttribute: name => self.removeAttributeForElement(id, name)
+    };
+  },
+
   get content() {
     if (!this._content || Cu.isDeadWrapper(this._content)) {
       return null;
@@ -740,7 +737,7 @@ AutoRefreshHighlighter.prototype = {
   },
 
   _startRefreshLoop: function() {
-    let win = this.currentNode.ownerDocument.defaultView;
+    let win = getWindow(this.currentNode);
     this.rafID = win.requestAnimationFrame(this._startRefreshLoop.bind(this));
     this.rafWin = win;
     this.update();
@@ -1024,7 +1021,7 @@ BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype
 
   _trackMutations: function() {
     if (isNodeValid(this.currentNode)) {
-      let win = this.currentNode.ownerDocument.defaultView;
+      let win = getWindow(this.currentNode);
       this.currentNodeObserver = new win.MutationObserver(this.update);
       this.currentNodeObserver.observe(this.currentNode, {attributes: true});
     }
@@ -1164,7 +1161,7 @@ BoxModelHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype
         Cu.isDeadWrapper(this.currentNode) ||
         this.currentNode.nodeType !== Ci.nsIDOMNode.ELEMENT_NODE ||
         !this.currentNode.ownerDocument ||
-        !this.currentNode.ownerDocument.defaultView ||
+        !getWindow(this.currentNode) ||
         hasNoQuads) {
       return false;
     }
@@ -1765,6 +1762,596 @@ exports.RectHighlighter = RectHighlighter;
 
 
 
+let GeoProp = {
+  SIDES: ["top", "right", "bottom", "left"],
+  SIZES: ["width", "height"],
+
+  allProps: function() {
+    return [...this.SIDES, ...this.SIZES];
+  },
+
+  isSide: function(name) {
+    return this.SIDES.indexOf(name) !== -1;
+  },
+
+  isSize: function(name) {
+    return this.SIZES.indexOf(name) !== -1;
+  },
+
+  containsSide: function(names) {
+    return names.some(name => this.SIDES.indexOf(name) !== -1);
+  },
+
+  containsSize: function(names) {
+    return names.some(name => this.SIZES.indexOf(name) !== -1);
+  },
+
+  isHorizontal: function(name) {
+    return name === "left" || name === "right" || name === "width";
+  },
+
+  isInverted: function(name) {
+    return name === "right" || name === "bottom";
+  },
+
+  mainAxisStart: function(name) {
+    return this.isHorizontal(name) ? "left" : "top";
+  },
+
+  crossAxisStart: function(name) {
+    return this.isHorizontal(name) ? "top" : "left";
+  },
+
+  mainAxisSize: function(name) {
+    return this.isHorizontal(name) ? "width" : "height";
+  },
+
+  crossAxisSize: function(name) {
+    return this.isHorizontal(name) ? "height" : "width";
+  },
+
+  axis: function(name) {
+    return this.isHorizontal(name) ? "x" : "y";
+  },
+
+  crossAxis: function(name) {
+    return this.isHorizontal(name) ? "y" : "x";
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function GeometryEditorHighlighter(tabActor) {
+  AutoRefreshHighlighter.call(this, tabActor);
+
+  
+  this.definedProperties = new Map();
+
+  this.markup = new CanvasFrameAnonymousContentHelper(tabActor,
+    this._buildMarkup.bind(this));
+}
+
+GeometryEditorHighlighter.prototype = Heritage.extend(AutoRefreshHighlighter.prototype, {
+  typeName: "GeometryEditorHighlighter",
+
+  ID_CLASS_PREFIX: "geometry-editor-",
+
+  _buildMarkup: function() {
+    let container = createNode(this.win, {
+      attributes: {"class": "highlighter-container"}
+    });
+
+    let root = createNode(this.win, {
+      parent: container,
+      attributes: {
+        "id": "root",
+        "class": "root"
+      },
+      prefix: this.ID_CLASS_PREFIX
+    });
+
+    let svg = createSVGNode(this.win, {
+      nodeType: "svg",
+      parent: root,
+      attributes: {
+        "id": "elements",
+        "width": "100%",
+        "height": "100%",
+        "style": "width:100%;height:100%;"
+      },
+      prefix: this.ID_CLASS_PREFIX
+    });
+
+    
+    createSVGNode(this.win, {
+      nodeType: "polygon",
+      parent: svg,
+      attributes: {
+        "class": "offset-parent",
+        "id": "offset-parent",
+        "hidden": "true"
+      },
+      prefix: this.ID_CLASS_PREFIX
+    });
+
+    
+    createSVGNode(this.win, {
+      nodeType: "polygon",
+      parent: svg,
+      attributes: {
+        "class": "current-node",
+        "id": "current-node",
+        "hidden": "true"
+      },
+      prefix: this.ID_CLASS_PREFIX
+    });
+
+    
+    for (let name of GeoProp.SIDES) {
+      createSVGNode(this.win, {
+        nodeType: "line",
+        parent: svg,
+        attributes: {
+          "class": "arrow " + name,
+          "id": "arrow-" + name,
+          "hidden": "true"
+        },
+        prefix: this.ID_CLASS_PREFIX
+      });
+
+      
+      
+      
+      
+      let labelG = createSVGNode(this.win, {
+        nodeType: "g",
+        parent: svg,
+        attributes: {
+          "id": "label-" + name,
+          "hidden": "true"
+        },
+        prefix: this.ID_CLASS_PREFIX
+      });
+
+      let subG = createSVGNode(this.win, {
+        nodeType: "g",
+        parent: labelG,
+        attributes: {
+          "transform": GeoProp.isHorizontal(name)
+                       ? "translate(-30 -30)"
+                       : "translate(5 -10)"
+        }
+      });
+
+      createSVGNode(this.win, {
+        nodeType: "path",
+        parent: subG,
+        attributes: {
+          "class": "label-bubble",
+          "d": GeoProp.isHorizontal(name)
+               ? "M0 0 L60 0 L60 20 L35 20 L30 25 L25 20 L0 20z"
+               : "M5 0 L65 0 L65 20 L5 20 L5 15 L0 10 L5 5z"
+        },
+        prefix: this.ID_CLASS_PREFIX
+      });
+
+      createSVGNode(this.win, {
+        nodeType: "text",
+        parent: subG,
+        attributes: {
+          "class": "label-text",
+          "id": "label-text-" + name,
+          "x": GeoProp.isHorizontal(name) ? "30" : "35",
+          "y": "10"
+        },
+        prefix: this.ID_CLASS_PREFIX
+      });
+    }
+
+    
+    let labelSizeG = createSVGNode(this.win, {
+      nodeType: "g",
+      parent: svg,
+      attributes: {
+        "id": "label-size",
+        "hidden": "true"
+      },
+      prefix: this.ID_CLASS_PREFIX
+    });
+
+    let subSizeG = createSVGNode(this.win, {
+      nodeType: "g",
+      parent: labelSizeG,
+      attributes: {
+        "transform": "translate(-50 -10)"
+      }
+    });
+
+    createSVGNode(this.win, {
+      nodeType: "path",
+      parent: subSizeG,
+      attributes: {
+        "class": "label-bubble",
+        "d": "M0 0 L100 0 L100 20 L0 20z"
+      },
+      prefix: this.ID_CLASS_PREFIX
+    });
+
+    createSVGNode(this.win, {
+      nodeType: "text",
+      parent: subSizeG,
+      attributes: {
+        "class": "label-text",
+        "id": "label-text-size",
+        "x": "50",
+        "y": "10"
+      },
+      prefix: this.ID_CLASS_PREFIX
+    });
+
+    return container;
+  },
+
+  destroy: function() {
+    AutoRefreshHighlighter.prototype.destroy.call(this);
+
+    this.markup.destroy();
+    this.definedProperties.clear();
+    this.definedProperties = null;
+    this.offsetParent = null;
+  },
+
+  
+
+
+
+
+
+  getDefinedGeometryProperties: function() {
+    let props = new Map();
+    if (!this.currentNode) {
+      return props;
+    }
+
+    
+    let cssRules = DOMUtils.getCSSStyleRules(this.currentNode);
+    for (let i = 0; i < cssRules.Count(); i++) {
+      let rule = cssRules.GetElementAt(i);
+      for (let name of GeoProp.allProps()) {
+        let value = rule.style.getPropertyValue(name);
+        if (value && value !== "auto") {
+          
+          
+          props.set(name, {
+            cssRule: rule
+          });
+        }
+      }
+    }
+
+    
+    for (let name of GeoProp.allProps()) {
+      let value = this.currentNode.style.getPropertyValue(name);
+      if (value && value !== "auto") {
+        props.set(name, {
+          
+          
+          cssRule: this.currentNode
+        });
+      }
+    }
+
+    
+    
+    
+    
+    for (let [name] of props) {
+      let pos = this.computedStyle.position;
+
+      
+      if (pos === "static" && GeoProp.SIDES.indexOf(name) !== -1) {
+        props.delete(name);
+      }
+
+      
+      
+      let hasRightAndLeft = name === "right" && props.has("left");
+      let hasBottomAndTop = name === "bottom" && props.has("top");
+      if (pos === "relative" && (hasRightAndLeft || hasBottomAndTop)) {
+        props.delete(name);
+      }
+    }
+
+    return props;
+  },
+
+  _show: function() {
+    this.computedStyle = CssLogic.getComputedStyle(this.currentNode);
+    let pos = this.computedStyle.position;
+    
+    if (pos === "sticky") {
+      this.hide();
+      return;
+    }
+
+    let hasUpdated = this._update();
+    if (!hasUpdated) {
+      this.hide();
+    }
+  },
+
+  _update: function() {
+    
+    
+    this.definedProperties = this.getDefinedGeometryProperties();
+
+    let isStatic = this.computedStyle.position === "static";
+    let hasSizes = GeoProp.containsSize([...this.definedProperties.keys()]);
+
+    if (!this.definedProperties.size) {
+      console.warn("The element does not have editable geometry properties");
+      return false;
+    }
+
+    setIgnoreLayoutChanges(true);
+
+    
+    this.updateOffsetParent();
+    this.updateCurrentNode();
+    this.updateArrows();
+    this.updateSize();
+
+    
+    this.markup.scaleRootElement(this.currentNode, this.ID_CLASS_PREFIX + "root");
+
+    setIgnoreLayoutChanges(false, this.currentNode.ownerDocument.documentElement);
+    return true;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  updateOffsetParent: function() {
+    
+    this.offsetParent = getOffsetParent(this.currentNode);
+    
+    this.parentQuads = this.layoutHelpers
+                       .getAdjustedQuads(this.offsetParent.element, "padding");
+
+    let el = this.markup.getElement(this.ID_CLASS_PREFIX + "offset-parent");
+
+    let isPositioned = this.computedStyle.position === "absolute" ||
+                       this.computedStyle.position === "fixed";
+    let isRelative = this.computedStyle.position === "relative";
+    let isHighlighted = false;
+
+    if (this.offsetParent.element && isPositioned) {
+      let {p1, p2, p3, p4} = this.parentQuads;
+      let points = p1.x + "," + p1.y + " " +
+                   p2.x + "," + p2.y + " " +
+                   p3.x + "," + p3.y + " " +
+                   p4.x + "," + p4.y;
+      el.setAttribute("points", points);
+      isHighlighted = true;
+    } else if (isRelative) {
+      let xDelta = parseFloat(this.computedStyle.left);
+      let yDelta = parseFloat(this.computedStyle.top);
+      if (xDelta || yDelta) {
+        let {p1, p2, p3, p4} = this.currentQuads.margin;
+        let points = (p1.x - xDelta) + "," + (p1.y - yDelta) + " " +
+                     (p2.x - xDelta) + "," + (p2.y - yDelta) + " " +
+                     (p3.x - xDelta) + "," + (p3.y - yDelta) + " " +
+                     (p4.x - xDelta) + "," + (p4.y - yDelta);
+        el.setAttribute("points", points);
+        isHighlighted = true;
+      }
+    }
+
+    if (isHighlighted) {
+      el.removeAttribute("hidden");
+    } else {
+      el.setAttribute("hidden", "true");
+    }
+  },
+
+  updateCurrentNode: function() {
+    let box = this.markup.getElement(this.ID_CLASS_PREFIX + "current-node");
+    let {p1, p2, p3, p4} = this.currentQuads.margin;
+    let attr = p1.x + "," + p1.y + " " +
+               p2.x + "," + p2.y + " " +
+               p3.x + "," + p3.y + " " +
+               p4.x + "," + p4.y;
+    box.setAttribute("points", attr);
+    box.removeAttribute("hidden");
+  },
+
+  _hide: function() {
+    setIgnoreLayoutChanges(true);
+
+    let id = this.ID_CLASS_PREFIX;
+    this.markup.setAttributeForElement(id + "current-node", "hidden", "true");
+    this.markup.setAttributeForElement(id + "offset-parent", "hidden", "true");
+    this.hideArrows();
+    this.hideSize();
+
+    this.definedProperties.clear();
+
+    setIgnoreLayoutChanges(false, this.currentNode.ownerDocument.documentElement);
+  },
+
+  hideArrows: function() {
+    for (let side of GeoProp.SIDES) {
+      let id = this.ID_CLASS_PREFIX;
+      this.markup.setAttributeForElement(id + "arrow-" + side, "hidden", "true");
+      this.markup.setAttributeForElement(id + "label-" + side, "hidden", "true");
+    }
+  },
+
+  hideSize: function() {
+    this.markup.setAttributeForElement(this.ID_CLASS_PREFIX + "label-size",
+      "hidden", "true");
+  },
+
+  updateSize: function() {
+    this.hideSize();
+
+    let labels = [];
+    let width = this.definedProperties.get("width");
+    let height = this.definedProperties.get("height");
+
+    if (width) {
+      labels.push("↔ " + width.cssRule.style.getPropertyValue("width"));
+    }
+    if (height) {
+      labels.push("↕ " + height.cssRule.style.getPropertyValue("height"));
+    }
+
+    if (labels.length) {
+      let id = this.ID_CLASS_PREFIX;
+      let labelEl = this.markup.getElement(id + "label-size");
+      let labelTextEl = this.markup.getElement(id + "label-text-size");
+
+      let {bounds} = this.currentQuads.margin;
+
+      labelEl.setAttribute("transform", "translate(" +
+        (bounds.left + bounds.width/2) + " " +
+        (bounds.top + bounds.height/2) + ")");
+      labelEl.removeAttribute("hidden");
+      labelTextEl.setTextContent(labels.join(" "));
+    }
+  },
+
+  updateArrows: function() {
+    this.hideArrows();
+
+    
+    let marginBox = this.currentQuads.margin.bounds;
+    
+    
+    let boxSizing = this.computedStyle.boxSizing.split("-")[0];
+    let box = this.currentQuads[boxSizing].bounds;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    let getSideArrowStartPos = side => {
+      
+      if (this.parentQuads) {
+        return this.parentQuads.bounds[side];
+      }
+
+      
+      if (this.computedStyle.position === "relative") {
+        if (GeoProp.isInverted(side)) {
+          return marginBox[side] + parseFloat(this.computedStyle[side]);
+        } else {
+          return marginBox[side] - parseFloat(this.computedStyle[side]);
+        }
+      }
+
+      
+      if (GeoProp.isInverted(side)) {
+        return this.offsetParent.dimension[GeoProp.mainAxisSize(side)];
+      } else {
+        return -1 * getWindow(this.currentNode)["scroll" +
+                                                GeoProp.axis(side).toUpperCase()];
+      }
+    };
+
+    for (let side of GeoProp.SIDES) {
+      let sideProp = this.definedProperties.get(side);
+      if (!sideProp) {
+        continue;
+      }
+
+      let mainAxisStartPos = getSideArrowStartPos(side);
+      let mainAxisEndPos = marginBox[side];
+      let crossAxisPos = marginBox[GeoProp.crossAxisStart(side)] +
+                         marginBox[GeoProp.crossAxisSize(side)] / 2;
+
+      this.updateArrow(side, mainAxisStartPos, mainAxisEndPos, crossAxisPos,
+                       sideProp.cssRule.style.getPropertyValue(side));
+    }
+  },
+
+  updateArrow: function(side, mainStart, mainEnd, crossPos, labelValue) {
+    let id = this.ID_CLASS_PREFIX;
+    let arrowEl = this.markup.getElement(id + "arrow-" + side);
+    let labelEl = this.markup.getElement(id + "label-" + side);
+    let labelTextEl = this.markup.getElement(id + "label-text-" + side);
+
+    
+    arrowEl.setAttribute(GeoProp.axis(side) + "1", mainStart);
+    arrowEl.setAttribute(GeoProp.crossAxis(side) + "1", crossPos);
+    arrowEl.setAttribute(GeoProp.axis(side) + "2", mainEnd);
+    arrowEl.setAttribute(GeoProp.crossAxis(side) + "2", crossPos);
+    arrowEl.removeAttribute("hidden");
+
+    
+    
+    let capitalize = str => str.substring(0, 1).toUpperCase() + str.substring(1);
+    let winMain = this.win["inner" + capitalize(GeoProp.mainAxisSize(side))]
+    let labelMain = mainStart + (mainEnd - mainStart) / 2;
+    if ((mainStart > 0 && mainStart < winMain) ||
+        (mainEnd > 0 && mainEnd < winMain)) {
+      if (labelMain < GEOMETRY_LABEL_SIZE) {
+        labelMain = GEOMETRY_LABEL_SIZE;
+      } else if (labelMain > winMain - GEOMETRY_LABEL_SIZE) {
+        labelMain = winMain - GEOMETRY_LABEL_SIZE;
+      }
+    }
+    let labelCross = crossPos;
+    labelEl.setAttribute("transform", GeoProp.isHorizontal(side)
+                         ? "translate(" + labelMain + " " + labelCross + ")"
+                         : "translate(" + labelCross + " " + labelMain + ")");
+    labelEl.removeAttribute("hidden");
+    labelTextEl.setTextContent(labelValue);
+  }
+});
+register(GeometryEditorHighlighter);
+exports.GeometryEditorHighlighter = GeometryEditorHighlighter;
+
+
+
+
+
 
 
 
@@ -1789,7 +2376,7 @@ SimpleOutlineHighlighter.prototype = {
     if (!this.currentNode || node !== this.currentNode) {
       this.hide();
       this.currentNode = node;
-      installHelperSheet(node.ownerDocument.defaultView, SIMPLE_OUTLINE_SHEET);
+      installHelperSheet(getWindow(node), SIMPLE_OUTLINE_SHEET);
       DOMUtils.addPseudoClassLock(node, HIGHLIGHTED_PSEUDO_CLASS);
     }
   },
@@ -1909,6 +2496,64 @@ function createNode(win, options) {
   }
 
   return node;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getPageListenerTarget(tabActor) {
+  return tabActor.isRootActor ? tabActor.window : tabActor.chromeEventHandler;
+}
+
+
+
+
+function getWindow(node) {
+  return node.ownerDocument.defaultView;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getOffsetParent(node) {
+  let offsetParent = node.offsetParent;
+  if (offsetParent &&
+      CssLogic.getComputedStyle(offsetParent).position === "static") {
+    offsetParent = null;
+  }
+
+  let width, height;
+  if (!offsetParent) {
+    height = getWindow(node).innerHeight;
+    width = getWindow(node).innerWidth;
+  } else {
+    height = offsetParent.offsetHeight;
+    width = offsetParent.offsetWidth;
+  }
+
+  return {
+    element: offsetParent,
+    dimension: {width, height}
+  };
 }
 
 XPCOMUtils.defineLazyGetter(this, "DOMUtils", function () {
