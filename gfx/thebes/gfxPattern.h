@@ -93,15 +93,9 @@ public:
     
     bool GetSolidColor(gfxRGBA& aColor);
 
-    bool IsAzure() { return !mPattern; }
-
-    mozilla::TemporaryRef<mozilla::gfx::SourceSurface> GetAzureSurface() { return mSourceSurface; }
-
 private:
     
     ~gfxPattern();
-
-    cairo_pattern_t *mPattern;
 
     
 
@@ -130,8 +124,8 @@ private:
     mozilla::RefPtr<mozilla::gfx::SourceSurface> mSourceSurface;
     mozilla::gfx::Matrix mTransform;
     mozilla::RefPtr<mozilla::gfx::GradientStops> mStops;
+    nsTArray<mozilla::gfx::GradientStop> mStopsList;
     GraphicsExtend mExtend;
-    mozilla::gfx::Filter mFilter;
 };
 
 #endif 
