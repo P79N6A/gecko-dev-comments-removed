@@ -31,6 +31,15 @@ XPCOMUtils.defineLazyModuleGetter(this, "ProfileAge",
 XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
                                   "resource://gre/modules/UpdateChannel.jsm");
 
+const CHANGE_THROTTLE_INTERVAL_MS = 5 * 60 * 1000;
+
+
+
+
+let Policy = {
+  now: () => new Date(),
+};
+
 var gGlobalEnvironment;
 function getGlobal() {
   if (!gGlobalEnvironment) {
@@ -629,6 +638,9 @@ function EnvironmentCache() {
   this._changeListeners = new Map();
 
   
+  this._lastEnvironmentChangeDate = null;
+
+  
   
   this._watchedPrefs = DEFAULT_ENVIRONMENT_PREFS;
 
@@ -1065,7 +1077,16 @@ EnvironmentCache.prototype = {
     }
 
     
-    
+    let now = Policy.now();
+    if (this._lastEnvironmentChangeDate &&
+        (CHANGE_THROTTLE_INTERVAL_MS >=
+         (now.getTime() - this._lastEnvironmentChangeDate.getTime()))) {
+      this._log.trace("_onEnvironmentChange - throttling changes, now: " + now +
+                      ", last change: " + this._lastEnvironmentChangeDate);
+      return;
+    }
+
+    this._lastEnvironmentChangeDate = now;
 
     for (let [name, listener] of this._changeListeners) {
       try {
