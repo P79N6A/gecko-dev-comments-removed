@@ -204,7 +204,10 @@ private:
   
   
   
-  imgINotificationObserver* mListener;
+  imgINotificationObserver* MOZ_UNSAFE_REF("Observers must call Cancel() or "
+                                           "CancelAndForgetObserver() before "
+                                           "they are destroyed") mListener;
+
   nsCOMPtr<nsILoadGroup> mLoadGroup;
 
   nsLoadFlags mLoadFlags;
