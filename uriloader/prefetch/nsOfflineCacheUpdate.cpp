@@ -187,6 +187,7 @@ nsManifestCheck::Begin()
                        nsIContentPolicy::TYPE_OTHER,
                        nullptr,   
                        nullptr,   
+                       nullptr,   
                        nsIRequest::LOAD_BYPASS_CACHE);
 
     NS_ENSURE_SUCCESS(rv, rv);
@@ -382,6 +383,7 @@ nsOfflineCacheUpdateItem::OpenChannel(nsOfflineCacheUpdate *aUpdate)
                        nsContentUtils::GetSystemPrincipal(),
                        nsILoadInfo::SEC_NORMAL,
                        nsIContentPolicy::TYPE_OTHER,
+                       nullptr,  
                        nullptr,  
                        this,     
                        flags);

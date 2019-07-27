@@ -51,6 +51,8 @@
 #include "nsIPromptFactory.h"
 #include "nsIWindowWatcher.h"
 #include "nsIConsoleService.h"
+#include "nsIChannelPolicy.h"
+#include "nsChannelPolicy.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsAsyncRedirectVerifyHelper.h"
 #include "nsStringBuffer.h"
@@ -1722,6 +1724,17 @@ nsXMLHttpRequest::Open(const nsACString& inMethod, const nsACString& url,
   
   nsCOMPtr<nsILoadGroup> loadGroup = GetLoadGroup();
 
+  
+  nsCOMPtr<nsIChannelPolicy> channelPolicy;
+  nsCOMPtr<nsIContentSecurityPolicy> csp;
+  rv = mPrincipal->GetCsp(getter_AddRefs(csp));
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (csp) {
+    channelPolicy = do_CreateInstance("@mozilla.org/nschannelpolicy;1");
+    channelPolicy->SetContentSecurityPolicy(csp);
+    channelPolicy->SetLoadType(nsIContentPolicy::TYPE_XMLHTTPREQUEST);
+  }
+
   nsSecurityFlags secFlags = nsILoadInfo::SEC_NORMAL;
   if (IsSystemXHR()) {
     
@@ -1741,6 +1754,7 @@ nsXMLHttpRequest::Open(const nsACString& inMethod, const nsACString& url,
                        doc,
                        secFlags,
                        nsIContentPolicy::TYPE_XMLHTTPREQUEST,
+                       channelPolicy,
                        loadGroup,
                        nullptr,   
                        nsIRequest::LOAD_BACKGROUND);
@@ -1751,6 +1765,7 @@ nsXMLHttpRequest::Open(const nsACString& inMethod, const nsACString& url,
                        mPrincipal,
                        secFlags,
                        nsIContentPolicy::TYPE_XMLHTTPREQUEST,
+                       channelPolicy,
                        loadGroup,
                        nullptr,   
                        nsIRequest::LOAD_BACKGROUND);
