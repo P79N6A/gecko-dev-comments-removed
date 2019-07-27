@@ -411,6 +411,11 @@ public:
 
   double Duration() const;
 
+  bool IsEncrypted() const
+  {
+    return mIsEncrypted;
+  }
+
   bool Paused() const
   {
     return mPaused;
@@ -1297,6 +1302,9 @@ protected:
 
   
   bool mHasVideo;
+
+  
+  bool mIsEncrypted;
 
   
   bool mDownloadSuspendedByCache;
