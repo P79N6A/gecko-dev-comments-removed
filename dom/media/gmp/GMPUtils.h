@@ -18,8 +18,11 @@ struct DestroyPolicy
   }
 };
 
+
 template<typename T>
-using GMPUniquePtr = mozilla::UniquePtr<T, DestroyPolicy<T>>;
+struct GMPUnique {
+  typedef mozilla::UniquePtr<T, DestroyPolicy<T>> Ptr;
+};
 
 } 
 
