@@ -640,16 +640,18 @@ nsTransitionManager::WalkTransitionRule(
     return;
   }
 
-  if (aData->mPresContext->IsProcessingRestyles() &&
-      !aData->mPresContext->IsProcessingAnimationStyleChange()) {
+  RestyleManager* restyleManager = aData->mPresContext->RestyleManager();
+  if (restyleManager->SkipAnimationRules()) {
     
     
     
     
 
-    
-    
-    collection->PostRestyleForAnimation(mPresContext);
+    if (restyleManager->PostAnimationRestyles()) {
+      
+      
+      collection->PostRestyleForAnimation(mPresContext);
+    }
     return;
   }
 

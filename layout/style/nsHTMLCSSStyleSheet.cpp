@@ -17,6 +17,7 @@
 #include "mozilla/dom/Element.h"
 #include "nsAttrValue.h"
 #include "nsAttrValueInlines.h"
+#include "RestyleManager.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -72,13 +73,15 @@ nsHTMLCSSStyleSheet::ElementRulesMatching(nsPresContext* aPresContext,
 
   rule = aElement->GetSMILOverrideStyleRule();
   if (rule) {
-    if (aPresContext->IsProcessingRestyles() &&
-        !aPresContext->IsProcessingAnimationStyleChange()) {
+    RestyleManager* restyleManager = aPresContext->RestyleManager();
+    if (restyleManager->SkipAnimationRules()) {
       
       
       
-      aPresContext->PresShell()->RestyleForAnimation(aElement,
-        eRestyle_StyleAttribute | eRestyle_ChangeAnimationPhase);
+      if (restyleManager->PostAnimationRestyles()) {
+        aPresContext->PresShell()->RestyleForAnimation(aElement,
+          eRestyle_StyleAttribute | eRestyle_ChangeAnimationPhase);
+      }
     } else {
       
       

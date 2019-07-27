@@ -51,6 +51,7 @@
 #include "nsSMILAnimationController.h"
 #include "mozilla/dom/SVGElementBinding.h"
 #include "mozilla/unused.h"
+#include "RestyleManager.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -916,17 +917,18 @@ nsSVGElement::WalkAnimatedContentStyleRules(nsRuleWalker* aRuleWalker)
   
   
   
-  nsIDocument* doc = OwnerDoc();
-  nsIPresShell* shell = doc->GetShell();
-  nsPresContext* context = shell ? shell->GetPresContext() : nullptr;
-  if (context && context->IsProcessingRestyles() &&
-      !context->IsProcessingAnimationStyleChange()) {
-    
-    
-    
-    
-    shell->RestyleForAnimation(this,
-      eRestyle_SVGAttrAnimations | eRestyle_ChangeAnimationPhase);
+  nsPresContext* context = aRuleWalker->PresContext();
+  nsIPresShell* shell = context->PresShell();
+  RestyleManager* restyleManager = context->RestyleManager();
+  if (restyleManager->SkipAnimationRules()) {
+    if (restyleManager->PostAnimationRestyles()) {
+      
+      
+      
+      
+      shell->RestyleForAnimation(this,
+        eRestyle_SVGAttrAnimations | eRestyle_ChangeAnimationPhase);
+    }
   } else {
     
     

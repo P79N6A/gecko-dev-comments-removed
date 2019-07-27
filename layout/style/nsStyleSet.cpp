@@ -37,6 +37,7 @@
 #include "nsCSSRules.h"
 #include "nsPrintfCString.h"
 #include "nsIFrame.h"
+#include "RestyleManager.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -1367,6 +1368,7 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
                                     uint32_t(aReplacements)).get());
 
   bool skipAnimationRules = false;
+  bool postAnimationRestyles = false;
 
   
   
@@ -1376,9 +1378,9 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
                      eRestyle_SVGAttrAnimations |
                      eRestyle_StyleAttribute;
 
-    nsPresContext* presContext = PresContext();
-    skipAnimationRules = presContext->IsProcessingRestyles() &&
-                         !presContext->IsProcessingAnimationStyleChange();
+    RestyleManager* restyleManager = PresContext()->RestyleManager();
+    skipAnimationRules = restyleManager->SkipAnimationRules();
+    postAnimationRestyles = restyleManager->PostAnimationRestyles();
   }
 
   
@@ -1430,7 +1432,9 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
 
           if (collection) {
             if (skipAnimationRules) {
-              collection->PostRestyleForAnimation(presContext);
+              if (postAnimationRestyles) {
+                collection->PostRestyleForAnimation(presContext);
+              }
             } else {
               animationManager->UpdateStyleAndEvents(
                 collection, PresContext()->RefreshDriver()->MostRecentRefresh(),
@@ -1453,7 +1457,9 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
 
           if (collection) {
             if (skipAnimationRules) {
-              collection->PostRestyleForAnimation(presContext);
+              if (postAnimationRestyles) {
+                collection->PostRestyleForAnimation(presContext);
+              }
             } else {
               collection->EnsureStyleRuleFor(
                 presContext->RefreshDriver()->MostRecentRefresh(),
@@ -2080,7 +2086,8 @@ nsStyleSet::GCRuleTrees()
 
 
 static inline nsRuleNode*
-SkipAnimationRules(nsRuleNode* aRuleNode, Element* aElementOrPseudoElement)
+SkipAnimationRules(nsRuleNode* aRuleNode, Element* aElementOrPseudoElement,
+                   bool aPostAnimationRestyles)
 {
   nsRuleNode* ruleNode = aRuleNode;
   
@@ -2099,7 +2106,7 @@ SkipAnimationRules(nsRuleNode* aRuleNode, Element* aElementOrPseudoElement)
     ruleNode = ReplaceAnimationRule(ruleNode, animationRule, nullptr);
   }
 
-  if (ruleNode != aRuleNode) {
+  if (ruleNode != aRuleNode && aPostAnimationRestyles) {
     NS_ASSERTION(aElementOrPseudoElement,
                  "How can we have transition rules but no element?");
     
@@ -2135,14 +2142,15 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
 
   
   
-  bool skipAnimationRules = PresContext()->IsProcessingRestyles() &&
-    !PresContext()->IsProcessingAnimationStyleChange();
+  RestyleManager* restyleManager = PresContext()->RestyleManager();
+  bool skipAnimationRules = restyleManager->SkipAnimationRules();
+  bool postAnimationRestyles = restyleManager->PostAnimationRestyles();
   if (skipAnimationRules) {
     
     
     
-    ruleNode =
-      SkipAnimationRules(ruleNode, aElementOrPseudoElement);
+    ruleNode = SkipAnimationRules(ruleNode, aElementOrPseudoElement,
+                                  postAnimationRestyles);
   }
 
   nsRuleNode* visitedRuleNode = nullptr;
@@ -2157,7 +2165,8 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
      if (skipAnimationRules) {
       
        visitedRuleNode =
-         SkipAnimationRules(visitedRuleNode, aElementOrPseudoElement);
+         SkipAnimationRules(visitedRuleNode, aElementOrPseudoElement,
+                            postAnimationRestyles);
      }
   }
 
