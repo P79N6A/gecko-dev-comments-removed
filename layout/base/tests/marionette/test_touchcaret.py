@@ -152,7 +152,7 @@ class CommonCaretTestCase(object):
         timeout = self.timeout_ms() / 1000.0
 
         
-        timeout *= 1.5
+        timeout *= 3
 
         
         
