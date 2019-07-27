@@ -49,6 +49,7 @@
 #include "nsIWidget.h"                  
 #include "nsLiteralString.h"            
 #include "nsPIWindowRoot.h"             
+#include "nsPrintfCString.h"            
 #include "nsServiceManagerUtils.h"      
 #include "nsString.h"                   
 #ifdef HANDLE_NATIVE_TEXT_DIRECTION_SWITCH
@@ -310,50 +311,109 @@ NS_IMPL_ISUPPORTS(nsEditorEventListener, nsIDOMEventListener)
 NS_IMETHODIMP
 nsEditorEventListener::HandleEvent(nsIDOMEvent* aEvent)
 {
-  NS_ENSURE_TRUE(mEditor, NS_ERROR_NOT_AVAILABLE);
+  NS_ENSURE_TRUE(mEditor, NS_ERROR_FAILURE);
+
   nsCOMPtr<nsIEditor> kungFuDeathGrip = mEditor;
+
+  WidgetEvent* internalEvent = aEvent->GetInternalNSEvent();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  switch (internalEvent->message) {
+    
+    case NS_DRAGDROP_ENTER: {
+      nsCOMPtr<nsIDOMDragEvent> dragEvent = do_QueryInterface(aEvent);
+      return DragEnter(dragEvent);
+    }
+    
+    case NS_DRAGDROP_OVER_SYNTH: {
+      nsCOMPtr<nsIDOMDragEvent> dragEvent = do_QueryInterface(aEvent);
+      return DragOver(dragEvent);
+    }
+    
+    case NS_DRAGDROP_EXIT_SYNTH: {
+      nsCOMPtr<nsIDOMDragEvent> dragEvent = do_QueryInterface(aEvent);
+      return DragExit(dragEvent);
+    }
+    
+    case NS_DRAGDROP_DROP: {
+      nsCOMPtr<nsIDOMDragEvent> dragEvent = do_QueryInterface(aEvent);
+      return Drop(dragEvent);
+    }
+#ifdef HANDLE_NATIVE_TEXT_DIRECTION_SWITCH
+    
+    case NS_KEY_DOWN: {
+      nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aEvent);
+      return KeyDown(keyEvent);
+    }
+    
+    case NS_KEY_UP: {
+      nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aEvent);
+      return KeyUp(keyEvent);
+    }
+#endif 
+    
+    case NS_KEY_PRESS: {
+      nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aEvent);
+      return KeyPress(keyEvent);
+    }
+    
+    case NS_MOUSE_BUTTON_DOWN: {
+      nsCOMPtr<nsIDOMMouseEvent> mouseEvent = do_QueryInterface(aEvent);
+      return MouseDown(mouseEvent);
+    }
+    
+    case NS_MOUSE_BUTTON_UP: {
+      nsCOMPtr<nsIDOMMouseEvent> mouseEvent = do_QueryInterface(aEvent);
+      return MouseUp(mouseEvent);
+    }
+    
+    case NS_MOUSE_CLICK: {
+      nsCOMPtr<nsIDOMMouseEvent> mouseEvent = do_QueryInterface(aEvent);
+      return MouseClick(mouseEvent);
+    }
+    
+    case NS_FOCUS_CONTENT:
+      return Focus(aEvent);
+    
+    case NS_BLUR_CONTENT:
+      return Blur(aEvent);
+    
+    case NS_TEXT_TEXT:
+      return HandleText(aEvent);
+    
+    case NS_COMPOSITION_START:
+      return HandleStartComposition(aEvent);
+    
+    case NS_COMPOSITION_END:
+      HandleEndComposition(aEvent);
+      return NS_OK;
+  }
 
   nsAutoString eventType;
   aEvent->GetType(eventType);
-
-  nsCOMPtr<nsIDOMDragEvent> dragEvent = do_QueryInterface(aEvent);
-  if (dragEvent) {
-    if (eventType.EqualsLiteral("dragenter"))
-      return DragEnter(dragEvent);
-    if (eventType.EqualsLiteral("dragover"))
-      return DragOver(dragEvent);
-    if (eventType.EqualsLiteral("dragexit"))
-      return DragExit(dragEvent);
-    if (eventType.EqualsLiteral("drop"))
-      return Drop(dragEvent);
-  }
-
-#ifdef HANDLE_NATIVE_TEXT_DIRECTION_SWITCH
-  if (eventType.EqualsLiteral("keydown"))
-    return KeyDown(aEvent);
-  if (eventType.EqualsLiteral("keyup"))
-    return KeyUp(aEvent);
-#endif
-  if (eventType.EqualsLiteral("keypress"))
-    return KeyPress(aEvent);
-  if (eventType.EqualsLiteral("mousedown"))
-    return MouseDown(aEvent);
-  if (eventType.EqualsLiteral("mouseup"))
-    return MouseUp(aEvent);
-  if (eventType.EqualsLiteral("click"))
-    return MouseClick(aEvent);
-  if (eventType.EqualsLiteral("focus"))
+  
+  
+  if (eventType.EqualsLiteral("focus")) {
     return Focus(aEvent);
-  if (eventType.EqualsLiteral("blur"))
-    return Blur(aEvent);
-  if (eventType.EqualsLiteral("text"))
-    return HandleText(aEvent);
-  if (eventType.EqualsLiteral("compositionstart"))
-    return HandleStartComposition(aEvent);
-  if (eventType.EqualsLiteral("compositionend")) {
-    HandleEndComposition(aEvent);
-    return NS_OK;
   }
+  if (eventType.EqualsLiteral("blur")) {
+    return Blur(aEvent);
+  }
+#ifdef DEBUG
+  nsPrintfCString assertMessage("Editor doesn't handle \"%s\" event "
+    "because its internal event doesn't have proper message",
+    NS_ConvertUTF16toUTF8(eventType).get());
+  NS_ASSERTION(false, assertMessage.get());
+#endif
 
   return NS_OK;
 }
@@ -423,17 +483,13 @@ bool IsCtrlShiftPressed(bool& isRTL)
 
 
 nsresult
-nsEditorEventListener::KeyUp(nsIDOMEvent* aKeyEvent)
+nsEditorEventListener::KeyUp(nsIDOMKeyEvent* aKeyEvent)
 {
-  if (mHaveBidiKeyboards) {
-    nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aKeyEvent);
-    if (!keyEvent) {
-      
-      return NS_OK;
-    }
+  NS_ENSURE_TRUE(aKeyEvent, NS_OK);
 
+  if (mHaveBidiKeyboards) {
     uint32_t keyCode = 0;
-    keyEvent->GetKeyCode(&keyCode);
+    aKeyEvent->GetKeyCode(&keyCode);
     if (keyCode == nsIDOMKeyEvent::DOM_VK_SHIFT ||
         keyCode == nsIDOMKeyEvent::DOM_VK_CONTROL) {
       if (mShouldSwitchTextDirection && mEditor->IsPlaintextEditor()) {
@@ -449,17 +505,13 @@ nsEditorEventListener::KeyUp(nsIDOMEvent* aKeyEvent)
 }
 
 nsresult
-nsEditorEventListener::KeyDown(nsIDOMEvent* aKeyEvent)
+nsEditorEventListener::KeyDown(nsIDOMKeyEvent* aKeyEvent)
 {
-  if (mHaveBidiKeyboards) {
-    nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aKeyEvent);
-    if (!keyEvent) {
-      
-      return NS_OK;
-    }
+  NS_ENSURE_TRUE(aKeyEvent, NS_OK);
 
+  if (mHaveBidiKeyboards) {
     uint32_t keyCode = 0;
-    keyEvent->GetKeyCode(&keyCode);
+    aKeyEvent->GetKeyCode(&keyCode);
     if (keyCode == nsIDOMKeyEvent::DOM_VK_SHIFT) {
       bool switchToRTL;
       if (IsCtrlShiftPressed(switchToRTL)) {
@@ -477,9 +529,9 @@ nsEditorEventListener::KeyDown(nsIDOMEvent* aKeyEvent)
 #endif
 
 nsresult
-nsEditorEventListener::KeyPress(nsIDOMEvent* aKeyEvent)
+nsEditorEventListener::KeyPress(nsIDOMKeyEvent* aKeyEvent)
 {
-  NS_ENSURE_TRUE(mEditor, NS_ERROR_NOT_AVAILABLE);
+  NS_ENSURE_TRUE(aKeyEvent, NS_OK);
 
   if (!mEditor->IsAcceptableInputEvent(aKeyEvent)) {
     return NS_OK;
@@ -497,13 +549,7 @@ nsEditorEventListener::KeyPress(nsIDOMEvent* aKeyEvent)
     return NS_OK;
   }
 
-  nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aKeyEvent);
-  if (!keyEvent) {
-    
-    return NS_OK;
-  }
-
-  nsresult rv = mEditor->HandleKeyPressEvent(keyEvent);
+  nsresult rv = mEditor->HandleKeyPressEvent(aKeyEvent);
   NS_ENSURE_SUCCESS(rv, rv);
 
   aKeyEvent->GetDefaultPrevented(&defaultPrevented);
@@ -539,12 +585,9 @@ nsEditorEventListener::KeyPress(nsIDOMEvent* aKeyEvent)
 }
 
 nsresult
-nsEditorEventListener::MouseClick(nsIDOMEvent* aMouseEvent)
+nsEditorEventListener::MouseClick(nsIDOMMouseEvent* aMouseEvent)
 {
-  NS_ENSURE_TRUE(mEditor, NS_ERROR_NOT_AVAILABLE);
-
-  nsCOMPtr<nsIDOMMouseEvent> mouseEvent = do_QueryInterface(aMouseEvent);
-  NS_ENSURE_TRUE(mouseEvent, NS_OK);
+  NS_ENSURE_TRUE(aMouseEvent, NS_OK);
 
   
   if (mEditor->IsReadonly() || mEditor->IsDisabled() ||
@@ -563,7 +606,7 @@ nsEditorEventListener::MouseClick(nsIDOMEvent* aMouseEvent)
     if (presContext && currentDoc) {
       IMEStateManager::OnClickInEditor(presContext,
         currentDoc->HasFlag(NODE_IS_EDITABLE) ? nullptr : focusedContent,
-        mouseEvent);
+        aMouseEvent);
     }
   }
 
@@ -579,7 +622,7 @@ nsEditorEventListener::MouseClick(nsIDOMEvent* aMouseEvent)
   mEditor->ForceCompositionEnd();
 
   int16_t button = -1;
-  mouseEvent->GetButton(&button);
+  aMouseEvent->GetButton(&button);
   
   if (button == 1)
   {
@@ -587,11 +630,13 @@ nsEditorEventListener::MouseClick(nsIDOMEvent* aMouseEvent)
     {
       
       nsCOMPtr<nsIDOMNode> parent;
-      if (NS_FAILED(mouseEvent->GetRangeParent(getter_AddRefs(parent))))
+      if (NS_FAILED(aMouseEvent->GetRangeParent(getter_AddRefs(parent)))) {
         return NS_ERROR_NULL_POINTER;
+      }
       int32_t offset = 0;
-      if (NS_FAILED(mouseEvent->GetRangeOffset(&offset)))
+      if (NS_FAILED(aMouseEvent->GetRangeOffset(&offset))) {
         return NS_ERROR_NULL_POINTER;
+      }
 
       nsCOMPtr<nsISelection> selection;
       if (NS_SUCCEEDED(mEditor->GetSelection(getter_AddRefs(selection))))
@@ -600,7 +645,7 @@ nsEditorEventListener::MouseClick(nsIDOMEvent* aMouseEvent)
       
       
       bool ctrlKey = false;
-      mouseEvent->GetCtrlKey(&ctrlKey);
+      aMouseEvent->GetCtrlKey(&ctrlKey);
 
       nsCOMPtr<nsIEditorMailSupport> mailEditor;
       if (ctrlKey)
@@ -624,8 +669,8 @@ nsEditorEventListener::MouseClick(nsIDOMEvent* aMouseEvent)
 
       
       
-      mouseEvent->StopPropagation();
-      mouseEvent->PreventDefault();
+      aMouseEvent->StopPropagation();
+      aMouseEvent->PreventDefault();
 
       
       return NS_OK;
@@ -635,9 +680,10 @@ nsEditorEventListener::MouseClick(nsIDOMEvent* aMouseEvent)
 }
 
 nsresult
-nsEditorEventListener::MouseDown(nsIDOMEvent* aMouseEvent)
+nsEditorEventListener::MouseDown(nsIDOMMouseEvent* aMouseEvent)
 {
-  NS_ENSURE_TRUE(mEditor, NS_ERROR_NOT_AVAILABLE);
+  NS_ENSURE_TRUE(aMouseEvent, NS_OK);
+
   mEditor->ForceCompositionEnd();
   return NS_OK;
 }
@@ -645,8 +691,6 @@ nsEditorEventListener::MouseDown(nsIDOMEvent* aMouseEvent)
 nsresult
 nsEditorEventListener::HandleText(nsIDOMEvent* aTextEvent)
 {
-  NS_ENSURE_TRUE(mEditor, NS_ERROR_NOT_AVAILABLE);
-
   if (!mEditor->IsAcceptableInputEvent(aTextEvent)) {
     return NS_OK;
   }
@@ -666,6 +710,8 @@ nsEditorEventListener::HandleText(nsIDOMEvent* aTextEvent)
 nsresult
 nsEditorEventListener::DragEnter(nsIDOMDragEvent* aDragEvent)
 {
+  NS_ENSURE_TRUE(aDragEvent, NS_OK);
+
   nsCOMPtr<nsIPresShell> presShell = GetPresShell();
   NS_ENSURE_TRUE(presShell, NS_OK);
 
@@ -683,6 +729,8 @@ nsEditorEventListener::DragEnter(nsIDOMDragEvent* aDragEvent)
 nsresult
 nsEditorEventListener::DragOver(nsIDOMDragEvent* aDragEvent)
 {
+  NS_ENSURE_TRUE(aDragEvent, NS_OK);
+
   nsCOMPtr<nsIDOMNode> parent;
   bool defaultPrevented;
   aDragEvent->GetDefaultPrevented(&defaultPrevented);
@@ -748,28 +796,32 @@ nsEditorEventListener::CleanupDragDropCaret()
 nsresult
 nsEditorEventListener::DragExit(nsIDOMDragEvent* aDragEvent)
 {
+  NS_ENSURE_TRUE(aDragEvent, NS_OK);
+
   CleanupDragDropCaret();
 
   return NS_OK;
 }
 
 nsresult
-nsEditorEventListener::Drop(nsIDOMDragEvent* aMouseEvent)
+nsEditorEventListener::Drop(nsIDOMDragEvent* aDragEvent)
 {
+  NS_ENSURE_TRUE(aDragEvent, NS_OK);
+
   CleanupDragDropCaret();
 
   bool defaultPrevented;
-  aMouseEvent->GetDefaultPrevented(&defaultPrevented);
+  aDragEvent->GetDefaultPrevented(&defaultPrevented);
   if (defaultPrevented) {
     return NS_OK;
   }
 
   nsCOMPtr<nsIDOMNode> parent;
-  aMouseEvent->GetRangeParent(getter_AddRefs(parent));
+  aDragEvent->GetRangeParent(getter_AddRefs(parent));
   nsCOMPtr<nsIContent> dropParent = do_QueryInterface(parent);
   NS_ENSURE_TRUE(dropParent, NS_ERROR_FAILURE);
 
-  if (!dropParent->IsEditable() || !CanDrop(aMouseEvent)) {
+  if (!dropParent->IsEditable() || !CanDrop(aDragEvent)) {
     
     if ((mEditor->IsReadonly() || mEditor->IsDisabled()) &&
         !IsFileControlTextBox()) {
@@ -777,14 +829,14 @@ nsEditorEventListener::Drop(nsIDOMDragEvent* aMouseEvent)
       
       
       
-      return aMouseEvent->StopPropagation();
+      return aDragEvent->StopPropagation();
     }
     return NS_OK;
   }
 
-  aMouseEvent->StopPropagation();
-  aMouseEvent->PreventDefault();
-  return mEditor->InsertFromDrop(aMouseEvent);
+  aDragEvent->StopPropagation();
+  aDragEvent->PreventDefault();
+  return mEditor->InsertFromDrop(aDragEvent);
 }
 
 bool
@@ -871,7 +923,6 @@ nsEditorEventListener::CanDrop(nsIDOMDragEvent* aEvent)
 nsresult
 nsEditorEventListener::HandleStartComposition(nsIDOMEvent* aCompositionEvent)
 {
-  NS_ENSURE_TRUE(mEditor, NS_ERROR_NOT_AVAILABLE);
   if (!mEditor->IsAcceptableInputEvent(aCompositionEvent)) {
     return NS_OK;
   }
@@ -883,7 +934,6 @@ nsEditorEventListener::HandleStartComposition(nsIDOMEvent* aCompositionEvent)
 void
 nsEditorEventListener::HandleEndComposition(nsIDOMEvent* aCompositionEvent)
 {
-  MOZ_ASSERT(mEditor);
   if (!mEditor->IsAcceptableInputEvent(aCompositionEvent)) {
     return;
   }
@@ -894,8 +944,7 @@ nsEditorEventListener::HandleEndComposition(nsIDOMEvent* aCompositionEvent)
 nsresult
 nsEditorEventListener::Focus(nsIDOMEvent* aEvent)
 {
-  NS_ENSURE_TRUE(mEditor, NS_ERROR_NOT_AVAILABLE);
-  NS_ENSURE_ARG(aEvent);
+  NS_ENSURE_TRUE(aEvent, NS_OK);
 
   
   if (mEditor->IsDisabled()) {
@@ -952,8 +1001,7 @@ nsEditorEventListener::Focus(nsIDOMEvent* aEvent)
 nsresult
 nsEditorEventListener::Blur(nsIDOMEvent* aEvent)
 {
-  NS_ENSURE_TRUE(mEditor, NS_ERROR_NOT_AVAILABLE);
-  NS_ENSURE_ARG(aEvent);
+  NS_ENSURE_TRUE(aEvent, NS_OK);
 
   
   
@@ -998,7 +1046,7 @@ nsEditorEventListener::IsFileControlTextBox()
 }
 
 bool
-nsEditorEventListener::ShouldHandleNativeKeyBindings(nsIDOMEvent* aKeyEvent)
+nsEditorEventListener::ShouldHandleNativeKeyBindings(nsIDOMKeyEvent* aKeyEvent)
 {
   
   
