@@ -65,6 +65,7 @@ private:
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(BackgroundHangManager)
   static StaticRefPtr<BackgroundHangManager> sInstance;
+  static bool sProhibited;
 
   
   Monitor mLock;
@@ -162,6 +163,7 @@ public:
 
 
 StaticRefPtr<BackgroundHangManager> BackgroundHangManager::sInstance;
+bool BackgroundHangManager::sProhibited = false;
 
 ThreadLocal<BackgroundHangThread*> BackgroundHangThread::sTlsKey;
 
@@ -413,8 +415,16 @@ BackgroundHangThread*
 BackgroundHangThread::FindThread()
 {
 #ifdef MOZ_ENABLE_BACKGROUND_HANG_MONITOR
+  if (BackgroundHangManager::sInstance == nullptr) {
+    MOZ_ASSERT(BackgroundHangManager::sProhibited,
+               "BackgroundHandleManager is not initialized");
+    return nullptr;
+  }
+
   if (sTlsKey.initialized()) {
     
+    MOZ_ASSERT(!BackgroundHangManager::sProhibited,
+               "BackgroundHandleManager is not initialized");
     return sTlsKey.get();
   }
   
@@ -440,6 +450,7 @@ void
 BackgroundHangMonitor::Startup()
 {
 #ifdef MOZ_ENABLE_BACKGROUND_HANG_MONITOR
+  MOZ_ASSERT(!BackgroundHangManager::sProhibited, "Prohibited");
   MOZ_ASSERT(!BackgroundHangManager::sInstance, "Already initialized");
   ThreadStackHelper::Startup();
   BackgroundHangThread::Startup();
@@ -451,6 +462,7 @@ void
 BackgroundHangMonitor::Shutdown()
 {
 #ifdef MOZ_ENABLE_BACKGROUND_HANG_MONITOR
+  MOZ_ASSERT(!BackgroundHangManager::sProhibited, "Prohibited");
   MOZ_ASSERT(BackgroundHangManager::sInstance, "Not initialized");
   
 
@@ -467,7 +479,8 @@ BackgroundHangMonitor::BackgroundHangMonitor(const char* aName,
   : mThread(BackgroundHangThread::FindThread())
 {
 #ifdef MOZ_ENABLE_BACKGROUND_HANG_MONITOR
-  if (!mThread) {
+  if (!BackgroundHangManager::sProhibited && !mThread) {
+    
     mThread = new BackgroundHangThread(aName, aTimeoutMs, aMaxTimeoutMs);
   }
 #endif
@@ -477,7 +490,8 @@ BackgroundHangMonitor::BackgroundHangMonitor()
   : mThread(BackgroundHangThread::FindThread())
 {
 #ifdef MOZ_ENABLE_BACKGROUND_HANG_MONITOR
-  MOZ_ASSERT(mThread, "Thread not initialized for hang monitoring");
+  MOZ_ASSERT(!BackgroundHangManager::sProhibited || mThread,
+             "This thread is not initialized for hang monitoring");
 #endif
 }
 
@@ -489,6 +503,11 @@ void
 BackgroundHangMonitor::NotifyActivity()
 {
 #ifdef MOZ_ENABLE_BACKGROUND_HANG_MONITOR
+  if (mThread == nullptr) {
+    MOZ_ASSERT(BackgroundHangManager::sProhibited,
+               "This thread is not initialized for hang monitoring");
+    return;
+  }
   mThread->NotifyActivity();
 #endif
 }
@@ -497,7 +516,32 @@ void
 BackgroundHangMonitor::NotifyWait()
 {
 #ifdef MOZ_ENABLE_BACKGROUND_HANG_MONITOR
+  if (mThread == nullptr) {
+    MOZ_ASSERT(BackgroundHangManager::sProhibited,
+               "This thread is not initialized for hang monitoring");
+    return;
+  }
   mThread->NotifyWait();
+#endif
+}
+
+void
+BackgroundHangMonitor::Prohibit()
+{
+#ifdef MOZ_ENABLE_BACKGROUND_HANG_MONITOR
+  MOZ_ASSERT(BackgroundHangManager::sInstance == nullptr,
+             "The background hang monitor is already initialized");
+  BackgroundHangManager::sProhibited = true;
+#endif
+}
+
+void
+BackgroundHangMonitor::Allow()
+{
+#ifdef MOZ_ENABLE_BACKGROUND_HANG_MONITOR
+  MOZ_ASSERT(BackgroundHangManager::sInstance == nullptr,
+             "The background hang monitor is already initialized");
+  BackgroundHangManager::sProhibited = false;
 #endif
 }
 
@@ -507,8 +551,14 @@ BackgroundHangMonitor::NotifyWait()
 
 BackgroundHangMonitor::ThreadHangStatsIterator::ThreadHangStatsIterator()
   : MonitorAutoLock(BackgroundHangManager::sInstance->mLock)
-  , mThread(BackgroundHangManager::sInstance->mHangThreads.getFirst())
+  , mThread(BackgroundHangManager::sInstance ?
+            BackgroundHangManager::sInstance->mHangThreads.getFirst() :
+            nullptr)
 {
+#ifdef MOZ_ENABLE_BACKGROUND_HANG_MONITOR
+  MOZ_ASSERT(BackgroundHangManager::sInstance || BackgroundHangManager::sProhibited,
+             "Inconsistent state");
+#endif
 }
 
 Telemetry::ThreadHangStats*
