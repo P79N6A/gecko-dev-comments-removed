@@ -29,6 +29,26 @@
     
     
     Buf._init.apply(this);
+
+    
+    
+    
+    
+    this._requestMap = {};
+    
+    
+    
+    let map = {};
+    map[REQUEST_SET_UICC_SUBSCRIPTION] = 114;
+    map[REQUEST_SET_DATA_SUBSCRIPTION] = 115;
+    this._requestMap[8] = map;
+    
+    
+    
+    map = {};
+    map[REQUEST_SET_UICC_SUBSCRIPTION] = 115;
+    map[REQUEST_SET_DATA_SUBSCRIPTION] = 116;
+    this._requestMap[9] = map;
   };
 
   
@@ -124,19 +144,18 @@
 
 
   BufObject.prototype._reMapRequestType = function(type) {
-    let newType = type;
-    switch (type) {
-      case REQUEST_SET_UICC_SUBSCRIPTION:
-      case REQUEST_SET_DATA_SUBSCRIPTION:
-        if (this.context.RIL.version < 9) {
-          
-          
-          newType = type - 1;
+    for (let version in this._requestMap) {
+      if (this.context.RIL.version <= version) {
+        let newType = this._requestMap[version][type];
+        if (newType) {
+          if (DEBUG) {
+            this.context.debug("Remap request type to " + newType);
+          }
+          return newType;
         }
-        break;
+      }
     }
-
-    return newType;
+    return type;
   };
 
   
