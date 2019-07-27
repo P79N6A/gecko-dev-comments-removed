@@ -4169,7 +4169,15 @@ DataCall.prototype = {
       return;
     }
     if (this.state == RIL.GECKO_NETWORK_STATE_CONNECTED) {
-      networkInterface.notifyRILNetworkInterface();
+      
+      
+      Services.tm.currentThread.dispatch(function(state) {
+        
+        
+        if (networkInterface.state == state) {
+          networkInterface.notifyRILNetworkInterface();
+        }
+      }.bind(null, RIL.GECKO_NETWORK_STATE_CONNECTED), Ci.nsIEventTarget.DISPATCH_NORMAL);
       return;
     }
 
@@ -4281,7 +4289,13 @@ DataCall.prototype = {
       
       
       
-      networkInterface.notifyRILNetworkInterface();
+      Services.tm.currentThread.dispatch(function(state) {
+        
+        
+        if (networkInterface.state == state) {
+          networkInterface.notifyRILNetworkInterface();
+        }
+      }.bind(null, RIL.GECKO_NETWORK_STATE_DISCONNECTED), Ci.nsIEventTarget.DISPATCH_NORMAL);
     }
 
     
