@@ -1,6 +1,9 @@
 
 
 
+const MozLoopServiceInternal = Cu.import("resource:///modules/loop/MozLoopService.jsm", {}).
+                               MozLoopServiceInternal;
+
 var gMozLoopAPI;
 
 function promiseGetMozLoopAPI() {
@@ -89,6 +92,13 @@ function promiseOAuthParamsSetup(baseURL, params) {
   xhr.send();
 
   return deferred.promise;
+}
+
+function resetFxA() {
+  let global = Cu.import("resource:///modules/loop/MozLoopService.jsm", {});
+  global.gFxAOAuthClientPromise = null;
+  global.gFxAOAuthClient = null;
+  global.gFxAOAuthTokenData = null;
 }
 
 function promiseDeletedOAuthParams(baseURL) {

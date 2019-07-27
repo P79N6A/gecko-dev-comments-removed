@@ -627,23 +627,6 @@ let gInitializeTimerFunc = () => {
 
 
 this.MozLoopService = {
-#ifdef DEBUG
-  
-  get internal() {
-    return MozLoopServiceInternal;
-  },
-
-  get gFxAOAuthTokenData() {
-    return gFxAOAuthTokenData;
-  },
-
-  resetFxA: function() {
-    gFxAOAuthClientPromise = null;
-    gFxAOAuthClient = null;
-    gFxAOAuthTokenData = null;
-  },
-#endif
-
   _DNSService: gDNSService,
 
   set initializeTimerFunc(value) {
