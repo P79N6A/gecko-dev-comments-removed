@@ -93,6 +93,7 @@ public:
 
   
   nsDataHashtable<nsCStringHashKey, TimeStamp> mForcedValidEntries;
+  void ForcedValidEntriesPrune(TimeStamp &now);
 
   
   
