@@ -203,6 +203,13 @@ public:
   virtual const void *FindExidx(int *pcount) const = 0;
 #endif
 
+  
+
+
+
+
+  virtual void stats(const char *when) const { };
+
 protected:
   
 

@@ -52,7 +52,7 @@ public:
 
 
 
-  void stats(const char *when) const;
+  virtual void stats(const char *when) const;
 
 private:
   
