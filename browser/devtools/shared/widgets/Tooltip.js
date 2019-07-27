@@ -4,12 +4,14 @@
 
 "use strict";
 
-const {Cc, Cu, Ci} = require("chrome");
+
+
+
+const {Cu, Ci} = require("chrome");
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
-const IOService = Cc["@mozilla.org/network/io-service;1"]
-  .getService(Ci.nsIIOService);
 const {Spectrum} = require("devtools/shared/widgets/Spectrum");
-const {CubicBezierWidget} = require("devtools/shared/widgets/CubicBezierWidget");
+const {CubicBezierWidget} =
+      require("devtools/shared/widgets/CubicBezierWidget");
 const {MdnDocsWidget} = require("devtools/shared/widgets/MdnDocsWidget");
 const {CSSFilterEditorWidget} = require("devtools/shared/widgets/FilterWidget");
 const EventEmitter = require("devtools/toolkit/event-emitter");
@@ -37,7 +39,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
 const SPECTRUM_FRAME = "chrome://browser/content/devtools/spectrum-frame.xhtml";
-const CUBIC_BEZIER_FRAME = "chrome://browser/content/devtools/cubic-bezier-frame.xhtml";
+const CUBIC_BEZIER_FRAME =
+      "chrome://browser/content/devtools/cubic-bezier-frame.xhtml";
 const MDN_DOCS_FRAME = "chrome://browser/content/devtools/mdn-docs-frame.xhtml";
 const FILTER_FRAME = "chrome://browser/content/devtools/filter-frame.xhtml";
 const ESCAPE_KEYCODE = Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE;
@@ -87,9 +90,8 @@ OptionsStore.prototype = {
   get: function(name) {
     if (typeof this.options[name] !== "undefined") {
       return this.options[name];
-    } else {
-      return this.defaults[name];
     }
+    return this.defaults[name];
   }
 };
 
@@ -111,7 +113,8 @@ let PanelFactory = {
     panel.setAttribute("ignorekeys", true);
     panel.setAttribute("animate", false);
 
-    panel.setAttribute("consumeoutsideclicks", options.get("consumeOutsideClick"));
+    panel.setAttribute("consumeoutsideclicks",
+                       options.get("consumeOutsideClick"));
     panel.setAttribute("noautofocus", options.get("noAutoFocus"));
     panel.setAttribute("type", "arrow");
     panel.setAttribute("level", "top");
@@ -122,6 +125,8 @@ let PanelFactory = {
     return panel;
   }
 };
+
+
 
 
 
@@ -236,9 +241,12 @@ module.exports.Tooltip = Tooltip;
 
 Tooltip.prototype = {
   defaultPosition: "before_start",
-  defaultOffsetX: 0, 
-  defaultOffsetY: 0, 
-  defaultShowDelay: 50, 
+  
+  defaultOffsetX: 0,
+  
+  defaultOffsetY: 0,
+  
+  defaultShowDelay: 50,
 
   
 
@@ -306,7 +314,7 @@ Tooltip.prototype = {
   
 
 
-  destroy: function () {
+  destroy: function() {
     this.hide();
 
     for (let eventName of POPUP_EVENTS) {
@@ -374,7 +382,8 @@ Tooltip.prototype = {
 
 
 
-  startTogglingOnHover: function(baseNode, targetNodeCb, showDelay=this.defaultShowDelay) {
+  startTogglingOnHover: function(baseNode, targetNodeCb,
+                                 showDelay=this.defaultShowDelay) {
     if (this._basedNode) {
       this.stopTogglingOnHover();
     }
@@ -455,10 +464,9 @@ Tooltip.prototype = {
       return res.then(arg => {
         return arg instanceof Ci.nsIDOMNode ? arg : target;
       });
-    } else {
-      let newTarget = res instanceof Ci.nsIDOMNode ? res : target;
-      return res ? promise.resolve(newTarget) : promise.reject(false);
     }
+    let newTarget = res instanceof Ci.nsIDOMNode ? res : target;
+    return res ? promise.resolve(newTarget) : promise.reject(false);
   },
 
   _onBaseNodeMouseLeave: function() {
@@ -585,14 +593,12 @@ Tooltip.prototype = {
 
 
 
-  setVariableContent: function(
-    objectActor,
-    viewOptions = {},
-    controllerOptions = {},
-    relayEvents = {},
-    extraButtons = [],
-    toolbox = null) {
-
+  setVariableContent: function(objectActor,
+                               viewOptions = {},
+                               controllerOptions = {},
+                               relayEvents = {},
+                               extraButtons = [],
+                               toolbox = null) {
     let vbox = this.doc.createElement("vbox");
     vbox.className = "devtools-tooltip-variables-view-box";
     vbox.setAttribute("flex", "1");
@@ -643,13 +649,15 @@ Tooltip.prototype = {
 
 
 
-  setRelativeImageContent: Task.async(function*(imageUrl, inspectorFront, maxDim) {
+  setRelativeImageContent: Task.async(function*(imageUrl, inspectorFront,
+                                                maxDim) {
     if (imageUrl.startsWith("data:")) {
       
       this.setImageContent(imageUrl, {maxDim: maxDim});
     } else if (inspectorFront) {
       try {
-        let {data, size} = yield inspectorFront.getImageDataFromURL(imageUrl, maxDim);
+        let {data, size} = yield inspectorFront.getImageDataFromURL(imageUrl,
+                                                                    maxDim);
         size.maxDim = maxDim;
         let str = yield data.string();
         this.setImageContent(str, size);
@@ -716,12 +724,13 @@ Tooltip.prototype = {
           options.naturalHeight);
       } else {
         
-        label.textContent = l10n.strings.GetStringFromName("previewTooltip.image.brokenImage");
+        label.textContent =
+          l10n.strings.GetStringFromName("previewTooltip.image.brokenImage");
         let imgObj = new this.doc.defaultView.Image();
         imgObj.src = imageUrl;
         imgObj.onload = () => {
           imgObj.onload = null;
-            label.textContent = this._getImageDimensionLabel(imgObj.naturalWidth,
+          label.textContent = this._getImageDimensionLabel(imgObj.naturalWidth,
               imgObj.naturalHeight);
         };
       }
@@ -759,7 +768,6 @@ Tooltip.prototype = {
 
 
   setIFrameContent: function({width, height}, url) {
-
     let def = promise.defer();
 
     
@@ -810,8 +818,7 @@ Tooltip.prototype = {
       
       if (panel.state == "open") {
         finalizeSpectrum();
-      }
-      else {
+      } else {
         panel.addEventListener("popupshown", function shown() {
           panel.removeEventListener("popupshown", shown, true);
           finalizeSpectrum();
@@ -869,7 +876,7 @@ Tooltip.prototype = {
 
       iframe.height = doc.offsetHeight;
 
-      widget.on("render", e => {
+      widget.on("render", () => {
         iframe.height = doc.offsetHeight;
       });
 
@@ -897,9 +904,10 @@ Tooltip.prototype = {
 
 
 
+
   setFontFamilyContent: Task.async(function*(font, nodeFront) {
     if (!font || !nodeFront) {
-      throw "Missing font";
+      throw new Error("Missing font");
     }
 
     if (typeof nodeFront.getFontFamilyDataURL === "function") {
@@ -907,8 +915,9 @@ Tooltip.prototype = {
       font = font.replace("!important", "");
       font = font.trim();
 
-      let fillStyle = (Services.prefs.getCharPref("devtools.theme") === "light") ?
-        "black" : "white";
+      let fillStyle =
+          (Services.prefs.getCharPref("devtools.theme") === "light") ?
+          "black" : "white";
 
       let {data, size} = yield nodeFront.getFontFamilyDataURL(font, fillStyle);
       let str = yield data.string();
@@ -990,6 +999,7 @@ SwatchBasedEditorTooltip.prototype = {
       
       
       
+      
       this.tooltip.once("hiding", () => {
         if (!this._reverted && !this.eyedropperOpen) {
           this.commit();
@@ -1025,10 +1035,17 @@ SwatchBasedEditorTooltip.prototype = {
 
 
 
+
   addSwatch: function(swatchEl, callbacks={}) {
-    if (!callbacks.onPreview) callbacks.onPreview = function() {};
-    if (!callbacks.onRevert) callbacks.onRevert = function() {};
-    if (!callbacks.onCommit) callbacks.onCommit = function() {};
+    if (!callbacks.onPreview) {
+      callbacks.onPreview = function() {};
+    }
+    if (!callbacks.onRevert) {
+      callbacks.onRevert = function() {};
+    }
+    if (!callbacks.onCommit) {
+      callbacks.onCommit = function() {};
+    }
 
     this.swatches.set(swatchEl, {
       callbacks: callbacks
@@ -1264,7 +1281,8 @@ EventTooltip.prototype = {
         let debuggerIcon = doc.createElement("image");
         debuggerIcon.className = "event-tooltip-debugger-icon";
         debuggerIcon.setAttribute("src", "chrome://browser/skin/devtools/tool-debugger.svg");
-        let openInDebugger = l10n.strings.GetStringFromName("eventsTooltip.openInDebugger");
+        let openInDebugger =
+            l10n.strings.GetStringFromName("eventsTooltip.openInDebugger");
         debuggerIcon.setAttribute("tooltiptext", openInDebugger);
         header.appendChild(debuggerIcon);
       }
@@ -1287,7 +1305,8 @@ EventTooltip.prototype = {
       }
 
       let attributesContainer = doc.createElement("hbox");
-      attributesContainer.setAttribute("class", "event-tooltip-attributes-container");
+      attributesContainer.setAttribute("class",
+                                       "event-tooltip-attributes-container");
       header.appendChild(attributesContainer);
 
       if (!listener.hide.capturing) {
@@ -1347,7 +1366,8 @@ EventTooltip.prototype = {
     }
 
     this._tooltip.content = container;
-    this._tooltip.panel.setAttribute("clamped-dimensions-no-max-or-min-height", "");
+    this._tooltip.panel.setAttribute("clamped-dimensions-no-max-or-min-height",
+                                     "");
     this._tooltip.panel.setAttribute("wide", "");
 
     this._tooltip.panel.addEventListener("popuphiding", () => {
@@ -1453,11 +1473,11 @@ EventTooltip.prototype = {
               
               if (index !== -1 && index === lastIndex) {
                 text = text.substr(0, index);
-                let matches = text.match(/\n/g);
+                let newlineMatches = text.match(/\n/g);
 
-                if (matches) {
+                if (newlineMatches) {
                   DebuggerView.editor.setCursor({
-                    line: matches.length
+                    line: newlineMatches.length
                   });
                 }
               }
@@ -1479,7 +1499,8 @@ EventTooltip.prototype = {
 
   destroy: function(container) {
     if (this._tooltip) {
-      this._tooltip.panel.removeEventListener("popuphiding", this.destroy, false);
+      this._tooltip.panel.removeEventListener("popuphiding", this.destroy,
+                                              false);
 
       let boxes = container.querySelectorAll(".event-tooltip-content-box");
 
@@ -1498,7 +1519,8 @@ EventTooltip.prototype = {
       node.removeEventListener("click", this._headerClicked);
     }
 
-    let sourceNodes = container.querySelectorAll(".event-tooltip-debugger-icon");
+    let sourceNodes =
+        container.querySelectorAll(".event-tooltip-debugger-icon");
     for (let node of sourceNodes) {
       node.removeEventListener("click", this._debugClicked);
     }
@@ -1538,7 +1560,6 @@ SwatchCubicBezierTooltip.prototype = Heritage.extend(SwatchBasedEditorTooltip.pr
     
     if (this.activeSwatch) {
       this.currentBezierValue = this.activeSwatch.nextSibling;
-      let swatch = this.swatches.get(this.activeSwatch);
       this.widget.then(widget => {
         widget.off("updated", this._onUpdate);
         widget.cssCubicBezierValue = this.currentBezierValue.textContent;
@@ -1588,7 +1609,6 @@ CssDocsTooltip.prototype = {
 
 
   show: function(anchor, propertyName) {
-
     function loadCssDocs(widget) {
       return widget.loadCssDocs(propertyName);
     }

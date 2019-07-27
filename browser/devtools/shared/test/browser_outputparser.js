@@ -1,8 +1,11 @@
 
 
 
+"use strict";
+
 let {Services} = Cu.import("resource://gre/modules/Services.jsm", {});
-let {Loader} = Cu.import("resource://gre/modules/commonjs/toolkit/loader.js", {});
+let {Loader} = Cu.import("resource://gre/modules/commonjs/toolkit/loader.js",
+                         {});
 let {OutputParser} = devtools.require("devtools/output-parser");
 
 add_task(function*() {
@@ -12,7 +15,7 @@ add_task(function*() {
 });
 
 function* performTest() {
-  let [host, win, doc] = yield createHost("bottom", "data:text/html," +
+  let [host, , doc] = yield createHost("bottom", "data:text/html," +
     "<h1>browser_outputParser.js</h1><div></div>");
 
   let parser = new OutputParser();
@@ -23,7 +26,7 @@ function* performTest() {
 }
 
 
-let COLOR_TEST_CLASS = 'test-class';
+let COLOR_TEST_CLASS = "test-class";
 
 
 
@@ -42,17 +45,17 @@ function makeColorTest(name, value, segments) {
   let result = {
     name,
     value,
-    expected: ''
+    expected: ""
   };
 
   for (let segment of segments) {
-    if (typeof(segment) === 'string') {
+    if (typeof (segment) === "string") {
       result.expected += segment;
     } else {
-      result.expected += '<span data-color="' + segment.value + '">' +
-        '<span style="background-color:' + segment.name +
-        '" class="' + COLOR_TEST_CLASS + '"></span><span>' +
-        segment.value + '</span></span>';
+      result.expected += "<span data-color=\"" + segment.value + "\">" +
+        "<span style=\"background-color:" + segment.name +
+        "\" class=\"" + COLOR_TEST_CLASS + "\"></span><span>" +
+        segment.value + "</span></span>";
     }
   }
 
@@ -84,7 +87,7 @@ function testParseCssProperty(doc, parser) {
                    ", 2px 2px 0 0 ",
                    {name: "rgba(0,0,0,.5)", value: "rgba(0,0,0,.5)"}]),
 
-    makeColorTest("content", '"red"', ['"red"']),
+    makeColorTest("content", "\"red\"", ["\"red\""]),
 
     
     makeColorTest("hellothere", "'red'", ["'red'"]),
@@ -127,7 +130,8 @@ function testParseCssVar(doc, parser) {
   ok(target, "captain, we have the div");
   target.appendChild(frag);
 
-  is(target.innerHTML, "var(--some-kind-of-green)", "CSS property correctly parsed");
+  is(target.innerHTML, "var(--some-kind-of-green)",
+     "CSS property correctly parsed");
 
   target.innerHTML = "";
 }

@@ -2,6 +2,8 @@
 
 
 
+
+
 "use strict";
 
 const {Cc, Ci, Cu} = require("chrome");
@@ -12,7 +14,8 @@ const HTML_NS = "http://www.w3.org/1999/xhtml";
 
 const MAX_ITERATIONS = 100;
 
-const BEZIER_KEYWORDS = ["linear", "ease-in-out", "ease-in", "ease-out", "ease"];
+const BEZIER_KEYWORDS = ["linear", "ease-in-out", "ease-in", "ease-out",
+                         "ease"];
 
 
 const COLOR_TAKING_FUNCTIONS = ["linear-gradient",
@@ -24,9 +27,10 @@ const COLOR_TAKING_FUNCTIONS = ["linear-gradient",
                                 "repeating-radial-gradient",
                                 "-moz-repeating-radial-gradient"];
 
-loader.lazyGetter(this, "DOMUtils", function () {
+loader.lazyGetter(this, "DOMUtils", function() {
   return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
 });
+
 
 
 
@@ -146,8 +150,9 @@ OutputParser.prototype = {
       let i = 0;
       while (true) {
         let token = tokenStream.nextToken();
-        if (!token)
+        if (!token) {
           break;
+        }
         if (token.tokenType === "comment") {
           continue;
         }
@@ -380,7 +385,7 @@ OutputParser.prototype = {
         href = options.baseURI.resolve(url);
       }
 
-      this._appendNode("a",  {
+      this._appendNode("a", {
         target: "_blank",
         class: options.urlClass,
         href: href

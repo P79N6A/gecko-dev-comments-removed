@@ -4,17 +4,21 @@
 
 
 
+
+
 "use strict";
 
 const {Cc, Ci, Cu} = require("chrome");
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const {CssLogic} = require("devtools/styleinspector/css-logic");
-const {InplaceEditor, editableField, editableItem} = require("devtools/shared/inplace-editor");
-const {ELEMENT_STYLE, PSEUDO_ELEMENTS} = require("devtools/server/actors/styles");
-const {gDevTools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
+const {InplaceEditor, editableField, editableItem} =
+      require("devtools/shared/inplace-editor");
+const {ELEMENT_STYLE, PSEUDO_ELEMENTS} =
+      require("devtools/server/actors/styles");
 const {OutputParser} = require("devtools/output-parser");
 const {PrefObserver, PREF_ORIG_SOURCES} = require("devtools/styleeditor/utils");
-const {parseSingleValue, parseDeclarations} = require("devtools/styleinspector/css-parsing-utils");
+const {parseSingleValue, parseDeclarations} =
+      require("devtools/styleinspector/css-parsing-utils");
 const overlays = require("devtools/styleinspector/style-inspector-overlays");
 const EventEmitter = require("devtools/toolkit/event-emitter");
 
@@ -25,7 +29,8 @@ const HTML_NS = "http://www.w3.org/1999/xhtml";
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 const PREF_UA_STYLES = "devtools.inspector.showUserAgentStyles";
 const PREF_DEFAULT_COLOR_UNIT = "devtools.defaultColorUnit";
-const PREF_ENABLE_MDN_DOCS_TOOLTIP = "devtools.inspector.mdnDocsTooltip.enabled";
+const PREF_ENABLE_MDN_DOCS_TOOLTIP =
+      "devtools.inspector.mdnDocsTooltip.enabled";
 const PROPERTY_NAME_CLASS = "ruleview-propertyname";
 const FILTER_CHANGED_TIMEOUT = 150;
 
@@ -47,7 +52,7 @@ function promiseWarn(err) {
 
 
 
-var gDummyPromise;
+let gDummyPromise;
 function createDummyDocument() {
   if (gDummyPromise) {
     return gDummyPromise;
@@ -63,11 +68,12 @@ function createDummyDocument() {
   });
   let docShell = getDocShell(frame);
   let eventTarget = docShell.chromeEventHandler;
-  docShell.createAboutBlankContentViewer(Cc["@mozilla.org/nullprincipal;1"].createInstance(Ci.nsIPrincipal));
+  docShell.createAboutBlankContentViewer(Cc["@mozilla.org/nullprincipal;1"]
+                                         .createInstance(Ci.nsIPrincipal));
   let window = docShell.contentViewer.DOMDocument.defaultView;
   window.location = "data:text/html,<html></html>";
   let deferred = promise.defer();
-  eventTarget.addEventListener("DOMContentLoaded", function handler(event) {
+  eventTarget.addEventListener("DOMContentLoaded", function handler() {
     eventTarget.removeEventListener("DOMContentLoaded", handler, false);
     deferred.resolve(window.document);
     frame.remove();
@@ -141,19 +147,20 @@ ElementStyle.prototype = {
   
   dummyElement: null,
 
-  init: function()
-  {
+  init: function() {
     
     
     
-    return this.dummyElementPromise = createDummyDocument().then(document => {
+    this.dummyElementPromise = createDummyDocument().then(document => {
       
-      let namespaceURI = this.element.namespaceURI || document.documentElement.namespaceURI;
+      let namespaceURI = this.element.namespaceURI ||
+          document.documentElement.namespaceURI;
       this.dummyElement = document.createElementNS(namespaceURI,
                                                    this.element.tagName);
       document.documentElement.appendChild(this.dummyElement);
       return this.dummyElement;
     }).then(null, promiseWarn);
+    return this.dummyElementPromise;
   },
 
   destroy: function() {
@@ -239,9 +246,9 @@ ElementStyle.prototype = {
 
 
    _sortRulesForPseudoElement: function() {
-      this.rules = this.rules.sort((a, b) => {
-        return (a.pseudoElement || "z") > (b.pseudoElement || "z");
-      });
+     this.rules = this.rules.sort((a, b) => {
+       return (a.pseudoElement || "z") > (b.pseudoElement || "z");
+     });
    },
 
   
@@ -457,7 +464,8 @@ Rule.prototype = {
       this._title += ":" + this.ruleLine;
     }
 
-    this._title = this._title + (this.mediaText ? " @media " + this.mediaText : "");
+    this._title = this._title +
+      (this.mediaText ? " @media " + this.mediaText : "");
     return this._title;
   },
 
@@ -472,7 +480,8 @@ Rule.prototype = {
         eltText += "#" + this.inherited.id;
       }
       this._inheritedSource =
-        CssLogic._strings.formatStringFromName("rule.inheritedFrom", [eltText], 1);
+        CssLogic._strings.formatStringFromName("rule.inheritedFrom",
+                                               [eltText], 1);
     }
     return this._inheritedSource;
   },
@@ -484,13 +493,15 @@ Rule.prototype = {
     this._keyframesName = "";
     if (this.keyframes) {
       this._keyframesName =
-        CssLogic._strings.formatStringFromName("rule.keyframe", [this.keyframes.name], 1);
+        CssLogic._strings.formatStringFromName("rule.keyframe",
+                                               [this.keyframes.name], 1);
     }
     return this._keyframesName;
   },
 
   get selectorText() {
-    return this.domRule.selectors ? this.domRule.selectors.join(", ") : CssLogic.l10n("rule.sourceElement");
+    return this.domRule.selectors ? this.domRule.selectors.join(", ") :
+      CssLogic.l10n("rule.sourceElement");
   },
 
   
@@ -530,7 +541,8 @@ Rule.prototype = {
       let mediaString = mediaText ? " @" + mediaText : "";
 
       let sourceStrings = {
-        full: (href || CssLogic.l10n("rule.sourceInline")) + ":" + line + mediaString,
+        full: (href || CssLogic.l10n("rule.sourceInline")) + ":" +
+          line + mediaString,
         short: CssLogic.shortSource({href: href}) + ":" + line + mediaString
       };
 
@@ -568,8 +580,7 @@ Rule.prototype = {
     if (aSiblingProp) {
       let ind = this.textProps.indexOf(aSiblingProp);
       this.textProps.splice(ind + 1, 0, prop);
-    }
-    else {
+    } else {
       this.textProps.push(prop);
     }
 
@@ -594,7 +605,6 @@ Rule.prototype = {
       aModifications = this.style.startModifyingProperties();
     }
     let disabledProps = [];
-    let store = this.elementStyle.store;
 
     for (let prop of this.textProps) {
       if (!prop.enabled) {
@@ -760,7 +770,8 @@ Rule.prototype = {
       if (this.inherited && !domUtils.isInheritedProperty(name)) {
         continue;
       }
-      let value = store.userProperties.getProperty(this.style, name, prop.value);
+      let value = store.userProperties.getProperty(this.style, name,
+                                                   prop.value);
       let textProp = new TextProperty(this, name, value, prop.priority);
       textProps.push(textProp);
     }
@@ -783,7 +794,8 @@ Rule.prototype = {
     let textProps = [];
 
     for (let prop of disabledProps) {
-      let value = store.userProperties.getProperty(this.style, prop.name, prop.value);
+      let value = store.userProperties.getProperty(this.style, prop.name,
+                                                   prop.value);
       let textProp = new TextProperty(this, prop.name, value, prop.priority);
       textProp.enabled = false;
       textProps.push(textProp);
@@ -862,8 +874,9 @@ Rule.prototype = {
     let match = { rank: 0, prop: null };
 
     for (let prop of this.textProps) {
-      if (prop.name != aNewProp.name)
+      if (prop.name != aNewProp.name) {
         continue;
+      }
 
       
       prop._visited = true;
@@ -928,8 +941,7 @@ Rule.prototype = {
     if (index === this.textProps.length - 1) {
       index = index - 1;
       previous = true;
-    }
-    else {
+    } else {
       index = index + 1;
     }
 
@@ -1017,7 +1029,7 @@ TextProperty.prototype = {
     } catch(e) {
       
       
-     }
+    }
   },
 
   
@@ -1129,14 +1141,16 @@ function CssRuleView(aInspector, aDoc, aStore, aPageStyle) {
   this._onFilterStyles = this._onFilterStyles.bind(this);
   this._onFilterKeyPress = this._onFilterKeyPress.bind(this);
   this._onClearSearch = this._onClearSearch.bind(this);
-  this._onFilterTextboxContextMenu = this._onFilterTextboxContextMenu.bind(this);
+  this._onFilterTextboxContextMenu =
+    this._onFilterTextboxContextMenu.bind(this);
   this._onTogglePseudoClassPanel = this._onTogglePseudoClassPanel.bind(this);
   this._onTogglePseudoClass = this._onTogglePseudoClass.bind(this);
 
   this.element = this.doc.getElementById("ruleview-container");
   this.addRuleButton = this.doc.getElementById("ruleview-add-rule-button");
   this.searchField = this.doc.getElementById("ruleview-searchbox");
-  this.searchClearButton = this.doc.getElementById("ruleview-searchinput-clear");
+  this.searchClearButton =
+    this.doc.getElementById("ruleview-searchinput-clear");
   this.pseudoClassPanel = this.doc.getElementById("pseudo-class-panel");
   this.pseudoClassToggle = this.doc.getElementById("pseudo-class-panel-toggle");
   this.hoverCheckbox = this.doc.getElementById("pseudo-hover-toggle");
@@ -1150,9 +1164,11 @@ function CssRuleView(aInspector, aDoc, aStore, aPageStyle) {
   this.addRuleButton.addEventListener("click", this._onAddRule);
   this.searchField.addEventListener("input", this._onFilterStyles);
   this.searchField.addEventListener("keypress", this._onFilterKeyPress);
-  this.searchField.addEventListener("contextmenu", this._onFilterTextboxContextMenu);
+  this.searchField.addEventListener("contextmenu",
+                                    this._onFilterTextboxContextMenu);
   this.searchClearButton.addEventListener("click", this._onClearSearch);
-  this.pseudoClassToggle.addEventListener("click", this._onTogglePseudoClassPanel);
+  this.pseudoClassToggle.addEventListener("click",
+                                          this._onTogglePseudoClassPanel);
   this.hoverCheckbox.addEventListener("click", this._onTogglePseudoClass);
   this.activeCheckbox.addEventListener("click", this._onTogglePseudoClass);
   this.focusCheckbox.addEventListener("click", this._onTogglePseudoClass);
@@ -1167,7 +1183,8 @@ function CssRuleView(aInspector, aDoc, aStore, aPageStyle) {
   this._prefObserver.on(PREF_ENABLE_MDN_DOCS_TOOLTIP, this._handlePrefChange);
 
   this.showUserAgentStyles = Services.prefs.getBoolPref(PREF_UA_STYLES);
-  this.enableMdnDocsTooltip = Services.prefs.getBoolPref(PREF_ENABLE_MDN_DOCS_TOOLTIP);
+  this.enableMdnDocsTooltip =
+    Services.prefs.getBoolPref(PREF_ENABLE_MDN_DOCS_TOOLTIP);
 
   let options = {
     autoSelect: true,
@@ -1271,7 +1288,8 @@ CssRuleView.prototype = {
 
     try {
       let h = yield utils.getHighlighterByType("SelectorHighlighter");
-      return this.selectorHighlighter = h;
+      this.selectorHighlighter = h;
+      return h;
     } catch (e) {
       
       
@@ -1368,7 +1386,7 @@ CssRuleView.prototype = {
     this.menuitemCopyImageDataUrl.hidden = !this._isImageUrlPopup();
     this.menuitemCopy.disabled = !copy;
 
-    var showOrig = Services.prefs.getBoolPref(PREF_ORIG_SOURCES);
+    let showOrig = Services.prefs.getBoolPref(PREF_ORIG_SOURCES);
     this.menuitemSources.setAttribute("checked", showOrig);
 
     this.menuitemShowMdnDocs.hidden = !this.enableMdnDocsTooltip ||
@@ -1416,7 +1434,8 @@ CssRuleView.prototype = {
         pseudoElement: prop.rule.pseudoElement,
         sheetHref: prop.rule.domRule.href
       };
-    } else if (classes.contains("theme-link") && !classes.contains("ruleview-rule-source") && prop) {
+    } else if (classes.contains("theme-link") &&
+               !classes.contains("ruleview-rule-source") && prop) {
       type = overlays.VIEW_NODE_IMAGE_URL_TYPE;
       value = {
         property: getPropertyNameAndValue(node).name,
@@ -1445,7 +1464,7 @@ CssRuleView.prototype = {
 
 
 
-  _isColorPopup: function () {
+  _isColorPopup: function() {
     this._colorToCopy = "";
 
     let container = this._getPopupNodeContainer();
@@ -1462,7 +1481,7 @@ CssRuleView.prototype = {
       }
     }
 
-    this._colorToCopy = container.dataset["color"];
+    this._colorToCopy = container.dataset.color;
     return true;
   },
 
@@ -1470,7 +1489,7 @@ CssRuleView.prototype = {
 
 
 
-  _isImageUrlPopup: function () {
+  _isImageUrlPopup: function() {
     this._imageUrlToCopy = "";
 
     let container = this._getPopupNodeContainer();
@@ -1487,10 +1506,10 @@ CssRuleView.prototype = {
 
 
 
-  _isImageUrlNode: function (node) {
+  _isImageUrlNode: function(node) {
     let nodeInfo = this.getNodeInfo(node);
     if (!nodeInfo) {
-      return false
+      return false;
     }
     return nodeInfo.type == overlays.VIEW_NODE_IMAGE_URL_TYPE;
   },
@@ -1500,7 +1519,8 @@ CssRuleView.prototype = {
 
 
 
-  _getPopupNodeContainer: function () {
+
+  _getPopupNodeContainer: function() {
     let container = null;
     let node = this.doc.popupNode;
 
@@ -1589,6 +1609,7 @@ CssRuleView.prototype = {
   
 
 
+
   _onCopyImageDataUrl: Task.async(function*() {
     let message;
     try {
@@ -1596,7 +1617,8 @@ CssRuleView.prototype = {
       let data = yield inspectorFront.getImageDataFromURL(this._imageUrlToCopy);
       message = yield data.data.string();
     } catch (e) {
-      message = _strings.GetStringFromName("styleinspector.copyImageDataUrlError");
+      message =
+        _strings.GetStringFromName("styleinspector.copyImageDataUrlError");
     }
 
     clipboardHelper.copyString(message);
@@ -1783,7 +1805,8 @@ CssRuleView.prototype = {
     this._prefObserver.off(PREF_ORIG_SOURCES, this._onSourcePrefChanged);
     this._prefObserver.off(PREF_UA_STYLES, this._handlePrefChange);
     this._prefObserver.off(PREF_DEFAULT_COLOR_UNIT, this._handlePrefChange);
-    this._prefObserver.off(PREF_ENABLE_MDN_DOCS_TOOLTIP, this._handlePrefChange);
+    this._prefObserver.off(PREF_ENABLE_MDN_DOCS_TOOLTIP,
+                           this._handlePrefChange);
     this._prefObserver.destroy();
 
     this._outputParser = null;
@@ -1811,11 +1834,13 @@ CssRuleView.prototype = {
       this.menuitemCopyImageDataUrl.removeEventListener("command", this._onCopyImageDataUrl);
       this.menuitemCopyImageDataUrl = null;
 
-      this.menuitemSources.removeEventListener("command", this._onToggleOrigSources);
+      this.menuitemSources.removeEventListener("command",
+                                               this._onToggleOrigSources);
       this.menuitemSources = null;
 
       
-      this._contextmenu.removeEventListener("popupshowing", this._contextMenuUpdate);
+      this._contextmenu.removeEventListener("popupshowing",
+                                            this._contextMenuUpdate);
       this._contextmenu.parentNode.removeChild(this._contextmenu);
       this._contextmenu = null;
     }
@@ -1974,7 +1999,6 @@ CssRuleView.prototype = {
 
       
       this.emit("ruleview-refreshed");
-      return undefined;
     }).then(null, promiseWarn);
   },
 
@@ -2118,7 +2142,8 @@ CssRuleView.prototype = {
 
   _getRuleViewHeaderClassName: function(isPseudo) {
     let baseClassName = "theme-gutter ruleview-header";
-    return isPseudo ? baseClassName + " ruleview-expandable-header" : baseClassName;
+    return isPseudo ? baseClassName + " ruleview-expandable-header" :
+      baseClassName;
   },
 
   
@@ -2179,7 +2204,8 @@ CssRuleView.prototype = {
 
       if (!seenPseudoElement && rule.pseudoElement) {
         seenPseudoElement = true;
-        container = this.createExpandableContainer(this.pseudoElementLabel, true);
+        container = this.createExpandableContainer(this.pseudoElementLabel,
+                                                   true);
       }
 
       let keyframes = rule.keyframes;
@@ -2377,7 +2403,7 @@ CssRuleView.prototype = {
   _onTogglePseudoClass: function(event) {
     let target = event.currentTarget;
     this.inspector.togglePseudoClass(target.value);
-   }
+  }
 };
 
 
@@ -2463,7 +2489,8 @@ RuleEditor.prototype = {
 
       let selectorHighlighter = createChild(header, "span", {
         class: "ruleview-selectorhighlighter" +
-               (this.ruleView.highlightedSelector === selector ? " highlighted": ""),
+               (this.ruleView.highlightedSelector === selector ?
+                " highlighted" : ""),
         title: CssLogic.l10n("rule.selectorHighlighter.tooltip")
       });
       selectorHighlighter.addEventListener("click", () => {
@@ -2520,14 +2547,13 @@ RuleEditor.prototype = {
       }, false);
 
       
-      editableItem({ element: this.closeBrace }, (aElement) => {
+      editableItem({ element: this.closeBrace }, () => {
         this.newProperty();
       });
     }
   },
 
-  updateSourceLink: function RuleEditor_updateSourceLink()
-  {
+  updateSourceLink: function() {
     let sourceLabel = this.element.querySelector(".source-link-label");
     let sourceHref = (this.rule.sheet && this.rule.sheet.href) ?
       this.rule.sheet.href : this.rule.title;
@@ -2555,7 +2581,8 @@ RuleEditor.prototype = {
     }
 
     let showOrig = Services.prefs.getBoolPref(PREF_ORIG_SOURCES);
-    if (showOrig && !this.rule.isSystem && this.rule.domRule.type != ELEMENT_STYLE) {
+    if (showOrig && !this.rule.isSystem &&
+        this.rule.domRule.type != ELEMENT_STYLE) {
       this.rule.getOriginalSourceStrings().then((strings) => {
         sourceLabel.setAttribute("value", strings.short);
         sourceLabel.setAttribute("tooltiptext", strings.full);
@@ -2728,7 +2755,8 @@ RuleEditor.prototype = {
     
     
     
-    this.multipleAddedProperties = parseDeclarations(aValue).filter(d => d.name);
+    this.multipleAddedProperties =
+      parseDeclarations(aValue).filter(d => d.name);
 
     
     
@@ -2902,7 +2930,6 @@ TextPropertyEditor.prototype = {
       class: "ruleview-propertyvaluecontainer"
     });
 
-
     
     
     
@@ -2961,7 +2988,7 @@ TextPropertyEditor.prototype = {
         element: this.nameSpan,
         done: this._onNameDone,
         destroy: this.update,
-        advanceChars: ':',
+        advanceChars: ":",
         contentType: InplaceEditor.CONTENT_TYPES.CSS_PROPERTY,
         popup: this.popup
       });
@@ -3109,11 +3136,13 @@ TextPropertyEditor.prototype = {
     this.valueSpan.appendChild(frag);
 
     
-    this._colorSwatchSpans = this.valueSpan.querySelectorAll("." + colorSwatchClass);
+    this._colorSwatchSpans =
+      this.valueSpan.querySelectorAll("." + colorSwatchClass);
     if (this.ruleEditor.isEditable) {
       for (let span of this._colorSwatchSpans) {
         
         let originalValue = this.valueSpan.textContent;
+        
         
         this.ruleEditor.ruleView.tooltips.colorPicker.addSwatch(span, {
           onPreview: () => this._previewValue(this.valueSpan.textContent),
@@ -3124,11 +3153,13 @@ TextPropertyEditor.prototype = {
     }
 
     
-    this._bezierSwatchSpans = this.valueSpan.querySelectorAll("." + bezierSwatchClass);
+    this._bezierSwatchSpans =
+      this.valueSpan.querySelectorAll("." + bezierSwatchClass);
     if (this.ruleEditor.isEditable) {
       for (let span of this._bezierSwatchSpans) {
         
         let originalValue = this.valueSpan.textContent;
+        
         
         this.ruleEditor.ruleView.tooltips.cubicBezier.addSwatch(span, {
           onPreview: () => this._previewValue(this.valueSpan.textContent),
@@ -3141,7 +3172,7 @@ TextPropertyEditor.prototype = {
     
     let span = this.valueSpan.querySelector("." + filterSwatchClass);
     if (this.ruleEditor.isEditable) {
-      if(span) {
+      if (span) {
         let originalValue = this.valueSpan.textContent;
 
         this.ruleEditor.ruleView.tooltips.filterEditor.addSwatch(span, {
@@ -3164,7 +3195,7 @@ TextPropertyEditor.prototype = {
   
 
 
-  _updateComputed: function () {
+  _updateComputed: function() {
     
     while (this.computed.hasChildNodes()) {
       this.computed.removeChild(this.computed.lastChild);
@@ -3343,18 +3374,19 @@ TextPropertyEditor.prototype = {
 
 
 
-   _onValueDone: function(aValue, aCommit) {
+  _onValueDone: function(aValue, aCommit) {
     if (!aCommit && !this.ruleEditor.isEditing) {
-       
-       if (this.removeOnRevert) {
-         this.remove();
-       } else {
-         this.prop.setValue(this.committed.value, this.committed.priority);
-       }
-       return;
+      
+      if (this.removeOnRevert) {
+        this.remove();
+      } else {
+        this.prop.setValue(this.committed.value, this.committed.priority);
+      }
+      return;
     }
 
-    let {propertiesToAdd,firstValue} = this._getValueAndExtraProperties(aValue);
+    let {propertiesToAdd, firstValue} =
+        this._getValueAndExtraProperties(aValue);
 
     
     let val = parseSingleValue(firstValue);
@@ -3409,13 +3441,14 @@ TextPropertyEditor.prototype = {
     
     if (properties.length) {
       
+      
       if (!properties[0].name && properties[0].value) {
         firstValue = properties[0].value;
         propertiesToAdd = properties.slice(1);
-      }
-      
-      
-      else if (properties[0].name && properties[0].value) {
+      } else if (properties[0].name && properties[0].value) {
+        
+        
+        
         firstValue = properties[0].name + ": " + properties[0].value;
         propertiesToAdd = properties.slice(1);
       }
@@ -3465,7 +3498,8 @@ TextPropertyEditor.prototype = {
     }
 
     let val = parseSingleValue(aValue);
-    this.ruleEditor.rule.previewPropertyValue(this.prop, val.value, val.priority);
+    this.ruleEditor.rule.previewPropertyValue(this.prop, val.value,
+                                              val.priority);
   },
 
   
@@ -3577,7 +3611,7 @@ function createChild(aParent, aTag, aAttributes) {
     if (aAttributes.hasOwnProperty(attr)) {
       if (attr === "textContent") {
         elt.textContent = aAttributes[attr];
-      } else if(attr === "child") {
+      } else if (attr === "child") {
         elt.appendChild(aAttributes[attr]);
       } else {
         elt.setAttribute(attr, aAttributes[attr]);
@@ -3592,7 +3626,8 @@ function createMenuItem(aMenu, aAttributes) {
   let item = aMenu.ownerDocument.createElementNS(XUL_NS, "menuitem");
 
   item.setAttribute("label", _strings.GetStringFromName(aAttributes.label));
-  item.setAttribute("accesskey", _strings.GetStringFromName(aAttributes.accesskey));
+  item.setAttribute("accesskey",
+                    _strings.GetStringFromName(aAttributes.accesskey));
   item.addEventListener("command", aAttributes.command);
 
   if (aAttributes.type) {
@@ -3615,12 +3650,12 @@ function clearTimeout() {
 }
 
 function throttle(func, wait, scope) {
-  var timer = null;
+  let timer = null;
   return function() {
-    if(timer) {
+    if (timer) {
       clearTimeout(timer);
     }
-    var args = arguments;
+    let args = arguments;
     timer = setTimeout(function() {
       timer = null;
       func.apply(scope, args);
@@ -3733,7 +3768,8 @@ function advanceValidate(aKeyCode, aValue, aInsertionPoint) {
   
   
   
-  aValue = aValue.slice(0, aInsertionPoint) + ';' + aValue.slice(aInsertionPoint);
+  aValue = aValue.slice(0, aInsertionPoint) + ";" +
+    aValue.slice(aInsertionPoint);
   let lexer = domUtils.getCSSLexer(aValue);
   while (true) {
     let token = lexer.nextToken();
@@ -3741,10 +3777,9 @@ function advanceValidate(aKeyCode, aValue, aInsertionPoint) {
       if (token.tokenType === "symbol" && token.text === ";") {
         
         return true;
-      } else {
-        
-        break;
       }
+      
+      break;
     }
   }
   return false;
@@ -3754,8 +3789,8 @@ function advanceValidate(aKeyCode, aValue, aInsertionPoint) {
 exports._advanceValidate = advanceValidate;
 
 XPCOMUtils.defineLazyGetter(this, "clipboardHelper", function() {
-  return Cc["@mozilla.org/widget/clipboardhelper;1"].
-    getService(Ci.nsIClipboardHelper);
+  return Cc["@mozilla.org/widget/clipboardhelper;1"]
+    .getService(Ci.nsIClipboardHelper);
 });
 
 XPCOMUtils.defineLazyGetter(this, "_strings", function() {
@@ -3767,4 +3802,6 @@ XPCOMUtils.defineLazyGetter(this, "domUtils", function() {
   return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
 });
 
-loader.lazyGetter(this, "AutocompletePopup", () => require("devtools/shared/autocomplete-popup").AutocompletePopup);
+loader.lazyGetter(this, "AutocompletePopup", function() {
+  return require("devtools/shared/autocomplete-popup").AutocompletePopup;
+});
