@@ -624,23 +624,6 @@ FunctionBox::FunctionBox(ExclusiveContext *cx, ObjectBox* traceListHead, JSFunct
         
         inWith = true;
 
-    } else if (outerpc->sc->isGlobalSharedContext()) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        JSObject *scope = outerpc->sc->asGlobalSharedContext()->scopeChain();
-        while (scope) {
-            if (scope->is<DynamicWithObject>())
-                inWith = true;
-            scope = scope->enclosingScope();
-        }
     } else if (outerpc->sc->isFunctionBox()) {
         
         
