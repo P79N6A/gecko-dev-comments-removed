@@ -1,35 +1,41 @@
 
 
 
+add_task(function* () {
+  let win = yield promiseOpenAndLoadWindow({}, true );
 
+  
+  win.document.getElementById("nav-bar").remove();
 
-function test() {
-  waitForExplicitFinish();
-  let newWin = OpenBrowserWindow();
-  registerCleanupFunction(() => {
-    newWin.close()
-    newWin = null;
-  });
-  whenDelayedStartupFinished(newWin, function () {
-    
-    newWin.gURLBar.parentNode.removeChild(newWin.gURLBar);
+  yield new Promise(resolve => waitForFocus(resolve, win));
+  yield promiseBrowserLoaded(win.gBrowser.browsers[0]);
 
-    waitForFocus(function () {
-      let PN = newWin.PopupNotifications;
-      try {
-        let panelPromise = promisePopupShown(PN.panel);
-        let notification = PN.show(newWin.gBrowser.selectedBrowser, "some-notification", "Some message");
-        panelPromise.then(function() {
-          ok(notification, "showed the notification");
-          ok(PN.isPanelOpen, "panel is open");
-          is(PN.panel.anchorNode, newWin.gBrowser.selectedTab, "notification is correctly anchored to the tab");
-          PN.panel.hidePopup();
-          finish();
-        });
-      } catch (ex) {
-        ok(false, "threw exception: " + ex);
-        finish();
-      }
-    }, newWin);
+  try {
+    let PN = win.PopupNotifications;
+    let panelPromise = promisePopupShown(PN.panel);
+    let notification = PN.show(win.gBrowser.selectedBrowser, "some-notification", "Some message");
+    ok(notification, "show() succeeded");
+    yield panelPromise;
+
+    ok(PN.isPanelOpen, "panel is open");
+    is(PN.panel.anchorNode, win.gBrowser.selectedTab, "notification is correctly anchored to the tab");
+    PN.panel.hidePopup();
+  } catch (ex) {
+    ok(false, "threw exception: " + ex);
+  }
+
+  yield promiseWindowClosed(win);
+});
+
+function promiseBrowserLoaded(browser) {
+  if (browser.contentDocument.readyState == "complete") {
+    return Promise.resolve();
+  }
+
+  return new Promise(resolve => {
+    browser.addEventListener("load", function onLoad() {
+      browser.removeEventListener("load", onLoad, true);
+      resolve();
+    }, true);
   });
 }
