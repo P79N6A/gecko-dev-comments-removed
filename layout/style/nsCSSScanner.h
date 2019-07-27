@@ -27,6 +27,8 @@ enum nsCSSTokenType {
   
   
   eCSSToken_Whitespace,     
+  
+  eCSSToken_Comment,        
 
   
   
@@ -182,11 +184,22 @@ private:
   bool mInitialized;
 };
 
+enum nsCSSScannerExclude {
+  
+  eCSSScannerExclude_None,
+  
+  eCSSScannerExclude_Comments,
+  
+  eCSSScannerExclude_WhitespaceAndComments
+};
+
 
 
 
 class nsCSSScanner {
   public:
+  
+  
   
   
   nsCSSScanner(const nsAString& aBuffer, uint32_t aLineNumber);
@@ -220,6 +233,12 @@ class nsCSSScanner {
   uint32_t GetColumnNumber() const
   { return mTokenOffset - mTokenLineOffset; }
 
+  uint32_t GetTokenOffset() const
+  { return mTokenOffset; }
+
+  uint32_t GetTokenEndOffset() const
+  { return mOffset; }
+
   
   
   nsDependentSubstring GetCurrentLine() const;
@@ -227,7 +246,7 @@ class nsCSSScanner {
   
   
   
-  bool Next(nsCSSToken& aTokenResult, bool aSkipWS);
+  bool Next(nsCSSToken& aTokenResult, nsCSSScannerExclude aSkip);
 
   
   
