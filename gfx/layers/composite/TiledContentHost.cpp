@@ -233,6 +233,42 @@ TiledContentHost::Attach(Layer* aLayer,
 }
 
 void
+TiledContentHost::Detach(Layer* aLayer,
+                         AttachFlags aFlags )
+{
+  if (!mKeepAttached || aLayer == mLayer || aFlags & FORCE_DETACH) {
+
+    
+    
+    
+    
+    if (mPendingUpload) {
+      mTiledBuffer.ReadUnlock();
+      if (mOldTiledBuffer.HasDoubleBufferedTiles()) {
+        mOldTiledBuffer.ReadUnlock();
+      }
+    } else if (mTiledBuffer.HasDoubleBufferedTiles()) {
+      mTiledBuffer.ReadUnlock();
+    }
+
+    if (mPendingLowPrecisionUpload) {
+      mLowPrecisionTiledBuffer.ReadUnlock();
+      if (mOldLowPrecisionTiledBuffer.HasDoubleBufferedTiles()) {
+        mOldLowPrecisionTiledBuffer.ReadUnlock();
+      }
+    } else if (mLowPrecisionTiledBuffer.HasDoubleBufferedTiles()) {
+      mLowPrecisionTiledBuffer.ReadUnlock();
+    }
+
+    mTiledBuffer = TiledLayerBufferComposite();
+    mLowPrecisionTiledBuffer = TiledLayerBufferComposite();
+    mOldTiledBuffer = TiledLayerBufferComposite();
+    mOldLowPrecisionTiledBuffer = TiledLayerBufferComposite();
+  }
+  CompositableHost::Detach(aLayer,aFlags);
+}
+
+void
 TiledContentHost::UseTiledLayerBuffer(ISurfaceAllocator* aAllocator,
                                       const SurfaceDescriptorTiles& aTiledDescriptor)
 {
