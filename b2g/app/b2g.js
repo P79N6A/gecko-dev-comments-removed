@@ -350,11 +350,6 @@ pref("dom.w3c_touch_events.enabled", 1);
 pref("dom.w3c_touch_events.safetyX", 0); 
 pref("dom.w3c_touch_events.safetyY", 120); 
 
-
-pref("dom.w3c_pointer_events.enabled", false);
-
-pref("layout.css.touch_action.enabled", false);
-
 #ifdef MOZ_SAFE_BROWSING
 
 pref("browser.safebrowsing.enabled", false);
@@ -716,7 +711,7 @@ pref("dom.ipc.processPriorityManager.temporaryPriorityLockMS", 5000);
 
 
 pref("dom.ipc.processPriorityManager.BACKGROUND.LRUPoolLevels", 5);
-pref("dom.ipc.processPriorityManager.FOREGROUND.LRUPoolLevels", 3);
+pref("dom.ipc.processPriorityManager.BACKGROUND_PERCEIVABLE.LRUPoolLevels", 4);
 
 
 
