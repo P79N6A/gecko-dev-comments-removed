@@ -1182,6 +1182,10 @@ class RelocationOverlay
     RelocationOverlay *next() const {
         return next_;
     }
+
+    static bool isCellForwarded(Cell *cell) {
+        return fromCell(cell)->isForwarded();
+    }
 };
 
 
@@ -1193,7 +1197,6 @@ class RelocationOverlay
         return value;                                                         \
     }                                                                         \
 
-TYPE_MIGHT_BE_FORWARDED(Cell, true)
 TYPE_MIGHT_BE_FORWARDED(JSObject, true)
 TYPE_MIGHT_BE_FORWARDED(JSString, false)
 TYPE_MIGHT_BE_FORWARDED(JS::Symbol, false)
@@ -1272,7 +1275,7 @@ inline void
 CheckGCThingAfterMovingGC(T *t)
 {
     MOZ_ASSERT_IF(t, !IsInsideNursery(t));
-    MOZ_ASSERT_IF(t, !IsForwarded(t));
+    MOZ_ASSERT_IF(t, !RelocationOverlay::isCellForwarded(t));
 }
 
 inline void
