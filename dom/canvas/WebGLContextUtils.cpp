@@ -249,7 +249,7 @@ DriverFormatsFromEffectiveInternalFormat(gl::GLContext* gl,
     
     
     GLenum driverInternalFormat = driverFormat;
-    if (!gl->IsGLES()) {
+    if (gl->IsCompatibilityProfile()) {
         
         if (driverFormat == LOCAL_GL_SRGB)
             driverFormat = LOCAL_GL_RGB;
@@ -284,9 +284,62 @@ DriverFormatsFromEffectiveInternalFormat(gl::GLContext* gl,
         }
     }
 
+    
+    if (gl->IsCoreProfile()) {
+        switch (driverFormat) {
+        case LOCAL_GL_ALPHA:
+        case LOCAL_GL_LUMINANCE:
+            driverInternalFormat = driverFormat = LOCAL_GL_RED;
+            break;
+
+        case LOCAL_GL_LUMINANCE_ALPHA:
+            driverInternalFormat = driverFormat = LOCAL_GL_RG;
+            break;
+        }
+    }
+
     *out_driverInternalFormat = driverInternalFormat;
     *out_driverFormat = driverFormat;
     *out_driverType = driverType;
+}
+
+
+static const GLenum kLegacyAlphaSwizzle[4] = {
+    LOCAL_GL_ZERO, LOCAL_GL_ZERO, LOCAL_GL_ZERO, LOCAL_GL_RED
+};
+
+static const GLenum kLegacyLuminanceSwizzle[4] = {
+    LOCAL_GL_RED, LOCAL_GL_RED, LOCAL_GL_RED, LOCAL_GL_ONE
+};
+
+static const GLenum kLegacyLuminanceAlphaSwizzle[4] = {
+    LOCAL_GL_RED, LOCAL_GL_RED, LOCAL_GL_RED, LOCAL_GL_GREEN
+};
+
+void
+SetLegacyTextureSwizzle(gl::GLContext* gl, GLenum target, GLenum internalformat)
+{
+    MOZ_RELEASE_ASSERT(gl->IsSupported(gl::GLFeature::texture_swizzle));
+    
+    if (!gl->IsCoreProfile())
+        return;
+
+    switch (internalformat) {
+    case LOCAL_GL_ALPHA:
+        gl->fTexParameteriv(target, LOCAL_GL_TEXTURE_SWIZZLE_RGBA,
+                            (GLint*) kLegacyAlphaSwizzle);
+        break;
+
+    case LOCAL_GL_LUMINANCE:
+        gl->fTexParameteriv(target, LOCAL_GL_TEXTURE_SWIZZLE_RGBA,
+                            (GLint*) kLegacyLuminanceSwizzle);
+        break;
+
+    case LOCAL_GL_LUMINANCE_ALPHA:
+        gl->fTexParameteriv(target, LOCAL_GL_TEXTURE_SWIZZLE_RGBA,
+                            (GLint*) kLegacyLuminanceAlphaSwizzle);
+        break;
+    }
 }
 
 

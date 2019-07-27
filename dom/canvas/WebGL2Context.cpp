@@ -128,6 +128,14 @@ WebGLContext::InitWebGL2()
             missingList.push_back(kRequiredFeatures[i]);
     }
 
+#ifdef XP_MACOSX
+    
+    
+    
+    if (!gl->IsSupported(gl::GLFeature::texture_swizzle))
+        missingList.push_back(gl::GLFeature::texture_swizzle);
+#endif
+
     if (missingList.size()) {
         nsAutoCString exts;
         for (auto itr = missingList.begin(); itr != missingList.end(); ++itr) {
