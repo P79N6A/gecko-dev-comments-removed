@@ -123,7 +123,7 @@ NfcContentHelper.prototype = {
   },
 
   
-  checkSessionToken: function checkSessionToken(sessionToken) {
+  checkSessionToken: function checkSessionToken(sessionToken, isP2P) {
     if (sessionToken == null) {
       throw Components.Exception("No session token!",
                                   Cr.NS_ERROR_UNEXPECTED);
@@ -131,7 +131,8 @@ NfcContentHelper.prototype = {
     }
     
     let val = cpmm.sendSyncMessage("NFC:CheckSessionToken", {
-      sessionToken: sessionToken
+      sessionToken: sessionToken,
+      isP2P: isP2P
     });
     return (val[0] === NFC.NFC_GECKO_SUCCESS);
   },
