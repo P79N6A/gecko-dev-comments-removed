@@ -70,26 +70,16 @@ public class Tabs implements GeckoEventListener {
 
     private Context mAppContext;
     private ContentObserver mContentObserver;
-    private PersistTabsRunnable mPersistTabsRunnable;
 
-    private static class PersistTabsRunnable implements Runnable {
-        private final BrowserDB db;
-        private final Context context;
-        private final Iterable<Tab> tabs;
-
-        public PersistTabsRunnable(final Context context, Iterable<Tab> tabsInOrder) {
-            this.context = context;
-            this.db = GeckoProfile.get(context).getDB();
-            this.tabs = tabsInOrder;
-        }
-
+    private final Runnable mPersistTabsRunnable = new Runnable() {
         @Override
         public void run() {
             try {
+                final Context context = getAppContext();
                 boolean syncIsSetup = SyncAccounts.syncAccountsExist(context) ||
                                       FirefoxAccounts.firefoxAccountsExist(context);
                 if (syncIsSetup) {
-                    db.getTabsAccessor().persistLocalTabs(context.getContentResolver(), tabs);
+                    TabsAccessor.persistLocalTabs(getContentResolver(), getTabsInOrder());
                 }
             } catch (SecurityException se) {} 
         }
@@ -143,9 +133,7 @@ public class Tabs implements GeckoEventListener {
         mAccountManager.addOnAccountsUpdatedListener(mAccountListener, ThreadUtils.getBackgroundHandler(), false);
 
         if (mContentObserver != null) {
-            
-            final GeckoProfile profile = GeckoProfile.get(context);
-            profile.getDB().registerBookmarkObserver(getContentResolver(), mContentObserver);
+            BrowserDB.registerBookmarkObserver(getContentResolver(), mContentObserver);
         }
     }
 
@@ -192,10 +180,7 @@ public class Tabs implements GeckoEventListener {
                     }
                 }
             };
-
-            
-            final GeckoProfile profile = GeckoProfile.get(mAppContext);
-            profile.getDB().registerBookmarkObserver(getContentResolver(), mContentObserver);
+            BrowserDB.registerBookmarkObserver(getContentResolver(), mContentObserver);
         }
     }
 
@@ -546,12 +531,11 @@ public class Tabs implements GeckoEventListener {
 
     public void refreshThumbnails() {
         final ThumbnailHelper helper = ThumbnailHelper.getInstance();
-        final BrowserDB db = GeckoProfile.get(mAppContext).getDB();
         ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
             public void run() {
                 for (final Tab tab : mOrder) {
-                    helper.getAndProcessThumbnailFor(tab, db);
+                    helper.getAndProcessThumbnailFor(tab);
                 }
             }
         });
@@ -648,9 +632,6 @@ public class Tabs implements GeckoEventListener {
 
     
     public void persistAllTabs() {
-        
-        
-        mPersistTabsRunnable = new PersistTabsRunnable(mAppContext, getTabsInOrder());
         ThreadUtils.postToBackgroundThread(mPersistTabsRunnable);
     }
 
@@ -660,15 +641,8 @@ public class Tabs implements GeckoEventListener {
 
 
     private void queuePersistAllTabs() {
-        final Handler backgroundHandler = ThreadUtils.getBackgroundHandler();
-
-        
-        if (mPersistTabsRunnable != null) {
-            backgroundHandler.removeCallbacks(mPersistTabsRunnable);
-            mPersistTabsRunnable = null;
-        }
-
-        mPersistTabsRunnable = new PersistTabsRunnable(mAppContext, getTabsInOrder());
+        Handler backgroundHandler = ThreadUtils.getBackgroundHandler();
+        backgroundHandler.removeCallbacks(mPersistTabsRunnable);
         backgroundHandler.postDelayed(mPersistTabsRunnable, PERSIST_TABS_AFTER_MILLISECONDS);
     }
 

@@ -6,14 +6,13 @@
 package org.mozilla.gecko;
 
 import org.mozilla.gecko.AppConstants.Versions;
-import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.db.BrowserContract;
+import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.favicons.Favicons;
 import org.mozilla.gecko.util.ThreadUtils;
 
 import android.content.BroadcastReceiver;
 import android.content.ComponentCallbacks2;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -216,19 +215,8 @@ class MemoryMonitor extends BroadcastReceiver {
 
     private static class StorageReducer implements Runnable {
         private final Context mContext;
-        private final BrowserDB mDB;
-
         public StorageReducer(final Context context) {
             this.mContext = context;
-            
-            
-            GeckoProfile profile = GeckoProfile.get(mContext);
-            if (profile.inGuestMode()) {
-                
-                profile = GeckoProfile.get(mContext, GeckoProfile.DEFAULT_PROFILE);
-            }
-
-            mDB = profile.getDB();
         }
 
         @Override
@@ -244,10 +232,9 @@ class MemoryMonitor extends BroadcastReceiver {
                 return;
             }
 
-            final ContentResolver cr = mContext.getContentResolver();
-            mDB.expireHistory(cr, BrowserContract.ExpirePriority.AGGRESSIVE);
-            mDB.removeThumbnails(cr);
-
+            BrowserDB.expireHistory(mContext.getContentResolver(),
+                                    BrowserContract.ExpirePriority.AGGRESSIVE);
+            BrowserDB.removeThumbnails(mContext.getContentResolver());
             
         }
     }
