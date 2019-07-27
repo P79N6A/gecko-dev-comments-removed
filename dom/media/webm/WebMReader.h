@@ -38,7 +38,7 @@ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(NesteggPacketHolder)
   NesteggPacketHolder() : mPacket(nullptr), mOffset(-1), mTimestamp(-1) {}
 
-  bool Init(nestegg_packet* aPacket, int64_t aOffset)
+  bool Init(nestegg_packet* aPacket, int64_t aOffset, unsigned aTrack)
   {
     uint64_t timestamp_ns;
     if (nestegg_packet_tstamp(aPacket, &timestamp_ns) == -1) {
@@ -50,6 +50,7 @@ public:
     mTimestamp = timestamp_ns / 1000;
     mPacket = aPacket;
     mOffset = aOffset;
+    mTrack = aTrack;
 
     return true;
   }
@@ -57,6 +58,7 @@ public:
   nestegg_packet* Packet() { MOZ_ASSERT(IsInitialized()); return mPacket; }
   int64_t Offset() { MOZ_ASSERT(IsInitialized()); return mOffset; }
   int64_t Timestamp() { MOZ_ASSERT(IsInitialized()); return mTimestamp; }
+  unsigned Track() { MOZ_ASSERT(IsInitialized()); return mTrack; }
 
 private:
   ~NesteggPacketHolder()
@@ -74,6 +76,9 @@ private:
 
   
   int64_t mTimestamp;
+
+  
+  unsigned mTrack;
 
   
   NesteggPacketHolder(const NesteggPacketHolder &aOther);
@@ -227,6 +232,10 @@ private:
   
   
   bool FilterPacketByTime(int64_t aEndTime, WebMPacketQueue& aOutput);
+
+  
+  
+  already_AddRefed<NesteggPacketHolder> DemuxPacket();
 
   
   
