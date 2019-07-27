@@ -8,12 +8,15 @@
 
 #include "mozilla/dom/FontFaceBinding.h"
 #include "gfxUserFontSet.h"
+#include "nsCSSProperty.h"
+#include "nsCSSValue.h"
 #include "nsWrapperCache.h"
 
 class nsCSSFontFaceRule;
 class nsPresContext;
 
 namespace mozilla {
+struct CSSFontFaceDescriptors;
 namespace dom {
 struct FontFaceDescriptors;
 class Promise;
@@ -100,6 +103,11 @@ private:
 
   void SetStatus(mozilla::dom::FontFaceLoadStatus aStatus);
 
+  void GetDesc(nsCSSFontDesc aDescID, nsCSSValue& aResult) const;
+  void GetDesc(nsCSSFontDesc aDescID,
+               nsCSSProperty aPropID,
+               nsString& aResult) const;
+
   nsCOMPtr<nsISupports> mParent;
   nsPresContext* mPresContext;
 
@@ -114,6 +122,11 @@ private:
   
   
   mozilla::dom::FontFaceLoadStatus mStatus;
+
+  
+  
+  
+  nsAutoPtr<mozilla::CSSFontFaceDescriptors> mDescriptors;
 };
 
 } 
