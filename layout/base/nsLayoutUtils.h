@@ -1802,7 +1802,7 @@ public:
 
 
   static void ComputeSizeForDrawing(imgIContainer* aImage,
-                                    mozilla::CSSIntSize& aImageSize,
+                                    nsIntSize&     aImageSize,
                                     nsSize&        aIntrinsicRatio,
                                     bool&          aGotWidth,
                                     bool&          aGotHeight);
@@ -1815,9 +1815,8 @@ public:
 
 
 
-  static mozilla::CSSIntSize
-  ComputeSizeForDrawingWithFallback(imgIContainer* aImage,
-                                    const nsSize&  aFallbackSize);
+  static nsIntSize ComputeSizeForDrawingWithFallback(imgIContainer* aImage,
+                                                     const nsSize&  aFallbackSize);
 
   
 
