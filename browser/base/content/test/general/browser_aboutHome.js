@@ -97,7 +97,9 @@ let gTests = [
   setup: function () { },
   run: function () {
     
-    if (navigator.platform.indexOf("Linux") == 0) { return; }
+    if (navigator.platform.indexOf("Linux") == 0) {
+      return Promise.resolve();
+    }
 
     try {
       let cm = Cc["@mozilla.org/categorymanager;1"].getService(Ci.nsICategoryManager);
@@ -372,6 +374,53 @@ let gTests = [
   }
 },
 
+{
+  
+  
+  desc: "Search suggestion smoke test",
+  setup: function() {},
+  run: function()
+  {
+    return Task.spawn(function* () {
+      
+      let engine = yield promiseNewEngine("searchSuggestionEngine.xml");
+      let promise = promiseBrowserAttributes(gBrowser.selectedTab);
+      Services.search.currentEngine = engine;
+      yield promise;
+
+      
+      gBrowser.contentWindow.wrappedJSObject.gSearchSuggestionController.remoteTimeout = 5000;
+
+      
+      let input = gBrowser.contentDocument.getElementById("searchText");
+      input.focus();
+      EventUtils.synthesizeKey("x", {});
+
+      
+      let table =
+        gBrowser.contentDocument.getElementById("searchSuggestionTable");
+      let deferred = Promise.defer();
+      let observer = new MutationObserver(() => {
+        if (input.getAttribute("aria-expanded") == "true") {
+          observer.disconnect();
+          ok(!table.hidden, "Search suggestion table unhidden");
+          deferred.resolve();
+        }
+      });
+      observer.observe(input, {
+        attributes: true,
+        attributeFilter: ["aria-expanded"],
+      });
+      yield deferred.promise;
+
+      
+      EventUtils.synthesizeKey("a", { accelKey: true });
+      EventUtils.synthesizeKey("VK_DELETE", {});
+      ok(table.hidden, "Search suggestion table hidden");
+    });
+  }
+},
+
 ];
 
 function test()
@@ -546,4 +595,22 @@ function waitForLoad(cb) {
 
     cb();
   }, true);
+}
+
+function promiseNewEngine(basename) {
+  info("Waiting for engine to be added: " + basename);
+  let addDeferred = Promise.defer();
+  let url = getRootDirectory(gTestPath) + basename;
+  Services.search.addEngine(url, Ci.nsISearchEngine.TYPE_MOZSEARCH, "", false, {
+    onSuccess: function (engine) {
+      info("Search engine added: " + basename);
+      registerCleanupFunction(() => Services.search.removeEngine(engine));
+      addDeferred.resolve(engine);
+    },
+    onError: function (errCode) {
+      ok(false, "addEngine failed with error code " + errCode);
+      addDeferred.reject();
+    },
+  });
+  return addDeferred.promise;
 }
