@@ -263,6 +263,23 @@ class BuilderOrigin : public Builder {
 
 void SetDebuggerMallocSizeOf(JSRuntime *runtime, mozilla::MallocSizeOf mallocSizeOf);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+JS_PUBLIC_API(void)
+onNewPromise(JSContext *cx, HandleObject promise);
+
 } 
 } 
 
