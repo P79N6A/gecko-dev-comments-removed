@@ -876,17 +876,6 @@ TEST_F(TransportTest, TestSrtpMismatch) {
   ASSERT_EQ(0, p2_->srtpCipher());
 }
 
-
-
-TEST_F(TransportTest, TestDheOnlyFails) {
-  SetDtlsPeer();
-
-  
-  
-  ConfigureOneCipher(p2_, TLS_DHE_RSA_WITH_AES_128_CBC_SHA);
-  ConnectSocketExpectFail();
-}
-
 TEST(PushTests, LayerFail) {
   mozilla::RefPtr<TransportFlow> flow = new TransportFlow();
   nsresult rv;
