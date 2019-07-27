@@ -22,8 +22,6 @@ function pref(name, value) {
 }
 
 let WebappRT = {
-  DEFAULT_PREFS_FILENAME: "default-prefs.js",
-
   prefs: [
     
     pref("extensions.enabledScopes", 1),
@@ -49,7 +47,7 @@ let WebappRT = {
 
     
     if (aStatus == "new") {
-      this.getDefaultPrefs().forEach(this.addPref);
+      this.prefs.forEach(this.addPref);
 
       
       let blocklist = Services.prefs.getCharPref("extensions.blocklist.url");
@@ -74,7 +72,19 @@ let WebappRT = {
       }
     });
 
-    this.findManifestUrlFor(aUrl, aCallback);
+    this.findManifestUrlFor(aUrl, (function(aLaunchUrl) {
+      if (aStatus == "new") {
+        if (BrowserApp.manifest && BrowserApp.manifest.orientation) {
+          let orientation = BrowserApp.manifest.orientation;
+          if (Array.isArray(orientation)) {
+            orientation = orientation.join(",");
+          }
+          this.addPref(pref("app.orientation.default", orientation));
+        }
+      }
+
+      aCallback(aLaunchUrl);
+    }).bind(this));
   },
 
   getManifestFor: function (aUrl, aCallback) {
@@ -115,31 +125,6 @@ let WebappRT = {
 
       aCallback(aManifest.fullLaunchPath());
     });
-  },
-
-  getDefaultPrefs: function() {
-    
-    try {
-      let defaultPrefs = [];
-      try {
-          defaultPrefs = this.readDefaultPrefs(FileUtils.getFile("ProfD", [this.DEFAULT_PREFS_FILENAME]));
-      } catch(ex) {
-          
-      }
-      for (let i = 0; i < defaultPrefs.length; i++) {
-        this.prefs.push(defaultPrefs[i]);
-      }
-    } catch(ex) {
-      console.log("Error reading defaultPrefs file: " + ex);
-    }
-    return this.prefs;
-  },
-
-  readDefaultPrefs: function webapps_readDefaultPrefs(aFile) {
-    let fstream = Cc["@mozilla.org/network/file-input-stream;1"].createInstance(Ci.nsIFileInputStream);
-    fstream.init(aFile, -1, 0, 0);
-    let prefsString = NetUtil.readInputStreamToString(fstream, fstream.available(), {});
-    return JSON.parse(prefsString);
   },
 
   addPref: function(aPref) {
