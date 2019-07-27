@@ -1,162 +1,73 @@
 
 
 
-function test()
-{
-  requestLongerTimeout(2);
+"use strict";
 
-  let inspector, searchBox, state, panel;
-  let panelOpeningStates = [0, 3, 9, 14, 17];
-  let panelClosingStates = [2, 8, 13, 16];
 
-  
-  
-  
-  
-  
-  let keyStates = [
-    ["d", "d"],
-    ["i", "di"],
-    ["v", "div"],
-    [".", "div."],
-    ["VK_UP", "div.c1"],
-    ["VK_DOWN", "div.l1"],
-    ["VK_DOWN", "div.l1"],
-    ["VK_BACK_SPACE", "div.l"],
-    ["VK_TAB", "div.l1"],
-    [" ", "div.l1 "],
-    ["VK_UP", "div.l1 DIV"],
-    ["VK_UP", "div.l1 DIV"],
-    [".", "div.l1 DIV."],
-    ["VK_TAB", "div.l1 DIV.c1"],
-    ["VK_BACK_SPACE", "div.l1 DIV.c"],
-    ["VK_BACK_SPACE", "div.l1 DIV."],
-    ["VK_BACK_SPACE", "div.l1 DIV"],
-    ["VK_BACK_SPACE", "div.l1 DI"],
-    ["VK_BACK_SPACE", "div.l1 D"],
-    ["VK_BACK_SPACE", "div.l1 "],
-    ["VK_UP", "div.l1 DIV"],
-    ["VK_BACK_SPACE", "div.l1 DI"],
-    ["VK_BACK_SPACE", "div.l1 D"],
-    ["VK_BACK_SPACE", "div.l1 "],
-    ["VK_UP", "div.l1 DIV"],
-    ["VK_UP", "div.l1 DIV"],
-    ["VK_TAB", "div.l1 DIV"],
-    ["VK_BACK_SPACE", "div.l1 DI"],
-    ["VK_BACK_SPACE", "div.l1 D"],
-    ["VK_BACK_SPACE", "div.l1 "],
-    ["VK_DOWN", "div.l1 DIV"],
-    ["VK_DOWN", "div.l1 SPAN"],
-    ["VK_DOWN", "div.l1 SPAN"],
-    ["VK_BACK_SPACE", "div.l1 SPA"],
-    ["VK_BACK_SPACE", "div.l1 SP"],
-    ["VK_BACK_SPACE", "div.l1 S"],
-    ["VK_BACK_SPACE", "div.l1 "],
-    ["VK_BACK_SPACE", "div.l1"],
-    ["VK_BACK_SPACE", "div.l"],
-    ["VK_BACK_SPACE", "div."],
-    ["VK_BACK_SPACE", "div"],
-    ["VK_BACK_SPACE", "di"],
-    ["VK_BACK_SPACE", "d"],
-    ["VK_BACK_SPACE", ""],
-  ];
 
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    waitForFocus(setupTest, content);
-  }, true);
 
-  content.location = "http://mochi.test:8888/browser/browser/devtools/inspector/test/doc_inspector_search-suggestions.html";
 
-  function $(id) {
-    if (id == null) return null;
-    return content.document.getElementById(id);
-  }
+const KEY_STATES = [
+  ["d", "d"],
+  ["i", "di"],
+  ["v", "div"],
+  [".", "div."],
+  ["VK_UP", "div.c1"],
+  ["VK_DOWN", "div.l1"],
+  ["VK_DOWN", "div.l1"],
+  ["VK_BACK_SPACE", "div.l"],
+  ["VK_TAB", "div.l1"],
+  [" ", "div.l1 "],
+  ["VK_UP", "div.l1 div"],
+  ["VK_UP", "div.l1 div"],
+  [".", "div.l1 div."],
+  ["VK_TAB", "div.l1 div.c1"],
+  ["VK_BACK_SPACE", "div.l1 div.c"],
+  ["VK_BACK_SPACE", "div.l1 div."],
+  ["VK_BACK_SPACE", "div.l1 div"],
+  ["VK_BACK_SPACE", "div.l1 di"],
+  ["VK_BACK_SPACE", "div.l1 d"],
+  ["VK_BACK_SPACE", "div.l1 "],
+  ["VK_UP", "div.l1 div"],
+  ["VK_BACK_SPACE", "div.l1 di"],
+  ["VK_BACK_SPACE", "div.l1 d"],
+  ["VK_BACK_SPACE", "div.l1 "],
+  ["VK_UP", "div.l1 div"],
+  ["VK_UP", "div.l1 div"],
+  ["VK_TAB", "div.l1 div"],
+  ["VK_BACK_SPACE", "div.l1 di"],
+  ["VK_BACK_SPACE", "div.l1 d"],
+  ["VK_BACK_SPACE", "div.l1 "],
+  ["VK_DOWN", "div.l1 div"],
+  ["VK_DOWN", "div.l1 span"],
+  ["VK_DOWN", "div.l1 span"],
+  ["VK_BACK_SPACE", "div.l1 spa"],
+  ["VK_BACK_SPACE", "div.l1 sp"],
+  ["VK_BACK_SPACE", "div.l1 s"],
+  ["VK_BACK_SPACE", "div.l1 "],
+  ["VK_BACK_SPACE", "div.l1"],
+  ["VK_BACK_SPACE", "div.l"],
+  ["VK_BACK_SPACE", "div."],
+  ["VK_BACK_SPACE", "div"],
+  ["VK_BACK_SPACE", "di"],
+  ["VK_BACK_SPACE", "d"],
+  ["VK_BACK_SPACE", ""],
+];
 
-  function setupTest()
-  {
-    openInspector(startTest);
-  }
+const TEST_URL = TEST_URL_ROOT +
+  "doc_inspector_search-suggestions.html";
 
-  function startTest(aInspector)
-  {
-    inspector = aInspector;
-    searchBox =
-      inspector.panelWin.document.getElementById("inspector-searchbox");
-    panel = inspector.searchSuggestions.searchPopup._list;
+let test = asyncTest(function* () {
+  let { inspector } = yield openInspectorForURL(TEST_URL);
+  yield focusSearchBoxUsingShortcut(inspector.panelWin);
 
-    focusSearchBoxUsingShortcut(inspector.panelWin, function() {
-      searchBox.addEventListener("keypress", checkState, true);
-      panel.addEventListener("keypress", checkState, true);
-      checkStateAndMoveOn(0);
-    });
-  }
+  for (let [key, query] of KEY_STATES) {
+    info("Pressing key " + key + " to get searchbox value as " + query);
 
-  function checkStateAndMoveOn(index) {
-    if (index == keyStates.length) {
-      finishUp();
-      return;
-    }
-
-    let [key, query] = keyStates[index];
-    state = index;
-
-    info("pressing key " + key + " to get searchbox value as " + query);
+    let done = inspector.searchSuggestions.once("processing-done");
     EventUtils.synthesizeKey(key, {}, inspector.panelWin);
+    yield done;
+
+    is(inspector.searchBox.value, query, "The searchbox value is correct.");
   }
-
-  function checkState(event) {
-    if (event && event.keyCode != event.DOM_VK_UP &&
-        event.keyCode != event.DOM_VK_DOWN) {
-      info("Should wait before server sends the qSA response.");
-      inspector.searchSuggestions._lastQuery
-               .then(() => checkState(), () => checkState());
-      return;
-    }
-    if (panelOpeningStates.indexOf(state) != -1 &&
-        !inspector.searchSuggestions.searchPopup.isOpen) {
-      info("Panel is not open, should wait before it shows up.");
-      panel.parentNode.addEventListener("popupshown", function retry() {
-        panel.parentNode.removeEventListener("popupshown", retry, false);
-        info("Panel is visible now");
-        executeSoon(checkState);
-      }, false);
-      return;
-    }
-    else if (panelClosingStates.indexOf(state) != -1 &&
-             panel.parentNode.state != "closed") {
-      info("Panel is open, should wait for it to close.");
-      panel.parentNode.addEventListener("popuphidden", function retry() {
-        panel.parentNode.removeEventListener("popuphidden", retry, false);
-        info("Panel is hidden now");
-        executeSoon(checkState);
-      }, false);
-      return;
-    }
-
-    
-    window.setTimeout(function() {
-      let [key, query] = keyStates[state];
-
-      if (searchBox.value == query) {
-        ok(true, "The suggestion at " + state + "th step on " +
-           "pressing " + key + " key is correct.");
-      }
-      else {
-        info("value is not correct, waiting longer for state " + state +
-             " with panel " + panel.parentNode.state);
-        checkState();
-        return;
-      }
-      checkStateAndMoveOn(state + 1);
-    }, 200);
-  }
-
-  function finishUp() {
-    searchBox = null;
-    panel = null;
-    gBrowser.removeCurrentTab();
-    finish();
-  }
-}
+});

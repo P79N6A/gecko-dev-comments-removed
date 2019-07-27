@@ -5,11 +5,15 @@
 "use strict";
 
 const promise = require("devtools/toolkit/deprecated-sync-thenables");
-
+loader.lazyGetter(this, "EventEmitter", () => require("devtools/toolkit/event-emitter"));
 loader.lazyGetter(this, "AutocompletePopup", () => require("devtools/shared/autocomplete-popup").AutocompletePopup);
 
 
 const MAX_SUGGESTIONS = 15;
+
+
+
+
 
 
 
@@ -61,6 +65,7 @@ function SelectorSearch(aInspector, aInputNode) {
   
   
   this._lastQuery = promise.resolve(null);
+  EventEmitter.decorate(this);
 }
 
 exports.SelectorSearch = SelectorSearch;
@@ -183,6 +188,7 @@ SelectorSearch.prototype = {
   _onHTMLSearch: function() {
     let query = this.searchBox.value;
     if (query == this._lastSearched) {
+      this.emit("processing-done");
       return;
     }
     this._lastSearched = query;
@@ -196,6 +202,7 @@ SelectorSearch.prototype = {
       if (this.searchPopup.isOpen) {
         this.searchPopup.hidePopup();
       }
+      this.emit("processing-done");
       return;
     }
 
@@ -258,7 +265,7 @@ SelectorSearch.prototype = {
       }
       this.searchBox.classList.add("devtools-no-search-result");
       return this.showSuggestions();
-    });
+    }).then(() => this.emit("processing-done"));
   },
 
   
@@ -332,7 +339,10 @@ SelectorSearch.prototype = {
     aEvent.preventDefault();
     aEvent.stopPropagation();
     if (this._searchResults && this._searchResults.length > 0) {
-      this._lastQuery = this._selectResult(this._searchIndex);
+      this._lastQuery = this._selectResult(this._searchIndex).then(() => this.emit("processing-done"));
+    }
+    else {
+      this.emit("processing-done");
     }
   },
 
@@ -393,6 +403,7 @@ SelectorSearch.prototype = {
         this._onHTMLSearch();
         break;
     }
+    this.emit("processing-done");
   },
 
   
