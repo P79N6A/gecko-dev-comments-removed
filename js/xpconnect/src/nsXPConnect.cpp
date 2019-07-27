@@ -187,25 +187,6 @@ nsXPConnect::IsISupportsDescendant(nsIInterfaceInfo* info)
 }
 
 void
-xpc::SystemErrorReporter(JSContext *cx, const char *message, JSErrorReport *rep)
-{
-    
-    
-    
-    
-    
-    
-    
-
-    nsRefPtr<ErrorReport> report = new ErrorReport();
-    
-    
-    
-    report->Init(rep, message, GetNativeForGlobal(xpc::PrivilegedJunkScope()));
-    report->LogToConsole();
-}
-
-void
 xpc::ErrorReport::Init(JSErrorReport *aReport,
                        const char *aFallbackMessage,
                        nsIGlobalObject *aGlobal)

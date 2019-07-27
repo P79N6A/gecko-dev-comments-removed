@@ -439,12 +439,10 @@ bool ScriptErrorEvent::sHandlingScriptError = false;
 
 
 
-
+namespace xpc {
 
 void
-NS_ScriptErrorReporter(JSContext *cx,
-                       const char *message,
-                       JSErrorReport *report)
+SystemErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 {
   JS::Rooted<JS::Value> exception(cx);
   ::JS_GetPendingException(cx, &exception);
@@ -454,12 +452,26 @@ NS_ScriptErrorReporter(JSContext *cx,
 
   MOZ_ASSERT(cx == nsContentUtils::GetCurrentJSContext());
   nsCOMPtr<nsIGlobalObject> globalObject;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   if (nsIScriptContext* scx = GetScriptContextFromJSContext(cx)) {
     nsCOMPtr<nsPIDOMWindow> outer = do_QueryInterface(scx->GetGlobalObject());
     if (outer) {
       globalObject = static_cast<nsGlobalWindow*>(outer->GetCurrentInnerWindow());
     }
+  } else {
+    globalObject = xpc::GetNativeForGlobal(xpc::PrivilegedJunkScope());
   }
+
   if (globalObject) {
     nsRefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
     xpcReport->Init(report, message, globalObject);
@@ -488,6 +500,8 @@ NS_ScriptErrorReporter(JSContext *cx,
                            report->errorNumber != JSMSG_OUT_OF_MEMORY));
   }
 }
+
+} 
 
 #ifdef DEBUG
 
@@ -746,7 +760,7 @@ nsJSContext::InitContext()
   if (!mContext)
     return NS_ERROR_OUT_OF_MEMORY;
 
-  ::JS_SetErrorReporter(mContext, NS_ScriptErrorReporter);
+  JS_SetErrorReporter(mContext, xpc::SystemErrorReporter);
 
   JSOptionChangedCallback(js_options_dot_str, this);
 
