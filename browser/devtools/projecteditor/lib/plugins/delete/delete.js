@@ -17,7 +17,7 @@ var DeletePlugin = Class({
     this.host.addCommand(this, {
       id: "cmd-delete"
     });
-    this.host.createMenuItem({
+    this.contextMenuItem = this.host.createMenuItem({
       parent: this.host.contextMenuPopup,
       label: getLocalizedString("projecteditor.deleteLabel"),
       command: "cmd-delete"
@@ -32,6 +32,19 @@ var DeletePlugin = Class({
       getLocalizedString("projecteditor.deletePromptTitle"),
       deletePromptMessage
     );
+  },
+
+  onContextMenuOpen: function(resource) {
+    
+    
+    
+    
+    
+    if (!resource.parent) {
+      this.contextMenuItem.setAttribute("hidden", "true");
+    } else {
+      this.contextMenuItem.removeAttribute("hidden");
+    }
   },
 
   onCommand: function(cmd) {

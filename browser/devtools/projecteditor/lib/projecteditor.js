@@ -66,6 +66,7 @@ require("projecteditor/plugins/status-bar/plugin");
 
 
 
+
 var ProjectEditor = Class({
   extends: EventTarget,
 
@@ -87,6 +88,7 @@ var ProjectEditor = Class({
     this._onEditorActivated = this._onEditorActivated.bind(this);
     this._onEditorDeactivated = this._onEditorDeactivated.bind(this);
     this._updateMenuItems = this._updateMenuItems.bind(this);
+    this._updateContextMenuItems = this._updateContextMenuItems.bind(this);
     this.destroy = this.destroy.bind(this);
     this.menubar = options.menubar || null;
     this.menuindex = options.menuindex || null;
@@ -231,6 +233,7 @@ var ProjectEditor = Class({
     this.editorKeyset = this.document.getElementById("editMenuKeys");
 
     this.contextMenuPopup = this.document.getElementById("context-menu-popup");
+    this.contextMenuPopup.addEventListener("popupshowing", this._updateContextMenuItems);
 
     this.projectEditorCommandset.addEventListener("command", (evt) => {
       evt.stopPropagation();
@@ -267,6 +270,15 @@ var ProjectEditor = Class({
     for (let c of this._pluginCommands.keys()) {
       window.goUpdateCommand(c);
     }
+  },
+
+  
+
+
+
+  _updateContextMenuItems: function() {
+    let resource = this.projectTree.getSelectedResource();
+    this.pluginDispatch("onContextMenuOpen", resource);
   },
 
   
