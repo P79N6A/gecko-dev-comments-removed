@@ -40,7 +40,17 @@ public:
   
   
   bool AppendData(const uint8_t* aData, uint32_t aLength, int64_t aTimestampOffset );
-  bool EvictData(uint32_t aThreshold);
+
+  
+  
+  
+  
+  
+  
+  bool EvictData(double aPlaybackTime, uint32_t aThreshold, double* aBufferStartTime);
+
+  
+  
   void EvictBefore(double aTime);
 
   

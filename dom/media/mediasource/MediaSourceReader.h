@@ -138,6 +138,9 @@ public:
            (!mVideoReader || mVideoReader->IsAsync());
   }
 
+  
+  bool IsActiveReader(MediaDecoderReader* aReader);
+
 private:
   
   

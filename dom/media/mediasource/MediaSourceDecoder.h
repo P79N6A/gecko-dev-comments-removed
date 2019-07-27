@@ -74,6 +74,10 @@ public:
 
   MediaSourceReader* GetReader() { return mReader; }
 
+  
+  
+  bool IsActiveReader(MediaDecoderReader* aReader);
+
 private:
   
   

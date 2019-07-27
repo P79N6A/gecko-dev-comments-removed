@@ -387,14 +387,17 @@ SourceBuffer::PrepareAppend(ErrorResult& aRv)
   
   
   
-  bool evicted = mTrackBuffer->EvictData(mEvictionThreshold);
+  double newBufferStartTime = 0.0;
+  bool evicted =
+    mTrackBuffer->EvictData(mMediaSource->GetDecoder()->GetCurrentTime(),
+                            mEvictionThreshold, &newBufferStartTime);
   if (evicted) {
     MSE_DEBUG("SourceBuffer(%p)::AppendData Evict; current buffered start=%f",
               this, GetBufferedStart());
 
     
     
-    mMediaSource->NotifyEvicted(0.0, GetBufferedStart());
+    mMediaSource->NotifyEvicted(0.0, newBufferStartTime);
   }
 
   

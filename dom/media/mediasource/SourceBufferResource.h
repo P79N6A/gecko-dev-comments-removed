@@ -115,10 +115,13 @@ public:
   void Ended();
   
   
-  uint32_t EvictData(uint32_t aThreshold);
+  uint32_t EvictData(uint64_t aPlaybackOffset, uint32_t aThreshold);
 
   
   void EvictBefore(uint64_t aOffset);
+
+  
+  uint32_t EvictAll();
 
   
   int64_t GetSize() {
