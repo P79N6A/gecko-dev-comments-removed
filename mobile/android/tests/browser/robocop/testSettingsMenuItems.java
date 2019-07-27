@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 
 import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.util.HardwareUtils;
+import org.mozilla.gecko.util.VoiceRecognizerUtils;
 
 
 
@@ -224,6 +225,12 @@ public class testSettingsMenuItems extends PixelTest {
         
         if (HardwareUtils.isTablet()) {
             settingsMap.get(PATH_DISPLAY).remove(TITLE_BAR_LABEL_ARR);
+        }
+
+        
+        if (AppConstants.NIGHTLY_BUILD && VoiceRecognizerUtils.supportsVoiceRecognizer(this.getActivity().getApplicationContext(), this.getActivity().getResources())) {
+            String[] voiceInputUi = { mStringHelper.VOICE_INPUT_TITLE_LABEL, mStringHelper.VOICE_INPUT_SUMMARY_LABEL };
+            settingsMap.get(PATH_DISPLAY).add(voiceInputUi);
         }
     }
 
