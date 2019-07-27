@@ -85,7 +85,7 @@ VP8TrackEncoder::Init(int32_t aWidth, int32_t aHeight, int32_t aDisplayWidth,
   
   
   
-  vpx_img_wrap(mVPXImageWrapper, IMG_FMT_I420,
+  vpx_img_wrap(mVPXImageWrapper, VPX_IMG_FMT_I420,
                mFrameWidth, mFrameHeight, 1, nullptr);
 
   config.g_w = mFrameWidth;
@@ -279,9 +279,9 @@ nsresult VP8TrackEncoder::PrepareRawFrame(VideoChunk &aChunk)
   const PlanarYCbCrImage::Data *data = yuv->GetData();
 
   if (isYUV420(data) && !data->mCbSkip) { 
-    mVPXImageWrapper->planes[PLANE_Y] = data->mYChannel;
-    mVPXImageWrapper->planes[PLANE_U] = data->mCbChannel;
-    mVPXImageWrapper->planes[PLANE_V] = data->mCrChannel;
+    mVPXImageWrapper->planes[VPX_PLANE_Y] = data->mYChannel;
+    mVPXImageWrapper->planes[VPX_PLANE_U] = data->mCbChannel;
+    mVPXImageWrapper->planes[VPX_PLANE_V] = data->mCrChannel;
     mVPXImageWrapper->stride[VPX_PLANE_Y] = data->mYStride;
     mVPXImageWrapper->stride[VPX_PLANE_U] = data->mCbCrStride;
     mVPXImageWrapper->stride[VPX_PLANE_V] = data->mCbCrStride;
@@ -337,9 +337,9 @@ nsresult VP8TrackEncoder::PrepareRawFrame(VideoChunk &aChunk)
       return NS_ERROR_NOT_IMPLEMENTED;
     }
 
-    mVPXImageWrapper->planes[PLANE_Y] = y;
-    mVPXImageWrapper->planes[PLANE_U] = cb;
-    mVPXImageWrapper->planes[PLANE_V] = cr;
+    mVPXImageWrapper->planes[VPX_PLANE_Y] = y;
+    mVPXImageWrapper->planes[VPX_PLANE_U] = cb;
+    mVPXImageWrapper->planes[VPX_PLANE_V] = cr;
     mVPXImageWrapper->stride[VPX_PLANE_Y] = mFrameWidth;
     mVPXImageWrapper->stride[VPX_PLANE_U] = halfWidth;
     mVPXImageWrapper->stride[VPX_PLANE_V] = halfWidth;
