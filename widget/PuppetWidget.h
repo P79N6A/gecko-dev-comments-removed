@@ -123,9 +123,8 @@ public:
   NS_IMETHOD SetTitle(const nsAString& aTitle) MOZ_OVERRIDE
   { return NS_ERROR_UNEXPECTED; }
   
-  
   virtual mozilla::LayoutDeviceIntPoint WidgetToScreenOffset() MOZ_OVERRIDE
-  { return mozilla::LayoutDeviceIntPoint(0, 0); }
+  { return GetWindowPosition() + GetChromeDimensions(); }
 
   void InitEvent(WidgetGUIEvent& aEvent, nsIntPoint* aPoint = nullptr);
 
