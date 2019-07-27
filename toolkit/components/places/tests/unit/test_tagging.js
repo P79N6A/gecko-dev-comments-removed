@@ -175,4 +175,16 @@ function run_test() {
 
   
   tagRoot.containerOpen = false;
+
+  
+  let exampleURI = uri("http://www.example.com/");
+  PlacesUtils.tagging.tagURI(exampleURI, [ " test " ]);
+
+  let exampleTags = PlacesUtils.tagging.getTagsForURI(exampleURI);
+  do_check_eq(exampleTags.length, 1);
+  do_check_eq(exampleTags[0], "test");
+
+  PlacesUtils.tagging.untagURI(exampleURI, [ "test" ]);
+  exampleTags = PlacesUtils.tagging.getTagsForURI(exampleURI);
+  do_check_eq(exampleTags.length, 0);
 }

@@ -10,6 +10,8 @@ const Cr = Components.results;
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/PlacesUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
+                                  "resource://gre/modules/Deprecated.jsm");
 
 const TOPIC_SHUTDOWN = "places-shutdown";
 
@@ -103,7 +105,9 @@ TaggingService.prototype = {
 
 
 
-  _convertInputMixedTagsArray: function TS__convertInputMixedTagsArray(aTags)
+
+
+  _convertInputMixedTagsArray: function TS__convertInputMixedTagsArray(aTags, trim=false)
   {
     return aTags.map(function (val)
     {
@@ -117,7 +121,7 @@ TaggingService.prototype = {
       }
       else if (typeof(val) == "string" && val.length > 0 && val.length <= Ci.nsITaggingService.MAX_TAG_LENGTH) {
         
-        tag.name = val;
+        tag.name = trim ? val.trim() : val;
         
         
         tag.__defineGetter__("id", function () this._self._getItemIdForTag(this.name));
@@ -137,7 +141,7 @@ TaggingService.prototype = {
     }
 
     
-    let tags = this._convertInputMixedTagsArray(aTags);
+    let tags = this._convertInputMixedTagsArray(aTags, true);
 
     let taggingService = this;
     PlacesUtils.bookmarks.runInBatchMode({
@@ -215,6 +219,12 @@ TaggingService.prototype = {
     
     let tags = this._convertInputMixedTagsArray(aTags);
 
+    let isAnyTagNotTrimmed = tags.some(tag => /^\s|\s$/.test(tag.name));
+    if (isAnyTagNotTrimmed) {
+      Deprecated.warning("At least one tag passed to untagURI was not trimmed",
+                         "https://bugzilla.mozilla.org/show_bug.cgi?id=967196");
+    }
+
     let taggingService = this;
     PlacesUtils.bookmarks.runInBatchMode({
       runBatched: function (aUserData)
@@ -238,6 +248,11 @@ TaggingService.prototype = {
   getURIsForTag: function TS_getURIsForTag(aTagName) {
     if (!aTagName || aTagName.length == 0)
       throw Cr.NS_ERROR_INVALID_ARG;
+
+    if (/^\s|\s$/.test(aTagName)) {
+      Deprecated.warning("Tag passed to getURIsForTag was not trimmed",
+                         "https://bugzilla.mozilla.org/show_bug.cgi?id=967196");
+    }
 
     let uris = [];
     let tagId = this._getItemIdForTag(aTagName);
