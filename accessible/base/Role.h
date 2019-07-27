@@ -785,7 +785,12 @@ enum Role {
 
   KEY = 129,
 
-  LAST_ROLE = KEY
+  
+
+
+  SWITCH = 130,
+
+  LAST_ROLE = SWITCH
 };
 
 } 
