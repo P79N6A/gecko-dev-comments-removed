@@ -601,9 +601,14 @@ AnimationPlayer::IsPossiblyOrphanedPendingPlayer() const
   
   
   nsIDocument* doc = GetRenderedDocument();
-  return !doc ||
-         !doc->GetPendingPlayerTracker() ||
-         !doc->GetPendingPlayerTracker()->IsWaitingToPlay(*this);
+  if (!doc) {
+    return false;
+  }
+
+  PendingPlayerTracker* tracker = doc->GetPendingPlayerTracker();
+  return !tracker ||
+         (!tracker->IsWaitingToPlay(*this) &&
+          !tracker->IsWaitingToPause(*this));
 }
 
 StickyTimeDuration
