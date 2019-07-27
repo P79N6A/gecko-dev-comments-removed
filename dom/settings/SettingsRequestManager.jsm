@@ -25,6 +25,11 @@ try {
     Services.prefs.getBoolPref("dom.mozSettings.SettingsRequestManager.verbose.enabled");
 } catch (ex) { }
 
+let allowForceReadOnly = false;
+try {
+  allowForceReadOnly = Services.prefs.getBoolPref("dom.mozSettings.allowForceReadOnly");
+} catch (ex) { }
+
 function debug(s) {
   dump("-*- SettingsRequestManager: " + s + "\n");
 }
@@ -123,6 +128,12 @@ function SettingsLockInfo(aDB, aMsgMgr, aPrincipal, aLockID, aIsServiceLock, aWi
     
     
     
+    
+    
+    forceReadOnly: true,
+    
+    
+    
     principal: aPrincipal,
     getObjectStore: function() {
       if (VERBOSE) debug("Getting transaction for " + this.lockID);
@@ -146,7 +157,8 @@ function SettingsLockInfo(aDB, aMsgMgr, aPrincipal, aLockID, aIsServiceLock, aWi
       
       
       
-      if (!SettingsPermissions.hasSomeWritePermission(this.principal)) {
+      let canReadOnly = allowForceReadOnly && this.forceReadOnly;
+      if (canReadOnly || !SettingsPermissions.hasSomeWritePermission(this.principal)) {
         if (VERBOSE) debug("Making READONLY transaction for " + this.lockID);
         this._transaction = aDB._db.transaction(SETTINGSSTORE_NAME, "readonly");
       } else {
@@ -254,7 +266,11 @@ let SettingsRequestManager = {
       aData.settings = this._serializePreservingBinaries(aData.settings);
     }
 
-    this.lockInfo[aData.lockID].tasks.push({
+    if (aOperation === "set" || aOperation === "clear") {
+      lock.forceReadOnly = false;
+    }
+
+    lock.tasks.push({
       operation: aOperation,
       data: aData,
       defer: defer
