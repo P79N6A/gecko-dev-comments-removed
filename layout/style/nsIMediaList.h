@@ -82,6 +82,9 @@ public:
   void AddExpression(const nsMediaExpression* aExpression,
                      bool aExpressionMatches);
   bool Matches(nsPresContext* aPresContext) const;
+  bool HasFeatureConditions() const {
+    return !mFeatureCache.IsEmpty();
+  }
 
   
 
