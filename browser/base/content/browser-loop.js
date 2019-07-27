@@ -74,6 +74,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
 
 
     updateToolbarState: function(aReason = null) {
+      if (!this.toolbarButton.node) {
+        return;
+      }
       let state = "";
       if (MozLoopService.errors.size) {
         state = "error";
