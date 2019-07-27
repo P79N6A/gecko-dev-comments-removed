@@ -115,13 +115,13 @@ void Finalize(JSFreeOp *fop, JSObject *objSelf)
 static const JSClass sWitnessClass = {
   "FinalizationWitness",
   JSCLASS_HAS_RESERVED_SLOTS(WITNESS_INSTANCES_SLOTS),
-  JS_PropertyStub ,
-  JS_DeletePropertyStub ,
+  nullptr ,
+  nullptr ,
   JS_PropertyStub ,
   JS_StrictPropertyStub ,
-  JS_EnumerateStub ,
-  JS_ResolveStub ,
-  JS_ConvertStub ,
+  nullptr ,
+  nullptr ,
+  nullptr ,
   Finalize 
 };
 

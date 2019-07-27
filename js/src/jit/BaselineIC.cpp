@@ -3364,7 +3364,7 @@ CheckHasNoSuchProperty(JSContext *cx, HandleObject obj, HandlePropertyName name,
             return false;
 
         
-        if (curObj->getClass()->resolve != JS_ResolveStub)
+        if (curObj->getClass()->resolve)
             return false;
 
         Shape *shape = curObj->as<NativeObject>().lookup(cx, NameToId(name));
@@ -3516,7 +3516,7 @@ IsCacheableSetPropAddSlot(JSContext *cx, HandleObject obj, HandleShape oldShape,
     }
 
     
-    if (obj->getClass()->resolve != JS_ResolveStub)
+    if (obj->getClass()->resolve)
         return false;
 
     size_t chainDepth = 0;
@@ -3535,7 +3535,7 @@ IsCacheableSetPropAddSlot(JSContext *cx, HandleObject obj, HandleShape oldShape,
 
         
         
-        if (proto->getClass()->resolve != JS_ResolveStub)
+        if (proto->getClass()->resolve)
              return false;
     }
 

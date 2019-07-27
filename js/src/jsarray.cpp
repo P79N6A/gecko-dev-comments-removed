@@ -2785,12 +2785,8 @@ GetIndexedPropertiesInRange(JSContext *cx, HandleObject obj, uint32_t begin, uin
     
     JSObject *pobj = obj;
     do {
-        if (!pobj->isNative() ||
-            pobj->getClass()->resolve != JS_ResolveStub ||
-            pobj->getOps()->lookupGeneric)
-        {
+        if (!pobj->isNative() || pobj->getClass()->resolve || pobj->getOps()->lookupGeneric)
             return true;
-        }
     } while ((pobj = pobj->getProto()));
 
     
@@ -3364,17 +3360,17 @@ const Class ArrayObject::class_ = {
     "Array",
     JSCLASS_HAS_CACHED_PROTO(JSProto_Array),
     array_addProperty,
-    JS_DeletePropertyStub,   
+    nullptr,                 
     JS_PropertyStub,         
     JS_StrictPropertyStub,   
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub,
-    nullptr,
-    nullptr,        
-    nullptr,        
-    nullptr,        
-    nullptr,        
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
     {
         GenericCreateConstructor<js_Array, 1, JSFunction::FinalizeKind>,
         CreateArrayPrototype,

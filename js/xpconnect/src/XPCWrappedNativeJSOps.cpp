@@ -1101,7 +1101,7 @@ XPCNativeScriptableShared::PopulateJSClass()
     if (mFlags.WantAddProperty())
         addProperty = XPC_WN_Helper_AddProperty;
     else if (mFlags.UseJSStubForAddProperty())
-        addProperty = JS_PropertyStub;
+        addProperty = nullptr;
     else if (mFlags.AllowPropModsDuringResolve())
         addProperty = XPC_WN_MaybeResolvingPropertyStub;
     else
@@ -1112,7 +1112,7 @@ XPCNativeScriptableShared::PopulateJSClass()
     if (mFlags.WantDelProperty())
         delProperty = XPC_WN_Helper_DelProperty;
     else if (mFlags.UseJSStubForDelProperty())
-        delProperty = JS_DeletePropertyStub;
+        delProperty = nullptr;
     else if (mFlags.AllowPropModsDuringResolve())
         delProperty = XPC_WN_MaybeResolvingDeletePropertyStub;
     else
@@ -1139,7 +1139,7 @@ XPCNativeScriptableShared::PopulateJSClass()
 
     if (mFlags.WantNewEnumerate() || mFlags.WantEnumerate() ||
         mFlags.DontEnumStaticProps())
-        mJSClass.base.enumerate = JS_EnumerateStub;
+        mJSClass.base.enumerate = nullptr;
     else
         mJSClass.base.enumerate = XPC_WN_Shared_Enumerate;
 
@@ -1393,19 +1393,19 @@ const js::Class XPC_WN_ModsAllowed_WithCall_Proto_JSClass = {
     WRAPPER_SLOTS, 
 
     
-    JS_PropertyStub,                
-    JS_DeletePropertyStub,          
+    nullptr,                        
+    nullptr,                        
     JS_PropertyStub,                
     JS_StrictPropertyStub,          
     XPC_WN_Shared_Proto_Enumerate,  
     XPC_WN_ModsAllowed_Proto_Resolve, 
-    JS_ConvertStub,                 
+    nullptr,                        
     XPC_WN_Shared_Proto_Finalize,   
 
     
-    nullptr,                         
-    nullptr,                         
-    nullptr,                         
+    nullptr,                        
+    nullptr,                        
+    nullptr,                        
     XPC_WN_Shared_Proto_Trace,      
 
     JS_NULL_CLASS_SPEC,
@@ -1418,13 +1418,13 @@ const js::Class XPC_WN_ModsAllowed_NoCall_Proto_JSClass = {
     WRAPPER_SLOTS,                  
 
     
-    JS_PropertyStub,                
-    JS_DeletePropertyStub,          
+    nullptr,                        
+    nullptr,                        
     JS_PropertyStub,                
     JS_StrictPropertyStub,          
     XPC_WN_Shared_Proto_Enumerate,  
     XPC_WN_ModsAllowed_Proto_Resolve, 
-    JS_ConvertStub,                 
+    nullptr,                        
     XPC_WN_Shared_Proto_Finalize,   
 
     
@@ -1511,7 +1511,7 @@ const js::Class XPC_WN_NoMods_WithCall_Proto_JSClass = {
     XPC_WN_OnlyIWrite_Proto_SetPropertyStub,   
     XPC_WN_Shared_Proto_Enumerate,             
     XPC_WN_NoMods_Proto_Resolve,               
-    JS_ConvertStub,                            
+    nullptr,                                   
     XPC_WN_Shared_Proto_Finalize,              
 
     
@@ -1536,7 +1536,7 @@ const js::Class XPC_WN_NoMods_NoCall_Proto_JSClass = {
     XPC_WN_OnlyIWrite_Proto_SetPropertyStub,   
     XPC_WN_Shared_Proto_Enumerate,             
     XPC_WN_NoMods_Proto_Resolve,               
-    JS_ConvertStub,                            
+    nullptr,                                   
     XPC_WN_Shared_Proto_Finalize,              
 
     
