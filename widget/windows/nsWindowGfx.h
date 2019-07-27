@@ -13,11 +13,6 @@
 #include "nsWindow.h"
 #include <imgIContainer.h>
 
-
-
-
-#include "cairo-features.h"
-
 class nsWindowGfx {
 public:
   enum IconSizeType {
