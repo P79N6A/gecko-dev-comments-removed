@@ -124,6 +124,10 @@ const injectObjectAPI = function(api, targetWindow) {
           
           if (callbackIsFunction && typeof lastParam != "function") {
             MozLoopService.log.debug(func + ": callback function was lost.");
+            
+            if (results[0]) {
+              MozLoopService.log.error(func + " error:", results[0]);
+            }
             return;
           }
           lastParam(...[cloneValueInto(r, targetWindow) for (r of results)]);
@@ -517,7 +521,7 @@ function injectLoopAPI(targetWindow) {
           
           
           if (callbackIsFunction && typeof callback != "function") {
-            MozLoopService.log.debug("hawkRequest: callback function was lost.");
+            MozLoopService.log.error("hawkRequest: callback function was lost.", hawkError);
             return;
           }
           
