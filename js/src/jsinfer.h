@@ -395,9 +395,10 @@ enum MOZ_ENUM_TYPE(uint32_t) {
                           TYPE_FLAG_SYMBOL,
 
     
-    TYPE_FLAG_OBJECT_COUNT_MASK   = 0x3e00,
-    TYPE_FLAG_OBJECT_COUNT_SHIFT  = 9,
-    TYPE_FLAG_OBJECT_COUNT_LIMIT  =
+    TYPE_FLAG_OBJECT_COUNT_MASK     = 0x3e00,
+    TYPE_FLAG_OBJECT_COUNT_SHIFT    = 9,
+    TYPE_FLAG_OBJECT_COUNT_LIMIT    = 7,
+    TYPE_FLAG_DOMOBJECT_COUNT_LIMIT =
         TYPE_FLAG_OBJECT_COUNT_MASK >> TYPE_FLAG_OBJECT_COUNT_SHIFT,
 
     
@@ -623,6 +624,9 @@ class TypeSet
     bool mightBeMIRType(jit::MIRType type);
 
     
+    bool isDOMClass();
+
+    
 
 
 
@@ -799,9 +803,6 @@ class TemporaryTypeSet : public TypeSet
 
     
     Scalar::Type getSharedTypedArrayType();
-
-    
-    bool isDOMClass();
 
     
     bool maybeCallable();

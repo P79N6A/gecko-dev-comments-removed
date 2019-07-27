@@ -528,8 +528,25 @@ TypeSet::addType(Type type, LifoAlloc *alloc)
 
         setBaseObjectCount(objectCount);
 
-        if (objectCount == TYPE_FLAG_OBJECT_COUNT_LIMIT)
-            goto unknownObject;
+        
+        
+        
+        
+        if (objectCount >= TYPE_FLAG_OBJECT_COUNT_LIMIT) {
+            JS_STATIC_ASSERT(TYPE_FLAG_DOMOBJECT_COUNT_LIMIT >= TYPE_FLAG_OBJECT_COUNT_LIMIT);
+            
+            
+            if (objectCount == TYPE_FLAG_OBJECT_COUNT_LIMIT && !isDOMClass())
+                goto unknownObject;
+
+            
+            if (!object->clasp()->isDOMClass())
+                goto unknownObject;
+
+            
+            if (objectCount == TYPE_FLAG_DOMOBJECT_COUNT_LIMIT)
+                goto unknownObject;
+        }
     }
 
     if (type.isTypeObject()) {
@@ -2055,7 +2072,7 @@ TemporaryTypeSet::getSharedTypedArrayType()
 }
 
 bool
-TemporaryTypeSet::isDOMClass()
+TypeSet::isDOMClass()
 {
     if (unknownObject())
         return false;
