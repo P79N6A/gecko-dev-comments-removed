@@ -178,27 +178,16 @@ public:
   void AssignId(const nsAString& aID) { mID = aID; }
 
   
-  enum {
-    HINT_CONTENTS_AUDIO = 1 << 0,
-    HINT_CONTENTS_VIDEO = 1 << 1,
-    HINT_CONTENTS_UNKNOWN = 1 << 2
-  };
-  TrackTypeHints GetHintContents() const { return mHintContents; }
-  void SetHintContents(TrackTypeHints aHintContents);
 
-  TrackTypeHints GetTrackTypesAvailable() const { return mTrackTypesAvailable; }
+
+  static already_AddRefed<DOMMediaStream>
+  CreateSourceStream(nsIDOMWindow* aWindow);
 
   
 
 
   static already_AddRefed<DOMMediaStream>
-  CreateSourceStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents);
-
-  
-
-
-  static already_AddRefed<DOMMediaStream>
-  CreateTrackUnionStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents = 0);
+  CreateTrackUnionStream(nsIDOMWindow* aWindow);
 
   void SetLogicalStreamStartTime(StreamTime aTime)
   {
@@ -213,14 +202,8 @@ public:
 
   class OnTracksAvailableCallback {
   public:
-    explicit OnTracksAvailableCallback(uint8_t aExpectedTracks = 0)
-      : mExpectedTracks(aExpectedTracks) {}
     virtual ~OnTracksAvailableCallback() {}
     virtual void NotifyTracksAvailable(DOMMediaStream* aStream) = 0;
-    TrackTypeHints GetExpectedTracks() { return mExpectedTracks; }
-    void SetExpectedTracks(TrackTypeHints aExpectedTracks) { mExpectedTracks = aExpectedTracks; }
-  private:
-    TrackTypeHints mExpectedTracks;
   };
   
   
@@ -266,8 +249,8 @@ protected:
   virtual ~DOMMediaStream();
 
   void Destroy();
-  void InitSourceStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents);
-  void InitTrackUnionStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents);
+  void InitSourceStream(nsIDOMWindow* aWindow);
+  void InitTrackUnionStream(nsIDOMWindow* aWindow);
   void InitStreamCommon(MediaStream* aStream);
   already_AddRefed<AudioTrack> CreateAudioTrack(AudioStreamTrack* aStreamTrack);
   already_AddRefed<VideoTrack> CreateVideoTrack(VideoStreamTrack* aStreamTrack);
@@ -304,10 +287,6 @@ protected:
   
   nsTArray<nsCOMPtr<nsISupports> > mConsumersToKeepAlive;
 
-  
-  uint8_t mHintContents;
-  
-  uint8_t mTrackTypesAvailable;
   bool mNotifiedOfMediaStreamGraphShutdown;
 
   
@@ -352,13 +331,13 @@ public:
 
 
   static already_AddRefed<DOMLocalMediaStream>
-  CreateSourceStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents);
+  CreateSourceStream(nsIDOMWindow* aWindow);
 
   
 
 
   static already_AddRefed<DOMLocalMediaStream>
-  CreateTrackUnionStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents = 0);
+  CreateTrackUnionStream(nsIDOMWindow* aWindow);
 
 protected:
   virtual ~DOMLocalMediaStream();
@@ -381,8 +360,7 @@ public:
 
   static already_AddRefed<DOMAudioNodeMediaStream>
   CreateTrackUnionStream(nsIDOMWindow* aWindow,
-                         AudioNode* aNode,
-                         TrackTypeHints aHintContents = 0);
+                         AudioNode* aNode);
 
 protected:
   ~DOMAudioNodeMediaStream();

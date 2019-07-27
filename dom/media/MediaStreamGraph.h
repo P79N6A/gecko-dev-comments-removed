@@ -1181,7 +1181,7 @@ public:
   
 
   
-  static MediaStreamGraph* GetInstance(DOMMediaStream::TrackTypeHints aHint = DOMMediaStream::HINT_CONTENTS_UNKNOWN,
+  static MediaStreamGraph* GetInstance(bool aStartWithAudioDriver = false,
                                        dom::AudioChannel aChannel = dom::AudioChannel::Normal);
   static MediaStreamGraph* CreateNonRealtimeInstance(TrackRate aSampleRate);
   
