@@ -122,7 +122,8 @@ SVGRectElement::GetGeometryBounds(Rect* aBounds, Float aStrokeWidth,
   if (rect.IsEmpty()) {
     
     rect.SetEmpty(); 
-    *aBounds = rect; 
+    
+    *aBounds = aTransform.TransformBounds(rect);
     return true;
   }
 
