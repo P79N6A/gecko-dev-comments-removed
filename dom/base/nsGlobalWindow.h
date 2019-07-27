@@ -145,6 +145,8 @@ NS_CreateJSTimeoutHandler(JSContext* aCx, nsGlobalWindow *aWindow,
                           const nsAString& aExpression,
                           mozilla::ErrorResult& aError);
 
+extern const js::Class OuterWindowProxyClass;
+
 
 
 
