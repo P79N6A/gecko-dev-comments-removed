@@ -136,12 +136,15 @@ NS_EXPORT void JNICALL
 Java_org_mozilla_gecko_GeckoAppShell_reportJavaCrash(JNIEnv *jenv, jclass, jstring jStackTrace)
 {
 #ifdef MOZ_CRASHREPORTER
-    const nsJNIString stackTrace16(jStackTrace, jenv);
-    const NS_ConvertUTF16toUTF8 stackTrace8(stackTrace16);
-    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("JavaStackTrace"), stackTrace8);
+    const nsJNICString stackTrace(jStackTrace, jenv);
+    if (NS_WARN_IF(NS_FAILED(CrashReporter::AnnotateCrashReport(
+            NS_LITERAL_CSTRING("JavaStackTrace"), stackTrace)))) {
+        
+        
+        return;
+    }
 #endif 
-
-    abort();
+    MOZ_CRASH("Uncaught Java exception");
 }
 
 NS_EXPORT void JNICALL
