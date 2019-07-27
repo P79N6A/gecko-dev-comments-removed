@@ -25,11 +25,7 @@ function test_property_throws(contractid) {
     do_check_true(false);
   } catch (e) {
     do_check_true(true);
-    
-    
-    
-    
-    todo_check_true(/implicit_jscontext/.test(e))
+    do_check_true(/implicit_jscontext/.test(e))
   }
 
 }
