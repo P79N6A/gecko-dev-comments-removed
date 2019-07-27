@@ -491,7 +491,7 @@ CheckArg(const char* aArg, bool aCheckOSInt = false, const char **aParam = nullp
     ArgResult arOSInt = CheckArg("osint");
     if (arOSInt == ARG_FOUND) {
       ar = ARG_BAD;
-      PR_fprintf(PR_STDERR, "Error: argument -osint is invalid\n");
+      PR_fprintf(PR_STDERR, "Error: argument --osint is invalid\n");
     }
   }
 
@@ -1513,19 +1513,19 @@ DumpHelp()
          "\n%s options\n", gAppData->name);
 #endif
 
-  printf("  -h or -help        Print this message.\n"
-         "  -v or -version     Print %s version.\n"
+  printf("  -h or --help       Print this message.\n"
+         "  -v or --version    Print %s version.\n"
          "  -P <profile>       Start with <profile>.\n"
-         "  -profile <path>    Start with profile at <path>.\n"
-         "  -migration         Start with migration wizard.\n"
-         "  -ProfileManager    Start with ProfileManager.\n"
-         "  -no-remote         Do not accept or send remote commands; implies -new-instance.\n"
-         "  -new-instance      Open new instance, not a new window in running instance.\n"
-         "  -UILocale <locale> Start with <locale> resources as UI Locale.\n"
-         "  -safe-mode         Disables extensions and themes for this session.\n", gAppData->name);
+         "  --profile <path>   Start with profile at <path>.\n"
+         "  --migration        Start with migration wizard.\n"
+         "  --ProfileManager   Start with ProfileManager.\n"
+         "  --no-remote        Do not accept or send remote commands; implies --new-instance.\n"
+         "  --new-instance     Open new instance, not a new window in running instance.\n"
+         "  --UILocale <locale> Start with <locale> resources as UI Locale.\n"
+         "  --safe-mode        Disables extensions and themes for this session.\n", gAppData->name);
 
 #if defined(XP_WIN)
-  printf("  -console           Start %s with a debugging console.\n", gAppData->name);
+  printf("  --console          Start %s with a debugging console.\n", gAppData->name);
 #endif
 
   
@@ -2112,7 +2112,7 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, n
 
   ar = CheckArg("offline", true);
   if (ar == ARG_BAD) {
-    PR_fprintf(PR_STDERR, "Error: argument -offline is invalid when argument -osint is specified\n");
+    PR_fprintf(PR_STDERR, "Error: argument --offline is invalid when argument --osint is specified\n");
     return NS_ERROR_FAILURE;
   }
 
@@ -2128,7 +2128,7 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, n
   
   ar = CheckArg("reset-profile", true);
   if (ar == ARG_BAD) {
-    PR_fprintf(PR_STDERR, "Error: argument -reset-profile is invalid when argument -osint is specified\n");
+    PR_fprintf(PR_STDERR, "Error: argument --reset-profile is invalid when argument --osint is specified\n");
     return NS_ERROR_FAILURE;
   } else if (ar == ARG_FOUND) {
     gDoProfileReset = true;
@@ -2136,7 +2136,7 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, n
 
   ar = CheckArg("migration", true);
   if (ar == ARG_BAD) {
-    PR_fprintf(PR_STDERR, "Error: argument -migration is invalid when argument -osint is specified\n");
+    PR_fprintf(PR_STDERR, "Error: argument --migration is invalid when argument --osint is specified\n");
     return NS_ERROR_FAILURE;
   } else if (ar == ARG_FOUND) {
     gDoMigration = true;
@@ -2197,7 +2197,7 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, n
 
   ar = CheckArg("profile", true, &arg);
   if (ar == ARG_BAD) {
-    PR_fprintf(PR_STDERR, "Error: argument -profile requires a path\n");
+    PR_fprintf(PR_STDERR, "Error: argument --profile requires a path\n");
     return NS_ERROR_FAILURE;
   }
   if (ar) {
@@ -2231,7 +2231,7 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, n
 
   ar = CheckArg("createprofile", true, &arg);
   if (ar == ARG_BAD) {
-    PR_fprintf(PR_STDERR, "Error: argument -createprofile requires a profile name\n");
+    PR_fprintf(PR_STDERR, "Error: argument --createprofile requires a profile name\n");
     return NS_ERROR_FAILURE;
   }
   if (ar) {
@@ -2246,7 +2246,7 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, n
         PR_fprintf(PR_STDERR, "Error: profile path not valid.\n");
         return rv;
       }
-      
+
       
       
       rv = aProfileSvc->CreateProfile(lf, nsDependentCSubstring(arg, delim),
@@ -2288,7 +2288,7 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, n
   if (ar == ARG_BAD) {
     ar = CheckArg("osint");
     if (ar == ARG_FOUND) {
-      PR_fprintf(PR_STDERR, "Error: argument -p is invalid when argument -osint is specified\n");
+      PR_fprintf(PR_STDERR, "Error: argument -p is invalid when argument --osint is specified\n");
       return NS_ERROR_FAILURE;
     }
 
@@ -2299,7 +2299,7 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, n
   if (ar) {
     ar = CheckArg("osint");
     if (ar == ARG_FOUND) {
-      PR_fprintf(PR_STDERR, "Error: argument -p is invalid when argument -osint is specified\n");
+      PR_fprintf(PR_STDERR, "Error: argument -p is invalid when argument --osint is specified\n");
       return NS_ERROR_FAILURE;
     }
     nsCOMPtr<nsIToolkitProfile> profile;
@@ -2329,7 +2329,7 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, n
 
   ar = CheckArg("profilemanager", true);
   if (ar == ARG_BAD) {
-    PR_fprintf(PR_STDERR, "Error: argument -profilemanager is invalid when argument -osint is specified\n");
+    PR_fprintf(PR_STDERR, "Error: argument --profilemanager is invalid when argument --osint is specified\n");
     return NS_ERROR_FAILURE;
   } else if (ar == ARG_FOUND && CanShowProfileManager()) {
     return ShowProfileManager(aProfileSvc, aNative);
@@ -3010,7 +3010,7 @@ XREMain::XRE_mainInit(bool* aExitFlag)
   const char* override = nullptr;
   ar = CheckArg("override", true, &override);
   if (ar == ARG_BAD) {
-    Output(true, "Incorrect number of arguments passed to -override");
+    Output(true, "Incorrect number of arguments passed to --override");
     return 1;
   }
   else if (ar == ARG_FOUND) {
@@ -3220,7 +3220,7 @@ XREMain::XRE_mainInit(bool* aExitFlag)
 
   ar = CheckArg("safe-mode", true);
   if (ar == ARG_BAD) {
-    PR_fprintf(PR_STDERR, "Error: argument -safe-mode is invalid when argument -osint is specified\n");
+    PR_fprintf(PR_STDERR, "Error: argument --safe-mode is invalid when argument --osint is specified\n");
     return 1;
   } else if (ar == ARG_FOUND) {
     gSafeMode = true;
@@ -3248,7 +3248,7 @@ XREMain::XRE_mainInit(bool* aExitFlag)
   
   ar = CheckArg("no-remote", true);
   if (ar == ARG_BAD) {
-    PR_fprintf(PR_STDERR, "Error: argument -no-remote is invalid when argument -osint is specified\n");
+    PR_fprintf(PR_STDERR, "Error: argument --no-remote is invalid when argument --osint is specified\n");
     return 1;
   } else if (ar == ARG_FOUND) {
     SaveToEnv("MOZ_NO_REMOTE=1");
@@ -3256,7 +3256,7 @@ XREMain::XRE_mainInit(bool* aExitFlag)
 
   ar = CheckArg("new-instance", true);
   if (ar == ARG_BAD) {
-    PR_fprintf(PR_STDERR, "Error: argument -new-instance is invalid when argument -osint is specified\n");
+    PR_fprintf(PR_STDERR, "Error: argument --new-instance is invalid when argument --osint is specified\n");
     return 1;
   } else if (ar == ARG_FOUND) {
     SaveToEnv("MOZ_NEW_INSTANCE=1");
@@ -3286,7 +3286,7 @@ XREMain::XRE_mainInit(bool* aExitFlag)
   
   ar = CheckArg("register", true);
   if (ar == ARG_BAD) {
-    PR_fprintf(PR_STDERR, "Error: argument -register is invalid when argument -osint is specified\n");
+    PR_fprintf(PR_STDERR, "Error: argument --register is invalid when argument --osint is specified\n");
     return 1;
   } else if (ar == ARG_FOUND) {
     ScopedXPCOMStartup xpcom;
@@ -4454,7 +4454,7 @@ XRE_InitCommandLine(int aArgc, char* aArgv[])
   const char *path = nullptr;
   ArgResult ar = CheckArg("greomni", false, &path);
   if (ar == ARG_BAD) {
-    PR_fprintf(PR_STDERR, "Error: argument -greomni requires a path argument\n");
+    PR_fprintf(PR_STDERR, "Error: argument --greomni requires a path argument\n");
     return NS_ERROR_FAILURE;
   }
 
@@ -4464,13 +4464,13 @@ XRE_InitCommandLine(int aArgc, char* aArgv[])
   nsCOMPtr<nsIFile> greOmni;
   rv = XRE_GetFileFromPath(path, getter_AddRefs(greOmni));
   if (NS_FAILED(rv)) {
-    PR_fprintf(PR_STDERR, "Error: argument -greomni requires a valid path\n");
+    PR_fprintf(PR_STDERR, "Error: argument --greomni requires a valid path\n");
     return rv;
   }
 
   ar = CheckArg("appomni", false, &path);
   if (ar == ARG_BAD) {
-    PR_fprintf(PR_STDERR, "Error: argument -appomni requires a path argument\n");
+    PR_fprintf(PR_STDERR, "Error: argument --appomni requires a path argument\n");
     return NS_ERROR_FAILURE;
   }
 
@@ -4478,7 +4478,7 @@ XRE_InitCommandLine(int aArgc, char* aArgv[])
   if (path) {
       rv = XRE_GetFileFromPath(path, getter_AddRefs(appOmni));
       if (NS_FAILED(rv)) {
-        PR_fprintf(PR_STDERR, "Error: argument -appomni requires a valid path\n");
+        PR_fprintf(PR_STDERR, "Error: argument --appomni requires a valid path\n");
         return rv;
       }
   }
