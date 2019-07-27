@@ -1107,7 +1107,7 @@ void
 MediaDecoderStateMachine::CheckIfDecodeComplete()
 {
   AssertCurrentThreadInMonitor();
-  if (mState == DECODER_STATE_SHUTDOWN ||
+  if (IsShutdown() ||
       mState == DECODER_STATE_SEEKING ||
       mState == DECODER_STATE_COMPLETED) {
     
@@ -1452,7 +1452,7 @@ void MediaDecoderStateMachine::SetDormant(bool aDormant)
   MOZ_ASSERT(OnStateMachineThread(), "Should be on state machine thread.");
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
 
-  if (mState == DECODER_STATE_SHUTDOWN) {
+  if (IsShutdown()) {
     return;
   }
 
@@ -1656,7 +1656,7 @@ MediaDecoderStateMachine::Seek(SeekTarget aTarget)
 
   mDecodingFrozenAtStateDecoding = false;
 
-  if (mState == DECODER_STATE_SHUTDOWN) {
+  if (IsShutdown()) {
     return MediaDecoder::SeekPromise::CreateAndReject( true, __func__);
   }
 
@@ -1799,7 +1799,7 @@ MediaDecoderStateMachine::DispatchDecodeTasksIfNeeded()
     RefPtr<nsIRunnable> event = NS_NewRunnableMethod(
         this, &MediaDecoderStateMachine::SetReaderIdle);
     nsresult rv = DecodeTaskQueue()->Dispatch(event.forget());
-    if (NS_FAILED(rv) && mState != DECODER_STATE_SHUTDOWN) {
+    if (NS_FAILED(rv) && !IsShutdown()) {
       DECODER_WARN("Failed to dispatch event to set decoder idle state");
     }
   }
@@ -2091,31 +2091,26 @@ MediaDecoderStateMachine::DecodeError()
 {
   MOZ_ASSERT(OnStateMachineThread());
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-  if (mState == DECODER_STATE_SHUTDOWN) {
+  if (IsShutdown()) {
     
     return;
   }
 
   
   
-  
+  SetState(DECODER_STATE_ERROR);
   ScheduleStateMachine();
-  SetState(DECODER_STATE_SHUTDOWN);
-  DECODER_WARN("Decode error, changed state to SHUTDOWN due to error");
+  DECODER_WARN("Decode error, changed state to ERROR");
+
+  
+  
   mDecoder->GetReentrantMonitor().NotifyAll();
 
   
   
-  
-  
-  
-  
- {
-    nsCOMPtr<nsIRunnable> event =
-      NS_NewRunnableMethod(mDecoder, &MediaDecoder::DecodeError);
-    ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
-    NS_DispatchToMainThread(event, NS_DISPATCH_SYNC);
-  }
+  nsCOMPtr<nsIRunnable> event =
+    NS_NewRunnableMethod(mDecoder, &MediaDecoder::DecodeError);
+  NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
 }
 
 void
@@ -2275,7 +2270,7 @@ MediaDecoderStateMachine::FinishDecodeFirstFrame()
   MOZ_ASSERT(OnStateMachineThread());
   DECODER_LOG("FinishDecodeFirstFrame");
 
-  if (mState == DECODER_STATE_SHUTDOWN) {
+  if (IsShutdown()) {
     return NS_ERROR_FAILURE;
   }
 
@@ -2376,7 +2371,7 @@ MediaDecoderStateMachine::SeekCompleted()
 
   if (mState != DECODER_STATE_SEEKING) {
     MOZ_DIAGNOSTIC_ASSERT(mState == DECODER_STATE_DORMANT ||
-                          mState == DECODER_STATE_SHUTDOWN);
+                          IsShutdown());
     
     
     
@@ -2546,6 +2541,11 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
   NS_ENSURE_TRUE(resource, NS_ERROR_NULL_POINTER);
 
   switch (mState) {
+    case DECODER_STATE_ERROR: {
+      
+      return NS_OK;
+    }
+
     case DECODER_STATE_SHUTDOWN: {
       mQueuedSeek.RejectIfExists(__func__);
       mPendingSeek.RejectIfExists(__func__);
@@ -2737,8 +2737,8 @@ MediaDecoderStateMachine::Reset()
   
   
   
-  MOZ_ASSERT(mState == DECODER_STATE_SEEKING ||
-             mState == DECODER_STATE_SHUTDOWN ||
+  MOZ_ASSERT(IsShutdown() ||
+             mState == DECODER_STATE_SEEKING ||
              mState == DECODER_STATE_DORMANT ||
              mState == DECODER_STATE_DECODING_NONE);
 
@@ -3393,7 +3393,8 @@ MediaDecoderStateMachine::SetMinimizePrerollUntilPlaybackStarts()
 bool MediaDecoderStateMachine::IsShutdown()
 {
   AssertCurrentThreadInMonitor();
-  return GetState() == DECODER_STATE_SHUTDOWN;
+  return mState == DECODER_STATE_ERROR ||
+         mState == DECODER_STATE_SHUTDOWN;
 }
 
 void MediaDecoderStateMachine::QueueMetadata(int64_t aPublishTime,
