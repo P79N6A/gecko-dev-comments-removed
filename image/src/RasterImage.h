@@ -25,16 +25,14 @@
 #include "nsTArray.h"
 #include "imgFrame.h"
 #include "nsThreadUtils.h"
-#include "DecodeStrategy.h"
+#include "DecodePool.h"
 #include "DiscardTracker.h"
 #include "Orientation.h"
 #include "nsIObserver.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/Mutex.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/TypedEnum.h"
-#include "mozilla/StaticPtr.h"
 #include "mozilla/WeakPtr.h"
 #include "mozilla/UniquePtr.h"
 #ifdef DEBUG
@@ -135,15 +133,6 @@ namespace image {
 
 class Decoder;
 class FrameAnimator;
-class ScaleRunner;
-
-MOZ_BEGIN_ENUM_CLASS(DecodeStatus, uint8_t)
-  INACTIVE,
-  PENDING,
-  ACTIVE,
-  WORK_DONE,
-  STOPPED
-MOZ_END_ENUM_CLASS(DecodeStatus)
 
 class RasterImage MOZ_FINAL : public ImageResource
                             , public nsIProperties
@@ -260,9 +249,7 @@ public:
                                        bool aLastPart) MOZ_OVERRIDE;
   virtual nsresult OnNewSourceData() MOZ_OVERRIDE;
 
-  static already_AddRefed<nsIEventTarget> GetEventTarget() {
-    return DecodePool::Singleton()->GetEventTarget();
-  }
+  static already_AddRefed<nsIEventTarget> GetEventTarget();
 
   
 
@@ -294,8 +281,6 @@ public:
     return mRequestedSampleSize;
   }
 
-
-
  nsCString GetURIString() {
     nsCString spec;
     if (GetURI()) {
@@ -304,168 +289,15 @@ public:
     return spec;
   }
 
-  
   static void Initialize();
 
-  
-  enum eShutdownIntent {
-    eShutdownIntent_Done        = 0,
-    eShutdownIntent_NotNeeded   = 1,
-    eShutdownIntent_Error       = 2,
-    eShutdownIntent_AllCount    = 3
-  };
-
 private:
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  class DecodePool : public nsIObserver
-  {
-  public:
-    NS_DECL_THREADSAFE_ISUPPORTS
-    NS_DECL_NSIOBSERVER
-
-    static DecodePool* Singleton();
-
-    
-
-
-    void RequestDecode(RasterImage* aImg);
-
-    
-
-
-
-    void DecodeABitOf(RasterImage* aImg, DecodeStrategy aStrategy);
-
-    
-
-
-
-
-
-
-    static void StopDecoding(RasterImage* aImg);
-
-    
-
-
-
-
-
-
-
-    nsresult DecodeUntilSizeAvailable(RasterImage* aImg);
-
-    
-
-
-
-
-
-    already_AddRefed<nsIEventTarget> GetEventTarget();
-
-  private: 
-    static StaticRefPtr<DecodePool> sSingleton;
-
-  private: 
-    DecodePool();
-    virtual ~DecodePool();
-
-    enum DecodeType {
-      DECODE_TYPE_UNTIL_TIME,
-      DECODE_TYPE_UNTIL_SIZE,
-      DECODE_TYPE_UNTIL_DONE_BYTES
-    };
-
-    
-
-
-
-
-    nsresult DecodeSomeOfImage(RasterImage* aImg,
-                               DecodeStrategy aStrategy,
-                               DecodeType aDecodeType = DECODE_TYPE_UNTIL_TIME,
-                               uint32_t bytesToDecode = 0);
-
-    
-
-    class DecodeJob : public nsRunnable
-    {
-    public:
-      DecodeJob(RasterImage* aImage) : mImage(aImage) { }
-
-      NS_IMETHOD Run() MOZ_OVERRIDE;
-
-    protected:
-      virtual ~DecodeJob();
-
-    private:
-      nsRefPtr<RasterImage> mImage;
-    };
-
-  private: 
-
-    
-    
-    
-    Mutex                     mThreadPoolMutex;
-    nsCOMPtr<nsIThreadPool>   mThreadPool;
-  };
-
-  class DecodeDoneWorker : public nsRunnable
-  {
-  public:
-    
-
-
-
-
-
-
-    static void NotifyFinishedSomeDecoding(RasterImage* aImage);
-
-    NS_IMETHOD Run();
-
-  private:
-    DecodeDoneWorker(RasterImage* aImage);
-
-    nsRefPtr<RasterImage> mImage;
-  };
-
-  class FrameNeededWorker : public nsRunnable
-  {
-  public:
-    
-
-
-
-
-
-
-    static void GetNewFrame(RasterImage* image);
-
-    NS_IMETHOD Run();
-
-  private: 
-    explicit FrameNeededWorker(RasterImage* image);
-
-  private: 
-
-    nsRefPtr<RasterImage> mImage;
-  };
-
-  nsresult FinishedSomeDecoding(eShutdownIntent intent = eShutdownIntent_Done,
+  friend class DecodePool;
+  friend class DecodeWorker;
+  friend class FrameNeededWorker;
+  friend class NotifyProgressWorker;
+
+  nsresult FinishedSomeDecoding(ShutdownReason aReason = ShutdownReason::DONE,
                                 Progress aProgress = NoProgress);
 
   void DrawWithPreDownscaleIfNeeded(DrawableFrameRef&& aFrameRef,
@@ -624,10 +456,8 @@ private:
   bool                       mPendingError:1;
 
   
-  nsresult RequestDecodeIfNeeded(nsresult aStatus,
-                                 eShutdownIntent aIntent,
-                                 bool aDone,
-                                 bool aWasSize);
+  nsresult RequestDecodeIfNeeded(nsresult aStatus, ShutdownReason aReason,
+                                 bool aDone, bool aWasSize);
   nsresult WantDecodedFrames(uint32_t aFlags, bool aShouldSyncNotify);
   nsresult SyncDecode();
   nsresult InitDecoder(bool aDoSizeDecode);
@@ -639,7 +469,7 @@ private:
   
   nsAutoPtr<ProgressTrackerInit> mProgressTrackerInit;
 
-  nsresult ShutdownDecoder(eShutdownIntent aIntent);
+  nsresult ShutdownDecoder(ShutdownReason aReason);
 
 
   
