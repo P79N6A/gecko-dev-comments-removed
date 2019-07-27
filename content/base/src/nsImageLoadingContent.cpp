@@ -522,6 +522,19 @@ nsImageLoadingContent::FrameDestroyed(nsIFrame* aFrame)
   }
 }
 
+
+nsContentPolicyType
+nsImageLoadingContent::PolicyTypeForLoad(ImageLoadType aImageLoadType)
+{
+  if (aImageLoadType == eImageLoadType_Imageset) {
+    return nsIContentPolicy::TYPE_IMAGESET;
+  }
+
+  MOZ_ASSERT(aImageLoadType == eImageLoadType_Normal,
+             "Unknown ImageLoadType type in PolicyTypeForLoad");
+  return nsIContentPolicy::TYPE_IMAGE;
+}
+
 int32_t
 nsImageLoadingContent::GetRequestType(imgIRequest* aRequest,
                                       ErrorResult& aError)
@@ -600,7 +613,7 @@ nsImageLoadingContent::LoadImageWithChannel(nsIChannel* aChannel,
 
   
   nsCOMPtr<nsIStreamListener> listener;
-  nsRefPtr<imgRequestProxy>& req = PrepareNextRequest();
+  nsRefPtr<imgRequestProxy>& req = PrepareNextRequest(eImageLoadType_Normal);
   nsresult rv = nsContentUtils::GetImgLoaderForChannel(aChannel)->
     LoadImageWithChannel(aChannel, this, doc,
                          getter_AddRefs(listener),
@@ -632,7 +645,8 @@ nsImageLoadingContent::LoadImageWithChannel(nsIChannel* aChannel,
 }
 
 void
-nsImageLoadingContent::ForceReload(ErrorResult& aError)
+nsImageLoadingContent::ForceReload(const mozilla::dom::Optional<bool>& aNotify,
+                                   mozilla::ErrorResult& aError)
 {
   nsCOMPtr<nsIURI> currentURI;
   GetCurrentURI(getter_AddRefs(currentURI));
@@ -641,16 +655,32 @@ nsImageLoadingContent::ForceReload(ErrorResult& aError)
     return;
   }
 
-  nsresult rv = LoadImage(currentURI, true, true, nullptr, nsIRequest::VALIDATE_ALWAYS);
+  
+  bool notify = !aNotify.WasPassed() || aNotify.Value();
+
+  
+  
+  ImageLoadType loadType = \
+    (mCurrentRequestFlags & REQUEST_IS_IMAGESET) ? eImageLoadType_Imageset
+                                                 : eImageLoadType_Normal;
+  nsresult rv = LoadImage(currentURI, true, notify, loadType, nullptr,
+                          nsIRequest::VALIDATE_ALWAYS);
   if (NS_FAILED(rv)) {
     aError.Throw(rv);
   }
 }
 
-NS_IMETHODIMP nsImageLoadingContent::ForceReload()
+NS_IMETHODIMP
+nsImageLoadingContent::ForceReload(bool aNotify ,
+                                   uint8_t aArgc)
 {
+  mozilla::dom::Optional<bool> notify;
+  if (aArgc >= 1) {
+    notify.Construct() = aNotify;
+  }
+
   ErrorResult result;
-  ForceReload(result);
+  ForceReload(notify, result);
   return result.ErrorCode();
 }
 
@@ -735,7 +765,8 @@ nsImageLoadingContent::GetVisibleCount()
 nsresult
 nsImageLoadingContent::LoadImage(const nsAString& aNewURI,
                                  bool aForce,
-                                 bool aNotify)
+                                 bool aNotify,
+                                 ImageLoadType aImageLoadType)
 {
   
   nsIDocument* doc = GetOurOwnerDoc();
@@ -769,13 +800,14 @@ nsImageLoadingContent::LoadImage(const nsAString& aNewURI,
 
   NS_TryToSetImmutable(imageURI);
 
-  return LoadImage(imageURI, aForce, aNotify, doc);
+  return LoadImage(imageURI, aForce, aNotify, aImageLoadType, doc);
 }
 
 nsresult
 nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
                                  bool aForce,
                                  bool aNotify,
+                                 ImageLoadType aImageLoadType,
                                  nsIDocument* aDocument,
                                  nsLoadFlags aLoadFlags)
 {
@@ -829,11 +861,14 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
 
   
   int16_t cpDecision = nsIContentPolicy::REJECT_REQUEST;
+  nsContentPolicyType policyType = PolicyTypeForLoad(aImageLoadType);
+
   nsContentUtils::CanLoadImage(aNewURI,
                                static_cast<nsIImageLoadingContent*>(this),
                                aDocument,
                                aDocument->NodePrincipal(),
-                               &cpDecision);
+                               &cpDecision,
+                               policyType);
   if (!NS_CP_ACCEPTED(cpDecision)) {
     FireEvent(NS_LITERAL_STRING("error"));
     SetBlockedRequest(aNewURI, cpDecision);
@@ -849,7 +884,7 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
   }
 
   
-  nsRefPtr<imgRequestProxy>& req = PrepareNextRequest();
+  nsRefPtr<imgRequestProxy>& req = PrepareNextRequest(aImageLoadType);
   nsCOMPtr<nsIContent> content =
       do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
   nsresult rv;
@@ -858,7 +893,8 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
                                  aDocument->GetDocumentURI(),
                                  this, loadFlags,
                                  content->LocalName(),
-                                 getter_AddRefs(req));
+                                 getter_AddRefs(req),
+                                 policyType);
 
   if (NS_SUCCEEDED(rv)) {
     TrackImage(req);
@@ -982,14 +1018,14 @@ nsImageLoadingContent::UpdateImageState(bool aNotify)
     
     return;
   }
-  
+
   nsCOMPtr<nsIContent> thisContent = do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
   if (!thisContent) {
     return;
   }
 
   mLoading = mBroken = mUserDisabled = mSuppressed = false;
-  
+
   
   
   
@@ -1024,7 +1060,8 @@ nsImageLoadingContent::CancelImageRequests(bool aNotify)
 
 nsresult
 nsImageLoadingContent::UseAsPrimaryRequest(imgRequestProxy* aRequest,
-                                           bool aNotify)
+                                           bool aNotify,
+                                           ImageLoadType aImageLoadType)
 {
   
   AutoStateChanger changer(this, aNotify);
@@ -1034,7 +1071,7 @@ nsImageLoadingContent::UseAsPrimaryRequest(imgRequestProxy* aRequest,
   ClearCurrentRequest(NS_BINDING_ABORTED, REQUEST_DISCARD);
 
   
-  nsRefPtr<imgRequestProxy>& req = PrepareNextRequest();
+  nsRefPtr<imgRequestProxy>& req = PrepareNextRequest(aImageLoadType);
   nsresult rv = aRequest->Clone(this, getter_AddRefs(req));
   if (NS_SUCCEEDED(rv)) {
     TrackImage(req);
@@ -1125,15 +1162,15 @@ nsImageLoadingContent::FireEvent(const nsAString& aEventType)
 }
 
 nsRefPtr<imgRequestProxy>&
-nsImageLoadingContent::PrepareNextRequest()
+nsImageLoadingContent::PrepareNextRequest(ImageLoadType aImageLoadType)
 {
   
   
   if (!HaveSize(mCurrentRequest))
-    return PrepareCurrentRequest();
+    return PrepareCurrentRequest(aImageLoadType);
 
   
-  return PreparePendingRequest();
+  return PreparePendingRequest(aImageLoadType);
 }
 
 void
@@ -1155,16 +1192,19 @@ nsImageLoadingContent::SetBlockedRequest(nsIURI* aURI, int16_t aContentDecision)
   if (!HaveSize(mCurrentRequest)) {
 
     mImageBlockingStatus = aContentDecision;
+    uint32_t keepFlags = mCurrentRequestFlags & REQUEST_IS_IMAGESET;
     ClearCurrentRequest(NS_ERROR_IMAGE_BLOCKED, REQUEST_DISCARD);
 
     
     
+    
     mCurrentURI = aURI;
+    mCurrentRequestFlags = keepFlags;
   }
 }
 
 nsRefPtr<imgRequestProxy>&
-nsImageLoadingContent::PrepareCurrentRequest()
+nsImageLoadingContent::PrepareCurrentRequest(ImageLoadType aImageLoadType)
 {
   
   
@@ -1177,18 +1217,26 @@ nsImageLoadingContent::PrepareCurrentRequest()
     mCurrentRequestFlags |= REQUEST_NEEDS_ANIMATION_RESET;
   }
 
+  if (aImageLoadType == eImageLoadType_Imageset) {
+    mCurrentRequestFlags |= REQUEST_IS_IMAGESET;
+  }
+
   
   return mCurrentRequest;
 }
 
 nsRefPtr<imgRequestProxy>&
-nsImageLoadingContent::PreparePendingRequest()
+nsImageLoadingContent::PreparePendingRequest(ImageLoadType aImageLoadType)
 {
   
   ClearPendingRequest(NS_ERROR_IMAGE_SRC_CHANGED, REQUEST_DISCARD);
 
   if (mNewRequestsWillNeedAnimationReset) {
     mPendingRequestFlags |= REQUEST_NEEDS_ANIMATION_RESET;
+  }
+
+  if (aImageLoadType == eImageLoadType_Imageset) {
+    mPendingRequestFlags |= REQUEST_IS_IMAGESET;
   }
 
   
@@ -1233,7 +1281,11 @@ nsImageLoadingContent::MakePendingRequestCurrent()
   
   ImageRequestAutoLock autoLock(mCurrentRequest);
 
-  PrepareCurrentRequest() = mPendingRequest;
+  ImageLoadType loadType = \
+    (mPendingRequestFlags & REQUEST_IS_IMAGESET) ? eImageLoadType_Imageset
+                                                 : eImageLoadType_Normal;
+
+  PrepareCurrentRequest(loadType) = mPendingRequest;
   mPendingRequest = nullptr;
   mCurrentRequestFlags = mPendingRequestFlags;
   mPendingRequestFlags = 0;
@@ -1248,6 +1300,7 @@ nsImageLoadingContent::ClearCurrentRequest(nsresult aReason,
     
     
     mCurrentURI = nullptr;
+    mCurrentRequestFlags = 0;
     return;
   }
   NS_ABORT_IF_FALSE(!mCurrentURI,

@@ -3020,7 +3020,8 @@ nsContentUtils::LoadImage(nsIURI* aURI, nsIDocument* aLoadingDocument,
                               aObserver,            
                               aLoadingDocument,     
                               aLoadFlags,           
-                              nullptr,               
+                              nullptr,              
+                              aContentPolicyType,   
                               initiatorType,        
                               aRequest);
 }

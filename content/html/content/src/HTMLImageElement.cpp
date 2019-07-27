@@ -436,11 +436,7 @@ HTMLImageElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
       
       
       
-      
-      nsCOMPtr<nsIURI> currentURI;
-      if (NS_SUCCEEDED(GetCurrentURI(getter_AddRefs(currentURI))) && currentURI) {
-        LoadImage(currentURI, true, aNotify);
-      }
+      ForceReload(aNotify);
     }
   }
 
@@ -551,7 +547,7 @@ HTMLImageElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
       
       
       
-      LoadImage(aValue, true, aNotify);
+      LoadImage(aValue, true, aNotify, eImageLoadType_Normal);
 
       mNewRequestsWillNeedAnimationReset = false;
     }
@@ -909,14 +905,19 @@ HTMLImageElement::LoadSelectedImage(bool aForce, bool aNotify)
 
   if (mResponsiveSelector) {
     nsCOMPtr<nsIURI> url = mResponsiveSelector->GetSelectedImageURL();
-    rv = LoadImage(url, aForce, aNotify);
+    rv = LoadImage(url, aForce, aNotify, eImageLoadType_Imageset);
   } else {
     nsAutoString src;
     if (!GetAttr(kNameSpaceID_None, nsGkAtoms::src, src)) {
       CancelImageRequests(aNotify);
       rv = NS_OK;
     } else {
-      rv = LoadImage(src, aForce, aNotify);
+      
+      
+      
+      rv = LoadImage(src, aForce, aNotify,
+                     HaveSrcsetOrInPicture() ? eImageLoadType_Imageset
+                                             : eImageLoadType_Normal);
     }
   }
 

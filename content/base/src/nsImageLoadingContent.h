@@ -22,6 +22,8 @@
 #include "nsIRequest.h"
 #include "mozilla/ErrorResult.h"
 #include "nsAutoPtr.h"
+#include "nsIContentPolicy.h"
+#include "mozilla/dom/BindingDeclarations.h"
 
 class nsIURI;
 class nsIDocument;
@@ -63,13 +65,30 @@ public:
   int32_t
     GetRequestType(imgIRequest* aRequest, mozilla::ErrorResult& aError);
   already_AddRefed<nsIURI> GetCurrentURI(mozilla::ErrorResult& aError);
+  void ForceReload(const mozilla::dom::Optional<bool>& aNotify,
+                   mozilla::ErrorResult& aError);
+
+  
+  nsresult ForceReload(bool aNotify = true) {
+    return ForceReload(aNotify, 1);
+  }
+
+  
+
+
+
   already_AddRefed<nsIStreamListener>
     LoadImageWithChannel(nsIChannel* aChannel, mozilla::ErrorResult& aError);
-  void ForceReload(mozilla::ErrorResult& aError);
-
-
 
 protected:
+  enum ImageLoadType {
+    
+    eImageLoadType_Normal,
+    
+    
+    eImageLoadType_Imageset
+  };
+
   
 
 
@@ -83,8 +102,9 @@ protected:
 
 
 
+
   nsresult LoadImage(const nsAString& aNewURI, bool aForce,
-                     bool aNotify);
+                     bool aNotify, ImageLoadType aImageLoadType);
 
   
 
@@ -113,8 +133,9 @@ protected:
 
 
 
+
   nsresult LoadImage(nsIURI* aNewURI, bool aForce, bool aNotify,
-                     nsIDocument* aDocument = nullptr,
+                     ImageLoadType aImageLoadType, nsIDocument* aDocument = nullptr,
                      nsLoadFlags aLoadFlags = nsIRequest::LOAD_NORMAL);
 
   
@@ -158,7 +179,8 @@ protected:
 
 
 
-  nsresult UseAsPrimaryRequest(imgRequestProxy* aRequest, bool aNotify);
+  nsresult UseAsPrimaryRequest(imgRequestProxy* aRequest, bool aNotify,
+                               ImageLoadType aImageLoadType);
 
   
 
@@ -190,6 +212,9 @@ protected:
   nsresult OnStopRequest(imgIRequest* aRequest, nsresult aStatus);
   void OnUnlockedDraw();
   nsresult OnImageIsAnimated(imgIRequest *aRequest);
+
+  
+  static nsContentPolicyType PolicyTypeForLoad(ImageLoadType aImageLoadType);
 
 private:
   
@@ -261,7 +286,9 @@ protected:
 
 
 
-   nsRefPtr<imgRequestProxy>& PrepareNextRequest();
+
+
+   nsRefPtr<imgRequestProxy>& PrepareNextRequest(ImageLoadType aImageLoadType);
 
   
 
@@ -276,8 +303,10 @@ protected:
 
 
 
-  nsRefPtr<imgRequestProxy>& PrepareCurrentRequest();
-  nsRefPtr<imgRequestProxy>& PreparePendingRequest();
+
+
+  nsRefPtr<imgRequestProxy>& PrepareCurrentRequest(ImageLoadType aImageLoadType);
+  nsRefPtr<imgRequestProxy>& PreparePendingRequest(ImageLoadType aImageLoadType);
 
   
 
@@ -339,7 +368,10 @@ protected:
     
     REQUEST_BLOCKS_ONLOAD = 0x00000002U,
     
-    REQUEST_IS_TRACKED = 0x00000004U
+    REQUEST_IS_TRACKED = 0x00000004U,
+    
+    
+    REQUEST_IS_IMAGESET = 0x00000008U
   };
 
   

@@ -35,7 +35,7 @@ public:
   nsresult Init(imgRequestProxy* aImageRequest)
   {
     
-    return UseAsPrimaryRequest(aImageRequest, false);
+    return UseAsPrimaryRequest(aImageRequest, false, eImageLoadType_Normal);
   }
 
   

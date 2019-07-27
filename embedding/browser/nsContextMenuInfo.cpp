@@ -275,7 +275,7 @@ nsContextMenuInfo::GetBackgroundImageRequestInternal(nsIDOMNode *aDOMNode, imgRe
     
     if (!domElement)
       break;
-    
+
     nsCOMPtr<nsIDOMCSSStyleDeclaration> computedStyle;
     window->GetComputedStyle(domElement, EmptyString(),
                              getter_AddRefs(computedStyle));
@@ -296,7 +296,8 @@ nsContextMenuInfo::GetBackgroundImageRequestInternal(nsIDOMNode *aDOMNode, imgRe
 
           return il->LoadImage(bgUri, nullptr, nullptr, principal, nullptr,
                                nullptr, nullptr, nsIRequest::LOAD_NORMAL,
-                               nullptr, EmptyString(), aRequest);
+                               nullptr, nsIContentPolicy::TYPE_IMAGE,
+                               EmptyString(), aRequest);
         }
       }
 
