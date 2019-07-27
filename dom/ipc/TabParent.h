@@ -240,8 +240,8 @@ public:
     
     
     
-    void Show(const nsIntSize& size, bool aParentIsActive);
-    void UpdateDimensions(const nsIntRect& rect, const nsIntSize& size,
+    void Show(const ScreenIntSize& size, bool aParentIsActive);
+    void UpdateDimensions(const nsIntRect& rect, const ScreenIntSize& size,
                           const nsIntPoint& chromeDisp);
     void UpdateFrame(const layers::FrameMetrics& aFrameMetrics);
     void UIResolutionChanged();
@@ -436,7 +436,7 @@ protected:
     int32_t mEventCaptureDepth;
 
     nsIntRect mRect;
-    nsIntSize mDimensions;
+    ScreenIntSize mDimensions;
     ScreenOrientation mOrientation;
     float mDPI;
     CSSToLayoutDeviceScale mDefaultScale;
