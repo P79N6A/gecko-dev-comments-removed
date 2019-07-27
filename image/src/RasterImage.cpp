@@ -2631,7 +2631,7 @@ RasterImage::RequestScale(imgFrame* aFrame, nsIntSize aSize)
 
 void
 RasterImage::DrawWithPreDownscaleIfNeeded(DrawableFrameRef&& aFrameRef,
-                                          gfxContext *aContext,
+                                          gfxContext* aContext,
                                           const nsIntSize& aSize,
                                           const ImageRegion& aRegion,
                                           GraphicsFilter aFilter,
@@ -2673,10 +2673,19 @@ RasterImage::DrawWithPreDownscaleIfNeeded(DrawableFrameRef&& aFrameRef,
     region.Scale(1.0 / scale.width, 1.0 / scale.height);
   }
 
-  nsIntMargin padding(finalFrameRect.y,
-                      mSize.width - finalFrameRect.XMost(),
-                      mSize.height - finalFrameRect.YMost(),
-                      finalFrameRect.x);
+  
+  
+  
+  
+  
+  
+  nsIntMargin padding(0, 0, 0, 0);
+  if (!aFrameRef) {
+    padding = nsIntMargin(finalFrameRect.y,
+                          mSize.width - finalFrameRect.XMost(),
+                          mSize.height - finalFrameRect.YMost(),
+                          finalFrameRect.x);
+  }
 
   frameRef->Draw(aContext, region, padding, aFilter, aFlags);
 }
