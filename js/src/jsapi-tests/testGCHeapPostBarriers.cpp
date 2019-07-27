@@ -10,7 +10,9 @@
 
 BEGIN_TEST(testGCHeapPostBarriers)
 {
+#ifdef JS_GC_ZEAL
     AutoLeaveZeal nozeal(cx);
+#endif 
 
     
     JS_GC(cx->runtime());
