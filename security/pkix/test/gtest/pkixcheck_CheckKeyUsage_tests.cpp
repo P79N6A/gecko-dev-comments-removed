@@ -134,6 +134,40 @@ TEST(pkixchekc_CheckKeyusage, tooManyUnusedBits)
                            KeyUsage::digitalSignature));
 }
 
+TEST(pkixcheck_CheckKeyUsage, NoValueBytes_NoPaddingBits)
+{
+  static const uint8_t DER_BYTES[] = {
+    0x03, 0x01, 0
+  };
+  static const SECItem DER = {
+    siBuffer,
+    const_cast<uint8_t*>(DER_BYTES),
+    sizeof(DER_BYTES)
+  };
+
+  ASSERT_BAD(CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, &DER,
+                           KeyUsage::digitalSignature));
+  ASSERT_BAD(CheckKeyUsage(EndEntityOrCA::MustBeCA, &DER,
+                           KeyUsage::keyCertSign));
+}
+
+TEST(pkixcheck_CheckKeyUsage, NoValueBytes_7PaddingBits)
+{
+  static const uint8_t DER_BYTES[] = {
+    0x03, 0x01, 7
+  };
+  static const SECItem DER = {
+    siBuffer,
+    const_cast<uint8_t*>(DER_BYTES),
+    sizeof(DER_BYTES)
+  };
+
+  ASSERT_BAD(CheckKeyUsage(EndEntityOrCA::MustBeEndEntity, &DER,
+                           KeyUsage::digitalSignature));
+  ASSERT_BAD(CheckKeyUsage(EndEntityOrCA::MustBeCA, &DER,
+                           KeyUsage::keyCertSign));
+}
+
 void ASSERT_SimpleCase(uint8_t unusedBits, uint8_t bits, KeyUsage usage)
 {
   
