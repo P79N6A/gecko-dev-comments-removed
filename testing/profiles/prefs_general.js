@@ -307,6 +307,7 @@ user_pref("dom.ipc.tabs.shutdownTimeoutSecs", 0);
 
 
 user_pref("browser.readinglist.introShown", true);
+user_pref("browser.reader.detectedFirstArticle", true);
 
 
 
