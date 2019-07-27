@@ -34,43 +34,46 @@ HCIEventTransactionSystemMessageConfigurator.prototype = {
   },
 
   shouldDispatch: function shouldDispatch(aManifestURL, aPageURL, aType, aMessage, aExtra) {
-    let deferred = Promise.defer();
-    debug("message to dispatch: " + JSON.stringify(aMessage));
+    DEBUG && debug("message to dispatch: " + JSON.stringify(aMessage));
     debug("aManifest url: " + aManifestURL);
-    if(!aMessage) {
-      return deferred.resolve(false);
+
+    if (!aMessage) {
+      return Promise.resolve(false);
     }
-    let aid = this._byteAIDToHex(aMessage.aid);
-    let seName = aMessage.seName;
 
-    appsService.getManifestFor(aManifestURL)
-    .then((aManifest) => this._checkAppManifest(seName, aid, aManifest))
-    .then(() => {
-      
-      
-      
-      debug("dispatching message");
-      deferred.resolve(true);
-    })
-    .catch(() => {
-      
-      debug("not dispatching");
-      deferred.resolve(false);
+    return new Promise((resolve, reject) => {
+      appsService.getManifestFor(aManifestURL)
+      .then((aManifest) => this._checkAppManifest(aMessage.seName, aMessage.aid, aManifest))
+      .then(() => {
+        
+        
+        
+        debug("dispatching message");
+        resolve(true);
+      })
+      .catch(() => {
+        
+        debug("not dispatching");
+        resolve(false);
+      });
     });
-
-    return deferred.promise;
   },
 
   
   
   
   _checkAppManifest: function _checkAppManifest(aSeName, aAid, aManifest) {
-    debug("aManifest " + JSON.stringify(aManifest));
+    DEBUG && debug("aManifest " + JSON.stringify(aManifest));
+
+    
+    
+    let aid = this._byteAIDToHex(aAid);
+    let seName = aSeName.toUpperCase();
 
     let hciRules = aManifest["secure_element_access"] || [];
     let matchingRule = hciRules.find((rule) => {
       rule = rule.toUpperCase();
-      if(rule === "*" || rule === (aSeName + "/" + aAid)) {
+      if(rule === "*" || rule === (seName + "/" + aid)) {
         return true;
       }
 
@@ -85,8 +88,8 @@ HCIEventTransactionSystemMessageConfigurator.prototype = {
         return match === element;
       };
 
-      return isMatching(rule.split('/')[0], aSeName) &&
-             isMatching(rule.split('/')[1], aAid);
+      return isMatching(rule.split('/')[0], seName) &&
+             isMatching(rule.split('/')[1], aid);
     });
 
     return (matchingRule) ? Promise.resolve() : Promise.reject();
