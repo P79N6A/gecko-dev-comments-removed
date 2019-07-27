@@ -116,8 +116,6 @@ private:
 
   HangStack mStack;
   
-  HangStack mNativeStack;
-  
   const uint32_t mHash;
 
 public:
@@ -129,7 +127,6 @@ public:
   HangHistogram(HangHistogram&& aOther)
     : TimeHistogram(mozilla::Move(aOther))
     , mStack(mozilla::Move(aOther.mStack))
-    , mNativeStack(mozilla::Move(aOther.mNativeStack))
     , mHash(mozilla::Move(aOther.mHash))
   {
   }
@@ -140,12 +137,6 @@ public:
   }
   const HangStack& GetStack() const {
     return mStack;
-  }
-  HangStack& GetNativeStack() {
-    return mNativeStack;
-  }
-  const HangStack& GetNativeStack() const {
-    return mNativeStack;
   }
 };
 
