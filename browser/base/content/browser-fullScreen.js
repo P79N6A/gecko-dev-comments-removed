@@ -143,7 +143,7 @@ var FullScreen = {
       return;
     }
 
-    let focusManager = Cc["@mozilla.org/focus-manager;1"].getService(Ci.nsIFocusManager);
+    let focusManager = Services.focus;
     if (focusManager.activeWindow != window) {
       
       

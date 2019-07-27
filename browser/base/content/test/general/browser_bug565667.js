@@ -2,7 +2,7 @@
 
 
 
-let fm = Cc["@mozilla.org/focus-manager;1"].getService(Ci.nsIFocusManager);
+let fm = Services.focus;
 
 function test() {
   waitForExplicitFinish();
