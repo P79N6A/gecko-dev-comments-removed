@@ -188,10 +188,12 @@ public:
     
     bool HasFamily(const nsAString& aFamilyName) const
     {
-        return GetFamily(aFamilyName) != nullptr;
+        return LookupFamily(aFamilyName) != nullptr;
     }
 
-    gfxFontFamily *GetFamily(const nsAString& aName) const;
+    
+    
+    gfxMixedFontFamily* LookupFamily(const nsAString& aName) const;
 
     
     
@@ -429,6 +431,10 @@ protected:
 
     
     virtual void DoRebuildUserFontSet() = 0;
+
+    
+    
+    gfxMixedFontFamily* GetFamily(const nsAString& aFamilyName);
 
     
     nsRefPtrHashtable<nsStringHashKey, gfxMixedFontFamily> mFontFamilies;
