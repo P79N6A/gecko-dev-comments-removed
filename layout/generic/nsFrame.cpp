@@ -3369,6 +3369,15 @@ NS_IMETHODIMP nsFrame::HandleRelease(nsPresContext* aPresContext,
   if (frameSelection) {
     frameSelection->SetDragState(false);
     frameSelection->StopAutoScrollTimer();
+    nsIScrollableFrame* scrollFrame =
+      nsLayoutUtils::GetNearestScrollableFrame(this,
+        nsLayoutUtils::SCROLLABLE_SAME_DOC |
+        nsLayoutUtils::SCROLLABLE_INCLUDE_HIDDEN);
+    if (scrollFrame) {
+      
+      
+      scrollFrame->ScrollSnap();
+    }
   }
 
   
