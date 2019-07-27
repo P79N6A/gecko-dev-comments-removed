@@ -157,7 +157,7 @@ assertEq(a.y, 2);
 
 
 var evaled = false;
-({a: {} = (evaled = true, null)}) = {};
+({a: {} = (evaled = true, {})}) = {};
 assertEq(evaled, true);
 evaled = false;
 assertThrowsInstanceOf(() => { [[] = (evaled = true, 2)] = [] }, TypeError);

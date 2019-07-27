@@ -3728,6 +3728,9 @@ BytecodeEmitter::emitDestructuringOpsObjectHelper(ParseNode* pattern, VarEmitOpt
 
     MOZ_ASSERT(this->stackDepth != 0);                            
 
+    if (!emitToObject())                                          
+        return false;
+
     for (ParseNode* member = pattern->pn_head; member; member = member->pn_next) {
         
         if (!emit1(JSOP_DUP))                                     
@@ -4949,6 +4952,21 @@ BytecodeEmitter::emitWith(ParseNode* pn)
         return false;
     if (!leaveNestedScope(&stmtInfo))
         return false;
+    return true;
+}
+
+bool
+BytecodeEmitter::emitToObject()
+{
+    if (!emitAtomOp(cx->names().ToObject, JSOP_GETINTRINSIC)) 
+        return false;
+    if (!emit1(JSOP_UNDEFINED))                               
+        return false;
+    if (!emit2(JSOP_PICK, (jsbytecode)2))                     
+        return false;
+    if (!emitCall(JSOP_CALL, 1))                              
+        return false;
+    checkTypeSet(JSOP_CALL);
     return true;
 }
 
