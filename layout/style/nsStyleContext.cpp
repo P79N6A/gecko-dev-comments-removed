@@ -562,7 +562,14 @@ nsStyleContext::ApplyStyleFixups(bool aSkipParentDisplayBasedStyleFixup)
   
   if (!mParent) {
     uint8_t displayVal = disp->mDisplay;
-    nsRuleNode::EnsureBlockDisplay(displayVal, true);
+    if (displayVal != NS_STYLE_DISPLAY_CONTENTS) {
+      nsRuleNode::EnsureBlockDisplay(displayVal, true);
+    } else {
+      
+      
+      
+      displayVal = NS_STYLE_DISPLAY_BLOCK;
+    }
     if (displayVal != disp->mDisplay) {
       nsStyleDisplay *mutable_display =
         static_cast<nsStyleDisplay*>(GetUniqueStyleData(eStyleStruct_Display));
