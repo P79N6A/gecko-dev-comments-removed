@@ -1454,6 +1454,12 @@ void MediaDecoderStateMachine::ResetPlayback()
   MOZ_ASSERT(mState == DECODER_STATE_SEEKING ||
              mState == DECODER_STATE_SHUTDOWN ||
              mState == DECODER_STATE_DORMANT);
+
+  
+  
+  
+  MOZ_ASSERT(!mAudioSink);
+
   mVideoFrameEndTime = -1;
   mAudioStartTime = -1;
   mAudioEndTime = -1;
@@ -1540,10 +1546,14 @@ void MediaDecoderStateMachine::StopAudioThread()
 
   if (mStopAudioThread) {
     
+    while (mAudioSink) {
+      mDecoder->GetReentrantMonitor().Wait();
+    }
     return;
   }
 
   mStopAudioThread = true;
+  
   mDecoder->GetReentrantMonitor().NotifyAll();
   if (mAudioSink) {
     DECODER_LOG("Shutdown audio thread");
@@ -1557,6 +1567,8 @@ void MediaDecoderStateMachine::StopAudioThread()
     
     SendStreamData();
   }
+  
+  mDecoder->GetReentrantMonitor().NotifyAll();
 }
 
 nsresult
@@ -2273,22 +2285,13 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
         StopPlayback();
       }
 
+      StopAudioThread();
       FlushDecoding();
 
       
       RefPtr<nsIRunnable> task;
       task = NS_NewRunnableMethod(mReader, &MediaDecoderReader::Shutdown);
       mDecodeTaskQueue->Dispatch(task);
-
-      StopAudioThread();
-      
-      
-      
-      
-      if (mAudioSink) {
-        MOZ_ASSERT(mStopAudioThread);
-        return NS_OK;
-      }
 
       {
         
@@ -2333,8 +2336,8 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
       if (IsPlaying()) {
         StopPlayback();
       }
-      FlushDecoding();
       StopAudioThread();
+      FlushDecoding();
       
       
       mPendingWakeDecoder = nullptr;
