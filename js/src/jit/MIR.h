@@ -105,6 +105,15 @@ MIRType MIRTypeFromValue(const js::Value &vp)
 
 
 
+
+
+                                                                         \
+    _(IncompleteObject)                                                         \
+                                                                                \
+    
+
+
+
                                                                          \
     _(Discarded)
 

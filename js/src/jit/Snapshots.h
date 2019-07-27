@@ -69,6 +69,17 @@ class RValueAllocation
         TYPED_STACK_MAX     = 0x2f,
         TYPED_STACK = TYPED_STACK_MIN,
 
+        
+        
+        
+        
+        RECOVER_SIDE_EFFECT_MASK = 0x80,
+
+        
+        
+        
+        MODE_MASK           = 0x17f,
+
         INVALID = 0x100,
     };
 
@@ -269,6 +280,11 @@ class RValueAllocation
                                 payloadOfIndex(cstIndex));
     }
 
+    void setNeedSideEffect() {
+        MOZ_ASSERT(!needSideEffect() && mode_ != INVALID);
+        mode_ = Mode(mode_ | RECOVER_SIDE_EFFECT_MASK);
+    }
+
     void writeHeader(CompactBufferWriter &writer, JSValueType type, uint32_t regCode) const;
   public:
     static RValueAllocation read(CompactBufferReader &reader);
@@ -276,7 +292,10 @@ class RValueAllocation
 
   public:
     Mode mode() const {
-        return mode_;
+        return Mode(mode_ & MODE_MASK);
+    }
+    bool needSideEffect() const {
+        return mode_ & RECOVER_SIDE_EFFECT_MASK;
     }
 
     uint32_t index() const {

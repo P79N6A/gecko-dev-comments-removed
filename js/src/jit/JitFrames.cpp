@@ -1751,6 +1751,14 @@ FromTypedPayload(JSValueType type, uintptr_t payload)
 bool
 SnapshotIterator::allocationReadable(const RValueAllocation &alloc, ReadMethod rm)
 {
+    
+    
+    
+    if (alloc.needSideEffect() && !(rm & RM_AlwaysDefault)) {
+        if (!hasInstructionResults())
+            return false;
+    }
+
     switch (alloc.mode()) {
       case RValueAllocation::DOUBLE_REG:
         return hasRegister(alloc.fpuReg());
