@@ -328,6 +328,8 @@ nsTableRowFrame::DidResize()
   desiredSize.SetSize(wm, GetLogicalSize(wm));
   desiredSize.SetOverflowAreasToDesiredBounds();
 
+  nscoord containerWidth = mRect.width;
+
   for (nsIFrame* childFrame : mFrames) {
     nsTableCellFrame *cellFrame = do_QueryFrame(childFrame);
     if (cellFrame) {
@@ -335,11 +337,44 @@ nsTableRowFrame::DidResize()
         GetBSizeOfRowsSpannedBelowFirst(*cellFrame, *tableFrame, wm);
 
       
+      
+      
+      
       LogicalSize cellSize = cellFrame->GetLogicalSize(wm);
-      nsRect cellVisualOverflow = cellFrame->GetVisualOverflowRect();
-      if (cellSize.BSize(wm) != cellBSize) {
-        cellSize.BSize(wm) = cellBSize;
+      if (cellSize.BSize(wm) != cellBSize || wm.IsVerticalRL()) {
         nsRect cellOldRect = cellFrame->GetRect();
+        nsRect cellVisualOverflow = cellFrame->GetVisualOverflowRect();
+
+        if (wm.IsVerticalRL()) {
+          
+          
+          LogicalPoint oldPos =
+            cellFrame->GetLogicalPosition(wm, containerWidth);
+
+          
+          
+          LogicalPoint newPos(wm, oldPos.I(wm), 0);
+
+          
+          
+          if (cellFrame->IsRelativelyPositioned()) {
+            
+            
+            LogicalPoint oldNormalPos =
+              cellFrame->GetLogicalNormalPosition(wm, containerWidth);
+            
+            
+            
+            newPos.B(wm) = oldPos.B(wm) - oldNormalPos.B(wm);
+          }
+
+          if (oldPos != newPos) {
+            cellFrame->SetPosition(wm, newPos, containerWidth);
+            nsTableFrame::RePositionViews(cellFrame);
+          }
+        }
+
+        cellSize.BSize(wm) = cellBSize;
         cellFrame->SetSize(wm, cellSize);
         nsTableFrame::InvalidateTableFrame(cellFrame, cellOldRect,
                                            cellVisualOverflow,
@@ -856,7 +891,9 @@ nsTableRowFrame::ReflowChildren(nsPresContext*           aPresContext,
     
     
     
-    MOZ_ASSERT(origKidNormalPosition.B(wm) == 0 || wm.IsVerticalRL());
+    NS_ASSERTION(origKidNormalPosition.B(wm) == 0 || wm.IsVerticalRL(),
+                 "unexpected kid position");
+
     nsRect kidVisualOverflow = kidFrame->GetVisualOverflowRect();
     LogicalPoint kidPosition(wm, iCoord, 0);
     bool firstReflow = kidFrame->HasAnyStateBits(NS_FRAME_FIRST_REFLOW);

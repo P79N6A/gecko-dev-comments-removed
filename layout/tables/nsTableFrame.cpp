@@ -1828,6 +1828,7 @@ nsTableFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
+  bool fixupKidPositions = false;
   if (NS_SUBTREE_DIRTY(this) ||
       aReflowState.ShouldReflowAllKids() ||
       IsGeometryDirty() ||
@@ -1877,6 +1878,11 @@ nsTableFrame::Reflow(nsPresContext*           aPresContext,
 
     ReflowTable(aDesiredSize, aReflowState, availBSize,
                 lastChildReflowed, aStatus);
+    
+    
+    
+    fixupKidPositions = wm.IsVerticalRL() &&
+      aReflowState.ComputedWidth() == NS_UNCONSTRAINEDSIZE;
 
     
     if (HasAnyStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE)) {
@@ -1924,6 +1930,15 @@ nsTableFrame::Reflow(nsPresContext*           aPresContext,
   }
   if (IsRowInserted()) {
     ProcessRowInserted(aDesiredSize.BSize(wm));
+  }
+
+  if (fixupKidPositions) {
+    
+    
+    for (nsIFrame* kid : mFrames) {
+      kid->MovePositionBy(nsPoint(aDesiredSize.Width(), 0));
+      RePositionViews(kid);
+    }
   }
 
   LogicalMargin borderPadding = GetChildAreaOffset(wm, &aReflowState);
@@ -2960,14 +2975,11 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
   if (containerWidth == NS_UNCONSTRAINEDSIZE) {
     NS_WARN_IF_FALSE(wm.IsVertical(),
                      "shouldn't have unconstrained width in horizontal mode");
-    if (wm.IsVerticalRL()) {
-      nsHTMLReflowMetrics desiredSize(wm);
-      CalcDesiredBSize(aReflowState.reflowState, desiredSize);
-      containerWidth = desiredSize.Width();
-    } else {
-      
-      containerWidth = 0;
-    }
+    
+    
+    
+    
+    containerWidth = 0;
   } else {
     containerWidth +=
       aReflowState.reflowState.ComputedPhysicalBorderPadding().LeftRight();
