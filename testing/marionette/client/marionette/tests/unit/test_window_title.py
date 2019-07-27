@@ -2,9 +2,9 @@
 
 
 
-from marionette import MarionetteTestCase
+from marionette.marionette_test import MarionetteTestCase, skip_if_b2g
 
-
+@skip_if_b2g
 class TestTitleChrome(MarionetteTestCase):
     def setUp(self):
         MarionetteTestCase.setUp(self)
@@ -30,4 +30,3 @@ class TestTitle(MarionetteTestCase):
         test_html = self.marionette.absolute_url("test.html")
         self.marionette.navigate(test_html)
         self.assertEqual('Marionette Test', self.marionette.title)
-
