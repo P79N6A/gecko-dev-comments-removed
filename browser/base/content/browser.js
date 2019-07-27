@@ -34,8 +34,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "AboutHome",
 XPCOMUtils.defineLazyServiceGetter(this, "gDNSService",
                                    "@mozilla.org/network/dns-service;1",
                                    "nsIDNSService");
-XPCOMUtils.defineLazyModuleGetter(this, "WebChannel",
-                                  "resource://gre/modules/WebChannel.jsm");
 
 const nsIWebNavigation = Ci.nsIWebNavigation;
 
@@ -1300,21 +1298,6 @@ var gBrowserInit = {
     gNavToolbox.addEventListener("customizationstarting", CustomizationHandler);
     gNavToolbox.addEventListener("customizationchange", CustomizationHandler);
     gNavToolbox.addEventListener("customizationending", CustomizationHandler);
-
-    
-    let channel = new WebChannel("remote-troubleshooting", "remote-troubleshooting");
-    channel.listen((id, data, target) => {
-      if (data.command == "request") {
-        let {Troubleshoot} = Cu.import("resource://gre/modules/Troubleshoot.jsm", {});
-        Troubleshoot.snapshot(data => {
-          
-          
-          delete data.crashes;
-          delete data.modifiedPreferences;
-          channel.send(data, target);
-        });
-      }
-    });
 
     
     
