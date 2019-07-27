@@ -3005,6 +3005,10 @@ class MacroAssemblerCompat : public vixl::MacroAssembler
     CodeOffsetLabel toggledCall(JitCode* target, bool enabled) {
         
         
+        BufferOffset offset = nextOffset();
+
+        
+        
         
         
         
@@ -3012,7 +3016,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler
 
         syncStackPtr();
 
-        BufferOffset offset = nextOffset();
         BufferOffset loadOffset;
         {
             vixl::UseScratchRegisterScope temps(this);
