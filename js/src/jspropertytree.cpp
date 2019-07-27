@@ -205,20 +205,7 @@ Shape::sweep()
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if (parent && parent->isMarked() && parent->compartment() == compartment()) {
+    if (parent && parent->isMarked()) {
         if (inDictionary()) {
             if (parent->listp == &parent)
                 parent->listp = nullptr;
