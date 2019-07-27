@@ -498,8 +498,20 @@ SavedStacks::insertFrames(JSContext *cx, ScriptFrameIter &iter, MutableHandleSav
     
     JSCompartment *compartment = iter.compartment();
     RootedSavedFrame parentFrame(cx);
-    if (!insertFrames(cx, ++iter, &parentFrame))
-        return false;
+
+    
+    if (maxFrameCount == 0) {
+        if (!insertFrames(cx, ++iter, &parentFrame, 0))
+            return false;
+    } else if (maxFrameCount == 1) {
+        
+        
+        
+        parentFrame = nullptr;
+    } else {
+        if (!insertFrames(cx, ++iter, &parentFrame, maxFrameCount - 1))
+            return false;
+    }
 
     AutoLocationValueRooter location(cx);
     if (!getLocation(cx, script, pc, &location))
