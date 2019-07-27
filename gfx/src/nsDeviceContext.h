@@ -238,12 +238,12 @@ public:
 
 
 
-    bool SetPixelScale(float aScale);
+    bool SetFullZoom(float aScale);
 
     
 
 
-    float GetPixelScale() const { return mPixelScale; }
+    float GetFullZoom() const { return mFullZoom; }
 
     
 
@@ -267,7 +267,7 @@ private:
     int32_t  mAppUnitsPerDevPixel;
     int32_t  mAppUnitsPerDevPixelAtUnitFullZoom;
     int32_t  mAppUnitsPerPhysicalInch;
-    float    mPixelScale;
+    float    mFullZoom;
     float    mPrintingScale;
 
     nsFontCache*                   mFontCache;
