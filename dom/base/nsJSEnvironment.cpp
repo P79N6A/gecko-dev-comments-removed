@@ -366,58 +366,57 @@ public:
   {
     nsEventStatus status = nsEventStatus_eIgnore;
     nsPIDOMWindow* win = mReport->mWindow;
+    MOZ_ASSERT(win);
     
     
-    if (mDispatchEvent && (!win || win->IsCurrentInnerWindow())) {
-      nsIDocShell* docShell = win ? win->GetDocShell() : nullptr;
-      if (docShell &&
-          !JSREPORT_IS_WARNING(mReport->mFlags) &&
-          !sHandlingScriptError) {
-        AutoRestore<bool> recursionGuard(sHandlingScriptError);
-        sHandlingScriptError = true;
+    if (mDispatchEvent && win->IsCurrentInnerWindow() &&
+        win->GetDocShell() && !JSREPORT_IS_WARNING(mReport->mFlags) &&
+        !sHandlingScriptError)
+    {
+      AutoRestore<bool> recursionGuard(sHandlingScriptError);
+      sHandlingScriptError = true;
 
-        nsRefPtr<nsPresContext> presContext;
-        docShell->GetPresContext(getter_AddRefs(presContext));
+      nsRefPtr<nsPresContext> presContext;
+      win->GetDocShell()->GetPresContext(getter_AddRefs(presContext));
 
-        ThreadsafeAutoJSContext cx;
-        RootedDictionary<ErrorEventInit> init(cx);
-        init.mCancelable = true;
-        init.mFilename = mReport->mFileName;
-        init.mBubbles = true;
+      ThreadsafeAutoJSContext cx;
+      RootedDictionary<ErrorEventInit> init(cx);
+      init.mCancelable = true;
+      init.mFilename = mReport->mFileName;
+      init.mBubbles = true;
 
-        nsCOMPtr<nsIScriptObjectPrincipal> sop(do_QueryInterface(win));
-        NS_ENSURE_STATE(sop);
-        nsIPrincipal* p = sop->GetPrincipal();
-        NS_ENSURE_STATE(p);
+      nsCOMPtr<nsIScriptObjectPrincipal> sop(do_QueryInterface(win));
+      NS_ENSURE_STATE(sop);
+      nsIPrincipal* p = sop->GetPrincipal();
+      NS_ENSURE_STATE(p);
 
-        bool sameOrigin = !mOriginPrincipal;
+      bool sameOrigin = !mOriginPrincipal;
 
-        if (p && !sameOrigin) {
-          if (NS_FAILED(p->Subsumes(mOriginPrincipal, &sameOrigin))) {
-            sameOrigin = false;
-          }
+      if (p && !sameOrigin) {
+        if (NS_FAILED(p->Subsumes(mOriginPrincipal, &sameOrigin))) {
+          sameOrigin = false;
         }
-
-        NS_NAMED_LITERAL_STRING(xoriginMsg, "Script error.");
-        if (sameOrigin) {
-          init.mMessage = mReport->mErrorMsg;
-          init.mLineno = mReport->mLineNumber;
-          init.mColno = mReport->mColumn;
-          init.mError = mError;
-        } else {
-          NS_WARNING("Not same origin error!");
-          init.mMessage = xoriginMsg;
-          init.mLineno = 0;
-        }
-
-        nsRefPtr<ErrorEvent> event =
-          ErrorEvent::Constructor(static_cast<nsGlobalWindow*>(win),
-                                  NS_LITERAL_STRING("error"), init);
-        event->SetTrusted(true);
-
-        EventDispatcher::DispatchDOMEvent(win, nullptr, event, presContext,
-                                          &status);
       }
+
+      NS_NAMED_LITERAL_STRING(xoriginMsg, "Script error.");
+      if (sameOrigin) {
+        init.mMessage = mReport->mErrorMsg;
+        init.mLineno = mReport->mLineNumber;
+        init.mColno = mReport->mColumn;
+        init.mError = mError;
+      } else {
+        NS_WARNING("Not same origin error!");
+        init.mMessage = xoriginMsg;
+        init.mLineno = 0;
+      }
+
+      nsRefPtr<ErrorEvent> event =
+        ErrorEvent::Constructor(static_cast<nsGlobalWindow*>(win),
+                                NS_LITERAL_STRING("error"), init);
+      event->SetTrusted(true);
+
+      EventDispatcher::DispatchDOMEvent(win, nullptr, event, presContext,
+                                        &status);
     }
 
     if (status != nsEventStatus_eConsumeNoDefault) {
@@ -465,6 +464,15 @@ NS_ScriptErrorReporter(JSContext *cx,
     nsRefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
     xpcReport->Init(report, message, globalObject);
 
+    
+    
+    if (!xpcReport->mWindow) {
+      xpcReport->LogToConsole();
+      return;
+    }
+
+    
+    
     nsContentUtils::AddScriptRunner(
       new ScriptErrorEvent(JS_GetRuntime(cx),
                            xpcReport,
