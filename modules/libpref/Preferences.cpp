@@ -749,11 +749,9 @@ Preferences::GetBranch(const char *aPrefRoot, nsIPrefBranch **_retval)
 
   if ((nullptr != aPrefRoot) && (*aPrefRoot != '\0')) {
     
-    nsPrefBranch* prefBranch = new nsPrefBranch(aPrefRoot, false);
-    if (!prefBranch)
-      return NS_ERROR_OUT_OF_MEMORY;
-
-    rv = CallQueryInterface(prefBranch, _retval);
+    nsRefPtr<nsPrefBranch> prefBranch = new nsPrefBranch(aPrefRoot, false);
+    prefBranch.forget(_retval);
+    rv = NS_OK;
   } else {
     
     nsCOMPtr<nsIPrefBranch> root(sRootBranch);
