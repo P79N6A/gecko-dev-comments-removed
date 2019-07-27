@@ -312,12 +312,6 @@ nsXBLPrototypeHandler::ExecuteHandler(EventTarget* aTarget,
   JS::Rooted<JSObject*> bound(cx, JS_CloneFunctionObject(cx, genericHandler, target));
   NS_ENSURE_TRUE(bound, NS_ERROR_FAILURE);
 
-  
-  JSAutoCompartment ac2(cx, globalObject);
-  if (!JS_WrapObject(cx, &bound)) {
-    return NS_ERROR_FAILURE;
-  }
-
   nsRefPtr<EventHandlerNonNull> handlerCallback =
     new EventHandlerNonNull(bound,  nullptr);
 
