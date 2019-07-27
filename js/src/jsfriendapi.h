@@ -2165,7 +2165,6 @@ struct JSJitInfo {
         Getter,
         Setter,
         Method,
-        ParallelNative,
         StaticMethod,
         
         OpTypeCount
@@ -2220,11 +2219,6 @@ struct JSJitInfo {
         AliasSetCount
     };
 
-    bool hasParallelNative() const
-    {
-        return type() == ParallelNative;
-    }
-
     bool needsOuterizedThisObject() const
     {
         return type() != Getter && type() != Setter;
@@ -2254,8 +2248,6 @@ struct JSJitInfo {
         JSJitGetterOp getter;
         JSJitSetterOp setter;
         JSJitMethodOp method;
-        
-        JSParallelNative parallelNative;
         
         JSNative staticMethod;
     };
@@ -2339,45 +2331,6 @@ struct JSTypedMethodJitInfo
 
 
 };
-
-namespace JS {
-namespace detail {
-
-
-inline int CheckIsParallelNative(JSParallelNative parallelNative);
-
-} 
-} 
-
-#define JS_CAST_PARALLEL_NATIVE_TO(v, To) \
-    (static_cast<void>(sizeof(JS::detail::CheckIsParallelNative(v))), \
-     reinterpret_cast<To>(v))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define JS_JITINFO_NATIVE_PARALLEL(infoName, parallelOp)                \
-    const JSJitInfo infoName =                                          \
-        {{JS_CAST_PARALLEL_NATIVE_TO(parallelOp, JSJitGetterOp)},0,0,JSJitInfo::ParallelNative,JSJitInfo::AliasEverything,JSVAL_TYPE_MISSING,false,false,false,false,false,0}
-
-#define JS_JITINFO_NATIVE_PARALLEL_THREADSAFE(infoName, wrapperName, serialOp) \
-    bool wrapperName##_ParallelNativeThreadSafeWrapper(js::ForkJoinContext *cx, unsigned argc, \
-                                                       JS::Value *vp)   \
-    {                                                                   \
-        return JSParallelNativeThreadSafeWrapper<serialOp>(cx, argc, vp); \
-    }                                                                   \
-    JS_JITINFO_NATIVE_PARALLEL(infoName, wrapperName##_ParallelNativeThreadSafeWrapper)
 
 static MOZ_ALWAYS_INLINE const JSJitInfo *
 FUNCTION_VALUE_TO_JITINFO(const JS::Value& v)
