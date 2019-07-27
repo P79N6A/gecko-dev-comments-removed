@@ -105,16 +105,39 @@ public:
 
 class EncryptionInfo {
 public:
-  EncryptionInfo() : mIsEncrypted(false) {}
+  struct InitData {
+    InitData(const nsString& aType, nsTArray<uint8_t>&& aInitData)
+      : mType(aType)
+      , mInitData(Move(aInitData))
+    {
+    }
+
+    
+    nsString mType;
+
+    
+    nsTArray<uint8_t> mInitData;
+  };
+  typedef nsTArray<InitData> InitDatas;
 
   
-  nsString mType;
+  bool IsEncrypted() const
+  {
+    return !mInitDatas.IsEmpty();
+  }
+
+  void AddInitData(const nsString& aType, nsTArray<uint8_t>&& aInitData)
+  {
+    mInitDatas.AppendElement(InitData(aType, Move(aInitData)));
+  }
+
+  void AddInitData(const EncryptionInfo& aInfo)
+  {
+    mInitDatas.AppendElements(aInfo.mInitDatas);
+  }
 
   
-  nsTArray<uint8_t> mInitData;
-
-  
-  bool mIsEncrypted;
+  InitDatas mInitDatas;
 };
 
 class MediaInfo {
@@ -131,7 +154,7 @@ public:
 
   bool IsEncrypted() const
   {
-    return mCrypto.mIsEncrypted;
+    return mCrypto.IsEncrypted();
   }
 
   bool HasValidMedia() const
