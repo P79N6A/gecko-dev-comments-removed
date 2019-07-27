@@ -1505,7 +1505,7 @@ ContextHolder::~ContextHolder()
 nsresult
 xpc::EvalInSandbox(JSContext *cx, HandleObject sandboxArg, const nsAString& source,
                    const nsACString& filename, int32_t lineNo,
-                   JSVersion jsVersion, bool returnStringOnly, MutableHandleValue rval)
+                   JSVersion jsVersion, MutableHandleValue rval)
 {
     JS_AbortIfWrongThread(JS_GetRuntime(cx));
     rval.set(UndefinedValue());
@@ -1556,22 +1556,11 @@ xpc::EvalInSandbox(JSContext *cx, HandleObject sandboxArg, const nsAString& sour
         JS::RootedObject rootedSandbox(sandcx, sandbox);
         ok = JS::Evaluate(sandcx, rootedSandbox, options,
                           PromiseFlatString(source).get(), source.Length(), &v);
-        if (ok && returnStringOnly && !v.isUndefined()) {
-            JSString *str = ToString(sandcx, v);
-            ok = !!str;
-            v = ok ? JS::StringValue(str) : JS::UndefinedValue();
-        }
 
         
         if (JS_GetPendingException(sandcx, &exn)) {
             MOZ_ASSERT(!ok);
             JS_ClearPendingException(sandcx);
-            if (returnStringOnly) {
-                
-                
-                JSString *str = ToString(sandcx, exn);
-                exn = str ? JS::StringValue(str) : JS::UndefinedValue();
-            }
         }
     }
 
