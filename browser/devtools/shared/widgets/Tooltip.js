@@ -726,7 +726,7 @@ Tooltip.prototype = {
     this.content = vbox;
   },
 
-  _getImageDimensionLabel: (w, h) => w + " x " + h,
+  _getImageDimensionLabel: (w, h) => w + " \u00D7 " + h,
 
   
 

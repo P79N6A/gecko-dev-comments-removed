@@ -2605,7 +2605,7 @@ NetworkDetailsView.prototype = {
         
         
         let { width, height } = e.target.getBoundingClientRect();
-        let dimensions = (width - 2) + " x " + (height - 2);
+        let dimensions = (width - 2) + " \u00D7 " + (height - 2);
         $("#response-content-image-dimensions-value").setAttribute("value", dimensions);
       };
     }

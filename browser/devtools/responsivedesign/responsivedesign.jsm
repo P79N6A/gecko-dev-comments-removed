@@ -604,7 +604,7 @@ ResponsiveUI.prototype = {
 
 
   setMenuLabel: function RUI_setMenuLabel(aMenuitem, aPreset) {
-    let size = Math.round(aPreset.width) + "x" + Math.round(aPreset.height);
+    let size = Math.round(aPreset.width) + "\u00D7" + Math.round(aPreset.height);
 
     
     if (this.menulist.inputField) {
