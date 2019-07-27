@@ -56,6 +56,7 @@ private:
   nsresult mStatus;
 protected:
   uint32_t mCaps;
+  nsHttpRequestHead *mRequestHead;
 private:
   
   
@@ -65,7 +66,6 @@ private:
   
   
   Atomic<uint32_t> mCapsToClear;
-  nsHttpRequestHead *mRequestHead;
   bool mIsDone;
   bool mClaimed;
 
