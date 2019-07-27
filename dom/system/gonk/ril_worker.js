@@ -14030,6 +14030,8 @@ ICCUtilsHelperObject.prototype = {
         }
       }
 
+      
+      
       if (isOnMatchingPlmn) {
         
         
@@ -14049,10 +14051,7 @@ ICCUtilsHelperObject.prototype = {
           this.context.debug("PLMN isn't HPLMN and PLMN isn't in PLMN list");
         }
 
-        
-        
-        
-        iccInfo.isDisplayNetworkNameRequired = false;
+        iccInfo.isDisplayNetworkNameRequired = true;
         iccInfo.isDisplaySpnRequired = (displayCondition & 0x02) === 0;
       }
     }
