@@ -3012,8 +3012,6 @@ class MSimdBox
     bool congruentTo(const MDefinition *ins) const MOZ_OVERRIDE {
         if (congruentIfOperandsEqual(ins)) {
             MOZ_ASSERT(ins->toSimdBox()->initialHeap() == initialHeap());
-            
-            
             return true;
         }
 
