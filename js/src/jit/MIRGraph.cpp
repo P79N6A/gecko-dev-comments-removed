@@ -728,6 +728,7 @@ MBasicBlock::discardResumePoint(MResumePoint *rp, ReferencesType refType )
 {
     if (refType & RefType_DiscardOperands)
         rp->discardUses();
+#ifdef DEBUG
     MResumePointIterator iter = resumePointsBegin();
     while (*iter != rp) {
         
@@ -735,6 +736,7 @@ MBasicBlock::discardResumePoint(MResumePoint *rp, ReferencesType refType )
         iter++;
     }
     resumePoints_.removeAt(iter);
+#endif
 }
 
 void
