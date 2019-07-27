@@ -213,8 +213,7 @@ NS_GetContentList(nsINode* aRootNode,
     ContentListHashtableHashKey,
     ContentListHashtableMatchEntry,
     PL_DHashMoveEntryStub,
-    PL_DHashClearEntryStub,
-    PL_DHashFinalizeStub
+    PL_DHashClearEntryStub
   };
 
   
@@ -326,8 +325,7 @@ GetFuncStringContentList(nsINode* aRootNode,
     FuncStringContentListHashtableHashKey,
     FuncStringContentListHashtableMatchEntry,
     PL_DHashMoveEntryStub,
-    PL_DHashClearEntryStub,
-    PL_DHashFinalizeStub
+    PL_DHashClearEntryStub
   };
 
   

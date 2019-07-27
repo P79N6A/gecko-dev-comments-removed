@@ -157,11 +157,6 @@ PL_DHashFreeStringKey(PLDHashTable* aTable, PLDHashEntryHdr* aEntry)
   aTable->FreeStringKey(aEntry);
 }
 
-void
-PL_DHashFinalizeStub(PLDHashTable* aTable)
-{
-}
-
 static const PLDHashTableOps stub_ops = {
   PL_DHashAllocTable,
   PL_DHashFreeTable,
@@ -169,7 +164,6 @@ static const PLDHashTableOps stub_ops = {
   PL_DHashMatchEntryStub,
   PL_DHashMoveEntryStub,
   PL_DHashClearEntryStub,
-  PL_DHashFinalizeStub,
   nullptr
 };
 
@@ -341,9 +335,6 @@ MOZ_ALWAYS_INLINE void
 PLDHashTable::Finish()
 {
   INCREMENT_RECURSION_LEVEL(this);
-
-  
-  ops->finalize(this);
 
   
   char* entryAddr = mEntryStore;

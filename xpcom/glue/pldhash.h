@@ -347,19 +347,10 @@ typedef void (*PLDHashClearEntry)(PLDHashTable* aTable,
 
 
 
-typedef void (*PLDHashFinalize)(PLDHashTable* aTable);
-
-
-
-
-
-
 
 
 typedef bool (*PLDHashInitEntry)(PLDHashTable* aTable, PLDHashEntryHdr* aEntry,
                                  const void* aKey);
-
-
 
 
 
@@ -395,7 +386,6 @@ struct PLDHashTableOps
   PLDHashMatchEntry   matchEntry;
   PLDHashMoveEntry    moveEntry;
   PLDHashClearEntry   clearEntry;
-  PLDHashFinalize     finalize;
 
   
   PLDHashInitEntry    initEntry;
@@ -436,8 +426,6 @@ void PL_DHashClearEntryStub(PLDHashTable* aTable, PLDHashEntryHdr* aEntry);
 
 void PL_DHashFreeStringKey(PLDHashTable* aTable, PLDHashEntryHdr* aEntry);
 
-void PL_DHashFinalizeStub(PLDHashTable* aTable);
-
 
 
 
@@ -454,6 +442,7 @@ const PLDHashTableOps* PL_DHashGetStubOps(void);
 PLDHashTable* PL_NewDHashTable(
   const PLDHashTableOps* aOps, uint32_t aEntrySize,
   uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
+
 
 
 
@@ -481,7 +470,6 @@ MOZ_WARN_UNUSED_RESULT bool PL_DHashTableInit(
   PLDHashTable* aTable, const PLDHashTableOps* aOps,
   uint32_t aEntrySize, const mozilla::fallible_t&,
   uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
-
 
 
 
