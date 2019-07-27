@@ -661,7 +661,7 @@ let SessionStoreInternal = {
 
           
           
-          TabState.copyFromCache({linkedBrowser: browser}, tabData.state);
+          TabState.copyFromCache(browser, tabData.state);
 
           
           if (aMessage.data.isFinal) {

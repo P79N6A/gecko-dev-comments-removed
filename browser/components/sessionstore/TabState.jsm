@@ -55,8 +55,8 @@ this.TabState = Object.freeze({
     return TabStateInternal.clone(tab);
   },
 
-  copyFromCache: function (tab, tabData, options) {
-    TabStateInternal.copyFromCache(tab, tabData, options);
+  copyFromCache(browser, tabData, options) {
+    TabStateInternal.copyFromCache(browser, tabData, options);
   }
 });
 
@@ -180,7 +180,8 @@ let TabStateInternal = {
       delete tabData.extData;
 
     
-    this.copyFromCache(tab, tabData, options);
+    
+    this.copyFromCache(browser, tabData, options);
 
     
     
@@ -215,14 +216,15 @@ let TabStateInternal = {
 
 
 
-  copyFromCache: function (tab, tabData, options = {}) {
-    let data = TabStateCache.get(tab.linkedBrowser);
+  copyFromCache(browser, tabData, options = {}) {
+    let data = TabStateCache.get(browser);
     if (!data) {
       return;
     }
 
     
     let includePrivateData = options && options.includePrivateData;
+    let isPinned = tabData.pinned || false;
 
     for (let key of Object.keys(data)) {
       let value = data[key];
@@ -230,9 +232,9 @@ let TabStateInternal = {
       
       if (!includePrivateData) {
         if (key === "storage") {
-          value = PrivacyFilter.filterSessionStorageData(value, tab.pinned);
+          value = PrivacyFilter.filterSessionStorageData(value, isPinned);
         } else if (key === "formdata") {
-          value = PrivacyFilter.filterFormData(value, tab.pinned);
+          value = PrivacyFilter.filterFormData(value, isPinned);
         }
       }
 
