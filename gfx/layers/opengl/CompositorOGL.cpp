@@ -474,8 +474,8 @@ DecomposeIntoNoRepeatRects(const Rect& aRect,
 
   
   
-  br = Point(xwrap ? WrapTexCoord(br.x) : br.x,
-             ywrap ? WrapTexCoord(br.y) : br.y);
+  br = Point(xwrap ? WrapTexCoord(br.x) : br.x.value,
+             ywrap ? WrapTexCoord(br.y) : br.y.value);
 
   
   
@@ -759,8 +759,7 @@ CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
   
   IntPoint origin;
   if (!mTarget) {
-    origin.x = -mRenderOffset.x;
-    origin.y = -mRenderOffset.y;
+    origin = -TruncatedToInt(mRenderOffset.ToUnknownPoint());
   }
 
   mCurrentRenderTarget =
