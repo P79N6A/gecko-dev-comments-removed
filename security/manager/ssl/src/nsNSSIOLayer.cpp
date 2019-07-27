@@ -1788,7 +1788,6 @@ static const char* const kFallbackWildcardList[] =
 {
   ".kuronekoyamato.co.jp", 
   ".userstorage.mega.co.nz", 
-  ".whatwg.org", 
   ".wildcard.test",
 };
 
