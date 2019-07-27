@@ -30,23 +30,22 @@
 #define JS_DESCR_SLOT_SIZE               3  // Size in bytes, else 0
 #define JS_DESCR_SLOT_OPAQUE             4  // Atomized string representation
 #define JS_DESCR_SLOT_TYPROTO            5  // Prototype for instances, if any
+#define JS_DESCR_SLOT_TRACE_LIST         6  // List of references for use in tracing
 
 
-#define JS_DESCR_SLOT_TYPE               6  // Type code
+#define JS_DESCR_SLOT_TYPE               7  // Type code
 
 
-#define JS_DESCR_SLOT_ARRAY_ELEM_TYPE    6
+#define JS_DESCR_SLOT_ARRAY_ELEM_TYPE    7
+#define JS_DESCR_SLOT_ARRAY_LENGTH       8
 
 
-#define JS_DESCR_SLOT_ARRAY_LENGTH 7
+#define JS_DESCR_SLOT_STRUCT_FIELD_NAMES 7
+#define JS_DESCR_SLOT_STRUCT_FIELD_TYPES 8
+#define JS_DESCR_SLOT_STRUCT_FIELD_OFFSETS 9
 
 
-#define JS_DESCR_SLOT_STRUCT_FIELD_NAMES 6
-#define JS_DESCR_SLOT_STRUCT_FIELD_TYPES 7
-#define JS_DESCR_SLOT_STRUCT_FIELD_OFFSETS 8
-
-
-#define JS_DESCR_SLOTS                   9
+#define JS_DESCR_SLOTS                   10
 
 
 

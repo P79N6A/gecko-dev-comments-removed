@@ -196,8 +196,24 @@ class TypeDescr : public NativeObject
         return getReservedSlot(JS_DESCR_SLOT_SIZE).toInt32();
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    const int32_t *traceList() const {
+        return reinterpret_cast<int32_t *>(getReservedSlot(JS_DESCR_SLOT_TRACE_LIST).toPrivate());
+    }
+
     void initInstances(const JSRuntime *rt, uint8_t *mem, size_t length);
     void traceInstances(JSTracer *trace, uint8_t *mem, size_t length);
+
+    static void finalize(FreeOp *fop, JSObject *obj);
 };
 
 typedef Handle<TypeDescr*> HandleTypeDescr;
