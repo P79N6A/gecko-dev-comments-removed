@@ -69,7 +69,7 @@ AlertsService.prototype = {
   
   showAlertNotification: function(aImageUrl, aTitle, aText, aTextClickable,
                                   aCookie, aAlertListener, aName, aBidi,
-                                  aLang) {
+                                  aLang, aDataStr) {
     cpmm.sendAsyncMessage(kMessageAlertNotificationSend, {
       imageURL: aImageUrl,
       title: aTitle,
@@ -79,7 +79,8 @@ AlertsService.prototype = {
       listener: aAlertListener,
       id: aName,
       dir: aBidi,
-      lang: aLang
+      lang: aLang,
+      dataStr: aDataStr
     });
   },
 
@@ -95,6 +96,7 @@ AlertsService.prototype = {
     let uid = (aDetails.id == "") ?
           "app-notif-" + uuidGenerator.generateUUID() : aDetails.id;
 
+    let dataObj = this.deserializeStructuredClone(aDetails.data);
     this._listeners[uid] = {
       observer: aAlertListener,
       title: aTitle,
@@ -106,7 +108,8 @@ AlertsService.prototype = {
       dbId: aDetails.dbId || undefined,
       dir: aDetails.dir || undefined,
       tag: aDetails.tag || undefined,
-      timestamp: aDetails.timestamp || undefined
+      timestamp: aDetails.timestamp || undefined,
+      dataObj: dataObj || undefined
     };
 
     cpmm.sendAsyncMessage(kMessageAppNotificationSend, {
@@ -151,7 +154,8 @@ AlertsService.prototype = {
               id: listener.id,
               tag: listener.tag,
               dbId: listener.dbId,
-              timestamp: listener.timestamp
+              timestamp: listener.timestamp,
+              data: listener.dataObj || undefined,
             },
             Services.io.newURI(data.target, null, null),
             Services.io.newURI(listener.manifestURL, null, null)
@@ -167,6 +171,30 @@ AlertsService.prototype = {
       }
       delete this._listeners[data.uid];
     }
+  },
+
+  deserializeStructuredClone: function(dataString) {
+    if (!dataString) {
+      return null;
+    }
+    let scContainer = Cc["@mozilla.org/docshell/structured-clone-container;1"].
+      createInstance(Ci.nsIStructuredCloneContainer);
+
+    
+    
+    let JS_STRUCTURED_CLONE_VERSION = 4;
+    scContainer.initFromBase64(dataString, JS_STRUCTURED_CLONE_VERSION);
+    let dataObj = scContainer.deserializeToVariant();
+
+    
+    
+    
+    
+    try {
+      let data = Cu.cloneInto(dataObj, {});
+    } catch(e) { dataObj = null; }
+
+    return dataObj;
   }
 };
 
