@@ -350,6 +350,9 @@ public class GeckoSmsManager
   
   private static final AtomicInteger pendingIntentGuid = new AtomicInteger(Integer.MIN_VALUE);
 
+  
+  private static final long UNSIGNED_INTEGER_MAX_VALUE = Integer.MAX_VALUE * 2L + 1L;
+
   public GeckoSmsManager() {
     SmsIOThread.getInstance().start();
   }
@@ -590,7 +593,7 @@ public class GeckoSmsManager
 
       
       
-      if (id > Integer.MAX_VALUE) {
+      if (id > UNSIGNED_INTEGER_MAX_VALUE) {
         throw new IdTooHighException();
       }
 
