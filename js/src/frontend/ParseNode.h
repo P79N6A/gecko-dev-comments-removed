@@ -138,6 +138,7 @@ class UpvarCookie
     F(IMPORT_SPEC) \
     F(EXPORT) \
     F(EXPORT_FROM) \
+    F(EXPORT_DEFAULT) \
     F(EXPORT_SPEC_LIST) \
     F(EXPORT_SPEC) \
     F(EXPORT_BATCH_SPEC) \
@@ -225,6 +226,10 @@ enum ParseNodeKind
     PNK_ASSIGNMENT_START = PNK_ASSIGN,
     PNK_ASSIGNMENT_LAST = PNK_MODASSIGN
 };
+
+
+
+
 
 
 

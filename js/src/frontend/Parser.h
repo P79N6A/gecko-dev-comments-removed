@@ -335,6 +335,7 @@ enum PropListType { ObjectLiteral, ClassBody };
 
 enum YieldHandling { YieldIsName, YieldIsKeyword };
 enum InHandling { InAllowed, InProhibited };
+enum DefaultHandling { NameRequired, AllowDefaultName };
 
 template <typename ParseHandler>
 class Parser : private JS::AutoGCRooter, public StrictModeGetter
@@ -543,7 +544,7 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
 
 
 
-    Node functionStmt(YieldHandling yieldHandling);
+    Node functionStmt(YieldHandling yieldHandling, DefaultHandling defaultHandling);
     Node functionExpr(InvokedPrediction invoked = PredictUninvoked);
     Node statements(YieldHandling yieldHandling);
 
@@ -638,7 +639,7 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
     bool namedImportsOrNamespaceImport(TokenKind tt, Node importSpecSet);
 
     enum ClassContext { ClassStatement, ClassExpression };
-    Node classDefinition(YieldHandling yieldHandling, ClassContext classContext);
+    Node classDefinition(YieldHandling yieldHandling, ClassContext classContext, DefaultHandling defaultHandling);
 
     Node identifierName(YieldHandling yieldHandling);
 
