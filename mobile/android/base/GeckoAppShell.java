@@ -485,6 +485,9 @@ public class GeckoAppShell
                 SharedPreferences prefs = getSharedPreferences();
                 SharedPreferences.Editor editor = prefs.edit();
                 editor.putBoolean(GeckoApp.PREFS_OOM_EXCEPTION, true);
+
+                
+                
                 editor.commit();
             }
         } finally {
