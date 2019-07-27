@@ -293,6 +293,141 @@ public:
 
 
 
+class AdjustedTargetForFilter
+{
+public:
+  typedef CanvasRenderingContext2D::ContextState ContextState;
+
+  AdjustedTargetForFilter(CanvasRenderingContext2D *ctx,
+                          DrawTarget *aFinalTarget,
+                          const mgfx::IntPoint& aFilterSpaceToTargetOffset,
+                          const mgfx::IntRect& aPreFilterBounds,
+                          const mgfx::IntRect& aPostFilterBounds,
+                          mgfx::CompositionOp aCompositionOp)
+    : mCtx(nullptr)
+    , mCompositionOp(aCompositionOp)
+  {
+    mCtx = ctx;
+    mFinalTarget = aFinalTarget;
+    mPostFilterBounds = aPostFilterBounds;
+    mOffset = aFilterSpaceToTargetOffset;
+
+    nsIntRegion sourceGraphicNeededRegion;
+    nsIntRegion fillPaintNeededRegion;
+    nsIntRegion strokePaintNeededRegion;
+
+    FilterSupport::ComputeSourceNeededRegions(
+      ctx->CurrentState().filter, mgfx::ThebesIntRect(mPostFilterBounds),
+      sourceGraphicNeededRegion, fillPaintNeededRegion, strokePaintNeededRegion);
+
+    mSourceGraphicRect = mgfx::ToIntRect(sourceGraphicNeededRegion.GetBounds());
+    mFillPaintRect = mgfx::ToIntRect(fillPaintNeededRegion.GetBounds());
+    mStrokePaintRect = mgfx::ToIntRect(strokePaintNeededRegion.GetBounds());
+
+    mSourceGraphicRect = mSourceGraphicRect.Intersect(aPreFilterBounds);
+
+    if (mSourceGraphicRect.IsEmpty()) {
+      
+      
+      
+      mSourceGraphicRect.SizeTo(1, 1);
+    }
+
+    mTarget =
+      mFinalTarget->CreateSimilarDrawTarget(mSourceGraphicRect.Size(), SurfaceFormat::B8G8R8A8);
+
+    if (!mTarget) {
+      
+      
+      mTarget = mFinalTarget;
+      mCtx = nullptr;
+      mFinalTarget = nullptr;
+      return;
+    }
+
+    mTarget->SetTransform(
+      mFinalTarget->GetTransform().PostTranslate(-mSourceGraphicRect.TopLeft() + mOffset));
+  }
+
+  
+  TemporaryRef<SourceSurface>
+  DoSourcePaint(mgfx::IntRect& aRect, CanvasRenderingContext2D::Style aStyle)
+  {
+    if (aRect.IsEmpty()) {
+      return nullptr;
+    }
+
+    RefPtr<DrawTarget> dt =
+      mFinalTarget->CreateSimilarDrawTarget(aRect.Size(), SurfaceFormat::B8G8R8A8);
+    if (!dt) {
+      aRect.SetEmpty();
+      return nullptr;
+    }
+
+    Matrix transform =
+      mFinalTarget->GetTransform().PostTranslate(-aRect.TopLeft() + mOffset);
+
+    dt->SetTransform(transform);
+
+    if (transform.Invert()) {
+      mgfx::Rect dtBounds(0, 0, aRect.width, aRect.height);
+      mgfx::Rect fillRect = transform.TransformBounds(dtBounds);
+      dt->FillRect(fillRect, CanvasGeneralPattern().ForStyle(mCtx, aStyle, dt));
+    }
+    return dt->Snapshot();
+  }
+
+  ~AdjustedTargetForFilter()
+  {
+    if (!mCtx) {
+      return;
+    }
+
+    RefPtr<SourceSurface> snapshot = mTarget->Snapshot();
+
+    RefPtr<SourceSurface> fillPaint =
+      DoSourcePaint(mFillPaintRect, CanvasRenderingContext2D::Style::FILL);
+    RefPtr<SourceSurface> strokePaint =
+      DoSourcePaint(mStrokePaintRect, CanvasRenderingContext2D::Style::STROKE);
+
+    Matrix transform = mFinalTarget->GetTransform();
+
+    mgfx::Point offset(mPostFilterBounds.TopLeft() - mOffset);
+    mFinalTarget->SetTransform(Matrix::Translation(offset));
+
+    mgfx::FilterSupport::RenderFilterDescription(
+      mFinalTarget, mCtx->CurrentState().filter,
+      mgfx::Rect(mPostFilterBounds),
+      snapshot, mSourceGraphicRect,
+      fillPaint, mFillPaintRect,
+      strokePaint, mStrokePaintRect,
+      mCtx->CurrentState().filterAdditionalImages,
+      DrawOptions(1.0f, mCompositionOp));
+
+    mFinalTarget->SetTransform(transform);
+  }
+
+  DrawTarget* DT()
+  {
+    return mTarget;
+  }
+
+private:
+  RefPtr<DrawTarget> mTarget;
+  RefPtr<DrawTarget> mFinalTarget;
+  CanvasRenderingContext2D *mCtx;
+  mgfx::IntRect mSourceGraphicRect;
+  mgfx::IntRect mFillPaintRect;
+  mgfx::IntRect mStrokePaintRect;
+  mgfx::IntRect mPostFilterBounds;
+  mgfx::IntPoint mOffset;
+  mgfx::CompositionOp mCompositionOp;
+};
+
+
+
+
+
 class AdjustedTargetForShadow
 {
 public:
@@ -403,19 +538,54 @@ public:
     mgfx::Rect r(0, 0, ctx->mWidth, ctx->mHeight);
     mgfx::Rect maxSourceNeededBoundsForShadow =
       MaxSourceNeededBoundsForShadow(r, ctx);
+    mgfx::Rect maxSourceNeededBoundsForFilter =
+      MaxSourceNeededBoundsForFilter(maxSourceNeededBoundsForShadow, ctx);
 
-    mgfx::Rect bounds = maxSourceNeededBoundsForShadow;
+    mgfx::Rect bounds = maxSourceNeededBoundsForFilter;
     if (aBounds) {
       bounds = bounds.Intersect(*aBounds);
     }
+    mgfx::Rect boundsAfterFilter = BoundsAfterFilter(bounds, ctx);
 
     mozilla::gfx::CompositionOp op = ctx->CurrentState().op;
 
+    mgfx::IntPoint offsetToFinalDT;
+
+    
+    
+    
     if (ctx->NeedToDrawShadow()) {
       mShadowTarget = MakeUnique<AdjustedTargetForShadow>(
-        ctx, mTarget, bounds, op);
+        ctx, mTarget, boundsAfterFilter, op);
       mTarget = mShadowTarget->DT();
+      offsetToFinalDT = mShadowTarget->OffsetToFinalDT();
+
+      
+      
+      op = mgfx::CompositionOp::OP_OVER;
     }
+
+    
+    if (ctx->NeedToApplyFilter()) {
+      bounds.RoundOut();
+
+      mgfx::IntRect intBounds;
+      if (!bounds.ToIntRect(&intBounds)) {
+        return;
+      }
+      mFilterTarget = MakeUnique<AdjustedTargetForFilter>(
+        ctx, mTarget, offsetToFinalDT, intBounds,
+        mgfx::RoundedToInt(boundsAfterFilter), op);
+      mTarget = mFilterTarget->DT();
+    }
+  }
+
+  ~AdjustedTarget()
+  {
+    
+    
+    mFilterTarget.reset();
+    mShadowTarget.reset();
   }
 
   operator DrawTarget*()
@@ -429,6 +599,24 @@ public:
   }
 
 private:
+
+  mgfx::Rect
+  MaxSourceNeededBoundsForFilter(const mgfx::Rect& aDestBounds, CanvasRenderingContext2D *ctx)
+  {
+    if (!ctx->NeedToApplyFilter()) {
+      return aDestBounds;
+    }
+
+    nsIntRegion sourceGraphicNeededRegion;
+    nsIntRegion fillPaintNeededRegion;
+    nsIntRegion strokePaintNeededRegion;
+
+    FilterSupport::ComputeSourceNeededRegions(
+      ctx->CurrentState().filter, mgfx::ThebesIntRect(mgfx::RoundedToInt(aDestBounds)),
+      sourceGraphicNeededRegion, fillPaintNeededRegion, strokePaintNeededRegion);
+
+    return mgfx::Rect(mgfx::ToIntRect(sourceGraphicNeededRegion.GetBounds()));
+  }
 
   mgfx::Rect
   MaxSourceNeededBoundsForShadow(const mgfx::Rect& aDestBounds, CanvasRenderingContext2D *ctx)
@@ -446,8 +634,30 @@ private:
     return sourceBounds.Union(aDestBounds);
   }
 
+  mgfx::Rect
+  BoundsAfterFilter(const mgfx::Rect& aBounds, CanvasRenderingContext2D *ctx)
+  {
+    if (!ctx->NeedToApplyFilter()) {
+      return aBounds;
+    }
+
+    mgfx::Rect bounds(aBounds);
+    bounds.RoundOut();
+
+    mgfx::IntRect intBounds;
+    if (!bounds.ToIntRect(&intBounds)) {
+      return mgfx::Rect();
+    }
+
+    nsIntRegion extents =
+      mgfx::FilterSupport::ComputePostFilterExtents(ctx->CurrentState().filter,
+                                                    mgfx::ThebesIntRect(intBounds));
+    return mgfx::Rect(mgfx::ToIntRect(extents.GetBounds()));
+  }
+
   RefPtr<DrawTarget> mTarget;
   UniquePtr<AdjustedTargetForShadow> mShadowTarget;
+  UniquePtr<AdjustedTargetForFilter> mFilterTarget;
 };
 
 void

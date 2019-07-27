@@ -864,7 +864,7 @@ protected:
 
   mozilla::gfx::CompositionOp UsedOperation()
   {
-    if (NeedToDrawShadow()) {
+    if (NeedToDrawShadow() || NeedToApplyFilter()) {
       
       return mozilla::gfx::CompositionOp::OP_OVER;
     }
@@ -1055,6 +1055,7 @@ protected:
   friend class CanvasFilterChainObserver;
   friend class AdjustedTarget;
   friend class AdjustedTargetForShadow;
+  friend class AdjustedTargetForFilter;
 
   
   void GetAppUnitsValues(int32_t *perDevPixel, int32_t *perCSSPixel)
