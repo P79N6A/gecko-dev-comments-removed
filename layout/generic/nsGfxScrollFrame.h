@@ -324,6 +324,13 @@ public:
   void MarkNotRecentlyScrolled();
   nsExpirationState* GetExpirationState() { return &mActivityExpirationState; }
 
+  void SetTransformingByAPZ(bool aTransforming) {
+    mTransformingByAPZ = aTransforming;
+  }
+  bool IsTransformingByAPZ() const {
+    return mTransformingByAPZ;
+  }
+
   void ScheduleSyntheticMouseMove();
   static void ScrollActivityCallback(nsITimer *aTimer, void* anInstance);
 
@@ -465,6 +472,10 @@ public:
   
   
   bool mScaleToResolution:1;
+
+  
+  
+  bool mTransformingByAPZ:1;
 
 protected:
   
@@ -811,6 +822,13 @@ public:
   }
   virtual void ScrollbarActivityStarted() const MOZ_OVERRIDE;
   virtual void ScrollbarActivityStopped() const MOZ_OVERRIDE;
+
+  virtual void SetTransformingByAPZ(bool aTransforming) MOZ_OVERRIDE {
+    mHelper.SetTransformingByAPZ(aTransforming);
+  }
+  bool IsTransformingByAPZ() const MOZ_OVERRIDE {
+    return mHelper.IsTransformingByAPZ();
+  }
   
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
@@ -1180,6 +1198,13 @@ public:
 
   virtual void ScrollbarActivityStarted() const MOZ_OVERRIDE;
   virtual void ScrollbarActivityStopped() const MOZ_OVERRIDE;
+
+  virtual void SetTransformingByAPZ(bool aTransforming) MOZ_OVERRIDE {
+    mHelper.SetTransformingByAPZ(aTransforming);
+  }
+  bool IsTransformingByAPZ() const MOZ_OVERRIDE {
+    return mHelper.IsTransformingByAPZ();
+  }
 
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
