@@ -235,6 +235,7 @@ ContactManager.prototype = {
 
   askPermission: function (aAccess, aRequest, aAllowCallback, aCancelCallback) {
     if (DEBUG) debug("askPermission for contacts");
+
     let access;
     switch(aAccess) {
       case "create":
@@ -255,38 +256,42 @@ ContactManager.prototype = {
       }
 
     
+    let principal = this._window.document.nodePrincipal;
     let type = "contacts-" + access;
     let permValue =
-      Services.perms.testExactPermissionFromPrincipal(this._window.document.nodePrincipal, type);
+      Services.perms.testExactPermissionFromPrincipal(principal, type);
     if (permValue == Ci.nsIPermissionManager.ALLOW_ACTION) {
       aAllowCallback();
       return;
+    } else if (permValue == Ci.nsIPermissionManager.DENY_ACTION) {
+      aCancelCallback();
     }
 
-    let requestID = this.getRequestId({
-      request: aRequest,
-      allow: function() {
-        aAllowCallback();
-      }.bind(this),
-      cancel : function() {
-        if (aCancelCallback) {
-          aCancelCallback()
-        } else if (aRequest) {
-          Services.DOMRequest.fireError(aRequest, "Not Allowed");
-        }
-      }.bind(this)
-    });
-
-    let principal = this._window.document.nodePrincipal;
-    cpmm.sendAsyncMessage("PermissionPromptHelper:AskPermission", {
+    
+    let type = {
       type: "contacts",
       access: access,
-      requestID: requestID,
-      origin: principal.origin,
-      appID: principal.appId,
-      browserFlag: principal.isInBrowserElement,
-      windowID: this._window.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils).outerWindowID
-    });
+      options: null,
+      QueryInterface: XPCOMUtils.generateQI([Ci.nsIContentPermissionType])
+    };
+    let typeArray = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
+    typeArray.appendElement(type, false);
+
+    
+    let request = {
+      types: typeArray,
+      principal: principal,
+      QueryInterface: XPCOMUtils.generateQI([Ci.nsIContentPermissionRequest]),
+      allow: aAllowCallback,
+      cancel: aCancelCallback,
+      window: this._window
+    };
+
+    
+    
+    let windowUtils = this._window.QueryInterface(Ci.nsIInterfaceRequestor)
+                          .getInterface(Ci.nsIDOMWindowUtils);
+    windowUtils.askPermission(request);
   },
 
   save: function save(aContact) {
