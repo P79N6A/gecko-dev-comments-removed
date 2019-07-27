@@ -7,6 +7,7 @@
 #define mozilla_dom_HTMLTITLEElement_h_
 
 #include "mozilla/Attributes.h"
+#include "nsIDOMHTMLTitleElement.h"
 #include "nsGenericHTMLElement.h"
 #include "nsStubMutationObserver.h"
 
@@ -16,6 +17,7 @@ class ErrorResult;
 namespace dom {
 
 class HTMLTitleElement final : public nsGenericHTMLElement,
+                               public nsIDOMHTMLTitleElement,
                                public nsStubMutationObserver
 {
 public:
@@ -28,8 +30,14 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  void GetText(DOMString& aText, ErrorResult& aError);
-  void SetText(const nsAString& aText, ErrorResult& aError);
+  NS_DECL_NSIDOMHTMLTITLEELEMENT
+
+  
+  
+  void SetText(const nsAString& aText, ErrorResult& aError)
+  {
+    aError = SetText(aText);
+  }
 
   
   NS_DECL_NSIMUTATIONOBSERVER_CHARACTERDATACHANGED
