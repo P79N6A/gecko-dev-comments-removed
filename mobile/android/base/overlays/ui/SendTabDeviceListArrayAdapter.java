@@ -19,6 +19,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 public class SendTabDeviceListArrayAdapter extends ArrayAdapter<ParcelableClientRecord> {
@@ -40,7 +41,7 @@ public class SendTabDeviceListArrayAdapter extends ArrayAdapter<ParcelableClient
     private AlertDialog dialog;
 
     public SendTabDeviceListArrayAdapter(Context context, SendTabTargetSelectedListener aListener) {
-        super(context, R.layout.overlay_share_send_tab_item);
+        super(context, R.layout.overlay_share_send_tab_item, R.id.overlaybtn_label);
 
         listener = aListener;
 
@@ -89,9 +90,9 @@ public class SendTabDeviceListArrayAdapter extends ArrayAdapter<ParcelableClient
         final Context context = getContext();
 
         
-        TextView row = (TextView) convertView;
+        OverlayDialogButton row = (OverlayDialogButton) convertView;
         if (row == null) {
-            row = (TextView) View.inflate(context, R.layout.overlay_share_send_tab_item, null);
+            row = (OverlayDialogButton) View.inflate(context, R.layout.overlay_share_send_tab_item, null);
         }
 
         
@@ -101,8 +102,8 @@ public class SendTabDeviceListArrayAdapter extends ArrayAdapter<ParcelableClient
 
         if (currentState != State.LIST) {
             
-            row.setText(dummyRecordName);
-            row.setCompoundDrawablesWithIntrinsicBounds(R.drawable.overlay_send_tab_icon, 0, 0, 0);
+            final Drawable sendTabIcon = context.getResources().getDrawable(R.drawable.overlay_send_tab_icon);
+            row.setEnabledLabelAndIcon(dummyRecordName, sendTabIcon);
         }
 
         
@@ -120,8 +121,8 @@ public class SendTabDeviceListArrayAdapter extends ArrayAdapter<ParcelableClient
         
         final ParcelableClientRecord clientRecord = getItem(position);
         if (currentState == State.LIST) {
-            row.setText(clientRecord.name);
-            row.setCompoundDrawablesWithIntrinsicBounds(getImage(clientRecord), 0, 0, 0);
+            final Drawable clientIcon = context.getResources().getDrawable(getImage(clientRecord));
+            row.setEnabledLabelAndIcon(clientRecord.name, clientIcon);
 
             final String listenerGUID = clientRecord.guid;
 
