@@ -123,6 +123,9 @@ const PREF_LOGGING_ENABLED = "extensions.logging.enabled";
 const NS_PREFBRANCH_PREFCHANGE_TOPIC_ID = "nsPref:changed";
 
 const UNNAMED_PROVIDER = "<unnamed-provider>";
+function providerName(aProvider) {
+  return aProvider.name || UNNAMED_PROVIDER;
+}
 
 
 
@@ -179,6 +182,15 @@ function safeCall(aCallback, ...aArgs) {
 
 
 
+function reportProviderError(aProvider, aMethod, aError) {
+  let method = `provider ${providerName(aProvider)}.${aMethod}`;
+  AddonManagerPrivate.recordException("AMI", method, aError);
+  logger.error("Exception calling " + method, aError);
+}
+
+
+
+
 
 
 
@@ -198,8 +210,36 @@ function callProvider(aProvider, aMethod, aDefault, ...aArgs) {
     return aProvider[aMethod].apply(aProvider, aArgs);
   }
   catch (e) {
-    logger.error("Exception calling provider " + aMethod, e);
+    reportProviderError(aProvider, aMethod, e);
     return aDefault;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function callProviderAsync(aProvider, aMethod, ...aArgs) {
+  let callback = aArgs[aArgs.length - 1];
+  if (!(aMethod in aProvider)) {
+    callback(undefined);
+    return;
+  }
+  try {
+    return aProvider[aMethod].apply(aProvider, aArgs);
+  }
+  catch (e) {
+    reportProviderError(aProvider, aMethod, e);
+    callback(undefined);
+    return;
   }
 }
 
@@ -628,7 +668,7 @@ var AddonManagerInternal = {
 
     callProvider(aProvider, "startup", null, aAppChanged, aOldAppVersion, aOldPlatformVersion);
     if ('shutdown' in aProvider) {
-      let name = aProvider.name || "Provider";
+      let name = providerName(aProvider);
       let AMProviderShutdown = () => {
         return new Promise((resolve, reject) => {
             logger.debug("Calling shutdown blocker for " + name);
@@ -893,7 +933,7 @@ var AddonManagerInternal = {
     
     
     if (gStarted && !gShutdownInProgress) {
-      logger.debug("Unregistering shutdown blocker for " + (aProvider.name || "Provider"));
+      logger.debug("Unregistering shutdown blocker for " + providerName(aProvider));
       let shutter = this.providerShutdowns.get(aProvider);
       if (shutter) {
         this.providerShutdowns.delete(aProvider);
@@ -905,6 +945,8 @@ var AddonManagerInternal = {
   },
 
   
+
+
 
 
 
@@ -925,8 +967,7 @@ var AddonManagerInternal = {
           provider[aMethod].apply(provider, aArgs);
       }
       catch (e) {
-        AddonManagerPrivate.recordException("AMI", "provider " + aMethod, e);
-        logger.error("Exception calling provider " + aMethod, e);
+        reportProviderError(aProvider, aMethod, e);
       }
     }
   },
@@ -976,7 +1017,7 @@ var AddonManagerInternal = {
       catch(err) {
         savedError = err;
         logger.error("Failure during wait for shutdown barrier", err);
-        AddonManagerPrivate.recordException("AMI", "Async shutdown of AddonRepository", err);
+        AddonManagerPrivate.recordException("AMI", "Async shutdown of AddonManager providers", err);
       }
     }
 
@@ -1553,10 +1594,8 @@ var AddonManagerInternal = {
 
     new AsyncObjectCaller(this.providers, "updateAddonRepositoryData", {
       nextObject: function updateAddonRepositoryData_nextObject(aCaller, aProvider) {
-        callProvider(aProvider,
-                     "updateAddonRepositoryData",
-                     null,
-                     aCaller.callNext.bind(aCaller));
+        callProviderAsync(aProvider, "updateAddonRepositoryData",
+                          aCaller.callNext.bind(aCaller));
       },
       noMoreObjects: function updateAddonRepositoryData_noMoreObjects(aCaller) {
         safeCall(aCallback);
@@ -1635,9 +1674,9 @@ var AddonManagerInternal = {
     let providers = this.providers.slice(0);
     for (let provider of providers) {
       if (callProvider(provider, "supportsMimetype", false, aMimetype)) {
-        callProvider(provider, "getInstallForURL", null,
-                     aUrl, aHash, aName, aIcons, aVersion, aLoadGroup,
-                     function  getInstallForURL_safeCall(aInstall) {
+        callProviderAsync(provider, "getInstallForURL",
+                          aUrl, aHash, aName, aIcons, aVersion, aLoadGroup,
+                          function  getInstallForURL_safeCall(aInstall) {
           safeCall(aCallback, aInstall);
         });
         return;
@@ -1676,8 +1715,8 @@ var AddonManagerInternal = {
 
     new AsyncObjectCaller(this.providers, "getInstallForFile", {
       nextObject: function getInstallForFile_nextObject(aCaller, aProvider) {
-        callProvider(aProvider, "getInstallForFile", null, aFile,
-                     function getInstallForFile_safeCall(aInstall) {
+        callProviderAsync(aProvider, "getInstallForFile", aFile,
+                          function getInstallForFile_safeCall(aInstall) {
           if (aInstall)
             safeCall(aCallback, aInstall);
           else
@@ -1718,8 +1757,8 @@ var AddonManagerInternal = {
 
     new AsyncObjectCaller(this.providers, "getInstallsByTypes", {
       nextObject: function getInstallsByTypes_nextObject(aCaller, aProvider) {
-        callProvider(aProvider, "getInstallsByTypes", null, aTypes,
-                     function getInstallsByTypes_safeCall(aProviderInstalls) {
+        callProviderAsync(aProvider, "getInstallsByTypes", aTypes,
+                          function getInstallsByTypes_safeCall(aProviderInstalls) {
           installs = installs.concat(aProviderInstalls);
           aCaller.callNext();
         });
@@ -1970,8 +2009,8 @@ var AddonManagerInternal = {
 
     new AsyncObjectCaller(this.providers, "getAddonByID", {
       nextObject: function getAddonByID_nextObject(aCaller, aProvider) {
-        callProvider(aProvider, "getAddonByID", null, aID,
-                    function getAddonByID_safeCall(aAddon) {
+        callProviderAsync(aProvider, "getAddonByID", aID,
+                          function getAddonByID_safeCall(aAddon) {
           if (aAddon)
             safeCall(aCallback, aAddon);
           else
@@ -2009,8 +2048,8 @@ var AddonManagerInternal = {
 
     new AsyncObjectCaller(this.providers, "getAddonBySyncGUID", {
       nextObject: function getAddonBySyncGUID_nextObject(aCaller, aProvider) {
-        callProvider(aProvider, "getAddonBySyncGUID", null, aGUID,
-                    function getAddonBySyncGUID_safeCall(aAddon) {
+        callProviderAsync(aProvider, "getAddonBySyncGUID", aGUID,
+                          function getAddonBySyncGUID_safeCall(aAddon) {
           if (aAddon) {
             safeCall(aCallback, aAddon);
           } else {
@@ -2090,8 +2129,8 @@ var AddonManagerInternal = {
 
     new AsyncObjectCaller(this.providers, "getAddonsByTypes", {
       nextObject: function getAddonsByTypes_nextObject(aCaller, aProvider) {
-        callProvider(aProvider, "getAddonsByTypes", null, aTypes,
-                     function getAddonsByTypes_concatAddons(aProviderAddons) {
+        callProviderAsync(aProvider, "getAddonsByTypes", aTypes,
+                          function getAddonsByTypes_concatAddons(aProviderAddons) {
           addons = addons.concat(aProviderAddons);
           aCaller.callNext();
         });
@@ -2150,9 +2189,9 @@ var AddonManagerInternal = {
     new AsyncObjectCaller(this.providers, "getAddonsWithOperationsByTypes", {
       nextObject: function getAddonsWithOperationsByTypes_nextObject
                            (aCaller, aProvider) {
-        callProvider(aProvider, "getAddonsWithOperationsByTypes", null, aTypes,
-                     function getAddonsWithOperationsByTypes_concatAddons
-                              (aProviderAddons) {
+        callProviderAsync(aProvider, "getAddonsWithOperationsByTypes", aTypes,
+                          function getAddonsWithOperationsByTypes_concatAddons
+                                   (aProviderAddons) {
           addons = addons.concat(aProviderAddons);
           aCaller.callNext();
         });
