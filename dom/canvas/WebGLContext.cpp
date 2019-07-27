@@ -665,6 +665,9 @@ CreateOffscreen(GLContext* gl,
     baseCaps.preserve = options.preserveDrawingBuffer;
     baseCaps.stencil = options.stencil;
 
+    if (!baseCaps.alpha)
+        baseCaps.premultAlpha = true;
+
     
     
     
