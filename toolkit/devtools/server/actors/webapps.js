@@ -215,7 +215,7 @@ function WebappsActor(aConnection) {
 
   
   
-  this._appActorsMap = new Map();
+  this._connectedApps = new Set();
 
   this.conn = aConnection;
   this._uploads = [];
@@ -960,24 +960,33 @@ WebappsActor.prototype = {
 
     
     
-    let map = this._appActorsMap;
+    let set = this._connectedApps;
     let mm = appFrame.QueryInterface(Ci.nsIFrameLoaderOwner)
                      .frameLoader
                      .messageManager;
-    let actor = map.get(mm);
-    if (!actor) {
+    if (!set.has(mm)) {
       let onConnect = actor => {
-        map.set(mm, actor);
+        set.add(mm);
         return { actor: actor };
       };
       let onDisconnect = mm => {
-        map.delete(mm);
+        set.delete(mm);
       };
       return DebuggerServer.connectToChild(this.conn, appFrame, onDisconnect)
                            .then(onConnect);
     }
 
-    return { actor: actor };
+    
+    
+    let deferred = promise.defer();
+    let onFormUpdate = msg => {
+      mm.removeMessageListener("debug:form", onFormUpdate);
+      deferred.resolve({ actor: msg.json });
+    };
+    mm.addMessageListener("debug:form", onFormUpdate);
+    mm.sendAsyncMessage("debug:form");
+
+    return deferred.promise;
   },
 
   watchApps: function () {

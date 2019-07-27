@@ -815,7 +815,9 @@ var DebuggerServer = {
 
 
 
-  connectToChild: function(aConnection, aFrame, aOnDisconnect) {
+
+
+  connectToChild: function(aConnection, aFrame, aOnDestroy) {
     let deferred = defer();
 
     let mm = aFrame.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader
@@ -824,7 +826,6 @@ var DebuggerServer = {
 
     let actor, childTransport;
     let prefix = aConnection.allocID("child");
-    let childID = null;
     let netMonitor = null;
 
     
@@ -841,7 +842,7 @@ var DebuggerServer = {
           return false;
         }
 
-        m[setupParent]({ mm: mm, childID: childID });
+        m[setupParent]({ mm: mm, prefix: prefix });
 
         return true;
       } catch(e) {
@@ -855,9 +856,10 @@ var DebuggerServer = {
     mm.addMessageListener("debug:setup-in-parent", onSetupInParent);
 
     let onActorCreated = DevToolsUtils.makeInfallible(function (msg) {
+      if (msg.json.prefix != prefix) {
+        return;
+      }
       mm.removeMessageListener("debug:actor", onActorCreated);
-
-      childID = msg.json.childID;
 
       
       childTransport = new ChildDebuggerTransport(mm, prefix);
@@ -882,53 +884,11 @@ var DebuggerServer = {
     }).bind(this);
     mm.addMessageListener("debug:actor", onActorCreated);
 
-    let onMessageManagerClose = DevToolsUtils.makeInfallible(function (subject, topic, data) {
-      if (subject == mm) {
-        Services.obs.removeObserver(onMessageManagerClose, topic);
+    let destroy = DevToolsUtils.makeInfallible(function () {
+      
+      
+      DebuggerServer.emit("disconnected-from-child:" + prefix, { mm: mm, prefix: prefix });
 
-        
-        
-        this.emit("disconnected-from-child:" + childID, { mm: mm, childID: childID });
-
-        mm.removeMessageListener("debug:setup-in-parent", onSetupInParent);
-
-        if (childTransport) {
-          
-          
-          childTransport.close();
-          childTransport = null;
-          aConnection.cancelForwarding(prefix);
-
-          
-          mm.sendAsyncMessage("debug:disconnect", { childID: childID });
-        } else {
-          
-          
-          
-          deferred.resolve(null);
-        }
-        if (actor) {
-          
-          
-          
-          aConnection.send({ from: actor.actor, type: "tabDetached" });
-          actor = null;
-        }
-
-        if (netMonitor) {
-          netMonitor.destroy();
-          netMonitor = null;
-        }
-
-        if (aOnDisconnect) {
-          aOnDisconnect(mm);
-        }
-      }
-    }).bind(this);
-    Services.obs.addObserver(onMessageManagerClose,
-                             "message-manager-close", false);
-
-    events.once(aConnection, "closed", () => {
       if (childTransport) {
         
         
@@ -937,14 +897,51 @@ var DebuggerServer = {
         aConnection.cancelForwarding(prefix);
 
         
-        mm.sendAsyncMessage("debug:disconnect", { childID: childID });
-
-        if (netMonitor) {
-          netMonitor.destroy();
-          netMonitor = null;
-        }
+        mm.sendAsyncMessage("debug:disconnect", { prefix: prefix });
+      } else {
+        
+        
+        
+        deferred.resolve(null);
       }
+      if (actor) {
+        
+        
+        
+        aConnection.send({ from: actor.actor, type: "tabDetached" });
+        actor = null;
+      }
+
+      if (netMonitor) {
+        netMonitor.destroy();
+        netMonitor = null;
+      }
+
+      if (aOnDestroy) {
+        aOnDestroy(mm);
+      }
+
+      
+      Services.obs.removeObserver(onMessageManagerClose, "message-manager-close");
+      mm.removeMessageListener("debug:setup-in-parent", onSetupInParent);
+      if (!actor) {
+        mm.removeMessageListener("debug:actor", onActorCreated);
+      }
+      events.off(aConnection, "closed", destroy);
     });
+
+    
+    let onMessageManagerClose = function (subject, topic, data) {
+      if (subject == mm) {
+        destroy();
+      }
+    };
+    Services.obs.addObserver(onMessageManagerClose,
+                             "message-manager-close", false);
+
+    
+    
+    events.on(aConnection, "closed", destroy);
 
     mm.sendAsyncMessage("debug:connect", { prefix: prefix });
 

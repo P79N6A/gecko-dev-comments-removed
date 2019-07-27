@@ -111,7 +111,7 @@ const DirectorRegistry = exports.DirectorRegistry = {
 
 let gTrackedMessageManager = new Set();
 
-exports.setupParentProcess = function setupParentProcess({mm, childID}) {
+exports.setupParentProcess = function setupParentProcess({mm, prefix}) {
   
   if (gTrackedMessageManager.has(mm)) {
     return;
@@ -121,7 +121,7 @@ exports.setupParentProcess = function setupParentProcess({mm, childID}) {
   
   mm.addMessageListener("debug:director-registry-request", handleChildRequest);
 
-  DebuggerServer.once("disconnected-from-child:" + childID, handleMessageManagerDisconnected);
+  DebuggerServer.once("disconnected-from-child:" + prefix, handleMessageManagerDisconnected);
 
   
 
