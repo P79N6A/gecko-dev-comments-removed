@@ -1756,10 +1756,12 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  getAllUserMedia : function PCW_GetAllUserMedia(onSuccess) {
+
+
+  getAllUserMedia : function PCW_GetAllUserMedia(constraintsList, onSuccess) {
     var self = this;
 
-    function _getAllUserMedia(constraintsList, index) {
+    function _getAllUserMedia(index) {
       if (index < constraintsList.length) {
         var constraints = constraintsList[index];
 
@@ -1776,20 +1778,20 @@ PeerConnectionWrapper.prototype = {
 
           self.attachMedia(stream, type, 'local');
 
-          _getAllUserMedia(constraintsList, index + 1);
+          _getAllUserMedia(index + 1);
         }, generateErrorCallback());
       } else {
         onSuccess();
       }
     }
 
-    if (this.constraints.length === 0) {
+    if (constraintsList.length === 0) {
       info("Skipping GUM: no UserMedia requested");
       onSuccess();
     }
     else {
-      info("Get " + this.constraints.length + " local streams");
-      _getAllUserMedia(this.constraints, 0);
+      info("Get " + constraintsList.length + " local streams");
+      _getAllUserMedia(0);
     }
   },
 
@@ -2174,13 +2176,13 @@ PeerConnectionWrapper.prototype = {
     if ((!constraints) || (constraints.length === 0)) {
       return 0;
     }
-    var audioTracks = 0;
+    var numAudioTracks = 0;
     for (var i = 0; i < constraints.length; i++) {
       if (constraints[i].audio) {
-        audioTracks++;
+        numAudioTracks++;
       }
     }
-    return audioTracks;
+    return numAudioTracks;
   },
 
   
@@ -2223,13 +2225,13 @@ PeerConnectionWrapper.prototype = {
     if ((!constraints) || (constraints.length === 0)) {
       return 0;
     }
-    var videoTracks = 0;
+    var numVideoTracks = 0;
     for (var i = 0; i < constraints.length; i++) {
       if (constraints[i].video) {
-        videoTracks++;
+        numVideoTracks++;
       }
     }
-    return videoTracks;
+    return numVideoTracks;
   },
 
   
@@ -2272,11 +2274,11 @@ PeerConnectionWrapper.prototype = {
     if (!streams || (streams.length === 0)) {
       return 0;
     }
-    var audioTracks = 0;
+    var numAudioTracks = 0;
     streams.forEach(function(st) {
-      audioTracks += st.getAudioTracks().length;
+      numAudioTracks += st.getAudioTracks().length;
     });
-    return audioTracks;
+    return numAudioTracks;
   },
 
   
@@ -2290,11 +2292,11 @@ PeerConnectionWrapper.prototype = {
     if (!streams || (streams.length === 0)) {
       return 0;
     }
-    var videoTracks = 0;
+    var numVideoTracks = 0;
     streams.forEach(function(st) {
-      videoTracks += st.getVideoTracks().length;
+      numVideoTracks += st.getVideoTracks().length;
     });
-    return videoTracks;
+    return numVideoTracks;
   },
 
   
@@ -2367,10 +2369,9 @@ PeerConnectionWrapper.prototype = {
   },
 
   verifySdp : function PCW_verifySdp(desc, expectedType, offerConstraintsList,
-      answerConstraintsList, offerOptions, trickleIceCallback) {
+      offerOptions, trickleIceCallback) {
     info("Examining this SessionDescription: " + JSON.stringify(desc));
     info("offerConstraintsList: " + JSON.stringify(offerConstraintsList));
-    info("answerConstraintsList: " + JSON.stringify(answerConstraintsList));
     info("offerOptions: " + JSON.stringify(offerOptions));
     ok(desc, "SessionDescription is not null");
     is(desc.type, expectedType, "SessionDescription type is " + expectedType);
@@ -2390,8 +2391,7 @@ PeerConnectionWrapper.prototype = {
     
 
     var audioTracks =
-      Math.max(this.countAudioTracksInMediaConstraint(offerConstraintsList),
-               this.countAudioTracksInMediaConstraint(answerConstraintsList)) ||
+      this.countAudioTracksInMediaConstraint(offerConstraintsList) ||
       this.audioInOfferOptions(offerOptions);
 
     info("expected audio tracks: " + audioTracks);
@@ -2407,8 +2407,7 @@ PeerConnectionWrapper.prototype = {
     }
 
     var videoTracks =
-      Math.max(this.countVideoTracksInMediaConstraint(offerConstraintsList),
-               this.countVideoTracksInMediaConstraint(answerConstraintsList)) ||
+      this.countVideoTracksInMediaConstraint(offerConstraintsList) ||
       this.videoInOfferOptions(offerOptions);
 
     info("expected video tracks: " + videoTracks);
@@ -2633,6 +2632,46 @@ PeerConnectionWrapper.prototype = {
     } else {
       info("P2P configured");
       ok(((lType !== "relayed") && (rType !== "relayed")), "Pure peer to peer call without a relay");
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  checkStatsIceConnections : function PCW_checkStatsIceConnections(stats,
+      offerConstraintsList, offerOptions, numDataTracks, answer) {
+    var numIceConnections = 0;
+    Object.keys(stats).forEach(function(key) {
+      if ((stats[key].type === "candidatepair") && stats[key].selected) {
+        numIceConnections += 1;
+      }
+    });
+    info("ICE connections according to stats: " + numIceConnections);
+    if (answer.sdp.contains('a=group:BUNDLE')) {
+      is(numIceConnections, 1, "stats reports exactly 1 ICE connection");
+    } else {
+      
+      
+      var numAudioTracks =
+        this.countAudioTracksInMediaConstraint(offerConstraintsList) ||
+        this.audioInOfferOptions(offerOptions);
+
+      var numVideoTracks =
+        this.countVideoTracksInMediaConstraint(offerConstraintsList) ||
+        this.videoInOfferOptions(offerOptions);
+
+      var numAudioVideoDataTracks = numAudioTracks + numVideoTracks + numDataTracks;
+      info("expected audio + video + data tracks: " + numAudioVideoDataTracks);
+      is(numAudioVideoDataTracks, numIceConnections, "stats ICE connections matches expected A/V tracks");
     }
   },
 
