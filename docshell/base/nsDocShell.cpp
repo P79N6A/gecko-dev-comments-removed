@@ -11738,7 +11738,7 @@ nsDocShell::ShouldAddToSessionHistory(nsIURI* aURI)
   
   
   nsresult rv;
-  nsAutoCString buf;
+  nsAutoCString buf, pref;
 
   rv = aURI->GetScheme(buf);
   if (NS_FAILED(rv)) {
@@ -11756,17 +11756,16 @@ nsDocShell::ShouldAddToSessionHistory(nsIURI* aURI)
     }
   }
 
-  
-  
-  nsCOMPtr<nsIWebBrowserChrome3> browserChrome3 = do_GetInterface(mTreeOwner);
-  if (browserChrome3) {
-    bool shouldAdd;
-    rv = browserChrome3->ShouldAddToSessionHistory(this, aURI, &shouldAdd);
-    NS_ENSURE_SUCCESS(rv, true);
-    return shouldAdd;
+  rv = Preferences::GetDefaultCString("browser.newtab.url", &pref);
+
+  if (NS_FAILED(rv)) {
+    return true;
   }
 
-  return true;
+  rv = aURI->GetSpec(buf);
+  NS_ENSURE_SUCCESS(rv, true);
+
+  return !buf.Equals(pref);
 }
 
 nsresult
