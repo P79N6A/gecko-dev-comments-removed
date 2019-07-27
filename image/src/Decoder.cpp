@@ -266,6 +266,10 @@ Decoder::CompleteDecode()
     if (!HasDecoderError() && GetCompleteFrameCount() > 0) {
       
       
+
+      
+      PostHasTransparency();
+
       if (mInFrame) {
         PostFrameStop();
       }
