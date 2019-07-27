@@ -34,10 +34,12 @@ B2GAppMigrator.prototype = {
   QueryInterface:  XPCOMUtils.generateQI([Ci.nsIObserver,
                                           Ci.nsISupportsWeakReference]),
   executeBrowserMigration: function() {
+    if (DEBUG) debug("Executing Browser Migration");
     
     
     
-    let browserDBFileName = "2959517650brreosw.sqlite";
+    let browserDBDirName = "2959517650brreosw";
+    let browserDBFileName = browserDBDirName + ".sqlite";
 
     
     
@@ -57,9 +59,16 @@ B2GAppMigrator.prototype = {
                                           browserAppStorageDirName,
                                           "idb"], false, true);
     browserDBFile.append(browserDBFileName);
+    let browserDBDir = FileUtils.getDir(kIDBDirType,
+                                        ["storage",
+                                         "persistent",
+                                         browserAppStorageDirName,
+                                         "idb",
+                                         browserDBDirName
+                                        ], false, true);
 
     if (!browserDBFile.exists()) {
-      if (DEBUG) debug("Browser DB directory " + browserDBFile.path + " does not exist, trying profile location");
+      if (DEBUG) debug("Browser DB " + browserDBFile.path + " does not exist, trying profile location");
       browserDBFile = FileUtils.getDir(kProfileDirType,
                                         ["storage",
                                          "persistent",
@@ -67,9 +76,18 @@ B2GAppMigrator.prototype = {
                                          "idb"], false, true);
       browserDBFile.append(browserDBFileName);
       if (!browserDBFile.exists()) {
-        if (DEBUG) debug("Browser DB directory " + browserDBFile.path + " does not exist. Cannot copy browser db.");
+        if (DEBUG) debug("Browser DB " + browserDBFile.path + " does not exist. Cannot copy browser db.");
         return;
       }
+      
+      
+      browserDBDir = FileUtils.getDir(kProfileDirType,
+                                      ["storage",
+                                       "persistent",
+                                       browserAppStorageDirName,
+                                       "idb",
+                                       browserDBDirName
+                                      ], false, true);
     }
 
     let systemLocalAppId = appsService.getAppLocalIdByManifestURL("app://system.gaiamobile.org/manifest.webapp");
@@ -102,6 +120,7 @@ B2GAppMigrator.prototype = {
       debug("Browser local id: " + browserLocalAppId + "");
       debug("System local id: " + systemLocalAppId + "");
       debug("Browser DB file path: " + browserDBFile.path + "");
+      debug("Browser DB dir path: " + browserDBDir.path + "");
       debug("System DB directory path: " + systemDBDir.path + "");
     }
 
@@ -109,6 +128,11 @@ B2GAppMigrator.prototype = {
       browserDBFile.copyTo(systemDBDir, browserDBFileName);
     } catch (e) {
       debug("File copy caused error! " + e.name);
+    }
+    try {
+      browserDBDir.copyTo(systemDBDir, browserDBDirName);
+    } catch (e) {
+      debug("Dir copy caused error! " + e.name);
     }
     if (DEBUG) debug("Browser DB copied successfully");
   },
