@@ -20,8 +20,8 @@ namespace dom {
 namespace cache {
 
 
-const int32_t DBSchema::kMaxWipeSchemaVersion = 3;
-const int32_t DBSchema::kLatestSchemaVersion = 3;
+const int32_t DBSchema::kMaxWipeSchemaVersion = 2;
+const int32_t DBSchema::kLatestSchemaVersion = 2;
 const int32_t DBSchema::kMaxEntriesPerStatement = 255;
 
 using mozilla::void_t;
@@ -41,9 +41,6 @@ DBSchema::CreateSchema(mozIStorageConnection* aConn)
     "PRAGMA journal_mode = TRUNCATE; "
 #endif
     "PRAGMA foreign_keys = ON; "
-    
-    
-    "PRAGMA auto_vacuum = INCREMENTAL; "
 
     
     
@@ -59,12 +56,6 @@ DBSchema::CreateSchema(mozIStorageConnection* aConn)
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
   if (schemaVersion == kLatestSchemaVersion) {
-    
-    
-    rv = aConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "PRAGMA incremental_vacuum;"));
-    if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
-
     return rv;
   }
 
