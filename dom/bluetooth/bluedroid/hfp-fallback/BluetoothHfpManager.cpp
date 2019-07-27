@@ -148,7 +148,7 @@ BluetoothHfpManager::Init()
 
 
 void
-BluetoothHfpManager::InitHfpInterface()
+BluetoothHfpManager::InitHfpInterface(BluetoothProfileResultHandler* aRes)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -157,11 +157,15 @@ BluetoothHfpManager::InitHfpInterface()
 
 
 
+
+  if (aRes) {
+    aRes->Init();
+  }
 }
 
 
 void
-BluetoothHfpManager::DeinitHfpInterface()
+BluetoothHfpManager::DeinitHfpInterface(BluetoothProfileResultHandler* aRes)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -170,6 +174,10 @@ BluetoothHfpManager::DeinitHfpInterface()
 
 
 
+
+  if (aRes) {
+    aRes->Deinit();
+  }
 }
 
 void
