@@ -251,11 +251,11 @@ nsSVGPatternFrame::PaintPattern(const DrawTarget* aDrawTarget,
 
 
 
-  
-  nsIFrame* firstKid = GetPatternFirstChild();
-  if (!firstKid) {
+  nsSVGPatternFrame* patternWithChildren = GetPatternWithChildren();
+  if (!patternWithChildren) {
     return nullptr; 
   }
+  nsIFrame* firstKid = patternWithChildren->mFrames.FirstChild();
 
   const nsSVGViewBox& viewBox = GetViewBox();
 
@@ -303,13 +303,10 @@ nsSVGPatternFrame::PaintPattern(const DrawTarget* aDrawTarget,
     return nullptr;
   }
 
-  
-  nsSVGPatternFrame *patternFrame =
-    static_cast<nsSVGPatternFrame*>(firstKid->GetParent());
-  if (patternFrame->mCTM) {
-    *patternFrame->mCTM = ctm;
+  if (patternWithChildren->mCTM) {
+    *patternWithChildren->mCTM = ctm;
   } else {
-    patternFrame->mCTM = new gfxMatrix(ctm);
+    patternWithChildren->mCTM = new gfxMatrix(ctm);
   }
 
   
@@ -368,7 +365,7 @@ nsSVGPatternFrame::PaintPattern(const DrawTarget* aDrawTarget,
       gfxMatrix(surfaceSize.width / patternWidth, 0.0f,
                 0.0f, surfaceSize.height / patternHeight,
                 0.0f, 0.0f);
-    patternFrame->mCTM->PreMultiply(tempTM);
+    patternWithChildren->mCTM->PreMultiply(tempTM);
 
     
     patternMatrix->PreScale(patternWidth / surfaceSize.width,
@@ -401,13 +398,13 @@ nsSVGPatternFrame::PaintPattern(const DrawTarget* aDrawTarget,
 
   if (aSource->IsFrameOfType(nsIFrame::eSVGGeometry)) {
     
-    patternFrame->mSource = static_cast<nsSVGPathGeometryFrame*>(aSource);
+    patternWithChildren->mSource = static_cast<nsSVGPathGeometryFrame*>(aSource);
   }
 
   
   
-  if (!(patternFrame->GetStateBits() & NS_FRAME_DRAWING_AS_PAINTSERVER)) {
-    patternFrame->AddStateBits(NS_FRAME_DRAWING_AS_PAINTSERVER);
+  if (!(patternWithChildren->GetStateBits() & NS_FRAME_DRAWING_AS_PAINTSERVER)) {
+    patternWithChildren->AddStateBits(NS_FRAME_DRAWING_AS_PAINTSERVER);
     for (nsIFrame* kid = firstKid; kid;
          kid = kid->GetNextSibling()) {
       
@@ -415,17 +412,17 @@ nsSVGPatternFrame::PaintPattern(const DrawTarget* aDrawTarget,
       if (SVGFrame) {
         SVGFrame->NotifySVGChanged(nsISVGChildFrame::TRANSFORM_CHANGED);
       }
-      gfxMatrix tm = *(patternFrame->mCTM);
+      gfxMatrix tm = *(patternWithChildren->mCTM);
       if (kid->GetContent()->IsSVG()) {
         tm = static_cast<nsSVGElement*>(kid->GetContent())->
               PrependLocalTransformsTo(tm, nsSVGElement::eUserSpaceToParent);
       }
       nsSVGUtils::PaintFrameWithEffects(kid, context, tm);
     }
-    patternFrame->RemoveStateBits(NS_FRAME_DRAWING_AS_PAINTSERVER);
+    patternWithChildren->RemoveStateBits(NS_FRAME_DRAWING_AS_PAINTSERVER);
   }
 
-  patternFrame->mSource = nullptr;
+  patternWithChildren->mSource = nullptr;
 
   if (aGraphicOpacity != 1.0f) {
     gfx->PopGroupToSource();
@@ -441,13 +438,12 @@ nsSVGPatternFrame::PaintPattern(const DrawTarget* aDrawTarget,
 
 
 
-nsIFrame*
-nsSVGPatternFrame::GetPatternFirstChild()
+nsSVGPatternFrame*
+nsSVGPatternFrame::GetPatternWithChildren()
 {
   
-  nsIFrame* kid = mFrames.FirstChild();
-  if (kid)
-    return kid;
+  if (!mFrames.IsEmpty())
+    return this;
 
   
   AutoPatternReferencer patternRef(this);
@@ -456,7 +452,7 @@ nsSVGPatternFrame::GetPatternFirstChild()
   if (!next)
     return nullptr;
 
-  return next->GetPatternFirstChild();
+  return next->GetPatternWithChildren();
 }
 
 uint16_t

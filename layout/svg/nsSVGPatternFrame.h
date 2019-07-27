@@ -120,7 +120,17 @@ protected:
                nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                float aGraphicOpacity,
                const gfxRect *aOverrideBounds);
-  nsIFrame*  GetPatternFirstChild();
+
+  
+
+
+
+
+
+
+
+  nsSVGPatternFrame* GetPatternWithChildren();
+
   gfxRect    GetPatternRect(uint16_t aPatternUnits,
                             const gfxRect &bbox,
                             const Matrix &callerCTM,
