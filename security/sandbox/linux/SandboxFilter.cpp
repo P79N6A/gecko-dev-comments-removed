@@ -209,6 +209,7 @@ SandboxFilterImplContent::Build() {
   Deny(EACCES, SOCKETCALL(socket, SOCKET));
   Allow(SYSCALL(open));
   Allow(SYSCALL(readlink)); 
+  Allow(SYSCALL(readlinkat)); 
   Allow(SYSCALL(prctl));
   Allow(SYSCALL(access));
   Allow(SYSCALL(unlink));
