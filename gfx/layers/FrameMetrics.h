@@ -356,9 +356,6 @@ public:
   
   CSSToLayoutDeviceScale mDevPixelsPerCSSPixel;
 
-  
-  bool mMayHaveTouchListeners;
-
 public:
   void SetIsRoot(bool aIsRoot)
   {
@@ -537,9 +534,22 @@ public:
     mMayHaveTouchCaret = aMayHaveTouchCaret;
   }
 
+  bool GetMayHaveTouchListeners() const
+  {
+    return mMayHaveTouchListeners;
+  }
+
+  void SetMayHaveTouchListeners(bool aMayHaveTouchListeners)
+  {
+    mMayHaveTouchListeners = aMayHaveTouchListeners;
+  }
+
 private:
   
   
+
+  
+  bool mMayHaveTouchListeners;
 
   
   bool mMayHaveTouchCaret;
