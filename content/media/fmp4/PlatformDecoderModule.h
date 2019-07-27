@@ -66,6 +66,7 @@ public:
   
   static PlatformDecoderModule* Create();
 
+#ifdef MOZ_EME
   
   
   
@@ -75,6 +76,7 @@ public:
                                                  bool aHasAudio,
                                                  bool aHasVideo,
                                                  MediaTaskQueue* aTaskQueue);
+#endif
 
   
   

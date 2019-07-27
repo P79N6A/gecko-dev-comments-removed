@@ -138,11 +138,13 @@ public:
   
   virtual void ResetConnectionState() = 0;
 
+#ifdef MOZ_EME
   
   
   
   virtual void DispatchNeedKey(const nsTArray<uint8_t>& aInitData,
                                const nsAString& aInitDataType) = 0;
+#endif
 };
 
 }

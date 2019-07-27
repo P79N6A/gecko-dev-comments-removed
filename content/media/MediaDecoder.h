@@ -190,7 +190,9 @@
 #include "MediaStreamGraph.h"
 #include "AbstractMediaDecoder.h"
 #include "necko-config.h"
+#ifdef MOZ_EME
 #include "mozilla/CDMProxy.h"
+#endif
 
 class nsIStreamListener;
 class nsIPrincipal;
@@ -850,11 +852,13 @@ public:
   
   bool IsLogicallyPlaying();
 
+#ifdef MOZ_EME
   
   virtual nsresult SetCDMProxy(CDMProxy* aProxy) MOZ_OVERRIDE;
 
   
   virtual CDMProxy* GetCDMProxy() MOZ_OVERRIDE;
+#endif
 
 #ifdef MOZ_RAW
   static bool IsRawEnabled();
@@ -1107,7 +1111,9 @@ private:
   
   RestrictedAccessMonitor mReentrantMonitor;
 
+#ifdef MOZ_EME
   nsRefPtr<CDMProxy> mProxy;
+#endif
 
 protected:
   
