@@ -12,6 +12,7 @@
 #include <ctype.h>
 #include <map>
 #include <bitset>
+#include <queue>
 
 #ifdef DEBUG
 #include <string.h>
@@ -505,7 +506,6 @@ private:
 
 
 public:
-
     bool HasRobustness() const {
         return mHasRobustness;
     }
@@ -516,17 +516,13 @@ public:
 
     virtual bool SupportsRobustness() const = 0;
 
-
 private:
     bool mHasRobustness;
 
 
 
-
 public:
-
-    static const char* GLErrorToString(GLenum aError)
-    {
+    static const char* GLErrorToString(GLenum aError) {
         switch (aError) {
             case LOCAL_GL_INVALID_ENUM:
                 return "GL_INVALID_ENUM";
@@ -549,12 +545,10 @@ public:
         }
     }
 
-
     
 
 
-    GLenum GetAndClearError()
-    {
+    GLenum GetAndClearError() {
         
         GLenum error = fGetError();
 
@@ -566,30 +560,99 @@ public:
         return error;
     }
 
-
-    
-
-    GLenum fGetError()
-    {
-#ifdef DEBUG
-        
-        if (DebugMode()) {
-            GLenum err = mGLError;
-            mGLError = LOCAL_GL_NO_ERROR;
-            return err;
-        }
-#endif 
-
+private:
+    GLenum raw_fGetError() {
         return mSymbols.fGetError();
     }
 
+    std::queue<GLenum> mGLErrorQueue;
 
-#ifdef DEBUG
+public:
+    GLenum fGetError() {
+        if (!mGLErrorQueue.empty()) {
+            GLenum err = mGLErrorQueue.front();
+            mGLErrorQueue.pop();
+            return err;
+        }
+
+        return GetUnpushedError();
+    }
+
 private:
+    GLenum GetUnpushedError() {
+        return raw_fGetError();
+    }
 
-    GLenum mGLError;
-#endif 
+    void ClearUnpushedErrors() {
+        while (GetUnpushedError()) {
+            
+        }
+    }
 
+    GLenum GetAndClearUnpushedErrors() {
+        GLenum err = GetUnpushedError();
+        if (err) {
+            ClearUnpushedErrors();
+        }
+        return err;
+    }
+
+    void PushError(GLenum err) {
+        mGLErrorQueue.push(err);
+    }
+
+    void GetAndPushAllErrors() {
+        while (true) {
+            GLenum err = GetUnpushedError();
+            if (!err)
+                break;
+
+            PushError(err);
+        }
+    }
+
+    
+    
+private:
+#ifdef DEBUG
+    bool mIsInLocalErrorCheck;
+#endif
+
+public:
+    class ScopedLocalErrorCheck {
+        GLContext* const mGL;
+        bool mHasBeenChecked;
+
+    public:
+        ScopedLocalErrorCheck(GLContext* gl)
+            : mGL(gl)
+            , mHasBeenChecked(false)
+        {
+#ifdef DEBUG
+            MOZ_ASSERT(!mGL->mIsInLocalErrorCheck);
+            mGL->mIsInLocalErrorCheck = true;
+#endif
+            mGL->GetAndPushAllErrors();
+        }
+
+        GLenum GetLocalError() {
+#ifdef DEBUG
+            MOZ_ASSERT(mGL->mIsInLocalErrorCheck);
+            mGL->mIsInLocalErrorCheck = false;
+#endif
+
+            MOZ_ASSERT(!mHasBeenChecked);
+            mHasBeenChecked = true;
+
+            return mGL->GetAndClearUnpushedErrors();
+        }
+
+        ~ScopedLocalErrorCheck() {
+            MOZ_ASSERT(mHasBeenChecked);
+        }
+    };
+
+private:
     static void GLAPIENTRY StaticDebugCallback(GLenum source,
                                                GLenum type,
                                                GLuint id,
@@ -624,8 +687,7 @@ private:
 # endif
 #endif
 
-    void BeforeGLCall(const char* glFunction)
-    {
+    void BeforeGLCall(const char* glFunction) {
         MOZ_ASSERT(IsCurrent());
         if (DebugMode()) {
             GLContext *currentGLContext = nullptr;
@@ -643,21 +705,23 @@ private:
         }
     }
 
-    void AfterGLCall(const char* glFunction)
-    {
+    void AfterGLCall(const char* glFunction) {
         if (DebugMode()) {
             
             
             
             mSymbols.fFinish();
-            mGLError = mSymbols.fGetError();
+            GLenum err = GetUnpushedError();
+            PushError(err);
+
             if (DebugMode() & DebugTrace)
-                printf_stderr("[gl:%p] < %s [0x%04x]\n", this, glFunction, mGLError);
-            if (mGLError != LOCAL_GL_NO_ERROR) {
+                printf_stderr("[gl:%p] < %s [0x%04x]\n", this, glFunction, err);
+
+            if (err != LOCAL_GL_NO_ERROR) {
                 printf_stderr("GL ERROR: %s generated GL error %s(0x%04x)\n",
                               glFunction,
-                              GLErrorToString(mGLError),
-                              mGLError);
+                              GLErrorToString(err),
+                              err);
                 if (DebugMode() & DebugAbortOnError)
                     NS_ABORT();
             }

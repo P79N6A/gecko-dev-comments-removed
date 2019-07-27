@@ -151,13 +151,21 @@ CreatePBufferSurface(GLLibraryEGL* egl,
                      EGLConfig config,
                      const gfx::IntSize& size)
 {
+    auto width = size.width;
+    auto height = size.height;
+
     EGLint attribs[] = {
-        LOCAL_EGL_WIDTH, size.width,
-        LOCAL_EGL_HEIGHT, size.height,
+        LOCAL_EGL_WIDTH, width,
+        LOCAL_EGL_HEIGHT, height,
         LOCAL_EGL_NONE
     };
 
+    DebugOnly<EGLint> preCallErr = egl->fGetError();
+    MOZ_ASSERT(preCallErr == LOCAL_EGL_SUCCESS);
     EGLSurface surface = egl->fCreatePbufferSurface(display, config, attribs);
+    EGLint err = egl->fGetError();
+    if (err != LOCAL_EGL_SUCCESS)
+        return 0;
 
     return surface;
 }
