@@ -196,9 +196,6 @@ PropertyTree::getChild(ExclusiveContext *cx, Shape *parentArg, StackShape &unroo
 void
 Shape::sweep()
 {
-    if (inDictionary())
-        return;
-
     
 
 
@@ -221,8 +218,14 @@ Shape::sweep()
 
 
 
-    if (parent && parent->isMarked() && parent->compartment() == compartment())
-        parent->removeChild(this);
+    if (parent && parent->isMarked() && parent->compartment() == compartment()) {
+        if (inDictionary()) {
+            if (parent->listp == &parent)
+                parent->listp = nullptr;
+        } else {
+            parent->removeChild(this);
+        }
+    }
 }
 
 void
