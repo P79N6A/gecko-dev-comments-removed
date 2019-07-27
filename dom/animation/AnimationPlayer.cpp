@@ -245,9 +245,27 @@ AnimationPlayer::DoPlay()
 void
 AnimationPlayer::DoPause()
 {
-  if (IsPaused()) {
-    return;
+  
+  if (mIsPending) {
+    nsIDocument* doc = GetRenderedDocument();
+    if (doc) {
+      PendingPlayerTracker* tracker = doc->GetPendingPlayerTracker();
+      if (tracker) {
+        tracker->RemovePlayPending(*this);
+      }
+    }
+
+    mIsPending = false;
+
+    
+    
+    
+    
+    if (mReady) {
+      mReady->MaybeResolve(this);
+    }
   }
+
   
   
   
