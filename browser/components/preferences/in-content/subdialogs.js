@@ -164,6 +164,22 @@ let gSubDialog = {
     let boxVerticalBorder = 2 * parseFloat(getComputedStyle(this._box).borderTopWidth);
     let boxHorizontalBorder = 2 * parseFloat(getComputedStyle(this._box).borderLeftWidth);
 
+    let frameRect = this._frame.getBoundingClientRect();
+    let boxRect = this._box.getBoundingClientRect();
+    let frameSizeDifference = (frameRect.top - boxRect.top) + (boxRect.bottom - frameRect.bottom);
+
+    
+    
+    let maxHeight = window.innerHeight - frameSizeDifference - 30;
+    if (frameHeight > maxHeight) {
+      
+      frameHeight = maxHeight;
+      let containers = this._frame.contentDocument.querySelectorAll('.largeDialogContainer');
+      for (let container of containers) {
+        container.classList.add("doScroll");
+      }
+    }
+
     this._frame.style.width = frameWidth;
     this._frame.style.height = frameHeight;
     this._box.style.minHeight = "calc(" +
