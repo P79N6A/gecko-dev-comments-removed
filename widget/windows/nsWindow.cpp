@@ -404,6 +404,8 @@ nsWindow::nsWindow() : nsWindowBase()
 
   mIdleService = nullptr;
 
+  ::InitializeCriticalSection(&mPresentLock);
+
   sInstanceCount++;
 }
 
@@ -4702,11 +4704,18 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
         
         
         
+        
+        
+        
+        
+        EnterCriticalSection(&mPresentLock);
         DWORD style = GetWindowLong(mWnd, GWL_STYLE);
         SetWindowLong(mWnd, GWL_STYLE, style & ~WS_VISIBLE);
         *aRetValue = CallWindowProcW(GetPrevWindowProc(), mWnd,
                                      msg, wParam, lParam);
         SetWindowLong(mWnd, GWL_STYLE, style);
+        LeaveCriticalSection(&mPresentLock);
+
         return true;
       }
 
@@ -7554,6 +7563,21 @@ void nsWindow::PickerClosed()
   if (!mPickerDisplayCount && mDestroyCalled) {
     Destroy();
   }
+}
+
+bool nsWindow::PreRender(LayerManagerComposite*)
+{
+  
+  
+  
+  
+  EnterCriticalSection(&mPresentLock);
+  return true;
+}
+
+void nsWindow::PostRender(LayerManagerComposite*)
+{
+  LeaveCriticalSection(&mPresentLock);
 }
 
 
