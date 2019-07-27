@@ -103,7 +103,7 @@ public:
 
   
   Progress GetProgress() const { return mProgress; }
- 
+
   
   
   
