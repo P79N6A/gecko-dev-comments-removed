@@ -115,6 +115,9 @@ let PanelFrame = {
     
     let widgetGroup = CustomizableUI.getWidget(aToolbarButton.getAttribute("id"));
     let widget = widgetGroup.forWindow(aWindow);
+    let anchorBtn = widget.anchor;
+
+    
     let panel, showingEvent, hidingEvent;
     let inMenuPanel = widgetGroup.areaType == CustomizableUI.TYPE_MENU_PANEL;
     if (inMenuPanel) {
@@ -156,7 +159,8 @@ let PanelFrame = {
     }
     panel.addEventListener(hidingEvent, function onpopuphiding() {
       panel.removeEventListener(hidingEvent, onpopuphiding);
-      aToolbarButton.removeAttribute("open");
+      if (!inMenuPanel)
+        anchorBtn.removeAttribute("open");
       if (dynamicResizer)
         dynamicResizer.stop();
       notificationFrame.docShell.isActive = false;
@@ -178,7 +182,7 @@ let PanelFrame = {
         dispatchPanelEvent(aType + "FrameShow");
       };
       if (!inMenuPanel)
-        aToolbarButton.setAttribute("open", "true");
+        anchorBtn.setAttribute("open", "true");
       if (notificationFrame.contentDocument &&
           notificationFrame.contentDocument.readyState == "complete" && wasAlive) {
         initFrameShow();
@@ -195,7 +199,9 @@ let PanelFrame = {
       aPanelUI.showSubView("PanelUI-" + aType + "api", widget.node,
                            CustomizableUI.AREA_PANEL);
     } else {
-      let anchor = aWindow.document.getAnonymousElementByAttribute(aToolbarButton, "class", "toolbarbutton-badge-container");
+      
+      let anchor = aWindow.document.getAnonymousElementByAttribute(anchorBtn, "class", "toolbarbutton-badge-container") ||
+                   aWindow.document.getAnonymousElementByAttribute(anchorBtn, "class", "toolbarbutton-icon");
       
       
       Services.tm.mainThread.dispatch(function() {

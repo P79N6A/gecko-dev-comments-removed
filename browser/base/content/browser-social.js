@@ -1182,7 +1182,6 @@ SocialStatus = {
     let button = widget.forWindow(window).node;
     if (button) {
       
-      let place = CustomizableUI.getPlaceForItem(button);
       let provider = Social._getProviderFromOrigin(origin);
       let icons = provider.ambientNotificationIcons;
       let iconNames = Object.keys(icons);
@@ -1192,7 +1191,7 @@ SocialStatus = {
       
       let iconURL = provider.icon32URL || provider.iconURL;
       let tooltiptext;
-      if (!notif || place == "palette") {
+      if (!notif || !widget.areaType) {
         button.style.listStyleImage = "url(" + iconURL + ")";
         button.setAttribute("badge", "");
         button.setAttribute("aria-label", "");
@@ -1249,8 +1248,12 @@ SocialMarks = {
   update: function() {
     
     let currentButtons = document.querySelectorAll('toolbarbutton[type="socialmark"]');
-    for (let elt of currentButtons)
-      elt.update();
+    for (let elt of currentButtons) {
+      
+      
+      if (elt.update)
+        elt.update();
+    }
   },
 
   updatePanelButtons: function() {
@@ -1263,7 +1266,9 @@ SocialMarks = {
       if (!widget)
         continue;
       let node = widget.forWindow(window).node;
-      if (node)
+      
+      
+      if (node && node.update)
         node.update();
     }
   },
