@@ -1205,7 +1205,78 @@ GetExistingPropertyValue(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
     }
     if (!cx->shouldBeJSContext())
         return false;
+
+    MOZ_ASSERT(shape->propid() == id);
+    MOZ_ASSERT(obj->contains(cx, shape));
+
     return GetExistingProperty<CanGC>(cx->asJSContext(), obj, obj, shape, vp);
+}
+
+
+
+
+
+
+static bool
+DefinePropertyIsRedundant(ExclusiveContext* cx, HandleNativeObject obj, HandleId id,
+                          HandleShape shape, unsigned shapeAttrs,
+                          Handle<PropertyDescriptor> desc, bool *redundant)
+{
+    *redundant = false;
+
+    if (desc.hasConfigurable() && desc.configurable() != ((shapeAttrs & JSPROP_PERMANENT) == 0))
+        return true;
+    if (desc.hasEnumerable() && desc.enumerable() != ((shapeAttrs & JSPROP_ENUMERATE) != 0))
+        return true;
+    if (desc.isDataDescriptor()) {
+        if ((shapeAttrs & (JSPROP_GETTER | JSPROP_SETTER)) != 0)
+            return true;
+        if (desc.hasWritable() && desc.writable() != ((shapeAttrs & JSPROP_READONLY) == 0))
+            return true;
+        if (desc.hasValue()) {
+            
+            RootedValue currentValue(cx);
+            if (!IsImplicitDenseOrTypedArrayElement(shape) &&
+                shape->hasSlot() &&
+                shape->hasDefaultGetter())
+            {
+                
+                
+                
+                currentValue.set(obj->getSlot(shape->slot()));
+            } else {
+                if (!GetExistingPropertyValue(cx, obj, id, shape, &currentValue))
+                    return false;
+            }
+
+            
+            
+            if (desc.value() != currentValue)
+                return true;
+        }
+
+        GetterOp existingGetterOp =
+            IsImplicitDenseOrTypedArrayElement(shape) ? nullptr : shape->getter();
+        if (desc.getter() != existingGetterOp)
+            return true;
+
+        SetterOp existingSetterOp =
+            IsImplicitDenseOrTypedArrayElement(shape) ? nullptr : shape->setter();
+        if (desc.setter() != existingSetterOp)
+            return true;
+    } else {
+        if (desc.hasGetterObject()) {
+            if (!(shapeAttrs & JSPROP_GETTER) || desc.getterObject() != shape->getterObject())
+                return true;
+        }
+        if (desc.hasSetterObject()) {
+            if (!(shapeAttrs & JSPROP_SETTER) || desc.setterObject() != shape->setterObject())
+                return true;
+        }
+    }
+
+    *redundant = true;
+    return true;
 }
 
 bool
@@ -1299,6 +1370,25 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
     
     
     
+    unsigned shapeAttrs = GetShapeAttributes(obj, shape);
+    bool redundant;
+    if (!DefinePropertyIsRedundant(cx, obj, id, shape, shapeAttrs, desc, &redundant))
+        return false;
+    if (redundant) {
+        
+        
+        
+        
+        if (!IsImplicitDenseOrTypedArrayElement(shape) && desc.hasValue()) {
+            if (!UpdateShapeTypeAndValue(cx, obj, shape, desc.value()))
+                return false;
+        }
+        return result.succeed();
+    }
+
+    
+    
+    
     
     
     
@@ -1307,11 +1397,6 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
                               !obj->getClass()->isDOMClass();
 
     
-
-    
-    
-    
-    unsigned shapeAttrs = GetShapeAttributes(obj, shape);
     if (!IsConfigurable(shapeAttrs) && !skipRedefineChecks) {
         if (desc.hasConfigurable() && desc.configurable())
             return result.fail(JSMSG_CANT_REDEFINE_PROP);
