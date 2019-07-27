@@ -238,7 +238,7 @@ let Bookmarks = Object.freeze({
     let updateInfo = validateBookmarkObject(info,
       { guid: { required: true }
       , index: { requiredIf: b => b.hasOwnProperty("parentGuid")
-               , validIf: b => b.index >= 0 }
+               , validIf: b => b.index >= 0 || b.index == this.DEFAULT_INDEX }
       , parentGuid: { requiredIf: b => b.hasOwnProperty("index") }
       });
 
@@ -307,9 +307,15 @@ let Bookmarks = Object.freeze({
         
         if (!parent)
           parent = yield fetchBookmark({ guid: item.parentGuid });
-        
-        if (updateInfo.index > parent._childCount)
-          updateInfo.index = parent._childCount;
+
+        if (updateInfo.index >= parent._childCount ||
+            updateInfo.index == this.DEFAULT_INDEX) {
+           updateInfo.index = parent._childCount;
+
+          
+          if (parent.guid == item.parentGuid)
+             updateInfo.index--;
+        }
       }
 
       let updatedItem = yield updateBookmark(updateInfo, item, parent);
@@ -1158,7 +1164,7 @@ function rowsToItemsArray(rows) {
     }
 
     return item;
-  });  
+  });
 }
 
 
@@ -1267,7 +1273,7 @@ function validateBookmarkObject(input, behavior={}) {
     }
   }
   if (required.size > 0)
-    throw new Error(`The following properties were expected: ${[...required].join(", ")}`); 
+    throw new Error(`The following properties were expected: ${[...required].join(", ")}`);
   return normalizedInput;
 }
 
