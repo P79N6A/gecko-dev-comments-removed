@@ -986,6 +986,8 @@ private:
       
       
       
+      
+      
       if (nsContentUtils::IsSystemPrincipal(loadPrincipal)) {
         if (!nsContentUtils::IsSystemPrincipal(channelPrincipal)) {
           

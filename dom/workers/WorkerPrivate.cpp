@@ -4888,9 +4888,12 @@ WorkerPrivate::GetLoadInfo(JSContext* aCx, nsPIDOMWindow* aWindow,
     
     
     
+    
     if (isChrome) {
       rv = ssm->GetSystemPrincipal(getter_AddRefs(loadInfo.mPrincipal));
       NS_ENSURE_SUCCESS(rv, rv);
+
+      loadInfo.mPrincipalIsSystem = true;
     }
 
     
