@@ -218,10 +218,7 @@ nsStyleSet::BeginReconstruct()
   NS_ASSERTION(mRuleTree, "Reconstructing before first construction?");
 
   
-  nsRuleNode* newTree =
-    nsRuleNode::CreateRootNode(mRuleTree->PresContext());
-  if (!newTree)
-    return NS_ERROR_OUT_OF_MEMORY;
+  nsRuleNode* newTree = nsRuleNode::CreateRootNode(mRuleTree->PresContext());
 
   
   if (!mOldRuleTrees.AppendElement(mRuleTree)) {

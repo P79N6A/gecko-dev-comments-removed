@@ -145,8 +145,6 @@ nsLineBox::NoteFramesMovedFrom(nsLineBox* aFromLine)
   }
 }
 
-
-
 void*
 nsLineBox::operator new(size_t sz, nsIPresShell* aPresShell) CPP_THROW_NEW
 {
