@@ -6,6 +6,8 @@
 
 "use strict";
 
+const promise = require("promise");
+
 
 
 
@@ -484,3 +486,36 @@ exports.getOffsetColumn = function getOffsetColumn(aOffset, aScript) {
 
   return bestOffsetMapping.columnNumber;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function expectState(expectedState, method, activity) {
+  return function(...args) {
+    if (this.state !== expectedState) {
+      const msg = `Wrong state while ${activity}:` +
+                  `Expected '${expectedState}', ` +
+                  `but current state is '${this.state}'.`;
+      return promise.reject(new Error(msg));
+    }
+
+    return method.apply(this, args);
+  };
+}
+
+exports.expectState = expectState;

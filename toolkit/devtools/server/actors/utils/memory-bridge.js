@@ -7,39 +7,11 @@
 const { Cc, Ci, Cu } = require("chrome");
 const { reportException } = require("devtools/toolkit/DevToolsUtils");
 const { Class } = require("sdk/core/heritage");
+const { expectState } = require("devtools/server/actors/common");
 loader.lazyRequireGetter(this, "events", "sdk/event/core");
 loader.lazyRequireGetter(this, "EventTarget", "sdk/event/target", true);
 loader.lazyRequireGetter(this, "StackFrameCache",
                          "devtools/server/actors/utils/stack", true);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function expectState(expectedState, method, activity) {
-  return function(...args) {
-    if (this.state !== expectedState) {
-      const msg = `Wrong state while ${activity}:` +
-                  `Expected '${expectedState}',` +
-                  `but current state is '${this.state}'.`;
-      return Promise.reject(new Error(msg));
-    }
-
-    return method.apply(this, args);
-  };
-}
 
 
 
