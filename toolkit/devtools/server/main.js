@@ -602,6 +602,9 @@ var DebuggerServer = {
           childTransport.close();
           childTransport = null;
           aConnection.cancelForwarding(prefix);
+
+          
+          mm.sendAsyncMessage("debug:disconnect");
         } else {
           
           
@@ -640,7 +643,6 @@ var DebuggerServer = {
         
         mm.sendAsyncMessage("debug:disconnect");
       }
-      Services.obs.removeObserver(onMessageManagerDisconnect, "message-manager-disconnect");
     });
 
     mm.sendAsyncMessage("debug:connect", { prefix: prefix });

@@ -4,10 +4,13 @@
 
 
 
-
 function ifWebGLSupported() {
   let [target, debuggee, panel] = yield initShaderEditor(SIMPLE_CANVAS_URL);
   let { gFront, $, EVENTS, ShadersListView, ShadersEditorsView } = panel.panelWin;
+
+  
+  
+  loadFrameScripts();
 
   let reloaded = reload(target);
   let firstProgram = yield once(gFront, "program-linked");

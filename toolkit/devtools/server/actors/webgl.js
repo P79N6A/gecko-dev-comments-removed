@@ -5,9 +5,9 @@
 
 const {Cc, Ci, Cu, Cr} = require("chrome");
 const events = require("sdk/event/core");
+const promise = require("promise");
 const protocol = require("devtools/server/protocol");
 const { ContentObserver } = require("devtools/content-observer");
-
 const { on, once, off, emit } = events;
 const { method, Arg, Option, RetVal } = protocol;
 
@@ -305,18 +305,84 @@ let WebGLActor = exports.WebGLActor = protocol.ActorClass({
 
 
 
+  waitForFrame: method(function () {
+    let deferred = promise.defer();
+    this.tabActor.window.requestAnimationFrame(deferred.resolve);
+    return deferred.promise;
+  }, {
+    response: { success: RetVal("nullable:json") }
+  }),
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  getPixel: method(function ({ selector, position }) {
+    let { x, y } = position;
+    let canvas = this.tabActor.window.document.querySelector(selector);
+    let context = XPCNativeWrapper.unwrap(canvas.getContext("webgl"));
+    let { proxy } = this._webglObserver.for(context);
+    let height = canvas.height;
+
+    let buffer = new this.tabActor.window.Uint8Array(4);
+    buffer = XPCNativeWrapper.unwrap(buffer);
+
+    proxy.readPixels(x, height - y - 1, 1, 1, context.RGBA, context.UNSIGNED_BYTE, buffer);
+
+    return { r: buffer[0], g: buffer[1], b: buffer[2], a: buffer[3] };
+  }, {
+    request: {
+      selector: Option(0, "string"),
+      position: Option(0, "json")
+    },
+    response: { pixels: RetVal("json") }
+  }),
+
+  
+
+
+
   events: {
     "program-linked": {
       type: "programLinked",
       program: Arg(0, "gl-program")
+    },
+    "global-destroyed": {
+      type: "globalDestroyed",
+      program: Arg(0, "number")
+    },
+    "global-created": {
+      type: "globalCreated",
+      program: Arg(0, "number")
     }
   },
 
   
 
 
+
+  _getAllPrograms: method(function() {
+    return this._programActorsCache;
+  }, {
+    response: { programs: RetVal("array:gl-program") }
+  }),
+
+
+  
+
+
   _onGlobalCreated: function(window) {
+    let id = ContentObserver.GetInnerWindowID(window);
     WebGLInstrumenter.handle(window, this._webglObserver);
+    events.emit(this, "global-created", id);
   },
 
   
@@ -325,6 +391,7 @@ let WebGLActor = exports.WebGLActor = protocol.ActorClass({
   _onGlobalDestroyed: function(id) {
     removeFromArray(this._programActorsCache, e => e.ownerWindow == id);
     this._webglObserver.unregisterContextsForWindow(id);
+    events.emit(this, "global-destroyed", id);
   },
 
   
@@ -1068,7 +1135,8 @@ function WebGLProxy(id, context, cache, observer) {
     "getShaderOfType",
     "compileShader",
     "enableHighlighting",
-    "disableHighlighting"
+    "disableHighlighting",
+    "readPixels"
   ];
   exports.forEach(e => this[e] = (...args) => this._call(e, args));
 }
@@ -1274,6 +1342,13 @@ WebGLProxy.prototype = {
   
 
 
+  _readPixels: function(x, y, w, h, format, type, buffer) {
+    this._gl.readPixels(x, y, w, h, format, type, buffer);
+  },
+
+  
+
+
 
   highlightTint: [0, 0, 0, 0],
 
@@ -1312,9 +1387,11 @@ function removeFromMap(map, predicate) {
 };
 
 function removeFromArray(array, predicate) {
-  for (let value of array) {
-    if (predicate(value)) {
-      array.splice(array.indexOf(value), 1);
+  for (let i = 0; i < array.length;) {
+    if (predicate(array[i])) {
+      array.splice(i, 1);
+    } else {
+      i++;
     }
   }
 }
