@@ -321,7 +321,8 @@ ContainsHoistedDeclaration(ExclusiveContext* cx, ParseNode* node, bool* result)
       case PNK_COLON:
       case PNK_SHORTHAND:
       case PNK_CONDITIONAL:
-      case PNK_TYPEOF:
+      case PNK_TYPEOFNAME:
+      case PNK_TYPEOFEXPR:
       case PNK_VOID:
       case PNK_NOT:
       case PNK_BITNOT:
@@ -705,18 +706,6 @@ Fold(ExclusiveContext* cx, ParseNode** pnp,
         break;
 
       case PN_UNARY:
-        
-
-
-
-
-
-
-
-
-        if (pn->isKind(PNK_TYPEOF) && !pn->pn_kid->isKind(PNK_NAME))
-            pn->setOp(JSOP_TYPEOFEXPR);
-
         if (pn->pn_kid) {
             SyntacticContext kidsc =
                 pn->isKind(PNK_NOT)
@@ -1001,7 +990,8 @@ Fold(ExclusiveContext* cx, ParseNode** pnp,
         }
         break;
 
-      case PNK_TYPEOF:
+      case PNK_TYPEOFNAME:
+      case PNK_TYPEOFEXPR:
       case PNK_VOID:
       case PNK_NOT:
       case PNK_BITNOT:
@@ -1105,7 +1095,7 @@ Fold(ExclusiveContext* cx, ParseNode** pnp,
             
             
             
-            pn->setKind(PNK_TYPEOF);
+            pn->setKind(PNK_TYPEOFEXPR);
             pn->setArity(PN_UNARY);
             pn->pn_kid = pn2;
             handler.freeTree(pn);

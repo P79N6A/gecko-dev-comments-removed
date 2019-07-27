@@ -6668,8 +6668,6 @@ template <typename ParseHandler>
 typename ParseHandler::Node
 Parser<ParseHandler>::unaryExpr(YieldHandling yieldHandling, InvokedPrediction invoked)
 {
-    Node pn, pn2;
-
     JS_CHECK_RECURSION(context, return null());
 
     TokenKind tt;
@@ -6677,8 +6675,6 @@ Parser<ParseHandler>::unaryExpr(YieldHandling yieldHandling, InvokedPrediction i
         return null();
     uint32_t begin = pos().begin;
     switch (tt) {
-      case TOK_TYPEOF:
-        return unaryOpExpr(yieldHandling, PNK_TYPEOF, JSOP_TYPEOF, begin);
       case TOK_VOID:
         return unaryOpExpr(yieldHandling, PNK_VOID, JSOP_VOID, begin);
       case TOK_NOT:
@@ -6690,13 +6686,32 @@ Parser<ParseHandler>::unaryExpr(YieldHandling yieldHandling, InvokedPrediction i
       case TOK_SUB:
         return unaryOpExpr(yieldHandling, PNK_NEG, JSOP_NEG, begin);
 
+      case TOK_TYPEOF: {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        Node kid = unaryExpr(yieldHandling);
+        if (!kid)
+            return null();
+
+        return handler.newTypeof(begin, kid);
+      }
+
       case TOK_INC:
       case TOK_DEC:
       {
         TokenKind tt2;
         if (!tokenStream.getToken(&tt2, TokenStream::Operand))
             return null();
-        pn2 = memberExpr(yieldHandling, tt2, true);
+        Node pn2 = memberExpr(yieldHandling, tt2, true);
         if (!pn2)
             return null();
         if (!checkAndMarkAsIncOperand(pn2, tt, true))
@@ -6723,8 +6738,8 @@ Parser<ParseHandler>::unaryExpr(YieldHandling yieldHandling, InvokedPrediction i
         return handler.newDelete(begin, expr);
       }
 
-      default:
-        pn = memberExpr(yieldHandling, tt,  true, invoked);
+      default: {
+        Node pn = memberExpr(yieldHandling, tt,  true, invoked);
         if (!pn)
             return null();
 
@@ -6741,6 +6756,7 @@ Parser<ParseHandler>::unaryExpr(YieldHandling yieldHandling, InvokedPrediction i
                                     pn);
         }
         return pn;
+      }
     }
 }
 
