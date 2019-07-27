@@ -382,7 +382,7 @@ MmsMessage::GetData(ContentParent* aParent,
     
     
     
-    nsDOMFileBase* file = static_cast<nsDOMFileBase*>(element.content.get());
+    DOMFile* file = static_cast<DOMFile*>(element.content.get());
     if (file->IsDateUnknown()) {
       uint64_t date;
       if (NS_FAILED(file->GetMozLastModifiedDate(&date))) {

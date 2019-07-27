@@ -158,7 +158,9 @@ nsIContentParent::GetOrCreateActorForBlob(nsIDOMBlob* aBlob)
 
   
   
-  if (nsCOMPtr<nsIRemoteBlob> remoteBlob = do_QueryInterface(aBlob)) {
+  const auto* domFile = static_cast<DOMFile*>(aBlob);
+  nsCOMPtr<nsIRemoteBlob> remoteBlob = do_QueryInterface(domFile->Impl());
+  if (remoteBlob) {
     if (BlobParent* actor = static_cast<BlobParent*>(
           static_cast<PBlobParent*>(remoteBlob->GetPBlob()))) {
       MOZ_ASSERT(actor);
@@ -179,7 +181,7 @@ nsIContentParent::GetOrCreateActorForBlob(nsIDOMBlob* aBlob)
   
   
   
-  const auto* blob = static_cast<nsDOMFileBase*>(aBlob);
+  const auto* blob = static_cast<DOMFileImplBase*>(domFile->Impl());
 
   ChildBlobConstructorParams params;
 

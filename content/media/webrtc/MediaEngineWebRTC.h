@@ -219,7 +219,7 @@ private:
   mozilla::ReentrantMonitor mCallbackMonitor; 
   
   nsRefPtr<ICameraControl> mCameraControl;
-  nsRefPtr<nsIDOMFile> mLastCapture;
+  nsCOMPtr<nsIDOMFile> mLastCapture;
 
   
   int mRotation;

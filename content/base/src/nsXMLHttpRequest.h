@@ -52,6 +52,10 @@ class nsIJSID;
 
 namespace mozilla {
 
+namespace dom {
+class DOMFile;
+}
+
 
 
 
@@ -667,7 +671,7 @@ protected:
   nsCOMPtr<nsIDOMBlob> mResponseBlob;
   
   
-  nsRefPtr<nsDOMFile> mDOMFile;
+  nsRefPtr<mozilla::dom::DOMFile> mDOMFile;
   
   
   nsAutoPtr<BlobSet> mBlobSet;
