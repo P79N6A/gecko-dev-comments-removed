@@ -1259,8 +1259,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
     if (deltaX) {
       for (line_iterator line = begin_lines(), end = end_lines();
            line != end; line++) {
-        SlideLine(state, line, -deltaX);
-        line->mContainerWidth = containerWidth;
+        UpdateLineContainerWidth(line, containerWidth);
       }
       for (nsIFrame* f = mFloats.FirstChild(); f; f = f->GetNextSibling()) {
         nsPoint physicalDelta(deltaX, 0);
@@ -2808,6 +2807,30 @@ nsBlockFrame::SlideLine(nsBlockReflowState& aState,
   
   aLine->SlideBy(aDeltaBCoord, aState.mContainerWidth);
 
+  
+  MoveChildFramesOfLine(aLine, aDeltaBCoord);
+}
+
+void
+nsBlockFrame::UpdateLineContainerWidth(nsLineBox* aLine,
+                                       nscoord aNewContainerWidth)
+{
+  if (aNewContainerWidth == aLine->mContainerWidth) {
+    return;
+  }
+
+  
+  nscoord widthDelta = aLine->UpdateContainerWidth(aNewContainerWidth);
+
+  
+  if (GetWritingMode().IsVerticalRL()) {
+    MoveChildFramesOfLine(aLine, widthDelta);
+  }
+}
+
+void
+nsBlockFrame::MoveChildFramesOfLine(nsLineBox* aLine, nscoord aDeltaBCoord)
+{
   
   nsIFrame* kid = aLine->mFirstChild;
   if (!kid) {
