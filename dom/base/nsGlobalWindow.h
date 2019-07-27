@@ -1279,8 +1279,9 @@ protected:
 
   
   
-  mozilla::CSSIntPoint GetScrollXY(bool aDoFlush, mozilla::ErrorResult& aError);
-  nsresult GetScrollXY(int32_t* aScrollX, int32_t* aScrollY, bool aDoFlush);
+  
+  mozilla::CSSIntPoint GetScrollXY(bool aDoFlush);
+
   void GetScrollMaxXY(int32_t* aScrollMaxX, int32_t* aScrollMaxY,
                       mozilla::ErrorResult& aError);
 
