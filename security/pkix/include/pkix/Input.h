@@ -81,6 +81,9 @@ public:
   }
 
   
+  Input(const Input&) = default;
+
+  
   
   Result Init(const uint8_t* data, size_t len)
   {
@@ -271,7 +274,7 @@ public:
 
   Result SkipToEnd( Input& skipped)
   {
-    return Skip(static_cast<size_t>(end - input), skipped);
+    return Skip(static_cast<Input::size_type>(end - input), skipped);
   }
 
   Result EnsureLength(Input::size_type len)
@@ -286,6 +289,8 @@ public:
 
   class Mark final
   {
+  public:
+    Mark(const Mark&) = default; 
   private:
     friend class Reader;
     Mark(const Reader& input, const uint8_t* mark) : input(input), mark(mark) { }

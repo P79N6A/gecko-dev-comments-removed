@@ -53,7 +53,7 @@ public:
   Result Init();
 
   const Input GetDER() const { return der; }
-  const der::Version GetVersion() const { return version; }
+  der::Version GetVersion() const { return version; }
   const SignedDataWithSignature& GetSignedData() const { return signedData; }
   const Input GetIssuer() const { return issuer; }
   
@@ -232,24 +232,25 @@ WrappedVerifySignedData(TrustDomain& trustDomain,
 
 
 
-#if defined(__clang__) && (__clang_major__ == 3 && __clang_minor__ < 5)
-  
-  
-  
-  
-# define MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM
-#elif defined(__GNUC__) || defined(__clang__)
-  
-  
-# define MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM \
-         default: assert(false); __builtin_unreachable();
+#if defined(__clang__)
+
+
+
+
+
+#define MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM
+#elif defined(__GNUC__)
+
+
+#define MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM \
+        default: assert(false); __builtin_unreachable();
 #elif defined(_MSC_VER)
-  
-  
-# define MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM \
-         default: assert(false); __assume(0);
+
+
+#define MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM \
+        default: assert(false); __assume(0);
 #else
-# error Unsupported compiler for MOZILLA_PKIX_UNREACHABLE_DEFAULT.
+#error Unsupported compiler for MOZILLA_PKIX_UNREACHABLE_DEFAULT.
 #endif
 
 } } 

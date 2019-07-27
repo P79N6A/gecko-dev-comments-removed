@@ -63,7 +63,7 @@ CreateCertWithOneExtension(const char* subjectStr, const ByteString& extension)
 class TrustEverythingTrustDomain final : public TrustDomain
 {
 private:
-  Result GetCertTrust(EndEntityOrCA, const CertPolicyId&, Input candidateCert,
+  Result GetCertTrust(EndEntityOrCA, const CertPolicyId&, Input,
                        TrustLevel& trustLevel) override
   {
     trustLevel = TrustLevel::TrustAnchor;
