@@ -82,6 +82,27 @@ protected:
     LineRange mRows;
   };
 
+  
+
+
+
+
+
+
+
+  struct CellMap {
+    struct Cell {
+      Cell() : mIsOccupied(false) {}
+      bool mIsOccupied : 1;
+    };
+    void Fill(const GridArea& aGridArea);
+    void ClearOccupied();
+#if DEBUG
+    void Dump() const;
+#endif
+    nsTArray<nsTArray<Cell>> mCells;
+  };
+
   enum LineRangeSide {
     eLineRangeSideStart, eLineRangeSideEnd
   };
@@ -217,6 +238,11 @@ protected:
 #endif 
 
 private:
+  
+
+
+  CellMap mCellMap;
+
   
 
 
