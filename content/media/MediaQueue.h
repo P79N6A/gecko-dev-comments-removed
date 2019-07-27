@@ -17,8 +17,8 @@ namespace mozilla {
 
 template <class T>
 class MediaQueueDeallocator : public nsDequeFunctor {
-  virtual void* operator() (void* anObject) {
-    delete static_cast<T*>(anObject);
+  virtual void* operator() (void* aObject) {
+    delete static_cast<T*>(aObject);
     return nullptr;
   }
 };
