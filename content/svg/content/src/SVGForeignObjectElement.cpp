@@ -116,7 +116,8 @@ SVGForeignObjectElement::BindToTree(nsIDocument* aDocument,
                                                aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (aDocument && aDocument->IsSVG()) {
+  nsIDocument* doc = GetComposedDoc();
+  if (doc && doc->IsSVG()) {
     
     
     
@@ -124,7 +125,7 @@ SVGForeignObjectElement::BindToTree(nsIDocument* aDocument,
     
     
     
-    aDocument->AsSVGDocument()->EnsureNonSVGUserAgentStyleSheetsLoaded();
+    doc->AsSVGDocument()->EnsureNonSVGUserAgentStyleSheetsLoaded();
   }
 
   return rv;

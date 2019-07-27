@@ -756,12 +756,12 @@ SVGSVGElement::BindToTree(nsIDocument* aDocument,
                                               aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv,rv);
 
-  if (aDocument) {
+  nsIDocument* doc = GetComposedDoc();
+  if (doc) {
     
     
     
-    aDocument->
-      EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::SVGSheet());
+    doc->EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::SVGSheet());
   }
 
   if (mTimedDocumentRoot && smilController) {

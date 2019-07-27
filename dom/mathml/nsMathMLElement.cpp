@@ -102,19 +102,22 @@ nsMathMLElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
   if (aDocument) {
     aDocument->RegisterPendingLinkUpdate(this);
-    
-    if (!aDocument->GetMathMLEnabled()) {
+  }
+
+  nsIDocument* doc = GetComposedDoc();
+  if (doc) {
+    if (!doc->GetMathMLEnabled()) {
       
       
       
-      aDocument->SetMathMLEnabled();
-      aDocument->
+      doc->SetMathMLEnabled();
+      doc->
         EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::MathMLSheet());
 
       
       
       
-      nsCOMPtr<nsIPresShell> shell = aDocument->GetShell();
+      nsCOMPtr<nsIPresShell> shell = doc->GetShell();
       if (shell) {
         shell->GetPresContext()->PostRebuildAllStyleDataEvent(nsChangeHint(0));
       }
