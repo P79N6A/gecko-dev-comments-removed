@@ -108,6 +108,50 @@ private:
 
 
 
+  void HandleIncludedServicesDiscovered(const BluetoothValue& aValue);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  void HandleCharacteristicsDiscovered(const BluetoothValue& aValue);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void HandleDescriptorsDiscovered(const BluetoothValue& aValue);
+
+  
+
+
+
+
+
+
+
+
+
+
+
   void HandleCharacteristicChanged(const BluetoothValue& aValue);
 
   

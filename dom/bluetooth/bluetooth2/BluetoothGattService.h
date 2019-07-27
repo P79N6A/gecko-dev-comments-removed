@@ -17,13 +17,14 @@
 
 BEGIN_BLUETOOTH_NAMESPACE
 
+class BluetoothGatt;
 class BluetoothSignal;
 class BluetoothValue;
 
 class BluetoothGattService final : public nsISupports
                                  , public nsWrapperCache
-                                 , public BluetoothSignalObserver
 {
+  friend class BluetoothGatt;
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(BluetoothGattService)
@@ -71,8 +72,6 @@ public:
     return mServiceId;
   }
 
-  void Notify(const BluetoothSignal& aData); 
-
   nsPIDOMWindow* GetParentObject() const
   {
      return mOwner;
@@ -95,8 +94,8 @@ private:
 
 
 
-
-  void HandleIncludedServicesDiscovered(const BluetoothValue& aValue);
+  void AssignIncludedServices(
+    const nsTArray<BluetoothGattServiceId>& aServiceIds);
 
   
 
@@ -105,7 +104,23 @@ private:
 
 
 
-  void HandleCharacteristicsDiscovered(const BluetoothValue& aValue);
+
+  void AssignCharacteristics(
+    const nsTArray<BluetoothGattCharAttribute>& aCharacteristics);
+
+  
+
+
+
+
+
+
+
+
+
+  void AssignDescriptors(
+    const BluetoothGattId& aCharacteristicId,
+    const nsTArray<BluetoothGattId>& aDescriptorIds);
 
   
 

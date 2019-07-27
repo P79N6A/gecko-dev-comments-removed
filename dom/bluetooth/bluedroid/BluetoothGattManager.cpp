@@ -1643,12 +1643,14 @@ BluetoothGattManager::GetCharacteristicNotification(
       new DiscoverResultHandler(client));
   } else { 
     
-    nsString path;
-    GeneratePathFromGattId(aServiceId.mId, path);
+    
+    nsTArray<BluetoothNamedValue> values;
+    BT_APPEND_NAMED_VALUE(values, "serviceId", aServiceId);
+    BT_APPEND_NAMED_VALUE(values, "characteristics", client->mCharacteristics);
 
     bs->DistributeSignal(NS_LITERAL_STRING("CharacteristicsDiscovered"),
-                         path,
-                         BluetoothValue(client->mCharacteristics));
+                         client->mAppUuid,
+                         BluetoothValue(values));
 
     ProceedDiscoverProcess(client, aServiceId);
   }
@@ -1687,12 +1689,15 @@ BluetoothGattManager::GetDescriptorNotification(
       new DiscoverResultHandler(client));
   } else { 
     
-    nsString path;
-    GeneratePathFromGattId(aCharId, path);
+    
+    nsTArray<BluetoothNamedValue> values;
+    BT_APPEND_NAMED_VALUE(values, "serviceId", aServiceId);
+    BT_APPEND_NAMED_VALUE(values, "characteristicId", aCharId);
+    BT_APPEND_NAMED_VALUE(values, "descriptors", client->mDescriptors);
 
     bs->DistributeSignal(NS_LITERAL_STRING("DescriptorsDiscovered"),
-                         path,
-                         BluetoothValue(client->mDescriptors));
+                         client->mAppUuid,
+                         BluetoothValue(values));
     client->mDescriptors.Clear();
 
     ProceedDiscoverProcess(client, aServiceId);
@@ -1730,12 +1735,15 @@ BluetoothGattManager::GetIncludedServiceNotification(
       new DiscoverResultHandler(client));
   } else { 
     
-    nsString path;
-    GeneratePathFromGattId(aServiceId.mId, path);
+    
+    nsTArray<BluetoothNamedValue> values;
+    BT_APPEND_NAMED_VALUE(values, "serviceId", aServiceId);
+    BT_APPEND_NAMED_VALUE(values, "includedServices",
+                          client->mIncludedServices);
 
     bs->DistributeSignal(NS_LITERAL_STRING("IncludedServicesDiscovered"),
-                         path,
-                         BluetoothValue(client->mIncludedServices));
+                         client->mAppUuid,
+                         BluetoothValue(values));
     client->mIncludedServices.Clear();
 
     
