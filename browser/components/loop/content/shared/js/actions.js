@@ -471,6 +471,17 @@ loop.shared.actions = (function() {
     
 
 
+    RecordClick: Action.define("recordClick", {
+      
+      
+      
+      
+      linkInfo: String
+    }),
+
+    
+
+
     RequireFeedbackDetails: Action.define("requireFeedbackDetails", {
     }),
 
