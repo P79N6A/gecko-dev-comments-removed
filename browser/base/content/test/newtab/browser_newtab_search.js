@@ -76,6 +76,13 @@ let runTaskifiedTests = Task.async(function* () {
   info("Adding search event listener");
   getContentWindow().addEventListener(SERVICE_EVENT_NAME, searchEventListener);
 
+  let panel = searchPanel();
+  is(panel.state, "closed", "Search panel should be closed initially");
+
+  
+  
+  panel.setAttribute("animate", "false");
+
   
   let noLogoEngine = yield promiseNewSearchEngine(ENGINE_NO_LOGO);
   Services.search.currentEngine = noLogoEngine;
@@ -107,13 +114,26 @@ let runTaskifiedTests = Task.async(function* () {
   yield checkCurrentEngine(ENGINE_1X_2X_LOGO);
 
   
+  yield Promise.all([
+    promisePanelShown(panel),
+    promiseClick(logoImg()),
+  ]);
+
+  let manageBox = $("manage");
+  ok(!!manageBox, "The Manage Engines box should be present in the document");
+  is(panel.childNodes.length, 1, "Search panel should only contain the Manage Engines entry");
+  is(panel.childNodes[0], manageBox, "Search panel should contain the Manage Engines entry");
+
+  panel.hidePopup();
+
+  
   let suggestionEngine = yield promiseNewSearchEngine(ENGINE_SUGGESTIONS);
   Services.search.currentEngine = suggestionEngine;
   yield promiseSearchEvents(["CurrentEngine"]);
   yield checkCurrentEngine(ENGINE_SUGGESTIONS);
 
   
-  gSearch().remoteTimeout = 5000;
+  gSearch()._suggestionController.remoteTimeout = 5000;
 
   
   
@@ -289,9 +309,20 @@ let checkCurrentEngine = Task.async(function* ({name: basename, logoPrefix1x, lo
      " basename=" + basename);
 
   
-  is(gSearch().defaultEngine.name, engine.name,
+  is(gSearch().currentEngineName, engine.name,
      "currentEngineName: " + engine.name);
 });
+
+function promisePanelShown(panel) {
+  let deferred = Promise.defer();
+  info("Waiting for popupshown");
+  panel.addEventListener("popupshown", function onEvent() {
+    panel.removeEventListener("popupshown", onEvent);
+    is(panel.state, "open", "Panel state");
+    deferred.resolve();
+  });
+  return deferred.promise;
+}
 
 function promiseClick(node) {
   let deferred = Promise.defer();
@@ -303,12 +334,16 @@ function promiseClick(node) {
   return deferred.promise;
 }
 
+function searchPanel() {
+  return $("panel");
+}
+
 function logoImg() {
   return $("logo");
 }
 
 function gSearch() {
-  return getContentWindow().gSearch._contentSearchController;
+  return getContentWindow().gSearch;
 }
 
 
