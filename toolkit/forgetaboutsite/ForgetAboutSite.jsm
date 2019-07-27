@@ -99,67 +99,11 @@ this.ForgetAboutSite = {
     }
 
     
-    let useJSTransfer = false;
-    try {
-      
-      Services.downloads.activeDownloadCount;
-    } catch (ex) {
-      useJSTransfer = true;
-    }
-
-    if (useJSTransfer) {
-      Task.spawn(function*() {
-        let list = yield Downloads.getList(Downloads.ALL);
-        list.removeFinished(download => hasRootDomain(
-             NetUtil.newURI(download.source.url).host, aDomain));
-      }).then(null, Cu.reportError);
-    }
-    else {
-      let dm = Cc["@mozilla.org/download-manager;1"].
-               getService(Ci.nsIDownloadManager);
-      
-      for (let enumerator of [dm.activeDownloads, dm.activePrivateDownloads]) {
-        while (enumerator.hasMoreElements()) {
-          let dl = enumerator.getNext().QueryInterface(Ci.nsIDownload);
-          if (hasRootDomain(dl.source.host, aDomain)) {
-            dl.cancel();
-            dl.remove();
-          }
-        }
-
-        const deleteAllLike = function(db) {
-          
-          
-          
-          let stmt = db.createStatement(
-            "DELETE FROM moz_downloads " +
-            "WHERE source LIKE ?1 ESCAPE '/' " +
-            "AND state NOT IN (?2, ?3, ?4)"
-          );
-          let pattern = stmt.escapeStringForLIKE(aDomain, "/");
-          stmt.bindByIndex(0, "%" + pattern + "%");
-          stmt.bindByIndex(1, Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING);
-          stmt.bindByIndex(2, Ci.nsIDownloadManager.DOWNLOAD_PAUSED);
-          stmt.bindByIndex(3, Ci.nsIDownloadManager.DOWNLOAD_QUEUED);
-          try {
-            stmt.execute();
-          }
-          finally {
-            stmt.finalize();
-          }
-        }
-
-        
-        deleteAllLike(dm.DBConnection);
-        deleteAllLike(dm.privateDBConnection);
-
-        
-        
-        let os = Cc["@mozilla.org/observer-service;1"].
-                 getService(Ci.nsIObserverService);
-        os.notifyObservers(null, "download-manager-remove-download", null);
-      }
-    }
+    Task.spawn(function*() {
+      let list = yield Downloads.getList(Downloads.ALL);
+      list.removeFinished(download => hasRootDomain(
+           NetUtil.newURI(download.source.url).host, aDomain));
+    }).then(null, Cu.reportError);
 
     
     let lm = Cc["@mozilla.org/login-manager;1"].
