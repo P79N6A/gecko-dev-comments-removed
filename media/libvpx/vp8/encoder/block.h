@@ -98,7 +98,8 @@ typedef struct macroblock
     signed int last_act_zbin_adj;
 
     int *mvcost[2];
-    int *mvsadcost[2];
+    
+    DECLARE_ALIGNED(16, int*, mvsadcost[2]);
     int (*mbmode_cost)[MB_MODE_COUNT];
     int (*intra_uv_mode_cost)[MB_MODE_COUNT];
     int (*bmode_costs)[10][10];
