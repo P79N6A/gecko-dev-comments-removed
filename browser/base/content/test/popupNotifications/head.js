@@ -88,11 +88,9 @@ const PREF_SECURITY_DELAY_INITIAL = Services.prefs.getIntPref("security.notifica
 function setup() {
   
   
-  PopupNotifications.transitionsEnabled = false;
 
   registerCleanupFunction(() => {
     PopupNotifications.buttonDelay = PREF_SECURITY_DELAY_INITIAL;
-    PopupNotifications.transitionsEnabled = true;
   });
 }
 
