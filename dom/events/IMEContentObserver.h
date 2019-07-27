@@ -72,6 +72,17 @@ public:
 
 
   void DisconnectFromEventStateManager();
+  
+
+
+
+
+
+
+  bool MaybeReinitialize(nsIWidget* aWidget,
+                         nsPresContext* aPresContext,
+                         nsIContent* aContent,
+                         nsIEditor* aEditor);
   bool IsManaging(nsPresContext* aPresContext, nsIContent* aContent);
   bool IsEditorHandlingEventForComposition() const;
   bool KeepAliveDuringDeactive() const
@@ -133,6 +144,14 @@ public:
 private:
   ~IMEContentObserver() {}
 
+  enum State {
+    eState_NotObserving,
+    eState_StoppedObserving,
+    eState_Observing
+  };
+  State GetState() const;
+  bool IsObservingContent(nsPresContext* aPresContext,
+                          nsIContent* aContent) const;
   void MaybeNotifyIMEOfTextChange(const TextChangeData& aTextChangeData);
   void MaybeNotifyIMEOfSelectionChange(bool aCausedByComposition);
   void MaybeNotifyIMEOfPositionChange();
