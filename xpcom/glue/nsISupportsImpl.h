@@ -158,6 +158,14 @@ private:
                 "Token '" #_type "' is not a class type.")
 
 
+#if MOZ_IS_GCC
+# if !MOZ_GCC_VERSION_AT_LEAST(4, 7, 0)
+#  undef MOZ_ASSERT_CLASSNAME
+#  define MOZ_ASSERT_CLASSNAME(_type)
+# endif
+#endif
+
+
 
 
 #define MOZ_COUNT_CTOR(_type)                                 \
