@@ -43,7 +43,7 @@ public:
             nsISupports* aParent, const CacheOpArgs& aArgs);
 
   CachePushStreamChild*
-  CreatePushStream(nsIAsyncInputStream* aStream);
+  CreatePushStream(nsISupports* aParent, nsIAsyncInputStream* aStream);
 
   
   void StartDestroyFromListener();

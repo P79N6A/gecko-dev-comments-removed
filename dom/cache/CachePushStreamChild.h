@@ -31,7 +31,8 @@ private:
   class Callback;
 
   
-  CachePushStreamChild(Feature* aFeature, nsIAsyncInputStream* aStream);
+  CachePushStreamChild(Feature* aFeature, nsISupports* aParent,
+                       nsIAsyncInputStream* aStream);
   ~CachePushStreamChild();
 
   
@@ -46,6 +47,7 @@ private:
 
   void OnEnd(nsresult aRv);
 
+  nsCOMPtr<nsISupports> mParent;
   nsCOMPtr<nsIAsyncInputStream> mStream;
   nsRefPtr<Callback> mCallback;
   bool mClosed;
