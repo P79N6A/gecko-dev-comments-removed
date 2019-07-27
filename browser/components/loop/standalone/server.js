@@ -13,10 +13,16 @@ var express = require('express');
 var app = express();
 
 var port = process.env.PORT || 3000;
-var loopServerPort = process.env.LOOP_SERVER_PORT || 5000;
 var feedbackApiUrl = process.env.LOOP_FEEDBACK_API_URL ||
                      "https://input.allizom.org/api/v1/feedback";
 var feedbackProductName = process.env.LOOP_FEEDBACK_PRODUCT_NAME || "Loop";
+var loopServerUrl = process.env.LOOP_SERVER_URL || "http://localhost:5000";
+
+
+
+if (loopServerUrl[loopServerUrl.length - 1] === "/") {
+  loopServerUrl = loopServerUrl.slice(0, -1);
+}
 
 function getConfigFile(req, res) {
   "use strict";
@@ -25,7 +31,7 @@ function getConfigFile(req, res) {
   res.send([
     "var loop = loop || {};",
     "loop.config = loop.config || {};",
-    "loop.config.serverUrl = 'http://localhost:" + loopServerPort + "/v0';",
+    "loop.config.serverUrl = '" + loopServerUrl + "/v0';",
     "loop.config.feedbackApiUrl = '" + feedbackApiUrl + "';",
     "loop.config.feedbackProductName = '" + feedbackProductName + "';",
     
@@ -54,7 +60,6 @@ app.get('/content/c/config.js', getConfigFile);
 
 
 
-app.use('/test', express.static(__dirname + '/../test'));
 app.use('/ui', express.static(__dirname + '/../ui'));
 
 
@@ -70,6 +75,10 @@ app.use('/content', express.static(__dirname + '/../content'));
 
 app.use('/content/c', express.static(__dirname + '/content'));
 app.use('/content/c', express.static(__dirname + '/../content'));
+
+
+app.use('/test', express.static(__dirname + '/test'));
+app.use('/test', express.static(__dirname + '/../test'));
 
 
 

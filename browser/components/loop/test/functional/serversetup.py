@@ -21,7 +21,7 @@ CONTENT_SERVER_ENV = os.environ.copy()
 
 
 CONTENT_SERVER_ENV.update({"PORT": str(CONTENT_SERVER_PORT),
-                           "LOOP_SERVER_PORT": str(LOOP_SERVER_PORT)})
+                           "LOOP_SERVER_URL": LOOP_SERVER_URL})
 
 ROOMS_WEB_APP_URL = "http://localhost:" + str(CONTENT_SERVER_PORT) + \
   "/content/{token}"
@@ -32,7 +32,7 @@ LOOP_SERVER_ENV = os.environ.copy()
 
 LOOP_SERVER_ENV.update({"NODE_ENV": "dev",
                         "PORT": str(LOOP_SERVER_PORT),
-                        "SERVER_ADDRESS": "localhost:" + str(LOOP_SERVER_PORT),
+                        "SERVER_ADDRESS": LOOP_SERVER_URL,
                         "ROOMS_WEB_APP_URL": ROOMS_WEB_APP_URL})
 
 
