@@ -1073,11 +1073,13 @@ this.MozLoopService = {
 
     
     
-    const onRoomsChange = () => {
-      MozLoopServiceInternal.notifyStatusChanged();
+    const onRoomsChange = (e) => {
+      
+      MozLoopServiceInternal.notifyStatusChanged("room-" + e);
     };
     LoopRooms.on("add", onRoomsChange);
     LoopRooms.on("update", onRoomsChange);
+    LoopRooms.on("delete", onRoomsChange);
     LoopRooms.on("joined", (e, room, participant) => {
       
       
