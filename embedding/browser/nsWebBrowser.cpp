@@ -1238,7 +1238,7 @@ nsWebBrowser::Create()
   }
   mDocShellAsNav->SetSessionHistory(mInitInfo->sessionHistory);
 
-  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+  if (XRE_IsParentProcess()) {
     
     rv = EnableGlobalHistory(mShouldEnableHistory);
     NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "EnableGlobalHistory() failed");

@@ -106,7 +106,7 @@ DeserializeInputStream(const InputStreamParams& aParams,
     
     
     case InputStreamParams::TRemoteInputStreamParams: {
-      if (NS_WARN_IF(XRE_GetProcessType() != GeckoProcessType_Default)) {
+      if (NS_WARN_IF(!XRE_IsParentProcess())) {
         return nullptr;
       }
 

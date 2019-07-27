@@ -96,7 +96,7 @@ PromiseDebugging::Init()
 
   
   sIDPrefix = NS_LITERAL_STRING("PromiseDebugging.");
-  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+  if (XRE_IsContentProcess()) {
     sIDPrefix.AppendInt(ContentChild::GetSingleton()->GetID());
     sIDPrefix.Append('.');
   } else {

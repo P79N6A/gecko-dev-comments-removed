@@ -303,7 +303,7 @@ CreateAnonTempFileRemover()
   
   
   
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+  if (!XRE_IsParentProcess()) {
     return NS_OK;
   }
   nsRefPtr<nsAnonTempFileRemover> tempRemover = new nsAnonTempFileRemover();

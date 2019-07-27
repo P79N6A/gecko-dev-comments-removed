@@ -312,7 +312,7 @@ NfcService::~NfcService()
 already_AddRefed<NfcService>
 NfcService::FactoryCreate()
 {
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+  if (!XRE_IsParentProcess()) {
     return nullptr;
   }
 
@@ -453,7 +453,7 @@ NfcService::OnConnectSuccess(int aIndex)
 
   switch (aIndex) {
     case LISTEN_SOCKET: {
-        nsCString value("nfcd:-S -a ");
+        nsCString value("nfcd:-a ");
         value.Append(mListenSocketName);
         if (NS_WARN_IF(property_set("ctl.start", value.get()) < 0)) {
           OnConnectError(STREAM_SOCKET);

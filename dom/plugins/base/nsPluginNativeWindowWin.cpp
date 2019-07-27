@@ -617,7 +617,7 @@ nsresult nsPluginNativeWindowWin::CallSetWindow(nsRefPtr<nsNPAPIPluginInstance> 
   
   
   
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+  if (!XRE_IsParentProcess()) {
     nsPluginNativeWindow::CallSetWindow(aPluginInstance);
     return NS_OK;
   }

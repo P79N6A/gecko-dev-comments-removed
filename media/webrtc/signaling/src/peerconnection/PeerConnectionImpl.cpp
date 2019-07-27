@@ -262,7 +262,7 @@ static nsresult InitNSSInContent()
 {
   NS_ENSURE_TRUE(NS_IsMainThread(), NS_ERROR_NOT_SAME_THREAD);
 
-  if (XRE_GetProcessType() != GeckoProcessType_Content) {
+  if (!XRE_IsContentProcess()) {
     MOZ_ASSERT_UNREACHABLE("Must be called in content process");
     return NS_ERROR_FAILURE;
   }
@@ -595,7 +595,7 @@ PeerConnectionImpl::AddIceServer(const RTCIceServer &aServer,
 
       
       if ((transport == kNrIceTransportTcp) &&
-          (XRE_GetProcessType() != GeckoProcessType_Default)) {
+          (!XRE_IsParentProcess())) {
         continue;
       }
 
@@ -643,7 +643,7 @@ PeerConnectionImpl::Initialize(PeerConnectionObserver& aObserver,
 
   
   
-  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+  if (XRE_IsParentProcess()) {
     
     nsCOMPtr<nsISupports> nssDummy = do_GetService("@mozilla.org/psm;1", &res);
     NS_ENSURE_SUCCESS(res, res);

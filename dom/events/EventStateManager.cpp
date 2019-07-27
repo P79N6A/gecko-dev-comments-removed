@@ -597,7 +597,7 @@ EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     
     
     
-    if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    if (XRE_IsContentProcess()) {
       ClearCachedWidgetCursor(mCurrentTarget);
     }
 
