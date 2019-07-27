@@ -23,11 +23,11 @@ namespace std {
 
 
 
-MOZALLOC_EXPORT __declspec(noreturn) void moz_Xinvalid_argument(const char*);
-MOZALLOC_EXPORT __declspec(noreturn) void moz_Xlength_error(const char*);
-MOZALLOC_EXPORT __declspec(noreturn) void moz_Xout_of_range(const char*);
-MOZALLOC_EXPORT __declspec(noreturn) void moz_Xoverflow_error(const char*);
-MOZALLOC_EXPORT __declspec(noreturn) void moz_Xruntime_error(const char*);
+MFBT_API __declspec(noreturn) void moz_Xinvalid_argument(const char*);
+MFBT_API __declspec(noreturn) void moz_Xlength_error(const char*);
+MFBT_API __declspec(noreturn) void moz_Xout_of_range(const char*);
+MFBT_API __declspec(noreturn) void moz_Xoverflow_error(const char*);
+MFBT_API __declspec(noreturn) void moz_Xruntime_error(const char*);
 
 } 
 

@@ -5,10 +5,6 @@
 
 
 
-#if defined(XP_WIN)
-#  define MOZALLOC_EXPORT __declspec(dllexport)
-#endif
-
 #include "mozilla/mozalloc_abort.h"
 #include "mozilla/mozalloc_oom.h"
 #include "mozilla/Assertions.h"
