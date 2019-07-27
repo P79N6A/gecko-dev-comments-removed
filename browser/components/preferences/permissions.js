@@ -236,10 +236,17 @@ var gPermissionManager = {
         }
         this._tree.treeBoxObject.invalidate();
       }
-      
-      
-      
-      
+      else if (aData == "deleted") {
+        for (var i = 0; i < this._permissions.length; i++) {
+          if (this._permissions[i].host == permission.host) {
+            this._permissions.splice(i, 1);
+            this._view._rowCount--;
+            this._tree.treeBoxObject.rowCountChanged(this._view.rowCount - 1, -1);
+            this._tree.treeBoxObject.invalidate();
+            break;
+          }
+        }
+      }
     }
   },
   
