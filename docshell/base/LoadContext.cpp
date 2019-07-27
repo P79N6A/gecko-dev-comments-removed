@@ -4,11 +4,27 @@
 
 
 
+#include "mozilla/Assertions.h"
 #include "mozilla/LoadContext.h"
 
 namespace mozilla {
 
 NS_IMPL_ISUPPORTS(LoadContext, nsILoadContext, nsIInterfaceRequestor)
+
+LoadContext::LoadContext(nsIPrincipal* aPrincipal)
+  : mTopFrameElement(nullptr)
+  , mNestedFrameId(0)
+  , mIsContent(true)
+  , mUsePrivateBrowsing(false)
+  , mUseRemoteTabs(false)
+#ifdef DEBUG
+  , mIsNotNull(true)
+#endif
+{
+  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(aPrincipal->GetAppId(&mAppId)));
+  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
+    aPrincipal->GetIsInBrowserElement(&mIsInBrowserElement)));
+}
 
 
 

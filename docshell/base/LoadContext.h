@@ -105,6 +105,10 @@ public:
 #endif
   {}
 
+  
+  
+  LoadContext(nsIPrincipal* aPrincipal);
+
 private:
   ~LoadContext() {}
 
