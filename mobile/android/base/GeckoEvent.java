@@ -5,14 +5,17 @@
 
 package org.mozilla.gecko;
 
+import java.nio.ByteBuffer;
+import java.util.concurrent.ArrayBlockingQueue;
+
+import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.gfx.DisplayPortMetrics;
 import org.mozilla.gecko.gfx.ImmutableViewportMetrics;
 import org.mozilla.gecko.mozglue.JNITarget;
+import org.mozilla.gecko.mozglue.RobocopTarget;
 import org.mozilla.gecko.mozglue.generatorannotations.GeneratorOptions;
 import org.mozilla.gecko.mozglue.generatorannotations.WrapEntireClassForJNI;
-import org.mozilla.gecko.mozglue.RobocopTarget;
 
-import android.content.res.Resources;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
@@ -21,16 +24,11 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorManager;
 import android.location.Address;
 import android.location.Location;
-import android.os.Build;
 import android.os.SystemClock;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
-
-import java.nio.ByteBuffer;
-import java.util.concurrent.ArrayBlockingQueue;
 
 
 
@@ -331,7 +329,7 @@ public class GeckoEvent {
             case KeyEvent.KEYCODE_DPAD_UP:
                 return true;
             default:
-                if (Build.VERSION.SDK_INT >= 12) {
+                if (Versions.feature12Plus) {
                     return KeyEvent.isGamepadButton(keyCode);
                 }
                 return GeckoEvent.isGamepadButton(keyCode);

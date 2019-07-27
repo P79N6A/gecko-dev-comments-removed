@@ -5,6 +5,7 @@
 
 package org.mozilla.gecko.widget;
 
+import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.util.HardwareUtils;
 
@@ -12,7 +13,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.drawable.BitmapDrawable;
-import android.os.Build;
 import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -129,7 +129,7 @@ public abstract class ArrowPopup extends PopupWindow {
 
             
             
-            if (Build.VERSION.SDK_INT < 11) {
+            if (Versions.preHC) {
                 setWidth(decorView.getWidth());
                 setHeight(decorView.getHeight());
             }

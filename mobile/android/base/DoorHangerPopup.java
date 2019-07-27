@@ -5,24 +5,23 @@
 
 package org.mozilla.gecko;
 
-import org.mozilla.gecko.util.GeckoEventListener;
-import org.mozilla.gecko.util.ThreadUtils;
-import org.mozilla.gecko.widget.ArrowPopup;
-import org.mozilla.gecko.widget.DoorHanger;
-import org.mozilla.gecko.prompts.PromptInput;
+import java.util.HashSet;
+import java.util.List;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.mozilla.gecko.AppConstants.Versions;
+import org.mozilla.gecko.prompts.PromptInput;
+import org.mozilla.gecko.util.GeckoEventListener;
+import org.mozilla.gecko.util.ThreadUtils;
+import org.mozilla.gecko.widget.ArrowPopup;
+import org.mozilla.gecko.widget.DoorHanger;
 
 import android.content.Context;
-import android.os.Build;
 import android.util.Log;
 import android.view.View;
 import android.widget.CheckBox;
-
-import java.util.HashSet;
-import java.util.List;
 
 public class DoorHangerPopup extends ArrowPopup
                              implements GeckoEventListener,
@@ -311,13 +310,13 @@ public class DoorHangerPopup extends ArrowPopup
         
         
         
-        if (Build.VERSION.SDK_INT >= 14) {
+        if (Versions.feature14Plus) {
             setFocusable(true);
         }
 
         show();
 
-        if (Build.VERSION.SDK_INT < 14) {
+        if (Versions.preICS) {
             
             setFocusable(true);
         }

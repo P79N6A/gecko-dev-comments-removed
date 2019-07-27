@@ -13,6 +13,7 @@ import java.util.Map;
 
 import org.json.JSONObject;
 import org.mozilla.gecko.AppConstants;
+import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.BrowserApp;
 import org.mozilla.gecko.BrowserLocaleManager;
 import org.mozilla.gecko.DataReportingNotification;
@@ -52,7 +53,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.res.Configuration;
-import android.os.Build;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
 import android.preference.EditTextPreference;
@@ -153,7 +153,7 @@ OnSharedPreferenceChangeListener
         }
     }
     private void updateActionBarTitle(int title) {
-        if (Build.VERSION.SDK_INT >= 14) {
+        if (Versions.feature14Plus) {
             final String newTitle = getString(title);
             if (newTitle != null) {
                 Log.v(LOGTAG, "Setting action bar title to " + newTitle);
@@ -190,7 +190,7 @@ OnSharedPreferenceChangeListener
         
         
         
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB && isMultiPane()) {
+        if (Versions.feature11Plus && isMultiPane()) {
             int title = getIntent().getIntExtra(EXTRA_SHOW_FRAGMENT_TITLE, -1);
             if (res == R.xml.preferences) {
                 
@@ -227,7 +227,7 @@ OnSharedPreferenceChangeListener
         BrowserLocaleManager.getInstance().updateConfiguration(getApplicationContext(), newLocale);
         this.lastLocale = newLocale;
 
-        if (Build.VERSION.SDK_INT >= 11 && isMultiPane()) {
+        if (Versions.feature11Plus && isMultiPane()) {
             
             invalidateHeaders();
 
@@ -301,7 +301,7 @@ OnSharedPreferenceChangeListener
         
         
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+        if (Versions.feature11Plus) {
             if (!getIntent().hasExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT)) {
                 
                 setupTopLevelFragmentIntent();
@@ -316,7 +316,7 @@ OnSharedPreferenceChangeListener
                 
                 updateActionBarTitle(R.string.settings_title);
 
-                if (Build.VERSION.SDK_INT < 13) {
+                if (android.os.Build.VERSION.SDK_INT < 13) {
                     
                     
                     
@@ -333,7 +333,7 @@ OnSharedPreferenceChangeListener
         
         
         
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
+        if (Versions.preHC) {
             
             getPreferenceManager().setSharedPreferencesName(GeckoSharedPrefs.APP_PREFS_NAME);
 
@@ -381,7 +381,7 @@ OnSharedPreferenceChangeListener
             }
         });
 
-        if (Build.VERSION.SDK_INT >= 14) {
+        if (Versions.feature14Plus) {
             final ActionBar actionBar = getActionBar();
             if (actionBar != null) {
                 actionBar.setHomeButtonEnabled(true);
@@ -455,7 +455,7 @@ OnSharedPreferenceChangeListener
             return;
 
         mInitialized = true;
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
+        if (Versions.preHC) {
             PreferenceScreen screen = getPreferenceScreen();
             mPrefsRequestId = setupPreferences(screen);
         }
@@ -483,7 +483,7 @@ OnSharedPreferenceChangeListener
     @Override
     public void onPause() {
         
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+        if (Versions.feature11Plus) {
             if (isMultiPane()) {
                 SharedPreferences prefs = GeckoSharedPrefs.forApp(this);
                 prefs.unregisterOnSharedPreferenceChangeListener(this);
@@ -505,7 +505,7 @@ OnSharedPreferenceChangeListener
             ((GeckoApplication) getApplication()).onActivityResume(this);
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+        if (Versions.feature11Plus) {
             
             
             
@@ -1233,7 +1233,7 @@ OnSharedPreferenceChangeListener
             public void prefValue(String prefName, final boolean value) {
                 final Preference pref = getField(prefName);
                 final CheckBoxPrefSetter prefSetter;
-                if (Build.VERSION.SDK_INT < 14) {
+                if (Versions.preICS) {
                     prefSetter = new CheckBoxPrefSetter();
                 } else {
                     prefSetter = new TwoStatePrefSetter();
@@ -1283,7 +1283,7 @@ OnSharedPreferenceChangeListener
                 final Preference pref = getField(prefName);
                 final CheckBoxPrefSetter prefSetter;
                 if (PREFS_GEO_REPORTING.equals(prefName)) {
-                    if (Build.VERSION.SDK_INT < 14) {
+                    if (Versions.preICS) {
                         prefSetter = new CheckBoxPrefSetter();
                     } else {
                         prefSetter = new TwoStatePrefSetter();
@@ -1338,7 +1338,7 @@ OnSharedPreferenceChangeListener
             return;
         }
 
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
+        if (Versions.preHC) {
             intent.putExtra("resource", resource);
         } else {
             intent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT, GeckoPreferenceFragment.class.getName());
