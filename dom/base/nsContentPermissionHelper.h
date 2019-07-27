@@ -8,7 +8,9 @@
 #include "nsIContentPermissionPrompt.h"
 #include "nsTArray.h"
 #include "nsIMutableArray.h"
+#include "PCOMContentPermissionRequestChild.h"
 
+class nsPIDOMWindow;
 class nsContentPermissionRequestProxy;
 
 
@@ -81,6 +83,33 @@ class nsContentPermissionRequestProxy : public nsIContentPermissionRequest
   
   mozilla::dom::ContentPermissionRequestParent* mParent;
   nsTArray<mozilla::dom::PermissionRequest> mPermissionRequests;
+};
+
+
+
+
+class RemotePermissionRequest : public nsIContentPermissionRequest
+                              , public PCOMContentPermissionRequestChild
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSICONTENTPERMISSIONREQUEST
+
+  RemotePermissionRequest(nsIContentPermissionRequest* aRequest,
+                          nsPIDOMWindow* aWindow);
+  virtual ~RemotePermissionRequest() {}
+
+  
+  virtual bool Recv__delete__(const bool &aAllow,
+                              const nsTArray<PermissionChoice>& aChoices) MOZ_OVERRIDE;
+  virtual void IPDLRelease() MOZ_OVERRIDE { Release(); }
+
+  static uint32_t ConvertArrayToPermissionRequest(
+                                nsIArray* aSrcArray,
+                                nsTArray<PermissionRequest>& aDesArray);
+private:
+  nsCOMPtr<nsIContentPermissionRequest> mRequest;
+  nsCOMPtr<nsPIDOMWindow>               mWindow;
 };
 
 #endif 
