@@ -228,7 +228,6 @@ MemoryPressureObserver::Observe(nsISupports *aSubject,
 
 static const char *gPrefLangNames[] = {
     "x-western",
-    "x-central-euro",
     "ja",
     "zh-TW",
     "zh-CN",
