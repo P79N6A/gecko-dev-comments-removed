@@ -29,7 +29,7 @@ private:
     void MarkEntryClassified(nsresult status);
     bool HasBeenClassified(nsIChannel *aChannel);
     
-    bool ShouldEnableTrackingProtection(nsIChannel* aChannel);
+    nsresult ShouldEnableTrackingProtection(nsIChannel *aChannel, bool *result);
 };
 
 #endif
