@@ -169,7 +169,7 @@ class B2GMochitest(MochitestUtilsMixin):
 
             
             
-            if 'MOZ_DISABLE_NONLOCAL_CONNECTIONS' in self.browserEnv:
+            if mozinfo.info['debug'] and 'MOZ_DISABLE_NONLOCAL_CONNECTIONS' in self.browserEnv:
                 del self.browserEnv['MOZ_DISABLE_NONLOCAL_CONNECTIONS']
             self.runner.env.update(self.browserEnv)
 
