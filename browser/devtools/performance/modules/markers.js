@@ -56,6 +56,16 @@ const { Formatters, CollapseFunctions: collapse } = require("devtools/performanc
 
 const TIMELINE_BLUEPRINT = {
   
+
+
+  "UNKNOWN": {
+    group: 2,
+    colorName: "graphs-grey",
+    collapseFunc: collapse.child,
+    label: Formatters.UnknownLabel
+  },
+
+  
   "Styles": {
     group: 0,
     colorName: "graphs-purple",
@@ -131,7 +141,7 @@ const TIMELINE_BLUEPRINT = {
   
   "ConsoleTime": {
     group: 2,
-    colorName: "graphs-grey",
+    colorName: "graphs-blue",
     label: sublabelForProperty(L10N.getStr("timeline.label.consoleTime"), "causeName"),
     fields: [{
       property: "causeName",
