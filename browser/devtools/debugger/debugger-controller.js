@@ -10,7 +10,6 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
 const NEW_SOURCE_IGNORED_URLS = ["debugger eval code", "self-hosted", "XStringBundle"];
 const NEW_SOURCE_DISPLAY_DELAY = 200; 
-const EDITOR_BREAKPOINTS_UPDATE_DELAY = 200; 
 const FETCH_SOURCE_RESPONSE_DELAY = 200; 
 const FETCH_EVENT_LISTENERS_DELAY = 200; 
 const FRAME_STEP_CLEAR_DELAY = 100; 
@@ -1174,9 +1173,7 @@ SourceScripts.prototype = {
     
     
     DebuggerController.Breakpoints.updatePaneBreakpoints();
-    setNamedTimeout("update-editor-bp", EDITOR_BREAKPOINTS_UPDATE_DELAY, () => {
-      DebuggerController.Breakpoints.updateEditorBreakpoints();
-    });
+    DebuggerController.Breakpoints.updateEditorBreakpoints();
 
     
     if (DebuggerView.instrumentsPaneTab == "events-tab") {
@@ -1867,7 +1864,7 @@ Breakpoints.prototype = {
 
       
       if (currentSourceUrl == breakpointUrl) {
-        this._showBreakpoint(breakpointClient, { noPaneUpdate: true });
+        yield this._showBreakpoint(breakpointClient, { noPaneUpdate: true });
       }
     }
   }),
@@ -1886,7 +1883,7 @@ Breakpoints.prototype = {
 
       
       if (container.containsValue(breakpointUrl)) {
-        this._showBreakpoint(breakpointClient, { noEditorUpdate: true });
+        yield this._showBreakpoint(breakpointClient, { noEditorUpdate: true });
       }
     }
   }),
@@ -1979,7 +1976,7 @@ Breakpoints.prototype = {
       aBreakpointClient.text = DebuggerView.editor.getText(line).trim();
 
       
-      this._showBreakpoint(aBreakpointClient, aOptions);
+      yield this._showBreakpoint(aBreakpointClient, aOptions);
 
       
       window.emit(EVENTS.BREAKPOINT_ADDED, aBreakpointClient);
@@ -2131,13 +2128,14 @@ Breakpoints.prototype = {
 
 
   _showBreakpoint: function(aBreakpointData, aOptions = {}) {
+    let tasks = [];
     let currentSourceUrl = DebuggerView.Sources.selectedValue;
     let location = aBreakpointData.location;
 
     
     if (!aOptions.noEditorUpdate && !aBreakpointData.disabled) {
       if (location.url == currentSourceUrl) {
-        DebuggerView.editor.addBreakpoint(location.line - 1);
+        tasks.push(DebuggerView.editor.addBreakpoint(location.line - 1));
       }
     }
 
@@ -2145,6 +2143,8 @@ Breakpoints.prototype = {
     if (!aOptions.noPaneUpdate) {
       DebuggerView.Sources.addBreakpoint(aBreakpointData, aOptions);
     }
+
+    return promise.all(tasks);
   },
 
   
