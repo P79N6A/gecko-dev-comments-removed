@@ -295,7 +295,7 @@ private:
 
 
 uint32_t
-MapCertErrorToProbeValue(PRErrorCode errorCode)
+MapOverridableErrorToProbeValue(PRErrorCode errorCode)
 {
   switch (errorCode)
   {
@@ -315,9 +315,37 @@ MapCertErrorToProbeValue(PRErrorCode errorCode)
       return 15;
     case SEC_ERROR_INVALID_TIME: return 16;
   }
-  NS_WARNING("Unknown certificate error code. Does MapCertErrorToProbeValue "
+  NS_WARNING("Unknown certificate error code. Does MapOverridableErrorToProbeValue "
              "handle everything in DetermineCertOverrideErrors?");
   return 0;
+}
+
+static uint32_t
+MapCertErrorToProbeValue(PRErrorCode errorCode)
+{
+  uint32_t probeValue;
+  switch (errorCode)
+  {
+    
+#define MOZILLA_PKIX_MAP(name, value, nss_name) case nss_name: probeValue = value; break;
+    MOZILLA_PKIX_MAP_LIST
+#undef MOZILLA_PKIX_MAP
+    default: return 0;
+  }
+
+  
+  
+  
+  
+  
+  
+  static_assert(FATAL_ERROR_FLAG == 0x800,
+                "mozilla::pkix::FATAL_ERROR_FLAG is not what we were expecting");
+  if (probeValue & FATAL_ERROR_FLAG) {
+    probeValue ^= FATAL_ERROR_FLAG;
+    probeValue += 90;
+  }
+  return probeValue;
 }
 
 SECStatus
@@ -499,15 +527,15 @@ CertErrorRunnable::CheckCertOverrides()
       
       
       if (mErrorCodeTrust != 0) {
-        uint32_t probeValue = MapCertErrorToProbeValue(mErrorCodeTrust);
+        uint32_t probeValue = MapOverridableErrorToProbeValue(mErrorCodeTrust);
         Telemetry::Accumulate(Telemetry::SSL_CERT_ERROR_OVERRIDES, probeValue);
       }
       if (mErrorCodeMismatch != 0) {
-        uint32_t probeValue = MapCertErrorToProbeValue(mErrorCodeMismatch);
+        uint32_t probeValue = MapOverridableErrorToProbeValue(mErrorCodeMismatch);
         Telemetry::Accumulate(Telemetry::SSL_CERT_ERROR_OVERRIDES, probeValue);
       }
       if (mErrorCodeTime != 0) {
-        uint32_t probeValue = MapCertErrorToProbeValue(mErrorCodeTime);
+        uint32_t probeValue = MapOverridableErrorToProbeValue(mErrorCodeTime);
         Telemetry::Accumulate(Telemetry::SSL_CERT_ERROR_OVERRIDES, probeValue);
       }
 
@@ -589,6 +617,9 @@ CreateCertErrorRunnable(CertVerifier& certVerifier,
 {
   MOZ_ASSERT(infoObject);
   MOZ_ASSERT(cert);
+
+  uint32_t probeValue = MapCertErrorToProbeValue(defaultErrorCodeToReport);
+  Telemetry::Accumulate(Telemetry::SSL_CERT_VERIFICATION_ERRORS, probeValue);
 
   uint32_t collected_errors = 0;
   PRErrorCode errorCodeTrust = 0;
