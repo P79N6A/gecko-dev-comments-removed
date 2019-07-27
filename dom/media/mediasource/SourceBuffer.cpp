@@ -332,7 +332,7 @@ SourceBuffer::CheckEndTime()
   
   double endTime = GetBufferedEnd();
   if (endTime > mMediaSource->Duration()) {
-    mMediaSource->SetDuration(endTime);
+    mMediaSource->SetDuration(endTime, MSRangeRemovalAction::SKIP);
   }
 }
 
