@@ -8803,10 +8803,6 @@ PresShell::DidPaintWindow()
     
     return;
   }
-
-  if (nsContentUtils::XPConnect()) {
-    nsContentUtils::XPConnect()->NotifyDidPaint();
-  }
 }
 
 bool
