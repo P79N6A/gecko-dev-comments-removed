@@ -13,8 +13,17 @@
 BEGIN_BLUETOOTH_NAMESPACE
 
 class BluetoothNamedValue;
-class BluetoothValue;
 class BluetoothReplyRunnable;
+class BluetoothValue;
+
+
+
+
+
+
+
+
+
 
 void
 UuidToString(const BluetoothUuid& aUuid, nsAString& aString);
@@ -27,10 +36,9 @@ UuidToString(const BluetoothUuid& aUuid, nsAString& aString);
 void
 StringToUuid(const char* aString, BluetoothUuid& aUuid);
 
-bool
-SetJsObject(JSContext* aContext,
-            const BluetoothValue& aValue,
-            JS::Handle<JSObject*> aObj);
+
+
+
 
 bool
 BroadcastSystemMessage(const nsAString& aType,
@@ -49,21 +57,8 @@ BroadcastSystemMessage(const nsAString& aType,
 
 
 
-
-
-
 void
-DispatchBluetoothReply(BluetoothReplyRunnable* aRunnable,
-                       const BluetoothValue& aValue,
-                       const nsAString& aErrorStr);
-
-
-
-
-
-
-
-
+DispatchReplySuccess(BluetoothReplyRunnable* aRunnable);
 
 
 
@@ -72,9 +67,40 @@ DispatchBluetoothReply(BluetoothReplyRunnable* aRunnable,
 
 
 void
-DispatchBluetoothReply(BluetoothReplyRunnable* aRunnable,
-                       const BluetoothValue& aValue,
-                       const enum BluetoothStatus aStatusCode);
+DispatchReplySuccess(BluetoothReplyRunnable* aRunnable,
+                     const BluetoothValue& aValue);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void
+DispatchReplyError(BluetoothReplyRunnable* aRunnable,
+                   const nsAString& aErrorStr);
+
+
+
+
+
+
+
+
+
+
+
+
+void
+DispatchReplyError(BluetoothReplyRunnable* aRunnable,
+                   const enum BluetoothStatus aStatus);
 
 void
 DispatchStatusChangedEvent(const nsAString& aType,
