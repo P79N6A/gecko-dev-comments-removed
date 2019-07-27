@@ -62,6 +62,8 @@ public:
   nsresult Init(GeckoMediaPluginService *aService, nsIFile* aPluginDir);
   nsresult CloneFrom(const GMPParent* aOther);
 
+  void Crash();
+
   nsresult LoadProcess();
 
   
