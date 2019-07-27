@@ -4274,9 +4274,9 @@ HTMLMediaElement::VideoTracks()
 
 
 TextTrackList*
-HTMLMediaElement::TextTracks()
+HTMLMediaElement::GetTextTracks()
 {
-  return GetOrCreateTextTrackManager()->TextTracks();
+  return GetOrCreateTextTrackManager()->GetTextTracks();
 }
 
 already_AddRefed<TextTrack>
