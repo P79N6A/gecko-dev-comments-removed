@@ -304,13 +304,7 @@ static Result
 DecodeBasicConstraints(Reader& input,  bool& isCA,
                         long& pathLenConstraint)
 {
-  
-  
-  
-  
-  
-  
-  if (der::OptionalBoolean(input, true, isCA) != Success) {
+  if (der::OptionalBoolean(input, isCA) != Success) {
     return Result::ERROR_EXTENSION_VALUE_INVALID;
   }
 

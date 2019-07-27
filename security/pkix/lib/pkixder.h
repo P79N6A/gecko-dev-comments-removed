@@ -287,18 +287,16 @@ Boolean(Reader& input,  bool& value)
 
 
 
+
+
 inline Result
-OptionalBoolean(Reader& input, bool allowInvalidExplicitEncoding,
-                 bool& value)
+OptionalBoolean(Reader& input,  bool& value)
 {
   value = false;
   if (input.Peek(BOOLEAN)) {
     Result rv = Boolean(input, value);
     if (rv != Success) {
       return rv;
-    }
-    if (!allowInvalidExplicitEncoding && !value) {
-      return Result::ERROR_BAD_DER;
     }
   }
   return Success;
@@ -543,7 +541,7 @@ OptionalExtensions(Reader& input, uint8_t tag,
       return rv;
     }
     bool critical;
-    rv = OptionalBoolean(extension, false, critical);
+    rv = OptionalBoolean(extension, critical);
     if (rv != Success) {
       return rv;
     }
