@@ -35,8 +35,12 @@ function copyStringAndToast(string, notifyString) {
   }
 }
 
+
+const FILTER_DELAY = 500;
+
 let Passwords = {
   _logins: [],
+  _filterTimer: null,
 
   _getLogins: function() {
     let logins;
@@ -66,7 +70,19 @@ let Passwords = {
     let filterInput = document.getElementById("filter-input");
     let filterContainer = document.getElementById("filter-input-container");
 
-    filterInput.addEventListener("input", this._filter.bind(this), false);
+    filterInput.addEventListener("input", (event) => {
+      
+      if (this._filterTimer) {
+        clearTimeout(this._filterTimer);
+        this._filterTimer = null;
+      }
+
+      
+      this._filterTimer = setTimeout(() => {
+        this._filter(event);
+      }, FILTER_DELAY);
+    }, false);
+
     filterInput.addEventListener("blur", (event) => {
       filterContainer.setAttribute("hidden", true);
     });
@@ -77,6 +93,12 @@ let Passwords = {
     }, false);
 
     document.getElementById("filter-clear").addEventListener("click", (event) => {
+      
+      if (this._filterTimer) {
+        clearTimeout(this._filterTimer);
+        this._filterTimer = null;
+      }
+
       filterInput.blur();
       filterInput.value = "";
       this._loadList(this._logins);
