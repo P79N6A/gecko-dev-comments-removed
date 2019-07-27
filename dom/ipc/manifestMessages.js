@@ -12,20 +12,13 @@
 
 
 
-
 'use strict';
 const {
   utils: Cu
 } = Components;
-
-Cu.import('resource://gre/modules/XPCOMUtils.jsm');
-
-XPCOMUtils.defineLazyModuleGetter(this, 'ManifestProcessor',
-  'resource://gre/modules/ManifestProcessor.jsm');
-XPCOMUtils.defineLazyModuleGetter(this, 'ManifestObtainer',
-  'resource://gre/modules/ManifestObtainer.jsm');
-XPCOMUtils.defineLazyModuleGetter(this, 'BrowserUtils',
-  'resource://gre/modules/BrowserUtils.jsm');
+const {
+  ManifestProcessor
+} = Cu.import('resource://gre/modules/WebManifest.jsm', {});
 
 addMessageListener('DOM:ManifestObtainer:Obtain', (aMsg) => {
   fetchManifest()

@@ -20,25 +20,23 @@
 
 
 'use strict';
-this.EXPORTED_SYMBOLS = ['ManifestImageObjectProcessor']; 
-const imports = {};
 const {
   utils: Cu,
-  classes: Cc,
-  interfaces: Ci
+  interfaces: Ci,
+  classes: Cc
 } = Components;
-Cu.import('resource://gre/modules/XPCOMUtils.jsm');
+
 Cu.importGlobalProperties(['URL']);
-imports.netutil = Cc['@mozilla.org/network/util;1']
+const netutil = Cc['@mozilla.org/network/util;1']
   .getService(Ci.nsINetUtil);
 
-function ManifestImageObjectProcessor(aConsole, aExtractor) {
+function ImageObjectProcessor(aConsole, aExtractor) {
   this.console = aConsole;
   this.extractor = aExtractor;
 }
 
 
-Object.defineProperties(ManifestImageObjectProcessor, {
+Object.defineProperties(ImageObjectProcessor, {
   'decimals': {
     get: function() {
       return /^\d+$/;
@@ -51,7 +49,7 @@ Object.defineProperties(ManifestImageObjectProcessor, {
   }
 });
 
-ManifestImageObjectProcessor.prototype.process = function(
+ImageObjectProcessor.prototype.process = function(
   aManifest, aBaseURL, aMemberName
 ) {
   const spec = {
@@ -94,7 +92,7 @@ ManifestImageObjectProcessor.prototype.process = function(
     };
     let value = extractor.extractValue(spec);
     if (value) {
-      value = imports.netutil.parseContentType(value, charset, hadCharset);
+      value = netutil.parseContentType(value, charset, hadCharset);
     }
     return value || undefined;
   }
@@ -144,7 +142,7 @@ ManifestImageObjectProcessor.prototype.process = function(
     
     function isValidSizeValue(aSize) {
       const size = aSize.toLowerCase();
-      if (ManifestImageObjectProcessor.anyRegEx.test(aSize)) {
+      if (ImageObjectProcessor.anyRegEx.test(aSize)) {
         return true;
       }
       if (!size.includes('x') || size.indexOf('x') !== size.lastIndexOf('x')) {
@@ -155,7 +153,7 @@ ManifestImageObjectProcessor.prototype.process = function(
       const w = widthAndHeight.shift();
       const h = widthAndHeight.join('x');
       const validStarts = !w.startsWith('0') && !h.startsWith('0');
-      const validDecimals = ManifestImageObjectProcessor.decimals.test(w + h);
+      const validDecimals = ImageObjectProcessor.decimals.test(w + h);
       return (validStarts && validDecimals);
     }
   }
@@ -171,4 +169,5 @@ ManifestImageObjectProcessor.prototype.process = function(
     return extractor.extractColorValue(spec);
   }
 };
-this.ManifestImageObjectProcessor = ManifestImageObjectProcessor; 
+this.ImageObjectProcessor = ImageObjectProcessor; 
+this.EXPORTED_SYMBOLS = ['ImageObjectProcessor']; 

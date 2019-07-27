@@ -21,8 +21,6 @@
 
 
 'use strict';
-this.EXPORTED_SYMBOLS = ['ManifestObtainer'];
-
 const MSG_KEY = 'DOM:ManifestObtainer:Obtain';
 let messageCounter = 0;
 
@@ -83,3 +81,5 @@ ManifestObtainer.prototype = {
     }
   }
 };
+this.ManifestObtainer = ManifestObtainer; 
+this.EXPORTED_SYMBOLS = ['ManifestObtainer']; 
