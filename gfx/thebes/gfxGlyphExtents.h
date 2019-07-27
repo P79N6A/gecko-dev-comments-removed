@@ -6,13 +6,13 @@
 #ifndef GFX_GLYPHEXTENTS_H
 #define GFX_GLYPHEXTENTS_H
 
+#include "gfxFont.h"
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
 #include "nsTArray.h"
 #include "mozilla/MemoryReporting.h"
 
 class gfxContext;
-class gfxFont;
 struct gfxRect;
 
 
@@ -62,8 +62,9 @@ public:
     
     
     
-    bool GetTightGlyphExtentsAppUnits(gfxFont *aFont, gfxContext *aContext,
-            uint32_t aGlyphID, gfxRect *aExtents);
+    bool GetTightGlyphExtentsAppUnits(gfxFont *aFont,
+            gfxFont::Orientation aOrientation,
+            gfxContext *aContext, uint32_t aGlyphID, gfxRect *aExtents);
 
     void SetContainedGlyphWidthAppUnits(uint32_t aGlyphID, uint16_t aWidth) {
         mContainedGlyphWidths.Set(aGlyphID, aWidth);
