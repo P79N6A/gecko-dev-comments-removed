@@ -426,6 +426,13 @@ exports.defineLazyGetter(this, "NetUtil", () => {
   return Cu.import("resource://gre/modules/NetUtil.jsm", {}).NetUtil;
 });
 
+exports.defineLazyGetter(this, "OS", () => {
+  return Cu.import("resource://gre/modules/osfile.jsm", {}).OS;
+});
+
+exports.defineLazyGetter(this, "TextDecoder", () => {
+  return Cu.import("resource://gre/modules/osfile.jsm", {}).TextDecoder;
+});
 
 
 
@@ -448,141 +455,89 @@ exports.defineLazyGetter(this, "NetUtil", () => {
 
 
 
-if (!this.isWorker) {
-  exports.fetch = function (aURL, aOptions={ loadFromCache: true,
-                                             policy: Ci.nsIContentPolicy.TYPE_OTHER,
-                                             window: null,
-                                             charset: null }) {
-    let deferred = promise.defer();
-    let scheme;
-    let url = aURL.split(" -> ").pop();
-    let charset;
-    let contentType;
+
+
+function mainThreadFetch(aURL, aOptions={ loadFromCache: true,
+                                          policy: Ci.nsIContentPolicy.TYPE_OTHER,
+                                          window: null,
+                                          charset: null }) {
+  
+  let url = aURL.split(" -> ").pop();
+  let channel;
+  try {
+    channel = newChannelForURL(url, aOptions);
+  } catch (ex) {
+    return promise.reject(ex);
+  }
+
+  
+  channel.loadFlags = aOptions.loadFromCache
+    ? channel.LOAD_FROM_CACHE
+    : channel.LOAD_BYPASS_CACHE;
+
+  if (aOptions.window) {
+    
+    channel.loadGroup = aOptions.window.QueryInterface(Ci.nsIInterfaceRequestor)
+                          .getInterface(Ci.nsIWebNavigation)
+                          .QueryInterface(Ci.nsIDocumentLoader)
+                          .loadGroup;
+  }
+
+  let deferred = promise.defer();
+  let onResponse = (stream, status, request) => {
+    if (!components.isSuccessCode(status)) {
+      deferred.reject(new Error(`Failed to fetch ${url}. Code ${status}.`));
+      return;
+    }
 
     try {
-      scheme = Services.io.extractScheme(url);
-    } catch (e) {
+      let charset = channel.contentCharset || aOptions.charset || "UTF-8";
+
       
-      
-      
-      url = "file://" + url;
-      scheme = Services.io.extractScheme(url);
+      let available = stream.available();
+      let source = NetUtil.readInputStreamToString(stream, available, {charset});
+      stream.close();
+
+      deferred.resolve({
+        content: source,
+        contentType: request.contentType
+      });
+    } catch (ex) {
+      let uri = request.originalURI;
+      if (ex.name === "NS_BASE_STREAM_CLOSED" && uri instanceof Ci.nsIFileURL) {
+        
+        
+        
+
+        uri.QueryInterface(Ci.nsIFileURL);
+        let result = OS.File.read(uri.file.path).then(bytes => {
+          
+          let decoder = new TextDecoder();
+          let content = decoder.decode(bytes);
+
+          
+          
+          return {
+            content,
+            contentType: "text/plain"
+          };
+        });
+
+        deferred.resolve(result);
+      } else {
+        deferred.reject(ex);
+      }
     }
+  };
 
-    switch (scheme) {
-      case "file":
-      case "chrome":
-      case "resource":
-        try {
-          NetUtil.asyncFetch({
-            uri: url,
-            loadUsingSystemPrincipal: true
-          }, function onFetch(aStream, aStatus, aRequest) {
-              if (!components.isSuccessCode(aStatus)) {
-                deferred.reject(new Error("Request failed with status code = "
-                                          + aStatus
-                                          + " after NetUtil.asyncFetch for url = "
-                                          + url));
-                return;
-              }
-
-              let source = NetUtil.readInputStreamToString(aStream, aStream.available());
-              contentType = aRequest.contentType;
-              deferred.resolve(source);
-              aStream.close();
-            });
-        } catch (ex) {
-          deferred.reject(ex);
-        }
-        break;
-
-      default:
-        let channel;
-        try {
-          channel = Services.io.newChannel2(url,
-                                            null,
-                                            null,
-                                            null,      
-                                            Services.scriptSecurityManager.getSystemPrincipal(),
-                                            null,      
-                                            Ci.nsILoadInfo.SEC_NORMAL,
-                                            aOptions.policy);
-        } catch (e if e.name == "NS_ERROR_UNKNOWN_PROTOCOL") {
-          
-          
-          url = "file:///" + url;
-          channel = Services.io.newChannel2(url,
-                                            null,
-                                            null,
-                                            null,      
-                                            Services.scriptSecurityManager.getSystemPrincipal(),
-                                            null,      
-                                            Ci.nsILoadInfo.SEC_NORMAL,
-                                            aOptions.policy);
-        }
-        let chunks = [];
-        let streamListener = {
-          onStartRequest: function(aRequest, aContext, aStatusCode) {
-            if (!components.isSuccessCode(aStatusCode)) {
-              deferred.reject(new Error("Request failed with status code = "
-                                        + aStatusCode
-                                        + " in onStartRequest handler for url = "
-                                        + url));
-            }
-          },
-          onDataAvailable: function(aRequest, aContext, aStream, aOffset, aCount) {
-            chunks.push(NetUtil.readInputStreamToString(aStream, aCount));
-          },
-          onStopRequest: function(aRequest, aContext, aStatusCode) {
-            if (!components.isSuccessCode(aStatusCode)) {
-              deferred.reject(new Error("Request failed with status code = "
-                                        + aStatusCode
-                                        + " in onStopRequest handler for url = "
-                                        + url));
-              return;
-            }
-
-            charset = channel.contentCharset || aOptions.charset;
-            contentType = channel.contentType;
-            deferred.resolve(chunks.join(""));
-          }
-        };
-
-        if (aOptions.window) {
-          
-          channel.loadGroup = aOptions.window.QueryInterface(Ci.nsIInterfaceRequestor)
-                                .getInterface(Ci.nsIWebNavigation)
-                                .QueryInterface(Ci.nsIDocumentLoader)
-                                .loadGroup;
-        }
-        channel.loadFlags = aOptions.loadFromCache
-          ? channel.LOAD_FROM_CACHE
-          : channel.LOAD_BYPASS_CACHE;
-        try {
-          channel.asyncOpen(streamListener, null);
-        } catch(e) {
-          deferred.reject(new Error("Request failed for '"
-                                    + url
-                                    + "': "
-                                    + e.message));
-        }
-        break;
-    }
-
-    return deferred.promise.then(source => {
-      return {
-        content: convertToUnicode(source, charset),
-        contentType: contentType
-      };
-    });
+  
+  try {
+    NetUtil.asyncFetch(channel, onResponse);
+  } catch (ex) {
+    return promise.reject(ex);
   }
-} else {
-  
-  
-  
-  exports.fetch = function (url, options) {
-    return rpc("fetch", url, options);
-  }
+
+  return deferred.promise;
 }
 
 
@@ -592,16 +547,35 @@ if (!this.isWorker) {
 
 
 
+function newChannelForURL(url, { policy }) {
+  let channelOptions = {
+    contentPolicyType: policy,
+    loadUsingSystemPrincipal: true,
+    uri: url
+  };
 
-function convertToUnicode(aString, aCharset=null) {
-  
-  let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-    .createInstance(Ci.nsIScriptableUnicodeConverter);
   try {
-    converter.charset = aCharset || "UTF-8";
-    return converter.ConvertToUnicode(aString);
-  } catch(e) {
-    return aString;
+    return NetUtil.newChannel(channelOptions);
+  } catch (e) {
+    
+    
+    
+    channelOptions.uri = "file://" + url;
+
+    return NetUtil.newChannel(channelOptions);
+  }
+}
+
+
+
+if (!this.isWorker) {
+  exports.fetch = mainThreadFetch;
+} else {
+  
+  
+  
+  exports.fetch = function (url, options) {
+    return rpc("fetch", url, options);
   }
 }
 
