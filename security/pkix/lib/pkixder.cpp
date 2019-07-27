@@ -186,6 +186,15 @@ SignatureAlgorithmOIDValue(Reader& algorithmID,
 
   
   
+  
+  
+  
+  static const uint8_t sha1WithRSASignature[] = {
+    0x2b, 0x0e, 0x03, 0x02, 0x1d
+  };
+
+  
+  
   static const uint8_t id_dsa_with_sha1[] = {
     0x2a, 0x86, 0x48, 0xce, 0x38, 0x04, 0x03
   };
@@ -227,6 +236,9 @@ SignatureAlgorithmOIDValue(Reader& algorithmID,
     algorithm = SignatureAlgorithm::dsa_with_sha1;
   } else if (algorithmID.MatchRest(id_dsa_with_sha256)) {
     algorithm = SignatureAlgorithm::dsa_with_sha256;
+  } else if (algorithmID.MatchRest(sha1WithRSASignature)) {
+    
+    algorithm = SignatureAlgorithm::rsa_pkcs1_with_sha1;
   } else {
     
     return Result::ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED;
