@@ -38,8 +38,7 @@ class DeadObjectProxy : public BaseProxyHandler
     virtual bool construct(JSContext* cx, HandleObject proxy, const CallArgs& args) const override;
 
     
-    virtual bool getPropertyDescriptor(JSContext* cx, HandleObject wrapper, HandleId id,
-                                       MutableHandle<JSPropertyDescriptor> desc) const override;
+    
     virtual bool nativeCall(JSContext* cx, IsAcceptableThis test, NativeImpl impl,
                             CallArgs args) const override;
     virtual bool hasInstance(JSContext* cx, HandleObject proxy, MutableHandleValue v,
