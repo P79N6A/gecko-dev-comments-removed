@@ -29,7 +29,9 @@
 
 
 
+#ifdef PR_LOGGING
 static PRLogModuleInfo* gLog = nullptr;
+#endif
 
 #undef LOGD
 #undef LOGE
@@ -62,8 +64,10 @@ nsAutodial::~nsAutodial()
 
 nsresult nsAutodial::Init()
 {
+#ifdef PR_LOGGING
     if (!gLog)
         gLog = PR_NewLogModule("Autodial");
+#endif
 
     mDefaultEntryName[0] = '\0';
     mNumRASConnectionEntries = 0;

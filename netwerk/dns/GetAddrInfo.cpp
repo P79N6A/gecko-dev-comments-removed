@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "GetAddrInfo.h"
 #include "mozilla/net/DNS.h"
@@ -23,17 +23,22 @@
 #endif
 
 #include "prlog.h"
+#if defined(PR_LOGGING)
 static PRLogModuleInfo *gGetAddrInfoLog = PR_NewLogModule("GetAddrInfo");
 #define LOG(msg, ...) \
   PR_LOG(gGetAddrInfoLog, PR_LOG_DEBUG, ("[DNS]: " msg, ##__VA_ARGS__))
 #define LOG_WARNING(msg, ...) \
   PR_LOG(gGetAddrInfoLog, PR_LOG_WARNING, ("[DNS]: " msg, ##__VA_ARGS__))
+#else
+#define LOG(args)
+#define LOG_WARNING(args)
+#endif
 
 #if DNSQUERY_AVAILABLE
-
-
-
-
+// There is a bug in windns.h where the type of parameter ppQueryResultsSet for
+// DnsQuery_A is dependent on UNICODE being set. It should *always* be
+// PDNS_RECORDA, but if UNICODE is set it is PDNS_RECORDW. To get around this
+// we make sure that UNICODE is unset.
 #undef UNICODE
 #include <ws2tcpip.h>
 #undef GetAddrInfo
@@ -44,19 +49,19 @@ namespace mozilla {
 namespace net {
 
 #if DNSQUERY_AVAILABLE
+////////////////////////////
+// WINDOWS IMPLEMENTATION //
+////////////////////////////
 
-
-
-
-
-
+// Ensure consistency of PR_* and AF_* constants to allow for legacy usage of
+// PR_* constants with this API.
 static_assert(PR_AF_INET == AF_INET && PR_AF_INET6 == AF_INET6
     && PR_AF_UNSPEC == AF_UNSPEC, "PR_AF_* must match AF_*");
 
-
-
-
-
+// We intentionally leak this mutex. This is because we can run into a
+// situation where the worker threads are still running until the process
+// is actually fully shut down, and at any time one of those worker
+// threads can access gDnsapiInfoLock.
 static OffTheBooksMutex* gDnsapiInfoLock = nullptr;
 
 struct DnsapiInfo
@@ -69,10 +74,10 @@ public:
   decltype(&DnsFree) mDnsFreeFunc;
 
 private:
-  
-  
-  
-  
+  // This will either be called during shutdown of the GetAddrInfo module, or
+  // when a worker thread is done doing a lookup (ie: within
+  // _GetAddrInfo_Windows). Note that the lock must be held when this is
+  // called.
   ~DnsapiInfo()
   {
     if (gDnsapiInfoLock) {
@@ -95,9 +100,9 @@ static StaticRefPtr<DnsapiInfo> gDnsapiInfo;
 static MOZ_ALWAYS_INLINE nsresult
 _GetAddrInfoInit_Windows()
 {
-  
-  
-  
+  // This is necessary to ensure strict thread safety because if two threads
+  // run this function at the same time they can potentially create two
+  // mutexes.
   MOZ_ASSERT(NS_IsMainThread(),
              "Do not initialize GetAddrInfo off main thread!");
 
@@ -187,7 +192,7 @@ _GetTTLData_Windows(const char* aHost, uint16_t* aResult)
   unsigned int ttl = -1;
   PDNS_RECORDA curRecord = dnsData;
   for (; curRecord; curRecord = curRecord->pNext) {
-    
+    // Only records in the answer section are important
     if (curRecord->Flags.S.Section != DnsSectionAnswer) {
       continue;
     }
@@ -200,7 +205,7 @@ _GetTTLData_Windows(const char* aHost, uint16_t* aResult)
   dnsapi->mDnsFreeFunc(dnsData, DNS_FREE_TYPE::DnsFreeRecordList);
 
   {
-    
+    // dnsapi's destructor is not thread-safe, so we release explicitly here
     OffTheBooksMutexAutoLock lock(*gDnsapiInfoLock);
     dnsapi = nullptr;
   }
@@ -216,7 +221,7 @@ _GetTTLData_Windows(const char* aHost, uint16_t* aResult)
 #endif
 
 #if defined(ANDROID) && ANDROID_VERSION >= 19
-
+// Make the same as nspr functions.
 static MOZ_ALWAYS_INLINE PRAddrInfo*
 _Android_GetAddrInfoForNetInterface(const char* hostname,
                                    uint16_t af,
@@ -279,9 +284,9 @@ _Android_GetAddrInfoForNetInterface(const char* hostname,
 }
 #endif
 
-
-
-
+////////////////////////////////////
+// PORTABLE RUNTIME IMPLEMENTATION//
+////////////////////////////////////
 
 static MOZ_ALWAYS_INLINE nsresult
 _GetAddrInfo_Portable(const char* aCanonHost, uint16_t aAddressFamily,
@@ -291,16 +296,16 @@ _GetAddrInfo_Portable(const char* aCanonHost, uint16_t aAddressFamily,
   MOZ_ASSERT(aCanonHost);
   MOZ_ASSERT(aAddrInfo);
 
-  
-  
-  
+  // We accept the same aFlags that nsHostResolver::ResolveHost accepts, but we
+  // need to translate the aFlags into a form that PR_GetAddrInfoByName
+  // accepts.
   int prFlags = PR_AI_ADDRCONFIG;
   if (!(aFlags & nsHostResolver::RES_CANON_NAME)) {
     prFlags |= PR_AI_NOCANONNAME;
   }
 
-  
-  
+  // We need to remove IPv4 records manually because PR_GetAddrInfoByName
+  // doesn't support PR_AF_INET6.
   bool disableIPv4 = aAddressFamily == PR_AF_INET6;
   if (disableIPv4) {
     aAddressFamily = PR_AF_UNSPEC;
@@ -339,9 +344,9 @@ _GetAddrInfo_Portable(const char* aCanonHost, uint16_t aAddressFamily,
   return NS_OK;
 }
 
-
-
-
+//////////////////////////////////////
+// COMMON/PLATFORM INDEPENDENT CODE //
+//////////////////////////////////////
 nsresult
 GetAddrInfoInit() {
   LOG("Initializing GetAddrInfo.\n");
@@ -373,7 +378,7 @@ GetAddrInfo(const char* aHost, uint16_t aAddressFamily, uint16_t aFlags,
   }
 
 #if DNSQUERY_AVAILABLE
-  
+  // The GetTTLData needs the canonical name to function properly
   if (aGetTtl) {
     aFlags |= nsHostResolver::RES_CANON_NAME;
   }
@@ -385,8 +390,8 @@ GetAddrInfo(const char* aHost, uint16_t aAddressFamily, uint16_t aFlags,
 
 #if DNSQUERY_AVAILABLE
   if (aGetTtl && NS_SUCCEEDED(rv)) {
-    
-    
+    // Figure out the canonical name, or if that fails, just use the host name
+    // we have.
     const char *name = nullptr;
     if (*aAddrInfo != nullptr && (*aAddrInfo)->mCanonicalName) {
       name = (*aAddrInfo)->mCanonicalName;
@@ -409,5 +414,5 @@ GetAddrInfo(const char* aHost, uint16_t aAddressFamily, uint16_t aFlags,
   return rv;
 }
 
-} 
-} 
+} // namespace net
+} // namespace mozilla

@@ -37,10 +37,12 @@ bool nsStandardURL::gEscapeUTF8 = true;
 bool nsStandardURL::gAlwaysEncodeInUTF8 = true;
 char nsStandardURL::gHostLimitDigits[] = { '/', '\\', '?', '#', 0 };
 
+#if defined(PR_LOGGING)
 
 
 
 static PRLogModuleInfo *gStandardURLLog;
+#endif
 
 
 #undef LOG
@@ -252,8 +254,10 @@ nsStandardURL::nsStandardURL(bool aSupportsFileURL, bool aTrackURL)
     , mMutable(true)
     , mSupportsFileURL(aSupportsFileURL)
 {
+#if defined(PR_LOGGING)
     if (!gStandardURLLog)
         gStandardURLLog = PR_NewLogModule("nsStandardURL");
+#endif
 
     LOG(("Creating nsStandardURL @%p\n", this));
 
@@ -1202,6 +1206,7 @@ nsStandardURL::SetSpec(const nsACString &input)
         return rv;
     }
 
+#if defined(PR_LOGGING)
     if (LOG_ENABLED()) {
         LOG((" spec      = %s\n", mSpec.get()));
         LOG((" port      = %d\n", mPort));
@@ -1218,6 +1223,7 @@ nsStandardURL::SetSpec(const nsACString &input)
         LOG((" query     = (%u,%d)\n", mQuery.mPos,     mQuery.mLen));
         LOG((" ref       = (%u,%d)\n", mRef.mPos,       mRef.mLen));
     }
+#endif
     return rv;
 }
 
@@ -2704,12 +2710,14 @@ nsStandardURL::GetFile(nsIFile **result)
     if (NS_FAILED(rv))
         return rv;
 
+#if defined(PR_LOGGING)
     if (LOG_ENABLED()) {
         nsAutoCString path;
         mFile->GetNativePath(path);
         LOG(("nsStandardURL::GetFile [this=%p spec=%s resulting_path=%s]\n",
             this, mSpec.get(), path.get()));
     }
+#endif
 
     
     

@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef nsFtpProtocolHandler_h__
 #define nsFtpProtocolHandler_h__
@@ -13,7 +13,7 @@
 #include "nsIObserver.h"
 #include "nsWeakReference.h"
 
-
+//-----------------------------------------------------------------------------
 
 class nsFtpProtocolHandler final : public nsIProxiedProtocolHandler
                                  , public nsIObserver
@@ -29,7 +29,7 @@ public:
     
     nsresult Init();
 
-    
+    // FTP Connection list access
     nsresult InsertConnection(nsIURI *aKey, nsFtpControlConnection *aConn);
     nsresult RemoveConnection(nsIURI *aKey, nsFtpControlConnection **aConn);
     uint32_t GetSessionId() { return mSessionId; }
@@ -40,7 +40,7 @@ public:
 private:
     virtual ~nsFtpProtocolHandler();
 
-    
+    // Stuff for the timer callback function
     struct timerStruct {
         nsCOMPtr<nsITimer>      timer;
         nsFtpControlConnection *conn;
@@ -67,21 +67,23 @@ private:
 
     int32_t mIdleTimeout;
 
-    
-    
-    
-    
-    
+    // When "clear active logins" is performed, all idle connection are dropped
+    // and mSessionId is incremented. When nsFtpState wants to insert idle
+    // connection we refuse to cache if its mSessionId is different (i.e.
+    // control connection had been created before last "clear active logins" was
+    // performed.
     uint32_t mSessionId;
 
     uint8_t mControlQoSBits;
     uint8_t mDataQoSBits;
 };
 
-
+//-----------------------------------------------------------------------------
 
 extern nsFtpProtocolHandler *gFtpHandler;
 
+#ifdef PR_LOGGING
 extern PRLogModuleInfo* gFTPLog;
+#endif
 
-#endif 
+#endif // !nsFtpProtocolHandler_h__

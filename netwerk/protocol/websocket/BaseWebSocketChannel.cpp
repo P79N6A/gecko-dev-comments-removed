@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set sw=2 ts=8 et tw=80 : */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "WebSocketLog.h"
 #include "BaseWebSocketChannel.h"
@@ -13,7 +13,9 @@
 #include "nsProxyRelease.h"
 #include "nsStandardURL.h"
 
+#if defined(PR_LOGGING)
 PRLogModuleInfo *webSocketLog = nullptr;
+#endif
 
 namespace mozilla {
 namespace net {
@@ -27,13 +29,15 @@ BaseWebSocketChannel::BaseWebSocketChannel()
   , mPingInterval(0)
   , mPingResponseTimeout(10000)
 {
+#if defined(PR_LOGGING)
   if (!webSocketLog)
     webSocketLog = PR_NewLogModule("nsWebSocket");
+#endif
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// BaseWebSocketChannel::nsIWebSocketChannel
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 BaseWebSocketChannel::GetOriginalURI(nsIURI **aOriginalURI)
@@ -128,14 +132,14 @@ NS_IMETHODIMP
 BaseWebSocketChannel::SetProtocol(const nsACString &aProtocol)
 {
   LOG(("BaseWebSocketChannel::SetProtocol() %p\n", this));
-  mProtocol = aProtocol;                        
+  mProtocol = aProtocol;                        /* the sub protocol */
   return NS_OK;
 }
 
 NS_IMETHODIMP
 BaseWebSocketChannel::GetPingInterval(uint32_t *aSeconds)
 {
-  
+  // stored in ms but should only have second resolution
   MOZ_ASSERT(!(mPingInterval % 1000));
 
   *aSeconds = mPingInterval / 1000;
@@ -158,7 +162,7 @@ BaseWebSocketChannel::SetPingInterval(uint32_t aSeconds)
 NS_IMETHODIMP
 BaseWebSocketChannel::GetPingTimeout(uint32_t *aSeconds)
 {
-  
+  // stored in ms but should only have second resolution
   MOZ_ASSERT(!(mPingResponseTimeout % 1000));
 
   *aSeconds = mPingResponseTimeout / 1000;
@@ -191,9 +195,9 @@ BaseWebSocketChannel::InitLoadInfo(nsIDOMNode* aLoadingNode,
   return NS_OK;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// BaseWebSocketChannel::nsIProtocolHandler
+//-----------------------------------------------------------------------------
 
 
 NS_IMETHODIMP
@@ -272,14 +276,14 @@ BaseWebSocketChannel::AllowPort(int32_t port, const char *scheme,
 {
   LOG(("BaseWebSocketChannel::AllowPort() %p\n", this));
 
-  
+  // do not override any blacklisted ports
   *_retval = false;
   return NS_OK;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// BaseWebSocketChannel::nsIThreadRetargetableRequest
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 BaseWebSocketChannel::RetargetDeliveryTo(nsIEventTarget* aTargetThread)
@@ -315,5 +319,5 @@ BaseWebSocketChannel::ListenerAndContextContainer::~ListenerAndContextContainer(
   NS_ProxyRelease(mainThread, mContext, false);
 }
 
-} 
-} 
+} // namespace net
+} // namespace mozilla

@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set sw=2 ts=8 et tw=80 : */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "WebSocketLog.h"
 #include "WebSocketChannelParent.h"
@@ -31,10 +31,12 @@ WebSocketChannelParent::WebSocketChannelParent(nsIAuthPromptProvider* aAuthProvi
   , mLoadContext(aLoadContext)
   , mIPCOpen(true)
 {
-  
+  // Websocket channels can't have a private browsing override
   MOZ_ASSERT_IF(!aLoadContext, aOverrideStatus == kPBOverride_Unset);
+#if defined(PR_LOGGING)
   if (!webSocketLog)
     webSocketLog = PR_NewLogModule("nsWebSocket");
+#endif
   mObserver = new OfflineObserver(this);
 }
 
@@ -44,9 +46,9 @@ WebSocketChannelParent::~WebSocketChannelParent()
     mObserver->RemoveObserver();
   }
 }
-
-
-
+//-----------------------------------------------------------------------------
+// WebSocketChannelParent::PWebSocketChannelParent
+//-----------------------------------------------------------------------------
 
 bool
 WebSocketChannelParent::RecvDeleteSelf()
@@ -131,9 +133,9 @@ WebSocketChannelParent::RecvAsyncOpen(const URIParams& aURI,
     goto fail;
   }
 
-  
+  // only use ping values from child if they were overridden by client code.
   if (aClientSetPingInterval) {
-    
+    // IDL allows setting in seconds, so must be multiple of 1000 ms
     MOZ_ASSERT(aPingInterval >= 1000 && !(aPingInterval % 1000));
     mChannel->SetPingInterval(aPingInterval / 1000);
   }
@@ -204,9 +206,9 @@ WebSocketChannelParent::RecvSendBinaryStream(const InputStreamParams& aStream,
   return true;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// WebSocketChannelParent::nsIRequestObserver
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 WebSocketChannelParent::OnStart(nsISupports *aContext)
@@ -290,9 +292,9 @@ WebSocketChannelParent::ActorDestroy(ActorDestroyReason why)
   mIPCOpen = false;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// WebSocketChannelParent::nsIInterfaceRequestor
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 WebSocketChannelParent::GetInterface(const nsIID & iid, void **result)
@@ -302,7 +304,7 @@ WebSocketChannelParent::GetInterface(const nsIID & iid, void **result)
     return mAuthProvider->GetAuthPrompt(nsIAuthPromptProvider::PROMPT_NORMAL,
                                         iid, result);
 
-  
+  // Only support nsILoadContext if child channel's callbacks did too
   if (iid.Equals(NS_GET_IID(nsILoadContext)) && mLoadContext) {
     NS_ADDREF(mLoadContext);
     *result = static_cast<nsILoadContext*>(mLoadContext);
@@ -331,5 +333,5 @@ WebSocketChannelParent::GetAppId()
   return appId;
 }
 
-} 
-} 
+} // namespace net
+} // namespace mozilla

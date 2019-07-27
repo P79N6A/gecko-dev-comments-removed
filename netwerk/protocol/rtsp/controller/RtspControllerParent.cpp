@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set sw=2 ts=8 et tw=80 : */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "RtspControllerParent.h"
 #include "RtspController.h"
@@ -36,10 +36,10 @@ namespace net {
 void
 RtspControllerParent::Destroy()
 {
-  
-  
-  
-  
+  // If we're being destroyed on a non-main thread, we AddRef again and use a
+  // proxy to release the RtspControllerParent on the main thread, where the
+  // RtspControllerParent is deleted. This ensures we only delete the
+  // RtspControllerParent on the main thread.
   if (!NS_IsMainThread()) {
     nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
     NS_ENSURE_TRUE_VOID(mainThread);
@@ -62,8 +62,10 @@ RtspControllerParent::RtspControllerParent()
   : mIPCOpen(true)
   , mTotalTracks(0)
 {
+#if defined(PR_LOGGING)
   if (!gRtspLog)
     gRtspLog = PR_NewLogModule("nsRtsp");
+#endif
 }
 
 RtspControllerParent::~RtspControllerParent()
@@ -193,7 +195,7 @@ RtspControllerParent::OnMediaDataAvailable(uint8_t index,
   LOG(("RtspControllerParent:: OnMediaDataAvailable %d:%d time %lld",
        index, length, int64Value));
 
-  
+  // Serialize meta data.
   nsCString name;
   name.AssignLiteral("TIMESTAMP");
   InfallibleTArray<RtspMetadataParam> metaData;
@@ -222,7 +224,7 @@ RtspControllerParent::OnConnected(uint8_t index,
   uint64_t int64Value;
 
   LOG(("RtspControllerParent:: OnConnected"));
-  
+  // Serialize meta data.
   InfallibleTArray<RtspMetadataParam> metaData;
   nsCString name;
   name.AssignLiteral("TRACKS");
@@ -299,5 +301,5 @@ RtspControllerParent::OnDisconnected(uint8_t index,
   return NS_OK;
 }
 
-} 
-} 
+} // namespace net
+} // namespace mozilla

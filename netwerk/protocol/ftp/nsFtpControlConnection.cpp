@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsIOService.h"
 #include "nsFtpControlConnection.h"
@@ -15,13 +15,15 @@
 #include "nsNetCID.h"
 #include <algorithm>
 
+#if defined(PR_LOGGING)
 extern PRLogModuleInfo* gFTPLog;
+#endif
 #define LOG(args)         PR_LOG(gFTPLog, PR_LOG_DEBUG, args)
 #define LOG_ALWAYS(args)  PR_LOG(gFTPLog, PR_LOG_ALWAYS, args)
 
-
-
-
+//
+// nsFtpControlConnection implementation ...
+//
 
 NS_IMPL_ISUPPORTS(nsFtpControlConnection, nsIInputStreamCallback)
 
@@ -30,7 +32,7 @@ nsFtpControlConnection::OnInputStreamReady(nsIAsyncInputStream *stream)
 {
     char data[4096];
 
-    
+    // Consume data whether we have a listener or not.
     uint64_t avail64;
     uint32_t avail = 0;
     nsresult rv = stream->Available(&avail64);
@@ -43,8 +45,8 @@ nsFtpControlConnection::OnInputStreamReady(nsIAsyncInputStream *stream)
             avail = n;
     }
 
-    
-    
+    // It's important that we null out mListener before calling one of its
+    // methods as it may call WaitData, which would queue up another read.
 
     nsRefPtr<nsFtpControlConnectionListener> listener;
     listener.swap(mListener);
@@ -91,7 +93,7 @@ nsFtpControlConnection::Connect(nsIProxyInfo* proxyInfo,
     if (mSocket)
         return NS_OK;
 
-    
+    // build our own
     nsresult rv;
     nsCOMPtr<nsISocketTransportService> sts =
             do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
@@ -99,25 +101,25 @@ nsFtpControlConnection::Connect(nsIProxyInfo* proxyInfo,
         return rv;
 
     rv = sts->CreateTransport(nullptr, 0, mHost, mPort, proxyInfo,
-                              getter_AddRefs(mSocket)); 
+                              getter_AddRefs(mSocket)); // the command transport
     if (NS_FAILED(rv))
         return rv;
 
     mSocket->SetQoSBits(gFtpHandler->GetControlQoSBits());
 
-    
+    // proxy transport events back to current thread
     if (eventSink)
         mSocket->SetEventSink(eventSink, NS_GetCurrentThread());
 
-    
-    
-    
+    // open buffered, blocking output stream to socket.  so long as commands
+    // do not exceed 1024 bytes in length, the writing thread (the main thread)
+    // will not block.  this should be OK.
     rv = mSocket->OpenOutputStream(nsITransport::OPEN_BLOCKING, 1024, 1,
                                    getter_AddRefs(mSocketOutput));
     if (NS_FAILED(rv))
         return rv;
 
-    
+    // open buffered, non-blocking/asynchronous input stream to socket.
     nsCOMPtr<nsIInputStream> inStream;
     rv = mSocket->OpenInputStream(0,
                                   nsIOService::gDefaultSegmentSize,
@@ -134,8 +136,8 @@ nsFtpControlConnection::WaitData(nsFtpControlConnectionListener *listener)
 {
     LOG(("FTP:(%p) wait data [listener=%p]\n", this, listener));
 
-    
-    
+    // If listener is null, then simply disconnect the listener.  Otherwise,
+    // ensure that we are listening.
     if (!listener) {
         mListener = nullptr;
         return NS_OK;
@@ -151,15 +153,15 @@ nsresult
 nsFtpControlConnection::Disconnect(nsresult status)
 {
     if (!mSocket)
-        return NS_OK;  
+        return NS_OK;  // already disconnected
     
     LOG_ALWAYS(("FTP:(%p) CC disconnecting (%x)", this, status));
 
     if (NS_FAILED(status)) {
-        
+        // break cyclic reference!
         mSocket->Close(status);
         mSocket = 0;
-        mSocketInput->AsyncWait(nullptr, 0, 0, nullptr);  
+        mSocketInput->AsyncWait(nullptr, 0, 0, nullptr);  // clear any observer
         mSocketInput = nullptr;
         mSocketOutput = nullptr;
     }

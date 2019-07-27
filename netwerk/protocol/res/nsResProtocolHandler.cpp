@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/chrome/RegistryMessageUtils.h"
 #include "mozilla/dom/ContentParent.h"
@@ -23,25 +23,27 @@ static NS_DEFINE_CID(kResURLCID, NS_RESURL_CID);
 
 static nsResProtocolHandler *gResHandler = nullptr;
 
-
-
-
-
-
-
-
-
-
-
-
+#if defined(PR_LOGGING)
+//
+// Log module for Resource Protocol logging...
+//
+// To enable logging (see prlog.h for full details):
+//
+//    set NSPR_LOG_MODULES=nsResProtocol:5
+//    set NSPR_LOG_FILE=log.txt
+//
+// this enables PR_LOG_ALWAYS level information and places all output in
+// the file log.txt
+//
 static PRLogModuleInfo *gResLog;
+#endif
 
 #define kAPP           NS_LITERAL_CSTRING("app")
 #define kGRE           NS_LITERAL_CSTRING("gre")
 
-
-
-
+//----------------------------------------------------------------------------
+// nsResURL : overrides nsStandardURL::GetFile to provide nsIFile resolution
+//----------------------------------------------------------------------------
 
 nsresult
 nsResURL::EnsureFile()
@@ -60,10 +62,10 @@ nsResURL::EnsureFile()
     if (NS_FAILED(rv))
         return rv;
 
-    
-    
-    
-    
+    // Bug 585869:
+    // In most cases, the scheme is jar if it's not file.
+    // Regardless, net_GetFileFromURLSpec should be avoided
+    // when the scheme isn't file.
     if (!scheme.EqualsLiteral("file"))
         return NS_ERROR_NO_INTERFACE;
 
@@ -81,7 +83,7 @@ nsResURL::EnsureFile()
     return rv;
 }
 
- nsStandardURL*
+/* virtual */ nsStandardURL*
 nsResURL::StartClone()
 {
     nsResURL *clone = new nsResURL();
@@ -95,14 +97,16 @@ nsResURL::GetClassIDNoAlloc(nsCID *aClassIDNoAlloc)
     return NS_OK;
 }
 
-
-
-
+//----------------------------------------------------------------------------
+// nsResProtocolHandler <public>
+//----------------------------------------------------------------------------
 
 nsResProtocolHandler::nsResProtocolHandler()
     : mSubstitutions(16)
 {
+#if defined(PR_LOGGING)
     gResLog = PR_NewLogModule("nsResProtocol");
+#endif
 
     NS_ASSERTION(!gResHandler, "res handler already created!");
     gResHandler = this;
@@ -127,9 +131,9 @@ nsResProtocolHandler::Init()
     rv = mozilla::Omnijar::GetURIString(mozilla::Omnijar::GRE, greURI);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    
-    
+    //
+    // make resource:/// point to the application directory or omnijar
+    //
     nsCOMPtr<nsIURI> uri;
     rv = NS_NewURI(getter_AddRefs(uri), appURI.Length() ? appURI : greURI);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -137,16 +141,16 @@ nsResProtocolHandler::Init()
     rv = SetSubstitution(EmptyCString(), uri);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    
-    
+    //
+    // make resource://app/ point to the application directory or omnijar
+    //
     rv = SetSubstitution(kAPP, uri);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    
-    
-    if (appURI.Length()) { 
+    //
+    // make resource://gre/ point to the GRE directory
+    //
+    if (appURI.Length()) { // We already have greURI in uri if appURI.Length() is 0.
         rv = NS_NewURI(getter_AddRefs(uri), greURI);
         NS_ENSURE_SUCCESS(rv, rv);
     }
@@ -154,11 +158,11 @@ nsResProtocolHandler::Init()
     rv = SetSubstitution(kGRE, uri);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    
+    //XXXbsmedberg Neil wants a resource://pchrome/ for the profile chrome dir...
+    // but once I finish multiple chrome registration I'm not sure that it is needed
 
-    
-    
+    // XXX dveditz: resource://pchrome/ defeats profile directory salting
+    // if web content can load it. Tread carefully.
 
     return rv;
 }
@@ -189,18 +193,18 @@ nsResProtocolHandler::CollectSubstitutions(InfallibleTArray<ResourceMapping>& aR
     mSubstitutions.EnumerateRead(&EnumerateSubstitution, &aResources);
 }
 
-
-
-
+//----------------------------------------------------------------------------
+// nsResProtocolHandler::nsISupports
+//----------------------------------------------------------------------------
 
 NS_IMPL_ISUPPORTS(nsResProtocolHandler,
                   nsIResProtocolHandler,
                   nsIProtocolHandler,
                   nsISupportsWeakReference)
 
-
-
-
+//----------------------------------------------------------------------------
+// nsResProtocolHandler::nsIProtocolHandler
+//----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 nsResProtocolHandler::GetScheme(nsACString &result)
@@ -212,15 +216,15 @@ nsResProtocolHandler::GetScheme(nsACString &result)
 NS_IMETHODIMP
 nsResProtocolHandler::GetDefaultPort(int32_t *result)
 {
-    *result = -1;        
+    *result = -1;        // no port for res: URLs
     return NS_OK;
 }
 
 NS_IMETHODIMP
 nsResProtocolHandler::GetProtocolFlags(uint32_t *result)
 {
-    
-    
+    // XXXbz Is this really true for all resource: URIs?  Could we
+    // somehow give different flags to some of them?
     *result = URI_STD | URI_IS_UI_RESOURCE | URI_IS_LOCAL_RESOURCE;
     return NS_OK;
 }
@@ -237,9 +241,9 @@ nsResProtocolHandler::NewURI(const nsACString &aSpec,
     if (!resURL)
         return NS_ERROR_OUT_OF_MEMORY;
 
-    
-    
-    
+    // unescape any %2f and %2e to make sure nsStandardURL coalesces them.
+    // Later net_GetFileFromURLSpec() will do a full unescape and we want to
+    // treat them the same way the file system will. (bugs 380994, 394075)
     nsAutoCString spec;
     const char *src = aSpec.BeginReading();
     const char *end = aSpec.EndReading();
@@ -259,7 +263,7 @@ nsResProtocolHandler::NewURI(const nsACString &aSpec,
                spec.Append(last, src-last);
              spec.Append(ch);
              src += 2;
-             last = src+1; 
+             last = src+1; // src will be incremented by the loop
            }
         }
     }
@@ -307,14 +311,14 @@ nsResProtocolHandler::NewChannel(nsIURI* uri, nsIChannel* *result)
 NS_IMETHODIMP 
 nsResProtocolHandler::AllowPort(int32_t port, const char *scheme, bool *_retval)
 {
-    
+    // don't override anything.  
     *_retval = false;
     return NS_OK;
 }
 
-
-
-
+//----------------------------------------------------------------------------
+// nsResProtocolHandler::nsIResProtocolHandler
+//----------------------------------------------------------------------------
 
 static void
 SendResourceSubstitution(const nsACString& root, nsIURI* baseURI)
@@ -350,7 +354,7 @@ nsResProtocolHandler::SetSubstitution(const nsACString& root, nsIURI *baseURI)
         return NS_OK;
     }
 
-    
+    // If baseURI isn't a resource URI, we can set the substitution immediately.
     nsAutoCString scheme;
     nsresult rv = baseURI->GetScheme(scheme);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -360,7 +364,7 @@ nsResProtocolHandler::SetSubstitution(const nsACString& root, nsIURI *baseURI)
         return NS_OK;
     }
 
-    
+    // baseURI is a resource URI, let's resolve it first.
     nsAutoCString newBase;
     rv = ResolveURI(baseURI, newBase);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -383,7 +387,7 @@ nsResProtocolHandler::GetSubstitution(const nsACString& root, nsIURI **result)
     if (mSubstitutions.Get(root, result))
         return NS_OK;
 
-    
+    // try invoking the directory service for "resource:root"
 
     nsAutoCString key;
     key.AssignLiteral("resource:");
@@ -424,18 +428,18 @@ nsResProtocolHandler::ResolveURI(nsIURI *uri, nsACString &result)
     rv = uri->GetPath(path);
     if (NS_FAILED(rv)) return rv;
 
-    
+    // Unescape the path so we can perform some checks on it.
     nsAutoCString unescapedPath(path);
     NS_UnescapeURL(unescapedPath);
 
-    
+    // Don't misinterpret the filepath as an absolute URI.
     if (unescapedPath.FindChar(':') != -1)
         return NS_ERROR_MALFORMED_URI;
 
     if (unescapedPath.FindChar('\\') != -1)
         return NS_ERROR_MALFORMED_URI;
 
-    const char *p = path.get() + 1; 
+    const char *p = path.get() + 1; // path always starts with a slash
     NS_ASSERTION(*(p-1) == '/', "Path did not begin with a slash!");
 
     if (*p == '/')
@@ -447,11 +451,13 @@ nsResProtocolHandler::ResolveURI(nsIURI *uri, nsACString &result)
 
     rv = baseURI->Resolve(nsDependentCString(p, path.Length()-1), result);
 
+#if defined(PR_LOGGING)
     if (PR_LOG_TEST(gResLog, PR_LOG_DEBUG)) {
         nsAutoCString spec;
         uri->GetAsciiSpec(spec);
         PR_LOG(gResLog, PR_LOG_DEBUG,
                ("%s\n -> %s\n", spec.get(), PromiseFlatCString(result).get()));
     }
+#endif
     return rv;
 }
