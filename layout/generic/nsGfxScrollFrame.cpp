@@ -2847,6 +2847,8 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     mOuter->PresContext()->IsRootContentDocument();
 
   if (aBuilder->GetIgnoreScrollFrame() == mOuter || IsIgnoringViewportClipping()) {
+    
+    
     mAddClipRectToLayer = false;
 
     
@@ -2877,6 +2879,8 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     return;
   }
 
+  
+  
   mAddClipRectToLayer =
     !(mIsRoot && mOuter->PresContext()->PresShell()->GetIsViewportOverridden());
 
@@ -2895,7 +2899,23 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (aBuilder->IsPaintingToWindow()) {
     bool wasUsingDisplayPort = nsLayoutUtils::GetDisplayPort(mOuter->GetContent(), nullptr);
 
-    if (!mIsRoot) {
+    if (mIsRoot) {
+      if (gfxPrefs::LayoutUseContainersForRootFrames()) {
+        
+        
+        usingDisplayport = nsLayoutUtils::GetDisplayPort(mOuter->GetContent(), &displayPort);
+      } else {
+        
+        
+        nsRect displayportBase = dirtyRect;
+        if (mIsRoot && mOuter->PresContext()->IsRootContentDocument()) {
+          displayportBase =
+            nsRect(nsPoint(0, 0), nsLayoutUtils::CalculateCompositionSizeForFrame(mOuter));
+        }
+        usingDisplayport = nsLayoutUtils::GetOrMaybeCreateDisplayPort(
+              *aBuilder, mOuter, displayportBase, &displayPort);
+      }
+    } else {
       
       
       
@@ -2903,10 +2923,6 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       nsRect displayportBase = dirtyRect;
       usingDisplayport = nsLayoutUtils::GetOrMaybeCreateDisplayPort(
           *aBuilder, mOuter, displayportBase, &displayPort);
-    } else {
-      
-      
-      usingDisplayport = nsLayoutUtils::GetDisplayPort(mOuter->GetContent(), &displayPort);
     }
 
     bool usingLowPrecision = gfxPrefs::UseLowPrecisionBuffer();
@@ -2971,7 +2987,9 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       
       
       
-      (!mIsRoot || aBuilder->RootReferenceFrame()->PresContext() != mOuter->PresContext());
+      
+      (!(gfxPrefs::LayoutUseContainersForRootFrames() && mIsRoot) ||
+       (aBuilder->RootReferenceFrame()->PresContext() != mOuter->PresContext()));
   }
 
   if (aBuilder->IsPaintingToWindow() &&
@@ -3119,8 +3137,6 @@ ScrollFrameHelper::ComputeFrameMetrics(Layer* aLayer,
 {
   nsRect scrollport = mScrollPort +
     mOuter->GetOffsetToCrossDoc(aContainerReferenceFrame);
-  
-  
   if (mAddClipRectToLayer) {
     *aClipRect = scrollport;
   }
@@ -3131,10 +3147,12 @@ ScrollFrameHelper::ComputeFrameMetrics(Layer* aLayer,
 
   MOZ_ASSERT(mScrolledFrame->GetContent());
 
+  bool isRoot = mIsRoot && mOuter->PresContext()->IsRootContentDocument();
+
   *aOutput->AppendElement() =
       nsDisplayScrollLayer::ComputeFrameMetrics(mScrolledFrame, mOuter,
         aContainerReferenceFrame, aLayer, mScrollParentID,
-        scrollport, false, false, aParameters);
+        scrollport, false, isRoot, aParameters);
 }
 
 bool
