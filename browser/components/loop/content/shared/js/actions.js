@@ -268,6 +268,14 @@ loop.shared.actions = (function() {
 
 
 
+    RenameRoomError: Action.define("renameRoomError", {
+      error: [Error, Object]
+    }),
+
+    
+
+
+
     CopyRoomUrl: Action.define("copyRoomUrl", {
       roomUrl: String
     }),

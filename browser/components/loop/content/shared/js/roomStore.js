@@ -98,6 +98,7 @@ loop.store = loop.store || {};
       "getAllRoomsError",
       "openRoom",
       "renameRoom",
+      "renameRoomError",
       "updateRoomList"
     ],
 
@@ -120,7 +121,7 @@ loop.store = loop.store || {};
         error: null,
         pendingCreation: false,
         pendingInitialRetrieval: false,
-        rooms: []
+        rooms: [],
       };
     },
 
@@ -378,13 +379,17 @@ loop.store = loop.store || {};
 
 
     renameRoom: function(actionData) {
+      this.setStoreState({error: null});
       this._mozLoop.rooms.rename(actionData.roomToken, actionData.newRoomName,
         function(err) {
           if (err) {
-            
-            console.error("Failed to rename the room", err);
+            this.dispatchAction(new sharedActions.RenameRoomError({error: err}));
           }
-        });
+        }.bind(this));
+    },
+
+    renameRoomError: function(actionData) {
+      this.setStoreState({error: actionData.error});
     }
   });
 })();
