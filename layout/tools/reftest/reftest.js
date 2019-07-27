@@ -271,7 +271,6 @@ this.OnRefTestLoad = function OnRefTestLoad(win)
     gBrowser.setAttribute("id", "browser");
     gBrowser.setAttribute("type", "content-primary");
     gBrowser.setAttribute("remote", gBrowserIsRemote ? "true" : "false");
-    gBrowser.setAttribute("mozasyncpanzoom", "true");
     
     
     gBrowser.setAttribute("style", "padding: 0px; margin: 0px; border:none; min-width: 800px; min-height: 1000px; max-width: 800px; max-height: 1000px");
