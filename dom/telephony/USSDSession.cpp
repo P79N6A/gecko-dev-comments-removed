@@ -1,0 +1,97 @@
+
+
+
+
+
+
+#include "mozilla/dom/USSDSession.h"
+
+#include "mozilla/dom/USSDSessionBinding.h"
+#include "mozilla/dom/telephony/TelephonyCallback.h"
+#include "nsIGlobalObject.h"
+#include "nsServiceManagerUtils.h"
+
+using namespace mozilla::dom;
+using namespace mozilla::dom::telephony;
+using mozilla::ErrorResult;
+
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(USSDSession, mWindow)
+NS_IMPL_CYCLE_COLLECTING_ADDREF(USSDSession)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(USSDSession)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(USSDSession)
+  NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
+  NS_INTERFACE_MAP_ENTRY(nsISupports)
+NS_INTERFACE_MAP_END
+
+USSDSession::USSDSession(nsPIDOMWindow* aWindow, nsITelephonyService* aService,
+                         uint32_t aServiceId)
+  : mWindow(aWindow), mService(aService), mServiceId(aServiceId)
+{
+}
+
+USSDSession::~USSDSession()
+{
+}
+
+nsPIDOMWindow*
+USSDSession::GetParentObject() const
+{
+  return mWindow;
+}
+
+JSObject*
+USSDSession::WrapObject(JSContext* aCx)
+{
+  return USSDSessionBinding::Wrap(aCx, this);
+}
+
+
+
+already_AddRefed<USSDSession>
+USSDSession::Constructor(const GlobalObject& aGlobal, uint32_t aServiceId,
+                         ErrorResult& aRv)
+{
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aGlobal.GetAsSupports());
+  if (!window) {
+    aRv.Throw(NS_ERROR_UNEXPECTED);
+    return nullptr;
+  }
+
+  nsCOMPtr<nsITelephonyService> ril =
+    do_GetService(TELEPHONY_SERVICE_CONTRACTID);
+  if (!ril) {
+    aRv.Throw(NS_ERROR_UNEXPECTED);
+    return nullptr;
+  }
+
+  nsRefPtr<USSDSession> session = new USSDSession(window, ril, aServiceId);
+  return session.forget();
+}
+
+already_AddRefed<Promise>
+USSDSession::Send(const nsAString& aUssd, ErrorResult& aRv)
+{
+  if (!mService) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
+
+  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(mWindow);
+  if (!global) {
+    return nullptr;
+  }
+
+  nsRefPtr<Promise> promise = Promise::Create(global, aRv);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
+
+  nsCOMPtr<nsITelephonyCallback> callback = new TelephonyCallback(promise);
+
+  nsresult rv = mService->SendUSSD(mServiceId, aUssd, callback);
+  if (NS_FAILED(rv)) {
+    promise->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
+  }
+
+  return promise.forget();
+}
