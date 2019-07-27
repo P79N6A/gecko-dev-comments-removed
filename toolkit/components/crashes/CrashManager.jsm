@@ -436,9 +436,9 @@ this.CrashManager.prototype = Object.freeze({
 
 
 
-  setCrashClassification: Task.async(function* (crashID, classification) {
+  setCrashClassifications: Task.async(function* (crashID, classifications) {
     let store = yield this._getStore();
-    if (store.setCrashClassification(crashID, classification)) {
+    if (store.setCrashClassifications(crashID, classifications)) {
       yield store.save();
     }
   }),
@@ -1082,7 +1082,7 @@ CrashStore.prototype = Object.freeze({
         type: type,
         crashDate: date,
         submissions: new Map(),
-        classification: null,
+        classifications: [],
       });
     }
 
@@ -1195,13 +1195,13 @@ CrashStore.prototype = Object.freeze({
   
 
 
-  setCrashClassification: function (crashID, classification) {
+  setCrashClassifications: function (crashID, classifications) {
     let crash = this._data.crashes.get(crashID);
     if (!crash) {
       return false;
     }
 
-    crash.classification = classification;
+    crash.classifications = classifications;
     return true;
   },
 });
@@ -1262,8 +1262,8 @@ CrashRecord.prototype = Object.freeze({
     return this._o.submissions;
   },
 
-  get classification() {
-    return this._o.classification;
+  get classifications() {
+    return this._o.classifications;
   },
 });
 
