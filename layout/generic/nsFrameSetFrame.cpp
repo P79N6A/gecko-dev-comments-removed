@@ -1296,7 +1296,7 @@ nsHTMLFramesetFrame::StartMouseDrag(nsPresContext*             aPresContext,
 
   mDragger = aBorder;
 
-  mFirstDragPoint = LayoutDeviceIntPoint::ToUntyped(aEvent->refPoint);
+  mFirstDragPoint = aEvent->refPoint;
 
   
   if (mDragger->mVertical) {

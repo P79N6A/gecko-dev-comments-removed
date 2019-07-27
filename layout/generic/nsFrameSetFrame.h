@@ -199,7 +199,7 @@ protected:
   nsBorderColor*   mChildBorderColors;
   nscoord*         mRowSizes;  
   nscoord*         mColSizes;  
-  nsIntPoint       mFirstDragPoint;
+  mozilla::LayoutDeviceIntPoint mFirstDragPoint;
   int32_t          mNumRows;
   int32_t          mNumCols;
   int32_t          mNonBorderChildCount; 
