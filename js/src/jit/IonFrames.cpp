@@ -869,12 +869,16 @@ ReadAllocation(const JitFrameIterator &frame, const LAllocation *a)
 #endif
 
 static void
-MarkActualArguments(JSTracer *trc, const JitFrameIterator &frame)
+MarkFrameAndActualArguments(JSTracer *trc, const JitFrameIterator &frame)
 {
+    
+    
+    
+
     IonJSFrameLayout *layout = frame.jsFrame();
-    MOZ_ASSERT(CalleeTokenIsFunction(layout->calleeToken()));
 
     size_t nargs = frame.numActualArgs();
+    MOZ_ASSERT_IF(!CalleeTokenIsFunction(layout->calleeToken()), nargs == 0);
 
     
     Value *argv = layout->argv();
@@ -919,8 +923,7 @@ MarkIonJSFrame(JSTracer *trc, const JitFrameIterator &frame)
         ionScript = frame.ionScriptFromCalleeToken();
     }
 
-    if (CalleeTokenIsFunction(layout->calleeToken()))
-        MarkActualArguments(trc, frame);
+    MarkFrameAndActualArguments(trc, frame);
 
     const SafepointIndex *si = ionScript->getSafepointIndex(frame.returnAddressToFp());
 
