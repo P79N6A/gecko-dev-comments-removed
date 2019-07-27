@@ -167,7 +167,7 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
     
     
     
-    if (!IS_WN_REFLECTOR(obj) || !js::GetObjectParent(obj))
+    if (!IS_WN_REFLECTOR(obj) || JS_IsGlobalObject(obj))
         return waive ? WaiveXray(cx, obj) : obj;
 
     XPCWrappedNative *wn = XPCWrappedNative::Get(obj);
