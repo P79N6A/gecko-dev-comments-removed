@@ -1032,39 +1032,6 @@ static const JSFunctionSpec number_static_methods[] = {
 
 
 
-enum nc_slot {
-    NC_NaN,
-    NC_POSITIVE_INFINITY,
-    NC_NEGATIVE_INFINITY,
-    NC_MAX_VALUE,
-    NC_MIN_VALUE,
-    NC_MAX_SAFE_INTEGER,
-    NC_MIN_SAFE_INTEGER,
-    NC_EPSILON,
-    NC_LIMIT
-};
-
-
-
-
-
-
-static JSConstDoubleSpec number_constants[] = {
-    {"NaN",               0                          },
-    {"POSITIVE_INFINITY", 0                          },
-    {"NEGATIVE_INFINITY", 0                          },
-    {"MAX_VALUE",         1.7976931348623157E+308    },
-    {"MIN_VALUE",         0                          },
-    
-    {"MAX_SAFE_INTEGER",  9007199254740991           },
-    
-    {"MIN_SAFE_INTEGER", -9007199254740991,          },
-    
-    {"EPSILON", 2.2204460492503130808472633361816e-16},
-    {0,0}
-};
-
-
 
 
 
@@ -1085,17 +1052,6 @@ bool
 js::InitRuntimeNumberState(JSRuntime *rt)
 {
     FIX_FPU();
-
-    
-
-
-
-    number_constants[NC_NaN].val = GenericNaN();
-
-    number_constants[NC_POSITIVE_INFINITY].val = mozilla::PositiveInfinity<double>();
-    number_constants[NC_NEGATIVE_INFINITY].val = mozilla::NegativeInfinity<double>();
-
-    number_constants[NC_MIN_VALUE].val = MinNumberValue<double>();
 
     
     
@@ -1183,6 +1139,25 @@ js_InitNumberClass(JSContext *cx, HandleObject obj)
 
     if (!LinkConstructorAndPrototype(cx, ctor, numberProto))
         return nullptr;
+
+    
+
+
+
+    static JSConstDoubleSpec number_constants[] = {
+        {"NaN",               GenericNaN()               },
+        {"POSITIVE_INFINITY", mozilla::PositiveInfinity<double>() },
+        {"NEGATIVE_INFINITY", mozilla::NegativeInfinity<double>() },
+        {"MAX_VALUE",         1.7976931348623157E+308    },
+        {"MIN_VALUE",         MinNumberValue<double>()   },
+        
+        {"MAX_SAFE_INTEGER",  9007199254740991           },
+        
+        {"MIN_SAFE_INTEGER", -9007199254740991,          },
+        
+        {"EPSILON", 2.2204460492503130808472633361816e-16},
+        {0,0}
+    };
 
     
     if (!JS_DefineConstDoubles(cx, ctor, number_constants))
