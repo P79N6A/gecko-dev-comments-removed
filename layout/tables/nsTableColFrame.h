@@ -88,10 +88,10 @@ public:
   
   int32_t Count() const;
 
-  nscoord GetLeftBorderWidth();
-  void    SetLeftBorderWidth(BCPixelSize aWidth);
-  nscoord GetRightBorderWidth();
-  void    SetRightBorderWidth(BCPixelSize aWidth);
+  nscoord GetIStartBorderWidth() const { return mIStartBorderWidth; }
+  nscoord GetIEndBorderWidth() const { return mIEndBorderWidth; }
+  void SetIStartBorderWidth(BCPixelSize aWidth) { mIStartBorderWidth = aWidth; }
+  void SetIEndBorderWidth(BCPixelSize aWidth) { mIEndBorderWidth = aWidth; }
 
   
 
@@ -106,7 +106,7 @@ public:
 
 
 
-  void SetContinuousBCBorderWidth(uint8_t     aForSide,
+  void SetContinuousBCBorderWidth(mozilla::LogicalSide aForSide,
                                   BCPixelSize aPixelValue);
 #ifdef DEBUG
   void Dump(int32_t aIndent);
@@ -305,11 +305,11 @@ protected:
   uint32_t mColIndex;
 
   
-  BCPixelSize mLeftBorderWidth;
-  BCPixelSize mRightBorderWidth;
-  BCPixelSize mTopContBorderWidth;
-  BCPixelSize mRightContBorderWidth;
-  BCPixelSize mBottomContBorderWidth;
+  BCPixelSize mIStartBorderWidth;
+  BCPixelSize mIEndBorderWidth;
+  BCPixelSize mBStartContBorderWidth;
+  BCPixelSize mIEndContBorderWidth;
+  BCPixelSize mBEndContBorderWidth;
 
   bool mHasSpecifiedCoord;
 };
@@ -324,36 +324,20 @@ inline void nsTableColFrame::SetColIndex (int32_t aColIndex)
   mColIndex = aColIndex;
 }
 
-inline nscoord nsTableColFrame::GetLeftBorderWidth()
-{
-  return mLeftBorderWidth;
-}
-
-inline void nsTableColFrame::SetLeftBorderWidth(BCPixelSize aWidth)
-{
-  mLeftBorderWidth = aWidth;
-}
-
-inline nscoord nsTableColFrame::GetRightBorderWidth()
-{
-  return mRightBorderWidth;
-}
-
-inline void nsTableColFrame::SetRightBorderWidth(BCPixelSize aWidth)
-{
-  mRightBorderWidth = aWidth;
-}
-
 inline nscoord
 nsTableColFrame::GetContinuousBCBorderWidth(nsMargin& aBorder)
 {
   int32_t aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
-  aBorder.top = BC_BORDER_END_HALF_COORD(aPixelsToTwips, mTopContBorderWidth);
-  aBorder.right = BC_BORDER_START_HALF_COORD(aPixelsToTwips,
-                                             mRightContBorderWidth);
-  aBorder.bottom = BC_BORDER_START_HALF_COORD(aPixelsToTwips,
-                                              mBottomContBorderWidth);
-  return BC_BORDER_END_HALF_COORD(aPixelsToTwips, mRightContBorderWidth);
+  mozilla::WritingMode wm = GetWritingMode();
+  mozilla::LogicalMargin border(wm, aBorder);
+  border.BStart(wm) = BC_BORDER_END_HALF_COORD(aPixelsToTwips,
+                                               mBStartContBorderWidth);
+  border.IEnd(wm) = BC_BORDER_START_HALF_COORD(aPixelsToTwips,
+                                               mIEndContBorderWidth);
+  border.BEnd(wm) = BC_BORDER_START_HALF_COORD(aPixelsToTwips,
+                                               mBEndContBorderWidth);
+  aBorder = border.GetPhysicalMargin(wm);
+  return BC_BORDER_END_HALF_COORD(aPixelsToTwips, mIEndContBorderWidth);
 }
 
 #endif
