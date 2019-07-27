@@ -23,7 +23,6 @@
 #include "jsfriendapi.h"
 #include "js/OldDebugAPI.h"
 #include "nsJSPrincipals.h"
-#include "xpcpublic.h" 
 #include "xpcprivate.h" 
 #include "jswrapper.h"
 
@@ -134,10 +133,6 @@ mozJSSubScriptLoader::ReadScript(nsIURI *uri, JSContext *cx, JSObject *targetObj
     if (NS_FAILED(rv))
         return rv;
 
-    
-
-    JSErrorReporter er = JS_SetErrorReporter(cx, xpc::SystemErrorReporter);
-
     JS::CompileOptions options(cx);
     options.setFileAndLine(uriStr, 1);
     if (!charset.IsVoid()) {
@@ -174,9 +169,6 @@ mozJSSubScriptLoader::ReadScript(nsIURI *uri, JSContext *cx, JSObject *targetObj
                                 len, function);
         }
     }
-
-    
-    JS_SetErrorReporter(cx, er);
 
     return NS_OK;
 }
