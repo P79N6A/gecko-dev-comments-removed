@@ -16,6 +16,7 @@
 #include "jsalloc.h"
 #include "jscompartment.h"
 
+#include "builtin/MapObject.h"
 #include "gc/Marking.h"
 #include "js/Debug.h"
 #include "js/TracingAPI.h"
@@ -978,6 +979,175 @@ class ByUbinodeType : public CountType {
 
 
 
+class ByAllocationStack : public CountType {
+    typedef HashMap<SavedFrame*, CountBasePtr, DefaultHasher<SavedFrame*>,
+                    SystemAllocPolicy> Table;
+    typedef Table::Entry Entry;
+
+    struct Count : public CountBase {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        Table table;
+        CountBasePtr noStack;
+
+        Count(CountType& type, CountBasePtr& noStack)
+          : CountBase(type),
+            noStack(Move(noStack))
+        { }
+        bool init() { return table.init(); }
+    };
+
+    CountTypePtr entryType;
+    CountTypePtr noStackType;
+
+  public:
+    ByAllocationStack(Census& census, CountTypePtr& entryType, CountTypePtr& noStackType)
+      : CountType(census),
+        entryType(Move(entryType)),
+        noStackType(Move(noStackType))
+    { }
+
+    CountBasePtr makeCount() override {
+        CountBasePtr noStackCount(noStackType->makeCount());
+        if (!noStackCount)
+            return nullptr;
+
+        UniquePtr<Count> count(census.new_<Count>(*this, noStackCount));
+        if (!count || !count->init())
+            return nullptr;
+        return CountBasePtr(count.release());
+    }
+
+    void traceCount(CountBase& countBase, JSTracer* trc) override {
+        Count& count= static_cast<Count&>(countBase);
+        for (Table::Range r = count.table.all(); !r.empty(); r.popFront()) {
+            
+            r.front().value()->trace(trc);
+
+            
+            
+            SavedFrame** keyPtr = const_cast<SavedFrame**>(&r.front().key());
+            TraceRoot(trc, keyPtr, "Debugger.Memory.prototype.census byAllocationStack count key");
+        }
+        count.noStack->trace(trc);
+    }
+
+    void destructCount(CountBase& countBase) override {
+        Count& count = static_cast<Count&>(countBase);
+        count.~Count();
+    }
+
+    bool count(CountBase& countBase, const Node& node) {
+        Count& count = static_cast<Count&>(countBase);
+        count.total_++;
+
+        SavedFrame* allocationStack = nullptr;
+        if (node.is<JSObject>()) {
+            JSObject* metadata = GetObjectMetadata(node.as<JSObject>());
+            if (metadata && metadata->is<SavedFrame>())
+                allocationStack = &metadata->as<SavedFrame>();
+        }
+        
+        
+
+        
+        
+        if (allocationStack) {
+            Table::AddPtr p = count.table.lookupForAdd(allocationStack);
+            if (!p) {
+                CountBasePtr stackCount(entryType->makeCount());
+                if (!stackCount || !count.table.add(p, allocationStack, Move(stackCount)))
+                    return false;
+            }
+            return p->value()->count(node);
+        }
+
+        
+        return count.noStack->count(node);
+    }
+
+    bool report(CountBase& countBase, MutableHandleValue report) override {
+        Count& count = static_cast<Count&>(countBase);
+        JSContext* cx = census.cx;
+
+#ifdef DEBUG
+        
+        uint32_t generation = count.table.generation();
+#endif
+
+        
+        
+        
+        mozilla::Vector<Entry*> entries;
+        if (!entries.reserve(count.table.count()))
+            return false;
+        for (Table::Range r = count.table.all(); !r.empty(); r.popFront())
+            entries.infallibleAppend(&r.front());
+        qsort(entries.begin(), entries.length(), sizeof(*entries.begin()), compareEntries<Entry>);
+
+        
+        Rooted<MapObject*> map(cx, MapObject::create(cx));
+        if (!map)
+            return false;
+        for (Entry** entryPtr = entries.begin(); entryPtr < entries.end(); entryPtr++) {
+            Entry& entry = **entryPtr;
+
+            MOZ_ASSERT(entry.key());
+            RootedValue stack(cx, ObjectValue(*entry.key()));
+            if (!cx->compartment()->wrap(cx, &stack))
+                return false;
+
+            CountBasePtr& stackCount = entry.value();
+            RootedValue stackReport(cx);
+            if (!stackCount->report(&stackReport))
+                return false;
+
+            if (!MapObject::set(cx, map, stack, stackReport))
+                return false;
+        }
+
+        RootedValue noStackReport(cx);
+        if (!count.noStack->report(&noStackReport))
+            return false;
+        RootedValue noStack(cx, StringValue(cx->names().noStack));
+        if (!MapObject::set(cx, map, noStack, noStackReport))
+            return false;
+
+        MOZ_ASSERT(generation == count.table.generation());
+
+        report.setObject(*map);
+        return true;
+    }
+};
+
+
+
+
 class CensusHandler {
     Census& census;
     CountBasePtr& rootCount;
@@ -1140,6 +1310,17 @@ ParseBreakdown(Census& census, HandleValue breakdownValue)
             return nullptr;
 
         return CountTypePtr(census.new_<ByUbinodeType>(census, thenType));
+    }
+
+    if (StringEqualsAscii(by, "allocationStack")) {
+        CountTypePtr thenType(ParseChildBreakdown(census, breakdown, cx->names().then));
+        if (!thenType)
+            return nullptr;
+        CountTypePtr noStackType(ParseChildBreakdown(census, breakdown, cx->names().noStack));
+        if (!noStackType)
+            return nullptr;
+
+        return CountTypePtr(census.new_<ByAllocationStack>(census, thenType, noStackType));
     }
 
     
