@@ -193,43 +193,28 @@ ASSERT_NODE_FLAGS_SPACE(NODE_TYPE_SPECIFIC_BITS_OFFSET);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class nsMutationGuard {
 public:
   nsMutationGuard()
   {
-    mDelta = eMaxMutations - sMutationCount;
-    sMutationCount = eMaxMutations;
-  }
-  ~nsMutationGuard()
-  {
-    sMutationCount =
-      mDelta > sMutationCount ? 0 : sMutationCount - mDelta;
+    mStartingGeneration = sGeneration;
   }
 
   
 
 
 
+
+
+
+
+
+
+
+
   bool Mutated(uint8_t aIgnoreCount)
   {
-    return sMutationCount < static_cast<uint32_t>(eMaxMutations - aIgnoreCount);
+    return (sGeneration - mStartingGeneration) > aIgnoreCount;
   }
 
   
@@ -237,26 +222,15 @@ public:
   
   static void DidMutate()
   {
-    if (sMutationCount) {
-      --sMutationCount;
-    }
+    sGeneration++;
   }
 
 private:
   
-  
-  
-  uint32_t mDelta;
+  uint64_t mStartingGeneration;
 
   
-  
-  enum { eMaxMutations = 300 };
-
-
-  
-  
-  
-  static uint32_t sMutationCount;
+  static uint64_t sGeneration;
 };
 
 
