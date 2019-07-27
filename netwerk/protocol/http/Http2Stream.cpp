@@ -46,8 +46,7 @@ Http2Stream::Http2Stream(nsAHttpTransaction *httpTransaction,
   , mSession(session)
   , mUpstreamState(GENERATING_HEADERS)
   , mState(IDLE)
-  , mRequestHeadersDone(0)
-  , mOpenGenerated(0)
+  , mAllHeadersSent(0)
   , mAllHeadersReceived(0)
   , mTransaction(httpTransaction)
   , mSocketTransport(session->SocketTransport())
@@ -155,7 +154,7 @@ Http2Stream::ReadSegments(nsAHttpSegmentReader *reader,
     
     if (NS_SUCCEEDED(rv) &&
         mUpstreamState == GENERATING_HEADERS &&
-        !mRequestHeadersDone)
+        !mAllHeadersSent)
       mSession->TransactionHasDataToWrite(this);
 
     
@@ -308,13 +307,12 @@ Http2Stream::ParseHttpRequestHeaders(const char *buf,
 
   MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
   MOZ_ASSERT(mUpstreamState == GENERATING_HEADERS);
-  MOZ_ASSERT(!mRequestHeadersDone);
 
   LOG3(("Http2Stream::ParseHttpRequestHeaders %p avail=%d state=%x",
         this, avail, mUpstreamState));
 
   mFlatHttpRequestHeaders.Append(buf, avail);
-  const nsHttpRequestHead *head = mTransaction->RequestHead();
+  nsHttpRequestHead *head = mTransaction->RequestHead();
 
   
   
@@ -335,7 +333,7 @@ Http2Stream::ParseHttpRequestHeaders(const char *buf,
   uint32_t oldLen = mFlatHttpRequestHeaders.Length();
   mFlatHttpRequestHeaders.SetLength(endHeader + 2);
   *countUsed = avail - (oldLen - endHeader) + 4;
-  mRequestHeadersDone = 1;
+  mAllHeadersSent = 1;
 
   nsAutoCString authorityHeader;
   nsAutoCString hashkey;
@@ -392,30 +390,26 @@ Http2Stream::ParseHttpRequestHeaders(const char *buf,
 
       
       
+      
+      
+      
+      mSession->MaybeDecrementConcurrent(this);
+
+      
+      
       mSession->ConnectPushedStream(this);
-      mOpenGenerated = 1;
       return NS_OK;
     }
   }
-  return NS_OK;
-}
 
-
-nsresult
-Http2Stream::GenerateOpen()
-{
   
   
   
   mStreamID = mSession->RegisterStreamID(this);
   MOZ_ASSERT(mStreamID & 1, "Http2 Stream Channel ID must be odd");
-  MOZ_ASSERT(!mOpenGenerated);
-
-  mOpenGenerated = 1;
-
-  const nsHttpRequestHead *head = mTransaction->RequestHead();
-  LOG3(("Http2Stream %p Stream ID 0x%X [session=%p] for URI %s\n",
-        this, mStreamID, mSession, nsCString(head->RequestURI()).get()));
+  LOG3(("Stream ID 0x%X [session=%p] for URI %s\n",
+        mStreamID, mSession,
+        nsCString(head->RequestURI()).get()));
 
   if (mStreamID >= 0x80000000) {
     
@@ -434,9 +428,6 @@ Http2Stream::GenerateOpen()
   
 
   nsCString compressedData;
-  nsAutoCString authorityHeader;
-  head->GetHeader(nsHttp::Host, authorityHeader);
-
   nsDependentCString scheme(head->IsHTTPS() ? "https" : "http");
   if (head->IsConnect()) {
     MOZ_ASSERT(mTransaction->QuerySpdyConnectTransaction());
@@ -449,7 +440,6 @@ Http2Stream::GenerateOpen()
     if (!ci) {
       return NS_ERROR_UNEXPECTED;
     }
-
     authorityHeader = ci->GetHost();
     authorityHeader.Append(':');
     authorityHeader.AppendInt(ci->Port());
@@ -1210,26 +1200,12 @@ Http2Stream::OnReadSegment(const char *buf,
     
     
 
-    if (!mRequestHeadersDone) {
-      if (NS_FAILED(rv = ParseHttpRequestHeaders(buf, count, countRead))) {
-        return rv;
-      }
-    }
-
-    if (mRequestHeadersDone && !mOpenGenerated) {
-      if (!mSession->TryToActivate(this)) {
-        LOG3(("Http2Stream::OnReadSegment %p cannot activate now. queued.\n", this));
-        return NS_OK;
-      }
-      if (NS_FAILED(rv = GenerateOpen())) {
-        return rv;
-      }
-   }
-
-    LOG3(("ParseHttpRequestHeaders %p used %d of %d. "
-          "requestheadersdone = %d mOpenGenerated = %d\n",
-          this, *countRead, count, mRequestHeadersDone, mOpenGenerated));
-    if (mOpenGenerated) {
+    rv = ParseHttpRequestHeaders(buf, count, countRead);
+    if (NS_FAILED(rv))
+      return rv;
+    LOG3(("ParseHttpRequestHeaders %p used %d of %d. complete = %d",
+          this, *countRead, count, mAllHeadersSent));
+    if (mAllHeadersSent) {
       SetHTTPState(OPEN);
       AdjustInitialWindow();
       

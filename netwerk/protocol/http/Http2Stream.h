@@ -179,10 +179,7 @@ protected:
   enum stateType mState;
 
   
-  uint32_t                     mRequestHeadersDone   : 1;
-
-  
-  uint32_t                     mOpenGenerated        : 1;
+  uint32_t                     mAllHeadersSent       : 1;
 
   
   uint32_t                     mAllHeadersReceived   : 1;
@@ -193,8 +190,6 @@ private:
   friend class nsAutoPtr<Http2Stream>;
 
   nsresult ParseHttpRequestHeaders(const char *, uint32_t, uint32_t *);
-  nsresult GenerateOpen();
-
   void     AdjustPushedPriority();
   void     AdjustInitialWindow();
   nsresult TransmitFrame(const char *, uint32_t *, bool forceCommitment);

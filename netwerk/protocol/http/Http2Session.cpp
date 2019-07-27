@@ -438,15 +438,13 @@ Http2Session::AddStream(nsAHttpTransaction *aHttpTransaction,
 
   mStreamTransactionHash.Put(aHttpTransaction, stream);
 
-  mReadyForWrite.Push(stream);
-  SetWriteCallbacks();
-
-  
-  
-  
-  if (mSegmentReader) {
-    uint32_t countRead;
-    ReadSegments(nullptr, kDefaultBufferSize, &countRead);
+  if (RoomForMoreConcurrent()) {
+    LOG3(("Http2Session::AddStream %p stream %p activated immediately.",
+          this, stream));
+    ActivateStream(stream);
+  } else {
+    LOG3(("Http2Session::AddStream %p stream %p queued.", this, stream));
+    mQueuedStreams.Push(stream);
   }
 
   if (!(aHttpTransaction->Caps() & NS_HTTP_ALLOW_KEEPALIVE) &&
@@ -460,14 +458,32 @@ Http2Session::AddStream(nsAHttpTransaction *aHttpTransaction,
 }
 
 void
-Http2Session::QueueStream(Http2Stream *stream)
+Http2Session::ActivateStream(Http2Stream *stream)
 {
-  
   MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
-  MOZ_ASSERT(!stream->CountAsActive());
+  MOZ_ASSERT(!stream->StreamID() || (stream->StreamID() & 1),
+             "Do not activate pushed streams");
 
-  LOG3(("Http2Session::QueueStream %p stream %p queued.", this, stream));
-  mQueuedStreams.Push(stream);
+  MOZ_ASSERT(!stream->CountAsActive());
+  stream->SetCountAsActive(true);
+  ++mConcurrent;
+
+  if (mConcurrent > mConcurrentHighWater)
+    mConcurrentHighWater = mConcurrent;
+  LOG3(("Http2Session::AddStream %p activating stream %p Currently %d "
+        "streams in session, high water mark is %d",
+        this, stream, mConcurrent, mConcurrentHighWater));
+
+  mReadyForWrite.Push(stream);
+  SetWriteCallbacks();
+
+  
+  
+  
+  if (mSegmentReader) {
+    uint32_t countRead;
+    ReadSegments(nullptr, kDefaultBufferSize, &countRead);
+  }
 }
 
 void
@@ -475,15 +491,13 @@ Http2Session::ProcessPending()
 {
   MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
 
-  Http2Stream*stream;
-  while (RoomForMoreConcurrent() &&
-         (stream = static_cast<Http2Stream *>(mQueuedStreams.PopFront()))) {
-
-    LOG3(("Http2Session::ProcessPending %p stream %p woken from queue.",
+  while (RoomForMoreConcurrent()) {
+    Http2Stream *stream = static_cast<Http2Stream *>(mQueuedStreams.PopFront());
+    if (!stream)
+      return;
+    LOG3(("Http2Session::ProcessPending %p stream %p activated from queue.",
           this, stream));
-    MOZ_ASSERT(!stream->CountAsActive());
-    mReadyForWrite.Push(stream);
-    SetWriteCallbacks();
+    ActivateStream(stream);
   }
 }
 
@@ -604,44 +618,6 @@ Http2Session::ResetDownstreamState()
 
 
 
-bool
-Http2Session::TryToActivate(Http2Stream *aStream)
-{
-  if (!RoomForMoreConcurrent()) {
-    LOG3(("Http2Session::TryToActivate %p stream=%p no room for more concurrent "
-          "streams %d\n", this, aStream));
-    QueueStream(aStream);
-    return false;
-  }
-  IncrementConcurrent(aStream);
-  return true;
-}
-
-void
-Http2Session::IncrementConcurrent(Http2Stream *stream)
-{
-  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
-  MOZ_ASSERT(!stream->StreamID() || (stream->StreamID() & 1),
-             "Do not activate pushed streams");
-
-  nsAHttpTransaction *trans = stream->Transaction();
-  if (!trans || !trans->IsNullTransaction() || trans->QuerySpdyConnectTransaction()) {
-
-    MOZ_ASSERT(!stream->CountAsActive());
-    stream->SetCountAsActive(true);
-    ++mConcurrent;
-
-    if (mConcurrent > mConcurrentHighWater) {
-      mConcurrentHighWater = mConcurrent;
-    }
-    LOG3(("Http2Session::IncrementCounter %p counting stream %p Currently %d "
-          "streams in session, high water mark is %d\n",
-          this, stream, mConcurrent, mConcurrentHighWater));
-  }
-}
-
-
-
 template<typename charType> void
 Http2Session::CreateFrameHeader(charType dest, uint16_t frameLength,
                                 uint8_t frameType, uint8_t frameFlags,
@@ -680,7 +656,6 @@ Http2Session::CreateFrameHeader(uint8_t *dest, uint16_t frameLength,
 void
 Http2Session::MaybeDecrementConcurrent(Http2Stream *aStream)
 {
-  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
   LOG3(("MaybeDecrementConcurrent %p id=0x%X concurrent=%d active=%d\n",
         this, aStream->StreamID(), mConcurrent, aStream->CountAsActive()));
 
@@ -1475,7 +1450,6 @@ Http2Session::RecvSettings(Http2Session *self)
     case SETTINGS_TYPE_MAX_CONCURRENT:
       self->mMaxConcurrent = value;
       Telemetry::Accumulate(Telemetry::SPDY_SETTINGS_MAX_STREAMS, value);
-      self->ProcessPending();
       break;
 
     case SETTINGS_TYPE_INITIAL_WINDOW:

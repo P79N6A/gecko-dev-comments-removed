@@ -55,9 +55,6 @@ public:
   void SetRecvdData(bool aStatus) { mReceivedData = aStatus ? 1 : 0; }
   bool RecvdData() { return mReceivedData; }
 
-  void SetCountAsActive(bool aStatus) { mCountAsActive = aStatus ? 1 : 0; }
-  bool CountAsActive() { return mCountAsActive; }
-
   void UpdateTransportSendEvents(uint32_t count);
   void UpdateTransportReadEvents(uint32_t count);
 
@@ -122,10 +119,7 @@ protected:
   enum stateType mUpstreamState;
 
   
-  uint32_t                     mRequestHeadersDone   : 1;
-
-  
-  uint32_t                     mSynFrameGenerated    : 1;
+  uint32_t                     mSynFrameComplete     : 1;
 
   
   
@@ -141,8 +135,6 @@ private:
                                           void *);
 
   nsresult ParseHttpRequestHeaders(const char *, uint32_t, uint32_t *);
-  nsresult GenerateSynFrame();
-
   void     AdjustInitialWindow();
   nsresult TransmitFrame(const char *, uint32_t *, bool forceCommitment);
   void     GenerateDataFrameHeader(uint32_t, bool);
@@ -192,9 +184,6 @@ private:
 
   
   uint32_t                     mSetTCPSocketBuffer   : 1;
-
-  
-  uint32_t                     mCountAsActive        : 1;
 
   
   
