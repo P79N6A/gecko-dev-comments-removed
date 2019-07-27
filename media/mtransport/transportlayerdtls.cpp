@@ -501,7 +501,7 @@ bool TransportLayerDtls::Setup() {
   
   SSLVersionRange version_range = {
     SSL_LIBRARY_VERSION_TLS_1_1,
-    SSL_LIBRARY_VERSION_TLS_1_1 
+    SSL_LIBRARY_VERSION_TLS_1_2
   };
 
   rv = SSL_VersionRangeSet(ssl_fd, &version_range);
