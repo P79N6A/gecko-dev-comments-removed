@@ -27,8 +27,6 @@ public:
     mAppId = aAppId;
     mInBrowser = aInBrowser;
   }
-  OriginAttributes(const OriginAttributesDictionary& aOther)
-    : OriginAttributesDictionary(aOther) {}
 
   bool operator==(const OriginAttributes& aOther) const
   {
@@ -44,8 +42,6 @@ public:
   
   
   void CreateSuffix(nsACString& aStr) const;
-
-  void CookieJar(nsACString& aStr);
 
   void Serialize(nsIObjectOutputStream* aStream) const;
   nsresult Deserialize(nsIObjectInputStream* aStream);
