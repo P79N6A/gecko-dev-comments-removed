@@ -476,44 +476,71 @@ int VCMSessionInfo::InsertPacket(const VCMPacket& packet,
   
   ReversePacketIterator rit = packets_.rbegin();
   for (; rit != packets_.rend(); ++rit)
-    if (LatestSequenceNumber(packet.seqNum, (*rit).seqNum) == packet.seqNum)
+    if (LatestSequenceNumber(packet.seqNum, (*rit).seqNum) == packet.seqNum) {
       break;
+    }
 
   
   if (rit != packets_.rend() &&
-      (*rit).seqNum == packet.seqNum && (*rit).sizeBytes > 0)
+      (*rit).seqNum == packet.seqNum && (*rit).sizeBytes > 0) {
     return -2;
+  }
 
   PacketIterator packet_list_it;
 
-  
-  
-  
-  
-  if (packet.isFirstPacket && first_packet_seq_num_ == -1) {
-    
-    frame_type_ = packet.frameType;
-    
-    first_packet_seq_num_ = static_cast<int>(packet.seqNum);
-  } else if (first_packet_seq_num_ != -1 &&
-             !IsNewerSequenceNumber(packet.seqNum, first_packet_seq_num_)) {
+  if (packet.codec == kVideoCodecH264) {
     
     
-    return -3;
-  } else if (frame_type_ == kFrameEmpty && packet.frameType != kFrameEmpty) {
     
     
-    frame_type_ = packet.frameType;
-  }
+    
+    
+    if (frame_type_ != kVideoFrameKey) {
+      frame_type_ = packet.frameType;
+    }
+    if ((!HaveFirstPacket() ||
+        IsNewerSequenceNumber(first_packet_seq_num_, packet.seqNum)) &&
+        packet.isFirstPacket) {
+      first_packet_seq_num_ = packet.seqNum;
+    }
+    
+    
+    
+    if ((!HaveLastPacket() && packet.markerBit) ||
+        (HaveLastPacket() &&
+        IsNewerSequenceNumber(packet.seqNum, last_packet_seq_num_))) {
+      last_packet_seq_num_ = packet.seqNum;
+    }
+  } else {
+    
+    
+    
+    
+    if (packet.isFirstPacket && first_packet_seq_num_ == -1) {
+      
+      frame_type_ = packet.frameType;
+      
+      first_packet_seq_num_ = static_cast<int>(packet.seqNum);
+    } else if (first_packet_seq_num_ != -1 &&
+               !IsNewerSequenceNumber(packet.seqNum, first_packet_seq_num_)) {
+      
+      
+      return -3;
+    } else if (frame_type_ == kFrameEmpty && packet.frameType != kFrameEmpty) {
+      
+      
+      frame_type_ = packet.frameType;
+    }
 
-  
-  if (packet.markerBit && last_packet_seq_num_ == -1) {
-    last_packet_seq_num_ = static_cast<int>(packet.seqNum);
-  } else if (last_packet_seq_num_ != -1 &&
-             IsNewerSequenceNumber(packet.seqNum, last_packet_seq_num_)) {
     
-    
-    return -3;
+    if (packet.markerBit && last_packet_seq_num_ == -1) {
+      last_packet_seq_num_ = static_cast<int>(packet.seqNum);
+    } else if (last_packet_seq_num_ != -1 &&
+               IsNewerSequenceNumber(packet.seqNum, last_packet_seq_num_)) {
+      
+      
+      return -3;
+    }
   }
 
   

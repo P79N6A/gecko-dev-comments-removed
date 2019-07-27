@@ -236,35 +236,71 @@ int32_t RTPReceiverVideo::ReceiveH264Codec(WebRtcRTPHeader* rtp_header,
   uint8_t nal_type = payload_data[offset] & RtpFormatH264::kTypeMask;
   rtp_header->type.Video.codecHeader.H264.nalu_header = nal_type;
   
+  
+  rtp_header->type.Video.isFirstPacket = true;
+  
   switch (nal_type) {
     case RtpFormatH264::kFuA:
       offset = RtpFormatH264::kFuAHeaderOffset;
-      if (offset >= payload_data_length) return -1; 
+      if (offset >= payload_data_length) {
+        return -1; 
+      }
       nal_type = payload_data[offset] & RtpFormatH264::kTypeMask;
+      if (!(payload_data[offset] & RtpFormatH264::kFragStartBit)) {
+        rtp_header->type.Video.isFirstPacket = false;
+      }
       break;
     case RtpFormatH264::kStapA:
       offset = RtpFormatH264::kStapAHeaderOffset +
                RtpFormatH264::kAggUnitLengthSize;
-      if (offset >= payload_data_length) return -1; 
+      if (offset >= payload_data_length) {
+        return -1; 
+      }
       nal_type = payload_data[offset] & RtpFormatH264::kTypeMask;
       break;
     default:
       break;
   }
   
+  
+  
   rtp_header->frameType = kVideoFrameDelta;
   switch (nal_type) {
     case RtpFormatH264::kSei: 
-      if (offset+1 >= payload_data_length) return -1; 
-      if (payload_data[offset+1] != RtpFormatH264::kSeiRecPt) break;
+      if (offset+1 >= payload_data_length) {
+        return -1; 
+      }
+      if (payload_data[offset+1] != RtpFormatH264::kSeiRecPt) {
+        break; 
+      }
       
     case RtpFormatH264::kSps:
     case RtpFormatH264::kPps:
     case RtpFormatH264::kIdr:
       rtp_header->frameType = kVideoFrameKey;
       break;
+    default:
+      break;
   }
+#if 0
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
+  
+  
+  if (nal_type == RtpFormatH264::kIdr || nal_type == RtpFormatH264::kIpb) {
+    
+  }
+#endif
   
   if (data_callback_->OnReceivedPayloadData(
       payload_data, payload_data_length, rtp_header) != 0) {
