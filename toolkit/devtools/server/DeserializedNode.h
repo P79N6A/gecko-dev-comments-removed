@@ -81,6 +81,10 @@ struct DeserializedNode {
   
   virtual DeserializedNode &getEdgeReferent(const DeserializedEdge &edge);
 
+protected:
+  
+  DeserializedNode(NodeId id, const char16_t *typeName, uint64_t size);
+
 private:
   DeserializedNode(const DeserializedNode &) = delete;
   DeserializedNode &operator=(const DeserializedNode &) = delete;
