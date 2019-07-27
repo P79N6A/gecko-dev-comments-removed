@@ -194,9 +194,9 @@ this.Async = {
 
   querySpinningly: function querySpinningly(query, names) {
     
-    let storageCallback = {names: names,
-                           syncCb: Async.makeSyncCallback()};
-    storageCallback.__proto__ = Async._storageCallbackPrototype;
+    let storageCallback = Object.create(Async._storageCallbackPrototype);
+    storageCallback.names = names;
+    storageCallback.syncCb = Async.makeSyncCallback();
     query.executeAsync(storageCallback);
     return Async.waitForSyncCallback(storageCallback.syncCb);
   },
