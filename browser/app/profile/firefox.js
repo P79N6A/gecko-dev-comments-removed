@@ -1684,8 +1684,6 @@ pref("media.gmp-manager.certs.2.issuerName", "CN=Thawte SSL CA,O=\"Thawte, Inc.\
 pref("media.gmp-manager.certs.2.commonName", "aus4.mozilla.org");
 
 
-pref("browser.cache.auto_delete_cache_version", 1);
-
 
 
 pref("browser.cache.frecency_experiment", 0);
