@@ -197,6 +197,10 @@ DebuggerMemory::drainAllocationsLog(JSContext *cx, unsigned argc, Value *vp)
         if (!obj)
             return false;
 
+        
+        
+        
+        
         Debugger::AllocationSite *allocSite = dbg->allocationsLog.getFirst();
         RootedValue frame(cx, ObjectOrNullValue(allocSite->frame));
         if (!JSObject::defineProperty(cx, obj, cx->names().frame, frame))
@@ -208,6 +212,9 @@ DebuggerMemory::drainAllocationsLog(JSContext *cx, unsigned argc, Value *vp)
 
         result->setDenseElement(i, ObjectValue(*obj));
 
+        
+        
+        
         MOZ_ALWAYS_TRUE(dbg->allocationsLog.popFirst() == allocSite);
         js_delete(allocSite);
     }
