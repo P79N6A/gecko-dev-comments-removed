@@ -2629,24 +2629,37 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
       
       
       
-      TimeDuration elapsed = now - mBufferingStart;
-      bool isLiveStream = resource->GetLength() == -1;
-      if ((isLiveStream || !mDecoder->CanPlayThrough()) &&
-            elapsed < TimeDuration::FromSeconds(mBufferingWait * mPlaybackRate) &&
-            (mQuickBuffering ? HasLowDecodedData(QUICK_BUFFERING_LOW_DATA_USECS)
-                             : HasLowUndecodedData(mBufferingWait * USECS_PER_S)) &&
-            mDecoder->IsExpectingMoreData())
-      {
-        DECODER_LOG("Buffering: wait %ds, timeout in %.3lfs %s",
-                    mBufferingWait, mBufferingWait - elapsed.ToSeconds(),
-                    (mQuickBuffering ? "(quick exit)" : ""));
+      bool outOfAudio = IsAudioDecoding() && !AudioQueue().IsFinished() && AudioQueue().GetSize() == 0;
+      bool outOfVideo = IsVideoDecoding() && !VideoQueue().IsFinished() && VideoQueue().GetSize() <= 1;
+
+      
+      
+      
+      if (mReader->UseBufferingHeuristics()) {
+        TimeDuration elapsed = now - mBufferingStart;
+        bool isLiveStream = resource->GetLength() == -1;
+        if ((isLiveStream || !mDecoder->CanPlayThrough()) &&
+              elapsed < TimeDuration::FromSeconds(mBufferingWait * mPlaybackRate) &&
+              (mQuickBuffering ? HasLowDecodedData(QUICK_BUFFERING_LOW_DATA_USECS)
+                               : HasLowUndecodedData(mBufferingWait * USECS_PER_S)) &&
+              mDecoder->IsExpectingMoreData())
+        {
+          DECODER_LOG("Buffering: wait %ds, timeout in %.3lfs %s",
+                      mBufferingWait, mBufferingWait - elapsed.ToSeconds(),
+                      (mQuickBuffering ? "(quick exit)" : ""));
+          ScheduleStateMachine(USECS_PER_S);
+          return NS_OK;
+        }
+      } else if (outOfAudio || outOfVideo) {
+        DECODER_LOG("Out of decoded data - polling for 1s");
+        DispatchDecodeTasksIfNeeded();
         ScheduleStateMachine(USECS_PER_S);
         return NS_OK;
-      } else {
-        DECODER_LOG("Changed state from BUFFERING to DECODING");
-        DECODER_LOG("Buffered for %.3lfs", (now - mBufferingStart).ToSeconds());
-        StartDecoding();
       }
+
+      DECODER_LOG("Changed state from BUFFERING to DECODING");
+      DECODER_LOG("Buffered for %.3lfs", (now - mBufferingStart).ToSeconds());
+      StartDecoding();
 
       
       mDecoder->GetReentrantMonitor().NotifyAll();
@@ -2906,7 +2919,7 @@ void MediaDecoderStateMachine::AdvanceFrame()
       mDecoder->GetState() == MediaDecoder::PLAY_STATE_PLAYING &&
       HasLowDecodedData(remainingTime + EXHAUSTED_DATA_MARGIN_USECS) &&
       mDecoder->IsExpectingMoreData()) {
-    if (JustExitedQuickBuffering() || HasLowUndecodedData()) {
+    if (!mReader->UseBufferingHeuristics() || JustExitedQuickBuffering() || HasLowUndecodedData()) {
       if (currentFrame) {
         VideoQueue().PushFront(currentFrame);
       }
