@@ -54,7 +54,7 @@ public:
 
 
     bool Launch(UniquePtr<LaunchCompleteTask> aLaunchCompleteTask = UniquePtr<LaunchCompleteTask>(),
-                bool aEnableSandbox = false);
+                int32_t aSandboxLevel = 0);
 
     void Delete();
 
