@@ -4,11 +4,11 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["LoginRecipesParent"];
+this.EXPORTED_SYMBOLS = ["LoginRecipesContent", "LoginRecipesParent"];
 
 const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
 const REQUIRED_KEYS = ["hosts"];
-const OPTIONAL_KEYS = ["description", "pathRegex"];
+const OPTIONAL_KEYS = ["description", "passwordSelector", "pathRegex", "usernameSelector"];
 const SUPPORTED_KEYS = REQUIRED_KEYS.concat(OPTIONAL_KEYS);
 
 Cu.importGlobalProperties(["URL"]);
@@ -21,14 +21,29 @@ XPCOMUtils.defineLazyModuleGetter(this, "LoginHelper",
 
 XPCOMUtils.defineLazyGetter(this, "log", () => LoginHelper.createLogger("LoginRecipes"));
 
-function LoginRecipesParent() {
+
+
+
+
+
+
+
+
+function LoginRecipesParent(aOptions = { defaults: true }) {
   if (Services.appinfo.processType != Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
     throw new Error("LoginRecipesParent should only be used from the main process");
   }
 
   this._recipesByHost = new Map();
 
-  this.initializationPromise = Promise.resolve(this);
+  if (aOptions.defaults) {
+    
+    this.initializationPromise = this.load(DEFAULT_RECIPES).then(resolve => {
+      return this;
+    });
+  } else {
+    this.initializationPromise = Promise.resolve(this);
+  }
 }
 
 LoginRecipesParent.prototype = {
@@ -51,13 +66,19 @@ LoginRecipesParent.prototype = {
 
 
   load(aRecipes) {
+    let recipeErrors = 0;
     for (let rawRecipe of aRecipes.siteRecipes) {
       try {
         rawRecipe.pathRegex = rawRecipe.pathRegex ? new RegExp(rawRecipe.pathRegex) : undefined;
         this.add(rawRecipe);
       } catch (ex) {
+        recipeErrors++;
         log.error("Error loading recipe", rawRecipe, ex);
       }
+    }
+
+    if (recipeErrors) {
+      return Promise.reject(`There were ${recipeErrors} recipe error(s)`);
     }
 
     return Promise.resolve();
@@ -93,8 +114,11 @@ LoginRecipesParent.prototype = {
       throw new Error("'pathRegex' must be a regular expression");
     }
 
-    if (recipe.description && typeof(recipe.description) != "string") {
-      throw new Error("'description' must be a string");
+    const OPTIONAL_STRING_PROPS = ["description", "passwordSelector", "usernameSelector"];
+    for (let prop of OPTIONAL_STRING_PROPS) {
+      if (recipe[prop] && typeof(recipe[prop]) != "string") {
+        throw new Error(`'${prop}' must be a string`);
+      }
     }
 
     
@@ -120,4 +144,94 @@ LoginRecipesParent.prototype = {
 
     return hostRecipes;
   },
+};
+
+
+let LoginRecipesContent = {
+  
+
+
+
+
+
+  _filterRecipesForForm(aRecipes, aForm) {
+    let formDocURL = aForm.ownerDocument.location;
+    let host = formDocURL.host;
+    let hostRecipes = aRecipes;
+    let recipes = new Set();
+    log.debug("_filterRecipesForForm", aRecipes);
+    if (!hostRecipes) {
+      return recipes;
+    }
+
+    for (let hostRecipe of hostRecipes) {
+      if (hostRecipe.pathRegex && !hostRecipe.pathRegex.test(formDocURL.pathname)) {
+        continue;
+      }
+      recipes.add(hostRecipe);
+    }
+
+    return recipes;
+  },
+
+  
+
+
+
+
+
+
+
+  getFieldOverrides(aRecipes, aForm) {
+    let recipes = this._filterRecipesForForm(aRecipes, aForm);
+    log.debug("getFieldOverrides: filtered recipes:", recipes);
+    if (!recipes.size) {
+      return null;
+    }
+
+    let chosenRecipe = null;
+    
+    for (let recipe of recipes) {
+      if (!recipe.usernameSelector && !recipe.passwordSelector) {
+        continue;
+      }
+
+      chosenRecipe = recipe;
+      break;
+    }
+
+    return chosenRecipe;
+  },
+
+  
+
+
+
+
+  queryLoginField(aParent, aSelector) {
+    if (!aSelector) {
+      return null;
+    }
+    let field = aParent.ownerDocument.querySelector(aSelector);
+    if (!field) {
+      log.warn("Login field selector wasn't matched:", aSelector);
+      return null;
+    }
+    if (!(field instanceof aParent.ownerDocument.defaultView.HTMLInputElement)) {
+      log.warn("Login field isn't an <input> so ignoring it:", aSelector);
+      return null;
+    }
+    return field;
+  },
+};
+
+const DEFAULT_RECIPES = {
+  "siteRecipes": [
+    {
+      "description": "okta uses a hidden password field to disable filling",
+      "hosts": ["mozilla.okta.com"],
+      "passwordSelector": "#pass-signin",
+      "pathRegex": "^(|\/login\/(login.htm|do\-login))$"
+    },
+  ]
 };

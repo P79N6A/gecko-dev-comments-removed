@@ -258,3 +258,25 @@ function dumpLogin(label, login) {
     loginText += login.passwordField;
     ok(true, label + loginText);
 }
+
+
+if (this.addMessageListener) {
+  const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
+  var SpecialPowers = { Cc, Ci, Cr, Cu, };
+  var ok, is;
+  
+  ok = is = () => {};
+
+  Cu.import("resource://gre/modules/Task.jsm");
+
+  addMessageListener("setupParent", () => {
+    commonInit(true);
+    sendAsyncMessage("doneSetup");
+  });
+  addMessageListener("loadRecipes", Task.async(function* loadRecipes(recipes) {
+    var { LoginManagerParent } = Cu.import("resource://gre/modules/LoginManagerParent.jsm", {});
+    var recipeParent = yield LoginManagerParent.recipeParentPromise;
+    yield recipeParent.load(recipes);
+    sendAsyncMessage("loadedRecipes", recipes);
+  }));
+}

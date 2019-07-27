@@ -8,15 +8,15 @@
 this.EXPORTED_SYMBOLS = [ "LoginManagerContent",
                           "UserAutoCompleteResult" ];
 
-const Ci = Components.interfaces;
-const Cr = Components.results;
-const Cc = Components.classes;
-const Cu = Components.utils;
+const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "LoginRecipesContent",
+                                  "resource://gre/modules/LoginRecipes.jsm");
 
 
 var gEnabled, gDebug, gAutofillForms, gStoreWhenAutocompleteOff;
@@ -183,8 +183,11 @@ var LoginManagerContent = {
     switch (msg.name) {
       case "RemoteLogins:loginsFound": {
         let loginsFound = jsLoginsToXPCOM(msg.data.logins);
-        request.promise.resolve({ form: request.form,
-                                  loginsFound: loginsFound});
+        request.promise.resolve({
+          form: request.form,
+          loginsFound: loginsFound,
+          recipes: msg.data.recipes,
+        });
         break;
       }
 
@@ -196,7 +199,14 @@ var LoginManagerContent = {
     }
   },
 
-  _asyncFindLogins: function(form, options) {
+  
+
+
+
+
+
+
+  _getLoginDataFromParent: function(form, options) {
     let doc = form.ownerDocument;
     let win = doc.defaultView;
 
@@ -257,16 +267,16 @@ var LoginManagerContent = {
 
     let form = event.target;
     log("onFormPassword for", form.ownerDocument.documentURI);
-    this._asyncFindLogins(form, { showMasterPassword: true })
+    this._getLoginDataFromParent(form, { showMasterPassword: true })
         .then(this.loginsFound.bind(this))
         .then(null, Cu.reportError);
   },
 
-  loginsFound: function({ form, loginsFound }) {
+  loginsFound: function({ form, loginsFound, recipes }) {
     let doc = form.ownerDocument;
     let autofillForm = gAutofillForms && !PrivateBrowsingUtils.isContentWindowPrivate(doc.defaultView);
 
-    this._fillForm(form, autofillForm, false, false, loginsFound);
+    this._fillForm(form, autofillForm, false, false, loginsFound, recipes);
   },
 
   
@@ -307,9 +317,9 @@ var LoginManagerContent = {
     var [usernameField, passwordField, ignored] =
         this._getFormFields(acForm, false);
     if (usernameField == acInputField && passwordField) {
-      this._asyncFindLogins(acForm, { showMasterPassword: false })
-          .then(({ form, loginsFound }) => {
-              this._fillForm(form, true, true, true, loginsFound);
+      this._getLoginDataFromParent(acForm, { showMasterPassword: false })
+          .then(({ form, loginsFound, recipes }) => {
+            this._fillForm(form, true, true, true, loginsFound, recipes);
           })
           .then(null, Cu.reportError);
     } else {
@@ -393,25 +403,53 @@ var LoginManagerContent = {
 
 
 
-  _getFormFields : function (form, isSubmission) {
+
+  _getFormFields : function (form, isSubmission, recipes) {
     var usernameField = null;
+    var pwFields = null;
+    var fieldOverrideRecipe = LoginRecipesContent.getFieldOverrides(recipes, form);
+    if (fieldOverrideRecipe) {
+      var pwOverrideField = LoginRecipesContent.queryLoginField(
+        form,
+        fieldOverrideRecipe.passwordSelector
+      );
+      if (pwOverrideField) {
+        pwFields = [{
+          index   : [...pwOverrideField.form.elements].indexOf(pwOverrideField),
+          element : pwOverrideField,
+        }];
+      }
 
-    
-    
-    var pwFields = this._getPasswordFields(form, isSubmission);
-    if (!pwFields)
+      var usernameOverrideField = LoginRecipesContent.queryLoginField(
+        form,
+        fieldOverrideRecipe.usernameSelector
+      );
+      if (usernameOverrideField) {
+        usernameField = usernameOverrideField;
+      }
+    }
+
+    if (!pwFields) {
+      
+      
+      pwFields = this._getPasswordFields(form, isSubmission);
+    }
+
+    if (!pwFields) {
       return [null, null, null];
+    }
 
-
-    
-    
-    
-    
-    for (var i = pwFields[0].index - 1; i >= 0; i--) {
-      var element = form.elements[i];
-      if (this._isUsernameFieldType(element)) {
-        usernameField = element;
-        break;
+    if (!usernameField) {
+      
+      
+      
+      
+      for (var i = pwFields[0].index - 1; i >= 0; i--) {
+        var element = form.elements[i];
+        if (this._isUsernameFieldType(element)) {
+          usernameField = element;
+          break;
+        }
       }
     }
 
@@ -584,7 +622,7 @@ var LoginManagerContent = {
 
 
   _fillForm : function (form, autofillForm, clobberPassword,
-                        userTriggered, foundLogins) {
+                        userTriggered, foundLogins, recipes) {
     let ignoreAutocomplete = true;
     const AUTOFILL_RESULT = {
       FILLED: 0,
@@ -621,7 +659,7 @@ var LoginManagerContent = {
       
       
       var [usernameField, passwordField, ignored] =
-          this._getFormFields(form, false);
+            this._getFormFields(form, false, recipes);
 
       
       if (passwordField == null) {

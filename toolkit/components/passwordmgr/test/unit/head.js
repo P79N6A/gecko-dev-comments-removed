@@ -201,8 +201,41 @@ const LoginTest = {
 
 const RecipeHelpers = {
   initNewParent() {
-    return (new LoginRecipesParent()).initializationPromise;
+    return (new LoginRecipesParent({ defaults: false })).initializationPromise;
   },
+
+  
+
+
+
+  createTestForm(aDocumentURL, aHTML = "<form>") {
+    let parser = Cc["@mozilla.org/xmlextras/domparser;1"].
+                 createInstance(Ci.nsIDOMParser);
+    parser.init();
+    let parsedDoc = parser.parseFromString(aHTML, "text/html");
+
+    
+    
+    let document = new Proxy(parsedDoc, {
+      get(target, property, receiver) {
+        
+        
+        if (property == "location") {
+          return new URL(aDocumentURL);
+        }
+        return target[property];
+      },
+    });
+
+    let form = parsedDoc.forms[0];
+
+    
+    Object.defineProperty(form, "ownerDocument", {
+      value: document,
+    });
+
+    return form;
+  }
 };
 
 
