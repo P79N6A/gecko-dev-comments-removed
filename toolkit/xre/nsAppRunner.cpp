@@ -231,6 +231,7 @@ static char **gQtOnlyArgv;
 #endif
 
 #if defined(MOZ_WIDGET_GTK)
+#include <glib.h>
 #if defined(DEBUG) || defined(NS_BUILD_REFCNT_LOGGING)
 #define CLEANUP_MEMORY 1
 #define PANGO_ENABLE_BACKEND
@@ -4287,6 +4288,25 @@ XREMain::XRE_mainRun()
   return rv;
 }
 
+#if MOZ_WIDGET_GTK == 2
+void XRE_GlibInit()
+{
+  static bool ran_once = false;
+
+  
+  
+  
+  if (!ran_once) {
+    
+    
+    
+    g_thread_init(nullptr);
+    g_type_init();
+    ran_once = true;
+  }
+}
+#endif
+
 
 
 
@@ -4325,14 +4345,8 @@ XREMain::XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 
   mozilla::IOInterposerInit ioInterposerGuard;
 
-#if defined(MOZ_WIDGET_GTK)
-#if defined(MOZ_MEMORY) || defined(__FreeBSD__) || defined(__NetBSD__)
-  
-  
-  
-  g_slice_set_config(G_SLICE_CONFIG_ALWAYS_MALLOC, 1);
-#endif
-  g_thread_init(nullptr);
+#if MOZ_WIDGET_GTK == 2
+  XRE_GlibInit();
 #endif
 
   

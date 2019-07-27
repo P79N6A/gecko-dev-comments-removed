@@ -426,9 +426,55 @@ XPCOMGlueEnablePreload()
   do_preload = true;
 }
 
+#if defined(MOZ_WIDGET_GTK) && (defined(MOZ_MEMORY) || defined(__FreeBSD__) || defined(__NetBSD__))
+#define MOZ_GSLICE_INIT
+#endif
+
+#ifdef MOZ_GSLICE_INIT
+#include <glib.h>
+
+class GSliceInit {
+public:
+  GSliceInit() {
+    mHadGSlice = bool(getenv("G_SLICE"));
+    if (!mHadGSlice) {
+      
+      
+      
+      
+      
+      
+      
+      setenv("G_SLICE", "always-malloc", 1);
+    }
+  }
+
+  ~GSliceInit() {
+#if MOZ_WIDGET_GTK == 2
+    if (sTop) {
+      auto XRE_GlibInit = (void (*)(void)) GetSymbol(sTop->libHandle,
+        "XRE_GlibInit");
+      
+      
+      XRE_GlibInit();
+    }
+#endif
+    if (!mHadGSlice) {
+      unsetenv("G_SLICE");
+    }
+  }
+
+private:
+  bool mHadGSlice;
+};
+#endif
+
 nsresult
 XPCOMGlueStartup(const char* aXPCOMFile)
 {
+#ifdef MOZ_GSLICE_INIT
+  GSliceInit gSliceInit;
+#endif
   xpcomFunctions.version = XPCOM_GLUE_VERSION;
   xpcomFunctions.size    = sizeof(XPCOMFunctions);
 
