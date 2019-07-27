@@ -28,6 +28,12 @@ richlistitem.download[active] {
 .download-state:not(:-moz-any([state="2"], 
                               [state="4"]) )
                                            .downloadCancelMenuItem,
+
+
+.download-state:not(          [state="8"]  )
+                                           .downloadUnblockMenuItem,
+.download-state[state="8"]:not(.temporary-block)
+                                           .downloadUnblockMenuItem,
 .download-state[state]:not(:-moz-any([state="1"], 
                                      [state="2"], 
                                      [state="3"], 

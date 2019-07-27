@@ -38,6 +38,13 @@ richlistitem[type="download"]:not([selected]) button {
 .download-state:not(          [state="4"]  )
                                            .downloadResumeMenuItem,
 
+
+
+.download-state:not(          [state="8"]  )
+                                           .downloadUnblockMenuItem,
+.download-state[state="8"]:not(.temporary-block)
+                                           .downloadUnblockMenuItem,
+
 .download-state:not(:-moz-any([state="2"], 
                               [state="4"]) )
                                            .downloadCancelMenuItem,
@@ -70,6 +77,13 @@ richlistitem[type="download"]:not([selected]) button {
                               [state="0"], 
                               [state="4"]) )
                                            .downloadCancel,
+
+
+
+.download-state:not(          [state="8"]  )
+                                           .downloadConfirmBlock,
+.download-state[state="8"]:not(.temporary-block)
+                                           .downloadConfirmBlock,
 
 .download-state:not(:-moz-any([state="2"], 
                               [state="3"]) )
