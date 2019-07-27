@@ -835,6 +835,12 @@ var PARALLEL_TESTS = 2;
 
 
 
+var gTestPrefs = [
+  ['media.recorder.max_memory', 1024],
+];
+
+
+
 const DEBUG_TEST_LOOP_FOREVER = false;
 
 
@@ -873,7 +879,9 @@ function MediaTestManager() {
     this.numTestsRunning = 0;
     
     SimpleTest.waitForExplicitFinish();
-    this.nextTest();
+    SpecialPowers.pushPrefEnv({'set': gTestPrefs}, (function() {
+      this.nextTest();
+    }).bind(this));
   }
 
   
