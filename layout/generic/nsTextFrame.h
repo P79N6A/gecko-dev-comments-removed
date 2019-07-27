@@ -15,6 +15,11 @@
 #include "nsDisplayList.h"
 #include "JustificationUtils.h"
 
+
+#if defined(XP_WIN) && defined(DrawText)
+#undef DrawText
+#endif
+
 class nsTextPaintStyle;
 class PropertyProvider;
 struct SelectionDetails;
