@@ -50,7 +50,7 @@ public:
   
   void Intersection(const TimeRanges* aOtherRanges);
 
-  JSObject* WrapObject(JSContext* aCx);
+  bool WrapObject(JSContext* aCx, JS::MutableHandle<JSObject*> aReflector);
 
   uint32_t Length() const
   {
