@@ -5,6 +5,7 @@
 
 
 #include "CryptoBuffer.h"
+#include "mozilla/Base64.h"
 #include "mozilla/dom/UnionTypes.h"
 
 namespace mozilla {
@@ -75,8 +76,74 @@ CryptoBuffer::Assign(const OwningArrayBufferViewOrArrayBuffer& aData)
   return nullptr;
 }
 
+
+
+
+
+nsresult
+CryptoBuffer::FromJwkBase64(const nsString& aBase64)
+{
+  NS_ConvertUTF16toUTF8 temp(aBase64);
+  temp.StripWhitespace();
+
+  
+  if (temp.Length() % 4 == 3) {
+    temp.AppendLiteral("=");
+  } else if (temp.Length() % 4 == 2) {
+    temp.AppendLiteral("==");
+  } if (temp.Length() % 4 == 1) {
+    return NS_ERROR_FAILURE; 
+  }
+
+  
+  temp.ReplaceChar('-', '+');
+  temp.ReplaceChar('_', '/');
+
+  
+  nsCString binaryData;
+  nsresult rv = Base64Decode(temp, binaryData);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (!Assign((const uint8_t*) binaryData.BeginReading(),
+              binaryData.Length())) {
+    return NS_ERROR_FAILURE;
+  }
+
+  return NS_OK;
+}
+
+nsresult
+CryptoBuffer::ToJwkBase64(nsString& aBase64)
+{
+  
+  if (Length() == 0) {
+    aBase64.Truncate();
+    return NS_OK;
+  }
+
+  
+  nsCString base64;
+  nsDependentCSubstring binaryData((const char*) Elements(),
+                                   (const char*) (Elements() + Length()));
+  nsresult rv = Base64Encode(binaryData, base64);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  base64.Trim("=");
+
+  
+  base64.ReplaceChar('+', '-');
+  base64.ReplaceChar('/', '_');
+  if (base64.FindCharInSet("+/", 0) != kNotFound) {
+    return NS_ERROR_FAILURE;
+  }
+
+  CopyASCIItoUTF16(base64, aBase64);
+  return NS_OK;
+}
+
 SECItem*
-CryptoBuffer::ToSECItem()
+CryptoBuffer::ToSECItem() const
 {
   uint8_t* data = (uint8_t*) moz_malloc(Length());
   if (!data) {

@@ -53,6 +53,8 @@ namespace dom {
 
 
 
+struct JsonWebKey;
+
 class CryptoKey MOZ_FINAL : public nsISupports,
                             public nsWrapperCache,
                             public nsNSSShutDownObject
@@ -148,6 +150,18 @@ public:
   static nsresult PublicKeyToSpki(SECKEYPublicKey* aPrivKey,
                                   CryptoBuffer& aRetVal,
                                   const nsNSSShutDownPreventionLock& );
+
+  static SECKEYPrivateKey* PrivateKeyFromJwk(const JsonWebKey& aJwk,
+                                             const nsNSSShutDownPreventionLock& );
+  static nsresult PrivateKeyToJwk(SECKEYPrivateKey* aPrivKey,
+                                  JsonWebKey& aRetVal,
+                                  const nsNSSShutDownPreventionLock& );
+
+  static SECKEYPublicKey* PublicKeyFromJwk(const JsonWebKey& aKeyData,
+                                           const nsNSSShutDownPreventionLock& );
+  static nsresult PublicKeyToJwk(SECKEYPublicKey* aPrivKey,
+                                 JsonWebKey& aRetVal,
+                                 const nsNSSShutDownPreventionLock& );
 
   
   bool WriteStructuredClone(JSStructuredCloneWriter* aWriter) const;
