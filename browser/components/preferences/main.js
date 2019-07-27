@@ -3,9 +3,9 @@
 
 
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "DownloadsCommon",
-                                  "resource:///modules/DownloadsCommon.jsm");
+Components.utils.import("resource://gre/modules/Downloads.jsm");
+Components.utils.import("resource://gre/modules/FileUtils.jsm");
+Components.utils.import("resource://gre/modules/Task.jsm");
 
 var gMainPane = {
   _pane: null,
@@ -332,34 +332,19 @@ var gMainPane = {
 
 
 
-  chooseFolder: function ()
+  chooseFolder() this.chooseFolderTask().catch(Components.utils.reportError),
+  chooseFolderTask: Task.async(function* ()
   {
-    const nsIFilePicker = Components.interfaces.nsIFilePicker;
-    const nsILocalFile = Components.interfaces.nsILocalFile;
-
     let bundlePreferences = document.getElementById("bundlePreferences");
     let title = bundlePreferences.getString("chooseDownloadFolderTitle");
     let folderListPref = document.getElementById("browser.download.folderList");
-    let currentDirPref = this._indexToFolder(folderListPref.value); 
-    let defDownloads = this._indexToFolder(1); 
+    let currentDirPref = yield this._indexToFolder(folderListPref.value);
+    let defDownloads = yield this._indexToFolder(1);
     let fp = Components.classes["@mozilla.org/filepicker;1"].
-             createInstance(nsIFilePicker);
-    let fpCallback = function fpCallback_done(aResult) {
-      if (aResult == nsIFilePicker.returnOK) {
-        let file = fp.file.QueryInterface(nsILocalFile);
-        let downloadDirPref = document.getElementById("browser.download.dir");
+             createInstance(Components.interfaces.nsIFilePicker);
 
-        downloadDirPref.value = file;
-        folderListPref.value = this._folderToIndex(file);
-        
-        
-        
-        
-      }
-    }.bind(this);
-
-    fp.init(window, title, nsIFilePicker.modeGetFolder);
-    fp.appendFilters(nsIFilePicker.filterAll);
+    fp.init(window, title, Components.interfaces.nsIFilePicker.modeGetFolder);
+    fp.appendFilters(Components.interfaces.nsIFilePicker.filterAll);
     
     if (currentDirPref && currentDirPref.exists()) {
       fp.displayDirectory = currentDirPref;
@@ -368,16 +353,36 @@ var gMainPane = {
       fp.displayDirectory = defDownloads;
     } 
     else {
-      fp.displayDirectory = this._indexToFolder(0);
+      fp.displayDirectory = yield this._indexToFolder(0);
     }
-    fp.open(fpCallback);
-  },
+
+    let result = yield new Promise(resolve => fp.open(resolve));
+    if (result != Components.interfaces.nsIFilePicker.returnOK) {
+      return;
+    }
+
+    let downloadDirPref = document.getElementById("browser.download.dir");
+    downloadDirPref.value = fp.file;
+    folderListPref.value = yield this._folderToIndex(fp.file);
+    
+    
+    
+    
+  }),
 
   
 
 
 
-  displayDownloadDirPref: function ()
+  displayDownloadDirPref()
+  {
+    this.displayDownloadDirPrefTask().catch(Components.utils.reportError);
+
+    
+    return undefined;
+  },
+
+  displayDownloadDirPrefTask: Task.async(function* ()
   {
     var folderListPref = document.getElementById("browser.download.folderList");
     var bundlePreferences = document.getElementById("bundlePreferences");
@@ -408,17 +413,14 @@ var gMainPane = {
       
       
       downloadFolder.label = bundlePreferences.getString("downloadsFolderName");
-      iconUrlSpec = fph.getURLSpecFromFile(this._indexToFolder(1));
+      iconUrlSpec = fph.getURLSpecFromFile(yield this._indexToFolder(1));
     } else {
       
       downloadFolder.label = bundlePreferences.getString("desktopFolderName");
-      iconUrlSpec = fph.getURLSpecFromFile(this._getDownloadsFolder("Desktop"));
+      iconUrlSpec = fph.getURLSpecFromFile(yield this._getDownloadsFolder("Desktop"));
     }
     downloadFolder.image = "moz-icon://" + iconUrlSpec + "?size=16";
-    
-    
-    return undefined;
-  },
+  }),
 
   
 
@@ -439,22 +441,19 @@ var gMainPane = {
 
 
 
-  _getDownloadsFolder: function (aFolder)
+  _getDownloadsFolder: Task.async(function* (aFolder)
   {
     switch (aFolder) {
       case "Desktop":
         var fileLoc = Components.classes["@mozilla.org/file/directory_service;1"]
                                     .getService(Components.interfaces.nsIProperties);
         return fileLoc.get("Desk", Components.interfaces.nsILocalFile);
-      break;
       case "Downloads":
-        var dnldMgr = Components.classes["@mozilla.org/download-manager;1"]
-                                .getService(Components.interfaces.nsIDownloadManager);
-        return dnldMgr.defaultDownloadsDirectory;
-      break;
+        let downloadsDir = yield Downloads.getSystemDownloadsDirectory();
+        return new FileUtils.File(downloadsDir);
     }
     throw "ASSERTION FAILED: folder type should be 'Desktop' or 'Downloads'";
-  },
+  }),
 
   
 
@@ -466,14 +465,14 @@ var gMainPane = {
 
 
 
-  _folderToIndex: function (aFolder)
+  _folderToIndex: Task.async(function* (aFolder)
   {
-    if (!aFolder || aFolder.equals(this._getDownloadsFolder("Desktop")))
+    if (!aFolder || aFolder.equals(yield this._getDownloadsFolder("Desktop")))
       return 0;
-    else if (aFolder.equals(this._getDownloadsFolder("Downloads")))
+    else if (aFolder.equals(yield this._getDownloadsFolder("Downloads")))
       return 1;
     return 2;
-  },
+  }),
 
   
 
@@ -484,40 +483,17 @@ var gMainPane = {
 
 
 
-  _indexToFolder: function (aIndex)
+  _indexToFolder: Task.async(function* (aIndex)
   {
     switch (aIndex) {
       case 0:
-        return this._getDownloadsFolder("Desktop");
+        return yield this._getDownloadsFolder("Desktop");
       case 1:
-        return this._getDownloadsFolder("Downloads");
+        return yield this._getDownloadsFolder("Downloads");
     }
     var currentDirPref = document.getElementById("browser.download.dir");
     return currentDirPref.value;
-  },
-
-  
-
-
-  getFolderListPref: function ()
-  {
-    var folderListPref = document.getElementById("browser.download.folderList");
-    switch (folderListPref.value) {
-      case 0: 
-      case 1: 
-        return folderListPref.value;
-      break;
-      case 2: 
-        var currentDirPref = document.getElementById("browser.download.dir");
-        if (currentDirPref.value) {
-          
-          
-          return this._folderToIndex(currentDirPref.value);
-        }
-        return 0;
-      break;
-    }
-  },
+  }),
 
   
 
