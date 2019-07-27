@@ -2098,10 +2098,6 @@ CanRelocateZone(JSRuntime *rt, Zone *zone)
 static bool
 CanRelocateArena(ArenaHeader *arena)
 {
-    
-
-
-
     return arena->getAllocKind() <= FINALIZE_OBJECT_LAST;
 }
 
