@@ -192,12 +192,6 @@ public:
 
   
   
-  
-  
-  int64_t GetEndTime();
-
-  
-  
   bool OnDecodeTaskQueue() const;
   bool OnTaskQueue() const;
 
@@ -949,17 +943,11 @@ public:
 
   
   
-  
-  
-  int64_t mEndTime;
+  media::NullableTimeUnit mDuration;
+  media::TimeUnit Duration() const { MOZ_ASSERT(OnTaskQueue()); return mDuration.ref(); }
 
   
   void RecomputeDuration();
-
-  
-  
-  
-  bool mDurationSet;
 
   
   Mirror<media::NullableTimeUnit> mEstimatedDuration;
