@@ -50,7 +50,7 @@ nsCCUncollectableMarker::Init()
   if (sInited) {
     return NS_OK;
   }
-  
+
   nsCOMPtr<nsIObserver> marker = new nsCCUncollectableMarker;
   NS_ENSURE_TRUE(marker, NS_ERROR_OUT_OF_MEMORY);
 
@@ -247,7 +247,7 @@ MarkSHEntry(nsISHEntry* aSHEntry, bool aCleanupJS, bool aPrepareForCC)
     shCont->GetChildAt(i, getter_AddRefs(childEntry));
     MarkSHEntry(childEntry, aCleanupJS, aPrepareForCC);
   }
-  
+
 }
 
 void
@@ -317,9 +317,9 @@ nsCCUncollectableMarker::Observe(nsISupports* aSubject, const char* aTopic,
     obs->RemoveObserver(this, "xpcom-shutdown");
     obs->RemoveObserver(this, "cycle-collector-begin");
     obs->RemoveObserver(this, "cycle-collector-forget-skippable");
-    
+
     sGeneration = 0;
-    
+
     return NS_OK;
   }
 
@@ -365,7 +365,7 @@ nsCCUncollectableMarker::Observe(nsISupports* aSubject, const char* aTopic,
     MarkWindowList(windowList, cleanupJS, prepareForCC);
   }
 
-  nsCOMPtr<nsIAppShellService> appShell = 
+  nsCOMPtr<nsIAppShellService> appShell =
     do_GetService(NS_APPSHELLSERVICE_CONTRACTID);
   if (appShell) {
     nsCOMPtr<nsIXULWindow> hw;
