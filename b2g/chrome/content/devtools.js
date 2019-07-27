@@ -27,6 +27,7 @@ XPCOMUtils.defineLazyGetter(this, 'MemoryFront', function() {
   return devtools.require('devtools/server/actors/memory').MemoryFront;
 });
 
+Cu.import('resource://gre/modules/AppFrames.jsm');
 
 
 
@@ -36,7 +37,6 @@ XPCOMUtils.defineLazyGetter(this, 'MemoryFront', function() {
 let developerHUD = {
 
   _targets: new Map(),
-  _frames: new Map(),
   _client: null,
   _conn: null,
   _watchers: [],
@@ -77,15 +77,9 @@ let developerHUD = {
       }
     }
 
-    Services.obs.addObserver(this, 'remote-browser-shown', false);
-    Services.obs.addObserver(this, 'inprocess-browser-shown', false);
-    Services.obs.addObserver(this, 'message-manager-disconnect', false);
+    AppFrames.addObserver(this);
 
-    let systemapp = document.querySelector('#systemapp');
-    this.trackFrame(systemapp);
-
-    let frames = systemapp.contentWindow.document.querySelectorAll('iframe[mozapp]');
-    for (let frame of frames) {
+    for (let frame of AppFrames.list()) {
       this.trackFrame(frame);
     }
 
@@ -102,9 +96,7 @@ let developerHUD = {
       this.untrackFrame(frame);
     }
 
-    Services.obs.removeObserver(this, 'remote-browser-shown');
-    Services.obs.removeObserver(this, 'inprocess-browser-shown');
-    Services.obs.removeObserver(this, 'message-manager-disconnect');
+    AppFrames.removeObserver(this);
 
     this._client.close();
     delete this._client;
@@ -140,41 +132,12 @@ let developerHUD = {
     }
   },
 
-  observe: function dwp_observe(subject, topic, data) {
-    if (!this._client)
-      return;
+  onAppFrameCreated: function (frame, isFirstAppFrame) {
+    this.trackFrame(frame);
+  },
 
-    let frame;
-
-    switch(topic) {
-
-      
-      case 'remote-browser-shown':
-      case 'inprocess-browser-shown':
-        let frameLoader = subject;
-        
-        frameLoader.QueryInterface(Ci.nsIFrameLoader);
-        
-        if (!frameLoader.ownerIsBrowserOrAppFrame) {
-          return;
-        }
-        frame = frameLoader.ownerElement;
-        if (!frame.appManifestURL) 
-          return;
-        this.trackFrame(frame);
-        this._frames.set(frameLoader.messageManager, frame);
-        break;
-
-      
-      case 'message-manager-disconnect':
-        let mm = subject;
-        frame = this._frames.get(mm);
-        if (!frame)
-          return;
-        this.untrackFrame(frame);
-        this._frames.delete(mm);
-        break;
-    }
+  onAppFrameDestroyed: function (frame, isLastAppFrame) {
+    this.untrackFrame(frame);
   },
 
   log: function dwp_log(message) {
