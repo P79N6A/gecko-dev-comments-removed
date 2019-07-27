@@ -1601,45 +1601,6 @@ nsCSSRendering::PaintBackground(nsPresContext* aPresContext,
                         aBGClipRect, aLayer);
 }
 
-void
-nsCSSRendering::PaintBackgroundColor(gfxRGBA aColor,
-                                     nsRenderingContext& aRenderingContext,
-                                     nsIFrame* aForFrame,
-                                     const nsRect& aDirtyRect,
-                                     const nsRect& aBorderArea,
-                                     const nsRect& aBGClipRect,
-                                     uint32_t aFlags)
-{
-  PROFILER_LABEL("nsCSSRendering", "PaintBackgroundColor",
-    js::ProfileEntry::Category::GRAPHICS);
-
-  NS_PRECONDITION(aForFrame,
-                  "Frame is expected to be provided to PaintBackground");
-
-  nsStyleContext *sc;
-  if (!FindBackground(aForFrame, &sc)) {
-    
-    
-    
-    
-    
-    if (!aForFrame->StyleDisplay()->mAppearance) {
-      return;
-    }
-
-    nsIContent* content = aForFrame->GetContent();
-    if (!content || content->GetParent()) {
-      return;
-    }
-
-    sc = aForFrame->StyleContext();
-  }
-
-  PaintBackgroundColorWithSC(aColor, aRenderingContext, aForFrame,
-                             aDirtyRect, aBorderArea, aBGClipRect, sc,
-                             *aForFrame->StyleBorder(), aFlags);
-}
-
 static bool
 IsOpaqueBorderEdge(const nsStyleBorder& aBorder, mozilla::css::Side aSide)
 {
@@ -2833,73 +2794,6 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
       }
     }
   }
-}
-
-void
-nsCSSRendering::PaintBackgroundColorWithSC(gfxRGBA aColor,
-                                           nsRenderingContext& aRenderingContext,
-                                           nsIFrame* aForFrame,
-                                           const nsRect& aDirtyRect,
-                                           const nsRect& aBorderArea,
-                                           const nsRect& aBGClipRect,
-                                           nsStyleContext* aBackgroundSC,
-                                           const nsStyleBorder& aBorder,
-                                           uint32_t aFlags)
-{
-  NS_PRECONDITION(aForFrame,
-                  "Frame is expected to be provided to PaintBackground");
-
-  
-  
-  const nsStyleDisplay* displayData = aForFrame->StyleDisplay();
-  if (displayData->mAppearance) {
-    nsITheme *theme = aForFrame->PresContext()->GetTheme();
-    if (theme && theme->ThemeSupportsWidget(aForFrame->PresContext(), aForFrame,
-                                            displayData->mAppearance)) {
-      NS_ERROR("Shouldn't be trying to paint a background color if we are themed!");
-      return;
-    }
-  }
-
-  NS_ASSERTION(!IsCanvasFrame(aForFrame), "Should not be trying to paint a background color for canvas frames!");
-
-  
-  
-  bool drawBackgroundImage;
-  bool drawBackgroundColor;
-  DetermineBackgroundColor(aForFrame->PresContext(),
-                           aBackgroundSC,
-                           aForFrame,
-                           drawBackgroundImage,
-                           drawBackgroundColor);
-
-  NS_ASSERTION(drawBackgroundImage || drawBackgroundColor,
-               "Should not be trying to paint a background if we don't have one");
-  if (!drawBackgroundColor) {
-    return;
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  gfxContext* ctx = aRenderingContext.ThebesContext();
-  nscoord appUnitsPerPixel = aForFrame->PresContext()->AppUnitsPerDevPixel();
-
-  BackgroundClipState clipState;
-  clipState.mBGClipArea = aBGClipRect;
-  clipState.mCustomClip = true;
-  SetupDirtyRects(clipState.mBGClipArea, aDirtyRect, appUnitsPerPixel,
-                  &clipState.mDirtyRect, &clipState.mDirtyRectGfx);
-
-  ctx->SetColor(aColor);
-
-  gfxContextAutoSaveRestore autoSR;
-  DrawBackgroundColor(clipState, ctx, appUnitsPerPixel);
 }
 
 static inline bool

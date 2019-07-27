@@ -525,14 +525,6 @@ struct nsCSSRendering {
                               nsRect* aBGClipRect = nullptr,
                               int32_t aLayer = -1);
 
-  static void PaintBackgroundColor(gfxRGBA aColor,
-                                   nsRenderingContext& aRenderingContext,
-                                   nsIFrame* aForFrame,
-                                   const nsRect& aDirtyRect,
-                                   const nsRect& aBorderArea,
-                                   const nsRect& aBGClipRect,
-                                   uint32_t aFlags);
-
   
 
 
@@ -553,15 +545,6 @@ struct nsCSSRendering {
                                     nsRect* aBGClipRect = nullptr,
                                     int32_t aLayer = -1);
 
-  static void PaintBackgroundColorWithSC(gfxRGBA aColor,
-                                         nsRenderingContext& aRenderingContext,
-                                         nsIFrame* aForFrame,
-                                         const nsRect& aDirtyRect,
-                                         const nsRect& aBorderArea,
-                                         const nsRect& aBGClipRect,
-                                         nsStyleContext *aStyleContext,
-                                         const nsStyleBorder& aBorder,
-                                         uint32_t aFlags);
   
 
 
