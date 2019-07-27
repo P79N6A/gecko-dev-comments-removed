@@ -997,9 +997,6 @@ void
 CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins, const Register *dynStack)
 {
     
-    MOZ_ASSERT(fun.executionMode == gen->info().executionMode());
-
-    
     
     MOZ_ASSERT_IF(fun.outParam == Type_Double, GetJitContext()->runtime->jitSupportsFloatingPoint());
 
