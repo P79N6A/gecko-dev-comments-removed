@@ -14,7 +14,7 @@ const Cu = Components.utils;
 
 
 
-const PANEL_MIN_HEIGHT = 200;
+const PANEL_MIN_HEIGHT = 190;
 const PANEL_MIN_WIDTH = 330;
 
 Cu.import("resource://gre/modules/Services.jsm");
