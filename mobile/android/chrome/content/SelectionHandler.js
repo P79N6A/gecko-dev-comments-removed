@@ -754,6 +754,9 @@ var SelectionHandler = {
 
   attachCaret: function sh_attachCaret(aElement) {
     
+    this._closeSelection();
+
+    
     if (aElement.disabled || InputWidgetHelper.hasInputWidget(aElement) || !this.isElementEditableText(aElement)) {
       return this.ATTACH_ERROR_INCOMPATIBLE;
     }
