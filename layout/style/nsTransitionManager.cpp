@@ -329,11 +329,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
     }
   }
 
-  if (!startedAny) {
-    return;
-  }
-
-  MOZ_ASSERT(collection,
+  MOZ_ASSERT(!startedAny || collection,
              "must have element transitions if we started any transitions");
 
   
@@ -351,27 +347,33 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
 
   nsRefPtr<css::AnimValuesStyleRule> coverRule = new css::AnimValuesStyleRule;
 
-  AnimationPlayerPtrArray& players = collection->mPlayers;
-  for (size_t i = 0, i_end = players.Length(); i < i_end; ++i) {
-    dom::Animation* anim = players[i]->GetSource();
-    MOZ_ASSERT(anim && anim->Properties().Length() == 1,
-               "Should have one animation property for a transition");
-    MOZ_ASSERT(anim && anim->Properties()[0].mSegments.Length() == 1,
-               "Animation property should have one segment for a transition");
-    AnimationProperty& prop = anim->Properties()[0];
-    AnimationPropertySegment& segment = prop.mSegments[0];
-    if (whichStarted.HasProperty(prop.mProperty)) {
-      coverRule->AddValue(prop.mProperty, segment.mFromValue);
+  if (startedAny) {
+    AnimationPlayerPtrArray& players = collection->mPlayers;
+    for (size_t i = 0, i_end = players.Length(); i < i_end; ++i) {
+      dom::Animation* anim = players[i]->GetSource();
+      MOZ_ASSERT(anim && anim->Properties().Length() == 1,
+                 "Should have one animation property for a transition");
+      MOZ_ASSERT(anim && anim->Properties()[0].mSegments.Length() == 1,
+                 "Animation property should have one segment for a transition");
+      AnimationProperty& prop = anim->Properties()[0];
+      AnimationPropertySegment& segment = prop.mSegments[0];
+      if (whichStarted.HasProperty(prop.mProperty)) {
+        coverRule->AddValue(prop.mProperty, segment.mFromValue);
+      }
     }
   }
 
-  
-  
-  collection->mStyleRuleRefreshTime = TimeStamp();
+  if (collection) {
+    
+    
+    collection->mStyleRuleRefreshTime = TimeStamp();
+  }
 
   
   nsCOMArray<nsIStyleRule> rules;
-  rules.AppendObject(coverRule);
+  if (startedAny) {
+    rules.AppendObject(coverRule);
+  }
   *aNewStyleContext = mPresContext->StyleSet()->
                         ResolveStyleByAddingRules(*aNewStyleContext, rules);
 }
