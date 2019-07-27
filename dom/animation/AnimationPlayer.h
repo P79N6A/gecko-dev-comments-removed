@@ -54,7 +54,7 @@ public:
   explicit AnimationPlayer(AnimationTimeline* aTimeline)
     : mTimeline(aTimeline)
     , mPlaybackRate(1.0)
-    , mIsPending(false)
+    , mPendingState(PendingState::NotPending)
     , mIsRunningOnCompositor(false)
     , mIsPreviousStateFinished(false)
     , mIsRelevant(false)
@@ -266,7 +266,10 @@ protected:
   
   
   
-  bool mIsPending;
+  
+  enum class PendingState { NotPending, PlayPending, PausePending };
+  PendingState mPendingState;
+
   bool mIsRunningOnCompositor;
   
   
@@ -282,4 +285,4 @@ protected:
 } 
 } 
 
-#endif 
+#endif

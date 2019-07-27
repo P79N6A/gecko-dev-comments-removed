@@ -160,7 +160,7 @@ AnimationPlayer::SilentlySetPlaybackRate(double aPlaybackRate)
 AnimationPlayState
 AnimationPlayer::PlayState() const
 {
-  if (mIsPending) {
+  if (mPendingState != PendingState::NotPending) {
     return AnimationPlayState::Pending;
   }
 
@@ -267,7 +267,7 @@ AnimationPlayer::Tick()
   
   
   
-  if (mIsPending &&
+  if (mPendingState != PendingState::NotPending &&
       !mPendingReadyTime.IsNull() &&
       mPendingReadyTime.Value() <= mTimeline->GetCurrentTime().Value()) {
     ResumeAt(mPendingReadyTime.Value());
@@ -333,7 +333,7 @@ AnimationPlayer::GetCurrentOrPendingStartTime() const
 void
 AnimationPlayer::Cancel()
 {
-  if (mIsPending) {
+  if (mPendingState != PendingState::NotPending) {
     CancelPendingPlay();
     if (mReady) {
       mReady->MaybeReject(NS_ERROR_DOM_ABORT_ERR);
@@ -444,7 +444,7 @@ AnimationPlayer::DoPlay()
   
   mStartTime.SetNull();
 
-  mIsPending = true;
+  mPendingState = PendingState::PlayPending;
 
   nsIDocument* doc = GetRenderedDocument();
   if (!doc) {
@@ -463,7 +463,7 @@ AnimationPlayer::DoPlay()
 void
 AnimationPlayer::DoPause()
 {
-  if (mIsPending) {
+  if (mPendingState == PendingState::PlayPending) {
     CancelPendingPlay();
     
     
@@ -490,10 +490,11 @@ AnimationPlayer::ResumeAt(const TimeDuration& aResumeTime)
   
   
   
-  MOZ_ASSERT(PlayState() == AnimationPlayState::Pending,
-             "Expected to resume a pending player");
+  MOZ_ASSERT(mPendingState == PendingState::PlayPending,
+             "Expected to resume a play-pending player");
   MOZ_ASSERT(!mHoldTime.IsNull(),
-             "A player in the pending state should have a resolved hold time");
+             "A player in the play-pending state should have a resolved"
+             " hold time");
 
   if (mPlaybackRate != 0) {
     mStartTime.SetValue(aResumeTime - (mHoldTime.Value() / mPlaybackRate));
@@ -501,7 +502,7 @@ AnimationPlayer::ResumeAt(const TimeDuration& aResumeTime)
   } else {
     mStartTime.SetValue(aResumeTime);
   }
-  mIsPending = false;
+  mPendingState = PendingState::NotPending;
 
   UpdateSourceContent();
 
@@ -540,7 +541,7 @@ AnimationPlayer::PostUpdate()
 void
 AnimationPlayer::CancelPendingPlay()
 {
-  if (!mIsPending) {
+  if (mPendingState == PendingState::NotPending) {
     return;
   }
 
@@ -552,7 +553,7 @@ AnimationPlayer::CancelPendingPlay()
     }
   }
 
-  mIsPending = false;
+  mPendingState = PendingState::NotPending;
   mPendingReadyTime.SetNull();
 }
 
@@ -577,7 +578,7 @@ AnimationPlayer::IsPossiblyOrphanedPendingPlayer() const
   
 
   
-  if (!mIsPending) {
+  if (mPendingState == PendingState::NotPending) {
     return false;
   }
 
