@@ -10008,21 +10008,9 @@ nsDocShell::DoURILoad(nsIURI * aURI,
         }
     }
 
-    nsCOMPtr<nsIPrincipal> ownerPrincipal;
-
-    
-    
-    
-    
-    if (mSandboxFlags & SANDBOXED_ORIGIN) {
-        ownerPrincipal = do_CreateInstance("@mozilla.org/nullprincipal;1");
-    } else {
-        
-        ownerPrincipal = do_QueryInterface(aOwner);
-    }
-
+    nsCOMPtr<nsIPrincipal> ownerPrincipal = do_QueryInterface(aOwner);
     nsContentUtils::SetUpChannelOwner(ownerPrincipal, channel, aURI, true,
-                                      (mSandboxFlags & SANDBOXED_ORIGIN) ||
+                                      mSandboxFlags & SANDBOXED_ORIGIN,
                                       isSrcdoc);
 
     nsCOMPtr<nsIScriptChannel> scriptChannel = do_QueryInterface(channel);

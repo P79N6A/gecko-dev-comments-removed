@@ -2002,11 +2002,18 @@ public:
 
 
 
+
+
+
+
+
+
   static bool SetUpChannelOwner(nsIPrincipal* aLoadingPrincipal,
                                 nsIChannel* aChannel,
                                 nsIURI* aURI,
-                                bool aSetUpForAboutBlank,
-                                bool aForceOwner = false);
+                                bool aInheritForAboutBlank,
+                                bool aIsSandboxed,
+                                bool aForceInherit);
 
   static nsresult Btoa(const nsAString& aBinaryData,
                        nsAString& aAsciiBase64String);

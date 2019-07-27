@@ -34,6 +34,7 @@
 #include "mozilla/AutoRestore.h"
 #include "mozilla/Base64.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/LoadInfo.h"
 #include "mozilla/dom/DocumentFragment.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/HTMLMediaElement.h"
@@ -6429,53 +6430,20 @@ bool
 nsContentUtils::SetUpChannelOwner(nsIPrincipal* aLoadingPrincipal,
                                   nsIChannel* aChannel,
                                   nsIURI* aURI,
-                                  bool aSetUpForAboutBlank,
-                                  bool aForceOwner)
+                                  bool aInheritForAboutBlank,
+                                  bool aIsSandboxed,
+                                  bool aForceInherit)
 {
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  bool inherit;
-  
-  
-  
-  
-  if (aForceOwner || ((NS_SUCCEEDED(URIInheritsSecurityContext(aURI, &inherit)) &&
-      (inherit || (aSetUpForAboutBlank && NS_IsAboutBlank(aURI)))))) {
-#ifdef DEBUG
+  if (!aLoadingPrincipal) {
     
-    
-    
-    if (aForceOwner) {
-      nsAutoCString uriStr;
-      aURI->GetSpec(uriStr);
-      if(!uriStr.EqualsLiteral("about:srcdoc") &&
-         !uriStr.EqualsLiteral("view-source:about:srcdoc")) {
-        nsCOMPtr<nsIURI> ownerURI;
-        nsresult rv = aLoadingPrincipal->GetURI(getter_AddRefs(ownerURI));
-        MOZ_ASSERT(NS_SUCCEEDED(rv) && SchemeIs(ownerURI, NS_NULLPRINCIPAL_SCHEME));
-      }
-    }
-#endif
-    aChannel->SetOwner(aLoadingPrincipal);
-    return true;
+    MOZ_ASSERT(!aIsSandboxed);
+    return false;
+  }
+
+  
+  
+  if (aIsSandboxed) {
+    aChannel->SetOwner(nullptr);
   }
 
   
@@ -6486,16 +6454,42 @@ nsContentUtils::SetUpChannelOwner(nsIPrincipal* aLoadingPrincipal,
   
   
   
-  if (URIIsLocalFile(aURI) && aLoadingPrincipal &&
-      NS_SUCCEEDED(aLoadingPrincipal->CheckMayLoad(aURI, false, false)) &&
+  
+  
+  
+  
+  bool inherit = aForceInherit;
+  if (!inherit) {
+    bool uriInherits;
+    
+    
+    
+    
+    inherit =
+      (NS_SUCCEEDED(URIInheritsSecurityContext(aURI, &uriInherits)) &&
+       (uriInherits || (aInheritForAboutBlank && NS_IsAboutBlank(aURI)))) ||
       
       
-      !IsSystemPrincipal(aLoadingPrincipal)) {
-    aChannel->SetOwner(aLoadingPrincipal);
-    return true;
+      
+      
+      
+      
+      
+      
+      (URIIsLocalFile(aURI) &&
+       NS_SUCCEEDED(aLoadingPrincipal->CheckMayLoad(aURI, false, false)) &&
+       
+       
+       !IsSystemPrincipal(aLoadingPrincipal));
   }
 
-  return false;
+  nsCOMPtr<nsILoadInfo> loadInfo =
+    new LoadInfo(aLoadingPrincipal,
+                 inherit ?
+                   LoadInfo::eInheritPrincipal : LoadInfo::eDontInheritPrincipal,
+                 aIsSandboxed ? LoadInfo::eSandboxed : LoadInfo::eNotSandboxed);
+  aChannel->SetLoadInfo(loadInfo);
+  return inherit && !aIsSandboxed;
 }
 
 

@@ -2368,17 +2368,10 @@ nsObjectLoadingContent::OpenChannel()
   
   
   
-  
-  nsCOMPtr<nsIPrincipal> ownerPrincipal;
-  uint32_t sandboxFlags = doc->GetSandboxFlags();
-  if (sandboxFlags & SANDBOXED_ORIGIN) {
-    ownerPrincipal = do_CreateInstance("@mozilla.org/nullprincipal;1");
-  } else {
-    
-    ownerPrincipal = thisContent->NodePrincipal();
-  }
-  nsContentUtils::SetUpChannelOwner(ownerPrincipal, chan, mURI, true,
-                                    sandboxFlags & SANDBOXED_ORIGIN);
+  nsContentUtils::SetUpChannelOwner(thisContent->NodePrincipal(), chan, mURI,
+                                    true,
+                                    doc->GetSandboxFlags() & SANDBOXED_ORIGIN,
+                                    false);
 
   nsCOMPtr<nsIScriptChannel> scriptChannel = do_QueryInterface(chan);
   if (scriptChannel) {
