@@ -10,6 +10,8 @@
 #include "nsStyleConsts.h"
 #include "nsStyleContext.h"
 #include "nsTextFrameUtils.h"
+#include "nsFontMetrics.h"
+#include "nsDeviceContext.h"
 
 using namespace mozilla;
 
@@ -521,7 +523,6 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
                                      gfxContext* aRefContext)
 {
   gfxFontGroup* fontGroup = aTextRun->GetFontGroup();
-  gfxFontStyle fontStyle = *fontGroup->GetStyle();
 
   nsAutoString convertedString;
   nsAutoTArray<bool,50> charsToMergeArray;
@@ -536,58 +537,62 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
   uint32_t length = aTextRun->GetLength();
   const char16_t* str = aTextRun->mString.BeginReading();
   nsRefPtr<nsStyleContext>* styles = aTextRun->mStyles.Elements();
+  nsFont font;
+  if (length) {
+    font = styles[0]->StyleFont()->mFont;
 
-  if (mSSTYScriptLevel && length) {
-    bool found = false;
-    
-    for (uint32_t i = 0; i < fontStyle.featureSettings.Length(); i++) {
-      if (fontStyle.featureSettings[i].mTag == TRUETYPE_TAG('s','s','t','y')) {
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      uint8_t sstyLevel = 0;
-      float scriptScaling = pow(styles[0]->StyleFont()->mScriptSizeMultiplier,
-                                mSSTYScriptLevel);
-      static_assert(NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER < 1,
-                    "Shouldn't it make things smaller?");
+    if (mSSTYScriptLevel) {
+      bool found = false;
       
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      if (scriptScaling <= (NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER +
-                            (NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER*
-                             NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER))/2) {
-        
-        
-        sstyLevel = 2;
-      } else if (scriptScaling <= NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER) {
-        sstyLevel = 1;
+      for (uint32_t i = 0; i < font.fontFeatureSettings.Length(); i++) {
+        if (font.fontFeatureSettings[i].mTag == TRUETYPE_TAG('s', 's', 't', 'y')) {
+          found = true;
+          break;
+        }
       }
-      if (sstyLevel) {
-        gfxFontFeature settingSSTY;
-        settingSSTY.mTag = TRUETYPE_TAG('s','s','t','y');
-        settingSSTY.mValue = sstyLevel;
-        fontStyle.featureSettings.AppendElement(settingSSTY);
+      if (!found) {
+        uint8_t sstyLevel = 0;
+        float scriptScaling = pow(styles[0]->StyleFont()->mScriptSizeMultiplier,
+                                  mSSTYScriptLevel);
+        static_assert(NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER < 1,
+                      "Shouldn't it make things smaller?");
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if (scriptScaling <= (NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER +
+                              (NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER *
+                               NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER))/2) {
+          
+          
+          sstyLevel = 2;
+        } else if (scriptScaling <= NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER) {
+          sstyLevel = 1;
+        }
+        if (sstyLevel) {
+          gfxFontFeature settingSSTY;
+          settingSSTY.mTag = TRUETYPE_TAG('s','s','t','y');
+          settingSSTY.mValue = sstyLevel;
+          font.fontFeatureSettings.AppendElement(settingSSTY);
+        }
       }
     }
   }
 
-  uint8_t mathVar;
+  uint8_t mathVar = NS_MATHML_MATHVARIANT_NONE;
   bool doMathvariantStyling = true;
 
   for (uint32_t i = 0; i < length; ++i) {
@@ -601,15 +606,15 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
       
       
       if (mFlags & MATH_FONT_WEIGHT_BOLD) {
-        fontStyle.weight = NS_FONT_WEIGHT_BOLD;
+        font.weight = NS_FONT_WEIGHT_BOLD;
         if (mFlags & MATH_FONT_STYLING_NORMAL) {
-          fontStyle.style = NS_FONT_STYLE_NORMAL;
+          font.style = NS_FONT_STYLE_NORMAL;
         } else {
-          fontStyle.style = NS_FONT_STYLE_ITALIC;
+          font.style = NS_FONT_STYLE_ITALIC;
         }
       } else if (mFlags & MATH_FONT_STYLING_NORMAL) {
-        fontStyle.style = NS_FONT_STYLE_NORMAL;
-        fontStyle.weight = NS_FONT_WEIGHT_NORMAL;
+        font.style = NS_FONT_STYLE_NORMAL;
+        font.weight = NS_FONT_WEIGHT_NORMAL;
       } else {
         mathVar = NS_MATHML_MATHVARIANT_ITALIC;
       }
@@ -684,26 +689,43 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
   gfxTextRun* child;
 
   if (mathVar == NS_MATHML_MATHVARIANT_BOLD && doMathvariantStyling) {
-    fontStyle.style = NS_FONT_STYLE_NORMAL;
-    fontStyle.weight = NS_FONT_WEIGHT_BOLD;
+    font.style = NS_FONT_STYLE_NORMAL;
+    font.weight = NS_FONT_WEIGHT_BOLD;
   } else if (mathVar == NS_MATHML_MATHVARIANT_ITALIC && doMathvariantStyling) {
-    fontStyle.style = NS_FONT_STYLE_ITALIC;
-    fontStyle.weight = NS_FONT_WEIGHT_NORMAL;
+    font.style = NS_FONT_STYLE_ITALIC;
+    font.weight = NS_FONT_WEIGHT_NORMAL;
   } else if (mathVar == NS_MATHML_MATHVARIANT_BOLD_ITALIC &&
              doMathvariantStyling) {
-    fontStyle.style = NS_FONT_STYLE_ITALIC;
-    fontStyle.weight = NS_FONT_WEIGHT_BOLD;
+    font.style = NS_FONT_STYLE_ITALIC;
+    font.weight = NS_FONT_WEIGHT_BOLD;
   } else if (mathVar != NS_MATHML_MATHVARIANT_NONE) {
     
     
     
-    fontStyle.style = NS_FONT_STYLE_NORMAL;
-    fontStyle.weight = NS_FONT_WEIGHT_NORMAL;
+    font.style = NS_FONT_STYLE_NORMAL;
+    font.weight = NS_FONT_WEIGHT_NORMAL;
   }
-  nsRefPtr<gfxFontGroup> newFontGroup = fontGroup->Copy(&fontStyle);
+  gfxFontGroup* newFontGroup = nullptr;
 
-  if (!newFontGroup)
-    return;
+  
+  if (length) {
+    nsPresContext* pc = styles[0]->PresContext();
+    nsRefPtr<nsFontMetrics> metrics;
+    pc->DeviceContext()->GetMetricsFor(font,
+                                       styles[0]->StyleFont()->mLanguage,
+                                       pc->GetUserFontSet(),
+                                       pc->GetTextPerfMetrics(),
+                                       *getter_AddRefs(metrics));
+    if (metrics) {
+      newFontGroup = metrics->GetThebesFontGroup();
+    }
+  }
+
+  if (!newFontGroup) {
+    
+    
+    newFontGroup = fontGroup;
+  }
 
   if (mInnerTransformingTextRunFactory) {
     transformedChild = mInnerTransformingTextRunFactory->MakeTextRun(
