@@ -49,6 +49,7 @@ this.SearchSuggestionController.prototype = {
   
 
 
+
   maxLocalResults: 7,
 
   
@@ -200,8 +201,7 @@ this.SearchSuggestionController.prototype = {
               return;
             }
             let fhEntries = [];
-            let maxHistoryItems = Math.min(result.matchCount, this.maxLocalResults);
-            for (let i = 0; i < maxHistoryItems; ++i) {
+            for (let i = 0; i < result.matchCount; ++i) {
               fhEntries.push(result.getValueAt(i));
             }
             deferredFormHistory.resolve({
@@ -333,6 +333,11 @@ this.SearchSuggestionController.prototype = {
       } else { 
         results.remote = result.result || [];
       }
+    }
+
+    
+    if (results.remote.length) {
+      results.local = results.local.slice(0, this.maxLocalResults);
     }
 
     
