@@ -1516,7 +1516,9 @@ public:
   
 
 
-  void ComputeEffectiveTransformForMaskLayer(const gfx::Matrix4x4& aTransformToSurface);
+  void ComputeEffectiveTransformForMaskLayers(const gfx::Matrix4x4& aTransformToSurface);
+  static void ComputeEffectiveTransformForMaskLayer(Layer* aMaskLayer,
+                                                    const gfx::Matrix4x4& aTransformToSurface);
 
   
 
@@ -1832,7 +1834,7 @@ public:
                    "Residual translation out of range");
       mValidRegion.SetEmpty();
     }
-    ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
+    ComputeEffectiveTransformForMaskLayers(aTransformToSurface);
   }
 
   LayerManager::PaintedLayerCreationHint GetCreationHint() const { return mCreationHint; }
@@ -2143,7 +2145,7 @@ public:
   {
     gfx::Matrix4x4 idealTransform = GetLocalTransform() * aTransformToSurface;
     mEffectiveTransform = SnapTransformTranslation(idealTransform, nullptr);
-    ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
+    ComputeEffectiveTransformForMaskLayers(aTransformToSurface);
   }
 
 protected:
@@ -2295,7 +2297,7 @@ public:
         SnapTransform(GetLocalTransform(), gfxRect(0, 0, mBounds.width, mBounds.height),
                       nullptr)*
         SnapTransformTranslation(aTransformToSurface, nullptr);
-    ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
+    ComputeEffectiveTransformForMaskLayers(aTransformToSurface);
   }
 
 protected:
