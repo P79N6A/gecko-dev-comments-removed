@@ -79,6 +79,11 @@ exports.RecordingUtils.offsetAndScaleTimestamps = function(timestamps, timeOffse
 
 
 
+let gSamplesFromAllocationCache = new WeakMap();
+
+
+
+
 
 
 
@@ -88,6 +93,11 @@ exports.RecordingUtils.offsetAndScaleTimestamps = function(timestamps, timeOffse
 
 
 exports.RecordingUtils.getSamplesFromAllocations = function(allocations) {
+  let cached = gSamplesFromAllocationCache.get(allocations);
+  if (cached) {
+    return cached;
+  }
+
   let { sites, timestamps, frames, counts } = allocations;
   let samples = [];
 
@@ -117,5 +127,6 @@ exports.RecordingUtils.getSamplesFromAllocations = function(allocations) {
     sample.frames.reverse();
   }
 
+  gSamplesFromAllocationCache.set(allocations, samples);
   return samples;
 }
