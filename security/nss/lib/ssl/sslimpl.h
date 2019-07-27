@@ -725,9 +725,15 @@ typedef struct {
     SSL3KeyExchangeAlgorithm kea;
     SSL3KEAType              exchKeyType;
     SSL3SignType             signKeyType;
+    
+
+
     PRBool                   is_limited;
     int                      key_size_limit;
     PRBool                   tls_keygen;
+    
+
+    PRBool                   ephemeral;
 } ssl3KEADef;
 
 

@@ -1172,6 +1172,20 @@ CERT_GetNextGeneralName(CERTGeneralName *current);
 extern CERTGeneralName *
 CERT_GetPrevGeneralName(CERTGeneralName *current);
 
+
+
+
+
+
+
+
+
+
+
+
+SECStatus
+CERT_GetImposedNameConstraints(const SECItem *derSubject, SECItem *extensions);
+
 CERTNameConstraint *
 CERT_GetNextNameConstraint(CERTNameConstraint *current);
 
@@ -1540,6 +1554,9 @@ extern SECStatus
 CERT_CheckNameSpace(PLArenaPool          *arena,
 		    const CERTNameConstraints *constraints,
 		    const CERTGeneralName *currentName);
+
+
+
 
 
 

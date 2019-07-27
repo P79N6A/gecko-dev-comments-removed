@@ -40,7 +40,10 @@ class TlsConnectTestBase : public ::testing::Test {
   
   void Init();
   
-  void Reset();
+  void ResetRsa();
+  
+  
+  void ResetEcdsa();
   
   void EnsureTlsSetup();
 
@@ -51,7 +54,7 @@ class TlsConnectTestBase : public ::testing::Test {
   
   void ConnectExpectFail();
 
-  void EnableSomeECDHECiphers();
+  void EnableSomeEcdheCiphers();
   void ConfigureSessionCache(SessionResumptionMode client,
                              SessionResumptionMode server);
   void CheckResumption(SessionResumptionMode expected);
@@ -65,6 +68,9 @@ class TlsConnectTestBase : public ::testing::Test {
   TlsAgent* server_;
   uint16_t version_;
   std::vector<std::vector<uint8_t>> session_ids_;
+
+ private:
+  void Reset(const std::string& server_name, SSLKEAType kea);
 };
 
 
