@@ -69,6 +69,7 @@ class nsIImageLoadingContent;
 class nsIInterfaceRequestor;
 class nsIIOService;
 class nsILineBreaker;
+class nsILoadGroup;
 class nsIMessageBroadcaster;
 class nsNameSpaceManager;
 class nsIObserver;
@@ -729,6 +730,11 @@ public:
 
 
   static bool IsInPrivateBrowsing(nsIDocument* aDoc);
+
+  
+
+
+  static bool IsInPrivateBrowsing(nsILoadGroup* aLoadGroup);
 
   
 
