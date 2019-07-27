@@ -16,7 +16,10 @@ function checkResponse(r) {
   is(r.statusText, response.statusText,
      "Both responses should have the same status text");
   return r.text().then(function(text) {
-    is(text, responseText, "The response body should be correct");
+    
+    if (text !== responseText) {
+      is(text, responseText, "The response body should be correct");
+    }
   });
 }
 
