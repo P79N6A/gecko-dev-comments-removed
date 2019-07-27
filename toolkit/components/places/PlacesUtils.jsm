@@ -121,6 +121,89 @@ function* notifyKeywordChange(url, keyword) {
   gIgnoreKeywordNotifications = false;
 }
 
+
+
+
+
+
+
+
+
+function serializeNode(aNode, aIsLivemark) {
+  let data = {};
+
+  data.title = aNode.title;
+  data.id = aNode.itemId;
+  data.livemark = aIsLivemark;
+
+  let guid = aNode.bookmarkGuid;
+  if (guid) {
+    data.itemGuid = guid;
+    if (aNode.parent)
+      data.parent = aNode.parent.itemId;
+    let grandParent = aNode.parent && aNode.parent.parent;
+    if (grandParent)
+      data.grandParentId = grandParent.itemId;
+
+    data.dateAdded = aNode.dateAdded;
+    data.lastModified = aNode.lastModified;
+
+    let annos = PlacesUtils.getAnnotationsForItem(data.id);
+    if (annos.length > 0)
+      data.annos = annos;
+  }
+
+  if (PlacesUtils.nodeIsURI(aNode)) {
+    
+    NetUtil.newURI(aNode.uri);
+
+    
+    if (data.parent == PlacesUtils.tagsFolderId)
+      throw new Error("Unexpected node type");
+
+    data.type = PlacesUtils.TYPE_X_MOZ_PLACE;
+    data.uri = aNode.uri;
+
+    if (aNode.tags)
+      data.tags = aNode.tags;
+  }
+  else if (PlacesUtils.nodeIsContainer(aNode)) {
+    
+    if (data.grandParentId == PlacesUtils.tagsFolderId)
+      throw new Error("Unexpected node type");
+
+    let concreteId = PlacesUtils.getConcreteItemId(aNode);
+    if (concreteId != -1) {
+      
+      if (PlacesUtils.nodeIsQuery(aNode) || concreteId != aNode.itemId) {
+        
+        data.type = PlacesUtils.TYPE_X_MOZ_PLACE;
+        data.uri = aNode.uri;
+        data.concreteId = concreteId;
+      }
+      else {
+        
+        data.type = PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER;
+      }
+    }
+    else {
+      
+      data.type = PlacesUtils.TYPE_X_MOZ_PLACE;
+      data.uri = aNode.uri;
+    }
+  }
+  else if (PlacesUtils.nodeIsSeparator(aNode)) {
+    
+    if (data.parent == PlacesUtils.tagsFolderId ||
+        data.grandParentId == PlacesUtils.tagsFolderId)
+      throw new Error("Unexpected node type");
+
+    data.type = PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR;
+  }
+
+  return JSON.stringify(data);
+}
+
 this.PlacesUtils = {
   
   TYPE_X_MOZ_PLACE_CONTAINER: "text/x-moz-place-container",
@@ -463,9 +546,8 @@ this.PlacesUtils = {
 
 
 
-  getReversedHost(url) {
-    return url.host.split("").reverse().join("") + ".";
-  },
+  getReversedHost(url)
+    url.host.split("").reverse().join("") + ".",
 
   
 
@@ -480,165 +562,114 @@ this.PlacesUtils = {
 
 
 
-  wrapNode: function PU_wrapNode(aNode, aType, aOverrideURI) {
+
+  wrapNode(aNode, aType, aFeedURI) {
     
     
     
     
     
-    function convertNode(cNode) {
-      if (PlacesUtils.nodeIsFolder(cNode) &&
-          cNode.type != Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER_SHORTCUT &&
-          asQuery(cNode).queryOptions.excludeItems) {
-        return [PlacesUtils.getFolderContents(cNode.itemId, false, true).root, true];
+    function gatherDataFromNode(node, gatherDataFunc) {
+      if (PlacesUtils.nodeIsFolder(node) &&
+          node.type != Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER_SHORTCUT &&
+          asQuery(node).queryOptions.excludeItems) {
+        let node = PlacesUtils.getFolderContents(node.itemId, false, true).root;
+        try {
+          return gatherDataFunc(node);
+        } finally {
+          node.containerOpen = false;
+        }
       }
+      
+      return gatherDataFunc(node);
+    }
+
+    function gatherDataHtml(node) {
+      let htmlEscape = s => s.replace(/&/g, "&amp;")
+                             .replace(/>/g, "&gt;")
+                             .replace(/</g, "&lt;")
+                             .replace(/"/g, "&quot;")
+                             .replace(/'/g, "&apos;");
 
       
-      return [cNode, false];
-    }
+      let escapedTitle = node.title ? htmlEscape(node.title) : "";
 
-    function gatherLivemarkUrl(aNode) {
-      try {
-        return PlacesUtils.annotations
-                          .getItemAnnotation(aNode.itemId,
-                                             PlacesUtils.LMANNO_SITEURI);
-      } catch (ex) {
-        return PlacesUtils.annotations
-                          .getItemAnnotation(aNode.itemId,
-                                             PlacesUtils.LMANNO_FEEDURI);
+      if (aFeedURI) {
+        return `<A HREF="${aFeedURI}">${escapedTitle}</A>${NEWLINE}`;
       }
+
+      if (PlacesUtils.nodeIsContainer(node)) {
+        asContainer(node);
+        let wasOpen = node.containerOpen;
+        if (!wasOpen)
+          node.containerOpen = true;
+
+        let childString = "<DL><DT>" + escapedTitle + "</DT>" + NEWLINE;
+        let cc = node.childCount;
+        for (let i = 0; i < cc; ++i) {
+          childString += "<DD>"
+                         + NEWLINE
+                         + gatherDataHtml(node.getChild(i))
+                         + "</DD>"
+                         + NEWLINE;
+        }
+        node.containerOpen = wasOpen;
+        return childString + "</DL>" + NEWLINE;
+      }
+      if (PlacesUtils.nodeIsURI(node))
+        return `<A HREF="${node.uri}">${escapedTitle}</A>${NEWLINE}`;
+      if (PlacesUtils.nodeIsSeparator(node))
+        return "<HR>" + NEWLINE;
+      return "";
     }
 
-    function isLivemark(aNode) {
-      return PlacesUtils.nodeIsFolder(aNode) &&
-             PlacesUtils.annotations
-                        .itemHasAnnotation(aNode.itemId,
-                                           PlacesUtils.LMANNO_FEEDURI);
+    function gatherDataText(node) {
+      if (aFeedURI) {
+        return aFeedURI;
+      }
+
+      if (PlacesUtils.nodeIsContainer(node)) {
+        asContainer(node);
+        let wasOpen = node.containerOpen;
+        if (!wasOpen)
+          node.containerOpen = true;
+
+        let childString = node.title + NEWLINE;
+        let cc = node.childCount;
+        for (let i = 0; i < cc; ++i) {
+          let child = node.getChild(i);
+          let suffix = i < (cc - 1) ? NEWLINE : "";
+          childString += gatherDataText(child) + suffix;
+        }
+        node.containerOpen = wasOpen;
+        return childString;
+      }
+      if (PlacesUtils.nodeIsURI(node))
+        return node.uri;
+      if (PlacesUtils.nodeIsSeparator(node))
+        return "--------------------";
+      return "";
     }
 
     switch (aType) {
       case this.TYPE_X_MOZ_PLACE:
       case this.TYPE_X_MOZ_PLACE_SEPARATOR:
       case this.TYPE_X_MOZ_PLACE_CONTAINER: {
-        let writer = {
-          value: "",
-          write: function PU_wrapNode__write(aStr, aLen) {
-            this.value += aStr;
-          }
-        };
-
-        let [node, shouldClose] = convertNode(aNode);
-        this._serializeNodeAsJSONToOutputStream(node, writer);
-        if (shouldClose)
-          node.containerOpen = false;
-
-        return writer.value;
+        
+        return serializeNode(aNode, aFeedURI);
       }
       case this.TYPE_X_MOZ_URL: {
-        let gatherDataUrl = function (bNode) {
-          if (isLivemark(bNode)) {
-            return gatherLivemarkUrl(bNode) + NEWLINE + bNode.title;
-          }
-
-          if (PlacesUtils.nodeIsURI(bNode))
-            return (aOverrideURI || bNode.uri) + NEWLINE + bNode.title;
-          
-          return "";
-        };
-
-        let [node, shouldClose] = convertNode(aNode);
-        let dataUrl = gatherDataUrl(node);
-        if (shouldClose)
-          node.containerOpen = false;
-
-        return dataUrl;
+        if (aFeedURI || PlacesUtils.nodeIsURI(aNode))
+          return (aFeedURI || aNode.uri) + NEWLINE + aNode.title;
+        return "";
       }
       case this.TYPE_HTML: {
-        let gatherDataHtml = function (bNode) {
-          let htmlEscape = function (s) {
-            s = s.replace(/&/g, "&amp;");
-            s = s.replace(/>/g, "&gt;");
-            s = s.replace(/</g, "&lt;");
-            s = s.replace(/"/g, "&quot;");
-            s = s.replace(/'/g, "&apos;");
-            return s;
-          };
-          
-          let escapedTitle = bNode.title ? htmlEscape(bNode.title) : "";
-
-          if (isLivemark(bNode)) {
-            return "<A HREF=\"" + gatherLivemarkUrl(bNode) + "\">" + escapedTitle + "</A>" + NEWLINE;
-          }
-
-          if (PlacesUtils.nodeIsContainer(bNode)) {
-            asContainer(bNode);
-            let wasOpen = bNode.containerOpen;
-            if (!wasOpen)
-              bNode.containerOpen = true;
-
-            let childString = "<DL><DT>" + escapedTitle + "</DT>" + NEWLINE;
-            let cc = bNode.childCount;
-            for (let i = 0; i < cc; ++i)
-              childString += "<DD>"
-                             + NEWLINE
-                             + gatherDataHtml(bNode.getChild(i))
-                             + "</DD>"
-                             + NEWLINE;
-            bNode.containerOpen = wasOpen;
-            return childString + "</DL>" + NEWLINE;
-          }
-          if (PlacesUtils.nodeIsURI(bNode))
-            return "<A HREF=\"" + bNode.uri + "\">" + escapedTitle + "</A>" + NEWLINE;
-          if (PlacesUtils.nodeIsSeparator(bNode))
-            return "<HR>" + NEWLINE;
-          return "";
-        }
-
-        let [node, shouldClose] = convertNode(aNode);
-        let dataHtml = gatherDataHtml(node);
-        if (shouldClose)
-          node.containerOpen = false;
-
-        return dataHtml;
+        return gatherDataFromNode(aNode, gatherDataHtml);
       }
     }
 
     
-    function gatherDataText(bNode) {
-      if (isLivemark(bNode)) {
-        return gatherLivemarkUrl(bNode);
-      }
-
-      if (PlacesUtils.nodeIsContainer(bNode)) {
-        asContainer(bNode);
-        let wasOpen = bNode.containerOpen;
-        if (!wasOpen)
-          bNode.containerOpen = true;
-
-        let childString = bNode.title + NEWLINE;
-        let cc = bNode.childCount;
-        for (let i = 0; i < cc; ++i) {
-          let child = bNode.getChild(i);
-          let suffix = i < (cc - 1) ? NEWLINE : "";
-          childString += gatherDataText(child) + suffix;
-        }
-        bNode.containerOpen = wasOpen;
-        return childString;
-      }
-      if (PlacesUtils.nodeIsURI(bNode))
-        return (aOverrideURI || bNode.uri);
-      if (PlacesUtils.nodeIsSeparator(bNode))
-        return "--------------------";
-      return "";
-    }
-
-    let [node, shouldClose] = convertNode(aNode);
-    let dataText = gatherDataText(node);
-    
-    if (shouldClose)
-      node.containerOpen = false;
-
-    return dataText;
+    return gatherDataFromNode(aNode, gatherDataText);
   },
 
   
@@ -1140,207 +1171,6 @@ this.PlacesUtils = {
         result.suppressNotifications = false;
     }
     return urls;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  _serializeNodeAsJSONToOutputStream: function (aNode, aStream) {
-    function addGenericProperties(aPlacesNode, aJSNode) {
-      aJSNode.title = aPlacesNode.title;
-      aJSNode.id = aPlacesNode.itemId;
-      let guid = aPlacesNode.bookmarkGuid;
-      if (guid) {
-        aJSNode.itemGuid = guid;
-        var parent = aPlacesNode.parent;
-        if (parent)
-          aJSNode.parent = parent.itemId;
-
-        var dateAdded = aPlacesNode.dateAdded;
-        if (dateAdded)
-          aJSNode.dateAdded = dateAdded;
-        var lastModified = aPlacesNode.lastModified;
-        if (lastModified)
-          aJSNode.lastModified = lastModified;
-
-        
-        var annos = [];
-        try {
-          annos = PlacesUtils.getAnnotationsForItem(aJSNode.id).filter(function(anno) {
-            
-            
-            
-            
-            if (anno.name == PlacesUtils.LMANNO_FEEDURI)
-              aJSNode.livemark = 1;
-            return true;
-          });
-        } catch(ex) {}
-        if (annos.length != 0)
-          aJSNode.annos = annos;
-      }
-      
-    }
-
-    function addURIProperties(aPlacesNode, aJSNode) {
-      aJSNode.type = PlacesUtils.TYPE_X_MOZ_PLACE;
-      aJSNode.uri = aPlacesNode.uri;
-      if (aJSNode.id && aJSNode.id != -1) {
-        
-        var keyword = PlacesUtils.bookmarks.getKeywordForBookmark(aJSNode.id);
-        if (keyword)
-          aJSNode.keyword = keyword;
-      }
-
-      if (aPlacesNode.tags)
-        aJSNode.tags = aPlacesNode.tags;
-
-      
-      var uri = PlacesUtils._uri(aPlacesNode.uri);
-      try {
-        var lastCharset = PlacesUtils.annotations.getPageAnnotation(
-                            uri, PlacesUtils.CHARSET_ANNO);
-        aJSNode.charset = lastCharset;
-      } catch (e) {}
-    }
-
-    function addSeparatorProperties(aPlacesNode, aJSNode) {
-      aJSNode.type = PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR;
-    }
-
-    function addContainerProperties(aPlacesNode, aJSNode) {
-      var concreteId = PlacesUtils.getConcreteItemId(aPlacesNode);
-      if (concreteId != -1) {
-        
-        if (PlacesUtils.nodeIsQuery(aPlacesNode) ||
-            concreteId != aPlacesNode.itemId) {
-          aJSNode.type = PlacesUtils.TYPE_X_MOZ_PLACE;
-          aJSNode.uri = aPlacesNode.uri;
-          
-          aJSNode.concreteId = concreteId;
-        }
-        else { 
-          aJSNode.type = PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER;
-
-          
-          if (aJSNode.id == PlacesUtils.placesRootId)
-            aJSNode.root = "placesRoot";
-          else if (aJSNode.id == PlacesUtils.bookmarksMenuFolderId)
-            aJSNode.root = "bookmarksMenuFolder";
-          else if (aJSNode.id == PlacesUtils.tagsFolderId)
-            aJSNode.root = "tagsFolder";
-          else if (aJSNode.id == PlacesUtils.unfiledBookmarksFolderId)
-            aJSNode.root = "unfiledBookmarksFolder";
-          else if (aJSNode.id == PlacesUtils.toolbarFolderId)
-            aJSNode.root = "toolbarFolder";
-        }
-      }
-      else {
-        
-        aJSNode.type = PlacesUtils.TYPE_X_MOZ_PLACE;
-        aJSNode.uri = aPlacesNode.uri;
-      }
-    }
-
-    function appendConvertedComplexNode(aNode, aSourceNode, aArray) {
-      var repr = {};
-
-      for (let [name, value] in Iterator(aNode))
-        repr[name] = value;
-
-      
-      var children = repr.children = [];
-      if (!aNode.livemark) {
-        asContainer(aSourceNode);
-        var wasOpen = aSourceNode.containerOpen;
-        if (!wasOpen)
-          aSourceNode.containerOpen = true;
-        var cc = aSourceNode.childCount;
-        for (var i = 0; i < cc; ++i) {
-          var childNode = aSourceNode.getChild(i);
-          appendConvertedNode(aSourceNode.getChild(i), i, children);
-        }
-        if (!wasOpen)
-          aSourceNode.containerOpen = false;
-      }
-
-      aArray.push(repr);
-      return true;
-    }
-
-    function appendConvertedNode(bNode, aIndex, aArray) {
-      var node = {};
-
-      
-      
-      
-      if (aIndex)
-        node.index = aIndex;
-
-      addGenericProperties(bNode, node);
-
-      var parent = bNode.parent;
-      var grandParent = parent ? parent.parent : null;
-      if (grandParent)
-        node.grandParentId = grandParent.itemId;
-
-      if (PlacesUtils.nodeIsURI(bNode)) {
-        
-        if (parent && parent.itemId == PlacesUtils.tagsFolderId)
-          return false;
-
-        
-        
-        
-        try {
-          PlacesUtils._uri(bNode.uri);
-        } catch (ex) {
-          return false;
-        }
-
-        addURIProperties(bNode, node);
-      }
-      else if (PlacesUtils.nodeIsContainer(bNode)) {
-        
-        if (grandParent && grandParent.itemId == PlacesUtils.tagsFolderId)
-          return false;
-
-        addContainerProperties(bNode, node);
-      }
-      else if (PlacesUtils.nodeIsSeparator(bNode)) {
-        
-        
-        if ((parent && parent.itemId == PlacesUtils.tagsFolderId) ||
-            (grandParent && grandParent.itemId == PlacesUtils.tagsFolderId))
-          return false;
-
-        addSeparatorProperties(bNode, node);
-      }
-
-      if (!node.feedURI && node.type == PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER)
-        return appendConvertedComplexNode(node, bNode, aArray);
-
-      aArray.push(node);
-      return true;
-    }
-
-    
-    var array = [];
-    if (appendConvertedNode(aNode, null, array)) {
-      var json = JSON.stringify(array[0]);
-      aStream.write(json, json.length);
-    }
-    else {
-      throw Cr.NS_ERROR_UNEXPECTED;
-    }
   },
 
   
@@ -3127,7 +2957,7 @@ PlacesEditBookmarkURITransaction.prototype = {
     PlacesUtils.bookmarks.changeBookmarkURI(this.item.id, this.new.uri);
     
     this.item.tags = PlacesUtils.tagging.getTagsForURI(this.item.uri);
-    if (this.item.tags.length != 0) {
+    if (this.item.tags.length > 0) {
       
       if (PlacesUtils.getBookmarksForURI(this.item.uri, {}).length == 0)
         PlacesUtils.tagging.untagURI(this.item.uri, this.item.tags);
@@ -3139,7 +2969,7 @@ PlacesEditBookmarkURITransaction.prototype = {
   {
     PlacesUtils.bookmarks.changeBookmarkURI(this.item.id, this.item.uri);
     
-    if (this.item.tags.length != 0) {
+    if (this.item.tags.length > 0) {
       
       if (PlacesUtils.getBookmarksForURI(this.new.uri, {}).length == 0)
         PlacesUtils.tagging.untagURI(this.new.uri, this.item.tags);

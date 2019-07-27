@@ -205,8 +205,12 @@ PlacesViewBase.prototype = {
         
         container = selectedNode.parent;
         index = container.getChildIndex(selectedNode);
-        if (PlacesUtils.nodeIsTagQuery(container))
+        if (PlacesUtils.nodeIsTagQuery(container)) {
           tagName = container.title;
+          
+          if (!tagName)
+            return null;
+        }
       }
     }
 
