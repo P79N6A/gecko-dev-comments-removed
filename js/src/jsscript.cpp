@@ -2429,15 +2429,10 @@ JSScript::Create(ExclusiveContext* cx, HandleObject enclosingScope, bool savedCa
     script->savedCallerFun_ = savedCallerFun;
     script->initCompartment(cx);
 
+    script->hasNonSyntacticScope_ = options.hasPollutedGlobalScope;
     script->selfHosted_ = options.selfHostingMode;
     script->noScriptRval_ = options.noScriptRval;
     script->treatAsRunOnce_ = options.isRunOnce;
-
-    
-    
-    
-    
-    script->hasNonSyntacticScope_ = HasNonSyntacticStaticScopeChain(enclosingScope);
 
     script->version = options.version;
     MOZ_ASSERT(script->getVersion() == options.version);     
@@ -2673,13 +2668,10 @@ JSScript::fullyInitFromEmitter(ExclusiveContext* cx, HandleScript script, Byteco
 
     RootedFunction fun(cx, nullptr);
     if (funbox) {
-        
-        
-        
-        MOZ_ASSERT(script->functionNonDelazifying() == funbox->function());
         MOZ_ASSERT(!bce->script->noScriptRval());
         script->isGeneratorExp_ = funbox->inGenexpLambda;
         script->setGeneratorKind(funbox->generatorKind());
+        script->setFunction(funbox->function());
         if (bce->yieldOffsetList.length() != 0)
             bce->yieldOffsetList.finish(script->yieldOffsets(), prologueLength);
     }

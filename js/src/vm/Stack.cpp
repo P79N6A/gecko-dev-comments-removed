@@ -187,7 +187,7 @@ AssertDynamicScopeMatchesStaticScope(JSContext* cx, JSScript* script, JSObject* 
 
     
     
-    MOZ_ASSERT(!IsSyntacticScope(scope));
+    MOZ_ASSERT(!scope->is<ScopeObject>());
 #endif
 }
 
@@ -253,7 +253,8 @@ InterpreterFrame::epilogue(JSContext* cx)
             if (MOZ_UNLIKELY(cx->compartment()->isDebuggee()))
                 DebugScopes::onPopStrictEvalScope(this);
         } else if (isDirectEvalFrame()) {
-            MOZ_ASSERT_IF(isDebuggerEvalFrame(), !IsSyntacticScope(scopeChain()));
+            if (isDebuggerEvalFrame())
+                MOZ_ASSERT(!scopeChain()->is<ScopeObject>());
         } else {
             
 
