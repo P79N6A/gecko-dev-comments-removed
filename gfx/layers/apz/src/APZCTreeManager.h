@@ -237,8 +237,10 @@ public:
   
 
 
+
+
   void UpdateZoomConstraints(const ScrollableLayerGuid& aGuid,
-                             const ZoomConstraints& aConstraints);
+                             const Maybe<ZoomConstraints>& aConstraints);
 
   
 
@@ -491,6 +493,10 @@ private:
 
   mutable mozilla::Monitor mTreeLock;
   nsRefPtr<HitTestingTreeNode> mRootNode;
+  
+
+  std::map<ScrollableLayerGuid, ZoomConstraints> mZoomConstraints;
+
   
 
 

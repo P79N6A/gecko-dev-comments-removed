@@ -95,16 +95,6 @@ public:
 
 
 
-  virtual bool GetRootZoomConstraints(ZoomConstraints* aOutConstraints)
-  {
-    return false;
-  }
-
-  
-
-
-
-
 
 
 

@@ -322,6 +322,8 @@ APZCTreeManager::PrepareNodeForLayer(const LayerMetricsWrapper& aLayer,
                                      HitTestingTreeNode* aNextSibling,
                                      TreeBuildingState& aState)
 {
+  mTreeLock.AssertCurrentThreadOwns();
+
   bool needsApzc = true;
   if (!aMetrics.IsScrollable()) {
     needsApzc = false;
@@ -464,15 +466,11 @@ APZCTreeManager::PrepareNodeForLayer(const LayerMetricsWrapper& aLayer,
     }
 
     if (newApzc) {
-      if (apzc->IsRootContent()) {
+      auto it = mZoomConstraints.find(guid);
+      if (it != mZoomConstraints.end()) {
         
-        
-        ZoomConstraints constraints;
-        if (state->mController->GetRootZoomConstraints(&constraints)) {
-          apzc->UpdateZoomConstraints(constraints);
-        }
+        apzc->UpdateZoomConstraints(it->second);
       } else if (!apzc->HasNoParentWithSameLayersId()) {
-        
         
         
         
@@ -1028,7 +1026,7 @@ APZCTreeManager::SetTargetAPZC(uint64_t aInputBlockId, const ScrollableLayerGuid
 
 void
 APZCTreeManager::UpdateZoomConstraints(const ScrollableLayerGuid& aGuid,
-                                       const ZoomConstraints& aConstraints)
+                                       const Maybe<ZoomConstraints>& aConstraints)
 {
   MonitorAutoLock lock(mTreeLock);
   nsRefPtr<HitTestingTreeNode> node = GetTargetNode(aGuid, nullptr);
@@ -1036,8 +1034,16 @@ APZCTreeManager::UpdateZoomConstraints(const ScrollableLayerGuid& aGuid,
 
   
   
-  if (node && node->GetApzc()->IsRootContent()) {
-    UpdateZoomConstraintsRecursively(node.get(), aConstraints);
+  if (aConstraints) {
+    APZCTM_LOG("Recording constraints %s for guid %s\n",
+      Stringify(aConstraints.value()).c_str(), Stringify(aGuid).c_str());
+    mZoomConstraints[aGuid] = aConstraints.value();
+  } else {
+    APZCTM_LOG("Removing constraints for guid %s\n", Stringify(aGuid).c_str());
+    mZoomConstraints.erase(aGuid);
+  }
+  if (node && aConstraints) {
+    UpdateZoomConstraintsRecursively(node.get(), aConstraints.ref());
   }
 }
 
@@ -1052,9 +1058,13 @@ APZCTreeManager::UpdateZoomConstraintsRecursively(HitTestingTreeNode* aNode,
     aNode->GetApzc()->UpdateZoomConstraints(aConstraints);
   }
   for (HitTestingTreeNode* child = aNode->GetLastChild(); child; child = child->GetPrevSibling()) {
-    
-    if (child->GetApzc() && child->GetApzc()->HasNoParentWithSameLayersId()) {
-      continue;
+    if (AsyncPanZoomController* childApzc = child->GetApzc()) {
+      
+      
+      if (childApzc->HasNoParentWithSameLayersId() ||
+          mZoomConstraints.find(childApzc->GetGuid()) != mZoomConstraints.end()) {
+        continue;
+      }
     }
     UpdateZoomConstraintsRecursively(child, aConstraints);
   }
