@@ -337,26 +337,27 @@ gfxGDIFont::Initialize()
             }
         }
 
-        
-        SIZE size;
-        GetTextExtentPoint32W(dc.GetDC(), L" ", 1, &size);
-        mMetrics->spaceWidth = ROUND(size.cx);
-
-        
-        
-        
-        
-        if (GetTextExtentPoint32W(dc.GetDC(), L"0", 1, &size)) {
-            mMetrics->zeroOrAveCharWidth = ROUND(size.cx);
-        } else {
-            mMetrics->zeroOrAveCharWidth = mMetrics->aveCharWidth;
-        }
-
         WORD glyph;
+        SIZE size;
         DWORD ret = GetGlyphIndicesW(dc.GetDC(), L" ", 1, &glyph,
                                      GGI_MARK_NONEXISTING_GLYPHS);
         if (ret != GDI_ERROR && glyph != 0xFFFF) {
             mSpaceGlyph = glyph;
+            
+            GetTextExtentPoint32W(dc.GetDC(), L" ", 1, &size);
+            mMetrics->spaceWidth = ROUND(size.cx);
+        } else {
+            mMetrics->spaceWidth = mMetrics->aveCharWidth;
+        }
+
+        
+        ret = GetGlyphIndicesW(dc.GetDC(), L"0", 1, &glyph,
+                               GGI_MARK_NONEXISTING_GLYPHS);
+        if (ret != GDI_ERROR && glyph != 0xFFFF) {
+            GetTextExtentPoint32W(dc.GetDC(), L"0", 1, &size);
+            mMetrics->zeroOrAveCharWidth = ROUND(size.cx);
+        } else {
+            mMetrics->zeroOrAveCharWidth = mMetrics->aveCharWidth;
         }
 
         SanitizeMetrics(mMetrics, GetFontEntry()->mIsBadUnderlineFont);
