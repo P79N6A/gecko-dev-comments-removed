@@ -39,6 +39,10 @@ void Axis::UpdateWithTouchAtDevicePoint(int32_t aPos, uint32_t aTimestampMs) {
 
   if (aTimestampMs == mPosTimeMs) {
     
+    
+    
+    
+    mPos = aPos;
     return;
   }
 
