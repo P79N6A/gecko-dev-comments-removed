@@ -285,8 +285,8 @@ KEY_MAP_GTK     (Copy, GDK_Copy)
 KEY_MAP_QT      (Copy, Qt::Key_Copy)
 
 
-KEY_MAP_WIN     (Crsel, VK_CRSEL)
-KEY_MAP_GTK     (Crsel, GDK_3270_CursorSelect) 
+KEY_MAP_WIN     (CrSel, VK_CRSEL)
+KEY_MAP_GTK     (CrSel, GDK_3270_CursorSelect) 
 
 
 KEY_MAP_GTK     (Cut, GDK_Cut)
@@ -305,8 +305,8 @@ KEY_MAP_WIN     (EraseEof, VK_EREOF)
 KEY_MAP_GTK     (EraseEof, GDK_3270_EraseEOF) 
 
 
-KEY_MAP_WIN     (Exsel, VK_EXSEL)
-KEY_MAP_GTK     (Exsel, GDK_3270_ExSelect) 
+KEY_MAP_WIN     (ExSel, VK_EXSEL)
+KEY_MAP_GTK     (ExSel, GDK_3270_ExSelect) 
 
 
 KEY_MAP_WIN     (Insert, VK_INSERT)
