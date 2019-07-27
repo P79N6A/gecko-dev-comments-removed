@@ -228,13 +228,6 @@ nsAndroidHistory::VisitURI(nsIURI *aURI, nsIURI *aLastVisitedURI, uint32_t aFlag
     return NS_OK;
   }
 
-  if (aFlags & VisitFlags::REDIRECT_SOURCE || aFlags & VisitFlags::REDIRECT_PERMANENT || aFlags & VisitFlags::REDIRECT_TEMPORARY) {
-    
-    
-    
-    RemovePendingVisitURI(aLastVisitedURI);
-  }
-
   
   bool canAdd;
   nsresult rv = CanAddURI(aURI, &canAdd);
@@ -244,6 +237,15 @@ nsAndroidHistory::VisitURI(nsIURI *aURI, nsIURI *aLastVisitedURI, uint32_t aFlag
   }
 
   if (aLastVisitedURI) {
+    if (aFlags & VisitFlags::REDIRECT_SOURCE ||
+        aFlags & VisitFlags::REDIRECT_PERMANENT ||
+        aFlags & VisitFlags::REDIRECT_TEMPORARY) {
+      
+      
+      
+      RemovePendingVisitURI(aLastVisitedURI);
+    }
+
     bool same;
     rv = aURI->Equals(aLastVisitedURI, &same);
     NS_ENSURE_SUCCESS(rv, rv);
