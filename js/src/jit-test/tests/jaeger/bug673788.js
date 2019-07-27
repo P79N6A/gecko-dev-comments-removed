@@ -1,6 +1,7 @@
 
 p = Proxy.create({
-  has: function() {}
+  has: function() {},
+  set: function() {}
 })
 Object.prototype.__proto__ = p
 n = [];
