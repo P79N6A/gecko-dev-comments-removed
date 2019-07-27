@@ -111,15 +111,6 @@ public:
     
 
 
-
-
-
-    void FillWithOpacity(gfxFloat aOpacity);
-    void FillWithOpacity(const Pattern& aPattern, gfxFloat aOpacity);
-
-    
-
-
     void NewPath();
 
     
