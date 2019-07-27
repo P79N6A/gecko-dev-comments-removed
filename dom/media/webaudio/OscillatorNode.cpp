@@ -538,6 +538,11 @@ OscillatorNode::NotifyMainThreadStreamFinished()
       }
 
       mNode->DispatchTrustedEvent(NS_LITERAL_STRING("ended"));
+
+      
+      
+      mNode->DestroyMediaStream();
+
       return NS_OK;
     }
   private:
@@ -545,9 +550,6 @@ OscillatorNode::NotifyMainThreadStreamFinished()
   };
 
   NS_DispatchToMainThread(new EndedEventDispatcher(this));
-  
-  
-  DestroyMediaStream();
 
   
   

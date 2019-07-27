@@ -729,6 +729,11 @@ AudioBufferSourceNode::NotifyMainThreadStreamFinished()
       }
 
       mNode->DispatchTrustedEvent(NS_LITERAL_STRING("ended"));
+
+      
+      
+      
+      mNode->DestroyMediaStream();
       return NS_OK;
     }
   private:
@@ -736,9 +741,6 @@ AudioBufferSourceNode::NotifyMainThreadStreamFinished()
   };
 
   NS_DispatchToMainThread(new EndedEventDispatcher(this));
-  
-  
-  DestroyMediaStream();
 
   
   
