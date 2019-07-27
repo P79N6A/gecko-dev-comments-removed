@@ -6,6 +6,8 @@
 #include "GMPSharedMemManager.h"
 #include "GMPMessageUtils.h"
 #include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/StaticPtr.h"
+#include "mozilla/ClearOnShutdown.h"
 
 namespace mozilla {
 namespace gmp {
@@ -17,7 +19,36 @@ namespace gmp {
 
 
 
-static nsTArray<ipc::Shmem> sGmpFreelist[GMPSharedMemManager::kGMPNumTypes];
+static StaticAutoPtr<nsTArray<ipc::Shmem>> sGmpFreelist[GMPSharedMemManager::kGMPNumTypes];
+static uint32_t sGMPShmemManagerCount = 0;
+
+GMPSharedMemManager::GMPSharedMemManager()
+{
+  if (!sGMPShmemManagerCount) {
+    for (uint32_t i = 0; i < GMPSharedMemManager::kGMPNumTypes; i++) {
+      sGmpFreelist[i] = new nsTArray<ipc::Shmem>();
+    }
+  }
+  sGMPShmemManagerCount++;
+}
+
+GMPSharedMemManager::~GMPSharedMemManager()
+{
+  MOZ_ASSERT(sGMPShmemManagerCount > 0);
+  sGMPShmemManagerCount--;
+  if (!sGMPShmemManagerCount) {
+    for (uint32_t i = 0; i < GMPSharedMemManager::kGMPNumTypes; i++) {
+      sGmpFreelist[i] = nullptr;
+    }
+  }
+}
+
+static nsTArray<ipc::Shmem>&
+GetGmpFreelist(GMPSharedMemManager::GMPMemoryClasses aTypes)
+{
+  return *(sGmpFreelist[aTypes]);
+}
+
 static uint32_t sGmpAllocated[GMPSharedMemManager::kGMPNumTypes]; 
 
 bool
@@ -28,11 +59,11 @@ GMPSharedMemManager::MgrAllocShmem(GMPMemoryClasses aClass, size_t aSize,
   CheckThread();
 
   
-  for (uint32_t i = 0; i < sGmpFreelist[aClass].Length(); i++) {
-    MOZ_ASSERT(sGmpFreelist[aClass][i].IsWritable());
-    if (aSize <= sGmpFreelist[aClass][i].Size<uint8_t>()) {
-      *aMem = sGmpFreelist[aClass][i];
-      sGmpFreelist[aClass].RemoveElementAt(i);
+  for (uint32_t i = 0; i < GetGmpFreelist(aClass).Length(); i++) {
+    MOZ_ASSERT(GetGmpFreelist(aClass)[i].IsWritable());
+    if (aSize <= GetGmpFreelist(aClass)[i].Size<uint8_t>()) {
+      *aMem = GetGmpFreelist(aClass)[i];
+      GetGmpFreelist(aClass).RemoveElementAt(i);
       return true;
     }
   }
@@ -56,21 +87,21 @@ GMPSharedMemManager::MgrDeallocShmem(GMPMemoryClasses aClass, ipc::Shmem& aMem)
   size_t total = 0;
   
   
-  if (sGmpFreelist[aClass].Length() > 10) {
-    Dealloc(sGmpFreelist[aClass][0]);
-    sGmpFreelist[aClass].RemoveElementAt(0);
+  if (GetGmpFreelist(aClass).Length() > 10) {
+    Dealloc(GetGmpFreelist(aClass)[0]);
+    GetGmpFreelist(aClass).RemoveElementAt(0);
     
     sGmpAllocated[aClass]--;
   }
-  for (uint32_t i = 0; i < sGmpFreelist[aClass].Length(); i++) {
-    MOZ_ASSERT(sGmpFreelist[aClass][i].IsWritable());
-    total += sGmpFreelist[aClass][i].Size<uint8_t>();
-    if (size < sGmpFreelist[aClass][i].Size<uint8_t>()) {
-      sGmpFreelist[aClass].InsertElementAt(i, aMem);
+  for (uint32_t i = 0; i < GetGmpFreelist(aClass).Length(); i++) {
+    MOZ_ASSERT(GetGmpFreelist(aClass)[i].IsWritable());
+    total += GetGmpFreelist(aClass)[i].Size<uint8_t>();
+    if (size < GetGmpFreelist(aClass)[i].Size<uint8_t>()) {
+      GetGmpFreelist(aClass).InsertElementAt(i, aMem);
       return true;
     }
   }
-  sGmpFreelist[aClass].AppendElement(aMem);
+  GetGmpFreelist(aClass).AppendElement(aMem);
 
   return true;
 }
@@ -78,7 +109,7 @@ GMPSharedMemManager::MgrDeallocShmem(GMPMemoryClasses aClass, ipc::Shmem& aMem)
 uint32_t
 GMPSharedMemManager::NumInUse(GMPMemoryClasses aClass)
 {
-  return sGmpAllocated[aClass] - sGmpFreelist[aClass].Length();
+  return sGmpAllocated[aClass] - GetGmpFreelist(aClass).Length();
 }
 
 }
