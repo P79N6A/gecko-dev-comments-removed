@@ -9,24 +9,7 @@ const {Services} = Cu.import("resource://gre/modules/Services.jsm", {});
 
 const COLOR_UNIT_PREF = "devtools.defaultColorUnit";
 
-const REGEX_JUST_QUOTES  = /^""$/;
 const REGEX_HSL_3_TUPLE  = /^\bhsl\(([\d.]+),\s*([\d.]+%),\s*([\d.]+%)\)$/i;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const REGEX_ALL_COLORS = /#[0-9a-fA-F]{3}\b|#[0-9a-fA-F]{6}\b|hsl\(.*?\)|hsla\(.*?\)|rgba?\(.*?\)|\b[a-zA-Z-]+\b/g;
 
 const SPECIALVALUES = new Set([
   "currentcolor",
@@ -69,16 +52,12 @@ const SPECIALVALUES = new Set([
 
 
 
-
-
-
 function CssColor(colorValue) {
   this.newColor(colorValue);
 }
 
 module.exports.colorUtils = {
   CssColor: CssColor,
-  processCSSString: processCSSString,
   rgbToHsl: rgbToHsl,
   setAlpha: setAlpha
 };
@@ -363,31 +342,6 @@ CssColor.prototype = {
     return this.rgba;
   },
 };
-
-
-
-
-
-
-
-
-
-function processCSSString(value) {
-  if (value && REGEX_JUST_QUOTES.test(value)) {
-    return value;
-  }
-
-  let colorPattern = REGEX_ALL_COLORS;
-
-  value = value.replace(colorPattern, function(match) {
-    let color = new CssColor(match);
-    if (color.valid) {
-      return color;
-    }
-    return match;
-  });
-  return value;
-}
 
 
 
