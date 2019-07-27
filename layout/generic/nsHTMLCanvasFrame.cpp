@@ -241,6 +241,8 @@ nsHTMLCanvasFrame::Reflow(nsPresContext*           aPresContext,
 
 
 
+
+
 nsRect 
 nsHTMLCanvasFrame::GetInnerArea() const
 {
@@ -259,7 +261,7 @@ nsHTMLCanvasFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
                               nsDisplayItem* aItem,
                               const ContainerLayerParameters& aContainerParameters)
 {
-  nsRect area = GetContentRect() - GetPosition() + aItem->ToReferenceFrame();
+  nsRect area = GetContentRectRelativeToSelf() + aItem->ToReferenceFrame();
   HTMLCanvasElement* element = static_cast<HTMLCanvasElement*>(GetContent());
   nsIntSize canvasSize = GetCanvasSize();
 

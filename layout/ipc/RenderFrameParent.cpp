@@ -53,7 +53,7 @@ GetContentRectLayerOffset(nsIFrame* aContainerFrame, nsDisplayListBuilder* aBuil
   
   
   nsPoint frameOffset = aBuilder->ToReferenceFrame(aContainerFrame) +
-    (aContainerFrame->GetContentRect().TopLeft() - aContainerFrame->GetPosition());
+    aContainerFrame->GetContentRectRelativeToSelf().TopLeft();
 
   return frameOffset.ToNearestPixels(auPerDevPixel);
 }

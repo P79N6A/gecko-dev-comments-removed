@@ -812,10 +812,12 @@ nsImageFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                             aPadding);
 }
 
+
+
 nsRect 
 nsImageFrame::GetInnerArea() const
 {
-  return GetContentRect() - GetPosition();
+  return GetContentRectRelativeToSelf();
 }
 
 Element*
