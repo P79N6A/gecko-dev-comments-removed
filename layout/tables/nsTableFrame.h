@@ -12,8 +12,6 @@
 #include "nsContainerFrame.h"
 #include "nsStyleCoord.h"
 #include "nsStyleConsts.h"
-#include "nsTableColFrame.h"
-#include "nsTableColGroupFrame.h"
 #include "nsCellMap.h"
 #include "nsGkAtoms.h"
 #include "nsDisplayList.h"
@@ -99,6 +97,19 @@ private:
 };
 
 
+
+enum nsTableColGroupType {
+  eColGroupContent            = 0, 
+  eColGroupAnonymousCol       = 1, 
+  eColGroupAnonymousCell      = 2  
+};
+
+enum nsTableColType {
+  eColContent            = 0, 
+  eColAnonymousCol       = 1, 
+  eColAnonymousColGroup  = 2, 
+  eColAnonymousCell      = 3  
+};
 
 
 

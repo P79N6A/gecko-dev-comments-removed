@@ -8,16 +8,9 @@
 #include "mozilla/Attributes.h"
 #include "nscore.h"
 #include "nsContainerFrame.h"
-#include "nsTableColFrame.h"
+#include "nsTableFrame.h"
 
-class nsTableFrame;
 class nsTableColFrame;
-
-enum nsTableColGroupType {
-  eColGroupContent            = 0, 
-  eColGroupAnonymousCol       = 1, 
-  eColGroupAnonymousCell      = 2  
-};
 
 
 

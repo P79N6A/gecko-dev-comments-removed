@@ -10,13 +10,7 @@
 #include "nscore.h"
 #include "nsContainerFrame.h"
 #include "nsTArray.h"
-
-enum nsTableColType {
-  eColContent            = 0, 
-  eColAnonymousCol       = 1, 
-  eColAnonymousColGroup  = 2, 
-  eColAnonymousCell      = 3  
-};
+#include "nsTableColGroupFrame.h"
 
 class nsTableColFrame : public nsSplittableFrame {
 public:
