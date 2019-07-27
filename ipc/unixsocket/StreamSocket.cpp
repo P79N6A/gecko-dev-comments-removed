@@ -30,13 +30,11 @@ public:
 
   StreamSocketIO(MessageLoop* mIOLoop,
                  StreamSocket* aStreamSocket,
-                 UnixSocketConnector* aConnector,
-                 const nsACString& aAddress);
+                 UnixSocketConnector* aConnector);
   StreamSocketIO(MessageLoop* mIOLoop, int aFd,
                  ConnectionStatus aConnectionStatus,
                  StreamSocket* aStreamSocket,
-                 UnixSocketConnector* aConnector,
-                 const nsACString& aAddress);
+                 UnixSocketConnector* aConnector);
   ~StreamSocketIO();
 
   void GetSocketAddr(nsAString& aAddrStr) const;
@@ -99,9 +97,6 @@ private:
   void FireSocketError();
 
   
-  static bool SetSocketFlags(int aFd);
-
-  
 
 
 
@@ -121,17 +116,12 @@ private:
   
 
 
-  nsCString mAddress;
+  socklen_t mAddressLength;
 
   
 
 
-  socklen_t mAddrSize;
-
-  
-
-
-  sockaddr_any mAddr;
+  struct sockaddr_storage mAddress;
 
   
 
@@ -146,13 +136,12 @@ private:
 
 StreamSocketIO::StreamSocketIO(MessageLoop* mIOLoop,
                                StreamSocket* aStreamSocket,
-                               UnixSocketConnector* aConnector,
-                               const nsACString& aAddress)
+                               UnixSocketConnector* aConnector)
   : UnixSocketWatcher(mIOLoop)
   , mStreamSocket(aStreamSocket)
   , mConnector(aConnector)
   , mShuttingDownOnIOThread(false)
-  , mAddress(aAddress)
+  , mAddressLength(0)
   , mDelayedConnectTask(nullptr)
 {
   MOZ_ASSERT(mStreamSocket);
@@ -162,13 +151,12 @@ StreamSocketIO::StreamSocketIO(MessageLoop* mIOLoop,
 StreamSocketIO::StreamSocketIO(MessageLoop* mIOLoop, int aFd,
                                ConnectionStatus aConnectionStatus,
                                StreamSocket* aStreamSocket,
-                               UnixSocketConnector* aConnector,
-                               const nsACString& aAddress)
+                               UnixSocketConnector* aConnector)
   : UnixSocketWatcher(mIOLoop, aFd, aConnectionStatus)
   , mStreamSocket(aStreamSocket)
   , mConnector(aConnector)
   , mShuttingDownOnIOThread(false)
-  , mAddress(aAddress)
+  , mAddressLength(0)
   , mDelayedConnectTask(nullptr)
 {
   MOZ_ASSERT(mStreamSocket);
@@ -189,7 +177,16 @@ StreamSocketIO::GetSocketAddr(nsAString& aAddrStr) const
     aAddrStr.Truncate();
     return;
   }
-  mConnector->GetSocketAddr(mAddr, aAddrStr);
+
+  nsCString addressString;
+  nsresult rv = mConnector->ConvertAddressToString(
+    *reinterpret_cast<const struct sockaddr*>(&mAddress), mAddressLength,
+    addressString);
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  aAddrStr.Assign(NS_ConvertUTF8toUTF16(addressString));
 }
 
 StreamSocket*
@@ -239,34 +236,21 @@ StreamSocketIO::Connect()
   MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
   MOZ_ASSERT(mConnector);
 
-  if (!IsOpen()) {
-    int fd = mConnector->Create();
-    if (fd < 0) {
-      NS_WARNING("Cannot create socket fd!");
-      FireSocketError();
-      return;
-    }
-    if (!SetSocketFlags(fd)) {
-      NS_WARNING("Cannot set socket flags!");
-      FireSocketError();
-      return;
-    }
-    if (!mConnector->SetUp(GetFd())) {
-      NS_WARNING("Could not set up socket!");
-      FireSocketError();
-      return;
-    }
-    if (!mConnector->CreateAddr(false, mAddrSize, mAddr, mAddress.get())) {
-      NS_WARNING("Cannot create socket address!");
-      FireSocketError();
-      return;
-    }
-    SetFd(fd);
+  MOZ_ASSERT(!IsOpen());
+
+  struct sockaddr* address = reinterpret_cast<struct sockaddr*>(&mAddress);
+  mAddressLength = sizeof(mAddress);
+
+  int fd;
+  nsresult rv = mConnector->CreateStreamSocket(address, &mAddressLength, fd);
+  if (NS_FAILED(rv)) {
+    FireSocketError();
+    return;
   }
+  SetFd(fd);
 
   
-  nsresult rv = UnixSocketWatcher::Connect(
-    reinterpret_cast<struct sockaddr*>(&mAddr), mAddrSize);
+  rv = UnixSocketWatcher::Connect(address, mAddressLength);
   NS_WARN_IF(NS_FAILED(rv));
 }
 
@@ -354,41 +338,6 @@ StreamSocketIO::FireSocketError()
     new SocketIOEventRunnable(this, SocketIOEventRunnable::CONNECT_ERROR));
 }
 
-bool
-StreamSocketIO::SetSocketFlags(int aFd)
-{
-  static const int reuseaddr = 1;
-
-  
-  int res = setsockopt(aFd, SOL_SOCKET, SO_REUSEADDR,
-                       &reuseaddr, sizeof(reuseaddr));
-  if (res < 0) {
-    return false;
-  }
-
-  
-  int flags = TEMP_FAILURE_RETRY(fcntl(aFd, F_GETFD));
-  if (-1 == flags) {
-    return false;
-  }
-  flags |= FD_CLOEXEC;
-  if (-1 == TEMP_FAILURE_RETRY(fcntl(aFd, F_SETFD, flags))) {
-    return false;
-  }
-
-  
-  flags = TEMP_FAILURE_RETRY(fcntl(aFd, F_GETFL));
-  if (-1 == flags) {
-    return false;
-  }
-  flags |= O_NONBLOCK;
-  if (-1 == TEMP_FAILURE_RETRY(fcntl(aFd, F_SETFL, flags))) {
-    return false;
-  }
-
-  return true;
-}
-
 
 
 nsresult
@@ -398,21 +347,11 @@ StreamSocketIO::Accept(int aFd,
   MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
   MOZ_ASSERT(GetConnectionStatus() == SOCKET_IS_CONNECTING);
 
-  
-
-  if (!SetSocketFlags(aFd)) {
-    return NS_ERROR_FAILURE;
-  }
-  if (!mConnector->SetUp(aFd)) {
-    NS_WARNING("Could not set up socket!");
-    return NS_ERROR_FAILURE;
-  }
-
   SetSocket(aFd, SOCKET_IS_CONNECTED);
 
   
-  memcpy(&mAddr, aAddr, aAddrLen);
-  mAddrSize = aAddrLen;
+  mAddressLength = aAddrLen;
+  memcpy(&mAddress, aAddr, mAddressLength);
 
   
   NS_DispatchToMainThread(
@@ -652,9 +591,8 @@ StreamSocket::Connect(UnixSocketConnector* aConnector,
     return false;
   }
 
-  nsCString addr(aAddress);
   MessageLoop* ioLoop = XRE_GetIOMessageLoop();
-  mIO = new StreamSocketIO(ioLoop, this, connector.forget(), addr);
+  mIO = new StreamSocketIO(ioLoop, this, connector.forget());
   SetConnectionStatus(SOCKET_CONNECTING);
   if (aDelayMs > 0) {
     StreamSocketIO::DelayedConnectTask* connectTask =
@@ -681,7 +619,7 @@ StreamSocket::PrepareAccept(UnixSocketConnector* aConnector)
 
   mIO = new StreamSocketIO(XRE_GetIOMessageLoop(),
                            -1, UnixSocketWatcher::SOCKET_IS_CONNECTING,
-                           this, connector.forget(), EmptyCString());
+                           this, connector.forget());
   return mIO;
 }
 
