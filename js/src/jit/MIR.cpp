@@ -2241,14 +2241,6 @@ MBinaryArithInstruction::infer(TempAllocator &alloc, BaselineInspector *inspecto
 
     
     
-    
-    if (getOperand(0)->mightBeType(MIRType_Object) || getOperand(1)->mightBeType(MIRType_Object))
-        return;
-    if (getOperand(0)->mightBeType(MIRType_Symbol) || getOperand(1)->mightBeType(MIRType_Symbol))
-        return;
-
-    
-    
     if (!SimpleArithOperand(getOperand(0)) || !SimpleArithOperand(getOperand(1)))
         return inferFallback(inspector, pc);
 
