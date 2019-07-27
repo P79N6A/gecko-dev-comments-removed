@@ -7728,32 +7728,6 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
                               true,
                               false);
       }
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      nsCOMPtr<nsIDocShell> docShell(mDocumentContainer);
-      if (docShell && docShell->GetIsApp()) {
-        nsString uri;
-        GetDocumentURI(uri);
-        if (!uri.EqualsLiteral("about:blank")) {
-          nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                          NS_LITERAL_CSTRING("DOM"), this,
-                                          nsContentUtils::eDOM_PROPERTIES,
-                                          "ImplicitMetaViewportTagFallback");
-        }
-        mViewportType = DisplayWidthHeightNoZoom;
-        return nsViewportInfo(aDisplaySize,
-                              defaultScale,
-                              false,
-                              false);
-      }
     }
 
     nsAutoString minScaleStr;
