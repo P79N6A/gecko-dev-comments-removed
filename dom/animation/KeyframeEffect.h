@@ -193,10 +193,12 @@ public:
   KeyframeEffectReadOnly(nsIDocument* aDocument,
                          Element* aTarget,
                          nsCSSPseudoElements::Type aPseudoType,
-                         const AnimationTiming &aTiming)
+                         const AnimationTiming &aTiming,
+                         const nsSubstring& aName)
     : AnimationEffectReadOnly(aDocument)
     , mTarget(aTarget)
     , mTiming(aTiming)
+    , mName(aName)
     , mIsFinishedTransition(false)
     , mPseudoType(aPseudoType)
   {
@@ -225,6 +227,10 @@ public:
                " pseudo-element is not yet supported.");
     return mTarget;
   }
+  void GetName(nsString& aRetVal) const
+  {
+    aRetVal = Name();
+  }
 
   
   
@@ -232,6 +238,12 @@ public:
                  nsCSSPseudoElements::Type& aPseudoType) const {
     aTarget = mTarget;
     aPseudoType = mPseudoType;
+  }
+  
+  
+  virtual const nsString& Name() const
+  {
+    return mName;
   }
 
   void SetParentTime(Nullable<TimeDuration> aParentTime);
@@ -328,6 +340,7 @@ protected:
   Nullable<TimeDuration> mParentTime;
 
   AnimationTiming mTiming;
+  nsString mName;
   
   
   bool mIsFinishedTransition;
