@@ -54,6 +54,8 @@ import android.util.Log;
 
 
 
+
+
 public class testDistribution extends ContentProviderTest {
     private static final String CLASS_REFERRER_RECEIVER = "org.mozilla.gecko.distribution.ReferrerReceiver";
     private static final String ACTION_INSTALL_REFERRER = "com.android.vending.INSTALL_REFERRER";
@@ -152,6 +154,7 @@ public class testDistribution extends ContentProviderTest {
         checkPreferences();
         checkLocalizedPreferences("en-US");
         checkSearchPlugin();
+        checkAddon();
 
         
         clearDistributionPref();
@@ -303,20 +306,7 @@ public class testDistribution extends ContentProviderTest {
                                          prefTestString,
                                          prefTestInt };
 
-            Actions.RepeatedEventExpecter eventExpecter = mActions.expectGeckoEvent("Preferences:Data");
-            mActions.sendPreferencesGetEvent(PREF_REQUEST_ID, prefNames);
-
-            JSONObject data = null;
-            int requestId = -1;
-
-            
-            while (requestId != PREF_REQUEST_ID) {
-                data = new JSONObject(eventExpecter.blockForEventData());
-                requestId = data.getInt("requestId");
-            }
-            eventExpecter.unregisterListener();
-
-            JSONArray preferences = data.getJSONArray("preferences");
+            final JSONArray preferences = getPrefs(prefNames);
             for (int i = 0; i < preferences.length(); i++) {
                 JSONObject pref = (JSONObject) preferences.get(i);
                 String name = pref.getString("name");
@@ -362,6 +352,34 @@ public class testDistribution extends ContentProviderTest {
         } catch (JSONException e) {
             mAsserter.ok(false, "exception getting search plugins", e.toString());
         }
+    }
+
+    private void checkAddon() {
+        try {
+            final String[] prefNames = { "distribution.test.addonEnabled" };
+            final JSONArray preferences = getPrefs(prefNames);
+            final JSONObject pref = (JSONObject) preferences.get(0);
+            mAsserter.is(pref.getBoolean("value"), true, "check distribution add-on is enabled");
+        } catch (JSONException e) {
+            mAsserter.ok(false, "exception getting preferences", e.toString());
+        }
+    }
+
+    private JSONArray getPrefs(String[] prefNames) throws JSONException {
+        Actions.RepeatedEventExpecter eventExpecter = mActions.expectGeckoEvent("Preferences:Data");
+        mActions.sendPreferencesGetEvent(PREF_REQUEST_ID, prefNames);
+
+        JSONObject data = null;
+        int requestId = -1;
+
+        
+        while (requestId != PREF_REQUEST_ID) {
+            data = new JSONObject(eventExpecter.blockForEventData());
+            requestId = data.getInt("requestId");
+        }
+        eventExpecter.unregisterListener();
+
+        return data.getJSONArray("preferences"); 
     }
 
     
