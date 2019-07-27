@@ -359,16 +359,25 @@ namespace places {
     nsAutoCString tags;
     (void)aArguments->GetUTF8String(kArgIndexTags, tags);
     int32_t openPageCount = aArguments->AsInt32(kArgIndexOpenPageCount);
+    bool matches = false;
+    if (HAS_BEHAVIOR(RESTRICT)) {
+      
+      
+      matches = (!HAS_BEHAVIOR(HISTORY) || visitCount > 0) &&
+                (!HAS_BEHAVIOR(TYPED) || typed) &&
+                (!HAS_BEHAVIOR(BOOKMARK) || bookmark) &&
+                (!HAS_BEHAVIOR(TAG) || !tags.IsVoid()) &&
+                (!HAS_BEHAVIOR(OPENPAGE) || openPageCount > 0);
+    } else {
+      
+      
+      matches = (HAS_BEHAVIOR(HISTORY) && visitCount > 0) ||
+                (HAS_BEHAVIOR(TYPED) && typed) ||
+                (HAS_BEHAVIOR(BOOKMARK) && bookmark) ||
+                (HAS_BEHAVIOR(TAG) && !tags.IsVoid()) ||
+                (HAS_BEHAVIOR(OPENPAGE) && openPageCount > 0);
+    }
 
-    
-    
-    bool matches = !(
-      (HAS_BEHAVIOR(HISTORY) && visitCount == 0) ||
-      (HAS_BEHAVIOR(TYPED) && !typed) ||
-      (HAS_BEHAVIOR(BOOKMARK) && !bookmark) ||
-      (HAS_BEHAVIOR(TAG) && tags.IsVoid()) ||
-      (HAS_BEHAVIOR(OPENPAGE) && openPageCount == 0)
-    );
     if (!matches) {
       NS_ADDREF(*_result = new IntegerVariant(0));
       return NS_OK;

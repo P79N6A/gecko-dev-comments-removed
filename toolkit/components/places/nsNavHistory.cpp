@@ -3273,13 +3273,17 @@ nsNavHistory::QueryToSelectClause(nsNavHistoryQuery* aQuery,
 
   
   bool hasSearchTerms;
+  int32_t searchBehavior = mozIPlacesAutoComplete::BEHAVIOR_HISTORY |
+                           mozIPlacesAutoComplete::BEHAVIOR_BOOKMARK;
   if (NS_SUCCEEDED(aQuery->GetHasSearchTerms(&hasSearchTerms)) && hasSearchTerms) {
+    
     
     
     clause.Condition("AUTOCOMPLETE_MATCH(").Param(":search_string")
           .Str(", h.url, page_title, tags, ")
-          .Str(nsPrintfCString("0, 0, 0, 0, %d, 0)",
-                               mozIPlacesAutoComplete::MATCH_ANYWHERE_UNMODIFIED).get());
+          .Str(nsPrintfCString("1, 1, 1, 1, %d, %d)",
+                               mozIPlacesAutoComplete::MATCH_ANYWHERE_UNMODIFIED,
+                               searchBehavior).get());
     
     excludeQueries = true;
   }

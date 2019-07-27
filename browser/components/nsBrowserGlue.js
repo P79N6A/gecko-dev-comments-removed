@@ -1459,7 +1459,7 @@ BrowserGlue.prototype = {
   },
 
   _migrateUI: function BG__migrateUI() {
-    const UI_VERSION = 25;
+    const UI_VERSION = 26;
     const BROWSER_DOCURL = "chrome://browser/content/browser.xul";
     let currentUIVersion = 0;
     try {
@@ -1733,6 +1733,40 @@ BrowserGlue.prototype = {
         }
       }
       catch (ex) {}
+    }
+
+    if (currentUIVersion < 26) {
+      
+      
+      let types = ["history", "bookmark", "openpage"];
+      let defaultBehavior = 0;
+      try {
+        defaultBehavior = Services.prefs.getIntPref("browser.urlbar.default.behavior");
+      } catch (ex) {}
+      try {
+        let autocompleteEnabled = Services.prefs.getBoolPref("browser.urlbar.autocomplete.enabled");
+        if (!autocompleteEnabled) {
+          defaultBehavior = -1;
+        }
+      } catch (ex) {}
+
+      
+      
+      
+      
+      for (let type of types) {
+        let prefValue = defaultBehavior == 0;
+        if (defaultBehavior > 0) {
+          prefValue = !!(defaultBehavior & Ci.mozIPlacesAutoComplete["BEHAVIOR_" + type.toUpperCase()]);
+        }
+        Services.prefs.setBoolPref("browser.urlbar.suggest." + type, prefValue);
+      }
+
+      
+      if (defaultBehavior != -1 &&
+          !!(defaultBehavior & Ci.mozIPlacesAutoComplete["BEHAVIOR_TYPED"])) {
+        Services.prefs.setBoolPref("browser.urlbar.suggest.history.onlyTyped", true);
+      }
     }
 
     

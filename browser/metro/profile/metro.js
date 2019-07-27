@@ -306,12 +306,19 @@ pref("browser.search.official", true);
 pref("browser.xul.error_pages.enabled", true);
 
 
-pref("browser.urlbar.default.behavior", 0);
-pref("browser.urlbar.default.behavior.emptyRestriction", 0);
-
-
 
 pref("places.favicons.optimizeToDimension", 25);
+
+
+
+pref("browser.urlbar.suggest.history",              true);
+pref("browser.urlbar.suggest.bookmark",             true);
+pref("browser.urlbar.suggest.openpage",             true);
+pref("browser.urlbar.suggest.search",               true);
+
+
+
+pref("browser.urlbar.suggest.history.onlyTyped",    false);
 
 
 

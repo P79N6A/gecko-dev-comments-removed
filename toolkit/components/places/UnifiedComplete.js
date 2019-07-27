@@ -11,10 +11,6 @@
 
 const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
 
-const TOPIC_PREFCHANGED = "nsPref:changed";
-
-const DEFAULT_BEHAVIOR = 0;
-
 const PREF_BRANCH = "browser.urlbar.";
 
 
@@ -24,10 +20,6 @@ const PREF_AUTOFILL_TYPED =         [ "autoFill.typed",         true ];
 const PREF_AUTOFILL_SEARCHENGINES = [ "autoFill.searchEngines", true ];
 const PREF_DELAY =                  [ "delay",                  50 ];
 const PREF_BEHAVIOR =               [ "matchBehavior", MATCH_BOUNDARY_ANYWHERE ];
-const PREF_DEFAULT_BEHAVIOR =       [ "default.behavior", DEFAULT_BEHAVIOR ];
-const PREF_EMPTY_BEHAVIOR =         [ "default.behavior.emptyRestriction",
-                                      Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY |
-                                      Ci.mozIPlacesAutoComplete.BEHAVIOR_TYPED ];
 const PREF_FILTER_JS =              [ "filter.javascript",      true ];
 const PREF_MAXRESULTS =             [ "maxRichResults",         25 ];
 const PREF_RESTRICT_HISTORY =       [ "restrict.history",       "^" ];
@@ -37,6 +29,11 @@ const PREF_RESTRICT_TAG =           [ "restrict.tag",           "+" ];
 const PREF_RESTRICT_SWITCHTAB =     [ "restrict.openpage",      "%" ];
 const PREF_MATCH_TITLE =            [ "match.title",            "#" ];
 const PREF_MATCH_URL =              [ "match.url",              "@" ];
+
+const PREF_SUGGEST_HISTORY =        [ "suggest.history",        true ];
+const PREF_SUGGEST_BOOKMARK =       [ "suggest.bookmark",       true ];
+const PREF_SUGGEST_OPENPAGE =       [ "suggest.openpage",       true ];
+const PREF_SUGGEST_HISTORY_ONLYTYPED = [ "suggest.history.onlyTyped", false ];
 
 
 
@@ -117,19 +114,6 @@ function defaultQuery(conditions = "") {
      LIMIT :maxResults`;
   return query;
 }
-
-const SQL_DEFAULT_QUERY = defaultQuery();
-
-
-
-
-const SQL_HISTORY_QUERY = defaultQuery("AND +h.visit_count > 0");
-
-const SQL_BOOKMARK_QUERY = defaultQuery("AND bookmarked");
-
-const SQL_TAGS_QUERY = defaultQuery("AND tags NOTNULL");
-
-const SQL_TYPED_QUERY = defaultQuery("AND h.typed = 1");
 
 const SQL_SWITCHTAB_QUERY =
   `SELECT :query_type, t.url, t.url, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -237,7 +221,7 @@ function urlQuery(conditions = "") {
      ${conditions}
      AND AUTOCOMPLETE_MATCH(:searchString, h.url,
      h.title, '',
-     h.visit_count, h.typed, 0, 0,
+     h.visit_count, h.typed, bookmarked, 0,
      :matchBehavior, :searchBehavior)
      ORDER BY h.frecency DESC, h.id DESC
      LIMIT 1`;
@@ -246,12 +230,12 @@ function urlQuery(conditions = "") {
 
 const SQL_URL_QUERY = urlQuery();
 
-const SQL_TYPED_URL_QUERY = urlQuery("AND typed = 1");
+const SQL_TYPED_URL_QUERY = urlQuery("AND h.typed = 1");
 
 
 const SQL_BOOKMARKED_URL_QUERY = urlQuery("AND bookmarked");
 
-const SQL_BOOKMARKED_TYPED_URL_QUERY = urlQuery("AND bookmarked AND typed = 1");
+const SQL_BOOKMARKED_TYPED_URL_QUERY = urlQuery("AND bookmarked AND h.typed = 1");
 
 
 
@@ -365,8 +349,37 @@ XPCOMUtils.defineLazyGetter(this, "SwitchToTabStorage", () => Object.seal({
 
 XPCOMUtils.defineLazyGetter(this, "Prefs", () => {
   let prefs = new Preferences(PREF_BRANCH);
+  let types = ["History", "Bookmark", "Openpage", "Typed"];
 
-  function loadPrefs() {
+  function syncEnabledPref(init = false) {
+    let suggestPrefs = [PREF_SUGGEST_HISTORY, PREF_SUGGEST_BOOKMARK, PREF_SUGGEST_OPENPAGE];
+
+    if (init) {
+      
+      store.enabled = prefs.get(...PREF_ENABLED);
+      store.suggestHistory = prefs.get(...PREF_SUGGEST_HISTORY);
+      store.suggestBookmark = prefs.get(...PREF_SUGGEST_BOOKMARK);
+      store.suggestOpenpage = prefs.get(...PREF_SUGGEST_OPENPAGE);
+      store.suggestTyped = prefs.get(...PREF_SUGGEST_HISTORY_ONLYTYPED);
+    }
+
+    if (store.enabled) {
+      
+      
+      if (types.every(type => store["suggest" + type] == false)) {
+        for (let type of suggestPrefs) {
+          prefs.set(...type);
+        }
+      }
+    } else {
+      
+      for (let type of suggestPrefs) {
+        prefs.set(type[0], false);
+      }
+    }
+  }
+
+  function loadPrefs(subject, topic, data) {
     store.enabled = prefs.get(...PREF_ENABLED);
     store.autofill = prefs.get(...PREF_AUTOFILL);
     store.autofillTyped = prefs.get(...PREF_AUTOFILL_TYPED);
@@ -382,10 +395,34 @@ XPCOMUtils.defineLazyGetter(this, "Prefs", () => {
     store.restrictOpenPageToken = prefs.get(...PREF_RESTRICT_SWITCHTAB);
     store.matchTitleToken = prefs.get(...PREF_MATCH_TITLE);
     store.matchURLToken = prefs.get(...PREF_MATCH_URL);
-    store.defaultBehavior = prefs.get(...PREF_DEFAULT_BEHAVIOR);
+    store.suggestHistory = prefs.get(...PREF_SUGGEST_HISTORY);
+    store.suggestBookmark = prefs.get(...PREF_SUGGEST_BOOKMARK);
+    store.suggestOpenpage = prefs.get(...PREF_SUGGEST_OPENPAGE);
+    store.suggestTyped = prefs.get(...PREF_SUGGEST_HISTORY_ONLYTYPED);
+
     
-    store.emptySearchDefaultBehavior = store.defaultBehavior |
-                                       prefs.get(...PREF_EMPTY_BEHAVIOR);
+    if (!store.suggestHistory) {
+      store.suggestTyped = false;
+    }
+    store.defaultBehavior = types.reduce((memo, type) => {
+      let prefValue = store["suggest" + type];
+      return memo | (prefValue &&
+                     Ci.mozIPlacesAutoComplete["BEHAVIOR_" + type.toUpperCase()]);
+    }, 0);
+
+    
+    
+    
+    
+    store.emptySearchDefaultBehavior = Ci.mozIPlacesAutoComplete.BEHAVIOR_RESTRICT;
+    if (store.suggestHistory) {
+      store.emptySearchDefaultBehavior |= Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY |
+                                          Ci.mozIPlacesAutoComplete.BEHAVIOR_TYPED;
+    } else if (store.suggestBookmark) {
+      store.emptySearchDefaultBehavior |= Ci.mozIPlacesAutoComplete.BEHAVIOR_BOOKMARK;
+    } else {
+      store.emptySearchDefaultBehavior |= Ci.mozIPlacesAutoComplete.BEHAVIOR_OPENPAGE;
+    }
 
     
     if (store.matchBehavior != MATCH_ANYWHERE &&
@@ -403,14 +440,22 @@ XPCOMUtils.defineLazyGetter(this, "Prefs", () => {
       [ store.matchURLToken, "url" ],
       [ store.restrictTypedToken, "typed" ]
     ]);
+
+    
+    
+    if (data == PREF_BRANCH + PREF_ENABLED[0]) {
+      syncEnabledPref();
+    }
   }
 
   let store = {
-    observe: function (subject, topic, data) {
-      loadPrefs();
-    },
+    observe: loadPrefs,
     QueryInterface: XPCOMUtils.generateQI([ Ci.nsIObserver ])
   };
+
+  
+  syncEnabledPref(true);
+
   loadPrefs();
   prefs.observe("", store);
 
@@ -565,8 +610,14 @@ Search.prototype = {
 
 
   setBehavior: function (type) {
+    type = type.toUpperCase();
     this._behavior |=
-      Ci.mozIPlacesAutoComplete["BEHAVIOR_" + type.toUpperCase()];
+      Ci.mozIPlacesAutoComplete["BEHAVIOR_" + type];
+
+    
+    if (type == "TYPED") {
+      this.setBehavior("history");
+    }
   },
 
   
@@ -606,12 +657,21 @@ Search.prototype = {
 
 
   filterTokens: function (tokens) {
+    let foundToken = false;
     
     for (let i = tokens.length - 1; i >= 0; i--) {
       let behavior = Prefs.tokenToBehaviorMap.get(tokens[i]);
       
       
       if (behavior && (behavior != "openpage" || this._enableActions)) {
+        
+        
+        if (!foundToken) {
+          foundToken = true;
+          
+          this._behavior = 0;
+          this.setBehavior("restrict");
+        }
         this.setBehavior(behavior);
         tokens.splice(i, 1);
       }
@@ -689,9 +749,14 @@ Search.prototype = {
     
 
     
-    let queries = [ this._adaptiveQuery,
-                    this._switchToTabQuery,
-                    this._searchQuery ];
+    let queries = [ this._adaptiveQuery ];
+
+    
+    
+    if (this.hasBehavior("openpage")) {
+      queries.push(this._switchToTabQuery);
+    }
+    queries.push(this._searchQuery);
 
     
     
@@ -1158,7 +1223,7 @@ Search.prototype = {
     
     let url = escapedURL;
     let action = null;
-    if (this._enableActions && openPageCount > 0) {
+    if (this._enableActions && openPageCount > 0 && this.hasBehavior("openpage")) {
       url = makeActionURL("switchtab", {url: escapedURL});
       action = "switchtab";
     }
@@ -1193,8 +1258,8 @@ Search.prototype = {
 
     
     
-    if (this.hasBehavior("history") &&
-        !(this.hasBehavior("bookmark") || this.hasBehavior("tag"))) {
+    if (this.hasBehavior("history") && !this.hasBehavior("bookmark") &&
+        !showTags) {
       showTags = false;
       match.style = "favicon";
     }
@@ -1237,21 +1302,42 @@ Search.prototype = {
 
 
 
+  get _suggestionPrefQuery() {
+    if (!this.hasBehavior("restrict") && this.hasBehavior("history") &&
+        this.hasBehavior("bookmark")) {
+      return this.hasBehavior("typed") ? defaultQuery("AND h.typed = 1")
+                                       : defaultQuery();
+    }
+    let conditions = [];
+    if (this.hasBehavior("history")) {
+      
+      
+      
+      conditions.push("+h.visit_count > 0");
+    }
+    if (this.hasBehavior("typed")) {
+      conditions.push("h.typed = 1");
+    }
+    if (this.hasBehavior("bookmark")) {
+      conditions.push("bookmarked");
+    }
+    if (this.hasBehavior("tag")) {
+      conditions.push("tags NOTNULL");
+    }
+
+    return conditions.length ? defaultQuery("AND " + conditions.join(" AND "))
+                             : defaultQuery();
+  },
+
+  
+
+
+
 
 
 
   get _searchQuery() {
-    
-    
-    
-    
-    
-    
-    let query = this.hasBehavior("tag") ? SQL_TAGS_QUERY :
-                this.hasBehavior("bookmark") ? SQL_BOOKMARK_QUERY :
-                this.hasBehavior("typed") ? SQL_TYPED_QUERY :
-                this.hasBehavior("history") ? SQL_HISTORY_QUERY :
-                SQL_DEFAULT_QUERY;
+    let query = this._suggestionPrefQuery;
 
     return [
       query,
@@ -1349,20 +1435,13 @@ Search.prototype = {
       return false;
 
     
-    
-    
-    if (Prefs.defaultBehavior != DEFAULT_BEHAVIOR) {
-      
-      
-      if (!this.hasBehavior("typed") &&
-          !this.hasBehavior("history") &&
-          !this.hasBehavior("bookmark"))
-        return false;
+    if (!this.hasBehavior("history") &&
+        !this.hasBehavior("bookmark"))
+      return false;
 
-      
-      if (this.hasBehavior("title") || this.hasBehavior("tags"))
-        return false;
-    }
+    
+    if (this.hasBehavior("title") || this.hasBehavior("tag"))
+      return false;
 
     
     
@@ -1385,7 +1464,7 @@ Search.prototype = {
 
   get _hostQuery() {
     let typed = Prefs.autofillTyped || this.hasBehavior("typed");
-    let bookmarked =  this.hasBehavior("bookmark");
+    let bookmarked = this.hasBehavior("bookmark") && !this.hasBehavior("history");
 
     return [
       bookmarked ? typed ? SQL_BOOKMARKED_TYPED_HOST_QUERY
@@ -1430,7 +1509,21 @@ Search.prototype = {
 
   get _urlQuery()  {
     let typed = Prefs.autofillTyped || this.hasBehavior("typed");
-    let bookmarked =  this.hasBehavior("bookmark");
+    let bookmarked = this.hasBehavior("bookmark") && !this.hasBehavior("history");
+    let searchBehavior = Ci.mozIPlacesAutoComplete.BEHAVIOR_URL;
+
+    
+    
+    if (typed) {
+      searchBehavior |= Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY |
+                        Ci.mozIPlacesAutoComplete.BEHAVIOR_TYPED;
+    } else {
+      
+      searchBehavior |= Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY;
+    }
+    if (bookmarked) {
+      searchBehavior |= Ci.mozIPlacesAutoComplete.BEHAVIOR_BOOKMARK;
+    }
 
     return [
       bookmarked ? typed ? SQL_BOOKMARKED_TYPED_URL_QUERY
@@ -1441,7 +1534,7 @@ Search.prototype = {
         query_type: QUERYTYPE_AUTOFILL_URL,
         searchString: this._autofillUrlSearchString,
         matchBehavior: MATCH_BEGINNING_CASE_SENSITIVE,
-        searchBehavior: Ci.mozIPlacesAutoComplete.BEHAVIOR_URL
+        searchBehavior: searchBehavior
       }
     ];
   },
@@ -1468,6 +1561,11 @@ Search.prototype = {
 
 
 function UnifiedComplete() {
+  
+  
+  
+  
+  Prefs;
 }
 
 UnifiedComplete.prototype = {
