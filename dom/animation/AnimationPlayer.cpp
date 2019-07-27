@@ -143,39 +143,12 @@ AnimationPlayer::Tick()
 void
 AnimationPlayer::StartNow()
 {
-  
-  
-  
   MOZ_ASSERT(PlayState() == AnimationPlayState::Pending,
              "Expected to start a pending player");
-  MOZ_ASSERT(!mHoldTime.IsNull(),
-             "A player in the pending state should have a resolved hold time");
+  MOZ_ASSERT(mTimeline && !mTimeline->GetCurrentTime().IsNull(),
+             "Expected an active timeline");
 
-  Nullable<TimeDuration> readyTime = mTimeline->GetCurrentTime();
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  MOZ_ASSERT(!readyTime.IsNull(), "Missing or inactive timeline");
-
-  mStartTime.SetValue(readyTime.Value() - mHoldTime.Value());
-  mHoldTime.SetNull();
-  mIsPending = false;
-
-  UpdateSourceContent();
-  PostUpdate();
-
-  if (mReady) {
-    mReady->MaybeResolve(this);
-  }
+  ResumeAt(mTimeline->GetCurrentTime().Value());
 }
 
 void
@@ -311,6 +284,29 @@ AnimationPlayer::DoPause()
   
   mHoldTime = GetCurrentTime();
   mStartTime.SetNull();
+}
+
+void
+AnimationPlayer::ResumeAt(const TimeDuration& aResumeTime)
+{
+  
+  
+  
+  MOZ_ASSERT(PlayState() == AnimationPlayState::Pending,
+             "Expected to resume a pending player");
+  MOZ_ASSERT(!mHoldTime.IsNull(),
+             "A player in the pending state should have a resolved hold time");
+
+  mStartTime.SetValue(aResumeTime - mHoldTime.Value());
+  mHoldTime.SetNull();
+  mIsPending = false;
+
+  UpdateSourceContent();
+  PostUpdate();
+
+  if (mReady) {
+    mReady->MaybeResolve(this);
+  }
 }
 
 void
