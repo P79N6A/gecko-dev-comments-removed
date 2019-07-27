@@ -15,6 +15,10 @@ Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+
+
+Cu.forcePermissiveCOWs();
+
 var registrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
 var oldClassID, oldFactory;
 var newClassID = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator).generateUUID();
@@ -222,15 +226,3 @@ MockFilePickerInstance.prototype = {
     }.bind(this), 0);
   }
 };
-
-
-
-MockFilePicker.reset();
-function exposeAll(obj) {
-  var props = {};
-  for (var prop in obj)
-    props[prop] = 'rw';
-  obj.__exposedProps__ = props;
-}
-exposeAll(MockFilePicker);
-exposeAll(MockFilePickerInstance.prototype);

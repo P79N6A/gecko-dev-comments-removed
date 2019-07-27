@@ -14,6 +14,10 @@ const CONTRACT_ID = "@mozilla.org/colorpicker;1";
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+
+
+Cu.forcePermissiveCOWs();
+
 var registrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
 var oldClassID = "", oldFactory = null;
 var newClassID = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator).generateUUID();
@@ -111,15 +115,3 @@ MockColorPickerInstance.prototype = {
     }.bind(this), 0);
   }
 };
-
-
-
-MockColorPicker.reset();
-function exposeAll(obj) {
-  var props = {};
-  for (var prop in obj)
-    props[prop] = 'rw';
-  obj.__exposedProps__ = props;
-}
-exposeAll(MockColorPicker);
-exposeAll(MockColorPickerInstance.prototype);
