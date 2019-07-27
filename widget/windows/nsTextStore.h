@@ -660,9 +660,9 @@ protected:
   
   
   
-  Content mContent;
+  Content mLockedContent;
 
-  Content& CurrentContent();
+  Content& LockedContent();
 
   
   nsTArray<InputScope>         mInputScopes;
