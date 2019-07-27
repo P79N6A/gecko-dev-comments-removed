@@ -40,23 +40,32 @@ let gGrid = {
   get ready() !!this._ready,
 
   
+  get isDocumentLoaded() document.readyState == "complete",
+
+  
 
 
 
   init: function Grid_init() {
     this._node = document.getElementById("newtab-grid");
     this._createSiteFragment();
-    this._renderGrid();
+
     gLinks.populateCache(() => {
-      this._renderSites();
+      this.refresh();
       this._ready = true;
+
+      
+      
+      
+      
+      this._resizeGrid();
+
+      addEventListener("resize", this);
     });
-    addEventListener("load", this);
-    addEventListener("resize", this);
 
     
-    if (document.readyState == "complete") {
-      this.handleEvent({type: "load"});
+    if (!this.isDocumentLoaded) {
+      addEventListener("load", this);
     }
   },
 
@@ -87,27 +96,6 @@ let gGrid = {
   
 
 
-  refresh: function Grid_refresh() {
-    
-    this.cells.forEach(function (cell) {
-      let node = cell.node;
-      let child = node.firstElementChild;
-
-      if (child)
-        node.removeChild(child);
-    }, this);
-
-    
-    if (this._shouldRenderGrid()) {
-      this._renderGrid();
-      this._resizeGrid();
-    }
-    this._renderSites();
-  },
-
-  
-
-
   lock: function Grid_lock() {
     this.node.setAttribute("locked", "true");
   },
@@ -122,21 +110,33 @@ let gGrid = {
   
 
 
-  _renderGrid: function Grid_renderGrid() {
+  refresh() {
     let cell = document.createElementNS(HTML_NAMESPACE, "div");
     cell.classList.add("newtab-cell");
 
     
-    this._node.innerHTML = "";
-
-    
+    let fragment = document.createDocumentFragment();
     for (let i = 0; i < gGridPrefs.gridColumns * gGridPrefs.gridRows; i++) {
-      this._node.appendChild(cell.cloneNode(true));
+      fragment.appendChild(cell.cloneNode(true));
     }
 
     
-    let cellElements = this.node.querySelectorAll(".newtab-cell");
-    this._cells = [new Cell(this, cell) for (cell of cellElements)];
+    let cells = [new Cell(this, cell) for (cell of fragment.childNodes)];
+
+    
+    let links = gLinks.getLinks();
+
+    
+    let numLinks = Math.min(links.length, cells.length);
+    for (let i = 0; i < numLinks; i++) {
+      if (links[i]) {
+        this.createSite(links[i], cells[i]);
+      }
+    }
+
+    this._cells = cells;
+    this._node.innerHTML = "";
+    this._node.appendChild(fragment);
   },
 
   
@@ -177,26 +177,12 @@ let gGrid = {
   
 
 
-  _renderSites: function Grid_renderSites() {
-    let cells = this.cells;
-    
-    let links = gLinks.getLinks();
-    let length = Math.min(links.length, cells.length);
-
-    for (let i = 0; i < length; i++) {
-      if (links[i])
-        this.createSite(links[i], cells[i]);
-    }
-  },
-
-  
-
-
   _resizeGrid: function Grid_resizeGrid() {
     
     
     
-    if (document.readyState != "complete") {
+    
+    if (!this.isDocumentLoaded || !this._ready) {
       return;
     }
 
@@ -215,10 +201,5 @@ let gGrid = {
     this._node.style.maxHeight = this._computeHeight(visibleRows) + "px";
     this._node.style.maxWidth = gGridPrefs.gridColumns * this._cellWidth +
                                 GRID_WIDTH_EXTRA + "px";
-  },
-
-  _shouldRenderGrid : function Grid_shouldRenderGrid() {
-    let cellsLength = this._node.querySelectorAll(".newtab-cell").length;
-    return cellsLength != (gGridPrefs.gridRows * gGridPrefs.gridColumns);
   }
 };
