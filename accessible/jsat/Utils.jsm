@@ -422,6 +422,28 @@ this.Utils = {
 
     return parent.role === Roles.LISTITEM && parent.childCount > 1 &&
       aStaticText.indexInParent === 0;
+  },
+
+  dispatchChromeEvent: function dispatchChromeEvent(aType, aDetails) {
+    let details = {
+      type: aType,
+      details: JSON.stringify(
+        typeof aDetails === 'string' ? { eventType : aDetails } : aDetails)
+    };
+    let window = this.win;
+    if (window.shell) {
+      
+      window.shell.sendChromeEvent(details);
+    } else {
+      
+      
+      window.dispatchEvent(new window.CustomEvent(aType, {
+        bubbles: true,
+        cancelable: true,
+        detail: details
+      }));
+    }
+
   }
 };
 
