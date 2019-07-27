@@ -916,9 +916,22 @@ loop.webapp = (function($, _, OT, mozL10n) {
       });
 
     
-    var locationHash = helper.locationHash();
-    if (locationHash) {
-      conversation.set("loopToken", locationHash.match(/\#call\/(.*)/)[1]);
+
+    var match;
+
+    
+    var locationData = helper.locationData();
+    if (locationData.hash) {
+      match = locationData.hash.match(/\#call\/(.*)/);
+    } else if (locationData.pathname) {
+      
+      match = locationData.pathname.match(/\/c\/([\w\-]+)/);
+    }
+    
+    
+
+    if (match && match[1]) {
+      conversation.set({loopToken: match[1]});
     }
 
     React.renderComponent(WebappRootView({

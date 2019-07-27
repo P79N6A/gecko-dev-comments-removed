@@ -409,7 +409,7 @@ loop.store.ConversationStore = (function() {
 
       
       
-      var locationHash = new loop.shared.utils.Helper().locationHash();
+      var locationHash = new loop.shared.utils.Helper().locationData().hash;
       var callId = locationHash.match(/\#outgoing\/(.*)/)[1];
       navigator.mozLoop.releaseCallData(callId);
     },

@@ -34,26 +34,43 @@ function getConfigFile(req, res) {
 }
 
 app.get('/content/config.js', getConfigFile);
+app.get('/content/c/config.js', getConfigFile);
 
 
-app.use('/', express.static(__dirname + '/../'));
 
 
 
-app.use('/', express.static(__dirname + '/content/'));
-app.use('/shared', express.static(__dirname + '/../content/shared/'));
-app.get('/config.js', getConfigFile);
+
+app.use('/test', express.static(__dirname + '/../test'));
+app.use('/ui', express.static(__dirname + '/../ui'));
 
 
-app.use('/', express.static(__dirname + '/'));
 
-app.use('/standalone/content', express.static(__dirname + '/../content'));
+app.use('/standalone/content', express.static(__dirname + '/content'));
+
+
+
+
+
+app.use('/content', express.static(__dirname + '/content'));
+app.use('/content', express.static(__dirname + '/../content'));
+
+app.use('/content/c', express.static(__dirname + '/content'));
+app.use('/content/c', express.static(__dirname + '/../content'));
+
+
+
+function serveIndex(req, res) {
+  return res.sendfile(__dirname + '/content/index.html');
+}
+
+app.get(/^\/content\/[\w\-]+$/, serveIndex);
+app.get(/^\/content\/c\/[\w\-]+$/, serveIndex);
 
 var server = app.listen(port);
 
 var baseUrl = "http://localhost:" + port + "/";
 
-console.log("Serving repository root over HTTP at " + baseUrl);
 console.log("Static contents are available at " + baseUrl + "content/");
 console.log("Tests are viewable at " + baseUrl + "test/");
 console.log("Use this for development only.");

@@ -91,8 +91,15 @@ loop.shared.utils = (function(mozL10n) {
       return this._iOSRegex.test(platform);
     },
 
-    locationHash: function() {
-      return window.location.hash;
+    
+
+
+
+    locationData: function() {
+      return {
+        hash: window.location.hash,
+        pathname: window.location.pathname
+      };
     }
   };
 
