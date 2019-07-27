@@ -25,6 +25,7 @@
 #include "nsIDocument.h"
 #include "nsIGlobalObject.h"
 #include "nsIScriptSecurityManager.h"
+#include "nsURLParsers.h"
 #include "WorkerPrivate.h"
 
 namespace mozilla {
@@ -62,11 +63,90 @@ struct CacheStorage::Entry final
   nsRefPtr<InternalRequest> mRequest;
 };
 
+namespace {
+
+bool
+IsTrusted(const PrincipalInfo& aPrincipalInfo, bool aTestingPrefEnabled)
+{
+  
+
+  if (aPrincipalInfo.type() == PrincipalInfo::TSystemPrincipalInfo) {
+    return true;
+  }
+
+  
+  
+  
+  
+  
+  
+  if (NS_WARN_IF(aPrincipalInfo.type() != PrincipalInfo::TContentPrincipalInfo ||
+                 aPrincipalInfo.get_ContentPrincipalInfo().appId() ==
+                 nsIScriptSecurityManager::UNKNOWN_APP_ID)) {
+    return false;
+  }
+
+  
+  
+  if (aTestingPrefEnabled) {
+    return true;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+
+  const nsCString& flatURL = aPrincipalInfo.get_ContentPrincipalInfo().spec();
+  const char* url = flatURL.get();
+
+  
+  nsCOMPtr<nsIURLParser> urlParser = new nsStdURLParser();
+
+  uint32_t schemePos;
+  int32_t schemeLen;
+  uint32_t authPos;
+  int32_t authLen;
+  nsresult rv = urlParser->ParseURL(url, flatURL.Length(),
+                                    &schemePos, &schemeLen,
+                                    &authPos, &authLen,
+                                    nullptr, nullptr);      
+  if (NS_WARN_IF(NS_FAILED(rv))) { return false; }
+
+  nsAutoCString scheme(Substring(flatURL, schemePos, schemeLen));
+  if (scheme.LowerCaseEqualsLiteral("https") ||
+      scheme.LowerCaseEqualsLiteral("app") ||
+      scheme.LowerCaseEqualsLiteral("file")) {
+    return true;
+  }
+
+  uint32_t hostPos;
+  int32_t hostLen;
+
+  rv = urlParser->ParseAuthority(url + authPos, authLen,
+                                 nullptr, nullptr,          
+                                 nullptr, nullptr,          
+                                 &hostPos, &hostLen,
+                                 nullptr);                  
+  if (NS_WARN_IF(NS_FAILED(rv))) { return false; }
+
+  nsDependentCSubstring hostname(url + authPos + hostPos, hostLen);
+
+  return hostname.EqualsLiteral("localhost") ||
+         hostname.EqualsLiteral("127.0.0.1") ||
+         hostname.EqualsLiteral("::1");
+}
+
+} 
+
 
 already_AddRefed<CacheStorage>
 CacheStorage::CreateOnMainThread(Namespace aNamespace, nsIGlobalObject* aGlobal,
                                  nsIPrincipal* aPrincipal, bool aPrivateBrowsing,
-                                 ErrorResult& aRv)
+                                 bool aForceTrustedOrigin, ErrorResult& aRv)
 {
   MOZ_ASSERT(aGlobal);
   MOZ_ASSERT(aPrincipal);
@@ -78,36 +158,21 @@ CacheStorage::CreateOnMainThread(Namespace aNamespace, nsIGlobalObject* aGlobal,
     return ref.forget();
   }
 
-  bool nullPrincipal;
-  nsresult rv = aPrincipal->GetIsNullPrincipal(&nullPrincipal);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aRv.Throw(rv);
-    return nullptr;
-  }
-
-  if (nullPrincipal) {
-    NS_WARNING("CacheStorage not supported on null principal.");
-    nsRefPtr<CacheStorage> ref = new CacheStorage(NS_ERROR_DOM_SECURITY_ERR);
-    return ref.forget();
-  }
-
-  
-  
-  
-  
-  bool unknownAppId = false;
-  aPrincipal->GetUnknownAppId(&unknownAppId);
-  if (unknownAppId) {
-    NS_WARNING("CacheStorage not supported on principal with unknown appId.");
-    nsRefPtr<CacheStorage> ref = new CacheStorage(NS_ERROR_DOM_SECURITY_ERR);
-    return ref.forget();
-  }
-
   PrincipalInfo principalInfo;
-  rv = PrincipalToPrincipalInfo(aPrincipal, &principalInfo);
+  nsresult rv = PrincipalToPrincipalInfo(aPrincipal, &principalInfo);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     aRv.Throw(rv);
     return nullptr;
+  }
+
+  bool testingEnabled = aForceTrustedOrigin ||
+    Preferences::GetBool("dom.caches.testing.enabled", false) ||
+    Preferences::GetBool("dom.serviceWorkers.testing.enabled", false);
+
+  if (!IsTrusted(principalInfo, testingEnabled)) {
+    NS_WARNING("CacheStorage not supported on untrusted origins.");
+    nsRefPtr<CacheStorage> ref = new CacheStorage(NS_ERROR_DOM_SECURITY_ERR);
+    return ref.forget();
   }
 
   nsRefPtr<CacheStorage> ref = new CacheStorage(aNamespace, aGlobal,
@@ -138,16 +203,13 @@ CacheStorage::CreateOnWorker(Namespace aNamespace, nsIGlobalObject* aGlobal,
   }
 
   const PrincipalInfo& principalInfo = aWorkerPrivate->GetPrincipalInfo();
-  if (principalInfo.type() == PrincipalInfo::TNullPrincipalInfo) {
-    NS_WARNING("CacheStorage not supported on null principal.");
-    nsRefPtr<CacheStorage> ref = new CacheStorage(NS_ERROR_DOM_SECURITY_ERR);
-    return ref.forget();
-  }
 
-  if (principalInfo.type() == PrincipalInfo::TContentPrincipalInfo &&
-      principalInfo.get_ContentPrincipalInfo().appId() ==
-      nsIScriptSecurityManager::UNKNOWN_APP_ID) {
-    NS_WARNING("CacheStorage not supported on principal with unknown appId.");
+  bool testingEnabled = aWorkerPrivate->DOMCachesTestingEnabled() ||
+                        aWorkerPrivate->ServiceWorkersTestingEnabled() ||
+                        aWorkerPrivate->ServiceWorkersTestingInWindow();
+
+  if (!IsTrusted(principalInfo, testingEnabled)) {
+    NS_WARNING("CacheStorage not supported on untrusted origins.");
     nsRefPtr<CacheStorage> ref = new CacheStorage(NS_ERROR_DOM_SECURITY_ERR);
     return ref.forget();
   }
@@ -368,7 +430,10 @@ CacheStorage::Constructor(const GlobalObject& aGlobal,
     }
   }
 
-  return CreateOnMainThread(ns, global, aPrincipal, privateBrowsing, aRv);
+  
+  
+  return CreateOnMainThread(ns, global, aPrincipal, privateBrowsing,
+                            true , aRv);
 }
 
 nsISupports*

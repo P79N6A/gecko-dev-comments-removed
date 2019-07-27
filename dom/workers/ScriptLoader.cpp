@@ -1250,11 +1250,15 @@ CacheCreator::CreateCacheStorage(nsIPrincipal* aPrincipal)
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
+  
+  
+  
   ErrorResult error;
   mCacheStorage =
     CacheStorage::CreateOnMainThread(cache::CHROME_ONLY_NAMESPACE,
                                      mSandboxGlobalObject,
                                      aPrincipal, mPrivateBrowsing,
+                                     true ,
                                      error);
   if (NS_WARN_IF(error.Failed())) {
     return error.StealNSResult();

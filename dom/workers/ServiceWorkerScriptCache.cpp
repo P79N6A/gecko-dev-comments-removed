@@ -59,9 +59,15 @@ CreateCacheStorage(nsIPrincipal* aPrincipal, ErrorResult& aRv,
   
   
   
+  
+  
+  
+  
   return CacheStorage::CreateOnMainThread(cache::CHROME_ONLY_NAMESPACE,
                                           sandboxGlobalObject, aPrincipal,
-                                          false , aRv);
+                                          false ,
+                                          true ,
+                                          aRv);
 }
 
 class CompareManager;
