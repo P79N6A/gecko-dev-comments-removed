@@ -146,6 +146,13 @@ Sink(MIRGenerator *mir, MIRGraph &graph)
             if (!ins->canClone())
                 continue;
 
+            
+            
+            
+            
+            if (!usesDominator->entryResumePoint() && usesDominator->numPredecessors() != 1)
+                continue;
+
             JitSpewDef(JitSpew_Sink, "  Can Clone & Recover, sink instruction\n", ins);
             JitSpew(JitSpew_Sink, "  into Block %u", usesDominator->id());
 
