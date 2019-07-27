@@ -433,6 +433,20 @@ nsBaseChannel::SetOwner(nsISupports *aOwner)
 }
 
 NS_IMETHODIMP
+nsBaseChannel::SetLoadInfo(nsILoadInfo* aLoadInfo)
+{
+  mLoadInfo = aLoadInfo;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsBaseChannel::GetLoadInfo(nsILoadInfo** aLoadInfo)
+{
+  NS_IF_ADDREF(*aLoadInfo = mLoadInfo);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsBaseChannel::GetNotificationCallbacks(nsIInterfaceRequestor **aCallbacks)
 {
   NS_IF_ADDREF(*aCallbacks = mCallbacks);
