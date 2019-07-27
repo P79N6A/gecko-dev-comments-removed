@@ -244,6 +244,7 @@ SandboxFilterImplContent::Build() {
   Allow(SYSCALL(sched_setparam));
   Allow(SYSCALL(sigaltstack));
   Allow(SYSCALL(pipe));
+  Allow(SYSCALL(set_tid_address));
 
   
   
