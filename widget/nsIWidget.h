@@ -23,6 +23,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/gfx/Point.h"
+#include "nsIObserver.h"
 #include "Units.h"
 
 
@@ -713,6 +714,31 @@ struct IMENotification
   }
 };
 
+struct AutoObserverNotifier {
+  AutoObserverNotifier(nsIObserver* aObserver,
+                       const char* aTopic)
+    : mObserver(aObserver)
+    , mTopic(aTopic)
+  {
+  }
+
+  void SkipNotification()
+  {
+    mObserver = nullptr;
+  }
+
+  ~AutoObserverNotifier()
+  {
+    if (mObserver) {
+      mObserver->Observe(nullptr, mTopic, nullptr);
+    }
+  }
+
+private:
+  nsCOMPtr<nsIObserver> mObserver;
+  const char* mTopic;
+};
+
 } 
 } 
 
@@ -764,7 +790,7 @@ class nsIWidget : public nsISupports {
       , mZIndex(0)
 
     {
-      ClearNativeTouchSequence();
+      ClearNativeTouchSequence(nullptr);
     }
 
         
@@ -1855,13 +1881,18 @@ class nsIWidget : public nsISupports {
 
 
 
+
+
     virtual nsresult SynthesizeNativeKeyEvent(int32_t aNativeKeyboardLayout,
                                               int32_t aNativeKeyCode,
                                               uint32_t aModifierFlags,
                                               const nsAString& aCharacters,
-                                              const nsAString& aUnmodifiedCharacters) = 0;
+                                              const nsAString& aUnmodifiedCharacters,
+                                              nsIObserver* aObserver) = 0;
 
     
+
+
 
 
 
@@ -1877,15 +1908,21 @@ class nsIWidget : public nsISupports {
 
     virtual nsresult SynthesizeNativeMouseEvent(mozilla::LayoutDeviceIntPoint aPoint,
                                                 uint32_t aNativeMessage,
-                                                uint32_t aModifierFlags) = 0;
+                                                uint32_t aModifierFlags,
+                                                nsIObserver* aObserver) = 0;
 
     
 
 
 
-    virtual nsresult SynthesizeNativeMouseMove(mozilla::LayoutDeviceIntPoint aPoint) = 0;
+
+
+    virtual nsresult SynthesizeNativeMouseMove(mozilla::LayoutDeviceIntPoint aPoint,
+                                               nsIObserver* aObserver) = 0;
 
     
+
+
 
 
 
@@ -1912,7 +1949,8 @@ class nsIWidget : public nsISupports {
                                                       double aDeltaY,
                                                       double aDeltaZ,
                                                       uint32_t aModifierFlags,
-                                                      uint32_t aAdditionalFlags) = 0;
+                                                      uint32_t aAdditionalFlags,
+                                                      nsIObserver* aObserver) = 0;
 
     
 
@@ -1945,37 +1983,47 @@ class nsIWidget : public nsISupports {
 
 
 
+
+
     virtual nsresult SynthesizeNativeTouchPoint(uint32_t aPointerId,
                                                 TouchPointerState aPointerState,
                                                 nsIntPoint aPointerScreenPoint,
                                                 double aPointerPressure,
-                                                uint32_t aPointerOrientation) = 0;
+                                                uint32_t aPointerOrientation,
+                                                nsIObserver* aObserver) = 0;
 
     
 
 
-
-
-    virtual nsresult ClearNativeTouchSequence();
-
-    
 
 
 
 
 
     nsresult SynthesizeNativeTouchTap(nsIntPoint aPointerScreenPoint,
-                                      bool aLongTap);
+                                      bool aLongTap,
+                                      nsIObserver* aObserver);
+
+    
+
+
+
+
+
+
+    virtual nsresult ClearNativeTouchSequence(nsIObserver* aObserver);
 
 private:
   class LongTapInfo
   {
   public:
     LongTapInfo(int32_t aPointerId, nsIntPoint& aPoint,
-                mozilla::TimeDuration aDuration) :
+                mozilla::TimeDuration aDuration,
+                nsIObserver* aObserver) :
       mPointerId(aPointerId),
       mPosition(aPoint),
       mDuration(aDuration),
+      mObserver(aObserver),
       mStamp(mozilla::TimeStamp::Now())
     {
     }
@@ -1983,6 +2031,7 @@ private:
     int32_t mPointerId;
     nsIntPoint mPosition;
     mozilla::TimeDuration mDuration;
+    nsCOMPtr<nsIObserver> mObserver;
     mozilla::TimeStamp mStamp;
   };
 
