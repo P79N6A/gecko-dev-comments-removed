@@ -9,6 +9,8 @@
 #include "mozilla/DebugOnly.h"
 
 #include "jit/IonLinker.h"
+
+#include "jit/JitcodeMap.h"
 #include "jit/PerfSpewer.h"
 
 #include "jit/IonFrames-inl.h"
@@ -658,6 +660,11 @@ jit::RecompileOnStackBaselineScriptsForDebugMode(JSContext *cx, JSCompartment *c
     if (!entries.empty())
         MinorGC(cx->runtime(), JS::gcreason::EVICT_NURSERY);
 #endif
+
+    
+    
+    
+    AutoSuppressProfilerSampling suppressProfilerSampling(cx);
 
     
     

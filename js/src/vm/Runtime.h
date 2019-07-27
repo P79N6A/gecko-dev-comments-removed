@@ -1005,6 +1005,21 @@ struct JSRuntime : public JS::shadow::Runtime,
     bool                profilingScripts;
 
     
+  private:
+    bool                suppressProfilerSampling;
+
+  public:
+    bool isProfilerSamplingEnabled() const {
+        return !suppressProfilerSampling;
+    }
+    void disableProfilerSampling() {
+        suppressProfilerSampling = true;
+    }
+    void enableProfilerSampling() {
+        suppressProfilerSampling = false;
+    }
+
+    
     bool                hadOutOfMemory;
 
     
