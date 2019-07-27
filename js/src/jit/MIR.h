@@ -2711,7 +2711,7 @@ class MUnbox : public MUnaryInstruction, public BoxInputsPolicy
         
         
         BailoutKind kind;
-        switch(type){
+        switch (type) {
           case MIRType_Boolean:
             kind = Bailout_NonBooleanInput;
             break;
