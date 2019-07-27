@@ -31,6 +31,7 @@ class JSFunction : public js::NativeObject
     enum FunctionKind {
         NormalFunction = 0,
         Arrow,                      
+        Method,                     
         AsmJS                       
     };
 
@@ -65,6 +66,7 @@ class JSFunction : public js::NativeObject
         NATIVE_FUN = 0,
         ASMJS_CTOR = ASMJS_KIND | NATIVE_CTOR,
         ASMJS_LAMBDA_CTOR = ASMJS_KIND | NATIVE_CTOR | LAMBDA,
+        INTERPRETED_METHOD = INTERPRETED | (Method << FUNCTION_KIND_SHIFT),
         INTERPRETED_LAMBDA = INTERPRETED | LAMBDA,
         INTERPRETED_LAMBDA_ARROW = INTERPRETED | LAMBDA | ARROW_KIND,
         STABLE_ACROSS_CLONES = NATIVE_CTOR | IS_FUN_PROTO | EXPR_BODY | HAS_GUESSED_ATOM |
@@ -149,6 +151,7 @@ class JSFunction : public js::NativeObject
 
     
     bool isArrow()                  const { return kind() == Arrow; }
+    bool isMethod()                 const { return kind() == Method; }
 
     bool hasResolvedLength()        const { return flags() & RESOLVED_LENGTH; }
     bool hasResolvedName()          const { return flags() & RESOLVED_NAME; }
