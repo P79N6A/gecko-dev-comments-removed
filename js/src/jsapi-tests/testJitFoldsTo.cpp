@@ -201,3 +201,53 @@ BEGIN_TEST(testJitNotNotTest)
     return true;
 }
 END_TEST(testJitNotNotTest)
+
+BEGIN_TEST(testJitFoldsTo_UnsignedDiv)
+{
+    MinimalFunc func;
+    MBasicBlock *block = func.createEntryBlock();
+
+    
+    MConstant *c0 = MConstant::New(func.alloc, Int32Value(1));
+    block->add(c0);
+    MConstant *c1 = MConstant::New(func.alloc, Int32Value(0xffffffff));
+    block->add(c1);
+    MDiv *div = MDiv::NewAsmJS(func.alloc, c0, c1, MIRType_Int32, true);
+    block->add(div);
+    MReturn *ret = MReturn::New(func.alloc, div);
+    block->end(ret);
+
+    if (!func.runGVN())
+        return false;
+
+    
+    MConstant *op = ret->getOperand(0)->toConstant();
+    CHECK(mozilla::NumbersAreIdentical(op->value().toNumber(), 0.0));
+    return true;
+}
+END_TEST(testJitFoldsTo_UnsignedDiv)
+
+BEGIN_TEST(testJitFoldsTo_UnsignedMod)
+{
+    MinimalFunc func;
+    MBasicBlock *block = func.createEntryBlock();
+
+    
+    MConstant *c0 = MConstant::New(func.alloc, Int32Value(1));
+    block->add(c0);
+    MConstant *c1 = MConstant::New(func.alloc, Int32Value(0xffffffff));
+    block->add(c1);
+    MMod *mod = MMod::NewAsmJS(func.alloc, c0, c1, MIRType_Int32, true);
+    block->add(mod);
+    MReturn *ret = MReturn::New(func.alloc, mod);
+    block->end(ret);
+
+    if (!func.runGVN())
+        return false;
+
+    
+    MConstant *op = ret->getOperand(0)->toConstant();
+    CHECK(mozilla::NumbersAreIdentical(op->value().toNumber(), 1.0));
+    return true;
+}
+END_TEST(testJitFoldsTo_UnsignedMod)
