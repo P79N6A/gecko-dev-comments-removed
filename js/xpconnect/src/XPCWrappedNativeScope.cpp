@@ -487,8 +487,9 @@ XPCWrappedNativeScope::SuspectAllWrappers(XPCJSRuntime* rt,
 
 
 void
-XPCWrappedNativeScope::StartFinalizationPhaseOfGC(JSFreeOp *fop, XPCJSRuntime* rt)
+XPCWrappedNativeScope::UpdateWeakPointersAfterGC(XPCJSRuntime* rt)
 {
+    
     
     
     
@@ -504,8 +505,11 @@ XPCWrappedNativeScope::StartFinalizationPhaseOfGC(JSFreeOp *fop, XPCJSRuntime* r
 
         XPCWrappedNativeScope* next = cur->mNext;
 
+        
+        
+        
         if (cur->mGlobalJSObject && cur->mGlobalJSObject.isAboutToBeFinalized()) {
-            cur->mGlobalJSObject.finalize(fop->runtime());
+            cur->mGlobalJSObject.finalize(rt->Runtime());
             
             if (prev)
                 prev->mNext = next;
@@ -515,17 +519,11 @@ XPCWrappedNativeScope::StartFinalizationPhaseOfGC(JSFreeOp *fop, XPCJSRuntime* r
             gDyingScopes = cur;
             cur = nullptr;
         }
+
         if (cur)
             prev = cur;
         cur = next;
     }
-}
-
-
-void
-XPCWrappedNativeScope::FinishedFinalizationPhaseOfGC()
-{
-    KillDyingScopes();
 }
 
 static PLDHashOperator

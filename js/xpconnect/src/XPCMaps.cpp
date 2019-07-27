@@ -85,18 +85,44 @@ HashNativeKey(PLDHashTable *table, const void *key)
 
 
 void
-JSObject2WrappedJSMap::FindDyingJSObjects(nsTArray<nsXPCWrappedJS*>* dying)
+JSObject2WrappedJSMap::UpdateWeakPointersAfterGC(XPCJSRuntime *runtime)
 {
-    for (Map::Range r = mTable.all(); !r.empty(); r.popFront()) {
-        nsXPCWrappedJS* wrapper = r.front().value();
+    
+    
+    
+
+    nsTArray<nsXPCWrappedJS*> &dying = runtime->WrappedJSToReleaseArray();
+    MOZ_ASSERT(dying.IsEmpty());
+
+    for (Map::Enum e(mTable); !e.empty(); e.popFront()) {
+        nsXPCWrappedJS* wrapper = e.front().value();
         MOZ_ASSERT(wrapper, "found a null JS wrapper!");
 
         
         while (wrapper) {
+#ifdef DEBUG
+            if (!wrapper->IsSubjectToFinalization()) {
+                JSObject *obj = wrapper->GetJSObjectPreserveColor();
+                JSObject *prior = obj;
+                MOZ_ASSERT(!JS_IsAboutToBeFinalizedUnbarriered(&obj));
+                
+                
+                
+                MOZ_ASSERT(obj == prior);
+            }
+#endif
             if (wrapper->IsSubjectToFinalization() && wrapper->IsObjectAboutToBeFinalized())
-                dying->AppendElement(wrapper);
+                dying.AppendElement(wrapper);
             wrapper = wrapper->GetNextWrapper();
         }
+
+        
+        JSObject *obj = e.front().key();
+        JSObject *prior = obj;
+        if (JS_IsAboutToBeFinalizedUnbarriered(&obj))
+            e.removeFront();
+        else if (obj != prior)
+            e.rekeyFront(obj);
     }
 }
 

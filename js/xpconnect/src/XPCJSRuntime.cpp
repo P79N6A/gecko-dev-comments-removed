@@ -789,19 +789,16 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop,
             MOZ_ASSERT(!self->mGCIsRunning, "bad state");
             self->mGCIsRunning = true;
 
-            nsTArray<nsXPCWrappedJS*>* dyingWrappedJSArray =
-                &self->mWrappedJSToReleaseArray;
+            
+            
+            
+            
+            
+            
+            self->mWrappedJSMap->UpdateWeakPointersAfterGC(self);
 
             
-            
-            
-            
-            
-            
-            self->mWrappedJSMap->FindDyingJSObjects(dyingWrappedJSArray);
-
-            
-            XPCWrappedNativeScope::StartFinalizationPhaseOfGC(fop, self);
+            XPCWrappedNativeScope::UpdateWeakPointersAfterGC(self);
 
             self->mDoingFinalization = true;
             break;
@@ -816,7 +813,7 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop,
             DoDeferredRelease(self->mWrappedJSToReleaseArray);
 
             
-            XPCWrappedNativeScope::FinishedFinalizationPhaseOfGC();
+            XPCWrappedNativeScope::KillDyingScopes();
 
             MOZ_ASSERT(self->mGCIsRunning, "bad state");
             self->mGCIsRunning = false;
@@ -969,6 +966,19 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop,
             break;
         }
     }
+}
+
+ void
+XPCJSRuntime::MovingGCCallback(JSRuntime *rt, void *data)
+{
+    
+
+    XPCJSRuntime *self = static_cast<XPCJSRuntime *>(data);
+
+    self->mWrappedJSMap->UpdateWeakPointersAfterGC(self);
+    MOZ_ASSERT(self->WrappedJSToReleaseArray().IsEmpty());
+
+    XPCWrappedNativeScope::UpdateWeakPointersAfterGC(self);
 }
 
 static void WatchdogMain(void *arg);
@@ -1537,6 +1547,7 @@ XPCJSRuntime::~XPCJSRuntime()
     
     js::SetActivityCallback(Runtime(), nullptr, nullptr);
     JS_RemoveFinalizeCallback(Runtime(), FinalizeCallback);
+    JS_RemoveMovingGCCallback(Runtime(), MovingGCCallback);
 
     
     
@@ -3235,6 +3246,7 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
     JS_SetCompartmentNameCallback(runtime, CompartmentNameCallback);
     mPrevGCSliceCallback = JS::SetGCSliceCallback(runtime, GCSliceCallback);
     JS_AddFinalizeCallback(runtime, FinalizeCallback, nullptr);
+    JS_AddMovingGCCallback(runtime, MovingGCCallback, this);
     JS_SetWrapObjectCallbacks(runtime, &WrapObjectCallbacks);
     js::SetPreserveWrapperCallback(runtime, PreserveWrapper);
 #ifdef MOZ_CRASHREPORTER

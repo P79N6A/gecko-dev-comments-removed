@@ -1335,6 +1335,15 @@ XPC_WN_Shared_Proto_Finalize(js::FreeOp *fop, JSObject *obj)
 }
 
 static void
+XPC_WN_Shared_Proto_ObjectMoved(JSObject *obj, const JSObject *old)
+{
+    
+    XPCWrappedNativeProto* p = (XPCWrappedNativeProto*) xpc_GetJSPrivate(obj);
+    if (p)
+        p->JSProtoObjectMoved(obj, old);
+}
+
+static void
 XPC_WN_Shared_Proto_Trace(JSTracer *trc, JSObject *obj)
 {
     
@@ -1373,6 +1382,16 @@ XPC_WN_ModsAllowed_Proto_Resolve(JSContext *cx, HandleObject obj, HandleId id)
                                  enumFlag, nullptr);
 }
 
+#define XPC_WN_SHARED_PROTO_CLASS_EXT                                  \
+    {                                                                  \
+        nullptr,    /* outerObject */                                  \
+        nullptr,    /* innerObject */                                  \
+        nullptr,    /* iteratorObject */                               \
+        false,      /* isWrappedNative */                              \
+        nullptr,    /* weakmapKeyDelegateOp */                         \
+        XPC_WN_Shared_Proto_ObjectMoved                                \
+    }
+
 const js::Class XPC_WN_ModsAllowed_WithCall_Proto_JSClass = {
     "XPC_WN_ModsAllowed_WithCall_Proto_JSClass", 
     WRAPPER_SLOTS, 
@@ -1394,7 +1413,7 @@ const js::Class XPC_WN_ModsAllowed_WithCall_Proto_JSClass = {
     XPC_WN_Shared_Proto_Trace,      
 
     JS_NULL_CLASS_SPEC,
-    JS_NULL_CLASS_EXT,
+    XPC_WN_SHARED_PROTO_CLASS_EXT,
     XPC_WN_WithCall_ObjectOps
 };
 
@@ -1419,7 +1438,7 @@ const js::Class XPC_WN_ModsAllowed_NoCall_Proto_JSClass = {
     XPC_WN_Shared_Proto_Trace,      
 
     JS_NULL_CLASS_SPEC,
-    JS_NULL_CLASS_EXT,
+    XPC_WN_SHARED_PROTO_CLASS_EXT,
     XPC_WN_NoCall_ObjectOps
 };
 
@@ -1506,7 +1525,7 @@ const js::Class XPC_WN_NoMods_WithCall_Proto_JSClass = {
     XPC_WN_Shared_Proto_Trace,      
 
     JS_NULL_CLASS_SPEC,
-    JS_NULL_CLASS_EXT,
+    XPC_WN_SHARED_PROTO_CLASS_EXT,
     XPC_WN_WithCall_ObjectOps
 };
 
@@ -1531,7 +1550,7 @@ const js::Class XPC_WN_NoMods_NoCall_Proto_JSClass = {
     XPC_WN_Shared_Proto_Trace,      
 
     JS_NULL_CLASS_SPEC,
-    JS_NULL_CLASS_EXT,
+    XPC_WN_SHARED_PROTO_CLASS_EXT,
     XPC_WN_NoCall_ObjectOps
 };
 
@@ -1590,6 +1609,16 @@ XPC_WN_TearOff_Finalize(js::FreeOp *fop, JSObject *obj)
     p->JSObjectFinalized();
 }
 
+static void
+XPC_WN_TearOff_ObjectMoved(JSObject *obj, const JSObject *old)
+{
+    XPCWrappedNativeTearOff* p = (XPCWrappedNativeTearOff*)
+        xpc_GetJSPrivate(obj);
+    if (!p)
+        return;
+    p->JSObjectMoved(obj, old);
+}
+
 const js::Class XPC_WN_Tearoff_JSClass = {
     "WrappedNative_TearOff",                   
     WRAPPER_SLOTS,                             
@@ -1601,5 +1630,22 @@ const js::Class XPC_WN_Tearoff_JSClass = {
     XPC_WN_TearOff_Enumerate,                  
     XPC_WN_TearOff_Resolve,                    
     XPC_WN_Shared_Convert,                     
-    XPC_WN_TearOff_Finalize                    
+    XPC_WN_TearOff_Finalize,                   
+
+    
+    nullptr,                                   
+    nullptr,                                   
+    nullptr,                                   
+    nullptr,                                   
+    JS_NULL_CLASS_SPEC,
+
+    
+    {
+        nullptr,                               
+        nullptr,                               
+        nullptr,                               
+        false,                                 
+        nullptr,                               
+        XPC_WN_TearOff_ObjectMoved
+    },
 };
