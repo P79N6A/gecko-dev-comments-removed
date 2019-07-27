@@ -6,6 +6,7 @@ package org.mozilla.gecko.fxa.activities;
 
 import java.util.Locale;
 
+import org.mozilla.gecko.Locales;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.background.fxa.FxAccountAgeLockoutHelper;
@@ -13,7 +14,6 @@ import org.mozilla.gecko.background.fxa.FxAccountUtils;
 import org.mozilla.gecko.fxa.FirefoxAccounts;
 import org.mozilla.gecko.fxa.FxAccountConstants;
 import org.mozilla.gecko.sync.setup.activities.ActivityUtils;
-import org.mozilla.gecko.Locales;
 
 import android.accounts.AccountAuthenticatorActivity;
 import android.content.Intent;
@@ -21,6 +21,10 @@ import android.os.Bundle;
 import android.os.SystemClock;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.AnimationSet;
+import android.view.animation.TranslateAnimation;
 import android.widget.TextView;
 
 
@@ -58,6 +62,33 @@ public class FxAccountGetStartedActivity extends AccountAuthenticatorActivity {
         startFlow(extras);
       }
     });
+
+    animateIconIn();
+  }
+
+  
+
+
+
+
+
+
+
+
+
+  protected void animateIconIn() {
+    final AlphaAnimation a = new AlphaAnimation(0.0f, 1.0f);
+    final TranslateAnimation t = new TranslateAnimation(
+        Animation.RELATIVE_TO_SELF, 0.0f, Animation.RELATIVE_TO_SELF, 0.0f,
+        Animation.RELATIVE_TO_SELF, 2.0f, Animation.RELATIVE_TO_SELF, 0.0f);
+
+    final AnimationSet animationSet = new AnimationSet(true);
+    animationSet.setDuration(150 * 7); 
+    animationSet.addAnimation(a);
+    animationSet.addAnimation(t);
+
+    final View iconView = findViewById(R.id.icon);
+    iconView.startAnimation(animationSet);
   }
 
   protected void startFlow(Bundle extras) {
