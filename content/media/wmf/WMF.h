@@ -35,6 +35,16 @@ which makes Windows Media Foundation unavailable.
 #include <codecapi.h>
 
 
+
+
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
+
+
 #ifndef CLSID_CMSAACDecMFT
 extern "C" const CLSID CLSID_CMSAACDecMFT;
 #define WMF_MUST_DEFINE_AAC_MFT_CLSID
