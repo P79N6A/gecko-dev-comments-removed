@@ -2483,7 +2483,8 @@ var NativeWindow = {
       }
 
       
-      this._target = BrowserEventHandler._highlightElement;
+      
+      this._target = BrowserEventHandler._highlightElement || event.target;
       if (!this._target) {
         return;
       }
