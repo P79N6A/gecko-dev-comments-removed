@@ -8,7 +8,7 @@ var props = [
   "ignoreCase",
   "multiline",
   "sticky",
-  "unicode",
+  
 ];
 
 testThrows(RegExp.prototype);
