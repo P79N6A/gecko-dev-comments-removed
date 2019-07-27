@@ -80,12 +80,15 @@ SetElemICInspector::sawTypedArrayWrite() const
 }
 
 bool
-BaselineInspector::maybeShapesForPropertyOp(jsbytecode *pc, ShapeVector &shapes)
+BaselineInspector::maybeInfoForPropertyOp(jsbytecode *pc,
+                                          ShapeVector &nativeShapes,
+                                          TypeObjectVector &unboxedTypes)
 {
     
     
     
-    MOZ_ASSERT(shapes.empty());
+    MOZ_ASSERT(nativeShapes.empty());
+    MOZ_ASSERT(unboxedTypes.empty());
 
     if (!hasBaselineScript())
         return true;
@@ -95,43 +98,66 @@ BaselineInspector::maybeShapesForPropertyOp(jsbytecode *pc, ShapeVector &shapes)
 
     ICStub *stub = entry.firstStub();
     while (stub->next()) {
-        Shape *shape;
+        Shape *shape = nullptr;
+        types::TypeObject *type = nullptr;
         if (stub->isGetProp_Native()) {
             shape = stub->toGetProp_Native()->shape();
         } else if (stub->isSetProp_Native()) {
             shape = stub->toSetProp_Native()->shape();
+        } else if (stub->isGetProp_Unboxed()) {
+            type = stub->toGetProp_Unboxed()->type();
+        } else if (stub->isSetProp_Unboxed()) {
+            type = stub->toSetProp_Unboxed()->type();
         } else {
-            shapes.clear();
+            nativeShapes.clear();
+            unboxedTypes.clear();
             return true;
         }
 
         
         
-        bool found = false;
-        for (size_t i = 0; i < shapes.length(); i++) {
-            if (shapes[i] == shape) {
-                found = true;
-                break;
+        if (shape) {
+            bool found = false;
+            for (size_t i = 0; i < nativeShapes.length(); i++) {
+                if (nativeShapes[i] == shape) {
+                    found = true;
+                    break;
+                }
             }
+            if (!found && !nativeShapes.append(shape))
+                return false;
+        } else {
+            bool found = false;
+            for (size_t i = 0; i < unboxedTypes.length(); i++) {
+                if (unboxedTypes[i] == type) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found && !unboxedTypes.append(type))
+                return false;
         }
-
-        if (!found && !shapes.append(shape))
-            return false;
 
         stub = stub->next();
     }
 
     if (stub->isGetProp_Fallback()) {
-        if (stub->toGetProp_Fallback()->hadUnoptimizableAccess())
-            shapes.clear();
+        if (stub->toGetProp_Fallback()->hadUnoptimizableAccess()) {
+            nativeShapes.clear();
+            unboxedTypes.clear();
+        }
     } else {
-        if (stub->toSetProp_Fallback()->hadUnoptimizableAccess())
-            shapes.clear();
+        if (stub->toSetProp_Fallback()->hadUnoptimizableAccess()) {
+            nativeShapes.clear();
+            unboxedTypes.clear();
+        }
     }
 
     
-    if (shapes.length() > 5)
-        shapes.clear();
+    if (nativeShapes.length() + unboxedTypes.length() > 5) {
+        nativeShapes.clear();
+        unboxedTypes.clear();
+    }
 
     return true;
 }
@@ -413,7 +439,7 @@ BaselineInspector::hasSeenDoubleResult(jsbytecode *pc)
     return false;
 }
 
-NativeObject *
+JSObject *
 BaselineInspector::getTemplateObject(jsbytecode *pc)
 {
     if (!hasBaselineScript())
@@ -429,7 +455,7 @@ BaselineInspector::getTemplateObject(jsbytecode *pc)
           case ICStub::Rest_Fallback:
             return stub->toRest_Fallback()->templateObject();
           case ICStub::Call_Scripted:
-            if (NativeObject *obj = stub->toCall_Scripted()->templateObject())
+            if (JSObject *obj = stub->toCall_Scripted()->templateObject())
                 return obj;
             break;
           default:

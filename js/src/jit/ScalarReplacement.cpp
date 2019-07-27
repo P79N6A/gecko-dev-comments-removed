@@ -113,6 +113,10 @@ IsObjectEscaped(MInstruction *ins, JSObject *objDefault = nullptr)
         obj = objDefault;
 
     
+    if (obj->is<UnboxedPlainObject>())
+        return true;
+
+    
     
     
     for (MUseIterator i(ins->usesBegin()); i != ins->usesEnd(); i++) {

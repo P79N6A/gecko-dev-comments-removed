@@ -769,7 +769,6 @@ GenerateReadSlot(JSContext *cx, IonScript *ion, MacroAssembler &masm,
                  Shape *shape, Register object, TypedOrValueRegister output,
                  Label *failures = nullptr)
 {
-    MOZ_ASSERT(obj->isNative());
     
     
     
@@ -782,10 +781,17 @@ GenerateReadSlot(JSContext *cx, IonScript *ion, MacroAssembler &masm,
         failures = &failures_;
 
     
-    attacher.branchNextStubOrLabel(masm, Assembler::NotEqual,
-                                   Address(object, JSObject::offsetOfShape()),
-                                   ImmGCPtr(obj->lastProperty()),
-                                   failures);
+    if (obj->isNative()) {
+        attacher.branchNextStubOrLabel(masm, Assembler::NotEqual,
+                                       Address(object, JSObject::offsetOfShape()),
+                                       ImmGCPtr(obj->lastProperty()),
+                                       failures);
+    } else {
+        attacher.branchNextStubOrLabel(masm, Assembler::NotEqual,
+                                       Address(object, JSObject::offsetOfType()),
+                                       ImmGCPtr(obj->type()),
+                                       failures);
+    }
 
     
     
@@ -874,6 +880,24 @@ GenerateReadSlot(JSContext *cx, IonScript *ion, MacroAssembler &masm,
 
     attacher.jumpNextStub(masm);
 
+}
+
+static void
+GenerateReadUnboxed(JSContext *cx, IonScript *ion, MacroAssembler &masm,
+                    IonCache::StubAttacher &attacher, JSObject *obj,
+                    const UnboxedLayout::Property *property,
+                    Register object, TypedOrValueRegister output)
+{
+    
+    attacher.branchNextStub(masm, Assembler::NotEqual,
+                            Address(object, JSObject::offsetOfType()),
+                            ImmGCPtr(obj->type()));
+
+    Address address(object, UnboxedPlainObject::offsetOfData() + property->offset);
+
+    masm.loadUnboxedProperty(address, property->type, output);
+
+    attacher.jumpRejoin(masm);
 }
 
 static bool
@@ -1170,7 +1194,7 @@ CanAttachNativeGetProp(typename GetPropCache::Context cx, const GetPropCache &ca
                        MutableHandleNativeObject holder, MutableHandleShape shape,
                        bool skipArrayLen = false)
 {
-    if (!obj || !obj->isNative())
+    if (!obj)
         return GetPropertyIC::CanAttachNone;
 
     
@@ -1303,6 +1327,30 @@ GetPropertyIC::tryAttachNative(JSContext *cx, HandleScript outerScript, IonScrip
         MOZ_CRASH("Bad NativeGetPropCacheability");
     }
     return linkAndAttachStub(cx, masm, attacher, ion, attachKind);
+}
+
+bool
+GetPropertyIC::tryAttachUnboxed(JSContext *cx, HandleScript outerScript, IonScript *ion,
+                                HandleObject obj, HandlePropertyName name,
+                                void *returnAddr, bool *emitted)
+{
+    MOZ_ASSERT(canAttachStub());
+    MOZ_ASSERT(!*emitted);
+    MOZ_ASSERT(outerScript->ionScript() == ion);
+
+    if (!obj->is<UnboxedPlainObject>())
+        return true;
+    const UnboxedLayout::Property *property = obj->as<UnboxedPlainObject>().layout().lookup(name);
+    if (!property)
+        return true;
+
+    *emitted = true;
+
+    MacroAssembler masm(cx, ion, outerScript, profilerLeavePc_);
+
+    RepatchStubAppender attacher(*this);
+    GenerateReadUnboxed(cx, ion, masm, attacher, obj, property, object(), output());
+    return linkAndAttachStub(cx, masm, attacher, ion, "read unboxed");
 }
 
 bool
@@ -1729,8 +1777,14 @@ GetPropertyIC::tryAttachStub(JSContext *cx, HandleScript outerScript, IonScript 
     if (!*emitted && !tryAttachNative(cx, outerScript, ion, obj, name, returnAddr, emitted))
         return false;
 
+    if (!*emitted && !tryAttachUnboxed(cx, outerScript, ion, obj, name, returnAddr, emitted))
+        return false;
+
     if (!*emitted && !tryAttachTypedArrayLength(cx, outerScript, ion, obj, name, emitted))
         return false;
+
+    if (!*emitted)
+        JitSpew(JitSpew_IonIC, "Failed to attach GETPROP cache");
 
     return true;
 }
@@ -1836,6 +1890,26 @@ IonCache::destroy()
 {
 }
 
+
+
+static void
+CheckTypeSetForWrite(MacroAssembler &masm, JSObject *obj, jsid id,
+                     Register object, ConstantOrRegister value, Label *failure)
+{
+    TypedOrValueRegister valReg = value.reg();
+    types::TypeObject *type = obj->type();
+    if (type->unknownProperties())
+        return;
+    types::HeapTypeSet *propTypes = type->maybeGetProperty(id);
+    MOZ_ASSERT(propTypes);
+
+    
+    types::TypeSet::readBarrier(propTypes);
+
+    Register scratch = object;
+    masm.guardTypeSet(valReg, propTypes, BarrierKind::TypeSet, scratch, failure);
+}
+
 static void
 GenerateSetSlot(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &attacher,
                 NativeObject *obj, Shape *shape, Register object, ConstantOrRegister value,
@@ -1861,18 +1935,8 @@ GenerateSetSlot(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &att
                        ImmGCPtr(type), &failures);
 
         if (checkTypeset) {
-            TypedOrValueRegister valReg = value.reg();
-            types::HeapTypeSet *propTypes = type->maybeGetProperty(shape->propid());
-            MOZ_ASSERT(propTypes);
-            MOZ_ASSERT(!propTypes->unknown());
-
-            
-            types::TypeSet::readBarrier(propTypes);
-
-            Register scratchReg = object;
-            masm.push(scratchReg);
-
-            masm.guardTypeSet(valReg, propTypes, BarrierKind::TypeSet, scratchReg, &barrierFailure);
+            masm.push(object);
+            CheckTypeSetForWrite(masm, obj, shape->propid(), object, value, &barrierFailure);
             masm.pop(object);
         }
     }
@@ -2420,17 +2484,7 @@ GenerateAddSlot(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &att
     
     
     if (checkTypeset) {
-        TypedOrValueRegister valReg = value.reg();
-        types::TypeObject *type = obj->type();
-        types::HeapTypeSet *propTypes = type->maybeGetProperty(obj->lastProperty()->propid());
-        MOZ_ASSERT(propTypes);
-        MOZ_ASSERT(!propTypes->unknown());
-
-        
-        types::TypeSet::readBarrier(propTypes);
-
-        Register scratchReg = object;
-        masm.guardTypeSet(valReg, propTypes, BarrierKind::TypeSet, scratchReg, &failuresPopObject);
+        CheckTypeSetForWrite(masm, obj, obj->lastProperty()->propid(), object, value, &failuresPopObject);
         masm.loadPtr(Address(StackPointer, 0), object);
     }
 
@@ -2684,6 +2738,85 @@ CanAttachNativeSetProp(JSContext *cx, HandleObject obj, HandleId id, ConstantOrR
     return SetPropertyIC::CanAttachNone;
 }
 
+static void
+GenerateSetUnboxed(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &attacher,
+                   JSObject *obj, jsid id, uint32_t unboxedOffset, JSValueType unboxedType,
+                   Register object, ConstantOrRegister value, bool checkTypeset)
+{
+    Label failure, failurePopObject;
+
+    
+    masm.branchPtr(Assembler::NotEqual,
+                   Address(object, JSObject::offsetOfType()),
+                   ImmGCPtr(obj->type()), &failure);
+
+    if (checkTypeset) {
+        masm.push(object);
+        CheckTypeSetForWrite(masm, obj, id, object, value, &failurePopObject);
+        masm.pop(object);
+    }
+
+    Address address(object, UnboxedPlainObject::offsetOfData() + unboxedOffset);
+
+    if (cx->zone()->needsIncrementalBarrier()) {
+        if (unboxedType == JSVAL_TYPE_OBJECT)
+            masm.callPreBarrier(address, MIRType_Object);
+        else if (unboxedType == JSVAL_TYPE_STRING)
+            masm.callPreBarrier(address, MIRType_String);
+        else
+            MOZ_ASSERT(!UnboxedTypeNeedsPreBarrier(unboxedType));
+    }
+
+    
+    
+    
+    
+    Label *storeFailure = obj->type()->unknownProperties() ? &failure : nullptr;
+
+    masm.storeUnboxedProperty(address, unboxedType, value, storeFailure);
+
+    attacher.jumpRejoin(masm);
+
+    masm.bind(&failurePopObject);
+    masm.pop(object);
+    masm.bind(&failure);
+
+    attacher.jumpNextStub(masm);
+}
+
+bool
+SetPropertyIC::attachSetUnboxed(JSContext *cx, HandleScript outerScript, IonScript *ion,
+                                HandleObject obj, HandleId id,
+                                uint32_t unboxedOffset, JSValueType unboxedType,
+                                bool checkTypeset)
+{
+    MacroAssembler masm(cx, ion, outerScript, profilerLeavePc_);
+    RepatchStubAppender attacher(*this);
+    GenerateSetUnboxed(cx, masm, attacher, obj, id, unboxedOffset, unboxedType,
+                       object(), value(), needsTypeBarrier());
+    return linkAndAttachStub(cx, masm, attacher, ion, "set_unboxed");
+}
+
+static bool
+CanAttachSetUnboxed(JSContext *cx, HandleObject obj, HandleId id, ConstantOrRegister val,
+                    bool needsTypeBarrier, bool *checkTypeset,
+                    uint32_t *unboxedOffset, JSValueType *unboxedType)
+{
+    if (!obj->is<UnboxedPlainObject>())
+        return false;
+
+    const UnboxedLayout::Property *property = obj->as<UnboxedPlainObject>().layout().lookup(id);
+    if (property) {
+        if (needsTypeBarrier && !CanInlineSetPropTypeCheck(obj, id, val, checkTypeset))
+            return false;
+        *unboxedOffset = property->offset;
+        *unboxedType = property->type;
+        return true;
+    }
+
+    return false;
+}
+
 bool
 SetPropertyIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
                       HandleValue value)
@@ -2748,6 +2881,21 @@ SetPropertyIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
                 return false;
             addedSetterStub = true;
         }
+
+        checkTypeset = false;
+        uint32_t unboxedOffset;
+        JSValueType unboxedType;
+        if (!addedSetterStub && CanAttachSetUnboxed(cx, obj, id, cache.value(),
+                                                    cache.needsTypeBarrier(),
+                                                    &checkTypeset, &unboxedOffset, &unboxedType))
+        {
+            if (!cache.attachSetUnboxed(cx, script, ion, obj, id, unboxedOffset, unboxedType,
+                                        checkTypeset))
+            {
+                return false;
+            }
+            addedSetterStub = true;
+        }
     }
 
     uint32_t oldSlots = obj->is<NativeObject>() ? obj->as<NativeObject>().numDynamicSlots() : 0;
@@ -2767,7 +2915,11 @@ SetPropertyIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
         RootedNativeObject nobj(cx, &obj->as<NativeObject>());
         if (!cache.attachAddSlot(cx, script, ion, nobj, oldShape, oldType, checkTypeset))
             return false;
+        addedSetterStub = true;
     }
+
+    if (!addedSetterStub)
+        JitSpew(JitSpew_IonIC, "Failed to attach SETPROP cache");
 
     return true;
 }
