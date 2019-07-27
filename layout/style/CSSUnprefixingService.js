@@ -157,52 +157,26 @@ CSSUnprefixingService.prototype = {
                                             aPrefixedFuncBody,
                                             aUnprefixedFuncName, 
                                             aUnprefixedFuncBody ) {
-    
-    
-    
-    
-    
-
-    return false;
-  },
-};
-
-
-
-function createFixupGradientDeclaration(decl, parent){
-    var value = decl.value.trim(), newValue='', prop = decl.property.replace(/-webkit-/, '');
-    
-    
-    
-    
-    var head = value.substr(0, value.indexOf('-webkit-gradient'));
-    if(head){
-        value = value.substr(head.length);
-    }
-    var m = value.match(/-webkit-gradient\s*\(\s*(linear|radial)\s*(.*)/);
-    if(m){ 
-
-        
-        var parts = oldGradientParser(value), type; 
-        for(var i = 0; i < parts.length; i++){
-            if(!parts[i].args)continue;
-            if(parts[i].name === '-webkit-gradient'){
-                type = parts[i].args[0].name;
-                newValue += type + '-gradient('; 
-            }
-            newValue += standardizeOldGradientArgs(type, parts[i].args.slice(1));
-            newValue += ')' 
-            if (i < parts.length - 1) {
-                newValue += ', '
-            }
-        }
+    var unprefixedFuncName, newValue;
+    if (aPrefixedFuncName == "-webkit-gradient") {
+      
+      var parts = this.oldGradientParser(aPrefixedFuncBody);
+      var type = parts[0].name;
+      newValue = this.standardizeOldGradientArgs(type, parts.slice(1));
+      unprefixedFuncName = type + "-gradient";
     }else{ 
         
         
-        newValue = value.replace(/-webkit-/, '');
+        if (aPrefixedFuncName != "-webkit-linear-gradient" &&
+            aPrefixedFuncName != "-webkit-radial-gradient") {
+          
+          return false;
+        }
+        unprefixedFuncName = aPrefixedFuncName.replace(/-webkit-/, '');
+
         
         
-        newValue = newValue.replace(/(top|bottom|left|right)+\s*(top|bottom|left|right)*/, function(str){
+        newValue = aPrefixedFuncBody.replace(/(top|bottom|left|right)+\s*(top|bottom|left|right)*/, function(str){
             var words = str.split(/\s+/);
             for(var i=0; i<words.length; i++){
                 switch(words[i].toLowerCase()){
@@ -228,19 +202,14 @@ function createFixupGradientDeclaration(decl, parent){
          });
 
     }
-    
-    var tail = value.substr(value.lastIndexOf(')')+1);
-    if( tail && tail.trim() !== ','){ 
-        newValue += tail;
-    }
-    if(head){
-        newValue = head + newValue;
-    }
-    
-    return {type:'declaration', property:prop, value:newValue, _fxjsdefined:true};
-}
+    aUnprefixedFuncName.value = unprefixedFuncName;
+    aUnprefixedFuncBody.value = newValue;
+    return true;
+  },
 
-function oldGradientParser(str){
+  
+  
+  oldGradientParser : function(str){
     
 
 
@@ -278,7 +247,9 @@ function oldGradientParser(str){
     }
 
     return objs;
-}
+  },
+
+  
 
 
 
@@ -287,9 +258,7 @@ function oldGradientParser(str){
 
 
 
-
-
-function standardizeOldGradientArgs(type, args){
+  standardizeOldGradientArgs : function(type, args){
     var stdArgStr = "";
     var stops = [];
     if(/^linear/.test(type)){
@@ -335,7 +304,7 @@ function standardizeOldGradientArgs(type, args){
         };
         color = args[j].args[colorIndex].name;
         if (args[j].args[colorIndex].args) { 
-            color += '(' + colorValue(args[j].args[colorIndex].args) + ')';
+            color += '(' + this.colorValue(args[j].args[colorIndex].args) + ')';
         };
         if (args[j].name === 'from'){
             stops.unshift(color + ' ' + position);
@@ -354,15 +323,15 @@ function standardizeOldGradientArgs(type, args){
         stdArgStr += ', ' + toColor + ' 100%';
     }
     return stdArgStr;
-}
+  },
 
-function colorValue(obj){
+  colorValue: function(obj){
     var ar = [];
     for (var i = 0; i < obj.length; i++) {
         ar.push(obj[i].name);
     };
     return ar.join(', ');
-}
-
+  },
+};
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([CSSUnprefixingService]);
