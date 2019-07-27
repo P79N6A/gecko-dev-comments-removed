@@ -68,8 +68,11 @@ function* spawnTest() {
       counters.ticks.push({ delta, timestamps });
       lastTickDelta = delta;
     }
+    else if (name === "frames") {
+      
+    }
     else {
-      throw new Error("unknown event " + name);
+      ok(false, `Received unknown event: ${name}`);
     }
 
     if (name === "markers" && counters[name].length === 1 ||
