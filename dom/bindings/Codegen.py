@@ -7008,10 +7008,6 @@ class CGMethodCall(CGThing):
             
             
             
-            
-            
-            
-            
 
             
             
@@ -7032,16 +7028,19 @@ class CGMethodCall(CGThing):
                               if distinguishingType(s).isCallback())
 
             
-            
             objectSigs.extend(s for s in possibleSignatures
-                              if (distinguishingType(s).isArray() or
-                                  distinguishingType(s).isSequence() or
-                                  distinguishingType(s).isDictionary() or
-                                  distinguishingType(s).isCallbackInterface()))
+                              if distinguishingType(s).isSequence())
 
             
-            objectSigs.extend(s for s in possibleSignatures
-                              if (distinguishingType(s).isMozMap()))
+            
+            genericObjectSigs = [
+                s for s in possibleSignatures
+                if (distinguishingType(s).isArray() or
+                    distinguishingType(s).isDictionary() or
+                    distinguishingType(s).isMozMap() or
+                    distinguishingType(s).isCallbackInterface()) ]
+            assert len(genericObjectSigs) <= 1
+            objectSigs.extend(genericObjectSigs)
 
             
             
