@@ -41,6 +41,28 @@ Prompt.Server.prototype = {
 
   mode: Prompt.mode,
 
+  
+
+
+
+
+
+
+  validateOptions() {},
+
+  
+
+
+
+
+
+
+
+
+  augmentAdvertisement(listener, advertisement) {
+    advertisement.authentication = Prompt.mode;
+  },
+
 };
 
 
@@ -76,6 +98,38 @@ OOBCert.Server = function() {};
 OOBCert.Server.prototype = {
 
   mode: OOBCert.mode,
+
+  
+
+
+
+
+
+
+  validateOptions(listener) {
+    if (!listener.encryption) {
+      throw new Error(OOBCert.mode + " authentication requires encryption.");
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  augmentAdvertisement(listener, advertisement) {
+    advertisement.authentication = OOBCert.mode;
+    
+    
+    
+    advertisement.cert = {
+      sha256: listener._socket.serverCert.sha256Fingerprint
+    };
+  },
 
 };
 
