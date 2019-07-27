@@ -30,9 +30,10 @@ FixedTableLayoutStrategy::~FixedTableLayoutStrategy()
  nscoord
 FixedTableLayoutStrategy::GetMinISize(nsRenderingContext* aRenderingContext)
 {
-    DISPLAY_MIN_WIDTH(mTableFrame, mMinWidth);
-    if (mMinWidth != NS_INTRINSIC_WIDTH_UNKNOWN)
-        return mMinWidth;
+    DISPLAY_MIN_WIDTH(mTableFrame, mMinISize);
+    if (mMinISize != NS_INTRINSIC_WIDTH_UNKNOWN) {
+        return mMinISize;
+    }
 
     
     
@@ -58,6 +59,7 @@ FixedTableLayoutStrategy::GetMinISize(nsRenderingContext* aRenderingContext)
         result += mTableFrame->GetColSpacing(-1, colCount);
     }
 
+    WritingMode wm = mTableFrame->GetWritingMode();
     for (int32_t col = 0; col < colCount; ++col) {
         nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
         if (!colFrame) {
@@ -65,18 +67,17 @@ FixedTableLayoutStrategy::GetMinISize(nsRenderingContext* aRenderingContext)
             continue;
         }
         nscoord spacing = mTableFrame->GetColSpacing(col);
-        const nsStyleCoord *styleWidth =
-            &colFrame->StylePosition()->mWidth;
-        if (styleWidth->ConvertsToLength()) {
-            result += nsLayoutUtils::ComputeWidthValue(aRenderingContext,
-                        colFrame, 0, 0, 0, *styleWidth);
-        } else if (styleWidth->GetUnit() == eStyleUnit_Percent) {
+        const nsStyleCoord *styleISize = &colFrame->StylePosition()->ISize(wm);
+        if (styleISize->ConvertsToLength()) {
+            result += nsLayoutUtils::ComputeISizeValue(aRenderingContext,
+                        colFrame, 0, 0, 0, *styleISize);
+        } else if (styleISize->GetUnit() == eStyleUnit_Percent) {
             
         } else {
-            NS_ASSERTION(styleWidth->GetUnit() == eStyleUnit_Auto ||
-                         styleWidth->GetUnit() == eStyleUnit_Enumerated ||
-                         (styleWidth->IsCalcUnit() && styleWidth->CalcHasPercent()),
-                         "bad width");
+            NS_ASSERTION(styleISize->GetUnit() == eStyleUnit_Auto ||
+                         styleISize->GetUnit() == eStyleUnit_Enumerated ||
+                         (styleISize->IsCalcUnit() && styleISize->CalcHasPercent()),
+                         "bad inline size");
 
             
             
@@ -85,22 +86,24 @@ FixedTableLayoutStrategy::GetMinISize(nsRenderingContext* aRenderingContext)
             nsTableCellFrame *cellFrame =
                 cellMap->GetCellInfoAt(0, col, &originates, &colSpan);
             if (cellFrame) {
-                styleWidth = &cellFrame->StylePosition()->mWidth;
-                if (styleWidth->ConvertsToLength() ||
-                    (styleWidth->GetUnit() == eStyleUnit_Enumerated &&
-                     (styleWidth->GetIntValue() == NS_STYLE_WIDTH_MAX_CONTENT ||
-                      styleWidth->GetIntValue() == NS_STYLE_WIDTH_MIN_CONTENT))) {
-                    nscoord cellWidth = nsLayoutUtils::IntrinsicForContainer(
+                styleISize = &cellFrame->StylePosition()->ISize(wm);
+                if (styleISize->ConvertsToLength() ||
+                    (styleISize->GetUnit() == eStyleUnit_Enumerated &&
+                     (styleISize->GetIntValue() == NS_STYLE_WIDTH_MAX_CONTENT ||
+                      styleISize->GetIntValue() ==
+                      NS_STYLE_WIDTH_MIN_CONTENT))) {
+                    nscoord cellISize = nsLayoutUtils::IntrinsicForContainer(
                         aRenderingContext, cellFrame, nsLayoutUtils::MIN_ISIZE);
                     if (colSpan > 1) {
                         
                         
                         
                         
-                        cellWidth = ((cellWidth + spacing) / colSpan) - spacing;
+                        
+                        cellISize = ((cellISize + spacing) / colSpan) - spacing;
                     }
-                    result += cellWidth;
-                } else if (styleWidth->GetUnit() == eStyleUnit_Percent) {
+                    result += cellISize;
+                } else if (styleISize->GetUnit() == eStyleUnit_Percent) {
                     if (colSpan > 1) {
                         
                         
@@ -113,7 +116,7 @@ FixedTableLayoutStrategy::GetMinISize(nsRenderingContext* aRenderingContext)
         }
     }
 
-    return (mMinWidth = result);
+    return (mMinISize = result);
 }
 
  nscoord
@@ -134,8 +137,8 @@ FixedTableLayoutStrategy::GetPrefISize(nsRenderingContext* aRenderingContext,
  void
 FixedTableLayoutStrategy::MarkIntrinsicISizesDirty()
 {
-    mMinWidth = NS_INTRINSIC_WIDTH_UNKNOWN;
-    mLastCalcWidth = nscoord_MIN;
+    mMinISize = NS_INTRINSIC_WIDTH_UNKNOWN;
+    mLastCalcISize = nscoord_MIN;
 }
 
 static inline nscoord
@@ -153,11 +156,12 @@ AllocateUnassigned(nscoord aUnassignedSpace, float aShare)
  void
 FixedTableLayoutStrategy::ComputeColumnISizes(const nsHTMLReflowState& aReflowState)
 {
-    nscoord tableWidth = aReflowState.ComputedWidth();
+    nscoord tableISize = aReflowState.ComputedISize();
 
-    if (mLastCalcWidth == tableWidth)
+    if (mLastCalcISize == tableISize) {
         return;
-    mLastCalcWidth = tableWidth;
+    }
+    mLastCalcISize = tableISize;
 
     nsTableCellMap *cellMap = mTableFrame->GetCellMap();
     int32_t colCount = cellMap->GetColCount();
@@ -168,7 +172,7 @@ FixedTableLayoutStrategy::ComputeColumnISizes(const nsHTMLReflowState& aReflowSt
     }
 
     
-    tableWidth -= mTableFrame->GetColSpacing(-1, colCount);
+    tableISize -= mTableFrame->GetColSpacing(-1, colCount);
 
     
     
@@ -176,7 +180,8 @@ FixedTableLayoutStrategy::ComputeColumnISizes(const nsHTMLReflowState& aReflowSt
     
     
     
-    nsTArray<nscoord> oldColWidths;
+    
+    nsTArray<nscoord> oldColISizes;
 
     
     
@@ -184,7 +189,7 @@ FixedTableLayoutStrategy::ComputeColumnISizes(const nsHTMLReflowState& aReflowSt
     
 
     uint32_t unassignedCount = 0;
-    nscoord unassignedSpace = tableWidth;
+    nscoord unassignedSpace = tableISize;
     const nscoord unassignedMarker = nscoord_MIN;
 
     
@@ -196,33 +201,34 @@ FixedTableLayoutStrategy::ComputeColumnISizes(const nsHTMLReflowState& aReflowSt
     
     nscoord specTotal = 0;
 
+    WritingMode wm = mTableFrame->GetWritingMode();
     for (int32_t col = 0; col < colCount; ++col) {
         nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
         if (!colFrame) {
-            oldColWidths.AppendElement(0);
+            oldColISizes.AppendElement(0);
             NS_ERROR("column frames out of sync with cell map");
             continue;
         }
-        oldColWidths.AppendElement(colFrame->GetFinalISize());
+        oldColISizes.AppendElement(colFrame->GetFinalISize());
         colFrame->ResetPrefPercent();
-        const nsStyleCoord *styleWidth =
-            &colFrame->StylePosition()->mWidth;
-        nscoord colWidth;
-        if (styleWidth->ConvertsToLength()) {
-            colWidth = nsLayoutUtils::ComputeWidthValue(
+        const nsStyleCoord *styleISize = &colFrame->StylePosition()->ISize(wm);
+        nscoord colISize;
+        if (styleISize->ConvertsToLength()) {
+            colISize = nsLayoutUtils::ComputeISizeValue(
                          aReflowState.rendContext,
-                         colFrame, 0, 0, 0, *styleWidth);
-            specTotal += colWidth;
-        } else if (styleWidth->GetUnit() == eStyleUnit_Percent) {
-            float pct = styleWidth->GetPercentValue();
-            colWidth = NSToCoordFloor(pct * float(tableWidth));
+                         colFrame, 0, 0, 0, *styleISize);
+            specTotal += colISize;
+        } else if (styleISize->GetUnit() == eStyleUnit_Percent) {
+            float pct = styleISize->GetPercentValue();
+            colISize = NSToCoordFloor(pct * float(tableISize));
             colFrame->AddPrefPercent(pct);
             pctTotal += pct;
         } else {
-            NS_ASSERTION(styleWidth->GetUnit() == eStyleUnit_Auto ||
-                         styleWidth->GetUnit() == eStyleUnit_Enumerated ||
-                         (styleWidth->IsCalcUnit() && styleWidth->CalcHasPercent()),
-                         "bad width");
+            NS_ASSERTION(styleISize->GetUnit() == eStyleUnit_Auto ||
+                         styleISize->GetUnit() == eStyleUnit_Enumerated ||
+                         (styleISize->IsCalcUnit() &&
+                          styleISize->CalcHasPercent()),
+                         "bad inline size");
 
             
             
@@ -231,26 +237,27 @@ FixedTableLayoutStrategy::ComputeColumnISizes(const nsHTMLReflowState& aReflowSt
             nsTableCellFrame *cellFrame =
                 cellMap->GetCellInfoAt(0, col, &originates, &colSpan);
             if (cellFrame) {
-                styleWidth = &cellFrame->StylePosition()->mWidth;
-                if (styleWidth->ConvertsToLength() ||
-                    (styleWidth->GetUnit() == eStyleUnit_Enumerated &&
-                     (styleWidth->GetIntValue() == NS_STYLE_WIDTH_MAX_CONTENT ||
-                      styleWidth->GetIntValue() == NS_STYLE_WIDTH_MIN_CONTENT))) {
+                styleISize = &cellFrame->StylePosition()->ISize(wm);
+                if (styleISize->ConvertsToLength() ||
+                    (styleISize->GetUnit() == eStyleUnit_Enumerated &&
+                     (styleISize->GetIntValue() == NS_STYLE_WIDTH_MAX_CONTENT ||
+                      styleISize->GetIntValue() ==
+                      NS_STYLE_WIDTH_MIN_CONTENT))) {
                     
                     
                     
                     
                     
                     
-                    colWidth = nsLayoutUtils::IntrinsicForContainer(
+                    colISize = nsLayoutUtils::IntrinsicForContainer(
                                  aReflowState.rendContext,
                                  cellFrame, nsLayoutUtils::MIN_ISIZE);
-                } else if (styleWidth->GetUnit() == eStyleUnit_Percent) {
+                } else if (styleISize->GetUnit() == eStyleUnit_Percent) {
                     
                     nsIFrame::IntrinsicISizeOffsetData offsets =
                         cellFrame->IntrinsicISizeOffsets();
-                    float pct = styleWidth->GetPercentValue();
-                    colWidth = NSToCoordFloor(pct * float(tableWidth));
+                    float pct = styleISize->GetPercentValue();
+                    colISize = NSToCoordFloor(pct * float(tableISize));
 
                     nscoord boxSizingAdjust = 0;
                     switch (cellFrame->StylePosition()->mBoxSizing) {
@@ -264,7 +271,7 @@ FixedTableLayoutStrategy::ComputeColumnISizes(const nsHTMLReflowState& aReflowSt
                         
                         break;
                     }
-                    colWidth += boxSizingAdjust;
+                    colISize += boxSizingAdjust;
 
                     pct /= float(colSpan);
                     colFrame->AddPrefPercent(pct);
@@ -272,34 +279,34 @@ FixedTableLayoutStrategy::ComputeColumnISizes(const nsHTMLReflowState& aReflowSt
                 } else {
                     
                     
-                    colWidth = unassignedMarker;
+                    colISize = unassignedMarker;
                 }
-                if (colWidth != unassignedMarker) {
+                if (colISize != unassignedMarker) {
                     if (colSpan > 1) {
                         
                         
                         
                         
                         nscoord spacing = mTableFrame->GetColSpacing(col);
-                        colWidth = ((colWidth + spacing) / colSpan) - spacing;
-                        if (colWidth < 0)
-                            colWidth = 0;
+                        colISize = ((colISize + spacing) / colSpan) - spacing;
+                        if (colISize < 0)
+                            colISize = 0;
                     }
-                    if (styleWidth->GetUnit() != eStyleUnit_Percent) {
-                        specTotal += colWidth;
+                    if (styleISize->GetUnit() != eStyleUnit_Percent) {
+                        specTotal += colISize;
                     }
                 }
             } else {
-                colWidth = unassignedMarker;
+                colISize = unassignedMarker;
             }
         }
 
-        colFrame->SetFinalISize(colWidth);
+        colFrame->SetFinalISize(colISize);
 
-        if (colWidth == unassignedMarker) {
+        if (colISize == unassignedMarker) {
             ++unassignedCount;
         } else {
-            unassignedSpace -= colWidth;
+            unassignedSpace -= colISize;
         }
     }
 
@@ -308,7 +315,8 @@ FixedTableLayoutStrategy::ComputeColumnISizes(const nsHTMLReflowState& aReflowSt
             
             
             
-            nscoord pctUsed = NSToCoordFloor(pctTotal * float(tableWidth));
+            
+            nscoord pctUsed = NSToCoordFloor(pctTotal * float(tableISize));
             nscoord reduce = std::min(pctUsed, -unassignedSpace);
             float reduceRatio = float(reduce) / pctTotal;
             for (int32_t col = 0; col < colCount; ++col) {
@@ -317,12 +325,12 @@ FixedTableLayoutStrategy::ComputeColumnISizes(const nsHTMLReflowState& aReflowSt
                     NS_ERROR("column frames out of sync with cell map");
                     continue;
                 }
-                nscoord colWidth = colFrame->GetFinalISize();
-                colWidth -= NSToCoordFloor(colFrame->GetPrefPercent() *
+                nscoord colISize = colFrame->GetFinalISize();
+                colISize -= NSToCoordFloor(colFrame->GetPrefPercent() *
                                            reduceRatio);
-                if (colWidth < 0)
-                    colWidth = 0;
-                colFrame->SetFinalISize(colWidth);
+                if (colISize < 0)
+                    colISize = 0;
+                colFrame->SetFinalISize(colISize);
             }
         }
         unassignedSpace = 0;
@@ -354,7 +362,7 @@ FixedTableLayoutStrategy::ComputeColumnISizes(const nsHTMLReflowState& aReflowSt
                 }
                 if (colFrame->GetPrefPercent() == 0.0f) {
                     NS_ASSERTION(colFrame->GetFinalISize() <= specUndist,
-                                 "widths don't add up");
+                                 "inline sizes don't add up");
                     nscoord toAdd = AllocateUnassigned(unassignedSpace,
                        float(colFrame->GetFinalISize()) / float(specUndist));
                     specUndist -= colFrame->GetFinalISize();
@@ -381,7 +389,7 @@ FixedTableLayoutStrategy::ComputeColumnISizes(const nsHTMLReflowState& aReflowSt
                     
                     NS_ASSERTION(colFrame->GetPrefPercent() - pctUndist
                                    < 0.0001,
-                                 "widths don't add up");
+                                 "inline sizes don't add up");
                     pctUndist = colFrame->GetPrefPercent();
                 }
                 nscoord toAdd = AllocateUnassigned(unassignedSpace,
@@ -396,7 +404,7 @@ FixedTableLayoutStrategy::ComputeColumnISizes(const nsHTMLReflowState& aReflowSt
             NS_ASSERTION(unassignedSpace == 0, "failed to redistribute");
         } else {
             
-            int32_t colsLeft = colCount;
+            int32_t colsRemaining = colCount;
             for (int32_t col = 0; col < colCount; ++col) {
                 nsTableColFrame *colFrame = mTableFrame->GetColFrame(col);
                 if (!colFrame) {
@@ -405,10 +413,10 @@ FixedTableLayoutStrategy::ComputeColumnISizes(const nsHTMLReflowState& aReflowSt
                 }
                 NS_ASSERTION(colFrame->GetFinalISize() == 0, "yikes");
                 nscoord toAdd = AllocateUnassigned(unassignedSpace,
-                                                   1.0f / float(colsLeft));
+                                                   1.0f / float(colsRemaining));
                 colFrame->SetFinalISize(toAdd);
                 unassignedSpace -= toAdd;
-                --colsLeft;
+                --colsRemaining;
             }
             NS_ASSERTION(unassignedSpace == 0, "failed to redistribute");
         }
@@ -419,7 +427,7 @@ FixedTableLayoutStrategy::ComputeColumnISizes(const nsHTMLReflowState& aReflowSt
             NS_ERROR("column frames out of sync with cell map");
             continue;
         }
-        if (oldColWidths.ElementAt(col) != colFrame->GetFinalISize()) {
+        if (oldColISizes.ElementAt(col) != colFrame->GetFinalISize()) {
             mTableFrame->DidResizeColumns();
             break;
         }

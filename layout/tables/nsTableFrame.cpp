@@ -3862,10 +3862,10 @@ nsTableFrame::IsAutoLayout()
   
   
   
-  const nsStyleCoord &width = StylePosition()->mWidth;
-  return (width.GetUnit() == eStyleUnit_Auto) ||
-         (width.GetUnit() == eStyleUnit_Enumerated &&
-          width.GetIntValue() == NS_STYLE_WIDTH_MAX_CONTENT);
+  const nsStyleCoord &iSize = StylePosition()->ISize(GetWritingMode());
+  return (iSize.GetUnit() == eStyleUnit_Auto) ||
+         (iSize.GetUnit() == eStyleUnit_Enumerated &&
+          iSize.GetIntValue() == NS_STYLE_WIDTH_MAX_CONTENT);
 }
 
 #ifdef DEBUG_FRAME_DUMP
