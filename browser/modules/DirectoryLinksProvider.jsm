@@ -183,6 +183,9 @@ let DirectoryLinksProvider = {
   },
 
   _fetchAndCacheLinks: function DirectoryLinksProvider_fetchAndCacheLinks(uri) {
+    
+    uri = uri.replace("%LOCALE%", this.locale);
+
     let deferred = Promise.defer();
     let xmlHttp = new XMLHttpRequest();
 
@@ -206,14 +209,12 @@ let DirectoryLinksProvider = {
     };
 
     try {
-      xmlHttp.open('POST', uri);
+      xmlHttp.open("GET", uri);
       
       xmlHttp.overrideMimeType(DIRECTORY_LINKS_TYPE);
       
       xmlHttp.setRequestHeader("Content-Type", DIRECTORY_LINKS_TYPE);
-      xmlHttp.send(JSON.stringify({
-        locale: this.locale,
-      }));
+      xmlHttp.send();
     } catch (e) {
       deferred.reject("Error fetching " + uri);
       Cu.reportError(e);
