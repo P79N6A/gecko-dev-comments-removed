@@ -516,7 +516,37 @@ class VFPRegister
         *ret = doubleOverlay(aliasIdx - 1);
         return;
     }
+
     typedef FloatRegisters::SetType SetType;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    SetType alignedOrDominatedAliasedSet() const {
+        if (isSingle()) {
+            if (code_ % 2 != 0)
+                return SetType(1) << code_;
+            return (SetType(1) << code_) | (SetType(1) << (32 + code_ / 2));
+        }
+
+        MOZ_ASSERT(isDouble());
+        return (SetType(0b11) << (code_ * 2)) | (SetType(1) << (32 + code_));
+    }
+
     static uint32_t SetSize(SetType x) {
         static_assert(sizeof(SetType) == 8, "SetType must be 64 bits");
         return mozilla::CountPopulation32(x);
