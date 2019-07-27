@@ -1557,16 +1557,23 @@ public:
   
   
   
-  typename Alloc::ResultType SetLength(size_type aNewLen)
+  template<typename ActualAlloc = Alloc>
+  typename ActualAlloc::ResultType SetLength(size_type aNewLen)
   {
     size_type oldLen = Length();
     if (aNewLen > oldLen) {
-      return Alloc::ConvertBoolToResultType(
-        InsertElementsAt(oldLen, aNewLen - oldLen) != nullptr);
+      return ActualAlloc::ConvertBoolToResultType(
+        InsertElementsAt<ActualAlloc>(oldLen, aNewLen - oldLen) != nullptr);
     }
 
     TruncateLength(aNewLen);
-    return Alloc::ConvertBoolToResultType(true);
+    return ActualAlloc::ConvertBoolToResultType(true);
+  }
+
+  
+  bool SetLength(size_type aNewLen, const mozilla::fallible_t&)
+  {
+    return SetLength<FallibleAlloc>(aNewLen);
   }
 
   
