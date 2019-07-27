@@ -67,6 +67,7 @@ public:
   }
 
   
+  virtual bool RecvImageBridgeThreadId(const PlatformThreadId& aThreadId) override;
   virtual bool RecvUpdate(EditArray&& aEdits, EditReplyArray* aReply) override;
   virtual bool RecvUpdateNoSwap(EditArray&& aEdits) override;
 
@@ -143,12 +144,13 @@ public:
 
 private:
   void DeferredDestroy();
-
   MessageLoop* mMessageLoop;
   Transport* mTransport;
   
   
   nsRefPtr<ImageBridgeParent> mSelfRef;
+
+  bool mSetChildThreadPriority;
 
   
 
