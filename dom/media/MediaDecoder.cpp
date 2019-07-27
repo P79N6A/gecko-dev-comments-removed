@@ -480,21 +480,16 @@ void MediaDecoder::UpdateStreamBlockingForStateMachinePlaying()
   }
 }
 
-void MediaDecoder::RecreateDecodedStream(int64_t aStartTimeUSecs,
-                                         MediaStreamGraph* aGraph)
+void MediaDecoder::RecreateDecodedStream(int64_t aStartTimeUSecs)
 {
   MOZ_ASSERT(NS_IsMainThread());
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
   DECODER_LOG("RecreateDecodedStream aStartTimeUSecs=%lld!", aStartTimeUSecs);
 
-  if (!aGraph) {
-    aGraph = mDecodedStream->mStream->Graph();
-  }
   DestroyDecodedStream();
 
-  mDecodedStream = new DecodedStreamData(this,
-                                         aStartTimeUSecs,
-                                         aGraph->CreateSourceStream(nullptr));
+  mDecodedStream = new DecodedStreamData(this, aStartTimeUSecs,
+    MediaStreamGraph::GetInstance()->CreateSourceStream(nullptr));
 
   
   
@@ -527,7 +522,7 @@ void MediaDecoder::AddOutputStream(ProcessedMediaStream* aStream,
     if (!GetDecodedStream()) {
       int64_t t = mDecoderStateMachine ?
                   mDecoderStateMachine->GetCurrentTimeUs() : 0;
-      RecreateDecodedStream(t, aStream->Graph());
+      RecreateDecodedStream(t);
     }
     OutputStreamData* os = mOutputStreams.AppendElement();
     os->Init(this, aStream);
@@ -1215,9 +1210,10 @@ void MediaDecoder::UpdateReadyStateForData()
   mOwner->UpdateReadyStateForData(frameStatus);
 }
 
-void MediaDecoder::OnSeekResolvedInternal(bool aAtEnd, MediaDecoderEventVisibility aEventVisibility)
+void MediaDecoder::OnSeekResolved(SeekResolveValue aVal)
 {
   MOZ_ASSERT(NS_IsMainThread());
+  mSeekRequest.Complete();
 
   if (mShuttingDown)
     return;
@@ -1234,20 +1230,20 @@ void MediaDecoder::OnSeekResolvedInternal(bool aAtEnd, MediaDecoderEventVisibili
       seekWasAborted = true;
     } else {
       UnpinForSeek();
-      fireEnded = aAtEnd;
-      if (aAtEnd) {
+      fireEnded = aVal.mAtEnd;
+      if (aVal.mAtEnd) {
         ChangeState(PLAY_STATE_ENDED);
-      } else if (aEventVisibility != MediaDecoderEventVisibility::Suppressed) {
-        ChangeState(aAtEnd ? PLAY_STATE_ENDED : mNextState);
+      } else if (aVal.mEventVisibility != MediaDecoderEventVisibility::Suppressed) {
+        ChangeState(aVal.mAtEnd ? PLAY_STATE_ENDED : mNextState);
       }
     }
   }
 
-  PlaybackPositionChanged(aEventVisibility);
+  PlaybackPositionChanged(aVal.mEventVisibility);
 
   if (mOwner) {
     UpdateReadyStateForData();
-    if (!seekWasAborted && (aEventVisibility != MediaDecoderEventVisibility::Suppressed)) {
+    if (!seekWasAborted && (aVal.mEventVisibility != MediaDecoderEventVisibility::Suppressed)) {
       mOwner->SeekCompleted();
       if (fireEnded) {
         mOwner->PlaybackEnded();

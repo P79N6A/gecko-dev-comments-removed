@@ -519,8 +519,7 @@ public:
 
 
 
-  void RecreateDecodedStream(int64_t aStartTimeUSecs,
-                             MediaStreamGraph* aGraph = nullptr);
+  void RecreateDecodedStream(int64_t aStartTimeUSecs);
   
 
 
@@ -806,21 +805,7 @@ public:
   void PlaybackEnded();
 
   void OnSeekRejected() { mSeekRequest.Complete(); }
-  void OnSeekResolvedInternal(bool aAtEnd, MediaDecoderEventVisibility aEventVisibility);
-
-  void OnSeekResolved(SeekResolveValue aVal)
-  {
-    mSeekRequest.Complete();
-    OnSeekResolvedInternal(aVal.mAtEnd, aVal.mEventVisibility);
-  }
-
-#ifdef MOZ_AUDIO_OFFLOAD
-  
-  void SimulateSeekResolvedForAudioOffload(MediaDecoderEventVisibility aEventVisibility)
-  {
-    OnSeekResolvedInternal(false, aEventVisibility);
-  }
-#endif
+  void OnSeekResolved(SeekResolveValue aVal);
 
   
   
