@@ -1840,7 +1840,7 @@ public class GeckoAppShell
                                     true, 
                                     aMimeType,
                                     f.getAbsolutePath(),
-                                    f.length(),
+                                    Math.max(0, f.length()),
                                     false); 
         } else {
             Context context = getContext();
