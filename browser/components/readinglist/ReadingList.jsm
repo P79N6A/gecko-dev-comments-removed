@@ -4,18 +4,23 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["ReadingList"];
+this.EXPORTED_SYMBOLS = [
+  "ReadingList",
+];
 
-const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
-
+const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "SQLiteStore",
+  "resource:///modules/readinglist/SQLiteStore.jsm");
 
-(function() {
+
+{ 
   let parentLog = Log.repository.getLogger("readinglist");
   parentLog.level = Preferences.get("browser.readinglist.logLevel", Log.Level.Warn);
   Preferences.observe("browser.readinglist.logLevel", value => {
@@ -24,26 +29,301 @@ Cu.import("resource://gre/modules/Log.jsm");
   let formatter = new Log.BasicFormatter();
   parentLog.addAppender(new Log.ConsoleAppender(formatter));
   parentLog.addAppender(new Log.DumpAppender(formatter));
-})();
-
+}
 let log = Log.repository.getLogger("readinglist.api");
 
 
 
+const ITEM_BASIC_PROPERTY_NAMES = `
+  guid
+  lastModified
+  url
+  title
+  resolvedURL
+  resolvedTitle
+  excerpt
+  status
+  favorite
+  isArticle
+  wordCount
+  unread
+  addedBy
+  addedOn
+  storedOn
+  markedReadBy
+  markedReadOn
+  readPosition
+`.trim().split(/\s+/);
 
 
 
-function Item(data) {
-  this._data = data;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function ReadingListImpl(store) {
+  this._store = store;
+  this._itemsByURL = new Map();
+  this._iterators = new Set();
 }
 
-Item.prototype = {
+ReadingListImpl.prototype = {
+
+  ItemBasicPropertyNames: ITEM_BASIC_PROPERTY_NAMES,
+
   
 
 
 
-  get id() {
-    return this._data.id;
+
+
+
+
+  count: Task.async(function* (...optsList) {
+    return (yield this._store.count(...optsList));
+  }),
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  forEachItem: Task.async(function* (callback, ...optsList) {
+    let promiseChain = Promise.resolve();
+    yield this._store.forEachItem(obj => {
+      promiseChain = promiseChain.then(() => {
+        return new Promise((resolve, reject) => {
+          let promise = callback(this._itemFromObject(obj));
+          if (promise instanceof Promise) {
+            return promise.then(resolve, reject);
+          }
+          resolve();
+          return undefined;
+        });
+      });
+    }, ...optsList);
+    yield promiseChain;
+  }),
+
+  
+
+
+
+
+
+
+
+  iterator(...optsList) {
+    let iter = new ReadingListItemIterator(this, ...optsList);
+    this._iterators.add(Cu.getWeakReference(iter));
+    return iter;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  addItem: Task.async(function* (item) {
+    yield this._store.addItem(simpleObjectFromItem(item));
+    this._invalidateIterators();
+  }),
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  updateItem: Task.async(function* (item) {
+    this._ensureItemBelongsToList(item);
+    yield this._store.updateItem(item._properties);
+    this._invalidateIterators();
+  }),
+
+  
+
+
+
+
+
+
+
+
+
+  deleteItem: Task.async(function* (item) {
+    this._ensureItemBelongsToList(item);
+    yield this._store.deleteItemByURL(item.url);
+    item.list = null;
+    this._itemsByURL.delete(item.url);
+    this._invalidateIterators();
+  }),
+
+  
+
+
+  destroy: Task.async(function* () {
+    yield this._store.destroy();
+    for (let itemWeakRef of this._itemsByURL.values()) {
+      let item = itemWeakRef.get();
+      if (item) {
+        item.list = null;
+      }
+    }
+    this._itemsByURL.clear();
+  }),
+
+  
+  _store: null,
+
+  
+  
+  _itemsByURL: null,
+
+  
+  
+  _iterators: null,
+
+  
+
+
+
+
+
+
+  _itemFromObject(obj) {
+    let itemWeakRef = this._itemsByURL.get(obj.url);
+    let item = itemWeakRef ? itemWeakRef.get() : null;
+    if (item) {
+      item.setProperties(obj, false);
+    }
+    else {
+      item = new ReadingListItem(obj);
+      item.list = this;
+      this._itemsByURL.set(obj.url, Cu.getWeakReference(item));
+    }
+    return item;
+  },
+
+  
+
+
+
+  _invalidateIterators() {
+    for (let iterWeakRef of this._iterators) {
+      let iter = iterWeakRef.get();
+      if (iter) {
+        iter.invalidate();
+      }
+    }
+    this._iterators.clear();
+  },
+
+  _ensureItemBelongsToList(item) {
+    if (item.list != this) {
+      throw new Error("The item does not belong to this list");
+    }
+  },
+};
+
+
+
+
+
+
+
+
+
+function ReadingListItem(props={}) {
+  this._properties = {};
+  this.setProperties(props, false);
+}
+
+ReadingListItem.prototype = {
+
+  
+
+
+
+  get guid() {
+    return this._properties.guid || undefined;
+  },
+  set guid(val) {
+    this._properties.guid = val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -51,99 +331,219 @@ Item.prototype = {
 
 
   get lastModified() {
-    return this._data.last_modified;
+    return this._properties.lastModified ?
+           new Date(this._properties.lastModified) :
+           undefined;
+  },
+  set lastModified(val) {
+    this._properties.lastModified = val.valueOf();
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
 
 
-  get originalUrl() {
-    return Services.io.newURI(this._data.url, null, null);
+
+  get url() {
+    return this._properties.url;
+  },
+  set url(val) {
+    this._properties.url = val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
 
 
-  get originalTitle() {
-    return this._data.title || "";
+
+  get uri() {
+    return this._properties.url ?
+           Services.io.newURI(this._properties.url, "", null) :
+           undefined;
+  },
+  set uri(val) {
+    this.url = val.spec;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
 
 
-  get resolvedUrl() {
-    return Services.io.newURI(this._data.resolved_url || this._data.url, null, null);
+
+  get resolvedURL() {
+    return this._properties.resolvedURL;
+  },
+  set resolvedURL(val) {
+    this._properties.resolvedURL = val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
+
+
+
+  get resolvedURI() {
+    return this._properties.resolvedURL ?
+           Services.io.newURI(this._properties.resolvedURL, "", null) :
+           undefined;
+  },
+  set resolvedURI(val) {
+    this.resolvedURL = val.spec;
+    if (this.list) {
+      this.commit();
+    }
+  },
+
+  
+
+
+
+  get title() {
+    return this._properties.title;
+  },
+  set title(val) {
+    this._properties.title = val;
+    if (this.list) {
+      this.commit();
+    }
+  },
+
+  
+
 
 
   get resolvedTitle() {
-    return this._data.resolved_title || this.originalTitle;
+    return this._properties.resolvedTitle;
+  },
+  set resolvedTitle(val) {
+    this._properties.resolvedTitle = val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
+
 
 
   get excerpt() {
-    return this._data.excerpt || "";
+    return this._properties.excerpt;
+  },
+  set excerpt(val) {
+    this._properties.excerpt = val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
 
 
-  get state() {
-    return ReadingList.ItemStates[this._data.state] || ReadingList.ItemStates.OK;
+
+  get status() {
+    return this._properties.status;
+  },
+  set status(val) {
+    this._properties.status = val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
 
 
-  get isFavorite() {
-    return !!this._data.favorite;
+
+  get favorite() {
+    return !!this._properties.favorite;
+  },
+  set favorite(val) {
+    this._properties.favorite = !!val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
+
 
 
   get isArticle() {
-    return !!this._data.is_article;
+    return !!this._properties.isArticle;
+  },
+  set isArticle(val) {
+    this._properties.isArticle = !!val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
+
 
 
   get wordCount() {
-    return this._data.word_count || 0;
+    return this._properties.wordCount;
+  },
+  set wordCount(val) {
+    this._properties.wordCount = val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
 
 
-  get isUnread() {
-    return !!this._data.unread;
+
+  get unread() {
+    return !!this._properties.unread;
+  },
+  set unread(val) {
+    this._properties.unread = !!val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
 
-
-
-  get addedBy() {
-    return this._data.added_by;
-  },
-
-  
 
 
   get addedOn() {
-    return new Date(this._data.added_on);
+    return this._properties.addedOn ?
+           new Date(this._properties.addedOn) :
+           undefined;
+  },
+  set addedOn(val) {
+    this._properties.addedOn = val.valueOf();
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
 
 
+
   get storedOn() {
-    return new Date(this._data.stored_on);
+    return this._properties.storedOn ?
+           new Date(this._properties.storedOn) :
+           undefined;
+  },
+  set storedOn(val) {
+    this._properties.storedOn = val.valueOf();
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
@@ -151,206 +551,208 @@ Item.prototype = {
 
 
   get markedReadBy() {
-    return this._data.marked_read_by;
+    return this._properties.markedReadBy;
+  },
+  set markedReadBy(val) {
+    this._properties.markedReadBy = val;
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
+
 
 
   get markedReadOn() {
-    return new date(this._data.marked_read_on);
+    return this._properties.markedReadOn ?
+           new Date(this._properties.markedReadOn) :
+           undefined;
+  },
+  set markedReadOn(val) {
+    this._properties.markedReadOn = val.valueOf();
+    if (this.list) {
+      this.commit();
+    }
   },
 
   
+
 
 
   get readPosition() {
-    return this._data.read_position;
+    return this._properties.readPosition;
   },
-
-  
-
-  
-
-
-
-
-  get images() {
-    return [];
-  },
-
-  
-
-
-
-
-  get favicon() {
-    return null;
-  },
-
-  
-
-  
-
-
-
-  get url() {
-    return this.resolvedUrl;
-  },
-  
-
-
-  get title() {
-    return this.resolvedTitle;
-  },
-
-  
-
-
-
-  get domain() {
-    let host = this.resolvedUrl.host;
-    if (host.startsWith("www.")) {
-      host = host.slice(4);
+  set readPosition(val) {
+    this._properties.readPosition = val;
+    if (this.list) {
+      this.commit();
     }
-    return host;
   },
 
   
 
 
-  toString() {
-    return `[Item url=${this.url.spec}]`;
-  },
+
+
+
+
+
+  setProperties: Task.async(function* (props, commit=true) {
+    for (let name in props) {
+      this._properties[name] = props[name];
+    }
+    if (commit) {
+      yield this.commit();
+    }
+  }),
 
   
 
+
+
+
+  delete: Task.async(function* () {
+    this._ensureBelongsToList();
+    yield this.list.deleteItem(this);
+    this.delete = () => Promise.reject("The item has already been deleted");
+  }),
+
+  
+
+
+
+
+
+  commit: Task.async(function* () {
+    this._ensureBelongsToList();
+    yield this.list.updateItem(this);
+  }),
 
   toJSON() {
-    return this._data;
+    return this._properties;
   },
-};
 
-
-let ItemStates = {
-  OK: Symbol("ok"),
-  ARCHIVED: Symbol("archived"),
-  DELETED: Symbol("deleted"),
-};
-
-
-this.ReadingList = {
-  Item: Item,
-  ItemStates: ItemStates,
-
-  _listeners: new Set(),
-  _items: [],
-
-  
-
-
-  _init() {
-    log.debug("Init");
-
-    
-    let mockData = JSON.parse(Preferences.get("browser.readinglist.mockData", "[]"));
-    for (let itemData of mockData) {
-      this._items.push(new Item(itemData));
+  _ensureBelongsToList() {
+    if (!this.list) {
+      throw new Error("The item must belong to a reading list");
     }
   },
-
-  
-
-
-
-  addListener(listener) {
-    this._listeners.add(listener);
-  },
-
-  
-
-
-
-  removeListener(listener) {
-    this._listeners.delete(listener);
-  },
-
-  
-
-
-
-
-  _notifyListeners(eventName, ...args) {
-    for (let listener of this._listeners) {
-      if (typeof listener[eventName] != "function") {
-        continue;
-      }
-
-      try {
-        listener[eventName](...args);
-      } catch (e) {
-        log.error(`Error calling listener.${eventName}`, e);
-      }
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-  getNumItems(conditions = {unread: false}) {
-    return new Promise((resolve, reject) => {
-      resolve(this._items.length);
-    });
-  },
-
-  
-
-
-
-
-
-
-  getItems(options = {sort: "addedOn", conditions: {unread: false}}) {
-    return new Promise((resolve, reject) => {
-      resolve([...this._items]);
-    });
-  },
-
-  
-
-
-
-
-
-
-  getItemByID(url) {
-    return new Promise((resolve, reject) => {
-      resolve(null);
-    });
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  getItemByURL(url) {
-    return new Promise((resolve, reject) => {
-      resolve(null);
-    });
-  },
 };
 
 
-ReadingList._init();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function ReadingListItemIterator(list, ...optsList) {
+  this.list = list;
+  this.index = 0;
+  this.optsList = optsList;
+}
+
+ReadingListItemIterator.prototype = {
+
+  
+
+
+
+  invalid: false,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  forEach: Task.async(function* (callback, count=-1) {
+    this._ensureValid();
+    let optsList = clone(this.optsList);
+    optsList.push({
+      offset: this.index,
+      limit: count,
+    });
+    yield this.list.forEachItem(item => {
+      this.index++;
+      return callback(item);
+    }, ...optsList);
+  }),
+
+  
+
+
+
+
+
+
+  items: Task.async(function* (count) {
+    this._ensureValid();
+    let optsList = clone(this.optsList);
+    optsList.push({
+      offset: this.index,
+      limit: count,
+    });
+    let items = [];
+    yield this.list.forEachItem(item => items.push(item), ...optsList);
+    this.index += items.length;
+    return items;
+  }),
+
+  
+
+
+
+  invalidate() {
+    this.invalid = true;
+  },
+
+  _ensureValid() {
+    if (this.invalid) {
+      throw new Error("The iterator has been invalidated");
+    }
+  },
+};
+
+function simpleObjectFromItem(item) {
+  let obj = {};
+  for (let name of ITEM_BASIC_PROPERTY_NAMES) {
+    if (name in item) {
+      obj[name] = item[name];
+    }
+  }
+  return obj;
+}
+
+function clone(obj) {
+  return Cu.cloneInto(obj, {}, { cloneFunctions: false });
+}
+
+Object.defineProperty(this, "ReadingList", {
+  get() {
+    if (!this._singleton) {
+      let store = new SQLiteStore("reading-list-temp.sqlite");
+      this._singleton = new ReadingListImpl(store);
+    }
+    return this._singleton;
+  },
+});

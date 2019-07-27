@@ -1,0 +1,642 @@
+
+
+
+"use strict";
+
+let gDBFile = do_get_profile();
+
+Cu.import("resource:///modules/readinglist/ReadingList.jsm");
+Cu.import("resource:///modules/readinglist/SQLiteStore.jsm");
+Cu.import("resource://gre/modules/Sqlite.jsm");
+Cu.import("resource://gre/modules/Timer.jsm");
+
+var gList;
+var gItems;
+
+function run_test() {
+  run_next_test();
+}
+
+add_task(function* prepare() {
+  gList = ReadingList;
+  Assert.ok(gList);
+  gDBFile.append(gList._store.pathRelativeToProfileDir);
+  do_register_cleanup(() => {
+    if (gDBFile.exists()) {
+      gDBFile.remove(true);
+    }
+  });
+
+  gItems = [];
+  for (let i = 0; i < 3; i++) {
+    gItems.push({
+      list: gList,
+      guid: `guid${i}`,
+      url: `http://example.com/${i}`,
+      resolvedURL: `http://example.com/resolved/${i}`,
+      title: `title ${i}`,
+      excerpt: `excerpt ${i}`,
+      unread: 0,
+      addedOn: Date.now(),
+      lastModified: Date.now(),
+      favorite: 0,
+      isArticle: 1,
+      storedOn: Date.now(),
+    });
+  }
+
+  for (let item of gItems) {
+    yield gList.addItem(item);
+  }
+});
+
+add_task(function* item_properties() {
+  
+  let iter = gList.iterator({
+    sort: "guid",
+  });
+  let item = (yield iter.items(1))[0];
+  Assert.ok(item);
+
+  Assert.ok(item.uri);
+  Assert.ok(item.uri instanceof Ci.nsIURI);
+  Assert.equal(item.uri.spec, item.url);
+
+  Assert.ok(item.resolvedURI);
+  Assert.ok(item.resolvedURI instanceof Ci.nsIURI);
+  Assert.equal(item.resolvedURI.spec, item.resolvedURL);
+
+  Assert.ok(item.lastModified);
+  Assert.ok(item.lastModified instanceof Cu.getGlobalForObject(ReadingList).Date);
+
+  Assert.ok(item.addedOn);
+  Assert.ok(item.addedOn instanceof Cu.getGlobalForObject(ReadingList).Date);
+
+  Assert.ok(item.storedOn);
+  Assert.ok(item.storedOn instanceof Cu.getGlobalForObject(ReadingList).Date);
+
+  Assert.ok(typeof(item.favorite) == "boolean");
+  Assert.ok(typeof(item.isArticle) == "boolean");
+  Assert.ok(typeof(item.unread) == "boolean");
+});
+
+add_task(function* constraints() {
+  
+  let err = null;
+  try {
+    yield gList.addItem(gItems[0]);
+  }
+  catch (e) {
+    err = e;
+  }
+  checkError(err);
+
+  
+  function kindOfClone(item) {
+    let newItem = {};
+    for (let prop in item) {
+      newItem[prop] = item[prop];
+      if (typeof(newItem[prop]) == "string") {
+        newItem[prop] += " -- make this string different";
+      }
+    }
+    return newItem;
+  }
+  let item = kindOfClone(gItems[0]);
+  item.guid = gItems[0].guid;
+  err = null;
+  try {
+    yield gList.addItem(item);
+  }
+  catch (e) {
+    err = e;
+  }
+  checkError(err);
+
+  
+  item = kindOfClone(gItems[0]);
+  item.url = gItems[0].url;
+  err = null;
+  try {
+    yield gList.addItem(item);
+  }
+  catch (e) {
+    err = e;
+  }
+  checkError(err);
+
+  
+  item.guid = gItems[1].guid;
+  err = null;
+  try {
+    yield gList.updateItem(item);
+  }
+  catch (e) {
+    err = e;
+  }
+  checkError(err);
+
+  
+  item = kindOfClone(gItems[0]);
+  item.resolvedURL = gItems[0].resolvedURL;
+  err = null;
+  try {
+    yield gList.addItem(item);
+  }
+  catch (e) {
+    err = e;
+  }
+  checkError(err);
+
+  
+  item.url = gItems[1].url;
+  err = null;
+  try {
+    yield gList.updateItem(item);
+  }
+  catch (e) {
+    err = e;
+  }
+  checkError(err);
+
+  
+  item = kindOfClone(gItems[0]);
+  delete item.guid;
+  err = null;
+  try {
+    yield gList.addItem(item);
+  }
+  catch (e) {
+    err = e;
+  }
+  Assert.ok(!err, err ? err.message : undefined);
+  let item1 = item;
+
+  
+  item = kindOfClone(gItems[1]);
+  delete item.guid;
+  err = null;
+  try {
+    yield gList.addItem(item);
+  }
+  catch (e) {
+    err = e;
+  }
+  Assert.ok(!err, err ? err.message : undefined);
+  let item2 = item;
+
+  
+  item1.list = gList;
+  item2.list = gList;
+  yield gList.deleteItem(item1);
+  yield gList.deleteItem(item2);
+  let items = [];
+  yield gList.forEachItem(i => items.push(i), { url: [item1.url, item2.url] });
+  Assert.equal(items.length, 0);
+
+  
+  item = kindOfClone(gItems[0]);
+  delete item.url;
+  err = null;
+  try {
+    yield gList.addItem(item);
+  }
+  catch (e) {
+    err = e;
+  }
+  checkError(err);
+});
+
+add_task(function* count() {
+  let count = yield gList.count();
+  Assert.equal(count, gItems.length);
+
+  count = yield gList.count({
+    guid: gItems[0].guid,
+  });
+  Assert.equal(count, 1);
+});
+
+add_task(function* forEachItem() {
+  
+  let items = [];
+  yield gList.forEachItem(item => items.push(item), {
+    sort: "guid",
+  });
+  checkItems(items, gItems);
+
+  
+  items = [];
+  yield gList.forEachItem(item => items.push(item), {
+    limit: 1,
+    sort: "guid",
+  });
+  checkItems(items, gItems.slice(0, 1));
+
+  
+  items = [];
+  yield gList.forEachItem(item => items.push(item), {
+    limit: 1,
+    sort: "guid",
+    descending: true,
+  });
+  checkItems(items, gItems.slice(gItems.length - 1, gItems.length));
+
+  
+  items = [];
+  yield gList.forEachItem(item => items.push(item), {
+    guid: gItems[0].guid,
+  });
+  checkItems(items, gItems.slice(0, 1));
+
+  
+  items = [];
+  yield gList.forEachItem(item => items.push(item), {
+    guid: gItems.map(i => i.guid),
+    sort: "guid",
+  });
+  checkItems(items, gItems);
+
+  
+  items = [];
+  yield gList.forEachItem(item => items.push(item), {
+    guid: gItems.map(i => i.guid),
+    title: gItems[0].title,
+    sort: "guid",
+  });
+  checkItems(items, [gItems[0]]);
+
+  
+  items = [];
+  yield gList.forEachItem(item => items.push(item), {
+    guid: gItems[1].guid,
+    sort: "guid",
+  }, {
+    guid: gItems[0].guid,
+  });
+  checkItems(items, [gItems[0], gItems[1]]);
+
+  
+  items = [];
+  yield gList.forEachItem(item => items.push(item), {
+    guid: gItems.map(i => i.guid),
+    title: gItems[1].title,
+    sort: "guid",
+  }, {
+    guid: gItems[0].guid,
+  });
+  checkItems(items, [gItems[0], gItems[1]]);
+});
+
+add_task(function* forEachItem_promises() {
+  
+  let items = [];
+  yield gList.forEachItem(item => {
+    items.push(item);
+    return Promise.resolve();
+  }, {
+    sort: "guid",
+  });
+  checkItems(items, gItems);
+
+  
+  items = [];
+  let i = 0;
+  let promises = [];
+  yield gList.forEachItem(item => {
+    items.push(item);
+    
+    if (i > 0) {
+      Assert.equal(promises[i - 1], null);
+    }
+    
+    let this_i = i++;
+    let promise = new Promise(resolve => {
+      
+      
+      
+      
+      setTimeout(() => {
+        promises[this_i] = null;
+        resolve();
+      }, 0);
+    });
+    promises.push(promise);
+    return promise;
+  }, {
+    sort: "guid",
+  });
+  checkItems(items, gItems);
+});
+
+add_task(function* iterator_forEach() {
+  
+  let items = [];
+  let iter = gList.iterator({
+    sort: "guid",
+  });
+  yield iter.forEach(item => items.push(item));
+  checkItems(items, gItems);
+
+  
+  items = [];
+  iter = gList.iterator({
+    sort: "guid",
+  });
+  for (let i = 0; i < gItems.length; i++) {
+    yield iter.forEach(item => items.push(item), 1);
+    checkItems(items, gItems.slice(0, i + 1));
+  }
+  yield iter.forEach(item => items.push(item), 100);
+  checkItems(items, gItems);
+  yield iter.forEach(item => items.push(item));
+  checkItems(items, gItems);
+
+  
+  items = [];
+  iter = gList.iterator({
+    sort: "guid",
+    guid: gItems[0].guid,
+  });
+  yield iter.forEach(item => items.push(item));
+  checkItems(items, [gItems[0]]);
+
+  
+  items = [];
+  iter = gList.iterator({
+    sort: "guid",
+    guid: gItems.map(i => i.guid),
+  });
+  yield iter.forEach(item => items.push(item));
+  checkItems(items, gItems);
+
+  
+  items = [];
+  iter = gList.iterator({
+    sort: "guid",
+    guid: gItems.map(i => i.guid),
+    title: gItems[0].title,
+  });
+  yield iter.forEach(item => items.push(item));
+  checkItems(items, [gItems[0]]);
+
+  
+  items = [];
+  iter = gList.iterator({
+    sort: "guid",
+    guid: gItems[1].guid,
+  }, {
+    guid: gItems[0].guid,
+  });
+  yield iter.forEach(item => items.push(item));
+  checkItems(items, [gItems[0], gItems[1]]);
+
+  
+  items = [];
+  iter = gList.iterator({
+    sort: "guid",
+    guid: gItems.map(i => i.guid),
+    title: gItems[1].title,
+  }, {
+    guid: gItems[0].guid,
+  });
+  yield iter.forEach(item => items.push(item));
+  checkItems(items, [gItems[0], gItems[1]]);
+});
+
+add_task(function* iterator_items() {
+  
+  let iter = gList.iterator({
+    sort: "guid",
+  });
+  let items = yield iter.items(gItems.length);
+  checkItems(items, gItems);
+  items = yield iter.items(100);
+  checkItems(items, []);
+
+  
+  iter = gList.iterator({
+    sort: "guid",
+  });
+  for (let i = 0; i < gItems.length; i++) {
+    items = yield iter.items(1);
+    checkItems(items, gItems.slice(i, i + 1));
+  }
+  items = yield iter.items(100);
+  checkItems(items, []);
+
+  
+  iter = gList.iterator({
+    sort: "guid",
+    guid: gItems[0].guid,
+  });
+  items = yield iter.items(gItems.length);
+  checkItems(items, [gItems[0]]);
+
+  
+  iter = gList.iterator({
+    sort: "guid",
+    guid: gItems.map(i => i.guid),
+  });
+  items = yield iter.items(gItems.length);
+  checkItems(items, gItems);
+
+  
+  iter = gList.iterator({
+    sort: "guid",
+    guid: gItems.map(i => i.guid),
+    title: gItems[0].title,
+  });
+  items = yield iter.items(gItems.length);
+  checkItems(items, [gItems[0]]);
+
+  
+  iter = gList.iterator({
+    sort: "guid",
+    guid: gItems[1].guid,
+  }, {
+    guid: gItems[0].guid,
+  });
+  items = yield iter.items(gItems.length);
+  checkItems(items, [gItems[0], gItems[1]]);
+
+  
+  iter = gList.iterator({
+    sort: "guid",
+    guid: gItems.map(i => i.guid),
+    title: gItems[1].title,
+  }, {
+    guid: gItems[0].guid,
+  });
+  items = yield iter.items(gItems.length);
+  checkItems(items, [gItems[0], gItems[1]]);
+});
+
+add_task(function* iterator_forEach_promise() {
+  
+  let items = [];
+  let iter = gList.iterator({
+    sort: "guid",
+  });
+  yield iter.forEach(item => {
+    items.push(item);
+    return Promise.resolve();
+  });
+  checkItems(items, gItems);
+
+  
+  
+  items = [];
+  let i = 0;
+  let promises = [];
+  iter = gList.iterator({
+    sort: "guid",
+  });
+  yield iter.forEach(item => {
+    items.push(item);
+    if (i > 0) {
+      Assert.equal(promises[i - 1], null);
+    }
+    let this_i = i++;
+    let promise = new Promise(resolve => {
+      setTimeout(() => {
+        promises[this_i] = null;
+        resolve();
+      }, 0);
+    });
+    promises.push(promise);
+    return promise;
+  });
+  checkItems(items, gItems);
+});
+
+add_task(function* updateItem() {
+  
+  let items = [];
+  yield gList.forEachItem(i => items.push(i), {
+    guid: gItems[0].guid,
+  });
+  Assert.equal(items.length, 1);
+  let item = {
+    _properties: items[0]._properties,
+    list: items[0].list,
+  };
+
+  
+  let newTitle = "updateItem new title";
+  Assert.notEqual(item.title, newTitle);
+  item._properties.title = newTitle;
+  yield gList.updateItem(item);
+
+  
+  items = [];
+  yield gList.forEachItem(i => items.push(i), {
+    guid: gItems[0].guid,
+  });
+  Assert.equal(items.length, 1);
+  item = items[0];
+  Assert.equal(item.title, newTitle);
+});
+
+add_task(function* item_setProperties() {
+  
+  let iter = gList.iterator({
+    sort: "guid",
+  });
+  let item = (yield iter.items(1))[0];
+  Assert.ok(item);
+
+  
+  
+  let oldTitle = item.title;
+  let newTitle = "item_setProperties title 1";
+  Assert.notEqual(oldTitle, newTitle);
+  item.setProperties({ title: newTitle }, false);
+  Assert.equal(item.title, newTitle);
+  iter = gList.iterator({
+    sort: "guid",
+  });
+  let sameItem = (yield iter.items(1))[0];
+  Assert.ok(item === sameItem);
+  Assert.equal(sameItem.title, oldTitle);
+
+  
+  
+  newTitle = "item_setProperties title 2";
+  item.setProperties({ title: newTitle }, true);
+  Assert.equal(item.title, newTitle);
+  iter = gList.iterator({
+    sort: "guid",
+  });
+  sameItem = (yield iter.items(1))[0];
+  Assert.ok(item === sameItem);
+  Assert.equal(sameItem.title, newTitle);
+
+  
+  
+  newTitle = "item_setProperties title 3";
+  item.title = newTitle;
+  Assert.equal(item.title, newTitle);
+  iter = gList.iterator({
+    sort: "guid",
+  });
+  sameItem = (yield iter.items(1))[0];
+  Assert.ok(item === sameItem);
+  Assert.equal(sameItem.title, newTitle);
+});
+
+
+add_task(function* deleteItem() {
+  
+  let iter = gList.iterator({
+    sort: "guid",
+  });
+  let item = (yield iter.items(1))[0];
+  Assert.ok(item);
+  item.delete();
+  gItems[0].list = null;
+  Assert.equal((yield gList.count()), gItems.length - 1);
+  let items = [];
+  yield gList.forEachItem(i => items.push(i), {
+    sort: "guid",
+  });
+  checkItems(items, gItems.slice(1));
+
+  
+  yield gList.deleteItem(gItems[1]);
+  gItems[1].list = null;
+  Assert.equal((yield gList.count()), gItems.length - 2);
+  items = [];
+  yield gList.forEachItem(i => items.push(i), {
+    sort: "guid",
+  });
+  checkItems(items, gItems.slice(2));
+
+  
+  yield gList.deleteItem(gItems[2]);
+  gItems[2].list = null;
+  Assert.equal((yield gList.count()), gItems.length - 3);
+  items = [];
+  yield gList.forEachItem(i => items.push(i), {
+    sort: "guid",
+  });
+  checkItems(items, gItems.slice(3));
+});
+
+function checkItems(actualItems, expectedItems) {
+  Assert.equal(actualItems.length, expectedItems.length);
+  for (let i = 0; i < expectedItems.length; i++) {
+    for (let prop in expectedItems[i]) {
+      if (prop != "list") {
+        Assert.ok(prop in actualItems[i]._properties, prop);
+        Assert.equal(actualItems[i]._properties[prop], expectedItems[i][prop]);
+      }
+    }
+    Assert.equal(actualItems[i].list, expectedItems[i].list);
+  }
+}
+
+function checkError(err) {
+  Assert.ok(err);
+  Assert.ok(err instanceof Cu.getGlobalForObject(Sqlite).Error);
+}
