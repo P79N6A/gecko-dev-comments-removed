@@ -281,11 +281,6 @@ public:
     }
   }
 
-  virtual ~Observer()
-  {
-    Stop();
-  }
-
   void SetDeviceChangeTimer()
   {
     
@@ -297,6 +292,11 @@ public:
   }
 
 private:
+  virtual ~Observer()
+  {
+    Stop();
+  }
+
   
   WindowsGamepadService& mSvc;
   nsCOMPtr<nsITimer> mTimer;
