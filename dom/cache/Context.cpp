@@ -6,6 +6,7 @@
 
 #include "mozilla/dom/cache/Context.h"
 
+#include "mozilla/AutoRestore.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/dom/cache/Action.h"
 #include "mozilla/dom/cache/Manager.h"
@@ -69,7 +70,6 @@ using mozilla::dom::quota::PersistenceType;
 
 
 class Context::QuotaInitRunnable final : public nsIRunnable
-                                       , public Action::Resolver
 {
 public:
   QuotaInitRunnable(Context* aContext,
@@ -103,26 +103,35 @@ public:
     return rv;
   }
 
-  virtual void Resolve(nsresult aRv) override
-  {
-    
-    
-    
-    
-    MOZ_ASSERT(mState == STATE_RUNNING || NS_FAILED(aRv));
-
-    mResult = aRv;
-    mState = STATE_COMPLETING;
-
-    nsresult rv = mInitiatingThread->Dispatch(this, nsIThread::DISPATCH_NORMAL);
-    if (NS_FAILED(rv)) {
-      
-      
-      MOZ_CRASH("Failed to dispatch QuotaInitRunnable to initiating thread.");
-    }
-  }
-
 private:
+  class SyncResolver final : public Action::Resolver
+  {
+  public:
+    SyncResolver()
+      : mResolved(false)
+      , mResult(NS_OK)
+    { }
+
+    virtual void
+    Resolve(nsresult aRv) override
+    {
+      MOZ_ASSERT(!mResolved);
+      mResolved = true;
+      mResult = aRv;
+    };
+
+    bool Resolved() const { return mResolved; }
+    nsresult Result() const { return mResult; }
+
+  private:
+    ~SyncResolver() { }
+
+    bool mResolved;
+    nsresult mResult;
+
+    NS_INLINE_DECL_REFCOUNTING(Context::QuotaInitRunnable::SyncResolver, override)
+  };
+
   ~QuotaInitRunnable()
   {
     MOZ_ASSERT(mState == STATE_COMPLETE);
@@ -162,13 +171,11 @@ private:
   bool mNeedsQuotaRelease;
 
 public:
-  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIRUNNABLE
 };
 
-NS_IMPL_ISUPPORTS_INHERITED(mozilla::dom::cache::Context::QuotaInitRunnable,
-                            Action::Resolver, nsIRunnable);
-
+NS_IMPL_ISUPPORTS(mozilla::dom::cache::Context::QuotaInitRunnable, nsIRunnable);
 
 
 
@@ -209,6 +216,8 @@ Context::QuotaInitRunnable::Run()
   
   
 
+  nsRefPtr<SyncResolver> resolver = new SyncResolver();
+
   switch(mState) {
     
     case STATE_CALL_WAIT_FOR_OPEN_ALLOWED:
@@ -216,8 +225,8 @@ Context::QuotaInitRunnable::Run()
       MOZ_ASSERT(NS_IsMainThread());
       QuotaManager* qm = QuotaManager::GetOrCreate();
       if (!qm) {
-        Resolve(NS_ERROR_FAILURE);
-        return NS_OK;
+        resolver->Resolve(NS_ERROR_FAILURE);
+        break;
       }
 
       nsRefPtr<ManagerId> managerId = mManager->GetManagerId();
@@ -227,8 +236,8 @@ Context::QuotaInitRunnable::Run()
                                              &mQuotaInfo.mOrigin,
                                              &mQuotaInfo.mIsApp);
       if (NS_WARN_IF(NS_FAILED(rv))) {
-        Resolve(rv);
-        return NS_OK;
+        resolver->Resolve(rv);
+        break;
       }
 
       QuotaManager::GetStorageId(PERSISTENCE_TYPE_DEFAULT,
@@ -245,8 +254,8 @@ Context::QuotaInitRunnable::Run()
                                   Nullable<PersistenceType>(PERSISTENCE_TYPE_DEFAULT),
                                   mQuotaInfo.mStorageId, this);
       if (NS_FAILED(rv)) {
-        Resolve(rv);
-        return NS_OK;
+        resolver->Resolve(rv);
+        break;
       }
       break;
     }
@@ -267,8 +276,8 @@ Context::QuotaInitRunnable::Run()
       mState = STATE_ENSURE_ORIGIN_INITIALIZED;
       nsresult rv = qm->IOThread()->Dispatch(this, nsIThread::DISPATCH_NORMAL);
       if (NS_WARN_IF(NS_FAILED(rv))) {
-        Resolve(rv);
-        return NS_OK;
+        resolver->Resolve(rv);
+        break;
       }
       break;
     }
@@ -288,21 +297,21 @@ Context::QuotaInitRunnable::Run()
                                                   mQuotaInfo.mIsApp,
                                                   getter_AddRefs(mQuotaInfo.mDir));
       if (NS_FAILED(rv)) {
-        Resolve(rv);
-        return NS_OK;
+        resolver->Resolve(rv);
+        break;
       }
 
       mState = STATE_RUNNING;
 
       if (!mQuotaIOThreadAction) {
-        Resolve(NS_OK);
-        return NS_OK;
+        resolver->Resolve(NS_OK);
+        break;
       }
 
       
       
-      
-      mQuotaIOThreadAction->RunOnTarget(this, mQuotaInfo);
+      mQuotaIOThreadAction->RunOnTarget(resolver, mQuotaInfo);
+      MOZ_ASSERT(resolver->Resolved());
 
       break;
     }
@@ -331,8 +340,18 @@ Context::QuotaInitRunnable::Run()
     default:
     {
       MOZ_CRASH("unexpected state in QuotaInitRunnable");
-      break;
     }
+  }
+
+  if (resolver->Resolved()) {
+    MOZ_ASSERT(mState == STATE_RUNNING || NS_FAILED(resolver->Result()));
+
+    MOZ_ASSERT(NS_SUCCEEDED(mResult));
+    mResult = resolver->Result();
+
+    mState = STATE_COMPLETING;
+    MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
+      mInitiatingThread->Dispatch(this, nsIThread::DISPATCH_NORMAL)));
   }
 
   return NS_OK;
@@ -355,6 +374,7 @@ public:
     , mInitiatingThread(NS_GetCurrentThread())
     , mState(STATE_INIT)
     , mResult(NS_OK)
+    , mExecutingRunOnTarget(false)
   {
     MOZ_ASSERT(mContext);
     MOZ_ASSERT(mTarget);
@@ -395,14 +415,26 @@ public:
   {
     MOZ_ASSERT(mTarget == NS_GetCurrentThread());
     MOZ_ASSERT(mState == STATE_RUNNING);
+
     mResult = aRv;
-    mState = STATE_COMPLETING;
-    nsresult rv = mInitiatingThread->Dispatch(this, nsIThread::DISPATCH_NORMAL);
-    if (NS_FAILED(rv)) {
-      
-      
-      MOZ_CRASH("Failed to dispatch ActionRunnable to initiating thread.");
+
+    
+    
+    
+    mState = STATE_RESOLVING;
+
+    
+    
+    
+    
+    if (mExecutingRunOnTarget) {
+      return;
     }
+
+    
+    
+    MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
+      mTarget->Dispatch(this, nsIThread::DISPATCH_NORMAL)));
   }
 
 private:
@@ -428,6 +460,7 @@ private:
     STATE_INIT,
     STATE_RUN_ON_TARGET,
     STATE_RUNNING,
+    STATE_RESOLVING,
     STATE_COMPLETING,
     STATE_COMPLETE
   };
@@ -440,13 +473,21 @@ private:
   State mState;
   nsresult mResult;
 
+  
+  bool mExecutingRunOnTarget;
+
 public:
-  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIRUNNABLE
 };
 
-NS_IMPL_ISUPPORTS_INHERITED(mozilla::dom::cache::Context::ActionRunnable,
-                            Action::Resolver, nsIRunnable);
+NS_IMPL_ISUPPORTS(mozilla::dom::cache::Context::ActionRunnable, nsIRunnable);
+
+
+
+
+
+
 
 
 
@@ -483,8 +524,39 @@ Context::ActionRunnable::Run()
     case STATE_RUN_ON_TARGET:
     {
       MOZ_ASSERT(NS_GetCurrentThread() == mTarget);
+      MOZ_ASSERT(!mExecutingRunOnTarget);
+
+      
+      
+      AutoRestore<bool> executingRunOnTarget(mExecutingRunOnTarget);
+      mExecutingRunOnTarget = true;
+
       mState = STATE_RUNNING;
       mAction->RunOnTarget(this, mQuotaInfo);
+
+      
+      
+      
+      if (mState == STATE_RESOLVING) {
+        
+        
+        Run();
+      }
+
+      break;
+    }
+    
+    case STATE_RESOLVING:
+    {
+      MOZ_ASSERT(NS_GetCurrentThread() == mTarget);
+      
+      
+      
+      mState = STATE_COMPLETING;
+      
+      
+      MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
+        mInitiatingThread->Dispatch(this, nsIThread::DISPATCH_NORMAL)));
       break;
     }
     

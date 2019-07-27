@@ -18,21 +18,19 @@ namespace cache {
 class Action
 {
 public:
-  class Resolver : public nsISupports
+  class Resolver
   {
-  protected:
-    
-    virtual ~Resolver() { }
-
   public:
     
     
     
     virtual void Resolve(nsresult aRv) = 0;
 
-    
-    
-    NS_DECL_THREADSAFE_ISUPPORTS
+    NS_IMETHOD_(MozExternalRefCountType)
+    AddRef(void) = 0;
+
+    NS_IMETHOD_(MozExternalRefCountType)
+    Release(void) = 0;
   };
 
   
@@ -85,4 +83,4 @@ private:
 } 
 } 
 
-#endif
+#endif 
