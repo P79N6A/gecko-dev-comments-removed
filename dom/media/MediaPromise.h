@@ -242,12 +242,12 @@ protected:
   }
 
   template<typename ThisType, typename ResolveMethodType, typename RejectMethodType>
-  class ThenValue : public ThenValueBase
+  class MethodThenValue : public ThenValueBase
   {
   public:
-    ThenValue(AbstractThread* aResponseTarget, ThisType* aThisVal,
-              ResolveMethodType aResolveMethod, RejectMethodType aRejectMethod,
-              const char* aCallSite)
+    MethodThenValue(AbstractThread* aResponseTarget, ThisType* aThisVal,
+                    ResolveMethodType aResolveMethod, RejectMethodType aRejectMethod,
+                    const char* aCallSite)
       : ThenValueBase(aResponseTarget, aCallSite)
       , mThisVal(aThisVal)
       , mResolveMethod(aResolveMethod)
@@ -285,6 +285,56 @@ protected:
     RejectMethodType mRejectMethod;
   };
 
+  
+  template<typename ResolveFunction, typename RejectFunction>
+  class FunctionThenValue : public ThenValueBase
+  {
+  public:
+    FunctionThenValue(AbstractThread* aResponseTarget,
+                      ResolveFunction&& aResolveFunction,
+                      RejectFunction&& aRejectFunction,
+                      const char* aCallSite)
+      : ThenValueBase(aResponseTarget, aCallSite)
+    {
+      mResolveFunction.emplace(Move(aResolveFunction));
+      mRejectFunction.emplace(Move(aRejectFunction));
+    }
+
+  virtual void Disconnect() override
+  {
+    ThenValueBase::Disconnect();
+
+    
+    
+    
+    
+    mResolveFunction.reset();
+    mRejectFunction.reset();
+  }
+
+  protected:
+    virtual void DoResolveOrRejectInternal(ResolveOrRejectValue& aValue) override
+    {
+      if (aValue.IsResolve()) {
+        mResolveFunction.ref()(aValue.ResolveValue());
+      } else {
+        mRejectFunction.ref()(aValue.RejectValue());
+      }
+
+      
+      
+      
+      
+      mResolveFunction.reset();
+      mRejectFunction.reset();
+    }
+
+  private:
+    Maybe<ResolveFunction> mResolveFunction; 
+    Maybe<RejectFunction> mRejectFunction; 
+  };
+
+public:
   void ThenInternal(AbstractThread* aResponseThread, ThenValueBase* aThenValue,
                     const char* aCallSite)
   {
@@ -307,8 +357,18 @@ public:
   already_AddRefed<Consumer> RefableThen(AbstractThread* aResponseThread, const char* aCallSite, ThisType* aThisVal,
                                          ResolveMethodType aResolveMethod, RejectMethodType aRejectMethod)
   {
-    nsRefPtr<ThenValueBase> thenValue = new ThenValue<ThisType, ResolveMethodType, RejectMethodType>(
+    nsRefPtr<ThenValueBase> thenValue = new MethodThenValue<ThisType, ResolveMethodType, RejectMethodType>(
                                               aResponseThread, aThisVal, aResolveMethod, aRejectMethod, aCallSite);
+    ThenInternal(aResponseThread, thenValue, aCallSite);
+    return thenValue.forget();
+  }
+
+  template<typename ResolveFunction, typename RejectFunction>
+  already_AddRefed<Consumer> RefableThen(AbstractThread* aResponseThread, const char* aCallSite,
+                                         ResolveFunction&& aResolveFunction, RejectFunction&& aRejectFunction)
+  {
+    nsRefPtr<ThenValueBase> thenValue = new FunctionThenValue<ResolveFunction, RejectFunction>(aResponseThread,
+                                              Move(aResolveFunction), Move(aRejectFunction), aCallSite);
     ThenInternal(aResponseThread, thenValue, aCallSite);
     return thenValue.forget();
   }
@@ -319,6 +379,15 @@ public:
   {
     nsRefPtr<Consumer> c =
       RefableThen(aResponseThread, aCallSite, aThisVal, aResolveMethod, aRejectMethod);
+    return;
+  }
+
+  template<typename ThisType, typename ResolveFunction, typename RejectFunction>
+  void Then(AbstractThread* aResponseThread, const char* aCallSite,
+            ResolveFunction&& aResolveFunction, RejectFunction&& aRejectFunction)
+  {
+    nsRefPtr<Consumer> c =
+      RefableThen(aResponseThread, aCallSite, Move(aResolveFunction), Move(aRejectFunction));
     return;
   }
 
