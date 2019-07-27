@@ -35,8 +35,6 @@ struct OCSPResponseName
 
 const static OCSPResponseName kOCSPResponseNameList[] = {
   { "good",            ORTGood },          
-  { "good-delegated",  ORTDelegatedIncluded}, 
-                                           
   { "revoked",         ORTRevoked},        
   { "unknown",         ORTUnknown},        
                                            
