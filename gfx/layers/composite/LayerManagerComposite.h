@@ -67,6 +67,10 @@ class TextRenderer;
 class CompositingRenderTarget;
 struct FPSState;
 
+static const int kVisualWarningTrigger = 200; 
+static const int kVisualWarningMax = 1000; 
+static const int kVisualWarningDuration = 150; 
+
 class LayerManagerComposite MOZ_FINAL : public LayerManager
 {
   typedef mozilla::gfx::DrawTarget DrawTarget;
@@ -247,7 +251,7 @@ public:
     mozilla::TimeStamp now = TimeStamp::Now();
     if (mWarnTime.IsNull() ||
         severity > mWarningLevel ||
-        mWarnTime + TimeDuration::FromMilliseconds(150) < now) {
+        mWarnTime + TimeDuration::FromMilliseconds(kVisualWarningDuration) < now) {
       mWarnTime = now;
       mWarningLevel = severity;
     }
