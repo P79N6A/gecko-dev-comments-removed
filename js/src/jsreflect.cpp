@@ -2663,10 +2663,6 @@ ASTSerializer::comprehension(ParseNode *pn, MutableHandleValue dst)
                     return false;
             }
             next = next->pn_kid2;
-        } else if (next->isKind(PNK_STATEMENTLIST) && next->pn_count == 0) {
-            
-            NodeVector empty(cx);
-            return builder.arrayExpression(empty, &pn->pn_pos, dst);
         } else {
             break;
         }
