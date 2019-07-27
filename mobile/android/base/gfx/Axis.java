@@ -34,6 +34,13 @@ abstract class Axis {
     private static final String PREF_FLING_ACCEL_INTERVAL = "ui.scrolling.fling_accel_interval";
     private static final String PREF_FLING_ACCEL_BASE_MULTIPLIER = "ui.scrolling.fling_accel_base_multiplier";
     private static final String PREF_FLING_ACCEL_SUPPLEMENTAL_MULTIPLIER = "ui.scrolling.fling_accel_supplemental_multiplier";
+    private static final String PREF_FLING_CURVE_FUNCTION_X1 = "ui.scrolling.fling_curve_function_x1";
+    private static final String PREF_FLING_CURVE_FUNCTION_Y1 = "ui.scrolling.fling_curve_function_y1";
+    private static final String PREF_FLING_CURVE_FUNCTION_X2 = "ui.scrolling.fling_curve_function_x2";
+    private static final String PREF_FLING_CURVE_FUNCTION_Y2 = "ui.scrolling.fling_curve_function_y2";
+    private static final String PREF_FLING_CURVE_THRESHOLD_VELOCITY = "ui.scrolling.fling_curve_threshold_velocity";
+    private static final String PREF_FLING_CURVE_MAXIMUM_VELOCITY = "ui.scrolling.fling_curve_max_velocity";
+    private static final String PREF_FLING_CURVE_NEWTON_ITERATIONS = "ui.scrolling.fling_curve_newton_iterations";
 
     
     private static float FRICTION_SLOW;
@@ -64,6 +71,27 @@ abstract class Axis {
     
     private static float FLING_ACCEL_SUPPLEMENTAL_MULTIPLIER;
 
+    
+    private static float FLING_CURVE_FUNCTION_X1;
+
+    
+    private static float FLING_CURVE_FUNCTION_Y1;
+
+    
+    private static float FLING_CURVE_FUNCTION_X2;
+
+    
+    private static float FLING_CURVE_FUNCTION_Y2;
+
+    
+    private static float FLING_CURVE_THRESHOLD_VELOCITY;
+
+    
+    private static float FLING_CURVE_MAXIMUM_VELOCITY;
+
+    
+    private static int FLING_CURVE_NEWTON_ITERATIONS;
+
     private static float getFloatPref(Map<String, Integer> prefs, String prefName, int defaultValue) {
         Integer value = (prefs == null ? null : prefs.get(prefName));
         return (value == null || value < 0 ? defaultValue : value) / 1000f;
@@ -83,7 +111,14 @@ abstract class Axis {
                                  PREF_SCROLLING_MIN_SCROLLABLE_DISTANCE,
                                  PREF_FLING_ACCEL_INTERVAL,
                                  PREF_FLING_ACCEL_BASE_MULTIPLIER,
-                                 PREF_FLING_ACCEL_SUPPLEMENTAL_MULTIPLIER };
+                                 PREF_FLING_ACCEL_SUPPLEMENTAL_MULTIPLIER,
+                                 PREF_FLING_CURVE_FUNCTION_X1,
+                                 PREF_FLING_CURVE_FUNCTION_Y1,
+                                 PREF_FLING_CURVE_FUNCTION_X2,
+                                 PREF_FLING_CURVE_FUNCTION_Y2,
+                                 PREF_FLING_CURVE_THRESHOLD_VELOCITY,
+                                 PREF_FLING_CURVE_MAXIMUM_VELOCITY,
+                                 PREF_FLING_CURVE_NEWTON_ITERATIONS };
 
         PrefsHelper.getPrefs(prefs, new PrefsHelper.PrefHandlerBase() {
             Map<String, Integer> mPrefs = new HashMap<String, Integer>();
@@ -120,6 +155,14 @@ abstract class Axis {
         FLING_ACCEL_INTERVAL = getIntPref(prefs, PREF_FLING_ACCEL_INTERVAL, 500);
         FLING_ACCEL_BASE_MULTIPLIER = getFloatPref(prefs, PREF_FLING_ACCEL_BASE_MULTIPLIER, 1000);
         FLING_ACCEL_SUPPLEMENTAL_MULTIPLIER = getFloatPref(prefs, PREF_FLING_ACCEL_SUPPLEMENTAL_MULTIPLIER, 1000);
+        FLING_CURVE_FUNCTION_X1 = getFloatPref(prefs, PREF_FLING_CURVE_FUNCTION_X1, 410);
+        FLING_CURVE_FUNCTION_Y1 = getFloatPref(prefs, PREF_FLING_CURVE_FUNCTION_Y1, 0);
+        FLING_CURVE_FUNCTION_X2 = getFloatPref(prefs, PREF_FLING_CURVE_FUNCTION_X2, 800);
+        FLING_CURVE_FUNCTION_Y2 = getFloatPref(prefs, PREF_FLING_CURVE_FUNCTION_Y2, 1000);
+        FLING_CURVE_THRESHOLD_VELOCITY = getFloatPref(prefs, PREF_FLING_CURVE_THRESHOLD_VELOCITY, 30);
+        FLING_CURVE_MAXIMUM_VELOCITY = getFloatPref(prefs, PREF_FLING_CURVE_MAXIMUM_VELOCITY, 70);
+        FLING_CURVE_NEWTON_ITERATIONS = getIntPref(prefs, PREF_FLING_CURVE_NEWTON_ITERATIONS, 5);
+
         Log.i(LOGTAG, "Prefs: " + FRICTION_SLOW + "," + FRICTION_FAST + "," + VELOCITY_THRESHOLD + ","
                 + MAX_EVENT_ACCELERATION + "," + OVERSCROLL_DECEL_RATE + "," + SNAP_LIMIT + "," + MIN_SCROLLABLE_DISTANCE);
     }
@@ -212,8 +255,57 @@ abstract class Axis {
         mLastTouchPos = mTouchPos;
     }
 
+    
+    float getSlope(float t) {
+        float y1 = FLING_CURVE_FUNCTION_Y1;
+        float y2 = FLING_CURVE_FUNCTION_Y2;
+
+        return (3 * y1)
+             + t * (6 * y2 - 12 * y1)
+             + t * t * (9 * y1 - 9 * y2 + 3);
+    }
+
+    
+    float cubicBezier(float p1, float p2, float t) {
+        return (3 * t * (1-t) * (1-t) * p1)
+             + (3 * t * t * (1-t) * p2)
+             + (t * t * t);
+    }
+
+    
+    float flingCurve(float By) {
+        int ni = FLING_CURVE_NEWTON_ITERATIONS;
+        float[] guess = new float[ni];
+        float y1 = FLING_CURVE_FUNCTION_Y1;
+        float y2 = FLING_CURVE_FUNCTION_Y2;
+        guess[0] = By;
+
+        for (int i = 1; i < ni; i++) {
+            guess[i] = guess[i-1] - (cubicBezier(y1, y2, guess[i-1]) - By) / getSlope(guess[i-1]);
+        }
+        
+        float t = guess[4];
+
+        float x1 = FLING_CURVE_FUNCTION_X1;
+        float x2 = FLING_CURVE_FUNCTION_X2;
+        return cubicBezier(x1, x2, t);
+    }
+
     void updateWithTouchAt(float pos, float timeDelta) {
+        float curveVelocityThreshold = FLING_CURVE_THRESHOLD_VELOCITY * GeckoAppShell.getDpi() * MS_PER_FRAME;
+        float maxVelocity = FLING_CURVE_MAXIMUM_VELOCITY * GeckoAppShell.getDpi() * MS_PER_FRAME;
+
         float newVelocity = (mTouchPos - pos) / timeDelta * MS_PER_FRAME;
+
+        if (Math.abs(newVelocity) > curveVelocityThreshold && Math.abs(newVelocity) < maxVelocity) {
+            float sign = Math.signum(newVelocity);
+            newVelocity = newVelocity * sign;
+            float scale = maxVelocity - curveVelocityThreshold;
+            float functInp = (newVelocity - curveVelocityThreshold) / scale;
+            float functOut = flingCurve(functInp);
+            newVelocity = functOut * scale + curveVelocityThreshold;
+            newVelocity = newVelocity * sign;
+        }
 
         mRecentVelocities[mRecentVelocityCount % FLING_VELOCITY_POINTS] = newVelocity;
         mRecentVelocityCount++;
