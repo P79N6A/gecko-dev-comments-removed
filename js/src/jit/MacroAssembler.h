@@ -198,8 +198,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     IonInstrumentation *sps_;
 
     
-    NonAssertingLabel sequentialFailureLabel_;
-    NonAssertingLabel parallelFailureLabel_;
+    NonAssertingLabel failureLabel_;
 
   public:
     
@@ -830,26 +829,10 @@ class MacroAssembler : public MacroAssemblerSpecific
     void newGCString(Register result, Register temp, Label *fail);
     void newGCFatInlineString(Register result, Register temp, Label *fail);
 
-    void newGCThingPar(Register result, Register cx, Register tempReg1, Register tempReg2,
-                       gc::AllocKind allocKind, Label *fail);
-    void newGCTenuredThingPar(Register result, Register cx, Register tempReg1, Register tempReg2,
-                              gc::AllocKind allocKind, Label *fail);
-    void newGCThingPar(Register result, Register cx, Register tempReg1, Register tempReg2,
-                       NativeObject *templateObject, Label *fail);
-    void newGCStringPar(Register result, Register cx, Register tempReg1, Register tempReg2,
-                        Label *fail);
-    void newGCFatInlineStringPar(Register result, Register cx, Register tempReg1, Register tempReg2,
-                                 Label *fail);
-
-
     
     
     void compareStrings(JSOp op, Register left, Register right, Register result,
                         Label *fail);
-
-    
-    
-    void checkInterruptFlagPar(Register tempReg, Label *fail);
 
     
     
@@ -859,7 +842,6 @@ class MacroAssembler : public MacroAssemblerSpecific
 
   private:
     void linkExitFrame();
-    void linkParallelExitFrame(Register pt);
 
   public:
     void enterExitFrame(const VMFunction *f = nullptr) {
@@ -883,20 +865,6 @@ class MacroAssembler : public MacroAssemblerSpecific
         
         movePtr(ImmPtr(GetJitContext()->runtime->addressOfThreadPool()), pool);
     }
-
-    void loadForkJoinContext(Register cx, Register scratch);
-    void loadContext(Register cxReg, Register scratch, ExecutionMode executionMode);
-
-    void enterParallelExitFrameAndLoadContext(const VMFunction *f, Register cx,
-                                              Register scratch);
-
-    void enterExitFrameAndLoadContext(const VMFunction *f, Register cxReg, Register scratch,
-                                      ExecutionMode executionMode);
-
-    void enterFakeParallelExitFrame(Register cx, Register scratch, JitCode *codeVal);
-
-    void enterFakeExitFrame(Register cxReg, Register scratch, ExecutionMode executionMode,
-                            JitCode *codeVal);
 
     void leaveExitFrame() {
         freeStack(ExitFooterFrame::Size());
@@ -1169,8 +1137,8 @@ class MacroAssembler : public MacroAssemblerSpecific
     void spsMarkJit(SPSProfiler *p, Register framePtr, Register temp);
     void spsUnmarkJit(SPSProfiler *p, Register temp);
 
-    void loadBaselineOrIonRaw(Register script, Register dest, ExecutionMode mode, Label *failure);
-    void loadBaselineOrIonNoArgCheck(Register callee, Register dest, ExecutionMode mode, Label *failure);
+    void loadBaselineOrIonRaw(Register script, Register dest, Label *failure);
+    void loadBaselineOrIonNoArgCheck(Register callee, Register dest, Label *failure);
 
     void loadBaselineFramePtr(Register framePtr, Register dest);
 
@@ -1180,20 +1148,16 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 
   private:
-    void handleFailure(ExecutionMode executionMode);
+    void handleFailure();
 
   public:
     Label *exceptionLabel() {
         
-        return &sequentialFailureLabel_;
+        return &failureLabel_;
     }
 
-    Label *failureLabel(ExecutionMode executionMode) {
-        switch (executionMode) {
-          case SequentialExecution: return &sequentialFailureLabel_;
-          case ParallelExecution: return &parallelFailureLabel_;
-          default: MOZ_CRASH("Unexpected execution mode");
-        }
+    Label *failureLabel() {
+        return &failureLabel_;
     }
 
     void finish();

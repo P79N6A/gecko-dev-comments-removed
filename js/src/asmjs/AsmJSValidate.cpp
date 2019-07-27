@@ -8492,7 +8492,7 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
 
     
     masm.loadPtr(Address(callee, JSFunction::offsetOfNativeOrScript()), callee);
-    masm.loadBaselineOrIonNoArgCheck(callee, callee, SequentialExecution, nullptr);
+    masm.loadBaselineOrIonNoArgCheck(callee, callee, nullptr);
 
     
     unsigned argc = exit.sig().args().length();

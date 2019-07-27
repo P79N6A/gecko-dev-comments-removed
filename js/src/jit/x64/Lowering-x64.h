@@ -38,12 +38,6 @@ class LIRGeneratorX64 : public LIRGeneratorX86Shared
 
     bool needTempForPostBarrier() { return false; }
 
-    
-    
-    LDefinition tempForDispatchCache(MIRType outputType = MIRType_None) {
-        return LDefinition::BogusTemp();
-    }
-
   public:
     void visitBox(MBox *box);
     void visitUnbox(MUnbox *unbox);
@@ -55,10 +49,6 @@ class LIRGeneratorX64 : public LIRGeneratorX86Shared
     void visitAsmJSLoadFuncPtr(MAsmJSLoadFuncPtr *ins);
     void visitStoreTypedArrayElementStatic(MStoreTypedArrayElementStatic *ins);
     void visitSubstr(MSubstr *ins);
-
-    static bool allowInlineForkJoinGetSlice() {
-        return true;
-    }
 };
 
 typedef LIRGeneratorX64 LIRGeneratorSpecific;

@@ -166,8 +166,6 @@ IonBuilder::inlineNativeCall(CallInfo &callInfo, JSFunction *target)
     
     if (native == intrinsic_UnsafePutElements)
         return inlineUnsafePutElements(callInfo);
-    if (native == intrinsic_NewDenseArray)
-        return inlineNewDenseArray(callInfo);
 
     
     if (native == intrinsic_UnsafeSetReservedSlot)
@@ -182,13 +180,6 @@ IonBuilder::inlineNativeCall(CallInfo &callInfo, JSFunction *target)
         return inlineUnsafeGetReservedSlot(callInfo, MIRType_String);
     if (native == intrinsic_UnsafeGetBooleanFromReservedSlot)
         return inlineUnsafeGetReservedSlot(callInfo, MIRType_Boolean);
-
-    
-    if (native == intrinsic_ShouldForceSequential ||
-        native == intrinsic_InParallelSection)
-        return inlineForceSequentialOrInParallelSection(callInfo);
-    if (native == intrinsic_ForkJoinGetSlice)
-        return inlineForkJoinGetSlice(callInfo);
 
     
     if (native == intrinsic_IsCallable)
@@ -242,8 +233,6 @@ IonBuilder::inlineNativeCall(CallInfo &callInfo, JSFunction *target)
         return inlineSetTypedObjectOffset(callInfo);
 
     
-    if (native == testingFunc_inParallelSection)
-        return inlineForceSequentialOrInParallelSection(callInfo);
     if (native == testingFunc_bailout)
         return inlineBailout(callInfo);
     if (native == testingFunc_assertFloat32)
@@ -1774,129 +1763,6 @@ IonBuilder::inlineUnsafeSetTypedObjectArrayElement(CallInfo &callInfo,
         return false;
 
     return true;
-}
-
-IonBuilder::InliningStatus
-IonBuilder::inlineForceSequentialOrInParallelSection(CallInfo &callInfo)
-{
-    if (callInfo.constructing())
-        return InliningStatus_NotInlined;
-
-    ExecutionMode executionMode = info().executionMode();
-    switch (executionMode) {
-      case ParallelExecution: {
-        
-        
-        
-        callInfo.setImplicitlyUsedUnchecked();
-        MConstant *ins = MConstant::New(alloc(), BooleanValue(true));
-        current->add(ins);
-        current->push(ins);
-        return InliningStatus_Inlined;
-      }
-
-      default:
-        
-        
-        return InliningStatus_NotInlined;
-    }
-
-    MOZ_CRASH("Invalid execution mode");
-}
-
-IonBuilder::InliningStatus
-IonBuilder::inlineForkJoinGetSlice(CallInfo &callInfo)
-{
-    if (info().executionMode() != ParallelExecution)
-        return InliningStatus_NotInlined;
-
-    
-    
-    MOZ_ASSERT(callInfo.argc() == 1 && !callInfo.constructing());
-    MOZ_ASSERT(callInfo.getArg(0)->type() == MIRType_Int32);
-
-    
-    
-    if (getInlineReturnType() != MIRType_Int32)
-        return InliningStatus_NotInlined;
-
-    callInfo.setImplicitlyUsedUnchecked();
-
-    switch (info().executionMode()) {
-      case ParallelExecution:
-        if (LIRGenerator::allowInlineForkJoinGetSlice()) {
-            MForkJoinGetSlice *getSlice = MForkJoinGetSlice::New(alloc(),
-                                                                 graph().forkJoinContext());
-            current->add(getSlice);
-            current->push(getSlice);
-            return InliningStatus_Inlined;
-        }
-        return InliningStatus_NotInlined;
-
-      default:
-        
-        current->push(callInfo.getArg(0));
-        return InliningStatus_Inlined;
-    }
-
-    MOZ_CRASH("Invalid execution mode");
-}
-
-IonBuilder::InliningStatus
-IonBuilder::inlineNewDenseArray(CallInfo &callInfo)
-{
-    if (callInfo.constructing() || callInfo.argc() != 1)
-        return InliningStatus_NotInlined;
-
-    
-    
-    ExecutionMode executionMode = info().executionMode();
-    switch (executionMode) {
-      case ParallelExecution:
-        return inlineNewDenseArrayForParallelExecution(callInfo);
-      default:
-        return inlineNewDenseArrayForSequentialExecution(callInfo);
-    }
-
-    MOZ_CRASH("unknown ExecutionMode");
-}
-
-IonBuilder::InliningStatus
-IonBuilder::inlineNewDenseArrayForSequentialExecution(CallInfo &callInfo)
-{
-    
-    return InliningStatus_NotInlined;
-}
-
-IonBuilder::InliningStatus
-IonBuilder::inlineNewDenseArrayForParallelExecution(CallInfo &callInfo)
-{
-    
-    
-    
-    types::TemporaryTypeSet *returnTypes = getInlineReturnTypeSet();
-    if (returnTypes->getKnownMIRType() != MIRType_Object)
-        return InliningStatus_NotInlined;
-    if (returnTypes->unknownObject() || returnTypes->getObjectCount() != 1)
-        return InliningStatus_NotInlined;
-    if (callInfo.getArg(0)->type() != MIRType_Int32)
-        return InliningStatus_NotInlined;
-    types::TypeObject *typeObject = returnTypes->getTypeObject(0);
-
-    NativeObject *templateObject = inspector->getTemplateObjectForNative(pc, intrinsic_NewDenseArray);
-    if (!templateObject || templateObject->type() != typeObject)
-        return InliningStatus_NotInlined;
-
-    callInfo.setImplicitlyUsedUnchecked();
-
-    MNewDenseArrayPar *newObject = MNewDenseArrayPar::New(alloc(),
-                                                          graph().forkJoinContext(),
-                                                          callInfo.getArg(0),
-                                                          &templateObject->as<ArrayObject>());
-    current->add(newObject);
-    current->push(newObject);
-
-    return InliningStatus_Inlined;
 }
 
 IonBuilder::InliningStatus

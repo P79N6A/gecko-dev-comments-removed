@@ -135,13 +135,6 @@ static MOZ_CONSTEXPR_VAR FloatRegister FloatArgRegs[NumFloatArgRegs] = { xmm0, x
 #endif
 
 
-
-static MOZ_CONSTEXPR_VAR Register ForkJoinGetSliceReg_cx = rdi;
-static MOZ_CONSTEXPR_VAR Register ForkJoinGetSliceReg_temp0 = rbx;
-static MOZ_CONSTEXPR_VAR Register ForkJoinGetSliceReg_temp1 = rcx;
-static MOZ_CONSTEXPR_VAR Register ForkJoinGetSliceReg_output = rsi;
-
-
 static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegCallee = r10;
 static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegE0 = rax;
 static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegE1 = rdi;

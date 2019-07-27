@@ -61,13 +61,6 @@ static MOZ_CONSTEXPR_VAR Register CallTempReg4 = esi;
 static MOZ_CONSTEXPR_VAR Register CallTempReg5 = edx;
 
 
-
-static MOZ_CONSTEXPR_VAR Register ForkJoinGetSliceReg_cx = edi;
-static MOZ_CONSTEXPR_VAR Register ForkJoinGetSliceReg_temp0 = ebx;
-static MOZ_CONSTEXPR_VAR Register ForkJoinGetSliceReg_temp1 = ecx;
-static MOZ_CONSTEXPR_VAR Register ForkJoinGetSliceReg_output = esi;
-
-
 static MOZ_CONSTEXPR_VAR Register CallTempNonArgRegs[] = { edi, eax, ebx, ecx, esi, edx };
 static const uint32_t NumCallTempNonArgRegs =
     mozilla::ArrayLength(CallTempNonArgRegs);

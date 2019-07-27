@@ -2274,17 +2274,6 @@ MBinaryArithInstruction::inferFallback(BaselineInspector *inspector,
     
     
     
-    
-    
-    if (block()->info().executionMode() == ParallelExecution) {
-        specialization_ = MIRType_Double;
-        setResultType(MIRType_Double);
-        return;
-    }
-
-    
-    
-    
     if (getOperand(0)->emptyResultTypeSet() || getOperand(1)->emptyResultTypeSet()) {
         LifoAlloc *alloc = GetJitContext()->temp->lifoAlloc();
         types::TemporaryTypeSet *types = alloc->new_<types::TemporaryTypeSet>();

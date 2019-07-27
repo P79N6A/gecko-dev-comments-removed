@@ -202,37 +202,6 @@ MIRGraph::unmarkBlocks()
         i->unmark();
 }
 
-MDefinition *
-MIRGraph::forkJoinContext()
-{
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    MBasicBlock *entry = entryBlock();
-    MOZ_ASSERT(entry->info().executionMode() == ParallelExecution);
-
-    MInstruction *start = nullptr;
-    for (MInstructionIterator ins(entry->begin()); ins != entry->end(); ins++) {
-        if (ins->isForkJoinContext())
-            return *ins;
-        else if (ins->isStart())
-            start = *ins;
-    }
-    MOZ_ASSERT(start);
-
-    MForkJoinContext *cx = MForkJoinContext::New(alloc());
-    entry->insertAfter(start, cx);
-    return cx;
-}
-
 MBasicBlock *
 MBasicBlock::New(MIRGraph &graph, BytecodeAnalysis *analysis, CompileInfo &info,
                  MBasicBlock *pred, const BytecodeSite *site, Kind kind)
@@ -807,7 +776,6 @@ MBasicBlock::safeInsertTop(MDefinition *ins, IgnoreTop ignore)
                                     : begin(ins->toInstruction());
     while (insertIter->isBeta() ||
            insertIter->isInterruptCheck() ||
-           insertIter->isInterruptCheckPar() ||
            insertIter->isConstant() ||
            (!(ignore & IgnoreRecover) && insertIter->isRecoveredOnBailout()))
     {

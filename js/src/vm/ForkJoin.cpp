@@ -206,8 +206,6 @@ class ForkJoinOperation
     bool invalidateBailedOutScripts();
     ExecutionStatus sequentialExecution(bool disqualified);
 
-    TrafficLight appendCallTargetsToWorklist(uint32_t index, ExecutionStatus *status);
-    TrafficLight appendCallTargetToWorklist(HandleScript script, ExecutionStatus *status);
     bool addToWorklist(HandleScript script);
     inline bool hasScript(const types::RecompileInfoVector &scripts, JSScript *script);
 }; 
@@ -677,7 +675,7 @@ ForkJoinOperation::compileForParallelExecution(ExecutionStatus *status)
             if (!script->hasParallelIonScript()) {
                 
                 SpewBeginCompile(script);
-                MethodStatus mstatus = CanEnterInParallel(cx_, script);
+                MethodStatus mstatus = Method_Error;
                 SpewEndCompile(mstatus);
 
                 switch (mstatus) {
@@ -727,8 +725,6 @@ ForkJoinOperation::compileForParallelExecution(ExecutionStatus *status)
             
             
             MOZ_ASSERT(script->hasParallelIonScript());
-            if (appendCallTargetsToWorklist(i, status) == RedLight)
-                return RedLight;
         }
 
         
@@ -791,65 +787,6 @@ ForkJoinOperation::compileForParallelExecution(ExecutionStatus *status)
     }
     worklist_.clear();
     worklistData_.clear();
-    return GreenLight;
-}
-
-ForkJoinOperation::TrafficLight
-ForkJoinOperation::appendCallTargetsToWorklist(uint32_t index, ExecutionStatus *status)
-{
-    
-    
-
-    MOZ_ASSERT(worklist_[index]->hasParallelIonScript());
-
-    
-    
-    if (worklistData_[index].calleesEnqueued)
-        return GreenLight;
-    worklistData_[index].calleesEnqueued = true;
-
-    
-    RootedScript target(cx_);
-    IonScript *ion = worklist_[index]->parallelIonScript();
-    for (uint32_t i = 0; i < ion->callTargetEntries(); i++) {
-        target = ion->callTargetList()[i];
-        parallel::Spew(parallel::SpewCompile,
-                       "Adding call target %s:%u",
-                       target->filename(), target->lineno());
-        if (appendCallTargetToWorklist(target, status) == RedLight)
-            return RedLight;
-    }
-
-    return GreenLight;
-}
-
-ForkJoinOperation::TrafficLight
-ForkJoinOperation::appendCallTargetToWorklist(HandleScript script, ExecutionStatus *status)
-{
-    
-    
-
-    MOZ_ASSERT(script);
-
-    
-    if (!script->canParallelIonCompile()) {
-        Spew(SpewCompile, "Skipping %p:%s:%u, canParallelIonCompile() is false",
-             script.get(), script->filename(), script->lineno());
-        return sequentialExecution(true, status);
-    }
-
-    if (script->hasParallelIonScript()) {
-        
-        if (script->parallelIonScript()->bailoutExpected()) {
-            Spew(SpewCompile, "Skipping %p:%s:%u, bailout expected",
-                 script.get(), script->filename(), script->lineno());
-            return sequentialExecution(false, status);
-        }
-    }
-
-    if (!addToWorklist(script))
-        return fatalError(status);
-
     return GreenLight;
 }
 

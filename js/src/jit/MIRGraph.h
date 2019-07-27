@@ -807,12 +807,6 @@ class MIRGraph
         hasTryBlock_ = true;
     }
 
-    
-    
-    
-    
-    MDefinition *forkJoinContext();
-
     void dump(FILE *fp);
     void dump();
 };

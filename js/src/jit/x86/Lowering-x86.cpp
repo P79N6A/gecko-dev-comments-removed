@@ -14,29 +14,6 @@
 using namespace js;
 using namespace js::jit;
 
-LDefinition
-LIRGeneratorX86::tempForDispatchCache(MIRType outputType)
-{
-    
-    
-    
-    
-    
-    if (gen->info().executionMode() != ParallelExecution)
-        return LDefinition::BogusTemp();
-
-    
-    if (outputType == MIRType_None)
-        return temp();
-
-    
-    if (outputType == MIRType_Double)
-        return temp();
-
-    
-    return LDefinition::BogusTemp();
-}
-
 void
 LIRGeneratorX86::useBox(LInstruction *lir, size_t n, MDefinition *mir,
                         LUse::Policy policy, bool useAtStart)

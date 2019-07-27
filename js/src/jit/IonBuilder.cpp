@@ -6262,11 +6262,6 @@ IonBuilder::jsop_initprop(PropertyName *name)
         needsBarrier = false;
     }
 
-    
-    
-    if (info().executionMode() == ParallelExecution)
-        needsBarrier = false;
-
     if (templateObject->isFixedSlot(shape->slot())) {
         MStoreFixedSlot *store = MStoreFixedSlot::New(alloc(), obj, shape->slot(), value);
         if (needsBarrier)
@@ -7148,7 +7143,7 @@ jit::NeedsPostBarrier(CompileInfo &info, MDefinition *value)
 {
     if (!GetJitContext()->runtime->gcNursery().exists())
         return false;
-    return info.executionMode() != ParallelExecution && value->mightBeType(MIRType_Object);
+    return value->mightBeType(MIRType_Object);
 }
 
 bool
@@ -7957,10 +7952,6 @@ IonBuilder::getElemTryCache(bool *emitted, MDefinition *obj, MDefinition *index)
     if (index->mightBeType(MIRType_String) || index->mightBeType(MIRType_Symbol))
         barrier = BarrierKind::TypeSet;
 
-    
-    if (needsToMonitorMissingProperties(types))
-        barrier = BarrierKind::TypeSet;
-
     MInstruction *ins = MGetElementCache::New(alloc(), obj, index, barrier == BarrierKind::TypeSet);
 
     current->add(ins);
@@ -8030,14 +8021,8 @@ IonBuilder::jsop_getelem_dense(MDefinition *obj, MDefinition *index)
 
     
     
-    
-    
-    
-    
     types::TemporaryTypeSet *objTypes = obj->resultTypeSet();
-    ExecutionMode executionMode = info().executionMode();
     bool loadDouble =
-        executionMode == SequentialExecution &&
         barrier == BarrierKind::NoBarrier &&
         loopDepth_ &&
         !readOutOfBounds &&
@@ -8070,37 +8055,6 @@ IonBuilder::jsop_getelem_dense(MDefinition *obj, MDefinition *index)
         
         
         MOZ_ASSERT(knownType == MIRType_Value);
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (executionMode == ParallelExecution &&
-        barrier != BarrierKind::NoBarrier &&
-        types->getKnownMIRType() == MIRType_Int32 &&
-        objTypes &&
-        objTypes->convertDoubleElements(constraints()) == types::TemporaryTypeSet::AlwaysConvertToDoubles)
-    {
-        
-        LifoAlloc *lifoAlloc = alloc().lifoAlloc();
-        types = lifoAlloc->new_<types::TemporaryTypeSet>(lifoAlloc, types::Type::DoubleType());
-        if (!types)
-            return false;
-
-        barrier = BarrierKind::NoBarrier; 
     }
 
     if (knownType != MIRType_Value)
@@ -10025,9 +9979,6 @@ IonBuilder::getPropTryCache(bool *emitted, MDefinition *obj, PropertyName *name,
     if (inspector->hasSeenAccessedGetter(pc))
         barrier = BarrierKind::TypeSet;
 
-    if (needsToMonitorMissingProperties(types))
-        barrier = BarrierKind::TypeSet;
-
     
     
     if (barrier != BarrierKind::TypeSet) {
@@ -10043,14 +9994,7 @@ IonBuilder::getPropTryCache(bool *emitted, MDefinition *obj, PropertyName *name,
                                                      barrier == BarrierKind::TypeSet);
 
     
-    
-    
-    
-    
-    
-    if (obj->type() == MIRType_Object && !invalidatedIdempotentCache() &&
-        info().executionMode() != ParallelExecution)
-    {
+    if (obj->type() == MIRType_Object && !invalidatedIdempotentCache()) {
         if (PropertyReadIsIdempotent(constraints(), obj, name))
             load->setIdempotent();
     }
@@ -10160,17 +10104,6 @@ IonBuilder::getPropTryInnerize(bool *emitted, MDefinition *obj, PropertyName *na
 
     MOZ_ASSERT(*emitted == false);
     return true;
-}
-
-bool
-IonBuilder::needsToMonitorMissingProperties(types::TemporaryTypeSet *types)
-{
-    
-    
-    
-    
-    return info().executionMode() == ParallelExecution &&
-           !types->hasType(types::Type::UndefinedType());
 }
 
 bool
