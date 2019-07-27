@@ -21,7 +21,6 @@
 #include "mozilla/layers/Compositor.h"  
 #include "mozilla/layers/CompositorParent.h" 
 #include "mozilla/layers/LayerMetricsWrapper.h" 
-#include "nsCSSPropList.h"
 #include "nsCoord.h"                    
 #include "nsDebug.h"                    
 #include "nsDeviceContext.h"            
