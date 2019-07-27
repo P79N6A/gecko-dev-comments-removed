@@ -3,7 +3,7 @@
 
 
 
-package org.mozilla.gecko.home;
+package org.mozilla.gecko.widget;
 
 import android.content.Context;
 import android.content.res.TypedArray;
