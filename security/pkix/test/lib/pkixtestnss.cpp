@@ -31,7 +31,6 @@
 #include "nss.h"
 #include "pk11pub.h"
 #include "pkix/pkixnss.h"
-#include "prinit.h"
 #include "secerr.h"
 #include "secitem.h"
 
@@ -52,28 +51,10 @@ SECITEM_FreeItem_true(SECItem* item)
 
 typedef mozilla::pkix::ScopedPtr<SECItem, SECITEM_FreeItem_true> ScopedSECItem;
 
-TestKeyPair* GenerateKeyPairInner();
-
-static ScopedTestKeyPair reusedKeyPair;
-
-PRStatus
-init()
-{
-  if (NSS_NoDB_Init(nullptr) != SECSuccess) {
-    abort();
-  }
-
-  reusedKeyPair = GenerateKeyPairInner();
-  assert(reusedKeyPair);
-
-  return PR_SUCCESS;
-}
-
 Result
 InitNSSIfNeeded()
 {
-  static PRCallOnceType initCallOnce;
-  if (PR_CallOnce(&initCallOnce, init) != PR_SUCCESS) {
+  if (NSS_NoDB_Init(nullptr) != SECSuccess) {
     return MapPRErrorCodeToResult(PR_GetError());
   }
   return Success;
@@ -144,14 +125,16 @@ TestKeyPair* CreateTestKeyPair(const ByteString& spki,
   return new (std::nothrow) NSSTestKeyPair(spki, spk, privateKey);
 }
 
-namespace {
-
 TestKeyPair*
-GenerateKeyPairInner()
+GenerateKeyPair()
 {
+  if (InitNSSIfNeeded() != Success) {
+    return nullptr;
+  }
+
   ScopedPtr<PK11SlotInfo, PK11_FreeSlot> slot(PK11_GetInternalSlot());
   if (!slot) {
-    abort();
+    return nullptr;
   }
 
   
@@ -171,12 +154,12 @@ GenerateKeyPairInner()
       ScopedSECItem
         spkiDER(SECKEY_EncodeDERSubjectPublicKeyInfo(publicKey.get()));
       if (!spkiDER) {
-        break;
+        return nullptr;
       }
       ScopedPtr<CERTSubjectPublicKeyInfo, SECKEY_DestroySubjectPublicKeyInfo>
         spki(SECKEY_CreateSubjectPublicKeyInfo(publicKey.get()));
       if (!spki) {
-        break;
+        return nullptr;
       }
       SECItem spkDER = spki->subjectPublicKey;
       DER_ConvertBitString(&spkDER); 
@@ -201,35 +184,7 @@ GenerateKeyPairInner()
     }
   }
 
-  abort();
-#if defined(_MSC_VER) && (_MSC_VER < 1700)
-  
-  
-  
-  
   return nullptr;
-#endif
-}
-
-} 
-
-TestKeyPair*
-GenerateKeyPair()
-{
-  if (InitNSSIfNeeded() != Success) {
-    abort();
-  }
-  return GenerateKeyPairInner();
-}
-
-TestKeyPair*
-CloneReusedKeyPair()
-{
-  if (InitNSSIfNeeded() != Success) {
-    abort();
-  }
-  assert(reusedKeyPair);
-  return reusedKeyPair->Clone();
 }
 
 ByteString
