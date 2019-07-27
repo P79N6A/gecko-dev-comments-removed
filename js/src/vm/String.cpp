@@ -290,7 +290,24 @@ void
 CopyChars(Latin1Char *dest, const JSLinearString &str)
 {
     AutoCheckCannotGC nogc;
-    PodCopy(dest, str.latin1Chars(nogc), str.length());
+    if (str.hasLatin1Chars()) {
+        PodCopy(dest, str.latin1Chars(nogc), str.length());
+    } else {
+        
+
+
+
+
+
+
+
+        size_t len = str.length();
+        const jschar *chars = str.twoByteChars(nogc);
+        for (size_t i = 0; i < len; i++) {
+            MOZ_ASSERT(chars[i] <= JSString::MAX_LATIN1_CHAR);
+            dest[i] = chars[i];
+        }
+    }
 }
 
 } 
