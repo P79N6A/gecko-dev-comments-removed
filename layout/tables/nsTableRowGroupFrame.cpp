@@ -1357,6 +1357,12 @@ nsTableRowGroupFrame::Reflow(nsPresContext*           aPresContext,
   }
   
   FinishAndStoreOverflow(&aDesiredSize);
+
+  
+  
+  
+  PushDirtyBitToAbsoluteFrames();
+
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
 }
 

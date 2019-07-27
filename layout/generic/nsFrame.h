@@ -331,6 +331,20 @@ public:
                                       const nsHTMLReflowState& aReflowState,
                                       nsReflowStatus&          aStatus,
                                       bool                     aConstrainHeight = true);
+
+  
+
+
+
+
+
+
+
+
+
+
+  void PushDirtyBitToAbsoluteFrames();
+
   virtual bool CanContinueTextRun() const MOZ_OVERRIDE;
 
   virtual bool UpdateOverflow() MOZ_OVERRIDE;
