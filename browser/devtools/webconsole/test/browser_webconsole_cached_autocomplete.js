@@ -34,7 +34,7 @@ let test = asyncTest(function* () {
 
   ok(popup.getItems().length > 0, "'window.' gave a list of suggestions")
 
-  jsterm.execute("window.docfoobar = true");
+  yield jsterm.execute("window.docfoobar = true");
 
   
   input.value = "window.doc";
@@ -56,7 +56,7 @@ let test = asyncTest(function* () {
        return item.label != "docfoobar";
      }), "autocomplete cached results do not contain docfoobar. list has not been updated");
 
-  jsterm.execute("delete window.docfoobar");
+  yield jsterm.execute("delete window.docfoobar");
 
   
   input.value = "window."
@@ -84,7 +84,7 @@ let test = asyncTest(function* () {
   input.setSelectionRange(12, 12);
   yield complete(jsterm.COMPLETE_HINT_ONLY);
 
-  jsterm.execute("window.docfoobar = true");
+  yield jsterm.execute("window.docfoobar = true");
 
   
   input.value = "dump(window.doc)";
@@ -96,7 +96,7 @@ let test = asyncTest(function* () {
        return item.label != "docfoobar";
      }), "autocomplete cached results do not contain docfoobar. list has not been updated");
 
-  jsterm.execute("delete window.docfoobar");
+  yield jsterm.execute("delete window.docfoobar");
 
   jsterm = null;
 });
