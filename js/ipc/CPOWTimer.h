@@ -9,6 +9,7 @@
 #define CPOWTIMER_H
 
 #include "prinrval.h"
+#include "jsapi.h"
 
 
 
@@ -21,11 +22,7 @@
 
 class MOZ_STACK_CLASS CPOWTimer final {
   public:
-    explicit inline CPOWTimer(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
-        : startInterval(PR_IntervalNow())
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
+    explicit inline CPOWTimer(JSContext* cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
     ~CPOWTimer();
 
   private:
@@ -34,7 +31,14 @@ class MOZ_STACK_CLASS CPOWTimer final {
     
 
 
-    PRIntervalTime startInterval;
+
+    JSContext* cx_;
+
+    
+
+
+
+    PRIntervalTime startInterval_;
 };
 
 #endif
