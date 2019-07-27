@@ -302,11 +302,39 @@ nsImageLoadingContent::OnLoadComplete(imgIRequest* aRequest, nsresult aStatus)
   return NS_OK;
 }
 
+static bool
+ImageIsAnimated(imgIRequest* aRequest)
+{
+  if (!aRequest) {
+    return false;
+  }
+
+  nsCOMPtr<imgIContainer> image;
+  if (NS_SUCCEEDED(aRequest->GetImage(getter_AddRefs(image)))) {
+    bool isAnimated = false;
+    nsresult rv = image->GetAnimated(&isAnimated);
+    if (NS_SUCCEEDED(rv) && isAnimated) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void
 nsImageLoadingContent::OnUnlockedDraw()
 {
   if (mVisibleCount > 0) {
     
+    return;
+  }
+
+  
+  
+  
+  
+  
+  if (!ImageIsAnimated(mCurrentRequest) && !ImageIsAnimated(mPendingRequest)) {
     return;
   }
 
