@@ -57,3 +57,43 @@ exports.RecordingUtils.offsetMarkerTimes = function(markers, timeOffset) {
     marker.end -= timeOffset;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+exports.RecordingUtils.getSamplesFromAllocations = function(allocations) {
+  let { sites, timestamps, frames, counts } = allocations;
+  let samples = [];
+
+  for (let i = 0, len = sites.length; i < len; i++) {
+    let site = sites[i];
+    let timestamp = timestamps[i];
+    let frame = frames[site];
+    let count = counts[site];
+
+    let sample = { time: timestamp, frames: [] };
+    samples.push(sample);
+
+    while (frame) {
+      sample.frames.push({
+        location: frame.source + ":" + frame.line + ":" + frame.column,
+        allocations: count
+      });
+      site = frame.parent;
+      frame = frames[site];
+      count = counts[site];
+    }
+
+    sample.frames.reverse();
+  }
+
+  return samples;
+}
