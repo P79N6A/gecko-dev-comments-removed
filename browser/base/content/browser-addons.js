@@ -94,11 +94,6 @@ const gXPInstallObserver = {
                               action, null, options);
       break; }
     case "addon-install-blocked": {
-      if (!options.displayOrigin) {
-        
-        
-        return;
-      }
       messageString = gNavigatorBundle.getFormattedString("xpinstallPromptMessage",
                         [brandShortName]);
 
