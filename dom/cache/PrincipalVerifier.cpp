@@ -46,35 +46,25 @@ PrincipalVerifier::CreateAndDispatch(Listener* aListener,
 }
 
 void
-PrincipalVerifier::AddListener(Listener* aListener)
+PrincipalVerifier::ClearListener()
 {
   AssertIsOnBackgroundThread();
-  MOZ_ASSERT(aListener);
-  MOZ_ASSERT(!mListenerList.Contains(aListener));
-  mListenerList.AppendElement(aListener);
-}
-
-void
-PrincipalVerifier::RemoveListener(Listener* aListener)
-{
-  AssertIsOnBackgroundThread();
-  MOZ_ASSERT(aListener);
-  MOZ_ALWAYS_TRUE(mListenerList.RemoveElement(aListener));
+  MOZ_ASSERT(mListener);
+  mListener = nullptr;
 }
 
 PrincipalVerifier::PrincipalVerifier(Listener* aListener,
                                      PBackgroundParent* aActor,
                                      const PrincipalInfo& aPrincipalInfo)
-  : mActor(BackgroundParent::GetContentParent(aActor))
+  : mListener(aListener)
+  , mActor(BackgroundParent::GetContentParent(aActor))
   , mPrincipalInfo(aPrincipalInfo)
   , mInitiatingThread(NS_GetCurrentThread())
   , mResult(NS_OK)
 {
   AssertIsOnBackgroundThread();
+  MOZ_ASSERT(mListener);
   MOZ_ASSERT(mInitiatingThread);
-  MOZ_ASSERT(aListener);
-
-  mListenerList.AppendElement(aListener);
 }
 
 PrincipalVerifier::~PrincipalVerifier()
@@ -83,7 +73,7 @@ PrincipalVerifier::~PrincipalVerifier()
   
   
 
-  MOZ_ASSERT(mListenerList.IsEmpty());
+  MOZ_ASSERT(!mListener);
 
   
   
@@ -182,13 +172,17 @@ void
 PrincipalVerifier::CompleteOnInitiatingThread()
 {
   AssertIsOnBackgroundThread();
-  ListenerList::ForwardIterator iter(mListenerList);
-  while (iter.HasMore()) {
-    iter.GetNext()->OnPrincipalVerified(mResult, mManagerId);
-  }
 
   
-  MOZ_ASSERT(mListenerList.IsEmpty());
+  
+  if (!mListener) {
+    return;
+  }
+
+  mListener->OnPrincipalVerified(mResult, mManagerId);
+
+  
+  MOZ_ASSERT(!mListener);
 }
 
 void
