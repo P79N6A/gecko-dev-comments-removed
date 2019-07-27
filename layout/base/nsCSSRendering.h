@@ -155,6 +155,10 @@ public:
 
 
 
+
+
+
+
   static void ComputeObjectAnchorPoint(const nsStyleBackground::Position& aPos,
                                        const nsSize& aOriginBounds,
                                        const nsSize& aImageSize,
