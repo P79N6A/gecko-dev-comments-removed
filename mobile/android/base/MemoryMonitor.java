@@ -54,8 +54,8 @@ class MemoryMonitor extends BroadcastReceiver {
     }
 
     private final PressureDecrementer mPressureDecrementer;
-    private int mMemoryPressure;
-    private boolean mStoragePressure;
+    private int mMemoryPressure;                  
+    private volatile boolean mStoragePressure;    
     private boolean mInited;
 
     private MemoryMonitor() {
@@ -166,6 +166,13 @@ class MemoryMonitor extends BroadcastReceiver {
         return true;
     }
 
+    
+
+
+    boolean isUnderStoragePressure() {
+        return mStoragePressure;
+    }
+
     private boolean decreaseMemoryPressure() {
         int newLevel;
         synchronized (this) {
@@ -207,7 +214,7 @@ class MemoryMonitor extends BroadcastReceiver {
         }
     }
 
-    class StorageReducer implements Runnable {
+    private static class StorageReducer implements Runnable {
         private final Context mContext;
         public StorageReducer(final Context context) {
             this.mContext = context;
@@ -221,7 +228,7 @@ class MemoryMonitor extends BroadcastReceiver {
                 return;
             }
 
-            if (!mStoragePressure) {
+            if (!MemoryMonitor.getInstance().isUnderStoragePressure()) {
                 
                 return;
             }
