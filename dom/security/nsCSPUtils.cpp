@@ -409,11 +409,15 @@ nsCSPHostSrc::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected
   
   if (!aWasRedirected && !mPath.IsEmpty()) {
     
-    nsCOMPtr<nsIURI> uri;
-    aUri->CloneIgnoringRef(getter_AddRefs(uri));
-
+    
+    
+    nsCOMPtr<nsIURL> url = do_QueryInterface(aUri);
+    if (!url) {
+      NS_ASSERTION(false, "can't QI into nsIURI");
+      return false;
+    }
     nsAutoCString uriPath;
-    rv = uri->GetPath(uriPath);
+    rv = url->GetFilePath(uriPath);
     NS_ENSURE_SUCCESS(rv, false);
     
     
