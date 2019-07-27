@@ -615,20 +615,76 @@ date_msecFromArgs(JSContext* cx, CallArgs args, double* rval)
 }
 
 
-
-
 static bool
 date_UTC(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    double msec_time;
-    if (!date_msecFromArgs(cx, args, &msec_time))
+    
+    double y;
+    if (!ToNumber(cx, args.get(0), &y))
         return false;
 
-    msec_time = TimeClip(msec_time);
+    
+    double m;
+    if (!ToNumber(cx, args.get(1), &m))
+        return false;
 
-    args.rval().setNumber(msec_time);
+    
+    double dt;
+    if (args.length() >= 3) {
+        if (!ToNumber(cx, args[2], &dt))
+            return false;
+    } else {
+        dt = 1;
+    }
+
+    
+    double h;
+    if (args.length() >= 4) {
+        if (!ToNumber(cx, args[3], &h))
+            return false;
+    } else {
+        h = 0;
+    }
+
+    
+    double min;
+    if (args.length() >= 5) {
+        if (!ToNumber(cx, args[4], &min))
+            return false;
+    } else {
+        min = 0;
+    }
+
+    
+    double s;
+    if (args.length() >= 6) {
+        if (!ToNumber(cx, args[5], &s))
+            return false;
+    } else {
+        s = 0;
+    }
+
+    
+    double milli;
+    if (args.length() >= 7) {
+        if (!ToNumber(cx, args[6], &milli))
+            return false;
+    } else {
+        milli = 0;
+    }
+
+    
+    double yr = y;
+    if (!IsNaN(y)) {
+        double yint = ToInteger(y);
+        if (0 <= yint && yint <= 99)
+            yr = 1900 + yint;
+    }
+
+    
+    args.rval().setDouble(TimeClip(MakeDate(MakeDay(yr, m, dt), MakeTime(h, min, s, milli))));
     return true;
 }
 
