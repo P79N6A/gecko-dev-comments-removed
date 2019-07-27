@@ -276,10 +276,6 @@ this.SessionStore = {
     return SessionStoreInternal.getCurrentState(aUpdateAll);
   },
 
-  reviveCrashedTab(aTab) {
-    return SessionStoreInternal.reviveCrashedTab(aTab);
-  },
-
   
 
 
@@ -1950,35 +1946,6 @@ let SessionStoreInternal = {
     this._updateSessionStartTime(lastSessionState);
 
     LastSession.clear();
-  },
-
-  
-
-
-
-
-
-
-
-  reviveCrashedTab(aTab) {
-    if (!aTab) {
-      throw new Error("SessionStore.reviveCrashedTab expected a tab, but got null.");
-    }
-
-    let browser = aTab.linkedBrowser;
-    if (!this._crashedBrowsers.has(browser)) {
-      return;
-    }
-
-    
-    
-    if (browser.isRemoteBrowser) {
-      throw new Error("SessionStore.reviveCrashedTab: " +
-                      "Somehow a crashed browser is still remote.")
-    }
-
-    let data = TabState.collect(aTab);
-    this.restoreTab(aTab, data);
   },
 
   
