@@ -5,10 +5,6 @@
 
 const { Cc, Ci, Cu, Cr } = require("chrome");
 
-loader.lazyRequireGetter(this, "L10N",
-  "devtools/performance/global", true);
-loader.lazyRequireGetter(this, "CATEGORY_MAPPINGS",
-  "devtools/performance/global", true);
 loader.lazyRequireGetter(this, "JITOptimizations",
   "devtools/performance/jit", true);
 loader.lazyRequireGetter(this, "FrameUtils",
@@ -39,6 +35,7 @@ function ThreadNode(thread, options = {}) {
   this.youngestFrameSamples = 0;
   this.calls = [];
   this.duration = options.endTime - options.startTime;
+  this.nodeType = "Thread";
 
   let { samples, stackTable, frameTable, stringTable, allocationsTable } = thread;
 
@@ -309,12 +306,10 @@ ThreadNode.prototype = {
 
 
 
-  getInfo: function() {
-    return {
-      nodeType: "Thread",
-      functionName: L10N.getStr("table.root"),
-      categoryData: {}
-    };
+
+
+  getInfo: function(options) {
+    return FrameUtils.getFrameInfo(this, options);
   },
 
   
@@ -378,6 +373,7 @@ function FrameNode(frameKey, { location, line, category, allocations, isContent 
   this._stringTable = null;
   this.isMetaCategory = !!isMetaCategory;
   this.category = category;
+  this.nodeType = "Frame";
 }
 
 FrameNode.prototype = {
@@ -449,24 +445,15 @@ FrameNode.prototype = {
 
 
 
-  getInfo: function() {
-    return this._data || this._computeInfo();
-  },
-
-  
 
 
 
-  _computeInfo: function() {
-    let categoryData = CATEGORY_MAPPINGS[this.category] || {};
-    let parsedData = FrameUtils.parseLocation(this.location, this.line, this.column);
-    parsedData.nodeType = "Frame";
-    parsedData.categoryData = categoryData;
-    parsedData.isContent = this.isContent;
-    parsedData.isMetaCategory = this.isMetaCategory;
-    parsedData.hasOptimizations = this.hasOptimizations();
 
-    return this._data = parsedData;
+
+
+
+  getInfo: function(options) {
+    return FrameUtils.getFrameInfo(this, options);
   },
 
   

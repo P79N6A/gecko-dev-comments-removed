@@ -39,6 +39,9 @@ const gNSURLStore = new Map();
 const gInflatedFrameStore = new WeakMap();
 
 
+const gFrameData = new WeakMap();
+
+
 
 
 
@@ -449,6 +452,69 @@ function isNumeric(c) {
   return c >= CHAR_CODE_0 && c <= CHAR_CODE_9;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getFrameInfo (node, options) {
+  let data = gFrameData.get(node);
+
+  if (!data) {
+    if (node.nodeType === "Thread") {
+      data = Object.create(null);
+      data.functionName = global.L10N.getStr("table.root");
+    } else {
+      data = parseLocation(node.location, node.line, node.column);
+      data.hasOptimizations = node.hasOptimizations();
+      data.isContent = node.isContent;
+      data.isMetaCategory = node.isMetaCategory;
+    }
+    data.samples = node.youngestFrameSamples;
+    data.categoryData = global.CATEGORY_MAPPINGS[node.category] || {};
+    data.nodeType = node.nodeType;
+
+    
+    data.name = data.isMetaCategory ? data.categoryData.label : data.functionName || "";
+    data.tooltiptext = data.isMetaCategory ? data.categoryData.label : node.location || "";
+
+    gFrameData.set(node, data);
+  }
+
+  
+  
+  
+  if (options && options.root && !data.COSTS_CALCULATED) {
+    let totalSamples = options.root.samples;
+    let totalDuration = options.root.duration;
+
+    data.selfDuration = node.youngestFrameSamples / totalSamples * totalDuration;
+    data.selfPercentage = node.youngestFrameSamples / totalSamples * 100;
+    data.totalDuration = node.samples / totalSamples * totalDuration;
+    data.totalPercentage = node.samples / totalSamples * 100;
+    data.COSTS_CALCULATED = true;
+  }
+
+  if (options && options.allocations && !data.ALLOCATIONS_CALCULATED) {
+    data.totalAllocations = node.allocations + node.calls.reduce((acc, node) => acc + node.allocations, 0);
+    data.selfAllocations = node.allocations;
+    data.ALLOCATIONS_CALCULATED = true;
+  }
+
+  return data;
+}
+
+exports.getFrameInfo = getFrameInfo;
 exports.computeIsContentAndCategory = computeIsContentAndCategory;
 exports.parseLocation = parseLocation;
 exports.getInflatedFrameCache = getInflatedFrameCache;
