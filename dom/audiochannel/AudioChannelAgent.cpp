@@ -31,7 +31,7 @@ AudioChannelAgent::AudioChannelAgent()
 AudioChannelAgent::~AudioChannelAgent()
 {
   if (mIsRegToService) {
-    StopPlaying();
+    NotifyStoppedPlaying();
   }
 }
 
@@ -110,7 +110,8 @@ AudioChannelAgent::InitInternal(nsIDOMWindow* aWindow, int32_t aChannelType,
 }
 
 
-NS_IMETHODIMP AudioChannelAgent::StartPlaying(float *aVolume, bool* aMuted)
+NS_IMETHODIMP AudioChannelAgent::NotifyStartedPlaying(float *aVolume,
+                                                      bool* aMuted)
 {
   MOZ_ASSERT(aVolume);
   MOZ_ASSERT(aMuted);
@@ -131,7 +132,7 @@ NS_IMETHODIMP AudioChannelAgent::StartPlaying(float *aVolume, bool* aMuted)
 }
 
 
-NS_IMETHODIMP AudioChannelAgent::StopPlaying(void)
+NS_IMETHODIMP AudioChannelAgent::NotifyStoppedPlaying(void)
 {
   if (mAudioChannelType == AUDIO_AGENT_CHANNEL_ERROR ||
       !mIsRegToService) {
