@@ -177,9 +177,7 @@ protected:
   
   
   bool mEnableNPAPISandbox;
-#if defined(MOZ_CONTENT_SANDBOX)
-  bool mMoreStrictContentSandbox;
-#endif
+  bool mMoreStrictSandbox;
 #endif
 #endif 
 

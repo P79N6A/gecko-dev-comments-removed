@@ -1188,6 +1188,10 @@ pref("security.sandbox.windows.log", false);
 pref("dom.ipc.plugins.sandbox.default", false);
 pref("dom.ipc.plugins.sandbox.flash", true);
 
+
+
+pref("dom.ipc.plugins.moreStrictSandbox", false);
+
 #if defined(MOZ_CONTENT_SANDBOX)
 
 
