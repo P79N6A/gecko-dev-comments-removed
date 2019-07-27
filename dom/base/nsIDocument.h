@@ -2198,6 +2198,16 @@ public:
     mMayHaveDOMMutationObservers = true;
   }
 
+  bool MayHaveAnimationObservers()
+  {
+    return mMayHaveAnimationObservers;
+  }
+
+  void SetMayHaveAnimationObservers()
+  {
+    mMayHaveAnimationObservers = true;
+  }
+
   bool IsInSyncOperation()
   {
     return mInSyncOperationCount != 0;
@@ -2693,6 +2703,9 @@ protected:
 
   
   bool mMayHaveDOMMutationObservers;
+
+  
+  bool mMayHaveAnimationObservers;
 
   
   bool mHasMixedActiveContentLoaded;

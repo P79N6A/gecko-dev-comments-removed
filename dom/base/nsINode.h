@@ -33,6 +33,7 @@ class nsAttrAndChildArray;
 class nsChildContentList;
 struct nsCSSSelectorList;
 class nsDOMAttributeMap;
+class nsIAnimationObserver;
 class nsIContent;
 class nsIDocument;
 class nsIDOMElement;
@@ -949,6 +950,9 @@ public:
 
 
 
+
+
+
   void AddMutationObserver(nsIMutationObserver* aMutationObserver)
   {
     nsSlots* s = Slots();
@@ -962,11 +966,28 @@ public:
 
 
 
+
+
+
   void AddMutationObserverUnlessExists(nsIMutationObserver* aMutationObserver)
   {
     nsSlots* s = Slots();
     s->mMutationObservers.AppendElementUnlessExists(aMutationObserver);
   }
+
+  
+
+
+
+
+
+  void AddAnimationObserver(nsIAnimationObserver* aAnimationObserver);
+
+  
+
+
+
+  void AddAnimationObserverUnlessExists(nsIAnimationObserver* aAnimationObserver);
 
   
 
