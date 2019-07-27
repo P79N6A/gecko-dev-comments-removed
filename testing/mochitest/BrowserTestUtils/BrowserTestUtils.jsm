@@ -69,26 +69,24 @@ this.BrowserTestUtils = {
 
 
   openNewBrowserWindow(options) {
-    return new Promise(resolve => {
-      let argString = Cc["@mozilla.org/supports-string;1"].
-                      createInstance(Ci.nsISupportsString);
-      argString.data = "";
-      let features = "chrome,dialog=no,all";
+    let argString = Cc["@mozilla.org/supports-string;1"].
+                    createInstance(Ci.nsISupportsString);
+    argString.data = "";
+    let features = "chrome,dialog=no,all";
 
-      if (options && options.private || false) {
-        features += ",private";
-      }
+    if (options && options.private || false) {
+      features += ",private";
+    }
 
-      let win = Services.ww.openWindow(
-        null, Services.prefs.getCharPref("browser.chromeURL"), "_blank",
-        features, argString);
+    let win = Services.ww.openWindow(
+      null, Services.prefs.getCharPref("browser.chromeURL"), "_blank",
+      features, argString);
 
-      
-      
-      
-      TestUtils.topicObserved("browser-delayed-startup-finished", win).then(
-        () => resolve(win));
-    });
+    
+    
+    
+    return TestUtils.topicObserved("browser-delayed-startup-finished",
+                                   subject => subject == win).then(() => win);
   },
 
   

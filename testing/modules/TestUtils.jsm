@@ -39,13 +39,27 @@ this.TestUtils = {
 
 
 
-  topicObserved(topic, subject=null) {
-    return new Promise(resolve => {
-      Services.obs.addObserver(function observer(observedSubject, topic, data) {
-        if (subject !== null && subject !== observedSubject) { return; }
 
-        Services.obs.removeObserver(observer, topic);
-        resolve(data);
+
+
+
+
+
+  topicObserved(topic, checkFn) {
+    return new Promise((resolve, reject) => {
+      Services.obs.addObserver(function observer(subject, topic, data) {
+        try {
+          try {
+            if (checkFn && !checkFn(subject, data)) {
+              return;
+            }
+          } finally {
+            Services.obs.removeObserver(observer, topic);
+          }
+          resolve([subject, data]);
+        } catch (ex) {
+          reject(ex);
+        }
       }, topic, false);
     });
   },
