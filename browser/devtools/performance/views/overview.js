@@ -22,9 +22,6 @@ const MEMORY_GRAPH_HEIGHT = 30;
 
 
 let OverviewView = {
-  _beginAt: null,
-  _endAt: null,
-
   
 
 
