@@ -8,6 +8,7 @@
 #define DecodedStream_h_
 
 #include "nsRefPtr.h"
+#include "mozilla/UniquePtr.h"
 #include "mozilla/gfx/Point.h"
 
 namespace mozilla {
@@ -92,6 +93,17 @@ public:
   
   nsRefPtr<MediaInputPort> mPort;
   nsRefPtr<OutputStreamListener> mListener;
+};
+
+class DecodedStream {
+public:
+  DecodedStreamData* GetData();
+  void DestroyData();
+  void RecreateData(MediaDecoder* aDecoder, int64_t aInitialTime,
+                    SourceMediaStream* aStream);
+
+private:
+  UniquePtr<DecodedStreamData> mData;
 };
 
 } 

@@ -425,10 +425,11 @@ public:
     GetReentrantMonitor().AssertCurrentThreadIn();
     return mOutputStreams;
   }
+
   DecodedStreamData* GetDecodedStream()
   {
     GetReentrantMonitor().AssertCurrentThreadIn();
-    return mDecodedStream;
+    return mDecodedStream.GetData();
   }
 
   
@@ -1037,7 +1038,7 @@ protected:
   
   
   
-  nsAutoPtr<DecodedStreamData> mDecodedStream;
+  DecodedStream mDecodedStream;
 
   
   
