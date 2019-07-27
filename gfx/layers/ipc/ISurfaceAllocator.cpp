@@ -297,20 +297,26 @@ ISurfaceAllocator::FreeShmemSection(mozilla::layers::ShmemSection& aShmemSection
   ShrinkShmemSectionHeap();
 }
 
+
 void
 ISurfaceAllocator::ShrinkShmemSectionHeap()
 {
-  for (size_t i = 0; i < mUsedShmems.size(); i++) {
+  
+  
+  size_t i = 0;
+  while (i < mUsedShmems.size()) {
     ShmemSectionHeapHeader* header = mUsedShmems[i].get<ShmemSectionHeapHeader>();
     if (header->mAllocatedBlocks == 0) {
       DeallocShmem(mUsedShmems[i]);
 
       
       
-      mUsedShmems[i] = mUsedShmems[mUsedShmems.size() - 1];
+      if (i < mUsedShmems.size() - 1) {
+        mUsedShmems[i] = mUsedShmems[mUsedShmems.size() - 1];
+      }
       mUsedShmems.pop_back();
-      i--;
-      break;
+    } else {
+      i++;
     }
   }
 }
