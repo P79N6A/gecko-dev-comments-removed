@@ -535,6 +535,8 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
         mForwardAnim = anim;
 
         if (animation == ForwardButtonAnimation.HIDE) {
+            
+            
             anim.attach(mTitle,
                         PropertyAnimator.Property.TRANSLATION_X,
                         0);
