@@ -41,10 +41,11 @@ using namespace mozilla::css;
 double
 ElementPropertyTransition::CurrentValuePortion() const
 {
+  MOZ_ASSERT(GetSource(), "Transitions should have source content");
   
   
   
-  MOZ_ASSERT(!IsFinishedTransition(),
+  MOZ_ASSERT(!GetSource()->IsFinishedTransition(),
              "Getting the value portion of a finished transition");
   MOZ_ASSERT(!GetCurrentTimeDuration().IsNull(),
              "Getting the value portion of an animation that's not being "
@@ -56,7 +57,6 @@ ElementPropertyTransition::CurrentValuePortion() const
   
   
   
-  MOZ_ASSERT(GetSource(), "Transitions should have source content");
   AnimationTiming timingToUse = GetSource()->Timing();
   timingToUse.mFillMode = NS_STYLE_ANIMATION_FILL_MODE_BOTH;
   ComputedTiming computedTiming = GetSource()->GetComputedTiming(&timingToUse);
@@ -461,7 +461,7 @@ nsTransitionManager::ConsiderStartingTransition(
   
   
   if (haveCurrentTransition &&
-      !oldPT->IsFinishedTransition() &&
+      !oldPT->GetSource()->IsFinishedTransition() &&
       oldPT->mStartForReversingTest == endValue) {
     
     
@@ -778,7 +778,7 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
       do {
         --i;
         AnimationPlayer* player = collection->mPlayers[i];
-        if (player->IsFinishedTransition()) {
+        if (player->GetSource()->IsFinishedTransition()) {
           
           
           
@@ -814,7 +814,7 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
             
             
             
-            player->SetFinishedTransition();
+            player->GetSource()->SetIsFinishedTransition();
             collection->UpdateAnimationGeneration(mPresContext);
             transitionStartedOrEnded = true;
           } else if ((computedTiming.mPhase ==

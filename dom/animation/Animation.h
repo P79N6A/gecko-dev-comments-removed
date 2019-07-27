@@ -124,6 +124,7 @@ public:
   Animation(nsIDocument* aDocument, const AnimationTiming &aTiming)
     : mDocument(aDocument)
     , mTiming(aTiming)
+    , mIsFinishedTransition(false)
   {
     SetIsDOMBinding();
   }
@@ -181,7 +182,27 @@ public:
   
   static TimeDuration ActiveDuration(const AnimationTiming& aTiming);
 
+  
+  
+  
+  
+  bool IsFinishedTransition() const {
+    return mIsFinishedTransition;
+  }
+
+  void SetIsFinishedTransition() {
+    
+    
+    
+    
+    mIsFinishedTransition = true;
+  }
+
   bool IsCurrent() const {
+    if (IsFinishedTransition()) {
+      return false;
+    }
+
     ComputedTiming computedTiming = GetComputedTiming();
     return computedTiming.mPhase == ComputedTiming::AnimationPhase_Before ||
            computedTiming.mPhase == ComputedTiming::AnimationPhase_Active;
@@ -204,6 +225,10 @@ protected:
   Nullable<TimeDuration> mParentTime;
 
   AnimationTiming mTiming;
+  
+  
+  bool mIsFinishedTransition;
+
   InfallibleTArray<AnimationProperty> mProperties;
 };
 
