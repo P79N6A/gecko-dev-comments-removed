@@ -243,7 +243,6 @@ HttpChannelParent::DoAsyncOpen(  const URIParams&           aURI,
                      aContentPolicyType,
                      nullptr,   
                      nullptr,   
-                     nullptr,   
                      loadFlags,
                      ios);
 

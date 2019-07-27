@@ -17,7 +17,6 @@
 #include "mozilla/Preferences.h"
 #include "nsCrossSiteListenerProxy.h"
 #include "nsFontFaceLoader.h"
-#include "nsIChannelPolicy.h"
 #include "nsIConsoleService.h"
 #include "nsIContentPolicy.h"
 #include "nsIContentSecurityPolicy.h"
@@ -396,16 +395,6 @@ FontFaceSet::StartLoad(gfxUserFontEntry* aUserFontEntry,
 
   nsCOMPtr<nsIChannel> channel;
   
-  nsCOMPtr<nsIChannelPolicy> channelPolicy;
-  nsCOMPtr<nsIContentSecurityPolicy> csp;
-  rv = aUserFontEntry->GetPrincipal()->GetCsp(getter_AddRefs(csp));
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (csp) {
-    channelPolicy = do_CreateInstance("@mozilla.org/nschannelpolicy;1");
-    channelPolicy->SetContentSecurityPolicy(csp);
-    channelPolicy->SetLoadType(nsIContentPolicy::TYPE_FONT);
-  }
-  
   
   
   
@@ -415,7 +404,6 @@ FontFaceSet::StartLoad(gfxUserFontEntry* aUserFontEntry,
                              aUserFontEntry->GetPrincipal(),
                              nsILoadInfo::SEC_NORMAL,
                              nsIContentPolicy::TYPE_FONT,
-                             channelPolicy,
                              loadGroup);
 
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1172,17 +1160,6 @@ FontFaceSet::SyncLoadFontData(gfxUserFontEntry* aFontToLoad,
   nsresult rv;
 
   nsCOMPtr<nsIChannel> channel;
-  
-  nsCOMPtr<nsIChannelPolicy> channelPolicy;
-  nsCOMPtr<nsIContentSecurityPolicy> csp;
-  rv = aFontToLoad->GetPrincipal()->GetCsp(getter_AddRefs(csp));
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (csp) {
-    channelPolicy = do_CreateInstance("@mozilla.org/nschannelpolicy;1");
-    channelPolicy->SetContentSecurityPolicy(csp);
-    channelPolicy->SetLoadType(nsIContentPolicy::TYPE_FONT);
-  }
-
   nsIPresShell* ps = mPresContext->PresShell();
   if (!ps) {
     return NS_ERROR_FAILURE;
@@ -1196,8 +1173,7 @@ FontFaceSet::SyncLoadFontData(gfxUserFontEntry* aFontToLoad,
                              ps->GetDocument(),
                              aFontToLoad->GetPrincipal(),
                              nsILoadInfo::SEC_NORMAL,
-                             nsIContentPolicy::TYPE_FONT,
-                             channelPolicy);
+                             nsIContentPolicy::TYPE_FONT);
 
   NS_ENSURE_SUCCESS(rv, rv);
 

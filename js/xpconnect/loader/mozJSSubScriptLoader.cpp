@@ -114,7 +114,6 @@ mozJSSubScriptLoader::ReadScript(nsIURI *uri, JSContext *cx, JSObject *targetObj
                        nsIContentPolicy::TYPE_OTHER,
                        nullptr,  
                        nullptr,  
-                       nullptr,  
                        nsIRequest::LOAD_NORMAL,
                        serv);
 
