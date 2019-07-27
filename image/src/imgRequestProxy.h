@@ -150,17 +150,17 @@ protected:
   
 
   void OnStartDecode();
-  void OnStartContainer();
+  void OnSizeAvailable();
   void OnFrameUpdate(const nsIntRect* aRect);
-  void OnStopFrame();
-  void OnStopDecode();
+  void OnFrameComplete();
+  void OnDecodeComplete();
   void OnDiscard();
   void OnUnlockedDraw();
   void OnImageHasTransparency();
   void OnImageIsAnimated();
 
   
-  void OnStopRequest(bool aLastPart);
+  void OnLoadComplete(bool aLastPart);
 
   
   void BlockOnload();

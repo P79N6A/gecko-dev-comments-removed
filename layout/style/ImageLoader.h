@@ -100,13 +100,10 @@ private:
   DeregisterRequestEnumerator(nsISupports* aKey, FrameSet* aValue,
                               void* aClosure);
 
-  nsresult OnStartContainer(imgIRequest *aRequest, imgIContainer* aImage);
-  nsresult OnStopFrame(imgIRequest *aRequest);
-  nsresult OnImageIsAnimated(imgIRequest *aRequest);
-  nsresult FrameChanged(imgIRequest* aRequest);
-  
-  
-  
+  nsresult OnSizeAvailable(imgIRequest* aRequest, imgIContainer* aImage);
+  nsresult OnFrameComplete(imgIRequest* aRequest);
+  nsresult OnImageIsAnimated(imgIRequest* aRequest);
+  nsresult OnFrameUpdate(imgIRequest* aRequest);
 
   
   RequestToFrameMap mRequestToFrameMap;

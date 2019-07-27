@@ -734,7 +734,7 @@ void imgRequestProxy::OnStartDecode()
   }
 }
 
-void imgRequestProxy::OnStartContainer()
+void imgRequestProxy::OnSizeAvailable()
 {
   LOG_FUNC(GetImgLog(), "imgRequestProxy::OnStartContainer");
 
@@ -747,7 +747,7 @@ void imgRequestProxy::OnStartContainer()
 
 void imgRequestProxy::OnFrameUpdate(const nsIntRect * rect)
 {
-  LOG_FUNC(GetImgLog(), "imgRequestProxy::OnDataAvailable");
+  LOG_FUNC(GetImgLog(), "imgRequestProxy::OnFrameUpdate");
 
   if (mListener && !mCanceled) {
     
@@ -756,9 +756,9 @@ void imgRequestProxy::OnFrameUpdate(const nsIntRect * rect)
   }
 }
 
-void imgRequestProxy::OnStopFrame()
+void imgRequestProxy::OnFrameComplete()
 {
-  LOG_FUNC(GetImgLog(), "imgRequestProxy::OnStopFrame");
+  LOG_FUNC(GetImgLog(), "imgRequestProxy::OnFrameComplete");
 
   if (mListener && !mCanceled) {
     
@@ -767,9 +767,9 @@ void imgRequestProxy::OnStopFrame()
   }
 }
 
-void imgRequestProxy::OnStopDecode()
+void imgRequestProxy::OnDecodeComplete()
 {
-  LOG_FUNC(GetImgLog(), "imgRequestProxy::OnStopDecode");
+  LOG_FUNC(GetImgLog(), "imgRequestProxy::OnDecodeComplete");
 
   if (mListener && !mCanceled) {
     
@@ -830,7 +830,7 @@ void imgRequestProxy::OnImageIsAnimated()
   }
 }
 
-void imgRequestProxy::OnStopRequest(bool lastPart)
+void imgRequestProxy::OnLoadComplete(bool aLastPart)
 {
 #ifdef PR_LOGGING
   nsAutoCString name;
@@ -852,17 +852,17 @@ void imgRequestProxy::OnStopRequest(bool lastPart)
   
   
   
-  if (lastPart || (mLoadFlags & nsIRequest::LOAD_BACKGROUND) == 0) {
-    RemoveFromLoadGroup(lastPart);
+  if (aLastPart || (mLoadFlags & nsIRequest::LOAD_BACKGROUND) == 0) {
+    RemoveFromLoadGroup(aLastPart);
     
     
-    if (!lastPart) {
+    if (!aLastPart) {
       mLoadFlags |= nsIRequest::LOAD_BACKGROUND;
       AddToLoadGroup();
     }
   }
 
-  if (mListenerIsStrongRef && lastPart) {
+  if (mListenerIsStrongRef && aLastPart) {
     NS_PRECONDITION(mListener, "How did that happen?");
     
     
