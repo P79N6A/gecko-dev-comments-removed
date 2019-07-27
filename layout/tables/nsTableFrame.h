@@ -400,7 +400,9 @@ public:
 #endif
 
   
-  int32_t GetColumnISize(int32_t aColIndex);
+
+
+  nscoord GetColumnISizeFromFirstInFlow(int32_t aColIndex);
 
   
 
