@@ -24,6 +24,7 @@
 
 #define WORKERS_SHUTDOWN_TOPIC "web-workers-shutdown"
 
+class nsIGlobalObject;
 class nsIScriptContext;
 class nsPIDOMWindow;
 
@@ -242,6 +243,15 @@ void
 ThrowDOMExceptionForNSResult(JSContext* aCx, nsresult aNSResult);
 
 } 
+
+nsIGlobalObject*
+GetGlobalObjectForGlobal(JSObject* global);
+
+bool
+IsWorkerGlobal(JSObject* global);
+
+bool
+IsDebuggerGlobal(JSObject* global);
 
 
 

@@ -235,6 +235,10 @@ IsDOMObject(JSObject* obj)
   mozilla::dom::UnwrapObject<mozilla::dom::prototypes::id::Interface,        \
     mozilla::dom::Interface##Binding::NativeType>(obj, value)
 
+#define UNWRAP_WORKER_OBJECT(Interface, obj, value)                           \
+  UnwrapObject<prototypes::id::Interface##_workers,                           \
+    mozilla::dom::Interface##Binding_workers::NativeType>(obj, value)
+
 
 
 
