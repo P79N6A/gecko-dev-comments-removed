@@ -250,7 +250,7 @@ DOMSVGNumberList::InsertItemBefore(DOMSVGNumber& aItem,
   MaybeInsertNullInAnimValListAt(index);
 
   InternalList().InsertItem(index, domItem->ToSVGNumber());
-  MOZ_ALWAYS_TRUE(mItems.InsertElementAt(index, domItem));
+  MOZ_ALWAYS_TRUE(mItems.InsertElementAt(index, domItem, fallible));
 
   
   
@@ -359,7 +359,7 @@ DOMSVGNumberList::MaybeInsertNullInAnimValListAt(uint32_t aIndex)
   MOZ_ASSERT(animVal->mItems.Length() == mItems.Length(),
              "animVal list not in sync!");
 
-  MOZ_ALWAYS_TRUE(animVal->mItems.InsertElementAt(aIndex, nullptr));
+  MOZ_ALWAYS_TRUE(animVal->mItems.InsertElementAt(aIndex, nullptr, fallible));
 
   UpdateListIndicesFromIndex(animVal->mItems, aIndex + 1);
 }

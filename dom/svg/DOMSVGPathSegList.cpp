@@ -388,7 +388,8 @@ DOMSVGPathSegList::InsertItemBefore(DOMSVGPathSeg& aNewItem,
                                                         1 + argCount));
   MOZ_ALWAYS_TRUE(mItems.InsertElementAt(aIndex,
                                          ItemProxy(domItem.get(),
-                                                   internalIndex)));
+                                                   internalIndex),
+                                         fallible));
 
   
   
@@ -542,7 +543,8 @@ DOMSVGPathSegList::
 
   MOZ_ALWAYS_TRUE(animVal->mItems.InsertElementAt(aIndex,
                                                   ItemProxy(nullptr,
-                                                            aInternalIndex)));
+                                                            aInternalIndex),
+                                                  fallible));
 
   animVal->UpdateListIndicesFromIndex(aIndex + 1, 1 + aArgCountForItem);
 }
