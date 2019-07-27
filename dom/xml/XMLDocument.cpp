@@ -435,10 +435,6 @@ XMLDocument::Load(const nsAString& aUrl, ErrorResult& aRv)
 
   
   nsCOMPtr<nsIInterfaceRequestor> req = nsContentUtils::GetSameOriginChecker();
-  if (!req) {
-    aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
-    return false;
-  }
 
   nsCOMPtr<nsIChannel> channel;
   
