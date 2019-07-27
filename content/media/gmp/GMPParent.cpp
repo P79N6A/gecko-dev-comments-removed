@@ -142,7 +142,7 @@ GMPParent::VideoEncoderDestroyed(GMPVideoEncoderParent* aEncoder)
   MOZ_ASSERT(GMPThread() == NS_GetCurrentThread());
 
   
-  NS_WARN_IF(!mVideoEncoders.RemoveElement(aEncoder));
+  unused << NS_WARN_IF(!mVideoEncoders.RemoveElement(aEncoder));
 
   
   
