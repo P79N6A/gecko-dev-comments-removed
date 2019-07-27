@@ -24,6 +24,7 @@
 #include "nsTextFrame.h"
 #include "nsStyleStructInlines.h"
 #include "nsBidiPresUtils.h"
+#include "RubyUtils.h"
 #include <algorithm>
 
 #ifdef DEBUG
@@ -2552,18 +2553,38 @@ nsLineLayout::AdvanceAnnotationInlineBounds(PerFrameData* aPFD,
                                             nscoord aDeltaICoord,
                                             nscoord aDeltaISize)
 {
-  MOZ_ASSERT(aPFD->mFrame->GetType() == nsGkAtoms::rubyTextFrame ||
-             aPFD->mFrame->GetType() == nsGkAtoms::rubyTextContainerFrame);
+  nsIFrame* frame = aPFD->mFrame;
+  nsIAtom* frameType = frame->GetType();
+  MOZ_ASSERT(frameType == nsGkAtoms::rubyTextFrame ||
+             frameType == nsGkAtoms::rubyTextContainerFrame);
   MOZ_ASSERT(aPFD->mSpan, "rt and rtc should have span.");
 
+  PerSpanData* psd = aPFD->mSpan;
   WritingMode lineWM = mRootSpan->mWritingMode;
-  WritingMode frameWM = aPFD->mSpan->mWritingMode;
-  LogicalRect bounds = aPFD->mFrame->GetLogicalRect(aContainerWidth);
-  bounds = bounds.ConvertTo(lineWM, frameWM, aContainerWidth);
+  LogicalRect bounds(lineWM, frame->GetRect(), aContainerWidth);
   bounds.IStart(lineWM) += aDeltaICoord;
-  bounds.ISize(lineWM) += aDeltaISize;
-  aPFD->mBounds = bounds.ConvertTo(frameWM, lineWM, aContainerWidth);
-  aPFD->mFrame->SetRect(frameWM, aPFD->mBounds, aContainerWidth);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  if (frameType == nsGkAtoms::rubyTextFrame ||
+      
+      (psd->mFirstFrame == psd->mLastFrame && psd->mFirstFrame &&
+       !psd->mFirstFrame->mIsLinkedToBase)) {
+    nscoord reservedISize = RubyUtils::GetReservedISize(frame);
+    RubyUtils::SetReservedISize(frame, reservedISize + aDeltaISize);
+  } else {
+    
+    
+    bounds.ISize(lineWM) += aDeltaISize;
+  }
+  aPFD->mBounds = bounds;
+  aPFD->mFrame->SetRect(lineWM, bounds, aContainerWidth);
 }
 
 
