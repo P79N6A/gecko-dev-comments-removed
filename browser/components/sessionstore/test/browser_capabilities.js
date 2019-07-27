@@ -31,7 +31,7 @@ add_task(function docshell_capabilities() {
   yield promiseBrowserLoaded(browser);
 
   
-  SyncHandlers.get(browser).flush();
+  TabState.flush(browser);
 
   
   let disallowedState = JSON.parse(ss.getTabState(tab));
@@ -45,7 +45,7 @@ add_task(function docshell_capabilities() {
   yield promiseTabRestored(tab);
 
   
-  SyncHandlers.get(browser).flush();
+  TabState.flush(browser);
 
   
   state = JSON.parse(ss.getTabState(tab));

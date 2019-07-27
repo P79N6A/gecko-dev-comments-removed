@@ -24,7 +24,7 @@ function runTests() {
   
   let tab = win.gBrowser.addTab("about:mozilla");
   yield whenBrowserLoaded(tab.linkedBrowser);
-  SyncHandlers.get(tab.linkedBrowser).flush();
+  TabState.flush(tab.linkedBrowser);
   win.gBrowser.removeTab(win.gBrowser.tabs[0]);
 
   

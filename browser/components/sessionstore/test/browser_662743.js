@@ -72,7 +72,7 @@ function testTabRestoreData(aFormData, aExpectedValue, aCallback) {
       let value = select.options[select.selectedIndex].value;
 
       
-      SyncHandlers.get(tab.linkedBrowser).flush();
+      TabState.flush(tab.linkedBrowser);
       let restoredTabState = JSON.parse(ss.getTabState(tab));
 
       

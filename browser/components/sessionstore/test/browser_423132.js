@@ -29,7 +29,7 @@ function test() {
 
     whenBrowserLoaded(newWin.gBrowser.selectedBrowser, function() {
       
-      SyncHandlers.get(newWin.gBrowser.selectedBrowser).flush();
+      TabState.flush(newWin.gBrowser.selectedBrowser);
       let state = ss.getWindowState(newWin);
 
       
