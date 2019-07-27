@@ -40,12 +40,13 @@ public class ZoomedView extends FrameLayout implements LayerView.OnMetricsChange
         LayerView.ZoomedViewListener, GeckoEventListener {
     private static final String LOGTAG = "Gecko" + ZoomedView.class.getSimpleName();
 
-    private static final int ZOOM_FACTOR = 2;
+    private static final int DEFAULT_ZOOM_FACTOR = 3;
     private static final int W_CAPTURED_VIEW_IN_PERCENT = 80;
     private static final int H_CAPTURED_VIEW_IN_PERCENT = 50;
     private static final int MINIMUM_DELAY_BETWEEN_TWO_RENDER_CALLS_NS = 1000000;
     private static final int DELAY_BEFORE_NEXT_RENDER_REQUEST_MS = 2000;
 
+    private int zoomFactor;
     private ImageView zoomedImageView;
     private LayerView layerView;
     private int viewWidth;
@@ -184,7 +185,7 @@ public class ZoomedView extends FrameLayout implements LayerView.OnMetricsChange
         final float parentHeight = metrics.getHeight();
         RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) getLayoutParams();
 
-        returnValue.x = (int) ((x / ZOOM_FACTOR) +     
+        returnValue.x = (int) ((x / zoomFactor) +     
 
                         offset.x +               
 
@@ -195,14 +196,14 @@ public class ZoomedView extends FrameLayout implements LayerView.OnMetricsChange
 
 
                         (((float) params.leftMargin) - offset.x) *
-                            ((parentWidth - offset.x - (viewWidth / ZOOM_FACTOR)) /
+                            ((parentWidth - offset.x - (viewWidth / zoomFactor)) /
                             (parentWidth - offset.x - viewWidth)));
 
         
-        returnValue.y = (int) ((y / ZOOM_FACTOR) +
+        returnValue.y = (int) ((y / zoomFactor) +
                         offset.y +
                         (((float) params.topMargin) - offset.y) *
-                            ((parentHeight - offset.y - (viewHeight / ZOOM_FACTOR)) /
+                            ((parentHeight - offset.y - (viewHeight / zoomFactor)) /
                             (parentHeight - offset.y - viewHeight)));
 
         return returnValue;
@@ -219,7 +220,7 @@ public class ZoomedView extends FrameLayout implements LayerView.OnMetricsChange
         final float parentWidth = metrics.getWidth();
         final float parentHeight = metrics.getHeight();
 
-        returnValue.x = (int) ((((x - (viewWidth / (2 * ZOOM_FACTOR)))) /   
+        returnValue.x = (int) ((((x - (viewWidth / (2 * zoomFactor)))) /   
                                                                         
 
                         
@@ -228,14 +229,14 @@ public class ZoomedView extends FrameLayout implements LayerView.OnMetricsChange
 
 
 
-                        ((parentWidth - offset.x - (viewWidth / ZOOM_FACTOR)) /
+                        ((parentWidth - offset.x - (viewWidth / zoomFactor)) /
                         (parentWidth - offset.x - viewWidth)))
 
                 + offset.x);     
 
         
-        returnValue.y = (int) ((((y - (viewHeight / (2 * ZOOM_FACTOR)))) /
-                        ((parentHeight - offset.y - (viewHeight / ZOOM_FACTOR)) /
+        returnValue.y = (int) ((((y - (viewHeight / (2 * zoomFactor)))) /
+                        ((parentHeight - offset.y - (viewHeight / zoomFactor)) /
                         (parentHeight - offset.y - viewHeight)))
                 + offset.y);
 
@@ -296,8 +297,16 @@ public class ZoomedView extends FrameLayout implements LayerView.OnMetricsChange
 
     private void setCapturedSize(ImmutableViewportMetrics metrics) {
         float parentMinSize = Math.min(metrics.getWidth(), metrics.getHeight());
-        viewWidth = (int) (parentMinSize * W_CAPTURED_VIEW_IN_PERCENT / (ZOOM_FACTOR * 100.0)) * ZOOM_FACTOR;
-        viewHeight = (int) (parentMinSize * H_CAPTURED_VIEW_IN_PERCENT / (ZOOM_FACTOR * 100.0)) * ZOOM_FACTOR;
+        
+        
+        
+        
+        zoomFactor = Math.max(DEFAULT_ZOOM_FACTOR, (int) (DEFAULT_ZOOM_FACTOR / metrics.zoomFactor));
+        viewWidth = (int) (parentMinSize * W_CAPTURED_VIEW_IN_PERCENT / (zoomFactor * 100.0)) * zoomFactor;
+        viewHeight = (int) (parentMinSize * H_CAPTURED_VIEW_IN_PERCENT / (zoomFactor * 100.0)) * zoomFactor;
+        
+        
+        viewWidth &= ~0x1;
     }
 
     private void shouldBlockUpdate(boolean shouldBlockUpdate) {
@@ -474,7 +483,7 @@ public class ZoomedView extends FrameLayout implements LayerView.OnMetricsChange
         final int yPos = (int) (origin.y - offset.y) + lastPosition.y;
 
         GeckoEvent e = GeckoEvent.createZoomedViewEvent(tabId, xPos, yPos, viewWidth,
-                viewHeight, ZOOM_FACTOR * metrics.zoomFactor, buffer);
+                viewHeight, zoomFactor * metrics.zoomFactor, buffer);
         GeckoAppShell.sendEventToGecko(e);
     }
 
