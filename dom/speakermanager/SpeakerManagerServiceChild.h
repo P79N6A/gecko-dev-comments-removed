@@ -19,7 +19,15 @@ namespace dom {
 class SpeakerManagerServiceChild : public SpeakerManagerService
 {
 public:
+  
+
+
   static SpeakerManagerService* GetSpeakerManagerService();
+  
+
+
+
+  static SpeakerManagerService* GetOrCreateSpeakerManagerService();
   static void Shutdown();
   virtual void ForceSpeaker(bool aEnable, bool aVisible) MOZ_OVERRIDE;
   virtual bool GetSpeakerStatus() MOZ_OVERRIDE;

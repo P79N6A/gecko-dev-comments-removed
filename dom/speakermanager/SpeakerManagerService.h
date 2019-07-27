@@ -23,8 +23,15 @@ class SpeakerManagerService : public nsIObserver
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
+  
+
 
   static SpeakerManagerService* GetSpeakerManagerService();
+  
+
+
+
+  static SpeakerManagerService* GetOrCreateSpeakerManagerService();
   virtual void ForceSpeaker(bool aEnable, bool aVisible);
   virtual bool GetSpeakerStatus();
   virtual void SetAudioChannelActive(bool aIsActive);
