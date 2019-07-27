@@ -251,13 +251,19 @@ var gPluginHandler = {
         continue;
       }
 
-      let url;
       
+      
+      let url = Services.blocklist.getPluginInfoURL(pluginInfo.pluginTag);
+
       if (pluginInfo.blocklistState == Ci.nsIBlocklistService.STATE_VULNERABLE_UPDATE_AVAILABLE) {
-        url = Services.urlFormatter.formatURLPref("plugins.update.url");
+        if (!url) {
+          url = Services.urlFormatter.formatURLPref("plugins.update.url");
+        }
       }
       else if (pluginInfo.blocklistState != Ci.nsIBlocklistService.STATE_NOT_BLOCKED) {
-        url = Services.blocklist.getPluginBlocklistURL(pluginInfo.pluginTag);
+        if (!url) {
+          url = Services.blocklist.getPluginBlocklistURL(pluginInfo.pluginTag);
+        }
       }
       else {
         url = Services.urlFormatter.formatURLPref("app.support.baseURL") + "clicktoplay";

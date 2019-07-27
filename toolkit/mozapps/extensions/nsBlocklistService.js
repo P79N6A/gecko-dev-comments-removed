@@ -272,6 +272,26 @@ function parseRegExp(aStr) {
 
 
 
+
+
+function hasMatchingPluginName(blockEntry, plugin) {
+  for (let name in blockEntry.matches) {
+    if ((name in plugin) &&
+        typeof(plugin[name]) == "string" &&
+        blockEntry.matches[name].test(plugin[name])) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+
+
+
+
+
+
 function Blocklist() {
   Services.obs.addObserver(this, "xpcom-shutdown", false);
   Services.obs.addObserver(this, "sessionstore-windows-restored", false);
@@ -929,6 +949,7 @@ Blocklist.prototype = {
       matches: {},
       versions: [],
       blockID: null,
+      infoURL: null,
     };
     var hasMatch = false;
     for (var x = 0; x < matchNodes.length; ++x) {
@@ -945,8 +966,12 @@ Blocklist.prototype = {
           
         }
       }
-      if (matchElement.localName == "versionRange")
+      if (matchElement.localName == "versionRange") {
         blockEntry.versions.push(new BlocklistItemData(matchElement));
+      }
+      else if (matchElement.localName == "infoURL") {
+        blockEntry.infoURL = matchElement.textContent;
+      }
     }
     
     if (!hasMatch)
@@ -1032,31 +1057,46 @@ Blocklist.prototype = {
   },
 
   
-  getPluginBlocklistURL: function Blocklist_getPluginBlocklistURL(plugin) {
+
+
+
+
+
+
+  _getPluginBlockEntry: function (plugin) {
     if (!gBlocklistEnabled)
-      return "";
+      return null;
 
     if (!this._isBlocklistLoaded())
       this._loadBlocklist();
 
     for each (let blockEntry in this._pluginEntries) {
-      let matchFailed = false;
-      for (let name in blockEntry.matches) {
-        if (!(name in plugin) ||
-            typeof(plugin[name]) != "string" ||
-            !blockEntry.matches[name].test(plugin[name])) {
-          matchFailed = true;
-          break;
-        }
-      }
-
-      if (!matchFailed) {
-        if(!blockEntry.blockID)
-          return null;
-        else
-          return this._createBlocklistURL(blockEntry.blockID);
+      if (hasMatchingPluginName(blockEntry, plugin)) {
+        return blockEntry;
       }
     }
+
+	  return null;
+  },
+
+  
+  getPluginBlocklistURL: function Blocklist_getPluginBlocklistURL(plugin) {
+    let blockEntry = this._getPluginBlockEntry(plugin);
+    if (!blockEntry || !blockEntry.blockID) {
+      return null;
+    }
+
+    return this._createBlocklistURL(blockEntry.blockID);
+  },
+
+  
+  getPluginInfoURL: function (plugin) {
+    let blockEntry = this._getPluginBlockEntry(plugin);
+    if (!blockEntry || !blockEntry.blockID) {
+      return null;
+    }
+
+    return blockEntry.infoURL;
   },
 
   _blocklistUpdated: function Blocklist_blocklistUpdated(oldAddonEntries, oldPluginEntries) {
