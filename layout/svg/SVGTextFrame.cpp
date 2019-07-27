@@ -900,6 +900,9 @@ TextRenderedRun::GetRunUserSpaceRect(nsPresContext* aContext,
   uint32_t offset, length;
   ConvertOriginalToSkipped(it, mTextFrameContentOffset, mTextFrameContentLength,
                            offset, length);
+  if (length == 0) {
+    return r;
+  }
 
   
   gfxTextRun::Metrics metrics =
@@ -947,6 +950,7 @@ TextRenderedRun::GetRunUserSpaceRect(nsPresContext* aContext,
 
   
   if ((aFlags & eIncludeStroke) &&
+      !fill.IsEmpty() &&
       nsSVGUtils::GetStrokeWidth(mFrame) > 0) {
     r.UnionEdges(nsSVGUtils::PathExtentsToMaxStrokeExtents(fill, mFrame,
                                                            gfxMatrix()));
