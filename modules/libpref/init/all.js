@@ -252,6 +252,9 @@ pref("browser.triple_click_selects_paragraph", true);
 pref("print.shrink-to-fit.scale-limit-percent", 20);
 
 
+pref("mathml.scale_stretchy_operators.enabled", true);
+
+
 pref("media.cache_size", 512000);
 
 

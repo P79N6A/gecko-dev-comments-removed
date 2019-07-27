@@ -1705,6 +1705,11 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
   }
 
   
+  if (!Preferences::GetBool("mathml.scale_stretchy_operators.enabled", true)) {
+    return NS_OK;
+  }
+  
+  
   if (stretchy) {
     if (isVertical) {
       float scale =
