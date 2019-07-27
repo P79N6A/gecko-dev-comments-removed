@@ -97,6 +97,7 @@ public:
                            nsIFrame*       aOldFrame) MOZ_OVERRIDE;
 
   nsresult StartDrag(nsIDOMEvent* aEvent);
+  nsresult StopDrag();
 
   static int32_t GetCurrentPosition(nsIContent* content);
   static int32_t GetMinPosition(nsIContent* content);
@@ -172,6 +173,8 @@ private:
   int32_t mCurPos;
 
   nscoord mChange;
+
+  bool mDragFinished;
 
   
   

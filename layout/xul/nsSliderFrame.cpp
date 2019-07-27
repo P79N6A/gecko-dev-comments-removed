@@ -64,6 +64,7 @@ nsSliderFrame::nsSliderFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
   nsBoxFrame(aPresShell, aContext),
   mCurPos(0),
   mChange(0),
+  mDragFinished(true),
   mUserChanged(false)
 {
 }
@@ -417,6 +418,11 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
     return NS_OK;
   }
 
+  if (!mDragFinished && !isDraggingThumb()) {
+    StopDrag();
+    return NS_OK;
+  }
+
   nsIFrame* scrollbarBox = GetScrollbar();
   nsCOMPtr<nsIContent> scrollbar;
   scrollbar = GetContentOfBox(scrollbarBox);
@@ -487,13 +493,7 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
     case NS_TOUCH_END:
     case NS_MOUSE_BUTTON_UP:
       if (ShouldScrollForEvent(aEvent)) {
-        
-        AddListener();
-        DragThumb(false);
-        if (mChange) {
-          StopRepeat();
-          mChange = 0;
-        }
+        StopDrag();
         
         return nsFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
       }
@@ -876,9 +876,23 @@ nsSliderFrame::StartDrag(nsIDOMEvent* aEvent)
   return NS_OK;
 }
 
+nsresult
+nsSliderFrame::StopDrag()
+{
+  AddListener();
+  DragThumb(false);
+  if (mChange) {
+    StopRepeat();
+    mChange = 0;
+  }
+  return NS_OK;
+}
+
 void
 nsSliderFrame::DragThumb(bool aGrabMouseEvents)
 {
+  mDragFinished = !aGrabMouseEvents;
+
   
   nsIFrame* parent = GetParent();
   if (parent) {
