@@ -340,10 +340,26 @@ pref("dom.w3c_touch_events.safetyY", 120);
 
 #ifdef MOZ_SAFE_BROWSING
 
-pref("browser.safebrowsing.enabled", true);
+pref("browser.safebrowsing.enabled", false);
 
 
-pref("browser.safebrowsing.malware.enabled", true);
+pref("browser.safebrowsing.malware.enabled", false);
+
+pref("browser.safebrowsing.debug", false);
+pref("browser.safebrowsing.updateURL", "https://safebrowsing.google.com/safebrowsing/downloads?client=SAFEBROWSING_ID&appver=%VERSION%&pver=2.2&key=%GOOGLE_API_KEY%");
+pref("browser.safebrowsing.gethashURL", "https://safebrowsing.google.com/safebrowsing/gethash?client=SAFEBROWSING_ID&appver=%VERSION%&pver=2.2");
+pref("browser.safebrowsing.reportURL", "https://safebrowsing.google.com/safebrowsing/report?");
+pref("browser.safebrowsing.reportGenericURL", "http://%LOCALE%.phish-generic.mozilla.com/?hl=%LOCALE%");
+pref("browser.safebrowsing.reportErrorURL", "http://%LOCALE%.phish-error.mozilla.com/?hl=%LOCALE%");
+pref("browser.safebrowsing.reportPhishURL", "http://%LOCALE%.phish-report.mozilla.com/?hl=%LOCALE%");
+pref("browser.safebrowsing.reportMalwareURL", "http://%LOCALE%.malware-report.mozilla.com/?hl=%LOCALE%");
+pref("browser.safebrowsing.reportMalwareErrorURL", "http://%LOCALE%.malware-error.mozilla.com/?hl=%LOCALE%");
+pref("browser.safebrowsing.appRepURL", "https://sb-ssl.google.com/safebrowsing/clientreport/download?key=%GOOGLE_API_KEY%");
+
+pref("browser.safebrowsing.id", "Firefox");
+
+
+pref("urlclassifier.downloadBlockTable", "goog-badbinurl-shavar");
 
 
 pref("browser.safebrowsing.provider.0.updateURL", "https://safebrowsing.google.com/safebrowsing/downloads?client={moz:client}&appver={moz:version}&pver=2.2&key=%GOOGLE_API_KEY%");
@@ -363,10 +379,6 @@ pref("browser.safebrowsing.provider.0.reportMalwareURL", "http://{moz:locale}.ma
 pref("browser.safebrowsing.provider.0.reportMalwareErrorURL", "http://{moz:locale}.malware-error.mozilla.com/?hl={moz:locale}");
 
 
-
-
-
-pref("urlclassifier.alternate_error_page", "blocked");
 
 
 pref("urlclassifier.gethashnoise", 4);

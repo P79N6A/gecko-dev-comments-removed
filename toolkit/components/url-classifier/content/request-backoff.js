@@ -12,9 +12,9 @@
 
 
 
-const HTTP_FOUND                 = 302;
-const HTTP_SEE_OTHER             = 303;
-const HTTP_TEMPORARY_REDIRECT    = 307;
+this.HTTP_FOUND                 = 302;
+this.HTTP_SEE_OTHER             = 303;
+this.HTTP_TEMPORARY_REDIRECT    = 307;
 
 
 
@@ -26,6 +26,7 @@ const HTTP_TEMPORARY_REDIRECT    = 307;
 
 
 
+this.RequestBackoff =
 function RequestBackoff(maxErrors, retryIncrement,
                         maxRequests, requestPeriod,
                         timeoutIncrement, maxTimeout) {

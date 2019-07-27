@@ -20,6 +20,7 @@
 
 
 
+this.G_CryptoHasher =
 function G_CryptoHasher() {
   this.debugZone = "cryptohasher";
   this.hasher_ = null;
@@ -146,7 +147,7 @@ G_CryptoHasher.prototype.toHex_ = function(str) {
 
 
 
-function TEST_G_CryptoHasher() {
+this.TEST_G_CryptoHasher = function TEST_G_CryptoHasher() {
   if (G_GDEBUG) {
     var z = "cryptohasher UNITTEST";
     G_debugService.enableZone(z);

@@ -70,6 +70,11 @@ XPCOMUtils.defineLazyServiceGetter(Services, 'captivePortalDetector',
                                   'nsICaptivePortalDetector');
 #endif
 
+#ifdef MOZ_SAFE_BROWSING
+XPCOMUtils.defineLazyModuleGetter(this, "SafeBrowsing",
+              "resource://gre/modules/SafeBrowsing.jsm");
+#endif
+
 function getContentWindow() {
   return shell.contentBrowser.contentWindow;
 }
@@ -347,6 +352,7 @@ var shell = {
     this.contentBrowser.addEventListener('mozbrowserloadstart', this, true);
     this.contentBrowser.addEventListener('mozbrowserselectionstatechanged', this, true);
     this.contentBrowser.addEventListener('mozbrowserscrollviewchange', this, true);
+    this.contentBrowser.addEventListener('mozbrowsertouchcarettap', this, true);
 
     CustomEventManager.init();
     WebappsHelper.init();
@@ -361,6 +367,11 @@ var shell = {
     ppmm.addMessageListener("sms-handler", this);
     ppmm.addMessageListener("mail-handler", this);
     ppmm.addMessageListener("file-picker", this);
+#ifdef MOZ_SAFE_BROWSING
+    setTimeout(function() {
+      SafeBrowsing.init();
+    }, 5000);
+#endif
   },
 
   stop: function shell_stop() {
@@ -373,6 +384,7 @@ var shell = {
     this.contentBrowser.removeEventListener('mozbrowserloadstart', this, true);
     this.contentBrowser.removeEventListener('mozbrowserselectionstatechanged', this, true);
     this.contentBrowser.removeEventListener('mozbrowserscrollviewchange', this, true);
+    this.contentBrowser.removeEventListener('mozbrowsertouchcarettap', this, true);
     ppmm.removeMessageListener("content-handler", this);
 
     UserAgentOverrides.uninit();
@@ -464,6 +476,12 @@ var shell = {
       case 'mozbrowserscrollviewchange':
         this.sendChromeEvent({
           type: 'scrollviewchange',
+          detail: evt.detail,
+        });
+        break;
+      case 'mozbrowsertouchcarettap':
+        this.sendChromeEvent({
+          type: 'touchcarettap',
           detail: evt.detail,
         });
         break;

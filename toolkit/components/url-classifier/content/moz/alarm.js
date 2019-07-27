@@ -39,6 +39,7 @@
 
 
 
+this.G_Alarm =
 function G_Alarm(callback, delayMS, opt_repeating, opt_maxTimes) {
   this.debugZone = "alarm";
   this.callback_ = callback;
@@ -124,9 +125,17 @@ G_Alarm.prototype.QueryInterface = function(iid) {
 
 
 
+this.G_ConditionalAlarm =
 function G_ConditionalAlarm(callback, delayMS, opt_repeating, opt_maxTimes) {
   G_Alarm.call(this, callback, delayMS, opt_repeating, opt_maxTimes);
   this.debugZone = "conditionalalarm";
+}
+
+G_ConditionalAlarm.inherits = function(parentCtor) {
+  var tempCtor = function(){};
+  tempCtor.prototype = parentCtor.prototype;
+  this.superClass_ = parentCtor.prototype;
+  this.prototype = new tempCtor();
 }
 
 G_ConditionalAlarm.inherits(G_Alarm);
