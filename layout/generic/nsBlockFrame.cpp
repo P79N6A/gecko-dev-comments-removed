@@ -1557,7 +1557,7 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
   }
   else if (NS_FRAME_IS_COMPLETE(aState.mReflowStatus)) {
     nscoord contentBSize = blockEndEdgeOfChildren - borderPadding.BStart(wm);
-    nscoord autoBSize = aReflowState.ApplyMinMaxHeight(contentBSize);
+    nscoord autoBSize = aReflowState.ApplyMinMaxBSize(contentBSize);
     if (autoBSize != contentBSize) {
       
       
