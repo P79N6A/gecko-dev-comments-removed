@@ -14,6 +14,7 @@
 #include "mozilla/dom/cache/OfflineStorage.h"
 #include "mozilla/dom/quota/OriginOrPatternString.h"
 #include "mozilla/dom/quota/QuotaManager.h"
+#include "mozIStorageConnection.h"
 #include "nsIFile.h"
 #include "nsIPrincipal.h"
 #include "nsIRunnable.h"
@@ -22,6 +23,7 @@
 namespace {
 
 using mozilla::dom::Nullable;
+using mozilla::dom::cache::Action;
 using mozilla::dom::cache::QuotaInfo;
 using mozilla::dom::quota::Client;
 using mozilla::dom::quota::OriginOrPatternString;
@@ -54,6 +56,22 @@ private:
   const QuotaInfo mQuotaInfo;
 };
 
+class NullAction final : public Action
+{
+public:
+  NullAction()
+  {
+  }
+
+  virtual void
+  RunOnTarget(Resolver* aResolver, const QuotaInfo&, Data*) override
+  {
+    
+    MOZ_ASSERT(aResolver);
+    aResolver->Resolve(NS_OK);
+  }
+};
+
 } 
 
 namespace mozilla {
@@ -65,6 +83,45 @@ using mozilla::dom::quota::OriginOrPatternString;
 using mozilla::dom::quota::QuotaManager;
 using mozilla::dom::quota::PERSISTENCE_TYPE_DEFAULT;
 using mozilla::dom::quota::PersistenceType;
+
+class Context::Data final : public Action::Data
+{
+public:
+  explicit Data(nsIThread* aTarget)
+    : mTarget(aTarget)
+  {
+    MOZ_ASSERT(mTarget);
+  }
+
+  virtual mozIStorageConnection*
+  GetConnection() const
+  {
+    MOZ_ASSERT(mTarget == NS_GetCurrentThread());
+    return mConnection;
+  }
+
+  virtual void
+  SetConnection(mozIStorageConnection* aConn) override
+  {
+    MOZ_ASSERT(mTarget == NS_GetCurrentThread());
+    MOZ_ASSERT(!mConnection);
+    mConnection = aConn;
+    MOZ_ASSERT(mConnection);
+  }
+
+private:
+  ~Data()
+  {
+    if (mConnection) {
+      NS_ProxyRelease(mTarget, mConnection);
+    }
+  }
+
+  nsCOMPtr<nsIThread> mTarget;
+  nsCOMPtr<mozIStorageConnection> mConnection;
+
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Context::Data)
+};
 
 
 
@@ -336,7 +393,7 @@ Context::QuotaInitRunnable::Run()
 
       
       
-      mQuotaIOThreadAction->RunOnTarget(resolver, mQuotaInfo);
+      mQuotaIOThreadAction->RunOnTarget(resolver, mQuotaInfo, nullptr);
       MOZ_ASSERT(resolver->Resolved());
 
       break;
@@ -391,9 +448,10 @@ class Context::ActionRunnable final : public nsIRunnable
                                     , public Context::Activity
 {
 public:
-  ActionRunnable(Context* aContext, nsIEventTarget* aTarget, Action* aAction,
-                 const QuotaInfo& aQuotaInfo)
+  ActionRunnable(Context* aContext, Data* aData, nsIEventTarget* aTarget,
+                 Action* aAction, const QuotaInfo& aQuotaInfo)
     : mContext(aContext)
+    , mData(aData)
     , mTarget(aTarget)
     , mAction(aAction)
     , mQuotaInfo(aQuotaInfo)
@@ -403,6 +461,7 @@ public:
     , mExecutingRunOnTarget(false)
   {
     MOZ_ASSERT(mContext);
+    
     MOZ_ASSERT(mTarget);
     MOZ_ASSERT(mAction);
     MOZ_ASSERT(mQuotaInfo.mDir);
@@ -492,6 +551,7 @@ private:
   };
 
   nsRefPtr<Context> mContext;
+  nsRefPtr<Data> mData;
   nsCOMPtr<nsIEventTarget> mTarget;
   nsRefPtr<Action> mAction;
   const QuotaInfo mQuotaInfo;
@@ -558,7 +618,9 @@ Context::ActionRunnable::Run()
       mExecutingRunOnTarget = true;
 
       mState = STATE_RUNNING;
-      mAction->RunOnTarget(this, mQuotaInfo);
+      mAction->RunOnTarget(this, mQuotaInfo, mData);
+
+      mData = nullptr;
 
       
       
@@ -667,8 +729,20 @@ void
 Context::ThreadsafeHandle::AllowToCloseOnOwningThread()
 {
   MOZ_ASSERT(mOwningThread == NS_GetCurrentThread());
+
   
   
+  
+  
+
+  
+  
+  
+  
+  if (mStrongRef) {
+    mStrongRef->DoomTargetData();
+  }
+
   
   
   mStrongRef = nullptr;
@@ -701,11 +775,12 @@ Context::ThreadsafeHandle::ContextDestroyed(Context* aContext)
 
 
 already_AddRefed<Context>
-Context::Create(Manager* aManager, Action* aQuotaIOThreadAction,
-                Context* aOldContext)
+Context::Create(Manager* aManager, nsIThread* aTarget,
+                Action* aQuotaIOThreadAction, Context* aOldContext)
 {
-  nsRefPtr<Context> context = new Context(aManager);
+  nsRefPtr<Context> context = new Context(aManager, aTarget);
 
+  
   
   context->mInitRunnable = new QuotaInitRunnable(context, aManager,
                                                  aQuotaIOThreadAction);
@@ -719,18 +794,19 @@ Context::Create(Manager* aManager, Action* aQuotaIOThreadAction,
   return context.forget();
 }
 
-Context::Context(Manager* aManager)
+Context::Context(Manager* aManager, nsIThread* aTarget)
   : mManager(aManager)
+  , mTarget(aTarget)
+  , mData(new Data(aTarget))
   , mState(STATE_CONTEXT_PREINIT)
 {
   MOZ_ASSERT(mManager);
 }
 
 void
-Context::Dispatch(nsIEventTarget* aTarget, Action* aAction)
+Context::Dispatch(Action* aAction)
 {
   NS_ASSERT_OWNINGTHREAD(Context);
-  MOZ_ASSERT(aTarget);
   MOZ_ASSERT(aAction);
 
   MOZ_ASSERT(mState != STATE_CONTEXT_CANCELED);
@@ -739,13 +815,12 @@ Context::Dispatch(nsIEventTarget* aTarget, Action* aAction)
   } else if (mState == STATE_CONTEXT_INIT ||
              mState == STATE_CONTEXT_PREINIT) {
     PendingAction* pending = mPendingActions.AppendElement();
-    pending->mTarget = aTarget;
     pending->mAction = aAction;
     return;
   }
 
   MOZ_ASSERT(STATE_CONTEXT_READY);
-  DispatchAction(aTarget, aAction);
+  DispatchAction(aAction);
 }
 
 void
@@ -863,12 +938,17 @@ Context::Start()
 }
 
 void
-Context::DispatchAction(nsIEventTarget* aTarget, Action* aAction)
+Context::DispatchAction(Action* aAction, bool aDoomData)
 {
   NS_ASSERT_OWNINGTHREAD(Context);
 
   nsRefPtr<ActionRunnable> runnable =
-    new ActionRunnable(this, aTarget, aAction, mQuotaInfo);
+    new ActionRunnable(this, mData, mTarget, aAction, mQuotaInfo);
+
+  if (aDoomData) {
+    mData = nullptr;
+  }
+
   nsresult rv = runnable->Dispatch();
   if (NS_FAILED(rv)) {
     
@@ -908,7 +988,7 @@ Context::OnQuotaInit(nsresult aRv, const QuotaInfo& aQuotaInfo,
   mState = STATE_CONTEXT_READY;
 
   for (uint32_t i = 0; i < mPendingActions.Length(); ++i) {
-    DispatchAction(mPendingActions[i].mTarget, mPendingActions[i].mAction);
+    DispatchAction(mPendingActions[i].mAction);
   }
   mPendingActions.Clear();
 }
@@ -949,6 +1029,26 @@ Context::SetNextContext(Context* aNextContext)
   MOZ_ASSERT(aNextContext);
   MOZ_ASSERT(!mNextContext);
   mNextContext = aNextContext;
+}
+
+void
+Context::DoomTargetData()
+{
+  NS_ASSERT_OWNINGTHREAD(Context);
+  MOZ_ASSERT(mData);
+
+  
+  
+  
+
+  
+  
+  
+  
+  nsRefPtr<Action> action = new NullAction();
+  DispatchAction(action, true );
+
+  MOZ_ASSERT(!mData);
 }
 
 } 

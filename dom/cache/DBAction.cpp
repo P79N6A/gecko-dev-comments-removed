@@ -35,7 +35,8 @@ DBAction::~DBAction()
 }
 
 void
-DBAction::RunOnTarget(Resolver* aResolver, const QuotaInfo& aQuotaInfo)
+DBAction::RunOnTarget(Resolver* aResolver, const QuotaInfo& aQuotaInfo,
+                      Data* aOptionalData)
 {
   MOZ_ASSERT(!NS_IsMainThread());
   MOZ_ASSERT(aResolver);
@@ -53,19 +54,34 @@ DBAction::RunOnTarget(Resolver* aResolver, const QuotaInfo& aQuotaInfo)
     return;
   }
 
-  rv = dbDir->Append(NS_LITERAL_STRING("cache"));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aResolver->Resolve(rv);
-    return;
+  nsCOMPtr<mozIStorageConnection> conn;
+
+  
+  if (aOptionalData) {
+    conn = aOptionalData->GetConnection();
   }
 
-  nsCOMPtr<mozIStorageConnection> conn;
-  rv = OpenConnection(aQuotaInfo, dbDir, getter_AddRefs(conn));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aResolver->Resolve(rv);
-    return;
+  
+  if (!conn) {
+    rv = dbDir->Append(NS_LITERAL_STRING("cache"));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      aResolver->Resolve(rv);
+      return;
+    }
+
+    rv = OpenConnection(aQuotaInfo, dbDir, getter_AddRefs(conn));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      aResolver->Resolve(rv);
+      return;
+    }
+    MOZ_ASSERT(conn);
+
+    
+    
+    if (aOptionalData) {
+      aOptionalData->SetConnection(conn);
+    }
   }
-  MOZ_ASSERT(conn);
 
   RunWithDBOnTarget(aResolver, aQuotaInfo, dbDir, conn);
 }

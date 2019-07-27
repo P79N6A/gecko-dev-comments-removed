@@ -11,6 +11,8 @@
 #include "mozilla/dom/cache/Types.h"
 #include "nsISupportsImpl.h"
 
+class mozIStorageConnection;
+
 namespace mozilla {
 namespace dom {
 namespace cache {
@@ -37,8 +39,23 @@ public:
   
   
   
+  class Data
+  {
+  public:
+    virtual mozIStorageConnection*
+    GetConnection() const = 0;
+
+    virtual void
+    SetConnection(mozIStorageConnection* aConn) = 0;
+  };
+
   
-  virtual void RunOnTarget(Resolver* aResolver, const QuotaInfo& aQuotaInfo) = 0;
+  
+  
+  
+  
+  virtual void RunOnTarget(Resolver* aResolver, const QuotaInfo& aQuotaInfo,
+                           Data* aOptionalData) = 0;
 
   
   
