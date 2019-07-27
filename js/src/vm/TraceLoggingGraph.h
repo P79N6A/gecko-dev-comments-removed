@@ -200,10 +200,6 @@ class TraceLoggerGraph
     
     void log(ContinuousSpace<EventEntry> &events);
 
-    
-    void disable(uint64_t timestamp);
-    void enable();
-
   private:
     bool failed;
     bool enabled;
@@ -251,6 +247,10 @@ class TraceLoggerGraph
 
     
     void logTimestamp(uint32_t id, uint64_t timestamp);
+
+    
+    
+    void disable(uint64_t timestamp);
 };
 
 #endif 
