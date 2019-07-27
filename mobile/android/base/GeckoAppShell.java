@@ -100,6 +100,7 @@ import android.os.Message;
 import android.os.MessageQueue;
 import android.os.SystemClock;
 import android.os.Vibrator;
+import android.provider.Browser;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -1178,6 +1179,11 @@ public class GeckoAppShell
         if (intent != null) {
             
             intent.addCategory(Intent.CATEGORY_BROWSABLE);
+
+            
+            
+            
+            intent.putExtra(Browser.EXTRA_APPLICATION_ID, GeckoApp.class.getPackage().getName());
         }
 
         return intent;
