@@ -829,6 +829,7 @@ let MozLoopServiceInternal = {
 
 
 
+
   openChatWindow: function(conversationWindowData) {
     
     let origin = this.loopServerUri;
@@ -913,7 +914,9 @@ let MozLoopServiceInternal = {
       }.bind(this), true);
     };
 
-    Chat.open(null, origin, "", url, undefined, undefined, callback);
+    if (!Chat.open(null, origin, "", url, undefined, undefined, callback)) {
+      return null;
+    }
     return windowId;
   },
 
