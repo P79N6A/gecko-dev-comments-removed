@@ -324,7 +324,22 @@ NS_NewChannelInternal(nsIChannel**           outChannel,
                       nsLoadFlags            aLoadFlags = nsIRequest::LOAD_NORMAL,
                       nsIIOService*          aIoService = nullptr)
 {
-  MOZ_ASSERT(aLoadInfo, "Can not create a channel without a loadInfo");
+  
+  
+  
+  if (!aLoadInfo) {
+    return NS_NewChannelInternal(outChannel,
+                                 aUri,
+                                 nullptr, 
+                                 nullptr, 
+                                 nullptr, 
+                                 nsILoadInfo::SEC_NORMAL,
+                                 nsIContentPolicy::TYPE_OTHER,
+                                 aLoadGroup,
+                                 aCallbacks,
+                                 aLoadFlags,
+                                 aIoService);
+  }
   nsresult rv = NS_NewChannelInternal(outChannel,
                                       aUri,
                                       aLoadInfo->LoadingNode(),
