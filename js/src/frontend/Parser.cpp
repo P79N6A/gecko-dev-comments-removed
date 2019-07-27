@@ -3626,6 +3626,25 @@ Parser<FullParseHandler>::letDeclaration()
 
 
 
+
+
+
+
+
+
+
+                if (options().selfHostingMode &&
+                    !pc->sc->isFunctionBox() &&
+                    stmt == pc->topScopeStmt)
+                {
+                    report(ParseError, false, null(), JSMSG_SELFHOSTED_TOP_LEVEL_LET);
+                    return null();
+                }
+
+                
+
+
+
                 pn = variables(PNK_VAR);
                 if (!pn)
                     return null();
