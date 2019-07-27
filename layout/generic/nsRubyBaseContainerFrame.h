@@ -32,6 +32,10 @@ public:
   virtual nsIAtom* GetType() const MOZ_OVERRIDE;
   virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE;
   virtual bool CanContinueTextRun() const MOZ_OVERRIDE;
+  virtual void AddInlineMinISize(nsRenderingContext *aRenderingContext,
+                                 InlineMinISizeData *aData) MOZ_OVERRIDE;
+  virtual void AddInlinePrefISize(nsRenderingContext *aRenderingContext,
+                                  InlinePrefISizeData *aData) MOZ_OVERRIDE;
   virtual void Reflow(nsPresContext* aPresContext,
                       nsHTMLReflowMetrics& aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
@@ -39,6 +43,14 @@ public:
 
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+#endif
+
+#ifdef DEBUG
+  void AssertTextContainersEmpty()
+  {
+    MOZ_ASSERT(mSpanContainers.IsEmpty());
+    MOZ_ASSERT(mTextContainers.IsEmpty());
+  }
 #endif
 
   void AppendTextContainer(nsIFrame* aFrame);
@@ -49,13 +61,21 @@ protected:
     NS_NewRubyBaseContainerFrame(nsIPresShell* aPresShell,
                                  nsStyleContext* aContext);
   explicit nsRubyBaseContainerFrame(nsStyleContext* aContext) : nsContainerFrame(aContext) {}
+
+  nscoord CalculateMaxSpanISize(nsRenderingContext* aRenderingContext);
+
   
 
 
 
 
 
+  
+  
+  nsTArray<nsRubyTextContainerFrame*> mSpanContainers;
+  
   nsTArray<nsRubyTextContainerFrame*> mTextContainers;
+
 };
 
 #endif 
