@@ -1781,7 +1781,7 @@ CloneObject(JSContext* cx, HandleNativeObject selfHostedObject)
         
         MOZ_ASSERT(!selfHostedFunction->isArrow());
         js::gc::AllocKind kind = hasName
-                                 ? JSFunction::ExtendedFinalizeKind
+                                 ? gc::AllocKind::FUNCTION_EXTENDED
                                  : selfHostedFunction->getAllocKind();
         clone = CloneFunctionObject(cx, selfHostedFunction, cx->global(), kind, TenuredObject);
         

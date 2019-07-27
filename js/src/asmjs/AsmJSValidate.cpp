@@ -7585,7 +7585,7 @@ ParseFunction(ModuleCompiler& m, ParseNode** fnOut)
     
     RootedFunction fun(m.cx(),
                        NewScriptedFunction(m.cx(), 0, JSFunction::INTERPRETED,
-                                           name, JSFunction::FinalizeKind,
+                                           name, gc::AllocKind::FUNCTION,
                                            TenuredObject));
     if (!fun)
         return false;

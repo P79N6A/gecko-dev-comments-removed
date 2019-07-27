@@ -279,7 +279,7 @@ const Class RegExpObject::class_ = {
 
     
     {
-        GenericCreateConstructor<js::regexp_construct, 2, JSFunction::FinalizeKind>,
+        GenericCreateConstructor<js::regexp_construct, 2, gc::AllocKind::FUNCTION>,
         CreateRegExpPrototype,
         nullptr,
         js::regexp_static_props,

@@ -79,7 +79,10 @@ enum InitialHeap {
 
 enum class AllocKind {
     FIRST,
-    OBJECT0 = FIRST,
+    OBJECT_FIRST = FIRST,
+    FUNCTION = FIRST,
+    FUNCTION_EXTENDED,
+    OBJECT0,
     OBJECT0_BACKGROUND,
     OBJECT2,
     OBJECT2_BACKGROUND,
@@ -110,13 +113,13 @@ enum class AllocKind {
 
 static_assert(int(AllocKind::FIRST) == 0, "Various places depend on AllocKind starting at 0, "
                                           "please audit them carefully!");
-static_assert(int(AllocKind::OBJECT0) == 0, "Various places depend on AllocKind::OBJECT0 being 0, "
-                                            "please audit them carefully!");
+static_assert(int(AllocKind::OBJECT_FIRST) == 0, "Various places depend on AllocKind::OBJECT_FIRST "
+                                                 "being 0, please audit them carefully!");
 
 inline bool
 IsObjectAllocKind(AllocKind kind)
 {
-    return kind >= AllocKind::OBJECT0 && kind <= AllocKind::OBJECT_LAST;
+    return kind >= AllocKind::OBJECT_FIRST && kind <= AllocKind::OBJECT_LAST;
 }
 
 inline bool
@@ -140,10 +143,10 @@ AllAllocKinds()
 
 
 
-inline decltype(mozilla::MakeEnumeratedRange<int>(AllocKind::OBJECT0, AllocKind::OBJECT_LIMIT))
+inline decltype(mozilla::MakeEnumeratedRange<int>(AllocKind::OBJECT_FIRST, AllocKind::OBJECT_LIMIT))
 ObjectAllocKinds()
 {
-    return mozilla::MakeEnumeratedRange<int>(AllocKind::OBJECT0, AllocKind::OBJECT_LIMIT);
+    return mozilla::MakeEnumeratedRange<int>(AllocKind::OBJECT_FIRST, AllocKind::OBJECT_LIMIT);
 }
 
 
@@ -170,6 +173,8 @@ static inline JSGCTraceKind
 MapAllocToTraceKind(AllocKind kind)
 {
     static const JSGCTraceKind map[] = {
+        JSTRACE_OBJECT,       
+        JSTRACE_OBJECT,       
         JSTRACE_OBJECT,       
         JSTRACE_OBJECT,       
         JSTRACE_OBJECT,       

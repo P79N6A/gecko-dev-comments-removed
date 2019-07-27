@@ -96,6 +96,8 @@ IsNurseryAllocable(AllocKind kind)
 {
     MOZ_ASSERT(IsValidAllocKind(kind));
     static const bool map[] = {
+        true,      
+        true,      
         false,     
         true,      
         false,     
@@ -129,6 +131,8 @@ IsBackgroundFinalized(AllocKind kind)
 {
     MOZ_ASSERT(IsValidAllocKind(kind));
     static const bool map[] = {
+        true,      
+        true,      
         false,     
         true,      
         false,     
@@ -287,9 +291,11 @@ GetGCKindSlots(AllocKind thingKind)
 {
     
     switch (thingKind) {
+      case AllocKind::FUNCTION:
       case AllocKind::OBJECT0:
       case AllocKind::OBJECT0_BACKGROUND:
         return 0;
+      case AllocKind::FUNCTION_EXTENDED:
       case AllocKind::OBJECT2:
       case AllocKind::OBJECT2_BACKGROUND:
         return 2;

@@ -1096,7 +1096,7 @@ CreateObjectConstructor(JSContext* cx, JSProtoKey key)
 
     
     return NewNativeConstructor(cx, obj_construct, 1, HandlePropertyName(cx->names().Object),
-                                JSFunction::FinalizeKind, SingletonObject);
+                                gc::AllocKind::FUNCTION, SingletonObject);
 }
 
 static JSObject*

@@ -299,7 +299,7 @@ class GlobalObject : public NativeObject
 
     JSFunction*
     createConstructor(JSContext* cx, JSNative ctor, JSAtom* name, unsigned length,
-                      gc::AllocKind kind = JSFunction::FinalizeKind);
+                      gc::AllocKind kind = gc::AllocKind::FUNCTION);
 
     
 
