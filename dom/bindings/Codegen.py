@@ -13643,13 +13643,19 @@ class CGCallback(CGClass):
         args.append(Argument("ExceptionHandling", "aExceptionHandling",
                              "eReportExceptions"))
         
+        
+        
+        
+        
+        args.append(Argument("JSCompartment*", "aCompartment", "nullptr"))
+        
         argsWithoutThis = list(args)
         args.insert(0, Argument("const T&",  "thisObjPtr"))
         errorReturn = method.getDefaultRetval()
 
         setupCall = fill(
             """
-            CallSetup s(this, aRv, aExceptionHandling);
+            CallSetup s(this, aRv, aExceptionHandling, aCompartment);
             if (!s.GetContext()) {
               aRv.Throw(NS_ERROR_UNEXPECTED);
               return${errorReturn};
@@ -13961,11 +13967,10 @@ class CallbackMember(CGNativeMember):
         if not self.needThisHandling:
             
             
-            if self.rethrowContentException:
-                args.append(Argument("JSCompartment*", "aCompartment", "nullptr"))
-            else:
+            if not self.rethrowContentException:
                 args.append(Argument("ExceptionHandling", "aExceptionHandling",
                                      "eReportExceptions"))
+            args.append(Argument("JSCompartment*", "aCompartment", "nullptr"))
             return args
         
         
@@ -13983,7 +13988,7 @@ class CallbackMember(CGNativeMember):
             callSetup += ", eRethrowContentExceptions, aCompartment, /* aIsJSImplementedWebIDL = */ "
             callSetup += toStringBool(isJSImplementedDescriptor(self.descriptorProvider))
         else:
-            callSetup += ", aExceptionHandling"
+            callSetup += ", aExceptionHandling, aCompartment"
         callSetup += ");\n"
         return fill(
             """
