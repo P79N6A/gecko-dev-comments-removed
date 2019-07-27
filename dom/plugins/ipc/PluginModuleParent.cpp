@@ -129,7 +129,18 @@ mozilla::plugins::SetupBridge(uint32_t aPluginId,
         
         return true;
     }
-    return PPluginModule::Bridge(aContentParent, chromeParent);
+    *rv = PPluginModule::Bridge(aContentParent, chromeParent);
+    if (NS_FAILED(*rv)) {
+#if defined(MOZ_CRASHREPORTER)
+        
+        
+        nsAutoCString error;
+        error.AppendPrintf("%X", *rv);
+        CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("BridgePluginError"), error);
+#endif
+      return false;
+    }
+    return true;
 }
 
 #ifdef MOZ_CRASHREPORTER_INJECTOR

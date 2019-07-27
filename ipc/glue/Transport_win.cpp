@@ -18,16 +18,17 @@ using base::ProcessHandle;
 namespace mozilla {
 namespace ipc {
 
-bool
+nsresult
 CreateTransport(base::ProcessId aProcIdOne,
-                TransportDescriptor* aOne, TransportDescriptor* aTwo)
+                TransportDescriptor* aOne,
+                TransportDescriptor* aTwo)
 {
   wstring id = IPC::Channel::GenerateVerifiedChannelID(std::wstring());
   
   Transport t(id, Transport::MODE_SERVER, nullptr);
   HANDLE serverPipe = t.GetServerPipeHandle();
   if (!serverPipe) {
-    return false;
+    return NS_ERROR_TRANSPORT_INIT;
   }
 
   
@@ -39,13 +40,13 @@ CreateTransport(base::ProcessId aProcIdOne,
   DWORD access = 0;
   DWORD options = DUPLICATE_SAME_ACCESS;
   if (!DuplicateHandle(serverPipe, aProcIdOne, &serverDup, access, options)) {
-    return false;
+    return NS_ERROR_DUPLICATE_HANDLE;
   }
 
   aOne->mPipeName = aTwo->mPipeName = id;
   aOne->mServerPipe = serverDup;
   aTwo->mServerPipe = INVALID_HANDLE_VALUE;
-  return true;
+  return NS_OK;
 }
 
 Transport*

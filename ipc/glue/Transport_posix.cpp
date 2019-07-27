@@ -21,9 +21,10 @@ using base::ProcessHandle;
 namespace mozilla {
 namespace ipc {
 
-bool
-CreateTransport(base::ProcessId ,
-                TransportDescriptor* aOne, TransportDescriptor* aTwo)
+nsresult
+CreateTransport(base::ProcessId aProcIdOne,
+                TransportDescriptor* aOne,
+                TransportDescriptor* aTwo)
 {
   wstring id = IPC::Channel::GenerateVerifiedChannelID(std::wstring());
   
@@ -32,7 +33,7 @@ CreateTransport(base::ProcessId ,
   int fd2, dontcare;
   t.GetClientFileDescriptorMapping(&fd2, &dontcare);
   if (fd1 < 0 || fd2 < 0) {
-    return false;
+    return NS_ERROR_TRANSPORT_INIT;
   }
 
   
@@ -40,12 +41,12 @@ CreateTransport(base::ProcessId ,
   fd1 = dup(fd1);
   fd2 = dup(fd2);
   if (fd1 < 0 || fd2 < 0) {
-    return false;
+    return NS_ERROR_DUPLICATE_HANDLE;
   }
 
   aOne->mFd = base::FileDescriptor(fd1, true);
   aTwo->mFd = base::FileDescriptor(fd2, true);
-  return true;
+  return NS_OK;
 }
 
 Transport*
