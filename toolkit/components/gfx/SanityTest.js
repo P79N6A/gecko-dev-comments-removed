@@ -74,16 +74,6 @@ function reportTestReason(val) {
   histogram.add(val);
 }
 
-function annotateCrashReport(value) {
-  try {
-    
-    var crashReporter = Cc['@mozilla.org/toolkit/crash-reporter;1'].
-                          getService(Ci.nsICrashReporter);
-    crashReporter.annotateCrashReport("GraphicsSanityTest", value ? "1" : "");
-  } catch (e) {
-  }
-}
-
 function takeWindowSnapshot(win, ctx) {
   
   
@@ -217,10 +207,6 @@ let listener = {
     });
 
     this.mm = null;
-  
-    
-    
-    annotateCrashReport(false);
   }
 };
 
@@ -280,8 +266,6 @@ SanityTest.prototype = {
   observe: function(subject, topic, data) {
     if (topic != "profile-after-change") return;
     if (!this.shouldRunTest()) return;
-
-    annotateCrashReport(true);
 
     
     var sanityTest = Services.ww.openWindow(null,
