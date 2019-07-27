@@ -257,6 +257,17 @@ protected:
     apzc->SetFrameMetrics(TestFrameMetrics());
   }
 
+  
+
+
+  CSSRect GetScrollRange() const
+  {
+    const FrameMetrics& metrics = apzc->GetFrameMetrics();
+    return CSSRect(
+        metrics.GetScrollableRect().TopLeft(),
+        metrics.GetScrollableRect().Size() - metrics.CalculateCompositedSizeInCssPixels());
+  }
+
   virtual void TearDown()
   {
     apzc->Destroy();
@@ -275,6 +286,49 @@ protected:
   void MakeApzcUnzoomable()
   {
     apzc->UpdateZoomConstraints(ZoomConstraints(false, false, CSSToParentLayerScale(1.0f), CSSToParentLayerScale(1.0f)));
+  }
+
+  void PanIntoOverscroll(int& aTime);
+
+  
+
+
+  void SampleAnimationOnce()
+  {
+    const TimeDuration increment = TimeDuration::FromMilliseconds(1);
+    ParentLayerPoint pointOut;
+    ViewTransform viewTransformOut;
+    testStartTime += increment;
+    apzc->SampleContentTransformForFrame(testStartTime, &viewTransformOut, pointOut);
+  }
+
+  
+
+
+
+
+  void SampleAnimationUntilRecoveredFromOverscroll(const ParentLayerPoint& aExpectedScrollOffset)
+  {
+    const TimeDuration increment = TimeDuration::FromMilliseconds(1);
+    bool recoveredFromOverscroll = false;
+    ParentLayerPoint pointOut;
+    ViewTransform viewTransformOut;
+    while (apzc->SampleContentTransformForFrame(testStartTime, &viewTransformOut, pointOut)) {
+      
+      EXPECT_EQ(aExpectedScrollOffset, pointOut);
+
+      
+      
+      apzc->GetOverscrollTransform();
+
+      if (!apzc->IsOverscrolled()) {
+        recoveredFromOverscroll = true;
+      }
+
+      testStartTime += increment;
+    }
+    EXPECT_TRUE(recoveredFromOverscroll);
+    apzc->AssertStateIsReset();
   }
 
   void TestOverscroll();
@@ -1137,36 +1191,23 @@ TEST_F(APZCBasicTester, PanningTransformNotifications) {
   check.Call("Done");
 }
 
+void APZCBasicTester::PanIntoOverscroll(int& aTime)
+{
+  int touchStart = 500;
+  int touchEnd = 10;
+  Pan(apzc, aTime, touchStart, touchEnd);
+  EXPECT_TRUE(apzc->IsOverscrolled());
+}
+
 void APZCBasicTester::TestOverscroll()
 {
   
   int time = 0;
-  int touchStart = 500;
-  int touchEnd = 10;
-  Pan(apzc, time, touchStart, touchEnd);
-  EXPECT_TRUE(apzc->IsOverscrolled());
+  PanIntoOverscroll(time);
 
   
-  const TimeDuration increment = TimeDuration::FromMilliseconds(1);
-  bool recoveredFromOverscroll = false;
-  ParentLayerPoint pointOut;
-  ViewTransform viewTransformOut;
-  while (apzc->SampleContentTransformForFrame(testStartTime, &viewTransformOut, pointOut)) {
-    
-    EXPECT_EQ(ParentLayerPoint(0, 90), pointOut);
-
-    
-    
-    apzc->GetOverscrollTransform();
-
-    if (!apzc->IsOverscrolled()) {
-      recoveredFromOverscroll = true;
-    }
-
-    testStartTime += increment;
-  }
-  EXPECT_TRUE(recoveredFromOverscroll);
-  apzc->AssertStateIsReset();
+  ParentLayerPoint expectedScrollOffset(0, GetScrollRange().YMost());
+  SampleAnimationUntilRecoveredFromOverscroll(expectedScrollOffset);
 }
 
 
@@ -1178,7 +1219,7 @@ TEST_F(APZCBasicTester, OverScrollPanning) {
 
 
 
-TEST_F(APZCBasicTester, OverScroll_Bug1152051) {
+TEST_F(APZCBasicTester, OverScroll_Bug1152051a) {
   SCOPED_GFX_PREF(APZOverscrollEnabled, bool, true);
 
   
@@ -1195,6 +1236,44 @@ TEST_F(APZCBasicTester, OverScroll_Bug1152051) {
   SCOPED_GFX_PREF(APZOverscrollSpringStiffness, float, 0.01225f);
 
   TestOverscroll();
+}
+
+
+
+TEST_F(APZCBasicTester, OverScroll_Bug1152051b) {
+  SCOPED_GFX_PREF(APZOverscrollEnabled, bool, true);
+
+  SCOPED_GFX_PREF(APZOverscrollStopDistanceThreshold, float, 0.1f);
+
+  
+  int time = 0;
+  PanIntoOverscroll(time);
+
+  
+  
+  
+  SampleAnimationOnce();
+
+  
+  
+  mcc->RunThroughDelayedTasks();
+
+  
+  
+  SampleAnimationOnce();
+
+  
+  
+  
+  
+  TouchDown(apzc, 10, 10, time, nullptr);
+  TouchUp(apzc, 10, 10, time);
+
+  
+  
+  
+  ParentLayerPoint expectedScrollOffset(0, GetScrollRange().YMost());
+  SampleAnimationUntilRecoveredFromOverscroll(expectedScrollOffset);
 }
 
 TEST_F(APZCBasicTester, OverScrollAbort) {
