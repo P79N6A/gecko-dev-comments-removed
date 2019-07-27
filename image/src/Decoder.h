@@ -222,6 +222,8 @@ protected:
   
   
   
+  
+  
   void PostHasTransparency();
 
   
