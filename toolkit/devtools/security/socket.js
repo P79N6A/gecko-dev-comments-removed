@@ -72,9 +72,7 @@ function socketConnect(host, port) {
 
 
 
-function SocketListener(server) {
-  this._server = server;
-}
+function SocketListener() {}
 
 
 
@@ -147,8 +145,7 @@ SocketListener.prototype = {
 
   close: function() {
     this._socket.close();
-    this._server._removeListener(this);
-    this._server = null;
+    DebuggerServer._removeListener(this);
   },
 
   
@@ -185,7 +182,7 @@ SocketListener.prototype = {
     let input = socketTransport.openInputStream(0, 0, 0);
     let output = socketTransport.openOutputStream(0, 0, 0);
     let transport = new DebuggerTransport(input, output);
-    this._server._onConnection(transport);
+    DebuggerServer._onConnection(transport);
   }, "SocketListener.onSocketAccepted"),
 
   onStopListening: function(socket, status) {
@@ -197,8 +194,8 @@ SocketListener.prototype = {
 
 
 exports.DebuggerSocket = {
-  createListener(server) {
-    return new SocketListener(server);
+  createListener() {
+    return new SocketListener();
   },
   connect(host, port) {
     return socketConnect(host, port);
