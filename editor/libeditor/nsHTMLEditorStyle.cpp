@@ -801,7 +801,7 @@ nsresult nsHTMLEditor::RemoveStyleInside(nsIDOMNode *aNode,
     bool isSet;
     mHTMLCSSUtils->IsCSSEquivalentToHTMLInlineStyleSet(aNode, aProperty,
       aAttribute, isSet, propertyValue, nsHTMLCSSUtils::eSpecified);
-    if (isSet) {
+    if (isSet && content->IsElement()) {
       
       
       mHTMLCSSUtils->RemoveCSSEquivalentToHTMLStyle(aNode,
@@ -811,7 +811,7 @@ nsresult nsHTMLEditor::RemoveStyleInside(nsIDOMNode *aNode,
                                                     false);
       
       
-      RemoveElementIfNoStyleOrIdOrClass(aNode);
+      RemoveElementIfNoStyleOrIdOrClass(*content->AsElement());
     }
   }
 
@@ -1792,17 +1792,14 @@ nsHTMLEditor::HasStyleOrIdOrClass(dom::Element* aElement)
 }
 
 nsresult
-nsHTMLEditor::RemoveElementIfNoStyleOrIdOrClass(nsIDOMNode* aElement)
+nsHTMLEditor::RemoveElementIfNoStyleOrIdOrClass(dom::Element& aElement)
 {
-  nsCOMPtr<dom::Element> element = do_QueryInterface(aElement);
-  NS_ENSURE_TRUE(element, NS_ERROR_NULL_POINTER);
-
   
-  if ((!element->IsHTMLElement(nsGkAtoms::span) &&
-       !element->IsHTMLElement(nsGkAtoms::font)) ||
-      HasStyleOrIdOrClass(element)) {
+  if ((!aElement.IsHTMLElement(nsGkAtoms::span) &&
+       !aElement.IsHTMLElement(nsGkAtoms::font)) ||
+      HasStyleOrIdOrClass(&aElement)) {
     return NS_OK;
   }
 
-  return RemoveContainer(element);
+  return RemoveContainer(&aElement);
 }
