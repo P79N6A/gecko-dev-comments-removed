@@ -35,7 +35,8 @@ class QWindow;
 class gfxASurface;
 
 class nsShmImage {
-    NS_INLINE_DECL_REFCOUNTING(nsShmImage)
+    
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(nsShmImage)
 
     typedef mozilla::ipc::SharedMemorySysV SharedMemorySysV;
 
