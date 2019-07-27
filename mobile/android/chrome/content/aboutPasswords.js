@@ -194,6 +194,11 @@ let Passwords = {
 
     let loginDetails = document.getElementById("login-details");
     loginDetails.removeAttribute("hidden");
+
+    
+    let loadEvent = document.createEvent("Events");
+    loadEvent.initEvent("PasswordsDetailsLoad", true, false);
+    window.dispatchEvent(loadEvent);
   },
 
   _copyUsername: function() {
