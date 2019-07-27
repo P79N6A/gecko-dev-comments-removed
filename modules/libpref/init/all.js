@@ -2174,7 +2174,7 @@ pref("layout.css.prefixes.font-features", true);
 
 
 
-pref("layout.css.unprefixing-service.enabled", false);
+pref("layout.css.unprefixing-service.enabled", true);
 
 
 pref("layout.css.scope-pseudo.enabled", true);
