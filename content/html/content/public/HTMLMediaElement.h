@@ -1231,6 +1231,9 @@ protected:
   bool mHasAudio;
 
   
+  bool mHasVideo;
+
+  
   bool mDownloadSuspendedByCache;
 
   
