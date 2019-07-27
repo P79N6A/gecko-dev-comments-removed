@@ -3604,7 +3604,7 @@ nsObjectLoadingContent::TeardownProtoChain()
     }
     
     
-    if (JS_GetClass(js::UncheckedUnwrap(proto)) == &sNPObjectJSWrapperClass) {
+    if (nsNPObjWrapper::IsWrapper(js::UncheckedUnwrap(proto))) {
       
       if (!::JS_GetPrototype(cx, proto, &proto)) {
         return;
