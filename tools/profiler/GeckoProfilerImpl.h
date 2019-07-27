@@ -18,7 +18,7 @@
 #include "nsISupports.h"
 
 #ifdef MOZ_TASK_TRACER
-#include "GeckoTaskTracerImpl.h"
+#include "GeckoTaskTracer.h"
 #endif
 
 

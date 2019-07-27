@@ -25,9 +25,20 @@
 
 class Task;
 class nsIRunnable;
+class nsCString;
+template <class> class nsTArray;
 
 namespace mozilla {
+
+class TimeStamp;
+
 namespace tasktracer {
+
+enum {
+  FORKED_AFTER_NUWA = 1 << 0
+};
+void InitTaskTracer(uint32_t aFlags = 0);
+void ShutdownTaskTracer();
 
 class FakeTracedTask;
 
@@ -51,6 +62,10 @@ public:
 
 
 void AddLabel(const char* aFormat, ...);
+
+void StartLogging();
+void StopLogging();
+nsTArray<nsCString>* GetLoggedData(TimeStamp aStartTime);
 
 
 
