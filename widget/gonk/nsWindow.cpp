@@ -47,9 +47,6 @@
 #include "mozilla/gfx/2D.h"
 #include "mozilla/layers/APZCTreeManager.h"
 #include "mozilla/layers/CompositorParent.h"
-#include "mozilla/layers/InputAPZContext.h"
-#include "mozilla/MouseEvents.h"
-#include "mozilla/TouchEvents.h"
 #include "nsThreadUtils.h"
 #include "HwcComposer2D.h"
 
@@ -230,89 +227,33 @@ nsWindow::NotifyVsync(TimeStamp aVsyncTimestamp)
     }
 }
 
- nsEventStatus
-nsWindow::DispatchInputEvent(WidgetGUIEvent& aEvent)
+nsEventStatus
+nsWindow::DispatchInputEvent(WidgetGUIEvent& aEvent, bool* aWasCaptured)
 {
+    if (aWasCaptured) {
+        *aWasCaptured = false;
+    }
     if (!gFocusedWindow) {
         return nsEventStatus_eIgnore;
     }
 
     gFocusedWindow->UserActivity();
 
-    nsEventStatus status;
     aEvent.widget = gFocusedWindow;
+
+    if (TabParent* capturer = TabParent::GetEventCapturer()) {
+        bool captured = capturer->TryCapture(aEvent);
+        if (aWasCaptured) {
+            *aWasCaptured = captured;
+        }
+        if (captured) {
+            return nsEventStatus_eConsumeNoDefault;
+        }
+    }
+
+    nsEventStatus status;
     gFocusedWindow->DispatchEvent(&aEvent, status);
     return status;
-}
-
- void
-nsWindow::DispatchTouchInput(MultiTouchInput& aInput)
-{
-    if (!gFocusedWindow) {
-        return;
-    }
-
-    gFocusedWindow->UserActivity();
-    gFocusedWindow->DispatchTouchInputViaAPZ(aInput);
-}
-
-void
-nsWindow::DispatchTouchInputViaAPZ(MultiTouchInput& aInput)
-{
-    if (!mAPZC) {
-        
-        
-        return;
-    }
-
-    
-    mozilla::layers::ScrollableLayerGuid guid;
-    uint64_t inputBlockId;
-    nsEventStatus rv = mAPZC->ReceiveInputEvent(aInput, &guid, &inputBlockId);
-    
-    if (rv == nsEventStatus_eConsumeNoDefault) {
-        return;
-    }
-
-    
-    WidgetTouchEvent event = aInput.ToWidgetTouchEvent(this);
-
-    
-    
-    
-    
-    
-    
-    
-    if (TabParent* capturer = TabParent::GetEventCapturer()) {
-        InputAPZContext context(guid, inputBlockId);
-        if (capturer->TryCapture(event)) {
-            return;
-        }
-    }
-
-    
-    
-    
-    
-    rv = DispatchEventForAPZ(&event, guid, inputBlockId);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (event.touches.Length() == 1) {
-        WidgetMouseEvent mouseEvent = aInput.ToWidgetMouseEvent(this);
-        if (mouseEvent.message != NS_EVENT_NULL) {
-            mouseEvent.mFlags.mNoCrossProcessBoundaryForwarding = (rv == nsEventStatus_eConsumeNoDefault);
-            DispatchEvent(&mouseEvent, rv);
-        }
-    }
 }
 
 NS_IMETHODIMP
