@@ -3230,10 +3230,45 @@ ReallocateElements(ThreadSafeContext *cx, JSObject *obj, ObjectElements *oldHead
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  uint32_t
 JSObject::goodAllocated(uint32_t reqAllocated, uint32_t length = 0)
 {
     static const uint32_t Mebi = 1024 * 1024;
+
+    uint32_t reqCapacity = reqAllocated - ObjectElements::VALUES_PER_HEADER;
+    if (reqCapacity == length && reqAllocated >= JSObject::SLOT_CAPACITY_MIN) {
+        
+        return length + ObjectElements::VALUES_PER_HEADER;
+    }
 
     
     
@@ -3280,26 +3315,10 @@ JSObject::goodAllocated(uint32_t reqAllocated, uint32_t length = 0)
         }
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    uint32_t capacity = goodAllocated - ObjectElements::VALUES_PER_HEADER;
-    if (length > capacity && (length - capacity) < 16) {
-        goodAllocated = length + ObjectElements::VALUES_PER_HEADER;
+    uint32_t goodCapacity = goodAllocated - ObjectElements::VALUES_PER_HEADER;
+    if (length > goodCapacity && (length - goodCapacity) < 16) {
+        
+        return length + ObjectElements::VALUES_PER_HEADER;
     }
 
     return goodAllocated;
