@@ -391,7 +391,7 @@ pref("devtools.errorconsole.enabled", false);
 
 pref("devtools.debugger.unix-domain-socket", "/data/data/@ANDROID_PACKAGE_NAME@/firefox-debugger-socket");
 
-pref("font.size.inflation.minTwips", 120);
+pref("font.size.inflation.minTwips", 0);
 
 
 pref("browser.ui.zoom.force-user-scalable", false);
