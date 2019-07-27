@@ -25,9 +25,7 @@ XPCOMUtils.defineLazyGetter(this, "eventEmitter", function() {
 
 this.EXPORTED_SYMBOLS = ["LoopStorage"];
 
-const kDatabasePrefix = "loop-";
-const kDefaultDatabaseName = "default";
-let gDatabaseName = kDatabasePrefix + kDefaultDatabaseName;
+const kDatabaseName = "loop";
 const kDatabaseVersion = 1;
 
 let gWaitForOpenCallbacks = new Set();
@@ -85,7 +83,7 @@ const ensureDatabaseOpen = function(onOpen) {
     gWaitForOpenCallbacks.clear();
   };
 
-  let openRequest = indexedDB.open(gDatabaseName, kDatabaseVersion);
+  let openRequest = indexedDB.open(kDatabaseName, kDatabaseVersion);
 
   openRequest.onblocked = function(event) {
     invokeCallbacks(new Error("Database cannot be upgraded cause in use: " + event.target.error));
@@ -94,7 +92,7 @@ const ensureDatabaseOpen = function(onOpen) {
   openRequest.onerror = function(event) {
     
     
-    indexedDB.deleteDatabase(gDatabaseName);
+    indexedDB.deleteDatabase(kDatabaseName);
     invokeCallbacks(new Error("Error while opening database: " + event.target.errorCode));
   };
 
@@ -109,29 +107,6 @@ const ensureDatabaseOpen = function(onOpen) {
     
     Services.obs.addObserver(closeDatabase, "quit-application", false);
   };
-};
-
-
-
-
-
-
-
-
-const switchDatabase = function(name) {
-  if (name == gDatabaseName) {
-    
-    return;
-  }
-
-  gDatabaseName = name;
-  if (gDatabase) {
-    try {
-      gDatabase.close();
-    } finally {
-      gDatabase = null;
-    }
-  }
 };
 
 
@@ -207,13 +182,6 @@ this.LoopStorage = Object.freeze({
   
 
 
-  get databaseName() {
-    return gDatabaseName;
-  },
-
-  
-
-
 
 
 
@@ -221,16 +189,6 @@ this.LoopStorage = Object.freeze({
 
   getSingleton: function(callback) {
     ensureDatabaseOpen(callback);
-  },
-
-  
-
-
-
-
-
-  switchDatabase: function(name = kDefaultDatabaseName) {
-    switchDatabase(name);
   },
 
   
