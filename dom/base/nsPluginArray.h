@@ -40,8 +40,7 @@ public:
   void Init();
   void Invalidate();
 
-  void GetMimeTypes(nsTArray<nsRefPtr<nsMimeType> >& aMimeTypes,
-                    nsTArray<nsRefPtr<nsMimeType> >& aHiddenMimeTypes);
+  void GetMimeTypes(nsTArray<nsRefPtr<nsMimeType>>& aMimeTypes);
 
   
 
@@ -61,18 +60,7 @@ private:
   void EnsurePlugins();
 
   nsCOMPtr<nsPIDOMWindow> mWindow;
-
-  
-  
-  
-  
-  
   nsTArray<nsRefPtr<nsPluginElement> > mPlugins;
-
-  
-  
-  
-  nsTArray<nsRefPtr<nsPluginElement> > mHiddenPlugins;
 };
 
 class nsPluginElement final : public nsISupports,

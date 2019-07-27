@@ -49,14 +49,7 @@ protected:
 
   
   
-  
-  
   nsTArray<nsRefPtr<nsMimeType> > mMimeTypes;
-
-  
-  
-  
-  nsTArray<nsRefPtr<nsMimeType> > mHiddenMimeTypes;
 };
 
 class nsMimeType final : public nsWrapperCache

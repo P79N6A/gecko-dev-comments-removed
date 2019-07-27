@@ -2395,14 +2395,6 @@ pref("plugins.load_appdir_plugins", false);
 pref("plugins.click_to_play", false);
 
 
-
-
-
-
-
-pref("plugins.enumerable_names", "*");
-
-
 pref("plugin.default.state", 2);
 
 
