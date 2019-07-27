@@ -557,9 +557,10 @@ RTCPeerConnection.prototype = {
   createOffer: function(onSuccess, onError, options) {
 
     
+    
     function convertLegacyOptions(o) {
-      if (!(o.mandatory || o.optional) ||
-          Object.keys(o).length != ((o.mandatory && o.optional)? 2 : 1)) {
+      if (!(Object.keys(o.mandatory).length || o.optional) ||
+          Object.keys(o).length != (o.optional? 2 : 1)) {
         return false;
       }
       let old = o.mandatory || {};
