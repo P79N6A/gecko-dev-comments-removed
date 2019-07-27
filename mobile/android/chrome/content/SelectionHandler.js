@@ -44,6 +44,7 @@ var SelectionHandler = {
   _focusIsRTL: false,
 
   _activeType: 0, 
+  _selectionPrivate: null, 
   _selectionID: 0, 
 
   _draggingHandles: false, 
@@ -121,6 +122,9 @@ var SelectionHandler = {
       
       
       case "TextSelection:LayerReflow": {
+        if (this._activeType == this.TYPE_SELECTION) {
+          this._updateSelectionListener();
+        }
         if (this._activeType != this.TYPE_NONE) {
           this._positionHandlesOnChange();
         }
@@ -293,6 +297,41 @@ var SelectionHandler = {
   
 
 
+  _addSelectionListener: function(selection) {
+    this._selectionPrivate = selection.QueryInterface(Ci.nsISelectionPrivate);
+    this._selectionPrivate.addSelectionListener(this);
+  },
+
+  
+
+
+
+
+
+
+  _updateSelectionListener: function() {
+    if (!(this._targetElement instanceof Ci.nsIDOMNSEditableElement)) {
+      return;
+    }
+
+    let selection = this._getSelection();
+    if (this._selectionPrivate != selection.QueryInterface(Ci.nsISelectionPrivate)) {
+      this._removeSelectionListener();
+      this._addSelectionListener(selection);
+    }
+  },
+
+  
+
+
+  _removeSelectionListener: function() {
+    this._selectionPrivate.removeSelectionListener(this);
+    this._selectionPrivate = null;
+  },
+
+  
+
+
   notifySelectionChanged: function sh_notifySelectionChanged(aDocument, aSelection, aReason) {
     
     this._cancelDeferredCloseSelection();
@@ -359,7 +398,7 @@ var SelectionHandler = {
     }
 
     
-    selection.QueryInterface(Ci.nsISelectionPrivate).addSelectionListener(this);
+    this._addSelectionListener(selection);
     this._activeType = this.TYPE_SELECTION;
 
     
@@ -1074,7 +1113,7 @@ var SelectionHandler = {
     let selection = this._getSelection();
     if (selection) {
       
-      selection.QueryInterface(Ci.nsISelectionPrivate).removeSelectionListener(this);
+      this._removeSelectionListener();
 
       
       
