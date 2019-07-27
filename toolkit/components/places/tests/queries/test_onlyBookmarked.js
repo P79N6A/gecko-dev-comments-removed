@@ -20,14 +20,14 @@ var testData = [
   
   { isBookmark: true,
     uri: "http://bookmarked.com/",
-    parentFolder: PlacesUtils.toolbarFolderId,
+    parentGuid: PlacesUtils.bookmarks.toolbarGuid,
     index: PlacesUtils.bookmarks.DEFAULT_INDEX,
     isInQuery: true },
 
   
   { isBookmark: true,
     uri: "http://bookmarked-elsewhere.com/",
-    parentFolder: PlacesUtils.bookmarksMenuFolderId,
+    parentGuid: PlacesUtils.bookmarks.menuGuid,
     index: PlacesUtils.bookmarks.DEFAULT_INDEX,
     isInQuery: false },
 
@@ -82,14 +82,14 @@ add_task(function test_onlyBookmarked()
     
     { isBookmark: true,
       uri: "http://bookmarked2.com/",
-      parentFolder: PlacesUtils.toolbarFolderId,
+      parentGuid: PlacesUtils.bookmarks.toolbarGuid,
       index: PlacesUtils.bookmarks.DEFAULT_INDEX,
       isInQuery: true },
 
     
     { isBookmark: true,
       uri: "http://bookmarked-elsewhere2.com/",
-      parentFolder: PlacesUtils.bookmarksMenuFolderId,
+      parentGuid: PlacesUtils.bookmarks.menuGuid,
       index: PlacesUtils.bookmarks.DEFAULT_INDEX,
       isInQuery: false }
   ];

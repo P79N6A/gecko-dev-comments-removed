@@ -198,7 +198,7 @@ function addPageBook(aURI, aTitle, aBook, aTags, aKey, aTransitionType, aNoVisit
   gNextTestSetupTasks.push([task_addPageBook, arguments]);
 }
 
-function task_addPageBook(aURI, aTitle, aBook, aTags, aKey, aTransitionType, aNoVisit)
+function* task_addPageBook(aURI, aTitle, aBook, aTags, aKey, aTransitionType, aNoVisit)
 {
   
   gPages[aURI] = [aURI, aBook != undefined ? aBook : aTitle, aTags];
@@ -230,7 +230,7 @@ function task_addPageBook(aURI, aTitle, aBook, aTags, aKey, aTransitionType, aNo
 
     
     if (aKey != undefined)
-      bmsvc.setKeywordForBookmark(bmid, aKey);
+      yield PlacesUtils.keywords.insert({url: uri.spec, keyword: aKey});
 
     
     if (aTags != undefined && aTags.length > 0) {

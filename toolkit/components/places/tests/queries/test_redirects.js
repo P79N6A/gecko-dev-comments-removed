@@ -271,7 +271,7 @@ add_task(function test_add_visits_to_database()
   
   visits.push({ isBookmark: true,
     uri: "http://unvisited.bookmark.com/",
-    parentFolder: PlacesUtils.bookmarksMenuFolderId,
+    parentGuid: PlacesUtils.bookmarks.menuGuid,
     index: PlacesUtils.bookmarks.DEFAULT_INDEX,
     title: "Unvisited Bookmark",
     isInQuery: false });
