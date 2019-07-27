@@ -29,7 +29,6 @@ const HELP_URL = "https://developer.mozilla.org/Firefox_OS/Using_the_App_Manager
 
 
 GetTemplatesJSON(true);
-GetAddonsJSON(true);
 
 
 console.log = console.log.bind(console);
