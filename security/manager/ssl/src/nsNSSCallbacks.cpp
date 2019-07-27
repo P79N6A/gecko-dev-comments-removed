@@ -1011,13 +1011,7 @@ CanFalseStartCallback(PRFileDesc* fd, void* client_data, PRBool *canFalseStart)
   
   
   
-  
-  
-  
-  
-  if (cipherInfo.symCipher != ssl_calg_aes_gcm && 
-      cipherInfo.symCipher != ssl_calg_aes &&
-      cipherInfo.symCipher != ssl_calg_camellia) {
+  if (cipherInfo.symCipher != ssl_calg_aes_gcm) {
     PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
            ("CanFalseStartCallback [%p] failed - Symmetric cipher used, %d, "
             "is not supported with False Start.\n", fd,
