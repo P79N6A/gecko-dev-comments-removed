@@ -6882,13 +6882,7 @@ var SearchEngines = {
     });
 
     
-    let connector = Services.io.QueryInterface(Ci.nsISpeculativeConnect);
-    let searchURI = Services.search.defaultEngine.getSubmission("dummy").uri;
-    let callbacks = window.QueryInterface(Ci.nsIInterfaceRequestor)
-                          .getInterface(Ci.nsIWebNavigation).QueryInterface(Ci.nsILoadContext);
-    try {
-      connector.speculativeConnect(searchURI, callbacks);
-    } catch (e) {}
+    Services.search.defaultEngine.speculativeConnect({window: window});
   },
 
   
