@@ -726,6 +726,15 @@ public:
     SetRect(nsRect(mRect.TopLeft(), aSize));
   }
   void SetPosition(const nsPoint& aPt) { mRect.MoveTo(aPt); }
+  void SetPosition(mozilla::WritingMode aWritingMode,
+                   const mozilla::LogicalPoint& aPt,
+                   nscoord aContainerWidth) {
+    
+    
+    
+    mRect.MoveTo(aPt.GetPhysicalPoint(aWritingMode,
+                                      aContainerWidth - mRect.width));
+  }
 
   
 
