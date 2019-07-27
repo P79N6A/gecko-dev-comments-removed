@@ -3,6 +3,8 @@
 
 
 
+
+
 const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
 const APK_MIME_TYPE = "application/vnd.android.package-archive";
@@ -19,6 +21,12 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 
 
+
+XPCOMUtils.defineLazyGetter(this, "ContentAreaUtils", function() {
+  let ContentAreaUtils = {};
+  Services.scriptloader.loadSubScript("chrome://global/content/contentAreaUtils.js", ContentAreaUtils);
+  return ContentAreaUtils;
+});
 
 function HelperAppLauncherDialog() { }
 
