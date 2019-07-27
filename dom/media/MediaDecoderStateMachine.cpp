@@ -2958,7 +2958,7 @@ MediaDecoderStateMachine::FlushDecoding()
     
     
     RefPtr<nsIRunnable> task;
-    task = NS_NewRunnableMethod(mReader, &MediaDecoderReader::ResetDecode);
+    task = NS_NewRunnableMethod(this, &MediaDecoderStateMachine::ResetDecode);
 
     
     
@@ -2977,6 +2977,25 @@ MediaDecoderStateMachine::FlushDecoding()
   
   
   ResetPlayback();
+}
+
+void
+MediaDecoderStateMachine::ResetDecode()
+{
+  NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
+
+  if (!mReader) {
+    return;
+  }
+
+  {
+    ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+    if (mWaitingForDecoderSeek && !mCancelingSeek) {
+      mReader->CancelSeek();
+      mCancelingSeek = true;
+    }
+  }
+  mReader->ResetDecode();
 }
 
 void MediaDecoderStateMachine::RenderVideoFrame(VideoData* aData,

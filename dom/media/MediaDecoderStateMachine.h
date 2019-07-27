@@ -422,6 +422,9 @@ public:
     WaitRequestRef(aRejection.mType).Complete();
   }
 
+  
+  void ResetDecode();
+
 private:
   void AcquireMonitorAndInvokeDecodeError();
 
