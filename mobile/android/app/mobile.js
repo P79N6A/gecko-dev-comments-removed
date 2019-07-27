@@ -467,6 +467,7 @@ pref("app.faqURL", "http://www.mozilla.com/%LOCALE%/mobile/beta/faq/");
 #else
 pref("app.faqURL", "http://www.mozilla.com/%LOCALE%/mobile/faq/");
 #endif
+pref("app.marketplaceURL", "https://marketplace.firefox.com/");
 
 
 pref("security.alternate_certificate_error_page", "certerror");
@@ -591,7 +592,7 @@ pref("media.mediasource.enabled", true);
 
 
 pref("image.downscale-during-decode.enabled", true);
-pref("image.decode-only-on-draw.enabled", true);
+pref("image.decode-only-on-draw.enabled", false);
 
 #ifdef NIGHTLY_BUILD
 

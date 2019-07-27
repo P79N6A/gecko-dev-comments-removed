@@ -53,7 +53,6 @@ ComputeImageFlags(ImageURL* uri, const nsCString& aMimeType, bool isMultiPart)
   
   
   
-  
   bool doDecodeOnlyOnDraw = gfxPrefs::ImageDecodeOnlyOnDrawEnabled() &&
                             gfxPlatform::AsyncPanZoomEnabled();
 
