@@ -532,6 +532,8 @@ def apply_patches():
     os.system("patch -p0 < stdint.patch")
     
     os.system("patch -p3 < apple-clang.patch")
+    
+    os.system("patch -p3 < msvc2015.patch")
 
 def update_readme(commit):
     with open('README_MOZILLA') as f:

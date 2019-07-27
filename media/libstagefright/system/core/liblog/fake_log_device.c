@@ -34,8 +34,10 @@
 #ifdef _MSC_VER
 #include <io.h>
 #include <process.h>
+#if _MSC_VER < 1900
 #include <nspr/prprf.h>
 #define snprintf PR_snprintf
+#endif
 
 
 
