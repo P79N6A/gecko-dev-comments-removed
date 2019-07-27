@@ -41,13 +41,24 @@ public:
 
 
 
-  nsEventStatus ReceiveInputEvent(const nsRefPtr<AsyncPanZoomController>& aTarget, const InputData& aEvent, uint64_t* aOutInputBlockId);
+  nsEventStatus ReceiveInputEvent(const nsRefPtr<AsyncPanZoomController>& aTarget,
+                                  bool aTargetConfirmed,
+                                  const InputData& aEvent,
+                                  uint64_t* aOutInputBlockId);
   
 
 
 
 
   void ContentReceivedTouch(uint64_t aInputBlockId, bool aPreventDefault);
+  
+
+
+
+
+
+
+  void SetConfirmedTargetApzc(uint64_t aInputBlockId, const nsRefPtr<AsyncPanZoomController>& aTargetApzc);
   
 
 
@@ -76,9 +87,11 @@ public:
 
 private:
   ~InputQueue();
-  TouchBlockState* StartNewTouchBlock(const nsRefPtr<AsyncPanZoomController>& aTarget, bool aCopyAllowedTouchBehaviorFromCurrent);
-  void ScheduleContentResponseTimeout(const nsRefPtr<AsyncPanZoomController>& aTarget, uint64_t aInputBlockId);
-  void ContentResponseTimeout(const uint64_t& aInputBlockId);
+  TouchBlockState* StartNewTouchBlock(const nsRefPtr<AsyncPanZoomController>& aTarget,
+                                      bool aTargetConfirmed,
+                                      bool aCopyAllowedTouchBehaviorFromCurrent);
+  void ScheduleMainThreadTimeout(const nsRefPtr<AsyncPanZoomController>& aTarget, uint64_t aInputBlockId);
+  void MainThreadTimeout(const uint64_t& aInputBlockId);
   void ProcessPendingInputBlocks();
 
 private:

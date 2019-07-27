@@ -216,6 +216,18 @@ public:
   
 
 
+
+
+
+
+
+
+
+  void SetTargetAPZC(uint64_t aInputBlockId, const ScrollableLayerGuid& aGuid);
+
+  
+
+
   void UpdateZoomConstraints(const ScrollableLayerGuid& aGuid,
                              const ZoomConstraints& aConstraints);
 

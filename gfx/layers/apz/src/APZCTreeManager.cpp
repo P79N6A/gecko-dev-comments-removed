@@ -622,7 +622,10 @@ APZCTreeManager::ReceiveInputEvent(InputData& aEvent,
             transformToApzc, panInput.mPanStartPoint);
         panInput.mLocalPanDisplacement = TransformVector<ParentLayerPixel>(
             transformToApzc, panInput.mPanDisplacement, panInput.mPanStartPoint);
-        result = mInputQueue->ReceiveInputEvent(apzc, panInput, aOutInputBlockId);
+        result = mInputQueue->ReceiveInputEvent(
+            apzc,
+             hitResult == ApzcHitRegion,
+            panInput, aOutInputBlockId);
 
         
         apzc->GetGuid(aOutTargetGuid);
@@ -642,7 +645,10 @@ APZCTreeManager::ReceiveInputEvent(InputData& aEvent,
         transformToApzc = GetScreenToApzcTransform(apzc);
         pinchInput.mLocalFocusPoint = TransformTo<ParentLayerPixel>(
             transformToApzc, pinchInput.mFocusPoint);
-        result = mInputQueue->ReceiveInputEvent(apzc, pinchInput, aOutInputBlockId);
+        result = mInputQueue->ReceiveInputEvent(
+            apzc,
+             hitResult == ApzcHitRegion,
+            pinchInput, aOutInputBlockId);
 
         
         apzc->GetGuid(aOutTargetGuid);
@@ -660,7 +666,10 @@ APZCTreeManager::ReceiveInputEvent(InputData& aEvent,
         transformToApzc = GetScreenToApzcTransform(apzc);
         tapInput.mLocalPoint = TransformTo<ParentLayerPixel>(
             transformToApzc, tapInput.mPoint);
-        result = mInputQueue->ReceiveInputEvent(apzc, tapInput, aOutInputBlockId);
+        result = mInputQueue->ReceiveInputEvent(
+            apzc,
+             hitResult == ApzcHitRegion,
+            tapInput, aOutInputBlockId);
 
         
         apzc->GetGuid(aOutTargetGuid);
@@ -735,13 +744,19 @@ APZCTreeManager::ProcessTouchInput(MultiTouchInput& aInput,
     mTouchCount = aInput.mTouches.Length();
     mHitResultForInputBlock = NoApzcHit;
     nsRefPtr<AsyncPanZoomController> apzc = GetTouchInputBlockAPZC(aInput, &mHitResultForInputBlock);
+    
+    
+    
+    
+    
     if (apzc != mApzcForInputBlock) {
       
       
       
       if (mApzcForInputBlock) {
         MultiTouchInput cancel(MultiTouchInput::MULTITOUCH_CANCEL, 0, TimeStamp::Now(), 0);
-        mInputQueue->ReceiveInputEvent(mApzcForInputBlock, cancel, nullptr);
+        mInputQueue->ReceiveInputEvent(mApzcForInputBlock,
+             true, cancel, nullptr);
       }
       mApzcForInputBlock = apzc;
     }
@@ -793,7 +808,9 @@ APZCTreeManager::ProcessTouchInput(MultiTouchInput& aInput,
       touchData.mLocalScreenPoint = TransformTo<ParentLayerPixel>(
           transformToApzc, ScreenPoint(touchData.mScreenPoint));
     }
-    result = mInputQueue->ReceiveInputEvent(mApzcForInputBlock, aInput, aOutInputBlockId);
+    result = mInputQueue->ReceiveInputEvent(mApzcForInputBlock,
+         mHitResultForInputBlock == ApzcHitRegion,
+        aInput, aOutInputBlockId);
 
     
     
@@ -929,6 +946,14 @@ APZCTreeManager::ContentReceivedTouch(uint64_t aInputBlockId,
                                       bool aPreventDefault)
 {
   mInputQueue->ContentReceivedTouch(aInputBlockId, aPreventDefault);
+}
+
+void
+APZCTreeManager::SetTargetAPZC(uint64_t aInputBlockId,
+                               const ScrollableLayerGuid& aGuid)
+{
+  nsRefPtr<AsyncPanZoomController> target = GetTargetAPZC(aGuid);
+  mInputQueue->SetConfirmedTargetApzc(aInputBlockId, target);
 }
 
 void
