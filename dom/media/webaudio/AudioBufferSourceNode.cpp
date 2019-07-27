@@ -26,12 +26,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(AudioBufferSourceNode)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPlaybackRate)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mDetune)
   if (tmp->Context()) {
-    
-    
-    
-    
     tmp->DisconnectFromGraph();
-    tmp->Context()->UnregisterAudioBufferSourceNode(tmp);
   }
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END_INHERITED(AudioNode)
 
@@ -571,9 +566,6 @@ AudioBufferSourceNode::AudioBufferSourceNode(AudioContext* aContext)
 
 AudioBufferSourceNode::~AudioBufferSourceNode()
 {
-  if (Context()) {
-    Context()->UnregisterAudioBufferSourceNode(this);
-  }
 }
 
 size_t
@@ -758,6 +750,9 @@ void
 AudioBufferSourceNode::SendDetuneToStream(AudioNode* aNode)
 {
   AudioBufferSourceNode* This = static_cast<AudioBufferSourceNode*>(aNode);
+  if (!This->mStream) {
+    return;
+  }
   SendTimelineParameterToStream(This, DETUNE, *This->mDetune);
 }
 

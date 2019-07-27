@@ -541,8 +541,9 @@ PannerNode::FindConnectedSources(AudioNode* aNode,
     FindConnectedSources(inputNodes[i].mInputNode, aSources, aNodesSeen);
 
     
+    
     AudioBufferSourceNode* node = inputNodes[i].mInputNode->AsAudioBufferSourceNode();
-    if (node) {
+    if (node && node->Stream()) {
       aSources.AppendElement(node);
     }
   }
