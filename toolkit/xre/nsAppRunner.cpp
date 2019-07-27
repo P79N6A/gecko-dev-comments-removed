@@ -105,7 +105,6 @@
 
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"
-#include "mozilla/a11y/Compatibility.h"
 #endif
 
 #include "nsCRT.h"
@@ -860,20 +859,17 @@ nsXULAppInfo::GetAccessibilityEnabled(bool* aResult)
 }
 
 NS_IMETHODIMP
-nsXULAppInfo::GetAccessibilityIsBlacklistedForE10S(bool* aResult)
+nsXULAppInfo::GetAccessibilityIsUIA(bool* aResult)
 {
   *aResult = false;
-#if defined(ACCESSIBILITY)
-#if defined(XP_WIN)
-  if (GetAccService() && mozilla::a11y::Compatibility::IsBlacklistedForE10S()) {
-    *aResult = true;
-  }
-#elif defined(XP_MACOSX)
-  if (GetAccService()) {
+#if defined(ACCESSIBILITY) && defined(XP_WIN)
+  
+  if (GetAccService() != nullptr &&
+      (::GetModuleHandleW(L"uiautomation") ||
+       ::GetModuleHandleW(L"uiautomationcore"))) {
     *aResult = true;
   }
 #endif
-#endif 
   return NS_OK;
 }
 
