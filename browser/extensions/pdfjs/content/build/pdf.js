@@ -22,8 +22,8 @@ if (typeof PDFJS === 'undefined') {
   (typeof window !== 'undefined' ? window : this).PDFJS = {};
 }
 
-PDFJS.version = '1.1.82';
-PDFJS.build = '71ab5e5';
+PDFJS.version = '1.1.114';
+PDFJS.build = '3fd44fd';
 
 (function pdfjsWrapper() {
   
@@ -3021,9 +3021,6 @@ function createScratchCanvas(width, height) {
 function addContextCurrentTransform(ctx) {
   
   if (!ctx.mozCurrentTransform) {
-    
-    ctx._scaleX = ctx._scaleX || 1.0;
-    ctx._scaleY = ctx._scaleY || 1.0;
     ctx._originalSave = ctx.save;
     ctx._originalRestore = ctx.restore;
     ctx._originalRotate = ctx.rotate;
@@ -3032,7 +3029,7 @@ function addContextCurrentTransform(ctx) {
     ctx._originalTransform = ctx.transform;
     ctx._originalSetTransform = ctx.setTransform;
 
-    ctx._transformMatrix = [ctx._scaleX, 0, 0, ctx._scaleY, 0, 0];
+    ctx._transformMatrix = ctx._transformMatrix || [1, 0, 0, 1, 0, 0];
     ctx._transformStack = [];
 
     Object.defineProperty(ctx, 'mozCurrentTransform', {
@@ -3408,6 +3405,8 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
     this.smaskCounter = 0;
     this.tempSMask = null;
     if (canvasCtx) {
+      
+      
       addContextCurrentTransform(canvasCtx);
     }
     this.cachedGetSinglePixelWidth = null;

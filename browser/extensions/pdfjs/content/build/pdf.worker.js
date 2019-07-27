@@ -22,8 +22,8 @@ if (typeof PDFJS === 'undefined') {
   (typeof window !== 'undefined' ? window : this).PDFJS = {};
 }
 
-PDFJS.version = '1.1.82';
-PDFJS.build = '71ab5e5';
+PDFJS.version = '1.1.114';
+PDFJS.build = '3fd44fd';
 
 (function pdfjsWrapper() {
   
@@ -2712,6 +2712,10 @@ var Dict = (function DictClosure() {
         item.target[item.key] = dereferenced;
       }
       return all;
+    },
+
+    getKeys: function Dict_getKeys() {
+      return Object.keys(this.map);
     },
 
     set: function Dict_set(key, value) {
@@ -11311,7 +11315,11 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         return new ToUnicodeMap(cmap.getMap());
       } else if (isStream(cmapObj)) {
         cmap = CMapFactory.create(cmapObj,
-          { url: PDFJS.cMapUrl, packed: PDFJS.cMapPacked }, null).getMap();
+          { url: PDFJS.cMapUrl, packed: PDFJS.cMapPacked }, null);
+        if (cmap instanceof IdentityCMap) {
+          return new IdentityToUnicodeMap(0, 0xFFFF);
+        }
+        cmap = cmap.getMap();
         
         
         
@@ -11539,6 +11547,21 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           hash.update(encoding.name);
         } else if (isRef(encoding)) {
           hash.update(encoding.num + '_' + encoding.gen);
+        } else if (isDict(encoding)) {
+          var keys = encoding.getKeys();
+          for (var i = 0, ii = keys.length; i < ii; i++) {
+            var entry = encoding.getRaw(keys[i]);
+            if (isName(entry)) {
+              hash.update(entry.name);
+            } else if (isRef(entry)) {
+              hash.update(entry.num + '_' + entry.gen);
+            } else if (isArray(entry)) { 
+              
+              
+              
+              hash.update(entry.length.toString());
+            }
+          }
         }
 
         var toUnicode = dict.get('ToUnicode') || baseDict.get('ToUnicode');
@@ -12806,6 +12829,7 @@ var CMap = (function CMapClosure() {
     
     
     this._map = [];
+    this.name = '';
     this.vertical = false;
     this.useCMap = null;
     this.builtInCMap = builtInCMap;
@@ -12905,6 +12929,21 @@ var CMap = (function CMapClosure() {
       }
       out.charcode = 0;
       out.length = 1;
+    },
+
+    get isIdentityCMap() {
+      if (!(this.name === 'Identity-H' || this.name === 'Identity-V')) {
+        return false;
+      }
+      if (this._map.length !== 0x10000) {
+        return false;
+      }
+      for (var i = 0; i < 0x10000; i++) {
+        if (this._map[i] !== i) {
+          return false;
+        }
+      }
+      return true;
     }
   };
   return CMap;
@@ -12966,7 +13005,11 @@ var IdentityCMap = (function IdentityCMapClosure() {
       return map;
     },
 
-    readCharCode: CMap.prototype.readCharCode
+    readCharCode: CMap.prototype.readCharCode,
+
+    get isIdentityCMap() {
+      error('should not access .isIdentityCMap');
+    }
   };
 
   return IdentityCMap;
@@ -13431,6 +13474,13 @@ var CMapFactory = (function CMapFactoryClosure() {
     }
   }
 
+  function parseCMapName(cMap, lexer) {
+    var obj = lexer.getObj();
+    if (isName(obj) && isString(obj.name)) {
+      cMap.name = obj.name;
+    }
+  }
+
   function parseCMap(cMap, lexer, builtInCMapParams, useCMap) {
     var previous;
     var embededUseCMap;
@@ -13441,6 +13491,8 @@ var CMapFactory = (function CMapFactoryClosure() {
       } else if (isName(obj)) {
         if (obj.name === 'WMode') {
           parseWMode(cMap, lexer);
+        } else if (obj.name === 'CMapName') {
+          parseCMapName(cMap, lexer);
         }
         previous = obj;
       } else if (isCmd(obj)) {
@@ -13549,6 +13601,9 @@ var CMapFactory = (function CMapFactoryClosure() {
           parseCMap(cMap, lexer, builtInCMapParams, useCMap);
         } catch (e) {
           warn('Invalid CMap data. ' + e);
+        }
+        if (cMap.isIdentityCMap) {
+          return createBuiltInCMap(cMap.name, builtInCMapParams);
         }
         return cMap;
       }
@@ -16111,6 +16166,10 @@ var Font = (function FontClosure() {
     if (subtype === 'OpenType') {
       type = 'OpenType';
     }
+    
+    if (type === 'CIDFontType0') {
+      subtype = isType1File(file) ? 'CIDFontType0' : 'CIDFontType0C';
+    }
 
     var data;
     switch (type) {
@@ -16189,6 +16248,20 @@ var Font = (function FontClosure() {
   function isTrueTypeFile(file) {
     var header = file.peekBytes(4);
     return readUint32(header, 0) === 0x00010000;
+  }
+
+  function isType1File(file) {
+    var header = file.peekBytes(2);
+    
+    if (header[0] === 0x25 && header[1] === 0x21) {
+      return true;
+    }
+    
+    
+    if (header[0] === 0x80 && header[1] === 0x01) { 
+      return true;
+    }
+    return false;
   }
 
   
