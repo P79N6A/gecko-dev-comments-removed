@@ -544,31 +544,30 @@ public:
 
 
 NS_IMETHODIMP
-ServiceWorkerManager::Register(nsIDOMWindow* aWindow, const nsAString& aScope,
+ServiceWorkerManager::Register(const nsAString& aScope,
                                const nsAString& aScriptURL,
                                nsISupports** aPromise)
 {
   AssertIsOnMainThread();
-  MOZ_ASSERT(aWindow);
 
   
   
   MOZ_ASSERT(!nsContentUtils::IsCallerChrome());
 
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aWindow);
-  if (!window) {
+  nsCOMPtr<nsIGlobalObject> sgo = GetEntryGlobal();
+  if (!sgo) {
+    MOZ_ASSERT("Register() should only be called from a valid entry settings object!");
     return NS_ERROR_FAILURE;
   }
 
-  nsCOMPtr<nsIGlobalObject> sgo = do_QueryInterface(window);
   ErrorResult result;
   nsRefPtr<Promise> promise = Promise::Create(sgo, result);
   if (result.Failed()) {
     return result.ErrorCode();
   }
 
-  nsCOMPtr<nsIURI> documentURI = window->GetDocumentURI();
-  if (!documentURI) {
+  nsCOMPtr<nsIDocument> doc = GetEntryDocument();
+  if (!doc) {
     return NS_ERROR_FAILURE;
   }
 
@@ -578,52 +577,53 @@ ServiceWorkerManager::Register(nsIDOMWindow* aWindow, const nsAString& aScope,
   
   
 
-  nsresult rv;
+  nsCOMPtr<nsIURI> documentURI = doc->GetBaseURI();
+
   
   if (!Preferences::GetBool("dom.serviceWorkers.testing.enabled")) {
     bool isHttps;
-    rv = documentURI->SchemeIs("https", &isHttps);
-    if (NS_FAILED(rv) || !isHttps) {
+    result = documentURI->SchemeIs("https", &isHttps);
+    if (result.Failed() || !isHttps) {
       NS_WARNING("ServiceWorker registration from insecure websites is not allowed.");
       return NS_ERROR_DOM_SECURITY_ERR;
     }
   }
 
-  nsCOMPtr<nsIPrincipal> documentPrincipal;
-  if (window->GetExtantDoc()) {
-    documentPrincipal = window->GetExtantDoc()->NodePrincipal();
-  } else {
-    documentPrincipal = do_CreateInstance("@mozilla.org/nullprincipal;1");
-  }
-
   nsCOMPtr<nsIURI> scriptURI;
-  rv = NS_NewURI(getter_AddRefs(scriptURI), aScriptURL, nullptr, documentURI);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
+  result = NS_NewURI(getter_AddRefs(scriptURI), aScriptURL, nullptr, documentURI);
+  if (NS_WARN_IF(result.Failed())) {
+    return result.ErrorCode();
   }
 
   
-  rv = documentPrincipal->CheckMayLoad(scriptURI, true ,
-                                       false );
-  if (NS_FAILED(rv)) {
+  nsCOMPtr<nsIPrincipal> documentPrincipal = doc->NodePrincipal();
+
+  result = documentPrincipal->CheckMayLoad(scriptURI, true ,
+                                           false );
+  if (result.Failed()) {
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
   nsCOMPtr<nsIURI> scopeURI;
-  rv = NS_NewURI(getter_AddRefs(scopeURI), aScope, nullptr, documentURI);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  result = NS_NewURI(getter_AddRefs(scopeURI), aScope, nullptr, documentURI);
+  if (NS_WARN_IF(result.Failed())) {
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
-  rv = documentPrincipal->CheckMayLoad(scopeURI, true ,
-                                       false );
-  if (NS_FAILED(rv)) {
+  result = documentPrincipal->CheckMayLoad(scopeURI, true ,
+                                           false );
+  if (result.Failed()) {
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
   nsCString cleanedScope;
-  rv = scopeURI->GetSpecIgnoringRef(cleanedScope);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  result = scopeURI->GetSpecIgnoringRef(cleanedScope);
+  if (NS_WARN_IF(result.Failed())) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryObject(sgo);
+  if (!window) {
     return NS_ERROR_FAILURE;
   }
 
