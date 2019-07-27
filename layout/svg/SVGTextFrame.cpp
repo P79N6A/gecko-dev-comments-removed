@@ -2989,8 +2989,30 @@ SVGTextDrawPathCallbacks::StrokeGeometry()
       GeneralPattern strokePattern;
       nsSVGUtils::MakeStrokePatternFor(mFrame, gfx, &strokePattern,  nullptr);
       if (strokePattern.GetPattern()) {
-        nsSVGUtils::SetupCairoStrokeGeometry(mFrame, gfx,  nullptr);
-        gfx->Stroke(strokePattern);
+        if (!mFrame->GetParent()->GetContent()->IsSVG()) {
+          
+          MOZ_ASSERT(false, "Our nsTextFrame's parent's content should be SVG");
+          return;
+        }
+        nsSVGElement* svgOwner =
+          static_cast<nsSVGElement*>(mFrame->GetParent()->GetContent());
+
+        
+        gfxMatrix outerSVGToUser;
+        if (nsSVGUtils::GetNonScalingStrokeTransform(mFrame, &outerSVGToUser) &&
+            outerSVGToUser.Invert()) {
+          gfx->Multiply(outerSVGToUser);
+        }
+
+        RefPtr<Path> path = gfx->GetPath();
+        SVGContentUtils::AutoStrokeOptions strokeOptions;
+        SVGContentUtils::GetStrokeOptions(&strokeOptions, svgOwner,
+                                          mFrame->StyleContext(),
+                                           nullptr);
+        DrawOptions drawOptions;
+        drawOptions.mAntialiasMode =
+          nsSVGUtils::ToAntialiasMode(mFrame->StyleSVG()->mTextRendering);
+        gfx->GetDrawTarget()->Stroke(path, strokePattern, strokeOptions);
       }
     }
   }

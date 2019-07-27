@@ -105,15 +105,6 @@ public:
 
 
 
-
-
-    void Stroke();
-    void Stroke(const Pattern& aPattern);
-    
-
-
-
-
     void Fill();
     void Fill(const Pattern& aPattern);
 
@@ -368,13 +359,6 @@ public:
 
 
 
-    typedef enum {
-        gfxLineSolid,
-        gfxLineDashed,
-        gfxLineDotted
-    } gfxLineType;
-
-    void SetDash(gfxLineType ltype);
     void SetDash(gfxFloat *dashes, int ndash, gfxFloat offset);
     
     
