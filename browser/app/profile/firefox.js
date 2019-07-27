@@ -1880,7 +1880,7 @@ pref("reader.parse-on-load.enabled", false);
 #endif
 
 
-pref("browser.readinglist.enabled", false);
+pref("browser.readinglist.enabled", true);
 pref("browser.readinglist.sidebarEverOpened", false);
 
 pref("readinglist.scheduler.enabled", true);
