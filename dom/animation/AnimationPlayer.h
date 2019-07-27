@@ -68,6 +68,9 @@ public:
   bool HasCurrentSource() const {
     return GetSource() && GetSource()->IsCurrent();
   }
+  bool HasInEffectSource() const {
+    return GetSource() && GetSource()->IsInEffect();
+  }
 
   
   
