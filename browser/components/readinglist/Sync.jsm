@@ -279,7 +279,12 @@ SyncImpl.prototype = {
       
       
       
-      if (response.status != 201) {
+      
+      
+      if (response.status == 200) {
+        log.debug("Attempting to upload a new item found the server already had it", response);
+        
+      } else if (response.status != 201) {
         this._handleUnexpectedResponse("uploading a new item", response);
         continue;
       }
