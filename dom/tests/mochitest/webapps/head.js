@@ -1,6 +1,10 @@
 
 
 
+const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
+
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
 function runAll(steps) {
   SimpleTest.waitForExplicitFinish();
 
@@ -46,3 +50,44 @@ function confirmNextInstall() {
   }
   popupPanel.addEventListener("popupshown", onPopupShown, false);
 }
+
+
+
+
+const CID = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator).generateUUID();
+const ALERTS_SERVICE_CONTRACT_ID = "@mozilla.org/alerts-service;1";
+const ALERTS_SERVICE_CID = Components.ID(Cc[ALERTS_SERVICE_CONTRACT_ID].number);
+
+var AlertsService = {
+  classID: Components.ID(CID),
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIFactory,
+                                         Ci.nsIAlertsService]),
+
+  createInstance: function(aOuter, aIID) {
+    if (aOuter) {
+      throw Cr.NS_ERROR_NO_AGGREGATION;
+    }
+
+    return this.QueryInterface(aIID);
+  },
+
+  init: function() {
+    Components.manager.nsIComponentRegistrar.registerFactory(this.classID,
+      "", ALERTS_SERVICE_CONTRACT_ID, this);
+  },
+
+  restore: function() {
+    Components.manager.nsIComponentRegistrar.registerFactory(ALERTS_SERVICE_CID,
+      "", ALERTS_SERVICE_CONTRACT_ID, null);
+  },
+
+  showAlertNotification: function() {
+  },
+};
+
+AlertsService.init();
+
+SimpleTest.registerCleanupFunction(() => {
+  AlertsService.restore();
+});
