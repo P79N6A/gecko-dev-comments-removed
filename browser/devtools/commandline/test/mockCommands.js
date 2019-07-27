@@ -24,7 +24,6 @@
 
 
 var Promise = require('gcli/util/promise').Promise;
-var converters = require('gcli/converters/converters');
 var mockCommands = {};
 
 
@@ -34,37 +33,11 @@ var mockCommands = {};
 
 
 mockCommands.setup = function(requisition) {
-  mockCommands.items.forEach(function(item) {
-    if (item.item === 'command') {
-      requisition.canon.addCommand(item);
-    }
-    else if (item.item === 'type') {
-      requisition.types.addType(item);
-    }
-    else if (item.item === 'converter') {
-      converters.addConverter(item);
-    }
-    else {
-      console.error('Ignoring item ', item);
-    }
-  });
+  requisition.system.addItems(mockCommands.items);
 };
 
 mockCommands.shutdown = function(requisition) {
-  mockCommands.items.forEach(function(item) {
-    if (item.item === 'command') {
-      requisition.canon.removeCommand(item);
-    }
-    else if (item.item === 'type') {
-      requisition.types.removeType(item);
-    }
-    else if (item.item === 'converter') {
-      converters.removeConverter(item);
-    }
-    else {
-      console.error('Ignoring item ', item);
-    }
-  });
+  requisition.system.removeItems(mockCommands.items);
 };
 
 function createExec(name) {

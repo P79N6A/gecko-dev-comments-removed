@@ -31,7 +31,7 @@ var Status = require('../types/types').Status;
 
 
 
-exports.parse = function(typed, options) {
+exports.parse = function(context, typed, options) {
   return filesystem.stat(typed).then(function(stats) {
     
     if (options.existing === 'no' && stats.exists) {

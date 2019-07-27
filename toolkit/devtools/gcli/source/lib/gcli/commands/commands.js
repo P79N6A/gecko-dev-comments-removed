@@ -19,8 +19,6 @@
 var util = require('../util/util');
 var l10n = require('../util/l10n');
 
-var centralTypes = require('../types/types').centralTypes;
-
 
 
 
@@ -330,9 +328,8 @@ exports.Parameter = Parameter;
 
 
 
-function Canon(options) {
-  options  = options || {};
-  this.types = options.types || centralTypes;
+function Commands(types) {
+  this.types = types;
 
   
   this._commands = {};
@@ -342,7 +339,7 @@ function Canon(options) {
   this._commandSpecs = {};
 
   
-  this.onCanonChange = util.createEvent('canon.onCanonChange');
+  this.onCommandsChange = util.createEvent('commands.onCommandsChange');
 }
 
 
@@ -352,7 +349,7 @@ function Canon(options) {
 
 
 
-Canon.prototype.addCommand = function(commandSpec) {
+Commands.prototype.add = function(commandSpec) {
   if (this._commands[commandSpec.name] != null) {
     
     delete this._commands[commandSpec.name];
@@ -368,7 +365,7 @@ Canon.prototype.addCommand = function(commandSpec) {
 
   this._commandSpecs[commandSpec.name] = commandSpec;
 
-  this.onCanonChange();
+  this.onCommandsChange();
   return command;
 };
 
@@ -378,7 +375,7 @@ Canon.prototype.addCommand = function(commandSpec) {
 
 
 
-Canon.prototype.removeCommand = function(commandOrName) {
+Commands.prototype.remove = function(commandOrName) {
   var name = typeof commandOrName === 'string' ?
           commandOrName :
           commandOrName.name;
@@ -394,7 +391,7 @@ Canon.prototype.removeCommand = function(commandOrName) {
     return test !== name;
   });
 
-  this.onCanonChange();
+  this.onCommandsChange();
   return true;
 };
 
@@ -402,7 +399,7 @@ Canon.prototype.removeCommand = function(commandOrName) {
 
 
 
-Canon.prototype.getCommand = function(name) {
+Commands.prototype.get = function(name) {
   
   return this._commands[name] || undefined;
 };
@@ -410,7 +407,7 @@ Canon.prototype.getCommand = function(name) {
 
 
 
-Canon.prototype.getCommands = function() {
+Commands.prototype.getAll = function() {
   return Object.keys(this._commands).map(function(name) {
     return this._commands[name];
   }, this);
@@ -419,15 +416,8 @@ Canon.prototype.getCommands = function() {
 
 
 
-Canon.prototype.getCommandNames = function() {
-  return this._commandNames.slice(0);
-};
 
-
-
-
-
-Canon.prototype.getCommandSpecs = function() {
+Commands.prototype.getCommandSpecs = function() {
   var commandSpecs = [];
 
   Object.keys(this._commands).forEach(function(name) {
@@ -452,7 +442,7 @@ Canon.prototype.getCommandSpecs = function() {
 
 
 
-Canon.prototype.addProxyCommands = function(commandSpecs, remoter, prefix, to) {
+Commands.prototype.addProxyCommands = function(commandSpecs, remoter, prefix, to) {
   if (prefix != null) {
     if (this._commands[prefix] != null) {
       throw new Error(l10n.lookupFormat('canonProxyExists', [ prefix ]));
@@ -460,7 +450,7 @@ Canon.prototype.addProxyCommands = function(commandSpecs, remoter, prefix, to) {
 
     
     
-    this.addCommand({
+    this.add({
       name: prefix,
       isProxy: true,
       description: l10n.lookupFormat('canonProxyDesc', [ to ]),
@@ -481,7 +471,7 @@ Canon.prototype.addProxyCommands = function(commandSpecs, remoter, prefix, to) {
       commandSpec.name = prefix + ' ' + commandSpec.name;
     }
     commandSpec.isProxy = true;
-    this.addCommand(commandSpec);
+    this.add(commandSpec);
   }.bind(this));
 };
 
@@ -489,7 +479,7 @@ Canon.prototype.addProxyCommands = function(commandSpecs, remoter, prefix, to) {
 
 
 
-Canon.prototype.removeProxyCommands = function(prefix) {
+Commands.prototype.removeProxyCommands = function(prefix) {
   var toRemove = [];
   Object.keys(this._commandSpecs).forEach(function(name) {
     if (name.indexOf(prefix) === 0) {
@@ -499,9 +489,9 @@ Canon.prototype.removeProxyCommands = function(prefix) {
 
   var removed = [];
   toRemove.forEach(function(name) {
-    var command = this.getCommand(name);
+    var command = this.get(name);
     if (command.isProxy) {
-      this.removeCommand(name);
+      this.remove(name);
       removed.push(name);
     }
     else {
@@ -513,9 +503,7 @@ Canon.prototype.removeProxyCommands = function(prefix) {
   return removed;
 };
 
-exports.Canon = Canon;
-
-exports.centralCanon = new Canon();
+exports.Commands = Commands;
 
 
 

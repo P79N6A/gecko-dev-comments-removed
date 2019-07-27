@@ -1064,7 +1064,7 @@ Types.prototype.getTypeNames = function() {
 
 
 
-Types.prototype.addType = function(type) {
+Types.prototype.add = function(type) {
   if (typeof type === 'object') {
     if (!type.name) {
       throw new Error('All registered types must have a name');
@@ -1099,7 +1099,7 @@ Types.prototype.addType = function(type) {
 
 
 
-Types.prototype.removeType = function(type) {
+Types.prototype.remove = function(type) {
   delete this._registered[type.name];
 };
 
@@ -1151,8 +1151,3 @@ Types.prototype.createType = function(typeSpec) {
 
   return newType;
 };
-
-
-
-
-exports.centralTypes = new Types();

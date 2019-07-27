@@ -36,19 +36,8 @@ if (typeof document !== 'undefined') {
 
 
 
-
-
-
-var emptyNodeList = [];
-
-
-
-
 exports.setDocument = function(document) {
   doc = document;
-  if (doc != null) {
-    emptyNodeList = util.createEmptyNodeList(doc);
-  }
 };
 
 
@@ -56,7 +45,6 @@ exports.setDocument = function(document) {
 
 exports.unsetDocument = function() {
   doc = undefined;
-  emptyNodeList = undefined;
 };
 
 
@@ -186,6 +174,7 @@ exports.items = [
     },
 
     getBlank: function(context) {
+      var emptyNodeList = (doc == null ? [] : util.createEmptyNodeList(doc));
       return new Conversion(emptyNodeList, new BlankArgument(), Status.VALID);
     },
 

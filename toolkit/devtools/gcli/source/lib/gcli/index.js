@@ -33,7 +33,7 @@ var Cu = require('chrome').Cu;
 
 
 
-var items = [
+exports.items = [
   require('./types/delegate').items,
   require('./types/selection').items,
   require('./types/array').items,
@@ -51,6 +51,7 @@ var items = [
   require('./types/union').items,
   require('./types/url').items,
 
+  require('./fields/fields').items,
   require('./fields/delegate').items,
   require('./fields/selection').items,
 
@@ -89,8 +90,14 @@ var items = [
 ].reduce(function(prev, curr) { return prev.concat(curr); }, []);
 
 var api = require('./api');
-api.populateApi(exports);
-exports.addItems(items);
+var system = api.createSystem();
+
+
+Object.keys(system).forEach(function(key) {
+  exports[key] = system[key];
+});
+
+system.addItems(exports.items);
 
 var host = require('./util/host');
 
@@ -110,9 +117,14 @@ exports.useTarget = host.script.useTarget;
 
 
 
-exports.createDisplay = function(opts) {
+exports.createDisplay = function(options) {
   var FFDisplay = require('./mozui/ffdisplay').FFDisplay;
-  return new FFDisplay(opts);
+  return new FFDisplay(system, options);
+};
+
+exports.createRequisition = function(options) {
+  var Requisition = require('./cli').Requisition;
+  return new Requisition(system, options);
 };
 
 var prefSvc = Cc['@mozilla.org/preferences-service;1']

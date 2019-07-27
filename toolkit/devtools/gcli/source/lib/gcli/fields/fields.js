@@ -127,18 +127,21 @@ exports.Field = Field;
 
 
 
-var fieldCtors = [];
+function Fields() {
+  
+  this._fieldCtors = [];
+}
 
 
 
 
 
-exports.addField = function(fieldCtor) {
+Fields.prototype.add = function(fieldCtor) {
   if (typeof fieldCtor !== 'function') {
-    console.error('addField erroring on ', fieldCtor);
-    throw new Error('addField requires a Field constructor');
+    console.error('fields.add erroring on ', fieldCtor);
+    throw new Error('fields.add requires a Field constructor');
   }
-  fieldCtors.push(fieldCtor);
+  this._fieldCtors.push(fieldCtor);
 };
 
 
@@ -146,18 +149,18 @@ exports.addField = function(fieldCtor) {
 
 
 
-exports.removeField = function(field) {
+Fields.prototype.remove = function(field) {
   if (typeof field !== 'string') {
-    fieldCtors = fieldCtors.filter(function(test) {
+    this._fieldCtors = this._fieldCtors.filter(function(test) {
       return test !== field;
     });
   }
   else if (field instanceof Field) {
-    exports.removeField(field.name);
+    this.remove(field.name);
   }
   else {
-    console.error('removeField erroring on ', field);
-    throw new Error('removeField requires an instance of Field');
+    console.error('fields.remove erroring on ', field);
+    throw new Error('fields.remove requires an instance of Field');
   }
 };
 
@@ -171,10 +174,10 @@ exports.removeField = function(field) {
 
 
 
-exports.getField = function(type, options) {
+Fields.prototype.get = function(type, options) {
   var FieldConstructor;
   var highestClaim = -1;
-  fieldCtors.forEach(function(fieldCtor) {
+  this._fieldCtors.forEach(function(fieldCtor) {
     var context = (options.requisition == null) ?
                   null : options.requisition.executionContext;
     var claim = fieldCtor.claim(type, context);
@@ -185,7 +188,7 @@ exports.getField = function(type, options) {
   });
 
   if (!FieldConstructor) {
-    console.error('Unknown field type ', type, ' in ', fieldCtors);
+    console.error('Unknown field type ', type, ' in ', this._fieldCtors);
     throw new Error('Can\'t find field for ' + type);
   }
 
@@ -196,6 +199,7 @@ exports.getField = function(type, options) {
   return new FieldConstructor(type, options);
 };
 
+exports.Fields = Fields;
 
 
 
@@ -228,4 +232,7 @@ BlankField.prototype.getConversion = function() {
   return this.type.parseString('', this.requisition.executionContext);
 };
 
-exports.addField(BlankField);
+
+
+
+exports.items = [ BlankField ];

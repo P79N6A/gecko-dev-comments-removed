@@ -21,11 +21,6 @@ var Promise = require('../util/promise').Promise;
 
 
 
-var connectors = {};
-
-
-
-
 
 
 
@@ -114,35 +109,44 @@ exports.Connection = Connection;
 
 
 
+function Connectors() {
+  
+  this._registered = {};
+}
 
-exports.addConnector = function(connector) {
-  connectors[connector.name] = connector;
+
+
+
+Connectors.prototype.add = function(connector) {
+  this._registered[connector.name] = connector;
 };
 
 
 
 
-exports.removeConnector = function(connector) {
+Connectors.prototype.remove = function(connector) {
   var name = typeof connector === 'string' ? connector : connector.name;
-  delete connectors[name];
+  delete this._registered[name];
 };
 
 
 
 
-exports.getConnectors = function() {
-  return Object.keys(connectors).map(function(name) {
-    return connectors[name];
-  });
+Connectors.prototype.getAll = function() {
+  return Object.keys(this._registered).map(function(name) {
+    return this._registered[name];
+  }.bind(this));
 };
 
 
 
 
 
-exports.get = function(name) {
+Connectors.prototype.get = function(name) {
   if (name == null) {
-    name = Object.keys(connectors)[0];
+    name = Object.keys(this._registered)[0];
   }
-  return connectors[name];
+  return this._registered[name];
 };
+
+exports.Connectors = Connectors;

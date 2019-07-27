@@ -46,13 +46,134 @@ var DEVTOOLS_PREFIX = 'devtools.gcli.';
 
 
 
-var types;
+function Settings(types, settingValues) {
+  this._types = types;
+
+  if (settingValues != null) {
+    throw new Error('settingValues is not supported when writing to prefs');
+  }
+
+  
+  this._settingsAll = [];
+
+  
+  this._settingsMap = new Map();
+
+  
+  this._hasReadSystem = false;
+
+  
+  this.onChange = util.createEvent('Settings.onChange');
+}
 
 
 
 
 
-function Setting(prefSpec) {
+Settings.prototype._readSystem = function() {
+  if (this._hasReadSystem) {
+    return;
+  }
+
+  imports.prefBranch.getChildList('').forEach(function(name) {
+    var setting = new Setting(this, name);
+    this._settingsAll.push(setting);
+    this._settingsMap.set(name, setting);
+  }.bind(this));
+
+  this._settingsAll.sort(function(s1, s2) {
+    return s1.name.localeCompare(s2.name);
+  }.bind(this));
+
+  this._hasReadSystem = true;
+};
+
+
+
+
+
+Settings.prototype.getAll = function(filter) {
+  this._readSystem();
+
+  if (filter == null) {
+    return this._settingsAll;
+  }
+
+  return this._settingsAll.filter(function(setting) {
+    return setting.name.indexOf(filter) !== -1;
+  }.bind(this));
+};
+
+
+
+
+
+Settings.prototype.add = function(prefSpec) {
+  var setting = new Setting(this, prefSpec);
+
+  if (this._settingsMap.has(setting.name)) {
+    
+    for (var i = 0; i < this._settingsAll.length; i++) {
+      if (this._settingsAll[i].name === setting.name) {
+        this._settingsAll[i] = setting;
+      }
+    }
+  }
+
+  this._settingsMap.set(setting.name, setting);
+  this.onChange({ added: setting.name });
+
+  return setting;
+};
+
+
+
+
+
+
+
+
+
+
+Settings.prototype.get = function(name) {
+  
+  
+  var found = this._settingsMap.get(name);
+  if (!found) {
+    found = this._settingsMap.get(DEVTOOLS_PREFIX + name);
+  }
+
+  if (found) {
+    return found;
+  }
+
+  if (this._hasReadSystem) {
+    return undefined;
+  }
+  else {
+    this._readSystem();
+    found = this._settingsMap.get(name);
+    if (!found) {
+      found = this._settingsMap.get(DEVTOOLS_PREFIX + name);
+    }
+    return found;
+  }
+};
+
+
+
+
+Settings.prototype.remove = function() {
+};
+
+exports.Settings = Settings;
+
+
+
+
+
+function Setting(settings, prefSpec) {
+  this._settings = settings;
   if (typeof prefSpec === 'string') {
     
     this.name = prefSpec;
@@ -78,17 +199,25 @@ function Setting(prefSpec) {
 
 
 
+Setting.prototype.setDefault = function() {
+  imports.prefBranch.clearUserPref(this.name);
+  Services.prefs.savePrefFile(null);
+};
+
+
+
+
 Object.defineProperty(Setting.prototype, 'type', {
   get: function() {
     switch (imports.prefBranch.getPrefType(this.name)) {
       case imports.prefBranch.PREF_BOOL:
-        return types.createType('boolean');
+        return this._settings._types.createType('boolean');
 
       case imports.prefBranch.PREF_INT:
-        return types.createType('number');
+        return this._settings._types.createType('number');
 
       case imports.prefBranch.PREF_STRING:
-        return types.createType('string');
+        return this._settings._types.createType('string');
 
       default:
         throw new Error('Unknown type for ' + this.name);
@@ -154,154 +283,3 @@ Object.defineProperty(Setting.prototype, 'value', {
 
   enumerable: true
 });
-
-
-
-
-Setting.prototype.setDefault = function() {
-  imports.prefBranch.clearUserPref(this.name);
-  Services.prefs.savePrefFile(null);
-};
-
-
-
-
-
-var settingsAll = [];
-
-
-
-
-var settingsMap = new Map();
-
-
-
-
-var hasReadSystem = false;
-
-
-
-
-function reset() {
-  settingsMap = new Map();
-  settingsAll = [];
-  hasReadSystem = false;
-}
-
-
-
-
-exports.startup = function(t) {
-  reset();
-  types = t;
-  if (types == null) {
-    throw new Error('no types');
-  }
-};
-
-exports.shutdown = function() {
-  reset();
-};
-
-
-
-
-
-function readSystem() {
-  if (hasReadSystem) {
-    return;
-  }
-
-  imports.prefBranch.getChildList('').forEach(function(name) {
-    var setting = new Setting(name);
-    settingsAll.push(setting);
-    settingsMap.set(name, setting);
-  });
-
-  settingsAll.sort(function(s1, s2) {
-    return s1.name.localeCompare(s2.name);
-  });
-
-  hasReadSystem = true;
-}
-
-
-
-
-
-exports.getAll = function(filter) {
-  readSystem();
-
-  if (filter == null) {
-    return settingsAll;
-  }
-
-  return settingsAll.filter(function(setting) {
-    return setting.name.indexOf(filter) !== -1;
-  });
-};
-
-
-
-
-exports.addSetting = function(prefSpec) {
-  var setting = new Setting(prefSpec);
-
-  if (settingsMap.has(setting.name)) {
-    
-    for (var i = 0; i < settingsAll.length; i++) {
-      if (settingsAll[i].name === setting.name) {
-        settingsAll[i] = setting;
-      }
-    }
-  }
-
-  settingsMap.set(setting.name, setting);
-  exports.onChange({ added: setting.name });
-
-  return setting;
-};
-
-
-
-
-
-
-
-
-
-
-exports.getSetting = function(name) {
-  
-  
-  var found = settingsMap.get(name);
-  if (!found) {
-    found = settingsMap.get(DEVTOOLS_PREFIX + name);
-  }
-
-  if (found) {
-    return found;
-  }
-
-  if (hasReadSystem) {
-    return undefined;
-  }
-  else {
-    readSystem();
-    found = settingsMap.get(name);
-    if (!found) {
-      found = settingsMap.get(DEVTOOLS_PREFIX + name);
-    }
-    return found;
-  }
-};
-
-
-
-
-exports.onChange = util.createEvent('Settings.onChange');
-
-
-
-
-exports.removeSetting = function() { };
