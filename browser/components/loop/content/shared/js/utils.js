@@ -553,6 +553,71 @@ var inChrome = typeof Components != "undefined" && "utils" in Components;
     return result;
   }
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  function objectDiff(a, b) {
+    var propsA = a ? Object.getOwnPropertyNames(a) : [];
+    var propsB = b ? Object.getOwnPropertyNames(b) : [];
+    var diff = {
+      updated: [],
+      added: [],
+      removed: []
+    };
+
+    var prop;
+    for (var i = 0, lA = propsA.length; i < lA; ++i) {
+      prop = propsA[i];
+      if (propsB.indexOf(prop) == -1) {
+        diff.removed.push(prop);
+      } else if (a[prop] !== b[prop]) {
+        diff.updated.push(prop);
+      }
+    }
+
+    for (var j = 0, lB = propsB.length; j < lB; ++j) {
+      prop = propsB[j];
+      if (propsA.indexOf(prop) == -1) {
+        diff.added.push(prop);
+      }
+    }
+
+    return diff;
+  }
+
+  
+
+
+
+
+
+
+
+  function stripFalsyValues(obj) {
+    var props = Object.getOwnPropertyNames(obj);
+    var prop;
+    for (var i = props.length; i >= 0; --i) {
+      prop = props[i];
+      
+      if (!obj[prop]) {
+        delete obj[prop];
+      }
+    }
+    return obj;
+  }
+
   this.utils = {
     CALL_TYPES: CALL_TYPES,
     FAILURE_DETAILS: FAILURE_DETAILS,
@@ -576,6 +641,8 @@ var inChrome = typeof Components != "undefined" && "utils" in Components;
     atob: atob,
     btoa: btoa,
     strToUint8Array: strToUint8Array,
-    Uint8ArrayToStr: Uint8ArrayToStr
+    Uint8ArrayToStr: Uint8ArrayToStr,
+    objectDiff: objectDiff,
+    stripFalsyValues: stripFalsyValues
   };
 }).call(inChrome ? this : loop.shared);
