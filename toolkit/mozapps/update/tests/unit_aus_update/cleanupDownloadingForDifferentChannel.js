@@ -8,8 +8,8 @@
 function run_test() {
   setupTestCommon();
 
-  logTestInfo("testing removal of an active update for a channel that is not" +
-              "valid due to switching channels (Bug 486275).");
+  debugDump("testing removal of an active update for a channel that is not" +
+            "valid due to switching channels (Bug 486275).");
 
   let patches = getLocalPatchString(null, null, null, null, null, null,
                                     STATE_DOWNLOADING);
@@ -36,7 +36,7 @@ function run_test() {
   
   
   let file = getUpdatesXMLFile(true);
-  logTestInfo("verifying contents of " + FILE_UPDATE_ACTIVE);
+  debugDump("verifying contents of " + FILE_UPDATE_ACTIVE);
   do_check_eq(readFile(file), getLocalUpdatesXMLString(""));
 
   doTestFinish();

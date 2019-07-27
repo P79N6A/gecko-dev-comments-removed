@@ -5,6 +5,9 @@
 
 
 function run_test() {
+  
+  DEBUG_AUS_TEST = true;
+
   if (!shouldRunServiceTest()) {
     return;
   }

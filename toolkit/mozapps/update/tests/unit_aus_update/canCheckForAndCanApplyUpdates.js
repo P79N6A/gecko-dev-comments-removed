@@ -7,7 +7,7 @@ function run_test() {
   setupTestCommon();
 
   
-  logTestInfo("testing write access to the application directory");
+  debugDump("testing write access to the application directory");
   let testFile = getCurrentProcessDir();
   testFile.append("update_write_access_test");
   testFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, PERMS_FILE);
@@ -19,42 +19,42 @@ function run_test() {
 
   if (IS_WIN) {
     
-    logTestInfo("attempting to create mutex");
+    debugDump("attempting to create mutex");
     let handle = createMutex(getPerInstallationMutexName());
 
-    logTestInfo("testing that the mutex was successfully created");
+    debugDump("testing that the mutex was successfully created");
     do_check_neq(handle, null);
 
     
     
-    logTestInfo("testing nsIApplicationUpdateService:canCheckForUpdates is " +
-                "false when there is a mutex");
+    debugDump("testing nsIApplicationUpdateService:canCheckForUpdates is " +
+              "false when there is a mutex");
     do_check_false(gAUS.canCheckForUpdates);
 
     
     
-    logTestInfo("testing nsIApplicationUpdateService:canApplyUpdates is " +
+    debugDump("testing nsIApplicationUpdateService:canApplyUpdates is " +
                 "false when there is a mutex");
     do_check_false(gAUS.canApplyUpdates);
 
-    logTestInfo("destroying mutex");
+    debugDump("destroying mutex");
     closeHandle(handle)
   }
 
   
-  logTestInfo("testing nsIApplicationUpdateService:canCheckForUpdates is true");
+  debugDump("testing nsIApplicationUpdateService:canCheckForUpdates is true");
   do_check_true(gAUS.canCheckForUpdates);
   
-  logTestInfo("testing nsIApplicationUpdateService:canApplyUpdates is true");
+  debugDump("testing nsIApplicationUpdateService:canApplyUpdates is true");
   do_check_true(gAUS.canApplyUpdates);
 
   if (IS_WIN) {
     
     
-    logTestInfo("attempting to create mutex");
+    debugDump("attempting to create mutex");
     let handle = createMutex(getPerInstallationMutexName());
 
-    logTestInfo("testing that the mutex was not successfully created");
+    debugDump("testing that the mutex was not successfully created");
     do_check_eq(handle, null);
   }
 

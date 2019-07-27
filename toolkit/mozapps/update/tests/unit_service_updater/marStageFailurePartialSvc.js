@@ -6,6 +6,9 @@
 
 
 function run_test() {
+  
+  DEBUG_AUS_TEST = true;
+
   if (!shouldRunServiceTest()) {
     return;
   }
@@ -44,8 +47,8 @@ function setupAppFilesFinished() {
 function checkUpdateFinished() {
   if (IS_WIN || IS_MACOSX) {
     let running = getPostUpdateFile(".running");
-    logTestInfo("checking that the post update process running file doesn't " +
-                "exist. Path: " + running.path);
+    debugDump("checking that the post update process running file doesn't " +
+              "exist. Path: " + running.path);
     do_check_false(running.exists());
   }
 
