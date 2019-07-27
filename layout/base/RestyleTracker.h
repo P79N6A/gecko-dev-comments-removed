@@ -290,9 +290,12 @@ public:
   struct RestyleData {
     nsRestyleHint mRestyleHint;       
     nsChangeHint mChangeHint;         
-    nsTArray<Element*> mDescendants;  
-                                      
-                                      
+
+    
+    
+    
+    
+    nsTArray<nsRefPtr<Element>> mDescendants;
   };
 
   
@@ -307,6 +310,21 @@ public:
 
 
   bool GetRestyleData(Element* aElement, RestyleData* aData);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  void AddRestyleRootsIfAwaitingRestyle(
+                                  const nsTArray<nsRefPtr<Element>>& aElements);
 
   
 

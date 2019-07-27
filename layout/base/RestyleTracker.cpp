@@ -203,23 +203,7 @@ RestyleTracker::DoProcessRestyles()
       }
 
       ProcessOneRestyle(element, data.mRestyleHint, data.mChangeHint);
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      for (uint32_t i = 0; i < data.mDescendants.Length(); ++i) {
-        Element* descendant = data.mDescendants[i];
-        if (descendant->HasFlag(RestyleBit())) {
-          mRestyleRoots.AppendElement(descendant);
-        }
-      }
+      AddRestyleRootsIfAwaitingRestyle(data.mDescendants);
     }
 
     if (mHaveLaterSiblingRestyles) {
@@ -297,5 +281,31 @@ RestyleTracker::GetRestyleData(Element* aElement, RestyleData* aData)
   return true;
 }
 
-} 
+void
+RestyleTracker::AddRestyleRootsIfAwaitingRestyle(
+                                   const nsTArray<nsRefPtr<Element>>& aElements)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  for (size_t i = 0; i < aElements.Length(); i++) {
+    Element* element = aElements[i];
+    if (element->HasFlag(RestyleBit())) {
+      mRestyleRoots.AppendElement(element);
+    }
+  }
+}
 
+} 
