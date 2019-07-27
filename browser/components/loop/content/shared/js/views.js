@@ -203,8 +203,9 @@ loop.shared.views = (function(_, OT, l10n) {
     
     
     publisherConfig: {
+      insertMode: "append",
       width: "100%",
-      height: "auto",
+      height: "100%",
       style: {
         bugDisplayMode: "off",
         buttonDisplayMode: "off",
@@ -254,7 +255,7 @@ loop.shared.views = (function(_, OT, l10n) {
 
 
     _streamCreated: function(event) {
-      var incoming = this.getDOMNode().querySelector(".incoming");
+      var incoming = this.getDOMNode().querySelector(".remote");
       event.streams.forEach(function(stream) {
         if (stream.connection.connectionId !==
             this.props.model.session.connection.connectionId) {
@@ -272,7 +273,7 @@ loop.shared.views = (function(_, OT, l10n) {
 
 
     startPublishing: function(event) {
-      var outgoing = this.getDOMNode().querySelector(".outgoing");
+      var outgoing = this.getDOMNode().querySelector(".local");
 
       
       this.publisher = this.props.sdk.initPublisher(
@@ -335,8 +336,10 @@ loop.shared.views = (function(_, OT, l10n) {
                                publishStream:this.publishStream,
                                hangup:this.hangup} ),
           React.DOM.div( {className:"media nested"}, 
-            React.DOM.div( {className:"remote"}, React.DOM.div( {className:"incoming"})),
-            React.DOM.div( {className:"local"}, React.DOM.div( {className:"outgoing"}))
+            React.DOM.div( {className:"video_wrapper remote_wrapper"}, 
+              React.DOM.div( {className:"video_inner remote"})
+            ),
+            React.DOM.div( {className:"local"})
           )
         )
       );
