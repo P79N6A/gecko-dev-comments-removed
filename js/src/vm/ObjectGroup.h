@@ -135,6 +135,36 @@ void MergeCompartments(JSCompartment *source, JSCompartment *target);
 
 
 
+enum NewObjectKind {
+    
+    GenericObject,
+
+    
+
+
+
+
+    SingletonObject,
+
+    
+
+
+
+
+    MaybeSingletonObject,
+
+    
+
+
+
+
+    TenuredObject
+};
+
+
+
+
+
 
 
 
@@ -558,6 +588,10 @@ class ObjectGroup : public gc::TenuredCell
         return offsetof(ObjectGroup, flags_);
     }
 
+    const ObjectGroupFlags *addressOfFlags() const {
+        return &flags_;
+    }
+
     
     
     static inline int32_t addendumOriginalUnboxedGroupValue() {
@@ -605,12 +639,14 @@ class ObjectGroup : public gc::TenuredCell
     
     
     static void fixArrayGroup(ExclusiveContext *cx, ArrayObject *obj);
-    static void fixPlainObjectGroup(ExclusiveContext *cx, PlainObject *obj);
 
     
     static void fixRestArgumentsGroup(ExclusiveContext *cx, ArrayObject *obj);
 
-    static PlainObject *newPlainObject(JSContext *cx, IdValuePair *properties, size_t nproperties);
+    
+    static JSObject *newPlainObject(ExclusiveContext *cx,
+                                    IdValuePair *properties, size_t nproperties,
+                                    NewObjectKind newKind);
 
     
 
@@ -732,9 +768,11 @@ class ObjectGroupCompartment
 
     static void newTablePostBarrier(ExclusiveContext *cx, NewTable *table,
                                     const Class *clasp, TaggedProto proto, JSObject *associated);
-    static void updatePlainObjectEntryTypes(ExclusiveContext *cx, PlainObjectEntry &entry,
-                                            IdValuePair *properties, size_t nproperties);
 };
+
+PlainObject *
+NewPlainObjectWithProperties(ExclusiveContext *cx, IdValuePair *properties, size_t nproperties,
+                             NewObjectKind newKind);
 
 } 
 

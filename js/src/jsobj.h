@@ -1117,36 +1117,6 @@ extern const char js_lookupSetter_str[];
 
 namespace js {
 
-
-
-
-
-enum NewObjectKind {
-    
-    GenericObject,
-
-    
-
-
-
-
-    SingletonObject,
-
-    
-
-
-
-
-    MaybeSingletonObject,
-
-    
-
-
-
-
-    TenuredObject
-};
-
 inline gc::InitialHeap
 GetInitialHeap(NewObjectKind newKind, const Class *clasp)
 {
@@ -1174,8 +1144,8 @@ CreateThis(JSContext *cx, const js::Class *clasp, js::HandleObject callee);
 extern JSObject *
 CloneObject(JSContext *cx, HandleObject obj, Handle<js::TaggedProto> proto);
 
-extern NativeObject *
-DeepCloneObjectLiteral(JSContext *cx, HandleNativeObject obj, NewObjectKind newKind = GenericObject);
+extern JSObject *
+DeepCloneObjectLiteral(JSContext *cx, HandleObject obj, NewObjectKind newKind = GenericObject);
 
 extern bool
 DefineProperties(JSContext *cx, HandleObject obj, HandleObject props);
@@ -1271,7 +1241,7 @@ ToObjectFromStack(JSContext *cx, HandleValue vp)
 
 template<XDRMode mode>
 bool
-XDRObjectLiteral(XDRState<mode> *xdr, MutableHandleNativeObject obj);
+XDRObjectLiteral(XDRState<mode> *xdr, MutableHandleObject obj);
 
 extern JSObject *
 CloneObjectLiteral(JSContext *cx, HandleObject parent, HandleObject srcObj);

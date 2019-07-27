@@ -889,6 +889,30 @@ class ABIArg
     AnyRegister reg() const { return kind_ == GPR ? AnyRegister(gpr()) : AnyRegister(fpu()); }
 };
 
+
+
+
+inline GeneralRegisterSet
+SavedNonVolatileRegisters(GeneralRegisterSet unused)
+{
+    GeneralRegisterSet result;
+
+    for (GeneralRegisterIterator iter(GeneralRegisterSet::NonVolatile()); iter.more(); iter++) {
+        Register reg = *iter;
+        if (!unused.has(reg))
+            result.add(reg);
+    }
+
+    
+#if defined(JS_CODEGEN_ARM)
+    result.add(Register::FromCode(Registers::lr));
+#elif defined(JS_CODEGEN_MIPS)
+    result.add(Register::FromCode(Registers::ra));
+#endif
+
+    return result;
+}
+
 } 
 } 
 

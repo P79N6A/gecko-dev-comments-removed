@@ -577,55 +577,12 @@ JSONParser<CharT>::advanceAfterProperty()
     return token(Error);
 }
 
-JSObject *
-JSONParserBase::createFinishedObject(PropertyVector &properties)
-{
-    
-
-
-
-    {
-        JSObject *obj = ObjectGroup::newPlainObject(cx, properties.begin(),
-                                                    properties.length());
-        if (obj)
-            return obj;
-    }
-
-    
-
-
-
-    gc::AllocKind allocKind = gc::GetGCObjectKind(properties.length());
-    RootedPlainObject obj(cx, NewBuiltinClassInstance<PlainObject>(cx, allocKind));
-    if (!obj)
-        return nullptr;
-
-    RootedId propid(cx);
-    RootedValue value(cx);
-
-    for (size_t i = 0; i < properties.length(); i++) {
-        propid = properties[i].id;
-        value = properties[i].value;
-        if (!NativeDefineProperty(cx, obj, propid, value, nullptr, nullptr, JSPROP_ENUMERATE))
-            return nullptr;
-    }
-
-    
-
-
-
-
-    ObjectGroup::fixPlainObjectGroup(cx, obj);
-
-    return obj;
-}
-
 inline bool
 JSONParserBase::finishObject(MutableHandleValue vp, PropertyVector &properties)
 {
     MOZ_ASSERT(&properties == &stack.back().properties());
 
-    JSObject *obj = createFinishedObject(properties);
+    JSObject *obj = ObjectGroup::newPlainObject(cx, properties.begin(), properties.length(), GenericObject);
     if (!obj)
         return false;
 
