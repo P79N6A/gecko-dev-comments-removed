@@ -750,6 +750,52 @@ function TypedArraySome(callbackfn, thisArg = undefined) {
 }
 
 
+function TypedArraySubarray(begin, end) {
+    
+    var obj = this;
+
+    
+    
+    if (!IsObject(obj) || !IsTypedArray(obj)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, this, begin, end,
+                            "TypedArraySubarray");
+    }
+
+    
+    var buffer = TypedArrayBuffer(obj);
+    var srcLength = TypedArrayLength(obj);
+
+    
+    var relativeBegin = ToInteger(begin);
+    var beginIndex = relativeBegin < 0 ? std_Math_max(srcLength + relativeBegin, 0)
+                                       : std_Math_min(relativeBegin, srcLength);
+
+    
+    var relativeEnd = end === undefined ? srcLength : ToInteger(end);
+    var endIndex = relativeEnd < 0 ? std_Math_max(srcLength + relativeEnd, 0)
+                                   : std_Math_min(relativeEnd, srcLength);
+
+    
+    var newLength = std_Math_max(endIndex - beginIndex, 0);
+
+    
+    var elementShift = TypedArrayElementShift(obj);
+
+    
+    var srcByteOffset = TypedArrayByteOffset(obj);
+
+    
+    var beginByteOffset = srcByteOffset + (beginIndex << elementShift);
+
+    
+    var defaultConstructor = _ConstructorForTypedArray(obj);
+    var constructor = SpeciesConstructor(obj, defaultConstructor);
+
+    
+    return new constructor(buffer, beginByteOffset, newLength);
+}
+
+
 function TypedArrayValues() {
     
     var O = this;

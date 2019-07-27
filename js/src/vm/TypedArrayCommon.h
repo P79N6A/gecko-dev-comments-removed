@@ -482,6 +482,11 @@ class TypedArrayMethods
 
   public:
     
+    
+    
+    
+    
+    
     static bool
     subarray(JSContext *cx, CallArgs args)
     {
