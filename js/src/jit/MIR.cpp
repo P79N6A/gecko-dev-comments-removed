@@ -1297,7 +1297,7 @@ MCall::addArg(size_t argnum, MDefinition *arg)
 void
 MBitNot::infer()
 {
-    if (getOperand(0)->mightBeType(MIRType_Object))
+    if (getOperand(0)->mightBeType(MIRType_Object) || getOperand(0)->mightBeType(MIRType_Symbol))
         specialization_ = MIRType_None;
     else
         specialization_ = MIRType_Int32;
@@ -1379,7 +1379,8 @@ MBinaryBitwiseInstruction::specializeAsInt32()
 void
 MShiftInstruction::infer(BaselineInspector *, jsbytecode *)
 {
-    if (getOperand(0)->mightBeType(MIRType_Object) || getOperand(1)->mightBeType(MIRType_Object))
+    if (getOperand(0)->mightBeType(MIRType_Object) || getOperand(1)->mightBeType(MIRType_Object) ||
+        getOperand(0)->mightBeType(MIRType_Symbol) || getOperand(1)->mightBeType(MIRType_Symbol))
         specialization_ = MIRType_None;
     else
         specialization_ = MIRType_Int32;
@@ -1388,7 +1389,9 @@ MShiftInstruction::infer(BaselineInspector *, jsbytecode *)
 void
 MUrsh::infer(BaselineInspector *inspector, jsbytecode *pc)
 {
-    if (getOperand(0)->mightBeType(MIRType_Object) || getOperand(1)->mightBeType(MIRType_Object)) {
+    if (getOperand(0)->mightBeType(MIRType_Object) || getOperand(1)->mightBeType(MIRType_Object) ||
+        getOperand(0)->mightBeType(MIRType_Symbol) || getOperand(1)->mightBeType(MIRType_Symbol))
+    {
         specialization_ = MIRType_None;
         setResultType(MIRType_Value);
         return;
@@ -1810,6 +1813,8 @@ MBinaryArithInstruction::infer(TempAllocator &alloc, BaselineInspector *inspecto
     
     
     if (getOperand(0)->mightBeType(MIRType_Object) || getOperand(1)->mightBeType(MIRType_Object))
+        return;
+    if (getOperand(0)->mightBeType(MIRType_Symbol) || getOperand(1)->mightBeType(MIRType_Symbol))
         return;
 
     
