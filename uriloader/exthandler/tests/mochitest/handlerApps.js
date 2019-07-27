@@ -37,7 +37,7 @@ function test() {
     getInterface(SpecialPowers.Ci.nsIWebNavigation).
     QueryInterface(SpecialPowers.Ci.nsIDocShell);
  
-  webHandler.launchWithURI(uri, windowContext); 
+  webHandler.launchWithURI(uri, windowContext);
 
   
   
