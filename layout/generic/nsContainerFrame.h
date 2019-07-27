@@ -137,9 +137,7 @@ public:
 
 
 
-
-
-  nsresult CreateNextInFlow(nsIFrame*  aFrame, nsIFrame*& aNextInFlowResult);
+  nsIFrame* CreateNextInFlow(nsIFrame* aFrame);
 
   
 

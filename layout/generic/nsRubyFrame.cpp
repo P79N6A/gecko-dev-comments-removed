@@ -321,8 +321,7 @@ nsRubyFrame::ReflowSegment(nsPresContext* aPresContext,
     }
 
     
-    nsIFrame* newBaseContainer;
-    CreateNextInFlow(aBaseContainer, newBaseContainer);
+    nsIFrame* newBaseContainer = CreateNextInFlow(aBaseContainer);
     
     
     if (newBaseContainer) {
@@ -333,8 +332,7 @@ nsRubyFrame::ReflowSegment(nsPresContext* aPresContext,
       
       nsIFrame* newLastChild = newBaseContainer;
       for (uint32_t i = 0; i < rtcCount; i++) {
-        nsIFrame* newTextContainer;
-        CreateNextInFlow(textContainers[i], newTextContainer);
+        nsIFrame* newTextContainer = CreateNextInFlow(textContainers[i]);
         MOZ_ASSERT(newTextContainer, "Next-in-flow of rtc should not exist "
                    "if the corresponding rbc does not");
         mFrames.RemoveFrame(newTextContainer);

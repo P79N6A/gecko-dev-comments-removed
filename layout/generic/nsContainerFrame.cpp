@@ -1308,17 +1308,14 @@ nsContainerFrame::StealFramesAfter(nsIFrame* aChild)
 
 
 
-nsresult
-nsContainerFrame::CreateNextInFlow(nsIFrame*  aFrame,
-                                   nsIFrame*& aNextInFlowResult)
+nsIFrame*
+nsContainerFrame::CreateNextInFlow(nsIFrame* aFrame)
 {
   NS_PRECONDITION(GetType() != nsGkAtoms::blockFrame,
                   "you should have called nsBlockFrame::CreateContinuationFor instead");
   NS_PRECONDITION(mFrames.ContainsFrame(aFrame), "expected an in-flow child frame");
 
   nsPresContext* pc = PresContext();
-  aNextInFlowResult = nullptr;
-
   nsIFrame* nextInFlow = aFrame->GetNextInFlow();
   if (nullptr == nextInFlow) {
     
@@ -1331,9 +1328,9 @@ nsContainerFrame::CreateNextInFlow(nsIFrame*  aFrame,
        ("nsContainerFrame::CreateNextInFlow: frame=%p nextInFlow=%p",
         aFrame, nextInFlow));
 
-    aNextInFlowResult = nextInFlow;
+    return nextInFlow;
   }
-  return NS_OK;
+  return nullptr;
 }
 
 

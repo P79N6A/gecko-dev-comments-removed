@@ -617,13 +617,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
                      "We have to create a continuation, but the block doesn't want us to reflow it?");
 
         
-        nsresult rv = CreateNextInFlow(child, kidNextInFlow);
-        
-        if (NS_FAILED(rv)) {
-          NS_NOTREACHED("Couldn't create continuation");
-          child = nullptr;
-          break;
-        }
+        kidNextInFlow = CreateNextInFlow(child);
       }
 
       
