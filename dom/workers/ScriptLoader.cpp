@@ -1148,7 +1148,6 @@ CacheCreator::Load(nsIPrincipal* aPrincipal)
     return rv;
   }
 
-  
   ErrorResult error;
   MOZ_ASSERT(!mCacheName.IsEmpty());
   nsRefPtr<Promise> promise = mCacheStorage->Open(mCacheName, error);
