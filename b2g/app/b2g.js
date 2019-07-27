@@ -336,8 +336,8 @@ pref("image.mem.min_discard_timeout_ms", 86400000);
 
 
 
-pref("image.mem.max_decoded_image_kb", 16384); 
-pref("image.mem.hard_limit_decoded_image_kb", 16384); 
+pref("image.mem.max_decoded_image_kb", 30000);
+pref("image.mem.hard_limit_decoded_image_kb", 66560);
 
 
 
