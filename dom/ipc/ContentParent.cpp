@@ -3852,9 +3852,6 @@ ContentParent::RecvKeywordToURI(const nsCString& aKeyword, OptionalInputStreamPa
 bool
 ContentParent::ShouldContinueFromReplyTimeout()
 {
-    
-    
-    MOZ_ASSERT(BrowserTabsRemote());
     return false;
 }
 

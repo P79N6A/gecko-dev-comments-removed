@@ -1177,16 +1177,9 @@ pref("dom.ipc.plugins.enabled.x86_64", true);
 pref("dom.ipc.plugins.enabled", true);
 #endif
 
-#if defined(NIGHTLY_BUILD)
 
-
-
-
-pref("browser.tabs.remote", true);
-#else
-pref("browser.tabs.remote", false);
-#endif
 pref("browser.tabs.remote.autostart", false);
+pref("browser.tabs.remote.desktopbehavior", true);
 
 #if defined(MOZ_CONTENT_SANDBOX) && defined(XP_WIN)
 

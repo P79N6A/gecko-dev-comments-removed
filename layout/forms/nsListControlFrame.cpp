@@ -1803,7 +1803,8 @@ nsListControlFrame::MouseDown(nsIDOMEvent* aMouseEvent)
   } else {
     
     if (mComboboxFrame) {
-      if (XRE_GetProcessType() == GeckoProcessType_Content && BrowserTabsRemote()) {
+      if (XRE_GetProcessType() == GeckoProcessType_Content &&
+          Preferences::GetBool("browser.tabs.remote.desktopbehavior", false)) {
         nsContentUtils::DispatchChromeEvent(mContent->OwnerDoc(), mContent,
                                             NS_LITERAL_STRING("mozshowdropdown"), true,
                                             false);
