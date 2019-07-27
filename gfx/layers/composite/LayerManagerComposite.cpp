@@ -627,7 +627,7 @@ LayerManagerComposite::Render()
   LayerScopeAutoFrame frame(PR_Now());
 
   
-  if (gfxPrefs::LayersDump()) {
+  if (gfxPrefs::LayersDump() || profiler_feature_active("layersdump")) {
     this->Dump();
   }
 
