@@ -36,12 +36,14 @@ import org.apache.http.protocol.HTTP;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.GeckoSharedPrefs;
 import org.mozilla.gecko.Telemetry;
 import org.mozilla.gecko.mozglue.RobocopTarget;
 import org.mozilla.gecko.util.FileUtils;
+import org.mozilla.gecko.util.HardwareUtils;
 import org.mozilla.gecko.util.ThreadUtils;
 
 import android.app.Activity;
@@ -105,8 +107,28 @@ public class Distribution {
     private static final long MAX_DOWNLOAD_TIME_MSEC = 40000;    
 
     
-    private static final long DELAY_WAIT_FOR_REFERRER_MSEC = 400;
+    
+    
+    
+    
+    private volatile boolean shouldDelayLateCallbacks = false;
 
+    
+
+
+
+
+
+
+
+
+
+
+    public interface ReadyCallback {
+        void distributionNotFound();
+        void distributionFound(Distribution distribution);
+        void distributionArrivedLate(Distribution distribution);
+    }
 
     
 
@@ -123,10 +145,14 @@ public class Distribution {
     private final String packagePath;
     private final String prefsBranch;
 
-    private volatile int state = STATE_UNKNOWN;
+    volatile int state = STATE_UNKNOWN;
     private File distributionDir;
 
-    private final Queue<Runnable> onDistributionReady = new ConcurrentLinkedQueue<Runnable>();
+    private final Queue<ReadyCallback> onDistributionReady = new ConcurrentLinkedQueue<>();
+
+    
+    
+    private final Queue<ReadyCallback> onLateReady = new ConcurrentLinkedQueue<>();
 
     
 
@@ -246,9 +272,51 @@ public class Distribution {
 
 
 
-    public static void onReceivedReferrer(ReferrerDescriptor ref) {
+    public static void onReceivedReferrer(final Context context, final ReferrerDescriptor ref) {
         
         referrer = ref;
+
+        ThreadUtils.postToBackgroundThread(new Runnable() {
+            @Override
+            public void run() {
+                final Distribution distribution = Distribution.getInstance(context);
+
+                
+                distribution.processDelayedReferrer(ref);
+            }
+        });
+    }
+
+    
+
+
+    private void processDelayedReferrer(final ReferrerDescriptor ref) {
+        ThreadUtils.assertOnBackgroundThread();
+        if (state != STATE_NONE) {
+            return;
+        }
+
+        Log.i(LOGTAG, "Processing delayed referrer.");
+
+        if (!checkIntentDistribution(ref)) {
+            
+            this.onLateReady.clear();
+            return;
+        }
+
+        
+        this.state = STATE_SET;
+        getSharedPreferences().edit().putInt(getKeyName(), this.state).apply();
+
+        
+        runReadyQueue();
+
+        
+        
+        runLateReadyQueue();
+
+        
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Distribution:Changed", ""));
     }
 
     
@@ -344,15 +412,11 @@ public class Distribution {
 
         
         
-        final SharedPreferences settings;
-        if (prefsBranch == null) {
-            settings = GeckoSharedPrefs.forApp(context);
-        } else {
-            settings = context.getSharedPreferences(prefsBranch, Activity.MODE_PRIVATE);
-        }
+        final SharedPreferences settings = getSharedPreferences();
 
-        String keyName = context.getPackageName() + ".distribution_state";
+        final String keyName = getKeyName();
         this.state = settings.getInt(keyName, STATE_UNKNOWN);
+
         if (this.state == STATE_NONE) {
             runReadyQueue();
             return false;
@@ -368,10 +432,14 @@ public class Distribution {
 
         
         final boolean distributionSet =
-                checkIntentDistribution() ||
+                checkIntentDistribution(referrer) ||
                 checkAPKDistribution() ||
                 checkSystemDistribution();
 
+        
+        
+        
+        this.shouldDelayLateCallbacks = !distributionSet;
         this.state = distributionSet ? STATE_SET : STATE_NONE;
         settings.edit().putInt(keyName, this.state).apply();
 
@@ -385,18 +453,9 @@ public class Distribution {
 
 
 
-    private boolean checkIntentDistribution() {
+    private boolean checkIntentDistribution(final ReferrerDescriptor referrer) {
         if (referrer == null) {
-            
-            
-            try {
-                Thread.sleep(DELAY_WAIT_FOR_REFERRER_MSEC);
-            } catch (InterruptedException e) {
-                
-            }
-            if (referrer == null) {
-                return false;
-            }
+            return false;
         }
 
         URI uri = getReferredDistribution(referrer);
@@ -408,9 +467,21 @@ public class Distribution {
         Log.v(LOGTAG, "Downloading referred distribution: " + uri);
 
         try {
-            HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
+            final HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
 
-            connection.setRequestProperty(HTTP.USER_AGENT, GeckoAppShell.getGeckoInterface().getDefaultUAString());
+            
+            
+            final GeckoAppShell.GeckoInterface geckoInterface = GeckoAppShell.getGeckoInterface();
+            final String ua;
+            if (geckoInterface == null) {
+                
+                ua = HardwareUtils.isTablet() ? AppConstants.USER_AGENT_FENNEC_TABLET :
+                                                AppConstants.USER_AGENT_FENNEC_MOBILE;
+            } else {
+                ua = geckoInterface.getDefaultUAString();
+            }
+
+            connection.setRequestProperty(HTTP.USER_AGENT, ua);
             connection.setRequestProperty("Accept", EXPECTED_CONTENT_TYPE);
 
             try {
@@ -533,18 +604,6 @@ public class Distribution {
         }
 
         Telemetry.addToHistogram(HISTOGRAM_CODE_CATEGORY, CODE_CATEGORY_FETCH_EXCEPTION);
-    }
-
-    
-
-
-
-
-    private void runReadyQueue() {
-        Runnable task;
-        while ((task = onDistributionReady.poll()) != null) {
-            ThreadUtils.postToBackgroundThread(task);
-        }
     }
 
     
@@ -765,13 +824,69 @@ public class Distribution {
 
 
 
-    public void addOnDistributionReadyCallback(Runnable runnable) {
+    public void addOnDistributionReadyCallback(final ReadyCallback callback) {
         if (state == STATE_UNKNOWN) {
-            this.onDistributionReady.add(runnable);
-        } else {
             
-            ThreadUtils.postToBackgroundThread(runnable);
+            onDistributionReady.add(callback);
+        } else {
+            invokeCallbackDelayed(callback);
         }
+    }
+
+    
+
+
+    private void runLateReadyQueue() {
+        ReadyCallback task;
+        while ((task = onLateReady.poll()) != null) {
+            invokeLateCallbackDelayed(task);
+        }
+    }
+
+    
+
+
+
+    private void runReadyQueue() {
+        ReadyCallback task;
+        while ((task = onDistributionReady.poll()) != null) {
+            invokeCallbackDelayed(task);
+        }
+    }
+
+    private void invokeLateCallbackDelayed(final ReadyCallback callback) {
+        ThreadUtils.postToBackgroundThread(new Runnable() {
+            @Override
+            public void run() {
+                
+                if (state != STATE_SET) {
+                    Log.w(LOGTAG, "Refusing to invoke late distro callback in state " + state);
+                    return;
+                }
+                callback.distributionArrivedLate(Distribution.this);
+            }
+        });
+    }
+
+    private void invokeCallbackDelayed(final ReadyCallback callback) {
+        ThreadUtils.postToBackgroundThread(new Runnable() {
+            @Override
+            public void run() {
+                switch (state) {
+                    case STATE_SET:
+                        callback.distributionFound(Distribution.this);
+                        break;
+                    case STATE_NONE:
+                        callback.distributionNotFound();
+                        if (shouldDelayLateCallbacks) {
+                            onLateReady.add(callback);
+                        }
+                        break;
+                    default:
+                        throw new IllegalStateException("Expected STATE_NONE or STATE_SET, got " + state);
+                }
+            }
+        });
     }
 
     
@@ -780,5 +895,19 @@ public class Distribution {
 
     public boolean exists() {
         return state == STATE_SET;
+    }
+
+    private String getKeyName() {
+        return context.getPackageName() + ".distribution_state";
+    }
+
+    private SharedPreferences getSharedPreferences() {
+        final SharedPreferences settings;
+        if (prefsBranch == null) {
+            settings = GeckoSharedPrefs.forApp(context);
+        } else {
+            settings = context.getSharedPreferences(prefsBranch, Activity.MODE_PRIVATE);
+        }
+        return settings;
     }
 }

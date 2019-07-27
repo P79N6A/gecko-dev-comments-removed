@@ -288,17 +288,16 @@ public class SuggestedSites {
             return;
         }
 
-        distribution.addOnDistributionReadyCallback(new Runnable() {
+        distribution.addOnDistributionReadyCallback(new Distribution.ReadyCallback() {
             @Override
-            public void run() {
+            public void distributionNotFound() {
+                
+                
+            }
+
+            @Override
+            public void distributionFound(Distribution distribution) {
                 Log.d(LOGTAG, "Running post-distribution task: suggested sites.");
-
-                
-                
-                if (!distribution.exists()) {
-                    return;
-                }
-
                 
                 
                 Map<String, Site> sites = loadFromDistribution(distribution);
@@ -319,6 +318,11 @@ public class SuggestedSites {
                 
                 final ContentResolver cr = context.getContentResolver();
                 cr.notifyChange(BrowserContract.SuggestedSites.CONTENT_URI, null);
+            }
+
+            @Override
+            public void distributionArrivedLate(Distribution distribution) {
+                distributionFound(distribution);
             }
         });
     }

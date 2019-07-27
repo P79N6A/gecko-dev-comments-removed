@@ -141,9 +141,41 @@ public class SearchEngineManager implements SharedPreferences.OnSharedPreference
 
     private void getDefaultEngine(final SearchEngineCallback callback) {
         
-        distribution.addOnDistributionReadyCallback(new Runnable() {
+        distribution.addOnDistributionReadyCallback(new Distribution.ReadyCallback() {
             @Override
-            public void run() {
+            public void distributionNotFound() {
+                defaultBehavior();
+            }
+
+            @Override
+            public void distributionFound(Distribution distribution) {
+                defaultBehavior();
+            }
+
+            @Override
+            public void distributionArrivedLate(Distribution distribution) {
+                
+                
+                final String name = getDefaultEngineNameFromDistribution();
+
+                if (name == null) {
+                    return;
+                }
+
+                
+                
+                
+                ignorePreferenceChange++;
+                GeckoSharedPrefs.forApp(context)
+                        .edit()
+                        .putString(PREF_DEFAULT_ENGINE_KEY, name)
+                        .apply();
+
+                final SearchEngine engine = createEngineFromName(name);
+                runCallback(engine, callback);
+            }
+
+            private void defaultBehavior() {
                 
                 String name = GeckoSharedPrefs.forApp(context).getString(PREF_DEFAULT_ENGINE_KEY, null);
 
