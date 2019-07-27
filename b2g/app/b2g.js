@@ -35,6 +35,9 @@ pref("browser.tabs.remote.autostart.1", false);
 pref("toolkit.defaultChromeFeatures", "chrome,dialog=no,close,resizable,scrollbars,extrachrome");
 
 
+pref("browser.display.focus_ring_width", 0);
+
+
 pref("browser.viewport.scaleRatio", -1);
 
 
