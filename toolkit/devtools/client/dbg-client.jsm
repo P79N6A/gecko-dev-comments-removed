@@ -265,10 +265,10 @@ this.DebuggerClient = function (aTransport)
   this._transport.hooks = this;
 
   
-  this._clients = new Map;
+  this._clients = new Map();
 
-  this._pendingRequests = [];
-  this._activeRequests = new Map;
+  this._pendingRequests = new Map();
+  this._activeRequests = new Map();
   this._eventsEnabled = true;
 
   this.traits = {};
@@ -435,6 +435,10 @@ DebuggerClient.prototype = {
         
         this._transport.close();
         this._transport = null;
+        this._activeRequests.clear();
+        this._activeRequests = null;
+        this._pendingRequests.clear();
+        this._pendingRequests = null;
         return;
       }
       if (client.detach) {
@@ -704,8 +708,7 @@ DebuggerClient.prototype = {
       request.on("json-reply", aOnResponse);
     }
 
-    this._pendingRequests.push(request);
-    this._sendRequests();
+    this._sendOrQueueRequest(request);
 
     
     
@@ -824,8 +827,7 @@ DebuggerClient.prototype = {
     request = new Request(request);
     request.format = "bulk";
 
-    this._pendingRequests.push(request);
-    this._sendRequests();
+    this._sendOrQueueRequest(request);
 
     return request;
   },
@@ -833,28 +835,61 @@ DebuggerClient.prototype = {
   
 
 
+  _sendOrQueueRequest(request) {
+    let actor = request.actor;
+    if (!this._activeRequests.has(actor)) {
+      this._sendRequest(request);
+    } else {
+      this._queueRequest(request);
+    }
+  },
 
-  _sendRequests: function () {
-    this._pendingRequests = this._pendingRequests.filter((request) => {
-      let dest = request.actor;
+  
 
-      if (this._activeRequests.has(dest)) {
-        return true;
-      }
 
-      this.expectReply(dest, request);
 
-      if (request.format === "json") {
-        this._transport.send(request.request);
-        return false;
-      }
 
-      this._transport.startBulkSend(request.request).then((...args) => {
-        request.emit("bulk-send-ready", ...args);
-      });
+  _sendRequest(request) {
+    let actor = request.actor;
+    this.expectReply(actor, request);
 
+    if (request.format === "json") {
+      this._transport.send(request.request);
       return false;
+    }
+
+    this._transport.startBulkSend(request.request).then((...args) => {
+      request.emit("bulk-send-ready", ...args);
     });
+  },
+
+  
+
+
+
+  _queueRequest(request) {
+    let actor = request.actor;
+    let queue = this._pendingRequests.get(actor) || [];
+    queue.push(request);
+    this._pendingRequests.set(actor, queue);
+  },
+
+  
+
+
+  _attemptNextRequest(actor) {
+    if (this._activeRequests.has(actor)) {
+      return;
+    }
+    let queue = this._pendingRequests.get(actor);
+    if (!queue) {
+      return;
+    }
+    let request = queue.shift();
+    if (queue.length === 0) {
+      this._pendingRequests.delete(actor);
+    }
+    this._sendRequest(request);
   },
 
   
@@ -930,6 +965,11 @@ DebuggerClient.prototype = {
     }
 
     
+    
+    
+    this._attemptNextRequest(aPacket.from);
+
+    
     if (aPacket.type in ThreadStateTypes &&
         this._clients.has(aPacket.from) &&
         typeof this._clients.get(aPacket.from)._onThreadState == "function") {
@@ -945,6 +985,7 @@ DebuggerClient.prototype = {
       let resumption = { from: thread._actor, type: "resumed" };
       thread._onThreadState(resumption);
     }
+
     
     
     if (aPacket.type) {
@@ -954,8 +995,6 @@ DebuggerClient.prototype = {
     if (activeRequest) {
       activeRequest.emit("json-reply", aPacket);
     }
-
-    this._sendRequests();
   },
 
   
@@ -1007,9 +1046,13 @@ DebuggerClient.prototype = {
 
     let activeRequest = this._activeRequests.get(actor);
     this._activeRequests.delete(actor);
-    activeRequest.emit("bulk-reply", packet);
 
-    this._sendRequests();
+    
+    
+    
+    this._attemptNextRequest(actor);
+
+    activeRequest.emit("bulk-reply", packet);
   },
 
   
