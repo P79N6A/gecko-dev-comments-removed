@@ -2047,7 +2047,7 @@ ThreadActor.prototype = {
       
       if (bpActor.location.line >= aScript.startLine
           && bpActor.location.line <= endLine) {
-        source.setBreakpoint(bpActor.location, aScript);
+        source.setBreakpoint(bpActor.location);
       }
     }
 
@@ -2930,7 +2930,18 @@ SourceActor.prototype = {
 
 
 
-  setBreakpoint: function (aLocation, aOnlyThisScript=null) {
+
+
+
+
+
+
+
+
+
+
+
+  setBreakpoint: function (aLocation) {
     const location = {
       sourceActor: this,
       line: aLocation.line,
@@ -2943,7 +2954,7 @@ SourceActor.prototype = {
     
     
     
-    const scripts = this.source
+    let scripts = this.source
       ? this.scripts.getScriptsBySourceAndLine(this.source, location.line)
       : this.scripts.getScriptsByURLAndLine(this._originalUrl, location.line);
 
@@ -2959,15 +2970,34 @@ SourceActor.prototype = {
       }
     }
 
+    
+    
+    scripts = scripts.filter((script) => !actor.hasScript(script));
+
     if (location.column) {
       return this._setBreakpointAtColumn(scripts, location, actor);
     }
 
-    
-    
-    
+    let result;
+    if (actor.scripts.size === 0) {
+      
+      
+      
+      
+      result = this._findNextLineWithOffsets(scripts, location.line);
+    } else {
+      
+      
+      
+      let entryPoints = this._findEntryPointsForLine(scripts, location.line)
+      if (entryPoints) {
+        result = {
+          line: location.line,
+          entryPoints: entryPoints
+        };
+      }
+    }
 
-    const result = this._findNextLineWithOffsets(scripts, location.line);
     if (!result) {
       return {
         error: "noCodeAtLineColumn",
@@ -3005,12 +3035,7 @@ SourceActor.prototype = {
       }
     }
 
-    this._setBreakpointOnEntryPoints(
-      actor,
-      aOnlyThisScript
-        ? entryPoints.filter(o => o.script === aOnlyThisScript)
-        : entryPoints
-    );
+    this._setBreakpointOnEntryPoints(actor, entryPoints);
 
     return {
       actor: actor.actorID,
@@ -4707,6 +4732,10 @@ function BreakpointActor(aThreadActor, { sourceActor, line, column, condition })
 BreakpointActor.prototype = {
   actorPrefix: "breakpoint",
   condition: null,
+
+  hasScript: function (aScript) {
+    return this.scripts.has(aScript);
+  },
 
   
 

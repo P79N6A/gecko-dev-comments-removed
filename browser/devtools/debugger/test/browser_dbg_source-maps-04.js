@@ -115,16 +115,20 @@ function testHitBreakpoint() {
     is(aResponse.type, "resumed", "Type should be 'resumed'.");
 
     waitForDebuggerEvents(gPanel, gDebugger.EVENTS.FETCHED_SCOPES).then(() => {
-      is(gFrames.itemCount, 1, "Should have one frame.");
+      is(gFrames.itemCount, 2, "Should have two frames.");
 
       
       
       executeSoon(() => {
         gDebugger.gThreadClient.resume(() => {
-          
-          
-          executeSoon(() => {
-            deferred.resolve();
+          gDebugger.gThreadClient.addOneTimeListener("paused", () => {
+            gDebugger.gThreadClient.resume(() => {
+              
+              
+              executeSoon(() => {
+                deferred.resolve();
+              });
+            });
           });
         });
       });
