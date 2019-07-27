@@ -505,7 +505,16 @@ this.DOMApplicationRegistry = {
   
   installPreinstalledApp: function installPreinstalledApp(aId) {
 #ifdef MOZ_WIDGET_GONK
-    let app = this.webapps[aId];
+    
+    
+    
+    let destId  = this.webapps[aId].oldId || aId;
+    
+    if (destId !== aId) {
+      delete this.webapps[aId];
+    }
+
+    let app = this.webapps[destId];
     let baseDir, isPreinstalled = false;
     try {
       baseDir = FileUtils.getDir("coreAppsDir", ["webapps", aId], false);
@@ -545,10 +554,10 @@ this.DOMApplicationRegistry = {
     }
 
     debug("Installing 3rd party app : " + aId +
-          " from " + baseDir.path);
+          " from " + baseDir.path + " to " + destId);
 
     
-    let destDir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", aId], true, true);
+    let destDir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", destId], true, true);
 
     filesToMove.forEach(function(aFile) {
         let file = baseDir.clone();
@@ -568,7 +577,7 @@ this.DOMApplicationRegistry = {
       return isPreinstalled;
     }
 
-    app.origin = "app://" + aId;
+    app.origin = "app://" + destId;
 
     
     
@@ -593,7 +602,7 @@ this.DOMApplicationRegistry = {
       
       debug("Cleaning up: " + e);
       destDir.remove(true);
-      delete this.webapps[aId];
+      delete this.webapps[destId];
     } finally {
       zipReader.close();
     }
@@ -667,7 +676,13 @@ this.DOMApplicationRegistry = {
       for (let id in data) {
         
         
-        if (!(id in this.webapps)) {
+        
+        
+        
+        
+        var oldId = (id in this.webapps) ? id :
+                      this._appIdForManifestURL(data[id].manifestURL);
+        if (!oldId) {
           this.webapps[id] = data[id];
           this.webapps[id].basePath = appDir.path;
 
@@ -688,10 +703,16 @@ this.DOMApplicationRegistry = {
           
           
           
+          
           for (let field in data[id]) {
             if (fieldsBlacklist.indexOf(field) === -1) {
-              this.webapps[id][field] = data[id][field];
+              this.webapps[oldId][field] = data[id][field];
             }
+          }
+          
+          
+          if (id !== oldId) {
+            this.webapps[id] = {oldId: oldId};
           }
         }
       }
