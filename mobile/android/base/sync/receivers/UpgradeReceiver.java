@@ -4,9 +4,9 @@
 
 package org.mozilla.gecko.sync.receivers;
 
-import org.mozilla.gecko.sync.CredentialException;
 import org.mozilla.gecko.background.common.GlobalConstants;
 import org.mozilla.gecko.background.common.log.Logger;
+import org.mozilla.gecko.sync.CredentialException;
 import org.mozilla.gecko.sync.SyncConfiguration;
 import org.mozilla.gecko.sync.ThreadPool;
 import org.mozilla.gecko.sync.Utils;
@@ -27,6 +27,13 @@ public class UpgradeReceiver extends BroadcastReceiver {
   @Override
   public void onReceive(final Context context, Intent intent) {
     Logger.debug(LOG_TAG, "Broadcast received.");
+
+    
+    if (!SyncAccounts.syncAccountsExist(context)) {
+      Logger.info(LOG_TAG, "No Sync Accounts found; not upgrading anything.");
+      return;
+    }
+
     
     
     ThreadPool.run(new Runnable() {
@@ -39,6 +46,14 @@ public class UpgradeReceiver extends BroadcastReceiver {
           if ("1".equals(accountManager.getUserData(a, Constants.DATA_ENABLE_ON_UPGRADE))) {
             SyncAccounts.setSyncAutomatically(a, true);
             accountManager.setUserData(a, Constants.DATA_ENABLE_ON_UPGRADE, "0");
+          }
+
+          
+          
+          
+          
+          if ("1".equals(accountManager.getUserData(a, Constants.DATA_SHOULD_BE_REMOVED))) {
+            accountManager.removeAccount(a, null, null);
           }
         }
       }

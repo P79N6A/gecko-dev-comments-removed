@@ -11,9 +11,11 @@ import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.json.simple.parser.ParseException;
+import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.background.common.GlobalConstants;
 import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.db.BrowserContract;
+import org.mozilla.gecko.fxa.FxAccountConstants;
 import org.mozilla.gecko.sync.AlreadySyncingException;
 import org.mozilla.gecko.sync.BackoffHandler;
 import org.mozilla.gecko.sync.CredentialException;
@@ -37,6 +39,7 @@ import org.mozilla.gecko.sync.delegates.ClientsDataDelegate;
 import org.mozilla.gecko.sync.net.AuthHeaderProvider;
 import org.mozilla.gecko.sync.net.BasicAuthHeaderProvider;
 import org.mozilla.gecko.sync.net.ConnectionMonitorThread;
+import org.mozilla.gecko.sync.receivers.SyncAccountDeletedService;
 import org.mozilla.gecko.sync.setup.Constants;
 import org.mozilla.gecko.sync.setup.SyncAccounts;
 import org.mozilla.gecko.sync.setup.SyncAccounts.SyncAccountParameters;
@@ -292,9 +295,17 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements BaseGlob
     this.syncResult   = syncResult;
     this.localAccount = account;
 
-    SyncAccountParameters params;
+    final AccountManager manager = AccountManager.get(mContext);
+    final SyncAccountParameters params;
     try {
-      params = SyncAccounts.blockingFromAndroidAccountV0(mContext, AccountManager.get(mContext), this.localAccount);
+      if ("1".equals(manager.getUserData(account, Constants.DATA_SHOULD_BE_REMOVED))) {
+        Logger.warn(LOG_TAG, "Account named like " + Utils.obfuscateEmail(account.name) + " should be removed. " +
+          "Removing and aborting sync.");
+        manager.removeAccount(account, null, null);
+        return;
+      }
+
+      params = SyncAccounts.blockingFromAndroidAccountV0(mContext, manager, this.localAccount);
     } catch (Exception e) {
       
       processException(null, e);
@@ -565,5 +576,53 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements BaseGlob
         SyncAccounts.setSyncAutomatically(toDisable, false);
       }
     });
+  }
+
+  @Override
+  public void informMigrated(GlobalSession session) {
+    final AccountManager manager = AccountManager.get(mContext);
+    final Account account = localAccount;
+    if (account == null || manager == null) {
+      Logger.warn(LOG_TAG, "Attempting to mark account migrated, but no Account or AccountManager found.");
+      return;
+    }
+
+    
+    
+    
+    
+    manager.setUserData(account, Constants.DATA_SHOULD_BE_REMOVED, "1");
+
+    
+    
+    SyncAccountDeletedService.deletePickle(mContext);
+
+    
+    
+    try {
+      final SyncAccountParameters params =
+          SyncAccounts.blockingFromAndroidAccountV0(mContext, manager, account);
+      AccountPickler.pickle(mContext, FxAccountConstants.OLD_SYNC_ACCOUNT_PICKLE_FILENAME, params, false);
+    } catch (Exception e) {
+      Logger.error(LOG_TAG, "Failed to pickle old Account; removing old Account without emergency pickle.", e);
+    }
+
+    
+    
+    
+    
+    try {
+      manager.removeAccount(account, null, null);
+    } catch (Exception e) {
+      
+      
+      
+      if (AppConstants.RELEASE_BUILD) {
+        Logger.error(LOG_TAG, "Failed to remove account; ignoring and leaving old Account.", e);
+      } else {
+        Logger.error(LOG_TAG, "Failed to remove account; crashing.", e);
+        throw e;
+      }
+    }
   }
 }

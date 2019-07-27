@@ -27,6 +27,13 @@ public interface BaseGlobalSessionCallback {
 
   void informUpgradeRequiredResponse(GlobalSession session);
 
+  
+
+
+
+
+  void informMigrated(GlobalSession session);
+
   void handleAborted(GlobalSession globalSession, String reason);
   void handleError(GlobalSession globalSession, Exception ex);
   void handleSuccess(GlobalSession globalSession);

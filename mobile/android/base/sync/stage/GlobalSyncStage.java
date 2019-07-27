@@ -21,6 +21,7 @@ public interface GlobalSyncStage {
     fetchInfoCollections,       
     fetchMetaGlobal,
     ensureKeysStage,
+    attemptMigrationStage,
     
 
 

@@ -240,6 +240,15 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     @Override
+    public void informMigrated(GlobalSession globalSession) {
+      
+      
+      Logger.error(LOG_TAG,
+          "Firefox Account informMigrated called, but it's not yet possible to migrate.  " +
+          "Ignoring even though something is terribly wrong.");
+    }
+
+    @Override
     public void handleStageCompleted(Stage currentState, GlobalSession globalSession) {
     }
 
