@@ -933,7 +933,10 @@ ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsIFile *statusFile,
                                             kAppUpdaterIOPrioLevelDefault);
   nsPrintfCString prioEnv("MOZ_UPDATER_PRIO=%d/%d/%d/%d",
                           prioVal, oomScoreAdj, ioprioClass, ioprioLevel);
-  PR_SetEnv(prioEnv.get());
+  
+  
+  
+  PR_SetEnv(ToNewCString(prioEnv));
 #endif
 
   LOG(("spawning updater process [%s]\n", updaterPath.get()));
