@@ -140,23 +140,13 @@ function addTabWithToolbarRunTests(win) {
         output: new RegExp("^Copied to clipboard.$"),
       },
       post: function() {
-        try {
-          clip.getData(trans, clipid.kGlobalClipboard);
-          let str = new Object();
-          let strLength = new Object();
-          trans.getTransferData("image/png", str, strLength);
+        clip.getData(trans, clipid.kGlobalClipboard);
+        let str = new Object();
+        let strLength = new Object();
+        trans.getTransferData("image/png", str, strLength);
 
-          ok(str.value, "screenshot exists");
-          ok(strLength.value > 0, "screenshot has length");
-        }
-        finally {
-          Services.prefs.setBoolPref("browser.privatebrowsing.keep_current_session", true);
-
-          
-          
-          
-          
-        }
+        ok(str.value, "screenshot exists");
+        ok(strLength.value > 0, "screenshot has length");
       }
     },
   ]);
