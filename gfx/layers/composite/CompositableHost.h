@@ -52,42 +52,6 @@ struct EffectChain;
 
 
 
-class CompositableBackendSpecificData
-{
-protected:
-  virtual ~CompositableBackendSpecificData() {}
-
-public:
-  NS_INLINE_DECL_REFCOUNTING(CompositableBackendSpecificData)
-
-  CompositableBackendSpecificData();
-
-  virtual void ClearData() {}
-  virtual void SetCompositor(Compositor* aCompositor) {}
-
-  bool IsAllowingSharingTextureHost()
-  {
-    return mAllowSharingTextureHost;
-  }
-
-  void SetAllowSharingTextureHost(bool aAllow)
-  {
-    mAllowSharingTextureHost = aAllow;
-  }
-
-  uint64_t GetId()
-  {
-    return mId;
-  }
-
-public:
-  bool mAllowSharingTextureHost;
-  uint64_t mId;
-};
-
-
-
-
 
 
 
@@ -111,16 +75,6 @@ public:
   static TemporaryRef<CompositableHost> Create(const TextureInfo& aTextureInfo);
 
   virtual CompositableType GetType() = 0;
-
-  virtual CompositableBackendSpecificData* GetCompositableBackendSpecificData()
-  {
-    return mBackendData;
-  }
-
-  virtual void SetCompositableBackendSpecificData(CompositableBackendSpecificData* aBackendData)
-  {
-    mBackendData = aBackendData;
-  }
 
   
   virtual void SetCompositor(Compositor* aCompositor);
@@ -252,9 +206,6 @@ public:
       SetLayer(nullptr);
       mAttached = false;
       mKeepAttached = false;
-      if (mBackendData) {
-        mBackendData->ClearData();
-      }
     }
   }
   bool IsAttached() { return mAttached; }
@@ -314,7 +265,6 @@ protected:
   uint64_t mCompositorID;
   RefPtr<Compositor> mCompositor;
   Layer* mLayer;
-  RefPtr<CompositableBackendSpecificData> mBackendData;
   uint32_t mFlashCounter; 
   bool mAttached;
   bool mKeepAttached;
