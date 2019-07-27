@@ -426,6 +426,12 @@ public:
   
 
 
+
+  bool IsInRootChromeDocument() { return mIsInRootChromeDocument; }
+
+  
+
+
   bool ShouldSyncDecodeImages() { return mSyncDecodeImages; }
 
   
@@ -897,6 +903,7 @@ private:
   
   
   bool                           mInTransform;
+  bool                           mIsInRootChromeDocument;
   bool                           mSyncDecodeImages;
   bool                           mIsPaintingToWindow;
   bool                           mIsCompositingCheap;
