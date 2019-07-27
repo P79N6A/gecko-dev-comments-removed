@@ -144,7 +144,7 @@
           list-style-image: url(chrome://browser/skin/caption-buttons.svg#close);
         }
         #titlebar-close:hover {
-          list-style-image: url(chrome://browser/skin/caption-buttons.svg#close-highlight);
+          list-style-image: url(chrome://browser/skin/caption-buttons.svg#close-white);
         }
 
         
