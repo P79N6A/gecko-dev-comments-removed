@@ -53,9 +53,9 @@ pref("extensions.blocklist.interval", 86400);
 
 
 pref("extensions.blocklist.level", 2);
-pref("extensions.blocklist.url", "https://blocklist.addons.mozilla.org/blocklist/3/%APP_ID%/%APP_VERSION%/%PRODUCT%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/%PING_COUNT%/%TOTAL_PING_COUNT%/%DAYS_SINCE_LAST_PING%/");
+pref("extensions.blocklist.url", "https://addons.mozilla.org/blocklist/3/%APP_ID%/%APP_VERSION%/%PRODUCT%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/%PING_COUNT%/%TOTAL_PING_COUNT%/%DAYS_SINCE_LAST_PING%/");
 pref("extensions.blocklist.detailsURL", "https://www.mozilla.org/%LOCALE%/blocklist/");
-pref("extensions.blocklist.itemURL", "https://blocklist.addons.mozilla.org/%LOCALE%/%APP%/blocked/%blockID%");
+pref("extensions.blocklist.itemURL", "https://addons.mozilla.org/%LOCALE%/%APP%/blocked/%blockID%");
 
 pref("extensions.update.autoUpdateDefault", true);
 
@@ -1592,15 +1592,6 @@ pref("loop.debug.websocket", false);
 pref("services.push.serverURL", "wss://push.services.mozilla.com/");
 
 pref("social.sidebar.unload_timeout_ms", 10000);
-
-
-
-#ifdef RELEASE_BUILD
-pref("social.share.activationPanelEnabled", false);
-#else
-pref("social.share.activationPanelEnabled", true);
-#endif
-pref("social.shareDirectory", "https://activations.cdn.mozilla.net/en-US/sharePanel.html");
 
 pref("dom.identity.enabled", false);
 
