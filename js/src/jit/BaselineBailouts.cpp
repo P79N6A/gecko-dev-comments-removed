@@ -5,6 +5,7 @@
 
 
 #include "jsprf.h"
+#include "jsutil.h"
 #include "jit/arm/Simulator-arm.h"
 #include "jit/BaselineIC.h"
 #include "jit/BaselineJIT.h"
@@ -236,6 +237,18 @@ struct BaselineStackBuilder
                     header_->copyStackBottom, virtualPointerAtStackOffset(0), info,
                     *((uint64_t *) &val));
         }
+        return true;
+    }
+
+    bool maybeWritePadding(size_t alignment, size_t after, const char *info) {
+        MOZ_ASSERT(framePushed_ % sizeof(Value) == 0);
+        MOZ_ASSERT(after % sizeof(Value) == 0);
+        size_t offset = ComputeByteAlignment(after, alignment);
+        while (framePushed_ % alignment != offset) {
+            if (!writeValue(MagicValue(JS_ARG_POISON), info))
+                return false;
+        }
+
         return true;
     }
 
@@ -474,6 +487,10 @@ HasLiveIteratorAtStackDepth(JSScript *script, jsbytecode *pc, uint32_t stackDept
 
     return false;
 }
+
+
+
+
 
 
 
@@ -1153,6 +1170,8 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     
     
     
+    
+    
 
     JitSpew(JitSpew_BaselineBailouts, "      [BASELINE-STUB FRAME]");
 
@@ -1180,6 +1199,12 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
         else
             actualArgc = IsSetPropPC(pc);
 
+        
+        size_t afterFrameSize = (actualArgc + 1) * sizeof(Value) + JitFrameLayout::Size();
+        if (!builder.maybeWritePadding(JitStackAlignment, afterFrameSize, "Padding"))
+            return false;
+
+        
         MOZ_ASSERT(actualArgc + 2 <= exprStackSlots);
         MOZ_ASSERT(savedCallerArgs.length() == actualArgc + 2);
         for (unsigned i = 0; i < actualArgc + 1; i++) {
@@ -1193,6 +1218,11 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
             MOZ_ASSERT(actualArgc > 0);
             actualArgc--;
         }
+
+        
+        size_t afterFrameSize = (actualArgc + 1) * sizeof(Value) + JitFrameLayout::Size();
+        if (!builder.maybeWritePadding(JitStackAlignment, afterFrameSize, "Padding"))
+            return false;
 
         MOZ_ASSERT(actualArgc + 2 <= exprStackSlots);
         for (unsigned i = 0; i < actualArgc + 1; i++) {
@@ -1244,12 +1274,15 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     MOZ_ASSERT(baselineCallReturnAddr);
     if (!builder.writePtr(baselineCallReturnAddr, "ReturnAddr"))
         return false;
+    MOZ_ASSERT(builder.framePushed() % JitStackAlignment == 0);
 
     
     
     if (actualArgc >= calleeFun->nargs())
         return true;
 
+    
+    
     
     
     
@@ -1283,7 +1316,16 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
 #if defined(JS_CODEGEN_X86)
     if (!builder.writePtr(prevFramePtr, "PrevFramePtr-X86Only"))
         return false;
+    
+    prevFramePtr = builder.virtualPointerAtStackOffset(0);
+    if (!builder.writePtr(prevFramePtr, "Padding-X86Only"))
+        return false;
 #endif
+
+    
+    size_t afterFrameSize = (calleeFun->nargs() + 1) * sizeof(Value) + RectifierFrameLayout::Size();
+    if (!builder.maybeWritePadding(JitStackAlignment, afterFrameSize, "Padding"))
+        return false;
 
     
     for (unsigned i = 0; i < (calleeFun->nargs() - actualArgc); i++) {
@@ -1323,6 +1365,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     MOZ_ASSERT(rectReturnAddr);
     if (!builder.writePtr(rectReturnAddr, "ReturnAddr"))
         return false;
+    MOZ_ASSERT(builder.framePushed() % JitStackAlignment == 0);
 
     return true;
 }
