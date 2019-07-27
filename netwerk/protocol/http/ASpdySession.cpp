@@ -67,6 +67,8 @@ ASpdySession::NewSpdySession(uint32_t version,
 
 SpdyInformation::SpdyInformation()
 {
+  
+  
   Version[0] = SPDY_VERSION_3;
   VersionString[0] = NS_LITERAL_CSTRING("spdy/3");
 
