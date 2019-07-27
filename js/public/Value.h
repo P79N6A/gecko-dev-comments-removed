@@ -1940,13 +1940,6 @@ static_assert(sizeof(LayoutAlignmentTester) == 16,
 
 } 
 
-
-
-
-
-
-typedef JS::Value jsval;
-
 static_assert(sizeof(jsval_layout) == sizeof(JS::Value),
               "jsval_layout and JS::Value must have identical layouts");
 
