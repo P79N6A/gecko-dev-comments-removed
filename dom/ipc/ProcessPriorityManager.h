@@ -74,6 +74,17 @@ public:
 
   static bool AnyProcessHasHighPriority();
 
+  
+
+
+  static void Freeze();
+
+  
+
+
+
+  static void Unfreeze();
+
 private:
   ProcessPriorityManager();
   DISALLOW_EVIL_CONSTRUCTORS(ProcessPriorityManager);
