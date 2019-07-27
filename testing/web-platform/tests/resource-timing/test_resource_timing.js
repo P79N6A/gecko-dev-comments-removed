@@ -115,11 +115,20 @@ function poll_for_stylesheet_load(expected_entry) {
     function inner() {
         for(var i=0; i<document.styleSheets.length; i++) {
             var sheet = document.styleSheets[i];
-            if (sheet.href === expected_entry.name && sheet.cssRules.length > 0) {
-                setTimeout(function() {
-                    resource_load(expected_entry);
-                }, 200);
-                return;
+            if (sheet.href === expected_entry.name) {
+                try {
+                    
+                    
+                    var hasRules = sheet.cssRules.length > 0;
+                } catch(e) {
+                    hasRules = false;
+                }
+                if (hasRules) {
+                    setTimeout(function() {
+                        resource_load(expected_entry);
+                    }, 200);
+                    return;
+                }
             }
         }
         setTimeout(inner, 100);
