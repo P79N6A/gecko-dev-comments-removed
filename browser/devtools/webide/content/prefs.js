@@ -18,7 +18,7 @@ window.addEventListener("load", function onLoad() {
 
   
   document.querySelector("#close").onclick = CloseUI;
-  document.querySelector("#restoreButton").onclick = RestoreDefaults;
+  document.querySelector("#restore").onclick = RestoreDefaults;
   document.querySelector("#manageSimulators").onclick = ShowAddons;
 
   
