@@ -1076,6 +1076,8 @@ protected:
 
   
   
+  
+  
   nsRefPtr<MediaSource> mMediaSource;
 
   
