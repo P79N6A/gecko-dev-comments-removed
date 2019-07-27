@@ -1367,6 +1367,9 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
     if (doReplace) {
       switch (level->mLevelReplacementHint) {
         case eRestyle_CSSAnimations: {
+          
+          
+          
           nsAnimationManager* animationManager =
             PresContext()->AnimationManager();
           ElementAnimationCollection* collection = animationManager->GetElementAnimations(
@@ -1383,6 +1386,9 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
           break;
         }
         case eRestyle_CSSTransitions: {
+          
+          
+          
           nsPresContext* presContext = PresContext();
           ElementAnimationCollection* collection =
             presContext->TransitionManager()->GetElementTransitions(
