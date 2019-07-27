@@ -162,17 +162,25 @@ class JS_PUBLIC_API(JSAutoStructuredCloneBuffer) {
     uint64_t* data_;
     size_t nbytes_;
     uint32_t version_;
+    enum {
+        OwnsTransferablesIfAny,
+        IgnoreTransferablesIfAny,
+        NoTransferables
+    } ownTransferables_;
+
     const JSStructuredCloneCallbacks* callbacks_;
     void* closure_;
 
   public:
     JSAutoStructuredCloneBuffer()
         : data_(nullptr), nbytes_(0), version_(JS_STRUCTURED_CLONE_VERSION),
+          ownTransferables_(NoTransferables),
           callbacks_(nullptr), closure_(nullptr)
     {}
 
     JSAutoStructuredCloneBuffer(const JSStructuredCloneCallbacks* callbacks, void* closure)
         : data_(nullptr), nbytes_(0), version_(JS_STRUCTURED_CLONE_VERSION),
+          ownTransferables_(NoTransferables),
           callbacks_(callbacks), closure_(closure)
     {}
 
@@ -198,6 +206,12 @@ class JS_PUBLIC_API(JSAutoStructuredCloneBuffer) {
     
     
     void steal(uint64_t** datap, size_t* nbytesp, uint32_t* versionp=nullptr);
+
+    
+    
+    
+    
+    void abandon() { ownTransferables_ = IgnoreTransferablesIfAny; }
 
     bool read(JSContext* cx, JS::MutableHandleValue vp,
               const JSStructuredCloneCallbacks* optionalCallbacks=nullptr, void* closure=nullptr);
