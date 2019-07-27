@@ -10,12 +10,10 @@
 
 #define ENOUGH_DATA_THRESHOLD 1024
  
-#define MINIMUM_DATA_THRESHOLD  4
-
 class CharDistributionAnalysis
 {
 public:
-  CharDistributionAnalysis() {Reset(false);}
+  CharDistributionAnalysis() {Reset();}
 
   
   void HandleData(const char* aBuf, uint32_t aLen) {}
@@ -44,12 +42,12 @@ public:
   float GetConfidence(void);
 
   
-  void      Reset(bool aIsPreferredLanguage) 
+  void      Reset()
   {
     mDone = false;
     mTotalChars = 0;
     mFreqChars = 0;
-    mDataThreshold = aIsPreferredLanguage ? 0 : MINIMUM_DATA_THRESHOLD;
+    mDataThreshold = 0;
   }
 
   
