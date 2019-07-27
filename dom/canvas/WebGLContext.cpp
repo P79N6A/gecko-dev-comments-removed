@@ -822,8 +822,7 @@ WebGLContext::SetDimensions(int32_t signedWidth, int32_t signedHeight)
     uint32_t height = signedHeight;
 
     
-    
-    Invalidate();
+    GetCanvas()->InvalidateCanvas();
 
     
     if (width == 0)
@@ -845,8 +844,6 @@ WebGLContext::SetDimensions(int32_t signedWidth, int32_t signedHeight)
 
         MakeContextCurrent();
 
-        
-        
         
         PresentScreenBuffer();
 
@@ -977,6 +974,8 @@ WebGLContext::SetDimensions(int32_t signedWidth, int32_t signedHeight)
     
     
     mBackbufferNeedsClear = true;
+    ClearBackbufferIfNeeded();
+
     mShouldPresent = true;
 
     MOZ_ASSERT(gl->Caps().color);
@@ -1473,7 +1472,7 @@ WebGLContext::PresentScreenBuffer()
     if (!mShouldPresent) {
         return false;
     }
-    ClearBackbufferIfNeeded();
+    MOZ_ASSERT(!mBackbufferNeedsClear);
 
     gl->MakeCurrent();
 
