@@ -22,6 +22,9 @@
 #include "gtkdrawing.h"
 #include "nsStyleConsts.h"
 #include "gfxFontConstants.h"
+
+#include <dlfcn.h>
+
 #include "mozilla/gfx/2D.h"
 
 using mozilla::LookAndFeel;
@@ -731,6 +734,16 @@ GetSystemFontInfo(GtkWidget *aWidget,
     if (!pango_font_description_get_size_is_absolute(desc)) {
         
         size *= float(gfxPlatformGtk::GetDPI()) / POINTS_PER_INCH_FLOAT;
+    }
+
+    
+    
+    
+    static auto sGdkScreenGetMonitorScaleFactorPtr = (gint (*)(GdkScreen*,gint))
+        dlsym(RTLD_DEFAULT, "gdk_screen_get_monitor_scale_factor");
+    if (sGdkScreenGetMonitorScaleFactorPtr) {
+        GdkScreen *screen = gdk_screen_get_default();
+        size *= (*sGdkScreenGetMonitorScaleFactorPtr)(screen, 0);
     }
 
     
