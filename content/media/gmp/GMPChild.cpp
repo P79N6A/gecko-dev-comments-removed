@@ -157,6 +157,7 @@ GMPChild::LoadPluginLibrary(const std::string& aPluginPath)
 #if defined(XP_LINUX) && defined(MOZ_GMP_SANDBOX)
   
   
+  MOZ_ASSERT(mozilla::CanSandboxMediaPlugin());
   mozilla::SetMediaPluginSandbox(nativePath.get());
 #endif
 

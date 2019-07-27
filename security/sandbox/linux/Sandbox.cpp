@@ -58,6 +58,40 @@ static int gMediaPluginFileDesc = -1;
 static const char *gMediaPluginFilePath;
 #endif
 
+struct SandboxFlags {
+  bool isSupported;
+#ifdef MOZ_CONTENT_SANDBOX
+  bool isDisabledForContent;
+#endif
+#ifdef MOZ_GMP_SANDBOX
+  bool isDisabledForGMP;
+#endif
+
+  SandboxFlags() {
+    
+    if (getenv("MOZ_FAKE_NO_SANDBOX")) {
+      isSupported = false;
+    } else {
+      
+      
+      
+      
+      if (prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, nullptr) != -1) {
+        MOZ_CRASH("prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, nullptr) didn't fail");
+      }
+      isSupported = errno == EFAULT;
+    }
+#ifdef MOZ_CONTENT_SANDBOX
+    isDisabledForContent = getenv("MOZ_DISABLE_CONTENT_SANDBOX");
+#endif
+#ifdef MOZ_GMP_SANDBOX
+    isDisabledForGMP = getenv("MOZ_DISABLE_GMP_SANDBOX");
+#endif
+  }
+};
+
+static const SandboxFlags gSandboxFlags;
+
 
 
 
@@ -227,17 +261,20 @@ InstallSyscallReporter(void)
 
 
 
-static int
+
+static void
 InstallSyscallFilter(const sock_fprog *prog)
 {
   if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0)) {
-    return 1;
+    LOG_ERROR("prctl(PR_SET_NO_NEW_PRIVS) failed: %s", strerror(errno));
+    MOZ_CRASH("prctl(PR_SET_NO_NEW_PRIVS)");
   }
 
   if (prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, (unsigned long)prog, 0, 0)) {
-    return 1;
+    LOG_ERROR("prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER) failed: %s",
+              strerror(errno));
+    MOZ_CRASH("prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER)");
   }
-  return 0;
 }
 
 
@@ -268,22 +305,16 @@ FindFreeSignalNumber()
   return 0;
 }
 
+
+
 static bool
 SetThreadSandbox()
 {
-  bool didAnything = false;
-
   if (prctl(PR_GET_SECCOMP, 0, 0, 0, 0) == 0) {
-    if (InstallSyscallFilter(sSetSandboxFilter) == 0) {
-      didAnything = true;
-    }
-    
-
-
-
-
+    InstallSyscallFilter(sSetSandboxFilter);
+    return true;
   }
-  return didAnything;
+  return false;
 }
 
 static void
@@ -436,14 +467,6 @@ BroadcastSetThreadSandbox(SandboxType aType)
 }
 
 
-
-static bool
-IsSandboxingSupported(void)
-{
-  return prctl(PR_GET_SECCOMP) != -1;
-}
-
-
 static void
 SetCurrentProcessSandbox(SandboxType aType)
 {
@@ -451,9 +474,7 @@ SetCurrentProcessSandbox(SandboxType aType)
     LOG_ERROR("install_syscall_reporter() failed\n");
   }
 
-  if (IsSandboxingSupported()) {
-    BroadcastSetThreadSandbox(aType);
-  }
+  BroadcastSetThreadSandbox(aType);
 }
 
 #ifdef MOZ_CONTENT_SANDBOX
@@ -466,11 +487,17 @@ SetCurrentProcessSandbox(SandboxType aType)
 void
 SetContentProcessSandbox()
 {
-  if (PR_GetEnv("MOZ_DISABLE_CONTENT_SANDBOX")) {
+  if (gSandboxFlags.isDisabledForContent) {
     return;
   }
 
   SetCurrentProcessSandbox(kSandboxContentProcess);
+}
+
+bool
+CanSandboxContentProcess()
+{
+  return gSandboxFlags.isSupported || gSandboxFlags.isDisabledForContent;
 }
 #endif 
 
@@ -489,7 +516,7 @@ SetContentProcessSandbox()
 void
 SetMediaPluginSandbox(const char *aFilePath)
 {
-  if (PR_GetEnv("MOZ_DISABLE_GMP_SANDBOX")) {
+  if (gSandboxFlags.isDisabledForGMP) {
     return;
   }
 
@@ -503,6 +530,12 @@ SetMediaPluginSandbox(const char *aFilePath)
   }
   
   SetCurrentProcessSandbox(kSandboxMediaPlugin);
+}
+
+bool
+CanSandboxMediaPlugin()
+{
+  return gSandboxFlags.isSupported || gSandboxFlags.isDisabledForGMP;
 }
 #endif 
 

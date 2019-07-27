@@ -922,7 +922,9 @@ ContentChild::RecvSetProcessSandbox()
   
 #if defined(MOZ_CONTENT_SANDBOX)
 #if defined(XP_LINUX)
-    SetContentProcessSandbox();
+    if (CanSandboxContentProcess()) {
+        SetContentProcessSandbox();
+    }
 #elif defined(XP_WIN)
     mozilla::SandboxTarget::Instance()->StartSandbox();
 #endif
