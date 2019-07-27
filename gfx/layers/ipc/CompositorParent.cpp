@@ -662,7 +662,8 @@ CompositorParent::CompositorParent(nsIWidget* aWidget,
   }
 
   if (gfxPrefs::AsyncPanZoomEnabled() &&
-#if defined(XP_WIN) || defined(MOZ_WIDGET_COCOA) || defined(MOZ_WIDGET_GTK)
+#if !defined(MOZ_B2G) && !defined(MOZ_WIDGET_ANDROID)
+      
       
       
       
