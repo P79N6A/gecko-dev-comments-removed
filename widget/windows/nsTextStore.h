@@ -170,12 +170,13 @@ public:
 
   
   
+  
   static void* GetNativeData(uint32_t aDataType)
   {
     switch (aDataType) {
       case NS_NATIVE_TSF_THREAD_MGR:
         Initialize(); 
-        return static_cast<void*>(&sTsfThreadMgr);
+        return static_cast<void*>(&sThreadMgr);
       case NS_NATIVE_TSF_CATEGORY_MGR:
         return static_cast<void*>(&sCategoryMgr);
       case NS_NATIVE_TSF_DISPLAY_ATTR_MGR:
@@ -192,7 +193,7 @@ public:
 
   static void* GetThreadManager()
   {
-    return static_cast<void*>(sTsfThreadMgr);
+    return static_cast<void*>(sThreadMgr);
   }
 
   static bool ThinksHavingFocus()
@@ -202,7 +203,7 @@ public:
 
   static bool IsInTSFMode()
   {
-    return sTsfThreadMgr != nullptr;
+    return sThreadMgr != nullptr;
   }
 
   static bool IsComposing()
@@ -739,15 +740,15 @@ protected:
   bool                         mNativeCaretIsCreated;
 
   
-  static ITfThreadMgr*  sTsfThreadMgr;
+  static mozilla::StaticRefPtr<ITfThreadMgr> sThreadMgr;
   
-  static ITfMessagePump* sMessagePump;
+  static mozilla::StaticRefPtr<ITfMessagePump> sMessagePump;
   
-  static ITfKeystrokeMgr* sKeystrokeMgr;
+  static mozilla::StaticRefPtr<ITfKeystrokeMgr> sKeystrokeMgr;
   
-  static ITfDisplayAttributeMgr* sDisplayAttrMgr;
+  static mozilla::StaticRefPtr<ITfDisplayAttributeMgr> sDisplayAttrMgr;
   
-  static ITfCategoryMgr* sCategoryMgr;
+  static mozilla::StaticRefPtr<ITfCategoryMgr> sCategoryMgr;
 
   
   static DWORD          sTsfClientId;
@@ -758,10 +759,11 @@ protected:
   static mozilla::StaticRefPtr<nsTextStore> sEnabledTextStore;
 
   
-  static ITfDocumentMgr* sTsfDisabledDocumentMgr;
-  static ITfContext* sTsfDisabledContext;
+  static mozilla::StaticRefPtr<ITfDocumentMgr> sDisabledDocumentMgr;
+  static mozilla::StaticRefPtr<ITfContext> sDisabledContext;
 
-  static ITfInputProcessorProfiles* sInputProcessorProfiles;
+  static mozilla::StaticRefPtr<ITfInputProcessorProfiles>
+    sInputProcessorProfiles;
 
   
   static bool sCreateNativeCaretForATOK;
