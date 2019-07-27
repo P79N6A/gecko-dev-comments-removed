@@ -173,7 +173,11 @@ class DroidADB(DeviceManagerADB, DroidMixin):
             if m:
                 package = m.group(1)
         if not package:
-            raise DMError("unable to find focused app")
+            
+            
+            
+            
+            package = ""
         return package
 
     def getAppRoot(self, packageName):
