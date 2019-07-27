@@ -3116,7 +3116,9 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
       }
     }
 #if !defined(MOZ_WIDGET_ANDROID) || defined(MOZ_ANDROID_APZ)
-    else if (presShell->GetDocument() && presShell->GetDocument()->IsRootDisplayDocument()) {
+    else if (presShell->GetDocument() && presShell->GetDocument()->IsRootDisplayDocument()
+        && !presShell->GetRootScrollFrame()) {
+      
       
       
       
