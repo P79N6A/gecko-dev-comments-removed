@@ -11,8 +11,27 @@
 #include "mozilla/Services.h"
 #include "MainThreadUtils.h"
 
+#if defined(MOZ_WIDGET_GONK)
+#include "cutils/android_reboot.h"
+#include "cutils/properties.h"
+#endif
+
 namespace mozilla {
 namespace hal_impl {
+
+#if (defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 19)
+static void
+PowerCtl(const char* aValue, int aCmd)
+{
+  
+  property_set("sys.powerctl", aValue);
+  
+  
+  sleep(10);
+  HAL_LOG("Powerctl call takes too long, forcing %s.", aValue);
+  android_reboot(aCmd, 0, nullptr);
+}
+#endif
 
 void
 Reboot()
@@ -23,8 +42,15 @@ Reboot()
       obsServ->NotifyObservers(nullptr, "system-reboot", nullptr);
     }
   }
+
+#if !defined(MOZ_WIDGET_GONK)
   sync();
   reboot(RB_AUTOBOOT);
+#elif (ANDROID_VERSION < 19)
+  android_reboot(ANDROID_RB_RESTART, 0, nullptr);
+#else
+  PowerCtl("reboot", ANDROID_RB_RESTART);
+#endif
 }
 
 void
@@ -36,8 +62,15 @@ PowerOff()
       obsServ->NotifyObservers(nullptr, "system-power-off", nullptr);
     }
   }
+
+#if !defined(MOZ_WIDGET_GONK)
   sync();
   reboot(RB_POWER_OFF);
+#elif (ANDROID_VERSION < 19)
+  android_reboot(ANDROID_RB_POWEROFF, 0, nullptr);
+#else
+  PowerCtl("shutdown", ANDROID_RB_POWEROFF);
+#endif
 }
 
 
