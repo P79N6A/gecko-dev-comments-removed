@@ -444,6 +444,23 @@ let gTestSuite = (function() {
 
 
 
+  function setStaticIpMode(aNetwork, aConfig) {
+    let request = wifiManager.setStaticIpMode(aNetwork, aConfig);
+    return wrapDomRequestAsPromise(request)
+      .then(event => event.target.result);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
   function requestWifiScan() {
     let request = wifiManager.getNetworks();
     return wrapDomRequestAsPromise(request)
@@ -1036,6 +1053,117 @@ let gTestSuite = (function() {
 
 
 
+  function exeAndParseNetcfg() {
+    return runEmulatorShellSafe(['netcfg'])
+      .then(function (aLines) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        let netcfgResult = {};
+        aLines.forEach(function (aLine) {
+          let tokens = aLine.split(/\s+/);
+          if (tokens.length < 5) {
+            return;
+          }
+          let ifname = tokens[0];
+          let [ip, prefix] = tokens[2].split('/');
+          netcfgResult[ifname] = { ip: ip, prefix: prefix };
+        });
+        log("netcfg result:" + JSON.stringify(netcfgResult));
+
+        return netcfgResult;
+      });
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  function exeAndParseIpRoute() {
+    return runEmulatorShellSafe(['ip', 'route'])
+      .then(function (aLines) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        let ipRouteResult = {};
+
+        
+        aLines.forEach(function (aLine) {
+          let tokens = aLine.trim().split(/\s+/);
+          let srcIndex = tokens.indexOf('src');
+          if (srcIndex < 0 || srcIndex + 1 >= tokens.length) {
+            return;
+          }
+          let ifname = tokens[2];
+          let src = tokens[srcIndex + 1];
+          ipRouteResult[ifname] = { src: src, default: false, gateway: null };
+        });
+
+        
+        aLines.forEach(function (aLine) {
+          let tokens = aLine.split(/\s+/);
+          if (tokens.length < 2) {
+            return;
+          }
+          if ('default' === tokens[0]) {
+            let ifnameIndex = tokens.indexOf('dev');
+            if (ifnameIndex < 0 || ifnameIndex + 1 >= tokens.length) {
+              return;
+            }
+            let ifname = tokens[ifnameIndex + 1];
+            if (!ipRouteResult[ifname]) {
+              return;
+            }
+            ipRouteResult[ifname].default = true;
+            let gwIndex = tokens.indexOf('via');
+            if (gwIndex < 0 || gwIndex + 1 >= tokens.length) {
+              return;
+            }
+            ipRouteResult[ifname].gateway = tokens[gwIndex + 1];
+            return;
+          }
+        });
+        log("ip route result:" + JSON.stringify(ipRouteResult));
+
+        return ipRouteResult;
+      });
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1044,87 +1172,8 @@ let gTestSuite = (function() {
 
 
   function verifyTetheringRouting(aEnabled) {
-    let netcfgResult = {};
-    let ipRouteResult = {};
-
-    
-    
-    function exeAndParseNetcfg() {
-      return runEmulatorShellSafe(['netcfg'])
-        .then(function (aLines) {
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          aLines.forEach(function (aLine) {
-            let tokens = aLine.split(/\s+/);
-            if (tokens.length < 5) {
-              return;
-            }
-            let ifname = tokens[0];
-            let ip = (tokens[2].split('/'))[0];
-            netcfgResult[ifname] = { ip: ip };
-          });
-        });
-    }
-
-    
-    
-    function exeAndParseIpRoute() {
-      return runEmulatorShellSafe(['ip', 'route'])
-        .then(function (aLines) {
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-
-          
-          aLines.forEach(function (aLine) {
-            let tokens = aLine.trim().split(/\s+/);
-            let srcIndex = tokens.indexOf('src');
-            if (srcIndex < 0 || srcIndex + 1 >= tokens.length) {
-              return;
-            }
-            let ifname = tokens[2];
-            let src = tokens[srcIndex + 1];
-            ipRouteResult[ifname] = { src: src, default: false };
-          });
-
-          
-          aLines.forEach(function (aLine) {
-            let tokens = aLine.split(/\s+/);
-            if (tokens.length < 2) {
-              return;
-            }
-            if ('default' === tokens[0]) {
-              let ifnameIndex = tokens.indexOf('dev');
-              if (ifnameIndex < 0 || ifnameIndex + 1 >= tokens.length) {
-                return;
-              }
-              let ifname = tokens[ifnameIndex + 1];
-              if (ipRouteResult[ifname]) {
-                ipRouteResult[ifname].default = true;
-              }
-              return;
-            }
-          });
-
-        });
-
-    }
+    let netcfgResult;
+    let ipRouteResult;
 
     
     
@@ -1158,9 +1207,6 @@ let gTestSuite = (function() {
     }
 
     function verifyDefaultRouteAndIp(aExpectedWifiTetheringIp) {
-      log(JSON.stringify(ipRouteResult));
-      log(JSON.stringify(netcfgResult));
-
       if (aEnabled) {
         isOrThrow(ipRouteResult['rmnet0'].src, netcfgResult['rmnet0'].ip, 'rmnet0.ip');
         isOrThrow(ipRouteResult['rmnet0'].default, true, 'rmnet0.default');
@@ -1173,7 +1219,9 @@ let gTestSuite = (function() {
 
     return verifyIptables()
       .then(exeAndParseNetcfg)
+      .then((aResult) => { netcfgResult = aResult; })
       .then(exeAndParseIpRoute)
+      .then((aResult) => { ipRouteResult = aResult; })
       .then(() => getSettings(SETTINGS_TETHERING_WIFI_IP))
       .then(ip => verifyDefaultRouteAndIp(ip));
   }
@@ -1244,6 +1292,7 @@ let gTestSuite = (function() {
   suite.getFirstIndexBySsid = getFirstIndexBySsid;
   suite.testAssociate = testAssociate;
   suite.getKnownNetworks = getKnownNetworks;
+  suite.setStaticIpMode = setStaticIpMode;
   suite.requestWifiScan = requestWifiScan;
   suite.waitForConnected = waitForConnected;
   suite.forgetNetwork = forgetNetwork;
@@ -1254,6 +1303,8 @@ let gTestSuite = (function() {
   suite.getImportedCerts = getImportedCerts;
   suite.deleteCert = deleteCert;
   suite.writeFile = writeFile;
+  suite.exeAndParseNetcfg = exeAndParseNetcfg;
+  suite.exeAndParseIpRoute = exeAndParseIpRoute;
 
   
 
