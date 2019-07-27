@@ -1469,7 +1469,17 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                NODE_NEEDS_FRAME | NODE_DESCENDANTS_NEED_FRAMES |
                
                ELEMENT_ALL_RESTYLE_FLAGS);
-  } else if (!IsInShadowTree()) {
+  } else if (IsInShadowTree()) {
+    
+    
+    
+    
+    
+    
+    UnsetFlags(NODE_FORCE_XBL_BINDINGS |
+               NODE_NEEDS_FRAME | NODE_DESCENDANTS_NEED_FRAMES |
+               ELEMENT_ALL_RESTYLE_FLAGS);
+  } else {
     
     
     SetSubtreeRootPointer(aParent->SubtreeRoot());
