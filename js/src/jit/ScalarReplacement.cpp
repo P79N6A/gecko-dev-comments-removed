@@ -252,6 +252,9 @@ ObjectMemoryView::ObjectMemoryView(TempAllocator &alloc, MInstruction *obj)
     obj_(obj),
     startBlock_(obj->block())
 {
+    
+    
+    obj_->setImplicitlyUsedUnchecked();
 }
 
 MBasicBlock *
@@ -699,6 +702,9 @@ ArrayMemoryView::ArrayMemoryView(TempAllocator &alloc, MInstruction *arr)
     startBlock_(arr->block()),
     state_(nullptr)
 {
+    
+    
+    arr_->setImplicitlyUsedUnchecked();
 }
 
 MBasicBlock *
