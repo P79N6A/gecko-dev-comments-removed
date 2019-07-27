@@ -331,6 +331,16 @@ class MessageChannel : HasResultCodes
         return mDispatchingSyncMessagePriority;
     }
 
+    bool DispatchingAsyncMessage() const {
+        AssertWorkerThread();
+        return mDispatchingAsyncMessage;
+    }
+
+    int DispatchingAsyncMessagePriority() const {
+        AssertWorkerThread();
+        return mDispatchingAsyncMessagePriority;
+    }
+
     bool Connected() const;
 
   private:
@@ -464,6 +474,9 @@ class MessageChannel : HasResultCodes
     
     bool mDispatchingSyncMessage;
     int mDispatchingSyncMessagePriority;
+
+    bool mDispatchingAsyncMessage;
+    int mDispatchingAsyncMessagePriority;
 
     
     
