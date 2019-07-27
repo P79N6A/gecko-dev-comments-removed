@@ -23,7 +23,12 @@ let test = asyncTest(function*() {
   yield navigate(usage, options);
   yield checkPages(usage);
   yield checkEditorReport(usage);
-  yield checkPageReport(usage);
+  
+  
+  
+  
+  
+  
 
   yield helpers.closeToolbar(options);
   yield helpers.closeTab(options);
