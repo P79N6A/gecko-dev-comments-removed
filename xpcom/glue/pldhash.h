@@ -237,7 +237,6 @@ public:
 
   
   const PLDHashTableOps* const Ops() { return mOps; }
-  void SetOps(const PLDHashTableOps* aOps) { mOps = aOps; }
 
   
 
