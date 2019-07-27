@@ -57,6 +57,8 @@ function SearchSuggestionUIController(inputElement, tableParent, onClick=null,
 
   this._stickyInputValue = "";
   this._hideSuggestions();
+
+  this._ignoreInputEvent = false;
 }
 
 SearchSuggestionUIController.prototype = {
@@ -143,6 +145,10 @@ SearchSuggestionUIController.prototype = {
   },
 
   _onInput: function () {
+    if (this._ignoreInputEvent) {
+      this._ignoreInputEvent = false;
+      return;
+    }
     if (this.input.value) {
       this._getSuggestions();
     }
@@ -231,6 +237,20 @@ SearchSuggestionUIController.prototype = {
     let idx = this._indexOfTableRowOrDescendent(event.target);
     let suggestion = this.suggestionAtIndex(idx);
     this._stickyInputValue = suggestion;
+
+    
+    
+    try {
+      let imeEditor = this.input.editor.QueryInterface(Components.interfaces.nsIEditorIMESupport);
+      if (imeEditor.composing) {
+        
+        
+        this._ignoreInputEvent = true;
+        imeEditor.forceCompositionEnd();
+        this._ignoreInputEvent = false;
+      }
+    } catch(e) { }
+
     this.input.value = suggestion;
     this.input.setAttribute("selection-index", idx);
     this.input.setAttribute("selection-kind", "mouse");
