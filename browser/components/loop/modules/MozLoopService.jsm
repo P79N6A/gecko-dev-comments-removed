@@ -890,7 +890,10 @@ let MozLoopServiceInternal = {
           
           
           let customSize = kSizeMap[ev.type];
-          if (customSize) {
+          let currSize = chatbox.getAttribute("customSize");
+          
+          
+          if (customSize && currSize != customSize && currSize != "loopChatMessageAppended") {
             chatbox.setAttribute("customSize", customSize);
             chatbox.parentNode.setAttribute("customSize", customSize);
           }
