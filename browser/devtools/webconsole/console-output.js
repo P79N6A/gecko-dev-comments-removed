@@ -488,6 +488,11 @@ Messages.BaseMessage.prototype = {
     let container = doc.createElementNS(XHTML_NS, "div");
     container.id = "console-msg-" + gSequenceId();
     container.className = "message";
+    if (this.category == "input") {
+      
+      
+      container.setAttribute("aria-live", "off");
+    }
     container.category = this._categoryCompat;
     container.severity = this._severityCompat;
     container.setAttribute("category", this._categoryNameCompat);
