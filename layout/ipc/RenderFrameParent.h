@@ -12,7 +12,6 @@
 #include <map>
 
 #include "mozilla/layout/PRenderFrameParent.h"
-#include "mozilla/layers/ShadowLayersManager.h"
 #include "nsDisplayList.h"
 #include "RenderFrameUtils.h"
 
@@ -37,8 +36,7 @@ namespace layout {
 
 class RemoteContentController;
 
-class RenderFrameParent : public PRenderFrameParent,
-                          public mozilla::layers::ShadowLayersManager
+class RenderFrameParent : public PRenderFrameParent
 {
   typedef mozilla::layers::FrameMetrics FrameMetrics;
   typedef mozilla::layers::ContainerLayer ContainerLayer;
@@ -53,7 +51,6 @@ class RenderFrameParent : public PRenderFrameParent,
   typedef FrameMetrics::ViewID ViewID;
 
 public:
-  typedef std::map<ViewID, nsRefPtr<nsContentView> > ViewMap;
 
 
   
@@ -73,18 +70,7 @@ public:
 
 
 
-  nsContentView* GetContentView(ViewID aId);
   nsContentView* GetRootContentView();
-
-  void ContentViewScaleChanged(nsContentView* aView);
-
-  virtual void ShadowLayersUpdated(LayerTransactionParent* aLayerTree,
-                                   const uint64_t& aTransactionId,
-                                   const TargetConfig& aTargetConfig,
-                                   bool aIsFirstPaint,
-                                   bool aScheduleComposite,
-                                   uint32_t aPaintSequenceNumber,
-                                   bool aIsRepeatTransaction) MOZ_OVERRIDE;
 
   void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                         nsSubDocumentFrame* aFrame,
@@ -133,17 +119,11 @@ protected:
 
   virtual bool RecvUpdateHitRegion(const nsRegion& aRegion) MOZ_OVERRIDE;
 
-  virtual PLayerTransactionParent* AllocPLayerTransactionParent() MOZ_OVERRIDE;
-  virtual bool DeallocPLayerTransactionParent(PLayerTransactionParent* aLayers) MOZ_OVERRIDE;
-
 private:
-  void BuildViewMap();
   void TriggerRepaint();
   void DispatchEventForPanZoomController(const InputEvent& aEvent);
 
-  LayerTransactionParent* GetShadowLayers() const;
   uint64_t GetLayerTreeId() const;
-  Layer* GetRootLayer() const;
 
   
   
@@ -162,7 +142,7 @@ private:
 
   
   
-  ViewMap mContentViews;
+  nsRefPtr<nsContentView> mRootContentView;
 
   
   
@@ -222,48 +202,5 @@ private:
   RenderFrameParent* mRemoteFrame;
 };
 
-
-
-
-
-
-
-
-class nsDisplayRemoteShadow : public nsDisplayItem
-{
-  typedef mozilla::layout::RenderFrameParent RenderFrameParent;
-  typedef mozilla::layers::FrameMetrics::ViewID ViewID;
-
-public:
-  nsDisplayRemoteShadow(nsDisplayListBuilder* aBuilder,
-                        nsIFrame* aFrame,
-                        nsRect aRect,
-                        ViewID aId)
-    : nsDisplayItem(aBuilder, aFrame)
-    , mRect(aRect)
-    , mId(aId)
-  {}
-
-  nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) MOZ_OVERRIDE
-  {
-    *aSnap = false;
-    return mRect;
-  }
-
-  virtual uint32_t GetPerFrameKey() MOZ_OVERRIDE
-  {
-    NS_ABORT();
-    return 0;
-  }
-
-  void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
-               HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames) MOZ_OVERRIDE;
-
-  NS_DISPLAY_DECL_NAME("Remote-Shadow", TYPE_REMOTE_SHADOW)
-
-private:
-  nsRect mRect;
-  ViewID mId;
-};
 
 #endif  
