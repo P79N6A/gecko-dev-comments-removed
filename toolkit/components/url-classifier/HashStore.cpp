@@ -478,7 +478,7 @@ Merge(ChunkSet* aStoreChunks,
   
   aStoreChunks->Merge(aUpdateChunks);
 
-  aStorePrefixes->AppendElements(adds);
+  aStorePrefixes->AppendElements(adds, fallible);
   EntrySort(*aStorePrefixes);
 
   return NS_OK;
