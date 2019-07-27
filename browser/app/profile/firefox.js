@@ -1148,7 +1148,12 @@ pref("toolkit.crashreporter.infoURL",
 pref("app.support.baseURL", "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/");
 
 
+#ifdef MOZ_DEV_EDITION
+pref("app.feedback.baseURL", "https://input.mozilla.org/%LOCALE%/feedback/firefoxdev/%VERSION%/");
+#else
 pref("app.feedback.baseURL", "https://input.mozilla.org/%LOCALE%/feedback/%APP%/%VERSION%/");
+#endif
+
 
 
 pref("security.alternate_certificate_error_page", "certerror");
@@ -1382,7 +1387,11 @@ pref("devtools.debugger.ui.variables-searchbox-visible", false);
 
 
 pref("devtools.profiler.enabled", true);
+#ifdef MOZ_DEV_EDITION
+pref("devtools.timeline.enabled", true);
+#else
 pref("devtools.timeline.enabled", false);
+#endif
 
 
 #ifdef MOZ_DEVTOOLS_PERFTOOLS
