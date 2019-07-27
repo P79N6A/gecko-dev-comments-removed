@@ -17,42 +17,6 @@
 namespace js {
 namespace jit {
 
-
-
-static void
-ReplaceResumePointOperands(MResumePoint *resumePoint, MDefinition *object, MDefinition *state)
-{
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    for (MResumePoint *rp = resumePoint; rp; rp = rp->caller()) {
-        for (size_t op = 0; op < rp->numOperands(); op++) {
-            if (rp->getOperand(op) == object) {
-                rp->replaceOperand(op, state);
-
-                
-                
-                
-                
-                MOZ_ASSERT_IF(rp != resumePoint, state->block()->dominates(rp->block()));
-            }
-        }
-    }
-}
-
 template <typename MemoryView>
 class EmulateStateOf
 {
@@ -253,6 +217,9 @@ class ObjectMemoryView : public MDefinitionVisitorDefaultNoop
     MBasicBlock *startBlock_;
     BlockState *state_;
 
+    
+    const MResumePoint *lastResumePoint_;
+
   public:
     ObjectMemoryView(TempAllocator &alloc, MInstruction *obj);
 
@@ -270,12 +237,14 @@ class ObjectMemoryView : public MDefinitionVisitorDefaultNoop
 
   public:
     void visitResumePoint(MResumePoint *rp);
+    void visitObjectState(MObjectState *ins);
     void visitStoreFixedSlot(MStoreFixedSlot *ins);
     void visitLoadFixedSlot(MLoadFixedSlot *ins);
     void visitStoreSlot(MStoreSlot *ins);
     void visitLoadSlot(MLoadSlot *ins);
     void visitGuardShape(MGuardShape *ins);
     void visitFunctionEnvironment(MFunctionEnvironment *ins);
+    void visitLambda(MLambda *ins);
 };
 
 const char *ObjectMemoryView::phaseName = "Scalar Replacement of Object";
@@ -283,8 +252,13 @@ const char *ObjectMemoryView::phaseName = "Scalar Replacement of Object";
 ObjectMemoryView::ObjectMemoryView(TempAllocator &alloc, MInstruction *obj)
   : alloc_(alloc),
     obj_(obj),
-    startBlock_(obj->block())
+    startBlock_(obj->block()),
+    state_(nullptr),
+    lastResumePoint_(nullptr)
 {
+    
+    obj_->setIncompleteObject();
+
     
     
     obj_->setImplicitlyUsedUnchecked();
@@ -306,6 +280,9 @@ ObjectMemoryView::initStartingState(BlockState **pState)
     
     BlockState *state = BlockState::New(alloc_, obj_, undefinedVal_);
     startBlock_->insertAfter(obj_, state);
+
+    
+    state->setInWorklist();
 
     *pState = state;
     return true;
@@ -369,7 +346,7 @@ ObjectMemoryView::mergeIntoSuccessorState(MBasicBlock *curr, MBasicBlock *succ,
         
         
         
-        succ->insertBefore(*succ->begin(), succState);
+        succ->insertBefore(succ->safeInsertTop(), succState);
         *pSuccState = succState;
     }
 
@@ -405,14 +382,13 @@ ObjectMemoryView::assertSuccess()
 {
     for (MUseIterator i(obj_->usesBegin()); i != obj_->usesEnd(); i++) {
         MNode *ins = (*i)->consumer();
+        MDefinition *def = nullptr;
 
         
-        MOZ_ASSERT(!ins->isResumePoint());
-
-        MDefinition *def = ins->toDefinition();
-
-        if (def->isRecoveredOnBailout())
+        if (ins->isResumePoint() || (def = ins->toDefinition())->isRecoveredOnBailout()) {
+            MOZ_ASSERT(obj_->isIncompleteObject());
             continue;
+        }
 
         
         
@@ -425,7 +401,19 @@ ObjectMemoryView::assertSuccess()
 void
 ObjectMemoryView::visitResumePoint(MResumePoint *rp)
 {
-    ReplaceResumePointOperands(rp, obj_, state_);
+    
+    
+    if (!state_->isInWorklist()) {
+        rp->addStore(alloc_, state_, lastResumePoint_);
+        lastResumePoint_ = rp;
+    }
+}
+
+void
+ObjectMemoryView::visitObjectState(MObjectState *ins)
+{
+    if (ins->isInWorklist())
+        ins->setNotInWorklist();
 }
 
 void
@@ -523,6 +511,17 @@ ObjectMemoryView::visitFunctionEnvironment(MFunctionEnvironment *ins)
 
     
     ins->block()->discard(ins);
+}
+
+void
+ObjectMemoryView::visitLambda(MLambda *ins)
+{
+    if (ins->scopeChain() != obj_)
+        return;
+
+    
+    
+    ins->setIncompleteObject();
 }
 
 static bool
@@ -712,6 +711,9 @@ class ArrayMemoryView : public MDefinitionVisitorDefaultNoop
     MBasicBlock *startBlock_;
     BlockState *state_;
 
+    
+    const MResumePoint *lastResumePoint_;
+
   public:
     ArrayMemoryView(TempAllocator &alloc, MInstruction *arr);
 
@@ -733,6 +735,7 @@ class ArrayMemoryView : public MDefinitionVisitorDefaultNoop
 
   public:
     void visitResumePoint(MResumePoint *rp);
+    void visitArrayState(MArrayState *ins);
     void visitStoreElement(MStoreElement *ins);
     void visitLoadElement(MLoadElement *ins);
     void visitSetInitializedLength(MSetInitializedLength *ins);
@@ -748,8 +751,12 @@ ArrayMemoryView::ArrayMemoryView(TempAllocator &alloc, MInstruction *arr)
     length_(nullptr),
     arr_(arr),
     startBlock_(arr->block()),
-    state_(nullptr)
+    state_(nullptr),
+    lastResumePoint_(nullptr)
 {
+    
+    arr_->setIncompleteObject();
+
     
     
     arr_->setImplicitlyUsedUnchecked();
@@ -773,6 +780,9 @@ ArrayMemoryView::initStartingState(BlockState **pState)
     
     BlockState *state = BlockState::New(alloc_, arr_, undefinedVal_, initLength);
     startBlock_->insertAfter(arr_, state);
+
+    
+    state->setInWorklist();
 
     *pState = state;
     return true;
@@ -836,7 +846,7 @@ ArrayMemoryView::mergeIntoSuccessorState(MBasicBlock *curr, MBasicBlock *succ,
         
         
         
-        succ->insertBefore(*succ->begin(), succState);
+        succ->insertBefore(succ->safeInsertTop(), succState);
         *pSuccState = succState;
     }
 
@@ -877,7 +887,19 @@ ArrayMemoryView::assertSuccess()
 void
 ArrayMemoryView::visitResumePoint(MResumePoint *rp)
 {
-    ReplaceResumePointOperands(rp, arr_, state_);
+    
+    
+    if (!state_->isInWorklist()) {
+        rp->addStore(alloc_, state_, lastResumePoint_);
+        lastResumePoint_ = rp;
+    }
+}
+
+void
+ArrayMemoryView::visitArrayState(MArrayState *ins)
+{
+    if (ins->isInWorklist())
+        ins->setNotInWorklist();
 }
 
 bool
