@@ -47,9 +47,9 @@ public:
 
   
   
-  int GetPinCount() MOZ_OVERRIDE { return 1; }
+  int GetPinCount() override { return 1; }
 
-  media::BasePin* GetPin(int n) MOZ_OVERRIDE;
+  media::BasePin* GetPin(int n) override;
 
   
   const media::MediaType* GetMediaType() const;

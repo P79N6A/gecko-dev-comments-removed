@@ -24,7 +24,7 @@ static PRLogModuleInfo *gStreamCopierLog = nullptr;
 
 
 
-class AsyncApplyBufferingPolicyEvent MOZ_FINAL: public nsRunnable
+class AsyncApplyBufferingPolicyEvent final: public nsRunnable
 {
 public:
     

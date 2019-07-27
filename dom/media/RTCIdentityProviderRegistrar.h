@@ -20,7 +20,7 @@ namespace dom {
 
 class RTCIdentityProvider;
 
-class RTCIdentityProviderRegistrar MOZ_FINAL : public nsISupports,
+class RTCIdentityProviderRegistrar final : public nsISupports,
                                                public nsWrapperCache
 {
 public:
@@ -31,7 +31,7 @@ public:
 
   
   nsIGlobalObject* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   
   void Register(RTCIdentityProvider& aIdp);

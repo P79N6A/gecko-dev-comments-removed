@@ -19,7 +19,7 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
   
-  virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE;
+  virtual bool IsFrameOfType(uint32_t aFlags) const override;
 
   
   

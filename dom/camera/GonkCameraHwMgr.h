@@ -71,7 +71,7 @@ public:
 
 #ifdef MOZ_WIDGET_GONK
   
-  virtual void OnNewFrame() MOZ_OVERRIDE;
+  virtual void OnNewFrame() override;
 
   
   virtual void notify(int32_t aMsgType, int32_t ext1, int32_t ext2);

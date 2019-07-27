@@ -133,22 +133,22 @@ public:
 
   
   
-  STDMETHODIMP_(ULONG) AddRef() MOZ_OVERRIDE { return BasePin::AddRef(); }
-  STDMETHODIMP_(ULONG) Release() MOZ_OVERRIDE { return BasePin::Release(); }
-  STDMETHODIMP QueryInterface(REFIID iid, void** ppv) MOZ_OVERRIDE;
+  STDMETHODIMP_(ULONG) AddRef() override { return BasePin::AddRef(); }
+  STDMETHODIMP_(ULONG) Release() override { return BasePin::Release(); }
+  STDMETHODIMP QueryInterface(REFIID iid, void** ppv) override;
 
   
   
-  HRESULT CheckMediaType(const MediaType* aMediaType) MOZ_OVERRIDE;
+  HRESULT CheckMediaType(const MediaType* aMediaType) override;
 
   
-  HRESULT GetMediaType(int aPosition, MediaType* aMediaType) MOZ_OVERRIDE;
+  HRESULT GetMediaType(int aPosition, MediaType* aMediaType) override;
 
   
-  HRESULT BreakConnect(void) MOZ_OVERRIDE;
+  HRESULT BreakConnect(void) override;
 
   
-  HRESULT CheckConnect(IPin* aPin) MOZ_OVERRIDE;
+  HRESULT CheckConnect(IPin* aPin) override;
 
 
   
@@ -157,35 +157,35 @@ public:
   
   STDMETHODIMP RequestAllocator(IMemAllocator* aPreferred,
                                 ALLOCATOR_PROPERTIES* aProps,
-                                IMemAllocator** aActual) MOZ_OVERRIDE;
+                                IMemAllocator** aActual) override;
 
   
   
-  STDMETHODIMP Request(IMediaSample* aSample, DWORD_PTR aUserData) MOZ_OVERRIDE;
+  STDMETHODIMP Request(IMediaSample* aSample, DWORD_PTR aUserData) override;
 
   
   
   
   STDMETHODIMP WaitForNext(DWORD aTimeout,
                            IMediaSample** aSamples,
-                           DWORD_PTR* aUserData) MOZ_OVERRIDE;
+                           DWORD_PTR* aUserData) override;
 
   
   
   
-  STDMETHODIMP SyncReadAligned(IMediaSample* aSample) MOZ_OVERRIDE;
+  STDMETHODIMP SyncReadAligned(IMediaSample* aSample) override;
 
   
   
   
-  STDMETHODIMP SyncRead(LONGLONG aPosition, LONG aLength, BYTE* aBuffer) MOZ_OVERRIDE;
+  STDMETHODIMP SyncRead(LONGLONG aPosition, LONG aLength, BYTE* aBuffer) override;
 
   
-  STDMETHODIMP Length(LONGLONG* aTotal, LONGLONG* aAvailable) MOZ_OVERRIDE;
+  STDMETHODIMP Length(LONGLONG* aTotal, LONGLONG* aAvailable) override;
 
   
-  STDMETHODIMP BeginFlush(void) MOZ_OVERRIDE;
-  STDMETHODIMP EndFlush(void) MOZ_OVERRIDE;
+  STDMETHODIMP BeginFlush(void) override;
+  STDMETHODIMP EndFlush(void) override;
 
   uint32_t GetAndResetBytesConsumedCount();
 

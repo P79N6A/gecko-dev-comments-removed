@@ -63,7 +63,7 @@ public:
 
 
 
-class nsCertOverrideEntry MOZ_FINAL : public PLDHashEntryHdr
+class nsCertOverrideEntry final : public PLDHashEntryHdr
 {
   public:
     
@@ -126,7 +126,7 @@ class nsCertOverrideEntry MOZ_FINAL : public PLDHashEntryHdr
     nsCString mHostWithPort;
 };
 
-class nsCertOverrideService MOZ_FINAL : public nsICertOverrideService
+class nsCertOverrideService final : public nsICertOverrideService
                                       , public nsIObserver
                                       , public nsSupportsWeakReference
 {

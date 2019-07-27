@@ -49,7 +49,7 @@ struct nsXMLBinding {
 
 
 
-class nsXMLBindingSet MOZ_FINAL
+class nsXMLBindingSet final
 {
   ~nsXMLBindingSet();
 

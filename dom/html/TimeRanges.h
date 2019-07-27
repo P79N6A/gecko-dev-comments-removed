@@ -25,7 +25,7 @@ namespace dom {
 
 
 
-class TimeRanges MOZ_FINAL : public nsIDOMTimeRanges
+class TimeRanges final : public nsIDOMTimeRanges
 {
 public:
   NS_DECL_ISUPPORTS

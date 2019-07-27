@@ -211,7 +211,7 @@ enum class AcceptedMimeTypes : uint8_t {
   IMAGES_AND_DOCUMENTS,
 };
 
-class imgLoader MOZ_FINAL : public imgILoader,
+class imgLoader final : public imgILoader,
                             public nsIContentSniffer,
                             public imgICache,
                             public nsSupportsWeakReference,
@@ -460,7 +460,7 @@ private:
 
 
 
-class nsProgressNotificationProxy MOZ_FINAL
+class nsProgressNotificationProxy final
   : public nsIProgressEventSink
   , public nsIChannelEventSink
   , public nsIInterfaceRequestor

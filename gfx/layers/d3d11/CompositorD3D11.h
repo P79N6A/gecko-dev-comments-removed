@@ -45,42 +45,42 @@ public:
   CompositorD3D11(nsIWidget* aWidget);
   ~CompositorD3D11();
 
-  virtual bool Initialize() MOZ_OVERRIDE;
-  virtual void Destroy() MOZ_OVERRIDE {}
+  virtual bool Initialize() override;
+  virtual void Destroy() override {}
 
   virtual TextureFactoryIdentifier
-    GetTextureFactoryIdentifier() MOZ_OVERRIDE;
+    GetTextureFactoryIdentifier() override;
 
   virtual TemporaryRef<DataTextureSource>
-    CreateDataTextureSource(TextureFlags aFlags = TextureFlags::NO_FLAGS) MOZ_OVERRIDE;
+    CreateDataTextureSource(TextureFlags aFlags = TextureFlags::NO_FLAGS) override;
 
-  virtual bool CanUseCanvasLayerForSize(const gfx::IntSize& aSize) MOZ_OVERRIDE;
-  virtual int32_t GetMaxTextureSize() const MOZ_FINAL;
+  virtual bool CanUseCanvasLayerForSize(const gfx::IntSize& aSize) override;
+  virtual int32_t GetMaxTextureSize() const final;
 
-  virtual void MakeCurrent(MakeCurrentFlags aFlags = 0)  MOZ_OVERRIDE {}
+  virtual void MakeCurrent(MakeCurrentFlags aFlags = 0)  override {}
 
   virtual TemporaryRef<CompositingRenderTarget>
     CreateRenderTarget(const gfx::IntRect &aRect,
-                       SurfaceInitMode aInit) MOZ_OVERRIDE;
+                       SurfaceInitMode aInit) override;
 
   virtual TemporaryRef<CompositingRenderTarget>
     CreateRenderTargetFromSource(const gfx::IntRect& aRect,
                                  const CompositingRenderTarget* aSource,
-                                 const gfx::IntPoint& aSourcePoint) MOZ_OVERRIDE;
+                                 const gfx::IntPoint& aSourcePoint) override;
 
-  virtual void SetRenderTarget(CompositingRenderTarget* aSurface) MOZ_OVERRIDE;
-  virtual CompositingRenderTarget* GetCurrentRenderTarget() const MOZ_OVERRIDE
+  virtual void SetRenderTarget(CompositingRenderTarget* aSurface) override;
+  virtual CompositingRenderTarget* GetCurrentRenderTarget() const override
   {
     return mCurrentRT;
   }
 
-  virtual void SetDestinationSurfaceSize(const gfx::IntSize& aSize) MOZ_OVERRIDE {}
+  virtual void SetDestinationSurfaceSize(const gfx::IntSize& aSize) override {}
 
   
 
 
 
-  virtual void SetScreenRenderOffset(const ScreenPoint& aOffset) MOZ_OVERRIDE
+  virtual void SetScreenRenderOffset(const ScreenPoint& aOffset) override
   {
     if (aOffset.x || aOffset.y) {
       NS_RUNTIMEABORT("SetScreenRenderOffset not supported by CompositorD3D11.");
@@ -88,13 +88,13 @@ public:
     
   }
 
-  virtual void ClearRect(const gfx::Rect& aRect) MOZ_OVERRIDE;
+  virtual void ClearRect(const gfx::Rect& aRect) override;
 
   virtual void DrawQuad(const gfx::Rect &aRect,
                         const gfx::Rect &aClipRect,
                         const EffectChain &aEffectChain,
                         gfx::Float aOpacity,
-                        const gfx::Matrix4x4 &aTransform) MOZ_OVERRIDE;
+                        const gfx::Matrix4x4 &aTransform) override;
 
   
   void DrawVRDistortion(const gfx::Rect &aRect,
@@ -111,36 +111,36 @@ public:
                           const gfx::Rect *aClipRectIn,
                           const gfx::Rect& aRenderBounds,
                           gfx::Rect *aClipRectOut = nullptr,
-                          gfx::Rect *aRenderBoundsOut = nullptr) MOZ_OVERRIDE;
+                          gfx::Rect *aRenderBoundsOut = nullptr) override;
 
   
 
 
-  virtual void EndFrame() MOZ_OVERRIDE;
-
-  
-
-
-
-  virtual void EndFrameForExternalComposition(const gfx::Matrix& aTransform) MOZ_OVERRIDE {}
+  virtual void EndFrame() override;
 
   
 
 
 
-  virtual void PrepareViewport(const gfx::IntSize& aSize) MOZ_OVERRIDE;
+  virtual void EndFrameForExternalComposition(const gfx::Matrix& aTransform) override {}
 
-  virtual bool SupportsPartialTextureUpdate() MOZ_OVERRIDE { return true; }
+  
+
+
+
+  virtual void PrepareViewport(const gfx::IntSize& aSize) override;
+
+  virtual bool SupportsPartialTextureUpdate() override { return true; }
 
 #ifdef MOZ_DUMP_PAINTING
-  virtual const char* Name() const MOZ_OVERRIDE { return "Direct3D 11"; }
+  virtual const char* Name() const override { return "Direct3D 11"; }
 #endif
 
-  virtual LayersBackend GetBackendType() const MOZ_OVERRIDE {
+  virtual LayersBackend GetBackendType() const override {
     return LayersBackend::LAYERS_D3D11;
   }
 
-  virtual nsIWidget* GetWidget() const MOZ_OVERRIDE { return mWidget; }
+  virtual nsIWidget* GetWidget() const override { return mWidget; }
 
   ID3D11Device* GetDevice() { return mDevice; }
 
@@ -167,7 +167,7 @@ private:
   void SetPSForEffect(Effect *aEffect, MaskType aMaskType, gfx::SurfaceFormat aFormat);
   void PaintToTarget();
 
-  virtual gfx::IntSize GetWidgetSize() const MOZ_OVERRIDE { return gfx::ToIntSize(mSize); }
+  virtual gfx::IntSize GetWidgetSize() const override { return gfx::ToIntSize(mSize); }
 
   RefPtr<ID3D11DeviceContext> mContext;
   RefPtr<ID3D11Device> mDevice;

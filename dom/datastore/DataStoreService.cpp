@@ -502,7 +502,7 @@ public:
 
 
 
-class RevisionAddedEnableStoreCallback MOZ_FINAL :
+class RevisionAddedEnableStoreCallback final :
   public DataStoreRevisionCallback
 {
 private:
@@ -541,7 +541,7 @@ private:
 
 
 
-class FirstRevisionIdCallback MOZ_FINAL : public DataStoreDBCallback
+class FirstRevisionIdCallback final : public DataStoreDBCallback
 {
 public:
   NS_INLINE_DECL_REFCOUNTING(FirstRevisionIdCallback)

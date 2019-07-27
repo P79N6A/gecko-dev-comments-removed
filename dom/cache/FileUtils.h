@@ -20,7 +20,7 @@ namespace dom {
 namespace cache {
 
 
-class FileUtils MOZ_FINAL
+class FileUtils final
 {
 public:
   enum BodyFileType

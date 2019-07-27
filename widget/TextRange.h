@@ -179,7 +179,7 @@ struct TextRange
 
 
 
-class TextRangeArray MOZ_FINAL : public nsAutoTArray<TextRange, 10>
+class TextRangeArray final : public nsAutoTArray<TextRange, 10>
 {
   ~TextRangeArray() {}
 

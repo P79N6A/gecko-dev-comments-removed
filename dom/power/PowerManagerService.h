@@ -35,7 +35,7 @@ public:
   void Init();
 
   
-  void Notify(const hal::WakeLockInformation& aWakeLockInfo) MOZ_OVERRIDE;
+  void Notify(const hal::WakeLockInformation& aWakeLockInfo) override;
 
   
 

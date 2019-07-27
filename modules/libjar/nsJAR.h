@@ -52,7 +52,7 @@ typedef enum
 
 
 
-class nsJAR MOZ_FINAL : public nsIZipReader
+class nsJAR final : public nsIZipReader
 {
   
   friend class nsJARInputStream;
@@ -161,7 +161,7 @@ private:
 
 
 
-class nsJAREnumerator MOZ_FINAL : public nsIUTF8StringEnumerator
+class nsJAREnumerator final : public nsIUTF8StringEnumerator
 {
 public:
     NS_DECL_THREADSAFE_ISUPPORTS

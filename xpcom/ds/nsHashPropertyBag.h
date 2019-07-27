@@ -43,7 +43,7 @@ protected:
 };
 
 
-class nsHashPropertyBagCC MOZ_FINAL : public nsHashPropertyBagBase
+class nsHashPropertyBagCC final : public nsHashPropertyBagBase
 {
 public:
   nsHashPropertyBagCC() {}

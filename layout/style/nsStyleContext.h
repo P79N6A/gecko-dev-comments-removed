@@ -38,7 +38,7 @@ class nsPresContext;
 
 
 
-class nsStyleContext MOZ_FINAL
+class nsStyleContext final
 {
 public:
   

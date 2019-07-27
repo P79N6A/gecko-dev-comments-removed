@@ -201,7 +201,7 @@ private:
 
 
 
-class nsExternalAppHandler MOZ_FINAL : public nsIStreamListener,
+class nsExternalAppHandler final : public nsIStreamListener,
                                        public nsIHelperAppLauncher,
                                        public nsITimerCallback,
                                        public nsIBackgroundFileSaverObserver

@@ -301,7 +301,7 @@ public:
 
 
 
-class RTCLoadInfo MOZ_FINAL
+class RTCLoadInfo final
 {
 private:
   ~RTCLoadInfo() {}

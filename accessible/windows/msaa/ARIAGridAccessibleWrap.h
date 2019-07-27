@@ -34,7 +34,7 @@ public:
   
   NS_DECL_ISUPPORTS_INHERITED
 
-  virtual void Shutdown() MOZ_OVERRIDE;
+  virtual void Shutdown() override;
 };
 
 
@@ -56,7 +56,7 @@ public:
   
   NS_DECL_ISUPPORTS_INHERITED
 
-  virtual void Shutdown() MOZ_OVERRIDE;
+  virtual void Shutdown() override;
 };
 
 } 

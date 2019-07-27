@@ -24,7 +24,7 @@ namespace mobileconnection {
 
 
 
-class MobileConnectionCallback MOZ_FINAL : public nsIMobileConnectionCallback
+class MobileConnectionCallback final : public nsIMobileConnectionCallback
 {
 public:
   NS_DECL_ISUPPORTS

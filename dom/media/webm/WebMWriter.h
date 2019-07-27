@@ -20,7 +20,7 @@ public:
   int32_t mChannels;
   int32_t mBitDepth;
   float mSamplingFrequency;
-  MetadataKind GetKind() const MOZ_OVERRIDE { return METADATA_VORBIS; }
+  MetadataKind GetKind() const override { return METADATA_VORBIS; }
 };
 
 
@@ -32,7 +32,7 @@ public:
   int32_t mDisplayWidth;
   int32_t mDisplayHeight;
   int32_t mEncodedFrameRate;
-  MetadataKind GetKind() const MOZ_OVERRIDE { return METADATA_VP8; }
+  MetadataKind GetKind() const override { return METADATA_VP8; }
 };
 
 
@@ -51,16 +51,16 @@ public:
 
   
   nsresult WriteEncodedTrack(const EncodedFrameContainer &aData,
-                             uint32_t aFlags = 0) MOZ_OVERRIDE;
+                             uint32_t aFlags = 0) override;
 
   
   
   
   nsresult GetContainerData(nsTArray<nsTArray<uint8_t> >* aOutputBufs,
-                            uint32_t aFlags = 0) MOZ_OVERRIDE;
+                            uint32_t aFlags = 0) override;
 
   
-  nsresult SetMetadata(TrackMetadataBase* aMetadata) MOZ_OVERRIDE;
+  nsresult SetMetadata(TrackMetadataBase* aMetadata) override;
 
 private:
   nsAutoPtr<EbmlComposer> mEbmlComposer;

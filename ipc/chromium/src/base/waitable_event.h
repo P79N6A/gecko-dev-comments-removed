@@ -141,7 +141,7 @@ class WaitableEvent {
   
   
   
-  struct WaitableEventKernel MOZ_FINAL {
+  struct WaitableEventKernel final {
    public:
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(WaitableEventKernel)
     WaitableEventKernel(bool manual_reset, bool initially_signaled)

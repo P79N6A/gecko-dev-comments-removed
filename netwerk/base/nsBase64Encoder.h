@@ -13,7 +13,7 @@
 
 
 
-class nsBase64Encoder MOZ_FINAL : public nsIOutputStream {
+class nsBase64Encoder final : public nsIOutputStream {
   public:
     nsBase64Encoder() {}
 

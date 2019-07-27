@@ -38,7 +38,7 @@ class WorkerThreadFriendKey
   ~WorkerThreadFriendKey();
 };
 
-class WorkerThread MOZ_FINAL
+class WorkerThread final
   : public nsThread
 {
   class Observer;
@@ -84,7 +84,7 @@ private:
   
   
   NS_IMETHOD
-  Dispatch(nsIRunnable* aRunnable, uint32_t aFlags) MOZ_OVERRIDE;
+  Dispatch(nsIRunnable* aRunnable, uint32_t aFlags) override;
 };
 
 } 

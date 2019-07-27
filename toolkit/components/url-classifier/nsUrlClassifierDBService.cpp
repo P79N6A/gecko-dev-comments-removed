@@ -741,7 +741,7 @@ nsUrlClassifierDBServiceWorker::OpenDb()
 
 
 
-class nsUrlClassifierLookupCallback MOZ_FINAL : public nsIUrlClassifierLookupCallback
+class nsUrlClassifierLookupCallback final : public nsIUrlClassifierLookupCallback
                                               , public nsIUrlClassifierHashCompleterCallback
 {
 public:
@@ -970,7 +970,7 @@ nsUrlClassifierLookupCallback::HandleResults()
 
 
 
-class nsUrlClassifierClassifyCallback MOZ_FINAL : public nsIUrlClassifierCallback
+class nsUrlClassifierClassifyCallback final : public nsIUrlClassifierCallback
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS

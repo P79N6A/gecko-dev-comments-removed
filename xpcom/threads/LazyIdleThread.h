@@ -32,7 +32,7 @@ namespace mozilla {
 
 
 
-class LazyIdleThread MOZ_FINAL
+class LazyIdleThread final
   : public nsIThread
   , public nsITimerCallback
   , public nsIThreadObserver

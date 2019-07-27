@@ -91,7 +91,7 @@ public:
   
   
 
-  NS_IMETHOD HandleResult(mozIStorageResultSet *aResultSet) MOZ_OVERRIDE
+  NS_IMETHOD HandleResult(mozIStorageResultSet *aResultSet) override
   {
     
     nsCOMPtr<mozIStorageRow> row;
@@ -142,7 +142,7 @@ public:
     return NS_OK;
   }
 
-  NS_IMETHOD HandleCompletion(uint16_t aReason) MOZ_OVERRIDE
+  NS_IMETHOD HandleCompletion(uint16_t aReason) override
   {
     if (!mReturnDefaultIcon)
       return mOutputStream->Close();
@@ -168,12 +168,12 @@ public:
   
   
 
-  NS_IMETHOD OnStartRequest(nsIRequest *, nsISupports *) MOZ_OVERRIDE
+  NS_IMETHOD OnStartRequest(nsIRequest *, nsISupports *) override
   {
     return NS_OK;
   }
 
-  NS_IMETHOD OnStopRequest(nsIRequest *, nsISupports *, nsresult aStatusCode) MOZ_OVERRIDE
+  NS_IMETHOD OnStopRequest(nsIRequest *, nsISupports *, nsresult aStatusCode) override
   {
     
     (void)mOutputStream->Close();

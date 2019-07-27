@@ -34,7 +34,7 @@ class SVGNumberList;
 
 
 
-class DOMSVGAnimatedNumberList MOZ_FINAL : public nsISupports,
+class DOMSVGAnimatedNumberList final : public nsISupports,
                                            public nsWrapperCache
 {
   friend class DOMSVGNumberList;
@@ -90,7 +90,7 @@ public:
 
   
   nsSVGElement* GetParentObject() const { return mElement; }
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
   
   already_AddRefed<DOMSVGNumberList> BaseVal();
   already_AddRefed<DOMSVGNumberList> AnimVal();

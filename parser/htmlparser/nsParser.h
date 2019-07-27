@@ -62,7 +62,7 @@ class nsIRunnable;
 #endif
 
 
-class nsParser MOZ_FINAL : public nsIParser,
+class nsParser final : public nsIParser,
                            public nsIStreamListener,
                            public nsSupportsWeakReference
 {
@@ -98,7 +98,7 @@ class nsParser MOZ_FINAL : public nsIParser,
 
 
 
-    NS_IMETHOD_(void) SetContentSink(nsIContentSink* aSink) MOZ_OVERRIDE;
+    NS_IMETHOD_(void) SetContentSink(nsIContentSink* aSink) override;
 
     
 
@@ -106,21 +106,8 @@ class nsParser MOZ_FINAL : public nsIParser,
 
 
 
-    NS_IMETHOD_(nsIContentSink*) GetContentSink(void) MOZ_OVERRIDE;
+    NS_IMETHOD_(nsIContentSink*) GetContentSink(void) override;
     
-    
-
-
-
-
-
-
-
-
-    NS_IMETHOD_(void) GetCommand(nsCString& aCommand) MOZ_OVERRIDE;
-    NS_IMETHOD_(void) SetCommand(const char* aCommand) MOZ_OVERRIDE;
-    NS_IMETHOD_(void) SetCommand(eParserCommands aParserCommand) MOZ_OVERRIDE;
-
     
 
 
@@ -130,9 +117,22 @@ class nsParser MOZ_FINAL : public nsIParser,
 
 
 
-    NS_IMETHOD_(void) SetDocumentCharset(const nsACString& aCharset, int32_t aSource) MOZ_OVERRIDE;
+    NS_IMETHOD_(void) GetCommand(nsCString& aCommand) override;
+    NS_IMETHOD_(void) SetCommand(const char* aCommand) override;
+    NS_IMETHOD_(void) SetCommand(eParserCommands aParserCommand) override;
 
-    NS_IMETHOD_(void) GetDocumentCharset(nsACString& aCharset, int32_t& aSource) MOZ_OVERRIDE
+    
+
+
+
+
+
+
+
+
+    NS_IMETHOD_(void) SetDocumentCharset(const nsACString& aCharset, int32_t aSource) override;
+
+    NS_IMETHOD_(void) GetDocumentCharset(nsACString& aCharset, int32_t& aSource) override
     {
          aCharset = mCharset;
          aSource = mCharsetSource;
@@ -148,13 +148,13 @@ class nsParser MOZ_FINAL : public nsIParser,
     NS_IMETHOD Parse(nsIURI* aURL,
                      nsIRequestObserver* aListener = nullptr,
                      void* aKey = 0,
-                     nsDTDMode aMode = eDTDMode_autodetect) MOZ_OVERRIDE;
+                     nsDTDMode aMode = eDTDMode_autodetect) override;
 
     
 
 
     NS_IMETHOD ParseFragment(const nsAString& aSourceBuffer,
-                             nsTArray<nsString>& aTagStack) MOZ_OVERRIDE;
+                             nsTArray<nsString>& aTagStack) override;
                              
     
 
@@ -162,21 +162,13 @@ class nsParser MOZ_FINAL : public nsIParser,
 
 
 
-    NS_IMETHOD BuildModel(void) MOZ_OVERRIDE;
+    NS_IMETHOD BuildModel(void) override;
 
-    NS_IMETHOD        ContinueInterruptedParsing() MOZ_OVERRIDE;
-    NS_IMETHOD_(void) BlockParser() MOZ_OVERRIDE;
-    NS_IMETHOD_(void) UnblockParser() MOZ_OVERRIDE;
-    NS_IMETHOD_(void) ContinueInterruptedParsingAsync() MOZ_OVERRIDE;
-    NS_IMETHOD        Terminate(void) MOZ_OVERRIDE;
-
-    
-
-
-
-
-
-    NS_IMETHOD_(bool) IsParserEnabled() MOZ_OVERRIDE;
+    NS_IMETHOD        ContinueInterruptedParsing() override;
+    NS_IMETHOD_(void) BlockParser() override;
+    NS_IMETHOD_(void) UnblockParser() override;
+    NS_IMETHOD_(void) ContinueInterruptedParsingAsync() override;
+    NS_IMETHOD        Terminate(void) override;
 
     
 
@@ -184,7 +176,15 @@ class nsParser MOZ_FINAL : public nsIParser,
 
 
 
-    NS_IMETHOD_(bool) IsComplete() MOZ_OVERRIDE;
+    NS_IMETHOD_(bool) IsParserEnabled() override;
+
+    
+
+
+
+
+
+    NS_IMETHOD_(bool) IsComplete() override;
 
     
 
@@ -227,7 +227,7 @@ class nsParser MOZ_FINAL : public nsIParser,
 
 
 
-    NS_IMETHOD GetChannel(nsIChannel** aChannel) MOZ_OVERRIDE;
+    NS_IMETHOD GetChannel(nsIChannel** aChannel) override;
 
     
 
@@ -235,12 +235,12 @@ class nsParser MOZ_FINAL : public nsIParser,
 
 
 
-    NS_IMETHOD GetDTD(nsIDTD** aDTD) MOZ_OVERRIDE;
+    NS_IMETHOD GetDTD(nsIDTD** aDTD) override;
   
     
 
 
-    virtual nsIStreamListener* GetStreamListener() MOZ_OVERRIDE;
+    virtual nsIStreamListener* GetStreamListener() override;
 
     void SetSinkCharset(nsACString& aCharset);
 
@@ -249,32 +249,32 @@ class nsParser MOZ_FINAL : public nsIParser,
 
 
 
-    NS_IMETHODIMP CancelParsingEvents() MOZ_OVERRIDE;
+    NS_IMETHODIMP CancelParsingEvents() override;
 
     
 
 
-    virtual bool IsInsertionPointDefined() MOZ_OVERRIDE;
+    virtual bool IsInsertionPointDefined() override;
 
     
 
 
-    virtual void BeginEvaluatingParserInsertedScript() MOZ_OVERRIDE;
+    virtual void BeginEvaluatingParserInsertedScript() override;
 
     
 
 
-    virtual void EndEvaluatingParserInsertedScript() MOZ_OVERRIDE;
+    virtual void EndEvaluatingParserInsertedScript() override;
 
     
 
 
-    virtual void MarkAsNotScriptCreated(const char* aCommand) MOZ_OVERRIDE;
+    virtual void MarkAsNotScriptCreated(const char* aCommand) override;
 
     
 
 
-    virtual bool IsScriptCreated() MOZ_OVERRIDE;
+    virtual bool IsScriptCreated() override;
 
     
 
@@ -299,7 +299,7 @@ class nsParser MOZ_FINAL : public nsIParser,
 
     void HandleParserContinueEvent(class nsParserContinueEvent *);
 
-    virtual void Reset() MOZ_OVERRIDE {
+    virtual void Reset() override {
       Cleanup();
       Initialize();
     }

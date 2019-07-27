@@ -15,14 +15,14 @@ class nsIAtom;
 
 
 
-class nsDOMSettableTokenList MOZ_FINAL : public nsDOMTokenList
+class nsDOMSettableTokenList final : public nsDOMTokenList
 {
 public:
 
   nsDOMSettableTokenList(mozilla::dom::Element* aElement, nsIAtom* aAttrAtom)
     : nsDOMTokenList(aElement, aAttrAtom) {}
 
-  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
 
   
   void GetValue(nsAString& aResult) { Stringify(aResult); }

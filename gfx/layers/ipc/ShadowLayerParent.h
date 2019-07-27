@@ -47,7 +47,7 @@ public:
   PaintedLayerComposite* AsPaintedLayerComposite() const;
 
 private:
-  virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
+  virtual void ActorDestroy(ActorDestroyReason why) override;
 
   nsRefPtr<Layer> mLayer;
 };

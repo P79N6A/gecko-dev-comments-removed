@@ -1490,7 +1490,7 @@ nsIOService::ExtractCharsetFromContentType(const nsACString &aTypeHeader,
 }
 
 
-class IOServiceProxyCallback MOZ_FINAL : public nsIProtocolProxyCallback
+class IOServiceProxyCallback final : public nsIProtocolProxyCallback
 {
     ~IOServiceProxyCallback() {}
 

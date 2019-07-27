@@ -17,7 +17,7 @@
 
 
 
-class nsJARInputStream MOZ_FINAL : public nsIInputStream
+class nsJARInputStream final : public nsIInputStream
 {
   public:
     nsJARInputStream() : 

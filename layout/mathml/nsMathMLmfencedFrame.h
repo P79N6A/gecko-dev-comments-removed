@@ -15,7 +15,7 @@ class nsFontMetrics;
 
 
 
-class nsMathMLmfencedFrame MOZ_FINAL : public nsMathMLContainerFrame {
+class nsMathMLmfencedFrame final : public nsMathMLContainerFrame {
 public:
   NS_DECL_FRAMEARENA_HELPERS
 
@@ -23,43 +23,43 @@ public:
 
   virtual void
   SetAdditionalStyleContext(int32_t          aIndex, 
-                            nsStyleContext*  aStyleContext) MOZ_OVERRIDE;
+                            nsStyleContext*  aStyleContext) override;
   virtual nsStyleContext*
-  GetAdditionalStyleContext(int32_t aIndex) const MOZ_OVERRIDE;
+  GetAdditionalStyleContext(int32_t aIndex) const override;
 
   NS_IMETHOD
-  InheritAutomaticData(nsIFrame* aParent) MOZ_OVERRIDE;
+  InheritAutomaticData(nsIFrame* aParent) override;
 
   virtual void
   SetInitialChildList(ChildListID     aListID,
-                      nsFrameList&    aChildList) MOZ_OVERRIDE;
+                      nsFrameList&    aChildList) override;
 
   virtual void
   Reflow(nsPresContext*          aPresContext,
          nsHTMLReflowMetrics&     aDesiredSize,
          const nsHTMLReflowState& aReflowState,
-         nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+         nsReflowStatus&          aStatus) override;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
   virtual void
   GetIntrinsicISizeMetrics(nsRenderingContext* aRenderingContext,
-                           nsHTMLReflowMetrics& aDesiredSize) MOZ_OVERRIDE;
+                           nsHTMLReflowMetrics& aDesiredSize) override;
 
   virtual nsresult
   AttributeChanged(int32_t         aNameSpaceID,
                    nsIAtom*        aAttribute,
-                   int32_t         aModType) MOZ_OVERRIDE;
+                   int32_t         aModType) override;
 
   
   virtual nsresult
-  ChildListChanged(int32_t aModType) MOZ_OVERRIDE;
+  ChildListChanged(int32_t aModType) override;
 
   
   virtual nscoord
-  FixInterFrameSpacing(nsHTMLReflowMetrics& aDesiredSize) MOZ_OVERRIDE;
+  FixInterFrameSpacing(nsHTMLReflowMetrics& aDesiredSize) override;
 
   
   static nsresult
@@ -85,7 +85,7 @@ public:
             nscoord&           dx);
 
   virtual bool
-  IsMrowLike() MOZ_OVERRIDE
+  IsMrowLike() override
   {
     
     

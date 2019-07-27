@@ -80,7 +80,7 @@ public:
   }
 
   
-  const char16_t* Filename() MOZ_OVERRIDE;
+  const char16_t* Filename() override;
 
   ~MacIOAutoObservation()
   {

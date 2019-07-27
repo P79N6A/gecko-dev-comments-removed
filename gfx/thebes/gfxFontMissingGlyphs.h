@@ -20,7 +20,7 @@ class Pattern;
 
 
 
-class gfxFontMissingGlyphs MOZ_FINAL
+class gfxFontMissingGlyphs final
 {
     typedef mozilla::gfx::DrawTarget DrawTarget;
     typedef mozilla::gfx::Float Float;

@@ -184,7 +184,7 @@ const float kMaxStdDeviation = 500;
 
 
 
-class AttributeMap MOZ_FINAL {
+class AttributeMap final {
 public:
   AttributeMap();
   AttributeMap(const AttributeMap& aOther);
@@ -296,7 +296,7 @@ enum class PrimitiveType {
 
 
 
-class FilterPrimitiveDescription MOZ_FINAL {
+class FilterPrimitiveDescription final {
 public:
   enum {
     kPrimitiveIndexSourceGraphic = -1,
@@ -388,7 +388,7 @@ private:
 
 
 
-struct FilterDescription MOZ_FINAL {
+struct FilterDescription final {
   FilterDescription() {}
   explicit FilterDescription(const nsTArray<FilterPrimitiveDescription>& aPrimitives)
    : mPrimitives(aPrimitives)

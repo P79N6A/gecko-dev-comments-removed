@@ -257,7 +257,7 @@ public:
 
 
 
-class HTMLMediaElement::MediaLoadListener MOZ_FINAL : public nsIStreamListener,
+class HTMLMediaElement::MediaLoadListener final : public nsIStreamListener,
                                                       public nsIChannelEventSink,
                                                       public nsIInterfaceRequestor,
                                                       public nsIObserver
@@ -2880,7 +2880,7 @@ public:
 
   
   
-  virtual void NotifyBlockingChanged(MediaStreamGraph* aGraph, Blocking aBlocked) MOZ_OVERRIDE
+  virtual void NotifyBlockingChanged(MediaStreamGraph* aGraph, Blocking aBlocked) override
   {
     nsCOMPtr<nsIRunnable> event;
     if (aBlocked == BLOCKED) {
@@ -2891,7 +2891,7 @@ public:
     aGraph->DispatchToMainThreadAfterStreamStateUpdate(event.forget());
   }
   virtual void NotifyEvent(MediaStreamGraph* aGraph,
-                           MediaStreamListener::MediaStreamGraphEvent event) MOZ_OVERRIDE
+                           MediaStreamListener::MediaStreamGraphEvent event) override
   {
     if (event == EVENT_FINISHED) {
       nsCOMPtr<nsIRunnable> event =
@@ -2899,7 +2899,7 @@ public:
       aGraph->DispatchToMainThreadAfterStreamStateUpdate(event.forget());
     }
   }
-  virtual void NotifyHasCurrentData(MediaStreamGraph* aGraph) MOZ_OVERRIDE
+  virtual void NotifyHasCurrentData(MediaStreamGraph* aGraph) override
   {
     MutexAutoLock lock(mMutex);
     nsCOMPtr<nsIRunnable> event =
@@ -2907,7 +2907,7 @@ public:
     aGraph->DispatchToMainThreadAfterStreamStateUpdate(event.forget());
   }
   virtual void NotifyOutput(MediaStreamGraph* aGraph,
-                            GraphTime aCurrentTime) MOZ_OVERRIDE
+                            GraphTime aCurrentTime) override
   {
     MutexAutoLock lock(mMutex);
     if (mPendingNotifyOutput)

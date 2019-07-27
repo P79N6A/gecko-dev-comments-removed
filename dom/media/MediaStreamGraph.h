@@ -703,10 +703,10 @@ public:
     mNeedsMixing(false)
   {}
 
-  virtual SourceMediaStream* AsSourceStream() MOZ_OVERRIDE { return this; }
+  virtual SourceMediaStream* AsSourceStream() override { return this; }
 
   
-  virtual void DestroyImpl() MOZ_OVERRIDE;
+  virtual void DestroyImpl() override;
 
   
   
@@ -810,7 +810,7 @@ public:
 
   
   virtual void
-  SetTrackEnabledImpl(TrackID aTrackID, bool aEnabled) MOZ_OVERRIDE {
+  SetTrackEnabledImpl(TrackID aTrackID, bool aEnabled) override {
     MutexAutoLock lock(mMutex);
     MediaStream::SetTrackEnabledImpl(aTrackID, aEnabled);
   }
@@ -818,7 +818,7 @@ public:
   
   virtual void
   ApplyTrackDisabling(TrackID aTrackID, MediaSegment* aSegment,
-                      MediaSegment* aRawSegment = nullptr) MOZ_OVERRIDE {
+                      MediaSegment* aRawSegment = nullptr) override {
     mMutex.AssertCurrentThreadOwns();
     MediaStream::ApplyTrackDisabling(aTrackID, aSegment, aRawSegment);
   }
@@ -948,7 +948,7 @@ protected:
 
 
 
-class MediaInputPort MOZ_FINAL {
+class MediaInputPort final {
 private:
   
   MediaInputPort(MediaStream* aSource, ProcessedMediaStream* aDest,
@@ -1091,7 +1091,7 @@ public:
 
   void SetAutofinish(bool aAutofinish);
 
-  virtual ProcessedMediaStream* AsProcessedStream() MOZ_OVERRIDE { return this; }
+  virtual ProcessedMediaStream* AsProcessedStream() override { return this; }
 
   friend class MediaStreamGraphImpl;
 
@@ -1109,7 +1109,7 @@ public:
   {
     return mInputs.Length();
   }
-  virtual void DestroyImpl() MOZ_OVERRIDE;
+  virtual void DestroyImpl() override;
   
 
 
@@ -1142,7 +1142,7 @@ public:
   
   bool InMutedCycle() const { return mCycleMarker; }
 
-  virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE
+  virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const override
   {
     size_t amount = MediaStream::SizeOfExcludingThis(aMallocSizeOf);
     
@@ -1151,7 +1151,7 @@ public:
     return amount;
   }
 
-  virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE
+  virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override
   {
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }

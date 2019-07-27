@@ -336,7 +336,7 @@ LowMemoryEventsPhysicalDistinguishedAmount()
   return sNumLowPhysicalMemEvents;
 }
 
-class LowEventsReporter MOZ_FINAL : public nsIMemoryReporter
+class LowEventsReporter final : public nsIMemoryReporter
 {
   ~LowEventsReporter() {}
 
@@ -394,7 +394,7 @@ NS_IMPL_ISUPPORTS(LowEventsReporter, nsIMemoryReporter)
 
 
 
-class nsJemallocFreeDirtyPagesRunnable MOZ_FINAL : public nsIRunnable
+class nsJemallocFreeDirtyPagesRunnable final : public nsIRunnable
 {
   ~nsJemallocFreeDirtyPagesRunnable() {}
 
@@ -422,7 +422,7 @@ nsJemallocFreeDirtyPagesRunnable::Run()
 
 
 
-class nsMemoryPressureWatcher MOZ_FINAL : public nsIObserver
+class nsMemoryPressureWatcher final : public nsIObserver
 {
   ~nsMemoryPressureWatcher() {}
 

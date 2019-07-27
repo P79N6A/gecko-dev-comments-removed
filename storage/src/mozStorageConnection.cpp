@@ -342,7 +342,7 @@ WaitForUnlockNotify(sqlite3* aDatabase)
 
 namespace {
 
-class AsyncCloseConnection MOZ_FINAL: public nsRunnable
+class AsyncCloseConnection final: public nsRunnable
 {
 public:
   AsyncCloseConnection(Connection *aConnection,
@@ -401,7 +401,7 @@ private:
 
 
 
-class AsyncInitializeClone MOZ_FINAL: public nsRunnable
+class AsyncInitializeClone final: public nsRunnable
 {
 public:
   

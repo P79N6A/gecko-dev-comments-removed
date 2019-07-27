@@ -35,7 +35,7 @@ class CSSStyleSheet;
 
 
 
-class nsXBLPrototypeBinding MOZ_FINAL
+class nsXBLPrototypeBinding final
 {
 public:
   nsIContent* GetBindingElement() const { return mBinding; }

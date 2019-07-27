@@ -22,7 +22,7 @@ class DocAccessible;
 
 
 
-class TreeWalker MOZ_FINAL
+class TreeWalker final
 {
 public:
   enum {

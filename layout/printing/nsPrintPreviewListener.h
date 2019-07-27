@@ -27,7 +27,7 @@ class EventTarget;
 
 
 
-class nsPrintPreviewListener MOZ_FINAL : public nsIDOMEventListener
+class nsPrintPreviewListener final : public nsIDOMEventListener
 
 {
 public:

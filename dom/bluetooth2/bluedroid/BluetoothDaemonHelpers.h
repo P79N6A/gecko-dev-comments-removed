@@ -942,7 +942,7 @@ private:
 
 
 
-class UnpackPDUInitOp MOZ_FINAL : private PDUInitOp
+class UnpackPDUInitOp final : private PDUInitOp
 {
 public:
   UnpackPDUInitOp(BluetoothDaemonPDU& aPDU)

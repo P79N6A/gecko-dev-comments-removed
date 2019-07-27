@@ -33,7 +33,7 @@ class SharedThreadPool;
 
 
 
-class WMFByteStream MOZ_FINAL : public IMFByteStream
+class WMFByteStream final : public IMFByteStream
                               , public IMFAttributes
 {
   ~WMFByteStream();

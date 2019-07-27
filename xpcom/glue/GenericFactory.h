@@ -18,7 +18,7 @@ namespace mozilla {
 
 
 
-class GenericFactory MOZ_FINAL : public nsIFactory
+class GenericFactory final : public nsIFactory
 {
   ~GenericFactory() {}
 

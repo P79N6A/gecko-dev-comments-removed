@@ -214,7 +214,7 @@ private:
 
 
 
-class OMXAudioEncoder MOZ_FINAL : public OMXCodecWrapper
+class OMXAudioEncoder final : public OMXCodecWrapper
 {
 public:
   
@@ -235,7 +235,7 @@ public:
   ~OMXAudioEncoder();
 protected:
   virtual status_t AppendDecoderConfig(nsTArray<uint8_t>* aOutputBuf,
-                                       ABuffer* aData) MOZ_OVERRIDE;
+                                       ABuffer* aData) override;
 private:
   
   OMXAudioEncoder() = delete;
@@ -276,7 +276,7 @@ private:
 
 
 
-class OMXVideoEncoder MOZ_FINAL : public OMXCodecWrapper
+class OMXVideoEncoder final : public OMXCodecWrapper
 {
 public:
   
@@ -320,13 +320,13 @@ public:
 
 protected:
   virtual status_t AppendDecoderConfig(nsTArray<uint8_t>* aOutputBuf,
-                                       ABuffer* aData) MOZ_OVERRIDE;
+                                       ABuffer* aData) override;
 
   
   
   
   virtual void AppendFrame(nsTArray<uint8_t>* aOutputBuf,
-                           const uint8_t* aData, size_t aSize) MOZ_OVERRIDE;
+                           const uint8_t* aData, size_t aSize) override;
 
 private:
   

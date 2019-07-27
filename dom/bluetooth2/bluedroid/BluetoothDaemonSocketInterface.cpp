@@ -81,14 +81,14 @@ BluetoothDaemonSocketModule::ConnectCmd(const nsAString& aBdAddr,
 
 
 template <typename T>
-class DeleteTask MOZ_FINAL : public Task
+class DeleteTask final : public Task
 {
 public:
   DeleteTask(T* aPtr)
   : mPtr(aPtr)
   { }
 
-  void Run() MOZ_OVERRIDE
+  void Run() override
   {
     mPtr = nullptr;
   }
@@ -104,7 +104,7 @@ private:
 
 
 
-class BluetoothDaemonSocketModule::AcceptWatcher MOZ_FINAL
+class BluetoothDaemonSocketModule::AcceptWatcher final
   : public SocketMessageWatcher
 {
 public:
@@ -112,7 +112,7 @@ public:
   : SocketMessageWatcher(aFd, aRes)
   { }
 
-  void Proceed(BluetoothStatus aStatus) MOZ_OVERRIDE
+  void Proceed(BluetoothStatus aStatus) override
   {
     if (aStatus == STATUS_SUCCESS) {
       IntStringIntResultRunnable::Dispatch(
@@ -211,7 +211,7 @@ BluetoothDaemonSocketModule::ErrorRsp(const BluetoothDaemonPDUHeader& aHeader,
     aRes, &BluetoothSocketResultHandler::OnError, UnpackPDUInitOp(aPDU));
 }
 
-class BluetoothDaemonSocketModule::ListenInitOp MOZ_FINAL : private PDUInitOp
+class BluetoothDaemonSocketModule::ListenInitOp final : private PDUInitOp
 {
 public:
   ListenInitOp(BluetoothDaemonPDU& aPDU)
@@ -247,7 +247,7 @@ BluetoothDaemonSocketModule::ListenRsp(const BluetoothDaemonPDUHeader& aHeader,
 
 
 
-class BluetoothDaemonSocketModule::ConnectWatcher MOZ_FINAL
+class BluetoothDaemonSocketModule::ConnectWatcher final
   : public SocketMessageWatcher
 {
 public:
@@ -255,7 +255,7 @@ public:
   : SocketMessageWatcher(aFd, aRes)
   { }
 
-  void Proceed(BluetoothStatus aStatus) MOZ_OVERRIDE
+  void Proceed(BluetoothStatus aStatus) override
   {
     if (aStatus == STATUS_SUCCESS) {
       IntStringIntResultRunnable::Dispatch(

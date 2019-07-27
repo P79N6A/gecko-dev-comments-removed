@@ -171,7 +171,7 @@ public:
 
   Accessible* GetXPAccessibleFor(const VARIANT& aVarChild);
 
-  virtual void GetNativeInterface(void **aOutAccessible) MOZ_OVERRIDE;
+  virtual void GetNativeInterface(void **aOutAccessible) override;
 
   static IDispatch* NativeAccessible(Accessible* aAccessible);
 

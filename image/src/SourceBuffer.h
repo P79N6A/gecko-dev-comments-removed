@@ -64,7 +64,7 @@ protected:
 
 
 
-class SourceBufferIterator MOZ_FINAL
+class SourceBufferIterator final
 {
 public:
   enum State {
@@ -213,7 +213,7 @@ private:
 
 
 
-class SourceBuffer MOZ_FINAL
+class SourceBuffer final
 {
 public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(image::SourceBuffer)

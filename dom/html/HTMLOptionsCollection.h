@@ -30,7 +30,7 @@ class HTMLSelectElement;
 
 
 
-class HTMLOptionsCollection MOZ_FINAL : public nsIHTMLCollection
+class HTMLOptionsCollection final : public nsIHTMLCollection
                                       , public nsIDOMHTMLOptionsCollection
                                       , public nsWrapperCache
 {
@@ -42,11 +42,11 @@ public:
 
   
   using nsWrapperCache::GetWrapperPreserveColor;
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 protected:
   virtual ~HTMLOptionsCollection();
 
-  virtual JSObject* GetWrapperPreserveColorInternal() MOZ_OVERRIDE
+  virtual JSObject* GetWrapperPreserveColorInternal() override
   {
     return nsWrapperCache::GetWrapperPreserveColor();
   }
@@ -58,8 +58,8 @@ public:
   
   
 
-  virtual Element* GetElementAt(uint32_t aIndex) MOZ_OVERRIDE;
-  virtual nsINode* GetParentObject() MOZ_OVERRIDE;
+  virtual Element* GetElementAt(uint32_t aIndex) override;
+  virtual nsINode* GetParentObject() override;
 
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(HTMLOptionsCollection,
                                                          nsIHTMLCollection)
@@ -136,7 +136,7 @@ public:
   }
   HTMLOptionElement* NamedGetter(const nsAString& aName, bool& aFound);
   virtual Element*
-  GetFirstNamedElement(const nsAString& aName, bool& aFound) MOZ_OVERRIDE
+  GetFirstNamedElement(const nsAString& aName, bool& aFound) override
   {
     return NamedGetter(aName, aFound);
   }
@@ -153,7 +153,7 @@ public:
     aError = SetOption(aIndex, aOption);
   }
   virtual void GetSupportedNames(unsigned aFlags,
-                                 nsTArray<nsString>& aNames) MOZ_OVERRIDE;
+                                 nsTArray<nsString>& aNames) override;
 
 private:
   

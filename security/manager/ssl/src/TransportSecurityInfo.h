@@ -107,7 +107,7 @@ private:
   
   nsCOMPtr<nsIX509CertList> mFailedCertChain;
 
-  virtual void virtualDestroyNSSReference() MOZ_OVERRIDE;
+  virtual void virtualDestroyNSSReference() override;
   void destructorSafeDestroyNSSReference();
 };
 

@@ -37,7 +37,7 @@ struct nsSize;
 
 
 
-class nsSVGIntegrationUtils MOZ_FINAL
+class nsSVGIntegrationUtils final
 {
   typedef mozilla::gfx::DrawTarget DrawTarget;
 

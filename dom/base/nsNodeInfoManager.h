@@ -32,7 +32,7 @@ class NodeInfo;
 }
 }
 
-class nsNodeInfoManager MOZ_FINAL
+class nsNodeInfoManager final
 {
 private:
   ~nsNodeInfoManager();

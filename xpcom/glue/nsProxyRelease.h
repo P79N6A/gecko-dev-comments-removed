@@ -104,7 +104,7 @@ NS_ProxyRelease(nsIEventTarget* aTarget, nsISupports* aDoomed,
 
 
 template<class T>
-class nsMainThreadPtrHolder MOZ_FINAL
+class nsMainThreadPtrHolder final
 {
 public:
   

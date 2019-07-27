@@ -22,7 +22,7 @@
 
 
 
-class nsProxyInfo MOZ_FINAL : public nsIProxyInfo
+class nsProxyInfo final : public nsIProxyInfo
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_PROXYINFO_IID)

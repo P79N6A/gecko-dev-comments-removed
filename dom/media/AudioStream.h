@@ -177,7 +177,7 @@ class AudioInitTask;
 
 
 
-class AudioStream MOZ_FINAL
+class AudioStream final
 {
   virtual ~AudioStream();
 
@@ -431,7 +431,7 @@ protected:
   virtual ~AudioInitTask() {};
 
 private:
-  NS_IMETHOD Run() MOZ_OVERRIDE MOZ_FINAL;
+  NS_IMETHOD Run() override final;
 
   RefPtr<AudioStream> mAudioStream;
   AudioStream::LatencyRequest mLatencyRequest;

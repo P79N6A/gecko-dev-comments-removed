@@ -368,10 +368,10 @@ public:
   }
 
   
-  NS_IMETHOD Run() MOZ_OVERRIDE;
+  NS_IMETHOD Run() override;
 
   
-  NS_IMETHOD Notify(nsITimer* timer) MOZ_OVERRIDE;
+  NS_IMETHOD Notify(nsITimer* timer) override;
 
 protected:
   virtual ~nsStopPluginRunnable() {}
@@ -1281,7 +1281,7 @@ nsObjectLoadingContent::GetBaseURI(nsIURI **aResult)
 
 
 
-class ObjectInterfaceRequestorShim MOZ_FINAL : public nsIInterfaceRequestor,
+class ObjectInterfaceRequestorShim final : public nsIInterfaceRequestor,
                                                public nsIChannelEventSink,
                                                public nsIStreamListener
 {

@@ -17,7 +17,7 @@ class nsPIDOMWindow;
 namespace mozilla {
 namespace dom {
 
-class CellBroadcast MOZ_FINAL : public DOMEventTargetHelper,
+class CellBroadcast final : public DOMEventTargetHelper,
                                 private nsICellBroadcastListener
 {
   
@@ -49,7 +49,7 @@ public:
   GetParentObject() const { return GetOwner(); }
 
   virtual JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   IMPL_EVENT_HANDLER(received)
 

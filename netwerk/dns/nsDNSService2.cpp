@@ -293,7 +293,7 @@ nsDNSRecord::ReportUnusable(uint16_t aPort)
 
 
 
-class nsDNSAsyncRequest MOZ_FINAL : public nsResolveHostCallback
+class nsDNSAsyncRequest final : public nsResolveHostCallback
                                   , public nsICancelable
 {
     ~nsDNSAsyncRequest() {}
@@ -315,13 +315,13 @@ public:
         , mAF(af)
         , mNetworkInterface(netInterface) {}
 
-    void OnLookupComplete(nsHostResolver *, nsHostRecord *, nsresult) MOZ_OVERRIDE;
+    void OnLookupComplete(nsHostResolver *, nsHostRecord *, nsresult) override;
     
     
     
-    bool EqualsAsyncListener(nsIDNSListener *aListener) MOZ_OVERRIDE;
+    bool EqualsAsyncListener(nsIDNSListener *aListener) override;
 
-    size_t SizeOfIncludingThis(mozilla::MallocSizeOf) const MOZ_OVERRIDE;
+    size_t SizeOfIncludingThis(mozilla::MallocSizeOf) const override;
 
     nsRefPtr<nsHostResolver> mResolver;
     nsCString                mHost; 

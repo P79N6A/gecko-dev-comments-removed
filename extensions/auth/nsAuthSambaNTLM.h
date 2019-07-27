@@ -23,7 +23,7 @@
 
 
 
-class nsAuthSambaNTLM MOZ_FINAL : public nsIAuthModule
+class nsAuthSambaNTLM final : public nsIAuthModule
 {
 public:
     NS_DECL_ISUPPORTS

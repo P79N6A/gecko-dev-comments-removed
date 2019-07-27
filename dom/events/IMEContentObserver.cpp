@@ -366,7 +366,7 @@ IMEContentObserver::NotifySelectionChanged(nsIDOMDocument* aDOMDocument,
 }
 
 
-class PositionChangeEvent MOZ_FINAL : public nsRunnable
+class PositionChangeEvent final : public nsRunnable
 {
 public:
   explicit PositionChangeEvent(IMEContentObserver* aDispatcher)

@@ -488,7 +488,7 @@ public:
 
 
   virtual bool DoSample(FrameMetrics& aFrameMetrics,
-                        const TimeDuration& aDelta) MOZ_OVERRIDE
+                        const TimeDuration& aDelta) override
   {
     float friction = gfxPrefs::APZFlingFriction();
     float threshold = gfxPrefs::APZFlingStoppedThreshold();
@@ -598,7 +598,7 @@ public:
   {}
 
   virtual bool DoSample(FrameMetrics& aFrameMetrics,
-                        const TimeDuration& aDelta) MOZ_OVERRIDE
+                        const TimeDuration& aDelta) override
   {
     mDuration += aDelta;
     double animPosition = mDuration / mTotalDuration;
@@ -655,7 +655,7 @@ public:
   }
 
   virtual bool DoSample(FrameMetrics& aFrameMetrics,
-                        const TimeDuration& aDelta) MOZ_OVERRIDE
+                        const TimeDuration& aDelta) override
   {
     
     bool continueX = mApzc.mX.SampleOverscrollAnimation(aDelta);

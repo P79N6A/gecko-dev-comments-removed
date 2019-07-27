@@ -312,7 +312,7 @@ private:
 
 
 
-  class ExpirationTrackerObserver MOZ_FINAL : public nsIObserver
+  class ExpirationTrackerObserver final : public nsIObserver
   {
   public:
     void Init(nsExpirationTracker<T, K>* aObj)

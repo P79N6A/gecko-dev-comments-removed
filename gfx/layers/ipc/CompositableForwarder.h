@@ -173,19 +173,19 @@ public:
 
   void IdentifyTextureHost(const TextureFactoryIdentifier& aIdentifier);
 
-  virtual int32_t GetMaxTextureSize() const MOZ_OVERRIDE
+  virtual int32_t GetMaxTextureSize() const override
   {
     return mTextureFactoryIdentifier.mMaxTextureSize;
   }
 
-  bool IsOnCompositorSide() const MOZ_OVERRIDE { return false; }
+  bool IsOnCompositorSide() const override { return false; }
 
   
 
 
 
 
-  virtual LayersBackend GetCompositorBackendType() const MOZ_OVERRIDE
+  virtual LayersBackend GetCompositorBackendType() const override
   {
     return mTextureFactoryIdentifier.mParentBackend;
   }

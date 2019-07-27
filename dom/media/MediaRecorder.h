@@ -38,7 +38,7 @@ class AudioNode;
 
 
 
-class MediaRecorder MOZ_FINAL : public DOMEventTargetHelper,
+class MediaRecorder final : public DOMEventTargetHelper,
                                 public nsIDocumentActivity
 {
   class Session;
@@ -48,7 +48,7 @@ public:
   MediaRecorder(AudioNode& aSrcAudioNode, uint32_t aSrcOutput, nsPIDOMWindow* aOwnerWindow);
 
   
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   nsPIDOMWindow* GetParentObject() { return GetOwner(); }
 

@@ -39,7 +39,7 @@ class BluetoothDaemonConnectionIO;
 
 
 
-class BluetoothDaemonPDU MOZ_FINAL : public UnixSocketIOBuffer
+class BluetoothDaemonPDU final : public UnixSocketIOBuffer
 {
 public:
   enum {
@@ -123,7 +123,7 @@ public:
   
   
 
-  virtual ConnectionOrientedSocketIO* GetIO() MOZ_OVERRIDE;
+  virtual ConnectionOrientedSocketIO* GetIO() override;
 
 protected:
 

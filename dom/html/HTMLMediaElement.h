@@ -118,7 +118,7 @@ public:
   virtual bool ParseAttribute(int32_t aNamespaceID,
                               nsIAtom* aAttribute,
                               const nsAString& aValue,
-                              nsAttrValue& aResult) MOZ_OVERRIDE;
+                              nsAttrValue& aResult) override;
   
   
   nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
@@ -128,20 +128,20 @@ public:
   }
   virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
-                           bool aNotify) MOZ_OVERRIDE;
+                           bool aNotify) override;
   virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttr,
-                             bool aNotify) MOZ_OVERRIDE;
+                             bool aNotify) override;
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
-                              bool aCompileEventHandlers) MOZ_OVERRIDE;
+                              bool aCompileEventHandlers) override;
   virtual void UnbindFromTree(bool aDeep = true,
-                              bool aNullParent = true) MOZ_OVERRIDE;
-  virtual void DoneCreatingElement() MOZ_OVERRIDE;
+                              bool aNullParent = true) override;
+  virtual void DoneCreatingElement() override;
 
   virtual bool IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable,
-                               int32_t *aTabIndex) MOZ_OVERRIDE;
-  virtual int32_t TabIndexDefault() MOZ_OVERRIDE;
+                               int32_t *aTabIndex) override;
+  virtual int32_t TabIndexDefault() override;
 
   
 
@@ -153,68 +153,68 @@ public:
   
   
   virtual void MetadataLoaded(const MediaInfo* aInfo,
-                              nsAutoPtr<const MetadataTags> aTags) MOZ_FINAL MOZ_OVERRIDE;
+                              nsAutoPtr<const MetadataTags> aTags) final override;
 
   
   
-  virtual void FirstFrameLoaded() MOZ_FINAL MOZ_OVERRIDE;
+  virtual void FirstFrameLoaded() final override;
 
   
   
-  virtual void NetworkError() MOZ_FINAL MOZ_OVERRIDE;
+  virtual void NetworkError() final override;
 
   
   
-  virtual void DecodeError() MOZ_FINAL MOZ_OVERRIDE;
+  virtual void DecodeError() final override;
 
   
   
-  virtual void LoadAborted() MOZ_FINAL MOZ_OVERRIDE;
+  virtual void LoadAborted() final override;
 
   
   
-  virtual void PlaybackEnded() MOZ_FINAL MOZ_OVERRIDE;
+  virtual void PlaybackEnded() final override;
 
   
   
-  virtual void SeekStarted() MOZ_FINAL MOZ_OVERRIDE;
+  virtual void SeekStarted() final override;
 
   
   
-  virtual void SeekCompleted() MOZ_FINAL MOZ_OVERRIDE;
-
-  
-  
-  
-  virtual void DownloadSuspended() MOZ_FINAL MOZ_OVERRIDE;
+  virtual void SeekCompleted() final override;
 
   
   
   
-  
-  
-  
-  
-  virtual void DownloadResumed(bool aForceNetworkLoading = false) MOZ_FINAL MOZ_OVERRIDE;
-
-  
-  virtual void DownloadProgressed() MOZ_FINAL MOZ_OVERRIDE;
+  virtual void DownloadSuspended() final override;
 
   
   
-  virtual void NotifySuspendedByCache(bool aIsSuspended) MOZ_FINAL MOZ_OVERRIDE;
+  
+  
+  
+  
+  
+  virtual void DownloadResumed(bool aForceNetworkLoading = false) final override;
 
-  virtual bool IsActive() MOZ_FINAL MOZ_OVERRIDE;
-
-  virtual bool IsHidden() MOZ_FINAL MOZ_OVERRIDE;
+  
+  virtual void DownloadProgressed() final override;
 
   
   
-  virtual VideoFrameContainer* GetVideoFrameContainer() MOZ_FINAL MOZ_OVERRIDE;
+  virtual void NotifySuspendedByCache(bool aIsSuspended) final override;
+
+  virtual bool IsActive() final override;
+
+  virtual bool IsHidden() final override;
+
+  
+  
+  virtual VideoFrameContainer* GetVideoFrameContainer() final override;
   layers::ImageContainer* GetImageContainer();
 
   
-  virtual nsresult DispatchAsyncEvent(const nsAString& aName) MOZ_FINAL MOZ_OVERRIDE;
+  virtual nsresult DispatchAsyncEvent(const nsAString& aName) final override;
 
   
   nsresult DispatchPendingMediaEvents();
@@ -224,7 +224,7 @@ public:
   
   
   
-  virtual void UpdateReadyStateForData(MediaDecoderOwner::NextFrameStatus aNextFrame) MOZ_FINAL MOZ_OVERRIDE;
+  virtual void UpdateReadyStateForData(MediaDecoderOwner::NextFrameStatus aNextFrame) final override;
 
   
   bool CanActivateAutoplay();
@@ -256,7 +256,7 @@ public:
   already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
 
   
-  virtual void NotifyDecoderPrincipalChanged() MOZ_FINAL MOZ_OVERRIDE;
+  virtual void NotifyDecoderPrincipalChanged() final override;
 
   
   
@@ -285,7 +285,7 @@ public:
 
   void NotifyMediaStreamTracksAvailable(DOMMediaStream* aStream);
 
-  virtual bool IsNodeOfType(uint32_t aFlags) const MOZ_OVERRIDE;
+  virtual bool IsNodeOfType(uint32_t aFlags) const override;
 
   
 
@@ -333,7 +333,7 @@ public:
 
 
 
-  virtual void FireTimeUpdate(bool aPeriodic) MOZ_FINAL MOZ_OVERRIDE;
+  virtual void FireTimeUpdate(bool aPeriodic) final override;
 
   MediaStream* GetSrcMediaStream() const
   {
@@ -379,7 +379,7 @@ public:
 
   
   
-  virtual void ResetConnectionState() MOZ_FINAL MOZ_OVERRIDE;
+  virtual void ResetConnectionState() final override;
 
   
   void SetPreload(const nsAString& aValue, ErrorResult& aRv)
@@ -559,10 +559,10 @@ public:
   void SetOnencrypted(mozilla::dom::EventHandlerNonNull* listener);
 
   void DispatchEncrypted(const nsTArray<uint8_t>& aInitData,
-                         const nsAString& aInitDataType) MOZ_OVERRIDE;
+                         const nsAString& aInitDataType) override;
 
 
-  bool IsEventAttributeName(nsIAtom* aName) MOZ_OVERRIDE;
+  bool IsEventAttributeName(nsIAtom* aName) override;
 
   
   
@@ -642,8 +642,8 @@ protected:
   class MediaStreamTracksAvailableCallback;
   class StreamListener;
 
-  virtual void GetItemValueText(DOMString& text) MOZ_OVERRIDE;
-  virtual void SetItemValueText(const nsAString& text) MOZ_OVERRIDE;
+  virtual void GetItemValueText(DOMString& text) override;
+  virtual void SetItemValueText(const nsAString& text) override;
 
   class WakeLockBoolWrapper {
   public:
@@ -965,13 +965,13 @@ protected:
 
   
   
-  virtual HTMLMediaElement* GetMediaElement() MOZ_FINAL MOZ_OVERRIDE
+  virtual HTMLMediaElement* GetMediaElement() final override
   {
     return this;
   }
 
   
-  virtual bool GetPaused() MOZ_FINAL MOZ_OVERRIDE
+  virtual bool GetPaused() final override
   {
     bool isPaused = false;
     GetPaused(&isPaused);

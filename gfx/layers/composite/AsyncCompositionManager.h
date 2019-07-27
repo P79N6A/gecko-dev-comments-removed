@@ -67,7 +67,7 @@ struct ViewTransform {
 
 
 
-class AsyncCompositionManager MOZ_FINAL
+class AsyncCompositionManager final
 {
   friend class AutoResolveRefLayers;
   ~AsyncCompositionManager()

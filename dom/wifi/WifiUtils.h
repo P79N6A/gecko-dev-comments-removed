@@ -78,7 +78,7 @@ public:
 };
 
 
-class WpaSupplicant MOZ_FINAL
+class WpaSupplicant final
 {
 public:
   WpaSupplicant();

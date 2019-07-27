@@ -20,7 +20,7 @@ class Relation;
 
 
 
-class nsAccessibleRelation MOZ_FINAL : public nsIAccessibleRelation
+class nsAccessibleRelation final : public nsIAccessibleRelation
 {
 public:
   nsAccessibleRelation(uint32_t aType, Relation* aRel);

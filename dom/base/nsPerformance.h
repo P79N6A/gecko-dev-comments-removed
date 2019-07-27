@@ -28,7 +28,7 @@ namespace dom {
 }
 
 
-class nsPerformanceTiming MOZ_FINAL : public nsWrapperCache
+class nsPerformanceTiming final : public nsWrapperCache
 {
 public:
   typedef mozilla::TimeStamp TimeStamp;
@@ -117,7 +117,7 @@ public:
     return duration.ToMilliseconds() + mZeroTime;
   }
 
-  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
 
   
   DOMTimeMilliSec NavigationStart() const {
@@ -256,7 +256,7 @@ private:
 };
 
 
-class nsPerformanceNavigation MOZ_FINAL : public nsWrapperCache
+class nsPerformanceNavigation final : public nsWrapperCache
 {
 public:
   explicit nsPerformanceNavigation(nsPerformance* aPerformance);
@@ -271,7 +271,7 @@ public:
     return mPerformance;
   }
 
-  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
 
   
   uint16_t Type() const {
@@ -287,7 +287,7 @@ private:
 };
 
 
-class nsPerformance MOZ_FINAL : public mozilla::DOMEventTargetHelper
+class nsPerformance final : public mozilla::DOMEventTargetHelper
 {
 public:
   typedef mozilla::dom::PerformanceEntry PerformanceEntry;
@@ -319,7 +319,7 @@ public:
     return mWindow.get();
   }
 
-  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
 
   
   DOMHighResTimeStamp Now();

@@ -15,7 +15,7 @@ namespace mozilla {
 
 
 
-class ProfilerIOInterposeObserver MOZ_FINAL : public IOInterposeObserver
+class ProfilerIOInterposeObserver final : public IOInterposeObserver
 {
 public:
   virtual void Observe(Observation& aObservation);

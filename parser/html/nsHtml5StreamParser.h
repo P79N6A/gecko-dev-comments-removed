@@ -137,7 +137,7 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
     
 
 
-    NS_IMETHOD Notify(const char* aCharset, nsDetectionConfident aConf) MOZ_OVERRIDE;
+    NS_IMETHOD Notify(const char* aCharset, nsDetectionConfident aConf) override;
 
     
     

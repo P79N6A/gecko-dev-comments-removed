@@ -20,7 +20,7 @@ namespace mozilla {
 
 namespace dom {
 
-class AudioParam MOZ_FINAL : public nsWrapperCache,
+class AudioParam final : public nsWrapperCache,
                              public AudioParamTimeline
 {
   virtual ~AudioParam();
@@ -46,7 +46,7 @@ public:
     return mNode->Context()->DOMTimeToStreamTime(aTime);
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   
   
@@ -151,7 +151,7 @@ public:
   
   MediaStream* Stream();
 
-  virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE
+  virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const override
   {
     size_t amount = AudioParamTimeline::SizeOfExcludingThis(aMallocSizeOf);
     
@@ -167,7 +167,7 @@ public:
     return amount;
   }
 
-  virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE
+  virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override
   {
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }

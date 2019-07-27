@@ -15,7 +15,7 @@ namespace dom {
 
 
 
-class SpeakerManager MOZ_FINAL
+class SpeakerManager final
   : public DOMEventTargetHelper
   , public nsIDOMEventListener
 {
@@ -30,7 +30,7 @@ public:
 
   nsPIDOMWindow* GetParentObject() const;
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
   
 
 

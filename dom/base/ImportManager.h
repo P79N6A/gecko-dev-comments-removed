@@ -61,7 +61,7 @@ class ImportManager;
 
 typedef nsTHashtable<nsPtrHashKey<nsINode>> NodeTable;
 
-class ImportLoader MOZ_FINAL : public nsIStreamListener
+class ImportLoader final : public nsIStreamListener
                              , public nsIDOMEventListener
 {
 
@@ -134,7 +134,7 @@ public:
 
   
   
-  NS_IMETHOD HandleEvent(nsIDOMEvent *aEvent) MOZ_OVERRIDE;
+  NS_IMETHOD HandleEvent(nsIDOMEvent *aEvent) override;
 
   
   void Open();
@@ -238,7 +238,7 @@ private:
   Updater mUpdater;
 };
 
-class ImportManager MOZ_FINAL : public nsISupports
+class ImportManager final : public nsISupports
 {
   typedef nsRefPtrHashtable<nsURIHashKey, ImportLoader> ImportMap;
 

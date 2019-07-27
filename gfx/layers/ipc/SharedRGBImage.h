@@ -45,15 +45,15 @@ protected:
   ~SharedRGBImage();
 
 public:
-  virtual TextureClient* GetTextureClient(CompositableClient* aClient) MOZ_OVERRIDE;
+  virtual TextureClient* GetTextureClient(CompositableClient* aClient) override;
 
-  virtual uint8_t* GetBuffer() MOZ_OVERRIDE;
+  virtual uint8_t* GetBuffer() override;
 
-  gfx::IntSize GetSize() MOZ_OVERRIDE;
+  gfx::IntSize GetSize() override;
 
   size_t GetBufferSize();
 
-  TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() MOZ_OVERRIDE;
+  TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() override;
 
   bool Allocate(gfx::IntSize aSize, gfx::SurfaceFormat aFormat);
 private:

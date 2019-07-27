@@ -38,7 +38,7 @@ private:
 };
 
 
-class EncodedFrame MOZ_FINAL
+class EncodedFrame final
 {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(EncodedFrame)
 public:

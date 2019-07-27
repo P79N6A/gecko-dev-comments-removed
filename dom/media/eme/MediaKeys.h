@@ -42,7 +42,7 @@ CopyArrayBufferViewOrArrayBufferData(const ArrayBufferViewOrArrayBuffer& aBuffer
 
 
 
-class MediaKeys MOZ_FINAL : public nsISupports,
+class MediaKeys final : public nsISupports,
                             public nsWrapperCache
 {
   ~MediaKeys();
@@ -57,7 +57,7 @@ public:
 
   nsPIDOMWindow* GetParentObject() const;
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   nsresult Bind(HTMLMediaElement* aElement);
 

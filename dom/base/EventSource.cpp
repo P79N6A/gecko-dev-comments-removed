@@ -488,7 +488,7 @@ EventSource::OnStopRequest(nsIRequest *aRequest,
 
 
 
-class AsyncVerifyRedirectCallbackFwr MOZ_FINAL : public nsIAsyncVerifyRedirectCallback
+class AsyncVerifyRedirectCallbackFwr final : public nsIAsyncVerifyRedirectCallback
 {
 public:
   explicit AsyncVerifyRedirectCallbackFwr(EventSource* aEventsource)
@@ -500,7 +500,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS(AsyncVerifyRedirectCallbackFwr)
 
   
-  NS_IMETHOD OnRedirectVerifyCallback(nsresult aResult) MOZ_OVERRIDE
+  NS_IMETHOD OnRedirectVerifyCallback(nsresult aResult) override
   {
     nsresult rv = mEventSource->OnRedirectVerifyCallback(aResult);
     if (NS_FAILED(rv)) {

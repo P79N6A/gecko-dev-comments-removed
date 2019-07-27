@@ -30,7 +30,7 @@ public:
     
     void SetHandler(nsExternalAppHandler *handler) { mHandler = handler; }
 
-    virtual bool RecvCancel(const nsresult& aStatus) MOZ_OVERRIDE;
+    virtual bool RecvCancel(const nsresult& aStatus) override;
 private:
     virtual ~ExternalHelperAppChild();
     nsresult DivertToParent(nsIDivertableChannel *divertable, nsIRequest *request);

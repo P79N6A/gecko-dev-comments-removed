@@ -20,7 +20,7 @@ USING_ARCHIVEREADER_NAMESPACE
 
 
 
-class ArchiveInputStream MOZ_FINAL : public nsIInputStream,
+class ArchiveInputStream final : public nsIInputStream,
                                      public nsISeekableStream
 {
 public:

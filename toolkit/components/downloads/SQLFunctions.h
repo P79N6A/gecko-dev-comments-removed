@@ -22,7 +22,7 @@ namespace downloads {
 
 
 
-class GenerateGUIDFunction MOZ_FINAL : public mozIStorageFunction
+class GenerateGUIDFunction final : public mozIStorageFunction
 {
   ~GenerateGUIDFunction() {}
 public:

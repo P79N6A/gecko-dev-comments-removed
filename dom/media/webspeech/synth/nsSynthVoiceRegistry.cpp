@@ -67,7 +67,7 @@ namespace dom {
 
 
 
-class VoiceData MOZ_FINAL
+class VoiceData final
 {
 private:
   

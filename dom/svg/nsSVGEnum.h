@@ -69,7 +69,7 @@ private:
   nsSVGEnumMapping *GetMapping(nsSVGElement *aSVGElement);
 
 public:
-  struct DOMAnimatedEnum MOZ_FINAL : public mozilla::dom::SVGAnimatedEnumeration
+  struct DOMAnimatedEnum final : public mozilla::dom::SVGAnimatedEnumeration
   {
     DOMAnimatedEnum(nsSVGEnum* aVal, nsSVGElement *aSVGElement)
       : mozilla::dom::SVGAnimatedEnumeration(aSVGElement)
@@ -80,16 +80,16 @@ public:
     nsSVGEnum *mVal; 
 
     using mozilla::dom::SVGAnimatedEnumeration::SetBaseVal;
-    virtual uint16_t BaseVal() MOZ_OVERRIDE
+    virtual uint16_t BaseVal() override
     {
       return mVal->GetBaseValue();
     }
     virtual void SetBaseVal(uint16_t aBaseVal,
-                            mozilla::ErrorResult& aRv) MOZ_OVERRIDE
+                            mozilla::ErrorResult& aRv) override
     {
       aRv = mVal->SetBaseValue(aBaseVal, mSVGElement);
     }
-    virtual uint16_t AnimVal() MOZ_OVERRIDE
+    virtual uint16_t AnimVal() override
     {
       
       
@@ -115,10 +115,10 @@ public:
     virtual nsresult ValueFromString(const nsAString& aStr,
                                      const mozilla::dom::SVGAnimationElement* aSrcElement,
                                      nsSMILValue& aValue,
-                                     bool& aPreventCachingOfSandwich) const MOZ_OVERRIDE;
-    virtual nsSMILValue GetBaseValue() const MOZ_OVERRIDE;
-    virtual void ClearAnimValue() MOZ_OVERRIDE;
-    virtual nsresult SetAnimValue(const nsSMILValue& aValue) MOZ_OVERRIDE;
+                                     bool& aPreventCachingOfSandwich) const override;
+    virtual nsSMILValue GetBaseValue() const override;
+    virtual void ClearAnimValue() override;
+    virtual nsresult SetAnimValue(const nsSMILValue& aValue) override;
   };
 };
 

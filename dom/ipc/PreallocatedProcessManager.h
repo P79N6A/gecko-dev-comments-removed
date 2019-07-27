@@ -36,7 +36,7 @@ class ContentParent;
 
 
 
-class PreallocatedProcessManager MOZ_FINAL
+class PreallocatedProcessManager final
 {
   typedef mozilla::dom::ContentParent ContentParent;
 

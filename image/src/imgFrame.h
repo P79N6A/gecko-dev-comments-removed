@@ -384,7 +384,7 @@ private:
 
 
 
-class DrawableFrameRef MOZ_FINAL
+class DrawableFrameRef final
 {
 public:
   DrawableFrameRef() { }
@@ -452,7 +452,7 @@ private:
 
 
 
-class RawAccessFrameRef MOZ_FINAL
+class RawAccessFrameRef final
 {
 public:
   RawAccessFrameRef() { }

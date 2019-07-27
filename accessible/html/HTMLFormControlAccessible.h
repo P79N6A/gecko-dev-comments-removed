@@ -35,16 +35,16 @@ public:
   }
 
   
-  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
-  virtual uint64_t NativeState() MOZ_OVERRIDE;
+  virtual mozilla::a11y::role NativeRole() override;
+  virtual uint64_t NativeState() override;
 
   
-  virtual uint8_t ActionCount() MOZ_OVERRIDE;
-  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) MOZ_OVERRIDE;
-  virtual bool DoAction(uint8_t aIndex) MOZ_OVERRIDE;
+  virtual uint8_t ActionCount() override;
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) override;
+  virtual bool DoAction(uint8_t aIndex) override;
 
   
-  virtual bool IsWidget() const MOZ_OVERRIDE;
+  virtual bool IsWidget() const override;
 };
 
 
@@ -64,9 +64,9 @@ public:
   }
 
   
-  virtual uint64_t NativeState() MOZ_OVERRIDE;
+  virtual uint64_t NativeState() override;
   virtual void GetPositionAndSizeInternal(int32_t *aPosInSet,
-                                          int32_t *aSetSize) MOZ_OVERRIDE;
+                                          int32_t *aSetSize) override;
 };
 
 
@@ -83,21 +83,21 @@ public:
   HTMLButtonAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
-  virtual uint64_t State() MOZ_OVERRIDE;
-  virtual uint64_t NativeState() MOZ_OVERRIDE;
+  virtual mozilla::a11y::role NativeRole() override;
+  virtual uint64_t State() override;
+  virtual uint64_t NativeState() override;
 
   
-  virtual uint8_t ActionCount() MOZ_OVERRIDE;
-  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) MOZ_OVERRIDE;
-  virtual bool DoAction(uint8_t aIndex) MOZ_OVERRIDE;
+  virtual uint8_t ActionCount() override;
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) override;
+  virtual bool DoAction(uint8_t aIndex) override;
 
   
-  virtual bool IsWidget() const MOZ_OVERRIDE;
+  virtual bool IsWidget() const override;
 
 protected:
   
-  virtual ENameValueFlag NativeName(nsString& aName) MOZ_OVERRIDE;
+  virtual ENameValueFlag NativeName(nsString& aName) override;
 };
 
 
@@ -105,7 +105,7 @@ protected:
 
 
 
-class HTMLTextFieldAccessible MOZ_FINAL : public HyperTextAccessibleWrap
+class HTMLTextFieldAccessible final : public HyperTextAccessibleWrap
 {
 
 public:
@@ -116,29 +116,29 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  virtual already_AddRefed<nsIEditor> GetEditor() const MOZ_OVERRIDE;
+  virtual already_AddRefed<nsIEditor> GetEditor() const override;
 
   
-  virtual void Value(nsString& aValue) MOZ_OVERRIDE;
-  virtual void ApplyARIAState(uint64_t* aState) const MOZ_OVERRIDE;
-  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
-  virtual uint64_t NativeState() MOZ_OVERRIDE;
-  virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() MOZ_OVERRIDE;
+  virtual void Value(nsString& aValue) override;
+  virtual void ApplyARIAState(uint64_t* aState) const override;
+  virtual mozilla::a11y::role NativeRole() override;
+  virtual uint64_t NativeState() override;
+  virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() override;
 
   
-  virtual uint8_t ActionCount() MOZ_OVERRIDE;
-  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) MOZ_OVERRIDE;
-  virtual bool DoAction(uint8_t aIndex) MOZ_OVERRIDE;
+  virtual uint8_t ActionCount() override;
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) override;
+  virtual bool DoAction(uint8_t aIndex) override;
 
   
-  virtual bool IsWidget() const MOZ_OVERRIDE;
-  virtual Accessible* ContainerWidget() const MOZ_OVERRIDE;
+  virtual bool IsWidget() const override;
+  virtual Accessible* ContainerWidget() const override;
 
 protected:
   virtual ~HTMLTextFieldAccessible() {}
 
   
-  virtual ENameValueFlag NativeName(nsString& aName) MOZ_OVERRIDE;
+  virtual ENameValueFlag NativeName(nsString& aName) override;
 
   
 
@@ -156,8 +156,8 @@ public:
   HTMLFileInputAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
-  virtual nsresult HandleAccEvent(AccEvent* aAccEvent) MOZ_OVERRIDE;
+  virtual mozilla::a11y::role NativeRole() override;
+  virtual nsresult HandleAccEvent(AccEvent* aAccEvent) override;
 };
 
 
@@ -174,14 +174,14 @@ public:
 }
 
   
-  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
-  virtual void Value(nsString& aValue) MOZ_OVERRIDE;
+  virtual mozilla::a11y::role NativeRole() override;
+  virtual void Value(nsString& aValue) override;
 
-  virtual double MaxValue() const MOZ_OVERRIDE;
-  virtual double MinValue() const MOZ_OVERRIDE;
-  virtual double CurValue() const MOZ_OVERRIDE;
-  virtual double Step() const MOZ_OVERRIDE;
-  virtual bool SetCurValue(double aValue) MOZ_OVERRIDE;
+  virtual double MaxValue() const override;
+  virtual double MinValue() const override;
+  virtual double CurValue() const override;
+  virtual double Step() const override;
+  virtual bool SetCurValue(double aValue) override;
 };
 
 
@@ -198,18 +198,18 @@ public:
   }
 
   
-  virtual void Value(nsString& aValue) MOZ_OVERRIDE;
-  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
+  virtual void Value(nsString& aValue) override;
+  virtual mozilla::a11y::role NativeRole() override;
 
   
-  virtual double MaxValue() const MOZ_OVERRIDE;
-  virtual double MinValue() const MOZ_OVERRIDE;
-  virtual double CurValue() const MOZ_OVERRIDE;
-  virtual double Step() const MOZ_OVERRIDE;
-  virtual bool SetCurValue(double aValue) MOZ_OVERRIDE;
+  virtual double MaxValue() const override;
+  virtual double MinValue() const override;
+  virtual double CurValue() const override;
+  virtual double Step() const override;
+  virtual bool SetCurValue(double aValue) override;
 
   
-  virtual bool IsWidget() const MOZ_OVERRIDE;
+  virtual bool IsWidget() const override;
 };
 
 
@@ -222,12 +222,12 @@ public:
   HTMLGroupboxAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
-  virtual Relation RelationByType(RelationType aType) MOZ_OVERRIDE;
+  virtual mozilla::a11y::role NativeRole() override;
+  virtual Relation RelationByType(RelationType aType) override;
 
 protected:
   
-  virtual ENameValueFlag NativeName(nsString& aName) MOZ_OVERRIDE;
+  virtual ENameValueFlag NativeName(nsString& aName) override;
 
   
   nsIContent* GetLegend() const;
@@ -243,7 +243,7 @@ public:
   HTMLLegendAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  virtual Relation RelationByType(RelationType aType) MOZ_OVERRIDE;
+  virtual Relation RelationByType(RelationType aType) override;
 };
 
 
@@ -255,11 +255,11 @@ public:
   HTMLFigureAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  virtual Relation RelationByType(RelationType aType) MOZ_OVERRIDE;
+  virtual Relation RelationByType(RelationType aType) override;
 
 protected:
   
-  virtual ENameValueFlag NativeName(nsString& aName) MOZ_OVERRIDE;
+  virtual ENameValueFlag NativeName(nsString& aName) override;
 
   
   nsIContent* Caption() const;
@@ -275,7 +275,7 @@ public:
   HTMLFigcaptionAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  virtual Relation RelationByType(RelationType aType) MOZ_OVERRIDE;
+  virtual Relation RelationByType(RelationType aType) override;
 };
 
 } 

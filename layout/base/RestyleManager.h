@@ -33,7 +33,7 @@ namespace dom {
   class Element;
 } 
 
-class RestyleManager MOZ_FINAL
+class RestyleManager final
 {
 public:
   friend class ::nsRefreshDriver;
@@ -167,7 +167,7 @@ public:
 
   typedef nsRefPtrHashtable<nsRefPtrHashKey<nsIContent>, nsStyleContext>
             ReframingStyleContextTable;
-  class MOZ_STACK_CLASS ReframingStyleContexts MOZ_FINAL {
+  class MOZ_STACK_CLASS ReframingStyleContexts final {
   public:
     
 
@@ -495,7 +495,7 @@ private:
 
 
 
-class ElementRestyler MOZ_FINAL
+class ElementRestyler final
 {
 public:
   typedef mozilla::dom::Element Element;
@@ -744,7 +744,7 @@ private:
 
 
 
-class MOZ_STACK_CLASS AutoDisplayContentsAncestorPusher MOZ_FINAL
+class MOZ_STACK_CLASS AutoDisplayContentsAncestorPusher final
 {
  public:
   typedef mozilla::dom::Element Element;

@@ -55,7 +55,7 @@ HttpRequestSucceeded(nsIStreamLoader *loader)
 
 
 
-class ExecuteCallback MOZ_FINAL : public nsRunnable
+class ExecuteCallback final : public nsRunnable
 {
 public:
   ExecuteCallback(nsPACManCallback *aCallback,
@@ -95,7 +95,7 @@ private:
 
 
 
-class ShutdownThread MOZ_FINAL : public nsRunnable
+class ShutdownThread final : public nsRunnable
 {
 public:
   explicit ShutdownThread(nsIThread *thread)
@@ -116,7 +116,7 @@ private:
 
 
 
-class WaitForThreadShutdown MOZ_FINAL : public nsRunnable
+class WaitForThreadShutdown final : public nsRunnable
 {
 public:
   explicit WaitForThreadShutdown(nsPACMan *aPACMan)
@@ -144,7 +144,7 @@ private:
 
 
 
-class PACLoadComplete MOZ_FINAL : public nsRunnable
+class PACLoadComplete final : public nsRunnable
 {
 public:
   explicit PACLoadComplete(nsPACMan *aPACMan)
@@ -170,7 +170,7 @@ private:
 
 
 
-class ExecutePACThreadAction MOZ_FINAL : public nsRunnable
+class ExecutePACThreadAction final : public nsRunnable
 {
 public:
   

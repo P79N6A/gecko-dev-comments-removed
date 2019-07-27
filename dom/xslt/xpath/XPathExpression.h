@@ -27,7 +27,7 @@ class XPathResult;
 
 
 
-class XPathExpression MOZ_FINAL : public NonRefcountedDOMObject
+class XPathExpression final : public NonRefcountedDOMObject
 {
 public:
     XPathExpression(nsAutoPtr<Expr>&& aExpression, txResultRecycler* aRecycler,

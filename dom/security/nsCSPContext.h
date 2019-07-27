@@ -98,7 +98,7 @@ class CSPViolationReportListener : public nsIStreamListener
 
 
 
-class CSPReportRedirectSink MOZ_FINAL : public nsIChannelEventSink,
+class CSPReportRedirectSink final : public nsIChannelEventSink,
                                         public nsIInterfaceRequestor
 {
   public:

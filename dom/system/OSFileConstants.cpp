@@ -208,7 +208,7 @@ nsresult GetPathToSpecialDir(const char *aKey, nsString& aOutPath)
 
 
 
-class DelayedPathSetter MOZ_FINAL: public nsIObserver
+class DelayedPathSetter final: public nsIObserver
 {
   ~DelayedPathSetter() {}
 

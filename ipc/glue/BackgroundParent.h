@@ -26,7 +26,7 @@ class PBackgroundParent;
 
 
 
-class BackgroundParent MOZ_FINAL
+class BackgroundParent final
 {
   friend class mozilla::dom::ContentParent;
 

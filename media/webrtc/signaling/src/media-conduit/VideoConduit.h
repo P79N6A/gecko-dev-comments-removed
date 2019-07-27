@@ -79,30 +79,30 @@ public:
 
 
 
-  virtual MediaConduitErrorCode AttachRenderer(mozilla::RefPtr<VideoRenderer> aVideoRenderer) MOZ_OVERRIDE;
-  virtual void DetachRenderer() MOZ_OVERRIDE;
+  virtual MediaConduitErrorCode AttachRenderer(mozilla::RefPtr<VideoRenderer> aVideoRenderer) override;
+  virtual void DetachRenderer() override;
 
   
 
 
 
-  virtual MediaConduitErrorCode ReceivedRTPPacket(const void *data, int len) MOZ_OVERRIDE;
+  virtual MediaConduitErrorCode ReceivedRTPPacket(const void *data, int len) override;
 
   
 
 
 
-  virtual MediaConduitErrorCode ReceivedRTCPPacket(const void *data, int len) MOZ_OVERRIDE;
+  virtual MediaConduitErrorCode ReceivedRTCPPacket(const void *data, int len) override;
 
-  virtual MediaConduitErrorCode StopTransmitting() MOZ_OVERRIDE;
-  virtual MediaConduitErrorCode StartTransmitting() MOZ_OVERRIDE;
-  virtual MediaConduitErrorCode StopReceiving() MOZ_OVERRIDE;
-  virtual MediaConduitErrorCode StartReceiving() MOZ_OVERRIDE;
+  virtual MediaConduitErrorCode StopTransmitting() override;
+  virtual MediaConduitErrorCode StartTransmitting() override;
+  virtual MediaConduitErrorCode StopReceiving() override;
+  virtual MediaConduitErrorCode StartReceiving() override;
 
   
 
 
-  virtual MediaConduitErrorCode ConfigureCodecMode(webrtc::VideoCodecMode) MOZ_OVERRIDE;
+  virtual MediaConduitErrorCode ConfigureCodecMode(webrtc::VideoCodecMode) override;
 
    
 
@@ -112,7 +112,7 @@ public:
 
 
 
-  virtual MediaConduitErrorCode ConfigureSendMediaCodec(const VideoCodecConfig* codecInfo) MOZ_OVERRIDE;
+  virtual MediaConduitErrorCode ConfigureSendMediaCodec(const VideoCodecConfig* codecInfo) override;
 
   
 
@@ -124,15 +124,15 @@ public:
 
 
    virtual MediaConduitErrorCode ConfigureRecvMediaCodecs(
-                               const std::vector<VideoCodecConfig* >& codecConfigList) MOZ_OVERRIDE;
+                               const std::vector<VideoCodecConfig* >& codecConfigList) override;
 
   
 
 
 
-  virtual MediaConduitErrorCode SetTransmitterTransport(mozilla::RefPtr<TransportInterface> aTransport) MOZ_OVERRIDE;
+  virtual MediaConduitErrorCode SetTransmitterTransport(mozilla::RefPtr<TransportInterface> aTransport) override;
 
-  virtual MediaConduitErrorCode SetReceiverTransport(mozilla::RefPtr<TransportInterface> aTransport) MOZ_OVERRIDE;
+  virtual MediaConduitErrorCode SetReceiverTransport(mozilla::RefPtr<TransportInterface> aTransport) override;
 
   
 
@@ -165,44 +165,44 @@ public:
                                                 unsigned short width,
                                                 unsigned short height,
                                                 VideoType video_type,
-                                                uint64_t capture_time) MOZ_OVERRIDE;
+                                                uint64_t capture_time) override;
 
   
 
 
 
   virtual MediaConduitErrorCode SetExternalSendCodec(VideoCodecConfig* config,
-                                                     VideoEncoder* encoder) MOZ_OVERRIDE;
+                                                     VideoEncoder* encoder) override;
 
   
 
 
 
   virtual MediaConduitErrorCode SetExternalRecvCodec(VideoCodecConfig* config,
-                                                     VideoDecoder* decoder) MOZ_OVERRIDE;
+                                                     VideoDecoder* decoder) override;
 
 
   
 
 
 
-  virtual int SendPacket(int channel, const void *data, int len) MOZ_OVERRIDE;
+  virtual int SendPacket(int channel, const void *data, int len) override;
 
   
 
 
 
-  virtual int SendRTCPPacket(int channel, const void *data, int len) MOZ_OVERRIDE;
+  virtual int SendRTCPPacket(int channel, const void *data, int len) override;
 
 
   
 
 
 
-  virtual int FrameSizeChange(unsigned int, unsigned int, unsigned int) MOZ_OVERRIDE;
+  virtual int FrameSizeChange(unsigned int, unsigned int, unsigned int) override;
 
   virtual int DeliverFrame(unsigned char*, int, uint32_t , int64_t,
-                           int64_t, void *handle) MOZ_OVERRIDE;
+                           int64_t, void *handle) override;
 
   
 
@@ -210,7 +210,7 @@ public:
 
 
 
-  virtual bool IsTextureSupported() MOZ_OVERRIDE {
+  virtual bool IsTextureSupported() override {
 #ifdef WEBRTC_GONK
     return true;
 #else
@@ -218,24 +218,24 @@ public:
 #endif
   }
 
-  virtual uint64_t CodecPluginID() MOZ_OVERRIDE;
+  virtual uint64_t CodecPluginID() override;
 
-  unsigned short SendingWidth() MOZ_OVERRIDE {
+  unsigned short SendingWidth() override {
     return mSendingWidth;
   }
 
-  unsigned short SendingHeight() MOZ_OVERRIDE {
+  unsigned short SendingHeight() override {
     return mSendingHeight;
   }
 
-  unsigned int SendingMaxFs() MOZ_OVERRIDE {
+  unsigned int SendingMaxFs() override {
     if(mCurSendCodecConfig) {
       return mCurSendCodecConfig->mMaxFrameSize;
     }
     return 0;
   }
 
-  unsigned int SendingMaxFr() MOZ_OVERRIDE {
+  unsigned int SendingMaxFr() override {
     if(mCurSendCodecConfig) {
       return mCurSendCodecConfig->mMaxFrameRate;
     }
@@ -249,33 +249,33 @@ public:
 
   int GetChannel() { return mChannel; }
   webrtc::VideoEngine* GetVideoEngine() { return mVideoEngine; }
-  bool GetLocalSSRC(unsigned int* ssrc) MOZ_OVERRIDE;
-  bool SetLocalSSRC(unsigned int ssrc) MOZ_OVERRIDE;
-  bool GetRemoteSSRC(unsigned int* ssrc) MOZ_OVERRIDE;
-  bool SetLocalCNAME(const char* cname) MOZ_OVERRIDE;
+  bool GetLocalSSRC(unsigned int* ssrc) override;
+  bool SetLocalSSRC(unsigned int ssrc) override;
+  bool GetRemoteSSRC(unsigned int* ssrc) override;
+  bool SetLocalCNAME(const char* cname) override;
   bool GetVideoEncoderStats(double* framerateMean,
                             double* framerateStdDev,
                             double* bitrateMean,
                             double* bitrateStdDev,
-                            uint32_t* droppedFrames) MOZ_OVERRIDE;
+                            uint32_t* droppedFrames) override;
   bool GetVideoDecoderStats(double* framerateMean,
                             double* framerateStdDev,
                             double* bitrateMean,
                             double* bitrateStdDev,
-                            uint32_t* discardedPackets) MOZ_OVERRIDE;
+                            uint32_t* discardedPackets) override;
   bool GetAVStats(int32_t* jitterBufferDelayMs,
                   int32_t* playoutBufferDelayMs,
-                  int32_t* avSyncOffsetMs) MOZ_OVERRIDE;
-  bool GetRTPStats(unsigned int* jitterMs, unsigned int* cumulativeLost) MOZ_OVERRIDE;
+                  int32_t* avSyncOffsetMs) override;
+  bool GetRTPStats(unsigned int* jitterMs, unsigned int* cumulativeLost) override;
   bool GetRTCPReceiverReport(DOMHighResTimeStamp* timestamp,
                              uint32_t* jitterMs,
                              uint32_t* packetsReceived,
                              uint64_t* bytesReceived,
                              uint32_t* cumulativeLost,
-                             int32_t* rttMs) MOZ_OVERRIDE;
+                             int32_t* rttMs) override;
   bool GetRTCPSenderReport(DOMHighResTimeStamp* timestamp,
                            unsigned int* packetsSent,
-                           uint64_t* bytesSent) MOZ_OVERRIDE;
+                           uint64_t* bytesSent) override;
   uint64_t MozVideoLatencyAvg();
 
 private:

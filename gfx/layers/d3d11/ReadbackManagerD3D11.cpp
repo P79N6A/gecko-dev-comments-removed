@@ -31,7 +31,7 @@ struct ReadbackTask {
 
 
 
-class ReadbackResultWriterD3D11 MOZ_FINAL : public nsIRunnable
+class ReadbackResultWriterD3D11 final : public nsIRunnable
 {
   ~ReadbackResultWriterD3D11() {}
   NS_DECL_THREADSAFE_ISUPPORTS

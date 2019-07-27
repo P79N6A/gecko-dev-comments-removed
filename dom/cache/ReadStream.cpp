@@ -28,7 +28,7 @@ using mozilla::ipc::FileDescriptor;
 
 
 
-class ReadStream::Inner MOZ_FINAL : public ReadStream::Controllable
+class ReadStream::Inner final : public ReadStream::Controllable
 {
 public:
   Inner(StreamControl* aControl, const nsID& aId,
@@ -42,13 +42,13 @@ public:
 
   
   virtual void
-  CloseStream() MOZ_OVERRIDE;
+  CloseStream() override;
 
   virtual void
-  CloseStreamWithoutReporting() MOZ_OVERRIDE;
+  CloseStreamWithoutReporting() override;
 
   virtual bool
-  MatchId(const nsID& aId) const MOZ_OVERRIDE;
+  MatchId(const nsID& aId) const override;
 
   
   NS_METHOD
@@ -104,7 +104,7 @@ private:
   };
   Atomic<State> mState;
 
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(cache::ReadStream::Inner, MOZ_OVERRIDE)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(cache::ReadStream::Inner, override)
 };
 
 
@@ -113,7 +113,7 @@ private:
 
 
 
-class ReadStream::Inner::NoteClosedRunnable MOZ_FINAL : public nsCancelableRunnable
+class ReadStream::Inner::NoteClosedRunnable final : public nsCancelableRunnable
 {
 public:
   explicit NoteClosedRunnable(ReadStream::Inner* aStream)
@@ -148,7 +148,7 @@ private:
 
 
 
-class ReadStream::Inner::ForgetRunnable MOZ_FINAL : public nsCancelableRunnable
+class ReadStream::Inner::ForgetRunnable final : public nsCancelableRunnable
 {
 public:
   explicit ForgetRunnable(ReadStream::Inner* aStream)

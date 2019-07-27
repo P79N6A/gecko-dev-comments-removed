@@ -27,8 +27,8 @@ class RtspOmxReader : public MediaOmxReader
 {
 protected:
   
-  nsresult InitOmxDecoder() MOZ_FINAL MOZ_OVERRIDE;
-  virtual void EnsureActive() MOZ_OVERRIDE;
+  nsresult InitOmxDecoder() final override;
+  virtual void EnsureActive() override;
 
 public:
   RtspOmxReader(AbstractMediaDecoder* aDecoder)
@@ -43,13 +43,13 @@ public:
     MOZ_ASSERT(mRtspResource);
   }
 
-  virtual ~RtspOmxReader() MOZ_OVERRIDE {
+  virtual ~RtspOmxReader() override {
     MOZ_COUNT_DTOR(RtspOmxReader);
   }
 
   
   virtual nsRefPtr<SeekPromise>
-  Seek(int64_t aTime, int64_t aEndTime) MOZ_FINAL MOZ_OVERRIDE;
+  Seek(int64_t aTime, int64_t aEndTime) final override;
 
   
   
@@ -60,14 +60,14 @@ public:
   
   
   
-  virtual nsresult GetBuffered(mozilla::dom::TimeRanges* aBuffered) MOZ_FINAL MOZ_OVERRIDE {
+  virtual nsresult GetBuffered(mozilla::dom::TimeRanges* aBuffered) final override {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
-  virtual void SetIdle() MOZ_OVERRIDE;
+  virtual void SetIdle() override;
 
   virtual nsresult ReadMetadata(MediaInfo *aInfo, MetadataTags **aTags)
-    MOZ_FINAL MOZ_OVERRIDE;
+    final override;
 
 private:
   

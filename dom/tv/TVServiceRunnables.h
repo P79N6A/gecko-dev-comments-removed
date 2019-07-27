@@ -23,7 +23,7 @@ namespace dom {
 
 
 
-class TVServiceNotifyRunnable MOZ_FINAL : public nsRunnable
+class TVServiceNotifyRunnable final : public nsRunnable
 {
 public:
   TVServiceNotifyRunnable(nsITVServiceCallback* aCallback,

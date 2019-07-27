@@ -423,7 +423,7 @@ public:
   
 
 
-  class DisplayItemData MOZ_FINAL {
+  class DisplayItemData final {
   public:
     friend class FrameLayerBuilder;
 

@@ -20,7 +20,7 @@ namespace dom {
 
 
 
-class ImageCaptureError MOZ_FINAL : public nsISupports,
+class ImageCaptureError final : public nsISupports,
                                     public nsWrapperCache
 {
 public:
@@ -31,7 +31,7 @@ public:
 
   nsISupports* GetParentObject() const;
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   uint16_t Code() const;
 

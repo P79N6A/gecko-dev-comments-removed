@@ -97,7 +97,7 @@ GetProxyURI(nsIChannel *channel, nsIURI **aOut)
 
 
 
-class nsAsyncResolveRequest MOZ_FINAL : public nsIRunnable
+class nsAsyncResolveRequest final : public nsIRunnable
                                       , public nsPACManCallback
                                       , public nsICancelable
 {
@@ -162,14 +162,14 @@ public:
         mProxyInfo = pi;
     }
 
-    NS_IMETHOD Run() MOZ_OVERRIDE
+    NS_IMETHOD Run() override
     {
         if (mCallback)
             DoCallback();
         return NS_OK;
     }
 
-    NS_IMETHOD Cancel(nsresult reason) MOZ_OVERRIDE
+    NS_IMETHOD Cancel(nsresult reason) override
     {
         NS_ENSURE_ARG(NS_FAILED(reason));
 
@@ -204,7 +204,7 @@ private:
     
     void OnQueryComplete(nsresult status,
                          const nsCString &pacString,
-                         const nsCString &newPACURL) MOZ_OVERRIDE
+                         const nsCString &newPACURL) override
     {
         
         if (!mCallback)
@@ -1085,7 +1085,7 @@ nsProtocolProxyService::ReloadPAC()
 
 
 
-class nsAsyncBridgeRequest MOZ_FINAL  : public nsPACManCallback
+class nsAsyncBridgeRequest final  : public nsPACManCallback
 {
     NS_DECL_THREADSAFE_ISUPPORTS
 
@@ -1098,7 +1098,7 @@ class nsAsyncBridgeRequest MOZ_FINAL  : public nsPACManCallback
 
     void OnQueryComplete(nsresult status,
                          const nsCString &pacString,
-                         const nsCString &newPACURL) MOZ_OVERRIDE
+                         const nsCString &newPACURL) override
     {
         MutexAutoLock lock(mMutex);
         mCompleted = true;

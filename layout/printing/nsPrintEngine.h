@@ -37,7 +37,7 @@ class nsIWeakReference;
 
 
 
-class nsPrintEngine MOZ_FINAL : public nsIObserver,
+class nsPrintEngine final : public nsIObserver,
                                 public nsIWebProgressListener,
                                 public nsSupportsWeakReference
 {

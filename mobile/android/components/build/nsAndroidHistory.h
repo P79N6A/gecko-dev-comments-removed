@@ -23,7 +23,7 @@
 
 #define EMBED_URI_SIZE 128
 
-class nsAndroidHistory MOZ_FINAL : public mozilla::IHistory,
+class nsAndroidHistory final : public mozilla::IHistory,
                                    public nsIRunnable,
                                    public nsITimerCallback
 {

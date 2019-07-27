@@ -29,7 +29,7 @@ struct SavedRequest;
 struct SavedResponse;
 
 
-class DBSchema MOZ_FINAL
+class DBSchema final
 {
 public:
   static nsresult CreateSchema(mozIStorageConnection* aConn);

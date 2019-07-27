@@ -321,7 +321,7 @@ WebBrowserChrome2Stub::GetInterface(const nsIID & aIID, void **aSink)
 
 
 
-class WindowlessBrowserStub MOZ_FINAL : public nsIWebNavigation,
+class WindowlessBrowserStub final : public nsIWebNavigation,
                                         public nsIInterfaceRequestor {
 public:
   WindowlessBrowserStub(nsIWebBrowser *aBrowser, nsISupports *aContainer) {

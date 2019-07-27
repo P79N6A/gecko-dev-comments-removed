@@ -38,13 +38,13 @@ public:
 
   
   virtual nsresult CloneInternal(RefHandlingEnum aRefHandlingMode,
-                                 nsIURI** aClone) MOZ_OVERRIDE;
+                                 nsIURI** aClone) override;
   virtual nsresult EqualsInternal(nsIURI* aOther,
                                   RefHandlingEnum aRefHandlingMode,
-                                  bool* aResult) MOZ_OVERRIDE;
+                                  bool* aResult) override;
 
   
-  virtual nsSimpleURI* StartClone(RefHandlingEnum ) MOZ_OVERRIDE
+  virtual nsSimpleURI* StartClone(RefHandlingEnum ) override
   { return new nsHostObjectURI(); }
 
   nsCOMPtr<nsIPrincipal> mPrincipal;

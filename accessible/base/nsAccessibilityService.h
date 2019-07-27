@@ -63,7 +63,7 @@ struct MarkupMapInfo {
 } 
 } 
 
-class nsAccessibilityService MOZ_FINAL : public mozilla::a11y::DocManager,
+class nsAccessibilityService final : public mozilla::a11y::DocManager,
                                          public mozilla::a11y::FocusManager,
                                          public mozilla::a11y::SelectionManager,
                                          public nsIAccessibilityService,
@@ -83,7 +83,7 @@ public:
 
   
   virtual Accessible* GetRootDocumentAccessible(nsIPresShell* aPresShell,
-                                                bool aCanCreate) MOZ_OVERRIDE;
+                                                bool aCanCreate) override;
   already_AddRefed<Accessible>
     CreatePluginAccessible(nsPluginFrame* aFrame, nsIContent* aContent,
                            Accessible* aContext);
@@ -92,10 +92,10 @@ public:
 
 
 
-  virtual Accessible* AddNativeRootAccessible(void* aAtkAccessible) MOZ_OVERRIDE;
-  virtual void RemoveNativeRootAccessible(Accessible* aRootAccessible) MOZ_OVERRIDE;
+  virtual Accessible* AddNativeRootAccessible(void* aAtkAccessible) override;
+  virtual void RemoveNativeRootAccessible(Accessible* aRootAccessible) override;
 
-  virtual bool HasAccessible(nsIDOMNode* aDOMNode) MOZ_OVERRIDE;
+  virtual bool HasAccessible(nsIDOMNode* aDOMNode) override;
 
   
   
@@ -164,7 +164,7 @@ public:
 
   void RecreateAccessible(nsIPresShell* aPresShell, nsIContent* aContent);
 
-  virtual void FireAccessibleEvent(uint32_t aEvent, Accessible* aTarget) MOZ_OVERRIDE;
+  virtual void FireAccessibleEvent(uint32_t aEvent, Accessible* aTarget) override;
 
   
 

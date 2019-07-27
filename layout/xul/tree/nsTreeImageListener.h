@@ -13,7 +13,7 @@
 #include "mozilla/Attributes.h"
 
 
-class nsTreeImageListener MOZ_FINAL : public imgINotificationObserver
+class nsTreeImageListener final : public imgINotificationObserver
 {
 public:
   explicit nsTreeImageListener(nsTreeBodyFrame *aTreeFrame);

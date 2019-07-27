@@ -12,7 +12,7 @@ namespace mozilla {
 namespace dom {
 namespace mobilemessage {
 
-class MobileMessageService MOZ_FINAL : public nsIMobileMessageService
+class MobileMessageService final : public nsIMobileMessageService
 {
 public:
   NS_DECL_ISUPPORTS

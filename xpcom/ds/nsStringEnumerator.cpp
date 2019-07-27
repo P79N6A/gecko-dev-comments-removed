@@ -14,7 +14,7 @@
 
 
 
-class nsStringEnumerator MOZ_FINAL
+class nsStringEnumerator final
   : public nsIStringEnumerator
   , public nsIUTF8StringEnumerator
   , public nsISimpleEnumerator
@@ -55,7 +55,7 @@ public:
 
   
   
-  NS_IMETHOD GetNext(nsAString& aResult) MOZ_OVERRIDE;
+  NS_IMETHOD GetNext(nsAString& aResult) override;
   NS_DECL_NSISIMPLEENUMERATOR
 
 private:

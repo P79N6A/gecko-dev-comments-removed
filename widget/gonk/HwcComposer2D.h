@@ -87,7 +87,7 @@ public:
     
     
     bool TryRender(layers::Layer* aRoot,
-                   bool aGeometryChanged) MOZ_OVERRIDE;
+                   bool aGeometryChanged) override;
 
     bool Render(EGLDisplay dpy, EGLSurface sur);
 

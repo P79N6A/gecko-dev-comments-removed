@@ -17,7 +17,7 @@
 class nsIURI;
 
 
-class nsExternalProtocolHandler MOZ_FINAL : public nsIExternalProtocolHandler, public nsSupportsWeakReference
+class nsExternalProtocolHandler final : public nsIExternalProtocolHandler, public nsSupportsWeakReference
 {
 public:
 	NS_DECL_THREADSAFE_ISUPPORTS

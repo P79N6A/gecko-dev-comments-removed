@@ -5980,7 +5980,7 @@ nsHttpChannel::SetOfflineCacheToken(nsISupports *token)
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-class nsHttpChannelCacheKey MOZ_FINAL : public nsISupportsPRUint32,
+class nsHttpChannelCacheKey final : public nsISupportsPRUint32,
                                         public nsISupportsCString
 {
     NS_DECL_ISUPPORTS
@@ -5990,11 +5990,11 @@ class nsHttpChannelCacheKey MOZ_FINAL : public nsISupportsPRUint32,
 
     
     
-    NS_IMETHOD GetData(nsACString & aData) MOZ_OVERRIDE
+    NS_IMETHOD GetData(nsACString & aData) override
     {
         return mSupportsCString->GetData(aData);
     }
-    NS_IMETHOD SetData(const nsACString & aData) MOZ_OVERRIDE
+    NS_IMETHOD SetData(const nsACString & aData) override
     {
         return mSupportsCString->SetData(aData);
     }

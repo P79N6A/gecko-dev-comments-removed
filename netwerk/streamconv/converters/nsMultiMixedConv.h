@@ -34,7 +34,7 @@ using mozilla::net::nsHttpResponseHead;
 
 
 
-class nsPartChannel MOZ_FINAL : public nsIChannel,
+class nsPartChannel final : public nsIChannel,
                                 public nsIByteRangeRequest,
                                 public nsIResponseHeadProvider,
                                 public nsIMultiPartChannel

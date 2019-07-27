@@ -27,7 +27,7 @@ class ContentParent;
 
 
 
-class ProcessPriorityManager MOZ_FINAL
+class ProcessPriorityManager final
 {
 public:
   

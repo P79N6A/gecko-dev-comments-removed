@@ -20,11 +20,11 @@ namespace mozilla {
 namespace dom {
 namespace cache {
 
-class ManagerId MOZ_FINAL
+class ManagerId final
 {
 public:
   
-  class MOZ_STACK_CLASS Comparator MOZ_FINAL
+  class MOZ_STACK_CLASS Comparator final
   {
   public:
     bool Equals(ManagerId *aA, ManagerId* aB) const { return *aA == *aB; }

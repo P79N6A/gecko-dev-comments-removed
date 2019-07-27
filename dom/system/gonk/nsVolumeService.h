@@ -31,7 +31,7 @@ class Volume;
 
 
 
-class nsVolumeService MOZ_FINAL : public nsIVolumeService,
+class nsVolumeService final : public nsIVolumeService,
                                   public nsIDOMMozWakeLockListener
 {
 public:

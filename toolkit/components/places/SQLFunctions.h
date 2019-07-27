@@ -56,7 +56,7 @@ namespace places {
 
 
 
-class MatchAutoCompleteFunction MOZ_FINAL : public mozIStorageFunction
+class MatchAutoCompleteFunction final : public mozIStorageFunction
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -195,7 +195,7 @@ private:
 
 
 
-class CalculateFrecencyFunction MOZ_FINAL : public mozIStorageFunction
+class CalculateFrecencyFunction final : public mozIStorageFunction
 {
   ~CalculateFrecencyFunction();
 public:
@@ -217,7 +217,7 @@ public:
 
 
 
-class GenerateGUIDFunction MOZ_FINAL : public mozIStorageFunction
+class GenerateGUIDFunction final : public mozIStorageFunction
 {
   ~GenerateGUIDFunction();
 public:
@@ -241,7 +241,7 @@ public:
 
 
 
-class GetUnreversedHostFunction MOZ_FINAL : public mozIStorageFunction
+class GetUnreversedHostFunction final : public mozIStorageFunction
 {
   ~GetUnreversedHostFunction();
 public:
@@ -270,7 +270,7 @@ public:
 
 
 
-class FixupURLFunction MOZ_FINAL : public mozIStorageFunction
+class FixupURLFunction final : public mozIStorageFunction
 {
   ~FixupURLFunction();
 public:
@@ -307,7 +307,7 @@ public:
 
 
 
-class FrecencyNotificationFunction MOZ_FINAL : public mozIStorageFunction
+class FrecencyNotificationFunction final : public mozIStorageFunction
 {
   ~FrecencyNotificationFunction();
 public:

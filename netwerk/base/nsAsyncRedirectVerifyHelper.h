@@ -23,7 +23,7 @@ class nsIChannel;
 
 
 
-class nsAsyncRedirectVerifyHelper MOZ_FINAL : public nsIRunnable,
+class nsAsyncRedirectVerifyHelper final : public nsIRunnable,
                                               public nsIAsyncVerifyRedirectCallback
 {
     NS_DECL_THREADSAFE_ISUPPORTS

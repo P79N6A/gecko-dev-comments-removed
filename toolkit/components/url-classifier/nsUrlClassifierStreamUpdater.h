@@ -20,7 +20,7 @@
 
 class nsIURI;
 
-class nsUrlClassifierStreamUpdater MOZ_FINAL : public nsIUrlClassifierStreamUpdater,
+class nsUrlClassifierStreamUpdater final : public nsIUrlClassifierStreamUpdater,
                                                public nsIUrlClassifierUpdateObserver,
                                                public nsIStreamListener,
                                                public nsIObserver,

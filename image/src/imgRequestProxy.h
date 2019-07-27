@@ -97,24 +97,24 @@ public:
 
   
   virtual void Notify(int32_t aType,
-                      const nsIntRect* aRect = nullptr) MOZ_OVERRIDE;
-  virtual void OnLoadComplete(bool aLastPart) MOZ_OVERRIDE;
+                      const nsIntRect* aRect = nullptr) override;
+  virtual void OnLoadComplete(bool aLastPart) override;
 
   
-  virtual void BlockOnload() MOZ_OVERRIDE;
-  virtual void UnblockOnload() MOZ_OVERRIDE;
+  virtual void BlockOnload() override;
+  virtual void UnblockOnload() override;
 
   
-  virtual void SetHasImage() MOZ_OVERRIDE;
-  virtual void OnStartDecode() MOZ_OVERRIDE;
+  virtual void SetHasImage() override;
+  virtual void OnStartDecode() override;
 
   
   
-  virtual bool NotificationsDeferred() const MOZ_OVERRIDE
+  virtual bool NotificationsDeferred() const override
   {
     return mDeferNotifications;
   }
-  virtual void SetNotificationsDeferred(bool aDeferNotifications) MOZ_OVERRIDE
+  virtual void SetNotificationsDeferred(bool aDeferNotifications) override
   {
     mDeferNotifications = aDeferNotifications;
   }
@@ -145,7 +145,7 @@ protected:
         : mOwner(owner), mStatus(status)
       {}
 
-      NS_IMETHOD Run() MOZ_OVERRIDE {
+      NS_IMETHOD Run() override {
         mOwner->DoCancel(mStatus);
         return NS_OK;
       }
@@ -226,12 +226,12 @@ class imgRequestProxyStatic : public imgRequestProxy
 public:
   imgRequestProxyStatic(Image* aImage, nsIPrincipal* aPrincipal);
 
-  NS_IMETHOD GetImagePrincipal(nsIPrincipal** aPrincipal) MOZ_OVERRIDE;
+  NS_IMETHOD GetImagePrincipal(nsIPrincipal** aPrincipal) override;
 
   using imgRequestProxy::Clone;
 
   virtual nsresult Clone(imgINotificationObserver* aObserver,
-                         imgRequestProxy** aClone) MOZ_OVERRIDE;
+                         imgRequestProxy** aClone) override;
 
 protected:
   friend imgRequestProxy* NewStaticProxy(imgRequestProxy*);

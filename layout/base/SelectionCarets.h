@@ -56,7 +56,7 @@ class Selection;
 
 
 
-class SelectionCarets MOZ_FINAL : public nsIReflowObserver,
+class SelectionCarets final : public nsIReflowObserver,
                                   public nsISelectionListener,
                                   public nsIScrollObserver,
                                   public nsSupportsWeakReference
@@ -81,11 +81,11 @@ public:
   void NotifyBlur(bool aIsLeavingDocument);
 
   
-  virtual void ScrollPositionChanged() MOZ_OVERRIDE;
+  virtual void ScrollPositionChanged() override;
 
   
-  virtual void AsyncPanZoomStarted(const mozilla::CSSIntPoint aScrollPos) MOZ_OVERRIDE;
-  virtual void AsyncPanZoomStopped(const mozilla::CSSIntPoint aScrollPos) MOZ_OVERRIDE;
+  virtual void AsyncPanZoomStarted(const mozilla::CSSIntPoint aScrollPos) override;
+  virtual void AsyncPanZoomStopped(const mozilla::CSSIntPoint aScrollPos) override;
 
   void Init();
   void Terminate();

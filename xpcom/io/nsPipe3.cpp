@@ -281,7 +281,7 @@ private:
 
 
 
-class nsPipe MOZ_FINAL : public nsIPipe
+class nsPipe final : public nsIPipe
 {
 public:
   friend class nsPipeInputStream;
@@ -366,7 +366,7 @@ private:
 
 
 
-class MOZ_STACK_CLASS AutoReadSegment MOZ_FINAL
+class MOZ_STACK_CLASS AutoReadSegment final
 {
 public:
   AutoReadSegment(nsPipe* aPipe, nsPipeReadState& aReadState,

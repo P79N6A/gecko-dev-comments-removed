@@ -22,24 +22,24 @@ public:
   NS_DECL_ISUPPORTS
 
   
-  NS_IMETHOD GetCompartmentName(nsAString& aCompartmentName) MOZ_OVERRIDE {
+  NS_IMETHOD GetCompartmentName(nsAString& aCompartmentName) override {
     aCompartmentName.Assign(mCompartmentName);
     return NS_OK;
   };
 
   
-  NS_IMETHOD GetTime(uint64_t* aTime) MOZ_OVERRIDE {
+  NS_IMETHOD GetTime(uint64_t* aTime) override {
     *aTime = mTime;
     return NS_OK;
   }
   
-  NS_IMETHOD GetAddonId(nsAString& aAddonId) MOZ_OVERRIDE {
+  NS_IMETHOD GetAddonId(nsAString& aAddonId) override {
     aAddonId.Assign(mAddonId);
     return NS_OK;
   };
 
   
-  NS_IMETHOD GetCPOWTime(uint64_t* aCPOWTime) MOZ_OVERRIDE {
+  NS_IMETHOD GetCPOWTime(uint64_t* aCPOWTime) override {
     *aCPOWTime = mCPOWTime;
     return NS_OK;
   }

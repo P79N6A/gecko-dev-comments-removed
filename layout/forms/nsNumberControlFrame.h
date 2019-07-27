@@ -26,7 +26,7 @@ class HTMLInputElement;
 
 
 
-class nsNumberControlFrame MOZ_FINAL : public nsContainerFrame
+class nsNumberControlFrame final : public nsContainerFrame
                                      , public nsIAnonymousContentCreator
                                      , public nsITextControlFrame
 {
@@ -45,77 +45,77 @@ public:
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
-  virtual void ContentStatesChanged(mozilla::EventStates aStates) MOZ_OVERRIDE;
-  virtual bool IsLeaf() const MOZ_OVERRIDE { return true; }
+  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
+  virtual void ContentStatesChanged(mozilla::EventStates aStates) override;
+  virtual bool IsLeaf() const override { return true; }
 
 #ifdef ACCESSIBILITY
-  virtual mozilla::a11y::AccType AccessibleType() MOZ_OVERRIDE;
+  virtual mozilla::a11y::AccType AccessibleType() override;
 #endif
 
-  virtual nscoord GetMinISize(nsRenderingContext* aRenderingContext) MOZ_OVERRIDE;
+  virtual nscoord GetMinISize(nsRenderingContext* aRenderingContext) override;
 
-  virtual nscoord GetPrefISize(nsRenderingContext* aRenderingContext) MOZ_OVERRIDE;
+  virtual nscoord GetPrefISize(nsRenderingContext* aRenderingContext) override;
 
   virtual void Reflow(nsPresContext*           aPresContext,
                       nsHTMLReflowMetrics&     aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+                      nsReflowStatus&          aStatus) override;
 
   virtual nsresult AttributeChanged(int32_t  aNameSpaceID,
                                     nsIAtom* aAttribute,
-                                    int32_t  aModType) MOZ_OVERRIDE;
+                                    int32_t  aModType) override;
 
   
-  virtual nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements) MOZ_OVERRIDE;
+  virtual nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements) override;
   virtual void AppendAnonymousContentTo(nsTArray<nsIContent*>& aElements,
-                                        uint32_t aFilter) MOZ_OVERRIDE;
+                                        uint32_t aFilter) override;
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE {
+  virtual nsresult GetFrameName(nsAString& aResult) const override {
     return MakeFrameName(NS_LITERAL_STRING("NumberControl"), aResult);
   }
 #endif
 
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE
+  virtual bool IsFrameOfType(uint32_t aFlags) const override
   {
     return nsContainerFrame::IsFrameOfType(aFlags &
       ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));
   }
 
   
-  NS_IMETHOD    GetEditor(nsIEditor **aEditor) MOZ_OVERRIDE;
+  NS_IMETHOD    GetEditor(nsIEditor **aEditor) override;
 
-  NS_IMETHOD    SetSelectionStart(int32_t aSelectionStart) MOZ_OVERRIDE;
-  NS_IMETHOD    SetSelectionEnd(int32_t aSelectionEnd) MOZ_OVERRIDE;
+  NS_IMETHOD    SetSelectionStart(int32_t aSelectionStart) override;
+  NS_IMETHOD    SetSelectionEnd(int32_t aSelectionEnd) override;
 
   NS_IMETHOD    SetSelectionRange(int32_t aSelectionStart,
                                   int32_t aSelectionEnd,
-                                  SelectionDirection aDirection = eNone) MOZ_OVERRIDE;
+                                  SelectionDirection aDirection = eNone) override;
 
   NS_IMETHOD    GetSelectionRange(int32_t* aSelectionStart,
                                   int32_t* aSelectionEnd,
-                                  SelectionDirection* aDirection = nullptr) MOZ_OVERRIDE;
+                                  SelectionDirection* aDirection = nullptr) override;
 
-  NS_IMETHOD    GetOwnedSelectionController(nsISelectionController** aSelCon) MOZ_OVERRIDE;
-  virtual nsFrameSelection* GetOwnedFrameSelection() MOZ_OVERRIDE;
+  NS_IMETHOD    GetOwnedSelectionController(nsISelectionController** aSelCon) override;
+  virtual nsFrameSelection* GetOwnedFrameSelection() override;
 
-  virtual nsresult GetPhonetic(nsAString& aPhonetic) MOZ_OVERRIDE;
-
-  
-
-
-
-
-  virtual nsresult EnsureEditorInitialized() MOZ_OVERRIDE;
-
-  virtual nsresult ScrollSelectionIntoView() MOZ_OVERRIDE;
+  virtual nsresult GetPhonetic(nsAString& aPhonetic) override;
 
   
-  virtual void SetFocus(bool aOn, bool aRepaint) MOZ_OVERRIDE;
-  virtual nsresult SetFormProperty(nsIAtom* aName, const nsAString& aValue) MOZ_OVERRIDE;
+
+
+
+
+  virtual nsresult EnsureEditorInitialized() override;
+
+  virtual nsresult ScrollSelectionIntoView() override;
+
+  
+  virtual void SetFocus(bool aOn, bool aRepaint) override;
+  virtual nsresult SetFormProperty(nsIAtom* aName, const nsAString& aValue) override;
 
   
 
@@ -186,7 +186,7 @@ public:
 
   nsresult HandleSelectCall();
 
-  virtual Element* GetPseudoElement(nsCSSPseudoElements::Type aType) MOZ_OVERRIDE;
+  virtual Element* GetPseudoElement(nsCSSPseudoElements::Type aType) override;
 
   bool ShouldUseNativeStyleForSpinner() const;
 
@@ -208,7 +208,7 @@ private:
     : mFrame(aFrame)
     {}
 
-    NS_IMETHOD Run() MOZ_OVERRIDE
+    NS_IMETHOD Run() override
     {
       nsNumberControlFrame* frame =
         static_cast<nsNumberControlFrame*>(mFrame.GetFrame());

@@ -18,7 +18,7 @@
 
 
 
-class nsNativeDragSource MOZ_FINAL : public IDropSource
+class nsNativeDragSource final : public IDropSource
 {
 public:
 

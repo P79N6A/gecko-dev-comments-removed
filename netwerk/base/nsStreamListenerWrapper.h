@@ -13,7 +13,7 @@
 
 
 
-class nsStreamListenerWrapper MOZ_FINAL : public nsIStreamListener
+class nsStreamListenerWrapper final : public nsIStreamListener
                                         , public nsIThreadRetargetableStreamListener
 {
 public:

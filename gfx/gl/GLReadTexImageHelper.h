@@ -34,7 +34,7 @@ void ReadPixelsIntoDataSurface(GLContext* aGL,
 TemporaryRef<gfx::DataSourceSurface>
 ReadBackSurface(GLContext* gl, GLuint aTexture, bool aYInvert, gfx::SurfaceFormat aFormat);
 
-class GLReadTexImageHelper MOZ_FINAL
+class GLReadTexImageHelper final
 {
     
     GLContext* mGL;

@@ -159,7 +159,7 @@ struct SynchronizedOp
   nsTArray<nsCOMPtr<nsIRunnable> > mDelayedRunnables;
 };
 
-class CollectOriginsHelper MOZ_FINAL : public nsRunnable
+class CollectOriginsHelper final : public nsRunnable
 {
 public:
   CollectOriginsHelper(mozilla::Mutex& aMutex, uint64_t aMinSizeToBeFreed);
@@ -195,7 +195,7 @@ private:
 
 
 
-class OriginClearRunnable MOZ_FINAL : public nsRunnable
+class OriginClearRunnable final : public nsRunnable
 {
   enum CallbackState {
     
@@ -222,7 +222,7 @@ public:
   { }
 
   NS_IMETHOD
-  Run() MOZ_OVERRIDE;
+  Run() override;
 
   void
   AdvanceState()
@@ -262,7 +262,7 @@ private:
 
 
 
-class AsyncUsageRunnable MOZ_FINAL : public UsageInfo,
+class AsyncUsageRunnable final : public UsageInfo,
                                      public nsRunnable,
                                      public nsIQuotaRequest
 {
@@ -296,7 +296,7 @@ public:
                      nsIUsageCallback* aCallback);
 
   NS_IMETHOD
-  Run() MOZ_OVERRIDE;
+  Run() override;
 
   void
   AdvanceState()
@@ -341,7 +341,7 @@ private:
   const bool mIsApp;
 };
 
-class ResetOrClearRunnable MOZ_FINAL : public nsRunnable
+class ResetOrClearRunnable final : public nsRunnable
 {
   enum CallbackState {
     
@@ -366,7 +366,7 @@ public:
   { }
 
   NS_IMETHOD
-  Run() MOZ_OVERRIDE;
+  Run() override;
 
   void
   AdvanceState()
@@ -405,7 +405,7 @@ private:
 
 
 
-class FinalizeOriginEvictionRunnable MOZ_FINAL : public nsRunnable
+class FinalizeOriginEvictionRunnable final : public nsRunnable
 {
   enum CallbackState {
     
@@ -521,7 +521,7 @@ bool gTestingEnabled = false;
 
 
 
-class WaitForTransactionsToFinishRunnable MOZ_FINAL : public nsRunnable
+class WaitForTransactionsToFinishRunnable final : public nsRunnable
 {
 public:
   explicit WaitForTransactionsToFinishRunnable(SynchronizedOp* aOp)
@@ -548,7 +548,7 @@ private:
   uint32_t mCountdown;
 };
 
-class WaitForFileHandlesToFinishRunnable MOZ_FINAL : public nsRunnable
+class WaitForFileHandlesToFinishRunnable final : public nsRunnable
 {
 public:
   WaitForFileHandlesToFinishRunnable()
@@ -568,7 +568,7 @@ private:
   bool mBusy;
 };
 
-class SaveOriginAccessTimeRunnable MOZ_FINAL : public nsRunnable
+class SaveOriginAccessTimeRunnable final : public nsRunnable
 {
 public:
   SaveOriginAccessTimeRunnable(PersistenceType aPersistenceType,
@@ -586,7 +586,7 @@ private:
   int64_t mTimestamp;
 };
 
-class StorageDirectoryHelper MOZ_FINAL
+class StorageDirectoryHelper final
   : public nsRunnable
 {
   struct OriginProps;
@@ -656,7 +656,7 @@ public:
   { }
 };
 
-class MOZ_STACK_CLASS OriginParser MOZ_FINAL
+class MOZ_STACK_CLASS OriginParser final
 {
   static bool
   IgnoreWhitespace(char16_t )
@@ -846,7 +846,7 @@ GetLastModifiedTime(nsIFile* aFile, int64_t* aTimestamp)
   MOZ_ASSERT(aFile);
   MOZ_ASSERT(aTimestamp);
 
-  class MOZ_STACK_CLASS Helper MOZ_FINAL
+  class MOZ_STACK_CLASS Helper final
   {
   public:
     static nsresult

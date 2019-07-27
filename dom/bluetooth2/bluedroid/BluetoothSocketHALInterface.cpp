@@ -108,14 +108,14 @@ BluetoothSocketHALInterface::Listen(BluetoothSocketType aType,
 
 
 template <typename T>
-class DeleteTask MOZ_FINAL : public Task
+class DeleteTask final : public Task
 {
 public:
   DeleteTask(T* aPtr)
   : mPtr(aPtr)
   { }
 
-  void Run() MOZ_OVERRIDE
+  void Run() override
   {
     mPtr = nullptr;
   }
@@ -129,7 +129,7 @@ private:
 
 
 
-class BluetoothSocketHALInterface::ConnectWatcher MOZ_FINAL
+class BluetoothSocketHALInterface::ConnectWatcher final
   : public SocketMessageWatcher
 {
 public:
@@ -137,7 +137,7 @@ public:
     : SocketMessageWatcher(aFd, aRes)
   { }
 
-  void Proceed(BluetoothStatus aStatus) MOZ_OVERRIDE
+  void Proceed(BluetoothStatus aStatus) override
   {
     DispatchBluetoothSocketHALResult(
       GetResultHandler(), &BluetoothSocketResultHandler::Connect,
@@ -188,7 +188,7 @@ BluetoothSocketHALInterface::Connect(const nsAString& aBdAddr,
 
 
 
-class BluetoothSocketHALInterface::AcceptWatcher MOZ_FINAL
+class BluetoothSocketHALInterface::AcceptWatcher final
   : public SocketMessageWatcher
 {
 public:
@@ -196,7 +196,7 @@ public:
     : SocketMessageWatcher(aFd, aRes)
   { }
 
-  void Proceed(BluetoothStatus aStatus) MOZ_OVERRIDE
+  void Proceed(BluetoothStatus aStatus) override
   {
     if ((aStatus != STATUS_SUCCESS) && (GetClientFd() != -1)) {
       mozilla::ScopedClose(GetClientFd()); 

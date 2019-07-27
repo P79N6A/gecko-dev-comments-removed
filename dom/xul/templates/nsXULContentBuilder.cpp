@@ -72,14 +72,14 @@ class nsXULContentBuilder : public nsXULTemplateBuilder
 {
 public:
     
-    NS_IMETHOD CreateContents(nsIContent* aElement, bool aForceCreation) MOZ_OVERRIDE;
+    NS_IMETHOD CreateContents(nsIContent* aElement, bool aForceCreation) override;
 
     NS_IMETHOD HasGeneratedContent(nsIRDFResource* aResource,
                                    nsIAtom* aTag,
-                                   bool* aGenerated) MOZ_OVERRIDE;
+                                   bool* aGenerated) override;
 
     NS_IMETHOD GetResultForContent(nsIDOMElement* aContent,
-                                   nsIXULTemplateResult** aResult) MOZ_OVERRIDE;
+                                   nsIXULTemplateResult** aResult) override;
 
     
     NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
@@ -91,12 +91,12 @@ protected:
 
     nsXULContentBuilder();
 
-    void Traverse(nsCycleCollectionTraversalCallback& aCb) const MOZ_OVERRIDE
+    void Traverse(nsCycleCollectionTraversalCallback& aCb) const override
     {
         mSortState.Traverse(aCb);
     }
 
-    virtual void Uninit(bool aIsFinal) MOZ_OVERRIDE;
+    virtual void Uninit(bool aIsFinal) override;
 
     
     nsresult
@@ -269,7 +269,7 @@ protected:
                       bool aNotify);
 
     virtual nsresult
-    RebuildAll() MOZ_OVERRIDE;
+    RebuildAll() override;
 
     
     
@@ -281,7 +281,7 @@ protected:
 
     virtual bool
     GetInsertionLocations(nsIXULTemplateResult* aOldResult,
-                          nsCOMArray<nsIContent>** aLocations) MOZ_OVERRIDE;
+                          nsCOMArray<nsIContent>** aLocations) override;
 
     
 
@@ -291,7 +291,7 @@ protected:
     ReplaceMatch(nsIXULTemplateResult* aOldResult,
                  nsTemplateMatch* aNewMatch,
                  nsTemplateRule* aNewMatchRule,
-                 void *aContext) MOZ_OVERRIDE;
+                 void *aContext) override;
 
     
 
@@ -299,7 +299,7 @@ protected:
 
 
     virtual nsresult
-    SynchronizeResult(nsIXULTemplateResult* aResult) MOZ_OVERRIDE;
+    SynchronizeResult(nsIXULTemplateResult* aResult) override;
 
     
 

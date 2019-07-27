@@ -198,11 +198,11 @@ protected:
 
   
   
-  virtual void ReleaseNSSResources() MOZ_OVERRIDE {}
+  virtual void ReleaseNSSResources() override {}
 
-  virtual nsresult CalculateResult() MOZ_OVERRIDE MOZ_FINAL;
+  virtual nsresult CalculateResult() override final;
 
-  virtual void CallCallback(nsresult rv) MOZ_OVERRIDE MOZ_FINAL;
+  virtual void CallCallback(nsresult rv) override final;
 };
 
 } 

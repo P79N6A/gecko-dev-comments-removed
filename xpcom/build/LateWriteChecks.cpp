@@ -92,7 +92,7 @@ RecordStackWalker(uint32_t aFrameNumber, void* aPC, void* aSP, void* aClosure)
 
 
 
-class LateWriteObserver MOZ_FINAL : public IOInterposeObserver
+class LateWriteObserver final : public IOInterposeObserver
 {
 public:
   explicit LateWriteObserver(const char* aProfileDirectory)

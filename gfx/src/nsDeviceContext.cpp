@@ -52,7 +52,7 @@ using namespace mozilla;
 using namespace mozilla::gfx;
 using mozilla::services::GetObserverService;
 
-class nsFontCache MOZ_FINAL : public nsIObserver
+class nsFontCache final : public nsIObserver
 {
 public:
     nsFontCache()   { MOZ_COUNT_CTOR(nsFontCache); }

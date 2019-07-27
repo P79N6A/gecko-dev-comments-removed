@@ -91,7 +91,7 @@ struct CacheEntry
 
 
 
-class StartupCacheListener MOZ_FINAL : public nsIObserver
+class StartupCacheListener final : public nsIObserver
 {
   ~StartupCacheListener() {}
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -186,7 +186,7 @@ private:
 
 
 #ifdef DEBUG
-class StartupCacheDebugOutputStream MOZ_FINAL
+class StartupCacheDebugOutputStream final
   : public nsIObjectOutputStream
 {
   ~StartupCacheDebugOutputStream() {}
@@ -214,7 +214,7 @@ class StartupCacheDebugOutputStream MOZ_FINAL
       {0xb5, 0x77, 0xf9, 0x23, 0x57, 0xed, 0xa8, 0x84}}
 
 
-class StartupCacheWrapper MOZ_FINAL
+class StartupCacheWrapper final
   : public nsIStartupCache
 {
   ~StartupCacheWrapper() {}

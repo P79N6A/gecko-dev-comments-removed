@@ -25,7 +25,7 @@
 
 
 
-class nsBinaryOutputStream MOZ_FINAL : public nsIObjectOutputStream
+class nsBinaryOutputStream final : public nsIObjectOutputStream
 {
 public:
   nsBinaryOutputStream()
@@ -68,7 +68,7 @@ private:
 
 #define NS_BINARYINPUTSTREAM_CONTRACTID "@mozilla.org/binaryinputstream;1"
 
-class nsBinaryInputStream MOZ_FINAL : public nsIObjectInputStream
+class nsBinaryInputStream final : public nsIObjectInputStream
 {
 public:
   nsBinaryInputStream()

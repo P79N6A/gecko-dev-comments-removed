@@ -58,8 +58,8 @@ public:
     NS_DECL_NSIIPCSERIALIZABLEURI
 
     
-    virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE;
-    virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE;
+    virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const override;
+    virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const override;
 
     explicit nsStandardURL(bool aSupportsFileURL = false, bool aTrackURL = true);
 
@@ -93,7 +93,7 @@ public:
     
     
     
-    class nsPrefObserver MOZ_FINAL : public nsIObserver
+    class nsPrefObserver final : public nsIObserver
     {
         ~nsPrefObserver() {}
 

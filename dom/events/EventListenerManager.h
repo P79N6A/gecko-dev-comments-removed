@@ -150,7 +150,7 @@ inline EventListenerFlags AllEventsAtSystemGroupCapture()
 
 
 
-class EventListenerManager MOZ_FINAL
+class EventListenerManager final
 {
   ~EventListenerManager();
 

@@ -48,42 +48,42 @@ public:
 
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
+                    nsIFrame*         aPrevInFlow) override;
 
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
 
 #ifdef ACCESSIBILITY
-  virtual mozilla::a11y::AccType AccessibleType() MOZ_OVERRIDE;
+  virtual mozilla::a11y::AccType AccessibleType() override;
 #endif
 
   virtual nsresult  AttributeChanged(int32_t         aNameSpaceID,
                                      nsIAtom*        aAttribute,
-                                     int32_t         aModType) MOZ_OVERRIDE;
+                                     int32_t         aModType) override;
 
   
-  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) MOZ_OVERRIDE;
+  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) override;
 
 #ifdef DEBUG
   
   
   virtual void AppendFrames(ChildListID     aListID,
-                            nsFrameList&    aFrameList) MOZ_OVERRIDE;
+                            nsFrameList&    aFrameList) override;
   virtual void InsertFrames(ChildListID     aListID,
                             nsIFrame*       aPrevFrame,
-                            nsFrameList&    aFrameList) MOZ_OVERRIDE;
+                            nsFrameList&    aFrameList) override;
   virtual void RemoveFrame(ChildListID     aListID,
-                           nsIFrame*       aOldFrame) MOZ_OVERRIDE;
+                           nsIFrame*       aOldFrame) override;
 #endif
 
-  virtual nsContainerFrame* GetContentInsertionFrame() MOZ_OVERRIDE {
+  virtual nsContainerFrame* GetContentInsertionFrame() override {
     return GetFirstPrincipalChild()->GetContentInsertionFrame();
   }
 
-  virtual nsMargin GetUsedMargin() const MOZ_OVERRIDE;
+  virtual nsMargin GetUsedMargin() const override;
 
-  virtual void NotifyPercentHeight(const nsHTMLReflowState& aReflowState) MOZ_OVERRIDE;
+  virtual void NotifyPercentHeight(const nsHTMLReflowState& aReflowState) override;
 
-  virtual bool NeedsToObserve(const nsHTMLReflowState& aReflowState) MOZ_OVERRIDE;
+  virtual bool NeedsToObserve(const nsHTMLReflowState& aReflowState) override;
 
   
 
@@ -94,7 +94,7 @@ public:
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
   DrawResult PaintCellBackground(nsRenderingContext& aRenderingContext,
                                  const nsRect& aDirtyRect, nsPoint aPt,
@@ -105,25 +105,25 @@ public:
                                   nsDisplayListBuilder* aBuilder,
                                   const nsDisplayListSet& aLists);
 
-  virtual nscoord GetMinISize(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
-  virtual nscoord GetPrefISize(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
+  virtual nscoord GetMinISize(nsRenderingContext *aRenderingContext) override;
+  virtual nscoord GetPrefISize(nsRenderingContext *aRenderingContext) override;
   virtual IntrinsicISizeOffsetData
-    IntrinsicISizeOffsets(nsRenderingContext* aRenderingContext) MOZ_OVERRIDE;
+    IntrinsicISizeOffsets(nsRenderingContext* aRenderingContext) override;
 
   virtual void Reflow(nsPresContext*      aPresContext,
                       nsHTMLReflowMetrics& aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus&      aStatus) MOZ_OVERRIDE;
+                      nsReflowStatus&      aStatus) override;
 
   
 
 
 
 
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
   void VerticallyAlignChild(nscoord aMaxAscent);
@@ -166,10 +166,10 @@ public:
 
 
 
-  NS_IMETHOD GetCellIndexes(int32_t &aRowIndex, int32_t &aColIndex) MOZ_OVERRIDE;
+  NS_IMETHOD GetCellIndexes(int32_t &aRowIndex, int32_t &aColIndex) override;
 
   
-  virtual nsresult GetRowIndex(int32_t &aRowIndex) const MOZ_OVERRIDE;
+  virtual nsresult GetRowIndex(int32_t &aRowIndex) const override;
 
   
 
@@ -180,7 +180,7 @@ public:
   virtual int32_t GetColSpan();
 
   
-  virtual nsresult GetColIndex(int32_t &aColIndex) const MOZ_OVERRIDE;
+  virtual nsresult GetColIndex(int32_t &aColIndex) const override;
   void SetColIndex(int32_t aColIndex);
 
   
@@ -213,19 +213,19 @@ public:
   void DecorateForSelection(nsRenderingContext& aRenderingContext,
                             nsPoint              aPt);
 
-  virtual bool UpdateOverflow() MOZ_OVERRIDE;
+  virtual bool UpdateOverflow() override;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE
+  virtual bool IsFrameOfType(uint32_t aFlags) const override
   {
     return nsContainerFrame::IsFrameOfType(aFlags & ~(nsIFrame::eTablePart));
   }
   
-  virtual void InvalidateFrame(uint32_t aDisplayItemKey = 0) MOZ_OVERRIDE;
-  virtual void InvalidateFrameWithRect(const nsRect& aRect, uint32_t aDisplayItemKey = 0) MOZ_OVERRIDE;
-  virtual void InvalidateFrameForRemoval() MOZ_OVERRIDE { InvalidateFrameSubtree(); }
+  virtual void InvalidateFrame(uint32_t aDisplayItemKey = 0) override;
+  virtual void InvalidateFrameWithRect(const nsRect& aRect, uint32_t aDisplayItemKey = 0) override;
+  virtual void InvalidateFrameForRemoval() override { InvalidateFrameSubtree(); }
 
 protected:
-  virtual LogicalSides GetLogicalSkipSides(const nsHTMLReflowState* aReflowState= nullptr) const MOZ_OVERRIDE;
+  virtual LogicalSides GetLogicalSkipSides(const nsHTMLReflowState* aReflowState= nullptr) const override;
 
   
 
@@ -290,7 +290,7 @@ inline void nsTableCellFrame::SetHasPctOverHeight(bool aValue)
 }
 
 
-class nsBCTableCellFrame MOZ_FINAL : public nsTableCellFrame
+class nsBCTableCellFrame final : public nsTableCellFrame
 {
   typedef mozilla::image::DrawResult DrawResult;
 public:
@@ -300,16 +300,16 @@ public:
 
   ~nsBCTableCellFrame();
 
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
-  virtual nsMargin GetUsedBorder() const MOZ_OVERRIDE;
+  virtual nsMargin GetUsedBorder() const override;
   virtual bool GetBorderRadii(const nsSize& aFrameSize,
                               const nsSize& aBorderArea,
                               Sides aSkipSides,
-                              nscoord aRadii[8]) const MOZ_OVERRIDE;
+                              nscoord aRadii[8]) const override;
 
   
-  virtual nsMargin* GetBorderWidth(nsMargin& aBorder) const MOZ_OVERRIDE;
+  virtual nsMargin* GetBorderWidth(nsMargin& aBorder) const override;
 
   
   BCPixelSize GetBorderWidth(mozilla::css::Side aSide) const;
@@ -317,16 +317,16 @@ public:
   
   void SetBorderWidth(mozilla::css::Side aSide, BCPixelSize aPixelValue);
 
-  virtual nsMargin GetBorderOverflow() MOZ_OVERRIDE;
+  virtual nsMargin GetBorderOverflow() override;
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
   virtual DrawResult PaintBackground(nsRenderingContext& aRenderingContext,
                                      const nsRect&        aDirtyRect,
                                      nsPoint              aPt,
-                                     uint32_t             aFlags) MOZ_OVERRIDE;
+                                     uint32_t             aFlags) override;
 
 private:
 

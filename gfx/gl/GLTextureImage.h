@@ -312,7 +312,7 @@ protected:
 
 
 
-class TiledTextureImage MOZ_FINAL
+class TiledTextureImage final
     : public TextureImage
 {
 public:

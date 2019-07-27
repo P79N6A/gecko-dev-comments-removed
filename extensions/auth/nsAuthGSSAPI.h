@@ -35,7 +35,7 @@
 
 
 
-class nsAuthGSSAPI MOZ_FINAL : public nsIAuthModule
+class nsAuthGSSAPI final : public nsIAuthModule
 {
 public:
     NS_DECL_THREADSAFE_ISUPPORTS

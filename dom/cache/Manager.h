@@ -59,7 +59,7 @@ class StreamList;
 
 
 
-class Manager MOZ_FINAL
+class Manager final
 {
 public:
   

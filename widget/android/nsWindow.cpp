@@ -84,7 +84,7 @@ static StaticRefPtr<ContentCreationNotifier> gContentCreationNotifier;
 
 
 
-class ContentCreationNotifier MOZ_FINAL : public nsIObserver
+class ContentCreationNotifier final : public nsIObserver
 {
 private:
     ~ContentCreationNotifier() {}

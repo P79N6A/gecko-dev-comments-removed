@@ -57,7 +57,7 @@
 
 static mozilla::Atomic<bool, mozilla::ReleaseAcquire> gTraceLogLocked;
 
-struct MOZ_STACK_CLASS AutoTraceLogLock MOZ_FINAL
+struct MOZ_STACK_CLASS AutoTraceLogLock final
 {
   AutoTraceLogLock()
   {
@@ -195,7 +195,7 @@ static const PLHashAllocOps typesToLogHashAllocOps = {
 
 #ifdef MOZ_STACKWALKING
 
-class CodeAddressServiceStringTable MOZ_FINAL
+class CodeAddressServiceStringTable final
 {
 public:
   CodeAddressServiceStringTable() : mSet(32) {}
@@ -216,7 +216,7 @@ private:
   StringSet mSet;
 };
 
-struct CodeAddressServiceStringAlloc MOZ_FINAL
+struct CodeAddressServiceStringAlloc final
 {
   static char* copy(const char* aStr) { return strdup(aStr); }
   static void free(char* aPtr) { ::free(aPtr); }
@@ -224,7 +224,7 @@ struct CodeAddressServiceStringAlloc MOZ_FINAL
 
 
 
-struct CodeAddressServiceLock MOZ_FINAL
+struct CodeAddressServiceLock final
 {
   static void Unlock() {}
   static void Lock() {}

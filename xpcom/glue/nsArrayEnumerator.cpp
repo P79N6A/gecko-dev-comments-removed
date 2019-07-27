@@ -14,7 +14,7 @@
 #include "nsCOMArray.h"
 #include "nsCOMPtr.h"
 
-class nsSimpleArrayEnumerator MOZ_FINAL : public nsISimpleEnumerator
+class nsSimpleArrayEnumerator final : public nsISimpleEnumerator
 {
 public:
   
@@ -106,7 +106,7 @@ NS_NewArrayEnumerator(nsISimpleEnumerator** aResult, nsIArray* aArray)
 
 
 
-class nsCOMArrayEnumerator MOZ_FINAL : public nsISimpleEnumerator
+class nsCOMArrayEnumerator final : public nsISimpleEnumerator
 {
 public:
   

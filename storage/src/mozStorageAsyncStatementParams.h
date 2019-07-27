@@ -20,7 +20,7 @@ namespace storage {
 
 
 
-class AsyncStatementParams MOZ_FINAL : public mozIStorageStatementParams
+class AsyncStatementParams final : public mozIStorageStatementParams
                                      , public nsIXPCScriptable
 {
 public:

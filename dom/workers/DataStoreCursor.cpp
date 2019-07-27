@@ -67,7 +67,7 @@ public:
 
 
 
-class DataStoreCursorNextRunnable MOZ_FINAL : public DataStoreCursorRunnable
+class DataStoreCursorNextRunnable final : public DataStoreCursorRunnable
 {
   nsRefPtr<PromiseWorkerProxy> mPromiseWorkerProxy;
   ErrorResult& mRv;
@@ -101,7 +101,7 @@ public:
 
 protected:
   virtual bool
-  MainThreadRun() MOZ_OVERRIDE
+  MainThreadRun() override
   {
     AssertIsOnMainThread();
 
@@ -113,7 +113,7 @@ protected:
 
 
 
-class DataStoreCursorCloseRunnable MOZ_FINAL : public DataStoreCursorRunnable
+class DataStoreCursorCloseRunnable final : public DataStoreCursorRunnable
 {
   ErrorResult& mRv;
 
@@ -130,7 +130,7 @@ public:
 
 protected:
   virtual bool
-  MainThreadRun() MOZ_OVERRIDE
+  MainThreadRun() override
   {
     AssertIsOnMainThread();
 

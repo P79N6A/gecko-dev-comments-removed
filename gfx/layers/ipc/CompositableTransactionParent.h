@@ -52,7 +52,7 @@ protected:
 
   bool ReceiveCompositableUpdate(const CompositableOperation& aEdit,
                                  EditReplyVector& replyv);
-  bool IsOnCompositorSide() const MOZ_OVERRIDE { return true; }
+  bool IsOnCompositorSide() const override { return true; }
 
   
 

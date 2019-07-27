@@ -98,7 +98,7 @@ namespace {
 
 class ParticularProcessPriorityManager;
 
-class ProcessLRUPool MOZ_FINAL
+class ProcessLRUPool final
 {
 public:
   
@@ -145,7 +145,7 @@ private:
 
 
 
-class ProcessPriorityManagerImpl MOZ_FINAL
+class ProcessPriorityManagerImpl final
   : public nsIObserver
   , public WakeLockObserver
 {
@@ -193,7 +193,7 @@ public:
 
 
 
-  virtual void Notify(const WakeLockInformation& aInfo) MOZ_OVERRIDE;
+  virtual void Notify(const WakeLockInformation& aInfo) override;
 
   
 
@@ -246,7 +246,7 @@ private:
 
 
 
-class ProcessPriorityManagerChild MOZ_FINAL
+class ProcessPriorityManagerChild final
   : public nsIObserver
 {
 public:
@@ -275,7 +275,7 @@ private:
 
 
 
-class ParticularProcessPriorityManager MOZ_FINAL
+class ParticularProcessPriorityManager final
   : public WakeLockObserver
   , public nsIObserver
   , public nsITimerCallback
@@ -290,7 +290,7 @@ public:
   NS_DECL_NSIOBSERVER
   NS_DECL_NSITIMERCALLBACK
 
-  virtual void Notify(const WakeLockInformation& aInfo) MOZ_OVERRIDE;
+  virtual void Notify(const WakeLockInformation& aInfo) override;
   void Init();
 
   int32_t Pid() const;

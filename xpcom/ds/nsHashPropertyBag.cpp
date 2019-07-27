@@ -78,7 +78,7 @@ nsHashPropertyBagBase::DeleteProperty(const nsAString& aName)
 
 
 
-class nsSimpleProperty MOZ_FINAL : public nsIProperty
+class nsSimpleProperty final : public nsIProperty
 {
   ~nsSimpleProperty() {}
 

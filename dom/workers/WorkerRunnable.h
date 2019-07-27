@@ -155,13 +155,13 @@ protected:
 
 private:
   virtual bool
-  IsDebuggerRunnable() const MOZ_OVERRIDE
+  IsDebuggerRunnable() const override
   {
     return true;
   }
 
   virtual bool
-  PreDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate) MOZ_OVERRIDE
+  PreDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override
   {
     AssertIsOnMainThread();
 
@@ -170,7 +170,7 @@ private:
 
   virtual void
   PostDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
-               bool aDispatchResult) MOZ_OVERRIDE;
+               bool aDispatchResult) override;
 };
 
 
@@ -191,7 +191,7 @@ protected:
 
 private:
   virtual bool
-  DispatchInternal() MOZ_OVERRIDE;
+  DispatchInternal() override;
 };
 
 
@@ -220,7 +220,7 @@ protected:
 
 private:
   virtual bool
-  PreDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate) MOZ_OVERRIDE
+  PreDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override
   {
     AssertIsOnMainThread();
     return true;
@@ -228,7 +228,7 @@ private:
 
   virtual void
   PostDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
-               bool aDispatchResult) MOZ_OVERRIDE;
+               bool aDispatchResult) override;
 };
 
 
@@ -260,10 +260,10 @@ protected:
 
 private:
   virtual bool
-  WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) MOZ_OVERRIDE;
+  WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override;
 
   virtual bool
-  DispatchInternal() MOZ_OVERRIDE;
+  DispatchInternal() override;
 };
 
 
@@ -287,7 +287,7 @@ protected:
 
 private:
   virtual bool
-  PreDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate) MOZ_OVERRIDE
+  PreDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override
   {
     AssertIsOnMainThread();
     return true;
@@ -295,7 +295,7 @@ private:
 
   virtual void
   PostDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
-               bool aDispatchResult) MOZ_OVERRIDE;
+               bool aDispatchResult) override;
 };
 
 
@@ -325,7 +325,7 @@ public:
 
 private:
   virtual bool
-  DispatchInternal() MOZ_OVERRIDE;
+  DispatchInternal() override;
 
   
   using WorkerRunnable::Cancel;
@@ -344,7 +344,7 @@ protected:
   { }
 
   virtual bool
-  PreDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate) MOZ_OVERRIDE
+  PreDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override
   {
     AssertIsOnMainThread();
     return true;
@@ -352,7 +352,7 @@ protected:
 
   virtual void
   PostDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
-               bool aDispatchResult) MOZ_OVERRIDE;
+               bool aDispatchResult) override;
 };
 
 
@@ -372,15 +372,15 @@ protected:
   { }
 
   virtual bool
-  PreDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate) MOZ_OVERRIDE;
+  PreDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override;
 
   virtual void
   PostDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
-               bool aDispatchResult) MOZ_OVERRIDE;
+               bool aDispatchResult) override;
 
   virtual void
   PostRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
-          bool aRunResult) MOZ_OVERRIDE;
+          bool aRunResult) override;
 };
 
 
@@ -402,7 +402,7 @@ public:
   bool Dispatch(JSContext* aCx);
 
 private:
-  NS_IMETHOD Run() MOZ_OVERRIDE;  
+  NS_IMETHOD Run() override;  
 };
 
 END_WORKERS_NAMESPACE

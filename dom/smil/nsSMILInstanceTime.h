@@ -33,7 +33,7 @@ class nsSMILTimeValueSpec;
 
 
 
-class nsSMILInstanceTime MOZ_FINAL
+class nsSMILInstanceTime final
 {
 public:
   

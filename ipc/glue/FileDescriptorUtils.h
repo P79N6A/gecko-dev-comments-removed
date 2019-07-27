@@ -17,7 +17,7 @@ namespace ipc {
 
 
 
-class CloseFileRunnable MOZ_FINAL : public nsIRunnable
+class CloseFileRunnable final : public nsIRunnable
 {
   typedef mozilla::ipc::FileDescriptor FileDescriptor;
 

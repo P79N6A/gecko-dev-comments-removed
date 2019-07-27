@@ -22,7 +22,7 @@ class WakeLockTopic;
 
 
 
-class WakeLockListener MOZ_FINAL : public nsIDOMMozWakeLockListener
+class WakeLockListener final : public nsIDOMMozWakeLockListener
 {
 public:
   NS_DECL_ISUPPORTS;
@@ -31,7 +31,7 @@ public:
   static void Shutdown();
 
   virtual nsresult Callback(const nsAString& topic,
-                            const nsAString& state) MOZ_OVERRIDE;
+                            const nsAString& state) override;
 
 private:
   WakeLockListener();

@@ -29,7 +29,7 @@ class Text;
 
 
 
-struct nsRangeStore MOZ_FINAL
+struct nsRangeStore final
 {
   nsRangeStore();
 

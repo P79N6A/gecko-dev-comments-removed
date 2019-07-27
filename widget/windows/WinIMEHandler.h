@@ -27,7 +27,7 @@ struct MSGResult;
 
 
 
-class IMEHandler MOZ_FINAL
+class IMEHandler final
 {
 public:
   static void Initialize();

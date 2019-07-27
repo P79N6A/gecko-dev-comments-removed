@@ -68,7 +68,7 @@ protected:
 
 
 
-class ContextStateTrackerOGL MOZ_FINAL : public ContextStateTracker {
+class ContextStateTrackerOGL final : public ContextStateTracker {
   typedef mozilla::gl::GLContext GLContext;
 public:
   void PushOGLSection(GLContext* aGL, const char* aSectionName);

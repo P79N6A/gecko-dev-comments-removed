@@ -1062,7 +1062,7 @@ class CallFrameInfo::Handler {
 
 
 
-class CallFrameInfo::Reporter MOZ_FINAL {
+class CallFrameInfo::Reporter final {
  public:
   
   

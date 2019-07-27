@@ -893,7 +893,7 @@ nsCSPContext::SendReports(nsISupports* aBlockedContentSource,
 
 
 
-class CSPReportSenderRunnable MOZ_FINAL : public nsRunnable
+class CSPReportSenderRunnable final : public nsRunnable
 {
   public:
     CSPReportSenderRunnable(nsISupports* aBlockedContentSource,

@@ -18,7 +18,7 @@ namespace mozilla {
 namespace dom {
 namespace voicemail {
 
-class VoicemailParent MOZ_FINAL : public PVoicemailParent
+class VoicemailParent final : public PVoicemailParent
                                 , public nsIVoicemailListener
 {
 public:
@@ -37,10 +37,10 @@ public:
                     bool* aHasMessages,
                     int32_t* aMessageCount,
                     nsString* aReturnNumber,
-                    nsString* aReturnMessage) MOZ_OVERRIDE;
+                    nsString* aReturnMessage) override;
 
   void
-  ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
+  ActorDestroy(ActorDestroyReason aWhy) override;
 
 private:
   

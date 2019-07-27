@@ -38,7 +38,7 @@ class DOMSVGNumber;
 
 
 
-class DOMSVGNumberList MOZ_FINAL : public nsISupports,
+class DOMSVGNumberList final : public nsISupports,
                                    public nsWrapperCache
 {
   friend class AutoChangeNumberListNotifier;
@@ -69,7 +69,7 @@ public:
     InternalListLengthWillChange(aInternalList.Length()); 
   }
 
-  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
 
   nsISupports* GetParentObject()
   {

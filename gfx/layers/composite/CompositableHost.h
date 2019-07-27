@@ -235,7 +235,7 @@ protected:
   bool mKeepAttached;
 };
 
-class AutoLockCompositableHost MOZ_FINAL
+class AutoLockCompositableHost final
 {
 public:
   explicit AutoLockCompositableHost(CompositableHost* aHost)

@@ -33,7 +33,7 @@ enum {
 
 
 
-class ExtendInputEffectD2D1 MOZ_FINAL : public ID2D1EffectImpl
+class ExtendInputEffectD2D1 final : public ID2D1EffectImpl
                                       , public ID2D1DrawTransform
 {
 public:

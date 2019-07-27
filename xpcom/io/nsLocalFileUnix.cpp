@@ -89,7 +89,7 @@ using namespace mozilla;
     PR_END_MACRO
 
 
-class nsDirEnumeratorUnix MOZ_FINAL
+class nsDirEnumeratorUnix final
   : public nsISimpleEnumerator
   , public nsIDirectoryEnumerator
 {

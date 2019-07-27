@@ -622,7 +622,7 @@ BluetoothDaemonHandsfreeModule::HandleRsp(
 
 
 
-class BluetoothDaemonHandsfreeModule::NotificationHandlerWrapper MOZ_FINAL
+class BluetoothDaemonHandsfreeModule::NotificationHandlerWrapper final
 {
 public:
   typedef BluetoothHandsfreeNotificationHandler ObjectType;
@@ -636,7 +636,7 @@ public:
 };
 
 
-class BluetoothDaemonHandsfreeModule::ConnectionStateInitOp MOZ_FINAL
+class BluetoothDaemonHandsfreeModule::ConnectionStateInitOp final
   : private PDUInitOp
 {
 public:
@@ -677,7 +677,7 @@ BluetoothDaemonHandsfreeModule::ConnectionStateNtf(
 }
 
 
-class BluetoothDaemonHandsfreeModule::AudioStateInitOp MOZ_FINAL
+class BluetoothDaemonHandsfreeModule::AudioStateInitOp final
   : private PDUInitOp
 {
 public:
@@ -745,7 +745,7 @@ BluetoothDaemonHandsfreeModule::HangupCallNtf(
 }
 
 
-class BluetoothDaemonHandsfreeModule::VolumeInitOp MOZ_FINAL
+class BluetoothDaemonHandsfreeModule::VolumeInitOp final
   : private PDUInitOp
 {
 public:
@@ -784,7 +784,7 @@ BluetoothDaemonHandsfreeModule::VolumeNtf(
 }
 
 
-class BluetoothDaemonHandsfreeModule::DialCallInitOp MOZ_FINAL
+class BluetoothDaemonHandsfreeModule::DialCallInitOp final
   : private PDUInitOp
 {
 public:
@@ -878,7 +878,7 @@ BluetoothDaemonHandsfreeModule::ClccNtf(
 }
 
 
-class BluetoothDaemonHandsfreeModule::UnknownAtInitOp MOZ_FINAL
+class BluetoothDaemonHandsfreeModule::UnknownAtInitOp final
   : private PDUInitOp
 {
 public:
@@ -966,7 +966,7 @@ BluetoothDaemonHandsfreeInterface::BluetoothDaemonHandsfreeInterface(
 BluetoothDaemonHandsfreeInterface::~BluetoothDaemonHandsfreeInterface()
 { }
 
-class BluetoothDaemonHandsfreeInterface::InitResultHandler MOZ_FINAL
+class BluetoothDaemonHandsfreeInterface::InitResultHandler final
   : public BluetoothSetupResultHandler
 {
 public:
@@ -976,14 +976,14 @@ public:
     MOZ_ASSERT(mRes);
   }
 
-  void OnError(BluetoothStatus aStatus) MOZ_OVERRIDE
+  void OnError(BluetoothStatus aStatus) override
   {
     MOZ_ASSERT(NS_IsMainThread());
 
     mRes->OnError(aStatus);
   }
 
-  void RegisterModule() MOZ_OVERRIDE
+  void RegisterModule() override
   {
     MOZ_ASSERT(NS_IsMainThread());
 
@@ -1020,7 +1020,7 @@ BluetoothDaemonHandsfreeInterface::Init(
   }
 }
 
-class BluetoothDaemonHandsfreeInterface::CleanupResultHandler MOZ_FINAL
+class BluetoothDaemonHandsfreeInterface::CleanupResultHandler final
   : public BluetoothSetupResultHandler
 {
 public:
@@ -1032,7 +1032,7 @@ public:
     MOZ_ASSERT(mModule);
   }
 
-  void OnError(BluetoothStatus aStatus) MOZ_OVERRIDE
+  void OnError(BluetoothStatus aStatus) override
   {
     MOZ_ASSERT(NS_IsMainThread());
 
@@ -1041,7 +1041,7 @@ public:
     }
   }
 
-  void UnregisterModule() MOZ_OVERRIDE
+  void UnregisterModule() override
   {
     MOZ_ASSERT(NS_IsMainThread());
 

@@ -44,7 +44,7 @@ public:
 
 
 
-class nsClientAuthRememberEntry MOZ_FINAL : public PLDHashEntryHdr
+class nsClientAuthRememberEntry final : public PLDHashEntryHdr
 {
   public:
     
@@ -106,7 +106,7 @@ class nsClientAuthRememberEntry MOZ_FINAL : public PLDHashEntryHdr
     nsCString mHostWithCert;
 };
 
-class nsClientAuthRememberService MOZ_FINAL : public nsIObserver,
+class nsClientAuthRememberService final : public nsIObserver,
                                               public nsSupportsWeakReference
 {
 public:

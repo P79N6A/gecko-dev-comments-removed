@@ -17,7 +17,7 @@ class RevocableStore {
   
   
   
-  class StoreRef MOZ_FINAL {
+  class StoreRef final {
    public:
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(StoreRef)
     explicit StoreRef(RevocableStore* store) : store_(store) { }

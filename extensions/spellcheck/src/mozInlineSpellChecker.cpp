@@ -491,7 +491,7 @@ private:
 };
 
 
-class InitEditorSpellCheckCallback MOZ_FINAL : public nsIEditorSpellCheckCallback
+class InitEditorSpellCheckCallback final : public nsIEditorSpellCheckCallback
 {
   ~InitEditorSpellCheckCallback() {}
 public:
@@ -500,7 +500,7 @@ public:
   explicit InitEditorSpellCheckCallback(mozInlineSpellChecker* aSpellChecker)
     : mSpellChecker(aSpellChecker) {}
 
-  NS_IMETHOD EditorSpellCheckDone() MOZ_OVERRIDE
+  NS_IMETHOD EditorSpellCheckDone() override
   {
     return mSpellChecker ? mSpellChecker->EditorSpellCheckInited() : NS_OK;
   }
@@ -1945,7 +1945,7 @@ nsresult mozInlineSpellChecker::KeyPress(nsIDOMEvent* aKeyEvent)
 }
 
 
-class UpdateCurrentDictionaryCallback MOZ_FINAL : public nsIEditorSpellCheckCallback
+class UpdateCurrentDictionaryCallback final : public nsIEditorSpellCheckCallback
 {
 public:
   NS_DECL_ISUPPORTS
@@ -1954,7 +1954,7 @@ public:
                                            uint32_t aDisabledAsyncToken)
     : mSpellChecker(aSpellChecker), mDisabledAsyncToken(aDisabledAsyncToken) {}
 
-  NS_IMETHOD EditorSpellCheckDone() MOZ_OVERRIDE
+  NS_IMETHOD EditorSpellCheckDone() override
   {
     
     

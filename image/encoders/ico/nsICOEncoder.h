@@ -25,7 +25,7 @@ class nsPNGEncoder;
 
 
 
-class nsICOEncoder MOZ_FINAL : public imgIEncoder
+class nsICOEncoder final : public imgIEncoder
 {
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
 public:

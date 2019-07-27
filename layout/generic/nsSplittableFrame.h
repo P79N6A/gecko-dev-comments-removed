@@ -22,31 +22,31 @@ public:
 
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
+                    nsIFrame*         aPrevInFlow) override;
   
-  virtual nsSplittableType GetSplittableType() const MOZ_OVERRIDE;
+  virtual nsSplittableType GetSplittableType() const override;
 
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
-
-  
-
-
-
-
-
+  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
 
   
-  
-  virtual nsIFrame* GetPrevContinuation() const MOZ_OVERRIDE;
-  virtual nsIFrame* GetNextContinuation() const MOZ_OVERRIDE;
+
+
+
+
+
 
   
-  virtual void SetPrevContinuation(nsIFrame*) MOZ_OVERRIDE;
-  virtual void SetNextContinuation(nsIFrame*) MOZ_OVERRIDE;
+  
+  virtual nsIFrame* GetPrevContinuation() const override;
+  virtual nsIFrame* GetNextContinuation() const override;
 
   
-  virtual nsIFrame* FirstContinuation() const MOZ_OVERRIDE;
-  virtual nsIFrame* LastContinuation() const MOZ_OVERRIDE;
+  virtual void SetPrevContinuation(nsIFrame*) override;
+  virtual void SetNextContinuation(nsIFrame*) override;
+
+  
+  virtual nsIFrame* FirstContinuation() const override;
+  virtual nsIFrame* LastContinuation() const override;
 
 #ifdef DEBUG
   
@@ -58,16 +58,16 @@ public:
   nsIFrame* GetPrevInFlow() const;
   nsIFrame* GetNextInFlow() const;
 
-  virtual nsIFrame* GetPrevInFlowVirtual() const MOZ_OVERRIDE { return GetPrevInFlow(); }
-  virtual nsIFrame* GetNextInFlowVirtual() const MOZ_OVERRIDE { return GetNextInFlow(); }
+  virtual nsIFrame* GetPrevInFlowVirtual() const override { return GetPrevInFlow(); }
+  virtual nsIFrame* GetNextInFlowVirtual() const override { return GetNextInFlow(); }
   
   
-  virtual void SetPrevInFlow(nsIFrame*) MOZ_OVERRIDE;
-  virtual void SetNextInFlow(nsIFrame*) MOZ_OVERRIDE;
+  virtual void SetPrevInFlow(nsIFrame*) override;
+  virtual void SetNextInFlow(nsIFrame*) override;
 
   
-  virtual nsIFrame* FirstInFlow() const MOZ_OVERRIDE;
-  virtual nsIFrame* LastInFlow() const MOZ_OVERRIDE;
+  virtual nsIFrame* FirstInFlow() const override;
+  virtual nsIFrame* LastInFlow() const override;
 
   
   
@@ -95,10 +95,10 @@ protected:
   
 
 
-  virtual LogicalSides GetLogicalSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const MOZ_OVERRIDE;
+  virtual LogicalSides GetLogicalSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const override;
 
 #ifdef DEBUG
-  virtual void DumpBaseRegressionData(nsPresContext* aPresContext, FILE* out, int32_t aIndent) MOZ_OVERRIDE;
+  virtual void DumpBaseRegressionData(nsPresContext* aPresContext, FILE* out, int32_t aIndent) override;
 #endif
 
   nsIFrame*   mPrevContinuation;

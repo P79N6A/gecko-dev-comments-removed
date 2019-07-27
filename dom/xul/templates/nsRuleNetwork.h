@@ -803,7 +803,7 @@ public:
 
 
     virtual nsresult Propagate(InstantiationSet& aInstantiations,
-                               bool aIsUpdate, bool& aTakenInstantiations) MOZ_OVERRIDE;
+                               bool aIsUpdate, bool& aTakenInstantiations) override;
 
     
 

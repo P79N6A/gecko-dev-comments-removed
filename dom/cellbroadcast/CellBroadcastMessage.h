@@ -19,7 +19,7 @@ namespace dom {
 
 class CellBroadcastEtwsInfo;
 
-class CellBroadcastMessage MOZ_FINAL : public nsISupports
+class CellBroadcastMessage final : public nsISupports
                                      , public nsWrapperCache
 {
 public:
@@ -44,7 +44,7 @@ public:
   nsPIDOMWindow*
   GetParentObject() const { return mWindow; }
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   
 
@@ -91,7 +91,7 @@ private:
   nsRefPtr<CellBroadcastEtwsInfo> mEtwsInfo;
 };
 
-class CellBroadcastEtwsInfo MOZ_FINAL : public nsISupports
+class CellBroadcastEtwsInfo final : public nsISupports
                                       , public nsWrapperCache
 {
 public:
@@ -106,7 +106,7 @@ public:
   nsPIDOMWindow*
   GetParentObject() const { return mWindow; }
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   
 

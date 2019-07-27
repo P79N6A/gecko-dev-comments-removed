@@ -16,7 +16,7 @@ namespace a11y {
 
 
 
-class HTMLImageMapAccessible MOZ_FINAL : public ImageAccessibleWrap
+class HTMLImageMapAccessible final : public ImageAccessibleWrap
 {
 public:
   HTMLImageMapAccessible(nsIContent* aContent, DocAccessible* aDoc);
@@ -25,12 +25,12 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  virtual a11y::role NativeRole() MOZ_OVERRIDE;
+  virtual a11y::role NativeRole() override;
 
   
-  virtual uint32_t AnchorCount() MOZ_OVERRIDE;
-  virtual Accessible* AnchorAt(uint32_t aAnchorIndex) MOZ_OVERRIDE;
-  virtual already_AddRefed<nsIURI> AnchorURIAt(uint32_t aAnchorIndex) MOZ_OVERRIDE;
+  virtual uint32_t AnchorCount() override;
+  virtual Accessible* AnchorAt(uint32_t aAnchorIndex) override;
+  virtual already_AddRefed<nsIURI> AnchorURIAt(uint32_t aAnchorIndex) override;
 
   
 
@@ -46,32 +46,32 @@ protected:
   virtual ~HTMLImageMapAccessible() { }
 
   
-  virtual void CacheChildren() MOZ_OVERRIDE;
+  virtual void CacheChildren() override;
 };
 
 
 
 
-class HTMLAreaAccessible MOZ_FINAL : public HTMLLinkAccessible
+class HTMLAreaAccessible final : public HTMLLinkAccessible
 {
 public:
 
   HTMLAreaAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  virtual void Description(nsString& aDescription) MOZ_OVERRIDE;
+  virtual void Description(nsString& aDescription) override;
   virtual Accessible* ChildAtPoint(int32_t aX, int32_t aY,
-                                   EWhichChildAtPoint aWhichChild) MOZ_OVERRIDE;
-  virtual nsRect RelativeBounds(nsIFrame** aBoundingFrame) const MOZ_OVERRIDE;
+                                   EWhichChildAtPoint aWhichChild) override;
+  virtual nsRect RelativeBounds(nsIFrame** aBoundingFrame) const override;
 
   
-  virtual uint32_t StartOffset() MOZ_OVERRIDE;
-  virtual uint32_t EndOffset() MOZ_OVERRIDE;
+  virtual uint32_t StartOffset() override;
+  virtual uint32_t EndOffset() override;
 
 protected:
   
-  virtual ENameValueFlag NativeName(nsString& aName) MOZ_OVERRIDE;
-  virtual void CacheChildren() MOZ_OVERRIDE;
+  virtual ENameValueFlag NativeName(nsString& aName) override;
+  virtual void CacheChildren() override;
 };
 
 

@@ -31,7 +31,7 @@ static FrameTextRunCache *gTextRuns = nullptr;
 
 
 
-class FrameTextRunCache MOZ_FINAL : public nsExpirationTracker<gfxTextRun,3> {
+class FrameTextRunCache final : public nsExpirationTracker<gfxTextRun,3> {
 public:
  enum { TIMEOUT_SECONDS = 10 };
  FrameTextRunCache()

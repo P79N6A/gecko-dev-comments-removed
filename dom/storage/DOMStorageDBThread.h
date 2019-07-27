@@ -89,7 +89,7 @@ public:
 
 
 
-class DOMStorageDBThread MOZ_FINAL : public DOMStorageDBBridge
+class DOMStorageDBThread final : public DOMStorageDBBridge
 {
 public:
   class PendingOperations;
@@ -209,7 +209,7 @@ public:
     uint32_t mFlushFailureCount;
   };
 
-  class ThreadObserver MOZ_FINAL : public nsIThreadObserver
+  class ThreadObserver final : public nsIThreadObserver
   {
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSITHREADOBSERVER

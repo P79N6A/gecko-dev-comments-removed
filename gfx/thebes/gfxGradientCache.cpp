@@ -118,7 +118,7 @@ struct GradientCacheData {
 
 
 
-class GradientCache MOZ_FINAL : public nsExpirationTracker<GradientCacheData,4>
+class GradientCache final : public nsExpirationTracker<GradientCacheData,4>
 {
   public:
     GradientCache()

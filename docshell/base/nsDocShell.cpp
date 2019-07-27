@@ -424,7 +424,7 @@ IsSameHost(nsIURI* aUri1, nsIURI* aUri2)
   return host1.Equals(host2);
 }
 
-class nsPingListener MOZ_FINAL
+class nsPingListener final
   : public nsIStreamListener
   , public nsIInterfaceRequestor
   , public nsIChannelEventSink
@@ -9379,7 +9379,7 @@ namespace {
 #ifdef MOZ_PLACES
 
 
-class nsCopyFaviconCallback MOZ_FINAL : public nsIFaviconDataCallback
+class nsCopyFaviconCallback final : public nsIFaviconDataCallback
 {
 public:
   NS_DECL_ISUPPORTS
@@ -9392,7 +9392,7 @@ public:
 
   NS_IMETHODIMP
   OnComplete(nsIURI* aFaviconURI, uint32_t aDataLen,
-             const uint8_t* aData, const nsACString& aMimeType) MOZ_OVERRIDE
+             const uint8_t* aData, const nsACString& aMimeType) override
   {
     
     if (!aFaviconURI) {

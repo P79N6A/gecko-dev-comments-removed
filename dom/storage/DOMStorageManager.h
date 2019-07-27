@@ -46,7 +46,7 @@ protected:
 
 private:
   
-  virtual nsresult Observe(const char* aTopic, const nsACString& aScopePrefix) MOZ_OVERRIDE;
+  virtual nsresult Observe(const char* aTopic, const nsACString& aScopePrefix) override;
 
   
   
@@ -116,7 +116,7 @@ protected:
 
 
 
-class DOMLocalStorageManager MOZ_FINAL : public DOMStorageManager
+class DOMLocalStorageManager final : public DOMStorageManager
 {
 public:
   DOMLocalStorageManager();
@@ -129,7 +129,7 @@ private:
   static DOMLocalStorageManager* sSelf;
 };
 
-class DOMSessionStorageManager MOZ_FINAL : public DOMStorageManager
+class DOMSessionStorageManager final : public DOMStorageManager
 {
 public:
   DOMSessionStorageManager();

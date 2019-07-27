@@ -103,7 +103,7 @@ class DOMSVGLengthList;
 
 
 
-class DOMSVGAnimatedLengthList MOZ_FINAL : public nsWrapperCache
+class DOMSVGAnimatedLengthList final : public nsWrapperCache
 {
   friend class DOMSVGLengthList;
 
@@ -159,7 +159,7 @@ public:
 
   
   nsSVGElement* GetParentObject() const { return mElement; }
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
   
   already_AddRefed<DOMSVGLengthList> BaseVal();
   already_AddRefed<DOMSVGLengthList> AnimVal();

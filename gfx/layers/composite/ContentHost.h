@@ -125,23 +125,23 @@ public:
                          const gfx::Matrix4x4& aTransform,
                          const gfx::Filter& aFilter,
                          const gfx::Rect& aClipRect,
-                         const nsIntRegion* aVisibleRegion = nullptr) MOZ_OVERRIDE;
+                         const nsIntRegion* aVisibleRegion = nullptr) override;
 
-  virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE;
+  virtual void SetCompositor(Compositor* aCompositor) override;
 
-  virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() MOZ_OVERRIDE;
+  virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() override;
 
   virtual void Dump(std::stringstream& aStream,
                     const char* aPrefix="",
-                    bool aDumpHtml=false) MOZ_OVERRIDE;
+                    bool aDumpHtml=false) override;
 
-  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix) MOZ_OVERRIDE;
+  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix) override;
 
-  virtual void UseTextureHost(TextureHost* aTexture) MOZ_OVERRIDE;
+  virtual void UseTextureHost(TextureHost* aTexture) override;
   virtual void UseComponentAlphaTextures(TextureHost* aTextureOnBlack,
-                                         TextureHost* aTextureOnWhite) MOZ_OVERRIDE;
+                                         TextureHost* aTextureOnWhite) override;
 
-  virtual bool Lock() MOZ_OVERRIDE {
+  virtual bool Lock() override {
     MOZ_ASSERT(!mLocked);
     if (!mTextureHost) {
       return false;
@@ -157,7 +157,7 @@ public:
     mLocked = true;
     return true;
   }
-  virtual void Unlock() MOZ_OVERRIDE {
+  virtual void Unlock() override {
     MOZ_ASSERT(mLocked);
     mTextureHost->Unlock();
     if (mTextureHostOnWhite) {
@@ -166,9 +166,9 @@ public:
     mLocked = false;
   }
 
-  LayerRenderState GetRenderState() MOZ_OVERRIDE;
+  LayerRenderState GetRenderState() override;
 
-  virtual TemporaryRef<TexturedEffect> GenEffect(const gfx::Filter& aFilter) MOZ_OVERRIDE;
+  virtual TemporaryRef<TexturedEffect> GenEffect(const gfx::Filter& aFilter) override;
 
 protected:
   CompositableTextureHostRef mTextureHost;

@@ -24,28 +24,28 @@ public:
                         const nsDateFormatSelector  dateFormatSelector, 
                         const nsTimeFormatSelector timeFormatSelector, 
                         const time_t  timetTime, 
-                        nsAString& stringOut) MOZ_OVERRIDE;
+                        nsAString& stringOut) override;
 
   
   NS_IMETHOD FormatTMTime(nsILocale* locale, 
                         const nsDateFormatSelector  dateFormatSelector, 
                         const nsTimeFormatSelector timeFormatSelector, 
                         const struct tm*  tmTime, 
-                        nsAString& stringOut) MOZ_OVERRIDE;
+                        nsAString& stringOut) override;
 
   
   NS_IMETHOD FormatPRTime(nsILocale* locale, 
                           const nsDateFormatSelector  dateFormatSelector, 
                           const nsTimeFormatSelector timeFormatSelector, 
                           const PRTime  prTime, 
-                          nsAString& stringOut) MOZ_OVERRIDE;
+                          nsAString& stringOut) override;
 
   
   NS_IMETHOD FormatPRExplodedTime(nsILocale* locale, 
                                   const nsDateFormatSelector  dateFormatSelector, 
                                   const nsTimeFormatSelector timeFormatSelector, 
                                   const PRExplodedTime*  explodedTime, 
-                                  nsAString& stringOut) MOZ_OVERRIDE;
+                                  nsAString& stringOut) override;
 
 
   nsDateTimeFormatUnix() {mLocale.Truncate();mAppLocale.Truncate();}

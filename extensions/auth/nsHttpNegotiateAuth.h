@@ -14,7 +14,7 @@
 
 
 
-class nsHttpNegotiateAuth MOZ_FINAL : public nsIHttpAuthenticator
+class nsHttpNegotiateAuth final : public nsIHttpAuthenticator
 {
 public:
     NS_DECL_ISUPPORTS

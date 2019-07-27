@@ -22,7 +22,7 @@ namespace layers {
 
 class CompositorOGL;
 
-class GLBlitTextureImageHelper MOZ_FINAL
+class GLBlitTextureImageHelper final
 {
     
     CompositorOGL* mCompositor;

@@ -18,7 +18,7 @@ BEGIN_BLUETOOTH_NAMESPACE
 
 class BluetoothHALInterface;
 
-class BluetoothGattClientHALInterface MOZ_FINAL
+class BluetoothGattClientHALInterface final
   : public BluetoothGattClientInterface
 {
 public:
@@ -155,7 +155,7 @@ private:
 
 
 
-class BluetoothGattHALInterface MOZ_FINAL
+class BluetoothGattHALInterface final
  : public BluetoothGattInterface
 {
 public:

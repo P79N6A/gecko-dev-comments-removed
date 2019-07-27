@@ -186,7 +186,7 @@ public:
 
   
   virtual void
-  NotifyPull(MediaStreamGraph* aGraph, StreamTime aDesiredTime) MOZ_OVERRIDE
+  NotifyPull(MediaStreamGraph* aGraph, StreamTime aDesiredTime) override
   {
     
     
@@ -200,7 +200,7 @@ public:
 
   virtual void
   NotifyEvent(MediaStreamGraph* aGraph,
-              MediaStreamListener::MediaStreamGraphEvent aEvent) MOZ_OVERRIDE
+              MediaStreamListener::MediaStreamGraphEvent aEvent) override
   {
     switch (aEvent) {
       case EVENT_FINISHED:
@@ -277,7 +277,7 @@ class GetUserMediaNotificationEvent: public nsRunnable
 
     }
 
-    NS_IMETHOD Run() MOZ_OVERRIDE;
+    NS_IMETHOD Run() override;
 
   protected:
     nsRefPtr<GetUserMediaCallbackMediaStreamListener> mListener; 
@@ -330,7 +330,7 @@ public:
     DOMMediaStream::OnTracksAvailableCallback* aOnTracksAvailableCallback):
     mStream(aStream),
     mOnTracksAvailableCallback(aOnTracksAvailableCallback) {}
-  NS_IMETHOD Run() MOZ_OVERRIDE {return NS_OK;}
+  NS_IMETHOD Run() override {return NS_OK;}
 private:
   nsRefPtr<DOMMediaStream> mStream;
   nsAutoPtr<DOMMediaStream::OnTracksAvailableCallback> mOnTracksAvailableCallback;
@@ -544,7 +544,7 @@ typedef void (*WindowListenerCallback)(MediaManager *aThis,
                                        StreamListeners *aListeners,
                                        void *aData);
 
-class MediaManager MOZ_FINAL : public nsIMediaManagerService,
+class MediaManager final : public nsIMediaManagerService,
                                public nsIObserver
 {
 public:

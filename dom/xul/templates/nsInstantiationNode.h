@@ -26,7 +26,7 @@ public:
 
     
     virtual nsresult Propagate(InstantiationSet& aInstantiations,
-                               bool aIsUpdate, bool& aMatched) MOZ_OVERRIDE;
+                               bool aIsUpdate, bool& aMatched) override;
 
 protected:
 

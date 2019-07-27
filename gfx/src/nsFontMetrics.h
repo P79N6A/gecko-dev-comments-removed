@@ -43,7 +43,7 @@ struct nsBoundingMetrics;
 
 
 
-class nsFontMetrics MOZ_FINAL
+class nsFontMetrics final
 {
 public:
     nsFontMetrics();

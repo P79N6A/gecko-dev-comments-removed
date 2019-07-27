@@ -21,7 +21,7 @@
 
 
 
-class nsBMPEncoder MOZ_FINAL : public imgIEncoder
+class nsBMPEncoder final : public imgIEncoder
 {
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
 public:

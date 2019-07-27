@@ -16,7 +16,7 @@ namespace cache {
 
 class Cache;
 
-class CacheChild MOZ_FINAL : public PCacheChild
+class CacheChild final : public PCacheChild
                            , public ActorChild
 {
 public:
@@ -34,31 +34,31 @@ public:
 
   
   
-  virtual void StartDestroy() MOZ_OVERRIDE;
+  virtual void StartDestroy() override;
 
 private:
   
   virtual void
-  ActorDestroy(ActorDestroyReason aReason) MOZ_OVERRIDE;
+  ActorDestroy(ActorDestroyReason aReason) override;
 
   virtual bool
   RecvMatchResponse(const RequestId& requestId, const nsresult& aRv,
-                    const PCacheResponseOrVoid& aResponse) MOZ_OVERRIDE;
+                    const PCacheResponseOrVoid& aResponse) override;
   virtual bool
   RecvMatchAllResponse(const RequestId& requestId, const nsresult& aRv,
-                       nsTArray<PCacheResponse>&& responses) MOZ_OVERRIDE;
+                       nsTArray<PCacheResponse>&& responses) override;
   virtual bool
   RecvAddAllResponse(const RequestId& requestId,
-                     const nsresult& aRv) MOZ_OVERRIDE;
+                     const nsresult& aRv) override;
   virtual bool
   RecvPutResponse(const RequestId& aRequestId,
-                  const nsresult& aRv) MOZ_OVERRIDE;
+                  const nsresult& aRv) override;
   virtual bool
   RecvDeleteResponse(const RequestId& requestId, const nsresult& aRv,
-                     const bool& result) MOZ_OVERRIDE;
+                     const bool& result) override;
   virtual bool
   RecvKeysResponse(const RequestId& requestId, const nsresult& aRv,
-                   nsTArray<PCacheRequest>&& requests) MOZ_OVERRIDE;
+                   nsTArray<PCacheRequest>&& requests) override;
 
   
   

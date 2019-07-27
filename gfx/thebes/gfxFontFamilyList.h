@@ -47,7 +47,7 @@ enum QuotedName { eQuotedName, eUnquotedName };
 
 
 
-struct FontFamilyName MOZ_FINAL {
+struct FontFamilyName final {
     FontFamilyName()
         : mType(eFamily_named)
     {}

@@ -67,7 +67,7 @@ PRLogModuleInfo *BackgroundFileSaver::prlog = nullptr;
 
 
 
-class NotifyTargetChangeRunnable MOZ_FINAL : public nsRunnable
+class NotifyTargetChangeRunnable final : public nsRunnable
 {
 public:
   NotifyTargetChangeRunnable(BackgroundFileSaver *aSaver, nsIFile *aTarget)

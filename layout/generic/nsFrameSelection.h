@@ -178,7 +178,7 @@ class nsIScrollableFrame;
 
 
 
-class nsFrameSelection MOZ_FINAL {
+class nsFrameSelection final {
 public:
   typedef mozilla::CaretAssociationHint CaretAssociateHint;
 

@@ -53,7 +53,7 @@ struct MSGResult;
 
 
 
-class nsTextStore MOZ_FINAL : public ITextStoreACP
+class nsTextStore final : public ITextStoreACP
                             , public ITfContextOwnerCompositionSink
                             , public ITfMouseTrackerACP
 {
@@ -314,7 +314,7 @@ protected:
   
   DWORD                        mLockQueued;
 
-  class Composition MOZ_FINAL
+  class Composition final
   {
   public:
     
@@ -490,7 +490,7 @@ protected:
   
   Selection& CurrentSelection();
 
-  struct PendingAction MOZ_FINAL
+  struct PendingAction final
   {
     enum ActionType : uint8_t
     {
@@ -556,7 +556,7 @@ protected:
   
   
   
-  class MOZ_STACK_CLASS AutoPendingActionAndContentFlusher MOZ_FINAL
+  class MOZ_STACK_CLASS AutoPendingActionAndContentFlusher final
   {
   public:
     AutoPendingActionAndContentFlusher(nsTextStore* aTextStore)
@@ -583,7 +583,7 @@ protected:
     nsRefPtr<nsTextStore> mTextStore;
   };
 
-  class Content MOZ_FINAL
+  class Content final
   {
   public:
     Content(nsTextStore::Composition& aComposition,
@@ -681,7 +681,7 @@ protected:
   
   bool GetCurrentText(nsAString& aTextContent);
 
-  class MouseTracker MOZ_FINAL
+  class MouseTracker final
   {
   public:
     static const DWORD kInvalidCookie = static_cast<DWORD>(-1);

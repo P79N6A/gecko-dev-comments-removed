@@ -18,7 +18,7 @@ namespace mobilemessage {
 
 class PSmsChild;
 
-class SmsIPCService MOZ_FINAL : public nsISmsService
+class SmsIPCService final : public nsISmsService
                               , public nsIMmsService
                               , public nsIMobileMessageDatabaseService
                               , public nsIObserver

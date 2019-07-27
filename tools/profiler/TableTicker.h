@@ -160,13 +160,13 @@ class TableTicker: public Sampler {
   }
 
   
-  virtual void Tick(TickSample* sample) MOZ_OVERRIDE;
+  virtual void Tick(TickSample* sample) override;
 
   
-  virtual SyncProfile* GetBacktrace() MOZ_OVERRIDE;
+  virtual SyncProfile* GetBacktrace() override;
 
   
-  virtual void RequestSave() MOZ_OVERRIDE
+  virtual void RequestSave() override
   {
     mSaveRequested = true;
 #ifdef MOZ_TASK_TRACER
@@ -176,8 +176,8 @@ class TableTicker: public Sampler {
 #endif
   }
 
-  virtual void HandleSaveRequest() MOZ_OVERRIDE;
-  virtual void DeleteExpiredMarkers() MOZ_OVERRIDE;
+  virtual void HandleSaveRequest() override;
+  virtual void DeleteExpiredMarkers() override;
 
   ThreadProfile* GetPrimaryThreadProfile()
   {
@@ -205,7 +205,7 @@ class TableTicker: public Sampler {
   bool ProfileJava() const { return mProfileJava; }
   bool ProfileGPU() const { return mProfileGPU; }
   bool ProfilePower() const { return mProfilePower; }
-  bool ProfileThreads() const MOZ_OVERRIDE { return mProfileThreads; }
+  bool ProfileThreads() const override { return mProfileThreads; }
   bool InPrivacyMode() const { return mPrivacyMode; }
   bool AddMainThreadIO() const { return mAddMainThreadIO; }
   bool ProfileMemory() const { return mProfileMemory; }

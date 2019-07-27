@@ -26,14 +26,14 @@ public:
                  nsIPresShell* aPresShell);
 
   
-  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) MOZ_OVERRIDE;
+  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) override;
 
   
-  virtual void Shutdown() MOZ_OVERRIDE;
-  virtual mozilla::a11y::ENameValueFlag Name(nsString& aName) MOZ_OVERRIDE;
-  virtual Relation RelationByType(RelationType aType) MOZ_OVERRIDE;
-  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
-  virtual uint64_t NativeState() MOZ_OVERRIDE;
+  virtual void Shutdown() override;
+  virtual mozilla::a11y::ENameValueFlag Name(nsString& aName) override;
+  virtual Relation RelationByType(RelationType aType) override;
+  virtual mozilla::a11y::role NativeRole() override;
+  virtual uint64_t NativeState() override;
 
   
 
@@ -48,8 +48,8 @@ protected:
   
 
 
-  virtual nsresult AddEventListeners() MOZ_OVERRIDE;
-  virtual nsresult RemoveEventListeners() MOZ_OVERRIDE;
+  virtual nsresult AddEventListeners() override;
+  virtual nsresult RemoveEventListeners() override;
 
   
 

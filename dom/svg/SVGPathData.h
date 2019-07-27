@@ -235,7 +235,7 @@ protected:
 
 
 
-class SVGPathDataAndInfo MOZ_FINAL : public SVGPathData
+class SVGPathDataAndInfo final : public SVGPathData
 {
 public:
   explicit SVGPathDataAndInfo(nsSVGElement *aElement = nullptr)

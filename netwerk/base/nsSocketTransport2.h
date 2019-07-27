@@ -105,7 +105,7 @@ private:
 
 
 
-class nsSocketTransport MOZ_FINAL : public nsASocketHandler
+class nsSocketTransport final : public nsASocketHandler
                                   , public nsISocketTransport
                                   , public nsIDNSListener
                                   , public nsIClassInfo
@@ -146,16 +146,16 @@ public:
     nsresult InitWithFilename(const char *filename);
 
     
-    void OnSocketReady(PRFileDesc *, int16_t outFlags) MOZ_OVERRIDE;
-    void OnSocketDetached(PRFileDesc *) MOZ_OVERRIDE;
-    void IsLocal(bool *aIsLocal) MOZ_OVERRIDE;
-    void OnKeepaliveEnabledPrefChange(bool aEnabled) MOZ_OVERRIDE MOZ_FINAL;
+    void OnSocketReady(PRFileDesc *, int16_t outFlags) override;
+    void OnSocketDetached(PRFileDesc *) override;
+    void IsLocal(bool *aIsLocal) override;
+    void OnKeepaliveEnabledPrefChange(bool aEnabled) override final;
 
     
     void OnSocketEvent(uint32_t type, nsresult status, nsISupports *param);
 
-    uint64_t ByteCountReceived() MOZ_OVERRIDE { return mInput.ByteCount(); }
-    uint64_t ByteCountSent() MOZ_OVERRIDE { return mOutput.ByteCount(); }
+    uint64_t ByteCountReceived() override { return mInput.ByteCount(); }
+    uint64_t ByteCountSent() override { return mOutput.ByteCount(); }
 protected:
 
     virtual ~nsSocketTransport();

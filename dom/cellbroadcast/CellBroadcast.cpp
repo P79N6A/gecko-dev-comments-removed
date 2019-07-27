@@ -23,7 +23,7 @@ using mozilla::ErrorResult;
 
 
 
-class CellBroadcast::Listener MOZ_FINAL : public nsICellBroadcastListener
+class CellBroadcast::Listener final : public nsICellBroadcastListener
 {
 private:
   CellBroadcast* mCellBroadcast;

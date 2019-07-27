@@ -274,7 +274,7 @@ AbstractResult::GetResult(JSContext *cx, JS::MutableHandleValue aResult)
 
 
 
-class StringResult MOZ_FINAL : public AbstractResult
+class StringResult final : public AbstractResult
 {
 public:
   explicit StringResult(TimeStamp aStartDate)
@@ -297,7 +297,7 @@ public:
   }
 
 protected:
-  nsresult GetCacheableResult(JSContext* cx, JS::MutableHandleValue aResult) MOZ_OVERRIDE;
+  nsresult GetCacheableResult(JSContext* cx, JS::MutableHandleValue aResult) override;
 
 private:
   nsString mContents;
@@ -325,7 +325,7 @@ StringResult::GetCacheableResult(JSContext* cx, JS::MutableHandleValue aResult)
 
 
 
-class TypedArrayResult MOZ_FINAL : public AbstractResult
+class TypedArrayResult final : public AbstractResult
 {
 public:
   explicit TypedArrayResult(TimeStamp aStartDate)
@@ -346,7 +346,7 @@ public:
   }
 
 protected:
-  nsresult GetCacheableResult(JSContext* cx, JS::MutableHandleValue aResult) MOZ_OVERRIDE;
+  nsresult GetCacheableResult(JSContext* cx, JS::MutableHandleValue aResult) override;
 private:
   ScopedArrayBufferContents mContents;
 };
@@ -390,7 +390,7 @@ TypedArrayResult::GetCacheableResult(JSContext* cx, JS::MutableHandle<JS::Value>
 
 
 
-class ErrorEvent MOZ_FINAL : public nsRunnable {
+class ErrorEvent final : public nsRunnable {
 public:
   
 
@@ -448,7 +448,7 @@ public:
 
 
 
-class SuccessEvent MOZ_FINAL : public nsRunnable {
+class SuccessEvent final : public nsRunnable {
 public:
   
 
@@ -596,7 +596,7 @@ public:
     MOZ_ASSERT(NS_IsMainThread());
   }
 
-  NS_METHOD Run() MOZ_OVERRIDE {
+  NS_METHOD Run() override {
     MOZ_ASSERT(!NS_IsMainThread());
     TimeStamp dispatchDate = TimeStamp::Now();
 
@@ -732,7 +732,7 @@ protected:
 
 
 
-class DoReadToTypedArrayEvent MOZ_FINAL : public AbstractReadEvent {
+class DoReadToTypedArrayEvent final : public AbstractReadEvent {
 public:
   DoReadToTypedArrayEvent(const nsAString& aPath,
                           const uint32_t aBytes,
@@ -755,7 +755,7 @@ public:
 
 protected:
   void AfterRead(TimeStamp aDispatchDate,
-                 ScopedArrayBufferContents& aBuffer) MOZ_OVERRIDE {
+                 ScopedArrayBufferContents& aBuffer) override {
     MOZ_ASSERT(!NS_IsMainThread());
     mResult->Init(aDispatchDate, TimeStamp::Now() - aDispatchDate, aBuffer.forget());
     Succeed(mResult.forget());
@@ -769,7 +769,7 @@ protected:
 
 
 
-class DoReadToStringEvent MOZ_FINAL : public AbstractReadEvent {
+class DoReadToStringEvent final : public AbstractReadEvent {
 public:
   DoReadToStringEvent(const nsAString& aPath,
                       const nsACString& aEncoding,
@@ -792,7 +792,7 @@ public:
   }
 
 protected:
-  nsresult BeforeRead() MOZ_OVERRIDE {
+  nsresult BeforeRead() override {
     
     
     MOZ_ASSERT(!NS_IsMainThread());
@@ -811,7 +811,7 @@ protected:
   }
 
   void AfterRead(TimeStamp aDispatchDate,
-                 ScopedArrayBufferContents& aBuffer) MOZ_OVERRIDE {
+                 ScopedArrayBufferContents& aBuffer) override {
     MOZ_ASSERT(!NS_IsMainThread());
 
     int32_t maxChars;

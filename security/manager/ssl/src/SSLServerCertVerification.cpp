@@ -1528,14 +1528,14 @@ AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checkSig, PRBool isServer)
 #ifndef MOZ_NO_EV_CERTS
 class InitializeIdentityInfo : public CryptoTask
 {
-  virtual nsresult CalculateResult() MOZ_OVERRIDE
+  virtual nsresult CalculateResult() override
   {
     EnsureIdentityInfoLoaded();
     return NS_OK;
   }
 
-  virtual void ReleaseNSSResources() MOZ_OVERRIDE { } 
-  virtual void CallCallback(nsresult rv) MOZ_OVERRIDE { } 
+  virtual void ReleaseNSSResources() override { } 
+  virtual void CallCallback(nsresult rv) override { } 
 };
 #endif
 

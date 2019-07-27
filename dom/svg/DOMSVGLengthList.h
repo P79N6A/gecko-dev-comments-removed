@@ -38,7 +38,7 @@ class DOMSVGLength;
 
 
 
-class DOMSVGLengthList MOZ_FINAL : public nsISupports,
+class DOMSVGLengthList final : public nsISupports,
                                    public nsWrapperCache
 {
   friend class AutoChangeLengthListNotifier;
@@ -69,7 +69,7 @@ public:
     InternalListLengthWillChange(aInternalList.Length()); 
   }
 
-  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
 
   nsISupports* GetParentObject()
   {

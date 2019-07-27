@@ -40,7 +40,7 @@ class nsXULTemplateResultRDF;
 
 
 
-class nsXULTemplateQueryProcessorRDF MOZ_FINAL : public nsIXULTemplateQueryProcessor,
+class nsXULTemplateQueryProcessorRDF final : public nsIXULTemplateQueryProcessor,
                                                  public nsIRDFObserver
 {
 public:

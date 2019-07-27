@@ -142,10 +142,10 @@ public:
 
 
 
-  void Connect(CompositableClient* aCompositable) MOZ_OVERRIDE;
+  void Connect(CompositableClient* aCompositable) override;
 
   virtual PTextureChild* CreateTexture(const SurfaceDescriptor& aSharedData,
-                                       TextureFlags aFlags) MOZ_OVERRIDE;
+                                       TextureFlags aFlags) override;
 
   
 
@@ -228,7 +228,7 @@ public:
 
 
   virtual void UseTiledLayerBuffer(CompositableClient* aCompositable,
-                                   const SurfaceDescriptorTiles& aTileLayerDescriptor) MOZ_OVERRIDE;
+                                   const SurfaceDescriptorTiles& aTileLayerDescriptor) override;
 
   
 
@@ -238,13 +238,13 @@ public:
   void AttachAsyncCompositable(PLayerTransactionChild* aLayer, uint64_t aID);
 
   virtual void RemoveTextureFromCompositable(CompositableClient* aCompositable,
-                                             TextureClient* aTexture) MOZ_OVERRIDE;
+                                             TextureClient* aTexture) override;
 
   virtual void RemoveTextureFromCompositableAsync(AsyncTransactionTracker* aAsyncTransactionTracker,
                                                   CompositableClient* aCompositable,
-                                                  TextureClient* aTexture) MOZ_OVERRIDE;
+                                                  TextureClient* aTexture) override;
 
-  virtual void RemoveTexture(TextureClient* aTexture) MOZ_OVERRIDE;
+  virtual void RemoveTexture(TextureClient* aTexture) override;
 
   
 
@@ -252,36 +252,36 @@ public:
 
   virtual void UpdateTextureRegion(CompositableClient* aCompositable,
                                    const ThebesBufferData& aThebesBufferData,
-                                   const nsIntRegion& aUpdatedRegion) MOZ_OVERRIDE;
+                                   const nsIntRegion& aUpdatedRegion) override;
 
   
 
 
   void UpdatePictureRect(CompositableClient* aCompositable,
-                         const nsIntRect& aRect) MOZ_OVERRIDE;
+                         const nsIntRect& aRect) override;
 
   
 
 
   virtual void UpdatedTexture(CompositableClient* aCompositable,
                               TextureClient* aTexture,
-                              nsIntRegion* aRegion) MOZ_OVERRIDE;
+                              nsIntRegion* aRegion) override;
 
   
 
 
   virtual void UseTexture(CompositableClient* aCompositable,
-                          TextureClient* aClient) MOZ_OVERRIDE;
+                          TextureClient* aClient) override;
   virtual void UseComponentAlphaTextures(CompositableClient* aCompositable,
                                          TextureClient* aClientOnBlack,
-                                         TextureClient* aClientOnWhite) MOZ_OVERRIDE;
+                                         TextureClient* aClientOnWhite) override;
 #ifdef MOZ_WIDGET_GONK
   virtual void UseOverlaySource(CompositableClient* aCompositable,
-                                const OverlaySource& aOverlay) MOZ_OVERRIDE;
+                                const OverlaySource& aOverlay) override;
 #endif
   virtual void SendFenceHandle(AsyncTransactionTracker* aTracker,
                                PTextureChild* aTexture,
-                               const FenceHandle& aFence) MOZ_OVERRIDE;
+                               const FenceHandle& aFence) override;
 
   
 
@@ -316,7 +316,7 @@ public:
 
   void Composite();
 
-  virtual void SendPendingAsyncMessges() MOZ_OVERRIDE;
+  virtual void SendPendingAsyncMessges() override;
 
   
 
@@ -362,14 +362,14 @@ public:
   
   virtual bool AllocUnsafeShmem(size_t aSize,
                                 mozilla::ipc::SharedMemory::SharedMemoryType aType,
-                                mozilla::ipc::Shmem* aShmem) MOZ_OVERRIDE;
+                                mozilla::ipc::Shmem* aShmem) override;
   virtual bool AllocShmem(size_t aSize,
                           mozilla::ipc::SharedMemory::SharedMemoryType aType,
-                          mozilla::ipc::Shmem* aShmem) MOZ_OVERRIDE;
-  virtual void DeallocShmem(mozilla::ipc::Shmem& aShmem) MOZ_OVERRIDE;
+                          mozilla::ipc::Shmem* aShmem) override;
+  virtual void DeallocShmem(mozilla::ipc::Shmem& aShmem) override;
 
-  virtual bool IPCOpen() const MOZ_OVERRIDE;
-  virtual bool IsSameProcess() const MOZ_OVERRIDE;
+  virtual bool IPCOpen() const override;
+  virtual bool IsSameProcess() const override;
 
   
 

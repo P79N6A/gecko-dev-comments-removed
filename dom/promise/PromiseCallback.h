@@ -47,7 +47,7 @@ public:
 
 
 
-class WrapperPromiseCallback MOZ_FINAL : public PromiseCallback
+class WrapperPromiseCallback final : public PromiseCallback
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
@@ -55,9 +55,9 @@ public:
                                                          PromiseCallback)
 
   void Call(JSContext* aCx,
-            JS::Handle<JS::Value> aValue) MOZ_OVERRIDE;
+            JS::Handle<JS::Value> aValue) override;
 
-  Promise* GetDependentPromise() MOZ_OVERRIDE
+  Promise* GetDependentPromise() override
   {
     return mNextPromise;
   }
@@ -75,7 +75,7 @@ private:
 
 
 
-class ResolvePromiseCallback MOZ_FINAL : public PromiseCallback
+class ResolvePromiseCallback final : public PromiseCallback
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
@@ -83,9 +83,9 @@ public:
                                                          PromiseCallback)
 
   void Call(JSContext* aCx,
-            JS::Handle<JS::Value> aValue) MOZ_OVERRIDE;
+            JS::Handle<JS::Value> aValue) override;
 
-  Promise* GetDependentPromise() MOZ_OVERRIDE
+  Promise* GetDependentPromise() override
   {
     return mPromise;
   }
@@ -101,7 +101,7 @@ private:
 
 
 
-class RejectPromiseCallback MOZ_FINAL : public PromiseCallback
+class RejectPromiseCallback final : public PromiseCallback
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
@@ -109,9 +109,9 @@ public:
                                                          PromiseCallback)
 
   void Call(JSContext* aCx,
-            JS::Handle<JS::Value> aValue) MOZ_OVERRIDE;
+            JS::Handle<JS::Value> aValue) override;
 
-  Promise* GetDependentPromise() MOZ_OVERRIDE
+  Promise* GetDependentPromise() override
   {
     return mPromise;
   }
@@ -126,7 +126,7 @@ private:
 };
 
 
-class NativePromiseCallback MOZ_FINAL : public PromiseCallback
+class NativePromiseCallback final : public PromiseCallback
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
@@ -134,9 +134,9 @@ public:
                                            PromiseCallback)
 
   void Call(JSContext* aCx,
-            JS::Handle<JS::Value> aValue) MOZ_OVERRIDE;
+            JS::Handle<JS::Value> aValue) override;
 
-  Promise* GetDependentPromise() MOZ_OVERRIDE
+  Promise* GetDependentPromise() override
   {
     return nullptr;
   }

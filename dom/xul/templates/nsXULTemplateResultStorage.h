@@ -15,7 +15,7 @@
 
 
 
-class nsXULTemplateResultStorage MOZ_FINAL : public nsIXULTemplateResult
+class nsXULTemplateResultStorage final : public nsIXULTemplateResult
 {
 public:
     NS_DECL_ISUPPORTS

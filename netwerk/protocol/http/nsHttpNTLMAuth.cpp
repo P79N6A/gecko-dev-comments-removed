@@ -212,7 +212,7 @@ CanUseDefaultCredentials(nsIHttpAuthenticableChannel *channel,
 
 
 
-class nsNTLMSessionState MOZ_FINAL : public nsISupports
+class nsNTLMSessionState final : public nsISupports
 {
     ~nsNTLMSessionState() {}
 public:

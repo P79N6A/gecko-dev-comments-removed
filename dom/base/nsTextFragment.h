@@ -34,7 +34,7 @@ class nsCString;
 
 
 
-class nsTextFragment MOZ_FINAL {
+class nsTextFragment final {
 public:
   static nsresult Init();
   static void Shutdown();

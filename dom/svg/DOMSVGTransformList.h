@@ -33,7 +33,7 @@ class SVGTransform;
 
 
 
-class DOMSVGTransformList MOZ_FINAL : public nsISupports,
+class DOMSVGTransformList final : public nsISupports,
                                       public nsWrapperCache
 {
   friend class AutoChangeTransformListNotifier;
@@ -64,7 +64,7 @@ public:
     InternalListLengthWillChange(aInternalList.Length()); 
   }
 
-  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
 
   nsISupports* GetParentObject()
   {

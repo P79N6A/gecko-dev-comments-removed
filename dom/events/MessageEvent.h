@@ -33,7 +33,7 @@ class ServiceWorkerClient;
 
 
 
-class MessageEvent MOZ_FINAL : public Event,
+class MessageEvent final : public Event,
                                public nsIDOMMessageEvent
 {
 public:
@@ -49,7 +49,7 @@ public:
   
   NS_FORWARD_TO_EVENT
 
-  virtual JSObject* WrapObjectInternal(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObjectInternal(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   void GetData(JSContext* aCx, JS::MutableHandle<JS::Value> aData,
                ErrorResult& aRv);

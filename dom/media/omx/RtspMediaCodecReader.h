@@ -22,11 +22,11 @@ class RtspMediaResource;
 
 
 
-class RtspMediaCodecReader MOZ_FINAL : public MediaCodecReader
+class RtspMediaCodecReader final : public MediaCodecReader
 {
 protected:
   
-  virtual bool CreateExtractor() MOZ_OVERRIDE;
+  virtual bool CreateExtractor() override;
   
   void EnsureActive();
 
@@ -37,7 +37,7 @@ public:
 
   
   virtual nsRefPtr<SeekPromise>
-  Seek(int64_t aTime, int64_t aEndTime) MOZ_OVERRIDE;
+  Seek(int64_t aTime, int64_t aEndTime) override;
 
   
   
@@ -48,22 +48,22 @@ public:
   
   
   
-  virtual nsresult GetBuffered(dom::TimeRanges* aBuffered) MOZ_OVERRIDE {
+  virtual nsresult GetBuffered(dom::TimeRanges* aBuffered) override {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
-  virtual void SetIdle() MOZ_OVERRIDE;
+  virtual void SetIdle() override;
 
   
   virtual nsRefPtr<VideoDataPromise>
   RequestVideoData(bool aSkipToNextKeyframe,
-                   int64_t aTimeThreshold) MOZ_OVERRIDE;
+                   int64_t aTimeThreshold) override;
 
   
-  virtual nsRefPtr<AudioDataPromise> RequestAudioData() MOZ_OVERRIDE;
+  virtual nsRefPtr<AudioDataPromise> RequestAudioData() override;
 
   virtual nsresult ReadMetadata(MediaInfo* aInfo,
-                                MetadataTags** aTags) MOZ_OVERRIDE;
+                                MetadataTags** aTags) override;
 
 private:
   

@@ -3385,7 +3385,7 @@ nsXMLHttpRequest::ChangeState(uint32_t aState, bool aBroadcast)
 
 
 
-class AsyncVerifyRedirectCallbackForwarder MOZ_FINAL : public nsIAsyncVerifyRedirectCallback
+class AsyncVerifyRedirectCallbackForwarder final : public nsIAsyncVerifyRedirectCallback
 {
 public:
   explicit AsyncVerifyRedirectCallbackForwarder(nsXMLHttpRequest* xhr)
@@ -3397,7 +3397,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS(AsyncVerifyRedirectCallbackForwarder)
 
   
-  NS_IMETHOD OnRedirectVerifyCallback(nsresult result) MOZ_OVERRIDE
+  NS_IMETHOD OnRedirectVerifyCallback(nsresult result) override
   {
     mXHR->OnRedirectVerifyCallback(result);
 

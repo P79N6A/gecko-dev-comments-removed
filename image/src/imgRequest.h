@@ -42,7 +42,7 @@ class ProgressTracker;
 } 
 } 
 
-class imgRequest MOZ_FINAL : public nsIStreamListener,
+class imgRequest final : public nsIStreamListener,
                              public nsIThreadRetargetableStreamListener,
                              public nsIChannelEventSink,
                              public nsIInterfaceRequestor,

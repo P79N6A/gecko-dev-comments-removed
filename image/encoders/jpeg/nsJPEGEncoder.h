@@ -29,7 +29,7 @@ extern "C" {
 
 
 
-class nsJPEGEncoder MOZ_FINAL : public imgIEncoder
+class nsJPEGEncoder final : public imgIEncoder
 {
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
 public:

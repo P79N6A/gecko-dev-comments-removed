@@ -47,7 +47,7 @@ struct nsTreeImageCacheEntry
 };
 
 
-class nsTreeBodyFrame MOZ_FINAL
+class nsTreeBodyFrame final
   : public nsLeafBoxFrame
   , public nsICSSPseudoComparator
   , public nsIScrollbarMediator
@@ -121,51 +121,51 @@ public:
 
   void ManageReflowCallback(const nsRect& aRect, nscoord aHorzWidth);
 
-  virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState) MOZ_OVERRIDE;
+  virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState) override;
   virtual void SetBounds(nsBoxLayoutState& aBoxLayoutState, const nsRect& aRect,
-                         bool aRemoveOverflowArea = false) MOZ_OVERRIDE;
+                         bool aRemoveOverflowArea = false) override;
 
   
-  virtual bool ReflowFinished() MOZ_OVERRIDE;
-  virtual void ReflowCallbackCanceled() MOZ_OVERRIDE;
+  virtual bool ReflowFinished() override;
+  virtual void ReflowCallbackCanceled() override;
 
   
-  virtual bool PseudoMatches(nsCSSSelector* aSelector) MOZ_OVERRIDE;
+  virtual bool PseudoMatches(nsCSSSelector* aSelector) override;
 
   
-  virtual void ScrollByPage(nsScrollbarFrame* aScrollbar, int32_t aDirection) MOZ_OVERRIDE;
-  virtual void ScrollByWhole(nsScrollbarFrame* aScrollbar, int32_t aDirection) MOZ_OVERRIDE;
-  virtual void ScrollByLine(nsScrollbarFrame* aScrollbar, int32_t aDirection) MOZ_OVERRIDE;
-  virtual void RepeatButtonScroll(nsScrollbarFrame* aScrollbar) MOZ_OVERRIDE;
+  virtual void ScrollByPage(nsScrollbarFrame* aScrollbar, int32_t aDirection) override;
+  virtual void ScrollByWhole(nsScrollbarFrame* aScrollbar, int32_t aDirection) override;
+  virtual void ScrollByLine(nsScrollbarFrame* aScrollbar, int32_t aDirection) override;
+  virtual void RepeatButtonScroll(nsScrollbarFrame* aScrollbar) override;
   virtual void ThumbMoved(nsScrollbarFrame* aScrollbar,
                           nscoord aOldPos,
-                          nscoord aNewPos) MOZ_OVERRIDE;
-  virtual void VisibilityChanged(bool aVisible) MOZ_OVERRIDE { Invalidate(); }
-  virtual nsIFrame* GetScrollbarBox(bool aVertical) MOZ_OVERRIDE {
+                          nscoord aNewPos) override;
+  virtual void VisibilityChanged(bool aVisible) override { Invalidate(); }
+  virtual nsIFrame* GetScrollbarBox(bool aVertical) override {
     ScrollParts parts = GetScrollParts();
     return aVertical ? parts.mVScrollbar : parts.mHScrollbar;
   }
-  virtual void ScrollbarActivityStarted() const MOZ_OVERRIDE;
-  virtual void ScrollbarActivityStopped() const MOZ_OVERRIDE;
+  virtual void ScrollbarActivityStarted() const override;
+  virtual void ScrollbarActivityStopped() const override;
 
   
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
+                    nsIFrame*         aPrevInFlow) override;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
 
   virtual nsresult GetCursor(const nsPoint& aPoint,
-                             nsIFrame::Cursor& aCursor) MOZ_OVERRIDE;
+                             nsIFrame::Cursor& aCursor) override;
 
   virtual nsresult HandleEvent(nsPresContext* aPresContext,
                                mozilla::WidgetGUIEvent* aEvent,
-                               nsEventStatus* aEventStatus) MOZ_OVERRIDE;
+                               nsEventStatus* aEventStatus) override;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
-  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) MOZ_OVERRIDE;
+  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) override;
 
   friend nsIFrame* NS_NewTreeBodyFrame(nsIPresShell* aPresShell);
   friend class nsTreeColumn;

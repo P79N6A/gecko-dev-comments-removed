@@ -340,7 +340,7 @@ public:
   
   
   
-  MediaResource* GetResource() const MOZ_FINAL MOZ_OVERRIDE
+  MediaResource* GetResource() const final override
   {
     return mResource;
   }
@@ -383,7 +383,7 @@ public:
   
   virtual void SetVolume(double aVolume);
 
-  virtual void NotifyWaitingForResourcesStatusChanged() MOZ_OVERRIDE;
+  virtual void NotifyWaitingForResourcesStatusChanged() override;
 
   virtual void SetPlaybackRate(double aPlaybackRate);
   void SetPreservesPitch(bool aPreservesPitch);
@@ -456,9 +456,9 @@ public:
   class DecodedStreamGraphListener : public MediaStreamListener {
   public:
     DecodedStreamGraphListener(MediaStream* aStream, DecodedStreamData* aData);
-    virtual void NotifyOutput(MediaStreamGraph* aGraph, GraphTime aCurrentTime) MOZ_OVERRIDE;
+    virtual void NotifyOutput(MediaStreamGraph* aGraph, GraphTime aCurrentTime) override;
     virtual void NotifyEvent(MediaStreamGraph* aGraph,
-                             MediaStreamListener::MediaStreamGraphEvent event) MOZ_OVERRIDE;
+                             MediaStreamListener::MediaStreamGraphEvent event) override;
 
     void DoNotifyFinished();
 
@@ -545,7 +545,7 @@ public:
   virtual double GetDuration();
 
   
-  int64_t GetMediaDuration() MOZ_FINAL MOZ_OVERRIDE;
+  int64_t GetMediaDuration() final override;
 
   
   
@@ -577,7 +577,7 @@ public:
 
   
   
-  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset) MOZ_OVERRIDE;
+  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset) override;
 
   
   
@@ -586,7 +586,7 @@ public:
   
   
   
-  void NotifyBytesConsumed(int64_t aBytes, int64_t aOffset) MOZ_FINAL MOZ_OVERRIDE;
+  void NotifyBytesConsumed(int64_t aBytes, int64_t aOffset) final override;
 
   
   
@@ -604,7 +604,7 @@ public:
 
   
   
-  void SetMediaDuration(int64_t aDuration) MOZ_OVERRIDE;
+  void SetMediaDuration(int64_t aDuration) override;
   
   
   
@@ -613,17 +613,17 @@ public:
   
   
   
-  void UpdateEstimatedMediaDuration(int64_t aDuration) MOZ_OVERRIDE;
+  void UpdateEstimatedMediaDuration(int64_t aDuration) override;
 
   
-  virtual void SetMediaSeekable(bool aMediaSeekable) MOZ_OVERRIDE;
+  virtual void SetMediaSeekable(bool aMediaSeekable) override;
 
   
   
-  virtual bool IsMediaSeekable() MOZ_FINAL MOZ_OVERRIDE;
+  virtual bool IsMediaSeekable() final override;
   
   
-  virtual bool IsTransportSeekable() MOZ_OVERRIDE;
+  virtual bool IsTransportSeekable() override;
 
   
   virtual nsresult GetSeekable(dom::TimeRanges* aSeekable);
@@ -633,7 +633,7 @@ public:
   virtual void SetFragmentEndTime(double aTime);
 
   
-  void SetMediaEndTime(int64_t aTime) MOZ_FINAL MOZ_OVERRIDE;
+  void SetMediaEndTime(int64_t aTime) final override;
 
   
   void Invalidate();
@@ -668,16 +668,16 @@ public:
   
   void DurationChanged();
 
-  bool OnStateMachineThread() const MOZ_OVERRIDE;
+  bool OnStateMachineThread() const override;
 
-  bool OnDecodeThread() const MOZ_OVERRIDE;
-
-  
-  
-  ReentrantMonitor& GetReentrantMonitor() MOZ_OVERRIDE;
+  bool OnDecodeThread() const override;
 
   
-  bool IsShutdown() const MOZ_FINAL MOZ_OVERRIDE;
+  
+  ReentrantMonitor& GetReentrantMonitor() override;
+
+  
+  bool IsShutdown() const final override;
 
   
   
@@ -688,11 +688,11 @@ public:
   size_t SizeOfVideoQueue();
   size_t SizeOfAudioQueue();
 
-  VideoFrameContainer* GetVideoFrameContainer() MOZ_FINAL MOZ_OVERRIDE
+  VideoFrameContainer* GetVideoFrameContainer() final override
   {
     return mVideoFrameContainer;
   }
-  layers::ImageContainer* GetImageContainer() MOZ_OVERRIDE;
+  layers::ImageContainer* GetImageContainer() override;
 
   
   
@@ -750,7 +750,7 @@ public:
   
   void QueueMetadata(int64_t aPublishTime,
                      nsAutoPtr<MediaInfo> aInfo,
-                     nsAutoPtr<MetadataTags> aTags) MOZ_OVERRIDE;
+                     nsAutoPtr<MetadataTags> aTags) override;
 
   int64_t GetSeekTime() { return mRequestedSeekTarget.mTime; }
   void ResetSeekTime() { mRequestedSeekTarget.Reset(); }
@@ -771,18 +771,18 @@ public:
 
   
   
-  void OnReadMetadataCompleted() MOZ_OVERRIDE { }
+  void OnReadMetadataCompleted() override { }
 
   
   
   virtual void MetadataLoaded(nsAutoPtr<MediaInfo> aInfo,
                               nsAutoPtr<MetadataTags> aTags,
-                              MediaDecoderEventVisibility aEventVisibility) MOZ_OVERRIDE;
+                              MediaDecoderEventVisibility aEventVisibility) override;
 
   
   
   virtual void FirstFrameLoaded(nsAutoPtr<MediaInfo> aInfo,
-                                MediaDecoderEventVisibility aEventVisibility) MOZ_OVERRIDE;
+                                MediaDecoderEventVisibility aEventVisibility) override;
 
   
   
@@ -791,7 +791,7 @@ public:
 
   
   
-  virtual void RemoveMediaTracks() MOZ_OVERRIDE;
+  virtual void RemoveMediaTracks() override;
 
   
   
@@ -854,7 +854,7 @@ public:
   
   void UpdateSameOriginStatus(bool aSameOrigin);
 
-  MediaDecoderOwner* GetOwner() MOZ_OVERRIDE;
+  MediaDecoderOwner* GetOwner() override;
 
   
   
@@ -865,10 +865,10 @@ public:
 
 #ifdef MOZ_EME
   
-  virtual nsresult SetCDMProxy(CDMProxy* aProxy) MOZ_OVERRIDE;
+  virtual nsresult SetCDMProxy(CDMProxy* aProxy) override;
 
   
-  virtual CDMProxy* GetCDMProxy() MOZ_OVERRIDE;
+  virtual CDMProxy* GetCDMProxy() override;
 #endif
 
 #ifdef MOZ_RAW
@@ -1045,7 +1045,7 @@ public:
   
   
   virtual void NotifyDecodedFrames(uint32_t aParsed, uint32_t aDecoded,
-                                   uint32_t aDropped) MOZ_OVERRIDE
+                                   uint32_t aDropped) override
   {
     GetFrameStatistics().NotifyDecodedFrames(aParsed, aDecoded, aDropped);
   }

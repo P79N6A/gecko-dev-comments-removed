@@ -13,7 +13,7 @@ namespace mozilla {
 namespace dom {
 namespace mobileconnection {
 
-class MobileConnectionIPCService MOZ_FINAL : public nsIMobileConnectionService
+class MobileConnectionIPCService final : public nsIMobileConnectionService
 {
 public:
   NS_DECL_ISUPPORTS

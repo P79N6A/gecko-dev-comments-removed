@@ -68,7 +68,7 @@ PRLogModuleInfo* nsURILoader::mLog = nullptr;
 
 
 
-class nsDocumentOpenInfo MOZ_FINAL : public nsIStreamListener
+class nsDocumentOpenInfo final : public nsIStreamListener
                                    , public nsIThreadRetargetableStreamListener
 {
 public:

@@ -64,47 +64,47 @@ public:
   
   virtual bool AllocShmem(size_t aSize,
                           ipc::SharedMemory::SharedMemoryType aType,
-                          ipc::Shmem* aShmem) MOZ_OVERRIDE {
+                          ipc::Shmem* aShmem) override {
     return PLayerTransactionParent::AllocShmem(aSize, aType, aShmem);
   }
 
   virtual bool AllocUnsafeShmem(size_t aSize,
                                 ipc::SharedMemory::SharedMemoryType aType,
-                                ipc::Shmem* aShmem) MOZ_OVERRIDE {
+                                ipc::Shmem* aShmem) override {
     return PLayerTransactionParent::AllocUnsafeShmem(aSize, aType, aShmem);
   }
 
-  virtual void DeallocShmem(ipc::Shmem& aShmem) MOZ_OVERRIDE
+  virtual void DeallocShmem(ipc::Shmem& aShmem) override
   {
     PLayerTransactionParent::DeallocShmem(aShmem);
   }
 
-  virtual LayersBackend GetCompositorBackendType() const MOZ_OVERRIDE;
+  virtual LayersBackend GetCompositorBackendType() const override;
 
-  virtual bool IsSameProcess() const MOZ_OVERRIDE;
+  virtual bool IsSameProcess() const override;
 
   const uint64_t& GetPendingTransactionId() { return mPendingTransaction; }
   void SetPendingTransactionId(uint64_t aId) { mPendingTransaction = aId; }
 
   
   virtual void SendFenceHandleIfPresent(PTextureParent* aTexture,
-                                        CompositableHost* aCompositableHost) MOZ_OVERRIDE;
+                                        CompositableHost* aCompositableHost) override;
 
   virtual void SendFenceHandle(AsyncTransactionTracker* aTracker,
                                PTextureParent* aTexture,
-                               const FenceHandle& aFence) MOZ_OVERRIDE;
+                               const FenceHandle& aFence) override;
 
-  virtual void SendAsyncMessage(const InfallibleTArray<AsyncParentMessageData>& aMessage) MOZ_OVERRIDE;
+  virtual void SendAsyncMessage(const InfallibleTArray<AsyncParentMessageData>& aMessage) override;
 
-  virtual base::ProcessId GetChildProcessId() MOZ_OVERRIDE
+  virtual base::ProcessId GetChildProcessId() override
   {
     return mChildProcessId;
   }
 
-  virtual void ReplyRemoveTexture(const OpReplyRemoveTexture& aReply) MOZ_OVERRIDE;
+  virtual void ReplyRemoveTexture(const OpReplyRemoveTexture& aReply) override;
 
 protected:
-  virtual bool RecvShutdown() MOZ_OVERRIDE;
+  virtual bool RecvShutdown() override;
 
   virtual bool RecvUpdate(EditArray&& cset,
                           const uint64_t& aTransactionId,
@@ -115,7 +115,7 @@ protected:
                           const uint32_t& paintSequenceNumber,
                           const bool& isRepeatTransaction,
                           const mozilla::TimeStamp& aTransactionStart,
-                          EditReplyArray* reply) MOZ_OVERRIDE;
+                          EditReplyArray* reply) override;
 
   virtual bool RecvUpdateNoSwap(EditArray&& cset,
                                 const uint64_t& aTransactionId,
@@ -125,36 +125,36 @@ protected:
                                 const bool& scheduleComposite,
                                 const uint32_t& paintSequenceNumber,
                                 const bool& isRepeatTransaction,
-                                const mozilla::TimeStamp& aTransactionStart) MOZ_OVERRIDE;
+                                const mozilla::TimeStamp& aTransactionStart) override;
 
-  virtual bool RecvClearCachedResources() MOZ_OVERRIDE;
-  virtual bool RecvForceComposite() MOZ_OVERRIDE;
-  virtual bool RecvSetTestSampleTime(const TimeStamp& aTime) MOZ_OVERRIDE;
-  virtual bool RecvLeaveTestMode() MOZ_OVERRIDE;
+  virtual bool RecvClearCachedResources() override;
+  virtual bool RecvForceComposite() override;
+  virtual bool RecvSetTestSampleTime(const TimeStamp& aTime) override;
+  virtual bool RecvLeaveTestMode() override;
   virtual bool RecvGetOpacity(PLayerParent* aParent,
-                              float* aOpacity) MOZ_OVERRIDE;
+                              float* aOpacity) override;
   virtual bool RecvGetAnimationTransform(PLayerParent* aParent,
                                          MaybeTransform* aTransform)
-                                         MOZ_OVERRIDE;
+                                         override;
   virtual bool RecvSetAsyncScrollOffset(const FrameMetrics::ViewID& aId,
-                                        const int32_t& aX, const int32_t& aY) MOZ_OVERRIDE;
-  virtual bool RecvGetAPZTestData(APZTestData* aOutData) MOZ_OVERRIDE;
-  virtual bool RecvRequestProperty(const nsString& aProperty, float* aValue) MOZ_OVERRIDE;
+                                        const int32_t& aX, const int32_t& aY) override;
+  virtual bool RecvGetAPZTestData(APZTestData* aOutData) override;
+  virtual bool RecvRequestProperty(const nsString& aProperty, float* aValue) override;
 
-  virtual PLayerParent* AllocPLayerParent() MOZ_OVERRIDE;
-  virtual bool DeallocPLayerParent(PLayerParent* actor) MOZ_OVERRIDE;
+  virtual PLayerParent* AllocPLayerParent() override;
+  virtual bool DeallocPLayerParent(PLayerParent* actor) override;
 
-  virtual PCompositableParent* AllocPCompositableParent(const TextureInfo& aInfo) MOZ_OVERRIDE;
-  virtual bool DeallocPCompositableParent(PCompositableParent* actor) MOZ_OVERRIDE;
+  virtual PCompositableParent* AllocPCompositableParent(const TextureInfo& aInfo) override;
+  virtual bool DeallocPCompositableParent(PCompositableParent* actor) override;
 
   virtual PTextureParent* AllocPTextureParent(const SurfaceDescriptor& aSharedData,
-                                              const TextureFlags& aFlags) MOZ_OVERRIDE;
-  virtual bool DeallocPTextureParent(PTextureParent* actor) MOZ_OVERRIDE;
+                                              const TextureFlags& aFlags) override;
+  virtual bool DeallocPTextureParent(PTextureParent* actor) override;
 
   virtual bool
-  RecvChildAsyncMessages(InfallibleTArray<AsyncChildMessageData>&& aMessages) MOZ_OVERRIDE;
+  RecvChildAsyncMessages(InfallibleTArray<AsyncChildMessageData>&& aMessages) override;
 
-  virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
+  virtual void ActorDestroy(ActorDestroyReason why) override;
 
   bool Attach(ShadowLayerParent* aLayerParent,
               CompositableHost* aCompositable,

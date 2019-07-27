@@ -74,7 +74,7 @@ class ErrorResult;
 
 
 
-class DOMSVGLength MOZ_FINAL : public nsIDOMSVGLength,
+class DOMSVGLength final : public nsIDOMSVGLength,
                                public nsWrapperCache
 {
   friend class AutoChangeLengthNotifier;
@@ -188,7 +188,7 @@ public:
     return static_cast<nsIDOMSVGElement*> (svgElement);
   }
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
 private:
 

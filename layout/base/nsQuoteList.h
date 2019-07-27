@@ -32,7 +32,7 @@ struct nsQuoteNode : public nsGenConNode {
   }
 
   virtual bool InitTextFrame(nsGenConList* aList, 
-          nsIFrame* aPseudoFrame, nsIFrame* aTextFrame) MOZ_OVERRIDE;
+          nsIFrame* aPseudoFrame, nsIFrame* aTextFrame) override;
 
   
   bool IsOpenQuote() {

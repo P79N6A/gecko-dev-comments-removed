@@ -111,10 +111,10 @@ public:
   }
 
   
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Decoder, MOZ_OVERRIDE)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Decoder, override)
 
   
-  virtual void Resume() MOZ_OVERRIDE;
+  virtual void Resume() override;
 
   
 

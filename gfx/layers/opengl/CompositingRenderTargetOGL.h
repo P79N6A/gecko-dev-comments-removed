@@ -127,18 +127,18 @@ public:
   }
 
   
-  TextureSourceOGL* AsSourceOGL() MOZ_OVERRIDE
+  TextureSourceOGL* AsSourceOGL() override
   {
     
     MOZ_ASSERT(false, "CompositingRenderTargetOGL should not be used as a TextureSource");
     return nullptr;
   }
-  gfx::IntSize GetSize() const MOZ_OVERRIDE
+  gfx::IntSize GetSize() const override
   {
     return mInitParams.mSize;
   }
 
-  gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE
+  gfx::SurfaceFormat GetFormat() const override
   {
     
     MOZ_ASSERT(false, "Not implemented");
@@ -146,7 +146,7 @@ public:
   }
 
 #ifdef MOZ_DUMP_PAINTING
-  virtual TemporaryRef<gfx::DataSourceSurface> Dump(Compositor* aCompositor) MOZ_OVERRIDE;
+  virtual TemporaryRef<gfx::DataSourceSurface> Dump(Compositor* aCompositor) override;
 #endif
 
   const gfx::IntSize& GetInitSize() const {

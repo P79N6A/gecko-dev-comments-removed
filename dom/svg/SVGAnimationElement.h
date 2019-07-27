@@ -38,26 +38,26 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(SVGAnimationElement,
                                            SVGAnimationElementBase)
 
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE = 0;
+  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const override = 0;
 
   
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
-                              bool aCompileEventHandlers) MOZ_OVERRIDE;
-  virtual void UnbindFromTree(bool aDeep, bool aNullParent) MOZ_OVERRIDE;
+                              bool aCompileEventHandlers) override;
+  virtual void UnbindFromTree(bool aDeep, bool aNullParent) override;
 
   virtual nsresult UnsetAttr(int32_t aNamespaceID, nsIAtom* aAttribute,
-                             bool aNotify) MOZ_OVERRIDE;
+                             bool aNotify) override;
 
-  virtual bool IsNodeOfType(uint32_t aFlags) const MOZ_OVERRIDE;
+  virtual bool IsNodeOfType(uint32_t aFlags) const override;
 
   
   virtual bool ParseAttribute(int32_t aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
-                                nsAttrValue& aResult) MOZ_OVERRIDE;
+                                nsAttrValue& aResult) override;
   virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify) MOZ_OVERRIDE;
+                                const nsAttrValue* aValue, bool aNotify) override;
 
   const nsAttrValue* GetAnimAttr(nsIAtom* aName) const;
   bool GetAnimAttr(nsIAtom* aAttName, nsAString& aResult) const;
@@ -70,7 +70,7 @@ public:
   nsSMILTimeContainer* GetTimeContainer();
   virtual nsSMILAnimationFunction& AnimationFunction() = 0;
 
-  virtual bool IsEventAttributeName(nsIAtom* aName) MOZ_OVERRIDE;
+  virtual bool IsEventAttributeName(nsIAtom* aName) override;
 
   
   void ActivateByHyperlink();
@@ -100,14 +100,14 @@ public:
     
     
     
-    virtual void ElementChanged(Element* aFrom, Element* aTo) MOZ_OVERRIDE {
+    virtual void ElementChanged(Element* aFrom, Element* aTo) override {
       nsReferencedElement::ElementChanged(aFrom, aTo);
       mAnimationElement->AnimationTargetChanged();
     }
 
     
     
-    virtual bool IsPersistent() MOZ_OVERRIDE { return true; }
+    virtual bool IsPersistent() override { return true; }
   private:
     SVGAnimationElement* const mAnimationElement;
   };

@@ -35,7 +35,7 @@ private:
 
 
 
-class AsyncStatementParamsHolder MOZ_FINAL : public nsIXPConnectJSObjectHolder
+class AsyncStatementParamsHolder final : public nsIXPConnectJSObjectHolder
 {
 public:
   NS_DECL_ISUPPORTS

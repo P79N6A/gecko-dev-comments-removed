@@ -167,7 +167,7 @@ public:
 
 
 
-class nsXBLStreamListener MOZ_FINAL : public nsIStreamListener,
+class nsXBLStreamListener final : public nsIStreamListener,
                                       public nsIDOMEventListener
 {
 public:

@@ -1,7 +1,7 @@
-/* -*- Mode: C++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 8 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef mozilla_plugins_PluginStreamParent_h
 #define mozilla_plugins_PluginStreamParent_h
@@ -24,13 +24,13 @@ public:
                      const nsCString& target, NPError* result);
   virtual ~PluginStreamParent() { }
 
-  virtual bool IsBrowserStream() MOZ_OVERRIDE { return false; }
+  virtual bool IsBrowserStream() override { return false; }
 
-  virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
+  virtual void ActorDestroy(ActorDestroyReason aWhy) override;
 
-  virtual bool AnswerNPN_Write(const Buffer& data, int32_t* written) MOZ_OVERRIDE;
+  virtual bool AnswerNPN_Write(const Buffer& data, int32_t* written) override;
 
-  virtual bool Answer__delete__(const NPError& reason, const bool& artificial) MOZ_OVERRIDE;
+  virtual bool Answer__delete__(const NPError& reason, const bool& artificial) override;
 
 private:
   void NPN_DestroyStream(NPReason reason);
@@ -40,7 +40,7 @@ private:
   bool mClosed;
 };
 
-} // namespace plugins
-} // namespace mozilla
+} 
+} 
 
 #endif

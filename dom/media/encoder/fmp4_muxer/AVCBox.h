@@ -31,8 +31,8 @@ public:
   nsTArray<uint8_t> avcConfig;
 
   
-  nsresult Generate(uint32_t* aBoxSize) MOZ_OVERRIDE;
-  nsresult Write() MOZ_OVERRIDE;
+  nsresult Generate(uint32_t* aBoxSize) override;
+  nsresult Write() override;
 
   
   AVCConfigurationBox(ISOControl* aControl);
@@ -47,8 +47,8 @@ public:
   nsRefPtr<AVCConfigurationBox> avcConfigBox;
 
   
-  nsresult Generate(uint32_t* aBoxSize) MOZ_OVERRIDE;
-  nsresult Write() MOZ_OVERRIDE;
+  nsresult Generate(uint32_t* aBoxSize) override;
+  nsresult Write() override;
 
   
   AVCSampleEntry(ISOControl* aControl);

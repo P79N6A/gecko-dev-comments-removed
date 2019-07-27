@@ -80,7 +80,7 @@ class PendingDBLookup;
 
 
 
-class PendingLookup MOZ_FINAL : public nsIStreamListener
+class PendingLookup final : public nsIStreamListener
 {
 public:
   NS_DECL_ISUPPORTS
@@ -209,7 +209,7 @@ private:
 
 
 
-class PendingDBLookup MOZ_FINAL : public nsIUrlClassifierCallback
+class PendingDBLookup final : public nsIUrlClassifierCallback
 {
 public:
   NS_DECL_ISUPPORTS

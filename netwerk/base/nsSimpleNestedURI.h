@@ -47,19 +47,19 @@ public:
     
     virtual nsresult EqualsInternal(nsIURI* other,
                                     RefHandlingEnum refHandlingMode,
-                                    bool* result) MOZ_OVERRIDE;
-    virtual nsSimpleURI* StartClone(RefHandlingEnum refHandlingMode) MOZ_OVERRIDE;
+                                    bool* result) override;
+    virtual nsSimpleURI* StartClone(RefHandlingEnum refHandlingMode) override;
 
     
-    NS_IMETHOD Read(nsIObjectInputStream* aStream) MOZ_OVERRIDE;
-    NS_IMETHOD Write(nsIObjectOutputStream* aStream) MOZ_OVERRIDE;
+    NS_IMETHOD Read(nsIObjectInputStream* aStream) override;
+    NS_IMETHOD Write(nsIObjectOutputStream* aStream) override;
 
     
     NS_DECL_NSIIPCSERIALIZABLEURI
 
     
     
-    NS_IMETHOD GetClassIDNoAlloc(nsCID *aClassIDNoAlloc) MOZ_OVERRIDE;  
+    NS_IMETHOD GetClassIDNoAlloc(nsCID *aClassIDNoAlloc) override;  
 
 protected:
     nsCOMPtr<nsIURI> mInnerURI;

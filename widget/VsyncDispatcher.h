@@ -32,7 +32,7 @@ protected:
 }; 
 
 
-class CompositorVsyncDispatcher MOZ_FINAL
+class CompositorVsyncDispatcher final
 {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CompositorVsyncDispatcher)
 
@@ -62,7 +62,7 @@ private:
 };
 
 
-class RefreshTimerVsyncDispatcher MOZ_FINAL
+class RefreshTimerVsyncDispatcher final
 {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RefreshTimerVsyncDispatcher)
 

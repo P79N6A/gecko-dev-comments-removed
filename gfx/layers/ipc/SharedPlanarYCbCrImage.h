@@ -33,27 +33,27 @@ protected:
   ~SharedPlanarYCbCrImage();
 
 public:
-  virtual TextureClient* GetTextureClient(CompositableClient* aClient) MOZ_OVERRIDE;
-  virtual uint8_t* GetBuffer() MOZ_OVERRIDE;
+  virtual TextureClient* GetTextureClient(CompositableClient* aClient) override;
+  virtual uint8_t* GetBuffer() override;
 
-  virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() MOZ_OVERRIDE;
-  virtual void SetData(const PlanarYCbCrData& aData) MOZ_OVERRIDE;
-  virtual void SetDataNoCopy(const Data &aData) MOZ_OVERRIDE;
+  virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() override;
+  virtual void SetData(const PlanarYCbCrData& aData) override;
+  virtual void SetDataNoCopy(const Data &aData) override;
 
   virtual bool Allocate(PlanarYCbCrData& aData);
-  virtual uint8_t* AllocateBuffer(uint32_t aSize) MOZ_OVERRIDE;
+  virtual uint8_t* AllocateBuffer(uint32_t aSize) override;
   
   
-  virtual uint8_t* AllocateAndGetNewBuffer(uint32_t aSize) MOZ_OVERRIDE;
+  virtual uint8_t* AllocateAndGetNewBuffer(uint32_t aSize) override;
 
-  virtual bool IsValid() MOZ_OVERRIDE;
+  virtual bool IsValid() override;
 
-  virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE
+  virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override
   {
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }
 
-  virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE;
+  virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const override;
 
 private:
   RefPtr<BufferTextureClient> mTextureClient;

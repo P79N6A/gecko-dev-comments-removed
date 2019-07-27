@@ -22,7 +22,7 @@ class ServiceWorkerWindowClient;
 
 
 
-class ServiceWorkerClientInfo MOZ_FINAL
+class ServiceWorkerClientInfo final
 {
   friend class ServiceWorkerClient;
   friend class ServiceWorkerWindowClient;
@@ -80,7 +80,7 @@ public:
               const Optional<Sequence<JS::Value>>& aTransferable,
               ErrorResult& aRv);
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
 protected:
   virtual ~ServiceWorkerClient()

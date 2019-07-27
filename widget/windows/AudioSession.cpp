@@ -31,7 +31,7 @@ namespace widget {
 
 
 
-class AudioSession MOZ_FINAL : public IAudioSessionEvents {
+class AudioSession final : public IAudioSessionEvents {
 private:
   AudioSession();
   ~AudioSession();

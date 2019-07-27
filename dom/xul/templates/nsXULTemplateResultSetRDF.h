@@ -18,7 +18,7 @@ class nsXULTemplateResultRDF;
 
 
 
-class nsXULTemplateResultSetRDF MOZ_FINAL : public nsISimpleEnumerator
+class nsXULTemplateResultSetRDF final : public nsISimpleEnumerator
 {
 private:
     nsXULTemplateQueryProcessorRDF* mProcessor;

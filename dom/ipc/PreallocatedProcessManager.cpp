@@ -34,7 +34,7 @@ namespace {
 
 
 
-class PreallocatedProcessManagerImpl MOZ_FINAL
+class PreallocatedProcessManagerImpl final
   : public nsIObserver
 {
 public:

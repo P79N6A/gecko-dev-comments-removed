@@ -24,7 +24,7 @@ namespace layout {
 
 
 
-class VsyncChild MOZ_FINAL : public PVsyncChild
+class VsyncChild final : public PVsyncChild
 {
   NS_INLINE_DECL_REFCOUNTING(VsyncChild)
 
@@ -43,8 +43,8 @@ private:
   VsyncChild();
   virtual ~VsyncChild();
 
-  virtual bool RecvNotify(const TimeStamp& aVsyncTimestamp) MOZ_OVERRIDE;
-  virtual void ActorDestroy(ActorDestroyReason aActorDestroyReason) MOZ_OVERRIDE;
+  virtual bool RecvNotify(const TimeStamp& aVsyncTimestamp) override;
+  virtual void ActorDestroy(ActorDestroyReason aActorDestroyReason) override;
 
   bool mObservingVsync;
   bool mIsShutdown;

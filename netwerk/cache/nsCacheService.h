@@ -62,7 +62,7 @@ private:
 
 
 
-class nsCacheService MOZ_FINAL : public nsICacheServiceInternal,
+class nsCacheService final : public nsICacheServiceInternal,
                                  public nsIMemoryReporter
 {
     virtual ~nsCacheService();

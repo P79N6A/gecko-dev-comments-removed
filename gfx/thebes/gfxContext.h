@@ -42,7 +42,7 @@ struct RectCornerRadii;
 
 
 
-class gfxContext MOZ_FINAL {
+class gfxContext final {
     typedef mozilla::gfx::CapStyle CapStyle;
     typedef mozilla::gfx::JoinStyle JoinStyle;
     typedef mozilla::gfx::FillRule FillRule;

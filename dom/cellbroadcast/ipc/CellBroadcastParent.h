@@ -15,7 +15,7 @@ namespace mozilla {
 namespace dom {
 namespace cellbroadcast {
 
-class CellBroadcastParent MOZ_FINAL : public PCellBroadcastParent
+class CellBroadcastParent final : public PCellBroadcastParent
                                     , public nsICellBroadcastListener
 {
 public:
@@ -28,7 +28,7 @@ private:
   
   ~CellBroadcastParent() {};
 
-  virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
+  virtual void ActorDestroy(ActorDestroyReason aWhy) override;
 };
 
 } 

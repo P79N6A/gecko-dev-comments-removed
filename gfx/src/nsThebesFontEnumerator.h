@@ -10,7 +10,7 @@
 #include "nsIFontEnumerator.h"          
 #include "nsISupports.h"                
 
-class nsThebesFontEnumerator MOZ_FINAL : public nsIFontEnumerator
+class nsThebesFontEnumerator final : public nsIFontEnumerator
 {
     ~nsThebesFontEnumerator() {}
 public:

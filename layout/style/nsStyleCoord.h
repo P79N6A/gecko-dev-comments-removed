@@ -72,7 +72,7 @@ public:
 
   
   
-  struct Calc MOZ_FINAL : public CalcValue {
+  struct Calc final : public CalcValue {
     NS_INLINE_DECL_REFCOUNTING(Calc)
     Calc() {}
 

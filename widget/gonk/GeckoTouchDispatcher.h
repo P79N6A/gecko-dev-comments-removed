@@ -41,7 +41,7 @@ class CompositorVsyncObserver;
 
 
 
-class GeckoTouchDispatcher MOZ_FINAL
+class GeckoTouchDispatcher final
 {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(GeckoTouchDispatcher)
 

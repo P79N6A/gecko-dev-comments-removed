@@ -34,7 +34,7 @@ class nsDOMCSSRGBColor;
 
 
 
-class nsROCSSPrimitiveValue MOZ_FINAL : public mozilla::dom::CSSValue,
+class nsROCSSPrimitiveValue final : public mozilla::dom::CSSValue,
   public nsIDOMCSSPrimitiveValue
 {
 public:
@@ -48,9 +48,9 @@ public:
   NS_DECL_NSIDOMCSSVALUE
 
   
-  virtual void GetCssText(nsString& aText, mozilla::ErrorResult& aRv) MOZ_OVERRIDE MOZ_FINAL;
-  virtual void SetCssText(const nsAString& aText, mozilla::ErrorResult& aRv) MOZ_OVERRIDE MOZ_FINAL;
-  virtual uint16_t CssValueType() const MOZ_OVERRIDE MOZ_FINAL;
+  virtual void GetCssText(nsString& aText, mozilla::ErrorResult& aRv) override final;
+  virtual void SetCssText(const nsAString& aText, mozilla::ErrorResult& aRv) override final;
+  virtual uint16_t CssValueType() const override final;
 
   
   uint16_t PrimitiveType()
@@ -104,7 +104,7 @@ public:
     return nullptr;
   }
 
-  virtual JSObject *WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject *WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
 
 private:
   ~nsROCSSPrimitiveValue();

@@ -62,7 +62,7 @@ nsresult ProcessUpdates(nsIFile *greDir, nsIFile *appDir,
 
 
 
-class nsUpdateProcessor MOZ_FINAL : public nsIUpdateProcessor
+class nsUpdateProcessor final : public nsIUpdateProcessor
 {
 public:
   nsUpdateProcessor();

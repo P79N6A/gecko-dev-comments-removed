@@ -15,7 +15,7 @@
 
 
 
-class nsHtml5Atom MOZ_FINAL : public nsIAtom
+class nsHtml5Atom final : public nsIAtom
 {
   public:
     NS_DECL_ISUPPORTS

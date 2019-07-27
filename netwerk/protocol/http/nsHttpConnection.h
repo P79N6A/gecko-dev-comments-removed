@@ -36,7 +36,7 @@ class ASpdySession;
 
 
 
-class nsHttpConnection MOZ_FINAL : public nsAHttpSegmentReader
+class nsHttpConnection final : public nsAHttpSegmentReader
                                  , public nsAHttpSegmentWriter
                                  , public nsIInputStreamCallback
                                  , public nsIOutputStreamCallback

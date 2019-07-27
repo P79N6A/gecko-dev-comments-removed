@@ -50,7 +50,7 @@ class TableUpdate;
 
 
 
-class nsUrlClassifierDBService MOZ_FINAL : public nsIUrlClassifierDBService,
+class nsUrlClassifierDBService final : public nsIUrlClassifierDBService,
                                            public nsIURIClassifier,
                                            public nsIObserver
 {
@@ -134,7 +134,7 @@ private:
   static nsIThread* gDbBackgroundThread;
 };
 
-class nsUrlClassifierDBServiceWorker MOZ_FINAL :
+class nsUrlClassifierDBServiceWorker final :
   public nsIUrlClassifierDBServiceWorker
 {
 public:

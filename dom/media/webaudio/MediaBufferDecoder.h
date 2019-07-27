@@ -24,7 +24,7 @@ class DecodeSuccessCallback;
 class Promise;
 }
 
-struct WebAudioDecodeJob MOZ_FINAL
+struct WebAudioDecodeJob final
 {
   
   

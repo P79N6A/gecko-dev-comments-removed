@@ -79,7 +79,7 @@ struct ShaderConstantRect
 
 
 
-class SwapChainD3D9 MOZ_FINAL
+class SwapChainD3D9 final
 {
   NS_INLINE_DECL_REFCOUNTING(SwapChainD3D9)
 public:
@@ -131,7 +131,7 @@ private:
 
 
 
-class DeviceManagerD3D9 MOZ_FINAL
+class DeviceManagerD3D9 final
 {
 public:
   DeviceManagerD3D9();

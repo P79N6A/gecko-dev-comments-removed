@@ -51,7 +51,7 @@ struct nsRowGroupReflowState {
 
 
 
-class nsTableRowGroupFrame MOZ_FINAL
+class nsTableRowGroupFrame final
   : public nsContainerFrame
   , public nsILineIterator
 {
@@ -69,26 +69,26 @@ public:
                                                         nsStyleContext* aContext);
   virtual ~nsTableRowGroupFrame();
 
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
 
   
-  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) MOZ_OVERRIDE;
+  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) override;
   
   virtual void AppendFrames(ChildListID     aListID,
-                            nsFrameList&    aFrameList) MOZ_OVERRIDE;
+                            nsFrameList&    aFrameList) override;
   virtual void InsertFrames(ChildListID     aListID,
                             nsIFrame*       aPrevFrame,
-                            nsFrameList&    aFrameList) MOZ_OVERRIDE;
+                            nsFrameList&    aFrameList) override;
   virtual void RemoveFrame(ChildListID     aListID,
-                           nsIFrame*       aOldFrame) MOZ_OVERRIDE;
+                           nsIFrame*       aOldFrame) override;
 
-  virtual nsMargin GetUsedMargin() const MOZ_OVERRIDE;
-  virtual nsMargin GetUsedBorder() const MOZ_OVERRIDE;
-  virtual nsMargin GetUsedPadding() const MOZ_OVERRIDE;
+  virtual nsMargin GetUsedMargin() const override;
+  virtual nsMargin GetUsedBorder() const override;
+  virtual nsMargin GetUsedPadding() const override;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
    
 
@@ -102,21 +102,21 @@ public:
   virtual void Reflow(nsPresContext*           aPresContext,
                       nsHTMLReflowMetrics&     aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+                      nsReflowStatus&          aStatus) override;
 
-  virtual bool UpdateOverflow() MOZ_OVERRIDE;
+  virtual bool UpdateOverflow() override;
 
   
 
 
 
 
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
   nsTableRowFrame* GetFirstRow();
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
   
@@ -181,7 +181,7 @@ public:
 
 
 public:
-  virtual void DisposeLineIterator() MOZ_OVERRIDE { }
+  virtual void DisposeLineIterator() override { }
 
   
   
@@ -193,12 +193,12 @@ public:
   
 
 
-  virtual int32_t GetNumLines() MOZ_OVERRIDE;
+  virtual int32_t GetNumLines() override;
 
   
 
 
-  virtual bool GetDirection() MOZ_OVERRIDE;
+  virtual bool GetDirection() override;
   
   
 
@@ -214,7 +214,7 @@ public:
   NS_IMETHOD GetLine(int32_t aLineNumber,
                      nsIFrame** aFirstFrameOnLine,
                      int32_t* aNumFramesOnLine,
-                     nsRect& aLineBounds) MOZ_OVERRIDE;
+                     nsRect& aLineBounds) override;
   
   
 
@@ -223,7 +223,7 @@ public:
 
 
 
-  virtual int32_t FindLineContaining(nsIFrame* aFrame, int32_t aStartLine = 0) MOZ_OVERRIDE;
+  virtual int32_t FindLineContaining(nsIFrame* aFrame, int32_t aStartLine = 0) override;
 
   
 
@@ -240,7 +240,7 @@ public:
                          nsPoint aPos,
                          nsIFrame** aFrameFound,
                          bool* aPosIsBeforeFirstFrame,
-                         bool* aPosIsAfterLastFrame) MOZ_OVERRIDE;
+                         bool* aPosIsAfterLastFrame) override;
 
    
 
@@ -253,14 +253,14 @@ public:
   NS_IMETHOD CheckLineOrder(int32_t                  aLine,
                             bool                     *aIsReordered,
                             nsIFrame                 **aFirstVisual,
-                            nsIFrame                 **aLastVisual) MOZ_OVERRIDE;
+                            nsIFrame                 **aLastVisual) override;
 
   
 
 
 
   
-  NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame, int32_t aLineNumber) MOZ_OVERRIDE;
+  NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame, int32_t aLineNumber) override;
 
   
   
@@ -314,16 +314,16 @@ public:
 
   FrameCursorData* SetupRowCursor();
 
-  virtual nsILineIterator* GetLineIterator() MOZ_OVERRIDE { return this; }
+  virtual nsILineIterator* GetLineIterator() override { return this; }
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE
+  virtual bool IsFrameOfType(uint32_t aFlags) const override
   {
     return nsContainerFrame::IsFrameOfType(aFlags & ~(nsIFrame::eTablePart));
   }
 
-  virtual void InvalidateFrame(uint32_t aDisplayItemKey = 0) MOZ_OVERRIDE;
-  virtual void InvalidateFrameWithRect(const nsRect& aRect, uint32_t aDisplayItemKey = 0) MOZ_OVERRIDE;
-  virtual void InvalidateFrameForRemoval() MOZ_OVERRIDE { InvalidateFrameSubtree(); }
+  virtual void InvalidateFrame(uint32_t aDisplayItemKey = 0) override;
+  virtual void InvalidateFrameWithRect(const nsRect& aRect, uint32_t aDisplayItemKey = 0) override;
+  virtual void InvalidateFrameForRemoval() override { InvalidateFrameSubtree(); }
 
 protected:
   explicit nsTableRowGroupFrame(nsStyleContext* aContext);
@@ -332,7 +332,7 @@ protected:
                             bool               aBorderCollapse,
                             nsHTMLReflowState& aReflowState);
   
-  virtual LogicalSides GetLogicalSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const MOZ_OVERRIDE;
+  virtual LogicalSides GetLogicalSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const override;
 
   void PlaceChild(nsPresContext*         aPresContext,
                   nsRowGroupReflowState& aReflowState,

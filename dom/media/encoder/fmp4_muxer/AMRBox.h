@@ -21,8 +21,8 @@ public:
   nsTArray<uint8_t> amrDecSpecInfo;
 
   
-  nsresult Generate(uint32_t* aBoxSize) MOZ_OVERRIDE;
-  nsresult Write() MOZ_OVERRIDE;
+  nsresult Generate(uint32_t* aBoxSize) override;
+  nsresult Write() override;
 
   
   AMRSpecificBox(ISOControl* aControl);
@@ -37,8 +37,8 @@ public:
   nsRefPtr<AMRSpecificBox> amr_special_box;
 
   
-  nsresult Generate(uint32_t* aBoxSize) MOZ_OVERRIDE;
-  nsresult Write() MOZ_OVERRIDE;
+  nsresult Generate(uint32_t* aBoxSize) override;
+  nsresult Write() override;
 
   
   AMRSampleEntry(ISOControl* aControl);

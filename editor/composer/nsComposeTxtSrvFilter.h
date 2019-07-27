@@ -16,7 +16,7 @@
 
 
 
-class nsComposeTxtSrvFilter MOZ_FINAL : public nsITextServicesFilter
+class nsComposeTxtSrvFilter final : public nsITextServicesFilter
 {
 public:
   nsComposeTxtSrvFilter();

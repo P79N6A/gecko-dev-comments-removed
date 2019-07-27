@@ -9,7 +9,7 @@
 
 
 
-class nsDirIndex MOZ_FINAL : public nsIDirIndex {
+class nsDirIndex final : public nsIDirIndex {
 
 private:
     ~nsDirIndex();

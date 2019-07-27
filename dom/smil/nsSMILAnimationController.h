@@ -41,7 +41,7 @@ class SVGAnimationElement;
 
 
 
-class nsSMILAnimationController MOZ_FINAL : public nsSMILTimeContainer,
+class nsSMILAnimationController final : public nsSMILTimeContainer,
                                             public nsARefreshObserver
 {
 public:
@@ -51,15 +51,15 @@ public:
   void Disconnect();
 
   
-  virtual void Pause(uint32_t aType) MOZ_OVERRIDE;
-  virtual void Resume(uint32_t aType) MOZ_OVERRIDE;
-  virtual nsSMILTime GetParentTime() const MOZ_OVERRIDE;
+  virtual void Pause(uint32_t aType) override;
+  virtual void Resume(uint32_t aType) override;
+  virtual nsSMILTime GetParentTime() const override;
 
   
-  NS_IMETHOD_(MozExternalRefCountType) AddRef() MOZ_OVERRIDE;
-  NS_IMETHOD_(MozExternalRefCountType) Release() MOZ_OVERRIDE;
+  NS_IMETHOD_(MozExternalRefCountType) AddRef() override;
+  NS_IMETHOD_(MozExternalRefCountType) Release() override;
 
-  virtual void WillRefresh(mozilla::TimeStamp aTime) MOZ_OVERRIDE;
+  virtual void WillRefresh(mozilla::TimeStamp aTime) override;
 
   
   void RegisterAnimationElement(mozilla::dom::SVGAnimationElement* aAnimationElement);
@@ -150,7 +150,7 @@ protected:
   void MaybeStartSampling(nsRefreshDriver* aRefreshDriver);
 
   
-  virtual void DoSample() MOZ_OVERRIDE;
+  virtual void DoSample() override;
   void DoSample(bool aSkipUnchangedContainers);
 
   void RewindElements();
@@ -182,8 +182,8 @@ protected:
     AddStyleUpdate(AnimationElementPtrKey* aKey, void* aData);
 
   
-  virtual nsresult AddChild(nsSMILTimeContainer& aChild) MOZ_OVERRIDE;
-  virtual void     RemoveChild(nsSMILTimeContainer& aChild) MOZ_OVERRIDE;
+  virtual nsresult AddChild(nsSMILTimeContainer& aChild) override;
+  virtual void     RemoveChild(nsSMILTimeContainer& aChild) override;
 
   void FlagDocumentNeedsFlush();
 

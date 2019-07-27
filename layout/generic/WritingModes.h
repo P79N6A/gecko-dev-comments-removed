@@ -105,7 +105,7 @@ enum LineRelativeDir {
 
 
 
-struct LogicalSides MOZ_FINAL {
+struct LogicalSides final {
   LogicalSides() : mBits(0) {}
   explicit LogicalSides(LogicalSideBits aSideBits)
   {

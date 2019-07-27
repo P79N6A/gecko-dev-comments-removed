@@ -607,7 +607,7 @@ public:
     }
   }
 
-  virtual void Stop() MOZ_OVERRIDE
+  virtual void Stop() override
   {
     if (mSourceStream) {
       mSourceStream->EndAllTrackAndFinish();
@@ -618,7 +618,7 @@ public:
   
   
   
-  virtual void StopTrack(TrackID aTrackID) MOZ_OVERRIDE
+  virtual void StopTrack(TrackID aTrackID) override
   {
     if (mSourceStream) {
       mSourceStream->EndTrack(aTrackID);
@@ -649,7 +649,7 @@ public:
 #endif
 
   
-  virtual bool AddDirectListener(MediaStreamDirectListener *aListener) MOZ_OVERRIDE
+  virtual bool AddDirectListener(MediaStreamDirectListener *aListener) override
   {
     if (mSourceStream) {
       mSourceStream->AddDirectListener(aListener);
@@ -673,7 +673,7 @@ public:
     mPlayoutDelay = aPlayoutDelay;
   }
 
-  virtual void RemoveDirectListener(MediaStreamDirectListener *aListener) MOZ_OVERRIDE
+  virtual void RemoveDirectListener(MediaStreamDirectListener *aListener) override
   {
     if (mSourceStream) {
       mSourceStream->RemoveDirectListener(aListener);
@@ -681,7 +681,7 @@ public:
   }
 
   
-  virtual void SetTrackEnabled(TrackID aID, bool aEnabled) MOZ_OVERRIDE
+  virtual void SetTrackEnabled(TrackID aID, bool aEnabled) override
   {
     
     
@@ -691,12 +691,12 @@ public:
     GetStream()->AsProcessedStream()->ForwardTrackEnabled(aID, aEnabled);
   }
 
-  virtual DOMLocalMediaStream* AsDOMLocalMediaStream() MOZ_OVERRIDE
+  virtual DOMLocalMediaStream* AsDOMLocalMediaStream() override
   {
     return this;
   }
 
-  virtual MediaEngineSource* GetMediaEngine(TrackID aTrackID) MOZ_OVERRIDE
+  virtual MediaEngineSource* GetMediaEngine(TrackID aTrackID) override
   {
     
     
@@ -773,7 +773,7 @@ public:
                             DOMMediaStream* aStream)
       : mWindowID(aWindowID), mOnSuccess(aSuccess), mManager(aManager),
         mStream(aStream) {}
-    virtual void NotifyTracksAvailable(DOMMediaStream* aStream) MOZ_OVERRIDE
+    virtual void NotifyTracksAvailable(DOMMediaStream* aStream) override
     {
       
       if (!(mManager->IsWindowStillActive(mWindowID))) {

@@ -430,7 +430,7 @@ private:
     
     
 
-    class nsHalfOpenSocket MOZ_FINAL : public nsIOutputStreamCallback,
+    class nsHalfOpenSocket final : public nsIOutputStreamCallback,
                                        public nsITransportEventSink,
                                        public nsIInterfaceRequestor,
                                        public nsITimerCallback

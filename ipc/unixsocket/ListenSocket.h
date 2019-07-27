@@ -64,7 +64,7 @@ public:
 private:
 
   
-  void CloseSocket() MOZ_OVERRIDE
+  void CloseSocket() override
   {
     Close();
   }

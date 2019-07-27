@@ -42,7 +42,7 @@ class PCacheStreamControlParent;
 
 
 
-class ReadStream MOZ_FINAL : public nsIInputStream
+class ReadStream final : public nsIInputStream
 {
 public:
   

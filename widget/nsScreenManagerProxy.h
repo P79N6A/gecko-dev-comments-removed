@@ -23,7 +23,7 @@
 
 
 
-class nsScreenManagerProxy MOZ_FINAL : public nsIScreenManager,
+class nsScreenManagerProxy final : public nsIScreenManager,
                                        public mozilla::dom::PScreenManagerChild
 {
 public:

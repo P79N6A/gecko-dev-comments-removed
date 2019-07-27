@@ -30,7 +30,7 @@ class nsISupportsArray;
 
 
 
-class nsSHEntryShared MOZ_FINAL : public nsIBFCacheEntry,
+class nsSHEntryShared final : public nsIBFCacheEntry,
                                   public nsIMutationObserver
 {
   public:

@@ -46,7 +46,7 @@ class SVGAnimatedPathSegList;
 
 
 
-class DOMSVGPathSegList MOZ_FINAL : public nsISupports,
+class DOMSVGPathSegList final : public nsISupports,
                                     public nsWrapperCache
 {
   friend class AutoChangePathSegListNotifier;
@@ -56,7 +56,7 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGPathSegList)
 
-  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
 
   nsISupports* GetParentObject()
   {

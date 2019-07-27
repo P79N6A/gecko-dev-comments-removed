@@ -16,7 +16,7 @@
 
 
 
-class nsIconChannel MOZ_FINAL : public nsIChannel
+class nsIconChannel final : public nsIChannel
 {
   public:
     NS_DECL_ISUPPORTS

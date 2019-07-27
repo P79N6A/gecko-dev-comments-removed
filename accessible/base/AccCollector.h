@@ -71,20 +71,20 @@ private:
 
 
 
-class EmbeddedObjCollector MOZ_FINAL : public AccCollector
+class EmbeddedObjCollector final : public AccCollector
 {
 public:
   virtual ~EmbeddedObjCollector() { }
 
 public:
-  virtual int32_t GetIndexAt(Accessible* aAccessible) MOZ_OVERRIDE;
+  virtual int32_t GetIndexAt(Accessible* aAccessible) override;
 
 protected:
   
   explicit EmbeddedObjCollector(Accessible* aRoot) :
     AccCollector(aRoot, filters::GetEmbeddedObject) { }
 
-  virtual void AppendObject(Accessible* aAccessible) MOZ_OVERRIDE;
+  virtual void AppendObject(Accessible* aAccessible) override;
 
   friend class Accessible;
 };

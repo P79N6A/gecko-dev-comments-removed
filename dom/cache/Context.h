@@ -41,7 +41,7 @@ class Manager;
 
 
 
-class Context MOZ_FINAL
+class Context final
 {
 public:
   static already_AddRefed<Context>

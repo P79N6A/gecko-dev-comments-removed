@@ -58,7 +58,7 @@ namespace dom {
 
 struct JsonWebKey;
 
-class CryptoKey MOZ_FINAL : public nsISupports,
+class CryptoKey final : public nsISupports,
                             public nsWrapperCache,
                             public nsNSSShutDownObject
 {
@@ -98,7 +98,7 @@ public:
     return mGlobal;
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   
   void GetType(nsString& aRetVal) const;
@@ -139,7 +139,7 @@ public:
   SECKEYPublicKey* GetPublicKey() const;
 
   
-  virtual void virtualDestroyNSSReference() MOZ_OVERRIDE;
+  virtual void virtualDestroyNSSReference() override;
   void destructorSafeDestroyNSSReference();
 
   

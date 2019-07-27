@@ -40,26 +40,26 @@ protected:
 
 public:
   
-  virtual Layer* GetLayer() MOZ_OVERRIDE { return this; }
+  virtual Layer* GetLayer() override { return this; }
 
-  virtual void SetLayerManager(LayerManagerComposite* aManager) MOZ_OVERRIDE
+  virtual void SetLayerManager(LayerManagerComposite* aManager) override
   {
     LayerComposite::SetLayerManager(aManager);
     mManager = aManager;
   }
 
-  virtual void Destroy() MOZ_OVERRIDE { mDestroyed = true; }
+  virtual void Destroy() override { mDestroyed = true; }
 
-  virtual void RenderLayer(const nsIntRect& aClipRect) MOZ_OVERRIDE;
-  virtual void CleanupResources() MOZ_OVERRIDE {};
+  virtual void RenderLayer(const nsIntRect& aClipRect) override;
+  virtual void CleanupResources() override {};
 
-  virtual void GenEffectChain(EffectChain& aEffect) MOZ_OVERRIDE;
+  virtual void GenEffectChain(EffectChain& aEffect) override;
 
-  CompositableHost* GetCompositableHost() MOZ_OVERRIDE { return nullptr; }
+  CompositableHost* GetCompositableHost() override { return nullptr; }
 
-  virtual LayerComposite* AsLayerComposite() MOZ_OVERRIDE { return this; }
+  virtual LayerComposite* AsLayerComposite() override { return this; }
 
-  virtual const char* Name() const MOZ_OVERRIDE { return "ColorLayerComposite"; }
+  virtual const char* Name() const override { return "ColorLayerComposite"; }
 };
 
 } 

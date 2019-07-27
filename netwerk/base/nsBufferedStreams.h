@@ -82,8 +82,8 @@ public:
 protected:
     virtual ~nsBufferedInputStream() {}
 
-    NS_IMETHOD Fill() MOZ_OVERRIDE;
-    NS_IMETHOD Flush() MOZ_OVERRIDE { return NS_OK; } 
+    NS_IMETHOD Fill() override;
+    NS_IMETHOD Flush() override { return NS_OK; } 
 };
 
 
@@ -112,7 +112,7 @@ public:
 protected:
     virtual ~nsBufferedOutputStream() { nsBufferedOutputStream::Close(); }
 
-    NS_IMETHOD Fill() MOZ_OVERRIDE { return NS_OK; } 
+    NS_IMETHOD Fill() override { return NS_OK; } 
 
     nsCOMPtr<nsISafeOutputStream> mSafeStream; 
 };

@@ -25,7 +25,7 @@ namespace {
 
 
 
-class WatchedErrorEvent MOZ_FINAL : public nsRunnable
+class WatchedErrorEvent final : public nsRunnable
 {
 public:
   
@@ -63,7 +63,7 @@ public:
 
 
 
-class WatchedSuccessEvent MOZ_FINAL : public nsRunnable
+class WatchedSuccessEvent final : public nsRunnable
 {
 public:
   
@@ -101,7 +101,7 @@ public:
 
 
 
-class WatchedChangeEvent MOZ_FINAL : public nsRunnable
+class WatchedChangeEvent final : public nsRunnable
 {
 public:
   

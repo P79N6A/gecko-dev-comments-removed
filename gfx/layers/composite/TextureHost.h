@@ -253,7 +253,7 @@ public:
     : mUpdateSerial(0)
   {}
 
-  virtual DataTextureSource* AsDataTextureSource() MOZ_OVERRIDE { return this; }
+  virtual DataTextureSource* AsDataTextureSource() override { return this; }
 
   
 
@@ -278,7 +278,7 @@ public:
 
   
   
-  virtual void DeallocateDeviceData() MOZ_OVERRIDE
+  virtual void DeallocateDeviceData() override
   {
     SetUpdateSerial(0);
   }
@@ -580,17 +580,17 @@ public:
 
   virtual size_t GetBufferSize() = 0;
 
-  virtual void Updated(const nsIntRegion* aRegion = nullptr) MOZ_OVERRIDE;
+  virtual void Updated(const nsIntRegion* aRegion = nullptr) override;
 
-  virtual bool Lock() MOZ_OVERRIDE;
+  virtual bool Lock() override;
 
-  virtual void Unlock() MOZ_OVERRIDE;
+  virtual void Unlock() override;
 
-  virtual TextureSource* GetTextureSources() MOZ_OVERRIDE;
+  virtual TextureSource* GetTextureSources() override;
 
-  virtual void DeallocateDeviceData() MOZ_OVERRIDE;
+  virtual void DeallocateDeviceData() override;
 
-  virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE;
+  virtual void SetCompositor(Compositor* aCompositor) override;
 
   
 
@@ -599,13 +599,13 @@ public:
 
 
 
-  virtual gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE;
+  virtual gfx::SurfaceFormat GetFormat() const override;
 
-  virtual gfx::IntSize GetSize() const MOZ_OVERRIDE { return mSize; }
+  virtual gfx::IntSize GetSize() const override { return mSize; }
 
-  virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() MOZ_OVERRIDE;
+  virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() override;
 
-  virtual bool HasInternalBuffer() const MOZ_OVERRIDE { return true; }
+  virtual bool HasInternalBuffer() const override { return true; }
 
 protected:
   bool Upload(nsIntRegion *aRegion = nullptr);
@@ -641,17 +641,17 @@ protected:
   ~ShmemTextureHost();
 
 public:
-  virtual void DeallocateSharedData() MOZ_OVERRIDE;
+  virtual void DeallocateSharedData() override;
 
-  virtual void ForgetSharedData() MOZ_OVERRIDE;
+  virtual void ForgetSharedData() override;
 
-  virtual uint8_t* GetBuffer() MOZ_OVERRIDE;
+  virtual uint8_t* GetBuffer() override;
 
-  virtual size_t GetBufferSize() MOZ_OVERRIDE;
+  virtual size_t GetBufferSize() override;
 
-  virtual const char *Name() MOZ_OVERRIDE { return "ShmemTextureHost"; }
+  virtual const char *Name() override { return "ShmemTextureHost"; }
 
-  virtual void OnShutdown() MOZ_OVERRIDE;
+  virtual void OnShutdown() override;
 
 protected:
   UniquePtr<mozilla::ipc::Shmem> mShmem;
@@ -675,15 +675,15 @@ protected:
   ~MemoryTextureHost();
 
 public:
-  virtual void DeallocateSharedData() MOZ_OVERRIDE;
+  virtual void DeallocateSharedData() override;
 
-  virtual void ForgetSharedData() MOZ_OVERRIDE;
+  virtual void ForgetSharedData() override;
 
-  virtual uint8_t* GetBuffer() MOZ_OVERRIDE;
+  virtual uint8_t* GetBuffer() override;
 
-  virtual size_t GetBufferSize() MOZ_OVERRIDE;
+  virtual size_t GetBufferSize() override;
 
-  virtual const char *Name() MOZ_OVERRIDE { return "MemoryTextureHost"; }
+  virtual const char *Name() override { return "MemoryTextureHost"; }
 
 protected:
   uint8_t* mBuffer;
@@ -702,13 +702,13 @@ public:
     MOZ_ASSERT(!mIsLocked);
   }
 
-  virtual void DeallocateDeviceData() MOZ_OVERRIDE {};
+  virtual void DeallocateDeviceData() override {};
 
-  virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() MOZ_OVERRIDE {
+  virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() override {
     return nullptr; 
   }
 
-  virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE {
+  virtual void SetCompositor(Compositor* aCompositor) override {
     MOZ_ASSERT(!mIsLocked);
 
     if (aCompositor == mCompositor)
@@ -720,21 +720,21 @@ public:
 
 public:
 
-  virtual bool Lock() MOZ_OVERRIDE;
-  virtual void Unlock() MOZ_OVERRIDE;
+  virtual bool Lock() override;
+  virtual void Unlock() override;
 
-  virtual TextureSource* GetTextureSources() MOZ_OVERRIDE {
+  virtual TextureSource* GetTextureSources() override {
     MOZ_ASSERT(mIsLocked);
     MOZ_ASSERT(mTexSource);
     return mTexSource;
   }
 
-  virtual gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE;
+  virtual gfx::SurfaceFormat GetFormat() const override;
 
-  virtual gfx::IntSize GetSize() const MOZ_OVERRIDE;
+  virtual gfx::IntSize GetSize() const override;
 
 #ifdef MOZ_LAYERS_HAVE_LOG
-  virtual const char* Name() MOZ_OVERRIDE { return "SharedSurfaceTextureHost"; }
+  virtual const char* Name() override { return "SharedSurfaceTextureHost"; }
 #endif
 
 protected:

@@ -70,7 +70,7 @@ public:
   nsresult WriteBlock(uint32_t aBlockIndex, const uint8_t* aData);
 
   
-  NS_IMETHOD Run() MOZ_OVERRIDE;
+  NS_IMETHOD Run() override;
 
   
   
@@ -87,7 +87,7 @@ public:
   
   
   
-  struct BlockChange MOZ_FINAL {
+  struct BlockChange final {
 
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(BlockChange)
 

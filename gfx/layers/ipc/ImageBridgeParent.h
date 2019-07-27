@@ -37,7 +37,7 @@ namespace layers {
 
 
 
-class ImageBridgeParent MOZ_FINAL : public PImageBridgeParent,
+class ImageBridgeParent final : public PImageBridgeParent,
                                     public CompositableParentManager
 {
 public:
@@ -48,77 +48,77 @@ public:
   ImageBridgeParent(MessageLoop* aLoop, Transport* aTransport, ProcessId aChildProcessId);
   ~ImageBridgeParent();
 
-  virtual LayersBackend GetCompositorBackendType() const MOZ_OVERRIDE;
+  virtual LayersBackend GetCompositorBackendType() const override;
 
-  virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
+  virtual void ActorDestroy(ActorDestroyReason aWhy) override;
 
   static PImageBridgeParent*
   Create(Transport* aTransport, ProcessId aChildProcessId);
 
   
   virtual void SendFenceHandleIfPresent(PTextureParent* aTexture,
-                                        CompositableHost* aCompositableHost) MOZ_OVERRIDE;
+                                        CompositableHost* aCompositableHost) override;
 
   virtual void SendFenceHandle(AsyncTransactionTracker* aTracker,
                                PTextureParent* aTexture,
-                               const FenceHandle& aFence) MOZ_OVERRIDE;
+                               const FenceHandle& aFence) override;
 
-  virtual void SendAsyncMessage(const InfallibleTArray<AsyncParentMessageData>& aMessage) MOZ_OVERRIDE;
+  virtual void SendAsyncMessage(const InfallibleTArray<AsyncParentMessageData>& aMessage) override;
 
-  virtual base::ProcessId GetChildProcessId() MOZ_OVERRIDE
+  virtual base::ProcessId GetChildProcessId() override
   {
     return mChildProcessId;
   }
 
   
-  virtual bool RecvUpdate(EditArray&& aEdits, EditReplyArray* aReply) MOZ_OVERRIDE;
-  virtual bool RecvUpdateNoSwap(EditArray&& aEdits) MOZ_OVERRIDE;
+  virtual bool RecvUpdate(EditArray&& aEdits, EditReplyArray* aReply) override;
+  virtual bool RecvUpdateNoSwap(EditArray&& aEdits) override;
 
-  virtual bool IsAsync() const MOZ_OVERRIDE { return true; }
+  virtual bool IsAsync() const override { return true; }
 
   PCompositableParent* AllocPCompositableParent(const TextureInfo& aInfo,
-                                                uint64_t*) MOZ_OVERRIDE;
-  bool DeallocPCompositableParent(PCompositableParent* aActor) MOZ_OVERRIDE;
+                                                uint64_t*) override;
+  bool DeallocPCompositableParent(PCompositableParent* aActor) override;
 
   virtual PTextureParent* AllocPTextureParent(const SurfaceDescriptor& aSharedData,
-                                              const TextureFlags& aFlags) MOZ_OVERRIDE;
-  virtual bool DeallocPTextureParent(PTextureParent* actor) MOZ_OVERRIDE;
+                                              const TextureFlags& aFlags) override;
+  virtual bool DeallocPTextureParent(PTextureParent* actor) override;
 
   virtual bool
-  RecvChildAsyncMessages(InfallibleTArray<AsyncChildMessageData>&& aMessages) MOZ_OVERRIDE;
+  RecvChildAsyncMessages(InfallibleTArray<AsyncChildMessageData>&& aMessages) override;
 
   
-  virtual bool RecvWillStop() MOZ_OVERRIDE;
+  virtual bool RecvWillStop() override;
   
-  virtual bool RecvStop() MOZ_OVERRIDE;
+  virtual bool RecvStop() override;
 
-  virtual MessageLoop* GetMessageLoop() const MOZ_OVERRIDE;
+  virtual MessageLoop* GetMessageLoop() const override;
 
 
   
 
   bool AllocShmem(size_t aSize,
                   ipc::SharedMemory::SharedMemoryType aType,
-                  ipc::Shmem* aShmem) MOZ_OVERRIDE
+                  ipc::Shmem* aShmem) override
   {
     return PImageBridgeParent::AllocShmem(aSize, aType, aShmem);
   }
 
   bool AllocUnsafeShmem(size_t aSize,
                         ipc::SharedMemory::SharedMemoryType aType,
-                        ipc::Shmem* aShmem) MOZ_OVERRIDE
+                        ipc::Shmem* aShmem) override
   {
     return PImageBridgeParent::AllocUnsafeShmem(aSize, aType, aShmem);
   }
 
-  void DeallocShmem(ipc::Shmem& aShmem) MOZ_OVERRIDE
+  void DeallocShmem(ipc::Shmem& aShmem) override
   {
     PImageBridgeParent::DeallocShmem(aShmem);
   }
 
-  virtual bool IsSameProcess() const MOZ_OVERRIDE;
+  virtual bool IsSameProcess() const override;
 
-  virtual void ReplyRemoveTexture(const OpReplyRemoveTexture& aReply) MOZ_OVERRIDE;
+  virtual void ReplyRemoveTexture(const OpReplyRemoveTexture& aReply) override;
 
   static void ReplyRemoveTexture(base::ProcessId aChildProcessId,
                                  const OpReplyRemoveTexture& aReply);
@@ -143,7 +143,7 @@ public:
   IToplevelProtocol*
   CloneToplevel(const InfallibleTArray<ProtocolFdMapping>& aFds,
                 base::ProcessHandle aPeerProcess,
-                mozilla::ipc::ProtocolCloneContext* aCtx) MOZ_OVERRIDE;
+                mozilla::ipc::ProtocolCloneContext* aCtx) override;
 
 private:
   void DeferredDestroy();

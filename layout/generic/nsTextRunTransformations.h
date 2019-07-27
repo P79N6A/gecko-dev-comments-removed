@@ -13,7 +13,7 @@
 
 class nsTransformedTextRun;
 
-struct nsTransformedCharStyle MOZ_FINAL {
+struct nsTransformedCharStyle final {
   NS_INLINE_DECL_REFCOUNTING(nsTransformedCharStyle)
 
   explicit nsTransformedCharStyle(nsStyleContext* aContext)
@@ -80,7 +80,7 @@ public:
 
   virtual void RebuildTextRun(nsTransformedTextRun* aTextRun,
                               gfxContext* aRefContext,
-                              gfxMissingFontRecorder* aMFR) MOZ_OVERRIDE;
+                              gfxMissingFontRecorder* aMFR) override;
 
   
   
@@ -111,7 +111,7 @@ protected:
 
 
 
-class nsTransformedTextRun MOZ_FINAL : public gfxTextRun {
+class nsTransformedTextRun final : public gfxTextRun {
 public:
 
   static nsTransformedTextRun *Create(const gfxTextRunFactory::Parameters* aParams,

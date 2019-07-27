@@ -115,7 +115,7 @@ public:
   bool ElementHasHref() const;
 
   
-  void URLSearchParamsUpdated(URLSearchParams* aSearchParams) MOZ_OVERRIDE;
+  void URLSearchParamsUpdated(URLSearchParams* aSearchParams) override;
 
 protected:
   virtual ~Link();

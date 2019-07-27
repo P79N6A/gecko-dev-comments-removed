@@ -1435,7 +1435,7 @@ ScopedXPCOMStartup::Initialize()
 
 
 
-class nsSingletonFactory MOZ_FINAL : public nsIFactory
+class nsSingletonFactory final : public nsIFactory
 {
 public:
   NS_DECL_ISUPPORTS

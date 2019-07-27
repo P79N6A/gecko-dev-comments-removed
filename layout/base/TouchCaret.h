@@ -27,7 +27,7 @@ namespace mozilla {
 
 
 
-class TouchCaret MOZ_FINAL : public nsISelectionListener
+class TouchCaret final : public nsISelectionListener
 {
 public:
   explicit TouchCaret(nsIPresShell* aPresShell);

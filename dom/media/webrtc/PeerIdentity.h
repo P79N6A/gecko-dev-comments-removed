@@ -27,7 +27,7 @@ namespace mozilla {
 
 
 
-class PeerIdentity MOZ_FINAL
+class PeerIdentity final
 {
 public:
   explicit PeerIdentity(const nsAString& aPeerIdentity)

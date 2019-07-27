@@ -19,14 +19,14 @@ public:
   virtual ~ApplicationAccessibleWrap();
 
   
-  virtual mozilla::a11y::ENameValueFlag Name(nsString& aName) MOZ_OVERRIDE;
-  virtual bool InsertChildAt(uint32_t aIdx, Accessible* aChild) MOZ_OVERRIDE;
-  virtual bool RemoveChild(Accessible* aChild) MOZ_OVERRIDE;
+  virtual mozilla::a11y::ENameValueFlag Name(nsString& aName) override;
+  virtual bool InsertChildAt(uint32_t aIdx, Accessible* aChild) override;
+  virtual bool RemoveChild(Accessible* aChild) override;
 
   
 
 
-  virtual void GetNativeInterface(void** aOutAccessible) MOZ_OVERRIDE;
+  virtual void GetNativeInterface(void** aOutAccessible) override;
 };
 
 } 

@@ -91,7 +91,7 @@ struct nsDiscriminatedUnion
 
 
 
-class nsVariant MOZ_FINAL : public nsIWritableVariant
+class nsVariant final : public nsIWritableVariant
 {
 public:
   NS_DECL_ISUPPORTS

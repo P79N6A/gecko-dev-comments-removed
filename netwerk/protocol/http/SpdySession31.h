@@ -25,7 +25,7 @@ class SpdyPushedStream31;
 class SpdyStream31;
 class nsHttpTransaction;
 
-class SpdySession31 MOZ_FINAL : public ASpdySession
+class SpdySession31 final : public ASpdySession
                               , public nsAHttpConnection
                               , public nsAHttpSegmentReader
                               , public nsAHttpSegmentWriter
@@ -42,18 +42,18 @@ public:
   explicit SpdySession31(nsISocketTransport *);
 
   bool AddStream(nsAHttpTransaction *, int32_t,
-                 bool, nsIInterfaceRequestor *) MOZ_OVERRIDE;
-  bool CanReuse() MOZ_OVERRIDE { return !mShouldGoAway && !mClosed; }
-  bool RoomForMoreStreams() MOZ_OVERRIDE;
+                 bool, nsIInterfaceRequestor *) override;
+  bool CanReuse() override { return !mShouldGoAway && !mClosed; }
+  bool RoomForMoreStreams() override;
 
   
   
   
   
-  uint32_t  ReadTimeoutTick(PRIntervalTime now) MOZ_OVERRIDE;
+  uint32_t  ReadTimeoutTick(PRIntervalTime now) override;
 
   
-  PRIntervalTime IdleTime() MOZ_OVERRIDE;
+  PRIntervalTime IdleTime() override;
 
   
   uint32_t RegisterStreamID(SpdyStream31 *, uint32_t aNewID = 0);
@@ -164,13 +164,13 @@ public:
                     const char *, uint32_t);
 
   
-  void TransactionHasDataToWrite(nsAHttpTransaction *) MOZ_OVERRIDE;
+  void TransactionHasDataToWrite(nsAHttpTransaction *) override;
 
   
   void TransactionHasDataToWrite(SpdyStream31 *);
 
   
-  virtual nsresult CommitToSegmentSize(uint32_t size, bool forceCommitment) MOZ_OVERRIDE;
+  virtual nsresult CommitToSegmentSize(uint32_t size, bool forceCommitment) override;
   nsresult BufferOutput(const char *, uint32_t, uint32_t *);
   void     FlushOutputQueue();
   uint32_t AmountOfOutputBuffered() { return mOutputQueueUsed - mOutputQueueSent; }
@@ -183,7 +183,7 @@ public:
 
   uint64_t Serial() { return mSerial; }
 
-  void     PrintDiagnostics (nsCString &log) MOZ_OVERRIDE;
+  void     PrintDiagnostics (nsCString &log) override;
 
   
   uint32_t SendingChunkSize() { return mSendingChunkSize; }
@@ -193,9 +193,9 @@ public:
   int64_t RemoteSessionWindow() { return mRemoteSessionWindow; }
   void DecrementRemoteSessionWindow (uint32_t bytes) { mRemoteSessionWindow -= bytes; }
 
-  void SendPing() MOZ_OVERRIDE;
+  void SendPing() override;
 
-  bool MaybeReTunnel(nsAHttpTransaction *) MOZ_OVERRIDE;
+  bool MaybeReTunnel(nsAHttpTransaction *) override;
 
 private:
 

@@ -61,7 +61,7 @@ private:
 
 
 
-class RDFBindingSet MOZ_FINAL
+class RDFBindingSet final
 {
 private:
     

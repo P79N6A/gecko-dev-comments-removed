@@ -24,7 +24,7 @@ namespace mobilemessage {
 class MobileMessageCursorCallback;
 } 
 
-class MobileMessageCursor MOZ_FINAL : public DOMCursor
+class MobileMessageCursor final : public DOMCursor
 {
   friend class mobilemessage::MobileMessageCursorCallback;
 
@@ -38,10 +38,10 @@ public:
 
   
   NS_IMETHOD
-  Continue(void) MOZ_OVERRIDE;
+  Continue(void) override;
 
   virtual void
-  Continue(ErrorResult& aRv) MOZ_OVERRIDE;
+  Continue(ErrorResult& aRv) override;
 
 private:
   
@@ -57,7 +57,7 @@ private:
 
 namespace mobilemessage {
 
-class MobileMessageCursorCallback MOZ_FINAL : public nsIMobileMessageCursorCallback
+class MobileMessageCursorCallback final : public nsIMobileMessageCursorCallback
 {
   friend class mozilla::dom::MobileMessageManager;
 
