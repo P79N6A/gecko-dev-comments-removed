@@ -300,7 +300,12 @@ let TPS = {
             Logger.logInfo("tab for " + taburi + " finished loading");
             if (that._tabsFinished == that._tabsAdded) {
               Logger.logInfo("all tabs loaded, continuing...");
-              that.FinishAsyncOperation();
+
+              
+              
+              Utils.namedTimer(function () {
+                that.FinishAsyncOperation();
+              }, 1000, this, "postTabsOpening");
             }
           });
           break;
@@ -890,13 +895,7 @@ let TPS = {
 
     this._triggeredSync = true;
     this.StartAsyncOperation();
-
-    
-    
-    
-    Utils.namedTimer(function () {
-        Weave.Service.sync();
-    }, 2500, this, "beforeSyncDelay");
+    Weave.Service.sync();
   },
 
   WipeServer: function TPS__WipeServer() {
