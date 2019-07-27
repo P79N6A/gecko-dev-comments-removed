@@ -83,6 +83,17 @@ RemoteFinder.prototype = {
   },
 
   focusContent: function () {
+    
+    for (let l of this._listeners) {
+      try {
+        if ("shouldFocusContent" in l &&
+            !l.shouldFocusContent())
+          return;
+      } catch (ex) {
+        Cu.reportError(ex);
+      }
+    }
+
     this._browser.messageManager.sendAsyncMessage("Finder:FocusContent");
   },
 
@@ -132,12 +143,6 @@ RemoteFinderListener.prototype = {
   
   onMatchesCountResult: function (aData) {
     this._global.sendAsyncMessage("Finder:MatchesResult", aData);
-  },
-
-  
-  
-  shouldFocusContent: function () {
-    return true;
   },
 
   receiveMessage: function (aMessage) {
