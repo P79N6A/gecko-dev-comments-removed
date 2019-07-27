@@ -2624,6 +2624,14 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
 {
   
   
+  if (!mRequest) {
+    MOZ_ASSERT_UNREACHABLE("OnStartRequest delivered more than once?");
+    aRequest->Cancel(NS_BINDING_ABORTED);
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  
   
   nsCOMPtr<nsICachingChannel> cacheChan(do_QueryInterface(aRequest));
   nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
