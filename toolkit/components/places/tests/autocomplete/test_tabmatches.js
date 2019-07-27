@@ -4,7 +4,11 @@
 
 
 
-let gTabRestrictChar = prefs.getCharPref("browser.urlbar.restrict.openpage");
+let gTabRestrictChar = "%";
+prefs.setCharPref("browser.urlbar.restrict.openpage", gTabRestrictChar);
+do_register_cleanup(() => {
+  prefs.clearUserPref("browser.urlbar.restrict.openpage");
+});
 
 let kSearchParam = "enable-actions";
 
