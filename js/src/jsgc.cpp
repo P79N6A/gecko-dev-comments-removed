@@ -6404,6 +6404,9 @@ GCRuntime::onOutOfMallocMemory()
     
     allocTask.cancel(GCParallelTask::CancelAndWait);
 
+    
+    nursery.waitBackgroundFreeEnd();
+
     AutoLockGC lock(rt);
     onOutOfMallocMemory(lock);
 }
@@ -6506,6 +6509,7 @@ AutoFinishGC::AutoFinishGC(JSRuntime *rt)
     }
 
     rt->gc.waitBackgroundSweepEnd();
+    rt->gc.nursery.waitBackgroundFreeEnd();
 }
 
 AutoPrepareForTracing::AutoPrepareForTracing(JSRuntime *rt, ZoneSelector selector)

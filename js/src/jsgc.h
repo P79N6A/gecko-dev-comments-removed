@@ -995,6 +995,7 @@ class GCParallelTask
 
   public:
     GCParallelTask() : state(NotStarted), duration_(0) {}
+    virtual ~GCParallelTask();
 
     
     int64_t duration() const { return duration_; }
