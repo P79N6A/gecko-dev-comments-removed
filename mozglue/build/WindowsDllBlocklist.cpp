@@ -172,6 +172,9 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   
   { "ycwebcamerasource.ax", MAKE_VERSION(2, 0, 0, 1611) },
 
+  
+  { "vwcsource.ax", MAKE_VERSION(1, 5, 0, 0) },
+
   { nullptr, 0 }
 };
 
