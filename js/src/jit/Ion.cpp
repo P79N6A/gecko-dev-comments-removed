@@ -2035,11 +2035,12 @@ CheckScript(JSContext *cx, JSScript *script, bool osr)
         return false;
     }
 
-    if (!script->compileAndGo() && !script->functionNonDelazifying()) {
+    if (script->hasPollutedGlobalScope() && !script->functionNonDelazifying()) {
         
         
         
-        TrackAndSpewIonAbort(cx, script, "not compile-and-go");
+        
+        TrackAndSpewIonAbort(cx, script, "has polluted global scope");
         return false;
     }
 
