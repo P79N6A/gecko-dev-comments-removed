@@ -186,7 +186,8 @@ Test.prototype = {
   openContainer: function () {
     
     
-    this.observer = let (self = this) {
+    let self = this;
+    this.observer = {
       containerStateChanged: function (container, oldState, newState) {
         print("New state passed to containerStateChanged() should equal the " +
               "container's current state");
@@ -230,7 +231,7 @@ Test.prototype = {
 
 
 
-  setup: function () {
+  setup: function*() {
     
     this.data = DataHelper.makeDataArray([
       { type: "bookmark" },
@@ -290,7 +291,8 @@ let DataHelper = {
 
 
   makeDataArray: function DH_makeDataArray(aData) {
-    return let (self = this) aData.map(function (dat) {
+    let self = this;
+    return aData.map(function (dat) {
       let type = dat.type;
       dat = self._makeDataWithDefaults(dat, self.defaults[type]);
       switch (type) {
@@ -348,7 +350,7 @@ function run_test()
   run_next_test();
 }
 
-add_task(function test_async()
+add_task(function* test_async()
 {
   for (let [, test] in Iterator(tests)) {
     remove_all_bookmarks();

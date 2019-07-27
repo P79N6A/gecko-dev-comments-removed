@@ -189,67 +189,62 @@ function test_set_property_lazy_getter() {
     });
   };
 
-  let (dict = new Dict()) {
-    setThunk(dict);
-
-    
-    
-    do_check_true(dict.has("foo"));
-    do_check_false(thunkCalled);
-    do_check_true(dict.isLazyGetter("foo"));
-
-    
-    
-    do_check_eq(dict.get("foo"), "bar");
-    do_check_true(thunkCalled);
-    do_check_false(dict.isLazyGetter("foo"));
-
-    
-    thunkCalled = false;
-    do_check_eq(dict.get("foo"), "bar");
-    do_check_false(thunkCalled);
-    do_check_false(dict.isLazyGetter("foo"));
-  }
+  let dict = new Dict();
+  setThunk(dict);
 
   
-  let (dict = new Dict()) {
-    setThunk(dict);
-    do_check_true(dict.isLazyGetter("foo"));
-
-    let (listvalues = dict.listvalues()) {
-      do_check_false(dict.isLazyGetter("foo"));
-      do_check_true(thunkCalled);
-      do_check_true(listvalues.length, 1);
-      do_check_eq(listvalues[0], "bar");
-    }
-
-    thunkCalled = false;
-
-    
-    let (listvalues = dict.listvalues()) {
-      do_check_false(dict.isLazyGetter("foo"));
-      do_check_false(thunkCalled);
-      do_check_true(listvalues.length, 1);
-      do_check_eq(listvalues[0], "bar");
-    }
-  }
+  
+  do_check_true(dict.has("foo"));
+  do_check_false(thunkCalled);
+  do_check_true(dict.isLazyGetter("foo"));
 
   
-  let (dict = new Dict()) {
-    setThunk(dict);
-    let values = dict.values;
+  
+  do_check_eq(dict.get("foo"), "bar");
+  do_check_true(thunkCalled);
+  do_check_false(dict.isLazyGetter("foo"));
 
-    
-    do_check_true(dict.isLazyGetter("foo"));
-    do_check_false(thunkCalled);
-    do_check_eq(values.next(), "bar");
-    do_check_true(thunkCalled);
+  
+  thunkCalled = false;
+  do_check_eq(dict.get("foo"), "bar");
+  do_check_false(thunkCalled);
+  do_check_false(dict.isLazyGetter("foo"));
 
-    thunkCalled = false;
-    do_check_false(dict.isLazyGetter("foo"));
-    do_check_eq(dict.get("foo"), "bar");
-    do_check_false(thunkCalled);
-  }
+  
+  dict = new Dict();
+  setThunk(dict);
+  do_check_true(dict.isLazyGetter("foo"));
+
+  let listvalues = dict.listvalues();
+  do_check_false(dict.isLazyGetter("foo"));
+  do_check_true(thunkCalled);
+  do_check_true(listvalues.length, 1);
+  do_check_eq(listvalues[0], "bar");
+
+  thunkCalled = false;
+
+  
+  listvalues = dict.listvalues();
+  do_check_false(dict.isLazyGetter("foo"));
+  do_check_false(thunkCalled);
+  do_check_true(listvalues.length, 1);
+  do_check_eq(listvalues[0], "bar");
+
+  
+  dict = new Dict();
+  setThunk(dict);
+  let values = dict.values;
+
+  
+  do_check_true(dict.isLazyGetter("foo"));
+  do_check_false(thunkCalled);
+  do_check_eq(values.next(), "bar");
+  do_check_true(thunkCalled);
+
+  thunkCalled = false;
+  do_check_false(dict.isLazyGetter("foo"));
+  do_check_eq(dict.get("foo"), "bar");
+  do_check_false(thunkCalled);
 }
 
 
