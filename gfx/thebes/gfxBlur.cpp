@@ -501,7 +501,7 @@ RepeatOrStretchSurface(DrawTarget& aDT, SourceSurface* aSurface,
   }
 
   if ((!aDT.GetTransform().IsRectilinear() &&
-      aDT.GetBackendType() != BackendType::CAIRO) ||
+       aDT.GetBackendType() != BackendType::CAIRO) ||
       (aDT.GetBackendType() == BackendType::DIRECT2D)) {
     
     
