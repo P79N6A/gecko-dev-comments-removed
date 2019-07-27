@@ -287,7 +287,12 @@ public:
     return mRestyleBits & ~ELEMENT_PENDING_RESTYLE_FLAGS;
   }
 
-  struct RestyleData {
+  struct Hints {
+    nsRestyleHint mRestyleHint;       
+    nsChangeHint mChangeHint;         
+  };
+
+  struct RestyleData : Hints {
     RestyleData() {
       mRestyleHint = nsRestyleHint(0);
       mChangeHint = NS_STYLE_HINT_NONE;
@@ -297,9 +302,6 @@ public:
       mRestyleHint = aRestyleHint;
       mChangeHint = aChangeHint;
     }
-
-    nsRestyleHint mRestyleHint;       
-    nsChangeHint mChangeHint;         
 
     
     
@@ -339,10 +341,6 @@ public:
 
 
   inline nsIDocument* Document() const;
-
-  struct RestyleEnumerateData : public RestyleData {
-    nsRefPtr<Element> mElement;
-  };
 
 private:
   bool AddPendingRestyleToTable(Element* aElement, nsRestyleHint aRestyleHint,
