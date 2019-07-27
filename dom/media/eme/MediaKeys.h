@@ -18,6 +18,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/MediaKeysBinding.h"
 #include "mozIGeckoMediaPluginService.h"
+#include "mozilla/DetailedPromise.h"
 
 namespace mozilla {
 
@@ -30,7 +31,7 @@ class MediaKeySession;
 class HTMLMediaElement;
 
 typedef nsRefPtrHashtable<nsStringHashKey, MediaKeySession> KeySessionHashMap;
-typedef nsRefPtrHashtable<nsUint32HashKey, dom::Promise> PromiseHashMap;
+typedef nsRefPtrHashtable<nsUint32HashKey, dom::DetailedPromise> PromiseHashMap;
 typedef nsRefPtrHashtable<nsUint32HashKey, MediaKeySession> PendingKeySessionsHashMap;
 typedef uint32_t PromiseId;
 
@@ -53,7 +54,7 @@ public:
 
   MediaKeys(nsPIDOMWindow* aParentWindow, const nsAString& aKeySystem);
 
-  already_AddRefed<Promise> Init(ErrorResult& aRv);
+  already_AddRefed<DetailedPromise> Init(ErrorResult& aRv);
 
   nsPIDOMWindow* GetParentObject() const;
 
@@ -70,8 +71,9 @@ public:
                                                   ErrorResult& aRv);
 
   
-  already_AddRefed<Promise> SetServerCertificate(const ArrayBufferViewOrArrayBuffer& aServerCertificate,
-                                                 ErrorResult& aRv);
+  already_AddRefed<DetailedPromise>
+    SetServerCertificate(const ArrayBufferViewOrArrayBuffer& aServerCertificate,
+                         ErrorResult& aRv);
 
   already_AddRefed<MediaKeySession> GetSession(const nsAString& aSessionId);
 
@@ -97,14 +99,15 @@ public:
   CDMProxy* GetCDMProxy() { return mProxy; }
 
   
-  already_AddRefed<Promise> MakePromise(ErrorResult& aRv);
+  already_AddRefed<DetailedPromise> MakePromise(ErrorResult& aRv);
   
   
   
-  PromiseId StorePromise(Promise* aPromise);
+  PromiseId StorePromise(DetailedPromise* aPromise);
 
   
-  void RejectPromise(PromiseId aId, nsresult aExceptionCode);
+  void RejectPromise(PromiseId aId, nsresult aExceptionCode,
+                     const nsCString& aReason);
   
   void ResolvePromise(PromiseId aId);
 
@@ -124,7 +127,7 @@ private:
   bool IsInPrivateBrowsing();
 
   
-  already_AddRefed<Promise> RetrievePromise(PromiseId aId);
+  already_AddRefed<DetailedPromise> RetrievePromise(PromiseId aId);
 
   
   
