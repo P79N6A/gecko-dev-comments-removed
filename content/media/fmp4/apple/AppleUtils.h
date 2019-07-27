@@ -1,0 +1,66 @@
+
+
+
+
+
+
+#ifndef mozilla_AppleUtils_h
+#define mozilla_AppleUtils_h
+
+#include <AudioToolbox/AudioToolbox.h>
+#include "nsError.h"
+
+namespace mozilla {
+
+struct AppleUtils {
+  
+  static nsresult GetProperty(AudioFileStreamID aAudioFileStream,
+                              AudioFileStreamPropertyID aPropertyID,
+                              void *aData);
+
+  
+  static void SetCFDict(CFMutableDictionaryRef dict,
+                        const char* key,
+                        const char* value);
+  
+  static void SetCFDict(CFMutableDictionaryRef dict,
+                        const char* key,
+                        int32_t value);
+  
+  static void SetCFDict(CFMutableDictionaryRef dict,
+                        const char* key,
+                        bool value);
+};
+
+
+
+template <class T>
+class AutoCFRelease {
+public:
+  AutoCFRelease(T aRef)
+    : mRef(aRef)
+  {
+  }
+  ~AutoCFRelease()
+  {
+    if (mRef) {
+      CFRelease(mRef);
+    }
+  }
+  
+  operator T()
+  {
+    return mRef;
+  }
+  
+  T* receive()
+  {
+    return &mRef;
+  }
+private:
+  T mRef;
+};
+
+} 
+
+#endif 

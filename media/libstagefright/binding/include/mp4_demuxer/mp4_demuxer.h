@@ -67,6 +67,7 @@ private:
 
   nsAutoPtr<StageFrightPrivate> mPrivate;
 };
-}
 
-#endif
+} 
+
+#endif 

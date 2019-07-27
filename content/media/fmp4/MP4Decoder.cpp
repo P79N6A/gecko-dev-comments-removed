@@ -17,6 +17,10 @@
 #ifdef MOZ_FFMPEG
 #include "FFmpegRuntimeLinker.h"
 #endif
+#ifdef MOZ_APPLEMEDIA
+#include "apple/AppleCMLinker.h"
+#include "apple/AppleVTLinker.h"
+#endif
 
 namespace mozilla {
 
@@ -103,6 +107,31 @@ IsFFmpegAvailable()
 }
 
 static bool
+IsAppleAvailable()
+{
+#ifndef MOZ_APPLEMEDIA
+  
+  return false;
+#else
+  if (!Preferences::GetBool("media.apple.mp4.enabled", false)) {
+    
+    return false;
+  }
+  
+  bool haveCoreMedia = AppleCMLinker::Link();
+  if (!haveCoreMedia) {
+    return false;
+  }
+  bool haveVideoToolbox = AppleVTLinker::Link();
+  if (!haveVideoToolbox) {
+    return false;
+  }
+  
+  return true;
+#endif
+}
+
+static bool
 HavePlatformMPEGDecoders()
 {
   return Preferences::GetBool("media.fragmented-mp4.use-blank-decoder") ||
@@ -111,6 +140,7 @@ HavePlatformMPEGDecoders()
          IsVistaOrLater() ||
 #endif
          IsFFmpegAvailable() ||
+         IsAppleAvailable() ||
          
          false;
 }
