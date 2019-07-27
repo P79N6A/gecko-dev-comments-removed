@@ -237,8 +237,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
       if (options.sound) {
         
         notificationOptions.mozbehavior = {
-          soundFile: `chrome://browser/content/loop/shared/sounds/${options.sound}.ogg`
+          soundFile: ""
         };
+        this.playSound(options.sound);
       }
 
       let notification = new window.Notification(options.title, notificationOptions);
