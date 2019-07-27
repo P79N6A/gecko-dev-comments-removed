@@ -2170,13 +2170,12 @@ template <ExecutionMode mode>
 static bool
 SetExistingProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
                     HandleNativeObject obj, HandleObject receiver, HandleId id,
-                    HandleObject pobj, HandleShape foundShape, MutableHandleValue vp, bool strict)
+                    HandleObject pobj, HandleShape shape, MutableHandleValue vp, bool strict)
 {
-    RootedShape shape(cxArg, foundShape);
     if (IsImplicitDenseOrTypedArrayElement(shape)) {
         
-        if (pobj != receiver)
-            shape = nullptr;
+        if (pobj == receiver)
+            return SetDenseOrTypedArrayElement<mode>(cxArg, obj, JSID_TO_INT(id), vp, strict);
     } else {
         
         if (shape->isAccessorDescriptor()) {
@@ -2209,39 +2208,30 @@ SetExistingProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
             }
         }
 
-        if (pobj != receiver) {
-            
-
-            if (!shape->shadowable() &&
-                !(pobj->is<ArrayObject>() && id == NameToId(cxArg->names().length)))
-            {
-                
-                if (shape->hasDefaultSetter() && !shape->hasGetterValue())
-                    return true;
-
-                
-                if (mode == ParallelExecution)
-                    return false;
-                return shape->set(cxArg->asJSContext(), obj, receiver, strict, vp);
+        if (pobj == receiver) {
+            if (pobj->is<ArrayObject>() && id == NameToId(cxArg->names().length)) {
+                Rooted<ArrayObject*> arr(cxArg, &pobj->as<ArrayObject>());
+                return ArraySetLength<mode>(cxArg, arr, id, shape->attributes(), vp, strict);
             }
+            return NativeSet<mode>(cxArg, obj, receiver, shape, strict, vp);
+        }
+
+        
+        if (!shape->shadowable() &&
+            !(pobj->is<ArrayObject>() && id == NameToId(cxArg->names().length)))
+        {
+            
+            if (shape->hasDefaultSetter() && !shape->hasGetterValue())
+                return true;
 
             
-            
-            shape = nullptr;
+            if (mode == ParallelExecution)
+                return false;
+            return shape->set(cxArg->asJSContext(), obj, receiver, strict, vp);
         }
     }
 
-    if (IsImplicitDenseOrTypedArrayElement(shape))
-        return SetDenseOrTypedArrayElement<mode>(cxArg, obj, JSID_TO_INT(id), vp, strict);
-
-    if (shape) {
-        if (obj->is<ArrayObject>() && id == NameToId(cxArg->names().length)) {
-            Rooted<ArrayObject*> arr(cxArg, &obj->as<ArrayObject>());
-            return ArraySetLength<mode>(cxArg, arr, id, shape->attributes(), vp, strict);
-        }
-
-        return NativeSet<mode>(cxArg, obj, receiver, shape, strict, vp);
-    }
+    
     return SetPropertyByDefining<mode>(cxArg, receiver, id, vp, strict);
 }
 
