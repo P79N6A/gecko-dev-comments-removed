@@ -1898,6 +1898,96 @@ nsFrameSelection::CommonPageMove(bool aForward,
 }
 
 nsresult
+nsFrameSelection::PhysicalMove(int16_t aDirection, int16_t aAmount,
+                               bool aExtend)
+{
+  NS_ENSURE_STATE(mShell);
+  
+  
+  mShell->FlushPendingNotifications(Flush_Layout);
+
+  if (!mShell) {
+    return NS_OK;
+  }
+
+  
+  if (aDirection < 0 || aDirection > 3 || aAmount < 0 || aAmount > 1) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsPresContext *context = mShell->GetPresContext();
+  if (!context) {
+    return NS_ERROR_FAILURE;
+  }
+
+  int8_t index = GetIndexFromSelectionType(nsISelectionController::SELECTION_NORMAL);
+  nsRefPtr<Selection> sel = mDomSelections[index];
+  if (!sel) {
+    return NS_ERROR_NULL_POINTER;
+  }
+
+  
+  
+  static const nsSelectionAmount inlineAmount[] =
+    { eSelectCluster, eSelectWord };
+  static const nsSelectionAmount blockPrevAmount[] =
+    { eSelectLine, eSelectBeginLine };
+  static const nsSelectionAmount blockNextAmount[] =
+    { eSelectLine, eSelectEndLine };
+
+  struct PhysicalToLogicalMapping {
+    nsDirection direction;
+    const nsSelectionAmount *amounts;
+  };
+  static const PhysicalToLogicalMapping verticalLR[4] = {
+    { eDirPrevious, blockPrevAmount },  
+    { eDirNext, blockNextAmount },      
+    { eDirPrevious, inlineAmount }, 
+    { eDirNext, inlineAmount }      
+  };
+  static const PhysicalToLogicalMapping verticalRL[4] = {
+    { eDirNext, blockNextAmount },
+    { eDirPrevious, blockPrevAmount },
+    { eDirPrevious, inlineAmount },
+    { eDirNext, inlineAmount }
+  };
+  static const PhysicalToLogicalMapping horizontal[4] = {
+    { eDirPrevious, inlineAmount },
+    { eDirNext, inlineAmount },
+    { eDirPrevious, blockPrevAmount },
+    { eDirNext, blockNextAmount }
+  };
+
+  WritingMode wm;
+  nsIFrame *frame = nullptr;
+  int32_t offsetused = 0;
+  if (NS_SUCCEEDED(sel->GetPrimaryFrameForFocusNode(&frame, &offsetused,
+                                                    true))) {
+    if (frame) {
+      wm = frame->GetWritingMode();
+    }
+  }
+
+  const PhysicalToLogicalMapping& mapping =
+    wm.IsVertical()
+      ? wm.IsVerticalLR() ? verticalLR[aDirection] : verticalRL[aDirection]
+      : horizontal[aDirection];
+
+  nsresult rv = MoveCaret(mapping.direction, aExtend, mapping.amounts[aAmount],
+                          eVisual);
+  if (NS_FAILED(rv)) {
+    
+    
+    if (mapping.amounts[aAmount] == eSelectLine) {
+      rv = MoveCaret(mapping.direction, aExtend, mapping.amounts[aAmount + 1],
+                     eVisual);
+    }
+  }
+
+  return rv;
+}
+
+nsresult
 nsFrameSelection::CharacterMove(bool aForward, bool aExtend)
 {
   return MoveCaret(aForward ? eDirNext : eDirPrevious, aExtend, eSelectCluster,
