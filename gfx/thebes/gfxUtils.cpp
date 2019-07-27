@@ -607,17 +607,7 @@ gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
     
     
     
-#ifdef MOZ_GFX_OPTIMIZE_MOBILE
-    
-    
-    
-    
-    
-    if (doTile && (userSpaceToImageSpace._32 > 16384.0 || userSpaceToImageSpace._31 > 16384.0)) {
-        userSpaceToImageSpace._31 = fmod(userSpaceToImageSpace._31, aImageRect.width);
-        userSpaceToImageSpace._32 = fmod(userSpaceToImageSpace._32, aImageRect.height);
-    }
-#else
+#ifndef MOZ_GFX_OPTIMIZE_MOBILE
     
     
     
