@@ -59,9 +59,10 @@ XPCOMUtils.defineLazyGetter(this, "log", () => {
 this.UITour = {
   url: null,
   seenPageIDs: null,
-  pageIDSourceBrowsers: new WeakMap(),
+  pageIDSourceTabs: new WeakMap(),
+  pageIDSourceWindows: new WeakMap(),
   
-  tourBrowsersByWindow: new WeakMap(),
+  originTabs: new WeakMap(),
   urlbarCapture: new WeakMap(),
   appMenuOpenForAnnotation: new Set(),
   availableTargetsCache: new WeakMap(),
@@ -384,7 +385,12 @@ this.UITour = {
         }
 
         this.addSeenPageID(data.pageID);
-        this.pageIDSourceBrowsers.set(browser, data.pageID);
+
+        
+        
+        this.pageIDSourceTabs.set(tab, data.pageID);
+        this.pageIDSourceWindows.set(window, data.pageID);
+
         this.setTelemetryBucket(data.pageID);
 
         break;
@@ -632,30 +638,25 @@ this.UITour = {
       }
     }
 
-    if (!this.tourBrowsersByWindow.has(window)) {
-      this.tourBrowsersByWindow.set(window, new Set());
-    }
-    this.tourBrowsersByWindow.get(window).add(browser);
-
-    
-    if (tab) {
-      tab.addEventListener("TabClose", this);
-      if (!window.gMultiProcessBrowser) {
-        tab.addEventListener("TabBecomingWindow", this);
+    if (!window.gMultiProcessBrowser) { 
+      if (!this.originTabs.has(window)) {
+        this.originTabs.set(window, new Set());
       }
-    }
 
-    window.addEventListener("SSWindowClosing", this);
+      this.originTabs.get(window).add(tab);
+      tab.addEventListener("TabClose", this);
+      tab.addEventListener("TabBecomingWindow", this);
+      window.addEventListener("SSWindowClosing", this);
+    }
 
     return true;
   },
 
   handleEvent: function(aEvent) {
-    log.debug("handleEvent: type =", aEvent.type, "event =", aEvent);
     switch (aEvent.type) {
       case "pagehide": {
         let window = this.getChromeWindow(aEvent.target);
-        this.teardownTourForWindow(window);
+        this.teardownTour(window);
         break;
       }
 
@@ -664,30 +665,42 @@ this.UITour = {
         
       case "TabClose": {
         let tab = aEvent.target;
+        if (this.pageIDSourceTabs.has(tab)) {
+          let pageID = this.pageIDSourceTabs.get(tab);
+
+          
+          
+          let window = tab.ownerDocument.defaultView;
+          if (this.pageIDSourceWindows.get(window) == pageID)
+            this.pageIDSourceWindows.delete(window);
+
+          this.setExpiringTelemetryBucket(pageID, "closed");
+        }
+
         let window = tab.ownerDocument.defaultView;
-        this.teardownTourForBrowser(window, tab.linkedBrowser, true);
+        this.teardownTour(window);
         break;
       }
 
       case "TabSelect": {
-        let window = aEvent.target.ownerDocument.defaultView;
-
         if (aEvent.detail && aEvent.detail.previousTab) {
           let previousTab = aEvent.detail.previousTab;
-          let openTourWindows = this.tourBrowsersByWindow.get(window);
-          if (openTourWindows.has(previousTab.linkedBrowser)) {
-            this.teardownTourForBrowser(window, previousTab.linkedBrowser, false);
+
+          if (this.pageIDSourceTabs.has(previousTab)) {
+            let pageID = this.pageIDSourceTabs.get(previousTab);
+            this.setExpiringTelemetryBucket(pageID, "inactive");
           }
         }
 
+        let window = aEvent.target.ownerDocument.defaultView;
         let pendingDoc;
         if (this._detachingTab && this._pendingDoc && (pendingDoc = this._pendingDoc.get())) {
           let selectedTab = window.gBrowser.selectedTab;
           if (selectedTab.linkedBrowser.contentDocument == pendingDoc) {
-            if (!this.tourBrowsersByWindow.get(window)) {
-              this.tourBrowsersByWindow.set(window, new Set());
+            if (!this.originTabs.get(window)) {
+              this.originTabs.set(window, new Set());
             }
-            this.tourBrowsersByWindow.get(window).add(selectedTab.linkedBrowser);
+            this.originTabs.get(window).add(selectedTab);
             this.pendingDoc = null;
             this._detachingTab = false;
             while (this._queuedEvents.length) {
@@ -701,12 +714,18 @@ this.UITour = {
           }
         }
 
+        this.teardownTour(window);
         break;
       }
 
       case "SSWindowClosing": {
         let window = aEvent.target;
-        this.teardownTourForWindow(window);
+        if (this.pageIDSourceWindows.has(window)) {
+          let pageID = this.pageIDSourceWindows.get(window);
+          this.setExpiringTelemetryBucket(pageID, "closed");
+        }
+
+        this.teardownTour(window, true);
         break;
       }
 
@@ -741,34 +760,27 @@ this.UITour = {
     };
   },
 
-  
+  teardownTour: function(aWindow, aWindowClosing = false) {
+    log.debug("teardownTour: aWindowClosing = " + aWindowClosing);
+    aWindow.gBrowser.tabContainer.removeEventListener("TabSelect", this);
+    aWindow.removeEventListener("SSWindowClosing", this);
 
-
-  teardownTourForBrowser: function(aWindow, aBrowser, aTourPageClosing = false) {
-    log.debug("teardownTourForBrowser: aBrowser = ", aBrowser, aTourPageClosing);
-
-    if (this.pageIDSourceBrowsers.has(aBrowser)) {
-      let pageID = this.pageIDSourceBrowsers.get(aBrowser);
-      this.setExpiringTelemetryBucket(pageID, aTourPageClosing ? "closed" : "inactive");
-    }
-
-    let openTourBrowsers = this.tourBrowsersByWindow.get(aWindow);
-    if (aTourPageClosing) {
-      let tab = aWindow.gBrowser.getTabForBrowser(aBrowser);
-      if (tab) { 
+    let originTabs = this.originTabs.get(aWindow);
+    if (originTabs) {
+      for (let tab of originTabs) {
         tab.removeEventListener("TabClose", this);
         tab.removeEventListener("TabBecomingWindow", this);
-        if (openTourBrowsers) {
-          openTourBrowsers.delete(aBrowser);
-        }
       }
     }
+    this.originTabs.delete(aWindow);
 
-    this.hideHighlight(aWindow);
-    this.hideInfo(aWindow);
-    
-    this.hideMenu(aWindow, "appMenu");
-    this.hideMenu(aWindow, "loop");
+    if (!aWindowClosing) {
+      this.hideHighlight(aWindow);
+      this.hideInfo(aWindow);
+      
+      this.hideMenu(aWindow, "appMenu");
+      this.hideMenu(aWindow, "loop");
+    }
 
     
     aWindow.PanelUI.panel.removeEventListener("popuphiding", this.hideAppMenuAnnotations);
@@ -780,35 +792,6 @@ this.UITour = {
 
     this.endUrlbarCapture(aWindow);
     this.resetTheme();
-
-    
-    if (!openTourBrowsers || openTourBrowsers.size == 0) {
-      this.teardownTourForWindow(aWindow);
-    }
-  },
-
-  
-
-
-  teardownTourForWindow: function(aWindow) {
-    log.debug("teardownTourForWindow");
-    aWindow.gBrowser.tabContainer.removeEventListener("TabSelect", this);
-    aWindow.removeEventListener("SSWindowClosing", this);
-
-    let openTourBrowsers = this.tourBrowsersByWindow.get(aWindow);
-    if (openTourBrowsers) {
-      for (let browser of openTourBrowsers) {
-        if (this.pageIDSourceBrowsers.has(browser)) {
-          let pageID = this.pageIDSourceBrowsers.get(browser);
-          this.setExpiringTelemetryBucket(pageID, "closed");
-        }
-
-        let tab = aWindow.gBrowser.getTabForBrowser(browser);
-        tab.removeEventListener("TabClose", this);
-      }
-    }
-
-    this.tourBrowsersByWindow.delete(aWindow);
   },
 
   getChromeWindow: function(aContentDocument) {
@@ -1249,7 +1232,6 @@ this.UITour = {
   },
 
   showMenu: function(aWindow, aMenuName, aOpenCallback = null) {
-    log.debug("showMenu:", aMenuName);
     function openMenuButton(aMenuBtn) {
       if (!aMenuBtn || !aMenuBtn.boxObject || aMenuBtn.open) {
         if (aOpenCallback)
@@ -1314,7 +1296,6 @@ this.UITour = {
   },
 
   hideMenu: function(aWindow, aMenuName) {
-    log.debug("hideMenu:", aMenuName);
     function closeMenuButton(aMenuBtn) {
       if (aMenuBtn && aMenuBtn.boxObject)
         aMenuBtn.boxObject.openMenu(false);
@@ -1644,16 +1625,12 @@ this.UITour = {
       if (window.closed)
         continue;
 
-      let openTourBrowsers = this.tourBrowsersByWindow.get(window);
-      if (!openTourBrowsers)
+      let originTabs = this.originTabs.get(window);
+      if (!originTabs)
         continue;
 
-      for (let browser of openTourBrowsers) {
-        let messageManager = browser.messageManager;
-        if (!messageManager) {
-          log.error("notify: Trying to notify a browser without a messageManager", browser);
-          continue;
-        }
+      for (let tab of originTabs) {
+        let messageManager = tab.linkedBrowser.messageManager;
         let detail = {
           event: eventName,
           params: params,
