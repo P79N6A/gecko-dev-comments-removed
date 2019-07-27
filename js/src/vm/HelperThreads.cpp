@@ -562,7 +562,7 @@ GlobalHelperThreadState::canStartAsmJSCompile()
 }
 
 static bool
-IonBuilderHasHigherPriority(IonBuilder *first, IonBuilder *second)
+IonBuilderHasHigherPriority(jit::IonBuilder *first, jit::IonBuilder *second)
 {
     
     
