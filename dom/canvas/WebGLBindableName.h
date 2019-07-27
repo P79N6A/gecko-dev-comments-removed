@@ -17,13 +17,17 @@ namespace mozilla {
 
 
 template<typename T>
-class WebGLBindable
+class WebGLBindableName
 {
 public:
-    WebGLBindable() : mTarget(LOCAL_GL_NONE) { }
-    bool HasEverBeenBound() const { return mTarget != LOCAL_GL_NONE; }
 
-    void BindTo(T target) {
+    WebGLBindableName()
+        : mGLName(0)
+        , mTarget(LOCAL_GL_NONE)
+    { }
+
+    void BindTo(T target)
+    {
         MOZ_ASSERT(target != LOCAL_GL_NONE, "Can't bind to GL_NONE.");
         MOZ_ASSERT(!HasEverBeenBound() || mTarget == target, "Rebinding is illegal.");
 
@@ -33,37 +37,21 @@ public:
             OnTargetChanged();
     }
 
+    bool HasEverBeenBound() const { return mTarget != LOCAL_GL_NONE; }
+    GLuint GLName() const { return mGLName; }
     T Target() const {
         MOZ_ASSERT(HasEverBeenBound());
         return mTarget;
     }
 
 protected:
+
     
     virtual void OnTargetChanged() {}
 
+    GLuint mGLName;
     T mTarget;
 };
-
-
-
-
-template<typename T>
-class WebGLBindableName
-    : public WebGLBindable<T>
-{
-public:
-
-    WebGLBindableName(GLuint name)
-        : WebGLBindable<T>()
-        , mGLName(name)
-    { }
-    GLuint GLName() const { return mGLName; }
-
-protected:
-    const GLuint mGLName;
-};
-
 
 } 
 
