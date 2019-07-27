@@ -2960,6 +2960,14 @@ void MediaDecoderStateMachine::AdvanceFrame()
     return;
   }
 
+  DecodedStreamData* stream = mDecoder->GetDecodedStream();
+  if (stream && !stream->mStreamInitialized) {
+    
+    
+    
+    SendStreamData();
+  }
+
   const int64_t clock_time = GetClock();
   TimeStamp nowTime = TimeStamp::Now();
   
