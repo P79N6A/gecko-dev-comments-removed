@@ -177,13 +177,13 @@ FinishObjectClassInit(JSContext *cx, JS::HandleObject ctor, JS::HandleObject pro
 const Class JSObject::class_ = {
     js_Object_str,
     JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
-    nullptr,                 
-    nullptr,                 
+    JS_PropertyStub,         
+    JS_DeletePropertyStub,   
     JS_PropertyStub,         
     JS_StrictPropertyStub,   
-    nullptr,                 
-    nullptr,                 
-    nullptr,                 
+    JS_EnumerateStub,
+    JS_ResolveStub,
+    JS_ConvertStub,
     nullptr,                 
     nullptr,                 
     nullptr,                 
@@ -2725,9 +2725,13 @@ js_InitClass(JSContext *cx, HandleObject obj, JSObject *protoProto_,
     RootedObject protoProto(cx, protoProto_);
 
     
-    MOZ_ASSERT(clasp->addProperty != JS_PropertyStub);  
+    MOZ_ASSERT(clasp->addProperty);
+    MOZ_ASSERT(clasp->delProperty);
     MOZ_ASSERT(clasp->getProperty);
     MOZ_ASSERT(clasp->setProperty);
+    MOZ_ASSERT(clasp->enumerate);
+    MOZ_ASSERT(clasp->resolve);
+    MOZ_ASSERT(clasp->convert);
 
     RootedAtom atom(cx, Atomize(cx, clasp->name, strlen(clasp->name)));
     if (!atom)
@@ -3283,7 +3287,8 @@ LookupPropertyPureInline(ThreadSafeContext *cx, JSObject *obj, jsid id, NativeOb
         
         do {
             const Class *clasp = current->getClass();
-            if (!clasp->resolve)
+            MOZ_ASSERT(clasp->resolve);
+            if (clasp->resolve == JS_ResolveStub)
                 break;
             if (clasp->resolve == fun_resolve && !FunctionHasResolveHook(cx->names(), id))
                 break;
@@ -3653,13 +3658,13 @@ JS_EnumerateState(JSContext *cx, HandleObject obj, JSIterateOp enum_op,
     
     const Class *clasp = obj->getClass();
     JSEnumerateOp enumerate = clasp->enumerate;
-    if (enumerate) {
-        if (clasp->flags & JSCLASS_NEW_ENUMERATE)
-            return ((JSNewEnumerateOp) enumerate)(cx, obj, enum_op, statep, idp);
-
-        if (!enumerate(cx, obj))
-            return false;
+    if (clasp->flags & JSCLASS_NEW_ENUMERATE) {
+        MOZ_ASSERT(enumerate != JS_EnumerateStub);
+        return ((JSNewEnumerateOp) enumerate)(cx, obj, enum_op, statep, idp);
     }
+
+    if (!enumerate(cx, obj))
+        return false;
 
     
     MOZ_ASSERT(enum_op == JSENUMERATE_INIT || enum_op == JSENUMERATE_INIT_ALL);
@@ -4240,7 +4245,7 @@ JSObject::hasIdempotentProtoChain() const
             return false;
 
         JSResolveOp resolve = obj->getClass()->resolve;
-        if (resolve && resolve != js::fun_resolve)
+        if (resolve != JS_ResolveStub && resolve != js::fun_resolve)
             return false;
 
         if (obj->getOps()->lookupProperty || obj->getOps()->lookupGeneric || obj->getOps()->lookupElement)

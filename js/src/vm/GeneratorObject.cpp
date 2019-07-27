@@ -203,19 +203,35 @@ LegacyGeneratorObject::close(JSContext *cx, HandleObject obj)
 const Class LegacyGeneratorObject::class_ = {
     "Generator",
     JSCLASS_HAS_RESERVED_SLOTS(GeneratorObject::RESERVED_SLOTS),
-    nullptr,                 
-    nullptr,                 
     JS_PropertyStub,         
-    JS_StrictPropertyStub    
+    JS_DeletePropertyStub,   
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
+    JS_EnumerateStub,
+    JS_ResolveStub,
+    JS_ConvertStub,
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
 };
 
 const Class StarGeneratorObject::class_ = {
     "Generator",
     JSCLASS_HAS_RESERVED_SLOTS(GeneratorObject::RESERVED_SLOTS),
-    nullptr,                 
-    nullptr,                 
     JS_PropertyStub,         
-    JS_StrictPropertyStub    
+    JS_DeletePropertyStub,   
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
+    JS_EnumerateStub,
+    JS_ResolveStub,
+    JS_ConvertStub,
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
 };
 
 static const JSFunctionSpec star_generator_methods[] = {

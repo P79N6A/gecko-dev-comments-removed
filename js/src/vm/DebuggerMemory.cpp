@@ -72,10 +72,13 @@ DebuggerMemory::construct(JSContext *cx, unsigned argc, Value *vp)
     JSCLASS_HAS_PRIVATE | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(JSSLOT_COUNT),
 
-    nullptr,               
-    nullptr,               
     JS_PropertyStub,       
-    JS_StrictPropertyStub  
+    JS_DeletePropertyStub, 
+    JS_PropertyStub,       
+    JS_StrictPropertyStub, 
+    JS_EnumerateStub,      
+    JS_ResolveStub,        
+    JS_ConvertStub,        
 };
 
  DebuggerMemory *

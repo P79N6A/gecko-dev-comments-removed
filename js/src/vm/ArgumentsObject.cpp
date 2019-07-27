@@ -570,13 +570,13 @@ const Class NormalArgumentsObject::class_ = {
     JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(NormalArgumentsObject::RESERVED_SLOTS) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_Object) | JSCLASS_BACKGROUND_FINALIZE,
-    nullptr,                 
+    JS_PropertyStub,         
     args_delProperty,
     JS_PropertyStub,         
     JS_StrictPropertyStub,   
     args_enumerate,
     args_resolve,
-    nullptr,                 
+    JS_ConvertStub,
     ArgumentsObject::finalize,
     nullptr,                 
     nullptr,                 
@@ -594,13 +594,13 @@ const Class StrictArgumentsObject::class_ = {
     JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(StrictArgumentsObject::RESERVED_SLOTS) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_Object) | JSCLASS_BACKGROUND_FINALIZE,
-    nullptr,                 
+    JS_PropertyStub,         
     args_delProperty,
     JS_PropertyStub,         
     JS_StrictPropertyStub,   
     strictargs_enumerate,
     strictargs_resolve,
-    nullptr,                 
+    JS_ConvertStub,
     ArgumentsObject::finalize,
     nullptr,                 
     nullptr,                 

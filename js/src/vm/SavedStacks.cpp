@@ -141,13 +141,14 @@ SavedFrame::HashPolicy::rekey(Key &key, const Key &newKey)
     JSCLASS_HAS_PRIVATE | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(SavedFrame::JSSLOT_COUNT),
 
-    nullptr,               
-    nullptr,               
+    JS_PropertyStub,       
+    JS_DeletePropertyStub, 
     JS_PropertyStub,       
     JS_StrictPropertyStub, 
-    nullptr,               
-    nullptr,               
-    nullptr,               
+    JS_EnumerateStub,      
+    JS_ResolveStub,        
+    JS_ConvertStub,        
+
     SavedFrame::finalize   
 };
 

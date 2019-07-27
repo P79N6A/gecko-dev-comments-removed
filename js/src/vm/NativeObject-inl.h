@@ -566,7 +566,7 @@ LookupOwnPropertyInline(ExclusiveContext *cx,
     }
 
     
-    if (obj->getClass()->resolve) {
+    if (obj->getClass()->resolve != JS_ResolveStub) {
         if (!cx->shouldBeJSContext() || !allowGC)
             return false;
 
