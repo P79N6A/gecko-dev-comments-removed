@@ -517,6 +517,17 @@ private:
   uint64_t                mBits; 
                                  
   uint32_t                mRefCnt;
+
+#ifdef DEBUG
+  static bool DependencyAllowed(nsStyleStructID aOuterSID,
+                                nsStyleStructID aInnerSID)
+  {
+    return !!(sDependencyTable[aOuterSID] &
+              nsCachedStyleData::GetBitForSID(aInnerSID));
+  }
+
+  static const uint32_t sDependencyTable[];
+#endif
 };
 
 already_AddRefed<nsStyleContext>
