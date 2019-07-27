@@ -65,9 +65,6 @@ private:
     
     
     ULONG mIPInterfaceChecksum;
-
-    
-    bool mAllowChangedEvent;
 };
 
 #endif 
