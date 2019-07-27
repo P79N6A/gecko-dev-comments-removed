@@ -8,7 +8,6 @@
 
 
 
-Cu.import("resource://testing-common/httpd.js", this);
 Cu.import("resource://gre/modules/ClientID.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
@@ -37,14 +36,11 @@ const PREF_UNIFIED = PREF_BRANCH + "unified";
 
 const Telemetry = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry);
 
-let gHttpServer = new HttpServer();
-let gServerStarted = false;
-let gRequestIterator = null;
 let gClientID = null;
 
 function sendPing(aSendClientId, aSendEnvironment) {
-  if (gServerStarted) {
-    TelemetrySend.setServer("http://localhost:" + gHttpServer.identity.primaryPort);
+  if (PingServer.started) {
+    TelemetrySend.setServer("http://localhost:" + PingServer.port);
   } else {
     TelemetrySend.setServer("http://doesnotexist");
   }
@@ -54,24 +50,6 @@ function sendPing(aSendClientId, aSendEnvironment) {
     addEnvironment: aSendEnvironment,
   };
   return TelemetryController.submitExternalPing(TEST_PING_TYPE, {}, options);
-}
-
-function wrapWithExceptionHandler(f) {
-  function wrapper(...args) {
-    try {
-      f(...args);
-    } catch (ex if typeof(ex) == 'object') {
-      dump("Caught exception: " + ex.message + "\n");
-      dump(ex.stack);
-      do_test_finished();
-    }
-  }
-  return wrapper;
-}
-
-function registerPingHandler(handler) {
-  gHttpServer.registerPrefixHandler("/submit/telemetry/",
-				   wrapWithExceptionHandler(handler));
 }
 
 function checkPingFormat(aPing, aType, aHasClientId, aHasEnvironment) {
@@ -114,15 +92,6 @@ function checkPingFormat(aPing, aType, aHasClientId, aHasEnvironment) {
   Assert.equal("environment" in aPing, aHasEnvironment);
 }
 
-
-
-
-function startWebserver() {
-  gHttpServer.start(-1);
-  gServerStarted = true;
-  gRequestIterator = Iterator(new Request());
-}
-
 function run_test() {
   do_test_pending();
 
@@ -159,10 +128,10 @@ add_task(function* test_overwritePing() {
 
 
 add_task(function* test_simplePing() {
-  startWebserver();
+  PingServer.start();
 
   yield sendPing(false, false);
-  let request = yield gRequestIterator.next();
+  let request = yield PingServer.promiseNextRequest();
 
   
   Assert.notEqual(request.queryString, "");
@@ -186,8 +155,7 @@ add_task(function* test_deletionPing() {
   
   Preferences.set(PREF_FHR_UPLOAD_ENABLED, false);
 
-  let request = yield gRequestIterator.next();
-  let ping = decodeRequestPayload(request);
+  let ping = yield PingServer.promiseNextPing();
   checkPingFormat(ping, DELETION_PING_TYPE, true, false);
 
   
@@ -198,8 +166,7 @@ add_task(function* test_pingHasClientId() {
   
   yield sendPing(true, false);
 
-  let request = yield gRequestIterator.next();
-  let ping = decodeRequestPayload(request);
+  let ping = yield PingServer.promiseNextPing();
   checkPingFormat(ping, TEST_PING_TYPE, true, false);
 
   if (HAS_DATAREPORTINGSERVICE &&
@@ -212,8 +179,7 @@ add_task(function* test_pingHasClientId() {
 add_task(function* test_pingHasEnvironment() {
   
   yield sendPing(false, true);
-  let request = yield gRequestIterator.next();
-  let ping = decodeRequestPayload(request);
+  let ping = yield PingServer.promiseNextPing();
   checkPingFormat(ping, TEST_PING_TYPE, false, true);
 
   
@@ -223,8 +189,7 @@ add_task(function* test_pingHasEnvironment() {
 add_task(function* test_pingHasEnvironmentAndClientId() {
   
   yield sendPing(true, true);
-  let request = yield gRequestIterator.next();
-  let ping = decodeRequestPayload(request);
+  let ping = yield PingServer.promiseNextPing();
   checkPingFormat(ping, TEST_PING_TYPE, true, true);
 
   
@@ -254,13 +219,12 @@ add_task(function* test_archivePings() {
   
   
   if (isUnified) {
-    let request = yield gRequestIterator.next();
-    let ping = decodeRequestPayload(request);
+    let ping = yield PingServer.promiseNextPing();
     checkPingFormat(ping, DELETION_PING_TYPE, true, false);
   }
 
   
-  registerPingHandler(() => Assert.ok(false, "Telemetry must not send pings if not allowed to."));
+  PingServer.registerPingHandler(() => Assert.ok(false, "Telemetry must not send pings if not allowed to."));
   let pingId = yield sendPing(true, true);
 
   
@@ -283,11 +247,11 @@ add_task(function* test_archivePings() {
   now = new Date(2014, 06, 18, 22, 0, 0);
   fakeNow(now);
   
-  gRequestIterator = Iterator(new Request());
+  PingServer.resetPingHandler();
   pingId = yield sendPing(true, true);
 
   
-  yield gRequestIterator.next();
+  yield PingServer.promiseNextPing();
   ping = yield TelemetryArchive.promiseArchivedPingById(pingId);
   Assert.equal(ping.id, pingId,
     "TelemetryController should still archive pings if ping upload is enabled.");
@@ -308,13 +272,13 @@ add_task(function* test_midnightPingSendFuzzing() {
     pingSendTimeout = timeout;
   }, () => {});
 
-  gRequestIterator = Iterator(new Request());
+  PingServer.clearRequests();
   yield TelemetryController.reset();
 
   
   now = new Date(2030, 5, 2, 0, 40, 0);
   fakeNow(now);
-  registerPingHandler((req, res) => {
+  PingServer.registerPingHandler((req, res) => {
     Assert.ok(false, "No ping should be received yet.");
   });
   yield sendPing(true, true);
@@ -329,33 +293,28 @@ add_task(function* test_midnightPingSendFuzzing() {
   Assert.deepEqual(futureDate(now, pingSendTimeout), new Date(2030, 5, 2, 1, 0, 0));
 
   
-  gRequestIterator = Iterator(new Request());
+  PingServer.resetPingHandler();
 
   
   
   now = futureDate(now, pingSendTimeout);
   fakeNow(now);
   yield pingSendTimerCallback();
-  let requests = [];
-  requests.push(yield gRequestIterator.next());
-  requests.push(yield gRequestIterator.next());
-  for (let req of requests) {
-    let ping = decodeRequestPayload(req);
+  const pings = yield PingServer.promiseNextPings(2);
+  for (let ping of pings) {
     checkPingFormat(ping, TEST_PING_TYPE, true, true);
   }
 
   
   now = futureDate(now, 5 * 60 * 1000);
   yield sendPing(true, true);
-  let request = yield gRequestIterator.next();
-  let ping = decodeRequestPayload(request);
+  let ping = yield PingServer.promiseNextPing();
   checkPingFormat(ping, TEST_PING_TYPE, true, true);
 
   
   now = fakeNow(2030, 5, 3, 23, 59, 0);
   yield sendPing(true, true);
-  request = yield gRequestIterator.next();
-  ping = decodeRequestPayload(request);
+  ping = yield PingServer.promiseNextPing();
   checkPingFormat(ping, TEST_PING_TYPE, true, true);
 
   
@@ -381,31 +340,6 @@ add_task(function* test_changePingAfterSubmission() {
 });
 
 add_task(function* stopServer(){
-  gHttpServer.stop(do_test_finished);
+  yield PingServer.stop();
+  do_test_finished();
 });
-
-
-function Request() {
-  let defers = [];
-  let current = 0;
-
-  function RequestIterator() {}
-
-  
-  RequestIterator.prototype.next = function() {
-    let deferred = defers[current++];
-    return deferred.promise;
-  }
-
-  this.__iterator__ = function(){
-    return new RequestIterator();
-  }
-
-  registerPingHandler((request, response) => {
-    let deferred = defers[defers.length - 1];
-    defers.push(Promise.defer());
-    deferred.resolve(request);
-  });
-
-  defers.push(Promise.defer());
-}

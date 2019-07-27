@@ -8,7 +8,6 @@
 
 
 
-Cu.import("resource://testing-common/httpd.js", this);
 Cu.import("resource://services-common/utils.js");
 Cu.import("resource://gre/modules/ClientID.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -77,9 +76,6 @@ XPCOMUtils.defineLazyGetter(this, "DATAREPORTING_PATH", function() {
   return OS.Path.join(OS.Constants.Path.profileDir, DATAREPORTING_DIR);
 });
 
-let gHttpServer = new HttpServer();
-let gServerStarted = false;
-let gRequestIterator = null;
 let gClientID = null;
 
 function generateUUID() {
@@ -97,8 +93,8 @@ function truncateDateToDays(date) {
 
 function sendPing() {
   TelemetrySession.gatherStartup();
-  if (gServerStarted) {
-    TelemetrySend.setServer("http://localhost:" + gHttpServer.identity.primaryPort);
+  if (PingServer.started) {
+    TelemetrySend.setServer("http://localhost:" + PingServer.port);
     return TelemetrySession.testPing();
   } else {
     TelemetrySend.setServer("http://doesnotexist");
@@ -113,19 +109,6 @@ let clearPendingPings = Task.async(function*() {
   }
 });
 
-function wrapWithExceptionHandler(f) {
-  function wrapper(...args) {
-    try {
-      f(...args);
-    } catch (ex if typeof(ex) == 'object') {
-      dump("Caught exception: " + ex.message + "\n");
-      dump(ex.stack);
-      do_test_finished();
-    }
-  }
-  return wrapper;
-}
-
 function fakeGenerateUUID(sessionFunc, subsessionFunc) {
   let session = Cu.import("resource://gre/modules/TelemetrySession.jsm");
   session.Policy.generateSessionUUID = sessionFunc;
@@ -135,11 +118,6 @@ function fakeGenerateUUID(sessionFunc, subsessionFunc) {
 function fakeIdleNotification(topic) {
   let session = Cu.import("resource://gre/modules/TelemetrySession.jsm");
   return session.TelemetryScheduler.observe(null, topic, null);
-}
-
-function registerPingHandler(handler) {
-  gHttpServer.registerPrefixHandler("/submit/telemetry/",
-				   wrapWithExceptionHandler(handler));
 }
 
 function setupTestData() {
@@ -533,10 +511,8 @@ add_task(function* test_noServerPing() {
 
 
 add_task(function* test_simplePing() {
-  gHttpServer.start(-1);
-  gServerStarted = true;
-  gRequestIterator = Iterator(new Request());
-  Preferences.set(PREF_SERVER, "http://localhost:" + gHttpServer.identity.primaryPort);
+  PingServer.start();
+  Preferences.set(PREF_SERVER, "http://localhost:" + PingServer.port);
 
   let now = new Date(2020, 1, 1, 12, 0, 0);
   let expectedDate = new Date(2020, 1, 1, 0, 0, 0);
@@ -553,8 +529,7 @@ add_task(function* test_simplePing() {
   fakeNow(new Date(2020, 1, 1, 12, SESSION_DURATION_IN_MINUTES, 0));
 
   yield sendPing();
-  let request = yield gRequestIterator.next();
-  let ping = decodeRequestPayload(request);
+  let ping = yield PingServer.promiseNextPing();
 
   checkPingFormat(ping, PING_TYPE_MAIN, true, true);
 
@@ -579,7 +554,7 @@ add_task(function* test_saveLoadPing() {
   
   yield clearPendingPings();
   yield TelemetryController.reset();
-  gRequestIterator = Iterator(new Request());
+  PingServer.clearRequests();
 
   
   setupTestData();
@@ -587,10 +562,7 @@ add_task(function* test_saveLoadPing() {
   yield sendPing();
 
   
-  let requests = [
-    yield gRequestIterator.next(),
-    yield gRequestIterator.next(),
-  ];
+  const requests = yield PingServer.promiseNextRequests(2);
 
   for (let req of requests) {
     Assert.equal(req.getHeader("content-type"), "application/json; charset=UTF-8",
@@ -858,7 +830,7 @@ add_task(function* test_dailyCollection() {
   let nowDay = new Date(2030, 1, 1, 0, 0, 0);
   let schedulerTickCallback = null;
 
-  gRequestIterator = Iterator(new Request());
+  PingServer.clearRequests();
 
   fakeNow(now);
 
@@ -867,7 +839,7 @@ add_task(function* test_dailyCollection() {
 
   
   yield TelemetrySession.setup();
-  TelemetrySend.setServer("http://localhost:" + gHttpServer.identity.primaryPort);
+  TelemetrySend.setServer("http://localhost:" + PingServer.port);
 
   
   const COUNT_ID = "TELEMETRY_TEST_COUNT";
@@ -892,9 +864,8 @@ add_task(function* test_dailyCollection() {
   yield schedulerTickCallback();
 
   
-  let request = yield gRequestIterator.next();
-  Assert.ok(!!request);
-  let ping = decodeRequestPayload(request);
+  let ping = yield PingServer.promiseNextPing();
+  Assert.ok(!!ping);
 
   Assert.equal(ping.type, PING_TYPE_MAIN);
   Assert.equal(ping.payload.info.reason, REASON_DAILY);
@@ -913,9 +884,8 @@ add_task(function* test_dailyCollection() {
   
   yield schedulerTickCallback();
 
-  request = yield gRequestIterator.next();
-  Assert.ok(!!request);
-  ping = decodeRequestPayload(request);
+  ping = yield PingServer.promiseNextPing();
+  Assert.ok(!!ping);
 
   Assert.equal(ping.type, PING_TYPE_MAIN);
   Assert.equal(ping.payload.info.reason, REASON_DAILY);
@@ -936,9 +906,8 @@ add_task(function* test_dailyCollection() {
   fakeNow(now);
 
   yield schedulerTickCallback();
-  request = yield gRequestIterator.next();
-  Assert.ok(!!request);
-  ping = decodeRequestPayload(request);
+  ping = yield PingServer.promiseNextPing();
+  Assert.ok(!!ping);
 
   Assert.equal(ping.type, PING_TYPE_MAIN);
   Assert.equal(ping.payload.info.reason, REASON_DAILY);
@@ -959,7 +928,7 @@ add_task(function* test_dailyDuplication() {
     return;
   }
 
-  gRequestIterator = Iterator(new Request());
+  PingServer.clearRequests();
 
   let schedulerTickCallback = null;
   let now = new Date(2030, 1, 1, 0, 0, 0);
@@ -979,15 +948,14 @@ add_task(function* test_dailyDuplication() {
   yield schedulerTickCallback();
 
   
-  let request = yield gRequestIterator.next();
-  Assert.ok(!!request);
-  let ping = decodeRequestPayload(request);
+  let ping = yield PingServer.promiseNextPing();
+  Assert.ok(!!ping);
 
   Assert.equal(ping.type, PING_TYPE_MAIN);
   Assert.equal(ping.payload.info.reason, REASON_DAILY);
 
   
-  registerPingHandler((req, res) => {
+  PingServer.registerPingHandler((req, res) => {
     Assert.ok(false, "No more daily pings should be sent/received in this test.");
   });
 
@@ -1003,6 +971,7 @@ add_task(function* test_dailyDuplication() {
 
   
   yield TelemetrySession.shutdown();
+  PingServer.resetPingHandler();
 });
 
 add_task(function* test_dailyOverdue() {
@@ -1023,7 +992,7 @@ add_task(function* test_dailyOverdue() {
   fakeNow(now);
 
   
-  registerPingHandler((req, res) => {
+  PingServer.registerPingHandler((req, res) => {
     Assert.ok(false, "No daily ping should be received if not overdue!.");
   });
 
@@ -1032,7 +1001,8 @@ add_task(function* test_dailyOverdue() {
   yield schedulerTickCallback();
 
   
-  gRequestIterator = Iterator(new Request());
+  PingServer.resetPingHandler();
+  PingServer.clearRequests();
 
   
   
@@ -1044,9 +1014,8 @@ add_task(function* test_dailyOverdue() {
   yield schedulerTickCallback();
 
   
-  let request = yield gRequestIterator.next();
-  Assert.ok(!!request);
-  let ping = decodeRequestPayload(request);
+  let ping = yield PingServer.promiseNextPing();
+  Assert.ok(!!ping);
 
   Assert.equal(ping.type, PING_TYPE_MAIN);
   Assert.equal(ping.payload.info.reason, REASON_DAILY);
@@ -1065,7 +1034,7 @@ add_task(function* test_environmentChange() {
   let timerCallback = null;
   let timerDelay = null;
 
-  gRequestIterator = Iterator(new Request());
+  PingServer.clearRequests();
 
   fakeNow(now);
 
@@ -1078,7 +1047,7 @@ add_task(function* test_environmentChange() {
 
   
   yield TelemetrySession.setup();
-  TelemetrySend.setServer("http://localhost:" + gHttpServer.identity.primaryPort);
+  TelemetrySend.setServer("http://localhost:" + PingServer.port);
   TelemetryEnvironment._watchPreferences(PREFS_TO_WATCH);
 
   
@@ -1099,9 +1068,8 @@ add_task(function* test_environmentChange() {
   fakeNow(now);
 
   Preferences.set(PREF_TEST, 1);
-  let request = yield gRequestIterator.next();
-  Assert.ok(!!request);
-  let ping = decodeRequestPayload(request);
+  let ping = yield PingServer.promiseNextPing();
+  Assert.ok(!!ping);
 
   Assert.equal(ping.type, PING_TYPE_MAIN);
   Assert.equal(ping.environment.settings.userPrefs[PREF_TEST], undefined);
@@ -1118,9 +1086,8 @@ add_task(function* test_environmentChange() {
   fakeNow(now);
 
   Preferences.set(PREF_TEST, 2);
-  request = yield gRequestIterator.next();
-  Assert.ok(!!request);
-  ping = decodeRequestPayload(request);
+  ping = yield PingServer.promiseNextPing();
+  Assert.ok(!!ping);
 
   Assert.equal(ping.type, PING_TYPE_MAIN);
   Assert.equal(ping.environment.settings.userPrefs[PREF_TEST], 1);
@@ -1366,7 +1333,7 @@ add_task(function* test_abortedSession() {
   yield TelemetryStorage.savePingToFile(abortedSessionPing, ABORTED_FILE, false);
 
   yield clearPendingPings();
-  gRequestIterator = Iterator(new Request());
+  PingServer.clearRequests();
   yield TelemetrySession.reset();
   yield TelemetryController.reset();
 
@@ -1384,11 +1351,7 @@ add_task(function* test_abortedSession() {
   yield sendPing();
 
   
-  let requests = [
-    yield gRequestIterator.next(),
-    yield gRequestIterator.next(),
-  ];
-  let pings = [for (req of requests) decodeRequestPayload(req)].filter((p) => {
+  const pings = (yield PingServer.promiseNextPings(2)).filter((p) => {
     return p.type == PING_TYPE_MAIN && p.payload.info.reason == REASON_ABORTED_SESSION;
   });
 
@@ -1444,7 +1407,7 @@ add_task(function* test_abortedDailyCoalescing() {
   yield OS.File.removeDir(DATAREPORTING_PATH, { ignoreAbsent: true });
 
   let schedulerTickCallback = null;
-  gRequestIterator = Iterator(new Request());
+  PingServer.clearRequests();
 
   let nowDate = new Date(2009, 10, 18, 0, 0, 0);
   fakeNow(nowDate);
@@ -1466,8 +1429,7 @@ add_task(function* test_abortedDailyCoalescing() {
   yield schedulerTickCallback();
 
   
-  let request = yield gRequestIterator.next();
-  let dailyPing = decodeRequestPayload(request);
+  let dailyPing = yield PingServer.promiseNextPing();
   Assert.equal(dailyPing.payload.info.reason, REASON_DAILY);
 
   
@@ -1492,7 +1454,7 @@ add_task(function* test_schedulerComputerSleep() {
 
   const ABORTED_FILE = OS.Path.join(DATAREPORTING_PATH, ABORTED_PING_FILE_NAME);
 
-  gRequestIterator = Iterator(new Request());
+  PingServer.clearRequests();
 
   
   yield OS.File.removeDir(DATAREPORTING_PATH, { ignoreAbsent: true });
@@ -1511,8 +1473,7 @@ add_task(function* test_schedulerComputerSleep() {
   
   yield schedulerTickCallback();
 
-  let request = yield gRequestIterator.next();
-  let dailyPing = decodeRequestPayload(request);
+  let dailyPing = yield PingServer.promiseNextPing();
   Assert.equal(dailyPing.payload.info.reason, REASON_DAILY);
 
   Assert.ok((yield OS.File.exists(ABORTED_FILE)),
@@ -1535,7 +1496,7 @@ add_task(function* test_schedulerEnvironmentReschedules() {
   ]);
 
   yield clearPendingPings();
-  gRequestIterator = Iterator(new Request());
+  PingServer.clearRequests();
 
   
   let nowDate = new Date(2060, 10, 18, 0, 0, 0);
@@ -1553,10 +1514,10 @@ add_task(function* test_schedulerEnvironmentReschedules() {
   Preferences.set(PREF_TEST, 1);
 
   
-  yield gRequestIterator.next();
+  yield PingServer.promiseNextPing();
 
   
-  registerPingHandler((req, res) => {
+  PingServer.registerPingHandler((req, res) => {
     Assert.ok(false, "No ping should be sent/received in this test.");
   });
 
@@ -1580,7 +1541,7 @@ add_task(function* test_schedulerNothingDue() {
   yield clearPendingPings();
 
   
-  registerPingHandler((req, res) => {
+  PingServer.registerPingHandler((req, res) => {
     Assert.ok(false, "No ping should be sent/received in this test.");
   });
 
@@ -1603,6 +1564,7 @@ add_task(function* test_schedulerNothingDue() {
   Assert.ok(!(yield OS.File.exists(ABORTED_FILE)));
 
   yield TelemetrySession.shutdown();
+  PingServer.resetPingHandler();
 });
 
 add_task(function* test_pingExtendedStats() {
@@ -1615,12 +1577,11 @@ add_task(function* test_pingExtendedStats() {
   Telemetry.canRecordExtended = false;
 
   yield clearPendingPings();
-  gRequestIterator = Iterator(new Request());
+  PingServer.clearRequests();
   yield TelemetrySession.reset();
   yield sendPing();
 
-  let request = yield gRequestIterator.next();
-  let ping = decodeRequestPayload(request);
+  let ping = yield PingServer.promiseNextPing();
   checkPingFormat(ping, PING_TYPE_MAIN, true, true);
 
   
@@ -1645,8 +1606,7 @@ add_task(function* test_pingExtendedStats() {
   
   yield TelemetrySession.reset();
   yield sendPing();
-  request = yield gRequestIterator.next();
-  ping = decodeRequestPayload(request);
+  ping = yield PingServer.promiseNextPing();
   checkPingFormat(ping, PING_TYPE_MAIN, true, true);
 
   
@@ -1679,7 +1639,7 @@ add_task(function* test_schedulerUserIdle() {
   }, () => {});
   yield TelemetrySession.reset();
   yield clearPendingPings();
-  gRequestIterator = Iterator(new Request());
+  PingServer.clearRequests();
 
   
   Assert.equal(schedulerTimeout, SCHEDULER_TICK_INTERVAL_MS);
@@ -1707,31 +1667,6 @@ add_task(function* test_schedulerUserIdle() {
 });
 
 add_task(function* stopServer(){
-  gHttpServer.stop(do_test_finished);
+  yield PingServer.stop();
+  do_test_finished();
 });
-
-
-function Request() {
-  let defers = [];
-  let current = 0;
-
-  function RequestIterator() {}
-
-  
-  RequestIterator.prototype.next = function() {
-    let deferred = defers[current++];
-    return deferred.promise;
-  }
-
-  this.__iterator__ = function(){
-    return new RequestIterator();
-  }
-
-  registerPingHandler((request, response) => {
-    let deferred = defers[defers.length - 1];
-    defers.push(Promise.defer());
-    deferred.resolve(request);
-  });
-
-  defers.push(Promise.defer());
-}
