@@ -144,7 +144,7 @@ nsresult TimeZoneSettingObserver::SetTimeZone(const JS::Value &aValue, JSContext
 {
   
   
-  nsDependentJSString valueStr;
+  nsAutoJSString valueStr;
   if (!valueStr.init(aContext, aValue.toString())) {
     ERR("Failed to convert JS value to nsCString");
     return NS_ERROR_FAILURE;

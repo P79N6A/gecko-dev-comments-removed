@@ -1100,13 +1100,13 @@ nsXBLBinding::LookupMember(JSContext* aCx, JS::Handle<jsid> aId,
 
   
   
-  
-  
   if (!JSID_IS_STRING(aId)) {
     return true;
   }
-  nsDependentJSString name;
-  name.infallibleInit(aId);
+  nsAutoJSString name;
+  if (!name.init(aCx, JSID_TO_STRING(aId))) {
+    return false;
+  }
 
   
   if (!mBoundElement || !mBoundElement->GetWrapper()) {

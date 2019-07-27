@@ -850,8 +850,10 @@ GonkGPSGeolocationProvider::Handle(const nsAString& aName,
       NS_ENSURE_TRUE(cx, NS_OK);
 
       
-      nsDependentJSString apn;
-      apn.init(cx, aResult.toString());
+      nsAutoJSString apn;
+      if (!apn.init(cx, aResult.toString())) {
+        return NS_ERROR_FAILURE;
+      }
       if (!apn.IsEmpty()) {
         SetAGpsDataConn(apn);
       }

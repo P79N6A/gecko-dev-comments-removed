@@ -89,7 +89,6 @@ WindowNamedPropertiesHandler::getOwnPropertyDescriptor(JSContext* aCx,
                                                        JS::MutableHandle<JSPropertyDescriptor> aDesc)
                                                        const
 {
-  
   if (!JSID_IS_STRING(aId)) {
     
     return true;
@@ -100,8 +99,10 @@ WindowNamedPropertiesHandler::getOwnPropertyDescriptor(JSContext* aCx,
     return true;
   }
 
-  nsDependentJSString str;
-  str.infallibleInit(aId);
+  nsAutoJSString str;
+  if (!str.init(aCx, JSID_TO_STRING(aId))) {
+    return false;
+  }
 
   
   nsGlobalWindow* win = GetWindowFromGlobal(global);

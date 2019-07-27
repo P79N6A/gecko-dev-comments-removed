@@ -70,8 +70,11 @@ MobileMessageThread::Create(uint64_t aId,
         return NS_ERROR_INVALID_ARG;
       }
 
-      nsDependentJSString str;
-      str.init(aCx, val.toString());
+      nsAutoJSString str;
+      if (!str.init(aCx, val.toString())) {
+        return NS_ERROR_FAILURE;
+      }
+
       data.participants().AppendElement(str);
     }
   }
