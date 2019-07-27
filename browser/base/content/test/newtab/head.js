@@ -32,7 +32,7 @@ let gDirectorySource = 'data:application/json,{"test":1}';
 let requiredInnerHeight =
   40 + 32 + 
   44 + 32 + 
-  (3 * (150 + 32)) + 
+  (3 * (180 + 32)) + 
   100; 
 
 let oldInnerHeight = null;
@@ -349,8 +349,7 @@ function checkGrid(aSitesPattern, aSites) {
       return "";
 
     let pinned = aSite.isPinned();
-    let pinButton = aSite.node.querySelector(".newtab-control-pin");
-    let hasPinnedAttr = pinButton.hasAttribute("pinned");
+    let hasPinnedAttr = aSite.node.hasAttribute("pinned");
 
     if (pinned != hasPinnedAttr)
       ok(false, "invalid state (site.isPinned() != site[pinned])");
