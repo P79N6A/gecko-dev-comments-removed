@@ -73,7 +73,7 @@ ServiceWorkerContainer::WrapObject(JSContext* aCx)
 
 already_AddRefed<Promise>
 ServiceWorkerContainer::Register(const nsAString& aScriptURL,
-                                 const RegistrationOptionList& aOptions,
+                                 const RegistrationOptions& aOptions,
                                  ErrorResult& aRv)
 {
   nsCOMPtr<nsISupports> promise;
@@ -84,7 +84,38 @@ ServiceWorkerContainer::Register(const nsAString& aScriptURL,
     return nullptr;
   }
 
-  aRv = swm->Register(GetOwner(), aOptions.mScope, aScriptURL, getter_AddRefs(promise));
+  nsCOMPtr<nsPIDOMWindow> window = GetOwner();
+  MOZ_ASSERT(window);
+
+  nsresult rv;
+  nsCOMPtr<nsIURI> scriptURI;
+  rv = NS_NewURI(getter_AddRefs(scriptURI), aScriptURL, nullptr,
+                 window->GetDocBaseURI());
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    aRv.ThrowTypeError(MSG_INVALID_URL, &aScriptURL);
+    return nullptr;
+  }
+
+  
+  
+  nsCOMPtr<nsIURI> scopeURI;
+
+  
+  if (!aOptions.mScope.WasPassed()) {
+    nsresult rv = NS_NewURI(getter_AddRefs(scopeURI), NS_LITERAL_CSTRING("./"),
+                            nullptr, scriptURI);
+    MOZ_ALWAYS_TRUE(NS_SUCCEEDED(rv));
+  } else {
+    
+    nsresult rv = NS_NewURI(getter_AddRefs(scopeURI), aOptions.mScope.Value(),
+                            nullptr, window->GetDocBaseURI());
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      aRv.ThrowTypeError(MSG_INVALID_URL, &aOptions.mScope.Value());
+      return nullptr;
+    }
+  }
+
+  aRv = swm->Register(window, scopeURI, scriptURI, getter_AddRefs(promise));
   if (aRv.Failed()) {
     return nullptr;
   }
