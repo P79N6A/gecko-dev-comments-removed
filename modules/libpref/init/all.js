@@ -2049,7 +2049,7 @@ pref("layout.css.clip-path-shapes.enabled", false);
 pref("layout.css.sticky.enabled", true);
 
 
-pref("layout.css.will-change.enabled", false);
+pref("layout.css.will-change.enabled", true);
 
 
 pref("layout.css.DOMPoint.enabled", true);
