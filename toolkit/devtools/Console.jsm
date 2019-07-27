@@ -590,14 +590,33 @@ function sendConsoleAPIMessage(aConsole, aLevel, aFrame, aArgs, aOptions = {})
 
 
 
+
+
+
+
+
 function ConsoleAPI(aConsoleOptions = {}) {
   
   
   this.dump = aConsoleOptions.dump || dump;
   this.prefix = aConsoleOptions.prefix || "";
-  this.maxLogLevel = aConsoleOptions.maxLogLevel || "all";
+  this.maxLogLevel = aConsoleOptions.maxLogLevel;
   this.innerID = aConsoleOptions.innerID || null;
   this.consoleID = aConsoleOptions.consoleID || "";
+
+  
+  let updateMaxLogLevel = () => {
+    if (Services.prefs.getPrefType(aConsoleOptions.maxLogLevelPref) == Services.prefs.PREF_STRING) {
+      this._maxLogLevel = Services.prefs.getCharPref(aConsoleOptions.maxLogLevelPref).toLowerCase();
+    } else {
+      this._maxLogLevel = this._maxExplicitLogLevel;
+    }
+  };
+
+  if (aConsoleOptions.maxLogLevelPref) {
+    updateMaxLogLevel();
+    Services.prefs.addObserver(aConsoleOptions.maxLogLevelPref, updateMaxLogLevel, false);
+  }
 
   
   for (let prop in this) {
@@ -608,6 +627,15 @@ function ConsoleAPI(aConsoleOptions = {}) {
 }
 
 ConsoleAPI.prototype = {
+  
+
+
+
+  _maxExplicitLogLevel: null,
+  
+
+
+  _maxLogLevel: null,
   debug: createMultiLineDumper("debug"),
   log: createDumper("log"),
   info: createDumper("info"),
@@ -654,6 +682,14 @@ ConsoleAPI.prototype = {
     sendConsoleAPIMessage(this, "timeEnd", frame, args, { timer: timer });
     dumpMessage(this, "timeEnd",
                 "'" + timer.name + "' " + timer.duration + "ms");
+  },
+
+  get maxLogLevel() {
+    return this._maxLogLevel || "all";
+  },
+
+  set maxLogLevel(aValue) {
+    this._maxLogLevel = this._maxExplicitLogLevel = aValue;
   },
 };
 

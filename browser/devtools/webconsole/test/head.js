@@ -925,6 +925,7 @@ function openDebugger(aOptions = {})
 
 
 
+
 function waitForMessages(aOptions)
 {
   info("Waiting for messages...");
