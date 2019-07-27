@@ -300,7 +300,9 @@ void LogTerm();
 
 extern bool gXPCOMShuttingDown;
 extern bool gXPCOMThreadsShutDown;
-extern char16_t* gGREPath; 
+
+
+extern char16_t* gGREBinPath;
 
 namespace mozilla {
 namespace services {
