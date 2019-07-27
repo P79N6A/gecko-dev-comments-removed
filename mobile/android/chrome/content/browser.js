@@ -7036,6 +7036,14 @@ var SearchEngines = {
     }
 
     let engineData = Services.search.getVisibleEngines({});
+
+    
+    
+    if (engineData[0] !== Services.search.defaultEngine) {
+      engineData = engineData.filter(engine => engine !== Services.search.defaultEngine);
+      engineData.unshift(Services.search.defaultEngine);
+    }
+
     let searchEngines = engineData.map(function (engine) {
       return {
         name: engine.name,

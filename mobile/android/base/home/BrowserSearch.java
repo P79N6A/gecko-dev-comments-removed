@@ -561,6 +561,8 @@ public class BrowserSearch extends HomeFragment
 
                 if (engine.name.equals(suggestEngine) && suggestTemplate != null) {
                     
+                    
+                    
                     searchEngines.add(0, engine);
 
                     
