@@ -135,18 +135,40 @@ JS_TraceIncomingCCWs(JSTracer *trc, const JS::ZoneSet &zones)
 
             for (JSCompartment::WrapperEnum e(comp); !e.empty(); e.popFront()) {
                 const CrossCompartmentKey &key = e.front().key();
-                
-                
-                if (key.kind == CrossCompartmentKey::StringWrapper)
-                    continue;
-                JSObject *obj = static_cast<JSObject *>(key.wrapped);
-                
-                
-                if (!zones.has(obj->zone()))
+                JSObject *obj;
+                JSScript *script;
+
+                switch (key.kind) {
+                  case CrossCompartmentKey::StringWrapper:
+                    
+                    
+                    
                     continue;
 
-                MarkObjectUnbarriered(trc, &obj, "cross-compartment wrapper");
-                MOZ_ASSERT(obj == key.wrapped);
+                  case CrossCompartmentKey::ObjectWrapper:
+                  case CrossCompartmentKey::DebuggerObject:
+                  case CrossCompartmentKey::DebuggerSource:
+                  case CrossCompartmentKey::DebuggerEnvironment:
+                    obj = static_cast<JSObject *>(key.wrapped);
+                    
+                    
+                    if (!zones.has(obj->zone()))
+                        continue;
+
+                    MarkObjectUnbarriered(trc, &obj, "cross-compartment wrapper");
+                    MOZ_ASSERT(obj == key.wrapped);
+                    break;
+
+                  case CrossCompartmentKey::DebuggerScript:
+                    script = static_cast<JSScript *>(key.wrapped);
+                    
+                    
+                    if (!zones.has(script->zone()))
+                        continue;
+                    MarkScriptUnbarriered(trc, &script, "cross-compartment wrapper");
+                    MOZ_ASSERT(script == key.wrapped);
+                    break;
+                }
             }
         }
     }
