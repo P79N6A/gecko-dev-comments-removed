@@ -160,12 +160,7 @@ IsTexImageCubemapTarget(GLenum target)
 bool
 WebGLProgram::UpdateInfo()
 {
-    mIdentifierMap = nullptr;
-    mIdentifierReverseMap = nullptr;
-    mUniformInfoMap = nullptr;
-
     mAttribMaxNameLength = 0;
-
     for (size_t i = 0; i < mAttachedShaders.Length(); i++)
         mAttribMaxNameLength = std::max(mAttribMaxNameLength, mAttachedShaders[i]->mAttribMaxNameLength);
 
@@ -199,14 +194,28 @@ WebGLProgram::UpdateInfo()
         }
     }
 
-    if (!mUniformInfoMap) {
-        mUniformInfoMap = new CStringToUniformInfoMap;
-        for (size_t i = 0; i < mAttachedShaders.Length(); i++) {
-            for (size_t j = 0; j < mAttachedShaders[i]->mUniforms.Length(); j++) {
-                const WebGLMappedIdentifier& uniform = mAttachedShaders[i]->mUniforms[j];
-                const WebGLUniformInfo& info = mAttachedShaders[i]->mUniformInfos[j];
-                mUniformInfoMap->Put(uniform.mapped, info);
-            }
+    
+    mIdentifierMap = new CStringMap;
+    mIdentifierReverseMap = new CStringMap;
+    mUniformInfoMap = new CStringToUniformInfoMap;
+    for (size_t i = 0; i < mAttachedShaders.Length(); i++) {
+        
+        for (size_t j = 0; j < mAttachedShaders[i]->mAttributes.Length(); j++) {
+            const WebGLMappedIdentifier& attrib = mAttachedShaders[i]->mAttributes[j];
+            mIdentifierMap->Put(attrib.original, attrib.mapped); 
+            mIdentifierReverseMap->Put(attrib.mapped, attrib.original); 
+        }
+
+        
+        for (size_t j = 0; j < mAttachedShaders[i]->mUniforms.Length(); j++) {
+            
+            const WebGLMappedIdentifier& uniform = mAttachedShaders[i]->mUniforms[j];
+            mIdentifierMap->Put(uniform.original, uniform.mapped); 
+            mIdentifierReverseMap->Put(uniform.mapped, uniform.original); 
+
+            
+            const WebGLUniformInfo& info = mAttachedShaders[i]->mUniformInfos[j];
+            mUniformInfoMap->Put(uniform.mapped, info);
         }
     }
 
