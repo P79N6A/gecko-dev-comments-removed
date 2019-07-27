@@ -594,7 +594,7 @@ let SessionStoreInternal = {
     
     var browser = aMessage.target;
     var win = browser.ownerDocument.defaultView;
-    let tab = this._getTabForBrowser(browser);
+    let tab = win.gBrowser.getTabForBrowser(browser);
     if (!tab) {
       
       return;
@@ -2969,24 +2969,6 @@ let SessionStoreInternal = {
     this._statesToRestore[(window.__SS_restoreID = ID)] = aState;
 
     return window;
-  },
-
-  
-
-
-
-
-
-
-
-  _getTabForBrowser: function ssi_getTabForBrowser(aBrowser) {
-    let window = aBrowser.ownerDocument.defaultView;
-    for (let i = 0; i < window.gBrowser.tabs.length; i++) {
-      let tab = window.gBrowser.tabs[i];
-      if (tab.linkedBrowser == aBrowser)
-        return tab;
-    }
-    return undefined;
   },
 
   
