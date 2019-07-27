@@ -5,6 +5,7 @@
 
 
 #include "AnimationTimeline.h"
+#include "mozilla/AnimationComparator.h"
 
 namespace mozilla {
 namespace dom {
@@ -63,6 +64,9 @@ AnimationTimeline::GetAnimations(AnimationSequence& aAnimations)
   AddAnimationParams params{ aAnimations };
 #endif
   mAnimations.EnumerateEntries(AppendAnimationToSequence, &params);
+
+  
+  aAnimations.Sort(AnimationPtrComparator<nsRefPtr<Animation>>());
 }
 
 void
