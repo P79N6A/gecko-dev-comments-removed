@@ -1712,10 +1712,6 @@ EventListeners.prototype = {
       }
 
       
-      
-      aResponse.listeners.sort((a, b) => a.type > b.type ? 1 : -1);
-
-      
       for (let listener of aResponse.listeners) {
         let definitionSite = yield this._getDefinitionSite(listener.function);
         listener.function.url = definitionSite;
