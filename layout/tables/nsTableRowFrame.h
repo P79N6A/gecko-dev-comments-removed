@@ -211,11 +211,11 @@ public:
   nscoord GetUnpaginatedHeight(nsPresContext* aPresContext);
   void    SetUnpaginatedHeight(nsPresContext* aPresContext, nscoord aValue);
 
-  nscoord GetTopBCBorderWidth();
-  void    SetTopBCBorderWidth(BCPixelSize aWidth);
-  nscoord GetBottomBCBorderWidth();
-  void    SetBottomBCBorderWidth(BCPixelSize aWidth);
-  nsMargin* GetBCBorderWidth(nsMargin& aBorder);
+  nscoord GetBStartBCBorderWidth() const { return mBStartBorderWidth; }
+  nscoord GetBEndBCBorderWidth() const { return mBEndBorderWidth; }
+  void SetBStartBCBorderWidth(BCPixelSize aWidth) { mBStartBorderWidth = aWidth; }
+  void SetBEndBCBorderWidth(BCPixelSize aWidth) { mBEndBorderWidth = aWidth; }
+  mozilla::LogicalMargin GetBCBorderWidth(mozilla::WritingMode aWM);
                              
   
 
@@ -227,12 +227,12 @@ public:
   
 
 
-  nscoord GetOuterTopContBCBorderWidth();
+  nscoord GetOuterBStartContBCBorderWidth();
   
 
 
 
-  void SetContinuousBCBorderWidth(uint8_t     aForSide,
+  void SetContinuousBCBorderWidth(mozilla::LogicalSide aForSide,
                                   BCPixelSize aPixelValue);
 
   virtual bool IsFrameOfType(uint32_t aFlags) const override
@@ -300,11 +300,11 @@ private:
 
   
   
-  BCPixelSize mTopBorderWidth;
-  BCPixelSize mBottomBorderWidth;
-  BCPixelSize mRightContBorderWidth;
-  BCPixelSize mTopContBorderWidth;
-  BCPixelSize mLeftContBorderWidth;
+  BCPixelSize mBStartBorderWidth;
+  BCPixelSize mBEndBorderWidth;
+  BCPixelSize mIEndContBorderWidth;
+  BCPixelSize mBStartContBorderWidth;
+  BCPixelSize mIStartContBorderWidth;
 
   
 
@@ -401,52 +401,33 @@ inline void nsTableRowFrame::SetHasUnpaginatedHeight(bool aValue)
   }
 }
 
-inline nscoord nsTableRowFrame::GetTopBCBorderWidth()
+inline mozilla::LogicalMargin
+nsTableRowFrame::GetBCBorderWidth(mozilla::WritingMode aWM)
 {
-  return mTopBorderWidth;
-}
-
-inline void nsTableRowFrame::SetTopBCBorderWidth(BCPixelSize aWidth)
-{
-  mTopBorderWidth = aWidth;
-}
-
-inline nscoord nsTableRowFrame::GetBottomBCBorderWidth()
-{
-  return mBottomBorderWidth;
-}
-
-inline void nsTableRowFrame::SetBottomBCBorderWidth(BCPixelSize aWidth)
-{
-  mBottomBorderWidth = aWidth;
-}
-
-inline nsMargin* nsTableRowFrame::GetBCBorderWidth(nsMargin& aBorder)
-{
-  aBorder.left = aBorder.right = 0;
-
-  aBorder.top    = nsPresContext::CSSPixelsToAppUnits(mTopBorderWidth);
-  aBorder.bottom = nsPresContext::CSSPixelsToAppUnits(mBottomBorderWidth);
-
-  return &aBorder;
+  return mozilla::LogicalMargin(
+    aWM, nsPresContext::CSSPixelsToAppUnits(mBStartBorderWidth), 0,
+    nsPresContext::CSSPixelsToAppUnits(mBEndBorderWidth), 0);
 }
 
 inline void
 nsTableRowFrame::GetContinuousBCBorderWidth(nsMargin& aBorder)
 {
   int32_t aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
-  aBorder.right = BC_BORDER_START_HALF_COORD(aPixelsToTwips,
-                                             mLeftContBorderWidth);
-  aBorder.top = BC_BORDER_END_HALF_COORD(aPixelsToTwips,
-                                         mTopContBorderWidth);
-  aBorder.left = BC_BORDER_END_HALF_COORD(aPixelsToTwips,
-                                          mRightContBorderWidth);
+  mozilla::WritingMode wm = GetWritingMode();
+  mozilla::LogicalMargin border(wm, aBorder);
+  border.IEnd(wm) = BC_BORDER_START_HALF_COORD(aPixelsToTwips,
+                                               mIStartContBorderWidth);
+  border.BStart(wm) = BC_BORDER_END_HALF_COORD(aPixelsToTwips,
+                                               mBStartContBorderWidth);
+  border.IStart(wm) = BC_BORDER_END_HALF_COORD(aPixelsToTwips,
+                                               mIEndContBorderWidth);
+  aBorder = border.GetPhysicalMargin(wm);
 }
 
-inline nscoord nsTableRowFrame::GetOuterTopContBCBorderWidth()
+inline nscoord nsTableRowFrame::GetOuterBStartContBCBorderWidth()
 {
   int32_t aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
-  return BC_BORDER_START_HALF_COORD(aPixelsToTwips, mTopContBorderWidth);
+  return BC_BORDER_START_HALF_COORD(aPixelsToTwips, mBStartContBorderWidth);
 }
 
 #endif
