@@ -1604,7 +1604,7 @@ SpecialPowersAPI.prototype = {
     
     
     
-    xferable.init(this._getDocShell(content.window || window)
+    xferable.init(this._getDocShell(typeof(window) == "undefined" ? content.window : window)
                       .QueryInterface(Components.interfaces.nsILoadContext));
     xferable.addDataFlavor(flavor);
     this._cb.getData(xferable, whichClipboard);
