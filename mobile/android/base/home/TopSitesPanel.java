@@ -625,7 +625,7 @@ public class TopSitesPanel extends HomeFragment {
 
                 
                 
-                if (TextUtils.isEmpty(url) || TextUtils.isEmpty(imageUrl)) {
+                if (TextUtils.isEmpty(url) || !TextUtils.isEmpty(imageUrl)) {
                     continue;
                 }
 
