@@ -23,8 +23,6 @@
 #include "mozilla/gfx/Logging.h"        
 #include "mozilla/layers/APZUtils.h"    
 
-class nsIntRegion;
-
 namespace mozilla {
 class InputData;
 class MultiTouchInput;

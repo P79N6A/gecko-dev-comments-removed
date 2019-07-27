@@ -81,7 +81,7 @@ public:
 
   void SetHitTestData(const EventRegions& aRegions,
                       const gfx::Matrix4x4& aTransform,
-                      const Maybe<nsIntRegion>& aClipRegion,
+                      const Maybe<ParentLayerIntRegion>& aClipRegion,
                       const EventRegionsOverride& aOverride);
   bool IsOutsideClip(const ParentLayerPoint& aPoint) const;
   
@@ -124,7 +124,7 @@ private:
 
 
 
-  Maybe<nsIntRegion> mClipRegion;
+  Maybe<ParentLayerIntRegion> mClipRegion;
 
   
 
