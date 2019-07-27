@@ -94,7 +94,12 @@ class TabsGridLayout extends GridView
 
         final int padding = resources.getDimensionPixelSize(R.dimen.new_tablet_tab_panel_grid_padding);
         final int paddingTop = resources.getDimensionPixelSize(R.dimen.new_tablet_tab_panel_grid_padding_top);
-        setPadding(padding, paddingTop, padding, padding);
+
+        
+        
+        final int paddingBottom = paddingTop * 2;
+
+        setPadding(padding, paddingTop, padding, paddingBottom);
 
         setOnItemClickListener(new OnItemClickListener() {
             @Override
@@ -393,5 +398,4 @@ class TabsGridLayout extends GridView
             }
         });
     }
-
 }
