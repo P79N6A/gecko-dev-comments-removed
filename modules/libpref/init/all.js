@@ -307,7 +307,6 @@ pref("media.webm.intel_decoder.enabled", false);
 #endif
 #ifdef MOZ_GSTREAMER
 pref("media.gstreamer.enabled", true);
-pref("media.gstreamer.enable-blacklist", true);
 #endif
 #ifdef MOZ_APPLEMEDIA
 pref("media.apple.mp3.enabled", true);
@@ -1350,8 +1349,7 @@ pref("network.http.tcp_keepalive.short_lived_idle_time", 10);
 pref("network.http.tcp_keepalive.long_lived_connections", true);
 pref("network.http.tcp_keepalive.long_lived_idle_time", 600);
 
-pref("network.http.enforce-framing.http1", false); 
-pref("network.http.enforce-framing.soft", true);
+pref("network.http.enforce-framing.http1", false);
 
 
 
@@ -4544,24 +4542,20 @@ pref("reader.font_size", 3);
 pref("reader.color_scheme", "light");
 
 
-pref("reader.color_scheme.values", "[\"light\",\"dark\",\"sepia\"]");
-
-
 pref("reader.font_type", "sans-serif");
-
-
-pref("reader.font_type.values", "[\"serif\",\"sans-serif\"]");
 
 
 
 pref("reader.has_used_toolbar", false);
-
-
-pref("reader.toolbar.vertical", true);
 
 #if defined(XP_LINUX) && defined(MOZ_GMP_SANDBOX)
 
 
 
 pref("media.gmp.insecure.allow", false);
+#endif
+
+
+#ifdef MOZ_SECUREELEMENT
+pref("dom.secureelement.enabled", false);
 #endif
