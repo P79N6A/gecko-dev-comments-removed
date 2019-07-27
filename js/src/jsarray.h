@@ -82,6 +82,10 @@ extern ArrayObject *
 NewDenseAllocatedArrayWithTemplate(JSContext *cx, uint32_t length, JSObject *templateObject);
 
 
+extern JSObject *
+NewDenseCopyOnWriteArray(JSContext *cx, HandleObject templateObject, gc::InitialHeap heap);
+
+
 
 
 

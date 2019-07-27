@@ -3465,6 +3465,50 @@ types::FillBytecodeTypeMap(JSScript *script, uint32_t *bytecodeMap)
     JS_ASSERT(added == script->nTypeSets());
 }
 
+JSObject *
+types::GetOrFixupCopyOnWriteObject(JSContext *cx, HandleScript script, jsbytecode *pc)
+{
+    
+    
+    RootedObject obj(cx, script->getObject(GET_UINT32_INDEX(pc)));
+    JS_ASSERT(obj->is<ArrayObject>());
+    JS_ASSERT(obj->denseElementsAreCopyOnWrite());
+
+    if (obj->type()->hasAnyFlags(OBJECT_FLAG_COPY_ON_WRITE))
+        return obj;
+
+    RootedTypeObject type(cx, TypeScript::InitObject(cx, script, pc, JSProto_Array));
+    if (!type)
+        return nullptr;
+
+    type->addFlags(OBJECT_FLAG_COPY_ON_WRITE);
+
+    
+    JS_ASSERT(obj->slotSpan() == 0);
+    for (size_t i = 0; i < obj->getDenseInitializedLength(); i++) {
+        const Value &v = obj->getDenseElement(i);
+        AddTypePropertyId(cx, type, JSID_VOID, v);
+    }
+
+    obj->setType(type);
+    return obj;
+}
+
+JSObject *
+types::GetCopyOnWriteObject(JSScript *script, jsbytecode *pc)
+{
+    
+    
+    
+    
+    
+    JSObject *obj = script->getObject(GET_UINT32_INDEX(pc));
+    JS_ASSERT(obj->is<ArrayObject>());
+    JS_ASSERT(obj->denseElementsAreCopyOnWrite());
+
+    return obj;
+}
+
 void
 types::TypeMonitorResult(JSContext *cx, JSScript *script, jsbytecode *pc, const js::Value &rval)
 {

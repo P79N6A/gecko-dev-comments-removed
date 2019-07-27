@@ -1007,14 +1007,34 @@ class HeapSlotArray
 {
     HeapSlot *array;
 
+    
+    
+#ifdef DEBUG
+    bool allowWrite_;
+#endif
+
   public:
-    explicit HeapSlotArray(HeapSlot *array) : array(array) {}
+    explicit HeapSlotArray(HeapSlot *array, bool allowWrite)
+      : array(array)
+#ifdef DEBUG
+      , allowWrite_(allowWrite)
+#endif
+    {}
 
     operator const Value *() const { return Valueify(array); }
-    operator HeapSlot *() const { return array; }
+    operator HeapSlot *() const { JS_ASSERT(allowWrite()); return array; }
 
-    HeapSlotArray operator +(int offset) const { return HeapSlotArray(array + offset); }
-    HeapSlotArray operator +(uint32_t offset) const { return HeapSlotArray(array + offset); }
+    HeapSlotArray operator +(int offset) const { return HeapSlotArray(array + offset, allowWrite()); }
+    HeapSlotArray operator +(uint32_t offset) const { return HeapSlotArray(array + offset, allowWrite()); }
+
+  private:
+    bool allowWrite() const {
+#ifdef DEBUG
+        return allowWrite_;
+#else
+        return true;
+#endif
+    }
 };
 
 

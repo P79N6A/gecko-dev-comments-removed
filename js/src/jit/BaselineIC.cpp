@@ -5257,6 +5257,20 @@ ICSetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
     masm.branchTestMagic(Assembler::Equal, element, &failure);
 
     
+    
+    Label noSpecialHandling;
+    Address elementsFlags(scratchReg, ObjectElements::offsetOfFlags());
+    masm.branchTest32(Assembler::Zero, elementsFlags,
+                      Imm32(ObjectElements::CONVERT_DOUBLE_ELEMENTS |
+                            ObjectElements::COPY_ON_WRITE),
+                      &noSpecialHandling);
+
+    
+    masm.branchTest32(Assembler::NonZero, elementsFlags,
+                      Imm32(ObjectElements::COPY_ON_WRITE),
+                      &failure);
+
+    
     regs.add(R0);
     regs.add(R1);
     regs.takeUnchecked(obj);
@@ -5266,18 +5280,14 @@ ICSetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
     
     
     
-    Label dontConvertDoubles;
-    Address elementsFlags(scratchReg, ObjectElements::offsetOfFlags());
-    masm.branchTest32(Assembler::Zero, elementsFlags,
-                      Imm32(ObjectElements::CONVERT_DOUBLE_ELEMENTS),
-                      &dontConvertDoubles);
     
     
     if (cx->runtime()->jitSupportsFloatingPoint)
-        masm.convertInt32ValueToDouble(valueAddr, regs.getAny(), &dontConvertDoubles);
+        masm.convertInt32ValueToDouble(valueAddr, regs.getAny(), &noSpecialHandling);
     else
         masm.assumeUnreachable("There shouldn't be double arrays when there is no FP support.");
-    masm.bind(&dontConvertDoubles);
+
+    masm.bind(&noSpecialHandling);
 
     
     
@@ -5430,6 +5440,12 @@ ICSetElemDenseAddCompiler::generateStubCode(MacroAssembler &masm)
     masm.branch32(Assembler::BelowOrEqual, capacity, key, &failure);
 
     
+    Address elementsFlags(scratchReg, ObjectElements::offsetOfFlags());
+    masm.branchTest32(Assembler::NonZero, elementsFlags,
+                      Imm32(ObjectElements::COPY_ON_WRITE),
+                      &failure);
+
+    
     regs.add(R0);
     regs.add(R1);
     regs.takeUnchecked(obj);
@@ -5451,7 +5467,6 @@ ICSetElemDenseAddCompiler::generateStubCode(MacroAssembler &masm)
     
     
     Label dontConvertDoubles;
-    Address elementsFlags(scratchReg, ObjectElements::offsetOfFlags());
     masm.branchTest32(Assembler::Zero, elementsFlags,
                       Imm32(ObjectElements::CONVERT_DOUBLE_ELEMENTS),
                       &dontConvertDoubles);

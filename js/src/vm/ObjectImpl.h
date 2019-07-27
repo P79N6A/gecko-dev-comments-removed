@@ -169,11 +169,21 @@ class ObjectElements
 {
   public:
     enum Flags {
+        
         CONVERT_DOUBLE_ELEMENTS     = 0x1,
 
         
         
-        NONWRITABLE_ARRAY_LENGTH    = 0x2
+        NONWRITABLE_ARRAY_LENGTH    = 0x2,
+
+        
+        
+        
+        
+        
+        
+        
+        COPY_ON_WRITE               = 0x4
     };
 
   private:
@@ -210,16 +220,26 @@ class ObjectElements
         return flags & CONVERT_DOUBLE_ELEMENTS;
     }
     void setShouldConvertDoubleElements() {
+        
         flags |= CONVERT_DOUBLE_ELEMENTS;
     }
     void clearShouldConvertDoubleElements() {
+        JS_ASSERT(!isCopyOnWrite());
         flags &= ~CONVERT_DOUBLE_ELEMENTS;
     }
     bool hasNonwritableArrayLength() const {
         return flags & NONWRITABLE_ARRAY_LENGTH;
     }
     void setNonwritableArrayLength() {
+        JS_ASSERT(!isCopyOnWrite());
         flags |= NONWRITABLE_ARRAY_LENGTH;
+    }
+    bool isCopyOnWrite() const {
+        return flags & COPY_ON_WRITE;
+    }
+    void clearCopyOnWrite() {
+        JS_ASSERT(isCopyOnWrite());
+        flags &= ~COPY_ON_WRITE;
     }
 
   public:
@@ -230,8 +250,16 @@ class ObjectElements
     HeapSlot *elements() {
         return reinterpret_cast<HeapSlot*>(uintptr_t(this) + sizeof(ObjectElements));
     }
+    const HeapSlot *elements() const {
+        return reinterpret_cast<const HeapSlot*>(uintptr_t(this) + sizeof(ObjectElements));
+    }
     static ObjectElements * fromElements(HeapSlot *elems) {
         return reinterpret_cast<ObjectElements*>(uintptr_t(elems) - sizeof(ObjectElements));
+    }
+
+    HeapPtrObject &ownerObject() const {
+        JS_ASSERT(isCopyOnWrite());
+        return *(HeapPtrObject *)(&elements()[initializedLength]);
     }
 
     static int offsetOfFlags() {
@@ -248,6 +276,7 @@ class ObjectElements
     }
 
     static bool ConvertElementsToDoubles(JSContext *cx, uintptr_t elements);
+    static bool MakeElementsCopyOnWrite(ExclusiveContext *cx, JSObject *obj);
 
     
     
@@ -406,7 +435,12 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 
     HeapSlotArray getDenseElements() {
         JS_ASSERT(isNative());
-        return HeapSlotArray(elements);
+        return HeapSlotArray(elements, !getElementsHeader()->isCopyOnWrite());
+    }
+    HeapSlotArray getDenseElementsAllowCopyOnWrite() {
+        
+        JS_ASSERT(isNative());
+        return HeapSlotArray(elements, true);
     }
     const Value &getDenseElement(uint32_t idx) {
         JS_ASSERT(isNative());

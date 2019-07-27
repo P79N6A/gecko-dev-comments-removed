@@ -97,6 +97,8 @@ ObjectElements::ConvertElementsToDoubles(JSContext *cx, uintptr_t elementsPtr)
     ObjectElements *header = ObjectElements::fromElements(elementsHeapPtr);
     JS_ASSERT(!header->shouldConvertDoubleElements());
 
+    
+    
     Value *vp = (Value *) elementsPtr;
     for (size_t i = 0; i < header->initializedLength; i++) {
         if (vp[i].isInt32())
@@ -104,6 +106,26 @@ ObjectElements::ConvertElementsToDoubles(JSContext *cx, uintptr_t elementsPtr)
     }
 
     header->setShouldConvertDoubleElements();
+    return true;
+}
+
+ bool
+ObjectElements::MakeElementsCopyOnWrite(ExclusiveContext *cx, JSObject *obj)
+{
+    
+    
+    JS_STATIC_ASSERT(sizeof(HeapSlot) >= sizeof(HeapPtrObject));
+    if (!obj->ensureElements(cx, obj->getDenseInitializedLength() + 1))
+        return false;
+
+    ObjectElements *header = obj->getElementsHeader();
+
+    
+    
+    JS_ASSERT(!header->isCopyOnWrite());
+    header->flags |= COPY_ON_WRITE;
+
+    header->ownerObject().init(obj);
     return true;
 }
 
@@ -294,7 +316,21 @@ js::ObjectImpl::markChildren(JSTracer *trc)
 
     if (shape_->isNative()) {
         MarkObjectSlots(trc, obj, 0, obj->slotSpan());
-        gc::MarkArraySlots(trc, obj->getDenseInitializedLength(), obj->getDenseElements(), "objectElements");
+
+        do {
+            if (obj->denseElementsAreCopyOnWrite()) {
+                HeapPtrObject &owner = getElementsHeader()->ownerObject();
+                if (owner != this) {
+                    MarkObject(trc, &owner, "objectElementsOwner");
+                    break;
+                }
+            }
+
+            gc::MarkArraySlots(trc,
+                               obj->getDenseInitializedLength(),
+                               obj->getDenseElementsAllowCopyOnWrite(),
+                               "objectElements");
+        } while (false);
     }
 }
 

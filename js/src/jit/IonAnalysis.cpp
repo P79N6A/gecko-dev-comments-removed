@@ -2268,6 +2268,16 @@ TryEliminateTypeBarrier(MTypeBarrier *barrier, bool *eliminated)
     return true;
 }
 
+static inline MDefinition *
+PassthroughOperand(MDefinition *def)
+{
+    if (def->isConvertElementsToDoubles())
+        return def->toConvertElementsToDoubles()->elements();
+    if (def->isMaybeCopyElementsForWrite())
+        return def->toMaybeCopyElementsForWrite()->object();
+    return nullptr;
+}
+
 
 
 
@@ -2324,11 +2334,12 @@ jit::EliminateRedundantChecks(MIRGraph &graph)
             } else if (iter->isTypeBarrier()) {
                 if (!TryEliminateTypeBarrier(iter->toTypeBarrier(), &eliminated))
                     return false;
-            } else if (iter->isConvertElementsToDoubles()) {
+            } else {
                 
                 
-                MConvertElementsToDoubles *ins = iter->toConvertElementsToDoubles();
-                ins->replaceAllUsesWith(ins->elements());
+                
+                if (MDefinition *passthrough = PassthroughOperand(*iter))
+                    iter->replaceAllUsesWith(passthrough);
             }
 
             if (eliminated)
