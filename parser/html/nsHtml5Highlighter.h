@@ -316,6 +316,11 @@ class nsHtml5Highlighter
     
 
 
+    bool mSyntaxHighlight;
+
+    
+
+
     nsTArray<nsHtml5TreeOperation> mOpQueue;
 
     
