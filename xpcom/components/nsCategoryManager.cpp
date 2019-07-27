@@ -469,13 +469,11 @@ nsCategoryManager::nsCategoryManager()
 void
 nsCategoryManager::InitMemoryReporter()
 {
-  RegisterWeakMemoryReporter(this);
+  RegisterStrongMemoryReporter(this);
 }
 
 nsCategoryManager::~nsCategoryManager()
 {
-  UnregisterWeakMemoryReporter(this);
-
   
   
   
