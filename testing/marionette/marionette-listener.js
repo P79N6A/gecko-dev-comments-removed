@@ -806,10 +806,14 @@ function elementInViewport(el, x, y) {
 
 function checkVisible(el, x, y) {
   
-  let visible = utils.isElementDisplayed(el);
-  if (!visible) {
-    return false;
+  if (utils.getElementAttribute(el, "namespaceURI").indexOf("there.is.only.xul") == -1) {
+    
+    let visible = utils.isElementDisplayed(el);
+    if (!visible) {
+      return false;
+    }
   }
+
   if (el.tagName.toLowerCase() === 'body') {
     return true;
   }
