@@ -455,7 +455,10 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
     def setupTestDir(self):
         print 'pushing %s' % self.xpcDir
         try:
-            self.device.pushDir(self.xpcDir, self.remoteScriptsDir, retryLimit=10)
+            
+            
+            
+            self.device.pushDir(self.xpcDir, self.remoteScriptsDir, timeout=600, retryLimit=10)
         except TypeError:
             
             self.device.pushDir(self.xpcDir, self.remoteScriptsDir)
