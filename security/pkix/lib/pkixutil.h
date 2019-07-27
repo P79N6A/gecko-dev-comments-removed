@@ -204,6 +204,40 @@ private:
   void operator=(const BackCert&); ;
 };
 
+class NonOwningDERArray : public DERArray
+{
+public:
+  NonOwningDERArray()
+    : numItems(0)
+  {
+    
+    
+  }
+
+  virtual size_t GetLength() const { return numItems; }
+
+  virtual const SECItem* GetDER(size_t i) const
+  {
+    return i < numItems ? items[i] : nullptr;
+  }
+
+  Result Append(const SECItem& der)
+  {
+    if (numItems >= MAX_LENGTH) {
+      return Fail(RecoverableError, SEC_ERROR_INVALID_ARGS);
+    }
+    items[numItems] = &der;
+    ++numItems;
+    return Success;
+  }
+
+  
+  static const size_t MAX_LENGTH = 8;
+private:
+  const SECItem* items[MAX_LENGTH]; 
+  size_t numItems;
+};
+
 } } 
 
 #endif

@@ -524,7 +524,7 @@ ParseMF(const char* filebuf, nsIZipReader * zip,
 
 struct VerifyCertificateContext {
   AppTrustedRoot trustedRoot;
-  mozilla::pkix::ScopedCERTCertList& builtChain;
+  ScopedCERTCertList& builtChain;
 };
 
 nsresult
@@ -537,7 +537,7 @@ VerifyCertificate(CERTCertificate* signerCert, void* voidContext, void* pinArg)
   const VerifyCertificateContext& context =
     *reinterpret_cast<const VerifyCertificateContext*>(voidContext);
 
-  AppTrustDomain trustDomain(pinArg);
+  AppTrustDomain trustDomain(context.builtChain, pinArg);
   if (trustDomain.SetTrustedRoot(context.trustedRoot) != SECSuccess) {
     return MapSECStatus(SECFailure);
   }
@@ -546,7 +546,7 @@ VerifyCertificate(CERTCertificate* signerCert, void* voidContext, void* pinArg)
                      KeyUsage::digitalSignature,
                      KeyPurposeId::id_kp_codeSigning,
                      CertPolicyId::anyPolicy,
-                     nullptr, context.builtChain) != SECSuccess) {
+                     nullptr) != SECSuccess) {
     return MapSECStatus(SECFailure);
   }
 
@@ -556,7 +556,7 @@ VerifyCertificate(CERTCertificate* signerCert, void* voidContext, void* pinArg)
 nsresult
 VerifySignature(AppTrustedRoot trustedRoot, const SECItem& buffer,
                 const SECItem& detachedDigest,
-                 mozilla::pkix::ScopedCERTCertList& builtChain)
+                 ScopedCERTCertList& builtChain)
 {
   VerifyCertificateContext context = { trustedRoot, builtChain };
   
@@ -609,7 +609,7 @@ OpenSignedAppFile(AppTrustedRoot aTrustedRoot, nsIFile* aJarFile,
   }
 
   sigBuffer.type = siBuffer;
-  mozilla::pkix::ScopedCERTCertList builtChain;
+  ScopedCERTCertList builtChain;
   rv = VerifySignature(aTrustedRoot, sigBuffer, sfCalculatedDigest.get(),
                        builtChain);
   if (NS_FAILED(rv)) {
@@ -722,7 +722,6 @@ OpenSignedAppFile(AppTrustedRoot aTrustedRoot, nsIFile* aJarFile,
     zip.forget(aZipReader);
   }
 
-  
   
   
   if (aSignerCert) {

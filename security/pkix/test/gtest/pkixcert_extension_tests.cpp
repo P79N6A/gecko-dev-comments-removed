@@ -104,7 +104,7 @@ private:
     return SECSuccess;
   }
 
-  virtual SECStatus IsChainValid(const CERTCertList*)
+  virtual SECStatus IsChainValid(const DERArray&)
   {
     return SECSuccess;
   }
@@ -149,15 +149,13 @@ TEST_F(pkixcert_extension, UnknownCriticalExtension)
   const SECItem* cert(CreateCert(arena.get(), certCN,
                                  &unknownCriticalExtension, key));
   ASSERT_TRUE(cert);
-  ScopedCERTCertList results;
   ASSERT_SECFailure(SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION,
                     BuildCertChain(trustDomain, *cert, now,
                                    EndEntityOrCA::MustBeEndEntity,
                                    KeyUsage::noParticularKeyUsageRequired,
                                    KeyPurposeId::anyExtendedKeyUsage,
                                    CertPolicyId::anyPolicy,
-                                   nullptr, 
-                                   results));
+                                   nullptr));
 }
 
 
@@ -183,14 +181,12 @@ TEST_F(pkixcert_extension, UnknownNonCriticalExtension)
   const SECItem* cert(CreateCert(arena.get(), certCN,
                                  &unknownNonCriticalExtension, key));
   ASSERT_TRUE(cert);
-  ScopedCERTCertList results;
   ASSERT_SECSuccess(BuildCertChain(trustDomain, *cert, now,
                                    EndEntityOrCA::MustBeEndEntity,
                                    KeyUsage::noParticularKeyUsageRequired,
                                    KeyPurposeId::anyExtendedKeyUsage,
                                    CertPolicyId::anyPolicy,
-                                   nullptr, 
-                                   results));
+                                   nullptr));
 }
 
 
@@ -217,15 +213,13 @@ TEST_F(pkixcert_extension, WrongOIDCriticalExtension)
   const SECItem* cert(CreateCert(arena.get(), certCN,
                                  &wrongOIDCriticalExtension, key));
   ASSERT_TRUE(cert);
-  ScopedCERTCertList results;
   ASSERT_SECFailure(SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION,
                     BuildCertChain(trustDomain, *cert, now,
                                    EndEntityOrCA::MustBeEndEntity,
                                    KeyUsage::noParticularKeyUsageRequired,
                                    KeyPurposeId::anyExtendedKeyUsage,
                                    CertPolicyId::anyPolicy,
-                                   nullptr, 
-                                   results));
+                                   nullptr));
 }
 
 
@@ -254,14 +248,12 @@ TEST_F(pkixcert_extension, CriticalAIAExtension)
   const SECItem* cert(CreateCert(arena.get(), certCN, &criticalAIAExtension,
                                  key));
   ASSERT_TRUE(cert);
-  ScopedCERTCertList results;
   ASSERT_SECSuccess(BuildCertChain(trustDomain, *cert, now,
                                    EndEntityOrCA::MustBeEndEntity,
                                    KeyUsage::noParticularKeyUsageRequired,
                                    KeyPurposeId::anyExtendedKeyUsage,
                                    CertPolicyId::anyPolicy,
-                                   nullptr, 
-                                   results));
+                                   nullptr));
 }
 
 
@@ -287,15 +279,13 @@ TEST_F(pkixcert_extension, UnknownCriticalCEExtension)
   const SECItem* cert(CreateCert(arena.get(), certCN,
                                  &unknownCriticalCEExtension, key));
   ASSERT_TRUE(cert);
-  ScopedCERTCertList results;
   ASSERT_SECFailure(SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION,
                     BuildCertChain(trustDomain, *cert, now,
                                    EndEntityOrCA::MustBeEndEntity,
                                    KeyUsage::noParticularKeyUsageRequired,
                                    KeyPurposeId::anyExtendedKeyUsage,
                                    CertPolicyId::anyPolicy,
-                                   nullptr, 
-                                   results));
+                                   nullptr));
 }
 
 
@@ -321,14 +311,12 @@ TEST_F(pkixcert_extension, KnownCriticalCEExtension)
   const SECItem* cert(CreateCert(arena.get(), certCN, &criticalCEExtension,
                                  key));
   ASSERT_TRUE(cert);
-  ScopedCERTCertList results;
   ASSERT_SECSuccess(BuildCertChain(trustDomain, *cert,
                                    now, EndEntityOrCA::MustBeEndEntity,
                                    KeyUsage::noParticularKeyUsageRequired,
                                    KeyPurposeId::anyExtendedKeyUsage,
                                    CertPolicyId::anyPolicy,
-                                   nullptr, 
-                                   results));
+                                   nullptr));
 }
 
 
@@ -354,13 +342,11 @@ TEST_F(pkixcert_extension, DuplicateSubjectAltName)
   
   const SECItem* cert(CreateCert(arena.get(), certCN, extensions, key));
   ASSERT_TRUE(cert);
-  ScopedCERTCertList results;
   ASSERT_SECFailure(SEC_ERROR_EXTENSION_VALUE_INVALID,
                     BuildCertChain(trustDomain, *cert,
                                    now, EndEntityOrCA::MustBeEndEntity,
                                    KeyUsage::noParticularKeyUsageRequired,
                                    KeyPurposeId::anyExtendedKeyUsage,
                                    CertPolicyId::anyPolicy,
-                                   nullptr, 
-                                   results));
+                                   nullptr));
 }

@@ -27,14 +27,11 @@
 
 #include "cert.h"
 #include "pkix/enumclass.h"
-#include "pkix/ScopedPtr.h"
 #include "seccomon.h"
 #include "secport.h"
 #include "stdint.h"
 
 namespace mozilla { namespace pkix {
-
-typedef ScopedPtr<CERTCertList, CERT_DestroyCertList> ScopedCERTCertList;
 
 MOZILLA_PKIX_ENUM_CLASS EndEntityOrCA { MustBeEndEntity = 0, MustBeCA = 1 };
 
@@ -103,6 +100,21 @@ public:
   const SECItem& serialNumber;
 private:
   void operator=(const CertID&) ;
+};
+
+class DERArray
+{
+public:
+  
+  virtual size_t GetLength() const = 0;
+
+  
+  
+  
+  virtual const SECItem* GetDER(size_t i) const = 0;
+protected:
+  DERArray() { }
+  virtual ~DERArray() { }
 };
 
 
@@ -197,15 +209,33 @@ public:
 
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual SECStatus IsChainValid(const DERArray& certChain) = 0;
+
+  
+  
   virtual SECStatus CheckRevocation(EndEntityOrCA endEntityOrCA,
                                     const CertID& certID, PRTime time,
                         const SECItem* stapledOCSPresponse,
                         const SECItem* aiaExtension) = 0;
-
-  
-  
-  
-  virtual SECStatus IsChainValid(const CERTCertList* certChain) = 0;
 
 protected:
   TrustDomain() { }

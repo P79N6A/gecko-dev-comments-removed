@@ -11,6 +11,7 @@
 #include "CertVerifier.h"
 #include "ExtendedValidation.h"
 #include "pkix/pkixtypes.h"
+#include "pkix/ScopedPtr.h"
 #include "nsNSSComponent.h" 
 #include "nsNSSCleaner.h"
 #include "nsCOMPtr.h"
@@ -39,9 +40,9 @@
 #include "nsProxyRelease.h"
 #include "mozilla/Base64.h"
 #include "NSSCertDBTrustDomain.h"
-
 #include "nspr.h"
 #include "certdb.h"
+#include "pkix/pkixtypes.h"
 #include "secerr.h"
 #include "nssb64.h"
 #include "secasn1.h"
@@ -828,19 +829,23 @@ nsNSSCertificate::GetChain(nsIArray** _rvChain)
   nsresult rv;
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("Getting chain for \"%s\"\n", mCert->nickname));
 
-  ::mozilla::pkix::ScopedCERTCertList nssChain;
+  ScopedCERTCertList nssChain;
   RefPtr<SharedCertVerifier> certVerifier(GetDefaultCertVerifier());
   NS_ENSURE_TRUE(certVerifier, NS_ERROR_UNEXPECTED);
 
   
   
-  certVerifier->VerifyCert(mCert.get(),
-                           certificateUsageSSLServer, PR_Now(),
-                           nullptr, 
-                           nullptr, 
-                           CertVerifier::FLAG_LOCAL_ONLY,
-                           nullptr, 
-                           &nssChain);
+  if (certVerifier->VerifyCert(mCert.get(),
+                               certificateUsageSSLServer, PR_Now(),
+                               nullptr, 
+                               nullptr, 
+                               CertVerifier::FLAG_LOCAL_ONLY,
+                               nullptr, 
+                               &nssChain) != SECSuccess) {
+    nssChain = nullptr;
+    
+  }
+
   
   
   const int otherUsagesToTest = certificateUsageSSLClient |
@@ -858,13 +863,16 @@ nsNSSCertificate::GetChain(nsIArray** _rvChain)
     PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
            ("pipnss: PKIX attempting chain(%d) for '%s'\n",
             usage, mCert->nickname));
-    certVerifier->VerifyCert(mCert.get(),
-                             usage, PR_Now(),
-                             nullptr, 
-                             nullptr, 
-                             CertVerifier::FLAG_LOCAL_ONLY,
-                             nullptr, 
-                             &nssChain);
+    if (certVerifier->VerifyCert(mCert.get(),
+                                 usage, PR_Now(),
+                                 nullptr, 
+                                 nullptr, 
+                                 CertVerifier::FLAG_LOCAL_ONLY,
+                                 nullptr, 
+                                 &nssChain) != SECSuccess) {
+      nssChain = nullptr;
+      
+    }
   }
 
   if (!nssChain) {
@@ -1498,13 +1506,51 @@ nsNSSCertificate::GetValidEVPolicyOid(nsACString& outDottedOid)
   return NS_OK;
 }
 
+namespace mozilla {
+
+
+
+
+SECStatus
+ConstructCERTCertListFromReversedDERArray(
+  const mozilla::pkix::DERArray& certArray,
+   ScopedCERTCertList& certList)
+{
+  certList = CERT_NewCertList();
+  if (!certList) {
+    return SECFailure;
+  }
+
+  CERTCertDBHandle* certDB(CERT_GetDefaultCertDB()); 
+
+  size_t numCerts = certArray.GetLength();
+  for (size_t i = 0; i < numCerts; ++i) {
+    SECItem* certDER(const_cast<SECItem*>(certArray.GetDER(i)));
+    ScopedCERTCertificate cert(CERT_NewTempCertificate(certDB, certDER,
+                                                       nullptr, false, true));
+    if (!cert) {
+      return SECFailure;
+    }
+    
+    
+    if (CERT_AddCertToListHead(certList, cert) != SECSuccess) {
+      return SECFailure;
+    }
+    cert.forget(); 
+  }
+
+  return SECSuccess;
+}
+
+} 
+
 NS_IMPL_ISUPPORTS(nsNSSCertList, nsIX509CertList)
 
-nsNSSCertList::nsNSSCertList(mozilla::pkix::ScopedCERTCertList& certList,
+nsNSSCertList::nsNSSCertList(ScopedCERTCertList& certList,
                              const nsNSSShutDownPreventionLock& proofOfLock)
 {
   if (certList) {
-    mCertList = certList.release();
+    mCertList = certList.forget();
   } else {
     mCertList = CERT_NewCertList();
   }

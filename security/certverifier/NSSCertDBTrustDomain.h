@@ -35,7 +35,7 @@ void UnloadLoadableRoots(const char* modNameUTF8);
 
 char* DefaultServerNicknameForCert(CERTCertificate* cert);
 
-void SaveIntermediateCerts(const mozilla::pkix::ScopedCERTCertList& certList);
+void SaveIntermediateCerts(const ScopedCERTCertList& certList);
 
 class NSSCertDBTrustDomain : public mozilla::pkix::TrustDomain
 {
@@ -51,7 +51,8 @@ public:
   NSSCertDBTrustDomain(SECTrustType certDBTrustType, OCSPFetching ocspFetching,
                        OCSPCache& ocspCache, void* pinArg,
                        CertVerifier::ocsp_get_config ocspGETConfig,
-                       CERTChainVerifyCallback* checkChainCallback = nullptr);
+           CERTChainVerifyCallback* checkChainCallback = nullptr,
+           ScopedCERTCertList* builtChain = nullptr);
 
   virtual SECStatus FindIssuer(const SECItem& encodedIssuerName,
                                IssuerChecker& checker, PRTime time);
@@ -70,7 +71,7 @@ public:
                         const SECItem* stapledOCSPResponse,
                         const SECItem* aiaExtension);
 
-  virtual SECStatus IsChainValid(const CERTCertList* certChain);
+  virtual SECStatus IsChainValid(const mozilla::pkix::DERArray& certChain);
 
 private:
   enum EncodedResponseSource {
@@ -89,6 +90,7 @@ private:
   void* mPinArg; 
   const CertVerifier::ocsp_get_config mOCSPGetConfig;
   CERTChainVerifyCallback* mCheckChainCallback; 
+  ScopedCERTCertList* mBuiltChain; 
 };
 
 } } 

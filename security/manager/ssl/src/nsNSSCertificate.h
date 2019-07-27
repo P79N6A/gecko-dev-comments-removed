@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef _NS_NSSCERTIFICATE_H_
 #define _NS_NSSCERTIFICATE_H_
@@ -16,9 +16,10 @@
 #include "nsISimpleEnumerator.h"
 #include "nsISerializable.h"
 #include "nsIClassInfo.h"
-#include "pkix/pkixtypes.h"
 #include "ScopedNSSTypes.h"
 #include "certt.h"
+
+namespace mozilla { namespace pkix { class DERArray; } }
 
 class nsAutoString;
 class nsINSSComponent;
@@ -59,7 +60,7 @@ private:
   nsresult GetSortableDate(PRTime aTime, nsAString& _aSortableDate);
   virtual void virtualDestroyNSSReference();
   void destructorSafeDestroyNSSReference();
-  bool InitFromDER(char* certDER, int derLen);  // return false on failure
+  bool InitFromDER(char* certDER, int derLen);  
 
   nsresult GetCertificateHash(nsAString& aFingerprint, SECOidTag aHashAlg);
 
@@ -72,12 +73,18 @@ private:
 };
 
 namespace mozilla {
+
 template<>
 struct HasDangerousPublicDestructor<nsNSSCertificate>
 {
   static const bool value = true;
 };
-}
+
+SECStatus ConstructCERTCertListFromReversedDERArray(
+            const mozilla::pkix::DERArray& certArray,
+             mozilla::ScopedCERTCertList& certList);
+
+} 
 
 class nsNSSCertList: public nsIX509CertList,
                      public nsNSSShutDownObject
@@ -86,8 +93,8 @@ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIX509CERTLIST
 
-  // certList is adopted
-  nsNSSCertList(mozilla::pkix::ScopedCERTCertList& certList,
+  
+  nsNSSCertList(mozilla::ScopedCERTCertList& certList,
                 const nsNSSShutDownPreventionLock& proofOfLock);
 
   nsNSSCertList();
@@ -100,7 +107,7 @@ private:
    virtual void virtualDestroyNSSReference();
    void destructorSafeDestroyNSSReference();
 
-   mozilla::pkix::ScopedCERTCertList mCertList;
+   mozilla::ScopedCERTCertList mCertList;
 
    nsNSSCertList(const nsNSSCertList&) MOZ_DELETE;
    void operator=(const nsNSSCertList&) MOZ_DELETE;
@@ -120,7 +127,7 @@ private:
    virtual void virtualDestroyNSSReference();
    void destructorSafeDestroyNSSReference();
 
-   mozilla::pkix::ScopedCERTCertList mCertList;
+   mozilla::ScopedCERTCertList mCertList;
 
    nsNSSCertListEnumerator(const nsNSSCertListEnumerator&) MOZ_DELETE;
    void operator=(const nsNSSCertListEnumerator&) MOZ_DELETE;
@@ -144,4 +151,4 @@ private:
     { 0xbb, 0x20, 0x89, 0x85, 0xa6, 0x32, 0xdf, 0x05 }                 \
   }
 
-#endif // _NS_NSSCERTIFICATE_H_
+#endif 
