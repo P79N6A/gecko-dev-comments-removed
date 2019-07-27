@@ -354,7 +354,6 @@ function nukeModules() {
   
 
   unloadSandbox(cuddlefishSandbox.loaderSandbox);
-  unloadSandbox(cuddlefishSandbox.xulappSandbox);
 
   
   

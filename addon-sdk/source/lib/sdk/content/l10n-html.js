@@ -16,6 +16,31 @@ const assetsURI = require('../self').data.url();
 
 const hideSheetUri = "data:text/css,:root {visibility: hidden !important;}";
 
+function translateElementAttributes(element) {
+  
+  const attrList = ['title', 'accesskey', 'alt', 'label', 'placeholder'];
+  const ariaAttrMap = {
+          'ariaLabel': 'aria-label',
+          'ariaValueText': 'aria-valuetext',
+          'ariaMozHint': 'aria-moz-hint'
+        };
+  const attrSeparator = '.';
+  
+  
+  for (let attribute of attrList) {
+    const data = core.get(element.dataset.l10nId + attrSeparator + attribute);
+    if (data)
+      element.setAttribute(attribute, data);
+  }
+  
+  
+  for (let attrAlias in ariaAttrMap) {
+    const data = core.get(element.dataset.l10nId + attrSeparator + attrAlias);
+    if (data)
+      element.setAttribute(ariaAttrMap[attrAlias], data);
+  }
+}
+
 
 
 function translateElement(element) {
@@ -32,6 +57,8 @@ function translateElement(element) {
     var data = core.get(key);
     if (data)
       child.textContent = data;
+
+    translateElementAttributes(child);
   }
 }
 exports.translateElement = translateElement;

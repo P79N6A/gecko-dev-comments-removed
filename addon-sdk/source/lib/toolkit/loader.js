@@ -169,6 +169,15 @@ function serializeStack(frames) {
 Loader.serializeStack = serializeStack;
 
 function readURI(uri) {
+  let nsURI = NetUtil.newURI(uri);
+  if (nsURI.scheme == "resource") {
+    
+    
+    let proto = Cc["@mozilla.org/network/protocol;1?name=resource"].
+                getService(Ci.nsIResProtocolHandler);
+    uri = proto.resolveURI(nsURI);
+  }
+
   let stream = NetUtil.newChannel2(uri,
                                    'UTF-8',
                                    null,
@@ -421,6 +430,10 @@ const nodeResolve = iced(function nodeResolve(id, requirer, { rootURI }) {
   id = Loader.resolve(id, requirer);
 
   
+  if (isAbsoluteURI(id))
+    return void 0;
+
+  
   
   let fullId = join(rootURI, id);
   let resolvedPath;
@@ -433,7 +446,12 @@ const nodeResolve = iced(function nodeResolve(id, requirer, { rootURI }) {
 
   
   
-  let dirs = getNodeModulePaths(dirname(join(rootURI, requirer))).map(dir => join(dir, id));
+  if (isAbsoluteURI(requirer))
+    return void 0;
+
+  
+  
+  let dirs = getNodeModulePaths(dirname(requirer)).map(dir => join(rootURI, dir, id));
   for (let i = 0; i < dirs.length; i++) {
     if ((resolvedPath = loadAsFile(dirs[i])))
       return stripBase(rootURI, resolvedPath);
@@ -509,6 +527,7 @@ function getNodeModulePaths (start) {
     let dir = join(parts.slice(0, i + 1).join('/'), moduleDir);
     dirs.push(dir);
   }
+  dirs.push(moduleDir);
   return dirs;
 }
 
