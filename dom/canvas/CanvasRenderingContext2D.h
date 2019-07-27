@@ -475,6 +475,18 @@ public:
     virtual int32_t GetHeight() const MOZ_OVERRIDE;
 #endif
   
+  
+
+
+  virtual nsIPresShell *GetPresShell() MOZ_OVERRIDE {
+    if (mCanvasElement) {
+      return mCanvasElement->OwnerDoc()->GetShell();
+    }
+    if (mDocShell) {
+      return mDocShell->GetPresShell();
+    }
+    return nullptr;
+  }
   NS_IMETHOD SetDimensions(int32_t width, int32_t height) MOZ_OVERRIDE;
   NS_IMETHOD InitializeWithSurface(nsIDocShell *shell, gfxASurface *surface, int32_t width, int32_t height) MOZ_OVERRIDE;
 
@@ -504,6 +516,13 @@ public:
   void Redraw(const mozilla::gfx::Rect &r);
   NS_IMETHOD Redraw(const gfxRect &r) MOZ_OVERRIDE { Redraw(ToRect(r)); return NS_OK; }
   NS_IMETHOD SetContextOptions(JSContext* aCx, JS::Handle<JS::Value> aOptions) MOZ_OVERRIDE;
+
+  
+
+
+
+
+  virtual void DidRefresh() MOZ_OVERRIDE;
 
   
   void RedrawUser(const gfxRect &r);
@@ -816,19 +835,6 @@ protected:
     }
 
     return CurrentState().op;
-  }
-
-  
-
-
-  nsIPresShell *GetPresShell() {
-    if (mCanvasElement) {
-      return mCanvasElement->OwnerDoc()->GetShell();
-    }
-    if (mDocShell) {
-      return mDocShell->GetPresShell();
-    }
-    return nullptr;
   }
 
   
