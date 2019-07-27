@@ -52,7 +52,11 @@ struct WebMBufferedParser
   explicit WebMBufferedParser(int64_t aOffset)
     : mStartOffset(aOffset), mCurrentOffset(aOffset), mState(READ_ELEMENT_ID),
       mVIntRaw(false), mTimecodeScale(1000000), mGotTimecodeScale(false)
-  {}
+  {
+    if (mStartOffset != 0) {
+      mState = FIND_CLUSTER_SYNC;
+    }
+  }
 
   uint32_t GetTimecodeScale() {
     MOZ_ASSERT(mGotTimecodeScale);
@@ -99,6 +103,10 @@ private:
     
     
     READ_ELEMENT_SIZE,
+
+    
+    
+    FIND_CLUSTER_SYNC,
 
     
     
@@ -159,6 +167,10 @@ private:
   VInt mVInt;
 
   bool mVIntRaw;
+
+  
+  
+  uint32_t mClusterSyncPos;
 
   
   
