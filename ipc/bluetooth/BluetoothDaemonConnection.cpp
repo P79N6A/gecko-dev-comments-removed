@@ -403,15 +403,11 @@ BluetoothDaemonConnectionIO::ReceiveData(int aFd)
   ssize_t res = mPDU->Receive(aFd);
   if (res < 0) {
     
-    nsRefPtr<nsRunnable> r =
-      new SocketIORequestClosingRunnable<BluetoothDaemonConnectionIO>(this);
-    NS_DispatchToMainThread(r);
+    NS_DispatchToMainThread(new SocketIORequestClosingRunnable(this));
     return -1;
   } else if (!res) {
     
-    nsRefPtr<nsRunnable> r =
-      new SocketIORequestClosingRunnable<BluetoothDaemonConnectionIO>(this);
-    NS_DispatchToMainThread(r);
+    NS_DispatchToMainThread(new SocketIORequestClosingRunnable(this));
     return 0;
   }
 

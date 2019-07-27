@@ -315,5 +315,35 @@ SocketIOEventRunnable::Run()
   return NS_OK;
 }
 
+
+
+
+
+SocketIORequestClosingRunnable::SocketIORequestClosingRunnable(
+  SocketIOBase* aIO)
+  : SocketIORunnable<SocketIOBase>(aIO)
+{ }
+
+NS_METHOD
+SocketIORequestClosingRunnable::Run()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  SocketIOBase* io = SocketIORunnable<SocketIOBase>::GetIO();
+
+  if (NS_WARN_IF(io->IsShutdownOnMainThread())) {
+    
+    
+    return NS_OK;
+  }
+
+  SocketBase* socketBase = io->GetSocketBase();
+  MOZ_ASSERT(socketBase);
+
+  socketBase->CloseSocket();
+
+  return NS_OK;
+}
+
 }
 }
