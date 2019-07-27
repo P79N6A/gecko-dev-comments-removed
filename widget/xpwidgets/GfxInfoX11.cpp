@@ -514,6 +514,20 @@ GfxInfo::GetAdapterDeviceID2(nsAString & aAdapterDeviceID)
 
 
 NS_IMETHODIMP
+GfxInfo::GetAdapterSubsysID(nsAString & aAdapterSubsysID)
+{
+  return NS_ERROR_FAILURE;
+}
+
+
+NS_IMETHODIMP
+GfxInfo::GetAdapterSubsysID2(nsAString & aAdapterSubsysID)
+{
+  return NS_ERROR_FAILURE;
+}
+
+
+NS_IMETHODIMP
 GfxInfo::GetIsGPU2Active(bool* aIsGPU2Active)
 {
   return NS_ERROR_FAILURE;

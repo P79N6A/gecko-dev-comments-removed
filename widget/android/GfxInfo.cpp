@@ -322,6 +322,22 @@ GfxInfo::GetAdapterDeviceID2(nsAString & aAdapterDeviceID)
 
 
 NS_IMETHODIMP
+GfxInfo::GetAdapterSubsysID(nsAString & aAdapterSubsysID)
+{
+  EnsureInitialized();
+  return NS_ERROR_FAILURE;
+}
+
+
+NS_IMETHODIMP
+GfxInfo::GetAdapterSubsysID2(nsAString & aAdapterSubsysID)
+{
+  EnsureInitialized();
+  return NS_ERROR_FAILURE;
+}
+
+
+NS_IMETHODIMP
 GfxInfo::GetIsGPU2Active(bool* aIsGPU2Active)
 {
   EnsureInitialized();
@@ -336,6 +352,8 @@ GfxInfo::AddCrashReportAnnotations()
                                      mGLStrings->Vendor());
   CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("AdapterDeviceID"),
                                      mGLStrings->Renderer());
+  CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("AdapterDriverVersion"),
+                                     mGLStrings->Version());
 
   
 
