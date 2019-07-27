@@ -14,44 +14,20 @@ loop.store = loop.store || {};
 
 
 
-  var roomSchema = {
-    roomToken: String,
-    roomUrl:   String,
-    roomName:  String,
-    maxSize:   Number,
-    currSize:  Number,
-    ctime:     Number
-  };
+  var sharedActions = loop.shared.actions;
 
   
 
 
 
-
-
-  var temporaryRawRoomList = [{
-    roomToken: "_nxD4V4FflQ",
-    roomUrl: "http://sample/_nxD4V4FflQ",
-    roomName: "First Room Name",
-    maxSize: 2,
-    currSize: 0,
-    ctime: 1405517546
-  }, {
-    roomToken: "QzBbvGmIZWU",
-    roomUrl: "http://sample/QzBbvGmIZWU",
-    roomName: "Second Room Name",
-    maxSize: 2,
-    currSize: 0,
-    ctime: 1405517418
-  }, {
-    roomToken: "3jKS_Els9IU",
-    roomUrl: "http://sample/3jKS_Els9IU",
-    roomName: "Third Room Name",
-    maxSize: 3,
-    clientMaxSize: 2,
-    currSize: 1,
-    ctime: 1405518241
-  }];
+  var roomSchema = {
+    roomToken:    String,
+    roomUrl:      String,
+    roomName:     String,
+    maxSize:      Number,
+    participants: Array,
+    ctime:        Number
+  };
 
   
 
@@ -95,7 +71,9 @@ loop.store = loop.store || {};
 
     this.dispatcher.register(this, [
       "getAllRooms",
-      "openRoom"
+      "getAllRoomsError",
+      "openRoom",
+      "updateRoomList"
     ]);
   }
 
@@ -125,21 +103,6 @@ loop.store = loop.store || {};
 
 
 
-    _fetchRoomList: function(cb) {
-      
-      if (!this.mozLoop.hasOwnProperty("rooms")) {
-        cb(null, temporaryRawRoomList);
-        return;
-      }
-      this.mozLoop.rooms.getAll(cb);
-    },
-
-    
-
-
-
-
-
     _processRawRoomList: function(rawRoomList) {
       if (!rawRoomList) {
         return [];
@@ -158,13 +121,37 @@ loop.store = loop.store || {};
 
 
     getAllRooms: function() {
-      this._fetchRoomList(function(err, rawRoomList) {
-        this.setStoreState({
-          error: err,
-          rooms: this._processRawRoomList(rawRoomList)
-        });
+      this.mozLoop.rooms.getAll(function(err, rawRoomList) {
+        var action;
+        if (err) {
+          action = new sharedActions.GetAllRoomsError({error: err});
+        } else {
+          action = new sharedActions.UpdateRoomList({roomList: rawRoomList});
+        }
+        this.dispatcher.dispatch(action);
       }.bind(this));
-    }
+    },
+
+    
+
+
+
+
+    getAllRoomsError: function(actionData) {
+      this.setStoreState({error: actionData.error});
+    },
+
+    
+
+
+
+
+    updateRoomList: function(actionData) {
+      this.setStoreState({
+        error: undefined,
+        rooms: this._processRawRoomList(actionData.roomList)
+      });
+    },
   }, Backbone.Events);
 
   loop.store.RoomListStore = RoomListStore;

@@ -138,6 +138,22 @@ loop.shared.actions = (function() {
 
 
 
+    GetAllRoomsError: Action.define("getAllRoomsError", {
+      error: String
+    }),
+
+    
+
+
+
+    UpdateRoomList: Action.define("updateRoomList", {
+      roomList: Array
+    }),
+
+    
+
+
+
 
 
     SetupEmptyRoom: Action.define("setupEmptyRoom", {
