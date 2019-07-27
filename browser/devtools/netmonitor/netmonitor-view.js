@@ -75,7 +75,6 @@ let NetMonitorView = {
     this.RequestsMenu.initialize();
     this.NetworkDetails.initialize();
     this.CustomRequest.initialize();
-    this.arrowClosed = false;
   },
 
   
@@ -310,15 +309,11 @@ ToolbarView.prototype = {
     let selectedIndex = requestsMenu.selectedIndex;
 
     
-    requestsMenu.arrowClosed = false;
-
-    
-    
     
     if (selectedIndex == -1 && requestsMenu.itemCount) {
       requestsMenu.selectedIndex = 0;
     } else {
-      NetMonitorView.Sidebar.toggle(NetMonitorView.detailsPaneHidden);
+      requestsMenu.selectedIndex = -1;
     }
   },
 
@@ -389,9 +384,6 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     $("#request-menu-context-newtab").addEventListener("command", this._onContextNewTabCommand, false);
     $("#request-menu-context-copy-url").addEventListener("command", this._onContextCopyUrlCommand, false);
     $("#request-menu-context-copy-image-as-data-uri").addEventListener("command", this._onContextCopyImageAsDataUriCommand, false);
-
-    this.ignoreLeftRight = true;
-    this.widget.on("keyPress", this._handleKeyPress.bind(this));
 
     window.once("connected", this._onConnect.bind(this));
   },
@@ -738,29 +730,6 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     
     if (aType !== "all" && this._activeFilters.indexOf("all") !== -1) {
       this._disableFilter("all");
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-  _handleKeyPress: function(aName, aEvent) {
-    switch (aEvent.keyCode) {
-      case aEvent.DOM_VK_RETURN:
-      case aEvent.DOM_VK_LEFT:
-        NetMonitorView.Sidebar.toggle(true);
-        this.arrowClosed = false;
-        return;
-      case aEvent.DOM_VK_RIGHT:
-        NetMonitorView.Sidebar.toggle(false);
-        this.arrowClosed = true;
-        return;
     }
   },
 
@@ -1577,10 +1546,6 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _onSelect: function({ detail: item }) {
-    if (this.arrowClosed) {
-      return;
-    }
-
     if (item) {
       NetMonitorView.Sidebar.populate(item.attachment);
       NetMonitorView.Sidebar.toggle(true);
