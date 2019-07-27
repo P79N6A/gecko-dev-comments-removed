@@ -474,7 +474,7 @@ SampleAnimations(Layer* aLayer, TimeStamp aPoint)
     timing.mFillMode = NS_STYLE_ANIMATION_FILL_MODE_BOTH;
 
     ComputedTiming computedTiming =
-      dom::KeyframeEffectReadOnly::GetComputedTimingAt(
+      dom::KeyframeEffectReadonly::GetComputedTimingAt(
         Nullable<TimeDuration>(elapsedDuration), timing);
 
     MOZ_ASSERT(0.0 <= computedTiming.mTimeFraction &&

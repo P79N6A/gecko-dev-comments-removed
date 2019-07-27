@@ -86,8 +86,8 @@ public:
 
   
 
-  KeyframeEffectReadOnly* GetEffect() const { return mEffect; }
-  void SetEffect(KeyframeEffectReadOnly* aEffect);
+  KeyframeEffectReadonly* GetEffect() const { return mEffect; }
+  void SetEffect(KeyframeEffectReadonly* aEffect);
   DocumentTimeline* Timeline() const { return mTimeline; }
   Nullable<TimeDuration> GetStartTime() const { return mStartTime; }
   void SetStartTime(const Nullable<TimeDuration>& aNewStartTime);
@@ -318,7 +318,7 @@ protected:
   AnimationCollection* GetCollection() const;
 
   nsRefPtr<DocumentTimeline> mTimeline;
-  nsRefPtr<KeyframeEffectReadOnly> mEffect;
+  nsRefPtr<KeyframeEffectReadonly> mEffect;
   
   Nullable<TimeDuration> mStartTime; 
   Nullable<TimeDuration> mHoldTime;  
