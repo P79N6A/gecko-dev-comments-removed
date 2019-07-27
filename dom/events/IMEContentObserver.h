@@ -161,9 +161,7 @@ private:
   
 
 
-
-
-  void NotifyIMEOfBlur(bool aPostEvent);
+  void NotifyIMEOfBlur();
   
 
 
