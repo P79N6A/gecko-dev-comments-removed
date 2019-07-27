@@ -193,3 +193,7 @@ notification[type="critical"] {
   -moz-margin-end: -14px;
   margin-top: -10px;
 }
+
+.popup-notification-menubutton > .button-menubutton-button[disabled] {
+  opacity: 0.5;
+}
