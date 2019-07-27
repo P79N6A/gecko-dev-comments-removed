@@ -490,25 +490,19 @@ IsAtomsZone(JS::Zone* zone);
 extern JS_FRIEND_API(bool)
 IsInNonStrictPropertySet(JSContext* cx);
 
-struct WeakMapTracer;
+struct WeakMapTracer
+{
+    JSRuntime* runtime;
 
+    explicit WeakMapTracer(JSRuntime* rt) : runtime(rt) {}
 
-
-
-
-
-
-
-
-typedef void
-(* WeakMapTraceCallback)(WeakMapTracer* trc, JSObject* m, JS::GCCellPtr key, JS::GCCellPtr value);
-
-struct WeakMapTracer {
-    JSRuntime*           runtime;
-    WeakMapTraceCallback callback;
-
-    WeakMapTracer(JSRuntime* rt, WeakMapTraceCallback cb)
-        : runtime(rt), callback(cb) {}
+    
+    
+    
+    
+    
+    
+    virtual void trace(JSObject* m, JS::GCCellPtr key, JS::GCCellPtr value) = 0;
 };
 
 extern JS_FRIEND_API(void)
