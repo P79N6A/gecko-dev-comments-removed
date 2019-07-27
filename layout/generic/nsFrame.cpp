@@ -2103,6 +2103,12 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     
     
     buildingDisplayList.SetDirtyRect(aDirtyRect);
+    
+    
+    const nsIFrame* outerReferenceFrame =
+      aBuilder->FindReferenceFrameFor(nsLayoutUtils::GetTransformRootFrame(this));
+    buildingDisplayList.SetReferenceFrameAndCurrentOffset(outerReferenceFrame,
+      GetOffsetToCrossDoc(outerReferenceFrame));
 
     if (Preserves3DChildren()) {
       WrapPreserve3DList(this, aBuilder, &resultList);
