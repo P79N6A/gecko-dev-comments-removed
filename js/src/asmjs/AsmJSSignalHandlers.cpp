@@ -968,8 +968,8 @@ js::EnsureSignalHandlersInstalled(JSRuntime *rt)
 #if defined(XP_WIN)
     
     
-    if (!AddVectoredExceptionHandler(true, AsmJSFaultHandler))
-        MOZ_CRASH("unable to install vectored exception handler");
+    if (!AddVectoredExceptionHandler( true, AsmJSFaultHandler))
+        return false;
 #else
     
     
@@ -1040,22 +1040,18 @@ js::InterruptRunningJitCode(JSRuntime *rt)
 #if defined(XP_WIN)
     
     
+    
+    
     HANDLE thread = (HANDLE)rt->ownerThreadNative();
-    if (SuspendThread(thread) == -1)
-        MOZ_CRASH("Failed to suspend main thread");
-
-    CONTEXT context;
-    context.ContextFlags = CONTEXT_CONTROL;
-    if (!GetThreadContext(thread, &context))
-        MOZ_CRASH("Failed to get suspended thread context");
-
-    RedirectJitCodeToInterruptCheck(rt, &context);
-
-    if (!SetThreadContext(thread, &context))
-        MOZ_CRASH("Failed to set suspended thread context");
-
-    if (ResumeThread(thread) == -1)
-        MOZ_CRASH("Failed to resume main thread");
+    if (SuspendThread(thread) != -1) {
+        CONTEXT context;
+        context.ContextFlags = CONTEXT_CONTROL;
+        if (GetThreadContext(thread, &context)) {
+            RedirectJitCodeToInterruptCheck(rt, &context);
+            SetThreadContext(thread, &context);
+        }
+        ResumeThread(thread);
+    }
 #else
     
     
