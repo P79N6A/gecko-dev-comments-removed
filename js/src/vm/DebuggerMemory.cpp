@@ -8,10 +8,12 @@
 
 #include "mozilla/Maybe.h"
 #include "mozilla/Move.h"
+#include "mozilla/UniquePtr.h"
 #include "mozilla/Vector.h"
 
 #include <stdlib.h>
 
+#include "jsalloc.h"
 #include "jscompartment.h"
 
 #include "gc/Marking.h"
@@ -19,6 +21,7 @@
 #include "js/TracingAPI.h"
 #include "js/UbiNode.h"
 #include "js/UbiNodeTraverse.h"
+#include "js/Utility.h"
 #include "vm/Debugger.h"
 #include "vm/GlobalObject.h"
 #include "vm/SavedStacks.h"
@@ -32,9 +35,11 @@ using JS::ubi::BreadthFirst;
 using JS::ubi::Edge;
 using JS::ubi::Node;
 
+using mozilla::Forward;
 using mozilla::Maybe;
 using mozilla::Move;
 using mozilla::Nothing;
+using mozilla::UniquePtr;
 
  DebuggerMemory*
 DebuggerMemory::create(JSContext* cx, Debugger* dbg)
@@ -341,8 +346,71 @@ namespace js {
 namespace dbg {
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 struct Census {
-    JSContext * const cx;
+    JSContext* const cx;
     JS::ZoneSet debuggeeZones;
     Zone* atomsZone;
 
@@ -353,60 +421,150 @@ struct Census {
         atomsZone = cx->runtime()->atomsCompartment()->zone();
         return debuggeeZones.init();
     }
+
+    
+    
+    
+    template<typename T, typename... Args>
+    T* new_(Args&&... args) MOZ_HEAP_ALLOCATOR {
+        void* memory = js_malloc(sizeof(T));
+        if (MOZ_UNLIKELY(!memory)) {
+            memory = static_cast<T*>(cx->onOutOfMemory(AllocFunction::Malloc, sizeof(T)));
+            if (!memory)
+                return nullptr;
+        }
+        return new(memory) T(Forward<Args>(args)...);
+    }
 };
 
+class CountBase;
+
+struct CountDeleter {
+    void operator()(CountBase*);
+};
+
+typedef UniquePtr<CountBase, CountDeleter> CountBasePtr;
 
 
+struct CountType {
+    explicit CountType(Census& census) : census(census) { }
+    virtual ~CountType() { }
+
+    
+    
+    virtual CountBasePtr makeCount() = 0;
+
+    
+    virtual void destructCount(CountBase& count) = 0;
+
+    
+    
+    virtual bool count(CountBase& count, const Node& node) = 0;
+
+    
+    
+    virtual bool report(CountBase& count, MutableHandleValue report) = 0;
+
+  protected:
+    Census& census;
+};
+
+typedef UniquePtr<CountType, JS::DeletePolicy<CountType>> CountTypePtr;
 
 
+class CountBase {
+    
+    
+    
+    
+    CountType& type;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class Tally {
-    size_t total_;
+  protected:
+    ~CountBase() { }
 
   public:
-    explicit Tally(Census& census) : total_(0) { }
-    Tally(Tally&& rhs) : total_(rhs.total_) { }
-    Tally& operator=(Tally&& rhs) { total_ = rhs.total_; return *this; }
+    explicit CountBase(CountType& type) : type(type), total_(0) { }
 
-    bool init(Census& census) { return true; }
+    
+    bool count(const Node& node) { return type.count(*this, node); }
 
-    bool count(Census& census, const Node& node) {
-        total_++;
+    
+    
+    
+    bool report(MutableHandleValue report) { return type.report(*this, report); }
+
+    
+    
+    void destruct() { return type.destructCount(*this); }
+
+    size_t total_;
+};
+
+void
+CountDeleter::operator()(CountBase* ptr)
+{
+    if (!ptr)
+        return;
+
+    
+    
+    ptr->destruct();
+    js_free(ptr);
+}
+
+
+class SimpleCount : public CountType {
+    UniquePtr<char16_t[], JS::FreePolicy> label;
+
+    struct Count : CountBase {
+        explicit Count(SimpleCount& count) : CountBase(count) { }
+    };
+
+  public:
+    SimpleCount(Census& census,
+                UniquePtr<char16_t[], JS::FreePolicy>& label)
+      : CountType(census),
+        label(Move(label))
+    { }
+
+    explicit SimpleCount(Census& census)
+        : CountType(census),
+          label(nullptr)
+    { }
+
+    CountBasePtr makeCount() override {
+        return CountBasePtr(census.new_<Count>(*this));
+    }
+
+    void destructCount(CountBase& countBase) override {
+        Count& count = static_cast<Count&>(countBase);
+        count.~Count();
+    }
+
+    bool count(CountBase& countBase, const Node& node) override {
+        Count& count = static_cast<Count&>(countBase);
+        count.total_++;
         return true;
     }
 
-    size_t total() const { return total_; }
-
-    bool report(Census& census, MutableHandleValue report) {
+    bool report(CountBase& countBase, MutableHandleValue report) override {
+        Count& count = static_cast<Count&>(countBase);
         RootedPlainObject obj(census.cx, NewBuiltinClassInstance<PlainObject>(census.cx));
-        RootedValue countValue(census.cx, NumberValue(total_));
-        if (!obj ||
-            !DefineProperty(census.cx, obj, census.cx->names().count, countValue))
-        {
+        RootedValue countValue(census.cx, NumberValue(count.total_));
+        if (!obj)
             return false;
+        if (!DefineProperty(census.cx, obj, census.cx->names().count, countValue))
+            return false;
+
+        if (label) {
+            JSString* labelString = JS_NewUCStringCopyZ(census.cx, label.get());
+            if (!labelString)
+                return false;
+            RootedValue labelValue(census.cx, StringValue(labelString));
+            if (!DefineProperty(census.cx, obj, census.cx->names().label, labelValue))
+                return false;
         }
+
         report.setObject(*obj);
         return true;
     }
@@ -418,58 +576,80 @@ class Tally {
 
 
 
-template<typename EachObject = Tally,
-         typename EachScript = Tally,
-         typename EachString = Tally,
-         typename EachOther  = Tally>
-class ByJSType {
-    size_t total_;
-    EachObject objects;
-    EachScript scripts;
-    EachString strings;
-    EachOther other;
+class ByCoarseType : public CountType {
+    CountTypePtr objects;
+    CountTypePtr scripts;
+    CountTypePtr strings;
+    CountTypePtr other;
+
+    struct Count : CountBase {
+        Count(CountType& type,
+              CountBasePtr& objects,
+              CountBasePtr& scripts,
+              CountBasePtr& strings,
+              CountBasePtr& other)
+          : CountBase(type),
+            objects(Move(objects)),
+            scripts(Move(scripts)),
+            strings(Move(strings)),
+            other(Move(other))
+        { }
+
+        CountBasePtr objects;
+        CountBasePtr scripts;
+        CountBasePtr strings;
+        CountBasePtr other;
+    };
 
   public:
-    explicit ByJSType(Census& census)
-      : total_(0),
-        objects(census),
-        scripts(census),
-        strings(census),
-        other(census)
+    ByCoarseType(Census& census,
+                 CountTypePtr& objects,
+                 CountTypePtr& scripts,
+                 CountTypePtr& strings,
+                 CountTypePtr& other)
+      : CountType(census),
+        objects(Move(objects)),
+        scripts(Move(scripts)),
+        strings(Move(strings)),
+        other(Move(other))
     { }
-    ByJSType(ByJSType&& rhs)
-      : total_(rhs.total_),
-        objects(Move(rhs.objects)),
-        scripts(move(rhs.scripts)),
-        strings(move(rhs.strings)),
-        other(move(rhs.other))
-    { }
-    ByJSType& operator=(ByJSType&& rhs) {
-        MOZ_ASSERT(&rhs != this);
-        this->~ByJSType();
-        new (this) ByJSType(Move(rhs));
-        return *this;
+
+    CountBasePtr makeCount() override {
+        CountBasePtr objectsCount(objects->makeCount());
+        CountBasePtr scriptsCount(scripts->makeCount());
+        CountBasePtr stringsCount(strings->makeCount());
+        CountBasePtr otherCount(other->makeCount());
+
+        if (!objectsCount || !scriptsCount || !stringsCount || !otherCount)
+            return CountBasePtr(nullptr);
+
+        return CountBasePtr(census.new_<Count>(*this,
+                                               objectsCount,
+                                               scriptsCount,
+                                               stringsCount,
+                                               otherCount));
     }
 
-    bool init(Census& census) {
-        return objects.init(census) &&
-               scripts.init(census) &&
-               strings.init(census) &&
-               other.init(census);
+    void destructCount(CountBase& countBase) override {
+        Count& count = static_cast<Count&>(countBase);
+        count.~Count();
     }
 
-    bool count(Census& census, const Node& node) {
-        total_++;
+    bool count(CountBase& countBase, const Node& node) override {
+        Count& count = static_cast<Count&>(countBase);
+        count.total_++;
+
         if (node.is<JSObject>())
-            return objects.count(census, node);
-         if (node.is<JSScript>() || node.is<LazyScript>() || node.is<jit::JitCode>())
-            return scripts.count(census, node);
+            return count.objects->count(node);
+        if (node.is<JSScript>() || node.is<LazyScript>() || node.is<jit::JitCode>())
+            return count.scripts->count(node);
         if (node.is<JSString>())
-            return strings.count(census, node);
-        return other.count(census, node);
+            return count.strings->count(node);
+        return count.other->count(node);
     }
 
-    bool report(Census& census, MutableHandleValue report) {
+    bool report(CountBase& countBase, MutableHandleValue report) override {
+        Count& count = static_cast<Count&>(countBase);
         JSContext* cx = census.cx;
 
         RootedPlainObject obj(cx, NewBuiltinClassInstance<PlainObject>(cx));
@@ -477,22 +657,22 @@ class ByJSType {
             return false;
 
         RootedValue objectsReport(cx);
-        if (!objects.report(census, &objectsReport) ||
+        if (!count.objects->report(&objectsReport) ||
             !DefineProperty(cx, obj, cx->names().objects, objectsReport))
             return false;
 
         RootedValue scriptsReport(cx);
-        if (!scripts.report(census, &scriptsReport) ||
+        if (!count.scripts->report(&scriptsReport) ||
             !DefineProperty(cx, obj, cx->names().scripts, scriptsReport))
             return false;
 
         RootedValue stringsReport(cx);
-        if (!strings.report(census, &stringsReport) ||
+        if (!count.strings->report(&stringsReport) ||
             !DefineProperty(cx, obj, cx->names().strings, stringsReport))
             return false;
 
         RootedValue otherReport(cx);
-        if (!other.report(census, &otherReport) ||
+        if (!count.other->report(&otherReport) ||
             !DefineProperty(cx, obj, cx->names().other, otherReport))
             return false;
 
@@ -504,12 +684,24 @@ class ByJSType {
 
 
 
+template<typename Entry>
+static int compareEntries(const void* lhsVoid, const void* rhsVoid) {
+    size_t lhs = (*static_cast<const Entry* const*>(lhsVoid))->value()->total_;
+    size_t rhs = (*static_cast<const Entry* const*>(rhsVoid))->value()->total_;
 
-template<typename EachClass = Tally,
-         typename EachOther = Tally>
-class ByObjectClass {
-    size_t total_;
+    
+    
+    
+    if (lhs < rhs)
+        return 1;
+    if (lhs > rhs)
+        return -1;
+    return 0;
+}
 
+
+
+class ByObjectClass : public CountType {
     
     struct HashPolicy {
         typedef const char* Lookup;
@@ -524,70 +716,80 @@ class ByObjectClass {
     
     
     
-    typedef HashMap<const char*, EachClass, HashPolicy, SystemAllocPolicy> Table;
-    typedef typename Table::Entry Entry;
-    Table table;
-    EachOther other;
+    typedef HashMap<const char*, CountBasePtr, HashPolicy, SystemAllocPolicy> Table;
+    typedef Table::Entry Entry;
 
-    static int compareEntries(const void* lhsVoid, const void* rhsVoid) {
-        size_t lhs = (*static_cast<const Entry * const*>(lhsVoid))->value().total();
-        size_t rhs = (*static_cast<const Entry * const*>(rhsVoid))->value().total();
+    struct Count : public CountBase {
+        Table table;
+        CountBasePtr other;
 
-        
-        
-        
-        if (lhs < rhs)
-            return 1;
-        if (lhs > rhs)
-            return -1;
-        return 0;
-    }
+        Count(CountType& type, CountBasePtr& other)
+          : CountBase(type),
+            other(Move(other))
+        { }
+
+        bool init() { return table.init(); }
+    };
+
+    CountTypePtr classesType;
+    CountTypePtr otherType;
 
   public:
-    explicit ByObjectClass(Census& census) : total_(0), other(census) { }
-    ByObjectClass(ByObjectClass&& rhs)
-      : total_(rhs.total_), table(Move(rhs.table)), other(Move(rhs.other))
+    ByObjectClass(Census& census,
+                  CountTypePtr& classesType,
+                  CountTypePtr& otherType)
+        : CountType(census),
+          classesType(Move(classesType)),
+          otherType(Move(otherType))
     { }
-    ByObjectClass& operator=(ByObjectClass&& rhs) {
-        MOZ_ASSERT(&rhs != this);
-        this->~ByObjectClass();
-        new (this) ByObjectClass(Move(rhs));
-        return *this;
+
+    CountBasePtr makeCount() override {
+        CountBasePtr otherCount(otherType->makeCount());
+        if (!otherCount)
+            return nullptr;
+
+        UniquePtr<Count> count(census.new_<Count>(*this, otherCount));
+        if (!count || !count->init())
+            return nullptr;
+
+        return CountBasePtr(count.release());
     }
 
-    bool init(Census& census) { return table.init() && other.init(census); }
+    void destructCount(CountBase& countBase) override {
+        Count& count = static_cast<Count&>(countBase);
+        count.~Count();
+    }
 
-    bool count(Census& census, const Node& node) {
-        total_++;
+    bool count(CountBase& countBase, const Node& node) override {
+        Count& count = static_cast<Count&>(countBase);
+        count.total_++;
+
         const char* className = node.jsObjectClassName();
-
         if (!className)
-            return other.count(census, node);
+            return count.other->count(node);
 
-        typename Table::AddPtr p = table.lookupForAdd(className);
+        Table::AddPtr p = count.table.lookupForAdd(className);
         if (!p) {
-            if (!table.add(p, className, EachClass(census)))
-                return false;
-            if (!p->value().init(census))
+            CountBasePtr classCount(classesType->makeCount());
+            if (!classCount || !count.table.add(p, className, Move(classCount)))
                 return false;
         }
-        return p->value().count(census, node);
+        return p->value()->count(node);
     }
 
-    size_t total() const { return total_; }
-
-    bool report(Census& census, MutableHandleValue report) {
+    bool report(CountBase& countBase, MutableHandleValue report) override {
+        Count& count = static_cast<Count&>(countBase);
         JSContext* cx = census.cx;
 
         
         
         
         mozilla::Vector<Entry*> entries;
-        if (!entries.reserve(table.count()))
+        if (!entries.reserve(count.table.count()))
             return false;
-        for (typename Table::Range r = table.all(); !r.empty(); r.popFront())
+        for (Table::Range r = count.table.all(); !r.empty(); r.popFront())
             entries.infallibleAppend(&r.front());
-        qsort(entries.begin(), entries.length(), sizeof(*entries.begin()), compareEntries);
+        qsort(entries.begin(), entries.length(), sizeof(*entries.begin()), compareEntries<Entry>);
 
         
         RootedPlainObject obj(cx, NewBuiltinClassInstance<PlainObject>(cx));
@@ -595,14 +797,14 @@ class ByObjectClass {
             return false;
         for (Entry** entryPtr = entries.begin(); entryPtr < entries.end(); entryPtr++) {
             Entry& entry = **entryPtr;
-            EachClass& assorter = entry.value();
-            RootedValue assorterReport(cx);
-            if (!assorter.report(census, &assorterReport))
+            CountBasePtr& classCount = entry.value();
+            RootedValue classReport(cx);
+            if (!classCount->report(&classReport))
                 return false;
 
             const char* name = entry.key();
             MOZ_ASSERT(name);
-            JSAtom* atom = Atomize(census.cx, name, strlen(name));
+            JSAtom* atom = Atomize(cx, name, strlen(name));
             if (!atom)
                 return false;
             RootedId entryId(cx, AtomToId(atom));
@@ -621,9 +823,14 @@ class ByObjectClass {
             }
 #endif
 
-            if (!DefineProperty(cx, obj, entryId, assorterReport))
+            if (!DefineProperty(cx, obj, entryId, classReport))
                 return false;
         }
+
+        RootedValue otherReport(cx);
+        if (!count.other->report(&otherReport) ||
+            !DefineProperty(cx, obj, cx->names().other, otherReport))
+            return false;
 
         report.setObject(*obj);
         return true;
@@ -632,71 +839,70 @@ class ByObjectClass {
 
 
 
-template<typename EachType = Tally>
-class ByUbinodeType {
-    size_t total_;
-
+class ByUbinodeType : public CountType {
     
     
     
-    typedef HashMap<const char16_t*, EachType, DefaultHasher<const char16_t*>,
+    typedef HashMap<const char16_t*, CountBasePtr, DefaultHasher<const char16_t*>,
                     SystemAllocPolicy> Table;
-    typedef typename Table::Entry Entry;
-    Table table;
+    typedef Table::Entry Entry;
+
+    struct Count: public CountBase {
+        Table table;
+
+        explicit Count(CountType& type) : CountBase(type) { }
+
+        bool init() { return table.init(); }
+    };
+
+    CountTypePtr entryType;
 
   public:
-    explicit ByUbinodeType(Census& census) : total_(0) { }
-    ByUbinodeType(ByUbinodeType&& rhs) : total_(rhs.total_), table(Move(rhs.table)) { }
-    ByUbinodeType& operator=(ByUbinodeType&& rhs) {
-        MOZ_ASSERT(&rhs != this);
-        this->~ByUbinodeType();
-        new (this) ByUbinodeType(Move(rhs));
-        return *this;
+    ByUbinodeType(Census& census, CountTypePtr& entryType)
+      : CountType(census),
+        entryType(Move(entryType))
+    { }
+
+    CountBasePtr makeCount() override {
+        UniquePtr<Count> count(census.new_<Count>(*this));
+        if (!count || !count->init())
+            return nullptr;
+
+        return CountBasePtr(count.release());
     }
 
-    bool init(Census& census) { return table.init(); }
+    void destructCount(CountBase& countBase) override {
+        Count& count = static_cast<Count&>(countBase);
+        count.~Count();
+    }
 
-    bool count(Census& census, const Node& node) {
-        total_++;
+    bool count(CountBase& countBase, const Node& node) {
+        Count& count = static_cast<Count&>(countBase);
+        count.total_++;
+
         const char16_t* key = node.typeName();
-        typename Table::AddPtr p = table.lookupForAdd(key);
+        Table::AddPtr p = count.table.lookupForAdd(key);
         if (!p) {
-            if (!table.add(p, key, EachType(census)))
-                return false;
-            if (!p->value().init(census))
+            CountBasePtr typesCount(entryType->makeCount());
+            if (!typesCount || !count.table.add(p, key, Move(typesCount)))
                 return false;
         }
-        return p->value().count(census, node);
+        return p->value()->count(node);
     }
 
-    size_t total() const { return total_; }
-
-    static int compareEntries(const void* lhsVoid, const void* rhsVoid) {
-        size_t lhs = (*static_cast<const Entry * const*>(lhsVoid))->value().total();
-        size_t rhs = (*static_cast<const Entry * const*>(rhsVoid))->value().total();
-
-        
-        
-        
-        if (lhs < rhs)
-            return 1;
-        if (lhs > rhs)
-            return -1;
-        return 0;
-    }
-
-    bool report(Census& census, MutableHandleValue report) {
+    bool report(CountBase& countBase, MutableHandleValue report) override {
+        Count& count = static_cast<Count&>(countBase);
         JSContext* cx = census.cx;
 
         
         
         
         mozilla::Vector<Entry*> entries;
-        if (!entries.reserve(table.count()))
+        if (!entries.reserve(count.table.count()))
             return false;
-        for (typename Table::Range r = table.all(); !r.empty(); r.popFront())
+        for (Table::Range r = count.table.all(); !r.empty(); r.popFront())
             entries.infallibleAppend(&r.front());
-        qsort(entries.begin(), entries.length(), sizeof(*entries.begin()), compareEntries);
+        qsort(entries.begin(), entries.length(), sizeof(*entries.begin()), compareEntries<Entry>);
 
         
         RootedPlainObject obj(cx, NewBuiltinClassInstance<PlainObject>(cx));
@@ -704,9 +910,9 @@ class ByUbinodeType {
             return false;
         for (Entry** entryPtr = entries.begin(); entryPtr < entries.end(); entryPtr++) {
             Entry& entry = **entryPtr;
-            EachType& assorter = entry.value();
-            RootedValue assorterReport(cx);
-            if (!assorter.report(census, &assorterReport))
+            CountBasePtr& typeCount = entry.value();
+            RootedValue typeReport(cx);
+            if (!typeCount->report(&typeReport))
                 return false;
 
             const char16_t* name = entry.key();
@@ -716,7 +922,7 @@ class ByUbinodeType {
                 return false;
             RootedId entryId(cx, AtomToId(atom));
 
-            if (!DefineProperty(cx, obj, entryId, assorterReport))
+            if (!DefineProperty(cx, obj, entryId, typeReport))
                 return false;
         }
 
@@ -728,17 +934,18 @@ class ByUbinodeType {
 
 
 
-template<typename Assorter>
 class CensusHandler {
     Census& census;
-    Assorter assorter;
+    CountBasePtr& rootCount;
 
   public:
-    explicit CensusHandler(Census& census) : census(census), assorter(census) { }
+    CensusHandler(Census& census, CountBasePtr& rootCount)
+      : census(census),
+        rootCount(rootCount)
+    { }
 
-    bool init(Census& census) { return assorter.init(census); }
-    bool report(Census& census, MutableHandleValue report) {
-        return assorter.report(census, report);
+    bool report(MutableHandleValue report) {
+        return rootCount->report(report);
     }
 
     
@@ -763,12 +970,12 @@ class CensusHandler {
         Zone* zone = referent.zone();
 
         if (census.debuggeeZones.has(zone)) {
-            return assorter.count(census, referent);
+            return rootCount->count(referent);
         }
 
         if (zone == census.atomsZone) {
             traversal.abandonReferent();
-            return assorter.count(census, referent);
+            return rootCount->count(referent);
         }
 
         traversal.abandonReferent();
@@ -776,31 +983,195 @@ class CensusHandler {
     }
 };
 
+typedef BreadthFirst<CensusHandler> CensusTraversal;
 
+static CountTypePtr ParseBreakdown(Census& census, HandleValue breakdownValue);
 
+static CountTypePtr
+ParseChildBreakdown(Census& census, HandleObject breakdown, PropertyName* prop)
+{
+    JSContext* cx = census.cx;
+    RootedValue v(cx);
+    if (!GetProperty(cx, breakdown, breakdown, prop, &v))
+        return nullptr;
+    return ParseBreakdown(census, v);
+}
 
+static CountTypePtr
+ParseBreakdown(Census& census, HandleValue breakdownValue)
+{
+    JSContext* cx = census.cx;
 
-typedef ByJSType<ByObjectClass<Tally>, Tally, Tally, ByUbinodeType<Tally> > DefaultAssorter;
+    if (breakdownValue.isUndefined()) {
+        
+        CountTypePtr simple(census.new_<SimpleCount>(census));
+        return simple;
+    }
 
+    RootedObject breakdown(cx, ToObject(cx, breakdownValue));
+    if (!breakdown)
+        return nullptr;
 
-typedef CensusHandler<DefaultAssorter> DefaultCensusHandler;
-typedef BreadthFirst<DefaultCensusHandler> DefaultCensusTraversal;
+    RootedValue byValue(cx);
+    if (!GetProperty(cx, breakdown, breakdown, cx->names().by, &byValue))
+        return nullptr;
+    RootedString byString(cx, ToString(cx, byValue));
+    if (!byString)
+        return nullptr;
+    RootedLinearString by(cx, byString->ensureLinear(cx));
+    if (!by)
+        return nullptr;
+
+    if (StringEqualsAscii(by, "count")) {
+
+        
+        
+        
+        RootedValue label(cx);
+        if (!GetProperty(cx, breakdown, breakdown, cx->names().label, &label))
+            return nullptr;
+
+        UniquePtr<char16_t[], JS::FreePolicy> labelUnique(nullptr);
+        if (!label.isUndefined()) {
+            RootedString labelString(cx, ToString(cx, label));
+            if (!labelString)
+                return nullptr;
+
+            JSFlatString* flat = labelString->ensureFlat(cx);
+            if (!flat)
+                return false;
+
+            AutoStableStringChars chars(cx);
+            if (!chars.initTwoByte(cx, flat))
+                return false;
+
+            
+            
+            
+            labelUnique = DuplicateString(cx, chars.twoByteChars());
+            if (!labelUnique)
+                return false;
+        }
+
+        CountTypePtr simple(census.new_<SimpleCount>(census, labelUnique));
+        return simple;
+    }
+
+    if (StringEqualsAscii(by, "objectClass")) {
+        CountTypePtr thenType(ParseChildBreakdown(census, breakdown, cx->names().then));
+        if (!thenType)
+            return nullptr;
+
+        CountTypePtr otherType(ParseChildBreakdown(census, breakdown, cx->names().other));
+        if (!otherType)
+            return nullptr;
+
+        return CountTypePtr(census.new_<ByObjectClass>(census, thenType, otherType));
+    }
+
+    if (StringEqualsAscii(by, "coarseType")) {
+        CountTypePtr objectsType(ParseChildBreakdown(census, breakdown, cx->names().objects));
+        if (!objectsType)
+            return nullptr;
+        CountTypePtr scriptsType(ParseChildBreakdown(census, breakdown, cx->names().scripts));
+        if (!scriptsType)
+            return nullptr;
+        CountTypePtr stringsType(ParseChildBreakdown(census, breakdown, cx->names().strings));
+        if (!stringsType)
+            return nullptr;
+        CountTypePtr otherType(ParseChildBreakdown(census, breakdown, cx->names().other));
+        if (!otherType)
+            return nullptr;
+
+        return CountTypePtr(census.new_<ByCoarseType>(census,
+                                                      objectsType,
+                                                      scriptsType,
+                                                      stringsType,
+                                                      otherType));
+    }
+
+    if (StringEqualsAscii(by, "internalType")) {
+        CountTypePtr thenType(ParseChildBreakdown(census, breakdown, cx->names().then));
+        if (!thenType)
+            return nullptr;
+
+        return CountTypePtr(census.new_<ByUbinodeType>(census, thenType));
+    }
+
+    
+    RootedString bySource(cx, ValueToSource(cx, byValue));
+    if (!bySource)
+        return nullptr;
+
+    JSAutoByteString byBytes(cx, bySource);
+    if (!byBytes)
+        return nullptr;
+
+    JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_DEBUG_CENSUS_BREAKDOWN,
+                         byBytes.ptr());
+    return nullptr;
+}
 
 } 
 } 
+
+using dbg::Census;
+using dbg::CountTypePtr;
+using dbg::CountBasePtr;
 
 bool
 DebuggerMemory::takeCensus(JSContext* cx, unsigned argc, Value* vp)
 {
     THIS_DEBUGGER_MEMORY(cx, argc, vp, "Debugger.Memory.prototype.census", args, memory);
 
-    dbg::Census census(cx);
+    Census census(cx);
     if (!census.init())
         return false;
+    CountTypePtr rootType;
 
-    dbg::DefaultCensusHandler handler(census);
-    if (!handler.init(census))
+    RootedObject options(cx);
+    if (args.get(0).isObject())
+        options = &args[0].toObject();
+
+    {
+        RootedValue breakdown(cx, UndefinedValue());
+        if (options && !GetProperty(cx, options, options, cx->names().breakdown, &breakdown))
+            return false;
+        if (!breakdown.isUndefined()) {
+            rootType = ParseBreakdown(census, breakdown);
+        } else {
+            
+            
+            
+            
+            
+            CountTypePtr byClass(census.new_<dbg::SimpleCount>(census));
+            CountTypePtr byClassElse(census.new_<dbg::SimpleCount>(census));
+            CountTypePtr objects(census.new_<dbg::ByObjectClass>(census,
+                                                                 byClass,
+                                                                 byClassElse));
+
+            CountTypePtr scripts(census.new_<dbg::SimpleCount>(census));
+            CountTypePtr strings(census.new_<dbg::SimpleCount>(census));
+
+            CountTypePtr byType(census.new_<dbg::SimpleCount>(census));
+            CountTypePtr other(census.new_<dbg::ByUbinodeType>(census, byType));
+
+            rootType = CountTypePtr(census.new_<dbg::ByCoarseType>(census,
+                                                                   objects,
+                                                                   scripts,
+                                                                   strings,
+                                                                   other));
+        }
+    }
+
+    if (!rootType)
         return false;
+
+    CountBasePtr rootCount(rootType->makeCount());
+    if (!rootCount)
+        return false;
+    dbg::CensusHandler handler(census, rootCount);
 
     Debugger* dbg = memory->getDebugger();
     RootedObject dbgObj(cx, dbg->object);
@@ -817,7 +1188,7 @@ DebuggerMemory::takeCensus(JSContext* cx, unsigned argc, Value* vp)
         if (!rootList.init(dbgObj))
             return false;
 
-        dbg::DefaultCensusTraversal traversal(cx, handler, maybeNoGC.ref());
+        dbg::CensusTraversal traversal(cx, handler, maybeNoGC.ref());
         if (!traversal.init())
             return false;
         traversal.wantNames = false;
@@ -829,9 +1200,8 @@ DebuggerMemory::takeCensus(JSContext* cx, unsigned argc, Value* vp)
         }
     }
 
-    return handler.report(census, args.rval());
+    return handler.report(args.rval());
 }
-
 
 
 
