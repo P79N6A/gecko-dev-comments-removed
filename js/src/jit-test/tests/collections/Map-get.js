@@ -25,7 +25,7 @@ for (var i = 0; i < keys.length; i++) {
 
     
     var v = {};
-    assertEq(m.set(key, v), undefined);
+    assertEq(m.set(key, v), m);
     assertEq(m.has(key), true);
     assertEq(m.get(key), v);
 
