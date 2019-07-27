@@ -70,6 +70,26 @@ loop.store.ActiveRoomStore = (function() {
     
 
 
+
+
+
+
+
+    _statesToResetOnLeave: [
+      "audioMuted",
+      "localVideoDimensions",
+      "receivingScreenShare",
+      "remoteVideoDimensions",
+      "screenSharingState",
+      "videoMuted"
+    ],
+
+    
+
+
+
+
+
     getInitialStoreState: function() {
       return {
         roomState: ROOM_STATES.INIT,
@@ -750,6 +770,15 @@ loop.store.ActiveRoomStore = (function() {
       
       this._sdkDriver.disconnectSession();
 
+      
+      var originalStoreState = this.getInitialStoreState();
+      var newStoreState = {};
+
+      this._statesToResetOnLeave.forEach(function(state) {
+        newStoreState[state] = originalStoreState[state];
+      });
+      this.setStoreState(newStoreState);
+
       if (this._timeout) {
         clearTimeout(this._timeout);
         delete this._timeout;
@@ -770,10 +799,14 @@ loop.store.ActiveRoomStore = (function() {
     
 
 
+
     feedbackComplete: function() {
-      
-      
-      this.setStoreState(this.getInitialStoreState());
+      this.setStoreState({
+        roomState: ROOM_STATES.READY,
+        
+        
+        used: false
+      });
     },
 
     
