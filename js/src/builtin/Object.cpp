@@ -1026,7 +1026,18 @@ obj_preventExtensions(JSContext *cx, unsigned argc, Value *vp)
     
     RootedObject obj(cx, &args.get(0).toObject());
 
-    return JSObject::preventExtensions(cx, obj);
+    bool status;
+    if (!JSObject::preventExtensions(cx, obj, &status))
+        return false;
+
+    
+    if (!status) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_CHANGE_EXTENSIBILITY);
+        return false;
+    }
+
+    
+    return true;
 }
 
 
