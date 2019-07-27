@@ -692,27 +692,6 @@ nsXPConnect::GetWrappedNativeOfNativeObject(JSContext * aJSContext,
 
 
 NS_IMETHODIMP
-nsXPConnect::CreateStackFrameLocation(uint32_t aLanguage,
-                                      const char* aFilename,
-                                      const char* aFunctionName,
-                                      int32_t aLineNumber,
-                                      nsIStackFrame* aCaller,
-                                      nsIStackFrame** _retval)
-{
-    MOZ_ASSERT(_retval, "bad param");
-
-    nsCOMPtr<nsIStackFrame> stackFrame =
-        exceptions::CreateStackFrameLocation(aLanguage,
-                                             aFilename,
-                                             aFunctionName,
-                                             aLineNumber,
-                                             aCaller);
-    stackFrame.forget(_retval);
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP
 nsXPConnect::GetCurrentJSStack(nsIStackFrame * *aCurrentJSStack)
 {
     MOZ_ASSERT(aCurrentJSStack, "bad param");
