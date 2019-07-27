@@ -227,6 +227,10 @@ public:
 
   
   
+  static bool WheelEventNeedsDeltaMultipliers(WidgetWheelEvent* aEvent);
+
+  
+  
   static bool CanVerticallyScrollFrameWithWheel(nsIFrame* aFrame);
 
   
@@ -422,6 +426,12 @@ protected:
 
 
     void ApplyUserPrefsToDelta(WidgetWheelEvent* aEvent);
+
+    
+
+
+
+    bool HasUserPrefsForDelta(WidgetWheelEvent* aEvent);
 
     
 
