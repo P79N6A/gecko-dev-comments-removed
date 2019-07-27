@@ -26,8 +26,8 @@
 #ifndef assembler_jit_ExecutableAllocator_h
 #define assembler_jit_ExecutableAllocator_h
 
-#include <stddef.h> 
 #include <limits>
+#include <stddef.h> 
 
 #include "jsalloc.h"
 
