@@ -247,4 +247,75 @@ this.BrowserUtils = {
     let values = rel.split(/[ \t\r\n\f]/);
     return values.indexOf('noreferrer') != -1;
   },
+
+  
+
+
+
+
+
+  mimeTypeIsTextBased: function(mimeType) {
+    return mimeType.startsWith("text/") ||
+           mimeType.endsWith("+xml") ||
+           mimeType == "application/x-javascript" ||
+           mimeType == "application/javascript" ||
+           mimeType == "application/json" ||
+           mimeType == "application/xml" ||
+           mimeType == "mozilla.application/cached-xul";
+  },
+
+  
+
+
+
+
+
+
+
+
+  shouldFastFind: function(elt, win) {
+    if (elt) {
+      if (elt instanceof win.HTMLInputElement && elt.mozIsTextField(false))
+        return false;
+
+      if (elt.isContentEditable)
+        return false;
+
+      if (elt instanceof win.HTMLTextAreaElement ||
+          elt instanceof win.HTMLSelectElement ||
+          elt instanceof win.HTMLObjectElement ||
+          elt instanceof win.HTMLEmbedElement)
+        return false;
+    }
+
+    if (win && !this.mimeTypeIsTextBased(win.document.contentType))
+      return false;
+
+    
+    let loc = win.location;
+    if (loc.href == "about:blank")
+      return false;
+
+    
+    if ((loc.protocol == "about:" || loc.protocol == "chrome:") &&
+        (win && win.document.documentElement &&
+         win.document.documentElement.getAttribute("disablefastfind") == "true"))
+      return false;
+
+    if (win) {
+      try {
+        let editingSession = win.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+          .getInterface(Components.interfaces.nsIWebNavigation)
+          .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+          .getInterface(Components.interfaces.nsIEditingSession);
+        if (editingSession.windowIsEditable(win))
+          return false;
+      }
+      catch (e) {
+        Cu.reportError(e);
+        
+      }
+    }
+    return true;
+  },
 };

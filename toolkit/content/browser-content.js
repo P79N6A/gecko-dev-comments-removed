@@ -23,9 +23,7 @@ let ClickEventHandler = {
     this._screenY = null;
     this._lastFrame = null;
 
-    Cc["@mozilla.org/eventlistenerservice;1"]
-      .getService(Ci.nsIEventListenerService)
-      .addSystemEventListener(global, "mousedown", this, true);
+    Services.els.addSystemEventListener(global, "mousedown", this, true);
 
     addMessageListener("Autoscroll:Stop", this);
   },
@@ -127,9 +125,7 @@ let ClickEventHandler = {
       return;
     }
 
-    Cc["@mozilla.org/eventlistenerservice;1"]
-      .getService(Ci.nsIEventListenerService)
-      .addSystemEventListener(global, "mousemove", this, true);
+    Services.els.addSystemEventListener(global, "mousemove", this, true);
     addEventListener("pagehide", this, true);
 
     this._ignoreMouseEvents = true;
@@ -149,9 +145,7 @@ let ClickEventHandler = {
       this._scrollable.mozScrollSnap();
       this._scrollable = null;
 
-      Cc["@mozilla.org/eventlistenerservice;1"]
-        .getService(Ci.nsIEventListenerService)
-        .removeSystemEventListener(global, "mousemove", this, true);
+      Services.els.removeSystemEventListener(global, "mousemove", this, true);
       removeEventListener("pagehide", this, true);
     }
   },
@@ -556,3 +550,91 @@ addMessageListener("SwitchDocumentDirection", () => {
   SwitchDocumentDirection(content.window);
 });
 
+let FindBar = {
+  
+  FIND_NORMAL: 0,
+  FIND_TYPEAHEAD: 1,
+  FIND_LINKS: 2,
+  FAYT_LINKS_KEY: "'".charCodeAt(0),
+  FAYT_TEXT_KEY: "/".charCodeAt(0),
+
+  _findMode: 0,
+  get _findAsYouType() {
+    return Services.prefs.getBoolPref("accessibility.typeaheadfind");
+  },
+
+  init() {
+    addMessageListener("Findbar:UpdateState", this);
+    Services.els.addSystemEventListener(global, "keypress", this, false);
+    Services.els.addSystemEventListener(global, "mouseup", this, false);
+  },
+
+  receiveMessage(msg) {
+    switch (msg.name) {
+      case "Findbar:UpdateState":
+        this._findMode = msg.data.findMode;
+        this._findAsYouType = msg.data.findAsYouType;
+        break;
+    }
+  },
+
+  handleEvent(event) {
+    switch (event.type) {
+      case "keypress":
+        this._onKeypress(event);
+        break;
+      case "mouseup":
+        this._onMouseup(event);
+        break;
+    }
+  },
+
+  
+
+
+
+  _shouldFastFind() {
+    
+    let focusedWindow = {};
+    let elt = Services.focus.getFocusedElementForWindow(content, true, focusedWindow);
+    let win = focusedWindow.value;
+    let {BrowserUtils} = Cu.import("resource://gre/modules/BrowserUtils.jsm", {});
+    return BrowserUtils.shouldFastFind(elt, win);
+  },
+
+  _onKeypress(event) {
+    
+    if (event.ctrlKey || event.altKey || event.metaKey || event.defaultPrevented) {
+      return;
+    }
+    
+    if (this._findMode == this.FIND_NORMAL && !this._findAsYouType &&
+        event.charCode != this.FAYT_LINKS_KEY && event.charCode != this.FAYT_TEXT_KEY) {
+      return;
+    }
+
+    
+    if (!this._shouldFastFind()) {
+      return;
+    }
+
+    let fakeEvent = {};
+    for (let k in event) {
+      if (typeof event[k] != "object" && typeof event[k] != "function") {
+        fakeEvent[k] = event[k];
+      }
+    }
+    
+    let rv = sendSyncMessage("Findbar:Keypress", fakeEvent);
+    if (rv.indexOf(false) !== -1) {
+      event.preventDefault();
+      return false;
+    }
+  },
+
+  _onMouseup(event) {
+    if (this._findMode != this.FIND_NORMAL)
+      sendAsyncMessage("Findbar:Mouseup");
+  },
+};
+FindBar.init();
