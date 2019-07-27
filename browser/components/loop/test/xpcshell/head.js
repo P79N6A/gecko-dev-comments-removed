@@ -135,7 +135,7 @@ let mockPushHandler = {
 
 
 
-function MockWebSocketChannel() {};
+function MockWebSocketChannel() {}
 
 MockWebSocketChannel.prototype = {
   QueryInterface: XPCOMUtils.generateQI(Ci.nsIWebSocketChannel),

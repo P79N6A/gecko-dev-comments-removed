@@ -288,7 +288,7 @@ const batch = function(operation, data, callback) {
     }
     callback(null, processed);
   });
-}
+};
 
 
 

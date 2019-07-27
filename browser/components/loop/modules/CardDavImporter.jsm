@@ -306,7 +306,7 @@ this.CardDavImporter.prototype = {
             
             
             nickname = value;
-          };
+          }
 
           if (name === "ADR") {
             value = value.replace(/\\;/g, "\r");
@@ -455,7 +455,7 @@ this.CardDavImporter.prototype = {
 
       req.onerror = function(error) {
         reject(error);
-      }
+      };
 
       req.send(body);
     });
