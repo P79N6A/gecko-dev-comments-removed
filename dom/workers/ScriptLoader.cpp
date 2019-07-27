@@ -1007,6 +1007,14 @@ private:
       if (NS_SUCCEEDED(rv)) {
         mWorkerPrivate->SetBaseURI(finalURI);
       }
+
+      nsIPrincipal* principal = mWorkerPrivate->GetPrincipal();
+      MOZ_ASSERT(principal);
+      nsILoadGroup* loadGroup = mWorkerPrivate->GetLoadGroup();
+      MOZ_ASSERT(loadGroup);
+      
+      
+      mWorkerPrivate->SetPrincipal(principal, loadGroup);
     }
 
     if (NS_SUCCEEDED(rv)) {
