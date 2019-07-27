@@ -1959,7 +1959,7 @@ pref("layout.css.overflow-clip-box.enabled", false);
 pref("layout.css.grid.enabled", false);
 
 
-pref("layout.css.box-decoration-break.enabled", false);
+pref("layout.css.box-decoration-break.enabled", true);
 
 
 pref("layout.css.outline-style-auto.enabled", false);
