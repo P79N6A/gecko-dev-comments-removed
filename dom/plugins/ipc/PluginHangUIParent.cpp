@@ -356,6 +356,7 @@ PluginHangUIParent::RecvUserResponse(const unsigned int& aResponse)
     mModule->TerminateChildProcess(mMainThreadMessageLoop);
     responseCode = 1;
   } else if(aResponse & HANGUI_USER_RESPONSE_CONTINUE) {
+    mModule->OnHangUIContinue();
     
     responseCode = 2;
   } else {
