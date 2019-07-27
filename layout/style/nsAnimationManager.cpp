@@ -349,10 +349,11 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
         
         
         
-        if (!oldPlayer->IsStylePaused() && newPlayer->IsPaused()) {
+        if (!oldPlayer->IsStylePaused() && newPlayer->IsPausedOrPausing()) {
           oldPlayer->PauseFromStyle();
           animationChanged = true;
-        } else if (oldPlayer->IsStylePaused() && !newPlayer->IsPaused()) {
+        } else if (oldPlayer->IsStylePaused() &&
+                   !newPlayer->IsPausedOrPausing()) {
           oldPlayer->PlayFromStyle();
           animationChanged = true;
         }
