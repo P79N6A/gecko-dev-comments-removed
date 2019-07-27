@@ -31,6 +31,11 @@ GetUserMediaLog()
 #include "AndroidBridge.h"
 #endif
 
+#ifdef MOZ_B2G_CAMERA
+#include "ICameraControl.h"
+#include "MediaEngineGonkVideoSource.h"
+#endif
+
 #undef LOG
 #define LOG(args) PR_LOG(GetUserMediaLog(), PR_LOG_DEBUG, args)
 
@@ -73,7 +78,7 @@ MediaEngineWebRTC::EnumerateVideoDevices(MediaSourceType aMediaSource,
   
   MutexAutoLock lock(mMutex);
 
- #ifdef MOZ_B2G_CAMERA
+#ifdef MOZ_B2G_CAMERA
   if (aMediaSource != MediaSourceType::Camera) {
     
     return;
@@ -101,13 +106,13 @@ MediaEngineWebRTC::EnumerateVideoDevices(MediaSourceType aMediaSource,
       continue;
     }
 
-    nsRefPtr<MediaEngineWebRTCVideoSource> vSource;
+    nsRefPtr<MediaEngineVideoSource> vSource;
     NS_ConvertUTF8toUTF16 uuid(cameraName);
     if (mVideoSources.Get(uuid, getter_AddRefs(vSource))) {
       
       aVSources->AppendElement(vSource.get());
     } else {
-      vSource = new MediaEngineWebRTCVideoSource(i, aMediaSource);
+      vSource = new MediaEngineGonkVideoSource(i);
       mVideoSources.Put(uuid, vSource); 
       aVSources->AppendElement(vSource);
     }
@@ -256,11 +261,11 @@ MediaEngineWebRTC::EnumerateVideoDevices(MediaSourceType aMediaSource,
       uniqueId[sizeof(uniqueId)-1] = '\0'; 
     }
 
-    nsRefPtr<MediaEngineWebRTCVideoSource> vSource;
+    nsRefPtr<MediaEngineVideoSource> vSource;
     NS_ConvertUTF8toUTF16 uuid(uniqueId);
     if (mVideoSources.Get(uuid, getter_AddRefs(vSource))) {
       
-      vSource->Refresh(i);
+      static_cast<MediaEngineWebRTCVideoSource*>(vSource.get())->Refresh(i);
       aVSources->AppendElement(vSource.get());
     } else {
       vSource = new MediaEngineWebRTCVideoSource(videoEngine, i, aMediaSource);

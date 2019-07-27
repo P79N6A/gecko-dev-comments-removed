@@ -1046,7 +1046,6 @@ static SourceSet *
 
 
 
-
 class GetUserMediaTask : public Task
 {
 public:
@@ -1125,18 +1124,6 @@ public:
     }
 
     
-    if (mConstraints.mPicture &&
-        (IsOn(mConstraints.mAudio) || IsOn(mConstraints.mVideo))) {
-      Fail(NS_LITERAL_STRING("NOT_SUPPORTED_ERR"));
-      return;
-    }
-
-    if (mConstraints.mPicture) {
-      ProcessGetUserMediaSnapshot(mVideoDevice->GetSource(), 0);
-      return;
-    }
-
-    
     ProcessGetUserMedia(((IsOn(mConstraints.mAudio) && mAudioDevice) ?
                          mAudioDevice->GetSource() : nullptr),
                         ((IsOn(mConstraints.mVideo) && mVideoDevice) ?
@@ -1204,7 +1191,7 @@ public:
   {
     MOZ_ASSERT(mSuccess);
     MOZ_ASSERT(mError);
-    if (mConstraints.mPicture || IsOn(mConstraints.mVideo)) {
+    if (IsOn(mConstraints.mVideo)) {
       VideoTrackConstraintsN constraints(GetInvariant(mConstraints.mVideo));
       ScopedDeletePtr<SourceSet> sources(GetSources(backend, constraints,
                                &MediaEngine::EnumerateVideoDevices));
@@ -1273,38 +1260,6 @@ public:
     NS_DispatchToMainThread(new GetUserMediaStreamRunnable(
       mSuccess, mError, mWindowID, mListener, aAudioSource, aVideoSource,
       peerIdentity
-    ));
-
-    MOZ_ASSERT(!mSuccess);
-    MOZ_ASSERT(!mError);
-
-    return;
-  }
-
-  
-
-
-
-  void
-  ProcessGetUserMediaSnapshot(MediaEngineVideoSource* aSource, int aDuration)
-  {
-    MOZ_ASSERT(mSuccess);
-    MOZ_ASSERT(mError);
-    nsresult rv = aSource->Allocate(GetInvariant(mConstraints.mVideo), mPrefs);
-    if (NS_FAILED(rv)) {
-      Fail(NS_LITERAL_STRING("HARDWARE_UNAVAILABLE"));
-      return;
-    }
-
-    
-
-
-    nsCOMPtr<nsIDOMFile> file;
-    aSource->Snapshot(aDuration, getter_AddRefs(file));
-    aSource->Deallocate();
-
-    NS_DispatchToMainThread(new SuccessCallbackRunnable(
-      mSuccess, mError, file, mWindowID
     ));
 
     MOZ_ASSERT(!mSuccess);
@@ -1594,35 +1549,6 @@ MediaManager::GetUserMedia(
 
   MediaStreamConstraints c(aConstraints); 
 
-  
-
-
-
-
-
-
-#if !defined(MOZ_WEBRTC)
-  if (c.mPicture && !privileged) {
-    if (aWindow->GetPopupControlState() > openControlled) {
-      nsCOMPtr<nsIPopupWindowManager> pm =
-        do_GetService(NS_POPUPWINDOWMANAGER_CONTRACTID);
-      if (!pm) {
-        return NS_OK;
-      }
-      uint32_t permission;
-      nsCOMPtr<nsIDocument> doc = aWindow->GetExtantDoc();
-      if (doc) {
-        pm->TestPermission(doc->NodePrincipal(), &permission);
-        if (permission == nsIPopupWindowManager::DENY_POPUP) {
-          aWindow->FirePopupBlockedEvent(doc, nullptr, EmptyString(),
-                                         EmptyString());
-          return NS_OK;
-        }
-      }
-    }
-  }
-#endif
-
   static bool created = false;
   if (!created) {
     
@@ -1748,15 +1674,6 @@ MediaManager::GetUserMedia(
 #ifdef MOZ_B2G_CAMERA
   if (mCameraManager == nullptr) {
     mCameraManager = nsDOMCameraManager::CreateInstance(aWindow);
-  }
-#endif
-
-#if defined(ANDROID) && !defined(MOZ_WIDGET_GONK)
-  if (c.mPicture) {
-    
-    
-    NS_DispatchToMainThread(new GetUserMediaRunnableWrapper(task.forget()));
-    return NS_OK;
   }
 #endif
 

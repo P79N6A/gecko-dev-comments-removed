@@ -113,12 +113,6 @@ public:
   virtual void SetDirectListeners(bool) = 0;
 
   
-
-
-
-  virtual nsresult Snapshot(uint32_t aDuration, nsIDOMFile** aFile) = 0;
-
-  
   virtual void NotifyPull(MediaStreamGraph* aGraph,
                           SourceMediaStream *aSource,
                           TrackID aId,
@@ -178,6 +172,8 @@ public:
 
 
 protected:
+  
+  explicit MediaEngineSource(MediaEngineState aState) : mState(aState) {}
   MediaEngineState mState;
 };
 
@@ -231,12 +227,14 @@ class MediaEngineVideoSource : public MediaEngineSource
 public:
   virtual ~MediaEngineVideoSource() {}
 
-  virtual const MediaSourceType GetMediaSource() {
-      return MediaSourceType::Camera;
-  }
   
   virtual nsresult Allocate(const VideoTrackConstraintsN &aConstraints,
                             const MediaEnginePrefs &aPrefs) = 0;
+protected:
+  explicit MediaEngineVideoSource(MediaEngineState aState)
+    : MediaEngineSource(aState) {}
+  MediaEngineVideoSource()
+    : MediaEngineSource(kReleased) {}
 };
 
 
@@ -250,6 +248,11 @@ public:
   
   virtual nsresult Allocate(const AudioTrackConstraintsN &aConstraints,
                             const MediaEnginePrefs &aPrefs) = 0;
+protected:
+  explicit MediaEngineAudioSource(MediaEngineState aState)
+    : MediaEngineSource(aState) {}
+  MediaEngineAudioSource()
+    : MediaEngineSource(kReleased) {}
 
 };
 
