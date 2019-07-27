@@ -1018,7 +1018,7 @@ GetCompositorSideCompositionBounds(ContainerLayer* aScrollAncestor,
   
   transform = transform * layerTransform;
   return TransformTo<LayerPixel>(transform.Inverse(),
-            ParentLayerRect(aScrollAncestor->GetFrameMetrics().mCompositionBounds));
+            aScrollAncestor->GetFrameMetrics().mCompositionBounds);
 }
 
 bool

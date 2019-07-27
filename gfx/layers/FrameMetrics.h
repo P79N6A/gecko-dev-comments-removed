@@ -34,6 +34,7 @@ struct ParentLayerPixel {};
 
 template<> struct IsPixel<ParentLayerPixel> : TrueType {};
 
+typedef gfx::MarginTyped<ParentLayerPixel> ParentLayerMargin;
 typedef gfx::PointTyped<ParentLayerPixel> ParentLayerPoint;
 typedef gfx::RectTyped<ParentLayerPixel> ParentLayerRect;
 typedef gfx::SizeTyped<ParentLayerPixel> ParentLayerSize;
@@ -192,8 +193,8 @@ public:
   CSSToScreenScale CalculateIntrinsicScale() const
   {
     return CSSToScreenScale(
-        std::max(float(mCompositionBounds.width) / mViewport.width,
-                 float(mCompositionBounds.height) / mViewport.height));
+        std::max(mCompositionBounds.width / mViewport.width,
+                 mCompositionBounds.height / mViewport.height));
   }
 
   
@@ -259,7 +260,7 @@ public:
   
   
   
-  ParentLayerIntRect mCompositionBounds;
+  ParentLayerRect mCompositionBounds;
 
   
   

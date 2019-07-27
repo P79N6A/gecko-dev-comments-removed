@@ -2637,9 +2637,9 @@ CalculateFrameMetricsForDisplayPort(nsIFrame* aScrollFrame,
   
   nsSize compositionSize = nsLayoutUtils::CalculateCompositionSizeForFrame(aScrollFrame);
   metrics.mCompositionBounds
-      = RoundedToInt(LayoutDeviceRect::FromAppUnits(nsRect(nsPoint(0, 0), compositionSize),
-                                                    presContext->AppUnitsPerDevPixel())
-                     * (cumulativeResolution / resolution));
+      = LayoutDeviceRect::FromAppUnits(nsRect(nsPoint(0, 0), compositionSize),
+                                       presContext->AppUnitsPerDevPixel())
+      * (cumulativeResolution / resolution);
 
   
   
@@ -6583,7 +6583,7 @@ nsLayoutUtils::CalculateRootCompositionSize(nsIFrame* aFrame,
 {
 
   if (aIsRootContentDocRootScrollFrame) {
-    return ViewAs<LayerPixel>(ParentLayerSize(aMetrics.mCompositionBounds.Size()),
+    return ViewAs<LayerPixel>(aMetrics.mCompositionBounds.Size(),
                               PixelCastJustification::ParentLayerToLayerForRootComposition)
            / aMetrics.LayersPixelsPerCSSPixel();
   }

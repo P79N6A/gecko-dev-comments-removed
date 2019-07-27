@@ -724,8 +724,8 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
   nsIFrame* frameForCompositionBoundsCalculation = aScrollFrame ? aScrollFrame : aForFrame;
   nsRect compositionBounds(frameForCompositionBoundsCalculation->GetOffsetToCrossDoc(aReferenceFrame),
                            frameForCompositionBoundsCalculation->GetSize());
-  metrics.mCompositionBounds = RoundedToInt(LayoutDeviceRect::FromAppUnits(compositionBounds, auPerDevPixel)
-                                            * layoutToParentLayerScale);
+  metrics.mCompositionBounds = LayoutDeviceRect::FromAppUnits(compositionBounds, auPerDevPixel)
+                                * layoutToParentLayerScale;
 
   
   
@@ -742,8 +742,8 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
     if (nsIFrame* rootFrame = presShell->GetRootFrame()) {
       if (nsView* view = rootFrame->GetView()) {
         nsRect viewBoundsAppUnits = view->GetBounds() + rootFrame->GetOffsetToCrossDoc(aReferenceFrame);
-        ParentLayerIntRect viewBounds = RoundedToInt(LayoutDeviceRect::FromAppUnits(viewBoundsAppUnits, auPerDevPixel)
-                                                     * layoutToParentLayerScale);
+        ParentLayerRect viewBounds = LayoutDeviceRect::FromAppUnits(viewBoundsAppUnits, auPerDevPixel)
+                                     * layoutToParentLayerScale;
 
         
         
@@ -763,7 +763,7 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
         if (widget) {
           nsIntRect widgetBounds;
           widget->GetBounds(widgetBounds);
-          metrics.mCompositionBounds = ViewAs<ParentLayerPixel>(widgetBounds);
+          metrics.mCompositionBounds = ParentLayerRect(ViewAs<ParentLayerPixel>(widgetBounds));
 #ifdef MOZ_WIDGET_ANDROID
           if (viewBounds.height < metrics.mCompositionBounds.height) {
             metrics.mCompositionBounds.height = viewBounds.height;
@@ -780,7 +780,7 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
   if (scrollableFrame && !LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars)) {
     nsMargin sizes = scrollableFrame->GetActualScrollbarSizes();
     
-    ParentLayerIntMargin boundMargins = RoundedToInt(CSSMargin::FromAppUnits(sizes) * CSSToParentLayerScale(1.0f));
+    ParentLayerMargin boundMargins = CSSMargin::FromAppUnits(sizes) * CSSToParentLayerScale(1.0f);
     metrics.mCompositionBounds.Deflate(boundMargins);
   }
 
