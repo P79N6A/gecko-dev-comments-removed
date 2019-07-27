@@ -383,14 +383,20 @@ bool Channel::ChannelImpl::EnqueueHelloMessage() {
   return true;
 }
 
-static void
-ClearAndShrink(std::string& s, size_t capacity)
+void Channel::ChannelImpl::ClearAndShrinkInputOverflowBuf()
 {
   
-  
-  std::string tmp;
-  tmp.reserve(capacity);
-  s.swap(tmp);
+  static size_t previousCapacityAfterClearing = 0;
+  if (input_overflow_buf_.capacity() > previousCapacityAfterClearing) {
+    
+    
+    std::string tmp;
+    tmp.reserve(Channel::kReadBufferSize);
+    input_overflow_buf_.swap(tmp);
+    previousCapacityAfterClearing = input_overflow_buf_.capacity();
+  } else {
+    input_overflow_buf_.clear();
+  }
 }
 
 bool Channel::ChannelImpl::Connect() {
@@ -519,7 +525,7 @@ bool Channel::ChannelImpl::ProcessIncomingMessages() {
     } else {
       if (input_overflow_buf_.size() >
          static_cast<size_t>(kMaximumMessageSize - bytes_read)) {
-        ClearAndShrink(input_overflow_buf_, Channel::kReadBufferSize);
+        ClearAndShrinkInputOverflowBuf();
         CHROMIUM_LOG(ERROR) << "IPC message is too big";
         return false;
       }
@@ -628,7 +634,7 @@ bool Channel::ChannelImpl::ProcessIncomingMessages() {
       }
     }
     if (end == p) {
-      ClearAndShrink(input_overflow_buf_, Channel::kReadBufferSize);
+      ClearAndShrinkInputOverflowBuf();
     } else if (!overflowp) {
       
       input_overflow_buf_.assign(p, end - p);

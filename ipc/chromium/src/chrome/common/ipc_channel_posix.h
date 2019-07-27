@@ -59,6 +59,8 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
   bool ProcessIncomingMessages();
   bool ProcessOutgoingMessages();
 
+  void ClearAndShrinkInputOverflowBuf();
+
   
   virtual void OnFileCanReadWithoutBlocking(int fd);
   virtual void OnFileCanWriteWithoutBlocking(int fd);
