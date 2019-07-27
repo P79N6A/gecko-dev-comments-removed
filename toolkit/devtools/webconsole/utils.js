@@ -39,8 +39,6 @@ const CONSOLE_ENTRY_THRESHOLD = 5;
 
 const MAX_AUTOCOMPLETE_ATTEMPTS = exports.MAX_AUTOCOMPLETE_ATTEMPTS = 100000;
 
-const CONSOLE_WORKER_IDS = exports.CONSOLE_WORKER_IDS = [ 'SharedWorker', 'ServiceWorker', 'Worker' ];
-
 
 const MAX_AUTOCOMPLETIONS = exports.MAX_AUTOCOMPLETIONS = 1500;
 
@@ -1448,7 +1446,7 @@ ConsoleAPIListener.prototype =
     }
 
     let apiMessage = aMessage.wrappedJSObject;
-    if (this.window && CONSOLE_WORKER_IDS.indexOf(apiMessage.innerID) == -1) {
+    if (this.window) {
       let msgWindow = Services.wm.getCurrentInnerWindowWithId(apiMessage.innerID);
       if (!msgWindow || !this.layoutHelpers.isIncludedInTopLevelWindow(msgWindow)) {
         
@@ -1488,20 +1486,9 @@ ConsoleAPIListener.prototype =
       });
     }
 
-    CONSOLE_WORKER_IDS.forEach((id) => {
-      messages = messages.concat(ConsoleAPIStorage.getEvents(id));
-    });
-
     if (this.consoleID) {
       messages = messages.filter((m) => m.consoleID == this.consoleID);
     }
-
-    
-    
-    
-    messages = messages.sort(function(a, b) {
-      return a.timeStamp - b.timeStamp;
-    });
 
     if (aIncludePrivate) {
       return messages;
