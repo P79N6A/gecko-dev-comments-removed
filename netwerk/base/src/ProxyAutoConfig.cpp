@@ -485,7 +485,11 @@ bool PACProxyAlert(JSContext *cx, unsigned int argc, JS::Value *vp)
 
 static const JSFunctionSpec PACGlobalFunctions[] = {
   JS_FS("dnsResolve", PACDnsResolve, 1, 0),
+
+  
+  
   JS_FS("myIpAddress", PACMyIpAddress, 0, 0),
+
   JS_FS("alert", PACProxyAlert, 1, 0),
   JS_FS_END
 };
@@ -834,14 +838,31 @@ ProxyAutoConfig::MyIPAddress(const JS::CallArgs &aArgs)
   nsAutoCString remoteDottedDecimal;
   nsAutoCString localDottedDecimal;
   JSContext *cx = mJSRuntime->Context();
+  JS::RootedValue v(cx);
+  JS::Rooted<JSObject*> global(cx, mJSRuntime->Global());
+
+  bool useMultihomedDNS =
+    JS_GetProperty(cx,  global, "pacUseMultihomedDNS", &v) &&
+    !v.isUndefined() && ToBoolean(v);
 
   
   
   
   bool rvalAssigned = false;
-  if (!MyIPAddressTryHost(mRunningHost, kTimeout, aArgs, &rvalAssigned) ||
-      rvalAssigned) {
-    return rvalAssigned;
+  if (useMultihomedDNS) {
+    if (!MyIPAddressTryHost(mRunningHost, kTimeout, aArgs, &rvalAssigned) ||
+        rvalAssigned) {
+      return rvalAssigned;
+    }
+  } else {
+    
+    PRNetAddr tempAddr;
+    memset(&tempAddr, 0, sizeof(PRNetAddr));
+    if ((PR_StringToNetAddr(mRunningHost.get(), &tempAddr) == PR_SUCCESS) &&
+        (!MyIPAddressTryHost(mRunningHost, kTimeout, aArgs, &rvalAssigned) ||
+         rvalAssigned)) {
+      return rvalAssigned;
+    }
   }
 
   
@@ -857,8 +878,11 @@ ProxyAutoConfig::MyIPAddress(const JS::CallArgs &aArgs)
   
   nsAutoCString hostName;
   nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID);
+  
+  
+  uint32_t timeout = useMultihomedDNS ? kTimeout : 1;
   if (dns && NS_SUCCEEDED(dns->GetMyHostName(hostName)) &&
-      PACResolveToString(hostName, localDottedDecimal, kTimeout)) {
+      PACResolveToString(hostName, localDottedDecimal, timeout)) {
     JSString *dottedDecimalString =
       JS_NewStringCopyZ(cx, localDottedDecimal.get());
     if (!dottedDecimalString) {

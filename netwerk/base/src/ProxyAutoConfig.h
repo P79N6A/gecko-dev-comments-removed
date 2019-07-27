@@ -77,7 +77,8 @@ public:
                           nsACString &result);
 
 private:
-  const static unsigned int kTimeout = 1000; 
+  
+  const static unsigned int kTimeout = 665;
 
   
   nsresult SetupJS();
