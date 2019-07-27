@@ -4929,6 +4929,8 @@ pref("reader.toolbar.vertical", true);
 pref("media.gmp.insecure.allow", false);
 #endif
 
+pref("dom.audiochannel.mutedByDefault", false);
+
 
 
 
