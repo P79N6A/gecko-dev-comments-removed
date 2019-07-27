@@ -192,6 +192,14 @@ class FreeSpan
         return !first;
     }
 
+    static size_t offsetOfFirst() {
+        return offsetof(FreeSpan, first);
+    }
+
+    static size_t offsetOfLast() {
+        return offsetof(FreeSpan, last);
+    }
+
     
     FreeSpan *nextSpanUnchecked() const {
         return reinterpret_cast<FreeSpan *>(last);
