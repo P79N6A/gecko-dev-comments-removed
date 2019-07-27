@@ -30,12 +30,7 @@ const PROPERTY_NAME_CLASS = "ruleview-propertyname";
 const FILTER_CHANGED_TIMEOUT = 150;
 
 
-
-
-
-
-
-const CSS_PROP_RE = /\s*([^:\s]*)\s*:\s*(.*?)\s*(?:! (important))?;?$/;
+const FILTER_PROP_RE = /\s*([^:\s]*)\s*:\s*(.*?)\s*;?$/;
 
 const IOService = Cc["@mozilla.org/network/io-service;1"]
                   .getService(Ci.nsIIOService);
@@ -2094,7 +2089,7 @@ CssRuleView.prototype = {
     
     
     
-    let propertyMatch = CSS_PROP_RE.exec(aValue);
+    let propertyMatch = FILTER_PROP_RE.exec(aValue);
     let name = propertyMatch ? propertyMatch[1] : aValue;
     let value = propertyMatch ? propertyMatch[2] : aValue;
 
