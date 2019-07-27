@@ -2942,6 +2942,18 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
             ? nsLayoutUtils::FindOrCreateIDFor(mScrolledFrame->GetContent())
             : aBuilder->GetCurrentScrollParentId());
     DisplayListClipState::AutoSaveRestore clipState(aBuilder);
+    if (!mIsRoot || !usingDisplayport) {
+      nsRect clip = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
+      nscoord radii[8];
+      bool haveRadii = mOuter->GetPaddingBoxBorderRadii(radii);
+      
+      
+      if (mClipAllDescendants) {
+        clipState.ClipContentDescendants(clip, haveRadii ? radii : nullptr);
+      } else {
+        clipState.ClipContainingBlockDescendants(clip, haveRadii ? radii : nullptr);
+      }
+    }
 
     if (usingDisplayport) {
       
@@ -2962,17 +2974,6 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       
       
       clipState.Clear();
-    } else {
-      nsRect clip = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
-      nscoord radii[8];
-      bool haveRadii = mOuter->GetPaddingBoxBorderRadii(radii);
-      
-      
-      if (mClipAllDescendants) {
-        clipState.ClipContentDescendants(clip, haveRadii ? radii : nullptr);
-      } else {
-        clipState.ClipContainingBlockDescendants(clip, haveRadii ? radii : nullptr);
-      }
     }
 
     aBuilder->StoreDirtyRectForScrolledContents(mOuter, dirtyRect);
