@@ -211,20 +211,6 @@ class MessageChannel : HasResultCodes
     
     void DispatchOnChannelConnected();
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    bool SendAndWait(Message* aMsg, Message* aReply);
-
     bool InterruptEventOccurred();
 
     bool ProcessPendingRequest(const Message &aUrgent);
@@ -501,13 +487,13 @@ class MessageChannel : HasResultCodes
     class AutoEnterTransaction
     {
       public:
-       explicit AutoEnterTransaction(MessageChannel *aChan)
+       explicit AutoEnterTransaction(MessageChannel *aChan, int32_t aMsgSeqno)
         : mChan(aChan),
           mOldTransaction(mChan->mCurrentTransaction)
        {
            mChan->mMonitor->AssertCurrentThreadOwns();
            if (mChan->mCurrentTransaction == 0)
-               mChan->mCurrentTransaction = mChan->NextSeqno();
+               mChan->mCurrentTransaction = aMsgSeqno;
        }
        explicit AutoEnterTransaction(MessageChannel *aChan, const Message &aMessage)
         : mChan(aChan),
