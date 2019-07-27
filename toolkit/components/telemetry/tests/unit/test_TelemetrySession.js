@@ -1008,6 +1008,56 @@ add_task(function* test_dailyDuplication() {
   yield TelemetrySession.shutdown();
 });
 
+add_task(function* test_dailyOverdue() {
+  if (gIsAndroid) {
+    
+    return;
+  }
+
+  let schedulerTickCallback = null;
+  let now = new Date(2030, 1, 1, 11, 0, 0);
+  fakeNow(now);
+  
+  fakeSchedulerTimer(callback => schedulerTickCallback = callback, () => {});
+  yield TelemetrySession.setup();
+
+  
+  now.setHours(now.getHours() + 1);
+  fakeNow(now);
+
+  
+  registerPingHandler((req, res) => {
+    Assert.ok(false, "No daily ping should be received if not overdue!.");
+  });
+
+  
+  Assert.ok(!!schedulerTickCallback);
+  yield schedulerTickCallback();
+
+  
+  gRequestIterator = Iterator(new Request());
+
+  
+  
+  let dailyOverdue = new Date(2030, 1, 2, 13, 00, 0);
+  fakeNow(dailyOverdue);
+
+  
+  Assert.ok(!!schedulerTickCallback);
+  yield schedulerTickCallback();
+
+  
+  let request = yield gRequestIterator.next();
+  Assert.ok(!!request);
+  let ping = decodeRequestPayload(request);
+
+  Assert.equal(ping.type, PING_TYPE_MAIN);
+  Assert.equal(ping.payload.info.reason, REASON_DAILY);
+
+  
+  yield TelemetrySession.shutdown();
+});
+
 add_task(function* test_environmentChange() {
   if (gIsAndroid) {
     
