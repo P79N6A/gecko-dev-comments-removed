@@ -1397,7 +1397,7 @@ private:
   {
     
     return aWorkerPrivate->ModifyBusyCount(aCx, true) &&
-           aWorkerPrivate->Close(aCx);
+           aWorkerPrivate->Close();
   }
 };
 
@@ -3246,7 +3246,7 @@ WorkerPrivateParent<Derived>::Thaw(JSContext* aCx, nsPIDOMWindow* aWindow)
 
 template <class Derived>
 bool
-WorkerPrivateParent<Derived>::Close(JSContext* aCx)
+WorkerPrivateParent<Derived>::Close()
 {
   AssertIsOnParentThread();
 
