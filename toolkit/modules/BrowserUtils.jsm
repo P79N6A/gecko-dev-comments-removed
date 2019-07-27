@@ -2,6 +2,7 @@
 
 
 
+
 "use strict";
 
 this.EXPORTED_SYMBOLS = [ "BrowserUtils" ];
@@ -203,5 +204,25 @@ this.BrowserUtils = {
                         replace(/[\s\d\.\-\_\(\)]+$/, "").
                         replace(/\bplug-?in\b/i, "").trim();
     return newName;
+  },
+
+  
+
+
+
+
+
+  linkHasNoReferrer: function (linkNode) {
+    if (!linkNode)
+      return false;
+
+    let rel = linkNode.getAttribute("rel");
+    if (!rel)
+      return false;
+
+    
+    
+    let values = rel.split(/[ \t\r\n\f]/);
+    return values.indexOf('noreferrer') != -1;
   },
 };

@@ -2,6 +2,7 @@
 
 
 
+
 "use strict";
 
 let Cc = Components.classes;
@@ -67,8 +68,10 @@ let ContentClick = {
 
     
 
-    window.openLinkIn(json.href, where, { referrerURI: browser.documentURI,
-                                          charset: browser.characterSet });
+    let params = { charset: browser.characterSet };
+    if (!json.noReferrer)
+      params.referrerURI = browser.documentURI;
+    window.openLinkIn(json.href, where, params);
 
     
     
