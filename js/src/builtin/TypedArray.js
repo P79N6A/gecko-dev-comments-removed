@@ -114,7 +114,7 @@ function TypedArrayFindIndex(predicate, thisArg = undefined) {
 }
 
 
-function TypedArrayIndexOf(searchElement, fromIndex = undefined) {
+function TypedArrayIndexOf(searchElement, fromIndex = 0) {
     
     if (!IsObject(this) || !IsTypedArray(this)) {
         return callFunction(CallTypedArrayMethodIfWrapped, this, searchElement, fromIndex,

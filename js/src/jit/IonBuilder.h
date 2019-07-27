@@ -777,6 +777,10 @@ class IonBuilder
     InliningStatus inlineForkJoinGetSlice(CallInfo &callInfo);
 
     
+    InliningStatus inlineIsTypedArray(CallInfo &callInfo);
+    InliningStatus inlineTypedArrayLength(CallInfo &callInfo);
+
+    
     InliningStatus inlineObjectIsTypeDescr(CallInfo &callInfo);
     InliningStatus inlineSetTypedObjectOffset(CallInfo &callInfo);
     bool elementAccessIsTypedObjectArrayOfScalarType(MDefinition* obj, MDefinition* id,
