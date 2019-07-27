@@ -10,6 +10,7 @@
 
 
 #include "mozilla/Preferences.h"
+#include "mozilla/StaticPtr.h"
 
 
 #include "nsILayoutHistoryState.h"
@@ -178,7 +179,7 @@ protected:
   ~nsSHistoryObserver() {}
 };
 
-static nsSHistoryObserver* gObserver = nullptr;
+StaticRefPtr<nsSHistoryObserver> gObserver;
 
 NS_IMPL_ISUPPORTS(nsSHistoryObserver, nsIObserver)
 
@@ -360,7 +361,6 @@ nsSHistory::Startup()
   
   if (!gObserver) {
     gObserver = new nsSHistoryObserver();
-    NS_ADDREF(gObserver);
     Preferences::AddStrongObservers(gObserver, kObservedPrefs);
 
     nsCOMPtr<nsIObserverService> obsSvc =
@@ -393,7 +393,7 @@ nsSHistory::Shutdown()
       obsSvc->RemoveObserver(gObserver, "cacheservice:empty-cache");
       obsSvc->RemoveObserver(gObserver, "memory-pressure");
     }
-    NS_RELEASE(gObserver);
+    gObserver = nullptr;
   }
 }
 
