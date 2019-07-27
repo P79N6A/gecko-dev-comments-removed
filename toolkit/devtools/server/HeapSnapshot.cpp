@@ -461,6 +461,10 @@ class MOZ_STACK_CLASS HeapSnapshotHandler
   JS::ZoneSet*    zones;
 
 public:
+  
+  uint32_t nodeCount;
+  uint32_t edgeCount;
+
   HeapSnapshotHandler(CoreDumpWriter& writer,
                       JS::ZoneSet* zones)
     : writer(writer),
@@ -477,6 +481,8 @@ public:
                    NodeData*,
                    bool first)
   {
+    edgeCount++;
+
     
     
     
@@ -485,6 +491,8 @@ public:
     
     if (!first)
       return true;
+
+    nodeCount++;
 
     const JS::ubi::Node& referent = edge.referent;
 
@@ -534,8 +542,17 @@ WriteHeapGraph(JSContext* cx,
     return false;
   traversal.wantNames = wantNames;
 
-  return traversal.addStartVisited(node) &&
-    traversal.traverse();
+  bool ok = traversal.addStartVisited(node) &&
+            traversal.traverse();
+
+  if (ok) {
+    Telemetry::Accumulate(Telemetry::DEVTOOLS_HEAP_SNAPSHOT_NODE_COUNT,
+                          handler.nodeCount);
+    Telemetry::Accumulate(Telemetry::DEVTOOLS_HEAP_SNAPSHOT_EDGE_COUNT,
+                          handler.edgeCount);
+  }
+
+  return ok;
 }
 
 } 
