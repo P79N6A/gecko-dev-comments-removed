@@ -134,6 +134,11 @@ public:
   void OnSocketCanReceiveWithoutBlocking() MOZ_OVERRIDE;
   void OnSocketCanSendWithoutBlocking() MOZ_OVERRIDE;
 
+  SocketConsumerBase* GetConsumer()
+  {
+    return mConsumer.get();
+  }
+
 private:
   
   static bool SetSocketFlags(int aFd);
@@ -194,47 +199,6 @@ public:
 
 private:
   T* mInstance;
-};
-
-class OnSocketEventRunnable : public SocketIORunnable<UnixSocketImpl>
-{
-public:
-  enum SocketEvent {
-    CONNECT_SUCCESS,
-    CONNECT_ERROR,
-    DISCONNECT
-  };
-
-  OnSocketEventRunnable(UnixSocketImpl* aImpl, SocketEvent e)
-  : SocketIORunnable<UnixSocketImpl>(aImpl)
-  , mEvent(e)
-  {
-    MOZ_ASSERT(!NS_IsMainThread());
-  }
-
-  NS_IMETHOD Run() MOZ_OVERRIDE
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-
-    UnixSocketImpl* impl = GetIO();
-
-    if (impl->IsShutdownOnMainThread()) {
-      NS_WARNING("CloseSocket has already been called!");
-      
-      
-      return NS_OK;
-    }
-    if (mEvent == CONNECT_SUCCESS) {
-      impl->mConsumer->NotifySuccess();
-    } else if (mEvent == CONNECT_ERROR) {
-      impl->mConsumer->NotifyError();
-    } else if (mEvent == DISCONNECT) {
-      impl->mConsumer->NotifyDisconnect();
-    }
-    return NS_OK;
-  }
-private:
-  SocketEvent mEvent;
 };
 
 class SocketReceiveRunnable : public SocketIORunnable<UnixSocketImpl>
@@ -436,8 +400,10 @@ UnixSocketImpl::FireSocketError()
   Close();
 
   
-  nsRefPtr<OnSocketEventRunnable> r =
-    new OnSocketEventRunnable(this, OnSocketEventRunnable::CONNECT_ERROR);
+  nsRefPtr<nsRunnable> r =
+    new SocketIOEventRunnable<UnixSocketImpl>(
+      this, SocketIOEventRunnable<UnixSocketImpl>::CONNECT_ERROR);
+
   NS_DispatchToMainThread(r);
 }
 
@@ -566,8 +532,9 @@ UnixSocketImpl::OnAccepted(int aFd,
   }
   SetSocket(aFd, SOCKET_IS_CONNECTED);
 
-  nsRefPtr<OnSocketEventRunnable> r =
-    new OnSocketEventRunnable(this, OnSocketEventRunnable::CONNECT_SUCCESS);
+  nsRefPtr<nsRunnable> r =
+    new SocketIOEventRunnable<UnixSocketImpl>(
+      this, SocketIOEventRunnable<UnixSocketImpl>::CONNECT_SUCCESS);
   NS_DispatchToMainThread(r);
 
   AddWatchers(READ_WATCHER, true);
@@ -594,8 +561,9 @@ UnixSocketImpl::OnConnected()
     return;
   }
 
-  nsRefPtr<OnSocketEventRunnable> r =
-    new OnSocketEventRunnable(this, OnSocketEventRunnable::CONNECT_SUCCESS);
+  nsRefPtr<nsRunnable> r =
+    new SocketIOEventRunnable<UnixSocketImpl>(
+      this, SocketIOEventRunnable<UnixSocketImpl>::CONNECT_SUCCESS);
   NS_DispatchToMainThread(r);
 
   AddWatchers(READ_WATCHER, true);
