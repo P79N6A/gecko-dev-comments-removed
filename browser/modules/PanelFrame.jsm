@@ -183,9 +183,7 @@ let PanelFrame = {
       }
     });
 
-    
-    let anchor = aWindow.document.getAnonymousElementByAttribute(anchorBtn, "class", "toolbarbutton-badge-container") ||
-                 aWindow.document.getAnonymousElementByAttribute(anchorBtn, "class", "toolbarbutton-icon");
+    let anchor = aWindow.document.getAnonymousElementByAttribute(anchorBtn, "class", "toolbarbutton-icon");
     
     
     Services.tm.mainThread.dispatch(function() {
