@@ -3099,6 +3099,7 @@ nsFrame::PeekBackwardAndForward(nsSelectionAmount aAmountBack,
                            aJumpLines,
                            true,  
                            false,
+                           false,
                            false);
     rv = PeekOffset(&pos);
     if (NS_SUCCEEDED(rv)) {
@@ -3115,6 +3116,7 @@ nsFrame::PeekBackwardAndForward(nsSelectionAmount aAmountBack,
                               aJumpLines,
                               true,  
                               false,
+                              false,
                               false);
   rv = baseFrame->PeekOffset(&startpos);
   if (NS_FAILED(rv))
@@ -3126,6 +3128,7 @@ nsFrame::PeekBackwardAndForward(nsSelectionAmount aAmountBack,
                             nsPoint(0, 0),
                             aJumpLines,
                             true,  
+                            false,
                             false,
                             false);
   rv = PeekOffset(&endpos);
@@ -6491,10 +6494,12 @@ nsIFrame::PeekOffset(nsPeekOffsetStruct* aPos)
         movedOverNonSelectableText |= (peekSearchState == CONTINUE_UNSELECTABLE);
 
         if (peekSearchState != FOUND) {
+          bool movedOverNonSelectable = false;
           result =
             current->GetFrameFromDirection(aPos->mDirection, aPos->mVisual,
                                            aPos->mJumpLines, aPos->mScrollViewStop,
-                                           &current, &offset, &jumpedLine);
+                                           &current, &offset, &jumpedLine,
+                                           &movedOverNonSelectable);
           if (NS_FAILED(result))
             return result;
 
@@ -6502,11 +6507,18 @@ nsIFrame::PeekOffset(nsPeekOffsetStruct* aPos)
           
           if (jumpedLine)
             eatingNonRenderableWS = true;
+
+          
+          if (movedOverNonSelectable) {
+            movedOverNonSelectableText = true;
+          }
         }
 
         
         
-        if (peekSearchState == FOUND && movedOverNonSelectableText)
+        
+        if (peekSearchState == FOUND && movedOverNonSelectableText &&
+            !aPos->mExtend)
         {
           int32_t start, end;
           current->GetOffsets(start, end);
@@ -6584,11 +6596,12 @@ nsIFrame::PeekOffset(nsPeekOffsetStruct* aPos)
         if (!done) {
           nsIFrame* nextFrame;
           int32_t nextFrameOffset;
-          bool jumpedLine;
+          bool jumpedLine, movedOverNonSelectableText;
           result =
             current->GetFrameFromDirection(aPos->mDirection, aPos->mVisual,
                                            aPos->mJumpLines, aPos->mScrollViewStop,
-                                           &nextFrame, &nextFrameOffset, &jumpedLine);
+                                           &nextFrame, &nextFrameOffset, &jumpedLine,
+                                           &movedOverNonSelectableText);
           
           
           if (NS_FAILED(result) ||
@@ -6936,8 +6949,9 @@ nsFrame::GetLineNumber(nsIFrame *aFrame, bool aLockScroll, nsIFrame** aContainin
 
 nsresult
 nsIFrame::GetFrameFromDirection(nsDirection aDirection, bool aVisual,
-                                bool aJumpLines, bool aScrollViewStop, 
-                                nsIFrame** aOutFrame, int32_t* aOutOffset, bool* aOutJumpedLine)
+                                bool aJumpLines, bool aScrollViewStop,
+                                nsIFrame** aOutFrame, int32_t* aOutOffset,
+                                bool* aOutJumpedLine, bool* aOutMovedOverNonSelectableText)
 {
   nsresult result;
 
@@ -6948,6 +6962,7 @@ nsIFrame::GetFrameFromDirection(nsDirection aDirection, bool aVisual,
   *aOutFrame = nullptr;
   *aOutOffset = 0;
   *aOutJumpedLine = false;
+  *aOutMovedOverNonSelectableText = false;
 
   
   bool selectable = false;
@@ -7037,6 +7052,9 @@ nsIFrame::GetFrameFromDirection(nsDirection aDirection, bool aVisual,
       return NS_ERROR_FAILURE;
 
     traversedFrame->IsSelectable(&selectable, nullptr);
+    if (!selectable) {
+      *aOutMovedOverNonSelectableText = true;
+    }
   } 
 
   *aOutOffset = (aDirection == eDirNext) ? 0 : -1;

@@ -68,6 +68,7 @@ struct MOZ_STACK_CLASS nsPeekOffsetStruct
                      bool aScrollViewStop,
                      bool aIsKeyboardSelect,
                      bool aVisual,
+                     bool aExtend,
                      mozilla::EWordMovementType aWordMovementType = mozilla::eDefaultBehavior);
 
   
@@ -122,6 +123,9 @@ struct MOZ_STACK_CLASS nsPeekOffsetStruct
   
   
   bool mVisual;
+
+  
+  bool mExtend;
 
   
 
