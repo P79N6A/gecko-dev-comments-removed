@@ -3069,7 +3069,7 @@ static const JSWrapObjectCallbacks WrapObjectCallbacks = {
 };
 
 XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
-   : CycleCollectedJSRuntime(nullptr, 32L * 1024L * 1024L),
+   : CycleCollectedJSRuntime(nullptr, JS::UnlimitedHeapMaxBytes),
    mJSContextStack(new XPCJSContextStack(MOZ_THIS_IN_INITIALIZER_LIST())),
    mCallContext(nullptr),
    mAutoRoots(nullptr),
@@ -3107,14 +3107,6 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
     auto rtPrivate = new PerThreadAtomCache();
     memset(rtPrivate, 0, sizeof(PerThreadAtomCache));
     JS_SetRuntimePrivate(runtime, rtPrivate);
-
-    
-    
-    
-    
-    
-    
-    JS_SetGCParameter(runtime, JSGC_MAX_BYTES, 0xffffffff);
 
     
     
