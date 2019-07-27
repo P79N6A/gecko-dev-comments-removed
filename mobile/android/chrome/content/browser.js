@@ -109,9 +109,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "SharedPreferences",
 XPCOMUtils.defineLazyModuleGetter(this, "Notifications",
                                   "resource://gre/modules/Notifications.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "AboutReader",
-                                  "resource://gre/modules/AboutReader.jsm");
-
 XPCOMUtils.defineLazyModuleGetter(this, "ReaderMode",
                                   "resource://gre/modules/ReaderMode.jsm");
 
@@ -507,6 +504,8 @@ var BrowserApp = {
     } catch (e) {
       
     }
+
+    window.messageManager.loadFrameScript("chrome://browser/content/content.js", true);
 
     
     Messaging.sendRequest({ type: "Gecko:Ready" });
@@ -3978,14 +3977,6 @@ Tab.prototype = {
         }
 
         if (docURI.startsWith("about:reader")) {
-          
-          
-          
-          
-          let contentDocument = this.browser.contentDocument;
-          if (contentDocument.body) {
-            new AboutReader(contentDocument, this.browser.contentWindow);
-          }
           
           Reader.updatePageAction(this);
         }
