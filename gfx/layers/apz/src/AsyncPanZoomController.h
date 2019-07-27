@@ -186,6 +186,11 @@ public:
   
 
 
+  void FlushRepaintIfPending();
+
+  
+
+
 
   void SetCompositorParent(CompositorParent* aCompositorParent);
 
