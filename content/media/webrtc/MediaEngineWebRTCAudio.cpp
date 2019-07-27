@@ -589,7 +589,7 @@ MediaEngineWebRTCAudioSource::Process(int channel,
       
       
       RUN_ON_THREAD(mThread, WrapRunnable(mSources[i], &SourceMediaStream::AppendToTrack,
-                                          mTrackID, segment, nullptr),
+                                          mTrackID, segment, (AudioSegment *) nullptr),
                     NS_DISPATCH_NORMAL);
     }
   }
