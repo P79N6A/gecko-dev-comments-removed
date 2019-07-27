@@ -62,7 +62,7 @@ public:
 
 
 
-  virtual mozilla::TemporaryRef<Path> BuildPath() = 0;
+  virtual mozilla::TemporaryRef<Path> BuildPath(PathBuilder* aBuilder = nullptr) = 0;
 
   virtual mozilla::TemporaryRef<Path> GetPathForLengthOrPositionMeasuring();
 

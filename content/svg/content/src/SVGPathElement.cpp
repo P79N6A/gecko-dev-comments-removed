@@ -11,8 +11,10 @@
 #include "DOMSVGPathSegList.h"
 #include "DOMSVGPoint.h"
 #include "gfx2DGlue.h"
+#include "gfxPlatform.h"
 #include "mozilla/dom/SVGPathElementBinding.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/RefPtr.h"
 #include "nsCOMPtr.h"
 #include "nsComputedDOMStyle.h"
 #include "nsGkAtoms.h"
@@ -370,7 +372,7 @@ SVGPathElement::GetPathLengthScale(PathLengthScaleForType aFor)
 }
 
 TemporaryRef<Path>
-SVGPathElement::BuildPath()
+SVGPathElement::BuildPath(PathBuilder* aBuilder)
 {
   
   
@@ -396,15 +398,24 @@ SVGPathElement::BuildPath()
     }
   }
 
-  
-  
-  
-  
-  
-  
-  
+  RefPtr<PathBuilder> builder;
+  if (aBuilder) {
+    builder = aBuilder;
+  } else {
+    RefPtr<DrawTarget> drawTarget =
+      gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
+    
+    
+    
+    
+    
+    
+    
+    RefPtr<PathBuilder> builder =
+      drawTarget->CreatePathBuilder(GetFillRule());
+  }
 
-  return mD.GetAnimValue().BuildPath(GetFillRule(), strokeLineCap, strokeWidth);
+  return mD.GetAnimValue().BuildPath(builder, strokeLineCap, strokeWidth);
 }
 
 } 

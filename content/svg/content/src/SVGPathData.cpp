@@ -302,21 +302,13 @@ ApproximateZeroLengthSubpathSquareCaps(const gfxPoint &aPoint, gfxContext *aCtx)
   } while(0)
 
 TemporaryRef<Path>
-SVGPathData::BuildPath(FillRule aFillRule,
+SVGPathData::BuildPath(PathBuilder* builder,
                        uint8_t aStrokeLineCap,
                        Float aStrokeWidth) const
 {
   if (mData.IsEmpty() || !IsMoveto(SVGPathSegUtils::DecodeType(mData[0]))) {
     return nullptr; 
   }
-
-  RefPtr<DrawTarget> drawTarget =
-    gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
-  NS_ASSERTION(gfxPlatform::GetPlatform()->
-                 SupportsAzureContentForDrawTarget(drawTarget),
-               "Should support Moz2D content drawing");
-
-  RefPtr<PathBuilder> builder = drawTarget->CreatePathBuilder(aFillRule);
 
   bool capsAreSquare = aStrokeLineCap == NS_STYLE_STROKE_LINECAP_SQUARE;
   bool subpathHasLength = false;  
@@ -822,7 +814,11 @@ SVGPathData::ToPathForLengthOrPositionMeasuring() const
   
 
   if (!mCachedPath) {
-    mCachedPath = BuildPath(FillRule::FILL_WINDING, NS_STYLE_STROKE_LINECAP_BUTT, 0);
+    RefPtr<DrawTarget> drawTarget =
+      gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
+    RefPtr<PathBuilder> builder =
+      drawTarget->CreatePathBuilder(FillRule::FILL_WINDING);
+    mCachedPath = BuildPath(builder, NS_STYLE_STROKE_LINECAP_BUTT, 0);
   }
 
   return mCachedPath;
