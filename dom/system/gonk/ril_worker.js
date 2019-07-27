@@ -3946,9 +3946,11 @@ RilObject.prototype = {
   _processClassifiedCalls: function(removedCalls, remainedCalls, addedCalls,
                                     failCause) {
     
+    
     for (let call of removedCalls) {
-      this._removeVoiceCall(call, call.hangUpLocal ?
-                            GECKO_CALL_ERROR_NORMAL_CALL_CLEARING : failCause);
+      delete this.currentCalls[call.callIndex];
+      call.failCause = call.hangUpLocal ? GECKO_CALL_ERROR_NORMAL_CALL_CLEARING
+                                        : failCause;
     }
 
     let changedCalls = new Set();
@@ -4005,6 +4007,11 @@ RilObject.prototype = {
       rilMessageType: "audioStateChanged",
       state: this._detectAudioState()
     });
+
+    
+    for (let call of removedCalls) {
+      this._handleDisconnectedCall(call);
+    }
 
     
     for (let call of changedCalls) {
@@ -4066,12 +4073,6 @@ RilObject.prototype = {
     newCall.isConference = false;
 
     this.currentCalls[newCall.callIndex] = newCall;
-  },
-
-  _removeVoiceCall: function(call, failCause) {
-    delete this.currentCalls[call.callIndex];
-    call.failCause = failCause;
-    this._handleDisconnectedCall(call);
   },
 
   _handleChangedCallState: function(changedCall) {
