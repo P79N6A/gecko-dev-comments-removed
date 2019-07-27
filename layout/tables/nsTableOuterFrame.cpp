@@ -26,28 +26,7 @@
 using namespace mozilla;
 using namespace mozilla::layout;
 
-
-
-#define NS_TABLE_FRAME_CAPTION_LIST_INDEX 1
 #define NO_SIDE 100
-
-
-nsTableCaptionFrame::nsTableCaptionFrame(nsStyleContext* aContext):
-  nsBlockFrame(aContext)
-{
-  
-  SetFlags(NS_BLOCK_FLOAT_MGR);
-}
-
-nsTableCaptionFrame::~nsTableCaptionFrame()
-{
-}
-
-nsIAtom*
-nsTableCaptionFrame::GetType() const
-{
-  return nsGkAtoms::tableCaptionFrame;
-}
 
  nscoord
 nsTableOuterFrame::GetLogicalBaseline(WritingMode aWritingMode) const
@@ -61,107 +40,6 @@ nsTableOuterFrame::GetLogicalBaseline(WritingMode aWritingMode) const
   return kid->GetLogicalBaseline(aWritingMode) +
          kid->BStart(aWritingMode, mRect.width);
 }
-
-
-LogicalSize
-nsTableCaptionFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
-                                     WritingMode aWM,
-                                     const LogicalSize& aCBSize,
-                                     nscoord aAvailableISize,
-                                     const LogicalSize& aMargin,
-                                     const LogicalSize& aBorder,
-                                     const LogicalSize& aPadding,
-                                     bool aShrinkWrap)
-{
-  LogicalSize result =
-    nsBlockFrame::ComputeAutoSize(aRenderingContext, aWM, aCBSize,
-                                  aAvailableISize, aMargin, aBorder,
-                                  aPadding, aShrinkWrap);
-
-  
-  
-  AutoMaybeDisableFontInflation an(this);
-
-  
-  uint8_t captionSide = StyleTableBorder()->mCaptionSide;
-  if (captionSide == NS_STYLE_CAPTION_SIDE_LEFT ||
-      captionSide == NS_STYLE_CAPTION_SIDE_RIGHT) {
-    result.ISize(aWM) = GetMinISize(aRenderingContext);
-  } else if (captionSide == NS_STYLE_CAPTION_SIDE_TOP ||
-             captionSide == NS_STYLE_CAPTION_SIDE_BOTTOM) {
-    
-    
-    
-    
-    
-    nscoord min = GetMinISize(aRenderingContext);
-    if (min > aCBSize.ISize(aWM)) {
-      min = aCBSize.ISize(aWM);
-    }
-    if (min > result.ISize(aWM)) {
-      result.ISize(aWM) = min;
-    }
-  }
-  return result;
-}
-
-nsStyleContext*
-nsTableCaptionFrame::GetParentStyleContext(nsIFrame** aProviderFrame) const
-{
-  MOZ_ASSERT(GetContent()->GetParent(), "How could we not have a parent here?");
-    
-  nsStyleContext* sc =
-    PresContext()->FrameManager()->GetDisplayContentsStyleFor(GetContent()->GetParent());
-  if (sc) {
-    *aProviderFrame = nullptr;
-    return sc;
-  }
-
-  
-  
-  nsIFrame* outerFrame = GetParent();
-  if (outerFrame && outerFrame->GetType() == nsGkAtoms::tableOuterFrame) {
-    nsIFrame* innerFrame = outerFrame->GetFirstPrincipalChild();
-    if (innerFrame) {
-      *aProviderFrame = nsFrame::CorrectStyleParentFrame(innerFrame,
-                                   StyleContext()->GetPseudo());
-      return *aProviderFrame ? (*aProviderFrame)->StyleContext() : nullptr;
-    }
-  }
-
-  NS_NOTREACHED("Where is our inner table frame?");
-  return nsBlockFrame::GetParentStyleContext(aProviderFrame);
-}
-
-#ifdef ACCESSIBILITY
-a11y::AccType
-nsTableCaptionFrame::AccessibleType()
-{
-  if (!GetRect().IsEmpty()) {
-    return a11y::eHTMLCaptionType;
-  }
-
-  return a11y::eNoType;
-}
-#endif
-
-#ifdef DEBUG_FRAME_DUMP
-nsresult
-nsTableCaptionFrame::GetFrameName(nsAString& aResult) const
-{
-  return MakeFrameName(NS_LITERAL_STRING("Caption"), aResult);
-}
-#endif
-
-nsTableCaptionFrame* 
-NS_NewTableCaptionFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
-{
-  return new (aPresShell) nsTableCaptionFrame(aContext);
-}
-
-NS_IMPL_FRAMEARENA_HELPERS(nsTableCaptionFrame)
-
-
 
 nsTableOuterFrame::nsTableOuterFrame(nsStyleContext* aContext):
   nsContainerFrame(aContext)
@@ -956,7 +834,6 @@ nsTableOuterFrame::Reflow(nsPresContext*           aPresContext,
                           innerRSSpace, aOuterRS.ComputedSize(wm).ISize(wm));
   } else if (captionSide == NS_STYLE_CAPTION_SIDE_LEFT ||
              captionSide == NS_STYLE_CAPTION_SIDE_RIGHT) {
-    
     
     
     wm = mCaptionFrames.FirstChild()->GetWritingMode();
