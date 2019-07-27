@@ -124,14 +124,10 @@ ContactDB.prototype = {
         }
       }
 
-      let chan = jsm.NetUtil.newChannel2(contactsFile,
-                                         null,
-                                         null,
-                                         null,      
-                                         Services.scriptSecurityManager.getSystemPrincipal(),
-                                         null,      
-                                         Ci.nsILoadInfo.SEC_NORMAL,
-                                         Ci.nsIContentPolicy.TYPE_OTHER);
+      let chan = jsm.NetUtil.newChannel({
+        uri: NetUtil.newURI(contactsFile),
+        loadUsingSystemPrincipal: true});
+
       let stream = chan.open();
       
       let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
