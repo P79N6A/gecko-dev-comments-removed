@@ -665,6 +665,34 @@ TabActor.prototype = {
   
 
 
+
+
+
+
+  get originalDocShell() {
+    if (!this._originalWindow) {
+      return this.docShell;
+    }
+
+    return this._originalWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsIWebNavigation)
+                               .QueryInterface(Ci.nsIDocShell);
+  },
+
+  
+
+
+
+
+
+
+  get originalWindow() {
+    return this._originalWindow || this.window;
+  },
+
+  
+
+
   get webProgress() {
     return this.docShell
       .QueryInterface(Ci.nsIInterfaceRequestor)
@@ -795,7 +823,9 @@ TabActor.prototype = {
       metadata = Cu.getSandboxMetadata(global);
     }
     catch (e) {}
-    if (metadata["inner-window-id"] && metadata["inner-window-id"] == id) {
+    if (metadata
+        && metadata["inner-window-id"]
+        && metadata["inner-window-id"] == id) {
       return true;
     }
 

@@ -2867,16 +2867,18 @@ nsDocShell::PopProfileTimelineMarkers(JSContext* aCx,
         }
 
         bool isSameMarkerType = strcmp(startMarkerName, endMarkerName) == 0;
-        bool isValidType = strcmp(endMarkerName, "Paint") != 0 ||
-                           hasSeenPaintedLayer;
+        bool isPaint = strcmp(startMarkerName, "Paint") == 0;
 
-        if (endPayload->GetMetaData() == TRACING_INTERVAL_END &&
-            isSameMarkerType && isValidType) {
-          mozilla::dom::ProfileTimelineMarker marker;
-          marker.mName = NS_ConvertUTF8toUTF16(startMarkerName);
-          marker.mStart = mProfileTimelineMarkers[i]->mTime;
-          marker.mEnd = mProfileTimelineMarkers[j]->mTime;
-          profileTimelineMarkers.AppendElement(marker);
+        
+        if (endPayload->GetMetaData() == TRACING_INTERVAL_END && isSameMarkerType) {
+          
+          if (!isPaint || (isPaint && hasSeenPaintedLayer)) {
+            mozilla::dom::ProfileTimelineMarker marker;
+            marker.mName = NS_ConvertUTF8toUTF16(startMarkerName);
+            marker.mStart = mProfileTimelineMarkers[i]->mTime;
+            marker.mEnd = mProfileTimelineMarkers[j]->mTime;
+            profileTimelineMarkers.AppendElement(marker);
+          }
 
           break;
         }
