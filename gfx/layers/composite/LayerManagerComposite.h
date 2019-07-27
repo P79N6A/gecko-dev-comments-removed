@@ -249,8 +249,6 @@ public:
 
   bool LastFrameMissedHWC() { return mLastFrameMissedHWC; }
 
-  bool AsyncPanZoomEnabled() const override;
-
 private:
   
   nsIntRegion mClippingRegion;

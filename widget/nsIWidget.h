@@ -1810,11 +1810,6 @@ class nsIWidget : public nsISupports {
     
 
 
-    virtual bool AsyncPanZoomEnabled() const = 0;
-
-    
-
-
 
     NS_IMETHOD EnableDragDrop(bool aEnable) = 0;
    

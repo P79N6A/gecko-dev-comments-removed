@@ -814,34 +814,6 @@ ApplyRectMultiplier(nsRect aRect, float aMultiplier)
   return nsRect(ceil(newX), ceil(newY), floor(newWidth), floor(newHeight));
 }
 
-bool
-nsLayoutUtils::UsesAsyncScrolling(nsIFrame* aFrame)
-{
-#ifdef MOZ_WIDGET_ANDROID
-  
-  return true;
-#endif
-
-  return AsyncPanZoomEnabled(aFrame);
-}
-
-bool
-nsLayoutUtils::AsyncPanZoomEnabled(nsIFrame* aFrame)
-{
-  
-  
-  if (!gfxPrefs::AsyncPanZoomEnabledDoNotUseDirectly()) {
-    return false;
-  }
-
-  nsIFrame *frame = nsLayoutUtils::GetDisplayRootFrame(aFrame);
-  nsIWidget* widget = frame->GetNearestWidget();
-  if (!widget) {
-    return false;
-  }
-  return widget->AsyncPanZoomEnabled();
-}
-
 
 
 static nscoord
@@ -1113,12 +1085,9 @@ nsLayoutUtils::SetDisplayPortMargins(nsIContent* aContent,
                             aMargins, aPriority),
                         nsINode::DeleteProperty<DisplayPortMarginsPropertyData>);
 
-  if (gfxPrefs::LayoutUseContainersForRootFrames()) {
+  if (nsLayoutUtils::UsesAsyncScrolling() && gfxPrefs::LayoutUseContainersForRootFrames()) {
     nsIFrame* rootScrollFrame = aPresShell->GetRootScrollFrame();
-    if (rootScrollFrame &&
-        aContent == rootScrollFrame->GetContent() &&
-        nsLayoutUtils::UsesAsyncScrolling(rootScrollFrame))
-    {
+    if (rootScrollFrame && aContent == rootScrollFrame->GetContent()) {
       
       
       
@@ -3006,7 +2975,7 @@ nsLayoutUtils::GetOrMaybeCreateDisplayPort(nsDisplayListBuilder& aBuilder,
   
   
   if (aBuilder.IsPaintingToWindow() &&
-      nsLayoutUtils::AsyncPanZoomEnabled(aScrollFrame) &&
+      gfxPrefs::AsyncPanZoomEnabled() &&
       !aBuilder.HaveScrollableDisplayPort() &&
       scrollableFrame->WantAsyncScroll()) {
 
@@ -7851,6 +7820,17 @@ nsLayoutUtils::CalculateExpandedScrollableRect(nsIFrame* aFrame)
     scrollableRect.height = compSize.height;
   }
   return scrollableRect;
+}
+
+ bool
+nsLayoutUtils::UsesAsyncScrolling()
+{
+#ifdef MOZ_WIDGET_ANDROID
+  
+  return true;
+#endif
+
+  return gfxPrefs::AsyncPanZoomEnabled();
 }
 
  void

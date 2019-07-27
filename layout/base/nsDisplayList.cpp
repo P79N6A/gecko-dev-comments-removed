@@ -634,8 +634,7 @@ nsDisplayListBuilder::nsDisplayListBuilder(nsIFrame* aReferenceFrame,
       mHaveScrollableDisplayPort(false),
       mWindowDraggingAllowed(false),
       mIsBuildingForPopup(nsLayoutUtils::IsPopup(aReferenceFrame)),
-      mForceLayerForScrollParent(false),
-      mAsyncPanZoomEnabled(nsLayoutUtils::AsyncPanZoomEnabled(aReferenceFrame))
+      mForceLayerForScrollParent(false)
 {
   MOZ_COUNT_CTOR(nsDisplayListBuilder);
   PL_InitArenaPool(&mPool, "displayListArena", 1024,
@@ -2285,7 +2284,7 @@ nsDisplayBackgroundImage::ShouldFixToViewport(LayerManager* aManager)
 {
   
   
-  if (nsLayoutUtils::UsesAsyncScrolling(mFrame) ||
+  if (nsLayoutUtils::UsesAsyncScrolling() ||
       (aManager && aManager->ShouldAvoidComponentAlphaLayers())) {
     return false;
   }
@@ -4210,7 +4209,7 @@ nsDisplaySubDocument::ComputeVisibility(nsDisplayListBuilder* aBuilder,
   
   
   
-  if (!nsLayoutUtils::UsesAsyncScrolling(mFrame)) {
+  if (!nsLayoutUtils::UsesAsyncScrolling()) {
     bool snap;
     nsRect bounds = GetBounds(aBuilder, &snap);
     nsRegion removed;
