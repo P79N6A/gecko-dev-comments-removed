@@ -466,12 +466,12 @@ nsLineLayout::AttachFrameToBaseLineLayout(PerFrameData* aFrame)
 
   PerFrameData* baseFrame = mBaseLineLayout->LastFrame();
   MOZ_ASSERT(aFrame && baseFrame);
-  MOZ_ASSERT(!aFrame->GetFlag(PFD_ISLINKEDTOBASE),
+  MOZ_ASSERT(!aFrame->mIsLinkedToBase,
              "The frame must not have been linked with the base");
 
   aFrame->mNextAnnotation = baseFrame->mNextAnnotation;
   baseFrame->mNextAnnotation = aFrame;
-  aFrame->SetFlag(PFD_ISLINKEDTOBASE, true);
+  aFrame->mIsLinkedToBase = true;
 }
 
 int32_t
@@ -559,7 +559,7 @@ nsLineLayout::UnlinkFrame(PerFrameData* pfd)
 {
   while (nullptr != pfd) {
     PerFrameData* next = pfd->mNext;
-    if (pfd->GetFlag(PFD_ISLINKEDTOBASE)) {
+    if (pfd->mIsLinkedToBase) {
       
       
       
@@ -646,8 +646,19 @@ nsLineLayout::NewPerFrameData(nsIFrame* aFrame)
   pfd->mNext = nullptr;
   pfd->mPrev = nullptr;
   pfd->mNextAnnotation = nullptr;
-  pfd->mFlags = 0;  
   pfd->mFrame = aFrame;
+
+  
+  pfd->mRelativePos = false;
+  pfd->mIsTextFrame = false;
+  pfd->mIsNonEmptyTextFrame = false;
+  pfd->mIsNonWhitespaceTextFrame = false;
+  pfd->mIsLetterFrame = false;
+  pfd->mRecomputeOverflow = false;
+  pfd->mIsBullet = false;
+  pfd->mSkipWhenTrimmingWhitespace = false;
+  pfd->mIsEmpty = false;
+  pfd->mIsLinkedToBase = false;
 
   WritingMode frameWM = aFrame->GetWritingMode();
   WritingMode lineWM = mRootSpan->mWritingMode;
@@ -856,9 +867,9 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
       reflowState.ComputedLogicalMargin().ConvertTo(lineWM, stateWM);
     pfd->mBorderPadding =
       reflowState.ComputedLogicalBorderPadding().ConvertTo(lineWM, stateWM);
-    pfd->SetFlag(PFD_RELATIVEPOS,
-                 reflowState.mStyleDisplay->IsRelativelyPositionedStyle());
-    if (pfd->GetFlag(PFD_RELATIVEPOS)) {
+    pfd->mRelativePos =
+      reflowState.mStyleDisplay->IsRelativelyPositionedStyle();
+    if (pfd->mRelativePos) {
       pfd->mOffsets =
         reflowState.ComputedLogicalOffsets().ConvertTo(frameWM, stateWM);
     }
@@ -923,7 +934,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   } else {
     if (nsGkAtoms::placeholderFrame == frameType) {
       isEmpty = true;
-      pfd->SetFlag(PFD_SKIPWHENTRIMMINGWHITESPACE, true);
+      pfd->mSkipWhenTrimmingWhitespace = true;
       nsIFrame* outOfFlowFrame = nsLayoutUtils::GetFloatFromPlaceholder(aFrame);
       if (outOfFlowFrame) {
         
@@ -950,26 +961,25 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
     }
     else if (isText) {
       
-      pfd->SetFlag(PFD_ISTEXTFRAME, true);
+      pfd->mIsTextFrame = true;
       nsTextFrame* textFrame = static_cast<nsTextFrame*>(pfd->mFrame);
       isEmpty = !textFrame->HasNoncollapsedCharacters();
       if (!isEmpty) {
-        pfd->SetFlag(PFD_ISNONEMPTYTEXTFRAME, true);
+        pfd->mIsNonEmptyTextFrame = true;
         nsIContent* content = textFrame->GetContent();
 
         const nsTextFragment* frag = content->GetText();
         if (frag) {
-          pfd->SetFlag(PFD_ISNONWHITESPACETEXTFRAME,
-                       !content->TextIsOnlyWhitespace());
+          pfd->mIsNonWhitespaceTextFrame = !content->TextIsOnlyWhitespace();
         }
       }
     }
     else if (nsGkAtoms::brFrame == frameType) {
-      pfd->SetFlag(PFD_SKIPWHENTRIMMINGWHITESPACE, true);
+      pfd->mSkipWhenTrimmingWhitespace = true;
       isEmpty = false;
     } else {
       if (nsGkAtoms::letterFrame==frameType) {
-        pfd->SetFlag(PFD_ISLETTERFRAME, true);
+        pfd->mIsLetterFrame = true;
       }
       if (pfd->mSpan) {
         isEmpty = !pfd->mSpan->mHasNonemptyContent && pfd->mFrame->IsSelfEmpty();
@@ -978,7 +988,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
       }
     }
   }
-  pfd->SetFlag(PFD_ISEMPTY, isEmpty);
+  pfd->mIsEmpty = isEmpty;
 
   mFloatManager->Untranslate(oldWM, tPt);
 
@@ -1053,7 +1063,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
     bool continuingTextRun = aFrame->CanContinueTextRun();
     
     
-    if (!continuingTextRun && !pfd->GetFlag(PFD_SKIPWHENTRIMMINGWHITESPACE)) {
+    if (!continuingTextRun && !pfd->mSkipWhenTrimmingWhitespace) {
       mTrimmableISize = 0;
     }
 
@@ -1220,7 +1230,7 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
   if ((NS_FRAME_IS_NOT_COMPLETE(aStatus) ||
        pfd->mFrame->LastInFlow()->GetNextContinuation() ||
        pfd->mFrame->FrameIsNonLastInIBSplit()) &&
-      !pfd->GetFlag(PFD_ISLETTERFRAME) &&
+      !pfd->mIsLetterFrame &&
       pfd->mFrame->StyleBorder()->mBoxDecorationBreak ==
         NS_STYLE_BOX_DECORATION_BREAK_SLICE) {
     pfd->mMargin.IEnd(lineWM) = 0;
@@ -1395,7 +1405,7 @@ nsLineLayout::AddBulletFrame(nsIFrame* aFrame,
   WritingMode lineWM = mRootSpan->mWritingMode;
   PerFrameData* pfd = NewPerFrameData(aFrame);
   mRootSpan->AppendFrame(pfd);
-  pfd->SetFlag(PFD_ISBULLET, true);
+  pfd->mIsBullet = true;
   if (aMetrics.BlockStartAscent() == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
     pfd->mAscent = aFrame->GetLogicalBaseline(lineWM);
   } else {
@@ -1714,8 +1724,8 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
     
     zeroEffectiveSpanBox = true;
     for (PerFrameData* pfd = psd->mFirstFrame; pfd; pfd = pfd->mNext) {
-      if (pfd->GetFlag(PFD_ISTEXTFRAME) &&
-          (pfd->GetFlag(PFD_ISNONWHITESPACETEXTFRAME) || preMode ||
+      if (pfd->mIsTextFrame &&
+          (pfd->mIsNonWhitespaceTextFrame || preMode ||
            pfd->mBounds.ISize(mRootSpan->mWritingMode) != 0)) {
         zeroEffectiveSpanBox = false;
         break;
@@ -1759,7 +1769,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
 
     
     
-    if (spanFramePFD->GetFlag(PFD_ISLETTERFRAME) &&
+    if (spanFramePFD->mIsLetterFrame &&
         !spanFrame->GetPrevInFlow() &&
         spanFrame->StyleText()->mLineHeight.GetUnit() == eStyleUnit_Normal) {
       logicalBSize = spanFramePFD->mBounds.BSize(lineWM);
@@ -2069,11 +2079,11 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
       
       
 #if 0
-      if (!pfd->GetFlag(PFD_ISTEXTFRAME)) {
+      if (!pfd->mIsTextFrame) {
 #else
 
-      bool canUpdate = !pfd->GetFlag(PFD_ISTEXTFRAME);
-      if (!canUpdate && pfd->GetFlag(PFD_ISNONWHITESPACETEXTFRAME)) {
+      bool canUpdate = !pfd->mIsTextFrame;
+      if (!canUpdate && pfd->mIsNonWhitespaceTextFrame) {
         canUpdate =
           frame->StyleText()->mLineHeight.GetUnit() == eStyleUnit_Normal;
       }
@@ -2388,14 +2398,13 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
         return true;
       }
     }
-    else if (!pfd->GetFlag(PFD_ISTEXTFRAME) &&
-             !pfd->GetFlag(PFD_SKIPWHENTRIMMINGWHITESPACE)) {
+    else if (!pfd->mIsTextFrame && !pfd->mSkipWhenTrimmingWhitespace) {
       
       
       *aDeltaISize = 0;
       return true;
     }
-    else if (pfd->GetFlag(PFD_ISTEXTFRAME)) {
+    else if (pfd->mIsTextFrame) {
       
       
       
@@ -2409,7 +2418,7 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
 #endif
 
       if (trimOutput.mChanged) {
-        pfd->SetFlag(PFD_RECOMPUTEOVERFLOW, true);
+        pfd->mRecomputeOverflow = true;
       }
 
       
@@ -2451,7 +2460,7 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
         }
       }
 
-      if (pfd->GetFlag(PFD_ISNONEMPTYTEXTFRAME) || trimOutput.mChanged) {
+      if (pfd->mIsNonEmptyTextFrame || trimOutput.mChanged) {
         
         *aDeltaISize = trimOutput.mDeltaWidth;
         return true;
@@ -2501,7 +2510,7 @@ nsLineLayout::ComputeFrameJustification(PerSpanData* aPSD,
       result += ComputeFrameJustification(span, aState);
     } else {
       const auto& info = pfd->mJustificationInfo;
-      if (pfd->GetFlag(PFD_ISTEXTFRAME)) {
+      if (pfd->mIsTextFrame) {
         result += info.mInnerOpportunities;
       }
 
@@ -2578,7 +2587,7 @@ nsLineLayout::ApplyLineJustificationToAnnotations(PerFrameData* aPFD,
     
     
     PerFrameData* sibling = pfd->mNext;
-    while (sibling && !sibling->GetFlag(PFD_ISLINKEDTOBASE)) {
+    while (sibling && !sibling->mIsLinkedToBase) {
       AdvanceAnnotationInlineBounds(sibling, containerWidth,
                                     aDeltaICoord + aDeltaISize, 0);
       sibling = sibling->mNext;
@@ -2597,13 +2606,13 @@ nsLineLayout::ApplyFrameJustification(PerSpanData* aPSD,
   nscoord deltaICoord = 0;
   for (PerFrameData* pfd = aPSD->mFirstFrame; pfd != nullptr; pfd = pfd->mNext) {
     
-    if (!pfd->GetFlag(PFD_ISBULLET)) {
+    if (!pfd->mIsBullet) {
       nscoord dw = 0;
       WritingMode lineWM = mRootSpan->mWritingMode;
 
       pfd->mBounds.IStart(lineWM) += deltaICoord;
 
-      if (true == pfd->GetFlag(PFD_ISTEXTFRAME)) {
+      if (true == pfd->mIsTextFrame) {
         if (aState.IsJustifiable()) {
           
           
@@ -2615,7 +2624,7 @@ nsLineLayout::ApplyFrameJustification(PerSpanData* aPSD,
         }
 
         if (dw) {
-          pfd->SetFlag(PFD_RECOMPUTEOVERFLOW, true);
+          pfd->mRecomputeOverflow = true;
         }
       }
       else {
@@ -2798,7 +2807,7 @@ nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsOverflowAreas& aOverflo
     nsPoint origin = frame->GetPosition();
 
     
-    if (pfd->GetFlag(PFD_RELATIVEPOS)) {
+    if (pfd->mRelativePos) {
       
       nsMargin physicalOffsets =
         pfd->mOffsets.GetPhysicalMargin(pfd->mFrame->GetWritingMode());
@@ -2829,12 +2838,12 @@ nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsOverflowAreas& aOverflo
       RelativePositionFrames(pfd->mSpan, r);
     } else {
       r = pfd->mOverflowAreas;
-      if (pfd->GetFlag(PFD_ISTEXTFRAME)) {
+      if (pfd->mIsTextFrame) {
         
         
         
         
-        if (pfd->GetFlag(PFD_RECOMPUTEOVERFLOW) ||
+        if (pfd->mRecomputeOverflow ||
             frame->StyleContext()->HasTextDecorationLines()) {
           nsTextFrame* f = static_cast<nsTextFrame*>(frame);
           r = f->RecomputeOverflow(*mBlockReflowState);
