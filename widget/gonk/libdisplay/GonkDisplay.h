@@ -42,9 +42,6 @@ public:
 
     virtual void* GetFBSurface() = 0;
 
-    
-
-
     virtual bool SwapBuffers(EGLDisplay dpy, EGLSurface sur) = 0;
 
     virtual ANativeWindowBuffer* DequeueBuffer() = 0;

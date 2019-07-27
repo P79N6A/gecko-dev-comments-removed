@@ -52,19 +52,7 @@ public:
 
 
 
-  virtual bool TryRenderWithHwc(Layer* aRoot, bool aGeometryChanged) = 0;
-
-  
-
-
-
-  virtual bool Render() = 0;
-
-  
-
-
-
-  virtual bool HasHwc() = 0;
+  virtual bool TryRender(Layer* aRoot, bool aGeometryChanged) = 0;
 };
 
 } 
