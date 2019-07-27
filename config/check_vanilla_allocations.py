@@ -95,7 +95,6 @@ def main():
         
         
         r'valloc',
-        r'strdup'
     ]
 
     if args.aggressive:
@@ -103,7 +102,8 @@ def main():
             r'malloc',
             r'calloc',
             r'realloc',
-            r'free'
+            r'free',
+            r'strdup'
         ]
 
     
