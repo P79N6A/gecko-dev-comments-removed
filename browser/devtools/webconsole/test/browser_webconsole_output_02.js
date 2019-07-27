@@ -86,7 +86,7 @@ let inputTests = [
   
   {
     input: "window.array4",
-    output: 'Array [ , , , , , "test", Array[7] ]',
+    output: 'Array [ <5 empty slots>, "test", Array[7] ]',
     printOutput: '",,,,,test,"',
     inspectable: true,
     variablesViewLabel: "Array[7]",
