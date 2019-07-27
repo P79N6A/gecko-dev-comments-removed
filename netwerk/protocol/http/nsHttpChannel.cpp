@@ -1044,18 +1044,79 @@ nsHttpChannel::ProcessFailedProxyConnect(uint32_t httpStatus)
 
 
 
+nsresult
+nsHttpChannel::ProcessSingleSecurityHeader(uint32_t aType,
+                                           nsISSLStatus *aSSLStatus,
+                                           uint32_t aFlags)
+{
+    nsHttpAtom atom;
+    switch (aType) {
+        case nsISiteSecurityService::HEADER_HSTS:
+            atom = nsHttp::ResolveAtom("Strict-Transport-Security");
+            break;
+        case nsISiteSecurityService::HEADER_HPKP:
+            atom = nsHttp::ResolveAtom("Public-Key-Pins");
+            break;
+        default:
+            NS_NOTREACHED("Invalid security header type");
+            return NS_ERROR_FAILURE;
+    }
+
+    nsAutoCString securityHeader;
+    nsresult rv = mResponseHead->GetHeader(atom, securityHeader);
+    if (NS_SUCCEEDED(rv)) {
+        nsISiteSecurityService* sss = gHttpHandler->GetSSService();
+        NS_ENSURE_TRUE(sss, NS_ERROR_OUT_OF_MEMORY);
+        
+        
+        rv = sss->ProcessHeader(aType, mURI, securityHeader.get(), aSSLStatus,
+                                aFlags, nullptr, nullptr);
+        if (NS_FAILED(rv)) {
+            nsAutoString consoleErrorCategory;
+            nsAutoString consoleErrorTag;
+            switch (aType) {
+                case nsISiteSecurityService::HEADER_HSTS:
+                    consoleErrorTag = NS_LITERAL_STRING("InvalidSTSHeaders");
+                    consoleErrorCategory = NS_LITERAL_STRING("Invalid HSTS Headers");
+                    break;
+                case nsISiteSecurityService::HEADER_HPKP:
+                    consoleErrorTag = NS_LITERAL_STRING("InvalidPKPHeaders");
+                    consoleErrorCategory = NS_LITERAL_STRING("Invalid HPKP Headers");
+                    break;
+                default:
+                    return NS_ERROR_FAILURE;
+            }
+            AddSecurityMessage(consoleErrorTag, consoleErrorCategory);
+            LOG(("nsHttpChannel: Failed to parse %s header, continuing load.\n",
+                 atom.get()));
+        }
+    } else {
+        if (rv != NS_ERROR_NOT_AVAILABLE) {
+            
+            NS_ENSURE_SUCCESS(rv, rv);
+        }
+        LOG(("nsHttpChannel: No %s header, continuing load.\n",
+             atom.get()));
+    }
+    return NS_OK;
+}
+
+
+
+
 
 
 
 
 nsresult
-nsHttpChannel::ProcessSTSHeader()
+nsHttpChannel::ProcessSecurityHeaders()
 {
     nsresult rv;
     bool isHttps = false;
     rv = mURI->SchemeIs("https", &isHttps);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    
     
     
     if (!isHttps)
@@ -1071,65 +1132,29 @@ nsHttpChannel::ProcessSTSHeader()
     if (PR_SUCCESS == PR_StringToNetAddr(asciiHost.get(), &hostAddr))
         return NS_OK;
 
-    nsISiteSecurityService* sss = gHttpHandler->GetSSService();
-    NS_ENSURE_TRUE(sss, NS_ERROR_OUT_OF_MEMORY);
-
     
     
     
     NS_ENSURE_TRUE(mSecurityInfo, NS_OK);
 
-    
-    
-    
-    bool tlsIsBroken = false;
-    rv = sss->ShouldIgnoreHeaders(mSecurityInfo, &tlsIsBroken);
-    NS_ENSURE_SUCCESS(rv, NS_OK);
-
-    
-    
-    
-    
-    
-    bool wasAlreadySTSHost;
     uint32_t flags =
       NS_UsePrivateBrowsing(this) ? nsISocketProvider::NO_PERMANENT_STORAGE : 0;
-    rv = sss->IsSecureURI(nsISiteSecurityService::HEADER_HSTS, mURI, flags,
-                          &wasAlreadySTSHost);
-    
-    
-    NS_ENSURE_SUCCESS(rv, NS_OK);
-    MOZ_ASSERT(!(wasAlreadySTSHost && tlsIsBroken),
-               "connection should have been aborted by nss-bad-cert-handler");
 
     
-    
-    
-    if (tlsIsBroken) {
-        LOG(("STS: Transport layer is not trustworthy, ignoring "
-             "STS headers and continuing load\n"));
-        return NS_OK;
-    }
+    nsCOMPtr<nsISSLStatusProvider> sslprov = do_QueryInterface(mSecurityInfo);
+    NS_ENSURE_TRUE(sslprov, NS_ERROR_FAILURE);
+    nsCOMPtr<nsISSLStatus> sslStatus;
+    rv = sslprov->GetSSLStatus(getter_AddRefs(sslStatus));
+    NS_ENSURE_SUCCESS(rv, rv);
+    NS_ENSURE_TRUE(sslStatus, NS_ERROR_FAILURE);
 
-    
-    
-    const nsHttpAtom atom = nsHttp::ResolveAtom("Strict-Transport-Security");
-    nsAutoCString stsHeader;
-    rv = mResponseHead->GetHeader(atom, stsHeader);
-    if (rv == NS_ERROR_NOT_AVAILABLE) {
-        LOG(("STS: No STS header, continuing load.\n"));
-        return NS_OK;
-    }
-    
+    rv = ProcessSingleSecurityHeader(nsISiteSecurityService::HEADER_HSTS,
+                                     sslStatus, flags);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = sss->ProcessHeader(nsISiteSecurityService::HEADER_HSTS, mURI,
-                            stsHeader.get(), flags, nullptr, nullptr);
-    if (NS_FAILED(rv)) {
-        AddSecurityMessage(NS_LITERAL_STRING("InvalidSTSHeaders"),
-                NS_LITERAL_STRING("Invalid HSTS Headers"));
-        LOG(("STS: Failed to parse STS header, continuing load.\n"));
-    }
+    rv = ProcessSingleSecurityHeader(nsISiteSecurityService::HEADER_HPKP,
+                                     sslStatus, flags);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     return NS_OK;
 }
@@ -1230,7 +1255,8 @@ nsHttpChannel::ProcessResponse()
         
     } else {
         
-        rv = ProcessSTSHeader();
+        
+        rv = ProcessSecurityHeaders();
         MOZ_ASSERT(NS_SUCCEEDED(rv), "ProcessSTSHeader failed, continuing load.");
     }
 

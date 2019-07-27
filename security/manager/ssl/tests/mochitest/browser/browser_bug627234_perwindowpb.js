@@ -2,6 +2,29 @@
 
 
 
+let FakeSSLStatus = function() {
+};
+
+FakeSSLStatus.prototype = {
+  serverCert: null,
+  cipherName: null,
+  keyLength: 2048,
+  isDomainMismatch: false,
+  isNotValidAtThisTime: false,
+  isUntrusted: false,
+  isExtendedValidation: false,
+  getInterface: function(aIID) {
+    return this.QueryInterface(aIID);
+  },
+  QueryInterface: function(aIID) {
+    if (aIID.equals(Ci.nsISSLStatus) ||
+        aIID.equals(Ci.nsISupports)) {
+      return this;
+    }
+    throw Components.results.NS_ERROR_NO_INTERFACE;
+  },
+}
+
 
 
 function test() {
@@ -20,10 +43,10 @@ function test() {
   function doTest(aIsPrivateMode, aWindow, aCallback) {
     aWindow.gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
       aWindow.gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
-
+      let sslStatus = new FakeSSLStatus();
       uri = aWindow.Services.io.newURI("https://localhost/img.png", null, null);
       gSSService.processHeader(Ci.nsISiteSecurityService.HEADER_HSTS, uri,
-                               "max-age=1000", privacyFlags(aIsPrivateMode));
+                               "max-age=1000", sslStatus, privacyFlags(aIsPrivateMode));
       ok(gSSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HSTS, "localhost", privacyFlags(aIsPrivateMode)), "checking sts host");
 
       aCallback();

@@ -518,3 +518,27 @@ function startOCSPResponder(serverPort, identity, invalidIdentities,
     }
   };
 }
+
+
+let FakeSSLStatus = function() {
+};
+
+FakeSSLStatus.prototype = {
+  serverCert: null,
+  cipherName: null,
+  keyLength: 2048,
+  isDomainMismatch: false,
+  isNotValidAtThisTime: false,
+  isUntrusted: false,
+  isExtendedValidation: false,
+  getInterface: function(aIID) {
+    return this.QueryInterface(aIID);
+  },
+  QueryInterface: function(aIID) {
+    if (aIID.equals(Ci.nsISSLStatus) ||
+        aIID.equals(Ci.nsISupports)) {
+      return this;
+    }
+    throw Components.results.NS_ERROR_NO_INTERFACE;
+  },
+}

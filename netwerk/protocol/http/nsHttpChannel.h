@@ -28,6 +28,7 @@ class nsDNSPrefetch;
 class nsICancelable;
 class nsIHttpChannelAuthProvider;
 class nsInputStreamPump;
+class nsISSLStatus;
 class nsPerformance;
 
 namespace mozilla { namespace net {
@@ -293,7 +294,16 @@ private:
 
 
 
-    nsresult ProcessSTSHeader();
+    nsresult ProcessSecurityHeaders();
+
+    
+
+
+
+
+    nsresult ProcessSingleSecurityHeader(uint32_t aType,
+                                         nsISSLStatus *aSSLStatus,
+                                         uint32_t aFlags);
 
     void InvalidateCacheEntryForLocation(const char *location);
     void AssembleCacheKey(const char *spec, uint32_t postID, nsACString &key);

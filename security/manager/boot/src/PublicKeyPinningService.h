@@ -6,6 +6,8 @@
 #define PublicKeyPinningService_h
 
 #include "cert.h"
+#include "nsString.h"
+#include "nsTArray.h"
 #include "pkix/Time.h"
 
 namespace mozilla {
@@ -29,6 +31,13 @@ public:
                                 const char* hostname,
                                 mozilla::pkix::Time time,
                                 bool enforceTestMode);
+  
+
+
+
+
+  static bool ChainMatchesPinset(const CERTCertList* certList,
+                                 const nsTArray<nsCString>& aSHA256keys);
 };
 
 }} 

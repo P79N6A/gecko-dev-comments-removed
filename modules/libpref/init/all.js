@@ -1757,6 +1757,10 @@ pref("security.cert_pinning.enforcement_level", 0);
 
 
 
+pref("security.cert_pinning.process_headers_from_non_builtin_roots", false);
+
+
+
 
 pref("ui.key.accelKey", 17);
 pref("ui.key.menuAccessKey", 18);
