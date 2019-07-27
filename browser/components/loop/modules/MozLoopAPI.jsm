@@ -128,6 +128,25 @@ const cloneValueInto = function(value, targetWindow) {
 
 
 
+
+
+const invokeCallback = function(callback, ...args) {
+  if (typeof callback != "function") {
+    
+    
+    MozLoopService.log.error.apply(MozLoopService.log,
+      [new Error("Callback function was lost!"), ...args]);
+    return;
+  }
+
+  return callback.apply(null, args);
+};
+
+
+
+
+
+
 const toHexString = function(charCode) {
   return ("0" + charCode.toString(16)).slice(-2);
 };
@@ -434,7 +453,7 @@ function injectLoopAPI(targetWindow) {
       writable: true,
       value: function(options, callback) {
         LoopContacts.startImport(options, getChromeWindow(targetWindow), function(...results) {
-          callback(...[cloneValueInto(r, targetWindow) for (r of results)]);
+          invokeCallback(callback, ...[cloneValueInto(r, targetWindow) for (r of results)]);
         });
       }
     },
@@ -494,7 +513,7 @@ function injectLoopAPI(targetWindow) {
         } else if (!options.okButton && !options.cancelButton) {
           buttonFlags = Services.prompt.STD_YES_NO_BUTTONS;
         } else {
-          callback(cloneValueInto(new Error("confirm: missing button options"), targetWindow));
+          invokeCallback(callback, cloneValueInto(new Error("confirm: missing button options"), targetWindow));
         }
 
         try {
@@ -502,9 +521,9 @@ function injectLoopAPI(targetWindow) {
             options.message, buttonFlags, options.okButton, options.cancelButton,
             null, null, {});
 
-          callback(null, chosenButton == 0);
+          invokeCallback(callback, null, chosenButton == 0);
         } catch (ex) {
-          callback(cloneValueInto(ex, targetWindow));
+          invokeCallback(callback, cloneValueInto(ex, targetWindow));
         }
       }
     },
@@ -617,20 +636,13 @@ function injectLoopAPI(targetWindow) {
       writable: true,
       value: function(sessionType, path, method, payloadObj, callback) {
         
-        let callbackIsFunction = (typeof callback == "function");
         MozLoopService.hawkRequest(sessionType, path, method, payloadObj).then((response) => {
-          callback(null, response.body);
+          invokeCallback(callback, null, response.body);
         }, hawkError => {
           
           
-          if (callbackIsFunction && typeof callback != "function") {
-            MozLoopService.log.error("hawkRequest: callback function was lost.", hawkError);
-            return;
-          }
           
-          
-          
-          callback(Cu.cloneInto({
+          invokeCallback(callback, Cu.cloneInto({
             error: (hawkError.error && typeof hawkError.error == "string")
                    ? hawkError.error : "Unexpected exception",
             message: hawkError.message,
@@ -843,12 +855,12 @@ function injectLoopAPI(targetWindow) {
         request.onload = () => {
           if (request.status < 200 || request.status >= 300) {
             let error = new Error(request.status + " " + request.statusText);
-            callback(cloneValueInto(error, targetWindow));
+            invokeCallback(callback, cloneValueInto(error, targetWindow));
             return;
           }
 
           let blob = new Blob([request.response], {type: "audio/ogg"});
-          callback(null, cloneValueInto(blob, targetWindow));
+          invokeCallback(callback, null, cloneValueInto(blob, targetWindow));
         };
 
         request.send();
@@ -912,7 +924,7 @@ function injectLoopAPI(targetWindow) {
             }
             pageData.favicon = favicon || null;
 
-            callback(cloneValueInto(pageData, targetWindow));
+            invokeCallback(callback, cloneValueInto(pageData, targetWindow));
           });
         });
         win.gBrowser.selectedBrowser.messageManager.sendAsyncMessage("PageMetadata:GetPageData");
