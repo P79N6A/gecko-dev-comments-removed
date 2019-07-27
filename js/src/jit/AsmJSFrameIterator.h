@@ -48,16 +48,64 @@ class AsmJSFrameIterator
     unsigned computeLine(uint32_t *column) const;
 };
 
-
-
-
-
-enum AsmJSExitReason
+namespace AsmJSExit
 {
-    AsmJSNoExit,
-    AsmJSFFI,
-    AsmJSInterrupt
-};
+    
+    
+    
+    
+    
+    enum ReasonKind {
+        Reason_None,
+        Reason_FFI,
+        Reason_Interrupt,
+        Reason_Builtin
+    };
+
+    
+    
+    enum BuiltinKind {
+        Builtin_ToInt32,
+#if defined(JS_CODEGEN_ARM)
+        Builtin_IDivMod,
+        Builtin_UDivMod,
+#endif
+        Builtin_ModD,
+        Builtin_SinD,
+        Builtin_CosD,
+        Builtin_TanD,
+        Builtin_ASinD,
+        Builtin_ACosD,
+        Builtin_ATanD,
+        Builtin_CeilD,
+        Builtin_CeilF,
+        Builtin_FloorD,
+        Builtin_FloorF,
+        Builtin_ExpD,
+        Builtin_LogD,
+        Builtin_PowD,
+        Builtin_ATan2D,
+        Builtin_Limit
+    };
+
+    
+    
+    typedef uint32_t Reason;
+
+    static const uint32_t None = Reason_None;
+    static const uint32_t FFI = Reason_FFI;
+    static const uint32_t Interrupt = Reason_Interrupt;
+    static inline Reason Builtin(BuiltinKind builtin) {
+        return uint16_t(Reason_Builtin) | (uint16_t(builtin) << 16);
+    }
+    static inline ReasonKind ExtractReasonKind(Reason reason) {
+        return ReasonKind(uint16_t(reason));
+    }
+    static inline BuiltinKind ExtractBuiltinKind(Reason reason) {
+        JS_ASSERT(ExtractReasonKind(reason) == Reason_Builtin);
+        return BuiltinKind(uint16_t(reason >> 16));
+    }
+}
 
 
 
@@ -67,7 +115,7 @@ class AsmJSProfilingFrameIterator
     const AsmJSModule *module_;
     uint8_t *callerFP_;
     void *callerPC_;
-    AsmJSExitReason exitReason_;
+    AsmJSExit::Reason exitReason_;
 
     
     
@@ -112,11 +160,12 @@ void
 GenerateAsmJSEntryEpilogue(jit::MacroAssembler &masm);
 
 void
-GenerateAsmJSExitPrologue(jit::MacroAssembler &masm, unsigned framePushed, AsmJSExitReason reason,
+GenerateAsmJSExitPrologue(jit::MacroAssembler &masm, unsigned framePushed, AsmJSExit::Reason reason,
                           jit::Label *begin);
 void
-GenerateAsmJSExitEpilogue(jit::MacroAssembler &masm, unsigned framePushed, AsmJSExitReason reason,
+GenerateAsmJSExitEpilogue(jit::MacroAssembler &masm, unsigned framePushed, AsmJSExit::Reason reason,
                           jit::Label *profilingReturn);
+
 
 } 
 
