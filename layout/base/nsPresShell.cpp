@@ -6336,9 +6336,10 @@ nsIPresShell::GetPointerCapturingContent(uint32_t aPointerId)
   return nullptr;
 }
 
- void
+ bool
 nsIPresShell::CheckPointerCaptureState(uint32_t aPointerId)
 {
+  bool didDispatchEvent = false;
   PointerCaptureInfo* pointerCaptureInfo = nullptr;
   if (gPointerCaptureList->Get(aPointerId, &pointerCaptureInfo) && pointerCaptureInfo) {
     
@@ -6354,6 +6355,7 @@ nsIPresShell::CheckPointerCaptureState(uint32_t aPointerId)
           gPointerCaptureList->Remove(aPointerId);
         }
         DispatchGotOrLostPointerCaptureEvent(false, aPointerId, content);
+        didDispatchEvent = true;
       } else if (pointerCaptureInfo->mPendingContent && pointerCaptureInfo->mReleaseContent) {
         
         
@@ -6369,8 +6371,10 @@ nsIPresShell::CheckPointerCaptureState(uint32_t aPointerId)
       pointerCaptureInfo->mPendingContent = nullptr;
       pointerCaptureInfo->mReleaseContent = false;
       DispatchGotOrLostPointerCaptureEvent(true, aPointerId, pointerCaptureInfo->mOverrideContent);
+      didDispatchEvent = true;
     }
   }
+  return didDispatchEvent;
 }
 
  bool
@@ -7249,7 +7253,9 @@ PresShell::HandleEvent(nsIFrame* aFrame,
       if (WidgetPointerEvent* pointerEvent = aEvent->AsPointerEvent()) {
         
         
-        CheckPointerCaptureState(pointerEvent->pointerId);
+        
+        
+        while(CheckPointerCaptureState(pointerEvent->pointerId));
       }
     }
 

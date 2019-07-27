@@ -1257,7 +1257,10 @@ public:
   static void SetPointerCapturingContent(uint32_t aPointerId, nsIContent* aContent);
   static void ReleasePointerCapturingContent(uint32_t aPointerId, nsIContent* aContent);
   static nsIContent* GetPointerCapturingContent(uint32_t aPointerId);
-  static void CheckPointerCaptureState(uint32_t aPointerId);
+  
+  
+  
+  static bool CheckPointerCaptureState(uint32_t aPointerId);
 
   
   
