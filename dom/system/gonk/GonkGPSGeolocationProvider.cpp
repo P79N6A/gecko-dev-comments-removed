@@ -19,6 +19,7 @@
 #include <pthread.h>
 #include <hardware/gps.h>
 
+#include "mozilla/Constants.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "nsContentUtils.h"
@@ -81,8 +82,8 @@ GonkGPSGeolocationProvider::LocationCallback(GpsLocation* location)
     NS_IMETHOD Run() {
       nsRefPtr<GonkGPSGeolocationProvider> provider =
         GonkGPSGeolocationProvider::GetSingleton();
-      provider->mLastGPSDerivedLocationTime = PR_Now();
       nsCOMPtr<nsIGeolocationUpdate> callback = provider->mLocationCallback;
+      provider->mLastGPSPosition = mPosition;
       if (callback) {
         callback->Update(mPosition);
       }
@@ -101,7 +102,14 @@ GonkGPSGeolocationProvider::LocationCallback(GpsLocation* location)
                                                         location->accuracy,
                                                         location->bearing,
                                                         location->speed,
-                                                        location->timestamp);
+                                                        PR_Now() / PR_USEC_PER_MSEC);
+  
+  
+  
+  
+  
+
+
   NS_DispatchToMainThread(new UpdateLocationEvent(somewhere));
 }
 
@@ -699,7 +707,7 @@ GonkGPSGeolocationProvider::NetworkLocationUpdate::Update(nsIDOMGeoPosition *pos
   coords->GetLongitude(&lon);
   coords->GetAccuracy(&acc);
 
-  double delta = MAXFLOAT;
+  double delta = -1.0;
 
   static double sLastMLSPosLat = 0;
   static double sLastMLSPosLon = 0;
@@ -708,15 +716,20 @@ GonkGPSGeolocationProvider::NetworkLocationUpdate::Update(nsIDOMGeoPosition *pos
     
     
     
-    const double radsInDeg = 3.14159265 / 180.0;
+    const double radsInDeg = M_PI / 180.0;
     const double rNewLat = lat * radsInDeg;
     const double rNewLon = lon * radsInDeg;
     const double rOldLat = sLastMLSPosLat * radsInDeg;
     const double rOldLon = sLastMLSPosLon * radsInDeg;
     
-    delta = acos( (sin(rNewLat) * sin(rOldLat)) +
-                  (cos(rNewLat) * cos(rOldLat) * cos(rOldLon - rNewLon)) )
-                  * 6378137;
+    double cosDelta = (sin(rNewLat) * sin(rOldLat)) +
+                      (cos(rNewLat) * cos(rOldLat) * cos(rOldLon - rNewLon));
+    if (cosDelta > 1.0) {
+      cosDelta = 1.0;
+    } else if (cosDelta < -1.0) {
+      cosDelta = -1.0;
+    }
+    delta = acos(cosDelta) * 6378137;
   }
 
   sLastMLSPosLat = lat;
@@ -726,14 +739,40 @@ GonkGPSGeolocationProvider::NetworkLocationUpdate::Update(nsIDOMGeoPosition *pos
   
   const double kMinMLSCoordChangeInMeters = 10;
 
+  DOMTimeStamp time_ms = 0;
+  if (provider->mLastGPSPosition) {
+    provider->mLastGPSPosition->GetTimestamp(&time_ms);
+  }
+  const int64_t diff_ms = (PR_Now() / PR_USEC_PER_MSEC) - time_ms;
+
   
   
-  const int kMaxGPSDelayBeforeConsideringMLS = 10000;
-  int64_t diff = PR_Now() - provider->mLastGPSDerivedLocationTime;
-  if (provider->mLocationCallback && diff > kMaxGPSDelayBeforeConsideringMLS
-      && delta > kMinMLSCoordChangeInMeters)
-  {
-    provider->mLocationCallback->Update(position);
+  
+  
+
+  const bool isGPSFullyInactive = diff_ms > 1000 * 60 * 2; 
+  const bool isGPSTempInactive = diff_ms > 1000 * 10; 
+
+  if (provider->mLocationCallback) {
+    if (isGPSFullyInactive ||
+       (isGPSTempInactive && delta > kMinMLSCoordChangeInMeters))
+    {
+      if (gGPSDebugging) {
+        nsContentUtils::LogMessageToConsole("geo: Using MLS, GPS age:%fs, MLS Delta:%fm\n",
+                                            diff_ms / 1000.0, delta);
+      }
+      provider->mLocationCallback->Update(position);
+    } else if (provider->mLastGPSPosition) {
+      if (gGPSDebugging) {
+        nsContentUtils::LogMessageToConsole("geo: Using old GPS age:%fs\n",
+                                            diff_ms / 1000.0);
+      }
+
+      
+      
+      
+      provider->mLocationCallback->Update(provider->mLastGPSPosition);
+    }
   }
 
   provider->InjectLocation(lat, lon, acc);
@@ -779,7 +818,6 @@ GonkGPSGeolocationProvider::Startup()
     }
   }
 
-  mLastGPSDerivedLocationTime = 0;
   mStarted = true;
   return NS_OK;
 }
