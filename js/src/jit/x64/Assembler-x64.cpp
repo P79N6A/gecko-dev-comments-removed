@@ -230,7 +230,7 @@ Assembler::executableCopy(uint8_t *buffer)
 
             
             
-            X86Assembler::repatchPointer(entry + SizeOfExtendedJump, rp.target);
+            X86Assembler::setPointer(entry + SizeOfExtendedJump, rp.target);
         }
     }
 }
