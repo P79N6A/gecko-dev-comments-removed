@@ -917,7 +917,7 @@ nsOuterWindowProxy::set(JSContext *cx, JS::Handle<JSObject*> proxy,
   if (IsArrayIndex(index)) {
     
     
-    return result.succeed();
+    return result.failReadOnly();
   }
 
   return js::Wrapper::set(cx, proxy, receiver, id, vp, result);
