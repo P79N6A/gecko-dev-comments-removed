@@ -11,7 +11,7 @@ const PREF_SHOW = "browser.devedition.theme.showCustomizeButton";
 
 const URL = "data:text/html;charset=utf8,test for toggling dev edition browser theme toggling";
 
-let test = asyncTest(function*() {
+add_task(function*() {
   
   
   Services.prefs.setBoolPref(PREF_ENABLED, false);

@@ -8,7 +8,7 @@ loadHelperScript("helper_edits.js");
 
 
 
-let test = asyncTest(function*() {
+add_task(function*() {
   let projecteditor = yield addProjectEditorTabForTempDirectory();
   let TEMP_PATH = projecteditor.project.allPaths()[0];
 

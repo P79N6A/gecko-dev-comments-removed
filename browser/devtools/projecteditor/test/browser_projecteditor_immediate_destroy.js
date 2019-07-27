@@ -15,7 +15,7 @@ thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: this.window is null"
 
 
 
-let test = asyncTest(function* () {
+add_task(function* () {
 
   info ("Testing tab closure when projecteditor is in various states");
   let loaderUrl = "chrome://browser/content/devtools/projecteditor-test.xul";

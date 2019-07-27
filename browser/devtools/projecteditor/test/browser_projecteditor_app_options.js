@@ -6,7 +6,7 @@
 
 
 
-let test = asyncTest(function*() {
+add_task(function*() {
 
   let TEMP_PATH = buildTempDirectoryStructure();
   let projecteditor = yield addProjectEditorTab();

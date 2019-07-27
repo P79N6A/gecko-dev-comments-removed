@@ -9,7 +9,7 @@ const TEST_URI = "http://example.com/browser/browser/devtools/inspector/" +
 
 
 
-let test = asyncTest(function*() {
+add_task(function*() {
   info("Loading the test document and opening the inspector");
 
   yield addTab(TEST_URI);

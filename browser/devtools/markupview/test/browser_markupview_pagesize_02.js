@@ -13,7 +13,7 @@ const TEST_URL = TEST_URL_ROOT + "doc_markup_pagesize_02.html";
 
 Services.prefs.setIntPref("devtools.markup.pagesize", 5);
 
-let test = asyncTest(function*() {
+add_task(function*() {
   let {inspector} = yield addTab(TEST_URL).then(openInspector);
 
   info("Selecting the UL node");
