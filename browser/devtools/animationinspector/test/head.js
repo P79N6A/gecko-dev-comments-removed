@@ -279,7 +279,36 @@ let togglePlayPauseButton = Task.async(function*(widget) {
   yield onClicked;
 
   
-  yield widget.player.once(widget.player.AUTO_REFRESH_EVENT);
+  yield waitForStateCondition(widget.player, state => {
+    return state.playState === nextState;
+  }, "after clicking the toggle button");
+});
+
+
+
+
+
+
+
+
+
+
+
+
+let waitForStateCondition = Task.async(function*(player, conditionCheck, desc="") {
+  if (desc) {
+    desc = "(" + desc + ")";
+  }
+  info("Waiting for a player's auto-refresh event " + desc);
+  let def = promise.defer();
+  player.on(player.AUTO_REFRESH_EVENT, function onNewState() {
+    info("State refreshed, checking condition ... " + desc);
+    if (conditionCheck(player.state)) {
+      player.off(player.AUTO_REFRESH_EVENT, onNewState);
+      def.resolve();
+    }
+  });
+  return def.promise;
 });
 
 
