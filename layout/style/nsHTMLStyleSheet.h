@@ -132,6 +132,8 @@ public:
 
   
   
+  
+  
   class LangRule final : public nsIStyleRule {
   private:
     ~LangRule() {}

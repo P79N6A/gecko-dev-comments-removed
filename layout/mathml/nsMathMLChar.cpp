@@ -1660,8 +1660,10 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
 
     
     
-    nsAutoTArray<nsString, 10> mathFallbacks;
-    gfxFontUtils::GetPrefsFontList("font.mathfont-family", mathFallbacks);
+    nsAutoTArray<nsString, 16> mathFallbacks;
+    gfxFontUtils::GetPrefsFontList("font.name.serif.x-math", mathFallbacks);
+    gfxFontUtils::AppendPrefsFontList("font.name-list.serif.x-math",
+                                      mathFallbacks);
     InsertMathFallbacks(font.fontlist, mathFallbacks);
 
 

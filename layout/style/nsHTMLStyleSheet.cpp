@@ -306,6 +306,13 @@ nsHTMLStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
   if (aData->mElement->GetAttr(kNameSpaceID_XML, nsGkAtoms::lang, lang)) {
     ruleWalker->Forward(LangRuleFor(lang));
   }
+
+  
+  
+  if (aData->mElement->IsMathMLElement(nsGkAtoms::math)) {
+    nsGkAtoms::x_math->ToString(lang);
+    ruleWalker->Forward(LangRuleFor(lang));
+  }
 }
 
 

@@ -13,8 +13,6 @@
 
 
 
-
-
 math {
   writing-mode: horizontal-tb !important;
   direction: ltr;
@@ -22,7 +20,7 @@ math {
   display: inline;
   font-size: inherit;
   font-style: normal;
-  font-family: MathJax_Main, STIXGeneral, Cambria, Cambria Math, XITS, Latin Modern Math, DejaVu Serif, DejaVu Sans, Times, Lucida Sans Unicode, OpenSymbol, Standard Symbols L, serif;
+  font-family: serif;
   text-rendering: optimizeLegibility;
   -moz-float-edge: margin-box;
   -moz-math-display: inline;

@@ -2122,6 +2122,9 @@ GK_ATOM(ga, "ga")
 GK_ATOM(nl, "nl")
 
 
+GK_ATOM(x_math, "x-math")
+
+
 GK_ATOM(TypingTxnName, "Typing")
 GK_ATOM(IMETxnName, "IME")
 GK_ATOM(DeleteTxnName, "Deleting")
