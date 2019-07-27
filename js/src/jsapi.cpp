@@ -1732,7 +1732,7 @@ JS_SetNativeStackQuota(JSRuntime *rt, size_t systemCodeStackSize, size_t trusted
     SetNativeStackQuotaAndLimit(rt, StackForTrustedScript, trustedScriptStackSize);
     SetNativeStackQuotaAndLimit(rt, StackForUntrustedScript, untrustedScriptStackSize);
 
-    rt->mainThread.initJitStackLimit();
+    rt->initJitStackLimit();
 }
 
 
@@ -5894,7 +5894,7 @@ HideScriptedCaller(JSContext *cx)
 
     
     
-    Activation *act = cx->runtime()->mainThread.activation();
+    Activation *act = cx->runtime()->activation();
     if (!act)
         return;
     act->hideScriptedCaller();
@@ -5903,7 +5903,7 @@ HideScriptedCaller(JSContext *cx)
 JS_PUBLIC_API(void)
 UnhideScriptedCaller(JSContext *cx)
 {
-    Activation *act = cx->runtime()->mainThread.activation();
+    Activation *act = cx->runtime()->activation();
     if (!act)
         return;
     act->unhideScriptedCaller();

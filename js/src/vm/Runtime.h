@@ -481,6 +481,11 @@ void DisableExtraThreads();
 
 class PerThreadData : public PerThreadDataFriendFields
 {
+#ifdef DEBUG
+    
+    friend void js::AssertCurrentThreadCanLock(RuntimeLock which);
+#endif
+
     
 
 
@@ -507,112 +512,14 @@ class PerThreadData : public PerThreadDataFriendFields
     js::Vector<SavedGCRoot, 0, js::SystemAllocPolicy> gcSavedRoots;
 #endif
 
-
-
-
-
-    uint8_t             *jitTop;
-
-    
-
-
-
-
-    JSContext           *jitJSContext;
-
-     
-
-
-
-    js::jit::JitActivation *jitActivation;
-
-    
-  private:
-    mozilla::Atomic<uintptr_t, mozilla::Relaxed> jitStackLimit_;
-    void resetJitStackLimit();
-    friend struct ::JSRuntime;
-  public:
-    void initJitStackLimit();
-
-    uintptr_t jitStackLimit() const { return jitStackLimit_; }
-
-    
-    void *addressOfJitStackLimit() { return &jitStackLimit_; }
-    static size_t offsetOfJitStackLimit() { return offsetof(PerThreadData, jitStackLimit_); }
-
-    
-    irregexp::RegExpStack regexpStack;
-
 #ifdef JS_TRACE_LOGGING
     TraceLoggerThread   *traceLogger;
 #endif
 
-  private:
-    friend class js::Activation;
-    friend class js::ActivationIterator;
-    friend class js::jit::JitActivation;
-    friend class js::AsmJSActivation;
-    friend class js::jit::CompileRuntime;
-#ifdef DEBUG
-    friend void js::AssertCurrentThreadCanLock(RuntimeLock which);
-#endif
-
-    
-
-
-
-    js::Activation *activation_;
-
-    
-
-
-
-    js::Activation * volatile profilingActivation_;
-
-    
-    js::AsmJSActivation * volatile asmJSActivationStack_;
-
     
     js::jit::AutoFlushICache *autoFlushICache_;
 
-#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
-    js::jit::Simulator *simulator_;
-    uintptr_t simulatorStackLimit_;
-#endif
-
   public:
-    js::Activation *const *addressOfActivation() const {
-        return &activation_;
-    }
-    static unsigned offsetOfAsmJSActivationStackReadOnly() {
-        return offsetof(PerThreadData, asmJSActivationStack_);
-    }
-    static unsigned offsetOfActivation() {
-        return offsetof(PerThreadData, activation_);
-    }
-
-    js::Activation *profilingActivation() const {
-        return profilingActivation_;
-    }
-    void *addressOfProfilingActivation() {
-        return (void*) &profilingActivation_;
-    }
-    static unsigned offsetOfProfilingActivation() {
-        return offsetof(PerThreadData, profilingActivation_);
-    }
-
-    js::AsmJSActivation *asmJSActivationStack() const {
-        return asmJSActivationStack_;
-    }
-    static js::AsmJSActivation *innermostAsmJSActivation() {
-        PerThreadData *ptd = TlsPerThreadData.get();
-        return ptd ? ptd->asmJSActivationStack_ : nullptr;
-    }
-
-    js::Activation *activation() const {
-        return activation_;
-    }
-
     
     DtoaState           *dtoaState;
 
@@ -659,21 +566,10 @@ class PerThreadData : public PerThreadDataFriendFields
         {
             MOZ_ASSERT(!pt->runtime_);
             pt->runtime_ = rt;
-#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
-            
-            
-            
-            
-            MOZ_ASSERT(!pt->simulator_);
-#endif
         }
 
         ~AutoEnterRuntime() {
             pt->runtime_ = nullptr;
-#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
-            
-            MOZ_ASSERT(!pt->simulator_);
-#endif
         }
     };
 
@@ -684,7 +580,6 @@ class PerThreadData : public PerThreadDataFriendFields
     js::jit::Simulator *simulator() const;
     void setSimulator(js::jit::Simulator *sim);
     js::jit::SimulatorRuntime *simulatorRuntime() const;
-    uintptr_t *addressOfSimulatorStackLimit();
 #endif
 };
 
@@ -706,6 +601,97 @@ struct JSRuntime : public JS::shadow::Runtime,
 
 
     js::PerThreadData mainThread;
+
+    
+
+
+
+    uint8_t             *jitTop;
+
+    
+
+
+
+
+    JSContext           *jitJSContext;
+
+     
+
+
+
+    js::jit::JitActivation *jitActivation;
+
+    
+  private:
+    mozilla::Atomic<uintptr_t, mozilla::Relaxed> jitStackLimit_;
+    void resetJitStackLimit();
+
+  public:
+    void initJitStackLimit();
+
+    uintptr_t jitStackLimit() const { return jitStackLimit_; }
+
+    
+    void *addressOfJitStackLimit() { return &jitStackLimit_; }
+    static size_t offsetOfJitStackLimit() { return offsetof(JSRuntime, jitStackLimit_); }
+
+    
+    js::irregexp::RegExpStack regexpStack;
+
+  private:
+    friend class js::Activation;
+    friend class js::ActivationIterator;
+    friend class js::jit::JitActivation;
+    friend class js::AsmJSActivation;
+    friend class js::jit::CompileRuntime;
+#ifdef DEBUG
+    friend void js::AssertCurrentThreadCanLock(js::RuntimeLock which);
+#endif
+
+    
+
+
+
+    js::Activation *activation_;
+
+    
+
+
+
+    js::Activation * volatile profilingActivation_;
+
+    
+    js::AsmJSActivation * volatile asmJSActivationStack_;
+
+  public:
+    js::Activation *const *addressOfActivation() const {
+        return &activation_;
+    }
+    static unsigned offsetOfActivation() {
+        return offsetof(JSRuntime, activation_);
+    }
+
+    js::Activation *profilingActivation() const {
+        return profilingActivation_;
+    }
+    void *addressOfProfilingActivation() {
+        return (void*) &profilingActivation_;
+    }
+    static unsigned offsetOfProfilingActivation() {
+        return offsetof(JSRuntime, profilingActivation_);
+    }
+
+    js::AsmJSActivation *asmJSActivationStack() const {
+        return asmJSActivationStack_;
+    }
+    static js::AsmJSActivation *innermostAsmJSActivation() {
+        js::PerThreadData *ptd = js::TlsPerThreadData.get();
+        return ptd ? ptd->runtimeFromMainThread()->asmJSActivationStack_ : nullptr;
+    }
+
+    js::Activation *activation() const {
+        return activation_;
+    }
 
     
 
@@ -988,6 +974,8 @@ struct JSRuntime : public JS::shadow::Runtime,
     }
 
 #if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
+    js::jit::Simulator *simulator_;
+    uintptr_t simulatorStackLimit_;
     js::jit::SimulatorRuntime *simulatorRuntime_;
 #endif
 
@@ -997,6 +985,9 @@ struct JSRuntime : public JS::shadow::Runtime,
     }
 
 #if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
+    js::jit::Simulator *simulator() const;
+    void setSimulator(js::jit::Simulator *sim);
+    uintptr_t *addressOfSimulatorStackLimit();
     js::jit::SimulatorRuntime *simulatorRuntime() const;
     void setSimulatorRuntime(js::jit::SimulatorRuntime *srt);
 #endif
@@ -1438,7 +1429,7 @@ namespace js {
 static inline JSContext *
 GetJSContextFromJitCode()
 {
-    JSContext *cx = TlsPerThreadData.get()->jitJSContext;
+    JSContext *cx = js::TlsPerThreadData.get()->runtimeFromMainThread()->jitJSContext;
     MOZ_ASSERT(cx);
     return cx;
 }

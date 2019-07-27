@@ -3330,7 +3330,8 @@ TypeObject::clearNewScript(ExclusiveContext *cx)
         newScript->rollbackPartiallyInitializedObjects(cx->asJSContext(), this);
     } else {
         
-        MOZ_ASSERT(!cx->perThreadData->activation());
+        MOZ_ASSERT(!cx->perThreadData->runtimeIfOnOwnerThread() ||
+                   !cx->perThreadData->runtimeIfOnOwnerThread()->activation());
     }
 
     js_delete(newScript);

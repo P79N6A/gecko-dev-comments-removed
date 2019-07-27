@@ -1654,7 +1654,7 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
     
     
     if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(cx->runtime()))
-        cx->mainThread().jitActivation->setLastProfilingFrame(iter.prevFp());
+        cx->runtime()->jitActivation->setLastProfilingFrame(iter.prevFp());
 
     uint32_t frameno = 0;
     while (frameno < numFrames) {
@@ -1707,7 +1707,7 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
     
     
     
-    JitActivation *act = cx->mainThread().activation()->asJit();
+    JitActivation *act = cx->runtime()->activation()->asJit();
     if (act->hasRematerializedFrame(outerFp)) {
         JitFrameIterator iter(cx);
         size_t inlineDepth = numFrames;

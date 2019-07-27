@@ -8514,15 +8514,11 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
         
         
         
-        size_t offsetOfActivation = offsetof(JSRuntime, mainThread) +
-                                    PerThreadData::offsetOfActivation();
-        size_t offsetOfJitTop = offsetof(JSRuntime, mainThread) + offsetof(PerThreadData, jitTop);
-        size_t offsetOfJitJSContext = offsetof(JSRuntime, mainThread) +
-                                      offsetof(PerThreadData, jitJSContext);
-        size_t offsetOfJitActivation = offsetof(JSRuntime, mainThread) +
-                                       offsetof(PerThreadData, jitActivation);
-        size_t offsetOfProfilingActivation = offsetof(JSRuntime, mainThread) +
-                                             PerThreadData::offsetOfProfilingActivation();
+        size_t offsetOfActivation = JSRuntime::offsetOfActivation();
+        size_t offsetOfJitTop = offsetof(JSRuntime, jitTop);
+        size_t offsetOfJitJSContext = offsetof(JSRuntime, jitJSContext);
+        size_t offsetOfJitActivation = offsetof(JSRuntime, jitActivation);
+        size_t offsetOfProfilingActivation = JSRuntime::offsetOfProfilingActivation();
         masm.loadAsmJSActivation(reg0);
         masm.loadPtr(Address(reg0, AsmJSActivation::offsetOfContext()), reg3);
         masm.loadPtr(Address(reg3, JSContext::offsetOfRuntime()), reg0);
@@ -8577,15 +8573,11 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
         
         
         
-        size_t offsetOfActivation = offsetof(JSRuntime, mainThread) +
-                                    PerThreadData::offsetOfActivation();
-        size_t offsetOfJitTop = offsetof(JSRuntime, mainThread) + offsetof(PerThreadData, jitTop);
-        size_t offsetOfJitJSContext = offsetof(JSRuntime, mainThread) +
-                                      offsetof(PerThreadData, jitJSContext);
-        size_t offsetOfJitActivation = offsetof(JSRuntime, mainThread) +
-                                       offsetof(PerThreadData, jitActivation);
-        size_t offsetOfProfilingActivation = offsetof(JSRuntime, mainThread) +
-                                             PerThreadData::offsetOfProfilingActivation();
+        size_t offsetOfActivation = JSRuntime::offsetOfActivation();
+        size_t offsetOfJitTop = offsetof(JSRuntime, jitTop);
+        size_t offsetOfJitJSContext = offsetof(JSRuntime, jitJSContext);
+        size_t offsetOfJitActivation = offsetof(JSRuntime, jitActivation);
+        size_t offsetOfProfilingActivation = JSRuntime::offsetOfProfilingActivation();
 
         masm.movePtr(AsmJSImmPtr(AsmJSImm_Runtime), reg0);
         masm.loadPtr(Address(reg0, offsetOfActivation), reg1);
