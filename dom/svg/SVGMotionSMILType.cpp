@@ -307,8 +307,7 @@ SVGMotionSMILType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
 
   
   
-  dstArr.Clear();
-  dstArr.AppendElement(MotionSegment(newX, newY, rotateAngle));
+  dstArr.ReplaceElementAt(0, MotionSegment(newX, newY, rotateAngle));
   return NS_OK;
 }
 
