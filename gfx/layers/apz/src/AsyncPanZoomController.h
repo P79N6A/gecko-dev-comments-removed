@@ -901,7 +901,8 @@ public:
   
 
 
-  bool IsRootForLayersId() const {
+
+  bool HasNoParentWithSameLayersId() const {
     return !mParent || (mParent->mLayersId != mLayersId);
   }
 
