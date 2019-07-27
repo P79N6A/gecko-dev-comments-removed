@@ -3406,6 +3406,19 @@ BytecodeEmitter::emitFunctionScript(ParseNode* body)
 
 
     FunctionBox* funbox = sc->asFunctionBox();
+
+    
+    
+    RootedFunction fun(cx, funbox->function());
+    MOZ_ASSERT(fun->isInterpreted());
+
+    script->setFunction(fun);
+
+    if (fun->isInterpretedLazy())
+        fun->setUnlazifiedScript(script);
+    else
+        fun->setScript(script);
+
     if (funbox->argumentsHasLocalBinding()) {
         MOZ_ASSERT(offset() == 0);  
         switchToPrologue();
@@ -3508,15 +3521,6 @@ BytecodeEmitter::emitFunctionScript(ParseNode* body)
         script->setTreatAsRunOnce();
         MOZ_ASSERT(!script->hasRunOnce());
     }
-
-    
-    RootedFunction fun(cx, script->functionNonDelazifying());
-    MOZ_ASSERT(fun->isInterpreted());
-
-    if (fun->isInterpretedLazy())
-        fun->setUnlazifiedScript(script);
-    else
-        fun->setScript(script);
 
     tellDebuggerAboutCompiledScript(cx);
 
@@ -5765,8 +5769,6 @@ BytecodeEmitter::emitFunction(ParseNode* pn, bool needsProto)
             Rooted<JSScript*> parent(cx, script);
             CompileOptions options(cx, parser->options());
             options.setMutedErrors(parent->mutedErrors())
-                   .setHasPollutedScope(parent->hasPollutedGlobalScope())
-                   .setSelfHostingMode(parent->selfHosted())
                    .setNoScriptRval(false)
                    .setForEval(false)
                    .setVersion(parent->getVersion());
