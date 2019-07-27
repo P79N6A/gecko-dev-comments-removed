@@ -1722,7 +1722,9 @@ CloneObject(JSContext* cx, HandleNativeObject selfHostedObject)
         js::gc::AllocKind kind = hasName
                                  ? gc::AllocKind::FUNCTION_EXTENDED
                                  : selfHostedFunction->getAllocKind();
-        clone = CloneFunctionObject(cx, selfHostedFunction, cx->global(), kind, TenuredObject);
+        MOZ_ASSERT(!CanReuseScriptForClone(cx->compartment(), selfHostedFunction, cx->global()));
+        clone = CloneFunctionAndScript(cx, selfHostedFunction, cx->global(),
+                                        nullptr, kind);
         
         
         if (clone && hasName)
@@ -1806,22 +1808,17 @@ JSRuntime::cloneSelfHostedFunctionScript(JSContext* cx, HandlePropertyName name,
     
     
     MOZ_ASSERT(!sourceFun->isGenerator());
-    RootedScript sourceScript(cx, sourceFun->getOrCreateScript(cx));
-    if (!sourceScript)
-        return false;
-    MOZ_ASSERT(!sourceScript->enclosingStaticScope());
-    JSScript* cscript = CloneScript(cx, nullptr, targetFun, sourceScript);
-    if (!cscript)
-        return false;
-    cscript->setFunction(targetFun);
-
     MOZ_ASSERT(sourceFun->nargs() == targetFun->nargs());
     
     targetFun->setFlags((targetFun->flags() & ~JSFunction::INTERPRETED_LAZY) |
                         sourceFun->flags() | JSFunction::EXTENDED);
-    targetFun->setScript(cscript);
     MOZ_ASSERT(targetFun->isExtended());
-    return true;
+
+    RootedScript sourceScript(cx, sourceFun->getOrCreateScript(cx));
+    if (!sourceScript)
+        return false;
+    MOZ_ASSERT(!sourceScript->enclosingStaticScope());
+    return !!CloneScriptIntoFunction(cx,  nullptr, targetFun, sourceScript);
 }
 
 bool
