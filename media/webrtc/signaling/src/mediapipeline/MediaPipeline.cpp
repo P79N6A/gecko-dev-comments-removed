@@ -1171,6 +1171,7 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
   last_img_ = serial;
 
   ImageFormat format = img->GetFormat();
+  layers::PlanarYCbCrImage* yuvImage = img->AsPlanarYCbCrImage();
 #ifdef WEBRTC_GONK
   if (format == ImageFormat::GRALLOC_PLANAR_YCBCR) {
     layers::GrallocImage *nativeImage = static_cast<layers::GrallocImage*>(img);
@@ -1187,21 +1188,17 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
     graphicBuffer->unlock();
   } else
 #endif
-  if (format == ImageFormat::PLANAR_YCBCR) {
-    
-    layers::PlanarYCbCrImage* yuv =
-    const_cast<layers::PlanarYCbCrImage *>(
-          static_cast<const layers::PlanarYCbCrImage *>(img));
+  if (yuvImage) {
     
     
-    const layers::PlanarYCbCrData *data = yuv->GetData();
+    const layers::PlanarYCbCrData *data = yuvImage->GetData();
 
     uint8_t *y = data->mYChannel;
     uint8_t *cb = data->mCbChannel;
     uint8_t *cr = data->mCrChannel;
-    uint32_t width = yuv->GetSize().width;
-    uint32_t height = yuv->GetSize().height;
-    uint32_t length = yuv->GetDataSize();
+    uint32_t width = yuvImage->GetSize().width;
+    uint32_t height = yuvImage->GetSize().height;
+    uint32_t length = yuvImage->GetDataSize();
     
     
 
