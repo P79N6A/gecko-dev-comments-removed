@@ -49,7 +49,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(IMEContentObserver)
   tmp->NotifyIMEOfBlur();
   tmp->UnregisterObservers();
 
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mWidget)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSelection)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mRootContent)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mEditableNode)
@@ -92,6 +91,8 @@ IMEContentObserver::IMEContentObserver()
   , mSuppressNotifications(0)
   , mPreCharacterDataChangeLength(-1)
   , mIsObserving(false)
+  , mIMEHasFocus(false)
+  , mIsFocusEventPending(false)
   , mIsSelectionChangeEventPending(false)
   , mSelectionChangeCausedOnlyByComposition(false)
   , mIsPositionChangeEventPending(false)
@@ -179,7 +180,7 @@ IMEContentObserver::Init(nsIWidget* aWidget,
   NS_ENSURE_TRUE_VOID(mRootContent);
 
   if (firstInitialization) {
-    aWidget->NotifyIME(IMENotification(NOTIFY_IME_OF_FOCUS));
+    MaybeNotifyIMEOfFocusSet();
 
     
     
@@ -239,15 +240,27 @@ void
 IMEContentObserver::NotifyIMEOfBlur()
 {
   
+  nsCOMPtr<nsIWidget> widget;
+  mWidget.swap(widget);
+
   
-  if (!mRootContent || !mWidget) {
+  if (!mIMEHasFocus) {
     return;
   }
 
   
-  if (mWidget) {
-    mWidget->NotifyIME(IMENotification(NOTIFY_IME_OF_BLUR));
-  }
+  MOZ_RELEASE_ASSERT(widget);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  mIMEHasFocus = false;
+  widget->NotifyIME(IMENotification(NOTIFY_IME_OF_BLUR));
 }
 
 void
@@ -294,7 +307,6 @@ IMEContentObserver::Destroy()
   UnregisterObservers();
 
   mEditor = nullptr;
-  
   mWidget = nullptr;
   mSelection = nullptr;
   mRootContent = nullptr;
@@ -982,6 +994,13 @@ IMEContentObserver::CancelEditAction()
 }
 
 void
+IMEContentObserver::MaybeNotifyIMEOfFocusSet()
+{
+  mIsFocusEventPending = true;
+  FlushMergeableNotifications();
+}
+
+void
 IMEContentObserver::MaybeNotifyIMEOfTextChange(const TextChangeData& aData)
 {
   StoreTextChangeData(aData);
@@ -1046,6 +1065,15 @@ IMEContentObserver::FlushMergeableNotifications()
 
   
   
+
+  if (mIsFocusEventPending) {
+    mIsFocusEventPending = false;
+    nsContentUtils::AddScriptRunner(new FocusSetEvent(this));
+    
+    
+    ClearPendingNotifications();
+    return;
+  }
 
   if (mTextChangeData.mStored) {
     nsContentUtils::AddScriptRunner(new TextChangeEvent(this, mTextChangeData));
@@ -1531,8 +1559,38 @@ IMEContentObserver::TestMergingTextChangeData()
 
 
 NS_IMETHODIMP
+IMEContentObserver::FocusSetEvent::Run()
+{
+  if (NS_WARN_IF(mIMEContentObserver->mIMEHasFocus)) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIWidget> widget = mIMEContentObserver->GetWidget();
+  if (!widget) {
+    
+    
+    mIMEContentObserver->ClearPendingNotifications();
+    return NS_OK;
+  }
+
+  mIMEContentObserver->mIMEHasFocus = true;
+  widget->NotifyIME(IMENotification(NOTIFY_IME_OF_FOCUS));
+  return NS_OK;
+}
+
+
+
+
+
+NS_IMETHODIMP
 IMEContentObserver::SelectionChangeEvent::Run()
 {
+  
+  
+  if (!mIMEContentObserver->mIMEHasFocus) {
+    return NS_OK;
+  }
+
   nsCOMPtr<nsIWidget> widget = mIMEContentObserver->mWidget;
   nsPresContext* presContext = mIMEContentObserver->GetPresContext();
   if (!widget || !presContext) {
@@ -1576,6 +1634,12 @@ IMEContentObserver::SelectionChangeEvent::Run()
 NS_IMETHODIMP
 IMEContentObserver::TextChangeEvent::Run()
 {
+  
+  
+  if (!mIMEContentObserver->mIMEHasFocus) {
+    return NS_OK;
+  }
+
   if (!mIMEContentObserver->mWidget) {
     return NS_OK;
   }
@@ -1596,6 +1660,12 @@ IMEContentObserver::TextChangeEvent::Run()
 NS_IMETHODIMP
 IMEContentObserver::PositionChangeEvent::Run()
 {
+  
+  
+  if (!mIMEContentObserver->mIMEHasFocus) {
+    return NS_OK;
+  }
+
   if (mIMEContentObserver->mWidget) {
     mIMEContentObserver->mWidget->NotifyIME(
       IMENotification(NOTIFY_IME_OF_POSITION_CHANGE));
