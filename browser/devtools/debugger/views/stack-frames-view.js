@@ -62,27 +62,40 @@ StackFramesView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  addFrame: function(aTitle, aUrl, aLine, aDepth, aIsBlackBoxed) {
+  addFrame: function(aFrame, aLine, aDepth, aIsBlackBoxed) {
+    let { source } = aFrame;
+
+    
+    
+    if(!DebuggerView.Sources.getItemByValue(source.actor)) {
+      DebuggerView.Sources.addSource(source, { force: true });
+    }
+
+    let location = DebuggerView.Sources.getDisplayURL(source);
+    let title = StackFrameUtils.getFrameTitle(aFrame);
+
     
     
     if (aIsBlackBoxed) {
-      if (this._prevBlackBoxedUrl == aUrl) {
+      if (this._prevBlackBoxedUrl == location) {
         return;
       }
-      this._prevBlackBoxedUrl = aUrl;
+      this._prevBlackBoxedUrl = location;
     } else {
       this._prevBlackBoxedUrl = null;
     }
 
     
-    let frameView = this._createFrameView.apply(this, arguments);
+    let frameView = this._createFrameView(
+      title, location, aLine, aDepth, aIsBlackBoxed
+    );
 
     
     this.push([frameView], {
       index: 0, 
       attachment: {
-        title: aTitle,
-        url: aUrl,
+        title: title,
+        url: location,
         line: aLine,
         depth: aDepth
       },
@@ -92,7 +105,7 @@ StackFramesView.prototype = Heritage.extend(WidgetMethods, {
     });
 
     
-    this._mirror.addFrame(aTitle, aUrl, aLine, aDepth);
+    this._mirror.addFrame(title, location, aLine, aDepth);
   },
 
   
