@@ -214,6 +214,15 @@ public:
   
 
 
+  Matrix &PreMultiply(const Matrix &aMatrix)
+  {
+    *this = aMatrix * *this;
+    return *this;
+  }
+
+  
+
+
   bool operator==(const Matrix& other) const
   {
     return FuzzyEqual(_11, other._11) && FuzzyEqual(_12, other._12) &&
