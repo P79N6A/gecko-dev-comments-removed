@@ -61,9 +61,9 @@ function run_code() {
 function step_in() {
   gClient.addOneTimeListener("paused", function (aEvent, aPacket) {
     do_check_eq(aPacket.why.type, "resumeLimit");
-    let { frame: { environment, where: { url, line } } } = aPacket;
+    let { frame: { environment, where: { source, line } } } = aPacket;
     
-    do_check_eq(url, "http://example.com/a.js");
+    do_check_eq(source.url, "http://example.com/a.js");
     do_check_eq(line, 3);
     
     

@@ -36,36 +36,46 @@ function run_test_with_server(aServer, aCallback)
 function test_child_skip_breakpoint()
 {
   gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
-    let path = getFilePath('test_breakpoint-08.js');
-    let location = { url: path, line: gDebuggee.line0 + 3};
-    gThreadClient.setBreakpoint(location, function (aResponse, bpClient) {
-      
-      do_check_eq(aResponse.actualLocation.url, location.url);
-      do_check_eq(aResponse.actualLocation.line, location.line + 1);
-      gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
-        
-        do_check_eq(aPacket.type, "paused");
-        do_check_eq(aPacket.frame.where.url, path);
-        do_check_eq(aPacket.frame.where.line, location.line + 1);
-        do_check_eq(aPacket.why.type, "breakpoint");
-        do_check_eq(aPacket.why.actors[0], bpClient.actor);
-        
-        do_check_eq(gDebuggee.a, 1);
-        do_check_eq(gDebuggee.b, undefined);
+    gThreadClient.eval(aPacket.frame.actor, "foo", function(aResponse) {
+      gThreadClient.addOneTimeListener("paused", function(aEvent, aPacket) {
+        let obj = gThreadClient.pauseGrip(aPacket.why.frameFinished.return);
+        obj.getDefinitionSite(runWithBreakpoint);
+      });
+    });
 
+    function runWithBreakpoint(aPacket) {
+      let source = gThreadClient.source(aPacket.source);
+      let location = { line: gDebuggee.line0 + 3 };
+
+      source.setBreakpoint(location, function (aResponse, bpClient) {
         
-        bpClient.remove(function (aResponse) {
-          gThreadClient.resume(function () {
-            gClient.close(gCallback);
+        
+        do_check_eq(aResponse.actualLocation.source.actor, source.actor);
+        do_check_eq(aResponse.actualLocation.line, location.line + 1);
+
+        gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
+          
+          do_check_eq(aPacket.type, "paused");
+          do_check_eq(aPacket.frame.where.source.actor, source.actor);
+          do_check_eq(aPacket.frame.where.line, location.line + 1);
+          do_check_eq(aPacket.why.type, "breakpoint");
+          do_check_eq(aPacket.why.actors[0], bpClient.actor);
+          
+          do_check_eq(gDebuggee.a, 1);
+          do_check_eq(gDebuggee.b, undefined);
+
+          
+          bpClient.remove(function (aResponse) {
+            gThreadClient.resume(function () {
+              gClient.close(gCallback);
+            });
           });
         });
 
+        
+        gThreadClient.resume();
       });
-      
-      gThreadClient.resume();
-
-    });
-
+    }
   });
 
   gDebuggee.eval("var line0 = Error().lineNumber;\n" +

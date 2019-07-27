@@ -21,7 +21,7 @@ function test() {
     function checkView(selectedFrame, selectedSource, caretLine, editorText) {
       is(win.gThreadClient.state, "paused",
         "Should only be getting stack frames while paused.");
-      is(framesView.itemCount, 4,
+      is(framesView.itemCount, 2,
         "Should have four frames.");
       is(framesView.selectedDepth, selectedFrame,
         "The correct frame is selected in the widget.");
@@ -39,14 +39,14 @@ function test() {
 
     
     callInTab(tab, "firstCall");
-    yield waitForSourceAndCaretAndScopes(panel, "-02.js", 1);
-    checkView(0, 1, 1, [/secondCall/, 118]);
+    yield waitForSourceAndCaretAndScopes(panel, "-02.js", 6);
+    checkView(0, 1, 6, [/secondCall/, 118]);
 
     
     let updatedFrame = waitForDebuggerEvents(panel, events.FETCHED_SCOPES);
-    framesView.selectedDepth = 3; 
+    framesView.selectedDepth = 1; 
     yield updatedFrame;
-    checkView(3, 0, 5, [/firstCall/, 118]);
+    checkView(1, 0, 5, [/firstCall/, 118]);
 
     let updatedView = waitForDebuggerEvents(panel, events.FETCHED_SCOPES);
     try {
@@ -58,7 +58,7 @@ function test() {
     }
 
     yield updatedView;
-    checkView(3, 0, 5, [/firstCall/, 118]);
+    checkView(1, 0, 5, [/firstCall/, 118]);
     ok(true, "Evaluating while in a user-selected frame works properly.");
 
     yield resumeDebuggerThenCloseAndFinish(panel);

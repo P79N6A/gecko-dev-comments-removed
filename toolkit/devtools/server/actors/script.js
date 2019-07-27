@@ -108,30 +108,32 @@ BreakpointStore.prototype = {
 
 
   addBreakpoint: function (aBreakpoint) {
-    let { url, line, column } = aBreakpoint;
+    let { source: { actor }, line, column } = aBreakpoint;
 
     if (column != null) {
-      if (!this._breakpoints[url]) {
-        this._breakpoints[url] = [];
+      if (!this._breakpoints[actor]) {
+        this._breakpoints[actor] = [];
       }
-      if (!this._breakpoints[url][line]) {
-        this._breakpoints[url][line] = [];
+      if (!this._breakpoints[actor][line]) {
+        this._breakpoints[actor][line] = [];
       }
-      if (!this._breakpoints[url][line][column]) {
-        this._breakpoints[url][line][column] = aBreakpoint;
+
+      if (!this._breakpoints[actor][line][column]) {
+        this._breakpoints[actor][line][column] = aBreakpoint;
         this._size++;
       }
-      return this._breakpoints[url][line][column];
+      return this._breakpoints[actor][line][column];
     } else {
       
-      if (!this._wholeLineBreakpoints[url]) {
-        this._wholeLineBreakpoints[url] = [];
+      if (!this._wholeLineBreakpoints[actor]) {
+        this._wholeLineBreakpoints[actor] = [];
       }
-      if (!this._wholeLineBreakpoints[url][line]) {
-        this._wholeLineBreakpoints[url][line] = aBreakpoint;
+
+      if (!this._wholeLineBreakpoints[actor][line]) {
+        this._wholeLineBreakpoints[actor][line] = aBreakpoint;
         this._size++;
       }
-      return this._wholeLineBreakpoints[url][line];
+      return this._wholeLineBreakpoints[actor][line];
     }
   },
 
@@ -145,12 +147,12 @@ BreakpointStore.prototype = {
 
 
 
-  removeBreakpoint: function ({ url, line, column }) {
+  removeBreakpoint: function ({ source: { actor }, line, column }) {
     if (column != null) {
-      if (this._breakpoints[url]) {
-        if (this._breakpoints[url][line]) {
-          if (this._breakpoints[url][line][column]) {
-            delete this._breakpoints[url][line][column];
+      if (this._breakpoints[actor]) {
+        if (this._breakpoints[actor][line]) {
+          if (this._breakpoints[actor][line][column]) {
+            delete this._breakpoints[actor][line][column];
             this._size--;
 
             
@@ -160,16 +162,16 @@ BreakpointStore.prototype = {
             
             
             
-            if (Object.keys(this._breakpoints[url][line]).length === 0) {
-              delete this._breakpoints[url][line];
+            if (Object.keys(this._breakpoints[actor][line]).length === 0) {
+              delete this._breakpoints[actor][line];
             }
           }
         }
       }
     } else {
-      if (this._wholeLineBreakpoints[url]) {
-        if (this._wholeLineBreakpoints[url][line]) {
-          delete this._wholeLineBreakpoints[url][line];
+      if (this._wholeLineBreakpoints[actor]) {
+        if (this._wholeLineBreakpoints[actor][line]) {
+          delete this._wholeLineBreakpoints[actor][line];
           this._size--;
         }
       }
@@ -209,13 +211,13 @@ BreakpointStore.prototype = {
 
 
   getBreakpoint: function (aLocation) {
-    let { url, line, column } = aLocation;
-    dbg_assert(url != null);
+    let { source: { actor, url }, line, column } = aLocation;
+    dbg_assert(actor != null);
     dbg_assert(line != null);
 
     var foundBreakpoint = this.hasBreakpoint(aLocation);
     if (foundBreakpoint == null) {
-      throw new Error("No breakpoint at url = " + url
+      throw new Error("No breakpoint at = " + (url || actor)
           + ", line = " + line
           + ", column = " + column);
     }
@@ -235,8 +237,8 @@ BreakpointStore.prototype = {
 
 
   hasBreakpoint: function (aLocation) {
-    let { url, line, column } = aLocation;
-    dbg_assert(url != null);
+    let { source: { actor }, line, column } = aLocation;
+    dbg_assert(actor != null);
     dbg_assert(line != null);
     for (let bp of this.findBreakpoints(aLocation)) {
       
@@ -265,56 +267,58 @@ BreakpointStore.prototype = {
       dbg_assert(aSearchParams.line != null);
     }
     if (aSearchParams.line != null) {
-      dbg_assert(aSearchParams.url != null);
+      dbg_assert(aSearchParams.source != null);
+      dbg_assert(aSearchParams.source.actor != null);
     }
 
-    for (let url of this._iterUrls(aSearchParams.url)) {
-      for (let line of this._iterLines(url, aSearchParams.line)) {
+    let actor = aSearchParams.source ? aSearchParams.source.actor : null;
+    for (let actor of this._iterActors(actor)) {
+      for (let line of this._iterLines(actor, aSearchParams.line)) {
         
         
         if (aSearchParams.column == null
-            && this._wholeLineBreakpoints[url]
-            && this._wholeLineBreakpoints[url][line]) {
-          yield this._wholeLineBreakpoints[url][line];
+            && this._wholeLineBreakpoints[actor]
+            && this._wholeLineBreakpoints[actor][line]) {
+          yield this._wholeLineBreakpoints[actor][line];
         }
-        for (let column of this._iterColumns(url, line, aSearchParams.column)) {
-          yield this._breakpoints[url][line][column];
+        for (let column of this._iterColumns(actor, line, aSearchParams.column)) {
+          yield this._breakpoints[actor][line][column];
         }
       }
     }
   },
 
-  _iterUrls: function* (aUrl) {
-    if (aUrl) {
-      if (this._breakpoints[aUrl] || this._wholeLineBreakpoints[aUrl]) {
-        yield aUrl;
+  _iterActors: function* (aActor) {
+    if (aActor) {
+      if (this._breakpoints[aActor] || this._wholeLineBreakpoints[aActor]) {
+        yield aActor;
       }
     } else {
-      for (let url of Object.keys(this._wholeLineBreakpoints)) {
-        yield url;
+      for (let actor of Object.keys(this._wholeLineBreakpoints)) {
+        yield actor;
       }
-      for (let url of Object.keys(this._breakpoints)) {
-        if (url in this._wholeLineBreakpoints) {
+      for (let actor of Object.keys(this._breakpoints)) {
+        if (actor in this._wholeLineBreakpoints) {
           continue;
         }
-        yield url;
+        yield actor;
       }
     }
   },
 
-  _iterLines: function* (aUrl, aLine) {
+  _iterLines: function* (aActor, aLine) {
     if (aLine != null) {
-      if ((this._wholeLineBreakpoints[aUrl]
-           && this._wholeLineBreakpoints[aUrl][aLine])
-          || (this._breakpoints[aUrl] && this._breakpoints[aUrl][aLine])) {
+      if ((this._wholeLineBreakpoints[aActor]
+           && this._wholeLineBreakpoints[aActor][aLine])
+          || (this._breakpoints[aActor] && this._breakpoints[aActor][aLine])) {
         yield aLine;
       }
     } else {
-      const wholeLines = this._wholeLineBreakpoints[aUrl]
-        ? Object.keys(this._wholeLineBreakpoints[aUrl])
+      const wholeLines = this._wholeLineBreakpoints[aActor]
+        ? Object.keys(this._wholeLineBreakpoints[aActor])
         : [];
-      const columnLines = this._breakpoints[aUrl]
-        ? Object.keys(this._breakpoints[aUrl])
+      const columnLines = this._breakpoints[aActor]
+        ? Object.keys(this._breakpoints[aActor])
         : [];
 
       const lines = wholeLines.concat(columnLines).sort();
@@ -330,17 +334,17 @@ BreakpointStore.prototype = {
     }
   },
 
-  _iterColumns: function* (aUrl, aLine, aColumn) {
-    if (!this._breakpoints[aUrl] || !this._breakpoints[aUrl][aLine]) {
+  _iterColumns: function* (aActor, aLine, aColumn) {
+    if (!this._breakpoints[aActor] || !this._breakpoints[aActor][aLine]) {
       return;
     }
 
     if (aColumn != null) {
-      if (this._breakpoints[aUrl][aLine][aColumn]) {
+      if (this._breakpoints[aActor][aLine][aColumn]) {
         yield aColumn;
       }
     } else {
-      for (let column in this._breakpoints[aUrl][aLine]) {
+      for (let column in this._breakpoints[aActor][aLine]) {
         yield column;
       }
     }
@@ -348,6 +352,55 @@ BreakpointStore.prototype = {
 };
 
 exports.BreakpointStore = BreakpointStore;
+
+
+
+
+
+
+
+function SourceActorStore() {
+  
+  this._sourceActorIds = Object.create(null);
+}
+
+SourceActorStore.prototype = {
+  
+
+
+  getReusableActorId: function(aSource, aOriginalUrl) {
+    let url = this.getUniqueKey(aSource, aOriginalUrl);
+    if (url && url in this._sourceActorIds) {
+      return this._sourceActorIds[url];
+    }
+    return null;
+  },
+
+  
+
+
+  setReusableActorId: function(aSource, aOriginalUrl, actorID) {
+    let url = this.getUniqueKey(aSource, aOriginalUrl);
+    if (url) {
+      this._sourceActorIds[url] = actorID;
+    }
+  },
+
+  
+
+
+  getUniqueKey: function(aSource, aOriginalUrl) {
+    if (aOriginalUrl) {
+      
+      return aOriginalUrl;
+    }
+    else {
+      return getSourceURL(aSource);
+    }
+  }
+};
+
+exports.SourceActorStore = SourceActorStore;
 
 
 
@@ -533,6 +586,7 @@ function ThreadActor(aParent, aGlobal)
   };
 
   this.breakpointStore = new BreakpointStore();
+  this.sourceActorStore = new SourceActorStore();
   this.blackBoxedSources = new Set(["self-hosted"]);
   this.prettyPrintedSources = new Map();
 
@@ -684,6 +738,11 @@ ThreadActor.prototype = {
       this.onResume();
     }
 
+    
+    
+    
+    this._sourceActorStore = null;
+
     this.clearDebuggees();
     this.conn.removeActorPool(this._threadLifetimePool);
     this._threadLifetimePool = null;
@@ -806,8 +865,27 @@ ThreadActor.prototype = {
       }
       packet.why = aReason;
 
-      this.sources.getOriginalLocation(packet.frame.where).then(aOrigPosition => {
-        packet.frame.where = aOrigPosition;
+      let loc = getFrameLocation(aFrame);
+      this.sources.getOriginalLocation(loc).then(aOrigPosition => {
+        if (!aOrigPosition.sourceActor) {
+          
+          
+          
+          
+          DevToolsUtils.reportException(
+            'ThreadActor',
+            new Error('Attempted to pause in a script with a sourcemap but ' +
+                      'could not find original location.')
+          );
+
+          return undefined;
+        }
+
+        packet.frame.where = {
+          source: aOrigPosition.sourceActor.form(),
+          line: aOrigPosition.line,
+          column: aOrigPosition.column
+        };
         resolve(onPacket(packet))
           .then(null, error => {
             reportError(error);
@@ -851,8 +929,9 @@ ThreadActor.prototype = {
   _makeOnEnterFrame: function ({ pauseAndRespond }) {
     return aFrame => {
       const generatedLocation = getFrameLocation(aFrame);
-      let { url } = this.synchronize(this.sources.getOriginalLocation(
+      let { sourceActor } = this.synchronize(this.sources.getOriginalLocation(
         generatedLocation));
+      let url = sourceActor.url;
 
       return this.sources.isBlackBoxed(url)
         ? undefined
@@ -865,8 +944,9 @@ ThreadActor.prototype = {
       
 
       const generatedLocation = getFrameLocation(this);
-      const { url } = thread.synchronize(thread.sources.getOriginalLocation(
+      const { sourceActor } = thread.synchronize(thread.sources.getOriginalLocation(
         generatedLocation));
+      const url = sourceActor.url;
 
       if (thread.sources.isBlackBoxed(url)) {
         return undefined;
@@ -1237,16 +1317,21 @@ ThreadActor.prototype = {
 
   _breakOnEnter: function(script) {
     let offsets = script.getAllOffsets();
+    let sourceActor = this.sources.source({ source: script.source });
+
     for (let line = 0, n = offsets.length; line < n; line++) {
       if (offsets[line]) {
-        let location = { url: script.url, line: line };
-        let resp = this._createAndStoreBreakpoint(location);
+        let location = { line: line };
+        let resp = sourceActor._createAndStoreBreakpoint(location);
         dbg_assert(!resp.actualLocation, "No actualLocation should be returned");
         if (resp.error) {
           reportError(new Error("Unable to set breakpoint on event listener"));
           return;
         }
-        let bp = this.breakpointStore.getBreakpoint(location);
+        let bp = this.breakpointStore.getBreakpoint({
+          source: sourceActor.form(),
+          line: location.line
+        });
         let bpActor = bp.actor;
         dbg_assert(bp, "Breakpoint must exist");
         dbg_assert(bpActor, "Breakpoint actor must be created");
@@ -1329,14 +1414,19 @@ ThreadActor.prototype = {
       form.depth = i;
       frames.push(form);
 
-      let promise = this.sources.getOriginalLocation(form.where)
-        .then((aOrigLocation) => {
-          form.where = aOrigLocation;
-          let source = this.sources.source({ url: form.where.url });
-          if (source) {
-            form.source = source.form();
-          }
-        });
+      let promise = this.sources.getOriginalLocation({
+        source: frame.script.source,
+        line: form.where.line,
+        column: form.where.column
+      }).then((aOrigLocation) => {
+        let sourceForm = aOrigLocation.sourceActor.form();
+        form.where = {
+          source: sourceForm,
+          line: aOrigLocation.line,
+          column: aOrigLocation.column
+        };
+        form.source = sourceForm;
+      });
       promises.push(promise);
     }
 
@@ -1364,395 +1454,6 @@ ThreadActor.prototype = {
       actor.onRelease();
     }
     return res ? res : {};
-  },
-
-  
-
-
-  onSetBreakpoint: function (aRequest) {
-    if (this.state !== "paused") {
-      return { error: "wrongState",
-               message: "Breakpoints can only be set while the debuggee is paused."};
-    }
-
-    let { url: originalSource,
-          line: originalLine,
-          column: originalColumn } = aRequest.location;
-
-    let locationPromise = this.sources.getGeneratedLocation(aRequest.location);
-    return locationPromise.then(({url, line, column}) => {
-      if (line == null || line < 0) {
-        return {
-          error: "noScript",
-          message: "Requested setting a breakpoint on "
-            + url + ":" + line
-            + (column != null ? ":" + column : "")
-            + " but there is no Debugger.Script at that location"
-        };
-      }
-
-      let response = this._createAndStoreBreakpoint({
-        url: url,
-        line: line,
-        column: column,
-        condition: aRequest.condition
-      });
-      
-      
-      
-      let originalLocation = this.sources.getOriginalLocation({
-        url: url,
-        line: line,
-        column: column
-      });
-
-      return all([response, originalLocation])
-        .then(([aResponse, {url, line}]) => {
-          if (aResponse.actualLocation) {
-            let actualOrigLocation = this.sources.getOriginalLocation(aResponse.actualLocation);
-            return actualOrigLocation.then(({ url, line, column }) => {
-              if (url !== originalSource
-                  || line !== originalLine
-                  || column !== originalColumn) {
-                aResponse.actualLocation = {
-                  url: url,
-                  line: line,
-                  column: column
-                };
-              }
-              return aResponse;
-            });
-          }
-
-          if (url !== originalSource || line !== originalLine) {
-            aResponse.actualLocation = { url: url, line: line };
-          }
-
-          return aResponse;
-        });
-    });
-  },
-
-  
-
-
-
-
-
-
-  _createAndStoreBreakpoint: function (aLocation) {
-    
-    
-    this.breakpointStore.addBreakpoint(aLocation);
-    return this._setBreakpoint(aLocation);
-  },
-
-
-  
-
-
-
-
-
-
-
-
-
-
-  _getOrCreateBreakpointActor: function (location) {
-    let actor;
-    const storedBp = this.breakpointStore.getBreakpoint(location);
-
-    if (storedBp.actor) {
-      actor = storedBp.actor;
-      actor.condition = location.condition;
-      return actor;
-    }
-
-    storedBp.actor = actor = new BreakpointActor(this, {
-      url: location.url,
-      line: location.line,
-      column: location.column,
-      condition: location.condition
-    });
-    this.threadLifetimePool.addActor(actor);
-    return actor;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  _setBreakpointAtColumn: function (scripts, location, actor) {
-    
-    const scriptsAndOffsetMappings = new Map();
-
-    for (let script of scripts) {
-      this._findClosestOffsetMappings(location, script, scriptsAndOffsetMappings);
-    }
-
-    for (let [script, mappings] of scriptsAndOffsetMappings) {
-      for (let offsetMapping of mappings) {
-        script.setBreakpoint(offsetMapping.offset, actor);
-      }
-      actor.addScript(script, this);
-    }
-
-    return {
-      actor: actor.actorID
-    };
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  _findEntryPointsForLine: function (scripts, line) {
-    const entryPoints = [];
-    for (let script of scripts) {
-      const offsets = script.getLineOffsets(line);
-      if (offsets.length) {
-        entryPoints.push({ script, offsets });
-      }
-    }
-    return entryPoints;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _findNextLineWithOffsets: function (scripts, startLine) {
-    const maxLine = Math.max(...scripts.map(s => s.startLine + s.lineCount));
-
-    for (let line = startLine; line < maxLine; line++) {
-      const entryPoints = this._findEntryPointsForLine(scripts, line);
-      if (entryPoints.length) {
-        return { line, entryPoints };
-      }
-    }
-
-    return null;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _setBreakpoint: function (aLocation, aOnlyThisScript=null) {
-    const location = {
-      url: aLocation.url,
-      line: aLocation.line,
-      column: aLocation.column,
-      condition: aLocation.condition
-    };
-    const actor = location.actor = this._getOrCreateBreakpointActor(location);
-    const scripts = this.dbg.findScripts({
-      url: location.url,
-      
-      
-      
-      
-      line: location.line
-    });
-
-    if (scripts.length === 0) {
-      
-      
-      
-      
-      
-      
-      return {
-        actor: actor.actorID
-      };
-    }
-
-    if (location.column) {
-      return this._setBreakpointAtColumn(scripts, location, actor);
-    }
-
-    
-    
-    
-
-    const result = this._findNextLineWithOffsets(scripts, location.line);
-    if (!result) {
-      return {
-        error: "noCodeAtLineColumn",
-        actor: actor.actorID
-      };
-    }
-
-    const { line, entryPoints } = result;
-    const actualLocation = line !== location.line
-      ? { url: location.url, line }
-      : undefined;
-
-    if (actualLocation) {
-      
-      
-      
-      
-
-      const existingBreakpoint = this.breakpointStore.hasBreakpoint(actualLocation);
-      if (existingBreakpoint && existingBreakpoint.actor) {
-        actor.onDelete();
-        this.breakpointStore.removeBreakpoint(location);
-        return {
-          actor: existingBreakpoint.actor.actorID,
-          actualLocation
-        };
-      } else {
-        actor.location = actualLocation;
-        this.breakpointStore.moveBreakpoint(location, actualLocation);
-      }
-    }
-
-    this._setBreakpointOnEntryPoints(
-      actor,
-      aOnlyThisScript
-        ? entryPoints.filter(o => o.script === aOnlyThisScript)
-        : entryPoints
-    );
-
-    return {
-      actor: actor.actorID,
-      actualLocation
-    };
-  },
-
-  
-
-
-
-
-
-
-
-
-  _setBreakpointOnEntryPoints: function (actor, entryPoints) {
-    for (let { script, offsets } of entryPoints) {
-      for (let offset of offsets) {
-        script.setBreakpoint(offset, actor);
-      }
-      actor.addScript(script, this);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _findClosestOffsetMappings: function (aTargetLocation,
-                                        aScript,
-                                        aScriptsAndOffsetMappings) {
-    let offsetMappings = aScript.getAllColumnOffsets()
-      .filter(({ lineNumber }) => lineNumber === aTargetLocation.line);
-
-    
-    
-    
-    
-    let closestDistance = Infinity;
-    if (aScriptsAndOffsetMappings.size) {
-      for (let mappings of aScriptsAndOffsetMappings.values()) {
-        closestDistance = Math.abs(aTargetLocation.column - mappings[0].columnNumber);
-        break;
-      }
-    }
-
-    for (let mapping of offsetMappings) {
-      let currentDistance = Math.abs(aTargetLocation.column - mapping.columnNumber);
-
-      if (currentDistance > closestDistance) {
-        continue;
-      } else if (currentDistance < closestDistance) {
-        closestDistance = currentDistance;
-        aScriptsAndOffsetMappings.clear();
-        aScriptsAndOffsetMappings.set(aScript, [mapping]);
-      } else {
-        if (!aScriptsAndOffsetMappings.has(aScript)) {
-          aScriptsAndOffsetMappings.set(aScript, []);
-        }
-        aScriptsAndOffsetMappings.get(aScript).push(mapping);
-      }
-    }
   },
 
   
@@ -1793,6 +1494,7 @@ ThreadActor.prototype = {
       }
     }
   },
+
 
   
 
@@ -2315,8 +2017,9 @@ ThreadActor.prototype = {
     
     
     const generatedLocation = getFrameLocation(aFrame);
-    const { url } = this.synchronize(this.sources.getOriginalLocation(
+    const { sourceActor } = this.synchronize(this.sources.getOriginalLocation(
       generatedLocation));
+    const url = sourceActor ? sourceActor.url : null;
 
     return this.sources.isBlackBoxed(url) || aFrame.onStep
       ? undefined
@@ -2346,8 +2049,9 @@ ThreadActor.prototype = {
     }
 
     const generatedLocation = getFrameLocation(aFrame);
-    const { url } = this.synchronize(this.sources.getOriginalLocation(
+    const { sourceActor } = this.synchronize(this.sources.getOriginalLocation(
       generatedLocation));
+    const url = sourceActor ? sourceActor.url : null;
 
     if (this.sources.isBlackBoxed(url)) {
       return undefined;
@@ -2381,6 +2085,7 @@ ThreadActor.prototype = {
 
 
   onNewScript: function (aScript, aGlobal) {
+    this.sources.sourcesForScript(aScript);
     this._addScript(aScript);
 
     
@@ -2389,8 +2094,6 @@ ThreadActor.prototype = {
     for (let s of aScript.getChildScripts()) {
       this._addScript(s);
     }
-
-    this.sources.sourcesForScript(aScript);
   },
 
   onNewSource: function (aSource) {
@@ -2409,16 +2112,19 @@ ThreadActor.prototype = {
 
 
 
-  _allowSource: function (aSourceUrl) {
-    
-    if (!aSourceUrl)
+  _allowSource: function (aSource) {
+    let url = getSourceURL(aSource);
+
+    if (isHiddenSource(aSource)) {
       return false;
+    }
+
     
-    if (aSourceUrl.indexOf("chrome://") == 0) {
+    if (url && url.indexOf("chrome://") == 0) {
       return false;
     }
     
-    if (aSourceUrl.indexOf("about:") == 0) {
+    if (url && url.indexOf("about:") == 0) {
       return false;
     }
     return true;
@@ -2445,18 +2151,19 @@ ThreadActor.prototype = {
 
 
   _addScript: function (aScript) {
-    if (!this._allowSource(aScript.url)) {
+    if (!this._allowSource(aScript.source)) {
       return false;
     }
 
     
 
     let endLine = aScript.startLine + aScript.lineCount - 1;
-    for (let bp of this.breakpointStore.findBreakpoints({ url: aScript.url })) {
+    let source = this.sources.source({ source: aScript.source });
+    for (let bp of this.breakpointStore.findBreakpoints(source.form())) {
       
       if (bp.line >= aScript.startLine
           && bp.line <= endLine) {
-        this._setBreakpoint(bp, aScript);
+        source._setBreakpoint(bp, aScript);
       }
     }
 
@@ -2490,7 +2197,6 @@ ThreadActor.prototype = {
     return { from: this.actorID,
              actors: result };
   }
-
 };
 
 ThreadActor.prototype.requestTypes = {
@@ -2503,7 +2209,6 @@ ThreadActor.prototype.requestTypes = {
   "interrupt": ThreadActor.prototype.onInterrupt,
   "eventListeners": ThreadActor.prototype.onEventListeners,
   "releaseMany": ThreadActor.prototype.onReleaseMany,
-  "setBreakpoint": ThreadActor.prototype.onSetBreakpoint,
   "sources": ThreadActor.prototype.onSources,
   "threadGrips": ThreadActor.prototype.onThreadGrips,
   "prototypesAndProperties": ThreadActor.prototype.onPrototypesAndProperties
@@ -2632,18 +2337,37 @@ function resolveURIToLocalPath(aURI) {
 
 
 
-function SourceActor({ url, thread, sourceMap, generatedSource, text,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function SourceActor({ source, thread, originalUrl, generatedSource,
                        contentType }) {
   this._threadActor = thread;
-  this._url = url;
-  this._sourceMap = sourceMap;
+  this._originalUrl = originalUrl;
+  this._source = source;
   this._generatedSource = generatedSource;
-  this._text = text;
   this._contentType = contentType;
 
   this.onSource = this.onSource.bind(this);
   this._invertSourceMap = this._invertSourceMap.bind(this);
-  this._saveMap = this._saveMap.bind(this);
+  this._encodeAndSetSourceMapURL = this._encodeAndSetSourceMapURL.bind(this);
   this._getSourceText = this._getSourceText.bind(this);
 
   this._mapSourceToAddon();
@@ -2668,24 +2392,43 @@ SourceActor.prototype = {
   _addonID: null,
   _addonPath: null,
 
-  get threadActor() this._threadActor,
-  get url() this._url,
-  get addonID() this._addonID,
-  get addonPath() this._addonPath,
+  get threadActor() { return this._threadActor; },
+  get dbg() { return this.threadActor.dbg; },
+  get source() { return this._source; },
+  get generatedSource() { return this._generatedSource; },
+  get breakpointStore() { return this.threadActor.breakpointStore; },
+  get url() {
+    if (this.source) {
+      return getSourceURL(this.source);
+    }
+    return this._originalUrl;
+  },
+  get addonID() { return this._addonID; },
+  get addonPath() { return this._addonPath; },
 
   get prettyPrintWorker() {
     return this.threadActor.prettyPrintWorker;
   },
 
   form: function () {
+    let source = this.source || this.generatedSource;
+    
+    
+    
+    let introductionUrl = null;
+    if (source && source.introductionScript) {
+      introductionUrl = source.introductionScript.source.url;
+    }
+
     return {
       actor: this.actorID,
-      url: this._url,
+      url: this.url,
       addonID: this._addonID,
       addonPath: this._addonPath,
       isBlackBoxed: this.threadActor.sources.isBlackBoxed(this.url),
-      isPrettyPrinted: this.threadActor.sources.isPrettyPrinted(this.url)
-      
+      isPrettyPrinted: this.threadActor.sources.isPrettyPrinted(this.url),
+      introductionUrl: introductionUrl,
+      introductionType: source ? source.introductionType : null
     };
   },
 
@@ -2697,7 +2440,7 @@ SourceActor.prototype = {
 
   _mapSourceToAddon: function() {
     try {
-      var nsuri = Services.io.newURI(this._url.split(" -> ").pop(), null, null);
+      var nsuri = Services.io.newURI(this.url.split(" -> ").pop(), null, null);
     }
     catch (e) {
       
@@ -2731,7 +2474,7 @@ SourceActor.prototype = {
         }
 
         if (!file) {
-          const error = new Error("Could not find the root of the add-on for " + this._url);
+          const error = new Error("Could not find the root of the add-on for " + this.url);
           DevToolsUtils.reportException("SourceActor.prototype._mapSourceToAddon", error)
           return;
         }
@@ -2742,31 +2485,44 @@ SourceActor.prototype = {
   },
 
   _getSourceText: function () {
-    const toResolvedContent = t => resolve({
+    let toResolvedContent = t => ({
       content: t,
       contentType: this._contentType
     });
 
-    let sc;
-    if (this._sourceMap && (sc = this._sourceMap.sourceContentFor(this._url))) {
-      return toResolvedContent(sc);
-    }
+    let genSource = this.generatedSource || this.source;
+    return this.threadActor.sources.fetchSourceMap(genSource).then(map => {
+      let sc;
+      if (map && (sc = map.sourceContentFor(this.url))) {
+        return toResolvedContent(sc);
+      }
 
-    if (this._text) {
-      return toResolvedContent(this._text);
-    }
+      
+      
+      
+      
+      
+      
+      if (this.source &&
+          this.source.text !== "[no source]" &&
+          this._contentType &&
+          this._contentType.indexOf('javascript') !== -1) {
+        return toResolvedContent(this.source.text);
+      }
+      else {
+        
+        
+        
+        let sourceFetched = fetch(this.url, { loadFromCache: !this.source });
 
-    
-    
-    
-    let sourceFetched = fetch(this._url, { loadFromCache: !this._sourceMap });
+        
+        sourceFetched.then(({ contentType }) => {
+          this._contentType = contentType;
+        });
 
-    
-    sourceFetched.then(({ contentType }) => {
-      this._contentType = contentType;
+        return sourceFetched;
+      }
     });
-
-    return sourceFetched;
   },
 
   
@@ -2779,34 +2535,39 @@ SourceActor.prototype = {
       from: this.actorID
     };
 
-    let lines;
-
-    if (this._sourceMap) {
-      lines = new Set();
-
+    function sortLines(lines) {
       
-      let offsets = this.getExecutableOffsets(this._generatedSource, false);
-      for (let offset of offsets) {
-        let {line, source} = this._sourceMap.originalPositionFor({
-          line: offset.lineNumber,
-          column: offset.columnNumber
-        });
-
-        if (source === this._url) {
-          lines.add(line);
-        }
-      }
-    } else {
-      
-      lines = this.getExecutableOffsets(this._url, true);
+      lines = [line for (line of lines)];
+      lines.sort((a, b) => {
+        return a - b;
+      });
+      return lines;
     }
 
-    
-    packet.lines = [line for (line of lines)];
-    packet.lines.sort((a, b) => {
-      return a - b;
-    });
+    if (this.generatedSource) {
+      return this.threadActor.sources.getSourceMap(this.generatedSource).then(sm => {
+        let lines = new Set();
 
+        
+        let offsets = this.getExecutableOffsets(this.generatedSource, false);
+        for (let offset of offsets) {
+          let {line, source: sourceUrl} = sm.originalPositionFor({
+            line: offset.lineNumber,
+            column: offset.columnNumber
+          });
+
+          if (sourceUrl === this.url) {
+            lines.add(line);
+          }
+        }
+
+        packet.lines = sortLines(lines);
+        return packet;
+      });
+    }
+
+    let lines = this.getExecutableOffsets(this.source, true);
+    packet.lines = sortLines(lines);
     return packet;
   },
 
@@ -2816,13 +2577,11 @@ SourceActor.prototype = {
 
 
 
-  getExecutableOffsets: function (url, onlyLine) {
+  getExecutableOffsets: function  (source, onlyLine) {
     let offsets = new Set();
-    for (let s of this.threadActor.dbg.findScripts(this.threadActor.global)) {
-      if (s.url === url) {
-        for (let offset of s.getAllColumnOffsets()) {
-          offsets.add(onlyLine ? offset.lineNumber : offset);
-        }
+    for (let s of this.threadActor.dbg.findScripts({ source: source })) {
+      for (let offset of s.getAllColumnOffsets()) {
+        offsets.add(onlyLine ? offset.lineNumber : offset);
       }
     }
 
@@ -2848,7 +2607,7 @@ SourceActor.prototype = {
         return {
           "from": this.actorID,
           "error": "loadSourceError",
-          "message": "Could not load the source for " + this._url + ".\n"
+          "message": "Could not load the source for " + this.url + ".\n"
             + DevToolsUtils.safeErrorString(aError)
         };
       });
@@ -2858,11 +2617,11 @@ SourceActor.prototype = {
 
 
   onPrettyPrint: function ({ indent }) {
-    this.threadActor.sources.prettyPrint(this._url, indent);
+    this.threadActor.sources.prettyPrint(this.url, indent);
     return this._getSourceText()
       .then(this._sendToPrettyPrintWorker(indent))
       .then(this._invertSourceMap)
-      .then(this._saveMap)
+      .then(this._encodeAndSetSourceMapURL)
       .then(() => {
         
         
@@ -2913,7 +2672,7 @@ SourceActor.prototype = {
       this.prettyPrintWorker.addEventListener("message", onReply, false);
       this.prettyPrintWorker.postMessage({
         id: id,
-        url: this._url,
+        url: this.url,
         indent: aIndent,
         source: content
       });
@@ -2931,7 +2690,7 @@ SourceActor.prototype = {
 
 
   _invertSourceMap: function ({ code, mappings }) {
-    const generator = new SourceMapGenerator({ file: this._url });
+    const generator = new SourceMapGenerator({ file: this.url });
     return DevToolsUtils.yieldingEach(mappings, m => {
       let mapping = {
         generated: {
@@ -2949,7 +2708,7 @@ SourceActor.prototype = {
       }
       generator.addMapping(mapping);
     }).then(() => {
-      generator.setSourceContent(this._url, code);
+      generator.setSourceContent(this.url, code);
       const consumer = SourceMapConsumer.fromSourceMap(generator);
 
       
@@ -2963,9 +2722,9 @@ SourceActor.prototype = {
         const location = getGenPos({
           line: line,
           column: column,
-          source: this._url
+          source: this.url
         });
-        location.source = this._url;
+        location.source = this.url;
         return location;
       };
 
@@ -2987,29 +2746,47 @@ SourceActor.prototype = {
 
 
 
-  _saveMap: function ({ map }) {
-    if (this._sourceMap) {
-      
-      this._oldSourceMap = this._sourceMap;
-      this._sourceMap = SourceMapGenerator.fromSourceMap(this._sourceMap);
-      this._sourceMap.applySourceMap(map, this._url);
-      this._sourceMap = SourceMapConsumer.fromSourceMap(this._sourceMap);
-      this._threadActor.sources.saveSourceMap(this._sourceMap,
-                                              this._generatedSource);
-    } else {
-      this._sourceMap = map;
-      this._threadActor.sources.saveSourceMap(this._sourceMap, this._url);
-    }
+  _encodeAndSetSourceMapURL: function  ({ map: sm }) {
+    let source = this.generatedSource || this.source;
+    let sources = this.threadActor.sources;
+
+    return sources.getSourceMap(source).then(prevMap => {
+      if (prevMap) {
+        
+        this._oldSourceMapping = {
+          url: source.sourceMapURL,
+          map: prevMap
+        };
+
+        prevMap = SourceMapGenerator.fromSourceMap(prevMap);
+        prevMap.applySourceMap(sm, this.url);
+        sm = SourceMapConsumer.fromSourceMap(prevMap);
+      }
+
+      let sources = this.threadActor.sources;
+      sources.clearSourceMapCache(source.sourceMapURL);
+      sources.setSourceMapHard(source, null, sm);
+    });
   },
 
   
 
 
   onDisablePrettyPrint: function () {
-    this._sourceMap = this._oldSourceMap;
-    this.threadActor.sources.saveSourceMap(this._sourceMap,
-                                           this._generatedSource || this._url);
-    this.threadActor.sources.disablePrettyPrint(this._url);
+    let source = this.generatedSource || this.source;
+    let sources = this.threadActor.sources;
+    let sm = sources.getSourceMap(source);
+
+    sources.clearSourceMapCache(source.sourceMapURL, { hard: true });
+
+    if (this._oldSourceMapping) {
+      sources.setSourceMapHard(source,
+                               this._oldSourceMapping.url,
+                               this._oldSourceMapping.map);
+       this._oldSourceMapping = null;
+    }
+
+    this.threadActor.sources.disablePrettyPrint(this.url);
     return this.onSource();
   },
 
@@ -3037,6 +2814,429 @@ SourceActor.prototype = {
     return {
       from: this.actorID
     };
+  },
+
+  
+
+
+  onSetBreakpoint: function(aRequest) {
+    if (this.threadActor.state !== "paused") {
+      return { error: "wrongState",
+               message: "Breakpoints can only be set while the debuggee is paused."};
+    }
+
+    let loc = {
+      url: this.url,
+      line: aRequest.location.line,
+      column: aRequest.location.column,
+    };
+    let originalLoc = loc;
+
+    return this.threadActor.sources.getGeneratedLocation({
+      sourceActor: this,
+      line: loc.line,
+      column: loc.column
+    }).then(genLoc => {
+      if (genLoc.sourceActor !== this) {
+        return genLoc.sourceActor._createBreakpoint(genLoc, originalLoc, aRequest.condition);
+      }
+      else {
+        return this._createBreakpoint(genLoc, originalLoc, aRequest.condition);
+      }
+    });
+  },
+
+  _createBreakpoint: function(loc, originalLoc, condition) {
+    return resolve(null).then(() => {
+      return this._createAndStoreBreakpoint({
+        line: loc.line,
+        column: loc.column,
+        condition: condition
+      });
+    }).then(response => {
+      var actual = response.actualLocation;
+      if (actual) {
+        if (this.source) {
+          return this.threadActor.sources.getOriginalLocation({
+            source: this.source,
+            line: actual.line,
+            column: actual.column
+          }).then(({ sourceActor, line, column }) => {
+            if (sourceActor.url !== originalLoc.url ||
+                line !== originalLoc.line ||
+                column !== originalLoc.column) {
+              response.actualLocation = {
+                source: sourceActor.form(),
+                line: line,
+                column: column
+              };
+            }
+            return response;
+          });
+        }
+        else {
+          response.actualLocation = {
+            source: this.form(),
+            line: actual.line,
+            column: actual.column
+          }
+          return response;
+        }
+      }
+      else {
+        if (this.source) {
+          
+          
+          return this.threadActor.sources.getOriginalLocation({
+            source: this.source,
+            line: loc.line,
+            column: loc.column
+          }).then(({ sourceActor, line }) => {
+            if (originalLoc.url !== sourceActor.url ||
+                originalLoc.line !== line) {
+              response.actualLocation = {
+                source: sourceActor.form(),
+                line: line
+              };
+            }
+            return response;
+          });
+        }
+        else {
+          return response;
+        }
+      }
+    }).then(null, error => {
+      DevToolsUtils.reportException("onSetBreakpoint", error);
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+  _createAndStoreBreakpoint: function (aRequest) {
+    let bp = update({}, aRequest, { source: this.form() });
+    this.breakpointStore.addBreakpoint(bp);
+    return this._setBreakpoint(aRequest);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _getOrCreateBreakpointActor: function (location) {
+    let actor;
+    const storedBp = this.breakpointStore.getBreakpoint(location);
+
+    if (storedBp.actor) {
+      actor = storedBp.actor;
+      actor.condition = location.condition;
+      return actor;
+    }
+
+    storedBp.actor = actor = new BreakpointActor(this.threadActor, {
+      sourceActor: this,
+      line: location.line,
+      column: location.column,
+      condition: location.condition
+    });
+    this.threadActor.threadLifetimePool.addActor(actor);
+    return actor;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _setBreakpointAtColumn: function (scripts, location, actor) {
+    
+    const scriptsAndOffsetMappings = new Map();
+
+    for (let script of scripts) {
+      this._findClosestOffsetMappings(location, script, scriptsAndOffsetMappings);
+    }
+
+    for (let [script, mappings] of scriptsAndOffsetMappings) {
+      for (let offsetMapping of mappings) {
+        script.setBreakpoint(offsetMapping.offset, actor);
+      }
+      actor.addScript(script, this.threadActor);
+    }
+
+    return {
+      actor: actor.actorID
+    };
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  _findEntryPointsForLine: function (scripts, line) {
+    const entryPoints = [];
+    for (let script of scripts) {
+      const offsets = script.getLineOffsets(line);
+      if (offsets.length) {
+        entryPoints.push({ script, offsets });
+      }
+    }
+    return entryPoints;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _findNextLineWithOffsets: function (scripts, startLine) {
+    const maxLine = Math.max(...scripts.map(s => s.startLine + s.lineCount));
+
+    for (let line = startLine; line < maxLine; line++) {
+      const entryPoints = this._findEntryPointsForLine(scripts, line);
+      if (entryPoints.length) {
+        return { line, entryPoints };
+      }
+    }
+
+    return null;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _setBreakpoint: function (aLocation, aOnlyThisScript=null) {
+    const location = {
+      source: this.form(),
+      line: aLocation.line,
+      column: aLocation.column,
+      condition: aLocation.condition
+    };
+    const actor = location.actor = this._getOrCreateBreakpointActor(location);
+
+    
+    
+    
+    
+    
+    const scripts = this.dbg.findScripts({
+      source: this.source || undefined,
+      url: this._originalUrl || undefined,
+      line: location.line,
+    });
+
+    if (scripts.length === 0) {
+      
+      
+      
+      
+      
+      
+      return {
+        actor: actor.actorID
+      }
+    }
+
+    if (location.column) {
+      return this._setBreakpointAtColumn(scripts, location, actor);
+    }
+
+    
+    
+    
+
+    const result = this._findNextLineWithOffsets(scripts, location.line);
+    if (!result) {
+      return {
+        error: "noCodeAtLineColumn",
+        actor: actor.actorID
+      };
+    }
+
+    const { line, entryPoints } = result;
+    const actualLocation = line !== location.line
+          ? { source: { actor: this.actorID }, line }
+      : undefined;
+
+    if (actualLocation) {
+      
+      
+      
+      
+
+      const existingBreakpoint = this.breakpointStore.hasBreakpoint(actualLocation);
+      if (existingBreakpoint && existingBreakpoint.actor) {
+        actor.onDelete();
+        this.breakpointStore.removeBreakpoint(location);
+        return {
+          actor: existingBreakpoint.actor.actorID,
+          actualLocation
+        };
+      } else {
+        actor.location = actualLocation;
+        actor.location = {
+          sourceActor: this,
+          line: actualLocation.line
+        };
+        this.breakpointStore.moveBreakpoint(location, actualLocation);
+      }
+    }
+
+    this._setBreakpointOnEntryPoints(
+      actor,
+      aOnlyThisScript
+        ? entryPoints.filter(o => o.script === aOnlyThisScript)
+        : entryPoints
+    );
+
+    return {
+      actor: actor.actorID,
+      actualLocation
+    };
+  },
+
+  
+
+
+
+
+
+
+
+
+  _setBreakpointOnEntryPoints: function (actor, entryPoints) {
+    for (let { script, offsets } of entryPoints) {
+      for (let offset of offsets) {
+        script.setBreakpoint(offset, actor);
+      }
+      actor.addScript(script, this.threadActor);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _findClosestOffsetMappings: function (aTargetLocation,
+                                aScript,
+                                aScriptsAndOffsetMappings) {
+    let offsetMappings = aScript.getAllColumnOffsets()
+      .filter(({ lineNumber }) => lineNumber === aTargetLocation.line);
+
+    
+    
+    
+    
+    let closestDistance = Infinity;
+    if (aScriptsAndOffsetMappings.size) {
+      for (let mappings of aScriptsAndOffsetMappings.values()) {
+        closestDistance = Math.abs(aTargetLocation.column - mappings[0].columnNumber);
+        break;
+      }
+    }
+
+    for (let mapping of offsetMappings) {
+      let currentDistance = Math.abs(aTargetLocation.column - mapping.columnNumber);
+
+      if (currentDistance > closestDistance) {
+        continue;
+      } else if (currentDistance < closestDistance) {
+        closestDistance = currentDistance;
+        aScriptsAndOffsetMappings.clear();
+        aScriptsAndOffsetMappings.set(aScript, [mapping]);
+      } else {
+        if (!aScriptsAndOffsetMappings.has(aScript)) {
+          aScriptsAndOffsetMappings.set(aScript, []);
+        }
+        aScriptsAndOffsetMappings.get(aScript).push(mapping);
+      }
+    }
   }
 };
 
@@ -3046,7 +3246,8 @@ SourceActor.prototype.requestTypes = {
   "unblackbox": SourceActor.prototype.onUnblackBox,
   "prettyPrint": SourceActor.prototype.onPrettyPrint,
   "disablePrettyPrint": SourceActor.prototype.onDisablePrettyPrint,
-  "getExecutableLines": SourceActor.prototype.getExecutableLines
+  "getExecutableLines": SourceActor.prototype.getExecutableLines,
+  "setBreakpoint": SourceActor.prototype.onSetBreakpoint
 };
 
 
@@ -3317,17 +3518,18 @@ ObjectActor.prototype = {
     }
 
     const generatedLocation = {
-      url: this.obj.script.url,
+      source: this.obj.script.source,
       line: this.obj.script.startLine,
       
       column: 0
     };
 
     return this.threadActor.sources.getOriginalLocation(generatedLocation)
-      .then(({ url, line, column }) => {
+      .then(({ sourceActor, line, column }) => {
+
         return {
           from: this.actorID,
-          url: url,
+          source: sourceActor.form(),
           line: line,
           column: column
         };
@@ -4542,19 +4744,21 @@ FrameActor.prototype = {
 
 
   form: function () {
+    let threadActor = this.threadActor;
     let form = { actor: this.actorID,
                  type: this.frame.type };
     if (this.frame.type === "call") {
-      form.callee = this.threadActor.createValueGrip(this.frame.callee);
+      form.callee = threadActor.createValueGrip(this.frame.callee);
     }
 
     if (this.frame.environment) {
-      let envActor = this.threadActor
-        .createEnvironmentActor(this.frame.environment,
-                                this.frameLifetimePool);
+      let envActor = threadActor.createEnvironmentActor(
+        this.frame.environment,
+        this.frameLifetimePool
+      );
       form.environment = envActor.form();
     }
-    form.this = this.threadActor.createValueGrip(this.frame.this);
+    form.this = threadActor.createValueGrip(this.frame.this);
     form.arguments = this._args();
     if (this.frame.script) {
       form.where = getFrameLocation(this.frame);
@@ -4615,14 +4819,18 @@ FrameActor.prototype.requestTypes = {
 
 
 
-function BreakpointActor(aThreadActor, { url, line, column, condition })
+
+
+
+
+function BreakpointActor(aThreadActor, { sourceActor, line, column, condition })
 {
   
   
   this.scripts = new Set();
 
   this.threadActor = aThreadActor;
-  this.location = { url: url, line: line, column: column };
+  this.location = { sourceActor, line, column };
   this.condition = condition;
 }
 
@@ -4678,12 +4886,10 @@ BreakpointActor.prototype = {
   hit: function (aFrame) {
     
     
-    let { url } = this.threadActor.synchronize(
-      this.threadActor.sources.getOriginalLocation({
-        url: this.location.url,
-        line: this.location.line,
-        column: this.location.column
-      }));
+    let loc = getFrameLocation(aFrame);
+    let { sourceActor } = this.threadActor.synchronize(
+      this.threadActor.sources.getOriginalLocation(loc));
+    let url = sourceActor.url;
 
     if (this.threadActor.sources.isBlackBoxed(url)
         || aFrame.onStep
@@ -4710,7 +4916,9 @@ BreakpointActor.prototype = {
 
   onDelete: function (aRequest) {
     
-    this.threadActor.breakpointStore.removeBreakpoint(this.location);
+    this.threadActor.breakpointStore.removeBreakpoint(
+      update({}, this.location, { source: this.location.sourceActor.form() })
+    );
     this.threadActor.threadLifetimePool.removeActor(this);
     
     this.removeScripts();
@@ -4721,7 +4929,6 @@ BreakpointActor.prototype = {
 BreakpointActor.prototype.requestTypes = {
   "delete": BreakpointActor.prototype.onDelete
 };
-
 
 
 
@@ -4991,7 +5198,10 @@ update(ChromeDebuggerActor.prototype, {
 
 
 
-  _allowSource: aSourceURL => !!aSourceURL
+
+  _allowSource: function(aSource) {
+    return !isHiddenSource(aSource);
+  }
 });
 
 exports.ChromeDebuggerActor = ChromeDebuggerActor;
@@ -5026,14 +5236,15 @@ update(AddonThreadActor.prototype, {
 
 
 
-  _allowSource: function(aSourceURL) {
-    
-    if (!aSourceURL) {
+  _allowSource: function(aSource) {
+    let url = aSource.url;
+
+    if (isHiddenSource(aSource)) {
       return false;
     }
 
     
-    if (aSourceURL == "resource://gre/modules/addons/XPIProvider.jsm") {
+    if (url === "resource://gre/modules/addons/XPIProvider.jsm") {
       return false;
     }
 
@@ -5055,15 +5266,16 @@ function ThreadSources(aThreadActor, aOptions, aAllowPredicate,
   this._autoBlackBox = aOptions.autoBlackBox;
   this._allow = aAllowPredicate;
   this._onNewSource = aOnNewSource;
+  this._anonSourceMapId = 1;
 
   
-  this._sourceMapsByGeneratedSource = Object.create(null);
+  this._sourceMaps = new Map();
   
-  this._sourceMapsByOriginalSource = Object.create(null);
+  this._sourceMapCache = Object.create(null);
   
-  this._sourceActors = Object.create(null);
+  this._sourceActors = new Map();
   
-  this._generatedUrlsByOriginalUrl = Object.create(null);
+  this._sourceMappedSourceActors = Object.create(null);
 }
 
 
@@ -5090,40 +5302,125 @@ ThreadSources.prototype = {
 
 
 
+  source: function  ({ source, originalUrl, generatedSource,
+              isInlineSource, contentType }) {
+    dbg_assert(source || (originalUrl && generatedSource),
+               "ThreadSources.prototype.source needs an originalUrl or a source");
 
+    if (source) {
+      
+      
 
+      if (!this._allow(source)) {
+        return null;
+      }
 
+      
+      
+      
+      
+      
+      if (source.url in this._sourceMappedSourceActors) {
+        return this._sourceMappedSourceActors[source.url];
+      }
 
-
-  source: function ({ url, sourceMap, generatedSource, text, contentType }) {
-    if (!this._allow(url)) {
-      return null;
+      if (isInlineSource) {
+        
+        
+        
+        
+        originalUrl = source.url;
+        source = null;
+      }
+      else if (this._sourceActors.has(source)) {
+        return this._sourceActors.get(source);
+      }
     }
+    else if (originalUrl) {
+      
+      
+      
+      
+      for (let [source, actor] of this._sourceActors) {
+        if (source.url === originalUrl) {
+          return actor;
+        }
+      }
 
-    if (url in this._sourceActors) {
-      return this._sourceActors[url];
-    }
-
-    if (this._autoBlackBox && this._isMinifiedURL(url)) {
-      this.blackBox(url);
+      if (originalUrl in this._sourceMappedSourceActors) {
+        return this._sourceMappedSourceActors[originalUrl];
+      }
     }
 
     let actor = new SourceActor({
-      url: url,
       thread: this._thread,
-      sourceMap: sourceMap,
+      source: source,
+      originalUrl: originalUrl,
       generatedSource: generatedSource,
-      text: text,
       contentType: contentType
     });
-    this._thread.threadLifetimePool.addActor(actor);
-    this._sourceActors[url] = actor;
-    try {
-      this._onNewSource(actor);
-    } catch (e) {
-      reportError(e);
+
+    let sourceActorStore = this._thread.sourceActorStore;
+    var id = sourceActorStore.getReusableActorId(source, originalUrl);
+    if (id) {
+      actor.actorID = id;
     }
+
+    this._thread.threadLifetimePool.addActor(actor);
+    sourceActorStore.setReusableActorId(source, originalUrl, actor.actorID);
+
+    if (this._autoBlackBox && this._isMinifiedURL(actor.url)) {
+      this.blackBox(actor.url);
+    }
+
+    if (source) {
+      this._sourceActors.set(source, actor);
+    }
+    else {
+      this._sourceMappedSourceActors[originalUrl] = actor;
+    }
+
+    
+    
+    
+    if (!source || !this._sourceMaps.has(source)) {
+      try {
+        this._onNewSource(actor);
+      } catch (e) {
+        reportError(e);
+      }
+    }
+
     return actor;
+  },
+
+  getSource: function(source) {
+    if (source.url in this._sourceMappedSourceActors) {
+      return this._sourceMappedSourceActors[source.url];
+    }
+
+    if (this._sourceActors.has(source)) {
+      return this._sourceActors.get(source);
+    }
+
+    throw new Error('getSource: could not find source actor for ' +
+                    (source.url || 'source'));
+  },
+
+  getSourceByURL: function(url) {
+    if (url) {
+      for (let [source, actor] of this._sourceActors) {
+        if (source.url === url) {
+          return actor;
+        }
+      }
+
+      if (url in this._sourceMappedSourceActors) {
+        return this._sourceMappedSourceActors[url];
+      }
+    }
+
+    throw new Error('getSourceByURL: could not find source for ' + url);
   },
 
   
@@ -5150,8 +5447,9 @@ ThreadSources.prototype = {
 
 
   _sourceForScript: function (aScript) {
-    const spec = {
-      url: aScript.url
+    let url = getSourceURL(aScript.source);
+    let spec = {
+      source: aScript.source
     };
 
     
@@ -5159,23 +5457,23 @@ ThreadSources.prototype = {
     
     
     
-    if (aScript.url) {
+    
+    if (url) {
       try {
-        const url = Services.io.newURI(aScript.url, null, null)
-          .QueryInterface(Ci.nsIURL);
-        if (url.fileExtension === "js") {
+        let urlInfo = Services.io.newURI(url, null, null).QueryInterface(Ci.nsIURL);
+        if (urlInfo.fileExtension === "html") {
+          spec.isInlineSource = true;
+        }
+        else if (urlInfo.fileExtension === "js") {
           spec.contentType = "text/javascript";
-          
-          
-          
-          
-          if (aScript.source.text != "[no source]") {
-            spec.text = aScript.source.text;
-          }
         }
       } catch(ex) {
         
       }
+    }
+    else {
+      
+      spec.contentType = "text/javascript";
     }
 
     return this.source(spec);
@@ -5194,18 +5492,16 @@ ThreadSources.prototype = {
       return resolve([this._sourceForScript(aScript)].filter(isNotNull));
     }
 
-    return this.sourceMap(aScript)
-      .then((aSourceMap) => {
-        return [
-          this.source({ url: s,
-                        sourceMap: aSourceMap,
-                        generatedSource: aScript.url })
-          for (s of aSourceMap.sources)
-        ];
-      })
-      .then(null, (e) => {
-        reportError(e);
-        delete this._sourceMapsByGeneratedSource[aScript.url];
+    return this.fetchSourceMap(aScript.source)
+      .then(map => {
+        if (map) {
+          return [
+            this.source({ originalUrl: s,
+                          generatedSource: aScript.source })
+            for (s of map.sources)
+          ];
+        }
+
         return [this._sourceForScript(aScript)];
       })
       .then(ss => ss.filter(isNotNull));
@@ -5216,56 +5512,80 @@ ThreadSources.prototype = {
 
 
 
-  sourceMap: function (aScript) {
-    dbg_assert(aScript.source.sourceMapURL, "Script should have a sourceMapURL");
 
-    if (this._sourceMapsByGeneratedSource[aScript.url]) {
-      return this._sourceMapsByGeneratedSource[aScript.url];
+  fetchSourceMap: function (aSource) {
+    if (this._sourceMaps.has(aSource)) {
+      return this._sourceMaps.get(aSource);
+    }
+    else if (!aSource || !aSource.sourceMapURL) {
+      return resolve(null);
     }
 
-    let sourceMapURL = this._normalize(aScript.source.sourceMapURL, aScript.url);
-    let map = this._fetchSourceMap(sourceMapURL, aScript.url)
-      .then(aSourceMap => this.saveSourceMap(aSourceMap, aScript.url));
-    this._sourceMapsByGeneratedSource[aScript.url] = map;
-    return map;
+    let sourceMapURL = aSource.sourceMapURL;
+    if (aSource.url) {
+      sourceMapURL = this._normalize(sourceMapURL, aSource.url);
+    }
+
+    let map = this._fetchSourceMap(sourceMapURL, aSource.url);
+    if (map) {
+      this._sourceMaps.set(aSource, map);
+      return map;
+    }
+    return resolve(null);
   },
 
   
 
 
 
-  saveSourceMap: function (aSourceMap, aGeneratedSource) {
-    if (!aSourceMap) {
-      delete this._sourceMapsByGeneratedSource[aGeneratedSource];
+
+  getSourceMap: function(aSource) {
+    return resolve(this._sourceMaps.get(aSource));
+  },
+
+  
+
+
+
+  setSourceMap: function(aSource, aMap) {
+    this._sourceMaps.set(aSource, resolve(aMap));
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  _fetchSourceMap: function (aAbsSourceMapURL, aSourceURL) {
+    if (this._sourceMapCache[aAbsSourceMapURL]) {
+      return this._sourceMapCache[aAbsSourceMapURL];
+    }
+    else if (!this._useSourceMaps) {
       return null;
     }
-    this._sourceMapsByGeneratedSource[aGeneratedSource] = resolve(aSourceMap);
-    for (let s of aSourceMap.sources) {
-      this._generatedUrlsByOriginalUrl[s] = aGeneratedSource;
-      this._sourceMapsByOriginalSource[s] = resolve(aSourceMap);
-    }
-    return aSourceMap;
-  },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-  _fetchSourceMap: function (aAbsSourceMapURL, aScriptURL) {
-    return fetch(aAbsSourceMapURL, { loadFromCache: false })
+    let fetching = fetch(aAbsSourceMapURL, { loadFromCache: false })
       .then(({ content }) => {
         let map = new SourceMapConsumer(content);
-        this._setSourceMapRoot(map, aAbsSourceMapURL, aScriptURL);
+        this._setSourceMapRoot(map, aAbsSourceMapURL, aSourceURL);
         return map;
+      })
+      .then(null, error => {
+        if (!DevToolsUtils.reportingDisabled) {
+          DevToolsUtils.reportException("ThreadSources.prototype.getOriginalLocation", error);
+        }
+        return null;
       });
+    this._sourceMapCache[aAbsSourceMapURL] = fetching;
+    return fetching;
   },
 
   
@@ -5290,38 +5610,107 @@ ThreadSources.prototype = {
 
 
 
-  getOriginalLocation: function ({ url, line, column }) {
-    if (url in this._sourceMapsByGeneratedSource) {
-      column = column || 0;
 
-      return this._sourceMapsByGeneratedSource[url]
-        .then((aSourceMap) => {
-          let {
-            source: aSourceURL,
-            line: aLine,
-            column: aColumn,
-            name: aName
-          } = aSourceMap.originalPositionFor({ line, column });
-          return {
-            url: aSourceURL,
-            line: aLine,
-            column: aColumn,
-            name: aName
-          };
-        })
-        .then(null, error => {
-          if (!DevToolsUtils.reportingDisabled) {
-            DevToolsUtils.reportException("ThreadSources.prototype.getOriginalLocation", error);
-          }
-          return { url: null, line: null, column: null };
-        });
+
+
+
+
+
+
+
+
+
+
+  clearSourceMapCache: function(aSourceMapURL, opts = { hard: false }) {
+    let oldSm = this._sourceMapCache[aSourceMapURL];
+
+    if (opts.hard) {
+      delete this._sourceMapCache[aSourceMapURL];
     }
 
+    if (oldSm) {
+      
+      for (let [source, sm] of this._sourceMaps.entries()) {
+        if (sm === oldSm) {
+          this._sourceMaps.delete(source);
+        }
+      }
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  setSourceMapHard: function(aSource, aUrl, aMap) {
+    let url = aUrl;
+    if (!url) {
+      
+      
+      
+      
+      
+      
+      
+      url = "internal://sourcemap" + (this._anonSourceMapId++) + '/';
+    }
+    aSource.sourceMapURL = url;
+
     
-    return resolve({
-      url: url,
-      line: line,
-      column: column
+    
+    this._sourceMapCache[url] = resolve(aMap);
+  },
+
+  
+
+
+
+  getOriginalLocation: function ({ source, line, column }) {
+    
+    
+    
+    
+    
+    return this.fetchSourceMap(source).then(sm => {
+      if (sm) {
+        let {
+          source: sourceUrl,
+          line: sourceLine,
+          column: sourceCol,
+          name: sourceName
+        } = sm.originalPositionFor({
+          line: line,
+          column: column == null ? Infinity : column
+        });
+
+        return {
+          sourceActor: sourceUrl && this.source({ originalUrl: sourceUrl }),
+          url: sourceUrl,
+          line: sourceLine,
+          column: sourceCol,
+          name: sourceName
+        };
+      }
+
+      
+      return resolve({
+        
+        
+        sourceActor: this.source({ source }),
+        url: source.url,
+        line: line,
+        column: column
+      });
     });
   },
 
@@ -5334,28 +5723,36 @@ ThreadSources.prototype = {
 
 
 
-  getGeneratedLocation: function ({ url, line, column }) {
-    if (url in this._sourceMapsByOriginalSource) {
-      return this._sourceMapsByOriginalSource[url]
-        .then((aSourceMap) => {
-          let { line: aLine, column: aColumn } = aSourceMap.generatedPositionFor({
-            source: url,
-            line: line,
-            column: column == null ? Infinity : column
-          });
-          return {
-            url: this._generatedUrlsByOriginalUrl[url],
-            line: aLine,
-            column: aColumn
-          };
-        });
-    }
+  getGeneratedLocation: function ({ sourceActor, line, column }) {
+    
+    
+    
+    
+    let source = sourceActor.generatedSource || sourceActor.source;
 
     
-    return resolve({
-      url: url,
-      line: line,
-      column: column
+    return this.fetchSourceMap(source).then(sm => {
+      if (sm) {
+        let { line: genLine, column: genColumn } = sm.generatedPositionFor({
+          source: sourceActor.url,
+          line: line,
+          column: column == null ? Infinity : column
+        });
+
+        return {
+          
+          
+          sourceActor: this.source({ source: source }),
+          line: genLine,
+          column: genColumn
+        };
+      }
+
+      return resolve({
+        sourceActor: sourceActor,
+        line: line,
+        column: column
+      });
     });
   },
 
@@ -5440,16 +5837,31 @@ ThreadSources.prototype = {
     return base.spec;
   },
 
-  iter: function* () {
-    for (let url in this._sourceActors) {
-      yield this._sourceActors[url];
+  iter: function () {
+    let actors = Object.keys(this._sourceMappedSourceActors).map(k => {
+      return this._sourceMappedSourceActors[k];
+    });
+    for (let actor of this._sourceActors.values()) {
+      if (!this._sourceMaps.has(actor.source)) {
+        actors.push(actor);
+      }
     }
+    return actors;
   }
 };
 
 exports.ThreadSources = ThreadSources;
 
 
+
+
+
+
+
+function isHiddenSource(aSource) {
+  
+  return aSource.text === '() {\n}';
+}
 
 
 
@@ -5462,10 +5874,10 @@ exports.ThreadSources = ThreadSources;
 
 function getFrameLocation(aFrame) {
   if (!aFrame || !aFrame.script) {
-    return { url: null, line: null, column: null };
+    return { source: null, line: null, column: null };
   }
   return {
-    url: aFrame.script.url,
+    source: aFrame.script.source,
     line: aFrame.script.getOffsetLine(aFrame.offset),
     column: getOffsetColumn(aFrame.offset, aFrame.script)
   }
@@ -5524,4 +5936,20 @@ const symbolProtoToString = typeof Symbol === "function" ? Symbol.prototype.toSt
 function getSymbolName(symbol) {
   const name = symbolProtoToString.call(symbol).slice("Symbol(".length, -1);
   return name || undefined;
+}
+
+function getSourceURL(source) {
+  let introType = source.introductionType;
+  
+  
+  
+  
+  if (introType === 'eval' ||
+      introType === 'Function' ||
+      introType === 'eventHandler' ||
+      introType === 'setTimeout' ||
+      introType === 'setInterval') {
+    return source.displayURL;
+  }
+  return source.url;
 }

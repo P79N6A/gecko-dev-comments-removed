@@ -246,7 +246,7 @@ let DebuggerView = {
     this.editor.on("gutterClick", (ev, line, button) => {
       
       
-      if(button == 2) {
+      if (button == 2) {
         this.clickedLine = line;
       }
       else {
@@ -390,7 +390,7 @@ let DebuggerView = {
 
   _setEditorSource: function(aSource, aFlags={}) {
     
-    if (this._editorSource.url == aSource.url && !aFlags.force) {
+    if (this._editorSource.actor == aSource.actor && !aFlags.force) {
       return this._editorSource.promise;
     }
     let transportType = gClient.localTransport ? "_LOCAL" : "_REMOTE";
@@ -401,12 +401,12 @@ let DebuggerView = {
     let deferred = promise.defer();
 
     this._setEditorText(L10N.getStr("loadingText"));
-    this._editorSource = { url: aSource.url, promise: deferred.promise };
+    this._editorSource = { actor: aSource.actor, promise: deferred.promise };
 
     DebuggerController.SourceScripts.getText(aSource).then(([, aText, aContentType]) => {
       
       
-      if (this._editorSource.url != aSource.url) {
+      if (this._editorSource.actor != aSource.actor) {
         return;
       }
 
@@ -414,7 +414,8 @@ let DebuggerView = {
       this._setEditorMode(aSource.url, aContentType, aText);
 
       
-      DebuggerView.Sources.selectedValue = aSource.url;
+      
+      DebuggerView.Sources.selectedValue = aSource.actor;
       DebuggerController.Breakpoints.updateEditorBreakpoints();
       DebuggerController.HitCounts.updateEditorHitCounts();
 
@@ -459,9 +460,9 @@ let DebuggerView = {
 
 
 
-  setEditorLocation: function(aUrl, aLine = 0, aFlags = {}) {
+  setEditorLocation: function(aActor, aLine = 0, aFlags = {}) {
     
-    if (!this.Sources.containsValue(aUrl)) {
+    if (!this.Sources.containsValue(aActor)) {
       return promise.reject(new Error("Unknown source for the specified URL."));
     }
 
@@ -471,17 +472,23 @@ let DebuggerView = {
       let cachedFrames = DebuggerController.activeThread.cachedFrames;
       let currentDepth = DebuggerController.StackFrames.currentFrameDepth;
       let frame = cachedFrames[currentDepth];
-      if (frame && frame.where.url == aUrl) {
+      if (frame && frame.source.actor == aActor) {
         aLine = frame.where.line;
       }
     }
 
-    let sourceItem = this.Sources.getItemByValue(aUrl);
+    let sourceItem = this.Sources.getItemByValue(aActor);
     let sourceForm = sourceItem.attachment.source;
+
+    this._editorLoc = { actor: sourceForm.actor };
 
     
     
     return this._setEditorSource(sourceForm, aFlags).then(([,, aContentType]) => {
+      if (this._editorLoc.actor !== sourceForm.actor) {
+        return;
+      }
+
       
       sourceForm.contentType = aContentType;
       

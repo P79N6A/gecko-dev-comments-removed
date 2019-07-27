@@ -497,9 +497,9 @@ function rdpRequest(client, method, ...args) {
 
 
 
-function setBreakpoint(threadClient, breakpointOptions) {
+function setBreakpoint(sourceClient, breakpointOptions) {
   dumpn("Setting a breakpoint: " + JSON.stringify(breakpointOptions, null, 2));
-  return rdpRequest(threadClient, threadClient.setBreakpoint, breakpointOptions);
+  return rdpRequest(sourceClient, sourceClient.setBreakpoint, breakpointOptions);
 }
 
 
@@ -597,6 +597,29 @@ function blackBox(sourceClient) {
 function unBlackBox(sourceClient) {
   dumpn("Un-black boxing source: " + sourceClient.actor);
   return rdpRequest(sourceClient, sourceClient.unblackBox);
+}
+
+
+
+
+
+
+
+
+function getSource(threadClient, url) {
+  let deferred = promise.defer();
+  threadClient.getSources((res) => {
+    let source = res.sources.filter(function(s) {
+      return s.url === url;
+    });
+    if (source.length) {
+      deferred.resolve(threadClient.source(source[0]));
+    }
+    else {
+      deferred.reject(new Error("source not found"));
+    }
+  });
+  return deferred.promise;
 }
 
 

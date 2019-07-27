@@ -34,26 +34,31 @@ function run_test_with_server(aServer, aCallback)
 
 function test_breakpoint_running()
 {
-  gDebuggee.eval("var line0 = Error().lineNumber;\n" +
-                 "var a = 1;\n" +  
-                 "var b = 2;\n");  
-
-  let path = getFilePath('test_breakpoint-02.js');
-  let location = { url: path, line: gDebuggee.line0 + 2};
-
-  
   gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
-    do_check_eq(aPacket.type, "paused");
-    do_check_eq(aPacket.why.type, "interrupted");
-  });
+    let location = { line: gDebuggee.line0 + 3 };
 
-  gThreadClient.setBreakpoint(location, function(aResponse) {
-    
-    
-    do_check_neq(aResponse.error, "noScript");
+    gThreadClient.resume();
 
-    do_execute_soon(function() {
-      gClient.close(gCallback);
+    
+    gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
+      do_check_eq(aPacket.type, "paused");
+      do_check_eq(aPacket.why.type, "interrupted");
+    });
+
+    let source = gThreadClient.source(aPacket.frame.where.source);
+    source.setBreakpoint(location, function(aResponse) {
+      
+      
+      do_check_neq(aResponse.error, "noScript");
+
+      do_execute_soon(function() {
+        gClient.close(gCallback);
+      });
     });
   });
+
+  gDebuggee.eval("var line0 = Error().lineNumber;\n" +
+                 "debugger;\n" +
+                 "var a = 1;\n" +  
+                 "var b = 2;\n");  
 }

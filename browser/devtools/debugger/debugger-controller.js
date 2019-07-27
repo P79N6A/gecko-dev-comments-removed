@@ -664,10 +664,12 @@ StackFrames.prototype = {
   _refillFrames: function() {
     
     DebuggerView.StackFrames.empty();
+
     for (let frame of this.activeThread.cachedFrames) {
-      let { depth, where: { url, line }, source } = frame;
+      let { depth, source, where: { line } } = frame;
+
       let isBlackBoxed = source ? this.activeThread.source(source).isBlackBoxed : false;
-      let location = NetworkHelper.convertToUnicode(unescape(url));
+      let location = NetworkHelper.convertToUnicode(unescape(source.url || source.introductionUrl));
       let title = StackFrameUtils.getFrameTitle(frame);
       DebuggerView.StackFrames.addFrame(title, location, line, depth, isBlackBoxed);
     }
@@ -762,7 +764,7 @@ StackFrames.prototype = {
     }
 
     
-    let { environment, where } = frame;
+    let { environment, where, source } = frame;
     if (!environment) {
       return;
     }
@@ -774,10 +776,10 @@ StackFrames.prototype = {
     let isPopupShown = DebuggerView.VariableBubble.contentsShown();
     if (!isClientEval && !isPopupShown) {
       
-      DebuggerView.setEditorLocation(where.url, where.line);
+      DebuggerView.setEditorLocation(source.actor, where.line);
     } else {
       
-      DebuggerView.setEditorLocation(where.url, where.line, { noCaret: true });
+      DebuggerView.setEditorLocation(source.actor, where.line, { noCaret: true });
     }
 
     
@@ -933,6 +935,7 @@ StackFrames.prototype = {
     if (!breakLocation) {
       return;
     }
+
     let breakpointPromise = DebuggerController.Breakpoints._getAdded(breakLocation);
     if (!breakpointPromise) {
       return;
@@ -1245,8 +1248,8 @@ SourceScripts.prototype = {
   
 
 
-  _onBlackBoxChange: function (aEvent, { url, isBlackBoxed }) {
-    const item = DebuggerView.Sources.getItemByValue(url);
+  _onBlackBoxChange: function (aEvent, { actor, isBlackBoxed }) {
+    const item = DebuggerView.Sources.getItemByValue(actor);
     if (item) {
       item.prebuiltNode.classList.toggle("black-boxed", isBlackBoxed);
     }
@@ -1312,13 +1315,13 @@ SourceScripts.prototype = {
 
     const deferred = promise.defer();
     deferred.promise.pretty = wantPretty;
-    this._cache.set(aSource.url, deferred.promise);
+    this._cache.set(aSource.actor, deferred.promise);
 
     const afterToggle = ({ error, message, source: text, contentType }) => {
       if (error) {
         
         
-        this._cache.set(aSource.url, textPromise);
+        this._cache.set(aSource.actor, textPromise);
         deferred.reject([aSource, message || error]);
         return;
       }
@@ -1360,13 +1363,13 @@ SourceScripts.prototype = {
 
   getText: function(aSource, aOnTimeout, aDelay = FETCH_SOURCE_RESPONSE_DELAY) {
     
-    let textPromise = this._cache.get(aSource.url);
+    let textPromise = this._cache.get(aSource.actor);
     if (textPromise) {
       return textPromise;
     }
 
     let deferred = promise.defer();
-    this._cache.set(aSource.url, deferred.promise);
+    this._cache.set(aSource.actor, deferred.promise);
 
     
     if (aOnTimeout) {
@@ -1397,9 +1400,9 @@ SourceScripts.prototype = {
 
 
 
-  getTextForSources: function(aUrls) {
+  getTextForSources: function(aActors) {
     let deferred = promise.defer();
-    let pending = new Set(aUrls);
+    let pending = new Set(aActors);
     let fetched = [];
 
     
@@ -1408,8 +1411,8 @@ SourceScripts.prototype = {
     
 
     
-    for (let url of aUrls) {
-      let sourceItem = DebuggerView.Sources.getItemByValue(url);
+    for (let actor of aActors) {
+      let sourceItem = DebuggerView.Sources.getItemByValue(actor);
       let sourceForm = sourceItem.attachment.source;
       this.getText(sourceForm, onTimeout).then(onFetch, onError);
     }
@@ -1422,17 +1425,17 @@ SourceScripts.prototype = {
     
     function onFetch([aSource, aText, aContentType]) {
       
-      if (!pending.has(aSource.url)) {
+      if (!pending.has(aSource.actor)) {
         return;
       }
-      pending.delete(aSource.url);
-      fetched.push([aSource.url, aText, aContentType]);
+      pending.delete(aSource.actor);
+      fetched.push([aSource.actor, aText, aContentType]);
       maybeFinish();
     }
 
     
     function onError([aSource, aError]) {
-      pending.delete(aSource.url);
+      pending.delete(aSource.actor);
       maybeFinish();
     }
 
@@ -1778,7 +1781,7 @@ EventListeners.prototype = {
         const msg = "Error getting function definition site: " + aResponse.message;
         DevToolsUtils.reportException("_getDefinitionSite", msg);
       }
-      deferred.resolve(aResponse.url);
+      deferred.resolve(aResponse.source.url);
     });
 
     return deferred.promise;
@@ -1838,25 +1841,26 @@ Breakpoints.prototype = {
 
 
   _onEditorBreakpointAdd: Task.async(function*(_, aLine) {
-    let url = DebuggerView.Sources.selectedValue;
-    let location = { url: url, line: aLine + 1 };
+    let actor = DebuggerView.Sources.selectedValue;
+    let location = { actor: actor, line: aLine + 1 };
+
+    
+    
+    
     let breakpointClient = yield this.addBreakpoint(location, { noEditorUpdate: true });
 
     
     
-    this.addBreakpoint(location, { noEditorUpdate: true }).then(aBreakpointClient => {
-      
-      
-      
-      if (breakpointClient.requestedLocation) {
-        DebuggerView.editor.moveBreakpoint(
-          breakpointClient.requestedLocation.line - 1,
-          breakpointClient.location.line - 1
-        );
-      }
-      
-      window.emit(EVENTS.BREAKPOINT_SHOWN_IN_EDITOR);
-    });
+    
+    if (breakpointClient.requestedLocation) {
+      DebuggerView.editor.moveBreakpoint(
+        breakpointClient.requestedLocation.line - 1,
+        breakpointClient.location.line - 1
+      );
+    }
+
+    
+    window.emit(EVENTS.BREAKPOINT_SHOWN_IN_EDITOR);
   }),
 
   
@@ -1866,8 +1870,8 @@ Breakpoints.prototype = {
 
 
   _onEditorBreakpointRemove: Task.async(function*(_, aLine) {
-    let url = DebuggerView.Sources.selectedValue;
-    let location = { url: url, line: aLine + 1 };
+    let actor = DebuggerView.Sources.selectedValue;
+    let location = { actor: actor, line: aLine + 1 };
     yield this.removeBreakpoint(location, { noEditorUpdate: true });
 
     
@@ -1883,11 +1887,13 @@ Breakpoints.prototype = {
   updateEditorBreakpoints: Task.async(function*() {
     for (let breakpointPromise of this._addedOrDisabled) {
       let breakpointClient = yield breakpointPromise;
-      let currentSourceUrl = DebuggerView.Sources.selectedValue;
-      let breakpointUrl = breakpointClient.location.url;
+      let location = breakpointClient.location;
+      let currentSourceActor = DebuggerView.Sources.selectedValue;
+      let sourceActor = DebuggerView.Sources.getActorForLocation(location);
 
       
-      if (currentSourceUrl == breakpointUrl) {
+      
+      if (currentSourceActor === sourceActor) {
         yield this._showBreakpoint(breakpointClient, { noPaneUpdate: true });
       }
     }
@@ -1903,10 +1909,10 @@ Breakpoints.prototype = {
     for (let breakpointPromise of this._addedOrDisabled) {
       let breakpointClient = yield breakpointPromise;
       let container = DebuggerView.Sources;
-      let breakpointUrl = breakpointClient.location.url;
+      let sourceActor = breakpointClient.location.actor;
 
       
-      if (container.containsValue(breakpointUrl)) {
+      if (container.containsValue(sourceActor)) {
         yield this._showBreakpoint(breakpointClient, { noEditorUpdate: true });
       }
     }
@@ -1956,8 +1962,11 @@ Breakpoints.prototype = {
     let identifier = this.getIdentifier(aLocation);
     this._added.set(identifier, deferred.promise);
 
-    
-    gThreadClient.setBreakpoint(aLocation, Task.async(function*(aResponse, aBreakpointClient) {
+    let source = gThreadClient.source(
+      DebuggerView.Sources.getItemByValue(aLocation.actor).attachment.source
+    );
+
+    source.setBreakpoint(aLocation, Task.async(function*(aResponse, aBreakpointClient) {
       
       
       if (aResponse.actualLocation) {
@@ -1988,8 +1997,10 @@ Breakpoints.prototype = {
       if (aResponse.actualLocation) {
         
         
+        let actualLoc = aResponse.actualLocation;
         aBreakpointClient.requestedLocation = aLocation;
-        aBreakpointClient.location = aResponse.actualLocation;
+        aBreakpointClient.location = actualLoc;
+        aBreakpointClient.location.actor = actualLoc.source ? actualLoc.source.actor : null;
       }
 
       
@@ -1999,6 +2010,7 @@ Breakpoints.prototype = {
       let line = aBreakpointClient.location.line - 1;
       aBreakpointClient.text = DebuggerView.editor.getText(line).trim();
 
+      
       
       yield this._showBreakpoint(aBreakpointClient, aOptions);
 
@@ -2151,21 +2163,22 @@ Breakpoints.prototype = {
 
 
 
-  _showBreakpoint: function(aBreakpointData, aOptions = {}) {
+  _showBreakpoint: function(aBreakpointClient, aOptions = {}) {
     let tasks = [];
-    let currentSourceUrl = DebuggerView.Sources.selectedValue;
-    let location = aBreakpointData.location;
+    let currentSourceActor = DebuggerView.Sources.selectedValue;
+    let location = aBreakpointClient.location;
+    let actor = DebuggerView.Sources.getActorForLocation(location);
 
     
-    if (!aOptions.noEditorUpdate && !aBreakpointData.disabled) {
-      if (location.url == currentSourceUrl) {
+    if (!aOptions.noEditorUpdate && !aBreakpointClient.disabled) {
+      if (currentSourceActor === actor) {
         tasks.push(DebuggerView.editor.addBreakpoint(location.line - 1));
       }
     }
 
     
     if (!aOptions.noPaneUpdate) {
-      DebuggerView.Sources.addBreakpoint(aBreakpointData, aOptions);
+      DebuggerView.Sources.addBreakpoint(aBreakpointClient, aOptions);
     }
 
     return promise.all(tasks);
@@ -2180,11 +2193,12 @@ Breakpoints.prototype = {
 
 
   _hideBreakpoint: function(aLocation, aOptions = {}) {
-    let currentSourceUrl = DebuggerView.Sources.selectedValue;
+    let currentSourceActor = DebuggerView.Sources.selectedValue;
+    let actor = DebuggerView.Sources.getActorForLocation(aLocation);
 
     
     if (!aOptions.noEditorUpdate) {
-      if (aLocation.url == currentSourceUrl) {
+      if (currentSourceActor === actor) {
         DebuggerView.editor.removeBreakpoint(aLocation.line - 1);
       }
     }
@@ -2233,7 +2247,8 @@ Breakpoints.prototype = {
 
 
   getIdentifier: function(aLocation) {
-    return aLocation.url + ":" + aLocation.line;
+    return (aLocation.source ? aLocation.source.actor : aLocation.actor) +
+      ":" + aLocation.line;
   }
 };
 
@@ -2262,13 +2277,15 @@ function HitCounts() {
 
 HitCounts.prototype = {
   set: function({url, line, column}, aHitCount) {
-    if (!this._hitCounts[url]) {
-      this._hitCounts[url] = Object.create(null);
+    if (url) {
+      if (!this._hitCounts[url]) {
+        this._hitCounts[url] = Object.create(null);
+      }
+      if (!this._hitCounts[url][line]) {
+        this._hitCounts[url][line] = Object.create(null);
+      }
+      this._hitCounts[url][line][column] = aHitCount;
     }
-    if (!this._hitCounts[url][line]) {
-      this._hitCounts[url][line] = Object.create(null);
-    }
-    this._hitCounts[url][line][column] = aHitCount;
   },
 
   
@@ -2301,7 +2318,8 @@ HitCounts.prototype = {
 
     
     
-    if (DebuggerView.Sources.selectedValue != url) {
+    if (url &&
+        DebuggerView.Sources.selectedItem.attachment.source.url != url) {
       return;
     }
 

@@ -57,6 +57,7 @@ Object.defineProperty(this, "WebConsoleClient", {
 
 Components.utils.import("resource://gre/modules/devtools/DevToolsUtils.jsm");
 this.makeInfallible = DevToolsUtils.makeInfallible;
+this.values = DevToolsUtils.values;
 
 let LOG_PREF = "devtools.debugger.log";
 let VERBOSE_PREF = "devtools.debugger.log.verbose";
@@ -1617,72 +1618,6 @@ ThreadClient.prototype = {
 
 
 
-  setBreakpoint: function ({ url, line, column, condition },
-                           aOnResponse = noop) {
-    
-    let doSetBreakpoint = (aCallback) => {
-      const location = {
-        url: url,
-        line: line,
-        column: column
-      };
-
-      let packet = {
-        to: this._actor,
-        type: "setBreakpoint",
-        location: location,
-        condition: condition
-      };
-      this.client.request(packet, (aResponse) => {
-        
-        
-        let bpClient;
-        if (aResponse.actor) {
-          let root = this.client.mainRoot;
-          bpClient = new BreakpointClient(
-            this.client,
-            aResponse.actor,
-            location,
-            root.traits.conditionalBreakpoints ? condition : undefined
-          );
-        }
-        aOnResponse(aResponse, bpClient);
-        if (aCallback) {
-          aCallback();
-        }
-      });
-    };
-
-    
-    if (this.paused) {
-      doSetBreakpoint();
-      return;
-    }
-    
-    this.interrupt((aResponse) => {
-      if (aResponse.error) {
-        
-        aOnResponse(aResponse);
-        return;
-      }
-
-      const { type, why } = aResponse;
-      const cleanUp = type == "paused" && why.type == "interrupted"
-        ? () => this.resume()
-        : noop;
-
-      doSetBreakpoint(cleanUp);
-    });
-  },
-
-  
-
-
-
-
-
-
-
   releaseMany: DebuggerClient.requester({
     type: "releaseMany",
     actors: args(0),
@@ -1798,7 +1733,20 @@ ThreadClient.prototype = {
         return;
       }
 
-      for each (let frame in aResponse.frames) {
+      let threadGrips = values(this._threadGrips);
+
+      for (let i in aResponse.frames) {
+        let frame = aResponse.frames[i];
+        if (!frame.where.source) {
+          
+          
+          for (let grip of threadGrips) {
+            if (grip instanceof SourceClient && grip.url === frame.url) {
+              frame.where.source = grip._form;
+            }
+          }
+        }
+
         this._frameCache[frame.depth] = frame;
       }
 
@@ -2389,6 +2337,80 @@ SourceClient.prototype = {
         contentType: contentType
       });
     });
+  },
+
+  
+
+
+
+
+
+
+
+
+  setBreakpoint: function ({ line, column, condition }, aOnResponse = noop) {
+    
+    let doSetBreakpoint = aCallback => {
+      let root = this._client.mainRoot;
+      let location = {
+        line: line,
+        column: column
+      };
+
+      let packet = {
+        to: this.actor,
+        type: "setBreakpoint",
+        location: location,
+        condition: condition
+      };
+
+      
+      
+      if (!root.traits.debuggerSourceActors) {
+        packet.to = this._activeThread.actor;
+        packet.location.url = this.url;
+      }
+
+      this._client.request(packet, aResponse => {
+        
+        
+        let bpClient;
+        if (aResponse.actor) {
+          bpClient = new BreakpointClient(
+            this._client,
+            this,
+            aResponse.actor,
+            location,
+            root.traits.conditionalBreakpoints ? condition : undefined
+          );
+        }
+        aOnResponse(aResponse, bpClient);
+        if (aCallback) {
+          aCallback();
+        }
+      });
+    };
+
+    
+    if (this._activeThread.paused) {
+      doSetBreakpoint();
+      return;
+    }
+    
+    this._activeThread.interrupt(aResponse => {
+      if (aResponse.error) {
+        
+        aOnResponse(aResponse);
+        return;
+      }
+
+      const { type, why } = aResponse;
+      const cleanUp = type == "paused" && why.type == "interrupted"
+            ? () => this._activeThread.resume()
+            : noop;
+
+      doSetBreakpoint(cleanUp);
+    })
   }
 };
 
@@ -2405,10 +2427,15 @@ SourceClient.prototype = {
 
 
 
-function BreakpointClient(aClient, aActor, aLocation, aCondition) {
+
+
+function BreakpointClient(aClient, aSourceClient, aActor, aLocation, aCondition) {
   this._client = aClient;
   this._actor = aActor;
   this.location = aLocation;
+  this.location.actor = aSourceClient.actor;
+  this.location.url = aSourceClient.url;
+  this.source = aSourceClient;
   this.request = this._client.request;
 
   
@@ -2471,7 +2498,6 @@ BreakpointClient.prototype = {
 
     if (root.traits.conditionalBreakpoints) {
       let info = {
-        url: this.location.url,
         line: this.location.line,
         column: this.location.column,
         condition: aCondition
@@ -2485,7 +2511,7 @@ BreakpointClient.prototype = {
           return;
         }
 
-        gThreadClient.setBreakpoint(info, (aResponse, aNewBreakpoint) => {
+        this.source.setBreakpoint(info, (aResponse, aNewBreakpoint) => {
           if (aResponse && aResponse.error) {
             deferred.reject(aResponse);
           } else {
@@ -2495,7 +2521,7 @@ BreakpointClient.prototype = {
       });
     } else {
       
-      if(aCondition === "") {
+      if (aCondition === "") {
         delete this.conditionalExpression;
       }
       else {

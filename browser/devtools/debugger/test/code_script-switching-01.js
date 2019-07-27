@@ -2,5 +2,5 @@
 
 
 function firstCall() {
-  eval("secondCall();");
+  secondCall();
 }
