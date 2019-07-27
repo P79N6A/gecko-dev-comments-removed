@@ -24,10 +24,16 @@
 
 
 
+const {Cu} = require("chrome");
+const {Task} = Cu.import("resource://gre/modules/Task.jsm", {});
+const {setInterval, clearInterval} = require("sdk/timers");
 const {ActorClass, Actor,
        FrontClass, Front,
        Arg, method, RetVal} = require("devtools/server/protocol");
 const {NodeActor} = require("devtools/server/actors/inspector");
+const EventEmitter = require("devtools/toolkit/event-emitter");
+
+const PLAYER_DEFAULT_AUTO_REFRESH_TIMEOUT = 500; 
 
 
 
@@ -179,8 +185,13 @@ let AnimationPlayerActor = ActorClass({
 });
 
 let AnimationPlayerFront = FrontClass(AnimationPlayerActor, {
+  AUTO_REFRESH_EVENT: "updated-state",
+
   initialize: function(conn, form, detail, ctx) {
+    EventEmitter.decorate(this);
     Front.prototype.initialize.call(this, conn, form, detail, ctx);
+
+    this.state = {};
   },
 
   form: function(form, detail) {
@@ -189,9 +200,11 @@ let AnimationPlayerFront = FrontClass(AnimationPlayerActor, {
       return;
     }
     this._form = form;
+    this.state = this.initialState;
   },
 
   destroy: function() {
+    this.stopAutoRefresh();
     Front.prototype.destroy.call(this);
   },
 
@@ -209,7 +222,75 @@ let AnimationPlayerFront = FrontClass(AnimationPlayerActor, {
       iterationCount: this._form.iterationCount,
       isRunningOnCompositor: this._form.isRunningOnCompositor
     }
-  }
+  },
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+
+
+
+
+  startAutoRefresh: function(interval=PLAYER_DEFAULT_AUTO_REFRESH_TIMEOUT) {
+    if (this.autoRefreshTimer) {
+      return;
+    }
+
+    this.autoRefreshTimer = setInterval(this.refreshState.bind(this), interval);
+  },
+
+  
+
+
+  stopAutoRefresh: function() {
+    if (!this.autoRefreshTimer) {
+      return;
+    }
+
+    clearInterval(this.autoRefreshTimer);
+    this.autoRefreshTimer = null;
+  },
+
+  
+
+
+
+  refreshState: Task.async(function*() {
+    let data = yield this.getCurrentState();
+
+    
+    if (!this.autoRefreshTimer) {
+      return;
+    }
+
+    
+    let hasChanged = false;
+    for (let key in data) {
+      if (this.state[key] !== data[key]) {
+        hasChanged = true;
+        break;
+      }
+    }
+
+    if (hasChanged) {
+      this.state = data;
+      this.emit(this.AUTO_REFRESH_EVENT, this.state);
+    }
+  })
 });
 
 
