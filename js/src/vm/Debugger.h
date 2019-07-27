@@ -548,7 +548,6 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    static void markIncomingCrossCompartmentEdges(JSTracer *tracer);
     static void markAllCrossCompartmentEdges(JSTracer *tracer);
     static bool markAllIteratively(GCMarker *trc);
     static void markAll(JSTracer *trc);
