@@ -918,6 +918,39 @@ public:
   RemoteImageData::Format mFormat;
 };
 
+#ifdef MOZ_WIDGET_GONK
+class OverlayImage : public Image {
+  
+
+
+
+
+
+public:
+  struct Data {
+    int32_t mOverlayId;
+    gfx::IntSize mSize;
+  };
+
+  OverlayImage() : Image(nullptr, ImageFormat::OVERLAY_IMAGE) { mOverlayId = INVALID_OVERLAY; }
+
+  void SetData(const Data& aData)
+  {
+    mOverlayId = aData.mOverlayId;
+    mSize = aData.mSize;
+  }
+
+  TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() { return nullptr; } ;
+  int32_t GetOverlayId() { return mOverlayId; }
+
+  gfx::IntSize GetSize() { return mSize; }
+
+private:
+  int32_t mOverlayId;
+  gfx::IntSize mSize;
+};
+#endif
+
 } 
 } 
 

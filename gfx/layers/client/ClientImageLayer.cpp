@@ -110,6 +110,11 @@ protected:
 #ifdef MOZ_WIDGET_GONK
     
     
+    if (autoLock.GetImage()->GetFormat() == ImageFormat::OVERLAY_IMAGE) {
+      mImageClientTypeContainer = CompositableType::IMAGE_OVERLAY;
+      return mImageClientTypeContainer;
+    }
+
     mImageClientTypeContainer = autoLock.GetImage() ?
                                   CompositableType::BUFFER_IMAGE_BUFFERED : CompositableType::BUFFER_UNKNOWN;
 #else

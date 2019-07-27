@@ -19,6 +19,7 @@
 #include "mozilla/layers/CompositorTypes.h"  
 #include "mozilla/layers/Effects.h"     
 #include "mozilla/layers/LayersTypes.h"  
+#include "mozilla/layers/LayersMessages.h"
 #include "mozilla/layers/TextureHost.h" 
 #include "mozilla/mozalloc.h"           
 #include "nsCOMPtr.h"                   
@@ -255,6 +256,7 @@ public:
   virtual void UseTextureHost(TextureHost* aTexture);
   virtual void UseComponentAlphaTextures(TextureHost* aTextureOnBlack,
                                          TextureHost* aTextureOnWhite);
+  virtual void UseOverlaySource(OverlaySource aOverlay) { }
 
   virtual void RemoveTextureHost(TextureHost* aTexture);
 
