@@ -51,6 +51,11 @@ public:
 
 
 
+
+
+
+
+
   void Write(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy);
 
   
@@ -163,6 +168,11 @@ public:
                     uint8_t palette_depth = 0);
 
   virtual bool NeedsNewFrame() const { return mNeedsNewFrame; }
+
+  
+  
+  
+  bool NeedsToFlushData() const { return mNeedsToFlushData; }
 
   
   
@@ -283,6 +293,7 @@ private:
   };
   NewFrameData mNewFrameData;
   bool mNeedsNewFrame;
+  bool mNeedsToFlushData;
   bool mInitialized;
   bool mSizeDecode;
   bool mInFrame;

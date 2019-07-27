@@ -27,6 +27,7 @@ Decoder::Decoder(RasterImage &aImage)
   , mFrameCount(0)
   , mFailCode(NS_OK)
   , mNeedsNewFrame(false)
+  , mNeedsToFlushData(false)
   , mInitialized(false)
   , mSizeDecode(false)
   , mInFrame(false)
@@ -104,6 +105,12 @@ Decoder::Write(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy)
 
   
   mBytesDecoded += aCount;
+
+  
+  if (aBuffer == nullptr && aCount == 0) {
+    MOZ_ASSERT(mNeedsToFlushData, "Flushing when we don't need to");
+    mNeedsToFlushData = false;
+  }
 
   
   if (HasDataError())
@@ -249,6 +256,12 @@ Decoder::AllocateFrame()
   
   
   mNeedsNewFrame = false;
+
+  
+  
+  if (mBytesDecoded > 0) {
+    mNeedsToFlushData = true;
+  }
 
   return rv;
 }
