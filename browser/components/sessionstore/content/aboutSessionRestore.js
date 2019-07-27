@@ -21,6 +21,14 @@ window.onload = function() {
   }
 
   
+  for (let radioId of ["radioRestoreAll", "radioRestoreChoose"]) {
+    let button = document.getElementById(radioId);
+    if (button) {
+      button.addEventListener("click", updateTabListVisibility);
+    }
+  }
+
+  
   
   var sessionData = document.getElementById("sessionData");
   if (!sessionData.value) {
@@ -40,7 +48,17 @@ window.onload = function() {
   document.getElementById("errorTryAgain").focus();
 };
 
+function isTreeViewVisible() {
+  let tabList = document.getElementById("tabList");
+  return tabList.hasAttribute("available");
+}
+
 function initTreeView() {
+  
+  
+  if (!isTreeViewVisible()) {
+    return;
+  }
   var tabList = document.getElementById("tabList");
   var winLabel = tabList.getAttribute("_window_label");
 
@@ -75,31 +93,42 @@ function initTreeView() {
 }
 
 
+function updateTabListVisibility() {
+  let tabList = document.getElementById("tabList");
+  if (document.getElementById("radioRestoreChoose").checked) {
+    tabList.setAttribute("available", "true");
+  } else {
+    tabList.removeAttribute("available");
+  }
+  initTreeView();
+}
 
 function restoreSession() {
   document.getElementById("errorTryAgain").disabled = true;
 
-  if (!gTreeData.some(aItem => aItem.checked)) {
-    
-    
-    
-    startNewSession();
-    return;
-  }
+  if (isTreeViewVisible()) {
+    if (!gTreeData.some(aItem => aItem.checked)) {
+      
+      
+      
+      startNewSession();
+      return;
+    }
 
-  
-  var ix = gStateObject.windows.length - 1;
-  for (var t = gTreeData.length - 1; t >= 0; t--) {
-    if (treeView.isContainer(t)) {
-      if (gTreeData[t].checked === 0)
-        
-        gStateObject.windows[ix].tabs =
-          gStateObject.windows[ix].tabs.filter(function(aTabData, aIx)
-                                                 gTreeData[t].tabs[aIx].checked);
-      else if (!gTreeData[t].checked)
-        
-        gStateObject.windows.splice(ix, 1);
-      ix--;
+    
+    var ix = gStateObject.windows.length - 1;
+    for (var t = gTreeData.length - 1; t >= 0; t--) {
+      if (treeView.isContainer(t)) {
+        if (gTreeData[t].checked === 0)
+          
+          gStateObject.windows[ix].tabs =
+            gStateObject.windows[ix].tabs.filter(function(aTabData, aIx)
+                                                   gTreeData[t].tabs[aIx].checked);
+        else if (!gTreeData[t].checked)
+          
+          gStateObject.windows.splice(ix, 1);
+        ix--;
+      }
     }
   }
   var stateString = JSON.stringify(gStateObject);
