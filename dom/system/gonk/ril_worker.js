@@ -3925,7 +3925,6 @@ RilObject.prototype = {
     }
 
     let notification = null;
-    let callIndex = -1;
 
     switch (info.code) {
       case SUPP_SVC_NOTIFICATION_CODE2_PUT_ON_HOLD:
@@ -3937,26 +3936,9 @@ RilObject.prototype = {
         return;
     }
 
-    
-    let currentCallIndexes = Object.keys(this.currentCalls);
-    if (currentCallIndexes.length === 1) {
-      
-      callIndex = currentCallIndexes[0];
-    } else {
-      
-      if (info.number) {
-        for each (let currentCall in this.currentCalls) {
-          if (currentCall.number == info.number) {
-            callIndex = currentCall.callIndex;
-            break;
-          }
-        }
-      }
-    }
-
     let message = {rilMessageType: "suppSvcNotification",
-                   notification: notification,
-                   callIndex: callIndex};
+                   number: info.number,  
+                   notification: notification};
     this.sendChromeMessage(message);
   },
 

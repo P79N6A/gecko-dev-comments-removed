@@ -1333,10 +1333,31 @@ TelephonyService.prototype = {
                                                        aCall.namePresentation]);
   },
 
-  notifySupplementaryService: function(aClientId, aCallIndex, aNotification) {
+  notifySupplementaryService: function(aClientId, aNumber, aNotification) {
     let notification = this._convertRILSuppSvcNotification(aNotification);
+
+    
+    let callIndex = -1;
+
+    let indexes = Object.keys(this.currentCalls);
+    if (indexes.length === 1) {
+      
+      callIndex = indexes[0];
+    } else {
+      
+      if (aNumber) {
+        for (let i in this._currentCalls) {
+          let call = this._currentCalls[aClientId][i];
+          if (call.number === aNumber) {
+            callIndex = i;
+            break;
+          }
+        }
+      }
+    }
+
     this._notifyAllListeners("supplementaryServiceNotification",
-                             [aClientId, aCallIndex, notification]);
+                             [aClientId, callIndex, notification]);
   },
 
   notifyConferenceCallStateChanged: function(aState) {
