@@ -131,6 +131,7 @@ protected:
   void DoPlay();
   void DoPause();
 
+  void UpdateSourceContent();
   void FlushStyle() const;
   void PostUpdate();
   
