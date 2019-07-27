@@ -68,8 +68,8 @@ abstract class UITest extends BaseRobocopTest
         mDriver = new FennecNativeDriver(activity, mSolo, mRootPath);
         mActions = new FennecNativeActions(activity, mSolo, getInstrumentation(), mAsserter);
 
-        mBaseHostnameUrl = ((String) mConfig.get("host")).replaceAll("(/$)", "");
-        mBaseIpUrl = ((String) mConfig.get("rawhost")).replaceAll("(/$)", "");
+        mBaseHostnameUrl = mConfig.get("host").replaceAll("(/$)", "");
+        mBaseIpUrl = mConfig.get("rawhost").replaceAll("(/$)", "");
 
         
         initComponents();
@@ -158,6 +158,7 @@ abstract class UITest extends BaseRobocopTest
 
 
 
+    @Override
     protected Type getTestType() {
         return Type.MOCHITEST;
     }
@@ -179,10 +180,10 @@ abstract class UITest extends BaseRobocopTest
     private static Intent createActivityIntent(final Map<String, String> config) {
         final Intent intent = new Intent(Intent.ACTION_MAIN);
 
-        final String profile = (String) config.get("profile");
+        final String profile = config.get("profile");
         intent.putExtra("args", "-no-remote -profile " + profile);
 
-        final String envString = (String) config.get("envvars");
+        final String envString = config.get("envvars");
         if (!TextUtils.isEmpty(envString)) {
             final String[] envStrings = envString.split(",");
 
