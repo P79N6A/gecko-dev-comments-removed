@@ -1511,17 +1511,11 @@ pref("shumway.disabled", true);
 
 pref("image.mem.max_decoded_image_kb", 256000);
 
-
-#ifndef RELEASE_BUILD
-pref("loop.enabled", true);
-#else
-pref("loop.enabled", false);
-#endif
-
+#ifdef MOZ_LOOP
 pref("loop.server", "https://loop.services.mozilla.com");
-pref("loop.seenToS", "unseen");
 pref("loop.do_not_disturb", false);
 pref("loop.ringtone", "chrome://browser/content/loop/shared/sounds/Firefox-Long.ogg");
+#endif
 
 
 pref("services.push.serverURL", "wss://push.services.mozilla.com/");
@@ -1607,3 +1601,6 @@ pref("experiments.manifest.certs.1.commonName", "*.cdn.mozilla.net");
 pref("experiments.manifest.certs.1.issuerName", "CN=Cybertrust Public SureServer SV CA,O=Cybertrust Inc");
 
 pref("experiments.supported", true);
+
+
+pref("media.openh264.providerEnabled", true);
