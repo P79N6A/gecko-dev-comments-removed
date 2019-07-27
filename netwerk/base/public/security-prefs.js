@@ -2,7 +2,7 @@
 
 
 
-pref("security.tls.version.min", 0);
+pref("security.tls.version.min", 1);
 pref("security.tls.version.max", 3);
 
 pref("security.ssl.allow_unrestricted_renego_everywhere__temporarily_available_pref", false);
