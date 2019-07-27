@@ -444,6 +444,13 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     haveDisplayPort ||
     presContext->IsRootContentDocument() || (sf && sf->IsScrollingActive());
 
+  
+  
+  
+  
+  nsDisplayListBuilder::AutoInFixedPosSetter
+    buildingInFixedPos(aBuilder, false);
+
   nsDisplayList childItems;
 
   {

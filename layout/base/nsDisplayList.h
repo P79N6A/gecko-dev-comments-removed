@@ -409,6 +409,12 @@ public:
   
 
 
+
+  bool IsInFixedPos() const { return mInFixedPos; }
+
+  
+
+
   bool ShouldSyncDecodeImages() { return mSyncDecodeImages; }
 
   
@@ -595,6 +601,25 @@ public:
   
 
 
+  class AutoInFixedPosSetter;
+  friend class AutoInFixedPosSetter;
+  class AutoInFixedPosSetter {
+  public:
+    AutoInFixedPosSetter(nsDisplayListBuilder* aBuilder, bool aInFixedPos)
+      : mBuilder(aBuilder), mOldValue(aBuilder->mInFixedPos) {
+      aBuilder->mInFixedPos = aInFixedPos;
+    }
+    ~AutoInFixedPosSetter() {
+      mBuilder->mInFixedPos = mOldValue;
+    }
+  private:
+    nsDisplayListBuilder* mBuilder;
+    bool                  mOldValue;
+  };
+
+  
+
+
   class AutoCurrentScrollParentIdSetter;
   friend class AutoCurrentScrollParentIdSetter;
   class AutoCurrentScrollParentIdSetter {
@@ -765,6 +790,7 @@ private:
   
   
   bool                           mInTransform;
+  bool                           mInFixedPos;
   bool                           mSyncDecodeImages;
   bool                           mIsPaintingToWindow;
   bool                           mIsCompositingCheap;
@@ -822,6 +848,7 @@ public:
   nsDisplayItem(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
     : mFrame(aFrame)
     , mClip(aBuilder->ClipState().GetCurrentCombinedClip(aBuilder))
+    , mInFixedPos(aBuilder->IsInFixedPos())
 #ifdef MOZ_DUMP_PAINTING
     , mPainted(false)
 #endif
@@ -839,6 +866,7 @@ public:
     : mFrame(aFrame)
     , mClip(nullptr)
     , mReferenceFrame(nullptr)
+    , mInFixedPos(false)
 #ifdef MOZ_DUMP_PAINTING
     , mPainted(false)
 #endif
@@ -1332,6 +1360,8 @@ public:
     }
   }
 
+  bool IsInFixedPos() { return mInFixedPos; }
+
 protected:
   friend class nsDisplayList;
 
@@ -1349,6 +1379,7 @@ protected:
   
   
   nsRect    mVisibleRect;
+  bool      mInFixedPos;
 #ifdef MOZ_DUMP_PAINTING
   
   bool      mPainted;
