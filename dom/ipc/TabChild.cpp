@@ -92,6 +92,7 @@
 #include "nsIPermissionManager.h"
 #include "nsIScriptError.h"
 #include "mozilla/EventForwards.h"
+#include "nsDeviceContext.h"
 
 #define BROWSER_ELEMENT_CHILD_SCRIPT \
     NS_LITERAL_STRING("chrome://global/content/BrowserElementChild.js")
@@ -165,7 +166,6 @@ NS_IMPL_ISUPPORTS(TabChild::DelayedFireContextMenuEvent,
 TabChildBase::TabChildBase()
   : mContentDocumentIsDisplayed(false)
   , mTabChildGlobal(nullptr)
-  , mInnerSize(0, 0)
 {
   mozilla::HoldJSObjects(this);
 }
@@ -236,9 +236,11 @@ TabChildBase::InitializeRootMetrics()
   mLastRootMetrics.SetViewport(CSSRect(CSSPoint(), kDefaultViewportSize));
   mLastRootMetrics.SetCompositionBounds(ParentLayerRect(
       ParentLayerPoint(),
-      ParentLayerSize(ViewAs<ParentLayerPixel>(mInnerSize, PixelCastJustification::ScreenIsParentLayerForRoot))));
+      ParentLayerSize(
+        ViewAs<ParentLayerPixel>(GetInnerSize(),
+                                 PixelCastJustification::ScreenIsParentLayerForRoot))));
   mLastRootMetrics.SetZoom(CSSToParentLayerScale2D(
-      ConvertScaleForRoot(CalculateIntrinsicScale(mInnerSize, kDefaultViewportSize))));
+      ConvertScaleForRoot(CalculateIntrinsicScale(GetInnerSize(), kDefaultViewportSize))));
   mLastRootMetrics.SetDevPixelsPerCSSPixel(WebWidget()->GetDefaultScale());
   
   
@@ -299,14 +301,14 @@ TabChildBase::HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize)
   }
 
   TABC_LOG("HandlePossibleViewportChange aOldScreenSize=%s mInnerSize=%s\n",
-    Stringify(aOldScreenSize).c_str(), Stringify(mInnerSize).c_str());
+    Stringify(aOldScreenSize).c_str(), Stringify(GetInnerSize()).c_str());
 
   nsCOMPtr<nsIDocument> document(GetDocument());
   if (!document) {
     return false;
   }
 
-  nsViewportInfo viewportInfo = nsContentUtils::GetViewportInfo(document, mInnerSize);
+  nsViewportInfo viewportInfo = nsContentUtils::GetViewportInfo(document, GetInnerSize());
   uint32_t presShellId = 0;
   mozilla::layers::FrameMetrics::ViewID viewId = FrameMetrics::NULL_SCROLL_ID;
   bool scrollIdentifiersValid = APZCCallbackHelper::GetOrCreateScrollIdentifiers(
@@ -323,8 +325,8 @@ TabChildBase::HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize)
                             constraints);
   }
 
-  float screenW = mInnerSize.width;
-  float screenH = mInnerSize.height;
+  float screenW = GetInnerSize().width;
+  float screenH = GetInnerSize().height;
   CSSSize viewport(viewportInfo.GetSize());
 
   
@@ -358,7 +360,7 @@ TabChildBase::HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize)
 
   ScreenIntSize oldScreenSize = aOldScreenSize;
   if (oldScreenSize == ScreenIntSize()) {
-    oldScreenSize = mInnerSize;
+    oldScreenSize = GetInnerSize();
   }
 
   FrameMetrics metrics(mLastRootMetrics);
@@ -366,7 +368,7 @@ TabChildBase::HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize)
 
   
   
-  ScreenSize compositionSize(mInnerSize);
+  ScreenSize compositionSize(GetInnerSize());
   nsCOMPtr<nsIPresShell> shell = GetPresShell();
   if (shell) {
     nsMargin scrollbarsAppUnits =
@@ -380,7 +382,9 @@ TabChildBase::HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize)
 
   metrics.SetCompositionBounds(ParentLayerRect(
       ParentLayerPoint(),
-      ParentLayerSize(ViewAs<ParentLayerPixel>(compositionSize, PixelCastJustification::ScreenIsParentLayerForRoot))));
+      ParentLayerSize(
+        ViewAs<ParentLayerPixel>(GetInnerSize(),
+                                 PixelCastJustification::ScreenIsParentLayerForRoot))));
   metrics.SetRootCompositionSize(
       ScreenSize(compositionSize) * ScreenToLayoutDeviceScale(1.0f) / metrics.GetDevPixelsPerCSSPixel());
 
@@ -397,7 +401,7 @@ TabChildBase::HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize)
   
   
   CSSToScreenScale oldIntrinsicScale = CalculateIntrinsicScale(oldScreenSize, oldBrowserSize);
-  CSSToScreenScale newIntrinsicScale = CalculateIntrinsicScale(mInnerSize, viewport);
+  CSSToScreenScale newIntrinsicScale = CalculateIntrinsicScale(GetInnerSize(), viewport);
   metrics.ZoomBy(newIntrinsicScale.scale / oldIntrinsicScale.scale);
 
   
@@ -881,7 +885,6 @@ TabChild::TabChild(nsIContentChild* aManager,
   , mManager(aManager)
   , mChromeFlags(aChromeFlags)
   , mLayersId(0)
-  , mOuterRect(0, 0, 0, 0)
   , mActivePointerId(-1)
   , mAppPackageFileDescriptorRecved(false)
   , mLastBackgroundColor(NS_RGB(255, 255, 255))
@@ -922,9 +925,9 @@ TabChild::HandleEvent(nsIDOMEvent* aEvent)
   if (eventType.EqualsLiteral("DOMMetaAdded")) {
     
     
-    HandlePossibleViewportChange(mInnerSize);
+    HandlePossibleViewportChange(GetInnerSize());
   } else if (eventType.EqualsLiteral("FullZoomChange")) {
-    HandlePossibleViewportChange(mInnerSize);
+    HandlePossibleViewportChange(GetInnerSize());
   }
 
   return NS_OK;
@@ -973,7 +976,7 @@ TabChild::Observe(nsISupports *aSubject,
           if (shell) {
             nsLayoutUtils::SetResolutionAndScaleTo(shell, mLastRootMetrics.GetPresShellResolution());
           }
-          HandlePossibleViewportChange(mInnerSize);
+          HandlePossibleViewportChange(GetInnerSize());
         }
       }
     }
@@ -1313,17 +1316,18 @@ NS_IMETHODIMP
 TabChild::GetDimensions(uint32_t aFlags, int32_t* aX,
                              int32_t* aY, int32_t* aCx, int32_t* aCy)
 {
+  ScreenIntRect rect = GetOuterRect();
   if (aX) {
-    *aX = mOuterRect.x;
+    *aX = rect.x;
   }
   if (aY) {
-    *aY = mOuterRect.y;
+    *aY = rect.y;
   }
   if (aCx) {
-    *aCx = mOuterRect.width;
+    *aCx = rect.width;
   }
   if (aCy) {
-    *aCy = mOuterRect.height;
+    *aCy = rect.height;
   }
 
   return NS_OK;
@@ -2050,33 +2054,37 @@ TabChild::RecvShow(const ScreenIntSize& aSize,
 }
 
 bool
-TabChild::RecvUpdateDimensions(const nsIntRect& rect, const ScreenIntSize& size,
-                               const ScreenOrientation& orientation, const LayoutDeviceIntPoint& chromeDisp)
+TabChild::RecvUpdateDimensions(const CSSRect& rect, const CSSSize& size,
+                               const ScreenOrientation& orientation,
+                               const LayoutDeviceIntPoint& chromeDisp)
 {
     if (!mRemoteFrame) {
         return true;
     }
 
-    mOuterRect = rect;
+    mUnscaledOuterRect = rect;
     mChromeDisp = chromeDisp;
 
     bool initialSizing = !HasValidInnerSize()
                       && (size.width != 0 && size.height != 0);
+
+    mOrientation = orientation;
+    ScreenIntSize oldScreenSize = GetInnerSize();
+    SetUnscaledInnerSize(size);
+    ScreenIntSize screenSize = GetInnerSize();
     bool sizeChanged = true;
     if (initialSizing) {
       mHasValidInnerSize = true;
-    } else if (mInnerSize == size) {
+    } else if (screenSize == oldScreenSize) {
       sizeChanged = false;
     }
 
-    mOrientation = orientation;
-    ScreenIntSize oldScreenSize = mInnerSize;
-    mInnerSize = size;
-    mWidget->Resize(rect.x + chromeDisp.x, rect.y + chromeDisp.y, size.width, size.height,
-                     true);
+    ScreenIntRect screenRect = GetOuterRect();
+    mWidget->Resize(screenRect.x + chromeDisp.x, screenRect.y + chromeDisp.y,
+                    screenSize.width, screenSize.height, true);
 
     nsCOMPtr<nsIBaseWindow> baseWin = do_QueryInterface(WebNavigation());
-    baseWin->SetPositionAndSize(0, 0, size.width, size.height,
+    baseWin->SetPositionAndSize(0, 0, screenSize.width, screenSize.height,
                                 true);
 
     if (initialSizing && mContentDocumentIsDisplayed) {
@@ -3244,6 +3252,7 @@ TabChild::RecvRequestNotifyAfterRemotePaint()
 bool
 TabChild::RecvUIResolutionChanged()
 {
+  ScreenIntSize oldScreenSize = GetInnerSize();
   mDPI = 0;
   mDefaultScale = 0;
   static_cast<PuppetWidget*>(mWidget.get())->ClearBackingScaleCache();
@@ -3252,9 +3261,21 @@ TabChild::RecvUIResolutionChanged()
   if (presShell) {
     nsRefPtr<nsPresContext> presContext = presShell->GetPresContext();
     if (presContext) {
-      presContext->UIResolutionChanged();
+      presContext->UIResolutionChangedSync();
     }
   }
+
+  ScreenIntSize screenSize = GetInnerSize();
+  if (mHasValidInnerSize && oldScreenSize != screenSize) {
+    ScreenIntRect screenRect = GetOuterRect();
+    mWidget->Resize(screenRect.x + mChromeDisp.x, screenRect.y + mChromeDisp.y,
+                    screenSize.width, screenSize.height, true);
+
+    nsCOMPtr<nsIBaseWindow> baseWin = do_QueryInterface(WebNavigation());
+    baseWin->SetPositionAndSize(0, 0, screenSize.width, screenSize.height,
+                                true);
+  }
+
   return true;
 }
 
@@ -3314,6 +3335,22 @@ TabChild::CreatePluginWidget(nsIWidget* aParent, nsIWidget** aOut)
   }
   pluginWidget.forget(aOut);
   return rv;
+}
+
+ScreenIntSize
+TabChild::GetInnerSize()
+{
+  LayoutDeviceIntSize innerSize =
+    RoundedToInt(mUnscaledInnerSize * mWidget->GetDefaultScale());
+  return ViewAs<ScreenPixel>(innerSize, PixelCastJustification::LayoutDeviceIsScreenForTabDims);
+};
+
+ScreenIntRect
+TabChild::GetOuterRect()
+{
+  LayoutDeviceIntRect outerRect =
+    RoundedToInt(mUnscaledOuterRect * mWidget->GetDefaultScale());
+  return ViewAs<ScreenPixel>(outerRect, PixelCastJustification::LayoutDeviceIsScreenForTabDims);
 }
 
 TabChildGlobal::TabChildGlobal(TabChildBase* aTabChild)
