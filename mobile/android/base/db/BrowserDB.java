@@ -16,7 +16,6 @@ import org.mozilla.gecko.favicons.decoders.LoadFaviconResult;
 
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.database.ContentObserver;
 import android.database.Cursor;
@@ -43,6 +42,7 @@ public interface BrowserDB {
     public abstract Searches getSearches();
     public abstract TabsAccessor getTabsAccessor();
     public abstract URLMetadata getURLMetadata();
+    public abstract ReadingListAccessor getReadingListAccessor();
 
     
 
@@ -117,17 +117,6 @@ public interface BrowserDB {
 
 
     public abstract Cursor getBookmarksInFolder(ContentResolver cr, long folderId);
-
-    
-
-
-    public abstract Cursor getReadingList(ContentResolver cr);
-    public abstract Cursor getReadingListUnfetched(ContentResolver cr);
-    public abstract boolean isReadingListItem(ContentResolver cr, String uri);
-    public abstract void addReadingListItem(ContentResolver cr, ContentValues values);
-    public abstract void updateReadingListItem(ContentResolver cr, ContentValues values);
-    public abstract void removeReadingListItemWithURL(ContentResolver cr, String uri);
-
 
     
 
