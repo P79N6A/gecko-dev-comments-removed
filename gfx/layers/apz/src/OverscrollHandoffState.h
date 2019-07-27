@@ -10,8 +10,9 @@
 #include <vector>
 #include "nsAutoPtr.h"
 #include "nsISupportsImpl.h"  
-#include "Units.h"            
 #include "APZUtils.h"         
+#include "Layers.h"           
+#include "Units.h"            
 
 namespace mozilla {
 namespace layers {
@@ -106,6 +107,11 @@ public:
   
   
   bool CanBePanned(const AsyncPanZoomController* aApzc) const;
+
+  
+  
+  bool CanScrollInDirection(const AsyncPanZoomController* aApzc,
+                            Layer::ScrollDirection aDirection) const;
 
   
   bool HasOverscrolledApzc() const;

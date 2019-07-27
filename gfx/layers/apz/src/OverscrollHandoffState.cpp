@@ -144,6 +144,24 @@ OverscrollHandoffChain::CanBePanned(const AsyncPanZoomController* aApzc) const
 }
 
 bool
+OverscrollHandoffChain::CanScrollInDirection(const AsyncPanZoomController* aApzc,
+                                             Layer::ScrollDirection aDirection) const
+{
+  
+  uint32_t i = IndexOf(aApzc);
+
+  
+  
+  for (uint32_t j = i; j < Length(); ++j) {
+    if (mChain[j]->CanScroll(aDirection)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool
 OverscrollHandoffChain::HasOverscrolledApzc() const
 {
   return AnyApzc(&AsyncPanZoomController::IsOverscrolled);

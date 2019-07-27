@@ -22,6 +22,7 @@
 #include "Axis.h"
 #include "InputQueue.h"
 #include "APZUtils.h"
+#include "Layers.h"                     
 #include "LayersTypes.h"
 #include "TaskThrottler.h"
 #include "mozilla/gfx/Matrix.h"
@@ -369,6 +370,10 @@ public:
   
   
   bool CanScrollWithWheel(const LayoutDevicePoint& aDelta) const;
+
+  
+  
+  bool CanScroll(Layer::ScrollDirection aDirection) const;
 
   void NotifyMozMouseScrollEvent(const nsString& aString) const;
 
