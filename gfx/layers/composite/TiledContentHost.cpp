@@ -52,6 +52,12 @@ TiledLayerBufferComposite::TiledLayerBufferComposite(ISurfaceAllocator* aAllocat
   mRetainedHeight = aDescriptor.retainedHeight();
   mResolution = aDescriptor.resolution();
   mFrameResolution = CSSToParentLayerScale(aDescriptor.frameResolution());
+  if (mResolution == 0 || IsNaN(mResolution)) {
+    
+    
+    mIsValid = false;
+    return;
+  }
 
   
   nsIntRegion oldPaintedRegion(aOldPaintedRegion);
