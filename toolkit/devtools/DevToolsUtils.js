@@ -38,7 +38,8 @@ exports.safeErrorString = function safeErrorString(aError) {
     }
   } catch (ee) { }
 
-  return "<failed trying to find error description>";
+  
+  return Object.prototype.toString.call(aError);
 }
 
 
