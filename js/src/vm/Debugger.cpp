@@ -2114,14 +2114,23 @@ Debugger::markCrossCompartmentEdges(JSTracer *trc)
 
 
 
+
+
+
  void
-Debugger::markAllCrossCompartmentEdges(JSTracer *trc)
+Debugger::markIncomingCrossCompartmentEdges(JSTracer *trc)
 {
     JSRuntime *rt = trc->runtime();
+    gc::State state = rt->gc.state();
+    MOZ_ASSERT(state == gc::MARK_ROOTS || state == gc::COMPACT);
 
     for (Debugger *dbg = rt->debuggerList.getFirst(); dbg; dbg = dbg->getNext()) {
-        if (!dbg->object->zone()->isCollecting())
+        Zone *zone = dbg->object->zone();
+        if ((state == gc::MARK_ROOTS && !zone->isCollecting()) ||
+            (state == gc::COMPACT && !zone->isGCCompacting()))
+        {
             dbg->markCrossCompartmentEdges(trc);
+        }
     }
 }
 
