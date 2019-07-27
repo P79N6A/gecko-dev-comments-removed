@@ -116,6 +116,12 @@ let MessageListener = {
   },
 
   receiveMessage: function ({name, data}) {
+    
+    
+    if (!docShell) {
+      return;
+    }
+
     switch (name) {
       case "SessionStore:restoreHistory":
         this.restoreHistory(data);
@@ -222,7 +228,11 @@ let SyncHandler = {
 
 
   flushAsync: function () {
-    MessageQueue.flushAsync();
+    if (!Services.prefs.getBoolPref("browser.sessionstore.debug")) {
+      throw new Error("flushAsync() must be used for testing, only.");
+    }
+
+    MessageQueue.send();
   }
 };
 
@@ -680,9 +690,8 @@ let MessageQueue = {
 
     
     sendMessage("SessionStore:update", {
-      id: this._id,
-      data: data,
-      telemetry: telemetry
+      id: this._id, data, telemetry,
+      isFinal: options.isFinal || false
     });
 
     
@@ -706,20 +715,6 @@ let MessageQueue = {
 
     this._data.clear();
     this._lastUpdated.clear();
-  },
-
-  
-
-
-
-
-
-  flushAsync: function () {
-    if (!Services.prefs.getBoolPref("browser.sessionstore.debug")) {
-      throw new Error("flushAsync() must be used for testing, only.");
-    }
-
-    this.send();
   }
 };
 
@@ -759,6 +754,10 @@ function handleRevivedTab() {
 addEventListener("pagehide", handleRevivedTab);
 
 addEventListener("unload", () => {
+  
+  
+  MessageQueue.send({isFinal: true});
+
   
   
   
