@@ -1683,9 +1683,10 @@ Debugger::slowPathPromiseHook(JSContext *cx, Hook hook, HandleObject promise)
 {
     MOZ_ASSERT(hook == OnNewPromise || hook == OnPromiseSettled);
     RootedValue rval(cx);
-    DebugOnly<JSTrapStatus> status = dispatchHook(cx, &rval, hook, promise);
-    MOZ_ASSERT(status == JSTRAP_CONTINUE);
-    MOZ_ASSERT(!cx->isExceptionPending());
+
+    
+    
+    (void) dispatchHook(cx, &rval, hook, promise);
 }
 
 
