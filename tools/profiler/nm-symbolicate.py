@@ -4,11 +4,12 @@
 
 
 
-import sys, subprocess
+import sys, subprocess, os
 
 def NMSymbolicate(library, addresses):
+  target_tools_prefix = os.environ.get("TARGET_TOOLS_PREFIX", "")
   args = [
-    "nm", "-D", "-S", library
+    target_tools_prefix + "nm", "-D", "-S", library
   ]
   nm_lines = subprocess.check_output(args).split("\n")
   symbol_table = []
