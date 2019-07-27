@@ -298,6 +298,9 @@ public:
     PLAY_STATE_SHUTDOWN
   };
 
+  
+  static void InitStatics();
+
   MediaDecoder();
 
   

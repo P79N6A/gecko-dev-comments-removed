@@ -38,11 +38,10 @@ public:
   template<typename TargetType> static AbstractThread* Create(TargetType* aTarget);
 
   
-  
-  
-  
   static AbstractThread* MainThread();
-  static void EnsureMainThreadSingleton();
+
+  
+  static void InitStatics();
 
 protected:
   virtual ~AbstractThread() {}
