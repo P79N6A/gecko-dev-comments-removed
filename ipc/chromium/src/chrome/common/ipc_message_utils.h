@@ -732,52 +732,6 @@ struct ParamTraitsIPC<FilePath> {
   static void Log(const param_type& p, std::wstring* l);
 };
 
-struct LogData {
-  std::wstring channel;
-  int32_t routing_id;
-  uint16_t type;
-  std::wstring flags;
-  int64_t sent;  
-  int64_t receive;  
-                  
-  int64_t dispatch;  
-                   
-  std::wstring message_name;
-  std::wstring params;
-};
-
-template <>
-struct ParamTraitsIPC<LogData> {
-  typedef LogData param_type;
-  static void Write(Message* m, const param_type& p) {
-    WriteParam(m, p.channel);
-    WriteParam(m, p.routing_id);
-    WriteParam(m, static_cast<int>(p.type));
-    WriteParam(m, p.flags);
-    WriteParam(m, p.sent);
-    WriteParam(m, p.receive);
-    WriteParam(m, p.dispatch);
-    WriteParam(m, p.params);
-  }
-  static bool Read(const Message* m, void** iter, param_type* r) {
-    int type = 0;
-    bool result =
-      ReadParam(m, iter, &r->channel) &&
-      ReadParam(m, iter, &r->routing_id) &&
-      ReadParam(m, iter, &type) &&
-      ReadParam(m, iter, &r->flags) &&
-      ReadParam(m, iter, &r->sent) &&
-      ReadParam(m, iter, &r->receive) &&
-      ReadParam(m, iter, &r->dispatch) &&
-      ReadParam(m, iter, &r->params);
-    r->type = static_cast<uint16_t>(type);
-    return result;
-  }
-  static void Log(const param_type& p, std::wstring* l) {
-    
-  }
-};
-
 #if defined(OS_WIN)
 template<>
 struct ParamTraitsIPC<TransportDIB::Id> {
@@ -1196,10 +1150,6 @@ class ParamDeserializer : public MessageReplyDeserializer {
 };
 
 
-void GenerateLogData(const std::wstring& channel, const Message& message,
-                     LogData* data);
-
-
 template <class SendParamType, class ReplyParamType>
 class MessageWithReply : public SyncMessage {
  public:
@@ -1220,13 +1170,6 @@ class MessageWithReply : public SyncMessage {
       if (ReadParam(msg, &iter, &p))
         LogParam(p, l);
 
-#if defined(IPC_MESSAGE_LOG_ENABLED)
-      const std::wstring& output_params = msg->output_params();
-      if (!l->empty() && !output_params.empty())
-        l->append(L", ");
-
-      l->append(output_params);
-#endif
     } else {
       
       
@@ -1248,13 +1191,6 @@ class MessageWithReply : public SyncMessage {
       DispatchToMethod(obj, func, send_params, &reply_params);
       WriteParam(reply, reply_params);
       error = false;
-#ifdef IPC_MESSAGE_LOG_ENABLED
-      if (msg->received_time() != 0) {
-        std::wstring output_params;
-        LogParam(reply_params, &output_params);
-        msg->set_output_params(output_params);
-      }
-#endif
     } else {
       NOTREACHED() << "Error deserializing message " << msg->type();
       reply->set_reply_error();
@@ -1274,17 +1210,6 @@ class MessageWithReply : public SyncMessage {
     if (ReadParam(msg, &iter, &send_params)) {
       Tuple1<Message&> t = MakeRefTuple(*reply);
 
-#ifdef IPC_MESSAGE_LOG_ENABLED
-      if (msg->sent_time()) {
-        
-        
-        
-        LogData* data = new LogData;
-        GenerateLogData(L"", *msg, data);
-        msg->set_dont_log();
-        reply->set_sync_log_data(data);
-      }
-#endif
       DispatchToMethod(obj, func, send_params, &t);
       error = false;
     } else {

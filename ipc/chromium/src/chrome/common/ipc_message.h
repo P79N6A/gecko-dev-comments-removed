@@ -14,10 +14,6 @@
 #include "GeckoTaskTracer.h"
 #endif
 
-#ifndef NDEBUG
-#define IPC_MESSAGE_LOG_ENABLED
-#endif
-
 #if defined(OS_POSIX)
 #include "nsAutoPtr.h"
 #endif
@@ -261,25 +257,6 @@ class Message : public Pickle {
 #endif
 #endif
 
-#ifdef IPC_MESSAGE_LOG_ENABLED
-  
-  
-  void set_sent_time(int64_t time);
-  int64_t sent_time() const;
-
-  void set_received_time(int64_t time) const;
-  int64_t received_time() const { return received_time_; }
-  void set_output_params(const std::wstring& op) const { output_params_ = op; }
-  const std::wstring& output_params() const { return output_params_; }
-  
-  
-  
-  
-  void set_sync_log_data(LogData* data) const { log_data_ = data; }
-  LogData* sync_log_data() const { return log_data_; }
-  void set_dont_log() const { dont_log_ = true; }
-  bool dont_log() const { return dont_log_; }
-#endif
 
   friend class Channel;
   friend class MessageReplyDeserializer;
@@ -365,13 +342,6 @@ class Message : public Pickle {
 
   const char* name_;
 
-#ifdef IPC_MESSAGE_LOG_ENABLED
-  
-  mutable int64_t received_time_;
-  mutable std::wstring output_params_;
-  mutable LogData* log_data_;
-  mutable bool dont_log_;
-#endif
 };
 
 
