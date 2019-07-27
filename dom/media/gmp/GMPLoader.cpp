@@ -156,7 +156,13 @@ GMPLoaderImpl::Load(const char* aLibPath,
       return false;
     }
     assert(top >= bottom);
-    SecureZeroMemory(bottom, (top - bottom));
+    
+    
+    
+    
+    for (volatile uint8_t* p = (volatile uint8_t*)bottom; p < top; p++) {
+      *p = 0;
+    }
   } else
 #endif
   {
