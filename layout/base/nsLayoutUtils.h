@@ -516,6 +516,12 @@ public:
 
 
 
+  static bool IsScrollbarThumbLayerized(nsIFrame* aThumbFrame);
+
+  
+
+
+
 
 
 

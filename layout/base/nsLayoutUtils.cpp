@@ -1718,8 +1718,8 @@ nsLayoutUtils::SetScrollbarThumbLayerization(nsIFrame* aThumbFrame, bool aLayeri
     reinterpret_cast<void*>(intptr_t(aLayerize)));
 }
 
-static bool
-IsScrollbarThumbLayerized(nsIFrame* aThumbFrame)
+bool
+nsLayoutUtils::IsScrollbarThumbLayerized(nsIFrame* aThumbFrame)
 {
   return reinterpret_cast<intptr_t>(aThumbFrame->Properties().Get(ScrollbarThumbLayerized()));
 }
@@ -1729,55 +1729,7 @@ nsLayoutUtils::GetAnimatedGeometryRootForFrame(nsDisplayListBuilder* aBuilder,
                                                nsIFrame* aFrame,
                                                const nsIFrame* aStopAtAncestor)
 {
-  nsIFrame* f = aFrame;
-  nsIFrame* stickyFrame = nullptr;
-  while (f != aStopAtAncestor) {
-    if (nsLayoutUtils::IsPopup(f))
-      break;
-    if (ActiveLayerTracker::IsOffsetOrMarginStyleAnimated(f))
-      break;
-    if (!f->GetParent() &&
-        nsLayoutUtils::ViewportHasDisplayPort(f->PresContext())) {
-      
-      
-      break;
-    }
-    nsIFrame* parent = nsLayoutUtils::GetCrossDocParentFrame(f);
-    if (!parent)
-      break;
-    nsIAtom* parentType = parent->GetType();
-    
-    
-    if (parentType == nsGkAtoms::sliderFrame && IsScrollbarThumbLayerized(f)) {
-      break;
-    }
-    
-    
-    
-    if (f->StyleDisplay()->mPosition == NS_STYLE_POSITION_STICKY &&
-        !stickyFrame) {
-      stickyFrame = f;
-    }
-    if (parentType == nsGkAtoms::scrollFrame) {
-      nsIScrollableFrame* sf = do_QueryFrame(parent);
-      if (sf->IsScrollingActive(aBuilder) && sf->GetScrolledFrame() == f) {
-        
-        
-        if (stickyFrame) {
-          return stickyFrame;
-        }
-        return f;
-      } else {
-        stickyFrame = nullptr;
-      }
-    }
-    
-    if (nsLayoutUtils::IsFixedPosFrameInDisplayPort(f)) {
-      return f;
-    }
-    f = parent;
-  }
-  return f;
+  return aBuilder->FindAnimatedGeometryRootFor(aFrame, aStopAtAncestor);
 }
 
 nsIFrame*
