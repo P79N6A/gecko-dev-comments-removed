@@ -71,8 +71,6 @@
 #include "mozilla/dom/MediaSource.h"
 #include "MediaMetadataManager.h"
 #include "MediaSourceDecoder.h"
-#include "AudioStreamTrack.h"
-#include "VideoStreamTrack.h"
 
 #include "AudioChannelService.h"
 
@@ -665,10 +663,7 @@ void HTMLMediaElement::AbortExistingLoads()
   mHaveQueuedSelectResource = false;
   mSuspendedForPreloadNone = false;
   mDownloadSuspendedByCache = false;
-  mHasAudio = false;
-  mHasVideo = false;
   mSourcePointer = nullptr;
-  mLastNextFrameStatus = NEXT_FRAME_UNINITIALIZED;
 
   mTags = nullptr;
 
@@ -900,30 +895,6 @@ void HTMLMediaElement::NotifyMediaTrackEnabled(MediaTrack* aTrack)
   } else if (VideoTrack* track = aTrack->AsVideoTrack()) {
     mDisableVideo = !track->Selected();
   }
-}
-
-void HTMLMediaElement::NotifyMediaStreamTracksAvailable(DOMMediaStream* aStream)
-{
-  if (!mSrcStream || mSrcStream != aStream) {
-    return;
-  }
-
-  bool oldHasVideo = mHasVideo;
-
-  nsAutoTArray<nsRefPtr<AudioStreamTrack>,1> audioTracks;
-  mSrcStream->GetAudioTracks(audioTracks);
-  nsAutoTArray<nsRefPtr<VideoStreamTrack>,1> videoTracks;
-  mSrcStream->GetVideoTracks(videoTracks);
-
-  mHasAudio = !audioTracks.IsEmpty();
-  mHasVideo = !videoTracks.IsEmpty();
-
-  if (IsVideo() && oldHasVideo != mHasVideo) {
-    
-    NotifyOwnerDocumentActivityChanged();
-  }
-
-  UpdateReadyStateForData(mLastNextFrameStatus);
 }
 
 void HTMLMediaElement::LoadFromSourceChildren()
@@ -2010,7 +1981,6 @@ HTMLMediaElement::HTMLMediaElement(already_AddRefed<mozilla::dom::NodeInfo>& aNo
     mCurrentLoadID(0),
     mNetworkState(nsIDOMHTMLMediaElement::NETWORK_EMPTY),
     mReadyState(nsIDOMHTMLMediaElement::HAVE_NOTHING),
-    mLastNextFrameStatus(NEXT_FRAME_UNINITIALIZED),
     mLoadWaitStatus(NOT_WAITING),
     mVolume(1.0),
     mPreloadAction(PRELOAD_UNDEFINED),
@@ -2848,25 +2818,6 @@ private:
   bool mPendingNotifyOutput;
 };
 
-class HTMLMediaElement::MediaStreamTracksAvailableCallback:
-    public DOMMediaStream::OnTracksAvailableCallback
-{
-public:
-  explicit MediaStreamTracksAvailableCallback(HTMLMediaElement* aElement,
-                                              DOMMediaStream::TrackTypeHints aExpectedTracks = 0):
-      DOMMediaStream::OnTracksAvailableCallback(aExpectedTracks),
-      mElement(aElement)
-    {}
-  virtual void NotifyTracksAvailable(DOMMediaStream* aStream)
-  {
-    NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
-
-    mElement->NotifyMediaStreamTracksAvailable(aStream);
-  }
-private:
-  HTMLMediaElement* mElement;
-};
-
 void HTMLMediaElement::SetupSrcMediaStreamPlayback(DOMMediaStream* aStream)
 {
   NS_ASSERTION(!mSrcStream && !mSrcStreamListener, "Should have been ended already");
@@ -2888,26 +2839,22 @@ void HTMLMediaElement::SetupSrcMediaStreamPlayback(DOMMediaStream* aStream)
   if (mPausedForInactiveDocumentOrChannel) {
     GetSrcMediaStream()->ChangeExplicitBlockerCount(1);
   }
-
-  mSrcStream->OnTracksAvailable(new MediaStreamTracksAvailableCallback(this, DOMMediaStream::HINT_CONTENTS_AUDIO));
-  mSrcStream->OnTracksAvailable(new MediaStreamTracksAvailableCallback(this, DOMMediaStream::HINT_CONTENTS_VIDEO));
-
-  ChangeNetworkState(nsIDOMHTMLMediaElement::NETWORK_IDLE);
-
   ChangeDelayLoadStatus(false);
   GetSrcMediaStream()->AddAudioOutput(this);
-  SetVolumeInternal();
+  GetSrcMediaStream()->SetAudioOutputVolume(this, float(mMuted ? 0.0 : mVolume));
   VideoFrameContainer* container = GetVideoFrameContainer();
   if (container) {
     GetSrcMediaStream()->AddVideoOutput(container);
   }
 
-  CheckAutoplayDataReady();
-
   
   
   mSrcStream->ConstructMediaTracks(AudioTracks(), VideoTracks());
 
+  ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_METADATA);
+  DispatchAsyncEvent(NS_LITERAL_STRING("durationchange"));
+  DispatchAsyncEvent(NS_LITERAL_STRING("loadedmetadata"));
+  ChangeNetworkState(nsIDOMHTMLMediaElement::NETWORK_IDLE);
   AddRemoveSelfReference();
   
 }
@@ -2987,11 +2934,6 @@ void HTMLMediaElement::MetadataLoaded(const MediaInfo* aInfo,
     ResetState();
   } else {
     UpdateMediaSize(aInfo->mVideo.mDisplay);
-  }
-
-  if (IsVideo() && aInfo->HasVideo()) {
-    
-    NotifyOwnerDocumentActivityChanged();
   }
 }
 
@@ -3253,43 +3195,14 @@ bool HTMLMediaElement::ShouldCheckAllowOrigin()
 
 void HTMLMediaElement::UpdateReadyStateForData(MediaDecoderOwner::NextFrameStatus aNextFrame)
 {
-  mLastNextFrameStatus = aNextFrame;
-
-  if (mDecoder && mReadyState < nsIDOMHTMLMediaElement::HAVE_METADATA) {
+  if (mReadyState < nsIDOMHTMLMediaElement::HAVE_METADATA) {
     
     
     
     return;
-  }
-
-  if (mSrcStream && mReadyState < nsIDOMHTMLMediaElement::HAVE_METADATA) {
-    if ((!mHasAudio && !mHasVideo) ||
-        (IsVideo() && mHasVideo && mMediaSize == nsIntSize(-1, -1))) {
-      return;
-    }
-
-    
-    
-    MediaInfo mediaInfo;
-    mediaInfo.mAudio.mHasAudio = mHasAudio;
-    mediaInfo.mVideo.mHasVideo = mHasVideo;
-    if (mHasVideo) {
-      mediaInfo.mVideo.mDisplay = mMediaSize;
-    }
-    MetadataLoaded(&mediaInfo, nsAutoPtr<const MetadataTags>(nullptr));
   }
 
   if (aNextFrame == MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE_SEEKING) {
-    ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_METADATA);
-    return;
-  }
-
-  if (IsVideo() && mHasVideo && !IsPlaybackEnded() &&
-        GetImageContainer() && !GetImageContainer()->HasCurrentImage()) {
-    
-    
-    
-    
     ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_METADATA);
     return;
   }
@@ -3448,7 +3361,7 @@ bool HTMLMediaElement::CanActivateAutoplay()
          mAutoplaying &&
          mPaused &&
          ((mDecoder && mReadyState >= nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA) ||
-          mSrcStream) &&
+          (mSrcStream && mReadyState >= nsIDOMHTMLMediaElement::HAVE_CURRENT_DATA)) &&
          HasAttr(kNameSpaceID_None, nsGkAtoms::autoplay) &&
          mAutoplayEnabled &&
          !IsEditable();
@@ -3477,13 +3390,23 @@ void HTMLMediaElement::CheckAutoplayDataReady()
 
 VideoFrameContainer* HTMLMediaElement::GetVideoFrameContainer()
 {
-  if (mVideoFrameContainer)
-    return mVideoFrameContainer;
+  
+  
+  
+  if (mReadyState >= nsIDOMHTMLMediaElement::HAVE_METADATA &&
+      mMediaSize == nsIntSize(-1, -1)) {
+    return nullptr;
+  }
 
   
   if (!IsVideo()) {
     return nullptr;
   }
+
+  mHasVideo = true;
+
+  if (mVideoFrameContainer)
+    return mVideoFrameContainer;
 
   mVideoFrameContainer =
     new VideoFrameContainer(this, LayerManager::CreateAsynchronousImageContainer());
@@ -3597,7 +3520,6 @@ void HTMLMediaElement::NotifyDecoderPrincipalChanged()
 void HTMLMediaElement::UpdateMediaSize(nsIntSize size)
 {
   mMediaSize = size;
-  UpdateReadyStateForData(mLastNextFrameStatus);
 }
 
 void HTMLMediaElement::SuspendOrResumeElement(bool aPauseElement, bool aSuspendEvents)
