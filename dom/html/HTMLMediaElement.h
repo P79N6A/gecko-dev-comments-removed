@@ -213,6 +213,9 @@ public:
   virtual bool IsHidden() final override;
 
   
+  VideoFrameContainer* GetOverlayImageVideoFrameContainer();
+
+  
   
   virtual VideoFrameContainer* GetVideoFrameContainer() final override;
   layers::ImageContainer* GetImageContainer();
