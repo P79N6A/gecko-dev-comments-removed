@@ -167,6 +167,7 @@ protected:
   
   
   void PrefetchDNS(const nsAString &aHref);
+  void Preconnect(const nsAString &aHref);
 
   
   nsresult GetChannelCacheKey(nsIChannel* aChannel, nsACString& aCacheKey);
