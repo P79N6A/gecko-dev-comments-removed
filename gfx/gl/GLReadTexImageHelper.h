@@ -33,9 +33,9 @@ class GLReadTexImageHelper MOZ_FINAL
     
     GLContext* mGL;
 
-    GLuint mPrograms[4];
+    GLProgram mPrograms[4];
 
-    GLuint TextureImageProgramFor(GLenum aTextureTarget, int aShader);
+    GLProgram TextureImageProgramFor(GLenum aTextureTarget, int aShader);
 
     bool DidGLErrorOccur(const char* str);
 
