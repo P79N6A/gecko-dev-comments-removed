@@ -15,7 +15,7 @@ const { CallWatcherActor, CallWatcherFront } = require("devtools/server/actors/c
 const { ThreadActor } = require("devtools/server/actors/script");
 
 const { on, once, off, emit } = events;
-const { method, Arg, Option, RetVal } = protocol;
+const { types, method, Arg, Option, RetVal } = protocol;
 
 const AUDIO_GLOBALS = [
   "AudioContext", "AudioNode"
@@ -109,6 +109,7 @@ const NODE_PROPERTIES = {
 
 
 
+types.addActorType("audionode");
 let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
   typeName: "audionode",
 
@@ -289,7 +290,60 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
       ({ param: prop, value: this.getParam(prop), flags: this.getParamFlags(prop) }));
   }, {
     response: { params: RetVal("json") }
+  }),
+
+  
+
+
+  connectNode: method(function (destActor, output, input) {
+    let srcNode = this.node.get();
+    let destNode = destActor.node.get();
+
+    if (srcNode === null || destNode === null) {
+      return CollectedAudioNodeError();
+    }
+
+    try {
+      
+      
+      
+      
+      
+      XPCNativeWrapper.unwrap(srcNode).connect(destNode, output, input);
+    } catch (e) {
+      return constructError(e);
+    }
+  }, {
+    request: {
+      destActor: Arg(0, "audionode"),
+      output: Arg(1, "nullable:number"),
+      input: Arg(2, "nullable:number")
+    },
+    response: { error: RetVal("nullable:json") }
+  }),
+
+  
+
+
+  disconnect: method(function (destActor, output) {
+    let node = this.node.get();
+
+    if (node === null) {
+      return CollectedAudioNodeError();
+    }
+
+    try {
+      
+      
+      XPCNativeWrapper.unwrap(node).disconnect(output);
+    } catch (e) {
+      return constructError(e);
+    }
+  }, {
+    request: { output: Arg(0, "nullable:number") },
+    response: { error: RetVal("nullable:json") }
   })
+
 });
 
 
@@ -553,6 +607,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   _onConnectNode: function (source, dest) {
     let sourceActor = this._getActorByNativeID(source.id);
     let destActor = this._getActorByNativeID(dest.id);
+
     emit(this, "connect-node", {
       source: sourceActor,
       dest: destActor
