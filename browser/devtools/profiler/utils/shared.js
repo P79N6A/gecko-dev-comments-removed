@@ -370,7 +370,10 @@ ProfilerFront.prototype = {
     
     
     if (!isActive) {
-      yield this._request("profiler", "startProfiler", this._customProfilerOptions);
+      
+      
+      let localOptions = Cu.cloneInto(this._customProfilerOptions, {});
+      yield this._request("profiler", "startProfiler", localOptions);
       this._profilingStartTime = 0;
       this.emit("profiler-activated");
     } else {
