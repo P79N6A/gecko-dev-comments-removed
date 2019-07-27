@@ -2238,8 +2238,10 @@ int NS_main(int argc, NS_tchar **argv)
   
   
   
-  if (argc < 3) {
-    fprintf(stderr, "Usage: updater update-dir apply-to-dir [wait-pid [callback-working-dir callback-path args...]]\n");
+  
+  
+  if (argc < 4) {
+    fprintf(stderr, "Usage: updater patch-dir install-dir apply-to-dir [wait-pid [callback-working-dir callback-path args...]]\n");
     return 1;
   }
 
