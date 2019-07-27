@@ -56,6 +56,12 @@ public:
   virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
 #endif
 
+  void GetBlockLeadings(nscoord& aStartLeading, nscoord& aEndLeading)
+  {
+    aStartLeading = mBStartLeading;
+    aEndLeading = mBEndLeading;
+  }
+
 protected:
   friend nsContainerFrame* NS_NewRubyFrame(nsIPresShell* aPresShell,
                                            nsStyleContext* aContext);
@@ -68,7 +74,13 @@ protected:
 
   nsRubyBaseContainerFrame* PullOneSegment(ContinuationTraversingState& aState);
 
+  
+
   nscoord mBaseline;
+
+  
+  nscoord mBStartLeading;
+  nscoord mBEndLeading;
 };
 
 #endif 

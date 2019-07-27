@@ -24,6 +24,7 @@
 #include "nsTextFrame.h"
 #include "nsStyleStructInlines.h"
 #include "nsBidiPresUtils.h"
+#include "nsRubyFrame.h"
 #include "RubyUtils.h"
 #include <algorithm>
 
@@ -1826,6 +1827,29 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
     psd->mBStartLeading = leading / 2;
     psd->mBEndLeading = leading - psd->mBStartLeading;
     psd->mLogicalBSize = logicalBSize;
+    if (spanFrame->GetType() == nsGkAtoms::rubyFrame) {
+      
+      
+      
+      auto rubyFrame = static_cast<nsRubyFrame*>(spanFrame);
+      nscoord startLeading, endLeading;
+      rubyFrame->GetBlockLeadings(startLeading, endLeading);
+      nscoord deltaLeading = startLeading + endLeading - leading;
+      if (deltaLeading > 0) {
+        
+        
+        
+        if (startLeading < psd->mBStartLeading) {
+          psd->mBEndLeading += deltaLeading;
+        } else if (endLeading < psd->mBEndLeading) {
+          psd->mBStartLeading += deltaLeading;
+        } else {
+          psd->mBStartLeading = startLeading;
+          psd->mBEndLeading = endLeading;
+        }
+        psd->mLogicalBSize += deltaLeading;
+      }
+    }
 
     if (zeroEffectiveSpanBox) {
       
