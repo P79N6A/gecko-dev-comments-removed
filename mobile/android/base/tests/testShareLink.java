@@ -37,7 +37,7 @@ public class testShareLink extends AboutHomeTest {
         openAboutHomeTab(AboutHomeTabs.READING_LIST);
 
         inputAndLoadUrl(url);
-        verifyPageTitle(urlTitle, url); 
+        verifyPageTitle(urlTitle); 
 
         selectMenuItem(StringHelper.SHARE_LABEL);
         if (Build.VERSION.SDK_INT >= 14) {
