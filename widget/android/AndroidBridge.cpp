@@ -50,7 +50,7 @@ using namespace mozilla::gfx;
 using namespace mozilla::jni;
 using namespace mozilla::widget;
 
-AndroidBridge* AndroidBridge::sBridge;
+AndroidBridge* AndroidBridge::sBridge = nullptr;
 pthread_t AndroidBridge::sJavaUiThread = -1;
 static unsigned sJavaEnvThreadIndex = 0;
 static jobject sGlobalContext = nullptr;
@@ -161,14 +161,12 @@ AndroidBridge::ConstructBridge(JNIEnv *jEnv, Object::Param clsLoader)
 
     PR_NewThreadPrivateIndex(&sJavaEnvThreadIndex, JavaThreadDetachFunc);
 
-    AndroidBridge *bridge = new AndroidBridge();
-    if (!bridge->Init(jEnv, clsLoader)) {
-        delete bridge;
-    }
-    sBridge = bridge;
+    MOZ_ASSERT(!sBridge);
+    sBridge = new AndroidBridge;
+    sBridge->Init(jEnv, clsLoader); 
 }
 
-bool
+void
 AndroidBridge::Init(JNIEnv *jEnv, Object::Param clsLoader)
 {
     ALOG_BRIDGE("AndroidBridge::Init");
@@ -244,8 +242,6 @@ AndroidBridge::Init(JNIEnv *jEnv, Object::Param clsLoader)
     
     
     
-
-    return true;
 }
 
 bool

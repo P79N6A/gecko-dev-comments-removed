@@ -42,6 +42,8 @@ static const char *sEGLExtensionNames[] = {
 
 static PRLibrary* LoadApitraceLibrary()
 {
+    
+    gfxPrefs::GetSingleton();
     if (!gfxPrefs::UseApitrace()) {
         return nullptr;
     }
