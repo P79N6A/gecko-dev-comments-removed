@@ -265,7 +265,7 @@ nsGenericHTMLFrameElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::src &&
-      (Tag() != nsGkAtoms::iframe || 
+      (!IsHTMLElement(nsGkAtoms::iframe) ||
        !HasAttr(kNameSpaceID_None,nsGkAtoms::srcdoc))) {
     
     

@@ -1055,10 +1055,10 @@ nsHTMLDocument::SetBody(nsGenericHTMLElement* newBody, ErrorResult& rv)
   
   
   
-  if (!newBody || !(newBody->Tag() == nsGkAtoms::body ||
-                    newBody->Tag() == nsGkAtoms::frameset) ||
+  if (!newBody ||
+      !newBody->IsAnyOfHTMLElements(nsGkAtoms::body, nsGkAtoms::frameset) ||
       !root || !root->IsHTMLElement() ||
-      root->Tag() != nsGkAtoms::html) {
+      !root->IsHTMLElement(nsGkAtoms::html)) {
     rv.Throw(NS_ERROR_DOM_HIERARCHY_REQUEST_ERR);
     return;
   }
