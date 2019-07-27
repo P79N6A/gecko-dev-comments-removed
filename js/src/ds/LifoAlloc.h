@@ -148,9 +148,6 @@ class BumpChunk
 
 } 
 
-MOZ_NORETURN void
-CrashAtUnhandlableOOM(const char *reason);
-
 
 
 

@@ -50,7 +50,7 @@ namespace js {
 
 
 
-extern void
+extern MOZ_COLD void
 AllTheNonBasicVanillaNewAllocations()
 {
     

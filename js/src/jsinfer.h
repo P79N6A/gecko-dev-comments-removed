@@ -1773,7 +1773,7 @@ inline const char * TypeObjectString(TypeObject *type) { return nullptr; }
 #endif
 
 
-MOZ_NORETURN void TypeFailure(JSContext *cx, const char *fmt, ...);
+MOZ_NORETURN MOZ_COLD void TypeFailure(JSContext *cx, const char *fmt, ...);
 
 } 
 } 

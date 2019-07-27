@@ -206,6 +206,27 @@
 
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#  define MOZ_COLD __attribute__ ((cold))
+#else
+#  define MOZ_COLD
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #if defined(MOZ_HAVE_ANALYZER_NORETURN)
 #  define MOZ_PRETEND_NORETURN_FOR_STATIC_ANALYSIS          MOZ_HAVE_ANALYZER_NORETURN

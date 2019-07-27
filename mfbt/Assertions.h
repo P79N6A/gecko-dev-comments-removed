@@ -131,7 +131,7 @@ extern "C" {
 
 
 
-static MOZ_ALWAYS_INLINE void
+static MOZ_COLD MOZ_ALWAYS_INLINE void
 MOZ_ReportAssertionFailure(const char* aStr, const char* aFilename, int aLine)
   MOZ_PRETEND_NORETURN_FOR_STATIC_ANALYSIS
 {
@@ -148,7 +148,7 @@ MOZ_ReportAssertionFailure(const char* aStr, const char* aFilename, int aLine)
 #endif
 }
 
-static MOZ_ALWAYS_INLINE void
+static MOZ_COLD MOZ_ALWAYS_INLINE void
 MOZ_ReportCrash(const char* aStr, const char* aFilename, int aLine)
   MOZ_PRETEND_NORETURN_FOR_STATIC_ANALYSIS
 {
