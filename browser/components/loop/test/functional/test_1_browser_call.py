@@ -1,14 +1,8 @@
 from marionette_test import MarionetteTestCase
-try:
-    from by import By
-    from errors import NoSuchElementException, StaleElementException
-    
-    from wait import Wait
-except ImportError:
-    from marionette_driver.by import By
-    from marionette_driver.errors import NoSuchElementException, StaleElementException
-    
-    from marionette_driver import Wait
+from marionette_driver.by import By
+from marionette_driver.errors import NoSuchElementException, StaleElementException
+
+from marionette_driver import Wait
 
 import os
 import sys
