@@ -968,7 +968,10 @@ let Links = {
 
 
 
-  onLinkChanged: function Links_onLinkChanged(aProvider, aLink) {
+
+
+
+  onLinkChanged: function Links_onLinkChanged(aProvider, aLink, aIndex=-1, aDeleted=false) {
     if (!("url" in aLink))
       throw new Error("Changed links must have a url property");
 
@@ -988,19 +991,33 @@ let Links = {
       
       
       if (this._sortProperties.some(prop => prop in aLink)) {
-        let idx = this._indexOf(sortedLinks, existingLink);
+        let idx = aIndex;
+        if (idx < 0) {
+          idx = this._indexOf(sortedLinks, existingLink);
+        } else if (this.compareLinks(aLink, sortedLinks[idx]) != 0) {
+          throw new Error("aLink should be the same as sortedLinks[idx]");
+        }
+
         if (idx < 0) {
           throw new Error("Link should be in _sortedLinks if in _linkMap");
         }
         sortedLinks.splice(idx, 1);
-        
-        for (let prop of this._sortProperties) {
-          if (prop in aLink) {
-            existingLink[prop] = aLink[prop];
+
+        if (aDeleted) {
+          updatePages = true;
+          linkMap.delete(existingLink.url);
+          this._decrementSiteMap(siteMap, existingLink);
+        } else {
+          
+          for (let prop of this._sortProperties) {
+            if (prop in aLink) {
+              existingLink[prop] = aLink[prop];
+            }
           }
+
+          
+          insertionLink = existingLink;
         }
-        
-        insertionLink = existingLink;
       }
       
       if ("title" in aLink && aLink.title != existingLink.title) {
@@ -1228,6 +1245,10 @@ this.NewTabUtils = {
       return true;
     }
     return false;
+  },
+
+  getProviderLinks: function(aProvider) {
+    return Links._providers.get(aProvider).sortedLinks;
   },
 
   isTopSiteGivenProvider: function(aSite, aProvider) {

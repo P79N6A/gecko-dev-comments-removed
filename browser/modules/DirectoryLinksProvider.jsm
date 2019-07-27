@@ -58,6 +58,9 @@ const ALLOWED_IMAGE_SCHEMES = new Set(["https", "data"]);
 const DIRECTORY_FRECENCY = 1000;
 
 
+const RELATED_FRECENCY = Infinity;
+
+
 const PING_SCORE_DIVISOR = 10000;
 
 
@@ -472,18 +475,29 @@ let DirectoryLinksProvider = {
         this._topSitesWithRelatedLinks.add(site);
       }
     });
+    this._updateRelatedTile();
   },
+
+  
+
+
+
 
   _handleLinkChanged: function(aLink) {
     let changedLinkSite = NewTabUtils.extractSite(aLink.url);
-    if (!NewTabUtils.isTopPlacesSite(changedLinkSite)) {
+    let linkStored = this._topSitesWithRelatedLinks.has(changedLinkSite);
+
+    if (!NewTabUtils.isTopPlacesSite(changedLinkSite) && linkStored) {
       this._topSitesWithRelatedLinks.delete(changedLinkSite);
-      return;
+      return true;
     }
 
-    if (this._relatedLinks.has(changedLinkSite)) {
+    if (this._relatedLinks.has(changedLinkSite) &&
+        NewTabUtils.isTopPlacesSite(changedLinkSite) && !linkStored) {
       this._topSitesWithRelatedLinks.add(changedLinkSite);
+      return true;
     }
+    return false;
   },
 
   _populatePlacesLinks: function () {
@@ -495,7 +509,9 @@ let DirectoryLinksProvider = {
   onLinkChanged: function (aProvider, aLink) {
     
     setTimeout(() => {
-      this._handleLinkChanged(aLink);
+      if (this._handleLinkChanged(aLink)) {
+        this._updateRelatedTile();
+      }
     }, 0);
   },
 
@@ -505,6 +521,63 @@ let DirectoryLinksProvider = {
       this._handleManyLinksChanged();
     }, 0);
   },
+
+  
+
+
+
+
+
+  _updateRelatedTile: function() {
+    let sortedLinks = NewTabUtils.getProviderLinks(this);
+
+    
+    let initialLength = sortedLinks.length;
+    this.maxNumLinks = initialLength;
+    if (initialLength) {
+      let mostFrecentLink = sortedLinks[0];
+      if ("related" == mostFrecentLink.type) {
+        this._callObservers("onLinkChanged", {
+          url: mostFrecentLink.url,
+          frecency: 0,
+          lastVisitDate: mostFrecentLink.lastVisitDate,
+          type: "related",
+        }, 0, true);
+      }
+    }
+
+    if (this._topSitesWithRelatedLinks.size == 0) {
+      
+      return;
+    }
+
+    
+    
+    
+    
+    
+    let possibleLinks = new Map();
+    this._topSitesWithRelatedLinks.forEach(topSiteWithRelatedLink => {
+      let relatedLinksMap = this._relatedLinks.get(topSiteWithRelatedLink);
+      relatedLinksMap.forEach((relatedLink, url) => {
+        possibleLinks.set(url, relatedLink);
+      })
+    });
+    let flattenedLinks = [...possibleLinks.values()];
+
+    
+    let relatedIndex = Math.floor(Math.random() * flattenedLinks.length);
+    let chosenRelatedLink = flattenedLinks[relatedIndex];
+
+    
+    this._callObservers("onLinkChanged", {
+      url: chosenRelatedLink.url,
+      frecency: RELATED_FRECENCY,
+      lastVisitDate: chosenRelatedLink.lastVisitDate,
+      type: "related",
+    });
+    return chosenRelatedLink;
+   },
 
   
 
