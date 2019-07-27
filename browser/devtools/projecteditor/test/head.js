@@ -10,6 +10,7 @@ const promise = devtools.require("sdk/core/promise");
 const {FileUtils} = Cu.import("resource://gre/modules/FileUtils.jsm", {});
 const {NetUtil} = Cu.import("resource://gre/modules/NetUtil.jsm", {});
 const ProjectEditor = devtools.require("projecteditor/projecteditor");
+const DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils");
 
 const TEST_URL_ROOT = "http://mochi.test:8888/browser/browser/devtools/projecteditor/test/";
 const SAMPLE_WEBAPP_URL = TEST_URL_ROOT + "/helper_homepage.html";
@@ -23,8 +24,8 @@ waitForExplicitFinish();
 
 
 
-gDevTools.testing = true;
-registerCleanupFunction(() => gDevTools.testing = false);
+DevToolsUtils.testing = true;
+registerCleanupFunction(() => DevToolsUtils.testing = false);
 
 
 registerCleanupFunction(() => {
@@ -332,4 +333,3 @@ function onPopupHidden(menu) {
   });
   return defer.promise;
 }
-

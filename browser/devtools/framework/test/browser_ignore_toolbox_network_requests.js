@@ -9,8 +9,8 @@ add_task(function*() {
   
   
   
-  let isTesting = gDevTools.testing;
-  gDevTools.testing = false;
+  let isTesting = DevToolsUtils.testing;
+  DevToolsUtils.testing = false;
 
   let tab = yield addTab(URL_ROOT + "doc_viewsource.html");
   let target = TargetFactory.forTab(tab);
@@ -26,5 +26,5 @@ add_task(function*() {
   yield gDevTools.closeToolbox(target);
   tab = target = toolbox = panel = null;
   gBrowser.removeCurrentTab();
-  gDevTools.testing = isTesting;
+  DevToolsUtils.testing = isTesting;
 });

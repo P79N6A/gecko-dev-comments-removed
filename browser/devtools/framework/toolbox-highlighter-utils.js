@@ -7,7 +7,7 @@
 const {Cc, Ci, Cu} = require("chrome");
 const {Promise: promise} = require("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
-Cu.import("resource:///modules/devtools/gDevTools.jsm");
+const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 
 
 
@@ -252,7 +252,7 @@ exports.getHighlighterUtils = function(toolbox) {
 
   let unhighlight = exported.unhighlight = Task.async(
   function*(forceHide=false) {
-    forceHide = forceHide || !gDevTools.testing;
+    forceHide = forceHide || !DevToolsUtils.testing;
 
     
     

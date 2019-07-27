@@ -50,8 +50,6 @@ this.DevTools = function DevTools() {
   this.destroy = this.destroy.bind(this);
   this._teardown = this._teardown.bind(this);
 
-  this._testing = false;
-
   EventEmitter.decorate(this);
 
   Services.obs.addObserver(this._teardown, "devtools-unloaded", false);
@@ -59,36 +57,6 @@ this.DevTools = function DevTools() {
 };
 
 DevTools.prototype = {
-  
-
-
-
-
-
-  get testing() {
-    return this._testing;
-  },
-
-  set testing(state) {
-    let oldState = this._testing;
-    this._testing = state;
-
-    if (state !== oldState) {
-      if (state) {
-        this._savedSendAfterPaintToContentPref =
-          Services.prefs.getBoolPref("dom.send_after_paint_to_content");
-
-        
-        
-        
-        Services.prefs.setBoolPref("dom.send_after_paint_to_content", false);
-      } else {
-        Services.prefs.setBoolPref("dom.send_after_paint_to_content",
-                                   this._savedSendAfterPaintToContentPref);
-      }
-    }
-  },
-
   
 
 

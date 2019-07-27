@@ -2,31 +2,23 @@
 
 
 
+
+
 "use strict";
 
 const {Cc, Ci, Cu, Cr} = require("chrome");
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-loader.lazyGetter(this, "NetworkHelper", () => require("devtools/toolkit/webconsole/network-helper"));
+loader.lazyRequireGetter(this, "NetworkHelper",
+                         "devtools/toolkit/webconsole/network-helper");
 loader.lazyImporter(this, "Services", "resource://gre/modules/Services.jsm");
-loader.lazyImporter(this, "DevToolsUtils", "resource://gre/modules/devtools/DevToolsUtils.jsm");
+loader.lazyRequireGetter(this, "DevToolsUtils",
+                         "devtools/toolkit/DevToolsUtils");
 loader.lazyImporter(this, "NetUtil", "resource://gre/modules/NetUtil.jsm");
 loader.lazyServiceGetter(this, "gActivityDistributor",
                          "@mozilla.org/network/http-activity-distributor;1",
                          "nsIHttpActivityDistributor");
-let _testing = false;
-Object.defineProperty(this, "gTesting", {
-  get: function() {
-    try {
-      const { gDevTools } = require("resource:///modules/devtools/gDevTools.jsm");
-      _testing = gDevTools.testing;
-    } catch (e) {
-      
-    }
-    return _testing;
-  }
-});
 
 
 
@@ -758,7 +750,7 @@ NetworkMonitor.prototype = {
     
     
     
-    if (!gTesting && aChannel.loadInfo &&
+    if (!DevToolsUtils.testing && aChannel.loadInfo &&
         aChannel.loadInfo.loadingDocument === null &&
         aChannel.loadInfo.loadingPrincipal === Services.scriptSecurityManager.getSystemPrincipal()) {
       return false;

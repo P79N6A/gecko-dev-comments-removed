@@ -532,7 +532,7 @@ let PerformanceController = {
     
     
     
-    if (gDevTools.testing) {
+    if (DevToolsUtils.testing) {
       return { supported: true, enabled: true };
     }
     let supported = system.constants.E10S_TESTING_ONLY;

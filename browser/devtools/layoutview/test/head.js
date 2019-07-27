@@ -10,6 +10,7 @@ let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 let TargetFactory = devtools.TargetFactory;
 let {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 let {console} = Components.utils.import("resource://gre/modules/devtools/Console.jsm", {});
+let DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils");
 
 
 waitForExplicitFinish();
@@ -22,8 +23,8 @@ const TEST_URL_ROOT = "http://example.com/browser/browser/devtools/layoutview/te
 
 
 
-gDevTools.testing = true;
-registerCleanupFunction(() => gDevTools.testing = false);
+DevToolsUtils.testing = true;
+registerCleanupFunction(() => DevToolsUtils.testing = false);
 
 
 

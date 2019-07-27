@@ -12,6 +12,7 @@ const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const TargetFactory = devtools.TargetFactory;
 const {console} = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
 const {ViewHelpers} = Cu.import("resource:///modules/devtools/ViewHelpers.jsm", {});
+const DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils");
 
 
 waitForExplicitFinish();
@@ -41,8 +42,8 @@ Services.prefs.setBoolPref(NEW_UI_PREF, false);
 
 
 
-gDevTools.testing = true;
-registerCleanupFunction(() => gDevTools.testing = false);
+DevToolsUtils.testing = true;
+registerCleanupFunction(() => DevToolsUtils.testing = false);
 
 
 
@@ -162,6 +163,7 @@ let waitForAnimationInspectorReady = Task.async(function*(inspector) {
   let win = inspector.sidebar.getWindowForTab("animationinspector");
   let updated = inspector.once("inspector-updated");
 
+  
   
   
   
