@@ -479,17 +479,17 @@ public:
     bool mStreamFinishedOnMainThread;
   };
 
+  class OutputStreamListener;
+
   struct OutputStreamData {
-    void Init(ProcessedMediaStream* aStream, bool aFinishWhenEnded)
-    {
-      mStream = aStream;
-      mFinishWhenEnded = aFinishWhenEnded;
-    }
+    void Init(MediaDecoder* aDecoder, ProcessedMediaStream* aStream);
+    ~OutputStreamData();
     nsRefPtr<ProcessedMediaStream> mStream;
     
     nsRefPtr<MediaInputPort> mPort;
-    bool mFinishWhenEnded;
+    nsRefPtr<OutputStreamListener> mListener;
   };
+
   
 
 

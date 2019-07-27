@@ -350,6 +350,71 @@ MediaDecoder::DecodedStreamGraphListener::NotifyEvent(MediaStreamGraph* aGraph,
   }
 }
 
+class MediaDecoder::OutputStreamListener : public MediaStreamListener {
+public:
+  OutputStreamListener(MediaDecoder* aDecoder, MediaStream* aStream)
+    : mDecoder(aDecoder), mStream(aStream) {}
+
+  virtual void NotifyEvent(
+      MediaStreamGraph* aGraph,
+      MediaStreamListener::MediaStreamGraphEvent event) MOZ_OVERRIDE {
+    if (event == EVENT_FINISHED) {
+      nsRefPtr<nsIRunnable> r = NS_NewRunnableMethod(
+          this, &OutputStreamListener::DoNotifyFinished);
+      aGraph->DispatchToMainThreadAfterStreamStateUpdate(r.forget());
+    }
+  }
+
+  void Forget() {
+    MOZ_ASSERT(NS_IsMainThread());
+    mDecoder = nullptr;
+  }
+
+private:
+  void DoNotifyFinished() {
+    MOZ_ASSERT(NS_IsMainThread());
+    if (!mDecoder) {
+      return;
+    }
+
+    
+    ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+    auto& streams = mDecoder->OutputStreams();
+    
+    
+    for (int32_t i = streams.Length() - 1; i >= 0; --i) {
+      auto& os = streams[i];
+      MediaStream* p = os.mStream.get();
+      if (p == mStream.get()) {
+        if (os.mPort) {
+          os.mPort->Destroy();
+          os.mPort = nullptr;
+        }
+        streams.RemoveElementAt(i);
+        break;
+      }
+    }
+  }
+
+  
+  MediaDecoder* mDecoder;
+  nsRefPtr<MediaStream> mStream;
+};
+
+void
+MediaDecoder::OutputStreamData::Init(MediaDecoder* aDecoder,
+                                     ProcessedMediaStream* aStream)
+{
+  mStream = aStream;
+  mListener = new OutputStreamListener(aDecoder, aStream);
+  aStream->AddListener(mListener);
+}
+
+MediaDecoder::OutputStreamData::~OutputStreamData()
+{
+  mListener->Forget();
+}
+
 void MediaDecoder::DestroyDecodedStream()
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -368,20 +433,18 @@ void MediaDecoder::DestroyDecodedStream()
     OutputStreamData& os = mOutputStreams[i];
     
     
-    
-    if (os.mStream->IsDestroyed()) {
-      
-      MOZ_ASSERT(os.mPort, "Double-delete of the ports!");
-      os.mPort->Destroy();
-      mOutputStreams.RemoveElementAt(i);
-      continue;
-    }
-    os.mStream->ChangeExplicitBlockerCount(1);
-    
-    
     MOZ_ASSERT(os.mPort, "Double-delete of the ports!");
     os.mPort->Destroy();
     os.mPort = nullptr;
+    
+    
+    
+    if (os.mStream->IsDestroyed()) {
+      
+      mOutputStreams.RemoveElementAt(i);
+    } else {
+      os.mStream->ChangeExplicitBlockerCount(1);
+    }
   }
 
   mDecodedStream = nullptr;
@@ -429,12 +492,8 @@ void MediaDecoder::RecreateDecodedStream(int64_t aStartTimeUSecs)
   
   for (int32_t i = mOutputStreams.Length() - 1; i >= 0; --i) {
     OutputStreamData& os = mOutputStreams[i];
-    if (os.mStream->IsDestroyed()) {
-      
-      
-      mOutputStreams.RemoveElementAt(i);
-      continue;
-    }
+    MOZ_ASSERT(!os.mStream->IsDestroyed(),
+        "Should've been removed in DestroyDecodedStream()");
     ConnectDecodedStreamToOutputStream(&os);
   }
   UpdateStreamBlockingForStateMachinePlaying();
@@ -462,7 +521,7 @@ void MediaDecoder::AddOutputStream(ProcessedMediaStream* aStream,
       RecreateDecodedStream(t);
     }
     OutputStreamData* os = mOutputStreams.AppendElement();
-    os->Init(aStream, aFinishWhenEnded);
+    os->Init(this, aStream);
     ConnectDecodedStreamToOutputStream(os);
     if (aFinishWhenEnded) {
       
@@ -943,32 +1002,6 @@ void MediaDecoder::PlaybackEnded()
       mPlayState == PLAY_STATE_SEEKING ||
       mPlayState == PLAY_STATE_LOADING) {
     return;
-  }
-
-  {
-    ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-
-    for (int32_t i = mOutputStreams.Length() - 1; i >= 0; --i) {
-      OutputStreamData& os = mOutputStreams[i];
-      if (os.mStream->IsDestroyed()) {
-        
-        MOZ_ASSERT(os.mPort, "Double-delete of the ports!");
-        os.mPort->Destroy();
-        mOutputStreams.RemoveElementAt(i);
-        continue;
-      }
-      if (os.mFinishWhenEnded) {
-        
-        
-        os.mStream->Finish();
-        MOZ_ASSERT(os.mPort, "Double-delete of the ports!");
-        os.mPort->Destroy();
-        
-        
-        os.mStream->ChangeExplicitBlockerCount(1);
-        mOutputStreams.RemoveElementAt(i);
-      }
-    }
   }
 
   PlaybackPositionChanged();
