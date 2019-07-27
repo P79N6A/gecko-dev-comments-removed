@@ -169,7 +169,7 @@ private:
   
   static nsPoint CaretElementPosition(const nsRect& aRect)
   {
-    return aRect.TopLeft() + nsPoint(aRect.width / 2, aRect.height);
+    return aRect.TopLeft() + nsPoint(aRect.width / 2, 0);
   }
 
   class DummyTouchListener final : public nsIDOMEventListener
