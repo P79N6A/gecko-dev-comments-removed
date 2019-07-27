@@ -182,6 +182,7 @@ let MemoryActor = protocol.ActorClass({
 
   startRecordingAllocations: method(expectState("attached", function(options = {}) {
     this._frameCache.initFrames();
+
     this.dbg.memory.allocationSamplingProbability = options.probability != null
       ? options.probability
       : 1.0;
@@ -216,6 +217,23 @@ let MemoryActor = protocol.ActorClass({
     response: {
       
       value: RetVal(0, "nullable:number")
+    }
+  }),
+
+  
+
+
+
+  getAllocationsSettings: method(expectState("attached", function() {
+    return {
+      maxLogLength: this.dbg.memory.maxAllocationsLogLength,
+      probability: this.dbg.memory.allocationSamplingProbability
+    };
+  },
+  `getting allocations settings`), {
+    request: {},
+    response: {
+      options: RetVal(0, "json")
     }
   }),
 

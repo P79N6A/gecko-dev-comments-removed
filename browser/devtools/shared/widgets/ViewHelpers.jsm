@@ -409,6 +409,7 @@ ViewHelpers.L10N.prototype = {
 
 
 
+
 ViewHelpers.Prefs = function(aPrefsRoot = "", aPrefsBlueprint = {}) {
   EventEmitter.decorate(this);
 
@@ -492,6 +493,10 @@ ViewHelpers.Prefs.prototype = {
     }
     if (aType == "Json") {
       this._map(aAccessorName, "Char", aPrefsRoot, aPrefName, { in: JSON.parse, out: JSON.stringify });
+      return;
+    }
+    if (aType == "Float") {
+      this._map(aAccessorName, "Char", aPrefsRoot, aPrefName, { in: Number.parseFloat, out: (n) => n + ""});
       return;
     }
 
