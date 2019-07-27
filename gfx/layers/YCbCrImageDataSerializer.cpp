@@ -12,6 +12,7 @@
 #include "mozilla/mozalloc.h"           
 #include "nsDebug.h"                    
 #include "yuv_convert.h"                
+#include "nsDebug.h"
 
 #define MOZ_ALIGN_WORD(x) (((x) + 3) & ~3)
 
