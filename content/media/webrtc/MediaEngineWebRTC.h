@@ -28,7 +28,6 @@
 #include "MediaStreamGraph.h"
 
 #include "MediaEngineWrapper.h"
-#include "MediaEngineTabVideoSource.h"
 
 
 
@@ -404,7 +403,6 @@ private:
   
   nsRefPtrHashtable<nsStringHashKey, MediaEngineWebRTCVideoSource > mVideoSources;
   nsRefPtrHashtable<nsStringHashKey, MediaEngineWebRTCAudioSource > mAudioSources;
-  nsRefPtr<MediaEngineTabVideoSource> mTabVideoSource;
 };
 
 }

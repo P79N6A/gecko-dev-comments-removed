@@ -2,9 +2,6 @@
 
 
 
-#ifndef MEDIAENGINETABVIDEOSOURCE_H_
-#define MEDIAENGINETABVIDEOSOURCE_H_
-
 #include "nsIDOMEventListener.h"
 #include "MediaEngine.h"
 #include "ImageContainer.h"
@@ -70,5 +67,3 @@ private:
     nsCOMPtr<nsITabSource> mTabSource;
   };
 }
-
-#endif 
