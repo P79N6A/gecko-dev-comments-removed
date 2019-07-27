@@ -94,6 +94,11 @@ public:
 
   virtual MediaConduitErrorCode ReceivedRTCPPacket(const void *data, int len) MOZ_OVERRIDE;
 
+  virtual MediaConduitErrorCode StopTransmitting() MOZ_OVERRIDE;
+  virtual MediaConduitErrorCode StartTransmitting() MOZ_OVERRIDE;
+  virtual MediaConduitErrorCode StopReceiving() MOZ_OVERRIDE;
+  virtual MediaConduitErrorCode StartReceiving() MOZ_OVERRIDE;
+
    
 
 
@@ -120,7 +125,9 @@ public:
 
 
 
-  virtual MediaConduitErrorCode AttachTransport(mozilla::RefPtr<TransportInterface> aTransport) MOZ_OVERRIDE;
+  virtual MediaConduitErrorCode SetTransmitterTransport(mozilla::RefPtr<TransportInterface> aTransport) MOZ_OVERRIDE;
+
+  virtual MediaConduitErrorCode SetReceiverTransport(mozilla::RefPtr<TransportInterface> aTransport) MOZ_OVERRIDE;
 
   
 
@@ -233,8 +240,7 @@ public:
   WebrtcVideoConduit();
   virtual ~WebrtcVideoConduit();
 
-  MediaConduitErrorCode Init(WebrtcVideoConduit *other,
-                             bool receiving);
+  MediaConduitErrorCode Init();
 
   int GetChannel() { return mChannel; }
   webrtc::VideoEngine* GetVideoEngine() { return mVideoEngine; }
@@ -297,17 +303,10 @@ private:
   
   void VideoLatencyUpdate(uint64_t new_sample);
 
-  
-  
-  
-  WebrtcVideoConduit*  mOtherDirection;
-  
-  bool mShutDown;
-
-  
-  
-  webrtc::VideoEngine* mVideoEngine;          
-  mozilla::RefPtr<TransportInterface> mTransport;
+  webrtc::VideoEngine* mVideoEngine;
+  mozilla::ReentrantMonitor mTransportMonitor;
+  mozilla::RefPtr<TransportInterface> mTransmitterTransport;
+  mozilla::RefPtr<TransportInterface> mReceiverTransport;
   mozilla::RefPtr<VideoRenderer> mRenderer;
 
   ScopedCustomReleasePtr<webrtc::ViEBase> mPtrViEBase;
@@ -318,11 +317,11 @@ private:
   ScopedCustomReleasePtr<webrtc::ViERTP_RTCP> mPtrRTP;
   ScopedCustomReleasePtr<webrtc::ViEExternalCodec> mPtrExtCodec;
 
-  webrtc::ViEExternalCapture* mPtrExtCapture; 
+  webrtc::ViEExternalCapture* mPtrExtCapture;
 
   
-  bool mEngineTransmitting; 
-  bool mEngineReceiving;    
+  mozilla::Atomic<bool> mEngineTransmitting; 
+  mozilla::Atomic<bool> mEngineReceiving;    
 
   int mChannel; 
   int mCapId;   
@@ -333,6 +332,7 @@ private:
   unsigned short mReceivingWidth;
   unsigned short mReceivingHeight;
   unsigned int   mSendingFramerate;
+  unsigned short mNumReceivingStreams;
   bool mVideoLatencyTestEnable;
   uint64_t mVideoLatencyAvg;
   uint32_t mMinBitrate;

@@ -110,7 +110,7 @@ class MediaPipeline : public sigslot::has_slots<> {
 
       
       transport_ = new PipelineTransport(this);
-  }
+    }
 
   
   void ShutdownTransport_s();
@@ -118,6 +118,12 @@ class MediaPipeline : public sigslot::has_slots<> {
   
   void ShutdownMedia_m() {
     ASSERT_ON_THREAD(main_thread_);
+
+    if (direction_ == RECEIVE) {
+      conduit_->StopReceiving();
+    } else {
+      conduit_->StopTransmitting();
+    }
 
     if (stream_) {
       DetachMediaStream();

@@ -152,6 +152,11 @@ public:
 
   virtual MediaConduitErrorCode ReceivedRTCPPacket(const void *data, int len) = 0;
 
+  virtual MediaConduitErrorCode StopTransmitting() = 0;
+  virtual MediaConduitErrorCode StartTransmitting() = 0;
+  virtual MediaConduitErrorCode StopReceiving() = 0;
+  virtual MediaConduitErrorCode StartReceiving() = 0;
+
 
   
 
@@ -159,7 +164,22 @@ public:
 
 
 
-  virtual MediaConduitErrorCode AttachTransport(RefPtr<TransportInterface> aTransport) = 0;
+
+
+
+
+  virtual MediaConduitErrorCode SetTransmitterTransport(RefPtr<TransportInterface> aTransport) = 0;
+
+  
+
+
+
+
+
+
+
+
+  virtual MediaConduitErrorCode SetReceiverTransport(RefPtr<TransportInterface> aTransport) = 0;
 
   virtual bool SetLocalSSRC(unsigned int ssrc) = 0;
   virtual bool GetLocalSSRC(unsigned int* ssrc) = 0;
@@ -234,8 +254,7 @@ public:
 
 
 
-  static RefPtr<VideoSessionConduit> Create(VideoSessionConduit *aOther,
-                                            bool receiving);
+  static RefPtr<VideoSessionConduit> Create();
 
   enum FrameRequestType
   {
@@ -360,7 +379,7 @@ public:
 
 
 
-  static mozilla::RefPtr<AudioSessionConduit> Create(AudioSessionConduit *aOther);
+  static mozilla::RefPtr<AudioSessionConduit> Create();
 
   virtual ~AudioSessionConduit() {}
 

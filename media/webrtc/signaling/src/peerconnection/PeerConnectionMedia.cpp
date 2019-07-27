@@ -86,8 +86,6 @@ void
 SourceStreamInfo::RemoveTrack(const std::string& trackId)
 {
   mTracks.erase(trackId);
-  
-  mConduits.erase(trackId);
   RefPtr<MediaPipeline> pipeline = GetPipelineByTrackId_m(trackId);
   if (pipeline) {
     mPipelines.erase(trackId);
@@ -1134,19 +1132,6 @@ SourceStreamInfo::StorePipeline(
   return NS_OK;
 }
 
-nsresult
-SourceStreamInfo::StoreConduit(const std::string& trackId,
-                               RefPtr<MediaSessionConduit> aConduit)
-{
-  MOZ_ASSERT(mConduits.find(trackId) == mConduits.end());
-  if (mConduits.find(trackId) != mConduits.end()) {
-    CSFLogError(logTag, "%s: Storing duplicate track", __FUNCTION__);
-    return NS_ERROR_FAILURE;
-  }
-  mConduits[trackId] = aConduit;
-  return NS_OK;
-}
-
 void
 RemoteSourceStreamInfo::SyncPipeline(
   RefPtr<MediaPipelineReceive> aPipeline)
@@ -1187,24 +1172,6 @@ RefPtr<MediaPipeline> SourceStreamInfo::GetPipelineByTrackId_m(
   if (mMediaStream) {
     if (mPipelines.count(trackId)) {
       return mPipelines[trackId];
-    }
-  }
-
-  return nullptr;
-}
-
-RefPtr<MediaSessionConduit> SourceStreamInfo::GetConduitByTrackId_m(
-    const std::string& trackId) {
-  ASSERT_ON_THREAD(mParent->GetMainThread());
-
-  
-  
-  
-  
-  
-  if (mMediaStream) {
-    if (mConduits.count(trackId)) {
-      return mConduits[trackId];
     }
   }
 

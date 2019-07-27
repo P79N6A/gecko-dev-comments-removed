@@ -64,6 +64,11 @@ public:
 
   virtual MediaConduitErrorCode ReceivedRTCPPacket(const void *data, int len) MOZ_OVERRIDE;
 
+  virtual MediaConduitErrorCode StopTransmitting() MOZ_OVERRIDE;
+  virtual MediaConduitErrorCode StartTransmitting() MOZ_OVERRIDE;
+  virtual MediaConduitErrorCode StopReceiving() MOZ_OVERRIDE;
+  virtual MediaConduitErrorCode StartReceiving() MOZ_OVERRIDE;
+
   
 
 
@@ -94,7 +99,10 @@ public:
 
 
 
-  virtual MediaConduitErrorCode AttachTransport(mozilla::RefPtr<TransportInterface> aTransport) MOZ_OVERRIDE;
+  virtual MediaConduitErrorCode SetTransmitterTransport(mozilla::RefPtr<TransportInterface> aTransport) MOZ_OVERRIDE;
+
+  virtual MediaConduitErrorCode SetReceiverTransport(mozilla::RefPtr<TransportInterface> aTransport) MOZ_OVERRIDE;
+
   
 
 
@@ -154,10 +162,10 @@ public:
   virtual uint64_t CodecPluginID() MOZ_OVERRIDE { return 0; }
 
   WebrtcAudioConduit():
-                      mOtherDirection(nullptr),
-                      mShutDown(false),
                       mVoiceEngine(nullptr),
-                      mTransport(nullptr),
+                      mTransportMonitor("WebrtcAudioConduit"),
+                      mTransmitterTransport(nullptr),
+                      mReceiverTransport(nullptr),
                       mEngineTransmitting(false),
                       mEngineReceiving(false),
                       mChannel(-1),
@@ -173,7 +181,7 @@ public:
 
   virtual ~WebrtcAudioConduit();
 
-  MediaConduitErrorCode Init(WebrtcAudioConduit *other);
+  MediaConduitErrorCode Init();
 
   int GetChannel() { return mChannel; }
   webrtc::VoiceEngine* GetVoiceEngine() { return mVoiceEngine; }
@@ -242,17 +250,10 @@ private:
   
   void DumpCodecDB() const;
 
-  
-  
-  
-  WebrtcAudioConduit*  mOtherDirection;
-  
-  bool mShutDown;
-
-  
-  
   webrtc::VoiceEngine* mVoiceEngine;
-  mozilla::RefPtr<TransportInterface> mTransport;
+  mozilla::ReentrantMonitor mTransportMonitor;
+  mozilla::RefPtr<TransportInterface> mTransmitterTransport;
+  mozilla::RefPtr<TransportInterface> mReceiverTransport;
   ScopedCustomReleasePtr<webrtc::VoENetwork>   mPtrVoENetwork;
   ScopedCustomReleasePtr<webrtc::VoEBase>      mPtrVoEBase;
   ScopedCustomReleasePtr<webrtc::VoECodec>     mPtrVoECodec;
@@ -262,8 +263,8 @@ private:
   ScopedCustomReleasePtr<webrtc::VoERTP_RTCP>  mPtrVoERTP_RTCP;
   ScopedCustomReleasePtr<webrtc::VoERTP_RTCP>  mPtrRTP;
   
-  bool mEngineTransmitting; 
-  bool mEngineReceiving;    
+  mozilla::Atomic<bool> mEngineTransmitting; 
+  mozilla::Atomic<bool> mEngineReceiving;    
                             
   
   
