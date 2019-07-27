@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Bug 1004703 - ignore 'unsafe-inline' if nonce- or hash-source specified</title>
+</head>
+<body>
+<div id="testdiv">a</div>
+
+
+<script type="application/javascript">
+document.getElementById('testdiv').innerHTML += 'b';
+</script>
+
+
+
+<script type="application/javascript">
+document.getElementById('testdiv').innerHTML += 'c';
+</script>
+
+
+<script type="application/javascript" nonce="FooNonce">
+document.getElementById('testdiv').innerHTML += 'd';
+</script>
+
+</body>
+</html>
