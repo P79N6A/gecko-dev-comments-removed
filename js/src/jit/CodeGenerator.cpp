@@ -9332,7 +9332,7 @@ CodeGenerator::visitGetDOMProperty(LGetDOMProperty *ins)
 }
 
 void
-CodeGenerator::visitGetDOMMemberV(LGetDOMMemberV *ins)
+CodeGenerator::visitGetDOMMember(LGetDOMMember *ins)
 {
     
     
@@ -9344,22 +9344,6 @@ CodeGenerator::visitGetDOMMemberV(LGetDOMMemberV *ins)
     ValueOperand result = GetValueOutput(ins);
 
     masm.loadValue(Address(object, NativeObject::getFixedSlotOffset(slot)), result);
-}
-
-void
-CodeGenerator::visitGetDOMMemberT(LGetDOMMemberT *ins)
-{
-    
-    
-    
-    
-    
-    Register object = ToRegister(ins->object());
-    size_t slot = ins->mir()->domMemberSlotIndex();
-    AnyRegister result = ToAnyRegister(ins->getDef(0));
-    MIRType type = ins->mir()->type();
-
-    masm.loadUnboxedValue(Address(object, NativeObject::getFixedSlotOffset(slot)), type, result);
 }
 
 void
