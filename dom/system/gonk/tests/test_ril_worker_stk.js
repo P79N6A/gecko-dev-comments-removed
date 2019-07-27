@@ -205,8 +205,6 @@ add_test(function test_stk_terminal_response_get_inkey() {
       do_check_eq(pduHelper.readHexOctet(), 2);
       do_check_eq(pduHelper.readHexOctet(), STK_TEXT_CODING_GSM_8BIT);
       do_check_eq(pduHelper.readHexOctet(), isYesNo ? 0x01 : 0x00);
-
-      run_next_test();
     };
 
     let response = {
@@ -229,6 +227,73 @@ add_test(function test_stk_terminal_response_get_inkey() {
   do_test(true);
   
   do_test(false);
+
+  run_next_test();
+});
+
+
+
+
+add_test(function test_stk_terminal_response_with_additional_info() {
+  function do_test(aInfo) {
+    let worker = newUint8SupportOutgoingIndexWorker();
+    let context = worker.ContextPool._contexts[0];
+    let buf = context.Buf;
+    let pduHelper = context.GsmPDUHelper;
+
+    buf.sendParcel = function() {
+      
+      do_check_eq(this.readInt32(), REQUEST_STK_SEND_TERMINAL_RESPONSE);
+
+      
+      this.readInt32();
+
+      
+      
+      
+      do_check_eq(this.readInt32(), 26);
+
+      
+      do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_COMMAND_DETAILS |
+                                            COMPREHENSIONTLV_FLAG_CR);
+      do_check_eq(pduHelper.readHexOctet(), 3);
+      do_check_eq(pduHelper.readHexOctet(), 0x01);
+      do_check_eq(pduHelper.readHexOctet(), STK_CMD_DISPLAY_TEXT);
+      do_check_eq(pduHelper.readHexOctet(), 0x01);
+
+      
+      do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_DEVICE_ID);
+      do_check_eq(pduHelper.readHexOctet(), 2);
+      do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_ME);
+      do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_SIM);
+
+      
+      do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_RESULT |
+                                            COMPREHENSIONTLV_FLAG_CR);
+      do_check_eq(pduHelper.readHexOctet(), 2);
+      do_check_eq(pduHelper.readHexOctet(), STK_RESULT_TERMINAL_CRNTLY_UNABLE_TO_PROCESS);
+      do_check_eq(pduHelper.readHexOctet(), aInfo);
+    };
+
+    let response = {
+      command: {
+        commandNumber: 0x01,
+        typeOfCommand: STK_CMD_DISPLAY_TEXT,
+        commandQualifier: 0x01,
+        options: {
+          isHighPriority: true
+        }
+      },
+      resultCode: STK_RESULT_TERMINAL_CRNTLY_UNABLE_TO_PROCESS,
+      additionalInformation: aInfo
+    };
+
+    context.RIL.sendStkTerminalResponse(response);
+  };
+
+  do_test(0x01); 
+
+  run_next_test();
 });
 
 
