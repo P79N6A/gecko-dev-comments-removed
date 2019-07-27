@@ -2463,6 +2463,22 @@ MaxZIndexInList(nsDisplayList* aList, nsDisplayListBuilder* aBuilder)
   return maxZIndex;
 }
 
+
+
+
+
+static int32_t
+MaxZIndexInListOfItemsContainedInFrame(nsDisplayList* aList, nsIFrame* aFrame)
+{
+  int32_t maxZIndex = -1;
+  for (nsDisplayItem* item = aList->GetBottom(); item; item = item->GetAbove()) {
+    if (nsLayoutUtils::IsProperAncestorFrame(aFrame, item->Frame())) {
+      maxZIndex = std::max(maxZIndex, item->ZIndex());
+    }
+  }
+  return maxZIndex;
+}
+
 static void
 AppendToTop(nsDisplayListBuilder* aBuilder, const nsDisplayListSet& aLists,
             nsDisplayList* aSource, nsIFrame* aSourceFrame, bool aOwnLayer,
@@ -2997,10 +3013,10 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     nsDisplayScrollInfoLayer* layerItem = new (aBuilder) nsDisplayScrollInfoLayer(
       aBuilder, mScrolledFrame, mOuter);
+    nsDisplayList* positionedDescendants = scrolledContent.PositionedDescendants();
     if (BuildScrollContainerLayers()) {
       
       
-      nsDisplayList* positionedDescendants = scrolledContent.PositionedDescendants();
       if (!positionedDescendants->IsEmpty()) {
         layerItem->SetOverrideZIndex(MaxZIndexInList(positionedDescendants, aBuilder));
         positionedDescendants->AppendNewToTop(layerItem);
@@ -3008,7 +3024,14 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
         aLists.Outlines()->AppendNewToTop(layerItem);
       }
     } else {
-      scrolledContent.BorderBackground()->AppendNewToBottom(layerItem);
+      int32_t zindex =
+        MaxZIndexInListOfItemsContainedInFrame(positionedDescendants, mOuter);
+      if (zindex >= 0) {
+        layerItem->SetOverrideZIndex(zindex);
+        positionedDescendants->AppendNewToTop(layerItem);
+      } else {
+        scrolledContent.Outlines()->AppendNewToTop(layerItem);
+      }
     }
   }
   
