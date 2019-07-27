@@ -5152,9 +5152,7 @@ nsHttpChannel::GetProxyInfo(nsIProxyInfo **result)
 
 NS_IMETHODIMP
 nsHttpChannel::GetDomainLookupStart(TimeStamp* _retval) {
-    if (mDNSPrefetch && mDNSPrefetch->TimingsValid())
-        *_retval = mDNSPrefetch->StartTimestamp();
-    else if (mTransaction)
+    if (mTransaction)
         *_retval = mTransaction->GetDomainLookupStart();
     else
         *_retval = mTransactionTimings.domainLookupStart;
@@ -5163,9 +5161,7 @@ nsHttpChannel::GetDomainLookupStart(TimeStamp* _retval) {
 
 NS_IMETHODIMP
 nsHttpChannel::GetDomainLookupEnd(TimeStamp* _retval) {
-    if (mDNSPrefetch && mDNSPrefetch->TimingsValid())
-        *_retval = mDNSPrefetch->EndTimestamp();
-    else if (mTransaction)
+    if (mTransaction)
         *_retval = mTransaction->GetDomainLookupEnd();
     else
         *_retval = mTransactionTimings.domainLookupEnd;
@@ -5497,7 +5493,11 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
         mTransactionPump = nullptr;
 
         
-        if (mDNSPrefetch && mDNSPrefetch->TimingsValid()) {
+        if (mDNSPrefetch && mDNSPrefetch->TimingsValid()
+            && !mTransactionTimings.requestStart.IsNull()
+            && mDNSPrefetch->EndTimestamp() <= mTransactionTimings.requestStart) {
+            
+            
             mTransactionTimings.domainLookupStart =
                 mDNSPrefetch->StartTimestamp();
             mTransactionTimings.domainLookupEnd =
@@ -6440,11 +6440,15 @@ nsHttpChannel::OnLookupComplete(nsICancelable *request,
 
     
     
-    if (mDNSPrefetch && mDNSPrefetch->TimingsValid()) {
-        mTransactionTimings.domainLookupStart =
-            mDNSPrefetch->StartTimestamp();
-        mTransactionTimings.domainLookupEnd =
-            mDNSPrefetch->EndTimestamp();
+    
+    if (mDNSPrefetch && mDNSPrefetch->TimingsValid() && mTransaction) {
+        TimeStamp requestStart = mTransaction->GetRequestStart();
+        
+        
+        if (requestStart.IsNull() || (mDNSPrefetch->EndTimestamp() < requestStart)) {
+            mTransaction->SetDomainLookupStart(mDNSPrefetch->StartTimestamp());
+            mTransaction->SetDomainLookupEnd(mDNSPrefetch->EndTimestamp());
+        }
     }
     mDNSPrefetch = nullptr;
 
