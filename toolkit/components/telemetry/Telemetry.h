@@ -49,6 +49,15 @@ void Accumulate(ID id, uint32_t sample);
 
 
 
+void Accumulate(ID id, const nsCString& key, uint32_t sample = 1);
+
+
+
+
+
+
+
+
 
 
 void Accumulate(const char* name, uint32_t sample);
