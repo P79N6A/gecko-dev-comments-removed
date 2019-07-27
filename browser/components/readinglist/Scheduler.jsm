@@ -111,6 +111,9 @@ InternalScheduler.prototype = {
   _timerRunning: false,
   
   _engine: Sync,
+  
+  
+  _currentErrorBackoff: 0,
 
   
   state: null,
@@ -292,6 +295,7 @@ InternalScheduler.prototype = {
       this.state = this.STATE_OK;
       this._logManager.resetFileLog(this._logManager.REASON_SUCCESS);
       Services.obs.notifyObservers(null, "readinglist:sync:finish", null);
+      this._currentErrorBackoff = 0; 
       return intervals.schedule;
     }).catch(err => {
       
@@ -300,6 +304,7 @@ InternalScheduler.prototype = {
       if (err.message == fxAccountsCommon.ERROR_NO_ACCOUNT ||
           err.message == fxAccountsCommon.ERROR_UNVERIFIED_ACCOUNT) {
         
+        this._currentErrorBackoff = 0; 
         this.log.info("Can't sync due to FxA account state " + err.message);
         this.state = this.STATE_OK;
         this._logManager.resetFileLog(this._logManager.REASON_SUCCESS);
@@ -314,7 +319,10 @@ InternalScheduler.prototype = {
                      {state: this.state, err});
       this._logManager.resetFileLog(this._logManager.REASON_ERROR);
       Services.obs.notifyObservers(null, "readinglist:sync:error", null);
-      return intervals.retry;
+      
+      this._currentErrorBackoff = this._currentErrorBackoff == 0 ? intervals.retry :
+                                  Math.min(intervals.schedule, this._currentErrorBackoff * 2);
+      return this._currentErrorBackoff;
     }).then(nextDelay => {
       this._timerRunning = false;
       

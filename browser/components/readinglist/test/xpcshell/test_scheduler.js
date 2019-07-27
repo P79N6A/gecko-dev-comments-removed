@@ -174,6 +174,81 @@ add_task(function* testBackoff() {
   scheduler.finalize();
 });
 
+add_task(function testErrorBackoff() {
+  
+  
+  let rlMock = new ReadingListMock();
+  let scheduler = createTestableScheduler(rlMock);
+  scheduler._setTimeout = function(delay) {
+    
+    return setTimeout(() => scheduler._doSync(), 0);
+  }
+
+  
+  function checkBackoffs(expectedSequences) {
+    let orig_maybeReschedule = scheduler._maybeReschedule;
+    return new Promise(resolve => {
+      let isSuccess = true; 
+      let expected;
+      function nextSequence() {
+        if (expectedSequences.length == 0) {
+          resolve();
+          return true; 
+        }
+        
+        expected = expectedSequences.shift()
+        
+        isSuccess = !isSuccess;
+        if (isSuccess) {
+          scheduler._engine.start = Promise.resolve;
+        } else {
+          scheduler._engine.start = () => {
+            return Promise.reject(new Error("oh no"))
+          }
+        }
+        return false; 
+      };
+      
+      nextSequence();
+      
+      scheduler._maybeReschedule = function(nextDelay) {
+        let thisExpected = expected.shift();
+        equal(thisExpected * 1000, nextDelay);
+        if (expected.length == 0) {
+          if (nextSequence()) {
+            
+            return;
+          }
+        }
+        
+        return orig_maybeReschedule.call(scheduler, nextDelay);
+      }
+    });
+  }
+
+  prefs.set("schedule", 100);
+  prefs.set("retry", 5);
+  
+  let backoffsChecked = checkBackoffs([
+    
+    [5, 10, 20, 40, 80, 100, 100],
+    
+    [100, 100],
+    
+    [5, 10],
+    
+    [100, 100],
+  ]);
+
+  
+  scheduler.init();
+
+  
+  yield backoffsChecked;
+
+  scheduler.finalize();
+});
+
 function run_test() {
   run_next_test();
 }
