@@ -394,6 +394,15 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
   for (uint32_t animIdx = 0, animEnd = disp->mAnimationNameCount;
        animIdx != animEnd; ++animIdx) {
     const StyleAnimation& src = disp->mAnimations[animIdx];
+
+    
+    
+    
+    
+    if (src.GetName().IsEmpty()) {
+      continue;
+    }
+
     nsRefPtr<ElementAnimation> dest =
       *aAnimations.AppendElement(new ElementAnimation());
 

@@ -375,7 +375,7 @@ public:
   
   static mozilla::TimeDuration ActiveDuration(const AnimationTiming& aTiming);
 
-  nsString mName; 
+  nsString mName;
   AnimationTiming mTiming;
   
   
