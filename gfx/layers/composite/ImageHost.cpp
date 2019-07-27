@@ -65,8 +65,7 @@ ImageHost::Composite(EffectChain& aEffectChain,
                      const gfx::Matrix4x4& aTransform,
                      const gfx::Filter& aFilter,
                      const gfx::Rect& aClipRect,
-                     const nsIntRegion* aVisibleRegion,
-                     TiledLayerProperties* aLayerProperties)
+                     const nsIntRegion* aVisibleRegion)
 {
   if (!GetCompositor()) {
     
