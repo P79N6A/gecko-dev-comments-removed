@@ -1223,6 +1223,11 @@ class XPCShellTests(object):
                 self.log.error("Error: --jsdebugger can only be used with a single test!")
                 return False
 
+        if "lldb" in self.debuggerInfo.path:
+            
+            self.log.info("It appears that you're using LLDB to debug this test.  " +
+                          "Please use the 'process launch' command instead of the 'run' command to start xpcshell.")
+
         
         tests_queue = deque()
         
