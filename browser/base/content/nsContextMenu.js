@@ -38,6 +38,9 @@ nsContextMenu.prototype = {
 
     
     this.initItems();
+
+    
+    this._checkTelemetryForMenu(aXulMenu);
   },
 
   hiding: function CM_hiding() {
@@ -45,6 +48,11 @@ nsContextMenu.prototype = {
     InlineSpellCheckerUI.clearSuggestionsFromMenu();
     InlineSpellCheckerUI.clearDictionaryListFromMenu();
     InlineSpellCheckerUI.uninit();
+
+    
+    if (this._onPopupHiding) {
+      this._onPopupHiding();
+    }
   },
 
   initItems: function CM_initItems() {
@@ -1703,5 +1711,76 @@ nsContextMenu.prototype = {
                                                          selectedText]);
     menuItem.label = menuLabel;
     menuItem.accessKey = gNavigatorBundle.getString("contextMenuSearch.accesskey");
-  }
+  },
+
+  _getTelemetryClickInfo: function(aXulMenu) {
+    this._onPopupHiding = () => {
+      aXulMenu.ownerDocument.removeEventListener("command", activationHandler, true);
+      aXulMenu.removeEventListener("popuphiding", this._onPopupHiding, true);
+      delete this._onPopupHiding;
+
+      let eventKey = [
+          this._telemetryPageContext,
+          this._telemetryHadCustomItems ? "withcustom" : "withoutcustom"
+      ];
+      let target = this._telemetryClickID || "close-without-interaction";
+      BrowserUITelemetry.registerContextMenuInteraction(eventKey, target);
+    };
+    let activationHandler = (e) => {
+      
+      
+      if (e.sourceEvent) {
+        e = e.sourceEvent;
+      }
+      
+      
+      if (!aXulMenu.contains(e.target)) {
+        return;
+      }
+
+      
+      if (e.target.hasAttribute(PageMenu.GENERATEDITEMID_ATTR)) {
+        this._telemetryClickID = "custom-page-item";
+      } else {
+        this._telemetryClickID = (e.target.id || "unknown").replace(/^context-/i, "");
+      }
+    };
+    aXulMenu.ownerDocument.addEventListener("command", activationHandler, true);
+    aXulMenu.addEventListener("popuphiding", this._onPopupHiding, true);
+  },
+
+  _getTelemetryPageContextInfo: function() {
+    if (this.isContentSelected) {
+      return "selection";
+    }
+    if (this.onLink) {
+      if (this.onImage || this.onCanvas) {
+        return "image-link";
+      }
+      return "link";
+    }
+    if (this.onImage) {
+      return "image"
+    }
+    if (this.onCanvas) {
+      return "canvas";
+    }
+    if (this.onVideo || this.onAudio) {
+      return "media";
+    }
+    if (this.onTextInput) {
+      return "input";
+    }
+    if (this.onSocial) {
+      return "social";
+    }
+    return "other";
+  },
+
+  _checkTelemetryForMenu: function(aXulMenu) {
+    this._telemetryClickID = null;
+    this._telemetryPageContext = this._getTelemetryPageContextInfo();
+    this._telemetryHadCustomItems = this.hasPageMenu;
+    this._getTelemetryClickInfo(aXulMenu);
+  },
 };
