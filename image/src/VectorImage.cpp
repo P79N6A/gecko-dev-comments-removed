@@ -899,6 +899,15 @@ VectorImage::StartDecoding()
   return NS_OK;
 }
 
+NS_IMETHODIMP
+VectorImage::RequestDecodeForSize(const nsIntSize& aSize, uint32_t aFlags)
+{
+  
+  
+  
+  return NS_OK;
+}
+
 bool
 VectorImage::IsDecoded()
 {
