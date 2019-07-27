@@ -28,6 +28,8 @@
 #include "nsExceptionHandler.h"
 #endif
 
+class nsPluginTag;
+
 namespace mozilla {
 namespace dom {
 class PCrashReporterParent;
@@ -295,7 +297,8 @@ class PluginModuleChromeParent
 
 
 
-    static PluginLibrary* LoadModule(const char* aFilePath, uint32_t aPluginId);
+    static PluginLibrary* LoadModule(const char* aFilePath, uint32_t aPluginId,
+                                     nsPluginTag* aPluginTag);
 
     virtual ~PluginModuleChromeParent();
 
