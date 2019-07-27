@@ -442,12 +442,8 @@ BluetoothHfpManager::Reset()
 bool
 BluetoothHfpManager::Init()
 {
-#ifdef MOZ_B2G_BT_API_V2
   
   MOZ_ASSERT(IsMainProcess());
-#else
-
-#endif
   MOZ_ASSERT(NS_IsMainThread());
 
   nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
@@ -597,11 +593,8 @@ BluetoothHfpManager::HandleVolumeChanged(nsISupports* aSubject)
   
   
 
-#ifdef MOZ_B2G_BT_API_V2
   RootedDictionary<dom::SettingChangeNotification> setting(nsContentUtils::RootingCx());
-#else
-  RootedDictionary<SettingChangeNotification> setting(nsContentUtils::RootingCx());
-#endif
+
   if (!WrappedJSToDictionary(aSubject, setting)) {
     return;
   }
@@ -1115,20 +1108,7 @@ BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
     }
 #endif
   } else {
-#ifdef MOZ_B2G_BT_API_V2
-    nsCString warningMsg;
-    warningMsg.Append(NS_LITERAL_CSTRING("Unsupported AT command: "));
-    warningMsg.Append(msg);
-    warningMsg.Append(NS_LITERAL_CSTRING(", reply with ERROR"));
-    BT_WARNING(warningMsg.get());
-#else
-    nsCString warningMsg;
-    warningMsg.AppendLiteral("Unsupported AT command: ");
-    warningMsg.Append(msg);
-    warningMsg.AppendLiteral(", reply with ERROR");
-    BT_WARNING(warningMsg.get());
-#endif
-
+    BT_WARNING("Unsupported AT command: %s, reply with ERROR", msg.get());
     SendLine("ERROR");
     return;
   }
@@ -1700,11 +1680,7 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
           GetNumberOfCalls(nsITelephonyService::CALL_STATE_DISCONNECTED)) {
         
         
-#ifdef MOZ_B2G_BT_API_V2
         if (!(aError.Equals(NS_LITERAL_STRING("BusyError")))) {
-#else
-        if (!(aError.EqualsLiteral("BusyError"))) {
-#endif
           DisconnectSco();
         } else {
           
