@@ -11,11 +11,12 @@ import org.mozilla.gecko.Element;
 import org.mozilla.gecko.R;
 
 import org.mozilla.gecko.EventDispatcher;
-import org.mozilla.gecko.util.GeckoEventListener;
 
-import org.json.JSONObject;
+import org.mozilla.gecko.util.EventCallback;
+import org.mozilla.gecko.util.NativeEventListener;
+import org.mozilla.gecko.util.NativeJSObject;
 
-public class testFindInPage extends JavascriptTest implements GeckoEventListener {
+public class testFindInPage extends JavascriptTest implements NativeEventListener {
     private static final int WAIT_FOR_TEST = 3000;
     protected Element next, close;
 
@@ -24,14 +25,15 @@ public class testFindInPage extends JavascriptTest implements GeckoEventListener
     }
 
     @Override
-    public void handleMessage(String event, final JSONObject message) {
+    public void handleMessage(final String event, final NativeJSObject message,
+                              final EventCallback callback) {
         if (event.equals("Test:FindInPage")) {
             try {
                 final String text = message.getString("text");
-                final int nrOfMatches = Integer.parseInt(message.getString("nrOfMatches"));
+                final int nrOfMatches = message.getInt("nrOfMatches");
                 findText(text, nrOfMatches);
             } catch (Exception e) {
-                fFail("Can't extract find query from JSON");
+                callback.sendError("Can't extract find query from JSON :" + e.toString());
             }
         }
 
@@ -39,9 +41,11 @@ public class testFindInPage extends JavascriptTest implements GeckoEventListener
             try {
                 close.click();
             } catch (Exception e) {
-                fFail("FindInPage prompt not opened");
+                callback.sendError("FindInPage prompt not opened");
             }
         }
+
+        callback.sendSuccess("done");
     }
 
     @Override
@@ -49,8 +53,8 @@ public class testFindInPage extends JavascriptTest implements GeckoEventListener
         super.setUp();
 
         EventDispatcher.getInstance().registerGeckoThreadListener(this,
-            "Test:FindInPage",
-            "Test:CloseFindInPage");
+                "Test:FindInPage",
+                "Test:CloseFindInPage");
     }
 
     @Override
@@ -58,12 +62,12 @@ public class testFindInPage extends JavascriptTest implements GeckoEventListener
         super.tearDown();
 
         EventDispatcher.getInstance().unregisterGeckoThreadListener(this,
-            "Test:FindInPage",
-            "Test:CloseFindInPage");
+                "Test:FindInPage",
+                "Test:CloseFindInPage");
     }
 
     public void findText(String text, int nrOfMatches){
-        selectMenuItem(StringHelper.FIND_IN_PAGE_LABEL);
+        selectMenuItem(mStringHelper.FIND_IN_PAGE_LABEL);
         close = mDriver.findElement(getActivity(), R.id.find_close);
         boolean success = waitForTest ( new BooleanTest() {
             @Override

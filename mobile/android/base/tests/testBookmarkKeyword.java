@@ -9,18 +9,18 @@ public class testBookmarkKeyword extends AboutHomeTest {
     public void testBookmarkKeyword() {
         blockForGeckoReady();
 
-        final String url = getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
+        final String url = getAbsoluteUrl(mStringHelper.ROBOCOP_BLANK_PAGE_01_URL);
         final String keyword = "testkeyword";
 
         
-        mDatabaseHelper.addOrUpdateMobileBookmark(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE, url);
-        mDatabaseHelper.updateBookmark(url, StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE, keyword);
+        mDatabaseHelper.addOrUpdateMobileBookmark(mStringHelper.ROBOCOP_BLANK_PAGE_01_TITLE, url);
+        mDatabaseHelper.updateBookmark(url, mStringHelper.ROBOCOP_BLANK_PAGE_01_TITLE, keyword);
 
         
         inputAndLoadUrl(keyword);
 
         
-        verifyUrlBarTitle(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
+        verifyUrlBarTitle(mStringHelper.ROBOCOP_BLANK_PAGE_01_URL);
 
         
         mDatabaseHelper.deleteBookmark(url);

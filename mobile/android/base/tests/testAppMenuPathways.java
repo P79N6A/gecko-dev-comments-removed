@@ -51,8 +51,8 @@ public class testAppMenuPathways extends UITest {
 
         
         
-        NavigationHelper.enterAndLoadUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
-        mToolbar.assertTitle(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
+        NavigationHelper.enterAndLoadUrl(mStringHelper.ROBOCOP_BLANK_PAGE_01_URL);
+        mToolbar.assertTitle(mStringHelper.ROBOCOP_BLANK_PAGE_01_URL);
 
         
         

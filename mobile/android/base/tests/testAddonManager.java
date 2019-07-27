@@ -21,12 +21,12 @@ public class testAddonManager extends PixelTest  {
     public void testAddonManager() {
         Actions.EventExpecter tabEventExpecter;
         Actions.EventExpecter contentEventExpecter;
-        final String aboutAddonsURL = StringHelper.ABOUT_ADDONS_URL;
+        final String aboutAddonsURL = mStringHelper.ABOUT_ADDONS_URL;
 
         blockForGeckoReady();
 
         
-        selectMenuItem(StringHelper.ADDONS_LABEL);
+        selectMenuItem(mStringHelper.ADDONS_LABEL);
 
         
         tabEventExpecter = mActions.expectGeckoEvent("Tab:Added");
@@ -54,7 +54,7 @@ public class testAddonManager extends PixelTest  {
         contentEventExpecter = mActions.expectGeckoEvent("DOMContentLoaded");
 
         
-        final String blankURL = getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
+        final String blankURL = getAbsoluteUrl(mStringHelper.ROBOCOP_BLANK_PAGE_01_URL);
         addTab(blankURL);
 
         
@@ -71,7 +71,7 @@ public class testAddonManager extends PixelTest  {
         verifyUrlBarTitle(blankURL);
 
         
-        selectMenuItem(StringHelper.ADDONS_LABEL);
+        selectMenuItem(mStringHelper.ADDONS_LABEL);
 
         
         verifyTabCount(2);
