@@ -191,6 +191,8 @@ ParseGLVersion(GLContext* gl, unsigned int* version)
 
         
         error = gl->fGetError();
+        while (gl->fGetError() != LOCAL_GL_NO_ERROR);
+
         if (error == LOCAL_GL_NO_ERROR &&
             majorVersion > 0 &&
             minorVersion >= 0)
