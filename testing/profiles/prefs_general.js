@@ -198,10 +198,6 @@ user_pref("browser.download.panel.shown", true);
 user_pref("browser.newtabpage.introShown", true);
 
 
-
-user_pref("browser.firstrun.count", 0);
-
-
 user_pref("pbackground.testing", true);
 
 

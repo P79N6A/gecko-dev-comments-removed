@@ -27,31 +27,6 @@ var gMainPane = {
     
     
     window.setInterval(this.updateSetDefaultBrowser, 1000);
-
-#ifdef MOZ_METRO
-    
-    
-    let version = Components.classes["@mozilla.org/system-info;1"].
-                  getService(Components.interfaces.nsIPropertyBag2).
-                  getProperty("version");
-    let preWin8 = parseFloat(version) < 6.2;
-    this._showingWin8Prefs = !preWin8;
-    if (preWin8) {
-      ["autoMetro", "autoMetroIndent"].forEach(
-        function(id) document.getElementById(id).collapsed = true
-      );
-    } else {
-      let brandShortName =
-        document.getElementById("bundleBrand").getString("brandShortName");
-      let bundlePrefs = document.getElementById("bundlePreferences");
-      let autoDesktop = document.getElementById("autoDesktop");
-      autoDesktop.label =
-        bundlePrefs.getFormattedString("updateAutoDesktop.label",
-                                       [brandShortName]);
-      autoDesktop.accessKey =
-        bundlePrefs.getString("updateAutoDesktop.accessKey");
-    }
-#endif
 #endif
 #endif
 

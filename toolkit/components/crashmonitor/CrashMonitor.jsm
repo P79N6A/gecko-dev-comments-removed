@@ -86,11 +86,7 @@ let CrashMonitorInternal = {
 
 
 
-
-
-  path: (Services.metro && Services.metro.immersive) ?
-    OS.Path.join(OS.Constants.Path.profileDir, "metro", "sessionCheckpoints.json"):
-    OS.Path.join(OS.Constants.Path.profileDir, "sessionCheckpoints.json"),
+  path: OS.Path.join(OS.Constants.Path.profileDir, "sessionCheckpoints.json"),
 
   
 
@@ -178,9 +174,6 @@ this.CrashMonitor = {
     );
 
     CrashMonitorInternal.initialized = true;
-    if (Services.metro && Services.metro.immersive) {
-      OS.File.makeDir(OS.Path.join(OS.Constants.Path.profileDir, "metro"));
-    }
     return promise;
   },
 

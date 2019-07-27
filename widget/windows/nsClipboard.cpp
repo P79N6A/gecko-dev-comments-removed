@@ -294,9 +294,6 @@ nsresult nsClipboard::GetGlobalData(HGLOBAL aHGBL, void ** aData, uint32_t * aLe
       result = NS_OK;
     }
   } else {
-#ifdef MOZ_METRO
-    return result;
-#endif
     
     
     *aData = nullptr;

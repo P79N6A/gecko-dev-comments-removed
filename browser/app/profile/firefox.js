@@ -145,7 +145,6 @@ pref("app.update.cert.maxErrors", 5);
 
 
 
-
 pref("app.update.certs.1.issuerName", "CN=DigiCert Secure Server CA,O=DigiCert Inc,C=US");
 pref("app.update.certs.1.commonName", "aus4.mozilla.org");
 
@@ -162,16 +161,7 @@ pref("app.update.enabled", true);
 pref("app.update.auto", true);
 
 
-
 pref("app.update.mode", 1);
-
-#ifdef XP_WIN
-#ifdef MOZ_METRO
-
-
-pref("app.update.metro.enabled", true);
-#endif
-#endif
 
 
 pref("app.update.silent", false);
@@ -1609,11 +1599,6 @@ pref("devtools.fontinspector.enabled", true);
 pref("devtools.telemetry.tools.opened.version", "{}");
 
 
-pref("devtools.gcli.imgurClientID", '0df414e888d7240');
-
-pref("devtools.gcli.imgurUploadURL", "https://api.imgur.com/3/image");
-
-
 
 pref("browser.menu.showCharacterEncoding", "chrome://browser/locale/browser.properties");
 
@@ -1835,10 +1820,6 @@ pref("browser.translation.detectLanguage", false);
 pref("browser.translation.neverForLanguages", "");
 
 pref("browser.translation.ui.show", false);
-
-
-
-pref("toolkit.telemetry.archive.enabled", true);
 
 
 pref("experiments.enabled", true);

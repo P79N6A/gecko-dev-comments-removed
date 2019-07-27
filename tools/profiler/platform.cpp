@@ -82,9 +82,6 @@ static mozilla::StaticAutoPtr<mozilla::ProfilerIOInterposeObserver>
 
 
 
-
-
-
 static const char * gGeckoThreadName = "GeckoMain";
 
 void Sampler::Startup() {
@@ -467,10 +464,6 @@ void mozilla_sampler_init(void* stackTop)
   tlsPseudoStack.set(stack);
 
   bool isMainThread = true;
-#ifdef XP_WIN
-  
-  isMainThread = !(XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Metro);
-#endif
   Sampler::RegisterCurrentThread(isMainThread ?
                                    gGeckoThreadName : "Application Thread",
                                  stack, isMainThread, stackTop);

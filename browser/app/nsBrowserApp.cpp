@@ -31,10 +31,6 @@
 #include "nsIFile.h"
 #include "nsStringGlue.h"
 
-
-
-
-
 #ifdef XP_WIN
 
 #ifdef MOZ_ASAN
@@ -61,12 +57,6 @@ using namespace mozilla;
 #define kOSXResourcesFolder "Resources"
 #endif
 #define kDesktopFolder "browser"
-#define kMetroFolder "metro"
-#define kMetroAppIniFilename "metroapp.ini"
-#ifdef XP_WIN
-#define kMetroTestFile "tests.ini"
-const char* kMetroConsoleIdParam = "testconsoleid=";
-#endif
 
 static void Output(const char *fmt, ... )
 {
@@ -127,40 +117,6 @@ static bool IsArg(const char* arg, const char* s)
 
   return false;
 }
-
-#if defined(XP_WIN) && defined(MOZ_METRO)
-
-
-
-
-
-
-
-
-
-static void AttachToTestHarness()
-{
-  
-  HANDLE winOut = CreateFileA("\\\\.\\pipe\\metrotestharness",
-                              GENERIC_WRITE,
-                              FILE_SHARE_WRITE, 0,
-                              OPEN_EXISTING, 0, 0);
-  
-  if (winOut == INVALID_HANDLE_VALUE) {
-    OutputDebugStringW(L"Could not create named logging pipe.\n");
-    return;
-  }
-
-  
-  int stdOut = _open_osfhandle((intptr_t)winOut, _O_APPEND);
-  if (stdOut == -1) {
-    OutputDebugStringW(L"Could not open c-runtime handle.\n");
-    return;
-  }
-  FILE *fp = _fdopen(stdOut, "a");
-  *stdout = *fp;
-}
-#endif
 
 XRE_GetFileFromPathType XRE_GetFileFromPath;
 XRE_CreateAppDataType XRE_CreateAppData;
@@ -234,167 +190,28 @@ static int do_main(int argc, char* argv[], nsIFile *xreDirectory)
     return result;
   }
 
-  bool metroOnDesktop = false;
-
-#ifdef MOZ_METRO
-  if (argc > 1) {
-    
-    
-    
-    if (IsArg(argv[1], "ServerName:DefaultBrowserServer")) {
-      mainFlags = XRE_MAIN_FLAG_USE_METRO;
-      argv[1] = argv[0];
-      argv++;
-      argc--;
-    } else if (IsArg(argv[1], "BackgroundSessionClosed")) {
-      
-      
-      mainFlags = XRE_MAIN_FLAG_USE_METRO;
-    } else {
-#ifndef RELEASE_BUILD
-      
-      
-      for (int idx = 1; idx < argc; idx++) {
-        if (IsArg(argv[idx], "metrodesktop")) {
-          metroOnDesktop = true;
-          
-          char crashSwitch[] = "MOZ_CRASHREPORTER_DISABLE=1";
-          putenv(crashSwitch);
-          break;
-        } 
-      }
-#endif
-    }
+  ScopedAppData appData(&sAppData);
+  nsCOMPtr<nsIFile> exeFile;
+  rv = mozilla::BinaryPath::GetFile(argv[0], getter_AddRefs(exeFile));
+  if (NS_FAILED(rv)) {
+    Output("Couldn't find the application directory.\n");
+    return 255;
   }
-#endif
 
-  
-  if (mainFlags != XRE_MAIN_FLAG_USE_METRO && !metroOnDesktop) {
-    ScopedAppData appData(&sAppData);
-    nsCOMPtr<nsIFile> exeFile;
-    rv = mozilla::BinaryPath::GetFile(argv[0], getter_AddRefs(exeFile));
-    if (NS_FAILED(rv)) {
-      Output("Couldn't find the application directory.\n");
-      return 255;
-    }
-
-    nsCOMPtr<nsIFile> greDir;
-    exeFile->GetParent(getter_AddRefs(greDir));
+  nsCOMPtr<nsIFile> greDir;
+  exeFile->GetParent(getter_AddRefs(greDir));
 #ifdef XP_MACOSX
-    greDir->SetNativeLeafName(NS_LITERAL_CSTRING(kOSXResourcesFolder));
+  greDir->SetNativeLeafName(NS_LITERAL_CSTRING(kOSXResourcesFolder));
 #endif
-    nsCOMPtr<nsIFile> appSubdir;
-    greDir->Clone(getter_AddRefs(appSubdir));
-    appSubdir->Append(NS_LITERAL_STRING(kDesktopFolder));
+  nsCOMPtr<nsIFile> appSubdir;
+  greDir->Clone(getter_AddRefs(appSubdir));
+  appSubdir->Append(NS_LITERAL_STRING(kDesktopFolder));
 
-    SetStrongPtr(appData.directory, static_cast<nsIFile*>(appSubdir.get()));
-    
-    appData.xreDirectory = xreDirectory;
-
-    return XRE_main(argc, argv, &appData, mainFlags);
-  }
-
+  SetStrongPtr(appData.directory, static_cast<nsIFile*>(appSubdir.get()));
   
-#ifdef MOZ_METRO
-  nsCOMPtr<nsIFile> iniFile, appSubdir;
+  appData.xreDirectory = xreDirectory;
 
-  xreDirectory->Clone(getter_AddRefs(iniFile));
-  xreDirectory->Clone(getter_AddRefs(appSubdir));
-
-  iniFile->Append(NS_LITERAL_STRING(kMetroFolder));
-  iniFile->Append(NS_LITERAL_STRING(kMetroAppIniFilename));
-
-  appSubdir->Append(NS_LITERAL_STRING(kMetroFolder));
-
-  nsAutoCString path;
-  if (NS_FAILED(iniFile->GetNativePath(path))) {
-    Output("Couldn't get ini file path.\n");
-    return 255;
-  }
-
-  nsXREAppData *appData;
-  rv = XRE_CreateAppData(iniFile, &appData);
-  if (NS_FAILED(rv) || !appData) {
-    Output("Couldn't read application.ini");
-    return 255;
-  }
-
-  SetStrongPtr(appData->directory, static_cast<nsIFile*>(appSubdir.get()));
-  
-  appData->xreDirectory = xreDirectory;
-
-#ifdef XP_WIN
-  if (!metroOnDesktop) {
-    nsCOMPtr<nsIFile> testFile;
-
-    xreDirectory->Clone(getter_AddRefs(testFile));
-    testFile->Append(NS_LITERAL_STRING(kMetroTestFile));
-
-    nsAutoCString path;
-    if (NS_FAILED(testFile->GetNativePath(path))) {
-      Output("Couldn't get test file path.\n");
-      return 255;
-    }
-
-    
-    HANDLE hTestFile = CreateFileA(path.get(),
-                                   GENERIC_READ,
-                                   0, nullptr, OPEN_EXISTING,
-                                   FILE_ATTRIBUTE_NORMAL,
-                                   nullptr);
-    if (hTestFile != INVALID_HANDLE_VALUE) {
-      
-      char buffer[1024];
-      memset(buffer, 0, sizeof(buffer));
-      DWORD bytesRead = 0;
-      if (!ReadFile(hTestFile, (VOID*)buffer, sizeof(buffer)-1,
-                    &bytesRead, nullptr) || !bytesRead) {
-        CloseHandle(hTestFile);
-        printf("failed to read test file '%s'", testFile);
-        return -1;
-      }
-      CloseHandle(hTestFile);
-
-      
-      char* newArgv[20];
-      int newArgc = 1;
-
-      memset(newArgv, 0, sizeof(newArgv));
-
-      char* ptr = buffer;
-      newArgv[0] = ptr;
-      while (*ptr != '\0' &&
-             (ptr - buffer) < sizeof(buffer) &&
-             newArgc < ARRAYSIZE(newArgv)) {
-        if (isspace(*ptr)) {
-          *ptr = '\0';
-          ptr++;
-          newArgv[newArgc] = ptr;
-          newArgc++;
-          continue;
-        }
-        ptr++;
-      }
-      if (ptr == newArgv[newArgc-1])
-        newArgc--;
-
-      
-      AttachToTestHarness();
-
-      int result = XRE_main(newArgc, newArgv, appData, mainFlags);
-      XRE_FreeAppData(appData);
-      return result;
-    }
-  }
-#endif
-
-  int result = XRE_main(argc, argv, appData, mainFlags);
-  XRE_FreeAppData(appData);
-  return result;
-#endif
-
-  NS_NOTREACHED("browser do_main failed to pickup proper initialization");
-  return 255;
+  return XRE_main(argc, argv, &appData, mainFlags);
 }
 
 #ifdef XP_WIN
@@ -572,11 +389,8 @@ InitXPCOMGlue(const char *argv0, nsIFile **xreDirectory)
     return rv;
   }
 
-#ifndef MOZ_METRO
-  
   
   NS_LogInit();
-#endif
 
   
   *lastSlash = '\0';
@@ -597,9 +411,6 @@ InitXPCOMGlue(const char *argv0, nsIFile **xreDirectory)
 
 int main(int argc, char* argv[])
 {
-#ifdef DEBUG_delay_start_metro
-  Sleep(5000);
-#endif
   uint64_t start = TimeStamp_Now();
 
 #ifdef XP_MACOSX

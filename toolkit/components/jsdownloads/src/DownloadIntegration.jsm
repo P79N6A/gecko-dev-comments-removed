@@ -461,13 +461,7 @@ this.DownloadIntegration = {
 #elifdef MOZ_WIDGET_GONK
       directoryPath = yield this.getSystemDownloadsDirectory();
 #else
-      
-      
-      if (Services.metro && Services.metro.immersive) {
-        directoryPath = yield this.getSystemDownloadsDirectory();
-      } else {
-        directoryPath = this._getDirectory("TmpD");
-      }
+      directoryPath = this._getDirectory("TmpD");
 #endif
       throw new Task.Result(directoryPath);
     }.bind(this));

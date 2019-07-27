@@ -245,11 +245,6 @@ bool
 WinTaskbar::GetAppUserModelID(nsAString & aDefaultGroupId) {
   
   
-  if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Metro) {
-    return false;
-  }
-  
-  
   bool useProfile =
     Preferences::GetBool("taskbar.grouping.useprofile", false);
   if (useProfile) {
@@ -335,10 +330,6 @@ bool
 WinTaskbar::RegisterAppUserModelID() {
   if (!IsWin7OrLater())
     return false;
-
-  if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Metro) {
-    return false;
-  }
 
   SetCurrentProcessExplicitAppUserModelIDPtr funcAppUserModelID = nullptr;
   bool retVal = false;

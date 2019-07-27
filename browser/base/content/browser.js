@@ -24,8 +24,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "BrowserUtils",
                                   "resource://gre/modules/BrowserUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PromiseUtils",
-                                  "resource://gre/modules/PromiseUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "CharsetMenu",
                                   "resource://gre/modules/CharsetMenu.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ShortcutUtils",
@@ -50,7 +48,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "gDNSService",
                                    "nsIDNSService");
 XPCOMUtils.defineLazyModuleGetter(this, "LightweightThemeManager",
                                   "resource://gre/modules/LightweightThemeManager.jsm");
-
 
 const nsIWebNavigation = Ci.nsIWebNavigation;
 
@@ -1280,12 +1277,6 @@ var gBrowserInit = {
     gHomeButton.updateTooltip(homeButton);
     gHomeButton.updatePersonalToolbarStyle(homeButton);
 
-    let safeMode = document.getElementById("helpSafeMode");
-    if (Services.appinfo.inSafeMode) {
-      safeMode.label = safeMode.getAttribute("stoplabel");
-      safeMode.accesskey = safeMode.getAttribute("stopaccesskey");
-    }
-
     
     gBidiUI = isBidiEnabled();
     if (gBidiUI) {
@@ -1391,11 +1382,6 @@ var gBrowserInit = {
       setTimeout(Services.startup.trackStartupCrashEnd, startupCrashEndDelay);
     } catch (ex) {
       Cu.reportError("Could not end startup crash tracking: " + ex);
-    }
-
-    if (typeof WindowsPrefSync !== 'undefined') {
-      
-      WindowsPrefSync.init();
     }
 
     
@@ -1561,9 +1547,6 @@ var gBrowserInit = {
         Cu.reportError(ex);
       }
 
-      if (typeof WindowsPrefSync !== 'undefined') {
-        WindowsPrefSync.uninit();
-      }
       if (this.gmpInstallManager) {
         this.gmpInstallManager.uninit();
       }
@@ -2400,11 +2383,7 @@ function URLBarSetURI(aURI) {
 }
 
 function losslessDecodeURI(aURI) {
-  if (aURI.schemeIs("moz-action"))
-    throw new Error("losslessDecodeURI should never get a moz-action URI");
-
   var value = aURI.spec;
-
   
   if (!/%25(?:3B|2F|3F|3A|40|26|3D|2B|24|2C|23)/i.test(value))
     try {
@@ -3036,56 +3015,6 @@ function populateMirrorTabMenu(popup) {
     popup.appendChild(item);
   });
 };
-
-function _checkDefaultAndSwitchToMetro() {
-#ifdef HAVE_SHELL_SERVICE
-#ifdef XP_WIN
-#ifdef MOZ_METRO
-  let shell = Components.classes["@mozilla.org/browser/shell-service;1"].
-    getService(Components.interfaces.nsIShellService);
-  let isDefault = shell.isDefaultBrowser(false, false);
-
-  if (isDefault) {
-    let appStartup = Components.classes["@mozilla.org/toolkit/app-startup;1"].
-    getService(Components.interfaces.nsIAppStartup);
-
-    Services.prefs.setBoolPref('browser.sessionstore.resume_session_once', true);
-
-    let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"]
-                     .createInstance(Ci.nsISupportsPRBool);
-    Services.obs.notifyObservers(cancelQuit, "quit-application-requested", "restart");
-
-    if (!cancelQuit.data) {
-      appStartup.quit(Components.interfaces.nsIAppStartup.eAttemptQuit |
-                      Components.interfaces.nsIAppStartup.eRestartTouchEnvironment);
-    }
-    return true;
-  }
-  return false;
-#endif
-#endif
-#endif
-}
-
-function SwitchToMetro() {
-#ifdef HAVE_SHELL_SERVICE
-#ifdef XP_WIN
-#ifdef MOZ_METRO
-  if (this._checkDefaultAndSwitchToMetro()) {
-    return;
-  }
-
-  let shell = Components.classes["@mozilla.org/browser/shell-service;1"].
-    getService(Components.interfaces.nsIShellService);
-
-  shell.setDefaultBrowser(false, false);
-
-  let intervalID = window.setInterval(this._checkDefaultAndSwitchToMetro, 1000);
-  window.setTimeout(function() { window.clearInterval(intervalID); }, 10000);
-#endif
-#endif
-#endif
-}
 
 function getWebNavigation()
 {
@@ -7539,18 +7468,6 @@ Object.defineProperty(this, "HUDService", {
 
 
 function safeModeRestart() {
-  if (Services.appinfo.inSafeMode) {
-    let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"].
-                     createInstance(Ci.nsISupportsPRBool);
-    Services.obs.notifyObservers(cancelQuit, "quit-application-requested", "restart");
-
-    if (cancelQuit.data)
-      return;
-
-    Services.startup.quit(Ci.nsIAppStartup.eRestart | Ci.nsIAppStartup.eAttemptQuit);
-    return;
-  }
-
   Services.obs.notifyObservers(null, "restart-in-safe-mode", "");
 }
 

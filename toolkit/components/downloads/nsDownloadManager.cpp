@@ -947,13 +947,8 @@ nsDownloadManager::Init()
   
   
   mUseJSTransfer = Preferences::GetBool(PREF_BD_USEJSTRANSFER, false);
-#elif defined(XP_WIN)
-    
-    
-    
-    mUseJSTransfer = !IsRunningInWindowsMetro();
 #else
-    mUseJSTransfer = true;
+  mUseJSTransfer = true;
 #endif
 
   if (mUseJSTransfer)

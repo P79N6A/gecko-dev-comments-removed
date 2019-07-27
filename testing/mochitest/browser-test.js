@@ -88,7 +88,6 @@ let TabDestroyObserver = {
 function testInit() {
   gConfig = readConfig();
   if (gConfig.testRoot == "browser" ||
-      gConfig.testRoot == "metro" ||
       gConfig.testRoot == "webapprtChrome") {
     
     var prefs = Services.prefs;

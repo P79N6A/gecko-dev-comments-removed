@@ -406,9 +406,6 @@ nsXREDirProvider::GetFile(const char* aProperty, bool* aPersistent,
     else if (!strcmp(aProperty, NS_APP_PREFS_50_FILE)) {
       rv = file->AppendNative(NS_LITERAL_CSTRING("prefs.js"));
     }
-    else if (!strcmp(aProperty, NS_METRO_APP_PREFS_50_FILE)) {
-      rv = file->AppendNative(NS_LITERAL_CSTRING("metro-prefs.js"));
-    }
     else if (!strcmp(aProperty, NS_LOCALSTORE_UNSAFE_FILE)) {
       rv = file->AppendNative(NS_LITERAL_CSTRING("localstore.rdf"));
     }
@@ -1097,7 +1094,6 @@ nsXREDirProvider::GetUpdateRootDir(nsIFile* *aResult)
     }
   }
 
-  
   
   
   

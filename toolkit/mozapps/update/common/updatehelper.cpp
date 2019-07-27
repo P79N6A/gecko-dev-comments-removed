@@ -2,17 +2,6 @@
 
 
 
-#ifdef MOZ_METRO
-
-#undef WINVER
-#undef _WIN32_WINNT
-#define WINVER 0x602
-#define _WIN32_WINNT 0x602
-#include <objbase.h>
-#include <shobjidl.h>
-#pragma comment(lib, "ole32.lib")
-#endif
-
 #include <windows.h>
 
 
@@ -760,71 +749,3 @@ IsUnpromptedElevation(BOOL &isUnpromptedElevation)
   RegCloseKey(baseKey);
   return success;
 }
-
-#ifdef MOZ_METRO
-  
-
-
-
-
-
-  bool GetDefaultBrowserAppModelID(WCHAR* aIDBuffer, long aCharLength)
-  {
-    if (!aIDBuffer || aCharLength <= 0)
-      return false;
-
-    memset(aIDBuffer, 0, (sizeof(WCHAR)*aCharLength));
-    static const WCHAR* kDefaultMetroBrowserIDPathKey = L"FirefoxURL";
-
-    HKEY key;
-    if (RegOpenKeyExW(HKEY_CLASSES_ROOT, kDefaultMetroBrowserIDPathKey,
-                      0, KEY_READ, &key) != ERROR_SUCCESS) {
-      return false;
-    }
-    DWORD len = aCharLength * sizeof(WCHAR);
-    memset(aIDBuffer, 0, len);
-    if (RegQueryValueExW(key, L"AppUserModelID", nullptr, nullptr,
-                         (LPBYTE)aIDBuffer, &len) != ERROR_SUCCESS || !len) {
-      RegCloseKey(key);
-      return false;
-    }
-    RegCloseKey(key);
-    return true;
-  }
-
-  HRESULT
-  LaunchDefaultMetroBrowser()
-  {
-    CoInitialize(nullptr);
-    HRESULT hr = E_FAIL;
-    
-    IApplicationActivationManager *activateMgr;
-    if (FAILED(hr = CoCreateInstance(CLSID_ApplicationActivationManager,
-                                     nullptr, CLSCTX_LOCAL_SERVER,
-                                     IID_IApplicationActivationManager,
-                                     (void**)&activateMgr))) {
-      CoUninitialize();
-      return hr;
-    }
-
-    
-    WCHAR appModelID[256];
-    if (!GetDefaultBrowserAppModelID(appModelID, (sizeof(appModelID)/sizeof(WCHAR)))) {
-      activateMgr->Release();
-      CoUninitialize();
-      return hr;
-    }
-
-    
-    
-    CoAllowSetForegroundWindow(activateMgr, nullptr);
-
-    
-    DWORD processID;
-    hr = activateMgr->ActivateApplication(appModelID, L"", AO_NOERRORUI,
-                                          &processID);
-    activateMgr->Release();
-    CoUninitialize();
-    return hr;
-  }
-#endif

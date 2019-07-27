@@ -97,9 +97,6 @@
 #include <windows.h>
 #include "cairo/cairo-features.h"
 #include "mozilla/WindowsVersion.h"
-#ifdef MOZ_METRO
-#include <roapi.h>
-#endif
 
 #ifndef PROCESS_DEP_ENABLE
 #define PROCESS_DEP_ENABLE 0x1
@@ -127,10 +124,6 @@
 #include "nsXULAppAPI.h"
 #include "nsXREDirProvider.h"
 #include "nsToolkitCompsCID.h"
-
-#if defined(XP_WIN) && defined(MOZ_METRO)
-#include "updatehelper.h"
-#endif
 
 #include "nsINIParser.h"
 #include "mozilla/Omnijar.h"
@@ -582,11 +575,7 @@ ProcessDDE(nsINativeAppSupport* aNative, bool aWait)
 static bool
 CanShowProfileManager()
 {
-#if defined(XP_WIN)
-  return XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Desktop;
-#else
   return true;
-#endif
 }
 
 bool gSafeMode = false;
@@ -2879,38 +2868,6 @@ static DWORD WINAPI InitDwriteBG(LPVOID lpdwThreadParam)
 bool fire_glxtest_process();
 #endif
 
-#if defined(XP_WIN) && defined(MOZ_METRO)
-#ifndef AHE_TYPE
-enum AHE_TYPE {
-  AHE_DESKTOP = 0,
-  AHE_IMMERSIVE = 1
-};
-#endif
-
-
-
-
-
-
-
-void
-SetLastWinRunType(AHE_TYPE aType)
-{
-  HKEY key;
-  LONG result = RegOpenKeyExW(HKEY_CURRENT_USER,
-                              L"SOFTWARE\\Mozilla\\Firefox",
-                              0, KEY_WRITE, &key);
-  if (result != ERROR_SUCCESS) {
-    return;
-  }
-  DWORD value = (DWORD)aType;
-  result = RegSetValueEx(key, L"MetroLastAHE", 0, REG_DWORD,
-                         reinterpret_cast<LPBYTE>(&value),
-                         sizeof(DWORD));
-  RegCloseKey(key);
-}
-#endif 
-
 #include "GeckoProfiler.h"
 
 
@@ -3002,19 +2959,6 @@ XREMain::XRE_mainInit(bool* aExitFlag)
   
   
   fire_glxtest_process();
-#endif
-
-#if defined(XP_WIN) && defined(MOZ_METRO)
-  
-  if (CheckArg("metro-update", false, nullptr, false) == ARG_FOUND ||
-      XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Metro) {
-    
-    
-    
-    SetLastWinRunType(AHE_IMMERSIVE);
-  } else {
-    SetLastWinRunType(AHE_DESKTOP);
-  }
 #endif
 
   SetupErrorHandling(gArgv[0]);
@@ -3735,12 +3679,6 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
     *aExitFlag = true;
     return 0;
   }
-#if defined(XP_WIN) && defined(MOZ_METRO)
-  if (CheckArg("metro-update", false) == ARG_FOUND) {
-    *aExitFlag = true;
-    return 0;
-  }
-#endif
 #endif
 
   rv = NS_NewToolkitProfileService(getter_AddRefs(mProfileSvc));
@@ -4219,7 +4157,6 @@ XREMain::XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
   
   
   if (rv == NS_SUCCESS_RESTART_APP
-      || rv == NS_SUCCESS_RESTART_METRO_APP
       || rv == NS_SUCCESS_RESTART_APP_NOT_SAME_PROFILE) {
     appInitiatedRestart = true;
 
@@ -4264,12 +4201,6 @@ XREMain::XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     MOZ_gdk_display_close(mGdkDisplay);
 #endif
 
-#if defined(MOZ_METRO) && defined(XP_WIN)
-    if (rv == NS_SUCCESS_RESTART_METRO_APP) {
-      LaunchDefaultMetroBrowser();
-      rv = NS_OK;
-    } else
-#endif
     {
       rv = LaunchChild(mNativeApp, true);
     }
@@ -4297,128 +4228,6 @@ XREMain::XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
   return NS_FAILED(rv) ? 1 : 0;
 }
 
-#if defined(MOZ_METRO) && defined(XP_WIN)
-extern bool XRE_MetroCoreApplicationRun();
-static XREMain* xreMainPtr;
-
-
-nsresult
-XRE_metroStartup(bool runXREMain)
-{
-  nsresult rv;
-
-  
-  
-  ScopedLogging log;
-
-  bool exit = false;
-  if (xreMainPtr->XRE_mainStartup(&exit) != 0 || exit)
-    return NS_ERROR_FAILURE;
-
-  
-  xreMainPtr->mScopedXPCOM = MakeUnique<ScopedXPCOMStartup>();
-  if (!xreMainPtr->mScopedXPCOM)
-    return NS_ERROR_FAILURE;
-
-  rv = xreMainPtr->mScopedXPCOM->Initialize();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (runXREMain) {
-    rv = xreMainPtr->XRE_mainRun();
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-  return NS_OK;
-}
-
-void
-XRE_metroShutdown()
-{
-  xreMainPtr->mScopedXPCOM = nullptr;
-
-#ifdef MOZ_INSTRUMENT_EVENT_LOOP
-  mozilla::ShutdownEventTracing();
-#endif
-
-  
-  
-  xreMainPtr->mProfileLock->Unlock();
-  gProfileLock = nullptr;
-
-#ifdef MOZ_CRASHREPORTER
-  if (xreMainPtr->mAppData->flags & NS_XRE_ENABLE_CRASH_REPORTER)
-      CrashReporter::UnsetExceptionHandler();
-#endif
-
-  XRE_DeinitCommandLine();
-}
-
-class WinRTInitWrapper
-{
-public:
-  WinRTInitWrapper() {
-    mResult = ::RoInitialize(RO_INIT_MULTITHREADED);
-  }
-  ~WinRTInitWrapper() {
-    if (SUCCEEDED(mResult)) {
-      ::RoUninitialize();
-    }
-  }
-  HRESULT mResult;
-};
-
-int
-XRE_mainMetro(int argc, char* argv[], const nsXREAppData* aAppData)
-{
-  char aLocal;
-  GeckoProfilerInitRAII profilerGuard(&aLocal);
-
-  PROFILER_LABEL("Startup", "XRE_Main",
-    js::ProfileEntry::Category::OTHER);
-
-  mozilla::IOInterposerInit ioInterposerGuard;
-
-  nsresult rv = NS_OK;
-
-  xreMainPtr = new XREMain();
-  if (!xreMainPtr) {
-    return 1;
-  }
-
-  
-  WinRTInitWrapper wrap;
-
-  gArgc = argc;
-  gArgv = argv;
-
-  NS_ENSURE_TRUE(aAppData, 2);
-
-  xreMainPtr->mAppData = new ScopedAppData(aAppData);
-  if (!xreMainPtr->mAppData)
-    return 1;
-  
-  gAppData = xreMainPtr->mAppData;
-
-  
-  bool exit = false;
-  if (xreMainPtr->XRE_mainInit(&exit) != 0 || exit)
-    return 1;
-
-  
-  
-  if (!XRE_MetroCoreApplicationRun()) {
-    return 1;
-  }
-
-  
-  
-  NS_ASSERTION(!xreMainPtr->mScopedXPCOM,
-               "XPCOM Shutdown hasn't occured, and we are exiting.");
-  return 0;
-}
-
-void SetWindowsEnvironment(WindowsEnvironmentType aEnvID);
-#endif 
-
 void
 XRE_StopLateWriteChecks(void) {
   mozilla::StopLateWriteChecks();
@@ -4427,34 +4236,10 @@ XRE_StopLateWriteChecks(void) {
 int
 XRE_main(int argc, char* argv[], const nsXREAppData* aAppData, uint32_t aFlags)
 {
-#if !defined(MOZ_METRO) || !defined(XP_WIN)
   XREMain main;
   int result = main.XRE_main(argc, argv, aAppData);
   mozilla::RecordShutdownEndTimeStamp();
   return result;
-#else
-  if (aFlags == XRE_MAIN_FLAG_USE_METRO) {
-    SetWindowsEnvironment(WindowsEnvironmentType_Metro);
-  }
-
-  
-  if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Desktop) {
-    XREMain main;
-    int result = main.XRE_main(argc, argv, aAppData);
-    mozilla::RecordShutdownEndTimeStamp();
-    return result;
-  }
-
-  
-  NS_ASSERTION(XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Metro,
-               "Unknown Windows environment");
-
-  SetLastWinRunType(AHE_IMMERSIVE);
-
-  int result = XRE_mainMetro(argc, argv, aAppData);
-  mozilla::RecordShutdownEndTimeStamp();
-  return result;
-#endif 
 }
 
 nsresult

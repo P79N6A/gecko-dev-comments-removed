@@ -40,10 +40,6 @@
 #include "nsIThread.h"
 #include "MainThreadUtils.h"
 #include "gfxColor.h"
-#ifdef MOZ_METRO
-#include "winrt/MetroInput.h"
-#include "winrt/MetroUtils.h"
-#endif 
 
 #ifdef NS_ENABLE_TSF
 #include <textstor.h>
@@ -538,26 +534,18 @@ double
 WinUtils::LogToPhysFactor()
 {
   
-  if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Metro) {
-#ifdef MOZ_METRO
-    return MetroUtils::LogToPhysFactor();
-#else
-    return 1.0;
-#endif
-  } else {
-    HDC hdc = ::GetDC(nullptr);
-    double result = ::GetDeviceCaps(hdc, LOGPIXELSY) / 96.0;
-    ::ReleaseDC(nullptr, hdc);
+  HDC hdc = ::GetDC(nullptr);
+  double result = ::GetDeviceCaps(hdc, LOGPIXELSY) / 96.0;
+  ::ReleaseDC(nullptr, hdc);
 
-    if (result == 0) {
-      
-      
-      
-      
-      result = 1.0;
-    }
-    return result;
+  if (result == 0) {
+    
+    
+    
+    
+    result = 1.0;
   }
+  return result;
 }
 
 
@@ -1685,11 +1673,6 @@ WinUtils::SetupKeyModifiersSequence(nsTArray<KeyPair>* aArray,
 bool
 WinUtils::ShouldHideScrollbars()
 {
-#ifdef MOZ_METRO
-  if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Metro) {
-    return widget::winrt::MetroInput::IsInputModeImprecise();
-  }
-#endif 
   return false;
 }
 

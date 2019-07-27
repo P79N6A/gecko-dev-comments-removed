@@ -79,9 +79,6 @@ extern const wchar_t* kPropNameTabContent;
 namespace mozilla {
 namespace widget {
 extern UINT sAppShellGeckoMsgId;
-#ifdef MOZ_METRO
-extern UINT sDefaultBrowserMsgId;
-#endif
 }
 }
 
@@ -416,11 +413,6 @@ ProcessOrDeferMessage(HWND hwnd,
       if (uMsg && uMsg == mozilla::widget::sAppShellGeckoMsgId) {
         
         deferred = new DeferredSendMessage(hwnd, uMsg, wParam, lParam);
-#ifdef MOZ_METRO
-      } else if (uMsg && uMsg == mozilla::widget::sDefaultBrowserMsgId) {
-        
-        deferred = new DeferredSendMessage(hwnd, uMsg, wParam, lParam);
-#endif
       }
     }
   }
@@ -497,13 +489,6 @@ WindowIsDeferredWindow(HWND hWnd)
       className.EqualsLiteral("nsAppShell:EventWindowClass")) {
     return true;
   }
-
-#ifdef MOZ_METRO
-  
-  if (className.EqualsLiteral("Windows.UI.Core.CoreWindow")) {
-    return true;
-  }
-#endif
 
   
   

@@ -400,16 +400,6 @@ static nsresult GetDownloadDirectory(nsIFile **_directory,
   else {
     return NS_ERROR_FAILURE;
   }
-#elif defined(XP_WIN)
-  
-  
-  nsresult rv;
-  if (IsRunningInWindowsMetro()) {
-    rv = NS_GetSpecialDirectory(NS_WIN_DEFAULT_DOWNLOAD_DIR, getter_AddRefs(dir));
-  } else {
-    rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(dir));
-  }
-  NS_ENSURE_SUCCESS(rv, rv);
 #else
   
   nsresult rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(dir));
