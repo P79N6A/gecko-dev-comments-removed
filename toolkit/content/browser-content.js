@@ -53,13 +53,13 @@ let ClickEventHandler = {
     return false;
   },
 
-  startScroll: function(event) {
+  findNearestScrollableElement: function(aNode) {
     
     const scrollingAllowed = ['scroll', 'auto'];
 
     
     
-    for (this._scrollable = event.originalTarget; this._scrollable;
+    for (this._scrollable = aNode; this._scrollable;
          this._scrollable = this._scrollable.parentNode) {
       
       
@@ -96,16 +96,25 @@ let ClickEventHandler = {
     }
 
     if (!this._scrollable) {
-      this._scrollable = event.originalTarget.ownerDocument.defaultView;
+      this._scrollable = aNode.ownerDocument.defaultView;
       if (this._scrollable.scrollMaxX > 0) {
         this._scrolldir = this._scrollable.scrollMaxY > 0 ? "NSEW" : "EW";
       } else if (this._scrollable.scrollMaxY > 0) {
         this._scrolldir = "NS";
+      } else if (this._scrollable.frameElement) {
+        this.findNearestScrollableElement(this._scrollable.frameElement);
       } else {
         this._scrollable = null; 
-        return;
       }
     }
+  },
+
+  startScroll: function(event) {
+
+    this.findNearestScrollableElement(event.originalTarget);
+
+    if (!this._scrollable)
+      return;
 
     let [enabled] = sendSyncMessage("Autoscroll:Start",
                                     {scrolldir: this._scrolldir,
