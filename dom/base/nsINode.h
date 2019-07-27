@@ -1980,7 +1980,10 @@ private:
 protected:
   nsIContent* mNextSibling;
   nsIContent* mPreviousSibling;
-  nsIContent* mFirstChild;
+  
+  
+  
+  nsIContent* MOZ_NON_OWNING_REF mFirstChild;
 
   union {
     
