@@ -513,6 +513,8 @@ this.BrowserIDManager.prototype = {
   },
 
   
+  
+  
   _fetchTokenForUser: function() {
     let tokenServerURI = Svc.Prefs.get("tokenServerURI");
     if (tokenServerURI.endsWith("/")) { 
@@ -527,8 +529,7 @@ this.BrowserIDManager.prototype = {
     
     
     if (!this._canFetchKeys()) {
-      log.info("_fetchTokenForUser has no keys to use.");
-      return null;
+      return Promise.resolve(null);
     }
 
     let maybeFetchKeys = () => {
@@ -593,7 +594,7 @@ this.BrowserIDManager.prototype = {
         if (err.response && err.response.status === 401) {
           err = new AuthenticationError(err);
         
-        } else if (err.code === 401) {
+        } else if (err.code && err.code === 401) {
           err = new AuthenticationError(err);
         }
 
@@ -628,6 +629,9 @@ this.BrowserIDManager.prototype = {
       this._log.debug("_ensureValidToken already has one");
       return Promise.resolve();
     }
+    
+    
+    this._token = null;
     return this._fetchTokenForUser().then(
       token => {
         this._token = token;
@@ -707,6 +711,17 @@ BrowserIDClusterManager.prototype = {
 
   _findCluster: function() {
     let endPointFromIdentityToken = function() {
+      
+      
+      
+      
+      
+      
+      
+      
+      if (!this.identity._token) {
+        throw new Error("Can't get a cluster URL as we can't fetch keys.");
+      }
       let endpoint = this.identity._token.endpoint;
       
       
