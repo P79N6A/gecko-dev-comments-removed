@@ -93,6 +93,7 @@
 #include "MediaTimer.h"
 #include "StateMirroring.h"
 #include "DecodedStream.h"
+#include "ImageContainer.h"
 
 namespace mozilla {
 
@@ -123,6 +124,8 @@ public:
   typedef MediaDecoderReader::AudioDataPromise AudioDataPromise;
   typedef MediaDecoderReader::VideoDataPromise VideoDataPromise;
   typedef MediaDecoderOwner::NextFrameStatus NextFrameStatus;
+  typedef mozilla::layers::ImageContainer::ProducerID ProducerID;
+  typedef mozilla::layers::ImageContainer::FrameID FrameID;
   MediaDecoderStateMachine(MediaDecoder* aDecoder,
                            MediaDecoderReader* aReader,
                            bool aRealTime = false);
@@ -489,8 +492,17 @@ protected:
   void UpdatePlaybackPositionInternal(int64_t aTime);
 
   
+  void CheckTurningOffHardwareDecoder(VideoData* aData);
+
   
-  void RenderVideoFrame(VideoData* aData, TimeStamp aTarget);
+  
+  
+  
+  
+  
+  
+  void RenderVideoFrames(int32_t aMaxFrames, int64_t aClockTime = 0,
+                         const TimeStamp& aClickTimeStamp = TimeStamp());
 
   
   
@@ -707,6 +719,10 @@ private:
 
   
   WatchManager<MediaDecoderStateMachine> mWatchManager;
+
+  
+  
+  const ProducerID mProducerID;
 
   
   const bool mRealTime;
@@ -943,6 +959,9 @@ protected:
   
   void RecomputeDuration();
 
+
+  
+  FrameID mCurrentFrameID;
   
   Mirror<media::NullableTimeUnit> mEstimatedDuration;
 
