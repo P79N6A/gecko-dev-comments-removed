@@ -1688,6 +1688,9 @@ bool DoesD3D11DeviceWork(ID3D11Device *device)
 
   
   if (FAILED(device->CreateShaderResourceView(sharedTexture, NULL, byRef(sharedView)))) {
+#if defined(MOZ_CRASHREPORTER)
+    CrashReporter::AppendAppNotesToCrashReport(NS_LITERAL_CSTRING("CreateShaderResourceView failed\n"));
+#endif
     return false;
   }
 
