@@ -314,6 +314,31 @@ BacktrackingAllocator::groupAndQueueRegisters()
 {
     
     
+    if (MBasicBlock *osr = graph.mir().osrBlock()) {
+        size_t originalVreg = 1;
+        for (LInstructionIterator iter = osr->lir()->begin(); iter != osr->lir()->end(); iter++) {
+            if (iter->isParameter()) {
+                for (size_t i = 0; i < iter->numDefs(); i++) {
+                    DebugOnly<bool> found = false;
+                    uint32_t paramVreg = iter->getDef(i)->virtualRegister();
+                    for (; originalVreg < paramVreg; originalVreg++) {
+                        if (*vregs[originalVreg].def()->output() == *iter->getDef(i)->output()) {
+                            MOZ_ASSERT(vregs[originalVreg].ins()->isParameter());
+                            if (!tryGroupRegisters(originalVreg, paramVreg))
+                                return false;
+                            MOZ_ASSERT(vregs[originalVreg].group() == vregs[paramVreg].group());
+                            found = true;
+                            break;
+                        }
+                    }
+                    MOZ_ASSERT(found);
+                }
+            }
+        }
+    }
+
+    
+    
     MOZ_ASSERT(vregs[0u].numIntervals() == 0);
     for (size_t i = 1; i < graph.numVirtualRegisters(); i++) {
         BacktrackingVirtualRegister &reg = vregs[i];
@@ -355,8 +380,6 @@ BacktrackingAllocator::groupAndQueueRegisters()
             continue;
 
         
-#if 0
-        
         
         LDefinition *def = reg.def();
         if (def->policy() == LDefinition::FIXED && !def->output()->isRegister()) {
@@ -364,7 +387,6 @@ BacktrackingAllocator::groupAndQueueRegisters()
             if (reg.group() && reg.group()->spill.isUse())
                 reg.group()->spill = *def->output();
         }
-#endif
 
         
         
