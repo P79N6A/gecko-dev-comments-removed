@@ -59,9 +59,6 @@
 #    if __has_extension(cxx_constexpr)
 #      define MOZ_HAVE_CXX11_CONSTEXPR
 #    endif
-#    if __has_extension(cxx_explicit_conversions)
-#      define MOZ_HAVE_EXPLICIT_CONVERSION
-#    endif
 #  endif
 #elif defined(__clang__)
    
@@ -74,9 +71,6 @@
 #  endif
 #  if __has_extension(cxx_constexpr)
 #    define MOZ_HAVE_CXX11_CONSTEXPR
-#  endif
-#  if __has_extension(cxx_explicit_conversions)
-#    define MOZ_HAVE_EXPLICIT_CONVERSION
 #  endif
 #  if __has_extension(cxx_override_control)
 #    define MOZ_HAVE_CXX11_OVERRIDE
@@ -96,9 +90,6 @@
 #    endif
 #    if MOZ_GCC_VERSION_AT_LEAST(4, 6, 0)
 #      define MOZ_HAVE_CXX11_CONSTEXPR
-#    endif
-#    if MOZ_GCC_VERSION_AT_LEAST(4, 5, 0)
-#      define MOZ_HAVE_EXPLICIT_CONVERSION
 #    endif
 #  else
      
@@ -136,31 +127,6 @@
 #else
 #  define MOZ_CONSTEXPR
 #  define MOZ_CONSTEXPR_VAR     const
-#endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#ifdef MOZ_HAVE_EXPLICIT_CONVERSION
-#  define MOZ_EXPLICIT_CONVERSION explicit
-#else
-#  define MOZ_EXPLICIT_CONVERSION
 #endif
 
 
