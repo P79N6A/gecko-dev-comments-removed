@@ -215,7 +215,7 @@ enum TableAction {
 class OTS_API OTSContext {
   public:
     OTSContext() {}
-    ~OTSContext() {}
+    virtual ~OTSContext() {}
 
     
     
