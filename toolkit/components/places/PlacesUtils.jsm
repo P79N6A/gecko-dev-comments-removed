@@ -1921,6 +1921,7 @@ XPCOMUtils.defineLazyGetter(this, "gAsyncDBConnPromised", () => {
     catch(ex) {
       
       return conn.close();
+      throw (ex);
     }
     return Promise.resolve();
   }).then(null, Cu.reportError);

@@ -11,7 +11,6 @@
 
 const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
 
-const TOPIC_SHUTDOWN = "places-shutdown";
 const TOPIC_PREFCHANGED = "nsPref:changed";
 
 const DEFAULT_BEHAVIOR = 0;
@@ -1463,19 +1462,9 @@ Search.prototype = {
 
 
 function UnifiedComplete() {
-  Services.obs.addObserver(this, TOPIC_SHUTDOWN, true);
 }
 
 UnifiedComplete.prototype = {
-  
-  
-
-  observe: function (subject, topic, data) {
-    if (topic === TOPIC_SHUTDOWN) {
-      this.ensureShutdown();
-    }
-  },
-
   
   
 
@@ -1500,6 +1489,18 @@ UnifiedComplete.prototype = {
           readOnly: true
         });
 
+        try {
+           Sqlite.shutdown.addBlocker("Places UnifiedComplete.js clone closing",
+                                      Task.async(function* () {
+                                        SwitchToTabStorage.shutdown();
+                                        yield conn.close();
+                                      }));
+        } catch (ex) {
+          
+          yield conn.close();
+          throw ex;
+        }
+
         
         
         
@@ -1513,20 +1514,6 @@ UnifiedComplete.prototype = {
                                        Cu.reportError(ex); });
     }
     return this._promiseDatabase;
-  },
-
-  
-
-
-  ensureShutdown: function () {
-    if (this._promiseDatabase) {
-      Task.spawn(function* () {
-        let conn = yield this.getDatabaseHandle();
-        SwitchToTabStorage.shutdown();
-        yield conn.close()
-      }.bind(this)).then(null, Cu.reportError);
-      this._promiseDatabase = null;
-    }
   },
 
   
