@@ -398,7 +398,6 @@ public:
     mStreamOrderDirty = true;
   }
 
-  TrackRate AudioSampleRate() const { return mSampleRate; }
   
   uint32_t AudioChannelCount() { return 2; }
 
