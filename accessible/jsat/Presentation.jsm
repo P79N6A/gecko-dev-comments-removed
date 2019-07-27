@@ -47,7 +47,8 @@ Presenter.prototype = {
 
 
 
-  pivotChanged: function pivotChanged(aContext, aReason) {}, 
+
+  pivotChanged: function pivotChanged(aContext, aReason, aIsFromUserInput) {}, 
 
   
 
@@ -66,7 +67,7 @@ Presenter.prototype = {
 
 
   textSelectionChanged: function textSelectionChanged(
-    aText, aStart, aEnd, aOldStart, aOldEnd, aIsFromUser) {}, 
+    aText, aStart, aEnd, aOldStart, aOldEnd, aIsFromUserInput) {}, 
 
   
 
@@ -362,15 +363,15 @@ AndroidPresenter.prototype.textChanged = function AndroidPresenter_textChanged(
 
 AndroidPresenter.prototype.textSelectionChanged =
   function AndroidPresenter_textSelectionChanged(aText, aStart, aEnd, aOldStart,
-                                                 aOldEnd, aIsFromUser) {
+                                                 aOldEnd, aIsFromUserInput) {
     let androidEvents = [];
 
-    if (Utils.AndroidSdkVersion >= 14 && !aIsFromUser) {
+    if (Utils.AndroidSdkVersion >= 14 && !aIsFromUserInput) {
       if (!this._braillePresenter) {
         this._braillePresenter = new BraillePresenter();
       }
       let brailleOutput = this._braillePresenter.textSelectionChanged(
-        aText, aStart, aEnd, aOldStart, aOldEnd, aIsFromUser).details;
+        aText, aStart, aEnd, aOldStart, aOldEnd, aIsFromUserInput).details;
 
       androidEvents.push({
         eventType: this.ANDROID_VIEW_TEXT_SELECTION_CHANGED,
@@ -382,7 +383,7 @@ AndroidPresenter.prototype.textSelectionChanged =
       });
     }
 
-    if (Utils.AndroidSdkVersion >= 16 && aIsFromUser) {
+    if (Utils.AndroidSdkVersion >= 16 && aIsFromUserInput) {
       let [from, to] = aOldStart < aStart ?
         [aOldStart, aStart] : [aStart, aOldStart];
       androidEvents.push({
@@ -469,7 +470,7 @@ B2GPresenter.prototype.pivotChangedReasons = ['none', 'next', 'prev', 'first',
                                               'last', 'text', 'point'];
 
 B2GPresenter.prototype.pivotChanged =
-  function B2GPresenter_pivotChanged(aContext, aReason) {
+  function B2GPresenter_pivotChanged(aContext, aReason, aIsUserInput) {
     if (!aContext.accessible) {
       return null;
     }
@@ -482,7 +483,8 @@ B2GPresenter.prototype.pivotChanged =
         options: {
           pattern: this.PIVOT_CHANGE_HAPTIC_PATTERN,
           isKey: aContext.accessible.role === Roles.KEY,
-          reason: this.pivotChangedReasons[aReason]
+          reason: this.pivotChangedReasons[aReason],
+          isUserInput: aIsUserInput
         }
       }
     };
@@ -584,10 +586,11 @@ this.Presentation = {
   },
 
   pivotChanged: function Presentation_pivotChanged(
-    aPosition, aOldPosition, aReason, aStartOffset, aEndOffset) {
+    aPosition, aOldPosition, aReason, aStartOffset, aEndOffset, aIsUserInput) {
     let context = new PivotContext(
       aPosition, aOldPosition, aStartOffset, aEndOffset);
-    return [p.pivotChanged(context, aReason) for each (p in this.presenters)]; 
+    return [p.pivotChanged(context, aReason, aIsUserInput)
+      for each (p in this.presenters)]; 
   },
 
   actionInvoked: function Presentation_actionInvoked(aObject, aActionName) {
@@ -604,9 +607,9 @@ this.Presentation = {
 
   textSelectionChanged: function textSelectionChanged(aText, aStart, aEnd,
                                                       aOldStart, aOldEnd,
-                                                      aIsFromUser) {
+                                                      aIsFromUserInput) {
     return [p.textSelectionChanged(aText, aStart, aEnd, aOldStart, aOldEnd, 
-      aIsFromUser) for each (p in this.presenters)]; 
+      aIsFromUserInput) for each (p in this.presenters)]; 
   },
 
   valueChanged: function valueChanged(aAccessible) {
