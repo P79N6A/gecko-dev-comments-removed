@@ -140,8 +140,8 @@ function fakeSchedulerTimer(set, clear) {
 
 
 
-function fakeNow(...arguments) {
-  const date = new Date(...arguments);
+function fakeNow(...args) {
+  const date = new Date(...args);
 
   let ping = Cu.import("resource://gre/modules/TelemetryPing.jsm");
   ping.Policy.now = () => date;
@@ -160,6 +160,12 @@ function futureDate(date, offset) {
 
 function truncateToDays(aMsec) {
   return Math.floor(aMsec / MILLISECONDS_PER_DAY);
+}
+
+
+
+function promiseRejects(promise) {
+  return promise.then(() => false, () => true);
 }
 
 

@@ -29,7 +29,6 @@ const PREF_BRANCH = "toolkit.telemetry.";
 const PREF_BRANCH_LOG = PREF_BRANCH + "log.";
 const PREF_SERVER = PREF_BRANCH + "server";
 const PREF_ENABLED = PREF_BRANCH + "enabled";
-const PREF_ARCHIVE_ENABLED = PREF_BRANCH + "archive.enabled";
 const PREF_LOG_LEVEL = PREF_BRANCH_LOG + "level";
 const PREF_LOG_DUMP = PREF_BRANCH_LOG + "dump";
 const PREF_CACHED_CLIENTID = PREF_BRANCH + "cachedClientID";
@@ -57,8 +56,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "AsyncShutdown",
                                   "resource://gre/modules/AsyncShutdown.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStorage",
                                   "resource://gre/modules/TelemetryStorage.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "TelemetryLog",
-                                  "resource://gre/modules/TelemetryLog.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ThirdPartyCookieProbe",
                                   "resource://gre/modules/ThirdPartyCookieProbe.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TelemetryEnvironment",
@@ -67,13 +64,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "SessionRecorder",
                                   "resource://gre/modules/SessionRecorder.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
                                   "resource://gre/modules/UpdateChannel.jsm");
-
-
-const DATAREPORTING_DIR = "datareporting";
-const PINGS_ARCHIVE_DIR = "archived";
-XPCOMUtils.defineLazyGetter(this, "gPingsArchivePath", function() {
-  return OS.Path.join(OS.Constants.Path.profileDir, DATAREPORTING_DIR, PINGS_ARCHIVE_DIR);
-});
+XPCOMUtils.defineLazyModuleGetter(this, "TelemetryArchive",
+                                  "resource://gre/modules/TelemetryArchive.jsm");
 
 
 
@@ -121,25 +113,6 @@ function isNewPingFormat(aPing) {
   return ("id" in aPing) && ("application" in aPing) &&
          ("version" in aPing) && (aPing.version >= 2);
 }
-
-
-
-
-
-
-
-
-function getArchivedPingPath(aPingId, aDate, aType) {
-  
-  let addLeftPadding = value => (value < 10) ? ("0" + value) : value;
-  
-  
-  let archivedPingDir = OS.Path.join(gPingsArchivePath,
-    aDate.getFullYear() + '-' + addLeftPadding(aDate.getMonth() + 1));
-  
-  let fileName = [aDate.getTime(), aPingId, aType, "json"].join(".");
-  return OS.Path.join(archivedPingDir, fileName);
-};
 
 
 
@@ -353,31 +326,6 @@ this.TelemetryPing = Object.freeze({
   promiseInitialized: function() {
     return Impl.promiseInitialized();
   },
-
-  
-
-
-
-
-
-
-
-
-
-
-  promiseArchivedPingList: function() {
-    return Impl.promiseArchivedPingList();
-  },
-
-  
-
-
-
-
-
-  promiseArchivedPingById: function(id) {
-    return Impl.promiseArchivedPingById(id);
-  },
 });
 
 let Impl = {
@@ -406,10 +354,6 @@ let Impl = {
 
   
   _pendingPingRequests: new Map(),
-
-  
-  
-  _archivedPings: null,
 
   
 
@@ -556,7 +500,7 @@ let Impl = {
 
     let pingData = this.assemblePing(aType, aPayload, aOptions);
     
-    let archivePromise = this._archivePing(pingData)
+    let archivePromise = TelemetryArchive.promiseArchivePing(pingData)
       .catch(e => this._log.error("send - Failed to archive ping " + pingData.id, e));
 
     
@@ -644,7 +588,7 @@ let Impl = {
     let pingData = this.assemblePing(aType, aPayload, aOptions);
 
     let savePromise = TelemetryStorage.savePing(pingData, aOptions.overwrite);
-    let archivePromise = this._archivePing(pingData).catch(e => {
+    let archivePromise = TelemetryArchive.promiseArchivePing(pingData).catch(e => {
       this._log.error("addPendingPing - Failed to archive ping " + pingData.id, e);
     });
 
@@ -937,9 +881,6 @@ let Impl = {
     }
 
     
-    this._archivedPings = new Map();
-
-    
     
     
     
@@ -968,20 +909,6 @@ let Impl = {
         
         this._clientID = yield ClientID.getClientID();
         Preferences.set(PREF_CACHED_CLIENTID, this._clientID);
-
-        
-        if (this._shouldArchivePings()) {
-          const DATAREPORTING_PATH = OS.Path.join(OS.Constants.Path.profileDir, DATAREPORTING_DIR);
-          let reportError =
-            e => this._log.error("setupTelemetry - Unable to create the directory", e);
-          
-          
-          yield OS.File.makeDir(DATAREPORTING_PATH, {ignoreExisting: true}).catch(reportError);
-          yield OS.File.makeDir(gPingsArchivePath, {ignoreExisting: true}).catch(reportError);
-
-          yield this._scanArchivedPingDirectory()
-                    .catch((e) => this._log.error("setupTelemetry - failure scanning archived ping directory", e));
-        }
 
         Telemetry.asyncFetchTelemetryData(function () {});
         this._delayedInitTaskDeferred.resolve();
@@ -1104,37 +1031,6 @@ let Impl = {
   
 
 
-
-
-  _shouldArchivePings: function() {
-    return Preferences.get(PREF_ARCHIVE_ENABLED, true);
-  },
-
-  
-
-
-
-
-  _archivePing: Task.async(function*(aPingData) {
-    if (!this._shouldArchivePings()) {
-      return;
-    }
-
-    const creationDate = new Date(aPingData.creationDate);
-    const filePath = getArchivedPingPath(aPingData.id, creationDate, aPingData.type);
-    yield OS.File.makeDir(OS.Path.dirname(filePath), { ignoreExisting: true,
-                                                       from: OS.Constants.Path.profileDir });
-    yield TelemetryStorage.savePingToFile(aPingData, filePath, true);
-
-    this._archivedPings.set(aPingData.id, {
-      timestampCreated: creationDate.getTime(),
-      type: aPingData.type,
-    });
-  }),
-
-  
-
-
   _getState: function() {
     return {
       initialized: this._initialized,
@@ -1150,146 +1046,7 @@ let Impl = {
 
 
 
-
-
-
-  promiseArchivedPingList: function() {
-    this._log.trace("getArchivedPingList");
-
-    let list = [for (p of this._archivedPings) {
-      id: p[0],
-      timestampCreated: p[1].timestampCreated,
-      type: p[1].type,
-    }];
-    list.sort((a, b) => a.timestampCreated - b.timestampCreated);
-
-    return list;
-  },
-
-  
-
-
-
-  promiseArchivedPingById: function(id) {
-    this._log.trace("getArchivedPingById - id: " + id);
-    const data = this._archivedPings.get(id);
-    if (!data) {
-      this._log.trace("getArchivedPingById - no ping with id: " + id);
-      return Promise.reject(new Error("TelemetryPing.getArchivedPingById - no ping with id " + id));
-    }
-
-    const path = getArchivedPingPath(id, new Date(data.timestampCreated), data.type);
-    this._log.trace("getArchivedPingById - loading ping from: " + path);
-    return TelemetryStorage.loadPingFile(path);
-  },
-
-  
-
-
-
-
   promiseInitialized: function() {
     return this._delayedInitTaskDeferred.promise;
   },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  _getArchivedPingDataFromFileName: function(fileName) {
-    
-    let parts = fileName.split(".");
-    if (parts.length != 4) {
-      this._log.trace("_getArchivedPingDataFromFileName - should have 4 parts");
-      return null;
-    }
-
-    let [timestamp, uuid, type, extension] = parts;
-    if (extension != "json") {
-      this._log.trace("_getArchivedPingDataFromFileName - should have a 'json' extension");
-      return null;
-    }
-
-    
-    timestamp = parseInt(timestamp);
-    if (Number.isNaN(timestamp)) {
-      this._log.trace("_getArchivedPingDataFromFileName - should have a valid timestamp");
-      return null;
-    }
-
-    
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(uuid)) {
-      this._log.trace("_getArchivedPingDataFromFileName - should have a valid id");
-      return null;
-    }
-
-    
-    const typeRegex = /^[a-z0-9][a-z0-9-]+[a-z0-9]$/i;
-    if (!typeRegex.test(type)) {
-      this._log.trace("_getArchivedPingDataFromFileName - should have a valid type");
-      return null;
-    }
-
-    return {
-      timestamp: timestamp,
-      id: uuid,
-      type: type,
-    };
-  },
-
-  
-
-
-  _scanArchivedPingDirectory: Task.async(function*() {
-    this._log.trace("_scanArchivedPingDirectory");
-
-    let dirIterator = new OS.File.DirectoryIterator(gPingsArchivePath);
-    let subdirs = (yield dirIterator.nextBatch()).filter(e => e.isDir);
-
-    
-    for (let dir of subdirs) {
-      const dirRegEx = /^[0-9]{4}-[0-9]{2}$/;
-      if (!dirRegEx.test(dir.name)) {
-        this._log.warn("_scanArchivedPingDirectory - skipping invalidly named subdirectory " + dir.path);
-        continue;
-      }
-
-      this._log.trace("_scanArchivedPingDirectory - checking in subdir: " + dir.path);
-      let pingIterator = new OS.File.DirectoryIterator(dir.path);
-      let pings = (yield pingIterator.nextBatch()).filter(e => !e.isDir);
-
-      
-      for (let p of pings) {
-        
-        let data = this._getArchivedPingDataFromFileName(p.name);
-        if (!data) {
-          continue;
-        }
-
-        
-        if (this._archivedPings.has(data.id)) {
-          const overwrite = data.timestamp > this._archivedPings.get(data.id).timestampCreated;
-          this._log.warn("_scanArchivedPingDirectory - have seen this id before: " + data.id +
-                         ", overwrite: " + overwrite);
-          if (!overwrite) {
-            continue;
-          }
-        }
-
-        this._archivedPings.set(data.id, {
-          timestampCreated: data.timestamp,
-          type: data.type,
-        });
-      }
-    }
-  }),
 };
