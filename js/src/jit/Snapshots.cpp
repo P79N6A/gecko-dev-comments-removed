@@ -160,19 +160,19 @@ RValueAllocation::layoutFromMode(Mode mode)
         };
         return layout;
       }
-      case FLOAT32_REG: {
+      case ANY_FLOAT_REG: {
         static const RValueAllocation::Layout layout = {
             PAYLOAD_FPU,
             PAYLOAD_NONE,
-            "float32"
+            "float register content"
         };
         return layout;
       }
-      case FLOAT32_STACK: {
+      case ANY_FLOAT_STACK: {
         static const RValueAllocation::Layout layout = {
             PAYLOAD_STACK_OFFSET,
             PAYLOAD_NONE,
-            "float32"
+            "float register content"
         };
         return layout;
       }
