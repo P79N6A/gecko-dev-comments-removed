@@ -220,7 +220,7 @@ private:
   
   
   
-#ifdef XP_LINUX
+#if defined(XP_LINUX) || defined(XP_MACOSX)
 public:
   int64_t        mRssMemory;
   int64_t        mUssMemory;
