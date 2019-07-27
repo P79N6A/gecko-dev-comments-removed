@@ -13,11 +13,21 @@ var Cu = Components.utils;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
+Cu.import("resource://gre/modules/PlacesUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
                                   "resource://gre/modules/PluralForm.jsm");
-
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
                                   "resource://gre/modules/PrivateBrowsingUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
+                                  "resource://gre/modules/NetUtil.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+                                  "resource://gre/modules/Task.jsm");
+
+
+Cu.import("resource://gre/modules/PlacesUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesTransactions",
+                                  "resource://gre/modules/PlacesTransactions.jsm");
 
 #ifdef MOZ_SERVICES_CLOUDSYNC
 XPCOMUtils.defineLazyModuleGetter(this, "CloudSync",
@@ -31,10 +41,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Weave",
                                   "resource://services-sync/main.js");
 #endif
 
-XPCOMUtils.defineLazyGetter(this, "PlacesUtils", function() {
-  Cu.import("resource://gre/modules/PlacesUtils.jsm");
-  return PlacesUtils;
-});
+
+const TAB_DROP_TYPE = "application/x-moz-tabbrowser-tab";
 
 this.PlacesUIUtils = {
   ORGANIZER_LEFTPANE_VERSION: 7,
@@ -43,8 +51,6 @@ this.PlacesUIUtils = {
 
   LOAD_IN_SIDEBAR_ANNO: "bookmarkProperties/loadInSidebar",
   DESCRIPTION_ANNO: "bookmarkProperties/description",
-
-  TYPE_TAB_DROP: "application/x-moz-tabbrowser-tab",
 
   
 
@@ -328,7 +334,7 @@ this.PlacesUIUtils = {
       default:
         if (type == PlacesUtils.TYPE_X_MOZ_URL ||
             type == PlacesUtils.TYPE_UNICODE ||
-            type == this.TYPE_TAB_DROP) {
+            type == TAB_DROP_TYPE) {
           let title = type != PlacesUtils.TYPE_UNICODE ? data.title
                                                        : data.uri;
           return new PlacesCreateBookmarkTransaction(PlacesUtils._uri(data.uri),
@@ -336,6 +342,62 @@ this.PlacesUIUtils = {
         }
     }
     return null;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getTransactionForData: function(aData, aType, aNewParentGuid, aIndex, aCopy) {
+    if (this.SUPPORTED_FLAVORS.indexOf(aData.type) == -1)
+      throw new Error(`Unsupported '${aData.type}' data type`);
+
+    if ("itemGuid" in aData) {
+      if (this.PLACES_FLAVORS.indexOf(aData.type) == -1)
+        throw new Error (`itemGuid unexpectedly set on ${aData.type} data`);
+
+      let info = { GUID: aData.itemGuid
+                 , newParentGUID: aNewParentGuid
+                 , newIndex: aIndex };
+      if (aCopy)
+        return PlacesTransactions.Copy(info);
+      return PlacesTransactions.Move(info);
+    }
+
+    
+    
+    
+    
+    if (aData.type == PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER)
+      throw new Error("Can't copy a container from a legacy-transactions build");
+
+    if (aData.type == PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR) {
+      return PlacesTransactions.NewSeparator({ parentGUID: aNewParentGuid
+                                             , index: aIndex });
+    }
+
+    let title = aData.type != PlacesUtils.TYPE_UNICODE ? aData.title
+                                                       : aData.uri;
+    return PlacesTransactions.NewBookmark({ uri: NetUtil.newURI(aData.uri)
+                                          , title: title
+                                          , parentGUID: aNewParentGuid
+                                          , index: aIndex });
   },
 
   
@@ -1023,6 +1085,18 @@ this.PlacesUIUtils = {
     return weaveEnabled || cloudSyncEnabled;
   },
 };
+
+
+PlacesUIUtils.PLACES_FLAVORS = [PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER,
+                                PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR,
+                                PlacesUtils.TYPE_X_MOZ_PLACE];
+
+PlacesUIUtils.URI_FLAVORS = [PlacesUtils.TYPE_X_MOZ_URL,
+                             TAB_DROP_TYPE,
+                             PlacesUtils.TYPE_UNICODE],
+
+PlacesUIUtils.SUPPORTED_FLAVORS = [...PlacesUIUtils.PLACES_FLAVORS,
+                                   ...PlacesUIUtils.URI_FLAVORS];
 
 XPCOMUtils.defineLazyServiceGetter(PlacesUIUtils, "RDF",
                                    "@mozilla.org/rdf/rdf-service;1",

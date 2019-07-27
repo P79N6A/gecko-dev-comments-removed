@@ -43,12 +43,12 @@ const REMOVE_PAGES_CHUNKLEN = 300;
 
 
 
-function InsertionPoint(aItemId, aIndex, aOrientation, aIsTag,
-                        aDropNearItemId) {
+function InsertionPoint(aItemId, aIndex, aOrientation, aTagName = null,
+                        aDropNearItemId = false) {
   this.itemId = aItemId;
   this._index = aIndex;
   this.orientation = aOrientation;
-  this.isTag = aIsTag;
+  this.tagName = aTagName;
   this.dropNearItemId = aDropNearItemId;
 }
 
@@ -67,7 +67,9 @@ InsertionPoint.prototype = {
       return this.orientation == Ci.nsITreeView.DROP_BEFORE ? index : index + 1;
     }
     return this._index;
-  }
+  },
+
+  get isTag() typeof(this.tagName) == "string"
 };
 
 
@@ -127,14 +129,8 @@ PlacesController.prototype = {
   isCommandEnabled: function PC_isCommandEnabled(aCommand) {
     if (PlacesUIUtils.useAsyncTransactions) {
       switch (aCommand) {
-      case "cmd_cut":
-      case "placesCmd_cut":
-      case "cmd_copy":
-      case "cmd_paste":
       case "cmd_delete":
       case "placesCmd_delete":
-      case "cmd_paste":
-      case "placesCmd_paste":
       case "placesCmd_new:folder":
       case "placesCmd_new:bookmark":
       case "placesCmd_createBookmark":
@@ -243,7 +239,7 @@ PlacesController.prototype = {
       break;
     case "cmd_paste":
     case "placesCmd_paste":
-      this.paste();
+      this.paste().then(null, Components.utils.reportError);
       break;
     case "cmd_delete":
     case "placesCmd_delete":
@@ -378,7 +374,7 @@ PlacesController.prototype = {
     
     
 
-    var flavors = PlacesControllerDragHelper.placesFlavors;
+    var flavors = PlacesUIUtils.PLACES_FLAVORS;
     var clipboard = this.clipboard;
     var hasPlacesData =
       clipboard.hasDataMatchingFlavors(flavors, flavors.length,
@@ -1253,7 +1249,8 @@ PlacesController.prototype = {
   
 
 
-  paste: function PC_paste() {
+  paste: Task.async(function *() {
+
     
     let ip = this._view.insertionPoint;
     if (!ip)
@@ -1285,54 +1282,91 @@ PlacesController.prototype = {
       return;
     }
 
-    let transactions = [];
-    let insertionIndex = ip.index;
-    for (let i = 0; i < items.length; ++i) {
+    let itemsToSelect = [];
+    if (PlacesUIUtils.useAsyncTransactions) {
       if (ip.isTag) {
-        
-        
-        let tagTxn = new PlacesTagURITransaction(NetUtil.newURI(items[i].uri),
-                                                 [ip.itemId]);
-        transactions.push(tagTxn);
-        continue;
+        let uris = [for (item of items) if ("uri" in item)
+                    NetUtil.newURI(item.uri)];
+        yield PlacesTransactions.transact(
+          PlacesTransactions.Tag({ uris: uris, tag: ip.tagName }));
       }
+      else {
+        yield PlacesTransactions.transact(function *() {
+          let insertionIndex = ip.index;
+          let parent = yield ip.promiseGUID();
 
-      
-      
-      if (ip.index != PlacesUtils.bookmarks.DEFAULT_INDEX)
-        insertionIndex = ip.index + i;
+          for (let item of items) {
+            let doCopy = action == "copy";
 
-      
-      
-      if (action != "copy" && !PlacesControllerDragHelper.canMoveUnwrappedNode(items[i])) {
-        Components.utils.reportError("Tried to move an unmovable Places node, " +
-                                     "reverting to a copy operation.");
-        action = "copy";
+            
+            
+            if (!doCopy &&
+                !PlacesControllerDragHelper.canMoveUnwrappedNode(item)) {
+              Cu.reportError("Tried to move an unmovable Places node, " +
+                             "reverting to a copy operation.");
+              doCopy = true;
+            }
+            let guid = yield PlacesUIUtils.getTransactionForData(
+              item, type, parent, insertionIndex, doCopy);
+            itemsToSelect.push(yield PlacesUtils.promiseItemId(guid));
+
+            
+            
+            if (insertionIndex != PlacesUtils.bookmarks.DEFAULT_INDEX)
+              insertionIndex++;
+          }
+        });
       }
-      transactions.push(
-        PlacesUIUtils.makeTransaction(items[i], type, ip.itemId,
-                                      insertionIndex, action == "copy")
-      );
     }
- 
-    let aggregatedTxn = new PlacesAggregatedTransaction("Paste", transactions);
-    PlacesUtils.transactionManager.doTransaction(aggregatedTxn);
+    else {
+      let transactions = [];
+      for (let i = 0; i < items.length; ++i) {
+        let insertionIndex = ip.index + i;
+        if (ip.isTag) {
+          
+          
+          let tagTxn = new PlacesTagURITransaction(NetUtil.newURI(items[i].uri),
+                                                   [ip.itemId]);
+          transactions.push(tagTxn);
+          continue;
+        }
+
+        
+        
+        if (ip.index != PlacesUtils.bookmarks.DEFAULT_INDEX)
+          insertionIndex = ip.index + i;
+
+        
+        
+        if (action != "copy" && !PlacesControllerDragHelper.canMoveUnwrappedNode(items[i])) {
+          Components.utils.reportError("Tried to move an unmovable Places node, " +
+                                       "reverting to a copy operation.");
+          action = "copy";
+        }
+        transactions.push(
+          PlacesUIUtils.makeTransaction(items[i], type, ip.itemId,
+                                        insertionIndex, action == "copy")
+        );
+      }
+
+      let aggregatedTxn = new PlacesAggregatedTransaction("Paste", transactions);
+      PlacesUtils.transactionManager.doTransaction(aggregatedTxn);
+
+      for (let i = 0; i < transactions.length; ++i) {
+        itemsToSelect.push(
+          PlacesUtils.bookmarks.getIdForItemAt(ip.itemId, ip.index + i)
+        );
+      }
+    }
 
     
     if (action == "cut") {
       this._clearClipboard();
     }
 
-    
-    let insertedNodeIds = [];
-    for (let i = 0; i < transactions.length; ++i) {
-      insertedNodeIds.push(
-        PlacesUtils.bookmarks.getIdForItemAt(ip.itemId, ip.index + i)
-      );
-    }
-    if (insertedNodeIds.length > 0)
-      this._view.selectItems(insertedNodeIds, false);
-  },
+    if (itemsToSelect.length > 0)
+      this._view.selectItems(itemsToSelect, false);
+  }),
 
   
 
@@ -1412,7 +1446,7 @@ let PlacesControllerDragHelper = {
 
   getFirstValidFlavor: function PCDH_getFirstValidFlavor(aFlavors) {
     for (let i = 0; i < aFlavors.length; i++) {
-      if (this.GENERIC_VIEW_DROP_TYPES.indexOf(aFlavors[i]) != -1)
+      if (PlacesUIUtils.SUPPORTED_FLAVORS.indexOf(aFlavors[i]) != -1)
         return aFlavors[i];
     }
 
@@ -1647,19 +1681,7 @@ let PlacesControllerDragHelper = {
     
     return (!PlacesUtils.nodeIsFolder(aContainer) ||
              PlacesUtils.nodeIsReadOnly(aContainer));
-  },
-
-  placesFlavors: [PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER,
-                  PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR,
-                  PlacesUtils.TYPE_X_MOZ_PLACE],
-
-  
-  GENERIC_VIEW_DROP_TYPES: [PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER,
-                            PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR,
-                            PlacesUtils.TYPE_X_MOZ_PLACE,
-                            PlacesUtils.TYPE_X_MOZ_URL,
-                            TAB_DROP_TYPE,
-                            PlacesUtils.TYPE_UNICODE],
+  }
 };
 
 
