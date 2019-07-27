@@ -1347,7 +1347,7 @@ Sync11Service.prototype = {
     try {
       let collectionURL = this.storageURL + "meta/fxa_credentials";
       let cryptoWrapper = this.recordManager.get(collectionURL);
-      if (!cryptoWrapper.payload) {
+      if (!cryptoWrapper || !cryptoWrapper.payload) {
         
         
         return Promise.resolve(null);
