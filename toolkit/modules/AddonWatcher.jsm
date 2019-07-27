@@ -23,16 +23,8 @@ XPCOMUtils.defineLazyServiceGetter(this, "Telemetry",
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
 
-const FILTERS = ["longestDuration", "totalCPOWTime"];
-
 let AddonWatcher = {
   _previousPerformanceIndicators: {},
-
-  
-
-
-
-  _stats: new Map(),
   _timer: Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer),
   _callback: null,
   
@@ -170,30 +162,12 @@ let AddonWatcher = {
         }
 
         
-
-        let stats = this._stats.get(addonId);
-        if (!stats) {
-          stats = {
-            peaks: {},
-            alerts: {},
-          };
-          this._stats.set(addonId, stats);
-        }
-
-        
-
         let reason = null;
 
-        for (let filter of FILTERS) {
-          let peak = stats.peaks[filter] || 0;
-          stats.peaks[filter] = Math.max(diff[filter], peak);
-
-          if (limits[filter] <= 0 || diff[filter] <= limits[filter]) {
-            continue;
+        for (let k of ["longestDuration", "totalCPOWTime"]) {
+          if (limits[k] > 0 && diff[k] > limits[k]) {
+            reason = k;
           }
-
-          reason = filter;
-          stats.alerts[filter] = (stats.alerts[filter] || 0) + 1;
         }
 
         if (!reason) {
@@ -226,24 +200,5 @@ let AddonWatcher = {
     } catch (ex) {
       Preferences.set("browser.addon-watch.ignore", JSON.stringify([addonid]));
     }
-  },
-  
-
-
-
-
-
-
-
-
-
-
-
-  get alerts() {
-    let result = new Map();
-    for (let [k, v] of this._stats) {
-      result.set(k, Cu.cloneInto(v, this));
-    }
-    return result;
-  },
+  }
 };
