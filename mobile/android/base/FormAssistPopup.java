@@ -73,13 +73,13 @@ public class FormAssistPopup extends RelativeLayout implements GeckoEventListene
     private static final String LOGTAG = "GeckoFormAssistPopup";
 
     
-    private static final Collection<String> sInputMethodBlocklist = Arrays.asList(new String[] {
+    private static final Collection<String> sInputMethodBlocklist = Arrays.asList(
                                             InputMethods.METHOD_GOOGLE_JAPANESE_INPUT, 
                                             InputMethods.METHOD_OPENWNN_PLUS,          
                                             InputMethods.METHOD_SIMEJI,                
                                             InputMethods.METHOD_SWYPE,                 
-                                            InputMethods.METHOD_SWYPE_BETA,            
-                                            });
+                                            InputMethods.METHOD_SWYPE_BETA            
+                                            );
 
     public FormAssistPopup(Context context, AttributeSet attrs) {
         super(context, attrs);
