@@ -20,18 +20,11 @@
 
 
 
-
-
 'use strict';
-this.EXPORTED_SYMBOLS = ['ManifestProcessor']; 
-const imports = {};
 const {
   utils: Cu
 } = Components;
-Cu.import('resource://gre/modules/XPCOMUtils.jsm');
 Cu.importGlobalProperties(['URL']);
-XPCOMUtils.defineLazyModuleGetter(imports, 'Services',
-  'resource://gre/modules/Services.jsm');
 const displayModes = new Set(['fullscreen', 'standalone', 'minimal-ui',
   'browser'
 ]);
@@ -41,14 +34,16 @@ const orientationTypes = new Set(['any', 'natural', 'landscape', 'portrait',
 ]);
 const {
   ConsoleAPI
-} = Cu.import('resource://gre/modules/devtools/Console.jsm');
-const {
-  ManifestImageObjectProcessor: ImgObjProcessor
-} = Cu.import('resource://gre/modules/ManifestImageObjectProcessor.jsm');
+} = Cu.import('resource://gre/modules/devtools/Console.jsm', {});
+
 
 const {
-  ManifestValueExtractor
-} = Cu.import('resource://gre/modules/ManifestValueExtractor.jsm');
+  ValueExtractor
+} = Cu.import('resource://gre/modules/ValueExtractor.js', {});
+
+const {
+  ImageObjectProcessor
+} = Cu.import('resource://gre/modules/ImageObjectProcessor.js', {});
 
 function ManifestProcessor() {}
 
@@ -79,7 +74,7 @@ ManifestProcessor.prototype = {
   
   
   process({
-    jsonText: aJsonText,
+    jsonText,
     manifestURL: aManifestURL,
     docURL: aDocURL
   }) {
@@ -90,39 +85,37 @@ ManifestProcessor.prototype = {
     const docURL = new URL(aDocURL);
     let rawManifest = {};
     try {
-      rawManifest = JSON.parse(aJsonText);
+      rawManifest = JSON.parse(jsonText);
     } catch (e) {}
     if (typeof rawManifest !== 'object' || rawManifest === null) {
       let msg = 'Manifest needs to be an object.';
       console.warn(msg);
       rawManifest = {};
     }
-    const extractor = new ManifestValueExtractor(console);
-    const imgObjProcessor = new ImgObjProcessor(console, extractor);
+    const extractor = new ValueExtractor(console);
+    const imgObjProcessor = new ImageObjectProcessor(console, extractor);
     const processedManifest = {
-      'lang': processLangMember(rawManifest),
-      'start_url': processStartURLMember(rawManifest, manifestURL, docURL),
-      'display': processDisplayMember(rawManifest),
-      'orientation': processOrientationMember(rawManifest),
-      'name': processNameMember(rawManifest),
+      'lang': processLangMember(),
+      'start_url': processStartURLMember(),
+      'display': processDisplayMember(),
+      'orientation': processOrientationMember(),
+      'name': processNameMember(),
       'icons': imgObjProcessor.process(
         rawManifest, manifestURL, 'icons'
       ),
       'splash_screens': imgObjProcessor.process(
         rawManifest, manifestURL, 'splash_screens'
       ),
-      'short_name': processShortNameMember(rawManifest),
-      'theme_color': processThemeColorMember(rawManifest),
+      'short_name': processShortNameMember(),
+      'theme_color': processThemeColorMember(),
     };
-    processedManifest.scope = processScopeMember(rawManifest, manifestURL,
-      docURL, new URL(processedManifest['start_url'])); 
-
+    processedManifest.scope = processScopeMember();
     return processedManifest;
 
-    function processNameMember(aManifest) {
+    function processNameMember() {
       const spec = {
         objectName: 'manifest',
-        object: aManifest,
+        object: rawManifest,
         property: 'name',
         expectedType: 'string',
         trim: true
@@ -130,10 +123,10 @@ ManifestProcessor.prototype = {
       return extractor.extractValue(spec);
     }
 
-    function processShortNameMember(aManifest) {
+    function processShortNameMember() {
       const spec = {
         objectName: 'manifest',
-        object: aManifest,
+        object: rawManifest,
         property: 'short_name',
         expectedType: 'string',
         trim: true
@@ -141,10 +134,10 @@ ManifestProcessor.prototype = {
       return extractor.extractValue(spec);
     }
 
-    function processOrientationMember(aManifest) {
+    function processOrientationMember() {
       const spec = {
         objectName: 'manifest',
-        object: aManifest,
+        object: rawManifest,
         property: 'orientation',
         expectedType: 'string',
         trim: true
@@ -157,10 +150,10 @@ ManifestProcessor.prototype = {
       return '';
     }
 
-    function processDisplayMember(aManifest) {
+    function processDisplayMember() {
       const spec = {
         objectName: 'manifest',
-        object: aManifest,
+        object: rawManifest,
         property: 'display',
         expectedType: 'string',
         trim: true
@@ -172,34 +165,35 @@ ManifestProcessor.prototype = {
       return ManifestProcessor.defaultDisplayMode;
     }
 
-    function processScopeMember(aManifest, aManifestURL, aDocURL, aStartURL) {
+    function processScopeMember() {
       const spec = {
         objectName: 'manifest',
-        object: aManifest,
+        object: rawManifest,
         property: 'scope',
         expectedType: 'string',
         trim: false
       };
       let scopeURL;
+      const startURL = new URL(processedManifest.start_url);
       const value = extractor.extractValue(spec);
       if (value === undefined || value === '') {
         return undefined;
       }
       try {
-        scopeURL = new URL(value, aManifestURL);
+        scopeURL = new URL(value, manifestURL);
       } catch (e) {
         let msg = 'The URL of scope is invalid.';
         console.warn(msg);
         return undefined;
       }
-      if (scopeURL.origin !== aDocURL.origin) {
+      if (scopeURL.origin !== docURL.origin) {
         let msg = 'Scope needs to be same-origin as Document.';
         console.warn(msg);
         return undefined;
       }
       
-      let isSameOrigin = aStartURL && aStartURL.origin !== scopeURL.origin;
-      if (isSameOrigin || !aStartURL.pathname.startsWith(scopeURL.pathname)) {
+      let isSameOrigin = startURL && startURL.origin !== scopeURL.origin;
+      if (isSameOrigin || !startURL.pathname.startsWith(scopeURL.pathname)) {
         let msg =
           'The start URL is outside the scope, so scope is invalid.';
         console.warn(msg);
@@ -208,27 +202,27 @@ ManifestProcessor.prototype = {
       return scopeURL.href;
     }
 
-    function processStartURLMember(aManifest, aManifestURL, aDocURL) {
+    function processStartURLMember() {
       const spec = {
         objectName: 'manifest',
-        object: aManifest,
+        object: rawManifest,
         property: 'start_url',
         expectedType: 'string',
         trim: false
       };
-      let result = new URL(aDocURL).href;
+      let result = new URL(docURL).href;
       const value = extractor.extractValue(spec);
       if (value === undefined || value === '') {
         return result;
       }
       let potentialResult;
       try {
-        potentialResult = new URL(value, aManifestURL);
+        potentialResult = new URL(value, manifestURL);
       } catch (e) {
         console.warn('Invalid URL.');
         return result;
       }
-      if (potentialResult.origin !== aDocURL.origin) {
+      if (potentialResult.origin !== docURL.origin) {
         let msg = 'start_url must be same origin as document.';
         console.warn(msg);
       } else {
@@ -237,10 +231,10 @@ ManifestProcessor.prototype = {
       return result;
     }
 
-    function processThemeColorMember(aManifest) {
+    function processThemeColorMember() {
       const spec = {
         objectName: 'manifest',
-        object: aManifest,
+        object: rawManifest,
         property: 'theme_color',
         expectedType: 'string',
         trim: true
@@ -248,10 +242,10 @@ ManifestProcessor.prototype = {
       return extractor.extractColorValue(spec);
     }
 
-    function processLangMember(aManifest) {
+    function processLangMember() {
       const spec = {
         objectName: 'manifest',
-        object: aManifest,
+        object: rawManifest,
         property: 'lang',
         expectedType: 'string',
         trim: true
@@ -270,3 +264,4 @@ ManifestProcessor.prototype = {
   }
 };
 this.ManifestProcessor = ManifestProcessor; 
+this.EXPORTED_SYMBOLS = ['ManifestProcessor']; 
