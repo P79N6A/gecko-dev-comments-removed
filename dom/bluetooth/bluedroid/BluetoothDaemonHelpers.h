@@ -421,6 +421,9 @@ PackPDU(BluetoothScanMode aIn, BluetoothDaemonPDU& aPDU);
 nsresult
 PackPDU(ControlPlayStatus aIn, BluetoothDaemonPDU& aPDU);
 
+nsresult
+PackPDU(BluetoothTransport aIn, BluetoothDaemonPDU& aPDU);
+
 
 
 
