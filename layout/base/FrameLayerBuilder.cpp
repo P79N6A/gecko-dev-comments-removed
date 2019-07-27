@@ -2212,22 +2212,21 @@ ContainerState::PopThebesLayerData()
 }
 
 static bool
-IsItemAreaInWindowOpaqueRegion(nsDisplayListBuilder* aBuilder,
-                               nsDisplayItem* aItem,
-                               const nsRect& aComponentAlphaBounds)
+SuppressComponentAlpha(nsDisplayListBuilder* aBuilder,
+                       nsDisplayItem* aItem)
 {
-  if (!aItem->Frame()->PresContext()->IsChrome()) {
-    
-    return true;
-  }
-  if (aItem->ReferenceFrame() != aBuilder->RootReferenceFrame()) {
-    
-    
-    
-    
+  
+  
+  nsIFrame* f = aItem->Frame();
+  nsIFrame* ref = aBuilder->RootReferenceFrame();
+  if (f->PresContext() != ref->PresContext())
     return false;
+
+  for (nsIFrame* t = f; t; t = t->GetParent()) {
+    if (t->IsTransformed())
+      return false;
   }
-  return aBuilder->GetWindowOpaqueRegion().Contains(aComponentAlphaBounds);
+  return true;
 }
 
 void
@@ -2339,11 +2338,10 @@ ThebesLayerData::Accumulate(ContainerState* aState,
       nsIntRect componentAlphaRect =
         aState->ScaleToOutsidePixels(componentAlpha, false).Intersect(aVisibleRect);
       if (!mOpaqueRegion.Contains(componentAlphaRect)) {
-        if (IsItemAreaInWindowOpaqueRegion(aState->mBuilder, aItem,
-              componentAlpha.Intersect(aItem->GetVisibleRect()))) {
-          mNeedComponentAlpha = true;
-        } else {
+        if (SuppressComponentAlpha(aState->mBuilder, aItem)) {
           aItem->DisableComponentAlpha();
+        } else {
+          mNeedComponentAlpha = true;
         }
       }
     }
@@ -2605,8 +2603,8 @@ ContainerState::ComputeOpaqueRect(nsDisplayItem* aItem,
     
     
     
-    if (!mContainerLayer->GetParent()) {
-      mBuilder->AddWindowOpaqueRegion(opaqueClipped);
+    if (!mContainerLayer->GetParent() && mBuilder->HasGlass()) {
+      mBuilder->AddExcludedGlassRegion(opaqueClipped);
     }
     opaquePixels = ScaleRegionToInsidePixels(opaqueClipped, snapOpaque);
     if (aFixedPosFrame && ItemCoversScrollableArea(aItem, opaque)) {

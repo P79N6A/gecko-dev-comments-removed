@@ -667,15 +667,11 @@ public:
 
 
   
-  void AddWindowOpaqueRegion(const nsRegion& bounds) {
-    mWindowOpaqueRegion.Or(mWindowOpaqueRegion, bounds);
+  void AddExcludedGlassRegion(const nsRegion& bounds) {
+    mExcludedGlassRegion.Or(mExcludedGlassRegion, bounds);
   }
-  
-
-
-
-  const nsRegion& GetWindowOpaqueRegion() {
-    return mWindowOpaqueRegion;
+  const nsRegion& GetExcludedGlassRegion() {
+    return mExcludedGlassRegion;
   }
   void SetGlassDisplayItem(nsDisplayItem* aItem) {
     if (mGlassDisplayItem) {
@@ -687,6 +683,10 @@ public:
     } else {
       mGlassDisplayItem = aItem;
     }
+  }
+  
+  bool HasGlass() {
+    return mGlassDisplayItem != nullptr;
   }
   bool NeedToForceTransparentSurfaceForItem(nsDisplayItem* aItem) {
     return aItem == mGlassDisplayItem;
@@ -747,7 +747,7 @@ private:
   nsPoint                        mCurrentOffsetToReferenceFrame;
   
   nsRect                         mDirtyRect;
-  nsRegion                       mWindowOpaqueRegion;
+  nsRegion                       mExcludedGlassRegion;
   
   nsDisplayItem*                 mGlassDisplayItem;
   nsTArray<DisplayItemClip*>     mDisplayItemClipsToDestroy;
