@@ -493,10 +493,16 @@ nsUrlClassifierStreamUpdater::OnStartRequest(nsIRequest *request,
 
   if (downloadError) {
     LOG(("nsUrlClassifierStreamUpdater::Download error [this=%p]", this));
-    mDownloadErrorCallback->HandleEvent(strStatus);
+
+    
+    if (mDownloadErrorCallback) {
+      mDownloadErrorCallback->HandleEvent(strStatus);
+    }
+
     mDownloadError = true;
     status = NS_ERROR_ABORT;
   } else if (NS_SUCCEEDED(status)) {
+    MOZ_ASSERT(mDownloadErrorCallback);
     mBeganStream = true;
     LOG(("nsUrlClassifierStreamUpdater::Beginning stream [this=%p]", this));
     rv = mDBService->BeginStream(mStreamTable);
