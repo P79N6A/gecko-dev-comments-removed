@@ -202,9 +202,13 @@ nsMathMLContainerFrame::GetPreferredStretchSize(nsRenderingContext& aRenderingCo
   }
   else {
     
-    bool stretchAll =
-      NS_MATHML_WILL_STRETCH_ALL_CHILDREN_VERTICALLY(mPresentationData.flags) ||
-      NS_MATHML_WILL_STRETCH_ALL_CHILDREN_HORIZONTALLY(mPresentationData.flags);
+    
+    bool stretchAll = aStretchDirection == NS_STRETCH_DIRECTION_VERTICAL ?
+                      NS_MATHML_WILL_STRETCH_ALL_CHILDREN_VERTICALLY(mPresentationData.flags) :
+                      NS_MATHML_WILL_STRETCH_ALL_CHILDREN_HORIZONTALLY(mPresentationData.flags);
+    NS_ASSERTION(aStretchDirection == NS_STRETCH_DIRECTION_HORIZONTAL ||
+                 aStretchDirection == NS_STRETCH_DIRECTION_VERTICAL,
+                 "You must specify a direction in which to stretch");
     NS_ASSERTION(NS_MATHML_IS_EMBELLISH_OPERATOR(mEmbellishData.flags) ||
                  stretchAll,
                  "invalid call to GetPreferredStretchSize");
@@ -248,7 +252,7 @@ nsMathMLContainerFrame::GetPreferredStretchSize(nsRenderingContext& aRenderingCo
         }
       }
       else {
-        if (NS_MATHML_WILL_STRETCH_ALL_CHILDREN_HORIZONTALLY(mPresentationData.flags)) {
+        if (aStretchDirection == NS_STRETCH_DIRECTION_HORIZONTAL) {
           
           
           
@@ -266,7 +270,7 @@ nsMathMLContainerFrame::GetPreferredStretchSize(nsRenderingContext& aRenderingCo
           if (bm.rightBearing < bmChild.rightBearing)
             bm.rightBearing = bmChild.rightBearing;
         }
-        else if (NS_MATHML_WILL_STRETCH_ALL_CHILDREN_VERTICALLY(mPresentationData.flags)) {
+        else if (aStretchDirection == NS_STRETCH_DIRECTION_VERTICAL) {
           
           bm += bmChild;
         }
@@ -307,9 +311,6 @@ nsMathMLContainerFrame::Stretch(nsRenderingContext& aRenderingContext,
       nsIMathMLFrame* mathMLFrame = do_QueryFrame(baseFrame);
       NS_ASSERTION(mathMLFrame, "Something is wrong somewhere");
       if (mathMLFrame) {
-        bool stretchAll =
-          NS_MATHML_WILL_STRETCH_ALL_CHILDREN_VERTICALLY(mPresentationData.flags) ||
-          NS_MATHML_WILL_STRETCH_ALL_CHILDREN_HORIZONTALLY(mPresentationData.flags);
 
         
         
@@ -328,21 +329,26 @@ nsMathMLContainerFrame::Stretch(nsRenderingContext& aRenderingContext,
         
         
         nsBoundingMetrics containerSize = aContainerSize;
-        if (aStretchDirection != NS_STRETCH_DIRECTION_DEFAULT &&
-            aStretchDirection != mEmbellishData.direction) {
-          if (mEmbellishData.direction == NS_STRETCH_DIRECTION_UNSUPPORTED) {
-            containerSize = childSize.mBoundingMetrics;
-          }
-          else {
-            GetPreferredStretchSize(aRenderingContext, 
-                                    stretchAll ? STRETCH_CONSIDER_EMBELLISHMENTS : 0,
+        if (aStretchDirection != mEmbellishData.direction &&
+            mEmbellishData.direction != NS_STRETCH_DIRECTION_UNSUPPORTED) {
+          NS_ASSERTION(mEmbellishData.direction != NS_STRETCH_DIRECTION_DEFAULT,
+                       "Stretches may have a default direction, operators can not.");
+          if (mEmbellishData.direction == NS_STRETCH_DIRECTION_VERTICAL ?
+              NS_MATHML_WILL_STRETCH_ALL_CHILDREN_VERTICALLY(mPresentationData.flags) :
+              NS_MATHML_WILL_STRETCH_ALL_CHILDREN_HORIZONTALLY(mPresentationData.flags)) {
+            GetPreferredStretchSize(aRenderingContext, 0,
                                     mEmbellishData.direction, containerSize);
+            
+            aStretchDirection = mEmbellishData.direction;
+          } else {
+            
+            containerSize = childSize.mBoundingMetrics;
           }
         }
 
         
         mathMLFrame->Stretch(aRenderingContext,
-                             mEmbellishData.direction, containerSize, childSize);
+                             aStretchDirection, containerSize, childSize);
         
         SaveReflowAndBoundingMetricsFor(baseFrame, childSize,
                                         childSize.mBoundingMetrics);
@@ -351,7 +357,8 @@ nsMathMLContainerFrame::Stretch(nsRenderingContext& aRenderingContext,
         
         
 
-        if (stretchAll) {
+        if (NS_MATHML_WILL_STRETCH_ALL_CHILDREN_VERTICALLY(mPresentationData.flags) ||
+            NS_MATHML_WILL_STRETCH_ALL_CHILDREN_HORIZONTALLY(mPresentationData.flags)) {
 
           nsStretchDirection stretchDir =
             NS_MATHML_WILL_STRETCH_ALL_CHILDREN_VERTICALLY(mPresentationData.flags) ?
@@ -502,18 +509,21 @@ nsMathMLContainerFrame::FinalizeReflow(nsRenderingContext& aRenderingContext,
         
         NS_MATHML_WILL_STRETCH_ALL_CHILDREN_HORIZONTALLY(mPresentationData.flags);
 
-      nsBoundingMetrics defaultSize;
-      if (mEmbellishData.coreFrame == this 
-          || stretchAll) { 
+      nsStretchDirection stretchDir;
+      if (mEmbellishData.coreFrame == this || 
+          (mEmbellishData.direction == NS_STRETCH_DIRECTION_HORIZONTAL &&
+           stretchAll) || 
+          mEmbellishData.direction == NS_STRETCH_DIRECTION_UNSUPPORTED) { 
+        stretchDir = mEmbellishData.direction;
+      } else {
         
-        defaultSize = aDesiredSize.mBoundingMetrics;
+        stretchDir = NS_STRETCH_DIRECTION_DEFAULT;
       }
-      else { 
-        
-        GetPreferredStretchSize(aRenderingContext, 0, mEmbellishData.direction,
-                                defaultSize);
-      }
-      Stretch(aRenderingContext, NS_STRETCH_DIRECTION_DEFAULT, defaultSize,
+      
+      
+      nsBoundingMetrics defaultSize = aDesiredSize.mBoundingMetrics;
+
+      Stretch(aRenderingContext, stretchDir, defaultSize,
               aDesiredSize);
 #ifdef DEBUG
       {
