@@ -178,7 +178,10 @@ ISurfaceAllocator::DestroySharedSurface(SurfaceDescriptor* aSurface)
 
 
 const uint32_t sShmemPageSize = 4096;
+
+#ifdef DEBUG
 const uint32_t sSupportedBlockSize = 4;
+#endif
 
 enum AllocationStatus
 {
