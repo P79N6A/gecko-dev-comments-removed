@@ -115,6 +115,21 @@ function xray_test()
   sendSyncMessage("cpows:xray_test", {}, {element: element});
 }
 
+function symbol_test()
+{
+  let iterator = Symbol.iterator;
+  let named = Symbol.for("cpow-test");
+  
+
+  let object = {
+    [iterator]: iterator,
+    [named]: named,
+    
+    
+  };
+  sendSyncMessage("cpows:symbol_test", {}, object);
+}
+
 
 
 function compartment_test()
