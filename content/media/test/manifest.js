@@ -389,14 +389,6 @@ var gUnseekableTests = [
   { name:"bogus.duh", type:"bogus/duh"}
 ];
 
-
-
-if (navigator.userAgent.indexOf("Windows") != -1 && IsWindows8OrLater()) {
-  gUnseekableTests = gUnseekableTests.concat([
-    { name:"big-buck-bunny-unseekable.mp4", type:"video/mp4" }
-  ]);
-}
-
 var androidVersion = SpecialPowers.Cc['@mozilla.org/system-info;1']
                                   .getService(SpecialPowers.Ci.nsIPropertyBag2)
                                   .getProperty('version');
