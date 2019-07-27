@@ -17,6 +17,7 @@
 #include "nsLayoutUtils.h"
 #include "nsTArray.h"
 #include "nsTableRowFrame.h"
+#include "mozilla/WritingModes.h"
 
 
 
@@ -34,6 +35,11 @@ class nsTableCellFrame : public nsContainerFrame,
                          public nsIPercentHeightObserver
 {
   typedef mozilla::image::DrawResult DrawResult;
+
+protected:
+  typedef mozilla::WritingMode WritingMode;
+  typedef mozilla::LogicalSide LogicalSide;
+  typedef mozilla::LogicalMargin LogicalMargin;
 
 public:
   NS_DECL_QUERYFRAME_TARGET(nsTableCellFrame)
@@ -215,7 +221,7 @@ public:
 
   nsTableCellFrame* GetNextCell() const;
 
-  virtual nsMargin* GetBorderWidth(nsMargin& aBorder) const;
+  virtual LogicalMargin GetBorderWidth(WritingMode aWM) const;
 
   virtual DrawResult PaintBackground(nsRenderingContext& aRenderingContext,
                                      const nsRect&        aDirtyRect,
@@ -321,13 +327,13 @@ public:
                               nscoord aRadii[8]) const override;
 
   
-  virtual nsMargin* GetBorderWidth(nsMargin& aBorder) const override;
+  virtual LogicalMargin GetBorderWidth(WritingMode aWM) const override;
 
   
-  BCPixelSize GetBorderWidth(mozilla::css::Side aSide) const;
+  BCPixelSize GetBorderWidth(LogicalSide aSide) const;
 
   
-  void SetBorderWidth(mozilla::css::Side aSide, BCPixelSize aPixelValue);
+  void SetBorderWidth(LogicalSide aSide, BCPixelSize aPixelValue);
 
   virtual nsMargin GetBorderOverflow() override;
 
@@ -344,10 +350,10 @@ private:
 
   
   
-  BCPixelSize mTopBorder;
-  BCPixelSize mRightBorder;
-  BCPixelSize mBottomBorder;
-  BCPixelSize mLeftBorder;
+  BCPixelSize mBStartBorder;
+  BCPixelSize mIEndBorder;
+  BCPixelSize mBEndBorder;
+  BCPixelSize mIStartBorder;
 };
 
 #endif
