@@ -3618,6 +3618,39 @@ IsCaretWithCustomClip(nsDisplayItem* aItem, nsDisplayItem::Type aItemType)
     static_cast<nsDisplayCaret*>(aItem)->NeedsCustomScrollClip();
 }
 
+static DisplayItemClip
+GetScrollClipIntersection(nsDisplayListBuilder* aBuilder, const nsIFrame* aAnimatedGeometryRoot,
+                          const nsIFrame* aStopAtAnimatedGeometryRoot, bool aIsCaret)
+{
+  DisplayItemClip resultClip;
+  nsIFrame* fParent;
+  for (const nsIFrame* f = aAnimatedGeometryRoot;
+       f != aStopAtAnimatedGeometryRoot;
+       f = nsLayoutUtils::GetAnimatedGeometryRootForFrame(aBuilder,
+           fParent, aStopAtAnimatedGeometryRoot)) {
+    fParent = nsLayoutUtils::GetCrossDocParentFrame(f);
+    if (!fParent) {
+      
+      
+      
+      
+      
+      return DisplayItemClip();
+    }
+
+    nsIScrollableFrame* scrollFrame = nsLayoutUtils::GetScrollableFrameFor(f);
+    if (!scrollFrame) {
+      continue;
+    }
+
+    const DisplayItemClip* clip = scrollFrame->ComputeScrollClip(aIsCaret);
+    if (clip) {
+      resultClip.IntersectWith(*clip);
+    }
+  }
+  return resultClip;
+}
+
 
 
 
@@ -3694,13 +3727,15 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
 
     bool forceInactive;
     const nsIFrame* animatedGeometryRoot;
+    const nsIFrame* realAnimatedGeometryRootOfItem =
+      nsLayoutUtils::GetAnimatedGeometryRootFor(item, mBuilder, mManager);
     if (mFlattenToSingleLayer) {
       forceInactive = true;
       animatedGeometryRoot = lastAnimatedGeometryRoot;
     } else {
       forceInactive = false;
       if (mManager->IsWidgetLayerManager()) {
-        animatedGeometryRoot = nsLayoutUtils::GetAnimatedGeometryRootFor(item, mBuilder, mManager);
+        animatedGeometryRoot = realAnimatedGeometryRootOfItem;
       } else {
         
         
@@ -3714,9 +3749,20 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
       }
     }
 
+    nsDisplayItem::Type itemType = item->GetType();
+
+    if (animatedGeometryRoot != realAnimatedGeometryRootOfItem) {
+      
+      DisplayItemClip clip =
+        GetScrollClipIntersection(mBuilder, realAnimatedGeometryRootOfItem,
+                                  animatedGeometryRoot,
+                                  IsCaretWithCustomClip(item, itemType));
+      clip.IntersectWith(item->GetClip());
+      item->SetClip(mBuilder, clip);
+    }
+
     bool snap;
     nsRect itemContent = item->GetBounds(mBuilder, &snap);
-    nsDisplayItem::Type itemType = item->GetType();
     if (itemType == nsDisplayItem::TYPE_LAYER_EVENT_REGIONS) {
       nsDisplayLayerEventRegions* eventRegions =
         static_cast<nsDisplayLayerEventRegions*>(item);
