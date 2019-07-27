@@ -151,6 +151,24 @@ extern JS_FRIEND_API(JSObject *)
 JS_CloneObject(JSContext *cx, JS::HandleObject obj, JS::HandleObject proto,
                JS::HandleObject parent);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern JS_FRIEND_API(bool)
+JS_InitializePropertiesFromCompatibleNativeObject(JSContext *cx,
+                                                  JS::HandleObject dst,
+                                                  JS::HandleObject src);
+
 extern JS_FRIEND_API(JSString *)
 JS_BasicObjectToString(JSContext *cx, JS::HandleObject obj);
 
