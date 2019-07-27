@@ -391,6 +391,7 @@ FlameGraph.prototype = {
     let selectionScale = canvasWidth / selectionWidth;
     this._drawTicks(selection.start, selectionScale);
     this._drawPyramid(this._data, this._verticalOffset, selection.start, selectionScale);
+    this._drawHeader(selection.start, selectionScale);
 
     this._shouldRedraw = false;
   },
@@ -402,14 +403,32 @@ FlameGraph.prototype = {
 
 
 
-  _drawTicks: function(dataOffset, dataScale) {
+  _drawHeader: function(dataOffset, dataScale) {
+    let ctx = this._ctx;
+    let canvasWidth = this._width;
+    let headerHeight = OVERVIEW_HEADER_HEIGHT * this._pixelRatio;
+
+    ctx.fillStyle = this.overviewHeaderBackgroundColor;
+    ctx.fillRect(0, 0, canvasWidth, headerHeight);
+
+    this._drawTicks(dataOffset, dataScale, { from: 0, to: headerHeight, renderText: true });
+  },
+
+  
+
+
+
+
+
+
+
+
+  _drawTicks: function(dataOffset, dataScale, options) {
+    let { from, to, renderText }  = options || {};
     let ctx = this._ctx;
     let canvasWidth = this._width;
     let canvasHeight = this._height;
     let scaledOffset = dataOffset * dataScale;
-
-    ctx.fillStyle = this.overviewHeaderBackgroundColor;
-    ctx.fillRect(0, 0, canvasWidth, OVERVIEW_HEADER_HEIGHT * this._pixelRatio);
 
     let fontSize = OVERVIEW_HEADER_TEXT_FONT_SIZE * this._pixelRatio;
     let fontFamily = OVERVIEW_HEADER_TEXT_FONT_FAMILY;
@@ -428,9 +447,11 @@ FlameGraph.prototype = {
       let textLeft = lineLeft + textPaddingLeft;
       let time = Math.round((x / dataScale + dataOffset) / this._pixelRatio);
       let label = time + " " + this.timelineTickUnits;
-      ctx.fillText(label, textLeft, textPaddingTop);
-      ctx.moveTo(lineLeft, 0);
-      ctx.lineTo(lineLeft, canvasHeight);
+      if (renderText) {
+        ctx.fillText(label, textLeft, textPaddingTop);
+      }
+      ctx.moveTo(lineLeft, from || 0);
+      ctx.lineTo(lineLeft, to || canvasHeight);
     }
 
     ctx.stroke();
