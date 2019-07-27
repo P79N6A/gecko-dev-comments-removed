@@ -723,7 +723,7 @@ int ParseFTPList(const char *line, struct list_state *state,
 
 
 
-      if ((numtoks >= 4) && toklen[0] == 8 && toklen[1] == 7 && 
+      if ((numtoks >= 4) && (toklen[0] == 8 || toklen[0] == 10) && toklen[1] == 7 && 
           (*tokens[2] == '<' || isdigit(*tokens[2])) )
       {
         p = tokens[0];
