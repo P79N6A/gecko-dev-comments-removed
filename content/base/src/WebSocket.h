@@ -23,8 +23,6 @@
 #define DEFAULT_WS_SCHEME_PORT  80
 #define DEFAULT_WSS_SCHEME_PORT 443
 
-class nsIInputStream;
-
 namespace mozilla {
 namespace dom {
 
@@ -90,7 +88,7 @@ public:
   void GetUrl(nsAString& aResult);
 
   
-  uint16_t ReadyState();
+  uint16_t ReadyState() const;
 
   
   uint32_t BufferedAmount() const;
@@ -136,8 +134,6 @@ private:
   explicit WebSocket(nsPIDOMWindow* aOwnerWindow);
   virtual ~WebSocket();
 
-  void SetReadyState(uint16_t aReadyState);
-
   
   nsresult CreateAndDispatchSimpleEvent(const nsAString& aName);
   nsresult CreateAndDispatchMessageEvent(const nsACString& aData,
@@ -161,39 +157,16 @@ private:
   WebSocket(const WebSocket& x) MOZ_DELETE;   
   WebSocket& operator=(const WebSocket& x) MOZ_DELETE;
 
-  void Send(nsIInputStream* aMsgStream,
-            const nsACString& aMsgString,
-            uint32_t aMsgLength,
-            bool aIsBinary,
-            ErrorResult& aRv);
-
-  void AssertIsOnTargetThread() const;
-
   
   
   WebSocketImpl* mImpl;
 
+  
+  
   workers::WorkerPrivate* mWorkerPrivate;
 
   bool mKeepingAlive;
   bool mCheckMustKeepAlive;
-
-  uint32_t mOutgoingBufferedAmount;
-
-  
-  nsString mOriginalURL;
-  nsString mEffectiveURL;   
-  nsCString mEstablishedExtensions;
-  nsCString mEstablishedProtocol;
-
-  dom::BinaryType mBinaryType;
-
-  
-  
-  mozilla::Mutex mMutex;
-
-  
-  uint16_t mReadyState;
 };
 
 } 
