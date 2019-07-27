@@ -568,7 +568,14 @@ loop.panel = (function(_, mozL10n) {
 
     handleFormSubmit: function(event) {
       event.preventDefault();
-      this.props.onChange(this.state.text);
+      
+      
+      
+      if (this.state.text.trim()) {
+        this.props.onChange(this.state.text);
+      } else {
+        this.setState({text: this.props.text});
+      }
       this.setState({edit: false});
     },
 

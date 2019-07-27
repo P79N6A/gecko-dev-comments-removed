@@ -423,10 +423,11 @@ loop.store = loop.store || {};
 
 
     renameRoom: function(actionData) {
+      var oldRoomName = this.getStoreState("roomName");
       var newRoomName = actionData.newRoomName.trim();
 
       
-      if (!newRoomName || this.getStoreState("roomName") === newRoomName) {
+      if (!newRoomName || oldRoomName === newRoomName) {
         return;
       }
 
