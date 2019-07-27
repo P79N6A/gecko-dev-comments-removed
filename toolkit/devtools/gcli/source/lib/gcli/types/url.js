@@ -61,7 +61,7 @@ exports.items = [
           }.bind(this));
 
           
-          if (context.environment.window) {
+          if ('window' in context.environment) {
             try {
               var base = context.environment.window.location.href;
               var localized = host.createUrl(arg.text, base);

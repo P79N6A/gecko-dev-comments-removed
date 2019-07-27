@@ -19,11 +19,7 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "console",
                                   "resource://gre/modules/devtools/Console.jsm");
 
-'do not use strict';
-
-
-
-
+'use strict';
 
 
 
@@ -69,9 +65,9 @@ var template = function(node, data, options) {
   processNode(state, node, data);
 };
 
-
-
-
+if (typeof exports !== 'undefined') {
+  exports.template = template;
+}
 
 
 
@@ -182,6 +178,7 @@ function processNode(state, node, data) {
               replacement = envEval(state, value.slice(2, -1), data, value);
               if (replacement && typeof replacement.then === 'function') {
                 node.setAttribute(name, '');
+                
                 replacement.then(function(newValue) {
                   node.setAttribute(name, newValue);
                 }).then(null, console.error);
@@ -361,15 +358,16 @@ function processForEachMember(state, member, templNode, siblingNode, data, param
       });
       newData[paramName] = reply;
       if (node.parentNode != null) {
+        var clone;
         if (templNode.nodeName.toLowerCase() === 'loop') {
           for (var i = 0; i < templNode.childNodes.length; i++) {
-            var clone = templNode.childNodes[i].cloneNode(true);
+            clone = templNode.childNodes[i].cloneNode(true);
             node.parentNode.insertBefore(clone, node);
             processNode(cState, clone, newData);
           }
         }
         else {
-          var clone = templNode.cloneNode(true);
+          clone = templNode.cloneNode(true);
           clone.removeAttribute('foreach');
           node.parentNode.insertBefore(clone, node);
           processNode(cState, clone, newData);
@@ -549,10 +547,6 @@ function property(state, path, data, newValue) {
 
 
 
-
-
-
-
 function envEval(state, script, data, frame) {
   try {
     state.stack.push(frame.replace(/\s+/g, ' '));
@@ -566,9 +560,26 @@ function envEval(state, script, data, frame) {
             ' can not be resolved using a simple property path.');
         return '${' + script + '}';
       }
-      with (data) {
-        return eval(script);
-      }
+
+      
+      
+      
+      
+      
+      
+      var keys = allKeys(data);
+      var func = Function.apply(null, keys.concat("return " + script));
+
+      var values = keys.map(function(key) { return data[key]; });
+      return func.apply(null, values);
+
+      
+      
+      
+      
+      
+      
+      
     }
   }
   catch (ex) {
@@ -578,6 +589,15 @@ function envEval(state, script, data, frame) {
   finally {
     state.stack.pop();
   }
+}
+
+
+
+
+function allKeys(data) {
+  var keys = [];
+  for (var key in data) { keys.push(key); }
+  return keys;
 }
 
 
@@ -599,5 +619,5 @@ function handleError(state, message, ex) {
 
 
 function logError(message) {
-  console.log(message);
+  console.error(message);
 }

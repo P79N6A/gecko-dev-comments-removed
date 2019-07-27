@@ -26,38 +26,6 @@ exports.clearResourceCache = function() {
 
 
 
-var doc;
-if (typeof document !== 'undefined') {
-  doc = document;
-}
-
-
-
-
-exports.setDocument = function(document) {
-  doc = document;
-};
-
-
-
-
-exports.unsetDocument = function() {
-  ResourceCache.clear();
-  doc = undefined;
-};
-
-
-
-
-
-exports.getDocument = function() {
-  return doc;
-};
-
-
-
-
-
 
 
 function Resource(name, type, inline, element) {
@@ -85,7 +53,7 @@ Resource.TYPE_CSS = 'text/css';
 function CssResource(domSheet) {
   this.name = domSheet.href;
   if (!this.name) {
-    this.name = domSheet.ownerNode.id ?
+    this.name = domSheet.ownerNode && domSheet.ownerNode.id ?
             'css#' + domSheet.ownerNode.id :
             'inline-css';
   }
@@ -103,12 +71,13 @@ CssResource.prototype.loadContents = function() {
   }.bind(this));
 };
 
-CssResource._getAllStyles = function() {
+CssResource._getAllStyles = function(context) {
   var resources = [];
-  if (doc == null) {
+  if (context.environment.window == null) {
     return resources;
   }
 
+  var doc = context.environment.window.document;
   Array.prototype.forEach.call(doc.styleSheets, function(domSheet) {
     CssResource._getStyle(domSheet, resources);
   });
@@ -182,11 +151,12 @@ ScriptResource.prototype.loadContents = function() {
   }.bind(this));
 };
 
-ScriptResource._getAllScripts = function() {
-  if (doc == null) {
+ScriptResource._getAllScripts = function(context) {
+  if (context.environment.window == null) {
     return [];
   }
 
+  var doc = context.environment.window.document;
   var scriptNodes = doc.querySelectorAll('script');
   var resources = Array.prototype.map.call(scriptNodes, function(scriptNode) {
     var resource = ResourceCache.get(scriptNode);
@@ -283,20 +253,20 @@ exports.items = [
       }
     },
 
-    lookup: function() {
+    lookup: function(context) {
       var resources = [];
       if (this.include !== Resource.TYPE_SCRIPT) {
-        Array.prototype.push.apply(resources, CssResource._getAllStyles());
+        Array.prototype.push.apply(resources,
+                                   CssResource._getAllStyles(context));
       }
       if (this.include !== Resource.TYPE_CSS) {
-        Array.prototype.push.apply(resources, ScriptResource._getAllScripts());
+        Array.prototype.push.apply(resources,
+                                   ScriptResource._getAllScripts(context));
       }
 
-      return new Promise(function(resolve, reject) {
-        resolve(resources.map(function(resource) {
-          return { name: resource.name, value: resource };
-        }));
-      }.bind(this));
+      return Promise.resolve(resources.map(function(resource) {
+        return { name: resource.name, value: resource };
+      }));
     }
   }
 ];

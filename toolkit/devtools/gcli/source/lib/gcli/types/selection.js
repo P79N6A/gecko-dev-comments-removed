@@ -78,8 +78,7 @@ SelectionType.prototype.getSpec = function(commandName, paramName) {
   if (typeof this.lookup === 'function' || typeof this.data === 'function') {
     spec.commandName = commandName;
     spec.paramName = paramName;
-    spec.remoteLookup = (typeof this.lookup === 'function');
-    spec.remoteData = (typeof this.data === 'function');
+    spec.remoteLookup = true;
   }
   return spec;
 };
@@ -126,20 +125,8 @@ SelectionType.prototype.getLookup = function(context) {
   var reply;
 
   if (this.remoteLookup) {
-    reply = this.connection.call('selectioninfo', {
-      action: 'lookup',
-      commandName: this.commandName,
-      paramName: this.paramName
-    });
+    reply = this.front.getSelectionLookup(this.commandName, this.paramName);
     reply = resolve(reply, context);
-  }
-  else if (this.remoteData) {
-    reply = this.connection.call('selectioninfo', {
-      action: 'data',
-      commandName: this.commandName,
-      paramName: this.paramName
-    });
-    reply = resolve(reply, context).then(this._dataToLookup);
   }
   else if (typeof this.lookup === 'function') {
     reply = resolve(this.lookup.bind(this), context);
@@ -238,7 +225,7 @@ exports.findPredictions = function(arg, lookup) {
   
   for (i = 0; i < lookup.length && predictions.length < maxPredictions; i++) {
     option = lookup[i];
-    if (option._gcliLowerName.indexOf(match) === 0 && !option.value.hidden) {
+    if (option._gcliLowerName.indexOf(match) === 0 && !isHidden(option)) {
       if (predictions.indexOf(option) === -1) {
         predictions.push(option);
       }
@@ -249,7 +236,7 @@ exports.findPredictions = function(arg, lookup) {
   if (predictions.length < (maxPredictions / 2)) {
     for (i = 0; i < lookup.length && predictions.length < maxPredictions; i++) {
       option = lookup[i];
-      if (option._gcliLowerName.indexOf(match) !== -1 && !option.value.hidden) {
+      if (option._gcliLowerName.indexOf(match) !== -1 && !isHidden(option)) {
         if (predictions.indexOf(option) === -1) {
           predictions.push(option);
         }
@@ -261,7 +248,7 @@ exports.findPredictions = function(arg, lookup) {
   if (predictions.length === 0) {
     var names = [];
     lookup.forEach(function(opt) {
-      if (!opt.value.hidden) {
+      if (!isHidden(opt)) {
         names.push(opt.name);
       }
     });
@@ -306,11 +293,21 @@ exports.convertPredictions = function(arg, predictions) {
                         Promise.resolve(predictions));
 };
 
+
+
+
+
+
+function isHidden(option) {
+  return option.hidden === true ||
+         (option.value != null && option.value.hidden);
+}
+
 SelectionType.prototype.getBlank = function(context) {
   var predictFunc = function(context2) {
     return Promise.resolve(this.getLookup(context2)).then(function(lookup) {
       return lookup.filter(function(option) {
-        return !option.value.hidden;
+        return !isHidden(option);
       }).slice(0, Conversion.maxPredictions - 1);
     });
   }.bind(this);
@@ -326,35 +323,36 @@ SelectionType.prototype.getBlank = function(context) {
 
 
 
-SelectionType.prototype.decrement = function(value, context) {
+
+
+
+
+
+
+
+SelectionType.prototype.nudge = function(value, by, context) {
   return this.getLookup(context).then(function(lookup) {
     var index = this._findValue(lookup, value);
     if (index === -1) {
-      index = 0;
+      if (by < 0) {
+        
+        
+        
+        index = 0;
+      }
+      else {
+        
+        
+        
+        index = 1;
+      }
     }
-    index++;
+
+    
+    index -= by;
+
     if (index >= lookup.length) {
       index = 0;
-    }
-    return lookup[index].value;
-  }.bind(this));
-};
-
-
-
-
-SelectionType.prototype.increment = function(value, context) {
-  return this.getLookup(context).then(function(lookup) {
-    var index = this._findValue(lookup, value);
-    if (index === -1) {
-      
-      
-      
-      index = 1;
-    }
-    index--;
-    if (index < 0) {
-      index = lookup.length - 1;
     }
     return lookup[index].value;
   }.bind(this));

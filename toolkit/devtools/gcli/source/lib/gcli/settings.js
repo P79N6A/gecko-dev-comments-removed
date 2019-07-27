@@ -107,7 +107,6 @@ Settings.prototype.getAll = function(filter) {
 
 
 
-
 Settings.prototype.add = function(prefSpec) {
   var setting = new Setting(this, prefSpec);
 

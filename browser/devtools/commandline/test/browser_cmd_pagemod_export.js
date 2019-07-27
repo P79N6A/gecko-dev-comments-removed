@@ -10,7 +10,7 @@ function test() {
   return Task.spawn(spawnTest).then(finish, helpers.handleError);
 }
 
-function spawnTest() {
+function* spawnTest() {
   let options = yield helpers.openTab(TEST_URI);
   yield helpers.openToolbar(options);
 
@@ -302,7 +302,8 @@ function spawnTest() {
         args: {
           searchAttributes: { value: undefined, status: 'INCOMPLETE' },
           searchElements: { value: undefined, status: 'INCOMPLETE' },
-          root: { value: undefined },
+          
+                                         
           ignoreCase: { value: false },
         }
       },
@@ -317,7 +318,8 @@ function spawnTest() {
         args: {
           searchAttributes: { value: 'foo' },
           searchElements: { value: 'bar' },
-          root: { value: undefined },
+          
+                                         
           ignoreCase: { value: false },
         }
       },

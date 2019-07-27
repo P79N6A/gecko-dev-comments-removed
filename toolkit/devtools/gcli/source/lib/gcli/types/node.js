@@ -28,39 +28,10 @@ var BlankArgument = require('./types').BlankArgument;
 
 
 
-var doc;
-if (typeof document !== 'undefined') {
-  doc = document;
-}
-
-
-
-
-exports.setDocument = function(document) {
-  doc = document;
-};
-
-
-
-
-exports.unsetDocument = function() {
-  doc = undefined;
-};
-
-
-
-
-
-exports.getDocument = function() {
-  return doc;
-};
-
-
-
-
-
 function onEnter(assignment) {
-  assignment.highlighter = new Highlighter(doc);
+  
+  
+  assignment.highlighter = new Highlighter(context.environment.window.document);
   assignment.highlighter.nodelist = assignment.conversion.matches;
 }
 
@@ -94,8 +65,12 @@ exports.items = [
     item: 'type',
     name: 'node',
 
-    getSpec: function() {
-      return 'node';
+    getSpec: function(commandName, paramName) {
+      return {
+        name: 'remote',
+        commandName: commandName,
+        paramName: paramName
+      };
     },
 
     stringify: function(value, context) {
@@ -110,12 +85,11 @@ exports.items = [
 
       if (arg.text === '') {
         reply = new Conversion(undefined, arg, Status.INCOMPLETE);
-        reply.matches = util.createEmptyNodeList(doc);
       }
       else {
         var nodes;
         try {
-          nodes = doc.querySelectorAll(arg.text);
+          nodes = context.environment.window.document.querySelectorAll(arg.text);
           if (nodes.length === 0) {
             reply = new Conversion(undefined, arg, Status.INCOMPLETE,
                                    l10n.lookup('nodeParseNone'));
@@ -142,9 +116,9 @@ exports.items = [
       return Promise.resolve(reply);
     },
 
-    onEnter: onEnter,
-    onLeave: onLeave,
-    onChange: onChange
+    
+    
+    
   },
   {
     
@@ -167,14 +141,21 @@ exports.items = [
       }
     },
 
-    getSpec: function() {
-      return this.allowEmpty ?
-             { name: 'nodelist', allowEmpty: true } :
-             'nodelist';
+    getSpec: function(commandName, paramName) {
+      return {
+        name: 'remote',
+        commandName: commandName,
+        paramName: paramName,
+        blankIsValid: true
+      };
     },
 
     getBlank: function(context) {
-      var emptyNodeList = (doc == null ? [] : util.createEmptyNodeList(doc));
+      var emptyNodeList = [];
+      if (context != null && context.environment.window != null) {
+        var doc = context.environment.window.document;
+        emptyNodeList = util.createEmptyNodeList(doc);
+      }
       return new Conversion(emptyNodeList, new BlankArgument(), Status.VALID);
     },
 
@@ -190,16 +171,16 @@ exports.items = [
       try {
         if (arg.text === '') {
           reply = new Conversion(undefined, arg, Status.INCOMPLETE);
-          reply.matches = util.createEmptyNodeList(doc);
         }
         else {
-          var nodes = doc.querySelectorAll(arg.text);
+          var nodes = context.environment.window.document.querySelectorAll(arg.text);
 
           if (nodes.length === 0 && !this.allowEmpty) {
             reply = new Conversion(undefined, arg, Status.INCOMPLETE,
                                    l10n.lookup('nodeParseNone'));
           }
           else {
+            nodes.__gcliQuery = arg.text;
             reply = new Conversion(nodes, arg, Status.VALID, '');
           }
 
@@ -209,14 +190,13 @@ exports.items = [
       catch (ex) {
         reply = new Conversion(undefined, arg, Status.ERROR,
                                l10n.lookup('nodeParseSyntax'));
-        reply.matches = util.createEmptyNodeList(doc);
       }
 
       return Promise.resolve(reply);
     },
 
-    onEnter: onEnter,
-    onLeave: onLeave,
-    onChange: onChange
+    
+    
+    
   }
 ];

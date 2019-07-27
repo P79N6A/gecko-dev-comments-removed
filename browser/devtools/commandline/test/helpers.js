@@ -18,7 +18,7 @@
 
 
 
-var { helpers, gcli, assert } = (function() {
+var { helpers, assert } = (function() {
 
 var helpers = {};
 
@@ -30,23 +30,24 @@ var util = require('gcli/util/util');
 var Promise = require('gcli/util/promise').Promise;
 var cli = require('gcli/cli');
 var KeyEvent = require('gcli/util/util').KeyEvent;
-var gcli = require('gcli/index');
+
+const { GcliFront } = require("devtools/server/actors/gcli");
 
 
 
 
-var createFFDisplayAutomator = function(display) {
+var createDeveloperToolbarAutomator = function(toolbar) {
   var automator = {
     setInput: function(typed) {
-      return display.inputter.setInput(typed);
+      return toolbar.inputter.setInput(typed);
     },
 
     setCursor: function(cursor) {
-      return display.inputter.setCursor(cursor);
+      return toolbar.inputter.setCursor(cursor);
     },
 
     focus: function() {
-      return display.inputter.focus();
+      return toolbar.inputter.focus();
     },
 
     fakeKey: function(keyCode) {
@@ -56,36 +57,36 @@ var createFFDisplayAutomator = function(display) {
         timeStamp: new Date().getTime()
       };
 
-      display.inputter.onKeyDown(fakeEvent);
+      toolbar.inputter.onKeyDown(fakeEvent);
 
       if (keyCode === KeyEvent.DOM_VK_BACK_SPACE) {
-        var input = display.inputter.element;
+        var input = toolbar.inputter.element;
         input.value = input.value.slice(0, -1);
       }
 
-      return display.inputter.handleKeyUp(fakeEvent);
+      return toolbar.inputter.handleKeyUp(fakeEvent);
     },
 
     getInputState: function() {
-      return display.inputter.getInputState();
+      return toolbar.inputter.getInputState();
     },
 
     getCompleterTemplateData: function() {
-      return display.completer._getCompleterTemplateData();
+      return toolbar.completer._getCompleterTemplateData();
     },
 
     getErrorMessage: function() {
-      return display.tooltip.errorEle.textContent;
+      return toolbar.tooltip.errorEle.textContent;
     }
   };
 
   Object.defineProperty(automator, 'focusManager', {
-    get: function() { return display.focusManager; },
+    get: function() { return toolbar.focusManager; },
     enumerable: true
   });
 
   Object.defineProperty(automator, 'field', {
-    get: function() { return display.tooltip.field; },
+    get: function() { return toolbar.tooltip.field; },
     enumerable: true
   });
 
@@ -223,9 +224,9 @@ helpers.openToolbar = function(options) {
   options.chromeWindow = options.chromeWindow || window;
 
   return options.chromeWindow.DeveloperToolbar.show(true).then(function() {
-    var display = options.chromeWindow.DeveloperToolbar.display;
-    options.automator = createFFDisplayAutomator(display);
-    options.requisition = display.requisition;
+    var toolbar = options.chromeWindow.DeveloperToolbar;
+    options.automator = createDeveloperToolbarAutomator(toolbar);
+    options.requisition = toolbar.requisition;
     return options;
   });
 };
@@ -339,9 +340,9 @@ helpers.addTabWithToolbar = function(url, callback, options) {
     var win = innerOptions.chromeWindow;
 
     return win.DeveloperToolbar.show(true).then(function() {
-      var display = win.DeveloperToolbar.display;
-      innerOptions.automator = createFFDisplayAutomator(display);
-      innerOptions.requisition = display.requisition;
+      var toolbar = win.DeveloperToolbar;
+      innerOptions.automator = createDeveloperToolbarAutomator(toolbar);
+      innerOptions.requisition = toolbar.requisition;
 
       var reply = callback.call(null, innerOptions);
 
@@ -376,7 +377,7 @@ helpers.runTests = function(options, tests) {
 
   var recover = function(error) {
     ok(false, error);
-    console.error(error);
+    console.error(error, error.stack);
   };
 
   info("SETUP");
@@ -408,6 +409,87 @@ helpers.runTests = function(options, tests) {
         Promise.resolve(tests.shutdown(options)) :
         Promise.resolve();
   }, recover);
+};
+
+const MOCK_COMMANDS_URI = "chrome://mochitests/content/browser/browser/devtools/commandline/test/mockCommands.js";
+
+const defer = function() {
+  const deferred = { };
+  deferred.promise = new Promise(function(resolve, reject) {
+    deferred.resolve = resolve;
+    deferred.reject = reject;
+  });
+  return deferred;
+};
+
+
+
+
+
+
+
+
+
+
+
+helpers.runTestModule = function(exports, name) {
+  return Task.spawn(function*() {
+    const uri = "data:text/html;charset=utf-8," +
+                "<style>div{color:red;}</style>" +
+                "<div id='gcli-root'>" + name + "</div>";
+
+    const options = yield helpers.openTab(uri);
+    options.isRemote = true;
+
+    yield helpers.openToolbar(options);
+
+    const system = options.requisition.system;
+
+    
+    const addedDeferred = defer();
+    const removedDeferred = defer();
+    let state = 'preAdd'; 
+
+    system.commands.onCommandsChange.add(function(ev) {
+      if (system.commands.get('tsslow') != null) {
+        if (state === 'preAdd') {
+          addedDeferred.resolve();
+          state = 'postAdd';
+        }
+      }
+      else {
+        if (state === 'postAdd') {
+          removedDeferred.resolve();
+          state = 'postRemove';
+        }
+      }
+    });
+
+    
+    const front = yield GcliFront.create(options.target);
+    yield front._testOnly_addItemsByModule(MOCK_COMMANDS_URI);
+
+    
+    
+    yield addedDeferred.promise;
+
+    
+    const converters = mockCommands.items.filter(item => item.item === 'converter');
+    system.addItems(converters);
+
+    
+    yield helpers.runTests(options, exports);
+
+    
+    system.removeItems(converters);
+    const removePromise = system.commands.onCommandsChange.once();
+    yield front._testOnly_removeItemsByModule(MOCK_COMMANDS_URI);
+    yield removedDeferred.promise;
+
+    
+    yield helpers.closeToolbar(options);
+    yield helpers.closeTab(options);
+  }).then(finish, helpers.handleError);
 };
 
 
@@ -759,15 +841,15 @@ helpers._check = function(options, name, checks) {
   var outstanding = [];
   var suffix = name ? ' (for \'' + name + '\')' : '';
 
-  if (!options.isNoDom && 'input' in checks) {
+  if (!options.isNode && 'input' in checks) {
     assert.is(helpers._actual.input(options), checks.input, 'input' + suffix);
   }
 
-  if (!options.isNoDom && 'cursor' in checks) {
+  if (!options.isNode && 'cursor' in checks) {
     assert.is(helpers._actual.cursor(options), checks.cursor, 'cursor' + suffix);
   }
 
-  if (!options.isNoDom && 'current' in checks) {
+  if (!options.isNode && 'current' in checks) {
     assert.is(helpers._actual.current(options), checks.current, 'current' + suffix);
   }
 
@@ -775,18 +857,18 @@ helpers._check = function(options, name, checks) {
     assert.is(helpers._actual.status(options), checks.status, 'status' + suffix);
   }
 
-  if (!options.isNoDom && 'markup' in checks) {
+  if (!options.isNode && 'markup' in checks) {
     assert.is(helpers._actual.markup(options), checks.markup, 'markup' + suffix);
   }
 
-  if (!options.isNoDom && 'hints' in checks) {
+  if (!options.isNode && 'hints' in checks) {
     var hintCheck = function(actualHints) {
       assert.is(actualHints, checks.hints, 'hints' + suffix);
     };
     outstanding.push(helpers._actual.hints(options).then(hintCheck));
   }
 
-  if (!options.isNoDom && 'predictions' in checks) {
+  if (!options.isNode && 'predictions' in checks) {
     var predictionsCheck = function(actualPredictions) {
       helpers.arrayIs(actualPredictions,
                        checks.predictions,
@@ -795,12 +877,16 @@ helpers._check = function(options, name, checks) {
     outstanding.push(helpers._actual.predictions(options).then(predictionsCheck));
   }
 
-  if (!options.isNoDom && 'predictionsContains' in checks) {
+  if (!options.isNode && 'predictionsContains' in checks) {
     var containsCheck = function(actualPredictions) {
       checks.predictionsContains.forEach(function(prediction) {
         var index = actualPredictions.indexOf(prediction);
         assert.ok(index !== -1,
                   'predictionsContains:' + prediction + suffix);
+        if (index === -1) {
+          log('Actual predictions (' + actualPredictions.length + '): ' +
+              actualPredictions.join(', '));
+        }
       });
     };
     outstanding.push(helpers._actual.predictions(options).then(containsCheck));
@@ -820,19 +906,19 @@ helpers._check = function(options, name, checks) {
 
 
 
-  if (!options.isNoDom && 'outputState' in checks) {
+  if (!options.isNode && 'outputState' in checks) {
     assert.is(helpers._actual.outputState(options),
               checks.outputState,
               'outputState' + suffix);
   }
 
-  if (!options.isNoDom && 'options' in checks) {
+  if (!options.isNode && 'options' in checks) {
     helpers.arrayIs(helpers._actual.options(options),
                      checks.options,
                      'options' + suffix);
   }
 
-  if (!options.isNoDom && 'error' in checks) {
+  if (!options.isNode && 'error' in checks) {
     assert.is(helpers._actual.message(options), checks.error, 'error' + suffix);
   }
 
@@ -894,7 +980,7 @@ helpers._check = function(options, name, checks) {
                   'arg.' + paramName + '.status' + suffix);
       }
 
-      if (!options.isNoDom && 'message' in check) {
+      if (!options.isNode && 'message' in check) {
         if (typeof check.message.test === 'function') {
           assert.ok(check.message.test(assignment.message),
                     'arg.' + paramName + '.message' + suffix);
@@ -952,12 +1038,12 @@ helpers._exec = function(options, name, expected) {
 
       var context = requisition.conversionContext;
       var convertPromise;
-      if (options.isNoDom) {
+      if (options.isNode) {
         convertPromise = output.convert('string', context);
       }
       else {
         convertPromise = output.convert('dom', context).then(function(node) {
-          return node.textContent.trim();
+          return (node == null) ? '' : node.textContent.trim();
         });
       }
 
@@ -1172,8 +1258,7 @@ helpers.audit = function(options, audits) {
         assert.log('Skipped ' + name + ' ' + skipReason);
 
         
-        
-        ok(true, "Each test requires at least one pass, fail or todo so here is a pass.");
+        assert.ok(true, 'Each test requires at least one pass, fail or todo');
 
         return Promise.resolve(undefined);
       }
@@ -1270,5 +1355,5 @@ function log(message) {
   }
 }
 
-return { helpers: helpers, gcli: gcli, assert: assert };
+return { helpers: helpers, assert: assert };
 })();

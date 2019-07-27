@@ -19,26 +19,11 @@
 
 
 
-
-var exports = {};
-
-var TEST_URI = "data:text/html;charset=utf-8,<p id='gcli-input'>gcli-testUnion.js</p>";
+const exports = {};
 
 function test() {
-  return Task.spawn(function() {
-    let options = yield helpers.openTab(TEST_URI);
-    yield helpers.openToolbar(options);
-    gcli.addItems(mockCommands.items);
-
-    yield helpers.runTests(options, exports);
-
-    gcli.removeItems(mockCommands.items);
-    yield helpers.closeToolbar(options);
-    yield helpers.closeTab(options);
-  }).then(finish, helpers.handleError);
+  helpers.runTestModule(exports, "browser_gcli_union.js");
 }
-
-
 
 
 
@@ -160,7 +145,7 @@ exports.testDefault = function(options) {
       }
     },
     {
-      skipRemainingIf: options.isPhantomjs,
+      skipIf: options.isPhantomjs, 
       setup:    'unionc2 on',
       check: {
         input:  'unionc2 on',

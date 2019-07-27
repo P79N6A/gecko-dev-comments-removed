@@ -22,6 +22,7 @@ exports.items = [
   {
     
     item: 'command',
+    runAt: 'client',
     name: 'clear',
     description: l10n.lookup('clearDesc'),
     returnType: 'clearoutput',

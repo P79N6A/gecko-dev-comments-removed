@@ -39,6 +39,7 @@ exports.items = [
   {
     
     item: 'command',
+    runAt: 'client',
     name: 'global',
     description: l10n.lookup('globalDesc'),
     params: [

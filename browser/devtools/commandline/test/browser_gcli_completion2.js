@@ -19,26 +19,11 @@
 
 
 
-
-var exports = {};
-
-var TEST_URI = "data:text/html;charset=utf-8,<p id='gcli-input'>gcli-testCompletion2.js</p>";
+const exports = {};
 
 function test() {
-  return Task.spawn(function() {
-    let options = yield helpers.openTab(TEST_URI);
-    yield helpers.openToolbar(options);
-    gcli.addItems(mockCommands.items);
-
-    yield helpers.runTests(options, exports);
-
-    gcli.removeItems(mockCommands.items);
-    yield helpers.closeToolbar(options);
-    yield helpers.closeTab(options);
-  }).then(finish, helpers.handleError);
+  helpers.runTestModule(exports, "browser_gcli_completion2.js");
 }
-
-
 
 
 
@@ -170,7 +155,6 @@ exports.testNoTab = function(options) {
       }
     },
     {
-      skipIf: options.isNoDom,
       name: '<TAB>',
       setup: function() {
         

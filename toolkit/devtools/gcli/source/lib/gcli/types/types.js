@@ -998,15 +998,9 @@ Type.prototype.name = undefined;
 
 
 
-Type.prototype.increment = function(value, context) {
-  return undefined;
-};
 
 
-
-
-
-Type.prototype.decrement = function(value, context) {
+Type.prototype.nudge = function(value, by, context) {
   return undefined;
 };
 

@@ -19,26 +19,11 @@
 
 
 
-
-var exports = {};
-
-var TEST_URI = "data:text/html;charset=utf-8,<p id='gcli-input'>gcli-testAsync.js</p>";
+const exports = {};
 
 function test() {
-  return Task.spawn(function() {
-    let options = yield helpers.openTab(TEST_URI);
-    yield helpers.openToolbar(options);
-    gcli.addItems(mockCommands.items);
-
-    yield helpers.runTests(options, exports);
-
-    gcli.removeItems(mockCommands.items);
-    yield helpers.closeToolbar(options);
-    yield helpers.closeTab(options);
-  }).then(finish, helpers.handleError);
+  helpers.runTestModule(exports, "browser_gcli_async.js");
 }
-
-
 
 
 
@@ -74,7 +59,6 @@ exports.testBasic = function(options) {
         args: {
           command: { name: 'tsslow' },
           hello: {
-            value: undefined,
             arg: '',
             status: 'INCOMPLETE'
           },
@@ -95,7 +79,6 @@ exports.testBasic = function(options) {
         args: {
           command: { name: 'tsslow' },
           hello: {
-            value: undefined,
             arg: ' S',
             status: 'INCOMPLETE'
           },
@@ -116,7 +99,6 @@ exports.testBasic = function(options) {
         args: {
           command: { name: 'tsslow' },
           hello: {
-            value: 'Shalom',
             arg: ' Shalom ',
             status: 'VALID',
             message: ''

@@ -40,16 +40,13 @@ var tooltipHtml =
 
 
 
-
-
-
-function Tooltip(options, components) {
+function Tooltip(components) {
   this.inputter = components.inputter;
   this.requisition = components.requisition;
   this.focusManager = components.focusManager;
 
   this.element = components.element;
-  this.element.classList.add(options.tooltipClass || 'gcli-tooltip');
+  this.element.classList.add('gcliterm-tooltip');
   this.document = this.element.ownerDocument;
 
   this.panelElement = components.panelElement;
@@ -176,7 +173,7 @@ Tooltip.prototype.choiceChanged = function(ev) {
     conversion.constrainPredictionIndex(context, ev.choice).then(function(choice) {
       this.field.menu._choice = choice;
       this.field.menu._updateHighlight();
-    }.bind(this)).then(null, util.errorHandler);
+    }.bind(this)).catch(util.errorHandler);
   }
 };
 

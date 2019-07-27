@@ -32,9 +32,7 @@ var RESOLVED = Promise.resolve(true);
 
 
 
-
-
-function Inputter(options, components) {
+function Inputter(components) {
   this.requisition = components.requisition;
   this.focusManager = components.focusManager;
 
@@ -431,7 +429,7 @@ Inputter.prototype.onKeyDown = function(ev) {
 
 
 Inputter.prototype.onKeyUp = function(ev) {
-  this.handleKeyUp(ev).then(null, util.errorHandler);
+  this.handleKeyUp(ev).catch(util.errorHandler);
 };
 
 
@@ -476,9 +474,9 @@ Inputter.prototype.handleKeyUp = function(ev) {
   this._completed = this.requisition.update(this.element.value);
   this._previousValue = this.element.value;
 
-  return this._completed.then(function(updated) {
+  return this._completed.then(function() {
     
-    if (updated) {
+    if (this._previousValue === this.element.value) {
       this._choice = null;
       this.textChanged();
       this.onChoiceChange({ choice: this._choice });
@@ -506,7 +504,7 @@ Inputter.prototype._handleUpArrow = function() {
   
   
   if (this.assignment.getStatus() === Status.VALID) {
-    return this.requisition.increment(this.assignment).then(function() {
+    return this.requisition.nudge(this.assignment, 1).then(function() {
       
       this.textChanged();
       if (this.focusManager) {
@@ -538,7 +536,7 @@ Inputter.prototype._handleDownArrow = function() {
 
   
   if (this.assignment.getStatus() === Status.VALID) {
-    return this.requisition.decrement(this.assignment).then(function() {
+    return this.requisition.nudge(this.assignment, -1).then(function() {
       
       this.textChanged();
       if (this.focusManager) {
@@ -591,7 +589,6 @@ Inputter.prototype._handleTab = function(ev) {
   
   
   if (hasContents && this.lastTabDownAt + 1000 > ev.timeStamp) {
-    
     
     
     this._caretChange = Caret.TO_ARG_END;

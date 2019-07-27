@@ -1609,6 +1609,11 @@ pref("devtools.fontinspector.enabled", true);
 pref("devtools.telemetry.tools.opened.version", "{}");
 
 
+pref("devtools.gcli.imgurClientID", '0df414e888d7240');
+
+pref("devtools.gcli.imgurUploadURL", "https://api.imgur.com/3/image");
+
+
 
 pref("browser.menu.showCharacterEncoding", "chrome://browser/locale/browser.properties");
 

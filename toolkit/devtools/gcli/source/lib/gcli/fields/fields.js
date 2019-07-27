@@ -199,6 +199,13 @@ Fields.prototype.get = function(type, options) {
   return new FieldConstructor(type, options);
 };
 
+
+
+
+Fields.prototype.getAll = function() {
+  return this._fieldCtors.slice();
+};
+
 exports.Fields = Fields;
 
 

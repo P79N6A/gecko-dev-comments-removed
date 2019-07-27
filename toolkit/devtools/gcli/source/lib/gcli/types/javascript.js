@@ -26,45 +26,16 @@ var Status = require('./types').Status;
 
 
 
-
-var globalObject;
-if (typeof window !== 'undefined') {
-  globalObject = window;
-}
-
-
-
-
-exports.setGlobalObject = function(obj) {
-  globalObject = obj;
-};
-
-
-
-
-
-exports.getGlobalObject = function() {
-  return globalObject;
-};
-
-
-
-
-exports.unsetGlobalObject = function() {
-  globalObject = undefined;
-};
-
-
-
-
-
 function JavascriptType(typeSpec) {
 }
 
 JavascriptType.prototype = Object.create(Type.prototype);
 
-JavascriptType.prototype.getSpec = function() {
-  return 'javascript';
+JavascriptType.prototype.getSpec = function(commandName, paramName) {
+  return {
+    name: 'remote',
+    paramName: paramName
+  };
 };
 
 JavascriptType.prototype.stringify = function(value, context) {
@@ -82,7 +53,8 @@ JavascriptType.MAX_COMPLETION_MATCHES = 10;
 
 JavascriptType.prototype.parse = function(arg, context) {
   var typed = arg.text;
-  var scope = globalObject;
+  var scope = (context.environment.window == null) ?
+              null : context.environment.window;
 
   
   if (typed === '') {

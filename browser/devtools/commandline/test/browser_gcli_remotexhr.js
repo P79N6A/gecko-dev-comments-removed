@@ -19,26 +19,11 @@
 
 
 
-
-var exports = {};
-
-var TEST_URI = "data:text/html;charset=utf-8,<p id='gcli-input'>gcli-testRemoteXhr.js</p>";
+const exports = {};
 
 function test() {
-  return Task.spawn(function() {
-    let options = yield helpers.openTab(TEST_URI);
-    yield helpers.openToolbar(options);
-    gcli.addItems(mockCommands.items);
-
-    yield helpers.runTests(options, exports);
-
-    gcli.removeItems(mockCommands.items);
-    yield helpers.closeToolbar(options);
-    yield helpers.closeTab(options);
-  }).then(finish, helpers.handleError);
+  helpers.runTestModule(exports, "browser_gcli_remotexhr.js");
 }
-
-
 
 
 
@@ -83,8 +68,8 @@ exports.testRemoteXhr = function(options) {
       check: {
         args: {
           prefix: {
-            value: function(connection) {
-              assert.is(connection.prefix, 'remote', 'disconnecting remote');
+            value: function(front) {
+              assert.is(front.prefix, 'remote', 'disconnecting remote');
             }
           }
         }
@@ -112,8 +97,8 @@ exports.testRemoteXhr = function(options) {
       check: {
         args: {
           prefix: {
-            value: function(connection) {
-              assert.is(connection.prefix, 'remote', 'disconnecting remote');
+            value: function(front) {
+              assert.is(front.prefix, 'remote', 'disconnecting remote');
             }
           }
         }
@@ -466,8 +451,8 @@ exports.testRemoteXhr = function(options) {
         unassigned: [ ],
         args: {
           prefix: {
-            value: function(connection) {
-              assert.is(connection.prefix, 'remote', 'disconnecting remote');
+            value: function(front) {
+              assert.is(front.prefix, 'remote', 'disconnecting remote');
             },
             arg: ' remote',
             status: 'VALID',

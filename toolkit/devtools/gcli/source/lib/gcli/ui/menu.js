@@ -265,7 +265,7 @@ Menu.prototype.getChoiceIndex = function() {
 
 
 
-Menu.prototype.incrementChoice = function() {
+Menu.prototype.nudgeChoice = function(by) {
   if (this._choice == null) {
     this._choice = 0;
   }
@@ -273,20 +273,7 @@ Menu.prototype.incrementChoice = function() {
   
   
   
-  this._choice--;
-  this._updateHighlight();
-};
-
-
-
-
-Menu.prototype.decrementChoice = function() {
-  if (this._choice == null) {
-    this._choice = 0;
-  }
-
-  
-  this._choice++;
+  this._choice -= by;
   this._updateHighlight();
 };
 

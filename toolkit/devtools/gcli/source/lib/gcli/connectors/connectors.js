@@ -138,14 +138,21 @@ Connectors.prototype.getAll = function() {
   }.bind(this));
 };
 
+var defaultConnectorName;
+
+
 
 
 
 
 Connectors.prototype.get = function(name) {
   if (name == null) {
-    name = Object.keys(this._registered)[0];
+    name = (defaultConnectorName == null) ?
+        Object.keys(this._registered)[0] :
+        defaultConnectorName;
   }
+
+  defaultConnectorName = name;
   return this._registered[name];
 };
 

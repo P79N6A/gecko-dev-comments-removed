@@ -10,7 +10,7 @@ function test() {
   return Task.spawn(testTask).then(finish, helpers.handleError);
 }
 
-function testTask() {
+function* testTask() {
   let options = yield helpers.openTab("about:blank");
   yield helpers.openToolbar(options);
 
@@ -29,7 +29,10 @@ function testTask() {
     {
       setup: 'jsb ' + TEST_URI,
       
-      exec: { }
+      exec: {
+        output: '',
+        error: false
+      }
     }
   ]);
 

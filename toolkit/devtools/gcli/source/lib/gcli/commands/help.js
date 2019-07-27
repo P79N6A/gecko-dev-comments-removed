@@ -205,6 +205,7 @@ exports.items = [
     
     item: 'command',
     name: 'help',
+    runAt: 'client',
     description: l10n.lookup('helpDesc'),
     manual: l10n.lookup('helpManual'),
     params: [
