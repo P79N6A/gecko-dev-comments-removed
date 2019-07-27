@@ -9618,9 +9618,10 @@ nsCSSFrameConstructor::CreateNeededAnonFlexOrGridItems(
 
 
 void
-nsCSSFrameConstructor::CreateNeededPseudos(nsFrameConstructorState& aState,
-                                           FrameConstructionItemList& aItems,
-                                           nsIFrame* aParentFrame)
+nsCSSFrameConstructor::CreateNeededPseudoContainers(
+    nsFrameConstructorState& aState,
+    FrameConstructionItemList& aItems,
+    nsIFrame* aParentFrame)
 {
   ParentType ourParentType = GetParentType(aParentFrame);
   if (aItems.AllWantParentType(ourParentType)) {
@@ -9946,14 +9947,55 @@ nsCSSFrameConstructor::CreateNeededPseudos(nsFrameConstructorState& aState,
   } while (!iter.IsDone());
 }
 
+void nsCSSFrameConstructor::CreateNeededPseudoSiblings(
+    nsFrameConstructorState& aState,
+    FrameConstructionItemList& aItems,
+    nsIFrame* aParentFrame)
+{
+  if (aItems.IsEmpty() ||
+      GetParentType(aParentFrame) != eTypeRuby) {
+    return;
+  }
+
+  FCItemIterator iter(aItems);
+  int firstDisplay = iter.item().mStyleContext->StyleDisplay()->mDisplay;
+  if (firstDisplay == NS_STYLE_DISPLAY_RUBY_BASE_CONTAINER) {
+    return;
+  }
+  NS_ASSERTION(firstDisplay == NS_STYLE_DISPLAY_RUBY_TEXT_CONTAINER,
+               "Child of ruby frame should either a rbc or a rtc");
+
+  const PseudoParentData& pseudoData =
+    sPseudoParentData[eTypeRubyBaseContainer];
+  already_AddRefed<nsStyleContext> pseudoStyle = mPresShell->StyleSet()->
+    ResolveAnonymousBoxStyle(*pseudoData.mPseudoType,
+                             aParentFrame->StyleContext());
+  FrameConstructionItem* newItem =
+    new FrameConstructionItem(&pseudoData.mFCData,
+                              
+                              aParentFrame->GetContent(),
+                              
+                              *pseudoData.mPseudoType,
+                              
+                              iter.item().mNameSpaceID,
+                              
+                              nullptr,
+                              pseudoStyle,
+                              true, nullptr);
+  newItem->mIsAllInline = true;
+  newItem->mChildItems.SetParentHasNoXBLChildren(true);
+  iter.InsertItem(newItem);
+}
+
 inline void
 nsCSSFrameConstructor::ConstructFramesFromItemList(nsFrameConstructorState& aState,
                                                    FrameConstructionItemList& aItems,
                                                    nsContainerFrame* aParentFrame,
                                                    nsFrameItems& aFrameItems)
 {
-  CreateNeededPseudos(aState, aItems, aParentFrame);
+  CreateNeededPseudoContainers(aState, aItems, aParentFrame);
   CreateNeededAnonFlexOrGridItems(aState, aItems, aParentFrame);
+  CreateNeededPseudoSiblings(aState, aItems, aParentFrame);
 
   aItems.SetTriedConstructingFrames();
   for (FCItemIterator iter(aItems); !iter.IsDone(); iter.Next()) {
