@@ -138,7 +138,7 @@ nsHTMLCSSStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aDat
   
   
   if (aData->mAttrHasChanged && aData->mAttribute == nsGkAtoms::style) {
-    return eRestyle_StyleAttribute | eRestyle_ChangeAnimationPhase;
+    return eRestyle_StyleAttribute;
   }
 
   return nsRestyleHint(0);
