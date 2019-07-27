@@ -401,8 +401,6 @@ public:
   
   virtual double GetDuration();
 
-  AbstractCanonical<media::NullableTimeUnit>* CanonicalDurationOrNull() override;
-
   
   
   
@@ -902,16 +900,18 @@ protected:
   WatchManager<MediaDecoder> mWatchManager;
 
   
-  Mirror<media::TimeIntervals> mBuffered;
-
-  
-  Mirror<bool> mStateMachineIsShutdown;
-
-  
   virtual void ShutdownBitChanged() {}
 
-  
-  Mirror<MediaDecoderOwner::NextFrameStatus> mNextFrameStatus;
+  double ExplicitDuration() { return mExplicitDuration.Ref().ref(); }
+
+  void SetExplicitDuration(double aValue)
+  {
+    mExplicitDuration.Set(Some(aValue));
+
+    
+    
+    DurationChanged();
+  }
 
   
 
@@ -942,34 +942,10 @@ protected:
   
   
   
-  Mirror<int64_t> mCurrentPosition;
-
-  
-  
   virtual int64_t CurrentPosition() { return mCurrentPosition; }
 
   
-  Canonical<double> mVolume;
-public:
-  AbstractCanonical<double>* CanonicalVolume() { return &mVolume; }
-protected:
-
-  
-  Canonical<double> mPlaybackRate;
-public:
-  AbstractCanonical<double>* CanonicalPlaybackRate() { return &mPlaybackRate; }
-protected:
-
-  Canonical<bool> mPreservesPitch;
-public:
-  AbstractCanonical<bool>* CanonicalPreservesPitch() { return &mPreservesPitch; }
-protected:
-
-  
   double mDuration;
-
-  
-  Mirror<media::NullableTimeUnit> mStateMachineDuration;
 
   
   bool mMediaSeekable;
@@ -1004,57 +980,7 @@ private:
   nsRefPtr<CDMProxy> mProxy;
 #endif
 
-  
-  
-  
-  
-  
-  
-  Canonical<media::NullableTimeUnit> mEstimatedDuration;
-public:
-  AbstractCanonical<media::NullableTimeUnit>* CanonicalEstimatedDuration() { return &mEstimatedDuration; }
 protected:
-
-  
-  
-  Canonical<Maybe<double>> mExplicitDuration;
-  double ExplicitDuration() { return mExplicitDuration.Ref().ref(); }
-  void SetExplicitDuration(double aValue)
-  {
-    mExplicitDuration.Set(Some(aValue));
-
-    
-    
-    DurationChanged();
-  }
-
-public:
-  AbstractCanonical<Maybe<double>>* CanonicalExplicitDuration() { return &mExplicitDuration; }
-protected:
-
-  
-  
-  
-  
-  
-  
-  Canonical<PlayState> mPlayState;
-
-  
-  
-  
-  
-  
-  Canonical<PlayState> mNextState;
-
-  
-  Canonical<bool> mLogicallySeeking;
-public:
-  AbstractCanonical<PlayState>* CanonicalPlayState() { return &mPlayState; }
-  AbstractCanonical<PlayState>* CanonicalNextPlayState() { return &mNextState; }
-  AbstractCanonical<bool>* CanonicalLogicallySeeking() { return &mLogicallySeeking; }
-protected:
-
   virtual void CallSeek(const SeekTarget& aTarget);
 
   
@@ -1149,6 +1075,86 @@ protected:
 
   
   nsCOMPtr<nsITimer> mDormantTimer;
+
+protected:
+  
+  Mirror<bool> mStateMachineIsShutdown;
+
+  
+  Mirror<media::TimeIntervals> mBuffered;
+
+  
+  Mirror<MediaDecoderOwner::NextFrameStatus> mNextFrameStatus;
+
+  
+  Mirror<int64_t> mCurrentPosition;
+
+  
+  Mirror<media::NullableTimeUnit> mStateMachineDuration;
+
+  
+  Canonical<double> mVolume;
+
+  
+  Canonical<double> mPlaybackRate;
+
+  Canonical<bool> mPreservesPitch;
+
+  
+  
+  
+  
+  
+  Canonical<media::NullableTimeUnit> mEstimatedDuration;
+
+  
+  
+  Canonical<Maybe<double>> mExplicitDuration;
+
+  
+  
+  
+  
+  
+  
+  Canonical<PlayState> mPlayState;
+
+  
+  
+  
+  
+  
+  Canonical<PlayState> mNextState;
+
+  
+  Canonical<bool> mLogicallySeeking;
+
+public:
+  AbstractCanonical<media::NullableTimeUnit>* CanonicalDurationOrNull() override;
+  AbstractCanonical<double>* CanonicalVolume() {
+    return &mVolume;
+  }
+  AbstractCanonical<double>* CanonicalPlaybackRate() {
+    return &mPlaybackRate;
+  }
+  AbstractCanonical<bool>* CanonicalPreservesPitch() {
+    return &mPreservesPitch;
+  }
+  AbstractCanonical<media::NullableTimeUnit>* CanonicalEstimatedDuration() {
+    return &mEstimatedDuration;
+  }
+  AbstractCanonical<Maybe<double>>* CanonicalExplicitDuration() {
+    return &mExplicitDuration;
+  }
+  AbstractCanonical<PlayState>* CanonicalPlayState() {
+    return &mPlayState;
+  }
+  AbstractCanonical<PlayState>* CanonicalNextPlayState() {
+    return &mNextState;
+  }
+  AbstractCanonical<bool>* CanonicalLogicallySeeking() {
+    return &mLogicallySeeking;
+  }
 };
 
 } 

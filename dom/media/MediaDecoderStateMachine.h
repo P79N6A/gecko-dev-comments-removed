@@ -263,8 +263,6 @@ public:
     mReader->DispatchNotifyDataArrived(aLength, aOffset, aThrottleUpdates);
   }
 
-  AbstractCanonical<media::TimeIntervals>* CanonicalBuffered() { return mReader->CanonicalBuffered(); }
-
   
   MediaTaskQueue* TaskQueue() const { return mTaskQueue; }
 
@@ -941,16 +939,7 @@ private:
   
   TimeStamp mBufferingStart;
 
-  
-  Mirror<media::TimeIntervals> mBuffered;
-
-  
-  
-  Canonical<media::NullableTimeUnit> mDuration;
   media::TimeUnit Duration() const { MOZ_ASSERT(OnTaskQueue()); return mDuration.Ref().ref(); }
-public:
-  AbstractCanonical<media::NullableTimeUnit>* CanonicalDuration() { return &mDuration; }
-protected:
 
   
   void RecomputeDuration();
@@ -958,20 +947,10 @@ protected:
 
   
   FrameID mCurrentFrameID;
-  
-  Mirror<media::NullableTimeUnit> mEstimatedDuration;
-
-  
-  Mirror<Maybe<double>> mExplicitDuration;
 
   
   
   Watchable<media::TimeUnit> mObservedDuration;
-
-  
-  Mirror<MediaDecoder::PlayState> mPlayState;
-  Mirror<MediaDecoder::PlayState> mNextPlayState;
-  Mirror<bool> mLogicallySeeking;
 
   
   
@@ -984,19 +963,6 @@ protected:
     return mPlayState == MediaDecoder::PLAY_STATE_PLAYING ||
            mNextPlayState == MediaDecoder::PLAY_STATE_PLAYING;
   }
-
-  
-  Canonical<bool> mIsShutdown;
-public:
-  AbstractCanonical<bool>* CanonicalIsShutdown() { return &mIsShutdown; }
-protected:
-
-  
-  
-  Canonical<NextFrameStatus> mNextFrameStatus;
-public:
-  AbstractCanonical<NextFrameStatus>* CanonicalNextFrameStatus() { return &mNextFrameStatus; }
-protected:
 
   struct SeekJob {
     void Steal(SeekJob& aOther)
@@ -1058,13 +1024,6 @@ protected:
   
   
   
-  Canonical<int64_t> mCurrentPosition;
-public:
-  AbstractCanonical<int64_t>* CanonicalCurrentPosition() { return &mCurrentPosition; }
-protected:
-  
-  
-  
   int64_t AudioEndTime() const;
 
   
@@ -1080,18 +1039,7 @@ protected:
   int64_t mDecodedVideoEndTime;
 
   
-  Mirror<double> mVolume;
-
-  
-  
-  
-  
-  
   double mPlaybackRate;
-  Mirror<double> mLogicalPlaybackRate;
-
-  
-  Mirror<bool> mPreservesPitch;
 
   
   TimeStamp mDecodeStartTime;
@@ -1357,6 +1305,65 @@ protected:
   
   
   nsRefPtr<DecodedStream> mDecodedStream;
+
+private:
+  
+  Mirror<media::TimeIntervals> mBuffered;
+
+  
+  Mirror<media::NullableTimeUnit> mEstimatedDuration;
+
+  
+  Mirror<Maybe<double>> mExplicitDuration;
+
+  
+  Mirror<MediaDecoder::PlayState> mPlayState;
+  Mirror<MediaDecoder::PlayState> mNextPlayState;
+  Mirror<bool> mLogicallySeeking;
+
+  
+  Mirror<double> mVolume;
+
+  
+  
+  
+  Mirror<double> mLogicalPlaybackRate;
+
+  
+  Mirror<bool> mPreservesPitch;
+
+  
+  
+  Canonical<media::NullableTimeUnit> mDuration;
+
+  
+  Canonical<bool> mIsShutdown;
+
+  
+  
+  Canonical<NextFrameStatus> mNextFrameStatus;
+
+  
+  
+  
+  Canonical<int64_t> mCurrentPosition;
+
+public:
+  AbstractCanonical<media::TimeIntervals>* CanonicalBuffered() {
+    return mReader->CanonicalBuffered();
+  }
+  AbstractCanonical<media::NullableTimeUnit>* CanonicalDuration() {
+    return &mDuration;
+  }
+  AbstractCanonical<bool>* CanonicalIsShutdown() {
+    return &mIsShutdown;
+  }
+  AbstractCanonical<NextFrameStatus>* CanonicalNextFrameStatus() {
+    return &mNextFrameStatus;
+  }
+  AbstractCanonical<int64_t>* CanonicalCurrentPosition() {
+    return &mCurrentPosition;
+  }
 };
 
 } 
