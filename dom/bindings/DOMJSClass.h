@@ -223,7 +223,7 @@ struct DOMIfaceAndProtoJSClass
   
   
   
-  const JSClass mBase;
+  const js::Class mBase;
 
   
   DOMObjectType mType;
@@ -245,7 +245,7 @@ struct DOMIfaceAndProtoJSClass
     return FromJSClass(Jsvalify(base));
   }
 
-  const JSClass* ToJSClass() const { return &mBase; }
+  const JSClass* ToJSClass() const { return Jsvalify(&mBase); }
 };
 
 class ProtoAndIfaceCache;
