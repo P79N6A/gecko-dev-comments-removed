@@ -110,13 +110,6 @@ const int64_t NO_VIDEO_AMPLE_AUDIO_DIVISOR = 8;
 static const uint32_t LOW_VIDEO_FRAMES = 1;
 
 
-
-
-
-
-static const int32_t LOW_VIDEO_THRESHOLD_USECS = 16000;
-
-
 static const int AUDIO_DURATION_USECS = 40000;
 
 
@@ -196,7 +189,6 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mAudioEndTime(-1),
   mDecodedAudioEndTime(-1),
   mVideoFrameEndTime(-1),
-  mDecodedVideoEndTime(-1),
   mVolume(1.0),
   mPlaybackRate(1.0),
   mPreservesPitch(true),
@@ -616,8 +608,9 @@ MediaDecoderStateMachine::DecodeVideo()
           (!mIsVideoPrerolling && IsVideoDecoding() &&
            
            
-           ((mDecodedVideoEndTime - GetClock()) <
-            (LOW_VIDEO_THRESHOLD_USECS * mPlaybackRate)))) &&
+           GetClock() > mVideoFrameEndTime &&
+          (static_cast<uint32_t>(VideoQueue().GetSize())
+            < LOW_VIDEO_FRAMES * mPlaybackRate))) &&
         !HasLowUndecodedData())
     {
       skipToNextKeyFrame = true;
@@ -926,7 +919,6 @@ MediaDecoderStateMachine::OnVideoDecoded(VideoData* aVideoSample)
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
   nsRefPtr<VideoData> video(aVideoSample);
   mVideoRequestPending = false;
-  mDecodedVideoEndTime = video ? video->GetEndTime() : mDecodedVideoEndTime;
 
   SAMPLE_LOG("OnVideoDecoded [%lld,%lld] disc=%d",
              (video ? video->mTime : -1),
@@ -1499,7 +1491,6 @@ void MediaDecoderStateMachine::ResetPlayback()
   MOZ_ASSERT(!mAudioSink);
 
   mVideoFrameEndTime = -1;
-  mDecodedVideoEndTime = -1;
   mAudioStartTime = -1;
   mAudioEndTime = -1;
   mDecodedAudioEndTime = -1;

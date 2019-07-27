@@ -828,10 +828,6 @@ protected:
 
   
   
-  int64_t mDecodedVideoEndTime;
-
-  
-  
   
   double mVolume;
 
