@@ -37,3 +37,19 @@ DOMMMIError::WrapObject(JSContext* aCx)
 {
   return DOMMMIErrorBinding::Wrap(aCx, this);
 }
+
+
+
+ already_AddRefed<DOMMMIError>
+DOMMMIError::Constructor(const GlobalObject& aGlobal,
+                         const nsAString& aServiceCode,
+                         const nsAString& aName,
+                         const nsAString& aMessage,
+                         const Nullable<int16_t>& aInfo,
+                         ErrorResult& aRv) {
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aGlobal.GetAsSupports());
+  nsRefPtr<DOMMMIError> error = new DOMMMIError(window, aName, aMessage,
+                                                aServiceCode, aInfo);
+
+  return error.forget();
+}

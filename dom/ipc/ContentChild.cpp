@@ -154,11 +154,6 @@
 #include "mozilla/net/NeckoMessageUtils.h"
 #include "mozilla/RemoteSpellCheckEngineChild.h"
 
-#ifdef MOZ_B2G_RIL
-#include "mozilla/dom/mobileconnection/MobileConnectionChild.h"
-using namespace mozilla::dom::mobileconnection;
-#endif
-
 using namespace base;
 using namespace mozilla;
 using namespace mozilla::docshell;
@@ -1225,43 +1220,6 @@ ContentChild::DeallocPFileSystemRequestChild(PFileSystemRequestChild* aFileSyste
     
     NS_RELEASE(child);
     return true;
-}
-
-PMobileConnectionChild*
-ContentChild::SendPMobileConnectionConstructor(PMobileConnectionChild* aActor,
-                                               const uint32_t& aClientId)
-{
-#ifdef MOZ_B2G_RIL
-    
-    
-    static_cast<MobileConnectionChild*>(aActor)->AddRef();
-    return PContentChild::SendPMobileConnectionConstructor(aActor, aClientId);
-#else
-    MOZ_CRASH("No support for mobileconnection on this platform!");;
-#endif
-}
-
-PMobileConnectionChild*
-ContentChild::AllocPMobileConnectionChild(const uint32_t& aClientId)
-{
-#ifdef MOZ_B2G_RIL
-    NS_NOTREACHED("No one should be allocating PMobileConnectionChild actors");
-    return nullptr;
-#else
-    MOZ_CRASH("No support for mobileconnection on this platform!");;
-#endif
-}
-
-bool
-ContentChild::DeallocPMobileConnectionChild(PMobileConnectionChild* aActor)
-{
-#ifdef MOZ_B2G_RIL
-    
-    static_cast<MobileConnectionChild*>(aActor)->Release();
-    return true;
-#else
-    MOZ_CRASH("No support for mobileconnection on this platform!");
-#endif
 }
 
 PNeckoChild*

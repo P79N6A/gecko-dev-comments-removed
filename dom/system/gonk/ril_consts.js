@@ -2478,11 +2478,15 @@ this.CALL_FAIL_IMEI_NOT_ACCEPTED = 243;
 this.CALL_FAIL_ERROR_UNSPECIFIED = 0xffff;
 
 
-this.GECKO_RADIOSTATE_UNKNOWN   = null;
-this.GECKO_RADIOSTATE_ENABLING  = "enabling";
-this.GECKO_RADIOSTATE_ENABLED   = "enabled";
-this.GECKO_RADIOSTATE_DISABLING = "disabling";
-this.GECKO_RADIOSTATE_DISABLED  = "disabled";
+this.GECKO_RADIOSTATE_UNAVAILABLE   = null;
+this.GECKO_RADIOSTATE_OFF           = "off";
+this.GECKO_RADIOSTATE_READY         = "ready";
+
+this.GECKO_DETAILED_RADIOSTATE_UNKNOWN    = null;
+this.GECKO_DETAILED_RADIOSTATE_ENABLING   = "enabling";
+this.GECKO_DETAILED_RADIOSTATE_ENABLED    = "enabled";
+this.GECKO_DETAILED_RADIOSTATE_DISABLING  = "disabling";
+this.GECKO_DETAILED_RADIOSTATE_DISABLED   = "disabled";
 
 this.GECKO_CARDSTATE_UNINITIALIZED                 = "uninitialized";
 this.GECKO_CARDSTATE_UNDETECTED                    = null;

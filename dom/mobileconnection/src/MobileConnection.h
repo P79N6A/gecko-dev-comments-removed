@@ -11,7 +11,7 @@
 #include "mozilla/dom/DOMRequest.h"
 #include "mozilla/dom/MozMobileConnectionBinding.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsIMobileConnectionService.h"
+#include "nsIMobileConnectionProvider.h"
 #include "nsWeakPtr.h"
 
 namespace mozilla {
@@ -164,7 +164,7 @@ private:
 
 private:
   uint32_t mClientId;
-  nsCOMPtr<nsIMobileConnectionService> mService;
+  nsCOMPtr<nsIMobileConnectionProvider> mProvider;
   nsRefPtr<Listener> mListener;
   nsRefPtr<MobileConnectionInfo> mVoice;
   nsRefPtr<MobileConnectionInfo> mData;
