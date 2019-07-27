@@ -1103,6 +1103,10 @@ SavedStacks::getLocation(JSContext *cx, const FrameIter &iter, MutableHandleLoca
             return false;
 
         locationp->line = iter.computeLine(&locationp->column);
+        
+        
+        
+        locationp->column++;
         return true;
     }
 
@@ -1126,7 +1130,8 @@ SavedStacks::getLocation(JSContext *cx, const FrameIter &iter, MutableHandleLoca
         uint32_t column;
         uint32_t line = PCToLineNumber(script, pc, &column);
 
-        LocationValue value(source, line, column);
+        
+        LocationValue value(source, line, column + 1);
         if (!pcLocationMap.add(p, key, value))
             return false;
     }
