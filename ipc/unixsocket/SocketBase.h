@@ -409,23 +409,16 @@ public:
 
 
 
-template<class T>
+
 class SocketIODeleteInstanceRunnable final : public nsRunnable
 {
 public:
-  SocketIODeleteInstanceRunnable(T* aInstance)
-  : mInstance(aInstance)
-  { }
+  SocketIODeleteInstanceRunnable(SocketIOBase* aIO);
 
-  NS_IMETHOD Run() override
-  {
-    mInstance = nullptr; 
-
-    return NS_OK;
-  }
+  NS_IMETHOD Run() override;
 
 private:
-  nsAutoPtr<T> mInstance;
+  nsAutoPtr<SocketIOBase> mIO;
 };
 
 
@@ -492,9 +485,7 @@ public:
     
     io->ShutdownOnIOThread();
 
-    nsRefPtr<nsRunnable> r = new SocketIODeleteInstanceRunnable<Tio>(io);
-    nsresult rv = NS_DispatchToMainThread(r);
-    NS_ENSURE_SUCCESS_VOID(rv);
+    NS_DispatchToMainThread(new SocketIODeleteInstanceRunnable(io));
   }
 };
 
