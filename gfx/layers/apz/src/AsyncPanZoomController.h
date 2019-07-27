@@ -952,6 +952,14 @@ public:
   AsyncPanZoomController* GetPrevSibling() const { return mPrevSibling; }
   AsyncPanZoomController* GetParent() const { return mParent; }
 
+  AsyncPanZoomController* GetFirstChild() const {
+    AsyncPanZoomController* child = GetLastChild();
+    while (child && child->GetPrevSibling()) {
+      child = child->GetPrevSibling();
+    }
+    return child;
+  }
+
   
 
 

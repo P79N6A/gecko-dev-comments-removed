@@ -225,7 +225,7 @@ APZCTreeManager::PrepareAPZCForLayer(const LayerMetricsWrapper& aLayer,
                                      uint64_t aLayersId,
                                      const gfx::Matrix4x4& aAncestorTransform,
                                      const nsIntRegion& aObscured,
-                                     AsyncPanZoomController*& aOutParent,
+                                     AsyncPanZoomController* aParent,
                                      AsyncPanZoomController* aNextSibling,
                                      TreeBuildingState& aState)
 {
@@ -321,9 +321,10 @@ APZCTreeManager::PrepareAPZCForLayer(const LayerMetricsWrapper& aLayer,
     
     if (aNextSibling) {
       aNextSibling->SetPrevSibling(apzc);
-    } else if (aOutParent) {
-      aOutParent->SetLastChild(apzc);
+    } else if (aParent) {
+      aParent->SetLastChild(apzc);
     } else {
+      MOZ_ASSERT(!mRootApzc);
       mRootApzc = apzc;
       apzc->MakeRoot();
     }
@@ -378,9 +379,6 @@ APZCTreeManager::PrepareAPZCForLayer(const LayerMetricsWrapper& aLayer,
     apzc->AddHitTestRegion(unobscured);
     APZCTM_LOG("Adding region %s to visible region of APZC %p\n", Stringify(unobscured).c_str(), apzc);
   }
-
-  
-  aOutParent = apzc;
 
   return apzc;
 }
@@ -439,7 +437,14 @@ APZCTreeManager::UpdatePanZoomControllerTree(TreeBuildingState& aState,
 
   
   
-  AsyncPanZoomController* next = apzc ? nullptr : aNextSibling;
+  AsyncPanZoomController* next = aNextSibling;
+  if (apzc) {
+    
+    
+    aParent = apzc;
+    next = apzc->GetFirstChild();
+  }
+
   for (LayerMetricsWrapper child = aLayer.GetLastChild(); child; child = child.GetPrevSibling()) {
     gfx::TreeAutoIndent indent(mApzcTreeLog);
     next = UpdatePanZoomControllerTree(aState, child, childLayersId,
