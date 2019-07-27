@@ -49,12 +49,20 @@ private:
   MediaDataDecoderCallback* mCallback;
   AudioConverterRef mConverter;
   AudioFileStreamID mStream;
-  Microseconds mCurrentAudioTimestamp;
+  
+  CheckedInt<Microseconds> mCurrentAudioTimestamp;
+  
+  
+  CheckedInt<Microseconds> mNextAudioTimestamp;
   int64_t mSamplePosition;
-  bool mHaveOutput;
-  bool mFlushed;
+  
+  
+  int64_t mSizeDecoded;
   AudioStreamBasicDescription mOutputFormat;
   AudioFileTypeID mFileType;
+  
+  nsTArray<AudioDataValue> mOutputData;
+  OSStatus mLastError;
 
   void SetupDecoder();
   void SubmitSample(nsAutoPtr<mp4_demuxer::MP4Sample> aSample);
