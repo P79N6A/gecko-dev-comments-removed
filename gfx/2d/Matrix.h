@@ -461,6 +461,17 @@ public:
     return *this;
   }
 
+  Matrix4x4 &ChangeBasis(Float aX, Float aY, Float aZ)
+  {
+    
+    Translate(-aX, -aY, -aZ);
+
+    
+    PostTranslate(aX, aY, aZ);
+
+    return *this;
+  }
+
   bool operator==(const Matrix4x4& o) const
   {
     
