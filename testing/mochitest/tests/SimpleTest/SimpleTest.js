@@ -897,18 +897,44 @@ SimpleTest.waitForClipboard_polls = 0;
 
 
 
+
+
+
+
+
+
+
+
 SimpleTest.__waitForClipboardMonotonicCounter = 0;
 SimpleTest.__defineGetter__("_waitForClipboardMonotonicCounter", function () {
   return SimpleTest.__waitForClipboardMonotonicCounter++;
 });
 SimpleTest.waitForClipboard = function(aExpectedStringOrValidatorFn, aSetupFn,
-                                       aSuccessFn, aFailureFn, aFlavor) {
+                                       aSuccessFn, aFailureFn, aFlavor, aTimeout, aExpectFailure) {
     var requestedFlavor = aFlavor || "text/unicode";
 
     
-    var inputValidatorFn = typeof(aExpectedStringOrValidatorFn) == "string"
-        ? function(aData) { return aData == aExpectedStringOrValidatorFn; }
-        : aExpectedStringOrValidatorFn;
+    var initialVal = SimpleTest._waitForClipboardMonotonicCounter +
+                     "-waitForClipboard-known-value";
+
+    var inputValidatorFn;
+    if (aExpectFailure) {
+        
+        if (aExpectedStringOrValidatorFn !== null) {
+            SimpleTest.ok(false, "When expecting failure, aExpectedStringOrValidatorFn must be null");
+        }
+
+        inputValidatorFn = function(aData) {
+            return aData != initialVal;
+        };
+    } else {
+        
+        inputValidatorFn = typeof(aExpectedStringOrValidatorFn) == "string"
+            ? function(aData) { return aData == aExpectedStringOrValidatorFn; }
+            : aExpectedStringOrValidatorFn;
+    }
+
+    var maxPolls = aTimeout ? aTimeout / 100 : 50;
 
     
     function reset() {
@@ -916,9 +942,9 @@ SimpleTest.waitForClipboard = function(aExpectedStringOrValidatorFn, aSetupFn,
     }
 
     function wait(validatorFn, successFn, failureFn, flavor) {
-        if (++SimpleTest.waitForClipboard_polls > 50) {
+        if (++SimpleTest.waitForClipboard_polls > maxPolls) {
             
-            SimpleTest.ok(false, "Timed out while polling clipboard for pasted data.");
+            SimpleTest.ok(aExpectFailure, "Timed out while polling clipboard for pasted data");
             reset();
             failureFn();
             return;
@@ -931,7 +957,7 @@ SimpleTest.waitForClipboard = function(aExpectedStringOrValidatorFn, aSetupFn,
             if (preExpectedVal)
                 preExpectedVal = null;
             else
-                SimpleTest.ok(true, "Clipboard has the correct value");
+                SimpleTest.ok(!aExpectFailure, "Clipboard has the given value");
             reset();
             successFn();
         } else {
@@ -940,8 +966,7 @@ SimpleTest.waitForClipboard = function(aExpectedStringOrValidatorFn, aSetupFn,
     }
 
     
-    var preExpectedVal = SimpleTest._waitForClipboardMonotonicCounter +
-                         "-waitForClipboard-known-value";
+    var preExpectedVal = initialVal;
     SpecialPowers.clipboardCopyString(preExpectedVal);
     wait(function(aData) { return aData  == preExpectedVal; },
          function() {
