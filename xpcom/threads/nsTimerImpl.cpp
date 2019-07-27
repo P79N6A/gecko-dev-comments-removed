@@ -709,6 +709,11 @@ nsTimerEvent::Run()
 #endif
 
   mTimer->Fire();
+  
+  
+  
+  
+  mTimer = nullptr;
 
   return NS_OK;
 }
