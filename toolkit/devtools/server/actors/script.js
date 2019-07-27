@@ -1701,6 +1701,18 @@ ThreadActor.prototype = {
         if (aValue === null) {
           return { type: "null" };
         }
+      else if(aValue.optimizedOut ||
+              aValue.uninitialized ||
+              aValue.missingArguments) {
+          
+          
+          return {
+            type: "null",
+            optimizedOut: aValue.optimizedOut,
+            uninitialized: aValue.uninitialized,
+            missingArguments: aValue.missingArguments
+          };
+        }
         return this.objectGrip(aValue, aPool);
 
       case "symbol":
@@ -4864,20 +4876,14 @@ EnvironmentActor.prototype = {
     }
     for each (let name in parameterNames) {
       let arg = {};
-
       let value = this.obj.getVariable(name);
-      
-      
-      if (value && value.optimizedOut) {
-        continue;
-      }
 
       
       
       let desc = {
         value: value,
         configurable: false,
-        writable: true,
+        writable: !(value && value.optimizedOut),
         enumerable: true
       };
 
@@ -4905,19 +4911,16 @@ EnvironmentActor.prototype = {
       }
 
       let value = this.obj.getVariable(name);
-      
-      
-      
-      if (value && (value.optimizedOut || value.missingArguments || value.uninitialized)) {
-        continue;
-      }
 
       
       
       let desc = {
         value: value,
         configurable: false,
-        writable: true,
+        writable: !(value &&
+                    (value.optimizedOut ||
+                     value.uninitialized ||
+                     value.missingArguments)),
         enumerable: true
       };
 
