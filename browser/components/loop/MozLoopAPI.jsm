@@ -89,7 +89,15 @@ const cloneValueInto = function(value, targetWindow) {
     return cloneErrorObject(value, targetWindow);
   }
 
-  return Cu.cloneInto(value, targetWindow);
+  let clone;
+  try {
+    clone = Cu.cloneInto(value, targetWindow);
+  } catch (ex) {
+    MozLoopService.log.debug("Failed to clone value:", value);
+    throw ex;
+  }
+
+  return clone;
 };
 
 
@@ -106,11 +114,18 @@ const injectObjectAPI = function(api, targetWindow) {
   Object.keys(api).forEach(func => {
     injectedAPI[func] = function(...params) {
       let lastParam = params.pop();
+      let callbackIsFunction = (typeof lastParam == "function");
 
       
       
-      if (lastParam && typeof lastParam === "function") {
+      if (callbackIsFunction) {
         api[func](...params, function(...results) {
+          
+          
+          if (callbackIsFunction && typeof lastParam != "function") {
+            MozLoopService.log.debug(func + ": callback function was lost.");
+            return;
+          }
           lastParam(...[cloneValueInto(r, targetWindow) for (r of results)]);
         });
       } else {
@@ -231,7 +246,7 @@ function injectLoopAPI(targetWindow) {
       enumerable: true,
       writable: true,
       value: function(conversationWindowId) {
-        return Cu.cloneInto(MozLoopService.getConversationWindowData(conversationWindowId),
+        return cloneValueInto(MozLoopService.getConversationWindowData(conversationWindowId),
           targetWindow);
       }
     },
@@ -495,9 +510,16 @@ function injectLoopAPI(targetWindow) {
       writable: true,
       value: function(sessionType, path, method, payloadObj, callback) {
         
+        let callbackIsFunction = (typeof callback == "function");
         MozLoopService.hawkRequest(sessionType, path, method, payloadObj).then((response) => {
           callback(null, response.body);
         }, hawkError => {
+          
+          
+          if (callbackIsFunction && typeof callback != "function") {
+            MozLoopService.log.debug("hawkRequest: callback function was lost.");
+            return;
+          }
           
           
           
