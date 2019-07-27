@@ -530,14 +530,18 @@ public:
 
     
     
-    
-    
-    ScreenPoint overscroll;
-    ScreenPoint adjustedOffset;
-    mApzc.mX.AdjustDisplacement(offset.x, adjustedOffset.x, overscroll.x);
-    mApzc.mY.AdjustDisplacement(offset.y, adjustedOffset.y, overscroll.y);
+    CSSPoint cssOffset = offset / aFrameMetrics.GetZoom();
 
-    aFrameMetrics.ScrollBy(adjustedOffset / aFrameMetrics.GetZoom());
+    
+    
+    
+    
+    CSSPoint overscroll;
+    CSSPoint adjustedOffset;
+    mApzc.mX.AdjustDisplacement(cssOffset.x, adjustedOffset.x, overscroll.x);
+    mApzc.mY.AdjustDisplacement(cssOffset.y, adjustedOffset.y, overscroll.y);
+
+    aFrameMetrics.ScrollBy(adjustedOffset);
 
     
     if (!IsZero(overscroll)) {
@@ -746,17 +750,18 @@ public:
     } else {
       mApzc.mY.SetVelocity(velocity.y);
     }
+
     
     
-    CSSToScreenScale zoom = aFrameMetrics.GetZoom();
-    ScreenPoint displacement = (position - aFrameMetrics.GetScrollOffset()) * zoom;
+    float displacement_x = position.x - mApzc.mX.GetOrigin();
+    float displacement_y = position.y - mApzc.mY.GetOrigin();
 
-    ScreenPoint overscroll;
-    ScreenPoint adjustedOffset;
-    mApzc.mX.AdjustDisplacement(displacement.x, adjustedOffset.x, overscroll.x);
-    mApzc.mY.AdjustDisplacement(displacement.y, adjustedOffset.y, overscroll.y);
+    CSSPoint overscroll;
+    CSSPoint adjustedOffset;
+    mApzc.mX.AdjustDisplacement(displacement_x, adjustedOffset.x, overscroll.x);
+    mApzc.mY.AdjustDisplacement(displacement_y, adjustedOffset.y, overscroll.y);
 
-    aFrameMetrics.ScrollBy(adjustedOffset / zoom);
+    aFrameMetrics.ScrollBy(adjustedOffset);
 
     
     
@@ -1389,13 +1394,17 @@ nsEventStatus AsyncPanZoomController::OnScale(const PinchGestureInput& aEvent) {
 
     CSSToParentLayerScale userZoom = mFrameMetrics.GetZoomToParent();
     ParentLayerPoint focusPoint = ToParentLayerCoords(aEvent.mFocusPoint) - mFrameMetrics.mCompositionBounds.TopLeft();
-    CSSPoint cssFocusPoint = focusPoint / mFrameMetrics.GetZoomToParent();
+    CSSPoint cssFocusPoint = focusPoint / userZoom;
 
     CSSPoint focusChange = (mLastZoomFocus - focusPoint) / userZoom;
     
     
-    focusChange.x -= mX.DisplacementWillOverscrollAmount(focusChange.x);
-    focusChange.y -= mY.DisplacementWillOverscrollAmount(focusChange.y);
+    if (mX.DisplacementWillOverscroll(focusChange.x) != Axis::OVERSCROLL_NONE) {
+      focusChange.x -= mX.DisplacementWillOverscrollAmount(focusChange.x);
+    }
+    if (mY.DisplacementWillOverscroll(focusChange.y) != Axis::OVERSCROLL_NONE) {
+      focusChange.y -= mY.DisplacementWillOverscrollAmount(focusChange.y);
+    }
     ScrollBy(focusChange);
 
     
@@ -1918,18 +1927,27 @@ bool AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
   ScreenPoint displacement = aStartPoint - aEndPoint;
 
   ScreenPoint overscroll;  
+  CSSPoint cssOverscroll;  
   {
     ReentrantMonitorAutoEnter lock(mMonitor);
 
-    ScreenPoint adjustedDisplacement;
-    bool xChanged = mX.AdjustDisplacement(displacement.x, adjustedDisplacement.x, overscroll.x);
-    bool yChanged = mY.AdjustDisplacement(displacement.y, adjustedDisplacement.y, overscroll.y);
+    CSSToScreenScale zoom = mFrameMetrics.GetZoom();
+
+    
+    
+    CSSPoint cssDisplacement = displacement / zoom;
+
+    CSSPoint adjustedDisplacement;
+    bool xChanged = mX.AdjustDisplacement(cssDisplacement.x, adjustedDisplacement.x, cssOverscroll.x);
+    bool yChanged = mY.AdjustDisplacement(cssDisplacement.y, adjustedDisplacement.y, cssOverscroll.y);
     if (xChanged || yChanged) {
       ScheduleComposite();
     }
 
+    overscroll = cssOverscroll * zoom;
+
     if (!IsZero(adjustedDisplacement)) {
-      ScrollBy(adjustedDisplacement / mFrameMetrics.GetZoom());
+      ScrollBy(adjustedDisplacement);
       ScheduleCompositeAndMaybeRepaint();
       UpdateSharedCompositorFrameMetrics();
     }
@@ -1954,10 +1972,10 @@ bool AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
   
   
   APZC_LOG("%p taking overscroll during panning\n", this);
-  return OverscrollBy(overscroll);
+  return OverscrollBy(cssOverscroll);
 }
 
-bool AsyncPanZoomController::OverscrollBy(const ScreenPoint& aOverscroll) {
+bool AsyncPanZoomController::OverscrollBy(const CSSPoint& aOverscroll) {
   if (!gfxPrefs::APZOverscrollEnabled()) {
     return false;
   }
@@ -2420,7 +2438,7 @@ void AsyncPanZoomController::GetOverscrollTransform(Matrix4x4* aTransform) const
 
   
   
-  ScreenSize compositionSize(mX.GetCompositionLength(), mY.GetCompositionLength());
+  CSSSize compositionSize(mX.GetCompositionLength(), mY.GetCompositionLength());
   float scaleX = 1 + kStretchFactor * fabsf(mX.GetOverscroll()) / mX.GetCompositionLength();
   float scaleY = 1 + kStretchFactor * fabsf(mY.GetOverscroll()) / mY.GetCompositionLength();
 
@@ -2429,23 +2447,24 @@ void AsyncPanZoomController::GetOverscrollTransform(Matrix4x4* aTransform) const
   
   
   
-  ScreenPoint translation;
+  CSSPoint translation;
   if (mX.IsOverscrolled() && mX.GetOverscroll() > 0) {
     
-    ScreenCoord overscrolledCompositionWidth = scaleX * compositionSize.width;
-    ScreenCoord extraCompositionWidth = overscrolledCompositionWidth - compositionSize.width;
+    CSSCoord overscrolledCompositionWidth = scaleX * compositionSize.width;
+    CSSCoord extraCompositionWidth = overscrolledCompositionWidth - compositionSize.width;
     translation.x = -extraCompositionWidth;
   }
   if (mY.IsOverscrolled() && mY.GetOverscroll() > 0) {
     
-    ScreenCoord overscrolledCompositionHeight = scaleY * compositionSize.height;
-    ScreenCoord extraCompositionHeight = overscrolledCompositionHeight - compositionSize.height;
+    CSSCoord overscrolledCompositionHeight = scaleY * compositionSize.height;
+    CSSCoord extraCompositionHeight = overscrolledCompositionHeight - compositionSize.height;
     translation.y = -extraCompositionHeight;
   }
 
   
+  ScreenPoint screenTranslation = translation * mFrameMetrics.GetZoom();
   *aTransform = Matrix4x4().Scale(scaleX, scaleY, 1)
-                           .PostTranslate(translation.x, translation.y, 0);
+                           .PostTranslate(screenTranslation.x, screenTranslation.y, 0);
 }
 
 bool AsyncPanZoomController::AdvanceAnimations(const TimeStamp& aSampleTime)
@@ -2599,6 +2618,19 @@ Matrix4x4 AsyncPanZoomController::GetTransformToLastDispatchedPaint() const {
 
   return Matrix4x4().Translate(scrollChange.x, scrollChange.y, 0) *
          Matrix4x4().Scale(zoomChange, zoomChange, 1);
+}
+
+bool AsyncPanZoomController::IsCurrentlyCheckerboarding() const {
+  ReentrantMonitorAutoEnter lock(mMonitor);
+
+  if (!gfxPrefs::APZAllowCheckerboarding()) {
+    return false;
+  }
+
+  CSSPoint currentScrollOffset = mFrameMetrics.GetScrollOffset() + mTestAsyncScrollOffset;
+  CSSRect painted = mLastContentPaintMetrics.mDisplayPort + mLastContentPaintMetrics.GetScrollOffset();
+  CSSRect visible = CSSRect(currentScrollOffset, mFrameMetrics.CalculateCompositedSizeInCssPixels());
+  return !painted.Contains(visible);
 }
 
 void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetrics, bool aIsFirstPaint) {

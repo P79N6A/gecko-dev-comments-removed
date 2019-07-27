@@ -805,6 +805,24 @@ public:
       Mutated();
     }
   }
+
+  
+
+
+
+
+
+
+
+  virtual void SetLayerBounds(const nsIntRect& aLayerBounds)
+  {
+    if (!mLayerBounds.IsEqualEdges(aLayerBounds)) {
+      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) LayerBounds", this));
+      mLayerBounds = aLayerBounds;
+      Mutated();
+    }
+  }
+
   
 
 
@@ -1178,6 +1196,7 @@ public:
   gfx::CompositionOp GetMixBlendMode() const { return mMixBlendMode; }
   const nsIntRect* GetClipRect() { return mUseClipRect ? &mClipRect : nullptr; }
   uint32_t GetContentFlags() { return mContentFlags; }
+  const nsIntRect& GetLayerBounds() const { return mLayerBounds; }
   const nsIntRegion& GetVisibleRegion() const { return mVisibleRegion; }
   const FrameMetrics& GetFrameMetrics(uint32_t aIndex) const;
   uint32_t GetFrameMetricsCount() const { return mFrameMetrics.Length(); }
@@ -1589,6 +1608,7 @@ protected:
   void* mImplData;
   nsRefPtr<Layer> mMaskLayer;
   gfx::UserData mUserData;
+  nsIntRect mLayerBounds;
   nsIntRegion mVisibleRegion;
   nsTArray<FrameMetrics> mFrameMetrics;
   EventRegions mEventRegions;

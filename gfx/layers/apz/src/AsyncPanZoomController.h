@@ -246,6 +246,14 @@ public:
 
 
 
+  bool IsCurrentlyCheckerboarding() const;
+
+  
+
+
+
+
+
   static const LayerMargin CalculatePendingDisplayPort(
     const FrameMetrics& aFrameMetrics,
     const ScreenPoint& aVelocity,
@@ -1022,7 +1030,7 @@ private:
 
 
 
-  bool OverscrollBy(const ScreenPoint& aOverscroll);
+  bool OverscrollBy(const CSSPoint& aOverscroll);
 
   
 
