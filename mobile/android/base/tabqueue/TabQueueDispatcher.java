@@ -11,7 +11,6 @@ import org.mozilla.gecko.GeckoSharedPrefs;
 import org.mozilla.gecko.Locales;
 import org.mozilla.gecko.mozglue.ContextUtils;
 import org.mozilla.gecko.preferences.GeckoPreferences;
-import org.mozilla.gecko.sync.setup.activities.WebURLFinder;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -33,17 +32,24 @@ public class TabQueueDispatcher extends Locales.LocaleAwareActivity {
 
         GeckoAppShell.ensureCrashHandling();
 
-        ContextUtils.SafeIntent intent = new ContextUtils.SafeIntent(getIntent());
+        
+        
+        
+        Intent intent = getIntent();
+        int flags = intent.getFlags() & ~Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS;
+        intent.setFlags(flags);
+
+        ContextUtils.SafeIntent safeIntent = new ContextUtils.SafeIntent(intent);
 
         
         
         if (!AppConstants.MOZ_ANDROID_TAB_QUEUE || !AppConstants.NIGHTLY_BUILD) {
-            loadNormally(intent.getUnsafe());
+            loadNormally(safeIntent.getUnsafe());
             return;
         }
 
         
-        final String dataString = intent.getDataString();
+        final String dataString = safeIntent.getDataString();
         if (TextUtils.isEmpty(dataString)) {
             abortDueToNoURL(dataString);
             return;
@@ -52,9 +58,9 @@ public class TabQueueDispatcher extends Locales.LocaleAwareActivity {
         boolean shouldShowOpenInBackgroundToast = GeckoSharedPrefs.forApp(this).getBoolean(GeckoPreferences.PREFS_TAB_QUEUE, false);
 
         if (shouldShowOpenInBackgroundToast) {
-            showToast(intent.getUnsafe());
+            showToast(safeIntent.getUnsafe());
         } else {
-            loadNormally(intent.getUnsafe());
+            loadNormally(safeIntent.getUnsafe());
         }
     }
 
