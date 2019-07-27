@@ -14,6 +14,7 @@
 #include "SharedThreadPool.h"
 #include "nsThreadUtils.h"
 #include "MediaPromise.h"
+#include "TaskDispatcher.h"
 
 class nsIRunnable;
 
@@ -40,6 +41,12 @@ public:
   explicit MediaTaskQueue(TemporaryRef<SharedThreadPool> aPool);
 
   nsresult Dispatch(TemporaryRef<nsIRunnable> aRunnable);
+
+  
+  
+  
+  
+  TaskDispatcher& TailDispatcher();
 
   
   nsresult Dispatch(already_AddRefed<nsIRunnable> aRunnable) override
@@ -112,22 +119,32 @@ protected:
   RefPtr<nsIThread> mRunningThread;
 
   
-  class AutoTaskGuard
+  class AutoTaskGuard : public AutoTaskDispatcher
   {
   public:
-    explicit AutoTaskGuard(MediaTaskQueue* aQueue)
+    explicit AutoTaskGuard(MediaTaskQueue* aQueue) : mQueue(aQueue)
     {
       
       
+      MOZ_ASSERT(!mQueue->mTailDispatcher);
+      mQueue->mTailDispatcher = this;
+
       MOZ_ASSERT(sCurrentQueueTLS.get() == nullptr);
       sCurrentQueueTLS.set(aQueue);
+
     }
 
     ~AutoTaskGuard()
     {
       sCurrentQueueTLS.set(nullptr);
+      mQueue->mTailDispatcher = nullptr;
     }
+
+  private:
+  MediaTaskQueue* mQueue;
   };
+
+  TaskDispatcher* mTailDispatcher;
 
   
   
