@@ -95,7 +95,8 @@ class Test1BrowserCall(MarionetteTestCase):
 
     def start_and_verify_outgoing_call(self):
         
-        call_button = self.marionette.find_element(By.CLASS_NAME, "btn-success")
+        call_button = self.marionette.find_element(By.CLASS_NAME,
+                                                   "btn-accept")
         call_button.click()
 
         
@@ -116,7 +117,7 @@ class Test1BrowserCall(MarionetteTestCase):
 
         
         call_button = self.marionette.find_element(By.CLASS_NAME,
-                                                   "btn-success")
+                                                   "btn-accept")
         
         call_button.click()
 

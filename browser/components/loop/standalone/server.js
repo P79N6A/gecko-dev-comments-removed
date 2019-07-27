@@ -26,6 +26,8 @@ app.use('/', express.static(__dirname + '/../'));
 
 app.use('/', express.static(__dirname + '/'));
 
+app.use('/standalone/content', express.static(__dirname + '/../content'));
+
 var server = app.listen(port);
 
 var baseUrl = "http://localhost:" + port + "/";
