@@ -742,7 +742,7 @@ ThreadActor.prototype = {
       }
       packet.why = aReason;
 
-      let loc = getFrameLocation(aFrame);
+      let loc = this.sources.getFrameLocation(aFrame);
       this.sources.getOriginalLocation(loc).then(aOrigPosition => {
         if (!aOrigPosition.sourceActor) {
           
@@ -805,7 +805,7 @@ ThreadActor.prototype = {
 
   _makeOnEnterFrame: function ({ pauseAndRespond }) {
     return aFrame => {
-      const generatedLocation = getFrameLocation(aFrame);
+      const generatedLocation = this.sources.getFrameLocation(aFrame);
       let { sourceActor } = this.synchronize(this.sources.getOriginalLocation(
         generatedLocation));
       let url = sourceActor.url;
@@ -820,7 +820,7 @@ ThreadActor.prototype = {
     return function (aCompletion) {
       
 
-      const generatedLocation = getFrameLocation(this);
+      const generatedLocation = thread.sources.getFrameLocation(this);
       const { sourceActor } = thread.synchronize(thread.sources.getOriginalLocation(
         generatedLocation));
       const url = sourceActor.url;
@@ -862,7 +862,7 @@ ThreadActor.prototype = {
     return function () {
       
 
-      const generatedLocation = getFrameLocation(this);
+      const generatedLocation = thread.sources.getFrameLocation(this);
       const newLocation = thread.synchronize(thread.sources.getOriginalLocation(
         generatedLocation));
 
@@ -942,7 +942,7 @@ ThreadActor.prototype = {
                       message: "Unknown resumeLimit type" });
     }
 
-    const generatedLocation = getFrameLocation(this.youngestFrame);
+    const generatedLocation = this.sources.getFrameLocation(this.youngestFrame);
     return this.sources.getOriginalLocation(generatedLocation)
       .then(originalLocation => {
         const { onEnterFrame, onPop, onStep } = this._makeSteppingHooks(originalLocation,
@@ -1289,7 +1289,7 @@ ThreadActor.prototype = {
       frames.push(form);
 
       let promise = this.sources.getOriginalLocation({
-        source: frame.script.source,
+        sourceActor: this.sources.createNonSourceMappedActor(frame.script.source),
         line: form.where.line,
         column: form.where.column
       }).then((aOrigLocation) => {
@@ -1902,7 +1902,7 @@ ThreadActor.prototype = {
   onDebuggerStatement: function (aFrame) {
     
     
-    const generatedLocation = getFrameLocation(aFrame);
+    const generatedLocation = this.sources.getFrameLocation(aFrame);
     const { sourceActor } = this.synchronize(this.sources.getOriginalLocation(
       generatedLocation));
     const url = sourceActor ? sourceActor.url : null;
@@ -1934,7 +1934,7 @@ ThreadActor.prototype = {
       return undefined;
     }
 
-    const generatedLocation = getFrameLocation(aFrame);
+    const generatedLocation = this.sources.getFrameLocation(aFrame);
     const { sourceActor } = this.synchronize(this.sources.getOriginalLocation(
       generatedLocation));
     const url = sourceActor ? sourceActor.url : null;
@@ -2956,7 +2956,7 @@ SourceActor.prototype = {
     return Promise.resolve().then(() => {
       if (actualLocation.sourceActor.source) {
         return this.threadActor.sources.getOriginalLocation({
-          source: actualLocation.sourceActor.source,
+          sourceActor: actualLocation.sourceActor,
           line: actualLocation.line,
           column: actualLocation.column
         });
@@ -3330,7 +3330,7 @@ ObjectActor.prototype = {
     }
 
     const generatedLocation = {
-      source: this.obj.script.source,
+      sourceActor: this.threadActor.sources.createNonSourceMappedActor(this.obj.script.source),
       line: this.obj.script.startLine,
       
       column: 0
@@ -4573,7 +4573,12 @@ FrameActor.prototype = {
     form.this = threadActor.createValueGrip(this.frame.this);
     form.arguments = this._args();
     if (this.frame.script) {
-      form.where = getFrameLocation(this.frame);
+      var loc = this.threadActor.sources.getFrameLocation(this.frame);
+      form.where = {
+        source: loc.sourceActor.form(),
+        line: loc.line,
+        column: loc.column
+      };
     }
 
     if (!this.frame.older) {
@@ -4709,7 +4714,7 @@ BreakpointActor.prototype = {
   hit: function (aFrame) {
     
     
-    let loc = getFrameLocation(aFrame);
+    let loc = this.threadActor.sources.getFrameLocation(aFrame);
     let { sourceActor } = this.threadActor.synchronize(
       this.threadActor.sources.getOriginalLocation(loc));
     let url = sourceActor.url;
@@ -5543,7 +5548,30 @@ ThreadSources.prototype = {
 
 
 
-  getOriginalLocation: function ({ source, line, column }) {
+
+
+  getFrameLocation: function (aFrame) {
+    if (!aFrame || !aFrame.script) {
+      return { sourceActor: null, line: null, column: null };
+    }
+    return {
+      sourceActor: this.createNonSourceMappedActor(aFrame.script.source),
+      line: aFrame.script.getOffsetLine(aFrame.offset),
+      column: getOffsetColumn(aFrame.offset, aFrame.script)
+    }
+  },
+
+  
+
+
+
+
+
+
+  getOriginalLocation: function ({ sourceActor, line, column }) {
+    let source = sourceActor.source;
+    let url = source ? source.url : sourceActor._originalUrl;
+
     
     
     
@@ -5582,8 +5610,8 @@ ThreadSources.prototype = {
 
       
       return resolve({
-        sourceActor: this.createNonSourceMappedActor(source),
-        url: source.url,
+        sourceActor: sourceActor,
+        url: url,
         line: line,
         column: column
       });
@@ -5735,26 +5763,6 @@ exports.ThreadSources = ThreadSources;
 function isHiddenSource(aSource) {
   
   return aSource.text === '() {\n}';
-}
-
-
-
-
-
-
-
-
-
-
-function getFrameLocation(aFrame) {
-  if (!aFrame || !aFrame.script) {
-    return { source: null, line: null, column: null };
-  }
-  return {
-    source: aFrame.script.source,
-    line: aFrame.script.getOffsetLine(aFrame.offset),
-    column: getOffsetColumn(aFrame.offset, aFrame.script)
-  }
 }
 
 
