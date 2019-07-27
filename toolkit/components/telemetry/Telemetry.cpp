@@ -2904,21 +2904,21 @@ TelemetryImpl::GetThreadHangStats(JSContext* cx, JS::MutableHandle<JS::Value> re
   }
   size_t threadIndex = 0;
 
+#ifdef MOZ_ENABLE_BACKGROUND_HANG_MONITOR
   
 
 
 
-  if (!BackgroundHangMonitor::IsDisabled()) {
-    BackgroundHangMonitor::ThreadHangStatsIterator iter;
-    for (Telemetry::ThreadHangStats* histogram = iter.GetNext();
-         histogram; histogram = iter.GetNext()) {
-      JS::RootedObject obj(cx,
-        CreateJSThreadHangStats(cx, *histogram));
-      if (!JS_SetElement(cx, retObj, threadIndex++, obj)) {
-        return NS_ERROR_FAILURE;
-      }
+  BackgroundHangMonitor::ThreadHangStatsIterator iter;
+  for (Telemetry::ThreadHangStats* histogram = iter.GetNext();
+       histogram; histogram = iter.GetNext()) {
+    JS::RootedObject obj(cx,
+      CreateJSThreadHangStats(cx, *histogram));
+    if (!JS_SetElement(cx, retObj, threadIndex++, obj)) {
+      return NS_ERROR_FAILURE;
     }
   }
+#endif
 
   
   MutexAutoLock autoLock(mThreadHangStatsMutex);
