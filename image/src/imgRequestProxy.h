@@ -39,6 +39,7 @@ namespace mozilla {
 namespace image {
 class Image;
 class ImageURL;
+class ProgressTracker;
 } 
 } 
 
@@ -52,8 +53,11 @@ protected:
   virtual ~imgRequestProxy();
 
 public:
-  MOZ_DECLARE_REFCOUNTED_TYPENAME(imgRequestProxy)
+  typedef mozilla::image::Image Image;
   typedef mozilla::image::ImageURL ImageURL;
+  typedef mozilla::image::ProgressTracker ProgressTracker;
+
+  MOZ_DECLARE_REFCOUNTED_TYPENAME(imgRequestProxy)
   NS_DECL_ISUPPORTS
   NS_DECL_IMGIREQUEST
   NS_DECL_NSIREQUEST
@@ -117,7 +121,7 @@ public:
   nsresult GetURI(ImageURL **aURI);
 
 protected:
-  friend class imgStatusTracker;
+  friend class mozilla::image::ProgressTracker;
   friend class imgStatusNotifyRunnable;
   friend class imgRequestNotifyRunnable;
 
@@ -176,7 +180,7 @@ protected:
   
   
   
-  already_AddRefed<imgStatusTracker> GetStatusTracker() const;
+  already_AddRefed<ProgressTracker> GetProgressTracker() const;
 
   nsITimedChannel* TimedChannel()
   {
@@ -185,7 +189,7 @@ protected:
     return GetOwner()->mTimedChannel;
   }
 
-  already_AddRefed<mozilla::image::Image> GetImage() const;
+  already_AddRefed<Image> GetImage() const;
   bool HasImage() const;
   imgRequest* GetOwner() const;
 
@@ -235,8 +239,7 @@ class imgRequestProxyStatic : public imgRequestProxy
 {
 
 public:
-  imgRequestProxyStatic(mozilla::image::Image* aImage,
-                        nsIPrincipal* aPrincipal);
+  imgRequestProxyStatic(Image* aImage, nsIPrincipal* aPrincipal);
 
   NS_IMETHOD GetImagePrincipal(nsIPrincipal** aPrincipal) MOZ_OVERRIDE;
 

@@ -21,7 +21,6 @@
 #include "nsIAsyncVerifyRedirectCallback.h"
 
 class imgCacheValidator;
-class imgStatusTracker;
 class imgLoader;
 class imgRequestProxy;
 class imgCacheEntry;
@@ -37,6 +36,7 @@ namespace mozilla {
 namespace image {
 class Image;
 class ImageURL;
+class ProgressTracker;
 } 
 } 
 
@@ -49,7 +49,10 @@ class imgRequest MOZ_FINAL : public nsIStreamListener,
   virtual ~imgRequest();
 
 public:
+  typedef mozilla::image::Image Image;
   typedef mozilla::image::ImageURL ImageURL;
+  typedef mozilla::image::ProgressTracker ProgressTracker;
+
   explicit imgRequest(imgLoader* aLoader);
 
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -124,7 +127,7 @@ public:
   
   
   
-  already_AddRefed<imgStatusTracker> GetStatusTracker();
+  already_AddRefed<ProgressTracker> GetProgressTracker();
 
   
   inline nsIPrincipal* GetPrincipal() const { return mPrincipal.get(); }
@@ -146,9 +149,9 @@ private:
   friend class imgRequestProxy;
   friend class imgLoader;
   friend class imgCacheValidator;
-  friend class imgStatusTracker;
   friend class imgCacheExpirationTracker;
   friend class imgRequestNotifyRunnable;
+  friend class mozilla::image::ProgressTracker;
 
   inline void SetLoadId(void *aLoadId) {
     mLoadId = aLoadId;
@@ -223,8 +226,8 @@ private:
   
   nsCOMPtr<nsIPrincipal> mPrincipal;
   
-  nsRefPtr<imgStatusTracker> mStatusTracker;
-  nsRefPtr<mozilla::image::Image> mImage;
+  nsRefPtr<ProgressTracker> mProgressTracker;
+  nsRefPtr<Image> mImage;
   nsCOMPtr<nsIProperties> mProperties;
   nsCOMPtr<nsISupports> mSecurityInfo;
   nsCOMPtr<nsIChannel> mChannel;

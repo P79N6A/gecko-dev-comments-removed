@@ -12,13 +12,13 @@
 
 class nsCString;
 class nsIRequest;
-class imgStatusTracker;
 
 namespace mozilla {
 namespace image {
 
 class Image;
 class ImageURL;
+class ProgressTracker;
 
 class ImageFactory
 {
@@ -48,7 +48,7 @@ public:
 
 
   static already_AddRefed<Image> CreateImage(nsIRequest* aRequest,
-                                             imgStatusTracker* aStatusTracker,
+                                             ProgressTracker* aProgressTracker,
                                              const nsCString& aMimeType,
                                              ImageURL* aURI,
                                              bool aIsMultiPart,
@@ -64,14 +64,14 @@ public:
 private:
   
   static already_AddRefed<Image> CreateRasterImage(nsIRequest* aRequest,
-                                                   imgStatusTracker* aStatusTracker,
+                                                   ProgressTracker* aProgressTracker,
                                                    const nsCString& aMimeType,
                                                    ImageURL* aURI,
                                                    uint32_t aImageFlags,
                                                    uint32_t aInnerWindowId);
 
   static already_AddRefed<Image> CreateVectorImage(nsIRequest* aRequest,
-                                                   imgStatusTracker* aStatusTracker,
+                                                   ProgressTracker* aProgressTracker,
                                                    const nsCString& aMimeType,
                                                    ImageURL* aURI,
                                                    uint32_t aImageFlags,

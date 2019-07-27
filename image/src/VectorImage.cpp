@@ -322,7 +322,7 @@ NS_IMPL_ISUPPORTS(VectorImage,
 
 
 
-VectorImage::VectorImage(imgStatusTracker* aStatusTracker,
+VectorImage::VectorImage(ProgressTracker* aProgressTracker,
                          ImageURL* aURI ) :
   ImageResource(aURI), 
   mIsInitialized(false),
@@ -331,7 +331,7 @@ VectorImage::VectorImage(imgStatusTracker* aStatusTracker,
   mHaveAnimations(false),
   mHasPendingInvalidation(false)
 {
-  mStatusTrackerInit = new imgStatusTrackerInit(this, aStatusTracker);
+  mProgressTrackerInit = new ProgressTrackerInit(this, aProgressTracker);
 }
 
 VectorImage::~VectorImage()
@@ -441,10 +441,10 @@ VectorImage::OnImageDataComplete(nsIRequest* aRequest,
     finalStatus = aStatus;
 
   
-  if (mStatusTracker) {
-    ImageStatusDiff diff =
-      ImageStatusDiff::ForOnStopRequest(aLastPart, mError, finalStatus);
-    mStatusTracker->SyncNotifyDifference(diff);
+  if (mProgressTracker) {
+    mProgressTracker->SyncNotifyProgress(OnStopRequestProgress(aLastPart,
+                                                               mError,
+                                                               finalStatus));
   }
   return finalStatus;
 }
@@ -564,11 +564,10 @@ VectorImage::SendInvalidationNotifications()
   
   
 
-  if (mStatusTracker) {
+  if (mProgressTracker) {
     SurfaceCache::Discard(this);
-    ImageStatusDiff diff;
-    diff.diffState = FLAG_FRAME_STOPPED;
-    mStatusTracker->SyncNotifyDifference(diff, nsIntRect::GetMaxSizedIntRect());
+    mProgressTracker->SyncNotifyProgress(FLAG_FRAME_STOPPED,
+                                         nsIntRect::GetMaxSizedIntRect());
   }
 }
 
@@ -822,8 +821,8 @@ VectorImage::Draw(gfxContext* aContext,
     return NS_ERROR_FAILURE;
   }
 
-  if (mAnimationConsumers == 0 && mStatusTracker) {
-    mStatusTracker->OnUnlockedDraw();
+  if (mAnimationConsumers == 0 && mProgressTracker) {
+    mProgressTracker->OnUnlockedDraw();
   }
 
   AutoRestore<bool> autoRestoreIsDrawing(mIsDrawing);
@@ -1030,10 +1029,9 @@ VectorImage::OnStartRequest(nsIRequest* aRequest, nsISupports* aCtxt)
   
   
   
-  if (mStatusTracker) {
-    ImageStatusDiff diff;
-    diff.diffState |= FLAG_DECODE_STARTED | FLAG_ONLOAD_BLOCKED;
-    mStatusTracker->SyncNotifyDifference(diff);
+  if (mProgressTracker) {
+    mProgressTracker->SyncNotifyProgress(FLAG_DECODE_STARTED |
+                                         FLAG_ONLOAD_BLOCKED);
   }
 
   
@@ -1111,11 +1109,12 @@ VectorImage::OnSVGDocumentLoaded()
   mRenderingObserver = new SVGRootRenderingObserver(mSVGDocumentWrapper, this);
 
   
-  if (mStatusTracker) {
-    ImageStatusDiff diff;
-    diff.diffState = FLAG_HAS_SIZE | FLAG_FRAME_STOPPED | FLAG_DECODE_STOPPED |
-                     FLAG_ONLOAD_UNBLOCKED;
-    mStatusTracker->SyncNotifyDifference(diff, nsIntRect::GetMaxSizedIntRect());
+  if (mProgressTracker) {
+    mProgressTracker->SyncNotifyProgress(FLAG_HAS_SIZE |
+                                         FLAG_FRAME_STOPPED |
+                                         FLAG_DECODE_STOPPED |
+                                         FLAG_ONLOAD_UNBLOCKED,
+                                         nsIntRect::GetMaxSizedIntRect());
   }
 
   EvaluateAnimation();
@@ -1131,12 +1130,11 @@ VectorImage::OnSVGDocumentError()
   
   mError = true;
 
-  if (mStatusTracker) {
+  if (mProgressTracker) {
     
-    ImageStatusDiff diff;
-    diff.diffState |= FLAG_DECODE_STOPPED | FLAG_ONLOAD_UNBLOCKED |
-                      FLAG_HAS_ERROR;
-    mStatusTracker->SyncNotifyDifference(diff);
+    mProgressTracker->SyncNotifyProgress(FLAG_DECODE_STOPPED |
+                                         FLAG_ONLOAD_UNBLOCKED |
+                                         FLAG_HAS_ERROR);
   }
 }
 

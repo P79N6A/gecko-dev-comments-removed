@@ -513,7 +513,7 @@ private:
 
   nsresult FinishedSomeDecoding(eShutdownIntent intent = eShutdownIntent_Done,
                                 DecodeRequest* request = nullptr,
-                                const ImageStatusDiff& aDiff = ImageStatusDiff::NoChange());
+                                Progress aProgress = NoProgress);
 
   void DrawWithPreDownscaleIfNeeded(DrawableFrameRef&& aFrameRef,
                                     gfxContext* aContext,
@@ -641,8 +641,8 @@ private:
   
 
   
-  ImageStatusDiff            mStatusDiff;
-  nsIntRect                  mInvalidRect;
+  Progress                   mNotifyProgress;
+  nsIntRect                  mNotifyInvalidRect;
   bool                       mNotifying:1;
 
   
@@ -684,7 +684,7 @@ private:
   TimeStamp mDrawStartTime;
 
   
-  nsAutoPtr<imgStatusTrackerInit> mStatusTrackerInit;
+  nsAutoPtr<ProgressTrackerInit> mProgressTrackerInit;
 
   nsresult ShutdownDecoder(eShutdownIntent aIntent);
 
@@ -734,7 +734,7 @@ private:
   bool StoringSourceData() const;
 
 protected:
-  explicit RasterImage(imgStatusTracker* aStatusTracker = nullptr,
+  explicit RasterImage(ProgressTracker* aProgressTracker = nullptr,
                        ImageURL* aURI = nullptr);
 
   bool ShouldAnimate();

@@ -78,7 +78,7 @@ public:
   void OnSVGDocumentError();
 
 protected:
-  explicit VectorImage(imgStatusTracker* aStatusTracker = nullptr,
+  explicit VectorImage(ProgressTracker* aProgressTracker = nullptr,
                        ImageURL* aURI = nullptr);
   virtual ~VectorImage();
 
@@ -107,7 +107,7 @@ private:
                                           
 
   
-  nsAutoPtr<imgStatusTrackerInit> mStatusTrackerInit;
+  nsAutoPtr<ProgressTrackerInit> mProgressTrackerInit;
 
   friend class ImageFactory;
 };

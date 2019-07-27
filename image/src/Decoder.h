@@ -99,7 +99,7 @@ public:
 
   size_t BytesDecoded() const { return mBytesDecoded; }
 
-  ImageStatusDiff GetDiff() const { return mDiff; }
+  Progress GetProgress() const { return mProgress; }
 
   
   
@@ -227,7 +227,7 @@ protected:
   RasterImage &mImage;
   nsRefPtr<imgFrame> mCurrentFrame;
   ImageMetadata mImageMetadata;
-  ImageStatusDiff mDiff;
+  Progress mProgress;
 
   uint8_t* mImageData;       
   uint32_t mImageDataLength;
