@@ -207,6 +207,8 @@ EventTargetChild.prototype = {
 
 let RemoteAddonsChild = {
   init: function(global) {
+    global.sendAsyncMessage("Addons:RegisterGlobal", {}, {global: global});
+
     
     return [new EventTargetChild(global)];
   },

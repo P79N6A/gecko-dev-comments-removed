@@ -404,8 +404,43 @@ EventTargetInterposition.methods.removeEventListener =
     target.removeEventListener(type, listener, useCapture);
   };
 
+
+
+
+
+let ContentDocShellTreeItemInterposition = new Interposition();
+
+ContentDocShellTreeItemInterposition.getters.rootTreeItem =
+  function(addon, target) {
+    
+    let chromeGlobal = target.rootTreeItem
+      .QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIContentFrameMessageManager);
+
+    
+    let browser = RemoteAddonsParent.globalToBrowser.get(chromeGlobal);
+    if (!browser) {
+      
+      
+      
+      return null;
+    }
+
+    let chromeWin = browser.ownerDocument.defaultView;
+
+    
+    return chromeWin.QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIWebNavigation)
+      .QueryInterface(Ci.nsIDocShellTreeItem);
+  };
+
 let RemoteAddonsParent = {
   init: function() {
+    let mm = Cc["@mozilla.org/globalmessagemanager;1"].getService(Ci.nsIMessageListenerManager);
+    mm.addMessageListener("Addons:RegisterGlobal", this);
+
+    this.globalToBrowser = new WeakMap();
+    this.browserToGlobal = new WeakMap();
   },
 
   getInterfaceInterpositions: function() {
@@ -429,7 +464,17 @@ let RemoteAddonsParent = {
     }
 
     register("EventTarget", EventTargetInterposition);
+    register("ContentDocShellTreeItem", ContentDocShellTreeItemInterposition);
 
     return result;
   },
+
+  receiveMessage: function(msg) {
+    switch (msg.name) {
+    case "Addons:RegisterGlobal":
+      this.browserToGlobal.set(msg.target, msg.objects.global);
+      this.globalToBrowser.set(msg.objects.global, msg.target);
+      break;
+    }
+  }
 };
