@@ -4,52 +4,6 @@
 
 
 #include "nsRenderingContext.h"
-#include <string.h>                     
-#include <algorithm>                    
-#include "gfxColor.h"                   
-#include "gfxMatrix.h"                  
-#include "gfxPoint.h"                   
-#include "gfxRect.h"                    
-#include "gfxTypes.h"                   
-#include "mozilla/gfx/BasePoint.h"      
-#include "mozilla/mozalloc.h"           
-#include "nsBoundingMetrics.h"          
-#include "nsCharTraits.h"               
-#include "nsDebug.h"                    
-#include "nsPoint.h"                    
-#include "nsRect.h"                     
-#include "nsRegion.h"                   
-
-
-
-#define MAX_GFX_TEXT_BUF_SIZE 8000
-
- int32_t
-nsRenderingContext::FindSafeLength(const char16_t *aString, uint32_t aLength,
-                              uint32_t aMaxChunkLength)
-{
-    if (aLength <= aMaxChunkLength)
-        return aLength;
-
-    int32_t len = aMaxChunkLength;
-
-    
-    while (len > 0 && NS_IS_LOW_SURROGATE(aString[len])) {
-        len--;
-    }
-    if (len == 0) {
-        
-        
-        
-        
-        
-        return aMaxChunkLength;
-    }
-    return len;
-}
-
-
-
 
 void
 nsRenderingContext::Init(gfxContext *aThebesContext)
@@ -64,11 +18,6 @@ nsRenderingContext::Init(DrawTarget *aDrawTarget)
     Init(new gfxContext(aDrawTarget));
 }
 
-
-
-
-
-
 void
 nsRenderingContext::SetTextRunRTL(bool aIsRTL)
 {
@@ -79,35 +28,4 @@ void
 nsRenderingContext::SetFont(nsFontMetrics *aFontMetrics)
 {
     mFontMetrics = aFontMetrics;
-}
-
-int32_t
-nsRenderingContext::GetMaxChunkLength()
-{
-    return std::min(mFontMetrics->GetMaxStringLength(), MAX_GFX_TEXT_BUF_SIZE);
-}
-
-nsBoundingMetrics
-nsRenderingContext::GetBoundingMetrics(const char16_t* aString,
-                                       uint32_t aLength)
-{
-    uint32_t maxChunkLength = GetMaxChunkLength();
-    int32_t len = FindSafeLength(aString, aLength, maxChunkLength);
-    
-    
-    
-    nsBoundingMetrics totalMetrics
-        = mFontMetrics->GetBoundingMetrics(aString, len, this);
-    aLength -= len;
-    aString += len;
-
-    while (aLength > 0) {
-        len = FindSafeLength(aString, aLength, maxChunkLength);
-        nsBoundingMetrics metrics
-            = mFontMetrics->GetBoundingMetrics(aString, len, this);
-        totalMetrics += metrics;
-        aLength -= len;
-        aString += len;
-    }
-    return totalMetrics;
 }

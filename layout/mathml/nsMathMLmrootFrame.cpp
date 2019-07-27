@@ -234,7 +234,8 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
 
   
   char16_t one = '1';
-  nsBoundingMetrics bmOne = renderingContext.GetBoundingMetrics(&one, 1);
+  nsBoundingMetrics bmOne =
+    nsLayoutUtils::AppUnitBoundsOfString(&one, 1, renderingContext);
   if (bmOne.ascent > bmBase.ascent)
     psi += bmOne.ascent - bmBase.ascent;
 
