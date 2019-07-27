@@ -971,11 +971,21 @@ XrayResolveOwnProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
   const NativePropertyHooks *nativePropertyHooks =
     GetNativePropertyHooks(cx, obj, type, isGlobal);
 
-  if (type != eInstance) {
+  if (type != eInstance || (isGlobal && GlobalPropertiesAreOwn())) {
     
     
-    return XrayResolveNativeProperty(cx, wrapper, nativePropertyHooks, type,
-                                     obj, id, desc, cacheOnHolder);
+    
+    if (!XrayResolveNativeProperty(cx, wrapper, nativePropertyHooks, type,
+                                   obj, id, desc, cacheOnHolder)) {
+      return false;
+    }
+
+    
+    
+    if (!isGlobal || desc.object()) {
+      cacheOnHolder = true;
+      return true;
+    }
   }
 
   
@@ -1330,11 +1340,17 @@ XrayResolveNativeProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
   if (type == eInstance) {
     
     
+    if (isGlobal && GlobalPropertiesAreOwn()) {
+      nativePropertyHooks = nativePropertyHooks->mProtoHooks;
+    }
+
+    
+    
     type = eInterfacePrototype;
   }
 
   if (type == eInterfacePrototype) {
-    do {
+    while (nativePropertyHooks) {
       if (!XrayResolveNativeProperty(cx, wrapper, nativePropertyHooks, type,
                                      obj, id, desc, cacheOnHolder)) {
         return false;
@@ -1343,7 +1359,9 @@ XrayResolveNativeProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
       if (desc.object()) {
         return true;
       }
-    } while ((nativePropertyHooks = nativePropertyHooks->mProtoHooks));
+
+      nativePropertyHooks = nativePropertyHooks->mProtoHooks;
+    }
 
     return true;
   }
@@ -1503,7 +1521,9 @@ XrayEnumerateProperties(JSContext* cx, JS::Handle<JSObject*> wrapper,
       return false;
     }
 
-    if (flags & JSITER_OWNONLY) {
+    
+    
+    if (!(isGlobal && GlobalPropertiesAreOwn()) && (flags & JSITER_OWNONLY)) {
       return true;
     }
 
