@@ -109,16 +109,13 @@ NS_IMETHODIMP nsHTMLEditor::RemoveAllDefaultProperties()
 
 
 NS_IMETHODIMP
-nsHTMLEditor::SetInlineProperty(nsIAtom *aProperty,
+nsHTMLEditor::SetInlineProperty(nsIAtom* aProperty,
                                 const nsAString& aAttribute,
                                 const nsAString& aValue)
 {
-  if (!aProperty) {
-    return NS_ERROR_NULL_POINTER;
-  }
-  if (!mRules) {
-    return NS_ERROR_NOT_INITIALIZED;
-  }
+  NS_ENSURE_TRUE(aProperty, NS_ERROR_NULL_POINTER);
+  NS_ENSURE_TRUE(mRules, NS_ERROR_NOT_INITIALIZED);
+  nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
   ForceCompositionEnd();
 
   nsRefPtr<Selection> selection = GetSelection();
@@ -139,13 +136,12 @@ nsHTMLEditor::SetInlineProperty(nsIAtom *aProperty,
   bool cancel, handled;
   nsTextRulesInfo ruleInfo(EditAction::setTextProperty);
   
-  nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
   nsresult res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(res, res);
   if (!cancel && !handled) {
     
     uint32_t rangeCount = selection->RangeCount();
-    for (uint32_t rangeIdx = 0; rangeIdx < rangeCount; ++rangeIdx) {
+    for (uint32_t rangeIdx = 0; rangeIdx < rangeCount; rangeIdx++) {
       nsRefPtr<nsRange> range = selection->GetRangeAt(rangeIdx);
 
       
@@ -176,12 +172,9 @@ nsHTMLEditor::SetInlineProperty(nsIAtom *aProperty,
       
       
 
-      nsCOMPtr<nsIContentIterator> iter =
-        do_CreateInstance("@mozilla.org/content/subtree-content-iterator;1", &res);
-      NS_ENSURE_SUCCESS(res, res);
-      NS_ENSURE_TRUE(iter, NS_ERROR_FAILURE);
+      OwningNonNull<nsIContentIterator> iter = NS_NewContentSubtreeIterator();
 
-      nsCOMArray<nsIDOMNode> arrayOfNodes;
+      nsTArray<OwningNonNull<nsIContent>> arrayOfNodes;
 
       
       res = iter->Init(range);
@@ -189,13 +182,11 @@ nsHTMLEditor::SetInlineProperty(nsIAtom *aProperty,
       
       
       if (NS_SUCCEEDED(res)) {
-        nsCOMPtr<nsIDOMNode> node;
         for (; !iter->IsDone(); iter->Next()) {
-          node = do_QueryInterface(iter->GetCurrentNode());
-          NS_ENSURE_TRUE(node, NS_ERROR_FAILURE);
+          OwningNonNull<nsINode> node = *iter->GetCurrentNode();
 
-          if (IsEditable(node)) {
-            arrayOfNodes.AppendObject(node);
+          if (node->IsContent() && IsEditable(node)) {
+            arrayOfNodes.AppendElement(*node->AsContent());
           }
         }
       }
@@ -211,11 +202,8 @@ nsHTMLEditor::SetInlineProperty(nsIAtom *aProperty,
       }
 
       
-      int32_t listCount = arrayOfNodes.Count();
-      int32_t j;
-      for (j = 0; j < listCount; j++) {
-        res = SetInlinePropertyOnNode(arrayOfNodes[j], aProperty,
-                                      &aAttribute, &aValue);
+      for (auto& node : arrayOfNodes) {
+        res = SetInlinePropertyOnNode(node, aProperty, &aAttribute, &aValue);
         NS_ENSURE_SUCCESS(res, res);
       }
 
