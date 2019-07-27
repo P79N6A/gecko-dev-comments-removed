@@ -34,7 +34,7 @@
 #ifdef XP_UNIX
 
 #ifdef _SVID_GETTOD   
-extern int gettimeofday(struct timeval *tv);
+extern int gettimeofday(struct timeval* tv);
 #endif
 
 #include <sys/time.h>
@@ -62,7 +62,7 @@ PRMJ_Now()
 
 
 static double
-FileTimeToUnixMicroseconds(const FILETIME &ft)
+FileTimeToUnixMicroseconds(const FILETIME& ft)
 {
     
     int64_t t = (int64_t(ft.dwHighDateTime) << 32) | int64_t(ft.dwLowDateTime);
@@ -113,7 +113,7 @@ NowCalibrate()
 
 static const unsigned DataLockSpinCount = 4096;
 
-static void (WINAPI *pGetSystemTimePreciseAsFileTime)(LPFILETIME) = nullptr;
+static void (WINAPI* pGetSystemTimePreciseAsFileTime)(LPFILETIME) = nullptr;
 
 void
 PRMJ_NowInit()
@@ -135,7 +135,7 @@ PRMJ_NowInit()
     
     if (HMODULE h = GetModuleHandle("kernel32.dll")) {
         pGetSystemTimePreciseAsFileTime =
-            (void (WINAPI *)(LPFILETIME))GetProcAddress(h, "GetSystemTimePreciseAsFileTime");
+            (void (WINAPI*)(LPFILETIME))GetProcAddress(h, "GetSystemTimePreciseAsFileTime");
     }
 }
 
@@ -249,9 +249,9 @@ PRMJ_Now()
 
 #ifdef XP_WIN
 static void
-PRMJ_InvalidParameterHandler(const wchar_t *expression,
-                             const wchar_t *function,
-                             const wchar_t *file,
+PRMJ_InvalidParameterHandler(const wchar_t* expression,
+                             const wchar_t* function,
+                             const wchar_t* file,
                              unsigned int   line,
                              uintptr_t      pReserved)
 {
@@ -261,7 +261,7 @@ PRMJ_InvalidParameterHandler(const wchar_t *expression,
 
 
 size_t
-PRMJ_FormatTime(char *buf, int buflen, const char *fmt, PRMJTime *prtm)
+PRMJ_FormatTime(char* buf, int buflen, const char* fmt, PRMJTime* prtm)
 {
     size_t result = 0;
 #if defined(XP_UNIX) || defined(XP_WIN)

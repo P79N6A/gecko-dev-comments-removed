@@ -23,13 +23,13 @@ class NameResolver
 {
     static const size_t MaxParents = 100;
 
-    ExclusiveContext *cx;
+    ExclusiveContext* cx;
     size_t nparents;                
-    ParseNode *parents[MaxParents]; 
-    StringBuffer *buf;              
+    ParseNode* parents[MaxParents]; 
+    StringBuffer* buf;              
 
     
-    bool call(ParseNode *pn) {
+    bool call(ParseNode* pn) {
         return pn && pn->isKind(PNK_CALL);
     }
 
@@ -43,12 +43,12 @@ class NameResolver
 
 
 
-    bool appendPropertyReference(JSAtom *name) {
+    bool appendPropertyReference(JSAtom* name) {
         if (IsIdentifier(name))
             return buf->append('.') && buf->append(name);
 
         
-        JSString *source = QuoteString(cx, name, '"');
+        JSString* source = QuoteString(cx, name, '"');
         return source && buf->append('[') && buf->append(source) && buf->append(']');
     }
 
@@ -68,7 +68,7 @@ class NameResolver
 
 
 
-    bool nameExpression(ParseNode *n) {
+    bool nameExpression(ParseNode* n) {
         switch (n->getKind()) {
           case PNK_DOT:
             return nameExpression(n->expr()) && appendPropertyReference(n->pn_atom);
@@ -111,11 +111,11 @@ class NameResolver
 
 
 
-    ParseNode *gatherNameable(ParseNode **nameable, size_t *size) {
+    ParseNode* gatherNameable(ParseNode** nameable, size_t* size) {
         *size = 0;
 
         for (int pos = nparents - 1; pos >= 0; pos--) {
-            ParseNode *cur = parents[pos];
+            ParseNode* cur = parents[pos];
             if (cur->isAssignment())
                 return cur;
 
@@ -174,7 +174,7 @@ class NameResolver
 
 
 
-    bool resolveFun(ParseNode *pn, HandleAtom prefix, MutableHandleAtom retAtom) {
+    bool resolveFun(ParseNode* pn, HandleAtom prefix, MutableHandleAtom retAtom) {
         MOZ_ASSERT(pn != nullptr && pn->isKind(PNK_FUNCTION));
         RootedFunction fun(cx, pn->pn_funbox->function());
 
@@ -202,9 +202,9 @@ class NameResolver
             return false;
 
         
-        ParseNode *toName[MaxParents];
+        ParseNode* toName[MaxParents];
         size_t size;
-        ParseNode *assignment = gatherNameable(toName, &size);
+        ParseNode* assignment = gatherNameable(toName, &size);
 
         
         if (assignment) {
@@ -220,10 +220,10 @@ class NameResolver
 
 
         for (int pos = size - 1; pos >= 0; pos--) {
-            ParseNode *node = toName[pos];
+            ParseNode* node = toName[pos];
 
             if (node->isKind(PNK_COLON) || node->isKind(PNK_SHORTHAND)) {
-                ParseNode *left = node->pn_left;
+                ParseNode* left = node->pn_left;
                 if (left->isKind(PNK_OBJECT_PROPERTY_NAME) || left->isKind(PNK_STRING)) {
                     if (!appendPropertyReference(left->pn_atom))
                         return false;
@@ -266,19 +266,19 @@ class NameResolver
 
 
 
-    bool isDirectCall(int pos, ParseNode *cur) {
+    bool isDirectCall(int pos, ParseNode* cur) {
         return pos >= 0 && call(parents[pos]) && parents[pos]->pn_head == cur;
     }
 
   public:
-    explicit NameResolver(ExclusiveContext *cx) : cx(cx), nparents(0), buf(nullptr) {}
+    explicit NameResolver(ExclusiveContext* cx) : cx(cx), nparents(0), buf(nullptr) {}
 
     
 
 
 
 
-    bool resolve(ParseNode *cur, HandleAtom prefixArg = js::NullPtr()) {
+    bool resolve(ParseNode* cur, HandleAtom prefixArg = js::NullPtr()) {
         RootedAtom prefix(cx, prefixArg);
         if (cur == nullptr)
             return true;
@@ -341,7 +341,7 @@ class NameResolver
                 return false;
             break;
           case PN_LIST:
-            for (ParseNode *nxt = cur->pn_head; nxt; nxt = nxt->pn_next)
+            for (ParseNode* nxt = cur->pn_head; nxt; nxt = nxt->pn_next)
                 if (!resolve(nxt, prefix))
                     return false;
             break;
@@ -354,7 +354,7 @@ class NameResolver
 } 
 
 bool
-frontend::NameFunctions(ExclusiveContext *cx, ParseNode *pn)
+frontend::NameFunctions(ExclusiveContext* cx, ParseNode* pn)
 {
     NameResolver nr(cx);
     return nr.resolve(pn);

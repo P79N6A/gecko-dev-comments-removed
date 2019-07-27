@@ -14,7 +14,7 @@
 using namespace js;
 using namespace js::jit;
 
-BaselineCompilerShared::BaselineCompilerShared(JSContext *cx, TempAllocator &alloc, JSScript *script)
+BaselineCompilerShared::BaselineCompilerShared(JSContext* cx, TempAllocator& alloc, JSScript* script)
   : cx(cx),
     script(script),
     pc(script->code()),
@@ -39,9 +39,9 @@ BaselineCompilerShared::BaselineCompilerShared(JSContext *cx, TempAllocator &all
 { }
 
 bool
-BaselineCompilerShared::callVM(const VMFunction &fun, CallVMPhase phase)
+BaselineCompilerShared::callVM(const VMFunction& fun, CallVMPhase phase)
 {
-    JitCode *code = cx->runtime()->jitRuntime()->getVMWrapper(fun);
+    JitCode* code = cx->runtime()->jitRuntime()->getVMWrapper(fun);
     if (!code)
         return false;
 
@@ -64,7 +64,7 @@ BaselineCompilerShared::callVM(const VMFunction &fun, CallVMPhase phase)
 
     
     
-    uint32_t argSize = fun.explicitStackSlots() * sizeof(void *) + sizeof(void *);
+    uint32_t argSize = fun.explicitStackSlots() * sizeof(void*) + sizeof(void*);
 
     
     MOZ_ASSERT(masm.framePushed() - pushedBeforeCall_ == argSize);

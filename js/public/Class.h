@@ -160,7 +160,7 @@ class ObjectOpResult
 
 
 
-    bool checkStrictErrorOrWarning(JSContext *cx, HandleObject obj, HandleId id, bool strict) {
+    bool checkStrictErrorOrWarning(JSContext* cx, HandleObject obj, HandleId id, bool strict) {
         if (ok())
             return true;
         return reportStrictErrorOrWarning(cx, obj, id, strict);
@@ -172,12 +172,12 @@ class ObjectOpResult
 
 
 
-    bool checkStrictErrorOrWarning(JSContext *cx, HandleObject obj, bool strict) {
+    bool checkStrictErrorOrWarning(JSContext* cx, HandleObject obj, bool strict) {
         return ok() || reportStrictErrorOrWarning(cx, obj, strict);
     }
 
     
-    bool reportError(JSContext *cx, HandleObject obj, HandleId id) {
+    bool reportError(JSContext* cx, HandleObject obj, HandleId id) {
         return reportStrictErrorOrWarning(cx, obj, id, true);
     }
 
@@ -185,19 +185,19 @@ class ObjectOpResult
 
 
 
-    bool reportError(JSContext *cx, HandleObject obj) {
+    bool reportError(JSContext* cx, HandleObject obj) {
         return reportStrictErrorOrWarning(cx, obj, true);
     }
 
     
-    JS_PUBLIC_API(bool) reportStrictErrorOrWarning(JSContext *cx, HandleObject obj, HandleId id, bool strict);
-    JS_PUBLIC_API(bool) reportStrictErrorOrWarning(JSContext *cx, HandleObject obj, bool strict);
+    JS_PUBLIC_API(bool) reportStrictErrorOrWarning(JSContext* cx, HandleObject obj, HandleId id, bool strict);
+    JS_PUBLIC_API(bool) reportStrictErrorOrWarning(JSContext* cx, HandleObject obj, bool strict);
 
     
 
 
 
-    bool checkStrict(JSContext *cx, HandleObject obj, HandleId id) {
+    bool checkStrict(JSContext* cx, HandleObject obj, HandleId id) {
         return checkStrictErrorOrWarning(cx, obj, id, true);
     }
 
@@ -205,7 +205,7 @@ class ObjectOpResult
 
 
 
-    bool checkStrict(JSContext *cx, HandleObject obj) {
+    bool checkStrict(JSContext* cx, HandleObject obj) {
         return checkStrictErrorOrWarning(cx, obj, true);
     }
 };
@@ -218,7 +218,7 @@ class ObjectOpResult
 
 
 typedef bool
-(* JSGetterOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
+(* JSGetterOp)(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
                JS::MutableHandleValue vp);
 
 typedef JSGetterOp JSAddPropertyOp;
@@ -229,8 +229,8 @@ typedef JSGetterOp JSAddPropertyOp;
 
 
 typedef bool
-(* JSSetterOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
-               JS::MutableHandleValue vp, JS::ObjectOpResult &result);
+(* JSSetterOp)(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
+               JS::MutableHandleValue vp, JS::ObjectOpResult& result);
 
 
 
@@ -246,8 +246,8 @@ typedef bool
 
 
 typedef bool
-(* JSDeletePropertyOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
-                       JS::ObjectOpResult &result);
+(* JSDeletePropertyOp)(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
+                       JS::ObjectOpResult& result);
 
 
 
@@ -261,12 +261,12 @@ typedef bool
 
 
 typedef bool
-(* JSNewEnumerateOp)(JSContext *cx, JS::HandleObject obj, JS::AutoIdVector &properties);
+(* JSNewEnumerateOp)(JSContext* cx, JS::HandleObject obj, JS::AutoIdVector& properties);
 
 
 
 typedef bool
-(* JSEnumerateOp)(JSContext *cx, JS::HandleObject obj);
+(* JSEnumerateOp)(JSContext* cx, JS::HandleObject obj);
 
 
 
@@ -277,32 +277,32 @@ typedef bool
 
 
 typedef bool
-(* JSResolveOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
-                bool *resolvedp);
+(* JSResolveOp)(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
+                bool* resolvedp);
 
 
 
 typedef bool
-(* JSConvertOp)(JSContext *cx, JS::HandleObject obj, JSType type,
+(* JSConvertOp)(JSContext* cx, JS::HandleObject obj, JSType type,
                 JS::MutableHandleValue vp);
 
 
 
 
 typedef void
-(* JSFinalizeOp)(JSFreeOp *fop, JSObject *obj);
+(* JSFinalizeOp)(JSFreeOp* fop, JSObject* obj);
 
 
 struct JSStringFinalizer {
-    void (*finalize)(const JSStringFinalizer *fin, char16_t *chars);
+    void (*finalize)(const JSStringFinalizer* fin, char16_t* chars);
 };
 
 
 
 
 typedef bool
-(* JSHasInstanceOp)(JSContext *cx, JS::HandleObject obj, JS::MutableHandleValue vp,
-                    bool *bp);
+(* JSHasInstanceOp)(JSContext* cx, JS::HandleObject obj, JS::MutableHandleValue vp,
+                    bool* bp);
 
 
 
@@ -317,45 +317,45 @@ typedef bool
 
 
 typedef void
-(* JSTraceOp)(JSTracer *trc, JSObject *obj);
+(* JSTraceOp)(JSTracer* trc, JSObject* obj);
 
-typedef JSObject *
-(* JSWeakmapKeyDelegateOp)(JSObject *obj);
+typedef JSObject*
+(* JSWeakmapKeyDelegateOp)(JSObject* obj);
 
 typedef void
-(* JSObjectMovedOp)(JSObject *obj, const JSObject *old);
+(* JSObjectMovedOp)(JSObject* obj, const JSObject* old);
 
 
 
 namespace js {
 
 typedef bool
-(* LookupPropertyOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
+(* LookupPropertyOp)(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
                      JS::MutableHandleObject objp, JS::MutableHandle<Shape*> propp);
 typedef bool
-(* DefinePropertyOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
+(* DefinePropertyOp)(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
                      JS::Handle<JSPropertyDescriptor> desc,
-                     JS::ObjectOpResult &result);
+                     JS::ObjectOpResult& result);
 typedef bool
-(* HasPropertyOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id, bool *foundp);
+(* HasPropertyOp)(JSContext* cx, JS::HandleObject obj, JS::HandleId id, bool* foundp);
 typedef bool
-(* GetPropertyOp)(JSContext *cx, JS::HandleObject obj, JS::HandleObject receiver, JS::HandleId id,
+(* GetPropertyOp)(JSContext* cx, JS::HandleObject obj, JS::HandleObject receiver, JS::HandleId id,
                   JS::MutableHandleValue vp);
 typedef bool
-(* SetPropertyOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::HandleValue v,
-                  JS::HandleValue receiver, JS::ObjectOpResult &result);
+(* SetPropertyOp)(JSContext* cx, JS::HandleObject obj, JS::HandleId id, JS::HandleValue v,
+                  JS::HandleValue receiver, JS::ObjectOpResult& result);
 typedef bool
-(* GetOwnPropertyOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
+(* GetOwnPropertyOp)(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
                      JS::MutableHandle<JSPropertyDescriptor> desc);
 typedef bool
-(* DeletePropertyOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
-                     JS::ObjectOpResult &result);
+(* DeletePropertyOp)(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
+                     JS::ObjectOpResult& result);
 
 typedef bool
-(* WatchOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::HandleObject callable);
+(* WatchOp)(JSContext* cx, JS::HandleObject obj, JS::HandleId id, JS::HandleObject callable);
 
 typedef bool
-(* UnwatchOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id);
+(* UnwatchOp)(JSContext* cx, JS::HandleObject obj, JS::HandleId id);
 
 class JS_FRIEND_API(ElementAdder)
 {
@@ -372,44 +372,44 @@ class JS_FRIEND_API(ElementAdder)
   private:
     
     JS::RootedObject resObj_;
-    JS::Value *vp_;
+    JS::Value* vp_;
 
     uint32_t index_;
     mozilla::DebugOnly<uint32_t> length_;
     GetBehavior getBehavior_;
 
   public:
-    ElementAdder(JSContext *cx, JSObject *obj, uint32_t length, GetBehavior behavior)
+    ElementAdder(JSContext* cx, JSObject* obj, uint32_t length, GetBehavior behavior)
       : resObj_(cx, obj), vp_(nullptr), index_(0), length_(length), getBehavior_(behavior)
     {}
-    ElementAdder(JSContext *cx, JS::Value *vp, uint32_t length, GetBehavior behavior)
+    ElementAdder(JSContext* cx, JS::Value* vp, uint32_t length, GetBehavior behavior)
       : resObj_(cx), vp_(vp), index_(0), length_(length), getBehavior_(behavior)
     {}
 
     GetBehavior getBehavior() const { return getBehavior_; }
 
-    void append(JSContext *cx, JS::HandleValue v);
+    void append(JSContext* cx, JS::HandleValue v);
     void appendHole();
 };
 
 typedef bool
-(* GetElementsOp)(JSContext *cx, JS::HandleObject obj, uint32_t begin, uint32_t end,
-                  ElementAdder *adder);
+(* GetElementsOp)(JSContext* cx, JS::HandleObject obj, uint32_t begin, uint32_t end,
+                  ElementAdder* adder);
 
 
 
-typedef JSObject *
-(* ObjectOp)(JSContext *cx, JS::HandleObject obj);
+typedef JSObject*
+(* ObjectOp)(JSContext* cx, JS::HandleObject obj);
 
 
-typedef JSObject *
-(* InnerObjectOp)(JSObject *obj);
+typedef JSObject*
+(* InnerObjectOp)(JSObject* obj);
 
 typedef void
-(* FinalizeOp)(FreeOp *fop, JSObject *obj);
+(* FinalizeOp)(FreeOp* fop, JSObject* obj);
 
 #define JS_CLASS_MEMBERS(FinalizeOpType)                                      \
-    const char          *name;                                                \
+    const char*         name;                                                \
     uint32_t            flags;                                                \
                                                                               \
     /* Function pointer members (may be null). */                             \
@@ -427,10 +427,10 @@ typedef void
     JSTraceOp           trace
 
 
-typedef JSObject *(*ClassObjectCreationOp)(JSContext *cx, JSProtoKey key);
+typedef JSObject* (*ClassObjectCreationOp)(JSContext* cx, JSProtoKey key);
 
 
-typedef bool (*FinishClassInitOp)(JSContext *cx, JS::HandleObject ctor,
+typedef bool (*FinishClassInitOp)(JSContext* cx, JS::HandleObject ctor,
                                   JS::HandleObject proto);
 
 const size_t JSCLASS_CACHED_PROTO_WIDTH = 6;
@@ -439,10 +439,10 @@ struct ClassSpec
 {
     ClassObjectCreationOp createConstructor;
     ClassObjectCreationOp createPrototype;
-    const JSFunctionSpec *constructorFunctions;
-    const JSPropertySpec *constructorProperties;
-    const JSFunctionSpec *prototypeFunctions;
-    const JSPropertySpec *prototypeProperties;
+    const JSFunctionSpec* constructorFunctions;
+    const JSPropertySpec* constructorProperties;
+    const JSFunctionSpec* prototypeFunctions;
+    const JSPropertySpec* prototypeProperties;
     FinishClassInitOp finishInit;
     uintptr_t flags;
 
@@ -539,11 +539,11 @@ typedef void (*JSClassInternal)();
 struct JSClass {
     JS_CLASS_MEMBERS(JSFinalizeOp);
 
-    void                *reserved[25];
+    void*               reserved[25];
 };
 
 #define JSCLASS_HAS_PRIVATE             (1<<0)  // objects have private slot
-#define JSCLASS_PRIVATE_IS_NSISUPPORTS  (1<<3)  // private is (nsISupports *)
+#define JSCLASS_PRIVATE_IS_NSISUPPORTS  (1<<3)  // private is (nsISupports*)
 #define JSCLASS_IS_DOMJSCLASS           (1<<4)  // objects are DOM
 #define JSCLASS_IMPLEMENTS_BARRIERS     (1<<5)  // Correctly implements GC read
                                                 
@@ -702,16 +702,16 @@ static_assert(offsetof(JSClass, trace) == offsetof(Class, trace),
 static_assert(sizeof(JSClass) == sizeof(Class),
               "Class and JSClass must be consistent");
 
-static MOZ_ALWAYS_INLINE const JSClass *
-Jsvalify(const Class *c)
+static MOZ_ALWAYS_INLINE const JSClass*
+Jsvalify(const Class* c)
 {
-    return (const JSClass *)c;
+    return (const JSClass*)c;
 }
 
-static MOZ_ALWAYS_INLINE const Class *
-Valueify(const JSClass *c)
+static MOZ_ALWAYS_INLINE const Class*
+Valueify(const JSClass* c)
 {
-    return (const Class *)c;
+    return (const Class*)c;
 }
 
 
@@ -735,19 +735,19 @@ enum ESClassValue {
 
 
 inline bool
-ObjectClassIs(JSObject &obj, ESClassValue classValue, JSContext *cx);
+ObjectClassIs(JSObject& obj, ESClassValue classValue, JSContext* cx);
 
 
 inline bool
-IsObjectWithClass(const JS::Value &v, ESClassValue classValue, JSContext *cx);
+IsObjectWithClass(const JS::Value& v, ESClassValue classValue, JSContext* cx);
 
 
 inline bool
-Unbox(JSContext *cx, JS::HandleObject obj, JS::MutableHandleValue vp);
+Unbox(JSContext* cx, JS::HandleObject obj, JS::MutableHandleValue vp);
 
 #ifdef DEBUG
 JS_FRIEND_API(bool)
-HasObjectMovedOp(JSObject *obj);
+HasObjectMovedOp(JSObject* obj);
 #endif
 
 }  

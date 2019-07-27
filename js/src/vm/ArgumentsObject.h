@@ -42,13 +42,13 @@ struct ArgumentsData
     HeapValue   callee;
 
     
-    JSScript    *script;
+    JSScript*   script;
 
     
 
 
 
-    size_t      *deletedBits;
+    size_t*     deletedBits;
 
     
 
@@ -120,11 +120,11 @@ class ArgumentsObject : public NativeObject
 
   protected:
     template <typename CopyArgs>
-    static ArgumentsObject *create(JSContext *cx, HandleScript script, HandleFunction callee,
-                                   unsigned numActuals, CopyArgs &copy);
+    static ArgumentsObject* create(JSContext* cx, HandleScript script, HandleFunction callee,
+                                   unsigned numActuals, CopyArgs& copy);
 
-    ArgumentsData *data() const {
-        return reinterpret_cast<ArgumentsData *>(getFixedSlot(DATA_SLOT).toPrivate());
+    ArgumentsData* data() const {
+        return reinterpret_cast<ArgumentsData*>(getFixedSlot(DATA_SLOT).toPrivate());
     }
 
   public:
@@ -132,7 +132,7 @@ class ArgumentsObject : public NativeObject
     static const gc::AllocKind FINALIZE_KIND = gc::AllocKind::OBJECT4_BACKGROUND;
 
     
-    static ArgumentsObject *createExpected(JSContext *cx, AbstractFramePtr frame);
+    static ArgumentsObject* createExpected(JSContext* cx, AbstractFramePtr frame);
 
     
 
@@ -140,9 +140,9 @@ class ArgumentsObject : public NativeObject
 
 
 
-    static ArgumentsObject *createUnexpected(JSContext *cx, ScriptFrameIter &iter);
-    static ArgumentsObject *createUnexpected(JSContext *cx, AbstractFramePtr frame);
-    static ArgumentsObject *createForIon(JSContext *cx, jit::JitFrameLayout *frame,
+    static ArgumentsObject* createUnexpected(JSContext* cx, ScriptFrameIter& iter);
+    static ArgumentsObject* createUnexpected(JSContext* cx, AbstractFramePtr frame);
+    static ArgumentsObject* createForIon(JSContext* cx, jit::JitFrameLayout* frame,
                                          HandleObject scopeChain);
 
     
@@ -156,13 +156,13 @@ class ArgumentsObject : public NativeObject
     }
 
     
-    JSScript *containingScript() const {
+    JSScript* containingScript() const {
         return data()->script;
     }
 
     
     bool hasOverriddenLength() const {
-        const Value &v = getFixedSlot(INITIAL_LENGTH_SLOT);
+        const Value& v = getFixedSlot(INITIAL_LENGTH_SLOT);
         return v.toInt32() & LENGTH_OVERRIDDEN_BIT;
     }
 
@@ -215,20 +215,20 @@ class ArgumentsObject : public NativeObject
 
 
 
-    const Value &element(uint32_t i) const;
+    const Value& element(uint32_t i) const;
 
-    inline void setElement(JSContext *cx, uint32_t i, const Value &v);
+    inline void setElement(JSContext* cx, uint32_t i, const Value& v);
 
-    const Value &arg(unsigned i) const {
+    const Value& arg(unsigned i) const {
         MOZ_ASSERT(i < data()->numArgs);
-        const Value &v = data()->args[i];
+        const Value& v = data()->args[i];
         MOZ_ASSERT(!v.isMagic());
         return v;
     }
 
-    void setArg(unsigned i, const Value &v) {
+    void setArg(unsigned i, const Value& v) {
         MOZ_ASSERT(i < data()->numArgs);
-        HeapValue &lhs = data()->args[i];
+        HeapValue& lhs = data()->args[i];
         MOZ_ASSERT(!lhs.isMagic());
         lhs = v;
     }
@@ -249,7 +249,7 @@ class ArgumentsObject : public NativeObject
         return true;
     }
 
-    inline bool maybeGetElements(uint32_t start, uint32_t count, js::Value *vp);
+    inline bool maybeGetElements(uint32_t start, uint32_t count, js::Value* vp);
 
     
 
@@ -259,8 +259,8 @@ class ArgumentsObject : public NativeObject
         return mallocSizeOf(data());
     }
 
-    static void finalize(FreeOp *fop, JSObject *obj);
-    static void trace(JSTracer *trc, JSObject *obj);
+    static void finalize(FreeOp* fop, JSObject* obj);
+    static void trace(JSTracer* trc, JSObject* obj);
 
     
     static size_t getDataSlotOffset() {
@@ -281,18 +281,18 @@ class ArgumentsObject : public NativeObject
         JS_STATIC_ASSERT(UINT32_MAX - JS_WHY_MAGIC_COUNT > ARGS_LENGTH_MAX);
         return JS::MagicValueUint32(slot + JS_WHY_MAGIC_COUNT);
     }
-    static uint32_t SlotFromMagicScopeSlotValue(const Value &v) {
+    static uint32_t SlotFromMagicScopeSlotValue(const Value& v) {
         JS_STATIC_ASSERT(UINT32_MAX - JS_WHY_MAGIC_COUNT > ARGS_LENGTH_MAX);
         return v.magicUint32() - JS_WHY_MAGIC_COUNT;
     }
-    static bool IsMagicScopeSlotValue(const Value &v) {
+    static bool IsMagicScopeSlotValue(const Value& v) {
         return v.isMagic() && v.magicUint32() > JS_WHY_MAGIC_COUNT;
     }
 
-    static void MaybeForwardToCallObject(AbstractFramePtr frame, ArgumentsObject *obj,
-                                         ArgumentsData *data);
-    static void MaybeForwardToCallObject(jit::JitFrameLayout *frame, HandleObject callObj,
-                                         ArgumentsObject *obj, ArgumentsData *data);
+    static void MaybeForwardToCallObject(AbstractFramePtr frame, ArgumentsObject* obj,
+                                         ArgumentsData* data);
+    static void MaybeForwardToCallObject(jit::JitFrameLayout* frame, HandleObject callObj,
+                                         ArgumentsObject* obj, ArgumentsData* data);
 };
 
 class NormalArgumentsObject : public ArgumentsObject
@@ -304,7 +304,7 @@ class NormalArgumentsObject : public ArgumentsObject
 
 
 
-    const js::Value &callee() const {
+    const js::Value& callee() const {
         return data()->callee;
     }
 

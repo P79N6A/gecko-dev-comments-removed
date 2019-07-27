@@ -71,14 +71,14 @@ class TraceLoggerGraphState
     uint32_t numLoggers;
 
     
-    FILE *out;
+    FILE* out;
 
 #ifdef DEBUG
     bool initialized;
 #endif
 
   public:
-    PRLock *lock;
+    PRLock* lock;
 
   public:
     TraceLoggerGraphState()
@@ -211,10 +211,10 @@ class TraceLoggerGraph
     bool init(uint64_t timestamp);
 
     
-    void addTextId(uint32_t id, const char *text);
+    void addTextId(uint32_t id, const char* text);
 
     
-    void log(ContinuousSpace<EventEntry> &events);
+    void log(ContinuousSpace<EventEntry>& events);
 
     static size_t treeSizeFlushLimit() {
         
@@ -226,9 +226,9 @@ class TraceLoggerGraph
     bool enabled;
     mozilla::DebugOnly<uint32_t> nextTextId;
 
-    FILE *dictFile;
-    FILE *treeFile;
-    FILE *eventFile;
+    FILE* dictFile;
+    FILE* treeFile;
+    FILE* eventFile;
 
     ContinuousSpace<TreeEntry> tree;
     ContinuousSpace<StackEntry> stack;
@@ -236,15 +236,15 @@ class TraceLoggerGraph
 
     
     
-    void entryToBigEndian(TreeEntry *entry);
-    void entryToSystemEndian(TreeEntry *entry);
+    void entryToBigEndian(TreeEntry* entry);
+    void entryToSystemEndian(TreeEntry* entry);
 
     
-    bool getTreeEntry(uint32_t treeId, TreeEntry *entry);
-    bool saveTreeEntry(uint32_t treeId, TreeEntry *entry);
+    bool getTreeEntry(uint32_t treeId, TreeEntry* entry);
+    bool saveTreeEntry(uint32_t treeId, TreeEntry* entry);
 
     
-    StackEntry &getActiveAncestor();
+    StackEntry& getActiveAncestor();
 
     
     

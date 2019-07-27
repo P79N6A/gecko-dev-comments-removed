@@ -40,23 +40,23 @@ struct JSPrincipals {
 };
 
 extern JS_PUBLIC_API(void)
-JS_HoldPrincipals(JSPrincipals *principals);
+JS_HoldPrincipals(JSPrincipals* principals);
 
 extern JS_PUBLIC_API(void)
-JS_DropPrincipals(JSRuntime *rt, JSPrincipals *principals);
+JS_DropPrincipals(JSRuntime* rt, JSPrincipals* principals);
 
 
 
 
 typedef bool
-(* JSSubsumesOp)(JSPrincipals *first, JSPrincipals *second);
+(* JSSubsumesOp)(JSPrincipals* first, JSPrincipals* second);
 
 
 
 
 
 typedef bool
-(* JSCSPEvalChecker)(JSContext *cx);
+(* JSCSPEvalChecker)(JSContext* cx);
 
 struct JSSecurityCallbacks {
     JSCSPEvalChecker           contentSecurityPolicyAllows;
@@ -64,10 +64,10 @@ struct JSSecurityCallbacks {
 };
 
 extern JS_PUBLIC_API(void)
-JS_SetSecurityCallbacks(JSRuntime *rt, const JSSecurityCallbacks *callbacks);
+JS_SetSecurityCallbacks(JSRuntime* rt, const JSSecurityCallbacks* callbacks);
 
-extern JS_PUBLIC_API(const JSSecurityCallbacks *)
-JS_GetSecurityCallbacks(JSRuntime *rt);
+extern JS_PUBLIC_API(const JSSecurityCallbacks*)
+JS_GetSecurityCallbacks(JSRuntime* rt);
 
 
 
@@ -82,10 +82,10 @@ JS_GetSecurityCallbacks(JSRuntime *rt);
 
 
 extern JS_PUBLIC_API(void)
-JS_SetTrustedPrincipals(JSRuntime *rt, const JSPrincipals *prin);
+JS_SetTrustedPrincipals(JSRuntime* rt, const JSPrincipals* prin);
 
 typedef void
-(* JSDestroyPrincipalsOp)(JSPrincipals *principals);
+(* JSDestroyPrincipalsOp)(JSPrincipals* principals);
 
 
 
@@ -93,6 +93,6 @@ typedef void
 
 
 extern JS_PUBLIC_API(void)
-JS_InitDestroyPrincipalsCallback(JSRuntime *rt, JSDestroyPrincipalsOp destroyPrincipals);
+JS_InitDestroyPrincipalsCallback(JSRuntime* rt, JSDestroyPrincipalsOp destroyPrincipals);
 
 #endif  

@@ -12,14 +12,14 @@
 CPOWTimer::~CPOWTimer()
 {
     
-    nsIGlobalObject *global = mozilla::dom::GetIncumbentGlobal();
+    nsIGlobalObject* global = mozilla::dom::GetIncumbentGlobal();
     if (!global)
         return;
-    JSObject *obj = global->GetGlobalJSObject();
+    JSObject* obj = global->GetGlobalJSObject();
     if (!obj)
         return;
-    JSCompartment *compartment = js::GetObjectCompartment(obj);
-    xpc::CompartmentPrivate *compartmentPrivate = xpc::CompartmentPrivate::Get(compartment);
+    JSCompartment* compartment = js::GetObjectCompartment(obj);
+    xpc::CompartmentPrivate* compartmentPrivate = xpc::CompartmentPrivate::Get(compartment);
     if (!compartmentPrivate)
         return;
     PRIntervalTime time = PR_IntervalNow() - startInterval;

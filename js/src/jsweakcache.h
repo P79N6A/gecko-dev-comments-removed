@@ -30,12 +30,12 @@ class WeakCache : public HashMap<Key, Value, HashPolicy, AllocPolicy> {
     typedef typename Base::Enum Enum;
 
   public:
-    explicit WeakCache(JSRuntime *rt) : Base(rt) { }
-    explicit WeakCache(JSContext *cx) : Base(cx->runtime()) { }
+    explicit WeakCache(JSRuntime* rt) : Base(rt) { }
+    explicit WeakCache(JSContext* cx) : Base(cx->runtime()) { }
 
   public:
     
-    void sweep(FreeOp *fop) {
+    void sweep(FreeOp* fop) {
         
         for (Enum e(*this); !e.empty(); e.popFront()) {
             
@@ -81,12 +81,12 @@ class WeakValueCache : public HashMap<Key, Value, HashPolicy, AllocPolicy>
     typedef typename Base::Range Range;
     typedef typename Base::Enum Enum;
 
-    explicit WeakValueCache(JSRuntime *rt) : Base(rt) { }
-    explicit WeakValueCache(JSContext *cx) : Base(cx->runtime()) { }
+    explicit WeakValueCache(JSRuntime* rt) : Base(rt) { }
+    explicit WeakValueCache(JSContext* cx) : Base(cx->runtime()) { }
 
   public:
     
-    void sweep(FreeOp *fop) {
+    void sweep(FreeOp* fop) {
         
         for (Enum e(*this); !e.empty(); e.popFront()) {
             if (gc::IsAboutToBeFinalized(e.front().value()))

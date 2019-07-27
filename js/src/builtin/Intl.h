@@ -21,8 +21,8 @@ namespace js {
 
 
 
-extern JSObject *
-InitIntlClass(JSContext *cx, HandleObject obj);
+extern JSObject*
+InitIntlClass(JSContext* cx, HandleObject obj);
 
 
 
@@ -39,7 +39,7 @@ InitIntlClass(JSContext *cx, HandleObject obj);
 
 
 extern bool
-intl_Collator(JSContext *cx, unsigned argc, Value *vp);
+intl_Collator(JSContext* cx, unsigned argc, Value* vp);
 
 
 
@@ -50,7 +50,7 @@ intl_Collator(JSContext *cx, unsigned argc, Value *vp);
 
 
 extern bool
-intl_Collator_availableLocales(JSContext *cx, unsigned argc, Value *vp);
+intl_Collator_availableLocales(JSContext* cx, unsigned argc, Value* vp);
 
 
 
@@ -61,20 +61,7 @@ intl_Collator_availableLocales(JSContext *cx, unsigned argc, Value *vp);
 
 
 extern bool
-intl_availableCollations(JSContext *cx, unsigned argc, Value *vp);
-
-
-
-
-
-
-
-
-
-
-
-extern bool
-intl_CompareStrings(JSContext *cx, unsigned argc, Value *vp);
+intl_availableCollations(JSContext* cx, unsigned argc, Value* vp);
 
 
 
@@ -87,39 +74,7 @@ intl_CompareStrings(JSContext *cx, unsigned argc, Value *vp);
 
 
 extern bool
-intl_NumberFormat(JSContext *cx, unsigned argc, Value *vp);
-
-
-
-
-
-
-
-
-
-extern bool
-intl_NumberFormat_availableLocales(JSContext *cx, unsigned argc, Value *vp);
-
-
-
-
-
-
-
-
-extern bool
-intl_numberingSystem(JSContext *cx, unsigned argc, Value *vp);
-
-
-
-
-
-
-
-
-
-extern bool
-intl_FormatNumber(JSContext *cx, unsigned argc, Value *vp);
+intl_CompareStrings(JSContext* cx, unsigned argc, Value* vp);
 
 
 
@@ -132,7 +87,7 @@ intl_FormatNumber(JSContext *cx, unsigned argc, Value *vp);
 
 
 extern bool
-intl_DateTimeFormat(JSContext *cx, unsigned argc, Value *vp);
+intl_NumberFormat(JSContext* cx, unsigned argc, Value* vp);
 
 
 
@@ -143,7 +98,17 @@ intl_DateTimeFormat(JSContext *cx, unsigned argc, Value *vp);
 
 
 extern bool
-intl_DateTimeFormat_availableLocales(JSContext *cx, unsigned argc, Value *vp);
+intl_NumberFormat_availableLocales(JSContext* cx, unsigned argc, Value* vp);
+
+
+
+
+
+
+
+
+extern bool
+intl_numberingSystem(JSContext* cx, unsigned argc, Value* vp);
 
 
 
@@ -154,18 +119,8 @@ intl_DateTimeFormat_availableLocales(JSContext *cx, unsigned argc, Value *vp);
 
 
 extern bool
-intl_availableCalendars(JSContext *cx, unsigned argc, Value *vp);
+intl_FormatNumber(JSContext* cx, unsigned argc, Value* vp);
 
-
-
-
-
-
-
-
-
-extern bool
-intl_patternForSkeleton(JSContext *cx, unsigned argc, Value *vp);
 
 
 
@@ -177,21 +132,66 @@ intl_patternForSkeleton(JSContext *cx, unsigned argc, Value *vp);
 
 
 extern bool
-intl_FormatDateTime(JSContext *cx, unsigned argc, Value *vp);
+intl_DateTimeFormat(JSContext* cx, unsigned argc, Value* vp);
 
 
 
 
-inline const UChar *
-Char16ToUChar(const char16_t *chars)
+
+
+
+
+
+extern bool
+intl_DateTimeFormat_availableLocales(JSContext* cx, unsigned argc, Value* vp);
+
+
+
+
+
+
+
+
+
+extern bool
+intl_availableCalendars(JSContext* cx, unsigned argc, Value* vp);
+
+
+
+
+
+
+
+
+
+extern bool
+intl_patternForSkeleton(JSContext* cx, unsigned argc, Value* vp);
+
+
+
+
+
+
+
+
+
+
+extern bool
+intl_FormatDateTime(JSContext* cx, unsigned argc, Value* vp);
+
+
+
+
+inline const UChar*
+Char16ToUChar(const char16_t* chars)
 {
-  return reinterpret_cast<const UChar *>(chars);
+  return reinterpret_cast<const UChar*>(chars);
 }
 
-inline UChar *
-Char16ToUChar(char16_t *chars)
+inline UChar*
+Char16ToUChar(char16_t* chars)
 {
-  return reinterpret_cast<UChar *>(chars);
+  return reinterpret_cast<UChar*>(chars);
 }
 
 } 

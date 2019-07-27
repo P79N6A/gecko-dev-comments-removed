@@ -57,36 +57,36 @@ extern const char anonymousName[];
 
 
 
-bool CallTrackingActive(JSContext *);
+bool CallTrackingActive(JSContext*);
 
 
 
 
 
-bool WantNativeAddressInfo(JSContext *);
+bool WantNativeAddressInfo(JSContext*);
 
 
-bool EnterScript(JSContext *, JSScript *, JSFunction *, InterpreterFrame *);
+bool EnterScript(JSContext*, JSScript*, JSFunction*, InterpreterFrame*);
 
 
-void ExitScript(JSContext *, JSScript *, JSFunction *, bool popSPSFrame);
+void ExitScript(JSContext*, JSScript*, JSFunction*, bool popSPSFrame);
 
 
-bool StartExecution(JSScript *script);
+bool StartExecution(JSScript* script);
 
 
-bool StopExecution(JSScript *script);
-
-
-
-
-bool CreateObject(ExclusiveContext *cx, JSObject *obj);
+bool StopExecution(JSScript* script);
 
 
 
 
+bool CreateObject(ExclusiveContext* cx, JSObject* obj);
 
-bool FinalizeObject(JSObject *obj);
+
+
+
+
+bool FinalizeObject(JSObject* obj);
 
 
 
@@ -101,14 +101,14 @@ enum JITReportGranularity {
 
 
 JITReportGranularity
-JITGranularityRequested(JSContext *cx);
+JITGranularityRequested(JSContext* cx);
 
 
 
 
 
 void
-DiscardExecutableRegion(void *start, size_t size);
+DiscardExecutableRegion(void* start, size_t size);
 
 
 
@@ -116,19 +116,19 @@ DiscardExecutableRegion(void *start, size_t size);
 
 
 
-void DTraceEnterJSFun(JSContext *cx, JSFunction *fun, JSScript *script);
-void DTraceExitJSFun(JSContext *cx, JSFunction *fun, JSScript *script);
+void DTraceEnterJSFun(JSContext* cx, JSFunction* fun, JSScript* script);
+void DTraceExitJSFun(JSContext* cx, JSFunction* fun, JSScript* script);
 
 } 
 
 #ifdef INCLUDE_MOZILLA_DTRACE
-static const char *ObjectClassname(JSObject *obj) {
+static const char* ObjectClassname(JSObject* obj) {
     if (!obj)
         return "(null object)";
-    const Class *clasp = obj->getClass();
+    const Class* clasp = obj->getClass();
     if (!clasp)
         return "(null)";
-    const char *class_name = clasp->name;
+    const char* class_name = clasp->name;
     if (!class_name)
         return "(null class name)";
     return class_name;
@@ -136,7 +136,7 @@ static const char *ObjectClassname(JSObject *obj) {
 #endif
 
 inline bool
-probes::CreateObject(ExclusiveContext *cx, JSObject *obj)
+probes::CreateObject(ExclusiveContext* cx, JSObject* obj)
 {
     bool ok = true;
 
@@ -149,16 +149,16 @@ probes::CreateObject(ExclusiveContext *cx, JSObject *obj)
 }
 
 inline bool
-probes::FinalizeObject(JSObject *obj)
+probes::FinalizeObject(JSObject* obj)
 {
     bool ok = true;
 
 #ifdef INCLUDE_MOZILLA_DTRACE
     if (JAVASCRIPT_OBJECT_FINALIZE_ENABLED()) {
-        const Class *clasp = obj->getClass();
+        const Class* clasp = obj->getClass();
 
         
-        JAVASCRIPT_OBJECT_FINALIZE(nullptr, (char *)clasp->name, (uintptr_t)obj);
+        JAVASCRIPT_OBJECT_FINALIZE(nullptr, (char*)clasp->name, (uintptr_t)obj);
     }
 #endif
 

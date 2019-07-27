@@ -86,7 +86,7 @@ bool xpc_IsReportableErrorCode(nsresult code)
 
 class MOZ_STACK_CLASS AutoSavePendingResult {
 public:
-    explicit AutoSavePendingResult(XPCContext *xpcc) :
+    explicit AutoSavePendingResult(XPCContext* xpcc) :
         mXPCContext(xpcc)
     {
         
@@ -97,7 +97,7 @@ public:
         mXPCContext->SetPendingResult(mSavedResult);
     }
 private:
-    XPCContext *mXPCContext;
+    XPCContext* mXPCContext;
     nsresult mSavedResult;
 };
 
@@ -253,7 +253,7 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(JSContext* cx,
                 if (jsexception.isObject()) {
                     
                     
-                    Exception *e = nullptr;
+                    Exception* e = nullptr;
                     UNWRAP_OBJECT(Exception, &jsexception.toObject(), e);
 
                     if (e &&
@@ -918,8 +918,8 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
     if (!ccx.IsValid())
         return retval;
 
-    XPCContext *xpcc = ccx.GetXPCContext();
-    JSContext *cx = ccx.GetJSContext();
+    XPCContext* xpcc = ccx.GetXPCContext();
+    JSContext* cx = ccx.GetJSContext();
 
     if (!cx || !xpcc || !IsReflectable(methodIndex))
         return NS_ERROR_FAILURE;
@@ -927,7 +927,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
     
     
     if (info->WantsOptArgc() || info->WantsContext()) {
-        const char *str = "IDL methods marked with [implicit_jscontext] "
+        const char* str = "IDL methods marked with [implicit_jscontext] "
                           "or [optional_argc] may not be implemented in JS";
         
         JS_ReportError(cx, str);
@@ -1441,7 +1441,7 @@ nsXPCWrappedJSClass::GetInterfaceName()
 }
 
 static void
-FinalizeStub(JSFreeOp *fop, JSObject *obj)
+FinalizeStub(JSFreeOp* fop, JSObject* obj)
 {
 }
 

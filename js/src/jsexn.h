@@ -17,13 +17,11 @@
 namespace js {
 class ErrorObject;
 
-JSErrorReport *
-CopyErrorReport(JSContext *cx, JSErrorReport *report);
+JSErrorReport*
+CopyErrorReport(JSContext* cx, JSErrorReport* report);
 
-JSString *
-ComputeStackString(JSContext *cx);
-
-
+JSString*
+ComputeStackString(JSContext* cx);
 
 
 
@@ -34,24 +32,6 @@ ComputeStackString(JSContext *cx);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern bool
-ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
-                 JSErrorCallback callback, void *userRef);
 
 
 
@@ -70,10 +50,8 @@ ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
 
 
 extern bool
-ReportUncaughtException(JSContext *cx);
-
-extern JSErrorReport *
-ErrorFromException(JSContext *cx, HandleObject obj);
+ErrorToException(JSContext* cx, const char* message, JSErrorReport* reportp,
+                 JSErrorCallback callback, void* userRef);
 
 
 
@@ -82,8 +60,30 @@ ErrorFromException(JSContext *cx, HandleObject obj);
 
 
 
-extern JSObject *
-CopyErrorObject(JSContext *cx, JS::Handle<ErrorObject*> errobj);
+
+
+
+
+
+
+
+
+
+extern bool
+ReportUncaughtException(JSContext* cx);
+
+extern JSErrorReport*
+ErrorFromException(JSContext* cx, HandleObject obj);
+
+
+
+
+
+
+
+
+extern JSObject*
+CopyErrorObject(JSContext* cx, JS::Handle<ErrorObject*> errobj);
 
 static_assert(JSEXN_ERR == 0 &&
               JSProto_Error + JSEXN_INTERNALERR == JSProto_InternalError &&
@@ -117,10 +117,10 @@ ExnTypeFromProtoKey(JSProtoKey key)
 
 class AutoClearPendingException
 {
-    JSContext *cx;
+    JSContext* cx;
 
   public:
-    explicit AutoClearPendingException(JSContext *cxArg)
+    explicit AutoClearPendingException(JSContext* cxArg)
       : cx(cxArg)
     { }
 

@@ -18,7 +18,7 @@ class Compressor
     
     static const size_t CHUNKSIZE = 2048;
     z_stream zs;
-    const unsigned char *inp;
+    const unsigned char* inp;
     size_t inplen;
     size_t outbytes;
     bool initialized;
@@ -31,10 +31,10 @@ class Compressor
         OOM
     };
 
-    Compressor(const unsigned char *inp, size_t inplen);
+    Compressor(const unsigned char* inp, size_t inplen);
     ~Compressor();
     bool init();
-    void setOutput(unsigned char *out, size_t outlen);
+    void setOutput(unsigned char* out, size_t outlen);
     size_t outWritten() const { return outbytes; }
     
     Status compressMore();
@@ -44,8 +44,8 @@ class Compressor
 
 
 
-bool DecompressString(const unsigned char *inp, size_t inplen,
-                      unsigned char *out, size_t outlen);
+bool DecompressString(const unsigned char* inp, size_t inplen,
+                      unsigned char* out, size_t outlen);
 
 } 
 

@@ -20,7 +20,7 @@
 
 
 inline void
-js::AssertObjectIsSavedFrameOrWrapper(JSContext *cx, HandleObject stack)
+js::AssertObjectIsSavedFrameOrWrapper(JSContext* cx, HandleObject stack)
 {
 #ifdef DEBUG
     if (stack) {
