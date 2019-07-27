@@ -54,7 +54,12 @@ WheelScrollAnimation::DoSample(FrameMetrics& aFrameMetrics, const TimeDuration& 
   mApzc.mX.AdjustDisplacement(displacement.x, adjustedOffset.x, overscroll.x);
   mApzc.mY.AdjustDisplacement(displacement.y, adjustedOffset.y, overscroll.y,
                               !aFrameMetrics.AllowVerticalScrollWithWheel());
-  if (IsZero(adjustedOffset)) {
+
+  
+  
+  
+  
+  if (!IsZero(displacement) && IsZero(adjustedOffset)) {
     
     return false;
   }
@@ -76,9 +81,7 @@ WheelScrollAnimation::InitPreferences(TimeStamp aTime)
   mIntervalRatio = (gfxPrefs::SmoothScrollDurationToIntervalRatio() * 100) / 100.0;
   mIntervalRatio = std::max(1.0, mIntervalRatio);
 
-  if (mIsFirstIteration) {
-    InitializeHistory(aTime);
-  }
+  InitializeHistory(aTime);
 }
 
 } 
