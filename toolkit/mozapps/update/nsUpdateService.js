@@ -497,7 +497,7 @@ function hasUpdateMutex() {
 
 XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpdates() {
   let useService = false;
-  if (shouldUseService() && isServiceInstalled()) {
+  if (shouldUseService()) {
     
     
     LOG("gCanApplyUpdates - bypass the write checks because we'll use the service");
@@ -648,8 +648,7 @@ function getCanStageUpdates() {
     return false;
   }
 
-  if (AppConstants.platform == "win" && isServiceInstalled() &&
-      shouldUseService()) {
+  if (AppConstants.platform == "win" && shouldUseService()) {
     
     
     LOG("getCanStageUpdates - able to stage updates using the service");
@@ -1029,9 +1028,8 @@ function releaseSDCardMountLock() {
 
 
 
-
 function shouldUseService() {
-  if (AppConstants.MOZ_MAINTENANCE_SERVICE) {
+  if (AppConstants.MOZ_MAINTENANCE_SERVICE && isServiceInstalled()) {
     return getPref("getBoolPref",
                    PREF_APP_UPDATE_SERVICE_ENABLED, false);
   }
@@ -4214,7 +4212,7 @@ Downloader.prototype = {
 
     if (maxProgress != this._patch.size) {
       LOG("Downloader:onProgress - maxProgress: " + maxProgress +
-          " is not equal to expectd patch size: " + this._patch.size);
+          " is not equal to expected patch size: " + this._patch.size);
       
       
       
