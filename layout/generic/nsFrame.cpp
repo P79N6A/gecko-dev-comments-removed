@@ -33,6 +33,7 @@
 #include <stdarg.h>
 #include "nsFrameManager.h"
 #include "nsLayoutUtils.h"
+#include "RestyleManager.h"
 
 #include "nsIDOMNode.h"
 #include "nsISelection.h"
@@ -651,11 +652,21 @@ nsFrame::DestroyFrom(nsIFrame* aDestructRoot)
     }
   }
 
-  
-  
   bool isPrimaryFrame = (mContent && mContent->GetPrimaryFrame() == this);
   if (isPrimaryFrame) {
+    
+    
     ActiveLayerTracker::TransferActivityToContent(this, mContent);
+
+    
+    
+    
+    
+    RestyleManager::ReframingStyleContexts* rsc =
+      presContext->RestyleManager()->GetReframingStyleContexts();
+    if (rsc) {
+      rsc->Put(mContent, mStyleContext);
+    }
   }
 
   shell->NotifyDestroyingFrame(this);
