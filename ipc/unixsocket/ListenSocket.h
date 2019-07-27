@@ -11,7 +11,6 @@
 #include "mozilla/ipc/SocketBase.h"
 
 class MessageLoop;
-class nsIThread;
 
 namespace mozilla {
 namespace ipc {
@@ -44,7 +43,7 @@ public:
 
 
   nsresult Listen(UnixSocketConnector* aConnector,
-                  nsIThread* aConsumerThread,
+                  MessageLoop* aConsumerLoop,
                   MessageLoop* aIOLoop,
                   ConnectionOrientedSocket* aCOSocket);
 

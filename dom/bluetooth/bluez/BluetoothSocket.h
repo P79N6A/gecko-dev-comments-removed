@@ -8,13 +8,10 @@
 #define mozilla_dom_bluetooth_BluetoothSocket_h
 
 #include "BluetoothCommon.h"
-#include <stdlib.h>
 #include "mozilla/ipc/DataSocket.h"
 #include "mozilla/ipc/UnixSocketWatcher.h"
-#include "mozilla/RefPtr.h"
 #include "nsAutoPtr.h"
 #include "nsString.h"
-#include "nsThreadUtils.h"
 
 class MessageLoop;
 
@@ -71,7 +68,7 @@ public:
 
 
   nsresult Connect(BluetoothUnixSocketConnector* aConnector, int aDelayMs,
-                   nsIThread* aConsumerThread, MessageLoop* aIOLoop);
+                   MessageLoop* aConsumerLoop, MessageLoop* aIOLoop);
 
   
 
@@ -94,7 +91,7 @@ public:
 
 
   nsresult Listen(BluetoothUnixSocketConnector* aConnector,
-                  nsIThread* aConsumerThread, MessageLoop* aIOLoop);
+                  MessageLoop* aConsumerLoop, MessageLoop* aIOLoop);
 
   
 

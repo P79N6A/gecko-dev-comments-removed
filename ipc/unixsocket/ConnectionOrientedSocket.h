@@ -59,7 +59,7 @@ protected:
 
 
 
-  ConnectionOrientedSocketIO(nsIThread* aConsumerThread,
+  ConnectionOrientedSocketIO(MessageLoop* aConsumerLoop,
                              MessageLoop* aIOLoop,
                              int aFd, ConnectionStatus aConnectionStatus,
                              UnixSocketConnector* aConnector);
@@ -71,7 +71,7 @@ protected:
 
 
 
-  ConnectionOrientedSocketIO(nsIThread* aConsumerThread,
+  ConnectionOrientedSocketIO(MessageLoop* aConsumerLoop,
                              MessageLoop* aIOLoop,
                              UnixSocketConnector* aConnector);
 
@@ -107,7 +107,7 @@ public:
 
 
   virtual nsresult PrepareAccept(UnixSocketConnector* aConnector,
-                                 nsIThread* aConsumerThread,
+                                 MessageLoop* aConsumerLoop,
                                  MessageLoop* aIOLoop,
                                  ConnectionOrientedSocketIO*& aIO) = 0;
 

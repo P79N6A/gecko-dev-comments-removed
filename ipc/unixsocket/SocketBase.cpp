@@ -254,52 +254,47 @@ SocketBase::SetConnectionStatus(SocketConnectionStatus aConnectionStatus)
 
 
 
-SocketIOBase::SocketIOBase(nsIThread* aConsumerThread)
-  : mConsumerThread(aConsumerThread)
+SocketIOBase::SocketIOBase(MessageLoop* aConsumerLoop)
+  : mConsumerLoop(aConsumerLoop)
 {
-  MOZ_ASSERT(mConsumerThread);
+  MOZ_ASSERT(mConsumerLoop);
 }
 
 SocketIOBase::~SocketIOBase()
 { }
 
-nsIThread*
+MessageLoop*
 SocketIOBase::GetConsumerThread() const
 {
-  return mConsumerThread;
+  return mConsumerLoop;
 }
 
 bool
 SocketIOBase::IsConsumerThread() const
 {
-  nsIThread* thread = nullptr;
-  if (NS_FAILED(NS_GetCurrentThread(&thread))) {
-    return false;
-  }
-  return thread == GetConsumerThread();
+  return GetConsumerThread() == MessageLoop::current();
 }
 
 
 
 
 
-SocketIOEventRunnable::SocketIOEventRunnable(SocketIOBase* aIO,
-                                             SocketEvent aEvent)
-  : SocketIORunnable<SocketIOBase>(aIO)
+SocketEventTask::SocketEventTask(SocketIOBase* aIO, SocketEvent aEvent)
+  : SocketTask<SocketIOBase>(aIO)
   , mEvent(aEvent)
 { }
 
-NS_METHOD
-SocketIOEventRunnable::Run()
+void
+SocketEventTask::Run()
 {
-  SocketIOBase* io = SocketIORunnable<SocketIOBase>::GetIO();
+  SocketIOBase* io = SocketTask<SocketIOBase>::GetIO();
 
   MOZ_ASSERT(io->IsConsumerThread());
 
   if (NS_WARN_IF(io->IsShutdownOnConsumerThread())) {
     
     
-    return NS_OK;
+    return;
   }
 
   SocketBase* socketBase = io->GetSocketBase();
@@ -312,55 +307,49 @@ SocketIOEventRunnable::Run()
   } else if (mEvent == DISCONNECT) {
     socketBase->NotifyDisconnect();
   }
-
-  return NS_OK;
 }
 
 
 
 
 
-SocketIORequestClosingRunnable::SocketIORequestClosingRunnable(
+SocketRequestClosingTask::SocketRequestClosingTask(
   SocketIOBase* aIO)
-  : SocketIORunnable<SocketIOBase>(aIO)
+  : SocketTask<SocketIOBase>(aIO)
 { }
 
-NS_METHOD
-SocketIORequestClosingRunnable::Run()
+void
+SocketRequestClosingTask::Run()
 {
-  SocketIOBase* io = SocketIORunnable<SocketIOBase>::GetIO();
+  SocketIOBase* io = SocketTask<SocketIOBase>::GetIO();
 
   MOZ_ASSERT(io->IsConsumerThread());
 
   if (NS_WARN_IF(io->IsShutdownOnConsumerThread())) {
     
     
-    return NS_OK;
+    return;
   }
 
   SocketBase* socketBase = io->GetSocketBase();
   MOZ_ASSERT(socketBase);
 
   socketBase->Close();
-
-  return NS_OK;
 }
 
 
 
 
 
-SocketIODeleteInstanceRunnable::SocketIODeleteInstanceRunnable(
+SocketDeleteInstanceTask::SocketDeleteInstanceTask(
   SocketIOBase* aIO)
   : mIO(aIO)
 { }
 
-NS_METHOD
-SocketIODeleteInstanceRunnable::Run()
+void
+SocketDeleteInstanceTask::Run()
 {
   mIO = nullptr; 
-
-  return NS_OK;
 }
 
 
@@ -385,8 +374,8 @@ SocketIOShutdownTask::Run()
   
   
   io->ShutdownOnIOThread();
-  io->GetConsumerThread()->Dispatch(new SocketIODeleteInstanceRunnable(io),
-                                    NS_DISPATCH_NORMAL);
+  io->GetConsumerThread()->PostTask(FROM_HERE,
+                                    new SocketDeleteInstanceTask(io));
 }
 
 }

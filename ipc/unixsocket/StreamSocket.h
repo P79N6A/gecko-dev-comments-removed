@@ -47,7 +47,7 @@ public:
 
 
   nsresult Connect(UnixSocketConnector* aConnector, int aDelayMs,
-                   nsIThread* aConsumerThread, MessageLoop* aIOLoop);
+                   MessageLoop* aConsumerLoop, MessageLoop* aIOLoop);
 
   
 
@@ -63,7 +63,7 @@ public:
   
 
   nsresult PrepareAccept(UnixSocketConnector* aConnector,
-                         nsIThread* aConsumerThread,
+                         MessageLoop* aConsumerLoop,
                          MessageLoop* aIOLoop,
                          ConnectionOrientedSocketIO*& aIO) override;
 

@@ -50,8 +50,8 @@ DataSocketIO::ReceiveData(int aFd)
   nsresult rv = QueryReceiveBuffer(&incoming);
   if (NS_FAILED(rv)) {
     
-    GetConsumerThread()->Dispatch(new SocketIORequestClosingRunnable(this),
-                                  NS_DISPATCH_NORMAL);
+    GetConsumerThread()->PostTask(FROM_HERE,
+                                  new SocketRequestClosingTask(this));
     return -1;
   }
 
@@ -59,14 +59,14 @@ DataSocketIO::ReceiveData(int aFd)
   if (res < 0) {
     
     DiscardBuffer();
-    GetConsumerThread()->Dispatch(new SocketIORequestClosingRunnable(this),
-                                  NS_DISPATCH_NORMAL);
+    GetConsumerThread()->PostTask(FROM_HERE,
+                                  new SocketRequestClosingTask(this));
     return -1;
   } else if (!res) {
     
     DiscardBuffer();
-    GetConsumerThread()->Dispatch(new SocketIORequestClosingRunnable(this),
-                                  NS_DISPATCH_NORMAL);
+    GetConsumerThread()->PostTask(FROM_HERE,
+                                  new SocketRequestClosingTask(this));
     return 0;
   }
 
@@ -93,8 +93,8 @@ DataSocketIO::SendPendingData(int aFd)
     ssize_t res = outgoing->Send(aFd);
     if (res < 0) {
       
-      GetConsumerThread()->Dispatch(new SocketIORequestClosingRunnable(this),
-                                    NS_DISPATCH_NORMAL);
+      GetConsumerThread()->PostTask(FROM_HERE,
+                                    new SocketRequestClosingTask(this));
       return NS_ERROR_FAILURE;
     } else if (!res && outgoing->GetSize()) {
       
@@ -109,8 +109,8 @@ DataSocketIO::SendPendingData(int aFd)
   return NS_OK;
 }
 
-DataSocketIO::DataSocketIO(nsIThread* aConsumerThread)
-  : SocketIOBase(aConsumerThread)
+DataSocketIO::DataSocketIO(MessageLoop* aConsumerLoop)
+  : SocketIOBase(aConsumerLoop)
 { }
 
 

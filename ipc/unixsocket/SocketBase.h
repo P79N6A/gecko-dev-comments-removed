@@ -11,8 +11,6 @@
 
 #include "base/message_loop.h"
 #include "nsAutoPtr.h"
-#include "nsTArray.h"
-#include "nsThreadUtils.h"
 
 namespace mozilla {
 namespace ipc {
@@ -382,7 +380,7 @@ public:
 
 
 
-  nsIThread* GetConsumerThread() const;
+  MessageLoop* GetConsumerThread() const;
 
   
 
@@ -391,10 +389,10 @@ public:
   bool IsConsumerThread() const;
 
 protected:
-  SocketIOBase(nsIThread* nsConsumerThread);
+  SocketIOBase(MessageLoop* aConsumerLoop);
 
 private:
-  nsCOMPtr<nsIThread> mConsumerThread;
+  MessageLoop* mConsumerLoop;
 };
 
 
@@ -405,10 +403,10 @@ private:
 
 
 template <typename T>
-class SocketIORunnable : public nsRunnable
+class SocketTask : public Task
 {
 public:
-  virtual ~SocketIORunnable()
+  virtual ~SocketTask()
   { }
 
   T* GetIO() const
@@ -417,8 +415,8 @@ public:
   }
 
 protected:
-  SocketIORunnable(T* aIO)
-  : mIO(aIO)
+  SocketTask(T* aIO)
+    : mIO(aIO)
   {
     MOZ_ASSERT(aIO);
   }
@@ -431,7 +429,7 @@ private:
 
 
 
-class SocketIOEventRunnable final : public SocketIORunnable<SocketIOBase>
+class SocketEventTask final : public SocketTask<SocketIOBase>
 {
 public:
   enum SocketEvent {
@@ -440,9 +438,9 @@ public:
     DISCONNECT
   };
 
-  SocketIOEventRunnable(SocketIOBase* aIO, SocketEvent aEvent);
+  SocketEventTask(SocketIOBase* aIO, SocketEvent aEvent);
 
-  NS_IMETHOD Run() override;
+  void Run() override;
 
 private:
   SocketEvent mEvent;
@@ -452,24 +450,23 @@ private:
 
 
 
-class SocketIORequestClosingRunnable final
-  : public SocketIORunnable<SocketIOBase>
+class SocketRequestClosingTask final : public SocketTask<SocketIOBase>
 {
 public:
-  SocketIORequestClosingRunnable(SocketIOBase* aIO);
+  SocketRequestClosingTask(SocketIOBase* aIO);
 
-  NS_IMETHOD Run() override;
+  void Run() override;
 };
 
 
 
 
-class SocketIODeleteInstanceRunnable final : public nsRunnable
+class SocketDeleteInstanceTask final : public Task
 {
 public:
-  SocketIODeleteInstanceRunnable(SocketIOBase* aIO);
+  SocketDeleteInstanceTask(SocketIOBase* aIO);
 
-  NS_IMETHOD Run() override;
+  void Run() override;
 
 private:
   nsAutoPtr<SocketIOBase> mIO;
