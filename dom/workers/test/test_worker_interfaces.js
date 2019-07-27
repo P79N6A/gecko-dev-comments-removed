@@ -99,13 +99,9 @@ var interfaceNamesInGlobalScope =
 
     { name: "DataStoreCursor", b2g: true },
 
-    "DOMCursor",
-
     "DOMError",
 
     "DOMException",
-
-    "DOMRequest",
 
     "DOMStringList",
 
@@ -148,6 +144,8 @@ var interfaceNamesInGlobalScope =
     "MessageEvent",
 
     "MessagePort",
+
+    "Notification",
 
     "Performance",
 
