@@ -245,7 +245,7 @@ def bootstrap(topsrcdir, mozilla_dir=None):
             return
 
         
-        if not sys.stdin.isatty():
+        if sys.stdin.closed or not sys.stdin.isatty():
             return
 
         
