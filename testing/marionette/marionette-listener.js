@@ -64,6 +64,9 @@ let checkTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
 
 let readyStateTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
 
+let navTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+let onDOMContentLoaded;
+
 let EVENT_INTERVAL = 30; 
 
 let nextTouchId = 1000;
@@ -97,13 +100,14 @@ let modalHandler = function() {
 
 
 function registerSelf() {
-  let msg = {value: winUtil.outerWindowID, href: content.location.href};
+  let msg = {value: winUtil.outerWindowID}
   
   let register = sendSyncMessage("Marionette:register", msg);
 
   if (register[0]) {
-    listenerId = register[0][0].id;
-    if (typeof listenerId != "undefined") {
+    let {id, remotenessChange} = register[0][0];
+    listenerId = id;
+    if (typeof id != "undefined") {
       
       if (register[0][1] == true) {
         addMessageListener("MarionetteMainListener:emitTouchEvent", emitTouchEventForIFrame);
@@ -111,6 +115,9 @@ function registerSelf() {
       importedScripts = FileUtils.getDir('TmpD', [], false);
       importedScripts.append('marionetteContentScripts');
       startListeners();
+      if (remotenessChange) {
+        sendAsyncMessage("Marionette:listenersAttached", {listenerId: id});
+      }
     }
   }
 }
@@ -170,6 +177,8 @@ function startListeners() {
   addMessageListenerId("Marionette:actionChain", actionChain);
   addMessageListenerId("Marionette:multiAction", multiAction);
   addMessageListenerId("Marionette:get", get);
+  addMessageListenerId("Marionette:pollForReadyState", pollForReadyState);
+  addMessageListenerId("Marionette:cancelRequest", cancelRequest);
   addMessageListenerId("Marionette:getCurrentUrl", getCurrentUrl);
   addMessageListenerId("Marionette:getTitle", getTitle);
   addMessageListenerId("Marionette:getPageSource", getPageSource);
@@ -273,6 +282,8 @@ function deleteSession(msg) {
   removeMessageListenerId("Marionette:actionChain", actionChain);
   removeMessageListenerId("Marionette:multiAction", multiAction);
   removeMessageListenerId("Marionette:get", get);
+  removeMessageListenerId("Marionette:pollForReadyState", pollForReadyState);
+  removeMessageListenerId("Marionette:cancelRequest", cancelRequest);
   removeMessageListenerId("Marionette:getTitle", getTitle);
   removeMessageListenerId("Marionette:getPageSource", getPageSource);
   removeMessageListenerId("Marionette:getCurrentUrl", getCurrentUrl);
@@ -1409,69 +1420,104 @@ function multiAction(msg) {
 
 
 
+function pollForReadyState(msg, start, callback) {
+  let {pageTimeout, url, command_id} = msg.json;
+  start = start ? start : new Date().getTime();
 
-function get(msg) {
-  let command_id = msg.json.command_id;
+  if (!callback) {
+    callback = () => {};
+  }
 
-  let checkTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-  let start = new Date().getTime();
   let end = null;
   function checkLoad() {
-    checkTimer.cancel();
+    navTimer.cancel();
     end = new Date().getTime();
     let aboutErrorRegex = /about:.+(error)\?/;
     let elapse = end - start;
-    if (msg.json.pageTimeout == null || elapse <= msg.json.pageTimeout) {
+    if (pageTimeout == null || elapse <= pageTimeout) {
       if (curFrame.document.readyState == "complete") {
-        removeEventListener("DOMContentLoaded", onDOMContentLoaded, false);
+        callback();
         sendOk(command_id);
       } else if (curFrame.document.readyState == "interactive" &&
                  aboutErrorRegex.exec(curFrame.document.baseURI) &&
-                 !curFrame.document.baseURI.startsWith(msg.json.url)) {
+                 !curFrame.document.baseURI.startsWith(url)) {
         
-        removeEventListener("DOMContentLoaded", onDOMContentLoaded, false);
+        callback();
         sendError("Error loading page", 13, null, command_id);
       } else if (curFrame.document.readyState == "interactive" &&
                  curFrame.document.baseURI.startsWith("about:")) {
-        removeEventListener("DOMContentLoaded", onDOMContentLoaded, false);
+        callback();
         sendOk(command_id);
       } else {
-        checkTimer.initWithCallback(checkLoad, 100, Ci.nsITimer.TYPE_ONE_SHOT);
+        navTimer.initWithCallback(checkLoad, 100, Ci.nsITimer.TYPE_ONE_SHOT);
       }
     }
     else {
-      removeEventListener("DOMContentLoaded", onDOMContentLoaded, false);
+      callback();
       sendError("Error loading page, timed out (checkLoad)", 21, null,
                 command_id);
     }
   }
+  checkLoad();
+}
+
+
+
+
+
+
+
+function get(msg) {
+  let start = new Date().getTime();
+
   
   
   
-  let onDOMContentLoaded = function onDOMContentLoaded(event) {
+  onDOMContentLoaded = function onDOMContentLoaded(event) {
     if (!event.originalTarget.defaultView.frameElement ||
         event.originalTarget.defaultView.frameElement == curFrame.frameElement) {
-      checkLoad();
+      pollForReadyState(msg, start, () => {
+        removeEventListener("DOMContentLoaded", onDOMContentLoaded, false);
+        onDOMContentLoaded = null;
+      });
     }
   };
 
   function timerFunc() {
     removeEventListener("DOMContentLoaded", onDOMContentLoaded, false);
     sendError("Error loading page, timed out (onDOMContentLoaded)", 21,
-              null, command_id);
+              null, msg.json.command_id);
   }
   if (msg.json.pageTimeout != null) {
-    checkTimer.initWithCallback(timerFunc, msg.json.pageTimeout, Ci.nsITimer.TYPE_ONE_SHOT);
+    navTimer.initWithCallback(timerFunc, msg.json.pageTimeout, Ci.nsITimer.TYPE_ONE_SHOT);
   }
   addEventListener("DOMContentLoaded", onDOMContentLoaded, false);
   curFrame.location = msg.json.url;
+}
+
+ 
+
+
+
+
+function cancelRequest() {
+  navTimer.cancel();
+  if (onDOMContentLoaded) {
+    removeEventListener("DOMContentLoaded", onDOMContentLoaded, false);
+  }
 }
 
 
 
 
 function getCurrentUrl(msg) {
-  sendResponse({value: curFrame.location.href}, msg.json.command_id);
+  let url;
+  if (msg.json.isB2G) {
+    url = curFrame.location.href;
+  } else {
+    url = content.location.href;
+  }
+  sendResponse({value: url}, msg.json.command_id);
 }
 
 

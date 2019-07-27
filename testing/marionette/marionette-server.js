@@ -288,8 +288,10 @@ MarionetteServerConnection.prototype = {
       }
     }
     else {
-      this.messageManager.broadcastAsyncMessage(
-        "Marionette:" + name + this.curBrowser.curFrameId, values);
+      this.curBrowser.executeWhenReady(() => {
+        this.messageManager.broadcastAsyncMessage(
+          "Marionette:" + name + this.curBrowser.curFrameId, values);
+      });
     }
     return success;
   },
@@ -329,6 +331,11 @@ MarionetteServerConnection.prototype = {
         return;
       }
     }
+
+    if (this.curBrowser !== null) {
+      this.curBrowser.pendingCommands = [];
+    }
+
     this.conn.send(msg);
     if (command_id != -1) {
       
@@ -1278,7 +1285,17 @@ MarionetteServerConnection.prototype = {
 
   get: function MDA_get(aRequest) {
     let command_id = this.command_id = this.getCommandId();
+
     if (this.context != "chrome") {
+      
+      
+      
+      this.curBrowser.pendingCommands.push(() => {
+        aRequest.parameters.command_id = command_id;
+        this.messageManager.broadcastAsyncMessage(
+          "Marionette:pollForReadyState" + this.curBrowser.curFrameId,
+          aRequest.parameters);
+      });
       aRequest.command_id = command_id;
       aRequest.parameters.pageTimeout = this.pageTimeout;
       this.sendAsync("get", aRequest.parameters, command_id);
@@ -1337,15 +1354,7 @@ MarionetteServerConnection.prototype = {
       this.sendResponse(this.getCurrentWindow().location.href, this.command_id);
     }
     else {
-      if (isB2G) {
-        this.sendAsync("getCurrentUrl", {}, this.command_id);
-      }
-      else {
-        this.sendResponse(this.curBrowser
-                              .tab
-                              .linkedBrowser
-                              .contentWindowAsCPOW.location.href, this.command_id);
-      }
+      this.sendAsync("getCurrentUrl", {isB2G: isB2G}, this.command_id);
     }
   },
 
@@ -1437,6 +1446,13 @@ MarionetteServerConnection.prototype = {
         return;
       }
     }
+  },
+
+  
+
+
+  updateIdForBrowser: function (browser, newId) {
+    this._browserIds.set(browser.permanentKey, newId);
   },
 
   
@@ -1601,8 +1617,7 @@ MarionetteServerConnection.prototype = {
           this.curBrowser = this.browsers[outerId];
           if (contentWindowId) {
             
-            this.curBrowser.curFrameId = contentWindowId;
-            win.gBrowser.selectTabAtIndex(ind);
+            this.curBrowser.switchToTab(ind);
           }
           this.sendOk(command_id);
         }
@@ -3072,6 +3087,7 @@ MarionetteServerConnection.prototype = {
     }
 
     if (this.command_id) {
+      this.sendAsync("cancelRequest", {});
       
       
       
@@ -3214,8 +3230,9 @@ MarionetteServerConnection.prototype = {
         let mainContent = (this.curBrowser.mainContentId == null);
         if (!browserType || browserType != "content") {
           
-          let listenerId = this.generateFrameId(message.json.value);
-          reg.id = this.curBrowser.register(listenerId);
+          let uid = this.generateFrameId(message.json.value);
+          reg.id = uid;
+          reg.remotenessChange = this.curBrowser.register(uid, message.target);
         }
         
         mainContent = ((mainContent == true) && (this.curBrowser.mainContentId != null));
@@ -3252,6 +3269,19 @@ MarionetteServerConnection.prototype = {
                              .getService(Ci.nsIMessageBroadcaster);
         globalMessageManager.broadcastAsyncMessage(
           "MarionetteMainListener:emitTouchEvent", message.json);
+        return;
+      case "Marionette:listenersAttached":
+        if (message.json.listenerId === this.curBrowser.curFrameId) {
+          
+          
+          
+          let newSessionValues = {
+            B2G: (appName == "B2G"),
+            raisesAccessibilityExceptions: this.sessionCapabilities.raisesAccessibilityExceptions
+          };
+          this.sendAsync("newSession", newSessionValues);
+          this.curBrowser.flushPendingCommands();
+        }
         return;
     }
   }
@@ -3371,14 +3401,48 @@ function BrowserObj(win, server) {
   this.frameManager = new FrameManager(server); 
 
   
+  this.tab = null;
+  this.pendingCommands = [];
+
+  
   this.frameManager.addMessageManagerListeners(server.messageManager);
   this.getIdForBrowser = server.getIdForBrowser.bind(server);
+  this.updateIdForBrowser = server.updateIdForBrowser.bind(server);
+  this._curFrameId = null;
+  this._browserWasRemote = null;
+  this._hasRemotenessChange = false;
 }
 
 BrowserObj.prototype = {
-  get tab () {
-    
-    return this.browser ? this.browser.selectedTab : null;
+
+  
+
+
+
+
+
+
+
+
+
+  executeWhenReady: function (callback) {
+    if (this.hasRemotenessChange()) {
+      this.pendingCommands.push(callback);
+    } else {
+      callback();
+    }
+  },
+
+  
+
+
+  switchToTab: function (ind) {
+    if (this.browser) {
+      this.browser.selectTabAtIndex(ind);
+      this.tab = this.browser.selectedTab;
+    }
+    this._browserWasRemote = this.browser.getBrowserForTab(this.tab).isRemoteBrowser;
+    this._hasRemotenessChange = false;
   },
 
   
@@ -3418,15 +3482,31 @@ BrowserObj.prototype = {
         break;
     }
   },
+
+  
+  
+  
+  get curFrameId () {
+    if (appName != "Firefox") {
+      return this._curFrameId;
+    }
+    if (this.tab) {
+      let browser = this.browser.getBrowserForTab(this.tab);
+      return this.getIdForBrowser(browser);
+    }
+    return null;
+  },
+
+  set curFrameId (id) {
+    if (appName != "Firefox") {
+      this._curFrameId = id;
+    }
+  },
+
   
 
 
   startSession: function BO_startSession(newSession, win, callback) {
-    if (appName == "Firefox" &&
-        win.gMultiProcessBrowser &&
-        !win.gBrowser.selectedBrowser.isRemoteBrowser) {
-      win.XULBrowserWindow.forceInitialBrowserRemote();
-    }
     callback(win, newSession);
   },
 
@@ -3459,27 +3539,68 @@ BrowserObj.prototype = {
 
 
 
-  register: function BO_register(uid) {
-    if (this.curFrameId == null) {
-      let currWinId = null;
+
+  register: function BO_register(uid, target) {
+    let remotenessChange = this.hasRemotenessChange();
+    if (this.curFrameId === null || remotenessChange) {
       if (this.browser) {
         
         
-        
+        if (!this.tab) {
+          this.switchToTab(this.browser.selectedIndex);
+        }
+
         let browser = this.browser.getBrowserForTab(this.tab);
-        currWinId = this.getIdForBrowser(browser);
-      }
-      if ((!this.newSession) ||
-          (this.newSession &&
-            ((appName != "Firefox") ||
-             uid === currWinId))) {
-        this.curFrameId = uid;
+        if (target == browser) {
+          this.updateIdForBrowser(browser, uid);
+          this.mainContentId = uid;
+        }
+      } else {
+        this._curFrameId = uid;
         this.mainContentId = uid;
       }
     }
+
     this.knownFrames.push(uid); 
-    return uid;
+    return remotenessChange;
   },
+
+  
+
+
+
+
+  hasRemotenessChange: function () {
+    
+    
+    if (appName != "Firefox" || this.tab === null) {
+      return false;
+    }
+    if (this._hasRemotenessChange) {
+      return true;
+    }
+    let currentIsRemote = this.browser.getBrowserForTab(this.tab).isRemoteBrowser;
+    this._hasRemotenessChange = this._browserWasRemote !== currentIsRemote;
+    this._browserWasRemote = currentIsRemote;
+    return this._hasRemotenessChange;
+  },
+
+  
+
+
+
+  flushPendingCommands: function () {
+    if (!this._hasRemotenessChange) {
+      return;
+    }
+
+    this._hasRemotenessChange = false;
+    this.pendingCommands.forEach((callback) => {
+      callback();
+    });
+    this.pendingCommands = [];
+  }
+
 }
 
 
