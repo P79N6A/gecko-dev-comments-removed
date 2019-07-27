@@ -34,21 +34,20 @@ public:
   
   
   nsRefPtr<AppendPromise> AppendData(MediaLargeByteBuffer* aData,
-                                     int64_t aTimestampOffset ) override;
+                                     TimeUnit aTimestampOffset ) override;
 
   
   
   
   
   
-  EvictDataResult EvictData(double aPlaybackTime, uint32_t aThreshold, double* aBufferStartTime) override;
+  EvictDataResult EvictData(TimeUnit aPlaybackTime, uint32_t aThreshold, TimeUnit* aBufferStartTime) override;
 
   
   
-  void EvictBefore(double aTime) override;
+  void EvictBefore(TimeUnit aTime) override;
 
-  bool RangeRemoval(mozilla::media::TimeUnit aStart,
-                    mozilla::media::TimeUnit aEnd) override;
+  bool RangeRemoval(TimeUnit aStart, TimeUnit aEnd) override;
 
   void AbortAppendData() override;
 
@@ -115,7 +114,7 @@ private:
   
   
   
-  already_AddRefed<SourceBufferDecoder> NewDecoder(int64_t aTimestampOffset );
+  already_AddRefed<SourceBufferDecoder> NewDecoder(TimeUnit aTimestampOffset);
 
   
   
@@ -193,11 +192,11 @@ private:
   
   int64_t mLastStartTimestamp;
   Maybe<int64_t> mLastEndTimestamp;
-  void AdjustDecodersTimestampOffset(int32_t aOffset);
+  void AdjustDecodersTimestampOffset(TimeUnit aOffset);
 
   
-  int64_t mLastTimestampOffset;
-  int64_t mAdjustedTimestamp;
+  TimeUnit mLastTimestampOffset;
+  TimeUnit mAdjustedTimestamp;
 
   
   bool mIsWaitingOnCDM;

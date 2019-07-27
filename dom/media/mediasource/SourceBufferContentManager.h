@@ -16,6 +16,9 @@
 
 namespace mozilla {
 
+using media::TimeUnit;
+using media::TimeIntervals;
+
 class SourceBufferContentManager {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SourceBufferContentManager);
@@ -29,7 +32,7 @@ public:
   
   
   virtual nsRefPtr<AppendPromise>
-  AppendData(MediaLargeByteBuffer* aData, int64_t aTimestampOffset ) = 0;
+  AppendData(MediaLargeByteBuffer* aData, TimeUnit aTimestampOffset ) = 0;
 
   
   virtual void AbortAppendData() = 0;
@@ -41,8 +44,7 @@ public:
 
   
   
-  virtual bool RangeRemoval(mozilla::media::TimeUnit aStart,
-                            mozilla::media::TimeUnit aEnd) = 0;
+  virtual bool RangeRemoval(TimeUnit aStart, TimeUnit aEnd) = 0;
 
   enum class EvictDataResult : int8_t
   {
@@ -56,10 +58,10 @@ public:
   
   
   virtual EvictDataResult
-  EvictData(double aPlaybackTime, uint32_t aThreshold, double* aBufferStartTime) = 0;
+  EvictData(TimeUnit aPlaybackTime, uint32_t aThreshold, TimeUnit* aBufferStartTime) = 0;
 
   
-  virtual void EvictBefore(double aTime) = 0;
+  virtual void EvictBefore(TimeUnit aTime) = 0;
 
   
   
