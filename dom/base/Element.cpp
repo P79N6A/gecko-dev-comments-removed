@@ -408,28 +408,43 @@ Element::GetBindingURL(nsIDocument *aDocument, css::URLValue **aResult)
 JSObject*
 Element::WrapObject(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  JS::Rooted<JSObject*> obj(aCx, nsINode::WrapObject(aCx, aGivenProto));
+  JS::Rooted<JSObject*> givenProto(aCx, aGivenProto);
+  JS::Rooted<JSObject*> customProto(aCx);
+
+  if (!givenProto) {
+    
+    CustomElementData* data = GetCustomElementData();
+    if (data) {
+      
+      nsDocument* document = static_cast<nsDocument*>(OwnerDoc());
+      document->GetCustomPrototype(NodeInfo()->NamespaceID(), data->mType, &customProto);
+      if (customProto &&
+          NodePrincipal()->SubsumesConsideringDomain(nsContentUtils::ObjectPrincipal(customProto))) {
+        
+        
+        
+        givenProto = customProto;
+        customProto = nullptr;
+      }
+    }
+  }
+
+  JS::Rooted<JSObject*> obj(aCx, nsINode::WrapObject(aCx, givenProto));
   if (!obj) {
     return nullptr;
   }
 
-  
-  CustomElementData* data = GetCustomElementData();
-  if (obj && data) {
+  if (customProto) {
     
-    nsDocument* document = static_cast<nsDocument*>(OwnerDoc());
-    JS::Rooted<JSObject*> prototype(aCx);
-    document->GetCustomPrototype(NodeInfo()->NamespaceID(), data->mType, &prototype);
-    if (prototype) {
-      
-      
-      
-      
-      JSAutoCompartment ac(aCx, prototype);
-      if (!JS_WrapObject(aCx, &obj) || !JS_SetPrototype(aCx, obj, prototype)) {
-        dom::Throw(aCx, NS_ERROR_FAILURE);
-        return nullptr;
-      }
+    
+    
+    
+    
+    JSAutoCompartment ac(aCx, customProto);
+    JS::Rooted<JSObject*> wrappedObj(aCx, obj);
+    if (!JS_WrapObject(aCx, &wrappedObj) ||
+        !JS_SetPrototype(aCx, wrappedObj, customProto)) {
+      return nullptr;
     }
   }
 
