@@ -439,12 +439,6 @@ var DebuggerServer = {
   },
 
   
-  
-  get _listener() {
-    return this.listeningSockets;
-  },
-
-  
 
 
 
