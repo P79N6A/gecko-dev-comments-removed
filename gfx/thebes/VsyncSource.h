@@ -49,6 +49,7 @@ public:
 
       void AddCompositorVsyncDispatcher(CompositorVsyncDispatcher* aCompositorVsyncDispatcher);
       void RemoveCompositorVsyncDispatcher(CompositorVsyncDispatcher* aCompositorVsyncDispatcher);
+      void NotifyRefreshTimerVsyncStatus(bool aEnable);
 
       
       virtual void EnableVsync() = 0;
@@ -56,7 +57,10 @@ public:
       virtual bool IsVsyncEnabled() = 0;
 
     private:
+      void UpdateVsyncStatus();
+
       Mutex mDispatcherLock;
+      bool mRefreshTimerNeedsVsync;
       nsTArray<nsRefPtr<CompositorVsyncDispatcher>> mCompositorVsyncDispatchers;
       nsRefPtr<RefreshTimerVsyncDispatcher> mRefreshTimerVsyncDispatcher;
   };
