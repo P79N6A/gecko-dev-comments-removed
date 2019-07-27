@@ -116,7 +116,7 @@ add_task(function() {
   let urlBarContainer = document.getElementById("urlbar-container");
   
   let urlbarRect = urlBarContainer.getBoundingClientRect();
-  EventUtils.synthesizeMouse(urlBarContainer, 100, urlbarRect.height - 1, {type: "contextmenu", button: 2 });
+  EventUtils.synthesizeMouse(urlBarContainer, 100, 1, {type: "contextmenu", button: 2 });
   yield shownPromise;
 
   let expectedEntries = [
