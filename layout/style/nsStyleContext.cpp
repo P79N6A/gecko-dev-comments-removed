@@ -558,12 +558,17 @@ nsStyleContext::ApplyStyleFixups(bool aSkipParentDisplayBasedStyleFixup)
           mutable_display->mDisplay = displayVal;
         }
       }
-    } else if (containerDisp->IsRubyDisplayType()) {
+    }
+
+    
+    if (!disp->IsOutOfFlowStyle() &&
+        ((containerDisp->mDisplay == NS_STYLE_DISPLAY_INLINE &&
+          containerContext->IsDirectlyInsideRuby()) ||
+         containerDisp->IsRubyDisplayType())) {
+      mBits |= NS_STYLE_IS_DIRECTLY_INSIDE_RUBY;
       uint8_t displayVal = disp->mDisplay;
       nsRuleNode::EnsureInlineDisplay(displayVal);
-      
-      if (displayVal != disp->mDisplay && 
-          !disp->IsOutOfFlowStyle()) {
+      if (displayVal != disp->mDisplay) {
         nsStyleDisplay *mutable_display =
           static_cast<nsStyleDisplay*>(GetUniqueStyleData(eStyleStruct_Display));
         mutable_display->mDisplay = displayVal;

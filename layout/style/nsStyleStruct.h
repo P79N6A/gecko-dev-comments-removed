@@ -57,8 +57,9 @@ class imgIContainer;
 
 #define NS_STYLE_IS_GOING_AWAY             0x040000000
 
-#define NS_STYLE_CONTEXT_TYPE_MASK         0xf80000000
-#define NS_STYLE_CONTEXT_TYPE_SHIFT        31
+#define NS_STYLE_IS_DIRECTLY_INSIDE_RUBY   0x080000000
+
+#define NS_STYLE_CONTEXT_TYPE_SHIFT        32
 
 
 #define NS_RULE_NODE_GC_MARK                0x02000000

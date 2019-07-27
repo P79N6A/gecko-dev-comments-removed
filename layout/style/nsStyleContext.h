@@ -133,6 +133,12 @@ public:
   
   
   
+  bool IsDirectlyInsideRuby() const
+    { return !!(mBits & NS_STYLE_IS_DIRECTLY_INSIDE_RUBY); }
+
+  
+  
+  
   
   bool HasPseudoElementData() const
     { return !!(mBits & NS_STYLE_HAS_PSEUDO_ELEMENT_DATA); }
