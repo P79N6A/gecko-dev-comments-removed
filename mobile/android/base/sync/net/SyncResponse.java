@@ -25,6 +25,14 @@ public class SyncResponse extends MozResponse {
 
 
 
+  public int xBackoffInSeconds() throws NumberFormatException {
+    return this.getIntegerHeader("x-backoff");
+  }
+
+  
+
+
+
 
 
 
@@ -47,7 +55,7 @@ public class SyncResponse extends MozResponse {
 
     int backoffInSeconds = -1;
     try {
-      backoffInSeconds = backoffInSeconds();
+      backoffInSeconds = xBackoffInSeconds();
     } catch (NumberFormatException e) {
     }
 

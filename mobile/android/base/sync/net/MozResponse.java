@@ -181,7 +181,7 @@ public class MozResponse {
 
 
   public int backoffInSeconds() throws NumberFormatException {
-    return this.getIntegerHeader("x-backoff");
+    return this.getIntegerHeader("backoff");
   }
 
   public void logResponseBody(final String logTag) {

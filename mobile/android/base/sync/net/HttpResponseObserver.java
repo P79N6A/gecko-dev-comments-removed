@@ -5,6 +5,7 @@
 package org.mozilla.gecko.sync.net;
 
 import ch.boye.httpclientandroidlib.HttpResponse;
+import ch.boye.httpclientandroidlib.client.methods.HttpUriRequest;
 
 public interface HttpResponseObserver {
   
@@ -13,5 +14,7 @@ public interface HttpResponseObserver {
 
 
 
-  public void observeHttpResponse(HttpResponse response);
+
+
+  public void observeHttpResponse(HttpUriRequest request, HttpResponse response);
 }
