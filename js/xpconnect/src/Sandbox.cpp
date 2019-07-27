@@ -641,18 +641,10 @@ xpc::SandboxProxyHandler::getPropertyDescriptor(JSContext *cx,
     
     
     
-    
-    
-    
-    
-    
-    
-    if (desc.getter() != xpc::holder_get &&
-        desc.getter() != XPC_WN_Helper_GetProperty &&
+    if (desc.getter() != XPC_WN_Helper_GetProperty &&
         !BindPropertyOp(cx, desc.getter(), desc.address(), id, JSPROP_GETTER, proxy))
         return false;
-    if (desc.setter() != xpc::holder_set &&
-        desc.setter() != XPC_WN_Helper_SetProperty &&
+    if (desc.setter() != XPC_WN_Helper_SetProperty &&
         !BindPropertyOp(cx, desc.setter(), desc.address(), id, JSPROP_SETTER, proxy))
         return false;
     if (desc.value().isObject()) {

@@ -156,22 +156,6 @@ bool
 FilteringWrapper<Base, Policy>::enter(JSContext *cx, HandleObject wrapper,
                                       HandleId id, Wrapper::Action act, bool *bp) const
 {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (XrayUtils::IsXrayResolving(cx, wrapper, id)) {
-        *bp = true;
-        return true;
-    }
     if (!Policy::check(cx, wrapper, id, act)) {
         *bp = JS_IsExceptionPending(cx) ? false : Policy::deny(act, id);
         return false;
@@ -240,11 +224,6 @@ CrossOriginXrayWrapper::defineProperty(JSContext *cx, JS::Handle<JSObject*> wrap
                                        JS::Handle<jsid> id,
                                        JS::MutableHandle<JSPropertyDescriptor> desc) const
 {
-    
-    
-    if (XrayUtils::IsXrayResolving(cx, wrapper, id))
-        return SecurityXrayDOM::defineProperty(cx, wrapper, id, desc);
-
     JS_ReportError(cx, "Permission denied to define property on cross-origin object");
     return false;
 }

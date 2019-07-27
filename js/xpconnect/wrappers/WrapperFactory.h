@@ -52,9 +52,6 @@ class WrapperFactory {
     
     static bool WaiveXrayAndWrap(JSContext *cx, JS::MutableHandleValue vp);
     static bool WaiveXrayAndWrap(JSContext *cx, JS::MutableHandleObject object);
-
-    
-    static bool XrayWrapperNotShadowing(JSObject *wrapper, jsid id);
 };
 
 extern const js::Wrapper XrayWaiver;
