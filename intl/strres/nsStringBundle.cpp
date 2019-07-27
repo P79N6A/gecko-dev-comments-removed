@@ -20,6 +20,7 @@
 #include "nsTextFormatter.h"
 #include "nsIErrorService.h"
 #include "nsICategoryManager.h"
+#include "nsContentUtils.h"
 
 
 #ifdef ASYNC_LOADING
@@ -70,7 +71,12 @@ nsStringBundle::LoadProperties()
 
   
   nsCOMPtr<nsIChannel> channel;
-  rv = NS_NewChannel(getter_AddRefs(channel), uri);
+  rv = NS_NewChannel(getter_AddRefs(channel),
+                     uri,
+                     nsContentUtils::GetSystemPrincipal(),
+                     nsILoadInfo::SEC_NORMAL,
+                     nsIContentPolicy::TYPE_OTHER);
+
   if (NS_FAILED(rv)) return rv;
 
   
