@@ -1460,16 +1460,23 @@ static bool ValueIncludes(const nsSubstring& aValueList,
 
 
 
-
-
-inline bool IsQuirkEventSensitive(nsIAtom *aContentTag)
+static inline bool ActiveHoverQuirkMatches(nsCSSSelector* aSelector)
 {
-  return bool ((nsGkAtoms::button == aContentTag) ||
-                 (nsGkAtoms::img == aContentTag)    ||
-                 (nsGkAtoms::input == aContentTag)  ||
-                 (nsGkAtoms::label == aContentTag)  ||
-                 (nsGkAtoms::select == aContentTag) ||
-                 (nsGkAtoms::textarea == aContentTag));
+  if (aSelector->HasTagSelector() || aSelector->mAttrList ||
+      aSelector->mIDList || aSelector->mClassList) {
+    return false;
+  }
+
+  
+  for (nsPseudoClassList* pseudoClass = aSelector->mPseudoClassList;
+       pseudoClass; pseudoClass = pseudoClass->mNext) {
+    if (pseudoClass->mType != nsCSSPseudoClasses::ePseudoClass_hover &&
+        pseudoClass->mType != nsCSSPseudoClasses::ePseudoClass_active) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 
@@ -1676,19 +1683,16 @@ StateSelectorMatches(Element* aElement,
   const bool isNegated = aDependence != nullptr;
 
   
-  if (aStatesToCheck.HasAtLeastOneOfStates(NS_EVENT_STATE_HOVER | NS_EVENT_STATE_ACTIVE) &&
+  if (aStatesToCheck.HasAtLeastOneOfStates(NS_EVENT_STATE_ACTIVE |
+                                           NS_EVENT_STATE_HOVER) &&
       aTreeMatchContext.mCompatMode == eCompatibility_NavQuirks &&
-      
-      !aSelector->HasTagSelector() && !aSelector->mIDList &&
-      !aSelector->mClassList && !aSelector->mAttrList &&
+      ActiveHoverQuirkMatches(aSelector) &&
       
       
       
       
       !isNegated &&
-      
-      aElement->IsHTML() && !nsCSSRuleProcessor::IsLink(aElement) &&
-      !IsQuirkEventSensitive(aElement->Tag())) {
+      aElement->IsHTML() && !nsCSSRuleProcessor::IsLink(aElement)) {
     
     
     return false;
