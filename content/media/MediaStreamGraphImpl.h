@@ -181,15 +181,16 @@ public:
 
 
 
-  nsTArray<MessageBlock>& MessageQueue() {
-    CurrentDriver()->GetThreadMonitor().AssertCurrentThreadOwns();
-    return mMessageQueue;
-  }
-  void DoIteration(nsTArray<MessageBlock>& aMessageQueue);
+  void DoIteration();
 
   bool OneIteration(GraphTime aFrom, GraphTime aTo,
-                    GraphTime aStateFrom, GraphTime aStateEnd,
-                    nsTArray<MessageBlock>& aMessageQueue);
+                    GraphTime aStateFrom, GraphTime aStateEnd);
+
+  
+  nsTArray<MessageBlock>& MessageQueue() {
+    CurrentDriver()->GetThreadMonitor().AssertCurrentThreadOwns();
+    return mFrontMessageQueue;
+  }
 
   
 
@@ -226,8 +227,12 @@ public:
 
 
 
-  void UpdateGraph(nsTArray<MessageBlock>& aMessageQueue,
-                   GraphTime aEndBlockingDecisions);
+  void UpdateGraph(GraphTime aEndBlockingDecisions);
+
+  void SwapMessageQueues() {
+    CurrentDriver()->GetThreadMonitor().AssertCurrentThreadOwns();
+    mFrontMessageQueue.SwapElements(mBackMessageQueue);
+  }
   
 
 
@@ -487,7 +492,10 @@ public:
 
 
 
-  nsTArray<MessageBlock> mMessageQueue;
+  
+  nsTArray<MessageBlock> mFrontMessageQueue;
+  
+  nsTArray<MessageBlock> mBackMessageQueue;
   
 
 
