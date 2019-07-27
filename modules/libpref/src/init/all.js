@@ -357,6 +357,10 @@ pref("media.navigator.enabled", true);
 #endif
 #endif
 
+pref("media.tabstreaming.width", 320);
+pref("media.tabstreaming.height", 240);
+pref("media.tabstreaming.time_per_frame", 40);
+
 
 pref("media.webvtt.enabled", true);
 pref("media.webvtt.regions.enabled", false);
@@ -428,6 +432,10 @@ pref("gfx.hidpi.enabled", 2);
 
 pref("gfx.layerscope.enabled", false);
 pref("gfx.layerscope.port", 23456);
+
+
+
+pref("gfx.perf-warnings.enabled", false);
 
 
 
