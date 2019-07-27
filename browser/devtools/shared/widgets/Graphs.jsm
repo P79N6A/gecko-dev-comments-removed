@@ -233,6 +233,7 @@ AbstractCanvasGraph.prototype = {
 
     this._data = null;
     this._regions = null;
+    this._cachedBackgroundImage = null;
     this._cachedGraphImage = null;
     this._renderTargets.clear();
     gCachedStripePattern.clear();
@@ -261,6 +262,14 @@ AbstractCanvasGraph.prototype = {
 
 
 
+  buildBackgroundImage: function() {
+    return null;
+  },
+
+  
+
+
+
 
   buildGraphImage: function() {
     throw "This method needs to be implemented by inheriting classes.";
@@ -281,6 +290,7 @@ AbstractCanvasGraph.prototype = {
 
   setData: function(data) {
     this._data = data;
+    this._cachedBackgroundImage = this.buildBackgroundImage();
     this._cachedGraphImage = this.buildGraphImage();
     this._shouldRedraw = true;
   },
@@ -568,10 +578,11 @@ AbstractCanvasGraph.prototype = {
     this._width = this._canvas.width = bounds.width * this._pixelRatio;
     this._height = this._canvas.height = bounds.height * this._pixelRatio;
 
-    if (this._data) {
+    if (this.hasData()) {
+      this._cachedBackgroundImage = this.buildBackgroundImage();
       this._cachedGraphImage = this.buildGraphImage();
     }
-    if (this._regions) {
+    if (this.hasRegions()) {
       this._bakeRegions(this._regions, this._cachedGraphImage);
     }
 
@@ -634,14 +645,16 @@ AbstractCanvasGraph.prototype = {
     if (!this._shouldRedraw) {
       return;
     }
-
     let ctx = this._ctx;
     ctx.clearRect(0, 0, this._width, this._height);
 
-    
-    if (this.hasData()) {
+    if (this._cachedBackgroundImage) {
+      ctx.drawImage(this._cachedBackgroundImage, 0, 0, this._width, this._height);
+    }
+    if (this._cachedGraphImage) {
       ctx.drawImage(this._cachedGraphImage, 0, 0, this._width, this._height);
     }
+
     if (this.hasCursor()) {
       this._drawCliphead();
     }
@@ -1045,7 +1058,7 @@ AbstractCanvasGraph.prototype = {
 
 
   _onResize: function() {
-    if (this._cachedGraphImage) {
+    if (this.hasData()) {
       setNamedTimeout(this._uid, GRAPH_RESIZE_EVENTS_DRAIN, this.refresh);
     }
   }
@@ -1373,6 +1386,24 @@ BarGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
 
 
+  buildBackgroundImage: function() {
+    let { canvas, ctx } = this._getNamedCanvas("bar-graph-background");
+    let width = this._width;
+    let height = this._height;
+
+    let gradient = ctx.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, BAR_GRAPH_BACKGROUND_GRADIENT_START);
+    gradient.addColorStop(1, BAR_GRAPH_BACKGROUND_GRADIENT_END);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+
+    return canvas;
+  },
+
+  
+
+
+
   buildGraphImage: function() {
     if (!this.format || !this.format.length) {
       throw "The graph format traits are mandatory to style the data source.";
@@ -1396,14 +1427,6 @@ BarGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
       dataOffsetX: firstTick,
       minBarsWidth: minBarsWidth
     }) * BAR_GRAPH_DAMPEN_VALUES;
-
-    
-
-    let gradient = ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, BAR_GRAPH_BACKGROUND_GRADIENT_START);
-    gradient.addColorStop(1, BAR_GRAPH_BACKGROUND_GRADIENT_END);
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
 
     
 
