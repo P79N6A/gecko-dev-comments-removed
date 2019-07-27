@@ -61,6 +61,12 @@ Sink(MIRGenerator *mir, MIRGraph &graph)
 
             
             
+            
+            if (ins->isEffectful())
+                continue;
+
+            
+            
             bool hasLiveUses = false;
             bool hasUses = false;
             MBasicBlock *usesDominator = nullptr;
@@ -186,6 +192,12 @@ Sink(MIRGenerator *mir, MIRGraph &graph)
 
                 use->replaceProducer(clone);
             }
+
+            
+            
+            
+            if (ins->resumePoint())
+                ins->clearResumePoint();
 
             
             

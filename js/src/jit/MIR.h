@@ -873,6 +873,7 @@ class MInstruction
     
     void stealResumePoint(MInstruction *ins);
     void moveResumePointAsEntry();
+    void clearResumePoint();
     MResumePoint *resumePoint() const {
         return resumePoint_;
     }
