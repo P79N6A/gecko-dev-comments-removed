@@ -409,17 +409,24 @@ loadListener.prototype = {
 
 
 function geoSpecificDefaultsEnabled() {
+  
+  let distroID;
+  try {
+    distroID = Services.prefs.getCharPref("distribution.id");
+
+    
+    if (distroID && !distroID.startsWith("mozilla")) {
+      return false;
+    }
+  } catch (e) {}
+
+  
   let geoSpecificDefaults = false;
   try {
     geoSpecificDefaults = Services.prefs.getBoolPref("browser.search.geoSpecificDefaults");
   } catch(e) {}
 
-  let distroID;
-  try {
-    distroID = Services.prefs.getCharPref("distribution.id");
-  } catch (e) {}
-
-  return (geoSpecificDefaults && !distroID);
+  return geoSpecificDefaults;
 }
 
 
