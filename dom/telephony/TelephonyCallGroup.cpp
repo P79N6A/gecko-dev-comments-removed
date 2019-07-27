@@ -87,21 +87,9 @@ TelephonyCallGroup::ChangeState(uint16_t aCallState)
   if (mCallState == aCallState) {
     return;
   }
-  
-  mCallState = aCallState;
 
-  
-  bool externalStateChanged = true;
+  mCallState = aCallState;
   switch (aCallState) {
-    
-    
-    
-    case nsITelephonyService::CALL_STATE_HOLDING:
-    case nsITelephonyService::CALL_STATE_RESUMING:
-      externalStateChanged = false;
-      break;
-    
-    
     case nsITelephonyService::CALL_STATE_UNKNOWN:
       mState.AssignLiteral("");
       break;
@@ -115,19 +103,17 @@ TelephonyCallGroup::ChangeState(uint16_t aCallState)
       NS_NOTREACHED("Unknown state!");
   }
 
-  if (externalStateChanged) {
-    nsresult rv = DispatchCallEvent(NS_LITERAL_STRING("statechange"), nullptr);
-    if (NS_FAILED(rv)) {
-      NS_WARNING("Failed to dispatch specific event!");
-    }
-    if (!mState.IsEmpty()) {
-      
-      
-      if (mCallState == aCallState) {
-        rv = DispatchCallEvent(mState, nullptr);
-        if (NS_FAILED(rv)) {
-          NS_WARNING("Failed to dispatch specific event!");
-        }
+  nsresult rv = DispatchCallEvent(NS_LITERAL_STRING("statechange"), nullptr);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to dispatch specific event!");
+  }
+  if (!mState.IsEmpty()) {
+    
+    
+    if (mCallState == aCallState) {
+      rv = DispatchCallEvent(mState, nullptr);
+      if (NS_FAILED(rv)) {
+        NS_WARNING("Failed to dispatch specific event!");
       }
     }
   }
@@ -348,7 +334,6 @@ TelephonyCallGroup::HangUp(ErrorResult& aRv)
   aRv = mTelephony->Service()->HangUpConference(mCalls[0]->ServiceId(),
                                                 callback);
   NS_ENSURE_TRUE(!aRv.Failed(), nullptr);
-
   return promise.forget();
 }
 
@@ -372,8 +357,6 @@ TelephonyCallGroup::Hold(ErrorResult& aRv)
   aRv = mTelephony->Service()->HoldConference(mCalls[0]->ServiceId(),
                                               callback);
   NS_ENSURE_TRUE(!aRv.Failed(), nullptr);
-
-  ChangeState(nsITelephonyService::CALL_STATE_HOLDING);
   return promise.forget();
 }
 
@@ -397,7 +380,5 @@ TelephonyCallGroup::Resume(ErrorResult& aRv)
   aRv = mTelephony->Service()->ResumeConference(mCalls[0]->ServiceId(),
                                                 callback);
   NS_ENSURE_TRUE(!aRv.Failed(), nullptr);
-
-  ChangeState(nsITelephonyService::CALL_STATE_RESUMING);
   return promise.forget();
 }
