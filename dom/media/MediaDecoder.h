@@ -733,12 +733,6 @@ public:
   
   bool CanPlayThrough();
 
-  
-  
-  
-  
-  void UpdatePlaybackPosition(int64_t aTime) MOZ_FINAL MOZ_OVERRIDE;
-
   void SetAudioChannel(dom::AudioChannel aChannel) { mAudioChannel = aChannel; }
   dom::AudioChannel GetAudioChannel() { return mAudioChannel; }
 

@@ -1457,12 +1457,6 @@ nsresult OggReader::SeekInternal(int64_t aTarget, int64_t aEndTime)
 
     res = ResetDecode(true);
     NS_ENSURE_SUCCESS(res,res);
-
-    NS_ASSERTION(mStartTime != -1, "mStartTime should be known");
-    {
-      ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-      mDecoder->UpdatePlaybackPosition(mStartTime);
-    }
   } else {
     
     
