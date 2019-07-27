@@ -26,11 +26,6 @@
 #if defined(XP_LINUX) && defined(MOZ_GMP_SANDBOX)
 #include "mozilla/Sandbox.h"
 #endif
-#include "nsAppDirectoryServiceDefs.h"
-#include "nsDirectoryServiceUtils.h"
-#include "nsDirectoryServiceDefs.h"
-#include "nsHashKeys.h"
-#include "nsIFile.h"
 
 namespace mozilla {
 
@@ -160,7 +155,7 @@ GeckoMediaPluginService::~GeckoMediaPluginService()
   MOZ_ASSERT(mAsyncShutdownPlugins.IsEmpty());
 }
 
-nsresult
+void
 GeckoMediaPluginService::Init()
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -176,25 +171,8 @@ GeckoMediaPluginService::Init()
   }
 
   
-  
-  nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(mStorageBaseDir));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  rv = mStorageBaseDir->AppendNative(NS_LITERAL_CSTRING("gmp"));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  rv = mStorageBaseDir->Create(nsIFile::DIRECTORY_TYPE, 0700);
-  if (NS_WARN_IF(NS_FAILED(rv) && rv != NS_ERROR_FILE_ALREADY_EXISTS)) {
-    return rv;
-  }
-
-  
   nsCOMPtr<nsIThread> thread;
-  return GetThread(getter_AddRefs(thread));
+  unused << GetThread(getter_AddRefs(thread));
 }
 
 void
@@ -878,86 +856,6 @@ GeckoMediaPluginService::ReAddOnGMPThread(nsRefPtr<GMPParent>& aOld)
 }
 
 NS_IMETHODIMP
-GeckoMediaPluginService::GetStorageDir(nsIFile** aOutFile)
-{
-  if (NS_WARN_IF(!mStorageBaseDir)) {
-    return NS_ERROR_FAILURE;
-  }
-  return mStorageBaseDir->Clone(aOutFile);
-}
-
-static nsresult
-WriteToFile(nsIFile* aPath,
-            const nsCString& aFileName,
-            const nsCString& aData)
-{
-  nsCOMPtr<nsIFile> path;
-  nsresult rv = aPath->Clone(getter_AddRefs(path));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  rv = path->AppendNative(aFileName);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  PRFileDesc* f = nullptr;
-  rv = path->OpenNSPRFileDesc(PR_WRONLY | PR_CREATE_FILE, PR_IRWXU, &f);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  int32_t len = PR_Write(f, aData.get(), aData.Length());
-  PR_Close(f);
-  if (NS_WARN_IF(len < 0 || (size_t)len != aData.Length())) {
-    return NS_ERROR_FAILURE;
-  }
-
-  return NS_OK;
-}
-
-static nsresult
-ReadFromFile(nsIFile* aPath,
-             const nsCString& aFileName,
-             nsCString& aOutData,
-             int32_t aMaxLength)
-{
-  nsCOMPtr<nsIFile> path;
-  nsresult rv = aPath->Clone(getter_AddRefs(path));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  rv = path->AppendNative(aFileName);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  PRFileDesc* f = nullptr;
-  rv = path->OpenNSPRFileDesc(PR_RDONLY | PR_CREATE_FILE, PR_IRWXU, &f);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  auto size = PR_Seek(f, 0, PR_SEEK_END);
-  PR_Seek(f, 0, PR_SEEK_SET);
-
-  if (size > aMaxLength) {
-    return NS_ERROR_FAILURE;
-  }
-  aOutData.SetLength(size);
-
-  auto len = PR_Read(f, aOutData.BeginWriting(), size);
-  PR_Close(f);
-  if (NS_WARN_IF(len != size)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 GeckoMediaPluginService::GetNodeId(const nsAString& aOrigin,
                                    const nsAString& aTopLevelOrigin,
                                    bool aInPrivateBrowsing,
@@ -969,115 +867,13 @@ GeckoMediaPluginService::GetNodeId(const nsAString& aOrigin,
        NS_ConvertUTF16toUTF8(aTopLevelOrigin).get(),
        (aInPrivateBrowsing ? "PrivateBrowsing" : "NonPrivateBrowsing")));
 
-  nsresult rv;
-  const uint32_t NodeIdSaltLength = 32;
-
-  if (aInPrivateBrowsing ||
-      aOrigin.EqualsLiteral("null") ||
-      aOrigin.IsEmpty() ||
-      aTopLevelOrigin.EqualsLiteral("null") ||
-      aTopLevelOrigin.IsEmpty()) {
-    
-    nsAutoCString salt;
-    rv = GenerateRandomPathName(salt, NodeIdSaltLength);
-    aOutId = salt;
-    return rv;
-  }
-
-  
-  
-  nsCOMPtr<nsIFile> path; 
-  rv = GetStorageDir(getter_AddRefs(path));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  rv = path->AppendNative(NS_LITERAL_CSTRING("id"));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  
-  rv = path->Create(nsIFile::DIRECTORY_TYPE, 0700);
-  if (rv != NS_ERROR_FILE_ALREADY_EXISTS && NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  uint32_t hash = AddToHash(HashString(aOrigin),
-                            HashString(aTopLevelOrigin));
-  nsAutoCString hashStr;
-  hashStr.AppendInt((int64_t)hash);
-
-  
-  rv = path->AppendNative(hashStr);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  rv = path->Create(nsIFile::DIRECTORY_TYPE, 0700);
-  if (rv != NS_ERROR_FILE_ALREADY_EXISTS && NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  nsCOMPtr<nsIFile> saltFile;
-  rv = path->Clone(getter_AddRefs(saltFile));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  rv = saltFile->AppendNative(NS_LITERAL_CSTRING("salt"));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
   nsAutoCString salt;
-  bool exists = false;
-  rv = saltFile->Exists(&exists);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-  if (!exists) {
-    
-    
-    nsresult rv = GenerateRandomPathName(salt, NodeIdSaltLength);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-    MOZ_ASSERT(salt.Length() == NodeIdSaltLength);
-
-    
-    rv = WriteToFile(path, NS_LITERAL_CSTRING("salt"), salt);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-
-    
-    rv = WriteToFile(path,
-                     NS_LITERAL_CSTRING("origin"),
-                     NS_ConvertUTF16toUTF8(aOrigin));
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-
-    
-    rv = WriteToFile(path,
-                     NS_LITERAL_CSTRING("topLevelOrigin"),
-                     NS_ConvertUTF16toUTF8(aTopLevelOrigin));
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-
-  } else {
-    rv = ReadFromFile(path,
-                      NS_LITERAL_CSTRING("salt"),
-                      salt,
-                      NodeIdSaltLength);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-  }
+  nsresult rv = GenerateRandomPathName(salt, 32);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   aOutId = salt;
+
+  
 
   return NS_OK;
 }
