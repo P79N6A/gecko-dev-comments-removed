@@ -351,6 +351,8 @@ typedef enum {
   
   , NPPVpluginCoreAnimationLayer = 1003
 #endif
+  
+  , NPPVpluginIsPlayingAudio = 4000
 
 } NPPVariable;
 
@@ -409,6 +411,7 @@ typedef enum {
   , NPNVsupportsCocoaBool = 3001 
   , NPNVsupportsUpdatedCocoaTextInputBool = 3002 
 
+  , NPNVmuteAudioBool = 4000 
   , NPNVsupportsCompositingCoreAnimationPluginsBool = 74656 
 
 #endif
