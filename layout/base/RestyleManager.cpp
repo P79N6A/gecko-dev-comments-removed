@@ -1495,8 +1495,12 @@ RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
     
     
     
-    aRestyleTracker.AddPendingRestyle(mPresContext->Document()->GetRootElement(),
-                                      aRestyleHint, nsChangeHint(0));
+    Element* root = mPresContext->Document()->GetRootElement();
+    if (root) {
+      
+      
+      aRestyleTracker.AddPendingRestyle(root, aRestyleHint, nsChangeHint(0));
+    }
     aRestyleHint = nsRestyleHint(0);
   }
 
