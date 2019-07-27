@@ -10,6 +10,7 @@
 #include "FrameMetrics.h"               
 #include "Units.h"                      
 #include "mozilla/Assertions.h"         
+#include "mozilla/EventForwards.h"      
 #include "nsISupportsImpl.h"
 
 class Task;
@@ -44,7 +45,7 @@ public:
 
 
   virtual void HandleDoubleTap(const CSSPoint& aPoint,
-                               int32_t aModifiers,
+                               Modifiers aModifiers,
                                const ScrollableLayerGuid& aGuid) = 0;
 
   
@@ -53,7 +54,7 @@ public:
 
 
   virtual void HandleSingleTap(const CSSPoint& aPoint,
-                               int32_t aModifiers,
+                               Modifiers aModifiers,
                                const ScrollableLayerGuid& aGuid) = 0;
 
   
@@ -61,7 +62,7 @@ public:
 
 
   virtual void HandleLongTap(const CSSPoint& aPoint,
-                             int32_t aModifiers,
+                             Modifiers aModifiers,
                              const ScrollableLayerGuid& aGuid,
                              uint64_t aInputBlockId) = 0;
 
@@ -74,7 +75,7 @@ public:
 
 
   virtual void HandleLongTapUp(const CSSPoint& aPoint,
-                               int32_t aModifiers,
+                               Modifiers aModifiers,
                                const ScrollableLayerGuid& aGuid) = 0;
 
   
