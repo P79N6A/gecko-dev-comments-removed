@@ -2763,7 +2763,7 @@ CodeGenerator::visitCallNative(LCallNative* call)
 
     
     masm.loadJSContext(argContextReg);
-    masm.move32(Imm32(call->numStackArgs()), argUintNReg);
+    masm.move32(Imm32(call->numActualArgs()), argUintNReg);
     masm.movePtr(StackPointer, argVpReg);
 
     masm.Push(argUintNReg);
@@ -2874,7 +2874,7 @@ CodeGenerator::visitCallDOMNative(LCallDOMNative* call)
     LoadDOMPrivate(masm, obj, argPrivate);
 
     
-    masm.Push(Imm32(call->numStackArgs()));
+    masm.Push(Imm32(call->numActualArgs()));
 
     
     masm.Push(argArgs);
@@ -3001,8 +3001,11 @@ CodeGenerator::visitCallGeneric(LCallGeneric* call)
     masm.Push(Imm32(descriptor));
 
     
+    
+    
+    MOZ_ASSERT(call->numActualArgs() == call->mir()->numStackArgs() - 1);
     masm.load16ZeroExtend(Address(calleereg, JSFunction::offsetOfNargs()), nargsreg);
-    masm.branch32(Assembler::Above, nargsreg, Imm32(call->numStackArgs()), &thunk);
+    masm.branch32(Assembler::Above, nargsreg, Imm32(call->numActualArgs()), &thunk);
     masm.jump(&makeCall);
 
     
@@ -3011,7 +3014,7 @@ CodeGenerator::visitCallGeneric(LCallGeneric* call)
         MOZ_ASSERT(ArgumentsRectifierReg != objreg);
         masm.movePtr(ImmGCPtr(argumentsRectifier), objreg); 
         masm.loadPtr(Address(objreg, JitCode::offsetOfCode()), objreg);
-        masm.move32(Imm32(call->numStackArgs()), ArgumentsRectifierReg);
+        masm.move32(Imm32(call->numActualArgs()), ArgumentsRectifierReg);
     }
 
     
@@ -3053,7 +3056,7 @@ CodeGenerator::visitCallKnown(LCallKnown* call)
     
     MOZ_ASSERT(!target->isNative());
     
-    MOZ_ASSERT(target->nargs() <= call->numStackArgs());
+    MOZ_ASSERT(target->nargs() <= call->mir()->numStackArgs() - 1);
 
     MOZ_ASSERT_IF(call->mir()->isConstructing(), target->isInterpretedConstructor());
 

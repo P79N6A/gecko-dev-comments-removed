@@ -1553,14 +1553,6 @@ class LJSCallInstructionHelper : public LCallInstructionHelper<Defs, Operands, T
     }
 
     
-    
-    
-    
-    uint32_t numStackArgs() const {
-        MOZ_ASSERT(mir()->numStackArgs() >= 1);
-        return mir()->numStackArgs() - 1; 
-    }
-    
     uint32_t numActualArgs() const {
         return mir()->numActualArgs();
     }
