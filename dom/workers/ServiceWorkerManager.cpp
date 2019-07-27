@@ -2295,12 +2295,13 @@ ServiceWorkerManager::GetInstance()
   
   static bool firstTime = true;
   if (firstTime) {
+    firstTime = false;
+
     AssertIsOnMainThread();
 
     gInstance = new ServiceWorkerManager();
     gInstance->Init();
     ClearOnShutdown(&gInstance);
-    firstTime = false;
   }
   nsRefPtr<ServiceWorkerManager> copy = gInstance.get();
   return copy.forget();
