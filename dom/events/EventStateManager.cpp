@@ -798,10 +798,10 @@ EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     break;
   case NS_COMPOSITION_CHANGE:
     {
-      WidgetCompositionEvent* textEvent = aEvent->AsCompositionEvent();
-      if (IsTargetCrossProcess(textEvent)) {
+      WidgetCompositionEvent* compositionEvent = aEvent->AsCompositionEvent();
+      if (IsTargetCrossProcess(compositionEvent)) {
         
-        if (GetCrossProcessTarget()->SendTextEvent(*textEvent)) {
+        if (GetCrossProcessTarget()->SendTextEvent(*compositionEvent)) {
           
           aEvent->mFlags.mPropagationStopped = true;
         }
