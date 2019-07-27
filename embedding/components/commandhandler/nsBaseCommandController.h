@@ -7,10 +7,9 @@
 #define nsBaseCommandController_h__
 
 #define NS_BASECOMMANDCONTROLLER_CID \
-{ 0xbf88b48c, 0xfd8e, 0x40b4, { 0xba, 0x36, 0xc7, 0xc3, 0xad, 0x6d, 0x8a, 0xc9 } }
+  { 0xbf88b48c, 0xfd8e, 0x40b4, { 0xba, 0x36, 0xc7, 0xc3, 0xad, 0x6d, 0x8a, 0xc9 } }
 #define NS_BASECOMMANDCONTROLLER_CONTRACTID \
- "@mozilla.org/embedcomp/base-command-controller;1"
-
+  "@mozilla.org/embedcomp/base-command-controller;1"
 
 #include "nsIController.h"
 #include "nsIControllerContext.h"
@@ -20,41 +19,30 @@
 
 
 
-class nsBaseCommandController :  public nsIController,
-                            public nsIControllerContext,
-                            public nsIInterfaceRequestor,
-                            public nsICommandController
+class nsBaseCommandController
+  : public nsIController
+  , public nsIControllerContext
+  , public nsIInterfaceRequestor
+  , public nsICommandController
 {
 public:
-
   nsBaseCommandController();
 
-  
   NS_DECL_ISUPPORTS
-    
-  
   NS_DECL_NSICONTROLLER
-
-  
   NS_DECL_NSICOMMANDCONTROLLER
-
-  
   NS_DECL_NSICONTROLLERCONTEXT
-
-  
   NS_DECL_NSIINTERFACEREQUESTOR
 
 protected:
   virtual ~nsBaseCommandController();
 
 private:
+  nsWeakPtr mCommandContextWeakPtr;
+  nsISupports* mCommandContextRawPtr;
 
-   nsWeakPtr mCommandContextWeakPtr;
-   nsISupports* mCommandContextRawPtr;
-   
-   
-   nsCOMPtr<nsIControllerCommandTable> mCommandTable;     
+  
+  nsCOMPtr<nsIControllerCommandTable> mCommandTable;
 };
 
 #endif 
-

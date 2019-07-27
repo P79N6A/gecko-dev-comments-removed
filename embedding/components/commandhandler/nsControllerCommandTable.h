@@ -6,27 +6,24 @@
 #ifndef nsControllerCommandTable_h_
 #define nsControllerCommandTable_h_
 
-
 #include "nsIControllerCommandTable.h"
 #include "nsWeakReference.h"
 #include "nsInterfaceHashtable.h"
 
 class nsIControllerCommand;
 
-class  nsControllerCommandTable final : public nsIControllerCommandTable,
-                                        public nsSupportsWeakReference
+class nsControllerCommandTable final
+  : public nsIControllerCommandTable
+  , public nsSupportsWeakReference
 {
 public:
-
-                  nsControllerCommandTable();
+  nsControllerCommandTable();
 
   NS_DECL_ISUPPORTS
-
   NS_DECL_NSICONTROLLERCOMMANDTABLE
 
 protected:
-
-  virtual         ~nsControllerCommandTable();
+  virtual ~nsControllerCommandTable();
 
   
   nsInterfaceHashtable<nsCStringHashKey, nsIControllerCommand> mCommandsTable;
@@ -34,6 +31,5 @@ protected:
   
   bool mMutable;
 };
-
 
 #endif 
