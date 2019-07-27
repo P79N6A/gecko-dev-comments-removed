@@ -180,3 +180,296 @@ exports.RecordingUtils.getFilteredBlueprint = function({ blueprint, hiddenMarker
 
   return filteredBlueprint;
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+exports.RecordingUtils.deflateProfile = function deflateProfile(profile) {
+  profile.threads = profile.threads.map((thread) => {
+    let uniqueStacks = new UniqueStacks();
+    return deflateThread(thread, uniqueStacks);
+  });
+
+  profile.meta.version = 3;
+};
+
+
+
+
+
+
+
+
+
+
+function deflateStack(frames, uniqueStacks) {
+  
+  
+  let prefixIndex = null;
+  for (let i = 0; i < frames.length; i++) {
+    let frameIndex = uniqueStacks.getOrAddFrameIndex(frames[i]);
+    prefixIndex = uniqueStacks.getOrAddStackIndex(prefixIndex, frameIndex);
+  }
+  return prefixIndex;
+}
+
+
+
+
+
+
+
+
+
+
+function deflateSamples(samples, uniqueStacks) {
+  
+  
+
+  let deflatedSamples = new Array(samples.length);
+  for (let i = 0; i < samples.length; i++) {
+    let sample = samples[i];
+    deflatedSamples[i] = [
+      deflateStack(sample.frames, uniqueStacks),
+      sample.time,
+      sample.responsiveness,
+      sample.rss,
+      sample.uss,
+      sample.frameNumber,
+      sample.power
+    ];
+  }
+
+  let slot = 0;
+  return {
+    schema: {
+      stack: slot++,
+      time: slot++,
+      responsiveness: slot++,
+      rss: slot++,
+      uss: slot++,
+      frameNumber: slot++,
+      power: slot++
+    },
+    data: deflatedSamples
+  };
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function deflateMarkers(markers, uniqueStacks) {
+  
+  
+
+  let deflatedMarkers = new Array(markers.length);
+  for (let i = 0; i < markers.length; i++) {
+    let marker = markers[i];
+    if (marker.data && marker.data.type === "tracing" && marker.data.stack) {
+      marker.data.stack = deflateThread(marker.data.stack, uniqueStacks);
+    }
+
+    deflatedMarkers[i] = [
+      uniqueStacks.getOrAddStringIndex(marker.name),
+      marker.time,
+      marker.data
+    ];
+  }
+
+  let slot = 0;
+  return {
+    schema: {
+      name: slot++,
+      time: slot++,
+      data: slot++
+    },
+    data: deflatedMarkers
+  };
+}
+
+
+
+
+
+
+
+
+
+function deflateThread(thread, uniqueStacks) {
+  return {
+    name: thread.name,
+    tid: thread.tid,
+    samples: deflateSamples(thread.samples, uniqueStacks),
+    markers: deflateMarkers(thread.markers, uniqueStacks),
+    stackTable: uniqueStacks.getStackTableWithSchema(),
+    frameTable: uniqueStacks.getFrameTableWithSchema(),
+    stringTable: uniqueStacks.stringTable
+  };
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function UniqueStacks() {
+  this._frameTable = [];
+  this._stackTable = [];
+  this.stringTable = [];
+  this._frameHash = Object.create(null);
+  this._stackHash = Object.create(null);
+  this._stringHash = Object.create(null);
+}
+
+UniqueStacks.prototype.getStackTableWithSchema = function() {
+  let slot = 0;
+  return {
+    schema: {
+      prefix: slot++,
+      frame: slot++
+    },
+    data: this._stackTable
+  };
+};
+
+UniqueStacks.prototype.getFrameTableWithSchema = function() {
+  let slot = 0;
+  return {
+    schema: {
+      location: slot++,
+      implementation: slot++,
+      optimizations: slot++,
+      line: slot++,
+      category: slot++
+    },
+    data: this._frameTable
+  };
+}
+
+UniqueStacks.prototype.getOrAddFrameIndex = function(frame) {
+  
+  
+
+  let frameHash = this._frameHash;
+  let frameTable = this._frameTable;
+
+  let locationIndex = this.getOrAddStringIndex(frame.location);
+  let implementationIndex = this.getOrAddStringIndex(frame.implementation);
+
+  
+  let hash = `${locationIndex} ${implementationIndex || ""} ${frame.line || ""} ${frame.category || ""}`;
+
+  let index = frameHash[hash];
+  if (index !== undefined) {
+    return index;
+  }
+
+  index = frameTable.length;
+  frameHash[hash] = index;
+  frameTable.push([
+    this.getOrAddStringIndex(frame.location),
+    this.getOrAddStringIndex(frame.implementation),
+    
+    
+    null,
+    frame.line,
+    frame.category
+  ]);
+  return index;
+};
+
+UniqueStacks.prototype.getOrAddStackIndex = function(prefixIndex, frameIndex) {
+  
+  
+
+  let stackHash = this._stackHash;
+  let stackTable = this._stackTable;
+
+  
+  let hash = prefixIndex + " " + frameIndex;
+
+  let index = stackHash[hash];
+  if (index !== undefined) {
+    return index;
+  }
+
+  index = stackTable.length;
+  stackHash[hash] = index;
+  stackTable.push([prefixIndex, frameIndex]);
+  return index;
+};
+
+UniqueStacks.prototype.getOrAddStringIndex = function(s) {
+  if (!s) {
+    return null;
+  }
+
+  let stringHash = this._stringHash;
+  let stringTable = this.stringTable;
+  let index = stringHash[s];
+  if (index !== undefined) {
+    return index;
+  }
+
+  index = stringTable.length;
+  stringHash[s] = index;
+  stringTable.push(s);
+  return index;
+};

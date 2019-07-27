@@ -170,6 +170,12 @@ ProfilerFrontFacade.prototype = {
     let profilerData = yield (actorCompatibilityBridge("getProfile").call(this, options));
     
     
+    if (profilerData.profile.meta.version === 2) {
+      RecordingUtils.deflateProfile(profilerData.profile);
+    }
+
+    
+    
     if (!this.traits.filterable) {
       RecordingUtils.filterSamples(profilerData.profile, options.startTime || 0);
     }
