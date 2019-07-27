@@ -339,20 +339,6 @@ public:
     return ref;
   }
 
-  void RemoveIfPresent(const ImageKey    aImageKey,
-                       const SurfaceKey& aSurfaceKey)
-  {
-    nsRefPtr<ImageSurfaceCache> cache = GetImageCache(aImageKey);
-    if (!cache)
-      return;  
-
-    nsRefPtr<CachedSurface> surface = cache->Lookup(aSurfaceKey);
-    if (!surface)
-      return;  
-
-    Remove(surface);
-  }
-
   bool CanHold(const Cost aCost) const
   {
     return aCost <= mMaxCost;
@@ -522,10 +508,8 @@ SurfaceCache::Shutdown()
 SurfaceCache::Lookup(const ImageKey    aImageKey,
                      const SurfaceKey& aSurfaceKey)
 {
+  MOZ_ASSERT(sInstance, "Should be initialized");
   MOZ_ASSERT(NS_IsMainThread());
-  if (!sInstance) {
-    return DrawableFrameRef();
-  }
 
   return sInstance->Lookup(aImageKey, aSurfaceKey);
 }
@@ -535,52 +519,42 @@ SurfaceCache::Insert(imgFrame*         aSurface,
                      const ImageKey    aImageKey,
                      const SurfaceKey& aSurfaceKey)
 {
+  MOZ_ASSERT(sInstance, "Should be initialized");
   MOZ_ASSERT(NS_IsMainThread());
-  if (sInstance) {
-    Cost cost = ComputeCost(aSurfaceKey.Size());
-    sInstance->Insert(aSurface, aSurfaceKey.Size(), cost, aImageKey,
-                      aSurfaceKey);
-  }
+
+  Cost cost = ComputeCost(aSurfaceKey.Size());
+  return sInstance->Insert(aSurface, aSurfaceKey.Size(), cost, aImageKey,
+                           aSurfaceKey);
 }
 
  bool
 SurfaceCache::CanHold(const IntSize& aSize)
 {
+  MOZ_ASSERT(sInstance, "Should be initialized");
   MOZ_ASSERT(NS_IsMainThread());
-  if (!sInstance) {
-    return false;
-  }
 
   Cost cost = ComputeCost(aSize);
   return sInstance->CanHold(cost);
 }
 
  void
-SurfaceCache::RemoveIfPresent(const ImageKey    aImageKey,
-                              const SurfaceKey& aSurfaceKey)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  if (sInstance) {
-    sInstance->RemoveIfPresent(aImageKey, aSurfaceKey);
-  }
-}
-
- void
 SurfaceCache::Discard(Image* aImageKey)
 {
+  MOZ_ASSERT(sInstance, "Should be initialized");
   MOZ_ASSERT(NS_IsMainThread());
-  if (sInstance) {
-    sInstance->Discard(aImageKey);
-  }
+
+  return sInstance->Discard(aImageKey);
 }
 
  void
 SurfaceCache::DiscardAll()
 {
   MOZ_ASSERT(NS_IsMainThread());
+
   if (sInstance) {
     sInstance->DiscardAll();
   }
+  
 }
 
 } 
