@@ -35,6 +35,15 @@ struct DictionaryBase
 protected:
   bool ParseJSON(JSContext* aCx, const nsAString& aJSON,
                  JS::MutableHandle<JS::Value> aVal);
+
+  bool StringifyToJSON(JSContext* aCx,
+                       JS::MutableHandle<JS::Value> aValue,
+                       nsAString& aJSON);
+private:
+  
+  
+  static bool AppendJSONToString(const jschar* aJSONData, uint32_t aDataLength,
+                                 void* aString);
 };
 
 

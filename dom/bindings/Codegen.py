@@ -10828,6 +10828,20 @@ class CGDictionary(CGThing):
                 return Init(cx, json);
                 """))
 
+    def toJSONMethod(self):
+        return ClassMethod(
+            "ToJSON", "bool",
+            [Argument('nsAString&', 'aJSON')],
+            body=dedent("""
+                MOZ_ASSERT(NS_IsMainThread());
+                AutoJSAPI jsapi;
+                jsapi.Init();
+                JSContext *cx = jsapi.cx();
+                JSAutoCompartment ac(cx, xpc::GetSafeJSContextGlobal()); // Usage approved by bholley
+                JS::Rooted<JS::Value> obj(cx);
+                return ToObjectInternal(cx, &obj) && StringifyToJSON(cx, &obj, aJSON);
+            """))
+
     def toObjectInternalMethod(self):
         body = ""
         if self.needToInitIds:
@@ -10955,7 +10969,9 @@ class CGDictionary(CGThing):
         methods.append(self.initFromJSONMethod())
         try:
             methods.append(self.toObjectInternalMethod())
+            methods.append(self.toJSONMethod())
         except MethodNotNewObjectError:
+            
             
             
             
@@ -11546,6 +11562,8 @@ class CGBindingRoot(CGThing):
 
         bindingHeaders["WrapperFactory.h"] = descriptors
         bindingHeaders["mozilla/dom/DOMJSClass.h"] = descriptors
+        bindingHeaders["mozilla/dom/ScriptSettings.h"] = dictionaries 
+        bindingHeaders["xpcpublic.h"] = dictionaries 
 
         
         
