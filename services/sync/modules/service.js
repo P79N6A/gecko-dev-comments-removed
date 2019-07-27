@@ -306,6 +306,21 @@ Sync11Service.prototype = {
   },
 
   
+  
+  get enabled() {
+    return Svc.Prefs.get("enabled");
+  },
+  set enabled(val) {
+    
+    
+    
+    if (val) {
+      throw new Error("Only disabling via this setter is supported");
+    }
+    Svc.Prefs.set("enabled", val);
+  },
+
+  
 
 
   onStartup: function onStartup() {
@@ -333,8 +348,6 @@ Sync11Service.prototype = {
 
     this._clusterManager = this.identity.createClusterManager(this);
     this.recordManager = new RecordManager(this);
-
-    this.enabled = true;
 
     this._registerEngines();
 
@@ -1245,6 +1258,10 @@ Sync11Service.prototype = {
   },
 
   sync: function sync() {
+    if (!this.enabled) {
+      this._log.debug("Not syncing as Sync is disabled.");
+      return;
+    }
     let dateStr = new Date().toLocaleFormat(LOG_DATE_FORMAT);
     this._log.debug("User-Agent: " + SyncStorageRequest.prototype.userAgent);
     this._log.info("Starting sync at " + dateStr);

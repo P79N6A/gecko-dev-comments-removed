@@ -24,6 +24,11 @@ pref("services.sync.scheduler.sync11.singleDeviceInterval", 86400);
 
 pref("services.sync.errorhandler.networkFailureReportTimeout", 1209600); 
 
+
+
+
+pref("services.sync.enabled", true);
+
 pref("services.sync.engine.addons", true);
 pref("services.sync.engine.bookmarks", true);
 pref("services.sync.engine.history", true);
