@@ -51,6 +51,7 @@ const PREF_EXTENSIONS_STRICT_COMPAT       = "extensions.strictCompatibility";
 const NS_APP_PROFILE_DIR_STARTUP   = "ProfDS";
 const NS_APP_USER_PROFILE_50_DIR   = "ProfD";
 const NS_GRE_DIR                   = "GreD";
+const NS_GRE_BIN_DIR               = "GreBinD";
 const NS_XPCOM_CURRENT_PROCESS_DIR = "XCurProcD";
 const XRE_EXECUTABLE_FILE          = "XREExeF";
 const XRE_UPDATE_ROOT_DIR          = "UpdRootD";
@@ -62,13 +63,12 @@ const DIR_PATCH        = "0";
 const DIR_TOBEDELETED  = "tobedeleted";
 const DIR_UPDATES      = "updates";
 #ifdef XP_MACOSX
-const DIR_BIN_REL_PATH = "Contents/MacOS/";
 const DIR_UPDATED      = "Updated.app";
 #else
-const DIR_BIN_REL_PATH = "";
 const DIR_UPDATED      = "updated";
 #endif
 
+const FILE_APPLICATION_INI           = "application.ini";
 const FILE_BACKUP_LOG                = "backup-update.log";
 const FILE_LAST_LOG                  = "last-update.log";
 const FILE_UPDATER_INI               = "updater.ini";
@@ -577,9 +577,21 @@ function getAppBaseDir() {
 
 
 
-
 function getGREDir() {
   return Services.dirsvc.get(NS_GRE_DIR, AUS_Ci.nsIFile);
+}
+
+
+
+
+
+
+
+
+
+
+function getGREBinDir() {
+  return Services.dirsvc.get(NS_GRE_BIN_DIR, AUS_Ci.nsIFile);
 }
 
 
