@@ -99,8 +99,11 @@ let AnimationsController = {
 
     let target = gToolbox.target;
     this.animationsFront = new AnimationsFront(target.client, target.form);
+
     
     this.hasToggleAll = yield target.actorHasMethod("animations", "toggleAll");
+    this.hasSetCurrentTime = yield target.actorHasMethod("animationplayer",
+                                                         "setCurrentTime");
 
     this.onPanelVisibilityChange = this.onPanelVisibilityChange.bind(this);
     this.onNewNodeFront = this.onNewNodeFront.bind(this);
