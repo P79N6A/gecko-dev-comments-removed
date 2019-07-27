@@ -74,6 +74,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "gVersionChecker",
                                    "@mozilla.org/xpcom/version-comparator;1",
                                    "nsIVersionComparator");
 
+XPCOMUtils.defineLazyServiceGetter(this, "gCertBlocklistService",
+                                   "@mozilla.org/security/certblocklist;1",
+                                   "nsICertBlocklist");
+
 XPCOMUtils.defineLazyGetter(this, "gPref", function bls_gPref() {
   return Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService).
          QueryInterface(Ci.nsIPrefBranch);
@@ -728,6 +732,13 @@ Blocklist.prototype = {
 
 
 
+
+
+
+
+
+
+
   _loadBlocklistFromFile: function Blocklist_loadBlocklistFromFile(file) {
     if (!gBlocklistEnabled) {
       LOG("Blocklist::_loadBlocklistFromFile: blocklist is disabled");
@@ -862,12 +873,17 @@ Blocklist.prototype = {
           this._pluginEntries = this._processItemNodes(element.childNodes, "plugin",
                                                        this._handlePluginItemNode);
           break;
+        case "certItems":
+          this._processItemNodes(element.childNodes, "cert",
+                                 this._handleCertItemNode.bind(this));
+          break;
         default:
           Services.obs.notifyObservers(element,
                                        "blocklist-data-" + element.localName,
                                        null);
         }
       }
+      gCertBlocklistService.saveEntries();
     }
     catch (e) {
       LOG("Blocklist::_loadBlocklistFromFile: Error constructing blocklist " + e);
@@ -887,6 +903,22 @@ Blocklist.prototype = {
       handler(blocklistElement, result);
     }
     return result;
+  },
+
+  _handleCertItemNode: function Blocklist_handleCertItemNode(blocklistElement,
+                                                             result) {
+    let issuer = blocklistElement.getAttribute("issuerName");
+    for (let snElement of blocklistElement.children) {
+      try {
+        if (issuer) {
+          gCertBlocklistService.addRevokedCert(issuer, snElement.textContent);
+        }
+      } catch (e) {
+        
+        
+        LOG("Blocklist::_handleCertItemNode: Error adding revoked cert " + e);
+      }
+    }
   },
 
   _handleEmItemNode: function Blocklist_handleEmItemNode(blocklistElement, result) {
