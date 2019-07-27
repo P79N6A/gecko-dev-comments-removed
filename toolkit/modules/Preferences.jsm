@@ -10,6 +10,7 @@ const Cr = Components.results;
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
 
 
@@ -20,6 +21,7 @@ const MIN_INT = -0x80000000;
 
 this.Preferences =
   function Preferences(args) {
+    this._cachedPrefBranch = null;
     if (isObject(args)) {
       if (args.branch)
         this._prefBranch = args.branch;
@@ -30,9 +32,8 @@ this.Preferences =
     }
     else if (args)
       this._prefBranch = args;
-}
+  };
 
-Preferences.prototype = {
   
 
 
@@ -47,14 +48,14 @@ Preferences.prototype = {
 
 
 
-  get: function(prefName, defaultValue, valueType = Ci.nsISupportsString) {
+  Preferences.get = function(prefName, defaultValue, valueType = Ci.nsISupportsString) {
     if (Array.isArray(prefName))
       return prefName.map(function(v) this.get(v, defaultValue), this);
 
     return this._get(prefName, defaultValue, valueType);
-  },
+  };
 
-  _get: function(prefName, defaultValue, valueType) {
+  Preferences._get = function(prefName, defaultValue, valueType) {
     switch (this._prefSvc.getPrefType(prefName)) {
       case Ci.nsIPrefBranch.PREF_STRING:
         return this._prefSvc.getComplexValue(prefName, valueType).data;
@@ -74,7 +75,7 @@ Preferences.prototype = {
               this._prefSvc.getPrefType(prefName) + ", which I don't know " +
               "how to handle.";
     }
-  },
+  };
 
   
 
@@ -98,7 +99,7 @@ Preferences.prototype = {
 
 
 
-  set: function(prefName, prefValue) {
+  Preferences.set = function(prefName, prefValue) {
     if (isObject(prefName)) {
       for (let [name, value] in Iterator(prefName))
         this.set(name, value);
@@ -106,9 +107,9 @@ Preferences.prototype = {
     }
 
     this._set(prefName, prefValue);
-  },
+  };
 
-  _set: function(prefName, prefValue) {
+  Preferences._set = function(prefName, prefValue) {
     let prefType;
     if (typeof prefValue != "undefined" && prefValue != null)
       prefType = prefValue.constructor.name;
@@ -150,7 +151,7 @@ Preferences.prototype = {
         throw "can't set pref " + prefName + " to value '" + prefValue +
               "'; it isn't a String, Number, or Boolean";
     }
-  },
+  };
 
   
 
@@ -166,16 +167,16 @@ Preferences.prototype = {
 
 
 
-  has: function(prefName) {
+  Preferences.has = function(prefName) {
     if (Array.isArray(prefName))
       return prefName.map(this.has, this);
 
     return this._has(prefName);
-  },
+  };
 
-  _has: function(prefName) {
+  Preferences._has = function(prefName) {
     return (this._prefSvc.getPrefType(prefName) != Ci.nsIPrefBranch.PREF_INVALID);
-  },
+  };
 
   
 
@@ -191,7 +192,7 @@ Preferences.prototype = {
 
 
 
-  isSet: function(prefName) {
+  Preferences.isSet = function(prefName) {
     if (Array.isArray(prefName))
       return prefName.map(this.isSet, this);
 
@@ -203,16 +204,16 @@ Preferences.prototype = {
 
 
 
-  modified: function(prefName) { return this.isSet(prefName) },
+  Preferences.modified = function(prefName) { return this.isSet(prefName) },
 
-  reset: function(prefName) {
+  Preferences.reset = function(prefName) {
     if (Array.isArray(prefName)) {
       prefName.map(function(v) this.reset(v), this);
       return;
     }
 
     this._prefSvc.clearUserPref(prefName);
-  },
+  };
 
   
 
@@ -220,12 +221,12 @@ Preferences.prototype = {
 
 
 
-  lock: function(prefName) {
+  Preferences.lock = function(prefName) {
     if (Array.isArray(prefName))
       prefName.map(this.lock, this);
 
     this._prefSvc.lockPref(prefName);
-  },
+  };
 
   
 
@@ -233,12 +234,12 @@ Preferences.prototype = {
 
 
 
-  unlock: function(prefName) {
+  Preferences.unlock = function(prefName) {
     if (Array.isArray(prefName))
       prefName.map(this.unlock, this);
 
     this._prefSvc.unlockPref(prefName);
-  },
+  };
 
   
 
@@ -251,12 +252,12 @@ Preferences.prototype = {
 
 
 
-  locked: function(prefName) {
+  Preferences.locked = function(prefName) {
     if (Array.isArray(prefName))
       return prefName.map(this.locked, this);
 
     return this._prefSvc.prefIsLocked(prefName);
-  },
+  };
 
   
 
@@ -276,7 +277,7 @@ Preferences.prototype = {
 
 
 
-  observe: function(prefName, callback, thisObject) {
+  Preferences.observe = function(prefName, callback, thisObject) {
     let fullPrefName = this._prefBranch + (prefName || "");
 
     let observer = new PrefObserver(fullPrefName, callback, thisObject);
@@ -284,7 +285,7 @@ Preferences.prototype = {
     observers.push(observer);
 
     return observer;
-  },
+  };
 
   
 
@@ -308,7 +309,7 @@ Preferences.prototype = {
 
 
 
-  ignore: function(prefName, callback, thisObject) {
+  Preferences.ignore = function(prefName, callback, thisObject) {
     let fullPrefName = this._prefBranch + (prefName || "");
 
     
@@ -323,9 +324,9 @@ Preferences.prototype = {
       Preferences._prefSvc.removeObserver(fullPrefName, observer);
       observers.splice(observers.indexOf(observer), 1);
     }
-  },
+  };
 
-  resetBranch: function(prefBranch = "") {
+  Preferences.resetBranch = function(prefBranch = "") {
     try {
       this._prefSvc.resetBranch(prefBranch);
     }
@@ -343,42 +344,40 @@ Preferences.prototype = {
 
 
 
-  _prefBranch: "",
+
+  Preferences._prefBranch = "";
 
   
 
 
 
-  get _prefSvc() {
-    let prefSvc = Cc["@mozilla.org/preferences-service;1"]
-                  .getService(Ci.nsIPrefService);
-    if (this._defaultBranch) {
-      prefSvc = prefSvc.getDefaultBranch(this._prefBranch);
-    } else {
-      prefSvc = prefSvc.getBranch(this._prefBranch);
-    }
 
-    this.__defineGetter__("_prefSvc", function() prefSvc);
-    return this._prefSvc;
-  },
+  Preferences._cachedPrefBranch = null;
 
   
 
 
 
-  get _ioSvc() {
-    let ioSvc = Cc["@mozilla.org/network/io-service;1"].
-                getService(Ci.nsIIOService);
-    this.__defineGetter__("_ioSvc", function() ioSvc);
-    return this._ioSvc;
-  }
+  Object.defineProperty(Preferences, "_prefSvc",
+  {
+    get: function _prefSvc() {
+      if (!this._cachedPrefBranch) {
+        let prefSvc = Services.prefs;
+        this._cachedPrefBranch = this._defaultBranch ?
+                                 prefSvc.getDefaultBranch(this._prefBranch) :
+                                 prefSvc.getBranch(this._prefBranch);
+      }
+      return this._cachedPrefBranch;
+    },
+    enumerable: true,
+    configurable: true
+  });
 
-};
 
 
 
 
-Preferences.__proto__ = Preferences.prototype;
+Preferences.prototype = Preferences;
 
 
 
