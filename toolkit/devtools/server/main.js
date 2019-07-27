@@ -14,7 +14,7 @@ let { Ci, Cc, CC, Cu, Cr } = require("chrome");
 let Services = require("Services");
 let { ActorPool, OriginalLocation, RegisteredActorFactory,
       ObservedActorFactory } = require("devtools/server/actors/common");
-let { LocalDebuggerTransport, ChildDebuggerTransport } =
+let { LocalDebuggerTransport, ChildDebuggerTransport, WorkerDebuggerTransport } =
   require("devtools/toolkit/transport/transport");
 let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 let { dumpn, dumpv, dbg_assert } = DevToolsUtils;
@@ -685,10 +685,13 @@ var DebuggerServer = {
 
 
 
-  connectToParent: function(aPrefix, aMessageManager) {
+  connectToParent: function(aPrefix, aScopeOrManager) {
     this._checkInit();
 
-    let transport = new ChildDebuggerTransport(aMessageManager, aPrefix);
+    let transport = isWorker ?
+                    new WorkerDebuggerTransport(aScopeOrManager, aPrefix) :
+                    new ChildDebuggerTransport(aScopeOrManager, aPrefix);
+
     return this._onConnection(transport, aPrefix, true);
   },
 
@@ -753,6 +756,83 @@ var DebuggerServer = {
     events.on(aConnection, "closed", onClose);
 
     return deferred.promise;
+  },
+
+  connectToWorker: function (aConnection, aDbg, aId, aOptions) {
+    return new Promise((resolve, reject) => {
+      
+      aDbg.initialize("resource://gre/modules/devtools/server/worker.js");
+
+      
+      aDbg.postMessage(JSON.stringify({
+        type: "connect",
+        id: aId,
+        options: aOptions
+      }));
+
+      
+
+      
+      let listener = {
+        onClose: () => {
+          aDbg.removeListener(listener);
+
+          reject("closed");
+        },
+
+        onMessage: (message) => {
+          let packet = JSON.parse(message);
+          if (packet.type !== "message" || packet.id !== aId) {
+            return;
+          }
+
+          message = packet.message;
+          if (message.error) {
+            reject(error);
+          }
+
+          if (message.type !== "paused") {
+            return;
+          }
+
+          aDbg.removeListener(listener);
+
+          
+          let transport = new WorkerDebuggerTransport(aDbg, aId);
+          transport.ready();
+          transport.hooks = {
+            onClosed: () => {
+              if (!aDbg.isClosed) {
+                aDbg.postMessage(JSON.stringify({
+                  type: "disconnect",
+                  id: aId
+                }));
+              }
+
+              aConnection.cancelForwarding(aId);
+            },
+
+            onPacket: (packet) => {
+              
+              
+              
+              aConnection.send(packet);
+            }
+          };
+
+          
+          
+          
+          aConnection.setForwarding(aId, transport);
+
+          resolve({
+            threadActor: message.from,
+            transport: transport
+          });
+        }
+      };
+      aDbg.addListener(listener);
+    });
   },
 
   
@@ -1442,13 +1522,16 @@ DebuggerServerConnection.prototype = {
     
     
     if (this._forwardingPrefixes.size > 0) {
-      let separator = aPacket.to.indexOf('/');
-      if (separator >= 0) {
+      let to = aPacket.to;
+      let separator = to.lastIndexOf('/');
+      while (separator >= 0) {
+        to = to.substring(0, separator);
         let forwardTo = this._forwardingPrefixes.get(aPacket.to.substring(0, separator));
         if (forwardTo) {
           forwardTo.send(aPacket);
           return;
         }
+        separator = to.lastIndexOf('/');
       }
     }
 
