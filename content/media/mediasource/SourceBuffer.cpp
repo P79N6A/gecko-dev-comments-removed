@@ -9,6 +9,7 @@
 #include "DecoderTraits.h"
 #include "MediaDecoder.h"
 #include "MediaSourceDecoder.h"
+#include "MediaSourceUtils.h"
 #include "SourceBufferResource.h"
 #include "mozilla/Endian.h"
 #include "mozilla/ErrorResult.h"
@@ -172,6 +173,7 @@ SourceBuffer::GetBuffered(ErrorResult& aRv)
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return nullptr;
   }
+  double highestEndTime = 0;
   nsRefPtr<TimeRanges> ranges = new TimeRanges();
   
   
@@ -179,11 +181,19 @@ SourceBuffer::GetBuffered(ErrorResult& aRv)
   for (uint32_t i = 0; i < mDecoders.Length(); ++i) {
     nsRefPtr<TimeRanges> r = new TimeRanges();
     mDecoders[i]->GetBuffered(r);
-    ranges->Union(r);
+    if (r->Length() > 0) {
+      highestEndTime = std::max(highestEndTime, r->GetEndTime());
+      ranges->Union(r);
+    }
   }
-  ranges->Normalize();
-  MSE_DEBUGV("SourceBuffer(%p)::GetBuffered startTime=%f endTime=%f length=%u",
-             this, ranges->GetStartTime(), ranges->GetEndTime(), ranges->Length());
+  if (mMediaSource->ReadyState() == MediaSourceReadyState::Ended) {
+    
+    
+    
+    ranges->Add(ranges->GetEndTime(), highestEndTime);
+    ranges->Normalize();
+  }
+  MSE_DEBUGV("SourceBuffer(%p)::GetBuffered ranges=%s", this, DumpTimeRanges(ranges).get());
   return ranges.forget();
 }
 

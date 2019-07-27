@@ -27,7 +27,7 @@ class SubBufferDecoder : public BufferDecoder
 public:
   
   
-  SubBufferDecoder(MediaResource* aResource, MediaSourceDecoder* aParentDecoder)
+  SubBufferDecoder(MediaResource* aResource, AbstractMediaDecoder* aParentDecoder)
     : BufferDecoder(aResource), mParentDecoder(aParentDecoder), mReader(nullptr)
     , mMediaDuration(-1), mDiscarded(false)
   {
@@ -84,7 +84,7 @@ public:
   bool ContainsTime(double aTime);
 
 private:
-  MediaSourceDecoder* mParentDecoder;
+  AbstractMediaDecoder* mParentDecoder;
   nsRefPtr<MediaDecoderReader> mReader;
   int64_t mMediaDuration;
   bool mDiscarded;

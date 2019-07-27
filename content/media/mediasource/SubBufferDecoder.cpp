@@ -4,7 +4,7 @@
 
 
 #include "SubBufferDecoder.h"
-#include "MediaSourceDecoder.h"
+#include "AbstractMediaDecoder.h"
 #include "MediaDecoderReader.h"
 #include "mozilla/dom/TimeRanges.h"
 
