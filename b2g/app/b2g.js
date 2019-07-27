@@ -695,9 +695,6 @@ pref("ui.scrollbarFadeDuration", 200);
 pref("layout.scrollbar.side", 1);
 
 
-pref("layout.css.scroll-snap.enabled", true);
-
-
 
 
 
