@@ -163,13 +163,12 @@ static const char* logTag = "sdp_attr_access";
 
 
 
-sdp_result_e sdp_add_new_attr (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_result_e sdp_add_new_attr (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                sdp_attr_e attr_type, uint16_t *inst_num)
 {
     uint16_t          i;
     sdp_mca_t   *mca_p;
     sdp_mca_t   *cap_p;
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_attr_t  *new_attr_p;
     sdp_attr_t  *prev_attr_p=NULL;
@@ -177,10 +176,6 @@ sdp_result_e sdp_add_new_attr (void *sdp_ptr, uint16_t level, uint8_t cap_num,
     sdp_comediadir_t  *comediadir_p;
 
     *inst_num = 0;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if ((cap_num != 0) &&
         ((attr_type == SDP_ATTR_X_CAP) || (attr_type == SDP_ATTR_X_CPAR) ||
@@ -722,21 +717,19 @@ void sdp_copy_attr_fields (sdp_attr_t *src_attr_p, sdp_attr_t *dst_attr_p)
 
 
 
-sdp_result_e sdp_copy_attr (void *src_sdp_ptr, void *dst_sdp_ptr,
+sdp_result_e sdp_copy_attr (sdp_t *src_sdp_p, sdp_t *dst_sdp_p,
                             uint16_t src_level, uint16_t dst_level,
                             uint8_t src_cap_num, uint8_t dst_cap_num,
                             sdp_attr_e src_attr_type, uint16_t src_inst_num)
 {
     sdp_mca_t   *mca_p;
     sdp_mca_t   *cap_p;
-    sdp_t       *src_sdp_p = (sdp_t *)src_sdp_ptr;
-    sdp_t       *dst_sdp_p = (sdp_t *)dst_sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_attr_t  *new_attr_p;
     sdp_attr_t  *prev_attr_p;
     sdp_attr_t  *src_attr_p;
 
-    if (sdp_verify_sdp_ptr(src_sdp_p) == FALSE) {
+    if (!src_sdp_p) {
         return (SDP_INVALID_SDP_PTR);
     }
 
@@ -840,13 +833,11 @@ sdp_result_e sdp_copy_attr (void *src_sdp_ptr, void *dst_sdp_ptr,
 
 
 
-sdp_result_e sdp_copy_all_attrs (void *src_sdp_ptr, void *dst_sdp_ptr,
+sdp_result_e sdp_copy_all_attrs (sdp_t *src_sdp_p, sdp_t *dst_sdp_p,
                                  uint16_t src_level, uint16_t dst_level)
 {
     int i;
     sdp_mca_t   *mca_p = NULL;
-    sdp_t       *src_sdp_p = (sdp_t *)src_sdp_ptr;
-    sdp_t       *dst_sdp_p = (sdp_t *)dst_sdp_ptr;
     sdp_mca_t   *src_cap_p;
     sdp_mca_t   *dst_cap_p;
     sdp_attr_t  *src_attr_p;
@@ -856,11 +847,11 @@ sdp_result_e sdp_copy_all_attrs (void *src_sdp_ptr, void *dst_sdp_ptr,
     sdp_attr_t  *dst_cap_attr_p;
     sdp_attr_t  *new_cap_attr_p;
 
-    if (sdp_verify_sdp_ptr(src_sdp_p) == FALSE) {
+    if (!src_sdp_p) {
         return (SDP_INVALID_SDP_PTR);
     }
 
-    if (sdp_verify_sdp_ptr(dst_sdp_p) == FALSE) {
+    if (!dst_sdp_p) {
         return (SDP_INVALID_SDP_PTR);
     }
 
@@ -1017,19 +1008,14 @@ sdp_result_e sdp_copy_all_attrs (void *src_sdp_ptr, void *dst_sdp_ptr,
 
 
 
-sdp_result_e sdp_attr_num_instances (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_result_e sdp_attr_num_instances (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                      sdp_attr_e attr_type, uint16_t *num_attr_inst)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_result_e rc;
     static char  fname[] = "attr_num_instances";
 
     *num_attr_inst = 0;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     rc = sdp_find_attr_list(sdp_p, level, cap_num, &attr_p, fname);
     if (rc == SDP_SUCCESS) {
@@ -1059,19 +1045,14 @@ sdp_result_e sdp_attr_num_instances (void *sdp_ptr, uint16_t level, uint8_t cap_
 
 
 
-sdp_result_e sdp_get_total_attrs (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_result_e sdp_get_total_attrs (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                   uint16_t *num_attrs)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_result_e rc;
     static char  fname[] = "get_total_attrs";
 
     *num_attrs = 0;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     rc = sdp_find_attr_list(sdp_p, level, cap_num, &attr_p, fname);
     if (rc == SDP_SUCCESS) {
@@ -1102,23 +1083,18 @@ sdp_result_e sdp_get_total_attrs (void *sdp_ptr, uint16_t level, uint8_t cap_num
 
 
 
-sdp_result_e sdp_get_attr_type (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_result_e sdp_get_attr_type (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                            uint16_t attr_num, sdp_attr_e *attr_type, uint16_t *inst_num)
 {
     int          i;
     uint16_t          attr_total_count=0;
     uint16_t          attr_count[SDP_MAX_ATTR_TYPES];
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_result_e rc;
     static char  fname[] = "get_attr_type";
 
     *attr_type = SDP_ATTR_INVALID;
     *inst_num = 0;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (attr_num < 1) {
         if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
@@ -1213,19 +1189,14 @@ void sdp_free_attr (sdp_attr_t *attr_p)
 
 
 
-sdp_result_e sdp_delete_attr (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_result_e sdp_delete_attr (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                               sdp_attr_e attr_type, uint16_t inst_num)
 {
     uint16_t          attr_count=0;
     sdp_mca_t   *mca_p;
     sdp_mca_t   *cap_p;
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_attr_t  *prev_attr_p = NULL;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (cap_num == 0) {
         
@@ -1333,17 +1304,12 @@ sdp_result_e sdp_delete_attr (void *sdp_ptr, uint16_t level, uint8_t cap_num,
 
 
 
-sdp_result_e sdp_delete_all_attrs (void *sdp_ptr, uint16_t level, uint8_t cap_num)
+sdp_result_e sdp_delete_all_attrs (sdp_t *sdp_p, uint16_t level, uint8_t cap_num)
 {
     sdp_mca_t   *mca_p;
     sdp_mca_t   *cap_p;
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_attr_t  *next_attr_p = NULL;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (cap_num == 0) {
         if (level == SDP_SESSION_LEVEL) {
@@ -1617,15 +1583,9 @@ sdp_attr_t *sdp_find_capability (sdp_t *sdp_p, uint16_t level, uint8_t cap_num)
 
 
 
-tinybool sdp_attr_valid (void *sdp_ptr, sdp_attr_e attr_type, uint16_t level,
+tinybool sdp_attr_valid (sdp_t *sdp_p, sdp_attr_e attr_type, uint16_t level,
                          uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
-
     if (sdp_find_attr(sdp_p, level, cap_num, attr_type, inst_num) == NULL) {
         return (FALSE);
     } else {
@@ -1645,15 +1605,10 @@ tinybool sdp_attr_valid (void *sdp_ptr, sdp_attr_e attr_type, uint16_t level,
 
 
 
-uint32_t sdp_attr_line_number (void *sdp_ptr, sdp_attr_e attr_type, uint16_t level,
+uint32_t sdp_attr_line_number (sdp_t *sdp_p, sdp_attr_e attr_type, uint16_t level,
                           uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return 0;
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, attr_type, inst_num);
     if (attr_p == NULL) {
@@ -1699,15 +1654,10 @@ static boolean sdp_attr_is_simple_string(sdp_attr_e attr_type) {
 
 
 
-const char *sdp_attr_get_simple_string (void *sdp_ptr, sdp_attr_e attr_type,
+const char *sdp_attr_get_simple_string (sdp_t *sdp_p, sdp_attr_e attr_type,
                                         uint16_t level, uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
 
     if (!sdp_attr_is_simple_string(attr_type)) {
         if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
@@ -1751,16 +1701,11 @@ const char *sdp_attr_get_simple_string (void *sdp_ptr, sdp_attr_e attr_type,
 
 
 
-sdp_result_e sdp_attr_set_simple_string (void *sdp_ptr, sdp_attr_e attr_type,
+sdp_result_e sdp_attr_set_simple_string (sdp_t *sdp_p, sdp_attr_e attr_type,
                                          uint16_t level, uint8_t cap_num,
                                          uint16_t inst_num, const char *string_parm)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (!sdp_attr_is_simple_string(attr_type)) {
         if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
@@ -1828,15 +1773,10 @@ static boolean sdp_attr_is_simple_u32(sdp_attr_e attr_type) {
 
 
 
-uint32_t sdp_attr_get_simple_u32 (void *sdp_ptr, sdp_attr_e attr_type, uint16_t level,
+uint32_t sdp_attr_get_simple_u32 (sdp_t *sdp_p, sdp_attr_e attr_type, uint16_t level,
                              uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     if (!sdp_attr_is_simple_u32(attr_type)) {
         if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
@@ -1879,15 +1819,10 @@ uint32_t sdp_attr_get_simple_u32 (void *sdp_ptr, sdp_attr_e attr_type, uint16_t 
 
 
 
-sdp_result_e sdp_attr_set_simple_u32 (void *sdp_ptr, sdp_attr_e attr_type,
+sdp_result_e sdp_attr_set_simple_u32 (sdp_t *sdp_p, sdp_attr_e attr_type,
                            uint16_t level, uint8_t cap_num, uint16_t inst_num, uint32_t num_parm)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (!sdp_attr_is_simple_u32(attr_type)) {
         if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
@@ -1933,15 +1868,10 @@ sdp_result_e sdp_attr_set_simple_u32 (void *sdp_ptr, sdp_attr_e attr_type,
 
 
 
-tinybool sdp_attr_get_simple_boolean (void *sdp_ptr, sdp_attr_e attr_type,
+tinybool sdp_attr_get_simple_boolean (sdp_t *sdp_p, sdp_attr_e attr_type,
                                       uint16_t level, uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
 
     if ((attr_type != SDP_ATTR_T38_FILLBITREMOVAL) &&
         (attr_type != SDP_ATTR_T38_TRANSCODINGMMR) &&
@@ -1986,16 +1916,11 @@ tinybool sdp_attr_get_simple_boolean (void *sdp_ptr, sdp_attr_e attr_type,
 
 
 
-sdp_result_e sdp_attr_set_simple_boolean (void *sdp_ptr, sdp_attr_e attr_type,
+sdp_result_e sdp_attr_set_simple_boolean (sdp_t *sdp_p, sdp_attr_e attr_type,
                                           uint16_t level, uint8_t cap_num,
                                           uint16_t inst_num, uint32_t bool_parm)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if ((attr_type != SDP_ATTR_T38_FILLBITREMOVAL) &&
         (attr_type != SDP_ATTR_T38_TRANSCODINGMMR) &&
@@ -2038,14 +1963,9 @@ sdp_result_e sdp_attr_set_simple_boolean (void *sdp_ptr, sdp_attr_e attr_type,
 
 
 const char*
-sdp_attr_get_maxprate (void *sdp_ptr, uint16_t level, uint16_t inst_num)
+sdp_attr_get_maxprate (sdp_t *sdp_p, uint16_t level, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_MAXPRATE, inst_num);
     if (attr_p == NULL) {
@@ -2094,15 +2014,10 @@ sdp_attr_get_maxprate (void *sdp_ptr, uint16_t level, uint16_t inst_num)
 
 
 sdp_result_e
-sdp_attr_set_maxprate (void *sdp_ptr, uint16_t level, uint16_t inst_num,
+sdp_attr_set_maxprate (sdp_t *sdp_p, uint16_t level, uint16_t inst_num,
                        const char *string_parm)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_MAXPRATE, inst_num);
     if (attr_p == NULL) {
@@ -2139,15 +2054,10 @@ sdp_attr_set_maxprate (void *sdp_ptr, uint16_t level, uint16_t inst_num,
 
 
 
-sdp_t38_ratemgmt_e sdp_attr_get_t38ratemgmt (void *sdp_ptr, uint16_t level,
+sdp_t38_ratemgmt_e sdp_attr_get_t38ratemgmt (sdp_t *sdp_p, uint16_t level,
                                              uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_T38_UNKNOWN_RATE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_T38_RATEMGMT, inst_num);
@@ -2175,16 +2085,11 @@ sdp_t38_ratemgmt_e sdp_attr_get_t38ratemgmt (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_t38ratemgmt (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_t38ratemgmt (sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num,
                                        sdp_t38_ratemgmt_e t38ratemgmt)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_T38_RATEMGMT, inst_num);
@@ -2213,15 +2118,10 @@ sdp_result_e sdp_attr_set_t38ratemgmt (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_t38_udpec_e sdp_attr_get_t38udpec (void *sdp_ptr, uint16_t level,
+sdp_t38_udpec_e sdp_attr_get_t38udpec (sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_T38_UDPEC_UNKNOWN);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_T38_UDPEC, inst_num);
@@ -2249,16 +2149,11 @@ sdp_t38_udpec_e sdp_attr_get_t38udpec (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_t38udpec (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_t38udpec (sdp_t *sdp_p, uint16_t level,
                                     uint8_t cap_num, uint16_t inst_num,
                                     sdp_t38_udpec_e t38udpec)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_T38_UDPEC, inst_num);
@@ -2288,17 +2183,12 @@ sdp_result_e sdp_attr_set_t38udpec (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_direction_e sdp_get_media_direction (void *sdp_ptr, uint16_t level,
+sdp_direction_e sdp_get_media_direction (sdp_t *sdp_p, uint16_t level,
                                          uint8_t cap_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t   *mca_p;
     sdp_attr_t  *attr_p;
     sdp_direction_e direction = SDP_DIRECTION_SENDRECV;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (direction);
-    }
 
     if (cap_num == 0) {
         
@@ -2349,17 +2239,12 @@ sdp_direction_e sdp_get_media_direction (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_delete_all_media_direction_attrs (void *sdp_ptr, uint16_t level)
+sdp_result_e sdp_delete_all_media_direction_attrs (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t   *mca_p;
     sdp_attr_t  *attr_p;
     sdp_attr_t  *prev_attr_p = NULL;
     sdp_attr_t  *tmp_attr_p = NULL;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     
     if (level == SDP_SESSION_LEVEL) {
@@ -2453,15 +2338,10 @@ tinybool sdp_validate_qos_attr (sdp_attr_e qos_attr)
 
 
 
-sdp_qos_strength_e sdp_attr_get_qos_strength (void *sdp_ptr, uint16_t level,
+sdp_qos_strength_e sdp_attr_get_qos_strength (sdp_t *sdp_p, uint16_t level,
                                 uint8_t cap_num, sdp_attr_e qos_attr, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_QOS_STRENGTH_UNKNOWN);
-    }
 
     if (sdp_validate_qos_attr(qos_attr) == FALSE) {
         if (sdp_p->debug_flag[SDP_DEBUG_WARNINGS]) {
@@ -2506,15 +2386,10 @@ sdp_qos_strength_e sdp_attr_get_qos_strength (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_qos_dir_e sdp_attr_get_qos_direction (void *sdp_ptr, uint16_t level,
+sdp_qos_dir_e sdp_attr_get_qos_direction (sdp_t *sdp_p, uint16_t level,
                                 uint8_t cap_num, sdp_attr_e qos_attr, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_QOS_DIR_UNKNOWN);
-    }
 
     if (sdp_validate_qos_attr(qos_attr) == FALSE) {
         if (sdp_p->debug_flag[SDP_DEBUG_WARNINGS]) {
@@ -2563,15 +2438,10 @@ sdp_qos_dir_e sdp_attr_get_qos_direction (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_qos_status_types_e sdp_attr_get_qos_status_type (void *sdp_ptr, uint16_t level,
+sdp_qos_status_types_e sdp_attr_get_qos_status_type (sdp_t *sdp_p, uint16_t level,
                                 uint8_t cap_num, sdp_attr_e qos_attr, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_QOS_STATUS_TYPE_UNKNOWN);
-    }
 
     if (sdp_validate_qos_attr(qos_attr) == FALSE) {
         if (sdp_p->debug_flag[SDP_DEBUG_WARNINGS]) {
@@ -2617,15 +2487,10 @@ sdp_qos_status_types_e sdp_attr_get_qos_status_type (void *sdp_ptr, uint16_t lev
 
 
 
-tinybool sdp_attr_get_qos_confirm (void *sdp_ptr, uint16_t level,
+tinybool sdp_attr_get_qos_confirm (sdp_t *sdp_p, uint16_t level,
                                 uint8_t cap_num, sdp_attr_e qos_attr, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
 
     if (sdp_validate_qos_attr(qos_attr) == FALSE) {
         if (sdp_p->debug_flag[SDP_DEBUG_WARNINGS]) {
@@ -2661,16 +2526,11 @@ tinybool sdp_attr_get_qos_confirm (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_qos_strength (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_result_e sdp_attr_set_qos_strength (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                         sdp_attr_e qos_attr, uint16_t inst_num,
                                         sdp_qos_strength_e strength)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (sdp_validate_qos_attr(qos_attr) == FALSE) {
         if (sdp_p->debug_flag[SDP_DEBUG_WARNINGS]) {
@@ -2717,15 +2577,10 @@ sdp_result_e sdp_attr_set_qos_strength (void *sdp_ptr, uint16_t level, uint8_t c
 
 
 
-sdp_curr_type_e sdp_attr_get_curr_type (void *sdp_ptr, uint16_t level,
+sdp_curr_type_e sdp_attr_get_curr_type (sdp_t *sdp_p, uint16_t level,
                                 uint8_t cap_num, sdp_attr_e qos_attr, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_CURR_UNKNOWN_TYPE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, qos_attr, inst_num);
     if (attr_p == NULL) {
@@ -2755,15 +2610,10 @@ sdp_curr_type_e sdp_attr_get_curr_type (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_des_type_e sdp_attr_get_des_type (void *sdp_ptr, uint16_t level,
+sdp_des_type_e sdp_attr_get_des_type (sdp_t *sdp_p, uint16_t level,
                                 uint8_t cap_num, sdp_attr_e qos_attr, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_DES_UNKNOWN_TYPE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, qos_attr, inst_num);
     if (attr_p == NULL) {
@@ -2793,15 +2643,10 @@ sdp_des_type_e sdp_attr_get_des_type (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_conf_type_e sdp_attr_get_conf_type (void *sdp_ptr, uint16_t level,
+sdp_conf_type_e sdp_attr_get_conf_type (sdp_t *sdp_p, uint16_t level,
                                 uint8_t cap_num, sdp_attr_e qos_attr, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_CONF_UNKNOWN_TYPE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, qos_attr, inst_num);
     if (attr_p == NULL) {
@@ -2832,16 +2677,11 @@ sdp_conf_type_e sdp_attr_get_conf_type (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_curr_type (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_curr_type (sdp_t *sdp_p, uint16_t level,
                                 uint8_t cap_num, sdp_attr_e qos_attr, uint16_t inst_num,
                                 sdp_curr_type_e curr_type)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (sdp_validate_qos_attr(qos_attr) == FALSE) {
         if (sdp_p->debug_flag[SDP_DEBUG_WARNINGS]) {
@@ -2880,16 +2720,11 @@ sdp_result_e sdp_attr_set_curr_type (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_des_type (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_des_type (sdp_t *sdp_p, uint16_t level,
                                 uint8_t cap_num, sdp_attr_e qos_attr, uint16_t inst_num,
                                 sdp_des_type_e des_type)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (sdp_validate_qos_attr(qos_attr) == FALSE) {
         if (sdp_p->debug_flag[SDP_DEBUG_WARNINGS]) {
@@ -2929,16 +2764,11 @@ sdp_result_e sdp_attr_set_des_type (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_conf_type (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_conf_type (sdp_t *sdp_p, uint16_t level,
                                 uint8_t cap_num, sdp_attr_e qos_attr, uint16_t inst_num,
                                 sdp_conf_type_e conf_type)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (sdp_validate_qos_attr(qos_attr) == FALSE) {
         if (sdp_p->debug_flag[SDP_DEBUG_WARNINGS]) {
@@ -2975,16 +2805,11 @@ sdp_result_e sdp_attr_set_conf_type (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_qos_direction (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_result_e sdp_attr_set_qos_direction (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                          sdp_attr_e qos_attr, uint16_t inst_num,
                                          sdp_qos_dir_e direction)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (sdp_validate_qos_attr(qos_attr) == FALSE) {
         if (sdp_p->debug_flag[SDP_DEBUG_WARNINGS]) {
@@ -3036,16 +2861,11 @@ sdp_result_e sdp_attr_set_qos_direction (void *sdp_ptr, uint16_t level, uint8_t 
 
 
 
-sdp_result_e sdp_attr_set_qos_status_type (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_result_e sdp_attr_set_qos_status_type (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                          sdp_attr_e qos_attr, uint16_t inst_num,
                                          sdp_qos_status_types_e status_type)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (sdp_validate_qos_attr(qos_attr) == FALSE) {
         if (sdp_p->debug_flag[SDP_DEBUG_WARNINGS]) {
@@ -3096,16 +2916,11 @@ sdp_result_e sdp_attr_set_qos_status_type (void *sdp_ptr, uint16_t level, uint8_
 
 
 
-sdp_result_e sdp_attr_set_qos_confirm (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_result_e sdp_attr_set_qos_confirm (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                        sdp_attr_e qos_attr, uint16_t inst_num,
                                        tinybool qos_confirm)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (sdp_validate_qos_attr(qos_attr) == FALSE) {
         if (sdp_p->debug_flag[SDP_DEBUG_WARNINGS]) {
@@ -3142,15 +2957,10 @@ sdp_result_e sdp_attr_set_qos_confirm (void *sdp_ptr, uint16_t level, uint8_t ca
 
 
 
-sdp_nettype_e sdp_attr_get_subnet_nettype (void *sdp_ptr, uint16_t level,
+sdp_nettype_e sdp_attr_get_subnet_nettype (sdp_t *sdp_p, uint16_t level,
                                            uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_NT_INVALID);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SUBNET, inst_num);
@@ -3177,15 +2987,10 @@ sdp_nettype_e sdp_attr_get_subnet_nettype (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_addrtype_e sdp_attr_get_subnet_addrtype (void *sdp_ptr, uint16_t level,
+sdp_addrtype_e sdp_attr_get_subnet_addrtype (sdp_t *sdp_p, uint16_t level,
                                              uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_AT_INVALID);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SUBNET, inst_num);
@@ -3214,15 +3019,10 @@ sdp_addrtype_e sdp_attr_get_subnet_addrtype (void *sdp_ptr, uint16_t level,
 
 
 
-const char *sdp_attr_get_subnet_addr (void *sdp_ptr, uint16_t level,
+const char *sdp_attr_get_subnet_addr (sdp_t *sdp_p, uint16_t level,
                                       uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SUBNET, inst_num);
@@ -3251,15 +3051,10 @@ const char *sdp_attr_get_subnet_addr (void *sdp_ptr, uint16_t level,
 
 
 
-int32_t sdp_attr_get_subnet_prefix (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_subnet_prefix (sdp_t *sdp_p, uint16_t level,
                                   uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SUBNET, inst_num);
@@ -3287,16 +3082,11 @@ int32_t sdp_attr_get_subnet_prefix (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_subnet_nettype (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_subnet_nettype (sdp_t *sdp_p, uint16_t level,
                                           uint8_t cap_num, uint16_t inst_num,
                                           sdp_nettype_e nettype)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SUBNET, inst_num);
@@ -3325,16 +3115,11 @@ sdp_result_e sdp_attr_set_subnet_nettype (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_subnet_addrtype (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_subnet_addrtype (sdp_t *sdp_p, uint16_t level,
                                            uint8_t cap_num, uint16_t inst_num,
                                            sdp_addrtype_e sdp_addrtype)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SUBNET, inst_num);
@@ -3365,16 +3150,11 @@ sdp_result_e sdp_attr_set_subnet_addrtype (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_subnet_addr (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_subnet_addr (sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num,
                                        const char *addr)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SUBNET, inst_num);
@@ -3404,16 +3184,11 @@ sdp_result_e sdp_attr_set_subnet_addr (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_subnet_prefix (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_subnet_prefix (sdp_t *sdp_p, uint16_t level,
                                          uint8_t cap_num, uint16_t inst_num,
                                          int32_t prefix)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SUBNET, inst_num);
@@ -3444,21 +3219,16 @@ sdp_result_e sdp_attr_set_subnet_prefix (void *sdp_ptr, uint16_t level,
 
 
 
-tinybool sdp_attr_rtpmap_payload_valid (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+tinybool sdp_attr_rtpmap_payload_valid (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                         uint16_t *inst_num, uint16_t payload_type)
 {
     uint16_t          i;
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     uint16_t          num_instances;
 
     *inst_num = 0;
 
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
-
-    if (sdp_attr_num_instances(sdp_ptr, level, cap_num,
+    if (sdp_attr_num_instances(sdp_p, level, cap_num,
                           SDP_ATTR_RTPMAP, &num_instances) != SDP_SUCCESS) {
         return (FALSE);
     }
@@ -3486,15 +3256,10 @@ tinybool sdp_attr_rtpmap_payload_valid (void *sdp_ptr, uint16_t level, uint8_t c
 
 
 
-uint16_t sdp_attr_get_rtpmap_payload_type (void *sdp_ptr, uint16_t level,
+uint16_t sdp_attr_get_rtpmap_payload_type (sdp_t *sdp_p, uint16_t level,
                                       uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_RTPMAP, inst_num);
     if (attr_p == NULL) {
@@ -3525,15 +3290,10 @@ uint16_t sdp_attr_get_rtpmap_payload_type (void *sdp_ptr, uint16_t level,
 
 
 
-const char *sdp_attr_get_rtpmap_encname (void *sdp_ptr, uint16_t level,
+const char *sdp_attr_get_rtpmap_encname (sdp_t *sdp_p, uint16_t level,
                                          uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_RTPMAP, inst_num);
     if (attr_p == NULL) {
@@ -3562,15 +3322,10 @@ const char *sdp_attr_get_rtpmap_encname (void *sdp_ptr, uint16_t level,
 
 
 
-uint32_t sdp_attr_get_rtpmap_clockrate (void *sdp_ptr, uint16_t level,
+uint32_t sdp_attr_get_rtpmap_clockrate (sdp_t *sdp_p, uint16_t level,
                                    uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_RTPMAP, inst_num);
     if (attr_p == NULL) {
@@ -3596,15 +3351,10 @@ uint32_t sdp_attr_get_rtpmap_clockrate (void *sdp_ptr, uint16_t level,
 
 
 
-uint16_t sdp_attr_get_rtpmap_num_chan (void *sdp_ptr, uint16_t level,
+uint16_t sdp_attr_get_rtpmap_num_chan (sdp_t *sdp_p, uint16_t level,
                                   uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_RTPMAP, inst_num);
     if (attr_p == NULL) {
@@ -3631,16 +3381,11 @@ uint16_t sdp_attr_get_rtpmap_num_chan (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_rtpmap_payload_type (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_rtpmap_payload_type (sdp_t *sdp_p, uint16_t level,
                                                uint8_t cap_num, uint16_t inst_num,
                                                uint16_t payload_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_RTPMAP, inst_num);
     if (attr_p == NULL) {
@@ -3668,15 +3413,10 @@ sdp_result_e sdp_attr_set_rtpmap_payload_type (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_rtpmap_encname (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_result_e sdp_attr_set_rtpmap_encname (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                           uint16_t inst_num, const char *encname)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_RTPMAP, inst_num);
     if (attr_p == NULL) {
@@ -3710,16 +3450,11 @@ sdp_result_e sdp_attr_set_rtpmap_encname (void *sdp_ptr, uint16_t level, uint8_t
 
 
 
-sdp_result_e sdp_attr_get_ice_attribute (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_ice_attribute (sdp_t *sdp_p, uint16_t level,
                                   uint8_t cap_num, sdp_attr_e sdp_attr, uint16_t inst_num,
                                   char **out)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, sdp_attr, inst_num);
     if (attr_p != NULL) {
@@ -3749,15 +3484,10 @@ sdp_result_e sdp_attr_get_ice_attribute (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_ice_attribute(void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_ice_attribute(sdp_t *sdp_p, uint16_t level,
                               uint8_t cap_num, sdp_attr_e sdp_attr, uint16_t inst_num, const char *ice_attrib)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, sdp_attr, inst_num);
     if (attr_p == NULL) {
@@ -3790,15 +3520,10 @@ sdp_result_e sdp_attr_set_ice_attribute(void *sdp_ptr, uint16_t level,
 
 
 
-tinybool sdp_attr_is_present (void *sdp_ptr, sdp_attr_e attr_type, uint16_t level,
+tinybool sdp_attr_is_present (sdp_t *sdp_p, sdp_attr_e attr_type, uint16_t level,
                               uint8_t cap_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, attr_type, 1);
     if (attr_p != NULL) {
@@ -3828,16 +3553,11 @@ tinybool sdp_attr_is_present (void *sdp_ptr, sdp_attr_e attr_type, uint16_t leve
 
 
 
-sdp_result_e sdp_attr_get_rtcp_mux_attribute (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_rtcp_mux_attribute (sdp_t *sdp_p, uint16_t level,
                                   uint8_t cap_num, sdp_attr_e sdp_attr, uint16_t inst_num,
                                   tinybool *rtcp_mux)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, sdp_attr, inst_num);
     if (attr_p != NULL) {
@@ -3867,15 +3587,10 @@ sdp_result_e sdp_attr_get_rtcp_mux_attribute (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_rtcp_mux_attribute(void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_rtcp_mux_attribute(sdp_t *sdp_p, uint16_t level,
                               uint8_t cap_num, sdp_attr_e sdp_attr, uint16_t inst_num, const tinybool rtcp_mux)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, sdp_attr, inst_num);
     if (attr_p == NULL) {
@@ -3906,15 +3621,10 @@ sdp_result_e sdp_attr_set_rtcp_mux_attribute(void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_setup_attribute (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_setup_attribute (sdp_t *sdp_p, uint16_t level,
     uint8_t cap_num, uint16_t inst_num, sdp_setup_type_e *setup_type)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (!sdp_verify_sdp_ptr(sdp_p)) {
-        return SDP_INVALID_SDP_PTR;
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_SETUP, inst_num);
     if (!attr_p) {
@@ -3945,15 +3655,10 @@ sdp_result_e sdp_attr_get_setup_attribute (void *sdp_ptr, uint16_t level,
 
 
 sdp_result_e
-sdp_attr_set_setup_attribute(void *sdp_ptr, uint16_t level,
+sdp_attr_set_setup_attribute(sdp_t *sdp_p, uint16_t level,
     uint8_t cap_num, uint16_t inst_num, sdp_setup_type_e setup_type)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (!sdp_verify_sdp_ptr(sdp_p)) {
-        return SDP_INVALID_SDP_PTR;
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_SETUP, inst_num);
     if (!attr_p) {
@@ -3983,15 +3688,10 @@ sdp_attr_set_setup_attribute(void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_connection_attribute (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_connection_attribute (sdp_t *sdp_p, uint16_t level,
     uint8_t cap_num, uint16_t inst_num, sdp_connection_type_e *connection_type)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (!sdp_verify_sdp_ptr(sdp_p)) {
-        return SDP_INVALID_SDP_PTR;
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_CONNECTION,
         inst_num);
@@ -4023,15 +3723,10 @@ sdp_result_e sdp_attr_get_connection_attribute (void *sdp_ptr, uint16_t level,
 
 
 sdp_result_e
-sdp_attr_set_connection_attribute(void *sdp_ptr, uint16_t level,
+sdp_attr_set_connection_attribute(sdp_t *sdp_p, uint16_t level,
     uint8_t cap_num, uint16_t inst_num, sdp_connection_type_e connection_type)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (!sdp_verify_sdp_ptr(sdp_p)) {
-        return SDP_INVALID_SDP_PTR;
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_CONNECTION,
         inst_num);
@@ -4062,16 +3757,11 @@ sdp_attr_set_connection_attribute(void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_dtls_fingerprint_attribute (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_dtls_fingerprint_attribute (sdp_t *sdp_p, uint16_t level,
                                   uint8_t cap_num, sdp_attr_e sdp_attr, uint16_t inst_num,
                                   char **out)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, sdp_attr, inst_num);
     if (attr_p != NULL) {
@@ -4101,15 +3791,10 @@ sdp_result_e sdp_attr_get_dtls_fingerprint_attribute (void *sdp_ptr, uint16_t le
 
 
 
-sdp_result_e sdp_attr_set_dtls_fingerprint_attribute(void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_dtls_fingerprint_attribute(sdp_t *sdp_p, uint16_t level,
                               uint8_t cap_num, sdp_attr_e sdp_attr, uint16_t inst_num, const char *dtls_fingerprint)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, sdp_attr, inst_num);
     if (attr_p == NULL) {
@@ -4141,16 +3826,11 @@ sdp_result_e sdp_attr_set_dtls_fingerprint_attribute(void *sdp_ptr, uint16_t lev
 
 
 
-sdp_result_e sdp_attr_set_rtpmap_clockrate (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_rtpmap_clockrate (sdp_t *sdp_p, uint16_t level,
                                             uint8_t cap_num, uint16_t inst_num,
                                             uint32_t clockrate)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_RTPMAP, inst_num);
     if (attr_p == NULL) {
@@ -4178,16 +3858,11 @@ sdp_result_e sdp_attr_set_rtpmap_clockrate (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_rtpmap_num_chan (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_rtpmap_num_chan (sdp_t *sdp_p, uint16_t level,
                                            uint8_t cap_num, uint16_t inst_num,
                                            uint16_t num_chan)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_RTPMAP, inst_num);
     if (attr_p == NULL) {
@@ -4217,21 +3892,16 @@ sdp_result_e sdp_attr_set_rtpmap_num_chan (void *sdp_ptr, uint16_t level,
 
 
 
-tinybool sdp_attr_sprtmap_payload_valid (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+tinybool sdp_attr_sprtmap_payload_valid (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                         uint16_t *inst_num, uint16_t payload_type)
 {
     uint16_t          i;
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     uint16_t          num_instances;
 
     *inst_num = 0;
 
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
-
-    if (sdp_attr_num_instances(sdp_ptr, level, cap_num,
+    if (sdp_attr_num_instances(sdp_p, level, cap_num,
                           SDP_ATTR_SPRTMAP, &num_instances) != SDP_SUCCESS) {
         return (FALSE);
     }
@@ -4259,15 +3929,10 @@ tinybool sdp_attr_sprtmap_payload_valid (void *sdp_ptr, uint16_t level, uint8_t 
 
 
 
-uint16_t sdp_attr_get_sprtmap_payload_type (void *sdp_ptr, uint16_t level,
+uint16_t sdp_attr_get_sprtmap_payload_type (sdp_t *sdp_p, uint16_t level,
                                       uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_SPRTMAP, inst_num);
     if (attr_p == NULL) {
@@ -4295,15 +3960,10 @@ uint16_t sdp_attr_get_sprtmap_payload_type (void *sdp_ptr, uint16_t level,
 
 
 
-const char *sdp_attr_get_sprtmap_encname (void *sdp_ptr, uint16_t level,
+const char *sdp_attr_get_sprtmap_encname (sdp_t *sdp_p, uint16_t level,
                                          uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_SPRTMAP, inst_num);
     if (attr_p == NULL) {
@@ -4329,15 +3989,10 @@ const char *sdp_attr_get_sprtmap_encname (void *sdp_ptr, uint16_t level,
 
 
 
-uint32_t sdp_attr_get_sprtmap_clockrate (void *sdp_ptr, uint16_t level,
+uint32_t sdp_attr_get_sprtmap_clockrate (sdp_t *sdp_p, uint16_t level,
                                    uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_SPRTMAP, inst_num);
     if (attr_p == NULL) {
@@ -4363,15 +4018,10 @@ uint32_t sdp_attr_get_sprtmap_clockrate (void *sdp_ptr, uint16_t level,
 
 
 
-uint16_t sdp_attr_get_sprtmap_num_chan (void *sdp_ptr, uint16_t level,
+uint16_t sdp_attr_get_sprtmap_num_chan (sdp_t *sdp_p, uint16_t level,
                                   uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_SPRTMAP, inst_num);
     if (attr_p == NULL) {
@@ -4398,16 +4048,11 @@ uint16_t sdp_attr_get_sprtmap_num_chan (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_sprtmap_payload_type (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_sprtmap_payload_type (sdp_t *sdp_p, uint16_t level,
                                                uint8_t cap_num, uint16_t inst_num,
                                                uint16_t payload_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_SPRTMAP, inst_num);
     if (attr_p == NULL) {
@@ -4435,15 +4080,10 @@ sdp_result_e sdp_attr_set_sprtmap_payload_type (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_sprtmap_encname (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_result_e sdp_attr_set_sprtmap_encname (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                           uint16_t inst_num, const char *encname)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_SPRTMAP, inst_num);
     if (attr_p == NULL) {
@@ -4472,16 +4112,11 @@ sdp_result_e sdp_attr_set_sprtmap_encname (void *sdp_ptr, uint16_t level, uint8_
 
 
 
-sdp_result_e sdp_attr_set_sprtmap_clockrate (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_sprtmap_clockrate (sdp_t *sdp_p, uint16_t level,
                                             uint8_t cap_num, uint16_t inst_num,
                                             uint16_t clockrate)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_SPRTMAP, inst_num);
     if (attr_p == NULL) {
@@ -4509,16 +4144,11 @@ sdp_result_e sdp_attr_set_sprtmap_clockrate (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_sprtmap_num_chan (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_sprtmap_num_chan (sdp_t *sdp_p, uint16_t level,
                                            uint8_t cap_num, uint16_t inst_num,
                                            uint16_t num_chan)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_SPRTMAP, inst_num);
     if (attr_p == NULL) {
@@ -4555,19 +4185,14 @@ sdp_result_e sdp_attr_set_sprtmap_num_chan (void *sdp_ptr, uint16_t level,
 
 
 
-tinybool sdp_attr_fmtp_payload_valid (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+tinybool sdp_attr_fmtp_payload_valid (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                       uint16_t *inst_num, uint16_t payload_type)
 {
     uint16_t          i;
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     uint16_t          num_instances;
 
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
-
-    if (sdp_attr_num_instances(sdp_ptr, level, cap_num,
+    if (sdp_attr_num_instances(sdp_p, level, cap_num,
                                SDP_ATTR_FMTP, &num_instances) != SDP_SUCCESS) {
         return (FALSE);
     }
@@ -4595,15 +4220,10 @@ tinybool sdp_attr_fmtp_payload_valid (void *sdp_ptr, uint16_t level, uint8_t cap
 
 
 
-uint16_t sdp_attr_get_fmtp_payload_type (void *sdp_ptr, uint16_t level,
+uint16_t sdp_attr_get_fmtp_payload_type (sdp_t *sdp_p, uint16_t level,
                                     uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -4636,7 +4256,7 @@ uint16_t sdp_attr_get_fmtp_payload_type (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_ne_res_e sdp_attr_fmtp_is_range_set (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_ne_res_e sdp_attr_fmtp_is_range_set (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                          uint16_t inst_num, uint8_t low_val, uint8_t high_val)
 {
     uint16_t          i;
@@ -4644,13 +4264,8 @@ sdp_ne_res_e sdp_attr_fmtp_is_range_set (void *sdp_ptr, uint16_t level, uint8_t 
     uint32_t          bmap;
     uint32_t          num_vals = 0;
     uint32_t          num_vals_set = 0;
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_NO_MATCH);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -4700,18 +4315,13 @@ sdp_ne_res_e sdp_attr_fmtp_is_range_set (void *sdp_ptr, uint16_t level, uint8_t 
 
 
 tinybool
-sdp_attr_fmtp_valid(void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_attr_fmtp_valid(sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                     uint16_t inst_num, uint16_t appl_maxval, uint32_t* evt_array)
 {
     uint16_t          i;
     uint32_t          mapword;
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return FALSE;
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -4754,16 +4364,11 @@ sdp_attr_fmtp_valid(void *sdp_ptr, uint16_t level, uint8_t cap_num,
 
 
 
-sdp_result_e sdp_attr_set_fmtp_payload_type (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_payload_type (sdp_t *sdp_p, uint16_t level,
                                              uint8_t cap_num, uint16_t inst_num,
                                              uint16_t payload_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -4789,16 +4394,11 @@ sdp_result_e sdp_attr_set_fmtp_payload_type (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_fmtp_bitmap(void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_bitmap(sdp_t *sdp_p, uint16_t level,
                            uint8_t cap_num, uint16_t inst_num, uint32_t *bmap, uint32_t maxval)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -4827,16 +4427,11 @@ sdp_result_e sdp_attr_set_fmtp_bitmap(void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_fmtp_range (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_result_e sdp_attr_get_fmtp_range (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                       uint16_t inst_num, uint32_t *bmap)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -4866,19 +4461,14 @@ sdp_result_e sdp_attr_get_fmtp_range (void *sdp_ptr, uint16_t level, uint8_t cap
 
 
 
-sdp_result_e sdp_attr_set_fmtp_range (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_result_e sdp_attr_set_fmtp_range (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                       uint16_t inst_num, uint8_t low_val, uint8_t high_val)
 {
     uint16_t          i;
     uint32_t          mapword;
     uint32_t          bmap;
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -4915,19 +4505,14 @@ sdp_result_e sdp_attr_set_fmtp_range (void *sdp_ptr, uint16_t level, uint8_t cap
 
 
 
-sdp_result_e sdp_attr_clear_fmtp_range (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_result_e sdp_attr_clear_fmtp_range (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                         uint16_t inst_num, uint8_t low_val, uint8_t high_val)
 {
     uint16_t          i;
     uint32_t          mapword;
     uint32_t          bmap;
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -4967,7 +4552,7 @@ sdp_result_e sdp_attr_clear_fmtp_range (void *sdp_ptr, uint16_t level, uint8_t c
 
 
 
-sdp_ne_res_e sdp_attr_compare_fmtp_ranges (void *src_sdp_ptr,void *dst_sdp_ptr,
+sdp_ne_res_e sdp_attr_compare_fmtp_ranges (sdp_t *src_sdp_p,sdp_t *dst_sdp_p,
                                            uint16_t src_level, uint16_t dst_level,
                                            uint8_t src_cap_num, uint8_t dst_cap_num,
                                            uint16_t src_inst_num, uint16_t dst_inst_num)
@@ -4975,17 +4560,10 @@ sdp_ne_res_e sdp_attr_compare_fmtp_ranges (void *src_sdp_ptr,void *dst_sdp_ptr,
     uint16_t          i,j;
     uint32_t          bmap;
     uint32_t          num_vals_match = 0;
-    sdp_t       *src_sdp_p = (sdp_t *)src_sdp_ptr;
-    sdp_t       *dst_sdp_p = (sdp_t *)dst_sdp_ptr;
     sdp_attr_t  *src_attr_p;
     sdp_attr_t  *dst_attr_p;
     sdp_fmtp_t  *src_fmtp_p;
     sdp_fmtp_t  *dst_fmtp_p;
-
-    if ((sdp_verify_sdp_ptr(src_sdp_p) == FALSE) ||
-        (sdp_verify_sdp_ptr(dst_sdp_p) == FALSE)) {
-        return (SDP_NO_MATCH);
-    }
 
     src_attr_p = sdp_find_attr(src_sdp_p, src_level, src_cap_num,
                                SDP_ATTR_FMTP, src_inst_num);
@@ -5035,21 +4613,18 @@ sdp_ne_res_e sdp_attr_compare_fmtp_ranges (void *src_sdp_ptr,void *dst_sdp_ptr,
 
 
 
-sdp_result_e sdp_attr_copy_fmtp_ranges (void *src_sdp_ptr, void *dst_sdp_ptr,
+sdp_result_e sdp_attr_copy_fmtp_ranges (sdp_t *src_sdp_p, sdp_t *dst_sdp_p,
                                         uint16_t src_level, uint16_t dst_level,
                                         uint8_t src_cap_num, uint8_t dst_cap_num,
                                         uint16_t src_inst_num, uint16_t dst_inst_num)
 {
     uint16_t          i;
-    sdp_t       *src_sdp_p = (sdp_t *)src_sdp_ptr;
-    sdp_t       *dst_sdp_p = (sdp_t *)dst_sdp_ptr;
     sdp_attr_t  *src_attr_p;
     sdp_attr_t  *dst_attr_p;
     sdp_fmtp_t  *src_fmtp_p;
     sdp_fmtp_t  *dst_fmtp_p;
 
-    if ((sdp_verify_sdp_ptr(src_sdp_p) == FALSE) ||
-        (sdp_verify_sdp_ptr(dst_sdp_p) == FALSE)) {
+    if (!src_sdp_p || !dst_sdp_p) {
         return (SDP_INVALID_SDP_PTR);
     }
 
@@ -5087,18 +4662,13 @@ sdp_result_e sdp_attr_copy_fmtp_ranges (void *src_sdp_ptr, void *dst_sdp_ptr,
 
 
 
-sdp_result_e sdp_attr_set_fmtp_annexa (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_annexa (sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num,
                                        tinybool annexa)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -5130,17 +4700,12 @@ sdp_result_e sdp_attr_set_fmtp_annexa (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_fmtp_annexb  (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_annexb  (sdp_t *sdp_p, uint16_t level,
                                         uint8_t cap_num, uint16_t inst_num,
                                         tinybool annexb)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-   if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-   }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -5169,17 +4734,13 @@ sdp_result_e sdp_attr_set_fmtp_annexb  (void *sdp_ptr, uint16_t level,
 
 
 
-uint32_t sdp_attr_get_fmtp_mode_for_payload_type (void *sdp_ptr, uint16_t level,
+uint32_t sdp_attr_get_fmtp_mode_for_payload_type (sdp_t *sdp_p, uint16_t level,
                                              uint8_t cap_num, uint32_t payload_type)
 {
     uint16_t          num_a_lines = 0;
     int          i;
-    sdp_t       *sdp_p = sdp_ptr;
     sdp_attr_t  *attr_p;
 
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
     
 
 
@@ -5209,17 +4770,12 @@ uint32_t sdp_attr_get_fmtp_mode_for_payload_type (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_fmtp_mode  (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_mode  (sdp_t *sdp_p, uint16_t level,
                                       uint8_t cap_num, uint16_t inst_num,
                                       uint32_t mode)
 {
-    sdp_t       *sdp_p = sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -5249,19 +4805,14 @@ sdp_result_e sdp_attr_set_fmtp_mode  (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_fmtp_bitrate_type  (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_bitrate_type  (sdp_t *sdp_p, uint16_t level,
                                              uint8_t cap_num, uint16_t inst_num,
                                              uint32_t bitrate)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
     if (bitrate <= 0) {
-        return (SDP_INVALID_PARAMETER);
-    }
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_PARAMETER);
     }
 
@@ -5293,19 +4844,14 @@ sdp_result_e sdp_attr_set_fmtp_bitrate_type  (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_fmtp_cif  (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_cif  (sdp_t *sdp_p, uint16_t level,
                                      uint8_t cap_num, uint16_t inst_num,
                                      uint16_t cif)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
     if ((cif < SDP_MIN_CIF_VALUE) || ( cif > SDP_MAX_CIF_VALUE)) {
-        return (SDP_INVALID_PARAMETER);
-    }
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_PARAMETER);
     }
 
@@ -5337,19 +4883,14 @@ sdp_result_e sdp_attr_set_fmtp_cif  (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_fmtp_qcif  (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_qcif  (sdp_t *sdp_p, uint16_t level,
                                      uint8_t cap_num, uint16_t inst_num,
                                      uint16_t qcif)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
     if ((qcif < SDP_MIN_CIF_VALUE) || ( qcif > SDP_MAX_CIF_VALUE)) {
-        return (SDP_INVALID_PARAMETER);
-    }
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_PARAMETER);
     }
 
@@ -5380,19 +4921,14 @@ sdp_result_e sdp_attr_set_fmtp_qcif  (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_fmtp_sqcif  (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_sqcif  (sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num,
                                        uint16_t sqcif)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
     if ((sqcif < SDP_MIN_CIF_VALUE) || (sqcif > SDP_MAX_CIF_VALUE)) {
-        return (SDP_INVALID_PARAMETER);
-    }
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_PARAMETER);
     }
 
@@ -5425,19 +4961,14 @@ sdp_result_e sdp_attr_set_fmtp_sqcif  (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_fmtp_cif4  (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_cif4  (sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num,
                                        uint16_t cif4)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
     if ((cif4 < SDP_MIN_CIF_VALUE) || (cif4 > SDP_MAX_CIF_VALUE)) {
-        return (SDP_INVALID_PARAMETER);
-    }
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_PARAMETER);
     }
 
@@ -5469,19 +5000,14 @@ sdp_result_e sdp_attr_set_fmtp_cif4  (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_fmtp_cif16  (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_cif16  (sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num,
                                        uint16_t cif16)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
     if ((cif16 < SDP_MIN_CIF_VALUE) || (cif16 > SDP_MAX_CIF_VALUE)) {
-        return (SDP_INVALID_PARAMETER);
-    }
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_PARAMETER);
     }
 
@@ -5515,19 +5041,14 @@ sdp_result_e sdp_attr_set_fmtp_cif16  (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_fmtp_maxbr  (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_maxbr  (sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num,
                                        uint16_t maxbr)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
     if (maxbr <= 0) {
-        return (SDP_INVALID_PARAMETER);
-    }
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_PARAMETER);
     }
 
@@ -5560,19 +5081,14 @@ sdp_result_e sdp_attr_set_fmtp_maxbr  (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_fmtp_custom  (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_custom  (sdp_t *sdp_p, uint16_t level,
                                         uint8_t cap_num, uint16_t inst_num,
                                         uint16_t custom_x, uint16_t custom_y, uint16_t custom_mpi)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
     if ((custom_x <= 0) || (custom_y <= 0) || (custom_mpi <= 0)) {
-        return (SDP_INVALID_PARAMETER);
-    }
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_PARAMETER);
     }
 
@@ -5607,19 +5123,14 @@ sdp_result_e sdp_attr_set_fmtp_custom  (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_fmtp_par  (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_par  (sdp_t *sdp_p, uint16_t level,
                                      uint8_t cap_num, uint16_t inst_num,
                                      uint16_t par_width, uint16_t par_height)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
     if ((par_width <= 0) || (par_height <= 0)) {
-        return (SDP_INVALID_PARAMETER);
-    }
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_PARAMETER);
     }
 
@@ -5653,19 +5164,14 @@ sdp_result_e sdp_attr_set_fmtp_par  (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_fmtp_cpcf (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_cpcf (sdp_t *sdp_p, uint16_t level,
                                      uint8_t cap_num, uint16_t inst_num,
                                      uint16_t cpcf)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
     if (cpcf <= 0) {
-        return (SDP_INVALID_PARAMETER);
-    }
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_PARAMETER);
     }
 
@@ -5698,19 +5204,14 @@ sdp_result_e sdp_attr_set_fmtp_cpcf (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_fmtp_bpp (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_bpp (sdp_t *sdp_p, uint16_t level,
                                     uint8_t cap_num, uint16_t inst_num,
                                     uint16_t bpp)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
     if (bpp <= 0) {
-        return (SDP_INVALID_PARAMETER);
-    }
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_PARAMETER);
     }
 
@@ -5743,18 +5244,13 @@ sdp_result_e sdp_attr_set_fmtp_bpp (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_fmtp_hrd (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_hrd (sdp_t *sdp_p, uint16_t level,
                                     uint8_t cap_num, uint16_t inst_num, uint16_t hrd)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
     if (hrd <= 0) {
-        return (SDP_INVALID_PARAMETER);
-    }
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_PARAMETER);
     }
 
@@ -5774,20 +5270,15 @@ sdp_result_e sdp_attr_set_fmtp_hrd (void *sdp_ptr, uint16_t level,
     return (SDP_SUCCESS);
 }
 
-sdp_result_e sdp_attr_set_fmtp_h263_num_params (void *sdp_ptr, int16_t level,
+sdp_result_e sdp_attr_set_fmtp_h263_num_params (sdp_t *sdp_p, int16_t level,
                                                 uint8_t cap_num, uint16_t inst_num,
                                                 int16_t profile,
                                                 uint16_t h263_level,
                                                 tinybool interlace)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -5821,17 +5312,12 @@ sdp_result_e sdp_attr_set_fmtp_h263_num_params (void *sdp_ptr, int16_t level,
     return (SDP_SUCCESS);
 }
 
-sdp_result_e sdp_attr_set_fmtp_profile_level_id (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_profile_level_id (sdp_t *sdp_p, uint16_t level,
                                                 uint8_t cap_num, uint16_t inst_num,
                                                 const char *profile_level_id)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -5853,17 +5339,12 @@ sdp_result_e sdp_attr_set_fmtp_profile_level_id (void *sdp_ptr, uint16_t level,
     return (SDP_SUCCESS);
 }
 
-sdp_result_e sdp_attr_set_fmtp_parameter_sets (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_parameter_sets (sdp_t *sdp_p, uint16_t level,
                                                uint8_t cap_num, uint16_t inst_num,
                                                const char *parameter_sets)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -5884,19 +5365,14 @@ sdp_result_e sdp_attr_set_fmtp_parameter_sets (void *sdp_ptr, uint16_t level,
     return (SDP_SUCCESS);
 }
 
-sdp_result_e sdp_attr_set_fmtp_pack_mode (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_pack_mode (sdp_t *sdp_p, uint16_t level,
                                           uint8_t cap_num, uint16_t inst_num,
                                           uint16_t pack_mode)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
     if (pack_mode > SDP_MAX_PACKETIZATION_MODE_VALUE) {
-        return (SDP_INVALID_PARAMETER);
-    }
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
         return (SDP_INVALID_PARAMETER);
     }
 
@@ -5917,17 +5393,12 @@ sdp_result_e sdp_attr_set_fmtp_pack_mode (void *sdp_ptr, uint16_t level,
     return (SDP_SUCCESS);
 }
 
-sdp_result_e sdp_attr_set_fmtp_level_asymmetry_allowed (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_level_asymmetry_allowed (sdp_t *sdp_p, uint16_t level,
                                           uint8_t cap_num, uint16_t inst_num,
                                           uint16_t asym_allowed)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -5946,18 +5417,13 @@ sdp_result_e sdp_attr_set_fmtp_level_asymmetry_allowed (void *sdp_ptr, uint16_t 
     return (SDP_SUCCESS);
 }
 
-sdp_result_e sdp_attr_set_fmtp_deint_buf_req (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_deint_buf_req (sdp_t *sdp_p, uint16_t level,
                                                 uint8_t cap_num, uint16_t inst_num,
                                                 uint32_t deint_buf_req)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -5977,18 +5443,13 @@ sdp_result_e sdp_attr_set_fmtp_deint_buf_req (void *sdp_ptr, uint16_t level,
     return (SDP_SUCCESS);
 }
 
-sdp_result_e sdp_attr_set_fmtp_init_buf_time (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_init_buf_time (sdp_t *sdp_p, uint16_t level,
                                                 uint8_t cap_num, uint16_t inst_num,
                                                 uint32_t init_buf_time)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6008,18 +5469,13 @@ sdp_result_e sdp_attr_set_fmtp_init_buf_time (void *sdp_ptr, uint16_t level,
     return (SDP_SUCCESS);
 }
 
-sdp_result_e sdp_attr_set_fmtp_max_don_diff (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_max_don_diff (sdp_t *sdp_p, uint16_t level,
                                                 uint8_t cap_num, uint16_t inst_num,
                                                 uint32_t max_don_diff)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6038,18 +5494,13 @@ sdp_result_e sdp_attr_set_fmtp_max_don_diff (void *sdp_ptr, uint16_t level,
     return (SDP_SUCCESS);
 }
 
-sdp_result_e sdp_attr_set_fmtp_interleaving_depth (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_interleaving_depth (sdp_t *sdp_p, uint16_t level,
                                                 uint8_t cap_num, uint16_t inst_num,
                                                 uint16_t interleaving_depth)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6068,18 +5519,13 @@ sdp_result_e sdp_attr_set_fmtp_interleaving_depth (void *sdp_ptr, uint16_t level
     return (SDP_SUCCESS);
 }
 
-sdp_result_e sdp_attr_set_fmtp_redundant_pic_cap (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_redundant_pic_cap (sdp_t *sdp_p, uint16_t level,
                                                uint8_t cap_num, uint16_t inst_num,
                                                tinybool redundant_pic_cap)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6102,17 +5548,12 @@ sdp_result_e sdp_attr_set_fmtp_redundant_pic_cap (void *sdp_ptr, uint16_t level,
     }
 }
 
-sdp_result_e sdp_attr_set_fmtp_max_mbps (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_max_mbps (sdp_t *sdp_p, uint16_t level,
                                          uint8_t cap_num, uint16_t inst_num,
                                          uint32_t max_mbps)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6135,17 +5576,12 @@ sdp_result_e sdp_attr_set_fmtp_max_mbps (void *sdp_ptr, uint16_t level,
     }
 }
 
-sdp_result_e sdp_attr_set_fmtp_max_fs (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_max_fs (sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num,
                                        uint32_t max_fs)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6168,17 +5604,12 @@ sdp_result_e sdp_attr_set_fmtp_max_fs (void *sdp_ptr, uint16_t level,
     }
 }
 
-sdp_result_e sdp_attr_set_fmtp_max_fr (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_max_fr (sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num,
                                        uint32_t max_fr)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6201,17 +5632,12 @@ sdp_result_e sdp_attr_set_fmtp_max_fr (void *sdp_ptr, uint16_t level,
     }
 }
 
-sdp_result_e sdp_attr_set_fmtp_max_br (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_max_br (sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num,
                                        uint32_t max_br)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6234,17 +5660,12 @@ sdp_result_e sdp_attr_set_fmtp_max_br (void *sdp_ptr, uint16_t level,
     }
 }
 
-sdp_result_e sdp_attr_set_fmtp_max_average_bitrate (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_max_average_bitrate (sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num,
                                        uint32_t maxaveragebitrate)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6277,15 +5698,10 @@ sdp_result_e sdp_attr_set_fmtp_max_average_bitrate (void *sdp_ptr, uint16_t leve
 
 
 
-sdp_result_e sdp_attr_get_fmtp_max_average_bitrate (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_fmtp_max_average_bitrate (sdp_t *sdp_p, uint16_t level,
                              uint8_t cap_num, uint16_t inst_num, uint32_t* val)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, 1);
     if (attr_p == NULL) {
@@ -6302,17 +5718,12 @@ sdp_result_e sdp_attr_get_fmtp_max_average_bitrate (void *sdp_ptr, uint16_t leve
 }
 
 
-sdp_result_e sdp_attr_set_fmtp_usedtx (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_usedtx (sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num,
                                        tinybool usedtx)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6346,15 +5757,10 @@ sdp_result_e sdp_attr_set_fmtp_usedtx (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_fmtp_usedtx (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_fmtp_usedtx (sdp_t *sdp_p, uint16_t level,
                              uint8_t cap_num, uint16_t inst_num, tinybool* val)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -6371,17 +5777,12 @@ sdp_result_e sdp_attr_get_fmtp_usedtx (void *sdp_ptr, uint16_t level,
     }
 }
 
-sdp_result_e sdp_attr_set_fmtp_stereo (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_stereo (sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num,
                                        tinybool stereo)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6415,15 +5816,10 @@ sdp_result_e sdp_attr_set_fmtp_stereo (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_fmtp_stereo (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_fmtp_stereo (sdp_t *sdp_p, uint16_t level,
                              uint8_t cap_num, uint16_t inst_num, tinybool* val)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -6440,17 +5836,12 @@ sdp_result_e sdp_attr_get_fmtp_stereo (void *sdp_ptr, uint16_t level,
     }
 }
 
-sdp_result_e sdp_attr_set_fmtp_useinbandfec (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_useinbandfec (sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num,
                                        tinybool useinbandfec)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6484,15 +5875,10 @@ sdp_result_e sdp_attr_set_fmtp_useinbandfec (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_fmtp_useinbandfec (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_fmtp_useinbandfec (sdp_t *sdp_p, uint16_t level,
                              uint8_t cap_num, uint16_t inst_num, tinybool* val)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -6509,17 +5895,12 @@ sdp_result_e sdp_attr_get_fmtp_useinbandfec (void *sdp_ptr, uint16_t level,
     }
 }
 
-sdp_result_e sdp_attr_set_fmtp_maxcodedaudiobandwidth (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_maxcodedaudiobandwidth (sdp_t *sdp_p, uint16_t level,
                                                 uint8_t cap_num, uint16_t inst_num,
                                                 const char *maxcodedaudiobandwidth)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6550,16 +5931,11 @@ sdp_result_e sdp_attr_set_fmtp_maxcodedaudiobandwidth (void *sdp_ptr, uint16_t l
 
 
 
-char* sdp_attr_get_fmtp_maxcodedaudiobandwidth (void *sdp_ptr, uint16_t level,
+char* sdp_attr_get_fmtp_maxcodedaudiobandwidth (sdp_t *sdp_p, uint16_t level,
                                           uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -6575,17 +5951,12 @@ char* sdp_attr_get_fmtp_maxcodedaudiobandwidth (void *sdp_ptr, uint16_t level,
     }
 }
 
-sdp_result_e sdp_attr_set_fmtp_cbr (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_cbr (sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num,
                                        tinybool cbr)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6619,15 +5990,10 @@ sdp_result_e sdp_attr_set_fmtp_cbr (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_fmtp_cbr (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_fmtp_cbr (sdp_t *sdp_p, uint16_t level,
                              uint8_t cap_num, uint16_t inst_num, tinybool* val)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -6644,15 +6010,10 @@ sdp_result_e sdp_attr_get_fmtp_cbr (void *sdp_ptr, uint16_t level,
     }
 }
 
-uint16_t sdp_attr_get_sctpmap_port(void *sdp_ptr, uint16_t level,
+uint16_t sdp_attr_get_sctpmap_port(sdp_t *sdp_p, uint16_t level,
                               uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (!sdp_verify_sdp_ptr(sdp_p)) {
-        return 0;
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_SCTPMAP, inst_num);
     if (!attr_p) {
@@ -6667,16 +6028,11 @@ uint16_t sdp_attr_get_sctpmap_port(void *sdp_ptr, uint16_t level,
     }
 }
 
-sdp_result_e sdp_attr_set_sctpmap_port(void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_sctpmap_port(sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num,
                                        uint16_t port)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (!sdp_verify_sdp_ptr(sdp_p)) {
-        return SDP_INVALID_SDP_PTR;
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_SCTPMAP, inst_num);
     if (!attr_p) {
@@ -6692,15 +6048,10 @@ sdp_result_e sdp_attr_set_sctpmap_port(void *sdp_ptr, uint16_t level,
     }
 }
 
-sdp_result_e sdp_attr_get_sctpmap_streams (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_sctpmap_streams (sdp_t *sdp_p, uint16_t level,
                              uint8_t cap_num, uint16_t inst_num, uint32_t* val)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_SCTPMAP, inst_num);
     if (!attr_p) {
@@ -6716,17 +6067,12 @@ sdp_result_e sdp_attr_get_sctpmap_streams (void *sdp_ptr, uint16_t level,
     }
 }
 
-sdp_result_e sdp_attr_set_sctpmap_streams (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_sctpmap_streams (sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num,
                                        uint32_t streams)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_SCTPMAP, inst_num);
     if (!attr_p) {
@@ -6749,17 +6095,12 @@ sdp_result_e sdp_attr_set_sctpmap_streams (void *sdp_ptr, uint16_t level,
     }
 }
 
-sdp_result_e sdp_attr_set_sctpmap_protocol(void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_sctpmap_protocol(sdp_t *sdp_p, uint16_t level,
                                            uint8_t cap_num, uint16_t inst_num,
                                            const char *protocol)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_SCTPMAP, inst_num);
     if (!attr_p) {
@@ -6781,17 +6122,12 @@ sdp_result_e sdp_attr_set_sctpmap_protocol(void *sdp_ptr, uint16_t level,
     return (SDP_SUCCESS);
 }
 
-sdp_result_e sdp_attr_get_sctpmap_protocol (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_sctpmap_protocol (sdp_t *sdp_p, uint16_t level,
                                             uint8_t cap_num, uint16_t inst_num,
                                             char* protocol)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_SCTPMAP,
                            inst_num);
@@ -6808,17 +6144,12 @@ sdp_result_e sdp_attr_get_sctpmap_protocol (void *sdp_ptr, uint16_t level,
     return (SDP_SUCCESS);
 }
 
-sdp_result_e sdp_attr_set_fmtp_max_cpb (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_max_cpb (sdp_t *sdp_p, uint16_t level,
                                         uint8_t cap_num, uint16_t inst_num,
                                         uint32_t max_cpb)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6841,17 +6172,12 @@ sdp_result_e sdp_attr_set_fmtp_max_cpb (void *sdp_ptr, uint16_t level,
     }
 }
 
-sdp_result_e sdp_attr_set_fmtp_max_dpb (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_max_dpb (sdp_t *sdp_p, uint16_t level,
                                         uint8_t cap_num, uint16_t inst_num,
                                         uint32_t max_dpb)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6874,18 +6200,13 @@ sdp_result_e sdp_attr_set_fmtp_max_dpb (void *sdp_ptr, uint16_t level,
     }
 }
 
-sdp_result_e sdp_attr_set_fmtp_max_rcmd_nalu_size (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_max_rcmd_nalu_size (sdp_t *sdp_p, uint16_t level,
                                                uint8_t cap_num, uint16_t inst_num,
                                                uint32_t max_rcmd_nalu_size)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6905,18 +6226,13 @@ sdp_result_e sdp_attr_set_fmtp_max_rcmd_nalu_size (void *sdp_ptr, uint16_t level
     return (SDP_SUCCESS);
 }
 
-sdp_result_e sdp_attr_set_fmtp_deint_buf_cap (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_deint_buf_cap (sdp_t *sdp_p, uint16_t level,
                                                uint8_t cap_num, uint16_t inst_num,
                                                uint32_t deint_buf_cap)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6936,18 +6252,12 @@ sdp_result_e sdp_attr_set_fmtp_deint_buf_cap (void *sdp_ptr, uint16_t level,
     return (SDP_SUCCESS);
 }
 
-sdp_result_e sdp_attr_set_fmtp_h264_parameter_add (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_h264_parameter_add (sdp_t *sdp_p, uint16_t level,
                                               uint8_t cap_num, uint16_t inst_num,
                                               uint16_t parameter_add)
 {
-
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6966,17 +6276,12 @@ sdp_result_e sdp_attr_set_fmtp_h264_parameter_add (void *sdp_ptr, uint16_t level
     return (SDP_SUCCESS);
 }
 
-sdp_result_e sdp_attr_set_fmtp_h261_annex_params (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_h261_annex_params (sdp_t *sdp_p, uint16_t level,
                                                   uint8_t cap_num, uint16_t inst_num,
                                                   tinybool annex_d) {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -6995,7 +6300,7 @@ sdp_result_e sdp_attr_set_fmtp_h261_annex_params (void *sdp_ptr, uint16_t level,
     return (SDP_SUCCESS);
 }
 
-sdp_result_e sdp_attr_set_fmtp_h263_annex_params (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_fmtp_h263_annex_params (sdp_t *sdp_p, uint16_t level,
                                                   uint8_t cap_num, uint16_t inst_num,
                                                   tinybool annex_f,
                                                   tinybool annex_i,
@@ -7007,14 +6312,9 @@ sdp_result_e sdp_attr_set_fmtp_h263_annex_params (void *sdp_ptr, uint16_t level,
                                                   uint16_t annex_p_val_warp)
 
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_fmtp_t  *fmtp_p;
 
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_PARAMETER);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP, inst_num);
     if (attr_p == NULL) {
@@ -7057,16 +6357,11 @@ sdp_result_e sdp_attr_set_fmtp_h263_annex_params (void *sdp_ptr, uint16_t level,
 
 
 
-tinybool sdp_attr_fmtp_is_annexb_set (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+tinybool sdp_attr_fmtp_is_annexb_set (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                       uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7094,15 +6389,10 @@ tinybool sdp_attr_fmtp_is_annexb_set (void *sdp_ptr, uint16_t level, uint8_t cap
 
 
 
-tinybool sdp_attr_fmtp_is_annexa_set (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+tinybool sdp_attr_fmtp_is_annexa_set (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                       uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-   if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-   }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7128,16 +6418,11 @@ tinybool sdp_attr_fmtp_is_annexa_set (void *sdp_ptr, uint16_t level, uint8_t cap
 
 
 
-int32_t sdp_attr_get_fmtp_bitrate_type (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_bitrate_type (sdp_t *sdp_p, uint16_t level,
                                       uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7163,16 +6448,11 @@ int32_t sdp_attr_get_fmtp_bitrate_type (void *sdp_ptr, uint16_t level,
 
 
 
-int32_t sdp_attr_get_fmtp_qcif (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_qcif (sdp_t *sdp_p, uint16_t level,
                             uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7197,16 +6477,11 @@ int32_t sdp_attr_get_fmtp_qcif (void *sdp_ptr, uint16_t level,
 
 
 
-int32_t sdp_attr_get_fmtp_cif (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_cif (sdp_t *sdp_p, uint16_t level,
                              uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7233,16 +6508,11 @@ int32_t sdp_attr_get_fmtp_cif (void *sdp_ptr, uint16_t level,
 
 
 
-int32_t sdp_attr_get_fmtp_sqcif (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_sqcif (sdp_t *sdp_p, uint16_t level,
                                uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7268,16 +6538,11 @@ int32_t sdp_attr_get_fmtp_sqcif (void *sdp_ptr, uint16_t level,
 
 
 
-int32_t sdp_attr_get_fmtp_cif4 (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_cif4 (sdp_t *sdp_p, uint16_t level,
                               uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7304,16 +6569,11 @@ int32_t sdp_attr_get_fmtp_cif4 (void *sdp_ptr, uint16_t level,
 
 
 
-int32_t sdp_attr_get_fmtp_cif16 (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_cif16 (sdp_t *sdp_p, uint16_t level,
                                uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7340,16 +6600,11 @@ int32_t sdp_attr_get_fmtp_cif16 (void *sdp_ptr, uint16_t level,
 
 
 
-int32_t sdp_attr_get_fmtp_maxbr (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_maxbr (sdp_t *sdp_p, uint16_t level,
                                uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7376,16 +6631,11 @@ int32_t sdp_attr_get_fmtp_maxbr (void *sdp_ptr, uint16_t level,
 
 
 
-int32_t sdp_attr_get_fmtp_custom_x (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_custom_x (sdp_t *sdp_p, uint16_t level,
                                   uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7411,16 +6661,11 @@ int32_t sdp_attr_get_fmtp_custom_x (void *sdp_ptr, uint16_t level,
 
 
 
-int32_t sdp_attr_get_fmtp_custom_y (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_custom_y (sdp_t *sdp_p, uint16_t level,
                                   uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7447,16 +6692,11 @@ int32_t sdp_attr_get_fmtp_custom_y (void *sdp_ptr, uint16_t level,
 
 
 
-int32_t sdp_attr_get_fmtp_custom_mpi (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_custom_mpi (sdp_t *sdp_p, uint16_t level,
                                     uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7481,16 +6721,11 @@ int32_t sdp_attr_get_fmtp_custom_mpi (void *sdp_ptr, uint16_t level,
 
 
 
-int32_t sdp_attr_get_fmtp_par_width (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_par_width (sdp_t *sdp_p, uint16_t level,
                                    uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7515,16 +6750,11 @@ int32_t sdp_attr_get_fmtp_par_width (void *sdp_ptr, uint16_t level,
 
 
 
-int32_t sdp_attr_get_fmtp_par_height (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_par_height (sdp_t *sdp_p, uint16_t level,
                                     uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7549,16 +6779,11 @@ int32_t sdp_attr_get_fmtp_par_height (void *sdp_ptr, uint16_t level,
 
 
 
-int32_t sdp_attr_get_fmtp_cpcf (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_cpcf (sdp_t *sdp_p, uint16_t level,
                               uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7583,16 +6808,11 @@ int32_t sdp_attr_get_fmtp_cpcf (void *sdp_ptr, uint16_t level,
 
 
 
-int32_t sdp_attr_get_fmtp_bpp (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_bpp (sdp_t *sdp_p, uint16_t level,
                              uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7617,16 +6837,11 @@ int32_t sdp_attr_get_fmtp_bpp (void *sdp_ptr, uint16_t level,
 
 
 
-int32_t sdp_attr_get_fmtp_hrd (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_hrd (sdp_t *sdp_p, uint16_t level,
                              uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7651,16 +6866,11 @@ int32_t sdp_attr_get_fmtp_hrd (void *sdp_ptr, uint16_t level,
 
 
 
-int32_t sdp_attr_get_fmtp_profile (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_profile (sdp_t *sdp_p, uint16_t level,
                                  uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7685,16 +6895,11 @@ int32_t sdp_attr_get_fmtp_profile (void *sdp_ptr, uint16_t level,
 
 
 
-int32_t sdp_attr_get_fmtp_level (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_level (sdp_t *sdp_p, uint16_t level,
                                uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7719,16 +6924,11 @@ int32_t sdp_attr_get_fmtp_level (void *sdp_ptr, uint16_t level,
 
 
 
-tinybool sdp_attr_get_fmtp_interlace (void *sdp_ptr, uint16_t level,
+tinybool sdp_attr_get_fmtp_interlace (sdp_t *sdp_p, uint16_t level,
                                       uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return FALSE;
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7754,16 +6954,11 @@ tinybool sdp_attr_get_fmtp_interlace (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_fmtp_pack_mode (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_fmtp_pack_mode (sdp_t *sdp_p, uint16_t level,
                                  uint8_t cap_num, uint16_t inst_num, uint16_t *val)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7795,16 +6990,11 @@ sdp_result_e sdp_attr_get_fmtp_pack_mode (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_fmtp_level_asymmetry_allowed (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_fmtp_level_asymmetry_allowed (sdp_t *sdp_p, uint16_t level,
                                  uint8_t cap_num, uint16_t inst_num, uint16_t *val)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7830,16 +7020,11 @@ sdp_result_e sdp_attr_get_fmtp_level_asymmetry_allowed (void *sdp_ptr, uint16_t 
 
 
 
-const char* sdp_attr_get_fmtp_profile_id (void *sdp_ptr, uint16_t level,
+const char* sdp_attr_get_fmtp_profile_id (sdp_t *sdp_p, uint16_t level,
                                           uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7864,16 +7049,11 @@ const char* sdp_attr_get_fmtp_profile_id (void *sdp_ptr, uint16_t level,
 
 
 
-const char* sdp_attr_get_fmtp_param_sets (void *sdp_ptr, uint16_t level,
+const char* sdp_attr_get_fmtp_param_sets (sdp_t *sdp_p, uint16_t level,
                                           uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7899,15 +7079,10 @@ const char* sdp_attr_get_fmtp_param_sets (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_fmtp_interleaving_depth (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_fmtp_interleaving_depth (sdp_t *sdp_p, uint16_t level,
                                             uint8_t cap_num, uint16_t inst_num, uint16_t* val)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7934,16 +7109,11 @@ sdp_result_e sdp_attr_get_fmtp_interleaving_depth (void *sdp_ptr, uint16_t level
 
 
 
-sdp_result_e sdp_attr_get_fmtp_deint_buf_req (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_fmtp_deint_buf_req (sdp_t *sdp_p, uint16_t level,
                                              uint8_t cap_num, uint16_t inst_num,
                                              uint32_t *val)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -7973,16 +7143,11 @@ sdp_result_e sdp_attr_get_fmtp_deint_buf_req (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_fmtp_max_don_diff (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_fmtp_max_don_diff (sdp_t *sdp_p, uint16_t level,
                                       uint8_t cap_num, uint16_t inst_num,
                                       uint32_t *val)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8008,16 +7173,11 @@ sdp_result_e sdp_attr_get_fmtp_max_don_diff (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_fmtp_init_buf_time (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_fmtp_init_buf_time (sdp_t *sdp_p, uint16_t level,
                                              uint8_t cap_num, uint16_t inst_num,
                                              uint32_t *val)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8048,16 +7208,11 @@ sdp_result_e sdp_attr_get_fmtp_init_buf_time (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_fmtp_max_mbps (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_fmtp_max_mbps (sdp_t *sdp_p, uint16_t level,
                                 uint8_t cap_num, uint16_t inst_num,
                                 uint32_t *val)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8084,15 +7239,10 @@ sdp_result_e sdp_attr_get_fmtp_max_mbps (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_fmtp_max_fs (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_fmtp_max_fs (sdp_t *sdp_p, uint16_t level,
                              uint8_t cap_num, uint16_t inst_num, uint32_t *val)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8119,15 +7269,10 @@ sdp_result_e sdp_attr_get_fmtp_max_fs (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_fmtp_max_fr (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_fmtp_max_fr (sdp_t *sdp_p, uint16_t level,
                              uint8_t cap_num, uint16_t inst_num, uint32_t *val)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8154,15 +7299,10 @@ sdp_result_e sdp_attr_get_fmtp_max_fr (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_fmtp_max_cpb (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_fmtp_max_cpb (sdp_t *sdp_p, uint16_t level,
                                  uint8_t cap_num, uint16_t inst_num, uint32_t *val)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8189,15 +7329,10 @@ sdp_result_e sdp_attr_get_fmtp_max_cpb (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_fmtp_max_dpb (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_fmtp_max_dpb (sdp_t *sdp_p, uint16_t level,
                                uint8_t cap_num, uint16_t inst_num, uint32_t *val)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8225,15 +7360,10 @@ sdp_result_e sdp_attr_get_fmtp_max_dpb (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_fmtp_max_br (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_fmtp_max_br (sdp_t *sdp_p, uint16_t level,
                              uint8_t cap_num, uint16_t inst_num, uint32_t* val)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8259,16 +7389,11 @@ sdp_result_e sdp_attr_get_fmtp_max_br (void *sdp_ptr, uint16_t level,
 
 
 
-tinybool sdp_attr_fmtp_is_redundant_pic_cap (void *sdp_ptr, uint16_t level,
+tinybool sdp_attr_fmtp_is_redundant_pic_cap (sdp_t *sdp_p, uint16_t level,
                                              uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8294,17 +7419,12 @@ tinybool sdp_attr_fmtp_is_redundant_pic_cap (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_fmtp_deint_buf_cap (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_fmtp_deint_buf_cap (sdp_t *sdp_p, uint16_t level,
                                              uint8_t cap_num, uint16_t inst_num,
                                              uint32_t *val)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8334,17 +7454,12 @@ sdp_result_e sdp_attr_get_fmtp_deint_buf_cap (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_get_fmtp_max_rcmd_nalu_size (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_get_fmtp_max_rcmd_nalu_size (sdp_t *sdp_p, uint16_t level,
                                                   uint8_t cap_num, uint16_t inst_num,
                                                   uint32_t *val)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8374,16 +7489,11 @@ sdp_result_e sdp_attr_get_fmtp_max_rcmd_nalu_size (void *sdp_ptr, uint16_t level
 
 
 
-tinybool sdp_attr_fmtp_is_parameter_add (void *sdp_ptr, uint16_t level,
+tinybool sdp_attr_fmtp_is_parameter_add (sdp_t *sdp_p, uint16_t level,
                                          uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8414,16 +7524,11 @@ tinybool sdp_attr_fmtp_is_parameter_add (void *sdp_ptr, uint16_t level,
 
 
 
-tinybool sdp_attr_get_fmtp_annex_d (void *sdp_ptr, uint16_t level,
+tinybool sdp_attr_get_fmtp_annex_d (sdp_t *sdp_p, uint16_t level,
                                     uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8439,16 +7544,11 @@ tinybool sdp_attr_get_fmtp_annex_d (void *sdp_ptr, uint16_t level,
     }
 }
 
-tinybool sdp_attr_get_fmtp_annex_f (void *sdp_ptr, uint16_t level,
+tinybool sdp_attr_get_fmtp_annex_f (sdp_t *sdp_p, uint16_t level,
                                     uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8464,16 +7564,11 @@ tinybool sdp_attr_get_fmtp_annex_f (void *sdp_ptr, uint16_t level,
     }
 }
 
-tinybool sdp_attr_get_fmtp_annex_i (void *sdp_ptr, uint16_t level,
+tinybool sdp_attr_get_fmtp_annex_i (sdp_t *sdp_p, uint16_t level,
                                     uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8489,16 +7584,11 @@ tinybool sdp_attr_get_fmtp_annex_i (void *sdp_ptr, uint16_t level,
     }
 }
 
-tinybool sdp_attr_get_fmtp_annex_j (void *sdp_ptr, uint16_t level,
+tinybool sdp_attr_get_fmtp_annex_j (sdp_t *sdp_p, uint16_t level,
                                     uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8514,16 +7604,11 @@ tinybool sdp_attr_get_fmtp_annex_j (void *sdp_ptr, uint16_t level,
     }
 }
 
-tinybool sdp_attr_get_fmtp_annex_t (void *sdp_ptr, uint16_t level,
+tinybool sdp_attr_get_fmtp_annex_t (sdp_t *sdp_p, uint16_t level,
                                     uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8539,16 +7624,11 @@ tinybool sdp_attr_get_fmtp_annex_t (void *sdp_ptr, uint16_t level,
     }
 }
 
-int32_t sdp_attr_get_fmtp_annex_k_val (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_annex_k_val (sdp_t *sdp_p, uint16_t level,
                                      uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8564,16 +7644,11 @@ int32_t sdp_attr_get_fmtp_annex_k_val (void *sdp_ptr, uint16_t level,
     }
 }
 
-int32_t sdp_attr_get_fmtp_annex_n_val (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_annex_n_val (sdp_t *sdp_p, uint16_t level,
                                      uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8589,17 +7664,12 @@ int32_t sdp_attr_get_fmtp_annex_n_val (void *sdp_ptr, uint16_t level,
     }
 }
 
-int32_t sdp_attr_get_fmtp_annex_p_picture_resize (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_annex_p_picture_resize (sdp_t *sdp_p, uint16_t level,
                                                 uint8_t cap_num, uint16_t inst_num)
 {
 
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8615,16 +7685,11 @@ int32_t sdp_attr_get_fmtp_annex_p_picture_resize (void *sdp_ptr, uint16_t level,
     }
 }
 
-int32_t sdp_attr_get_fmtp_annex_p_warp (void *sdp_ptr, uint16_t level,
+int32_t sdp_attr_get_fmtp_annex_p_warp (sdp_t *sdp_p, uint16_t level,
                                       uint8_t cap_num, uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8653,16 +7718,11 @@ int32_t sdp_attr_get_fmtp_annex_p_warp (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_fmtp_format_type_e  sdp_attr_fmtp_get_fmtp_format (void *sdp_ptr,
+sdp_fmtp_format_type_e  sdp_attr_fmtp_get_fmtp_format (sdp_t *sdp_p,
                                                        uint16_t level, uint8_t cap_num,
                                                        uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_FMTP_UNKNOWN_TYPE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_FMTP,
                            inst_num);
@@ -8689,15 +7749,10 @@ sdp_fmtp_format_type_e  sdp_attr_fmtp_get_fmtp_format (void *sdp_ptr,
 
 
 
-uint16_t sdp_attr_get_pccodec_num_payload_types (void *sdp_ptr, uint16_t level,
+uint16_t sdp_attr_get_pccodec_num_payload_types (sdp_t *sdp_p, uint16_t level,
                                             uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_X_PC_CODEC,
                            inst_num);
@@ -8726,15 +7781,10 @@ uint16_t sdp_attr_get_pccodec_num_payload_types (void *sdp_ptr, uint16_t level,
 
 
 
-uint16_t sdp_attr_get_pccodec_payload_type (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+uint16_t sdp_attr_get_pccodec_payload_type (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                        uint16_t inst_num, uint16_t payload_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_X_PC_CODEC,
                            inst_num);
@@ -8775,17 +7825,12 @@ uint16_t sdp_attr_get_pccodec_payload_type (void *sdp_ptr, uint16_t level, uint8
 
 
 
-sdp_result_e sdp_attr_add_pccodec_payload_type (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_add_pccodec_payload_type (sdp_t *sdp_p, uint16_t level,
                                                 uint8_t cap_num, uint16_t inst_num,
                                                 uint16_t payload_type)
 {
     uint16_t          payload_num;
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_X_PC_CODEC,
                            inst_num);
@@ -8813,17 +7858,12 @@ sdp_result_e sdp_attr_add_pccodec_payload_type (void *sdp_ptr, uint16_t level,
 
 
 
-uint16_t sdp_attr_get_xcap_first_cap_num (void *sdp_ptr, uint16_t level, uint16_t inst_num)
+uint16_t sdp_attr_get_xcap_first_cap_num (sdp_t *sdp_p, uint16_t level, uint16_t inst_num)
 {
     uint16_t          cap_num=1;
     uint16_t          attr_count=0;
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_mca_t   *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         for (attr_p = sdp_p->sess_attrs_p; attr_p != NULL;
@@ -8874,16 +7914,11 @@ uint16_t sdp_attr_get_xcap_first_cap_num (void *sdp_ptr, uint16_t level, uint16_
 
 
 
-sdp_media_e sdp_attr_get_xcap_media_type (void *sdp_ptr, uint16_t level,
+sdp_media_e sdp_attr_get_xcap_media_type (sdp_t *sdp_p, uint16_t level,
                                           uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_mca_t   *cap_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_MEDIA_INVALID);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_X_CAP, inst_num);
     if ((attr_p == NULL) || (attr_p->attr.cap_p == NULL)) {
@@ -8909,16 +7944,11 @@ sdp_media_e sdp_attr_get_xcap_media_type (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_transport_e sdp_attr_get_xcap_transport_type (void *sdp_ptr, uint16_t level,
+sdp_transport_e sdp_attr_get_xcap_transport_type (sdp_t *sdp_p, uint16_t level,
                                                   uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_mca_t   *cap_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_TRANSPORT_INVALID);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_X_CAP,
                            inst_num);
@@ -8948,16 +7978,11 @@ sdp_transport_e sdp_attr_get_xcap_transport_type (void *sdp_ptr, uint16_t level,
 
 
 
-uint16_t sdp_attr_get_xcap_num_payload_types (void *sdp_ptr, uint16_t level,
+uint16_t sdp_attr_get_xcap_num_payload_types (sdp_t *sdp_p, uint16_t level,
                                          uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_mca_t   *cap_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_X_CAP, inst_num);
     if ((attr_p == NULL) || (attr_p->attr.cap_p == NULL)) {
@@ -8986,17 +8011,12 @@ uint16_t sdp_attr_get_xcap_num_payload_types (void *sdp_ptr, uint16_t level,
 
 
 
-uint16_t sdp_attr_get_xcap_payload_type (void *sdp_ptr, uint16_t level,
+uint16_t sdp_attr_get_xcap_payload_type (sdp_t *sdp_p, uint16_t level,
                                     uint16_t inst_num, uint16_t payload_num,
                                     sdp_payload_ind_e *indicator)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_mca_t   *cap_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_X_CAP, inst_num);
     if ((attr_p == NULL) || (attr_p->attr.cap_p == NULL)) {
@@ -9035,16 +8055,11 @@ uint16_t sdp_attr_get_xcap_payload_type (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_xcap_media_type (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_xcap_media_type (sdp_t *sdp_p, uint16_t level,
                                            uint16_t inst_num, sdp_media_e media)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_mca_t   *cap_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_X_CAP, inst_num);
     if ((attr_p == NULL) || (attr_p->attr.cap_p == NULL)) {
@@ -9071,17 +8086,12 @@ sdp_result_e sdp_attr_set_xcap_media_type (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_xcap_transport_type(void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_xcap_transport_type(sdp_t *sdp_p, uint16_t level,
                                               uint16_t inst_num,
                                               sdp_transport_e transport)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_mca_t   *cap_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_X_CAP, inst_num);
     if ((attr_p == NULL) || (attr_p->attr.cap_p == NULL)) {
@@ -9109,17 +8119,12 @@ sdp_result_e sdp_attr_set_xcap_transport_type(void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_add_xcap_payload_type(void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_add_xcap_payload_type(sdp_t *sdp_p, uint16_t level,
                                             uint16_t inst_num, uint16_t payload_type,
                                             sdp_payload_ind_e indicator)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_mca_t   *cap_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_X_CAP, inst_num);
     if ((attr_p == NULL) || (attr_p->attr.cap_p == NULL)) {
@@ -9147,17 +8152,12 @@ sdp_result_e sdp_attr_add_xcap_payload_type(void *sdp_ptr, uint16_t level,
 
 
 
-uint16_t sdp_attr_get_cdsc_first_cap_num(void *sdp_ptr, uint16_t level, uint16_t inst_num)
+uint16_t sdp_attr_get_cdsc_first_cap_num(sdp_t *sdp_p, uint16_t level, uint16_t inst_num)
 {
     uint16_t          cap_num=1;
     uint16_t          attr_count=0;
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_mca_t   *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         for (attr_p = sdp_p->sess_attrs_p; attr_p != NULL;
@@ -9208,16 +8208,11 @@ uint16_t sdp_attr_get_cdsc_first_cap_num(void *sdp_ptr, uint16_t level, uint16_t
 
 
 
-sdp_media_e sdp_attr_get_cdsc_media_type(void *sdp_ptr, uint16_t level,
+sdp_media_e sdp_attr_get_cdsc_media_type(sdp_t *sdp_p, uint16_t level,
                                          uint16_t inst_num)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_mca_t   *cdsc_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_MEDIA_INVALID);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_CDSC, inst_num);
     if ((attr_p == NULL) || (attr_p->attr.cap_p == NULL)) {
@@ -9243,16 +8238,11 @@ sdp_media_e sdp_attr_get_cdsc_media_type(void *sdp_ptr, uint16_t level,
 
 
 
-sdp_transport_e sdp_attr_get_cdsc_transport_type(void *sdp_ptr, uint16_t level,
+sdp_transport_e sdp_attr_get_cdsc_transport_type(sdp_t *sdp_p, uint16_t level,
                                                  uint16_t inst_num)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_mca_t   *cdsc_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_TRANSPORT_INVALID);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_CDSC,
                            inst_num);
@@ -9282,16 +8272,11 @@ sdp_transport_e sdp_attr_get_cdsc_transport_type(void *sdp_ptr, uint16_t level,
 
 
 
-uint16_t sdp_attr_get_cdsc_num_payload_types (void *sdp_ptr, uint16_t level,
+uint16_t sdp_attr_get_cdsc_num_payload_types (sdp_t *sdp_p, uint16_t level,
                                          uint16_t inst_num)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_mca_t   *cdsc_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_CDSC, inst_num);
     if ((attr_p == NULL) || (attr_p->attr.cap_p == NULL)) {
@@ -9320,17 +8305,12 @@ uint16_t sdp_attr_get_cdsc_num_payload_types (void *sdp_ptr, uint16_t level,
 
 
 
-uint16_t sdp_attr_get_cdsc_payload_type (void *sdp_ptr, uint16_t level,
+uint16_t sdp_attr_get_cdsc_payload_type (sdp_t *sdp_p, uint16_t level,
                                     uint16_t inst_num, uint16_t payload_num,
                                     sdp_payload_ind_e *indicator)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_mca_t   *cdsc_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_CDSC, inst_num);
     if ((attr_p == NULL) || (attr_p->attr.cap_p == NULL)) {
@@ -9368,16 +8348,11 @@ uint16_t sdp_attr_get_cdsc_payload_type (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_cdsc_media_type (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_cdsc_media_type (sdp_t *sdp_p, uint16_t level,
                                            uint16_t inst_num, sdp_media_e media)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_mca_t   *cdsc_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_CDSC, inst_num);
     if ((attr_p == NULL) || (attr_p->attr.cap_p == NULL)) {
@@ -9404,16 +8379,11 @@ sdp_result_e sdp_attr_set_cdsc_media_type (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_cdsc_transport_type (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_cdsc_transport_type (sdp_t *sdp_p, uint16_t level,
                                       uint16_t inst_num, sdp_transport_e transport)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_mca_t   *cdsc_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_CDSC, inst_num);
     if ((attr_p == NULL) || (attr_p->attr.cap_p == NULL)) {
@@ -9441,17 +8411,12 @@ sdp_result_e sdp_attr_set_cdsc_transport_type (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_add_cdsc_payload_type (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_add_cdsc_payload_type (sdp_t *sdp_p, uint16_t level,
                                              uint16_t inst_num, uint16_t payload_type,
                                              sdp_payload_ind_e indicator)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     sdp_mca_t   *cdsc_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_CDSC, inst_num);
     if ((attr_p == NULL) || (attr_p->attr.cap_p == NULL)) {
@@ -9479,7 +8444,7 @@ sdp_result_e sdp_attr_add_cdsc_payload_type (void *sdp_ptr, uint16_t level,
 
 
 
-tinybool sdp_media_dynamic_payload_valid (void *sdp_ptr, uint16_t payload_type,
+tinybool sdp_media_dynamic_payload_valid (sdp_t *sdp_p, uint16_t payload_type,
                                           uint16_t m_line)
 {
    uint16_t p_type,m_ptype;
@@ -9487,11 +8452,6 @@ tinybool sdp_media_dynamic_payload_valid (void *sdp_ptr, uint16_t payload_type,
    sdp_payload_ind_e ind;
    tinybool payload_matches = FALSE;
    tinybool result = TRUE;
-   sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-   if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-   }
 
    if ((payload_type < SDP_MIN_DYNAMIC_PAYLOAD) ||
        (payload_type > SDP_MAX_DYNAMIC_PAYLOAD)) {
@@ -9535,16 +8495,11 @@ tinybool sdp_media_dynamic_payload_valid (void *sdp_ptr, uint16_t payload_type,
 
 
 
-sdp_result_e sdp_attr_set_rtr_confirm (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_result_e sdp_attr_set_rtr_confirm (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                        uint16_t inst_num,
                                        tinybool confirm)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_RTR, inst_num);
     if (attr_p == NULL) {
@@ -9572,15 +8527,10 @@ sdp_result_e sdp_attr_set_rtr_confirm (void *sdp_ptr, uint16_t level, uint8_t ca
 
 
 
-tinybool sdp_attr_get_rtr_confirm (void *sdp_ptr, uint16_t level,
+tinybool sdp_attr_get_rtr_confirm (sdp_t *sdp_p, uint16_t level,
                                 uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_RTR, inst_num);
     if (attr_p == NULL) {
@@ -9598,15 +8548,10 @@ tinybool sdp_attr_get_rtr_confirm (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_mediadir_role_e sdp_attr_get_comediadir_role (void *sdp_ptr, uint16_t level,
+sdp_mediadir_role_e sdp_attr_get_comediadir_role (sdp_t *sdp_p, uint16_t level,
                                              uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_MEDIADIR_ROLE_UNKNOWN);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_DIRECTION, inst_num);
@@ -9634,16 +8579,11 @@ sdp_mediadir_role_e sdp_attr_get_comediadir_role (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_comediadir_role (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_comediadir_role (sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num,
                                        sdp_mediadir_role_e comediadir_role)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_DIRECTION, inst_num);
@@ -9671,15 +8611,10 @@ sdp_result_e sdp_attr_set_comediadir_role (void *sdp_ptr, uint16_t level,
 
 
 
-tinybool sdp_attr_get_silencesupp_enabled (void *sdp_ptr, uint16_t level,
+tinybool sdp_attr_get_silencesupp_enabled (sdp_t *sdp_p, uint16_t level,
                                            uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SILENCESUPP, inst_num);
@@ -9708,16 +8643,11 @@ tinybool sdp_attr_get_silencesupp_enabled (void *sdp_ptr, uint16_t level,
 
 
 
-uint16_t sdp_attr_get_silencesupp_timer (void *sdp_ptr, uint16_t level,
+uint16_t sdp_attr_get_silencesupp_timer (sdp_t *sdp_p, uint16_t level,
                                     uint8_t cap_num, uint16_t inst_num,
                                     tinybool *null_ind)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SILENCESUPP, inst_num);
@@ -9747,16 +8677,11 @@ uint16_t sdp_attr_get_silencesupp_timer (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_silencesupp_pref_e sdp_attr_get_silencesupp_pref (void *sdp_ptr,
+sdp_silencesupp_pref_e sdp_attr_get_silencesupp_pref (sdp_t *sdp_p,
                                                       uint16_t level, uint8_t cap_num,
                                                       uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_SILENCESUPP_PREF_UNKNOWN);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SILENCESUPP, inst_num);
@@ -9784,17 +8709,12 @@ sdp_silencesupp_pref_e sdp_attr_get_silencesupp_pref (void *sdp_ptr,
 
 
 
-sdp_silencesupp_siduse_e sdp_attr_get_silencesupp_siduse (void *sdp_ptr,
+sdp_silencesupp_siduse_e sdp_attr_get_silencesupp_siduse (sdp_t *sdp_p,
                                                           uint16_t level,
                                                           uint8_t cap_num,
                                                           uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_SILENCESUPP_SIDUSE_UNKNOWN);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SILENCESUPP, inst_num);
@@ -9823,16 +8743,11 @@ sdp_silencesupp_siduse_e sdp_attr_get_silencesupp_siduse (void *sdp_ptr,
 
 
 
-uint8_t sdp_attr_get_silencesupp_fxnslevel (void *sdp_ptr, uint16_t level,
+uint8_t sdp_attr_get_silencesupp_fxnslevel (sdp_t *sdp_p, uint16_t level,
                                        uint8_t cap_num, uint16_t inst_num,
                                        tinybool *null_ind)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SILENCESUPP, inst_num);
@@ -9860,16 +8775,11 @@ uint8_t sdp_attr_get_silencesupp_fxnslevel (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_silencesupp_enabled (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_silencesupp_enabled (sdp_t *sdp_p, uint16_t level,
                                                uint8_t cap_num, uint16_t inst_num,
                                                tinybool enable)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SILENCESUPP, inst_num);
@@ -9899,16 +8809,11 @@ sdp_result_e sdp_attr_set_silencesupp_enabled (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_silencesupp_timer (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_silencesupp_timer (sdp_t *sdp_p, uint16_t level,
                                              uint8_t cap_num, uint16_t inst_num,
                                              uint16_t value, tinybool null_ind)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SILENCESUPP, inst_num);
@@ -9937,16 +8842,11 @@ sdp_result_e sdp_attr_set_silencesupp_timer (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_silencesupp_pref (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_silencesupp_pref (sdp_t *sdp_p, uint16_t level,
                                             uint8_t cap_num, uint16_t inst_num,
                                             sdp_silencesupp_pref_e pref)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SILENCESUPP, inst_num);
@@ -9974,16 +8874,11 @@ sdp_result_e sdp_attr_set_silencesupp_pref (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_silencesupp_siduse (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_silencesupp_siduse (sdp_t *sdp_p, uint16_t level,
                                               uint8_t cap_num, uint16_t inst_num,
                                               sdp_silencesupp_siduse_e siduse)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SILENCESUPP, inst_num);
@@ -10013,16 +8908,11 @@ sdp_result_e sdp_attr_set_silencesupp_siduse (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_silencesupp_fxnslevel (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_silencesupp_fxnslevel (sdp_t *sdp_p, uint16_t level,
                                                  uint8_t cap_num, uint16_t inst_num,
                                                  uint16_t value, tinybool null_ind)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SILENCESUPP, inst_num);
@@ -10053,17 +8943,12 @@ sdp_result_e sdp_attr_set_silencesupp_fxnslevel (void *sdp_ptr, uint16_t level,
 
 
 uint16_t sdp_attr_get_mptime_num_intervals (
-    void *sdp_ptr,
+    sdp_t *sdp_p,
     uint16_t level,
     uint8_t cap_num,
     uint16_t inst_num) {
 
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return 0;
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_MPTIME, inst_num);
     if (attr_p != NULL) {
@@ -10092,18 +8977,13 @@ uint16_t sdp_attr_get_mptime_num_intervals (
 
 
 uint16_t sdp_attr_get_mptime_interval (
-    void *sdp_ptr,
+    sdp_t *sdp_p,
     uint16_t level,
     uint8_t cap_num,
     uint16_t inst_num,
     uint16_t interval_num) {
 
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return 0;
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_MPTIME, inst_num);
     if (attr_p == NULL) {
@@ -10144,19 +9024,14 @@ uint16_t sdp_attr_get_mptime_interval (
 
 
 sdp_result_e sdp_attr_add_mptime_interval (
-    void *sdp_ptr,
+    sdp_t *sdp_p,
     uint16_t level,
     uint8_t cap_num,
     uint16_t inst_num,
     uint16_t mp_interval) {
 
     uint16_t interval_num;
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return SDP_INVALID_SDP_PTR;
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num, SDP_ATTR_MPTIME, inst_num);
     if (attr_p == NULL) {
@@ -10194,15 +9069,10 @@ sdp_result_e sdp_attr_add_mptime_interval (
 
 
 
-sdp_group_attr_e sdp_get_group_attr (void *sdp_ptr, uint16_t level,
+sdp_group_attr_e sdp_get_group_attr (sdp_t *sdp_p, uint16_t level,
                                      uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t          *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_GROUP_ATTR_UNSUPPORTED);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_GROUP, inst_num);
@@ -10232,16 +9102,12 @@ sdp_group_attr_e sdp_get_group_attr (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_set_group_attr (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_set_group_attr (sdp_t *sdp_p, uint16_t level,
                                  uint8_t cap_num, uint16_t inst_num,
                                  sdp_group_attr_e group_attr)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
 
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_GROUP, inst_num);
     if (attr_p == NULL) {
@@ -10263,15 +9129,10 @@ sdp_result_e sdp_set_group_attr (void *sdp_ptr, uint16_t level,
 
 
 
-uint16_t sdp_get_group_num_id (void *sdp_ptr, uint16_t level,
+uint16_t sdp_get_group_num_id (sdp_t *sdp_p, uint16_t level,
                           uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t          *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_GROUP, inst_num);
@@ -10303,16 +9164,12 @@ uint16_t sdp_get_group_num_id (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_set_group_num_id (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_set_group_num_id (sdp_t *sdp_p, uint16_t level,
                                  uint8_t cap_num, uint16_t inst_num,
                                  uint16_t group_num_id)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
 
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_GROUP, inst_num);
     if (attr_p == NULL) {
@@ -10344,15 +9201,10 @@ sdp_result_e sdp_set_group_num_id (void *sdp_ptr, uint16_t level,
 
 
 
-const char* sdp_get_group_id (void *sdp_ptr, uint16_t level,
+const char* sdp_get_group_id (sdp_t *sdp_p, uint16_t level,
                         uint8_t cap_num, uint16_t inst_num, uint16_t id_num)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t          *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_GROUP, inst_num);
@@ -10383,17 +9235,13 @@ const char* sdp_get_group_id (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_set_group_id (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_set_group_id (sdp_t *sdp_p, uint16_t level,
                                uint8_t cap_num, uint16_t inst_num,
                                char* group_id)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     uint16_t num_group_id;
 
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_GROUP, inst_num);
     if (attr_p == NULL) {
@@ -10429,15 +9277,10 @@ sdp_result_e sdp_set_group_id (void *sdp_ptr, uint16_t level,
 
 
 
-const char* sdp_attr_get_x_sidin (void *sdp_ptr, uint16_t level,
+const char* sdp_attr_get_x_sidin (sdp_t *sdp_p, uint16_t level,
                                      uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t          *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_X_SIDIN, inst_num);
@@ -10472,16 +9315,11 @@ const char* sdp_attr_get_x_sidin (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_x_sidin (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_x_sidin (sdp_t *sdp_p, uint16_t level,
                                    uint8_t cap_num, uint16_t inst_num,
                                    const char *sidin)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_X_SIDIN, inst_num);
@@ -10509,15 +9347,10 @@ sdp_result_e sdp_attr_set_x_sidin (void *sdp_ptr, uint16_t level,
 
 
 
-const char* sdp_attr_get_x_sidout (void *sdp_ptr, uint16_t level,
+const char* sdp_attr_get_x_sidout (sdp_t *sdp_p, uint16_t level,
                                      uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t          *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_X_SIDOUT, inst_num);
@@ -10552,16 +9385,11 @@ const char* sdp_attr_get_x_sidout (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_x_sidout (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_x_sidout (sdp_t *sdp_p, uint16_t level,
                                    uint8_t cap_num, uint16_t inst_num,
                                    const char *sidout)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_X_SIDOUT, inst_num);
@@ -10589,15 +9417,10 @@ sdp_result_e sdp_attr_set_x_sidout (void *sdp_ptr, uint16_t level,
 
 
 
-const char* sdp_attr_get_x_confid (void *sdp_ptr, uint16_t level,
+const char* sdp_attr_get_x_confid (sdp_t *sdp_p, uint16_t level,
                                      uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t          *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_X_CONFID, inst_num);
@@ -10632,16 +9455,11 @@ const char* sdp_attr_get_x_confid (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_attr_set_x_confid (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_attr_set_x_confid (sdp_t *sdp_p, uint16_t level,
                                    uint8_t cap_num, uint16_t inst_num,
                                    const char *confid)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_X_CONFID, inst_num);
@@ -10676,18 +9494,14 @@ sdp_result_e sdp_attr_set_x_confid (void *sdp_ptr, uint16_t level,
 
 
 sdp_result_e
-sdp_set_source_filter (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_set_source_filter (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                        uint16_t inst_num, sdp_src_filter_mode_e mode,
                        sdp_nettype_e nettype, sdp_addrtype_e addrtype,
                        const char *dest_addr, const char *src_addr)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     uint16_t index;
 
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SOURCE_FILTER, inst_num);
     if (attr_p == NULL) {
@@ -10733,15 +9547,11 @@ sdp_set_source_filter (void *sdp_ptr, uint16_t level, uint8_t cap_num,
 
 
 sdp_result_e
-sdp_include_new_filter_src_addr (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_include_new_filter_src_addr (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                  uint16_t inst_num, const char *src_addr)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t *attr_p;
 
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SOURCE_FILTER, inst_num);
     if (attr_p == NULL) {
@@ -10777,15 +9587,11 @@ sdp_include_new_filter_src_addr (void *sdp_ptr, uint16_t level, uint8_t cap_num,
 
 
 sdp_src_filter_mode_e
-sdp_get_source_filter_mode (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_get_source_filter_mode (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                             uint16_t inst_num)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t *attr_p;
 
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_FILTER_MODE_NOT_PRESENT);
-    }
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SOURCE_FILTER, inst_num);
     if (attr_p == NULL) {
@@ -10808,17 +9614,13 @@ sdp_get_source_filter_mode (void *sdp_ptr, uint16_t level, uint8_t cap_num,
 
 
 sdp_result_e
-sdp_get_filter_destination_attributes (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_get_filter_destination_attributes (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                        uint16_t inst_num, sdp_nettype_e *nettype,
                                        sdp_addrtype_e *addrtype,
                                        char *dest_addr)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t *attr_p;
 
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SOURCE_FILTER, inst_num);
     if (attr_p == NULL) {
@@ -10850,15 +9652,11 @@ sdp_get_filter_destination_attributes (void *sdp_ptr, uint16_t level, uint8_t ca
 
 
 int32_t
-sdp_get_filter_source_address_count (void *sdp_ptr, uint16_t level,
+sdp_get_filter_source_address_count (sdp_t *sdp_p, uint16_t level,
                                      uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t *attr_p;
 
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SOURCE_FILTER, inst_num);
     if (attr_p == NULL) {
@@ -10884,20 +9682,16 @@ sdp_get_filter_source_address_count (void *sdp_ptr, uint16_t level,
 
 
 sdp_result_e
-sdp_get_filter_source_address (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_get_filter_source_address (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                                uint16_t inst_num, uint16_t src_addr_id,
                                char *src_addr)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t *attr_p;
 
     src_addr[0] = '\0';
 
     if (src_addr_id >= SDP_MAX_SRC_ADDR_LIST) {
         return (SDP_INVALID_PARAMETER);
-    }
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
     }
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SOURCE_FILTER, inst_num);
@@ -10919,15 +9713,11 @@ sdp_get_filter_source_address (void *sdp_ptr, uint16_t level, uint8_t cap_num,
 }
 
 sdp_result_e
-sdp_set_rtcp_unicast_mode (void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_set_rtcp_unicast_mode (sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                            uint16_t inst_num, sdp_rtcp_unicast_mode_e mode)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t *attr_p;
 
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
     if (mode >= SDP_RTCP_MAX_UNICAST_MODE) {
         return (SDP_INVALID_PARAMETER);
     }
@@ -10948,15 +9738,11 @@ sdp_set_rtcp_unicast_mode (void *sdp_ptr, uint16_t level, uint8_t cap_num,
 }
 
 sdp_rtcp_unicast_mode_e
-sdp_get_rtcp_unicast_mode(void *sdp_ptr, uint16_t level, uint8_t cap_num,
+sdp_get_rtcp_unicast_mode(sdp_t *sdp_p, uint16_t level, uint8_t cap_num,
                           uint16_t inst_num)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t *attr_p;
 
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_RTCP_UNICAST_MODE_NOT_PRESENT);
-    }
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_RTCP_UNICAST, inst_num);
     if (attr_p == NULL) {
@@ -10984,15 +9770,10 @@ sdp_get_rtcp_unicast_mode(void *sdp_ptr, uint16_t level, uint8_t cap_num,
 
 
 int32_t
-sdp_attr_get_sdescriptions_tag (void *sdp_ptr, uint16_t level,
+sdp_attr_get_sdescriptions_tag (sdp_t *sdp_p, uint16_t level,
                                 uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return SDP_INVALID_VALUE;
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SDESCRIPTIONS, inst_num);
@@ -11029,15 +9810,10 @@ sdp_attr_get_sdescriptions_tag (void *sdp_ptr, uint16_t level,
 
 
 sdp_srtp_crypto_suite_t
-sdp_attr_get_sdescriptions_crypto_suite (void *sdp_ptr, uint16_t level,
+sdp_attr_get_sdescriptions_crypto_suite (sdp_t *sdp_p, uint16_t level,
                                          uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return SDP_SRTP_UNKNOWN_CRYPTO_SUITE;
-    }
 
 
     
@@ -11081,15 +9857,10 @@ sdp_attr_get_sdescriptions_crypto_suite (void *sdp_ptr, uint16_t level,
 
 
 const char*
-sdp_attr_get_sdescriptions_key (void *sdp_ptr, uint16_t level,
+sdp_attr_get_sdescriptions_key (sdp_t *sdp_p, uint16_t level,
                                 uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return NULL;
-    }
 
     
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
@@ -11133,15 +9904,10 @@ sdp_attr_get_sdescriptions_key (void *sdp_ptr, uint16_t level,
 
 
 const char*
-sdp_attr_get_sdescriptions_salt (void *sdp_ptr, uint16_t level,
+sdp_attr_get_sdescriptions_salt (sdp_t *sdp_p, uint16_t level,
                                  uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return NULL;
-    }
 
     
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
@@ -11187,15 +9953,10 @@ sdp_attr_get_sdescriptions_salt (void *sdp_ptr, uint16_t level,
 
 
 const char*
-sdp_attr_get_sdescriptions_lifetime (void *sdp_ptr, uint16_t level,
+sdp_attr_get_sdescriptions_lifetime (sdp_t *sdp_p, uint16_t level,
                                      uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return NULL;
-    }
 
     
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
@@ -11244,20 +10005,15 @@ sdp_attr_get_sdescriptions_lifetime (void *sdp_ptr, uint16_t level,
 
 
 sdp_result_e
-sdp_attr_get_sdescriptions_mki (void *sdp_ptr, uint16_t level,
+sdp_attr_get_sdescriptions_mki (sdp_t *sdp_p, uint16_t level,
                                 uint8_t cap_num, uint16_t inst_num,
                                 const char **mki_value,
                                 uint16_t *mki_length)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
 
     *mki_value = NULL;
     *mki_length = 0;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return SDP_INVALID_SDP_PTR;
-    }
 
     
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
@@ -11305,15 +10061,10 @@ sdp_attr_get_sdescriptions_mki (void *sdp_ptr, uint16_t level,
 
 
 const char*
-sdp_attr_get_sdescriptions_session_params (void *sdp_ptr, uint16_t level,
+sdp_attr_get_sdescriptions_session_params (sdp_t *sdp_p, uint16_t level,
                                            uint8_t cap_num, uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return NULL;
-    }
 
     
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
@@ -11356,18 +10107,13 @@ sdp_attr_get_sdescriptions_session_params (void *sdp_ptr, uint16_t level,
 
 
 unsigned char
-sdp_attr_get_sdescriptions_key_size (void *sdp_ptr,
+sdp_attr_get_sdescriptions_key_size (sdp_t *sdp_p,
                                      uint16_t level,
                                      uint8_t cap_num,
                                      uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return SDP_SDESCRIPTIONS_KEY_SIZE_UNKNOWN;
-    }
 
     
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
@@ -11411,18 +10157,13 @@ sdp_attr_get_sdescriptions_key_size (void *sdp_ptr,
 
 
 unsigned char
-sdp_attr_get_sdescriptions_salt_size (void *sdp_ptr,
+sdp_attr_get_sdescriptions_salt_size (sdp_t *sdp_p,
                                       uint16_t level,
                                       uint8_t cap_num,
                                       uint16_t inst_num)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return SDP_SDESCRIPTIONS_KEY_SIZE_UNKNOWN;
-    }
 
     
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
@@ -11467,19 +10208,14 @@ sdp_attr_get_sdescriptions_salt_size (void *sdp_ptr,
 
 
 unsigned long
-sdp_attr_get_srtp_crypto_selection_flags (void *sdp_ptr,
+sdp_attr_get_srtp_crypto_selection_flags (sdp_t *sdp_p,
                                           uint16_t level,
                                           uint8_t cap_num,
                                           uint16_t inst_num)
 {
 
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return SDP_SRTP_CRYPTO_SELECTION_FLAGS_UNKNOWN;
-    }
 
     
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
@@ -11518,16 +10254,11 @@ sdp_attr_get_srtp_crypto_selection_flags (void *sdp_ptr,
 
 
 sdp_result_e
-sdp_attr_set_sdescriptions_tag (void *sdp_ptr, uint16_t level,
+sdp_attr_set_sdescriptions_tag (sdp_t *sdp_p, uint16_t level,
                                 uint8_t cap_num, uint16_t inst_num,
                                 int32_t tag_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
                            SDP_ATTR_SDESCRIPTIONS, inst_num);
@@ -11565,17 +10296,12 @@ sdp_attr_set_sdescriptions_tag (void *sdp_ptr, uint16_t level,
 
 
 sdp_result_e
-sdp_attr_set_sdescriptions_crypto_suite (void *sdp_ptr, uint16_t level,
+sdp_attr_set_sdescriptions_crypto_suite (sdp_t *sdp_p, uint16_t level,
                                          uint8_t cap_num, uint16_t inst_num,
                                          sdp_srtp_crypto_suite_t crypto_suite)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
     int         i;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return SDP_INVALID_SDP_PTR;
-    }
 
     
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
@@ -11638,17 +10364,12 @@ sdp_attr_set_sdescriptions_crypto_suite (void *sdp_ptr, uint16_t level,
 
 
 sdp_result_e
-sdp_attr_set_sdescriptions_key (void *sdp_ptr, uint16_t level,
+sdp_attr_set_sdescriptions_key (sdp_t *sdp_p, uint16_t level,
                                 uint8_t cap_num, uint16_t inst_num,
                                 char *key)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
 
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return SDP_INVALID_SDP_PTR;
-    }
 
     
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
@@ -11697,17 +10418,12 @@ sdp_attr_set_sdescriptions_key (void *sdp_ptr, uint16_t level,
 
 
 sdp_result_e
-sdp_attr_set_sdescriptions_salt (void *sdp_ptr, uint16_t level,
+sdp_attr_set_sdescriptions_salt (sdp_t *sdp_p, uint16_t level,
                                  uint8_t cap_num, uint16_t inst_num,
                                  char *salt)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
 
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return SDP_INVALID_SDP_PTR;
-    }
 
     
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
@@ -11755,16 +10471,11 @@ sdp_attr_set_sdescriptions_salt (void *sdp_ptr, uint16_t level,
 
 
 sdp_result_e
-sdp_attr_set_sdescriptions_lifetime (void *sdp_ptr, uint16_t level,
+sdp_attr_set_sdescriptions_lifetime (sdp_t *sdp_p, uint16_t level,
                                      uint8_t cap_num, uint16_t inst_num,
                                      char *lifetime)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return SDP_INVALID_SDP_PTR;
-    }
 
     
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
@@ -11813,17 +10524,12 @@ sdp_attr_set_sdescriptions_lifetime (void *sdp_ptr, uint16_t level,
 
 
 sdp_result_e
-sdp_attr_set_sdescriptions_mki (void *sdp_ptr, uint16_t level,
+sdp_attr_set_sdescriptions_mki (sdp_t *sdp_p, uint16_t level,
                                 uint8_t cap_num, uint16_t inst_num,
                                 char *mki_value,
                                 uint16_t mki_length)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return SDP_INVALID_SDP_PTR;
-    }
 
     
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
@@ -11870,7 +10576,7 @@ sdp_attr_set_sdescriptions_mki (void *sdp_ptr, uint16_t level,
 
 
 sdp_result_e
-sdp_attr_set_sdescriptions_key_size (void *sdp_ptr,
+sdp_attr_set_sdescriptions_key_size (sdp_t *sdp_p,
                                      uint16_t level,
                                      uint8_t cap_num,
                                      uint16_t inst_num,
@@ -11878,12 +10584,7 @@ sdp_attr_set_sdescriptions_key_size (void *sdp_ptr,
 
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return SDP_INVALID_SDP_PTR;
-    }
 
     
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
@@ -11928,19 +10629,14 @@ sdp_attr_set_sdescriptions_key_size (void *sdp_ptr,
 
 
 sdp_result_e
-sdp_attr_set_sdescriptions_salt_size (void *sdp_ptr,
+sdp_attr_set_sdescriptions_salt_size (sdp_t *sdp_p,
                                       uint16_t level,
                                       uint8_t cap_num,
                                       uint16_t inst_num,
                                       unsigned char salt_size)
 {
 
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return SDP_INVALID_SDP_PTR;
-    }
 
     
     attr_p = sdp_find_attr(sdp_p, level, cap_num,
@@ -12014,14 +10710,9 @@ sdp_find_rtcp_fb_attr (sdp_t *sdp_p,
 
 
 sdp_rtcp_fb_ack_type_e
-sdp_attr_get_rtcp_fb_ack(void *sdp_ptr, uint16_t level, uint16_t payload_type, uint16_t inst)
+sdp_attr_get_rtcp_fb_ack(sdp_t *sdp_p, uint16_t level, uint16_t payload_type, uint16_t inst)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (!sdp_verify_sdp_ptr(sdp_p)) {
-        return SDP_RTCP_FB_ACK_NOT_FOUND;
-    }
 
     attr_p = sdp_find_rtcp_fb_attr(sdp_p, level, payload_type,
                                    SDP_RTCP_FB_ACK, inst);
@@ -12046,14 +10737,9 @@ sdp_attr_get_rtcp_fb_ack(void *sdp_ptr, uint16_t level, uint16_t payload_type, u
 
 
 sdp_rtcp_fb_nack_type_e
-sdp_attr_get_rtcp_fb_nack(void *sdp_ptr, uint16_t level, uint16_t payload_type, uint16_t inst)
+sdp_attr_get_rtcp_fb_nack(sdp_t *sdp_p, uint16_t level, uint16_t payload_type, uint16_t inst)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (!sdp_verify_sdp_ptr(sdp_p)) {
-        return SDP_RTCP_FB_NACK_NOT_FOUND;
-    }
 
     attr_p = sdp_find_rtcp_fb_attr(sdp_p, level, payload_type,
                                    SDP_RTCP_FB_NACK, inst);
@@ -12078,15 +10764,10 @@ sdp_attr_get_rtcp_fb_nack(void *sdp_ptr, uint16_t level, uint16_t payload_type, 
 
 
 uint32_t
-sdp_attr_get_rtcp_fb_trr_int(void *sdp_ptr, uint16_t level,
+sdp_attr_get_rtcp_fb_trr_int(sdp_t *sdp_p, uint16_t level,
                              uint16_t payload_type, uint16_t inst)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (!sdp_verify_sdp_ptr(sdp_p)) {
-        return 0xFFFFFFFF;
-    }
 
     attr_p = sdp_find_rtcp_fb_attr(sdp_p, level, payload_type,
                                    SDP_RTCP_FB_TRR_INT, inst);
@@ -12111,14 +10792,9 @@ sdp_attr_get_rtcp_fb_trr_int(void *sdp_ptr, uint16_t level,
 
 
 sdp_rtcp_fb_ccm_type_e
-sdp_attr_get_rtcp_fb_ccm(void *sdp_ptr, uint16_t level, uint16_t payload_type, uint16_t inst)
+sdp_attr_get_rtcp_fb_ccm(sdp_t *sdp_p, uint16_t level, uint16_t payload_type, uint16_t inst)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (!sdp_verify_sdp_ptr(sdp_p)) {
-        return SDP_RTCP_FB_CCM_NOT_FOUND;
-    }
 
     attr_p = sdp_find_rtcp_fb_attr(sdp_p, level, payload_type,
                                    SDP_RTCP_FB_CCM, inst);
@@ -12146,15 +10822,10 @@ sdp_attr_get_rtcp_fb_ccm(void *sdp_ptr, uint16_t level, uint16_t payload_type, u
 
 
 sdp_result_e
-sdp_attr_set_rtcp_fb_ack(void *sdp_ptr, uint16_t level, uint16_t payload_type, uint16_t inst,
+sdp_attr_set_rtcp_fb_ack(sdp_t *sdp_p, uint16_t level, uint16_t payload_type, uint16_t inst,
                          sdp_rtcp_fb_ack_type_e type)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (!sdp_verify_sdp_ptr(sdp_p)) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_RTCP_FB, inst);
     if (!attr_p) {
@@ -12187,15 +10858,10 @@ sdp_attr_set_rtcp_fb_ack(void *sdp_ptr, uint16_t level, uint16_t payload_type, u
 
 
 sdp_result_e
-sdp_attr_set_rtcp_fb_nack(void *sdp_ptr, uint16_t level, uint16_t payload_type, uint16_t inst,
+sdp_attr_set_rtcp_fb_nack(sdp_t *sdp_p, uint16_t level, uint16_t payload_type, uint16_t inst,
                           sdp_rtcp_fb_nack_type_e type)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (!sdp_verify_sdp_ptr(sdp_p)) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_RTCP_FB, inst);
     if (!attr_p) {
@@ -12227,15 +10893,10 @@ sdp_attr_set_rtcp_fb_nack(void *sdp_ptr, uint16_t level, uint16_t payload_type, 
 
 
 sdp_result_e
-sdp_attr_set_rtcp_fb_trr_int(void *sdp_ptr, uint16_t level, uint16_t payload_type,
+sdp_attr_set_rtcp_fb_trr_int(sdp_t *sdp_p, uint16_t level, uint16_t payload_type,
                              uint16_t inst, uint32_t interval)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (!sdp_verify_sdp_ptr(sdp_p)) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_RTCP_FB, inst);
     if (!attr_p) {
@@ -12267,15 +10928,10 @@ sdp_attr_set_rtcp_fb_trr_int(void *sdp_ptr, uint16_t level, uint16_t payload_typ
 
 
 sdp_result_e
-sdp_attr_set_rtcp_fb_ccm(void *sdp_ptr, uint16_t level, uint16_t payload_type, uint16_t inst,
+sdp_attr_set_rtcp_fb_ccm(sdp_t *sdp_p, uint16_t level, uint16_t payload_type, uint16_t inst,
                          sdp_rtcp_fb_ccm_type_e type)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (!sdp_verify_sdp_ptr(sdp_p)) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_RTCP_FB, inst);
     if (!attr_p) {
@@ -12305,15 +10961,10 @@ sdp_attr_set_rtcp_fb_ccm(void *sdp_ptr, uint16_t level, uint16_t payload_type, u
 
 
 
-const char *sdp_attr_get_extmap_uri(void *sdp_ptr, uint16_t level,
+const char *sdp_attr_get_extmap_uri(sdp_t *sdp_p, uint16_t level,
                                     uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_EXTMAP, inst_num);
     if (attr_p == NULL) {
@@ -12337,15 +10988,10 @@ const char *sdp_attr_get_extmap_uri(void *sdp_ptr, uint16_t level,
 
 
 
-uint16_t sdp_attr_get_extmap_id(void *sdp_ptr, uint16_t level,
+uint16_t sdp_attr_get_extmap_id(sdp_t *sdp_p, uint16_t level,
                            uint16_t inst_num)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return 0;
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_EXTMAP, inst_num);
     if (attr_p == NULL) {
@@ -12371,14 +11017,9 @@ uint16_t sdp_attr_get_extmap_id(void *sdp_ptr, uint16_t level,
 
 
 sdp_result_e
-sdp_attr_set_extmap(void *sdp_ptr, uint16_t level, uint16_t id, const char* uri, uint16_t inst)
+sdp_attr_set_extmap(sdp_t *sdp_p, uint16_t level, uint16_t id, const char* uri, uint16_t inst)
 {
-    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
     sdp_attr_t  *attr_p;
-
-    if (!sdp_verify_sdp_ptr(sdp_p)) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     attr_p = sdp_find_attr(sdp_p, level, 0, SDP_ATTR_EXTMAP, inst);
     if (!attr_p) {

@@ -64,14 +64,8 @@ sdp_mca_t *sdp_find_media_level (sdp_t *sdp_p, uint16_t level)
 
 
 
-tinybool sdp_version_valid (void *sdp_ptr)
+tinybool sdp_version_valid (sdp_t *sdp_p)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
-
     if (sdp_p->version == SDP_INVALID_VALUE) {
         return (FALSE);
     } else {
@@ -84,14 +78,8 @@ tinybool sdp_version_valid (void *sdp_ptr)
 
 
 
-int32_t sdp_get_version (void *sdp_ptr)
+int32_t sdp_get_version (sdp_t *sdp_p)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
-
     return (sdp_p->version);
 }
 
@@ -102,14 +90,8 @@ int32_t sdp_get_version (void *sdp_ptr)
 
 
 
-sdp_result_e sdp_set_version (void *sdp_ptr, int32_t version)
+sdp_result_e sdp_set_version (sdp_t *sdp_p, int32_t version)
 {
-    sdp_t *sdp_p = (sdp_t*)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
-
     sdp_p->version = version;
     return (SDP_SUCCESS);
 }
@@ -120,14 +102,8 @@ sdp_result_e sdp_set_version (void *sdp_ptr, int32_t version)
 
 
 
-tinybool sdp_owner_valid (void *sdp_ptr)
+tinybool sdp_owner_valid (sdp_t *sdp_p)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
-
     if ((sdp_p->owner_name[0] == '\0') ||
         (sdp_p->owner_network_type == SDP_NT_INVALID) ||
         (sdp_p->owner_addr_type == SDP_AT_INVALID) ||
@@ -145,14 +121,8 @@ tinybool sdp_owner_valid (void *sdp_ptr)
 
 
 
-const char *sdp_get_owner_username (void *sdp_ptr)
+const char *sdp_get_owner_username (sdp_t *sdp_p)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
-
     return (sdp_p->owner_name);
 }
 
@@ -165,14 +135,8 @@ const char *sdp_get_owner_username (void *sdp_ptr)
 
 
 
-const char *sdp_get_owner_sessionid (void *sdp_ptr)
+const char *sdp_get_owner_sessionid (sdp_t *sdp_p)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
-
     return (sdp_p->owner_sessid);
 }
 
@@ -185,14 +149,8 @@ const char *sdp_get_owner_sessionid (void *sdp_ptr)
 
 
 
-const char *sdp_get_owner_version (void *sdp_ptr)
+const char *sdp_get_owner_version (sdp_t *sdp_p)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
-
     return (sdp_p->owner_version);
 }
 
@@ -203,14 +161,8 @@ const char *sdp_get_owner_version (void *sdp_ptr)
 
 
 
-sdp_nettype_e sdp_get_owner_network_type (void *sdp_ptr)
+sdp_nettype_e sdp_get_owner_network_type (sdp_t *sdp_p)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_NT_INVALID);
-    }
-
     return (sdp_p->owner_network_type);
 }
 
@@ -221,14 +173,8 @@ sdp_nettype_e sdp_get_owner_network_type (void *sdp_ptr)
 
 
 
-sdp_addrtype_e sdp_get_owner_address_type (void *sdp_ptr)
+sdp_addrtype_e sdp_get_owner_address_type (sdp_t *sdp_p)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_AT_INVALID);
-    }
-
     return (sdp_p->owner_addr_type);
 }
 
@@ -239,14 +185,8 @@ sdp_addrtype_e sdp_get_owner_address_type (void *sdp_ptr)
 
 
 
-const char *sdp_get_owner_address (void *sdp_ptr)
+const char *sdp_get_owner_address (sdp_t *sdp_p)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
-
     return (sdp_p->owner_addr);
 }
 
@@ -258,14 +198,8 @@ const char *sdp_get_owner_address (void *sdp_ptr)
 
 
 
-sdp_result_e sdp_set_owner_username (void *sdp_ptr, const char *username)
+sdp_result_e sdp_set_owner_username (sdp_t *sdp_p, const char *username)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
-
     sstrncpy(sdp_p->owner_name, username, sizeof(sdp_p->owner_name));
     return (SDP_SUCCESS);
 }
@@ -278,14 +212,8 @@ sdp_result_e sdp_set_owner_username (void *sdp_ptr, const char *username)
 
 
 
-sdp_result_e sdp_set_owner_sessionid (void *sdp_ptr, const char *sessionid)
+sdp_result_e sdp_set_owner_sessionid (sdp_t *sdp_p, const char *sessionid)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
-
     sstrncpy(sdp_p->owner_sessid, sessionid, sizeof(sdp_p->owner_sessid));
     return (SDP_SUCCESS);
 }
@@ -298,14 +226,8 @@ sdp_result_e sdp_set_owner_sessionid (void *sdp_ptr, const char *sessionid)
 
 
 
-sdp_result_e sdp_set_owner_version (void *sdp_ptr, const char *version)
+sdp_result_e sdp_set_owner_version (sdp_t *sdp_p, const char *version)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
-
     sstrncpy(sdp_p->owner_version, version, sizeof(sdp_p->owner_version));
     return (SDP_SUCCESS);
 }
@@ -317,15 +239,9 @@ sdp_result_e sdp_set_owner_version (void *sdp_ptr, const char *version)
 
 
 
-sdp_result_e sdp_set_owner_network_type (void *sdp_ptr,
+sdp_result_e sdp_set_owner_network_type (sdp_t *sdp_p,
                                          sdp_nettype_e network_type)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
-
     sdp_p->owner_network_type = network_type;
     return (SDP_SUCCESS);
 }
@@ -337,15 +253,9 @@ sdp_result_e sdp_set_owner_network_type (void *sdp_ptr,
 
 
 
-sdp_result_e sdp_set_owner_address_type (void *sdp_ptr,
+sdp_result_e sdp_set_owner_address_type (sdp_t *sdp_p,
                                          sdp_addrtype_e address_type)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
-
     sdp_p->owner_addr_type = address_type;
     return (SDP_SUCCESS);
 }
@@ -358,14 +268,8 @@ sdp_result_e sdp_set_owner_address_type (void *sdp_ptr,
 
 
 
-sdp_result_e sdp_set_owner_address (void *sdp_ptr, const char *address)
+sdp_result_e sdp_set_owner_address (sdp_t *sdp_p, const char *address)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
-
     sstrncpy(sdp_p->owner_addr, address, sizeof(sdp_p->owner_addr));
     return (SDP_SUCCESS);
 }
@@ -376,14 +280,8 @@ sdp_result_e sdp_set_owner_address (void *sdp_ptr, const char *address)
 
 
 
-tinybool sdp_session_name_valid (void *sdp_ptr)
+tinybool sdp_session_name_valid (sdp_t *sdp_p)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
-
     if (sdp_p->sessname[0] == '\0') {
         return (FALSE);
     } else {
@@ -398,14 +296,8 @@ tinybool sdp_session_name_valid (void *sdp_ptr)
 
 
 
-const char *sdp_get_session_name (void *sdp_ptr)
+const char *sdp_get_session_name (sdp_t *sdp_p)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
-
     return (sdp_p->sessname);
 }
 
@@ -418,14 +310,8 @@ const char *sdp_get_session_name (void *sdp_ptr)
 
 
 
-sdp_result_e sdp_set_session_name (void *sdp_ptr, const char *sessname)
+sdp_result_e sdp_set_session_name (sdp_t *sdp_p, const char *sessname)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
-
     sstrncpy(sdp_p->sessname, sessname, sizeof(sdp_p->sessname));
     return (SDP_SUCCESS);
 }
@@ -436,14 +322,8 @@ sdp_result_e sdp_set_session_name (void *sdp_ptr, const char *sessname)
 
 
 
-tinybool sdp_timespec_valid (void *sdp_ptr)
+tinybool sdp_timespec_valid (sdp_t *sdp_p)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
-
     if ((sdp_p->timespec_p == NULL) ||
         (sdp_p->timespec_p->start_time[0] == '\0') ||
         (sdp_p->timespec_p->stop_time[0] == '\0')) {
@@ -462,14 +342,8 @@ tinybool sdp_timespec_valid (void *sdp_ptr)
 
 
 
-const char *sdp_get_time_start (void *sdp_ptr)
+const char *sdp_get_time_start (sdp_t *sdp_p)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
-
     if (sdp_p->timespec_p != NULL) {
         return (sdp_p->timespec_p->start_time);
     } else {
@@ -486,14 +360,8 @@ const char *sdp_get_time_start (void *sdp_ptr)
 
 
 
-const char *sdp_get_time_stop (void *sdp_ptr)
+const char *sdp_get_time_stop (sdp_t *sdp_p)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
-
     if (sdp_p->timespec_p != NULL) {
         return (sdp_p->timespec_p->stop_time);
     } else {
@@ -510,14 +378,8 @@ const char *sdp_get_time_stop (void *sdp_ptr)
 
 
 
-sdp_result_e sdp_set_time_start (void *sdp_ptr, const char *start_time)
+sdp_result_e sdp_set_time_start (sdp_t *sdp_p, const char *start_time)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
-
     if (sdp_p->timespec_p == NULL) {
         sdp_p->timespec_p = (sdp_timespec_t *)SDP_MALLOC(sizeof(sdp_timespec_t));
         if (sdp_p->timespec_p == NULL) {
@@ -541,14 +403,8 @@ sdp_result_e sdp_set_time_start (void *sdp_ptr, const char *start_time)
 
 
 
-sdp_result_e sdp_set_time_stop (void *sdp_ptr, const char *stop_time)
+sdp_result_e sdp_set_time_stop (sdp_t *sdp_p, const char *stop_time)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
-
     if (sdp_p->timespec_p == NULL) {
         sdp_p->timespec_p = (sdp_timespec_t *)SDP_MALLOC(sizeof(sdp_timespec_t));
         if (sdp_p->timespec_p == NULL) {
@@ -572,15 +428,10 @@ sdp_result_e sdp_set_time_stop (void *sdp_ptr, const char *stop_time)
 
 
 
-tinybool sdp_encryption_valid (void *sdp_ptr, uint16_t level)
+tinybool sdp_encryption_valid (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_encryptspec_t   *encrypt_p;
     sdp_mca_t           *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         encrypt_p = &(sdp_p->encrypt);
@@ -611,15 +462,10 @@ tinybool sdp_encryption_valid (void *sdp_ptr, uint16_t level)
 
 
 
-sdp_encrypt_type_e sdp_get_encryption_method (void *sdp_ptr, uint16_t level)
+sdp_encrypt_type_e sdp_get_encryption_method (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_encryptspec_t   *encrypt_p;
     sdp_mca_t           *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_ENCRYPT_INVALID);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         encrypt_p = &(sdp_p->encrypt);
@@ -644,15 +490,10 @@ sdp_encrypt_type_e sdp_get_encryption_method (void *sdp_ptr, uint16_t level)
 
 
 
-const char *sdp_get_encryption_key (void *sdp_ptr, uint16_t level)
+const char *sdp_get_encryption_key (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_encryptspec_t   *encrypt_p;
     sdp_mca_t           *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         encrypt_p = &(sdp_p->encrypt);
@@ -677,16 +518,11 @@ const char *sdp_get_encryption_key (void *sdp_ptr, uint16_t level)
 
 
 
-sdp_result_e sdp_set_encryption_method (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_set_encryption_method (sdp_t *sdp_p, uint16_t level,
                                         sdp_encrypt_type_e type)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_encryptspec_t   *encrypt_p;
     sdp_mca_t           *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         encrypt_p = &(sdp_p->encrypt);
@@ -715,15 +551,10 @@ sdp_result_e sdp_set_encryption_method (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_set_encryption_key (void *sdp_ptr, uint16_t level, const char *key)
+sdp_result_e sdp_set_encryption_key (sdp_t *sdp_p, uint16_t level, const char *key)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_encryptspec_t   *encrypt_p;
     sdp_mca_t           *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         encrypt_p = &(sdp_p->encrypt);
@@ -749,15 +580,10 @@ sdp_result_e sdp_set_encryption_key (void *sdp_ptr, uint16_t level, const char *
 
 
 
-tinybool sdp_connection_valid (void *sdp_ptr, uint16_t level)
+tinybool sdp_connection_valid (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_conn_t *conn_p;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         conn_p = &(sdp_p->default_conn);
@@ -797,14 +623,9 @@ tinybool sdp_connection_valid (void *sdp_ptr, uint16_t level)
 
 
 
-tinybool sdp_bandwidth_valid (void *sdp_ptr, uint16_t level, uint16_t inst_num)
+tinybool sdp_bandwidth_valid (sdp_t *sdp_p, uint16_t level, uint16_t inst_num)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_bw_data_t *bw_data_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return FALSE;
-    }
 
     bw_data_p = sdp_find_bw_line(sdp_p, level, inst_num);
     if (bw_data_p != NULL) {
@@ -832,14 +653,9 @@ tinybool sdp_bandwidth_valid (void *sdp_ptr, uint16_t level, uint16_t inst_num)
 
 
 
-tinybool sdp_bw_line_exists (void *sdp_ptr, uint16_t level, uint16_t inst_num)
+tinybool sdp_bw_line_exists (sdp_t *sdp_p, uint16_t level, uint16_t inst_num)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_bw_data_t *bw_data_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return FALSE;
-    }
 
     bw_data_p = sdp_find_bw_line(sdp_p, level, inst_num);
     if (bw_data_p != NULL) {
@@ -859,15 +675,10 @@ tinybool sdp_bw_line_exists (void *sdp_ptr, uint16_t level, uint16_t inst_num)
 
 
 
-sdp_nettype_e sdp_get_conn_nettype (void *sdp_ptr, uint16_t level)
+sdp_nettype_e sdp_get_conn_nettype (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_conn_t *conn_p;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_NT_INVALID);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         conn_p = &(sdp_p->default_conn);
@@ -892,15 +703,10 @@ sdp_nettype_e sdp_get_conn_nettype (void *sdp_ptr, uint16_t level)
 
 
 
-sdp_addrtype_e sdp_get_conn_addrtype (void *sdp_ptr, uint16_t level)
+sdp_addrtype_e sdp_get_conn_addrtype (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_conn_t *conn_p;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_AT_INVALID);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         conn_p = &(sdp_p->default_conn);
@@ -925,15 +731,10 @@ sdp_addrtype_e sdp_get_conn_addrtype (void *sdp_ptr, uint16_t level)
 
 
 
-const char *sdp_get_conn_address (void *sdp_ptr, uint16_t level)
+const char *sdp_get_conn_address (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_conn_t *conn_p;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         conn_p = &(sdp_p->default_conn);
@@ -958,15 +759,10 @@ const char *sdp_get_conn_address (void *sdp_ptr, uint16_t level)
 
 
 
-tinybool sdp_is_mcast_addr (void *sdp_ptr, uint16_t level)
+tinybool sdp_is_mcast_addr (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_conn_t *conn_p;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         conn_p = &(sdp_p->default_conn);
@@ -996,26 +792,21 @@ tinybool sdp_is_mcast_addr (void *sdp_ptr, uint16_t level)
 
 
 
-int32_t sdp_get_mcast_ttl (void *sdp_ptr, uint16_t level)
+int32_t sdp_get_mcast_ttl (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_conn_t *conn_p;
     sdp_mca_t  *mca_p;
     uint16_t ttl=0;
 
-    if (sdp_verify_sdp_ptr(sdp_p) != FALSE) {
-        if (level == SDP_SESSION_LEVEL) {
-            conn_p = &(sdp_p->default_conn);
-        } else {
-            mca_p = sdp_find_media_level(sdp_p, level);
-            if (mca_p != NULL) {
-                conn_p = &(mca_p->conn);
-            } else {
-                return SDP_INVALID_VALUE;
-            }
-        }
+    if (level == SDP_SESSION_LEVEL) {
+        conn_p = &(sdp_p->default_conn);
     } else {
-        return SDP_INVALID_VALUE;
+        mca_p = sdp_find_media_level(sdp_p, level);
+        if (mca_p != NULL) {
+            conn_p = &(mca_p->conn);
+        } else {
+            return SDP_INVALID_VALUE;
+        }
     }
 
     if (conn_p) {
@@ -1034,25 +825,20 @@ int32_t sdp_get_mcast_ttl (void *sdp_ptr, uint16_t level)
 
 
 
-int32_t sdp_get_mcast_num_of_addresses (void *sdp_ptr, uint16_t level)
+int32_t sdp_get_mcast_num_of_addresses (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_conn_t *conn_p;
     sdp_mca_t  *mca_p;
     uint16_t num_addr = 0;
 
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
+    if (level == SDP_SESSION_LEVEL) {
+        conn_p = &(sdp_p->default_conn);
     } else {
-        if (level == SDP_SESSION_LEVEL) {
-            conn_p = &(sdp_p->default_conn);
+        mca_p = sdp_find_media_level(sdp_p, level);
+        if (mca_p != NULL) {
+            conn_p = &(mca_p->conn);
         } else {
-            mca_p = sdp_find_media_level(sdp_p, level);
-            if (mca_p != NULL) {
-                conn_p = &(mca_p->conn);
-            } else {
-                return (SDP_INVALID_VALUE);
-	    }
+            return (SDP_INVALID_VALUE);
         }
     }
 
@@ -1071,16 +857,11 @@ int32_t sdp_get_mcast_num_of_addresses (void *sdp_ptr, uint16_t level)
 
 
 
-sdp_result_e sdp_set_conn_nettype (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_set_conn_nettype (sdp_t *sdp_p, uint16_t level,
                                    sdp_nettype_e nettype)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_conn_t *conn_p;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         conn_p = &(sdp_p->default_conn);
@@ -1107,16 +888,11 @@ sdp_result_e sdp_set_conn_nettype (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_set_conn_addrtype (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_set_conn_addrtype (sdp_t *sdp_p, uint16_t level,
                                     sdp_addrtype_e addrtype)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_conn_t *conn_p;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         conn_p = &(sdp_p->default_conn);
@@ -1145,16 +921,11 @@ sdp_result_e sdp_set_conn_addrtype (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_set_conn_address (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_set_conn_address (sdp_t *sdp_p, uint16_t level,
                                    const char *address)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_conn_t *conn_p;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         conn_p = &(sdp_p->default_conn);
@@ -1183,16 +954,11 @@ sdp_result_e sdp_set_conn_address (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_set_mcast_addr_fields(void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_set_mcast_addr_fields(sdp_t *sdp_p, uint16_t level,
 				       uint16_t ttl, uint16_t num_of_addresses)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_conn_t *conn_p;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         conn_p = &(sdp_p->default_conn);
@@ -1228,14 +994,9 @@ sdp_result_e sdp_set_mcast_addr_fields(void *sdp_ptr, uint16_t level,
 
 
 
-tinybool sdp_media_line_valid (void *sdp_ptr, uint16_t level)
+tinybool sdp_media_line_valid (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (FALSE);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -1258,14 +1019,8 @@ tinybool sdp_media_line_valid (void *sdp_ptr, uint16_t level)
 
 
 
-uint16_t sdp_get_num_media_lines (void *sdp_ptr)
+uint16_t sdp_get_num_media_lines (sdp_t *sdp_p)
 {
-    sdp_t *sdp_p = (sdp_t *)sdp_ptr;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
-
     return (sdp_p->mca_count);
 }
 
@@ -1277,14 +1032,9 @@ uint16_t sdp_get_num_media_lines (void *sdp_ptr)
 
 
 
-sdp_media_e sdp_get_media_type (void *sdp_ptr, uint16_t level)
+sdp_media_e sdp_get_media_type (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_MEDIA_INVALID);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -1302,14 +1052,9 @@ sdp_media_e sdp_get_media_type (void *sdp_ptr, uint16_t level)
 
 
 
-uint32_t sdp_get_media_line_number (void *sdp_ptr, uint16_t level)
+uint32_t sdp_get_media_line_number (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return 0;
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -1327,14 +1072,9 @@ uint32_t sdp_get_media_line_number (void *sdp_ptr, uint16_t level)
 
 
 
-sdp_port_format_e sdp_get_media_port_format (void *sdp_ptr, uint16_t level)
+sdp_port_format_e sdp_get_media_port_format (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_PORT_FORMAT_INVALID);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -1352,14 +1092,9 @@ sdp_port_format_e sdp_get_media_port_format (void *sdp_ptr, uint16_t level)
 
 
 
-int32_t sdp_get_media_portnum (void *sdp_ptr, uint16_t level)
+int32_t sdp_get_media_portnum (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -1390,14 +1125,9 @@ int32_t sdp_get_media_portnum (void *sdp_ptr, uint16_t level)
 
 
 
-int32_t sdp_get_media_portcount (void *sdp_ptr, uint16_t level)
+int32_t sdp_get_media_portcount (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -1425,14 +1155,9 @@ int32_t sdp_get_media_portcount (void *sdp_ptr, uint16_t level)
 
 
 
-int32_t sdp_get_media_vpi (void *sdp_ptr, uint16_t level)
+int32_t sdp_get_media_vpi (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -1462,14 +1187,9 @@ int32_t sdp_get_media_vpi (void *sdp_ptr, uint16_t level)
 
 
 
-uint32_t sdp_get_media_vci (void *sdp_ptr, uint16_t level)
+uint32_t sdp_get_media_vci (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -1499,14 +1219,9 @@ uint32_t sdp_get_media_vci (void *sdp_ptr, uint16_t level)
 
 
 
-int32_t sdp_get_media_vcci (void *sdp_ptr, uint16_t level)
+int32_t sdp_get_media_vcci (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -1535,14 +1250,9 @@ int32_t sdp_get_media_vcci (void *sdp_ptr, uint16_t level)
 
 
 
-int32_t sdp_get_media_cid (void *sdp_ptr, uint16_t level)
+int32_t sdp_get_media_cid (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -1574,14 +1284,9 @@ int32_t sdp_get_media_cid (void *sdp_ptr, uint16_t level)
 
 
 
-sdp_transport_e sdp_get_media_transport (void *sdp_ptr, uint16_t level)
+sdp_transport_e sdp_get_media_transport (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_TRANSPORT_INVALID);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -1604,14 +1309,9 @@ sdp_transport_e sdp_get_media_transport (void *sdp_ptr, uint16_t level)
 
 
 
-uint16_t sdp_get_media_num_profiles (void *sdp_ptr, uint16_t level)
+uint16_t sdp_get_media_num_profiles (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -1636,15 +1336,10 @@ uint16_t sdp_get_media_num_profiles (void *sdp_ptr, uint16_t level)
 
 
 
-sdp_transport_e sdp_get_media_profile (void *sdp_ptr, uint16_t level,
+sdp_transport_e sdp_get_media_profile (sdp_t *sdp_p, uint16_t level,
                                        uint16_t profile_num)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_TRANSPORT_INVALID);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -1668,14 +1363,9 @@ sdp_transport_e sdp_get_media_profile (void *sdp_ptr, uint16_t level,
 
 
 
-uint16_t sdp_get_media_num_payload_types (void *sdp_ptr, uint16_t level)
+uint16_t sdp_get_media_num_payload_types (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -1696,15 +1386,10 @@ uint16_t sdp_get_media_num_payload_types (void *sdp_ptr, uint16_t level)
 
 
 
-uint16_t sdp_get_media_profile_num_payload_types (void *sdp_ptr, uint16_t level,
+uint16_t sdp_get_media_profile_num_payload_types (sdp_t *sdp_p, uint16_t level,
                                              uint16_t profile_num)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -1719,20 +1404,15 @@ uint16_t sdp_get_media_profile_num_payload_types (void *sdp_ptr, uint16_t level,
     }
 }
 
-rtp_ptype sdp_get_known_payload_type(void *sdp_ptr,
+rtp_ptype sdp_get_known_payload_type(sdp_t *sdp_p,
                                      uint16_t level,
                                      uint16_t payload_type_raw) {
-  sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
   sdp_attr_t  *attr_p;
   sdp_transport_map_t *rtpmap;
   uint16_t    pack_mode = 0; 
   const char *encname = NULL;
   uint16_t    num_a_lines = 0;
   int         i;
-
-  if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-    return (RTP_NONE);
-  }
 
   
 
@@ -1822,15 +1502,11 @@ rtp_ptype sdp_get_known_payload_type(void *sdp_ptr,
 
 
 
-uint32_t sdp_get_media_payload_type (void *sdp_ptr, uint16_t level, uint16_t payload_num,
+uint32_t sdp_get_media_payload_type (sdp_t *sdp_p, uint16_t level, uint16_t payload_num,
                                 sdp_payload_ind_e *indicator)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
     rtp_ptype   ptype;
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -1844,7 +1520,7 @@ uint32_t sdp_get_media_payload_type (void *sdp_ptr, uint16_t level, uint16_t pay
     *indicator = mca_p->payload_indicator[payload_num-1];
     if ((mca_p->payload_type[payload_num-1] >= SDP_MIN_DYNAMIC_PAYLOAD) &&
         (mca_p->payload_type[payload_num-1] <= SDP_MAX_DYNAMIC_PAYLOAD)) {
-        ptype = sdp_get_known_payload_type(sdp_ptr,
+        ptype = sdp_get_known_payload_type(sdp_p,
                                            level,
                                            mca_p->payload_type[payload_num-1]);
         if (ptype != RTP_NONE) {
@@ -1869,17 +1545,12 @@ uint32_t sdp_get_media_payload_type (void *sdp_ptr, uint16_t level, uint16_t pay
 
 
 
-uint32_t sdp_get_media_profile_payload_type (void *sdp_ptr, uint16_t level, uint16_t prof_num,
+uint32_t sdp_get_media_profile_payload_type (sdp_t *sdp_p, uint16_t level, uint16_t prof_num,
                                         uint16_t payload_num,
                                         sdp_payload_ind_e *indicator)
 {
-    sdp_t                *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t            *mca_p;
     sdp_media_profiles_t *prof_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (0);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -1908,15 +1579,10 @@ uint32_t sdp_get_media_profile_payload_type (void *sdp_ptr, uint16_t level, uint
 
 
 
-sdp_result_e sdp_insert_media_line (void *sdp_ptr, uint16_t level)
+sdp_result_e sdp_insert_media_line (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
     sdp_mca_t  *new_mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if ((level < 1) || (level > (sdp_p->mca_count+1))) {
         if (sdp_p->debug_flag[SDP_DEBUG_ERRORS]) {
@@ -1964,19 +1630,14 @@ sdp_result_e sdp_insert_media_line (void *sdp_ptr, uint16_t level)
 
 
 
-void sdp_delete_media_line (void *sdp_ptr, uint16_t level)
+void sdp_delete_media_line (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
     sdp_mca_t  *prev_mca_p = NULL;
     sdp_attr_t *attr_p;
     sdp_attr_t *next_attr_p;
     sdp_bw_t        *bw_p;
     sdp_bw_data_t   *bw_data_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return;
-    }
 
     
 
@@ -2030,14 +1691,9 @@ void sdp_delete_media_line (void *sdp_ptr, uint16_t level)
 
 
 
-sdp_result_e sdp_set_media_type (void *sdp_ptr, uint16_t level, sdp_media_e media)
+sdp_result_e sdp_set_media_type (sdp_t *sdp_p, uint16_t level, sdp_media_e media)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -2060,15 +1716,10 @@ sdp_result_e sdp_set_media_type (void *sdp_ptr, uint16_t level, sdp_media_e medi
 
 
 
-sdp_result_e sdp_set_media_port_format (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_set_media_port_format (sdp_t *sdp_p, uint16_t level,
                                         sdp_port_format_e port_format)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -2091,14 +1742,9 @@ sdp_result_e sdp_set_media_port_format (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_set_media_portnum (void *sdp_ptr, uint16_t level, int32_t portnum, int32_t sctp_port)
+sdp_result_e sdp_set_media_portnum (sdp_t *sdp_p, uint16_t level, int32_t portnum, int32_t sctp_port)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -2118,14 +1764,9 @@ sdp_result_e sdp_set_media_portnum (void *sdp_ptr, uint16_t level, int32_t portn
 
 
 
-int32_t sdp_get_media_sctp_port(void *sdp_ptr, uint16_t level)
+int32_t sdp_get_media_sctp_port(sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (!sdp_verify_sdp_ptr(sdp_p)) {
-        return -1;
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (!mca_p) {
@@ -2146,15 +1787,10 @@ int32_t sdp_get_media_sctp_port(void *sdp_ptr, uint16_t level)
 
 
 
-sdp_result_e sdp_set_media_portcount (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_set_media_portcount (sdp_t *sdp_p, uint16_t level,
                                       int32_t num_ports)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -2176,14 +1812,9 @@ sdp_result_e sdp_set_media_portcount (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_set_media_vpi (void *sdp_ptr, uint16_t level, int32_t vpi)
+sdp_result_e sdp_set_media_vpi (sdp_t *sdp_p, uint16_t level, int32_t vpi)
 {
-    sdp_t      *sdp_p = (sdp_t*)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -2205,14 +1836,9 @@ sdp_result_e sdp_set_media_vpi (void *sdp_ptr, uint16_t level, int32_t vpi)
 
 
 
-sdp_result_e sdp_set_media_vci (void *sdp_ptr, uint16_t level, uint32_t vci)
+sdp_result_e sdp_set_media_vci (sdp_t *sdp_p, uint16_t level, uint32_t vci)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -2234,14 +1860,9 @@ sdp_result_e sdp_set_media_vci (void *sdp_ptr, uint16_t level, uint32_t vci)
 
 
 
-sdp_result_e sdp_set_media_vcci (void *sdp_ptr, uint16_t level, int32_t vcci)
+sdp_result_e sdp_set_media_vcci (sdp_t *sdp_p, uint16_t level, int32_t vcci)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -2263,14 +1884,9 @@ sdp_result_e sdp_set_media_vcci (void *sdp_ptr, uint16_t level, int32_t vcci)
 
 
 
-sdp_result_e sdp_set_media_cid (void *sdp_ptr, uint16_t level, int32_t cid)
+sdp_result_e sdp_set_media_cid (sdp_t *sdp_p, uint16_t level, int32_t cid)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -2290,15 +1906,10 @@ sdp_result_e sdp_set_media_cid (void *sdp_ptr, uint16_t level, int32_t cid)
 
 
 
-sdp_result_e sdp_set_media_transport (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_set_media_transport (sdp_t *sdp_p, uint16_t level,
                                       sdp_transport_e transport)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -2320,16 +1931,11 @@ sdp_result_e sdp_set_media_transport (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_add_media_profile (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_add_media_profile (sdp_t *sdp_p, uint16_t level,
                                     sdp_transport_e profile)
 {
     uint16_t         prof_num;
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -2376,16 +1982,11 @@ sdp_result_e sdp_add_media_profile (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_add_media_payload_type (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_add_media_payload_type (sdp_t *sdp_p, uint16_t level,
                                          uint16_t payload_type,
                                          sdp_payload_ind_e indicator)
 {
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -2419,17 +2020,12 @@ sdp_result_e sdp_add_media_payload_type (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_result_e sdp_add_media_profile_payload_type (void *sdp_ptr, uint16_t level,
+sdp_result_e sdp_add_media_profile_payload_type (sdp_t *sdp_p, uint16_t level,
                                                 uint16_t prof_num, uint16_t payload_type,
                                                 sdp_payload_ind_e indicator)
 {
     uint16_t         num_payloads;
-    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t  *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -2476,17 +2072,12 @@ sdp_result_e sdp_add_media_profile_payload_type (void *sdp_ptr, uint16_t level,
 
 
 
-sdp_bw_data_t* sdp_find_bw_line (void *sdp_ptr, uint16_t level, uint16_t inst_num)
+sdp_bw_data_t* sdp_find_bw_line (sdp_t *sdp_p, uint16_t level, uint16_t inst_num)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_bw_t            *bw_p;
     sdp_bw_data_t       *bw_data_p;
     sdp_mca_t           *mca_p;
     int                 bw_attr_count=0;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (NULL);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         bw_p = &(sdp_p->bw);
@@ -2525,25 +2116,15 @@ sdp_bw_data_t* sdp_find_bw_line (void *sdp_ptr, uint16_t level, uint16_t inst_nu
 
 
 
-sdp_result_e sdp_copy_all_bw_lines (void *src_sdp_ptr, void *dst_sdp_ptr,
+sdp_result_e sdp_copy_all_bw_lines (sdp_t *src_sdp_p, sdp_t *dst_sdp_p,
                                     uint16_t src_level, uint16_t dst_level)
 {
-    sdp_t                *src_sdp_p = (sdp_t *)src_sdp_ptr;
-    sdp_t                *dst_sdp_p = (sdp_t *)dst_sdp_ptr;
     sdp_bw_data_t        *orig_bw_data_p;
     sdp_bw_data_t        *new_bw_data_p;
     sdp_bw_data_t        *bw_data_p;
     sdp_bw_t             *src_bw_p;
     sdp_bw_t             *dst_bw_p;
     sdp_mca_t            *mca_p;
-
-    if (sdp_verify_sdp_ptr(src_sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
-
-    if (sdp_verify_sdp_ptr(dst_sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     
     if (src_level == SDP_SESSION_LEVEL) {
@@ -2621,14 +2202,9 @@ sdp_result_e sdp_copy_all_bw_lines (void *src_sdp_ptr, void *dst_sdp_ptr,
 
 
 
-sdp_bw_modifier_e sdp_get_bw_modifier (void *sdp_ptr, uint16_t level, uint16_t inst_num)
+sdp_bw_modifier_e sdp_get_bw_modifier (sdp_t *sdp_p, uint16_t level, uint16_t inst_num)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_bw_data_t       *bw_data_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_BW_MODIFIER_UNSUPPORTED);
-    }
 
     bw_data_p = sdp_find_bw_line(sdp_p, level, inst_num);
 
@@ -2648,14 +2224,9 @@ sdp_bw_modifier_e sdp_get_bw_modifier (void *sdp_ptr, uint16_t level, uint16_t i
 
 
 
-int32_t sdp_get_bw_value (void *sdp_ptr, uint16_t level, uint16_t inst_num)
+int32_t sdp_get_bw_value (sdp_t *sdp_p, uint16_t level, uint16_t inst_num)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_bw_data_t       *bw_data_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     bw_data_p = sdp_find_bw_line(sdp_p, level, inst_num);
 
@@ -2676,15 +2247,10 @@ int32_t sdp_get_bw_value (void *sdp_ptr, uint16_t level, uint16_t inst_num)
 
 
 
-int32_t sdp_get_num_bw_lines (void *sdp_ptr, uint16_t level)
+int32_t sdp_get_num_bw_lines (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_bw_t            *bw_p;
     sdp_mca_t           *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         bw_p = &(sdp_p->bw);
@@ -2734,19 +2300,14 @@ int32_t sdp_get_num_bw_lines (void *sdp_ptr, uint16_t level)
 
 
 
-sdp_result_e sdp_add_new_bw_line (void *sdp_ptr, uint16_t level, sdp_bw_modifier_e bw_modifier, uint16_t *inst_num)
+sdp_result_e sdp_add_new_bw_line (sdp_t *sdp_p, uint16_t level, sdp_bw_modifier_e bw_modifier, uint16_t *inst_num)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_bw_t            *bw_p;
     sdp_mca_t           *mca_p;
     sdp_bw_data_t       *new_bw_data_p;
     sdp_bw_data_t       *bw_data_p = NULL;
 
     *inst_num = 0;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         bw_p = &(sdp_p->bw);
@@ -2811,18 +2372,13 @@ sdp_result_e sdp_add_new_bw_line (void *sdp_ptr, uint16_t level, sdp_bw_modifier
 
 
 
-sdp_result_e sdp_delete_bw_line (void *sdp_ptr, uint16_t level, uint16_t inst_num)
+sdp_result_e sdp_delete_bw_line (sdp_t *sdp_p, uint16_t level, uint16_t inst_num)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_bw_t            *bw_p;
     sdp_mca_t           *mca_p;
     sdp_bw_data_t       *bw_data_p = NULL;
     sdp_bw_data_t       *prev_bw_data_p = NULL;
     int                 bw_data_count = 0;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if (level == SDP_SESSION_LEVEL) {
         bw_p = &(sdp_p->bw);
@@ -2882,15 +2438,10 @@ sdp_result_e sdp_delete_bw_line (void *sdp_ptr, uint16_t level, uint16_t inst_nu
 
 
 
-sdp_result_e sdp_set_bw (void *sdp_ptr, uint16_t level, uint16_t inst_num,
+sdp_result_e sdp_set_bw (sdp_t *sdp_p, uint16_t level, uint16_t inst_num,
                          sdp_bw_modifier_e bw_modifier, uint32_t bw_val)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_bw_data_t       *bw_data_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     if ((bw_modifier < SDP_BW_MODIFIER_AS) ||
         (bw_modifier >= SDP_MAX_BW_MODIFIER_VAL)) {
@@ -2923,14 +2474,9 @@ sdp_result_e sdp_set_bw (void *sdp_ptr, uint16_t level, uint16_t inst_num,
 
 
 
-int32_t sdp_get_mid_value (void *sdp_ptr, uint16_t level)
+int32_t sdp_get_mid_value (sdp_t *sdp_p, uint16_t level)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t           *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_VALUE);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {
@@ -2948,14 +2494,9 @@ int32_t sdp_get_mid_value (void *sdp_ptr, uint16_t level)
 
 
 
-sdp_result_e sdp_set_mid_value (void *sdp_ptr, uint16_t level, uint32_t mid_val)
+sdp_result_e sdp_set_mid_value (sdp_t *sdp_p, uint16_t level, uint32_t mid_val)
 {
-    sdp_t               *sdp_p = (sdp_t *)sdp_ptr;
     sdp_mca_t           *mca_p;
-
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
-        return (SDP_INVALID_SDP_PTR);
-    }
 
     mca_p = sdp_find_media_level(sdp_p, level);
     if (mca_p == NULL) {

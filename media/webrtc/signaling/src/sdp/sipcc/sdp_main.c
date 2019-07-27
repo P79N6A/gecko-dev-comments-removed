@@ -795,32 +795,13 @@ const char *sdp_get_rtcp_unicast_mode_name (sdp_rtcp_unicast_mode_e type)
 
 
 
-tinybool sdp_verify_sdp_ptr (sdp_t *sdp_p)
-{
-    if ((sdp_p != NULL) && (sdp_p->magic_num == SDP_MAGIC_NUM)) {
-        return (TRUE);
-    } else {
-        CSFLogError(logTag, "SDP: Invalid SDP pointer.");
-        return (FALSE);
-    }
-}
-
-
-
-
-
-
-
-
-
-
 
 sdp_t *sdp_init_description (sdp_conf_options_t *conf_p)
 {
     int i;
     sdp_t *sdp_p;
 
-    if (sdp_verify_conf_ptr(conf_p) == FALSE) {
+    if (!conf_p) {
         return (NULL);
     }
 
@@ -828,9 +809,6 @@ sdp_t *sdp_init_description (sdp_conf_options_t *conf_p)
     if (sdp_p == NULL) {
         return (NULL);
     }
-
-    
-    sdp_p->magic_num = SDP_MAGIC_NUM;
 
     sdp_p->conf_p             = conf_p;
     sdp_p->version            = SDP_CURRENT_VERSION;
@@ -883,7 +861,7 @@ sdp_t *sdp_init_description (sdp_conf_options_t *conf_p)
 
 void sdp_debug (sdp_t *sdp_p, sdp_debug_e debug_type, tinybool debug_flag)
 {
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
+    if (!sdp_p) {
         return;
     }
 
@@ -905,7 +883,7 @@ void sdp_debug (sdp_t *sdp_p, sdp_debug_e debug_type, tinybool debug_flag)
 
 void sdp_set_string_debug (sdp_t *sdp_p, const char *debug_str)
 {
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
+    if (!sdp_p) {
         return;
     }
 
@@ -993,7 +971,7 @@ sdp_result_e sdp_parse (sdp_t *sdp_p, const char *buf, size_t len)
     tinybool     unrec_token = FALSE;
     const char   **bufp = &buf;
 
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
+    if (!sdp_p) {
         return (SDP_INVALID_SDP_PTR);
     }
 
@@ -1200,7 +1178,7 @@ sdp_result_e sdp_build (sdp_t *sdp_p, flex_string *fs)
     int i, j;
     sdp_result_e        result = SDP_SUCCESS;
 
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
+    if (!sdp_p) {
         return (SDP_INVALID_SDP_PTR);
     }
 
@@ -1259,7 +1237,7 @@ sdp_result_e sdp_free_description (sdp_t *sdp_p)
     sdp_bw_t        *bw_p;
     sdp_bw_data_t   *bw_data_p;
 
-    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
+    if (!sdp_p) {
         return (SDP_INVALID_SDP_PTR);
     }
 
