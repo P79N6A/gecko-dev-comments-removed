@@ -4,6 +4,12 @@
 
 %include ../shared/devedition.inc.css
 
+:root[devtoolstheme="dark"],
+:root[devtoolstheme="light"] {
+   
+  --chrome-nav-bar-separator-color: rgba(10, 31, 51, 0.35);
+}
+
 #TabsToolbar::after {
   display: none;
 }
@@ -43,13 +49,63 @@
   padding-bottom: 2px;
 }
 
+.tabbrowser-tab {
+  background-color: var(--tab-background-color);
+}
+
+
+
+
+
+
+
+#main-window[sizemode=normal] .tabbrowser-tabs[overflow="true"] {
+  background-clip: padding-box;
+  border-top: 1px solid var(--chrome-nav-bar-separator-color);
+  -moz-border-end: 1px solid var(--chrome-nav-bar-separator-color);
+  background-color: var(--tab-background-color); 
+}
+
+
+
+#main-window[sizemode=normal] .tabbrowser-tabs {
+  background-clip: padding-box;
+  -moz-border-start: 1px solid var(--chrome-nav-bar-separator-color);
+  -moz-border-end: 1px solid transparent;
+}
+
+#main-window[sizemode=normal] .tabbrowser-tabs:not([overflow="true"]) .tabbrowser-tab,
+#main-window[sizemode=normal] .tabbrowser-tabs:not([overflow="true"]) .tabbrowser-arrowscrollbox > .scrollbutton-down,
+#main-window[sizemode=normal] .tabbrowser-tabs:not([overflow="true"]) .tabbrowser-arrowscrollbox > .scrollbutton-up,
+#main-window[sizemode=normal] .tabbrowser-tabs:not([overflow="true"]) .tabs-newtab-button {
+  background-clip: padding-box;
+  border-top: 1px solid var(--chrome-nav-bar-separator-color);
+}
+
+
+#main-window[sizemode=normal] .tabbrowser-tabs:not([overflow="true"]) .tabbrowser-tab {
+  -moz-border-top-colors: none;
+}
+
+#main-window[sizemode=normal] .tabbrowser-tabs:not([overflow="true"]) .closing-tabs-spacer {
+  background-clip: padding-box;
+  -moz-border-start: 1px solid var(--chrome-nav-bar-separator-color);
+}
+
+.tabs-newtab-button {
+  background: var(--tab-background-color);
+}
+
+
+#tabbrowser-tabs,
+#TabsToolbar,
 #browser-panel,
 #titlebar-content {
   background: transparent;
 }
 
 
-#main-window[sizemode="maximized"] #browser-panel {
+#main-window[sizemode="maximized"]:not([customizing]) #browser-panel {
   background: var(--chrome-background-color) !important;
 }
 
@@ -64,15 +120,22 @@
 }
 
 
+.tabbrowser-arrowscrollbox > .scrollbutton-up[disabled],
+.tabbrowser-arrowscrollbox > .scrollbutton-down[disabled] {
+  opacity: .6;
+}
+
+
+.tabbrowser-arrowscrollbox > .scrollbutton-down,
+.tabbrowser-arrowscrollbox > .scrollbutton-up {
+  background-image: none !important;
+  transition: none; 
+}
+
+
 #main-window[sizemode="maximized"] .tabbrowser-arrowscrollbox > .arrowscrollbox-scrollbox {
   padding-left: 15px;
   padding-right: 15px;
-}
-
-@media (-moz-windows-classic) {
-  #main-window[sizemode="maximized"] #TabsToolbar {
-    background: transparent;
-  }
 }
 
 #toolbar-menubar {
@@ -80,28 +143,9 @@
 }
 
 
-#main-window[sizemode=normal] #TabsToolbar {
+#main-window[sizemode=normal]:not([customizing]) #TabsToolbar {
   padding-left: 0;
   padding-right: 0;
-}
-
-#main-window[tabsintitlebar][sizemode="normal"]:not([inFullscreen])[chromehidden~="menubar"] #toolbar-menubar ~ #TabsToolbar,
-#main-window[tabsintitlebar][sizemode="normal"]:not([inFullscreen]) #toolbar-menubar[autohide="true"][inactive] ~ #TabsToolbar {
-  margin-top: 22px;
-}
-
-
-
-
-
-
-@media (-moz-windows-default-theme) {
-  @media not all and (-moz-windows-compositor) {
-    #main-window[tabsintitlebar][sizemode="normal"]:not([inFullscreen])[chromehidden~="menubar"] #toolbar-menubar ~ #TabsToolbar,
-    #main-window[tabsintitlebar][sizemode="normal"]:not([inFullscreen]) #toolbar-menubar[autohide="true"][inactive] ~ #TabsToolbar {
-      margin-top: 28px;
-    }
-  }
 }
 
 
