@@ -44,6 +44,9 @@ public:
   void SetNull();
   void TakeFrom(VideoFrame* aFrame);
 
+  
+  static already_AddRefed<Image> CreateBlackImage(const gfxIntSize& aSize);
+
 protected:
   
   

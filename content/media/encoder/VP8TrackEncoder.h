@@ -60,9 +60,6 @@ private:
   nsresult PrepareRawFrame(VideoChunk &aChunk);
 
   
-  void PrepareMutedFrame();
-
-  
   uint32_t mEncodedFrameRate;
   
   TrackTicks mEncodedFrameDuration;
@@ -72,7 +69,7 @@ private:
   TrackTicks mRemainingTicks;
 
   
-  nsTArray<uint8_t> mMuteFrame;
+  nsRefPtr<layers::Image> mMuteFrame;
 
   
   nsTArray<uint8_t> mI420Frame;

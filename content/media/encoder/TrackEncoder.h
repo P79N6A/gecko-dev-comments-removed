@@ -269,12 +269,6 @@ protected:
   
 
 
-
-  void CreateMutedFrame(nsTArray<uint8_t>* aOutputBuffer);
-
-  
-
-
   int mFrameWidth;
 
   
