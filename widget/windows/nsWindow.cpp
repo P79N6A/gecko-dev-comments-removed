@@ -6750,7 +6750,10 @@ nsWindow::GetPreferredCompositorBackends(nsTArray<LayersBackend>& aHints)
     if (!prefs.mPreferD3D9) {
       aHints.AppendElement(LayersBackend::LAYERS_D3D11);
     }
-    aHints.AppendElement(LayersBackend::LAYERS_D3D9);
+    if (prefs.mPreferD3D9 || !mozilla::IsVistaOrLater()) {
+      
+      aHints.AppendElement(LayersBackend::LAYERS_D3D9);
+    }
   }
   aHints.AppendElement(LayersBackend::LAYERS_BASIC);
 }
