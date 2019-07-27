@@ -212,7 +212,7 @@ class ICEntry
     uint32_t returnOffset_;
 
     
-    uint32_t pcOffset_ : 29;
+    uint32_t pcOffset_ : 28;
 
   public:
     enum Kind {
@@ -230,6 +230,13 @@ class ICEntry
         Kind_NonOpCallVM,
 
         
+        
+        Kind_StackCheck,
+
+        
+        Kind_EarlyStackCheck,
+
+        
         Kind_DebugTrap,
 
         
@@ -242,7 +249,7 @@ class ICEntry
 
   private:
     
-    Kind kind_ : 3;
+    Kind kind_ : 4;
 
     
     void setKind(Kind kind) {
@@ -258,7 +265,7 @@ class ICEntry
         
         
         MOZ_ASSERT(pcOffset_ == pcOffset);
-        JS_STATIC_ASSERT(BaselineScript::MAX_JSSCRIPT_LENGTH < 0x1fffffffu);
+        JS_STATIC_ASSERT(BaselineScript::MAX_JSSCRIPT_LENGTH <= (1u << 28) - 1);
         MOZ_ASSERT(pcOffset <= BaselineScript::MAX_JSSCRIPT_LENGTH);
         setKind(kind);
     }
@@ -289,23 +296,15 @@ class ICEntry
 
     Kind kind() const {
         
-        return (Kind)(kind_ & 0x7);
+        return Kind(kind_ & 0xf);
     }
     bool isForOp() const {
         return kind() == Kind_Op;
     }
 
-    void setForDebugPrologue() {
-        MOZ_ASSERT(kind() == Kind_CallVM);
-        setKind(Kind_DebugPrologue);
-    }
-    void setForDebugEpilogue() {
-        MOZ_ASSERT(kind() == Kind_CallVM);
-        setKind(Kind_DebugEpilogue);
-    }
-    void setForNonOpCallVM() {
-        MOZ_ASSERT(kind() == Kind_CallVM);
-        setKind(Kind_NonOpCallVM);
+    void setFakeKind(Kind kind) {
+        MOZ_ASSERT(kind != Kind_Op && kind != Kind_NonOp);
+        setKind(kind);
     }
 
     bool hasStub() const {

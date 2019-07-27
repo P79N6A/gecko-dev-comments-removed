@@ -627,6 +627,21 @@ BaselineScript::callVMEntryFromPCOffset(uint32_t pcOffset)
 }
 
 ICEntry &
+BaselineScript::stackCheckICEntry(bool earlyCheck)
+{
+    
+    
+    
+    
+    ICEntry::Kind kind = earlyCheck ? ICEntry::Kind_EarlyStackCheck : ICEntry::Kind_StackCheck;
+    for (size_t i = 0; i < numICEntries() && icEntry(i).pcOffset() == 0; i++) {
+        if (icEntry(i).kind() == kind)
+            return icEntry(i);
+    }
+    MOZ_CRASH("No stack check ICEntry found.");
+}
+
+ICEntry &
 BaselineScript::icEntryFromReturnAddress(uint8_t *returnAddr)
 {
     MOZ_ASSERT(returnAddr > method_->raw());

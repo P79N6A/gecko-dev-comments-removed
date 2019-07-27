@@ -99,6 +99,8 @@ struct DebugModeOSREntry
 
     bool needsRecompileInfo() const {
         return frameKind == ICEntry::Kind_CallVM ||
+               frameKind == ICEntry::Kind_StackCheck ||
+               frameKind == ICEntry::Kind_EarlyStackCheck ||
                frameKind == ICEntry::Kind_DebugTrap ||
                frameKind == ICEntry::Kind_DebugPrologue ||
                frameKind == ICEntry::Kind_DebugEpilogue;
@@ -293,6 +295,10 @@ ICEntryKindToString(ICEntry::Kind kind)
         return "non-op IC";
       case ICEntry::Kind_CallVM:
         return "callVM";
+      case ICEntry::Kind_StackCheck:
+        return "stack check";
+      case ICEntry::Kind_EarlyStackCheck:
+        return "early stack check";
       case ICEntry::Kind_DebugTrap:
         return "debug trap";
       case ICEntry::Kind_DebugPrologue:
@@ -337,6 +343,7 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
                                 const ActivationIterator &activation,
                                 DebugModeOSREntryVector &entries, size_t *start)
 {
+    
     
     
     
@@ -449,12 +456,16 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
                 
                 MOZ_ASSERT_IF(script->baselineScript()->hasDebugInstrumentation(),
                               kind == ICEntry::Kind_CallVM ||
+                              kind == ICEntry::Kind_StackCheck ||
+                              kind == ICEntry::Kind_EarlyStackCheck ||
                               kind == ICEntry::Kind_DebugTrap ||
                               kind == ICEntry::Kind_DebugPrologue ||
                               kind == ICEntry::Kind_DebugEpilogue);
                 
                 MOZ_ASSERT_IF(!script->baselineScript()->hasDebugInstrumentation(),
-                              kind == ICEntry::Kind_CallVM);
+                              kind == ICEntry::Kind_CallVM ||
+                              kind == ICEntry::Kind_StackCheck ||
+                              kind == ICEntry::Kind_EarlyStackCheck);
 
                 
                 
@@ -479,6 +490,20 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
                 
                 ICEntry &callVMEntry = bl->callVMEntryFromPCOffset(pcOffset);
                 recompInfo->resumeAddr = bl->returnAddressForIC(callVMEntry);
+                popFrameReg = false;
+                break;
+              }
+
+              case ICEntry::Kind_StackCheck:
+              case ICEntry::Kind_EarlyStackCheck: {
+                
+                
+                
+                
+                
+                bool earlyCheck = kind == ICEntry::Kind_EarlyStackCheck;
+                ICEntry &stackCheckEntry = bl->stackCheckICEntry(earlyCheck);
+                recompInfo->resumeAddr = bl->returnAddressForIC(stackCheckEntry);
                 popFrameReg = false;
                 break;
               }
@@ -906,6 +931,35 @@ HasForcedReturn(BaselineDebugModeOSRInfo *info, bool rv)
     return false;
 }
 
+static inline bool
+IsReturningFromCallVM(BaselineDebugModeOSRInfo *info)
+{
+    
+    
+    
+    
+    return info->frameKind == ICEntry::Kind_CallVM ||
+           info->frameKind == ICEntry::Kind_StackCheck ||
+           info->frameKind == ICEntry::Kind_EarlyStackCheck;
+}
+
+static void
+EmitBranchICEntryKind(MacroAssembler &masm, Register entry, ICEntry::Kind kind, Label *label)
+{
+    masm.branch32(MacroAssembler::Equal,
+                  Address(entry, offsetof(BaselineDebugModeOSRInfo, frameKind)),
+                  Imm32(kind), label);
+}
+
+static void
+EmitBranchIsReturningFromCallVM(MacroAssembler &masm, Register entry, Label *label)
+{
+    
+    EmitBranchICEntryKind(masm, entry, ICEntry::Kind_CallVM, label);
+    EmitBranchICEntryKind(masm, entry, ICEntry::Kind_StackCheck, label);
+    EmitBranchICEntryKind(masm, entry, ICEntry::Kind_EarlyStackCheck, label);
+}
+
 static void
 SyncBaselineDebugModeOSRInfo(BaselineFrame *frame, Value *vp, bool rv)
 {
@@ -927,7 +981,7 @@ SyncBaselineDebugModeOSRInfo(BaselineFrame *frame, Value *vp, bool rv)
     
     
     
-    if (info->frameKind != ICEntry::Kind_CallVM) {
+    if (!IsReturningFromCallVM(info)) {
         unsigned numUnsynced = info->slotInfo.numUnsynced();
         MOZ_ASSERT(numUnsynced <= 2);
         if (numUnsynced > 0)
@@ -1072,10 +1126,7 @@ JitRuntime::generateBaselineDebugModeOSRHandler(JSContext *cx, uint32_t *noFrame
     
     
     Label returnFromCallVM, end;
-    masm.branch32(MacroAssembler::Equal,
-                  Address(temp, offsetof(BaselineDebugModeOSRInfo, frameKind)),
-                  Imm32(ICEntry::Kind_CallVM),
-                  &returnFromCallVM);
+    EmitBranchIsReturningFromCallVM(masm, temp, &returnFromCallVM);
 
     EmitBaselineDebugModeOSRHandlerTail(masm, temp,  false);
     masm.jump(&end);
