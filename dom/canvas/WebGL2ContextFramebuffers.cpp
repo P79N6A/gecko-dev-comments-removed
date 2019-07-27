@@ -398,6 +398,13 @@ WebGL2Context::InvalidateFramebuffer(GLenum target, const dom::Sequence<GLenum>&
         }
     }
 
+    
+    
+    
+    static bool invalidateFBSupported = gl->IsSupported(gl::GLFeature::invalidate_framebuffer);
+    if (!invalidateFBSupported)
+        return;
+
     if (!fb && !isDefaultFB) {
         dom::Sequence<GLenum> tmpAttachments;
         TranslateDefaultAttachments(attachments, &tmpAttachments);
@@ -444,6 +451,13 @@ WebGL2Context::InvalidateSubFramebuffer(GLenum target, const dom::Sequence<GLenu
             return;
         }
     }
+
+    
+    
+    
+    static bool invalidateFBSupported = gl->IsSupported(gl::GLFeature::invalidate_framebuffer);
+    if (!invalidateFBSupported)
+        return;
 
     if (!fb && !isDefaultFB) {
         dom::Sequence<GLenum> tmpAttachments;
