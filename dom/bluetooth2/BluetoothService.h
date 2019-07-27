@@ -33,7 +33,6 @@ class BluetoothSignal;
 typedef mozilla::ObserverList<BluetoothSignal> BluetoothSignalObserverList;
 
 class BluetoothService : public nsIObserver
-                       , public BluetoothSignalObserver
 {
   class ToggleBtTask;
   friend class ToggleBtTask;
@@ -96,13 +95,6 @@ public:
 
   void
   DistributeSignal(const BluetoothSignal& aEvent);
-
-  
-
-
-
-  void
-  Notify(const BluetoothSignal& aParam);
 
   
 
