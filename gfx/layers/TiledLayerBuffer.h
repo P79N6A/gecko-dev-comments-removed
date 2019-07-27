@@ -516,7 +516,7 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& aNewValidRegion,
                         static_cast<unsigned>(index) < newRetainedTiles.Length(),
                         "index out of range");
 
-      Tile& newTile = newRetainedTiles[index];
+      Tile newTile = newRetainedTiles[index];
 
       
       
@@ -532,12 +532,13 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& aNewValidRegion,
       
       
       nsIntPoint tileOrigin(tileStartX, tileStartY);
-      AsDerived().ValidateTile(newTile, nsIntPoint(tileStartX, tileStartY),
-                               tileDrawRegion);
+      newTile = AsDerived().ValidateTile(newTile, nsIntPoint(tileStartX, tileStartY),
+                                         tileDrawRegion);
       NS_ASSERTION(!IsPlaceholder(newTile), "Unexpected placeholder tile - failed to allocate?");
 #ifdef GFX_TILEDLAYER_PREF_WARNINGS
       printf_stderr("Store Validate tile %i, %i -> %i\n", tileStartX, tileStartY, index);
 #endif
+      newRetainedTiles[index] = newTile;
 
       y += height;
     }
