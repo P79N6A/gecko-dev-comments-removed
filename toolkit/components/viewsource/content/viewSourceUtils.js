@@ -85,8 +85,6 @@ var gViewSourceUtils = {
 
 
 
-
-
   viewSourceInBrowser: function(aArgs) {
     let viewSourceBrowser = new ViewSourceBrowser(aArgs.viewSourceBrowser);
     viewSourceBrowser.loadViewSource(aArgs);
@@ -102,16 +100,12 @@ var gViewSourceUtils = {
 
 
 
-
-
   viewSourceFromSelectionInBrowser: function(aSelection, aViewSourceInBrowser) {
     let viewSourceBrowser = new ViewSourceBrowser(aViewSourceInBrowser);
     viewSourceBrowser.loadViewSourceFromSelection(aSelection);
   },
 
   
-
-
 
 
 

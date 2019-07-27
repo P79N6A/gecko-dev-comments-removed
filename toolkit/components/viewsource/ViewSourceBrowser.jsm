@@ -25,8 +25,13 @@ const BUNDLE_URL = "chrome://global/locale/viewSource.properties";
 const MARK_SELECTION_START = "\uFDD0";
 const MARK_SELECTION_END = "\uFDEF";
 
+const FRAME_SCRIPT = "chrome://global/content/viewSource-content.js";
+
 this.EXPORTED_SYMBOLS = ["ViewSourceBrowser"];
 
+
+
+let gKnownBrowsers = new WeakSet();
 
 
 
@@ -83,6 +88,14 @@ ViewSourceBrowser.prototype = {
     this.messages.forEach((msgName) => {
       this.mm.addMessageListener(msgName, this);
     });
+
+    
+    
+    
+    
+    if (this._browser) {
+      this.loadFrameScript();
+    }
   },
 
   
@@ -93,6 +106,16 @@ ViewSourceBrowser.prototype = {
     this.messages.forEach((msgName) => {
       this.mm.removeMessageListener(msgName, this);
     });
+  },
+
+  
+
+
+  loadFrameScript() {
+    if (!gKnownBrowsers.has(this.browser)) {
+      gKnownBrowsers.add(this.browser);
+      this.mm.loadFrameScript(FRAME_SCRIPT, false);
+    }
   },
 
   
@@ -651,4 +674,14 @@ ViewSourceBrowser.prototype = {
     Services.prefs.setBoolPref("view_source.syntax_highlight", state);
   },
 
+};
+
+
+
+
+
+
+ViewSourceBrowser.isViewSource = function(uri) {
+  return uri.startsWith("view-source:") ||
+         (uri.startsWith("data:") && uri.includes("MathML"));
 };

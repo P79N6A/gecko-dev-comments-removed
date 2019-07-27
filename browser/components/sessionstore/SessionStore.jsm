@@ -158,6 +158,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "TabStateFlusher",
   "resource:///modules/sessionstore/TabStateFlusher.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Utils",
   "resource:///modules/sessionstore/Utils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ViewSourceBrowser",
+  "resource://gre/modules/ViewSourceBrowser.jsm");
 
 
 
@@ -2816,6 +2818,12 @@ let SessionStoreInternal = {
       uri = loadArguments.uri;
     }
     tabbrowser.updateBrowserRemotenessByURL(browser, uri);
+
+    
+    
+    if (uri && ViewSourceBrowser.isViewSource(uri)) {
+      new ViewSourceBrowser(browser);
+    }
 
     
     
