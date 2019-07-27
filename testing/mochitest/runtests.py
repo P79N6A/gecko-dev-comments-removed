@@ -1801,9 +1801,11 @@ class Mochitest(MochitestUtilsMixin):
     
     
 
-    debuggerInfo = mozdebug.get_debugger_info(options.debugger,
-                                              options.debuggerArgs,
-                                              options.debuggerInteractive)
+    debuggerInfo = None
+    if options.debugger:
+        debuggerInfo = mozdebug.get_debugger_info(options.debugger,
+                                                  options.debuggerArgs,
+                                                  options.debuggerInteractive)
 
     if options.useTestMediaDevices:
       devices = findTestMediaDevices(self.log)
