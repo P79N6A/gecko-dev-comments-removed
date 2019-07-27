@@ -10,6 +10,7 @@
 #include "nsTArrayForwardDeclare.h"
 #include "mozilla/Alignment.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/BinarySearch.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Move.h"
 #include "mozilla/TypeTraits.h"
@@ -697,6 +698,29 @@ struct nsTArray_TypedBase<JS::Heap<E>, Derived>
   }
 };
 
+namespace detail {
+
+template<class Item, class Comparator>
+struct ItemComparator
+{
+  const Item& mItem;
+  const Comparator& mComp;
+  ItemComparator(const Item& aItem, const Comparator& aComp)
+    : mItem(aItem)
+    , mComp(aComp)
+  {}
+  template<class T>
+  int operator()(const T& aElement) const {
+    if (mComp.LessThan(aElement, mItem) ||
+        mComp.Equals(aElement, mItem)) {
+      return 1;
+    } else {
+      return -1;
+    }
+  }
+};
+
+} 
 
 
 
@@ -1226,23 +1250,12 @@ public:
   index_type IndexOfFirstElementGt(const Item& aItem,
                                    const Comparator& aComp) const
   {
-    
-    index_type low = 0, high = Length();
-    while (high > low) {
-      index_type mid = (high + low) >> 1;
-      
-      
-      if (aComp.LessThan(ElementAt(mid), aItem) ||
-          aComp.Equals(ElementAt(mid), aItem)) {
-        
-        low = mid + 1;
-      } else {
-        
-        high = mid;
-      }
-    }
-    MOZ_ASSERT(high == low);
-    return low;
+    using mozilla::BinarySearchIf;
+    typedef ::detail::ItemComparator<Item, Comparator> Cmp;
+
+    size_t index;
+    BinarySearchIf(*this, 0, Length(), Cmp(aItem, aComp), &index);
+    return index;
   }
 
   

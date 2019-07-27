@@ -42,6 +42,7 @@
 #include "nsIHTMLContentSink.h"
 
 #include "mozilla/dom/EncodingUtils.h"
+#include "mozilla/BinarySearch.h"
 
 using namespace mozilla;
 using mozilla::dom::EncodingUtils;
@@ -637,6 +638,20 @@ VerifyPublicIDs()
 }
 #endif
 
+namespace {
+
+struct PublicIdComparator
+{
+  const nsAutoCString& mPublicId;
+  PublicIdComparator(const nsAutoCString& aPublicId)
+    : mPublicId(aPublicId) {}
+  int operator()(const PubIDInfo& aInfo) const {
+    return nsCRT::strcmp(mPublicId.get(), aInfo.name);
+  }
+};
+
+} 
+
 static void
 DetermineHTMLParseMode(const nsString& aBuffer,
                        nsDTDMode& aParseMode,
@@ -678,28 +693,14 @@ DetermineHTMLParseMode(const nsString& aBuffer,
       ToLowerCase(publicID);
 
       
-      
-      
-      int32_t minimum = 0;
-      int32_t maximum = ELEMENTS_OF(kPublicIDs) - 1;
-      int32_t index;
-      for (;;) {
-        index = (minimum + maximum) / 2;
-        int32_t comparison =
-            nsCRT::strcmp(publicID.get(), kPublicIDs[index].name);
-        if (comparison == 0)
-          break;
-        if (comparison < 0)
-          maximum = index - 1;
-        else
-          minimum = index + 1;
-
-        if (maximum < minimum) {
-          
-          aParseMode = eDTDMode_full_standards;
-          aDocType = eHTML_Strict;
-          return;
-        }
+      size_t index;
+      bool found = BinarySearchIf(kPublicIDs, 0, ArrayLength(kPublicIDs),
+                                  PublicIdComparator(publicID), &index);
+      if (!found) {
+        
+        aParseMode = eDTDMode_full_standards;
+        aDocType = eHTML_Strict;
+        return;
       }
 
       switch ((resultFlags & PARSE_DTD_HAVE_SYSTEM_ID)

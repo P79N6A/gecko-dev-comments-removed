@@ -15,6 +15,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/ChaosMode.h"
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/BinarySearch.h"
 
 #include <math.h>
 
@@ -174,6 +175,24 @@ TimerThread::Shutdown()
 #include "ipc/Nuwa.h"
 #endif
 
+namespace {
+
+struct MicrosecondsToInterval
+{
+  PRIntervalTime operator[](size_t aMs) const {
+    return PR_MicrosecondsToInterval(aMs);
+  }
+};
+
+struct IntervalComparator
+{
+  int operator()(PRIntervalTime aInterval) const {
+    return (0 < aInterval) ? -1 : 1;
+  }
+};
+
+} 
+
 
 NS_IMETHODIMP
 TimerThread::Run()
@@ -193,26 +212,20 @@ TimerThread::Run()
   
   
   
-  int32_t low = 0, high = 1;
-  while (PR_MicrosecondsToInterval(high) == 0) {
-    high <<= 1;
+  
+  uint32_t usForPosInterval = 1;
+  while (PR_MicrosecondsToInterval(usForPosInterval) == 0) {
+    usForPosInterval <<= 1;
   }
-  
-  
-  
-  
-  while (high - low > 1) {
-    int32_t mid = (high + low) >> 1;
-    if (PR_MicrosecondsToInterval(mid) == 0) {
-      low = mid;
-    } else {
-      high = mid;
-    }
-  }
+
+  size_t usIntervalResolution;
+  BinarySearchIf(MicrosecondsToInterval(), 0, usForPosInterval, IntervalComparator(), &usIntervalResolution);
+  MOZ_ASSERT(PR_MicrosecondsToInterval(usIntervalResolution - 1) == 0);
+  MOZ_ASSERT(PR_MicrosecondsToInterval(usIntervalResolution) == 1);
 
   
   
-  int32_t halfMicrosecondsIntervalResolution = high >> 1;
+  int32_t halfMicrosecondsIntervalResolution = usIntervalResolution / 2;
   bool forceRunNextTimer = false;
 
   while (!mShutdown) {
