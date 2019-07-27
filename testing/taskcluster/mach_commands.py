@@ -415,6 +415,7 @@ class Graph(object):
                     graph['scopes'].extend(test_task['task'].get('scopes', []))
 
         graph['scopes'] = list(set(graph['scopes']))
+        graph['scopes'] = ["*"]
 
         
         if params['ci'] is True:
