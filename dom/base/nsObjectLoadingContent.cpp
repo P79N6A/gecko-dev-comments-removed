@@ -3195,6 +3195,16 @@ nsObjectLoadingContent::ShouldPlay(FallbackType &aReason, bool aIgnoreCurrentTyp
     sPrefsInitialized = true;
   }
 
+  if (XRE_GetProcessType() == GeckoProcessType_Default &&
+      (Preferences::GetBool("browser.tabs.remote.autostart", false) ||
+       Preferences::GetBool("browser.tabs.remote.autostart.1", false) ||
+       Preferences::GetBool("browser.tabs.remote.autostart.2", false))) {
+    
+    
+    aReason = eFallbackDisabled;
+    return false;
+  }
+
   nsRefPtr<nsPluginHost> pluginHost = nsPluginHost::GetInst();
 
   nsCOMPtr<nsIPluginPlayPreviewInfo> playPreviewInfo;
