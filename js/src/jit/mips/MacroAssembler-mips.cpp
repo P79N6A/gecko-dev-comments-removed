@@ -620,8 +620,8 @@ MacroAssemblerMIPS::ma_div_branch_overflow(Register rd, Register rs, Imm32 imm, 
 }
 
 void
-MacroAssemblerMIPS::ma_mod_mask(Register src, Register dest, Register hold, int32_t shift,
-                                Label *negZero)
+MacroAssemblerMIPS::ma_mod_mask(Register src, Register dest, Register hold, Register remain,
+                                int32_t shift, Label *negZero)
 {
     
     
@@ -647,27 +647,25 @@ MacroAssemblerMIPS::ma_mod_mask(Register src, Register dest, Register hold, int3
     
 
     
+    ma_move(remain, src);
     
-    ma_move(ScratchRegister, src);
+    ma_li(dest, Imm32(0));
     
-    ma_subu(dest, dest, dest);
-    
-    ma_b(ScratchRegister, ScratchRegister, &negative, Signed, ShortJump);
+    ma_b(remain, remain, &negative, Signed, ShortJump);
     ma_li(hold, Imm32(1));
     ma_b(&head, ShortJump);
 
     bind(&negative);
     ma_li(hold, Imm32(-1));
-    ma_negu(ScratchRegister, ScratchRegister);
+    ma_negu(remain, remain);
 
     
     bind(&head);
 
     
-    ma_and(SecondScratchReg, ScratchRegister, Imm32(mask));
+    ma_and(SecondScratchReg, remain, Imm32(mask));
     
     as_addu(dest, dest, SecondScratchReg);
-    
     
     ma_subu(SecondScratchReg, dest, Imm32(mask));
     
@@ -676,9 +674,9 @@ MacroAssemblerMIPS::ma_mod_mask(Register src, Register dest, Register hold, int3
     ma_move(dest, SecondScratchReg);
     bind(&sumSigned);
     
-    as_srl(ScratchRegister, ScratchRegister, shift);
+    as_srl(remain, remain, shift);
     
-    ma_b(ScratchRegister, ScratchRegister, &head, NonZero, ShortJump);
+    ma_b(remain, remain, &head, NonZero, ShortJump);
     
     ma_b(hold, hold, &done, NotSigned, ShortJump);
 

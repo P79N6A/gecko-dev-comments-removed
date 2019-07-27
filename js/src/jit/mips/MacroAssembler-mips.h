@@ -200,8 +200,8 @@ class MacroAssemblerMIPS : public Assembler
 
     
     
-    void ma_mod_mask(Register src, Register dest, Register hold, int32_t shift,
-                     Label *negZero = nullptr);
+    void ma_mod_mask(Register src, Register dest, Register hold, Register remain,
+                     int32_t shift, Label *negZero = nullptr);
 
     
     
