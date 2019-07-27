@@ -161,6 +161,29 @@ var gAdvancedPane = {
 
 
 
+  readEnableOCSP: function ()
+  {
+    var preference = document.getElementById("security.OCSP.enabled");
+    
+    if (preference.value === undefined) {
+      return true;
+    }
+    return preference.value == 1;
+  },
+
+  
+
+
+  writeEnableOCSP: function ()
+  {
+    var checkbox = document.getElementById("enableOCSP");
+    return checkbox.checked ? 1 : 0;
+  },
+
+  
+
+
+
   updateHardwareAcceleration: function()
   {
 #ifdef XP_WIN
@@ -820,15 +843,6 @@ var gAdvancedPane = {
     document.documentElement.openWindow("mozilla:certmanager",
                                         "chrome://pippki/content/certManager.xul",
                                         "", null);
-  },
-
-  
-
-
-  showOCSP: function ()
-  {
-    document.documentElement.openSubDialog("chrome://mozapps/content/preferences/ocsp.xul",
-                                           "", null);
   },
 
   

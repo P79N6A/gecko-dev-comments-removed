@@ -144,6 +144,28 @@ var gAdvancedPane = {
     return checkbox.checked ? (this._storedSpellCheck == 2 ? 2 : 1) : 0;
   },
 
+  
+
+
+
+  readEnableOCSP: function ()
+  {
+    var preference = document.getElementById("security.OCSP.enabled");
+    
+    if (preference.value === undefined) {
+      return true;
+    }
+    return preference.value == 1;
+  },
+
+  
+
+
+  writeEnableOCSP: function ()
+  {
+    var checkbox = document.getElementById("enableOCSP");
+    return checkbox.checked ? 1 : 0;
+  },
 
   
 
@@ -791,16 +813,6 @@ var gAdvancedPane = {
   {
     openDialog("chrome://pippki/content/certManager.xul",
                "mozilla:certmanager",
-               "modal=yes", null);
-  },
-
-  
-
-
-  showOCSP: function ()
-  {
-    openDialog("chrome://mozapps/content/preferences/ocsp.xul",
-               "mozilla:crlmanager",
                "modal=yes", null);
   },
 
