@@ -98,11 +98,11 @@ BluetoothInterface::GetInstance()
   
 
 
-#ifdef MOZ_B2G_BT_DAEMON
-  static const char sDefaultBackend[] = "bluetoothd";
-#else
 #ifdef MOZ_B2G_BT_BLUEDROID
   static const char sDefaultBackend[] = "bluedroid";
+#else
+#ifdef MOZ_B2G_BT_DAEMON
+  static const char sDefaultBackend[] = "bluetoothd";
 #else
   static const char* const sDefaultBackend = nullptr;
 #endif
