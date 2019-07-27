@@ -18,9 +18,6 @@
 #include "nsThreadUtils.h"
 #include "nsXULAppAPI.h"
 
-#define FIRST_SOCKET_INFO_MSG_LENGTH 4
-#define TOTAL_SOCKET_INFO_LENGTH 20
-
 using namespace mozilla::ipc;
 USING_BLUETOOTH_NAMESPACE
 
@@ -48,41 +45,29 @@ EnsureBluetoothSocketHalLoad()
   return true;
 }
 
-static int16_t
-ReadInt16(const uint8_t* aData, size_t* aOffset)
-{
-  int16_t value = (aData[*aOffset + 1] << 8) | aData[*aOffset];
-
-  *aOffset += 2;
-  return value;
-}
-
-static int32_t
-ReadInt32(const uint8_t* aData, size_t* aOffset)
-{
-  int32_t value = (aData[*aOffset + 3] << 24) |
-                  (aData[*aOffset + 2] << 16) |
-                  (aData[*aOffset + 1] << 8) |
-                  aData[*aOffset];
-  *aOffset += 4;
-  return value;
-}
-
-static void
-ReadBdAddress(const uint8_t* aData, size_t* aOffset, nsAString& aDeviceAddress)
-{
-  char bdstr[18];
-  sprintf(bdstr, "%02x:%02x:%02x:%02x:%02x:%02x",
-          aData[*aOffset], aData[*aOffset + 1], aData[*aOffset + 2],
-          aData[*aOffset + 3], aData[*aOffset + 4], aData[*aOffset + 5]);
-
-  aDeviceAddress.AssignLiteral(bdstr);
-  *aOffset += 6;
-}
-
 class mozilla::dom::bluetooth::DroidSocketImpl : public ipc::UnixFdWatcher
 {
 public:
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   enum ConnectionStatus {
     SOCKET_IS_DISCONNECTED = 0,
     SOCKET_IS_LISTENING,
@@ -93,7 +78,6 @@ public:
   DroidSocketImpl(MessageLoop* aIOLoop, BluetoothSocket* aConsumer, int aFd)
     : ipc::UnixFdWatcher(aIOLoop, aFd)
     , mConsumer(aConsumer)
-    , mReadMsgForClientFd(false)
     , mShuttingDownOnIOThread(false)
     , mChannel(0)
     , mAuth(false)
@@ -105,7 +89,6 @@ public:
                   int aChannel, bool aAuth, bool aEncrypt)
     : ipc::UnixFdWatcher(aIOLoop)
     , mConsumer(aConsumer)
-    , mReadMsgForClientFd(false)
     , mShuttingDownOnIOThread(false)
     , mChannel(aChannel)
     , mAuth(aAuth)
@@ -118,7 +101,6 @@ public:
                   int aChannel, bool aAuth, bool aEncrypt)
     : ipc::UnixFdWatcher(aIOLoop)
     , mConsumer(aConsumer)
-    , mReadMsgForClientFd(false)
     , mShuttingDownOnIOThread(false)
     , mDeviceAddress(aDeviceAddress)
     , mChannel(aChannel)
@@ -191,11 +173,6 @@ public:
 
   RefPtr<BluetoothSocket> mConsumer;
 
-  
-
-
-  bool mReadMsgForClientFd;
-
 private:
   
 
@@ -217,15 +194,6 @@ private:
   void OnSocketCanAcceptWithoutBlocking(int aFd);
   void OnSocketCanSendWithoutBlocking(int aFd);
   void OnSocketCanConnectWithoutBlocking(int aFd);
-
-  
-
-
-
-
-
-
-  ssize_t ReadMsg(int aFd, void *aBuffer, size_t aLength);
 
   
 
@@ -580,60 +548,6 @@ DroidSocketImpl::Accept(int aFd)
   }
 }
 
-ssize_t
-DroidSocketImpl::ReadMsg(int aFd, void *aBuffer, size_t aLength)
-{
-  ssize_t ret;
-  struct msghdr msg;
-  struct iovec iv;
-  struct cmsghdr cmsgbuf[2 * sizeof(cmsghdr) + 0x100];
-
-  memset(&msg, 0, sizeof(msg));
-  memset(&iv, 0, sizeof(iv));
-
-  iv.iov_base = (unsigned char *)aBuffer;
-  iv.iov_len = aLength;
-
-  msg.msg_iov = &iv;
-  msg.msg_iovlen = 1;
-  msg.msg_control = cmsgbuf;
-  msg.msg_controllen = sizeof(cmsgbuf);
-
-  ret = recvmsg(GetFd(), &msg, MSG_NOSIGNAL);
-  if (ret < 0 && errno == EPIPE) {
-    
-    return 0;
-  }
-
-  NS_ENSURE_FALSE(ret < 0, -1);
-  NS_ENSURE_FALSE(msg.msg_flags & (MSG_CTRUNC | MSG_OOB | MSG_ERRQUEUE), -1);
-
-  
-  for (struct cmsghdr *cmsgptr = CMSG_FIRSTHDR(&msg);
-       cmsgptr != nullptr; cmsgptr = CMSG_NXTHDR(&msg, cmsgptr)) {
-    if (cmsgptr->cmsg_level != SOL_SOCKET) {
-      continue;
-    }
-    if (cmsgptr->cmsg_type == SCM_RIGHTS) {
-      int *pDescriptors = (int *)CMSG_DATA(cmsgptr);
-
-      
-      int fd = pDescriptors[0];
-      int flags = TEMP_FAILURE_RETRY(fcntl(fd, F_GETFL));
-      NS_ENSURE_TRUE(flags >= 0, 0);
-      if (!(flags & O_NONBLOCK)) {
-        int res = TEMP_FAILURE_RETRY(fcntl(fd, F_SETFL, flags | O_NONBLOCK));
-        NS_ENSURE_TRUE(!res, 0);
-      }
-      Close();
-      SetFd(fd);
-      break;
-    }
-  }
-
-  return ret;
-}
-
 void
 DroidSocketImpl::OnFileCanReadWithoutBlocking(int aFd)
 {
@@ -872,7 +786,6 @@ BluetoothSocket::BluetoothSocket(BluetoothSocketObserver* aObserver,
   , mImpl(nullptr)
   , mAuth(aAuth)
   , mEncrypt(aEncrypt)
-  , mReceivedSocketInfoLength(0)
 {
   MOZ_ASSERT(aObserver);
 
@@ -936,7 +849,6 @@ BluetoothSocket::Connect(const nsAString& aDeviceAddress, int aChannel)
   MOZ_ASSERT(NS_IsMainThread());
   NS_ENSURE_FALSE(mImpl, false);
 
-  mIsServer = false;
   mImpl = new DroidSocketImpl(XRE_GetIOMessageLoop(), this, aDeviceAddress,
                               aChannel, mAuth, mEncrypt);
 
@@ -988,7 +900,6 @@ BluetoothSocket::Listen(int aChannel)
   MOZ_ASSERT(NS_IsMainThread());
   NS_ENSURE_FALSE(mImpl, false);
 
-  mIsServer = true;
   mImpl = new DroidSocketImpl(XRE_GetIOMessageLoop(), this, aChannel, mAuth,
                               mEncrypt);
 
@@ -1011,55 +922,6 @@ BluetoothSocket::SendDroidSocketData(UnixSocketRawData* aData)
   MOZ_ASSERT(!mImpl->IsShutdownOnMainThread());
   XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
                                    new SocketSendTask(this, mImpl, aData));
-  return true;
-}
-
-bool
-BluetoothSocket::ReceiveSocketInfo(nsAutoPtr<UnixSocketRawData>& aMessage)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  
-
-
-
-
-  if (mReceivedSocketInfoLength >= TOTAL_SOCKET_INFO_LENGTH) {
-    
-    return false;
-  }
-  mReceivedSocketInfoLength += aMessage->mSize;
-
-  size_t offset = 0;
-  if (mReceivedSocketInfoLength == FIRST_SOCKET_INFO_MSG_LENGTH) {
-    
-    int32_t channel = ReadInt32(aMessage->mData, &offset);
-    BT_LOGR("channel %d", channel);
-
-    
-    mImpl->mReadMsgForClientFd = mIsServer;
-  } else if (mReceivedSocketInfoLength == TOTAL_SOCKET_INFO_LENGTH) {
-    
-    int16_t size = ReadInt16(aMessage->mData, &offset);
-    ReadBdAddress(aMessage->mData, &offset, mDeviceAddress);
-    int32_t channel = ReadInt32(aMessage->mData, &offset);
-    int32_t connectionStatus = ReadInt32(aMessage->mData, &offset);
-
-    BT_LOGR("size %d channel %d remote addr %s status %d",
-      size, channel, NS_ConvertUTF16toUTF8(mDeviceAddress).get(), connectionStatus);
-
-    if (connectionStatus != 0) {
-      NotifyError();
-      return true;
-    }
-
-    mImpl->mReadMsgForClientFd = false;
-    
-    XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
-                                     new SocketConnectClientFdTask(mImpl));
-    NotifySuccess();
-  }
-
   return true;
 }
 
@@ -1094,4 +956,3 @@ BluetoothSocket::OnDisconnect()
   MOZ_ASSERT(mObserver);
   mObserver->OnSocketDisconnect(this);
 }
-
