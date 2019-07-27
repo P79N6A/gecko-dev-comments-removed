@@ -117,6 +117,14 @@ public:
       return;
 
     
+    nsIContent* destroyedFramesFor = nullptr;
+    nsIPresShell* shell = doc->GetShell();
+    if (shell) {
+      shell->DestroyFramesFor(mBoundElement, &destroyedFramesFor);
+    }
+    MOZ_ASSERT(!mBoundElement->GetPrimaryFrame());
+
+    
     bool ready = false;
     nsXBLService::GetInstance()->BindingReady(mBoundElement, mBindingURI, &ready);
     if (!ready)
@@ -131,7 +139,7 @@ public:
     
     
     
-    nsIPresShell *shell = doc->GetShell();
+    MOZ_ASSERT(shell == doc->GetShell());
     if (shell) {
       nsIFrame* childFrame = mBoundElement->GetPrimaryFrame();
       if (!childFrame) {
@@ -140,7 +148,7 @@ public:
           shell->FrameManager()->GetUndisplayedContent(mBoundElement);
 
         if (!sc) {
-          shell->RecreateFramesFor(mBoundElement);
+          shell->CreateFramesFor(destroyedFramesFor);
         }
       }
     }
