@@ -68,7 +68,10 @@ public:
 
   enum { ALLOW_MEMMOVE = true };
 
-  nsIAtom* mAtom;
+  
+  
+  
+  nsIAtom* MOZ_OWNING_REF mAtom;
 };
 
 
@@ -155,8 +158,6 @@ public:
   PermanentAtomImpl() {}
 
   ~PermanentAtomImpl();
-  NS_IMETHOD_(MozExternalRefCountType) AddRef();
-  NS_IMETHOD_(MozExternalRefCountType) Release();
 
   virtual bool IsPermanent();
 
@@ -168,13 +169,20 @@ public:
   {
     return ::operator new(aSize);
   }
+
+private:
+  NS_IMETHOD_(MozExternalRefCountType) AddRef();
+  NS_IMETHOD_(MozExternalRefCountType) Release();
 };
 
 
 
 struct AtomTableEntry : public PLDHashEntryHdr
 {
-  AtomImpl* mAtom;
+  
+  
+  
+  AtomImpl* MOZ_NON_OWNING_REF mAtom;
 };
 
 struct AtomTableKey
