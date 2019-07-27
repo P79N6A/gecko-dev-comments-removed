@@ -489,7 +489,14 @@
 
  \
     macro(JSOP_CLASSHERITAGE,  51, "classheritage",   NULL,         1,  1,  2,  JOF_BYTE) \
-    macro(JSOP_UNUSED52,  52, "unused52",   NULL,         1,  0,  0,  JOF_BYTE) \
+    
+
+
+
+
+
+ \
+    macro(JSOP_FUNWITHPROTO,   52, "funwithproto",    NULL,         5,  1,  1,  JOF_OBJECT) \
     \
     
 
