@@ -922,6 +922,24 @@ MSimdSplatX4::foldsTo(TempAllocator &alloc)
 }
 
 MDefinition *
+MSimdUnbox::foldsTo(TempAllocator &alloc)
+{
+    MDefinition *in = input();
+
+    if (in->isSimdBox()) {
+        
+        
+        
+        in = in->toSimdBox()->input();
+        if (in->type() != type())
+            return this;
+        return in;
+    }
+
+    return this;
+}
+
+MDefinition *
 MSimdSwizzle::foldsTo(TempAllocator &alloc)
 {
     if (lanesMatch(0, 1, 2, 3))
