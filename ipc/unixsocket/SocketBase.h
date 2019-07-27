@@ -209,45 +209,6 @@ private:
   SocketEvent mEvent;
 };
 
-
-
-
-template <typename T>
-class SocketIOReceiveRunnable MOZ_FINAL : public SocketIORunnable<T>
-{
-public:
-  SocketIOReceiveRunnable(T* aIO, UnixSocketRawData* aData)
-  : SocketIORunnable<T>(aIO)
-  , mData(aData)
-  { }
-
-  NS_IMETHOD Run() MOZ_OVERRIDE
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-
-    T* io = SocketIORunnable<T>::GetIO();
-
-    if (io->IsShutdownOnMainThread()) {
-      NS_WARNING("mConsumer is null, aborting receive!");
-      
-      
-      return NS_OK;
-    }
-
-    SocketConsumerBase* consumer = io->GetConsumer();
-    MOZ_ASSERT(consumer);
-
-    consumer->ReceiveSocketData(mData);
-
-    return NS_OK;
-  }
-
-private:
-  nsAutoPtr<UnixSocketRawData> mData;
-};
-
-
-
 }
 }
 
