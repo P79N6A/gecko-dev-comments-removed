@@ -9,42 +9,19 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 
-this.EXPORTED_SYMBOLS = ["sendMessageToJava", "RequestService"];
+this.EXPORTED_SYMBOLS = ["sendMessageToJava", "Messaging"];
 
 XPCOMUtils.defineLazyServiceGetter(this, "uuidgen",
                                    "@mozilla.org/uuid-generator;1",
                                    "nsIUUIDGenerator");
 
 function sendMessageToJava(aMessage, aCallback) {
-  if (aCallback) {
-    let id = uuidgen.generateUUID().toString();
-    let obs = {
-      observe: function(aSubject, aTopic, aData) {
-        let data = JSON.parse(aData);
-        if (data.__guid__ != id) {
-          return;
-        }
+  Cu.reportError("sendMessageToJava is deprecated. Use Messaging API instead.");
 
-        Services.obs.removeObserver(obs, aMessage.type + ":Response", false);
-
-        if (data.status === "cancel") {
-          
-          return;
-        }
-
-        aCallback(data.status === "success" ? data.response : null,
-                  data.status === "error"   ? data.response : null);
-      }
-    }
-
-    aMessage.__guid__ = id;
-    Services.obs.addObserver(obs, aMessage.type + ":Response", false);
-  }
-
-  return Services.androidBridge.handleGeckoMessage(aMessage);
+  Messaging.sendRequest(aMessage, aCallback);
 }
 
-let RequestService = {
+let Messaging = {
   
 
 
@@ -88,6 +65,41 @@ let RequestService = {
 
   removeListener: function (aMessage) {
     requestHandler.removeListener(aMessage);
+  },
+
+  
+
+
+
+
+
+  sendRequest: function (aMessage, aCallback) {
+    if (aCallback) {
+      let id = uuidgen.generateUUID().toString();
+      let obs = {
+        observe: function(aSubject, aTopic, aData) {
+          let data = JSON.parse(aData);
+          if (data.__guid__ != id) {
+            return;
+          }
+
+          Services.obs.removeObserver(obs, aMessage.type + ":Response", false);
+
+          if (data.status === "cancel") {
+            
+            return;
+          }
+
+          aCallback(data.status === "success" ? data.response : null,
+                    data.status === "error"   ? data.response : null);
+        }
+      }
+
+      aMessage.__guid__ = id;
+      Services.obs.addObserver(obs, aMessage.type + ":Response", false);
+    }
+
+    return Services.androidBridge.handleGeckoMessage(aMessage);
   },
 };
 
@@ -135,7 +147,7 @@ let requestHandler = {
       Cu.reportError(e);
     }
 
-    sendMessageToJava({
+    Messaging.sendRequest({
       type: "Gecko:Request" + wrapper.id,
       response: response
     });
