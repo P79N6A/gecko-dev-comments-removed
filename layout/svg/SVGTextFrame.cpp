@@ -5094,8 +5094,7 @@ SVGTextFrame::ShouldRenderAsPath(nsRenderingContext* aContext,
 
   
   if (style->HasStroke() &&
-      SVGContentUtils::CoordToFloat(PresContext(),
-                                    static_cast<nsSVGElement*>(mContent),
+      SVGContentUtils::CoordToFloat(static_cast<nsSVGElement*>(mContent),
                                     style->mStrokeWidth) > 0) {
     return true;
   }

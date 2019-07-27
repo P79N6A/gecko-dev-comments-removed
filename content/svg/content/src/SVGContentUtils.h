@@ -241,8 +241,7 @@ public:
 
 
 
-  static float CoordToFloat(nsPresContext *aPresContext,
-                            nsSVGElement *aContent,
+  static float CoordToFloat(nsSVGElement *aContent,
                             const nsStyleCoord &aCoord);
   
 
