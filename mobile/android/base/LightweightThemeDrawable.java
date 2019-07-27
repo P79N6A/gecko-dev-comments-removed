@@ -83,12 +83,16 @@ public class LightweightThemeDrawable extends Drawable {
 
 
 
+
+
     public void setColor(int color) {
         mColorPaint = new Paint(mPaint);
         mColorPaint.setColor(color);
     }
 
     
+
+
 
 
 
