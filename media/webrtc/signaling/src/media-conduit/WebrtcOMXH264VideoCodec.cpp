@@ -592,7 +592,8 @@ protected:
       return false;
     }
 
-    uint32_t target_timestamp = (timeUs * 90ll) / 1000; 
+    
+    uint32_t target_timestamp = (timeUs * 90ll + 999) / 1000; 
     bool isParamSets = (flags & MediaCodec::BUFFER_FLAG_CODECCONFIG);
     bool isIFrame = (flags & MediaCodec::BUFFER_FLAG_SYNCFRAME);
     CODEC_LOGD("OMX: encoded frame (%d): time %lld (%u), flags x%x",
@@ -612,34 +613,29 @@ protected:
       EncodedFrame input_frame;
       {
         MonitorAutoLock lock(mMonitor);
-#ifdef OMX_OUTPUT_TIMESTAMPS_WORK
         
-        do {
-          if (mInputFrames.empty()) {
-            
-            mInputFrames.push(input_frame);
-            CODEC_LOGE("OMX: encoded timestamp %u which doesn't match input queue!!",
-                       target_timestamp);
-            break;
-          }
+        
+        if (isParamSets) {
+          
+          
+          input_frame = mInputFrames.front();
+        } else {
+          do {
+            if (mInputFrames.empty()) {
+              
+              mInputFrames.push(input_frame);
+              CODEC_LOGE("OMX: encoded timestamp %u which doesn't match input queue!! (head %u)",
+                         target_timestamp, input_frame.mTimestamp);
+              break;
+            }
 
-          input_frame = mInputFrames.front();
-          mInputFrames.pop();
-          if (input_frame.mTimestamp != target_timestamp) {
-            CODEC_LOGD("OMX: encoder skipped frame timestamp %u", input_frame.mTimestamp);
-          }
-        } while (input_frame.mTimestamp != target_timestamp);
-#else
-        
-        MOZ_ASSERT(!mInputFrames.empty());
-        do {
-          input_frame = mInputFrames.front();
-          mInputFrames.pop();
-          if (!mInputFrames.empty()) {
-            CODEC_LOGD("OMX: Encoded frame: skipped frame timestamp %u", input_frame.mTimestamp);
-          }
-        } while (!mInputFrames.empty());
-#endif
+            input_frame = mInputFrames.front();
+            mInputFrames.pop();
+            if (input_frame.mTimestamp != target_timestamp) {
+              CODEC_LOGD("OMX: encoder skipped frame timestamp %u", input_frame.mTimestamp);
+            }
+          } while (input_frame.mTimestamp != target_timestamp);
+        }
       }
 
       encoded._encodedWidth = input_frame.mWidth;
@@ -888,13 +884,13 @@ WebrtcOMXH264VideoEncoder::Encode(const webrtc::I420VideoFrame& aInputImage,
 
   CODEC_LOGD("Encode frame: %dx%d, timestamp %u (%lld), renderTimeMs %u",
              aInputImage.width(), aInputImage.height(),
-             aInputImage.timestamp(), aInputImage.timestamp() * 100011 / 90,
+             aInputImage.timestamp(), aInputImage.timestamp() * 1000ll / 90,
              aInputImage.render_time_ms());
 
   nsresult rv = mOMX->Encode(&img,
                              yuvData.mYSize.width,
                              yuvData.mYSize.height,
-                             aInputImage.timestamp() * 100011 / 90, 
+                             aInputImage.timestamp() * 1000ll / 90, 
                              0);
   if (rv == NS_OK) {
     if (mOutputDrain == nullptr) {
