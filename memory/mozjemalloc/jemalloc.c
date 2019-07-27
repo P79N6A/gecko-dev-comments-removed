@@ -290,7 +290,11 @@ typedef long ssize_t;
 
 #define JEMALLOC_MUNMAP
 
-#undef JEMALLOC_RECYCLE
+
+
+
+
+#define JEMALLOC_RECYCLE
 
 #ifndef MOZ_MEMORY_WINDOWS
 #ifndef MOZ_MEMORY_SOLARIS
