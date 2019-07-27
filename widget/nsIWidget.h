@@ -24,7 +24,6 @@
 #include "mozilla/TimeStamp.h"
 #include "Units.h"
 #include "mozilla/gfx/Point.h"
-#include "Units.h"
 
 
 class   nsFontMetrics;
@@ -546,15 +545,15 @@ struct SizeConstraints {
   {
   }
 
-  SizeConstraints(mozilla::LayoutDeviceIntSize aMinSize,
-                  mozilla::LayoutDeviceIntSize aMaxSize)
+  SizeConstraints(nsIntSize aMinSize,
+                  nsIntSize aMaxSize)
   : mMinSize(aMinSize),
     mMaxSize(aMaxSize)
   {
   }
 
-  mozilla::LayoutDeviceIntSize mMinSize;
-  mozilla::LayoutDeviceIntSize mMaxSize;
+  nsIntSize mMinSize;
+  nsIntSize mMaxSize;
 };
 
 
