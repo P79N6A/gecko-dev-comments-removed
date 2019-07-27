@@ -439,11 +439,8 @@ let TelemetryScheduler = {
   _sentDailyPingToday: function(nowDate) {
     
     const todayDate = Utils.truncateToDays(nowDate);
-    const nearestMidnight = Utils.getNearestMidnight(nowDate, SCHEDULER_MIDNIGHT_TOLERANCE_MS);
     
-    const checkDate = nearestMidnight || todayDate;
-    
-    return (this._lastDailyPingTime >= (checkDate.getTime() - SCHEDULER_MIDNIGHT_TOLERANCE_MS));
+    return (this._lastDailyPingTime >= todayDate.getTime());
   },
 
   
@@ -452,32 +449,16 @@ let TelemetryScheduler = {
 
 
   _isDailyPingDue: function(nowDate) {
-    const sentPingToday = this._sentDailyPingToday(nowDate);
-
     
-    if (sentPingToday) {
+    if (this._sentDailyPingToday(nowDate)) {
       this._log.trace("_isDailyPingDue - already sent one today");
       return false;
-    }
-
-    const nearestMidnight = Utils.getNearestMidnight(nowDate, SCHEDULER_MIDNIGHT_TOLERANCE_MS);
-    if (!sentPingToday && !nearestMidnight) {
-      
-      this._log.trace("_isDailyPingDue - daily ping is overdue... computer went to sleep?");
-      return true;
     }
 
     
     const timeSinceLastDaily = nowDate.getTime() - this._lastDailyPingTime;
     if (timeSinceLastDaily < MIN_SUBSESSION_LENGTH_MS) {
       this._log.trace("_isDailyPingDue - delaying daily to keep minimum session length");
-      return false;
-    }
-
-    
-    
-    if (!this._isUserIdle && (nowDate.getTime() < nearestMidnight.getTime())) {
-      this._log.trace("_isDailyPingDue - waiting for user idle period");
       return false;
     }
 

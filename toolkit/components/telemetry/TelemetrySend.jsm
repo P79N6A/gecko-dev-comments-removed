@@ -54,8 +54,6 @@ const IS_UNIFIED_TELEMETRY = Preferences.get(PREF_UNIFIED, false);
 const PING_FORMAT_VERSION = 4;
 
 
-const MIDNIGHT_TOLERANCE_FUZZ_MS = 5 * 60 * 1000;
-
 const MIDNIGHT_FUZZING_INTERVAL_MS = 60 * 60 * 1000;
 
 const MIDNIGHT_FUZZING_DELAY_MS = Math.random() * MIDNIGHT_FUZZING_INTERVAL_MS;
@@ -444,27 +442,16 @@ let TelemetrySendImpl = {
     
     
     
-    
-    
-    
 
-    const midnightDate = Utils.getNearestMidnight(now, MIDNIGHT_FUZZING_INTERVAL_MS);
-
+    const midnight = Utils.truncateToDays(now);
     
-    if (!midnightDate) {
+    if ((now.getTime() - midnight.getTime()) > MIDNIGHT_FUZZING_INTERVAL_MS) {
       return now.getTime();
     }
 
     
     
-    
-    const midnightRangeStart = midnightDate.getTime() - MIDNIGHT_TOLERANCE_FUZZ_MS;
-    if (now.getTime() >= midnightRangeStart) {
-      
-      return midnightDate.getTime() + Policy.midnightPingFuzzingDelay();
-    }
-
-    return now.getTime();
+    return midnight.getTime() + Policy.midnightPingFuzzingDelay();
   },
 
   
