@@ -305,6 +305,8 @@ public:
 
 
 
+
+
 static SingleTouchData
 CreateSingleTouchData(int32_t aIdentifier, int aX, int aY)
 {
@@ -321,6 +323,22 @@ CreatePinchGestureInput(PinchGestureInput::PinchGestureType aType,
                            aCurrentSpan, aPreviousSpan, 0);
   result.mLocalFocusPoint = ParentLayerPoint(aFocusX, aFocusY);
   return result;
+}
+
+template<class InputReceiver> static void
+SetDefaultAllowedTouchBehavior(const nsRefPtr<InputReceiver>& aTarget,
+                               uint64_t aInputBlockId,
+                               int touchPoints = 1)
+{
+  nsTArray<uint32_t> defaultBehaviors;
+  
+  for (int i = 0; i < touchPoints; i++) {
+    defaultBehaviors.AppendElement(mozilla::layers::AllowedTouchBehavior::HORIZONTAL_PAN
+                                 | mozilla::layers::AllowedTouchBehavior::VERTICAL_PAN
+                                 | mozilla::layers::AllowedTouchBehavior::PINCH_ZOOM
+                                 | mozilla::layers::AllowedTouchBehavior::DOUBLE_TAP_ZOOM);
+  }
+  aTarget->SetAllowedTouchBehavior(aInputBlockId, defaultBehaviors);
 }
 
 template<class InputReceiver> static nsEventStatus
@@ -352,11 +370,25 @@ Tap(const nsRefPtr<InputReceiver>& aTarget, int aX, int aY, int& aTime, int aTap
     nsEventStatus (*aOutEventStatuses)[2] = nullptr,
     uint64_t* aOutInputBlockId = nullptr)
 {
+  
+  
+  uint64_t blockId;
+  if (!aOutInputBlockId) {
+    aOutInputBlockId = &blockId;
+  }
+
   nsEventStatus status = TouchDown(aTarget, aX, aY, aTime, aOutInputBlockId);
   if (aOutEventStatuses) {
     (*aOutEventStatuses)[0] = status;
   }
   aTime += aTapLength;
+
+  
+  
+  if (gfxPrefs::TouchActionEnabled()) {
+    SetDefaultAllowedTouchBehavior(aTarget, *aOutInputBlockId);
+  }
+
   status = TouchUp(aTarget, aX, aY, aTime);
   if (aOutEventStatuses) {
     (*aOutEventStatuses)[1] = status;
@@ -407,8 +439,11 @@ Pan(const nsRefPtr<InputReceiver>& aTarget,
   aTime += TIME_BETWEEN_TOUCH_EVENT;
 
   
-  if (gfxPrefs::TouchActionEnabled() && aAllowedTouchBehaviors) {
+  if (aAllowedTouchBehaviors) {
+    EXPECT_EQ(1UL, aAllowedTouchBehaviors->Length());
     aTarget->SetAllowedTouchBehavior(*aOutInputBlockId, *aAllowedTouchBehaviors);
+  } else if (gfxPrefs::TouchActionEnabled()) {
+    SetDefaultAllowedTouchBehavior(aTarget, *aOutInputBlockId);
   }
 
   status = TouchMove(aTarget, 10, aTouchStartY, aTime);
@@ -549,8 +584,11 @@ PinchWithTouchInput(const nsRefPtr<InputReceiver>& aTarget,
     (*aOutEventStatuses)[0] = status;
   }
 
-  if (gfxPrefs::TouchActionEnabled() && aAllowedTouchBehaviors) {
+  if (aAllowedTouchBehaviors) {
+    EXPECT_EQ(2UL, aAllowedTouchBehaviors->Length());
     aTarget->SetAllowedTouchBehavior(*aOutInputBlockId, *aAllowedTouchBehaviors);
+  } else if (gfxPrefs::TouchActionEnabled()) {
+    SetDefaultAllowedTouchBehavior(aTarget, *aOutInputBlockId, 2);
   }
 
   MultiTouchInput mtiMove1 = MultiTouchInput(MultiTouchInput::MULTITOUCH_MOVE, 0, TimeStamp(), 0);
@@ -1491,6 +1529,13 @@ DoubleTap(const nsRefPtr<InputReceiver>& aTarget, int aX, int aY, int& aTime,
     (*aOutInputBlockIds)[0] = blockId;
   }
   aTime += 10;
+
+  
+  
+  if (gfxPrefs::TouchActionEnabled()) {
+    SetDefaultAllowedTouchBehavior(aTarget, blockId);
+  }
+
   status = TouchUp(aTarget, aX, aY, aTime);
   if (aOutEventStatuses) {
     (*aOutEventStatuses)[1] = status;
@@ -1504,6 +1549,11 @@ DoubleTap(const nsRefPtr<InputReceiver>& aTarget, int aX, int aY, int& aTime,
     (*aOutInputBlockIds)[1] = blockId;
   }
   aTime += 10;
+
+  if (gfxPrefs::TouchActionEnabled()) {
+    SetDefaultAllowedTouchBehavior(aTarget, blockId);
+  }
+
   status = TouchUp(aTarget, aX, aY, aTime);
   if (aOutEventStatuses) {
     (*aOutEventStatuses)[3] = status;
