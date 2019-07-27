@@ -154,7 +154,7 @@ class Sandbox(dict):
 
         self.exec_source(source, path)
 
-    def exec_source(self, source, path='', becomes_current_path=True):
+    def exec_source(self, source, path=''):
         """Execute Python code within a string.
 
         The passed string should contain Python code to be executed. The string
@@ -163,6 +163,30 @@ class Sandbox(dict):
         You should almost always go through exec_file() because exec_source()
         does not perform extra path normalization. This can cause relative
         paths to behave weirdly.
+        """
+        def execute():
+            
+            
+            code = compile(source, path, 'exec')
+            
+            
+            
+            old_source = self._current_source
+            self._current_source = source
+            try:
+                
+                
+                
+                
+                exec code in self
+            finally:
+                self._current_source = old_source
+
+        self.exec_function(execute, path=path)
+
+    def exec_function(self, func, args=(), kwargs={}, path='',
+                      becomes_current_path=True):
+        """Execute function with the given arguments in the sandbox.
         """
         if path and becomes_current_path:
             self._context.push_source(path)
@@ -175,15 +199,9 @@ class Sandbox(dict):
         
 
         old_source = self._current_source
-        self._current_source = source
+        self._current_source = None
         try:
-            
-            
-            code = compile(source, path, 'exec')
-            
-            
-            
-            exec(code, self)
+            func(*args, **kwargs)
         except SandboxError as e:
             raise e
         except NameError as e:
@@ -282,4 +300,6 @@ class Sandbox(dict):
         raise NotImplementedError('Not supported')
 
     def __contains__(self, key):
-        raise NotImplementedError('Not supported')
+        if key.isupper():
+            return key in self._context
+        return dict.__contains__(self, key)
