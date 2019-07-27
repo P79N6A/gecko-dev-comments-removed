@@ -97,6 +97,7 @@ function addKeySizeTestForEV(expectedNamesForOCSP, certNamePrefix,
 
 
 
+
 function checkForKeyType(keyType) {
   let certNamePrefix = "ev-" + keyType;
 
@@ -118,6 +119,7 @@ function checkForKeyType(keyType) {
                       isDebugBuild);
 
   
+  
   expectedNamesForOCSP = [ certNamePrefix + "-eeOK-intOK-caBad" ];
   addKeySizeTestForEV(expectedNamesForOCSP, certNamePrefix,
                       "-caBad",
@@ -125,6 +127,7 @@ function checkForKeyType(keyType) {
                       "-eeOK-intOK-caBad",
                       false);
 
+  
   
   expectedNamesForOCSP = isDebugBuild
                        ? [ certNamePrefix + "-intBad-caOK" ]
@@ -135,6 +138,7 @@ function checkForKeyType(keyType) {
                       "-eeOK-intBad-caOK",
                       false);
 
+  
   
   expectedNamesForOCSP = [ certNamePrefix + "-eeBad-intOK-caOK" ];
   addKeySizeTestForEV(expectedNamesForOCSP, certNamePrefix,

@@ -15,7 +15,7 @@ import CertUtils
 
 srcdir = os.getcwd()
 db_dir = tempfile.mkdtemp()
-dsaBad_param_filename = 'dsaBad_param.pem'
+dsaNotOK_param_filename = 'dsaNotOK_param.pem'
 dsaOK_param_filename = 'dsaOK_param.pem'
 
 ca_ext_text = ('basicConstraints = critical, CA:TRUE\n' +
@@ -101,20 +101,22 @@ def generate_and_maybe_import_cert(key_type, cert_name_suffix, base_ext_text,
 
     return [key_filename, cert_filename]
 
-def generate_certs(key_type, bad_key_size, ok_key_size, generate_ev):
+def generate_certs(key_type, inadequate_key_size, adequate_key_size, generate_ev):
     """
     Generates the various certificates used by the key size tests.
 
     Arguments:
       key_type -- the type of key generated: potential values: 'rsa', 'dsa',
                   or any of the curves found by 'openssl ecparam -list_curves'
-      bad_key_size -- the public key size bad certs should have
-      ok_key_size -- the public key size OK certs should have
+      inadequate_key_size -- a string defining the inadequate public key size
+                             for the generated certs
+      adequate_key_size -- a string defining the adequate public key size for
+                           the generated certs
       generate_ev -- whether an EV cert should be generated
     """
     if key_type == 'dsa':
-        CertUtils.init_dsa(db_dir, dsaBad_param_filename, bad_key_size)
-        CertUtils.init_dsa(db_dir, dsaOK_param_filename, ok_key_size)
+        CertUtils.init_dsa(db_dir, dsaNotOK_param_filename, inadequate_key_size)
+        CertUtils.init_dsa(db_dir, dsaOK_param_filename, adequate_key_size)
 
     
     if generate_ev and key_type == 'rsa':
@@ -133,7 +135,7 @@ def generate_certs(key_type, bad_key_size, ok_key_size, generate_ev):
             '',
             '',
             dsaOK_param_filename,
-            ok_key_size,
+            adequate_key_size,
             generate_ev)
 
     [intOK_key, intOK_cert] = generate_and_maybe_import_cert(
@@ -143,7 +145,7 @@ def generate_certs(key_type, bad_key_size, ok_key_size, generate_ev):
         caOK_key,
         caOK_cert,
         dsaOK_param_filename,
-        ok_key_size,
+        adequate_key_size,
         generate_ev)
 
     generate_and_maybe_import_cert(
@@ -153,28 +155,28 @@ def generate_certs(key_type, bad_key_size, ok_key_size, generate_ev):
         intOK_key,
         intOK_cert,
         dsaOK_param_filename,
-        ok_key_size,
+        adequate_key_size,
         generate_ev)
 
     
-    [caBad_key, caBad_cert] = generate_and_maybe_import_cert(
+    [rootNotOK_key, rootNotOK_cert] = generate_and_maybe_import_cert(
         key_type,
         '-caBad',
         ca_ext_text,
         '',
         '',
-        dsaBad_param_filename,
-        bad_key_size,
+        dsaNotOK_param_filename,
+        inadequate_key_size,
         generate_ev)
 
     [int_key, int_cert] = generate_and_maybe_import_cert(
         key_type,
         '-intOK-caBad',
         ca_ext_text,
-        caBad_key,
-        caBad_cert,
+        rootNotOK_key,
+        rootNotOK_cert,
         dsaOK_param_filename,
-        ok_key_size,
+        adequate_key_size,
         generate_ev)
 
     generate_and_maybe_import_cert(
@@ -184,28 +186,28 @@ def generate_certs(key_type, bad_key_size, ok_key_size, generate_ev):
         int_key,
         int_cert,
         dsaOK_param_filename,
-        ok_key_size,
+        adequate_key_size,
         generate_ev)
 
     
-    [intBad_key, intBad_cert] = generate_and_maybe_import_cert(
+    [intNotOK_key, intNotOK_cert] = generate_and_maybe_import_cert(
         key_type,
         '-intBad-caOK',
         ca_ext_text,
         caOK_key,
         caOK_cert,
-        dsaBad_param_filename,
-        bad_key_size,
+        dsaNotOK_param_filename,
+        inadequate_key_size,
         generate_ev)
 
     generate_and_maybe_import_cert(
         key_type,
         '-eeOK-intBad-caOK',
         ee_ext_text,
-        intBad_key,
-        intBad_cert,
+        intNotOK_key,
+        intNotOK_cert,
         dsaOK_param_filename,
-        ok_key_size,
+        adequate_key_size,
         generate_ev)
 
     
@@ -215,8 +217,8 @@ def generate_certs(key_type, bad_key_size, ok_key_size, generate_ev):
         ee_ext_text,
         intOK_key,
         intOK_cert,
-        dsaBad_param_filename,
-        bad_key_size,
+        dsaNotOK_param_filename,
+        inadequate_key_size,
         generate_ev)
 
 
