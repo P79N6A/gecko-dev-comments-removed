@@ -58,6 +58,7 @@ VideoContentMetrics* VPMContentAnalysis::ComputeContentMetrics(
     if (VPM_OK != Initialize(inputFrame.width(), inputFrame.height()))
       return NULL;
   }
+#if !defined(WEBRTC_GONK)
   
   if (ca_Init_) {
     
@@ -75,6 +76,7 @@ VideoContentMetrics* VPMContentAnalysis::ComputeContentMetrics(
 
     first_frame_ =  false;
   }
+#endif
 
   return ContentMetrics();
 }
@@ -123,10 +125,12 @@ int32_t VPMContentAnalysis::Initialize(int width, int height) {
     return VPM_MEMORY;
   }
 
+#if !defined(WEBRTC_GONK)
   prev_frame_.reset(new uint8_t[width_ * height_]);  
   if (!prev_frame_) {
     return VPM_MEMORY;
   }
+#endif
 
   
   ca_Init_ = true;
