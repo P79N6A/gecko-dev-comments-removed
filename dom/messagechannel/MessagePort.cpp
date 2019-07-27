@@ -386,8 +386,13 @@ MessagePort::Initialize(const nsID& aUUID,
   mNextStep = eNextStepNone;
 
   if (mNeutered) {
+    
+    
     mState = eStateDisentangled;
-  } else if (mState == eStateEntangling) {
+    return;
+  }
+
+  if (mState == eStateEntangling) {
     ConnectToPBackground();
   } else {
     MOZ_ASSERT(mState == eStateUnshippedEntangled);
