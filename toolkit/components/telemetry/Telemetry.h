@@ -17,9 +17,6 @@ namespace base {
 }
 
 namespace mozilla {
-namespace HangMonitor {
-  class HangAnnotations;
-}
 namespace Telemetry {
 
 #include "TelemetryHistogramEnums.h"
@@ -199,13 +196,11 @@ class ProcessedStack;
 
 
 
-
 #if defined(MOZ_ENABLE_PROFILER_SPS)
 void RecordChromeHang(uint32_t aDuration,
                       ProcessedStack &aStack,
                       int32_t aSystemUptime,
-                      int32_t aFirefoxUptime,
-                      mozilla::HangMonitor::HangAnnotations* aAnnotations = nullptr);
+                      int32_t aFirefoxUptime);
 #endif
 
 class ThreadHangStats;
