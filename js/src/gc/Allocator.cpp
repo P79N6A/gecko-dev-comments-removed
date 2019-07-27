@@ -93,10 +93,6 @@ GCRuntime::checkIncrementalZoneState(ExclusiveContext *cx, T *t)
 #endif
 }
 
-
-
-
-
 template <typename T, AllowGC allowGC >
 JSObject *
 js::Allocate(ExclusiveContext *cx, AllocKind kind, size_t nDynamicSlots, InitialHeap heap,
