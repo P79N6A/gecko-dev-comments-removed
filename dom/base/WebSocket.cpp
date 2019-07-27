@@ -2296,6 +2296,12 @@ WebSocketImpl::CancelInternal()
 {
   AssertIsOnTargetThread();
 
+   
+   
+  if (mDisconnected) {
+    return NS_OK;
+  }
+
   int64_t readyState = mWebSocket->ReadyState();
   if (readyState == WebSocket::CLOSING || readyState == WebSocket::CLOSED) {
     return NS_OK;
