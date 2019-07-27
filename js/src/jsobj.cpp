@@ -2387,6 +2387,15 @@ NativeObject::fillInAfterSwap(JSContext *cx, const Vector<Value> &values, void *
     initSlotRange(0, values.begin(), values.length());
 }
 
+void
+JSObject::fixDictionaryShapeAfterSwap()
+{
+    
+    
+    if (isNative() && as<NativeObject>().inDictionaryMode())
+        shape_->listp = &shape_;
+}
+
 
 bool
 JSObject::swap(JSContext *cx, HandleObject a, HandleObject b)
@@ -2441,6 +2450,9 @@ JSObject::swap(JSContext *cx, HandleObject a, HandleObject b)
         js_memcpy(tmp, a, size);
         js_memcpy(a, b, size);
         js_memcpy(b, tmp, size);
+
+        a->fixDictionaryShapeAfterSwap();
+        b->fixDictionaryShapeAfterSwap();
     } else {
         
         
@@ -2478,18 +2490,14 @@ JSObject::swap(JSContext *cx, HandleObject a, HandleObject b)
         js_memcpy(a, b, sizeof tmp);
         js_memcpy(b, &tmp, sizeof tmp);
 
+        a->fixDictionaryShapeAfterSwap();
+        b->fixDictionaryShapeAfterSwap();
+
         if (na)
             b->as<NativeObject>().fillInAfterSwap(cx, avals, apriv);
         if (nb)
             a->as<NativeObject>().fillInAfterSwap(cx, bvals, bpriv);
     }
-
-    
-    
-    if (a->isNative() && a->as<NativeObject>().inDictionaryMode())
-        a->lastProperty()->listp = &a->shape_;
-    if (b->isNative() && b->as<NativeObject>().inDictionaryMode())
-        b->lastProperty()->listp = &b->shape_;
 
     
     
