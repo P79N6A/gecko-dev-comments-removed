@@ -610,6 +610,14 @@ ShadowLayerForwarder::EndTransaction(InfallibleTArray<EditReply>* aReplies,
       common.stickyScrollContainerId() = mutant->GetStickyScrollContainerId();
       common.stickyScrollRangeOuter() = mutant->GetStickyScrollRangeOuter();
       common.stickyScrollRangeInner() = mutant->GetStickyScrollRangeInner();
+    } else {
+#ifdef MOZ_VALGRIND
+      
+      
+      common.stickyScrollContainerId() = 0;
+      common.stickyScrollRangeOuter() = LayerRect();
+      common.stickyScrollRangeInner() = LayerRect();
+#endif
     }
     common.scrollbarTargetContainerId() = mutant->GetScrollbarTargetContainerId();
     common.scrollbarDirection() = mutant->GetScrollbarDirection();
