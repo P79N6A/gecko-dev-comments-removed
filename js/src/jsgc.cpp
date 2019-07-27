@@ -4357,8 +4357,14 @@ bool
 ArenaLists::foregroundFinalize(FreeOp *fop, AllocKind thingKind, SliceBudget &sliceBudget,
                                SortedArenaList &sweepList)
 {
-    if (!FinalizeArenas(fop, &arenaListsToSweep[thingKind], sweepList, thingKind, sliceBudget))
+    if (!FinalizeArenas(fop, &arenaListsToSweep[thingKind], sweepList, thingKind, sliceBudget)) {
+        incrementalSweptArenaKind = thingKind;
+        incrementalSweptArenas = sweepList.toArenaList();
         return false;
+    }
+
+    
+    incrementalSweptArenas.clear();
 
     
     ArenaList finalized = sweepList.toArenaList();
