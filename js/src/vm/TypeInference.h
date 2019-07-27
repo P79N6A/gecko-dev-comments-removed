@@ -975,17 +975,6 @@ bool
 ClassCanHaveExtraProperties(const Class* clasp);
 
 
-
-
-
-bool
-ArrayPrototypeHasIndexedProperty(CompilerConstraintList* constraints, JSScript* script);
-
-
-bool
-TypeCanHaveExtraIndexedProperties(CompilerConstraintList* constraints, TemporaryTypeSet* types);
-
-
 class TypeScript
 {
     friend class ::JSScript;

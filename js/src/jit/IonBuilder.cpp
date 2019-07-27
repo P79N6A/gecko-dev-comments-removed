@@ -8154,7 +8154,7 @@ IonBuilder::getElemTryDense(bool* emitted, MDefinition* obj, MDefinition* index)
 
     
     
-    if (ElementAccessHasExtraIndexedProperty(constraints(), obj) && failedBoundsCheck_) {
+    if (ElementAccessHasExtraIndexedProperty(this, obj) && failedBoundsCheck_) {
         trackOptimizationOutcome(TrackedOutcome::ProtoIndexedProps);
         return true;
     }
@@ -8188,7 +8188,7 @@ IonBuilder::getStaticTypedArrayObject(MDefinition* obj, MDefinition* index)
         return nullptr;
     }
 
-    if (ElementAccessHasExtraIndexedProperty(constraints(), obj)) {
+    if (ElementAccessHasExtraIndexedProperty(this, obj)) {
         trackOptimizationOutcome(TrackedOutcome::ProtoIndexedProps);
         return nullptr;
     }
@@ -8536,7 +8536,7 @@ IonBuilder::jsop_getelem_dense(MDefinition* obj, MDefinition* index, JSValueType
     
     bool readOutOfBounds =
         types->hasType(TypeSet::UndefinedType()) &&
-        !ElementAccessHasExtraIndexedProperty(constraints(), obj);
+        !ElementAccessHasExtraIndexedProperty(this, obj);
 
     MIRType knownType = MIRType_Value;
     if (unboxedType == JSVAL_TYPE_MAGIC && barrier == BarrierKind::NoBarrier)
@@ -9097,7 +9097,7 @@ IonBuilder::setElemTryDense(bool* emitted, MDefinition* object,
 
     
     
-    if (ElementAccessHasExtraIndexedProperty(constraints(), object) && failedBoundsCheck_) {
+    if (ElementAccessHasExtraIndexedProperty(this, object) && failedBoundsCheck_) {
         trackOptimizationOutcome(TrackedOutcome::ProtoIndexedProps);
         return true;
     }
@@ -9163,7 +9163,7 @@ IonBuilder::setElemTryCache(bool* emitted, MDefinition* object,
     
     
     
-    bool guardHoles = ElementAccessHasExtraIndexedProperty(constraints(), object);
+    bool guardHoles = ElementAccessHasExtraIndexedProperty(this, object);
 
     
     const Class* clasp = object->resultTypeSet() ? object->resultTypeSet()->getKnownClass(constraints()) : nullptr;
@@ -9199,7 +9199,7 @@ IonBuilder::jsop_setelem_dense(TemporaryTypeSet::DoubleConversion conversion,
 
     
     
-    bool writeOutOfBounds = !ElementAccessHasExtraIndexedProperty(constraints(), obj);
+    bool writeOutOfBounds = !ElementAccessHasExtraIndexedProperty(this, obj);
 
     if (NeedsPostBarrier(info(), value))
         current->add(MPostWriteBarrier::New(alloc(), obj, value));
@@ -11068,7 +11068,7 @@ IonBuilder::getPropTryCache(bool* emitted, MDefinition* obj, PropertyName* name,
     
     if (barrier != BarrierKind::TypeSet) {
         BarrierKind protoBarrier =
-            PropertyReadOnPrototypeNeedsTypeBarrier(this, constraints(), obj, name, types);
+            PropertyReadOnPrototypeNeedsTypeBarrier(this, obj, name, types);
         if (protoBarrier != BarrierKind::NoBarrier) {
             MOZ_ASSERT(barrier <= protoBarrier);
             barrier = protoBarrier;
@@ -12373,7 +12373,7 @@ IonBuilder::jsop_in()
                 break;
         }
 
-        if (ElementAccessHasExtraIndexedProperty(constraints(), obj))
+        if (ElementAccessHasExtraIndexedProperty(this, obj))
             break;
 
         return jsop_in_dense(obj, id, unboxedType);
