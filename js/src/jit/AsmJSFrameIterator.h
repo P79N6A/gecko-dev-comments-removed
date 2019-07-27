@@ -12,12 +12,13 @@
 #include <stdint.h>
 
 class JSAtom;
+struct JSContext;
 
 namespace js {
 
 class AsmJSActivation;
 class AsmJSModule;
-namespace jit { struct CallSite; }
+namespace jit { struct CallSite; class MacroAssembler; class Label; }
 
 
 class AsmJSFrameIterator
@@ -30,7 +31,7 @@ class AsmJSFrameIterator
     
     const void *codeRange_;
 
-    void settle(void *returnAddress);
+    void settle();
 
   public:
     explicit AsmJSFrameIterator() : module_(nullptr) {}
@@ -40,6 +41,29 @@ class AsmJSFrameIterator
     JSAtom *functionDisplayAtom() const;
     unsigned computeLine(uint32_t *column) const;
 };
+
+
+
+
+void
+GenerateAsmJSFunctionPrologue(jit::MacroAssembler &masm, unsigned framePushed,
+                              jit::Label *maybeOverflowThunk, jit::Label *overflowExit);
+void
+GenerateAsmJSFunctionEpilogue(jit::MacroAssembler &masm, unsigned framePushed,
+                              jit::Label *maybeOverflowThunk, jit::Label *overflowExit);
+void
+GenerateAsmJSStackOverflowExit(jit::MacroAssembler &masm, jit::Label *overflowExit,
+                               jit::Label *throwLabel);
+
+void
+GenerateAsmJSEntryPrologue(jit::MacroAssembler &masm);
+void
+GenerateAsmJSEntryEpilogue(jit::MacroAssembler &masm);
+
+void
+GenerateAsmJSFFIExitPrologue(jit::MacroAssembler &masm, unsigned framePushed);
+void
+GenerateAsmJSFFIExitEpilogue(jit::MacroAssembler &masm, unsigned framePushed);
 
 } 
 

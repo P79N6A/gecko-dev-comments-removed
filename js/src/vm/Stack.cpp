@@ -1688,7 +1688,7 @@ AsmJSActivation::AsmJSActivation(JSContext *cx, AsmJSModule &module)
     errorRejoinSP_(nullptr),
     profiler_(nullptr),
     resumePC_(nullptr),
-    exitFP_(nullptr)
+    fp_(nullptr)
 {
     if (cx->runtime()->spsProfiler.enabled()) {
         
@@ -1714,6 +1714,8 @@ AsmJSActivation::~AsmJSActivation()
 {
     if (profiler_)
         profiler_->exitNative();
+
+    JS_ASSERT(fp_ == nullptr);
 
     JS_ASSERT(module_.activation() == this);
     module_.activation() = prevAsmJSForModule_;

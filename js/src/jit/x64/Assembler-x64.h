@@ -601,6 +601,11 @@ class Assembler : public AssemblerX86Shared
         return CodeOffsetLabel(masm.leaq_rip(dest.code()).offset());
     }
 
+    void loadAsmJSActivation(Register dest) {
+        CodeOffsetLabel label = loadRipRelativeInt64(dest);
+        append(AsmJSGlobalAccess(label, AsmJSActivationGlobalDataOffset));
+    }
+
     
     
     

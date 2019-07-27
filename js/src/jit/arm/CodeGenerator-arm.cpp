@@ -49,36 +49,13 @@ CodeGeneratorARM::generatePrologue()
 }
 
 bool
-CodeGeneratorARM::generateAsmJSPrologue(Label *stackOverflowLabel)
-{
-    JS_ASSERT(gen->compilingAsmJS());
-
-    
-    masm.push(lr);
-
-    
-    
-    
-    if (!omitOverRecursedCheck()) {
-        masm.branchPtr(Assembler::AboveOrEqual,
-                       AsmJSAbsoluteAddress(AsmJSImm_StackLimit),
-                       StackPointer,
-                       stackOverflowLabel);
-    }
-
-    
-    masm.reserveStack(frameDepth_);
-    masm.checkStackAlignment();
-    return true;
-}
-
-bool
 CodeGeneratorARM::generateEpilogue()
 {
+    JS_ASSERT(!gen->compilingAsmJS());
     masm.bind(&returnLabel_);
 
 #ifdef JS_TRACE_LOGGING
-    if (!gen->compilingAsmJS() && gen->info().executionMode() == SequentialExecution) {
+    if (gen->info().executionMode() == SequentialExecution) {
         if (!emitTracelogStopEvent(TraceLogger::IonMonkey))
             return false;
         if (!emitTracelogScriptStop())
@@ -86,10 +63,7 @@ CodeGeneratorARM::generateEpilogue()
     }
 #endif
 
-    if (gen->compilingAsmJS())
-        masm.freeStack(frameDepth_);
-    else
-        masm.freeStack(frameSize());
+    masm.freeStack(frameSize());
     JS_ASSERT(masm.framePushed() == 0);
     masm.pop(pc);
     masm.flushBuffer();

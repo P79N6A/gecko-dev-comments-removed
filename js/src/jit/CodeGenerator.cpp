@@ -6489,22 +6489,22 @@ CodeGenerator::generateAsmJS(Label *stackOverflowLabel)
     
     sps_.disable();
 
-    
-    
-    
-    
-    
-    
-    if (!generateAsmJSPrologue(stackOverflowLabel))
-        return false;
+    Label overflowThunk;
+    Label *maybeOverflowThunk = omitOverRecursedCheck() ? nullptr : &overflowThunk;
+
+    GenerateAsmJSFunctionPrologue(masm, frameSize(), maybeOverflowThunk, stackOverflowLabel);
+
     if (!generateBody())
         return false;
-    if (!generateEpilogue())
-        return false;
+
+    masm.bind(&returnLabel_);
+    GenerateAsmJSFunctionEpilogue(masm, frameSize(), maybeOverflowThunk, stackOverflowLabel);
+
 #if defined(JS_ION_PERF)
     
     gen->perfSpewer().noteEndInlineCode(masm);
 #endif
+
     if (!generateOutOfLineCode())
         return false;
 
@@ -8571,7 +8571,7 @@ CodeGenerator::visitAsmJSCall(LAsmJSCall *ins)
     if (mir->spIncrement())
         masm.freeStack(mir->spIncrement());
 
-    JS_ASSERT((AsmJSFrameSize + masm.framePushed()) % StackAlignment == 0);
+    JS_ASSERT((sizeof(AsmJSFrame) + masm.framePushed()) % StackAlignment == 0);
 
 #ifdef DEBUG
     Label ok;
@@ -8814,7 +8814,7 @@ CodeGenerator::visitAsmJSInterruptCheck(LAsmJSInterruptCheck *lir)
     Label rejoin;
     masm.branch32(Assembler::Equal, scratch, Imm32(0), &rejoin);
     {
-        uint32_t stackFixup = ComputeByteAlignment(masm.framePushed() + AsmJSFrameSize,
+        uint32_t stackFixup = ComputeByteAlignment(masm.framePushed() + sizeof(AsmJSFrame),
                                                    StackAlignment);
         masm.reserveStack(stackFixup);
         masm.call(lir->funcDesc(), lir->interruptExit());

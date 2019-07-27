@@ -50,32 +50,14 @@ CodeGeneratorX86Shared::generatePrologue()
 }
 
 bool
-CodeGeneratorX86Shared::generateAsmJSPrologue(Label *stackOverflowLabel)
-{
-    JS_ASSERT(gen->compilingAsmJS());
-
-    
-    
-    
-    if (!omitOverRecursedCheck()) {
-        masm.branchPtr(Assembler::AboveOrEqual,
-                       AsmJSAbsoluteAddress(AsmJSImm_StackLimit),
-                       StackPointer,
-                       stackOverflowLabel);
-    }
-
-    
-    masm.reserveStack(frameSize());
-    return true;
-}
-
-bool
 CodeGeneratorX86Shared::generateEpilogue()
 {
+    JS_ASSERT(!gen->compilingAsmJS());
+
     masm.bind(&returnLabel_);
 
 #ifdef JS_TRACE_LOGGING
-    if (!gen->compilingAsmJS() && gen->info().executionMode() == SequentialExecution) {
+    if (gen->info().executionMode() == SequentialExecution) {
         if (!emitTracelogStopEvent(TraceLogger::IonMonkey))
             return false;
         if (!emitTracelogScriptStop())

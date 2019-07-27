@@ -625,7 +625,24 @@ typedef Vector<CallSite, 0, SystemAllocPolicy> CallSiteVector;
 
 
 
-static const uint32_t AsmJSFrameSize = sizeof(void*);
+struct AsmJSFrame
+{
+    
+    
+    
+    
+    uint8_t *callerFP;
+
+    
+    
+    void *returnAddress;
+};
+static_assert(sizeof(AsmJSFrame) == 2 * sizeof(void*), "?!");
+static const uint32_t AsmJSFrameBytesAfterReturnAddress = sizeof(void*);
+
+
+
+static const unsigned AsmJSActivationGlobalDataOffset = 0;
 
 
 
@@ -797,7 +814,7 @@ class AssemblerShared
     void append(const CallSiteDesc &desc, size_t currentOffset, size_t framePushed) {
         
         
-        CallSite callsite(desc, currentOffset, framePushed + AsmJSFrameSize);
+        CallSite callsite(desc, currentOffset, framePushed + sizeof(AsmJSFrame));
         enoughMemory_ &= callsites_.append(callsite);
     }
     CallSiteVector &&extractCallSites() { return Move(callsites_); }
