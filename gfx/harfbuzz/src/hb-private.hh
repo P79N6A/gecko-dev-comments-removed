@@ -94,10 +94,8 @@
 # endif
 #endif
 
-#if (defined(__WIN32__) && !defined(__WINE__)) || defined(_MSC_VER)
+#if defined(_MSC_VER) && _MSC_VER < 1900
 #define snprintf _snprintf
-
-#define strdup _strdup
 #endif
 
 #ifdef _MSC_VER
