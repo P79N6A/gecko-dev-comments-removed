@@ -4,7 +4,7 @@
 
 
 #include "TiledContentHost.h"
-#include "ThebesLayerComposite.h"       
+#include "PaintedLayerComposite.h"      
 #include "mozilla/gfx/BaseSize.h"       
 #include "mozilla/gfx/Matrix.h"         
 #include "mozilla/layers/Compositor.h"  

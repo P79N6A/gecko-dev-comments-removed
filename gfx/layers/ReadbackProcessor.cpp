@@ -119,19 +119,19 @@ ReadbackProcessor::BuildUpdatesForLayer(ReadbackLayer* aLayer)
       }
     }
   } else {
-    NS_ASSERTION(newBackground->AsThebesLayer(), "Must be ThebesLayer");
-    ThebesLayer* thebesLayer = static_cast<ThebesLayer*>(newBackground);
+    NS_ASSERTION(newBackground->AsPaintedLayer(), "Must be PaintedLayer");
+    PaintedLayer* paintedLayer = static_cast<PaintedLayer*>(newBackground);
     
     nsIntRect updateRect = aLayer->GetRect() - offset;
-    if (thebesLayer != aLayer->mBackgroundLayer ||
+    if (paintedLayer != aLayer->mBackgroundLayer ||
         offset != aLayer->mBackgroundLayerOffset) {
-      aLayer->mBackgroundLayer = thebesLayer;
+      aLayer->mBackgroundLayer = paintedLayer;
       aLayer->mBackgroundLayerOffset = offset;
       aLayer->mBackgroundColor = gfxRGBA(0,0,0,0);
-      thebesLayer->SetUsedForReadback(true);
+      paintedLayer->SetUsedForReadback(true);
     } else {
       nsIntRegion invalid;
-      invalid.Sub(updateRect, thebesLayer->GetValidRegion());
+      invalid.Sub(updateRect, paintedLayer->GetValidRegion());
       updateRect = invalid.GetBounds();
     }
 
@@ -141,7 +141,7 @@ ReadbackProcessor::BuildUpdatesForLayer(ReadbackLayer* aLayer)
 }
 
 void
-ReadbackProcessor::GetThebesLayerUpdates(ThebesLayer* aLayer,
+ReadbackProcessor::GetPaintedLayerUpdates(PaintedLayer* aLayer,
                                          nsTArray<Update>* aUpdates,
                                          nsIntRegion* aUpdateRegion)
 {

@@ -2369,7 +2369,7 @@ ScrollFrameHelper::ScrollToImpl(nsPoint aPt, const nsRect& aRange, nsIAtom* aOri
   nscoord appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
   
   
-  gfxSize scale = FrameLayerBuilder::GetThebesLayerScaleForFrame(mScrolledFrame);
+  gfxSize scale = FrameLayerBuilder::GetPaintedLayerScaleForFrame(mScrolledFrame);
   nsPoint curPos = GetScrollPosition();
   nsPoint alignWithPos = mScrollPosForLayerPixelAlignment == nsPoint(-1,-1)
       ? curPos : mScrollPosForLayerPixelAlignment;

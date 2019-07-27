@@ -2,8 +2,8 @@
 
 
 
-#ifndef GFX_CLIENTTILEDTHEBESLAYER_H
-#define GFX_CLIENTTILEDTHEBESLAYER_H
+#ifndef GFX_CLIENTTILEDPAINTEDLAYER_H
+#define GFX_CLIENTTILEDPAINTEDLAYER_H
 
 #include "ClientLayerManager.h"         
 #include "Layers.h"                     
@@ -35,21 +35,21 @@ class SpecificLayerAttributes;
 
 
 
-class ClientTiledThebesLayer : public ThebesLayer,
+class ClientTiledPaintedLayer : public PaintedLayer,
                                public ClientLayer
 {
-  typedef ThebesLayer Base;
+  typedef PaintedLayer Base;
 
 public:
-  explicit ClientTiledThebesLayer(ClientLayerManager* const aManager,
-                                  ClientLayerManager::ThebesLayerCreationHint aCreationHint = LayerManager::NONE);
+  explicit ClientTiledPaintedLayer(ClientLayerManager* const aManager,
+                                  ClientLayerManager::PaintedLayerCreationHint aCreationHint = LayerManager::NONE);
 
 protected:
-  ~ClientTiledThebesLayer();
+  ~ClientTiledPaintedLayer();
 
 public:
   
-  virtual const char* Name() const { return "TiledThebesLayer"; }
+  virtual const char* Name() const { return "TiledPaintedLayer"; }
 
   
   virtual Layer* AsLayer() { return this; }
@@ -104,7 +104,7 @@ private:
 
   bool RenderHighPrecision(nsIntRegion& aInvalidRegion,
                            const nsIntRegion& aVisibleRegion,
-                           LayerManager::DrawThebesLayerCallback aCallback,
+                           LayerManager::DrawPaintedLayerCallback aCallback,
                            void* aCallbackData);
 
   
@@ -113,7 +113,7 @@ private:
 
   bool RenderLowPrecision(nsIntRegion& aInvalidRegion,
                           const nsIntRegion& aVisibleRegion,
-                          LayerManager::DrawThebesLayerCallback aCallback,
+                          LayerManager::DrawPaintedLayerCallback aCallback,
                           void* aCallbackData);
 
   

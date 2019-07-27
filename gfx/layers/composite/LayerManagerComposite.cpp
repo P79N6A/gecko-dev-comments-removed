@@ -18,7 +18,7 @@
 #include "Layers.h"                     
 #include "LayerScope.h"                 
 #include "protobuf/LayerScopePacket.pb.h" 
-#include "ThebesLayerComposite.h"       
+#include "PaintedLayerComposite.h"      
 #include "TiledLayerBuffer.h"           
 #include "Units.h"                      
 #include "gfx2DGlue.h"                  
@@ -212,7 +212,7 @@ LayerManagerComposite::EndEmptyTransaction(EndTransactionFlags aFlags)
 }
 
 void
-LayerManagerComposite::EndTransaction(DrawThebesLayerCallback aCallback,
+LayerManagerComposite::EndTransaction(DrawPaintedLayerCallback aCallback,
                                       void* aCallbackData,
                                       EndTransactionFlags aFlags)
 {
@@ -280,8 +280,8 @@ LayerManagerComposite::CreateOptimalMaskDrawTarget(const IntSize &aSize)
   return nullptr;
 }
 
-already_AddRefed<ThebesLayer>
-LayerManagerComposite::CreateThebesLayer()
+already_AddRefed<PaintedLayer>
+LayerManagerComposite::CreatePaintedLayer()
 {
   NS_RUNTIMEABORT("Should only be called on the drawing side");
   return nullptr;
@@ -758,14 +758,14 @@ LayerManagerComposite::ComputeRenderIntegrityInternal(Layer* aLayer,
   }
 
   
-  ThebesLayer* thebesLayer = aLayer->AsThebesLayer();
-  if (!thebesLayer) {
+  PaintedLayer* paintedLayer = aLayer->AsPaintedLayer();
+  if (!paintedLayer) {
     return;
   }
 
   
   nsIntRegion incompleteRegion = aLayer->GetEffectiveVisibleRegion();
-  incompleteRegion.Sub(incompleteRegion, thebesLayer->GetValidRegion());
+  incompleteRegion.Sub(incompleteRegion, paintedLayer->GetValidRegion());
 
   if (!incompleteRegion.IsEmpty()) {
     
@@ -922,14 +922,14 @@ LayerManagerComposite::ComputeRenderIntegrity()
   return 1.f;
 }
 
-already_AddRefed<ThebesLayerComposite>
-LayerManagerComposite::CreateThebesLayerComposite()
+already_AddRefed<PaintedLayerComposite>
+LayerManagerComposite::CreatePaintedLayerComposite()
 {
   if (mDestroyed) {
     NS_WARNING("Call on destroyed layer manager");
     return nullptr;
   }
-  return nsRefPtr<ThebesLayerComposite>(new ThebesLayerComposite(this)).forget();
+  return nsRefPtr<PaintedLayerComposite>(new PaintedLayerComposite(this)).forget();
 }
 
 already_AddRefed<ContainerLayerComposite>

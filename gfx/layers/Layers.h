@@ -79,7 +79,7 @@ class ClientLayerManager;
 class CommonLayerAttributes;
 class Layer;
 class LayerMetricsWrapper;
-class ThebesLayer;
+class PaintedLayer;
 class ContainerLayer;
 class ImageLayer;
 class ColorLayer;
@@ -279,7 +279,7 @@ public:
 
 
 
-  typedef void (* DrawThebesLayerCallback)(ThebesLayer* aLayer,
+  typedef void (* DrawPaintedLayerCallback)(PaintedLayer* aLayer,
                                            gfxContext* aContext,
                                            const nsIntRegion& aRegionToDraw,
                                            DrawRegionClip aClip,
@@ -293,7 +293,7 @@ public:
 
 
 
-  virtual void EndTransaction(DrawThebesLayerCallback aCallback,
+  virtual void EndTransaction(DrawPaintedLayerCallback aCallback,
                               void* aCallbackData,
                               EndTransactionFlags aFlags = END_DEFAULT) = 0;
 
@@ -379,29 +379,29 @@ public:
 
 
 
-  enum ThebesLayerCreationHint {
+  enum PaintedLayerCreationHint {
     NONE, SCROLLABLE
   };
 
   
 
 
-  virtual bool IsOptimizedFor(ThebesLayer* aLayer,
-                              ThebesLayerCreationHint aCreationHint)
+  virtual bool IsOptimizedFor(PaintedLayer* aLayer,
+                              PaintedLayerCreationHint aCreationHint)
   { return true; }
 
   
 
 
 
-  virtual already_AddRefed<ThebesLayer> CreateThebesLayer() = 0;
+  virtual already_AddRefed<PaintedLayer> CreatePaintedLayer() = 0;
   
 
 
 
 
-  virtual already_AddRefed<ThebesLayer> CreateThebesLayerWithHint(ThebesLayerCreationHint) {
-    return CreateThebesLayer();
+  virtual already_AddRefed<PaintedLayer> CreatePaintedLayerWithHint(PaintedLayerCreationHint) {
+    return CreatePaintedLayer();
   }
   
 
@@ -1326,7 +1326,7 @@ public:
 
 
 
-  virtual ThebesLayer* AsThebesLayer() { return nullptr; }
+  virtual PaintedLayer* AsPaintedLayer() { return nullptr; }
 
   
 
@@ -1665,7 +1665,7 @@ protected:
 
 
 
-class ThebesLayer : public Layer {
+class PaintedLayer : public Layer {
 public:
   
 
@@ -1693,9 +1693,9 @@ public:
 
   const nsIntRegion& GetValidRegion() const { return mValidRegion; }
 
-  virtual ThebesLayer* AsThebesLayer() { return this; }
+  virtual PaintedLayer* AsPaintedLayer() { return this; }
 
-  MOZ_LAYER_DECL_NAME("ThebesLayer", TYPE_THEBES)
+  MOZ_LAYER_DECL_NAME("PaintedLayer", TYPE_THEBES)
 
   virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface)
   {
@@ -1717,7 +1717,7 @@ public:
     ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
 
-  LayerManager::ThebesLayerCreationHint GetCreationHint() const { return mCreationHint; }
+  LayerManager::PaintedLayerCreationHint GetCreationHint() const { return mCreationHint; }
 
   bool UsedForReadback() { return mUsedForReadback; }
   void SetUsedForReadback(bool aUsed) { mUsedForReadback = aUsed; }
@@ -1732,8 +1732,8 @@ public:
   gfxPoint GetResidualTranslation() const { return mResidualTranslation; }
 
 protected:
-  ThebesLayer(LayerManager* aManager, void* aImplData,
-              LayerManager::ThebesLayerCreationHint aCreationHint = LayerManager::NONE)
+  PaintedLayer(LayerManager* aManager, void* aImplData,
+              LayerManager::PaintedLayerCreationHint aCreationHint = LayerManager::NONE)
     : Layer(aManager, aImplData)
     , mValidRegion()
     , mCreationHint(aCreationHint)
@@ -1757,7 +1757,7 @@ protected:
   
 
 
-  const LayerManager::ThebesLayerCreationHint mCreationHint;
+  const LayerManager::PaintedLayerCreationHint mCreationHint;
   
 
 

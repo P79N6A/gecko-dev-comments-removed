@@ -27,7 +27,7 @@ namespace layers {
 class ContainerLayer;
 class LayerManager;
 class BasicLayerManager;
-class ThebesLayer;
+class PaintedLayer;
 }
 
 namespace gfx {
@@ -36,7 +36,7 @@ class Matrix4x4;
 
 class FrameLayerBuilder;
 class LayerManagerData;
-class ThebesLayerData;
+class PaintedLayerData;
 class ContainerState;
 
 class RefCountedRegion {
@@ -153,7 +153,7 @@ class FrameLayerBuilder : public layers::LayerUserData {
 public:
   typedef layers::ContainerLayer ContainerLayer;
   typedef layers::Layer Layer;
-  typedef layers::ThebesLayer ThebesLayer;
+  typedef layers::PaintedLayer PaintedLayer;
   typedef layers::ImageLayer ImageLayer;
   typedef layers::LayerManager LayerManager;
   typedef layers::BasicLayerManager BasicLayerManager;
@@ -177,7 +177,7 @@ public:
   static void Shutdown();
 
   void Init(nsDisplayListBuilder* aBuilder, LayerManager* aManager,
-            ThebesLayerData* aLayerData = nullptr);
+            PaintedLayerData* aLayerData = nullptr);
 
   
 
@@ -261,7 +261,7 @@ public:
 
 
 
-  static void DrawThebesLayer(ThebesLayer* aLayer,
+  static void DrawPaintedLayer(PaintedLayer* aLayer,
                               gfxContext* aContext,
                               const nsIntRegion& aRegionToDraw,
                               mozilla::layers::DrawRegionClip aClip,
@@ -304,7 +304,7 @@ public:
 
 
 
-  void AddThebesDisplayItem(ThebesLayerData* aLayer,
+  void AddThebesDisplayItem(PaintedLayerData* aLayer,
                             nsDisplayItem* aItem,
                             const DisplayItemClip& aClip,
                             const nsIntRect& aItemVisibleRect,
@@ -355,13 +355,13 @@ public:
 
 
 
-  void SavePreviousDataForLayer(ThebesLayer* aLayer, uint32_t aClipCount);
+  void SavePreviousDataForLayer(PaintedLayer* aLayer, uint32_t aClipCount);
   
 
 
 
 
-  nsIntPoint GetLastPaintOffset(ThebesLayer* aLayer);
+  nsIntPoint GetLastPaintOffset(PaintedLayer* aLayer);
 
   
 
@@ -370,7 +370,7 @@ public:
 
 
 
-  static gfxSize GetThebesLayerScaleForFrame(nsIFrame* aFrame);
+  static gfxSize GetPaintedLayerScaleForFrame(nsIFrame* aFrame);
 
   
 
@@ -585,18 +585,18 @@ protected:
 
 
 public:
-  class ThebesLayerItemsEntry : public nsPtrHashKey<ThebesLayer> {
+  class PaintedLayerItemsEntry : public nsPtrHashKey<PaintedLayer> {
   public:
-    explicit ThebesLayerItemsEntry(const ThebesLayer *key)
-      : nsPtrHashKey<ThebesLayer>(key)
+    explicit PaintedLayerItemsEntry(const PaintedLayer *key)
+      : nsPtrHashKey<PaintedLayer>(key)
       , mContainerLayerFrame(nullptr)
       , mLastCommonClipCount(0)
       , mContainerLayerGeneration(0)
       , mHasExplicitLastPaintOffset(false)
       , mCommonClipCount(0)
     {}
-    ThebesLayerItemsEntry(const ThebesLayerItemsEntry &toCopy) :
-      nsPtrHashKey<ThebesLayer>(toCopy.mKey), mItems(toCopy.mItems)
+    PaintedLayerItemsEntry(const PaintedLayerItemsEntry &toCopy) :
+      nsPtrHashKey<PaintedLayer>(toCopy.mKey), mItems(toCopy.mItems)
     {
       NS_ERROR("Should never be called, since we ALLOW_MEMMOVE");
     }
@@ -623,19 +623,19 @@ public:
 
 
 
-  ThebesLayerItemsEntry* GetThebesLayerItemsEntry(ThebesLayer* aLayer)
+  PaintedLayerItemsEntry* GetPaintedLayerItemsEntry(PaintedLayer* aLayer)
   {
-    return mThebesLayerItems.GetEntry(aLayer);
+    return mPaintedLayerItems.GetEntry(aLayer);
   }
 
-  ThebesLayerData* GetContainingThebesLayerData()
+  PaintedLayerData* GetContainingPaintedLayerData()
   {
-    return mContainingThebesLayer;
+    return mContainingPaintedLayer;
   }
 
   bool IsBuildingRetainedLayers()
   {
-    return !mContainingThebesLayer && mRetainingManager;
+    return !mContainingPaintedLayer && mRetainingManager;
   }
 
   
@@ -657,7 +657,7 @@ protected:
   static PLDHashOperator RestoreDisplayItemData(nsRefPtrHashKey<DisplayItemData>* aEntry,
                                                 void *aUserArg);
 
-  static PLDHashOperator RestoreThebesLayerItemEntries(ThebesLayerItemsEntry* aEntry,
+  static PLDHashOperator RestorePaintedLayerItemEntries(PaintedLayerItemsEntry* aEntry,
                                                        void *aUserArg);
 
   
@@ -685,13 +685,13 @@ protected:
 
 
 
-  nsTHashtable<ThebesLayerItemsEntry> mThebesLayerItems;
+  nsTHashtable<PaintedLayerItemsEntry> mPaintedLayerItems;
 
   
 
 
 
-  ThebesLayerData*                    mContainingThebesLayer;
+  PaintedLayerData*                    mContainingPaintedLayer;
 
   
 

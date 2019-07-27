@@ -140,7 +140,7 @@ public:
     mSink = nullptr;
   }
 
-  void NotifyThebesLayerRemoved(ThebesLayer* aLayer)
+  void NotifyPaintedLayerRemoved(PaintedLayer* aLayer)
   {
     if (mBackgroundLayer == aLayer) {
       mBackgroundLayer = nullptr;
@@ -189,7 +189,7 @@ protected:
   
   
   
-  ThebesLayer* mBackgroundLayer;
+  PaintedLayer* mBackgroundLayer;
   
   
   

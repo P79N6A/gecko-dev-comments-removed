@@ -1378,7 +1378,7 @@ class nsDisplayList {
 public:
   typedef mozilla::layers::Layer Layer;
   typedef mozilla::layers::LayerManager LayerManager;
-  typedef mozilla::layers::ThebesLayer ThebesLayer;
+  typedef mozilla::layers::PaintedLayer PaintedLayer;
 
   
 

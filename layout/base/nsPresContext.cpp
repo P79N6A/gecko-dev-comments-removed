@@ -824,7 +824,7 @@ nsPresContext::GetUserPreferences()
 }
 
 void
-nsPresContext::InvalidateThebesLayers()
+nsPresContext::InvalidatePaintedLayers()
 {
   if (!mShell)
     return;
@@ -840,7 +840,7 @@ nsPresContext::InvalidateThebesLayers()
 void
 nsPresContext::AppUnitsPerDevPixelChanged()
 {
-  InvalidateThebesLayers();
+  InvalidatePaintedLayers();
 
   if (mDeviceContext) {
     mDeviceContext->FlushFontCache();
@@ -937,7 +937,7 @@ nsPresContext::UpdateAfterPreferencesChanged()
     mShell->SetPreferenceStyleRules(true);
   }
 
-  InvalidateThebesLayers();
+  InvalidatePaintedLayers();
   mDeviceContext->FlushFontCache();
 
   nsChangeHint hint = nsChangeHint(0);

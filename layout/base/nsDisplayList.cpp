@@ -1385,7 +1385,7 @@ void nsDisplayList::PaintForFrame(nsDisplayListBuilder* aBuilder,
 
   MaybeSetupTransactionIdAllocator(layerManager, view);
 
-  layerManager->EndTransaction(FrameLayerBuilder::DrawThebesLayer,
+  layerManager->EndTransaction(FrameLayerBuilder::DrawPaintedLayer,
                                aBuilder, flags);
   aBuilder->SetIsCompositingCheap(temp);
   layerBuilder->DidEndTransaction();

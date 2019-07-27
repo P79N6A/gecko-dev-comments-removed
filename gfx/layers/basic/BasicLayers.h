@@ -102,7 +102,7 @@ public:
   virtual void BeginTransaction();
   virtual void BeginTransactionWithTarget(gfxContext* aTarget);
   virtual bool EndEmptyTransaction(EndTransactionFlags aFlags = END_DEFAULT);
-  virtual void EndTransaction(DrawThebesLayerCallback aCallback,
+  virtual void EndTransaction(DrawPaintedLayerCallback aCallback,
                               void* aCallbackData,
                               EndTransactionFlags aFlags = END_DEFAULT);
   virtual bool ShouldAvoidComponentAlphaLayers() { return IsWidgetLayerManager(); }
@@ -111,7 +111,7 @@ public:
 
   virtual void SetRoot(Layer* aLayer);
 
-  virtual already_AddRefed<ThebesLayer> CreateThebesLayer();
+  virtual already_AddRefed<PaintedLayer> CreatePaintedLayer();
   virtual already_AddRefed<ContainerLayer> CreateContainerLayer();
   virtual already_AddRefed<ImageLayer> CreateImageLayer();
   virtual already_AddRefed<CanvasLayer> CreateCanvasLayer();
@@ -169,13 +169,13 @@ protected:
   
   void PaintLayer(gfxContext* aTarget,
                   Layer* aLayer,
-                  DrawThebesLayerCallback aCallback,
+                  DrawPaintedLayerCallback aCallback,
                   void* aCallbackData);
 
   
   void ClearLayer(Layer* aLayer);
 
-  bool EndTransactionInternal(DrawThebesLayerCallback aCallback,
+  bool EndTransactionInternal(DrawPaintedLayerCallback aCallback,
                               void* aCallbackData,
                               EndTransactionFlags aFlags = END_DEFAULT);
 

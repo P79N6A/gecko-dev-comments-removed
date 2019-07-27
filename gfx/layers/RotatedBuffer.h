@@ -31,7 +31,7 @@ class Matrix;
 namespace layers {
 
 class TextureClient;
-class ThebesLayer;
+class PaintedLayer;
 
 
 
@@ -267,7 +267,7 @@ public:
 
 
 
-  PaintState BeginPaint(ThebesLayer* aLayer,
+  PaintState BeginPaint(PaintedLayer* aLayer,
                         uint32_t aFlags);
 
   struct DrawIterator {
@@ -333,7 +333,7 @@ public:
 
 
 
-  void DrawTo(ThebesLayer* aLayer,
+  void DrawTo(PaintedLayer* aLayer,
               gfx::DrawTarget* aTarget,
               float aOpacity,
               gfx::CompositionOp aOp,

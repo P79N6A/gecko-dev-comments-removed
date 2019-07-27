@@ -3,8 +3,8 @@
 
 
 
-#ifndef GFX_ThebesLayerComposite_H
-#define GFX_ThebesLayerComposite_H
+#ifndef GFX_PaintedLayerComposite_H
+#define GFX_PaintedLayerComposite_H
 
 #include "Layers.h"                     
 #include "gfxRect.h"                    
@@ -33,14 +33,14 @@ class CompositableHost;
 class ContentHost;
 class TiledLayerComposer;
 
-class ThebesLayerComposite : public ThebesLayer,
+class PaintedLayerComposite : public PaintedLayer,
                              public LayerComposite
 {
 public:
-  explicit ThebesLayerComposite(LayerManagerComposite *aManager);
+  explicit PaintedLayerComposite(LayerManagerComposite *aManager);
 
 protected:
-  virtual ~ThebesLayerComposite();
+  virtual ~PaintedLayerComposite();
 
 public:
   virtual void Disconnect() MOZ_OVERRIDE;
@@ -67,7 +67,7 @@ public:
 
   virtual void InvalidateRegion(const nsIntRegion& aRegion)
   {
-    NS_RUNTIMEABORT("ThebesLayerComposites can't fill invalidated regions");
+    NS_RUNTIMEABORT("PaintedLayerComposites can't fill invalidated regions");
   }
 
   void SetValidRegion(const nsIntRegion& aRegion)
@@ -77,7 +77,7 @@ public:
     Mutated();
   }
 
-  MOZ_LAYER_DECL_NAME("ThebesLayerComposite", TYPE_THEBES)
+  MOZ_LAYER_DECL_NAME("PaintedLayerComposite", TYPE_THEBES)
 
 protected:
 

@@ -6,7 +6,7 @@
 #include "mozilla/layers/TiledContentClient.h"
 #include <math.h>                       
 #include <algorithm>
-#include "ClientTiledThebesLayer.h"     
+#include "ClientTiledPaintedLayer.h"     
 #include "GeckoProfiler.h"              
 #include "ClientLayerManager.h"         
 #include "CompositorChild.h"            
@@ -89,15 +89,15 @@ using namespace gfx;
 namespace layers {
 
 
-TiledContentClient::TiledContentClient(ClientTiledThebesLayer* aThebesLayer,
+TiledContentClient::TiledContentClient(ClientTiledPaintedLayer* aPaintedLayer,
                                        ClientLayerManager* aManager)
   : CompositableClient(aManager->AsShadowForwarder())
 {
   MOZ_COUNT_CTOR(TiledContentClient);
 
-  mTiledBuffer = ClientTiledLayerBuffer(aThebesLayer, this, aManager,
+  mTiledBuffer = ClientTiledLayerBuffer(aPaintedLayer, this, aManager,
                                         &mSharedFrameMetricsHelper);
-  mLowPrecisionTiledBuffer = ClientTiledLayerBuffer(aThebesLayer, this, aManager,
+  mLowPrecisionTiledBuffer = ClientTiledLayerBuffer(aPaintedLayer, this, aManager,
                                                     &mSharedFrameMetricsHelper);
 
   mLowPrecisionTiledBuffer.SetResolution(gfxPrefs::LowPrecisionResolution());
@@ -286,11 +286,11 @@ SharedFrameMetricsHelper::AboutToCheckerboard(const FrameMetrics& aContentMetric
   return false;
 }
 
-ClientTiledLayerBuffer::ClientTiledLayerBuffer(ClientTiledThebesLayer* aThebesLayer,
+ClientTiledLayerBuffer::ClientTiledLayerBuffer(ClientTiledPaintedLayer* aPaintedLayer,
                                                CompositableClient* aCompositableClient,
                                                ClientLayerManager* aManager,
                                                SharedFrameMetricsHelper* aHelper)
-  : mThebesLayer(aThebesLayer)
+  : mPaintedLayer(aPaintedLayer)
   , mCompositableClient(aCompositableClient)
   , mManager(aManager)
   , mLastPaintContentType(gfxContentType::COLOR)
@@ -313,24 +313,24 @@ gfxContentType
 ClientTiledLayerBuffer::GetContentType(SurfaceMode* aMode) const
 {
   gfxContentType content =
-    mThebesLayer->CanUseOpaqueSurface() ? gfxContentType::COLOR :
+    mPaintedLayer->CanUseOpaqueSurface() ? gfxContentType::COLOR :
                                           gfxContentType::COLOR_ALPHA;
-  SurfaceMode mode = mThebesLayer->GetSurfaceMode();
+  SurfaceMode mode = mPaintedLayer->GetSurfaceMode();
 
   if (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
 #if defined(MOZ_GFX_OPTIMIZE_MOBILE) || defined(MOZ_WIDGET_GONK)
      mode = SurfaceMode::SURFACE_SINGLE_CHANNEL_ALPHA;
   }
 #else
-      if (!mThebesLayer->GetParent() ||
-          !mThebesLayer->GetParent()->SupportsComponentAlphaChildren() ||
+      if (!mPaintedLayer->GetParent() ||
+          !mPaintedLayer->GetParent()->SupportsComponentAlphaChildren() ||
           !gfxPrefs::TiledDrawTargetEnabled()) {
         mode = SurfaceMode::SURFACE_SINGLE_CHANNEL_ALPHA;
       } else {
         content = gfxContentType::COLOR;
       }
   } else if (mode == SurfaceMode::SURFACE_OPAQUE) {
-    if (mThebesLayer->MayResample()) {
+    if (mPaintedLayer->MayResample()) {
       mode = SurfaceMode::SURFACE_SINGLE_CHANNEL_ALPHA;
       content = gfxContentType::COLOR_ALPHA;
     }
@@ -887,11 +887,11 @@ ClientTiledLayerBuffer::GetSurfaceDescriptorTiles()
 void
 ClientTiledLayerBuffer::PaintThebes(const nsIntRegion& aNewValidRegion,
                                    const nsIntRegion& aPaintRegion,
-                                   LayerManager::DrawThebesLayerCallback aCallback,
+                                   LayerManager::DrawPaintedLayerCallback aCallback,
                                    void* aCallbackData)
 {
-  TILING_LOG("TILING %p: PaintThebes painting region %s\n", mThebesLayer, Stringify(aPaintRegion).c_str());
-  TILING_LOG("TILING %p: PaintThebes new valid region %s\n", mThebesLayer, Stringify(aNewValidRegion).c_str());
+  TILING_LOG("TILING %p: PaintThebes painting region %s\n", mPaintedLayer, Stringify(aPaintRegion).c_str());
+  TILING_LOG("TILING %p: PaintThebes new valid region %s\n", mPaintedLayer, Stringify(aNewValidRegion).c_str());
 
   mCallback = aCallback;
   mCallbackData = aCallbackData;
@@ -955,7 +955,7 @@ ClientTiledLayerBuffer::PaintThebes(const nsIntRegion& aNewValidRegion,
     PROFILER_LABEL("ClientTiledLayerBuffer", "PaintThebesSingleBufferDraw",
       js::ProfileEntry::Category::GRAPHICS);
 
-    mCallback(mThebesLayer, ctxt, aPaintRegion, DrawRegionClip::CLIP_NONE, nsIntRegion(), mCallbackData);
+    mCallback(mPaintedLayer, ctxt, aPaintRegion, DrawRegionClip::CLIP_NONE, nsIntRegion(), mCallbackData);
   }
 
 #ifdef GFX_TILEDLAYER_PREF_WARNINGS
@@ -1068,7 +1068,7 @@ ClientTiledLayerBuffer::PostValidate(const nsIntRegion& aPaintRegion)
     ctx->SetMatrix(
       ctx->CurrentMatrix().Scale(mResolution, mResolution));
 
-    mCallback(mThebesLayer, ctx, aPaintRegion, DrawRegionClip::DRAW, nsIntRegion(), mCallbackData);
+    mCallback(mPaintedLayer, ctx, aPaintRegion, DrawRegionClip::DRAW, nsIntRegion(), mCallbackData);
     mMoz2DTiles.clear();
   }
 }
@@ -1323,7 +1323,7 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
       ctxt->CurrentMatrix().Translate(-unscaledTileOrigin.x,
                                       -unscaledTileOrigin.y).
                             Scale(mResolution, mResolution));
-    mCallback(mThebesLayer, ctxt,
+    mCallback(mPaintedLayer, ctxt,
               tileRegion.GetBounds(),
               DrawRegionClip::CLIP_NONE,
               nsIntRegion(), mCallbackData);
@@ -1432,10 +1432,10 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
   nsIntRegion staleRegion;
   staleRegion.And(aInvalidRegion, aOldValidRegion);
 
-  TILING_LOG("TILING %p: Progressive update stale region %s\n", mThebesLayer, Stringify(staleRegion).c_str());
+  TILING_LOG("TILING %p: Progressive update stale region %s\n", mPaintedLayer, Stringify(staleRegion).c_str());
 
   LayerMetricsWrapper scrollAncestor;
-  mThebesLayer->GetAncestorLayers(&scrollAncestor, nullptr);
+  mPaintedLayer->GetAncestorLayers(&scrollAncestor, nullptr);
 
   
   
@@ -1467,7 +1467,7 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
 #endif
 
   TILING_LOG("TILING %p: Progressive update view transform %s zoom %f abort %d\n",
-      mThebesLayer, ToString(viewTransform.mTranslation).c_str(), viewTransform.mScale.scale, abortPaint);
+      mPaintedLayer, ToString(viewTransform.mTranslation).c_str(), viewTransform.mScale.scale, abortPaint);
 
   if (abortPaint) {
     
@@ -1487,7 +1487,7 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
                                        aPaintData->mTransformToCompBounds,
                                        viewTransform);
 
-  TILING_LOG("TILING %p: Progressive update transformed compositor bounds %s\n", mThebesLayer, Stringify(transformedCompositionBounds).c_str());
+  TILING_LOG("TILING %p: Progressive update transformed compositor bounds %s\n", mPaintedLayer, Stringify(transformedCompositionBounds).c_str());
 
   
   
@@ -1506,7 +1506,7 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
 #endif
   )));
 
-  TILING_LOG("TILING %p: Progressive update final coherency rect %s\n", mThebesLayer, Stringify(coherentUpdateRect).c_str());
+  TILING_LOG("TILING %p: Progressive update final coherency rect %s\n", mPaintedLayer, Stringify(coherentUpdateRect).c_str());
 
   aRegionToPaint.And(aInvalidRegion, coherentUpdateRect);
   aRegionToPaint.Or(aRegionToPaint, staleRegion);
@@ -1522,14 +1522,14 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
     paintingVisible = true;
   }
 
-  TILING_LOG("TILING %p: Progressive update final paint region %s\n", mThebesLayer, Stringify(aRegionToPaint).c_str());
+  TILING_LOG("TILING %p: Progressive update final paint region %s\n", mPaintedLayer, Stringify(aRegionToPaint).c_str());
 
   
   
   bool paintInSingleTransaction = paintingVisible && (drawingStale || aPaintData->mFirstPaint);
 
   TILING_LOG("TILING %p: paintingVisible %d drawingStale %d firstPaint %d singleTransaction %d\n",
-    mThebesLayer, paintingVisible, drawingStale, aPaintData->mFirstPaint, paintInSingleTransaction);
+    mPaintedLayer, paintingVisible, drawingStale, aPaintData->mFirstPaint, paintInSingleTransaction);
 
   
   
@@ -1599,12 +1599,12 @@ ClientTiledLayerBuffer::ProgressiveUpdate(nsIntRegion& aValidRegion,
                                          nsIntRegion& aInvalidRegion,
                                          const nsIntRegion& aOldValidRegion,
                                          BasicTiledLayerPaintData* aPaintData,
-                                         LayerManager::DrawThebesLayerCallback aCallback,
+                                         LayerManager::DrawPaintedLayerCallback aCallback,
                                          void* aCallbackData)
 {
-  TILING_LOG("TILING %p: Progressive update valid region %s\n", mThebesLayer, Stringify(aValidRegion).c_str());
-  TILING_LOG("TILING %p: Progressive update invalid region %s\n", mThebesLayer, Stringify(aInvalidRegion).c_str());
-  TILING_LOG("TILING %p: Progressive update old valid region %s\n", mThebesLayer, Stringify(aOldValidRegion).c_str());
+  TILING_LOG("TILING %p: Progressive update valid region %s\n", mPaintedLayer, Stringify(aValidRegion).c_str());
+  TILING_LOG("TILING %p: Progressive update invalid region %s\n", mPaintedLayer, Stringify(aInvalidRegion).c_str());
+  TILING_LOG("TILING %p: Progressive update old valid region %s\n", mPaintedLayer, Stringify(aOldValidRegion).c_str());
 
   bool repeat = false;
   bool isBufferChanged = false;
@@ -1618,7 +1618,7 @@ ClientTiledLayerBuffer::ProgressiveUpdate(nsIntRegion& aValidRegion,
                                             aPaintData,
                                             repeat);
 
-    TILING_LOG("TILING %p: Progressive update computed paint region %s repeat %d\n", mThebesLayer, Stringify(regionToPaint).c_str(), repeat);
+    TILING_LOG("TILING %p: Progressive update computed paint region %s repeat %d\n", mPaintedLayer, Stringify(regionToPaint).c_str(), repeat);
 
     
     if (regionToPaint.IsEmpty()) {
@@ -1641,8 +1641,8 @@ ClientTiledLayerBuffer::ProgressiveUpdate(nsIntRegion& aValidRegion,
     aInvalidRegion.Sub(aInvalidRegion, regionToPaint);
   } while (repeat);
 
-  TILING_LOG("TILING %p: Progressive update final valid region %s buffer changed %d\n", mThebesLayer, Stringify(aValidRegion).c_str(), isBufferChanged);
-  TILING_LOG("TILING %p: Progressive update final invalid region %s\n", mThebesLayer, Stringify(aInvalidRegion).c_str());
+  TILING_LOG("TILING %p: Progressive update final valid region %s buffer changed %d\n", mPaintedLayer, Stringify(aValidRegion).c_str(), isBufferChanged);
+  TILING_LOG("TILING %p: Progressive update final invalid region %s\n", mPaintedLayer, Stringify(aInvalidRegion).c_str());
 
   
   

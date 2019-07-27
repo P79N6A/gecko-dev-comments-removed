@@ -203,7 +203,7 @@ RotatedContentBuffer::IsClippingCheap(DrawTarget* aTarget, const nsIntRegion& aR
 }
 
 void
-RotatedContentBuffer::DrawTo(ThebesLayer* aLayer,
+RotatedContentBuffer::DrawTo(PaintedLayer* aLayer,
                              DrawTarget* aTarget,
                              float aOpacity,
                              CompositionOp aOp,
@@ -428,7 +428,7 @@ RotatedContentBuffer::FlushBuffers()
 }
 
 RotatedContentBuffer::PaintState
-RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
+RotatedContentBuffer::BeginPaint(PaintedLayer* aLayer,
                                  uint32_t aFlags)
 {
   PaintState result;

@@ -233,7 +233,7 @@ ClientLayerManager::BeginTransaction()
 }
 
 bool
-ClientLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
+ClientLayerManager::EndTransactionInternal(DrawPaintedLayerCallback aCallback,
                                            void* aCallbackData,
                                            EndTransactionFlags)
 {
@@ -257,8 +257,8 @@ ClientLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
   
   GetRoot()->ApplyPendingUpdatesToSubtree();
     
-  mThebesLayerCallback = aCallback;
-  mThebesLayerCallbackData = aCallbackData;
+  mPaintedLayerCallback = aCallback;
+  mPaintedLayerCallbackData = aCallbackData;
 
   GetRoot()->ComputeEffectiveTransforms(Matrix4x4());
 
@@ -267,8 +267,8 @@ ClientLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
     GetRoot()->Mutated();
   }
   
-  mThebesLayerCallback = nullptr;
-  mThebesLayerCallbackData = nullptr;
+  mPaintedLayerCallback = nullptr;
+  mPaintedLayerCallbackData = nullptr;
 
   
   
@@ -285,7 +285,7 @@ ClientLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
 }
 
 void
-ClientLayerManager::EndTransaction(DrawThebesLayerCallback aCallback,
+ClientLayerManager::EndTransaction(DrawPaintedLayerCallback aCallback,
                                    void* aCallbackData,
                                    EndTransactionFlags aFlags)
 {

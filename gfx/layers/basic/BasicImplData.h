@@ -71,10 +71,10 @@ public:
 
   virtual void PaintThebes(gfxContext* aContext,
                            Layer* aMasklayer,
-                           LayerManager::DrawThebesLayerCallback aCallback,
+                           LayerManager::DrawPaintedLayerCallback aCallback,
                            void* aCallbackData) {}
 
-  virtual void Validate(LayerManager::DrawThebesLayerCallback aCallback,
+  virtual void Validate(LayerManager::DrawPaintedLayerCallback aCallback,
                         void* aCallbackData,
                         ReadbackProcessor* aReadback) {}
 

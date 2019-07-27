@@ -17,7 +17,7 @@ namespace layers {
 
 class ContainerLayer;
 class ReadbackLayer;
-class ThebesLayer;
+class PaintedLayer;
 
 class ReadbackProcessor {
 public:
@@ -63,7 +63,7 @@ public:
 
 
 
-  void GetThebesLayerUpdates(ThebesLayer* aLayer,
+  void GetPaintedLayerUpdates(PaintedLayer* aLayer,
                              nsTArray<Update>* aUpdates,
                              nsIntRegion* aUpdateRegion = nullptr);
 

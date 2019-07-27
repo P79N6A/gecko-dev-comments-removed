@@ -38,7 +38,7 @@ class DrawTarget;
 namespace layers {
 
 class BasicLayerManager;
-class ThebesLayer;
+class PaintedLayer;
 
 
 
@@ -91,7 +91,7 @@ public:
 
 
   virtual void Clear() = 0;
-  virtual RotatedContentBuffer::PaintState BeginPaintBuffer(ThebesLayer* aLayer,
+  virtual RotatedContentBuffer::PaintState BeginPaintBuffer(PaintedLayer* aLayer,
                                                             uint32_t aFlags) = 0;
   virtual gfx::DrawTarget* BorrowDrawTargetForPainting(RotatedContentBuffer::PaintState& aPaintState,
                                                        RotatedContentBuffer::DrawIterator* aIter = nullptr) = 0;
@@ -133,7 +133,7 @@ public:
   typedef RotatedContentBuffer::ContentType ContentType;
 
   virtual void Clear() { RotatedContentBuffer::Clear(); }
-  virtual PaintState BeginPaintBuffer(ThebesLayer* aLayer,
+  virtual PaintState BeginPaintBuffer(PaintedLayer* aLayer,
                                       uint32_t aFlags) MOZ_OVERRIDE
   {
     return RotatedContentBuffer::BeginPaint(aLayer, aFlags);
@@ -148,7 +148,7 @@ public:
     BorrowDrawTarget::ReturnDrawTarget(aReturned);
   }
 
-  void DrawTo(ThebesLayer* aLayer,
+  void DrawTo(PaintedLayer* aLayer,
               gfx::DrawTarget* aTarget,
               float aOpacity,
               gfx::CompositionOp aOp,
@@ -208,7 +208,7 @@ public:
     mTextureClientOnWhite = nullptr;
   }
 
-  virtual PaintState BeginPaintBuffer(ThebesLayer* aLayer,
+  virtual PaintState BeginPaintBuffer(PaintedLayer* aLayer,
                                       uint32_t aFlags) MOZ_OVERRIDE
   {
     return RotatedContentBuffer::BeginPaint(aLayer, aFlags);
@@ -418,7 +418,7 @@ public:
     mHasBufferOnWhite = false;
   }
 
-  virtual PaintState BeginPaintBuffer(ThebesLayer* aLayer,
+  virtual PaintState BeginPaintBuffer(PaintedLayer* aLayer,
                                       uint32_t aFlags) MOZ_OVERRIDE;
   virtual gfx::DrawTarget* BorrowDrawTargetForPainting(PaintState& aPaintState,
                                                        RotatedContentBuffer::DrawIterator* aIter = nullptr) MOZ_OVERRIDE;
