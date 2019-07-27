@@ -579,10 +579,10 @@ InitArrayElemOperation(JSContext *cx, jsbytecode *pc, HandleObject obj, uint32_t
 
 
 
-    if (val.isMagic(JS_ELEMENTS_HOLE)) {
-        JSOp next = JSOp(*GetNextPc(pc));
 
-        if ((op == JSOP_INITELEM_ARRAY && next == JSOP_ENDINIT) || op == JSOP_INITELEM_INC) {
+
+    if (val.isMagic(JS_ELEMENTS_HOLE)) {
+        if (op == JSOP_INITELEM_INC) {
             if (!SetLengthProperty(cx, obj, index + 1))
                 return false;
         }
