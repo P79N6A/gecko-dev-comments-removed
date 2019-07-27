@@ -354,7 +354,7 @@ public:
       return mTabId;
     }
 
-    nsIntPoint GetChildProcessOffset();
+    LayoutDeviceIntPoint GetChildProcessOffset();
 
     
 
