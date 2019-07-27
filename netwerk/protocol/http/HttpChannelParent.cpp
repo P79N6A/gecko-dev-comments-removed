@@ -7,7 +7,7 @@
 
 #include "HttpLog.h"
 
-#include "mozilla/dom/FileDescriptorSetParent.h"
+#include "mozilla/ipc/FileDescriptorSetParent.h"
 #include "mozilla/net/HttpChannelParent.h"
 #include "mozilla/dom/TabParent.h"
 #include "mozilla/net/NeckoParent.h"

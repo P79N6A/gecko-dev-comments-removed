@@ -401,6 +401,10 @@ LazyIdleThread::Dispatch(nsIRunnable* aEvent,
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
+  if (NS_WARN_IF(mShutdown)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
   
   
   if (UseRunnableQueue()) {

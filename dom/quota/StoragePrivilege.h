@@ -18,7 +18,10 @@ enum StoragePrivilege {
   
   
   
-  Content
+  Content,
+
+  
+  Invalid
 };
 
 END_QUOTA_NAMESPACE

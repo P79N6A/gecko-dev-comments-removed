@@ -9,6 +9,7 @@
 #include <unistd.h>
 #elif defined(XP_WIN)
 #include <windows.h>
+#include "nsILocalFileWin.h"
 #else
 
 #endif
@@ -21,6 +22,7 @@
 #include "nsIClassInfoImpl.h"
 #include "mozilla/ipc/InputStreamUtils.h"
 #include "nsNetCID.h"
+#include "nsXULAppAPI.h"
 
 #define NS_NO_INPUT_BUFFERING 1 // see http://bugzilla.mozilla.org/show_bug.cgi?id=41067
 
@@ -331,9 +333,24 @@ nsFileStreamBase::DoOpen()
     NS_ASSERTION(mOpenParams.localFile, "Must have a file to open");
 
     PRFileDesc* fd;
-    nsresult rv = mOpenParams.localFile->OpenNSPRFileDesc(mOpenParams.ioFlags,
-                                                          mOpenParams.perm,
-                                                          &fd);
+    nsresult rv;
+
+#ifdef XP_WIN
+    if (mBehaviorFlags & nsIFileInputStream::SHARE_DELETE) {
+      nsCOMPtr<nsILocalFileWin> file = do_QueryInterface(mOpenParams.localFile);
+      MOZ_ASSERT(file);
+
+      rv = file->OpenNSPRFileDescShareDelete(mOpenParams.ioFlags,
+                                             mOpenParams.perm,
+                                             &fd);
+    } else
+#endif 
+    {
+      rv = mOpenParams.localFile->OpenNSPRFileDesc(mOpenParams.ioFlags,
+                                                   mOpenParams.perm,
+                                                   &fd);
+    }
+
     CleanUpOpen();
     if (NS_FAILED(rv))
         return rv;
@@ -547,20 +564,16 @@ nsFileInputStream::Serialize(InputStreamParams& aParams,
         NS_ASSERTION(dbgFD->IsValid(), "Sending an invalid file descriptor!");
 
         params.fileDescriptorIndex() = aFileDescriptors.Length() - 1;
+
+        Close();
     } else {
         NS_WARNING("This file has not been opened (or could not be opened). "
                    "Sending an invalid file descriptor to the other process!");
+
+        params.fileDescriptorIndex() = UINT32_MAX;
     }
 
     int32_t behaviorFlags = mBehaviorFlags;
-
-    
-    
-    behaviorFlags &= ~nsIFileInputStream::CLOSE_ON_EOF;
-
-    
-    
-    behaviorFlags &= ~nsIFileInputStream::REOPEN_ON_REWIND;
 
     
     
@@ -608,6 +621,17 @@ nsFileInputStream::Deserialize(const InputStreamParams& aParams,
     }
 
     mBehaviorFlags = params.behaviorFlags();
+
+    if (XRE_GetProcessType() != GeckoProcessType_Default) {
+        
+        
+        mBehaviorFlags &= ~nsIFileInputStream::CLOSE_ON_EOF;
+
+        
+        
+        mBehaviorFlags &= ~nsIFileInputStream::REOPEN_ON_REWIND;
+    }
+
     mIOFlags = params.ioFlags();
 
     return true;
