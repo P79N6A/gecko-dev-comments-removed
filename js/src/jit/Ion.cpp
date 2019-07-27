@@ -3059,6 +3059,20 @@ jit::JitSupportsSimd()
     return js::jit::MacroAssembler::SupportsSimd();
 }
 
+bool
+jit::JitSupportsAtomics()
+{
+#if defined(JS_CODEGEN_ARM)
+    
+    
+    
+    
+    return js::jit::HasLDSTREXBHD();
+#else
+    return true;
+#endif
+}
+
 
  const size_t TempAllocator::BallastSize            = 16 * 1024;
  const size_t TempAllocator::PreferredLifoChunkSize = 32 * 1024;
