@@ -331,12 +331,10 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     
     
-    template <typename Source, typename TypeSet>
-    void guardTypeSet(const Source& address, const TypeSet* types, BarrierKind kind, Register scratch, Label* miss);
-    template <typename TypeSet>
-    void guardObjectType(Register obj, const TypeSet* types, Register scratch, Label* miss);
     template <typename Source>
-    void guardType(const Source& address, TypeSet::Type type, Register scratch, Label* miss);
+    void guardTypeSet(const Source& address, const TypeSet* types, BarrierKind kind, Register scratch, Label* miss);
+
+    void guardObjectType(Register obj, const TypeSet* types, Register scratch, Label* miss);
 
     void guardTypeSetMightBeIncomplete(Register obj, Register scratch, Label* label);
 
