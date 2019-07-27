@@ -93,6 +93,7 @@ struct CycleCollectorResults
     mVisitedGCed = 0;
     mFreedRefCounted = 0;
     mFreedGCed = 0;
+    mFreedJSZones = 0;
     mNumSlices = 1;
     
     
@@ -104,6 +105,7 @@ struct CycleCollectorResults
   uint32_t mVisitedGCed;
   uint32_t mFreedRefCounted;
   uint32_t mFreedGCed;
+  uint32_t mFreedJSZones;
   uint32_t mNumSlices;
 };
 
