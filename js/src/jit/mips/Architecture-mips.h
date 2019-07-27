@@ -186,8 +186,8 @@ class Registers
 
     
     static const uint32_t JSCallMask =
-        (1 << Registers::v0) |
-        (1 << Registers::v1);
+        (1 << Registers::a2) |
+        (1 << Registers::a3);
 
     
     static const uint32_t CallMask =
