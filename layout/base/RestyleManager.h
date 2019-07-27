@@ -97,6 +97,12 @@ public:
 
   nsresult ReparentStyleContext(nsIFrame* aFrame);
 
+private:
+  void ComputeAndProcessStyleChange(nsIFrame* aFrame,
+                                    nsChangeHint aMinChange,
+                                    RestyleTracker& aRestyleTracker,
+                                    nsRestyleHint aRestyleHint);
+
   
 
 
@@ -108,6 +114,8 @@ public:
                           nsChangeHint aMinChange,
                           RestyleTracker& aRestyleTracker,
                           nsRestyleHint aRestyleHint);
+
+public:
 
 #ifdef DEBUG
   

@@ -905,10 +905,8 @@ RestyleManager::RestyleElement(Element*        aElement,
   if (aMinHint & nsChangeHint_ReconstructFrame) {
     FrameConstructor()->RecreateFramesForContent(aElement, false);
   } else if (aPrimaryFrame) {
-    nsStyleChangeList changeList;
-    ComputeStyleChangeFor(aPrimaryFrame, &changeList, aMinHint,
-                          aRestyleTracker, aRestyleHint);
-    ProcessRestyledFrames(changeList);
+    ComputeAndProcessStyleChange(aPrimaryFrame, aMinHint, aRestyleTracker,
+                                 aRestyleHint);
   } else if (aRestyleHint & ~eRestyle_LaterSiblings) {
     
     
@@ -1464,16 +1462,12 @@ RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
   
   
   
-  nsStyleChangeList changeList;
   
   
   
   
-  ComputeStyleChangeFor(mPresContext->PresShell()->GetRootFrame(),
-                        &changeList, aExtraHint,
-                        aRestyleTracker, aRestyleHint);
-  
-  ProcessRestyledFrames(changeList);
+  ComputeAndProcessStyleChange(mPresContext->PresShell()->GetRootFrame(),
+                               aExtraHint, aRestyleTracker, aRestyleHint);
   FlushOverflowChangedTracker();
 
   
@@ -3073,6 +3067,18 @@ GetNextBlockInInlineSibling(FramePropertyTable* aPropTable, nsIFrame* aFrame)
 
   return static_cast<nsIFrame*>
     (aPropTable->Get(aFrame, nsIFrame::IBSplitSibling()));
+}
+
+void
+RestyleManager::ComputeAndProcessStyleChange(nsIFrame*          aFrame,
+                                             nsChangeHint       aMinChange,
+                                             RestyleTracker&    aRestyleTracker,
+                                             nsRestyleHint      aRestyleHint)
+{
+  nsStyleChangeList changeList;
+  ComputeStyleChangeFor(aFrame, &changeList, aMinChange,
+                        aRestyleTracker, aRestyleHint);
+  ProcessRestyledFrames(changeList);
 }
 
 void
