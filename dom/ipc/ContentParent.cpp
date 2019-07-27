@@ -651,7 +651,8 @@ ContentParent::GetNewOrPreallocatedAppProcess(mozIApplication* aApp,
                 NS_ERROR("Failed to get manifest URL");
                 return nullptr;
             }
-            process->TransformPreallocatedIntoApp(manifestURL);
+            process->TransformPreallocatedIntoApp(aOpener,
+                                                  manifestURL);
             if (aTookPreAllocated) {
                 *aTookPreAllocated = true;
             }
@@ -799,7 +800,7 @@ ContentParent::GetNewOrUsedBrowserProcess(bool aForBrowserElement,
     
     nsRefPtr<ContentParent> p = PreallocatedProcessManager::Take();
     if (p) {
-        p->TransformPreallocatedIntoBrowser();
+        p->TransformPreallocatedIntoBrowser(aOpener);
     } else {
       
         p = new ContentParent( nullptr,
@@ -1383,17 +1384,20 @@ TryGetNameFromManifestURL(const nsAString& aManifestURL,
 }
 
 void
-ContentParent::TransformPreallocatedIntoApp(const nsAString& aAppManifestURL)
+ContentParent::TransformPreallocatedIntoApp(ContentParent* aOpener,
+                                            const nsAString& aAppManifestURL)
 {
     MOZ_ASSERT(IsPreallocated());
+    mOpener = aOpener;
     mAppManifestURL = aAppManifestURL;
     TryGetNameFromManifestURL(aAppManifestURL, mAppName);
 }
 
 void
-ContentParent::TransformPreallocatedIntoBrowser()
+ContentParent::TransformPreallocatedIntoBrowser(ContentParent* aOpener)
 {
     
+    mOpener = aOpener;
     mAppManifestURL.Truncate();
     mIsForBrowser = true;
 }

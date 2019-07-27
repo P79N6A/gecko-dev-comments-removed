@@ -363,11 +363,12 @@ private:
 
     
     
-    void TransformPreallocatedIntoApp(const nsAString& aAppManifestURL);
+    void TransformPreallocatedIntoApp(ContentParent* aOpener,
+                                      const nsAString& aAppManifestURL);
 
     
     
-    void TransformPreallocatedIntoBrowser();
+    void TransformPreallocatedIntoBrowser(ContentParent* aOpener);
 
     
 
