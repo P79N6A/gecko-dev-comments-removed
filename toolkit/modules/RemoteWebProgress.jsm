@@ -104,11 +104,6 @@ RemoteWebProgressManager.prototype = {
       deserialized.QueryInterface(Ci.nsISSLStatus);
     }
 
-    
-    
-    if (deserialized && deserialized.isExtendedValidation)
-      aState |= Ci.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL;
-
     return [deserialized, aState];
   },
 

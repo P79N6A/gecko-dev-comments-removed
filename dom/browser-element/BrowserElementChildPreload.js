@@ -1343,7 +1343,6 @@ BrowserElementChild.prototype = {
         stateDesc = '???';
       }
 
-      
       var isEV = !!(state & Ci.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL);
 
       sendAsyncMsg('securitychange', { state: stateDesc, extendedValidation: isEV });

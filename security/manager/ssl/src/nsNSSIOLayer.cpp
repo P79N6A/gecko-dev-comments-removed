@@ -398,8 +398,9 @@ nsNSSSocketInfo::IsAcceptableForHost(const nsACString& hostname, bool* _retval)
 
   
   
-  if (!mHandshakeCompleted || !SSLStatus() || !SSLStatus()->mServerCert)
+  if (!mHandshakeCompleted || !SSLStatus() || !SSLStatus()->HasServerCert()) {
     return NS_OK;
+  }
 
   
   
@@ -418,7 +419,10 @@ nsNSSSocketInfo::IsAcceptableForHost(const nsACString& hostname, bool* _retval)
 
   ScopedCERTCertificate nssCert;
 
-  nsCOMPtr<nsIX509Cert> cert(SSLStatus()->mServerCert);
+  nsCOMPtr<nsIX509Cert> cert;
+  if (NS_FAILED(SSLStatus()->GetServerCert(getter_AddRefs(cert)))) {
+    return NS_OK;
+  }
   if (cert) {
     nssCert = cert->GetCert();
   }
