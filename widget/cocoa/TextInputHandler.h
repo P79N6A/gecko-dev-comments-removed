@@ -854,12 +854,18 @@ public:
 
 
 
-
-
   bool DispatchCompositionChangeEvent(const nsString& aText,
                                       NSAttributedString* aAttrString,
-                                      NSRange& aSelectedRange,
-                                      bool aDoCommit);
+                                      NSRange& aSelectedRange);
+
+  
+
+
+
+
+
+
+  bool DispatchCompositionCommitEvent(const nsAString* aCommitString = nullptr);
 
   
 
