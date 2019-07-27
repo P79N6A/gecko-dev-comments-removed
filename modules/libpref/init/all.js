@@ -133,9 +133,6 @@ pref("dom.workers.maxPerDomain", 20);
 pref("dom.workers.sharedWorkers.enabled", true);
 
 
-
-
-
 pref("dom.workers.websocket.enabled", true);
 
 
@@ -250,9 +247,6 @@ pref("browser.triple_click_selects_paragraph", true);
 
 
 pref("print.shrink-to-fit.scale-limit-percent", 20);
-
-
-pref("mathml.scale_stretchy_operators.enabled", true);
 
 
 pref("media.cache_size", 512000);
@@ -444,7 +438,7 @@ pref("media.track.enabled", false);
 
 
 
-#if defined(XP_WIN) || defined(XP_MACOSX) || defined(MOZ_WIDGET_GONK)
+#if defined(XP_WIN) || defined(XP_MACOSX)
 pref("media.mediasource.enabled", true);
 #else
 pref("media.mediasource.enabled", false);
@@ -792,9 +786,9 @@ pref("devtools.errorconsole.deprecation_warnings", true);
 
 
 #ifdef MOZ_DEV_EDITION
-pref("devtools.chrome.enabled", true);
+sticky_pref("devtools.chrome.enabled", true);
 #else
-pref("devtools.chrome.enabled", false);
+sticky_pref("devtools.chrome.enabled", false);
 #endif
 
 
@@ -802,9 +796,9 @@ pref("devtools.debugger.log", false);
 pref("devtools.debugger.log.verbose", false);
 
 #ifdef MOZ_DEV_EDITION
-pref("devtools.debugger.remote-enabled", true);
+sticky_pref("devtools.debugger.remote-enabled", true);
 #else
-pref("devtools.debugger.remote-enabled", false);
+sticky_pref("devtools.debugger.remote-enabled", false);
 #endif
 pref("devtools.debugger.remote-port", 6000);
 
@@ -2389,7 +2383,7 @@ pref("dom.ipc.plugins.timeoutSecs", 45);
 pref("dom.ipc.plugins.parentTimeoutSecs", 0);
 
 
-pref("dom.ipc.plugins.contentTimeoutSecs", 10);
+pref("dom.ipc.plugins.contentTimeoutSecs", 45);
 
 
 pref("dom.ipc.plugins.processLaunchTimeoutSecs", 45);
