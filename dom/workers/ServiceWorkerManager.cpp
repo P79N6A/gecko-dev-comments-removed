@@ -4710,6 +4710,12 @@ ServiceWorkerManager::PropagateSoftUpdate(const OriginAttributes& aOriginAttribu
     return;
   }
 
+  if (XRE_IsParentProcess()) {
+    
+    
+    SoftUpdate(aOriginAttributes, NS_ConvertUTF16toUTF8(aScope));
+    return;
+  }
   mActor->SendPropagateSoftUpdate(aOriginAttributes, nsString(aScope));
 }
 
