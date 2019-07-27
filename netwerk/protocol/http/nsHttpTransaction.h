@@ -285,8 +285,6 @@ private:
     bool                            mDontRouteViaWildCard;
     bool                            mForceRestart;
     bool                            mReuseOnRestart;
-    bool                            mContentDecoding;
-    bool                            mContentDecodingCheck;
 
     
     

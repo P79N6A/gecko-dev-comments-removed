@@ -39,12 +39,6 @@ class nsHttpConnectionInfo;
 class nsHttpTransaction;
 class AltSvcMapping;
 
-enum FrameCheckLevel {
-    FRAMECHECK_LAX,
-    FRAMECHECK_BARELY,
-    FRAMECHECK_STRICT
-};
-
 
 
 
@@ -158,8 +152,7 @@ public:
     }
 
     
-    
-    FrameCheckLevel GetEnforceH1Framing() { return mEnforceH1Framing; }
+    bool GetEnforceH1Framing() { return mEnforceH1Framing; }
 
     nsHttpAuthCache     *AuthCache(bool aPrivate) {
         return aPrivate ? &mPrivateAuthCache : &mAuthCache;
@@ -538,7 +531,7 @@ private:
 
     
     
-    FrameCheckLevel mEnforceH1Framing;
+    bool mEnforceH1Framing;
 
 private:
     

@@ -1350,8 +1350,7 @@ pref("network.http.tcp_keepalive.short_lived_idle_time", 10);
 pref("network.http.tcp_keepalive.long_lived_connections", true);
 pref("network.http.tcp_keepalive.long_lived_idle_time", 600);
 
-pref("network.http.enforce-framing.http1", false); 
-pref("network.http.enforce-framing.soft", true);
+pref("network.http.enforce-framing.http1", false);
 
 
 
@@ -4465,12 +4464,6 @@ pref("dom.mozSettings.SettingsService.verbose.enabled", false);
 
 
 pref("dom.mozSettings.allowForceReadOnly", false);
-
-
-pref("browser.addon-watch.interval", 120000);
-pref("browser.addon-watch.ignore", "[\"mochikit@mozilla.org\",\"special-powers@mozilla.org\"]");
-
-pref("browser.addon-watch.percentage-limit", 1);
 
 
 pref("dom.requestSync.enabled", false);
