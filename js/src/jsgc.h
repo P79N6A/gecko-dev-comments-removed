@@ -62,6 +62,7 @@ template <typename T> struct MapTypeToFinalizeKind {};
 template <> struct MapTypeToFinalizeKind<JSScript>          { static const AllocKind kind = FINALIZE_SCRIPT; };
 template <> struct MapTypeToFinalizeKind<LazyScript>        { static const AllocKind kind = FINALIZE_LAZY_SCRIPT; };
 template <> struct MapTypeToFinalizeKind<Shape>             { static const AllocKind kind = FINALIZE_SHAPE; };
+template <> struct MapTypeToFinalizeKind<AccessorShape>     { static const AllocKind kind = FINALIZE_ACCESSOR_SHAPE; };
 template <> struct MapTypeToFinalizeKind<BaseShape>         { static const AllocKind kind = FINALIZE_BASE_SHAPE; };
 template <> struct MapTypeToFinalizeKind<types::TypeObject> { static const AllocKind kind = FINALIZE_TYPE_OBJECT; };
 template <> struct MapTypeToFinalizeKind<JSFatInlineString> { static const AllocKind kind = FINALIZE_FAT_INLINE_STRING; };
@@ -88,6 +89,7 @@ IsNurseryAllocable(AllocKind kind)
         true,      
         false,     
         true,      
+        false,     
         false,     
         false,     
         false,     
@@ -135,6 +137,7 @@ IsFJNurseryAllocable(AllocKind kind)
         false,     
         false,     
         false,     
+        false,     
     };
     JS_STATIC_ASSERT(JS_ARRAY_LENGTH(map) == FINALIZE_LIMIT);
     return map[kind];
@@ -160,6 +163,7 @@ IsBackgroundFinalized(AllocKind kind)
         true,      
         false,     
         false,     
+        true,      
         true,      
         true,      
         true,      
@@ -615,6 +619,7 @@ class ArenaLists
 
     
     ArenaHeader *gcShapeArenasToSweep;
+    ArenaHeader *gcAccessorShapeArenasToSweep;
 
   public:
     ArenaLists() {
@@ -626,6 +631,7 @@ class ArenaLists
             arenaListsToSweep[i] = nullptr;
         incrementalSweptArenaKind = FINALIZE_LIMIT;
         gcShapeArenasToSweep = nullptr;
+        gcAccessorShapeArenasToSweep = nullptr;
     }
 
     ~ArenaLists() {
