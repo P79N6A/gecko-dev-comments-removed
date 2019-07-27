@@ -80,13 +80,13 @@ _observer.prototype = {
 
 
 
-function do_close_profile(generator, cleanse) {
+function do_close_profile(generator) {
   
   let obs = new _observer(generator, "cookie-db-closed");
 
   
   let service = Services.cookies.QueryInterface(Ci.nsIObserver);
-  service.observe(null, "profile-before-change", cleanse ? cleanse : "");
+  service.observe(null, "profile-before-change", "shutdown-persist");
 }
 
 
