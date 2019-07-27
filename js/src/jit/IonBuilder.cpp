@@ -10019,6 +10019,11 @@ IonBuilder::improveThisTypesForCall()
     MFilterTypeSet *filter = MFilterTypeSet::New(alloc(), thisDef, types);
     current->add(filter);
     current->rewriteAtDepth(-2, filter);
+
+    
+    
+    
+    filter->setDependency(current->peek(-1)->toInstruction());
     return true;
 }
 
