@@ -127,21 +127,13 @@ class AutoTracingCallback;
 class JS_PUBLIC_API(CallbackTracer) : public JSTracer
 {
   public:
-    CallbackTracer(JSRuntime* rt, JSTraceCallback traceCallback,
-                   WeakMapTraceKind weakTraceKind = TraceWeakMapValues)
-      : JSTracer(rt, JSTracer::TracerKindTag::Callback, weakTraceKind), callback(traceCallback),
+    CallbackTracer(JSRuntime* rt, WeakMapTraceKind weakTraceKind = TraceWeakMapValues)
+      : JSTracer(rt, JSTracer::TracerKindTag::Callback, weakTraceKind),
         contextName_(nullptr), contextIndex_(InvalidIndex), contextFunctor_(nullptr)
     {}
 
     
-    bool hasCallback(JSTraceCallback maybeCallback) const {
-        return maybeCallback == callback;
-    }
-
-    
-    void invoke(void** thing, JS::TraceKind kind) {
-        callback(this, thing, kind);
-    }
+    virtual void trace(void** thing, JS::TraceKind kind) = 0;
 
     
     
@@ -188,11 +180,12 @@ class JS_PUBLIC_API(CallbackTracer) : public JSTracer
         virtual void operator()(CallbackTracer* trc, char* buf, size_t bufsize) = 0;
     };
 
-  private:
-    
-    
-    JSTraceCallback callback;
+#ifdef DEBUG
+    enum class TracerKind { DoNotCare, Moving, GrayBuffering, VerifyTraceProtoAndIface };
+    virtual TracerKind getTracerKind() const { return TracerKind::DoNotCare; }
+#endif
 
+  private:
     friend class AutoTracingName;
     const char* contextName_;
 
@@ -361,4 +354,4 @@ extern JS_PUBLIC_API(void)
 JS_GetTraceThingInfo(char* buf, size_t bufsize, JSTracer* trc,
                      void* thing, JS::TraceKind kind, bool includeDetails);
 
-#endif
+#endif 

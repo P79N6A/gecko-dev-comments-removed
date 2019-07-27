@@ -300,8 +300,12 @@ class GCMarker : public JSTracer
     mozilla::DebugOnly<bool> strictCompartmentChecking;
 };
 
+#ifdef DEBUG
+
+
 bool
-IsBufferingGrayRoots(JSTracer* trc);
+IsBufferGrayRootsTracer(JSTracer* trc);
+#endif
 
 namespace gc {
 

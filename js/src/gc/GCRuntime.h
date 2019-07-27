@@ -25,6 +25,7 @@
 namespace js {
 
 class AutoLockGC;
+class VerifyPreTracer;
 
 namespace gc {
 
@@ -1005,7 +1006,7 @@ class GCRuntime
 
 
     mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> numArenasFreeCommitted;
-    void* verifyPreData;
+    VerifyPreTracer* verifyPreData;
     bool chunkAllocationSinceLastGC;
     int64_t nextFullGCTime;
     int64_t lastGCTime;
