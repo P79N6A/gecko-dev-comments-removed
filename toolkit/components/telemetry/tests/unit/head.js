@@ -250,13 +250,19 @@ function fakeNow(...args) {
 
 function fakePingSendTimer(set, clear) {
   let module = Cu.import("resource://gre/modules/TelemetrySend.jsm");
-  module.Policy.setPingSendTimeout = set;
-  module.Policy.clearPingSendTimeout = clear;
+  let obj = Cu.cloneInto({set, clear}, module, {cloneFunctions:true});
+  module.Policy.setSchedulerTickTimeout = obj.set;
+  module.Policy.clearSchedulerTickTimeout = obj.clear;
 }
 
 function fakeMidnightPingFuzzingDelay(delayMs) {
   let module = Cu.import("resource://gre/modules/TelemetrySend.jsm");
   module.Policy.midnightPingFuzzingDelay = () => delayMs;
+}
+
+function fakeGeneratePingId(func) {
+  let module = Cu.import("resource://gre/modules/TelemetryController.jsm");
+  module.Policy.generatePingId = func;
 }
 
 
@@ -279,12 +285,18 @@ if (runningInParent) {
   Services.prefs.setCharPref("toolkit.telemetry.log.level", "Trace");
   
   Services.prefs.setBoolPref("toolkit.telemetry.archive.enabled", true);
+
+  fakePingSendTimer((callback, timeout) => {
+    Services.tm.mainThread.dispatch(() => callback(), Ci.nsIThread.DISPATCH_NORMAL);
+  },
+  () => {});
+
+  do_register_cleanup(() => TelemetrySend.shutdown());
 }
 
 TelemetryController.initLogging();
 
 
 fakeSchedulerTimer(() => {}, () => {});
-fakePingSendTimer(() => {}, () => {});
 
 fakeMidnightPingFuzzingDelay(0);

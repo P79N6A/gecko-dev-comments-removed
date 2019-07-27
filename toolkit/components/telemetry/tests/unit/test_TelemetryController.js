@@ -265,12 +265,11 @@ add_task(function* test_midnightPingSendFuzzing() {
   let now = new Date(2030, 5, 1, 11, 00, 0);
   fakeNow(now);
 
-  let pingSendTimerCallback = null;
-  let pingSendTimeout = null;
-  fakePingSendTimer((callback, timeout) => {
-    pingSendTimerCallback = callback;
-    pingSendTimeout = timeout;
-  }, () => {});
+  let waitForTimer = () => new Promise(resolve => {
+    fakePingSendTimer((callback, timeout) => {
+      resolve([callback, timeout]);
+    }, () => {});
+  });
 
   PingServer.clearRequests();
   yield TelemetryController.reset();
@@ -281,29 +280,33 @@ add_task(function* test_midnightPingSendFuzzing() {
   PingServer.registerPingHandler((req, res) => {
     Assert.ok(false, "No ping should be received yet.");
   });
+  let timerPromise = waitForTimer();
   yield sendPing(true, true);
-  Assert.ok(!!pingSendTimerCallback);
-  Assert.deepEqual(futureDate(now, pingSendTimeout), new Date(2030, 5, 2, 1, 0, 0));
+  let [timerCallback, timerTimeout] = yield timerPromise;
+  Assert.ok(!!timerCallback);
+  Assert.deepEqual(futureDate(now, timerTimeout), new Date(2030, 5, 2, 1, 0, 0));
 
   
   now = new Date(2030, 5, 2, 0, 59, 59);
   fakeNow(now);
-  pingSendTimeout = null;
+  timerPromise = waitForTimer();
   yield sendPing(true, true);
-  Assert.deepEqual(futureDate(now, pingSendTimeout), new Date(2030, 5, 2, 1, 0, 0));
+  [timerCallback, timerTimeout] = yield timerPromise;
+  Assert.deepEqual(timerTimeout, 1 * 1000);
 
   
   PingServer.resetPingHandler();
 
   
   
-  now = futureDate(now, pingSendTimeout);
+  now = futureDate(now, timerTimeout);
   fakeNow(now);
-  yield pingSendTimerCallback();
+  yield timerCallback();
   const pings = yield PingServer.promiseNextPings(2);
   for (let ping of pings) {
     checkPingFormat(ping, TEST_PING_TYPE, true, true);
   }
+  yield TelemetrySend.testWaitOnOutgoingPings();
 
   
   now = futureDate(now, 5 * 60 * 1000);

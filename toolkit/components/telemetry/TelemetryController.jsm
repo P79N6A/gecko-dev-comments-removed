@@ -196,7 +196,8 @@ this.TelemetryController = Object.freeze({
     aOptions.addClientId = aOptions.addClientId || false;
     aOptions.addEnvironment = aOptions.addEnvironment || false;
 
-    return Impl.submitExternalPing(aType, aPayload, aOptions);
+    const testOnly = Impl.submitExternalPing(aType, aPayload, aOptions);
+    return testOnly;
   },
 
   
