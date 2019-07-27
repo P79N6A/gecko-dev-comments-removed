@@ -629,38 +629,40 @@ nsresult nsHTMLEditor::SplitStyleAbovePoint(nsCOMPtr<nsIDOMNode> *aNode,
   if (outLeftNode)  *outLeftNode  = nullptr;
   if (outRightNode) *outRightNode = nullptr;
   
-  nsCOMPtr<nsIDOMNode> parent, tmp = *aNode;
+  nsCOMPtr<nsIContent> node = do_QueryInterface(*aNode);
+  NS_ENSURE_STATE(node);
   int32_t offset;
 
   bool useCSS = IsCSSEnabled();
 
   bool isSet;
-  while (tmp && !IsBlockNode(tmp))
-  {
+  while (node && !IsBlockNode(node) && node->GetParentNode() &&
+         IsEditable(node->GetParentNode())) {
     isSet = false;
-    if (useCSS && mHTMLCSSUtils->IsCSSEditableProperty(tmp, aProperty, aAttribute)) {
+    if (useCSS && mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty, aAttribute)) {
       
       
       nsAutoString firstValue;
-      mHTMLCSSUtils->IsCSSEquivalentToHTMLInlineStyleSet(tmp, aProperty,
-        aAttribute, isSet, firstValue, nsHTMLCSSUtils::eSpecified);
+      mHTMLCSSUtils->IsCSSEquivalentToHTMLInlineStyleSet(GetAsDOMNode(node),
+        aProperty, aAttribute, isSet, firstValue, nsHTMLCSSUtils::eSpecified);
     }
-    if ( (aProperty && NodeIsType(tmp, aProperty)) ||   
-         (aProperty == nsGkAtoms::href && nsHTMLEditUtils::IsLink(tmp)) ||
-                                                        
-         (!aProperty && NodeIsProperty(tmp)) ||         
-         isSet)                                         
-    {
+    if (
+        (aProperty && node->Tag() == aProperty) ||
+        
+        (aProperty == nsGkAtoms::href && nsHTMLEditUtils::IsLink(node)) ||
+        
+        (!aProperty && NodeIsProperty(GetAsDOMNode(node))) ||
+        
+        isSet) {
       
-      nsresult rv = SplitNodeDeep(tmp, *aNode, *aOffset, &offset, false,
-                                  outLeftNode, outRightNode);
+      nsresult rv = SplitNodeDeep(GetAsDOMNode(node), *aNode, *aOffset,
+                                  &offset, false, outLeftNode, outRightNode);
       NS_ENSURE_SUCCESS(rv, rv);
       
-      tmp->GetParentNode(getter_AddRefs(*aNode));
+      *aNode = GetAsDOMNode(node->GetParent());
       *aOffset = offset;
     }
-    tmp->GetParentNode(getter_AddRefs(parent));
-    tmp = parent;
+    node = node->GetParent();
   }
   return NS_OK;
 }
