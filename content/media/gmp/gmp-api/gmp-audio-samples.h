@@ -52,6 +52,23 @@ public:
   
   
   virtual const GMPEncryptedBufferMetadata* GetDecryptionData() const = 0;
+
+  virtual uint32_t Channels() const = 0;
+  virtual void SetChannels(uint32_t aChannels) = 0;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual uint32_t Rate() const = 0;
+  virtual void SetRate(uint32_t aRate) = 0;
 };
 
 #endif 
