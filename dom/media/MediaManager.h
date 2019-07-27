@@ -465,6 +465,9 @@ public:
   : mPrivateBrowsing(aPrivateBrowsing) {
     mUuid.Append(aUuid);
   }
+  OriginUuid(const nsACString& aUuid, bool aPrivateBrowsing)
+  : mUuid(aUuid), mPrivateBrowsing(aPrivateBrowsing) {}
+
   nsCString mUuid;
   bool mPrivateBrowsing;
 };
@@ -615,6 +618,7 @@ private:
 
   
   nsClassHashtable<nsCStringHashKey, OriginUuid> mOriginUuids;
+  nsCOMPtr<nsIFile> mProfileDir;
 
   
   WindowTable mActiveWindows;
