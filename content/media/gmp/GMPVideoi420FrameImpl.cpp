@@ -63,6 +63,31 @@ GMPVideoi420FrameImpl::Destroy()
   delete this;
 }
 
+ bool
+GMPVideoi420FrameImpl::CheckFrameData(const GMPVideoi420FrameData& aFrameData)
+{
+  
+  
+  
+  int32_t half_width = (aFrameData.mWidth() + 1) / 2;
+  if ((aFrameData.mYPlane().mStride() <= 0) || (aFrameData.mYPlane().mSize() <= 0) ||
+      (aFrameData.mUPlane().mStride() <= 0) || (aFrameData.mUPlane().mSize() <= 0) ||
+      (aFrameData.mVPlane().mStride() <= 0) || (aFrameData.mVPlane().mSize() <= 0) ||
+      (aFrameData.mYPlane().mSize() > (int32_t) aFrameData.mYPlane().mBuffer().Size<uint8_t>()) ||
+      (aFrameData.mUPlane().mSize() > (int32_t) aFrameData.mUPlane().mBuffer().Size<uint8_t>()) ||
+      (aFrameData.mVPlane().mSize() > (int32_t) aFrameData.mVPlane().mBuffer().Size<uint8_t>()) ||
+      (aFrameData.mYPlane().mStride() < aFrameData.mWidth()) ||
+      (aFrameData.mUPlane().mStride() < half_width) ||
+      (aFrameData.mVPlane().mStride() < half_width) ||
+      (aFrameData.mYPlane().mSize() < aFrameData.mYPlane().mStride() * aFrameData.mHeight()) ||
+      (aFrameData.mUPlane().mSize() < aFrameData.mUPlane().mStride() * ((aFrameData.mHeight()+1)/2)) ||
+      (aFrameData.mVPlane().mSize() < aFrameData.mVPlane().mStride() * ((aFrameData.mHeight()+1)/2)))
+  {
+    return false;
+  }
+  return true;
+}
+
 bool
 GMPVideoi420FrameImpl::CheckDimensions(int32_t aWidth, int32_t aHeight,
                                        int32_t aStride_y, int32_t aStride_u, int32_t aStride_v)
