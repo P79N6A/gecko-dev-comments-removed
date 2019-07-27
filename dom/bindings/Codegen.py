@@ -9680,6 +9680,11 @@ class CGDOMJSProxyHandler_defineProperty(ClassMethod):
                 """,
                 callSetter=CGProxyIndexedSetter(self.descriptor).define())
         elif self.descriptor.supportsIndexedProperties():
+            
+            
+            
+            
+            
             set += fill(
                 """
                 if (IsArrayIndex(GetArrayIndexFromId(cx, id))) {
@@ -9689,6 +9694,9 @@ class CGDOMJSProxyHandler_defineProperty(ClassMethod):
                 name=self.descriptor.name)
 
         if UseHolderForUnforgeable(self.descriptor):
+            
+            
+            
             defineOnUnforgeable = ("bool hasUnforgeable;\n"
                                    "if (!JS_HasPropertyById(cx, ${holder}, id, &hasUnforgeable)) {\n"
                                    "  return false;\n"
@@ -9717,6 +9725,11 @@ class CGDOMJSProxyHandler_defineProperty(ClassMethod):
                 """,
                 callSetter=CGProxyNamedSetter(self.descriptor).define())
         else:
+            
+            
+            
+            
+            
             if self.descriptor.supportsNamedProperties():
                 set += fill(
                     """
