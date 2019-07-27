@@ -7,6 +7,9 @@
 
 
 
+if (!isAsmJSCompilationAvailable())
+    quit(0);
+
 function module_a(stdlib, foreign, heap) {
     "use asm";
 
