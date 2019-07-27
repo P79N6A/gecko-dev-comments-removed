@@ -230,8 +230,9 @@ protected:
                                   const nsAString& aNewValue, bool aNotify);
   void PictureSourceSizesChanged(nsIContent *aSourceNode,
                                  const nsAString& aNewValue, bool aNotify);
-  void PictureSourceMediaChanged(nsIContent *aSourceNode,
-                                 const nsAString& aNewValue, bool aNotify);
+  
+  
+  void PictureSourceMediaOrTypeChanged(nsIContent *aSourceNode, bool aNotify);
 
   void PictureSourceAdded(nsIContent *aSourceNode);
   
