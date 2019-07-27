@@ -111,6 +111,10 @@ public:
   
   bool ContainsTime(double aTime);
 
+    
+  
+  void GetBufferedStartEndTime(double* aStart, double* aEnd);
+
 private:
   ~SourceBuffer();
 
@@ -134,10 +138,6 @@ private:
 
   
   void AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aRv);
-
-  
-  
-  void GetBufferedStartEndTime(double* aStart, double* aEnd);
 
   nsRefPtr<MediaSource> mMediaSource;
 

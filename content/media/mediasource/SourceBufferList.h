@@ -79,6 +79,9 @@ public:
   
   bool AllContainsTime(double aTime);
 
+  
+  double GetHighestBufferedEndTime();
+
 private:
   ~SourceBufferList();
 

@@ -265,11 +265,10 @@ MediaSource::EndOfStream(const Optional<MediaSourceEndOfStreamError>& aError, Er
   SetReadyState(MediaSourceReadyState::Ended);
   mSourceBuffers->Ended();
   if (!aError.WasPassed()) {
-    
-    
-    
-    
-    
+    DurationChange(mSourceBuffers->GetHighestBufferedEndTime(), aRv);
+    if (aRv.Failed()) {
+      return;
+    }
     
     
     return;
