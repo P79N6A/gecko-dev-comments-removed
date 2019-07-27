@@ -190,6 +190,14 @@ class B2GMochitest(MochitestUtilsMixin):
                 del self.browserEnv['MOZ_DISABLE_NONLOCAL_CONNECTIONS']
             self.runner.env.update(self.browserEnv)
 
+            
+            
+            
+            
+            
+            self.killNamedOrphans('ssltunnel')
+            self.killNamedOrphans('xpcshell')
+
             self.startServers(options, None)
             self.buildURLOptions(options, {'MOZ_HIDE_RESULTS_TABLE': '1'})
             self.test_script_args.append(not options.emulator)
