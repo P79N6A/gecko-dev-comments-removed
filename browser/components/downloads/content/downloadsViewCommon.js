@@ -72,12 +72,19 @@ DownloadElementShell.prototype = {
 
 
   get image() {
-    if (this.download.target.path) {
-      return "moz-icon://" + this.download.target.path + "?size=32";
+    if (!this.download.target.path) {
+      
+      return "moz-icon://.unknown?size=32";
     }
 
     
-    return "moz-icon://.unknown?size=32";
+    
+    
+    
+    
+    
+    return "moz-icon://" + this.download.target.path + "?size=32" +
+           (this.download.succeeded ? "&state=normal" : "");
   },
 
   
@@ -111,9 +118,10 @@ DownloadElementShell.prototype = {
 
 
   _updateState() {
-    this.element.setAttribute("state", this.dataItem.state);
     this.element.setAttribute("displayName", this.displayName);
     this.element.setAttribute("image", this.image);
+    this.element.setAttribute("state",
+                              DownloadsCommon.stateOfDownload(this.download));
 
     
     this.lastEstimatedSecondsLeft = Infinity;
@@ -126,19 +134,12 @@ DownloadElementShell.prototype = {
 
 
   _updateProgress() {
-    if (this.dataItem.starting) {
-      
+    
+    if (this.download.hasProgress) {
       this.element.setAttribute("progressmode", "normal");
-      this.element.setAttribute("progress", "0");
-    } else if (this.dataItem.state == Ci.nsIDownloadManager.DOWNLOAD_SCANNING ||
-               this.dataItem.percentComplete == -1) {
-      
-      
-      this.element.setAttribute("progressmode", "undetermined");
+      this.element.setAttribute("progress", this.download.progress);
     } else {
-      
-      this.element.setAttribute("progressmode", "normal");
-      this.element.setAttribute("progress", this.dataItem.percentComplete);
+      this.element.setAttribute("progressmode", "undetermined");
     }
 
     
@@ -172,71 +173,60 @@ DownloadElementShell.prototype = {
     let text = "";
     let tip = "";
 
-    if (this.dataItem.paused) {
-      let transfer = DownloadUtils.getTransferTotal(this.download.currentBytes,
-                                                    this.dataItem.maxBytes);
-
-      
-      
-      text = s.statusSeparatorBeforeNumber(s.statePaused, transfer);
-    } else if (this.dataItem.state == nsIDM.DOWNLOAD_DOWNLOADING) {
+    if (!this.download.stopped) {
+      let maxBytes = DownloadsCommon.maxBytesOfDownload(this.download);
       
       
       
       [text] = DownloadUtils.getDownloadStatusNoRate(
                                           this.download.currentBytes,
-                                          this.dataItem.maxBytes,
+                                          maxBytes,
                                           this.download.speed,
                                           this.lastEstimatedSecondsLeft);
       let newEstimatedSecondsLeft;
       [tip, newEstimatedSecondsLeft] = DownloadUtils.getDownloadStatus(
                                           this.download.currentBytes,
-                                          this.dataItem.maxBytes,
+                                          maxBytes,
                                           this.download.speed,
                                           this.lastEstimatedSecondsLeft);
       this.lastEstimatedSecondsLeft = newEstimatedSecondsLeft;
-    } else if (this.dataItem.starting) {
+    } else if (this.download.canceled && this.download.hasPartialData) {
+      let maxBytes = DownloadsCommon.maxBytesOfDownload(this.download);
+      let transfer = DownloadUtils.getTransferTotal(this.download.currentBytes,
+                                                    maxBytes);
+
+      
+      
+      text = s.statusSeparatorBeforeNumber(s.statePaused, transfer);
+    } else if (!this.download.succeeded && !this.download.canceled &&
+               !this.download.error) {
       text = s.stateStarting;
-    } else if (this.dataItem.state == nsIDM.DOWNLOAD_SCANNING) {
-      text = s.stateScanning;
     } else {
       let stateLabel;
-      switch (this.dataItem.state) {
-        case nsIDM.DOWNLOAD_FAILED:
-          stateLabel = s.stateFailed;
-          break;
-        case nsIDM.DOWNLOAD_CANCELED:
-          stateLabel = s.stateCanceled;
-          break;
-        case nsIDM.DOWNLOAD_BLOCKED_PARENTAL:
-          stateLabel = s.stateBlockedParentalControls;
-          break;
-        case nsIDM.DOWNLOAD_BLOCKED_POLICY:
-          stateLabel = s.stateBlockedPolicy;
-          break;
-        case nsIDM.DOWNLOAD_DIRTY:
-          stateLabel = s.stateDirty;
-          break;
-        case nsIDM.DOWNLOAD_FINISHED:
-          
-          if (this.dataItem.maxBytes !== undefined &&
-              this.dataItem.maxBytes >= 0) {
-            let [size, unit] =
-                DownloadUtils.convertByteUnits(this.dataItem.maxBytes);
-            stateLabel = s.sizeWithUnits(size, unit);
-            break;
-          }
-          
-        default:
+
+      if (this.download.succeeded) {
+        
+        let maxBytes = DownloadsCommon.maxBytesOfDownload(this.download);
+        if (maxBytes >= 0) {
+          let [size, unit] = DownloadUtils.convertByteUnits(maxBytes);
+          stateLabel = s.sizeWithUnits(size, unit);
+        } else {
           stateLabel = s.sizeUnknown;
-          break;
+        }
+      } else if (this.download.canceled) {
+        stateLabel = s.stateCanceled;
+      } else if (this.download.error.becauseBlockedByParentalControls) {
+        stateLabel = s.stateBlockedParentalControls;
+      } else if (this.download.error.becauseBlockedByReputationCheck) {
+        stateLabel = s.stateDirty;
+      } else {
+        stateLabel = s.stateFailed;
       }
 
-      let referrer = this.download.source.referrer ||
-                     this.download.source.url;
+      let referrer = this.download.source.referrer || this.download.source.url;
       let [displayHost, fullHost] = DownloadUtils.getURIHost(referrer);
 
-      let date = new Date(this.dataItem.endTime);
+      let date = new Date(this.download.endTime);
       let [displayDate, fullDate] = DownloadUtils.getReadableDates(date);
 
       let firstPart = s.statusSeparator(stateLabel, displayHost);

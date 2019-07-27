@@ -25,13 +25,89 @@ const DOWNLOAD_VIEW_SUPPORTED_COMMANDS =
 
 
 
-function HistoryDownload(url) {
+
+
+
+function HistoryDownload(aPlacesNode) {
   
-  this.source = { url };
+  this.source = { url: aPlacesNode.uri };
   this.target = { path: undefined, size: undefined };
+
+  
+  
+  this.endTime = aPlacesNode.time / 1000;
 }
 
 HistoryDownload.prototype = {
+  
+
+
+  updateFromMetaData(aPlacesMetaData) {
+    try {
+      this.target.path = Cc["@mozilla.org/network/protocol;1?name=file"]
+                           .getService(Ci.nsIFileProtocolHandler)
+                           .getFileFromURLSpec(aPlacesMetaData.
+                                               targetFileURISpec).path;
+    } catch (ex) {
+      this.target.path = undefined;
+    }
+
+    try {
+      let metaData = JSON.parse(aPlacesMetaData.jsonDetails);
+      this.succeeded = metaData.state == nsIDM.DOWNLOAD_FINISHED;
+      this.error = metaData.state == nsIDM.DOWNLOAD_FAILED
+                   ? { message: "History download failed." }
+                   : metaData.state == nsIDM.DOWNLOAD_BLOCKED_PARENTAL
+                   ? { becauseBlockedByParentalControls: true }
+                   : metaData.state == nsIDM.DOWNLOAD_DIRTY
+                   ? { becauseBlockedByReputationCheck: true }
+                   : null;
+      this.canceled = metaData.state == nsIDM.DOWNLOAD_CANCELED ||
+                      metaData.state == nsIDM.DOWNLOAD_PAUSED;
+      this.endTime = metaData.endTime;
+      this.target.size = metaData.fileSize;
+    } catch (ex) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      this.succeeded = !this.target.path;
+      this.error = this.target.path ? { message: "Unstarted download." } : null;
+      this.canceled = false;
+      this.target.size = -1;
+    }
+
+    
+    
+    this.totalBytes = this.target.size;
+    this.currentBytes = this.target.size;
+  },
+
+  
+
+
+  stopped: true,
+
+  
+
+
+  hasProgress: false,
+
+  
+
+
+
+
+
+
+  hasPartialData: false,
+
   
 
 
@@ -59,57 +135,11 @@ HistoryDownload.prototype = {
 
 
 function DownloadsHistoryDataItem(aPlacesNode) {
-  this.download = new HistoryDownload(aPlacesNode.uri);
-
-  
-  
-  this.endTime = aPlacesNode.time / 1000;
+  this.download = new HistoryDownload(aPlacesNode);
 }
 
 DownloadsHistoryDataItem.prototype = {
   __proto__: DownloadsDataItem.prototype,
-
-  
-
-
-  updateFromMetaData(aPlacesMetaData) {
-    try {
-      let targetFile = Cc["@mozilla.org/network/protocol;1?name=file"]
-                         .getService(Ci.nsIFileProtocolHandler)
-                         .getFileFromURLSpec(aPlacesMetaData.targetFileURISpec);
-      this.download.target.path = targetFile.path;
-    } catch (ex) {
-      this.download.target.path = undefined;
-    }
-
-    try {
-      let metaData = JSON.parse(aPlacesMetaData.jsonDetails);
-      this.state = metaData.state;
-      this.endTime = metaData.endTime;
-      this.download.target.size = metaData.fileSize;
-    } catch (ex) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      this.state = this.download.target.path ? nsIDM.DOWNLOAD_FAILED
-                                             : nsIDM.DOWNLOAD_FINISHED;
-      this.download.target.size = undefined;
-    }
-
-    
-    
-    this.maxBytes = this.download.target.size;
-
-    
-    this.percentComplete = 100;
-  },
 };
 
 
@@ -223,7 +253,7 @@ HistoryDownloadElementShell.prototype = {
 
     
     
-    if (this.dataItem.state == nsIDM.DOWNLOAD_DOWNLOADING) {
+    if (!this.download.stopped) {
       status.text = status.tip;
     }
     status.tip = "";
@@ -232,18 +262,9 @@ HistoryDownloadElementShell.prototype = {
   },
 
   onStateChanged() {
-    
-    
-    
-    
-    
-    
-    if (this.dataItem.state == nsIDM.DOWNLOAD_FINISHED) {
-      this.element.setAttribute("image", this.image + "&state=normal");
-    }
-
-    
-    this.element.setAttribute("state", this.dataItem.state);
+    this.element.setAttribute("image", this.image);
+    this.element.setAttribute("state",
+                              DownloadsCommon.stateOfDownload(this.download));
 
     if (this.element.selected) {
       goUpdateDownloadCommands();
@@ -277,12 +298,14 @@ HistoryDownloadElementShell.prototype = {
 
         
         
-        return this.dataItem.state == nsIDM.DOWNLOAD_FINISHED;
+        return this.download.succeeded;
       case "downloadsCmd_show":
         
-        if (this._sessionDataItem &&
-            this.dataItem.partFile && this.dataItem.partFile.exists()) {
-          return true;
+        if (this._sessionDataItem && this.download.target.partFilePath) {
+          let partFile = new FileUtils.File(this.download.target.partFilePath);
+          if (partFile.exists()) {
+            return true;
+          }
         }
 
         if (this._targetFileChecked) {
@@ -291,17 +314,16 @@ HistoryDownloadElementShell.prototype = {
 
         
         
-        return this.dataItem.state == nsIDM.DOWNLOAD_FINISHED;
+        return this.download.succeeded;
       case "downloadsCmd_pauseResume":
-        return this._sessionDataItem && this.dataItem.inProgress &&
-               this.dataItem.download.hasPartialData;
+        return this.download.hasPartialData && !this.download.error;
       case "downloadsCmd_retry":
-        return this.dataItem.canRetry;
+        return this.download.canceled || this.download.error;
       case "downloadsCmd_openReferrer":
         return !!this.download.source.referrer;
       case "cmd_delete":
         
-        return !this.dataItem.inProgress;
+        return this.download.stopped;
       case "downloadsCmd_cancel":
         return !!this._sessionDataItem;
     }
@@ -396,7 +418,8 @@ HistoryDownloadElementShell.prototype = {
       }
       return "";
     }
-    let command = getDefaultCommandForState(this.dataItem.state);
+    let command = getDefaultCommandForState(
+                            DownloadsCommon.stateOfDownload(this.download));
     if (command && this.isCommandEnabled(command)) {
       this.doCommand(command);
     }
@@ -625,8 +648,9 @@ DownloadsPlacesView.prototype = {
 
   _addDownloadData(aDataItem, aPlacesNode, aNewest = false,
                    aDocumentFragment = null) {
+    let sessionDownload = aDataItem && aDataItem.download;
     let downloadURI = aPlacesNode ? aPlacesNode.uri
-                                  : aDataItem.download.source.url;
+                                  : sessionDownload.source.url;
     let shellsForURI = this._downloadElementsShellsForURI.get(downloadURI);
     if (!shellsForURI) {
       shellsForURI = new Set();
@@ -678,7 +702,7 @@ DownloadsPlacesView.prototype = {
       if (aPlacesNode) {
         let metaData = this._getCachedPlacesMetaDataFor(aPlacesNode.uri);
         historyDataItem = new DownloadsHistoryDataItem(aPlacesNode);
-        historyDataItem.updateFromMetaData(metaData);
+        historyDataItem.download.updateFromMetaData(metaData);
       }
       let shell = new HistoryDownloadElementShell(aDataItem, historyDataItem);
       shell.element._placesNode = aPlacesNode;
@@ -782,8 +806,9 @@ DownloadsPlacesView.prototype = {
   },
 
   _removeSessionDownloadFromView(aDataItem) {
+    let download = aDataItem.download;
     let shells = this._downloadElementsShellsForURI
-                     .get(aDataItem.download.source.url);
+                     .get(download.source.url);
     if (shells.size == 0) {
       throw new Error("Should have had at leaat one shell for this uri");
     }
@@ -801,7 +826,7 @@ DownloadsPlacesView.prototype = {
       this._removeElement(shell.element);
       shells.delete(shell);
       if (shells.size == 0) {
-        this._downloadElementsShellsForURI.delete(aDataItem.download.source.url);
+        this._downloadElementsShellsForURI.delete(download.source.url);
       }
     } else {
       
@@ -811,7 +836,7 @@ DownloadsPlacesView.prototype = {
       
       let url = shell.historyDataItem.download.source.url;
       let metaData = this._getPlacesMetaDataFor(url);
-      shell.historyDataItem.updateFromMetaData(metaData);
+      shell.historyDataItem.download.updateFromMetaData(metaData);
       shell.sessionDataItem = null;
       
       if (this._lastSessionDownloadElement == shell.element) {
@@ -1146,7 +1171,9 @@ DownloadsPlacesView.prototype = {
     
     
     for (let elt = this._richlistbox.lastChild; elt; elt = elt.previousSibling) {
-      if (!elt._shell.dataItem.inProgress) {
+      
+      let download = elt._shell.download;
+      if (download.stopped && !(download.canceled && download.hasPartialData)) {
         return true;
       }
     }
@@ -1243,14 +1270,16 @@ DownloadsPlacesView.prototype = {
 
     
     let contextMenu = document.getElementById("downloadsContextMenu");
-    let state = element._shell.dataItem.state;
-    contextMenu.setAttribute("state", state);
+    let download = element._shell.download;
+    contextMenu.setAttribute("state",
+                             DownloadsCommon.stateOfDownload(download));
 
-    if (state == nsIDM.DOWNLOAD_DOWNLOADING) {
+    if (!download.stopped) {
       
       
       goUpdateCommand("downloadsCmd_pauseResume");
     }
+
     return true;
   },
 
