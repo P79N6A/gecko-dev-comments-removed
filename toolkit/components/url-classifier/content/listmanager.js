@@ -61,6 +61,10 @@ function PROT_ListManager() {
                                           BindToObject(this.shutdown_, this),
                                           true );
 
+  
+  
+  
+  
   this.updateCheckers_ = {};
   this.requestBackoffs_ = {};
   this.dbService_ = Cc["@mozilla.org/url-classifier/dbservice;1"]
@@ -144,13 +148,30 @@ PROT_ListManager.prototype.enableUpdate = function(tableName) {
 
 
 
+PROT_ListManager.prototype.updatesNeeded_ = function(updateUrl) {
+  let updatesNeeded = false;
+  for (var tableName in this.needsUpdate_[updateUrl]) {
+    if (this.needsUpdate_[updateUrl][tableName]) {
+      updatesNeeded = true;
+    }
+  }
+  return updatesNeeded;
+}
+
+
+
+
+
 PROT_ListManager.prototype.disableUpdate = function(tableName) {
-  var changed = false;
   var table = this.tablesData[tableName];
   if (table) {
     log("Disabling table updates for " + tableName);
     this.needsUpdate_[table.updateUrl][tableName] = false;
-    changed = true;
+    if (!this.updatesNeeded_(table.updateUrl) &&
+        this.updateCheckers_[table.updateUrl]) {
+      this.updateCheckers_[table.updateUrl].cancel();
+      this.updateCheckers_[table.updateUrl] = null;
+    }
   }
 }
 
@@ -177,33 +198,20 @@ PROT_ListManager.prototype.kickoffUpdate_ = function (onDiskTableData)
   var initialUpdateDelay = 3000;
 
   
-  var updatingExisting = false;
-  for (var tableName in this.tablesData) {
-    if (this.needsUpdate_[this.tablesData[tableName].updateUrl][tableName]) {
-      if (onDiskTableData.indexOf(tableName) != -1) {
-        updatingExisting = true;
-      }
-    }
-  }
-
-  
   log("needsUpdate: " + JSON.stringify(this.needsUpdate_, undefined, 2));
   for (var updateUrl in this.needsUpdate_) {
     
-    if (updatingExisting) {
-      
-      initialUpdateDelay += Math.floor(Math.random() * (5 * 60 * 1000));
-      log("Waiting " + initialUpdateDelay / 1000 +
-          " for updating existing table from " + updateUrl);
-    }
     
     
     
-    if (!this.updateCheckers_[updateUrl]) {
+    
+    if (this.updatesNeeded_(updateUrl) && !this.updateCheckers_[updateUrl]) {
       log("Initializing update checker for " + updateUrl);
       this.updateCheckers_[updateUrl] =
         new G_Alarm(BindToObject(this.checkForUpdates, this, updateUrl),
                     initialUpdateDelay, false );
+    } else {
+      log("No updates needed or already initialized for " + updateUrl);
     }
   }
 }
@@ -343,6 +351,7 @@ PROT_ListManager.prototype.makeUpdateRequest_ = function(updateUrl, tableData) {
     this.makeUpdateRequestForEntry_(updateUrl, streamerMap.tableList,
                                     streamerMap.request);
   } else {
+    
     log("Not sending empty request");
   }
 }
