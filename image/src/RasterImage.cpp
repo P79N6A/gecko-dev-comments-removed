@@ -1627,19 +1627,6 @@ RasterImage::DoImageDataComplete()
     ReentrantMonitorAutoEnter lock(mDecodingMonitor);
 
     
-    
-    if (!StoringSourceData() && mDecoder) {
-      nsresult rv = ShutdownDecoder(eShutdownIntent_Done);
-      CONTAINER_ENSURE_SUCCESS(rv);
-    }
-
-    
-    
-    if (mDecoder) {
-      DecodePool::Singleton()->RequestDecode(this);
-    }
-
-    
     mSourceData.Compact();
   }
 
