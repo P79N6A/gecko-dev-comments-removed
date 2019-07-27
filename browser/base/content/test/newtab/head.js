@@ -375,24 +375,18 @@ function addNewTabPageTabPromise() {
   }
 
   
-  waitForBrowserLoad(browser, function () {
-    
-    waitForCondition(() => !browser.contentDocument.hidden).then(whenNewTabLoaded);
-  });
-
-  return deferred.promise;
-}
-
-function waitForBrowserLoad(browser, callback = TestRunner.next) {
   if (browser.contentDocument.readyState == "complete") {
-    executeSoon(callback);
-    return;
+    waitForCondition(() => !browser.contentDocument.hidden).then(whenNewTabLoaded);
+    return deferred.promise;
   }
 
+  
   browser.addEventListener("load", function onLoad() {
     browser.removeEventListener("load", onLoad, true);
-    executeSoon(callback);
+    whenNewTabLoaded();
   }, true);
+
+  return deferred.promise;
 }
 
 
