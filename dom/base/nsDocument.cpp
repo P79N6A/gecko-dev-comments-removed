@@ -11222,8 +11222,10 @@ ExitFullscreenInDocTree(nsIDocument* aMaybeNotARootDoc)
   
   
   
-  nsRefPtr<AsyncEventDispatcher> asyncDispatcher = new AsyncEventDispatcher(
-    changed.LastElement(), NS_LITERAL_STRING("MozExitedDomFullscreen"), true, true);
+  nsRefPtr<AsyncEventDispatcher> asyncDispatcher =
+    new AsyncEventDispatcher(changed.LastElement(),
+                             NS_LITERAL_STRING("MozDOMFullscreen:Exited"),
+                             true, true);
   asyncDispatcher->PostDOMEvent();
   
   SetWindowFullScreen(root, false);
@@ -11350,7 +11352,7 @@ nsDocument::RestorePreviousFullScreenState()
              !static_cast<nsDocument*>(doc)->mIsApprovedForFullscreen)) {
           nsRefPtr<AsyncEventDispatcher> asyncDispatcher =
             new AsyncEventDispatcher(doc,
-                  NS_LITERAL_STRING("MozEnteredDomFullscreen"),
+                  NS_LITERAL_STRING("MozDOMFullscreen:Entered"),
                   true,
                   true);
           asyncDispatcher->PostDOMEvent();
@@ -11378,7 +11380,7 @@ nsDocument::RestorePreviousFullScreenState()
     NS_ASSERTION(!nsContentUtils::GetRootDocument(this)->IsFullScreenDoc(),
                  "Should have cleared all docs' stacks");
     nsRefPtr<AsyncEventDispatcher> asyncDispatcher = new AsyncEventDispatcher(
-      this, NS_LITERAL_STRING("MozExitedDomFullscreen"), true, true);
+      this, NS_LITERAL_STRING("MozDOMFullscreen:Exited"), true, true);
     asyncDispatcher->PostDOMEvent();
     SetWindowFullScreen(this, false);
   }
@@ -11828,7 +11830,7 @@ nsDocument::RequestFullScreen(Element* aElement,
       !nsContentUtils::HaveEqualPrincipals(previousFullscreenDoc, this)) {
     nsRefPtr<AsyncEventDispatcher> asyncDispatcher =
       new AsyncEventDispatcher(this,
-                               NS_LITERAL_STRING("MozEnteredDomFullscreen"),
+                               NS_LITERAL_STRING("MozDOMFullscreen:Entered"),
                                true,
                                true);
     asyncDispatcher->PostDOMEvent();

@@ -9,16 +9,16 @@ var FullScreen = {
   init: function() {
     
     window.addEventListener("fullscreen", this, true);
-    window.messageManager.addMessageListener("MozEnteredDomFullscreen", this);
-    window.messageManager.addMessageListener("MozExitedDomFullscreen", this);
+    window.messageManager.addMessageListener("DOMFullscreen:Entered", this);
+    window.messageManager.addMessageListener("DOMFullscreen:Exited", this);
 
     if (window.fullScreen)
       this.toggle();
   },
 
   uninit: function() {
-    window.messageManager.removeMessageListener("MozEnteredDomFullscreen", this);
-    window.messageManager.removeMessageListener("MozExitedDomFullscreen", this);
+    window.messageManager.removeMessageListener("DOMFullscreen:Entered", this);
+    window.messageManager.removeMessageListener("DOMFullscreen:Exited", this);
     this.cleanup();
   },
 
@@ -94,7 +94,7 @@ var FullScreen = {
 
   receiveMessage: function(aMessage) {
     switch (aMessage.name) {
-      case "MozEnteredDomFullscreen": {
+      case "DOMFullscreen:Entered": {
         
         
         
@@ -110,7 +110,7 @@ var FullScreen = {
         this.enterDomFullscreen(browser, data.origin);
         break;
       }
-      case "MozExitedDomFullscreen": {
+      case "DOMFullscreen:Exited": {
         document.documentElement.removeAttribute("inDOMFullscreen");
         this.cleanupDomFullscreen();
         this.showNavToolbox();
