@@ -490,8 +490,8 @@ class AsmJSModule
         uint32_t                          minHeapLength_;
         uint32_t                          numGlobalVars_;
         uint32_t                          numFFIs_;
-        uint32_t                          funcLength_;
-        uint32_t                          funcLengthWithRightBrace_;
+        uint32_t                          srcLength_;
+        uint32_t                          srcLengthWithRightBrace_;
         bool                              strict_;
         bool                              hasArrayView_;
     } pod;
@@ -499,8 +499,8 @@ class AsmJSModule
     
     
     
-    const uint32_t                        funcStart_;
-    const uint32_t                        offsetToEndOfUseAsm_;
+    const uint32_t                        srcStart_;
+    const uint32_t                        srcBodyStart_;
 
     Vector<Global,                 0, SystemAllocPolicy> globals_;
     Vector<Exit,                   0, SystemAllocPolicy> exits_;
@@ -533,8 +533,8 @@ class AsmJSModule
     mutable bool                          codeIsProtected_;
 
   public:
-    explicit AsmJSModule(ScriptSource *scriptSource, uint32_t functStart,
-                         uint32_t offsetToEndOfUseAsm, bool strict);
+    explicit AsmJSModule(ScriptSource *scriptSource, uint32_t srcStart, uint32_t srcBodyStart,
+                         bool strict);
     void trace(JSTracer *trc);
     ~AsmJSModule();
 
@@ -563,14 +563,15 @@ class AsmJSModule
     
     
     
-    uint32_t funcStart() const {
-        return funcStart_;
+    
+    uint32_t srcStart() const {
+        return srcStart_;
     }
 
     
     
-    uint32_t offsetToEndOfUseAsm() const {
-        return offsetToEndOfUseAsm_;
+    uint32_t srcBodyStart() const {
+        return srcBodyStart_;
     }
 
     
@@ -743,11 +744,11 @@ class AsmJSModule
         return functionCounts_.append(counts);
     }
 #if defined(MOZ_VTUNE) || defined(JS_ION_PERF)
-    bool addProfiledFunction(PropertyName *name, unsigned startCodeOffset, unsigned endCodeOffset,
+    bool addProfiledFunction(PropertyName *name, unsigned codeStart, unsigned codeEnd,
                              unsigned line, unsigned column)
     {
         JS_ASSERT(isFinishedWithModulePrologue() && !isFinishedWithFunctionBodies());
-        ProfiledFunction func(name, startCodeOffset, endCodeOffset, line, column);
+        ProfiledFunction func(name, codeStart, codeEnd, line, column);
         return profiledFunctions_.append(func);
     }
     unsigned numProfiledFunctions() const {
@@ -760,13 +761,11 @@ class AsmJSModule
     }
 #endif
 #ifdef JS_ION_PERF
-    bool addPerfProfiledBlocks(PropertyName *name, unsigned startCodeOffset,
-                               unsigned endInlineCodeOffset, unsigned endCodeOffset,
-                               jit::BasicBlocksVector &basicBlocks)
+    bool addProfiledBlocks(PropertyName *name, unsigned codeBegin, unsigned inlineEnd,
+                           unsigned codeEnd, jit::BasicBlocksVector &basicBlocks)
     {
         JS_ASSERT(isFinishedWithModulePrologue() && !isFinishedWithFunctionBodies());
-        ProfiledBlocksFunction func(name, startCodeOffset, endInlineCodeOffset, endCodeOffset,
-                                    basicBlocks);
+        ProfiledBlocksFunction func(name, codeBegin, inlineEnd, codeEnd, basicBlocks);
         return perfProfiledBlocksFunctions_.append(mozilla::Move(func));
     }
     unsigned numPerfBlocksFunctions() const {
@@ -843,13 +842,13 @@ class AsmJSModule
         JS_ASSERT(isFinished());
         return pod.numFFIs_;
     }
-    uint32_t funcEndBeforeCurly() const {
+    uint32_t srcEndBeforeCurly() const {
         JS_ASSERT(isFinished());
-        return funcStart_ + pod.funcLength_;
+        return srcStart_ + pod.srcLength_;
     }
-    uint32_t funcEndAfterCurly() const {
+    uint32_t srcEndAfterCurly() const {
         JS_ASSERT(isFinished());
-        return funcStart_ + pod.funcLengthWithRightBrace_;
+        return srcStart_ + pod.srcLengthWithRightBrace_;
     }
     uint8_t *codeBase() const {
         JS_ASSERT(isFinished());
