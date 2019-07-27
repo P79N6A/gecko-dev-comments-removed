@@ -718,20 +718,20 @@ public:
     
     
     if (!entry.mFunction && !entry.mLibrary[0] && entry.mLOffset == 0) {
-      W("    ??? 0x%x\n", entryPc);
+      aWriter.Write("    ??? 0x%x\n", entryPc);
     } else {
       
       const char* entryFunction = entry.mFunction ? entry.mFunction : "???";
       if (entry.mFileName) {
         
-        W("    %s (%s:%lu) 0x%x\n",
-          entryFunction, entry.mFileName, entry.mLineNo, entryPc);
+        aWriter.Write("    %s (%s:%lu) 0x%x\n",
+                      entryFunction, entry.mFileName, entry.mLineNo, entryPc);
       } else {
         
         
         
-        W("    %s[%s +0x%X] 0x%x\n",
-          entryFunction, entry.mLibrary, entry.mLOffset, entryPc);
+        aWriter.Write("    %s[%s +0x%X] 0x%x\n",
+                      entryFunction, entry.mLibrary, entry.mLOffset, entryPc);
       }
     }
   }
