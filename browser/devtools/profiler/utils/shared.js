@@ -90,6 +90,12 @@ ProfilerConnection.prototype = {
     }
     
     
+    else if (this._target.form && this._target.form.profilerActor) {
+      this._profiler = this._target.form.profilerActor;
+      yield this._registerEventNotifications();
+    }
+    
+    
     else if (this._target.root) {
       this._profiler = this._target.root.profilerActor;
       yield this._registerEventNotifications();
