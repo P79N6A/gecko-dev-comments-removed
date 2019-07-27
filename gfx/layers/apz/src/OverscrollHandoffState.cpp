@@ -88,10 +88,10 @@ OverscrollHandoffChain::ClearOverscroll() const
 }
 
 void
-OverscrollHandoffChain::SnapBackOverscrolledApzc() const
+OverscrollHandoffChain::SnapBackOverscrolledApzc(const AsyncPanZoomController* aStart) const
 {
-  uint32_t i = 0;
-  for (i = 0; i < Length(); ++i) {
+  uint32_t i = IndexOf(aStart);
+  for (; i < Length(); ++i) {
     AsyncPanZoomController* apzc = mChain[i];
     if (!apzc->IsDestroyed() && apzc->SnapBackIfOverscrolled()) {
       
@@ -99,6 +99,7 @@ OverscrollHandoffChain::SnapBackOverscrolledApzc() const
     }
   }
 
+  
   
 #ifdef DEBUG
   ++i;

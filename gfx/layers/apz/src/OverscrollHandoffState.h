@@ -99,7 +99,8 @@ public:
   void ClearOverscroll() const;
 
   
-  void SnapBackOverscrolledApzc() const;
+  
+  void SnapBackOverscrolledApzc(const AsyncPanZoomController* aStart) const;
 
   
   

@@ -520,7 +520,8 @@ public:
       
       
       mDeferredTasks.append(NewRunnableMethod(mOverscrollHandoffChain.get(),
-                                              &OverscrollHandoffChain::SnapBackOverscrolledApzc));
+                                              &OverscrollHandoffChain::SnapBackOverscrolledApzc,
+                                              &mApzc));
       return false;
     }
 

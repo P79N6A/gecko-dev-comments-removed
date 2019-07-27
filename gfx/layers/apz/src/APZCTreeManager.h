@@ -341,8 +341,6 @@ public:
                      nsRefPtr<const OverscrollHandoffChain> aOverscrollHandoffChain,
                      bool aHandoff);
 
-  void SnapBackOverscrolledApzc(AsyncPanZoomController* aStart);
-
   
 
 
