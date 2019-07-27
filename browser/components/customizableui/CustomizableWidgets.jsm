@@ -931,6 +931,8 @@ const CustomizableWidgets = [
     label: "loop-call-button3.label",
     tooltiptext: "loop-call-button3.tooltiptext",
     defaultArea: CustomizableUI.AREA_NAVBAR,
+    
+    showInPrivateBrowsing: false,
     introducedInVersion: 4,
     onBuild: function(aDocument) {
       
