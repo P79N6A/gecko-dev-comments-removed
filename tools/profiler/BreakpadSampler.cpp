@@ -73,7 +73,7 @@ void genProfileEntry(UnwinderThreadBuffer* utb,
   
   utb__addEntry( utb, ProfileEntry('h', 'P') );
   
-  if (entry.stackAddress() != 0) {
+  if (entry.isCpp() && entry.stackAddress() != 0) {
     utb__addEntry( utb, ProfileEntry('S', entry.stackAddress()) );
   }
 
@@ -117,7 +117,9 @@ void genProfileEntry(UnwinderThreadBuffer* utb,
     }
   } else {
     utb__addEntry( utb, ProfileEntry('c', sampleLabel) );
-    lineno = entry.line();
+    if (entry.isCpp()) {
+      lineno = entry.line();
+    }
   }
   if (lineno != -1) {
     utb__addEntry( utb, ProfileEntry('n', lineno) );
