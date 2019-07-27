@@ -78,6 +78,8 @@ class MediaSource;
 class TextTrackList;
 class AudioTrackList;
 class VideoTrackList;
+class OwningMediaStreamOrMediaSource;
+class MediaStreamOrMediaSource;
 
 class HTMLMediaElement : public nsGenericHTMLElement,
                          public nsIDOMHTMLMediaElement,
@@ -524,9 +526,9 @@ public:
     mIsCasting = aShow;
   }
 
-  already_AddRefed<DOMMediaStream> GetMozSrcObject() const;
+  void GetMozSrcObject(Nullable<OwningMediaStreamOrMediaSource>& aValue) const;
 
-  void SetMozSrcObject(DOMMediaStream& aValue);
+  void SetMozSrcObject(const Nullable<MediaStreamOrMediaSource>& aValue);
 
   bool MozPreservesPitch() const
   {
@@ -677,6 +679,12 @@ protected:
 
 
   void SetupSrcMediaStreamPlayback(DOMMediaStream* aStream);
+
+  
+
+
+  nsresult SetupSrcMediaSourcePlayback(nsRefPtr<MediaSource>& aSource);
+
   
 
 
@@ -973,6 +981,10 @@ protected:
 
   
   nsRefPtr<StreamListener> mSrcStreamListener;
+
+  
+  
+  nsRefPtr<MediaSource> mSrcAttrMediaSource;
 
   
   nsRefPtr<MediaSource> mMediaSource;
