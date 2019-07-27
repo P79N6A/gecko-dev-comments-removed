@@ -253,6 +253,15 @@ let MemoryActor = protocol.ActorClass({
 
 
   getAllocations: method(expectState("attached", function() {
+    if (this.dbg.memory.allocationsLogOverflowed) {
+      
+      
+      
+      
+      reportException("MemoryActor.prototype.getAllocations",
+                      "Warning: allocations log overflowed and lost some data.");
+    }
+
     const allocations = this.dbg.memory.drainAllocationsLog()
     const packet = {
       allocations: [],
