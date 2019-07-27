@@ -446,6 +446,8 @@ public:
 
 
   virtual bool UsesContainerScrolling() const = 0;
+
+  virtual const mozilla::DisplayItemClip* ComputeScrollClip(bool aIsForCaret) const = 0;
 };
 
 #endif
