@@ -359,3 +359,68 @@ function promiseHistoryNotification(notification, conditionFn) {
     }, 2000);
   });
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function promiseSetToolbarVisibility(aToolbar, aVisible, aCallback) {
+  return new Promise((resolve, reject) => {
+    function listener(event) {
+      if (event.propertyName == "max-height") {
+        aToolbar.removeEventListener("transitionend", listener);
+        resolve();
+      }
+    }
+
+    let transitionProperties =
+      window.getComputedStyle(aToolbar).transitionProperty.split(", ");
+    if (isToolbarVisible(aToolbar) != aVisible &&
+        (transitionProperties.includes("max-height") ||
+         transitionProperties.includes("all"))) {
+      
+      
+      aToolbar.addEventListener("transitionend", listener);
+      setToolbarVisibility(aToolbar, aVisible);
+      return;
+    }
+
+    
+    setToolbarVisibility(aToolbar, aVisible);
+    resolve();
+  });
+}
+
+
+
+
+
+
+
+
+
+
+function isToolbarVisible(aToolbar) {
+  let hidingAttribute = aToolbar.getAttribute("type") == "menubar"
+                        ? "autohide"
+                        : "collapsed";
+  let hidingValue = aToolbar.getAttribute(hidingAttribute).toLowerCase();
+  
+  return hidingValue !== "true" && hidingValue !== hidingAttribute;
+}
