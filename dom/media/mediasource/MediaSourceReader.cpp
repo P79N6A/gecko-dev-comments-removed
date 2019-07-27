@@ -33,8 +33,6 @@ extern PRLogModuleInfo* GetMediaSourceAPILog();
 #define MSE_API(...)
 #endif
 
-using mozilla::dom::TimeRanges;
-
 namespace mozilla {
 
 MediaSourceReader::MediaSourceReader(MediaSourceDecoder* aDecoder)
@@ -311,15 +309,6 @@ MediaSourceReader::CreateSubDecoder(const nsACString& aType)
   if (!reader) {
     return nullptr;
   }
-
-  
-  
-  
-  {
-    ReentrantMonitorAutoEnter mon(decoder->GetReentrantMonitor());
-    reader->SetStartTime(0);
-  }
-
   
   
   
@@ -445,46 +434,6 @@ MediaSourceReader::Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime,
       return rv;
     }
   }
-  return NS_OK;
-}
-
-nsresult
-MediaSourceReader::GetBuffered(dom::TimeRanges* aBuffered)
-{
-  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-  MOZ_ASSERT(aBuffered->Length() == 0);
-  if (mTrackBuffers.IsEmpty()) {
-    return NS_OK;
-  }
-
-  double highestEndTime = 0;
-
-  nsTArray<nsRefPtr<TimeRanges>> activeRanges;
-  for (uint32_t i = 0; i < mTrackBuffers.Length(); ++i) {
-    nsRefPtr<TimeRanges> r = new TimeRanges();
-    mTrackBuffers[i]->Buffered(r);
-    activeRanges.AppendElement(r);
-    highestEndTime = std::max(highestEndTime, activeRanges.LastElement()->GetEndTime());
-  }
-
-  TimeRanges* intersectionRanges = aBuffered;
-  intersectionRanges->Add(0, highestEndTime);
-
-  for (uint32_t i = 0; i < activeRanges.Length(); ++i) {
-    TimeRanges* sourceRanges = activeRanges[i];
-
-    if (IsEnded()) {
-      
-      
-      
-      sourceRanges->Add(sourceRanges->GetEndTime(), highestEndTime);
-      sourceRanges->Normalize();
-    }
-
-    intersectionRanges->Intersection(sourceRanges);
-  }
-
-  MSE_DEBUG("MediaSourceReader(%p)::GetBuffered ranges=%s", this, DumpTimeRanges(intersectionRanges).get());
   return NS_OK;
 }
 

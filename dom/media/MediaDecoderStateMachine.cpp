@@ -87,6 +87,11 @@ extern PRLogModuleInfo* gMediaDecoderLog;
 
 
 
+static const uint32_t BUFFERING_WAIT_S = 30;
+
+
+
+
 
 static const uint32_t LOW_AUDIO_USECS = 300000;
 
@@ -218,7 +223,7 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mAmpleVideoFrames =
     std::max<uint32_t>(Preferences::GetUint("media.video-queue.default-size", 10), 3);
 
-  mBufferingWait = mScheduler->IsRealTime() ? 0 : mReader->GetBufferingWait();
+  mBufferingWait = mScheduler->IsRealTime() ? 0 : BUFFERING_WAIT_S;
   mLowDataThresholdUsecs = mScheduler->IsRealTime() ? 0 : LOW_DATA_THRESHOLD_USECS;
 
   mVideoPrerollFrames = mScheduler->IsRealTime() ? 0 : mAmpleVideoFrames / 2;
@@ -1489,11 +1494,8 @@ void MediaDecoderStateMachine::NotifyDataArrived(const char* aBuffer,
   
   
   
-  
-  
-  
   nsRefPtr<dom::TimeRanges> buffered = new dom::TimeRanges();
-  if (mDecoder->IsInfinite() && (mStartTime != -1) &&
+  if (mDecoder->IsInfinite() &&
       NS_SUCCEEDED(mDecoder->GetBuffered(buffered)))
   {
     uint32_t length = 0;
@@ -1850,29 +1852,28 @@ bool MediaDecoderStateMachine::HasLowUndecodedData()
   return HasLowUndecodedData(mLowDataThresholdUsecs);
 }
 
-bool MediaDecoderStateMachine::HasLowUndecodedData(int64_t aUsecs)
+bool MediaDecoderStateMachine::HasLowUndecodedData(double aUsecs)
 {
   AssertCurrentThreadInMonitor();
   NS_ASSERTION(mState > DECODER_STATE_DECODING_METADATA,
                "Must have loaded metadata for GetBuffered() to work");
 
-  nsRefPtr<dom::TimeRanges> buffered = new dom::TimeRanges();
-  nsresult rv = mReader->GetBuffered(buffered.get());
-  NS_ENSURE_SUCCESS(rv, false);
-
-  int64_t endOfDecodedVideoData = INT64_MAX;
-  if (HasVideo() && !VideoQueue().AtEndOfStream()) {
-    endOfDecodedVideoData = VideoQueue().Peek() ? VideoQueue().Peek()->GetEndTime() : mVideoFrameEndTime;
+  bool reliable;
+  double bytesPerSecond = mDecoder->ComputePlaybackRate(&reliable);
+  if (!reliable) {
+    
+    return false;
   }
-  int64_t endOfDecodedAudioData = INT64_MAX;
-  if (HasAudio() && !AudioQueue().AtEndOfStream()) {
-    endOfDecodedAudioData = AudioQueue().Peek() ? AudioQueue().Peek()->GetEndTime() : GetAudioClock();
-  }
-  int64_t endOfDecodedData = std::min(endOfDecodedVideoData, endOfDecodedAudioData);
 
-  return endOfDecodedData != INT64_MAX &&
-         !buffered->Contains(static_cast<double>(endOfDecodedData) / USECS_PER_S,
-                             static_cast<double>(std::min(endOfDecodedData + aUsecs, GetDuration())) / USECS_PER_S);
+  MediaResource* stream = mDecoder->GetResource();
+  int64_t currentPos = stream->Tell();
+  int64_t requiredPos = currentPos + int64_t((aUsecs/1000000.0)*bytesPerSecond);
+  int64_t length = stream->GetLength();
+  if (length >= 0) {
+    requiredPos = std::min(requiredPos, length);
+  }
+
+  return stream->GetCachedDataEnd(currentPos) < requiredPos;
 }
 
 void
@@ -2420,8 +2421,9 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
       if ((isLiveStream || !mDecoder->CanPlayThrough()) &&
             elapsed < TimeDuration::FromSeconds(mBufferingWait * mPlaybackRate) &&
             (mQuickBuffering ? HasLowDecodedData(QUICK_BUFFERING_LOW_DATA_USECS)
-                             : HasLowUndecodedData(mBufferingWait * USECS_PER_S)) &&
-            mDecoder->IsExpectingMoreData())
+                            : HasLowUndecodedData(mBufferingWait * USECS_PER_S)) &&
+            !mDecoder->IsDataCachedToEndOfResource() &&
+            !resource->IsSuspended())
       {
         DECODER_LOG("Buffering: wait %ds, timeout in %.3lfs %s",
                     mBufferingWait, mBufferingWait - elapsed.ToSeconds(),
@@ -2680,10 +2682,12 @@ void MediaDecoderStateMachine::AdvanceFrame()
 
   
   
+  MediaResource* resource = mDecoder->GetResource();
   if (mState == DECODER_STATE_DECODING &&
       mDecoder->GetState() == MediaDecoder::PLAY_STATE_PLAYING &&
       HasLowDecodedData(remainingTime + EXHAUSTED_DATA_MARGIN_USECS) &&
-      mDecoder->IsExpectingMoreData()) {
+      !mDecoder->IsDataCachedToEndOfResource() &&
+      !resource->IsSuspended()) {
     if (JustExitedQuickBuffering() || HasLowUndecodedData()) {
       if (currentFrame) {
         VideoQueue().PushFront(currentFrame.forget());
@@ -2889,11 +2893,6 @@ void MediaDecoderStateMachine::SetStartTime(int64_t aStartTimeUsecs)
       mEndTime = mStartTime + mEndTime;
     }
   }
-
-  
-  
-  mReader->SetStartTime(mStartTime);
-
   
   
   
@@ -2979,6 +2978,15 @@ void MediaDecoderStateMachine::StartBuffering()
               stats.mPlaybackRate/1024, stats.mPlaybackRateReliable ? "" : " (unreliable)",
               stats.mDownloadRate/1024, stats.mDownloadRateReliable ? "" : " (unreliable)");
 #endif
+}
+
+nsresult MediaDecoderStateMachine::GetBuffered(dom::TimeRanges* aBuffered) {
+  MediaResource* resource = mDecoder->GetResource();
+  NS_ENSURE_TRUE(resource, NS_ERROR_FAILURE);
+  resource->Pin();
+  nsresult res = mReader->GetBuffered(aBuffered, mStartTime);
+  resource->Unpin();
+  return res;
 }
 
 void MediaDecoderStateMachine::SetPlayStartTime(const TimeStamp& aTimeStamp)

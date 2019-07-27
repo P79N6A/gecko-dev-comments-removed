@@ -143,14 +143,12 @@ public:
   
   
   
-  virtual nsresult GetBuffered(dom::TimeRanges* aBuffered);
+  
+  
+  virtual nsresult GetBuffered(dom::TimeRanges* aBuffered,
+                               int64_t aStartTime);
 
   virtual int64_t ComputeStartTime(const VideoData* aVideo, const AudioData* aAudio);
-
-  
-  
-  
-  virtual uint32_t GetBufferingWait() { return 30; }
 
   
   
@@ -181,7 +179,6 @@ public:
   
   
   virtual bool IsMediaSeekable() = 0;
-  void SetStartTime(int64_t aStartTime);
 
 protected:
   virtual ~MediaDecoderReader();
@@ -238,11 +235,6 @@ protected:
   
   bool mIgnoreAudioOutputFormat;
 
-  
-  
-  
-  
-  int64_t mStartTime;
 private:
 
   nsRefPtr<RequestSampleCallback> mSampleDecodedCallback;

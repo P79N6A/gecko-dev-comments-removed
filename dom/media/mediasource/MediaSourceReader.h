@@ -71,20 +71,11 @@ public:
   
   virtual int64_t ComputeStartTime(const VideoData* aVideo, const AudioData* aAudio) MOZ_OVERRIDE { return 0; }
 
-  
-  
-  
-  
-  virtual uint32_t GetBufferingWait() { return 0; }
-
   bool IsMediaSeekable() { return true; }
 
   nsresult ReadMetadata(MediaInfo* aInfo, MetadataTags** aTags) MOZ_OVERRIDE;
   nsresult Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime,
                 int64_t aCurrentTime) MOZ_OVERRIDE;
-
-  
-  nsresult GetBuffered(dom::TimeRanges* aBuffered) MOZ_OVERRIDE;
 
   already_AddRefed<SourceBufferDecoder> CreateSubDecoder(const nsACString& aType);
 
