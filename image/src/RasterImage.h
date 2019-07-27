@@ -345,6 +345,13 @@ private:
   already_AddRefed<Decoder> CreateDecoder(const Maybe<nsIntSize>& aSize,
                                           uint32_t aFlags);
 
+  
+
+
+
+
+  void RecoverFromLossOfFrames(const nsIntSize& aSize, uint32_t aFlags);
+
 private: 
   nsIntSize                  mSize;
   Orientation                mOrientation;
