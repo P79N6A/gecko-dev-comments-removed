@@ -64,6 +64,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
 XPCOMUtils.defineLazyModuleGetter(this, "ScriptPreloader",
                                   "resource://gre/modules/ScriptPreloader.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "TrustedHostedAppsUtils",
+                                  "resource://gre/modules/TrustedHostedAppsUtils.jsm");
+
 #ifdef MOZ_WIDGET_GONK
 XPCOMUtils.defineLazyGetter(this, "libcutils", function() {
   Cu.import("resource://gre/modules/systemlibs.js");
@@ -1412,6 +1415,24 @@ this.DOMApplicationRegistry = {
     }
 
     
+    if (this.kTrustedHosted == app.kind) {
+      debug("Launching Trusted Hosted App!");
+      
+      
+      if (!TrustedHostedAppsUtils.isHostPinned(aManifestURL)) {
+        debug("Trusted App Host certificate Not OK");
+        aOnFailure("TRUSTED_APPLICATION_HOST_CERTIFICATE_INVALID");
+        return;
+      }
+
+      debug("Trusted App Host pins exist");
+      if (!TrustedHostedAppsUtils.verifyCSPWhiteList(app.csp)) {
+        aOnFailure("TRUSTED_APPLICATION_WHITELIST_VALIDATION_FAILED");
+        return;
+      }
+    }
+
+    
     
     let appClone = AppsUtils.cloneAppObject(app);
     appClone.startPoint = aStartPoint;
@@ -2295,6 +2316,23 @@ this.DOMApplicationRegistry = {
     
     if (app.manifest) {
       if (checkManifest()) {
+        if (this.kTrustedHosted == this.appKind(app, app.manifest)) {
+          
+          
+          if (!TrustedHostedAppsUtils.isHostPinned(app.manifestURL)) {
+            sendError("TRUSTED_APPLICATION_HOST_CERTIFICATE_INVALID");
+            return;
+          }
+
+          
+          
+
+          if (!TrustedHostedAppsUtils.verifyCSPWhiteList(app.manifest.csp)) {
+            sendError("TRUSTED_APPLICATION_WHITELIST_VALIDATION_FAILED");
+            return;
+          }
+        }
+
         installApp();
       }
       return;
@@ -2319,6 +2357,19 @@ this.DOMApplicationRegistry = {
         app.manifest = xhr.response;
         if (checkManifest()) {
           app.etag = xhr.getResponseHeader("Etag");
+          if (this.kTrustedHosted == this.appKind(app, app.manifest)) {
+            
+            
+
+            
+            
+
+            if (!TrustedHostedAppsUtils.verifyCSPWhiteList(app.manifest.csp)) {
+              sendError("TRUSTED_APPLICATION_WHITELIST_VALIDATION_FAILED");
+              return;
+            }
+          }
+
           installApp();
         }
       } else {

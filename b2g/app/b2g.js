@@ -247,6 +247,15 @@ pref("security.alternate_certificate_error_page", "certerror");
 pref("security.warn_viewing_mixed", false); 
 
 
+
+
+
+
+
+pref("security.cert_pinning.enforcement_level", 2);
+
+
+
 pref("ui.-moz-dialog", "#efebe7");
 pref("ui.-moz-dialogtext", "#101010");
 pref("ui.-moz-field", "#fff");

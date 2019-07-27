@@ -1729,7 +1729,7 @@ pref("security.mixed_content.block_active_content", false);
 pref("security.mixed_content.block_display_content", false);
 
 
-pref("security.cert_pinning.enforcement_level", 0);
+pref("security.cert_pinning.enforcement_level", 2);
 
 
 
@@ -4093,7 +4093,7 @@ pref("dom.mozApps.signed_apps_installable_from", "https://marketplace.firefox.co
 
 
 
-pref("dom.mozApps.debug", false);
+pref("dom.mozApps.debug", true);
 
 
 
@@ -4296,10 +4296,3 @@ pref("camera.control.low_memory_thresholdMB", 404);
 
 
 pref("dom.udpsocket.enabled", false);
-
-
-
-
-
-pref("dns.ttl-experiment.variant", 0);
-pref("dns.ttl-experiment.enabled", true);
