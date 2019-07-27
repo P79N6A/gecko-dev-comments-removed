@@ -5519,10 +5519,6 @@ GCRuntime::compactPhase(JS::gcreason::Reason reason)
     }
 #endif
 
-    
-    
-    shrinkBuffers();
-
 #ifdef DEBUG
     CheckHashTablesAfterMovingGC(rt);
     for (GCZonesIter zone(rt); !zone.done(); zone.next()) {
@@ -5566,6 +5562,12 @@ GCRuntime::finishCollection(JS::gcreason::Reason reason)
 
         MOZ_ASSERT(!zone->isCollecting());
         MOZ_ASSERT(!zone->wasGCStarted());
+    }
+
+    if (invocationKind == GC_SHRINK) {
+        
+        
+        shrinkBuffers();
     }
 
     lastGCTime = currentTime;
