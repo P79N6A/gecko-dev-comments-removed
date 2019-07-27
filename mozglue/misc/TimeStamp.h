@@ -12,8 +12,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/TypeTraits.h"
-#include "nscore.h"
-#include "nsDebug.h"
+#include "mozilla/Types.h"
 
 namespace IPC {
 template<typename T> struct ParamTraits;
@@ -39,10 +38,10 @@ class TimeStamp;
 class BaseTimeDurationPlatformUtils
 {
 public:
-  static double ToSeconds(int64_t aTicks);
-  static double ToSecondsSigDigits(int64_t aTicks);
-  static int64_t TicksFromMilliseconds(double aMilliseconds);
-  static int64_t ResolutionInTicks();
+  static MFBT_API double ToSeconds(int64_t aTicks);
+  static MFBT_API double ToSecondsSigDigits(int64_t aTicks);
+  static MFBT_API int64_t TicksFromMilliseconds(double aMilliseconds);
+  static MFBT_API int64_t ResolutionInTicks();
 };
 
 
@@ -206,7 +205,6 @@ public:
   BaseTimeDuration operator*(const uint64_t aMultiplier) const
   {
     if (aMultiplier > INT64_MAX) {
-      NS_WARNING("Out-of-range multiplier when multiplying BaseTimeDuration");
       return Forever();
     }
     return FromTicks(ValueCalculator::Multiply(mValue, aMultiplier));
@@ -428,8 +426,8 @@ public:
 
 
 
-  static TimeStamp Now() { return Now(true); }
-  static TimeStamp NowLoRes() { return Now(false); }
+  static MFBT_API TimeStamp Now() { return Now(true); }
+  static MFBT_API TimeStamp NowLoRes() { return Now(false); }
 
   
 
@@ -443,14 +441,14 @@ public:
 
 
 
-  static TimeStamp ProcessCreation(bool& aIsInconsistent);
+  static MFBT_API TimeStamp ProcessCreation(bool& aIsInconsistent);
 
   
 
 
 
 
-  static void RecordProcessRestart();
+  static MFBT_API void RecordProcessRestart();
 
   
 
@@ -536,8 +534,8 @@ public:
   
   
 
-  static nsresult Startup();
-  static void Shutdown();
+  static MFBT_API void Startup();
+  static MFBT_API void Shutdown();
 
 private:
   friend struct IPC::ParamTraits<mozilla::TimeStamp>;
@@ -545,7 +543,7 @@ private:
 
   MOZ_IMPLICIT TimeStamp(TimeStampValue aValue) : mValue(aValue) {}
 
-  static TimeStamp Now(bool aHighResolution);
+  static MFBT_API TimeStamp Now(bool aHighResolution);
 
   
 
@@ -555,7 +553,7 @@ private:
 
 
 
-  static uint64_t ComputeProcessUptime();
+  static MFBT_API uint64_t ComputeProcessUptime();
 
   
 

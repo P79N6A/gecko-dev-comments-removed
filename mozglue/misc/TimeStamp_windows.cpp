@@ -8,37 +8,30 @@
 
 
 #include "mozilla/MathAlgorithms.h"
-#include "mozilla/Mutex.h"
 #include "mozilla/TimeStamp.h"
-#include "nsWindowsHelpers.h"
+
+#include <stdio.h>
+#include <intrin.h>
 #include <windows.h>
 
-#include "nsCRT.h"
-#include "mozilla/Logging.h"
-#include "prprf.h"
-#include <stdio.h>
 
-#include <intrin.h>
+#define LOG(x)
 
-
-
-
-
-
-
-
-
-
-static PRLogModuleInfo*
-GetTimeStampLog()
+class AutoCriticalSection
 {
-  static PRLogModuleInfo* sLog;
-  if (!sLog) {
-    sLog = PR_NewLogModule("TimeStampWindows");
+public:
+  AutoCriticalSection(LPCRITICAL_SECTION aSection)
+    : mSection(aSection)
+  {
+    ::EnterCriticalSection(mSection);
   }
-  return sLog;
-}
-#define LOG(x)  MOZ_LOG(GetTimeStampLog(), mozilla::LogLevel::Debug, x)
+  ~AutoCriticalSection()
+  {
+    ::LeaveCriticalSection(mSection);
+  }
+private:
+  LPCRITICAL_SECTION mSection;
+};
 
 
 static volatile ULONGLONG sResolution;
@@ -293,7 +286,7 @@ InitResolution()
 
 
 
-
+MFBT_API
 TimeStampValue::TimeStampValue(ULONGLONG aGTC, ULONGLONG aQPC, bool aHasQPC)
   : mGTC(aGTC)
   , mQPC(aQPC)
@@ -302,7 +295,7 @@ TimeStampValue::TimeStampValue(ULONGLONG aGTC, ULONGLONG aQPC, bool aHasQPC)
 {
 }
 
-TimeStampValue&
+MFBT_API TimeStampValue&
 TimeStampValue::operator+=(const int64_t aOther)
 {
   mGTC += aOther;
@@ -310,7 +303,7 @@ TimeStampValue::operator+=(const int64_t aOther)
   return *this;
 }
 
-TimeStampValue&
+MFBT_API TimeStampValue&
 TimeStampValue::operator-=(const int64_t aOther)
 {
   mGTC -= aOther;
@@ -320,7 +313,7 @@ TimeStampValue::operator-=(const int64_t aOther)
 
 
 
-uint64_t
+MFBT_API uint64_t
 TimeStampValue::CheckQPC(const TimeStampValue& aOther) const
 {
   uint64_t deltaGTC = mGTC - aOther.mGTC;
@@ -394,7 +387,7 @@ TimeStampValue::CheckQPC(const TimeStampValue& aOther) const
   return deltaGTC;
 }
 
-uint64_t
+MFBT_API uint64_t
 TimeStampValue::operator-(const TimeStampValue& aOther) const
 {
   if (mIsNull && aOther.mIsNull) {
@@ -408,14 +401,14 @@ TimeStampValue::operator-(const TimeStampValue& aOther) const
 
 
 
-double
+MFBT_API double
 BaseTimeDurationPlatformUtils::ToSeconds(int64_t aTicks)
 {
   
   return double(aTicks) / (double(sFrequencyPerSec) * 1000.0);
 }
 
-double
+MFBT_API double
 BaseTimeDurationPlatformUtils::ToSecondsSigDigits(int64_t aTicks)
 {
   
@@ -427,7 +420,7 @@ BaseTimeDurationPlatformUtils::ToSecondsSigDigits(int64_t aTicks)
   return double(valueSigDigs) / kNsPerSecd;
 }
 
-int64_t
+MFBT_API int64_t
 BaseTimeDurationPlatformUtils::TicksFromMilliseconds(double aMilliseconds)
 {
   double result = ms2mt(aMilliseconds);
@@ -440,7 +433,7 @@ BaseTimeDurationPlatformUtils::TicksFromMilliseconds(double aMilliseconds)
   return result;
 }
 
-int64_t
+MFBT_API int64_t
 BaseTimeDurationPlatformUtils::ResolutionInTicks()
 {
   return static_cast<int64_t>(sResolution);
@@ -482,7 +475,7 @@ HasStableTSC()
   return regs[3] & (1 << 8);
 }
 
-nsresult
+MFBT_API void
 TimeStamp::Startup()
 {
   
@@ -508,7 +501,7 @@ TimeStamp::Startup()
     InitResolution();
 
     LOG(("TimeStamp: using GetTickCount"));
-    return NS_OK;
+    return;
   }
 
   sFrequencyPerSec = freq.QuadPart;
@@ -517,16 +510,16 @@ TimeStamp::Startup()
   InitThresholds();
   InitResolution();
 
-  return NS_OK;
+  return;
 }
 
-void
+MFBT_API void
 TimeStamp::Shutdown()
 {
   DeleteCriticalSection(&sTimeStampLock);
 }
 
-TimeStamp
+MFBT_API TimeStamp
 TimeStamp::Now(bool aHighResolution)
 {
   
@@ -541,7 +534,7 @@ TimeStamp::Now(bool aHighResolution)
 
 
 
-uint64_t
+MFBT_API uint64_t
 TimeStamp::ComputeProcessUptime()
 {
   SYSTEMTIME nowSys;
