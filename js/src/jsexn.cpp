@@ -51,14 +51,11 @@ Error(JSContext *cx, unsigned argc, Value *vp);
 static bool
 exn_toSource(JSContext *cx, unsigned argc, Value *vp);
 
-static bool
-exn_toString(JSContext *cx, unsigned argc, Value *vp);
-
 static const JSFunctionSpec exception_methods[] = {
 #if JS_HAS_TOSOURCE
     JS_FN(js_toSource_str, exn_toSource, 0, 0),
 #endif
-    JS_FN(js_toString_str, exn_toString, 0, 0),
+    JS_SELF_HOSTED_FN(js_toString_str, "ErrorToString", 0,0),
     JS_FS_END
 };
 
@@ -372,82 +369,6 @@ Error(JSContext *cx, unsigned argc, Value *vp)
         return false;
 
     args.rval().setObject(*obj);
-    return true;
-}
-
-
-static bool
-exn_toString(JSContext *cx, unsigned argc, Value *vp)
-{
-    JS_CHECK_RECURSION(cx, return false);
-    CallArgs args = CallArgsFromVp(argc, vp);
-
-    
-    if (!args.thisv().isObject()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_BAD_PROTOTYPE, "Error");
-        return false;
-    }
-
-    
-    RootedObject obj(cx, &args.thisv().toObject());
-
-    
-    RootedValue nameVal(cx);
-    if (!JSObject::getProperty(cx, obj, obj, cx->names().name, &nameVal))
-        return false;
-
-    
-    RootedString name(cx);
-    if (nameVal.isUndefined()) {
-        name = cx->names().Error;
-    } else {
-        name = ToString<CanGC>(cx, nameVal);
-        if (!name)
-            return false;
-    }
-
-    
-    RootedValue msgVal(cx);
-    if (!JSObject::getProperty(cx, obj, obj, cx->names().message, &msgVal))
-        return false;
-
-    
-    RootedString message(cx);
-    if (msgVal.isUndefined()) {
-        message = cx->runtime()->emptyString;
-    } else {
-        message = ToString<CanGC>(cx, msgVal);
-        if (!message)
-            return false;
-    }
-
-    
-    if (name->empty() && message->empty()) {
-        args.rval().setString(cx->names().Error);
-        return true;
-    }
-
-    
-    if (name->empty()) {
-        args.rval().setString(message);
-        return true;
-    }
-
-    
-    if (message->empty()) {
-        args.rval().setString(name);
-        return true;
-    }
-
-    
-    StringBuffer sb(cx);
-    if (!sb.append(name) || !sb.append(": ") || !sb.append(message))
-        return false;
-
-    JSString *str = sb.finishString();
-    if (!str)
-        return false;
-    args.rval().setString(str);
     return true;
 }
 
