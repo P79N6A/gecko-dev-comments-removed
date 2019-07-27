@@ -13,64 +13,43 @@ final class GeckoBackgroundThread extends Thread {
     private static final String LOOPER_NAME = "GeckoBackgroundThread";
 
     
-    private static Handler handler;
-    private static Thread thread;
+    private static Handler sHandler;
+    private SynchronousQueue<Handler> mHandlerQueue = new SynchronousQueue<Handler>();
 
     
-    
-    private Runnable initialRunnable;
-
-    
-    private GeckoBackgroundThread(final Runnable initialRunnable) {
-        this.initialRunnable = initialRunnable;
+    private GeckoBackgroundThread() {
+        super();
     }
 
     @Override
     public void run() {
         setName(LOOPER_NAME);
         Looper.prepare();
-
-        synchronized (GeckoBackgroundThread.class) {
-            handler = new Handler();
-            GeckoBackgroundThread.class.notify();
-        }
-
-        if (initialRunnable != null) {
-            initialRunnable.run();
-            initialRunnable = null;
-        }
+        try {
+            mHandlerQueue.put(new Handler());
+        } catch (InterruptedException ie) {}
 
         Looper.loop();
     }
 
-    private static void startThread(final Runnable initialRunnable) {
-        thread = new GeckoBackgroundThread(initialRunnable);
-        ThreadUtils.setBackgroundThread(thread);
-
-        thread.setDaemon(true);
-        thread.start();
-    }
-
     
      static synchronized Handler getHandler() {
-        if (thread == null) {
-            startThread(null);
-        }
-
-        while (handler == null) {
+        if (sHandler == null) {
+            GeckoBackgroundThread lt = new GeckoBackgroundThread();
+            ThreadUtils.setBackgroundThread(lt);
+            lt.start();
             try {
-                GeckoBackgroundThread.class.wait();
-            } catch (final InterruptedException e) {
-            }
+                sHandler = lt.mHandlerQueue.take();
+            } catch (InterruptedException ie) {}
         }
-        return handler;
+        return sHandler;
     }
 
-     static synchronized void post(final Runnable runnable) {
-        if (thread == null) {
-            startThread(runnable);
-            return;
+     static void post(Runnable runnable) {
+        Handler handler = getHandler();
+        if (handler == null) {
+            throw new IllegalStateException("No handler! Must have been interrupted. Not posting.");
         }
-        getHandler().post(runnable);
+        handler.post(runnable);
     }
 }
