@@ -26,11 +26,8 @@ var gTabsPane = {
 
 
 
-#ifdef XP_WIN
-  
-
-
   init: function () {
+#ifdef XP_WIN
     const Cc = Components.classes;
     const Ci = Components.interfaces;
     try {
@@ -40,8 +37,20 @@ var gTabsPane = {
       let showTabsInTaskbar = document.getElementById("showTabsInTaskbar");
       showTabsInTaskbar.hidden = ver < 6.1;
     } catch (ex) {}
-  },
 #endif
+
+    
+    
+    
+    
+    let TransientPrefs =
+      Components.utils.import("resource:///modules/TransientPrefs.jsm", {})
+                .TransientPrefs;
+    if (!TransientPrefs.prefShouldBeVisible("browser.tabs.warnOnClose"))
+      document.getElementById("warnCloseMultiple").hidden = true;
+    if (!TransientPrefs.prefShouldBeVisible("browser.tabs.warnOnOpen"))
+      document.getElementById("warnOpenMany").hidden = true;
+  },
 
   
 

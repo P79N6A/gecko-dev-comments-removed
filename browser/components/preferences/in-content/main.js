@@ -5,6 +5,7 @@
 Components.utils.import("resource://gre/modules/Downloads.jsm");
 Components.utils.import("resource://gre/modules/FileUtils.jsm");
 Components.utils.import("resource://gre/modules/Task.jsm");
+Components.utils.import("resource:///modules/TransientPrefs.jsm");
 
 var gMainPane = {
   
@@ -46,6 +47,15 @@ var gMainPane = {
       showTabsInTaskbar.hidden = ver < 6.1;
     } catch (ex) {}
 #endif
+
+    
+    
+    
+    
+    if (!TransientPrefs.prefShouldBeVisible("browser.tabs.warnOnClose"))
+      document.getElementById("warnCloseMultiple").hidden = true;
+    if (!TransientPrefs.prefShouldBeVisible("browser.tabs.warnOnOpen"))
+      document.getElementById("warnOpenMany").hidden = true;
 
     setEventListener("browser.privatebrowsing.autostart", "change",
                      gMainPane.updateBrowserStartupLastSession);
