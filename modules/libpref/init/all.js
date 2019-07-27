@@ -574,14 +574,16 @@ pref("accessibility.browsewithcaret_shortcut.enabled", true);
 
 pref("accessibility.tabfocus", 7);
 pref("accessibility.tabfocus_applies_to_xul", false);
-
-
-
-pref("ui.scrollToClick", 0);
-
 #else
 
 pref("accessibility.tabfocus_applies_to_xul", true);
+#endif
+
+
+
+
+#if !defined(XP_MACOSX) && !defined(MOZ_WIDGET_GTK)
+pref("ui.scrollToClick", 0);
 #endif
 
 

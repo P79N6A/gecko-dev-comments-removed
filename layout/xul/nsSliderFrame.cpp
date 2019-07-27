@@ -534,6 +534,21 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
 
     mDragStart = pos - mThumbStart;
   }
+#ifdef MOZ_WIDGET_GTK
+  else if (ShouldScrollForEvent(aEvent) &&
+           aEvent->mClass == eMouseEventClass &&
+           aEvent->AsMouseEvent()->button == WidgetMouseEvent::eRightButton) {
+    
+    
+    if (aEvent->message == NS_MOUSE_BUTTON_DOWN) {
+      HandlePress(aPresContext, aEvent, aEventStatus);
+    } else if (aEvent->message == NS_MOUSE_BUTTON_UP) {
+      HandleRelease(aPresContext, aEvent, aEventStatus);
+    }
+
+    return NS_OK;
+  }
+#endif
 
   
 
@@ -955,8 +970,14 @@ nsSliderFrame::ShouldScrollForEvent(WidgetGUIEvent* aEvent)
     case NS_MOUSE_BUTTON_DOWN:
     case NS_MOUSE_BUTTON_UP: {
       uint16_t button = aEvent->AsMouseEvent()->button;
+#ifdef MOZ_WIDGET_GTK
+      return (button == WidgetMouseEvent::eLeftButton) ||
+             (button == WidgetMouseEvent::eRightButton && GetScrollToClick()) ||
+             (button == WidgetMouseEvent::eMiddleButton && gMiddlePref && !GetScrollToClick());
+#else
       return (button == WidgetMouseEvent::eLeftButton) ||
              (button == WidgetMouseEvent::eMiddleButton && gMiddlePref);
+#endif
     }
     default:
       return false;
@@ -978,7 +999,7 @@ nsSliderFrame::ShouldScrollToClickForEvent(WidgetGUIEvent* aEvent)
     return false;
   }
 
-#ifdef XP_MACOSX
+#if defined(XP_MACOSX) || defined(MOZ_WIDGET_GTK)
   
   if (IsEventOverThumb(aEvent)) {
     return false;
@@ -994,6 +1015,12 @@ nsSliderFrame::ShouldScrollToClickForEvent(WidgetGUIEvent* aEvent)
 #endif
     return GetScrollToClick() != invertPref;
   }
+
+#ifdef MOZ_WIDGET_GTK
+  if (mouseEvent->button == WidgetMouseEvent::eRightButton) {
+    return !GetScrollToClick();
+  }
+#endif
 
   return true;
 }
