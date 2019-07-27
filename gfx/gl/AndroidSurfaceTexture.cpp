@@ -130,8 +130,10 @@ AndroidSurfaceTexture::UpdateCanDetach()
 {
   
   
+  
   mCanDetach = AndroidBridge::Bridge()->GetAPIVersion() >= 16 &&
-    (!mAttachedContext || mAttachedContext->Vendor() != GLVendor::Imagination);
+    (!mAttachedContext || mAttachedContext->Vendor() != GLVendor::Imagination) &&
+    (!mAttachedContext || mAttachedContext->Vendor() != GLVendor::ARM );
 }
 
 bool
