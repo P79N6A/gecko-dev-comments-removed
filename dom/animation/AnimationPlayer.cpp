@@ -6,6 +6,8 @@
 #include "AnimationPlayer.h"
 #include "AnimationUtils.h"
 #include "mozilla/dom/AnimationPlayerBinding.h"
+#include "AnimationCommon.h" 
+                             
 #include "nsIDocument.h" 
 #include "nsIPresShell.h" 
 #include "nsLayoutUtils.h" 
@@ -274,6 +276,24 @@ AnimationPlayer::GetPresContext() const
     return nullptr;
   }
   return shell->GetPresContext();
+}
+
+AnimationPlayerCollection*
+AnimationPlayer::GetCollection() const
+{
+  css::CommonAnimationManager* manager = GetAnimationManager();
+  if (!manager) {
+    return nullptr;
+  }
+  MOZ_ASSERT(mSource, "A player with an animation manager must have a source");
+
+  Element* targetElement;
+  nsCSSPseudoElements::Type targetPseudoType;
+  mSource->GetTarget(targetElement, targetPseudoType);
+  MOZ_ASSERT(targetElement,
+             "A player with an animation manager must have a target");
+
+  return manager->GetAnimationPlayers(targetElement, targetPseudoType, false);
 }
 
 } 
