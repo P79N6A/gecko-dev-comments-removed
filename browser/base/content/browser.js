@@ -7189,18 +7189,15 @@ let gPrivateBrowsingUI = {
       }
     }
 
-    if (gURLBar) {
+    if (gURLBar &&
+        !PrivateBrowsingUtils.permanentPrivateBrowsing) {
+      
+      
       let value = gURLBar.getAttribute("autocompletesearchparam") || "";
-      if (!PrivateBrowsingUtils.permanentPrivateBrowsing &&
-          !value.includes("disable-private-actions")) {
-        
-        
-        value += " disable-private-actions";
+      if (!value.includes("disable-private-actions")) {
+        gURLBar.setAttribute("autocompletesearchparam",
+                             value + " disable-private-actions");
       }
-      if (!value.includes("private-window")) {
-        value += " private-window";
-      }
-      gURLBar.setAttribute("autocompletesearchparam", value);
     }
   }
 };
