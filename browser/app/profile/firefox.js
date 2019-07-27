@@ -1744,7 +1744,11 @@ pref("ui.key.menuAccessKeyFocuses", true);
 #endif
 
 
+#ifdef RELEASE_BUILD
 pref("media.eme.enabled", false);
+#else
+pref("media.eme.enabled", true);
+#endif
 
 
 
