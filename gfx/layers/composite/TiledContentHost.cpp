@@ -175,6 +175,23 @@ GetCopyOnWriteLock(const TileLock& ipcLock, TileHost& aTile, ISurfaceAllocator* 
   return true;
 }
 
+void
+TiledLayerBufferComposite::MarkTilesForUnlock()
+{
+  
+  
+  
+  
+  for (TileHost& tile : mRetainedTiles) {
+    
+    
+    if (tile.mTextureHost && tile.mSharedLock) {
+      mDelayedUnlocks.AppendElement(tile.mSharedLock);
+      tile.mSharedLock = nullptr;
+    }
+  }
+}
+
 bool
 TiledLayerBufferComposite::UseTiles(const SurfaceDescriptorTiles& aTiles,
                                     Compositor* aCompositor,
@@ -201,40 +218,14 @@ TiledLayerBufferComposite::UseTiles(const SurfaceDescriptorTiles& aTiles,
 
   const InfallibleTArray<TileDescriptor>& tileDescriptors = aTiles.tiles();
 
+  
+  
+  
+  MarkTilesForUnlock();
+
   nsTArray<TileHost> oldRetainedTiles;
   mRetainedTiles.SwapElements(oldRetainedTiles);
   mRetainedTiles.SetLength(tileDescriptors.Length());
-
-  
-  
-  
-  
-  for (size_t i = 0; i < oldRetainedTiles.Length(); ++i) {
-    TileHost& tile = oldRetainedTiles[i];
-    
-    
-    
-    
-    
-    tile.ReadUnlockPrevious();
-
-    if (tile.mTextureHost && !tile.mTextureHost->HasInternalBuffer()) {
-      MOZ_ASSERT(tile.mSharedLock);
-      const TileIntPoint tilePosition = oldTiles.TilePosition(i);
-      if (newTiles.HasTile(tilePosition)) {
-        
-        tile.mPreviousSharedLock = tile.mSharedLock;
-        tile.mSharedLock = nullptr;
-      } else {
-        
-        
-        tile.ReadUnlock();
-      }
-    }
-
-    
-    MOZ_ASSERT(!tile.mSharedLock);
-  }
 
   
   
@@ -315,20 +306,6 @@ TiledLayerBufferComposite::UseTiles(const SurfaceDescriptorTiles& aTiles,
       default:
         NS_WARNING("Unrecognised tile descriptor type");
       case TileDescriptor::TPlaceholderTileDescriptor: {
-
-        if (tile.mTextureHost) {
-          tile.mTextureHost->UnbindTextureSource();
-          tile.mTextureSource = nullptr;
-        }
-        if (tile.mTextureHostOnWhite) {
-          tile.mTextureHostOnWhite->UnbindTextureSource();
-          tile.mTextureSourceOnWhite = nullptr;
-        }
-        
-        
-        tile.ReadUnlockPrevious();
-        tile = GetPlaceholderTile();
-
         break;
       }
     }
@@ -347,13 +324,22 @@ TiledLayerBufferComposite::UseTiles(const SurfaceDescriptorTiles& aTiles,
 }
 
 void
+TiledLayerBufferComposite::ProcessDelayedUnlocks()
+{
+  for (gfxSharedReadLock* lock : mDelayedUnlocks) {
+    lock->ReadUnlock();
+  }
+  mDelayedUnlocks.Clear();
+}
+
+void
 TiledLayerBufferComposite::Clear()
 {
   for (TileHost& tile : mRetainedTiles) {
     tile.ReadUnlock();
-    tile.ReadUnlockPrevious();
   }
   mRetainedTiles.Clear();
+  ProcessDelayedUnlocks();
   mTiles.mFirst = TileIntPoint();
   mTiles.mSize = TileIntSize();
   mValidRegion = nsIntRegion();
@@ -416,6 +402,8 @@ TiledContentHost::Composite(LayerComposite* aLayer,
                     aFilter, aClipRect, *renderRegion, aTransform);
   RenderLayerBuffer(mTiledBuffer, nullptr, aEffectChain, aOpacity, aFilter,
                     aClipRect, *renderRegion, aTransform);
+  mLowPrecisionTiledBuffer.ProcessDelayedUnlocks();
+  mTiledBuffer.ProcessDelayedUnlocks();
 }
 
 
@@ -479,7 +467,6 @@ TiledContentHost::RenderTile(TileHost& aTile,
   }
   mCompositor->DrawDiagnostics(flags,
                                aScreenRegion, aClipRect, aTransform, mFlashCounter);
-  aTile.ReadUnlockPrevious();
 }
 
 void
