@@ -414,13 +414,6 @@ protected:
 
 
 
-    nsresult ExecuteScript(nsIScriptContext *aContext,
-                           JS::Handle<JSScript*> aScriptObject);
-
-    
-
-
-
     nsresult ExecuteScript(nsXULPrototypeScript *aScript);
 
     
