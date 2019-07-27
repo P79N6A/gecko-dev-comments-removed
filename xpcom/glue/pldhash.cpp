@@ -822,7 +822,7 @@ PLDHashTable::Iterator::Iterator(PLDHashTable* aTable)
   mTable->mChecker.StartReadOp();
 #endif
 
-  if (ChaosMode::isActive(ChaosMode::HashTableIteration) &&
+  if (ChaosMode::isActive(ChaosFeature::HashTableIteration) &&
       mTable->Capacity() > 0) {
     
     
