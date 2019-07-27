@@ -129,12 +129,14 @@ function doOK() {
 
   
   let subfolder = projectName.replace(/[\\/:*?"<>|]/g, '').toLowerCase();
+  let win = Services.wm.getMostRecentWindow("devtools:webide");
   folder.append(subfolder);
 
   try {
     folder.create(Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
   } catch(e) {
-    console.error(e);
+    win.UI.reportError("error_folderCreationFailed");
+    window.close();
     return false;
   }
 
