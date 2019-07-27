@@ -329,14 +329,32 @@ ToolSidebar.prototype = {
   
 
 
-  toggleTab: function(id, isVisible) {
+
+
+
+
+
+  toggleTab: function(isVisible, id, tabPanelId) {
+    
     let tab = this.getTab(id);
     if (!tab) {
       return;
     }
     tab.hidden = !isVisible;
+
+    
     if (this._allTabsBtn) {
       this._allTabsBtn.querySelector("#sidebar-alltabs-item-" + id).hidden = !isVisible;
+    }
+
+    
+    
+    let tabPanel = this.getTabPanel(id);
+    if (!tabPanel && tabPanelId) {
+      tabPanel = this.getTabPanel(tabPanelId);
+    }
+    if (tabPanel) {
+      tabPanel.hidden = !isVisible;
     }
   },
 
