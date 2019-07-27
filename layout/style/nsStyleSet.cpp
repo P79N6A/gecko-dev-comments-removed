@@ -1375,8 +1375,8 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
           
           nsAnimationManager* animationManager =
             PresContext()->AnimationManager();
-          ElementAnimationCollection* collection = animationManager->GetElementAnimations(
-            aElement, aPseudoType, false);
+          AnimationPlayerCollection* collection =
+            animationManager->GetAnimationPlayers(aElement, aPseudoType, false);
 
           if (collection) {
             animationManager->UpdateStyleAndEvents(
@@ -1393,7 +1393,7 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
           
           
           nsPresContext* presContext = PresContext();
-          ElementAnimationCollection* collection =
+          AnimationPlayerCollection* collection =
             presContext->TransitionManager()->GetElementTransitions(
               aElement, aPseudoType, false);
 
