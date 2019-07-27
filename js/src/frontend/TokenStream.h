@@ -339,6 +339,7 @@ class MOZ_STACK_CLASS TokenStream
     bool reportStrictModeError(unsigned errorNumber, ...);
     bool strictMode() const { return strictModeGetter && strictModeGetter->strictMode(); }
 
+    void onError();
     static JSAtom *atomize(ExclusiveContext *cx, CharBuffer &cb);
     bool putIdentInTokenbuf(const char16_t *identStart);
 
@@ -372,16 +373,17 @@ class MOZ_STACK_CLASS TokenStream
     bool getToken(TokenKind *ttp, Modifier modifier = None) {
         
         if (lookahead != 0) {
-            MOZ_ASSERT(!flags.hadError);
             lookahead--;
             cursor = (cursor + 1) & ntokensMask;
             TokenKind tt = currentToken().type;
             MOZ_ASSERT(tt != TOK_EOL);
             *ttp = tt;
-            return true;
+            return tt != TOK_ERROR;
         }
 
-        return getTokenInternal(ttp, modifier);
+        TokenKind tt = getTokenInternal(modifier);
+        *ttp = tt;
+        return tt != TOK_ERROR;
     }
 
     
@@ -393,28 +395,23 @@ class MOZ_STACK_CLASS TokenStream
 
     bool peekToken(TokenKind *ttp, Modifier modifier = None) {
         if (lookahead > 0) {
-            MOZ_ASSERT(!flags.hadError);
             *ttp = tokens[(cursor + 1) & ntokensMask].type;
-            return true;
+        } else {
+            *ttp = getTokenInternal(modifier);
+            ungetToken();
         }
-        if (!getTokenInternal(ttp, modifier))
-            return false;
-        ungetToken();
-        return true;
+        return *ttp != TOK_ERROR;
     }
 
     bool peekTokenPos(TokenPos *posp, Modifier modifier = None) {
         if (lookahead == 0) {
-            TokenKind tt;
-            if (!getTokenInternal(&tt, modifier))
-                return false;
+            getTokenInternal(modifier);
             ungetToken();
             MOZ_ASSERT(lookahead != 0);
-        } else {
-            MOZ_ASSERT(!flags.hadError);
         }
-        *posp = tokens[(cursor + 1) & ntokensMask].pos;
-        return true;
+        Token token = tokens[(cursor + 1) & ntokensMask];
+        *posp = token.pos;
+        return token.type != TOK_ERROR;
     }
 
     
@@ -433,9 +430,9 @@ class MOZ_STACK_CLASS TokenStream
         
         
         if (lookahead != 0 && srcCoords.isOnThisLine(curr.pos.end, lineno)) {
-            MOZ_ASSERT(!flags.hadError);
-            *ttp = tokens[(cursor + 1) & ntokensMask].type;
-            return true;
+            TokenKind tt = tokens[(cursor + 1) & ntokensMask].type;
+            *ttp = tt;
+            return tt != TOK_ERROR;
         }
 
         
@@ -737,7 +734,7 @@ class MOZ_STACK_CLASS TokenStream
         const char16_t *ptr;            
     };
 
-    bool getTokenInternal(TokenKind *ttp, Modifier modifier);
+    TokenKind getTokenInternal(Modifier modifier);
 
     bool getStringOrTemplateToken(int qc, Token **tp);
 
