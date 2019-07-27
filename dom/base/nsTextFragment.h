@@ -19,7 +19,6 @@
 #include "nsISupportsImpl.h"
 
 class nsString;
-class nsCString;
 
 
 

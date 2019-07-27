@@ -15,7 +15,6 @@
 #include "nsAutoPtr.h"
 
 class nsIURI;
-class nsCycleCollectionCallback;
 
 
 

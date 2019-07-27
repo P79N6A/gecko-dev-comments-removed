@@ -15,10 +15,8 @@
 
 
 
-class nsAString;
 class nsIContent;
 class imgRequestProxy;
-class nsNodeInfoManager;
 class nsGenericHTMLElement;
 
 namespace mozilla {

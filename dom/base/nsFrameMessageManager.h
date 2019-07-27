@@ -124,8 +124,6 @@ StructuredCloneData UnpackClonedMessageDataForChild(const ClonedMessageData& aDa
 } 
 } 
 
-class nsAXPCNativeCallContext;
-
 struct nsMessageListenerInfo
 {
   bool operator==(const nsMessageListenerInfo& aOther) const

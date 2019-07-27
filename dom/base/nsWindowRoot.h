@@ -8,14 +8,8 @@
 #define nsWindowRoot_h__
 
 class nsPIDOMWindow;
-class nsIDOMEventListener;
 class nsIDOMEvent;
 class nsIGlobalObject;
-
-namespace mozilla {
-class EventChainPostVisitor;
-class EventChainPreVisitor;
-} 
 
 #include "mozilla/Attributes.h"
 #include "mozilla/EventListenerManager.h"
