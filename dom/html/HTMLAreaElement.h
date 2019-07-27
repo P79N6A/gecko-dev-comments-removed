@@ -158,7 +158,6 @@ public:
   using Link::SetHash;
 
   
-  
 
   bool NoHref() const
   {
