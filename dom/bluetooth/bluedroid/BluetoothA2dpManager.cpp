@@ -36,7 +36,6 @@ namespace {
 #endif
 } 
 
-#if ANDROID_VERSION > 17
 
 
 
@@ -72,7 +71,6 @@ ConvertAttributeString(BluetoothAvrcpMediaAttribute aAttrId,
       break;
   }
 }
-#endif
 
 NS_IMETHODIMP
 BluetoothA2dpManager::Observe(nsISupports* aSubject,
