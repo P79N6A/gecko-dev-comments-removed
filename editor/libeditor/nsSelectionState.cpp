@@ -16,7 +16,6 @@
 #include "nsIDOMCharacterData.h"        
 #include "nsIDOMNode.h"                 
 #include "nsIDOMRange.h"                
-#include "nsISelection.h"               
 #include "nsISupportsImpl.h"            
 #include "nsRange.h"                    
 #include "nsSelectionState.h"
@@ -78,7 +77,7 @@ nsSelectionState::SaveSelection(Selection* aSel)
 }
 
 nsresult  
-nsSelectionState::RestoreSelection(nsISelection *aSel)
+nsSelectionState::RestoreSelection(Selection* aSel)
 {
   NS_ENSURE_TRUE(aSel, NS_ERROR_NULL_POINTER);
   nsresult res;

@@ -2,6 +2,7 @@
 
 
 
+#include "mozilla/dom/Selection.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
@@ -20,9 +21,11 @@
 #include "nsIHTMLEditor.h"
 #include "nsIHTMLInlineTableEditor.h"
 #include "nsIHTMLObjectResizer.h"
-#include "nsISelection.h"
 #include "nsISupportsImpl.h"
 #include "nsLiteralString.h"
+
+using namespace mozilla;
+using namespace mozilla::dom;
 
 
 
@@ -99,8 +102,7 @@ nsHTMLEditorEventListener::MouseDown(nsIDOMMouseEvent* aMouseEvent)
   nsCOMPtr<nsIDOMElement> element = do_QueryInterface(target);
 
   if (isContextClick || (buttonNumber == 0 && clickCount == 2)) {
-    nsCOMPtr<nsISelection> selection;
-    mEditor->GetSelection(getter_AddRefs(selection));
+    nsRefPtr<Selection> selection = mEditor->GetSelection();
     NS_ENSURE_TRUE(selection, NS_OK);
 
     

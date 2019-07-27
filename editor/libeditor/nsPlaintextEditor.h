@@ -26,9 +26,14 @@ class nsIDOMNode;
 class nsIDocumentEncoder;
 class nsIEditRules;
 class nsIOutputStream;
-class nsISelection;
 class nsISelectionController;
 class nsITransferable;
+
+namespace mozilla {
+namespace dom {
+class Selection;
+}
+}
 
 
 
@@ -116,7 +121,7 @@ public:
   NS_IMETHOD EndOperation();
 
   
-  NS_IMETHOD SelectEntireDocument(nsISelection *aSelection);
+  virtual nsresult SelectEntireDocument(mozilla::dom::Selection* aSelection);
 
   virtual nsresult HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent);
 
@@ -149,7 +154,7 @@ public:
 
 
 
-  nsresult ExtendSelectionForDelete(nsISelection* aSelection,
+  nsresult ExtendSelectionForDelete(mozilla::dom::Selection* aSelection,
                                     nsIEditor::EDirection *aAction);
 
   

@@ -13,7 +13,6 @@
 #include "nsIEditor.h"
 #include "nsIPresShell.h"
 #include "mozilla/dom/Selection.h"
-#include "nsISelectionPrivate.h"
 #include "nsISupportsImpl.h"
 #include "nsPlaintextEditor.h"
 #include "nsPresContext.h"
@@ -25,7 +24,7 @@ using namespace mozilla::dom;
 
 
 nsresult
-nsTextEditRules::CheckBidiLevelForDeletion(nsISelection         *aSelection,
+nsTextEditRules::CheckBidiLevelForDeletion(Selection* aSelection,
                                            nsIDOMNode           *aSelNode, 
                                            int32_t               aSelOffset, 
                                            nsIEditor::EDirection aAction,

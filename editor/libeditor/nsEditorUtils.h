@@ -19,8 +19,12 @@ class nsIAtom;
 class nsIContentIterator;
 class nsIDOMDocument;
 class nsIDOMRange;
-class nsISelection;
 template <class E> class nsCOMArray;
+namespace mozilla {
+namespace dom {
+class Selection;
+}
+}
 
 
 
