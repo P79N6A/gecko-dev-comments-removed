@@ -967,6 +967,39 @@ add_task(function test_upload_on_init_failure() {
   yield shutdownServer(server);
 });
 
+
+add_task(function* test_upload_with_provider_record_failure() {
+  let [reporter, server] = yield getReporterAndServer("upload_with_provider_record_failure");
+  try {
+    
+    
+    
+    
+    let provider = reporter.getProvider("org.mozilla.healthreport");
+
+    let wrappedProto = {
+      __proto__: HealthReportProvider.prototype,
+
+      recordEvent: function (event, date=new Date()) {
+        this._log.warn("Simulating error during write");
+        throw new Error("Fake error during recordEvent.");
+      },
+    };
+    provider.__proto__ = wrappedProto;
+
+    let deferred = Promise.defer();
+    let now = new Date();
+    let request = new DataSubmissionRequest(deferred, now);
+    reporter._state.addRemoteID("foo");
+    reporter.requestDataUpload(request);
+    yield deferred.promise;
+    do_check_eq(request.state, request.SUBMISSION_SUCCESS);
+  } finally {
+    yield reporter._shutdown();
+    yield shutdownServer(server);
+  }
+});
+
 add_task(function test_state_prefs_conversion_simple() {
   let reporter = getHealthReporter("state_prefs_conversion");
   let prefs = reporter._prefs;
