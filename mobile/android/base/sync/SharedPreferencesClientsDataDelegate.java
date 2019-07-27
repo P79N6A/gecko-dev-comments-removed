@@ -4,9 +4,9 @@
 
 package org.mozilla.gecko.sync;
 
+import org.mozilla.gecko.R;
 import org.mozilla.gecko.background.common.GlobalConstants;
 import org.mozilla.gecko.sync.delegates.ClientsDataDelegate;
-import org.mozilla.gecko.R;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -50,7 +50,8 @@ public class SharedPreferencesClientsDataDelegate implements ClientsDataDelegate
 
   @Override
   public String getDefaultClientName() {
-    String name = GlobalConstants.MOZ_APP_DISPLAYNAME;
+    String name = GlobalConstants.MOZ_APP_DISPLAYNAME; 
+    
     if (name.contains("Aurora")) {
         name = "Aurora";
     } else if (name.contains("Beta")) {
